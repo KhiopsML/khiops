@@ -8,29 +8,29 @@
 #include "KWLearningReport.h"
 #include "DTDecisionTreeParameter.h"
 
-/// Classe des parametres d'un classifieur en arbre de decision
+// Classe des parametres d'un classifieur en arbre de decision
 class DTForestParameter : public Object // public DTDecisionTreeParameter
 {
 public:
 	DTForestParameter();
 	~DTForestParameter();
 
-	/// Acces au mode de selection des variables
+	// Acces au mode de selection des variables
 	ALString GetTreesVariablesSelection() const;
 	void SetTreesVariablesSelection(ALString sValue);
 
-	/// Acces au pourcentage d'individus retenus par arbre
+	// Acces au pourcentage d'individus retenus par arbre
 	Continuous GetInstancePercentage() const;
 	void SetInstancePercentage(Continuous cValue);
 
-	/// Acces au pourcentage de variables retenues par arbre
+	// Acces au pourcentage de variables retenues par arbre
 	Continuous GetAttributePercentage() const;
 	void SetAttributePercentage(Continuous cValue);
 
 	void SetRecodeRFDictionary(boolean bValue);
 	boolean GetRecodeRFDictionary() const;
 
-	/** type de tirage (avec ou sans remise) */
+	// type de tirage (avec ou sans remise) 
 	void SetDrawingType(DTDecisionTree::DrawingType);
 	void SetDrawingType(const ALString typeLabel);
 	DTDecisionTree::DrawingType GetDrawingType() const;
@@ -43,11 +43,11 @@ public:
 	int GetOptimizationLoopNumber() const;
 	void SetOptimizationLoopNumber(int nNumber);
 
-	/// Acces au nombre de variable min
+	// Acces au nombre de variable min
 	void SetVariableNumberMin(int nNumber);
 	int GetVariableNumberMin() const;
 
-	/// Acces a l'indicateur de ponderation du classifieur
+	// Acces a l'indicateur de ponderation du classifieur
 	void SetWeightedClassifier(ALString sValue);
 	ALString GetWeightedClassifier() const;
 
@@ -62,11 +62,11 @@ public:
 	boolean IsWriteDetailedStatistics() const;
 	void SetWriteDetailedStatistics(boolean);
 
-	/// GEtDecisionTreeParameter
+	// GEtDecisionTreeParameter
 	DTDecisionTreeParameter* GetDecisionTreeParameter();
 	void SetDecisionTreeParameter(DTDecisionTreeParameter* decisiontreeparameter);
 
-	/// Duplication de l'arbre
+	// Duplication de l'arbre
 	DTForestParameter* Clone() const;
 
 	void CopyFrom(const DTForestParameter* param);
@@ -87,38 +87,38 @@ public:
 	static const ALString DISCRETIZATION_MODL;
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	// Implementation
 protected:
 	friend class PLShared_ForestParameter;
 
 	ALString sTreesVariablesSelection;
 	// ALString sHeuristicCreation;
 
-	/// Pourcentage d'indivus utilises pour l'apprentissage
-	/// de chaque arbre
+	// Pourcentage d'indivus utilises pour l'apprentissage
+	// de chaque arbre
 	Continuous cInstancePercentage;
 
-	/// Pourcentage de variables eligibles pour chaque noeud de l'arbre
+	// Pourcentage de variables eligibles pour chaque noeud de l'arbre
 	Continuous cKeptAttributePercentage;
 
 	boolean bRecodeRFDictionary;
 
 	DTDecisionTree::DrawingType drawingType;
 
-	/// Pourcentage de variables minimun a prendre
+	// Pourcentage de variables minimun a prendre
 	int nVariableNumberMin;
 
-	/// type d'initalisation de l'obtimisiation des poids des arbres dans le calcul global
-	/// BESTTREE : init = l'abres au meilleur compretion rate
-	/// ALLTREE : init = moyen pondere de tout les arbres
+	// type d'initalisation de l'obtimisiation des poids des arbres dans le calcul global
+	// BESTTREE : init = l'abres au meilleur compretion rate
+	// ALLTREE : init = moyen pondere de tout les arbres
 	ALString sInitRFOptimisation;
 
 	int nOptimizationLoopNumber;
 
-	/// Ponderation ou pas du predicteur moyen
+	// Ponderation ou pas du predicteur moyen
 	ALString sWeightedClassifier;
 
-	/// type de discretisation d'une target continue
+	// type de discretisation d'une target continue
 	ALString sDiscretizationTargetMethod;
 
 	// nbre max d'intervalles pour discretisation Eq Freq d'une target continue

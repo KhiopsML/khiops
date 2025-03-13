@@ -7,20 +7,19 @@
 
 #include "UserInterface.h"
 #include "KIInterpretationSpec.h"
-
 #include "KILeverVariablesSpecView.h"
 
 /////////////////////////////////////////////////////////////////////
-/// Classe KIHowParameterView : Vue sur le PARAMETRAGE specifique du
-/// RENFORCEMENT d'un interpreteur de scores
+// Classe KIHowParameterView : Vue sur le PARAMETRAGE specifique du
+// RENFORCEMENT d'un interpreteur de scores
 class KIHowParameterView : public UIObjectView
 {
 public:
-	/// Constructeur
+	// Constructeur
 	KIHowParameterView();
 	~KIHowParameterView();
 
-	/// Constructeur generique
+	// Constructeur generique
 	KIHowParameterView* Create() const;
 
 	// La methode stocke l'objet passe en parametre, puis appelle EventRefresh
@@ -29,10 +28,10 @@ public:
 	////////////////////////////////////////////////////////
 	// Methodes a reimplementer dans les sous-classes
 
-	/// Mise a jour du classifieur specifique par les valeurs de l'interface
+	// Mise a jour du classifieur specifique par les valeurs de l'interface
 	void EventUpdate(Object* object);
 
-	/// Mise a jour des valeurs de l'interface par le classifier specifique
+	// Mise a jour des valeurs de l'interface par le classifier specifique
 	void EventRefresh(Object* object);
 
 	KILeverVariablesSpecView* GetLeverVariablesSpecView();

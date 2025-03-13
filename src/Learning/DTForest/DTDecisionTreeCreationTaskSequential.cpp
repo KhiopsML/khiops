@@ -374,13 +374,13 @@ boolean DTDecisionTreeCreationTaskSequential::CreatePreparedAttributes(KWLearnin
 			for (nAttribute = nsliceoffset; nAttribute < oaCreatedAttributes.GetSize(); nAttribute++)
 			{
 				ttattribut = cast(KWTupleTable*, oatupletable.GetAt(nAttribute));
-				//// Creation et initialisation d'un objet de stats pour l'attribut
+				// Creation et initialisation d'un objet de stats pour l'attribut
 				attributeStats = new KWAttributeStats;
 				attributeStats->SetLearningSpec(originalLearningSpec);
 				attributeStats->SetAttributeName(ttattribut->GetAttributeNameAt(0));
 				attributeStats->SetAttributeType(KWType::Symbol);
 
-				//// Calcul des statistitique univariee a partir de la table de tuples
+				// Calcul des statistitique univariee a partir de la table de tuples
 				attributeStats->ComputeStats(ttattribut);
 				oaOutputAttributeStats->Add(attributeStats);
 
@@ -992,13 +992,13 @@ DTDecisionTreeCreationTaskSequential::BuildTupleTableForClassification(DTDecisio
 		}
 	}
 
-	//// Creation et initialisation d'un objet de stats pour l'attribut
+	// Creation et initialisation d'un objet de stats pour l'attribut
 	// attributeStats = new KWAttributeStats;
 	// attributeStats->SetLearningSpec(learningSpec);
 	// attributeStats->SetAttributeName(svariablename);
 	// attributeStats->SetAttributeType(KWType::Symbol);
 
-	//// Calcul des statistitique univariee a partir de la table de tuples
+	// Calcul des statistitique univariee a partir de la table de tuples
 	// attributeStats->ComputeStats(&univariateTupleTable);
 	univariateTupleTable->SetUpdateMode(false);
 

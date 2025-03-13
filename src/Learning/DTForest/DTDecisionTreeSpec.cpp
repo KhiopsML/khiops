@@ -671,7 +671,7 @@ void DTDecisionTreeNodeSpec::SetTargetModalitiesCountTrain(ObjectArray* n)
 {
 	oaTargetModalitiesCountTrain = n;
 }
-///////////////////////////////////////////////  HASH VALUE ///////////////////////////////////////
+////////////////////////////////////////////  HASH VALUE ///////////////////////////////////////
 
 longint DTDecisionTreeNodeSpec::ComputeHashValue() const
 {
@@ -798,7 +798,7 @@ longint DTDecisionTreeNodeSpec::ComputeHashOfGroupIndexRule() const
 
 	return lHash;
 }
-////////////////  classe PLShared_DecisionTreeSpec
+/////////////  classe PLShared_DecisionTreeSpec
 
 PLShared_DecisionTreeSpec::PLShared_DecisionTreeSpec()
 {
@@ -911,7 +911,7 @@ void PLShared_DecisionTreeSpec::AddNode(ObjectArray& oaTreeNodes, DTDecisionTree
 	}
 }
 
-/////////////////////  classe PLShared_DecisionTreeNodeSpec
+//////////////////  classe PLShared_DecisionTreeNodeSpec
 
 PLShared_DecisionTreeNodeSpec::PLShared_DecisionTreeNodeSpec()
 {
@@ -1024,7 +1024,7 @@ DTDecisionTreeNodeSpec* PLShared_DecisionTreeNodeSpec::GetDecisionTreeNodeSpec()
 
 ///////////////////////////////////////////////////////////
 
-////////////////  classe PLShared_TargetModalityCount
+/////////////  classe PLShared_TargetModalityCount
 
 PLShared_TargetModalityCount::PLShared_TargetModalityCount() {}
 

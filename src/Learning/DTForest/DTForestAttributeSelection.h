@@ -13,17 +13,17 @@ class DTAttributeSelectionsSlices;
 class PLShared_AttributeSelectionsSlices;
 
 /////////////////////////////////////////////////////////////////////
-/// Classe DTForestAttributeSelection
+// Classe DTForestAttributeSelection
 class DTForestAttributeSelection : public Object
 {
 public:
-	/// Constructeur
+	// Constructeur
 	DTForestAttributeSelection();
 	~DTForestAttributeSelection();
 
-	/** entree : tableau de KWAttributeStats
-	Ensemble des attributs pour faire les selections
-	*/
+	// entree : tableau de KWAttributeStats
+	// Ensemble des attributs pour faire les selections
+
 	virtual void Initialization(const ObjectDictionary* odInputAttributeStats);
 
 	void BuildForestSelections(int nMaxSelectionNumber, int nvariableNumberMin);
@@ -65,7 +65,7 @@ public:
 	void WriteReport(ostream& ost);
 
 	///////////////////////////////////////////////////////
-	//// Implementation
+	// Implementation
 protected:
 	void Clean();
 	void CleanAll();
@@ -159,7 +159,7 @@ public:
 	const ALString GetObjectLabel() const override;
 
 	///////////////////////////////////////////////////////////////////////////////
-	///// Implementation
+	// Implementation
 protected:
 	friend PLShared_AttributeSelectionsSlices;
 

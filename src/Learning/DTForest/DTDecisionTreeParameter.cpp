@@ -207,7 +207,7 @@ void DTDecisionTreeParameter::Write(ostream& ost)
 	ost << "\n\n";
 }
 
-////////////////  classe PLShared_DecisionTreeParameter
+/////////////  classe PLShared_DecisionTreeParameter
 
 PLShared_DecisionTreeParameter::PLShared_DecisionTreeParameter() {}
 

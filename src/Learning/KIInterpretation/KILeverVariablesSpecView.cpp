@@ -3,7 +3,6 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "KILeverVariablesSpecView.h"
-#include "KIInterpretationDictionary.h"
 
 KILeverVariablesSpecView::KILeverVariablesSpecView()
 {
@@ -34,7 +33,7 @@ void KILeverVariablesSpecView::EventUpdate(Object* object)
 	KWAttribute* attribute;
 	KWAttributeSpec* attributeSpec;
 	ALString sMetaData;
-
+	int nAttribute;
 	require(object != NULL);
 
 	editedObject = cast(KWClassSpec*, object);
@@ -49,7 +48,7 @@ void KILeverVariablesSpecView::EventUpdate(Object* object)
 	{
 		// on ne touche pas a la propriete Used de l'attribut, afin de ne pas faire apparaitre inutilement cet attribut dans le transfert, si pas demande
 
-		for (int nAttribute = 0; nAttribute < oaAttributeSpecs.GetSize(); nAttribute++)
+		for (nAttribute = 0; nAttribute < oaAttributeSpecs.GetSize(); nAttribute++)
 		{
 			attributeSpec = cast(KWAttributeSpec*, oaAttributeSpecs.GetAt(nAttribute));
 

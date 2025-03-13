@@ -61,19 +61,19 @@ protected:
 
 	int iFrequency; // nbre de fois ou le meme KWObject est reference (si tirage avec remise)
 
-	/** poids de l'instance dans le calcul du score */
+	// poids de l'instance dans le calcul du score 
 	Continuous cScoreWeight;
 
-	/** poids de l'instance dans le tirage boost avec remise */
+	// poids de l'instance dans le tirage boost avec remise 
 	Continuous cBoostingTreeWeight;
 
-	/** proba max trouvee, correspondant a une modalite autre que la modalite reelle de l'instance (algo AdaBoostBG)
-	 */
+	// proba max trouvee, correspondant a une modalite autre que la modalite reelle de l'instance (algo AdaBoostBG)
+	 
 	Continuous cAdaBoostBGErrorRate;
 
 	int iTargetModalityIndex; // index de la modalite cible
 
-	/* la cible a t elle ete correctement predite pour cette instance ? */
+	// la cible a t elle ete correctement predite pour cette instance ? 
 	boolean bIsTargetCorrectlyPredicted;
 
 	ContinuousVector* trainNodeProbs;

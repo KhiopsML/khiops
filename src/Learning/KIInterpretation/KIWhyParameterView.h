@@ -9,25 +9,25 @@
 #include "KIInterpretationSpec.h"
 
 /////////////////////////////////////////////////////////////////////
-/// Classe ISParameterView : Vue sur le PARAMETRAGE specifique du calcul
-/// des CONTRIBUTIONS d'un interpreteur de scores
+// Classe ISParameterView : Vue sur le PARAMETRAGE specifique du calcul
+// des CONTRIBUTIONS d'un interpreteur de scores
 class KIWhyParameterView : public UIObjectView
 {
 public:
-	/// Constructeur
+	// Constructeur
 	KIWhyParameterView();
 	~KIWhyParameterView();
 
-	/// Constructeur generique
+	// Constructeur generique
 	KIWhyParameterView* Create() const;
 
 	////////////////////////////////////////////////////////
 	// Methodes a reimplementer dans les sous-classes
 
-	/// Mise a jour du classifieur specifique par les valeurs de l'interface
+	// Mise a jour du classifieur specifique par les valeurs de l'interface
 	void EventUpdate(Object* object);
 
-	/// Mise a jour des valeurs de l'interface par le classifier specifique
+	// Mise a jour des valeurs de l'interface par le classifier specifique
 	void EventRefresh(Object* object);
 };
 #endif // ISWHYVIEWPARAMETER_H

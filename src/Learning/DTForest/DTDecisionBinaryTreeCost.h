@@ -8,58 +8,58 @@
 
 class DTDecisionTree;
 ///////////////////////////////////////////////////////////////
-/// Definit les methodes permettant de calculer le cout global d'un arbre recursif
-/// Ce cout est decompose en :
-/// - un cout par defaut qui correspond au choix du nombre de variables utilisees
-/// dans l'arbre
-/// - un cout par noeud interne
-/// - un cout par feuille
-/// Pour l'instant le cout total est obtenu par parcours en largeur de l'arbre
+// Definit les methodes permettant de calculer le cout global d'un arbre recursif
+// Ce cout est decompose en :
+// - un cout par defaut qui correspond au choix du nombre de variables utilisees
+// dans l'arbre
+// - un cout par noeud interne
+// - un cout par feuille
+// Pour l'instant le cout total est obtenu par parcours en largeur de l'arbre
 class DTDecisionBinaryTreeCost : public DTDecisionTreeCost // Object
 {
 public:
-	/// Constructeur
+	// Constructeur
 	DTDecisionBinaryTreeCost();
-	/// Destructeur
+	// Destructeur
 	~DTDecisionBinaryTreeCost();
 
-	///// Acces au nombre total d'attributs
+	// Acces au nombre total d'attributs
 	// int GetTotalAttributeNumber() const;
 	// void SetTotalAttributeNumber(int nNumber);
 
-	///// Acces au nombre de valeurs de la classe cible
+	// Acces au nombre de valeurs de la classe cible
 	// int GetClassValueNumber() const;
 	// void SetClassValueNumber(int nNumber);
 
-	/// Cout total de l'arbre : parcours de l'arbre en largeur
-	///   cout fixe
-	/// + cout du choix du nombre de variables utilisees
+	// Cout total de l'arbre : parcours de l'arbre en largeur
+	//   cout fixe
+	// + cout du choix du nombre de variables utilisees
 	///	+ somme des couts des noeuds internes
-	/// + somme des couts des feuilles
+	// + somme des couts des feuilles
 	double ComputeTotalTreeCost(DTDecisionTree* tree) override;
 
-	/// Cout du choix du nombre de variables utilisees dans l'arbre
+	// Cout du choix du nombre de variables utilisees dans l'arbre
 	double ComputeAttributeChoiceCost(int nUsedAttributeNumber, int nInternalNodeNumber);
 
-	/// Cout d'un noeud interne
+	// Cout d'un noeud interne
 	double ComputeInternalNodeCost(DTDecisionTree* tree, DTDecisionTreeNode* node);
 
-	/// Cout de construction de l'arbre : a reimplementer
+	// Cout de construction de l'arbre : a reimplementer
 	double ComputeTreeConstructionCost(DTDecisionTree*) override;
 
-	/// Cout d'un noeud feuille
+	// Cout d'un noeud feuille
 	double ComputeLeafCost(DTDecisionTreeNode* node);
 
-	/// Cout d'un arbre de cout dPreviousCost pour la coupure selectionnee
+	// Cout d'un arbre de cout dPreviousCost pour la coupure selectionnee
 	void ComputeHypotheticalAugmentedTreeCost(DTDecisionTree* tree, double dPreviousCost,
 						  DTDecisionTreeNodeSplit* nodeSplit) override;
 
-	/// Cout d'un arbre de cout dPreviousCost pour lequel on transformererait le noeud interne
-	/// d'indice nInternalNodeIndex en une feuille
-	/// en elaguant de l'arbre tous ses fils qui doivent tous etre des feuilles
+	// Cout d'un arbre de cout dPreviousCost pour lequel on transformererait le noeud interne
+	// d'indice nInternalNodeIndex en une feuille
+	// en elaguant de l'arbre tous ses fils qui doivent tous etre des feuilles
 	double ComputeHypotheticalPrunedTreeCost(DTDecisionTree* tree, double dPreviousCost,
 						 ALString sInternalNodeKey) override;
 	////////////////////////////////////////////////////////
-	//// Implementation
+	// Implementation
 protected:
 };

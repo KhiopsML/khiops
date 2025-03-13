@@ -23,42 +23,42 @@ class DTDecisionTreeCost;
 class DTDecisionTreeNodeSplit;
 class DTForestParameter;
 
-/// Classe generique de gestion d'un arbre de classification.
-/// Un arbre est caracterise par :
-/// - le tableau de ses feuilles
-/// - le tableau de ses noeuds internes
-/// - le dictionnaire des variables utilisees par l'arbre
-/// - sa profondeur
-/// - son taux de precision pour les donnees d'apprentissage
-/// Pour chaque noeud interne, on memorise le partitionnement
-/// de sa base parmi ses noeuds fils dans un objet de type DTBaseLoaderSplitter.
-/// L'ensemble de ces partitionnements est contenu dans un ObjectArray.
-/// On memorise eventuellement des contraintes de structure de l'arbre:
-/// - une profondeur max de l'arbre
-/// - un nombre max de feuilles
-/// - un nombre max de noeuds internes
-/// et des contraintes de qualite predictive:
-/// - un support minimum d'une feuille
-/// - une purete max d'une feuille
-/// - une taux de precision max
-/// Chaque arbre se caracterise egalement par la maniere dont est calcule son
-/// cout. Pour cela on memorise :
-/// - un pointeur sur une classe de cout qui decrit un modele de cout de l'arbre
-/// - le cout de l'arbre courant et de sa racine, son niveau (cout normalise)
-/// Aucune classe de cout n'est instanciee a la construction de l'arbre, cela
-/// reste a la charge de l'appelant (un DTClassifier).
-/// Le cout ne peut etre evalue que lorsqu'une
-/// fonction de cout est specifiee (par exemple un DTDecisionTreeCostRecursive est specifie
-/// dans le cas d'un DTPredictorDown).
+// Classe generique de gestion d'un arbre de classification.
+// Un arbre est caracterise par :
+// - le tableau de ses feuilles
+// - le tableau de ses noeuds internes
+// - le dictionnaire des variables utilisees par l'arbre
+// - sa profondeur
+// - son taux de precision pour les donnees d'apprentissage
+// Pour chaque noeud interne, on memorise le partitionnement
+// de sa base parmi ses noeuds fils dans un objet de type DTBaseLoaderSplitter.
+// L'ensemble de ces partitionnements est contenu dans un ObjectArray.
+// On memorise eventuellement des contraintes de structure de l'arbre:
+// - une profondeur max de l'arbre
+// - un nombre max de feuilles
+// - un nombre max de noeuds internes
+// et des contraintes de qualite predictive:
+// - un support minimum d'une feuille
+// - une purete max d'une feuille
+// - une taux de precision max
+// Chaque arbre se caracterise egalement par la maniere dont est calcule son
+// cout. Pour cela on memorise :
+// - un pointeur sur une classe de cout qui decrit un modele de cout de l'arbre
+// - le cout de l'arbre courant et de sa racine, son niveau (cout normalise)
+// Aucune classe de cout n'est instanciee a la construction de l'arbre, cela
+// reste a la charge de l'appelant (un DTClassifier).
+// Le cout ne peut etre evalue que lorsqu'une
+// fonction de cout est specifiee (par exemple un DTDecisionTreeCostRecursive est specifie
+// dans le cas d'un DTPredictorDown).
 
 class DTDecisionTree : public KWLearningReport
 {
 public:
-	/// Constructeur
+	// Constructeur
 	DTDecisionTree();
 	~DTDecisionTree();
 
-	/** type de tirage (avec ou sans remise, etc) des instances de base de donnees */
+	// type de tirage (avec ou sans remise, etc) des instances de base de donnees 
 	enum class DrawingType
 	{
 		NoReplacement,           // pas de tirage avec remise
@@ -68,92 +68,92 @@ public:
 
 	boolean ComputeStats() override;
 
-	/// Duplication de l'arbre
+	// Duplication de l'arbre
 	DTDecisionTree* Clone();
 
-	/// Recopie
+	// Recopie
 	void CopyFrom(const DTDecisionTree* tree);
 
-	/// Acces au noeud racine
-	/// Il s'agit du 1er noeud feuille ou du 1er noeud interne s'il y a eu
-	/// au moins un partitionnement
+	// Acces au noeud racine
+	// Il s'agit du 1er noeud feuille ou du 1er noeud interne s'il y a eu
+	// au moins un partitionnement
 	DTDecisionTreeNode* GetRootNode() const;
 
-	/// Acces au tableau des noeuds internes
+	// Acces au tableau des noeuds internes
 	ObjectDictionary* GetInternalNodes() const;
 
-	/// Acces au tableau de feuilles
+	// Acces au tableau de feuilles
 	ObjectDictionary* GetLeaves() const;
 
-	/// Acces au dictionnaire des variables utilisees
+	// Acces au dictionnaire des variables utilisees
 	ObjectDictionary* GetUsedVariablesDictionary() const;
 
-	/// Acces a l'evaluation de l'arbre
+	// Acces a l'evaluation de l'arbre
 	double GetEvaluation() const;
 
-	/// Acces a la precision en apprentissage de l'arbre
+	// Acces a la precision en apprentissage de l'arbre
 	double GetTrainingAccuracy() const;
 
 	double GetOutOfBagTrainingAccuracy() const;
 
-	/// Acces aux paramettres d'apprentissage
+	// Acces aux paramettres d'apprentissage
 	DTDecisionTreeParameter* GetParameters() const;
 	void SetParameters(DTDecisionTreeParameter* dtParam);
 
 	SymbolVector* GetReferenceTargetModalities() const;
 
-	/** type de tirage (avec ou sans remise) */
+	// type de tirage (avec ou sans remise) 
 	void SetDrawingType(DrawingType);
 	DrawingType GetDrawingType() const;
 
-	/// nombre d'objets de l'arbre qui ne sont pas "out of bag" (comprend des exemples qui sont presents plusieurs
-	/// fois, si tirage avec remise)
+	// nombre d'objets de l'arbre qui ne sont pas "out of bag" (comprend des exemples qui sont presents plusieurs
+	// fois, si tirage avec remise)
 	int GetObjectsNumber() const;
 
-	/// nombre d'objets de l'arbre qui sont "out of bag"
+	// nombre d'objets de l'arbre qui sont "out of bag"
 	int GetOutOfBagObjectsNumber() const;
 
-	/// Acces a la profondeur max
+	// Acces a la profondeur max
 	int GetTreeDepth() const;
 
-	/// Acces au nombre de noeud pour chaque profondeur
+	// Acces au nombre de noeud pour chaque profondeur
 	IntVector* GetNodeNumberByDepth() const;
 
-	/// Acces au cout de l'arbre
+	// Acces au cout de l'arbre
 	double GetTreeCost() const;
 
-	/// Acces au cout de construction de l'arbre
+	// Acces au cout de construction de l'arbre
 	void SetConstructionCost(double);
 	double GetConstructionCost() const;
 
-	/// Acces au cout du noeud racine
+	// Acces au cout du noeud racine
 	double GetRootCost() const;
 
-	/// Acces a la profondeur moyenne
+	// Acces a la profondeur moyenne
 	double GetSonsNumberMean() const;
 
-	/// Acces a la classe de cout
+	// Acces a la classe de cout
 	DTDecisionTreeCost* GetCostClass() const;
 	void SetCostClass(DTDecisionTreeCost* cost);
 
-	/// Initialisation du noeud racine avec les specifications d'apprentissage
-	/// Calcul des stat MODL 1D et initialisation du vecteur des classes cibles
+	// Initialisation du noeud racine avec les specifications d'apprentissage
+	// Calcul des stat MODL 1D et initialisation du vecteur des classes cibles
 	void InitializeRootNode(const NumericKeyDictionary* randomForestDatabaseObjects);
 
-	/// Initialisation du cout de l'arbre reduit a sa racine
+	// Initialisation du cout de l'arbre reduit a sa racine
 	void InitializeCostValue(double dValue);
 
-	/// Calcul de la precision en apprentissage de l'arbre
+	// Calcul de la precision en apprentissage de l'arbre
 	double ComputeTrainingAccuracy();
 
-	/// Calcul de la precision OOB en apprentissage de l'arbre
+	// Calcul de la precision OOB en apprentissage de l'arbre
 	double ComputeOutOfBagTrainingAccuracy();
 
-	/// Renvoie l'evaluation de l'arbre
-	/// La classe de cout doit etre specifiee
+	// Renvoie l'evaluation de l'arbre
+	// La classe de cout doit etre specifiee
 	double ComputeTreeEvaluation();
 
-	/// Acces au vecteur de filtrage des attributs
+	// Acces au vecteur de filtrage des attributs
 	ObjectArray* GetSelectedAttributes() const;
 	void SetSelectedAttributes(ObjectArray* oaSelectedAttributes);
 
@@ -200,16 +200,16 @@ public:
 	DTBaseLoader* GetOrigineBaseLoader();
 	void SetOrigineBaseLoader(DTBaseLoader* TableLoader);
 
-	/// Acces a la database
+	// Acces a la database
 	// ObjectArray* GetObjectsDataBase() const;
 	// void SetObjectsDataBase(ObjectArray* cost);
 
-	/// Acces a la selection des attributs
+	// Acces a la selection des attributs
 	DTAttributeSelection* GetAttributeSelection();
 
 	void SetAttributeSelection(DTAttributeSelection* generator);
 	////////////////////////////////////////////////////////
-	//// Implementation
+	// Implementation
 protected:
 	// construction d'un arbre
 	boolean Build();
@@ -242,25 +242,25 @@ protected:
 	// (profondeur, etc)
 	boolean CanAddNodes();
 
-	/// Ajout d'un noeud feuille et mise a jour du niveau de l'arbre
+	// Ajout d'un noeud feuille et mise a jour du niveau de l'arbre
 	void AddLeaveNodeAndUpdateTreeDepth(DTDecisionTreeNode* node);
 
-	/// Passage du statut de feuille a celui de noeud interne pour un noeud en specifiant
-	/// - son identifiant dans le dictionnaire des feuilles
-	/// - le cout (evalue au prealable) dNewCost du nouvel arbre obtenu apres ajout
-	/// de ces feuilles
-	/// - l'assertion et la table de partition  dans assertion et kwcTable
-	/// - le nombre de valeurs initiales nValueNumber de la variable de partitionnement.
-	/// Il s'agit du nombre d'individus dans le cas continu et d'un nombre de modalites
-	/// le cas categoriel.
-	/// - les index de chargement des attributs selectionnes
+	// Passage du statut de feuille a celui de noeud interne pour un noeud en specifiant
+	// - son identifiant dans le dictionnaire des feuilles
+	// - le cout (evalue au prealable) dNewCost du nouvel arbre obtenu apres ajout
+	// de ces feuilles
+	// - l'assertion et la table de partition  dans assertion et kwcTable
+	// - le nombre de valeurs initiales nValueNumber de la variable de partitionnement.
+	// Il s'agit du nombre d'individus dans le cas continu et d'un nombre de modalites
+	// le cas categoriel.
+	// - les index de chargement des attributs selectionnes
 	// la methode renvoie true si le noeud a pu etre passe du statut feuille a celui de noeud interne, et false
 	// sinon.
 
 	boolean SetUpInternalNode(const double dNewCost, const Symbol sNodeKey, KWAttributeStats*,
 				  const int nValueNumber, const boolean bIsRegression);
 
-	/// transformer un noeud interne en feuille
+	// transformer un noeud interne en feuille
 	void PruneInternalNode(DTDecisionTreeNode*);
 
 	void RegisterAttributeNameAndOccurenceNumber(const ALString& sAttributeName);
@@ -284,7 +284,7 @@ protected:
 	// Memorise l'arbre courant dans l'arbre optimal
 	void MemorizeCurrentTreeInOptimalTree();
 
-	/* retourne un dico d'objets TargetModalityCount (cle = modalite cible) */
+	//  retourne un dico d'objets TargetModalityCount (cle = modalite cible) 
 	NumericKeyDictionary* ComputeTargetModalitiesCount(DTBaseLoader* bldata);
 
 	// suppression des references a un noeud, dans les dictionnaires, et destruction physique de l'objet
@@ -299,49 +299,49 @@ protected:
 	boolean CheckCurrentTree() const;
 	boolean CheckOptimalTree() const;
 
-	//////////////////    attributs
+	///////////////    attributs
 
-	/// Dictionnaire de pointeurs vers les feuilles de l'arbre optimal
+	// Dictionnaire de pointeurs vers les feuilles de l'arbre optimal
 	ObjectDictionary* odOptimalLeaveNodes;
 
-	/// Dictionnaire de pointeurs vers les noeuds internes de l'arbre optimal
+	// Dictionnaire de pointeurs vers les noeuds internes de l'arbre optimal
 	ObjectDictionary* odOptimalInternalNodes;
 
-	/// Dictionnaire de pointeurs vers les noeuds internes de l'arbre courant
+	// Dictionnaire de pointeurs vers les noeuds internes de l'arbre courant
 	ObjectDictionary* odCurrentInternalNodes;
 
-	/// Dictionnaire de pointeurs vers les feuilles de l'arbre courant
+	// Dictionnaire de pointeurs vers les feuilles de l'arbre courant
 	ObjectDictionary* odCurrentLeaveNodes;
 
-	///  Dictionnaire de tous les noeud interet feuille construit
-	///  C'est la memorie des noeuds
+	//  Dictionnaire de tous les noeud interet feuille construit
+	//  C'est la memorie des noeuds
 	ObjectDictionary odTreeNodes;
 
-	/// Dictionnaire de pointeurs vers les partitionnements successifs de KWDatabases (1 partitionnement par noeud
-	/// interne)
+	// Dictionnaire de pointeurs vers les partitionnements successifs de KWDatabases (1 partitionnement par noeud
+	// interne)
 	ObjectDictionary odDatabaseSplittersTrain;
 	ObjectDictionary odDatabaseSplittersOutOfBag;
 
-	/// Dictionnaire des attributs reellement utilises dans l'arbre (tous les attributs potentiellement utilisables
-	/// ne sont pas forcement utilises).
+	// Dictionnaire des attributs reellement utilises dans l'arbre (tous les attributs potentiellement utilisables
+	// ne sont pas forcement utilises).
 	// Est renseigne au fur et a mesure de la creation de nouveaux noeuds
 	//	Cle = nom d'attribut
 	//	valeur = IntObject *, qui est le nbre d'occurences de l'attribut dans l'arbre
 	ObjectDictionary odUsedVariables;
 
-	/// Profondeur de l'arbre
+	// Profondeur de l'arbre
 	int nTreeDepth;
 
-	/// Nombre de noeuds de chaque profondeur
+	// Nombre de noeuds de chaque profondeur
 	IntVector ivNodeNumberByDepth;
 
-	/// Classe de calcul de cout de l'arbre (a specifier selon le classifieur)
+	// Classe de calcul de cout de l'arbre (a specifier selon le classifieur)
 	DTDecisionTreeCost* treeCost;
 
-	/// Cout de l'arbre
+	// Cout de l'arbre
 	double dCost;
 
-	/// Cout de l'arbre initial (racine)
+	// Cout de l'arbre initial (racine)
 	double dRootCost;
 
 	// cout de construction
@@ -355,22 +355,22 @@ protected:
 
 	int nDownStepNumber;
 
-	/// Cout normalise de l'arbre : 1 - cout de l'arbre / cout de la racine
+	// Cout normalise de l'arbre : 1 - cout de l'arbre / cout de la racine
 	double dEvaluation;
 
-	/// Taux de precision en apprentissage de l'arbre
+	// Taux de precision en apprentissage de l'arbre
 	double dTrainingAccuracy;
 
-	/// Taux de precision OOB en apprentissage de l'arbre
+	// Taux de precision OOB en apprentissage de l'arbre
 	double dOutOfBagTrainingAccuracy;
 
-	/// Pointeur vers les parametres d'apprentissage
+	// Pointeur vers les parametres d'apprentissage
 	DTDecisionTreeParameter* dtPredictorParameter;
 
-	/// modalites cibles de l'arbre obtenues a la racine
+	// modalites cibles de l'arbre obtenues a la racine
 	SymbolVector* svReferenceTargetModalities;
 
-	/// Specifications d'apprentissage de travail (pour ComputeStats des noeuds)
+	// Specifications d'apprentissage de travail (pour ComputeStats des noeuds)
 	KWLearningSpec workingLearningSpec;
 
 	// base de donnees des objets
@@ -380,9 +380,9 @@ protected:
 	ObjectArray* oaSelectedAttributes;
 	DTAttributeSelection* SelectedAttributes;
 
-	/** dictionnaire des instances de la base associee a l'arbre (filtre eventuel des instances sur l'attribut de
-	sampling , dans le cas d'un uplift). Cle = KWObject *, valeur = DTDecisionTreeDatabaseObject *
-	*/
+	// dictionnaire des instances de la base associee a l'arbre (filtre eventuel des instances sur l'attribut de
+	// sampling , dans le cas d'un uplift). Cle = KWObject *, valeur = DTDecisionTreeDatabaseObject *
+	
 	NumericKeyDictionary* nkdDatabaseObjects;
 
 	DTBaseLoader* origineBaseLoader;

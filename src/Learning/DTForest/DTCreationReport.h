@@ -60,7 +60,7 @@ public:
 	void WriteJSONTreeReport(JSONFile* fJSON, boolean bSummary);
 
 	/////////////////////////////////////////////////
-	///// Implementation
+	// Implementation
 protected:
 	// Calcul des rangs des arbres (DTDecisionTreeSpec) suite a un tri de tableau de rapport par Level
 	void ComputeRankIdentifiers(ObjectArray* oaReports);

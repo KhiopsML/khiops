@@ -4,19 +4,18 @@
 
 #pragma once
 
+class KIInterpretationDictionary;
+
 #include "KWClassSpec.h"
 #include "KIInterpretationDictionary.h"
 
-class KIInterpretationDictionary;
-class KWClassSpec;
-
-/// Classe rassemblant les parametres d'un interpreteur de scores
+// Classe rassemblant les parametres d'un interpreteur de scores
 class KIInterpretationSpec : public Object
 {
 public:
-	/// constructeur
+	// constructeur
 	KIInterpretationSpec();
-	/// destructeur
+	// destructeur
 	~KIInterpretationSpec();
 
 	void SetDefaultParameters();
@@ -63,12 +62,12 @@ public:
 	// Accessible uniquement si statistiques calculees
 	void WriteReport(ostream& ost);
 
-	static const char* PREDICTED_CLASS_LABEL;
-	static const char* CLASS_OF_HIGHEST_GAIN_LABEL;
-	static const char* ALL_CLASSES_LABEL;
+	static const ALString PREDICTED_CLASS_LABEL;
+	static const ALString CLASS_OF_HIGHEST_GAIN_LABEL;
+	static const ALString ALL_CLASSES_LABEL;
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	// Implementation
 protected:
 	KIInterpretationDictionary* interpretationDictionary;
 	KWClassSpec* leverClassSpec;
