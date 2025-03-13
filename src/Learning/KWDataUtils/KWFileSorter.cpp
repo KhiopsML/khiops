@@ -354,8 +354,9 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 					bOk = sNewFileName != "";
 					if (bOk)
 					{
-						// Concatenation
+						// Concatenation interne, sans ligne d'entete
 						concatenater.SetFileName(sNewFileName);
+						concatenater.SetHeaderLineUsed(false);
 						bOk = concatenater.Concatenate(overweightBucket->GetChunkFileNames(),
 									       this);
 					}
@@ -457,8 +458,8 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 								 DoubleToString(timerConcat.GetElapsedTime()));
 				}
 			}
-		} // if (IsFileTooSmall(sInputFileName) or lFileSize < nChunkSize)
-	}         // if (bOk and not bIsInterruptedByUser)
+		} // Fin du if (IsFileTooSmall(sInputFileName) or lFileSize < nChunkSize)
+	}         // Fin du if (bOk and not bIsInterruptedByUser)
 
 	// Fin du timer
 	timerSort.Stop();
