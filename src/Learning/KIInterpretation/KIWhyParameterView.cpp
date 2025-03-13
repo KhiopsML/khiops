@@ -22,7 +22,7 @@ KIWhyParameterView::KIWhyParameterView()
 	AddStringField("WhyClass", "Choice of the class of interest", "");
 
 	// Choix de la methode de calcul de l'importance d'une variable
-	AddStringField("WhyType", "Type of the contribution indicator", "");
+	AddStringField("WhyType", "Type of the contribution indicator", "Shapley");
 
 	// Choix de trier ou non les resultats par importance
 	AddBooleanField("SortWhy", "Sort contribution results", true);

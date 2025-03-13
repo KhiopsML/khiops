@@ -51,7 +51,7 @@ public:
 	//
 	// en sortie : cree des DTAttributeSelections, qui seront stockes dans le forestAttributeSelection passe en
 	// parametre
-	
+
 	void BuildForestAttributeSelections(DTForestAttributeSelection& forestAttributeSelection,
 					    int nMaxCreatedAttributeNumber);
 
@@ -164,16 +164,16 @@ protected:
 	////////////////////////////////////////////////////////////
 	// Implementation du ComputeResourceRequirements
 
-	// Estimation de la memoire partagee 
+	// Estimation de la memoire partagee
 	longint ComputeSharedNecessaryMemory();
 
-	// Estimation de la memoire du maitre 
+	// Estimation de la memoire du maitre
 	longint ComputeMasterNecessaryMemory();
 
-	// Estimation de la memoire du plus gros arbre possible 
+	// Estimation de la memoire du plus gros arbre possible
 	longint ComputeBiggestTreeNecessaryMemory();
 
-	// estimations memoire 
+	// estimations memoire
 	void InitializeMemoryEstimations();
 
 	int GetNodeVariableNumber() const;

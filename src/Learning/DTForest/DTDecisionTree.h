@@ -58,7 +58,7 @@ public:
 	DTDecisionTree();
 	~DTDecisionTree();
 
-	// type de tirage (avec ou sans remise, etc) des instances de base de donnees 
+	// type de tirage (avec ou sans remise, etc) des instances de base de donnees
 	enum class DrawingType
 	{
 		NoReplacement,           // pas de tirage avec remise
@@ -102,7 +102,7 @@ public:
 
 	SymbolVector* GetReferenceTargetModalities() const;
 
-	// type de tirage (avec ou sans remise) 
+	// type de tirage (avec ou sans remise)
 	void SetDrawingType(DrawingType);
 	DrawingType GetDrawingType() const;
 
@@ -284,7 +284,7 @@ protected:
 	// Memorise l'arbre courant dans l'arbre optimal
 	void MemorizeCurrentTreeInOptimalTree();
 
-	//  retourne un dico d'objets TargetModalityCount (cle = modalite cible) 
+	//  retourne un dico d'objets TargetModalityCount (cle = modalite cible)
 	NumericKeyDictionary* ComputeTargetModalitiesCount(DTBaseLoader* bldata);
 
 	// suppression des references a un noeud, dans les dictionnaires, et destruction physique de l'objet
@@ -382,7 +382,7 @@ protected:
 
 	// dictionnaire des instances de la base associee a l'arbre (filtre eventuel des instances sur l'attribut de
 	// sampling , dans le cas d'un uplift). Cle = KWObject *, valeur = DTDecisionTreeDatabaseObject *
-	
+
 	NumericKeyDictionary* nkdDatabaseObjects;
 
 	DTBaseLoader* origineBaseLoader;

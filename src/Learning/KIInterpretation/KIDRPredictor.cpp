@@ -352,17 +352,6 @@ const ALString KIDRClassifierInterpretation::LEVER_ATTRIBUTE_META_TAG = "LeverVa
 const ALString KIDRClassifierInterpretation::INTERPRETATION_ATTRIBUTE_META_TAG = "ClassifierInterpretationVariable";
 const ALString KIDRClassifierInterpretation::NO_VALUE_LABEL = "";
 const ALString KIDRClassifierInterpretation::SHAPLEY_LABEL = "Shapley";
-const ALString KIDRClassifierInterpretation::NORMALIZED_ODDS_RATIO_LABEL = "NormalizedOddsRatio";
-const ALString KIDRClassifierInterpretation::MIN_PROBA_DIFF_LABEL = "MinProbaDiff";
-const ALString KIDRClassifierInterpretation::WEIGHT_EVIDENCE_LABEL = "WeightEvidence";
-const ALString KIDRClassifierInterpretation::INFO_DIFF_LABEL = "InfoDiff";
-const ALString KIDRClassifierInterpretation::DIFF_PROBA_LABEL = "DiffProba";
-const ALString KIDRClassifierInterpretation::MODALITY_PROBA_LABEL = "ModalityProba";
-const ALString KIDRClassifierInterpretation::BAYES_DISTANCE_LABEL = "BayesDistance";
-const ALString KIDRClassifierInterpretation::KULLBACK_LABEL = "Kullback";
-const ALString KIDRClassifierInterpretation::LOG_MODALITY_PROBA_LABEL = "LogModalityProba";
-const ALString KIDRClassifierInterpretation::LOG_MIN_PROBA_DIFF_LABEL = "LogMinProbaDiff";
-const ALString KIDRClassifierInterpretation::BAYES_DISTANCE_WITHOUT_PRIOR_LABEL = "BayesDistanceWithoutPrior";
 const ALString KIDRClassifierInterpretation::PREDICTED_CLASS_LABEL = "Predicted class";
 const ALString KIDRClassifierInterpretation::CLASS_OF_HIGHEST_GAIN_LABEL = "Class of highest gain";
 const ALString KIDRClassifierInterpretation::ALL_CLASSES_LABEL = "All classes";
@@ -390,7 +379,6 @@ KIDRClassifierContribution::KIDRClassifierContribution()
 	GetOperandAt(4)->SetType(KWType::Symbol);
 
 	oaInstanceProbabilities = NULL;
-	contributionComputingMethod = NormalizedOddsRatio;
 	bSortInstanceProbas = false;
 }
 
@@ -624,42 +612,9 @@ void KIDRClassifierContribution::ComputeContribution(const KWObject* kwoObject) 
 
 		// Calcul de l'indicateur d'importance
 
-		if (contributionComputingMethod == Shapley)
-			cImportanceValue =
-			    ComputeShapley(nAttributeIndex, nClassIndex, ivModalityIndexes.GetAt(nAttributeIndex));
-		else if (contributionComputingMethod == ImportanceValue)
-			cImportanceValue = ComputeImportanceValue(nAttributeIndex, nClassIndex,
-								  ivModalityIndexes.GetAt(nAttributeIndex));
-		else if (contributionComputingMethod == WeightOfEvidence)
-			cImportanceValue = ComputeWeightOfEvidence(nAttributeIndex, nClassIndex, &ivModalityIndexes,
-								   nDatabaseSize, nClassNumber);
-		else if (contributionComputingMethod == InformationDifference)
-			cImportanceValue = ComputeInformationDifference(
-			    nAttributeIndex, nClassIndex, &ivModalityIndexes, nDatabaseSize, nClassNumber);
-		else if (contributionComputingMethod == DifferenceProbabilities)
-			cImportanceValue =
-			    ComputeDifferenceProbabilities(nAttributeIndex, nClassIndex, &ivModalityIndexes);
-		else if (contributionComputingMethod == ModalityProbability)
-			cImportanceValue = ComputeModalityProbability(nAttributeIndex, nClassIndex,
-								      ivModalityIndexes.GetAt(nAttributeIndex));
-		else if (contributionComputingMethod == BayesDistance)
-			cImportanceValue = ComputeBayesDistance(nAttributeIndex, nClassIndex,
-								ivModalityIndexes.GetAt(nAttributeIndex));
-		else if (contributionComputingMethod == Kullback)
-			cImportanceValue = ComputeKullback(nAttributeIndex, nClassIndex, &ivModalityIndexes,
-							   nDatabaseSize, nClassNumber);
-		else if (contributionComputingMethod == LogModalityProbability)
-			cImportanceValue = ComputeLogModalityProbability(nAttributeIndex, nClassIndex,
-									 ivModalityIndexes.GetAt(nAttributeIndex));
-		else if (contributionComputingMethod == LogImportanceValue)
-			cImportanceValue = ComputeLogImportanceValue(nAttributeIndex, nClassIndex,
-								     ivModalityIndexes.GetAt(nAttributeIndex));
-		else if (contributionComputingMethod == BayesDistanceWithoutPrior)
-			cImportanceValue = ComputeBayesDistanceWithoutPrior(nAttributeIndex, nClassIndex,
-									    ivModalityIndexes.GetAt(nAttributeIndex));
-		else if (contributionComputingMethod == NormalizedOddsRatio)
-			cImportanceValue = ComputeNormalizedOddsRatio(nAttributeIndex, nClassIndex, &ivModalityIndexes,
-								      nDatabaseSize, nClassNumber);
+		cImportanceValue =
+		    ComputeShapley(nAttributeIndex, nClassIndex, ivModalityIndexes.GetAt(nAttributeIndex));
+
 		// Memorisation de la proba (valeur d'importance)
 		assert(cImportanceValue != -1);
 		partitionedAttributeProbas->dContributionImportanceValue = cImportanceValue;
@@ -673,170 +628,12 @@ void KIDRClassifierContribution::ComputeContribution(const KWObject* kwoObject) 
 		oaInstanceProbabilities->Sort();
 }
 
-Continuous KIDRClassifierContribution::ComputeImportanceValue(int nAttributeIndex, int nTargetClassIndex,
-							      int nModalityIndex) const
+Continuous KIDRClassifierContribution::ComputeModalityProbability(int nAttributeIndex, int nTargetClassIndex,
+								  int nModalityIndex) const
 {
-	Continuous cLogPosteriorProba;
 	Continuous cImportanceValue;
 
-	// Extraction de la log proba conditionnelle a la classe du pourquoi
-	cLogPosteriorProba = ExtractLogPosteriorProba(nTargetClassIndex, nAttributeIndex, nModalityIndex);
-
-	// Calcul de l'indicateur d'importance
-	cImportanceValue =
-	    exp(cLogPosteriorProba) -
-	    exp(ComputeMaxLogPosteriorProbaWithoutWhyClassValue(nTargetClassIndex, nAttributeIndex, nModalityIndex));
-
-	return cImportanceValue;
-}
-
-Continuous KIDRClassifierContribution::ComputeWeightOfEvidence(int nAttributeIndex, int nTargetClassIndex,
-							       IntVector* ivModalityIndexes, int nDatabaseSize,
-							       int nTargetValuesNumber) const
-{
-	ContinuousVector* cvScoreVector;
-	Continuous cInitialScore;
-	Continuous cScoreWithoutOneVariable;
-	Continuous cInitialScoreCorrected;
-	Continuous cScoreWithoutOneVariableCorrected;
-	Continuous cImportanceValueCorrected;
-	Continuous cRatioCorrected;
-
-	// Calcul du score initial p(C|X)
-	cvScoreVector = ComputeScoreVectorLj(ivModalityIndexes);
-	cInitialScore = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// Calcul du score sans prendre en compte la variable explicative p(C|X\X_i)
-	cvScoreVector = ComputeScoreVectorLjWithoutOneVariable(ivModalityIndexes, nAttributeIndex);
-	cScoreWithoutOneVariable = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// AjoutVincent 10/2009 - Correction de Laplace pour que P>0 et P<1
-	// Prise en compte d'un epsilon de Laplace
-	// en considerant qu'on ne peut pas avoir de precision meilleure que 1/N
-	//   p = p*N / N
-	//   p_Laplace = (p*N + 0.5/J)/(N + 0.5)
-	//   p_Laplace = (p + 0.5/JN)/(1 + 0.5/N)
-	// (on se base sur N+1 pour eviter le cas N=0)
-	cInitialScoreCorrected =
-	    (cInitialScore + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
-	cScoreWithoutOneVariableCorrected =
-	    (cScoreWithoutOneVariable + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
-
-	// Vincent2009 - j'ai retire la correction et ajoute celle au-dessus
-	// Correction de Laplace pour eviter les divisions par zero
-	//cInitialScore = (cInitialScore * nDatabaseSize + 1) / (nDatabaseSize + nTargetValuesNumber);
-	//cScoreWithoutOneVariable = (cScoreWithoutOneVariable * nDatabaseSize + 1) / (nDatabaseSize + nTargetValuesNumber);
-
-	//cRatio = (cInitialScore * (1 - cScoreWithoutOneVariable)) / ((1 - cInitialScore) * cScoreWithoutOneVariable);
-
-	cRatioCorrected = (cInitialScoreCorrected * (1 - cScoreWithoutOneVariableCorrected)) /
-			  ((1 - cInitialScoreCorrected) * cScoreWithoutOneVariableCorrected);
-	//cout  "ratio " << cRatio << " son log " << log(cRatio) <<  " 1/log(2)*" <<  1/log(2.0)*log(cRatio) << endl;
-	// Calcul de l'indicateur Weight of Evidence
-	//cImportanceValue = 1/log(2.0) * (log(cInitialScore / (1 - cInitialScore)) - log(cScoreWithoutOneVariable / (1 - cScoreWithoutOneVariable)));
-	//cImportanceValue = 1/log(2.0) * (log(p / (1-p)) - log(q / (1-q)))
-
-	//cImportanceValue = 1/log(2.0) * (log(cInitialScore) - log(1 - cInitialScore) - log(cScoreWithoutOneVariable) + log(1 - cScoreWithoutOneVariable));
-	//cImportanceValue = 1/log(2.0) * (log(p) - log(1-p) -log(q) + log(1-q))
-
-	//cImportanceValueCorrected = 1/log(2.0) * (log(cInitialScoreCorrected) - log(1 - cInitialScoreCorrected) - log(cScoreWithoutOneVariableCorrected) + log(1 - cScoreWithoutOneVariableCorrected));
-	//cImportanceValue = 1 / log(2.0) * log(cRatio);
-	cImportanceValueCorrected = log(cRatioCorrected) / log(2.0);
-
-	//cout << "Attribute " << nAttributeIndex << " Class " << nTargetClassIndex << endl;
-	//cout << " P1= " << cInitialScore  << " P1C= " << cInitialScoreCorrected << endl;
-	//cout << " P2= " << cScoreWithoutOneVariable << " P2C= " << cScoreWithoutOneVariableCorrected << endl;
-	//cout << "cImportanceValue " << cImportanceValue << endl;
-	//cout << "cImportanceValueCorrected " << cImportanceValueCorrected << endl;
-
-	return cImportanceValueCorrected;
-}
-
-Continuous KIDRClassifierContribution::ComputeInformationDifference(int nAttributeIndex, int nTargetClassIndex,
-								    IntVector* ivModalityIndexes, int nDatabaseSize,
-								    int nTargetValuesNumber) const
-{
-	ContinuousVector* cvScoreVector;
-	Continuous cInitialScore;
-	Continuous cScoreWithoutOneVariable;
-	// Continuous cImportanceValue;
-	Continuous cInitialScoreCorrected;
-	Continuous cScoreWithoutOneVariableCorrected;
-	Continuous cImportanceValueCorrected;
-
-	// Calcul du score initial p(C|X)
-	cvScoreVector = ComputeScoreVectorLj(ivModalityIndexes);
-	cInitialScore = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// Calcul du score sans prendre en compte la variable explicative p(C|X\X_i)
-	cvScoreVector = ComputeScoreVectorLjWithoutOneVariable(ivModalityIndexes, nAttributeIndex);
-	cScoreWithoutOneVariable = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// AjoutVincent 10/2009 - Correction de Laplace pour que P>0 et P<1
-	// Prise en compte d'un epsilon de Laplace
-	// en considerant qu'on ne peut pas avoir de precision meilleure que 1/N
-	//   p = p*N / N
-	//   p_Laplace = (p*N + 0.5/J)/(N + 0.5)
-	//   p_Laplace = (p + 0.5/JN)/(1 + 0.5/N)
-	// (on se base sur N+1 pour eviter le cas N=0)
-	cInitialScoreCorrected =
-	    (cInitialScore + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
-	cScoreWithoutOneVariableCorrected =
-	    (cScoreWithoutOneVariable + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
-
-	// Vincent2009 - j'ai retire la correction et ajoute celle au-dessus
-	// Correction de Laplace pour eviter les divisions par zero
-	//cInitialScore = (cInitialScore * nDatabaseSize + 1) / (nDatabaseSize + nTargetValuesNumber);
-	//cScoreWithoutOneVariable = (cScoreWithoutOneVariable * nDatabaseSize + 1) / (nDatabaseSize + nTargetValuesNumber);
-
-	// Calcul de l'indicateur Weight of Evidence
-	//cImportanceValue = 1 / log(2.0) * (log(cInitialScore) - log(cScoreWithoutOneVariable));
-	cImportanceValueCorrected = (log(cInitialScoreCorrected) - log(cScoreWithoutOneVariableCorrected)) / log(2.0);
-
-	return cImportanceValueCorrected;
-}
-
-Continuous KIDRClassifierContribution::ComputeDifferenceProbabilities(
-    int nAttributeIndex, int nTargetClassIndex,
-    IntVector* ivModalityIndexes) const //, int nDatabaseSize, int nTargetValuesNumber)
-{
-	ContinuousVector* cvScoreVector;
-	Continuous cInitialScore;
-	Continuous cScoreWithoutOneVariable;
-	Continuous cImportanceValue;
-
-	// Calcul du score initial p(C|X)
-	cvScoreVector = ComputeScoreVectorLj(ivModalityIndexes);
-	cInitialScore = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// Calcul du score sans prendre en compte la variable explicative p(C|X\X_i)
-	cvScoreVector = ComputeScoreVectorLjWithoutOneVariable(ivModalityIndexes, nAttributeIndex);
-	cScoreWithoutOneVariable = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// Calcul de l'indicateur Weight of Evidence
-	cImportanceValue = cInitialScore - cScoreWithoutOneVariable;
-
-	return cImportanceValue;
-}
-
-Continuous KIDRClassifierContribution::ComputeLogImportanceValue(int nAttributeIndex, int nTargetClassIndex,
-								 int nModalityIndex) const
-{
-	Continuous cLogPosteriorProba;
-	Continuous cImportanceValue;
-
-	// Extraction de la log proba conditionnelle a la classe du pourquoi
-	cLogPosteriorProba = ExtractLogPosteriorProba(nTargetClassIndex, nAttributeIndex, nModalityIndex);
-
-	// Calcul de l'indicateur d'importance
-	cImportanceValue = cLogPosteriorProba - ComputeMaxLogPosteriorProbaWithoutWhyClassValue(
-						    nTargetClassIndex, nAttributeIndex, nModalityIndex);
+	cImportanceValue = exp(ExtractLogPosteriorProba(nTargetClassIndex, nAttributeIndex, nModalityIndex));
 
 	return cImportanceValue;
 }
@@ -1058,86 +855,6 @@ boolean KIDRClassifierInterpretation::CheckOperandsCompleteness(const KWClass* k
 	return bOk;
 }
 
-Continuous KIDRClassifierContribution::ComputeModalityProbability(int nAttributeIndex, int nTargetClassIndex,
-								  int nModalityIndex) const
-{
-	Continuous cImportanceValue;
-
-	cImportanceValue = exp(ExtractLogPosteriorProba(nTargetClassIndex, nAttributeIndex, nModalityIndex));
-
-	return cImportanceValue;
-}
-
-Continuous KIDRClassifierContribution::ComputeLogModalityProbability(int nAttributeIndex, int nTargetClassIndex,
-								     int nModalityIndex) const
-{
-	Continuous cImportanceValue;
-
-	cImportanceValue = ExtractLogPosteriorProba(nTargetClassIndex, nAttributeIndex, nModalityIndex);
-
-	return cImportanceValue;
-}
-
-Continuous KIDRClassifierContribution::ComputeBayesDistance(int nAttributeIndex, int nTargetClassIndex,
-							    int nModalityIndex) const
-{
-	Continuous cImportanceValue;
-
-	cImportanceValue = ExtractLogPosteriorProba(nTargetClassIndex, nAttributeIndex, nModalityIndex) *
-			   cvVariableWeights.GetAt(nAttributeIndex) * exp(ExtractLogPriorProba(nTargetClassIndex));
-
-	return cImportanceValue;
-}
-
-Continuous KIDRClassifierContribution::ComputeBayesDistanceWithoutPrior(int nAttributeIndex, int nTargetClassIndex,
-									int nModalityIndex) const
-{
-	Continuous cImportanceValue;
-
-	cImportanceValue = ExtractLogPosteriorProba(nTargetClassIndex, nAttributeIndex, nModalityIndex) *
-			   cvVariableWeights.GetAt(nAttributeIndex);
-
-	return cImportanceValue;
-}
-
-Continuous KIDRClassifierContribution::ComputeKullback(int nAttributeIndex, int nTargetClassIndex,
-						       IntVector* ivModalityIndexes, int nDatabaseSize,
-						       int nTargetValuesNumber) const
-{
-	ContinuousVector* cvScoreVector;
-	Continuous cInitialScore;
-	Continuous cScoreWithoutOneVariable;
-	Continuous cImportanceValue;
-	Continuous cInitialScoreCorrected;
-	Continuous cScoreWithoutOneVariableCorrected;
-
-	// Calcul du score initial p(C|X)
-	cvScoreVector = ComputeScoreVectorLj(ivModalityIndexes);
-	cInitialScore = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// Calcul du score sans prendre en compte la variable explicative p(C|X\X_i)
-	cvScoreVector = ComputeScoreVectorLjWithoutOneVariable(ivModalityIndexes, nAttributeIndex);
-	cScoreWithoutOneVariable = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// AjoutVincent 10/2009 - Correction de Laplace pour que P>0 et P<1
-	// Prise en compte d'un epsilon de Laplace
-	// en considerant qu'on ne peut pas avoir de precision meilleure que 1/N
-	//   p = p*N / N
-	//   p_Laplace = (p*N + 0.5/J)/(N + 0.5)
-	//   p_Laplace = (p + 0.5/JN)/(1 + 0.5/N)
-	// (on se base sur N+1 pour eviter le cas N=0)
-	cInitialScoreCorrected =
-	    (cInitialScore + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
-	cScoreWithoutOneVariableCorrected =
-	    (cScoreWithoutOneVariable + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
-
-	cImportanceValue = cInitialScoreCorrected * log(cInitialScoreCorrected / cScoreWithoutOneVariableCorrected);
-
-	return cImportanceValue;
-}
-
 Continuous KIDRClassifierContribution::ComputeMaxLogPosteriorProbaWithoutWhyClassValue(int nWhyTargetValueNumber,
 										       int nAttributeIndex,
 										       int nModalityIndex) const
@@ -1164,85 +881,14 @@ Continuous KIDRClassifierContribution::ComputeMaxLogPosteriorProbaWithoutWhyClas
 
 void KIDRClassifierContribution::Compile(KWClass* kwcOwnerClass)
 {
-	Symbol sWhyMethod;
 	KIDRClassifierInterpretation::Compile(kwcOwnerClass); // code classe ancetre
 
-	// initialiser des booleens indiquant la methode de calcul de contribution a utiliser (perfs)
-
-	sWhyMethod = GetOperandAt(3)->GetSymbolConstant();
-
-	if (sWhyMethod == SHAPLEY_LABEL)
-		contributionComputingMethod = Shapley;
-	else if (sWhyMethod == MIN_PROBA_DIFF_LABEL)
-		contributionComputingMethod = ImportanceValue;
-	else if (sWhyMethod == WEIGHT_EVIDENCE_LABEL)
-		contributionComputingMethod = WeightOfEvidence;
-	else if (sWhyMethod == INFO_DIFF_LABEL)
-		contributionComputingMethod = InformationDifference;
-	else if (sWhyMethod == DIFF_PROBA_LABEL)
-		contributionComputingMethod = DifferenceProbabilities;
-	else if (sWhyMethod == MODALITY_PROBA_LABEL)
-		contributionComputingMethod = ModalityProbability;
-	else if (sWhyMethod == BAYES_DISTANCE_LABEL)
-		contributionComputingMethod = BayesDistance;
-	else if (sWhyMethod == KULLBACK_LABEL)
-		contributionComputingMethod = Kullback;
-	else if (sWhyMethod == LOG_MODALITY_PROBA_LABEL)
-		contributionComputingMethod = LogModalityProbability;
-	else if (sWhyMethod == LOG_MIN_PROBA_DIFF_LABEL)
-		contributionComputingMethod = LogImportanceValue;
-	else if (sWhyMethod == BAYES_DISTANCE_WITHOUT_PRIOR_LABEL)
-		contributionComputingMethod = BayesDistanceWithoutPrior;
-	else if (sWhyMethod == NORMALIZED_ODDS_RATIO_LABEL)
-		contributionComputingMethod = NormalizedOddsRatio;
-
+	// voir si on doit trier les variables de contribution et reinforcement
 	bSortInstanceProbas = (strcmp(GetOperandAt(4)->GetSymbolConstant().GetValue(), "sorted") == 0 ? true : false);
 
 	sContributionClass = "";
 
 	InitializeShapleyTables();
-}
-
-// Calcul du Normalized Odds Ratio (NOR)
-Continuous KIDRClassifierContribution::ComputeNormalizedOddsRatio(int nAttributeIndex, int nTargetClassIndex,
-								  IntVector* ivModalityIndexes, int nDatabaseSize,
-								  int nTargetValuesNumber) const
-{
-	ContinuousVector* cvScoreVector;
-	Continuous cInitialScore;
-	Continuous cScoreWithoutOneVariable;
-	Continuous cInitialScoreCorrected;
-	Continuous cScoreWithoutOneVariableCorrected;
-	Continuous cImportanceValueCorrected;
-	Continuous cRatioCorrected;
-
-	// Calcul du score initial p(C|X)
-	cvScoreVector = ComputeScoreVectorLj(ivModalityIndexes);
-	cInitialScore = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// Calcul du score sans prendre en compte la variable explicative p(C|X\X_i)
-	cvScoreVector = ComputeScoreVectorLjWithoutOneVariable(ivModalityIndexes, nAttributeIndex);
-	cScoreWithoutOneVariable = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// Commentaires sur ce code voir fonction "Weight of Evidence"
-	// on calcule le odd ratio entre P(C|X) et (P(C|X) prive de la variable
-	// puis on normalise pour avoir des valeurs entre -1 et +1
-	// cela corresponds au fait de faire passer le weight of evidence dans une sigmoide
-	cInitialScoreCorrected =
-	    (cInitialScore + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
-	cScoreWithoutOneVariableCorrected =
-	    (cScoreWithoutOneVariable + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
-	cRatioCorrected = (cInitialScoreCorrected * (1 - cScoreWithoutOneVariableCorrected)) /
-			  ((1 - cInitialScoreCorrected) * cScoreWithoutOneVariableCorrected);
-	cImportanceValueCorrected = (cRatioCorrected - 1) / (cRatioCorrected + 1);
-
-	if (cImportanceValueCorrected < -1 or cImportanceValueCorrected > 1)
-		AddWarning(" Normalized Odds Ratio value is " + ALString(DoubleToString(cImportanceValueCorrected)) +
-			   ". Should be >= -1 and <= 1");
-
-	return cImportanceValueCorrected;
 }
 
 ContinuousVector* KIDRClassifierContribution::ComputeScoreVectorLj(IntVector* ivModalityIndexes) const

@@ -85,17 +85,6 @@ public:
 	// liste des labels utlises pour differencier les methodes de calcul
 	// de score d'interpretation et leur derivationrule
 	static const ALString SHAPLEY_LABEL;
-	static const ALString NORMALIZED_ODDS_RATIO_LABEL;
-	static const ALString MIN_PROBA_DIFF_LABEL;
-	static const ALString WEIGHT_EVIDENCE_LABEL;
-	static const ALString INFO_DIFF_LABEL;
-	static const ALString DIFF_PROBA_LABEL;
-	static const ALString MODALITY_PROBA_LABEL;
-	static const ALString BAYES_DISTANCE_LABEL;
-	static const ALString KULLBACK_LABEL;
-	static const ALString LOG_MODALITY_PROBA_LABEL;
-	static const ALString LOG_MIN_PROBA_DIFF_LABEL;
-	static const ALString BAYES_DISTANCE_WITHOUT_PRIOR_LABEL;
 	static const ALString PREDICTED_CLASS_LABEL;
 	static const ALString CLASS_OF_HIGHEST_GAIN_LABEL;
 	static const ALString ALL_CLASSES_LABEL;
@@ -192,23 +181,6 @@ public:
 	// - All classes: all the classes successively. (default)
 	Symbol GetContributionClass() const;
 
-	//type de calcul de contribution (default Shapley)
-	enum ContributionComputingMethod
-	{
-		NormalizedOddsRatio,
-		ImportanceValue,
-		WeightOfEvidence,
-		InformationDifference,
-		DifferenceProbabilities,
-		ModalityProbability,
-		BayesDistance,
-		Kullback,
-		LogModalityProbability,
-		LogImportanceValue,
-		BayesDistanceWithoutPrior,
-		Shapley
-	};
-
 	// Memoire utilisee par KIDRClassifierContribution
 	longint GetUsedMemory() const override;
 
@@ -216,11 +188,9 @@ protected:
 	// Calcul des donnees de contribution
 	void ComputeContribution(const KWObject* kwoObject) const;
 
-	// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi) - VPD
-	Continuous ComputeImportanceValue(int nAttributeIndex, int nTargetClassIndex, int nModalityIndex) const;
-
-	// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi) - LVPD
-	Continuous ComputeLogImportanceValue(int nAttributeIndex, int nTargetClassIndex, int nModalityIndex) const;
+	/// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
+	/// selon la probabilite de la modalite de l'attribut conditionnellement a la classe : p(X_i | C) - MOP
+	Continuous ComputeModalityProbability(int nAttributeIndex, int nTargetClassIndex, int nModalityIndex) const;
 
 	// Calcul du max de la log proba conditionnelle sur les classes
 	// autres que la classe indiqueee en entree, our un attribut donne et une modalite donnee
@@ -228,54 +198,9 @@ protected:
 	Continuous ComputeMaxLogPosteriorProbaWithoutWhyClassValue(int nWhyTargetValueNumber, int nAttributeIndex,
 								   int nModalityIndex) const;
 
-	// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
-	// selon l'indicateur Weight Of Evidence de l'article Sikonja/Kononenko - WOE
-	Continuous ComputeWeightOfEvidence(int nAttributeIndex, int nTargetClassIndex, IntVector* ivModalityIndexes,
-					   int nDatabaseSize, int nTargetValuesNumber) const;
-
-	// Calcul du Normalized Odds Ratio (NOR)
-	Continuous ComputeNormalizedOddsRatio(int nAttributeIndex, int nTargetClassIndex, IntVector* ivModalityIndexes,
-					      int nDatabaseSize, int nTargetValuesNumber) const;
-
-	// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
-	// selon l'indicateur Information Difference de l'article Sikonja/Kononenko - IDI (=LDOP)
-	Continuous ComputeInformationDifference(int nAttributeIndex, int nTargetClassIndex,
-						IntVector* ivModalityIndexes, int nDatabaseSize,
-						int nTargetValuesNumber) const;
-
-	// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
-	// selon l'indicateur Difference of Probabilities de l'article Sikonja/Kononenko - DOP
-	Continuous ComputeDifferenceProbabilities(
-	    int nAttributeIndex, int nTargetClassIndex,
-	    IntVector* ivModalityIndexes) const; //,int nDatabaseSize, int nTargetValuesNumber);
-
-	// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
-	// selon la probabilite de la modalite de l'attribut conditionnellement a la classe : p(X_i | C) - MOP
-	Continuous ComputeModalityProbability(int nAttributeIndex, int nTargetClassIndex, int nModalityIndex) const;
-
 	// meme chose que ComputeModalityProbability, mais pour toutes les classes sauf la classe cible
 	Continuous ComputeModalityProbabilityWithoutTargetClass(int nAttributeIndex, int nTargetClassIndex,
 								int nModalityIndex) const;
-
-	// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
-	// selon la probabilite de la modalite de l'attribut conditionnellement a la classe : log p(X_i | C) - LMOP
-	Continuous ComputeLogModalityProbability(int nAttributeIndex, int nTargetClassIndex, int nModalityIndex) const;
-
-	// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
-	// selon : log p(X_i | C) * Weight(X_i) * P(C) ou Weight est le poids dans le SNB et valant 1 dans le cas
-	// du NB - MODL
-	Continuous ComputeBayesDistance(int nAttributeIndex, int nTargetClassIndex, int nModalityIndex) const;
-
-	// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
-	// selon : log p(X_i | C) * Weight(X_i) ou Weight est le poids dans le SNB et valant 1 dans le cas
-	// du NB - MODL2
-	Continuous ComputeBayesDistanceWithoutPrior(int nAttributeIndex, int nTargetClassIndex,
-						    int nModalityIndex) const;
-
-	// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
-	// selon la divergence de Kullback-Leibler (non symetrisee) - KLD
-	Continuous ComputeKullback(int nAttributeIndex, int nTargetClassIndex, IntVector* ivModalityIndexes,
-				   int nDatabaseSize, int nTargetValuesNumber) const;
 
 	// Calcul de la valeur Shapley
 	// nModalityIndex indique dans quel intervalle ou groupe de l'attribut designe par nAttributeIndex, cet individu appartient
@@ -300,8 +225,6 @@ protected:
 	mutable Symbol sContributionClass;
 
 	mutable boolean bSortInstanceProbas;
-
-	ContributionComputingMethod contributionComputingMethod;
 
 	//structure pour sauvegarder les precalculs des valeurs de Shapley
 	ObjectArray oaShapleyTables;

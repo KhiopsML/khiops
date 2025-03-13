@@ -228,10 +228,10 @@ protected:
 	// Valeurs cible de reference
 	SymbolVector* svReferenceTargetModalities;
 
-	// le noeud est-il une feuille ? 
+	// le noeud est-il une feuille ?
 	boolean bIsLeaf;
 
-	// le noeud peut-il etre elague ? 
+	// le noeud peut-il etre elague ?
 	boolean bCanBePruned;
 
 	// Profondeur du noeud

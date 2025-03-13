@@ -110,6 +110,8 @@ boolean KIInterpretationDictionary::UpdateInterpretationAttributes()
 				oaInterpretationAttributes.Add(attribute);
 			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementClassChangeTagRank"))
 				oaInterpretationAttributes.Add(attribute);
+			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementInitialScore"))
+				oaInterpretationAttributes.Add(attribute);
 			kwcInterpretationMainClass->GetNextAttribute(attribute);
 		}
 
@@ -292,9 +294,6 @@ KWAttribute* KIInterpretationDictionary::CreateScoreContributionAttribute(ALStri
 KWAttribute* KIInterpretationDictionary::CreateContributionValueAtAttribute(
     const KWAttribute* scoreInterpretationAttribute, KWClass* kwcInterpretation, ALString sTargetClass, int nIndex)
 {
-	// creation d'un attribut de type
-	// Numerical	`NormalizedOddsRatio1_Predicted class`	 = ContributionValueAt(`NormalizedOddsRatio_Predicted class`, 1)	; <ClassifierInterpretationAttribute>	<ContributionValue1="SepalLength">
-
 	// creation d'une regle de derivation
 	KWDerivationRule* rule = new KIDRContributionValueAt;
 	ALString sValue;
@@ -344,8 +343,6 @@ KWAttribute* KIInterpretationDictionary::CreateContributionValueAtAttribute(
 KWAttribute* KIInterpretationDictionary::CreateContributionNameAtAttribute(
     const KWAttribute* scoreInterpretationAttribute, KWClass* kwcInterpretation, ALString sTargetClass, int nIndex)
 {
-	// creation d'un attribut de type
-	// 		Categorical	`ContributionVar1_Predicted class`	 = ContributionNameAt(`NormalizedOddsRatio_Predicted class`, 1)	; <ClassifierInterpretationAttribute>	<ContributionVar1="SepalLength">
 
 	// creation d'une regle de derivation
 	KWDerivationRule* rule = new KIDRContributionNameAt;
@@ -381,8 +378,6 @@ KWAttribute* KIInterpretationDictionary::CreateContributionNameAtAttribute(
 KWAttribute* KIInterpretationDictionary::CreateContributionPartitionAtAttribute(
     const KWAttribute* scoreInterpretationAttribute, KWClass* kwcInterpretation, ALString sTargetClass, int nIndex)
 {
-	// creation d'un attribut de type
-	// 	Categorical	`ContributionPartition1_Predicted class`	 = ContributionPartitionAt(`NormalizedOddsRatio_Predicted class`, 1)	; <ClassifierInterpretationAttribute>	<ContributionPart1="SepalLength">
 
 	// creation d'une regle de derivation
 	KWDerivationRule* rule = new KIDRContributionPartitionAt;
@@ -586,7 +581,8 @@ KIInterpretationDictionary::CreateReinforcementInitialScoreAttribute(const KWAtt
 	contributionClassAttribute->SetType(KWType::Continuous);
 
 	contributionClassAttribute->SetDerivationRule(rule);
-	contributionClassAttribute->GetMetaData()->SetNoValueAt(INTERPRETATION_ATTRIBUTE_META_TAG);
+	contributionClassAttribute->GetMetaData()->SetNoValueAt("ReinforcementInitialScore");
+	contributionClassAttribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
 	return contributionClassAttribute;
 }
 
@@ -1027,29 +1023,7 @@ void KIInterpretationDictionary::PrepareInterpretationClass()
 
 const ALString& KIInterpretationDictionary::GetWhyTypeShortLabel(const ALString& asWhyTypeLongLabel)
 {
-	if (asWhyTypeLongLabel == "Normalized odds ratio")
-		return NORMALIZED_ODDS_RATIO_LABEL;
-	else if (asWhyTypeLongLabel == "Weight of evidence")
-		return WEIGHT_EVIDENCE_LABEL;
-	else if (asWhyTypeLongLabel == "Log minimum of variable probabilities difference")
-		return LOG_MIN_PROBA_DIFF_LABEL;
-	else if (asWhyTypeLongLabel == "Information difference")
-		return INFO_DIFF_LABEL;
-	else if (asWhyTypeLongLabel == "Difference of probabilities")
-		return DIFF_PROBA_LABEL;
-	else if (asWhyTypeLongLabel == "Minimum of variable probabilities difference")
-		return MIN_PROBA_DIFF_LABEL;
-	else if (asWhyTypeLongLabel == "Modality probability")
-		return MODALITY_PROBA_LABEL;
-	else if (asWhyTypeLongLabel == "Log modality probability")
-		return LOG_MODALITY_PROBA_LABEL;
-	else if (asWhyTypeLongLabel == "Bayes distance")
-		return BAYES_DISTANCE_LABEL;
-	else if (asWhyTypeLongLabel == "Bayes distance without prior")
-		return BAYES_DISTANCE_WITHOUT_PRIOR_LABEL;
-	else if (asWhyTypeLongLabel == "Kullback")
-		return KULLBACK_LABEL;
-	else if (asWhyTypeLongLabel == "Shapley")
+	if (asWhyTypeLongLabel == "Shapley")
 		return SHAPLEY_LABEL;
 	else
 		return UNDEFINED_LABEL;

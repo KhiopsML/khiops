@@ -59,17 +59,6 @@ public:
 
 	// Types de methodes d'interpretation
 	const ALString SHAPLEY_LABEL = "Shapley";
-	const ALString NORMALIZED_ODDS_RATIO_LABEL = "NormalizedOddsRatio";
-	const ALString MIN_PROBA_DIFF_LABEL = "MinProbaDiff";
-	const ALString WEIGHT_EVIDENCE_LABEL = "WeightEvidence";
-	const ALString INFO_DIFF_LABEL = "InfoDiff";
-	const ALString DIFF_PROBA_LABEL = "DiffProba";
-	const ALString MODALITY_PROBA_LABEL = "ModalityProba";
-	const ALString BAYES_DISTANCE_LABEL = "BayesDistance";
-	const ALString KULLBACK_LABEL = "Kullback";
-	const ALString LOG_MODALITY_PROBA_LABEL = "LogModalityProba";
-	const ALString LOG_MIN_PROBA_DIFF_LABEL = "LogMinProbaDiff";
-	const ALString BAYES_DISTANCE_WITHOUT_PRIOR_LABEL = "BayesDistanceWithoutPrior";
 	const ALString UNDEFINED_LABEL = "Undefined";
 
 	// Definition des type de meta-data permettant de reperer les variables dediees

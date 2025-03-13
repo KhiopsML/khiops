@@ -30,7 +30,7 @@ public:
 	void SetRecodeRFDictionary(boolean bValue);
 	boolean GetRecodeRFDictionary() const;
 
-	// type de tirage (avec ou sans remise) 
+	// type de tirage (avec ou sans remise)
 	void SetDrawingType(DTDecisionTree::DrawingType);
 	void SetDrawingType(const ALString typeLabel);
 	DTDecisionTree::DrawingType GetDrawingType() const;

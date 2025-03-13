@@ -500,7 +500,7 @@ boolean DTDecisionTreeCreationTask::MasterFinalize(boolean bProcessEndedCorrectl
 		// 	- ajouter les arbres au rapport, afin de permettre ulterieurement l'ecriture du rapport JSON
 		// 	- recreer les attributs correspondants aux arbres et les ajouter dans le dictionnaire initial,
 		//    pour prise en compte dans le modele
-		
+
 		kwcUpdatedClass = shared_learningSpec.GetLearningSpec()->GetClass();
 
 		// Tri par nom des arbres, pour assurer la reproductibilite de l'ordre des resultats
@@ -1343,7 +1343,6 @@ longint DTDecisionTreeCreationTask::ComputeSharedNecessaryMemory()
 longint DTDecisionTreeCreationTask::ComputeBiggestTreeNecessaryMemory()
 {
 	// Memoire necessaire pour 1 esclave, pour calculer le plus gros arbre possible
-	
 
 	longint lResult;
 	boolean bLocalTrace = false;
@@ -1469,7 +1468,6 @@ int DTDecisionTreeCreationTask::ComputeOneSlaveMaxLoadableAttributeNumber(const 
 
 	// ATTENTION toute modification de cette formule doit etre reporter dans la fonction
 	// ComputeBiggestTreeNecessaryMemory
-	
 
 	lResult = (lGrantedMinSlaveMemory - lMasterTreeWorkingMemory - lMasterTreeResultMeanMemory) /
 		  (lMasterMedianStatMemory + lMasterOneAttributeValueMemory);
