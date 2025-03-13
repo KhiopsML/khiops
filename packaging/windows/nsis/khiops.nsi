@@ -17,8 +17,6 @@ SetCompressor /SOLID lzma
 # Include Custom libraries
 !include "KhiopsGlobals.nsh"
 !include "KhiopsPrerequisiteFunc.nsh"
-!include "ReplaceInFile.nsh"
-
 
 
 # Definitions for registry change notification
@@ -52,6 +50,14 @@ ManifestDPIAware true
 !insertmacro CheckInputParameter MSMPI_VERSION
 !insertmacro CheckInputParameter KHIOPS_SAMPLES_DIR
 !insertmacro CheckInputParameter KHIOPS_DOC_DIR
+
+# Sign uninstaller if requested
+!ifdef SIGN
+  !insertmacro CheckInputParameter PATH_TO_JSIGN
+  !insertmacro CheckInputParameter PKCS11_CONF
+  !insertmacro CheckInputParameter KEY_PASSWORD
+  !uninstfinalize java -Djava.security.debug=sunpkcs11,pkcs11 -jar ${PATH_TO_JSIGN} --keystore ${PKCS11_CONF} --storepass ${KEY_PASSWORD} --storetype PKCS11 --alias 'Orange SA' %1
+!endif
 
 # Application name and installer file name
 Name "Khiops ${KHIOPS_VERSION}"
@@ -327,30 +333,6 @@ Section "Install" SecInstall
   # Finalize the installation #
   #############################
 
-  # Setting up the GUI in khiops_env.cmd: replace @GUI_STATUS@ by "true" in the installed file
-  Push @GUI_STATUS@ 
-  Push 'true' 
-  Push all 
-  Push all 
-  Push $INSTDIR\bin\khiops_env.cmd
-  Call ReplaceInFile
-
-  # Setting up MPI in khiops_env.cmd: replace @SET_MPI@ by "SET_MPI_SYSTEM_WIDE" in the installed file
-  Push @SET_MPI@
-  Push SET_MPI_SYSTEM_WIDE 
-  Push all 
-  Push all 
-  Push $INSTDIR\bin\khiops_env.cmd
-  Call ReplaceInFile
-
-  # Setting up IS_CONDA_VAR variable in khiops_env.cmd: replace @SET_MPI@ by an empty string: this is not an installer for conda
-  Push @IS_CONDA_VAR@
-  Push "" 
-  Push all 
-  Push all 
-  Push $INSTDIR\bin\khiops_env.cmd
-  Call ReplaceInFile
-
   # Create the Khiops shell
   FileOpen $0 "$INSTDIR\bin\shell_khiops.cmd" w
   FileWrite $0 '@echo off$\r$\n'
@@ -488,6 +470,7 @@ SectionEnd
 ###############
 
 Section "Uninstall"
+
   # In order to have shortcuts and documents for all users
   SetShellVarContext all
 
@@ -717,6 +700,9 @@ Function .onInit
       # No 32-bit install
     ${EndIf}
   ${EndIf}
+
+  # Sets whether install logging to $INSTDIR\install.log will happen (require NSIS_CONFIG_LOG)
+  # LogSet on
 FunctionEnd
 
 
