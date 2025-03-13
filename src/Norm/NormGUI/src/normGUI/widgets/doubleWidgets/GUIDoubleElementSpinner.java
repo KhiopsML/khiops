@@ -99,37 +99,16 @@ public class GUIDoubleElementSpinner extends GUIDoubleElement
         public void focusLost(FocusEvent e)
         {
                 if (e.getOppositeComponent() != null && (!e.isTemporary() || !getParentUnit().getActionRunning())) {
-                        double dValue = 0;
-
                         // Dans le Spinner Java standard, la saisie n'est validee qu'avec le Enter
                         // Ici, on force sa validation des la perte de focus
+                        // La gestion des bornes est assuree par le SpinnerNumberModel
                         JSpinner js = (JSpinner)component;
-                        JTextField spinnerEditor = ((JSpinner.NumberEditor)js.getEditor()).getTextField();
-                        String strInitialValue = spinnerEditor.getText();
 
-                        // On supprime tous les blancs, y compris internes, potentiellement rajoutes par
-                        // le composant spinner
-                        String strValue = "";
-                        for (Character c : strInitialValue.toCharArray()) {
-                                if (!Character.isSpaceChar(c))
-                                        strValue = strValue + c;
-                        }
-
-                        // On convertit en numerique
-                        boolean valid = true;
+                        // Validation de la valeur
                         try {
-                                dValue = Double.parseDouble(strValue);
-
-                                // Projection sur les bornes si necessaires
-                                if (dValue < getMinValue())
-                                        dValue = getMinValue();
-                                else if (dValue > getMaxValue())
-                                        dValue = getMaxValue();
+                                js.commitEdit();
                         } catch (Exception ex) {
-                                valid = false;
                         }
-                        if (valid)
-                                js.setValue(dValue);
 
                         // Appel de l'implementation mere
                         super.focusLost(e);
@@ -155,14 +134,13 @@ public class GUIDoubleElementSpinner extends GUIDoubleElement
                         public Object getCellEditorValue()
                         {
                                 JSpinner js = (JSpinner)editorComponent;
-                                JTextField spinnerEditor = ((JSpinner.NumberEditor)js.getEditor()).getTextField();
-                                double dValue;
+
+                                // Validation de la valeur
                                 try {
-                                        dValue = Double.parseDouble(spinnerEditor.getText());
+                                        js.commitEdit();
                                 } catch (Exception ex) {
-                                        dValue = getMinValue();
                                 }
-                                return dValue;
+                                return js.getValue();
                         }
 
                         /**
