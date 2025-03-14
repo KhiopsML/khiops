@@ -601,7 +601,7 @@ void DTDiscretizerMODL::DiscretizeGranularizedFrequencyTableNEW(KWFrequencyTable
 			kwdfvSourceFrequencyVectorcurent =
 			    cast(KWDenseFrequencyVector*, kwftSource->GetFrequencyVectorAt(nfv));
 
-			////////// calcul de la nouvelle FrequencyVector
+			/////// calcul de la nouvelle FrequencyVector
 			for (nvalue = 0; nvalue < nTargetValueNumber; nvalue++)
 			{
 				nsum = kwdfvSourceFrequencyVector0->GetFrequencyVector()->GetAt(nvalue) +
@@ -612,7 +612,7 @@ void DTDiscretizerMODL::DiscretizeGranularizedFrequencyTableNEW(KWFrequencyTable
 				kwdfvSourceFrequencyVector1->GetFrequencyVector()->SetAt(nvalue, nsum);
 			}
 
-			/// Calcul du cout de la binerisation courentes
+			// Calcul du cout de la binerisation courentes
 			// dCost = ComputeDiscretizationCost(&kwftbin);
 			// cout << "cost sans granunalarity : " << dCost << " \ " << kwftbin.GetGranularity() << endl;
 			kwftbin.SetGranularity(ivGranularityValues->GetAt(nfv));

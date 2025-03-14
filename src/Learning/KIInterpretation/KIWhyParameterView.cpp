@@ -22,7 +22,7 @@ KIWhyParameterView::KIWhyParameterView()
 	AddStringField("WhyClass", "Choice of the class of interest", "");
 
 	// Choix de la methode de calcul de l'importance d'une variable
-	AddStringField("WhyType", "Type of the contribution indicator", "");
+	AddStringField("WhyType", "Type of the contribution indicator", "Shapley");
 
 	// Choix de trier ou non les resultats par importance
 	AddBooleanField("SortWhy", "Sort contribution results", true);
@@ -75,7 +75,7 @@ KIWhyParameterView* KIWhyParameterView::Create() const
 
 void KIWhyParameterView::EventUpdate(Object* object)
 {
-	/// Mise a jour des specs d'interpretation par les valeurs de l'interface
+	// Mise a jour des specs d'interpretation par les valeurs de l'interface
 
 	KIInterpretationSpec* editedObject;
 
@@ -105,8 +105,8 @@ void KIWhyParameterView::EventUpdate(Object* object)
 
 void KIWhyParameterView::EventRefresh(Object* object)
 {
-	/// Mise a jour des valeurs de l'interface par les specs d'interpretation
-
+	// Mise a jour des valeurs de l'interface par les specs d'interpretation
+	int i;
 	KIInterpretationSpec* editedObject;
 	require(object != NULL);
 
@@ -127,9 +127,9 @@ void KIWhyParameterView::EventRefresh(Object* object)
 
 	// Mise a jour de la liste deroulante en fonction de la liste des valeurs cibles figurant dans le dictionnaire d'interpretation
 	ALString sTargetValues;
-	for (int i = 0; i < editedObject->GetInterpretationDictionary()->GetTargetValues().GetSize(); i++)
+	for (i = 0; i < editedObject->GetInterpretationDictionary()->GetTargetValues()->GetSize(); i++)
 		sTargetValues +=
-		    ALString(editedObject->GetInterpretationDictionary()->GetTargetValues().GetAt(i)) + "\n";
+		    ALString(editedObject->GetInterpretationDictionary()->GetTargetValues()->GetAt(i)) + "\n";
 
 	GetFieldAt("WhyClass")
 	    ->SetParameters(ALString(KIInterpretationSpec::ALL_CLASSES_LABEL) + "\n" + sTargetValues +

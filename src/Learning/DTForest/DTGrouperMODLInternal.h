@@ -6,9 +6,9 @@
 
 /////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////
-//// Implementation
-//// Les classes ci-dessous sont reservees a l'implementation des classes
-//// de groupage MODL
+// Implementation
+// Les classes ci-dessous sont reservees a l'implementation des classes
+// de groupage MODL
 
 class DTGrouperMODLTwoClasses;
 class KWMODLGroup;
@@ -58,7 +58,7 @@ public:
 	const ALString GetName() const override;
 
 	/////////////////////////////////////////////////////////////////
-	//// Implementation
+	// Implementation
 protected:
 	friend class DTGrouperMODL;
 

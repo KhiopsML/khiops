@@ -14,7 +14,7 @@
 #include "KWClassAttributeHelpList.h"
 #include "KWDatabaseAttributeValuesHelpList.h"
 #include "KWResultFilePathBuilder.h"
-
+#include "KWTrainedPredictor.h"
 #include "KIWhyParameterView.h"
 #include "KIHowParameterView.h"
 
@@ -46,7 +46,7 @@ public:
 	const ALString GetClassLabel() const override;
 
 	////////////////////////////////////////////////////////////////
-	///// Implementation
+	// Implementation
 protected:
 	KIWhyParameterView* whyParameterView;
 	KIHowParameterView* howParameterView;

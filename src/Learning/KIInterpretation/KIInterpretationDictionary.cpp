@@ -3,10 +3,6 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "KIInterpretationDictionary.h"
-#include "KIInterpretationSpec.h"
-#include "KIDRPredictor.h"
-
-#include "KWTrainedPredictor.h"
 
 KIInterpretationDictionary::KIInterpretationDictionary(KIInterpretationSpec* spec)
 {
@@ -23,16 +19,13 @@ KIInterpretationDictionary::~KIInterpretationDictionary()
 
 void KIInterpretationDictionary::CleanImport()
 {
-	sTargetValues.SetSize(0);
+	svTargetValues.SetSize(0);
 
 	// Nettoyage du tableau de noms de variables partitionnees
-
 	svPartitionedPredictiveAttributeNames.SetSize(0);
 
 	// Nettoyage du tableau de noms de variables natives
-
 	svNativePredictiveAttributeNames.SetSize(0);
-
 	if (kwcdInterpretationDomain != NULL)
 	{
 		kwcdInterpretationDomain->DeleteAllClasses();
@@ -47,8 +40,9 @@ boolean KIInterpretationDictionary::CreateInterpretationDomain(const KWClass* in
 {
 	boolean bOk = true;
 
+	// Il doit y avoir un dico en entree
 	if (inputClassifier == NULL)
-		return false; // pas encore de dico d'input choisi par l'utilisateur
+		return false;
 
 	if (kwcdInterpretationDomain != NULL)
 	{
@@ -56,7 +50,7 @@ boolean KIInterpretationDictionary::CreateInterpretationDomain(const KWClass* in
 		delete kwcdInterpretationDomain;
 	}
 
-	// cloner le domaine d'origine, afin de gerer les dictionnaires d'entree de type multi-table
+	// Clone du domaine d'origine, afin de gerer les dictionnaires d'entree de type multi-table
 	kwcdInterpretationDomain = inputClassifier->GetDomain()->CloneFromClass(inputClassifier);
 	kwcdInterpretationDomain->SetName("InterpretationDomain");
 	kwcInterpretationMainClass = kwcdInterpretationDomain->LookupClass(inputClassifier->GetName());
@@ -72,20 +66,24 @@ boolean KIInterpretationDictionary::UpdateInterpretationAttributes()
 	boolean bOk = true;
 	ALString sValue;
 	int nIndex;
-	KWTrainedClassifier* trainedClassifier = new KWTrainedClassifier;
+	KWTrainedClassifier trainedClassifier;
+	ObjectArray oaInterpretationAttributes;
+	KWAttribute* classifierAttribute;
+	KWAttribute* predictionAttribute;
+	KWAttribute* attribute;
+	ALString sTargetValue;
+	int i;
 
-	bOk = trainedClassifier->ImportPredictorClass(kwcInterpretationMainClass);
-
+	// Import de l'interpreteur
+	bOk = trainedClassifier.ImportPredictorClass(kwcInterpretationMainClass);
 	if (bOk)
 	{
-		ObjectArray* interpretationAttributes = new ObjectArray;
+		// Recherche des attributs necessaires dans le modele
+		classifierAttribute = NULL;
+		predictionAttribute = NULL;
 
-		// recherche des attributs necessaires dans le modele
-		KWAttribute* classifierAttribute = NULL;
-		KWAttribute* predictionAttribute = NULL;
-
-		KWAttribute* attribute = kwcInterpretationMainClass->GetHeadAttribute();
-
+		// Nettoyage des meta-data existantes
+		attribute = kwcInterpretationMainClass->GetHeadAttribute();
 		while (attribute != NULL)
 		{
 			if (attribute->GetStructureName() == "Classifier")
@@ -93,51 +91,51 @@ boolean KIInterpretationDictionary::UpdateInterpretationAttributes()
 			else if (attribute->GetConstMetaData()->IsKeyPresent("Prediction"))
 				predictionAttribute = attribute;
 			else if (attribute->GetConstMetaData()->IsKeyPresent(INTERPRETATION_ATTRIBUTE_META_TAG))
-				interpretationAttributes->Add(attribute);
+				oaInterpretationAttributes.Add(attribute);
 			else if (attribute->GetConstMetaData()->IsKeyPresent("ClassifierInterpretationVariable"))
-				interpretationAttributes->Add(attribute);
+				oaInterpretationAttributes.Add(attribute);
 			else if (attribute->GetConstMetaData()->IsKeyPresent("ContributionVariable"))
-				interpretationAttributes->Add(attribute);
+				oaInterpretationAttributes.Add(attribute);
 			else if (attribute->GetConstMetaData()->IsKeyPresent("ContributionVariableRank"))
-				interpretationAttributes->Add(attribute);
+				oaInterpretationAttributes.Add(attribute);
 			else if (attribute->GetConstMetaData()->IsKeyPresent("ContributionPartRank"))
-				interpretationAttributes->Add(attribute);
+				oaInterpretationAttributes.Add(attribute);
 			else if (attribute->GetConstMetaData()->IsKeyPresent("ContributionValueRank"))
-				interpretationAttributes->Add(attribute);
-			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementFinalScore"))
-				interpretationAttributes->Add(attribute);
-			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementVariable"))
-				interpretationAttributes->Add(attribute);
-			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementPart"))
-				interpretationAttributes->Add(attribute);
-			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementClassChangeTag"))
-				interpretationAttributes->Add(attribute);
+				oaInterpretationAttributes.Add(attribute);
+			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementFinalScoreRank"))
+				oaInterpretationAttributes.Add(attribute);
+			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementVariableRank"))
+				oaInterpretationAttributes.Add(attribute);
+			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementPartRank"))
+				oaInterpretationAttributes.Add(attribute);
+			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementClassChangeTagRank"))
+				oaInterpretationAttributes.Add(attribute);
+			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementInitialScore"))
+				oaInterpretationAttributes.Add(attribute);
 			kwcInterpretationMainClass->GetNextAttribute(attribute);
 		}
 
-		// supprimer les eventuels attributs d'interpretation qui preexisteraient dans le dico,
+		// Supression des eventuels attributs d'interpretation qui preexisteraient dans le dico,
 		// afin de gerer correctement les mises a jour des parametres via IHM
 		// (on recree systematiquement tous les attributs d'interpretation)
-
-		for (int i = 0; i < interpretationAttributes->GetSize(); i++)
+		for (i = 0; i < oaInterpretationAttributes.GetSize(); i++)
 		{
-			attribute = cast(KWAttribute*, interpretationAttributes->GetAt(i));
+			attribute = cast(KWAttribute*, oaInterpretationAttributes.GetAt(i));
 			kwcInterpretationMainClass->DeleteAttribute(attribute->GetName());
 		}
 
+		// Compilation
 		kwcdInterpretationDomain->Compile();
 
-		delete interpretationAttributes;
-
+		// Preparation de la classe de l'interpreteur
 		PrepareInterpretationClass();
-
 		assert(classifierAttribute != NULL);
 		assert(predictionAttribute != NULL);
 
-		//mettre toutes les variables en unused
+		// On met toutes les variables en unused
 		kwcInterpretationMainClass->SetAllAttributesUsed(false);
 
-		// NV On met les attributs de cle en Used
+		// On met les attributs de cle en Used
 		for (nIndex = 0; nIndex < kwcInterpretationMainClass->GetKeyAttributeNumber(); nIndex++)
 		{
 			attribute = kwcInterpretationMainClass->GetKeyAttributeAt(nIndex);
@@ -146,7 +144,7 @@ boolean KIInterpretationDictionary::UpdateInterpretationAttributes()
 			attribute->SetLoaded(true);
 		}
 
-		// creation des attributs de contribution
+		// Creation des attributs de contribution
 		if (interpretationSpec->GetWhyAttributesNumber() > 0)
 		{
 			if (interpretationSpec->GetWhyClass() == KIInterpretationSpec::ALL_CLASSES_LABEL)
@@ -158,7 +156,6 @@ boolean KIInterpretationDictionary::UpdateInterpretationAttributes()
 				if (interpretationSpec->GetMaxAttributesNumber() ==
 				    interpretationSpec->GetWhyAttributesNumber())
 				{
-					sValue = ALString(KIInterpretationSpec::ALL_CLASSES_LABEL);
 					kwcInterpretationMainClass->GetMetaData()->SetNoValueAt(
 					    KIInterpretationSpec::ALL_CLASSES_LABEL);
 				}
@@ -168,13 +165,13 @@ boolean KIInterpretationDictionary::UpdateInterpretationAttributes()
 					    "VariableNumber", interpretationSpec->GetWhyAttributesNumber());
 				}
 				// Parcours de toutes les classes
-				for (nIndex = 0; nIndex < sTargetValues.GetSize(); nIndex++)
+				for (nIndex = 0; nIndex < svTargetValues.GetSize(); nIndex++)
 				{
 					// Extraction de la valeur de la classe cible
-					const ALString sTargetValue = sTargetValues.GetAt(nIndex).GetValue();
+					sTargetValue = svTargetValues.GetAt(nIndex).GetValue();
 					bOk = CreateContributionAttributesForClass(
 					    sTargetValue, kwcInterpretationMainClass, classifierAttribute,
-					    predictionAttribute, trainedClassifier);
+					    predictionAttribute, &trainedClassifier);
 
 					if (not bOk)
 						break;
@@ -188,15 +185,11 @@ boolean KIInterpretationDictionary::UpdateInterpretationAttributes()
 
 				bOk = CreateContributionAttributesForClass(
 				    interpretationSpec->GetWhyClass(), kwcInterpretationMainClass, classifierAttribute,
-				    predictionAttribute, trainedClassifier);
-				//sValue = ALString(GetWhyTypeShortLabel(interpretationSpec->GetWhyType()).GetValue()) +
-				//	 ALString("_") + interpretationSpec->GetWhyClass();
-				//kwcInterpretationMainClass->GetMetaData()->SetStringValueAt("ContributionMethod",
-				//							    sValue);
+				    predictionAttribute, &trainedClassifier);
 			}
 		}
 
-		// creation des attributs de renforcement
+		// Creation des attributs de renforcement
 		if (bOk)
 		{
 			if (interpretationSpec->GetHowAttributesNumber() > 0 and
@@ -204,21 +197,18 @@ boolean KIInterpretationDictionary::UpdateInterpretationAttributes()
 			{
 				bOk = CreateReinforcementAttributesForClass(
 				    interpretationSpec->GetHowClass(), kwcInterpretationMainClass, classifierAttribute,
-				    predictionAttribute, trainedClassifier);
+				    predictionAttribute, &trainedClassifier);
 				kwcInterpretationMainClass->GetMetaData()->SetStringValueAt(
 				    "ReinforcementClass", interpretationSpec->GetHowClass());
 			}
 		}
 		if (bOk)
 		{
-			// ajout d'un metadata permettant de reconnaitre qu'il s'agit d'un dico d'interpretation
+			// Ajout d'un metadata permettant de reconnaitre qu'il s'agit d'un dico d'interpretation
 			kwcInterpretationMainClass->GetMetaData()->SetNoValueAt("InterpreterDictionary");
 			kwcdInterpretationDomain->Compile();
 		}
 	}
-
-	delete trainedClassifier;
-
 	return bOk;
 }
 
@@ -228,27 +218,17 @@ boolean KIInterpretationDictionary::CreateContributionAttributesForClass(const A
 									 const KWAttribute* predictionAttribute,
 									 const KWTrainedClassifier* trainedClassifier)
 {
+	KWAttribute* scoreInterpretationAttribute;
+	int nAttributeIndex;
 
-	KWAttribute* scoreInterpretationAttribute =
+	scoreInterpretationAttribute =
 	    CreateScoreContributionAttribute(sTargetClass, kwcInterpretation, classifierAttribute, predictionAttribute);
 	scoreInterpretationAttribute->CompleteTypeInfo(kwcInterpretation);
 	kwcInterpretation->InsertAttribute(scoreInterpretationAttribute);
 	scoreInterpretationAttribute->SetUsed(false);
-	//NV
-	//KWAttribute* contributionClassAttribute =
-	//    CreateContributionClassAttribute(scoreInterpretationAttribute, kwcInterpretation, sTargetClass);
-	//contributionClassAttribute->CompleteTypeInfo(kwcInterpretation);
-	//kwcInterpretation->InsertAttribute(contributionClassAttribute);
-
-	//KWAttribute* classPriorAttribute =
-	//    CreateClassPriorAttribute(sTargetClass, kwcInterpretation, trainedClassifier->GetTargetValuesAttribute(),
-	//			      predictionAttribute, contributionClassAttribute);
-	//classPriorAttribute->CompleteTypeInfo(kwcInterpretation);
-	//kwcInterpretation->InsertAttribute(classPriorAttribute);
 
 	// Parcours des variables explicatives a concurrence du nombre max de variables recherchees dans le pourquoi
-
-	for (int nAttributeIndex = 0; nAttributeIndex < interpretationSpec->GetWhyAttributesNumber(); nAttributeIndex++)
+	for (nAttributeIndex = 0; nAttributeIndex < interpretationSpec->GetWhyAttributesNumber(); nAttributeIndex++)
 	{
 		if (not interpretationSpec->IsExpertMode())
 		{
@@ -314,9 +294,6 @@ KWAttribute* KIInterpretationDictionary::CreateScoreContributionAttribute(ALStri
 KWAttribute* KIInterpretationDictionary::CreateContributionValueAtAttribute(
     const KWAttribute* scoreInterpretationAttribute, KWClass* kwcInterpretation, ALString sTargetClass, int nIndex)
 {
-	// creation d'un attribut de type
-	// Numerical	`NormalizedOddsRatio1_Predicted class`	 = ContributionValueAt(`NormalizedOddsRatio_Predicted class`, 1)	; <ClassifierInterpretationAttribute>	<ContributionValue1="SepalLength">
-
 	// creation d'une regle de derivation
 	KWDerivationRule* rule = new KIDRContributionValueAt;
 	ALString sValue;
@@ -341,7 +318,6 @@ KWAttribute* KIInterpretationDictionary::CreateContributionValueAtAttribute(
 	contributionClassAttribute->SetType(KWType::Continuous);
 
 	contributionClassAttribute->SetDerivationRule(rule);
-	//contributionClassAttribute->GetMetaData()->SetNoValueAt(INTERPRETATION_ATTRIBUTE_META_TAG);
 
 	if (interpretationSpec->GetWhyAttributesNumber() == svNativePredictiveAttributeNames.GetSize() and
 	    interpretationSpec->GetSortWhyResults() == false)
@@ -349,15 +325,15 @@ KWAttribute* KIInterpretationDictionary::CreateContributionValueAtAttribute(
 
 		contributionClassAttribute->GetMetaData()->SetStringValueAt("ContributionVariable",
 									    soNativeAttributeName);
-		//		    "ContributionValue" + ALString(IntToString(nIndex)), soNativeAttributeName->GetString());
+
 		contributionClassAttribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
 	}
 	else
 	{
 		contributionClassAttribute->GetMetaData()->SetDoubleValueAt("ContributionValueRank", nIndex);
-		//		    "ContributionValue" + ALString(IntToString(nIndex)), soNativeAttributeName->GetString());
+
 		contributionClassAttribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
-		contributionClassAttribute->GetMetaData()->SetStringValueAt("Method", sValue);
+
 		contributionClassAttribute->SetName(kwcInterpretation->BuildAttributeName(
 		    "ContributionValue" + ALString(IntToString(nIndex)) + "_" + sTargetClass));
 	}
@@ -367,8 +343,6 @@ KWAttribute* KIInterpretationDictionary::CreateContributionValueAtAttribute(
 KWAttribute* KIInterpretationDictionary::CreateContributionNameAtAttribute(
     const KWAttribute* scoreInterpretationAttribute, KWClass* kwcInterpretation, ALString sTargetClass, int nIndex)
 {
-	// creation d'un attribut de type
-	// 		Categorical	`ContributionVar1_Predicted class`	 = ContributionNameAt(`NormalizedOddsRatio_Predicted class`, 1)	; <ClassifierInterpretationAttribute>	<ContributionVar1="SepalLength">
 
 	// creation d'une regle de derivation
 	KWDerivationRule* rule = new KIDRContributionNameAt;
@@ -387,14 +361,12 @@ KWAttribute* KIInterpretationDictionary::CreateContributionNameAtAttribute(
 	    ((KWClass*)kwcInterpretation)
 		->BuildAttributeName("ContributionVariable" + ALString(IntToString(nIndex)) + "_" + sTargetClass));
 	attribute->SetType(KWType::Symbol);
-	//attribute->GetMetaData()->SetNoValueAt(INTERPRETATION_ATTRIBUTE_META_TAG);
-	attribute->GetMetaData()->SetStringValueAt("ContributionVariableRank", ALString(IntToString(nIndex)));
+
+	attribute->GetMetaData()->SetDoubleValueAt("ContributionVariableRank", nIndex);
 	attribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
 	if (interpretationSpec->GetWhyAttributesNumber() == svNativePredictiveAttributeNames.GetSize() and
 	    interpretationSpec->GetSortWhyResults() == false)
 	{
-		//		StringObject* soNativeAttributeName =
-		//		    cast(StringObject*, oaNativePredictiveAttributeNames.GetAt(nIndex - 1));
 		attribute->GetMetaData()->SetStringValueAt("ContributionVariableRank", ALString(IntToString(nIndex)));
 		attribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
 	}
@@ -406,8 +378,6 @@ KWAttribute* KIInterpretationDictionary::CreateContributionNameAtAttribute(
 KWAttribute* KIInterpretationDictionary::CreateContributionPartitionAtAttribute(
     const KWAttribute* scoreInterpretationAttribute, KWClass* kwcInterpretation, ALString sTargetClass, int nIndex)
 {
-	// creation d'un attribut de type
-	// 	Categorical	`ContributionPartition1_Predicted class`	 = ContributionPartitionAt(`NormalizedOddsRatio_Predicted class`, 1)	; <ClassifierInterpretationAttribute>	<ContributionPart1="SepalLength">
 
 	// creation d'une regle de derivation
 	KWDerivationRule* rule = new KIDRContributionPartitionAt;
@@ -426,15 +396,12 @@ KWAttribute* KIInterpretationDictionary::CreateContributionPartitionAtAttribute(
 	    ((KWClass*)kwcInterpretation)
 		->BuildAttributeName("ContributionPart" + ALString(IntToString(nIndex)) + "_" + sTargetClass));
 	attribute->SetType(KWType::Symbol);
-	//attribute->GetMetaData()->SetNoValueAt(INTERPRETATION_ATTRIBUTE_META_TAG);
 	attribute->GetMetaData()->SetDoubleValueAt("ContributionPartRank", nIndex);
 	attribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
 
 	if (interpretationSpec->GetWhyAttributesNumber() == svNativePredictiveAttributeNames.GetSize() and
 	    interpretationSpec->GetSortWhyResults() == false)
 	{
-		//		StringObject* soNativeAttributeName =
-		//		    cast(StringObject*, oaNativePredictiveAttributeNames.GetAt(nIndex - 1));
 		attribute->GetMetaData()->SetDoubleValueAt("ContributionPartRank", nIndex);
 		attribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
 	}
@@ -504,41 +471,50 @@ boolean KIInterpretationDictionary::CreateReinforcementAttributesForClass(const 
 									  const KWAttribute* predictionAttribute,
 									  const KWTrainedClassifier* trainedClassifier)
 {
+	int nAttributeIndex;
+	int iReinforcementAttributesMaxNumber;
+	KWAttribute* scoreInterpretationAttribute;
+	KWAttribute* initialScoreValueAttribute;
+	KWAttribute* variableImportanceNameAttribute;
+	KWAttribute* variableImportancePartitionAttribute;
+	KWAttribute* finalScoreValueAttribute;
+	KWAttribute* classChangeAttribute;
+
 	// determiner le nombre max de variables levier qu'on souhaite utiliser
-	int iReinforcementAttributesMaxNumber = ComputeReinforcementAttributesMaxNumber();
+	iReinforcementAttributesMaxNumber = ComputeReinforcementAttributesMaxNumber();
 
 	if (iReinforcementAttributesMaxNumber == 0)
 		return true;
 
-	KWAttribute* scoreInterpretationAttribute = CreateScoreReinforcementAttribute(
-	    sTargetClass, kwcInterpretation, classifierAttribute, predictionAttribute);
+	scoreInterpretationAttribute = CreateScoreReinforcementAttribute(sTargetClass, kwcInterpretation,
+									 classifierAttribute, predictionAttribute);
 	scoreInterpretationAttribute->CompleteTypeInfo(kwcInterpretation);
 	kwcInterpretation->InsertAttribute(scoreInterpretationAttribute);
 
-	KWAttribute* initialScoreValueAttribute =
+	initialScoreValueAttribute =
 	    CreateReinforcementInitialScoreAttribute(scoreInterpretationAttribute, kwcInterpretation, sTargetClass);
 	initialScoreValueAttribute->CompleteTypeInfo(kwcInterpretation);
 	kwcInterpretation->InsertAttribute(initialScoreValueAttribute);
 
 	// Parcours des variables explicatives a concurrence du nombre max de variables leviers, precedemment calcule
-	for (int nAttributeIndex = 0; nAttributeIndex < iReinforcementAttributesMaxNumber; nAttributeIndex++)
+	for (nAttributeIndex = 0; nAttributeIndex < iReinforcementAttributesMaxNumber; nAttributeIndex++)
 	{
-		KWAttribute* variableImportanceNameAttribute = CreateReinforcementNameAtAttribute(
+		variableImportanceNameAttribute = CreateReinforcementNameAtAttribute(
 		    scoreInterpretationAttribute, kwcInterpretation, sTargetClass, nAttributeIndex + 1);
 		variableImportanceNameAttribute->CompleteTypeInfo(kwcInterpretation);
 		kwcInterpretation->InsertAttribute(variableImportanceNameAttribute);
 
-		KWAttribute* variableImportancePartitionAttribute = CreateReinforcementPartitionAtAttribute(
+		variableImportancePartitionAttribute = CreateReinforcementPartitionAtAttribute(
 		    scoreInterpretationAttribute, kwcInterpretation, sTargetClass, nAttributeIndex + 1);
 		variableImportancePartitionAttribute->CompleteTypeInfo(kwcInterpretation);
 		kwcInterpretation->InsertAttribute(variableImportancePartitionAttribute);
 
-		KWAttribute* finalScoreValueAttribute = CreateReinforcementFinalScoreAtAttribute(
+		finalScoreValueAttribute = CreateReinforcementFinalScoreAtAttribute(
 		    scoreInterpretationAttribute, kwcInterpretation, sTargetClass, nAttributeIndex + 1);
 		finalScoreValueAttribute->CompleteTypeInfo(kwcInterpretation);
 		kwcInterpretation->InsertAttribute(finalScoreValueAttribute);
 
-		KWAttribute* classChangeAttribute = CreateReinforcementClassChangeAtAttribute(
+		classChangeAttribute = CreateReinforcementClassChangeAtAttribute(
 		    scoreInterpretationAttribute, kwcInterpretation, sTargetClass, nAttributeIndex + 1);
 		classChangeAttribute->CompleteTypeInfo(kwcInterpretation);
 		kwcInterpretation->InsertAttribute(classChangeAttribute);
@@ -556,7 +532,10 @@ KWAttribute* KIInterpretationDictionary::CreateScoreReinforcementAttribute(ALStr
 									   const KWAttribute* predictionAttribute)
 {
 	// creation d'une regle de derivation
-	KWDerivationRule* rule = new KIDRClassifierReinforcement;
+	KWDerivationRule* rule;
+	KWAttribute* attribute;
+
+	rule = new KIDRClassifierReinforcement;
 	rule->SetClassName(kwcInterpretation->GetName());
 
 	rule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
@@ -569,7 +548,7 @@ KWAttribute* KIInterpretationDictionary::CreateScoreReinforcementAttribute(ALStr
 	assert(rule->Check());
 
 	// creation de l'attribut, et affectation de la regle de derivation
-	KWAttribute* attribute = new KWAttribute;
+	attribute = new KWAttribute;
 	attribute->SetName(((KWClass*)kwcInterpretation)->BuildAttributeName("Reinforcement_" + sTargetClass));
 	attribute->SetType(KWType::Continuous);
 	attribute->GetMetaData()->SetNoValueAt(INTERPRETATION_ATTRIBUTE_META_TAG);
@@ -583,8 +562,11 @@ KWAttribute*
 KIInterpretationDictionary::CreateReinforcementInitialScoreAttribute(const KWAttribute* scoreInterpretationAttribute,
 								     KWClass* kwcInterpretation, ALString sTargetClass)
 {
+	KWDerivationRule* rule;
+	KWAttribute* contributionClassAttribute;
+
 	// creation d'une regle de derivation
-	KWDerivationRule* rule = new KIDRReinforcementInitialScore;
+	rule = new KIDRReinforcementInitialScore;
 	rule->SetClassName(kwcInterpretation->GetName());
 
 	rule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
@@ -593,21 +575,26 @@ KIInterpretationDictionary::CreateReinforcementInitialScoreAttribute(const KWAtt
 	assert(rule->Check());
 
 	// creation de l'attribut, et affectation de la regle de derivation
-	KWAttribute* contributionClassAttribute = new KWAttribute;
+	contributionClassAttribute = new KWAttribute;
 	contributionClassAttribute->SetName(
 	    ((KWClass*)kwcInterpretation)->BuildAttributeName("ReinforcementInitialScore_" + sTargetClass));
 	contributionClassAttribute->SetType(KWType::Continuous);
 
 	contributionClassAttribute->SetDerivationRule(rule);
-	contributionClassAttribute->GetMetaData()->SetNoValueAt(INTERPRETATION_ATTRIBUTE_META_TAG);
+	contributionClassAttribute->GetMetaData()->SetNoValueAt("ReinforcementInitialScore");
+	contributionClassAttribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
 	return contributionClassAttribute;
 }
 
 KWAttribute* KIInterpretationDictionary::CreateReinforcementFinalScoreAtAttribute(
     const KWAttribute* scoreInterpretationAttribute, KWClass* kwcInterpretation, ALString sTargetClass, int nIndex)
 {
+
+	KWDerivationRule* rule;
+	KWAttribute* attribute;
+
 	// creation d'une regle de derivation
-	KWDerivationRule* rule = new KIDRReinforcementFinalScoreAt;
+	rule = new KIDRReinforcementFinalScoreAt;
 	rule->SetClassName(kwcInterpretation->GetName());
 
 	rule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
@@ -618,22 +605,14 @@ KWAttribute* KIInterpretationDictionary::CreateReinforcementFinalScoreAtAttribut
 	assert(rule->Check());
 
 	// creation de l'attribut, et affectation de la regle de derivation
-	KWAttribute* attribute = new KWAttribute;
+	attribute = new KWAttribute;
 	attribute->SetName(
 	    ((KWClass*)kwcInterpretation)
 		->BuildAttributeName("ReinforcementFinalScore" + ALString(IntToString(nIndex)) + "_" + sTargetClass));
 	attribute->SetType(KWType::Continuous);
-
 	attribute->SetDerivationRule(rule);
-	//attribute->GetMetaData()->SetNoValueAt(INTERPRETATION_ATTRIBUTE_META_TAG);
-
-	//if (interpretationSpec->GetHowAttributesNumber() == oaNativePredictiveAttributeNames.GetSize() and
-	//    interpretationSpec->GetSortWhyResults() == false)
-	//{
-	//	StringObject* soNativeAttributeName = cast(StringObject*, oaNativePredictiveAttributeNames.GetAt(nIndex - 1));
-	attribute->GetMetaData()->SetNoValueAt("ReinforcementFinalScore");
+	attribute->GetMetaData()->SetDoubleValueAt("ReinforcementFinalScoreRank", nIndex);
 	attribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
-	//}
 
 	return attribute;
 }
@@ -641,9 +620,10 @@ KWAttribute* KIInterpretationDictionary::CreateReinforcementNameAtAttribute(
     const KWAttribute* scoreInterpretationAttribute, KWClass* kwcInterpretation, ALString sTargetClass, int nIndex)
 {
 	// creation d'un attribut de type  Categorical 	Var_1 = InterpretationVariableImportanceName(Reinforcement, 1)
-
+	KWDerivationRule* rule;
+	KWAttribute* attribute;
 	// creation d'une regle de derivation
-	KWDerivationRule* rule = new KIDRReinforcementNameAt;
+	rule = new KIDRReinforcementNameAt;
 	rule->SetClassName(kwcInterpretation->GetName());
 
 	rule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
@@ -654,21 +634,13 @@ KWAttribute* KIInterpretationDictionary::CreateReinforcementNameAtAttribute(
 	assert(rule->Check());
 
 	// creation de l'attribut, et affectation de la regle de derivation
-	KWAttribute* attribute = new KWAttribute;
-	//	StringObject* soNativeAttributeName = cast(StringObject*, oaNativePredictiveAttributeNames.GetAt(nIndex - 1));
+	attribute = new KWAttribute;
 	attribute->SetName(
 	    ((KWClass*)kwcInterpretation)
 		->BuildAttributeName("ReinforcementVariable_" + ALString(IntToString(nIndex)) + "_" + sTargetClass));
 	attribute->SetType(KWType::Symbol);
-	//attribute->GetMetaData()->SetNoValueAt(INTERPRETATION_ATTRIBUTE_META_TAG);
-
-	//if (interpretationSpec->GetHowAttributesNumber() == oaNativePredictiveAttributeNames.GetSize() and
-	//    interpretationSpec->GetSortWhyResults() == false)
-	//{
-	attribute->GetMetaData()->SetNoValueAt("ReinforcementVariable"); //, soNativeAttributeName->GetString());
+	attribute->GetMetaData()->SetDoubleValueAt("ReinforcementVariableRank", nIndex);
 	attribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
-	//}
-
 	attribute->SetDerivationRule(rule);
 
 	return attribute;
@@ -677,8 +649,11 @@ KWAttribute* KIInterpretationDictionary::CreateReinforcementNameAtAttribute(
 KWAttribute* KIInterpretationDictionary::CreateReinforcementPartitionAtAttribute(
     const KWAttribute* scoreInterpretationAttribute, KWClass* kwcInterpretation, ALString sTargetClass, int nIndex)
 {
+	KWDerivationRule* rule;
+	KWAttribute* attribute;
+
 	// creation d'une regle de derivation
-	KWDerivationRule* rule = new KIDRReinforcementPartitionAt;
+	rule = new KIDRReinforcementPartitionAt;
 	rule->SetClassName(kwcInterpretation->GetName());
 
 	rule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
@@ -689,21 +664,14 @@ KWAttribute* KIInterpretationDictionary::CreateReinforcementPartitionAtAttribute
 	assert(rule->Check());
 
 	// creation de l'attribut, et affectation de la regle de derivation
-	KWAttribute* attribute = new KWAttribute;
-	//	StringObject* soNativeAttributeName = cast(StringObject*, oaNativePredictiveAttributeNames.GetAt(nIndex - 1));
+	attribute = new KWAttribute;
 	attribute->SetName(
 	    ((KWClass*)kwcInterpretation)
 		->BuildAttributeName("ReinforcementPart" + ALString(IntToString(nIndex)) + "_" + sTargetClass));
 	attribute->SetType(KWType::Symbol);
-	//attribute->GetMetaData()->SetNoValueAt(INTERPRETATION_ATTRIBUTE_META_TAG);
 
-	//if (interpretationSpec->GetHowAttributesNumber() == oaNativePredictiveAttributeNames.GetSize() and
-	//    interpretationSpec->GetSortWhyResults() == false)
-	//{
-
-	attribute->GetMetaData()->SetNoValueAt("ReinforcementPart"); //, soNativeAttributeName->GetString());
+	attribute->GetMetaData()->SetDoubleValueAt("ReinforcementPartRank", nIndex);
 	attribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
-	//}
 	attribute->SetDerivationRule(rule);
 
 	return attribute;
@@ -712,8 +680,11 @@ KWAttribute* KIInterpretationDictionary::CreateReinforcementPartitionAtAttribute
 KWAttribute* KIInterpretationDictionary::CreateReinforcementClassChangeAtAttribute(
     const KWAttribute* scoreInterpretationAttribute, KWClass* kwcInterpretation, ALString sTargetClass, int nIndex)
 {
+	KWDerivationRule* rule;
+	KWAttribute* attribute;
+
 	// creation d'une regle de derivation
-	KWDerivationRule* rule = new KIDRReinforcementClassChangeTagAt;
+	rule = new KIDRReinforcementClassChangeTagAt;
 	rule->SetClassName(kwcInterpretation->GetName());
 
 	rule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
@@ -724,40 +695,34 @@ KWAttribute* KIInterpretationDictionary::CreateReinforcementClassChangeAtAttribu
 	assert(rule->Check());
 
 	// creation de l'attribut, et affectation de la regle de derivation
-	KWAttribute* attribute = new KWAttribute;
+	attribute = new KWAttribute;
 	attribute->SetName(((KWClass*)kwcInterpretation)
 			       ->BuildAttributeName("ReinforcementClassChangeTag" + ALString(IntToString(nIndex)) +
 						    "_" + sTargetClass));
 	attribute->SetType(KWType::Continuous);
-
 	attribute->SetDerivationRule(rule);
-	//attribute->GetMetaData()->SetNoValueAt(INTERPRETATION_ATTRIBUTE_META_TAG);
-
-	//if (interpretationSpec->GetHowAttributesNumber() == oaNativePredictiveAttributeNames.GetSize() and
-	//    interpretationSpec->GetSortWhyResults() == false)
-	//{
-	//	StringObject* soNativeAttributeName = cast(StringObject*, oaNativePredictiveAttributeNames.GetAt(nIndex - 1));
-	attribute->GetMetaData()->SetNoValueAt("ReinforcementClassChangeTag");
+	attribute->GetMetaData()->SetDoubleValueAt("ReinforcementClassChangeTagRank", nIndex);
 	attribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
-	//}
+
 	return attribute;
 }
 
 int KIInterpretationDictionary::ComputeReinforcementAttributesMaxNumber()
 {
-	/* le nombre max est la valeur minimum entre :
-		- le nombre d'attributs pour le renforcement, parametre via IHM
-		- le nombre d'attributs selectionnes comme pouvant etre utilises comme variables leviers, , parametre via IHM
-	*/
+	//  le nombre max est la valeur minimum entre :
+	// 	- le nombre d'attributs pour le renforcement, parametre via IHM
+	// 	- le nombre d'attributs selectionnes comme pouvant etre utilises comme variables leviers, , parametre via IHM
+	KWAttribute* attribute;
+	int result;
+	int nbSelected;
 
 	assert(interpretationSpec != NULL);
 	assert(kwcInterpretationMainClass != NULL);
 
-	int result = interpretationSpec->GetHowAttributesNumber();
+	result = interpretationSpec->GetHowAttributesNumber();
+	nbSelected = 0;
 
-	int nbSelected = 0;
-
-	KWAttribute* attribute = kwcInterpretationMainClass->GetHeadAttribute();
+	attribute = kwcInterpretationMainClass->GetHeadAttribute();
 	while (attribute != NULL)
 	{
 		if (attribute->GetConstMetaData()->GetStringValueAt(
@@ -773,9 +738,9 @@ int KIInterpretationDictionary::ComputeReinforcementAttributesMaxNumber()
 	return result;
 }
 
-const SymbolVector& KIInterpretationDictionary::GetTargetValues() const
+const SymbolVector* KIInterpretationDictionary::GetTargetValues() const
 {
-	return sTargetValues;
+	return &svTargetValues;
 }
 
 StringVector* KIInterpretationDictionary::GetPredictiveAttributeNamesArray()
@@ -788,20 +753,13 @@ boolean KIInterpretationDictionary::TestGroupTargetValues(KWClass* inputClassifi
 
 	boolean bOk = true;
 	ALString sValue;
-	//KWTrainedClassifier* trainedClassifier = new KWTrainedClassifier;
-
-	//bOk = trainedClassifier->ImportPredictorClass(inputClassifier);
+	KWDerivationRule* derivationrule;
+	KWDerivationRuleOperand* operand;
+	KWAttribute* attribute;
 
 	if (bOk)
 	{
-		//ObjectArray* interpretationAttributes = new ObjectArray;
-		KWDerivationRule* derivationrule;
-		KWDerivationRuleOperand* operand;
-		// recherche des attributs necessaires dans le modele
-		//KWAttribute* classifierAttribute = NULL;
-		//KWAttribute* predictionAttribute = NULL;
-
-		KWAttribute* attribute = inputClassifier->GetHeadAttribute();
+		attribute = inputClassifier->GetHeadAttribute();
 
 		while (attribute != NULL and bOk)
 		{
@@ -834,19 +792,18 @@ boolean KIInterpretationDictionary::ImportClassifier(KWClass* inputClassifier)
 	KWDRNBClassifier* classifierRule;
 	KWDRNBClassifier referenceNBRule;
 	KWDRSNBClassifier referenceSNBRule;
-
 	boolean bIsClassifier;
 	boolean bIsClassifierNaiveBayes;
 	boolean bOk;
 	ObjectArray oaClasses;
 	ALString sAttributeName;
 	ALString sAttributePredictorName;
-
 	int nAttributeNaiveBayes;
 	int nAttributeSelectiveNaiveBayes;
 	int nAttributeIndex;
 	const KWDRDataGridStats refDataGridStatsRule;
 	const KWDRDataGridStatsBlock refDataGridStatsBlockRule;
+	int i;
 
 	// reinitialisation d'une precedente importation
 	CleanImport();
@@ -898,8 +855,8 @@ boolean KIInterpretationDictionary::ImportClassifier(KWClass* inputClassifier)
 			nAttributeNaiveBayes = 0;
 			nAttributeSelectiveNaiveBayes = 0;
 
-			for (int i = 0; i < trainedClassifier->GetTargetValueNumber(); i++)
-				sTargetValues.Add(trainedClassifier->GetTargetValueAt(i));
+			for (i = 0; i < trainedClassifier->GetTargetValueNumber(); i++)
+				svTargetValues.Add(trainedClassifier->GetTargetValueAt(i));
 
 			// Extraction de l'attribut de prediction
 			predictionAttribute = trainedClassifier->GetPredictionAttribute();
@@ -1020,6 +977,8 @@ boolean KIInterpretationDictionary::ImportClassifier(KWClass* inputClassifier)
 void KIInterpretationDictionary::PrepareInterpretationClass()
 {
 	KWAttribute* nativeAttribute;
+	KWAttribute* attribute;
+	KWAttribute* inputAttribute;
 	ALString sNativeVariableName;
 	int nAttributeIndex;
 
@@ -1047,10 +1006,10 @@ void KIInterpretationDictionary::PrepareInterpretationClass()
 
 	// synchroniser les proprietes Used et Loaded du dico de transfert a partir de la selection faite dans le classifieur d'entree
 	// on parcourt cette fois-ci tous les attributs
-	KWAttribute* attribute = kwcInterpretationMainClass->GetHeadAttribute();
+	attribute = kwcInterpretationMainClass->GetHeadAttribute();
 	while (attribute != NULL)
 	{
-		KWAttribute* inputAttribute = GetInputClassifier()->LookupAttribute(attribute->GetName());
+		inputAttribute = GetInputClassifier()->LookupAttribute(attribute->GetName());
 
 		if (inputAttribute != NULL)
 		{
@@ -1062,31 +1021,9 @@ void KIInterpretationDictionary::PrepareInterpretationClass()
 	kwcdInterpretationDomain->Compile();
 }
 
-const ALString& KIInterpretationDictionary::GetWhyTypeShortLabel(const ALString asWhyTypeLongLabel)
+const ALString& KIInterpretationDictionary::GetWhyTypeShortLabel(const ALString& asWhyTypeLongLabel)
 {
-	if (asWhyTypeLongLabel == "Normalized odds ratio")
-		return NORMALIZED_ODDS_RATIO_LABEL;
-	else if (asWhyTypeLongLabel == "Weight of evidence")
-		return WEIGHT_EVIDENCE_LABEL;
-	else if (asWhyTypeLongLabel == "Log minimum of variable probabilities difference")
-		return LOG_MIN_PROBA_DIFF_LABEL;
-	else if (asWhyTypeLongLabel == "Information difference")
-		return INFO_DIFF_LABEL;
-	else if (asWhyTypeLongLabel == "Difference of probabilities")
-		return DIFF_PROBA_LABEL;
-	else if (asWhyTypeLongLabel == "Minimum of variable probabilities difference")
-		return MIN_PROBA_DIFF_LABEL;
-	else if (asWhyTypeLongLabel == "Modality probability")
-		return MODALITY_PROBA_LABEL;
-	else if (asWhyTypeLongLabel == "Log modality probability")
-		return LOG_MODALITY_PROBA_LABEL;
-	else if (asWhyTypeLongLabel == "Bayes distance")
-		return BAYES_DISTANCE_LABEL;
-	else if (asWhyTypeLongLabel == "Bayes distance without prior")
-		return BAYES_DISTANCE_WITHOUT_PRIOR_LABEL;
-	else if (asWhyTypeLongLabel == "Kullback")
-		return KULLBACK_LABEL;
-	else if (asWhyTypeLongLabel == "Shapley")
+	if (asWhyTypeLongLabel == "Shapley")
 		return SHAPLEY_LABEL;
 	else
 		return UNDEFINED_LABEL;

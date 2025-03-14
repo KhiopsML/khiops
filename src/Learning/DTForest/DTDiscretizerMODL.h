@@ -43,7 +43,7 @@ public:
 	int ntest;
 
 	/////////////////////////////////////////////////////////////////
-	//// Implementation
+	// Implementation
 protected:
 	friend class KWDataGridManager;
 

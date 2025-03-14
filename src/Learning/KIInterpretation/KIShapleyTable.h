@@ -67,7 +67,7 @@ public:
 	static void Test();
 
 	/////////////////////////////////////////////////////////
-	//// Implementation
+	// Implementation
 protected:
 	// Variables d'instances
 	ContinuousVector cvTableValues;

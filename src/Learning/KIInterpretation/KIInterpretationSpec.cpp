@@ -171,6 +171,6 @@ void KIInterpretationSpec::WriteReport(ostream& ost)
 	ost << "\n\n";
 }
 
-const char* KIInterpretationSpec::PREDICTED_CLASS_LABEL = "Predicted class";
-const char* KIInterpretationSpec::CLASS_OF_HIGHEST_GAIN_LABEL = "Class of highest gain";
-const char* KIInterpretationSpec::ALL_CLASSES_LABEL = "AllClasses";
+const ALString KIInterpretationSpec::PREDICTED_CLASS_LABEL = "Predicted class";
+const ALString KIInterpretationSpec::CLASS_OF_HIGHEST_GAIN_LABEL = "Class of highest gain";
+const ALString KIInterpretationSpec::ALL_CLASSES_LABEL = "AllClasses";

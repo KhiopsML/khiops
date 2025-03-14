@@ -1719,7 +1719,7 @@ void WriteReportDetailedInternalNode(ostream& ost, DTDecisionTreeNode* ndRoot)
 	// Parcour en largeur de l'arbre
 	while (ndCurrent != NULL)
 	{
-		//// tests
+		// tests
 		// if (ndCurrent->IsLeaf()){
 		//	ost << "------------------------------------------------------------------\n" ;
 		//		ost << "Leave node\t" << ndCurrent->GetNodeIdentifier() << endl ;

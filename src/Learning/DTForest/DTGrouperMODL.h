@@ -60,7 +60,7 @@ public:
 	static void TestGranularizeFrequencyTable();
 
 	/////////////////////////////////////////////////////////////////
-	//// Implementation
+	// Implementation
 protected:
 	friend class KWDataGridOptimizer;
 	friend class KWDataGridManager;
@@ -405,7 +405,7 @@ public:
 	boolean Check() const override;
 
 	/////////////////////////////////////////////////////////////////
-	//// Implementation
+	// Implementation
 protected:
 	//////////////////////////////////////////////////////
 	// Redefinition de methodes de la classe mere

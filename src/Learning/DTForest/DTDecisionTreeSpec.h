@@ -32,7 +32,7 @@ public:
 	// creation de l'attribut a partir de la specification
 	KWAttribute* BuildAttribute(const ALString& svariablename);
 
-	/// Acces au cout de construction de l'arbre
+	// Acces au cout de construction de l'arbre
 	void SetConstructionCost(double);
 	double GetConstructionCost() const;
 
@@ -205,8 +205,8 @@ public:
 	const ALString& GetVariableName() const;
 	void SetVariableName(const ALString& stemps);
 
-	/// Acces a la distribution de la classe cible. Tableau d'objets TargetModalityCount, tri par valeur cible
-	/// alphabetique croissante
+	// Acces a la distribution de la classe cible. Tableau d'objets TargetModalityCount, tri par valeur cible
+	// alphabetique croissante
 	ObjectArray* GetTargetModalitiesCountTrain() const;
 	void SetTargetModalitiesCountTrain(ObjectArray*);
 
@@ -244,8 +244,8 @@ protected:
 	Continuous cJSONMinValue;
 	Continuous cJSONMaxValue;
 
-	/// Distribution de la variable cible pour ce noeud (database train). Tableau d'objets TargetModalitiesCount,
-	/// tri par valeur cible alphabetique croissante
+	// Distribution de la variable cible pour ce noeud (database train). Tableau d'objets TargetModalitiesCount,
+	// tri par valeur cible alphabetique croissante
 	ObjectArray* oaTargetModalitiesCountTrain;
 };
 

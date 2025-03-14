@@ -251,7 +251,7 @@ const ALString DTForestParameter::DISCRETIZATION_EQUAL_FREQUENCY = "EFDiscretiza
 const ALString DTForestParameter::DISCRETIZATION_BINARY_EQUAL_FREQUENCY = "EFBinDiscretization";
 const ALString DTForestParameter::DISCRETIZATION_MODL = "MODLDiscretization";
 
-////////////////  classe PLShared_ForestParameter
+/////////////  classe PLShared_ForestParameter
 
 PLShared_ForestParameter::PLShared_ForestParameter()
 {

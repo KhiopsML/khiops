@@ -4,34 +4,27 @@
 
 #include "KIDRPredictor.h"
 
-#include "KWDRNBPredictor.h"
-#include "KWDRDataGrid.h"
-#include "KIShapleyTable.h"
-#include "KIInterpretationDictionary.h"
-
 int KICompareContributionImportanceValue(const void* elem1, const void* elem2);
 int KICompareReinforcementNewScore(const void* elem1, const void* elem2);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KIPartitionedAttributeProbas
-
 KIPartitionedAttributeProbas::KIPartitionedAttributeProbas()
 {
-	iAttributeIndex = -1;
-	iModalityIndex = -1;
-	cReinforcementNewScore = 0;
-	cReinforcementClassHasChanged = 0;
-	cContributionImportanceValue = 0;
+	nAttributeIndex = -1;
+	nModalityIndex = -1;
+	dReinforcementNewScore = 0;
+	dReinforcementClassHasChanged = 0;
+	dContributionImportanceValue = 0;
 }
 
 KIPartitionedAttributeProbas::~KIPartitionedAttributeProbas() {}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KITargetValueProbas
-
 KITargetValueProbas::KITargetValueProbas()
 {
-	cProbaApriori = 0;
+	dProbaApriori = 0;
 	oaProbasAposteriori = new ObjectArray;
 }
 
@@ -43,19 +36,22 @@ KITargetValueProbas::~KITargetValueProbas()
 
 void KITargetValueProbas::Write(ostream& ost) const
 {
+	int npart;
+	int nval;
+
 	ost << "KITargetValueProbas pour target " << sTargetValue << " : ";
-	ost << "\tproba a priori : " << cProbaApriori << endl;
+	ost << "\tproba a priori : " << dProbaApriori << endl;
 	ost << "\tproba a posteriori : " << endl;
 
-	/** un ContinuousVector * par variable explicative. Chaque ContinuousVector contient les logs des probas a
-		posteriori de la classe, pour chaque partie de la variable explicative */
+	// un ContinuousVector * par variable explicative. Chaque ContinuousVector contient les logs des probas a
+	// 	posteriori de la classe, pour chaque partie de la variable explicative
 
-	for (int part = 0; part < oaProbasAposteriori->GetSize(); part++)
+	for (npart = 0; npart < oaProbasAposteriori->GetSize(); npart++)
 	{
-		ContinuousVector* cv = cast(ContinuousVector*, oaProbasAposteriori->GetAt(part));
-		ost << "\tVar " << part << " :\t";
-		for (int val = 0; val < cv->GetSize(); val++)
-			ost << exp(cv->GetAt(val)) << ", ";
+		ContinuousVector* cv = cast(ContinuousVector*, oaProbasAposteriori->GetAt(npart));
+		ost << "\tVar " << npart << " :\t";
+		for (nval = 0; nval < cv->GetSize(); nval++)
+			ost << exp(cv->GetAt(nval)) << ", ";
 		ost << endl;
 	}
 }
@@ -73,11 +69,10 @@ longint KITargetValueProbas::GetUsedMemory() const
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KIDRClassifierInterpretation
-
 KIDRClassifierInterpretation::KIDRClassifierInterpretation()
 {
 	oaInstanceProbabilities = NULL;
-	cTotalFrequency = 0;
+	dTotalFrequency = 0;
 }
 
 KIDRClassifierInterpretation::~KIDRClassifierInterpretation()
@@ -114,8 +109,7 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 	const KWDRDataGrid* targetDataGrid;
 	const KWDRSymbolValueSet* targetSymbolValueSet;
 	int nTargetValueNumber;
-	int nFirstOperandIndex = 0;
-
+	int nFirstOperandIndex;
 	KWDRSNBClassifier referenceSNBRule;
 	KWDRNBClassifier referenceNBRule;
 	boolean bIsSNB = false;
@@ -127,18 +121,27 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 	const KWDRDataGridStatsBlock* dataGridStatsBlockRule;
 	KWDRDataGridBlock* dataGridBlockRule;
 	KWAttributeBlock* attributeBlock;
+	KWAttribute* attribute;
 	int nDataGridStatsOrBlock;
 	int nIndex;
 	int nDataGrid;
-
-	KWAttribute* attribute;
-	KWDerivationRule::Compile(kwcOwnerClass);
+	int nTarget;
 	int nBlockValue;
-
+	int nClassIndex;
+	int nAttributeIndex;
+	int nSourceIndex;
+	int nTargetIndex;
+	KWDRNBClassifier* classifier;
+	Continuous cTargetLogProb;
+	ContinuousVector* cv;
+	ContinuousVector* cvPosteriorProba;
+	StringObject* soClassIndex;
+	KWDerivationRule::Compile(kwcOwnerClass);
+	const KWDRDataGridStats* dataGridStats;
+	nFirstOperandIndex = 0;
 	Clean();
 
-	KWDRNBClassifier* classifier =
-	    cast(KWDRNBClassifier*, GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
+	classifier = cast(KWDRNBClassifier*, GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
 
 	if (classifier->GetName() == referenceSNBRule.GetName())
 	{
@@ -178,11 +181,11 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 				    targetDataGrid->GetOperandAt(0)->GetReferencedDerivationRule(kwcOwnerClass));
 	assert(targetSymbolValueSet->GetValueNumber() == nTargetValueNumber);
 	svTargetValues.SetSize(nTargetValueNumber);
-	for (int nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
+	for (nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
 		svTargetValues.SetAt(nTarget, targetSymbolValueSet->GetValueAt(nTarget));
 
 	// Creation et initialisation du tableau des probabilites (sans remplissage lors de ce parcours)
-	for (int nClassIndex = 0; nClassIndex < svTargetValues.GetSize(); nClassIndex++)
+	for (nClassIndex = 0; nClassIndex < svTargetValues.GetSize(); nClassIndex++)
 	{
 		// Creation du tableau associe a la classe de l'attribut
 		targetValueProbas = new KITargetValueProbas;
@@ -190,12 +193,12 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 		targetValueProbas->sTargetValue = svTargetValues.GetAt(nClassIndex);
 
 		// Parcours des variables explicatives
-		for (int nAttributeIndex = 0; nAttributeIndex < svPartitionedPredictiveAttributeNames.GetSize();
+		for (nAttributeIndex = 0; nAttributeIndex < svPartitionedPredictiveAttributeNames.GetSize();
 		     nAttributeIndex++)
 		{
 			// Creation du vecteur qui accueillera :
 			// les logs des probas a posteriori de la classe pour chaque partie de la variable explicative
-			ContinuousVector* cvPosteriorProba = new ContinuousVector;
+			cvPosteriorProba = new ContinuousVector;
 			targetValueProbas->oaProbasAposteriori->Add(cvPosteriorProba);
 
 			// Extraction de l'attribut explicatif courant
@@ -209,7 +212,7 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 
 		// Memorisation du lien entre le nom de la classe cible et l'index de la ligne correspondante
 		// dans le tableau des probas
-		StringObject* soClassIndex = new StringObject;
+		soClassIndex = new StringObject;
 		soClassIndex->SetString(IntToString(oaModelProbabilities.GetSize()));
 
 		assert(odClassNamesIndexes.Lookup(targetValueProbas->sTargetValue) == NULL);
@@ -223,27 +226,27 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 	{
 		// Extraction des probas a partir de la RDD l'attribut NB predicteur
 		// Calcul de l'effectif global
-		cTotalFrequency = 0;
+		dTotalFrequency = 0;
 		ivTargetFrequencies.SetSize(classifier->GetDataGridSetTargetPartNumber());
-		for (int nClassIndex = 0; nClassIndex < classifier->GetDataGridSetTargetPartNumber(); nClassIndex++)
+		for (nClassIndex = 0; nClassIndex < classifier->GetDataGridSetTargetPartNumber(); nClassIndex++)
 		{
 			nTargetFrequency = classifier->GetDataGridSetTargetFrequencyAt(nClassIndex);
 			assert(nTargetFrequency > 0);
 			ivTargetFrequencies.SetAt(nClassIndex, nTargetFrequency);
-			cTotalFrequency += (Continuous)nTargetFrequency;
+			dTotalFrequency += (Continuous)nTargetFrequency;
 		}
-		assert(cTotalFrequency > 0);
+		assert(dTotalFrequency > 0);
 
 		// Calcul des logarithme de probabilites des valeurs cibles
-		for (int nClassIndex = 0; nClassIndex < classifier->GetDataGridSetTargetPartNumber(); nClassIndex++)
+		for (nClassIndex = 0; nClassIndex < classifier->GetDataGridSetTargetPartNumber(); nClassIndex++)
 		{
 			// Extraction du tableau des probas de cette valeur cible
 			targetValueProbas = cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nClassIndex));
 
 			// Initialisation avec le prior
 			assert(classifier->GetDataGridSetTargetFrequencyAt(nClassIndex) > 0);
-			targetValueProbas->cProbaApriori =
-			    log(classifier->GetDataGridSetTargetFrequencyAt(nClassIndex) / cTotalFrequency);
+			targetValueProbas->dProbaApriori =
+			    log(classifier->GetDataGridSetTargetFrequencyAt(nClassIndex) / dTotalFrequency);
 
 			nDataGrid = 0;
 
@@ -255,26 +258,23 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 				if (classifier->IsDataGridStatsAt(nDataGridStatsOrBlock))
 				{
 					// Recherche de la grille
-					const KWDRDataGridStats* dataGridStats =
-					    classifier->GetDataGridStatsAt(nDataGridStatsOrBlock);
+					dataGridStats = classifier->GetDataGridStatsAt(nDataGridStatsOrBlock);
 
 					// Recherche de l'index de la partie cible de la grille
-					int nTargetIndex = classifier->GetDataGridSetTargetCellIndexAt(
+					nTargetIndex = classifier->GetDataGridSetTargetCellIndexAt(
 					    nDataGridStatsOrBlock, nClassIndex);
 
 					// Parcours de toutes les parties sources
-					for (int nSourceIndex = 0;
+					for (nSourceIndex = 0;
 					     nSourceIndex < dataGridStats->GetDataGridSourceCellNumber();
 					     nSourceIndex++)
 					{
 						// Extraction de la log proba
-						Continuous cTargetLogProb =
-						    dataGridStats->GetDataGridSourceConditionalLogProbAt(nSourceIndex,
-													 nTargetIndex);
+						cTargetLogProb = dataGridStats->GetDataGridSourceConditionalLogProbAt(
+						    nSourceIndex, nTargetIndex);
 
-						ContinuousVector* cv =
-						    cast(ContinuousVector*,
-							 targetValueProbas->oaProbasAposteriori->GetAt(nDataGrid));
+						cv = cast(ContinuousVector*,
+							  targetValueProbas->oaProbasAposteriori->GetAt(nDataGrid));
 						cv->SetAt(nSourceIndex, cTargetLogProb);
 					}
 
@@ -292,35 +292,32 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 									 ->GetDerivationRule());
 					attributeBlock =
 					    dataGridStatsBlockRule->GetSecondOperand()->GetOriginAttributeBlock();
-					//continuousValueSetRule =
-					//    cast(KWDRContinuousValueSet*,
-					//	 dataGridBlockRule->GetFirstOperand()->GetDerivationRule());
 
 					for (nBlockValue = 0;
 					     nBlockValue < dataGridStatsBlockRule->GetDataGridStatsNumber();
 					     nBlockValue++)
 					{
-						const KWDRDataGridStats* dataGridStats =
+						dataGridStats =
 						    dataGridStatsBlockRule->GetDataGridStatsAtBlockIndex(nBlockValue);
 						// Acces aux indexes de la source et la cible
 						// La source doit etre ajuste a zero par des raisons techiques de l'implementation de la regle DataGridBlock
 
 						// Recherche de l'index de la partie cible de la grille
-						int nTargetIndex = classifier->GetDataGridSetTargetCellIndexAt(
+						nTargetIndex = classifier->GetDataGridSetTargetCellIndexAt(
 						    nDataGridStatsOrBlock, nClassIndex);
 
 						// Mise a jour du terme de proba, en prenant en compte le poids de la grille
 
-						for (int nSourceIndex = 0;
+						for (nSourceIndex = 0;
 						     nSourceIndex < dataGridStats->GetDataGridSourceCellNumber();
 						     nSourceIndex++)
 						{
 							// Extraction de la log proba
-							Continuous cTargetLogProb =
+							cTargetLogProb =
 							    dataGridStats->GetDataGridSourceConditionalLogProbAt(
 								nSourceIndex, nTargetIndex);
 
-							ContinuousVector* cv = cast(
+							cv = cast(
 							    ContinuousVector*,
 							    targetValueProbas->oaProbasAposteriori->GetAt(nDataGrid));
 							cv->SetAt(nSourceIndex, cTargetLogProb);
@@ -354,10 +351,13 @@ longint KIDRClassifierInterpretation::GetUsedMemory() const
 const ALString KIDRClassifierInterpretation::LEVER_ATTRIBUTE_META_TAG = "LeverVariable";
 const ALString KIDRClassifierInterpretation::INTERPRETATION_ATTRIBUTE_META_TAG = "ClassifierInterpretationVariable";
 const ALString KIDRClassifierInterpretation::NO_VALUE_LABEL = "";
+const ALString KIDRClassifierInterpretation::SHAPLEY_LABEL = "Shapley";
+const ALString KIDRClassifierInterpretation::PREDICTED_CLASS_LABEL = "Predicted class";
+const ALString KIDRClassifierInterpretation::CLASS_OF_HIGHEST_GAIN_LABEL = "Class of highest gain";
+const ALString KIDRClassifierInterpretation::ALL_CLASSES_LABEL = "All classes";
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KIDRClassifierContribution
-
 KIDRClassifierContribution::KIDRClassifierContribution()
 {
 	SetName("ScoreContribution");
@@ -366,15 +366,19 @@ KIDRClassifierContribution::KIDRClassifierContribution()
 	SetStructureName("ScoreContribution");
 	SetOperandNumber(5);
 	GetFirstOperand()->SetType(KWType::Structure);
-	GetFirstOperand()->SetStructureName("Classifier"); // classifieur
-	GetSecondOperand()->SetType(KWType::Symbol);       // classe predite (attribut de prediction)
-	GetOperandAt(2)->SetType(KWType::Symbol);          // classe cible pour le calcul de l'importance
-	GetOperandAt(3)->SetType(KWType::Symbol);          // methode de calcul de l'importance de la variable
-	GetOperandAt(4)->SetType(KWType::Symbol); // indique si on trie les probas ou non (modifiable en mode expert
-						  // uniquement, et par defaut, on trie)
+	// classifieur
+	GetFirstOperand()->SetStructureName("Classifier");
+	// classe predite (attribut de prediction)
+	GetSecondOperand()->SetType(KWType::Symbol);
+	// classe cible pour le calcul de l'importance
+	GetOperandAt(2)->SetType(KWType::Symbol);
+	// methode de calcul de l'importance de la variable
+	GetOperandAt(3)->SetType(KWType::Symbol);
+	// indique si on trie les probas ou non (modifiable en mode expert
+	// uniquement, et par defaut, on trie)
+	GetOperandAt(4)->SetType(KWType::Symbol);
 
 	oaInstanceProbabilities = NULL;
-	contributionComputingMethod = NormalizedOddsRatio;
 	bSortInstanceProbas = false;
 }
 
@@ -409,44 +413,49 @@ Object* KIDRClassifierContribution::ComputeStructureResult(const KWObject* kwoOb
 
 Continuous KIDRClassifierContribution::GetContributionValueAt(int rank) const
 {
+	KIPartitionedAttributeProbas* attributeProbas;
 	assert(oaInstanceProbabilities != NULL);
 	assert(oaInstanceProbabilities->GetSize() > 0);
 
-	KIPartitionedAttributeProbas* attributeProbas =
-	    cast(KIPartitionedAttributeProbas*, oaInstanceProbabilities->GetAt(rank));
-	return attributeProbas->cContributionImportanceValue;
+	attributeProbas = cast(KIPartitionedAttributeProbas*, oaInstanceProbabilities->GetAt(rank));
+	return attributeProbas->dContributionImportanceValue;
 }
 
 Symbol KIDRClassifierContribution::GetContributionNameAt(int rank) const
 {
+	KIPartitionedAttributeProbas* attributeProbas;
 	assert(oaInstanceProbabilities != NULL);
 	assert(oaInstanceProbabilities->GetSize() > 0);
 
-	KIPartitionedAttributeProbas* attributeProbas =
-	    cast(KIPartitionedAttributeProbas*, oaInstanceProbabilities->GetAt(rank));
+	attributeProbas = cast(KIPartitionedAttributeProbas*, oaInstanceProbabilities->GetAt(rank));
 	;
-	ALString as = svPartitionedPredictiveAttributeNames.GetAt(attributeProbas->iAttributeIndex);
+	ALString as = svPartitionedPredictiveAttributeNames.GetAt(attributeProbas->nAttributeIndex);
 	return as.GetBuffer(as.GetLength());
 }
 
 Symbol KIDRClassifierContribution::GetContributionPartitionAt(int rank) const
 {
+	KIPartitionedAttributeProbas* attributeProbas;
+	Symbol attributeName;
+	KWAttribute* attribute;
+	KWDataGridStats* dataGridStats;
+	ostringstream oss;
+
 	assert(oaInstanceProbabilities != NULL);
 	assert(oaInstanceProbabilities->GetSize() > 0);
 
-	KIPartitionedAttributeProbas* attributeProbas =
-	    cast(KIPartitionedAttributeProbas*, oaInstanceProbabilities->GetAt(rank));
+	attributeProbas = cast(KIPartitionedAttributeProbas*, oaInstanceProbabilities->GetAt(rank));
 
-	Symbol attributeName = GetContributionNameAt(rank);
+	attributeName = GetContributionNameAt(rank);
 
 	// Extraction de l'attribut du dictionnaire associe a ce nom de variable
-	KWAttribute* attribute = kwcClass->LookupAttribute(attributeName.GetValue());
+	attribute = kwcClass->LookupAttribute(attributeName.GetValue());
 
 	// Ecriture de la partie (intervalle ou groupe) a laquelle appartient l'individu pour cette variable
-	KWDataGridStats* dataGridStats = new KWDataGridStats;
+	dataGridStats = new KWDataGridStats;
 	cast(KWDRDataGrid*, attribute->GetDerivationRule())->ExportDataGridStats(dataGridStats);
-	ostringstream oss;
-	dataGridStats->GetAttributeAt(0)->WritePartAt(oss, attributeProbas->iModalityIndex);
+
+	dataGridStats->GetAttributeAt(0)->WritePartAt(oss, attributeProbas->nModalityIndex);
 	delete dataGridStats;
 
 	return oss.str().c_str();
@@ -483,9 +492,20 @@ void KIDRClassifierContribution::ComputeContribution(const KWObject* kwoObject) 
 	int nClassIndex;
 	int nDatabaseSize;
 	int nClassNumber;
+	int nIndex;
+	KITargetValueProbas* targetValueProbas;
 	KWDRIntervalBounds discretizationRuleRef;
 	KWDRValueGroups groupingRuleRef;
 	IntVector ivModalityIndexes;
+	Continuous cInitialScore;
+	Continuous cGain;
+	Continuous cMaxGain;
+	Continuous cPriorProba;
+	ContinuousVector* cvScoreVector;
+	KWAttribute* predictiveAttribute;
+	KWAttribute* predictedClassAttribute;
+	KWLoadIndex nNativeIndex;
+	ALString sRuleLabel;
 
 	ivModalityIndexes.SetSize(svPartitionedPredictiveAttributeNames.GetSize());
 
@@ -495,17 +515,17 @@ void KIDRClassifierContribution::ComputeContribution(const KWObject* kwoObject) 
 	for (nAttributeIndex = 0; nAttributeIndex < svPartitionedPredictiveAttributeNames.GetSize(); nAttributeIndex++)
 	{
 		// Extraction de la variable partitionnee
-		KWAttribute* predictiveAttribute =
+		predictiveAttribute =
 		    kwcClass->LookupAttribute(svPartitionedPredictiveAttributeNames.GetAt(nAttributeIndex));
 
 		// Extraction de l'index de l'attribut natif
-		KWLoadIndex nNativeIndex =
+		nNativeIndex =
 		    kwcClass->LookupAttribute(svNativePredictiveAttributeNames.GetAt(nAttributeIndex))->GetLoadIndex();
 
 		int nModalityIndex = -1;
 
 		// Extraction du label de la regle permettant de savoir s'il s'agit d'une regle de discretisation ou de groupage
-		const ALString sRuleLabel =
+		sRuleLabel =
 		    predictiveAttribute->GetDerivationRule()->GetFirstOperand()->GetDerivationRule()->GetLabel();
 
 		// Cas d'une discretisation
@@ -531,8 +551,7 @@ void KIDRClassifierContribution::ComputeContribution(const KWObject* kwoObject) 
 
 	if (sContributionClass == PREDICTED_CLASS_LABEL)
 	{
-		KWAttribute* predictedClassAttribute =
-		    kwcClass->LookupAttribute(GetSecondOperand()->GetAttributeName());
+		predictedClassAttribute = kwcClass->LookupAttribute(GetSecondOperand()->GetAttributeName());
 		sContributionClass = predictedClassAttribute->GetDerivationRule()->ComputeSymbolResult(kwoObject);
 	}
 	else
@@ -541,22 +560,18 @@ void KIDRClassifierContribution::ComputeContribution(const KWObject* kwoObject) 
 		{
 			// determiner quelle est la classe de plus grand gain
 
-			Continuous cInitialScore;
-			Continuous cGain;
-			Continuous cMaxGain = 0;
-			Continuous cPriorProba;
+			cMaxGain = 0;
 
 			// Calcul du vecteur de scores de l'individu
-			ContinuousVector* cvScoreVector = ComputeScoreVectorLj(&ivModalityIndexes);
+			cvScoreVector = ComputeScoreVectorLj(&ivModalityIndexes);
 
-			for (int nIndex = 0; nIndex < oaModelProbabilities.GetSize(); nIndex++)
+			for (nIndex = 0; nIndex < oaModelProbabilities.GetSize(); nIndex++)
 			{
-				KITargetValueProbas* targetValueProbas =
-				    cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nIndex));
+				targetValueProbas = cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nIndex));
 
 				cInitialScore = ComputeScoreFromScoreVector(cvScoreVector, nIndex);
 
-				cPriorProba = exp(targetValueProbas->cProbaApriori);
+				cPriorProba = exp(targetValueProbas->dProbaApriori);
 
 				// Calcul du gain : ratio entre le score et la proba a priori
 				cGain = cInitialScore / cPriorProba;
@@ -592,50 +607,17 @@ void KIDRClassifierContribution::ComputeContribution(const KWObject* kwoObject) 
 	{
 		partitionedAttributeProbas = new KIPartitionedAttributeProbas;
 
-		partitionedAttributeProbas->iAttributeIndex = nAttributeIndex;
-		partitionedAttributeProbas->iModalityIndex = ivModalityIndexes.GetAt(nAttributeIndex);
+		partitionedAttributeProbas->nAttributeIndex = nAttributeIndex;
+		partitionedAttributeProbas->nModalityIndex = ivModalityIndexes.GetAt(nAttributeIndex);
 
 		// Calcul de l'indicateur d'importance
 
-		if (contributionComputingMethod == Shapley)
-			cImportanceValue =
-			    ComputeShapley(nAttributeIndex, nClassIndex, ivModalityIndexes.GetAt(nAttributeIndex));
-		else if (contributionComputingMethod == ImportanceValue)
-			cImportanceValue = ComputeImportanceValue(nAttributeIndex, nClassIndex,
-								  ivModalityIndexes.GetAt(nAttributeIndex));
-		else if (contributionComputingMethod == WeightOfEvidence)
-			cImportanceValue = ComputeWeightOfEvidence(nAttributeIndex, nClassIndex, &ivModalityIndexes,
-								   nDatabaseSize, nClassNumber);
-		else if (contributionComputingMethod == InformationDifference)
-			cImportanceValue = ComputeInformationDifference(
-			    nAttributeIndex, nClassIndex, &ivModalityIndexes, nDatabaseSize, nClassNumber);
-		else if (contributionComputingMethod == DifferenceProbabilities)
-			cImportanceValue =
-			    ComputeDifferenceProbabilities(nAttributeIndex, nClassIndex, &ivModalityIndexes);
-		else if (contributionComputingMethod == ModalityProbability)
-			cImportanceValue = ComputeModalityProbability(nAttributeIndex, nClassIndex,
-								      ivModalityIndexes.GetAt(nAttributeIndex));
-		else if (contributionComputingMethod == BayesDistance)
-			cImportanceValue = ComputeBayesDistance(nAttributeIndex, nClassIndex,
-								ivModalityIndexes.GetAt(nAttributeIndex));
-		else if (contributionComputingMethod == Kullback)
-			cImportanceValue = ComputeKullback(nAttributeIndex, nClassIndex, &ivModalityIndexes,
-							   nDatabaseSize, nClassNumber);
-		else if (contributionComputingMethod == LogModalityProbability)
-			cImportanceValue = ComputeLogModalityProbability(nAttributeIndex, nClassIndex,
-									 ivModalityIndexes.GetAt(nAttributeIndex));
-		else if (contributionComputingMethod == LogImportanceValue)
-			cImportanceValue = ComputeLogImportanceValue(nAttributeIndex, nClassIndex,
-								     ivModalityIndexes.GetAt(nAttributeIndex));
-		else if (contributionComputingMethod == BayesDistanceWithoutPrior)
-			cImportanceValue = ComputeBayesDistanceWithoutPrior(nAttributeIndex, nClassIndex,
-									    ivModalityIndexes.GetAt(nAttributeIndex));
-		else if (contributionComputingMethod == NormalizedOddsRatio)
-			cImportanceValue = ComputeNormalizedOddsRatio(nAttributeIndex, nClassIndex, &ivModalityIndexes,
-								      nDatabaseSize, nClassNumber);
+		cImportanceValue =
+		    ComputeShapley(nAttributeIndex, nClassIndex, ivModalityIndexes.GetAt(nAttributeIndex));
+
 		// Memorisation de la proba (valeur d'importance)
 		assert(cImportanceValue != -1);
-		partitionedAttributeProbas->cContributionImportanceValue = cImportanceValue;
+		partitionedAttributeProbas->dContributionImportanceValue = cImportanceValue;
 
 		// Insertion du vecteur dans le tableau
 		oaInstanceProbabilities->SetAt(nAttributeIndex, partitionedAttributeProbas);
@@ -646,172 +628,12 @@ void KIDRClassifierContribution::ComputeContribution(const KWObject* kwoObject) 
 		oaInstanceProbabilities->Sort();
 }
 
-Continuous KIDRClassifierContribution::ComputeImportanceValue(int nAttributeIndex, int nTargetClassIndex,
-							      int nModalityIndex) const
+Continuous KIDRClassifierContribution::ComputeModalityProbability(int nAttributeIndex, int nTargetClassIndex,
+								  int nModalityIndex) const
 {
-	Continuous cLogPosteriorProba;
 	Continuous cImportanceValue;
 
-	// Extraction de la log proba conditionnelle a la classe du pourquoi
-	cLogPosteriorProba = ExtractLogPosteriorProba(nTargetClassIndex, nAttributeIndex, nModalityIndex);
-
-	// Calcul de l'indicateur d'importance
-	cImportanceValue =
-	    exp(cLogPosteriorProba) -
-	    exp(ComputeMaxLogPosteriorProbaWithoutWhyClassValue(nTargetClassIndex, nAttributeIndex, nModalityIndex));
-
-	return cImportanceValue;
-}
-
-Continuous KIDRClassifierContribution::ComputeWeightOfEvidence(int nAttributeIndex, int nTargetClassIndex,
-							       IntVector* ivModalityIndexes, int nDatabaseSize,
-							       int nTargetValuesNumber) const
-{
-	ContinuousVector* cvScoreVector;
-	Continuous cInitialScore;
-	Continuous cScoreWithoutOneVariable;
-	// Continuous cImportanceValue;
-	// Continuous cRatio;
-	Continuous cInitialScoreCorrected;
-	Continuous cScoreWithoutOneVariableCorrected;
-	Continuous cImportanceValueCorrected;
-	Continuous cRatioCorrected;
-
-	// Calcul du score initial p(C|X)
-	cvScoreVector = ComputeScoreVectorLj(ivModalityIndexes);
-	cInitialScore = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// Calcul du score sans prendre en compte la variable explicative p(C|X\X_i)
-	cvScoreVector = ComputeScoreVectorLjWithoutOneVariable(ivModalityIndexes, nAttributeIndex);
-	cScoreWithoutOneVariable = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// AjoutVincent 10/2009 - Correction de Laplace pour que P>0 et P<1
-	// Prise en compte d'un epsilon de Laplace
-	// en considerant qu'on ne peut pas avoir de precision meilleure que 1/N
-	//   p = p*N / N
-	//   p_Laplace = (p*N + 0.5/J)/(N + 0.5)
-	//   p_Laplace = (p + 0.5/JN)/(1 + 0.5/N)
-	// (on se base sur N+1 pour eviter le cas N=0)
-	cInitialScoreCorrected =
-	    (cInitialScore + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
-	cScoreWithoutOneVariableCorrected =
-	    (cScoreWithoutOneVariable + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
-
-	// Vincent2009 - j'ai retire la correction et ajoute celle au-dessus
-	// Correction de Laplace pour eviter les divisions par zero
-	//cInitialScore = (cInitialScore * nDatabaseSize + 1) / (nDatabaseSize + nTargetValuesNumber);
-	//cScoreWithoutOneVariable = (cScoreWithoutOneVariable * nDatabaseSize + 1) / (nDatabaseSize + nTargetValuesNumber);
-
-	//cRatio = (cInitialScore * (1 - cScoreWithoutOneVariable)) / ((1 - cInitialScore) * cScoreWithoutOneVariable);
-
-	cRatioCorrected = (cInitialScoreCorrected * (1 - cScoreWithoutOneVariableCorrected)) /
-			  ((1 - cInitialScoreCorrected) * cScoreWithoutOneVariableCorrected);
-	//cout  "ratio " << cRatio << " son log " << log(cRatio) <<  " 1/log(2)*" <<  1/log(2.0)*log(cRatio) << endl;
-	// Calcul de l'indicateur Weight of Evidence
-	//cImportanceValue = 1/log(2.0) * (log(cInitialScore / (1 - cInitialScore)) - log(cScoreWithoutOneVariable / (1 - cScoreWithoutOneVariable)));
-	//cImportanceValue = 1/log(2.0) * (log(p / (1-p)) - log(q / (1-q)))
-
-	//cImportanceValue = 1/log(2.0) * (log(cInitialScore) - log(1 - cInitialScore) - log(cScoreWithoutOneVariable) + log(1 - cScoreWithoutOneVariable));
-	//cImportanceValue = 1/log(2.0) * (log(p) - log(1-p) -log(q) + log(1-q))
-
-	//cImportanceValueCorrected = 1/log(2.0) * (log(cInitialScoreCorrected) - log(1 - cInitialScoreCorrected) - log(cScoreWithoutOneVariableCorrected) + log(1 - cScoreWithoutOneVariableCorrected));
-	//cImportanceValue = 1 / log(2.0) * log(cRatio);
-	cImportanceValueCorrected = log(cRatioCorrected) / log(2.0);
-
-	//cout << "Attribute " << nAttributeIndex << " Class " << nTargetClassIndex << endl;
-	//cout << " P1= " << cInitialScore  << " P1C= " << cInitialScoreCorrected << endl;
-	//cout << " P2= " << cScoreWithoutOneVariable << " P2C= " << cScoreWithoutOneVariableCorrected << endl;
-	//cout << "cImportanceValue " << cImportanceValue << endl;
-	//cout << "cImportanceValueCorrected " << cImportanceValueCorrected << endl;
-
-	return cImportanceValueCorrected;
-}
-
-Continuous KIDRClassifierContribution::ComputeInformationDifference(int nAttributeIndex, int nTargetClassIndex,
-								    IntVector* ivModalityIndexes, int nDatabaseSize,
-								    int nTargetValuesNumber) const
-{
-	ContinuousVector* cvScoreVector;
-	Continuous cInitialScore;
-	Continuous cScoreWithoutOneVariable;
-	// Continuous cImportanceValue;
-	Continuous cInitialScoreCorrected;
-	Continuous cScoreWithoutOneVariableCorrected;
-	Continuous cImportanceValueCorrected;
-
-	// Calcul du score initial p(C|X)
-	cvScoreVector = ComputeScoreVectorLj(ivModalityIndexes);
-	cInitialScore = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// Calcul du score sans prendre en compte la variable explicative p(C|X\X_i)
-	cvScoreVector = ComputeScoreVectorLjWithoutOneVariable(ivModalityIndexes, nAttributeIndex);
-	cScoreWithoutOneVariable = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// AjoutVincent 10/2009 - Correction de Laplace pour que P>0 et P<1
-	// Prise en compte d'un epsilon de Laplace
-	// en considerant qu'on ne peut pas avoir de precision meilleure que 1/N
-	//   p = p*N / N
-	//   p_Laplace = (p*N + 0.5/J)/(N + 0.5)
-	//   p_Laplace = (p + 0.5/JN)/(1 + 0.5/N)
-	// (on se base sur N+1 pour eviter le cas N=0)
-	cInitialScoreCorrected =
-	    (cInitialScore + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
-	cScoreWithoutOneVariableCorrected =
-	    (cScoreWithoutOneVariable + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
-
-	// Vincent2009 - j'ai retire la correction et ajoute celle au-dessus
-	// Correction de Laplace pour eviter les divisions par zero
-	//cInitialScore = (cInitialScore * nDatabaseSize + 1) / (nDatabaseSize + nTargetValuesNumber);
-	//cScoreWithoutOneVariable = (cScoreWithoutOneVariable * nDatabaseSize + 1) / (nDatabaseSize + nTargetValuesNumber);
-
-	// Calcul de l'indicateur Weight of Evidence
-	//cImportanceValue = 1 / log(2.0) * (log(cInitialScore) - log(cScoreWithoutOneVariable));
-	cImportanceValueCorrected = (log(cInitialScoreCorrected) - log(cScoreWithoutOneVariableCorrected)) / log(2.0);
-
-	return cImportanceValueCorrected;
-}
-
-Continuous KIDRClassifierContribution::ComputeDifferenceProbabilities(
-    int nAttributeIndex, int nTargetClassIndex,
-    IntVector* ivModalityIndexes) const //, int nDatabaseSize, int nTargetValuesNumber)
-{
-	ContinuousVector* cvScoreVector;
-	Continuous cInitialScore;
-	Continuous cScoreWithoutOneVariable;
-	Continuous cImportanceValue;
-
-	// Calcul du score initial p(C|X)
-	cvScoreVector = ComputeScoreVectorLj(ivModalityIndexes);
-	cInitialScore = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// Calcul du score sans prendre en compte la variable explicative p(C|X\X_i)
-	cvScoreVector = ComputeScoreVectorLjWithoutOneVariable(ivModalityIndexes, nAttributeIndex);
-	cScoreWithoutOneVariable = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// Calcul de l'indicateur Weight of Evidence
-	cImportanceValue = cInitialScore - cScoreWithoutOneVariable;
-
-	return cImportanceValue;
-}
-
-Continuous KIDRClassifierContribution::ComputeLogImportanceValue(int nAttributeIndex, int nTargetClassIndex,
-								 int nModalityIndex) const
-{
-	Continuous cLogPosteriorProba;
-	Continuous cImportanceValue;
-
-	// Extraction de la log proba conditionnelle a la classe du pourquoi
-	cLogPosteriorProba = ExtractLogPosteriorProba(nTargetClassIndex, nAttributeIndex, nModalityIndex);
-
-	// Calcul de l'indicateur d'importance
-	cImportanceValue = cLogPosteriorProba - ComputeMaxLogPosteriorProbaWithoutWhyClassValue(
-						    nTargetClassIndex, nAttributeIndex, nModalityIndex);
+	cImportanceValue = exp(ExtractLogPosteriorProba(nTargetClassIndex, nAttributeIndex, nModalityIndex));
 
 	return cImportanceValue;
 }
@@ -837,6 +659,8 @@ void KIDRClassifierContribution::InitializeShapleyTables()
 	int nTargetClassIndex;
 	int nModalityIndex;
 	int nClassIndex;
+	int nModality;
+	int nTarget;
 	int nVariableNumber = svPartitionedPredictiveAttributeNames.GetSize();
 	int nClassNumber = svTargetValues.GetSize();
 	boolean bLocalTrace = false;
@@ -869,26 +693,26 @@ void KIDRClassifierContribution::InitializeShapleyTables()
 			cvVectorProbas =
 			    cast(ContinuousVector*, targetValueProbas->oaProbasAposteriori->GetAt(nAttributeIndex));
 
-			for (int iModality = 0; iModality < cvVectorProbas->GetSize(); iModality++)
+			for (nModality = 0; nModality < cvVectorProbas->GetSize(); nModality++)
 			{
 				// P(In) : proba de tomber dans l'intervalle In, qque soit la classe C
 				// P(In) = P(In|C1) * P(C1) + P(In|C2) * P(C2) + P(In|C3) * P(C3) + ....
 				cProbaModality = 0;
-				for (int iTarget = 0; iTarget < ivTargetFrequencies.GetSize(); iTarget++)
+				for (nTarget = 0; nTarget < ivTargetFrequencies.GetSize(); nTarget++)
 				{
-					cProbaForTarget = ivTargetFrequencies.GetAt(iTarget) / cTotalFrequency; // P(Cn)
+					cProbaForTarget = ivTargetFrequencies.GetAt(nTarget) / dTotalFrequency; // P(Cn)
 					cProbaModality +=
-					    (ComputeModalityProbability(nAttributeIndex, iTarget, iModality) *
+					    (ComputeModalityProbability(nAttributeIndex, nTarget, nModality) *
 					     cProbaForTarget); // P(In|Cn) * P(Cn)
 				}
 
 				// calcul de P(Xm=Xi | Y1) --> Y1 represente la valeur de reference
 				cTerm2Numerator =
-				    ComputeModalityProbability(nAttributeIndex, nTargetClassIndex, iModality);
+				    ComputeModalityProbability(nAttributeIndex, nTargetClassIndex, nModality);
 
 				// calcul de P(Xm=Xi | Y0)  --> Y0 represente toutes les classes sauf la valeur de reference
 				cTerm2Denominator = ComputeModalityProbabilityWithoutTargetClass(
-				    nAttributeIndex, nTargetClassIndex, iModality);
+				    nAttributeIndex, nTargetClassIndex, nModality);
 				cTerm2 += (cProbaModality * log(cTerm2Numerator / cTerm2Denominator));
 
 				if (bLocalTrace)
@@ -971,11 +795,12 @@ Continuous KIDRClassifierContribution::ComputeModalityProbabilityWithoutTargetCl
 
 	Continuous cTargetProbas = 0;
 	int iTargetFrequencies = 0;
+	int nClassIndex;
 
 	assert(ivTargetFrequencies.GetSize() > 0);
 	assert(oaModelProbabilities.GetSize() > 0);
 
-	for (int nClassIndex = 0; nClassIndex < oaModelProbabilities.GetSize(); nClassIndex++)
+	for (nClassIndex = 0; nClassIndex < oaModelProbabilities.GetSize(); nClassIndex++)
 	{
 		if (nClassIndex != nTargetClassIndex)
 		{
@@ -1030,86 +855,6 @@ boolean KIDRClassifierInterpretation::CheckOperandsCompleteness(const KWClass* k
 	return bOk;
 }
 
-Continuous KIDRClassifierContribution::ComputeModalityProbability(int nAttributeIndex, int nTargetClassIndex,
-								  int nModalityIndex) const
-{
-	Continuous cImportanceValue;
-
-	cImportanceValue = exp(ExtractLogPosteriorProba(nTargetClassIndex, nAttributeIndex, nModalityIndex));
-
-	return cImportanceValue;
-}
-
-Continuous KIDRClassifierContribution::ComputeLogModalityProbability(int nAttributeIndex, int nTargetClassIndex,
-								     int nModalityIndex) const
-{
-	Continuous cImportanceValue;
-
-	cImportanceValue = ExtractLogPosteriorProba(nTargetClassIndex, nAttributeIndex, nModalityIndex);
-
-	return cImportanceValue;
-}
-
-Continuous KIDRClassifierContribution::ComputeBayesDistance(int nAttributeIndex, int nTargetClassIndex,
-							    int nModalityIndex) const
-{
-	Continuous cImportanceValue;
-
-	cImportanceValue = ExtractLogPosteriorProba(nTargetClassIndex, nAttributeIndex, nModalityIndex) *
-			   cvVariableWeights.GetAt(nAttributeIndex) * exp(ExtractLogPriorProba(nTargetClassIndex));
-
-	return cImportanceValue;
-}
-
-Continuous KIDRClassifierContribution::ComputeBayesDistanceWithoutPrior(int nAttributeIndex, int nTargetClassIndex,
-									int nModalityIndex) const
-{
-	Continuous cImportanceValue;
-
-	cImportanceValue = ExtractLogPosteriorProba(nTargetClassIndex, nAttributeIndex, nModalityIndex) *
-			   cvVariableWeights.GetAt(nAttributeIndex);
-
-	return cImportanceValue;
-}
-
-Continuous KIDRClassifierContribution::ComputeKullback(int nAttributeIndex, int nTargetClassIndex,
-						       IntVector* ivModalityIndexes, int nDatabaseSize,
-						       int nTargetValuesNumber) const
-{
-	ContinuousVector* cvScoreVector;
-	Continuous cInitialScore;
-	Continuous cScoreWithoutOneVariable;
-	Continuous cImportanceValue;
-	Continuous cInitialScoreCorrected;
-	Continuous cScoreWithoutOneVariableCorrected;
-
-	// Calcul du score initial p(C|X)
-	cvScoreVector = ComputeScoreVectorLj(ivModalityIndexes);
-	cInitialScore = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// Calcul du score sans prendre en compte la variable explicative p(C|X\X_i)
-	cvScoreVector = ComputeScoreVectorLjWithoutOneVariable(ivModalityIndexes, nAttributeIndex);
-	cScoreWithoutOneVariable = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// AjoutVincent 10/2009 - Correction de Laplace pour que P>0 et P<1
-	// Prise en compte d'un epsilon de Laplace
-	// en considerant qu'on ne peut pas avoir de precision meilleure que 1/N
-	//   p = p*N / N
-	//   p_Laplace = (p*N + 0.5/J)/(N + 0.5)
-	//   p_Laplace = (p + 0.5/JN)/(1 + 0.5/N)
-	// (on se base sur N+1 pour eviter le cas N=0)
-	cInitialScoreCorrected =
-	    (cInitialScore + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
-	cScoreWithoutOneVariableCorrected =
-	    (cScoreWithoutOneVariable + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
-
-	cImportanceValue = cInitialScoreCorrected * log(cInitialScoreCorrected / cScoreWithoutOneVariableCorrected);
-
-	return cImportanceValue;
-}
-
 Continuous KIDRClassifierContribution::ComputeMaxLogPosteriorProbaWithoutWhyClassValue(int nWhyTargetValueNumber,
 										       int nAttributeIndex,
 										       int nModalityIndex) const
@@ -1138,35 +883,7 @@ void KIDRClassifierContribution::Compile(KWClass* kwcOwnerClass)
 {
 	KIDRClassifierInterpretation::Compile(kwcOwnerClass); // code classe ancetre
 
-	// initialiser des booleens indiquant la methode de calcul de contribution a utiliser (perfs)
-
-	const Symbol sWhyMethod = GetOperandAt(3)->GetSymbolConstant();
-
-	if (sWhyMethod == SHAPLEY_LABEL)
-		contributionComputingMethod = Shapley;
-	else if (sWhyMethod == MIN_PROBA_DIFF_LABEL)
-		contributionComputingMethod = ImportanceValue;
-	else if (sWhyMethod == WEIGHT_EVIDENCE_LABEL)
-		contributionComputingMethod = WeightOfEvidence;
-	else if (sWhyMethod == INFO_DIFF_LABEL)
-		contributionComputingMethod = InformationDifference;
-	else if (sWhyMethod == DIFF_PROBA_LABEL)
-		contributionComputingMethod = DifferenceProbabilities;
-	else if (sWhyMethod == MODALITY_PROBA_LABEL)
-		contributionComputingMethod = ModalityProbability;
-	else if (sWhyMethod == BAYES_DISTANCE_LABEL)
-		contributionComputingMethod = BayesDistance;
-	else if (sWhyMethod == KULLBACK_LABEL)
-		contributionComputingMethod = Kullback;
-	else if (sWhyMethod == LOG_MODALITY_PROBA_LABEL)
-		contributionComputingMethod = LogModalityProbability;
-	else if (sWhyMethod == LOG_MIN_PROBA_DIFF_LABEL)
-		contributionComputingMethod = LogImportanceValue;
-	else if (sWhyMethod == BAYES_DISTANCE_WITHOUT_PRIOR_LABEL)
-		contributionComputingMethod = BayesDistanceWithoutPrior;
-	else if (sWhyMethod == NORMALIZED_ODDS_RATIO_LABEL)
-		contributionComputingMethod = NormalizedOddsRatio;
-
+	// voir si on doit trier les variables de contribution et reinforcement
 	bSortInstanceProbas = (strcmp(GetOperandAt(4)->GetSymbolConstant().GetValue(), "sorted") == 0 ? true : false);
 
 	sContributionClass = "";
@@ -1174,53 +891,12 @@ void KIDRClassifierContribution::Compile(KWClass* kwcOwnerClass)
 	InitializeShapleyTables();
 }
 
-/// Calcul du Normalized Odds Ratio (NOR)
-Continuous KIDRClassifierContribution::ComputeNormalizedOddsRatio(int nAttributeIndex, int nTargetClassIndex,
-								  IntVector* ivModalityIndexes, int nDatabaseSize,
-								  int nTargetValuesNumber) const
-{
-	ContinuousVector* cvScoreVector;
-	Continuous cInitialScore;
-	Continuous cScoreWithoutOneVariable;
-	Continuous cInitialScoreCorrected;
-	Continuous cScoreWithoutOneVariableCorrected;
-	Continuous cImportanceValueCorrected;
-	Continuous cRatioCorrected;
-
-	// Calcul du score initial p(C|X)
-	cvScoreVector = ComputeScoreVectorLj(ivModalityIndexes);
-	cInitialScore = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// Calcul du score sans prendre en compte la variable explicative p(C|X\X_i)
-	cvScoreVector = ComputeScoreVectorLjWithoutOneVariable(ivModalityIndexes, nAttributeIndex);
-	cScoreWithoutOneVariable = ComputeScoreFromScoreVector(cvScoreVector, nTargetClassIndex);
-	delete cvScoreVector;
-
-	// Commentaires sur ce code voir fonction "Weight of Evidence"
-	// on calcule le odd ratio entre P(C|X) et (P(C|X) prive de la variable
-	// puis on normalise pour avoir des valeurs entre -1 et +1
-	// cela corresponds au fait de faire passer le weight of evidence dans une sigmoide
-	cInitialScoreCorrected =
-	    (cInitialScore + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
-	cScoreWithoutOneVariableCorrected =
-	    (cScoreWithoutOneVariable + (0.5 / (nTargetValuesNumber * nDatabaseSize))) / (1.0 + (0.5 / nDatabaseSize));
-	cRatioCorrected = (cInitialScoreCorrected * (1 - cScoreWithoutOneVariableCorrected)) /
-			  ((1 - cInitialScoreCorrected) * cScoreWithoutOneVariableCorrected);
-	cImportanceValueCorrected = (cRatioCorrected - 1) / (cRatioCorrected + 1);
-
-	if (cImportanceValueCorrected < -1 or cImportanceValueCorrected > 1)
-		AddWarning(" Normalized Odds Ratio value is " + ALString(DoubleToString(cImportanceValueCorrected)) +
-			   ". Should be >= -1 and <= 1");
-
-	return cImportanceValueCorrected;
-}
-
 ContinuousVector* KIDRClassifierContribution::ComputeScoreVectorLj(IntVector* ivModalityIndexes) const
 {
 	ContinuousVector* cvScore;
 	int nClassIndex;
 	int nAttributeIndex;
+	KITargetValueProbas* targetValueProbas;
 
 	require(oaModelProbabilities.GetSize() > 0);
 	require(ivModalityIndexes != NULL);
@@ -1232,12 +908,11 @@ ContinuousVector* KIDRClassifierContribution::ComputeScoreVectorLj(IntVector* iv
 	for (nClassIndex = 0; nClassIndex < oaModelProbabilities.GetSize(); nClassIndex++)
 	{
 		// Extraction du vecteur de probabilites pour la classe en cours
-		KITargetValueProbas* targetValueProbas =
-		    cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nClassIndex));
+		targetValueProbas = cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nClassIndex));
 		assert(targetValueProbas->oaProbasAposteriori->GetSize() == ivModalityIndexes->GetSize());
 
 		// Initialisation du score au log de la proba a priori
-		cvScore->SetAt(nClassIndex, targetValueProbas->cProbaApriori);
+		cvScore->SetAt(nClassIndex, targetValueProbas->dProbaApriori);
 
 		// Parcours des variables
 		for (nAttributeIndex = 0; nAttributeIndex < ivModalityIndexes->GetSize(); nAttributeIndex++)
@@ -1259,6 +934,7 @@ ContinuousVector* KIDRClassifierContribution::ComputeScoreVectorLjWithoutOneVari
 	ContinuousVector* cvScore;
 	int nClassIndex;
 	int nAttributeIndex;
+	KITargetValueProbas* targetValueProbas;
 
 	require(oaModelProbabilities.GetSize() > 0);
 	require(ivModalityIndexes != NULL);
@@ -1270,12 +946,11 @@ ContinuousVector* KIDRClassifierContribution::ComputeScoreVectorLjWithoutOneVari
 	for (nClassIndex = 0; nClassIndex < oaModelProbabilities.GetSize(); nClassIndex++)
 	{
 		// Extraction du vecteur de probabilites pour la classe en cours
-		KITargetValueProbas* targetValueProbas =
-		    cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nClassIndex));
+		targetValueProbas = cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nClassIndex));
 		assert(targetValueProbas->oaProbasAposteriori->GetSize() == ivModalityIndexes->GetSize());
 
 		// Initialisation du score au log de la proba a priori
-		cvScore->SetAt(nClassIndex, targetValueProbas->cProbaApriori);
+		cvScore->SetAt(nClassIndex, targetValueProbas->dProbaApriori);
 
 		// Parcours des variables
 		for (nAttributeIndex = 0; nAttributeIndex < ivModalityIndexes->GetSize(); nAttributeIndex++)
@@ -1315,7 +990,6 @@ Continuous KIDRClassifierContribution::ComputeScoreFromScoreVector(ContinuousVec
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KIDRContributionValueAt
-
 KIDRContributionValueAt::KIDRContributionValueAt()
 {
 	SetName("ContributionValueAt");
@@ -1323,10 +997,10 @@ KIDRContributionValueAt::KIDRContributionValueAt()
 	SetType(KWType::Continuous);
 	SetOperandNumber(2);
 	GetFirstOperand()->SetType(KWType::Structure);
-	GetFirstOperand()->SetStructureName(
-	    "ScoreContribution"); // resultats de la contribution au score, pour une classe cible donnee
-	GetSecondOperand()->SetType(
-	    KWType::Continuous); // rang d'importance de la variable pour laquelle ont veut obtenir les resultats
+	// resultats de la contribution au score, pour une classe cible donnee
+	GetFirstOperand()->SetStructureName("ScoreContribution");
+	// rang d'importance de la variable pour laquelle ont veut obtenir les resultats
+	GetSecondOperand()->SetType(KWType::Continuous);
 }
 
 KIDRContributionValueAt::~KIDRContributionValueAt() {}
@@ -1353,12 +1027,11 @@ KIDRContributionNameAt::KIDRContributionNameAt()
 	SetType(KWType::Symbol);
 	SetOperandNumber(2);
 	GetFirstOperand()->SetType(KWType::Structure);
-	GetFirstOperand()->SetStructureName(
-	    "ScoreContribution"); // resultats de la contribution au score, pour une classe cible donnee
-	GetSecondOperand()->SetType(
-	    KWType::Continuous); // rang d'importance de la variable pour laquelle ont veut obtenir les resultats
+	// resultats de la contribution au score, pour une classe cible donnee
+	GetFirstOperand()->SetStructureName("ScoreContribution");
+	// rang d'importance de la variable pour laquelle ont veut obtenir les resultats
+	GetSecondOperand()->SetType(KWType::Continuous);
 }
-
 KIDRContributionNameAt::~KIDRContributionNameAt() {}
 
 KWDerivationRule* KIDRContributionNameAt::Create() const
@@ -1375,7 +1048,6 @@ Symbol KIDRContributionNameAt::ComputeSymbolResult(const KWObject* kwoObject) co
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KIDRContributionClass
-
 KIDRContributionClass::KIDRContributionClass()
 {
 	SetName("ContributionClass");
@@ -1383,8 +1055,8 @@ KIDRContributionClass::KIDRContributionClass()
 	SetType(KWType::Symbol);
 	SetOperandNumber(1);
 	GetFirstOperand()->SetType(KWType::Structure);
-	GetFirstOperand()->SetStructureName(
-	    "ScoreContribution"); // resultats de la contribution au score, pour une classe cible donnee
+	// resultats de la contribution au score, pour une classe cible donnee
+	GetFirstOperand()->SetStructureName("ScoreContribution");
 }
 
 KIDRContributionClass::~KIDRContributionClass() {}
@@ -1396,14 +1068,14 @@ KWDerivationRule* KIDRContributionClass::Create() const
 
 Symbol KIDRContributionClass::ComputeSymbolResult(const KWObject* kwoObject) const
 {
-	KIDRClassifierContribution* scoreInterpretation =
-	    cast(KIDRClassifierContribution*, GetFirstOperand()->GetStructureValue(kwoObject));
+	KIDRClassifierContribution* scoreInterpretation;
+
+	scoreInterpretation = cast(KIDRClassifierContribution*, GetFirstOperand()->GetStructureValue(kwoObject));
 	return scoreInterpretation->GetContributionClass();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KIDRContributionPartitionAt
-
 KIDRContributionPartitionAt::KIDRContributionPartitionAt()
 {
 	SetName("ContributionPartitionAt");
@@ -1411,10 +1083,10 @@ KIDRContributionPartitionAt::KIDRContributionPartitionAt()
 	SetType(KWType::Symbol);
 	SetOperandNumber(2);
 	GetFirstOperand()->SetType(KWType::Structure);
-	GetFirstOperand()->SetStructureName(
-	    "ScoreContribution"); // resultats de la contribution au score, pour une classe cible donnee
-	GetSecondOperand()->SetType(
-	    KWType::Continuous); // rang d'importance de la variable pour laquelle ont veut obtenir les resultats
+	// resultats de la contribution au score, pour une classe cible donnee
+	GetFirstOperand()->SetStructureName("ScoreContribution");
+	// rang d'importance de la variable pour laquelle ont veut obtenir les resultats
+	GetSecondOperand()->SetType(KWType::Continuous);
 }
 
 KIDRContributionPartitionAt::~KIDRContributionPartitionAt() {}
@@ -1426,15 +1098,14 @@ KWDerivationRule* KIDRContributionPartitionAt::Create() const
 
 Symbol KIDRContributionPartitionAt::ComputeSymbolResult(const KWObject* kwoObject) const
 {
-	KIDRClassifierContribution* scoreInterpretation =
-	    cast(KIDRClassifierContribution*, GetFirstOperand()->GetStructureValue(kwoObject));
+	KIDRClassifierContribution* scoreInterpretation;
+	scoreInterpretation = cast(KIDRClassifierContribution*, GetFirstOperand()->GetStructureValue(kwoObject));
 	return scoreInterpretation->GetContributionPartitionAt((int)GetSecondOperand()->GetContinuousValue(kwoObject) -
 							       1);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KIDRContributionPriorClass
-
 KIDRContributionPriorClass::KIDRContributionPriorClass()
 {
 	SetName("ContributionPriorClass");
@@ -1444,9 +1115,10 @@ KIDRContributionPriorClass::KIDRContributionPriorClass()
 	GetFirstOperand()->SetType(KWType::Structure);
 	GetFirstOperand()->SetStructureName("DataGrid");
 	GetSecondOperand()->SetType(KWType::Symbol);
-	GetOperandAt(2)->SetType(KWType::Symbol); // classe predite (attribut de prediction)
-	GetOperandAt(3)->SetType(
-	    KWType::Symbol); // classe de la contribution (peut etre la classe de meilleur gain pour cet individu)
+	// classe predite (attribut de prediction)
+	GetOperandAt(2)->SetType(KWType::Symbol);
+	// classe de la contribution (peut etre la classe de meilleur gain pour cet individu)
+	GetOperandAt(3)->SetType(KWType::Symbol);
 	nTotalFrequency = 0;
 }
 
@@ -1461,6 +1133,7 @@ void KIDRContributionPriorClass::Compile(KWClass* kwcOwnerClass)
 {
 	const KWDRDataGrid* targetDataGrid;
 	const KWDRSymbolValueSet* targetSymbolValueSet;
+	int nTarget;
 
 	// Appel de la methode ancetre
 	KWDerivationRule::Compile(kwcOwnerClass);
@@ -1475,14 +1148,14 @@ void KIDRContributionPriorClass::Compile(KWClass* kwcOwnerClass)
 				    targetDataGrid->GetOperandAt(0)->GetReferencedDerivationRule(kwcOwnerClass));
 	assert(targetSymbolValueSet->GetValueNumber() == nTargetValueNumber);
 	svTargetValues.SetSize(nTargetValueNumber);
-	for (int nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
+	for (nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
 		svTargetValues.SetAt(nTarget, targetSymbolValueSet->GetValueAt(nTarget));
 
 	nTotalFrequency = 0;
 
 	// Memorisation des effectifs par partie cible
 	ivDataGridSetTargetFrequencies.SetSize(nTargetValueNumber);
-	for (int nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
+	for (nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
 	{
 		ivDataGridSetTargetFrequencies.SetAt(nTarget, targetDataGrid->GetCellFrequencyAt(nTarget));
 		nTotalFrequency += targetDataGrid->GetCellFrequencyAt(nTarget);
@@ -1491,27 +1164,32 @@ void KIDRContributionPriorClass::Compile(KWClass* kwcOwnerClass)
 
 Continuous KIDRContributionPriorClass::ComputeContinuousResult(const KWObject* kwoObject) const
 {
+
+	int nIndex;
+	Symbol starget;
+	KWAttribute* predictedClassAttribute;
+	KWAttribute* contributiobnClassAttribute;
+
 	if (nTotalFrequency == 0)
 		return 0;
 
-	Symbol starget = GetSecondOperand()->GetSymbolValue(kwoObject);
+	starget = GetSecondOperand()->GetSymbolValue(kwoObject);
 
 	if (starget == PREDICTED_CLASS_LABEL)
 	{
-		KWAttribute* predictedClassAttribute = kwcClass->LookupAttribute(GetOperandAt(2)->GetAttributeName());
+		predictedClassAttribute = kwcClass->LookupAttribute(GetOperandAt(2)->GetAttributeName());
 		starget = predictedClassAttribute->GetDerivationRule()->ComputeSymbolResult(kwoObject);
 	}
 	else
 	{
 		if (starget == CLASS_OF_HIGHEST_GAIN_LABEL)
 		{
-			KWAttribute* contributiobnClassAttribute =
-			    kwcClass->LookupAttribute(GetOperandAt(3)->GetAttributeName());
+			contributiobnClassAttribute = kwcClass->LookupAttribute(GetOperandAt(3)->GetAttributeName());
 			starget = contributiobnClassAttribute->GetDerivationRule()->ComputeSymbolResult(kwoObject);
 		}
 	}
 
-	for (int nIndex = 0; nIndex < svTargetValues.GetSize(); nIndex++)
+	for (nIndex = 0; nIndex < svTargetValues.GetSize(); nIndex++)
 	{
 		if (starget == svTargetValues.GetAt(nIndex))
 		{
@@ -1524,7 +1202,6 @@ Continuous KIDRContributionPriorClass::ComputeContinuousResult(const KWObject* k
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KIDRClassifierReinforcement
-
 KIDRClassifierReinforcement::KIDRClassifierReinforcement()
 {
 	SetName("ScoreReinforcement");
@@ -1533,9 +1210,12 @@ KIDRClassifierReinforcement::KIDRClassifierReinforcement()
 	SetStructureName("ScoreReinforcement");
 	SetOperandNumber(3);
 	GetFirstOperand()->SetType(KWType::Structure);
-	GetFirstOperand()->SetStructureName("Classifier"); // classifieur
-	GetSecondOperand()->SetType(KWType::Symbol); // classe predite pour l'individu (via l'attribut de prediction)
-	GetOperandAt(2)->SetType(KWType::Symbol);    // classe cible pour le calcul du renforcement
+	// classifieur
+	GetFirstOperand()->SetStructureName("Classifier");
+	// classe predite pour l'individu (via l'attribut de prediction)
+	GetSecondOperand()->SetType(KWType::Symbol);
+	// classe cible pour le calcul du renforcement
+	GetOperandAt(2)->SetType(KWType::Symbol);
 	cInitialScore = 0.0;
 	nTargetValuesNumberInNBScore = 0;
 	oaInstanceProbabilities = NULL;
@@ -1565,9 +1245,9 @@ Object* KIDRClassifierReinforcement::ComputeStructureResult(const KWObject* kwoO
 Continuous KIDRClassifierReinforcement::GetReinforcementInitialScore() const
 {
 	assert(oaInstanceProbabilities != NULL);
-
+	// pas de reenforcement pour cet individu
 	if (oaInstanceProbabilities->GetSize() == 0)
-		return 0; // pas de reenforcement pour cet individu
+		return 0;
 
 	return cInitialScore;
 }
@@ -1575,61 +1255,67 @@ Continuous KIDRClassifierReinforcement::GetReinforcementInitialScore() const
 Continuous KIDRClassifierReinforcement::GetReinforcementFinalScoreAt(int rank) const
 {
 	assert(oaInstanceProbabilities != NULL);
-
+	// pas de reenforcement pour cet individu et ce rang
 	if (oaInstanceProbabilities->GetSize() < rank + 1)
-		return 0; // pas de reenforcement pour cet individu et ce rang
+		return 0;
 
 	KIPartitionedAttributeProbas* attributeProbas =
 	    cast(KIPartitionedAttributeProbas*, oaInstanceProbabilities->GetAt(rank));
-	return attributeProbas->cReinforcementNewScore;
+	return attributeProbas->dReinforcementNewScore;
 }
 
 Continuous KIDRClassifierReinforcement::GetReinforcementClassChangeTagAt(int rank) const
 {
 	assert(oaInstanceProbabilities != NULL);
-
+	// pas de reenforcement pour cet individu et ce rang
 	if (oaInstanceProbabilities->GetSize() < rank + 1)
-		return 0; // pas de reenforcement pour cet individu et ce rang
+		return 0;
 
 	KIPartitionedAttributeProbas* attributeProbas =
 	    cast(KIPartitionedAttributeProbas*, oaInstanceProbabilities->GetAt(rank));
-	return attributeProbas->cReinforcementClassHasChanged;
+	return attributeProbas->dReinforcementClassHasChanged;
 }
 
 Symbol KIDRClassifierReinforcement::GetReinforcementNameAt(int rank) const
 {
 	assert(oaInstanceProbabilities != NULL);
-
+	// pas de reenforcement pour cet individu et ce rang
 	if (oaInstanceProbabilities->GetSize() < rank + 1)
-		return ""; // pas de reenforcement pour cet individu et ce rang
+		return "";
 
 	KIPartitionedAttributeProbas* attributeProbas =
 	    cast(KIPartitionedAttributeProbas*, oaInstanceProbabilities->GetAt(rank));
-	ALString as = svPartitionedPredictiveAttributeNames.GetAt(attributeProbas->iAttributeIndex);
+	ALString as = svPartitionedPredictiveAttributeNames.GetAt(attributeProbas->nAttributeIndex);
 	return as.GetBuffer(as.GetLength());
 }
 
 Symbol KIDRClassifierReinforcement::GetReinforcementPartitionAt(int rank) const
 {
+	Symbol attributeName;
+	KWAttribute* attribute;
+	KWDataGridStats* dataGridStats;
+	ostringstream oss;
+
 	assert(oaInstanceProbabilities != NULL);
 
+	// pas de reenforcement pour cet individu et ce rang
 	if (oaInstanceProbabilities->GetSize() < rank + 1)
-		return ""; // pas de reenforcement pour cet individu et ce rang
+		return "";
 
 	KIPartitionedAttributeProbas* attributeProbas =
 	    cast(KIPartitionedAttributeProbas*, oaInstanceProbabilities->GetAt(rank));
 
-	Symbol attributeName = GetReinforcementNameAt(rank);
+	attributeName = GetReinforcementNameAt(rank);
 
 	// Extraction de l'attribut du dictionnaire associe a ce nom de variable
-	KWAttribute* attribute = kwcClass->LookupAttribute(attributeName.GetValue());
+	attribute = kwcClass->LookupAttribute(attributeName.GetValue());
 
 	// Ecriture de la partie (intervalle ou groupe) a laquelle appartient
 	// l'individu pour cette variable
-	KWDataGridStats* dataGridStats = new KWDataGridStats;
+	dataGridStats = new KWDataGridStats;
 	cast(KWDRDataGrid*, attribute->GetDerivationRule())->ExportDataGridStats(dataGridStats);
-	ostringstream oss;
-	dataGridStats->GetAttributeAt(0)->WritePartAt(oss, attributeProbas->iModalityIndex);
+
+	dataGridStats->GetAttributeAt(0)->WritePartAt(oss, attributeProbas->nModalityIndex);
 	delete dataGridStats;
 
 	return oss.str().c_str();
@@ -1637,31 +1323,38 @@ Symbol KIDRClassifierReinforcement::GetReinforcementPartitionAt(int rank) const
 
 void KIDRClassifierReinforcement::ComputeReinforcement(const KWObject* kwoObject) const
 {
-	assert(IsCompiled());
 
+	int nAttributeIndex;
 	KWDRIntervalBounds discretizationRuleRef;
 	KWDRValueGroups groupingRuleRef;
 	IntVector ivModalityIndexes;
+	KWAttribute* predictiveAttribute;
+	KWLoadIndex nNativeIndex;
+	ALString sRuleLabel;
+	Symbol sReinforcementClass;
+	KWAttribute* predictedClassAttribute;
+	Symbol sPredictedClass;
+	ContinuousVector* cvScoreVector;
 
+	assert(IsCompiled());
 	ivModalityIndexes.SetSize(svPartitionedPredictiveAttributeNames.GetSize());
 
 	// Parcours des variables contribuant au predicteur
 	// On va memoriser, pour chaque variable predictive, l'index de la partie (valeur variable partionnee) pour l'individu courant
-	for (int nAttributeIndex = 0; nAttributeIndex < svPartitionedPredictiveAttributeNames.GetSize();
-	     nAttributeIndex++)
+	for (nAttributeIndex = 0; nAttributeIndex < svPartitionedPredictiveAttributeNames.GetSize(); nAttributeIndex++)
 	{
 		// Extraction de la variable partitionnee
-		KWAttribute* predictiveAttribute =
+		predictiveAttribute =
 		    kwcClass->LookupAttribute(svPartitionedPredictiveAttributeNames.GetAt(nAttributeIndex));
 
 		// Extraction de l'index de l'attribut natif
-		KWLoadIndex nNativeIndex =
+		nNativeIndex =
 		    kwcClass->LookupAttribute(svNativePredictiveAttributeNames.GetAt(nAttributeIndex))->GetLoadIndex();
 
 		int nModalityIndex = -1;
 
 		// Extraction du label de la regle permettant de savoir s'il s'agit d'une regle de discretisation ou de groupage
-		const ALString sRuleLabel =
+		sRuleLabel =
 		    predictiveAttribute->GetDerivationRule()->GetFirstOperand()->GetDerivationRule()->GetLabel();
 
 		// Cas d'une discretisation
@@ -1683,13 +1376,13 @@ void KIDRClassifierReinforcement::ComputeReinforcement(const KWObject* kwoObject
 		ivModalityIndexes.SetAt(nAttributeIndex, nModalityIndex);
 	}
 
-	Symbol sReinforcementClass = GetOperandAt(2)->GetSymbolConstant();
+	sReinforcementClass = GetOperandAt(2)->GetSymbolConstant();
 
-	KWAttribute* predictedClassAttribute = kwcClass->LookupAttribute(GetSecondOperand()->GetAttributeName());
-	Symbol sPredictedClass = predictedClassAttribute->GetDerivationRule()->ComputeSymbolResult(kwoObject);
+	predictedClassAttribute = kwcClass->LookupAttribute(GetSecondOperand()->GetAttributeName());
+	sPredictedClass = predictedClassAttribute->GetDerivationRule()->ComputeSymbolResult(kwoObject);
 
 	// Calcul du vecteur de scores de l'individu
-	ContinuousVector* cvScoreVector = ComputeScoreVectorLj(&ivModalityIndexes);
+	cvScoreVector = ComputeScoreVectorLj(&ivModalityIndexes);
 
 	if (oaInstanceProbabilities != NULL)
 		oaInstanceProbabilities->DeleteAll();
@@ -1721,16 +1414,20 @@ void KIDRClassifierReinforcement::ComputeReinforcementProbas(IntVector* ivModali
 	Continuous cNewPredictedClassIsHowReferenceClass = -1;
 	ALString sNativeVariableName;
 	ALString sPartitionedVariableName;
+	int nAttributeIndex;
 	int nBestModalityIndex = -1;
 	int nModalityNumber;
+	int nModalityIndex;
+	int nClassIndex;
+	KITargetValueProbas* targetValueProbas;
 
 	assert(oaInstanceProbabilities != NULL);
 	assert(oaInstanceProbabilities->GetSize() == 0);
 
-	KITargetValueProbas* targetValueProbas = cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nHowNumber));
+	targetValueProbas = cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nHowNumber));
 
 	// Parcours des variables natives contribuant au NB a interpreter
-	for (int nAttributeIndex = 0; nAttributeIndex < svNativePredictiveAttributeNames.GetSize(); nAttributeIndex++)
+	for (nAttributeIndex = 0; nAttributeIndex < svNativePredictiveAttributeNames.GetSize(); nAttributeIndex++)
 	{
 		// Extraction du nom de la variable native
 		sNativeVariableName = svNativePredictiveAttributeNames.GetAt(nAttributeIndex);
@@ -1757,7 +1454,7 @@ void KIDRClassifierReinforcement::ComputeReinforcementProbas(IntVector* ivModali
 			cBestScore = cInitialScore;
 
 			// Parcours des modalites
-			for (int nModalityIndex = 0; nModalityIndex < nModalityNumber; nModalityIndex++)
+			for (nModalityIndex = 0; nModalityIndex < nModalityNumber; nModalityIndex++)
 			{
 				if (ivModalityIndexes->GetAt(nAttributeIndex) != nModalityIndex)
 				{
@@ -1786,7 +1483,7 @@ void KIDRClassifierReinforcement::ComputeReinforcementProbas(IntVector* ivModali
 							cMaxScore = 0;
 
 							// Parcours des classes
-							for (int nClassIndex = 0;
+							for (nClassIndex = 0;
 							     nClassIndex < oaModelProbabilities.GetSize();
 							     nClassIndex++)
 							{
@@ -1819,15 +1516,15 @@ void KIDRClassifierReinforcement::ComputeReinforcementProbas(IntVector* ivModali
 			{
 				partitionedAttributeProbas = new KIPartitionedAttributeProbas;
 
-				partitionedAttributeProbas->iAttributeIndex = nAttributeIndex;
+				partitionedAttributeProbas->nAttributeIndex = nAttributeIndex;
 
 				assert(nBestModalityIndex != -1);
-				partitionedAttributeProbas->iModalityIndex = nBestModalityIndex;
+				partitionedAttributeProbas->nModalityIndex = nBestModalityIndex;
 
-				partitionedAttributeProbas->cReinforcementNewScore = cBestScore;
+				partitionedAttributeProbas->dReinforcementNewScore = cBestScore;
 
 				// Memorisation du tag indiquant si la nouvelle classe predite est la classe de reference du pourquoi
-				partitionedAttributeProbas->cReinforcementClassHasChanged =
+				partitionedAttributeProbas->dReinforcementClassHasChanged =
 				    cNewPredictedClassIsHowReferenceClass;
 
 				oaInstanceProbabilities->Add(partitionedAttributeProbas);
@@ -1852,14 +1549,13 @@ ContinuousVector* KIDRClassifierReinforcement::ComputeScoreVectorVariation(Conti
 	for (nClassIndex = 0; nClassIndex < cvPreviousScoreVector->GetSize(); nClassIndex++)
 	{
 		// Mise a jour de la somme des log probas
+		// De la forme
+		// -> Add(P - W * ((OLD) - (NEW)))
 		cvNewScoreVector->Add(
 		    cvPreviousScoreVector->GetAt(nClassIndex) -
 		    cvVariableWeights.GetAt(nAttributeIndex) *
 			(ExtractLogPosteriorProba(nClassIndex, nAttributeIndex, nPreviousModalityIndex) -
 			 ExtractLogPosteriorProba(nClassIndex, nAttributeIndex, nNewModalityIndex)));
-
-		// De la forme
-		// -> Add(P - W * ((OLD) - (NEW)))
 	}
 
 	return cvNewScoreVector;
@@ -1868,18 +1564,20 @@ ContinuousVector* KIDRClassifierReinforcement::ComputeScoreVectorVariation(Conti
 void KIDRClassifierReinforcement::Compile(KWClass* kwcOwnerClass)
 {
 	KIDRClassifierInterpretation::Compile(kwcOwnerClass); // code classe ancetre
+	int nClassIndex;
+	Symbol sReinforcementClass;
+	KITargetValueProbas* targetValueProbas;
 
 	cInitialScore = 0;
 
 	nTargetValuesNumberInNBScore = -1;
 
-	Symbol sReinforcementClass = GetOperandAt(2)->GetSymbolConstant();
+	sReinforcementClass = GetOperandAt(2)->GetSymbolConstant();
 
 	// Parcours des valeurs cible
-	for (int nClassIndex = 0; nClassIndex < oaModelProbabilities.GetSize(); nClassIndex++)
+	for (nClassIndex = 0; nClassIndex < oaModelProbabilities.GetSize(); nClassIndex++)
 	{
-		KITargetValueProbas* targetValueProbas =
-		    cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nClassIndex));
+		targetValueProbas = cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nClassIndex));
 
 		if (targetValueProbas->sTargetValue == sReinforcementClass)
 		{
@@ -1897,6 +1595,7 @@ ContinuousVector* KIDRClassifierReinforcement::ComputeScoreVectorLj(IntVector* i
 	ContinuousVector* cvScore;
 	int nClassIndex;
 	int nAttributeIndex;
+	KITargetValueProbas* targetValueProbas;
 
 	require(oaModelProbabilities.GetSize() > 0);
 	require(ivModalityIndexes != NULL);
@@ -1908,12 +1607,11 @@ ContinuousVector* KIDRClassifierReinforcement::ComputeScoreVectorLj(IntVector* i
 	for (nClassIndex = 0; nClassIndex < oaModelProbabilities.GetSize(); nClassIndex++)
 	{
 		// Extraction du vecteur de probabilites pour la classe en cours
-		KITargetValueProbas* targetValueProbas =
-		    cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nClassIndex));
+		targetValueProbas = cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nClassIndex));
 		assert(targetValueProbas->oaProbasAposteriori->GetSize() == ivModalityIndexes->GetSize());
 
 		// Initialisation du score au log de la proba a priori
-		cvScore->SetAt(nClassIndex, targetValueProbas->cProbaApriori);
+		cvScore->SetAt(nClassIndex, targetValueProbas->dProbaApriori);
 
 		// Parcours des variables
 		for (nAttributeIndex = 0; nAttributeIndex < ivModalityIndexes->GetSize(); nAttributeIndex++)
@@ -1935,6 +1633,7 @@ ContinuousVector* KIDRClassifierReinforcement::ComputeScoreVectorLjWithoutOneVar
 	ContinuousVector* cvScore;
 	int nClassIndex;
 	int nAttributeIndex;
+	KITargetValueProbas* targetValueProbas;
 
 	require(oaModelProbabilities.GetSize() > 0);
 	require(ivModalityIndexes != NULL);
@@ -1946,12 +1645,11 @@ ContinuousVector* KIDRClassifierReinforcement::ComputeScoreVectorLjWithoutOneVar
 	for (nClassIndex = 0; nClassIndex < oaModelProbabilities.GetSize(); nClassIndex++)
 	{
 		// Extraction du vecteur de probabilites pour la classe en cours
-		KITargetValueProbas* targetValueProbas =
-		    cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nClassIndex));
+		targetValueProbas = cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nClassIndex));
 		assert(targetValueProbas->oaProbasAposteriori->GetSize() == ivModalityIndexes->GetSize());
 
 		// Initialisation du score au log de la proba a priori
-		cvScore->SetAt(nClassIndex, targetValueProbas->cProbaApriori);
+		cvScore->SetAt(nClassIndex, targetValueProbas->dProbaApriori);
 
 		// Parcours des variables
 		for (nAttributeIndex = 0; nAttributeIndex < ivModalityIndexes->GetSize(); nAttributeIndex++)
@@ -1991,7 +1689,6 @@ Continuous KIDRClassifierReinforcement::ComputeScoreFromScoreVector(ContinuousVe
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KIDRReinforcementInitialScore
-
 KIDRReinforcementInitialScore::KIDRReinforcementInitialScore()
 {
 	SetName("ReinforcementInitialScore");
@@ -1999,8 +1696,8 @@ KIDRReinforcementInitialScore::KIDRReinforcementInitialScore()
 	SetType(KWType::Continuous);
 	SetOperandNumber(1);
 	GetFirstOperand()->SetType(KWType::Structure);
-	GetFirstOperand()->SetStructureName(
-	    "ScoreReinforcement"); // resultats du renforcement, pour une classe cible donnee
+	// resultats du renforcement, pour une classe cible donnee
+	GetFirstOperand()->SetStructureName("ScoreReinforcement");
 }
 
 KIDRReinforcementInitialScore::~KIDRReinforcementInitialScore() {}
@@ -2019,7 +1716,6 @@ Continuous KIDRReinforcementInitialScore::ComputeContinuousResult(const KWObject
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KIDRReinforcementFinalScoreAt
-
 KIDRReinforcementFinalScoreAt::KIDRReinforcementFinalScoreAt()
 {
 	SetName("ReinforcementFinalScoreAt");
@@ -2027,10 +1723,10 @@ KIDRReinforcementFinalScoreAt::KIDRReinforcementFinalScoreAt()
 	SetType(KWType::Continuous);
 	SetOperandNumber(2);
 	GetFirstOperand()->SetType(KWType::Structure);
-	GetFirstOperand()->SetStructureName(
-	    "ScoreReinforcement"); // resultats du renforcement, pour une classe cible donnee
-	GetSecondOperand()->SetType(
-	    KWType::Continuous); // rang d'importance de la variable pour laquelle ont veut obtenir les resultats
+	// resultats du renforcement, pour une classe cible donnee
+	GetFirstOperand()->SetStructureName("ScoreReinforcement");
+	// rang d'importance de la variable pour laquelle ont veut obtenir les resultats
+	GetSecondOperand()->SetType(KWType::Continuous);
 }
 
 KIDRReinforcementFinalScoreAt::~KIDRReinforcementFinalScoreAt() {}

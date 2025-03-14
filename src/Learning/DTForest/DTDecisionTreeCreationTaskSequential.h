@@ -74,7 +74,7 @@ public:
 					      DTForestAttributeSelection& forestAttributeSelection) const;
 
 	///////////////////////////////////////////////////////////////////////////////
-	///// Implementation
+	// Implementation
 protected:
 	// creation d'un arbre de decision
 	DTDecisionTree* CreateDecisionTree(KWLearningSpec* learningSpec, KWTupleTableLoader* tupleTableLoader,

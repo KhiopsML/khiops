@@ -5,10 +5,18 @@
 #pragma once
 
 #include "KWDerivationRule.h"
+#include "KWDRNBPredictor.h"
+#include "KWDRDataGrid.h"
+#include "KIShapleyTable.h"
+#include "KIInterpretationDictionary.h"
 
-/** classe de stockage des probas (contribution ou renforcement) d'un attribut partitionne */
+////////////////////////////////////////////////////////////
+// Classe KIPartitionedAttributeProbas
+// Classe de stockage des contribution ou renforcement d'un attribut partitionne
+// pemet de stocker pour une variable et une modalite la contribution et le reinforcement
 class KIPartitionedAttributeProbas : public Object
 {
+	// Constructeur
 	KIPartitionedAttributeProbas();
 	~KIPartitionedAttributeProbas();
 
@@ -18,20 +26,28 @@ protected:
 	friend int KICompareReinforcementNewScore(const void* elem1, const void* elem2);
 	friend int KICompareContributionImportanceValue(const void* elem1, const void* elem2);
 
-	int iAttributeIndex;
-	int iModalityIndex;
-	Continuous cReinforcementNewScore;
-	Continuous cReinforcementClassHasChanged;
-	Continuous cContributionImportanceValue;
+	int nAttributeIndex;
+	int nModalityIndex;
+	Continuous dReinforcementNewScore;
+	Continuous dReinforcementClassHasChanged;
+	Continuous dContributionImportanceValue;
 };
 
-/** classe de stockage des probas (contribution ou renforcement) pour une cible (target value) donnee */
+////////////////////////////////////////////////////////////
+// Classe KITargetValueProbas
+// Classe de stockage des probas du modele pour une cible (target value) donnee
+// permet de stocker les probas a posteriori de la classe pour chaque partie
+// de la variable explicative
 class KITargetValueProbas : public Object
 {
+	// Constructeur
 	KITargetValueProbas();
 	~KITargetValueProbas();
 
+	// Ecriture
 	void Write(ostream&) const;
+
+	// Memoire utilisee par KITargetValueProbas
 	longint GetUsedMemory() const override;
 
 protected:
@@ -39,16 +55,20 @@ protected:
 	friend class KIDRClassifierReinforcement;
 	friend class KIDRClassifierContribution;
 
+	// nom de la valeur cible
 	ALString sTargetValue;
+	// proba de la valeur cible
+	Continuous dProbaApriori;
 
-	Continuous cProbaApriori;
-
-	/** un ContinuousVector * par variable explicative. Chaque ContinuousVector contient les logs des probas a
-		posteriori de la classe, pour chaque partie de la variable explicative */
+	// un ContinuousVector * par variable explicative. Chaque ContinuousVector contient les logs des probas a
+	// 	posteriori de la classe, pour chaque partie de la variable explicative
 	ObjectArray* oaProbasAposteriori;
 };
 
-/** classe ancetre (abstraite) des classes de calcul des probas d'interpretation (contribution ou renforcement) */
+////////////////////////////////////////////////////////////
+// Classe ancetre (abstraite) des classes de calcul des probas d'interpretation
+// (contribution ou renforcement)
+// classe abstraite
 class KIDRClassifierInterpretation : public KWDerivationRule
 {
 public:
@@ -57,53 +77,45 @@ public:
 	~KIDRClassifierInterpretation();
 
 	// Creation
-	virtual KWDerivationRule* Create() const override = 0; // classe abstraite
+	virtual KWDerivationRule* Create() const override = 0;
 
+	// compile la regle de derivation
 	void Compile(KWClass* kwcOwnerClass) override;
 
-	const ALString SHAPLEY_LABEL = "Shapley";
-	const ALString NORMALIZED_ODDS_RATIO_LABEL = "NormalizedOddsRatio";
-	const ALString MIN_PROBA_DIFF_LABEL = "MinProbaDiff";
-	const ALString WEIGHT_EVIDENCE_LABEL = "WeightEvidence";
-	const ALString INFO_DIFF_LABEL = "InfoDiff";
-	const ALString DIFF_PROBA_LABEL = "DiffProba";
-	const ALString MODALITY_PROBA_LABEL = "ModalityProba";
-	const ALString BAYES_DISTANCE_LABEL = "BayesDistance";
-	const ALString KULLBACK_LABEL = "Kullback";
-	const ALString LOG_MODALITY_PROBA_LABEL = "LogModalityProba";
-	const ALString LOG_MIN_PROBA_DIFF_LABEL = "LogMinProbaDiff";
-	const ALString BAYES_DISTANCE_WITHOUT_PRIOR_LABEL = "BayesDistanceWithoutPrior";
-	const ALString PREDICTED_CLASS_LABEL = "Predicted class";
-	const ALString CLASS_OF_HIGHEST_GAIN_LABEL = "Class of highest gain";
-	const ALString ALL_CLASSES_LABEL = "All classes";
-
+	// liste des labels utlises pour differencier les methodes de calcul
+	// de score d'interpretation et leur derivationrule
+	static const ALString SHAPLEY_LABEL;
+	static const ALString PREDICTED_CLASS_LABEL;
+	static const ALString CLASS_OF_HIGHEST_GAIN_LABEL;
+	static const ALString ALL_CLASSES_LABEL;
 	static const ALString LEVER_ATTRIBUTE_META_TAG;
 	static const ALString INTERPRETATION_ATTRIBUTE_META_TAG;
 	static const ALString NO_VALUE_LABEL;
 
+	// Memoire utilisee par KIDRClassifierInterpretation
 	longint GetUsedMemory() const override;
 
 protected:
+	// netoye la regle
 	virtual void Clean();
 
-	/// Extraction de la log proba de la modalite donnee d'un attribut donne
-	/// conditionnellement a une classe donnee
+	// Extraction de la log proba de la modalite donnee d'un attribut donne
+	// conditionnellement a une classe donnee
 	Continuous ExtractLogPosteriorProba(int nClassIndex, int nAttributeIndex, int nModalityIndex) const;
 
 	// Test que kwcOwnerClass est bien un NB ou un SNB avec les bons orepands
 	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const;
 
-	///////////////// variables membres //////////////////
+	//////////////// variables membres //////////////////
 
-	/** probas du modele, par modalite cible (donc, valables quel que soit l'instance traitee) :
-		- 1 poste par modalite cible
-		- pour chaque poste : un pointeur sur objet de type KITargetValueProbas  	*/
+	// probas du modele, par modalite cible (donc, valables quel que soit l'instance traitee) :
+	// 	- 1 poste par modalite cible
+	// 	- pour chaque poste : un pointeur sur objet de type KITargetValueProbas
 	mutable ObjectArray oaModelProbabilities;
 
-	/**
-	Probas liees a l'instance en cours de traitement :
-	Cle = index de l'attribut partitionne.
-	Valeur = pointeur sur objet KIPartitionedAttributeProbas	*/
+	// Probas liees a l'instance en cours de traitement :
+	// Cle = index de l'attribut partitionne.
+	// Valeur = pointeur sur objet KIPartitionedAttributeProbas
 	mutable ObjectArray* oaInstanceProbabilities;
 
 	// Noms des variables partitionnees
@@ -112,10 +124,11 @@ protected:
 	// Noms des variables natives
 	StringVector svNativePredictiveAttributeNames;
 
-	/*	cle = modalite cible
-		valeur = entier dans un StringObject *, qui renvoie a l'entree correspondante dans le tableau oaModelProbabilities */
+	// 	cle = modalite cible
+	// 	valeur = entier dans un StringObject *, qui renvoie a l'entree correspondante dans le tableau oaModelProbabilities
 	mutable ObjectDictionary odClassNamesIndexes;
 
+	// vecteur de poids des variables utilisees par le SNB ou NB
 	mutable ContinuousVector cvVariableWeights;
 
 	// Vecteurs des valeurs cibles
@@ -124,9 +137,14 @@ protected:
 	// frequences des valeurs cibles
 	IntVector ivTargetFrequencies;
 
-	Continuous cTotalFrequency;
+	// frequence total
+	Continuous dTotalFrequency;
 };
 
+////////////////////////////////////////////////////////////
+// Classe herite de KIDRClassifierInterpretation des classes
+// de calcul des probas d'interpretation pour un classifieur
+// de type KWDRNBClassifier
 class KIDRClassifierContribution : public KIDRClassifierInterpretation
 {
 public:
@@ -137,110 +155,60 @@ public:
 	// Creation
 	KWDerivationRule* Create() const override;
 
+	//compile la regle
 	void Compile(KWClass* kwcOwnerClass) override;
 
+	// Calcul de l'attribut derive
 	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
 
-	/** Valeur de l'importance de la variable contributive (la numerotation du rang comemnce a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire) */
+	// Valeur de l'importance de la variable contributive (la numerotation du rang comemnce a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire)
 	Continuous GetContributionValueAt(int rank) const;
 
-	/** nom de la variable importante (la numerotation du rang commence a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire) */
+	// nom de la variable importante (la numerotation du rang commence a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire)
 	Symbol GetContributionNameAt(int rank) const;
 
-	/** partition ou groupement de modalites de la variable importante (la numerotation du rang comemnce a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire) */
+	// partition ou groupement de modalites de la variable importante (la numerotation du rang comemnce a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire)
 	Symbol GetContributionPartitionAt(int rank) const;
 
+	// Donne le nom du type de caontribution
+	// Enables to choose the reference class for the contribution
+	// Analysis among the following choices:
+	// - Predicted class,
+	// - One of the target values;
+	// - Class of highest gain: class, for which the ratio between
+	// the probability of the class knowing the instance and the
+	// prior probability of the class is the highest,
+	// - All classes: all the classes successively. (default)
 	Symbol GetContributionClass() const;
 
-	enum ContributionComputingMethod
-	{
-		NormalizedOddsRatio,
-		ImportanceValue,
-		WeightOfEvidence,
-		InformationDifference,
-		DifferenceProbabilities,
-		ModalityProbability,
-		BayesDistance,
-		Kullback,
-		LogModalityProbability,
-		LogImportanceValue,
-		BayesDistanceWithoutPrior,
-		Shapley
-	};
+	// Memoire utilisee par KIDRClassifierContribution
 	longint GetUsedMemory() const override;
 
 protected:
 	// Calcul des donnees de contribution
 	void ComputeContribution(const KWObject* kwoObject) const;
 
-	/// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi) - VPD
-	Continuous ComputeImportanceValue(int nAttributeIndex, int nTargetClassIndex, int nModalityIndex) const;
-
-	/// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi) - LVPD
-	Continuous ComputeLogImportanceValue(int nAttributeIndex, int nTargetClassIndex, int nModalityIndex) const;
-
-	/// Calcul du max de la log proba conditionnelle sur les classes
-	/// autres que la classe indiqueee en entree, our un attribut donne et une modalite donnee
-	/// pour cet attribut - rien juste utile pour calculer VPD et LVPD
-	Continuous ComputeMaxLogPosteriorProbaWithoutWhyClassValue(int nWhyTargetValueNumber, int nAttributeIndex,
-								   int nModalityIndex) const;
-
-	/// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
-	/// selon l'indicateur Weight Of Evidence de l'article Sikonja/Kononenko - WOE
-	Continuous ComputeWeightOfEvidence(int nAttributeIndex, int nTargetClassIndex, IntVector* ivModalityIndexes,
-					   int nDatabaseSize, int nTargetValuesNumber) const;
-
-	/// Calcul du Normalized Odds Ratio (NOR)
-	Continuous ComputeNormalizedOddsRatio(int nAttributeIndex, int nTargetClassIndex, IntVector* ivModalityIndexes,
-					      int nDatabaseSize, int nTargetValuesNumber) const;
-
-	/// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
-	/// selon l'indicateur Information Difference de l'article Sikonja/Kononenko - IDI (=LDOP)
-	Continuous ComputeInformationDifference(int nAttributeIndex, int nTargetClassIndex,
-						IntVector* ivModalityIndexes, int nDatabaseSize,
-						int nTargetValuesNumber) const;
-
-	/// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
-	/// selon l'indicateur Difference of Probabilities de l'article Sikonja/Kononenko - DOP
-	Continuous ComputeDifferenceProbabilities(
-	    int nAttributeIndex, int nTargetClassIndex,
-	    IntVector* ivModalityIndexes) const; //,int nDatabaseSize, int nTargetValuesNumber);
-
 	/// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
 	/// selon la probabilite de la modalite de l'attribut conditionnellement a la classe : p(X_i | C) - MOP
 	Continuous ComputeModalityProbability(int nAttributeIndex, int nTargetClassIndex, int nModalityIndex) const;
 
-	/// meme chose que ComputeModalityProbability, mais pour toutes les classes sauf la classe cible
+	// Calcul du max de la log proba conditionnelle sur les classes
+	// autres que la classe indiqueee en entree, our un attribut donne et une modalite donnee
+	// pour cet attribut - rien juste utile pour calculer VPD et LVPD
+	Continuous ComputeMaxLogPosteriorProbaWithoutWhyClassValue(int nWhyTargetValueNumber, int nAttributeIndex,
+								   int nModalityIndex) const;
+
+	// meme chose que ComputeModalityProbability, mais pour toutes les classes sauf la classe cible
 	Continuous ComputeModalityProbabilityWithoutTargetClass(int nAttributeIndex, int nTargetClassIndex,
 								int nModalityIndex) const;
 
-	/// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
-	/// selon la probabilite de la modalite de l'attribut conditionnellement a la classe : log p(X_i | C) - LMOP
-	Continuous ComputeLogModalityProbability(int nAttributeIndex, int nTargetClassIndex, int nModalityIndex) const;
-
-	/// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
-	/// selon : log p(X_i | C) * Weight(X_i) * P(C) ou Weight est le poids dans le SNB et valant 1 dans le cas
-	/// du NB - MODL
-	Continuous ComputeBayesDistance(int nAttributeIndex, int nTargetClassIndex, int nModalityIndex) const;
-
-	/// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
-	/// selon : log p(X_i | C) * Weight(X_i) ou Weight est le poids dans le SNB et valant 1 dans le cas
-	/// du NB - MODL2
-	Continuous ComputeBayesDistanceWithoutPrior(int nAttributeIndex, int nTargetClassIndex,
-						    int nModalityIndex) const;
-
-	/// Calcul de la valeur d'importance pour un attribut et une partie de cet attribut (pour le pourquoi)
-	/// selon la divergence de Kullback-Leibler (non symetrisee) - KLD
-	Continuous ComputeKullback(int nAttributeIndex, int nTargetClassIndex, IntVector* ivModalityIndexes,
-				   int nDatabaseSize, int nTargetValuesNumber) const;
-
-	/// Calcul de la valeur Shapley
-	/// nModalityIndex indique dans quel intervalle ou groupe de l'attribut designe par nAttributeIndex, cet individu appartient
-	/// nTargetClassIndex est la classe cible pour le calcul de l'importance
+	// Calcul de la valeur Shapley
+	// nModalityIndex indique dans quel intervalle ou groupe de l'attribut designe par nAttributeIndex, cet individu appartient
+	// nTargetClassIndex est la classe cible pour le calcul de l'importance
 	Continuous ComputeShapley(const int nAttributeIndex, const int nTargetClassIndex,
 				  const int nModalityIndex) const;
 
-	///  precalul les valeurs de Shapley
+	//  Precalul les valeurs de Shapley
 	void InitializeShapleyTables();
 
 	ContinuousVector* ComputeScoreVectorLjWithoutOneVariable(IntVector* ivModalityIndexes,
@@ -248,22 +216,23 @@ protected:
 	ContinuousVector* ComputeScoreVectorLj(IntVector* ivModalityIndexes) const;
 	Continuous ComputeScoreFromScoreVector(ContinuousVector* cvScoreVector, int nReferenceClassIndex) const;
 
-	/// Extraction de la log proba a priori de la classe donnee
+	// Extraction de la log proba a priori de la classe donnee
 	Continuous ExtractLogPriorProba(int nClassIndex) const;
 
-	///////////////// variables membres //////////////////
+	//////////////// variables membres //////////////////
 
-	/** classe cible de la contribution : classe predite pour l'individu OU classe de gain le plus eleve pour l'individu OU une classe specifiee explicitement via l'IHM  */
+	// classe cible de la contribution : classe predite pour l'individu OU classe de gain le plus eleve pour l'individu OU une classe specifiee explicitement via l'IHM
 	mutable Symbol sContributionClass;
 
 	mutable boolean bSortInstanceProbas;
-
-	ContributionComputingMethod contributionComputingMethod;
 
 	//structure pour sauvegarder les precalculs des valeurs de Shapley
 	ObjectArray oaShapleyTables;
 };
 
+////////////////////////////////////////////////////////////
+// Classe KIDRContributionValueAt
+// Donne la valeur de la contribution a partir de KIDRClassifierContribution
 class KIDRContributionValueAt : public KWDerivationRule
 {
 public:
@@ -278,6 +247,9 @@ public:
 	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
 };
 
+////////////////////////////////////////////////////////////
+// Classe KIDRContributionValueAt
+// Donne la nom de la variable de contribution a partir de KIDRClassifierContribution
 class KIDRContributionNameAt : public KWDerivationRule
 {
 public:
@@ -292,6 +264,9 @@ public:
 	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
 };
 
+////////////////////////////////////////////////////////////
+// Classe KIDRContributionValueAt
+// Donne la parti de la variable de la contribution a partir de KIDRClassifierContribution
 class KIDRContributionPartitionAt : public KWDerivationRule
 {
 public:
@@ -306,6 +281,9 @@ public:
 	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
 };
 
+////////////////////////////////////////////////////////////
+// Classe KIDRContributionValueAt
+// Donne la valeur de la cible a partir de KIDRClassifierContribution
 class KIDRContributionClass : public KWDerivationRule
 {
 public:
@@ -320,6 +298,9 @@ public:
 	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
 };
 
+////////////////////////////////////////////////////////////
+// Classe KIDRContributionPriorClass
+// Donne la valeur du prior de la classe a partir de KIDRClassifierContribution
 class KIDRContributionPriorClass : public KWDerivationRule
 {
 public:
@@ -346,6 +327,10 @@ protected:
 	int nTotalFrequency;
 };
 
+////////////////////////////////////////////////////////////
+// Classe herite de KIDRClassifierInterpretation des classes
+// de calcul des valeur de reinforcement pour un classifieur
+// de type KWDRNBClassifier
 class KIDRClassifierReinforcement : public KIDRClassifierInterpretation
 {
 public:
@@ -356,48 +341,55 @@ public:
 	// Creation
 	KWDerivationRule* Create() const override;
 
+	// Compile la regle
 	void Compile(KWClass* kwcOwnerClass) override;
 
+	// Calcul de l'attribut derive
 	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
 
-	/** Valeur de la proba a priori de la classe a renforcer, pour une variable levier donnee */
+	// Valeur de la proba a priori de la classe a renforcer, pour une variable levier donnee
 	Continuous GetReinforcementInitialScore() const;
 
-	/** Valeur de la proba a posteriori de la classe a renforcer, pour une variable levier donnee */
+	// Valeur de la proba a posteriori de la classe a renforcer, pour une variable levier donnee
 	Continuous GetReinforcementFinalScoreAt(int rank) const;
 
-	/** tag indiquant si la classe apres renforcement a change ou non */
+	// Tag indiquant si la classe apres renforcement a change ou non
+	// 1  : la classe a changer cer la classe voulue
+	// 0  : pas de changement possible
+	// -1 : changement possible vers une autre classe
 	Continuous GetReinforcementClassChangeTagAt(int rank) const;
 
-	/** nom de la variable de renforcement (la numerotation du rang commence a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire) */
+	// nom de la variable de renforcement (la numerotation du rang commence a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire)
 	Symbol GetReinforcementNameAt(int rank) const;
 
-	/** partition ou groupement de modalites de la variable de renforcement (la numerotation du rang comemnce a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire) */
+	// partition ou groupement de modalites de la variable de renforcement (la numerotation du rang comemnce a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire)
 	Symbol GetReinforcementPartitionAt(int rank) const;
 
 protected:
-	// Calcul des donnees
+	// Calcul des differents valeurs
 	void ComputeReinforcement(const KWObject* kwoObject) const;
-
 	void ComputeReinforcementProbas(IntVector* ivModalityIndexes, Symbol sPredictedClass,
 					ContinuousVector* cvBestScore, const int nHowNumber) const;
-
 	ContinuousVector* ComputeScoreVectorLjWithoutOneVariable(IntVector* ivModalityIndexes,
 								 int nVariableIndex) const;
-
 	ContinuousVector* ComputeScoreVectorLj(IntVector* ivModalityIndexes) const;
-
 	Continuous ComputeScoreFromScoreVector(ContinuousVector* cvScoreVector, int nReferenceClassIndex) const;
 
-	/// Calcul de la variation du vecteur de scores si l'on modifie une composante
+	// Calcul de la variation du vecteur de scores si l'on modifie une composante
 	ContinuousVector* ComputeScoreVectorVariation(ContinuousVector* cvPreviousScoreVector, int nAttributeIndex,
 						      int nPreviousModalityIndex, int nNewModalityIndex) const;
 
+	// nombre de valuer de la classe
 	int nTargetValuesNumberInNBScore;
 
+	// score initiale
 	mutable Continuous cInitialScore;
 };
 
+////////////////////////////////////////////////////////////
+// Classe KIDRReinforcementInitialScore
+// Donne la valeur de reinforcement initiale
+// a partir de KIDRClassifierReinforcement
 class KIDRReinforcementInitialScore : public KWDerivationRule
 {
 public:
@@ -412,6 +404,10 @@ public:
 	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
 };
 
+////////////////////////////////////////////////////////////
+// Classe KIDRReinforcementInitialScore
+// Donne la valeur de reinforcement finale apres reinforcement
+// a partir de KIDRClassifierReinforcement
 class KIDRReinforcementFinalScoreAt : public KWDerivationRule
 {
 public:
@@ -426,6 +422,10 @@ public:
 	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
 };
 
+////////////////////////////////////////////////////////////
+// Classe KIDRReinforcementInitialScore
+// Donne la valeur de la variable reenforcee
+// a partir de KIDRClassifierReinforcement
 class KIDRReinforcementNameAt : public KWDerivationRule
 {
 public:
@@ -440,6 +440,10 @@ public:
 	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
 };
 
+////////////////////////////////////////////////////////////
+// Classe KIDRReinforcementInitialScore
+// Donne la valeur de la partition de la variable reenforcee
+// a partir de KIDRClassifierReinforcement
 class KIDRReinforcementPartitionAt : public KWDerivationRule
 {
 public:
@@ -454,6 +458,10 @@ public:
 	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
 };
 
+////////////////////////////////////////////////////////////
+// Classe KIDRReinforcementInitialScore
+// Donne le tag de reenforcement de la variable reenforcee
+// a partir de KIDRClassifierReinforcement
 class KIDRReinforcementClassChangeTagAt : public KWDerivationRule
 {
 public:
@@ -468,7 +476,7 @@ public:
 	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
 };
 
-///////////////////////////////  Methodes en inline ///////////////////////////////
+//////////////////////////////  Methodes en inline ///////////////////////////////
 
 inline Continuous KIDRClassifierContribution::ExtractLogPriorProba(int nClassIndex) const
 {
@@ -477,7 +485,7 @@ inline Continuous KIDRClassifierContribution::ExtractLogPriorProba(int nClassInd
 	// Extraction du tableau des probas pour la classe cible courante
 	KITargetValueProbas* targetValueProbas = cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nClassIndex));
 
-	return targetValueProbas->cProbaApriori;
+	return targetValueProbas->dProbaApriori;
 }
 
 inline int KICompareReinforcementNewScore(const void* elem1, const void* elem2)
@@ -493,12 +501,12 @@ inline int KICompareReinforcementNewScore(const void* elem1, const void* elem2)
 	assert(dataAttribute2->Check());
 
 	// Comparaison selon la precision du type Continuous, pour eviter les differences a epsilon pres
-	nCompare = -KWContinuous::CompareIndicatorValue(dataAttribute1->cReinforcementNewScore,
-							dataAttribute2->cReinforcementNewScore);
+	nCompare = -KWContinuous::CompareIndicatorValue(dataAttribute1->dReinforcementNewScore,
+							dataAttribute2->dReinforcementNewScore);
 
 	// Comparaison sur le nom en cas d'egalite du level (sort value)
 	if (nCompare == 0)
-		nCompare = dataAttribute1->iAttributeIndex - dataAttribute2->iAttributeIndex;
+		nCompare = dataAttribute1->nAttributeIndex - dataAttribute2->nAttributeIndex;
 	return nCompare;
 }
 
@@ -515,11 +523,11 @@ inline int KICompareContributionImportanceValue(const void* elem1, const void* e
 	assert(dataAttribute2->Check());
 
 	// Comparaison selon la precision du type Continuous, pour eviter les differences a epsilon pres
-	nCompare = -KWContinuous::CompareIndicatorValue(dataAttribute1->cContributionImportanceValue,
-							dataAttribute2->cContributionImportanceValue);
+	nCompare = -KWContinuous::CompareIndicatorValue(dataAttribute1->dContributionImportanceValue,
+							dataAttribute2->dContributionImportanceValue);
 
 	// Comparaison sur le nom en cas d'egalite du level (sort value)
 	if (nCompare == 0)
-		nCompare = dataAttribute1->iAttributeIndex - dataAttribute2->iAttributeIndex;
+		nCompare = dataAttribute1->nAttributeIndex - dataAttribute2->nAttributeIndex;
 	return nCompare;
 }

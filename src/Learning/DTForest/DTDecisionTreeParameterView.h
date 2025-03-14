@@ -9,25 +9,25 @@
 #include "DTDecisionTreeParameter.h"
 
 /////////////////////////////////////////////////////////////////////
-/// Classe DTDecisionTreeParameterView : Vue sur le PARAMETRAGE specifique d'un
-/// classifieur de type arbre
+// Classe DTDecisionTreeParameterView : Vue sur le PARAMETRAGE specifique d'un
+// classifieur de type arbre
 class DTDecisionTreeParameterView : public UIObjectView
 {
 public:
-	/// Constructeur
+	// Constructeur
 	DTDecisionTreeParameterView();
 	~DTDecisionTreeParameterView();
 
-	/// Constructeur generique
+	// Constructeur generique
 	DTDecisionTreeParameterView* Create() const;
 
 	////////////////////////////////////////////////////////
 	// Methodes a reimplementer dans les sous-classes
 
-	/// Mise a jour du classifieur specifique par les valeurs de l'interface
+	// Mise a jour du classifieur specifique par les valeurs de l'interface
 	void EventUpdate(Object* object);
 
-	/// Mise a jour des valeurs de l'interface par le classifier specifique
+	// Mise a jour des valeurs de l'interface par le classifier specifique
 	void EventRefresh(Object* object);
 
 	// nom des champs

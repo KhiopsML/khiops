@@ -496,11 +496,11 @@ boolean DTDecisionTreeCreationTask::MasterFinalize(boolean bProcessEndedCorrectl
 			odMasterOutputAttributeStats.SetAt(attributeStats->GetAttributeName(), attributeStats);
 		}
 
-		/* parcourir les DTDecisionTreeSpec pour :
-			- ajouter les arbres au rapport, afin de permettre ulterieurement l'ecriture du rapport JSON
-			- recreer les attributs correspondants aux arbres et les ajouter dans le dictionnaire initial,
-		   pour prise en compte dans le modele
-		*/
+		//  parcourir les DTDecisionTreeSpec pour :
+		// 	- ajouter les arbres au rapport, afin de permettre ulterieurement l'ecriture du rapport JSON
+		// 	- recreer les attributs correspondants aux arbres et les ajouter dans le dictionnaire initial,
+		//    pour prise en compte dans le modele
+
 		kwcUpdatedClass = shared_learningSpec.GetLearningSpec()->GetClass();
 
 		// Tri par nom des arbres, pour assurer la reproductibilite de l'ordre des resultats
@@ -1039,13 +1039,13 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 
 				ttattribut = cast(KWTupleTable*, oatupletable.GetAt(nAttribute));
 
-				//// Creation et initialisation d'un objet de stats pour l'attribut
+				// Creation et initialisation d'un objet de stats pour l'attribut
 				attributeStats = new KWAttributeStats();
 				attributeStats->SetLearningSpec(shared_learningSpec.GetLearningSpec());
 				attributeStats->SetAttributeName(ttattribut->GetAttributeNameAt(0));
 				attributeStats->SetAttributeType(KWType::Symbol);
 
-				//// Calcul des statistitique univariee a partir de la table de tuples
+				// Calcul des statistitique univariee a partir de la table de tuples
 				attributeStats->ComputeStats(ttattribut);
 
 				// on ne garde pas les arbres a level nul
@@ -1342,9 +1342,7 @@ longint DTDecisionTreeCreationTask::ComputeSharedNecessaryMemory()
 
 longint DTDecisionTreeCreationTask::ComputeBiggestTreeNecessaryMemory()
 {
-	/*
-	Memoire necessaire pour 1 esclave, pour calculer le plus gros arbre possible
-	*/
+	// Memoire necessaire pour 1 esclave, pour calculer le plus gros arbre possible
 
 	longint lResult;
 	boolean bLocalTrace = false;
@@ -1458,19 +1456,18 @@ int DTDecisionTreeCreationTask::ComputeOneSlaveMaxLoadableAttributeNumber(const 
 	assert(nMasterForestMaxAttributesSelectionNumber > 0);
 	assert(lGrantedlavesNumber > 0);
 
-	/* en termes de taille memoire, 1 attribut chargeable sur 1 esclave correspond a l'addition de :
-		- la taille memoire mediane d'un KWAttributeStats (lMasterMedianStatMemory)
-		- la memoire necessaire pour stocker une valeur d'attribut, pour tous les objets de la database
-	(lMasterOneAttributeValueMemory)
+	//  en termes de taille memoire, 1 attribut chargeable sur 1 esclave correspond a l'addition de :
+	// 	- la taille memoire mediane d'un KWAttributeStats (lMasterMedianStatMemory)
+	// 	- la memoire necessaire pour stocker une valeur d'attribut, pour tous les objets de la database
+	// (lMasterOneAttributeValueMemory)
 
-	Pour calculer le nombre d'attributs chargeables, la memoire attribuee par le framework pour chaque esclave
-	(lGrantedMinSlaveMemory) doit etre diminuee de :
-		- la memoire de travail necessaire pour gerer un arbre vide (lMasterTreeWorkingMemory)
-		- la memoire necessaire pour stocker 1 resultat (lMasterTreeResultMeanMemory)
+	// Pour calculer le nombre d'attributs chargeables, la memoire attribuee par le framework pour chaque esclave
+	// (lGrantedMinSlaveMemory) doit etre diminuee de :
+	// 	- la memoire de travail necessaire pour gerer un arbre vide (lMasterTreeWorkingMemory)
+	// 	- la memoire necessaire pour stocker 1 resultat (lMasterTreeResultMeanMemory)
 
-	ATTENTION toute modification de cette formule doit etre reporter dans la fonction
-	ComputeBiggestTreeNecessaryMemory
-	*/
+	// ATTENTION toute modification de cette formule doit etre reporter dans la fonction
+	// ComputeBiggestTreeNecessaryMemory
 
 	lResult = (lGrantedMinSlaveMemory - lMasterTreeWorkingMemory - lMasterTreeResultMeanMemory) /
 		  (lMasterMedianStatMemory + lMasterOneAttributeValueMemory);

@@ -3,7 +3,6 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "KIHowParameterView.h"
-#include "KILeverVariablesSpecView.h"
 
 KIHowParameterView::KIHowParameterView()
 {
@@ -85,7 +84,8 @@ void KIHowParameterView::EventUpdate(Object* object)
 void KIHowParameterView::EventRefresh(Object* object)
 {
 	// Mise a jour des valeurs de l'interface par les valeurs des specs d'interpretation
-
+	int i;
+	ALString sTargetValues;
 	KIInterpretationSpec* editedObject;
 	require(object != NULL);
 
@@ -96,13 +96,11 @@ void KIHowParameterView::EventRefresh(Object* object)
 	SetIntValueAt("VarMax", editedObject->GetMaxAttributesNumber());
 
 	// Mise a jour des choix en fonction de l'etat de l'interpreteur
-
-	ALString sTargetValues;
-	for (int i = 0; i < editedObject->GetInterpretationDictionary()->GetTargetValues().GetSize(); i++)
+	for (i = 0; i < editedObject->GetInterpretationDictionary()->GetTargetValues()->GetSize(); i++)
 	{
 		if (i > 0)
 			sTargetValues += "\n";
-		sTargetValues += ALString(editedObject->GetInterpretationDictionary()->GetTargetValues().GetAt(i));
+		sTargetValues += ALString(editedObject->GetInterpretationDictionary()->GetTargetValues()->GetAt(i));
 	}
 
 	GetFieldAt("HowClass")->SetParameters(KIInterpretationDictionary::NO_VALUE_LABEL + "\n" + sTargetValues);

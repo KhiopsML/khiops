@@ -6,17 +6,18 @@
 
 #include "UserInterface.h"
 #include "KWClassSpecView.h"
+#include "KIInterpretationDictionary.h"
 
 /////////////////////////////////////////////////////////////////////
-/// Classe KILeverVariablesSpecView : Vue sur la classe des variables leviers
+// Classe KILeverVariablesSpecView : Vue sur la classe des variables leviers
 class KILeverVariablesSpecView : public KWClassSpecView
 {
 public:
-	/// Constructeur
+	// Constructeur
 	KILeverVariablesSpecView();
 	~KILeverVariablesSpecView();
 
-	/// Constructeur generique
+	// Constructeur generique
 	KILeverVariablesSpecView* Create() const;
 
 	// Mise a jour de l'objet par les valeurs de l'interface

@@ -112,7 +112,7 @@ public:
 	virtual longint GetUsedMemory() const override;
 
 	///////////////////////////////////////////////////////////////////////////////
-	///// Implementation
+	// Implementation
 protected:
 	friend class PLShared_AttributeSelection;
 
@@ -126,7 +126,7 @@ protected:
 };
 
 /////////////////////////////////////////////////////////////////////
-/// Classe DTTreeAttribute
+// Classe DTTreeAttribute
 class DTTreeAttribute : public Object
 {
 public:

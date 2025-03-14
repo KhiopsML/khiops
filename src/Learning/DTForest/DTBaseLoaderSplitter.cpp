@@ -62,8 +62,8 @@ boolean DTBaseLoaderSplitter::CreateDaughterBaseloaderFromSplitAttribute(KWAttri
 
 	// ObjectArray oaOutOfBagDaughterBaseLoader;
 
-	/// Tableau de pointeurs des DTBaseLoader obtenues apres application de la regle de derivation
-	/// Les DTBaseLoader creees appartiennent a l'appelant
+	// Tableau de pointeurs des DTBaseLoader obtenues apres application de la regle de derivation
+	// Les DTBaseLoader creees appartiennent a l'appelant
 	ObjectArray oaTrainDaughterObjects;
 	ObjectArray oaTrainDaughterTargetVector;
 	ObjectArray oaTrainDaughterTargetTupleTable;

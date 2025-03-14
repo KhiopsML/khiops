@@ -11,23 +11,23 @@ class DTDecisionTree;
 class DTDecisionTreeNodeSplit;
 
 ///////////////////////////////////////////////////////////////
-/// Classe abstraite generique de cout d'un arbre
-/// La methode du calcul du cout total de l'arbre doit etre reimplementee
-/// ainsi que la methode de mise a jour du cout lors de l'ajout de fils
-/// a un noeud
+// Classe abstraite generique de cout d'un arbre
+// La methode du calcul du cout total de l'arbre doit etre reimplementee
+// ainsi que la methode de mise a jour du cout lors de l'ajout de fils
+// a un noeud
 class DTDecisionTreeCost : public Object
 {
 public:
-	/// Constructeur
+	// Constructeur
 	DTDecisionTreeCost();
-	/// Destructeur
+	// Destructeur
 	~DTDecisionTreeCost();
 
-	/// Acces au nombre total d'attributs
+	// Acces au nombre total d'attributs
 	int GetTotalAttributeNumber() const;
 	void SetTotalAttributeNumber(int nNumber);
 
-	/// Acces au nombre de valeurs de la classe cible
+	// Acces au nombre de valeurs de la classe cible
 	int GetClassValueNumber() const;
 	void SetClassValueNumber(int nNumber);
 
@@ -40,49 +40,49 @@ public:
 		nDTCriterion = nNumber;
 	};
 
-	/// Cout des feuilles et noeud interne
+	// Cout des feuilles et noeud interne
 	double ComputeNodeCost(DTDecisionTreeNode*, DTDecisionTree*);
 
-	/// Cout de construction de l'arbre : a reimplementer
+	// Cout de construction de l'arbre : a reimplementer
 	virtual double ComputeTreeConstructionCost(DTDecisionTree*);
 
-	/// Cout total de l'arbre : a reimplementer dans les classes derivees
+	// Cout total de l'arbre : a reimplementer dans les classes derivees
 	virtual double ComputeTotalTreeCost(DTDecisionTree*);
 
-	/// Cout d'un arbre de cout dPreviousCost pour lequel on transformerait
-	/// la feuille  d'indice nLeafIndex en un noeud interne
-	/// selon l'assertion et la table de contingence passees en parametre
-	/// A reimplementer
+	// Cout d'un arbre de cout dPreviousCost pour lequel on transformerait
+	// la feuille  d'indice nLeafIndex en un noeud interne
+	// selon l'assertion et la table de contingence passees en parametre
+	// A reimplementer
 	virtual void ComputeHypotheticalAugmentedTreeCost(DTDecisionTree*, double dPreviousCost,
 							  DTDecisionTreeNodeSplit*) = 0;
 
-	/// Cout d'un arbre de cout dPreviousCost pour lequel on transformererait le noeud interne
-	/// de cle sInternalNodeKey en une feuille
-	/// en elaguant de l'arbre tous ses fils qui doivent tous etre des feuilles
+	// Cout d'un arbre de cout dPreviousCost pour lequel on transformererait le noeud interne
+	// de cle sInternalNodeKey en une feuille
+	// en elaguant de l'arbre tous ses fils qui doivent tous etre des feuilles
 	virtual double ComputeHypotheticalPrunedTreeCost(DTDecisionTree* tree, double dPreviousCost,
 							 ALString sInternalNodeKey);
 
 	void CleanRootStat();
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	// Implementation
 protected:
-	/// Nombre de classes cible
+	// Nombre de classes cible
 	int nClassValueNumber;
 
-	/// Nombre total de predicteurs
+	// Nombre total de predicteurs
 	int nTotalAttributeNumber;
 
-	/// Statistiques sur le noeud racine
+	// Statistiques sur le noeud racine
 	ObjectDictionary odRootStat;
 
-	/// Identifiant du critere de l'arbre pour le calcul du cout de sa structure
-	/// 0
-	/// 1
-	/// 2
-	/// 3
-	/// 4
-	/// 5
-	/// 6
+	// Identifiant du critere de l'arbre pour le calcul du cout de sa structure
+	// 0
+	// 1
+	// 2
+	// 3
+	// 4
+	// 5
+	// 6
 	int nDTCriterion;
 };
