@@ -37,6 +37,11 @@ if [[ ! -f "$(get_script_dir)"/khiops_env ]]; then
     exit 1
 fi
 
+# Does not print messages from mpi
+if [ -z "$KHIOPS_MPI_VERBOSE" ]; then
+    KHIOPS_MPI_VERBOSE="false"
+fi
+
 # Initialize Khiops env variables
 source $(get_script_dir)/khiops_env ""
 
@@ -49,8 +54,13 @@ for ((i = 1; i <= $#; i++)); do
     fi
 done
 
-if [[ ! -e $KHIOPS_COCLUSTERING_PATH ]]; then
-    error "Binary not found ($KHIOPS_COCLUSTERING_PATH)"
+if [[ ! -e @KHIOPS_BINARY_PATH@ ]]; then
+    error "Binary not found (@KHIOPS_BINARY_PATH@)"
+fi
+
+# Display error with mpi configuration
+if [ -n "$KHIOPS_MPI_ERROR" ]; then
+    warning "$KHIOPS_MPI_ERROR"
 fi
 
 export CLASSPATH=$CLASSPATH:$KHIOPS_CLASSPATH
@@ -60,10 +70,10 @@ launch_khiops() {
     if [[ $# -eq 0 ]]; then
         # run without parameters
         # run and save scenario and log files in directory KHIOPS_LAST_RUN_DIR
-        $KHIOPS_COCLUSTERING_PATH -o "${KHIOPS_LAST_RUN_DIR}"/scenario._kh -e "${KHIOPS_LAST_RUN_DIR}"/log.txt
+        $KHIOPS_MPI_COMMAND "@KHIOPS_BINARY_PATH@" -o "${KHIOPS_LAST_RUN_DIR}"/scenario._kh -e "${KHIOPS_LAST_RUN_DIR}"/log.txt
     else
         # run with parameters
-        $KHIOPS_COCLUSTERING_PATH "$@"
+        $KHIOPS_MPI_COMMAND "@KHIOPS_BINARY_PATH@" "$@"
     fi
 }
 
