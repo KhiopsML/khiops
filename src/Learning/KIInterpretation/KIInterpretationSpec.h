@@ -4,10 +4,10 @@
 
 #pragma once
 
-class KIInterpretationDictionary;
+class KIInterpretationClassBuilder;
 
 #include "KWClassSpec.h"
-#include "KIInterpretationDictionary.h"
+#include "KIInterpretationClassBuilder.h"
 
 // Classe rassemblant les parametres d'un interpreteur de scores
 class KIInterpretationSpec : public Object
@@ -46,8 +46,8 @@ public:
 	boolean IsExpertMode() const;
 	void SetExpertMode(boolean bValue);
 
-	void SetInterpretationDictionary(KIInterpretationDictionary*);
-	KIInterpretationDictionary* GetInterpretationDictionary() const;
+	void SetInterpretationDictionary(KIInterpretationClassBuilder*);
+	KIInterpretationClassBuilder* GetInterpretationDictionary() const;
 
 	// Duplication des parametres
 	KIInterpretationSpec* Clone() const;
@@ -69,7 +69,7 @@ public:
 	////////////////////////////////////////////////////////
 	// Implementation
 protected:
-	KIInterpretationDictionary* interpretationDictionary;
+	KIInterpretationClassBuilder* interpretationDictionary;
 	KWClassSpec* leverClassSpec;
 	ALString sHowClass;
 	ALString sWhyClass;
@@ -81,7 +81,7 @@ protected:
 	boolean bExpertMode; // pour supprimer l'ecriture de certaines colonnes des contributions
 };
 
-inline KIInterpretationDictionary* KIInterpretationSpec::GetInterpretationDictionary() const
+inline KIInterpretationClassBuilder* KIInterpretationSpec::GetInterpretationDictionary() const
 {
 	return interpretationDictionary;
 }

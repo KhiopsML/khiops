@@ -103,7 +103,7 @@ void KIHowParameterView::EventRefresh(Object* object)
 		sTargetValues += ALString(editedObject->GetInterpretationDictionary()->GetTargetValues()->GetAt(i));
 	}
 
-	GetFieldAt("HowClass")->SetParameters(KIInterpretationDictionary::NO_VALUE_LABEL + "\n" + sTargetValues);
+	GetFieldAt("HowClass")->SetParameters(KIInterpretationClassBuilder::NO_VALUE_LABEL + "\n" + sTargetValues);
 	cast(UIIntElement*, GetFieldAt("HowNumber"))
 	    ->SetMaxValue(editedObject->GetInterpretationDictionary()->GetPredictiveAttributeNamesArray()->GetSize());
 }

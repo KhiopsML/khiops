@@ -160,7 +160,7 @@ void KIPredictorInterpretationView::BuildInterpretationClass()
 	if (not interpretationSpec->Check())
 		return;
 
-	KIInterpretationDictionary* interpretationDictionary = interpretationSpec->GetInterpretationDictionary();
+	KIInterpretationClassBuilder* interpretationDictionary = interpretationSpec->GetInterpretationDictionary();
 
 	if (interpretationDictionary->GetInputClassifier() == NULL)
 	{
@@ -230,7 +230,7 @@ void KIPredictorInterpretationView::BuildInterpretationClass()
 					    "The maximum number of variables in the reinforcement analysis is set to 0 "
 					    ": no reinforcement analysis will be done.");
 				else if (interpretationSpec->GetHowClass() ==
-					 KIInterpretationDictionary::NO_VALUE_LABEL)
+					 KIInterpretationClassBuilder::NO_VALUE_LABEL)
 					Global::AddWarning("", "",
 							   "No reinforcement class has been specified : no "
 							   "reinforcement analysis will be done.");

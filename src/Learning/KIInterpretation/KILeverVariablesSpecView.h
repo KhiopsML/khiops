@@ -6,7 +6,7 @@
 
 #include "UserInterface.h"
 #include "KWClassSpecView.h"
-#include "KIInterpretationDictionary.h"
+#include "KIInterpretationClassBuilder.h"
 
 /////////////////////////////////////////////////////////////////////
 // Classe KILeverVariablesSpecView : Vue sur la classe des variables leviers

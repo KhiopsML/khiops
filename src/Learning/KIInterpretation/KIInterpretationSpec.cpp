@@ -6,7 +6,7 @@
 
 KIInterpretationSpec::KIInterpretationSpec()
 {
-	interpretationDictionary = new KIInterpretationDictionary(this);
+	interpretationDictionary = new KIInterpretationClassBuilder(this);
 	leverClassSpec = new KWClassSpec;
 
 	SetDefaultParameters();
@@ -27,7 +27,7 @@ void KIInterpretationSpec::SetDefaultParameters()
 	sWhyClass = ALL_CLASSES_LABEL;
 	bSortWhyResults = false;
 	bExpertMode = true;
-	sHowClass = KIInterpretationDictionary::NO_VALUE_LABEL;
+	sHowClass = KIInterpretationClassBuilder::NO_VALUE_LABEL;
 }
 
 KWClassSpec* KIInterpretationSpec::GetLeverClassSpec() const

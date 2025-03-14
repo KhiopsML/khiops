@@ -57,9 +57,9 @@ void KILeverVariablesSpecView::EventUpdate(Object* object)
 			if (attribute != NULL)
 			{
 				assert(attribute->GetConstMetaData()->IsKeyPresent(
-				    KIInterpretationDictionary::LEVER_ATTRIBUTE_META_TAG));
+				    KIInterpretationClassBuilder::LEVER_ATTRIBUTE_META_TAG));
 				attribute->GetMetaData()->SetStringValueAt(
-				    KIInterpretationDictionary::LEVER_ATTRIBUTE_META_TAG,
+				    KIInterpretationClassBuilder::LEVER_ATTRIBUTE_META_TAG,
 				    attributeSpec->GetUsed() ? "true" : "false");
 			}
 		}
@@ -90,7 +90,7 @@ void KILeverVariablesSpecView::SetObject(Object* object)
 		{
 			// on n'affiche que les variables pouvant etre eventuellement utilisees comme leviers
 			if (attribute->GetConstMetaData()->IsKeyPresent(
-				KIInterpretationDictionary::LEVER_ATTRIBUTE_META_TAG))
+				KIInterpretationClassBuilder::LEVER_ATTRIBUTE_META_TAG))
 			{
 				bHasLeverVariables = true;
 				// Creation de la specification
@@ -102,7 +102,7 @@ void KILeverVariablesSpecView::SetObject(Object* object)
 
 				// Initialisation a partir de l'attribut
 				attributeSpec->SetUsed(attribute->GetConstMetaData()->GetStringValueAt(
-							   KIInterpretationDictionary::LEVER_ATTRIBUTE_META_TAG) ==
+							   KIInterpretationClassBuilder::LEVER_ATTRIBUTE_META_TAG) ==
 							       "true"
 							   ? true
 							   : false);

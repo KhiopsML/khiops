@@ -313,7 +313,7 @@ KWDerivationRule* DTDecisionTreeSpec::CreateIntervalIndexRule(const DTDecisionTr
 
 KWDerivationRule* DTDecisionTreeSpec::CreateGroupIndexRule(const DTDecisionTreeNodeSpec* node)
 {
-	// creation d'une regle de type  Switch(GroupIndex(
+	// Creation de la regle de type  Switch(GroupIndex(
 	//												ValueGroups(
 	// ValueGroup("val1", "val2"),
 	// ValueGroup("val3")
@@ -758,7 +758,7 @@ longint DTDecisionTreeNodeSpec::ComputeHashOfIntervalIndexRule() const
 
 longint DTDecisionTreeNodeSpec::ComputeHashOfGroupIndexRule() const
 {
-	// creation d'une regle de type  Switch(GroupIndex(
+	// Creation de la regle de type  Switch(GroupIndex(
 	//												ValueGroups(
 	// ValueGroup("val1", "val2"),
 	// ValueGroup("val3")

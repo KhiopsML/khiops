@@ -34,7 +34,7 @@ public:
 	// Cout total de l'arbre : parcours de l'arbre en largeur
 	//   cout fixe
 	// + cout du choix du nombre de variables utilisees
-	///	+ somme des couts des noeuds internes
+	// + somme des couts des noeuds internes
 	// + somme des couts des feuilles
 	double ComputeTotalTreeCost(DTDecisionTree* tree) override;
 
