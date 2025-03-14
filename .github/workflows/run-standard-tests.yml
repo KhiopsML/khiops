@@ -163,14 +163,14 @@ jobs:
           fi
           if [[ "${{ matrix.config }}" == "release" ]] ; then
             python $TEST_PY test/LearningTest/TestKhiops/Standard ${BIN_PATH} ${PARALLEL_ARG}
-            if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
-              python $TEST_PY test/LearningTest/TestCoclustering/Standard ${BIN_PATH}
+            python $TEST_PY test/LearningTest/TestCoclustering/Standard ${BIN_PATH} ${PARALLEL_ARG}
+            if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then 
               python $TEST_PY test/LearningTest/TestKNI/Standard ${BIN_PATH}
             fi
           else
             python $TEST_PY test/LearningTest/TestKhiops/Standard/IrisLight ${BIN_PATH} ${PARALLEL_ARG}
+            python $TEST_PY test/LearningTest/TestCoclustering/Standard/Iris ${BIN_PATH} ${PARALLEL_ARG}
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
-              python $TEST_PY test/LearningTest/TestCoclustering/Standard/Iris ${BIN_PATH}
               python $TEST_PY test/LearningTest/TestKNI/Standard/Iris ${BIN_PATH}
             fi
           fi
@@ -181,14 +181,14 @@ jobs:
           mkdir results
           if [[ "${{ matrix.config }}" == "release" ]] ; then
             python $APPLY_PY test/LearningTest/TestKhiops/Standard errors | tee -a results/errors.txt
+            python $APPLY_PY test/LearningTest/TestCoclustering/Standard errors | tee -a results/errors.txt
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
-              python $APPLY_PY test/LearningTest/TestCoclustering/Standard errors | tee -a results/errors.txt
               python $APPLY_PY test/LearningTest/TestKNI/Standard errors | tee -a results/errors.txt
             fi
           else
             python $APPLY_PY test/LearningTest/TestKhiops/Standard/IrisLight errors | tee -a results/errors.txt
+            python $APPLY_PY test/LearningTest/TestCoclustering/Standard/Iris errors | tee -a results/errors.txt
             if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
-              python $APPLY_PY test/LearningTest/TestCoclustering/Standard/Iris errors | tee -a results/errors.txt
               python $APPLY_PY test/LearningTest/TestKNI/Standard/Iris errors | tee -a results/errors.txt
             fi
           fi
