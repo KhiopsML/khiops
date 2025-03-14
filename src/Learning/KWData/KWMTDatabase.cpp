@@ -1224,6 +1224,8 @@ void KWMTDatabase::PhysicalReadAfterEndOfDatabase()
 	KWObjectKey lastSubObjectKey;
 	KWObjectKey subObjectKey;
 	ALString sTmp;
+	ALString sObjectLabel;
+	ALString sOtherObjectLabel;
 
 	require(IsPhysicalEnd());
 	require(IsOpenedForRead());
@@ -1295,12 +1297,15 @@ void KWMTDatabase::PhysicalReadAfterEndOfDatabase()
 					// Erreur si probleme d'ordonnancement
 					if (subObjectKey.StrictCompare(&lastSubObjectKey) < 0)
 					{
+						// Creation de libelles distincts
+						subObjectKey.BuildDistinctObjectLabels(&lastSubObjectKey, sObjectLabel,
+										       sOtherObjectLabel);
+
 						mappedDataTableDriver->AddError(
 						    sTmp + "Unsorted record " + componentMapping->GetClassName() +
-						    subObjectKey.GetObjectLabel() +
+						    sObjectLabel +
 						    ", with key inferior to that of the preceding record " +
-						    componentMapping->GetClassName() +
-						    lastSubObjectKey.GetObjectLabel() +
+						    componentMapping->GetClassName() + sOtherObjectLabel +
 						    ", beyond the key of the last record of the main table");
 						bIsError = true;
 					}
@@ -2432,6 +2437,8 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 	boolean bNewSubObject;
 	ObjectArray* oaSubObjects;
 	ALString sTmp;
+	ALString sObjectLabel;
+	ALString sOtherObjectLabel;
 
 	require(mapping != NULL);
 	require(not mapping->GetDataTableDriver()->IsEnd());
@@ -2497,12 +2504,15 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 				// Erreur si la cle est plus petite, et supression de l'enregistrement
 				else if (objectKey.StrictCompare(mapping->GetLastReadKey()) < 0)
 				{
+					// Creation de libelles distincts
+					objectKey.BuildDistinctObjectLabels(mapping->GetLastReadKey(), sObjectLabel,
+									    sOtherObjectLabel);
+
 					// Erreur de lecture
 					mapping->GetDataTableDriver()->AddError(
-					    sTmp + "Unsorted record " + mapping->GetClassName() +
-					    objectKey.GetObjectLabel() +
+					    sTmp + "Unsorted record " + mapping->GetClassName() + sObjectLabel +
 					    ", with key inferior to that of the preceding record " +
-					    mapping->GetClassName() + mapping->GetLastReadKey()->GetObjectLabel());
+					    mapping->GetClassName() + sOtherObjectLabel);
 					bIsError = true;
 
 					// On ignore l'enregistrement
@@ -2650,15 +2660,19 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 								if (subObjectKey.StrictCompare(
 									componentMapping->GetLastReadKey()) < 0)
 								{
+									// Creation de libelles distincts
+									subObjectKey.BuildDistinctObjectLabels(
+									    componentMapping->GetLastReadKey(),
+									    sObjectLabel, sOtherObjectLabel);
+
 									mappedDataTableDriver->AddError(
 									    sTmp + "Unsorted record " +
 									    componentMapping->GetClassName() +
-									    subObjectKey.GetObjectLabel() +
+									    sObjectLabel +
 									    ", with key inferior to that of the "
 									    "preceding record " +
 									    componentMapping->GetClassName() +
-									    componentMapping->GetLastReadKey()
-										->GetObjectLabel());
+									    sOtherObjectLabel);
 									bIsError = true;
 								}
 								// Warning si probleme de duplication dans le cas d'un
@@ -2685,15 +2699,17 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 							if (not bIsError and not bWarningEmmited and
 							    nSkippedRecordNumber == 0)
 							{
+								// Creation de libelles distincts
+								subObjectKey.BuildDistinctObjectLabels(
+								    &objectKey, sObjectLabel, sOtherObjectLabel);
+
 								bWarningEmmited = true;
 								mappedDataTableDriver->AddWarning(
 								    sTmp + "Ignored record" + ", orphan record " +
-								    componentMapping->GetClassName() +
-								    subObjectKey.GetObjectLabel() +
+								    componentMapping->GetClassName() + sObjectLabel +
 								    " with key inferior to that of the including "
 								    "record " +
-								    mapping->GetClassName() +
-								    objectKey.GetObjectLabel());
+								    mapping->GetClassName() + sOtherObjectLabel);
 							}
 
 							// Destruction du sous-objet non utilise

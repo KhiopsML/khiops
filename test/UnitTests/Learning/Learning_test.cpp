@@ -7,6 +7,7 @@
 #include "KWClassDomain.h"
 #include "KWProbabilityTable.h"
 #include "KWQuantileBuilder.h"
+#include "KWKey.h"
 
 #include "TestServices.h"
 
@@ -17,6 +18,7 @@ namespace
 // Librairie KWData
 KHIOPS_TEST(KWData, KWClass, KWClass::Test);
 KHIOPS_TEST(KWData, KWClassDomain, KWClassDomain::Test);
+KHIOPS_TEST(KWData, KWKey, KWKey::Test);
 
 // Librairie KWDataPreparation
 KHIOPS_TEST(KWDataPreparation, KWQuantileIntervalBuilder, KWQuantileIntervalBuilder::Test);

@@ -1,0 +1,28 @@
+Test 1	
+Champs d'origine	[aaaa, bbbbb],[aaaaA, bbbbbB]
+Libelles par defaut	[aaaa, bbbbb],[aaaaA, bbbbbB]
+Libelles distincts	[aaaa, bbbbb]	;[aaaaA, bbbbbB]
+Test 2	
+Champs d'origine	[aaaaaaaaaaaaaaaaaaaa, bbbbbbbbbbbbbbbbbbbb],[aaaaaaaaaaaaaaaaaaaaA, bbbbbbbbbbbbbbbbbbbbB]
+Libelles par defaut	[aaaaaaaaaa..., bbbbbbbbbb...]	;[aaaaaaaaaa..., bbbbbbbbbb...]
+Libelles distincts	[aaaaaaaaaa...a,...]	;[aaaaaaaaaa...A,...]
+Test 3	
+Champs d'origine	[aaaaaaaaaaaaaaaaaaaa, bbbbbbbbbbbbbbbbbbbb],[aaaaaaaaaaaaaaaaaaaa, bbbbbbbbbbbbbbbbbbbbB]
+Libelles par defaut	[aaaaaaaaaa..., bbbbbbbbbb...]	;[aaaaaaaaaa..., bbbbbbbbbb...]
+Libelles distincts	[aaaaaaaaaa...,bbbbbbbbbb...b]	;[aaaaaaaaaa...,bbbbbbbbbb...B]
+Test 4	
+Champs d'origine	[aaaaaaaaaaaaaa, bbbbbbbbbbbbbb, cccccccccccccc],[aaaaaaaaaaaaaa, bbbbbbbbbbbbbb, ccccccccccccccC]
+Libelles par defaut	[aaaaaaaaaa..., bbbbbbbbbb..., cccccccccc......]	;[aaaaaaaaaa..., bbbbbbbbbb..., cccccccccc......]
+Libelles distincts	[aaaaaaaaaa...,bbbbbbbbbb...,cccccccccc...c]	;[aaaaaaaaaa...,bbbbbbbbbb...,cccccccccc...C]
+Test 5	
+Champs d'origine	[aaaaaaaaaaaaaa, bbbbbbbbbbbbbb, ccccccccccccccC],[aaaaaaaaaaaaaa, bbbbbbbbbbbbbb, cccccccccccccc]
+Libelles par defaut	[aaaaaaaaaa..., bbbbbbbbbb..., cccccccccc......]	;[aaaaaaaaaa..., bbbbbbbbbb..., cccccccccc......]
+Libelles distincts	[aaaaaaaaaa...,bbbbbbbbbb...,cccccccccc...C]	;[aaaaaaaaaa...,bbbbbbbbbb...,cccccccccc...c]
+Test 6	
+Champs d'origine	[aaaaaaaaaaa, bbbbbbbbbbb, ccccccccccc, ddddddddddd],[aaaaaaaaaaa, bbbbbbbbbbb, ccccccccccC, ddddddddddd]
+Libelles par defaut	[aaaaaaaaaa..., bbbbbbbbbb..., cccccccccc..., ...]	;[aaaaaaaaaa..., bbbbbbbbbb..., cccccccccc..., ...]
+Libelles distincts	[aaaaaaaaaa...,bbbbbbbbbb...,ccccccccccc,...]	;[aaaaaaaaaa...,bbbbbbbbbb...,ccccccccccC,...]
+Test 7	
+Champs d'origine	[aaaaaaaaaaa, bbbbbbbbbbb, ccccccccccc, ddddddddddd],[aaaaaaaaaaa, bbbbbbbbbbb, ccccccccccc, ddddddddddD]
+Libelles par defaut	[aaaaaaaaaa..., bbbbbbbbbb..., cccccccccc..., ...]	;[aaaaaaaaaa..., bbbbbbbbbb..., cccccccccc..., ...]
+Libelles distincts	[aaaaaaaaaa...,bbbbbbbbbb...,...,ddddddddddd]	;[aaaaaaaaaa...,bbbbbbbbbb...,...,ddddddddddD]

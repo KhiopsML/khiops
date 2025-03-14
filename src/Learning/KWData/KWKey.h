@@ -51,6 +51,12 @@ public:
 	const ALString GetClassLabel() const override;
 	const ALString GetObjectLabel() const override;
 
+	// Construction de libelles utilisateurs de deux cles garantis distincts l'un de l'autre
+	void BuildDistinctObjectLabels(const KWKey* otherKey, ALString& sObjectLabel, ALString& sOtherObjectLabel);
+
+	// Test
+	static void Test();
+
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
