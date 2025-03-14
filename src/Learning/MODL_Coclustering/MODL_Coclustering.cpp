@@ -23,6 +23,9 @@ int main(int argc, char** argv)
 	// Point d'arret sur l'allocation d'un bloc memoire
 	//MemSetAllocIndexExit(6009814);
 
+	// Parametrage de l'utilisation de MPI
+	UseMPI();
+
 	// Lancement du projet
 	learningProject.Start(argc, argv);
 
