@@ -1,0 +1,13 @@
+Check database ./Adult1000.txt
+error : Data table ./Adult1000.txt : Record 11 : Unsorted record Adult[10], with key inferior to that of the preceding record Adult[9]
+error : Database check ./Adult1000.txt : Interrupted because of errors
+
+Create sorted data table file ./results/S_Adult1000.txt
+Sorted records: 1000 (Sort time: 0:00:00)
+
+Deploy model Occupation
+Input database ./Occupation.txt: Read records: 14
+  Table ./OccupationSamples.txt Records: 48,842
+Output database ./results/D_Occupation.txt: Written records: 14
+Model deployment time: 0:00:00.07
+

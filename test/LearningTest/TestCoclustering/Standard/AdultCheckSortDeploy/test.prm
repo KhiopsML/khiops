@@ -1,0 +1,63 @@
+// 2025-03-14 10:48:49
+// khiops_coclustering
+// Output command file
+
+// This file contains recorded commands, that can be replayed.
+// Commands are based on user interactions:
+// 	field update
+// 	list item selection
+// 	menu action
+// Every command can be commented, using .
+// For example, commenting the last Exit command will allow other
+// user interactions, after the commands have been replayed.
+
+
+// -> Khiops Coclustering
+ClassManagement.OpenFile       // Open...
+
+// -> Open
+ClassFileName ./Adult.kdic    // Dictionary file
+OK                             // Open
+// <- Open
+
+Database.DatabaseSpec.Data.DatabaseFiles.List.Key  // List item selection
+Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ./Adult1000.txt          // Data table file
+LearningTools.CheckData        // Check database
+LearningTools.SortDataTableByKey         // Sort data table by key...
+
+// -> Data table sorter
+SortAttributes.SelectDefaultKeyAttributes          // Default key variables
+TargetDataTable.DatabaseSpec.Data.DatabaseName ./results/S_Adult1000.txt        // Data table file
+SortDataTableByKey             // Sort data table by key
+Exit                           // Close
+// <- Data table sorter
+
+ClassManagement.OpenFile       // Open...
+
+// -> Open
+ClassFileName ./DeployOccupation.kdic   // Dictionary file
+OK                             // Open
+// <- Open
+
+Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ./Occupation.txt         // Data table file
+Database.DatabaseSpec.Data.DatabaseFiles.List.Key Samples    // List item selection
+Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ./OccupationSamples.txt  // Data table file
+LearningTools.TransferDatabase // Deploy model...
+
+// -> Deploy model
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key      // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_Occupation.txt   // Data table file
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key Samples        // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName // Data table file
+TransferDatabase               // Deploy model
+Exit                           // Close
+// <- Deploy model
+
+Exit                           // Close
+// <- Khiops Coclustering
+
+
+// -> Khiops Coclustering
+OK                             // Yes
+// <- Khiops Coclustering
+

@@ -1,0 +1,107 @@
+#Khiops 8.1.1i
+
+// Tri mono-champs
+Dictionary	Adult	(Label)
+{
+	Categorical	Label		;	
+	Numerical	age		;	
+	Categorical	workclass		;	
+	Numerical	fnlwgt		;	
+	Categorical	education		;	
+	Numerical	education_num		;	
+	Categorical	marital_status		;	
+	Categorical	occupation		;	
+	Categorical	relationship		;	
+	Categorical	race		;	
+	Categorical	sex		;	
+	Numerical	capital_gain		;	
+	Numerical	capital_loss		;	
+	Numerical	hours_per_week		;	
+	Categorical	native_country		;	
+	Categorical	class		;	
+};
+
+// Tri multi-champs
+Dictionary	Adult2	(education, occupation, relationship)
+{
+	Categorical	Label		;	
+	Numerical	age		;	
+	Categorical	workclass		;	
+	Numerical	fnlwgt		;	
+	Categorical	education		;	
+	Numerical	education_num		;	
+	Categorical	marital_status		;	
+	Categorical	occupation		;	
+	Categorical	relationship		;	
+	Categorical	race		;	
+	Categorical	sex		;	
+	Numerical	capital_gain		;	
+	Numerical	capital_loss		;	
+	Numerical	hours_per_week		;	
+	Categorical	native_country		;	
+	Categorical	class		;	
+};
+
+// Tri mono-champs, nommes differement (marche en option sans ligne d'entete)
+Dictionary	Adult3	(Label2)
+{
+	Categorical	Label2		;	
+	Numerical	age2		;	
+	Categorical	workclass2		;	
+	Numerical	fnlwgt2		;	
+	Categorical	education2		;	
+	Numerical	education_num2		;	
+	Categorical	marital_status2		;	
+	Categorical	occupation2		;	
+	Categorical	relationship2		;	
+	Categorical	race2		;	
+	Categorical	sex2		;	
+	Numerical	capital_gain2		;	
+	Numerical	capital_loss2		;	
+	Numerical	hours_per_week2		;	
+	Categorical	native_country2		;	
+	Categorical	class2		;	
+	Categorical	cAge	 = AsCategorical(age2)	;	
+};
+
+// Tri mono-champs, avec champs du dictionnaire dans un ordre different du fichier
+Dictionary	Adult4	(Label)
+{
+	Numerical	age		;	
+	Categorical	workclass		;	
+	Numerical	fnlwgt		;	
+	Categorical	education		;	
+	Numerical	education_num		;	
+	Categorical	marital_status		;	
+	Categorical	occupation		;	
+	Categorical	relationship		;	
+	Categorical	race		;	
+	Categorical	sex		;	
+	Numerical	capital_gain		;	
+	Numerical	capital_loss		;	
+	Numerical	hours_per_week		;	
+	Categorical	native_country		;	
+	Categorical	class		;	
+	Categorical	Label		;	
+};
+
+// Tri mono-champs, nommes differement, sauf le champ cle
+Dictionary	Adult5	(Label)
+{
+	Categorical	Label		;	
+	Numerical	age2		;	
+	Categorical	workclass2		;	
+	Numerical	fnlwgt2		;	
+	Categorical	education2		;	
+	Numerical	education_num2		;	
+	Categorical	marital_status2		;	
+	Categorical	occupation2		;	
+	Categorical	relationship2		;	
+	Categorical	race2		;	
+	Categorical	sex2		;	
+	Numerical	capital_gain2		;	
+	Numerical	capital_loss2		;	
+	Numerical	hours_per_week2		;	
+	Categorical	native_country2		;	
+	Categorical	class2		;	
+};
