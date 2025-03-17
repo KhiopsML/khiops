@@ -4,8 +4,7 @@
 
 #pragma once
 
-//DDD #include "PLUseMPI.h"
-
+#include "PLUseMPI.h"
 #include "UserInterface.h"
 #include "KWContinuous.h"
 #include "KWSymbol.h"
