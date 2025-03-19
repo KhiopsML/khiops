@@ -14,6 +14,8 @@ KIModelInterpreter::KIModelInterpreter()
 
 	// ## Custom constructor
 
+	nContributionAttributeNumber = nDefaultContributionAttributeNumber;
+
 	// ##
 }
 
@@ -30,7 +32,7 @@ void KIModelInterpreter::CopyFrom(const KIModelInterpreter* aSource)
 
 	KIModelService::CopyFrom(aSource);
 
-	sShapleyValues = aSource->sShapleyValues;
+	sShapleyValueRanking = aSource->sShapleyValueRanking;
 	nContributionAttributeNumber = aSource->nContributionAttributeNumber;
 
 	// ## Custom copyfrom
@@ -54,7 +56,7 @@ KIModelInterpreter* KIModelInterpreter::Clone() const
 void KIModelInterpreter::Write(ostream& ost) const
 {
 	KIModelService::Write(ost);
-	ost << "Shapley values\t" << GetShapleyValues() << "\n";
+	ost << "Shapley values ranking\t" << GetShapleyValueRanking() << "\n";
 	ost << "Number of contribution variables\t" << GetContributionAttributeNumber() << "\n";
 }
 

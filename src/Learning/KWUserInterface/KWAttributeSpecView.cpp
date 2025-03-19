@@ -59,7 +59,7 @@ KWAttributeSpecView::KWAttributeSpecView()
 	    "\n Type can be changed only for standard types, if the related variable is not" +
 	    "\n   an input or output of a derivation rule, and has no meta-data format." +
 	    "\n The dictionary file must be edited directly for complex modifications.");
-	GetFieldAt("Name")->SetHelpText("Name of variable.");
+	GetFieldAt("Name")->SetHelpText("Name of the variable.");
 	GetFieldAt("Derived")->SetHelpText("Indicate whether the variable if native (in the file)"
 					   "\n or derived (computed using a formula).");
 	GetFieldAt("MetaData")->SetHelpText("Meta-data for additional information related to the variable.");

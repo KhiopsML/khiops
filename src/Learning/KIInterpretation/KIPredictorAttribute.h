@@ -12,6 +12,8 @@
 
 // ## Custom includes
 
+#include "KWContinuous.h"
+
 // ##
 
 ////////////////////////////////////////////////////////////
@@ -119,5 +121,8 @@ inline void KIPredictorAttribute::SetImportance(double dValue)
 }
 
 // ## Custom inlines
+
+// Comparaison entre deux variables par importance decroissante
+int KIPredictorAttributeCompareImportance(const void* elem1, const void* elem2);
 
 // ##

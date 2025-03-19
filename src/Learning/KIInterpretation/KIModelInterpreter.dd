@@ -1,3 +1,3 @@
 Rank;Name;Type;Style;Label
-3;ShapleyValues              ;ALString;       ;Shapley values
-4;ContributionAttributeNumber;int     ;Spinner;Number of contribution variables
+3;ShapleyValueRanking                 ;ALString;ComboBox;Shapley values ranking
+4;ContributionAttributeNumber;int     ;Spinner ;Number of contribution variables

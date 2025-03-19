@@ -15,6 +15,9 @@ KIPredictorAttribute::KIPredictorAttribute()
 
 	// ## Custom constructor
 
+	// Une variable est utilisee par defaut
+	bUsed = true;
+
 	// ##
 }
 
@@ -66,6 +69,29 @@ const ALString KIPredictorAttribute::GetClassLabel() const
 }
 
 // ## Method implementation
+
+int KIPredictorAttributeCompareImportance(const void* elem1, const void* elem2)
+{
+	KIPredictorAttribute* predictorAttribute1;
+	KIPredictorAttribute* predictorAttribute2;
+	int nDiff;
+
+	require(elem1 != NULL);
+	require(elem2 != NULL);
+
+	// Acces aux attributs
+	predictorAttribute1 = cast(KIPredictorAttribute*, *(Object**)elem1);
+	predictorAttribute2 = cast(KIPredictorAttribute*, *(Object**)elem2);
+
+	// Difference d'importance
+	nDiff = -KWContinuous::CompareIndicatorValue(predictorAttribute1->GetImportance(),
+						     predictorAttribute2->GetImportance());
+
+	// Comparaison sur le nom en cas d'egalite
+	if (nDiff == 0)
+		nDiff = predictorAttribute1->GetName().Compare(predictorAttribute2->GetName());
+	return nDiff;
+}
 
 const ALString KIPredictorAttribute::GetObjectLabel() const
 {

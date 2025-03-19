@@ -83,7 +83,7 @@ void KIPredictorInterpretationView::Open()
 	else
 	{
 		kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(sClassName);
-		if (not interpretationSpec->GetInterpretationDictionary()->ImportClassifier(kwcClass))
+		if (not interpretationSpec->GetInterpretationDictionary()->ImportPredictor(kwcClass))
 		{
 			Global::AddWarning("Interpret model", "",
 					   "The selected analysis dictionary " + sClassName +
@@ -106,7 +106,7 @@ void KIPredictorInterpretationView::Open()
 
 			// remettre a Unused les attributs natifs du classifieur d'entree
 			KWAttribute* attribute =
-			    interpretationSpec->GetInterpretationDictionary()->GetInputClassifier()->GetHeadAttribute();
+			    interpretationSpec->GetInterpretationDictionary()->GetPredictorClass()->GetHeadAttribute();
 			while (attribute != NULL)
 			{
 				if (attribute->IsNative())
@@ -116,7 +116,7 @@ void KIPredictorInterpretationView::Open()
 				}
 
 				interpretationSpec->GetInterpretationDictionary()
-				    ->GetInputClassifier()
+				    ->GetPredictorClass()
 				    ->GetNextAttribute(attribute);
 			}
 			interpretationSpec->GetInterpretationDictionary()->GetInterpretationDomain()->Compile();
@@ -162,7 +162,7 @@ void KIPredictorInterpretationView::BuildInterpretationClass()
 
 	KIInterpretationClassBuilder* interpretationDictionary = interpretationSpec->GetInterpretationDictionary();
 
-	if (interpretationDictionary->GetInputClassifier() == NULL)
+	if (interpretationDictionary->GetPredictorClass() == NULL)
 	{
 		AddWarning("No valid input classifier is available.");
 		return;

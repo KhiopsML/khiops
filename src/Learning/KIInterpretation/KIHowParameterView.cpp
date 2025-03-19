@@ -105,5 +105,5 @@ void KIHowParameterView::EventRefresh(Object* object)
 
 	GetFieldAt("HowClass")->SetParameters(KIInterpretationClassBuilder::NO_VALUE_LABEL + "\n" + sTargetValues);
 	cast(UIIntElement*, GetFieldAt("HowNumber"))
-	    ->SetMaxValue(editedObject->GetInterpretationDictionary()->GetPredictiveAttributeNamesArray()->GetSize());
+	    ->SetMaxValue(editedObject->GetInterpretationDictionary()->GetPredictorAttributeNumber());
 }

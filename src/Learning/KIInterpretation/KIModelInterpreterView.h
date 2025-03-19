@@ -45,6 +45,9 @@ public:
 
 	// ## Custom declarations
 
+	// Action de construction d'un dictionnaire d'interpretation
+	void BuildInterpretationClass();
+
 	// ##
 	////////////////////////////////////////////////////////
 	///// Implementation

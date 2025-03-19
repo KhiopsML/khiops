@@ -119,8 +119,8 @@ void KIDRClassifierInterpretation::Clean()
 {
 	oaModelProbabilities.DeleteAll();
 	oaModelProbabilities.SetSize(0);
-	svPartitionedPredictiveAttributeNames.SetSize(0);
-	svNativePredictiveAttributeNames.SetSize(0);
+	svPredictorAttributeNames.SetSize(0);
+	svPredictorPartitionedAttributeNames.SetSize(0);
 	lnkdClassNamesIndexes.DeleteAll();
 	cvVariableWeights.SetSize(0);
 	svTargetValues.SetSize(0);
@@ -134,20 +134,18 @@ void KIDRClassifierInterpretation::Clean()
 
 void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 {
+	const KWDRSNBClassifier referenceSNBRule;
+	const KWDRNBClassifier referenceNBRule;
+	const KWDRDataGridStatsBlock* dataGridStatsBlockRule;
 	KITargetValueLogProbs* targetValueLogProbs;
 	const KWDRDataGrid* targetDataGrid;
 	const KWDRSymbolValueSet* targetSymbolValueSet;
 	int nTargetValueNumber;
 	int nFirstOperandIndex;
-	KWDRSNBClassifier referenceSNBRule;
-	KWDRNBClassifier referenceNBRule;
 	boolean bIsSNB = false;
 	boolean bIsNB = false;
 	ALString sAttributeName;
 	int nTargetFrequency;
-	const KWDRDataGridStats refDataGridStatsRule;
-	const KWDRDataGridStatsBlock refDataGridStatsBlockRule;
-	const KWDRDataGridStatsBlock* dataGridStatsBlockRule;
 	KWDRDataGridBlock* dataGridBlockRule;
 	KWAttributeBlock* attributeBlock;
 	KWAttribute* attribute;
@@ -189,12 +187,12 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 
 	// Parcours des operandes du classifieur pour identifier les noms des attributs explicatifs et des attributs natifs associes
 	// La derniere operande n'est pas parcouru car reserve a l'attribut des valeurs cibles
-	classifier->ExportAttributeNames(&svPartitionedPredictiveAttributeNames, &svNativePredictiveAttributeNames);
+	classifier->ExportAttributeNames(&svPredictorAttributeNames, &svPredictorPartitionedAttributeNames);
 
 	// Cas d'un NB on met tous les poid a 1.0
 	if (bIsNB)
 	{
-		for (nIndex = 0; nIndex < svPartitionedPredictiveAttributeNames.GetSize(); nIndex++)
+		for (nIndex = 0; nIndex < svPredictorAttributeNames.GetSize(); nIndex++)
 			cvVariableWeights.Add(1.0);
 	}
 
@@ -223,7 +221,7 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 		targetValueLogProbs->SetTargetValue(svTargetValues.GetAt(nClassIndex));
 
 		// Parcours des variables explicatives
-		for (nAttributeIndex = 0; nAttributeIndex < svPartitionedPredictiveAttributeNames.GetSize();
+		for (nAttributeIndex = 0; nAttributeIndex < svPredictorPartitionedAttributeNames.GetSize();
 		     nAttributeIndex++)
 		{
 			// Creation du vecteur qui accueillera :
@@ -233,7 +231,7 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 
 			// Extraction de l'attribut explicatif courant
 			attribute =
-			    kwcClass->LookupAttribute(svPartitionedPredictiveAttributeNames.GetAt(nAttributeIndex));
+			    kwcClass->LookupAttribute(svPredictorPartitionedAttributeNames.GetAt(nAttributeIndex));
 
 			// Initialisation de la taille du vecteur de proba de l'attribut
 			cvSourceConditionalLogProbs->SetSize(
@@ -335,8 +333,7 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 						nTargetIndex = classifier->GetDataGridSetTargetCellIndexAt(
 						    nDataGridStatsOrBlock, nClassIndex);
 
-						// Mise a jour du terme de proba, en prenant en compte le poids de la grille
-
+						// Mise a jour du terme de probabilite, en prenant en compte le poids de la grille
 						for (nSourceIndex = 0;
 						     nSourceIndex < dataGridStats->GetDataGridSourceCellNumber();
 						     nSourceIndex++)
@@ -367,10 +364,10 @@ longint KIDRClassifierInterpretation::GetUsedMemory() const
 	longint lUsedMemory;
 
 	lUsedMemory = sizeof(KIDRClassifierInterpretation);
-	lUsedMemory += svNativePredictiveAttributeNames.GetUsedMemory();
 	lUsedMemory += lnkdClassNamesIndexes.GetOverallUsedMemory();
 	lUsedMemory += oaModelProbabilities.GetOverallUsedMemory();
-	lUsedMemory += svPartitionedPredictiveAttributeNames.GetUsedMemory();
+	lUsedMemory += svPredictorAttributeNames.GetUsedMemory();
+	lUsedMemory += svPredictorPartitionedAttributeNames.GetUsedMemory();
 	lUsedMemory += cvVariableWeights.GetUsedMemory();
 	lUsedMemory += svTargetValues.GetUsedMemory();
 	lUsedMemory += ivTargetFrequencies.GetUsedMemory();
@@ -461,7 +458,7 @@ Symbol KIDRClassifierContribution::GetContributionNameAt(int rank) const
 	require(oaInstanceProbabilities->GetSize() > 0);
 
 	attributeProbas = cast(KIPartitionedAttributeProbs*, oaInstanceProbabilities->GetAt(rank));
-	sName = svPartitionedPredictiveAttributeNames.GetAt(attributeProbas->GetAttributeIndex());
+	sName = svPredictorPartitionedAttributeNames.GetAt(attributeProbas->GetAttributeIndex());
 	return sName;
 }
 
@@ -515,7 +512,7 @@ longint KIDRClassifierContribution::GetUsedMemory() const
 
 void KIDRClassifierContribution::ComputeContribution(const KWObject* kwoObject) const
 {
-	KIPartitionedAttributeProbs* partitionedAttributeProbas;
+	KIPartitionedAttributeProbs* partitionedAttributeProbs;
 	Continuous cImportanceValue = -1;
 	int nAttributeIndex;
 	int nClassIndex;
@@ -529,46 +526,49 @@ void KIDRClassifierContribution::ComputeContribution(const KWObject* kwoObject) 
 	Continuous cMaxGain;
 	Continuous cPriorProba;
 	ContinuousVector* cvScoreVector;
-	KWAttribute* predictiveAttribute;
+	KWAttribute* predictorPartitionedAttribute;
 	KWAttribute* predictedClassAttribute;
-	KWLoadIndex nNativeIndex;
+	KWLoadIndex liIndex;
 	ALString sRuleLabel;
 	int nModalityIndex;
 
 	require(IsCompiled());
 
-	ivModalityIndexes.SetSize(svPartitionedPredictiveAttributeNames.GetSize());
+	ivModalityIndexes.SetSize(svPredictorPartitionedAttributeNames.GetSize());
 
 	// Parcours des variables contribuant au predicteur
-	// On va memoriser, pour chaque variable predictive, l'index de la partie (valeur variable partionnee) pour
+	// On va memoriser, pour chaque variable du predicteur, l'index de la partie (valeur variable partionnee) pour
 	// l'individu courant
-	for (nAttributeIndex = 0; nAttributeIndex < svPartitionedPredictiveAttributeNames.GetSize(); nAttributeIndex++)
+	for (nAttributeIndex = 0; nAttributeIndex < svPredictorPartitionedAttributeNames.GetSize(); nAttributeIndex++)
 	{
 		// Extraction de la variable partitionnee
-		predictiveAttribute =
-		    kwcClass->LookupAttribute(svPartitionedPredictiveAttributeNames.GetAt(nAttributeIndex));
+		predictorPartitionedAttribute =
+		    kwcClass->LookupAttribute(svPredictorPartitionedAttributeNames.GetAt(nAttributeIndex));
 
 		// Extraction de l'index de l'attribut natif
-		nNativeIndex =
-		    kwcClass->LookupAttribute(svNativePredictiveAttributeNames.GetAt(nAttributeIndex))->GetLoadIndex();
+		liIndex = kwcClass->LookupAttribute(svPredictorAttributeNames.GetAt(nAttributeIndex))->GetLoadIndex();
 
 		// Extraction du label de la regle permettant de savoir s'il s'agit d'une regle de discretisation ou de groupage
-		sRuleLabel =
-		    predictiveAttribute->GetDerivationRule()->GetFirstOperand()->GetDerivationRule()->GetLabel();
+		sRuleLabel = predictorPartitionedAttribute->GetDerivationRule()
+				 ->GetFirstOperand()
+				 ->GetDerivationRule()
+				 ->GetLabel();
 
 		// Cas d'une discretisation
 		nModalityIndex = -1;
 		if (sRuleLabel == discretizationRuleRef.GetLabel())
 			nModalityIndex =
-			    cast(KWDRUnivariatePartition*,
-				 predictiveAttribute->GetDerivationRule()->GetFirstOperand()->GetDerivationRule())
-				->GetContinuousPartIndex(kwoObject->GetContinuousValueAt(nNativeIndex));
+			    cast(KWDRUnivariatePartition*, predictorPartitionedAttribute->GetDerivationRule()
+							       ->GetFirstOperand()
+							       ->GetDerivationRule())
+				->GetContinuousPartIndex(kwoObject->GetContinuousValueAt(liIndex));
 		// Cas d'un groupage
 		else if (sRuleLabel == groupingRuleRef.GetLabel())
 			nModalityIndex =
-			    cast(KWDRUnivariatePartition*,
-				 predictiveAttribute->GetDerivationRule()->GetFirstOperand()->GetDerivationRule())
-				->GetSymbolPartIndex(kwoObject->GetSymbolValueAt(nNativeIndex));
+			    cast(KWDRUnivariatePartition*, predictorPartitionedAttribute->GetDerivationRule()
+							       ->GetFirstOperand()
+							       ->GetDerivationRule())
+				->GetSymbolPartIndex(kwoObject->GetSymbolValueAt(liIndex));
 		assert(nModalityIndex != -1);
 
 		// Memorisation de la valeur de la modalite pour la variable et l'individu
@@ -621,30 +621,28 @@ void KIDRClassifierContribution::ComputeContribution(const KWObject* kwoObject) 
 		oaInstanceProbabilities->SetCompareFunction(
 		    KIPartitionedAttributeProbsCompareContributionImportanceValue);
 	}
-	oaInstanceProbabilities->SetSize(svPartitionedPredictiveAttributeNames.GetSize());
+	oaInstanceProbabilities->SetSize(svPredictorPartitionedAttributeNames.GetSize());
 
 	// Extraction de l'index de la classe cible dans le tableau des probas
 	nClassIndex = (int)lnkdClassNamesIndexes.Lookup(sContributionClass.GetNumericKey());
 
 	// Parcours des variables contribuant au classifieur
-	for (nAttributeIndex = 0; nAttributeIndex < svPartitionedPredictiveAttributeNames.GetSize(); nAttributeIndex++)
+	for (nAttributeIndex = 0; nAttributeIndex < svPredictorPartitionedAttributeNames.GetSize(); nAttributeIndex++)
 	{
-		partitionedAttributeProbas = new KIPartitionedAttributeProbs;
-
-		partitionedAttributeProbas->SetAttributeIndex(nAttributeIndex);
-		partitionedAttributeProbas->SetModalityIndex(ivModalityIndexes.GetAt(nAttributeIndex));
+		partitionedAttributeProbs = new KIPartitionedAttributeProbs;
+		partitionedAttributeProbs->SetAttributeIndex(nAttributeIndex);
+		partitionedAttributeProbs->SetModalityIndex(ivModalityIndexes.GetAt(nAttributeIndex));
 
 		// Calcul de l'indicateur d'importance
-
 		cImportanceValue =
 		    ComputeShapley(nAttributeIndex, nClassIndex, ivModalityIndexes.GetAt(nAttributeIndex));
 
 		// Memorisation de la proba (valeur d'importance)
 		assert(cImportanceValue != -1);
-		partitionedAttributeProbas->SetContributionImportanceValue(cImportanceValue);
+		partitionedAttributeProbs->SetContributionImportanceValue(cImportanceValue);
 
 		// Insertion du vecteur dans le tableau
-		oaInstanceProbabilities->SetAt(nAttributeIndex, partitionedAttributeProbas);
+		oaInstanceProbabilities->SetAt(nAttributeIndex, partitionedAttributeProbs);
 	}
 
 	// si demande, tri selon la proba a posteriori
@@ -685,24 +683,19 @@ void KIDRClassifierContribution::InitializeShapleyTables()
 	int nClassIndex;
 	int nModality;
 	int nTarget;
-	int nVariableNumber = svPartitionedPredictiveAttributeNames.GetSize();
+	int nVariableNumber = svPredictorPartitionedAttributeNames.GetSize();
 	int nClassNumber = svTargetValues.GetSize();
 	boolean bLocalTrace = false;
 	ContinuousVector cvShapeleyExpectedValueByTarget;
 	Continuous cProbaForTarget;
 	Continuous cImportanceValue;
 
-	//clean oaShapleyTables
-	if (oaShapleyTables.GetSize() > 0)
-	{
-		oaShapleyTables.DeleteAll();
-		oaShapleyTables.SetSize(0);
-	}
-	//set size of  oaShapleyTables
+	// Nettoyage prealable
+	oaShapleyTables.DeleteAll();
+
+	// Initialisation
 	oaShapleyTables.SetSize(nVariableNumber);
-
 	cvShapeleyExpectedValueByTarget.SetSize(nVariableNumber * nClassNumber);
-
 	for (nAttributeIndex = 0; nAttributeIndex < nVariableNumber; nAttributeIndex++)
 	{
 		for (nTargetClassIndex = 0; nTargetClassIndex < nClassNumber; nTargetClassIndex++)
@@ -749,7 +742,6 @@ void KIDRClassifierContribution::InitializeShapleyTables()
 					cout << "cTerm2Denominator\t" << cTerm2Denominator << endl;
 				}
 			}
-
 			cvShapeleyExpectedValueByTarget.SetAt(nAttributeIndex * nClassNumber + nTargetClassIndex,
 							      cTerm2);
 		}
@@ -1197,16 +1189,16 @@ Symbol KIDRClassifierReinforcement::GetReinforcementNameAt(int rank) const
 	if (oaInstanceProbabilities->GetSize() < rank + 1)
 		return "";
 	attributeProbas = cast(KIPartitionedAttributeProbs*, oaInstanceProbabilities->GetAt(rank));
-	sName = svPartitionedPredictiveAttributeNames.GetAt(attributeProbas->GetAttributeIndex());
+	sName = svPredictorPartitionedAttributeNames.GetAt(attributeProbas->GetAttributeIndex());
 	return sName;
 }
 
-Symbol KIDRClassifierReinforcement::GetReinforcementPartitionAt(int rank) const
+Symbol KIDRClassifierReinforcement::GetReinforcementPartAt(int rank) const
 {
 	Symbol sAttributeName;
 	KWAttribute* attribute;
 	KWDataGridStats* dataGridStats;
-	KIPartitionedAttributeProbs* attributeProbas;
+	KIPartitionedAttributeProbs* attributeProbs;
 	ostringstream oss;
 
 	require(oaInstanceProbabilities != NULL);
@@ -1216,7 +1208,7 @@ Symbol KIDRClassifierReinforcement::GetReinforcementPartitionAt(int rank) const
 		return "";
 
 	// Extraction de l'attribut du dictionnaire associe a ce nom de variable
-	attributeProbas = cast(KIPartitionedAttributeProbs*, oaInstanceProbabilities->GetAt(rank));
+	attributeProbs = cast(KIPartitionedAttributeProbs*, oaInstanceProbabilities->GetAt(rank));
 	sAttributeName = GetReinforcementNameAt(rank);
 	attribute = kwcClass->LookupAttribute(sAttributeName.GetValue());
 
@@ -1224,10 +1216,8 @@ Symbol KIDRClassifierReinforcement::GetReinforcementPartitionAt(int rank) const
 	// l'individu pour cette variable
 	dataGridStats = new KWDataGridStats;
 	cast(KWDRDataGrid*, attribute->GetDerivationRule())->ExportDataGridStats(dataGridStats);
-
-	dataGridStats->GetAttributeAt(0)->WritePartAt(oss, attributeProbas->GetModalityIndex());
+	dataGridStats->GetAttributeAt(0)->WritePartAt(oss, attributeProbs->GetModalityIndex());
 	delete dataGridStats;
-
 	return oss.str().c_str();
 }
 
@@ -1237,10 +1227,10 @@ void KIDRClassifierReinforcement::ComputeReinforcement(const KWObject* kwoObject
 	int nAttributeIndex;
 	KWDRIntervalBounds discretizationRuleRef;
 	KWDRValueGroups groupingRuleRef;
+	KWDerivationRule* partitionRule;
 	IntVector ivModalityIndexes;
-	KWAttribute* predictiveAttribute;
-	KWLoadIndex nNativeIndex;
-	ALString sRuleLabel;
+	KWAttribute* predictorPartitionedAttribute;
+	KWLoadIndex liIndex;
 	Symbol sReinforcementClass;
 	KWAttribute* predictedClassAttribute;
 	Symbol sPredictedClass;
@@ -1249,37 +1239,38 @@ void KIDRClassifierReinforcement::ComputeReinforcement(const KWObject* kwoObject
 
 	require(IsCompiled());
 
-	ivModalityIndexes.SetSize(svPartitionedPredictiveAttributeNames.GetSize());
+	ivModalityIndexes.SetSize(svPredictorPartitionedAttributeNames.GetSize());
 
 	// Parcours des variables contribuant au predicteur
-	// On va memoriser, pour chaque variable predictive, l'index de la partie (valeur variable partionnee) pour l'individu courant
-	for (nAttributeIndex = 0; nAttributeIndex < svPartitionedPredictiveAttributeNames.GetSize(); nAttributeIndex++)
+	// On va memoriser, pour chaque variable du predicteur, l'index de la partie (valeur variable partionnee) pour l'individu courant
+	for (nAttributeIndex = 0; nAttributeIndex < svPredictorPartitionedAttributeNames.GetSize(); nAttributeIndex++)
 	{
 		// Extraction de la variable partitionnee
-		predictiveAttribute =
-		    kwcClass->LookupAttribute(svPartitionedPredictiveAttributeNames.GetAt(nAttributeIndex));
+		predictorPartitionedAttribute =
+		    kwcClass->LookupAttribute(svPredictorPartitionedAttributeNames.GetAt(nAttributeIndex));
 
 		// Extraction de l'index de l'attribut natif
-		nNativeIndex =
-		    kwcClass->LookupAttribute(svNativePredictiveAttributeNames.GetAt(nAttributeIndex))->GetLoadIndex();
+		liIndex = kwcClass->LookupAttribute(svPredictorAttributeNames.GetAt(nAttributeIndex))->GetLoadIndex();
 
 		// Extraction du label de la regle permettant de savoir s'il s'agit d'une regle de discretisation ou de groupage
-		sRuleLabel =
-		    predictiveAttribute->GetDerivationRule()->GetFirstOperand()->GetDerivationRule()->GetLabel();
+		partitionRule =
+		    predictorPartitionedAttribute->GetDerivationRule()->GetFirstOperand()->GetDerivationRule();
 
 		// Cas d'une discretisation
 		nModalityIndex = -1;
-		if (sRuleLabel == discretizationRuleRef.GetLabel())
+		if (partitionRule->GetLabel() == discretizationRuleRef.GetLabel())
 			nModalityIndex =
-			    cast(KWDRUnivariatePartition*,
-				 predictiveAttribute->GetDerivationRule()->GetFirstOperand()->GetDerivationRule())
-				->GetContinuousPartIndex(kwoObject->GetContinuousValueAt(nNativeIndex));
+			    cast(KWDRUnivariatePartition*, predictorPartitionedAttribute->GetDerivationRule()
+							       ->GetFirstOperand()
+							       ->GetDerivationRule())
+				->GetContinuousPartIndex(kwoObject->GetContinuousValueAt(liIndex));
 		// Cas d'un groupage
-		else if (sRuleLabel == groupingRuleRef.GetLabel())
+		else if (partitionRule->GetLabel() == groupingRuleRef.GetLabel())
 			nModalityIndex =
-			    cast(KWDRUnivariatePartition*,
-				 predictiveAttribute->GetDerivationRule()->GetFirstOperand()->GetDerivationRule())
-				->GetSymbolPartIndex(kwoObject->GetSymbolValueAt(nNativeIndex));
+			    cast(KWDRUnivariatePartition*, predictorPartitionedAttribute->GetDerivationRule()
+							       ->GetFirstOperand()
+							       ->GetDerivationRule())
+				->GetSymbolPartIndex(kwoObject->GetSymbolValueAt(liIndex));
 		assert(nModalityIndex != -1);
 
 		// Memorisation de la valeur de la modalite pour la variable et l'individu
@@ -1323,8 +1314,8 @@ void KIDRClassifierReinforcement::ComputeReinforcementProbas(IntVector* ivModali
 	Continuous cScore;
 	Continuous cMaxScore;
 	int nReinforcementClassHasChanged;
-	ALString sNativeVariableName;
-	ALString sPartitionedVariableName;
+	ALString sPredictorAttributeName;
+	ALString sPredictorPartitionedAttributeName;
 	int nAttributeIndex;
 	int nBestModalityIndex = -1;
 	int nModalityNumber;
@@ -1338,22 +1329,23 @@ void KIDRClassifierReinforcement::ComputeReinforcementProbas(IntVector* ivModali
 	targetValueLogProbs = cast(KITargetValueLogProbs*, oaModelProbabilities.GetAt(nHowNumber));
 
 	// Parcours des variables natives contribuant au NB a interpreter
-	for (nAttributeIndex = 0; nAttributeIndex < svNativePredictiveAttributeNames.GetSize(); nAttributeIndex++)
+	for (nAttributeIndex = 0; nAttributeIndex < svPredictorAttributeNames.GetSize(); nAttributeIndex++)
 	{
 		// Extraction du nom de la variable native
-		sNativeVariableName = svNativePredictiveAttributeNames.GetAt(nAttributeIndex);
+		sPredictorAttributeName = svPredictorAttributeNames.GetAt(nAttributeIndex);
 
 		// Extraction de l'attribut natif du dictionnaire
-		attribute = kwcClass->LookupAttribute(sNativeVariableName);
+		attribute = kwcClass->LookupAttribute(sPredictorAttributeName);
 
 		// Cas ou cette variable est une variable levier selectionnee
 		if (attribute->GetConstMetaData()->GetStringValueAt(LEVER_ATTRIBUTE_META_TAG) == "true")
 		{
 			// Extraction du nom de la variable explicative
-			sPartitionedVariableName = svPartitionedPredictiveAttributeNames.GetAt(nAttributeIndex);
+			sPredictorPartitionedAttributeName =
+			    svPredictorPartitionedAttributeNames.GetAt(nAttributeIndex);
 
 			// Extraction de l'attribut explicatif
-			partitionedAttribute = kwcClass->LookupAttribute(sPartitionedVariableName);
+			partitionedAttribute = kwcClass->LookupAttribute(sPredictorPartitionedAttributeName);
 
 			// Calcul du nombre de modalites de l'attribut
 			nModalityNumber =
@@ -1365,6 +1357,7 @@ void KIDRClassifierReinforcement::ComputeReinforcementProbas(IntVector* ivModali
 			cBestScore = cInitialScore;
 
 			// Parcours des modalites
+			nReinforcementClassHasChanged = -2;
 			for (nModalityIndex = 0; nModalityIndex < nModalityNumber; nModalityIndex++)
 			{
 				if (ivModalityIndexes->GetAt(nAttributeIndex) != nModalityIndex)
@@ -1422,6 +1415,9 @@ void KIDRClassifierReinforcement::ComputeReinforcementProbas(IntVector* ivModali
 					delete cvScore;
 				}
 			}
+			assert(nReinforcementClassHasChanged == -1 or nReinforcementClassHasChanged == 0 or
+			       nReinforcementClassHasChanged == 1);
+
 			// Cas d'une amelioration pour une des modalites de la variable
 			if (cBestScore > cInitialScore)
 			{
@@ -1711,8 +1707,7 @@ Symbol KIDRReinforcementPartitionAt::ComputeSymbolResult(const KWObject* kwoObje
 {
 	KIDRClassifierReinforcement* scoreReinforcement =
 	    cast(KIDRClassifierReinforcement*, GetFirstOperand()->GetStructureValue(kwoObject));
-	return scoreReinforcement->GetReinforcementPartitionAt((int)GetSecondOperand()->GetContinuousValue(kwoObject) -
-							       1);
+	return scoreReinforcement->GetReinforcementPartAt((int)GetSecondOperand()->GetContinuousValue(kwoObject) - 1);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -13,6 +13,8 @@
 
 // ## Custom includes
 
+#include "KIPredictorAttribute.h"
+
 // ##
 
 ////////////////////////////////////////////////////////////
@@ -48,6 +50,13 @@ public:
 
 	// ## Custom declarations
 
+	// Tableau des attributs du predicteur pour choisir les variables leviers (classe KIPredictorAttribute)
+	// Memoire: appartient a l'appele
+	ObjectArray* GeLeverAttributes();
+
+	// Mise ajour du tableau des attributs du predicteur
+	void UpdateLeverAttributes();
+
 	// ##
 
 	////////////////////////////////////////////////////////
@@ -57,6 +66,9 @@ protected:
 	ALString sReinforcedTargetValue;
 
 	// ## Custom implementation
+
+	// Tableau des attributs du predicteur pour le parametrage des variables leviers
+	ObjectArray oaLeverAttributes;
 
 	// ##
 };
@@ -75,5 +87,10 @@ inline void KIModelReinforcer::SetReinforcedTargetValue(const ALString& sValue)
 }
 
 // ## Custom inlines
+
+inline ObjectArray* KIModelReinforcer::GeLeverAttributes()
+{
+	return &oaLeverAttributes;
+}
 
 // ##

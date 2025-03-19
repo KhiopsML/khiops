@@ -41,6 +41,7 @@ public:
 	void TransferDatabase();
 	void EvaluatePredictors();
 	void InterpretPredictor();
+	void ReinforcePredictor();
 
 	// Acces au probleme d'apprentissage
 	KWLearningProblem* GetLearningProblem();

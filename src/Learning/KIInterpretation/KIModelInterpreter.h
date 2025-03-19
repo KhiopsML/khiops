@@ -32,9 +32,9 @@ public:
 	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
-	// Shapley values
-	const ALString& GetShapleyValues() const;
-	void SetShapleyValues(const ALString& sValue);
+	// Shapley values ranking
+	const ALString& GetShapleyValueRanking() const;
+	void SetShapleyValueRanking(const ALString& sValue);
 
 	// Number of contribution variables
 	int GetContributionAttributeNumber() const;
@@ -52,13 +52,19 @@ public:
 
 	// ## Custom declarations
 
+	// Nombre par defaut de variables de contribution
+	static const int nDefaultContributionAttributeNumber = 100;
+
+	// Nombre max de variablse de contribution
+	static const int nMaxContributionAttributeNumber = 1000;
+
 	// ##
 
 	////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	// Attributs de la classe
-	ALString sShapleyValues;
+	ALString sShapleyValueRanking;
 	int nContributionAttributeNumber;
 
 	// ## Custom implementation
@@ -69,14 +75,14 @@ protected:
 ////////////////////////////////////////////////////////////
 // Implementations inline
 
-inline const ALString& KIModelInterpreter::GetShapleyValues() const
+inline const ALString& KIModelInterpreter::GetShapleyValueRanking() const
 {
-	return sShapleyValues;
+	return sShapleyValueRanking;
 }
 
-inline void KIModelInterpreter::SetShapleyValues(const ALString& sValue)
+inline void KIModelInterpreter::SetShapleyValueRanking(const ALString& sValue)
 {
-	sShapleyValues = sValue;
+	sShapleyValueRanking = sValue;
 }
 
 inline int KIModelInterpreter::GetContributionAttributeNumber() const

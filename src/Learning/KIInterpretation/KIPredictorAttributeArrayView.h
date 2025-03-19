@@ -45,6 +45,10 @@ public:
 
 	// ## Custom declarations
 
+	// Action de selection ou deselection de tous les attributs
+	void SelectAll();
+	void UnselectAll();
+
 	// ##
 
 	////////////////////////////////////////////////////////

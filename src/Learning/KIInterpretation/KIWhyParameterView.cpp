@@ -90,8 +90,7 @@ void KIWhyParameterView::EventUpdate(Object* object)
 	editedObject->SetSortWhyResults(GetBooleanValueAt("SortWhy"));
 	editedObject->SetExpertMode(GetBooleanValueAt("ExpertMode"));
 
-	if (GetIntValueAt("WhyNumber") ==
-	    editedObject->GetInterpretationDictionary()->GetPredictiveAttributeNamesArray()->GetSize())
+	if (GetIntValueAt("WhyNumber") == editedObject->GetInterpretationDictionary()->GetPredictorAttributeNumber())
 	{
 		editedObject->SetSortWhyResults(false);
 		editedObject->SetExpertMode(true);
@@ -118,7 +117,7 @@ void KIWhyParameterView::EventRefresh(Object* object)
 
 	// Mise a jour des choix en fonction de l'etat de l'interpreteur
 	cast(UIIntElement*, GetFieldAt("WhyNumber"))
-	    ->SetMaxValue(editedObject->GetInterpretationDictionary()->GetPredictiveAttributeNamesArray()->GetSize());
+	    ->SetMaxValue(editedObject->GetInterpretationDictionary()->GetPredictorAttributeNumber());
 
 	SetStringValueAt("WhyType", editedObject->GetWhyType());
 	SetStringValueAt("WhyClass", editedObject->GetWhyClass());

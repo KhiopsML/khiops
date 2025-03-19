@@ -159,11 +159,11 @@ protected:
 	// Valeur = pointeur sur objet KIPartitionedAttributeProbs
 	mutable ObjectArray* oaInstanceProbabilities;
 
-	// Noms des variables partitionnees
-	mutable StringVector svPartitionedPredictiveAttributeNames;
+	// Noms des variables du predicteur
+	StringVector svPredictorAttributeNames;
 
-	// Noms des variables natives
-	StringVector svNativePredictiveAttributeNames;
+	// Noms des variables partitionnees du predicteur
+	mutable StringVector svPredictorPartitionedAttributeNames;
 
 	// Dictionnaire des index de modalites cibles
 	// 	cle = modalite cible
@@ -357,11 +357,11 @@ public:
 	// -1 : changement possible vers une autre classe
 	Continuous GetReinforcementClassChangeTagAt(int rank) const;
 
-	// nom de la variable de renforcement (la numerotation du rang commence a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire)
+	// Nom de la variable de renforcement (la numerotation du rang commence a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire)
 	Symbol GetReinforcementNameAt(int rank) const;
 
-	// partition ou groupement de modalites de la variable de renforcement (la numerotation du rang comemnce a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire)
-	Symbol GetReinforcementPartitionAt(int rank) const;
+	// Partie de la variable de renforcement (la numerotation du rang comemnce a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire)
+	Symbol GetReinforcementPartAt(int rank) const;
 
 	//////////////////////////////////////////////////////////
 	///// Implementation

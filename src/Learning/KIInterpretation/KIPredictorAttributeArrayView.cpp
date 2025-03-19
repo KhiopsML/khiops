@@ -26,6 +26,24 @@ KIPredictorAttributeArrayView::KIPredictorAttributeArrayView()
 
 	// ## Custom constructor
 
+	// Ajout des actions
+	AddAction("SelectAll", "Select all", (ActionMethod)(&KIPredictorAttributeArrayView::SelectAll));
+	AddAction("UnselectAll", "Unselect all", (ActionMethod)(&KIPredictorAttributeArrayView::UnselectAll));
+	GetActionAt("SelectAll")->SetStyle("Button");
+	GetActionAt("UnselectAll")->SetStyle("Button");
+
+	// Info-bulles
+	GetFieldAt("Used")->SetHelpText("Indicate whether the variable is used as a lever variabe.");
+	GetFieldAt("Type")->SetHelpText("Type of the variable.");
+	GetFieldAt("Name")->SetHelpText("Name of the variable.");
+	GetFieldAt("Importance")->SetHelpText("Importance of the variable.");
+	GetActionAt("SelectAll")->SetHelpText("Select all variables.");
+	GetActionAt("UnselectAll")->SetHelpText("Unselect all variables.");
+
+	// Short cuts
+	GetActionAt("SelectAll")->SetShortCut('S');
+	GetActionAt("UnselectAll")->SetShortCut('U');
+
 	// ##
 }
 
@@ -81,5 +99,35 @@ const ALString KIPredictorAttributeArrayView::GetClassLabel() const
 }
 
 // ## Method implementation
+
+void KIPredictorAttributeArrayView::SelectAll()
+{
+	ObjectArray* oaLeverAttribute;
+	KIPredictorAttribute* leverAttribute;
+	int i;
+
+	// On met toutes les variables leviers en used
+	oaLeverAttribute = GetObjectArray();
+	for (i = 0; i < oaLeverAttribute->GetSize(); i++)
+	{
+		leverAttribute = cast(KIPredictorAttribute*, oaLeverAttribute->GetAt(i));
+		leverAttribute->SetUsed(true);
+	}
+}
+
+void KIPredictorAttributeArrayView::UnselectAll()
+{
+	ObjectArray* oaLeverAttribute;
+	KIPredictorAttribute* leverAttribute;
+	int i;
+
+	// On met toutes les variables leviers en unused
+	oaLeverAttribute = GetObjectArray();
+	for (i = 0; i < oaLeverAttribute->GetSize(); i++)
+	{
+		leverAttribute = cast(KIPredictorAttribute*, oaLeverAttribute->GetAt(i));
+		leverAttribute->SetUsed(false);
+	}
+}
 
 // ##

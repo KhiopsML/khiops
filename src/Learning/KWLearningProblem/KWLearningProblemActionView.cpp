@@ -27,8 +27,11 @@ KWLearningProblemActionView::KWLearningProblemActionView()
 		  (ActionMethod)(&KWLearningProblemActionView::EvaluatePredictors));
 	AddAction("InterpretPredictor", "Interpret model...",
 		  (ActionMethod)(&KWLearningProblemActionView::InterpretPredictor));
+	AddAction("ReinforcePredictor", "Reinforce model...",
+		  (ActionMethod)(&KWLearningProblemActionView::ReinforcePredictor));
 
 	// Ajout d'accelateurs sur les actions principales
+	// En evitant les conflit avec les accelerateurs prioritaires du menu dictionnaire
 	GetActionAt("ComputeStats")->SetAccelKey("control T");
 	GetActionAt("TransferDatabase")->SetAccelKey("control D");
 	GetActionAt("EvaluatePredictors")->SetAccelKey("control E");
@@ -63,6 +66,9 @@ KWLearningProblemActionView::KWLearningProblemActionView()
 	GetActionAt("InterpretPredictor")
 	    ->SetHelpText("Open a dialog box allowing to specify and build an interpretation dictionary for a "
 			  "predictor to interpret.");
+	GetActionAt("ReinforcePredictor")
+	    ->SetHelpText("Open a dialog box allowing to specify and build a reinforcement dictionary for a "
+			  "predictor to reinforce.");
 
 	// Recopie des info-bulles de la vue principale (KWLearningProblemView)
 	// (pas de reutilisation possible)
@@ -89,6 +95,7 @@ KWLearningProblemActionView::KWLearningProblemActionView()
 	GetActionAt("TransferDatabase")->SetShortCut('D');
 	GetActionAt("EvaluatePredictors")->SetShortCut('E');
 	GetActionAt("InterpretPredictor")->SetShortCut('I');
+	GetActionAt("ReinforcePredictor")->SetShortCut('R');
 }
 
 KWLearningProblemActionView::~KWLearningProblemActionView() {}
@@ -141,6 +148,11 @@ void KWLearningProblemActionView::EvaluatePredictors()
 void KWLearningProblemActionView::InterpretPredictor()
 {
 	GetLearningProblemView()->InterpretPredictor();
+}
+
+void KWLearningProblemActionView::ReinforcePredictor()
+{
+	GetLearningProblemView()->ReinforcePredictor();
 }
 
 KWLearningProblem* KWLearningProblemActionView::GetLearningProblem()

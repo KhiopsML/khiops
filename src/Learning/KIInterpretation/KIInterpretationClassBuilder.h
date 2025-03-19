@@ -19,39 +19,60 @@ class KWTrainedClassifier;
 
 ///////////////////////////////////////////////////////////////
 // Classe KIInterpretationClassBuilder
-// Creation d'une classe (KWClass) dediee a l'interpretation
+// Creation d'une classe dediee a l'interpretation
 // ou au renforcement d'un predicteur
 class KIInterpretationClassBuilder : public Object
 {
 public:
 	// Constructeur
+	KIInterpretationClassBuilder();
 	KIInterpretationClassBuilder(KIInterpretationSpec* spec);
 	~KIInterpretationClassBuilder();
+
+	//////////////////////////////////////////////////////////////////////
+	// Import d'un predicteur
+
+	// Import d'un predicteur a partir d'un dictionnaire quelconque
+	// Renvoie true si on a pu l'importer sans probleme et s'il est interpetable
+	// Emet un warning en cas d'un predicteur non interpretable (ex: regresseur)
+	boolean ImportPredictor(KWClass* kwcInputPredictor);
+
+	// Indique si un predicteur a ete importe
+	boolean IsPredictorImported() const;
+
+	// Nettoyage
+	void Clean();
+
+	//////////////////////////////////////////////////////////////////////
+	// Acces aux caracteristiques d'un predicteur importe
+
+	// Acces au dictionnaire du predicteur
+	// Retourne NULL si aucun predicteur valide n'a ete importe
+	KWClass* GetPredictorClass();
+
+	// Acces a la liste des valeurs cible
+	const SymbolVector* GetTargetValues() const;
+
+	// Nombre de variables du predicteur
+	int GetPredictorAttributeNumber() const;
+
+	// Acces au tableau des noms variables du predicteur
+	const StringVector* GetPredictorAttributeNames() const;
+
+	// Acces au tableau des noms variables partitionees du predicteur
+	const StringVector* GetPredictorPartitionedAttributeNames() const;
+
+	//////////////////////////////////////////////////////////////////////
+	// Construction de dictionnaires d'interpretation et de renforcement
+
+	// Creation des meta-tags dans le dictionnaire, pour reperer les variables levier potentielles
+	void PrepareInterpretationClass();
 
 	// Domaine contenant la classe d'interpretation
 	KWClassDomain* GetInterpretationDomain() const;
 
 	// Classe d'interpretation principale
 	KWClass* GetInterpretationMainClass() const;
-
-	// Acces au classifieur d'input valide.
-	// Retourne NULL si aucun classifieur valide n'a ete specifie.
-	KWClass* GetInputClassifier();
-
-	// Test de compatibilite du dictionnaire a interpreter
-	boolean ImportClassifier(KWClass* inputClassifier);
-
-	// Test de compatibilite du dictionnaire a ne pas utiliser l'option group target Values
-	boolean TestGroupTargetValues(KWClass* inputClassifier);
-
-	// Acces a la liste des valeurs cible
-	const SymbolVector* GetTargetValues() const;
-
-	// Acces au tableau des noms variables predictives
-	StringVector* GetPredictiveAttributeNamesArray();
-
-	// Creation des meta-tags dans le dictionnaire, pour reperer les variables levier potentielles
-	void PrepareInterpretationClass();
 
 	// Creation ou mise a jour des attributs necessaires a l'interpretation (contribution ou reenforcement),
 	// dans le dico d'interpretation
@@ -70,6 +91,9 @@ public:
 	//////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Test de compatibilite du dictionnaire a ne pas utiliser l'option group target Values
+	boolean IsClassifierClassUsingTargetValueGrouping(KWClass* kwcClassifier) const;
+
 	// Creation du domaine propre a l'interpretation, ainsi que du dictionnaire
 	// d'intepretation ou de renforcement issus du classifieur d'entree
 	boolean CreateInterpretationDomain(const KWClass* inputClassifier);
@@ -140,9 +164,6 @@ protected:
 	// - le nombre d'attributs selectionnes comme pouvant etre utilises comme variables leviers, , parametre via IHM
 	int ComputeReinforcementAttributesMaxNumber();
 
-	// Nettoyage
-	void CleanImport();
-
 	// Libelle du type d'interpretation
 	const ALString& GetWhyTypeShortLabel(const ALString& asWhyTypeLongLabel);
 
@@ -155,8 +176,8 @@ protected:
 	// Dictionnaire de transfert (dico principal, dans le cas d'un classifieur multi table)
 	KWClass* kwcInterpretationMainClass;
 
-	// Classifieur d'entree
-	KWClass* kwcInputClassifier;
+	// Dictionnaire du predicteur
+	KWClass* kwcPredictorClass;
 
 	// Specification d'interpretation
 	KIInterpretationSpec* interpretationSpec;
@@ -164,21 +185,24 @@ protected:
 	// Vecteur des valeurs cibles
 	SymbolVector svTargetValues;
 
-	// Noms des variables partitionnees
-	StringVector svPartitionedPredictiveAttributeNames;
+	// Noms des variables du predicteur
+	StringVector svPredictorAttributeNames;
 
-	// Noms des variables natives
-	StringVector svNativePredictiveAttributeNames;
+	// Noms des variables partitionnees du predicteur
+	StringVector svPredictorPartitionedAttributeNames;
 };
+
+///////////////////////////////////
+// Methodes en inline
+
+inline KWClass* KIInterpretationClassBuilder::GetPredictorClass()
+{
+	return kwcPredictorClass;
+}
 
 inline KWClassDomain* KIInterpretationClassBuilder::GetInterpretationDomain() const
 {
 	return kwcdInterpretationDomain;
-}
-
-inline KWClass* KIInterpretationClassBuilder::GetInputClassifier()
-{
-	return kwcInputClassifier;
 }
 
 inline KWClass* KIInterpretationClassBuilder::GetInterpretationMainClass() const

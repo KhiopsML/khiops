@@ -14,6 +14,8 @@
 
 // ## Custom includes
 
+#include "KWClassDomain.h"
+
 // ##
 
 ////////////////////////////////////////////////////////////
@@ -44,11 +46,25 @@ public:
 
 	// ## Custom declarations
 
+	// Nom de dictionnaire par defaut, qui sera utilise si possible pour le choix du predicteur
+	// a l'ouverture de la boite de dialogue
+	void SetDefaultClassName(const ALString& sValue);
+	const ALString& GetDefaultClassName() const;
+
+	// Reimplementation de la methode Open, pour prealimenter la liste des predicteurs utilisables
+	void Open() override;
+
 	// ##
 	////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	// ## Custom implementation
+
+	// Rafraichissement des specifications liees au predicteur courant selectionne
+	virtual void RefreshPredictorSpec(KIModelService* modelService);
+
+	// Nom de dictionnaire par defaut
+	ALString sDefaultClassName;
 
 	// ##
 };

@@ -1045,13 +1045,13 @@ longint KWDRNBClassifier::GetUsedMemory() const
 	return lUsedMemory;
 }
 
-void KWDRNBClassifier::ExportAttributeNames(StringVector* oaPartitionedPredictiveAttributeNames,
-					    StringVector* oaNativePredictiveAttributeNames) const
+void KWDRNBClassifier::ExportAttributeNames(StringVector* svPredictorAttributeNames,
+					    StringVector* svPredictorPartitionedAttributeNames) const
 {
+	const KWDRNBClassifier referenceNBRule;
+	const KWDRSNBClassifier referenceSNBRule;
 	KWAttribute* attribute;
 	KWDerivationRuleOperand* operand;
-	KWDRNBClassifier referenceNBRule;
-	KWDRSNBClassifier referenceSNBRule;
 	ObjectArray oaClasses;
 	ALString sAttributeName;
 	ALString sAttributePredictorName;
@@ -1067,6 +1067,11 @@ void KWDRNBClassifier::ExportAttributeNames(StringVector* oaPartitionedPredictiv
 	int nVarKey;
 	int nIndex;
 	int nUncheckedVarKeyType;
+
+	require(svPredictorAttributeNames != NULL);
+	require(svPredictorPartitionedAttributeNames != NULL);
+	require(svPredictorAttributeNames->GetSize() == 0);
+	require(svPredictorPartitionedAttributeNames->GetSize() == 0);
 
 	// Parcours des operandes pour identifier les noms des attributs explicatifs et des attributs natifs associes
 	// Le dernier operande n'est pas parcouru car reserve a l'attribut des valeurs cibles
@@ -1087,14 +1092,14 @@ void KWDRNBClassifier::ExportAttributeNames(StringVector* oaPartitionedPredictiv
 
 			// Memorisation du nom de la variable pour la synchronisation
 			// avec le tableau oaPartitionIntervals
-			oaPartitionedPredictiveAttributeNames->Add(sAttributeName);
+			svPredictorPartitionedAttributeNames->Add(sAttributeName);
 
 			// Extraction du nom de la variable native
 			sAttributeName = operand->GetDerivationRule()->GetSecondOperand()->GetAttributeName();
 
 			// Memorisation du nom de la variable pour la synchronisation
 			// avec le tableau oaPartitionIntervals
-			oaNativePredictiveAttributeNames->Add(sAttributeName);
+			svPredictorAttributeNames->Add(sAttributeName);
 		}
 		else
 		{
@@ -1144,7 +1149,7 @@ void KWDRNBClassifier::ExportAttributeNames(StringVector* oaPartitionedPredictiv
 
 					// Memorisation du nom de la variable pour la synchronisation
 					// avec le tableau oaPartitionIntervals
-					oaNativePredictiveAttributeNames->Add(sAttributeName);
+					svPredictorAttributeNames->Add(sAttributeName);
 
 					// Extraction du nom de la variable native
 					sAttributeName =
@@ -1152,7 +1157,7 @@ void KWDRNBClassifier::ExportAttributeNames(StringVector* oaPartitionedPredictiv
 
 					// Memorisation du nom de la variable pour la synchronisation
 					// avec le tableau oaPartitionIntervals
-					oaPartitionedPredictiveAttributeNames->Add(sAttributeName);
+					svPredictorPartitionedAttributeNames->Add(sAttributeName);
 				}
 			}
 		}

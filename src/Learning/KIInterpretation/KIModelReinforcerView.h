@@ -15,6 +15,8 @@
 
 // ## Custom includes
 
+#include "KIPredictorAttributeArrayView.h"
+
 // ##
 
 ////////////////////////////////////////////////////////////
@@ -45,11 +47,23 @@ public:
 
 	// ## Custom declarations
 
+	// Action de construction d'un dictionnaire de renforcement
+	void BuildReinforcementClass();
+
+	// Redefinition des methode de parametrage de l'objet edite
+	void SetObject(Object* object) override;
+
 	// ##
 	////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	// ## Custom implementation
+
+	// Rafraichissement des specifications liees au predicteur courant selectionne
+	void RefreshPredictorSpec(KIModelService* modelService) override;
+
+	// Rafraichissement des listes d'aide
+	void RefreshHelpLists();
 
 	// ##
 };

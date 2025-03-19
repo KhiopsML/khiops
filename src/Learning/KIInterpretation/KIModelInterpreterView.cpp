@@ -12,13 +12,42 @@ KIModelInterpreterView::KIModelInterpreterView()
 {
 	SetIdentifier("KIModelInterpreter");
 	SetLabel("Interpret model");
-	AddStringField("ShapleyValues", "Shapley values", "");
+	AddStringField("ShapleyValueRanking", "Shapley values ranking", "");
 	AddIntField("ContributionAttributeNumber", "Number of contribution variables", 0);
 
 	// Parametrage des styles;
+	GetFieldAt("ShapleyValueRanking")->SetStyle("ComboBox");
 	GetFieldAt("ContributionAttributeNumber")->SetStyle("Spinner");
 
 	// ## Custom constructor
+
+	// Types de ranking pour les valeurs de Shapley
+	GetFieldAt("ShapleyValueRanking")->SetParameters("Global\nIndividual");
+
+	// Parametrage des nombres min et max
+	cast(UIIntElement*, GetFieldAt("ContributionAttributeNumber"))->SetMinValue(0);
+	cast(UIIntElement*, GetFieldAt("ContributionAttributeNumber"))
+	    ->SetMaxValue(KIModelInterpreter::nMaxContributionAttributeNumber);
+
+	// Ajout de l'action de construction d'un dictionnaire d'interpretation
+	AddAction("BuildInterpretationClass", "Build interpretation dictionary...",
+		  (ActionMethod)(&KIModelInterpreterView::BuildInterpretationClass));
+	GetActionAt("BuildInterpretationClass")->SetStyle("Button");
+
+	// Info-bulles
+	GetFieldAt("ShapleyValueRanking")
+	    ->SetHelpText(
+		"Ranking of the Shapley values produced by the interpretation model"
+		"\n- Global: predictor variables are ranked by decreasing global importance"
+		"\n and one Shapley value is written per target value and predictor variable, by decreasing variable "
+		"rank"
+		"\n- Individual: predictor variables are ranked by decreasing individual Shapley values"
+		"\n and three importance variables are written by target values by decreasing Shapley value:"
+		"\n name of predictor variable, variable part and Shapley value");
+	GetFieldAt("ContributionAttributeNumber")
+	    ->SetHelpText("Number of predictor variables exploited the interpretation model");
+	GetActionAt("BuildInterpretationClass")
+	    ->SetHelpText("Build an interpretation dictionary that computes the Shapley values");
 
 	// ##
 }
@@ -44,7 +73,7 @@ void KIModelInterpreterView::EventUpdate(Object* object)
 
 	KIModelServiceView::EventUpdate(object);
 	editedObject = cast(KIModelInterpreter*, object);
-	editedObject->SetShapleyValues(GetStringValueAt("ShapleyValues"));
+	editedObject->SetShapleyValueRanking(GetStringValueAt("ShapleyValueRanking"));
 	editedObject->SetContributionAttributeNumber(GetIntValueAt("ContributionAttributeNumber"));
 
 	// ## Custom update
@@ -60,7 +89,7 @@ void KIModelInterpreterView::EventRefresh(Object* object)
 
 	KIModelServiceView::EventRefresh(object);
 	editedObject = cast(KIModelInterpreter*, object);
-	SetStringValueAt("ShapleyValues", editedObject->GetShapleyValues());
+	SetStringValueAt("ShapleyValueRanking", editedObject->GetShapleyValueRanking());
 	SetIntValueAt("ContributionAttributeNumber", editedObject->GetContributionAttributeNumber());
 
 	// ## Custom refresh
@@ -74,5 +103,10 @@ const ALString KIModelInterpreterView::GetClassLabel() const
 }
 
 // ## Method implementation
+
+void KIModelInterpreterView::BuildInterpretationClass()
+{
+	AddSimpleMessage("Not yet implemented");
+}
 
 // ##

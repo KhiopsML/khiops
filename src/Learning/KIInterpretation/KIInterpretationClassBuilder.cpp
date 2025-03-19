@@ -4,28 +4,254 @@
 
 #include "KIInterpretationClassBuilder.h"
 
+KIInterpretationClassBuilder::KIInterpretationClassBuilder()
+{
+	interpretationSpec = NULL;
+	kwcPredictorClass = NULL;
+	kwcdInterpretationDomain = NULL;
+	kwcInterpretationMainClass = NULL;
+}
+
 KIInterpretationClassBuilder::KIInterpretationClassBuilder(KIInterpretationSpec* spec)
 {
 	interpretationSpec = spec;
-	kwcInputClassifier = NULL;
+	kwcPredictorClass = NULL;
 	kwcdInterpretationDomain = NULL;
 	kwcInterpretationMainClass = NULL;
 }
 
 KIInterpretationClassBuilder::~KIInterpretationClassBuilder()
 {
-	CleanImport();
+	Clean();
 }
 
-void KIInterpretationClassBuilder::CleanImport()
+boolean KIInterpretationClassBuilder::ImportPredictor(KWClass* kwcInputPredictor)
 {
+	const boolean bTrace = false;
+	const KWDRNBClassifier referenceNBRule;
+	const KWDRSNBClassifier referenceSNBRule;
+	boolean bOk;
+	KWTrainedClassifier trainedClassifier;
+	KWTrainedRegressor trainedRegressor;
+	KWAttribute* predictionAttribute;
+	KWAttribute* attribute;
+	KWDRNBClassifier* classifierRule;
+	boolean bIsClassifier;
+	ObjectArray oaClasses;
+	ALString sAttributeName;
+	ALString sAttributePredictorName;
+	int i;
+
+	require(kwcInputPredictor != NULL);
+
+	// Nettoyage prealable
+	Clean();
+
+	// Initialisations
+	bIsClassifier = false;
+	bOk = true;
+
+	// On exclut le cas d'un dictionnaire d'interpretation
+	if (kwcInputPredictor == NULL or not kwcInputPredictor->Check() or
+	    not kwcInputPredictor->GetConstMetaData()->IsKeyPresent("PredictorType") or
+	    kwcInputPredictor->GetConstMetaData()->IsKeyPresent("InterpreterDictionary"))
+		bOk = false;
+
+	// Tentative d'importation du predicteur
+	if (bOk)
+	{
+		// Test d'importation de ce dictionnaire dans un classifieur
+		bIsClassifier = trainedClassifier.ImportPredictorClass(kwcInputPredictor);
+
+		// On ne gere pas les grilles
+		if (bIsClassifier and trainedClassifier.GetMetaDataPredictorLabel(kwcInputPredictor) == "Data Grid")
+			bIsClassifier = false;
+
+		// On ne gere pas actuellement les classifieur avec groupement de la cible
+		if (bIsClassifier and not IsClassifierClassUsingTargetValueGrouping(kwcInputPredictor))
+		{
+			Global::AddWarning("Interpret model", "",
+					   "Interpretation dictionary not yet implemented "
+					   "for classifiers with grouped target values");
+			bIsClassifier = false;
+		}
+
+		// Message d'erreur specifique pour le cas des regresseurs, non geres actuellement
+		if (not bIsClassifier)
+		{
+			if (trainedRegressor.ImportPredictorClass(kwcInputPredictor))
+			{
+				Global::AddWarning("Interpret model", "",
+						   "Interpretation dictionary not yet implemented for regressors");
+			}
+			trainedRegressor.DeletePredictor();
+		}
+
+		// Cas ou le dictionnaire est bien celui d'un classifieur pouvant etre interprete
+		if (bIsClassifier)
+		{
+			// Collecte des valeurs cibles
+			for (i = 0; i < trainedClassifier.GetTargetValueNumber(); i++)
+				svTargetValues.Add(trainedClassifier.GetTargetValueAt(i));
+
+			// Erreur s'il ny a pas au moins deux classe
+			if (svTargetValues.GetSize() <= 1)
+				bIsClassifier = false;
+
+			// Extraction de l'attribut de prediction
+			predictionAttribute = trainedClassifier.GetPredictionAttribute();
+			if (predictionAttribute->GetDerivationRule() == NULL)
+				bIsClassifier = false;
+			else if (predictionAttribute->GetDerivationRule()->GetOperandNumber() == 0)
+				bIsClassifier = false;
+
+			// L'attribut de prediction doit avoir en premier operande un attribut de type Structure
+			if (bIsClassifier and
+			    (predictionAttribute->GetDerivationRule()->GetFirstOperand()->GetType() !=
+				 KWType::Structure or
+			     predictionAttribute->GetDerivationRule()->GetFirstOperand()->GetOrigin() !=
+				 KWDerivationRuleOperand::OriginAttribute))
+				bIsClassifier = false;
+
+			// Recherche de l'attribut decrivant le predicteur
+			if (bIsClassifier)
+			{
+				// Extraction de l'attribut Structure qui decrit le classifier
+				// Cet attribut doit avoir une regle de derivation dont le nom est celui
+				// d'une regle NB ou SNB
+				attribute = kwcInputPredictor->LookupAttribute(
+				    predictionAttribute->GetDerivationRule()->GetFirstOperand()->GetAttributeName());
+				assert(attribute != NULL);
+				sAttributePredictorName = attribute->GetName();
+
+				// Le predicteur est specifie via une regle de derivation
+				if (attribute->GetDerivationRule() == NULL)
+					bIsClassifier = false;
+				// Il doit etre soit le Naive Bayes, soit le Selective Naive Bayes
+				else
+				{
+					if (attribute->GetDerivationRule()->GetName() != referenceNBRule.GetName() and
+					    attribute->GetDerivationRule()->GetName() != referenceSNBRule.GetName())
+						bIsClassifier = false;
+				}
+			}
+
+			// Cas d'un classifier valide, donc heritant du Naive Bayes
+			if (bIsClassifier)
+			{
+				assert(sAttributePredictorName != "");
+
+				// Extraction de la regle de derivation de l'attribut classifieur
+				classifierRule = cast(
+				    KWDRNBClassifier*,
+				    kwcInputPredictor->LookupAttribute(sAttributePredictorName)->GetDerivationRule());
+
+				// Initialisation des listes d'attributs du classifier
+				classifierRule->ExportAttributeNames(&svPredictorAttributeNames,
+								     &svPredictorPartitionedAttributeNames);
+				assert(svPredictorAttributeNames.GetSize() ==
+				       svPredictorPartitionedAttributeNames.GetSize());
+
+				// Le classifier doit avoir au moins un attribut
+				if (svPredictorAttributeNames.GetSize() == 0)
+					bIsClassifier = false;
+
+				// Parcours des attributs explicatifs recenses, pour des tests d'integrite avances
+				// Ces precautions permettent de se premunir au mieux contre des incoherence de
+				// dictionnaires de classifieurs modifies a la main
+				for (i = 0; i < svPredictorAttributeNames.GetSize(); i++)
+				{
+					// Verification de l'attribut du predicteur natif
+					attribute =
+					    kwcInputPredictor->LookupAttribute(svPredictorAttributeNames.GetAt(i));
+					if (attribute == NULL)
+						bIsClassifier = false;
+
+					// Verification de l'attribut partitionne du predicteur natif
+					attribute = kwcInputPredictor->LookupAttribute(
+					    svPredictorPartitionedAttributeNames.GetAt(i));
+					if (attribute == NULL)
+						bIsClassifier = false;
+				}
+			}
+		}
+
+		// Nettoyage
+		trainedClassifier.DeletePredictor();
+	}
+
+	// Memorisation du predicteur si ok
+	bOk = bIsClassifier;
+	if (bOk)
+	{
+		kwcPredictorClass = kwcInputPredictor;
+		assert(kwcPredictorClass != NULL);
+		assert(svTargetValues.GetSize() >= 2);
+		assert(svPredictorAttributeNames.GetSize() >= 1);
+		assert(svPredictorPartitionedAttributeNames.GetSize() >= svPredictorAttributeNames.GetSize());
+	}
+	// Nettoyage sinon
+	else
+		Clean();
+
+	// Trace
+	if (bTrace)
+	{
+		cout << "ImportPredictor " << kwcInputPredictor->GetName() << ": "
+		     << BooleanToString(IsPredictorImported()) << "\n";
+
+		// Caracteristiques d'un predicteur importe
+		if (IsPredictorImported())
+		{
+			// Valeurs cibles
+			cout << "\tTarget values: " << svTargetValues.GetSize() << "\n";
+			for (i = 0; i < svTargetValues.GetSize(); i++)
+				cout << "\t\t" << svTargetValues.GetAt(i) << "\n";
+
+			// Variables du predicteur
+			cout << "\tPredictor variables: " << svPredictorAttributeNames.GetSize() << "\n";
+			for (i = 0; i < svPredictorAttributeNames.GetSize(); i++)
+				cout << "\t\t" << svPredictorAttributeNames.GetAt(i) << "\t"
+				     << svPredictorPartitionedAttributeNames.GetAt(i) << "\n";
+		}
+	}
+
+	/*DDD
+	kwcInputPredictor = (bIsClassifierNaiveBayes ? inputClassifier : NULL);
+	if (kwcInputPredictor)
+	{
+		interpretationSpec->SetMaxAttributesNumber(GetPredictorAttributeNumber());
+
+		// Ne pas ecraser un precedent choix fait via l'IHM, lors d'une nouvelle importation
+		interpretationSpec->SetHowAttributesNumber(GetPredictorAttributeNumber());
+		interpretationSpec->SetWhyAttributesNumber(GetPredictorAttributeNumber());
+		assert(trainedClassifier->GetTargetAttribute() != NULL);
+
+		// L'import a reussi, on peut donc creer un domaine specifique d'interpretation, et le(s) dico(s) d'interpretation qu'il doit contenir
+		bOk = CreateInterpretationDomain(inputClassifier);
+		if (bOk)
+			PrepareInterpretationClass();
+	}
+	if (trainedClassifier != NULL)
+		delete trainedClassifier;
+		*/
+	return bOk;
+}
+
+boolean KIInterpretationClassBuilder::IsPredictorImported() const
+{
+	return kwcPredictorClass != NULL;
+}
+
+void KIInterpretationClassBuilder::Clean()
+{
+	// Nettoyage des resultats d'import
+	kwcPredictorClass = NULL;
 	svTargetValues.SetSize(0);
+	svPredictorAttributeNames.SetSize(0);
+	svPredictorPartitionedAttributeNames.SetSize(0);
 
-	// Nettoyage du tableau de noms de variables partitionnees
-	svPartitionedPredictiveAttributeNames.SetSize(0);
-
-	// Nettoyage du tableau de noms de variables natives
-	svNativePredictiveAttributeNames.SetSize(0);
+	// Nettoyage de l'interpreteur construit
 	if (kwcdInterpretationDomain != NULL)
 	{
 		kwcdInterpretationDomain->DeleteAllClasses();
@@ -33,7 +259,47 @@ void KIInterpretationClassBuilder::CleanImport()
 		kwcdInterpretationDomain = NULL;
 		kwcInterpretationMainClass = NULL;
 	}
-	kwcInputClassifier = NULL;
+}
+
+boolean KIInterpretationClassBuilder::IsClassifierClassUsingTargetValueGrouping(KWClass* kwcClassifier) const
+{
+	boolean bOk = true;
+	const KWDRDataGrid referenceDataGridRule;
+	const KWDRValueGroups referenceValueGroupsRule;
+	KWDRDataGrid* dataGridRule;
+	KWDerivationRuleOperand* operand;
+	KWAttribute* attribute;
+
+	require(kwcClassifier != NULL);
+
+	// Parcours des attributs pour detecter l'utilisation d'une regle de groupement des valeurs
+	attribute = kwcClassifier->GetHeadAttribute();
+	while (attribute != NULL and bOk)
+	{
+		if (attribute->GetStructureName() == referenceDataGridRule.GetStructureName() and
+		    attribute->GetConstMetaData()->IsKeyPresent("Level"))
+		{
+			if (attribute->GetDerivationRule()->GetName() == referenceDataGridRule.GetName())
+			{
+				dataGridRule = cast(KWDRDataGrid*, attribute->GetDerivationRule());
+
+				// On ne regarde que les grille a deux dimensions lies au traitement univarie
+				// pour ne pas regarder la deuxieme variable du traitement bivarie qui est necessairement
+				// groupee dans le cas categoriel
+				if (dataGridRule->GetAttributeNumber() == 2)
+				{
+					operand = dataGridRule->GetSecondOperand();
+					if (operand->GetDerivationRule()->GetName() ==
+					    referenceValueGroupsRule.GetName())
+						bOk = false;
+					if (not bOk)
+						break;
+				}
+			}
+		}
+		kwcClassifier->GetNextAttribute(attribute);
+	}
+	return bOk;
 }
 
 boolean KIInterpretationClassBuilder::CreateInterpretationDomain(const KWClass* inputClassifier)
@@ -307,7 +573,7 @@ KWAttribute* KIInterpretationClassBuilder::CreateContributionValueAtAttribute(
 	assert(rule->Check());
 
 	// Attribut natif de la regle
-	soNativeAttributeName = svNativePredictiveAttributeNames.GetAt(nIndex - 1);
+	soNativeAttributeName = svPredictorAttributeNames.GetAt(nIndex - 1);
 
 	// Creation de l'attribut, et affectation de la regle de derivation
 	contributionClassAttribute = new KWAttribute;
@@ -316,7 +582,7 @@ KWAttribute* KIInterpretationClassBuilder::CreateContributionValueAtAttribute(
 	    kwcInterpretation->BuildAttributeName(sValue + "_" + sTargetClass + "_" + soNativeAttributeName));
 	contributionClassAttribute->SetType(KWType::Continuous);
 	contributionClassAttribute->SetDerivationRule(rule);
-	if (interpretationSpec->GetWhyAttributesNumber() == svNativePredictiveAttributeNames.GetSize() and
+	if (interpretationSpec->GetWhyAttributesNumber() == svPredictorAttributeNames.GetSize() and
 	    interpretationSpec->GetSortWhyResults() == false)
 	{
 		contributionClassAttribute->GetMetaData()->SetStringValueAt("ContributionVariable",
@@ -358,7 +624,7 @@ KWAttribute* KIInterpretationClassBuilder::CreateContributionNameAtAttribute(
 
 	attribute->GetMetaData()->SetDoubleValueAt("ContributionVariableRank", nIndex);
 	attribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
-	if (interpretationSpec->GetWhyAttributesNumber() == svNativePredictiveAttributeNames.GetSize() and
+	if (interpretationSpec->GetWhyAttributesNumber() == svPredictorAttributeNames.GetSize() and
 	    interpretationSpec->GetSortWhyResults() == false)
 	{
 		attribute->GetMetaData()->SetDoubleValueAt("ContributionVariableRank", nIndex);
@@ -393,7 +659,7 @@ KWAttribute* KIInterpretationClassBuilder::CreateContributionPartAtAttribute(
 	attribute->SetType(KWType::Symbol);
 	attribute->GetMetaData()->SetDoubleValueAt("ContributionPartRank", nIndex);
 	attribute->GetMetaData()->SetStringValueAt("Target", sTargetClass);
-	if (interpretationSpec->GetWhyAttributesNumber() == svNativePredictiveAttributeNames.GetSize() and
+	if (interpretationSpec->GetWhyAttributesNumber() == svPredictorAttributeNames.GetSize() and
 	    interpretationSpec->GetSortWhyResults() == false)
 	{
 		attribute->GetMetaData()->SetDoubleValueAt("ContributionPartRank", nIndex);
@@ -660,250 +926,46 @@ const SymbolVector* KIInterpretationClassBuilder::GetTargetValues() const
 	return &svTargetValues;
 }
 
-StringVector* KIInterpretationClassBuilder::GetPredictiveAttributeNamesArray()
+int KIInterpretationClassBuilder::GetPredictorAttributeNumber() const
 {
-	return &svPartitionedPredictiveAttributeNames;
+	return svPredictorAttributeNames.GetSize();
 }
 
-boolean KIInterpretationClassBuilder::TestGroupTargetValues(KWClass* inputClassifier)
+const StringVector* KIInterpretationClassBuilder::GetPredictorAttributeNames() const
 {
-	boolean bOk = true;
-	ALString sValue;
-	KWDerivationRule* derivationrule;
-	KWDerivationRuleOperand* operand;
-	KWAttribute* attribute;
-
-	if (bOk)
-	{
-		attribute = inputClassifier->GetHeadAttribute();
-
-		while (attribute != NULL and bOk)
-		{
-			if (attribute->GetStructureName() == "DataGrid" and
-			    attribute->GetConstMetaData()->IsKeyPresent("Level"))
-			{
-
-				if (bOk)
-				{
-					derivationrule = attribute->GetDerivationRule();
-					operand = derivationrule->GetSecondOperand();
-					if (operand->GetDerivationRule()->GetName() == "ValueGroups")
-						bOk = false;
-				}
-			}
-			inputClassifier->GetNextAttribute(attribute);
-		}
-	}
-	return bOk;
+	return &svPredictorAttributeNames;
 }
 
-boolean KIInterpretationClassBuilder::ImportClassifier(KWClass* inputClassifier)
+const StringVector* KIInterpretationClassBuilder::GetPredictorPartitionedAttributeNames() const
 {
-	KWTrainedClassifier* trainedClassifier = NULL;
-	KWTrainedRegressor* trainedRegressor = NULL;
-	KWAttribute* predictionAttribute;
-	KWAttribute* attribute;
-	KWAttribute* nativeAttribute;
-	KWDRNBClassifier* classifierRule;
-	KWDRNBClassifier referenceNBRule;
-	KWDRSNBClassifier referenceSNBRule;
-	boolean bIsClassifier;
-	boolean bIsClassifierNaiveBayes;
-	boolean bOk;
-	ObjectArray oaClasses;
-	ALString sAttributeName;
-	ALString sAttributePredictorName;
-	int nAttributeNaiveBayes;
-	int nAttributeSelectiveNaiveBayes;
-	int nAttributeIndex;
-	const KWDRDataGridStats refDataGridStatsRule;
-	const KWDRDataGridStatsBlock refDataGridStatsBlockRule;
-	int i;
-
-	// Reinitialisation d'une precedente importation
-	CleanImport();
-
-	bIsClassifier = false;
-	bIsClassifierNaiveBayes = false;
-	bOk = true;
-
-	if (inputClassifier == NULL or not inputClassifier->Check() or
-	    not inputClassifier->GetConstMetaData()->IsKeyPresent("PredictorType") or
-	    inputClassifier->GetConstMetaData()->IsKeyPresent("InterpreterDictionary"))
-		bOk = false;
-
-	if (bOk)
-	{
-		// Test d'importation de ce dictionnaire dans un classifieur
-		trainedClassifier = new KWTrainedClassifier;
-		bIsClassifier = trainedClassifier->ImportPredictorClass(inputClassifier);
-
-		// On ne gere pas les grilles
-		if (bIsClassifier and trainedClassifier->GetMetaDataPredictorLabel(inputClassifier) == "Data Grid")
-			bIsClassifier = false; // pas gere (pour l'instant ?)
-
-		// On ne gere pas actuellement les classifieur avec groupement de la cible
-		if (bIsClassifier and not TestGroupTargetValues(inputClassifier))
-		{
-			Global::AddWarning("Interpret model", "",
-					   "Interpretation dictionary not yet implemented "
-					   "for classifiers with grouped target values");
-			bIsClassifier = false;
-		}
-
-		// Message d'erreur specifique pour le cas des regresseurs, non geres actuellement
-		if (not bIsClassifier)
-		{
-			trainedRegressor = new KWTrainedRegressor;
-			if (trainedRegressor->ImportPredictorClass(inputClassifier))
-			{
-				Global::AddWarning("Interpret model", "",
-						   "Interpretation dictionary not yet implemented for regressors");
-			}
-			delete trainedRegressor;
-		}
-
-		// Cas ou le dictionnaire est bien celui d'un classifieur pouvant etre interprete
-		if (bIsClassifier)
-		{
-			// Initalisation des indicateurs de presence d'un NB ou d'un SNB
-			nAttributeNaiveBayes = 0;
-			nAttributeSelectiveNaiveBayes = 0;
-
-			for (i = 0; i < trainedClassifier->GetTargetValueNumber(); i++)
-				svTargetValues.Add(trainedClassifier->GetTargetValueAt(i));
-
-			// Extraction de l'attribut de prediction
-			predictionAttribute = trainedClassifier->GetPredictionAttribute();
-
-			if (predictionAttribute->GetDerivationRule() == NULL)
-				bIsClassifier = false;
-			else if (predictionAttribute->GetDerivationRule()->GetOperandNumber() == 0)
-				bIsClassifier = false;
-
-			// Cas ou l'attribut de prediction n'est pas un attribut de type Structure
-			if (bIsClassifier and
-			    (predictionAttribute->GetDerivationRule()->GetFirstOperand()->GetType() !=
-				 KWType::Structure ||
-			     predictionAttribute->GetDerivationRule()->GetFirstOperand()->GetOrigin() !=
-				 KWDerivationRuleOperand::OriginAttribute))
-				bIsClassifier = false;
-
-			if (bIsClassifier)
-			{
-				// Extraction de l'attribute Structure qui decrit le classifier
-				// Cet attribut doit avoir une regle de derivation dont le nom est celui
-				// d'une regle NB ou SNB
-				attribute = inputClassifier->LookupAttribute(
-				    predictionAttribute->GetDerivationRule()->GetFirstOperand()->GetAttributeName());
-
-				assert(attribute != NULL);
-
-				// Cas d'un attribut avec RDD
-				if (attribute->GetDerivationRule() != NULL)
-				{
-					if (attribute->GetDerivationRule()->GetName() == referenceNBRule.GetName())
-					{
-						nAttributeNaiveBayes++;
-						sAttributePredictorName = attribute->GetName();
-					}
-					if (attribute->GetDerivationRule()->GetName() == referenceSNBRule.GetName())
-					{
-						nAttributeSelectiveNaiveBayes++;
-						sAttributePredictorName = attribute->GetName();
-					}
-				}
-			}
-
-			// Cas d'un predicteur Bayesien naif NB ou SNB
-			if (nAttributeNaiveBayes + nAttributeSelectiveNaiveBayes == 1)
-			{
-				bIsClassifierNaiveBayes = true;
-
-				// Extraction de la regle de derivation de l'attribut classifieur
-				classifierRule = cast(
-				    KWDRNBClassifier*,
-				    inputClassifier->LookupAttribute(sAttributePredictorName)->GetDerivationRule());
-
-				// Initilisation des listes d'attributs native et calcule du NB et SNB
-				classifierRule->ExportAttributeNames(&svPartitionedPredictiveAttributeNames,
-								     &svNativePredictiveAttributeNames);
-
-				if (svNativePredictiveAttributeNames.GetSize() == 0)
-					bOk = false;
-
-				// Parcours des attributs explicatifs recenses
-				for (nAttributeIndex = 0;
-				     nAttributeIndex < svPartitionedPredictiveAttributeNames.GetSize();
-				     nAttributeIndex++)
-				{
-					// Extraction de l'attribut explicatif courant
-					attribute = inputClassifier->LookupAttribute(
-					    svPartitionedPredictiveAttributeNames.GetAt(nAttributeIndex));
-
-					// Cas ou l'attribut partitionne n'est pas present dans le dictionnaire
-					if (attribute == NULL)
-						bOk = false;
-
-					// Extraction de l'attribut natif
-					nativeAttribute = inputClassifier->LookupAttribute(
-					    svNativePredictiveAttributeNames.GetAt(nAttributeIndex));
-
-					// Cas ou l'attribut natif n'est pas present dans le dictionnaire
-					if (nativeAttribute == NULL)
-						bOk = false;
-				}
-			}
-		}
-	}
-
-	bIsClassifierNaiveBayes = bIsClassifierNaiveBayes and bOk;
-	kwcInputClassifier = (bIsClassifierNaiveBayes ? inputClassifier : NULL);
-	if (kwcInputClassifier)
-	{
-		interpretationSpec->SetMaxAttributesNumber(GetPredictiveAttributeNamesArray()->GetSize());
-
-		// Ne pas ecraser un precedent choix fait via l'IHM, lors d'une nouvelle importation
-		interpretationSpec->SetHowAttributesNumber(GetPredictiveAttributeNamesArray()->GetSize());
-		interpretationSpec->SetWhyAttributesNumber(GetPredictiveAttributeNamesArray()->GetSize());
-		assert(trainedClassifier->GetTargetAttribute() != NULL);
-
-		// L'import a reussi, on peut donc creer un domaine specifique d'interpretation, et le(s) dico(s) d'interpretation qu'il doit contenir
-		bOk = CreateInterpretationDomain(inputClassifier);
-		if (bOk)
-			PrepareInterpretationClass();
-	}
-	if (trainedClassifier != NULL)
-		delete trainedClassifier;
-	bIsClassifierNaiveBayes = bIsClassifierNaiveBayes and bOk;
-	return bIsClassifierNaiveBayes;
+	return &svPredictorPartitionedAttributeNames;
 }
 
 void KIInterpretationClassBuilder::PrepareInterpretationClass()
 {
-	KWAttribute* nativeAttribute;
+	KWAttribute* predictorAttribute;
 	KWAttribute* attribute;
 	KWAttribute* inputAttribute;
-	ALString sNativeVariableName;
+	ALString sPredictorAttributeName;
 	int nAttributeIndex;
 
 	require(kwcInterpretationMainClass != NULL);
 	require(kwcdInterpretationDomain != NULL);
 
-	if (svPartitionedPredictiveAttributeNames.GetSize() == 0)
+	if (svPredictorAttributeNames.GetSize() == 0)
 		return;
 
 	// Taggage des attributs explicatifs contribuant au predicteur, et pouvant etre utilisees eventuellement comme leviers
-	for (nAttributeIndex = 0; nAttributeIndex < svPartitionedPredictiveAttributeNames.GetSize(); nAttributeIndex++)
+	for (nAttributeIndex = 0; nAttributeIndex < svPredictorAttributeNames.GetSize(); nAttributeIndex++)
 	{
-		sNativeVariableName = svNativePredictiveAttributeNames.GetAt(nAttributeIndex);
+		sPredictorAttributeName = svPredictorAttributeNames.GetAt(nAttributeIndex);
 
 		// Extraction de l'attribut natif
-		nativeAttribute = kwcInterpretationMainClass->LookupAttribute(sNativeVariableName);
-		assert(nativeAttribute != NULL);
-		if (not nativeAttribute->GetConstMetaData()->IsKeyPresent(LEVER_ATTRIBUTE_META_TAG))
+		predictorAttribute = kwcInterpretationMainClass->LookupAttribute(sPredictorAttributeName);
+		assert(predictorAttribute != NULL);
+		if (not predictorAttribute->GetConstMetaData()->IsKeyPresent(LEVER_ATTRIBUTE_META_TAG))
 		{
-			nativeAttribute->GetMetaData()->SetStringValueAt(
+			predictorAttribute->GetMetaData()->SetStringValueAt(
 			    LEVER_ATTRIBUTE_META_TAG,
 			    "true"); // par defaut : toutes les variables natives pourront etre utilisees comme levier
 		}
@@ -914,7 +976,7 @@ void KIInterpretationClassBuilder::PrepareInterpretationClass()
 	attribute = kwcInterpretationMainClass->GetHeadAttribute();
 	while (attribute != NULL)
 	{
-		inputAttribute = GetInputClassifier()->LookupAttribute(attribute->GetName());
+		inputAttribute = GetPredictorClass()->LookupAttribute(attribute->GetName());
 
 		if (inputAttribute != NULL)
 		{

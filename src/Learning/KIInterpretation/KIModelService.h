@@ -12,6 +12,9 @@
 
 // ## Custom includes
 
+#include "KWClassDomain.h"
+#include "KIInterpretationClassBuilder.h"
+
 // ##
 
 ////////////////////////////////////////////////////////////
@@ -51,6 +54,9 @@ public:
 
 	// ## Custom declarations
 
+	// Service de construction de classe dediee a l'interpretation ou au reenforcement
+	KIInterpretationClassBuilder* GetClassBuilder();
+
 	// ##
 
 	////////////////////////////////////////////////////////
@@ -61,6 +67,9 @@ protected:
 	int nPredictorAttributeNumber;
 
 	// ## Custom implementation
+
+	// Service de construction de classe
+	KIInterpretationClassBuilder classBuilder;
 
 	// ##
 };

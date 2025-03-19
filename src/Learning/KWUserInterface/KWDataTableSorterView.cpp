@@ -383,7 +383,7 @@ void KWDataTableSorterView::EventRefresh()
 	// Appel de la methode ancetre
 	UICard::EventRefresh();
 
-	// Rafraichissement de la liste d'aide sur les nom de variables
+	// Rafraichissement de la liste d'aide sur les noms de variables
 	RefreshHelpLists();
 }
 

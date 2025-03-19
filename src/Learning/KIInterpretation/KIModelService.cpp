@@ -64,9 +64,12 @@ const ALString KIModelService::GetClassLabel() const
 
 const ALString KIModelService::GetObjectLabel() const
 {
-	ALString sLabel;
+	return sPredictorClassName;
+}
 
-	return sLabel;
+KIInterpretationClassBuilder* KIModelService::GetClassBuilder()
+{
+	return &classBuilder;
 }
 
 // ##

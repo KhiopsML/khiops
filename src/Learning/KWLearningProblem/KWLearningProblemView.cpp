@@ -381,6 +381,7 @@ void KWLearningProblemView::EvaluatePredictors()
 
 void KWLearningProblemView::InterpretPredictor()
 {
+	/*DDD
 	KIPredictorInterpretationView view;
 
 	// Initialisation a partir de la base d'apprentissage
@@ -388,6 +389,29 @@ void KWLearningProblemView::InterpretPredictor()
 				      GetLearningProblem()->GetClassFileName());
 
 	view.Open();
+	*/
+	KIModelInterpreter modelInterpreter;
+	KIModelInterpreterView modelInterpreterView;
+
+	// Parametrer du dictionnaire par defaut a utiliser si possible
+	modelInterpreterView.SetDefaultClassName(GetLearningProblem()->GetClassName());
+
+	// Ouverture de la boite de dialogue sur l'interpretation des modeles
+	modelInterpreterView.SetObject(&modelInterpreter);
+	modelInterpreterView.Open();
+}
+
+void KWLearningProblemView::ReinforcePredictor()
+{
+	KIModelReinforcer modelReinforcer;
+	KIModelReinforcerView modelReinforcerView;
+
+	// Parametrer du dictionnaire par defaut a utiliser si possible
+	modelReinforcerView.SetDefaultClassName(GetLearningProblem()->GetClassName());
+
+	// Ouverture de la boite de dialogue sur le reenforcement des modeles
+	modelReinforcerView.SetObject(&modelReinforcer);
+	modelReinforcerView.Open();
 }
 
 void KWLearningProblemView::SetObject(Object* object)
