@@ -167,8 +167,8 @@ Section "Install" SecInstall
   File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\norm.jar"
   File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\khiops.jar"
   File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops_env.cmd"
-  File "..\khiops.cmd"
-  File "..\khiops_coclustering.cmd"
+  File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops.cmd"
+  File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops_coclustering.cmd"
 
   # Install Docs
   SetOutPath "$INSTDIR"

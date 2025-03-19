@@ -196,4 +196,14 @@ else(UNIX)
   configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops_env.cmd.in ${TMP_DIR}/khiops_env.cmd @ONLY
                  NEWLINE_STYLE CRLF)
 
+  # khiops.cmd and khiops_coclustering.cmd differ only with the binary path: KHIOPS_PATH or KHIOPS_COCLUSTRING_PATH.
+  # They both build from the same file: khiops.cmd.in
+  set(MODL_PATH "KHIOPS_PATH")
+  set(TOOL_NAME "Khiops")
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops.cmd.in ${TMP_DIR}/khiops.cmd @ONLY NEWLINE_STYLE CRLF)
+  set(MODL_PATH "KHIOPS_COCLUSTERING_PATH")
+  set(TOOL_NAME "Khiops_coclustering")
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops.cmd.in ${TMP_DIR}/khiops_coclustering.cmd @ONLY
+                 NEWLINE_STYLE CRLF)
+
 endif(UNIX)

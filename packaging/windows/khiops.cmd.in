@@ -3,11 +3,11 @@ setlocal
 
 REM ========================================================
 REM See the khiops_env script for full documentation on the
-REM environment variables used by Khiops
+REM environment variables used by @TOOL_NAME@
 REM ========================================================
 
 REM ========================================================
-REM Initialization of the installation directory of Khiops
+REM Initialization of the installation directory of @TOOL_NAME@
 
 REM Test is khiops_env is present
 if not exist "%~dp0khiops_env.cmd" goto ERR_PATH_1
@@ -15,8 +15,8 @@ if not exist "%~dp0khiops_env.cmd" goto ERR_PATH_1
 REM Initialize Khiops env variables
 call "%~dp0khiops_env"
 
-REM Test is Khiops environment already set up
-if not exist "%KHIOPS_PATH%" goto ERR_PATH_2
+REM Test is @TOOL_NAME@ environment already set up
+if not exist "%@MODL_PATH@%" goto ERR_PATH_2
 
 REM display mpi configuration problems if any
 if not "%KHIOPS_MPI_ERROR%". == "". echo %KHIOPS_MPI_ERROR%
@@ -43,7 +43,7 @@ set "KHIOPS_BATCH_MODE="
 set "_IS_CONDA="
 
 REM ========================================================
-REM Start Khiops (with or without parameteres)
+REM Start @TOOL_NAME@ (with or without parameteres)
 
 if %1.==. goto NOPARAMS
 if not %1.==. goto PARAMS
@@ -53,13 +53,13 @@ REM Start without parameters
 if not exist "%KHIOPS_LAST_RUN_DIR%" md "%KHIOPS_LAST_RUN_DIR%"
 if not exist "%KHIOPS_LAST_RUN_DIR%" goto PARAMS
 
-%KHIOPS_MPI_COMMAND% "%KHIOPS_PATH%" -o "%KHIOPS_LAST_RUN_DIR%\scenario._kh" -e "%KHIOPS_LAST_RUN_DIR%\log.txt"
+%KHIOPS_MPI_COMMAND% "%@MODL_PATH@%" -o "%KHIOPS_LAST_RUN_DIR%\scenario._kh" -e "%KHIOPS_LAST_RUN_DIR%\log.txt"
 if %errorlevel% EQU 0 goto END
 goto ERR_RETURN_CODE
 
 REM Start with parameters
 :PARAMS
-%KHIOPS_MPI_COMMAND% "%KHIOPS_PATH%" %*
+%KHIOPS_MPI_COMMAND% "%@MODL_PATH@%" %*
 if %errorlevel% EQU 0 goto END
 goto ERR_RETURN_CODE
 
@@ -67,19 +67,19 @@ REM ========================================================
 REM Error messages
 
 :ERR_PATH_1
-start "KHIOPS CONFIGURATION PROBLEM" echo ERROR "khiops_env.cmd is missing in directory %~dp0"
+start "@TOOL_NAME@ CONFIGURATION PROBLEM" echo ERROR "khiops_env.cmd is missing in directory %~dp0"
 exit /b 1
 
 :ERR_PATH_2
-start "KHIOPS CONFIGURATION PROBLEM" echo ERROR "Incorrect installation directory for Khiops (File %KHIOPS_PATH% not found)"
+start "@TOOL_NAME@ CONFIGURATION PROBLEM" echo ERROR "Incorrect installation directory for @TOOL_NAME@ (File %@MODL_PATH@% not found)"
 exit /b 1
 
 :ERR_RETURN_CODE
-start "KHIOPS EXECUTION PROBLEM" cmd /k "echo ERROR Khiops ended with return code %errorlevel% & echo Contents of the log file at %KHIOPS_LAST_RUN_DIR%\log.txt: & type %KHIOPS_LAST_RUN_DIR%\log.txt"
+start "@TOOL_NAME@ EXECUTION PROBLEM" cmd /k "echo ERROR @TOOL_NAME@ ended with return code %errorlevel% & echo Contents of the log file at %KHIOPS_LAST_RUN_DIR%\log.txt: & type %KHIOPS_LAST_RUN_DIR%\log.txt"
 goto END
 
 :ERR_JAVA
-start "KHIOPS CONFIGURATION PROBLEM" echo ERROR "%KHIOPS_JAVA_ERROR%"
+start "@TOOL_NAME@ CONFIGURATION PROBLEM" echo ERROR "%KHIOPS_JAVA_ERROR%"
 exit /b 1
 
 :ERR_CONDA
