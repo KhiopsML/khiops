@@ -89,7 +89,7 @@ TOOL_NAMES_PER_DIR_NAME = dict((v, k) for k, v in TOOL_DIR_NAMES.items())
 assert set(TOOL_NAMES_PER_DIR_NAME.values()) == set(TOOL_NAMES)
 
 """ Liste des outils de Khiops qui tournent en parallele (les seuls que l'on peut lancer avec mpiexec) """
-PARALLEL_TOOL_NAMES = [KHIOPS]
+PARALLEL_TOOL_NAMES = [KHIOPS, COCLUSTERING]
 assert set(PARALLEL_TOOL_NAMES) <= set(TOOL_NAMES), (
     "Parallel tools " + str(PARALLEL_TOOL_NAMES) + " must be a subset of Khiops tools"
 )

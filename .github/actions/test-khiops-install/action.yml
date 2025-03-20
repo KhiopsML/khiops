@@ -147,6 +147,10 @@ runs:
     - name: Check Khiops coclustering output [UNIXes]
       if: runner.os != 'Windows'
       shell: bash
+      env:
+        KHIOPS_PROC_NUMBER: 4
+        OMPI_MCA_rmaps_base_oversubscribe: true
+        KHIOPS_MPI_VERBOSE: true
       run: |-
         # Compute or get the khiops_env directory
         if type -P khiops_env &> /dev/null
@@ -170,6 +174,8 @@ runs:
     - name: Check Khiops coclustering output [Windows]
       if: runner.os == 'Windows'
       shell: cmd /C call {0}
+      env:
+        KHIOPS_PROC_NUMBER: 4
       run: |
         khiops_coclustering -s
         for /f %%i in (' khiops_coclustering -v ^| find /c /v "" ') do set "LINE_NUMBER=%%i"
@@ -185,6 +191,7 @@ runs:
       env:
         KHIOPS_PROC_NUMBER: 4
         OMPI_MCA_rmaps_base_oversubscribe: true
+        KHIOPS_MPI_VERBOSE: true
       run: |-
         # Compute or get the khiops_env directory
         if type -P khiops_env &> /dev/null

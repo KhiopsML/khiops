@@ -7,6 +7,7 @@
 #ifdef USE_MPI
 #include "PLMPITaskDriver.h"
 #include "PLMPISystemFileDriverRemote.h"
+#include "KWVersion.h"
 #endif // USE_MPI
 
 // Methode technique a appeler pour parametrer l'usage de la librairie Parallel depuis Learning

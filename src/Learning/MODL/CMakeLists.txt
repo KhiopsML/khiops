@@ -4,7 +4,7 @@ add_executable(MODL ${cppfiles} MODL.rc)
 target_link_libraries(MODL PUBLIC DTForest KMDRRuleLibrary KWLearningProblem)
 set_khiops_options(MODL)
 
-# on fedora, binaries built with mpi must ended by _mpich suffix
+# on fedora, binaries built with mpi must ended by _mpich or _openmpi suffix
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set_target_properties(MODL PROPERTIES OUTPUT_NAME "MODL${MPI_SUFFIX}")
 endif()

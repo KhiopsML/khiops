@@ -69,22 +69,20 @@ if(UNIX)
 
   # Set khiops and khiops_coclustering paths according to the environment (conda, fedora, etc)
   if(IS_CONDA)
-    set(KHIOPS_PATH "$(get_script_dir)")
-    set(KHIOPS_COCLUSTERING_PATH "$(get_script_dir)")
+    set(MODL_PATH "$(get_script_dir)")
     set(GET_PROC_NUMBER_PATH "$(get_script_dir)")
     set(IS_CONDA_VAR "\n# Inside conda environment\nexport _IS_CONDA=true")
     set(SET_KHIOPS_DRIVERS_PATH "\n# Drivers search path\nexport KHIOPS_DRIVERS_PATH=$(dirname $(get_script_dir))/lib")
   else()
     if(IS_FEDORA_LIKE)
-      set(KHIOPS_PATH "${MPI_BIN}/khiops/")
+      set(MODL_PATH "${MPI_BIN}/khiops/")
       configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/redhat/khiops_env/use_environment_module.sh.in
                      ${TMP_DIR}/use_environment_module.sh @ONLY NEWLINE_STYLE UNIX)
       file(READ ${TMP_DIR}/use_environment_module.sh USE_ENVIRONMENT_MODULE)
     else()
-      set(KHIOPS_PATH "/usr/bin/")
+      set(MODL_PATH "/usr/bin/")
       set(USE_ENVIRONMENT_MODULE "")
     endif(IS_FEDORA_LIKE)
-    set(KHIOPS_COCLUSTERING_PATH "/usr/bin/")
     set(GET_PROC_NUMBER_PATH "/usr/bin/")
 
     file(READ ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/java_settings.sh KHIOPS_JAVA_SETTINGS)
@@ -118,9 +116,11 @@ if(UNIX)
   # Get the real file name of MODL e.g MODL_openmpi
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     get_target_property(MODL_NAME MODL OUTPUT_NAME)
+    get_target_property(MODL_COCLUSTERING_NAME MODL_Coclustering OUTPUT_NAME)
   else()
     # the above line fails on macOS. But prefix is added to the binary name only on linux...
     set(MODL_NAME "MODL")
+    set(MODL_COCLUSTERING_NAME "MODL_Coclustering")
   endif()
 
   # For all mpi implementation except openmpi, we compute the proc number (with openmpi, the -n flag is not mandatory)
@@ -140,13 +140,16 @@ if(UNIX)
                  NEWLINE_STYLE UNIX)
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/debian/khiops-core/postinst.in ${TMP_DIR}/postinst @ONLY
                  NEWLINE_STYLE UNIX)
+  set(KHIOPS_BINARY_PATH "$KHIOPS_PATH")
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops.in ${TMP_DIR}/khiops @ONLY NEWLINE_STYLE UNIX)
+  set(KHIOPS_BINARY_PATH "$KHIOPS_COCLUSTERING_PATH")
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops.in ${TMP_DIR}/khiops_coclustering @ONLY
+                 NEWLINE_STYLE UNIX)
 
-  install(TARGETS MODL RUNTIME DESTINATION ./${KHIOPS_PATH} COMPONENT KHIOPS_CORE)
-  install(TARGETS MODL_Coclustering RUNTIME DESTINATION ./${KHIOPS_COCLUSTERING_PATH} COMPONENT KHIOPS_CORE)
+  install(TARGETS MODL MODL_Coclustering RUNTIME DESTINATION ${MODL_PATH} COMPONENT KHIOPS_CORE)
 
   install(
-    PROGRAMS ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops
-             ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_coclustering ${TMP_DIR}/khiops_env
+    PROGRAMS ${TMP_DIR}/khiops ${TMP_DIR}/khiops_coclustering ${TMP_DIR}/khiops_env
     DESTINATION usr/bin
     COMPONENT KHIOPS_CORE)
 
@@ -191,6 +194,16 @@ else(UNIX)
   endif()
 
   configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops_env.cmd.in ${TMP_DIR}/khiops_env.cmd @ONLY
+                 NEWLINE_STYLE CRLF)
+
+  # khiops.cmd and khiops_coclustering.cmd differ only with the binary path: KHIOPS_PATH or KHIOPS_COCLUSTRING_PATH.
+  # They both build from the same file: khiops.cmd.in
+  set(MODL_PATH "KHIOPS_PATH")
+  set(TOOL_NAME "Khiops")
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops.cmd.in ${TMP_DIR}/khiops.cmd @ONLY NEWLINE_STYLE CRLF)
+  set(MODL_PATH "KHIOPS_COCLUSTERING_PATH")
+  set(TOOL_NAME "Khiops_coclustering")
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops.cmd.in ${TMP_DIR}/khiops_coclustering.cmd @ONLY
                  NEWLINE_STYLE CRLF)
 
 endif(UNIX)

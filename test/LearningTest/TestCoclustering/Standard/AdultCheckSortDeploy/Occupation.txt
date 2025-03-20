@@ -1,0 +1,15 @@
+occupation
+Adm-clerical
+Armed-Forces
+Craft-repair
+Exec-managerial
+Farming-fishing
+Handlers-cleaners
+Machine-op-inspct
+Other-service
+Priv-house-serv
+Prof-specialty
+Protective-serv
+Sales
+Tech-support
+Transport-moving
