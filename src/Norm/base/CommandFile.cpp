@@ -330,6 +330,7 @@ void CommandFile::CloseCommandFiles()
 
 boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& sValue)
 {
+	const ALString sSpaceCommentPrefix = ' ' + sCommentPrefix;
 	const char cDEL = (char)127;
 	boolean bOk;
 	char sCharBuffer[1 + BUFFER_LENGTH];
@@ -400,15 +401,15 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 			// Supression de la ligne entiere si elle est entierement commentee
 			if (sInputLine.Find(sCommentPrefix) == 0)
 				sInputLine = "";
-			// Sinon, suppression du commentaire de fin de ligne, ce qui permet d'avoir
+			// Sinon, suppression du commentaire de fin de ligne precede d'un espace, ce qui permet d'avoir
 			// des paires (IdentifierPath, valeur) avec valeur contenant des " //"
 			else
 			{
 				nLength = sInputLine.GetLength();
-				for (i = nLength - sCommentPrefix.GetLength(); i >= 0; i--)
+				for (i = nLength - sSpaceCommentPrefix.GetLength(); i >= 0; i--)
 				{
-					if (sInputLine.GetAt(i) == sCommentPrefix.GetAt(0) and
-					    sInputLine.Right(nLength - i).Find(sCommentPrefix) == 0)
+					if (sInputLine.GetAt(i) == sSpaceCommentPrefix.GetAt(0) and
+					    sInputLine.Right(nLength - i).Find(sSpaceCommentPrefix) == 0)
 					{
 						sInputLine.GetBufferSetLength(i);
 						sInputLine.TrimRight();
