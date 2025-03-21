@@ -91,6 +91,13 @@ jobs:
           path: |
             ./build/windows-msvc-release/packages/KNI-${{ env.KHIOPS_VERSION }}.zip
             ./build/windows-msvc-release/packages/kni-transfer-${{ env.KHIOPS_VERSION }}.zip
+      - name: Upload the Khiops zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: khiops
+          path: |
+            ./build/windows-msvc-release/packages/khiops-${{ env.KHIOPS_VERSION }}.zip
+            ./build/windows-msvc-release/packages/khiops-core-${{ env.KHIOPS_VERSION }}.zip
   test-khiops:
     needs: build
     runs-on: windows-2019
@@ -154,6 +161,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: KNI
+      - name: Download KNI installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: khiops
       - name: Rename packages with tag version
         run: |
           # Build the package file names
@@ -170,7 +181,7 @@ jobs:
         uses: ncipollo/release-action@v1.14.0
         with:
           allowUpdates: true
-          artifacts: khiops-*-setup.exe,KNI-*.zip,kni-transfer-*.zip
+          artifacts: khiops-*-setup.exe,KNI-*.zip,kni-transfer-*.zip,khiops-*.zip
           body: |
             **This release is for testing purposes only and there is no support for it.**
             **Go to https://khiops.org to install the latest supported version.**
