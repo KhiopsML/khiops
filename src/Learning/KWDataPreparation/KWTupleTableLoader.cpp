@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -12,6 +12,7 @@ KWTupleTableLoader::KWTupleTableLoader()
 	svInputExtraAttributeSymbolValues = NULL;
 	cvInputExtraAttributeContinuousValues = NULL;
 	inputExtraAttributeTupleTable = NULL;
+	bCheckDatabaseObjectsClass = true;
 }
 
 KWTupleTableLoader::~KWTupleTableLoader() {}
@@ -74,7 +75,7 @@ boolean KWTupleTableLoader::CheckInputs() const
 	// Verification du dictionnaire et de la base
 	bOk = bOk and (kwcInputClass != NULL);
 	bOk = bOk and (oaInputDatabaseObjects != NULL);
-	bOk = bOk and (oaInputDatabaseObjects->GetSize() == 0 or
+	bOk = bOk and (oaInputDatabaseObjects->GetSize() == 0 or not bCheckDatabaseObjectsClass or
 		       cast(KWObject*, oaInputDatabaseObjects->GetAt(0))->GetClass() == kwcInputClass);
 
 	// Verification si specification d'attribut supplementaire (meme vide)
@@ -130,6 +131,16 @@ boolean KWTupleTableLoader::CheckInputs() const
 		}
 	}
 	return bOk;
+}
+
+void KWTupleTableLoader::SetCheckDatabaseObjectClass(boolean bValue)
+{
+	bCheckDatabaseObjectsClass = bValue;
+}
+
+boolean KWTupleTableLoader::GetCheckDatabaseObjectClass() const
+{
+	return bCheckDatabaseObjectsClass;
 }
 
 void KWTupleTableLoader::RemoveAllInputs()
@@ -679,7 +690,7 @@ void KWTupleTableLoader::BlockLoadUnivariateInitialize(const ALString& sInputAtt
 void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttributeBlockName,
 						     KWTupleTable* outputTupleTable) const
 {
-	boolean bDisplay = false;
+	const boolean bDisplay = false;
 	KWAttributeBlock* attributeBlock;
 	int nObjectNumber;
 	int nMissingValueNumber;
@@ -692,8 +703,9 @@ void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttri
 	int nValueFrequency;
 
 	require(outputTupleTable != NULL);
+	require(outputTupleTable->GetSparseMissingValueNumber() == 0);
 	require(kwcInputClass->LookupAttribute(outputTupleTable->GetAttributeNameAt(0)) != NULL);
-	require(outputTupleTable->GetUpdateMode() == true);
+	require(outputTupleTable->GetUpdateMode());
 
 	// Comptage du nombre d'objets
 	nObjectNumber = oaInputDatabaseObjects->GetSize();
@@ -704,10 +716,13 @@ void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttri
 	assert(KWType::IsSimple(attributeBlock->GetType()));
 	assert(attributeBlock->GetLoaded());
 
-	// Ajout des tuple manquants s'il manque des renregistrements
+	// Ajout des tuple manquants s'il manque des enregistrements
 	nMissingValueNumber = nObjectNumber - outputTupleTable->GetTotalFrequency();
 	if (nMissingValueNumber > 0)
 	{
+		// Mise a jour du nombre des valeurs manquantes sparse
+		outputTupleTable->SetSparseMissingValueNumber(nMissingValueNumber);
+
 		// Cas sans attribut supplementaire
 		if (GetInputExtraAttributeName() == "")
 		{
@@ -790,7 +805,7 @@ void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttri
 
 					// Si egalite, on compabilise le nombre de valeur correspondant a la valeur
 					// courante de l'attribut supplementaire Dans la base de tuple (bivariee),
-					// plusieurs tuples successifs peuvent avaoir meme valeur
+					// plusieurs tuples successifs peuvent avoir la meme valeur
 					if (nCompare == 0)
 						nValueFrequency += tuple->GetFrequency();
 					// Arret si depassement de la valeur
@@ -804,7 +819,7 @@ void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttri
 					nTuple++;
 				}
 
-				// Calcul du nombre de valeur manquantes
+				// Calcul du nombre de valeurs manquantes
 				nMissingValueNumber = extraTuple->GetFrequency() - nValueFrequency;
 
 				// Mise a jour en cas d'effectif manquant
@@ -1547,7 +1562,7 @@ void KWTupleTableLoader::Test()
 					cout << "SYSTEM MEM\t" << odBlockTupleTables.GetOverallUsedMemory() << endl
 					     << endl;
 
-					// Dinlaisation du chargement et affichage du resultat
+					// Finalisation du chargement et affichage du resultat
 					for (i = 0; i < oaBlockAttributes.GetSize(); i++)
 					{
 						attribute = cast(KWAttribute*, oaBlockAttributes.GetAt(i));

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -11,6 +11,12 @@ class KWDGInterval;
 class KWDGValueSet;
 class KWDGValue;
 class KWDGCell;
+class KWDGPartValues;
+class KWDGSymbolValueSet;
+class KWDGSymbolValue;
+class KWDGVarPartSet;
+class KWDGVarPartValue;
+class KWDGInnerAttributes;
 
 #include "KWVersion.h"
 #include "SortedList.h"
@@ -21,13 +27,93 @@ class KWDGCell;
 
 //////////////////////////////////////////////////////////////////////////////////
 // Classe KWDataGrid
-// Structure de donnees permettant de representer l'ensemble des enregistrements
-// d'une base de donnees, sous forme d'un produit cartesien des attributs.
-// Ce produit cartesien correspond a un tableau multi-dimensionnel creux.
-// Le DataGrid permet un stockage efficace des n-uplets instancies, en maintenant
-// le lien entre les attributs, leurs valeurs, et les n-uplets de valeurs.
-// Cette structure est particulierement adaptee aux algorithmes de groupage
-// multidimensionnels.
+//
+// Deux famille de grille de donnees
+//   - coclustering de variables "standard"
+//      - estimateur de densite jointe ou conditionnelle entre variables
+//      - multivarie, avec variable numeriques ou categorielles
+//      - Structure de donnees permettant de representer l'ensemble des enregistrements
+//        d'une base de donnees, sous forme d'un produit cartesien des attributs.
+//        - Ce produit cartesien correspond a un tableau multi-dimensionnel creux.
+//        - la DataGrid permet un stockage efficace des n-uplets instancies, en maintenant
+//          le lien entre les attributs, leurs valeurs, et les n-uplets de valeurs.
+//        - cette structure est particulierement adaptee aux algorithmes de groupage multidimensionnels.
+//      - terminologie
+//         - modele en grile ou grille de donnees, variable, partie (intervalles, groupe de valeurs), valeur, cellule
+//         - DataGrid, Attribute, part (Interval, ValueGroup), Value, Cell
+//
+//   - coclustering instances x variables (cf. these de Aichetou)
+//      - pour l'analyse exploratoire d'une base de donnees, en groupa
+//      - extension des data grid, avec un des attribut de type VarPart (extension sous forme de parametrage additionnel
+//      de la meme classe)
+//        - un attribut de la grille peut etre soit numerique, soit categoriel, soit constitue de parties de variables
+//        - dans la these d'Aichetou
+//          - dedie au cas instances x variables
+//          - chaque variable descriptive est partitionnee en parties, intervalles ou groupes de valeurs
+//          - chaque partie de variable est l'analogue d'un mot
+//          - chaque instance est decrite par l'ensemble des mots correspondant aux valeurs de ses variables
+//          descriptives
+//        - on a une grille a deux dimensions, analogue au cas d'une grille textes x mots
+//          - un attribut de la grille contient des groupes d'instances (textes), par leur identifiant
+//          - l'autre attribut de la grille contient des groupes de parties de variables (mots)
+//      - terminologie
+//         VarPart
+//           - nouveau type, pour un attribut de DataGrid
+//           - extension du type Symbol, ou chaque partie de variable joue le role d'une valeur
+//           - adjectif utilise pour specialiser les extensions des DataGrid quand elles ont un attribut de type VarPart
+//         VarPartDataGrid
+//           - extension d'un DataGrid, avec un attribut de type VarPart
+//           - un et un seul attribut de type VarPart, plus un a plusieurs autres attributs
+//           - le plus standard: un autre attribut de type Symbol, portant les identifiants des instances
+//             - on se rapproche du modele standard "Instances x Variables"
+//             - dans ce cas, on peut nommer cet attribut le IdentifierAttribute
+//           - extensions, avec un a plusieurs attributs de type Symbol ou Continuous
+//             - a explorer: IdSource x IdTarget dans le cas de l'analyse des arcs d'un graphe avec des variables par
+//             arcs
+//             - a explorer: Time * Identifier dans d'instances evoluant au cours du temps
+//             - pas de terminologie particuliere pour ces extensions (autre que attributs de Symbol ou Continuous)
+//         Attribute
+//           - cas general: un attribut de DataGrid
+//         VarPartAttribute
+//           - attribut de type VarPart
+//             - ses valeurs sont des VarPartValues
+//             - ses groupes de valeurs sont des VarPartGroups
+//             - les attributs correspondant aux VarPartValues sont ses InnerAttributes
+//               - un InnerAttribute est de type Symbol ou Continuous
+//               - pour un InnerAttribute, son attribut de type VarPart de la DataGrid est son OwnerAttribute
+//      - terminologie interne en francais, pour des etudes/discussions techniques
+//           - grille de donnees (ou coclustering)
+//           - attribut de grille (ou axe, dimension)
+//           - attribut interne (Inner)
+//           - attribut proprietaire (Owner)
+//      - terminologie externe, pour communiquer et expliquer aux utilisateurs
+//           - coclustering, cluster, cocluster
+//           - coclustering de variables
+//             - chaque cluster est une Part, Interval ou Value group
+//           - coclustering instances x variables
+//             - clusters d'instances vs clusters de parties de variables
+//             - on peut parler de dimension instances et dimension partie de variables
+//             - les parties de variables sont des Part, Interval ou Value group
+//
+// Coclustering dans la litterature
+//    - coclustering de matrice
+//      - bivarie, en general categoriel, lie aux matrices
+//      - terminologie
+//        - coclustering, block clustering, two-mode clustering, cross-clustering, bi-clustering
+//        - biclusters, coclusters, block, sub-matrix
+//        - bipartite, array, matrix
+//        - rows, columns
+//    - coclustering variable x variable
+//       - peu courant hormis le coclustering de matrice
+//       - rare pour des variables de type mixte, ou en multivarie au dela de deux variables
+//    - coclustering instances x variables
+//      - plus connu et courant que le coclustering de variables, souvent confondu
+//      - toujours avec des variables d'un seul type, souvent numeriques
+//      - souvent meme terminologie que coclustering de matrice, en considerant la matrice instances x variables
+//      - terminologie supplementaire
+//        - object, instance, variable
+//        - cluster, subset, group
+//        - dimension (of instances, of variables)
 class KWDataGrid : public Object
 {
 public:
@@ -39,10 +125,13 @@ public:
 	// Specification des donnees d'un DataGrid
 	// Un DataGrid est representee sous forme d'un graphe d'objets:
 	//   - au premier niveau, un tableau d'attributs
+	//   - un DataGrid est un VarPartDataGrid si l'un de ses attributs est de type VarPart
 	// Chaque attribut est defini principalement par:
+	//   - son type: numerique, categoriele ou partie de variables
+	//      - specification des variables internes dans le cas partie de variables
 	//	 - son nombre de valeurs
 	//   - sa liste de parties
-	// Chaque partie est definir principalement par:
+	// Chaque partie est definie principalement par:
 	//   - sa liste de valeurs
 	//   - sa liste de cellules
 	// Chaque cellule est defini principalement par:
@@ -91,7 +180,20 @@ public:
 	// avec valeurs cibles a grouper).
 	KWDGAttribute* GetTargetAttribute() const;
 
-	// Recherche d'un attribut par son nom (recherche couteuse, par parcours exhaustif des attributs)
+	// Indique si la grille est de type instances x variables, car un de ses attribut est de type VarPart
+	boolean IsVarPartDataGrid() const;
+
+	// Acces a l'attribut de type VarPart d'un grille si elle de type instances x variables, NULL sinon
+	KWDGAttribute* GetVarPartAttribute() const;
+
+	// Acces direct au parametrage des attributs internes de l'attribut de type VarPart
+	const KWDGInnerAttributes* GetInnerAttributes() const;
+
+	// Methode ancee pour acceder aux attributs internes en mode editable
+	// A utiliser avec precaution
+	KWDGInnerAttributes* GetEditableInnerAttributes() const;
+
+	// Recherche d'un attribut de la grille par son nom (recherche couteuse, par parcours exhaustif des attributs)
 	// Renvoie NULL si non trouve
 	KWDGAttribute* SearchAttribute(const ALString& sAttributeName) const;
 
@@ -154,7 +256,7 @@ public:
 	////////////////////////////////////////////////////////////////
 	// Acces aux cellules du DataGrid
 
-	// Nombre de cellules
+	// Nombre de cellules non vides
 	int GetCellNumber() const;
 
 	// Parcours de tous les cellules
@@ -186,6 +288,9 @@ public:
 	// Nombre total de parties par attribut (par cumul sur tous les attributs)
 	int GetTotalPartNumber() const;
 
+	// Calcul du nombre max de partie par attribut
+	int ComputeMaxPartNumber() const;
+
 	// Calcul a des valeurs d'entropie dans les cellules (source), les valeurs cibles (target) ou mutuelle
 	// L'entropie permet de mesurer la quantite d'information (en bits)
 	// pour coder une variable
@@ -196,6 +301,10 @@ public:
 
 	///////////////////////////////
 	// Services divers
+
+	// Creation d'un attribut
+	// Les creations de partie d'attribut se font depuis une methode NewPart dans les attributs
+	virtual KWDGAttribute* NewAttribute() const;
 
 	// Verification de la validite de la structure du DataGrid
 	// Controle d'integrite global (attributs, parties, cellules...)
@@ -208,6 +317,7 @@ public:
 	// Tri des parties des attributs pour preparer l'affichage
 	// Les intervalles sont tries par valeur croissante
 	// Les groupes par effectif decroissant, et les valeurs dans les groupes par effectif decroissant
+	// Les clusters de parties de variables sont tries de la meme facon que les groupes
 	void SortAttributeParts();
 
 	// Verification du tri des parties : couteuse, a utiliser essentiellement dans les assertions
@@ -229,6 +339,7 @@ public:
 	void WriteAttributes(ostream& ost) const;
 	void WriteAttributeParts(ostream& ost) const;
 	void WriteCells(ostream& ost) const;
+	void WriteInnerAttributes(ostream& ost) const;
 
 	// Affichage des statistiques par classe cible dans un tableau croise
 	// Dans chaque cellule du tableau, on affichage la proportion de la classe en parametre, ou
@@ -256,6 +367,7 @@ public:
 
 	///////////////////////////////
 	//// Implementation
+
 protected:
 	friend class KWDGAttribute;
 
@@ -271,10 +383,6 @@ protected:
 	////////////////////////////////////////////////////////////////////////////
 	// Methodes de creations virtuelles, permettant de specialiser les entites
 	// d'un DataGrid dans une sous-classe
-
-	// Creation d'un attribut
-	// Les creations de partie d'attribut se font depuis une methode NewPart dans les attributs
-	virtual KWDGAttribute* NewAttribute() const;
 
 	// Creation d'une cellule
 	// Le tableau d'effectif par classe cible doit etre initialise selon GetTagretValueNumber
@@ -319,6 +427,11 @@ protected:
 
 	// Valeur de tri
 	int nSortValue;
+
+	// Attribut de la grille de type VarPart
+	// Positionne par l'attribut lors de l'initialsaition de son type s'il est de type VarPart
+	// Permet egalement de savoir si la grille est de type VarPart
+	KWDGAttribute* varPartAttribute;
 };
 
 // Comparaison de deux grilles de donnees, sur la valeur de tri (SortValue),
@@ -350,7 +463,7 @@ public:
 	void SetAttributeName(const ALString& sValue);
 	const ALString& GetAttributeName() const;
 
-	// Type de l'attribut (Symbol ou Continuous)
+	// Type de l'attribut (Symbol ou Continuous ou de type Parties de variables)
 	// Le type n'est modifiable qu'une seule fois, pour l'initialisation
 	void SetAttributeType(int nValue);
 	int GetAttributeType() const;
@@ -360,34 +473,41 @@ public:
 	void SetAttributeTargetFunction(boolean bTargetAttribute);
 	boolean GetAttributeTargetFunction() const;
 
-	// Index de l'attribut dans le tableau des operandes
-	int GetAttributeIndex() const;
+	// Test si un attribut est interne
+	boolean IsInnerAttribute() const;
 
-	// CH V9 TODO :
-	// Refactoring
-	// - supprimer le GetTrueValueNumber qui est desormais redondant avec le GetInitialValueNumber (est encore
-	// utilise dans les anciennes methodes de calcul de cout)
-	// - nGranularizedValueNumber : nombre de valeurs apres granularisation
-	// - nStoredValueNumber correspond aux modalites stockees
-	// en plus des valeurs vues dans les donnes la StarValue
-	// en moins les valeurs eventuellement nettoyees lors de la creation du fourre-tout en supervise
+	// Nom de l'attribut de grille de type VarPart dont l'attribut interne fait eventuellement partie
+	// Renvoie vide dans le cas d'un coclustering standard
+	ALString GetOwnerAttributeName() const;
+	void SetOwnerAttributeName(ALString sName);
+
+	// Parametrage des attributs internes dans le cas d'un attribut de grille de type VarPart
+	// Note sur la gestion memoire des attributs internes
+	// - les attributs internes peuvent etre partagee entre plusieurs grilles
+	// - grace a un comptage de reference propre aux attributs internes, ceux-ci sont automatiquement
+	//   detruits quand ils ne sont plus utilises
+	void SetInnerAttributes(const KWDGInnerAttributes* attributes);
+	const KWDGInnerAttributes* GetInnerAttributes() const;
+
+	// Nombre d'attributs internes
+	int GetInnerAttributeNumber() const;
+
+	// Acces a un attribut interne par index
+	KWDGAttribute* GetInnerAttributeAt(int nIndex) const;
+
+	// Index de l'attribut dans le tableau des attributs de la grille
+	// Renvoie -1 si attribut interne
+	int GetAttributeIndex() const;
 
 	// Nombre initial de valeurs de l'attribut
 	// Attribut continu : nombre total d'instances
-	// Attribut categoriel : nombre de valeurs distinctes (la StarValue n'est plus comptee ici)
-	// On accede au nombre de valeurs distinctes avec la StarValue dans le cas categoriel
-	// via la methode GetStoredValueNumber()
+	// Attribut categoriel : nombre de valeurs distinctes (sans la StarValue)
+	// Attribut parties de variables : nombre de parties de variables distinctes
+	// (le nombre de PV distinctes depend du niveau de tokenisation, pour les innerAttributes et pour l'attribut VarPart)
 	void SetInitialValueNumber(int nValue);
 	int GetInitialValueNumber() const;
 
-	// Nombre de valeurs stockees pour l'attribut (avec la valeur speciale en plus dans le cas categoriel)
-	int GetStoredValueNumber() const;
-
-	// CH V9 TODO a supprimer a terme
-	// Nombre de valeurs initiales reelles de l'attribut
-	int GetTrueValueNumber() const;
-
-	// Nomre de valeurs apres granularisation
+	// Nombre de valeurs apres granularisation
 	// Attribut continu : nombre theorique de partiles Ng=2^G
 	// Attribute categoriel : nombre de partiles obtenus suite a la granularisation Vg
 	void SetGranularizedValueNumber(int nValue);
@@ -399,12 +519,20 @@ public:
 	double GetCost() const;
 
 	////////////////////////////////////////////////
+	// Service pour les attributs de type VarPart
+
+	// Initialisation des parties de l'attribut de type VarPart a partir des attributs internes initialises en
+	// creant une partie par partie de variable
+	void CreateVarPartsSet();
+
+	////////////////////////////////////////////////
 	// Gestion des parties de l'attribut
 	// Memoire: les parties appartiennent a l'attribut
 
 	// Creation d'une partie et ajout en fin de liste
 	// Le type de l'attribut doit avoir ete specifie en prealable.
 	// Renvoie la partie cree (avec le type de l'attribut)
+	// Si l'attribut est de type VarPart, la partie renvoyee est de type KWDGVarPart*
 	KWDGPart* AddPart();
 
 	// Destruction d'une partie et de son contenu, de facon coherente le DataGrid
@@ -440,13 +568,12 @@ public:
 	// Memoire:  cet ensemble de valeurs appartient a l'appele
 	// Renvoie NULL si pas de fourre tout
 	KWDGValueSet* GetCatchAllValueSet() const;
-	// Initialisation du fourre-tout
-	// Sans recopie (creation a partir de la methode ConvertToCleanedValueSet)
-	void SetCatchAllValueSet(KWDGValueSet* valueSet);
-	// Avec recopie
+
+	// Initialisation du fourre-tout en le recopiant s'il est non NULL
 	void InitializeCatchAllValueSet(KWDGValueSet* valueSet);
 
 	// Acces au nombre de modalites du groupe fourre-tout
+	// Permet de memoriser sa taille, meme si on l'a nettoye
 	// Renvoie 0 si le groupe fourre-tout n'existe pas et sa taille s'il existe
 	void SetCatchAllValueNumber(int nValue);
 	int GetCatchAllValueNumber() const;
@@ -473,15 +600,27 @@ public:
 	// Indicateur d'indexation
 	boolean IsIndexed() const;
 
-	// Recherche de la partie contenant une valeur numerique ou symbolique
+	// Recherche de la partie contenant une valeur numerique, symbolique ou VarPart
 	// (doit etre compatible avec le type de l'attribut)
 	// Attention a ne pas modifier les valeurs (intervalles ou ensemble de valeurs)
 	// pendant l'utilisation de l'indexation
 	KWDGPart* LookupContinuousPart(Continuous cValue);
 	KWDGPart* LookupSymbolPart(const Symbol& sValue);
+	KWDGPart* LookupVarPart(KWDGPart* varPart);
+
+	// Recherche generique de la partie contenant une valeur de ValueSet dans le cas
+	// d'un attribut de type groupable, symbolique ou VarPart
+	KWDGPart* LookupGroupablePart(const KWDGValue* value);
 
 	///////////////////////////////
 	// Services divers
+
+	// Calcul de l'effectif cumule sur l'ensemble des parties
+	int ComputeTotalPartFrequency() const;
+
+	// Test si l'attribut contient des sous-parties de l'autre attribut en parametre
+	// Dans le cas d'un attribut de type VarPart, les deux attributs doivent exploiter les meme variables internes
+	boolean ContainsSubParts(const KWDGAttribute* otherAttribute) const;
 
 	// Controle d'integrite local a l'attribut (parties, valeurs, cellules de l'attribut)
 	// Dans le cas continus, les intervalles doivent former une partition.
@@ -495,7 +634,11 @@ public:
 
 	// Tri des parties pour preparer l'affichage
 	// Les intervalles sont tries par valeur croissante
-	// Les groupes par effectif decroissant, et les valeurs dans les groupes par effectif decroissant
+	// Les groupes (de valeurs ou de parties de variable) sont tries par effectif decroissant
+	// Danc chaque partie:
+	// - Symbol: les valeurs dans les groupes sont tries par effectif decroissant
+	// - VarPart: les parties de variables dans les groupes sont tries par attribut puis
+	//    par valeur de la partie, intervalles, ou valeurs du groupe
 	void SortParts();
 
 	// Verification du tri des parties : couteux, a utiliser essentiellement dans les assertions
@@ -549,12 +692,16 @@ protected:
 	ALString sAttributeName;
 	int nAttributeType;
 	int nAttributeIndex;
+
 	// Nombre initial de valeurs
 	int nInitialValueNumber;
+
 	// Nombre de valeurs apres granularisation
 	int nGranularizedValueNumber;
+
 	// Pointeur vers la partie poubelle, a NULL par defaut
 	KWDGPart* garbagePart;
+
 	// Pointeur vers les valeurs initiales du fourre-tout, a NULL par defaut
 	int nCatchAllValueNumber;
 	KWDGValueSet* catchAllValueSet;
@@ -570,18 +717,29 @@ protected:
 	// Tableau des parties (intervalles) tries de facon croissante
 	ObjectArray oaIntervals;
 
-	// Structure d'indexation des parties dans le cas symbolique
-	// Dictionnaire des parties indexe par les valeurs (Symbol) des parties
+	// Structure d'indexation des parties dans le cas groupable
+	// Dictionnaire des parties indexe par les valeurs des parties, et partie par defaut
 	NumericKeyDictionary nkdParts;
-	KWDGPart* starValuePart;
+	KWDGPart* defaultPart;
+
+	// Indicateur d'indexation
 	boolean bIsIndexed;
+
+	// Nom de l'attribut de type VarPart dont depend un attribut interne
+	// Par defaut a vide pour un attribut de type Simple (numerique ou categoriel)
+	ALString sOwnerAttributeName;
+
+	// Attributs internes dans les attributs de type VarPart
+	const KWDGInnerAttributes* innerAttributes;
 };
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGPart
 // Partie d'un attribut de DataGrid
 // Chaque partie est caracterise principalement par
-//   - sa liste de valeurs (intervalle ou ensemble de valeur selon le type numerique opu symbolique)
+//   - sa liste de valeurs (intervalle ou ensemble de valeur selon le type
+//     numerique ou symbolique, parties de variable (de type KWDGPart)
+//     si l'attribut contient des parties de variables
 //   - sa liste de cellules
 class KWDGPart : public Object
 {
@@ -598,14 +756,21 @@ public:
 	// ont ete correctement initialisees
 	int GetPartFrequency() const;
 
-	// Type de partie (Symbol ou Continuous)
+	// Type de partie (Symbol ou Continuous ou Partie de parties de variables)
 	// Le type n'est modifiable qu'une seule fois, pour l'initialisation
 	virtual void SetPartType(int nValue);
 	int GetPartType() const;
 
-	// Acces aux valeurs, selon le type
+	// Acces specialise aux valeurs, selon le type d'attribut
 	KWDGInterval* GetInterval() const;
+	KWDGSymbolValueSet* GetSymbolValueSet() const;
+	KWDGVarPartSet* GetVarPartSet() const;
+
+	// Acces generique au groupe de valeur, dans les cas Symbol ou VarPart
 	KWDGValueSet* GetValueSet() const;
+
+	// Acces generique aux valeurs via la classe ancetre commune a tous les types
+	KWDGPartValues* GetPartValues() const;
 
 	////////////////////////////////////////////////////////////////
 	// Acces aux cellules liee a la partie courante,
@@ -631,19 +796,37 @@ public:
 	// Services divers
 
 	// Methode avancee: mise a jour directe de l'effectif de la partie
-	// Attention, cela doit correspondre exactement au cumul des effectifs des cellules de la parties
+	// Attention, cela doit correspondre exactement au cumul des effectifs des cellules de la partie
+	// Sauf pour les attributs interne ou l'effectif est possitionne directement
 	void SetPartFrequency(int nValue);
+
+	// Test si la partie est une sous-partie de l'autre partie en parametre
+	boolean IsSubPart(const KWDGPart* otherPart) const;
+
+	// Comparaison de deux parties en exploitant la taille des parties, sauf dans le cas numerique
+	// - par intervalle si numerique
+	// - par effectif decroissant puis valeur si ensemble de valeurs
+	int ComparePart(const KWDGPart* otherPart) const;
+
+	// Comparaison des valeurs des parties
+	// - par intervalle si numerique
+	// - par premiere valeur si groupe de valeur categoriel ou VarPart
+	int ComparePartValues(const KWDGPart* otherPart) const;
 
 	// Controle d'integrite local a la partie (valeurs, cellules de la partie)
 	boolean Check() const override;
 
-	// Memoire utilisee
+	// Memoire utilisee par la partie
 	longint GetUsedMemory() const override;
 
 	// Affichage
 	void Write(ostream& ost) const override;
 	void WriteValues(ostream& ost) const;
 	void WriteCells(ostream& ost) const;
+
+	// Libelle complet dans le cas d'une partie de variable, base sur le libelle de l'identifiant interne
+	// et celui de la partie
+	const ALString GetVarPartLabel() const;
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
@@ -659,7 +842,8 @@ protected:
 	// Methodes de creations virtuelles, permettant de specialiser la composition d'une partie
 	// dans une sous-classe
 	virtual KWDGInterval* NewInterval() const;
-	virtual KWDGValueSet* NewValueSet() const;
+	virtual KWDGSymbolValueSet* NewSymbolValueSet() const;
+	virtual KWDGVarPartSet* NewVarPartSet() const;
 
 	// Acces a l'index de l'attribut (0 si NULL)
 	int GetAttributeIndex() const;
@@ -685,30 +869,378 @@ protected:
 	// Effectif total de la partie
 	int nPartFrequency;
 
-	// Gestion des valeurs de la parties
-	// Un seul objet, correspondant au type de la partie, doit etre non nul
-	KWDGInterval* interval;
-	KWDGValueSet* valueSet;
+	// Gestion des valeurs de la parties via a un objet ancetre generique,
+	// dont le type de valeur doit etre le meme que celui de l'attribut
+	KWDGPartValues* partValues;
 };
 
-// Comparaison de deux parties numeriques, sur la base de leur borne sup
-int KWDGPartContinuousCompare(const void* elem1, const void* elem2);
+// Comparaison de deux parties, par effectif decroissant puis valeur, ou par intervalle (cf. ComparePart)
+int KWDGPartCompare(const void* elem1, const void* elem2);
 
-// Comparaison de deux parties symboliques, sur la base de leur premiere valeur
-int KWDGPartSymbolCompare(const void* elem1, const void* elem2);
+// Comparaison de deux parties, par valeur ou par intervalle (cf. ComparePartValues)
+int KWDGPartCompareValues(const void* elem1, const void* elem2);
 
-// Comparaison de deux parties symboliques, par effectif decroissant
-int KWDGPartSymbolCompareDecreasingFrequency(const void* elem1, const void* elem2);
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGPartValues
+// Composant de KWDGPart dedie a la gestion des valeurs effectives d'une partie
+// Classe abstraite, ancetre des intervalles et groupes de valeur
+class KWDGPartValues : public Object
+{
+public:
+	// Type de valeur gere par la partie
+	virtual int GetValueType() const = 0;
+
+	// Test si la partie  est un sous-ensemble de la partie en parametre
+	virtual boolean IsSubPart(const KWDGPartValues* otherPartValues) const = 0;
+
+	// Import des valeurs d'une autre partie
+	// La partie source est reinitialisee
+	virtual void Import(KWDGPartValues* sourcePartValues) = 0;
+
+	// Mise a jour des valeurs a partir des valeurs d'une partie source, devant etre adjacente
+	// La partie source n'est pas modifiee
+	virtual void UpgradeFrom(const KWDGPartValues* sourcePartValues) = 0;
+
+	// Copie
+	virtual void CopyFrom(const KWDGPartValues* sourcePartValues) = 0;
+
+	// Comparaison sur les valeurs de la partie
+	virtual int ComparePartValues(const KWDGPartValues* otherPartValues) const = 0;
+
+	// Controle d'integrite
+	boolean Check() const override = 0;
+
+	// Affichage
+	void Write(ostream& ost) const override = 0;
+
+	// Memoire utilisee par la partie, sans ses valeurs
+	longint GetUsedMemory() const override = 0;
+};
+
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGValueSet
+// Sous-classe virtuelle de KWDGPartValues dediee aux groupes de valeurs
+// pour mutualiser la gestion des valeurs de type Symbol ou VarPart
+class KWDGValueSet : public KWDGPartValues
+{
+public:
+	// Constructeur
+	KWDGValueSet();
+	~KWDGValueSet();
+
+	// Type de valeur gere
+	int GetValueType() const override = 0;
+
+	// Creation
+	virtual KWDGValueSet* Create() const = 0;
+
+	// Duplication
+	KWDGValueSet* Clone() const;
+
+	////////////////////////////////////////////////////////////////
+	// Gestion des valeurs de la parties sous forme de liste
+	// Memoire: les valeurs appartiennent a la partie
+
+	// Creation d'une valeur a partir de la copie d'une valeur existante et ajout en fin de liste
+	// Renvoie la valeur cree
+	virtual KWDGValue* AddValueCopy(const KWDGValue* sourceValue) = 0;
+
+	// Destruction d'une valeur de la liste
+	void DeleteValue(KWDGValue* value);
+
+	// Destruction de toutes les valeurs
+	void DeleteAllValues();
+
+	// Test de validite d'une valeur (si elle appartient a la partie)
+	boolean CheckValue(KWDGValue* value) const;
+
+	// Test si la partie est la partie par defaut
+	boolean IsDefaultPart() const;
+
+	// Nombre de valeurs
+	int GetValueNumber() const;
+
+	// Parcours de tous les valeurs
+	KWDGValue* GetHeadValue() const;
+	KWDGValue* GetTailValue() const;
+	void GetNextValue(KWDGValue*& value) const;
+	void GetPrevValue(KWDGValue*& value) const;
+
+	///////////////////////////////
+	// Services divers
+
+	// Export des valeurs dans un tableau (initialement vide)
+	void ExportValues(ObjectArray* oaValues) const;
+
+	// Calcul de l'effectif cumule des valeurs
+	int ComputeTotalFrequency() const;
+
+	// Tri des valeurs
+	void SortValues();
+
+	// Tri des valeurs par effectif decroissant, pour preparer l'affichage
+	void SortValueByDecreasingFrequencies();
+
+	// Tri des valeurs par typicalite decroissante
+	void SortValuesByDecreasingTypicalities();
+
+	// Verification du tri des valeurs par effectif decroissant
+	// Couteux, a utiliser essentiellement dans les assertions
+	boolean AreValuesSorted() const;
+	boolean AreValuesSortedByDecreasingFrequencies() const;
+	boolean AreValuesSortedByDecreasingTypicalities() const;
+
+	// Redefinition des methodes virtuelles
+	boolean IsSubPart(const KWDGPartValues* otherPartValues) const override;
+	void Import(KWDGPartValues* sourcePartValues) override;
+	void UpgradeFrom(const KWDGPartValues* sourcePartValues) override;
+	void CopyFrom(const KWDGPartValues* sourcePartValues) override;
+
+	// Comparaison de deux ensembles de valeurs d'apres leur premiere valeur
+	// - valeur Symbol si categoriel
+	// - nom d'attribut, puis valeur de partie si VarPart
+	int ComparePartValues(const KWDGPartValues* otherPartValues) const override;
+
+	// Controle d'integrite
+	boolean Check() const override;
+
+	// Affichage
+	void Write(ostream& ost) const override;
+	void WriteValues(ostream& ost) const;
+
+	// Memoire utilisee
+	longint GetUsedMemory() const override;
+
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override;
+	const ALString GetObjectLabel() const override;
+
+	///////////////////////////////
+	///// Implementation
+
+	// Modification du nombre de valeurs
+	// Methode avancee utilisable uniquement en mode emule
+	void SetValueNumber(int nValue);
+
+protected:
+	// Ajout d'une valeur en fin de liste
+	void AddTailValue(KWDGValue* value);
+
+	// Tri des valeurs selon une fonction de tri
+	// La valeur speciale est toujours mise en dernier, independament du critere de tri
+	void InternalSortValues(CompareFunction fCompare);
+
+	// Test si des valeurs sont triees selon une fonction de tri
+	// La valeur speciale est toujours mise en dernier, independament du critere de tri
+	boolean InternalAreValuesSorted(CompareFunction fCompare) const;
+
+	// Methode indiquant si les donnees sont emulees
+	virtual boolean GetEmulated() const;
+
+	// Gestion de la liste doublement chainee des cellules
+	KWDGValue* headValue;
+	KWDGValue* tailValue;
+	int nValueNumber;
+	boolean bIsDefaultPart;
+};
+
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGValue
+// Classe virtuelle pour mutualiser la gestion des valeurs de type Symbol ou VarPart
+class KWDGValue : public Object
+{
+public:
+	// Constructeur
+	KWDGValue();
+	~KWDGValue();
+
+	// Type de valeur
+	virtual int GetValueType() const = 0;
+
+	// Valeur accesssible depuis la classe ancetre, pour simplifier l'ecriture de code generique
+	// Implementation par defaut en assert false
+	// Chaque sous-classe doit reimplementer la methode correspondante a son type de valeur
+	virtual Symbol& GetSymbolValue() const;
+	virtual KWDGPart* GetVarPart() const;
+
+	// Valeur en tant que cle numerique
+	virtual NUMERIC GetNumericKeyValue() const = 0;
+
+	// Test si on est la valeur par defaut, qui fait partie de la partie par defaut
+	virtual boolean IsDefaultValue() const = 0;
+
+	// Effectif de la valeur
+	virtual void SetValueFrequency(int nFrequency) = 0;
+	virtual int GetValueFrequency() const = 0;
+
+	// Typicalite de la valeur
+	void SetTypicality(double dValue);
+	double GetTypicality() const;
+
+	// Comparaison par valeur
+	// - valeur Symbol si categoriel
+	// - nom d'attribut, puis valeur de partie si VarPart
+	virtual int CompareValue(const KWDGValue* otherValue) const = 0;
+
+	// Compare par effectif decroissant, puis par valeur
+	virtual int CompareFrequency(const KWDGValue* otherValue) const;
+
+	// Comparaison par typicalite, puis
+	// - par effectif si categoriel
+	// - par valeur si VarPart
+	virtual int CompareTypicality(const KWDGValue* otherValue) const = 0;
+
+	// Affichage
+	void Write(ostream& ost) const override = 0;
+
+	// Libelle externe base sur la valeur
+	virtual const ALString GetExternalValueLabel() const = 0;
+
+	// Memoire utilisee
+	virtual longint GetUsedMemory() const override = 0;
+
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override = 0;
+	const ALString GetObjectLabel() const override = 0;
+
+	///////////////////////////////
+	///// Implementation
+protected:
+	friend class KWDGValueSet;
+
+	// Attributs
+	double dTypicality;
+	KWDGValue* prevValue;
+	KWDGValue* nextValue;
+};
+
+// Comparaison de deux valeurs
+int KWDGValueCompareValue(const void* elem1, const void* elem2);
+
+// Comparaison de deux valeurs, par effectif decroissant
+int KWDGValueCompareFrequency(const void* elem1, const void* elem2);
+
+// Comparaison de deux typicalite
+int KWDGValueCompareTypicality(const void* elem1, const void* elem2);
+
+// Comparaison de deux objets KWSortableObject contenant des KWDGValue, par valeur puis par index
+// Permet un comparaison generique pour des valeurs de type Symbol ou VarPart
+int KWSortableObjectCompareValue(const void* elem1, const void* elem2);
+
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGSymbolValueSet
+// Ensemble de valeurs d'une partie symbolique
+class KWDGSymbolValueSet : public KWDGValueSet
+{
+public:
+	// Constructeur
+	KWDGSymbolValueSet();
+	~KWDGSymbolValueSet();
+
+	// Type de valeur gere par la partie
+	int GetValueType() const override;
+
+	// Creation
+	KWDGValueSet* Create() const override;
+
+	// Creation d'une valeur et ajout en fin de liste
+	// Renvoie la valeur cree
+	KWDGValue* AddSymbolValue(const Symbol& sValue);
+
+	// Redefinition de la methode virtuelle d'ajout de la copie d'une valeur existante
+	KWDGValue* AddValueCopy(const KWDGValue* sourceValue) override;
+
+	///////////////////////////////
+	// Services avances
+
+	// Compression des valeurs (pour raison de memoire)
+	// La liste des valeurs est remplacee par une seule valeur (la valeur speciale StarValue)
+	// Les statistiques (ValueNumber et Frequency) sont conservees
+	void CompressValueSet();
+
+	// Compression des valeurs
+	// La liste des valeurs est nettoyee des modalites de plus faible effectif
+	// Les valeurs conservees sont la valeur de tete (la plus frequente) et la valeur speciale StarValue
+	// Frequency est conservee
+	// ValueNumber est mise a 1
+	// En sortie : un KWDGValueSet qui contient les valeurs autres que celles conservees
+	KWDGValueSet* ConvertToCleanedValueSet();
+
+	// Calcule et renvoie un ValueSet compresse avec la modalite d'effectif le plus eleve et la StarValue
+	// Ne modifie pas le ValueSet
+	KWDGValueSet* ComputeCleanedValueSet() const;
+
+	///////////////////////////////
+	///// Implementation
+protected:
+	// Methode de creation virtuelle, permettant de specialiser la creation d'une valeur dans une sous-classe
+	virtual KWDGValue* NewSymbolValue(const Symbol& sValue) const;
+};
+
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGSymbolValue
+// Valeur symbolique appartenant a une partie de valeur
+class KWDGSymbolValue : public KWDGValue
+{
+public:
+	// Constructeur
+	KWDGSymbolValue(const Symbol& sValue);
+	~KWDGSymbolValue();
+
+	// Type de valeur
+	int GetValueType() const override;
+
+	// Valeur
+	Symbol& GetSymbolValue() const override;
+
+	// Valeur en tant que cle numerique
+	NUMERIC GetNumericKeyValue() const override;
+
+	// Test si on est la valeur par defaut, qui fait partie de la partie par defaut
+	boolean IsDefaultValue() const override;
+
+	// Effectif lie a la valeur
+	void SetValueFrequency(int nFrequency) override;
+	int GetValueFrequency() const override;
+
+	// Comparaison de valeur Symbol
+	int CompareValue(const KWDGValue* otherValue) const override;
+
+	// Comparaison part typicalite, puis par effectif decroissant
+	int CompareTypicality(const KWDGValue* otherValue) const override;
+
+	// Affichage
+	void Write(ostream& ost) const override;
+
+	// Libelle externe base sur la valeur
+	const ALString GetExternalValueLabel() const override;
+
+	// Memoire utilisee
+	longint GetUsedMemory() const override;
+
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override;
+	const ALString GetObjectLabel() const override;
+
+	///////////////////////////////
+	///// Implementation
+protected:
+	mutable Symbol sSymbolValue;
+	int nValueFrequency;
+};
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGInterval
 // Intervalle de valeurs
-class KWDGInterval : public Object
+class KWDGInterval : public KWDGPartValues
 {
 public:
 	// Constructeur
 	KWDGInterval();
 	~KWDGInterval();
+
+	// Type de valeur gere par la partie
+	int GetValueType() const override;
 
 	// Borne inf de l'intervalle
 	// (doit etre egal a KWDGInterval::GetMinLowerBound pour le premier intervalle)
@@ -727,18 +1259,23 @@ public:
 	///////////////////////////////
 	// Services divers
 
+	// Redefinition des methodes virtuelles
+	boolean IsSubPart(const KWDGPartValues* otherPartValues) const override;
+	void Import(KWDGPartValues* sourcePartValues) override;
+	void UpgradeFrom(const KWDGPartValues* sourcePartValues) override;
+	void CopyFrom(const KWDGPartValues* sourcePartValues) override;
+
+	// Comparaison de deux intervalles d'apres leur bornes
+	int ComparePartValues(const KWDGPartValues* otherPartValues) const override;
+
 	// Controle d'integrite
 	boolean Check() const override;
 
-	// Import des valeurs d'un intervalle source, devant etre adjacent au premier
-	// intervalle. L'intervalle source est reinitialise
-	void Import(KWDGInterval* sourceInterval);
-
-	// Copie
-	void CopyFrom(const KWDGInterval* sourceInterval);
-
 	// Affichage
 	void Write(ostream& ost) const override;
+
+	// Memoire utilisee
+	longint GetUsedMemory() const override;
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
@@ -753,97 +1290,78 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe KWDGValueSet
-// Ensemble de valeurs d'une partie symbolique
-class KWDGValueSet : public Object
+// Classe KWDGVarPartSet
+// Ensemble de parties de variables (constitue une partie d'un attribut de grille de type VarPart)
+class KWDGVarPartSet : public KWDGValueSet
 {
 public:
 	// Constructeur
-	KWDGValueSet();
-	~KWDGValueSet();
+	KWDGVarPartSet();
+	~KWDGVarPartSet();
 
-	////////////////////////////////////////////////////////////////
-	// Gestion des valeurs de la parties sous forme de liste
-	// Memoire: les valeurs appartiennent a la partie
+	// Type de valeur gere par la partie
+	int GetValueType() const override;
 
-	// Creation d'une valeur et ajout en fin de liste
+	// Creation
+	KWDGValueSet* Create() const override;
+
+	// Creation d'une valeur de type partie de variable et ajout en fin de liste
 	// Renvoie la valeur cree
-	KWDGValue* AddValue(const Symbol& sValue);
+	KWDGValue* AddVarPart(KWDGPart* varPart);
 
-	// Destruction d'une valeur de la liste
-	void DeleteValue(KWDGValue* value);
+	// Redefinition de la methode virtuelle d'ajout de la copie d'une valeur existante
+	KWDGValue* AddValueCopy(const KWDGValue* sourceValue) override;
 
-	// Destruction de toutes les valeurs
-	void DeleteAllValues();
-
-	// Test de validite d'une valeur (si elle appartient a la partie)
-	boolean CheckValue(KWDGValue* value) const;
-
-	// CH V9 TODO
-	// Refactoring : distinguer nInitialValueNumber le nombre initial de valeurs
-	// nGranularizedValueNumber : le nombre de modalites apres granularisation
-	// nStoredValueNumber : le nombre de modalites stockees
-	// Nombre de valeurs
-	int GetValueNumber() const;
-
-	// Test si la partie est la partie par defaut (si elle contient la valeur speciale)
-	boolean IsDefaultPart() const;
-
-	// Nombre de valeurs reelles (valeurs sauf l'eventuelle valeur speciale)
-	int GetTrueValueNumber() const;
-
-	// Parcours de tous les valeurs
-	KWDGValue* GetHeadValue() const;
-	KWDGValue* GetTailValue() const;
-	void GetNextValue(KWDGValue*& value) const;
-	void GetPrevValue(KWDGValue*& value) const;
-
-	// Compression des valeurs (pour raison de memoire)
-	// La liste des valeurs est remplacee par une seule valeur (la valeur speciale StarValue)
-	// Les statistiques (ValueNumber et Frequency) sont conservees
-	void CompressValueSet();
-
-	// Compression des valeurs
-	// La liste des valeurs est nettoyee des modalites de plus faible effectif
-	// Les valeurs conservees sont la valeur de tete (la plus frequente) et la valeur speciale StarValue
-	// Frequency est conservee
-	// ValueNumber est mise a 1
-	// En sortie : un KWDGValueSet qui contient les valeurs autres que celles conservees
-	KWDGValueSet* ConvertToCleanedValueSet();
-
-	// Calue et renvoie un ValueSet compresse avec la modalite d'effectif le plus eleve et la StarValue
-	// Ne modifie pas le ValueSet
-	KWDGValueSet* ComputeCleanedValueSet() const;
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override;
 
 	///////////////////////////////
-	// Services divers
+	///// Implementation
+protected:
+	// Methode de creation virtuelle, permettant de specialiser la creation d'une valeur dans une sous-classe
+	virtual KWDGVarPartValue* NewVarPartValue(KWDGPart* varPart) const;
+};
 
-	// Controle d'integrite
-	boolean Check() const override;
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGVarPartValue
+// Partie de variable appartenant a une partie de parties de variable
+class KWDGVarPartValue : public KWDGValue
+{
+public:
+	// Constructeur
+	KWDGVarPartValue(KWDGPart* varPartValue);
+	~KWDGVarPartValue();
 
-	// Calcul de l'effectif cumule des valeurs
-	int ComputeTotalFrequency() const;
+	// Type de valeur
+	int GetValueType() const override;
 
-	// Import des valeurs d'une partie source, devant etre disjointe de la premiere
-	// partie. La partie source est reinitialise
-	void Import(KWDGValueSet* sourceValueSet);
+	// Partie de variable
+	KWDGPart* GetVarPart() const override;
 
-	// Copie
-	void CopyFrom(const KWDGValueSet* sourceValueSet);
+	// Valeur en tant que cle numerique
+	NUMERIC GetNumericKeyValue() const override;
 
-	// Ajout de nouvelles valeurs recopiees depuis une source
-	void UpgradeFrom(const KWDGValueSet* sourceValueSet);
+	// Test si on est la valeur par defaut, qui fait partie de la partie par defaut
+	boolean IsDefaultValue() const override;
 
-	// Tri des valeurs par effectif decroissant, pour preparer l'affichage
-	void SortValues();
+	// Effectif lie a la valeur
+	void SetValueFrequency(int nFrequency) override;
+	int GetValueFrequency() const override;
 
-	// Verification du tri des valeurs par effectif decroissant : couteux, a utiliser essentiellement dans les
-	// assertions
-	boolean AreValuesSorted() const;
+	// Comparaison de valeur, par attribut, puis selon les valeurs de la partie, intervalles ou premiere valeur des groupe
+	int CompareValue(const KWDGValue* otherValue) const override;
+
+	// Comparaison part typicalite, puis par valeur
+	int CompareTypicality(const KWDGValue* otherValue) const override;
 
 	// Affichage
 	void Write(ostream& ost) const override;
-	void WriteValues(ostream& ost) const;
+
+	// Libelle externe base sur la valeur
+	const ALString GetExternalValueLabel() const override;
+
+	// Memoire utilisee
+	longint GetUsedMemory() const override;
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
@@ -852,58 +1370,93 @@ public:
 	///////////////////////////////
 	///// Implementation
 protected:
-	// Tri des valeurs selon une fonction de tri
-	// La valeur speciale est toujours mise en dernier, independament du critere de tri
-	void InternalSortValues(CompareFunction fCompare);
-
-	// Methodes de creations virtuelles, permettant de specialiser la creation d'une valeur
-	// dans une sous-classe
-	virtual KWDGValue* NewValue(const Symbol& sValue) const;
-
-	// Methode indiquant si les donnees sont emulee
-	virtual boolean GetEmulated() const;
-
-	// Gestion de la liste doublement chainee des cellules
-	KWDGValue* headValue;
-	KWDGValue* tailValue;
-	int nValueNumber;
-	boolean bIsDefaultPart;
+	// Attributs
+	KWDGPart* varPart;
 };
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe KWDGValue
-// Valeur symbolique appartenant a une partie de valeur
-class KWDGValue : public Object
+// Classe KWDGInnerAttributes
+// Ensemble des attributs internes d'un attribut de grille de type VarPart
+class KWDGInnerAttributes : public Object
 {
 public:
 	// Constructeur
-	KWDGValue(const Symbol& sValue);
-	~KWDGValue();
+	KWDGInnerAttributes();
+	~KWDGInnerAttributes();
 
-	// Valeur
-	Symbol& GetValue() const;
+	// Ajout d'un attribut interne
+	void AddInnerAttribute(KWDGAttribute* innerAttribute);
 
-	// Effectif lie a la valeur
-	void SetValueFrequency(int nFrequency);
-	int GetValueFrequency() const;
+	// Nombre attribut internes
+	int GetInnerAttributeNumber() const;
+
+	// Acces a un attribut interne par index
+	KWDGAttribute* GetInnerAttributeAt(int nAttributeIndex) const;
+
+	// Acces a un attribut interne par nom
+	KWDGAttribute* LookupInnerAttribute(const ALString& sAttributeName) const;
+
+	// Acces a la granularite des parties de variable, partages par tous les attributs
+	int GetVarPartGranularity() const;
+	void SetVarPartGranularity(int nValue);
+
+	///////////////////////////////
+	// Services divers
+
+	// Nettoyage
+	void DeleteAll();
+
+	// Nettoyage des attributs qui ne contiennent que des valeurs manquantes
+	void CleanEmptyInnerAttributes();
+
+	// Export de toutes les parties parties de variables des attributs internes dans un tableau (initialement vide)
+	void ExportAllInnerAttributeVarParts(ObjectArray* oaInnerAttributeVarParts) const;
+
+	// Calcul du nombre total de parties de variable sur l'ensemble des attributs internes
+	int ComputeTotalInnerAttributeVarParts() const;
+
+	// Calcul de l'effectif total cumule sur les parties de variable sur l'ensemble des attributs internes
+	int ComputeTotalInnerAttributeFrequency() const;
+
+	// Tri des parties des attributs internes
+	void SortInnerAttributeParts() const;
+
+	// Verification du tri des parties des attributs internes
+	// Test couteux, a utiliser essentiellement dans les assertions
+	boolean AreInnerAttributePartsSorted() const;
+
+	// Test si les attribut internes sont constitue des meme attributs, ne contenant que sous-partie
+	// des VarPart des autres attributs internes en parametressi Verification du tri des parties des attributs internes :
+	// Test couteux, a utiliser essentiellement dans les assertions
+	boolean ContainsSubVarParts(const KWDGInnerAttributes* otherInnerAttributes) const;
+
+	// Controle d'integrite
+	boolean Check() const override;
 
 	// Affichage
 	void Write(ostream& ost) const override;
 
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override;
+	const ALString GetObjectLabel() const override;
+
 	///////////////////////////////
 	///// Implementation
 protected:
-	friend class KWDGValueSet;
+	// Gestion du compteur de reference par la classe KWDGAttribute, permettant de partager des InnerAttributes
+	// entre plusieurs grilles et les desallouer automatiquement quand elle ne sont plus utilisees
+	// Cela permet de mutualiser une structure lourde sans se soucier de la dynamique des utilisations
+	// lors des algorithmes d'optimisation
+	friend class KWDGAttribute;
 
-	// Attributs
-	KWDGValue* prevValue;
-	KWDGValue* nextValue;
-	mutable Symbol sSymbolValue;
-	int nValueFrequency;
+	// Gestion des attributs internes
+	int nVarPartGranularity;
+	ObjectDictionary odInnerAttributes;
+	ObjectArray oaInnerAttributes;
+
+	// Compteur de reference
+	mutable int nRefCount;
 };
-
-// Comparaison de deux valeurs symboliques, par effectif decroissant
-int KWDGValueCompareDecreasingFrequency(const void* elem1, const void* elem2);
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGCell
@@ -1065,6 +1618,29 @@ inline KWDGAttribute* KWDataGrid::GetTargetAttribute() const
 	return targetAttribute;
 }
 
+inline boolean KWDataGrid::IsVarPartDataGrid() const
+{
+	return varPartAttribute != NULL;
+}
+
+inline KWDGAttribute* KWDataGrid::GetVarPartAttribute() const
+{
+	ensure(varPartAttribute == NULL or varPartAttribute->GetAttributeType() == KWType::VarPart);
+	return varPartAttribute;
+}
+
+inline const KWDGInnerAttributes* KWDataGrid::GetInnerAttributes() const
+{
+	require(IsVarPartDataGrid());
+	return GetVarPartAttribute()->GetInnerAttributes();
+}
+
+inline KWDGInnerAttributes* KWDataGrid::GetEditableInnerAttributes() const
+{
+	require(IsVarPartDataGrid());
+	return cast(KWDGInnerAttributes*, GetVarPartAttribute()->GetInnerAttributes());
+}
+
 inline int KWDataGrid::GetCellNumber() const
 {
 	return nCellNumber;
@@ -1146,8 +1722,17 @@ inline const ALString& KWDGAttribute::GetAttributeName() const
 inline void KWDGAttribute::SetAttributeType(int nValue)
 {
 	require(nAttributeType == KWType::Unknown);
-	require(KWType::IsSimple(nValue));
+	require(KWType::IsCoclusteringType(nValue));
+	require(dataGrid == NULL or dataGrid->varPartAttribute == NULL or nValue != KWType::VarPart);
+
 	nAttributeType = nValue;
+
+	// On memorise l'attribut de type VarPart dans la grille
+	if (nAttributeType == KWType::VarPart)
+	{
+		assert(dataGrid != NULL and dataGrid->varPartAttribute == NULL);
+		dataGrid->varPartAttribute = this;
+	}
 }
 
 inline int KWDGAttribute::GetAttributeType() const
@@ -1169,6 +1754,65 @@ inline void KWDGAttribute::SetAttributeTargetFunction(boolean bValue)
 inline boolean KWDGAttribute::GetAttributeTargetFunction() const
 {
 	return bTargetAttribute;
+}
+
+inline boolean KWDGAttribute::IsInnerAttribute() const
+{
+	assert(dataGrid == NULL or
+	       (sOwnerAttributeName == "" and
+		((not dataGrid->IsVarPartDataGrid()) or
+		 dataGrid->GetInnerAttributes()->LookupInnerAttribute(sAttributeName) == NULL)) or
+	       (sOwnerAttributeName != "" and
+		(dataGrid->IsVarPartDataGrid() and
+		 dataGrid->GetInnerAttributes()->LookupInnerAttribute(sAttributeName) == this)));
+	return sOwnerAttributeName != "";
+}
+
+inline ALString KWDGAttribute::GetOwnerAttributeName() const
+{
+	return sOwnerAttributeName;
+}
+
+inline void KWDGAttribute::SetOwnerAttributeName(ALString sName)
+{
+	sOwnerAttributeName = sName;
+}
+
+inline void KWDGAttribute::SetInnerAttributes(const KWDGInnerAttributes* attributes)
+{
+	require(GetAttributeType() == KWType::VarPart);
+
+	// Decrementation des references sur les attributs internes d'origine, et desallocation si necessaire
+	if (innerAttributes != NULL)
+	{
+		innerAttributes->nRefCount--;
+		if (innerAttributes->nRefCount == 0)
+			delete innerAttributes;
+	}
+
+	// Incrementation des references sur les nouveaux attributs internes
+	if (attributes != NULL)
+		attributes->nRefCount++;
+	innerAttributes = attributes;
+}
+
+inline const KWDGInnerAttributes* KWDGAttribute::GetInnerAttributes() const
+{
+	require(GetAttributeType() == KWType::VarPart);
+	ensure(innerAttributes != NULL);
+	return innerAttributes;
+}
+
+inline int KWDGAttribute::GetInnerAttributeNumber() const
+{
+	require(nAttributeType == KWType::VarPart);
+	return GetInnerAttributes()->GetInnerAttributeNumber();
+}
+
+inline KWDGAttribute* KWDGAttribute::GetInnerAttributeAt(int nIndex) const
+{
+	require(nAttributeType == KWType::VarPart);
+	return GetInnerAttributes()->GetInnerAttributeAt(nIndex);
 }
 
 inline int KWDGAttribute::GetAttributeIndex() const
@@ -1196,23 +1840,6 @@ inline void KWDGAttribute::SetGranularizedValueNumber(int nValue)
 inline int KWDGAttribute::GetGranularizedValueNumber() const
 {
 	return nGranularizedValueNumber;
-}
-
-inline int KWDGAttribute::GetStoredValueNumber() const
-{
-	if (nAttributeType == KWType::Symbol)
-		return nInitialValueNumber + 1;
-	else
-		return nInitialValueNumber;
-}
-
-inline int KWDGAttribute::GetTrueValueNumber() const
-{
-	// if (nAttributeType == KWType::Symbol)
-	//	return nInitialValueNumber - 1;
-	// else
-	//  Desormais nInitialValueNumber est le TrueValueNumber
-	return nInitialValueNumber;
 }
 
 inline void KWDGAttribute::SetCost(double dValue)
@@ -1255,13 +1882,14 @@ inline void KWDGAttribute::GetPrevPart(KWDGPart*& part) const
 
 inline KWDGPart* KWDGAttribute::GetGarbagePart() const
 {
-	// CH V9 MB TODO: expliquer pourquoi il n'y a pas de require(nAttributeType == KWType::Symbol)
+	// Pas de require strict sur le type d'attribut, pour simplifier l'usage de cette methode
+	require(KWType::IsCoclusteringGroupableType(nAttributeType) or garbagePart == NULL);
 	return garbagePart;
 }
 
 inline void KWDGAttribute::SetGarbagePart(KWDGPart* part)
 {
-	require(nAttributeType == KWType::Symbol);
+	require(KWType::IsCoclusteringGroupableType(nAttributeType));
 	garbagePart = part;
 }
 
@@ -1271,32 +1899,31 @@ inline int KWDGAttribute::GetGarbageModalityNumber() const
 		return 0;
 	// Sinon
 	else
-		return GetGarbagePart()->GetValueSet()->GetTrueValueNumber();
+	{
+		assert(KWType::IsCoclusteringGroupableType(nAttributeType));
+		return GetGarbagePart()->GetValueSet()->GetValueNumber();
+	}
 }
 
 inline KWDGValueSet* KWDGAttribute::GetCatchAllValueSet() const
 {
-	// CH V9 MB TODO: expliquer pourquoi il n'y a pas de require(nAttributeType == KWType::Symbol)
-	// require(nAttributeType == KWType::Symbol);
+	// Pas de require strict sur le type d'attribut, pour simplifier l'usage de cette methode
+	require(nAttributeType == KWType::Symbol or catchAllValueSet == NULL);
 	return catchAllValueSet;
-}
-
-inline void KWDGAttribute::SetCatchAllValueSet(KWDGValueSet* valueSet)
-{
-	require(nAttributeType == KWType::Symbol);
-	if (catchAllValueSet != NULL)
-		delete catchAllValueSet;
-	catchAllValueSet = valueSet;
 }
 
 inline void KWDGAttribute::InitializeCatchAllValueSet(KWDGValueSet* valueSet)
 {
-	require(nAttributeType == KWType::Symbol);
+	// Pas de require strict sur le type d'attribut, pour simplifier l'usage de cette methode
+	require(nAttributeType == KWType::Symbol or catchAllValueSet == NULL);
+	require(nAttributeType == KWType::Symbol or valueSet == NULL);
 
 	if (catchAllValueSet != NULL)
 		delete catchAllValueSet;
-	catchAllValueSet = new KWDGValueSet;
-	catchAllValueSet->CopyFrom(valueSet);
+	if (valueSet == NULL)
+		catchAllValueSet = NULL;
+	else
+		catchAllValueSet = valueSet->Clone();
 }
 
 inline void KWDGAttribute::SetCatchAllValueNumber(int nValue)
@@ -1307,7 +1934,7 @@ inline void KWDGAttribute::SetCatchAllValueNumber(int nValue)
 
 inline int KWDGAttribute::GetCatchAllValueNumber() const
 {
-	// require(nAttributeType == KWType::Symbol);
+	// Pas de require sur le type pour simplifier l'ecriture du code
 	//  Cas ou il n'y a pas de groupe fourre-tout
 	if (GetCatchAllValueSet() == NULL)
 		return 0;
@@ -1315,7 +1942,10 @@ inline int KWDGAttribute::GetCatchAllValueNumber() const
 	else if (nCatchAllValueNumber != -1)
 		return nCatchAllValueNumber;
 	else
+	{
+		assert(not GetCatchAllValueSet()->IsDefaultPart());
 		return GetCatchAllValueSet()->GetValueNumber();
+	}
 }
 
 inline boolean KWDGAttribute::IsIndexed() const
@@ -1332,36 +1962,48 @@ inline KWDGAttribute* KWDGPart::GetAttribute() const
 
 inline int KWDGPart::GetPartFrequency() const
 {
-	ensure(GetEmulated() or nPartFrequency == ComputeCellsTotalFrequency());
+	ensure(GetEmulated() or nPartFrequency == ComputeCellsTotalFrequency() or GetAttribute()->IsInnerAttribute());
 	return nPartFrequency;
 }
 
 inline int KWDGPart::GetPartType() const
 {
-	require(interval == NULL or valueSet == NULL);
+	require(partValues == NULL or KWType::IsCoclusteringType(partValues->GetValueType()));
 
-	if (interval != NULL)
-		return KWType::Continuous;
-	else if (valueSet != NULL)
-		return KWType::Symbol;
-	else
+	if (partValues == NULL)
 		return KWType::Unknown;
+	else
+		return partValues->GetValueType();
 }
 
 inline KWDGInterval* KWDGPart::GetInterval() const
 {
 	require(GetPartType() == KWType::Continuous);
+	return cast(KWDGInterval*, partValues);
+}
 
-	ensure(interval != NULL);
-	return interval;
+inline KWDGSymbolValueSet* KWDGPart::GetSymbolValueSet() const
+{
+	require(GetPartType() == KWType::Symbol);
+	return cast(KWDGSymbolValueSet*, partValues);
+}
+
+inline KWDGVarPartSet* KWDGPart::GetVarPartSet() const
+{
+	require(GetPartType() == KWType::VarPart);
+	return cast(KWDGVarPartSet*, partValues);
 }
 
 inline KWDGValueSet* KWDGPart::GetValueSet() const
 {
-	require(GetPartType() == KWType::Symbol);
+	require(KWType::IsCoclusteringGroupableType(GetPartType()));
+	return cast(KWDGValueSet*, partValues);
+}
 
-	ensure(valueSet != NULL);
-	return valueSet;
+inline KWDGPartValues* KWDGPart::GetPartValues() const
+{
+	require(KWType::IsCoclusteringType(GetPartType()));
+	return partValues;
 }
 
 inline int KWDGPart::GetCellNumber() const
@@ -1414,6 +2056,11 @@ inline KWDGInterval::KWDGInterval()
 
 inline KWDGInterval::~KWDGInterval() {}
 
+inline int KWDGInterval::GetValueType() const
+{
+	return KWType::Continuous;
+}
+
 inline void KWDGInterval::SetLowerBound(Continuous cValue)
 {
 	cLowerBound = cValue;
@@ -1445,14 +2092,6 @@ inline Continuous KWDGInterval::GetMaxUpperBound()
 	return KWContinuous::GetMaxValue();
 }
 
-inline void KWDGInterval::CopyFrom(const KWDGInterval* sourceInterval)
-{
-	require(sourceInterval != NULL);
-
-	cLowerBound = sourceInterval->cLowerBound;
-	cUpperBound = sourceInterval->cUpperBound;
-}
-
 // Classe KWDGValueSet
 
 inline KWDGValueSet::KWDGValueSet()
@@ -1468,9 +2107,12 @@ inline KWDGValueSet::~KWDGValueSet()
 	DeleteAllValues();
 }
 
-inline int KWDGValueSet::GetValueNumber() const
+inline KWDGValueSet* KWDGValueSet::Clone() const
 {
-	return nValueNumber;
+	KWDGValueSet* cloneValueSet;
+	cloneValueSet = Create();
+	cloneValueSet->CopyFrom(this);
+	return cloneValueSet;
 }
 
 inline boolean KWDGValueSet::IsDefaultPart() const
@@ -1478,10 +2120,22 @@ inline boolean KWDGValueSet::IsDefaultPart() const
 	return bIsDefaultPart;
 }
 
-inline int KWDGValueSet::GetTrueValueNumber() const
+inline int KWDGValueSet::GetValueNumber() const
 {
-	if (bIsDefaultPart and nValueNumber > 1)
-		return nValueNumber - 1;
+	assert(nValueNumber > 0 or IsDefaultPart() or GetHeadValue() == NULL or GetValueType() != KWType::Symbol);
+
+	// On assure que le seul cas sans aucune valeur est le cas de la partie par defaut reduite a la StarValue
+	// Cela peut arriver si la partie a ete "nettoyee" pour gagner de la place, notamment quand on exporte
+	// une grille dans un fichier de dictionnaire .kdic. Le modele exporte n'est pas tout a fait valide,
+	// puisque l'on a perdu le compte des valeurs du groupe poubelle (bug a corriger plus tard).
+	// Quand on reimporte le model pour le deploiement, il faut contourner ces incoherences.
+	// Dans ce cas, ou rend une nombre de valeurs egal 1 a, ce qui a le merite d'avoir des couts de grille
+	// valides numeriquement, meme s'ils ne corrrespondent pas au vrai model qui aurait du memoriser
+	// le nombre exacte de valeurs du groupe
+	// Ce cas peut egalement se produire dans certaines phases algorithmiques ou
+	// la liste de valeurs est effectivement vide
+	if (nValueNumber == 0 and IsDefaultPart())
+		return 1;
 	else
 		return nValueNumber;
 }
@@ -1508,32 +2162,248 @@ inline void KWDGValueSet::GetPrevValue(KWDGValue*& value) const
 	value = value->prevValue;
 }
 
+// Classe KWDGSymbolValueSet
+
+inline KWDGSymbolValueSet::KWDGSymbolValueSet() {}
+
+inline KWDGSymbolValueSet::~KWDGSymbolValueSet() {}
+
+inline int KWDGSymbolValueSet::GetValueType() const
+{
+	return KWType::Symbol;
+}
+
+inline KWDGValueSet* KWDGSymbolValueSet::Create() const
+{
+	return new KWDGSymbolValueSet;
+}
+
+inline KWDGValue* KWDGSymbolValueSet::AddSymbolValue(const Symbol& sValue)
+{
+	KWDGValue* value;
+
+	// Creation de la valeur
+	value = NewSymbolValue(sValue);
+
+	// Ajout en fin de la liste des valeurs
+	AddTailValue(value);
+
+	// On retourne la valeur cree
+	return value;
+}
+
+inline KWDGValue* KWDGSymbolValueSet::AddValueCopy(const KWDGValue* sourceValue)
+{
+	return AddSymbolValue(cast(KWDGSymbolValue*, sourceValue)->GetSymbolValue());
+}
+
+inline KWDGValue* KWDGSymbolValueSet::NewSymbolValue(const Symbol& sValue) const
+{
+	return new KWDGSymbolValue(sValue);
+}
+
+// Class KWDGVarPartSet
+
+inline KWDGVarPartSet::KWDGVarPartSet() {}
+
+inline KWDGVarPartSet::~KWDGVarPartSet() {}
+
+inline int KWDGVarPartSet::KWDGVarPartSet::GetValueType() const
+{
+	return KWType::VarPart;
+}
+
+inline KWDGValueSet* KWDGVarPartSet::Create() const
+{
+	return new KWDGVarPartSet;
+}
+
+inline KWDGValue* KWDGVarPartSet::AddVarPart(KWDGPart* varPart)
+{
+	KWDGValue* value;
+
+	require(varPart != NULL);
+
+	// Creation de la valeur
+	value = NewVarPartValue(varPart);
+
+	// Ajout en fin de la liste des valeurs
+	AddTailValue(value);
+
+	// On retourne la valeur cree
+	return value;
+}
+
+inline KWDGValue* KWDGVarPartSet::AddValueCopy(const KWDGValue* sourceValue)
+{
+	return AddVarPart(cast(KWDGVarPartValue*, sourceValue)->GetVarPart());
+}
+
+inline const ALString KWDGVarPartSet::GetClassLabel() const
+{
+	return "VarPart set";
+}
+
+inline KWDGVarPartValue* KWDGVarPartSet::NewVarPartValue(KWDGPart* varPart) const
+{
+	require(varPart != NULL);
+	return new KWDGVarPartValue(varPart);
+}
+
+// Classe KWDGVarPartValue
+
+inline KWDGVarPartValue::KWDGVarPartValue(KWDGPart* varPartValue)
+{
+	require(varPartValue != NULL);
+	varPart = varPartValue;
+}
+
+inline KWDGVarPartValue::~KWDGVarPartValue() {}
+
+inline int KWDGVarPartValue::GetValueType() const
+{
+	return KWType::VarPart;
+}
+
+inline KWDGPart* KWDGVarPartValue::GetVarPart() const
+{
+	return varPart;
+}
+
+inline NUMERIC KWDGVarPartValue::GetNumericKeyValue() const
+{
+	return varPart;
+}
+
+inline boolean KWDGVarPartValue::IsDefaultValue() const
+{
+	return false;
+}
+
+inline void KWDGVarPartValue::SetValueFrequency(int nFrequency)
+{
+	require(varPart != NULL);
+	varPart->SetPartFrequency(nFrequency);
+}
+
+inline int KWDGVarPartValue::GetValueFrequency() const
+{
+	require(varPart != NULL);
+	return varPart->GetPartFrequency();
+}
+
+// Classe KWDGInnerAttributes
+inline KWDGInnerAttributes::KWDGInnerAttributes()
+{
+	nVarPartGranularity = 0;
+	nRefCount = 0;
+}
+
+inline KWDGInnerAttributes::~KWDGInnerAttributes()
+{
+	assert(nRefCount == 0);
+	DeleteAll();
+}
+
+inline int KWDGInnerAttributes::GetInnerAttributeNumber() const
+{
+	assert(odInnerAttributes.GetCount() == oaInnerAttributes.GetSize());
+	return oaInnerAttributes.GetSize();
+}
+
 // Classe KWDGValue
 
-inline KWDGValue::KWDGValue(const Symbol& sValue)
+inline KWDGValue::KWDGValue()
 {
-	sSymbolValue = sValue;
-	nValueFrequency = 0;
+	dTypicality = 0;
 	prevValue = NULL;
 	nextValue = NULL;
 }
 
 inline KWDGValue::~KWDGValue() {}
 
-inline Symbol& KWDGValue::GetValue() const
+inline Symbol& KWDGValue::GetSymbolValue() const
+{
+	static Symbol sEmpty;
+	assert(false);
+	return sEmpty;
+}
+
+inline KWDGPart* KWDGValue::GetVarPart() const
+{
+	assert(false);
+	return NULL;
+}
+
+inline int KWDGValue::CompareFrequency(const KWDGValue* otherValue) const
+{
+	int nCompare;
+
+	require(otherValue != NULL);
+	require(otherValue->GetValueType() == GetValueType());
+
+	nCompare = -GetValueFrequency() + otherValue->GetValueFrequency();
+	if (nCompare == 0)
+		nCompare = CompareValue(otherValue);
+	return nCompare;
+}
+
+inline void KWDGValue::SetTypicality(double dValue)
+{
+	require(0 <= dValue and dValue <= 1);
+	dTypicality = dValue;
+}
+
+inline double KWDGValue::GetTypicality() const
+{
+	return dTypicality;
+}
+
+// Classe KWDGSymbolValue
+
+inline KWDGSymbolValue::KWDGSymbolValue(const Symbol& sValue)
+{
+	sSymbolValue = sValue;
+	nValueFrequency = 0;
+}
+
+inline KWDGSymbolValue::~KWDGSymbolValue() {}
+
+inline int KWDGSymbolValue::GetValueType() const
+{
+	return KWType::Symbol;
+}
+
+inline Symbol& KWDGSymbolValue::GetSymbolValue() const
 {
 	return sSymbolValue;
 }
 
-inline void KWDGValue::SetValueFrequency(int nFrequency)
+inline NUMERIC KWDGSymbolValue::GetNumericKeyValue() const
+{
+	return sSymbolValue.GetNumericKey();
+}
+
+inline boolean KWDGSymbolValue::IsDefaultValue() const
+{
+	return sSymbolValue == Symbol::GetStarValue();
+}
+
+inline void KWDGSymbolValue::SetValueFrequency(int nFrequency)
 {
 	require(nFrequency >= 0);
 	nValueFrequency = nFrequency;
 }
 
-inline int KWDGValue::GetValueFrequency() const
+inline int KWDGSymbolValue::GetValueFrequency() const
 {
 	return nValueFrequency;
+}
+
+inline int KWDGSymbolValue::CompareValue(const KWDGValue* otherValue) const
+{
+	require(otherValue != NULL);
+	return GetSymbolValue().CompareValue(otherValue->GetSymbolValue());
 }
 
 // Classe KWDGCell

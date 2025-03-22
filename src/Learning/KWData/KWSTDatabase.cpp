@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -158,6 +158,7 @@ boolean KWSTDatabase::PhysicalOpenForWrite()
 	// Parametrage
 	dataTableDriverCreator->SetDataTableName(GetDatabaseName());
 	dataTableDriverCreator->SetClass(kwcClass);
+	dataTableDriverCreator->SetDenseOutputFormat(GetDenseOutputFormat());
 
 	// Ouverture physique
 	bOk = dataTableDriverCreator->OpenForWrite();
@@ -235,9 +236,18 @@ longint KWSTDatabase::GetPhysicalEstimatedObjectNumber()
 {
 	longint lNumber;
 
+	require(dataTableDriverCreator->GetDataTableName() == "");
+	require(dataTableDriverCreator->GetClass() == NULL);
+
+	// Parametrage du driver pour estimer le nombre d'objets
 	dataTableDriverCreator->SetDataTableName(GetDatabaseName());
+	dataTableDriverCreator->SetClass(KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName()));
 	lNumber = dataTableDriverCreator->GetEstimatedObjectNumber();
 	dataTableDriverCreator->SetDataTableName("");
+	dataTableDriverCreator->SetClass(NULL);
+
+	ensure(dataTableDriverCreator->GetDataTableName() == "");
+	ensure(dataTableDriverCreator->GetClass() == NULL);
 	return lNumber;
 }
 

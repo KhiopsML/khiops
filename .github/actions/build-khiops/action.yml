@@ -1,35 +1,51 @@
 ---
-name: "Build Khiops"
-
-on:
-  workflow_call:
-    inputs:
-      preset-name:
-        description: "The CMake preset name"
-        required: true
-      override-flags:
-        description: "List of overriding flags for the preset defaults"
-
+name: Build Khiops
+description: Action to execute CMake configure/build presets
+inputs:
+  preset-name:
+    description: The CMake preset name
+    required: true
+  override-flags:
+    description: "List of overriding flags for the preset defaults (ex: '-DUSE_MPI=OFF\
+      \ -DBUILD_JARS=ON')"
+  targets:
+    description: "List of targets to be built (ex: 'MODL norm_test')"
 runs:
-  using: "composite"
+  using: composite
   steps:
-    - name: Setup MPI
+    - name: Setup MPI (Windows)
+      if: runner.os == 'Windows'
       uses: mpi4py/setup-mpi@v1
-
-    - name: Load Visual C++ Environment Variables (Windows only)
-      if: ${{ runner.os == 'Windows' }}
+    - name: Setup MPI (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        brew install mpich
+    - name: Setup MPI (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install openmpi-bin libopenmpi-dev
+        sudo update-alternatives --set mpi /usr/bin/mpicc.openmpi
+        sudo update-alternatives --set mpirun /usr/bin/mpirun.openmpi
+    - name: Setup Ninja (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: sudo apt-get install ninja-build
+    - name: Setup Ninja (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      run: brew install ninja
+    # This step is required to have ninja and cmake in the path for windows
+    - name: Load Visual C++ Environment Variables (Windows)
+      if: runner.os == 'Windows'
       shell: cmd
       run: |
         call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
         set >> %GITHUB_ENV%
-
-    - name: Install Ninja (Linux only)
-      if: ${{ runner.os == 'Linux' }}
-      shell: bash
-      run: sudo apt-get install ninja-build
-
     - name: Compile Khiops with CMake
       shell: bash
-      run: |
+      run: |-
         cmake --preset ${{ inputs.preset-name }} ${{ inputs.override-flags }}
-        cmake --build --preset build-${{ inputs.preset-name }}
+        cmake --build --parallel --preset ${{ inputs.preset-name }} --target ${{ inputs.targets }}

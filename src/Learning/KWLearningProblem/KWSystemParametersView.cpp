@@ -1,14 +1,11 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "KWSystemParametersView.h"
-#include "PLParallelTask.h"
-#include "FileService.h"
 
 KWSystemParametersView::KWSystemParametersView()
 {
-	int nModalityNumber;
 	int nErrorMessageNumber;
 	int nMaxMemory;
 	int nMinMemory;
@@ -16,10 +13,13 @@ KWSystemParametersView::KWSystemParametersView()
 	int nMaxProcNumber;
 	ALString sMemoryLimit;
 	longint lEnvMemoryLimit;
+	int nRound;
+	int i;
+	ALString sTmp;
 
 	SetIdentifier("KWSystemParameters");
 	SetLabel("System parameters");
-	AddIntField("MaxItemNumberInReports", "Max number of items in reports", 0);
+	AddBooleanField("APIMode", "API mode", false);
 	AddIntField("MaxErrorMessageNumberInLog", "Max number of error messages in log", 0);
 	AddIntField("OptimizationTime", "Min optimization time in seconds", 0);
 	AddIntField("MemoryLimit", "Memory limit in MB", 0);
@@ -30,7 +30,7 @@ KWSystemParametersView::KWSystemParametersView()
 	AddStringField("TemporaryDirectoryName", "Temp file directory", "");
 
 	// Parametrage des styles
-	GetFieldAt("MaxItemNumberInReports")->SetStyle("Spinner");
+	GetFieldAt("APIMode")->SetStyle("CheckBox");
 	GetFieldAt("MaxErrorMessageNumberInLog")->SetStyle("Spinner");
 	GetFieldAt("OptimizationTime")->SetStyle("Spinner");
 	GetFieldAt("MemoryLimit")->SetStyle("Slider");
@@ -39,18 +39,6 @@ KWSystemParametersView::KWSystemParametersView()
 	GetFieldAt("ParallelLogFileName")->SetStyle("DirectoryChooser");
 	GetFieldAt("ParallelSimulated")->SetStyle("CheckBox");
 	GetFieldAt("TemporaryDirectoryName")->SetStyle("DirectoryChooser");
-
-	// Parametrage des limites du nombre max d'items dans les rapports
-	cast(UIIntElement*, GetFieldAt("MaxItemNumberInReports"))->SetMinValue(10);
-	cast(UIIntElement*, GetFieldAt("MaxItemNumberInReports"))->SetMaxValue(1000000);
-	nModalityNumber = KWLearningSpec::GetMaxModalityNumber();
-	if (nModalityNumber < 10)
-		nModalityNumber = 10;
-	if (nModalityNumber > 1000000)
-		nModalityNumber = 1000000;
-	KWLearningSpec::SetMaxModalityNumber(nModalityNumber);
-	cast(UIIntElement*, GetFieldAt("MaxItemNumberInReports"))
-	    ->SetDefaultValue(KWLearningSpec::GetMaxModalityNumber());
 
 	// Parametrage des limites du nombre max de messages d'erreur dans les log
 	cast(UIIntElement*, GetFieldAt("MaxErrorMessageNumberInLog"))->SetMinValue(10);
@@ -70,20 +58,42 @@ KWSystemParametersView::KWSystemParametersView()
 	cast(UIIntElement*, GetFieldAt("OptimizationTime"))
 	    ->SetDefaultValue(RMResourceConstraints::GetOptimizationTime());
 
-	// Limites de la taille memoire en MB
+	// Limites de la taille memoire en MB de chaque machine
 	// Par defaut, on utilise 90% de la memoire max (notamment pour les machines n'ayant pas de fichier swap)
+	// Sur un cluster c'est la max alloue a chaque machine (et non la memoire de tout le cluster)
+
+	// Caclul du min avec un arrondi a la dizaine ou a la centaine selon la presence ou l'absence de la GUI java
 	nMinMemory = int(RMResourceManager::GetSystemMemoryReserve() * (1 + MemGetAllocatorOverhead()) / lMB);
-	nMinMemory = 100 * int(ceil(nMinMemory / 100.0));
-	nMaxMemory = (int)(min(MemGetAvailablePhysicalMemory(), MemGetAdressablePhysicalMemory()) / lMB);
+	if (UIObject::IsBatchMode())
+		nRound = 10;
+	else
+		nRound = 100;
+	nMinMemory = nRound * int(ceil(nMinMemory / (nRound * 1.0)));
+
+	// Calcul du max : c'est la maximum de la memoire disponible sur chaque machine
+	nMaxMemory = 0;
+	for (i = 0; i < RMResourceManager::GetResourceSystem()->GetHostNumber(); i++)
+	{
+		const RMHostResource* hr = RMResourceManager::GetResourceSystem()->GetHostResourceAt(i);
+		nMaxMemory = max(nMaxMemory, int(hr->GetPhysicalMemory() / lMB));
+	}
+	nMaxMemory = min(nMaxMemory, int(MemGetAdressablePhysicalMemory() / lMB));
 
 	// Valeur par defaut de la memoire (variable d'environement ou 90% de le memoire max)
-	sMemoryLimit = p_getenv("KhiopsMemoryLimit");
+	sMemoryLimit = p_getenv("KHIOPS_MEMORY_LIMIT");
 	lEnvMemoryLimit = 0;
 	if (sMemoryLimit != "")
 	{
 		// Utilisation de StringToLongint car atol renvoie 0 en cas de pbm (contrairement a atoi)
 		lEnvMemoryLimit = StringToLongint(sMemoryLimit);
 	}
+	if (sMemoryLimit != "" and lEnvMemoryLimit < nMinMemory)
+		AddFatalError(
+		    sTmp +
+		    "The environment variable KHIOPS_MEMORY_LIMIT is ignored because it is set to a value inferior "
+		    "than required for Khiops "
+		    "(" +
+		    LongintToReadableString(lEnvMemoryLimit) + " MB < " + LongintToReadableString(nMinMemory) + " MB)");
 	if (lEnvMemoryLimit != 0 and lEnvMemoryLimit <= nMaxMemory and lEnvMemoryLimit >= nMinMemory)
 	{
 		nMaxMemory = (int)lEnvMemoryLimit;
@@ -91,6 +101,10 @@ KWSystemParametersView::KWSystemParametersView()
 	}
 	else
 		nDefaultMemory = nMaxMemory - nMaxMemory / 10;
+
+	// Modification de la memoire par defaut selon variable d'environnement experte
+	if (GetLearningDefaultMemoryLimit() != 0)
+		nDefaultMemory = min(GetLearningDefaultMemoryLimit(), nMaxMemory);
 
 	cast(UIIntElement*, GetFieldAt("MemoryLimit"))->SetMinValue(nMinMemory);
 	cast(UIIntElement*, GetFieldAt("MemoryLimit"))->SetMaxValue(nMaxMemory);
@@ -100,17 +114,20 @@ KWSystemParametersView::KWSystemParametersView()
 	// Ignorer les limites memoire
 	SetBooleanValueAt("IgnoreMemoryLimit", RMResourceConstraints::GetIgnoreMemoryLimit());
 
+	// Controle dur des limites memoire si specifie
+	if (GetLearningHardMemoryLimitMode() and not RMResourceConstraints::GetIgnoreMemoryLimit())
+		MemSetMaxHeapSize(RMResourceConstraints::GetMemoryLimit() * lMB);
+
 	// Limites du nombre de coeurs
 	cast(UIIntElement*, GetFieldAt("MaxCoreNumber"))->SetMinValue(1);
 
 	nMaxProcNumber =
-	    min(RMResourceManager::GetPhysicalCoreNumber(), max(1, RMResourceManager::GetLogicalProcessNumber() - 1));
+	    min(RMResourceManager::GetPhysicalCoreNumber(), max(1, RMResourceManager::GetLogicalProcessNumber()));
 	cast(UIIntElement*, GetFieldAt("MaxCoreNumber"))->SetMaxValue(nMaxProcNumber);
 	cast(UIIntElement*, GetFieldAt("MaxCoreNumber"))->SetDefaultValue(nMaxProcNumber);
 
-	// Calcul du nombre effectif de processus qu'on utilise (en general DefaultValue +1)
-	RMResourceConstraints::SetMaxCoreNumber(
-	    ComputeCoreNumber(cast(UIIntElement*, GetFieldAt("MaxCoreNumber"))->GetDefaultValue()));
+	// Mise a jour de la contrainte du nombre de processus utilisable sur le systeme
+	RMResourceConstraints::SetMaxCoreNumberOnCluster(nMaxProcNumber);
 
 	// On ne peut pas editer le nombre de process a utiliser le mode parallel n'est pas disponible
 	if (not PLParallelTask::IsParallelModeAvailable())
@@ -121,7 +138,12 @@ KWSystemParametersView::KWSystemParametersView()
 	GetFieldAt("OptimizationTime")->SetVisible(false);
 	GetFieldAt("IgnoreMemoryLimit")->SetVisible(false);
 
-	// Mode parallele simule uniquement en mode expert
+	// API mode uniquement en mode expert, apres avoir force l'initialisation de la valeur par defaut par la
+	// variable d'environnement
+	KWResultFilePathBuilder::GetLearningApiMode();
+	GetFieldAt("APIMode")->SetVisible(GetLearningExpertMode());
+
+	// Mode parallele simule uniquement en mode expert parallele
 	if (not GetParallelExpertMode())
 		GetFieldAt("ParallelSimulated")->SetVisible(false);
 
@@ -130,11 +152,11 @@ KWSystemParametersView::KWSystemParametersView()
 		GetFieldAt("ParallelLogFileName")->SetVisible(false);
 
 	// Info-bulles
-	GetFieldAt("MaxItemNumberInReports")
-	    ->SetHelpText("Max number of items in reports."
-			  "\n Allows to control the size of reports, by limiting the number of reported items,"
-			  "\n such as the number of lines or rows in contingency tables, the number of"
-			  "\n detailed groups of values or the number of values in each detailed group.");
+	GetFieldAt("APIMode")->SetHelpText("API mode for the management of results files."
+					   "\n By default, the result files are stored in the train database "
+					   "directory, unless an absolute path is specified,"
+					   "\n and the file extension is forced if necessary."
+					   "\n In API mode, the path of the result files are taken as is.");
 	GetFieldAt("MaxErrorMessageNumberInLog")
 	    ->SetHelpText(
 		"Max number of error messages in log."
@@ -171,19 +193,20 @@ KWSystemParametersView::~KWSystemParametersView() {}
 
 void KWSystemParametersView::EventUpdate(Object* object)
 {
-	int nRequestedCore;
-
 	// On parametre directement les variables statiques correspondantes
 	// en ignorant l'objet passe en parametres
-	KWLearningSpec::SetMaxModalityNumber(GetIntValueAt("MaxItemNumberInReports"));
+	KWResultFilePathBuilder::SetLearningApiMode(GetBooleanValueAt("APIMode"));
 	Global::SetMaxErrorFlowNumber(GetIntValueAt("MaxErrorMessageNumberInLog"));
 	RMResourceConstraints::SetOptimizationTime(GetIntValueAt("OptimizationTime"));
 	RMResourceConstraints::SetMemoryLimit(GetIntValueAt("MemoryLimit"));
 	RMResourceConstraints::SetIgnoreMemoryLimit(GetBooleanValueAt("IgnoreMemoryLimit"));
 
+	// Controle dur des limites memoire si specifie
+	if (GetLearningHardMemoryLimitMode() and not RMResourceConstraints::GetIgnoreMemoryLimit())
+		MemSetMaxHeapSize(RMResourceConstraints::GetMemoryLimit() * lMB);
+
 	// Calcul du nombre de processus utilises
-	nRequestedCore = GetIntValueAt("MaxCoreNumber");
-	RMResourceConstraints::SetMaxCoreNumber(ComputeCoreNumber(nRequestedCore));
+	RMResourceConstraints::SetMaxCoreNumberOnCluster(GetIntValueAt("MaxCoreNumber"));
 	PLParallelTask::SetParallelSimulated(GetBooleanValueAt("ParallelSimulated"));
 	PLParallelTask::SetParallelLogFileName(GetStringValueAt("ParallelLogFileName"));
 	FileService::SetUserTmpDir(GetStringValueAt("TemporaryDirectoryName"));
@@ -193,12 +216,12 @@ void KWSystemParametersView::EventRefresh(Object* object)
 {
 	// On parametre directement les variables statiques correspondantes
 	// en ignorant l'objet passe en parametres
-	SetIntValueAt("MaxItemNumberInReports", KWLearningSpec::GetMaxModalityNumber());
+	SetBooleanValueAt("APIMode", KWResultFilePathBuilder::GetLearningApiMode());
 	SetIntValueAt("MaxErrorMessageNumberInLog", Global::GetMaxErrorFlowNumber());
 	SetIntValueAt("OptimizationTime", RMResourceConstraints::GetOptimizationTime());
 	SetIntValueAt("MemoryLimit", RMResourceConstraints::GetMemoryLimit());
 	SetBooleanValueAt("IgnoreMemoryLimit", RMResourceConstraints::GetIgnoreMemoryLimit());
-	SetIntValueAt("MaxCoreNumber", ComputeRequestedCoreNumber(RMResourceConstraints::GetMaxCoreNumber()));
+	SetIntValueAt("MaxCoreNumber", RMResourceConstraints::GetMaxCoreNumberOnCluster());
 	SetBooleanValueAt("ParallelSimulated", PLParallelTask::GetParallelSimulated());
 	SetStringValueAt("ParallelLogFileName", PLParallelTask::GetParallelLogFileName());
 	SetStringValueAt("TemporaryDirectoryName", FileService::GetUserTmpDir());
@@ -207,44 +230,4 @@ void KWSystemParametersView::EventRefresh(Object* object)
 const ALString KWSystemParametersView::GetClassLabel() const
 {
 	return "System parameters";
-}
-
-int KWSystemParametersView::ComputeCoreNumber(int nRequestedCoreNumber) const
-{
-	int nMPIProcessNumber;
-	int nProcessNumber;
-
-	require(nRequestedCoreNumber > 0);
-
-	nMPIProcessNumber = RMResourceManager::GetLogicalProcessNumber();
-
-	// Evaluation du nombre de processus a lancer
-	if (nRequestedCoreNumber == 1)
-	{
-		// Lancement en sequentiel si l'utilisateur ne demande qu'un seul coeur
-		nProcessNumber = 1;
-	}
-	else
-	{
-		// En parallele, on utilise 1 processus de plus que ce que demande l'utilisateur.
-		// Et on n'utilise pas plus de processus qu'il n'y a de processus MPI (d'ou le min)
-		// Il est donc recommande de lancer Khiops avec 1 processus MPI de plus que le nombre
-		// de coeurs physiques
-		nProcessNumber = min(nRequestedCoreNumber + 1, nMPIProcessNumber);
-	}
-	ensure(nProcessNumber > 0);
-	return nProcessNumber;
-}
-
-int KWSystemParametersView::ComputeRequestedCoreNumber(int nCoreNumber) const
-{
-	int nRequestedCore;
-
-	require(nCoreNumber > 0);
-
-	if (nCoreNumber == 1)
-		nRequestedCore = 1;
-	else
-		nRequestedCore = nCoreNumber - 1;
-	return nRequestedCore;
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -7,11 +7,15 @@
 KWSortedChunkBuilderTask::KWSortedChunkBuilderTask()
 {
 	bHeaderLineUsed = true;
-	cFieldSeparator = '\t';
 	bLastSlaveProcessDone = false;
 	lInputFileSize = 0;
 	lFilePos = 0;
 	lBucketsUsedMemory = 0;
+	lBucketsSizeMin = 0;
+	lBucketsSizeMax = 0;
+	nReadSizeMin = 0;
+	nReadSizeMax = 0;
+	nReadBufferSize = 0;
 
 	// Variables partagees
 	DeclareSharedParameter(&shared_ivKeyFieldIndexes);
@@ -20,11 +24,11 @@ KWSortedChunkBuilderTask::KWSortedChunkBuilderTask()
 	DeclareSharedParameter(shared_oaBuckets);
 	DeclareSharedParameter(&shared_sFileName);
 	DeclareSharedParameter(&shared_bHeaderLineUsed);
-	DeclareSharedParameter(&shared_cFieldSeparator);
+	DeclareSharedParameter(&shared_cInputFieldSeparator);
 	DeclareSharedParameter(&shared_lFileSize);
+	DeclareSharedParameter(&shared_lMaxSlaveBucketMemory);
 
 	DeclareTaskInput(&input_bLastRound);
-	DeclareTaskInput(&input_lMaxSlaveBucketMemory);
 	DeclareTaskInput(&input_nBufferSize);
 	DeclareTaskInput(&input_lFilePos);
 
@@ -32,6 +36,8 @@ KWSortedChunkBuilderTask::KWSortedChunkBuilderTask()
 	DeclareTaskOutput(&output_svBucketFilePath);
 	DeclareTaskOutput(&output_svBucketIds_dictionary);
 	DeclareTaskOutput(&output_ivBucketSize_dictionary);
+
+	shared_cInputFieldSeparator.SetValue('\t');
 }
 
 KWSortedChunkBuilderTask::~KWSortedChunkBuilderTask()
@@ -59,14 +65,14 @@ boolean KWSortedChunkBuilderTask::GetHeaderLineUsed() const
 	return bHeaderLineUsed;
 }
 
-void KWSortedChunkBuilderTask::SetFieldSeparator(char cValue)
+void KWSortedChunkBuilderTask::SetInputFieldSeparator(char cValue)
 {
-	cFieldSeparator = cValue;
+	shared_cInputFieldSeparator.SetValue(cValue);
 }
 
-char KWSortedChunkBuilderTask::GetFieldSeparator() const
+char KWSortedChunkBuilderTask::GetInputFieldSeparator() const
 {
-	return cFieldSeparator;
+	return shared_cInputFieldSeparator.GetValue();
 }
 
 IntVector* KWSortedChunkBuilderTask::GetKeyFieldIndexes()
@@ -206,7 +212,7 @@ boolean KWSortedChunkBuilderTask::TestWithArtificialDataset(const KWArtificialDa
 	{
 		sortedChunkBuilder.SetFileURI(FileService::BuildLocalURI(artificialDataset->GetFileName()));
 		sortedChunkBuilder.SetHeaderLineUsed(artificialDataset->GetHeaderLineUsed());
-		sortedChunkBuilder.SetFieldSeparator(artificialDataset->GetFieldSeparator());
+		sortedChunkBuilder.SetInputFieldSeparator(artificialDataset->GetFieldSeparator());
 		sortedChunkBuilder.GetKeyFieldIndexes()->CopyFrom(artificialDataset->GetConstKeyFieldIndexes());
 		bOk = sortedChunkBuilder.BuildSortedChunks(sortBuckets);
 	}
@@ -237,12 +243,27 @@ boolean KWSortedChunkBuilderTask::ComputeResourceRequirements()
 {
 	boolean bOk = true;
 	int nSlaveProcessNumber;
+	const int nPreferredSize = PLRemoteFileService::GetPreferredBufferSize(sFileURI);
 
 	// Taille du fichier
 	lInputFileSize = PLRemoteFileService::GetFileSize(sFileURI);
 
-	// Exigences de l'esclave : Buffer de lecture + buffer d'ecriture + stockage du bucket
-	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMin(3 * BufferedFile::nDefaultBufferSize);
+	// Exigences de l'esclave min : Buffer de lecture (nPreferredSize) + buffer d'ecriture (nDefaultBufferSize) +
+	// stockage des bucket (nPreferredSize)
+	nReadSizeMin = nPreferredSize;
+	lBucketsSizeMin = nPreferredSize;
+	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMin(nReadSizeMin + lBucketsSizeMin +
+									      BufferedFile::nDefaultBufferSize);
+
+	// Exigences de l'esclave max : on ne veut pas plus de 64 Mo de buffer de lecture, pas plus de 2Go pour le
+	// stockage et pas plus de nDefaultBufferSize pour ecrire (en local)
+	nReadSizeMax = (SystemFile::nMaxPreferredBufferSize / nPreferredSize) * nPreferredSize;
+	nReadSizeMax = max(nReadSizeMax, nReadSizeMin);
+	lBucketsSizeMax = 2 * lGB;
+
+	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMax(nReadSizeMax + lBucketsSizeMax +
+									      BufferedFile::nDefaultBufferSize);
+	ensure(GetResourceRequirements()->GetSlaveRequirement()->Check());
 
 	// Stockage des chunks sur les esclaves
 	GetResourceRequirements()->GetGlobalSlaveRequirement()->GetDisk()->Set(lInputFileSize);
@@ -256,18 +277,21 @@ boolean KWSortedChunkBuilderTask::ComputeResourceRequirements()
 boolean KWSortedChunkBuilderTask::MasterInitialize()
 {
 	boolean bOk = true;
+	const int nPreferredBufferSize = PLRemoteFileService::GetPreferredBufferSize(sFileURI);
+	ALString sTmp;
+	longint lReadBufferSize;
 
 	// Parametrage du fichier en entree
 	shared_sFileName.SetValue(sFileURI);
 	shared_bHeaderLineUsed = bHeaderLineUsed;
-	shared_cFieldSeparator.SetValue(cFieldSeparator);
+
 	shared_lFileSize = lInputFileSize;
 
 	// Initialisation des attributs
 	bLastSlaveProcessDone = false;
 
 	// Test si fichier d'entree present
-	if (not PLRemoteFileService::Exist(shared_sFileName.GetValue()))
+	if (not PLRemoteFileService::FileExists(shared_sFileName.GetValue()))
 	{
 		AddError("Input file " + FileService::GetURIUserLabel(shared_sFileName.GetValue()) + " does not exist");
 		bOk = false;
@@ -280,12 +304,81 @@ boolean KWSortedChunkBuilderTask::MasterInitialize()
 		bOk = false;
 	}
 	lFilePos = 0;
+
+	// Memoire residuelle a partager entre le buffer de lecture et le stockage
+	longint lRemainingMemory = GetSlaveResourceGrant()->GetMemory() - InputBufferedFile::nDefaultBufferSize -
+				   lBucketsSizeMin - nReadSizeMin;
+	assert(lRemainingMemory >= 0);
+
+	// Partage de la memoire restante
+	if (lRemainingMemory > 0)
+	{
+		// On donne une taille proportionnelle aux tailles max demandees
+		lReadBufferSize = nReadSizeMin + lRemainingMemory * nReadSizeMax / (lBucketsSizeMax + nReadSizeMax);
+		if (GetVerbose())
+			AddMessage(sTmp + "Read buffer size adjusted with remaining memory " +
+				   LongintToHumanReadableString(lReadBufferSize));
+
+		// Chaque esclave doit lire au moins 5 buffer (pour que le travail soit bien reparti entre les esclaves)
+		if (lInputFileSize / (GetProcessNumber() * 5) < lReadBufferSize)
+		{
+			lReadBufferSize = lInputFileSize / (GetProcessNumber() * 5);
+			if (GetVerbose())
+				AddMessage(sTmp + "Read buffer size reduced to " +
+					   LongintToHumanReadableString(lReadBufferSize));
+		}
+
+		nReadBufferSize = InputBufferedFile::FitBufferSize(lReadBufferSize);
+
+		// Arrondi a un multiple de preferredBufferSize du buffer de lecture
+		if (nReadBufferSize > nPreferredBufferSize)
+		{
+			nReadBufferSize = (nReadBufferSize / nPreferredBufferSize) * nPreferredBufferSize;
+			if (GetVerbose())
+				AddMessage(sTmp + "Read buffer size shrunk to preferred size multiple " +
+					   LongintToHumanReadableString(nReadBufferSize));
+		}
+		nReadBufferSize = max(nReadBufferSize, nReadSizeMin);
+		if (GetVerbose())
+			AddMessage(sTmp + "Read buffer size bounded by min " +
+				   LongintToHumanReadableString(nReadBufferSize));
+
+		// Affectation de la memoire restante aux buckets
+		shared_lMaxSlaveBucketMemory = max(lRemainingMemory - nReadBufferSize, (longint)lBucketsSizeMax);
+		if (GetVerbose())
+			AddMessage(sTmp + "Buckets size adjusted with remaining memory " +
+				   LongintToHumanReadableString(shared_lMaxSlaveBucketMemory));
+		assert(shared_lMaxSlaveBucketMemory > (longint)lBucketsSizeMin);
+
+		// On borne de telle sorte que chaque esclave vide 5 fois son buffer
+		if (lInputFileSize / (GetProcessNumber() * 5) < shared_lMaxSlaveBucketMemory)
+		{
+			shared_lMaxSlaveBucketMemory = lInputFileSize / (GetProcessNumber() * 5);
+			if (GetVerbose())
+				AddMessage(sTmp + "Buckets size shrunk for 5 dumps " +
+					   LongintToHumanReadableString(shared_lMaxSlaveBucketMemory));
+		}
+		if (shared_lMaxSlaveBucketMemory < (longint)lBucketsSizeMin)
+			shared_lMaxSlaveBucketMemory = lBucketsSizeMin;
+	}
+	else
+	{
+		// Initialisation avec le min
+		shared_lMaxSlaveBucketMemory = lBucketsSizeMin;
+		nReadBufferSize = nReadSizeMin;
+
+		if (GetVerbose())
+			AddMessage(sTmp + "Read buffer and bucket are set with minimum values");
+	}
+	ensure(nReadSizeMin <= nReadBufferSize and nReadBufferSize <= nReadSizeMax);
+	ensure((longint)lBucketsSizeMin <= shared_lMaxSlaveBucketMemory and
+	       shared_lMaxSlaveBucketMemory <= (longint)lBucketsSizeMax);
+
 	return bOk;
 }
 
 boolean KWSortedChunkBuilderTask::MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished)
 {
-	int nBufferSize;
 	ALString sTmp;
 
 	// Est-ce qu'il y a encore du travail ?
@@ -305,47 +398,10 @@ boolean KWSortedChunkBuilderTask::MasterPrepareTaskInput(double& dTaskPercent, b
 	else
 	{
 		input_bLastRound = false;
-
-		// Memoire disponible pour l'esclave pour stocker le bucket. On a reserve une taille de buffer, mais il
-		// y a surement plus
-		input_lMaxSlaveBucketMemory =
-		    GetSlaveResourceGrant()->GetMemory() - 2 * BufferedFile::nDefaultBufferSize;
-		if (input_lMaxSlaveBucketMemory < 1LL * BufferedFile::nDefaultBufferSize)
-			input_lMaxSlaveBucketMemory = BufferedFile::nDefaultBufferSize;
-
-		// On borne de telle sorte que chaque esclave vide 5 fois son buffer
-		if (lInputFileSize / (GetProcessNumber() * 5) < input_lMaxSlaveBucketMemory)
-		{
-			input_lMaxSlaveBucketMemory = lInputFileSize / (GetProcessNumber() * 5);
-
-			// On borne par 10 buffers
-			if (input_lMaxSlaveBucketMemory < BufferedFile::nDefaultBufferSize * 10LL)
-			{
-				input_lMaxSlaveBucketMemory = BufferedFile::nDefaultBufferSize * 10LL;
-			}
-		}
-		ensure(input_lMaxSlaveBucketMemory > 0ll);
-
-		// Calcul de la memoire residuelle pour la lecture du buffer (en plus des 8 Mo demandes)
-		nBufferSize = InputBufferedFile::FitBufferSize(GetSlaveResourceGrant()->GetMemory() -
-							       input_lMaxSlaveBucketMemory);
-
-		// Chaque esclave doit lire au moins 5 buffers
-		if (lInputFileSize / (GetProcessNumber() * 5) < nBufferSize)
-		{
-			nBufferSize = InputBufferedFile::FitBufferSize(lInputFileSize / (GetProcessNumber() * 5));
-		}
-
-		// La taille du buffer doit etre superiereure a 8Mo
-		if (nBufferSize < BufferedFile::nDefaultBufferSize)
-			nBufferSize = BufferedFile::nDefaultBufferSize;
-
-		input_nBufferSize =
-		    ComputeStairBufferSize(BufferedFile::nDefaultBufferSize, nBufferSize, lFilePos, lInputFileSize);
+		input_nBufferSize = ComputeStairBufferSize(nReadSizeMin, nReadBufferSize,
+							   PLRemoteFileService::GetPreferredBufferSize(sFileURI),
+							   lFilePos, lInputFileSize);
 		input_lFilePos = lFilePos;
-
-		if (GetTaskIndex() == 1 and GetVerbose())
-			AddMessage(sTmp + "reading buffer size " + LongintToHumanReadableString(input_nBufferSize));
 
 		// Calcul de la progression
 		dTaskPercent = input_nBufferSize * 1.0 / lInputFileSize;
@@ -500,6 +556,7 @@ boolean KWSortedChunkBuilderTask::MasterFinalize(boolean bProcessEndedCorrectly)
 boolean KWSortedChunkBuilderTask::SlaveInitialize()
 {
 	int i;
+	boolean bOk;
 
 	require(shared_ivKeyFieldIndexes.GetSize() > 0);
 	require(shared_oaBuckets->GetObjectArray()->GetSize() > 0);
@@ -521,13 +578,19 @@ boolean KWSortedChunkBuilderTask::SlaveInitialize()
 		    cast(KWSortBucket*, shared_oaBuckets->GetObjectArray()->GetAt(i))->GetUsedMemory();
 	}
 
-	return true;
+	inputFile.SetFieldSeparator(shared_cInputFieldSeparator.GetValue());
+	inputFile.SetFileName(shared_sFileName.GetValue());
+	inputFile.SetHeaderLineUsed(shared_bHeaderLineUsed);
+	bOk = inputFile.Open();
+
+	return bOk;
 }
 
 boolean KWSortedChunkBuilderTask::SlaveProcess()
 {
-	boolean bOk;
-	KWKey recordKey;
+	boolean bOk = true;
+	boolean bTrace = false;
+	KWKey key;
 	int i;
 	double dProgression;
 	KWSortBucket* bucket;
@@ -543,106 +606,177 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 	ALString sBucketID;
 	LongintObject* nBucketSize;
 	Object* oElement;
-	InputBufferedFile bufferedFile;
+	longint lBeginPos;
+	longint lMaxEndPos;
+	longint lNextLinePos;
+	boolean bLineTooLong;
+	int nCumulatedLineNumber;
+	boolean bIsLineOk;
 
-	bOk = true;
 	if (not input_bLastRound)
 	{
-		bufferedFile.SetBufferSize(input_nBufferSize);
-		bufferedFile.SetFieldSeparator(shared_cFieldSeparator.GetValue());
-		bufferedFile.SetFileName(shared_sFileName.GetValue());
-		bufferedFile.SetHeaderLineUsed(shared_bHeaderLineUsed);
-		bOk = bufferedFile.Open();
-		if (bOk)
+		// Specification de la portion du fichier a traiter
+		// On la termine sur la derniere ligne commencant dans le chunk, donc dans le '\n' se trouve
+		// potentiellement sur le debut de chunk suivant, un octet au dela de la fin
+		lBeginPos = input_lFilePos;
+		lMaxEndPos = min(input_lFilePos + input_nBufferSize + 1, inputFile.GetFileSize());
+
+		// Affichage
+		if (bTrace)
+			cout << GetClassLabel() << "\t" << GetTaskIndex() << "\tBegin\t"
+			     << FileService::GetFileName(inputFile.GetFileName()) << "\t" << lBeginPos << "\t"
+			     << lMaxEndPos << endl;
+
+		// Parametrage de la taille du buffer
+		inputFile.SetBufferSize(input_nBufferSize);
+
+		// On commence par se caller sur un debut de ligne, sauf si on est en debut de fichier
+		// On ne compte pas la ligne sautee en debut de chunk, car elle est traitee en fin du chunk precedent
+		nCumulatedLineNumber = 0;
+		if (lBeginPos > 0)
 		{
-			// Remplissage du buffer
-			bufferedFile.Fill(input_lFilePos);
-
-			// Saut du header
-			if (shared_bHeaderLineUsed and input_lFilePos == (longint)0)
-				bufferedFile.SkipLine();
-
-			// Parametrage de l'extracteur de cle
-			keyExtractor.SetBufferedFile(&bufferedFile);
-
-			// Lecture du buffer et ecriture de chaque record dans le bon bucket
-			i = 0;
-			dProgression = 0;
-
-			while (not bufferedFile.IsBufferEnd() and bOk)
+			bOk = inputFile.SearchNextLineUntil(lBeginPos, lMaxEndPos, lNextLinePos);
+			if (bOk)
 			{
-				// Parsing de la clef et de la ligne
-				keyExtractor.ParseNextKey(this);
-				keyExtractor.ExtractKey(&recordKey);
+				// On se positionne sur le debut de la ligne suivante si elle est trouvee
+				if (lNextLinePos != -1)
+					lBeginPos = lNextLinePos;
+				// Si non trouvee, on se place en fin de chunk
+				else
+					lBeginPos = lMaxEndPos;
+			}
+		}
 
-				// Ajout de la ligne dans le bucket approprie
-				keyExtractor.ExtractLine(nLineBeginPos, nLineEndPos);
-				bufferedFile.ExtractSubBuffer(nLineBeginPos, nLineEndPos, &cvLine);
+		// Initialisation des variables de travail
+		keyExtractor.SetBufferedFile(&inputFile);
 
-				// Si la derniere ligne du fichier n'a pas le caractere fin de ligne, on le rajoute
-				if (bufferedFile.IsFileEnd() and cvLine.GetAt(cvLine.GetSize() - 1) != '\n')
-					cvLine.Add('\n');
+		// Remplissage du buffer avec des lignes entieres dans la limite de la taille du buffer
+		// On reitere tant que l'on a pas atteint la derniere position pour lire toutes les ligne, y compris la
+		// derniere
+		while (bOk and lBeginPos < lMaxEndPos)
+		{
+			bOk = inputFile.FillOuterLinesUntil(lBeginPos, lMaxEndPos, bLineTooLong);
+			if (not bOk)
+				break;
 
-				// Ajout de la ligne dans le bon bucket
-				slaveBuckets.AddLineAtKey(&recordKey, &cvLine);
+			// Cas d'un ligne trop longue: on se deplace a la ligne suivante ou a la fin de la portion a
+			// traiter
+			if (bLineTooLong)
+			{
+				lBeginPos = inputFile.GetPositionInFile();
 
-				// Mise a jour de la memoire utilisee
-				lBucketsUsedMemory += (nLineEndPos - nLineBeginPos) * sizeof(char);
+				// Ajout d'un ligne si elle termine dans la portion traitee
+				if (lBeginPos < lMaxEndPos)
+					nCumulatedLineNumber++;
+			}
+			// Cas general
+			else
+			{
+				// Saut du Header
+				if (shared_bHeaderLineUsed and inputFile.IsFirstPositionInFile())
+					inputFile.SkipLine(bLineTooLong);
 
-				// Suivi de la tache
-				i++;
-				if (i % 100 == 0)
+				// Parcours du buffer d'entree
+				while (bOk and not inputFile.IsBufferEnd())
 				{
-					dProgression = bufferedFile.GetPositionInBuffer() * 1.0 /
-						       bufferedFile.GetCurrentBufferSize();
-					TaskProgression::DisplayProgression((int)floor(dProgression * 100));
-					if (TaskProgression::IsInterruptionRequested())
-						break;
-				}
-
-				// Ecriture des plus gros bucket si depassement de la memoire de l'esclave
-				if (lBucketsUsedMemory > input_lMaxSlaveBucketMemory)
-				{
-					// Tri des bucket suivant la memoire utilise
-					oaSortBucketsOnUsedMemory.CopyFrom(slaveBuckets.GetBuckets());
-					oaSortBucketsOnUsedMemory.SetCompareFunction(KWSortBucketCompareChunkSize);
-					oaSortBucketsOnUsedMemory.Sort();
-
-					// Ecriture des plus gros bucket pour diminuer la taille utilisee par 2
-					nBucketToWriteIndex = 0;
-
-					// Taille moyenne des buckets stockes
-					lBucketSizeMean = lBucketsUsedMemory / slaveBuckets.GetBucketNumber();
-
-					// Tant que la memoire utilise depasse la moitie de la memoire autorisee
-					while (bOk and lBucketsUsedMemory > input_lMaxSlaveBucketMemory / 2 and
-					       nBucketToWriteIndex < oaSortBucketsOnUsedMemory.GetSize())
+					// Gestion de la progresssion
+					if (TaskProgression::IsRefreshNecessary())
 					{
-						bucket = cast(KWSortBucket*,
-							      oaSortBucketsOnUsedMemory.GetAt(nBucketToWriteIndex));
-						assert(bucket != NULL);
+						// Calcul de la progression par rapport a la proportion de la portion du
+						// fichier traitee parce que l'on ne sait pas le nombre total de ligne
+						// que l'on va traiter
+						dProgression = (inputFile.GetPositionInFile() - input_lFilePos) * 1.0 /
+							       (lMaxEndPos - input_lFilePos);
 
-						// Ecriture du bucket seulement il est plus gros que la moyenne des
-						// tailles des buckets stockes
-						if ((longint)(bucket->GetChunk()->GetSize() * sizeof(char)) >
-						    lBucketSizeMean)
+						TaskProgression::DisplayProgression((int)floor(dProgression * 100));
+						if (TaskProgression::IsInterruptionRequested())
 						{
-							// Mise a jour de la memoire utilisee
-							lBucketsUsedMemory -=
-							    bucket->GetChunk()->GetSize() * sizeof(char);
-
-							// Ecriture du bucket
-							bOk = WriteBucket(bucket);
+							bOk = false;
+							break;
 						}
+					}
 
-						// Bucket suivant
-						nBucketToWriteIndex++;
+					// Extraction de la clef
+					bIsLineOk = keyExtractor.ParseNextKey(&key, this);
+
+					// Ajout de la ligne dans le bucket approprie
+					if (bIsLineOk)
+					{
+						keyExtractor.ExtractLine(nLineBeginPos, nLineEndPos);
+						inputFile.ExtractSubBuffer(nLineBeginPos, nLineEndPos, &cvLine);
+
+						// Si la derniere ligne du fichier n'a pas le caractere fin de ligne, on
+						// le rajoute
+						if (inputFile.IsFileEnd() and
+						    cvLine.GetAt(cvLine.GetSize() - 1) != '\n')
+							cvLine.Add('\n');
+
+						// Ajout de la ligne dans le bon bucket
+						slaveBuckets.AddLineAtKey(&key, &cvLine);
+
+						// Mise a jour de la memoire utilisee
+						lBucketsUsedMemory += (nLineEndPos - nLineBeginPos) * sizeof(char);
+
+						// Ecriture des plus gros bucket si depassement de la memoire de
+						// l'esclave
+						if (lBucketsUsedMemory > shared_lMaxSlaveBucketMemory)
+						{
+							// Tri des bucket suivant la memoire utilise
+							oaSortBucketsOnUsedMemory.CopyFrom(slaveBuckets.GetBuckets());
+							oaSortBucketsOnUsedMemory.SetCompareFunction(
+							    KWSortBucketCompareChunkSize);
+							oaSortBucketsOnUsedMemory.Sort();
+
+							// Ecriture des plus gros bucket pour diminuer la taille
+							// utilisee par 2
+							nBucketToWriteIndex = 0;
+
+							// Taille moyenne des buckets stockes
+							lBucketSizeMean =
+							    lBucketsUsedMemory / slaveBuckets.GetBucketNumber();
+
+							// Tant que la memoire utilise depasse la moitie de la memoire
+							// autorisee
+							while (bOk and
+							       lBucketsUsedMemory > shared_lMaxSlaveBucketMemory / 2 and
+							       nBucketToWriteIndex <
+								   oaSortBucketsOnUsedMemory.GetSize())
+							{
+								bucket =
+								    cast(KWSortBucket*, oaSortBucketsOnUsedMemory.GetAt(
+											    nBucketToWriteIndex));
+								assert(bucket != NULL);
+
+								// Ecriture du bucket seulement il est plus gros que la
+								// moyenne des tailles des buckets stockes
+								if ((longint)(bucket->GetChunk()->GetSize() *
+									      sizeof(char)) > lBucketSizeMean)
+								{
+									// Mise a jour de la memoire utilisee
+									lBucketsUsedMemory -=
+									    bucket->GetChunk()->GetSize() *
+									    sizeof(char);
+
+									// Ecriture du bucket
+									bOk = WriteBucket(bucket);
+								}
+
+								// Bucket suivant
+								nBucketToWriteIndex++;
+							}
+						}
 					}
 				}
+
+				// On se deplace de la taille du buffer analyse
+				lBeginPos += inputFile.GetCurrentBufferSize();
+				nCumulatedLineNumber += inputFile.GetBufferLineNumber();
 			}
-			SetLocalLineNumber(bufferedFile.GetBufferLineNumber());
-			bufferedFile.Close();
 		}
+
+		// Envoi du nombre de lignes au master, en fin de SlaveProcess
+		if (bOk)
+			SetLocalLineNumber(nCumulatedLineNumber);
 	}
 	else
 	{
@@ -681,7 +815,7 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 	}
 
 	// Nettoyage en cas d'interruption (les noms des fichiers ne sont pas envoyes au maitre)
-	if (not bOk or TaskProgression::IsInterruptionRequested())
+	if (not bOk)
 	{
 		concatenater.RemoveChunks(output_svBucketFilePath.GetConstStringVector());
 	}
@@ -690,12 +824,16 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 
 boolean KWSortedChunkBuilderTask::SlaveFinalize(boolean bProcessEndedCorrectly)
 {
+	boolean bOk = true;
+
 	odIdBucketsSize_master.DeleteAll();
 
 	// Nettoyage
+	if (inputFile.IsOpened())
+		bOk = inputFile.Close();
 	keyExtractor.Clean();
 	slaveBuckets.DeleteAll();
-	return true;
+	return bOk;
 }
 
 boolean KWSortedChunkBuilderTask::WriteBucket(KWSortBucket* bucketToWrite)
@@ -735,10 +873,8 @@ boolean KWSortedChunkBuilderTask::WriteBucket(KWSortBucket* bucketToWrite)
 	// Ecriture du contenu du bucket
 	if (bOk)
 	{
-		bufferedFile.Write(bucketToWrite->GetChunk());
-		bOk = bufferedFile.Close();
-		if (not bOk)
-			AddError("Cannot close file  " + bufferedFile.GetFileName());
+		bOk = bufferedFile.Write(bucketToWrite->GetChunk());
+		bOk = bufferedFile.Close() and bOk;
 
 		// Mise a jour de la taille du bucket
 		lBucketSize = cast(LongintObject*, odIdBucketsSize_master.Lookup(bucketToWrite->GetId()));

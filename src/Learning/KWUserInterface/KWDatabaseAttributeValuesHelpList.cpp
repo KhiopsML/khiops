@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -41,6 +41,7 @@ void KWDatabaseAttributeValuesHelpList::FillAttributeValues(const KWDatabase* in
 	ContinuousVector cvHelpValues;
 	int nValue;
 	KWDatabase* helpDatabase;
+	boolean bGlobalSilentMode;
 
 	require(inputDatabase != NULL);
 	require(uilAttributeValueHelpList != NULL);
@@ -93,7 +94,7 @@ void KWDatabaseAttributeValuesHelpList::FillAttributeValues(const KWDatabase* in
 	if (bOk)
 	{
 		bOk = inputDatabase->GetDatabaseName() != "" and
-		      PLRemoteFileService::Exist(inputDatabase->GetDatabaseName());
+		      PLRemoteFileService::FileExists(inputDatabase->GetDatabaseName());
 	}
 
 	// Si tout est OK, on va faire une passe de lecture sur la base pour
@@ -136,6 +137,8 @@ void KWDatabaseAttributeValuesHelpList::FillAttributeValues(const KWDatabase* in
 		}
 
 		// Passage en mode silencieux
+		bGlobalSilentMode = Global::GetSilentMode();
+		Global::SetSilentMode(true);
 		helpDatabase->SetSilentMode(true);
 
 		// Test si base ouvrable
@@ -185,10 +188,9 @@ void KWDatabaseAttributeValuesHelpList::FillAttributeValues(const KWDatabase* in
 
 						// Ajout de la modalite cible un dictionnaire pour en controler
 						// l'unicite
-						if (nkdHelpValues.Lookup((NUMERIC)sHelpValue.GetNumericKey()) == NULL)
+						if (nkdHelpValues.Lookup(sHelpValue.GetNumericKey()) == NULL)
 						{
-							nkdHelpValues.SetAt((NUMERIC)sHelpValue.GetNumericKey(),
-									    &nkdHelpValues);
+							nkdHelpValues.SetAt(sHelpValue.GetNumericKey(), &nkdHelpValues);
 
 							// Memorisation dans un vecteur de valeurs symbol pour les
 							// detruire ensuite
@@ -207,10 +209,9 @@ void KWDatabaseAttributeValuesHelpList::FillAttributeValues(const KWDatabase* in
 
 						// Ajout de la modalite cible un dictionnaire pour en controler
 						// l'unicite
-						if (nkdHelpValues.Lookup((NUMERIC)sHelpValue.GetNumericKey()) == NULL)
+						if (nkdHelpValues.Lookup(sHelpValue.GetNumericKey()) == NULL)
 						{
-							nkdHelpValues.SetAt((NUMERIC)sHelpValue.GetNumericKey(),
-									    &nkdHelpValues);
+							nkdHelpValues.SetAt(sHelpValue.GetNumericKey(), &nkdHelpValues);
 
 							// Memorisation dans un vecteur de valeurs pour les trier
 							// ensuite
@@ -234,6 +235,7 @@ void KWDatabaseAttributeValuesHelpList::FillAttributeValues(const KWDatabase* in
 			helpDatabase->Close();
 		}
 		helpDatabase->SetSilentMode(false);
+		Global::SetSilentMode(bGlobalSilentMode);
 
 		// Destruction de la base, desormais inutile
 		delete helpDatabase;

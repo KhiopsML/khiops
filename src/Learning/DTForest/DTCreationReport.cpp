@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -6,7 +6,10 @@
 
 int DTTreeSpecsCompareLevels(const void* elem1, const void* elem2);
 
-DTCreationReport::DTCreationReport() {}
+DTCreationReport::DTCreationReport()
+{
+	classStats = NULL;
+}
 
 DTCreationReport::~DTCreationReport()
 {
@@ -15,6 +18,7 @@ DTCreationReport::~DTCreationReport()
 
 void DTCreationReport::Clean()
 {
+	classStats = NULL;
 	svCreatedTreeNames.SetSize(0);
 	odCreatedTrees.DeleteAll();
 }
@@ -78,6 +82,16 @@ const DTDecisionTreeSpec* DTCreationReport::LookupTree(const ALString& sName) co
 	return cast(const DTDecisionTreeSpec*, odCreatedTrees.Lookup(sName));
 }
 
+void DTCreationReport::SetClassStats(KWClassStats* stats)
+{
+	classStats = stats;
+}
+
+KWClassStats* DTCreationReport::GetClassStats() const
+{
+	return classStats;
+}
+
 void DTCreationReport::WriteJSONFields(JSONFile* fJSON)
 {
 	require(fJSON != NULL);
@@ -93,22 +107,40 @@ void DTCreationReport::WriteJSONTreeReport(JSONFile* fJSON, boolean bSummary)
 	const DTDecisionTreeSpec* treeSpec;
 	DTDecisionTreeNodeSpec* treeNodeSpec;
 	ALString sName;
+	KWAttributeStats* attributeStats;
 
-	// Recherche des rapports a ecrire
-	for (nIndex = 0; nIndex < GetTreeNumber(); nIndex++)
+	// Recherche des rapports a ecrire, dans le cas ou on ne garde que les attributs selectionnes par le predicteur
+	if (classStats != NULL and classStats->GetKeepSelectedAttributesOnly())
 	{
-		sName = GetTreeNameAt(nIndex);
-		treeSpec = LookupTree(sName);
+		for (i = 0; i < classStats->GetTreeAttributeStats()->GetSize(); i++)
+		{
+			attributeStats = cast(KWAttributeStats*, classStats->GetTreeAttributeStats()->GetAt(i));
 
-		oaSortedReports.Add((Object*)treeSpec);
+			// Ajout si la preparation est utilise par un predicteur
+			if (classStats->GetRecursivelySelectedDataPreparationStats()->Lookup(attributeStats) != NULL)
+			{
+				sName = attributeStats->GetSortName();
+				treeSpec = LookupTree(sName);
+				oaSortedReports.Add((Object*)treeSpec);
+			}
+		}
+	}
+	// Recherche des rapports a ecrire, dans le cas sans filtrage
+	else
+	{
+		for (nIndex = 0; nIndex < GetTreeNumber(); nIndex++)
+		{
+			sName = GetTreeNameAt(nIndex);
+			treeSpec = LookupTree(sName);
+			oaSortedReports.Add((Object*)treeSpec);
+		}
 	}
 
 	// Affichage si tableau non vide
 	if (oaSortedReports.GetSize() > 0)
 	{
-		// Tri par importance
-		oaSortedReports.SetCompareFunction(DTTreeSpecsCompareLevels);
-		oaSortedReports.Sort();
+		// Calcul des rangs des arbres, avec tri des rapport
+		ComputeRankIdentifiers(&oaSortedReports);
 
 		// Ecriture du tableau des statistic global des arbres au format JSON
 		// fJSON->BeginKeyArray("decisionTreeStatistics");
@@ -153,10 +185,15 @@ void DTCreationReport::WriteJSONSonNodes(JSONFile* fJSON, DTDecisionTreeNodeSpec
 {
 	// methode appelee recursivement
 	int nPart;
+	int nDefaultPartIndex;
+	int nValue;
+	int nFirstValue;
+	int nLastValue;
 	ContinuousVector cvAttributeMinValues;
 	ContinuousVector cvAttributeMaxValues;
 	KWDGSAttributePartition* attributePartition;
 	KWDGSAttributeDiscretization* numericalAttributePartition;
+	KWDGSAttributeGrouping* categoricalAttributePartition;
 
 	if (treeNodeSpec->GetFatherNode() != NULL)
 		fJSON->BeginObject();
@@ -168,11 +205,9 @@ void DTCreationReport::WriteJSONSonNodes(JSONFile* fJSON, DTDecisionTreeNodeSpec
 	{
 		if (treeNodeSpec->GetTargetModalitiesCountTrain() != NULL)
 		{
-
 			fJSON->BeginKeyObject("targetValues");
 			fJSON->BeginKeyList("values");
-			for (int nValue = 0; nValue < treeNodeSpec->GetTargetModalitiesCountTrain()->GetSize();
-			     nValue++)
+			for (nValue = 0; nValue < treeNodeSpec->GetTargetModalitiesCountTrain()->GetSize(); nValue++)
 			{
 				DTDecisionTree::TargetModalityCount* tmc =
 				    cast(DTDecisionTree::TargetModalityCount*,
@@ -183,8 +218,7 @@ void DTCreationReport::WriteJSONSonNodes(JSONFile* fJSON, DTDecisionTreeNodeSpec
 
 			// Ecriture des effectifs
 			fJSON->BeginKeyList("frequencies");
-			for (int nValue = 0; nValue < treeNodeSpec->GetTargetModalitiesCountTrain()->GetSize();
-			     nValue++)
+			for (nValue = 0; nValue < treeNodeSpec->GetTargetModalitiesCountTrain()->GetSize(); nValue++)
 			{
 				DTDecisionTree::TargetModalityCount* tmc =
 				    cast(DTDecisionTree::TargetModalityCount*,
@@ -224,6 +258,11 @@ void DTCreationReport::WriteJSONSonNodes(JSONFile* fJSON, DTDecisionTreeNodeSpec
 			// cas categorical
 			// attributePartition->WriteJSONFields(fJSON);
 			//  Entete
+
+			// cas numerical
+			categoricalAttributePartition =
+			    cast(KWDGSAttributeGrouping*, treeNodeSpec->GetAttributePartitionSpec());
+
 			fJSON->WriteKeyString("variable", attributePartition->GetAttributeName());
 			fJSON->WriteKeyString("type", KWType::ToString(attributePartition->GetAttributeType()));
 
@@ -242,6 +281,29 @@ void DTCreationReport::WriteJSONSonNodes(JSONFile* fJSON, DTDecisionTreeNodeSpec
 					attributePartition->WriteJSONPartFieldsAt(fJSON, nPart);
 				fJSON->EndArray();
 			}
+
+			// ecriture de la partie par defaut
+			// Recherche de l'index de la partie par defaut
+			nDefaultPartIndex = -1;
+
+			for (nPart = 0; nPart < categoricalAttributePartition->GetPartNumber(); nPart++)
+			{
+				// Recherche dans la partie courante
+				nFirstValue = categoricalAttributePartition->GetGroupFirstValueIndexAt(nPart);
+				nLastValue = categoricalAttributePartition->GetGroupLastValueIndexAt(nPart);
+				for (nValue = nFirstValue; nValue <= nLastValue; nValue++)
+				{
+					if (categoricalAttributePartition->GetValueAt(nValue) == Symbol::GetStarValue())
+					{
+						nDefaultPartIndex = nPart;
+						break;
+					}
+				}
+			}
+			assert(nDefaultPartIndex != -1);
+
+			// Indication de groupe par defaut
+			fJSON->WriteKeyInt("defaultGroupIndex", nDefaultPartIndex);
 		}
 	}
 
@@ -249,31 +311,20 @@ void DTCreationReport::WriteJSONSonNodes(JSONFile* fJSON, DTDecisionTreeNodeSpec
 
 	if (!treeNodeSpec->IsLeaf())
 	{
-
 		fJSON->BeginKeyArray("childNodes");
 
 		if (treeNodeSpec->GetChildNodes().GetSize())
 		{
-
 			for (int iNodeIndex = 0; iNodeIndex < treeNodeSpec->GetChildNodes().GetSize(); iNodeIndex++)
 			{
 				// Extraction du noeud fils courant
 				DTDecisionTreeNodeSpec* sonNode =
 				    cast(DTDecisionTreeNodeSpec*, treeNodeSpec->GetChildNodes().GetAt(iNodeIndex));
-				if (sonNode->GetVariableName() == "")
-					continue;
+				// if (sonNode->GetVariableName() == "")
+				//	continue;
 
 				WriteJSONSonNodes(fJSON, sonNode, oaLeavesNodes);
 			}
-		}
-
-		// chercher les noeuds feuilles dont ce noeud est le pere
-		for (int i = 0; i < oaLeavesNodes.GetSize(); i++)
-		{
-			DTDecisionTreeNodeSpec* sonNode = cast(DTDecisionTreeNodeSpec*, oaLeavesNodes.GetAt(i));
-
-			if (sonNode->GetFatherNode() == treeNodeSpec)
-				WriteJSONSonNodes(fJSON, sonNode, oaLeavesNodes);
 		}
 
 		fJSON->EndArray();
@@ -301,10 +352,9 @@ KWAttributeStats* DTCreationReport::GetAttributeStats(const ALString sVariableNa
 	return NULL;
 }
 
-void DTCreationReport::ComputeRankIdentifiers()
+void DTCreationReport::ComputeRankIdentifiers(ObjectArray* oaReports)
 {
 	const double dEpsilon = 1e-10;
-	ObjectArray oaSortedReports;
 	DTDecisionTreeSpec* treeSpec;
 	int nReport;
 	int i;
@@ -312,23 +362,22 @@ void DTCreationReport::ComputeRankIdentifiers()
 	int nDigitNumber;
 	ALString sNewIdentifier;
 
-	// require(oaDecisionTreesSpecs != NULL);
+	require(oaReports != NULL);
 
 	// Affichage si tableau non vide
-	if (odCreatedTrees.GetCount() > 0)
+	if (oaReports->GetSize() > 0)
 	{
-		// Tri par importance
-		odCreatedTrees.ExportObjectArray(&oaSortedReports);
-		oaSortedReports.SetCompareFunction(DTTreeSpecsCompareLevels);
-		oaSortedReports.Sort();
+		// Tri par level
+		oaReports->SetCompareFunction(DTTreeSpecsCompareLevels);
+		oaReports->Sort();
 
 		// Calcul du nombre max de chiffres necessaires
-		nMaxDigitNumber = 1 + (int)floor(dEpsilon + log((double)odCreatedTrees.GetCount()) / log(10.0));
+		nMaxDigitNumber = 1 + (int)floor(dEpsilon + log((double)oaReports->GetSize()) / log(10.0));
 
 		// Parcours des rapports
-		for (nReport = 0; nReport < oaSortedReports.GetSize(); nReport++)
+		for (nReport = 0; nReport < oaReports->GetSize(); nReport++)
 		{
-			treeSpec = cast(DTDecisionTreeSpec*, oaSortedReports.GetAt(nReport));
+			treeSpec = cast(DTDecisionTreeSpec*, oaReports->GetAt(nReport));
 
 			// Calcul du nombre de chiffre necessaires
 			nDigitNumber = 1 + (int)floor(dEpsilon + log((double)(nReport + 1)) / log(10.0));
@@ -348,13 +397,17 @@ void DTCreationReport::ComputeRankIdentifiers()
 
 int DTTreeSpecsCompareLevels(const void* elem1, const void* elem2)
 {
+	int nCompare;
+
 	DTDecisionTreeSpec* s1 = (DTDecisionTreeSpec*)*(Object**)elem1;
 	DTDecisionTreeSpec* s2 = (DTDecisionTreeSpec*)*(Object**)elem2;
 
-	if (s1->GetLevel() == s2->GetLevel())
-		return 0;
-	else if (s1->GetLevel() > s2->GetLevel())
-		return -1;
-	else
-		return 1;
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(s1->GetLevel(), s2->GetLevel());
+
+	// Comparaison par nom d'arbre, si match nul
+	if (nCompare == 0)
+		nCompare = s1->GetTreeVariableName().Compare(s2->GetTreeVariableName());
+
+	return nCompare;
 }

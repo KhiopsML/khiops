@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -20,8 +20,6 @@ import normGUI.engine.GUIStringElement;
  * d'une chaine de caracteres dans une zone de texte multiligne. La zone de
  * texte multiligne est disposee dans un JScrollPane. Utilisation de JTextArea,
  * JScrollPane.
- *
- * @author Marc Boulle
  */
 public class GUIStringElementTextArea extends GUIStringElement
 {
@@ -80,8 +78,7 @@ public class GUIStringElementTextArea extends GUIStringElement
         }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage

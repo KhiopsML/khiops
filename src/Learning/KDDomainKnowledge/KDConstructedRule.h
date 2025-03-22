@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -118,6 +118,12 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Services avances
 
+	// Index aleatoire associee a la regle pour obtenir un ordre alatoire en cas d'egalite dans les
+	// tris par cout uniquement. C'est necessaire pour assurer la reproductibilite cross-plateforme.
+	// A specifier par l'appelant avant chaque tri
+	void SetRandomIndex(int nValue);
+	int GetRandomIndex() const;
+
 	// Incrementation du nombre d'utilisations des parties, partitions et dimensions de partition
 	void IncrementUseCounts();
 
@@ -144,6 +150,9 @@ public:
 	boolean IsBlockRule() const;
 	boolean IsStandardRule() const;
 
+	// Test si une regle utilise directement ou indirectement une regle de selection
+	boolean UsesSelectionRule() const;
+
 	// Acces a la partie concernee dans le cas d'une regle de selection ou de bloc
 	// Renvoie NULL dans le cas d'une regle standard
 	const KDConstructedPart* GetUsedPart() const;
@@ -157,7 +166,7 @@ public:
 	// Verification de l'integrite
 	boolean Check() const override;
 
-	// Methode de comparaison entre deux regles, principalement basee sur le nom des regles et operandes
+	// Methode de comparaison entre deux regles, basee sur le nom des regles et operandes
 	int Compare(const KDConstructedRule* rule) const;
 
 	// Methode de comparaison entre deux regles de type block
@@ -178,10 +187,11 @@ public:
 	int CompareWithDerivationRule(const KWDerivationRule* derivationRule) const;
 
 	// Methode de comparaison du cout de deux regles
-	// En cas d'egalite, un critere heuristique de "simplicite" est utilise, base sur
-	// un preference des faibles nombres d'operandes, et sur des operandes simples
-	// On n'utilise mais pas de comparaison sur les noms, pour preserver un ordre aleatoire en cas d'egalite
 	int CompareCost(const KDConstructedRule* rule) const;
+
+	// Methode de comparaison du cout de deux regles, puis sur le l'index aleatoire en cas d'egalite
+	// pour preserver un ordre aleatoire reproductible cross-plateforme
+	int CompareCostRandomIndex(const KDConstructedRule* rule) const;
 
 	// Methode de comparaison du cout de deux regles, puis sur les nom en cas d'egalite
 	int CompareCostName(const KDConstructedRule* rule) const;
@@ -228,17 +238,23 @@ protected:
 	// Cout de la regle
 	double dCost;
 
+	// Index alatoire pour gerer les cas d'egalite de tri de facon reproductible
+	int nRandomIndex;
+
 	// Tableau des type d'operandes (limite a 4 operandes max, ce qui est suffisant)
 	char cOperandOrigins[4];
 };
 
-// Methode de comparaison entre deux regles
+// Methode de comparaison entre deux regles, basee sur le nom
 int KDConstructedRuleCompare(const void* elem1, const void* elem2);
 
-// Methode de comparaison entre deux regles vis a vis de leur cout et leur simplicite uniquement
+// Methode de comparaison entre deux regles base sur leur cout et leur simplicite uniquement
 int KDConstructedRuleCompareCost(const void* elem1, const void* elem2);
 
-// Methode de comparaison entre deux regles vis a vis de leur cout et leur nom
+// Methode de comparaison entre deux regles base sur de leur cout, puis sur sur le RandomIndex
+int KDConstructedRuleCompareCostRandomIndex(const void* elem1, const void* elem2);
+
+// Methode de comparaison entre deux regles sur leur cout, puis sur leur nom
 int KDConstructedRuleCompareCostName(const void* elem1, const void* elem2);
 
 //////////////////////////////////////////////////////////////////////////
@@ -260,13 +276,16 @@ public:
 
 	// Classe de la table sur laquelle porte la partition
 	// La specification provoque la reinitialisation complete de la partition
-	void SetClass(const KWClass* kwcClass);
-	const KWClass* GetClass() const;
+	void SetPartitionClass(const KWClass* kwcClass);
+	const KWClass* GetPartitionClass() const;
 
 	// Attribut utilise pour acceder a la table partitionnee
 	// A parametrer par l'appelant
 	void SetTableAttribute(const KWAttribute* kwaAttribute);
 	const KWAttribute* GetTableAttribute() const;
+
+	// Classe de la table contenant l'attribut de partition
+	const KWClass* GetParentClass() const;
 
 	// Nombre de dimensions de la partition
 	// La specification provoque la reinitialisation complete de la partition
@@ -506,7 +525,7 @@ public:
 protected:
 	friend class KDConstructedPartition;
 	friend class KDConstructedPart;
-	friend class KDDomainKnowledge;
+	friend class KDMultiTableFeatureConstruction;
 	friend class KDClassSelectionStats;
 	friend class KDClassSelectionOperandStats;
 
@@ -619,7 +638,7 @@ public:
 protected:
 	friend class KDConstructedPartition;
 	friend class KDConstructedRule;
-	friend class KDDomainKnowledge;
+	friend class KDMultiTableFeatureConstruction;
 
 	// Constructeur et destructeur
 	KDConstructedPart();

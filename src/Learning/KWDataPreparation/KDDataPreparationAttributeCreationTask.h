@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -26,6 +26,11 @@ public:
 	// Parametrage du nombre max d'attribut a creer
 	void SetMaxCreatedAttributeNumber(int nValue);
 	int GetMaxCreatedAttributeNumber() const;
+
+	// Parametrage (facultatif) par des statistiques sur le probleme d'apprentissage
+	// Memoire: appartient a l'appelant
+	void SetClassStats(KWClassStats* stats);
+	KWClassStats* GetClassStats() const;
 
 	// Calcul de la preparation des donnees en parallele
 	// La methode construit de nouveaux attributs et leur preparation
@@ -81,13 +86,17 @@ protected:
 	// et indication que la variable est construite (non initiale)
 	void SetConstructedAttributeCost(KWAttribute* attribute, double dCost) const;
 
-	// Test si tout attribut d'entre est prepare dans un des deux dictionnaires de preparation
+	// Test de coherence entre les attributs de la classe et leur preparation dans les deux container en parametres
+	// Note: il peut y avoir plus d'attribut dans la classe que d'attributs prepares dans les containers
 	// Methode interne a utiliser dans les assertions
 	boolean CheckPreparedAttributes(KWLearningSpec* learningSpec, ObjectDictionary* odInputAttributeStats,
 					ObjectArray* oaOutputAttributeStats) const;
 
 	// Nombre max d'attributs a creer
 	int nMaxCreatedAttributeNumber;
+
+	// Attribut des statistiques de prepararation
+	KWClassStats* classStats;
 
 	// Tache globale de creation d'attribut
 	static KDDataPreparationAttributeCreationTask* globalAttributeCreationTask;

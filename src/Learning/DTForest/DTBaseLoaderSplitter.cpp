@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -53,7 +53,8 @@ DTBaseLoader* DTBaseLoaderSplitter::GetDaughterBaseloaderAt(int i)
 	return (DTBaseLoader*)oaTrainDaughterBaseLoader.GetAt(i);
 }
 
-boolean DTBaseLoaderSplitter::CreateDaughterBaseloaderFromSplitAttribute(KWAttributeStats* splitAttributeStats)
+boolean DTBaseLoaderSplitter::CreateDaughterBaseloaderFromSplitAttribute(KWAttributeStats* splitAttributeStats,
+									 KWLearningSpec* learningSpec)
 {
 	require(splitAttributeStats != NULL);
 	require(databaseloaderOrigine != NULL);
@@ -61,8 +62,8 @@ boolean DTBaseLoaderSplitter::CreateDaughterBaseloaderFromSplitAttribute(KWAttri
 
 	// ObjectArray oaOutOfBagDaughterBaseLoader;
 
-	/// Tableau de pointeurs des DTBaseLoader obtenues apres application de la regle de derivation
-	/// Les DTBaseLoader creees appartiennent a l'appelant
+	// Tableau de pointeurs des DTBaseLoader obtenues apres application de la regle de derivation
+	// Les DTBaseLoader creees appartiennent a l'appelant
 	ObjectArray oaTrainDaughterObjects;
 	ObjectArray oaTrainDaughterTargetVector;
 	ObjectArray oaTrainDaughterTargetTupleTable;
@@ -83,7 +84,8 @@ boolean DTBaseLoaderSplitter::CreateDaughterBaseloaderFromSplitAttribute(KWAttri
 	if (splitAttributeStats->GetPreparedDataGridStats()->GetAttributeNumber() == 1)
 	{
 		// a partir de learningEnv v8, les attributs a level nul ne sont plus prepares. Le seul attribut prepare
-		// correspond ici a l'attribut cible NVDELL AddWarning("CreateDaughterDatabasesFromSplitAttribute :
+		// correspond ici a l'attribut cible
+		// NVDELL AddWarning("CreateDaughterDatabasesFromSplitAttribute :
 		// GetPreparedDataGridStats()->GetAttributeNumber() == 1");
 		return true;
 	}
@@ -95,9 +97,9 @@ boolean DTBaseLoaderSplitter::CreateDaughterBaseloaderFromSplitAttribute(KWAttri
 	// Extraction du nombre de parties de l'attribut de partitionnement
 	const int nPartNumber = splitAttributePartition->GetPartNumber();
 
-	const KWClass* kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(
-	    databaseloaderOrigine->GetLearningSpec()->GetClass()->GetName());
-	const KWAttribute* nativeAttribute = kwcClass->LookupAttribute(splitAttributeStats->GetAttributeName());
+	const KWAttribute* nativeAttribute =
+	    learningSpec->GetClass()->LookupAttribute(splitAttributeStats->GetAttributeName());
+	require(nativeAttribute != NULL);
 
 	// Calcul de l'index de chargement de l'attribut natif
 	const KWLoadIndex nLoadIndex = nativeAttribute->GetLoadIndex();
@@ -146,7 +148,8 @@ boolean DTBaseLoaderSplitter::CreateDaughterBaseloaderFromSplitAttribute(KWAttri
 			oaDaughter = cast(ObjectArray*, oaTrainDaughterObjects.GetAt(nPartIndex));
 			svDaughter = cast(SymbolVector*, oaTrainDaughterTargetVector.GetAt(nPartIndex));
 			tlDaughter = new KWTupleTableLoader;
-
+			tlDaughter->SetCheckDatabaseObjectClass(
+			    databaseloaderOrigine->GetTupleLoader()->GetCheckDatabaseObjectClass());
 			tlDaughter->SetInputClass(databaseloaderOrigine->GetLearningSpec()->GetClass());
 			tlDaughter->SetInputExtraAttributeName(
 			    databaseloaderOrigine->GetLearningSpec()->GetTargetAttributeName());
@@ -212,7 +215,8 @@ boolean DTBaseLoaderSplitter::CreateDaughterBaseloaderFromSplitAttribute(KWAttri
 			oaDaughter = cast(ObjectArray*, oaTrainDaughterObjects.GetAt(nPartIndex));
 			svDaughter = cast(SymbolVector*, oaTrainDaughterTargetVector.GetAt(nPartIndex));
 			tlDaughter = new KWTupleTableLoader;
-
+			tlDaughter->SetCheckDatabaseObjectClass(
+			    databaseloaderOrigine->GetTupleLoader()->GetCheckDatabaseObjectClass());
 			tlDaughter->SetInputClass(databaseloaderOrigine->GetLearningSpec()->GetClass());
 			tlDaughter->SetInputExtraAttributeName(
 			    databaseloaderOrigine->GetLearningSpec()->GetTargetAttributeName());

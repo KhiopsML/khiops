@@ -1,11 +1,11 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "ALString.h"
 
 // Pour une chaine vide, les donnees vont pointer ici
-// Cela permet d'eviter de nombreuxtest de pointeur à NULL lors de
+// Cela permet d'eviter de nombreux tests de pointeur a NULL lors de
 // l'appel des fonction de la librairie C standard
 char ALSCHARNIL = '\0';
 
@@ -97,8 +97,17 @@ void ALString::AssignCopy(int nSrcLen, const char* pszSrcData)
 		Empty();
 		AllocBuffer(nSrcLen);
 	}
+#if defined(__GNUC__) && !defined(__clang__)
+// Dans plusieurs parties du code, on desactive le warning stringop-overflow
+// pour le compilateur gcc car il emet ce warning a tord (au moins pour la version 11)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 	if (nSrcLen != 0)
 		memcpy(pchData, pszSrcData, nSrcLen);
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 	nDataLength = nSrcLen;
 
 	// Attention au cas particulier d'une chaine vide
@@ -164,7 +173,14 @@ char* ALString::GetBuffer(int nMinBufLength)
 		AllocBuffer(nMinBufLength);
 		memcpy(pchData, pszOldData, nOldLen);
 		nDataLength = nOldLen;
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push // Disable spurious stringop-overflow warning (bug on GCC 11)
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 		pchData[nDataLength] = '\0';
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 		SafeDelete(pszOldData);
 	}
 
@@ -224,11 +240,18 @@ void ALString::ConcatInPlace(int nSrcLen, const char* pszSrcData)
 	if (nDataLength + nSrcLen > nAllocLength)
 		GetBuffer(2 * (nDataLength + nSrcLen));
 
-	// Cocatenation rapide
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push // Disable spurious stringop-overflow warning (bug on GCC 11)
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+	// Concatenation rapide
 	memcpy(&pchData[nDataLength], pszSrcData, nSrcLen);
 	nDataLength += nSrcLen;
 	assert(nDataLength <= nAllocLength);
 	pchData[nDataLength] = '\0';
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 }
 
 const ALString& ALString::operator+=(const char* psz)
@@ -420,10 +443,17 @@ int ALString::CompareNoCase(const char* psz) const
 	ALString sFirst;
 	ALString sSecond;
 
-	// Comparaison apres mise en majuscule
+// Comparaison apres mise en majuscule
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push // Disable spurious stringop-overflow warning (bug on GCC 11)
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 	sFirst = pchData;
 	sFirst.MakeUpper();
 	sSecond = psz;
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 	sSecond.MakeUpper();
 
 	// Non ANSI: return stricmp(pchData, psz);
@@ -447,7 +477,10 @@ void ALString::MakeReverse()
 
 //////////////////////////////////////////////////////////////////////////////
 // Test
-
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push // Disable spurious stringop-overflow warning (bug on GCC 11)
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 void ALString::Test()
 {
 	ALString sTest;
@@ -586,8 +619,9 @@ void ALString::Test()
 		}
 	}
 	nStopClock = clock();
-	cout << "SYS TIME\tString comparisons\t" << lCompareOk << "\t"
-	     << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n\n";
+	cout << "String comparisons\t" << lCompareOk << "\t"
+	     << "SYS"
+	     << "\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n\n";
 	//
 	cout << "\tStart (comparaison des pointeurs des chaines)\n";
 	nStartClock = clock();
@@ -601,9 +635,13 @@ void ALString::Test()
 		}
 	}
 	nStopClock = clock();
-	cout << "SYS TIME\tString pointer comparisons\t" << lCompareOk << "\t"
-	     << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n\n";
+	cout << "String pointer comparisons\t" << lCompareOk << "\t"
+	     << "SYS"
+	     << "\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n\n";
 
 	delete sTestAlloc;
 	delete sTestComp;
 }
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

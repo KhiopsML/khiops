@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -37,7 +37,7 @@ KWMTClassBuilderView::KWMTClassBuilderView()
 	GetFieldAt("SecondaryClassName")
 	    ->SetHelpText("Name of secondary dictionary used as a Table in the multi-table dictionary.");
 	classNameList->GetFieldAt("Name")->SetHelpText("Name of dictionary.");
-	GetActionAt("OK")->SetHelpText("Build a root dictionary with a Table variable based on"
+	GetActionAt("OK")->SetHelpText("Build a main dictionary with a Table variable based on"
 				       "\n the input dictionary, then save the dictionary file.");
 
 	// Short cuts
@@ -66,7 +66,7 @@ void KWMTClassBuilderView::InitDefaultParameters()
 	if (sSecondaryDictionaryName != "")
 	{
 		// Nom par defaut du dictionnaire multi-classes a construire
-		sDefaultMultiTableClassName = "Root" + sSecondaryDictionaryName;
+		sDefaultMultiTableClassName = "Main" + sSecondaryDictionaryName;
 		sDefaultMultiTableClassName =
 		    KWClassDomain::GetCurrentDomain()->BuildClassName(sDefaultMultiTableClassName);
 
@@ -104,7 +104,7 @@ boolean KWMTClassBuilderView::BuildMultiTableClass()
 	// Verification de la specification du dictionnaire secondaire
 	if (sSecondaryDictionaryName == "")
 	{
-		AddError("Missing secondary dictionary name");
+		AddError("Missing dictionary name");
 		bOk = false;
 	}
 
@@ -112,14 +112,21 @@ boolean KWMTClassBuilderView::BuildMultiTableClass()
 	kwcSecondaryClass = KWClassDomain::GetCurrentDomain()->LookupClass(sSecondaryDictionaryName);
 	if (bOk and kwcSecondaryClass == NULL)
 	{
-		AddError("Secondary dictionary " + sSecondaryDictionaryName + " does not exist");
+		AddError("Dictionary " + sSecondaryDictionaryName + " does not exist");
 		bOk = false;
 	}
 
 	// Erreur s'il s'agit d'un dictionnaire racine
 	if (bOk and kwcSecondaryClass->GetRoot())
 	{
-		AddError("Secondary dictionary " + sSecondaryDictionaryName + " should not be a Root dictionary");
+		AddError("Dictionary " + sSecondaryDictionaryName + " should not be a Root dictionary");
+		bOk = false;
+	}
+
+	// Erreur s'il n'y a pas de cle
+	if (bOk and kwcSecondaryClass->GetKeyAttributeNumber() == 0)
+	{
+		AddError("Missing key in dictionary " + sSecondaryDictionaryName);
 		bOk = false;
 	}
 

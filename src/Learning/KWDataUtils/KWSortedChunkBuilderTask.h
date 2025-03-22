@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -11,6 +11,7 @@
 #include "KWKeySampleExtractorTask.h"
 #include "KWArtificialDataset.h"
 #include "PLFileConcatenater.h"
+#include "KWChunkSorterTask.h"
 
 /////////////////////////////////////////////////////////////////////////////////
 // Classe KWSortedChunkBuilderTask
@@ -37,8 +38,10 @@ public:
 	boolean GetHeaderLineUsed() const;
 
 	// Separateur de champs utilise (par defaut: '\t')
-	void SetFieldSeparator(char cValue);
-	char GetFieldSeparator() const;
+	// Note: le separateur en sortie est le meme que celui en entree
+	// car le chunk builder ne change pas le separateur
+	void SetInputFieldSeparator(char cValue);
+	char GetInputFieldSeparator() const;
 
 	/////////////////////////////////////////////////////
 	// Parametres du tri des chunks
@@ -97,13 +100,19 @@ protected:
 	// Specifications en entree de la tache
 	ALString sFileURI;
 	boolean bHeaderLineUsed;
-	char cFieldSeparator;
 	boolean bLastSlaveProcessDone;
 	ObjectDictionary
 	    odBucketsFiles; // Dictionnaire qui pour chaque bucketId donne la liste (StringVector) de ses fichiers
 	ObjectDictionary odIdBucketsSize_master; // Dictionnaire qui pour chaque bucketId donne sa taille
 	longint lInputFileSize;
 	longint lFilePos;
+
+	// Definition des exigences
+	longint lBucketsSizeMin;
+	longint lBucketsSizeMax;
+	int nReadSizeMin;
+	int nReadSizeMax;
+	int nReadBufferSize;
 
 	//////////////////////////////////////////////////////
 	// Variables du Slave
@@ -120,6 +129,9 @@ protected:
 	// Dictionnaire bucket ID / bucket size
 	ObjectDictionary odIdBucketsSize_slave;
 
+	// Fichier en lecture
+	InputBufferedFile inputFile;
+
 	///////////////////////////////////////////////////////////
 	// Parametres partages par le maitre et les esclaves
 	// tout au long du programme
@@ -131,12 +143,12 @@ protected:
 	PLShared_ObjectArray* shared_oaBuckets;
 
 	// Taille memoire max pour la gestion memoire des buckets de chaque esclave
-	PLShared_Longint input_lMaxSlaveBucketMemory;
+	PLShared_Longint shared_lMaxSlaveBucketMemory;
 
 	// Attributs du fichier d'entree
 	PLShared_String shared_sFileName;
 	PLShared_Boolean shared_bHeaderLineUsed;
-	PLShared_Char shared_cFieldSeparator;
+	PLShared_Char shared_cInputFieldSeparator;
 	PLShared_Longint shared_lFileSize;
 
 	///////////////////////////////////////////////////////////

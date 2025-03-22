@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -91,6 +91,11 @@ public:
 	// Memoire: appartient a l'appelant
 	KWDataGrid* CreateDataGrid(const KWTupleTable* tupleTable);
 
+	// Methode appelee lors de l'optimisation a chaque etape d'optimisation
+	// Implementation vide par defaut
+	virtual void HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
+					    const KWDataGrid* initialGranularizedDataGrid, boolean bIsLastSaving) const;
+
 	// Parametrage avance
 	// Pre-granularisation des attributs numeriques cible (regression) et des attributs numeriques explicatifs en
 	// analyse non supervisee (co-clustering) Cette pre-granularisation permet :
@@ -166,13 +171,11 @@ protected:
 	// Parametre avance. Par defaut: 0 signifie qu'il n'y a pas de contrainte
 	int nMaxCellNumberConstraint;
 
-	// Gestion des tests pour le suivi des taches
-	PeriodicTest periodicTestDisplay;
-	friend class PLShared_AttributeSubsetStats;
-
 	// Pre-granularisation des attributs numeriques cible (regression) et des attributs numeriques explicatifs en
 	// analyse non supervisee (co-clustering)
 	static boolean bPregranularizedNumericalAttributes;
+
+	friend class PLShared_AttributeSubsetStats;
 };
 
 ///////////////////////////////////////////////////////
@@ -240,8 +243,8 @@ public:
 	///// Implementation
 protected:
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	Object* Create() const override;
 };
 
@@ -263,7 +266,7 @@ public:
 	///// Implementation
 protected:
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	Object* Create() const override;
 };

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -75,7 +75,7 @@ public:
 	virtual void RecvBlock(PLSerializer* serializer, PLMsgContext*);
 
 	// Retourne la liste des serveurs de fichiers
-	const IntVector* GetFileServers();
+	const IntVector* GetFileServers() const;
 
 	// Retourne True si c'est un processus de rang nRank dans MPI_COMM_WORLD est "serveur de fichiers"
 	boolean IsFileServer(int nRank) const;
@@ -90,6 +90,7 @@ public:
 
 	// Permet de forcer la lancement d'un serveur de fichier si le systeme ne contient qu'une machine
 	// Utile pour les tests
+	// TODO acces a cette methode depuis l'IHM pour pouvoir lancer LearningTest avec cette
 	static void SetFileServerOnSingleHost(boolean);
 	static boolean GetFileServerOnSingleHost();
 
@@ -123,7 +124,6 @@ protected:
 	PLIncrementalStats statsIORemoteReadDuration;
 
 	friend class PLParallelTask;
-	friend class PLShared_Tracer;
 };
 
 ////////////////////////////////////////////////////////////
@@ -135,9 +135,7 @@ inline PLTaskDriver* PLTaskDriver::GetDriver()
 }
 
 inline void PLTaskDriver::StopSlaves() {}
-
 inline void PLTaskDriver::StartSlave() {}
-
 inline void PLTaskDriver::StartFileServers() {}
 inline void PLTaskDriver::StopFileServers() {}
 
@@ -156,7 +154,7 @@ inline void PLTaskDriver::SendBlock(PLSerializer* serializer, PLMsgContext*) {}
 inline void PLTaskDriver::BCastBlock(PLSerializer* serializer, PLMsgContext*) {}
 inline void PLTaskDriver::RecvBlock(PLSerializer* serializer, PLMsgContext*) {}
 
-inline const IntVector* PLTaskDriver::GetFileServers()
+inline const IntVector* PLTaskDriver::GetFileServers() const
 {
 	return ivFileServers;
 }

@@ -1,171 +1,21 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
-#include "RMResourceManager.h"
-#include "RMResourceSystem.h"
-#include "RMResourceConstraints.h"
+#include "RMTaskResourceRequirement.h"
+#include "RMTaskResourceGrant.h"
 #include "PLParallelTask.h"
-#include "PLKnapsackProblem.h"
+#include "SystemFileDriverCreator.h"
 
-///////////////////////////////////////////////////////////
-// Gestion des ressources d'un systeme parallele
-class RMParallelResourceManager; // Gestionnaire de ressources, qui alloue au mieux les resources en fonction des
-				 // demandes
-class RMTaskResourceRequirement; // Ressources demandees pour une tache
-class RMTaskResourceGrant; // Ressources alouees pour une tache. Resultat du RMResourceManager qui contient un ensemble
-			   // de RMResourceGrant
-class PLTestCluster;       // Classe de test de l'allocation des ressources
-class RMResourceContainer; // Classe qui stocke une valeur pour chaque type de ressource
-class RMResourceSolutions; // Classe technique de stockage des solutions de l'optimisation des ressources
+class RMParallelResourceManager;
+class PLHostClassDefinition;
+class PLHostClass;
+class PLHostClassSolution;
+class PLSolution;
+class PLSolutionResources;
 
-//////////////////////////////////////////////////////////////////////////
-// Classe RMTaskResourceRequirement
-// Exigences liees a une tache donnee.
-// Les exigences d'une tache sont definies par :
-//	- les exigences de chaque esclave
-//	- les exigences du maitre
-//  - les exigences partagees par le maitre et l'esclave
-//	- les exigences partagees par tous les esclaves
-//	- une politique d'allocation de l'espace disque
-//	- une politique d'allocation de la memoire
-//  - un nombre maximum de taches elementaires (SlaveProcess)
-//
-// Par defaut les exigences sont :
-//		- 0 comme minimum,
-//		- +inf comme maximum (sauf pour GlobalSlaveRequirement et SharedRequirement)
-//		- comme politique, une preference pour les esclaves
-//
-// Notes sur les exigences Globales et Shared:
-// 		- 	Ces exigences sont condiderees comme optionnelles c'est pourquoi le max est initialise a 0
-//			Il faudra donc veiller a initialiser le min ET le max (pour eviter que min > max ). On peu
-// utiliser
-// la methode Set() qui affecte le min et le max en meme temps 		-	Les exigences GetSlaveRequirement et
-// GetGlobalSlaveRequirement sont prises en compte en meme temps dans les ressources allouees, c'est a dire que la
-// methode 			RMTaskResourceGrant::GetMinSlaveMemory() renvoie la memoire dediee a l'esclave + la
-// memoire globale (ou repartie)
-//
-class RMTaskResourceRequirement : public Object
-{
-	// TODO ajouter le nombre de fichier ouverts en meme temps : openedFileNumber.
-public:
-	// Constructeur
-	RMTaskResourceRequirement();
-	~RMTaskResourceRequirement();
-
-	// Copie et duplication
-	RMTaskResourceRequirement* Clone() const;
-	void CopyFrom(const RMTaskResourceRequirement* trRequirement);
-
-	// Politique d'allocation des ressources
-	enum POLICY
-	{
-		masterPreferred,
-		slavePreferred,
-		unknown
-	};
-
-	// Politique d'allocation de la memoire restante apres avoir affecte le minimum a chaque processus.
-	// Soit on donne la maximum au maitre et le reste aux esclaves: masterPreferred
-	// Soit on donne le maximum aux esclaves et le reste au maitre: slavePrefered (politique par defaut)
-	void SetMemoryAllocationPolicy(POLICY policy);
-	POLICY GetMemoryAllocationPolicy() const;
-
-	// Meme chose que pour la memoire
-	void SetDiskAllocationPolicy(POLICY policy);
-	POLICY GetDiskAllocationPolicy() const;
-
-	// Nombre maximum de taches elementaires qui devront etre traitees par les esclaves (nombre de SlaveProcess)
-	// Le temps de traitement sera optimal si il y a autant d'esclaves que de SlaveProcess
-	// En revanche, il est inutile d'avoir plus d'esclaves que de SlaveProcess a executer
-	// par defaut, a l'infini
-	// Si le nombre de process est 0, la tache n'est pas lancee
-	void SetMaxSlaveProcessNumber(int nSlaveProcessNumber);
-	int GetMaxSlaveProcessNumber() const;
-
-	// Acces aux exigences de la tache pour le processus maitre
-	RMResourceRequirement* GetMasterRequirement() const;
-
-	// Acces aux exigences de la tache pour chaque processus esclave
-	RMResourceRequirement* GetSlaveRequirement() const;
-
-	// Acces aux exigences de la tache partagees par l'ensemble des processus esclaves. Permet d'exiger une
-	// ressource reparties sur tous les esclaves. Si un fichier doit etre reparti sur tous les esclaves, ne
-	// connaissant pas le nombre d'esclaves, on ne peut pas specifier les exigences pour chaque esclave (taille du
-	// fichier /  nbSlaves). On peut par contre specifier les exigences pour l'ensemble des esclaves : pour
-	// l'ensemble des esclaves, on a besoin de la taille du fichier, c'est le GlobalSlaveRequirement.
-	RMResourceRequirement* GetGlobalSlaveRequirement() const;
-
-	// Acces aux exigences de la tache pour les variables partagees (shared, input et output)
-	// En sequentiel, ces exigences portent sur un seul processus.
-	// En parallele, elles imposent un minumum pour chaque processus (maitre ou esclave), elles sont toutes a un
-	// moment donne en meme temps chez le maitre et chez l'esclave.
-	RMResourceRequirement* GetSharedRequirement() const;
-
-	// Max des resources utilisees par les esclaves au lancement
-	static RMResourceRequirement* GetSlaveSystemAtStart();
-
-	// Resources utilisees par le maitre au lancement
-	static RMResourceRequirement* GetMasterSystemAtStart();
-
-	// Affichage
-	void Write(ostream& ost) const override;
-
-	// Transformation de la politique en chaine de caractere pour affichage
-	static ALString PolicyToString(POLICY policy);
-
-	// Verifie que toutes les exigences sont coherentes
-	boolean Check() const override;
-
-	//////////////////////////////////////////////////////////////////
-	///// Implementation
-
-	// Politique d'allocation pour la ressource de type nResourceType
-	void SetResourceAllocationPolicy(int nResourceType, POLICY policy);
-	POLICY GetResourceAllocationPolicy(int nResourceType) const;
-
-protected:
-	// Exigences du maitre
-	RMResourceRequirement* masterRequirement;
-
-	// Exigences de chaque esclave
-	RMResourceRequirement* slaveRequirement;
-
-	// Exigences sur tous les esclaves
-	RMResourceRequirement* globalSlaveRequirement;
-
-	// Exigences liees aux variables partagees
-	RMResourceRequirement* sharedRequirement;
-
-	// Nombre de SlaveProcess maximum
-	int nSlaveProcessNumber;
-
-	// Exigences systeme
-	static RMResourceRequirement masterSystemAtStart;
-	static RMResourceRequirement slaveSystemAtStart;
-	static longint lMinProcessDisk;
-	static longint lMinProcessMem;
-
-	// Politique
-	IntVector ivResourcesPolicy;
-
-	friend class RMParallelResourceDriver;  // Acces aux GetMasterSystemRequirement et GetSlaveSystemRequirement
-	friend class RMParallelResourceManager; // Acces aux GetMasterSystemRequirement et GetSlaveSystemRequirement
-	friend class PLParallelTask;            // Acces aux GetMasterSystemRequirement et GetSlaveSystemRequirement
-};
-
-//////////////////////////////////////////////////////////////////////////
-// Classe RMParallelResourceManager
-// Gestionnaire des ressources d'un ensemble de processus MPI qui peut s'executer sur une simple machine
-// ou sur un cluster. Les ressources sont exposees via la classe RMResourceSystem. Le gestionnaire de ressources
-// optimise au mieux le nombre de processus, la RAM et l'espace disque en fonction des ressources disponibles
-// (RMResourceSystem) et des contraintes de l'utilisateur (RMResourceRequirement). Le resultat est un
-// RMTaskResourceGrant i.e. une memoire et un espace disque alloues a chaque processus du systeme. Les processus n'ont
-// pas necessairement tous un RMResourceGrant associe, en effet il peut y avoir plus de processus MPI que de processus
-// effectivement alloues par le gestionnaire.
-//
 class RMParallelResourceManager : public Object
 {
 public:
@@ -179,78 +29,67 @@ public:
 	// Si les ressource sont suffisantes pour un seul processus (sequentiel), grantedResource contient 2
 	// RMResourceGrant, Un pour le maitre (index 0) et un pour l'esclave (index 1). Ces 2 RMResourceGrant ont la
 	// meme valeur pour les sharedVariable. Les 2 processus partagent cette valeur (ils ont tous les 2 acces a la
-	// valeur mais cette memoire ne peut etre allouee qu'uen seule fois) Si aucune ressource n'est allouee, les
-	// ressources manquantes sont accessibles via la methodes GetMissingMemory et GetMissingDisk de
-	// RMTaskResourceGrant Dans ce cas un message destine a l'utilisateur est genere par la methode
-	// GetMissingResourceMessage La methode retourne true si des ressources peuvent etre allouees Notes :
+	// valeur mais cette memoire ne peut etre allouee qu'uen seule fois) Dans le mode Parallele Simule, les
+	// ressources allouees sont celle d'un maitre et d'un esclave. Si aucune ressource n'est allouee, les ressources
+	// manquantes sont accessibles via la methodes GetMissingMemory et GetMissingDisk de RMTaskResourceGrant Dans ce
+	// cas un message destine a l'utilisateur est genere par la methode GetMissingResourceMessage La methode
+	// retourne true si des ressources peuvent etre allouees Notes :
 	//   - grantedResource est reinitialise au debut de la methode, cela permet des appels successifs sur la meme
 	//   instance de grantedResource
 	//   - les ressources systeme sont mises a jour automatiquement au debut de la methode
 	static boolean ComputeGrantedResources(const RMTaskResourceRequirement* resourceRequirement,
 					       RMTaskResourceGrant* grantedResource);
 
+	static boolean ComputeGrantedResourcesForCluster(const RMResourceSystem* cluster,
+							 const RMTaskResourceRequirement* resourceRequirement,
+							 RMTaskResourceGrant* grantedResource);
+
+	const ALString GetClassLabel() const override;
+
 	// Methode de test
 	static void Test();
 
+	// Test les performances (temps d'execution)
+	static void TestPerformances();
+
 protected:
-	static boolean ComputeGrantedResourcesForSystem(const RMResourceSystem* resourceSystem,
-							const RMTaskResourceRequirement* resourceRequirement,
-							RMTaskResourceGrant* grantedResource);
+	// Nettoyage complet pour se remettre dans l'etat initial
+	void Clean();
 
-	// Affectation des exigences et du systeme
-	void SetRequirement(const RMTaskResourceRequirement* resourceRequirement);
-	void SetSystem(const RMResourceSystem* resourceSystem);
+	// Exigences de la taches
+	void SetRequirement(const RMTaskResourceRequirement* taskRequirements);
+	const RMTaskResourceRequirement* GetRequirements() const;
 
-	// Calcul de l'allocation des ressources comme un probmleme de sac a dos, les parametres sont les memes que pour
-	// la methode ComputeGrantedResourcesForSystem sauf bSequential. Quand celui-ci est true, on, cherche une
-	// solution dans le cas sequentiel seulement : on ne prend qu'un seule machine (celle qui contient le rang 0) et
-	// l'allocation locale des ressources n'est pas calculee de la meme maniere. Dans ce cas il y a 2 processus, un
-	// maitre et un esclave. grantedResource est reinitialise au debut de la methode pour autoriser les appels
-	// successifs sur la meme instance
-	void KnapsackSolve(boolean bSequential, RMTaskResourceGrant* grantedResource) const;
+	// Ressources du cluster
+	void SetResourceCluster(const RMResourceSystem* cluster);
+	const RMResourceSystem* GetResourceCluster() const;
 
-	// Construction des ressources allouees (grantedResources) a partir des classes du sac a dos.
-	// Ajoute des ressources restante au minum necessaire.
-	void TransformClassesToResources(boolean bSequential, const ObjectArray* oaClasses, const ObjectArray* oaHosts,
-					 RMTaskResourceGrant* grantedResources) const;
+	// Resolution du probleme et renvoi de la meilleure solution
+	// Renvoie systematiquement la meilleure solution, potentiellement vide si impossible
+	PLSolution* Solve();
+
+	// 1ere phase de la methode Solve()
+	// Algorithme glouton qui construit une solution qui repond aux contraintes globales (PLClusterSolution) a
+	// partir de la solution passee en parametre La solution passee en parametre est modifiee avce la solution
+	// trouvee
+	void GreedySolve(PLSolution* solution);
+
+	// 2eme phase de la methode Solve()
+	// Amelioration de la meilleure solution trouvee par GreedySolve
+	void PostOptimize(PLSolution* solution);
+
+	// Construction de la solution sequentielle : seulement la machine maitre
+	PLSolution* BuildSequentialSolution() const;
+
+	// Construction de la solution initiale, c'est ici que sont definies les classes de machines
+	PLSolution* BuildInitialSolution() const;
+
+	// Transformation de la solution passee en parametre an RMTaskResourceGrant
+	void BuildGrantedResources(const PLSolution*, const RMResourceSystem* resourceSystem,
+				   RMTaskResourceGrant* grantedResource) const;
 
 	// Verifie que les ressource sgranted remplissent les exigences de la tache et les contraintes utilisateurs
-	boolean Check(RMTaskResourceGrant* taskResourceGrant) const;
-
-	// Calcul le surplus de ressource allouable au maitre et a chaque esclave, en plus des exigences minimum, tout
-	// en respectant les contraintes. Tout est rajoute dans la memoire principale (pas dans les shared) en
-	// privilegiant soit le maitre soit les esclaves (en fonction des preferences de resourceRequirement)
-	void ComputeExtraResource(int nResourceType, boolean bSequential, int nProcNumberOnHost,
-				  int nProcNumberOnSystem, const RMHostResource* hostResource, longint lSlaveResource,
-				  longint lMasterResource, longint& lExtraSlaveResource,
-				  longint& lExtraMasterResource) const;
-
-	// Diminue la ressource allouee a chaque esclave (en entree lRemainingResource) de facon a ce qu'elle verifie
-	// les exigences et les contrainte
-	void ShrinkForSlaveUnderConstraints(boolean bIsSequential, int nResourceType, int nSlaveNumberOnHost,
-					    int nSlaveNumberOnSystem, int nMasterNumber,
-					    longint& lRemainingResource) const;
-
-	// Diminue la ressource allouee au maitre (en entree lRemainingResource) de facon a ce qu'elle verifie les
-	// exigences et les contrainte
-	void ShrinkForMasterUnderConstraints(boolean bIsSequential, int nResourceType, int nSlaveNumber,
-					     int nMasterNumber, longint& lRemainingResource) const;
-
-	// Alloue les ressources au maitre et a chaque esclave tout en verifiant les exigences minimales.
-	// Renvoie les ressources consommes sur la machine ainsi que les resources min sur le maitre et chaque esclave
-	longint MinimumAllocation(boolean bIsSequential, int nResourceType, int nProcNumber,
-				  const RMHostResource* hostResource, longint& lSlaveResource,
-				  longint& lMasterResource) const;
-
-	// Calcule le nombre de processus maximum qui peuvent s'executer
-	// La variable lMissingResource est mise a jour avec les ressources manquantes dans le cas ou le nombre de proc
-	// vaut 0
-	int ComputeProcessNumber(boolean bSequential, int nRT, longint lLogicalHostResource, boolean bIsMasterHost,
-				 longint& lMissingResource) const;
-
-	// Calcule l'utilisation des ressources pour nProcNumber process, en utilisant lMasterUse pour le maitre,
-	// lSlaveUse pour les esclaves
-	longint GetUsedResource(int nProcNumber, boolean bIsMasterHost, longint lMasterUse, longint lSlaveUse) const;
+	boolean Check(const RMTaskResourceGrant* taskResourceGrant) const;
 
 	// Methode utilitaire qui renvoie la reserve par processus (reserve pour l'allocateur + reserve de memoire +
 	// java+ serialisation)
@@ -258,47 +97,358 @@ protected:
 	static longint GetSlaveReserve(int nResourceType);
 
 	// Methode utilitaire qui renvoie les ressources cachees a l'utilisateur, elles sont allouees mais pas
-	// disponibles : shared, start et reserve
-	longint GetMasterHiddenResource(boolean bIsSequential, int nResourceType) const;
-	longint GetSlaveHiddenResource(boolean bIsSequential, int nResourceType) const;
+	// disponibles : start et reserve
+	static longint GetMasterHiddenResource(boolean bIsSequential, int nResourceType);
+	static longint GetSlaveHiddenResource(boolean bIsSequential, int nResourceType);
 
-	// Methodes utilitaires pour acceder au exigences
-	longint GetSlaveMin(int nResourceType) const;
-	longint GetSlaveMax(int nResourceType) const;
-	longint GetMasterMin(int nResourceType) const;
-	longint GetMasterMax(int nResourceType) const;
-	longint GetSharedMin(int nResourceType) const;
-	longint GetSlaveGlobalMin(int nResourceType) const;
-	longint GetSlaveGlobalMax(int nResourceType) const;
+	// Resources machines
+	const RMResourceSystem* clusterResources;
 
-	// Exigences et systeme, en consultation
-	const RMResourceSystem* resourceSystem;
-	const RMTaskResourceRequirement* resourceRequirement;
+	// Exigences de la tache
+	const RMTaskResourceRequirement* taskRequirements;
 
-	friend class PLTestCluster;
-	friend class PLShared_TaskResourceGrant; // Pour la methode de test
-	friend class PLParallelTask;             // Pour detruire ivFileServerRanks
+	friend class PLHostClass; // Acces a GetMasterReserve, GetSlaveReserve, GetMasterHiddenResource et
+				  // GetSlaveHiddenResource
+	friend class PLSolution;
 };
 
-//////////////////////////////////////////////////////////////////////////
-// Classe RMResourceContainer
-// Contient une valeur de chaque ressource
-class RMResourceContainer : public Object
+class PLHostClassDefinition : public Object
 {
 public:
 	// Constructeur
-	RMResourceContainer();
-	~RMResourceContainer();
+	PLHostClassDefinition();
+	~PLHostClassDefinition();
 
 	// Copie
-	RMResourceContainer* Clone() const;
+	void CopyFrom(const PLHostClassDefinition* source);
 
-	// Acces au valeurs
-	longint GetValue(int nResourceType) const;
-	void SetValue(int nResourceType, longint lValue);
+	void SetMasterClass(boolean bIsMaster);
+	boolean GetMasterClass() const;
+
+	// Definition d'une classe de machines
+	// Nombre de processeurs utilises
+	void SetProcNumber(int nProc);
+	int GetProcNumber() const;
+
+	// Memoire Min
+	void SetMemoryMin(longint lMemory);
+	longint GetMemoryMin() const;
+
+	// Memoire max
+	void SetMemoryMax(longint lMemory);
+	longint GetMemoryMax() const;
+
+	// Disque Min
+	void SetDiskMin(longint lDisk);
+	longint GetDiskMin() const;
+
+	// Disque Max
+	void SetDiskMax(longint lDisk);
+	longint GetDiskMax() const;
+
+	// Ressource Min
+	RMResourceContainer* GetResourceMin() const;
+
+	// Ressource Max
+	RMResourceContainer* GetResourceMax() const;
+
+	ALString GetSignature() const;
+
+	// Construction d'une nouvelle classe de machine a laquelle appartient le machine passee en parametre
+	static PLHostClassDefinition* BuildClassDefinitionForHost(const RMTaskResourceRequirement* requirements,
+								  const RMHostResource* host,
+								  const LongintVector* lvMemoryBounds,
+								  const LongintVector* lvDiskBounds);
+
+	void Write(ostream& ost) const override;
+	boolean Check() const override;
 
 protected:
-	LongintVector lvResources;
+	// Definition de la classe
+	RMResourceContainer* resourceMin;
+	RMResourceContainer* resourceMax;
+	int nProcNumber;
+	boolean bIsMasterClass;
+};
+
+////////////////////////////////////////////////////////
+// classe PLHostClass
+// Regroupement de machines dans une classe. Une classe de machines est definie
+// par un min et max pour chaque ressources et un nombre de processeurs
+class PLHostClass : public Object
+{
+public:
+	// Constructeur
+	PLHostClass();
+	~PLHostClass();
+
+	// Copie
+	PLHostClass* Clone() const;
+	void CopyFrom(const PLHostClass* hostClassSource);
+
+	// Initialisation de la classe a partir de sa definition
+	// Memoire : appartient a l'appele
+	void SetDefinition(PLHostClassDefinition* definition);
+	PLHostClassDefinition* GetDefinition() const;
+
+	// Modifie la definition pour qu'elle contiennent toute sles machines de la classe tout en etant la plus petite
+	// possible
+	void FitDefinition();
+
+	// Nombre de machines appartenant a la classe
+	int GetHostNumber() const;
+
+	// Ajout d'une machine dans la classe
+	// Memoire *host appartient a l'appelant
+	void AddHost(RMHostResource* host);
+
+	// Acces aux hosts
+	const ObjectArray* GetHosts() const;
+
+	// Renvoi true si la machine qui heberge le maitre est dans la classe
+	boolean IsMasterClass() const;
+
+	// Saturation des ressources de cette classe de machine
+	// Renvoie les ressources saturees
+	PLSolutionResources* SaturateResource(const RMTaskResourceRequirement* taskRequirements, int nProcNumberOnHost,
+					      int nProcNumberOnCluster, boolean bIsSequential) const;
+
+	// Resource logique disponible sur une machine
+	longint GetAvaiblableResource(int nRT) const;
+
+	// Tri decroissant des hosts de la classes en regardant la memoire puis le disque
+	void SortHosts();
+
+	void Write(ostream& ost) const override;
+	boolean Check() const override;
+
+protected:
+	// Definition de la classe
+	PLHostClassDefinition* definition;
+
+	// Machines qui appartiennent a la classe
+	ObjectArray oaHosts;
+
+	boolean bContainsMaster;
+};
+
+////////////////////////////////////////////////////////
+// classe PLHostClassSolution
+// Solution pour une classe de machine
+class PLHostClassSolution : public Object
+{
+public:
+	// Constructeur
+	PLHostClassSolution();
+	~PLHostClassSolution();
+
+	// Copie
+	PLHostClassSolution* Clone() const;
+	void CopyFrom(const PLHostClassSolution* solutionSource);
+
+	// Classe de machines
+	// Memoire : recopie
+	void SetHostClass(const PLHostClass* hostClass);
+	const PLHostClass* GetHostClass() const;
+
+	// Acces a la solution
+	void SetHostCountPerProcNumber(const IntVector* ivHostCountPerProcNumber);
+	const IntVector* GetHostCountPerProcNumber() const;
+
+	// Est-ce qu'on peut ajouter un processus sur une des machines qui a nProcHost processus
+	boolean AllowsOnMoreProc(int nProcHost) const;
+
+	// Tri decroissant des hosts de la classe sur les ressources (avec un arrondi a 100 MB pres)
+	void SortHosts();
+
+	void Write(ostream& ost) const override;
+	boolean Check() const override;
+
+	// Affichage de la solution (nombre de machines pour chaque nombre de processus)
+	// Pour le debogage
+	void PrintHostCountPerProcNumber() const;
+
+protected:
+	PLHostClass* hostClass;
+
+	// Comptage du nombre de machines suivant leur nombre de processus
+	// Taille du vecteur hostClass->GetProcNumber() + 1
+	// Si tout le contenu est a 0, toutes les machines ont 0 processus
+	// Si ivHostCountPerProcNumber.Get(1)==2, 2 machines ont 1 processus
+	// Si ivHostCountPerProcNumber.Get(2)==4, 4 machines ont 2 processus
+	IntVector ivHostCountPerProcNumber;
+
+	friend class PLSolution; // pour AddProc
+};
+
+////////////////////////////////////////////////////////
+// Classe PLSolution
+// Solution de la gestion des ressources
+class PLSolution : public Object
+{
+public:
+	// Constructeur
+	PLSolution();
+	~PLSolution();
+
+	int CompareTo(const PLSolution*) const;
+
+	PLSolution* Clone() const;
+	void CopyFrom(const PLSolution* solutionSource);
+
+	// Acces aux solutions par classe de machine
+	// Memoire : appartient a l'appele
+	void AddHostSolution(PLHostClassSolution*);
+	PLHostClassSolution* GetHostSolutionAt(int i) const;
+
+	// Nombre de classes de machines
+	int GetHostClassSolutionNumber() const;
+
+	// Acces au exigences de la tache
+	void SetTaskRequirements(const RMTaskResourceRequirement* taskRequirements);
+	const RMTaskResourceRequirement* GetTaskRequirements() const;
+
+	// Evaluation de la solution
+	// Met a jour tous les attributs qui concernent les ressources utilisees ou manquantes
+	void Evaluate(boolean bIsSequential);
+
+	// Ressources utilisees par cette solution
+	// Accessibles seulement si la ressource a ete evaluee
+	const RMResourceContainer* GetMasterResource() const;
+	const RMResourceContainer* GetSlaveResource() const;
+	const RMResourceContainer* GetSharedResource() const;
+	const RMResourceContainer* GetGlobalResource() const;
+
+	// Nombre de machine utilisees dans cette solution
+	// Accessible seulement si la ressource a ete evaluee
+	int GetUsedHostNumber() const;
+
+	// Renvoie le nombre de processus utilises dans la solution
+	int GetUsedProcessNumber() const;
+
+	// Resources manquantes pour que cette solution soit valide
+	// Accessibles seulement si la ressource a ete evaluee
+	const RMResourceContainer* GetMissingResources() const;
+
+	// Creation d'une nouvelle solution equivalente a la solution courante ou les classes sont decoupees pour
+	// n'avoir que des singletons Memoire : La nouvelle solution appartient a l'appelant
+	PLSolution* Expand() const;
+
+	// Renvoi true sil la solution est valide
+	boolean IsValid() const;
+
+	void Write(ostream& ost) const override;
+	boolean Check() const override;
+
+	// Tri des PLHostClassSolution
+	void SortHostClasses();
+
+protected:
+	// Calcule si la solution verifie les contraintes minimales en prenant en compte les contraintes globales
+	// Renvoie true si la solution est valide
+	// dans le cas contraire lMissingResource est mis a jour avec les ressources manquantes
+	boolean FitMinimalRequirements(int nRT, longint& lMissingResource, boolean bIsSequential) const;
+
+	// Calcul si la solution (non saturee) verifie les contraintes globales a partir
+	// 		- des exigences de la tache
+	//		- des contraintes utilisateur
+	// Met a jour rcMissingResource, nExtraProcNumber (le nombre de processus en trop)
+	// Renvoie true si la solution est valide
+	boolean FitResources(boolean bIsSequential);
+
+	// Verifie qu'il n'y a pas trop de processus
+	boolean FitProcessNumber() const;
+
+	// Saturation des ressources de la solution
+	void SaturateResource(boolean bIsSequential);
+
+	// Ajoute un processus sur une la classe nHostClassIndex, sur une machine qui a nProcNumber processus
+	void AddProcessusOnHost(int nHostClassIndex, int nProcNumber);
+
+	// Supprime un processus sur une la classe nHostClassIndex, sur une machine qui a nProcNumber processus*
+	// ne peut etre utilisee qu'apres un ajout
+	void RemoveProcessusOnHost(int nHostClassIndex, int nProcNumber);
+
+	// Classes de solution qui appartienent a la solution
+	ObjectArray oaHostClassSolution;
+
+	// Exigences de la tache
+	const RMTaskResourceRequirement* taskRequirements;
+
+	// Est-ce que la solution est valide
+	boolean bGlobalConstraintIsValid;
+
+	// Memorisation de bGlobalConstraintIsValid precedent l'appel a AddProcessusOnHost
+	boolean bOldGlobalConstraintIsValid;
+
+	// Utiliser pour dans les assertion spour s'assurer que RemoveProcessusOnHost a etet appelee
+	// apres AddProcessusOnHost
+	boolean bLastIsAdd;
+
+	// Nombre de machines utilisees
+	int nUsedHost;
+
+	// Nombre de processus instancies
+	int nUsedProcs;
+
+	// Est-ce que la solution a ete evaluee
+	boolean bIsEvaluated;
+
+	// Pas d'approximation des ressources utilisees
+	const longint lUsedResourcePrecision = 128 * lMB;
+
+	// Ressources allouees au maitre et aux esclaves
+	// Ces valeurs sont calculees lors de la saturation (dans la methode evaluate)
+	PLSolutionResources* resources;
+
+	// Memorisation de l'attribut resources precedent l'appel a AddProcessusOnHost
+	PLSolutionResources* oldResources;
+
+	// Resources manquantes si la solution n'est pas valide
+	RMResourceContainer* rcMissingResources;
+
+	// Nombre de master sur la solution
+	int nMasterNumber;
+
+	friend class RMParallelResourceManager;
+};
+
+////////////////////////////////////////////////////////
+// Classe PLSolutionResources
+// Resources (maitre, esclave, shared et global) allouees a une solution
+class PLSolutionResources : public Object
+{
+public:
+	// Constructeur
+	PLSolutionResources();
+	~PLSolutionResources();
+
+	PLSolutionResources* Clone() const;
+	void CopyFrom(const PLSolutionResources* source);
+
+	// Acces aux ressources de chaque esclave
+	void SetSlaveResource(int nRT, longint lValue);
+	RMResourceContainer* GetSlaveResource() const;
+
+	// Acces aux ressources de chaque esclave
+	void SetMasterResource(int nRT, longint lValue);
+	RMResourceContainer* GetMasterResource() const;
+
+	// Acces aux ressources de chaque esclave
+	void SetSharedResource(int nRT, longint lValue);
+	RMResourceContainer* GetSharedResource() const;
+
+	// Acces aux ressources de chaque esclave
+	void SetGlobalResource(int nRT, longint lValue);
+	RMResourceContainer* GetGlobalResource() const;
+
+	void Write(ostream& ost) const override;
+
+protected:
+	RMResourceContainer* rcSlaveResource;
+	RMResourceContainer* rcMasterResource;
+	RMResourceContainer* rcSharedResource;
+	RMResourceContainer* rcGlobalResource;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -316,51 +466,33 @@ public:
 	////////////////////////////////
 	// Configuration du systeme
 
+	// Definition du cluster
+	// Appartient a l'appeleant
+	void SetCluster(RMResourceSystem* cluster);
+	RMResourceSystem* GetCluster() const;
+
 	// Intitule du test pour affichage
 	void SetTestLabel(const ALString& sName);
 
-	// Nombre de machines
-	void SetHostNumber(int nHostNumber);
-
-	// Nombre de coeurs maximum par Host
-	void SetHostCores(int nCoresNumber);
-
-	// Memoire disponible sur chaque host
-	void SetHostMemory(longint lMemory);
-
-	// Disque disponible sur chaque host
-	void SetHostDisk(longint lDisk);
+	// Mode verbeux (par defaut : true)
+	void SetVerbose(boolean bIsVerbose);
+	boolean GetVerbose() const;
 
 	// Memoire au debut du run (par defaut a 8Mo)
 	void SetMasterSystemAtStart(longint lMemory);
 	void SetSlaveSystemAtStart(longint lMemory);
-
-	// Taille des machines :
-	// - 0 les machines sont identiques (par defaut),
-	// - 1 elles sont de taille croissante (1 coeur pour le maitre),
-	// - 2 elles sont de taille decroissante (nCoresNumber pour le maitre)
-	void SetSystemConfig(int nConfig);
 
 	// Met la configuration dan l'etat initial
 	void Reset();
 
 	//////////////////////////////////////////
 	// Configuration des contraintes utilisateurs
-	void SetConstraintMasterMemory(longint lMin, longint lMax);
-	void SetConstraintSlaveMemory(longint lMin, longint lMax);
-	void SetConstraintMasterDisk(longint lMin, longint lMax);
-	void SetConstraintSlaveDisk(longint lMin, longint lMax);
-	void SetConstraintSharedMemory(longint lMin, longint lMax);
-	void SetSlaveProcessNumber(int nProcess);
-	void SetSlaveGlobalMemoryMin(longint lMin);
-	void SetSlaveGlobalMemoryMax(longint lMax);
-	void SetSlaveGlobalDiskMin(longint lMin);
+
+	// Acces aux exigences de la tache
+	RMTaskResourceRequirement* GetTaskRequirement();
 
 	void SetMemoryLimitPerHost(longint lMemory);
 	void SetDiskLimitPerHost(longint lDisk);
-
-	void SetMemoryLimitPerProc(longint lMax);
-	void SetDiskLimitPerProc(longint lMax);
 	void SetMaxCoreNumberPerHost(int nMax);
 	void SetMaxCoreNumberOnSystem(int nMax);
 
@@ -368,277 +500,102 @@ public:
 	// Resolution
 	void Solve();
 
+	// Temps, de la resolution
+	double GetElapsedTime() const;
+
 protected:
 	// Variables qui definissent le systeme
-	int nHostNumber;
-	int nCoresNumberPerHost;
-	longint lMemoryPerHost;
-	longint lDiskPerHost;
-	int nSystemConfig;
+	RMResourceSystem* cluster;
 	ALString sName;
 	longint lMasterSystemAtStart;
 	longint lSlaveSystemAtStart;
 
-	// Variables qui definissent les contraintes
-
-	// Contrainte sdu programme
-	longint lMinMasterMemory;
-	longint lMaxMasterMemory;
-	longint lMinSlaveMemory;
-	longint lMaxSlaveMemory;
-	longint lMinMasterDisk;
-	longint lMaxMasterDisk;
-	longint lMinSlaveDisk;
-	longint lMaxSlaveDisk;
-	longint lMinSharedMemory;
-	longint lMaxSharedMemory;
-	int nProcessNumber;
-	longint lMinSlaveGlobalMemory;
-	longint lMaxSlaveGlobalMemory;
-	longint lMinGlobalConstraintDisk;
+	// Contraintes de la tache
+	RMTaskResourceRequirement* taskRequirement;
 
 	// Contraintes de l'utilisateur
 	longint lMemoryLimitPerHost;
 	longint lDiskLimitPerHost;
-	longint lMemoryLimitPerProc;
-	longint lDiskLimitPerProc;
 	int nMaxCoreNumberPerHost;
 	int nMaxCoreNumberOnSystem;
 	int nMaxCoreNumber;
+
+	boolean bVerbose;
+	Timer timer;
 };
 
-//////////////////////////////////////////////////////////////////////////
-// Classe RMTaskResourceGrant
-// Cette classe represente les ressources allouees pour une tache parallele.
-// Elle est constituee d'un ensemble de RMResourceGrant. Il y en a un par processus (sauf en sequentiel ou il y en a 2)
-class RMTaskResourceGrant : public Object
+inline RMResourceContainer* PLSolutionResources::GetMasterResource() const
 {
-public:
-	// Constructeur
-	RMTaskResourceGrant();
-	~RMTaskResourceGrant();
-
-	// Nombre de processus (maitre ou esclave)
-	int GetProcessNumber() const;
-
-	// Nombre d'esclaves (1 en sequentiel, GetProcessNumber() -1 sinon )
-	int GetSlaveNumber() const;
-
-	// Tache sequentielle (GetProcessNumber==1)
-	boolean IsSequentialTask() const;
-
-	// Renvoie true si aucune ressource n'a pu etre allouee
-	// C'est la cas si il n'y a pas assez de ressources ou
-	// si le nombre max de SlaveProcess est a 0
-	boolean IsEmpty() const;
-
-	// Memoire et disque du maitre
-	longint GetMasterMemory() const;
-	longint GetMasterDisk() const;
-
-	// Memoire et disque de l'esclave de rang i (i>0)
-	longint GetSlaveMemoryOf(int i) const;
-	longint GetSlaveDiskOf(int i) const;
-
-	// Memoire paratgee
-	longint GetSharedMemory() const;
-
-	// Minimum alloues sur tous les esclaves
-	longint GetMinSlaveMemory() const;
-	longint GetMinSlaveDisk() const;
-	longint GetMinSlaveResource(int nResourceType) const;
-
-	// Ressources logiques manquantes lorqu'on ne peut pas allouer
-	longint GetMissingMemory();
-	longint GetMissingDisk();
-
-	// Message informant du manque de ressource suivant le type de ressource manquante
-	ALString GetMissingResourceMessage();
-
-	// Affichage
-	void Write(ostream& ost) const override;
-
-	//////////////////////////////////////////////////////////////////
-	///// Implementation
-
-	// Acces a la ressource du processus de rang nRank
-	// Renvoi NULL si aucubne ressources n'est allouee pour ce processus
-	RMResourceGrant* GetResourceAtRank(int nRank) const;
-
-	// Ajout d'une resource
-	void AddResource(RMResourceGrant* resource);
-
-	// Reindexation des ressources (mise a jour de oaResourceGrantWithRankIndex)
-	// a utilise lorsque le rang des resources a change
-	void ReindexRank();
-
-	// Initiamisation avec les valeurs par defaut
-	void Initialize();
-
-protected:
-	ObjectArray oaResourceGrant;              // Tableau de RMResourceGrant
-	ObjectArray oaResourceGrantWithRankIndex; // Tableau de RMResourceGrant indexes par leur rang
-	LongintVector lvMissingResources;
-
-	// Vrai si il n'y a pas assez de ressources a cause des contraintes par processus
-	boolean bMissingResourceForProcConstraint;
-
-	// Vrai si il n'y a pas assez de ressource sa cause des contraintes globales sur les esclaves
-	boolean bMissingResourceForGlobalConstraint;
-
-	// Host sur lequel il manque de la memoire dans la cas de contraintes globales
-	ALString sHostMissingResource;
-
-	friend class PLShared_TaskResourceGrant;
-	friend class RMParallelResourceManager;
-	friend class PLKnapsackResources;
-};
-
-//////////////////////////////////////////////////////////////////////////
-// Classe RMResourceGrant
-// Cette classe represente les ressource allouees a un processus.
-class RMResourceGrant : public Object
-{
-public:
-	// Constructeur
-	RMResourceGrant();
-	~RMResourceGrant();
-
-	// Memoire disponible pour ce processus
-	void SetMemory(longint lMemory);
-	longint GetMemory() const;
-
-	// Espace disque disponible pour ce process
-	void SetDiskSpace(longint lDisk);
-	longint GetDiskSpace() const;
-
-	// Rang du processus MPI
-	void SetRank(int nRank);
-	int GetRank() const;
-
-	// Memoire allouee aux sharedVariables
-	void SetSharedMemory(longint lMemory);
-	longint GetSharedMemory() const;
-
-	// Disque alloue aux sharedVariables
-	void SetSharedDisk(longint lDisk);
-	longint GetSharedDisk() const;
-
-	// Acces generique
-	void SetSharedResource(int nResource, longint lValue);
-	longint GetSharedResource(int nResource) const;
-	void SetResource(int nResource, longint lValue);
-	longint GetResource(int nResource) const;
-
-	// Verifie que la ressource a ete correctement initialisee
-	boolean Check() const override;
-
-	// Affichage
-	void Write(ostream& ost) const override;
-
-	//////////////////////////////////////////////////////////////////
-	///// Implementation
-protected:
-	int nRank;
-	LongintVector lvResource;
-	LongintVector lvSharedResource;
-
-	friend class PLShared_ResourceGrant;
-};
-
-//////////////////////////////////////////////////////////////////////////
-// Classe PLKnapsackResources
-// Cette classe est une specialisation de PLKnapsackProblem
-// Elle prend en compte les contraintes globales en ressource sur les esclaves
-class PLKnapsackResources : public PLKnapsackProblem
-{
-public:
-	PLKnapsackResources();
-	~PLKnapsackResources();
-
-	void SetRequirement(const RMTaskResourceRequirement* rq);
-	void SetGrantedResource(RMTaskResourceGrant* grantedResource);
-
-	void SetHostResources(const ObjectArray* oaHosts);
-
-protected:
-	// Renvoie true si les contraintes globales sur les esclaves sont verifiees
-	boolean DoesSolutionFitGlobalConstraint() override;
-
-	const RMTaskResourceRequirement* resourceRequirement;
-	RMTaskResourceGrant* grantedResource;
-	const ObjectArray* oaHostResources;
-};
-
-inline void RMTaskResourceRequirement::SetResourceAllocationPolicy(int nResourceType, POLICY policy)
-{
-	require(nResourceType < UNKNOWN);
-	ivResourcesPolicy.SetAt(nResourceType, policy);
+	return rcMasterResource;
 }
 
-inline RMTaskResourceRequirement::POLICY RMTaskResourceRequirement::GetResourceAllocationPolicy(int nResourceType) const
+inline RMResourceContainer* PLSolutionResources::GetSlaveResource() const
 {
-	require(nResourceType < UNKNOWN);
-	return (POLICY)ivResourcesPolicy.GetAt(nResourceType);
+	return rcSlaveResource;
 }
 
-inline void RMTaskResourceRequirement::SetMemoryAllocationPolicy(POLICY policy)
+inline RMResourceContainer* PLSolutionResources::GetSharedResource() const
 {
-	SetResourceAllocationPolicy(MEMORY, policy);
+	return rcSharedResource;
 }
 
-inline RMTaskResourceRequirement::POLICY RMTaskResourceRequirement::GetMemoryAllocationPolicy() const
+inline RMResourceContainer* PLSolutionResources::GetGlobalResource() const
 {
-	return GetResourceAllocationPolicy(MEMORY);
+	return rcGlobalResource;
 }
 
-inline void RMTaskResourceRequirement::SetDiskAllocationPolicy(POLICY policy)
+inline const RMResourceContainer* PLSolution::GetMasterResource() const
 {
-	SetResourceAllocationPolicy(DISK, policy);
+	require(bIsEvaluated);
+	return resources->GetMasterResource();
+}
+inline const RMResourceContainer* PLSolution::GetSlaveResource() const
+{
+	require(bIsEvaluated);
+	return resources->GetSlaveResource();
+}
+inline const RMResourceContainer* PLSolution::GetSharedResource() const
+{
+	require(bIsEvaluated);
+	return resources->GetSharedResource();
+}
+inline const RMResourceContainer* PLSolution::GetGlobalResource() const
+{
+	require(bIsEvaluated);
+	return resources->GetGlobalResource();
 }
 
-inline RMTaskResourceRequirement::POLICY RMTaskResourceRequirement::GetDiskAllocationPolicy() const
+inline int PLSolution::GetUsedProcessNumber() const
 {
-	return GetResourceAllocationPolicy(DISK);
+	return nUsedProcs;
 }
 
-inline RMResourceRequirement* RMTaskResourceRequirement::GetMasterRequirement() const
+inline int PLSolution::GetHostClassSolutionNumber() const
 {
-	return masterRequirement;
+	return oaHostClassSolution.GetSize();
 }
 
-inline RMResourceRequirement* RMTaskResourceRequirement::GetSlaveRequirement() const
+inline PLHostClassSolution* PLSolution::GetHostSolutionAt(int i) const
 {
-	return slaveRequirement;
+	return cast(PLHostClassSolution*, oaHostClassSolution.GetAt(i));
 }
 
-inline RMResourceRequirement* RMTaskResourceRequirement::GetGlobalSlaveRequirement() const
+inline int PLHostClass::GetHostNumber() const
 {
-	return globalSlaveRequirement;
+	return oaHosts.GetSize();
 }
 
-inline RMResourceRequirement* RMTaskResourceRequirement::GetSharedRequirement() const
+inline boolean PLHostClass::IsMasterClass() const
 {
-	return sharedRequirement;
+	return bContainsMaster;
 }
 
-inline RMResourceRequirement* RMTaskResourceRequirement::GetMasterSystemAtStart()
+inline const IntVector* PLHostClassSolution::GetHostCountPerProcNumber() const
 {
-	return &masterSystemAtStart;
+	return &ivHostCountPerProcNumber;
 }
 
-inline RMResourceRequirement* RMTaskResourceRequirement::GetSlaveSystemAtStart()
+inline const PLHostClass* PLHostClassSolution::GetHostClass() const
 {
-	return &slaveSystemAtStart;
-}
-
-inline void RMTaskResourceRequirement::SetMaxSlaveProcessNumber(int nValue)
-{
-	require(nValue >= 0);
-	nSlaveProcessNumber = nValue;
-}
-
-inline int RMTaskResourceRequirement::GetMaxSlaveProcessNumber() const
-{
-	return nSlaveProcessNumber;
+	return hostClass;
 }

@@ -1,8 +1,16 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "PLSlaveState.h"
+
+const ALString PLSlaveState::sVOID = "VOID";
+const ALString PLSlaveState::sINIT = "INIT";
+const ALString PLSlaveState::sREADY = "READY";
+const ALString PLSlaveState::sPROCESSING = "PROCESSING";
+const ALString PLSlaveState::sFINALIZE = "FINALIZE";
+const ALString PLSlaveState::sDONE = "DONE";
+const ALString PLSlaveState::sUNKNOW = "UNKNOW";
 
 PLSlaveState::PLSlaveState()
 {
@@ -13,7 +21,7 @@ PLSlaveState::~PLSlaveState() {}
 
 void PLSlaveState::Initialize()
 {
-	state = VOID;
+	state = State::VOID;
 	nRank = 0;
 	nProgression = 0;
 	dPercentOfTheJob = 0;
@@ -53,9 +61,6 @@ void PLSlaveState::SetProgression(int nValue)
 
 void PLSlaveState::SetState(State nState)
 {
-
-	assert(VOID <= nState and nState < UNKNOWN);
-	// cout << "STATE(" << nRank << ") " << PrintState() << " => " << GetStateAsString(nState) << endl;
 	state = nState;
 }
 
@@ -90,44 +95,85 @@ double PLSlaveState::GetTaskPercent() const
 	return dPercentOfTheJob;
 }
 
-const ALString PLSlaveState::PrintState() const
+const ALString& PLSlaveState::PrintState() const
 {
 	return GetStateAsString(state);
 }
 
-const ALString PLSlaveState::GetStateAsString(State nState)
+const ALString& PLSlaveState::GetStateAsString(State nState)
 {
-	ensure(VOID <= nState and nState <= UNKNOWN);
 
 	switch (nState)
 	{
-	case VOID:
-		return "VOID";
-		break;
-	case INIT:
-		return "INIT";
-		break;
-	case READY:
-		return "READY";
-		break;
-	case PROCESSING:
-		return "PROCESSING";
-		break;
-	case FINALIZE:
-		return "FINALIZE";
-		break;
-	case DONE:
-		return "DONE";
-		break;
+	case State::VOID:
+		return sVOID;
+	case State::INIT:
+		return sINIT;
+	case State::READY:
+		return sREADY;
+	case State::PROCESSING:
+		return sPROCESSING;
+	case State::FINALIZE:
+		return sFINALIZE;
+	case State::DONE:
+		return sDONE;
+	case State::UNKNOW:
+		return sUNKNOW;
 	default:
-		return "UNKNOWN";
-		break;
+		return sUNKNOW;
+	}
+}
+
+State PLSlaveState::IntToState(int nState)
+{
+	switch (nState)
+	{
+	case 0:
+		return State::VOID;
+	case 1:
+		return State::INIT;
+	case 2:
+		return State::READY;
+	case 3:
+		return State::PROCESSING;
+	case 4:
+		return State::FINALIZE;
+	case 5:
+		return State::DONE;
+	case 6:
+		return State::UNKNOW;
+	default:
+		return State::UNKNOW;
+	}
+}
+int PLSlaveState::StateToInt(State nState)
+{
+	switch (nState)
+	{
+	case State::VOID:
+		return 0;
+	case State::INIT:
+		return 1;
+	case State::READY:
+		return 2;
+	case State::PROCESSING:
+		return 3;
+	case State::FINALIZE:
+		return 4;
+	case State::DONE:
+		return 5;
+	case State::UNKNOW:
+		return 6;
+	default:
+		return 6;
 	}
 }
 
 void PLSlaveState::Write(ostream& ost) const
 {
 	ost << nRank << " on " << sHostName << " " << PrintState() << " progression : " << IntToString(GetProgression())
-	    << "Task% : " << DoubleToString(dPercentOfTheJob * 100) << endl;
-	;
+	    << " Task% : " << DoubleToString(dPercentOfTheJob * 100);
+	if (bMustRest)
+		cout << " AT REST";
+	cout << endl;
 }

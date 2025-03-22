@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -13,8 +13,6 @@ import javax.swing.JPanel;
  * Definit une donnee d'interface. Une donnee d'interface peut etre une unite ou
  * un element. Une donnee possede un caractere editable et une unite mere (nul
  * s'il s'agit de l'unite racine).
- *
- * @author Marc Boulle
  */
 public abstract class GUIData extends GUIObject
 {
@@ -88,8 +86,7 @@ public abstract class GUIData extends GUIObject
         }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage

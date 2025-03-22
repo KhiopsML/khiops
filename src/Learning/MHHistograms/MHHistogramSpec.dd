@@ -1,0 +1,12 @@
+Rank;Name;Type;Style;Label
+1;HistogramCriterion     ;ALString;ComboBox   ;Histogram criterion
+2;DeltaCentralBinExponent;int     ;           ;Delta central bin exponent
+3;TruncationManagementHeuristic;boolean ;CheckBox ;Truncation management heuristic
+4;SingularityRemovalHeuristic  ;boolean ;CheckBox ;Singularity removal heuristic
+5;EpsilonBinWidth        ;double  ;           ;Epsilon bin width
+6;OptimalAlgorithm      ;boolean ;CheckBox   ;Optimal algorithm
+7;ExportResultHistograms;ALString;ComboBox   ;Export result histograms
+8;ExportInternalLogFiles;boolean ;CheckBox   ;Export internal log files
+9;FileFormat            ;int     ;                ;File format
+10;ResultFilesDirectory  ;ALString;DirectoryChooser;Result files directory
+11;ResultFilesPrefix     ;ALString;                ;Result files prefix

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -37,7 +37,7 @@ KWDataTableDriverTextFile::KWDataTableDriverTextFile()
 	outputBuffer = NULL;
 
 	// Taille du buffer
-	nBufferedFileSize = nDefaultBufferSize;
+	nBufferSize = GetDefaultBufferSize();
 }
 
 KWDataTableDriverTextFile::~KWDataTableDriverTextFile()
@@ -102,10 +102,13 @@ boolean KWDataTableDriverTextFile::BuildDataTableClass(KWClass* kwcDataTableClas
 	ALString sField;
 	KWAttribute* attribute;
 	ALString sAttributeName;
-	boolean bAttributeOk;
 	ALString sTmp;
 
 	require(inputBuffer == NULL);
+
+	require(kwcDataTableClass != NULL);
+	require(kwcDataTableClass->GetDomain() == NULL);
+	require(kwcDataTableClass->GetAttributeNumber() == 0);
 
 	// Lecture des champs de la premiere ligne du fichier
 	bOk = ReadHeaderLineFields(&svFirstLineFields);
@@ -143,7 +146,7 @@ boolean KWDataTableDriverTextFile::BuildDataTableClass(KWClass* kwcDataTableClas
 					break;
 			}
 			// Test de validite du nom de l'attribut
-			else if (not KWClass::CheckName(sAttributeName, this))
+			else if (not KWClass::CheckName(sAttributeName, KWClass::Attribute, this))
 			{
 				bOk = false;
 				AddError(sTmp + "The header line field " + IntToString(nField) + " is not valid");
@@ -161,8 +164,7 @@ boolean KWDataTableDriverTextFile::BuildDataTableClass(KWClass* kwcDataTableClas
 				attribute = new KWAttribute;
 				attribute->SetType(KWType::Symbol);
 				attribute->SetName(sAttributeName);
-				bAttributeOk = kwcDataTableClass->InsertAttribute(attribute);
-				assert(bAttributeOk);
+				kwcDataTableClass->InsertAttribute(attribute);
 			}
 
 			// Message si beaucoup de champs
@@ -183,10 +185,13 @@ boolean KWDataTableDriverTextFile::BuildDataTableClass(KWClass* kwcDataTableClas
 
 	// Si echec: on nettoie la classe
 	if (not bOk)
+	{
+		kwcDataTableClass->SetName("");
 		kwcDataTableClass->DeleteAllAttributes();
-	// Sinon, on la compile
+	}
+	// Sinon, on l'indexe
 	else
-		kwcDataTableClass->Compile();
+		kwcDataTableClass->IndexClass();
 
 	// Retour
 	ensure(not bOk or kwcDataTableClass->GetUsedAttributeNumber() == kwcDataTableClass->GetAttributeNumber());
@@ -208,9 +213,7 @@ boolean KWDataTableDriverTextFile::OpenForRead(const KWClass* kwcLogicalClass)
 	if (GetHeaderLineUsed())
 	{
 		kwcHeaderLineClass.SetName(kwcClass->GetDomain()->BuildClassName(GetClassName() + "HeaderLine"));
-		kwcClass->GetDomain()->InsertClass(&kwcHeaderLineClass);
 		bOk = BuildDataTableClass(&kwcHeaderLineClass);
-		kwcClass->GetDomain()->RemoveClass(kwcHeaderLineClass.GetName());
 		kwcUsedHeaderLineClass = &kwcHeaderLineClass;
 	}
 
@@ -285,8 +288,10 @@ boolean KWDataTableDriverTextFile::IsOpenedForWrite() const
 KWObject* KWDataTableDriverTextFile::Read()
 {
 	char* sField;
+	int nFieldLength;
 	int nFieldError;
 	boolean bEndOfLine;
+	boolean bLineTooLong;
 	ALString sTmp;
 	int nField;
 	int nError;
@@ -294,6 +299,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 	Date dtValue;
 	Time tmValue;
 	Timestamp tsValue;
+	TimestampTZ tstzValue;
 	KWObject* kwoObject;
 	KWLoadIndex liLoadIndex;
 	KWDataItem* dataItem;
@@ -310,24 +316,26 @@ KWObject* KWDataTableDriverTextFile::Read()
 	require(not inputBuffer->IsBufferEnd());
 
 	// On retourne NULL, sans message, si interruption utilisateur
-	if (periodicTestInterruption.IsTestAllowed(lRecordIndex))
+	if (TaskProgression::IsRefreshNecessary())
 	{
 		if (TaskProgression::IsInterruptionRequested())
 			return NULL;
 	}
 
 	// Reinitialisation des champ de la derniere cle lue si necessaire
-	assert(kwcClass->GetRoot() == (ivRootKeyIndexes.GetSize() > 0));
-	if (lastReadRootKey.GetSize() > 0)
+	assert(kwcClass->IsUnique() == (ivMainKeyIndexes.GetSize() > 0));
+	if (lastReadMainKey.GetSize() > 0)
 	{
-		assert(livDataItemLoadIndexes.GetSize() == ivRootKeyIndexes.GetSize());
-		lastReadRootKey.Initialize();
+		assert(livDataItemLoadIndexes.GetSize() == ivMainKeyIndexes.GetSize());
+		lastReadMainKey.Initialize();
 	}
 
 	// Lecture des champs de la ligne
 	bEndOfLine = false;
+	bLineTooLong = false;
 	nField = 0;
 	sField = NULL;
+	nFieldLength = 0;
 	nFieldError = inputBuffer->FieldNoError;
 	lRecordIndex++;
 	kwoObject = new KWObject(kwcClass, lRecordIndex);
@@ -341,9 +349,23 @@ KWObject* KWDataTableDriverTextFile::Read()
 		// On ne retient que les attributs ou blocs reconnus et non calcules
 		// On lit toujours le premier champ pour detecter les lignes vides
 		if (liLoadIndex.IsValid() or nField == 0)
-			bEndOfLine = inputBuffer->GetNextField(sField, nFieldError);
+			bEndOfLine = inputBuffer->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 		else
-			bEndOfLine = inputBuffer->SkipField();
+			bEndOfLine = inputBuffer->SkipField(bLineTooLong);
+
+		// Cas particulier: ligne trop longue
+		if (bLineTooLong)
+		{
+			assert(bEndOfLine);
+
+			// Warning
+			AddWarning(sTmp + "Ignored record, " + InputBufferedFile::GetLineTooLongErrorLabel());
+
+			// Destruction de l'objet en cours et on sort
+			delete kwoObject;
+			kwoObject = NULL;
+			break;
+		}
 
 		// Cas particulier: ligne vide
 		if (nField == 0 and bEndOfLine and (sField == NULL or sField[0] == '\0'))
@@ -358,26 +380,33 @@ KWObject* KWDataTableDriverTextFile::Read()
 					AddWarning("Empty line");
 				}
 
-				// Destruction de l'objet en cours et retour
+				// Destruction de l'objet en cours et on sort
 				delete kwoObject;
-				return NULL;
-			}
-			// Sinon, on sort pour ne pas comptabiliser le champs,
-			// uniquement si on est dans le cas d'un dictionnaire sans attribut natif
-			else if (kwcClass->GetNativeDataItemNumber() == 0)
+				kwoObject = NULL;
 				break;
+			}
+			// Sinon, on sort si on est dans le cas d'un dictionnaire sans attribut natif
+			else if (kwcClass->GetNativeDataItemNumber() == 0)
+			{
+				// On comptabilise le champ dans le cas d'un champ dans le fichier pour indiquer que l'on a bien
+				// lu tous les champs de la ligne, dans ce cas particulier d'un ligne vide interpretee comme
+				// une ligne comportant un seul champ avec valeur manquante
+				if (livDataItemLoadIndexes.GetSize() == 1)
+					nField++;
+				break;
+			}
 		}
 
 		// Alimentation des champs de la derniere cle lue si necessaire
 		// On le fait avant l'analyse des champs, car on doit collecter les champs de la cle
 		// independament des erreurs
-		if (lastReadRootKey.GetSize() > 0)
+		if (lastReadMainKey.GetSize() > 0)
 		{
-			if (nField < livDataItemLoadIndexes.GetSize() and ivRootKeyIndexes.GetAt(nField) >= 0)
+			if (nField < livDataItemLoadIndexes.GetSize() and ivMainKeyIndexes.GetAt(nField) >= 0)
 			{
 				// Les champs cles sont necessairement lu dans le cas d'un driver physique de classe
 				assert(liLoadIndex.IsValid());
-				lastReadRootKey.SetAt(ivRootKeyIndexes.GetAt(nField), Symbol(sField));
+				lastReadMainKey.SetAt(ivMainKeyIndexes.GetAt(nField), Symbol(sField, nFieldLength));
 			}
 		}
 
@@ -403,7 +432,23 @@ KWObject* KWDataTableDriverTextFile::Read()
 				// Cas attribut Symbol
 				if (attribute->GetType() == KWType::Symbol)
 				{
-					kwoObject->SetSymbolValueAt(liLoadIndex, Symbol(sField));
+					// Troncature si necessaire des champs trop longs
+					if (nFieldLength > KWValue::nMaxSymbolFieldSize)
+					{
+						if (bOverlengthyFieldsVerboseMode)
+						{
+							AddWarning(sTmp + dataItem->GetClassLabel() + " " +
+								   dataItem->GetObjectLabel() + " with value <" +
+								   InputBufferedFile::GetDisplayValue(sField) +
+								   "> : " + "categorical field too long (" +
+								   IntToString(nFieldLength) + "), truncated to " +
+								   IntToString(KWValue::nMaxSymbolFieldSize) +
+								   " characters");
+						}
+						nFieldLength = KWValue::nMaxSymbolFieldSize;
+						sField[nFieldLength] = '\0';
+					}
+					kwoObject->SetSymbolValueAt(liLoadIndex, Symbol(sField, nFieldLength));
 				}
 				// Cas attribut Continuous
 				else if (attribute->GetType() == KWType::Continuous)
@@ -465,6 +510,27 @@ KWObject* KWDataTableDriverTextFile::Read()
 							   "> converted to <> (invalid timestamp " +
 							   attribute->GetTimestampFormat()->GetFormatString() + ")");
 				}
+				// Cas attribut TimestampTZ
+				else if (attribute->GetType() == KWType::TimestampTZ)
+				{
+					// Conversion en date
+					tstzValue = attribute->GetTimestampTZFormat()->StringToTimestampTZ(sField);
+					kwoObject->SetTimestampTZValueAt(liLoadIndex, tstzValue);
+
+					// Test de validite du champs
+					if (sField[0] != '\0' and not tstzValue.Check())
+						AddWarning(sTmp + "TimestampTZ variable " + attribute->GetName() +
+							   ": value <" + InputBufferedFile::GetDisplayValue(sField) +
+							   "> converted to <> (invalid timestampTZ " +
+							   attribute->GetTimestampTZFormat()->GetFormatString() + ")");
+				}
+				// Cas attribut Text
+				else if (attribute->GetType() == KWType::Text)
+				{
+					// Les champs trop long sont tronques directement par le inputBuffer (cf.
+					// nMaxFieldSize)
+					kwoObject->SetTextValueAt(liLoadIndex, Symbol(sField, nFieldLength));
+				}
 			}
 			// Cas d'un bloc d'attributs
 			else
@@ -506,7 +572,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 	}
 
 	// Verification du nombre de champs
-	if (nField != livDataItemLoadIndexes.GetSize())
+	if (kwoObject != NULL and nField != livDataItemLoadIndexes.GetSize())
 	{
 		// Emission d'un warning
 		AddWarning(sTmp + "Ignored record, bad field number (" + IntToString(nField) + " read fields for " +
@@ -526,20 +592,22 @@ KWObject* KWDataTableDriverTextFile::Read()
 
 void KWDataTableDriverTextFile::Skip()
 {
+	boolean bLineTooLong;
+
 	require(not bWriteMode);
 	require(inputBuffer != NULL);
 
-	// Cas d'une classe racine
-	assert(kwcClass->GetRoot() == (ivRootKeyIndexes.GetSize() > 0));
-	if (ivRootKeyIndexes.GetSize() > 0)
-		SkipRootRecord();
+	// Cas d'une classe principale
+	assert(kwcClass->IsUnique() == (ivMainKeyIndexes.GetSize() > 0));
+	if (ivMainKeyIndexes.GetSize() > 0)
+		SkipMainRecord();
 	// Cas standard
 	else
 	{
 		// Saut d'une ligne
 		if (not IsEnd())
 			lRecordIndex++;
-		inputBuffer->SkipLine();
+		inputBuffer->SkipLine(bLineTooLong);
 
 		// Remplissage du buffer si necessaire
 		UpdateInputBuffer();
@@ -559,6 +627,7 @@ void KWDataTableDriverTextFile::Write(const KWObject* kwoObject)
 	KWSymbolValueBlock* symbolValueBlock;
 	ALString sValueBlockField;
 	int nFieldIndex;
+	ALString sTimeZoneAwareLabel;
 
 	require(inputBuffer == NULL);
 	require(outputBuffer != NULL);
@@ -577,6 +646,9 @@ void KWDataTableDriverTextFile::Write(const KWObject* kwoObject)
 			attribute = cast(KWAttribute*, dataItem);
 
 			// Ecriture de la valeur du champs
+			// Contrairement a la lecture, ou ne limite pas la taille des champs ecrit pour les cas Symbol
+			// et Text Cela donne de la souplesse pour des usages de type data management purs, et n'est pas
+			// genant pour les analyses, qui reliront les donnees en les tronquant si necessaiore
 			if (KWType::IsStored(attribute->GetType()))
 			{
 				if (nFieldIndex > 0)
@@ -600,16 +672,36 @@ void KWDataTableDriverTextFile::Write(const KWObject* kwoObject)
 				if (attributeBlock->GetType() == KWType::Continuous)
 				{
 					continuousValueBlock = kwoObject->GetContinuousValueBlockAt(liLoadIndex);
-					continuousValueBlock->WriteField(
-					    attributeBlock->GetLoadedAttributesIndexedKeyBlock(), sValueBlockField);
-					outputBuffer->WriteField(sValueBlockField);
+
+					// Ecriture au format sparse par defaut
+					if (not GetDenseOutputFormat())
+					{
+						continuousValueBlock->WriteField(
+						    attributeBlock->GetLoadedAttributesIndexedKeyBlock(),
+						    sValueBlockField);
+						outputBuffer->WriteField(sValueBlockField);
+					}
+					// Ecriture au format dense
+					else
+						WriteContinuousBlockUsingDenseFormat(attributeBlock,
+										     continuousValueBlock);
 				}
 				else if (attributeBlock->GetType() == KWType::Symbol)
 				{
 					symbolValueBlock = kwoObject->GetSymbolValueBlockAt(liLoadIndex);
-					symbolValueBlock->WriteField(
-					    attributeBlock->GetLoadedAttributesIndexedKeyBlock(), sValueBlockField);
-					outputBuffer->WriteField(sValueBlockField);
+
+					// Ecriture au format sparse par defaut
+					if (not GetDenseOutputFormat())
+					{
+
+						symbolValueBlock->WriteField(
+						    attributeBlock->GetLoadedAttributesIndexedKeyBlock(),
+						    sValueBlockField);
+						outputBuffer->WriteField(sValueBlockField);
+					}
+					// Ecriture au format dense
+					else
+						WriteSymbolBlockUsingDenseFormat(attributeBlock, symbolValueBlock);
 				}
 				nFieldIndex++;
 			}
@@ -640,93 +732,74 @@ void KWDataTableDriverTextFile::DeleteDataTable()
 
 longint KWDataTableDriverTextFile::GetEstimatedObjectNumber()
 {
+	longint lEstimatedObjectNumber = 0;
+	InputBufferedFile temporaryFile;
 	boolean bOk;
-	longint lObjectNumber;
 	longint lFileTotalSize;
-	const double dMaxTime = 0.1;
-	const int nMinLineNumber = 1000;
+	boolean bLineTooLong;
 	longint lLineNumber;
 	longint lTotalLineSize;
 	double dAverageLineSize;
 	longint lHeaderLigneSize;
+	longint lBeginPos;
 	Timer tReadTime;
 
 	require(inputBuffer == NULL);
 	require(outputBuffer == NULL);
 
-	// Reinitialisation du fichier de la base de donnees
-	ResetDatabaseFile();
+	// On passe par un fichier temporaire pour ne pas interagir avec la gestion de la classe
+	temporaryFile.SetFileName(GetDataTableName());
 
 	// Ouverture du fichier
-	bOk = OpenInputDatabaseFile();
+	// On prend la taille par defaut qui correspond a une taille "raisonnable" pour une analyse rapide et assez
+	// significative du fichier On ne prend pas ici la PreferredBufferSize liee au fichier, qui risque d'etre soit
+	// trop petite, soit trop grande
+	temporaryFile.SetBufferSize(InputBufferedFile::nDefaultBufferSize);
+	temporaryFile.SetSilentMode(true);
+	bOk = temporaryFile.Open();
 
-	// Calcul de la taille du fichier
-	lFileTotalSize = PLRemoteFileService::GetFileSize(GetDataTableName());
-
-	// Lecture d'un premier buffer
-	if (bOk)
-		bOk = UpdateInputBuffer();
-
-	// Evaluation de la longueur moyenne des lignes et de la longueur du fichier
-	// On passe directement par les methode du inputBuffer, car on a pas ouvert explicitement la base par Open
-	lObjectNumber = 0;
+	// Analyse du fichier
 	if (bOk)
 	{
-		assert(inputBuffer != NULL);
+		// Calcul de la taille du fichier
+		lFileTotalSize = temporaryFile.GetFileSize();
 
-		// Calcul de la taille de la ligne d'entete
-		lHeaderLigneSize = 0;
-		if (GetHeaderLineUsed())
+		// Remplissage avec un buffer
+		lBeginPos = 0;
+		bOk = temporaryFile.FillInnerLines(lBeginPos);
+
+		// Analyse du buffer
+		if (bOk and temporaryFile.GetCurrentBufferSize() > 0)
 		{
-			inputBuffer->SkipLine();
-			UpdateInputBuffer();
-			lHeaderLigneSize = inputBuffer->GetPositionInFile();
-		}
+			// On saute la premiere ligne, donc la taille n'est peut etre pas representative
+			temporaryFile.SkipLine(bLineTooLong);
+			lHeaderLigneSize = temporaryFile.GetPositionInFile();
 
-		// Deplacement d'au moins nMinLineNumber lignes pendant le temps max imparti
-		tReadTime.Start();
-		lLineNumber = 0;
-		while (not inputBuffer->IsFileEnd() and not inputBuffer->IsError())
-		{
-			inputBuffer->SkipLine();
-			UpdateInputBuffer();
-			lLineNumber++;
+			// Calcul du nombre de lignes hors ligne d'entete
+			lLineNumber = (longint)temporaryFile.GetBufferLineNumber() - 1;
 
-			// Test d'arret a partir du nombre minimal de ligne
-			if (lLineNumber >= nMinLineNumber)
-			{
-				if (lLineNumber % 100 == 0 and tReadTime.GetElapsedTime() >= dMaxTime)
-					break;
-			}
-		}
-		tReadTime.Stop();
-
-		// Estimation si ok
-		if (not inputBuffer->IsError())
-		{
-			// Calcul de la taille ainsi occupee dans le fichier
-			lTotalLineSize = inputBuffer->GetPositionInFile() - lHeaderLigneSize;
+			// Calcul de la taille correspondante occupee dans le fichier
+			lTotalLineSize = temporaryFile.GetCurrentBufferSize() - lHeaderLigneSize;
 			assert(lTotalLineSize >= lLineNumber);
 
 			// Calcul du nombre d'objets du fichier
 			if (lLineNumber > 0 and lTotalLineSize > 0)
 			{
 				dAverageLineSize = (lTotalLineSize * 1.0) / lLineNumber;
-				lObjectNumber = (longint)ceil((lFileTotalSize - lHeaderLigneSize) / dAverageLineSize);
+				lEstimatedObjectNumber =
+				    (longint)ceil((lFileTotalSize - lHeaderLigneSize) / dAverageLineSize);
 			}
 		}
-	}
 
-	// Fermeture du fichier
-	if (inputBuffer->IsOpened())
-		CloseDatabaseFile();
-	return lObjectNumber;
+		// Fermeture du fichier
+		temporaryFile.Close();
+	}
+	return lEstimatedObjectNumber;
 }
 
 longint KWDataTableDriverTextFile::ComputeOpenNecessaryMemory(boolean bRead)
 {
 	longint lNecessaryMemory;
-	int nBufferSize;
 	longint lFileSize;
 
 	require(inputBuffer == NULL and outputBuffer == NULL);
@@ -735,13 +808,13 @@ longint KWDataTableDriverTextFile::ComputeOpenNecessaryMemory(boolean bRead)
 	lNecessaryMemory = GetUsedMemory();
 
 	// Acces a la taille du buffer et du fichier si lecture
-	nBufferSize = GetBufferSize();
 	lFileSize = 0;
-	if (bRead and nBufferSize > 0)
+	if (bRead and GetBufferSize() > 0)
 		lFileSize = PLRemoteFileService::GetFileSize(GetDataTableName());
 
 	// Prise en compte de la taille necessaire pour le buffer
-	lNecessaryMemory += ComputeBufferNecessaryMemory(bRead, nBufferSize, lFileSize);
+	lNecessaryMemory += ComputeBufferNecessaryMemory(bRead, GetBufferSize(), lFileSize);
+	ensure(lNecessaryMemory >= 0);
 	return lNecessaryMemory;
 }
 
@@ -757,7 +830,7 @@ longint KWDataTableDriverTextFile::ComputeNecessaryMemoryForFullExternalRead(con
 	int nPhysicalDenseLoadedValueNumber;
 	int nPhysicalSparseLoadedValueNumber;
 	int nPhysicalSparseLoadedValueBlockNumber;
-	int nEstimatedNumber;
+	int nEstimatedValueNumber;
 	longint lEstimatedRecordNumber;
 	longint lObjectSize;
 	KWAttribute* attribute;
@@ -834,11 +907,12 @@ longint KWDataTableDriverTextFile::ComputeNecessaryMemoryForFullExternalRead(con
 				attributeBlock = attribute->GetAttributeBlock();
 				if (attributeBlock->GetLoaded())
 				{
-					nEstimatedNumber = (int)ceil(KWAttributeBlock::GetEstimatedMeanValueNumber(
-									 attributeBlock->GetAttributeNumber()) *
-								     1.0 * attributeBlock->GetLoadedAttributeNumber() /
-								     attributeBlock->GetAttributeNumber());
-					nPhysicalSparseLoadedValueNumber += nEstimatedNumber;
+					nEstimatedValueNumber =
+					    (int)ceil(KWAttributeBlock::GetEstimatedMeanValueNumber(
+							  attributeBlock->GetAttributeNumber()) *
+						      1.0 * attributeBlock->GetLoadedAttributeNumber() /
+						      attributeBlock->GetAttributeNumber());
+					nPhysicalSparseLoadedValueNumber += nEstimatedValueNumber;
 					nPhysicalSparseLoadedValueBlockNumber++;
 				}
 			}
@@ -853,11 +927,8 @@ longint KWDataTableDriverTextFile::ComputeNecessaryMemoryForFullExternalRead(con
 		// Calcul de la taille du fichier
 		lFileTotalSize = PLRemoteFileService::GetFileSize(GetDataTableName());
 
-		// Estimation d'une borne sup du nombre d'enregistrement du fichier, en considerant deux octets
-		// (valeur+separateur) par attribut dense et cinq octets (cle + ':' + valeur + blanc + separateur) par
-		// attribut sparse Tres rustique, mais tres rapide (pas de scan du fichier)
-		lEstimatedRecordNumber =
-		    lFileTotalSize / (1 + nDenseNativeValueNumber * 2 + nSparseNativeValueNumber * 5);
+		// Estimation heuristique du nombre d'enregistrements du fichier
+		lEstimatedRecordNumber = GetInMemoryEstimatedObjectNumber(lFileTotalSize);
 
 		// Estimation de la memoire necessaire pour stocker un objet
 		lObjectSize = sizeof(KWObject) + 2 * sizeof(void*);               // KWObject a vide
@@ -871,7 +942,7 @@ longint KWDataTableDriverTextFile::ComputeNecessaryMemoryForFullExternalRead(con
 		    odEmpty
 			.GetUsedMemoryPerElement(); // Taille utilise dans le dictionnaire du KWObjectReferenceResolver
 
-		// On calcul la memoire necessaire pour ce nombre d'ojet avec le nombre de champs a charger
+		// On calcul la memoire necessaire pour ce nombre d'objets avec le nombre de champs a charger
 		lNecessaryMemory = lEstimatedRecordNumber * lObjectSize;
 
 		// On rajoute par regle de 3 la partie du volume du fichier a prendre en compte
@@ -903,96 +974,29 @@ longint KWDataTableDriverTextFile::ComputeNecessaryMemoryForFullExternalRead(con
 	return lNecessaryMemory;
 }
 
-longint KWDataTableDriverTextFile::ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass)
+longint KWDataTableDriverTextFile::ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass,
+									 longint lInputFileSize)
 {
 	boolean bDisplay = false;
 	longint lNecessaryDiskSpace;
-	longint lFileTotalSize;
-	int nDenseNativeValueNumber;
-	int nDenseLoadedValueNumber;
-	int nSparseNativeValueNumber;
-	int nSparseLoadedValueNumber;
-	int nEstimatedNumber;
 	longint lEstimatedRecordNumber;
-	longint lNativeObjectSize;
 	longint lWrittenObjectSize;
-	KWAttribute* attribute;
-	KWAttributeBlock* attributeBlock;
 
 	require(GetClass() != NULL);
 	require(kwcLogicalClass != NULL);
-
-	// Initialisation des statistiques par type d'attribut
-	nDenseNativeValueNumber = 0;
-	nDenseLoadedValueNumber = 0;
-	nSparseNativeValueNumber = 0;
-	nSparseLoadedValueNumber = 0;
-
-	// Calcul des nombres d'attributs natifs dense et sparse dans la classe logique,
-	// ce qui permet d'analyser le contenu du fichier
-	// Dans le cas des blocs, on fait une estimation
-	attribute = kwcLogicalClass->GetHeadAttribute();
-	while (attribute != NULL)
-	{
-		// Cas des attributs denses
-		if (not attribute->IsInBlock())
-		{
-			if (attribute->IsNative())
-				nDenseNativeValueNumber++;
-			if (attribute->GetLoaded())
-				nDenseLoadedValueNumber++;
-		}
-		// Cas des attributs dans les blocs
-		else
-		{
-			// Dans ce cas, on se base sur une estimation heuristique du nombre de valeurs presentes
-			// en fonction de la taille globale du bloc (au plus une fois par bloc)
-			if (attribute->IsFirstInBlock())
-			{
-				attributeBlock = attribute->GetAttributeBlock();
-				if (attributeBlock->IsNative())
-				{
-					nSparseNativeValueNumber += KWAttributeBlock::GetEstimatedMeanValueNumber(
-					    attributeBlock->GetAttributeNumber());
-				}
-				if (attributeBlock->GetLoaded())
-				{
-					nEstimatedNumber = (int)ceil(KWAttributeBlock::GetEstimatedMeanValueNumber(
-									 attributeBlock->GetAttributeNumber()) *
-								     1.0 * attributeBlock->GetLoadedAttributeNumber() /
-								     attributeBlock->GetAttributeNumber());
-					nSparseLoadedValueNumber += nEstimatedNumber;
-				}
-			}
-		}
-		kwcLogicalClass->GetNextAttribute(attribute);
-	}
+	require(lInputFileSize >= 0);
 
 	// Taille necessaire uniquement si au moins un attribut a charger
 	lNecessaryDiskSpace = 0;
-	if (nDenseLoadedValueNumber + nSparseLoadedValueNumber > 0)
+	if (kwcLogicalClass->GetUsedAttributeNumber() > 0)
 	{
-		// Calcul de la taille du fichier
-		lFileTotalSize = PLRemoteFileService::GetFileSize(GetDataTableName());
-
-		// Estimation de la taille d'un objet natif
-		lNativeObjectSize = 5;                            // Fin de ligne plus un minimum
-		lNativeObjectSize += nDenseNativeValueNumber * 2; // Valeurs dense de l'objet (valeur + separateur)
-		lNativeObjectSize +=
-		    nSparseNativeValueNumber * 7; // Valeurs sparse de l'objet (cle + ':' + valeur + blanc + separateur)
-		lNativeObjectSize +=
-		    GetClass()->GetKeyAttributeNumber() * 5; // Taille des champs de la cle (heuristique)
-
-		// Estimation d'une borne sup du nombre d'enregistrement du fichier
-		// Tres rustique, mais tres rapide (pas de scan du fichier)
-		lEstimatedRecordNumber = 1 + lFileTotalSize / lNativeObjectSize;
+		// Estimation du nombre d'enregistrements du fichier
+		// L'estimation est fait en memoire avec le meme type d'heuristique que pour les donnees a ecrire
+		lEstimatedRecordNumber = GetInMemoryEstimatedObjectNumber(lInputFileSize);
 
 		// Estimation de la memoire necessaire pour stocker un objet a ecrire
 		// (generalisation de l'objet natif)
-		lWrittenObjectSize = 5;
-		lWrittenObjectSize += nDenseLoadedValueNumber * 2;
-		lWrittenObjectSize += nSparseLoadedValueNumber * 7;
-		lWrittenObjectSize += GetClass()->GetKeyAttributeNumber() * 5;
+		lWrittenObjectSize = GetEstimatedUsedOutputDiskSpacePerObject(kwcLogicalClass);
 
 		// On calcul la memoire necessaire pour ce nombre d'ojet avec le nombre de champs a charger
 		lNecessaryDiskSpace = lEstimatedRecordNumber * lWrittenObjectSize;
@@ -1003,13 +1007,8 @@ longint KWDataTableDriverTextFile::ComputeNecessaryDiskSpaceForFullWrite(const K
 			cout << "ComputeNecessaryDiskSpaceForFullWrite " << GetDataTableName() << endl;
 			cout << "\tNecessaryDiskSpace\t" << lNecessaryDiskSpace << endl;
 			cout << "\tDictionary\t" << GetClass()->GetName() << endl;
-			cout << "\tDenseNativeValueNumber\t" << nDenseNativeValueNumber << endl;
-			cout << "\tDenseLoadedValueNumber\t" << nDenseLoadedValueNumber << endl;
-			cout << "\tSparseNativeValueNumber\t" << nSparseNativeValueNumber << endl;
-			cout << "\tSparseLoadedValueNumber\t" << nSparseLoadedValueNumber << endl;
-			cout << "\tFileTotalSize\t" << lFileTotalSize << endl;
+			cout << "\tInputFileSize\t" << lInputFileSize << endl;
 			cout << "\tEstimatedRecordNumber\t" << lEstimatedRecordNumber << endl;
-			cout << "\tEstimatedNativeObjectSize\t" << lNativeObjectSize << endl;
 			cout << "\tEstimatedWrittenObjectSize\t" << lWrittenObjectSize << endl;
 		}
 	}
@@ -1021,7 +1020,7 @@ double KWDataTableDriverTextFile::GetReadPercentage()
 	double dPercentage = 0;
 
 	// Calcul du pourcentage d'avancement en se basant sur la position courante dans le fichier
-	if (inputBuffer != NULL)
+	if (inputBuffer != NULL and inputBuffer->IsOpened())
 	{
 		assert(inputBuffer->GetFileSize() >= 0);
 		if (inputBuffer->GetFileSize() == 0)
@@ -1051,6 +1050,312 @@ longint KWDataTableDriverTextFile::GetUsedMemory() const
 	return lUsedMemory;
 }
 
+longint KWDataTableDriverTextFile::GetInMemoryEstimatedObjectNumber(longint lInputFileSize) const
+{
+	boolean bDisplay = false;
+	longint lEstimatedObjectNumber;
+	longint lNativeObjectDiskSpace;
+
+	require(GetClass() != NULL);
+	require(GetDataTableName() != "");
+	require(lInputFileSize >= 0);
+
+	// Estimation de la taille d'un objet natif
+	lNativeObjectDiskSpace = GetEstimatedUsedInputDiskSpacePerObject();
+
+	// Estimation d'une borne sup du nombre d'enregistrement du fichier
+	// Tres rustique, mais tres rapide (pas de scan du fichier)
+	lEstimatedObjectNumber = 1 + lInputFileSize / lNativeObjectDiskSpace;
+
+	// Affichage
+	if (bDisplay)
+	{
+		cout << "GetEstimatedObjectNumber " << GetDataTableName() << endl;
+		cout << "\tDictionary\t" << GetClass()->GetName() << endl;
+		cout << "\tInputFileSize\t" << lInputFileSize << endl;
+		cout << "\tEstimatedRecordNumber\t" << lEstimatedObjectNumber << endl;
+		cout << "\tEstimatedNativeObjectDiskSpace\t" << lNativeObjectDiskSpace << endl;
+	}
+	return lEstimatedObjectNumber;
+}
+
+longint KWDataTableDriverTextFile::GetEstimatedUsedInputDiskSpacePerObject() const
+{
+	boolean bDisplay = false;
+	int nDenseNativeValueNumber;
+	int nTextNativeValueNumber;
+	int nSparseNativeValueNumber;
+	longint lNativeObjectSize;
+	KWAttribute* attribute;
+	KWAttributeBlock* attributeBlock;
+
+	require(GetClass() != NULL);
+
+	//////////////////////////////////////////////////////////////////////////////////////////
+	// L'estimation est heuristique, sans lecture du fichier, en se basant uniquement sur une
+	// estimation heuristique la la place occupee par chaque champs natif du dictionnaire
+
+	// Initialisation des statistiques par type d'attribut
+	nDenseNativeValueNumber = 0;
+	nTextNativeValueNumber = 0;
+	nSparseNativeValueNumber = 0;
+
+	// Calcul des nombres d'attributs natifs dense et sparse dans la classe
+	// Dans le cas des blocs, on fait une estimation
+	attribute = GetClass()->GetHeadAttribute();
+	while (attribute != NULL)
+	{
+		// Cas des attributs denses
+		if (not attribute->IsInBlock())
+		{
+			if (attribute->IsNative())
+			{
+				if (attribute->GetType() == KWType::Text)
+					nTextNativeValueNumber++;
+				else
+					nDenseNativeValueNumber++;
+			}
+		}
+		// Cas des attributs dans les blocs
+		else
+		{
+			// Dans ce cas, on se base sur une estimation heuristique du nombre de valeurs presentes
+			// en fonction de la taille globale du bloc (au plus une fois par bloc)
+			if (attribute->IsFirstInBlock())
+			{
+				attributeBlock = attribute->GetAttributeBlock();
+				if (attributeBlock->IsNative())
+				{
+					nSparseNativeValueNumber += KWAttributeBlock::GetEstimatedMeanValueNumber(
+					    attributeBlock->GetAttributeNumber());
+				}
+			}
+		}
+		GetClass()->GetNextAttribute(attribute);
+	}
+
+	// Estimation de la taille d'un objet natif
+	lNativeObjectSize = nMinRecordSize; // Fin de ligne plus un minimum
+	lNativeObjectSize +=
+	    (longint)nDenseNativeValueNumber * nDenseValueSize; // Valeurs dense de l'objet (valeur + separateur)
+	lNativeObjectSize +=
+	    (longint)nTextNativeValueNumber *
+	    nTextValueSize; // Longueur moyenne d'un champ texte (entre un ancien et un nouveau tweet...)
+	lNativeObjectSize += (longint)nSparseNativeValueNumber *
+			     nSparseValueSize; // Valeurs sparse de l'objet (cle + ':' + valeur + blanc + separateur)
+	lNativeObjectSize +=
+	    (longint)GetClass()->GetKeyAttributeNumber() * nKeyFieldSize; // Taille des champs de la cle (heuristique)
+
+	// Affichage
+	if (bDisplay)
+	{
+		cout << "\tDictionary\t" << GetClass()->GetName() << endl;
+		cout << "\tDenseNativeValueNumber\t" << nDenseNativeValueNumber << endl;
+		cout << "\tTextNativeValueNumber\t" << nTextNativeValueNumber << endl;
+		cout << "\tSparseNativeValueNumber\t" << nSparseNativeValueNumber << endl;
+		cout << "\tEstimatedNativeObjectSize\t" << lNativeObjectSize << endl;
+	}
+	return lNativeObjectSize;
+}
+
+longint KWDataTableDriverTextFile::GetEstimatedUsedMemoryPerObject() const
+{
+	boolean bDisplay = false;
+	int nPhysicalTextLoadedValueNumber;
+	int nPhysicalDenseLoadedValueNumber;
+	int nPhysicalSparseLoadedValueNumber;
+	int nPhysicalSparseLoadedValueBlockNumber;
+	int nEstimatedValueNumber;
+	longint lObjectSize;
+	KWAttribute* attribute;
+	KWAttributeBlock* attributeBlock;
+	ObjectDictionary odEmpty;
+
+	require(GetClass() != NULL);
+
+	// Initialisation des statistiques par type d'attribut
+	nPhysicalTextLoadedValueNumber = 0;
+	nPhysicalDenseLoadedValueNumber = 0;
+	nPhysicalSparseLoadedValueNumber = 0;
+	nPhysicalSparseLoadedValueBlockNumber = 0;
+
+	// Calcul des nombres d'attributs charges en memoire dans la classe physique
+	// qui ne memorise que les attributs charges en memoire (natifs ou calcules)
+	// Dans le cas des blocs, on fait une estimation
+	attribute = GetClass()->GetHeadAttribute();
+	while (attribute != NULL)
+	{
+		// Cas des attributs denses
+		if (not attribute->IsInBlock())
+		{
+			if (attribute->GetLoaded())
+			{
+				if (attribute->GetType() == KWType::Text)
+					nPhysicalTextLoadedValueNumber++;
+				nPhysicalDenseLoadedValueNumber++;
+			}
+		}
+		// Cas des attributs dans les blocs
+		else
+		{
+			// Dans ce cas, on se base sur une estimation heuristique du nombre de valeurs presentes
+			// en fonction de la taille globale du bloc (au plus une fois par bloc)
+			if (attribute->IsFirstInBlock())
+			{
+				attributeBlock = attribute->GetAttributeBlock();
+				if (attributeBlock->GetLoaded())
+				{
+					nEstimatedValueNumber =
+					    (int)ceil(KWAttributeBlock::GetEstimatedMeanValueNumber(
+							  attributeBlock->GetAttributeNumber()) *
+						      1.0 * attributeBlock->GetLoadedAttributeNumber() /
+						      attributeBlock->GetAttributeNumber());
+					nPhysicalSparseLoadedValueNumber += nEstimatedValueNumber;
+					nPhysicalSparseLoadedValueBlockNumber++;
+				}
+			}
+		}
+		GetClass()->GetNextAttribute(attribute);
+	}
+
+	// Estimation de la memoire necessaire pour stocker un objet
+	lObjectSize = sizeof(KWObject) + 2 * sizeof(void*); // KWObject a vide
+	lObjectSize +=
+	    nPhysicalDenseLoadedValueNumber * (sizeof(KWValue) + nDenseValueSize); // Valeurs dense de l'objet
+	lObjectSize += (longint)nPhysicalTextLoadedValueNumber * nTextValueSize;   // Valeurs Text de l'objet
+	lObjectSize +=
+	    (longint)nPhysicalSparseLoadedValueNumber * (sizeof(int) + sizeof(KWValue)); // Valeurs sparse de l'objet
+	lObjectSize += (longint)nPhysicalSparseLoadedValueBlockNumber * sizeof(KWSymbolValueBlock);
+	lObjectSize +=
+	    (longint)GetClass()->GetKeyAttributeNumber() *
+	    (Symbol::GetUsedMemoryPerSymbol() + nKeyFieldSize); // Taille des Symbol de la cle (sans leur contenu)
+
+	// Affichage
+	if (bDisplay)
+	{
+		cout << "ComputeNecessaryMemoryForFullExternalRead " << GetDataTableName() << endl;
+		cout << "\tDictionary\t" << GetClass()->GetName() << endl;
+		cout << "\tPhysicalTextLoadedValueNumber\t" << nPhysicalTextLoadedValueNumber << endl;
+		cout << "\tPhysicalDenseLoadedValueNumber\t" << nPhysicalDenseLoadedValueNumber << endl;
+		cout << "\tPhysicalSparseLoadedValueNumber\t" << nPhysicalSparseLoadedValueNumber << endl;
+		cout << "\tPhysicalSparseLoadedValueBlockNumber\t" << nPhysicalSparseLoadedValueBlockNumber << endl;
+		cout << "\tObjectSize\t" << lObjectSize << endl;
+	}
+	return lObjectSize;
+}
+
+longint KWDataTableDriverTextFile::GetEstimatedUsedOutputDiskSpacePerObject(const KWClass* kwcLogicalClass) const
+{
+	boolean bDisplay = false;
+	int nDenseLoadedValueNumber;
+	int nTextLoadedValueNumber;
+	int nBlockEstimatedLoadedValueNumber;
+	int nBlockEstimatedDenseOverhead;
+	int nEstimatedValueNumber;
+	longint lWrittenObjectSize;
+	KWAttribute* attribute;
+	KWAttributeBlock* attributeBlock;
+	ALString sBlockDefaultValue;
+
+	require(kwcLogicalClass != NULL);
+
+	// Initialisation des statistiques par type d'attribut
+	nDenseLoadedValueNumber = 0;
+	nTextLoadedValueNumber = 0;
+	nBlockEstimatedLoadedValueNumber = 0;
+	nBlockEstimatedDenseOverhead = 0;
+
+	// Calcul des nombres d'attributs natifs dense et sparse dans la classe logique,
+	// ce qui permet d'analyser le contenu du fichier
+	// Dans le cas des blocs, on fait une estimation
+	attribute = kwcLogicalClass->GetHeadAttribute();
+	while (attribute != NULL)
+	{
+		// On ne traite que les attributs stoockables
+		if (KWType::IsStored(attribute->GetType()))
+		{
+			// Cas des attributs denses
+			if (not attribute->IsInBlock())
+			{
+				if (attribute->GetLoaded())
+				{
+					if (attribute->GetType() == KWType::Text)
+						nTextLoadedValueNumber++;
+					else
+						nDenseLoadedValueNumber++;
+				}
+			}
+			// Cas des attributs dans les blocs
+			else
+			{
+				// Dans ce cas, on se base sur une estimation heuristique du nombre de valeurs presentes
+				// en fonction de la taille globale du bloc (au plus une fois par bloc)
+				if (attribute->IsFirstInBlock())
+				{
+					attributeBlock = attribute->GetAttributeBlock();
+					if (attributeBlock->GetLoaded())
+					{
+						// Estimation du nombre d'attributs presents dans les blocs
+						nEstimatedValueNumber =
+						    (int)ceil(KWAttributeBlock::GetEstimatedMeanValueNumber(
+								  attributeBlock->GetAttributeNumber()) *
+							      1.0 * attributeBlock->GetLoadedAttributeNumber() /
+							      attributeBlock->GetAttributeNumber());
+						assert(nEstimatedValueNumber <=
+						       attributeBlock->GetLoadedAttributeNumber());
+						nBlockEstimatedLoadedValueNumber += nEstimatedValueNumber;
+
+						// Prise en compte de l'overhead en cas de format de sortie dense
+						if (bDenseOutputFormat)
+						{
+							// Valeur par defaut sous forme chaine de caractere
+							if (attributeBlock->GetType() == KWType::Continuous)
+								sBlockDefaultValue = KWContinuous::ContinuousToString(
+								    attributeBlock->GetContinuousDefaultValue());
+							else
+								sBlockDefaultValue =
+								    attributeBlock->GetSymbolDefaultValue();
+
+							// On compte un octet par separateur plus la valeur par defaut,
+							// pour tout attribut non present du bloc
+							nBlockEstimatedDenseOverhead +=
+							    (attributeBlock->GetLoadedAttributeNumber() -
+							     nEstimatedValueNumber) *
+							    (1 + sBlockDefaultValue.GetLength());
+						}
+					}
+				}
+			}
+		}
+		kwcLogicalClass->GetNextAttribute(attribute);
+	}
+
+	// Estimation de la memoire necessaire pour stocker un objet a ecrire
+	// (generalisation de l'objet natif)
+	lWrittenObjectSize = nMinRecordSize;
+	lWrittenObjectSize += (longint)nDenseLoadedValueNumber * nDenseValueSize;
+	lWrittenObjectSize += (longint)nTextLoadedValueNumber * nTextValueSize;
+	lWrittenObjectSize += (longint)nBlockEstimatedLoadedValueNumber * nSparseValueSize;
+	lWrittenObjectSize += (longint)kwcLogicalClass->GetKeyAttributeNumber() * nKeyFieldSize;
+
+	// Correction en cas de format de sortie dense, en comptant un octet de separateur par attribut sparse non prise en compte
+	if (GetDenseOutputFormat())
+		lWrittenObjectSize += nBlockEstimatedDenseOverhead;
+
+	// Affichage
+	if (bDisplay)
+	{
+		cout << "ComputeNecessaryDiskSpaceForFullWrite " << GetDataTableName() << endl;
+		cout << "\tDictionary\t" << GetClass()->GetName() << endl;
+		cout << "\tDenseLoadedValueNumber\t" << nDenseLoadedValueNumber << endl;
+		cout << "\tTextLoadedValueNumber\t" << nTextLoadedValueNumber << endl;
+		cout << "\tBlockEstimatedLoadedValueNumber\t" << nBlockEstimatedLoadedValueNumber << endl;
+		cout << "\tBlockEstimatedDenseOverhead\t" << nBlockEstimatedDenseOverhead << endl;
+		cout << "\tEstimatedWrittenObjectSize\t" << lWrittenObjectSize << endl;
+	}
+	return lWrittenObjectSize;
+}
+
 boolean KWDataTableDriverTextFile::ReadHeaderLineFields(StringVector* svFirstLineFields)
 {
 	boolean bOk;
@@ -1059,17 +1364,15 @@ boolean KWDataTableDriverTextFile::ReadHeaderLineFields(StringVector* svFirstLin
 	require(svFirstLineFields != NULL);
 
 	// Lecture des champs de la premiere ligne du fichier
-	bOk = InputBufferedFile::GetFirstLineFields(GetDataTableName(), GetFieldSeparator(), svFirstLineFields, this);
+	bOk = InputBufferedFile::GetFirstLineFields(GetDataTableName(), GetFieldSeparator(), GetSilentMode(),
+						    GetVerboseMode(), svFirstLineFields);
 	return bOk;
 }
 
 void KWDataTableDriverTextFile::WriteHeaderLine()
 {
-	int i;
-	KWDataItem* dataItem;
-	KWAttribute* attribute;
-	KWAttributeBlock* attributeBlock;
-	int nFieldIndex = 0;
+	StringVector svStoredFieldNames;
+	int nFieldIndex;
 
 	require(GetHeaderLineUsed());
 	require(kwcClass != NULL);
@@ -1077,33 +1380,15 @@ void KWDataTableDriverTextFile::WriteHeaderLine()
 	require(bWriteMode);
 	assert(outputBuffer != NULL);
 
-	// Ecriture des nom des dataItems Loaded
-	for (i = 0; i < kwcClass->GetLoadedDataItemNumber(); i++)
+	// Export des champs de la ligne d'entete
+	kwcClass->ExportStoredFieldNames(&svStoredFieldNames, GetDenseOutputFormat());
+
+	// Ecriture des nomS des champs
+	for (nFieldIndex = 0; nFieldIndex < svStoredFieldNames.GetSize(); nFieldIndex++)
 	{
-		dataItem = kwcClass->GetLoadedDataItemAt(i);
-
-		// Ecriture du nom de l'attribut
-		if (dataItem->IsAttribute())
-		{
-			attribute = cast(KWAttribute*, dataItem);
-
-			if (KWType::IsStored(attribute->GetType()))
-			{
-				if (nFieldIndex > 0)
-					outputBuffer->Write(cFieldSeparator);
-				outputBuffer->WriteField(attribute->GetName());
-				nFieldIndex++;
-			}
-		}
-		// Ecriture du nom du bloc d'attributs
-		else
-		{
-			attributeBlock = cast(KWAttributeBlock*, dataItem);
-			if (nFieldIndex > 0)
-				outputBuffer->Write(cFieldSeparator);
-			outputBuffer->WriteField(attributeBlock->GetName());
-			nFieldIndex++;
-		}
+		if (nFieldIndex > 0)
+			outputBuffer->Write(cFieldSeparator);
+		outputBuffer->WriteField(svStoredFieldNames.GetAt(nFieldIndex));
 	}
 	outputBuffer->WriteEOL();
 }
@@ -1134,7 +1419,7 @@ boolean KWDataTableDriverTextFile::CheckFormat() const
 		{
 			bOk = false;
 			AddError(sTmp + "Field separator '" + CharToString(cFieldSeparator) +
-				 "' must not be end of line");
+				 "' must not be end-of-line");
 		}
 		else if (cFieldSeparator == '\0')
 		{
@@ -1148,12 +1433,12 @@ boolean KWDataTableDriverTextFile::CheckFormat() const
 void KWDataTableDriverTextFile::SetBufferSize(int nSize)
 {
 	require(nSize >= 0);
-	nBufferedFileSize = nSize;
+	nBufferSize = nSize;
 }
 
 int KWDataTableDriverTextFile::GetBufferSize() const
 {
-	return nBufferedFileSize;
+	return nBufferSize;
 }
 
 int KWDataTableDriverTextFile::ComputeBufferNecessaryMemory(boolean bRead, int nBufferSize, longint lFileSize)
@@ -1171,20 +1456,115 @@ int KWDataTableDriverTextFile::ComputeBufferNecessaryMemory(boolean bRead, int n
 			nNecessaryMemory = (int)lFileSize;
 	}
 
-	// Ajout d'un overhead pour la taille des objets en memoire, essentiellement en lecture
-	if (bRead)
-		nNecessaryMemory += nNecessaryMemory / 4;
-	else
-		nNecessaryMemory += nNecessaryMemory / 8;
+	// Ajout d'un overhead pour la taille des objets en memoire
+	nNecessaryMemory += nNecessaryMemory / 4;
 	return nNecessaryMemory;
 }
 
-void KWDataTableDriverTextFile::SkipRootRecord()
+boolean KWDataTableDriverTextFile::bOverlengthyFieldsVerboseMode = true;
+
+void KWDataTableDriverTextFile::SetOverlengthyFieldsVerboseMode(boolean bValue)
+{
+	bOverlengthyFieldsVerboseMode = bValue;
+}
+
+boolean KWDataTableDriverTextFile::GetOverlengthyFieldsVerboseMode()
+{
+	return bOverlengthyFieldsVerboseMode;
+}
+
+void KWDataTableDriverTextFile::SetSilentMode(boolean bValue)
+{
+	// Appel de la methode ancetre
+	KWDataTableDriver::SetSilentMode(bValue);
+
+	// Application au buffer en cours
+	if (inputBuffer != NULL)
+		inputBuffer->SetSilentMode(GetSilentMode());
+	if (outputBuffer != NULL)
+		outputBuffer->SetSilentMode(GetSilentMode());
+}
+
+void KWDataTableDriverTextFile::WriteContinuousBlockUsingDenseFormat(KWAttributeBlock* attributeBlock,
+								     KWContinuousValueBlock* valueBlock)
+{
+	ContinuousVector cvBlockDenseValues;
+	int nValue;
+	int nSparseIndex;
+	int nDenseIndex;
+
+	require(bWriteMode);
+	require(attributeBlock != NULL);
+	require(attributeBlock->GetType() == KWType::Continuous);
+	require(valueBlock != NULL);
+
+	// Initialisation d'un vecteur de valeurs dense avec uniquement les valeurs par defaut
+	cvBlockDenseValues.SetSize(attributeBlock->GetLoadedAttributeNumber());
+	for (nValue = 0; nValue < cvBlockDenseValues.GetSize(); nValue++)
+		cvBlockDenseValues.SetAt(nValue, attributeBlock->GetContinuousDefaultValue());
+
+	// Alimnetation du vecteur de valeur dense avec les valeurs presentes
+	for (nValue = 0; nValue < valueBlock->GetValueNumber(); nValue++)
+	{
+		// On passe de l'index dans le bloc sparse a l'index dense selon l'ordre initial des attributs dans la classe
+		nSparseIndex = valueBlock->GetAttributeSparseIndexAt(nValue);
+		nDenseIndex = attributeBlock->GetLoadedAttributeIndexAtSparseIndex(nSparseIndex);
+		cvBlockDenseValues.SetAt(nDenseIndex, valueBlock->GetValueAt(nValue));
+	}
+
+	// Ecriture des valeurs du vecteur dense
+	for (nValue = 0; nValue < cvBlockDenseValues.GetSize(); nValue++)
+	{
+		if (nValue > 0)
+			outputBuffer->Write(cFieldSeparator);
+		outputBuffer->WriteField(KWContinuous::ContinuousToString(cvBlockDenseValues.GetAt(nValue)));
+	}
+}
+
+void KWDataTableDriverTextFile::WriteSymbolBlockUsingDenseFormat(KWAttributeBlock* attributeBlock,
+								 KWSymbolValueBlock* valueBlock)
+{
+	SymbolVector svBlockDenseValues;
+	int nValue;
+	int nSparseIndex;
+	int nDenseIndex;
+
+	require(bWriteMode);
+	require(attributeBlock != NULL);
+	require(attributeBlock->GetType() == KWType::Symbol);
+	require(valueBlock != NULL);
+
+	// Initialisation d'un vecteur de valeurs dense avec uniquement les valeurs par defaut
+	svBlockDenseValues.SetSize(attributeBlock->GetLoadedAttributeNumber());
+	for (nValue = 0; nValue < svBlockDenseValues.GetSize(); nValue++)
+		svBlockDenseValues.SetAt(nValue, attributeBlock->GetSymbolDefaultValue());
+
+	// Alimnetation du vecteur de valeur dense avec les valeurs presentes
+	for (nValue = 0; nValue < valueBlock->GetValueNumber(); nValue++)
+	{
+		// On passe de l'index dans le bloc sparse a l'index dense selon l'ordre initial des attributs dans la classe
+		nSparseIndex = valueBlock->GetAttributeSparseIndexAt(nValue);
+		nDenseIndex = attributeBlock->GetLoadedAttributeIndexAtSparseIndex(nSparseIndex);
+		svBlockDenseValues.SetAt(nDenseIndex, valueBlock->GetValueAt(nValue));
+	}
+
+	// Ecriture des valeurs du vecteur dense
+	for (nValue = 0; nValue < svBlockDenseValues.GetSize(); nValue++)
+	{
+		if (nValue > 0)
+			outputBuffer->Write(cFieldSeparator);
+		outputBuffer->WriteField(svBlockDenseValues.GetAt(nValue));
+	}
+}
+
+void KWDataTableDriverTextFile::SkipMainRecord()
 {
 	char* sField;
-	int nRootKeyIndex;
+	int nMainKeyIndex;
 	int nKeyFieldNumber;
 	boolean bEndOfLine;
+	boolean bLineTooLong;
+	int nFieldLength;
 	int nFieldError;
 	int nField;
 
@@ -1192,11 +1572,11 @@ void KWDataTableDriverTextFile::SkipRootRecord()
 	require(inputBuffer != NULL);
 	require(not IsEnd());
 	require(not inputBuffer->IsBufferEnd());
-	assert(kwcClass->GetRoot() == (ivRootKeyIndexes.GetSize() > 0));
+	assert(kwcClass->IsUnique() == (ivMainKeyIndexes.GetSize() > 0));
 
 	// Reinitialisation des champ de la derniere cle lue si necessaire
-	assert(livDataItemLoadIndexes.GetSize() == ivRootKeyIndexes.GetSize());
-	lastReadRootKey.Initialize();
+	assert(livDataItemLoadIndexes.GetSize() == ivMainKeyIndexes.GetSize());
+	lastReadMainKey.Initialize();
 
 	// Saut d'une ligne
 	if (not IsEnd() and not IsError())
@@ -1207,38 +1587,46 @@ void KWDataTableDriverTextFile::SkipRootRecord()
 		bEndOfLine = false;
 		nField = 0;
 		sField = NULL;
+		nFieldLength = 0;
 		nKeyFieldNumber = 0;
 		while (not bEndOfLine)
 		{
 			// Analyse du champ si son index ne depasse pas le nombre de colonnes de l'entete et est utilise
-			nRootKeyIndex = -1;
-			if (nField < ivRootKeyIndexes.GetSize())
-				nRootKeyIndex = ivRootKeyIndexes.GetAt(nField);
+			nMainKeyIndex = -1;
+			if (nField < ivMainKeyIndexes.GetSize())
+				nMainKeyIndex = ivMainKeyIndexes.GetAt(nField);
 
 			// On ne retient que les attributs ou blocs reconnus et non calcules
 			// On lit toujours le premier champ pour detecter les lignes vides
-			if (nRootKeyIndex >= 0 or nField == 0)
-				bEndOfLine = inputBuffer->GetNextField(sField, nFieldError);
+			if (nMainKeyIndex >= 0 or nField == 0)
+				bEndOfLine = inputBuffer->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 			else
-				bEndOfLine = inputBuffer->SkipField();
+				bEndOfLine = inputBuffer->SkipField(bLineTooLong);
 
 			// Cas particulier: ligne vide
 			if (nField == 0 and bEndOfLine and (sField == NULL or sField[0] == '\0'))
 				break;
 
 			// Alimentation des champs de la derniere cle lue si necessaire
-			if (nRootKeyIndex >= 0)
+			if (nMainKeyIndex >= 0)
 			{
-				lastReadRootKey.SetAt(ivRootKeyIndexes.GetAt(nField), Symbol(sField));
+				lastReadMainKey.SetAt(ivMainKeyIndexes.GetAt(nField), Symbol(sField, nFieldLength));
 				nKeyFieldNumber++;
 
-				// Arret si on a lu tous les chmaps de la cle
+				// Arret si on a lu tous les champs de la cle
 				if (nKeyFieldNumber == kwcClass->GetKeyAttributeNumber())
 				{
 					if (not bEndOfLine)
-						inputBuffer->SkipLine();
+						inputBuffer->SkipLine(bLineTooLong);
 					break;
 				}
+			}
+
+			// On ignore les lignes trop longues
+			if (bLineTooLong)
+			{
+				lastReadMainKey.Initialize();
+				AddWarning("Ignored record, " + InputBufferedFile::GetLineTooLongErrorLabel());
 			}
 
 			// Index du champs suivant
@@ -1250,21 +1638,49 @@ void KWDataTableDriverTextFile::SkipRootRecord()
 	UpdateInputBuffer();
 }
 
-boolean KWDataTableDriverTextFile::FillInputBufferWithFullLines()
+boolean KWDataTableDriverTextFile::FillInputBufferWithFullLines(longint lBeginPos, longint lMaxEndPos)
 {
 	boolean bOk;
+	boolean bLineTooLong;
+	longint lNewBeginPos;
+	ALString sTmp;
 
 	require(not bWriteMode);
 	require(inputBuffer != NULL);
-	require(inputBuffer->IsBufferEnd() and not inputBuffer->IsFileEnd());
+	require(0 <= lBeginPos and lBeginPos <= inputBuffer->GetFileSize());
+	require(lBeginPos <= lMaxEndPos and lMaxEndPos <= inputBuffer->GetFileSize());
+	require(inputBuffer->GetBufferSize() > 0 or inputBuffer->GetFileSize() == 0 or lBeginPos == lMaxEndPos);
 
-	// Lecture a partir de la position courante
-	bOk = inputBuffer->Fill(inputBuffer->GetPositionInFile());
+	// Lecture de ligne entiere a partir de la position courante
+	bOk = inputBuffer->FillOuterLinesUntil(lBeginPos, lMaxEndPos, bLineTooLong);
 
-	// On met a jour la position dans le fichier si des lignes ont due etre sautees pour remplir le buffer
-	if (bOk and inputBuffer->GetBufferSkippedLine())
+	// Traitement des lignes trop longues
+	while (bOk and bLineTooLong)
+	{
+		assert(inputBuffer->GetPositionInFile() - lBeginPos > InputBufferedFile::GetMaxLineLength());
+
+		// Warning sur la ligne trop longue
+		AddWarning(sTmp + "Line too long (" +
+			   LongintToHumanReadableString(inputBuffer->GetPositionInFile() - lBeginPos) + ")");
+
+		// Erreur si on depasse lMaxEndPos, le fichier etant indexe prealablement et se terminant sur une fin de
+		// ligne en lMaxEndPos
+		if (inputBuffer->GetPositionInFile() > lMaxEndPos)
+		{
+			AddWarning("The line ends are not consistent with those calculated during the preliminary "
+				   "indexing of the file");
+			break;
+		}
+
+		// Incrementation du numero de ligne pour tenir compte de la ligne sautee
 		lRecordIndex++;
-	ensure(inputBuffer->IsFileEnd() or inputBuffer->IsError() or not inputBuffer->IsBufferEnd());
+
+		// Lecture de la suite a partir de la fin de la ligne trop longue
+		lNewBeginPos = inputBuffer->GetPositionInFile();
+		bOk = inputBuffer->FillOuterLinesUntil(lNewBeginPos, lMaxEndPos, bLineTooLong);
+	}
+	ensure(inputBuffer->IsFileEnd() or not bOk or
+	       (inputBuffer->GetPositionInFile() + inputBuffer->GetCurrentBufferSize()) <= lMaxEndPos);
 	return bOk;
 }
 
@@ -1274,8 +1690,8 @@ boolean KWDataTableDriverTextFile::CheckInputBuffer()
 
 	require(inputBuffer != NULL);
 
-	// Erreur si du caractere NULL
-	bOk = inputBuffer->CheckEncoding(this);
+	// Erreur si probleme d'encodage
+	bOk = inputBuffer->CheckEncoding();
 
 	// Nettoyage du buffer si erreur
 	if (not bOk)
@@ -1309,13 +1725,13 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 	require(kwcHeaderLineClass != NULL or not GetHeaderLineUsed());
 	require(kwcHeaderLineClass == NULL or GetHeaderLineUsed());
 
-	// Initialisation pour le calcul des index des attributs cles que dans le cas d'une classe racine
-	ivRootKeyIndexes.SetSize(0);
-	lastReadRootKey.SetSize(0);
-	if (kwcLogicalClass->GetRoot())
+	// Initialisation pour le calcul des index des attributs cles que dans le cas d'une classe principale
+	ivMainKeyIndexes.SetSize(0);
+	lastReadMainKey.SetSize(0);
+	if (kwcLogicalClass->IsUnique())
 	{
-		// Creation d'un objet pour accuillir les champ de la cle
-		lastReadRootKey.SetSize(kwcLogicalClass->GetKeyAttributeNumber());
+		// Creation d'un objet pour accueillir les champs de la cle
+		lastReadMainKey.SetSize(kwcLogicalClass->GetKeyAttributeNumber());
 
 		// Creation d'un dictionnaire qui a chaque attribut de la cle associe son index
 		for (i = 0; i < kwcLogicalClass->GetKeyAttributeNumber(); i++)
@@ -1467,10 +1883,10 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 		}
 
 		// Calcul des index des attribut de la cle
-		if (bOk and kwcLogicalClass->GetRoot())
+		if (bOk and kwcLogicalClass->IsUnique())
 		{
 			// Initialisation
-			ivRootKeyIndexes.SetSize(kwcHeaderLineClass->GetUsedAttributeNumber());
+			ivMainKeyIndexes.SetSize(kwcHeaderLineClass->GetUsedAttributeNumber());
 
 			// Parcours des champs de l'entete
 			for (i = 0; i < kwcHeaderLineClass->GetUsedAttributeNumber(); i++)
@@ -1482,9 +1898,9 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 				    cast(IntObject*, odKeyFieldIndexes.Lookup(headerLineAttribute->GetName()));
 
 				// Indexation eventuelle dans le cas d'un attribut de la cle
-				ivRootKeyIndexes.SetAt(i, -1);
+				ivMainKeyIndexes.SetAt(i, -1);
 				if (keyFieldIndex != NULL)
-					ivRootKeyIndexes.SetAt(i, keyFieldIndex->GetInt());
+					ivMainKeyIndexes.SetAt(i, keyFieldIndex->GetInt());
 			}
 		}
 	}
@@ -1561,10 +1977,10 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 		}
 
 		// Calcul des index des attribut de la cle
-		if (bOk and kwcLogicalClass->GetRoot())
+		if (bOk and kwcLogicalClass->IsUnique())
 		{
 			// Initialisation
-			ivRootKeyIndexes.SetSize(oaNativeLogicalDataItems.GetSize());
+			ivMainKeyIndexes.SetSize(oaNativeLogicalDataItems.GetSize());
 
 			// Parcours des champs logiques
 			livDataItemLoadIndexes.SetSize(oaNativeLogicalDataItems.GetSize());
@@ -1577,9 +1993,9 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 				keyFieldIndex = cast(IntObject*, odKeyFieldIndexes.Lookup(logicalDataItem->GetName()));
 
 				// Indexation eventuelle dans le cas d'un attribut de la cle
-				ivRootKeyIndexes.SetAt(i, -1);
+				ivMainKeyIndexes.SetAt(i, -1);
 				if (keyFieldIndex != NULL)
-					ivRootKeyIndexes.SetAt(i, keyFieldIndex->GetInt());
+					ivMainKeyIndexes.SetAt(i, keyFieldIndex->GetInt());
 			}
 		}
 	}
@@ -1591,7 +2007,8 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 	// Affichage du resultat d'indexation
 	if (bDisplay)
 	{
-		cout << "Compute data item indexes of dictionary " << kwcClass->GetName() << endl;
+		cout << "Compute data item indexes of dictionary " << kwcClass->GetName() << " " << GetDataTableName()
+		     << endl;
 
 		// Cas avec classe de ligne d'entete
 		if (kwcHeaderLineClass != NULL)
@@ -1621,28 +2038,34 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 		}
 
 		// Affichage des correspondances entre champs de la cle et leur index dans le fichier
-		if (kwcClass->GetRoot())
+		if (kwcClass->IsUnique())
 		{
-			cout << "Compute root key indexes of dictionary " << kwcClass->GetName() << endl;
-			for (i = 0; i < ivRootKeyIndexes.GetSize(); i++)
+			cout << "Compute main key indexes of dictionary " << kwcClass->GetName() << endl;
+			for (i = 0; i < ivMainKeyIndexes.GetSize(); i++)
 			{
-				if (ivRootKeyIndexes.GetAt(i) != -1)
+				if (ivMainKeyIndexes.GetAt(i) != -1)
 				{
 					cout << "\t"
-					     << "Key" << ivRootKeyIndexes.GetAt(i) + 1 << "\t"
-					     << kwcLogicalClass->GetKeyAttributeNameAt(ivRootKeyIndexes.GetAt(i))
+					     << "Key" << ivMainKeyIndexes.GetAt(i) + 1 << "\t"
+					     << kwcLogicalClass->GetKeyAttributeNameAt(ivMainKeyIndexes.GetAt(i))
 					     << "\t" << i << endl;
 				}
 			}
 		}
+
+		// Affichage des dictionnaires
+		cout << "Logical class\n" << *kwcLogicalClass << endl;
+		if (kwcHeaderLineClass != NULL)
+			cout << "Header line class\n" << *kwcHeaderLineClass << endl;
 	}
-	assert(not bOk or lastReadRootKey.GetSize() > 0 or not kwcClass->GetRoot());
+	assert(not bOk or lastReadMainKey.GetSize() > 0 or not kwcClass->IsUnique());
 	return bOk;
 }
 
 boolean KWDataTableDriverTextFile::OpenInputDatabaseFile()
 {
 	boolean bOk;
+	int nPreferredBufferSize;
 
 	require(inputBuffer == NULL);
 	require(outputBuffer == NULL);
@@ -1655,6 +2078,7 @@ boolean KWDataTableDriverTextFile::OpenInputDatabaseFile()
 	inputBuffer->SetFieldSeparator(cFieldSeparator);
 	inputBuffer->SetHeaderLineUsed(bHeaderLineUsed);
 	inputBuffer->SetFileName(GetDataTableName());
+	inputBuffer->SetSilentMode(GetSilentMode());
 
 	// Ouverture du fichier
 	bOk = inputBuffer->Open();
@@ -1663,10 +2087,27 @@ boolean KWDataTableDriverTextFile::OpenInputDatabaseFile()
 	// Le fichier doit avoir ete ouvert pour acceder a sa taille
 	if (bOk)
 	{
-		if (inputBuffer->GetFileSize() < nBufferedFileSize)
+		// Ajustement de la taille du buffer en fonction de la taille du fichier
+		if (inputBuffer->GetFileSize() < nBufferSize)
+		{
 			inputBuffer->SetBufferSize((int)inputBuffer->GetFileSize());
+			inputBuffer->SetCacheOn(false);
+		}
+		// Prise en compte du cache selon lma taille disponible pour le buffer
 		else
-			inputBuffer->SetBufferSize(nBufferedFileSize);
+		{
+			nPreferredBufferSize = PLRemoteFileService::GetPreferredBufferSize(GetDataTableName());
+			if (nBufferSize >= nPreferredBufferSize + SystemFile::nMinPreferredBufferSize)
+			{
+				inputBuffer->SetBufferSize(nBufferSize - nPreferredBufferSize);
+				inputBuffer->SetCacheOn(true);
+			}
+			else
+			{
+				inputBuffer->SetBufferSize(nBufferSize);
+				inputBuffer->SetCacheOn(false);
+			}
+		}
 	}
 
 	// Nettoyage si erreur
@@ -1693,7 +2134,8 @@ boolean KWDataTableDriverTextFile::OpenOutputDatabaseFile()
 	outputBuffer->SetFieldSeparator(cFieldSeparator);
 	outputBuffer->SetHeaderLineUsed(bHeaderLineUsed);
 	outputBuffer->SetFileName(GetDataTableName());
-	outputBuffer->SetBufferSize(nBufferedFileSize);
+	outputBuffer->SetBufferSize(nBufferSize);
+	outputBuffer->SetSilentMode(GetSilentMode());
 
 	// Ouverture du fichier
 	bOk = outputBuffer->Open();

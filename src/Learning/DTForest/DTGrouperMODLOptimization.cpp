@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -104,7 +104,7 @@ void DTGrouperMODL::MergePureSourceValues(KWFrequencyTable* kwftSource, KWFreque
 	// Creation de la table source preprocessee
 	kwftPreprocessedSource = new KWFrequencyTable;
 	kwftPreprocessedSource->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-	kwftPreprocessedSource->Initialize(nNewIndex);
+	kwftPreprocessedSource->SetFrequencyVectorNumber(nNewIndex);
 	kwftPreprocessedSource->SetInitialValueNumber(kwftSource->GetInitialValueNumber());
 	kwftPreprocessedSource->SetGranularizedValueNumber(kwftSource->GetGranularizedValueNumber());
 	// Parametrage granularite et poubelle
@@ -210,7 +210,7 @@ ObjectArray* DTGrouperMODL::BuildReliableSubGroups(KWFrequencyTable* kwftSource,
 	oaAllBiClassGroupIndexes.SetSize(nTargetNumber);
 	ivIndexMaxValues.SetSize(nTargetNumber);
 	kwftBiClassSource.SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-	kwftBiClassSource.Initialize(kwftSource->GetFrequencyVectorNumber());
+	kwftBiClassSource.SetFrequencyVectorNumber(kwftSource->GetFrequencyVectorNumber());
 	kwftBiClassSource.SetInitialValueNumber(kwftSource->GetInitialValueNumber());
 	kwftBiClassSource.SetGranularizedValueNumber(kwftSource->GetGranularizedValueNumber());
 	// Parametrage granularite et poubelle
@@ -431,7 +431,7 @@ KWFrequencyTable* DTGrouperMODL::BuildTable(ObjectArray* oaGroups) const
 	kwftTable = new KWFrequencyTable;
 	kwftTable->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
 	if (oaGroups->GetSize() > 0)
-		kwftTable->Initialize(oaGroups->GetSize());
+		kwftTable->SetFrequencyVectorNumber(oaGroups->GetSize());
 
 	// Initialisation de la table de contingence par recopie du tableau de groupes
 	for (nSource = 0; nSource < kwftTable->GetFrequencyVectorNumber(); nSource++)
@@ -1341,7 +1341,6 @@ void DTGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 	double dBestDeltaCost;
 	double dBestInDeltaCost;
 	int nBestInGroup;
-	PeriodicTest periodicTestOptimize;
 
 	require(kwftSource != NULL);
 	require(kwftTarget != NULL);
@@ -1388,7 +1387,7 @@ void DTGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 		nStepNumber++;
 
 		// Test si arret de tache demandee
-		if (periodicTestOptimize.IsTestAllowed(0) and TaskProgression::IsInterruptionRequested())
+		if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
 			break;
 
 		// Perturbation aleatoire des index de modalites et de groupes
@@ -1420,7 +1419,7 @@ void DTGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 				nInGroup = ivGroupIndexes.GetAt((nStart + n2) % nGroupNumber);
 
 				// Test si arret de tache demandee
-				if (periodicTestOptimize.IsTestAllowed(0) and
+				if (TaskProgression::IsRefreshNecessary() and
 				    TaskProgression::IsInterruptionRequested())
 					break;
 
@@ -1454,7 +1453,7 @@ void DTGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 			}
 
 			// Test si arret de tache demandee
-			if (periodicTestOptimize.IsTestAllowed(0) and TaskProgression::IsInterruptionRequested())
+			if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
 				break;
 
 			// On effectue si necessaire le meilleur transfert de groupe
@@ -1529,7 +1528,6 @@ void DTGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 	double dBestDeltaCost;
 	double dBestInDeltaCost;
 	int nBestInGroup;
-	PeriodicTest periodicTestOptimize;
 	POSITION position;
 	KWFrequencyVector* frequencyVector;
 	int nGarbageModalityNumber;
@@ -1603,7 +1601,7 @@ void DTGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 		nStepNumber++;
 
 		// Test si arret de tache demandee
-		if (periodicTestOptimize.IsTestAllowed(0) and TaskProgression::IsInterruptionRequested())
+		if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
 			break;
 
 		// Perturbation aleatoire des index de modalites et de groupes
@@ -1641,7 +1639,7 @@ void DTGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 				nInGroup = ivGroupIndexes.GetAt((nStart + n2) % nGroupNumber);
 
 				// Test si arret de tache demandee
-				if (periodicTestOptimize.IsTestAllowed(0) and
+				if (TaskProgression::IsRefreshNecessary() and
 				    TaskProgression::IsInterruptionRequested())
 					break;
 
@@ -1806,7 +1804,7 @@ void DTGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 			}
 
 			// Test si arret de tache demandee
-			if (periodicTestOptimize.IsTestAllowed(0) and TaskProgression::IsInterruptionRequested())
+			if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
 				break;
 
 			// On effectue si necessaire le meilleur transfert de groupe
@@ -1944,7 +1942,7 @@ void DTGrouperMODL::ForceBestGroupMerge(KWFrequencyTable* kwftSource, KWFrequenc
 	// Creation de la nouvelle table
 	kwftNewTarget = new KWFrequencyTable;
 	kwftNewTarget->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-	kwftNewTarget->Initialize(kwftTarget->GetFrequencyVectorNumber() - 1);
+	kwftNewTarget->SetFrequencyVectorNumber(kwftTarget->GetFrequencyVectorNumber() - 1);
 	kwftNewTarget->SetInitialValueNumber(kwftTarget->GetInitialValueNumber());
 	kwftNewTarget->SetGranularizedValueNumber(kwftTarget->GetGranularizedValueNumber());
 	kwftNewTarget->SetGranularity(kwftTarget->GetGranularity());
@@ -1993,7 +1991,7 @@ void DTGrouperMODL::BuildSingletonGrouping(KWFrequencyTable* kwftSource, KWFrequ
 	// Creation de la table de contingence cible avec un seul groupe
 	kwftTarget = new KWFrequencyTable;
 	kwftTarget->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-	kwftTarget->Initialize(1);
+	kwftTarget->SetFrequencyVectorNumber(1);
 	kwftTarget->SetInitialValueNumber(kwftSource->GetInitialValueNumber());
 	kwftTarget->SetGranularizedValueNumber(kwftSource->GetGranularizedValueNumber());
 	// Parametrage granularite et poubelle

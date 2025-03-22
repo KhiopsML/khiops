@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -273,7 +273,8 @@ void DTDecisionTreeNode::SetUpAttributeAndHypotheticalSons(KWAttributeStats* att
 	if (splitAttributeStats->GetPreparedDataGridStats()->GetAttributeNumber() == 1)
 	{
 		// a partir de learningEnv v8, les attributs a level nul ne sont plus prepares. Le seul attribut prepare
-		// correspond ici a l'attribut cible NVDELL AddWarning("SetUpAttributeAndHypotheticalSons :
+		// correspond ici a l'attribut cible
+		// NVDELL AddWarning("SetUpAttributeAndHypotheticalSons :
 		// GetPreparedDataGridStats()->GetAttributeNumber() == 1");
 		return;
 	}
@@ -370,8 +371,8 @@ DTDecisionTreeNode::ComputeSonNodeTargetModalitiesCount(int nSonIndex,
 		if (splitAttributeStats->GetPreparedDataGridStats()->GetAttributeNumber() == 1)
 		{
 			// a partir de learningEnv v8, les attributs a level nul ne sont plus prepares. Le seul attribut
-			// prepare correspond ici a l'attribut cible NVDELL
-			// AddWarning("ComputeSonNodeTargetModalitiesCountOutOfBag :
+			// prepare correspond ici a l'attribut cible
+			// NVDELL AddWarning("ComputeSonNodeTargetModalitiesCountOutOfBag :
 			// GetPreparedDataGridStats()->GetAttributeNumber() == 1");
 			continue;
 		}
@@ -412,7 +413,7 @@ boolean DTDecisionTreeNode::IsPrunable() const
 
 void DTDecisionTreeNode::SetLeaf(boolean b)
 {
-	if (this->fatherNode == NULL)
+	if (fatherNode == NULL)
 		bIsLeaf = b;
 	bIsLeaf = b;
 }
@@ -617,16 +618,7 @@ void DTDecisionTreeNode::WriteHeaderLineReport(ostream& ost, DTDecisionTree* tre
 	for (nTarget = 0; nTarget < attributeSymbolValues->GetPartNumber(); nTarget++)
 	{
 		// Affichage de la valeur courante
-		ost << "\t" << attributeSymbolValues->GetValueAt(nTarget);
-		;
-
-		// Test de depassement du nombre max de valeurs
-		// if (attributeSymbolValues->GetPartNumber() > GetMaxModalityNumber() and
-		//	nTarget == GetMaxModalityNumber()-1)
-		//{
-		//	ost << "\t...";
-		//	break;
-		//}
+		ost << "\t" << TSV::Export(attributeSymbolValues->GetValueAt(nTarget).GetValue());
 	}
 
 	// Cas d'une feuille
@@ -791,7 +783,7 @@ void DTDecisionTreeNode::WriteLineReport(ostream& ost, DTDecisionTree* tree)
 	if (!IsLeaf())
 	{
 		// Affichage du nom de la variable de split
-		ost << "\t" << GetSplitAttributeStats()->GetAttributeName();
+		ost << "\t" << TSV::Export(GetSplitAttributeStats()->GetAttributeName());
 
 		ost << "\t";
 		// Parcours des fils
@@ -858,15 +850,6 @@ boolean DTDecisionTreeNode::ComputeAttributesStat()
 	// calcul de la preparation du noeud
 	KWDataPreparationUnivariateTask dataPreparationUnivariateTask;
 
-	// TODO MB: attention, certains require de la methode appeles BasicCollectPreparationStats ont du etre commentes
-	//  Il y a ici incoherence entre les stats descriptives et cibles au niveau de chaque noeud de l'arbre
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// DDD TREE: les require suivants sont actuellement commentes, car ils ne passent pas avec la construction des
-	// arbres
-	//  require(learningSpec->GetInstanceNumber() == tupleTableLoader->GetInputDatabaseObjects()->GetSize());
-	//  require(learningSpec->GetTargetDescriptiveStats()->GetInstanceNumber() ==
-	//  tupleTableLoader->GetInputDatabaseObjects()->GetSize());
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	baseloaderTrain->GetTupleLoader()->SetInputDatabaseObjects(baseloaderTrain->GetDatabaseObjects());
 	dataPreparationUnivariateTask.BasicCollectPreparationStats(
 	    nodeLearningSpec, baseloaderTrain->GetTupleLoader(), GetNodeSelectedAttributes(), false, oaAttributeStats);

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -13,7 +13,7 @@ KDEntity::~KDEntity() {}
 
 void KDEntity::SetName(const ALString sValue)
 {
-	require(sValue == "" or KWClass::CheckName(sValue, NULL));
+	require(sValue == "" or KWClass::CheckName(sValue, KWClass::None, NULL));
 	sName = sValue;
 }
 
@@ -24,7 +24,7 @@ const ALString& KDEntity::GetName() const
 
 void KDEntity::SetPartName(const ALString sValue)
 {
-	require(sValue == "" or KWClass::CheckName(sValue, NULL));
+	require(sValue == "" or KWClass::CheckName(sValue, KWClass::None, NULL));
 	sPartName = sValue;
 }
 
@@ -66,9 +66,9 @@ boolean KDEntity::Check() const
 {
 	boolean bOk = true;
 
-	if (sName != "" and KWClass::CheckName(sName, this))
+	if (sName != "" and KWClass::CheckName(sName, KWClass::None, this))
 		bOk = false;
-	if (sPartName != "" and KWClass::CheckName(sPartName, this))
+	if (sPartName != "" and KWClass::CheckName(sPartName, KWClass::None, this))
 		bOk = false;
 	return bOk;
 }

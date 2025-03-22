@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -22,8 +22,6 @@ import normGUI.engine.GUIUnit;
  * entier au sein d'une regle (slider). Les bornes inferieures et superieures de
  * la regles sont determinees a partir des valeurs min et max de l'element.
  * Utilisation de JSlider.
- *
- * @author Marc Boulle
  */
 public class GUIIntElementSpinner extends GUIIntElement
 {
@@ -35,11 +33,11 @@ public class GUIIntElementSpinner extends GUIIntElement
          */
         protected JComponent buildComponent()
         {
-                // Creation d'un model d'edition des nombre
-                Integer initValue = new Integer(getMinValue());
-                Integer min = new Integer(getMinValue());
-                Integer max = new Integer(getMaxValue());
-                Integer step = new Integer(1);
+                // Creation d'un model d'edition des nombres
+                int initValue = getMinValue();
+                int min = getMinValue();
+                int max = getMaxValue();
+                int step = 1;
                 SpinnerNumberModel model = new SpinnerNumberModel(initValue, min, max, step);
 
                 // Creation du composant
@@ -50,53 +48,32 @@ public class GUIIntElementSpinner extends GUIIntElement
                 setComponentPreferredSize(js, 10);
 
                 // Ajout de focusListener sur le Spinner
-                // pour etre sur de capturer la perte de focus en toutes circonstances,
-                // celle-ci etant critique pour le declenchement de la mise a jour de la
-                // valeur vers le C++
+                // pour etre sur de capturer la perte de focus en toutes circonstances, celle-ci
+                // etant critique
+                // pour le declenchement de la mise a jour de la valeur vers le C++
                 js.addFocusListener(this);
 
                 return js;
         }
 
         /**
-         * Appelee lorsque le composant charge de l'edition perd le focus, l'edition
-         * est stoppee, la methode setValueAt() de GUITableModel est appelee pour
-         * sauver les valeurs
+         * Appelee lorsque le composant charge de l'edition perd le focus, l'edition est
+         * stoppee, la methode setValueAt() de GUITableModel est appelee pour sauver les
+         * valeurs
          */
         public void focusLost(FocusEvent e)
         {
                 if (e.getOppositeComponent() != null && (!e.isTemporary() || !getParentUnit().getActionRunning())) {
-                        int iValue = 0;
-
                         // Dans le Spinner Java standard, la saisie n'est validee qu'avec le Enter
                         // Ici, on force sa validation des la perte de focus
+                        // La gestion des bornes est assuree par le SpinnerNumberModel
                         JSpinner js = (JSpinner)component;
-                        JTextField spinnerEditor = ((JSpinner.NumberEditor)js.getEditor()).getTextField();
-                        String strInitialValue = spinnerEditor.getText();
 
-                        // On supprime tous les blancs, y compris internes, potentiellement
-                        // rajoutes par le composant spinner
-                        String strValue = "";
-                        for (Character c : strInitialValue.toCharArray()) {
-                                if (!Character.isSpaceChar(c))
-                                        strValue = strValue + c;
-                        }
-
-                        // On convertit en numerique
-                        boolean valid = true;
+                        // Validation de la valeur
                         try {
-                                iValue = Integer.parseInt(strValue);
-
-                                // Projection sur les bornes si necessaires
-                                if (iValue < getMinValue())
-                                        iValue = getMinValue();
-                                else if (iValue > getMaxValue())
-                                        iValue = getMaxValue();
+                                js.commitEdit();
                         } catch (Exception ex) {
-                                valid = false;
                         }
-                        if (valid)
-                                js.setValue(iValue);
 
                         // Appel de l'implementation mere
                         super.focusLost(e);
@@ -113,8 +90,8 @@ public class GUIIntElementSpinner extends GUIIntElement
         {
                 return new CellElement() {
                         /**
-                         * Renvoie la valeur contenue dans l'editeur Attention : utilisation de
-                         * l'objet editorComponent, en prenant sa partie texte (idem pour
+                         * Renvoie la valeur contenue dans l'editeur Attention : utilisation de l'objet
+                         * editorComponent, en prenant sa partie texte (idem pour
                          * getTableCellEditorComponent())
                          *
                          * @return La valeur contenue dans l'editeur
@@ -122,15 +99,19 @@ public class GUIIntElementSpinner extends GUIIntElement
                         public Object getCellEditorValue()
                         {
                                 JSpinner js = (JSpinner)editorComponent;
-                                JTextField spinnerEditor = ((JSpinner.NumberEditor)js.getEditor()).getTextField();
 
-                                return new Integer(spinnerEditor.getText());
+                                // Validation de la valeur
+                                try {
+                                        js.commitEdit();
+                                } catch (Exception ex) {
+                                }
+                                return js.getValue();
                         }
 
                         /**
-                         * Renvoie le composant graphique d'edition du tableau, sa valeur doit
-                         * etre initialisee avec l'objet o Attention : utilisation de l'objet
-                         * editorComponent (idem pour getCellEditorValue())
+                         * Renvoie le composant graphique d'edition du tableau, sa valeur doit etre
+                         * initialisee avec l'objet o Attention : utilisation de l'objet editorComponent
+                         * (idem pour getCellEditorValue())
                          *
                          * @param table      La table qui contient l'editeur
                          * @param o          La valeur a editer
@@ -148,8 +129,8 @@ public class GUIIntElementSpinner extends GUIIntElement
 
                         /**
                          * Renvoie le rendu du composant graphique du tableau, sa valeur doit etre
-                         * initialisee avec l'objet o Attention : Creation d'un nouvel objet
-                         * composant graphique obligatoire
+                         * initialisee avec l'objet o Attention : Creation d'un nouvel objet composant
+                         * graphique obligatoire
                          *
                          * @param table      La table qui contient la cellule
                          * @param o          La valeur de la cellule
@@ -174,8 +155,7 @@ public class GUIIntElementSpinner extends GUIIntElement
         }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage

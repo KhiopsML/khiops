@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -212,47 +212,6 @@ Object* PLShared_IntVector::Create() const
 	return new IntVector;
 }
 
-int PLShared_IntVector::GetAt(int nIndex) const
-{
-	require(bIsReadable);
-	require(bIsDeclared);
-
-	return GetConstIntVector()->GetAt(nIndex);
-}
-
-void PLShared_IntVector::SetAt(int nIndex, int nValue)
-{
-	require(bIsWritable);
-	GetIntVector()->SetAt(nIndex, nValue);
-}
-
-void PLShared_IntVector::Add(int nValue)
-{
-	require(bIsWritable);
-	GetIntVector()->Add(nValue);
-}
-
-int PLShared_IntVector::GetSize()
-{
-	return GetConstIntVector()->GetSize();
-}
-
-const IntVector* PLShared_IntVector::GetConstIntVector() const
-{
-	require(bIsReadable);
-	require(bIsDeclared);
-
-	return cast(IntVector*, GetObject());
-}
-
-IntVector* PLShared_IntVector::GetIntVector()
-{
-	require(bIsWritable);
-	require(bIsDeclared);
-
-	return cast(IntVector*, GetObject());
-}
-
 /////////////////////////////////////////////
 // Implementation de la classe PLShared_LongintVector
 
@@ -274,10 +233,10 @@ void PLShared_LongintVector::Test()
 
 	// Initialisation d'une variable partagee en entree
 	for (i = 0; i < 5; i++)
-		ivInitialValue.Add(i + 1);
+		ivInitialValue.Add((longint)i + 1);
 	shared_valueIn.GetLongintVector()->CopyFrom(&ivInitialValue);
 	for (i = 0; i < 5; i++)
-		shared_valueIn.Add(101 + i);
+		shared_valueIn.Add(101 + (longint)i);
 
 	// Serialisation
 	serializer.OpenForWrite(NULL);

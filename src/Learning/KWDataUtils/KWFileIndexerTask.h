@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -32,16 +32,18 @@ public:
 	// Extraction de l'ensemble des positions et de nombre de lignes lues du fichier
 	// Entrees:
 	//  . le fichier specifie en entree
-	//  . une taille max de buffer
+	//  . une taille de buffer
+	//  . un nombre de positions a calculer en moyenne par taille de buffer
 	// Sorties:
 	//  . un vecteur de debut de positions, commencant a 0 et avec une derniere valeur
 	//    corespondant a la taille du fichier
-	//  . un vecteur d' index de lignes, commencant a 0 et avec une derniere valeur
-	//    corespondant au nombre de ligne du fichier
-	// Chaque position est a distance d'au plus une taille de buffer de la suivante.
-	// Les positions au debut et en fin de vecteur sont dimensionnes de facon progressive
+	//  . un vecteur d'index de lignes, commencant a 0 et avec une derniere valeur
+	//    corespondant au nombre de lignes du fichier
+	// L'ecart moyen entre les positions est d'environ la taille du buffer divisee par le nombre
+	// de positions a calculer par buffer.
+	// Les positions au debut et en fin de vecteur sont dimensionnees de facon progressive
 	// avec un decallage en escalier.
-	boolean ComputeIndexation(int nMaxBufferSize, LongintVector* lvFileBeginPositions,
+	boolean ComputeIndexation(int nBufferSize, int nPositionNumberPerBuffer, LongintVector* lvFileBeginPositions,
 				  LongintVector* lvFileBeginRecordIndexes);
 
 	///////////////////////////////////////////////////////////////
@@ -81,7 +83,10 @@ protected:
 	// Acces aux parametres de la methode d'indexation principale
 	LongintVector* lvTaskFileBeginPositions;
 	LongintVector* lvTaskFileBeginRecordIndexes;
-	int nTaskMaxBufferSize;
+
+	// Variable de travail du maitre pour collecter toutes les vecteurs de resutats renvoyes par les esclaves
+	ObjectArray oaMasterFileStartLinePositionVectors;
+	ObjectArray oaMasterBufferLineCountVectors;
 
 	// Parcours du fichier par le maitre
 	longint lFilePos;
@@ -89,17 +94,18 @@ protected:
 	// Variable partagee pour specifier le fichier a traiter
 	PLShared_String shared_sFileName;
 
+	// Variables partagges pour les parametres de la tache
+	PLShared_Int shared_nBufferSize;
+	PLShared_Int shared_nPositionNumberPerBuffer;
+
 	// Variable en entree de l'esclave pour parcourir le fichier
 	PLShared_Longint input_lFilePos;
-	PLShared_Int input_nBufferSize;
 
-	// Variable en sortie de l'esclave pour indiquer une position et un nombre de lignes traitees
-	PLShared_Longint output_lStartLinePos;
-	PLShared_Int output_nLineCount;
+	// Variable en sortie de l'esclave pour les vecteurs de positions et un nombre de lignes traitees entre
+	// positions
+	PLShared_LongintVector output_lvFileStartLinePositions;
+	PLShared_IntVector output_ivBufferLineCounts;
 
 	// Fichier de travail pour l'esclave
-	InputBufferedFile bufferedFile;
-
-	// Taille minimum de buffer utilisee
-	const int nMinBufferSize = BufferedFile::nDefaultBufferSize / 8;
+	InputBufferedFile inputFile;
 };

@@ -1,0 +1,164 @@
+{
+	"tool": "Khiops Coclustering",
+	"version": "10.5.6-b.0",
+	"shortDescription": "",
+	"coclusteringReport": {
+		"summary": {
+			"instances": 48842,
+			"cells": 4,
+			"nullCost": 213017,
+			"cost": 204572,
+			"level": 0.03964472319,
+			"initialDimensions": 2,
+			"frequencyVariable": "",
+			"dictionary": "Adult",
+			"database": "..\/..\/..\/datasets\/Adult\/Adult.txt",
+			"samplePercentage": 100,
+			"samplingMode": "Include sample",
+			"selectionVariable": "",
+			"selectionValue": ""
+		},
+		"dimensionSummaries": [
+			{
+				"name": "occupation",
+				"type": "Categorical",
+				"parts": 2,
+				"initialParts": 9,
+				"values": 14,
+				"interest": 1,
+				"description": ""
+			},
+			{
+				"name": "education",
+				"type": "Categorical",
+				"parts": 2,
+				"initialParts": 10,
+				"values": 16,
+				"interest": 1,
+				"description": ""
+			}
+		],
+		"dimensionPartitions": [
+			{
+				"name": "occupation",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "A7",
+						"values": ["Prof-specialty","Exec-managerial"],
+						"valueFrequencies": [8981,6086],
+						"valueTypicalities": [1,1]
+					},
+					{
+						"cluster": "A3",
+						"values": ["Craft-repair","Machine-op-inspct","Transport-moving","Handlers-cleaners","Other-service","Farming-fishing","Priv-house-serv","Adm-clerical","Protective-serv","Sales","Tech-support","Armed-Forces"],
+						"valueFrequencies": [6112,3022,2355,2072,4923,1490,242,5611,983,5504,1446,15],
+						"valueTypicalities": [1,1,0.781972,0.740515,1,1,0.350275,1,0.253264,1,1,0.00765636]
+					}
+				],
+				"defaultGroupIndex": 1
+			},
+			{
+				"name": "education",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "B5",
+						"values": ["Bachelors","Masters","Prof-school","Doctorate"],
+						"valueFrequencies": [8025,2657,834,594],
+						"valueTypicalities": [1,1,1,0.756428]
+					},
+					{
+						"cluster": "B4",
+						"values": ["HS-grad","7th-8th","5th-6th","1st-4th","Preschool","10th","9th","11th","12th","Some-college","Assoc-voc","Assoc-acdm"],
+						"valueFrequencies": [15784,955,509,247,83,1389,756,1812,657,10878,2061,1601],
+						"valueTypicalities": [1,1,0.836335,0.450257,0.171295,1,0.741127,1,0.4954,1,1,1]
+					}
+				],
+				"defaultGroupIndex": 1
+			}
+		],
+		"dimensionHierarchies": [
+			{
+				"name": "occupation",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "A7",
+						"parentCluster": "A1",
+						"frequency": 15067,
+						"interest": 0.881093,
+						"hierarchicalLevel": 0.866834,
+						"rank": 2,
+						"hierarchicalRank": 8,
+						"isLeaf": true
+					},
+					{
+						"cluster": "A3",
+						"parentCluster": "A1",
+						"frequency": 33775,
+						"interest": 0.508975,
+						"hierarchicalLevel": 0.514611,
+						"rank": 12,
+						"hierarchicalRank": 4,
+						"isLeaf": true
+					},
+					{
+						"cluster": "A1",
+						"parentCluster": "",
+						"frequency": 48842,
+						"interest": 0.623768,
+						"hierarchicalLevel": 0,
+						"rank": 4,
+						"hierarchicalRank": 2,
+						"isLeaf": false
+					}
+				]
+			},
+			{
+				"name": "education",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "B5",
+						"parentCluster": "B2",
+						"frequency": 12110,
+						"interest": 0.98306,
+						"hierarchicalLevel": 0.776545,
+						"rank": 2,
+						"hierarchicalRank": 6,
+						"isLeaf": true
+					},
+					{
+						"cluster": "B4",
+						"parentCluster": "B2",
+						"frequency": 36732,
+						"interest": 0.735648,
+						"hierarchicalLevel": 0.6334,
+						"rank": 14,
+						"hierarchicalRank": 5,
+						"isLeaf": true
+					},
+					{
+						"cluster": "B2",
+						"parentCluster": "",
+						"frequency": 48842,
+						"interest": 0.796992,
+						"hierarchicalLevel": -0.00125728,
+						"rank": 6,
+						"hierarchicalRank": 3,
+						"isLeaf": false
+					}
+				]
+			}
+		],
+		"cellPartIndexes": [
+			[1,1],
+			[0,0],
+			[0,1],
+			[1,0]
+		],
+		"cellFrequencies": [29636,7971,7096,4139]
+	},
+	"khiops_encoding": "ascii"
+}

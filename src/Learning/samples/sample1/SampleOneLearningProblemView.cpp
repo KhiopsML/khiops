@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -7,21 +7,19 @@
 SampleOneLearningProblemView::SampleOneLearningProblemView()
 {
 	KWAnalysisSpecView* analysisSpecView;
+	int i;
 
 	// Libelles
 	SetIdentifier("SampleOneLearningProblem");
 	SetLabel("Sample One");
 
+	// Dans l'onglet des parametres d'analyse, on met tout en invisible, sauf le choix de la variable cible
 	analysisSpecView = cast(KWAnalysisSpecView*, GetFieldAt("AnalysisSpec"));
-
-	cast(KWModelingSpecView*, analysisSpecView->GetFieldAt("ModelingSpec"))->SetVisible(false);
-	cast(KWAttributeConstructionSpecView*, analysisSpecView->GetFieldAt("AttributeConstructionSpec"))
-	    ->SetVisible(false);
-	cast(KWPreprocessingSpecView*, analysisSpecView->GetFieldAt("PreprocessingSpec"))->SetVisible(false);
-	cast(KWSystemParametersView*, analysisSpecView->GetFieldAt("SystemParameters"))->SetVisible(false);
+	for (i = 0; i < analysisSpecView->GetFieldNumber(); i++)
+		analysisSpecView->GetFieldAtIndex(i)->SetVisible(false);
+	analysisSpecView->GetFieldAt("TargetAttributeName")->SetVisible(true);
 
 	// On rend non visible les onglets inutiles
-	cast(KWDatabaseView*, GetFieldAt("TestDatabase"))->SetVisible(false);
 	cast(KWAnalysisResultsView*, GetFieldAt("AnalysisResults"))->SetVisible(false);
 	cast(KWLearningProblemActionView*, GetFieldAt("LearningTools"))->SetVisible(false);
 
@@ -30,8 +28,8 @@ SampleOneLearningProblemView::SampleOneLearningProblemView()
 	GetActionAt("TransferDatabase")->SetVisible(false);
 
 	// Ajout d'actions boutons
-	AddAction("ShowClass", "Show class", (ActionMethod)(&SampleOneLearningProblemView::ShowClass));
-	AddAction("ShowObject", "Show object", (ActionMethod)(&SampleOneLearningProblemView::ShowObject));
+	AddAction("ShowClass", "Show dictionary", (ActionMethod)(&SampleOneLearningProblemView::ShowClass));
+	AddAction("ShowObject", "Show instance", (ActionMethod)(&SampleOneLearningProblemView::ShowObject));
 	AddAction("ExportStats", "Export stats", (ActionMethod)(&SampleOneLearningProblemView::ExportStats));
 	GetActionAt("ShowClass")->SetStyle("Button");
 	GetActionAt("ShowObject")->SetStyle("Button");
@@ -58,20 +56,17 @@ SampleOneLearningProblem* SampleOneLearningProblemView::GetSampleOneLearningProb
 	return cast(SampleOneLearningProblem*, objValue);
 }
 
-void SampleOneLearningProblemView::CheckLearningSpec()
+boolean SampleOneLearningProblemView::CheckLearningSpec()
 {
-	if (not GetLearningProblem()->CheckTrainDatabaseName() or
-	    not GetLearningProblem()->GetTrainDatabase()->CheckSelectionValue(
-		GetLearningProblem()->GetTrainDatabase()->GetSelectionValue()) or
-	    not GetLearningProblem()->CheckClass())
-		AddMessage("Specifications valides");
+	return GetLearningProblem()->CheckClass() and GetLearningProblem()->CheckTrainDatabaseName() and
+	       GetLearningProblem()->GetTrainDatabase()->Check();
 }
 
 void SampleOneLearningProblemView::ShowClass()
 {
 	// Prerequis: validite operationnelle des specifications
-	if (not GetLearningProblem()->CheckClass())
-		AddError("Specifications non valides");
+	if (not CheckLearningSpec())
+		AddError("Invalid specifications");
 	else
 	{
 		KWClass* kwClass;
@@ -96,14 +91,12 @@ void SampleOneLearningProblemView::ShowClass()
 void SampleOneLearningProblemView::ShowObject()
 {
 	// Prerequis: validite operationnelle des specifications
-	if (not GetLearningProblem()->CheckTrainDatabaseName() or
-	    not GetLearningProblem()->GetTrainDatabase()->CheckSelectionValue(
-		GetLearningProblem()->GetTrainDatabase()->GetSelectionValue()) or
-	    not GetLearningProblem()->CheckClass())
-		AddError("Specifications non valides");
+	if (not CheckLearningSpec())
+		AddError("Invalid specifications");
 	else
 	{
 		KWClass* kwcClass;
+		KWAttribute* attribute;
 		KWDatabase* database;
 		KWObject* kwoObject;
 		ALString sValue;
@@ -114,7 +107,7 @@ void SampleOneLearningProblemView::ShowObject()
 		KWLoadIndex liAttributeLoadIndex;
 
 		// Demande de l'index de l'objet a visualiser
-		nObjectIndex = GetIntValue("Index de l'instance a afficher", 1);
+		nObjectIndex = GetIntValue("Index of the instance to show", 1);
 
 		// Acces a la base de donnees et au dictionnaire
 		database = GetLearningProblem()->GetTrainDatabase();
@@ -128,21 +121,23 @@ void SampleOneLearningProblemView::ShowObject()
 			nIndex = 0;
 			while (not database->IsEnd())
 			{
-				nIndex++;
 				kwoObject = database->Read();
 
-				// On detruit les objets ne correspondant pas à l'index recherche
-				if (nIndex != nObjectIndex)
+				// Traitement des objet lus
+				if (kwoObject != NULL)
 				{
-					if (kwoObject != NULL)
+					nIndex++;
+
+					// Arret si objet trouve
+					if (nIndex == nObjectIndex)
+						break;
+					// Destruction de l'objet sinon
+					else
 					{
 						delete kwoObject;
 						kwoObject = NULL;
 					}
 				}
-				// Sinon, on s'arrete
-				else
-					break;
 			}
 
 			// Fermeture de la base
@@ -151,25 +146,28 @@ void SampleOneLearningProblemView::ShowObject()
 
 		// Message d'erreur si objet non trouve
 		if (kwoObject == NULL)
-			AddError(sTmp + "Pas d'objet trouve a l'index " + IntToString(nObjectIndex));
+			AddError(sTmp + "Instance not found for index " + IntToString(nObjectIndex));
 		// Sinon, affichage de l'objet
 		else
 		{
-			// Entete
-			AddSimpleMessage(sTmp + "Instance " + IntToString(nObjectIndex) + " de " +
-					 database->GetDatabaseName());
+			// Entete, en precisant l'id de creation de l'instance (numero de ligne dans le fichier)
+			AddSimpleMessage(sTmp + "Instance " + IntToString(nObjectIndex) + " of " +
+					 database->GetDatabaseName() +
+					 " (id=" + LongintToString(kwoObject->GetCreationIndex()) + ")");
 
 			// Valeurs des attributs
 			assert(kwcClass->IsIndexed());
 			for (nAttribute = 0; nAttribute < kwcClass->GetLoadedAttributeNumber(); nAttribute++)
 			{
-				// Acces a l'index de chargement de l'attribut
-				liAttributeLoadIndex = kwcClass->GetLoadedAttributeAt(nAttribute)->GetLoadIndex();
+				attribute = kwcClass->GetLoadedAttributeAt(nAttribute);
 
-				// Transcodage de la valeur en chaine de caractere selo le type d'attribut
-				if (kwcClass->GetLoadedAttributeAt(nAttribute)->GetType() == KWType::Symbol)
+				// Acces a l'index de chargement de l'attribut
+				liAttributeLoadIndex = attribute->GetLoadIndex();
+
+				// Transcodage de la valeur en chaine de caractere selon le type d'attribut
+				if (attribute->GetType() == KWType::Symbol)
 					sValue = kwoObject->GetSymbolValueAt(liAttributeLoadIndex);
-				else
+				else if (attribute->GetType() == KWType::Continuous)
 					sValue = KWContinuous::ContinuousToString(
 					    kwoObject->GetContinuousValueAt(liAttributeLoadIndex));
 
@@ -187,11 +185,8 @@ void SampleOneLearningProblemView::ShowObject()
 void SampleOneLearningProblemView::ExportStats()
 {
 	// Prerequis: validite operationnelle des specifications
-	if (not GetLearningProblem()->CheckTrainDatabaseName() or
-	    not GetLearningProblem()->GetTrainDatabase()->CheckSelectionValue(
-		GetLearningProblem()->GetTrainDatabase()->GetSelectionValue()) or
-	    not GetLearningProblem()->CheckClass())
-		AddError("Specifications non valides");
+	if (not CheckLearningSpec())
+		AddError("Invalid specifications");
 	else
 	{
 		KWLearningSpec learningSpec;
@@ -223,33 +218,25 @@ void SampleOneLearningProblemView::ExportStats()
 		classStats.SetLearningSpec(&learningSpec);
 
 		// Parametrage pour le nombre de paires d'attributs a evaluer
-		if (classStats.GetTargetAttributeType() == KWType::Symbol or
-		    classStats.GetTargetAttributeType() == KWType::None)
-			classStats.SetMaxAttributePairNumber(GetLearningProblem()
-								 ->GetAnalysisSpec()
-								 ->GetAttributeConstructionSpec()
-								 ->GetMaxAttributePairNumber());
-		if (classStats.GetTargetAttributeType() == KWType::Continuous and
-		    GetLearningProblem()
-			    ->GetAnalysisSpec()
-			    ->GetAttributeConstructionSpec()
-			    ->GetMaxAttributePairNumber() > 0)
-			Global::AddWarning("", "", "2D analysis: not available in regression analysis");
-		if (classStats.GetTargetAttributeType() == KWType::None and GetLearningProblem()
-										    ->GetAnalysisSpec()
-										    ->GetAttributeConstructionSpec()
-										    ->GetMaxAttributePairNumber() == 0)
-			Global::AddWarning("", "",
-					   "2D analysis is available in unsupervised analysis: you should try it");
+		classStats.SetAttributePairsSpec(GetLearningProblem()
+						     ->GetAnalysisSpec()
+						     ->GetModelingSpec()
+						     ->GetAttributeConstructionSpec()
+						     ->GetAttributePairsSpec());
 		assert(classStats.Check());
 
 		// Calcul des statistiques
 		classStats.ComputeStats();
 
 		// Demande du nom du rapport
-		sReportName = GetStringValue("Nom du rapport", "Rapport.xls");
+		sReportName = GetStringValue("Report name", "Report.xls");
+
+		// Parametrage des options du rapport
+		classStats.SetAllWriteOptions(false);
+		classStats.SetWriteOptionStats1D(true);
 
 		// Ecriture d'un rapport
+		AddSimpleMessage("Write " + sReportName);
 		classStats.WriteReportFile(sReportName);
 	}
 }

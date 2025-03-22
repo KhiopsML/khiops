@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -27,17 +27,17 @@ public:
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Collecte des attributs de type relation non necessaires, que l'on peut passer en not loaded si les tables correspondantes
+	// ne sont pas specifiee dans la base en sortie
+	void CollectRelationAttributesToUnload(const KWDatabase* targetDatabase, const KWClass* databaseClass,
+					       ObjectArray* oaAttributesToUnload) const;
+
 	// Reimplemenattion de l'affichage des messages
 	void DisplaySpecificTaskMessage() override;
 
 	// Reimplementation de methodes de gestion du plan d'indexation des bases
 	void CleanAllDataTableIndexation() override;
 	boolean ComputeDatabaseOpenInformation() override;
-
-	// Parametrage de la taille du buffer d'un concatenater en fonction d'une taille estimee et des ressources
-	// disponibles
-	void InitializeConcatenaterBufferSize(PLFileConcatenater* concatenater, const KWClass* dictionary,
-					      longint lRecordNumber);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	// Reimplementation des methodes virtuelles de tache
@@ -47,6 +47,7 @@ protected:
 	PLParallelTask* Create() const override;
 	boolean ComputeResourceRequirements() override;
 	boolean MasterInitialize() override;
+	boolean MasterInitializeDatabase() override;
 	boolean MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished) override;
 	boolean MasterAggregateResults() override;
 	boolean MasterFinalize(boolean bProcessEndedCorrectly) override;

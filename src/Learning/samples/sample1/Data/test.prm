@@ -2,40 +2,42 @@
 // ..\release\sample1
 // Output command file
 //
-// This file contains recorded commands, that can be replayed.
-// Commands are based on user interactions:
+//This file contains recorded commands, that can be replayed.
+//Commands are based on user interactions:
 //	field update
 //	list item selection
 //	menu action
-// Every command can be commented, using //.
-// For example, commenting the last Exit command will allow other
-// user interactions, after the commands have been replayed.
+//Every command can be commented, using //.
+//For example, commenting the last Exit command will allow other
+//user interactions, after the commands have been replayed.
 //
 //
 
 // -> Sample One
-ClassManagement.OpenFile // Open...
+ClassManagement.OpenFile       // Open...
 
-    // -> Open
-    ClassFileName iris.kdic // Dictionary file
-	OK                  // Open
-	    // <- Open
+// -> Open
+ClassFileName iris.kdic // Dictionary file
+OK                             // Open
+// <- Open
 
-	    ClassManagement.ClassName Iris                             // Analysis dictionary
-		TrainDatabase.DatabaseFiles.List.Key Iris              // List item selection
-		    TrainDatabase.DatabaseFiles.DataTableName iris.txt // Data table file
-			AnalysisSpec.TargetAttributeName Class         // Target variable
-			    ShowClass                                  // Show class
-				ShowObject                             // Show object
-				    Value 1                            // Index de l'instance a afficher
-    Exit                                                               // OK
-	ExportStats                                                    // Export stats
-	    Value Report.xls                                           // Nom du rapport
-		Exit                                                   // OK
+ClassManagement.ClassName Iris // Analysis dictionary
+TrainDatabase.DatabaseFiles.List.Key Iris          // List item selection
+TrainDatabase.DatabaseFiles.DataTableName iris.txt    // Data table file
+AnalysisSpec.TargetAttributeName Class   // Target variable
+ShowClass                      // Show class
+ShowObject                     // Show object
+Value 1                       // Index of the instance to show
+Exit                           // OK
+ExportStats                    // Export stats
+Value Report.xls               // Report name
+Exit                           // OK
 
-    // Exit                           // Close
-    //  <- Sample One
+//Exit                           // Close
+// <- Sample One
 
-    // -> Sample One
-    // OK                             // Close
-    // <- Sample One
+
+// -> Sample One
+//OK                             // Close
+// <- Sample One
+

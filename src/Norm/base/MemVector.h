@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -80,6 +80,15 @@ public:
 	static void CopyFrom(MemHugeVector& memHugeVector, int& nSize, int& nAllocSize, const int nBlockSize,
 			     const int nElementSize, const MemHugeVector& memSourceHugeVector, const int& nSourceSize,
 			     const int& nSourceAllocSize);
+
+	// Import de nElementNumber elements du tableau cByteBuffer vers l'index nIndex du MemHugeVector
+	static void ImportBuffer(MemHugeVector& memHugeVector, int nSize, int nAllocSize, int nBlockSize,
+				 int nElementSize, int nIndex, int nElementNumber, const char* cByteBuffer);
+
+	// Export de nElementNumber elements vers le tableau cByteBuffer depuis l'index nIndex du MemHugeVector
+	// Le tableau cByteBuffer doit etre alloue et de taille nElementNumber*nElementSize
+	static void ExportBuffer(const MemHugeVector& memHugeVector, int nSize, int nAllocSize, int nBlockSize,
+				 int nElementSize, int nIndex, int nElementNumber, char* cByteBuffer);
 
 	// Retaillage avec potentiellement une grande taille, sans risque d'erreur d'allocation (a appeler par
 	// SetLargeSize) Renvoie false si echec de retaillage (et le vecteur garde sa taille initiale)

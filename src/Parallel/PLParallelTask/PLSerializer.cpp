@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -13,9 +13,15 @@ PLSerializer::PLSerializer()
 	bIsOpenForWrite = false;
 	context = NULL;
 	sBufferCurrentBlock = NULL;
+	bIsBufferMonoBlock = false;
+	nPutBufferCharsCallNumber = 0;
 }
 
-PLSerializer::~PLSerializer() {}
+PLSerializer::~PLSerializer()
+{
+	assert(not bIsOpenForRead);
+	assert(not bIsOpenForWrite);
+}
 
 void PLSerializer::OpenForRead(PLMsgContext* sContext)
 {
@@ -28,12 +34,12 @@ void PLSerializer::OpenForRead(PLMsgContext* sContext)
 
 	if (IsStdMode())
 	{
-		bIsBufferMonoBlock = cvBuffer.nAllocSize <= cvBuffer.nBlockSize;
+		bIsBufferMonoBlock = cvBuffer.nAllocSize <= CharVector::nBlockSize;
 	}
 	else
 	{
 		// Dans le cas de la serialisation au fil de l'eau le buffer, on alloue un seul bloc
-		cvBuffer.SetSize(cvBuffer.nBlockSize);
+		cvBuffer.SetSize(CharVector::nBlockSize);
 		if (IsRecvMode())
 		{
 			PLParallelTask::GetDriver()->RecvBlock(this, context);
@@ -68,7 +74,7 @@ void PLSerializer::OpenForWrite(PLMsgContext* sContext)
 	else
 	{
 		// Dans le cas de la serialisation au fil de l'eau le buffer, on alloue un seul bloc
-		cvBuffer.SetSize(cvBuffer.nBlockSize);
+		cvBuffer.SetSize(CharVector::nBlockSize);
 
 		// Affectation de l'adresse dans le buffer courant
 		sBufferCurrentBlock = &cvBuffer.pData.pValues[0];
@@ -78,6 +84,7 @@ void PLSerializer::OpenForWrite(PLMsgContext* sContext)
 void PLSerializer::Close()
 {
 	require(bIsOpenForRead or bIsOpenForWrite);
+
 	if (bIsOpenForWrite)
 	{
 		// Ajout d'un tag de fin de serialisation
@@ -117,12 +124,12 @@ void PLSerializer::Close()
 	bIsOpenForWrite = false;
 }
 
-boolean PLSerializer::IsOpenForRead()
+boolean PLSerializer::IsOpenForRead() const
 {
 	return bIsOpenForRead;
 }
 
-boolean PLSerializer::IsOpenForWrite()
+boolean PLSerializer::IsOpenForWrite() const
 {
 	return bIsOpenForWrite;
 }
@@ -202,7 +209,7 @@ void PLSerializer::PutLongint(longint lValue)
 	require(bIsOpenForWrite);
 
 	// Serialisation du type en mode debug seulement
-	debug(PutType(cTypeLongint););
+	debug(PutType(cTypeLongint));
 	PutBufferChars((const char*)&lValue, sizeof(longint));
 }
 
@@ -417,8 +424,8 @@ void PLSerializer::PutCharVector(const CharVector* cvIn)
 	debug(PutType(cTypeCharVector));
 
 	PutInt(cvIn->nSize);
-	AddMemVectorToBuffer((MemHugeVector&)cvIn->pData, cvIn->nSize * cvIn->nElementSize,
-			     cvIn->nAllocSize * cvIn->nElementSize);
+	AddMemVectorToBuffer((MemHugeVector&)cvIn->pData, cvIn->nSize * CharVector::nElementSize,
+			     cvIn->nAllocSize * CharVector::nElementSize);
 }
 
 void PLSerializer::GetCharVector(CharVector* cvOut)
@@ -431,8 +438,8 @@ void PLSerializer::GetCharVector(CharVector* cvOut)
 
 	nSize = GetInt();
 	cvOut->SetSize(nSize);
-	GetMemVectorFromBuffer((MemHugeVector&)cvOut->pData, cvOut->nSize * cvOut->nElementSize,
-			       cvOut->nAllocSize * cvOut->nElementSize);
+	GetMemVectorFromBuffer((MemHugeVector&)cvOut->pData, cvOut->nSize * CharVector::nElementSize,
+			       cvOut->nAllocSize * CharVector::nElementSize);
 }
 
 void PLSerializer::PutStringVector(const StringVector* svIn)
@@ -487,8 +494,8 @@ void PLSerializer::PutIntVector(const IntVector* ivIn)
 	PutInt(ivIn->GetSize());
 
 	// Copie des blocs memoire
-	AddMemVectorToBuffer((MemHugeVector&)ivIn->pData, ivIn->nSize * ivIn->nElementSize,
-			     ivIn->nAllocSize * ivIn->nElementSize);
+	AddMemVectorToBuffer((MemHugeVector&)ivIn->pData, ivIn->nSize * IntVector::nElementSize,
+			     ivIn->nAllocSize * IntVector::nElementSize);
 }
 
 void PLSerializer::GetIntVector(IntVector* ivOut)
@@ -504,8 +511,8 @@ void PLSerializer::GetIntVector(IntVector* ivOut)
 	ivOut->SetSize(nSize);
 
 	// Copie des blocs memoires
-	GetMemVectorFromBuffer((MemHugeVector&)ivOut->pData, ivOut->nSize * ivOut->nElementSize,
-			       ivOut->nAllocSize * ivOut->nElementSize);
+	GetMemVectorFromBuffer((MemHugeVector&)ivOut->pData, ivOut->nSize * IntVector::nElementSize,
+			       ivOut->nAllocSize * IntVector::nElementSize);
 }
 
 void PLSerializer::PutLongintVector(const LongintVector* lvIn)
@@ -520,8 +527,8 @@ void PLSerializer::PutLongintVector(const LongintVector* lvIn)
 	PutInt(lvIn->GetSize());
 
 	// Copie des blocs memoire
-	AddMemVectorToBuffer((MemHugeVector&)lvIn->pData, lvIn->nSize * lvIn->nElementSize,
-			     lvIn->nAllocSize * lvIn->nElementSize);
+	AddMemVectorToBuffer((MemHugeVector&)lvIn->pData, lvIn->nSize * LongintVector::nElementSize,
+			     lvIn->nAllocSize * LongintVector::nElementSize);
 }
 
 void PLSerializer::GetLongintVector(LongintVector* lvOut)
@@ -537,8 +544,8 @@ void PLSerializer::GetLongintVector(LongintVector* lvOut)
 	lvOut->SetSize(nSize);
 
 	// Copie des blocs memoires
-	GetMemVectorFromBuffer((MemHugeVector&)lvOut->pData, lvOut->nSize * lvOut->nElementSize,
-			       lvOut->nAllocSize * lvOut->nElementSize);
+	GetMemVectorFromBuffer((MemHugeVector&)lvOut->pData, lvOut->nSize * LongintVector::nElementSize,
+			       lvOut->nAllocSize * LongintVector::nElementSize);
 }
 
 void PLSerializer::PutDoubleVector(const DoubleVector* dvIn)
@@ -551,8 +558,8 @@ void PLSerializer::PutDoubleVector(const DoubleVector* dvIn)
 	PutInt(dvIn->GetSize());
 
 	// Copie des blocs memoire
-	AddMemVectorToBuffer((MemHugeVector&)dvIn->pData, dvIn->nSize * dvIn->nElementSize,
-			     dvIn->nAllocSize * dvIn->nElementSize);
+	AddMemVectorToBuffer((MemHugeVector&)dvIn->pData, dvIn->nSize * DoubleVector::nElementSize,
+			     dvIn->nAllocSize * DoubleVector::nElementSize);
 }
 
 void PLSerializer::GetDoubleVector(DoubleVector* dvOut)
@@ -568,8 +575,8 @@ void PLSerializer::GetDoubleVector(DoubleVector* dvOut)
 	dvOut->SetSize(nSize);
 
 	// Copie des blocs memoires
-	GetMemVectorFromBuffer((MemHugeVector&)dvOut->pData, dvOut->nSize * dvOut->nElementSize,
-			       dvOut->nAllocSize * dvOut->nElementSize);
+	GetMemVectorFromBuffer((MemHugeVector&)dvOut->pData, dvOut->nSize * DoubleVector::nElementSize,
+			       dvOut->nAllocSize * DoubleVector::nElementSize);
 }
 
 void PLSerializer::PutNullToken(boolean bIsNull)
@@ -630,7 +637,7 @@ void PLSerializer::Test()
 	cv.Add('r');
 
 	// Creation d'un vecteur d'int
-	for (i = 1; i < 11; i++)
+	for (i = 1; i < 100; i++)
 	{
 		iv.Add(i);
 	}
@@ -742,7 +749,7 @@ void PLSerializer::PutBufferChars(const char* sSource, int nSize)
 	int nPositionInSrc;
 	int nRemainer;
 
-	assert(cvBuffer.nBlockSize == 64 * lKB);
+	assert(CharVector::nBlockSize == 64 * lKB);
 	// Les messages envoyes on tous la taille nBlockSize qui est actuellement de 64 Kb
 	// On envoie uniquement les blocs entiers de CharVector
 	// Si la taille des blocs est augmentee dans Norm, la taille des messages va augmenter mecaniquement
@@ -750,9 +757,9 @@ void PLSerializer::PutBufferChars(const char* sSource, int nSize)
 	// Il faudra alors ajouter un niveau de buffer logique de taille 64 Kb : pour envoyer un bloc,
 	// on enverra plusieurs blocs logique de taille 64 Kb
 
-	require(nSize <= cvBuffer.nBlockSize);
+	require(nSize <= CharVector::nBlockSize);
 
-	// En mode standard (sans envoi de block au fil de l'eau)
+	// En mode standard (sans envoi de blocs au fil de l'eau)
 	// Le buffer a une taille croissante au fur et a mesure de la serialisation
 	if (IsStdMode())
 	{
@@ -760,22 +767,22 @@ void PLSerializer::PutBufferChars(const char* sSource, int nSize)
 		cvBuffer.SetSize(nBufferPosition + nSize);
 
 		// Cas multi-blocs
-		if (cvBuffer.nAllocSize > cvBuffer.nBlockSize)
+		if (cvBuffer.nAllocSize > CharVector::nBlockSize)
 		{
 			if (bIsBufferMonoBlock)
 			{
 				bIsBufferMonoBlock = false;
-				nBufferCurrentBlockIndex = nBufferPosition / cvBuffer.nBlockSize;
+				nBufferCurrentBlockIndex = nBufferPosition / CharVector::nBlockSize;
 
 				// Adresse multi blocs
 				sBufferCurrentBlock =
-				    &cvBuffer.pData.hugeVector
-					 .pValueBlocks[nBufferCurrentBlockIndex][nBufferPosition % cvBuffer.nBlockSize];
+				    &cvBuffer.pData.hugeVector.pValueBlocks[nBufferCurrentBlockIndex]
+									   [nBufferPosition % CharVector::nBlockSize];
 			}
 			else
 			{
 				// Si le buffer a ete rempli au tour d'avant, il faut changer de bloc
-				if (nBufferPosition % cvBuffer.nBlockSize == 0)
+				if (nBufferPosition % CharVector::nBlockSize == 0)
 				{
 					nBufferCurrentBlockIndex++;
 					sBufferCurrentBlock =
@@ -785,7 +792,7 @@ void PLSerializer::PutBufferChars(const char* sSource, int nSize)
 			nPositionInSrc = 0;
 
 			// Espace disponible dans le bloc courant du tableau dest
-			nSpaceInBlockDest = cvBuffer.nBlockSize - nBufferPosition % cvBuffer.nBlockSize;
+			nSpaceInBlockDest = CharVector::nBlockSize - nBufferPosition % CharVector::nBlockSize;
 
 			// Reste a ecrire en plus du bloc courant
 			nRemainer = nSize - nSpaceInBlockDest;
@@ -793,9 +800,10 @@ void PLSerializer::PutBufferChars(const char* sSource, int nSize)
 			// Cas ou il faut ecrire la fin du bloc et le bloc suivant
 			if (nRemainer > 0)
 			{
-				assert(sBufferCurrentBlock ==
-				       &cvBuffer.pData.hugeVector.pValueBlocks[nBufferCurrentBlockIndex]
-									      [nBufferPosition % cvBuffer.nBlockSize]);
+				assert(
+				    sBufferCurrentBlock ==
+				    &cvBuffer.pData.hugeVector.pValueBlocks[nBufferCurrentBlockIndex]
+									   [nBufferPosition % CharVector::nBlockSize]);
 
 				// Copie dans le premier bloc
 				memcpy(sBufferCurrentBlock, &sSource[nPositionInSrc], nSpaceInBlockDest);
@@ -818,9 +826,10 @@ void PLSerializer::PutBufferChars(const char* sSource, int nSize)
 			else
 			{
 				// Copie
-				assert(sBufferCurrentBlock ==
-				       &cvBuffer.pData.hugeVector.pValueBlocks[nBufferCurrentBlockIndex]
-									      [nBufferPosition % cvBuffer.nBlockSize]);
+				assert(
+				    sBufferCurrentBlock ==
+				    &cvBuffer.pData.hugeVector.pValueBlocks[nBufferCurrentBlockIndex]
+									   [nBufferPosition % CharVector::nBlockSize]);
 				memcpy(sBufferCurrentBlock, &sSource[nPositionInSrc], nSize);
 
 				nBufferPosition += nSize;
@@ -831,7 +840,7 @@ void PLSerializer::PutBufferChars(const char* sSource, int nSize)
 		// Cas mono-bloc
 		else
 		{
-			sBufferCurrentBlock = &cvBuffer.pData.pValues[nBufferPosition % cvBuffer.nBlockSize];
+			sBufferCurrentBlock = &cvBuffer.pData.pValues[nBufferPosition % CharVector::nBlockSize];
 			memcpy(sBufferCurrentBlock, sSource, nSize);
 			sBufferCurrentBlock += nSize;
 			nBufferPosition += nSize;
@@ -844,7 +853,7 @@ void PLSerializer::PutBufferChars(const char* sSource, int nSize)
 		nPositionInSrc = 0;
 
 		// Espace disponible dans le bloc courant du tableau dest
-		nSpaceInBlockDest = cvBuffer.nBlockSize - nBufferPosition;
+		nSpaceInBlockDest = CharVector::nBlockSize - nBufferPosition;
 
 		// Est-ce que tout rentre dans un bloc
 		nRemainer = nSize - nSpaceInBlockDest;
@@ -859,10 +868,10 @@ void PLSerializer::PutBufferChars(const char* sSource, int nSize)
 			// Envoi du bloc
 			if (IsSendMode())
 			{
-				if (context->nMsgType == PLMsgContext::RSEND)
+				if (context->nMsgType == MSGTYPE::RSEND)
 				{
 					if (nPutBufferCharsCallNumber != 0)
-						context->nMsgType = PLMsgContext::SEND;
+						context->nMsgType = MSGTYPE::SEND;
 				}
 				PLParallelTask::GetDriver()->SendBlock(this, context);
 			}
@@ -891,7 +900,7 @@ void PLSerializer::PutBufferChars(const char* sSource, int nSize)
 		}
 
 		// Envoi du bloc si il est plein
-		if (nBufferPosition == cvBuffer.nBlockSize)
+		if (nBufferPosition == CharVector::nBlockSize)
 		{
 			if (IsSendMode())
 				PLParallelTask::GetDriver()->SendBlock(this, context);
@@ -906,23 +915,30 @@ void PLSerializer::PutBufferChars(const char* sSource, int nSize)
 	nPutBufferCharsCallNumber++;
 }
 
+#if defined(__GNUC__) && !defined(__clang__)
+// Dans plusieurs parties du code, on desactive le warning stringop-overflow
+// pour le compilateur gcc car il emet ce warning a tord (au moins pour la version 11)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 void PLSerializer::GetBufferChars(char* sTarget, int nSize)
 {
 	int nCharNumberInBlocSrc;
 	int nTargetPos;
 	int nRemainer;
 
-	require(nSize <= cvBuffer.nBlockSize);
+	require(nSize <= CharVector::nBlockSize);
 
 	// Cas standard : il n'y a pas de reception des blocks au fil de l'eau
 	// Le buffer peut etre multi-blocs
 	if (IsStdMode())
 	{
-		require(nBufferCurrentBlockIndex == nBufferPosition / cvBuffer.nBlockSize);
+		require(nBufferCurrentBlockIndex == nBufferPosition / CharVector::nBlockSize);
 
 		if (bIsBufferMonoBlock)
 		{
-			assert(sBufferCurrentBlock == &cvBuffer.pData.pValues[nBufferPosition % cvBuffer.nBlockSize]);
+			assert(sBufferCurrentBlock ==
+			       &cvBuffer.pData.pValues[nBufferPosition % CharVector::nBlockSize]);
 			memcpy(sTarget, sBufferCurrentBlock, nSize);
 			nBufferPosition += nSize;
 			sBufferCurrentBlock += nSize;
@@ -932,13 +948,13 @@ void PLSerializer::GetBufferChars(char* sTarget, int nSize)
 			nTargetPos = 0;
 
 			// Nombre de char a ecrire venant du bloc source courant
-			nCharNumberInBlocSrc = cvBuffer.nBlockSize - nBufferPosition % cvBuffer.nBlockSize;
+			nCharNumberInBlocSrc = CharVector::nBlockSize - nBufferPosition % CharVector::nBlockSize;
 
 			// Nombre de caracteres venant du prochain bloc
 			nRemainer = nSize - nCharNumberInBlocSrc;
 			assert(sBufferCurrentBlock ==
 			       &cvBuffer.pData.hugeVector
-				    .pValueBlocks[nBufferCurrentBlockIndex][nBufferPosition % cvBuffer.nBlockSize]);
+				    .pValueBlocks[nBufferCurrentBlockIndex][nBufferPosition % CharVector::nBlockSize]);
 
 			// Si les donnees sont sur 2 blocs
 			if (nRemainer > 0)
@@ -973,7 +989,7 @@ void PLSerializer::GetBufferChars(char* sTarget, int nSize)
 			}
 
 			// Si on a rempli completement le bloc courant
-			if (nBufferPosition % cvBuffer.nBlockSize == 0)
+			if (nBufferPosition % CharVector::nBlockSize == 0)
 			{
 				// Changement de bloc
 				nBufferCurrentBlockIndex++;
@@ -981,14 +997,14 @@ void PLSerializer::GetBufferChars(char* sTarget, int nSize)
 				    &cvBuffer.pData.hugeVector.pValueBlocks[nBufferCurrentBlockIndex][0];
 			}
 
-			ensure(nBufferCurrentBlockIndex == nBufferPosition / cvBuffer.nBlockSize);
+			ensure(nBufferCurrentBlockIndex == nBufferPosition / CharVector::nBlockSize);
 		}
 	}
 	// Serialisation au fil de l'eau : le buffer est mono bloc
 	else
 	{
 		// Si le bloc a ete entieremnt copie, reception d'un nouveau bloc
-		if (nBufferPosition == cvBuffer.nBlockSize)
+		if (nBufferPosition == CharVector::nBlockSize)
 		{
 			if (IsRecvMode())
 				PLParallelTask::GetDriver()->RecvBlock(this, context);
@@ -1002,7 +1018,7 @@ void PLSerializer::GetBufferChars(char* sTarget, int nSize)
 		nTargetPos = 0;
 
 		// Nombre de char a ecrire venant du bloc source courant
-		nCharNumberInBlocSrc = cvBuffer.nBlockSize - nBufferPosition;
+		nCharNumberInBlocSrc = CharVector::nBlockSize - nBufferPosition;
 
 		// Nombre de bloc venant du bloc suivant
 		nRemainer = nSize - nCharNumberInBlocSrc;
@@ -1042,7 +1058,9 @@ void PLSerializer::GetBufferChars(char* sTarget, int nSize)
 		}
 	}
 }
-
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 void PLSerializer::AddMemVectorToBuffer(MemHugeVector& memHugeVector, int nSize, int nAllocSize)
 {
 	int nBlocIndex;
@@ -1120,6 +1138,6 @@ void PLSerializer::ExportBufferMonoBlock(char* sTarget, int nSize)
 
 PLMsgContext::PLMsgContext()
 {
-	nMsgType = -1;
+	nMsgType = MSGTYPE::UNKNOW;
 }
 PLMsgContext::~PLMsgContext() {}

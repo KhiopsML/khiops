@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -13,7 +13,7 @@
 #include "KWDatabaseTransferTask.h"
 #include "KWClassAttributeHelpList.h"
 #include "KWDatabaseAttributeValuesHelpList.h"
-#include "LMLicenseManager.h"
+#include "KWResultFilePathBuilder.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWDatabaseTransferView
@@ -27,12 +27,13 @@ public:
 	KWDatabaseTransferView();
 	~KWDatabaseTransferView();
 
-	// Initialisation des specifications du fichier d'origine
-	// a presenter a l'utilisateur
+	// Initialisation des specifications du fichier d'origine a presenter a l'utilisateur
 	// Si NULL, reinitialisation de toutes les valeurs a vide
-	// La classe assure sinon la permanence des dernieres saisies
-	// utilisateurs entre deux ouvertures successives
-	void InitializeSourceDatabase(KWDatabase* database);
+	// La classe assure sinon la permanence des dernieres saisies utilisateurs
+	// entre deux ouvertures successives
+	// Le chemin des sortie est base en priorite sur celui de la base en sortie, puis celui de la base
+	// en entree, puis celui du fichier dictionnaire
+	void InitializeSourceDatabase(KWDatabase* database, const ALString& sDatabaseClassFileName);
 
 	// Reimplementation de la methode Open
 	void Open() override;
@@ -44,7 +45,7 @@ public:
 	void BuildTransferredClass();
 
 	// Redefinition de la methode de mise a jour des donnees, pour synchroniser
-	// le dictionnaire associe aux bases source et cibles
+	// le dictionnaire associe aux bases source et cible
 	void EventUpdate() override;
 	void EventRefresh() override;
 
@@ -63,19 +64,6 @@ protected:
 	// Le transfer se fait au format sparse ou dense selon les specifications de l'interface
 	KWClass* InternalBuildTransferredClass(KWClassDomain* transferredClassDomain, const KWClass* transferClass);
 
-	// Test si une classe (ou sa composition) contient des blocs d'attributs a transferer
-	boolean IsClassWithTransferredAttributeBlocks(const KWClass* transferClass) const;
-
-	// Creation d'un domaine ou la classe a transferer (et les classes de sa composition) sont transformees
-	// au format dense, a partir d'une classe source.
-	// Tous les attributs sparse utilises sont renommes, mis en unused, et recopies dans des attributs dense
-	// de meme nom que les attributs initiaux
-	// Cela permet de gerer la transformation d'un format sparse vers un format dense au moyen d'un dictionnaire
-	// dedie, plutot qu'au moyen d'un flag a positionner dans les database et a propager dans les tables, drivers,
-	// en parallele, ce qui ne serait pas maintenable. On a ici une solution qui reste localisee dans une seule
-	// methode
-	KWClassDomain* InternalBuildDenseClassDomain(const KWClass* transferClass);
-
 	// Preparation de la classe de transfer (et de sa composition), en ne mettant en Load que les attributs
 	// transferables de facon a optimiser le nombre d'attributs calcules a traiter
 	void PrepareTransferClass(KWClass* transferClass);
@@ -85,6 +73,7 @@ protected:
 
 	// Memorisation des donnees gerees par la fiche
 	ALString sClassName;
+	ALString sClassFileName;
 	KWDatabase* sourceDatabase;
 	KWDatabase* targetDatabase;
 

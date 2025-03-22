@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -48,7 +48,7 @@ void KWDatabaseFormatDetectorView::SetUsingClass(boolean bValue)
 	sMessage = "Detect the format of the database.";
 	sMessage += "\n Heuristic help that scans the first few lines to guess the file format";
 	if (bValue)
-		sMessage += "\n while being consistent w.r.t. the dictionary";
+		sMessage += "\n while being consistent w.r.t. the dictionary if specified.";
 	else
 		sMessage += ".";
 	sMessage += "\n The header line and field separator are updated on success,";

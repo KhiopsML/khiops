@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -222,6 +222,24 @@ const ALString KWObjectKey::GetObjectLabel() const
 	}
 	sObjectLabel += "]";
 	return sObjectLabel;
+}
+
+void KWObjectKey::BuildDistinctObjectLabels(const KWObjectKey* otherObjectKey, ALString& sObjectLabel,
+					    ALString& sOtherObjectLabel)
+{
+	KWKey key;
+	KWKey otherKey;
+	int i;
+
+	// Initialisation des deux cles
+	key.SetSize(GetSize());
+	otherKey.SetSize(otherObjectKey->GetSize());
+	for (i = 0; i < key.GetSize(); i++)
+		key.SetAt(i, GetAt(i).GetValue());
+	for (i = 0; i < otherKey.GetSize(); i++)
+		otherKey.SetAt(i, otherObjectKey->GetAt(i).GetValue());
+
+	key.BuildDistinctObjectLabels(&otherKey, sObjectLabel, sOtherObjectLabel);
 }
 
 void KWObjectKey::Test()

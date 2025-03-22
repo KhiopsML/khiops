@@ -1,7 +1,8 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
+#include "MemoryManager.h"
 #include "Standard.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -37,20 +38,39 @@ static longint MemHeapCurrentSegmentNumber = 0; // Nombre courant de segments sy
 // Taille max de la heap a ne pas depasser
 static longint lMemMaxHeapSize = 0;
 
-// Mise a jour des statiques globales
-inline void MemHeapUpdateAlloc(size_t nSize)
-{
-	// Mise a jour des stats
-	MemHeapMemory += nSize;
-	if (MemHeapMemory > MemHeapMaxRequestedMemory)
-		MemHeapMaxRequestedMemory = MemHeapMemory;
-	MemHeapTotalRequestedMemory += nSize;
+// Gestion des erreurs fatales: declaration de la methode
+static void MemFatalError(const char* sAllocErrorMessage);
 
-	// test de depassement memoire
+// Mise a jour des statiques globales
+// On renvoie true si on a assez de memoire
+inline boolean MemHeapUpdateAlloc(size_t nSize)
+{
+	// Test de depassement memoire
 	if (lMemMaxHeapSize > 0 && MemHeapMemory > lMemMaxHeapSize)
 	{
-		fprintf(stdout, "Memory user overflow: heap size beyond user limit (%lld)\n", lMemMaxHeapSize);
-		GlobalExit();
+		// Erreur fatale s'il y a un handler de gestion de la memoire
+		if (MemGetAllocErrorHandler() != NULL)
+		{
+			char sMessage[100];
+			snprintf(sMessage, sizeof(sMessage),
+				 "Memory user overflow: heap size beyond user limit (%lld)\n", lMemMaxHeapSize);
+			MemFatalError(sMessage);
+			GlobalExit();
+		}
+
+		// Si pas d'erreur fatale, on indique juste que l'allocation n'est possible et on on renverra NULL
+		return false;
+	}
+	// Mise a jour des stats sinon
+	else
+	{
+		MemHeapMemory += nSize;
+		if (MemHeapMemory > MemHeapMaxRequestedMemory)
+			MemHeapMaxRequestedMemory = MemHeapMemory;
+		MemHeapTotalRequestedMemory += nSize;
+
+		// On indique que l'allocation est possible
+		return true;
 	}
 }
 
@@ -92,8 +112,10 @@ static void MemAllocFatalErrorReserveMemory()
 {
 	if (pMemFatalErrorReserveMemory == NULL)
 	{
-		MemHeapUpdateAlloc(nMemFatalErrorReserveMemorySize);
-		pMemFatalErrorReserveMemory = p_hugemalloc(nMemFatalErrorReserveMemorySize);
+		if (MemHeapUpdateAlloc(nMemFatalErrorReserveMemorySize))
+			pMemFatalErrorReserveMemory = p_hugemalloc(nMemFatalErrorReserveMemorySize);
+		else
+			pMemFatalErrorReserveMemory = NULL;
 	}
 }
 #endif // RELEASENEWMEM
@@ -586,10 +608,14 @@ void MemStatsInit()
 {
 	if (memDetailedStats == NULL)
 	{
-		MemHeapUpdateAlloc((MEMSTATSMAXSIZE + 1) * sizeof(longint));
-		memDetailedStats = (longint*)p_hugemalloc((MEMSTATSMAXSIZE + 1) * sizeof(longint));
-		for (int i = 0; i <= MEMSTATSMAXSIZE; i++)
-			memDetailedStats[i] = 0;
+		if (MemHeapUpdateAlloc((MEMSTATSMAXSIZE + 1) * sizeof(longint)))
+		{
+			memDetailedStats = (longint*)p_hugemalloc((MEMSTATSMAXSIZE + 1) * sizeof(longint));
+			for (int i = 0; i <= MEMSTATSMAXSIZE; i++)
+				memDetailedStats[i] = 0;
+		}
+		else
+			memDetailedStats = NULL;
 		memTotalStats = 0;
 		memTotalSizeStats = 0;
 	}
@@ -799,10 +825,17 @@ inline void MemBlockSetSizeValueAt(void* pBlock, int nOffset, size_t nSize)
 
 inline MemSegment* SegNew()
 {
+	MemSegment* segment;
+
 	// Allocation du segment
-	MemHeapCurrentSegmentNumber++;
-	MemHeapUpdateAlloc(MemSystemSegmentByteSize);
-	return (MemSegment*)p_hugemalloc(MemSystemSegmentByteSize);
+	if (MemHeapUpdateAlloc(MemSystemSegmentByteSize))
+	{
+		MemHeapCurrentSegmentNumber++;
+		segment = (MemSegment*)p_hugemalloc(MemSystemSegmentByteSize);
+	}
+	else
+		segment = NULL;
+	return segment;
 }
 
 inline void SegInit(MemSegment* self)
@@ -1023,7 +1056,7 @@ void SegPrintStats(MemSegment* self)
 
 #ifndef NOMEMCONTROL
 
-// Methodes de diagnostique des problemes memoire
+// Methodes de diagnostics des problemes memoire
 void MemPrintStat(FILE* fOutput);
 void MemCompleteCheck(FILE* fOutput);
 
@@ -1085,24 +1118,15 @@ void HeapInit()
 	{
 		bIsHeapInitialized = true;
 
-		// On profite de l'initialisation de la heap pour effectuer un parametrage pour l'ensemble de tous les
-		// programmes On force ici un format d'exposant a deux digits sous Windows, pour etre compatible avec
-		// Linux dans toutes les sorties, ce qui facilite la reproductibilite des tests (par defaut: exposant a
-		// trois digits sous Windows, et a deux digits sous Linux) On force ici les locale, pour unifier les
-		// conversion entre double et chaines de caracteres (point decimal)
-#if defined _MSC_VER and _MSC_VER < 1400
-		_set_output_format(_TWO_DIGIT_EXPONENT);
-#endif
-
 		// On profite de l'initialisation de la heap pour effectuer un parametrage sous linux
 		// pour permettre l'ecriture de fichier dump en mode alpha
-#if defined __UNIX__ and defined __ALPHA__
+#if defined __linux_or_apple__ and defined __ALPHA__
 		// Pour forcer les crash dumps
 		rlimit limit;
 		limit.rlim_cur = RLIM_INFINITY;
 		limit.rlim_max = RLIM_INFINITY;
 		setrlimit(RLIMIT_CORE, &limit);
-#endif // defined __UNIX__ and defined __ALPHA__
+#endif // defined __linux_or_apple__ and defined __ALPHA__
 
 		// On force un locale independant de la machine, pour assurer unicite des conversions numeriques et des
 		// tris
@@ -1201,8 +1225,8 @@ void HeapInit()
 
 			// Allocation de la structure de la heap
 			assert(pHeap == NULL);
-			MemHeapUpdateAlloc(nHeapTotalAllocSize);
-			pHeap = (MemHeap*)p_hugemalloc(nHeapTotalAllocSize);
+			if (MemHeapUpdateAlloc(nHeapTotalAllocSize))
+				pHeap = (MemHeap*)p_hugemalloc(nHeapTotalAllocSize);
 			if (pHeap == NULL)
 			{
 				MemFatalError("Memory overflow (heap allocation error)\n");
@@ -1291,10 +1315,11 @@ void HeapClose()
 }
 
 // Visual C++: supression des Warning
-#ifdef _MSC_VER
-#pragma warning(disable : 6385) // disable C6385 warning (pour un controle excessif sur pHeap->fixedSizeHeapHeadSegments
-				// dans HeapCheckFixedSizeHeapLecture)
-#endif                          // _MSC_VER
+#ifdef __MSC__
+// disable C6385 warning
+// (pour un controle excessif sur pHeap->fixedSizeHeapHeadSegments dans HeapCheckFixedSizeHeapLecture)
+#pragma warning(disable : 6385)
+#endif // __MSC__
 
 // Verification d'un segment d'un FixedSizeHeap
 int HeapCheckFixedSizeHeap(MemSegment* psegSearched)
@@ -1523,14 +1548,17 @@ inline void* MemAlloc(size_t nSize)
 		assert(nRequestedSize >= nTrueSize);
 
 		// Allocation classique
-		MemHeapUpdateAlloc(nRequestedSize);
-		pBlock = (void*)p_hugemalloc(nRequestedSize);
+		if (MemHeapUpdateAlloc(nRequestedSize))
+			pBlock = (void*)p_hugemalloc(nRequestedSize);
+		else
+			pBlock = NULL;
 		if (pBlock == NULL)
 		{
 			if (MemGetAllocErrorHandler() != NULL)
 			{
 				char sMessage[100];
-				sprintf(sMessage, "Memory overflow (malloc allocation error (%lld))\n", (longint)nSize);
+				snprintf(sMessage, sizeof(sMessage),
+					 "Memory overflow (malloc allocation error (%lld))\n", (longint)nSize);
 				MemFatalError(sMessage);
 			}
 			return NULL;
@@ -1603,9 +1631,9 @@ inline void MemFree(void* pBlock)
 	}
 
 	psegCurrent = MemBlockGetSegment(pBlock);
-#ifdef _MSC_VER
+#ifdef __MSC__
 	assert(psegCurrent != MemStatusMicrosoftNoMansland);
-#endif                           //_MSC_VER
+#endif                           // __MSC__
 	if (psegCurrent != NULL) // liberation subclassee
 	{
 		assert(psegCurrent->nNbBlock >= 1);
@@ -1712,7 +1740,7 @@ inline void MemFree(void* pBlock)
 				// libere, mais ce n'est pas grave
 				if (pHeap->nFreeSegmentNumber > 1 + MemHeapCurrentSegmentNumber / 8)
 				{
-					// On recupere le segment en te de liste des segments libvres
+					// On recupere le segment en te de liste des segments libres
 					psegCurrent = pHeap->headFreeSegments;
 					pHeap->headFreeSegments = psegCurrent->nextSegment;
 					pHeap->nFreeSegmentNumber--;
@@ -2030,8 +2058,8 @@ void* DebugMemAlloc(size_t nSize)
 		if (MemGetAllocErrorHandler() != NULL)
 		{
 			char sMessage[100];
-			sprintf(sMessage, "Memory overflow (unable to allocate memory (%lld))\n",
-				(longint)(nSize + MemControlOverhead * sizeof(void*)));
+			snprintf(sMessage, sizeof(sMessage), "Memory overflow (unable to allocate memory (%lld))\n",
+				 (longint)(nSize + MemControlOverhead * sizeof(void*)));
 			MemFatalError(sMessage);
 		}
 		return NULL;
@@ -2187,11 +2215,11 @@ void DebugMemFree(void* pBlock)
 		// Cas particulier Microsoft: en mode DEBUG
 		// l'allocateur est redefini, et on capture des
 		// delete sans avoir eu les new correspondant
-#ifdef _MSC_VER
+#ifdef __MSC__
 		if (MemBlockGetValueAt(pBlock, -1) == MemStatusMicrosoftNoMansland)
 			p_hugefree(pBlock);
 		else
-#endif //_MSC_VER
+#endif // __MSC__
 		{
 			void* pAllocBlock;
 

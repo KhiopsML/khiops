@@ -1,0 +1,15 @@
+#Khiops 7.7.2i
+
+// Root entity: curve, defined by its identifier (Date) and its array of points
+Root	Dictionary	PowerCurve	(Date)
+{
+	Categorical	Date		;	
+	Table(PowerCurvePoint)	CurvePoints		;	
+};
+
+Dictionary	PowerCurvePoint	(Date)
+{
+	Categorical	Date		;	
+	Numerical	Time		;	
+	Numerical	Power		;	
+};

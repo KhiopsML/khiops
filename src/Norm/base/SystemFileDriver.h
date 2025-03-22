@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -37,11 +37,18 @@ public:
 	virtual boolean Disconnect() = 0;
 	virtual boolean IsConnected() const = 0;
 
+	// Renvoie la taille de buffer a privilegier lors de l'acces I/O (en octets)
+	// Par defaut cette methode renvoie 0
+	virtual longint GetSystemPreferredBufferSize() const;
+
 	///////////////////////////////////////////////////////////////////////
 	// Methodes a implementer en mode read-only
 
-	// Test d'existence d'un fichier ou d'un repertoire
-	virtual boolean Exist(const char* sFilePathName) const = 0;
+	// Test d'existence d'un fichier
+	virtual boolean FileExists(const char* sFilePathName) const = 0;
+
+	// Test d'existence d'un repertoire
+	virtual boolean DirExists(const char* sFilePathName) const = 0;
 
 	// Taile d'un fichier
 	virtual longint GetFileSize(const char* sFilePathName) const = 0;
@@ -53,13 +60,13 @@ public:
 	virtual boolean Close(void* stream) = 0;
 
 	// Renvoie le nombre d'octets lus, -1 si il y a eu une erreur
-	virtual longint fread(void* ptr, size_t size, size_t count, void* stream) = 0;
+	virtual longint Fread(void* ptr, size_t size, size_t count, void* stream) = 0;
 
 	// Positionnement dans un fichier ouvert en lecture
 	virtual boolean SeekPositionInFile(longint lPosition, void* stream) = 0;
 
 	// Copie du systeme de fichier courant vers le systeme de fichier standard
-	// L'implementation par defaut utilise fread et fwrite
+	// L'implementation par defaut utilise Fread et Fwrite
 	virtual boolean CopyFileToLocal(const char* sSourceFilePathName, const char* sDestFilePathName);
 
 	// Renvoie le dernier message d'erreur
@@ -70,11 +77,10 @@ public:
 	// Ces methodes sont implementees par defaut avec des assert(false)
 
 	// Renvoie le nombre d'octets ecrits, 0 si il y a eu une erreur
-	// TODO renommer fwrite flush et fread avec des majuscule spour ne pas les confondre avec l'API C
-	virtual longint fwrite(const void* ptr, size_t size, size_t count, void* stream) = 0;
+	virtual longint Fwrite(const void* ptr, size_t size, size_t count, void* stream) = 0;
 
 	// Flush les donnees, renvoie true si OK
-	virtual boolean flush(void* stream) = 0;
+	virtual boolean Flush(void* stream) = 0;
 
 	// Supression d'un fichier
 	virtual boolean RemoveFile(const char* sFilePathName) const = 0;
@@ -106,6 +112,9 @@ public:
 	// Copie du systeme de fichier courant vers le systeme de fichier standard et inversement
 	// L'implementation par defaut utilise fread et fwrite
 	virtual boolean CopyFileFromLocal(const char* sSourceFilePathName, const char* sDestFilePathName);
+
+	// Taille maximum du buffer utilise pour la copie
+	const static int nMaxBufferSizeForCopying = 64 * lMB;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

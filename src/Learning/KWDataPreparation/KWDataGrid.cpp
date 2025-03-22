@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -20,6 +20,7 @@ KWDataGrid::KWDataGrid()
 	nSortValue = 0;
 	targetAttribute = NULL;
 	nGranularity = 0;
+	varPartAttribute = NULL;
 }
 
 KWDataGrid::~KWDataGrid()
@@ -155,6 +156,7 @@ void KWDataGrid::DeleteAll()
 
 	// Destruction des attributs
 	oaAttributes.DeleteAll();
+	varPartAttribute = NULL;
 
 	// Destruction des valeurs cibles
 	svTargetValues.SetSize(0);
@@ -280,7 +282,7 @@ KWDGCell* KWDataGrid::AddCell(ObjectArray* oaParts)
 	int nAttribute;
 	KWDGPart* part;
 
-	require(GetCellUpdateMode() == true);
+	require(GetCellUpdateMode());
 	require(CheckCellParts(oaParts));
 	require(LookupCell(oaParts) == NULL);
 
@@ -337,7 +339,7 @@ KWDGCell* KWDataGrid::LookupCell(ObjectArray* oaParts) const
 	KWDGCell* cell;
 	POSITION position;
 
-	require(GetCellUpdateMode() == true);
+	require(GetCellUpdateMode());
 	require(CheckCellParts(oaParts));
 
 	// Recopie des criteres de trie dans la cellule cle
@@ -402,7 +404,7 @@ void KWDataGrid::DeleteCell(KWDGCell* cell)
 	}
 
 	// Suppression de la structure d'indexation
-	if (GetCellUpdateMode() == true)
+	if (GetCellUpdateMode())
 	{
 		position = slCells->Find(cell);
 		assert(position != NULL);
@@ -420,7 +422,7 @@ boolean KWDataGrid::CheckCell(KWDGCell* cell) const
 	int nAttribute;
 	KWDGPart* part;
 
-	require(GetCellUpdateMode() == true);
+	require(GetCellUpdateMode());
 	require(cell != NULL);
 	require(cell->GetAttributeNumber() == GetAttributeNumber());
 	require(cell->GetTargetValueNumber() == GetTargetValueNumber());
@@ -507,6 +509,22 @@ void KWDataGrid::UpdateAllStatistics()
 	dLnGridSize = ComputeLnGridSize();
 	nInformativeAttributeNumber = ComputeInformativeAttributeNumber();
 	nTotalPartNumber = ComputeTotalPartNumber();
+}
+
+int KWDataGrid::ComputeMaxPartNumber() const
+{
+	int nResult;
+	int nAttribute;
+	KWDGAttribute* attribute;
+
+	// Calcul par parcours des attributs
+	nResult = 0;
+	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
+	{
+		attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
+		nResult = max(nResult, attribute->GetPartNumber());
+	}
+	return nResult;
 }
 
 double KWDataGrid::ComputeSourceEntropy()
@@ -629,6 +647,11 @@ double KWDataGrid::ComputeMutualEntropy()
 	return dResult;
 }
 
+KWDGAttribute* KWDataGrid::NewAttribute() const
+{
+	return new KWDGAttribute;
+}
+
 boolean KWDataGrid::Check() const
 {
 	boolean bOk = true;
@@ -638,11 +661,13 @@ boolean KWDataGrid::Check() const
 	KWDGPart* part;
 	KWDGCell* cell;
 	int nAttributeCellNumber;
-	ALString sTmp;
 	int nTargetAttributeNumber;
+	int nVarTypeAttributeNumber;
+	ALString sTmp;
 
-	// Initialisation du nombre d'attributs indiques comme cible
+	// Initialisation des nombres d'attributs a verifier
 	nTargetAttributeNumber = 0;
+	nVarTypeAttributeNumber = 0;
 
 	// Verification de la granularite
 	if (nGranularity < 0)
@@ -671,6 +696,12 @@ boolean KWDataGrid::Check() const
 		if (attribute->GetAttributeTargetFunction())
 		{
 			nTargetAttributeNumber++;
+		}
+
+		// On compte le nombre d'attributs de type VarPart
+		if (attribute->GetAttributeType() == KWType::VarPart)
+		{
+			nVarTypeAttributeNumber++;
 		}
 
 		// Verification du lien entre l'attribut et la structure
@@ -716,7 +747,7 @@ boolean KWDataGrid::Check() const
 	}
 
 	// Verification qu'il n'y a pas plus d'un attribut cible
-	if (nTargetAttributeNumber > 1)
+	if (bOk and nTargetAttributeNumber > 1)
 	{
 		AddError(sTmp + "There are " + IntToString(nTargetAttributeNumber) +
 			 " target variables in the data grid");
@@ -724,7 +755,7 @@ boolean KWDataGrid::Check() const
 	}
 
 	// Verification que l'eventuel attribut cible est bien le dernier
-	if (nTargetAttributeNumber == 1)
+	if (bOk and nTargetAttributeNumber == 1)
 	{
 		check(GetTargetAttribute());
 		assert(GetAttributeAt(GetTargetAttribute()->GetAttributeIndex()) == GetTargetAttribute());
@@ -736,7 +767,7 @@ boolean KWDataGrid::Check() const
 	}
 
 	// Verification de l'absence d'attribut cible si necessaire
-	if (nTargetAttributeNumber == 0)
+	if (bOk and nTargetAttributeNumber == 0)
 	{
 		if (GetTargetAttribute() != NULL)
 		{
@@ -746,12 +777,69 @@ boolean KWDataGrid::Check() const
 	}
 
 	// Verification qu'il n'y a pas de valeurs cible en meme temps qu'un attribut cible
-	if (nTargetAttributeNumber == 1 and GetTargetValueNumber() > 0)
+	if (bOk and nTargetAttributeNumber == 1 and GetTargetValueNumber() > 0)
 	{
 		AddError(sTmp + "There are both " + IntToString(GetTargetValueNumber()) +
 			 " target values and one target variable (" + GetTargetAttribute()->GetAttributeName() +
 			 ") in the data grid");
 		bOk = false;
+	}
+
+	// Verifications par assertion de la memorisation de l'eventuel attribut de type VarPart
+	assert(not bOk or varPartAttribute == NULL or varPartAttribute->GetAttributeType() == KWType::VarPart);
+	assert(not bOk or varPartAttribute == NULL or
+	       SearchAttribute(varPartAttribute->GetAttributeName()) == varPartAttribute);
+	assert(not bOk or varPartAttribute == NULL or varPartAttribute->GetInnerAttributes() != NULL);
+	assert(not bOk or varPartAttribute == NULL or nVarTypeAttributeNumber > 0);
+	assert(not bOk or varPartAttribute != NULL or nVarTypeAttributeNumber == 0);
+
+	// Verification qu'il y au plus un attribut de type VarPart
+	if (bOk and nVarTypeAttributeNumber > 1)
+	{
+		AddError(sTmp + "There are " + IntToString(nVarTypeAttributeNumber) +
+			 " variables of type VarPart in the data grid");
+		bOk = false;
+	}
+
+	// Verification dans le cas d'un attribut de type VarPart
+	if (bOk and IsVarPartDataGrid())
+	{
+		assert(nVarTypeAttributeNumber == 1);
+
+		// Verification des attributs internes
+		bOk = GetInnerAttributes()->Check();
+
+		// Verification que les attributs de la grille sont distincts des attributs internes
+		if (bOk)
+		{
+			for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
+			{
+				attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
+
+				// Test d'existence parmi les attribut internes
+				if (GetVarPartAttribute()->GetInnerAttributes()->LookupInnerAttribute(
+					attribute->GetAttributeName()) != NULL)
+				{
+					AddError(sTmp + "Internal variable " + attribute->GetAttributeName() +
+						 " is already used with the same name among the data grid variables "
+						 "(index " +
+						 IntToString(attribute->GetAttributeIndex()) + ")");
+					break;
+					bOk = false;
+				}
+			}
+		}
+
+		// Verification de l'effectif total de la grille
+		// On ne fait la verification que si des cellules sont presentes, ce qui permet de verifier une grille
+
+		if (bOk and GetCellNumber() > 0 and
+		    GetInnerAttributes()->ComputeTotalInnerAttributeFrequency() != ComputeGridFrequency())
+		{
+			AddError(sTmp + "Grid frequency (" + IntToString(ComputeGridFrequency()) +
+				 ") is different from the total part frequency of the inner variables (" +
+				 IntToString(GetInnerAttributes()->ComputeTotalInnerAttributeFrequency()) + ")");
+		}
 	}
 
 	// Verification de toutes les cellules
@@ -823,7 +911,7 @@ void KWDataGrid::SortAttributeParts()
 	int nAttribute;
 	KWDGAttribute* attribute;
 
-	// Tri des partie pour chaque attribut
+	// Tri des parties pour chaque attribut
 	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
 	{
 		attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
@@ -860,7 +948,7 @@ void KWDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats)
 	int nPart;
 	KWDGPart* part;
 	KWDGInterval* interval;
-	KWDGValueSet* valueSet;
+	KWDGSymbolValueSet* symbolValueSet;
 	int nValue;
 	ObjectArray oaAttributePartitions;
 	ObjectArray* oaPartition;
@@ -997,12 +1085,13 @@ void KWDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats)
 			{
 				part = attribute->AddPart();
 				oaPartition->SetAt(nPart, part);
-				valueSet = part->GetValueSet();
+				symbolValueSet = part->GetSymbolValueSet();
 
 				// Initialisation des valeurs du groupe
 				for (nValue = attributeGrouping->GetGroupFirstValueIndexAt(nPart);
 				     nValue <= attributeGrouping->GetGroupLastValueIndexAt(nPart); nValue++)
-					valueSet->AddValue(attributeGrouping->GetValueAt(nValue));
+					symbolValueSet->AddSymbolValue(attributeGrouping->GetValueAt(nValue));
+
 				// Cas du groupe poubelle : memorisation de la partie au niveau de l'attribut
 				if (nPart == attributeGrouping->GetGarbageGroupIndex())
 					attribute->SetGarbagePart(part);
@@ -1020,17 +1109,17 @@ void KWDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats)
 			{
 				part = attribute->AddPart();
 				oaPartition->SetAt(nPart, part);
-				valueSet = part->GetValueSet();
+				symbolValueSet = part->GetSymbolValueSet();
 
 				// Initialisation de la valeur du groupe
 				assert(attributeSymbolValues->GetValueAt(nPart) != Symbol::GetStarValue());
-				valueSet->AddValue(attributeSymbolValues->GetValueAt(nPart));
+				symbolValueSet->AddSymbolValue(attributeSymbolValues->GetValueAt(nPart));
 			}
 
 			// Ajout de la valeur speciale
 			assert(attributeSymbolValues->GetValueNumber() > 0);
-			valueSet = attribute->GetTailPart()->GetValueSet();
-			valueSet->AddValue(Symbol::GetStarValue());
+			symbolValueSet = attribute->GetTailPart()->GetSymbolValueSet();
+			symbolValueSet->AddSymbolValue(Symbol::GetStarValue());
 		}
 	}
 
@@ -1106,7 +1195,7 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 	int nPart;
 	KWDGPart* part;
 	KWDGInterval* interval;
-	KWDGValueSet* valueSet;
+	KWDGSymbolValueSet* symbolValueSet;
 	int nValue;
 	int nValueNumber;
 	int nSuppressedValueNumber;
@@ -1115,7 +1204,7 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 	IntVector ivPartIndexes;
 	NumericKeyDictionary nkdPartIndexes;
 	KWSortableIndex* partIndex;
-	KWDGValueSet* cleanedValueSet;
+	KWDGSymbolValueSet* cleanedSymbolValueSet;
 
 	require(Check());
 	require(dataGridStats != NULL);
@@ -1123,7 +1212,7 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 
 	dataGridStats->SetGranularity(nGranularity);
 
-	cleanedValueSet = NULL;
+	cleanedSymbolValueSet = NULL;
 
 	// Creation des attributs sources de la grille
 	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
@@ -1147,14 +1236,14 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 			attributeGrouping->SetCatchAllValueNumber(attribute->GetCatchAllValueNumber());
 			attributeGrouping->SetGarbageModalityNumber(attribute->GetGarbageModalityNumber());
 
-			// Comptage du nombre total de valeurs
+			// Comptage du nombre total de valeurs, en partant de 1 pour compter la StarValue
 			nSuppressedValueNumber = 0;
-			nValueNumber = 0;
+			nValueNumber = 1;
 			part = attribute->GetHeadPart();
 			while (part != NULL)
 			{
-				valueSet = part->GetValueSet();
-				nValueNumber += valueSet->GetValueNumber();
+				symbolValueSet = part->GetSymbolValueSet();
+				nValueNumber += symbolValueSet->GetValueNumber();
 
 				// Calcul du nombre eventuel de modalites qui seront nettoyees (non memorisees pour
 				// l'affichage) En presence d'un fourre-tout, les modalites du fourre-tout autres que
@@ -1164,7 +1253,7 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 				// groupe poubelle, ce groupe poubelle est represente par la modalite la plus frequente
 				// + StarValue Cas de la partie poubelle en l'absence de fourre-tout
 				if (attribute->GetGarbagePart() == part and attribute->GetCatchAllValueNumber() == 0)
-					nSuppressedValueNumber = valueSet->GetTrueValueNumber() - 1;
+					nSuppressedValueNumber = symbolValueSet->GetValueNumber() - 1;
 				attribute->GetNextPart(part);
 			}
 
@@ -1178,7 +1267,7 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 			nValue = 0;
 			while (part != NULL)
 			{
-				valueSet = part->GetValueSet();
+				symbolValueSet = part->GetSymbolValueSet();
 
 				// Regles d'affectation de la StarValue
 				// - dans le fourre-tout en presence d'un fourre-tout et en l'absence d'un groupe
@@ -1195,14 +1284,14 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 				    attribute->GetGarbageModalityNumber() > 0)
 				{
 					// Creation d'un valueSet nettoye sans la StarValue
-					cleanedValueSet = new KWDGValueSet;
-					value = valueSet->GetHeadValue();
+					cleanedSymbolValueSet = cast(KWDGSymbolValueSet*, symbolValueSet->Create());
+					value = symbolValueSet->GetHeadValue();
 					while (value != NULL)
 					{
 						// Cas d'une modalite differente de la StarValue
-						if (value->GetValue() != Symbol::GetStarValue())
-							cleanedValueSet->AddValue(value->GetValue());
-						valueSet->GetNextValue(value);
+						if (value->GetSymbolValue() != Symbol::GetStarValue())
+							cleanedSymbolValueSet->AddSymbolValue(value->GetSymbolValue());
+						symbolValueSet->GetNextValue(value);
 					}
 				}
 
@@ -1210,46 +1299,49 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 				else if (part == attribute->GetGarbagePart())
 				{
 					attributeGrouping->SetGarbageGroupIndex(nPart);
+
 					// Cas de la presence d'un groupe poubelle sans presence de fourre-tout
 					if (attribute->GetCatchAllValueNumber() == 0)
 					{
 						// Creation d'un ValueSet nettoye pour un affichage reduit a la modalite
 						// la plus frequente
-						cleanedValueSet = valueSet->ComputeCleanedValueSet();
+						cleanedSymbolValueSet =
+						    cast(KWDGSymbolValueSet*, symbolValueSet->ComputeCleanedValueSet());
 					}
 				}
 
 				// Memorisation de l'index de la partie dans un dictionnaire
 				partIndex = new KWSortableIndex;
 				partIndex->SetIndex(nPart);
-				nkdPartIndexes.SetAt((NUMERIC)part, partIndex);
+				nkdPartIndexes.SetAt(part, partIndex);
 
 				// Parametrage des valeurs de la partie
 				attributeGrouping->SetGroupFirstValueIndexAt(nPart, nValue);
 
 				// Cas ou une version nettoyee du valueSet de la partie a ete cree
-				if (cleanedValueSet != NULL)
+				if (cleanedSymbolValueSet != NULL)
 				{
-					value = cleanedValueSet->GetHeadValue();
+					value = cleanedSymbolValueSet->GetHeadValue();
 					while (value != NULL)
 					{
-						attributeGrouping->SetValueAt(nValue, value->GetValue());
+						attributeGrouping->SetValueAt(nValue, value->GetSymbolValue());
 						nValue++;
-						cleanedValueSet->GetNextValue(value);
+						cleanedSymbolValueSet->GetNextValue(value);
 					}
+
 					// Nettoyage
-					delete cleanedValueSet;
-					cleanedValueSet = NULL;
+					delete cleanedSymbolValueSet;
+					cleanedSymbolValueSet = NULL;
 				}
 				// Sinon
 				else
 				{
-					value = valueSet->GetHeadValue();
+					value = symbolValueSet->GetHeadValue();
 					while (value != NULL)
 					{
-						attributeGrouping->SetValueAt(nValue, value->GetValue());
+						attributeGrouping->SetValueAt(nValue, value->GetSymbolValue());
 						nValue++;
-						valueSet->GetNextValue(value);
+						symbolValueSet->GetNextValue(value);
 					}
 				}
 
@@ -1266,7 +1358,6 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 			attributeDiscretization = new KWDGSAttributeDiscretization;
 			attributePartition = attributeDiscretization;
 			attributePartition->SetAttributeName(attribute->GetAttributeName());
-
 			attributePartition->SetInitialValueNumber(attribute->GetInitialValueNumber());
 			attributePartition->SetGranularizedValueNumber(attribute->GetGranularizedValueNumber());
 
@@ -1281,7 +1372,7 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 				// Memorisation de l'index de la partie dans un dictionnaire
 				partIndex = new KWSortableIndex;
 				partIndex->SetIndex(nPart);
-				nkdPartIndexes.SetAt((NUMERIC)part, partIndex);
+				nkdPartIndexes.SetAt(part, partIndex);
 
 				// On memorise la borne inf a partir du deusiemme intervalle
 				if (nPart > 0)
@@ -1346,7 +1437,7 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 		{
 			// Recherche de l'index associe a la partie
 			part = cell->GetPartAt(nAttribute);
-			partIndex = cast(KWSortableIndex*, nkdPartIndexes.Lookup((NUMERIC)part));
+			partIndex = cast(KWSortableIndex*, nkdPartIndexes.Lookup(part));
 			check(partIndex);
 			ivPartIndexes.SetAt(nAttribute, partIndex->GetIndex());
 		}
@@ -1392,6 +1483,12 @@ void KWDataGrid::Write(ostream& ost) const
 	if (GetTargetAttribute() != NULL)
 		ost << "TargetVariable\t" << GetTargetAttribute()->GetAttributeName() << "\n";
 	ost << "Granularity\t" << GetGranularity() << "\n";
+	if (IsVarPartDataGrid())
+	{
+		ost << "VariableParts Granularity\t"
+		    << GetVarPartAttribute()->GetInnerAttributes()->GetVarPartGranularity() << "\n";
+		WriteInnerAttributes(ost);
+	}
 	if (GetAttributeNumber() > 0)
 	{
 		WriteAttributes(ost);
@@ -1424,12 +1521,14 @@ void KWDataGrid::WriteAttributes(ostream& ost) const
 	{
 		attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
 		ost << "\t" << attribute->GetAttributeName() << "\t" << KWType::ToString(attribute->GetAttributeType());
-		// Cas d'un attribut categoriel : affichage du groupe poubelle eventuel
-		if (attribute->GetAttributeType() == KWType::Symbol and not attribute->GetAttributeTargetFunction())
+
+		// Cas d'un attribut groupable : affichage du groupe poubelle eventuel
+		if (KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()) and
+		    not attribute->GetAttributeTargetFunction())
 		{
-			ost << "\tTailleFourreTout " << attribute->GetCatchAllValueNumber() << endl;
+			ost << "\tCatch all size " << attribute->GetCatchAllValueNumber() << "\n";
 			ost << "\t"
-			    << (attribute->GetTrueValueNumber() >
+			    << (attribute->GetInitialValueNumber() >
 				KWFrequencyTable::GetMinimumNumberOfModalitiesForGarbage())
 			    << "\t" << (attribute->GetGarbagePart() != NULL);
 			ost << "\t" << attribute->GetGarbageModalityNumber();
@@ -1447,7 +1546,7 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 	int nDisplayedValue;
 	KWDGValue* value;
 	boolean bDisplayAll = false;
-	boolean bDisplayPartDetails = false;
+	boolean bDisplayPartDetails = true;
 
 	// Liste des attributs et de leurs parties
 	ost << "Parts by variable"
@@ -1463,10 +1562,10 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 			part = attribute->GetHeadPart();
 			while (part != NULL)
 			{
-				ost << "\t\t" << part->GetObjectLabel();
+				ost << "\t\t" << part->GetObjectLabel() << "\t" << part->GetPartFrequency();
 
-				// Affichage des premieres valeurs dans le cas d'un attribut Symbol
-				if (attribute->GetAttributeType() == KWType::Symbol)
+				// Affichage des premieres valeurs dans le cas d'un attribut groupable
+				if (KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()))
 				{
 					nDisplayedValue = 0;
 					value = part->GetValueSet()->GetHeadValue();
@@ -1479,7 +1578,7 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 							break;
 						}
 						else
-							ost << "\t" << value->GetValue();
+							ost << "\t" << value->GetObjectLabel();
 						part->GetValueSet()->GetNextValue(value);
 					}
 				}
@@ -1487,10 +1586,10 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 				// Fin de ligne
 				ost << "\n";
 
-				// Affichage complet du valueSet dans le cas d'un attribut Symbol
-				if (bDisplayAll and attribute->GetAttributeType() == KWType::Symbol)
+				// Affichage complet des valeurs dans le cas d'un attribut groupable
+				if (bDisplayAll and KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()))
 				{
-					cout << "Affichage ValueSet" << endl;
+					cout << part->GetValueSet()->GetClassLabel() << "\n";
 					part->GetValueSet()->Write(cout);
 				}
 
@@ -1573,6 +1672,14 @@ void KWDataGrid::WriteCells(ostream& ost) const
 	}
 }
 
+void KWDataGrid::WriteInnerAttributes(ostream& ost) const
+{
+	if (GetVarPartAttribute() != NULL)
+		GetVarPartAttribute()->GetInnerAttributes()->Write(ost);
+	else
+		cout << "No inner variable\n";
+}
+
 void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 {
 	KWDGAttribute* attribute1;
@@ -1604,10 +1711,7 @@ void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 		nPart1++;
 		attribute1->GetNextPart(part1);
 	}
-	if (attribute1->GetAttributeType() == KWType::Continuous)
-		oaAttribute1Parts.SetCompareFunction(KWDGPartContinuousCompare);
-	else
-		oaAttribute1Parts.SetCompareFunction(KWDGPartSymbolCompare);
+	oaAttribute1Parts.SetCompareFunction(KWDGPartCompareValues);
 	oaAttribute1Parts.Sort();
 
 	// Tri des parties de l'attribut 2
@@ -1620,10 +1724,7 @@ void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 		nPart2++;
 		attribute2->GetNextPart(part2);
 	}
-	if (attribute2->GetAttributeType() == KWType::Continuous)
-		oaAttribute2Parts.SetCompareFunction(KWDGPartContinuousCompare);
-	else
-		oaAttribute2Parts.SetCompareFunction(KWDGPartSymbolCompare);
+	oaAttribute1Parts.SetCompareFunction(KWDGPartCompareValues);
 	oaAttribute2Parts.Sort();
 
 	// Affichage de la ligne d'entete
@@ -1631,7 +1732,7 @@ void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 		ost << "Cell frequencies\n";
 	else
 		ost << "% target value\t" << GetTargetValueAt(nTargetIndex) << "\n";
-	ost << "\t" << attribute2->GetAttributeName() << "\n";
+	ost << "\t" << TSV::Export(attribute2->GetAttributeName()) << "\n";
 	ost << attribute1->GetAttributeName();
 	dGridFrequency = GetGridFrequency();
 	for (nPart2 = 0; nPart2 < oaAttribute2Parts.GetSize(); nPart2++)
@@ -1639,7 +1740,7 @@ void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 		part2 = cast(KWDGPart*, oaAttribute2Parts.GetAt(nPart2));
 
 		// Libelle ligne de la partie de l'attribut 2
-		ost << "\t" << part2->GetObjectLabel();
+		ost << "\t" << TSV::Export(part2->GetObjectLabel());
 	}
 	ost << "\n";
 
@@ -1649,7 +1750,7 @@ void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 		part1 = cast(KWDGPart*, oaAttribute1Parts.GetAt(nPart1));
 
 		// Libelle ligne de la partie de l'attribut 1
-		ost << part1->GetObjectLabel();
+		ost << TSV::Export(part1->GetObjectLabel());
 
 		// Rangement des cellules lies a la partie de l'attribut 1 en utilisant
 		// les parties comme cle d'acces
@@ -1657,7 +1758,7 @@ void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 		cell = part1->GetHeadCell();
 		while (cell != NULL)
 		{
-			nkdPartCells.SetAt((NUMERIC)cell->GetPartAt(1), cell);
+			nkdPartCells.SetAt(cell->GetPartAt(1), cell);
 			part1->GetNextCell(cell);
 		}
 
@@ -1667,7 +1768,7 @@ void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 			part2 = cast(KWDGPart*, oaAttribute2Parts.GetAt(nPart2));
 
 			// Affichage de la cellule si elle existe
-			cell = cast(KWDGCell*, nkdPartCells.Lookup((NUMERIC)part2));
+			cell = cast(KWDGCell*, nkdPartCells.Lookup(part2));
 			ost << "\t";
 			if (cell == NULL or cell->GetCellFrequency() == 0 or dGridFrequency == 0)
 				ost << "0";
@@ -2099,11 +2200,6 @@ int KWDataGrid::ComputeTotalPartNumber() const
 	return nResult;
 }
 
-KWDGAttribute* KWDataGrid::NewAttribute() const
-{
-	return new KWDGAttribute;
-}
-
 KWDGCell* KWDataGrid::NewCell() const
 {
 	KWDGCell* cell;
@@ -2175,27 +2271,38 @@ KWDGAttribute::KWDGAttribute()
 	tailPart = NULL;
 	nPartNumber = 0;
 	bIsIndexed = false;
-	starValuePart = NULL;
+	defaultPart = NULL;
 	bTargetAttribute = false;
 	nInitialValueNumber = 0;
 	nGranularizedValueNumber = 0;
 	nCatchAllValueNumber = -1;
 	catchAllValueSet = NULL;
 	garbagePart = NULL;
+	sOwnerAttributeName = "";
+	innerAttributes = NULL;
 }
 
 KWDGAttribute::~KWDGAttribute()
 {
+	// Destruction de tous les parties
+	DeleteAllParts();
+
+	// Destruction du fourre-tout
 	if (catchAllValueSet != NULL)
 	{
 		catchAllValueSet->DeleteAllValues();
 		delete catchAllValueSet;
 	}
 
-	// Destruction de tous les parties
-	DeleteAllParts();
+	// Decrementation des references sur les attributs internes d'origine, et desallocation si necessaire
+	if (innerAttributes != NULL)
+	{
+		innerAttributes->nRefCount--;
+		if (innerAttributes->nRefCount == 0)
+			delete innerAttributes;
+	}
 
-	// Reinitialisation en mode debug, pour faciliter le diagnostique
+	// Reinitialisation en mode debug, pour faciliter le diagnostic
 	debug(dataGrid = NULL);
 	debug(nAttributeType = KWType::Unknown);
 	debug(nAttributeIndex = -1);
@@ -2205,14 +2312,43 @@ KWDGAttribute::~KWDGAttribute()
 	debug(tailPart = NULL);
 	debug(nPartNumber = 0);
 	debug(bIsIndexed = false);
+	debug(catchAllValueSet = NULL);
+	debug(innerAttributes = NULL);
+}
+
+void KWDGAttribute::CreateVarPartsSet()
+{
+	KWDGPart* part;
+	KWDGPart* currentPart;
+	KWDGAttribute* innerAttribute;
+	int nInnerAttribute;
+
+	require(nAttributeType == KWType::VarPart);
+	require(GetInnerAttributeNumber() > 0);
+
+	for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
+	{
+		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+		currentPart = innerAttribute->GetHeadPart();
+
+		// Parcours des parties de variables de l'attribut
+		while (currentPart != NULL)
+		{
+			// On cree un cluster par parties de variables
+			part = AddPart();
+			part->GetVarPartSet()->AddVarPart(currentPart);
+
+			// Partie suivante
+			innerAttribute->GetNextPart(currentPart);
+		}
+	}
 }
 
 KWDGPart* KWDGAttribute::AddPart()
 {
 	KWDGPart* part;
 
-	require(GetAttributeType() != KWType::Unknown);
-	require(KWType::IsSimple(GetAttributeType()));
+	require(KWType::IsCoclusteringType(GetAttributeType()));
 	require(not IsIndexed());
 
 	// Creation d'une nouvelle partie en fonction du type de l'attribut
@@ -2330,9 +2466,10 @@ void KWDGAttribute::BuildIndexingStructure()
 	KWDGPart* part;
 	KWDGValueSet* valueSet;
 	KWDGValue* value;
+	KWDGAttribute* innerAttribute;
+	int nInnerAttribute;
 
-	require(GetAttributeType() != KWType::Unknown);
-	require(KWType::IsSimple(GetAttributeType()));
+	require(KWType::IsCoclusteringType(GetAttributeType()));
 	require(Check());
 
 	// Indexation si necessaire
@@ -2348,15 +2485,17 @@ void KWDGAttribute::BuildIndexingStructure()
 			ExportParts(&oaIntervals);
 
 			// Tri des intervalles par borne inf
-			oaIntervals.SetCompareFunction(KWDGPartContinuousCompare);
+			oaIntervals.SetCompareFunction(KWDGPartCompareValues);
 			oaIntervals.Sort();
 		}
 		// Sinon, indexation des parties par les valeurs
 		else
 		{
+			assert(KWType::IsCoclusteringGroupableType(GetAttributeType()));
+
 			// Parcours des parties pour les indexer par leurs valeurs
 			nkdParts.RemoveAll();
-			starValuePart = NULL;
+			defaultPart = NULL;
 			part = headPart;
 			while (part != NULL)
 			{
@@ -2366,11 +2505,11 @@ void KWDGAttribute::BuildIndexingStructure()
 				while (value != NULL)
 				{
 					// Ajout de la partie avec la valeur pour cle
-					nkdParts.SetAt((NUMERIC)value->GetValue().GetNumericKey(), part);
+					nkdParts.SetAt(value->GetNumericKeyValue(), part);
 
 					// Memorisation de la partie associe a la valeur speciale
-					if (value->GetValue() == Symbol::GetStarValue())
-						starValuePart = part;
+					if (value->IsDefaultValue())
+						defaultPart = part;
 
 					// Valeur suivante
 					valueSet->GetNextValue(value);
@@ -2379,7 +2518,20 @@ void KWDGAttribute::BuildIndexingStructure()
 				// Partie suivante
 				part = part->nextPart;
 			}
-			assert(starValuePart != NULL);
+			assert(defaultPart != NULL or GetAttributeType() == KWType::VarPart);
+
+			// Indexation des attributs internes dans le cas d'un attribut VarPart
+			if (GetAttributeType() == KWType::VarPart)
+			{
+				for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber();
+				     nInnerAttribute++)
+				{
+					innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+
+					// Indexation des valeurs des parties de l'attribut
+					innerAttribute->BuildIndexingStructure();
+				}
+			}
 		}
 
 		// Memorisation du flag d'indexation
@@ -2389,17 +2541,33 @@ void KWDGAttribute::BuildIndexingStructure()
 
 void KWDGAttribute::DeleteIndexingStructure()
 {
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
+
 	// Suppression de l'indexation si necessaire
 	if (bIsIndexed)
 	{
-		assert(GetAttributeType() != KWType::Unknown);
-		assert(KWType::IsSimple(GetAttributeType()));
+		assert(KWType::IsCoclusteringType(GetAttributeType()));
 		if (GetAttributeType() == KWType::Continuous)
 			oaIntervals.SetSize(0);
 		else
 		{
+			assert(KWType::IsCoclusteringGroupableType(GetAttributeType()));
+
+			// Nettoyage de l'indexation
 			nkdParts.RemoveAll();
-			starValuePart = NULL;
+			defaultPart = NULL;
+
+			// Nettoyage de l'indexation des attributs internes dans le cas d'un attribut VarPart
+			if (GetAttributeType() == KWType::VarPart)
+			{
+				for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber();
+				     nInnerAttribute++)
+				{
+					innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+					innerAttribute->DeleteIndexingStructure();
+				}
+			}
 		}
 		bIsIndexed = false;
 	}
@@ -2479,11 +2647,153 @@ KWDGPart* KWDGAttribute::LookupSymbolPart(const Symbol& sValue)
 	require(IsIndexed());
 	require(GetAttributeType() == KWType::Symbol);
 
-	part = cast(KWDGPart*, nkdParts.Lookup((NUMERIC)sValue.GetNumericKey()));
+	part = cast(KWDGPart*, nkdParts.Lookup(sValue.GetNumericKey()));
 	if (part == NULL)
-		part = starValuePart;
+		part = defaultPart;
 	ensure(part != NULL);
 	return part;
+}
+
+KWDGPart* KWDGAttribute::LookupVarPart(KWDGPart* varPart)
+{
+	KWDGPart* part;
+
+	require(IsIndexed());
+	require(GetAttributeType() == KWType::VarPart);
+
+	part = cast(KWDGPart*, nkdParts.Lookup((NUMERIC)varPart));
+
+	ensure(part != NULL);
+	return part;
+}
+
+KWDGPart* KWDGAttribute::LookupGroupablePart(const KWDGValue* value)
+{
+	KWDGPart* part;
+
+	require(IsIndexed());
+	require(KWType::IsCoclusteringGroupableType(GetAttributeType()));
+
+	part = cast(KWDGPart*, nkdParts.Lookup(value->GetNumericKeyValue()));
+	if (part == NULL)
+		part = defaultPart;
+
+	ensure(part != NULL);
+	return part;
+}
+
+int KWDGAttribute::ComputeTotalPartFrequency() const
+{
+	int nTotalFrequency;
+	KWDGPart* part;
+
+	// Parcours des parties
+	nTotalFrequency = 0;
+	part = headPart;
+	while (part != NULL)
+	{
+		nTotalFrequency += part->GetPartFrequency();
+		part = part->nextPart;
+	}
+	return nTotalFrequency;
+}
+
+boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) const
+{
+	boolean bOk;
+	KWDGPart* part;
+	KWDGPart* otherPart;
+	KWDGValue* value;
+	NumericKeyDictionary nkdOtherPartsPerValue;
+
+	require(otherAttribute != NULL);
+	require(GetAttributeName() == otherAttribute->GetAttributeName());
+	require(GetAttributeType() == otherAttribute->GetAttributeType());
+	require(GetAttributeType() != KWType::VarPart or GetInnerAttributes() == otherAttribute->GetInnerAttributes());
+
+	// On doit avoir un nombre superieur de partie
+	bOk = GetPartNumber() >= otherAttribute->GetPartNumber();
+
+	// Test d'inclusion des parties
+	if (bOk)
+	{
+		// Test d'inclusion des parties dans le cas numerique
+		if (otherAttribute->GetAttributeType() == KWType::Continuous)
+		{
+			// Test des borne extremes
+			bOk = bOk and GetHeadPart()->GetInterval()->GetLowerBound() ==
+					  otherAttribute->GetHeadPart()->GetInterval()->GetLowerBound();
+			bOk = bOk and GetTailPart()->GetInterval()->GetUpperBound() ==
+					  otherAttribute->GetTailPart()->GetInterval()->GetUpperBound();
+
+			// Parcours des intervalles pour verifier leur inclusion
+			part = GetHeadPart();
+			otherPart = otherAttribute->GetHeadPart();
+			while (part != NULL)
+			{
+				// Test si l'intervalle est dans l'autre intervalle
+				if (part->IsSubPart(otherPart))
+					GetNextPart(part);
+				// Sinon, on teste dans l'autre intervalle suivant
+				else
+				{
+					otherAttribute->GetNextPart(otherPart);
+
+					// Ok si on existence d'un intervalle suivant le contenant
+					if (otherPart != NULL and part->IsSubPart(otherPart))
+						GetNextPart(part);
+					// Ko sinon
+					else
+					{
+						bOk = false;
+						break;
+					}
+				}
+			}
+		}
+		// Test d'inclusion des parties dans le cas d'un attribut groupable
+		else
+		{
+			assert(KWType::IsCoclusteringGroupableType(GetAttributeType()));
+
+			// Indexation prealable des partie cibles
+			otherPart = otherAttribute->GetHeadPart();
+			while (otherPart != NULL)
+			{
+				// Parcours de valeurs de l'autre partie pour memoriser l'association
+				value = otherPart->GetValueSet()->GetHeadValue();
+				while (value != NULL)
+				{
+					nkdOtherPartsPerValue.SetAt(value->GetNumericKeyValue(), otherPart);
+					otherPart->GetValueSet()->GetNextValue(value);
+				}
+
+				// Autre partie suivante
+				otherAttribute->GetNextPart(otherPart);
+			}
+
+			// Parcours des parties pour verifier leur inclusion
+			part = GetHeadPart();
+			while (part != NULL)
+			{
+				// Recherche de l'autre partie sur la base de la premiere valeur de la partie en cours
+				otherPart =
+				    cast(KWDGPart*, nkdOtherPartsPerValue.Lookup(
+							part->GetValueSet()->GetHeadValue()->GetNumericKeyValue()));
+
+				// Pas d'inclusion si partie non trouvee ou non inclusante
+				if (otherPart == NULL or not part->IsSubPart(otherPart))
+				{
+					bOk = false;
+					break;
+				}
+
+				// Partie suivante
+				GetNextPart(part);
+			}
+		}
+	}
+	return bOk;
 }
 
 boolean KWDGAttribute::Check() const
@@ -2494,11 +2804,15 @@ boolean KWDGAttribute::Check() const
 	KWDGPart* searchedPart;
 	KWDGValueSet* valueSet;
 	KWDGValue* value;
+	KWDGPart* usedVarPart;
 	ObjectArray oaCheckIntervals;
 	int nInterval;
 	Continuous cPreviousUpperBound;
 	NumericKeyDictionary nkdCheckParts;
-	boolean bStarValueFound;
+	boolean bGarbagePartFound;
+	boolean bDefaultValueFound;
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
 	ALString sTmp;
 
 	// Verifications de l'attribut, hors lien a la structure de grille
@@ -2507,9 +2821,9 @@ boolean KWDGAttribute::Check() const
 		AddError("Missing type");
 		bOk = false;
 	}
-	else if (not KWType::IsSimple(nAttributeType))
+	else if (not KWType::IsCoclusteringType(nAttributeType))
 	{
-		AddError("Type must be numerical or categorical");
+		AddError("Type must be Numerical, Categorical or VarPart");
 		bOk = false;
 	}
 
@@ -2539,20 +2853,65 @@ boolean KWDGAttribute::Check() const
 		AddError("Granularized value number must be greater than 0");
 		bOk = false;
 	}
-	else if (nInitialValueNumber < nGranularizedValueNumber)
+	else if (KWType::IsSimple(nAttributeType) and nInitialValueNumber < nGranularizedValueNumber)
 	{
 		AddError("Initial value number must be greater or equal than granularized value number");
 		bOk = false;
 	}
-	else if (nPartNumber > nGranularizedValueNumber)
+	// Verification uniquement si on a des infos sur la granularisation
+	else if (KWType::IsSimple(nAttributeType) and nPartNumber > nGranularizedValueNumber and
+		 nGranularizedValueNumber > 0)
 	{
 		AddError("Granularized value number must be greater or equal than part number");
 		bOk = false;
 	}
 
+	// Verification des variables internes de cas cas VarPart
+	if (bOk and nAttributeType == KWType::VarPart)
+	{
+		// Test de presence des specifications des variables internes
+		if (bOk and innerAttributes == NULL)
+		{
+			AddError("Missing specification of inner variables for a variable of type VarPart");
+			bOk = false;
+		}
+
+		// Test de validite des specifications des variables internes
+		if (bOk and not innerAttributes->Check())
+		{
+			AddError("Wrong specification of inner variables for a variable of type VarPart");
+			bOk = false;
+		}
+	}
+	if (bOk and nAttributeType != KWType::VarPart and innerAttributes != NULL)
+	{
+		AddError("Inner variables should not be specified for variable that is not of type VarPart");
+		bOk = false;
+	}
+
+	// Test de coherence entre variable interne et variable de grille
+	if (bOk)
+	{
+		// Une variable interne doit avoir une variable de grille la contenant
+		if (bOk and dataGrid == NULL and sOwnerAttributeName == "")
+		{
+			AddError("Inner variable should have an owner variable");
+			bOk = false;
+		}
+
+		// Une variable de grille ne peut avoir de variable la contenant
+		if (bOk and dataGrid != NULL and sOwnerAttributeName != "")
+		{
+			AddError("Data grid variable should not have an owner variable (" + sOwnerAttributeName + ")");
+			bOk = false;
+		}
+	}
+
 	// Verification des parties
 	if (bOk)
 	{
+		// Parcours des parties a verifier
+		bGarbagePartFound = false;
 		part = headPart;
 		while (part != NULL)
 		{
@@ -2562,6 +2921,10 @@ boolean KWDGAttribute::Check() const
 
 			// Coherence de chainage
 			assert(part->nextPart == NULL or part->nextPart->prevPart == part);
+
+			// Test si on a trouve la partie de type Garbage
+			if (part == garbagePart)
+				bGarbagePartFound = true;
 
 			// Verification locale de la partie
 			bOk = bOk and part->Check();
@@ -2590,9 +2953,18 @@ boolean KWDGAttribute::Check() const
 				break;
 			part = part->nextPart;
 		}
+
+		// Test de la partie poubelle
+		assert(garbagePart == NULL or GetAttributeType() != KWType::Continuous);
+		if (garbagePart != NULL and not bGarbagePartFound)
+		{
+			AddError(part->GetClassLabel() + " " + part->GetObjectLabel() +
+				 ": the garbage part in not found among the parts of the variable");
+			bOk = false;
+		}
 	}
 
-	// Si attribut numerique, indexation local des intervalles  pour validation
+	// Si attribut numerique, indexation local des intervalles pour validation
 	if (bOk and GetAttributeType() == KWType::Continuous)
 	{
 		// Ajout des parties numeriques dans le tableau des intervalles
@@ -2607,7 +2979,7 @@ boolean KWDGAttribute::Check() const
 		}
 
 		// Tri des intervalles par borne inf
-		oaCheckIntervals.SetCompareFunction(KWDGPartContinuousCompare);
+		oaCheckIntervals.SetCompareFunction(KWDGPartCompareValues);
 		oaCheckIntervals.Sort();
 
 		// Verification des intervalles
@@ -2648,12 +3020,12 @@ boolean KWDGAttribute::Check() const
 				break;
 		}
 	}
-	// Sinon, indexation locale des parties par les valeurs pour validation
-	else if (bOk and GetAttributeType() == KWType::Symbol)
+	// Si attribut groupable, indexation locale des parties par les valeurs pour validation
+	else if (bOk and KWType::IsCoclusteringGroupableType(GetAttributeType()))
 	{
 		// Parcours des parties pour les indexer par leurs valeurs
 		nkdCheckParts.RemoveAll();
-		bStarValueFound = false;
+		bDefaultValueFound = false;
 		part = headPart;
 		while (part != NULL)
 		{
@@ -2663,13 +3035,12 @@ boolean KWDGAttribute::Check() const
 			while (value != NULL)
 			{
 				// Recherche si la valeur est deja enregistree
-				searchedPart =
-				    cast(KWDGPart*, nkdCheckParts.Lookup((NUMERIC)value->GetValue().GetNumericKey()));
+				searchedPart = cast(KWDGPart*, nkdCheckParts.Lookup(value->GetNumericKeyValue()));
 
 				// Erreur si partie deja enregistree avec cette valeur
 				if (searchedPart != NULL)
 				{
-					part->AddError(sTmp + "Value " + value->GetValue() +
+					part->AddError(sTmp + value->GetClassLabel() + " " + value->GetObjectLabel() +
 						       " already belongs to part " + part->GetObjectLabel());
 					bOk = false;
 					break;
@@ -2678,11 +3049,11 @@ boolean KWDGAttribute::Check() const
 				else
 				{
 					// Ajout de la partie avec la valeur pour cle
-					nkdCheckParts.SetAt((NUMERIC)value->GetValue().GetNumericKey(), part);
+					nkdCheckParts.SetAt(value->GetNumericKeyValue(), part);
 
 					// Test si valeur speciale
-					if (value->GetValue() == Symbol::GetStarValue())
-						bStarValueFound = true;
+					if (value->IsDefaultValue())
+						bDefaultValueFound = true;
 
 					// Valeur suivante
 					valueSet->GetNextValue(value);
@@ -2693,12 +3064,60 @@ boolean KWDGAttribute::Check() const
 			part = part->nextPart;
 		}
 
-		// Test si la valeur speciale est definie dans le groupage
-		if (bOk and not bStarValueFound)
+		// Test si la valeur speciale est definie dans le groupage dans le cas d'un attribut Symbol
+		if (bOk and GetAttributeType() == KWType::Symbol and not bDefaultValueFound)
 		{
 			AddError(sTmp + "Special grouping value " + Symbol::GetStarValue() +
 				 " is not specified in any part");
 			bOk = false;
+		}
+
+		// Tests specifiques dans le cas VarPart
+		if (GetAttributeType() == KWType::VarPart)
+		{
+			// Verification du nombre total de partie de variables indexes dans les partie de la variable de type VarPart
+			if (bOk and innerAttributes->ComputeTotalInnerAttributeVarParts() != nkdCheckParts.GetCount())
+			{
+				AddError(sTmp + "Number of variable parts used in groups (" +
+					 IntToString(nkdCheckParts.GetCount()) +
+					 ") is different from the total number of parts in the inner variables (" +
+					 IntToString(innerAttributes->ComputeTotalInnerAttributeVarParts()) + ")");
+				bOk = false;
+			}
+
+			// Parcours de VarPart des variables internes pour verifier qu'elles sont referencees dans les parties
+			// de la variable de type VarPart
+			if (bOk)
+			{
+				// Parcours des attributs internes
+				for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber();
+				     nInnerAttribute++)
+				{
+					innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+
+					// Parcours des partie de l'attribut interne
+					usedVarPart = innerAttribute->GetHeadPart();
+					while (usedVarPart != NULL)
+					{
+						// Recherche de la VarPart parmi les VarPart des parties de la variable de type VarPart
+						searchedPart =
+						    cast(KWDGPart*, nkdCheckParts.Lookup((NUMERIC)usedVarPart));
+
+						// Erreur si VarPart non trouvee
+						if (searchedPart == NULL)
+						{
+							AddError(sTmp + "Inner variable VarPart " +
+								 usedVarPart->GetObjectLabel() +
+								 " not found amond parts of variables");
+							bOk = false;
+							break;
+						}
+
+						// Partie suivante
+						innerAttribute->GetNextPart(usedVarPart);
+					}
+				}
+			}
 		}
 	}
 	return bOk;
@@ -2710,13 +3129,14 @@ longint KWDGAttribute::GetUsedMemory() const
 
 	// Memoire de base
 	lUsedMemory = sizeof(KWDGAttribute);
-	lUsedMemory += sAttributeName.GetLength() + 1;
+	lUsedMemory += sAttributeName.GetLength();
+	lUsedMemory++;
 
 	// Prise en compte des parties et des valeurs
 	if (headPart != NULL)
 		lUsedMemory *= nPartNumber * headPart->GetUsedMemory();
-	if (GetAttributeType() == KWType::Symbol)
-		lUsedMemory += nGranularizedValueNumber * sizeof(KWDGValue);
+	if (KWType::IsCoclusteringGroupableType(GetAttributeType()))
+		lUsedMemory += nGranularizedValueNumber * headPart->GetValueSet()->GetHeadValue()->GetUsedMemory();
 
 	// Prise en compte de la structure d'indexation
 	lUsedMemory += oaIntervals.GetUsedMemory();
@@ -2729,8 +3149,18 @@ void KWDGAttribute::SortParts()
 	ObjectArray oaParts;
 	KWDGPart* part;
 
-	// Tri des valeurs dans chaque partie d'attribut symbolique
+	// Tri des valeurs par effectif decroissant dans chaque partie d'attribut symbolique
 	if (GetAttributeType() == KWType::Symbol)
+	{
+		part = GetHeadPart();
+		while (part != NULL)
+		{
+			part->GetValueSet()->SortValueByDecreasingFrequencies();
+			GetNextPart(part);
+		}
+	}
+	// Tri par partie de variable (attribut, puis valeur de la parties) dans le cas d'un attribut VarPart
+	else if (GetAttributeType() == KWType::VarPart)
 	{
 		part = GetHeadPart();
 		while (part != NULL)
@@ -2741,11 +3171,8 @@ void KWDGAttribute::SortParts()
 	}
 
 	// Tri des parties par intervalle croissant pour les attribut continus et
-	// ou par effectif decroissant pour les attributs symboliques
-	if (GetAttributeType() == KWType::Continuous)
-		InternalSortParts(KWDGPartContinuousCompare);
-	else
-		InternalSortParts(KWDGPartSymbolCompareDecreasingFrequency);
+	// ou par effectif decroissant pour les attributs symboliques ou de type varpart
+	InternalSortParts(KWDGPartCompare);
 }
 
 boolean KWDGAttribute::ArePartsSorted() const
@@ -2762,6 +3189,18 @@ boolean KWDGAttribute::ArePartsSorted() const
 		part = GetHeadPart();
 		while (part != NULL)
 		{
+			bIsSorted = part->GetValueSet()->AreValuesSortedByDecreasingFrequencies();
+			if (not bIsSorted)
+				break;
+			GetNextPart(part);
+		}
+	}
+	// Verification du tri des valeurs dans chaque partie d'attribut VarPart
+	else if (GetAttributeType() == KWType::VarPart)
+	{
+		part = GetHeadPart();
+		while (part != NULL)
+		{
 			bIsSorted = part->GetValueSet()->AreValuesSorted();
 			if (not bIsSorted)
 				break;
@@ -2769,12 +3208,10 @@ boolean KWDGAttribute::ArePartsSorted() const
 		}
 	}
 
-	if (not bIsSorted)
-		return false;
-
-	else
+	// Verification du tri des parties si ok
+	if (bIsSorted)
 	{
-		// Verification Tri des parties par intervalle croissant pour les attribut continus et
+		// Verification du tri des parties par intervalle croissant pour les attribut continus et
 		// ou par effectif decroissant pour les attributs symboliques
 
 		// Initialisation
@@ -2785,16 +3222,8 @@ boolean KWDGAttribute::ArePartsSorted() const
 		// Parcours des parties
 		while (nextPart != NULL)
 		{
-			// Comparaison
-			// Cas continu
-			if (GetAttributeType() == KWType::Continuous)
-				nCompare = KWDGPartContinuousCompare(&part, &nextPart);
-
-			// Sinon categoriel
-			else
-				nCompare = KWDGPartSymbolCompareDecreasingFrequency(&part, &nextPart);
-
-			// Erreur de tri
+			// Comparaison des partie par intervalles, ou par effectif decroissant, puis valeurs Symbol ou VarPart)
+			nCompare = part->ComparePart(nextPart);
 			if (nCompare > 0)
 			{
 				bIsSorted = false;
@@ -2805,9 +3234,8 @@ boolean KWDGAttribute::ArePartsSorted() const
 			GetNextPart(part);
 			GetNextPart(nextPart);
 		}
-
-		return bIsSorted;
 	}
+	return bIsSorted;
 }
 
 void KWDGAttribute::Write(ostream& ost) const
@@ -2817,15 +3245,13 @@ void KWDGAttribute::Write(ostream& ost) const
 
 	// Affichage des caracteristiques du fourre-tout
 	ost << "CatchAllNumber\t" << GetCatchAllValueNumber() << endl;
-	// ost << "CatchAll\t" << (GetCatchAllValueSet() != NULL) << endl;
-	// if (GetCatchAllValueSet() != NULL)
-	// GetCatchAllValueSet()->Write(cout);
+
 	//  Affichage des caracteristiques de la poubelle
 	ost << "Garbage\tPossible\tExist\tSize\n";
-	ost << "\t" << (GetTrueValueNumber() > KWFrequencyTable::GetMinimumNumberOfModalitiesForGarbage()) << "\t"
+	ost << "\t" << (GetInitialValueNumber() > KWFrequencyTable::GetMinimumNumberOfModalitiesForGarbage()) << "\t"
 	    << (GetGarbagePart() != NULL);
 	if (GetGarbagePart() != NULL)
-		ost << "\t" << cast(KWDGValueSet*, GetGarbagePart())->GetTrueValueNumber() << "\n";
+		ost << "\t" << cast(KWDGValueSet*, GetGarbagePart())->GetValueNumber() << "\n";
 	else
 		ost << "\n";
 	// Parties de l'attribut
@@ -2845,10 +3271,10 @@ void KWDGAttribute::WriteParts(ostream& ost) const
 	{
 		// Cas de la partie poubelle
 		if (part == garbagePart)
-			ost << "\tGarbage:" << *part << endl;
+			ost << "\tGarbage:" << *part;
 		// Sinon
 		else
-			ost << "\t" << *part << endl;
+			ost << "\t" << *part;
 		GetNextPart(part);
 	}
 }
@@ -2911,7 +3337,7 @@ KWDGAttribute* KWDGAttribute::CreateTestSymbolAttribute(int nValueNumber, int nP
 	KWDGAttribute* attribute;
 	int nValue;
 	KWDGPart* part;
-	KWDGValueSet* valueSet;
+	KWDGSymbolValueSet* symbolValueSet;
 	KWDGValue* value;
 
 	require(nValueNumber > 0);
@@ -2937,10 +3363,10 @@ KWDGAttribute* KWDGAttribute::CreateTestSymbolAttribute(int nValueNumber, int nP
 		if (part == NULL)
 			part = attribute->GetHeadPart();
 		check(part);
-		valueSet = part->GetValueSet();
+		symbolValueSet = part->GetSymbolValueSet();
 
 		// Ajout d'une valeur a la partie courant
-		value = valueSet->AddValue((Symbol)(sValuePrefix + IntToString(nValue)));
+		value = symbolValueSet->AddSymbolValue((Symbol)(sValuePrefix + IntToString(nValue)));
 		value->SetValueFrequency(0);
 		nValue++;
 	}
@@ -2950,8 +3376,8 @@ KWDGAttribute* KWDGAttribute::CreateTestSymbolAttribute(int nValueNumber, int nP
 	if (part == NULL)
 		part = attribute->GetHeadPart();
 	check(part);
-	valueSet = part->GetValueSet();
-	value = valueSet->AddValue(Symbol::GetStarValue());
+	symbolValueSet = part->GetSymbolValueSet();
+	value = symbolValueSet->AddSymbolValue(Symbol::GetStarValue());
 	value->SetValueFrequency(0);
 
 	ensure(attribute->Check());
@@ -3103,16 +3529,13 @@ KWDGPart::KWDGPart()
 	headCell = NULL;
 	tailCell = NULL;
 	nCellNumber = 0;
-	interval = NULL;
-	valueSet = NULL;
+	partValues = NULL;
 }
 
 KWDGPart::~KWDGPart()
 {
-	if (interval != NULL)
-		delete interval;
-	if (valueSet != NULL)
-		delete valueSet;
+	if (partValues != NULL)
+		delete partValues;
 
 	// Reinitialisation pour faciliter le debug
 	debug(attribute = NULL);
@@ -3122,21 +3545,21 @@ KWDGPart::~KWDGPart()
 	debug(headCell = NULL);
 	debug(tailCell = NULL);
 	debug(nCellNumber = 0);
-	debug(interval = NULL);
-	debug(valueSet = NULL);
+	debug(partValues = NULL);
 }
 
 void KWDGPart::SetPartType(int nValue)
 {
 	require(GetPartType() == KWType::Unknown);
-	require(KWType::IsSimple(nValue));
+	require(KWType::IsCoclusteringType(nValue));
 
-	// Creation de l'objet interval ou ensemble de valeur selon le type
+	// Creation de l'objet interval ou ensemble de valeurs selon le type
 	if (nValue == KWType::Continuous)
-		interval = NewInterval();
+		partValues = NewInterval();
+	else if (nValue == KWType::Symbol)
+		partValues = NewSymbolValueSet();
 	else
-		valueSet = NewValueSet();
-
+		partValues = NewVarPartSet();
 	ensure(GetPartType() != KWType::Unknown);
 }
 
@@ -3184,8 +3607,47 @@ boolean KWDGPart::CheckCell(KWDGCell* cell) const
 void KWDGPart::SetPartFrequency(int nValue)
 {
 	require(nValue >= 0);
-	require(GetEmulated() or nValue == ComputeCellsTotalFrequency());
+	require(GetAttribute()->IsInnerAttribute() or GetEmulated() or nValue == ComputeCellsTotalFrequency());
 	nPartFrequency = nValue;
+}
+
+boolean KWDGPart::IsSubPart(const KWDGPart* otherPart) const
+{
+	require(otherPart != NULL);
+	require(GetPartType() != KWType::Unknown);
+	require(otherPart->GetPartType() == GetPartType());
+	require(otherPart->GetAttribute()->GetAttributeName() == GetAttribute()->GetAttributeName());
+
+	return GetPartValues()->IsSubPart(otherPart->GetPartValues());
+}
+
+int KWDGPart::ComparePart(const KWDGPart* otherPart) const
+{
+	int nCompare;
+
+	require(otherPart != NULL);
+	require(GetPartType() == otherPart->GetPartType());
+
+	if (GetPartType() == KWType::Continuous)
+		nCompare = GetInterval()->ComparePartValues(otherPart->GetInterval());
+	else
+	{
+		nCompare = -GetPartFrequency() + otherPart->GetPartFrequency();
+		if (nCompare == 0)
+			nCompare = GetValueSet()->ComparePartValues(otherPart->GetValueSet());
+	}
+	return nCompare;
+}
+
+int KWDGPart::ComparePartValues(const KWDGPart* otherPart) const
+{
+	int nCompare;
+
+	require(otherPart != NULL);
+	require(GetPartType() == otherPart->GetPartType());
+
+	nCompare = GetPartValues()->ComparePartValues(otherPart->GetPartValues());
+	return nCompare;
 }
 
 boolean KWDGPart::Check() const
@@ -3205,11 +3667,13 @@ boolean KWDGPart::Check() const
 	}
 	// Verification de l'intervalle
 	else if (GetPartType() == KWType::Continuous)
-		bOk = bOk and interval->Check();
-	// Verification de l'ensemble de valeurs
-	else if (GetPartType() == KWType::Symbol)
+		bOk = bOk and partValues->Check();
+	// Verification de l'ensemble de valeurs dans le cas groupable
+	else
 	{
-		bOk = bOk and valueSet->Check();
+		assert(KWType::IsCoclusteringGroupableType(GetPartType()));
+
+		bOk = bOk and partValues->Check();
 
 		// Verification de la compatibilite entre l'effectif de la partie
 		// et l'effectif cumule de ses valeurs
@@ -3221,12 +3685,14 @@ boolean KWDGPart::Check() const
 		// Cela permet egalement de verifier la validite d'une grille
 		// construite pour le deploiement de modele, qui n'a pas besoin
 		// des effectifs par valeur.
-		nTotalValueFrequency = valueSet->ComputeTotalFrequency();
+		nTotalValueFrequency = GetValueSet()->ComputeTotalFrequency();
 		if (bOk and GetPartFrequency() > 0 and nTotalValueFrequency > 0 and
 		    GetPartFrequency() != nTotalValueFrequency)
 		{
+			assert(GetValueSet()->GetHeadValue() != NULL);
 			AddError(sTmp + "Part frequency (" + IntToString(GetPartFrequency()) +
-				 ") different from the cumulated frequency of its values (" +
+				 ") different from the cumulated frequency of its " +
+				 GetValueSet()->GetHeadValue()->GetClassLabel() + "s (" +
 				 IntToString(nTotalValueFrequency) + ")");
 			bOk = false;
 		}
@@ -3288,7 +3754,7 @@ boolean KWDGPart::Check() const
 	}
 
 	// Verification de l'effectif total de la partie
-	if (bOk and nPartFrequency != ComputeCellsTotalFrequency())
+	if (bOk and (not GetAttribute()->IsInnerAttribute() and nPartFrequency != ComputeCellsTotalFrequency()))
 	{
 		AddError(sTmp + "Part frequency (" + IntToString(nPartFrequency) +
 			 ") different from the cumulated frequency of its cells (" +
@@ -3303,20 +3769,18 @@ longint KWDGPart::GetUsedMemory() const
 	longint lUsedMemory;
 
 	lUsedMemory = sizeof(KWDGPart);
-	if (interval != NULL)
-		lUsedMemory += sizeof(KWDGInterval);
-	if (valueSet != NULL)
-		lUsedMemory += sizeof(KWDGValueSet);
+	if (partValues != NULL)
+		lUsedMemory += partValues->GetUsedMemory();
 	return lUsedMemory;
 }
 
 void KWDGPart::Write(ostream& ost) const
 {
 	// Identification de la partie
-	ost << GetClassLabel() << "\t" << GetObjectLabel() << "\n";
+	ost << GetClassLabel() << "\t" << GetObjectLabel() << "\t" << GetPartFrequency() << "\n";
 
 	// Valeurs et cellules de la partie
-	if (GetPartType() == KWType::Symbol and valueSet->GetValueNumber() > 0)
+	if (KWType::IsCoclusteringGroupableType(GetPartType()) and GetValueSet()->GetValueNumber() > 0)
 		WriteValues(ost);
 	if (GetCellNumber() > 0)
 		WriteCells(ost);
@@ -3324,10 +3788,10 @@ void KWDGPart::Write(ostream& ost) const
 
 void KWDGPart::WriteValues(ostream& ost) const
 {
-	// Des valeurs sont a afficher uniquement dans le cas symbolique
+	// Des valeurs sont a afficher uniquement dans le cas groupable
 	// (l'intervalle est le libelle de la partie dans le cas continu)
-	if (GetPartType() == KWType::Symbol)
-		valueSet->WriteValues(ost);
+	if (KWType::IsCoclusteringGroupableType(GetPartType()))
+		GetValueSet()->WriteValues(ost);
 }
 
 void KWDGPart::WriteCells(ostream& ost) const
@@ -3345,24 +3809,29 @@ void KWDGPart::WriteCells(ostream& ost) const
 	}
 }
 
+const ALString KWDGPart::GetVarPartLabel() const
+{
+	require(KWType::IsSimple(GetPartType()));
+	require(GetAttribute() != NULL);
+	require(GetAttribute()->IsInnerAttribute());
+
+	return GetAttribute()->GetAttributeName() + " " + GetObjectLabel();
+}
+
 const ALString KWDGPart::GetClassLabel() const
 {
-	if (GetPartType() == KWType::Continuous)
-		return interval->GetClassLabel();
-	else if (GetPartType() == KWType::Symbol)
-		return valueSet->GetClassLabel();
-	else
+	if (partValues == NULL)
 		return "Part";
+	else
+		return partValues->GetClassLabel();
 }
 
 const ALString KWDGPart::GetObjectLabel() const
 {
-	if (GetPartType() == KWType::Continuous)
-		return interval->GetObjectLabel();
-	else if (GetPartType() == KWType::Symbol)
-		return valueSet->GetObjectLabel();
-	else
+	if (partValues == NULL)
 		return "";
+	else
+		return partValues->GetObjectLabel();
 }
 
 KWDGInterval* KWDGPart::NewInterval() const
@@ -3370,9 +3839,14 @@ KWDGInterval* KWDGPart::NewInterval() const
 	return new KWDGInterval;
 }
 
-KWDGValueSet* KWDGPart::NewValueSet() const
+KWDGSymbolValueSet* KWDGPart::NewSymbolValueSet() const
 {
-	return new KWDGValueSet;
+	return new KWDGSymbolValueSet;
+}
+
+KWDGVarPartSet* KWDGPart::NewVarPartSet() const
+{
+	return new KWDGVarPartSet;
 }
 
 int KWDGPart::ComputeCellsTotalFrequency() const
@@ -3396,11 +3870,10 @@ boolean KWDGPart::GetEmulated() const
 	return false;
 }
 
-int KWDGPartContinuousCompare(const void* elem1, const void* elem2)
+int KWDGPartCompare(const void* elem1, const void* elem2)
 {
 	KWDGPart* part1;
 	KWDGPart* part2;
-	int nCompare;
 
 	require(elem1 != NULL);
 	require(elem2 != NULL);
@@ -3408,51 +3881,15 @@ int KWDGPartContinuousCompare(const void* elem1, const void* elem2)
 	// Acces a la parties
 	part1 = cast(KWDGPart*, *(Object**)elem1);
 	part2 = cast(KWDGPart*, *(Object**)elem2);
-	assert(part1->GetPartType() == KWType::Continuous);
-	assert(part2->GetPartType() == KWType::Continuous);
 
 	// Comparaison: on compare en priorite sur les bornes inf
-	nCompare = KWContinuous::Compare(part1->GetInterval()->GetLowerBound(), part2->GetInterval()->GetLowerBound());
-	if (nCompare == 0)
-		nCompare =
-		    KWContinuous::Compare(part1->GetInterval()->GetUpperBound(), part2->GetInterval()->GetUpperBound());
-	return nCompare;
+	return part1->ComparePart(part2);
 }
 
-int KWDGPartSymbolCompare(const void* elem1, const void* elem2)
+int KWDGPartCompareValues(const void* elem1, const void* elem2)
 {
 	KWDGPart* part1;
 	KWDGPart* part2;
-
-	require(elem1 != NULL);
-	require(elem2 != NULL);
-
-	// Acces aux parties
-	part1 = cast(KWDGPart*, *(Object**)elem1);
-	part2 = cast(KWDGPart*, *(Object**)elem2);
-	assert(part1->GetPartType() == KWType::Symbol);
-	assert(part2->GetPartType() == KWType::Symbol);
-
-	// Comparaison de la premiere valeur de la partie
-	if (part1->GetValueSet()->GetHeadValue() == NULL)
-	{
-		if (part2->GetValueSet()->GetHeadValue() == NULL)
-			return 0;
-		else
-			return -1;
-	}
-	else if (part2->GetValueSet()->GetHeadValue() == NULL)
-		return 1;
-	else
-		return part1->GetValueSet()->GetHeadValue()->GetValue().CompareValue(
-		    part2->GetValueSet()->GetHeadValue()->GetValue());
-}
-
-int KWDGPartSymbolCompareDecreasingFrequency(const void* elem1, const void* elem2)
-{
-	KWDGPart* part1;
-	KWDGPart* part2;
-	int nCompare;
 
 	require(elem1 != NULL);
 	require(elem2 != NULL);
@@ -3460,20 +3897,98 @@ int KWDGPartSymbolCompareDecreasingFrequency(const void* elem1, const void* elem
 	// Acces a la parties
 	part1 = cast(KWDGPart*, *(Object**)elem1);
 	part2 = cast(KWDGPart*, *(Object**)elem2);
-	assert(part1->GetPartType() == KWType::Symbol);
-	assert(part2->GetPartType() == KWType::Symbol);
 
-	// Comparaison
-	nCompare = -part1->GetPartFrequency() + part2->GetPartFrequency();
-
-	// Comparaison sur la valeur en cas d'egalite
-	if (nCompare == 0)
-		nCompare = KWDGPartSymbolCompare(elem1, elem2);
-	return nCompare;
+	// Comparaison: on compare en priorite sur les bornes inf
+	return part1->ComparePartValues(part2);
 }
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGInterval
+
+boolean KWDGInterval::IsSubPart(const KWDGPartValues* otherPartValues) const
+{
+	KWDGInterval* otherInterval;
+
+	require(otherPartValues != NULL);
+	require(otherPartValues->GetValueType() == GetValueType());
+
+	// Comparaison des bornes
+	otherInterval = cast(KWDGInterval*, otherPartValues);
+	return GetLowerBound() >= otherInterval->GetLowerBound() and GetUpperBound() <= otherInterval->GetUpperBound();
+}
+
+void KWDGInterval::Import(KWDGPartValues* sourcePartValues)
+{
+	KWDGInterval* sourceInterval;
+
+	require(Check());
+	require(sourcePartValues->Check());
+	require(sourcePartValues != NULL);
+	require(sourcePartValues->GetValueType() == GetValueType());
+
+	// Transfert d'une borne pour fusionner les intervalles
+	sourceInterval = cast(KWDGInterval*, sourcePartValues);
+	assert(sourceInterval->GetUpperBound() == GetLowerBound() or
+	       GetUpperBound() == sourceInterval->GetLowerBound());
+	if (sourceInterval->GetUpperBound() == GetLowerBound())
+		SetLowerBound(sourceInterval->GetLowerBound());
+	else
+		SetUpperBound(sourceInterval->GetUpperBound());
+
+	// Reinitialisation de l'intervalle source
+	sourceInterval->SetLowerBound(0);
+	sourceInterval->SetUpperBound(0);
+	ensure(Check());
+}
+
+void KWDGInterval::UpgradeFrom(const KWDGPartValues* sourcePartValues)
+{
+	KWDGInterval* sourceInterval;
+
+	require(Check());
+	require(sourcePartValues->Check());
+	require(sourcePartValues != NULL);
+	require(sourcePartValues->GetValueType() == GetValueType());
+
+	// Transfert d'une borne pour fusionner les intervalles
+	sourceInterval = cast(KWDGInterval*, sourcePartValues);
+	assert(sourceInterval->GetUpperBound() == GetLowerBound() or
+	       GetUpperBound() == sourceInterval->GetLowerBound());
+	if (sourceInterval->GetUpperBound() == GetLowerBound())
+		SetLowerBound(sourceInterval->GetLowerBound());
+	else
+		SetUpperBound(sourceInterval->GetUpperBound());
+	ensure(Check());
+}
+
+void KWDGInterval::CopyFrom(const KWDGPartValues* sourcePartValues)
+{
+	KWDGInterval* sourceInterval;
+
+	require(sourcePartValues != NULL);
+	require(sourcePartValues->GetValueType() == GetValueType());
+
+	// Copie des bornes
+	sourceInterval = cast(KWDGInterval*, sourcePartValues);
+	cLowerBound = sourceInterval->cLowerBound;
+	cUpperBound = sourceInterval->cUpperBound;
+}
+
+int KWDGInterval::ComparePartValues(const KWDGPartValues* otherPartValues) const
+{
+	int nCompare;
+	KWDGInterval* otherInterval;
+
+	require(otherPartValues != NULL);
+	require(otherPartValues->GetValueType() == GetValueType());
+
+	// Comparaison: on compare en priorite sur les bornes inf
+	otherInterval = cast(KWDGInterval*, otherPartValues);
+	nCompare = KWContinuous::Compare(GetLowerBound(), otherInterval->GetLowerBound());
+	if (nCompare == 0)
+		nCompare = KWContinuous::Compare(GetUpperBound(), otherInterval->GetUpperBound());
+	return nCompare;
+}
 
 boolean KWDGInterval::Check() const
 {
@@ -3497,31 +4012,14 @@ boolean KWDGInterval::Check() const
 	return bOk;
 }
 
-void KWDGInterval::Import(KWDGInterval* sourceInterval)
-{
-	require(Check());
-	require(sourceInterval != NULL);
-	require(sourceInterval->Check());
-	require(sourceInterval->GetUpperBound() == GetLowerBound() or
-		GetUpperBound() == sourceInterval->GetLowerBound());
-
-	// Transfert d'une borne pour fusionner les intervalles
-	if (sourceInterval->GetUpperBound() == GetLowerBound())
-		SetLowerBound(sourceInterval->GetLowerBound());
-	else
-		SetUpperBound(sourceInterval->GetUpperBound());
-
-	// Reinitialisation de l'intervalle source
-	sourceInterval->SetLowerBound(0);
-	sourceInterval->SetUpperBound(0);
-
-	ensure(Check());
-}
-
 void KWDGInterval::Write(ostream& ost) const
 {
-	// Identification
 	ost << GetClassLabel() << "\t" << GetObjectLabel() << "\n";
+}
+
+longint KWDGInterval::GetUsedMemory() const
+{
+	return sizeof(KWDGInterval);
 }
 
 const ALString KWDGInterval::GetClassLabel() const
@@ -3554,38 +4052,11 @@ const ALString KWDGInterval::GetObjectLabel() const
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGValueSet
 
-KWDGValue* KWDGValueSet::AddValue(const Symbol& sValue)
-{
-	KWDGValue* value;
-
-	// Creation de la valeur
-	value = NewValue(sValue);
-
-	// Ajout en fin de la liste des valeurs
-	nValueNumber++;
-	if (headValue == NULL)
-		headValue = value;
-	if (tailValue != NULL)
-	{
-		tailValue->nextValue = value;
-		value->prevValue = tailValue;
-	}
-	tailValue = value;
-
-	// Partie par defaut si la valeur est la valeur par defaut
-	if (sValue == Symbol::GetStarValue())
-		bIsDefaultPart = true;
-
-	// On retourne la valeur cree
-	return value;
-}
-
 void KWDGValueSet::DeleteValue(KWDGValue* value)
 {
 	require(value != NULL);
 
-	// Supression de la liste des valuees
-	nValueNumber--;
+	// Supression de la liste des values
 	if (value->prevValue != NULL)
 		value->prevValue->nextValue = value->nextValue;
 	if (value->nextValue != NULL)
@@ -3596,8 +4067,11 @@ void KWDGValueSet::DeleteValue(KWDGValue* value)
 		tailValue = value->prevValue;
 
 	// Partie "standard" si la valeur detruite est la valeur par defaut
-	if (value->GetValue() == Symbol::GetStarValue())
+	if (value->IsDefaultValue())
 		bIsDefaultPart = false;
+	// Decrementation du nombre de valeurs sinon
+	else
+		nValueNumber--;
 
 	// Destruction de la valeur
 	delete value;
@@ -3646,129 +4120,20 @@ boolean KWDGValueSet::CheckValue(KWDGValue* value) const
 	return bOk;
 }
 
-void KWDGValueSet::CompressValueSet()
+void KWDGValueSet::ExportValues(ObjectArray* oaValues) const
 {
-	int nCurrentValueNumber;
-	int nCurrentPartFrequency;
 	KWDGValue* value;
 
-	require(bIsDefaultPart);
+	require(oaValues != NULL);
+	require(oaValues->GetSize() == 0);
 
-	// Memorisation des statistique
-	nCurrentValueNumber = nValueNumber;
-	nCurrentPartFrequency = ComputeTotalFrequency();
-
-	// Remplacement de l'ensemble des valeurs par une seule valeur
-	DeleteAllValues();
-	value = AddValue(Symbol::GetStarValue());
-	value->SetValueFrequency(nCurrentPartFrequency);
-	nValueNumber = nCurrentValueNumber;
-}
-
-KWDGValueSet* KWDGValueSet::ConvertToCleanedValueSet()
-{
-	int nCurrentPartFrequency;
-	KWDGValue* value;
-	KWDGValueSet* valueSet;
-
-	require(bIsDefaultPart);
-
-	// Memorisation des statistique
-	nCurrentPartFrequency = ComputeTotalFrequency();
-	valueSet = new KWDGValueSet;
-	valueSet->CopyFrom(this);
-
-	// Remplacement de l'ensemble des valeurs par une seule valeur + modalite StarValue
-	DeleteAllValues();
-	value = AddValue(valueSet->GetHeadValue()->GetValue());
-	value->SetValueFrequency(valueSet->GetHeadValue()->GetValueFrequency());
-	value = AddValue(Symbol::GetStarValue());
-	value->SetValueFrequency(nCurrentPartFrequency - valueSet->GetHeadValue()->GetValueFrequency());
-
-	// Suppression dans le fourre tout des valeurs conservees dans la partie granularisee (pour eviter la redondance
-	// des modalites)
-	valueSet->DeleteValue(valueSet->GetHeadValue());
-	valueSet->DeleteValue(valueSet->GetTailValue());
-
-	return valueSet;
-}
-
-KWDGValueSet* KWDGValueSet::ComputeCleanedValueSet() const
-{
-	KWDGValueSet* valueSet;
-	KWDGValue* value;
-
-	// Creation d'un nouveau ValueSet
-	valueSet = new KWDGValueSet;
-
-	value = valueSet->AddValue(GetHeadValue()->GetValue());
-	value->SetValueFrequency(GetHeadValue()->GetValueFrequency());
-	value = valueSet->AddValue(Symbol::GetStarValue());
-	value->SetValueFrequency(ComputeTotalFrequency() - GetHeadValue()->GetValueFrequency());
-
-	return valueSet;
-}
-
-boolean KWDGValueSet::Check() const
-{
-	boolean bOk = true;
-	boolean bStarValuePresent;
-	NumericKeyDictionary nkdCheckValues;
-	KWDGValue* value;
-	ALString sTmp;
-
-	// Test d'existence d'au moins une valeur
-	if (nValueNumber == 0)
+	// Ajout des parties dans le tableau
+	value = headValue;
+	while (value != NULL)
 	{
-		AddError("No value specified");
-		bOk = false;
+		oaValues->Add(value);
+		value = value->nextValue;
 	}
-
-	// Test des valeurs de la partie
-	if (bOk)
-	{
-		// Parcours des valeurs de la partie
-		bStarValuePresent = false;
-		value = GetHeadValue();
-		while (value != NULL)
-		{
-			// Detection de la star value
-			if (value->GetValue() == Symbol::GetStarValue())
-				bStarValuePresent = true;
-
-			// Erreur si partie deja enregistree avec cette valeur
-			if (nkdCheckValues.Lookup((NUMERIC)value->GetValue().GetNumericKey()) != NULL)
-			{
-				AddError(sTmp + "Value " + value->GetValue() + " already exists in the part");
-				bOk = false;
-				break;
-			}
-			// On continue si pas d'erreur
-			else
-			{
-				// Ajout de la partie avec la valeur pour cle
-				nkdCheckValues.SetAt((NUMERIC)value->GetValue().GetNumericKey(), value);
-
-				// Valeur suivante
-				GetNextValue(value);
-			}
-		}
-
-		// Test d'integrite sur la star value
-		if (bStarValuePresent and not bIsDefaultPart)
-		{
-			AddError(sTmp + "Special grouping value " + Symbol::GetStarValue() +
-				 " is used used in a standard part");
-			bOk = false;
-		}
-		else if (not bStarValuePresent and bIsDefaultPart)
-		{
-			AddError(sTmp + "Special grouping value " + Symbol::GetStarValue() +
-				 " is missing in default part");
-			bOk = false;
-		}
-	}
-	return bOk;
 }
 
 int KWDGValueSet::ComputeTotalFrequency() const
@@ -3787,11 +4152,87 @@ int KWDGValueSet::ComputeTotalFrequency() const
 	return nTotalFrequency;
 }
 
-void KWDGValueSet::Import(KWDGValueSet* sourceValueSet)
+void KWDGValueSet::SortValues()
 {
-	require(Check());
-	require(sourceValueSet != NULL);
-	require(sourceValueSet->Check());
+	InternalSortValues(KWDGValueCompareValue);
+}
+
+void KWDGValueSet::SortValueByDecreasingFrequencies()
+{
+	InternalSortValues(KWDGValueCompareFrequency);
+}
+
+void KWDGValueSet::SortValuesByDecreasingTypicalities()
+{
+	InternalSortValues(KWDGValueCompareTypicality);
+}
+
+boolean KWDGValueSet::AreValuesSorted() const
+{
+	return InternalAreValuesSorted(KWDGValueCompareValue);
+}
+
+boolean KWDGValueSet::AreValuesSortedByDecreasingFrequencies() const
+{
+	return InternalAreValuesSorted(KWDGValueCompareFrequency);
+}
+
+boolean KWDGValueSet::AreValuesSortedByDecreasingTypicalities() const
+{
+	return InternalAreValuesSorted(KWDGValueCompareTypicality);
+}
+
+boolean KWDGValueSet::IsSubPart(const KWDGPartValues* otherPartValues) const
+{
+	boolean bOk = true;
+	KWDGValueSet* otherValueSet;
+	NumericKeyDictionary nkdOtherValues;
+	KWDGValue* value;
+
+	require(otherPartValues != NULL);
+	require(otherPartValues->GetValueType() == GetValueType());
+
+	// Acces a l'autre groupe de valeurs
+	otherValueSet = cast(KWDGValueSet*, otherPartValues);
+
+	// On doit avoir moins de valeurs
+	if (GetValueNumber() > otherValueSet->GetValueNumber())
+		bOk = false;
+	// Sinon, on teste effectivement l'inclusion
+	else
+	{
+		// Memorisation prealable des valeurs de l'autre ensemble de valeur
+		value = otherValueSet->GetHeadValue();
+		while (value != NULL)
+		{
+			nkdOtherValues.SetAt(value->GetNumericKeyValue(), value);
+			otherValueSet->GetNextValue(value);
+		}
+
+		// Parcours des valeurs pour verifie s'i elles existe dans l'autre ensemble de valeur
+		value = GetHeadValue();
+		while (value != NULL)
+		{
+			if (nkdOtherValues.Lookup(value->GetNumericKeyValue()) == NULL)
+			{
+				bOk = false;
+				break;
+			}
+			GetNextValue(value);
+		}
+	}
+	return bOk;
+}
+
+void KWDGValueSet::Import(KWDGPartValues* sourcePartValues)
+{
+	KWDGValueSet* sourceValueSet;
+
+	require(sourcePartValues != NULL);
+	require(sourcePartValues->GetValueType() == GetValueType());
+
+	// Acces au groupe de valeurs source
+	sourceValueSet = cast(KWDGValueSet*, sourcePartValues);
 
 	// Transfert des valeurs de la premiere partie en tete du second
 	sourceValueSet->tailValue->nextValue = headValue;
@@ -3805,16 +4246,48 @@ void KWDGValueSet::Import(KWDGValueSet* sourceValueSet)
 	sourceValueSet->tailValue = NULL;
 	sourceValueSet->nValueNumber = 0;
 	sourceValueSet->bIsDefaultPart = false;
-
 	ensure(Check());
 }
 
-void KWDGValueSet::CopyFrom(const KWDGValueSet* sourceValueSet)
+void KWDGValueSet::UpgradeFrom(const KWDGPartValues* sourcePartValues)
 {
+	KWDGValueSet* sourceValueSet;
+	KWDGValue* value;
+	KWDGValue* valueUpgrade;
+	int nOldValueNumber;
+
+	require(sourcePartValues != NULL);
+	require(sourcePartValues->GetValueType() == GetValueType());
+
+	// Acces au groupe de valeurs source
+	sourceValueSet = cast(KWDGValueSet*, sourcePartValues);
+
+	// Pour garantir la valeur correcte de nValueNumber si le sourceValueSet a ete compresse avant la copie
+	nOldValueNumber = nValueNumber;
+
+	// Recopie de la liste de valeurs source
+	value = sourceValueSet->GetHeadValue();
+	while (value != NULL)
+	{
+		valueUpgrade = AddValueCopy(value);
+		valueUpgrade->SetValueFrequency(value->GetValueFrequency());
+		sourceValueSet->GetNextValue(value);
+	}
+	// Pour garantir la valeur correcte de nValueNumber si le sourceValueSet a ete compresse avant la copie
+	nValueNumber = nOldValueNumber + sourceValueSet->nValueNumber;
+}
+
+void KWDGValueSet::CopyFrom(const KWDGPartValues* sourcePartValues)
+{
+	KWDGValueSet* sourceValueSet;
 	KWDGValue* value;
 	KWDGValue* valueCopy;
 
-	require(sourceValueSet != NULL);
+	require(sourcePartValues != NULL);
+	require(sourcePartValues->GetValueType() == GetValueType());
+
+	// Acces au groupe de valeurs source
+	sourceValueSet = cast(KWDGValueSet*, sourcePartValues);
 
 	// Nettoyage des valeurs actuelles
 	DeleteAllValues();
@@ -3823,82 +4296,119 @@ void KWDGValueSet::CopyFrom(const KWDGValueSet* sourceValueSet)
 	value = sourceValueSet->GetHeadValue();
 	while (value != NULL)
 	{
-		valueCopy = AddValue(value->GetValue());
+		valueCopy = AddValueCopy(value);
 		valueCopy->SetValueFrequency(value->GetValueFrequency());
 		sourceValueSet->GetNextValue(value);
 	}
 	bIsDefaultPart = sourceValueSet->IsDefaultPart();
+
 	// Pour garantir la valeur correcte de nValueNumber si le sourceValueSet a ete compresse avant la copie
 	nValueNumber = sourceValueSet->nValueNumber;
 }
 
-void KWDGValueSet::UpgradeFrom(const KWDGValueSet* sourceValueSet)
+int KWDGValueSet::ComparePartValues(const KWDGPartValues* otherPartValues) const
 {
+	KWDGValueSet* otherValueSet;
+
+	require(otherPartValues != NULL);
+	require(otherPartValues->GetValueType() == GetValueType());
+
+	// Comparaison de la premiere valeur de la partie
+	otherValueSet = cast(KWDGValueSet*, otherPartValues);
+	if (GetHeadValue() == NULL)
+	{
+		if (otherValueSet->GetHeadValue() == NULL)
+			return 0;
+		else
+			return -1;
+	}
+	else if (otherValueSet->GetHeadValue() == NULL)
+		return 1;
+	else
+		return GetHeadValue()->CompareValue(otherValueSet->GetHeadValue());
+}
+
+boolean KWDGValueSet::Check() const
+{
+	boolean bOk = true;
+	boolean bDefaultValuePresent;
+	NumericKeyDictionary nkdCheckValues;
 	KWDGValue* value;
-	KWDGValue* valueUpgrade;
+	boolean bCheckFrequencies;
+	ALString sTmp;
 
-	require(sourceValueSet != NULL);
-
-	// Pour garantir la valeur correcte de nValueNumber si le sourceValueSet a ete compresse avant la copie
-	int nOldValueNumber;
-	nOldValueNumber = nValueNumber;
-
-	// Recopie de la liste de valeurs source
-	value = sourceValueSet->GetHeadValue();
-	while (value != NULL)
+	// Test d'existence d'au moins une valeur
+	if (GetValueNumber() == 0)
 	{
-		valueUpgrade = AddValue(value->GetValue());
-		valueUpgrade->SetValueFrequency(value->GetValueFrequency());
-		sourceValueSet->GetNextValue(value);
+		AddError("No value specified");
+		bOk = false;
 	}
-	// Pour garantir la valeur correcte de nValueNumber si le sourceValueSet a ete compresse avant la copie
-	nValueNumber = nOldValueNumber + sourceValueSet->nValueNumber;
-}
 
-void KWDGValueSet::SortValues()
-{
-	InternalSortValues(KWDGValueCompareDecreasingFrequency);
-}
-
-boolean KWDGValueSet::AreValuesSorted() const
-{
-	KWDGValue* value1;
-	KWDGValue* value2;
-	int nCompare;
-	boolean bIsSorted = true;
-
-	value1 = GetHeadValue();
-	value2 = GetHeadValue();
-	GetNextValue(value2);
-
-	// Parcours des valeurs
-	while (value2 != NULL)
+	// Test des valeurs de la partie
+	if (bOk)
 	{
-		if (value1->GetValue() == Symbol::GetStarValue())
+		// On ne verifie les effectifs que si au moins un est specifie et si on n'est pas le groupe par defaut
+		// En effet, le groupe par defaut pouvant etre compresse, il peut y a voir quelques incoherences
+		// sur les effectifs des valeurs des valeur du groupe
+		bCheckFrequencies = not bIsDefaultPart and ComputeTotalFrequency() > 0;
+
+		// Parcours des valeurs de la partie
+		bDefaultValuePresent = false;
+		value = GetHeadValue();
+		while (value != NULL)
 		{
-			bIsSorted = false;
-			break;
+			// Detection de la star value
+			if (value->IsDefaultValue())
+				bDefaultValuePresent = true;
+
+			// Erreur si partie deja enregistree avec cette valeur
+			if (nkdCheckValues.Lookup(value->GetNumericKeyValue()) != NULL)
+			{
+				AddError(sTmp + value->GetClassLabel() + " " + value->GetObjectLabel() +
+					 " already exists in the part");
+				bOk = false;
+				break;
+			}
+			// Erreur si effectif a 0 pour une valeur qui n'est pas la valeur par defaut
+			else if (bCheckFrequencies and not value->IsDefaultValue() and value->GetValueFrequency() == 0)
+			{
+				AddError(sTmp + value->GetClassLabel() + " " + value->GetObjectLabel() +
+					 " should have a non-zero frequency");
+				bOk = false;
+				break;
+			}
+			// Erreur si typicalite incorrecte
+			else if (value->GetTypicality() < 0 or value->GetTypicality() > 1)
+			{
+				AddError(sTmp + value->GetClassLabel() + " " + value->GetObjectLabel() +
+					 " should have a typicality (" + DoubleToString(value->GetTypicality()) +
+					 ") between 0 and 1");
+				bOk = false;
+			}
+			// On continue si pas d'erreur
+			else
+			{
+				// Ajout de la partie avec la valeur pour cle
+				nkdCheckValues.SetAt(value->GetNumericKeyValue(), value);
+
+				// Valeur suivante
+				GetNextValue(value);
+			}
 		}
 
-		if (value2->GetValue() == Symbol::GetStarValue())
+		// Test d'integrite sur la valeur par defaut
+		if (bDefaultValuePresent and not bIsDefaultPart)
 		{
-			if (value2 != GetTailValue())
-				bIsSorted = false;
-			break;
+			AddError(sTmp + "Special default value is used used in a standard part");
+			bOk = false;
 		}
-
-		// Comparaison de la paire courante
-		nCompare = KWDGValueCompareDecreasingFrequency(&value1, &value2);
-
-		if (nCompare > 0)
+		else if (not bDefaultValuePresent and bIsDefaultPart)
 		{
-			bIsSorted = false;
-			break;
+			AddError(sTmp + "Special default value is missing in default part");
+			bOk = false;
 		}
-		GetNextValue(value1);
-		GetNextValue(value2);
 	}
-	return bIsSorted;
+	return bOk;
 }
 
 void KWDGValueSet::Write(ostream& ost) const
@@ -3920,9 +4430,14 @@ void KWDGValueSet::WriteValues(ostream& ost) const
 	value = GetHeadValue();
 	while (value != NULL)
 	{
-		ost << "\t" << *value << "\n";
+		ost << "\t" << value->GetObjectLabel() << "\t" << value->GetValueFrequency() << "\n";
 		GetNextValue(value);
 	}
+}
+
+longint KWDGValueSet::GetUsedMemory() const
+{
+	return sizeof(KWDGValueSet);
 }
 
 const ALString KWDGValueSet::GetClassLabel() const
@@ -3942,15 +4457,15 @@ const ALString KWDGValueSet::GetObjectLabel() const
 	dgValue = GetHeadValue();
 	while (dgValue != NULL)
 	{
-		// On n'utilise la modalite speciale pour fabriquer le libelle
-		if (dgValue->GetValue() != Symbol::GetStarValue())
+		// On n'utilise la valeur par defaut pour fabriquer le libelle
+		if (not dgValue->IsDefaultValue())
 		{
 			// Prise en compte si moins de trois valeurs
 			if (nValue < 3)
 			{
 				if (nValue > 0)
 					sLabel += ", ";
-				sLabel += dgValue->GetValue();
+				sLabel += dgValue->GetExternalValueLabel();
 				nValue++;
 			}
 			// Arret si au moins quatre valeurs
@@ -3964,6 +4479,35 @@ const ALString KWDGValueSet::GetObjectLabel() const
 	}
 	sLabel += "}";
 	return sLabel;
+}
+
+void KWDGValueSet::SetValueNumber(int nValue)
+{
+	require(nValue >= 0);
+	nValueNumber = nValue;
+}
+
+void KWDGValueSet::AddTailValue(KWDGValue* value)
+{
+	require(value != NULL);
+	require(value->GetValueType() == GetValueType());
+
+	// Ajout en fin de la liste des valeurs
+	if (headValue == NULL)
+		headValue = value;
+	if (tailValue != NULL)
+	{
+		tailValue->nextValue = value;
+		value->prevValue = tailValue;
+	}
+	tailValue = value;
+
+	// Partie par defaut si la valeur est la valeur par defaut
+	if (value->IsDefaultValue())
+		bIsDefaultPart = true;
+	// Incrementation du nombre de valeurs sinon
+	else
+		nValueNumber++;
 }
 
 void KWDGValueSet::InternalSortValues(CompareFunction fCompare)
@@ -3982,7 +4526,7 @@ void KWDGValueSet::InternalSortValues(CompareFunction fCompare)
 	value = GetHeadValue();
 	while (value != NULL)
 	{
-		if (value->GetValue() != Symbol::GetStarValue())
+		if (not value->IsDefaultValue())
 			oaValues.Add(value);
 		else
 			defaultValue = value;
@@ -4020,9 +4564,45 @@ void KWDGValueSet::InternalSortValues(CompareFunction fCompare)
 	}
 }
 
-KWDGValue* KWDGValueSet::NewValue(const Symbol& sValue) const
+boolean KWDGValueSet::InternalAreValuesSorted(CompareFunction fCompare) const
 {
-	return new KWDGValue(sValue);
+	KWDGValue* value1;
+	KWDGValue* value2;
+	int nCompare;
+	boolean bIsSorted = true;
+
+	value1 = GetHeadValue();
+	value2 = GetHeadValue();
+	GetNextValue(value2);
+
+	// Parcours des valeurs
+	while (value2 != NULL)
+	{
+		// La valeur manquante doit etre en dernier
+		if (value1->IsDefaultValue())
+		{
+			bIsSorted = false;
+			break;
+		}
+		if (value2->IsDefaultValue())
+		{
+			if (value2 != GetTailValue())
+				bIsSorted = false;
+			break;
+		}
+
+		// Comparaison de la paire courante
+		nCompare = fCompare(&value1, &value2);
+
+		if (nCompare > 0)
+		{
+			bIsSorted = false;
+			break;
+		}
+		GetNextValue(value1);
+		GetNextValue(value2);
+	}
+	return bIsSorted;
 }
 
 boolean KWDGValueSet::GetEmulated() const
@@ -4031,18 +4611,78 @@ boolean KWDGValueSet::GetEmulated() const
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// Classe KWDGValue
+// Classe KWDGSymbolValueSet
 
-void KWDGValue::Write(ostream& ost) const
+void KWDGSymbolValueSet::CompressValueSet()
 {
-	ost << sSymbolValue << "\t" << nValueFrequency;
+	int nCurrentValueNumber;
+	int nCurrentPartFrequency;
+	KWDGValue* value;
+
+	require(bIsDefaultPart);
+
+	// Memorisation des statistique
+	nCurrentValueNumber = nValueNumber;
+	nCurrentPartFrequency = ComputeTotalFrequency();
+
+	// Remplacement de l'ensemble des valeurs par une seule valeur
+	DeleteAllValues();
+	value = AddSymbolValue(Symbol::GetStarValue());
+	value->SetValueFrequency(nCurrentPartFrequency);
+	nValueNumber = nCurrentValueNumber;
 }
 
-int KWDGValueCompareDecreasingFrequency(const void* elem1, const void* elem2)
+KWDGValueSet* KWDGSymbolValueSet::ConvertToCleanedValueSet()
+{
+	int nCurrentPartFrequency;
+	KWDGValue* value;
+	KWDGValueSet* valueSet;
+
+	require(bIsDefaultPart);
+
+	// Memorisation des statistique
+	nCurrentPartFrequency = ComputeTotalFrequency();
+	valueSet = Clone();
+
+	// Remplacement de l'ensemble des valeurs par une seule valeur + modalite StarValue
+	DeleteAllValues();
+	value = AddSymbolValue(valueSet->GetHeadValue()->GetSymbolValue());
+	value->SetValueFrequency(valueSet->GetHeadValue()->GetValueFrequency());
+	value = AddSymbolValue(Symbol::GetStarValue());
+	value->SetValueFrequency(nCurrentPartFrequency - valueSet->GetHeadValue()->GetValueFrequency());
+
+	// Suppression dans le fourre tout des valeurs conservees dans la partie granularisee
+	// (pour eviter la redondance des modalites)
+	valueSet->DeleteValue(valueSet->GetHeadValue());
+	valueSet->DeleteValue(valueSet->GetTailValue());
+
+	return valueSet;
+}
+
+KWDGValueSet* KWDGSymbolValueSet::ComputeCleanedValueSet() const
+{
+	KWDGSymbolValueSet* symbolValueSet;
+	KWDGValue* value;
+
+	// Creation d'un nouveau ValueSet
+	symbolValueSet = cast(KWDGSymbolValueSet*, Create());
+
+	// Remplacement de l'ensemble des valeurs par une seule valeur + modalite StarValue
+	value = symbolValueSet->AddSymbolValue(GetHeadValue()->GetSymbolValue());
+	value->SetValueFrequency(GetHeadValue()->GetValueFrequency());
+	value = symbolValueSet->AddSymbolValue(Symbol::GetStarValue());
+	value->SetValueFrequency(ComputeTotalFrequency() - GetHeadValue()->GetValueFrequency());
+
+	return symbolValueSet;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGValue
+
+int KWDGValueCompareValue(const void* elem1, const void* elem2)
 {
 	KWDGValue* value1;
 	KWDGValue* value2;
-	int nCompare;
 
 	require(elem1 != NULL);
 	require(elem2 != NULL);
@@ -4052,11 +4692,458 @@ int KWDGValueCompareDecreasingFrequency(const void* elem1, const void* elem2)
 	value2 = cast(KWDGValue*, *(Object**)elem2);
 
 	// Comparaison
-	nCompare = -value1->GetValueFrequency() + value2->GetValueFrequency();
-	if (nCompare != 0)
-		return nCompare;
-	else
-		return value1->GetValue().CompareValue(value2->GetValue());
+	return value1->CompareValue(value2);
+}
+
+int KWDGValueCompareFrequency(const void* elem1, const void* elem2)
+{
+	KWDGValue* value1;
+	KWDGValue* value2;
+
+	require(elem1 != NULL);
+	require(elem2 != NULL);
+
+	// Acces a la valeur
+	value1 = cast(KWDGValue*, *(Object**)elem1);
+	value2 = cast(KWDGValue*, *(Object**)elem2);
+
+	// Comparaison
+	return value1->CompareFrequency(value2);
+}
+
+int KWDGValueCompareTypicality(const void* elem1, const void* elem2)
+{
+	KWDGValue* value1;
+	KWDGValue* value2;
+
+	require(elem1 != NULL);
+	require(elem2 != NULL);
+
+	// Acces a la valeur
+	value1 = cast(KWDGValue*, *(Object**)elem1);
+	value2 = cast(KWDGValue*, *(Object**)elem2);
+
+	// Comparaison
+	return value1->CompareTypicality(value2);
+}
+
+int KWSortableObjectCompareValue(const void* elem1, const void* elem2)
+{
+	int nCompare;
+	KWDGValue* value1;
+	KWDGValue* value2;
+
+	require(elem1 != NULL);
+	require(elem2 != NULL);
+
+	// Acces aux parties de variable
+	value1 = cast(KWDGValue*, cast(KWSortableObject*, *(Object**)elem1)->GetSortValue());
+	value2 = cast(KWDGValue*, cast(KWSortableObject*, *(Object**)elem2)->GetSortValue());
+
+	// Comparaison sur la valeur
+	nCompare = value1->CompareValue(value2);
+
+	// Comparaison sur l'index si egal
+	if (nCompare == 0)
+		nCompare = cast(KWSortableObject*, *(Object**)elem1)->GetIndex() -
+			   cast(KWSortableObject*, *(Object**)elem2)->GetIndex();
+	return nCompare;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGSymbolValue
+
+int KWDGSymbolValue::CompareTypicality(const KWDGValue* otherValue) const
+{
+	int nCompare;
+
+	require(otherValue != NULL);
+
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(GetTypicality(), otherValue->GetTypicality());
+
+	// Comparaison par effectif decroissaqnt si egalite
+	if (nCompare == 0)
+		nCompare = CompareFrequency(otherValue);
+	return nCompare;
+}
+
+void KWDGSymbolValue::Write(ostream& ost) const
+{
+	ost << sSymbolValue << "\t" << nValueFrequency;
+}
+
+const ALString KWDGSymbolValue::GetExternalValueLabel() const
+{
+	ALString sResult;
+	int nLength;
+	char c;
+	int i;
+
+	// On prend la valeur telle quelle
+	sResult = sSymbolValue;
+
+	// On la met entre quotes si elle contient un caractere special utilise par ObjectLabel
+	if (sResult.FindOneOf("'{},") != -1)
+	{
+		sResult = '\'';
+		nLength = sSymbolValue.GetLength();
+		for (i = 0; i < nLength; i++)
+		{
+			c = sSymbolValue.GetAt(i);
+			if (c == '\'')
+				sResult += '\'';
+			sResult += c;
+		}
+		sResult += '\'';
+	}
+	return sResult;
+}
+
+longint KWDGSymbolValue::GetUsedMemory() const
+{
+	return sizeof(KWDGSymbolValue);
+}
+
+const ALString KWDGSymbolValue::GetClassLabel() const
+{
+	return "value";
+}
+
+const ALString KWDGSymbolValue::GetObjectLabel() const
+{
+	return sSymbolValue.GetValue();
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGVarPartValue
+
+int KWDGVarPartValue::CompareValue(const KWDGValue* otherValue) const
+{
+	int nCompare;
+
+	require(otherValue != NULL);
+
+	// Comparaison des noms d'attributs des parties de variable
+	nCompare = GetVarPart()->GetAttribute()->GetAttributeName().Compare(
+	    otherValue->GetVarPart()->GetAttribute()->GetAttributeName());
+
+	// Si egalite, comparaison sur les valeurs de la partie (intervalle, ou premiere valeur du groupe)
+	if (nCompare == 0)
+		nCompare = GetVarPart()->ComparePartValues(otherValue->GetVarPart());
+	return nCompare;
+}
+
+int KWDGVarPartValue::CompareTypicality(const KWDGValue* otherValue) const
+{
+	int nCompare;
+
+	require(otherValue != NULL);
+
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(GetTypicality(), otherValue->GetTypicality());
+
+	// Comparaison par valeur si egalite
+	if (nCompare == 0)
+		nCompare = CompareValue(otherValue);
+	return nCompare;
+}
+
+void KWDGVarPartValue::Write(ostream& ost) const
+{
+	ost << *varPart << "\t" << GetValueFrequency();
+}
+
+const ALString KWDGVarPartValue::GetExternalValueLabel() const
+{
+	return GetObjectLabel();
+}
+
+longint KWDGVarPartValue::GetUsedMemory() const
+{
+	return sizeof(KWDGVarPartValue);
+}
+
+const ALString KWDGVarPartValue::GetClassLabel() const
+{
+	return "VarPart";
+}
+
+const ALString KWDGVarPartValue::GetObjectLabel() const
+{
+	return varPart->GetVarPartLabel();
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Classe KWDGInnerAttributes
+
+KWDGAttribute* KWDGInnerAttributes::GetInnerAttributeAt(int nAttributeIndex) const
+{
+	require(0 <= nAttributeIndex and nAttributeIndex < oaInnerAttributes.GetSize());
+
+	return cast(KWDGAttribute*, oaInnerAttributes.GetAt(nAttributeIndex));
+}
+
+KWDGAttribute* KWDGInnerAttributes::LookupInnerAttribute(const ALString& sAttributeName) const
+{
+	return cast(KWDGAttribute*, odInnerAttributes.Lookup(sAttributeName));
+}
+
+void KWDGInnerAttributes::AddInnerAttribute(KWDGAttribute* innerAttribute)
+{
+	require(innerAttribute != NULL);
+	require(innerAttribute->GetAttributeName() != "");
+	require(odInnerAttributes.Lookup(innerAttribute->GetAttributeName()) == NULL);
+	require(KWType::IsSimple(innerAttribute->GetAttributeType()));
+	require(odInnerAttributes.GetCount() == oaInnerAttributes.GetSize());
+
+	// Ajout de l'attribut dans le tableau des attributs internes
+	oaInnerAttributes.Add(innerAttribute);
+
+	// Indexation dans le dictionnaire
+	odInnerAttributes.SetAt(innerAttribute->GetAttributeName(), innerAttribute);
+	ensure(odInnerAttributes.GetCount() == oaInnerAttributes.GetSize());
+}
+
+int KWDGInnerAttributes::GetVarPartGranularity() const
+{
+	return nVarPartGranularity;
+}
+
+void KWDGInnerAttributes::SetVarPartGranularity(int nValue)
+{
+	require(nValue >= 0);
+
+	nVarPartGranularity = nValue;
+}
+
+void KWDGInnerAttributes::DeleteAll()
+{
+	odInnerAttributes.RemoveAll();
+	oaInnerAttributes.DeleteAll();
+}
+
+void KWDGInnerAttributes::CleanEmptyInnerAttributes()
+{
+	int nInnerAttribute;
+	int nNewIndex;
+	KWDGAttribute* innerAttribute;
+
+	// Nettoyage des attributs n'ayant aucune partie
+	nNewIndex = 0;
+	for (nInnerAttribute = 0; nInnerAttribute < oaInnerAttributes.GetSize(); nInnerAttribute++)
+	{
+		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+		if (innerAttribute->GetPartNumber() == 0)
+		{
+			// Suppression de l'indexation dans le dictionnaire
+			odInnerAttributes.RemoveKey(innerAttribute->GetAttributeName());
+
+			delete innerAttribute;
+		}
+		else
+		{
+			oaInnerAttributes.SetAt(nNewIndex, innerAttribute);
+			nNewIndex++;
+		}
+	}
+	oaInnerAttributes.SetSize(nNewIndex);
+	ensure(oaInnerAttributes.GetSize() == odInnerAttributes.GetCount());
+}
+
+void KWDGInnerAttributes::ExportAllInnerAttributeVarParts(ObjectArray* oaInnerAttributeVarParts) const
+{
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
+	KWDGPart* part;
+
+	require(oaInnerAttributeVarParts != NULL);
+	require(oaInnerAttributeVarParts->GetSize() == 0);
+
+	// Parcours de attribut inerne pour compter le nombre total de partie
+	for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
+	{
+		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+
+		// Ajout des parties dans le tableau
+		part = innerAttribute->GetHeadPart();
+		while (part != NULL)
+		{
+			oaInnerAttributeVarParts->Add(part);
+			innerAttribute->GetNextPart(part);
+		}
+	}
+}
+
+int KWDGInnerAttributes::ComputeTotalInnerAttributeVarParts() const
+{
+	int nTotalPartNumber;
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
+
+	// Parcours de attribut inerne pour compter le nombre total de partie
+	nTotalPartNumber = 0;
+	for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
+	{
+		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+		nTotalPartNumber += innerAttribute->GetPartNumber();
+	}
+	return nTotalPartNumber;
+}
+
+int KWDGInnerAttributes::ComputeTotalInnerAttributeFrequency() const
+{
+	int nTotalFrequency;
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
+
+	// Parcours de attribut inerne pour compter le nombre total de partie
+	nTotalFrequency = 0;
+	for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
+	{
+		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+		nTotalFrequency += innerAttribute->ComputeTotalPartFrequency();
+	}
+	return nTotalFrequency;
+}
+
+void KWDGInnerAttributes::SortInnerAttributeParts() const
+{
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
+
+	// Tri des attributs internes pour un attribut de grille de type VarPart
+	for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
+	{
+		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+		innerAttribute->SortParts();
+	}
+}
+
+boolean KWDGInnerAttributes::AreInnerAttributePartsSorted() const
+{
+	boolean bIsSorted;
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
+
+	// Verification du tri des parties pour chaque attribut interne
+	bIsSorted = true;
+	for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
+	{
+		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+		bIsSorted = innerAttribute->ArePartsSorted();
+		if (not bIsSorted)
+			break;
+	}
+	return bIsSorted;
+}
+
+boolean KWDGInnerAttributes::ContainsSubVarParts(const KWDGInnerAttributes* otherInnerAttributes) const
+{
+	boolean bOk;
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
+	KWDGAttribute* otherInnerAttribute;
+
+	require(otherInnerAttributes != NULL);
+
+	// Cas particulier oou les variable internes en parametre sont les memes
+	if (otherInnerAttributes == this)
+		return true;
+
+	// On doit avoir le meme nombre d'attributs internes
+	bOk = GetInnerAttributeNumber() == otherInnerAttributes->GetInnerAttributeNumber();
+
+	// Comparaison pour chaque attribut interne
+	if (bOk)
+	{
+		for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
+		{
+			innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+			otherInnerAttribute = otherInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
+
+			// On doit avoir la meme variable, avec un nombre inferieur de partie
+			bOk = bOk and innerAttribute->GetAttributeName() == otherInnerAttribute->GetAttributeName();
+			bOk = bOk and innerAttribute->GetAttributeType() == otherInnerAttribute->GetAttributeType();
+			bOk = bOk and
+			      innerAttribute->GetOwnerAttributeName() == otherInnerAttribute->GetOwnerAttributeName();
+
+			// Test d'inclusion des parties
+			bOk = bOk and innerAttribute->ContainsSubParts(otherInnerAttribute);
+			if (not bOk)
+				break;
+		}
+	}
+	return bOk;
+}
+
+boolean KWDGInnerAttributes::Check() const
+{
+	boolean bOk = true;
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
+	boolean bIsCompletelySpecified;
+
+	require(odInnerAttributes.GetCount() == oaInnerAttributes.GetSize());
+
+	// Parcours des attributs internes
+	for (nInnerAttribute = 0; nInnerAttribute < oaInnerAttributes.GetSize(); nInnerAttribute++)
+	{
+		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+
+		// Verifications de base
+		bOk = bOk and innerAttribute->Check();
+
+		// Verification de l'attribut interne
+		if (bOk and innerAttribute->GetOwnerAttributeName() == "")
+		{
+			AddError("No owner variable for inner variable " + innerAttribute->GetAttributeName() + "\n");
+			bOk = false;
+		}
+		if (bOk and not KWType::IsSimple(innerAttribute->GetAttributeType()))
+		{
+			AddError("Type of inner variable " + innerAttribute->GetAttributeName() +
+				 "\t must be Numerical or Categorical");
+			bOk = false;
+		}
+
+		// Verification du tri des parties de l'attribut interne, uniquement si l'attribut est completement specifie
+		// avec des parties d'effectif non vide, pour pouvoir faire des verifications en cours de construction d'une grille
+		bIsCompletelySpecified =
+		    innerAttribute->GetPartNumber() > 0 and innerAttribute->GetHeadPart()->GetPartFrequency() > 0;
+		if (bIsCompletelySpecified and KWType::IsCoclusteringGroupableType(innerAttribute->GetAttributeType()))
+			bIsCompletelySpecified =
+			    innerAttribute->GetHeadPart()->GetValueSet()->GetHeadValue()->GetValueFrequency() > 0;
+		if (bOk and bIsCompletelySpecified and not innerAttribute->ArePartsSorted())
+		{
+			AddError("Parts of inner variable " + innerAttribute->GetAttributeName() + " should be sorted");
+			bOk = false;
+		}
+	}
+	return bOk;
+}
+
+void KWDGInnerAttributes::Write(ostream& ost) const
+{
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
+
+	ost << "Inner variable number \t" << GetInnerAttributeNumber() << endl;
+	for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
+	{
+		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+		innerAttribute->Write(ost);
+	}
+}
+
+const ALString KWDGInnerAttributes::GetClassLabel() const
+{
+	return "Inner variables";
+}
+
+const ALString KWDGInnerAttributes::GetObjectLabel() const
+{
+	return "";
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -4330,10 +5417,7 @@ int KWDGCellCompareValue(const void* elem1, const void* elem2)
 		assert(part1->GetPartType() == part2->GetPartType());
 
 		// Comparaison selon le type de partie
-		if (part1->GetPartType() == KWType::Continuous)
-			nPartCompare = KWDGPartContinuousCompare(&part1, &part2);
-		else
-			nPartCompare = KWDGPartSymbolCompare(&part1, &part2);
+		nPartCompare = part1->ComparePartValues(part2);
 		if (nPartCompare != 0)
 			return nPartCompare;
 	}

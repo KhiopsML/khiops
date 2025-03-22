@@ -1,17 +1,20 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2021-02-05 18:19:44
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "Object.h"
 
 // ## Custom includes
+
+#include "KWDatabase.h"
+#include "KWResultFilePathBuilder.h"
+#include "KWVersion.h"
 
 // ##
 
@@ -32,21 +35,13 @@ public:
 	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
-	// Result files directory
-	const ALString& GetResultFilesDirectory() const;
-	void SetResultFilesDirectory(const ALString& sValue);
-
-	// Result files prefix
-	const ALString& GetResultFilesPrefix() const;
-	void SetResultFilesPrefix(const ALString& sValue);
+	// Coclustering report
+	const ALString& GetCoclusteringFileName() const;
+	void SetCoclusteringFileName(const ALString& sValue);
 
 	// Short description
 	const ALString& GetShortDescription() const;
 	void SetShortDescription(const ALString& sValue);
-
-	// Coclustering report
-	const ALString& GetCoclusteringFileName() const;
-	void SetCoclusteringFileName(const ALString& sValue);
 
 	// Input coclustering report
 	const ALString& GetInputCoclusteringFileName() const;
@@ -64,10 +59,6 @@ public:
 	const ALString& GetCoclusteringDictionaryFileName() const;
 	void SetCoclusteringDictionaryFileName(const ALString& sValue);
 
-	// Export JSON
-	boolean GetExportJSON() const;
-	void SetExportJSON(boolean bValue);
-
 	///////////////////////////////////////////////////////////
 	// Divers
 
@@ -80,23 +71,27 @@ public:
 
 	// ## Custom declarations
 
+	// Parametrage du LearningProblem, pour avoir acces a son service de recherche de chemin de fichier
+	void SetTrainDatabase(const KWDatabase* database);
+	const KWDatabase* GetTrainDatabase() const;
+
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
-	ALString sResultFilesDirectory;
-	ALString sResultFilesPrefix;
-	ALString sShortDescription;
 	ALString sCoclusteringFileName;
+	ALString sShortDescription;
 	ALString sInputCoclusteringFileName;
 	ALString sClusterFileName;
 	ALString sPostProcessedCoclusteringFileName;
 	ALString sCoclusteringDictionaryFileName;
-	boolean bExportJSON;
 
 	// ## Custom implementation
+
+	// Base de donnees servant a obtenir le chemin des fichier en entree
+	const KWDatabase* trainDatabase;
 
 	// ##
 };
@@ -104,24 +99,14 @@ protected:
 ////////////////////////////////////////////////////////////
 // Implementations inline
 
-inline const ALString& CCAnalysisResults::GetResultFilesDirectory() const
+inline const ALString& CCAnalysisResults::GetCoclusteringFileName() const
 {
-	return sResultFilesDirectory;
+	return sCoclusteringFileName;
 }
 
-inline void CCAnalysisResults::SetResultFilesDirectory(const ALString& sValue)
+inline void CCAnalysisResults::SetCoclusteringFileName(const ALString& sValue)
 {
-	sResultFilesDirectory = sValue;
-}
-
-inline const ALString& CCAnalysisResults::GetResultFilesPrefix() const
-{
-	return sResultFilesPrefix;
-}
-
-inline void CCAnalysisResults::SetResultFilesPrefix(const ALString& sValue)
-{
-	sResultFilesPrefix = sValue;
+	sCoclusteringFileName = sValue;
 }
 
 inline const ALString& CCAnalysisResults::GetShortDescription() const
@@ -132,16 +117,6 @@ inline const ALString& CCAnalysisResults::GetShortDescription() const
 inline void CCAnalysisResults::SetShortDescription(const ALString& sValue)
 {
 	sShortDescription = sValue;
-}
-
-inline const ALString& CCAnalysisResults::GetCoclusteringFileName() const
-{
-	return sCoclusteringFileName;
-}
-
-inline void CCAnalysisResults::SetCoclusteringFileName(const ALString& sValue)
-{
-	sCoclusteringFileName = sValue;
 }
 
 inline const ALString& CCAnalysisResults::GetInputCoclusteringFileName() const
@@ -182,16 +157,6 @@ inline const ALString& CCAnalysisResults::GetCoclusteringDictionaryFileName() co
 inline void CCAnalysisResults::SetCoclusteringDictionaryFileName(const ALString& sValue)
 {
 	sCoclusteringDictionaryFileName = sValue;
-}
-
-inline boolean CCAnalysisResults::GetExportJSON() const
-{
-	return bExportJSON;
-}
-
-inline void CCAnalysisResults::SetExportJSON(boolean bValue)
-{
-	bExportJSON = bValue;
 }
 
 // ## Custom inlines

@@ -1,21 +1,31 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
+////////////////////////////////////////////////////////////
+// File generated with Genere tool
+// Insert your specific code inside "//## " sections
+
 #include "UserInterface.h"
-#include "KWModelingSpecView.h"
-#include "KWPredictorSelectiveNaiveBayesView.h"
+
+#include "KWModelingSpec.h"
+
+// ## Custom includes
+
 #include "SNBPredictorSelectiveNaiveBayesView.h"
 #include "KDConstructionDomainView.h"
+#include "KDTextFeatureSpecView.h"
 #include "KWAttributePairsSpecView.h"
+#include "KDDataPreparationAttributeCreationTaskView.h"
+
+// ##
 
 ////////////////////////////////////////////////////////////
 // Classe KWModelingAdvancedSpecView
-// Vue sur les parametres avances de ModelingSpec
-// Cette vue specialisee n'est pas generee. Elle edite
-// directement le meme objet KWModelingSpec que KWModelingSpecView
+//    Advanced predictor parameters
+// Editeur de KWModelingSpec
 class KWModelingAdvancedSpecView : public UIObjectView
 {
 public:
@@ -38,11 +48,16 @@ public:
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
 
-	// Inspection des parametres avances du predicteur Bayesien Naif Selectif
-	void InspectSelectiveNaiveBayesParameters();
+	// ## Custom declarations
+
+	///////////////////////////////////////////////////////////////
+	// Parametrage avance
 
 	// Inspection des parametres de construction de variable
 	void InspectConstructionDomain();
+
+	// Inspection des parametres de construction de variables de type texte
+	void InspectTextFeaturesParameters();
 
 	// Inspection des parametres de construction des arbres
 	void InspectAttributeCreationParameters();
@@ -50,7 +65,18 @@ public:
 	// Inspection des parametres d'analyse des paires de variables
 	void InspectAttributePairsParameters();
 
+	// Parametrage de l'objet edite
+	void SetObject(Object* object) override;
+
+	// ##
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
+	// ## Custom implementation
+
+	// ##
 };
+
+// ## Custom inlines
+
+// ##

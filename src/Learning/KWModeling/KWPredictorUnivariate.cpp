@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -308,14 +308,14 @@ void KWEvaluatedDataGridStats::InitializeEvaluation(const KWPredictor* predictor
 	require(predictorDataGridStats != NULL);
 
 	// Parametrage des bornes des attributs numeriques de la grilles
-	cvJSONEvaluatedAttributeMinValues.SetSize(predictorDataGridStats->GetAttributeNumber());
-	cvJSONEvaluatedAttributeMaxValues.SetSize(predictorDataGridStats->GetAttributeNumber());
+	cvJSONEvaluatedAttributeDomainLowerBounds.SetSize(predictorDataGridStats->GetAttributeNumber());
+	cvJSONEvaluatedAttributeDomainUpperBounds.SetSize(predictorDataGridStats->GetAttributeNumber());
 
 	// On les met a missing par defaut
-	for (i = 0; i < cvJSONEvaluatedAttributeMinValues.GetSize(); i++)
+	for (i = 0; i < cvJSONEvaluatedAttributeDomainLowerBounds.GetSize(); i++)
 	{
-		cvJSONEvaluatedAttributeMinValues.SetAt(i, KWContinuous::GetMissingValue());
-		cvJSONEvaluatedAttributeMaxValues.SetAt(i, KWContinuous::GetMissingValue());
+		cvJSONEvaluatedAttributeDomainLowerBounds.SetAt(i, KWContinuous::GetMissingValue());
+		cvJSONEvaluatedAttributeDomainUpperBounds.SetAt(i, KWContinuous::GetMissingValue());
 	}
 
 	// On les parametre correctement si possible
@@ -346,10 +346,10 @@ void KWEvaluatedDataGridStats::InitializeEvaluation(const KWPredictor* predictor
 				// Parametrage des bornes
 				if (descriptiveContinuousStats != NULL)
 				{
-					cvJSONEvaluatedAttributeMinValues.SetAt(i,
-										descriptiveContinuousStats->GetMin());
-					cvJSONEvaluatedAttributeMaxValues.SetAt(i,
-										descriptiveContinuousStats->GetMax());
+					cvJSONEvaluatedAttributeDomainLowerBounds.SetAt(
+					    i, descriptiveContinuousStats->GetMin());
+					cvJSONEvaluatedAttributeDomainUpperBounds.SetAt(
+					    i, descriptiveContinuousStats->GetMax());
 				}
 			}
 		}
@@ -359,16 +359,16 @@ void KWEvaluatedDataGridStats::InitializeEvaluation(const KWPredictor* predictor
 void KWEvaluatedDataGridStats::WriteJSONFields(JSONFile* fJSON)
 {
 	// Parametrage de la grille
-	SetJSONAttributeMinValues(&cvJSONEvaluatedAttributeMinValues);
-	SetJSONAttributeMaxValues(&cvJSONEvaluatedAttributeMaxValues);
+	SetJSONAttributeDomainLowerBounds(&cvJSONEvaluatedAttributeDomainLowerBounds);
+	SetJSONAttributeDomainUpperBounds(&cvJSONEvaluatedAttributeDomainUpperBounds);
 
 	// Ecriture du rapport JSON en appelant la methode ancetre,
 	// qui est correctement parametree le temps de l'ecriture
 	KWDataGridStats::WriteJSONFields(fJSON);
 
 	// Nettoyage du parametrage
-	SetJSONAttributeMinValues(NULL);
-	SetJSONAttributeMaxValues(NULL);
+	SetJSONAttributeDomainLowerBounds(NULL);
+	SetJSONAttributeDomainUpperBounds(NULL);
 }
 
 void KWEvaluatedDataGridStats::SortSourceCells(ObjectArray* oaSourceCells, int nTargetAttributeIndex) const
@@ -399,7 +399,7 @@ void KWEvaluatedDataGridStats::SortSourceCells(ObjectArray* oaSourceCells, int n
 				predictorCell = cast(KWDGSSourceCell*, oaPredictorSourceCells.GetAt(i));
 				currentCell = cast(KWDGSSourceCell*, oaSourceCells->GetAt(i));
 				assert(KWDGSCellCompareIndexes(&predictorCell, &currentCell) == 0);
-				nkdCurrentCells.SetAt((NUMERIC)predictorCell, currentCell);
+				nkdCurrentCells.SetAt(predictorCell, currentCell);
 			}
 
 			// Tri de ces cellules selon leur interet dans le predicteur
@@ -410,7 +410,7 @@ void KWEvaluatedDataGridStats::SortSourceCells(ObjectArray* oaSourceCells, int n
 			for (i = 0; i < oaPredictorSourceCells.GetSize(); i++)
 			{
 				predictorCell = cast(KWDGSSourceCell*, oaPredictorSourceCells.GetAt(i));
-				currentCell = cast(KWDGSSourceCell*, nkdCurrentCells.Lookup((NUMERIC)predictorCell));
+				currentCell = cast(KWDGSSourceCell*, nkdCurrentCells.Lookup(predictorCell));
 				oaSourceCells->SetAt(i, currentCell);
 			}
 		}

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -60,7 +60,7 @@ public:
 	static void TestGranularizeFrequencyTable();
 
 	/////////////////////////////////////////////////////////////////
-	//// Implementation
+	// Implementation
 protected:
 	friend class KWDataGridOptimizer;
 	friend class KWDataGridManager;
@@ -107,8 +107,9 @@ protected:
 
 	// Groupage des modalites pour une table d'effectifs preprocessee
 	// Modification de l'algorithme pour parcourir les differentes granularites et inserer eventuellement un groupe
-	// poubelle Reimplementation d'une methode virtuellle de KWGrouper CH V9 TODO Renommer et modifier description
-	// de la methode : avec la granularite, il n'y a plus de preprocessing manuel donc cette methode effectue un
+	// poubelle Reimplementation d'une methode virtuellle de KWGrouper
+	// CH V9 TODO Renommer et modifier description de la methode :
+	// avec la granularite, il n'y a plus de preprocessing manuel donc cette methode effectue un
 	// groupage sur la table initiale par parcours des granularites
 	void GroupPreprocessedTable(KWFrequencyTable* kwctSource, KWFrequencyTable*& kwctTarget,
 				    IntVector*& ivGroups) const override;
@@ -404,7 +405,7 @@ public:
 	boolean Check() const override;
 
 	/////////////////////////////////////////////////////////////////
-	//// Implementation
+	// Implementation
 protected:
 	//////////////////////////////////////////////////////
 	// Redefinition de methodes de la classe mere

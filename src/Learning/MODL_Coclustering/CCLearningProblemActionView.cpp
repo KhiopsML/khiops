@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -7,7 +7,10 @@
 CCLearningProblemActionView::CCLearningProblemActionView()
 {
 	// Ajout d'actions
-	AddAction("BuildCoclustering", "Build coclustering",
+	AddAction("CheckData", "Check database", (ActionMethod)(&CCLearningProblemActionView::CheckData));
+	AddAction("SortDataTableByKey", "Sort data table by key...",
+		  (ActionMethod)(&CCLearningProblemActionView::SortDataTableByKey));
+	AddAction("BuildCoclustering", "Train coclustering",
 		  (ActionMethod)(&CCLearningProblemActionView::BuildCoclustering));
 	AddAction("PostProcessCoclustering", "Simplify coclustering...",
 		  (ActionMethod)(&CCLearningProblemActionView::PostProcessCoclustering));
@@ -15,29 +18,32 @@ CCLearningProblemActionView::CCLearningProblemActionView()
 		  (ActionMethod)(&CCLearningProblemActionView::ExtractClusters));
 	AddAction("PrepareDeployment", "Prepare deployment...",
 		  (ActionMethod)(&CCLearningProblemActionView::PrepareDeployment));
-	AddAction("PostOptimizeCoclustering", "Post-optimize coclustering (expert mode)...",
-		  (ActionMethod)(&CCLearningProblemActionView::PostOptimizeCoclustering));
+	AddAction("TransferDatabase", "Deploy model...",
+		  (ActionMethod)(&CCLearningProblemActionView::TransferDatabase));
 
 	// Ajout d'accelateurs sur les actions principales
-	GetActionAt("BuildCoclustering")->SetAccelKey("control B");
+	GetActionAt("BuildCoclustering")->SetAccelKey("control T");
 	GetActionAt("PostProcessCoclustering")->SetAccelKey("control I");
 	GetActionAt("ExtractClusters")->SetAccelKey("control E");
 	GetActionAt("PrepareDeployment")->SetAccelKey("control P");
-
-	// Les fonctionnalites de post-optimization sont accessible uniquement en mode expert
-	GetActionAt("PostOptimizeCoclustering")->SetVisible(GetLearningCoclusteringExpertMode());
-
-#ifdef DEPRECATED_V10
-	{
-		// DEPRECATED V10: fonctionnalite obsolete, conservee de facon cachee en V10 pour compatibilite
-		// ascendante des scenarios
-		LMLicenseManager::DEPRECATEDAddLicenseManagementMenu(this);
-	}
-#endif // DEPRECATED_V10
+	GetActionAt("TransferDatabase")->SetAccelKey("control D");
 
 	// Info-bulles
+	GetActionAt("CheckData")
+	    ->SetHelpText("Check the integrity of the train database."
+			  "\n This action reads each line of the train database to perform the integrity checks."
+			  "\n During formatting checks, the number of fields in the train database is compared"
+			  "\n to the number of native variables in the dictionary."
+			  "\n Data conversion checks are performed for the fields corresponding to "
+			  "\n numerical, date, time, timestamp and timestampTZ variables."
+			  "\n In case of multi-tables database, data tables must be sorted by key."
+			  "\n Error messages are displayed in the message log window.");
+	GetActionAt("SortDataTableByKey")
+	    ->SetHelpText("Sort a data table according to sort variables."
+			  "\n It is dedicated to the preparation of multi-table databases,"
+			  "\n which requires all data table files to be sorted by key, for efficiency reasons.");
 	GetActionAt("BuildCoclustering")
-	    ->SetHelpText("Build a coclustering model given the coclustering parameters."
+	    ->SetHelpText("Train a coclustering model given the coclustering parameters."
 			  "\n This action is anytime: coclustering models are computed and continuously improved,"
 			  "\n with new solutions saved as soon as improvements are reached."
 			  "\n The intermediate solutions can be used without waiting for the final solution,"
@@ -52,16 +58,20 @@ CCLearningProblemActionView::CCLearningProblemActionView()
 	    ->SetHelpText(
 		"Enables the deployment of a coclustering model by the means of a Khiops deployment dictionary."
 		"\n Opens a new window named 'Coclustering deployment preparation'.");
-	GetActionAt("PostOptimizeCoclustering")
-	    ->SetHelpText("Post-optimize a coclustering (available only in expert mode)."
-			  "\n Opens a new window named 'Post-optimize coclustering'.");
+	GetActionAt("TransferDatabase")
+	    ->SetHelpText("Open a dialog box allowing to specify an input and output database,"
+			  "\n and a dictionary describing the variables to keep, discard or derive."
+			  "\n This allows to recode a database or to deploy a predictor on new data.");
 
 	// Short cuts
 	SetShortCut('T');
-	GetActionAt("BuildCoclustering")->SetShortCut('B');
-	GetActionAt("PostProcessCoclustering")->SetShortCut('S');
+	GetActionAt("CheckData")->SetShortCut('C');
+	GetActionAt("SortDataTableByKey")->SetShortCut('S');
+	GetActionAt("BuildCoclustering")->SetShortCut('T');
+	GetActionAt("PostProcessCoclustering")->SetShortCut('i');
 	GetActionAt("ExtractClusters")->SetShortCut('E');
 	GetActionAt("PrepareDeployment")->SetShortCut('P');
+	GetActionAt("TransferDatabase")->SetShortCut('D');
 }
 
 CCLearningProblemActionView::~CCLearningProblemActionView() {}
@@ -74,6 +84,16 @@ void CCLearningProblemActionView::EventUpdate(Object* object)
 void CCLearningProblemActionView::EventRefresh(Object* object)
 {
 	require(object != NULL);
+}
+
+void CCLearningProblemActionView::CheckData()
+{
+	GetLearningProblemView()->CheckData();
+}
+
+void CCLearningProblemActionView::SortDataTableByKey()
+{
+	GetLearningProblemView()->SortDataTableByKey();
 }
 
 void CCLearningProblemActionView::BuildCoclustering()
@@ -117,16 +137,9 @@ void CCLearningProblemActionView::PrepareDeployment()
 	deploymentPreparationView.Open();
 }
 
-void CCLearningProblemActionView::PostOptimizeCoclustering()
+void CCLearningProblemActionView::TransferDatabase()
 {
-	CCLearningProblemPostOptimizationView postOptimizationView;
-
-	// Initialisation des caracteristiques du coclustering a traiter
-	InitializeInputCoclusteringSpecs();
-
-	// Lancement de la fenetre de post-processing
-	postOptimizationView.SetObject(GetLearningProblem());
-	postOptimizationView.Open();
+	GetLearningProblemView()->TransferDatabase();
 }
 
 CCLearningProblem* CCLearningProblemActionView::GetLearningProblem()

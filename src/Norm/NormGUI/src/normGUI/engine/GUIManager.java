@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -14,8 +14,6 @@ import javax.swing.UIManager;
 
 /**
  * Initialisation globale, en particulier en ce qui concerne le UIManager
- *
- * @author Marc Boulle
  */
 public class GUIManager extends GUIObject
 {
@@ -41,12 +39,19 @@ public class GUIManager extends GUIObject
                                                            ExceptionHandler.class.getName());
 
                                         // Initialisation du UIManager
+                                        // On choisit le look and feel cross-plateforme (metal) essentiellement pour
+                                        // eviter le look and feel windows qui utilise un FileChooser defectueux.
+                                        // Ce dernier commence par scanner l'ensemble des disques disponibles,
+                                        // y compris les disques reseaux, pour dimensionner sa boite de dialogue.
+                                        // Cela entraine un temps d'attente de plusieurs dizaines de secondes,
+                                        // et rend l'application inutilisable
                                         try {
-                                                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                                                UIManager.setLookAndFeel(
+                                                  UIManager.getCrossPlatformLookAndFeelClassName());
                                         } catch (Exception e) {
                                                 if (debug)
                                                         displayMessage(
-                                                          "Impossible de charger le Look & Feel du systeme");
+                                                          "Impossible de charger le Look & Feel cross-plateforme");
                                         }
 
                                         // Choix d'une font par defaut
@@ -60,8 +65,8 @@ public class GUIManager extends GUIObject
                                         }
 
                                         // Pour parametrer les fontes de tous les composants
-                                        // Apparement, la seule solution est de parametrer la fonte de tous
-                                        // les compsants
+                                        // Apparement, la seule solution est de parametrer la fonte de tous les
+                                        // compsants
                                         if (defaultFont != null) {
                                                 UIManager.put("Button.font", defaultFont);
                                                 UIManager.put("CheckBox.font", defaultFont);
@@ -108,7 +113,11 @@ public class GUIManager extends GUIObject
                                         UIManager.put("TextField.margin", margin);
 
                                         // Libelles des boites de dialogue
-                                        Locale locale = new Locale("en", "US");
+                                        Locale locale = new Locale.Builder()
+                                                          .setLanguage("en")
+                                                          .setScript("Latn")
+                                                          .setRegion("US")
+                                                          .build();
                                         JOptionPane.setDefaultLocale(locale);
                                         JFileChooser.setDefaultLocale(locale);
 
@@ -118,8 +127,8 @@ public class GUIManager extends GUIObject
                                         // Delai avant apparition de l'infobulle 0.5 secondes (defaut: 0.75 s)
                                         ToolTipManager.sharedInstance().setInitialDelay(500);
 
-                                        // Delai en deca duquel il n'y plus de delai initial si on change de
-                                        // composant: 0.15 secondes (defaut: 0.5 s)
+                                        // Delai en deca duquel il n'y plus de delai initial si on change de composant:
+                                        // 0.15 secondes (defaut: 0.5 s)
                                         ToolTipManager.sharedInstance().setReshowDelay(150);
 
                                         // Initialisation effectuee

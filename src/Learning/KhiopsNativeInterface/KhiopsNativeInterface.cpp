@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -14,6 +14,7 @@
 #include "Timer.h"
 #include "RMResourceConstraints.h"
 #include "KWKhiopsVersion.h"
+#include "Utils.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Gestion de l'environnement d'apprentissage pour les methodes de l'API
@@ -100,7 +101,8 @@ void KNICreateEnv()
 		Error::SetDisplayErrorFunction(NULL);
 
 		// Affectation des handlers pour l'acces au fichiers
-		SystemFileDriverCreator::RegisterDrivers();
+		if (not SystemFileDriverCreator::IsExternalDriversRegistered())
+			SystemFileDriverCreator::RegisterExternalDrivers();
 	}
 }
 
@@ -246,14 +248,14 @@ static void KNIAddInternalError(const ALString& sLabel)
 
 KNI_API int KNIGetVersion()
 {
-	return KNI_VERSION_10_0;
+	return 10 * GetMajorVersion(KHIOPS_VERSION) + GetMinorVersion(KHIOPS_VERSION);
 }
 
 KNI_API const char* KNIGetFullVersion()
 {
 	static ALString sFullVersion;
 
-	// Initialisation la premiere fois, en supprimant tout ce qui n'est ni chiffre, ni '.'
+	// Initialisation la premiere fois
 	if (sFullVersion == "")
 		sFullVersion = KHIOPS_VERSION;
 	return sFullVersion;
@@ -441,7 +443,7 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 					     lMB);
 
 		// Ok si la nouvelle limite memoire est possible
-		if (nNewAllStreamsMemoryLimit + nPhysicalMemoryReserve < nPhysicalMemoryLimit)
+		if (nNewAllStreamsMemoryLimit + nPhysicalMemoryReserve <= nPhysicalMemoryLimit)
 		{
 			RMResourceConstraints::SetMemoryLimit(nNewAllStreamsMemoryLimit + nPhysicalMemoryReserve);
 			KNIStream::SetAllStreamsMemoryLimit(nNewAllStreamsMemoryLimit);
@@ -471,7 +473,7 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 		else if (not KNICheckString(sDictionaryName, KNI_MaxDictionaryNameLength))
 			nRetCode = KNI_ErrorDictionaryName;
 		// Erreur si fichier dictionnaire inexistant
-		else if (not FileService::Exist(sDictionaryFileName))
+		else if (not FileService::FileExists(sDictionaryFileName))
 			nRetCode = KNI_ErrorDictionaryMissingFile;
 		// Erreur si pas de header line
 		else if (not KNICheckString(sStreamHeaderLine, KNI_MaxRecordLength))
@@ -512,6 +514,13 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 		// Erreur si dictionnaire non trouve
 		else if (kwcdLoadedDomain->LookupClass(sDictionaryName) == NULL)
 			nRetCode = KNI_ErrorMissingDictionary;
+
+		// Compilation du dictionnaire, qui peut echouer en cas de cycle de regles de derivation
+		if (nRetCode != KNI_OK)
+		{
+			if (not kwcdLoadedDomain->Compile())
+				nRetCode = KNI_ErrorDictionaryFileFormat;
+		}
 
 		// Nettoyage si erreur
 		if (nRetCode != KNI_OK)
@@ -582,22 +591,32 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 		kniStream->GetOutputStream()->UpdateMultiTableMappings();
 
 		// Parametrage des mappings des tables internes en entree avec des pseudo-noms de tables
+		// Essentiellement pour les messages d'erreur
 		for (i = 0; i < kniStream->GetInputStream()->GetTableNumber(); i++)
 		{
 			mapping =
 			    cast(KWMTDatabaseMapping*, kniStream->GetInputStream()->GetMultiTableMappings()->GetAt(i));
-			if (not kniStream->GetInputStream()->IsReferencedClassMapping(mapping))
+
+			// Cas particulier la de table principale, ou l'on utilise son nom de dictionnaire (son data path est vide)
+			if (i == 0)
+			{
+				assert(mapping->GetDataPath() == "");
+				assert(mapping->GetOriginClassName() == kniStream->GetInputStream()->GetClassName());
+				mapping->SetDataTableName("Input stream " + mapping->GetOriginClassName());
+			}
+			// Sinon, on prend le data path
+			else
 				mapping->SetDataTableName("Input stream " + mapping->GetDataPath());
 		}
 
 		// En sortie, parametrage uniquement de la table principale
 		assert(kniStream->GetOutputStream()->GetTableNumber() > 0);
 		mapping = cast(KWMTDatabaseMapping*, kniStream->GetOutputStream()->GetMultiTableMappings()->GetAt(0));
-		mapping->SetDataTableName("Output stream " + mapping->GetDataPath());
+		mapping->SetDataTableName("Output stream " + mapping->GetOriginClassName());
 
 		// Parametrage de la ligne d'entete des tables principales
-		kniStream->GetInputStream()->SetHeaderLineAt(kwcClass->GetName(), sStreamHeaderLine);
-		kniStream->GetOutputStream()->SetHeaderLineAt(kwcClass->GetName(), sStreamHeaderLine);
+		kniStream->GetInputStream()->SetHeaderLineAt("", sStreamHeaderLine);
+		kniStream->GetOutputStream()->SetHeaderLineAt("", sStreamHeaderLine);
 
 		// On remet le domaine de classe courant a NULL
 		KWClassDomain::SetCurrentDomain(NULL);
@@ -670,7 +689,7 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 	ensure(nRetCode < 0 or KNIGetOpenedStreamAt(nRetCode) != NULL);
 	ensure(nRetCode < 0 or KNIGetOpenedStreamAt(nRetCode)->GetClass()->GetName() == sDictionaryName);
 	ensure(nRetCode < 0 or
-	       KNIGetOpenedStreamAt(nRetCode)->GetInputStream()->GetHeaderLineAt(sDictionaryName) == sStreamHeaderLine);
+	       KNIGetOpenedStreamAt(nRetCode)->GetInputStream()->GetHeaderLineAt("") == sStreamHeaderLine);
 	bKNIRunningFunction = false;
 	return nRetCode;
 }
@@ -870,7 +889,7 @@ KNI_API int KNISetSecondaryHeaderLine(int hStream, const char* sDataPath, const 
 
 		// Recherche du mapping
 		mapping = NULL;
-		sFullDataPath = kniStream->GetInputStream()->GetClassName() + '`' + sDataPath;
+		sFullDataPath = sDataPath;
 		if (nRetCode == KNI_OK)
 		{
 			mapping = kniStream->GetInputStream()->LookupMultiTableMapping(sFullDataPath);
@@ -907,6 +926,7 @@ KNI_API int KNISetExternalTable(int hStream, const char* sDataRoot, const char* 
 	KNIStream* kniStream;
 	KWMTDatabaseMapping* mapping;
 	ALString sFullDataPath;
+	ALString sRootDataPath;
 
 	// Sortie directe si fonction en cours d'execution
 	if (bKNIRunningFunction)
@@ -942,16 +962,18 @@ KNI_API int KNISetExternalTable(int hStream, const char* sDataRoot, const char* 
 
 		// Recherche du mapping
 		mapping = NULL;
-		sFullDataPath = sDataRoot;
+		sRootDataPath = KWMTDatabaseMapping::GetDataPathSeparator();
+		sRootDataPath += sDataRoot;
+		sFullDataPath = sRootDataPath;
 		if (sDataPath[0] != '\0')
 		{
-			sFullDataPath += '`';
+			sFullDataPath += KWMTDatabaseMapping::GetDataPathSeparator();
 			sFullDataPath += sDataPath;
 		}
 		if (nRetCode == KNI_OK)
 		{
 			// Recherche d'abord de la table externe racine, qui doit etre presente
-			mapping = kniStream->GetInputStream()->LookupMultiTableMapping(sDataRoot);
+			mapping = kniStream->GetInputStream()->LookupMultiTableMapping(sRootDataPath);
 			if (mapping == NULL)
 				nRetCode = KNI_ErrorDataRoot;
 			// Si OK et table externe secondaire, recherche de celle-ci
@@ -963,14 +985,10 @@ KNI_API int KNISetExternalTable(int hStream, const char* sDataRoot, const char* 
 			}
 		}
 
-		// Memorisation de la ligne de header
+		// Memorisation de la table, uniquement pour la table en entree
 		if (nRetCode == KNI_OK)
 		{
-			mapping->SetDataTableName(sDataTableFileName);
-
-			// Idem pour la base en sortie
-			mapping = kniStream->GetOutputStream()->LookupMultiTableMapping(sFullDataPath);
-			check(mapping);
+			assert(mapping->GetExternalTable() == true);
 			mapping->SetDataTableName(sDataTableFileName);
 		}
 	}
@@ -1157,8 +1175,7 @@ KNI_API int KNISetSecondaryInputRecord(int hStream, const char* sDataPath, const
 		mapping = NULL;
 		if (nRetCode == KNI_OK)
 		{
-			mapping = kniStream->GetInputStream()->LookupMultiTableMapping(
-			    kniStream->GetInputStream()->GetClassName() + '`' + sDataPath);
+			mapping = kniStream->GetInputStream()->LookupMultiTableMapping(sDataPath);
 			if (mapping == NULL)
 				nRetCode = KNI_ErrorDataPath;
 		}
@@ -1287,48 +1304,4 @@ KNI_API int KNISetLogFileName(const char* sLogFileName)
 		else
 			return KNI_OK;
 	}
-}
-
-/********************************************************************
- * Le source suivant permet de compiler des sources developpes avec *
- * l'environnement Norm, d'utiliser le mode UIObject::Textual et    *
- * de ne pas linker avec jvm.lib (a eviter absoluement).            *
- * Moyennant ces conditions, on peut livrer un executable en mode   *
- * textuel ne necessitant pas l'intallation prealable du JRE Java   *
- ********************************************************************/
-
-extern "C"
-{
-#ifdef _MSC_VER
-	// Version 32 bits
-	int __stdcall _imp__JNI_CreateJavaVM(void** pvm, void** penv, void* args)
-	{
-		exit(11);
-	}
-	int __stdcall _imp__JNI_GetCreatedJavaVMs(void**, long, long*)
-	{
-		exit(11);
-	}
-
-	// Version 64 bits
-	int __stdcall __imp_JNI_CreateJavaVM(void** pvm, void** penv, void* args)
-	{
-		exit(11);
-	}
-	int __stdcall __imp_JNI_GetCreatedJavaVMs(void**, long, long*)
-	{
-		exit(11);
-	}
-#endif // _MSC_VER
-
-#ifdef __UNIX__
-	int JNI_CreateJavaVM(void** pvm, void** penv, void* args)
-	{
-		exit(11);
-	}
-	int JNI_GetCreatedJavaVMs(void** pvm, void** penv, void* args)
-	{
-		exit(11);
-	}
-#endif // __UNIX__
 }

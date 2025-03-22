@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -48,20 +48,29 @@ protected:
 	boolean SlaveProcessExploitDatabaseObject(const KWObject* kwoObject) override;
 	boolean SlaveFinalize(boolean bProcessEndedCorrectly) override;
 
+	// Calcul de la memoire attribuee exclusivement a la tache (exclue celle de la classe ancetre)
+	longint ComputeTaskSelfMemory(longint lTaskGrantedMemory, RMPhysicalResource* taskMemoryRequirement,
+				      RMPhysicalResource* parentTaskMemoryRequirement) const;
+
 	///////////////////////////////////////////////////////////
 	// Parametres partages par le maitre et les esclaves
 
 	// Nom de l'attribut cible
 	PLShared_String shared_sTargetAttributeName;
 
+	// Flag de collecte des valeurs par l'esclave, constant et utile tant qu'il n'y a pas d'erreur
+	PLShared_Boolean shared_bCollectValues;
+
+	// Memoire disponible dans l'esclave pour collecter les valeurs
+	PLShared_Longint shared_lSlaveValuesMaxMemory;
+
 	//////////////////////////////////////////////////////
 	// Parametre en entree et sortie des esclaves
 
-	// Flag de collecte des valeurs par l'esclave
-	PLShared_Boolean input_bCollectValues;
-
 	// Vecteur de valeurs numeriques ou categorielles
-	PLShared_SymbolVector output_svReadValues;
+	// Les valeurs cote esclave sont stocke sous forme de String (stockage individuel efficace) et non de
+	// Symbol (stockage partage), car il faudra les transmettre de toute facon individuellement valeur par valeur
+	PLShared_StringVector output_svReadValues;
 	PLShared_ContinuousVector output_cvReadValues;
 
 	//////////////////////////////////////////////////////
@@ -70,10 +79,13 @@ protected:
 	// Atttribut cible
 	KWAttribute* slaveTargetAttribute;
 
+	// Memoire utilisee dans l'esclave pour collecter les valeurs
+	longint lSlaveValuesUsedMemory;
+
 	//////////////////////////////////////////////////////
 	// Variables du Master
 
-	// Indicateur de collecte des valeurs
+	// Indicateur de collecte des valeurs par le maitre, qui peut etre revise en cas d'erreur
 	boolean bMasterCollectValues;
 
 	// Vecteur total des valeurs numeriques ou categorielles
@@ -95,6 +107,10 @@ protected:
 
 	// Memoire allouee au stockage des valeurs par le maitre
 	longint lMasterAllValuesGrantedMemory;
+
+	// Exigences de memoire de classe ancetre (PLDatabaseTask)
+	RMPhysicalResource databaseTaskMasterMemoryRequirement;
+	RMPhysicalResource databaseTaskSlaveMemoryRequirement;
 
 	// Nombre max de valeurs distinctes dans le cas categoriel
 	static const int nMaxSymbolValueNumber = 1000000;

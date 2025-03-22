@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -17,6 +17,10 @@ SNBPredictorSelectiveNaiveBayesView::SNBPredictorSelectiveNaiveBayesView()
 
 	// Ajout des sous-fiches
 	AddCardField("SelectionParameters", "Selection parameters", new KWSelectionParametersView);
+
+	// On met les deux sous-fiches sans bord
+	cast(UIObjectView*, GetFieldAt("TrainParameters"))->SetParameters("NoBorder");
+	cast(UIObjectView*, GetFieldAt("SelectionParameters"))->SetParameters("NoBorder");
 }
 
 SNBPredictorSelectiveNaiveBayesView::~SNBPredictorSelectiveNaiveBayesView() {}

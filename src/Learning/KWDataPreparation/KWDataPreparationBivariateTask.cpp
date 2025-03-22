@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -99,6 +99,7 @@ boolean KWDataPreparationBivariateTask::ComputeResourceRequirements()
 	longint lLargestSliceDatabaseAllValuesMemory;
 	longint lSliceMaxBlockWorkingMemory;
 	longint lSliceDatabaseAllValuesMemory;
+	int nLargestSliceNumber;
 	int nRequestedAttributePairNumber;
 	longint lNecessaryAllAttributesStatsMemory;
 	longint lNecessaryWorkingMemory;
@@ -148,6 +149,7 @@ boolean KWDataPreparationBivariateTask::ComputeResourceRequirements()
 	nLargestSliceAttributePairNumber = 0;
 	lLargestSliceMaxBlockWorkingMemory = 0;
 	lLargestSliceDatabaseAllValuesMemory = 0;
+	nLargestSliceNumber = 0;
 	for (i = 0; i < oaInputAttributePairsSlices.GetSize(); i++)
 	{
 		attributePairsSlices = cast(KWAttributePairsSlices*, oaInputAttributePairsSlices.GetAt(i));
@@ -174,11 +176,15 @@ boolean KWDataPreparationBivariateTask::ComputeResourceRequirements()
 		    max(lLargestSliceDatabaseAllValuesMemory, lSliceDatabaseAllValuesMemory);
 		nLargestSliceAttributePairNumber =
 		    max(nLargestSliceAttributePairNumber, attributePairsSlices->GetAttributePairStats()->GetSize());
+		nLargestSliceNumber = max(nLargestSliceNumber, attributePairsSlices->GetSlices()->GetSize());
 	}
+	assert(nLargestSliceNumber <= 2);
 
 	// Pour le maitre: stockage de tous les resultats d'analyse
 	GetResourceRequirements()->GetMasterRequirement()->GetMemory()->SetMin(lNecessaryBivariateStatsMemory *
 									       nRequestedAttributePairNumber);
+	GetResourceRequirements()->GetMasterRequirement()->GetMemory()->SetMax(
+	    2 * GetResourceRequirements()->GetMasterRequirement()->GetMemory()->GetMin());
 
 	// Pour l'esclave:
 	//   . memoire de definition de la tranche
@@ -186,9 +192,15 @@ boolean KWDataPreparationBivariateTask::ComputeResourceRequirements()
 	//   . stockage des valeurs des objets lu depuis une tranche de base
 	//   . memoire de travail pour creer toutes les table de tuples du plus gros bloc
 	//   . stockage des resultats d'analyse bivariee des paires d'attributs de la tranche
+	//   . buffers de lecture des slices (une fois les slices lus, la memoire est a nouveau disponible pour les
+	//   resultats)
 	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMin(
 	    lLargestSliceUsedMemory + lNecessaryWorkingMemory + lLargestSliceDatabaseAllValuesMemory +
-	    lLargestSliceMaxBlockWorkingMemory + lNecessaryBivariateStatsMemory * nLargestSliceAttributePairNumber);
+	    lLargestSliceMaxBlockWorkingMemory +
+	    max(lNecessaryBivariateStatsMemory * nLargestSliceAttributePairNumber,
+		(longint)nLargestSliceNumber * BufferedFile::nDefaultBufferSize));
+	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMax(
+	    2 * GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->GetMin());
 
 	// En partage:
 	//   . stockage des variables partagees
@@ -221,6 +233,7 @@ boolean KWDataPreparationBivariateTask::ComputeResourceRequirements()
 		     << LongintToHumanReadableString(lLargestSliceMaxBlockWorkingMemory) << endl;
 		cout << "\tLargest slice all values memory\t"
 		     << LongintToHumanReadableString(lLargestSliceDatabaseAllValuesMemory) << endl;
+		cout << "\tLargest slice number\t" << IntToString(nLargestSliceNumber) << endl;
 	}
 	return bOk;
 }
@@ -469,6 +482,9 @@ boolean KWDataPreparationBivariateTask::SlaveProcess()
 			classStats.AddAttributeStats(attributeStats);
 	}
 
+	// Parametrage des buffers de lecture du slice set
+	dataTableSliceSet.SetTotalBufferSize(dataTableSliceSet.GetSliceNumber() * BufferedFile::nDefaultBufferSize);
+
 	// Lecture des objets avec tous les attributs impliques dans le bivarie
 	bOk = dataTableSliceSet.ReadAllObjectsWithClass(kwcSliceSetClass, &oaAllObjects);
 
@@ -716,7 +732,7 @@ void KWDataPreparationBivariateTask::ComputeTaskInputs()
 	GetAttributePairsSpec()->SelectAttributePairStats(masterClassStats->GetAttributeStats(),
 							  &oaInputAttributePairStats);
 
-	// Memorisation de toutes les stats univariees d'attributs impliquees dans les parires
+	// Memorisation de toutes les stats univariees d'attributs impliquees dans les paires
 	for (n = 0; n < oaInputAttributePairStats.GetSize(); n++)
 	{
 		attributePairStats = cast(KWAttributePairStats*, oaInputAttributePairStats.GetAt(n));
@@ -733,7 +749,7 @@ void KWDataPreparationBivariateTask::ComputeTaskInputs()
 	// Un ensemble de tranches est cree pour chaque paire d'attributs
 	InitializeSingletonAllAttributePairsSlices(&oaInputAttributePairStats, &oaInputAttributePairsSlices);
 
-	// Les ensemblse de tranches sont fusionnes, pour contenir chacun toutes les paires d'attributs la concernant
+	// Les ensembles de tranches sont fusionnes, pour contenir chacun toutes les paires d'attributs la concernant
 	MergeAttributePairsSlices(&oaInputAttributePairsSlices);
 
 	// Specification du critere de tri lexicographique de chaque pair de tranche
@@ -1158,7 +1174,6 @@ DoubleVector* KWAttributePairsSlices::GetLexicographicSortCriterion()
 int KWAttributePairsSlices::CompareLexicographicSortCriterion(
     const KWAttributePairsSlices* otherAttributePairsSlices) const
 {
-
 	int nCompare;
 	int nMaxSize;
 	int i;

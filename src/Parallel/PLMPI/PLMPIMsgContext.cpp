@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -6,9 +6,9 @@
 
 PLMPIMsgContext::PLMPIMsgContext()
 {
-	nRank = -1;
+	nRank = MPI_ANY_SOURCE;
 	communicator = MPI_COMM_NULL;
-	nTag = -1;
+	nTag = MPI_ANY_TAG;
 }
 PLMPIMsgContext::~PLMPIMsgContext() {}
 
@@ -16,16 +16,16 @@ void PLMPIMsgContext::Write(ostream& ost) const
 {
 	switch (nMsgType)
 	{
-	case 0:
+	case MSGTYPE::SEND:
 		ost << "SEND TO " << nRank << " with TAG " << nTag;
 		break;
-	case 1:
+	case MSGTYPE::RECV:
 		ost << "RECV FROM " << nRank << " with TAG " << nTag;
 		break;
-	case 2:
+	case MSGTYPE::BCAST:
 		ost << "BCAST";
 		break;
-	case 3:
+	case MSGTYPE::RSEND:
 		ost << "RSEND TO " << nRank << " with TAG " << nTag;
 		break;
 	default:
@@ -38,7 +38,7 @@ void PLMPIMsgContext::Send(const MPI_Comm& comm, int nRankValue, int nTagValue)
 	assert(comm != MPI_COMM_NULL);
 	assert(nRankValue >= 0);
 
-	nMsgType = SEND;
+	nMsgType = MSGTYPE::SEND;
 	communicator = comm;
 	this->nTag = nTagValue;
 	this->nRank = nRankValue;
@@ -49,7 +49,18 @@ void PLMPIMsgContext::Rsend(const MPI_Comm& comm, int nRankValue, int nTagValue)
 	assert(comm != MPI_COMM_NULL);
 	assert(nRankValue >= 0);
 
-	nMsgType = RSEND;
+	nMsgType = MSGTYPE::RSEND;
+	communicator = comm;
+	this->nTag = nTagValue;
+	this->nRank = nRankValue;
+}
+
+void PLMPIMsgContext::Isend(const MPI_Comm& comm, int nRankValue, int nTagValue)
+{
+	assert(comm != MPI_COMM_NULL);
+	assert(nRankValue >= 0);
+
+	nMsgType = MSGTYPE::ISEND;
 	communicator = comm;
 	this->nTag = nTagValue;
 	this->nRank = nRankValue;
@@ -60,7 +71,7 @@ void PLMPIMsgContext::Recv(const MPI_Comm& comm, int nRankValue, int nTagValue)
 	assert(comm != MPI_COMM_NULL);
 	assert(nRankValue >= 0 or nRankValue == MPI_ANY_SOURCE);
 
-	nMsgType = RECV;
+	nMsgType = MSGTYPE::RECV;
 	communicator = comm;
 	this->nTag = nTagValue;
 	this->nRank = nRankValue;
@@ -69,7 +80,7 @@ void PLMPIMsgContext::Bcast(const MPI_Comm& comm)
 {
 	assert(comm != MPI_COMM_NULL);
 
-	nMsgType = BCAST;
+	nMsgType = MSGTYPE::BCAST;
 	communicator = comm;
 }
 

@@ -1,0 +1,141 @@
+#Khiops 8.0.1
+
+Dictionary	BU1_Adult
+<InitialDictionary="Adult"> <PredictorLabel="Univariate relationship"> <PredictorType="Classifier">
+{
+Unused	Numerical	Label		; <Cost=2.70805> <Level=0>	
+Unused	Numerical	age		; <Cost=2.70805> <Level=0.11547>	
+Unused	Categorical	workclass		; <Cost=2.70805> <Level=0.0209315>	
+Unused	Numerical	fnlwgt		; <Cost=2.70805> <Level=0>	
+Unused	Categorical	education		; <Cost=2.70805> <Level=0.113723>	
+Unused	Numerical	education_num		; <Cost=2.70805> <Level=0.111948>	
+Unused	Categorical	marital_status		; <Cost=2.70805> <Level=0.19811>	
+Unused	Categorical	occupation		; <Cost=2.70805> <Level=0.08827>	
+Unused	Categorical	relationship		; <Cost=2.70805> <Level=0.2076> <SourceVariable>	
+Unused	Categorical	race		; <Cost=2.70805> <Level=0.0108502>	
+Unused	Categorical	sex		; <Cost=2.70805> <Level=0.0454022>	
+Unused	Numerical	capital_gain		; <Cost=2.70805> <Level=0.134271>	
+Unused	Numerical	capital_loss		; <Cost=2.70805> <Level=0.0526033>	
+Unused	Numerical	hours_per_week		; <Cost=2.70805> <Level=0.0652069>	
+Unused	Categorical	native_country		; <Cost=2.70805> <Level=0.00664986>	
+	Categorical	class		; <TargetVariable>	
+Unused	Structure(DataGrid)	Vclass	 = DataGrid(ValueSetC("less", "more"), Frequencies(26028, 8146))	; <TargetValues>	
+Unused	Structure(DataGrid)	Prelationship	 = DataGrid(ValueGroups(ValueGroup("Husband", "Wife"), ValueGroup("Not-in-family"), ValueGroup("Unmarried"), ValueGroup("Own-child", "Other-relative", " * ")), ValueSetC("less", "more"), Frequencies(8487, 7916, 3415, 6210, 6942, 871, 226, 107))	; <Level=0.2076>	// DataGrid(relationship, class)
+Unused	Structure(Classifier)	BU1class	 = NBClassifier(DataGridStats(Prelationship, relationship), Vclass)	;	
+	Categorical	Predictedclass	 = TargetValue(BU1class)	; <Prediction>	
+	Numerical	Scoreclass	 = TargetProb(BU1class)	; <Score>	
+Unused	Numerical	Probclassless	 = TargetProbAt(BU1class, "less")	; <TargetProb1="less">	
+	Numerical	Probclassmore	 = TargetProbAt(BU1class, "more")	; <TargetProb2="more">	
+};
+
+Dictionary	MNB_Adult
+<InitialDictionary="Adult"> <PredictorLabel="MAP Naive Bayes"> <PredictorType="Classifier">
+{
+Unused	Numerical	Label		; <Cost=2.70805> <Level=0>	
+Unused	Numerical	age		; <Cost=2.70805> <Level=0.11547>	
+Unused	Categorical	workclass		; <Cost=2.70805> <Level=0.0209315>	
+Unused	Numerical	fnlwgt		; <Cost=2.70805> <Level=0>	
+Unused	Categorical	education		; <Cost=2.70805> <Level=0.113723>	
+Unused	Numerical	education_num		; <Cost=2.70805> <Level=0.111948>	
+Unused	Categorical	marital_status		; <Cost=2.70805> <Level=0.19811>	
+Unused	Categorical	occupation		; <Cost=2.70805> <Level=0.08827>	
+Unused	Categorical	relationship		; <Cost=2.70805> <Level=0.2076>	
+Unused	Categorical	race		; <Cost=2.70805> <Level=0.0108502>	
+Unused	Categorical	sex		; <Cost=2.70805> <Level=0.0454022>	
+Unused	Numerical	capital_gain		; <Cost=2.70805> <Level=0.134271>	
+Unused	Numerical	capital_loss		; <Cost=2.70805> <Level=0.0526033>	
+Unused	Numerical	hours_per_week		; <Cost=2.70805> <Level=0.0652069>	
+Unused	Categorical	native_country		; <Cost=2.70805> <Level=0.00664986>	
+	Categorical	class		; <TargetVariable>	
+Unused	Structure(DataGrid)	Vclass	 = DataGrid(ValueSetC("less", "more"), Frequencies(26028, 8146))	; <TargetValues>	
+Unused	Structure(DataGrid)	Page	 = DataGrid(IntervalBounds(21.5, 24.5, 27.5, 29.5, 36.5, 60.5), ValueSetC("less", "more"), Frequencies(3301, 2530, 2306, 1475, 4934, 9524, 1958, 6, 58, 185, 249, 1565, 5513, 570))	; <Level=0.11547>	// DataGrid(age, class)
+Unused	Structure(DataGrid)	Peducation	 = DataGrid(ValueGroups(ValueGroup("Prof-school", "Doctorate"), ValueGroup("Masters"), ValueGroup("Bachelors"), ValueGroup("Assoc-voc", "Assoc-acdm"), ValueGroup("Some-college"), ValueGroup("HS-grad"), ValueGroup("11th", "10th", "7th-8th", "9th", "12th", "5th-6th", "1st-4th", "Preschool", " * ")), ValueSetC("less", "more"), Frequencies(258, 831, 3288, 1909, 6226, 9292, 4224, 739, 1023, 2273, 671, 1437, 1753, 250))	; <Level=0.113723>	// DataGrid(education, class)
+Unused	Structure(DataGrid)	Prelationship	 = DataGrid(ValueGroups(ValueGroup("Husband", "Wife"), ValueGroup("Not-in-family"), ValueGroup("Unmarried"), ValueGroup("Own-child", "Other-relative", " * ")), ValueSetC("less", "more"), Frequencies(8487, 7916, 3415, 6210, 6942, 871, 226, 107))	; <Level=0.2076>	// DataGrid(relationship, class)
+Unused	Structure(DataGrid)	Pcapital_gain	 = DataGrid(IntervalBounds(57, 3040, 3120, 4243.5, 4401, 4668.5, 4826, 4932.5, 4973.5, 5119, 5316.5, 6667.5, 7073.5, 7436.5, 7565.5, 10543, 10585.5, 30961.5, 70654.5), ValueSetC("less", "more"), Frequencies(24935, 483, 3, 327, 11, 76, 0, 17, 0, 87, 0, 31, 37, 0, 5, 2, 5, 1, 8, 0, 6425, 0, 103, 0, 66, 0, 22, 0, 8, 0, 104, 28, 0, 260, 0, 395, 0, 564, 0, 171))	; <Level=0.134271>	// DataGrid(capital_gain, class)
+Unused	Structure(DataGrid)	Pcapital_loss	 = DataGrid(IntervalBounds(77.5, 1457, 1494.5, 1551.5, 1568.5, 1820.5, 1859, 1881.5, 1927.5, 1975.5, 1978.5, 2161.5, 2176.5, 2384.5, 2450.5), ValueSetC("less", "more"), Frequencies(25227, 92, 20, 23, 0, 353, 2, 45, 13, 19, 0, 131, 0, 83, 0, 20, 7329, 2, 33, 0, 29, 3, 49, 0, 372, 0, 183, 0, 9, 32, 71, 34))	; <Level=0.0526033>	// DataGrid(capital_loss, class)
+Unused	Structure(Classifier)	MNBclass	 = NBClassifier(DataGridStats(Pcapital_gain, capital_gain), DataGridStats(Page, age), DataGridStats(Pcapital_loss, capital_loss), DataGridStats(Prelationship, relationship), DataGridStats(Peducation, education), Vclass)	;	
+	Categorical	Predictedclass	 = TargetValue(MNBclass)	; <Prediction>	
+	Numerical	Scoreclass	 = TargetProb(MNBclass)	; <Score>	
+Unused	Numerical	Probclassless	 = TargetProbAt(MNBclass, "less")	; <TargetProb1="less">	
+	Numerical	Probclassmore	 = TargetProbAt(MNBclass, "more")	; <TargetProb2="more">	
+};
+
+Dictionary	NB_Adult
+<InitialDictionary="Adult"> <PredictorLabel="Naive Bayes"> <PredictorType="Classifier">
+{
+Unused	Numerical	Label		; <Cost=2.70805> <Level=0>	
+Unused	Numerical	age		; <Cost=2.70805> <Level=0.11547>	
+Unused	Categorical	workclass		; <Cost=2.70805> <Level=0.0209315>	
+Unused	Numerical	fnlwgt		; <Cost=2.70805> <Level=0>	
+Unused	Categorical	education		; <Cost=2.70805> <Level=0.113723>	
+Unused	Numerical	education_num		; <Cost=2.70805> <Level=0.111948>	
+Unused	Categorical	marital_status		; <Cost=2.70805> <Level=0.19811>	
+Unused	Categorical	occupation		; <Cost=2.70805> <Level=0.08827>	
+Unused	Categorical	relationship		; <Cost=2.70805> <Level=0.2076>	
+Unused	Categorical	race		; <Cost=2.70805> <Level=0.0108502>	
+Unused	Categorical	sex		; <Cost=2.70805> <Level=0.0454022>	
+Unused	Numerical	capital_gain		; <Cost=2.70805> <Level=0.134271>	
+Unused	Numerical	capital_loss		; <Cost=2.70805> <Level=0.0526033>	
+Unused	Numerical	hours_per_week		; <Cost=2.70805> <Level=0.0652069>	
+Unused	Categorical	native_country		; <Cost=2.70805> <Level=0.00664986>	
+	Categorical	class		; <TargetVariable>	
+Unused	Structure(DataGrid)	Vclass	 = DataGrid(ValueSetC("less", "more"), Frequencies(26028, 8146))	; <TargetValues>	
+Unused	Structure(DataGrid)	Page	 = DataGrid(IntervalBounds(21.5, 24.5, 27.5, 29.5, 36.5, 60.5), ValueSetC("less", "more"), Frequencies(3301, 2530, 2306, 1475, 4934, 9524, 1958, 6, 58, 185, 249, 1565, 5513, 570))	; <Level=0.11547>	// DataGrid(age, class)
+Unused	Structure(DataGrid)	Pworkclass	 = DataGrid(ValueGroups(ValueGroup("Self-emp-inc"), ValueGroup("Federal-gov"), ValueGroup("Self-emp-not-inc", "Local-gov", "State-gov"), ValueGroup("Private", "Without-pay", "Never-worked", " * ")), ValueSetC("less", "more"), Frequencies(532, 622, 4485, 20389, 656, 375, 1768, 5347))	; <Level=0.0209315>	// DataGrid(workclass, class)
+Unused	Structure(DataGrid)	Peducation	 = DataGrid(ValueGroups(ValueGroup("Prof-school", "Doctorate"), ValueGroup("Masters"), ValueGroup("Bachelors"), ValueGroup("Assoc-voc", "Assoc-acdm"), ValueGroup("Some-college"), ValueGroup("HS-grad"), ValueGroup("11th", "10th", "7th-8th", "9th", "12th", "5th-6th", "1st-4th", "Preschool", " * ")), ValueSetC("less", "more"), Frequencies(258, 831, 3288, 1909, 6226, 9292, 4224, 739, 1023, 2273, 671, 1437, 1753, 250))	; <Level=0.113723>	// DataGrid(education, class)
+Unused	Structure(DataGrid)	Peducation_num	 = DataGrid(IntervalBounds(8.5, 10.5, 12.5, 13.5, 14.5), ValueSetC("less", "more"), Frequencies(4224, 15518, 1909, 3288, 831, 258, 250, 3190, 671, 2273, 1023, 739))	; <Level=0.111948>	// DataGrid(education_num, class)
+Unused	Structure(DataGrid)	Pmarital_status	 = DataGrid(ValueGroups(ValueGroup("Married-civ-spouse", "Married-AF-spouse", " * "), ValueGroup("Divorced", "Widowed", "Married-spouse-absent"), ValueGroup("Never-married", "Separated")), ValueSetC("less", "more"), Frequencies(8699, 5556, 11773, 6977, 619, 550))	; <Level=0.19811>	// DataGrid(marital_status, class)
+Unused	Structure(DataGrid)	Poccupation	 = DataGrid(ValueGroups(ValueGroup("Exec-managerial"), ValueGroup("Prof-specialty", "Armed-Forces", " * "), ValueGroup("Sales", "Tech-support", "Protective-serv"), ValueGroup("Craft-repair", "Transport-moving"), ValueGroup("Adm-clerical", "Machine-op-inspct", "Farming-fishing"), ValueGroup("Handlers-cleaners"), ValueGroup("Other-service", "Priv-house-serv")), ValueSetC("less", "more"), Frequencies(2222, 4161, 4030, 4644, 6177, 1331, 3463, 2018, 2140, 1509, 1309, 933, 99, 138))	; <Level=0.08827>	// DataGrid(occupation, class)
+Unused	Structure(DataGrid)	Prelationship	 = DataGrid(ValueGroups(ValueGroup("Husband", "Wife"), ValueGroup("Not-in-family"), ValueGroup("Unmarried"), ValueGroup("Own-child", "Other-relative", " * ")), ValueSetC("less", "more"), Frequencies(8487, 7916, 3415, 6210, 6942, 871, 226, 107))	; <Level=0.2076>	// DataGrid(relationship, class)
+Unused	Structure(DataGrid)	Prace	 = DataGrid(ValueGroups(ValueGroup("White", "Asian-Pac-Islander"), ValueGroup("Black", "Amer-Indian-Eskimo", "Other", " * ")), ValueSetC("less", "more"), Frequencies(22590, 3438, 7703, 443))	; <Level=0.0108502>	// DataGrid(race, class)
+Unused	Structure(DataGrid)	Psex	 = DataGrid(ValueGroups(ValueGroup("Male"), ValueGroup("Female", " * ")), ValueSetC("less", "more"), Frequencies(15950, 10078, 6913, 1233))	; <Level=0.0454022>	// DataGrid(sex, class)
+Unused	Structure(DataGrid)	Pcapital_gain	 = DataGrid(IntervalBounds(57, 3040, 3120, 4243.5, 4401, 4668.5, 4826, 4932.5, 4973.5, 5119, 5316.5, 6667.5, 7073.5, 7436.5, 7565.5, 10543, 10585.5, 30961.5, 70654.5), ValueSetC("less", "more"), Frequencies(24935, 483, 3, 327, 11, 76, 0, 17, 0, 87, 0, 31, 37, 0, 5, 2, 5, 1, 8, 0, 6425, 0, 103, 0, 66, 0, 22, 0, 8, 0, 104, 28, 0, 260, 0, 395, 0, 564, 0, 171))	; <Level=0.134271>	// DataGrid(capital_gain, class)
+Unused	Structure(DataGrid)	Pcapital_loss	 = DataGrid(IntervalBounds(77.5, 1457, 1494.5, 1551.5, 1568.5, 1820.5, 1859, 1881.5, 1927.5, 1975.5, 1978.5, 2161.5, 2176.5, 2384.5, 2450.5), ValueSetC("less", "more"), Frequencies(25227, 92, 20, 23, 0, 353, 2, 45, 13, 19, 0, 131, 0, 83, 0, 20, 7329, 2, 33, 0, 29, 3, 49, 0, 372, 0, 183, 0, 9, 32, 71, 34))	; <Level=0.0526033>	// DataGrid(capital_loss, class)
+Unused	Structure(DataGrid)	Phours_per_week	 = DataGrid(IntervalBounds(34.5, 39.5, 41.5, 49.5, 65.5), ValueSetC("less", "more"), Frequencies(5485, 1923, 12583, 2130, 3307, 600, 410, 359, 3453, 1106, 2516, 302))	; <Level=0.0652069>	// DataGrid(hours_per_week, class)
+Unused	Structure(DataGrid)	Pnative_country	 = DataGrid(ValueGroups(ValueGroup("Canada", "India", "England", "Italy", "Japan", "Taiwan", "Iran", "Greece", "France", "Cambodia", "Hong", "Hungary"), ValueGroup("United-States", "Philippines", "Germany", "Cuba", "China", "South", "Poland", "Portugal", "Ireland", "Thailand", "Yugoslavia", "Scotland"), ValueGroup("Mexico", "Puerto-Rico", "El-Salvador", "Dominican-Republic", "Jamaica", "Columbia", "Vietnam", "Guatemala", "Haiti", "Ecuador", "Peru", "Nicaragua", "Laos", "Outlying-US", "Trinadad&Tobago", "Honduras", " * ")), ValueSetC("less", "more"), Frequencies(408, 24257, 1363, 232, 7816, 98))	; <Level=0.00664986>	// DataGrid(native_country, class)
+Unused	Structure(Classifier)	NBclass	 = NBClassifier(DataGridStats(Page, age), DataGridStats(Pworkclass, workclass), DataGridStats(Peducation, education), DataGridStats(Peducation_num, education_num), DataGridStats(Pmarital_status, marital_status), DataGridStats(Poccupation, occupation), DataGridStats(Prelationship, relationship), DataGridStats(Prace, race), DataGridStats(Psex, sex), DataGridStats(Pcapital_gain, capital_gain), DataGridStats(Pcapital_loss, capital_loss), DataGridStats(Phours_per_week, hours_per_week), DataGridStats(Pnative_country, native_country), Vclass)	;	
+	Categorical	Predictedclass	 = TargetValue(NBclass)	; <Prediction>	
+	Numerical	Scoreclass	 = TargetProb(NBclass)	; <Score>	
+Unused	Numerical	Probclassless	 = TargetProbAt(NBclass, "less")	; <TargetProb1="less">	
+	Numerical	Probclassmore	 = TargetProbAt(NBclass, "more")	; <TargetProb2="more">	
+};
+
+Dictionary	SNB_Adult
+<InitialDictionary="Adult"> <PredictorLabel="Selective Naive Bayes"> <PredictorType="Classifier">
+{
+Unused	Numerical	Label		; <Cost=2.70805> <Level=0>	
+Unused	Numerical	age		; <Cost=2.70805> <Level=0.11547> <MAP> <Weight=0.813224>	
+Unused	Categorical	workclass		; <Cost=2.70805> <Level=0.0209315> <Weight=0.219554>	
+Unused	Numerical	fnlwgt		; <Cost=2.70805> <Level=0>	
+Unused	Categorical	education		; <Cost=2.70805> <Level=0.113723> <MAP> <Weight=0.463363>	
+Unused	Numerical	education_num		; <Cost=2.70805> <Level=0.111948> <Weight=0.469001>	
+Unused	Categorical	marital_status		; <Cost=2.70805> <Level=0.19811> <Weight=0.447604>	
+Unused	Categorical	occupation		; <Cost=2.70805> <Level=0.08827> <Weight=0.255189>	
+Unused	Categorical	relationship		; <Cost=2.70805> <Level=0.2076> <MAP> <Weight=0.480388>	
+Unused	Categorical	race		; <Cost=2.70805> <Level=0.0108502> <Weight=0.245999>	
+Unused	Categorical	sex		; <Cost=2.70805> <Level=0.0454022> <Weight=0.201231>	
+Unused	Numerical	capital_gain		; <Cost=2.70805> <Level=0.134271> <MAP> <Weight=0.870046>	
+Unused	Numerical	capital_loss		; <Cost=2.70805> <Level=0.0526033> <MAP> <Weight=0.793489>	
+Unused	Numerical	hours_per_week		; <Cost=2.70805> <Level=0.0652069> <Weight=0.287344>	
+Unused	Categorical	native_country		; <Cost=2.70805> <Level=0.00664986> <Weight=0.328109>	
+	Categorical	class		; <TargetVariable>	
+Unused	Structure(DataGrid)	Vclass	 = DataGrid(ValueSetC("less", "more"), Frequencies(26028, 8146))	; <TargetValues>	
+Unused	Structure(DataGrid)	Page	 = DataGrid(IntervalBounds(21.5, 24.5, 27.5, 29.5, 36.5, 60.5), ValueSetC("less", "more"), Frequencies(3301, 2530, 2306, 1475, 4934, 9524, 1958, 6, 58, 185, 249, 1565, 5513, 570))	; <Level=0.11547>	// DataGrid(age, class)
+Unused	Structure(DataGrid)	Pworkclass	 = DataGrid(ValueGroups(ValueGroup("Self-emp-inc"), ValueGroup("Federal-gov"), ValueGroup("Self-emp-not-inc", "Local-gov", "State-gov"), ValueGroup("Private", "Without-pay", "Never-worked", " * ")), ValueSetC("less", "more"), Frequencies(532, 622, 4485, 20389, 656, 375, 1768, 5347))	; <Level=0.0209315>	// DataGrid(workclass, class)
+Unused	Structure(DataGrid)	Peducation	 = DataGrid(ValueGroups(ValueGroup("Prof-school", "Doctorate"), ValueGroup("Masters"), ValueGroup("Bachelors"), ValueGroup("Assoc-voc", "Assoc-acdm"), ValueGroup("Some-college"), ValueGroup("HS-grad"), ValueGroup("11th", "10th", "7th-8th", "9th", "12th", "5th-6th", "1st-4th", "Preschool", " * ")), ValueSetC("less", "more"), Frequencies(258, 831, 3288, 1909, 6226, 9292, 4224, 739, 1023, 2273, 671, 1437, 1753, 250))	; <Level=0.113723>	// DataGrid(education, class)
+Unused	Structure(DataGrid)	Peducation_num	 = DataGrid(IntervalBounds(8.5, 10.5, 12.5, 13.5, 14.5), ValueSetC("less", "more"), Frequencies(4224, 15518, 1909, 3288, 831, 258, 250, 3190, 671, 2273, 1023, 739))	; <Level=0.111948>	// DataGrid(education_num, class)
+Unused	Structure(DataGrid)	Pmarital_status	 = DataGrid(ValueGroups(ValueGroup("Married-civ-spouse", "Married-AF-spouse", " * "), ValueGroup("Divorced", "Widowed", "Married-spouse-absent"), ValueGroup("Never-married", "Separated")), ValueSetC("less", "more"), Frequencies(8699, 5556, 11773, 6977, 619, 550))	; <Level=0.19811>	// DataGrid(marital_status, class)
+Unused	Structure(DataGrid)	Poccupation	 = DataGrid(ValueGroups(ValueGroup("Exec-managerial"), ValueGroup("Prof-specialty", "Armed-Forces", " * "), ValueGroup("Sales", "Tech-support", "Protective-serv"), ValueGroup("Craft-repair", "Transport-moving"), ValueGroup("Adm-clerical", "Machine-op-inspct", "Farming-fishing"), ValueGroup("Handlers-cleaners"), ValueGroup("Other-service", "Priv-house-serv")), ValueSetC("less", "more"), Frequencies(2222, 4161, 4030, 4644, 6177, 1331, 3463, 2018, 2140, 1509, 1309, 933, 99, 138))	; <Level=0.08827>	// DataGrid(occupation, class)
+Unused	Structure(DataGrid)	Prelationship	 = DataGrid(ValueGroups(ValueGroup("Husband", "Wife"), ValueGroup("Not-in-family"), ValueGroup("Unmarried"), ValueGroup("Own-child", "Other-relative", " * ")), ValueSetC("less", "more"), Frequencies(8487, 7916, 3415, 6210, 6942, 871, 226, 107))	; <Level=0.2076>	// DataGrid(relationship, class)
+Unused	Structure(DataGrid)	Prace	 = DataGrid(ValueGroups(ValueGroup("White", "Asian-Pac-Islander"), ValueGroup("Black", "Amer-Indian-Eskimo", "Other", " * ")), ValueSetC("less", "more"), Frequencies(22590, 3438, 7703, 443))	; <Level=0.0108502>	// DataGrid(race, class)
+Unused	Structure(DataGrid)	Psex	 = DataGrid(ValueGroups(ValueGroup("Male"), ValueGroup("Female", " * ")), ValueSetC("less", "more"), Frequencies(15950, 10078, 6913, 1233))	; <Level=0.0454022>	// DataGrid(sex, class)
+Unused	Structure(DataGrid)	Pcapital_gain	 = DataGrid(IntervalBounds(57, 3040, 3120, 4243.5, 4401, 4668.5, 4826, 4932.5, 4973.5, 5119, 5316.5, 6667.5, 7073.5, 7436.5, 7565.5, 10543, 10585.5, 30961.5, 70654.5), ValueSetC("less", "more"), Frequencies(24935, 483, 3, 327, 11, 76, 0, 17, 0, 87, 0, 31, 37, 0, 5, 2, 5, 1, 8, 0, 6425, 0, 103, 0, 66, 0, 22, 0, 8, 0, 104, 28, 0, 260, 0, 395, 0, 564, 0, 171))	; <Level=0.134271>	// DataGrid(capital_gain, class)
+Unused	Structure(DataGrid)	Pcapital_loss	 = DataGrid(IntervalBounds(77.5, 1457, 1494.5, 1551.5, 1568.5, 1820.5, 1859, 1881.5, 1927.5, 1975.5, 1978.5, 2161.5, 2176.5, 2384.5, 2450.5), ValueSetC("less", "more"), Frequencies(25227, 92, 20, 23, 0, 353, 2, 45, 13, 19, 0, 131, 0, 83, 0, 20, 7329, 2, 33, 0, 29, 3, 49, 0, 372, 0, 183, 0, 9, 32, 71, 34))	; <Level=0.0526033>	// DataGrid(capital_loss, class)
+Unused	Structure(DataGrid)	Phours_per_week	 = DataGrid(IntervalBounds(34.5, 39.5, 41.5, 49.5, 65.5), ValueSetC("less", "more"), Frequencies(5485, 1923, 12583, 2130, 3307, 600, 410, 359, 3453, 1106, 2516, 302))	; <Level=0.0652069>	// DataGrid(hours_per_week, class)
+Unused	Structure(DataGrid)	Pnative_country	 = DataGrid(ValueGroups(ValueGroup("Canada", "India", "England", "Italy", "Japan", "Taiwan", "Iran", "Greece", "France", "Cambodia", "Hong", "Hungary"), ValueGroup("United-States", "Philippines", "Germany", "Cuba", "China", "South", "Poland", "Portugal", "Ireland", "Thailand", "Yugoslavia", "Scotland"), ValueGroup("Mexico", "Puerto-Rico", "El-Salvador", "Dominican-Republic", "Jamaica", "Columbia", "Vietnam", "Guatemala", "Haiti", "Ecuador", "Peru", "Nicaragua", "Laos", "Outlying-US", "Trinadad&Tobago", "Honduras", " * ")), ValueSetC("less", "more"), Frequencies(408, 24257, 1363, 232, 7816, 98))	; <Level=0.00664986>	// DataGrid(native_country, class)
+Unused	Structure(Classifier)	SNBclass	 = SNBClassifier(Vector(0.8132244997, 0.2195544923, 0.4633633906, 0.4690006182, 0.4476039545, 0.2551887964, 0.480387988, 0.2459992216, 0.2012311537, 0.870045526, 0.7934886799, 0.2873442605, 0.3281085702), DataGridStats(Page, age), DataGridStats(Pworkclass, workclass), DataGridStats(Peducation, education), DataGridStats(Peducation_num, education_num), DataGridStats(Pmarital_status, marital_status), DataGridStats(Poccupation, occupation), DataGridStats(Prelationship, relationship), DataGridStats(Prace, race), DataGridStats(Psex, sex), DataGridStats(Pcapital_gain, capital_gain), DataGridStats(Pcapital_loss, capital_loss), DataGridStats(Phours_per_week, hours_per_week), DataGridStats(Pnative_country, native_country), Vclass)	;	
+	Categorical	Predictedclass	 = TargetValue(SNBclass)	; <Prediction>	
+	Numerical	Scoreclass	 = TargetProb(SNBclass)	; <Score>	
+Unused	Numerical	Probclassless	 = TargetProbAt(SNBclass, "less")	; <TargetProb1="less">	
+	Numerical	Probclassmore	 = TargetProbAt(SNBclass, "more")	; <TargetProb2="more">	
+};

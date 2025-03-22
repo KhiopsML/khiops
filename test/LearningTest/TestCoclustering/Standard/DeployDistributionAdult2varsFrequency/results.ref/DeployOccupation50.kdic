@@ -1,0 +1,27 @@
+#Khiops 10.5.6-b.0
+
+Root	Dictionary	Occupation	(occupation)
+{
+	Categorical	occupation		;	
+	Table(OccupationSampleFrequency)	Samples		;	
+Unused	Structure(DataGrid)	P_Coclustering	 = DataGrid(ValueGroups(ValueGroup("Prof-specialty", "Exec-managerial"), ValueGroup("Craft-repair", "Machine-op-inspct", "Transport-moving", "Handlers-cleaners", "Other-service", "Farming-fishing", "Priv-house-serv", "Adm-clerical", "Protective-serv", "Sales", "Tech-support", "Armed-Forces", " * ")), ValueGroups(ValueGroup("Bachelors", "Masters", "Prof-school", "Doctorate"), ValueGroup("HS-grad", "7th-8th", "5th-6th", "1st-4th", "Preschool", "10th", "9th", "11th", "12th", "Some-college", "Assoc-voc", "Assoc-acdm", " * ")), Frequencies(7971, 4139, 7096, 29636), 0, Frequencies(14, 16), Frequencies(14, 16))	;	// DataGrid(occupation, education)
+Unused	Structure(VectorC)	P_occupationLabels	 = VectorC("A7", "A3")	;	// Cluster labels for variable occupation
+Unused	Structure(VectorC)	P_educationSet	 = TableVectorC(Samples, education)	;	// Value distribution for variable education
+Unused	Structure(Vector)	P_frequencyVector	 = TableVector(Samples, frequency)	;	// Frequency vector from variable frequency
+Unused	Structure(DataGridDeployment)	P_DeployedCoclusteringAtoccupation	 = DataGridDeployment(P_Coclustering, 1, P_educationSet, P_frequencyVector)	;	// Deployed coclustering for variable occupation
+Unused	Numerical	P_occupationIndex	 = PredictedPartIndex(P_DeployedCoclusteringAtoccupation)	;	// Predicted cluster index for variable occupation
+	Categorical	P_occupationPredictedLabel	 = ValueAtC(P_occupationLabels, P_occupationIndex)	;	// Predicted label for variable occupation
+Unused	Structure(Vector)	P_occupationPartDistances	 = PredictedPartDistances(P_DeployedCoclusteringAtoccupation)	;	// Vector of cluster distances for variable occupation
+	Numerical	P_occupationDistanceA7	 = ValueAt(P_occupationPartDistances, 1)	;	
+	Numerical	P_occupationDistanceA3	 = ValueAt(P_occupationPartDistances, 2)	;	
+Unused	Structure(Vector)	P_educationPartFrequencies	 = PredictedPartFrequenciesAt(P_DeployedCoclusteringAtoccupation, 2)	;	// Vector of cluster frequencies for variable education
+	Numerical	P_educationFrequencyB5	 = ValueAt(P_educationPartFrequencies, 1)	;	
+	Numerical	P_educationFrequencyB4	 = ValueAt(P_educationPartFrequencies, 2)	;	
+};
+
+Dictionary	OccupationSampleFrequency	(occupation)
+{
+	Categorical	education		;	
+	Categorical	occupation		;	
+Unused	Numerical	frequency		;	
+};

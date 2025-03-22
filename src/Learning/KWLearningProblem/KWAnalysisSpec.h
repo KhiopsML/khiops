@@ -1,12 +1,11 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2021-04-06 18:11:58
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "Object.h"
@@ -15,9 +14,10 @@
 
 #include "KWVersion.h"
 #include "KWModelingSpec.h"
+#include "KWAttributeConstructionSpec.h"
 #include "KWRecoderSpec.h"
 #include "KWPreprocessingSpec.h"
-#include "KWAttributeConstructionSpec.h"
+#include "MHHistogramSpec.h"
 
 // ##
 
@@ -67,10 +67,13 @@ public:
 	// Parametrage des pretraitements
 	KWPreprocessingSpec* GetPreprocessingSpec();
 
+	// Parametrage des histogrammes, qui sont definis dans une librairies a part
+	MHHistogramSpec* GetHistogramSpec();
+
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
 	ALString sTargetAttributeName;
@@ -81,6 +84,7 @@ protected:
 	KWModelingSpec* modelingSpec;
 	KWRecoderSpec* recoderSpec;
 	KWPreprocessingSpec* preprocessingSpec;
+	MHHistogramSpec* histogramSpec;
 
 	// ##
 };

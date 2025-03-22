@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -60,74 +60,6 @@ void KWDerivationRule::RenameClass(const KWClass* refClass, const ALString& sNew
 	}
 }
 
-void KWDerivationRule::RenameAttribute(const KWClass* kwcOwnerClass, KWAttribute* refAttribute,
-				       const ALString& sNewAttributeName)
-{
-	int i;
-	KWDerivationRuleOperand* operand;
-	KWClass* refClass;
-	const KWClass* secondaryScopeClass;
-	const KWClass* scopeClass;
-
-	require(kwcOwnerClass != NULL);
-	require(kwcOwnerClass->GetName() == GetClassName());
-	require(refAttribute != NULL);
-	require(refAttribute->GetParentClass() != NULL);
-	require(refAttribute->GetParentClass()->LookupAttribute(refAttribute->GetName()) == refAttribute);
-
-	// Parcours des operandes dans le cas standard
-	if (not GetMultipleScope())
-	{
-		for (i = 0; i < oaOperands.GetSize(); i++)
-		{
-			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
-
-			// Renommage dans l'operande
-			operand->RenameAttribute(kwcOwnerClass, refAttribute, sNewAttributeName);
-		}
-	}
-	// Parcours des operandes dans le cas a scope multiple
-	else
-	{
-		refClass = refAttribute->GetClass();
-		scopeClass = kwcOwnerClass;
-		secondaryScopeClass = NULL;
-		for (i = 0; i < oaOperands.GetSize(); i++)
-		{
-			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
-
-			// Renommage dans l'operande
-			operand->RenameAttribute(scopeClass, refAttribute, sNewAttributeName);
-
-			// Cas du premier operande pour rechercher la classe de scope scondaire
-			if (i == 0)
-			{
-				secondaryScopeClass = LookupSecondaryScopeClass(refClass);
-
-				// Arret si on a pas trouve la classe secondaire
-				if (secondaryScopeClass == NULL)
-					break;
-			}
-
-			// Recherche de la classe de scope pour le prochain operande
-			if (i < oaOperands.GetSize() - 1 and IsSecondaryScopeOperand(i + 1))
-			{
-				// Empilage du scope si on passe vers le scope secondaire
-				if (scopeClass == kwcOwnerClass)
-					PushScope(kwcOwnerClass, kwcOwnerClass, this);
-				scopeClass = secondaryScopeClass;
-			}
-			else
-				scopeClass = kwcOwnerClass;
-
-			// Depilage du scope si necessaire, si on repasse vers le scope principal au prochain operande
-			if (IsSecondaryScopeOperand(i) and
-			    (i == oaOperands.GetSize() - 1 or not IsSecondaryScopeOperand(i + 1)))
-				PopScope(kwcOwnerClass);
-		}
-	}
-}
-
 int KWDerivationRule::GetVarKeyType() const
 {
 	return KWType::None;
@@ -160,21 +92,6 @@ void KWDerivationRule::AddOperand(KWDerivationRuleOperand* operand)
 	require(operand != NULL);
 
 	oaOperands.Add(operand);
-	nFreshness++;
-}
-
-void KWDerivationRule::DeleteLastOperand()
-{
-	int nNewSize;
-
-	require(GetOperandNumber() > 0);
-
-	// Destruction du dernier operande
-	nNewSize = oaOperands.GetSize() - 1;
-	delete oaOperands.GetAt(nNewSize);
-	oaOperands.SetSize(nNewSize);
-
-	// Mise a jour de la fraicheur
 	nFreshness++;
 }
 
@@ -234,9 +151,9 @@ void KWDerivationRule::BuildAllUsedOperands(NumericKeyDictionary* nkdAllUsedOper
 		operand = GetOperandAt(nOperand);
 
 		// Ajout de l'operande si non deja traite
-		if (nkdAllUsedOperands->Lookup((NUMERIC)operand) == NULL)
+		if (nkdAllUsedOperands->Lookup(operand) == NULL)
 		{
-			nkdAllUsedOperands->SetAt((NUMERIC)operand, operand);
+			nkdAllUsedOperands->SetAt(operand, operand);
 
 			// Recherche recursive si presence effective d'une regle
 			if (operand->GetOrigin() == KWDerivationRuleOperand::OriginRule and
@@ -278,6 +195,19 @@ void KWDerivationRule::BuildAllUsedAttributes(const KWAttribute* derivedAttribut
 					      NumericKeyDictionary* nkdAllUsedAttributes) const
 {
 	int nOperand;
+
+	require(IsCompiled());
+	require(derivedAttribute != NULL);
+	require(nkdAllUsedAttributes != NULL);
+
+	// Alimentation par parcours des operandes de la regle
+	for (nOperand = 0; nOperand < GetOperandNumber(); nOperand++)
+		BuildAllUsedAttributesAtOperand(derivedAttribute, nOperand, nkdAllUsedAttributes);
+}
+
+void KWDerivationRule::BuildAllUsedAttributesAtOperand(const KWAttribute* derivedAttribute, int nOperandIndex,
+						       NumericKeyDictionary* nkdAllUsedAttributes) const
+{
 	KWDerivationRuleOperand* operand;
 	KWAttribute* originAttribute;
 	KWAttributeBlock* originAttributeBlock;
@@ -287,103 +217,94 @@ void KWDerivationRule::BuildAllUsedAttributes(const KWAttribute* derivedAttribut
 	int nVarKey;
 
 	require(IsCompiled());
+	require(0 <= nOperandIndex and nOperandIndex < GetOperandNumber());
 	require(derivedAttribute != NULL);
 	require(nkdAllUsedAttributes != NULL);
 
-	// Alimentation par parcours des operandes de la regle
-	for (nOperand = 0; nOperand < GetOperandNumber(); nOperand++)
+	// Acces a l'operande
+	operand = GetOperandAt(nOperandIndex);
+
+	// Recherche recursive si presence effective d'une regle
+	if (operand->GetOrigin() == KWDerivationRuleOperand::OriginRule and operand->GetDerivationRule() != NULL)
 	{
-		operand = GetOperandAt(nOperand);
-
-		// Recherche recursive si presence effective d'une regle
-		if (operand->GetOrigin() == KWDerivationRuleOperand::OriginRule and
-		    operand->GetDerivationRule() != NULL)
+		assert(not KWType::IsValueBlock(operand->GetDerivationRule()->GetType()));
+		operand->GetDerivationRule()->BuildAllUsedAttributes(derivedAttribute, nkdAllUsedAttributes);
+	}
+	// Recherche recursive si presence effective d'un attribut calcule avec une regle
+	else if (operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute)
+	{
+		// Cas d'un attribut
+		if (KWType::IsValue(operand->GetType()))
 		{
-			assert(not KWType::IsValueBlock(operand->GetDerivationRule()->GetType()));
-			operand->GetDerivationRule()->BuildAllUsedAttributes(derivedAttribute, nkdAllUsedAttributes);
-		}
-		// Recherche recursive si presence effective d'un attribut calcule avec une regle
-		else if (operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute)
-		{
-			// Cas d'un attribut
-			if (KWType::IsValue(operand->GetType()))
+			originAttribute = operand->GetOriginAttribute();
+			if (originAttribute != NULL)
 			{
-				originAttribute = operand->GetOriginAttribute();
-				if (originAttribute != NULL)
+				// Analyse de l'attribut si necessaire
+				if (nkdAllUsedAttributes->Lookup(originAttribute) == NULL)
 				{
-					// Analyse de l'attribut si necessaire
-					if (nkdAllUsedAttributes->Lookup((NUMERIC)originAttribute) == NULL)
-					{
-						// Memorisation de l'attribut dans le dictionnaire
-						nkdAllUsedAttributes->SetAt((NUMERIC)originAttribute,
-									    cast(Object*, originAttribute));
+					// Memorisation de l'attribut dans le dictionnaire
+					nkdAllUsedAttributes->SetAt(originAttribute, originAttribute);
 
-						// Acces a la regle d'attribut ou de bloc
-						originRule = originAttribute->GetAnyDerivationRule();
-						if (originRule != NULL)
-							originRule->BuildAllUsedAttributes(originAttribute,
-											   nkdAllUsedAttributes);
-					}
+					// Acces a la regle d'attribut ou de bloc
+					originRule = originAttribute->GetAnyDerivationRule();
+					if (originRule != NULL)
+						originRule->BuildAllUsedAttributes(originAttribute,
+										   nkdAllUsedAttributes);
 				}
 			}
-			// Cas d'un bloc d'attributs
-			else
+		}
+		// Cas d'un bloc d'attributs
+		else
+		{
+			assert(KWType::IsValueBlock(operand->GetType()));
+			originAttributeBlock = operand->GetOriginAttributeBlock();
+			if (originAttributeBlock != NULL)
 			{
-				assert(KWType::IsValueBlock(operand->GetType()));
-				originAttributeBlock = operand->GetOriginAttributeBlock();
-				if (originAttributeBlock != NULL)
+				// Bloc eventuel de l'attribut derive
+				derivedAttributeBlock = derivedAttribute->GetAttributeBlock();
+
+				// Cas de l'attribut derive dans un bloc
+				if (derivedAttributeBlock != NULL)
 				{
-					// Bloc eventuel de l'attribut derive
-					derivedAttributeBlock = derivedAttribute->GetAttributeBlock();
-
-					// Cas de l'attribut derive dans un bloc
-					if (derivedAttributeBlock != NULL)
+					// Recherche de l'attribut utilise dans le bloc si son VarKey coincide
+					// avec celui de l'attribut derive
+					assert(derivedAttributeBlock->GetVarKeyType() ==
+					       originAttributeBlock->GetVarKeyType());
+					originAttribute = NULL;
+					if (derivedAttributeBlock->GetVarKeyType() == KWType::Symbol)
 					{
-						// Recherche de l'attribut utilise dans le bloc si son VarKey coincide
-						// avec celui de l'attribut derive
-						assert(derivedAttributeBlock->GetVarKeyType() ==
-						       originAttributeBlock->GetVarKeyType());
-						originAttribute = NULL;
-						if (derivedAttributeBlock->GetVarKeyType() == KWType::Symbol)
-						{
-							sVarKey =
-							    derivedAttributeBlock->GetSymbolVarKey(derivedAttribute);
-							originAttribute =
-							    originAttributeBlock->LookupAttributeBySymbolVarKey(
-								sVarKey);
-						}
-						else
-						{
-							nVarKey = derivedAttributeBlock->GetContinuousVarKey(
-							    derivedAttribute);
-							originAttribute =
-							    originAttributeBlock->LookupAttributeByContinuousVarKey(
-								nVarKey);
-						}
-
-						// Identification de l'attribut utilise dans le bloc en operande
-						if (originAttribute != NULL and
-						    nkdAllUsedAttributes->Lookup((NUMERIC)originAttribute) == NULL)
-						{
-							// Memorisation de l'attribut dans le dictionnaire
-							nkdAllUsedAttributes->SetAt((NUMERIC)originAttribute,
-										    cast(Object*, originAttribute));
-
-							// Acces a la regle d'attribut ou de bloc
-							if (originAttributeBlock->GetDerivationRule() != NULL)
-								originAttributeBlock->GetDerivationRule()
-								    ->BuildAllUsedAttributes(originAttribute,
-											     nkdAllUsedAttributes);
-						}
+						sVarKey = derivedAttributeBlock->GetSymbolVarKey(derivedAttribute);
+						originAttribute =
+						    originAttributeBlock->LookupAttributeBySymbolVarKey(sVarKey);
 					}
-					// Sinon, propagation a l'eventuelle regle du bloc avec l'attribut derive
 					else
 					{
-						originRule = originAttributeBlock->GetDerivationRule();
-						if (originRule != NULL)
-							originRule->BuildAllUsedAttributes(derivedAttribute,
-											   nkdAllUsedAttributes);
+						nVarKey = derivedAttributeBlock->GetContinuousVarKey(derivedAttribute);
+						originAttribute =
+						    originAttributeBlock->LookupAttributeByContinuousVarKey(nVarKey);
 					}
+
+					// Identification de l'attribut utilise dans le bloc en operande
+					if (originAttribute != NULL and
+					    nkdAllUsedAttributes->Lookup(originAttribute) == NULL)
+					{
+						// Memorisation de l'attribut dans le dictionnaire
+						nkdAllUsedAttributes->SetAt(originAttribute, originAttribute);
+
+						// Acces a la regle d'attribut ou de bloc
+						if (originAttributeBlock->GetDerivationRule() != NULL)
+							originAttributeBlock->GetDerivationRule()
+							    ->BuildAllUsedAttributes(originAttribute,
+										     nkdAllUsedAttributes);
+					}
+				}
+				// Sinon, propagation a l'eventuelle regle du bloc avec l'attribut derive
+				else
+				{
+					originRule = originAttributeBlock->GetDerivationRule();
+					if (originRule != NULL)
+						originRule->BuildAllUsedAttributes(derivedAttribute,
+										   nkdAllUsedAttributes);
 				}
 			}
 		}
@@ -396,6 +317,23 @@ boolean KWDerivationRule::IsSecondaryScopeOperand(int nOperandIndex) const
 	return GetMultipleScope() and nOperandIndex > 0;
 }
 
+int KWDerivationRule::GetOutputOperandNumber() const
+{
+	return 0;
+}
+
+boolean KWDerivationRule::GetVariableOutputOperandNumber() const
+{
+	return false;
+}
+
+KWDerivationRuleOperand* KWDerivationRule::GetOutputOperandAt(int nIndex) const
+{
+	require(0 <= nIndex and nIndex < GetOutputOperandNumber());
+	assert(false);
+	return NULL;
+}
+
 boolean KWDerivationRule::CheckDefinition() const
 {
 	// On test d'abord les operandes, qui peuvent etre a l'origine d'erreur sur la regle elle-meme
@@ -405,24 +343,25 @@ boolean KWDerivationRule::CheckDefinition() const
 boolean KWDerivationRule::CheckRuleDefinition() const
 {
 	boolean bResult = true;
+	boolean bIsGenericRule;
 	ALString sTmp;
 
 	// Nom de la regle
-	if (not KWClass::CheckName(GetName(), this))
+	if (not KWClass::CheckName(GetName(), KWClass::Rule, this))
 	{
 		AddError("Incorrect name");
 		bResult = false;
 	}
 
 	// Libelle
-	if (not KWClass::CheckLabel(GetLabel(), this))
+	if (not KWClass::CheckLabel(GetLabel(), KWClass::Rule, this))
 	{
 		AddError("Incorrect label");
 		bResult = false;
 	}
 
 	// Nom de classe si renseigne
-	if (GetClassName() != "" and not KWClass::CheckName(GetName(), this))
+	if (GetClassName() != "" and not KWClass::CheckName(GetName(), KWClass::Class, this))
 	{
 		AddError("Incorrect dictionary name");
 		bResult = false;
@@ -437,7 +376,7 @@ boolean KWDerivationRule::CheckRuleDefinition() const
 
 	// Nom de la classe pour un type Object ou ObjectArray si renseigne
 	if (KWType::IsGeneralRelation(GetType()) and GetObjectClassName() != "" and
-	    not KWClass::CheckName(GetObjectClassName(), this))
+	    not KWClass::CheckName(GetObjectClassName(), KWClass::Class, this))
 	{
 		AddError("Incorrect dictionary name for " + KWType::ToString(GetType()) + " type");
 		bResult = false;
@@ -451,7 +390,7 @@ boolean KWDerivationRule::CheckRuleDefinition() const
 			AddError("Missing structure name for Structure type");
 			bResult = false;
 		}
-		else if (not KWClass::CheckName(GetStructureName(), this))
+		else if (not KWClass::CheckName(GetStructureName(), KWClass::Structure, this))
 		{
 			AddError("Incorrect structure name for Structure type");
 			bResult = false;
@@ -460,12 +399,13 @@ boolean KWDerivationRule::CheckRuleDefinition() const
 
 	// Au moins un operande pour les regles a nombre variable d'operandes
 	// uniquement pour la regle "generique"
-	if (LookupDerivationRule(GetName()) == this)
+	bIsGenericRule = LookupDerivationRule(GetName()) == this;
+	if (bIsGenericRule)
 	{
 		if (GetVariableOperandNumber() and oaOperands.GetSize() == 0)
 		{
 			AddError("The definition of a registered derivation rule with a variable number of operands "
-				 "must hold at least one operand");
+				 "must contain at least one operand");
 			bResult = false;
 		}
 	}
@@ -476,9 +416,13 @@ boolean KWDerivationRule::CheckRuleDefinition() const
 boolean KWDerivationRule::CheckOperandsDefinition() const
 {
 	boolean bResult = true;
+	boolean bIsGenericRule;
 	KWDerivationRuleOperand* operand;
 	int i;
 	ALString sTmp;
+
+	// Recherche s'il s'agit de la regle generique enregistree
+	bIsGenericRule = LookupDerivationRule(GetName()) == this;
 
 	// Verification des operandes
 	for (i = 0; i < oaOperands.GetSize(); i++)
@@ -490,10 +434,18 @@ boolean KWDerivationRule::CheckOperandsDefinition() const
 			bResult = false;
 		}
 
-		// Seul le dernier operande, en cas de nombre variables d'operandes, a le droit d'etre de type Unknown
-		assert((i == oaOperands.GetSize() - 1 and GetVariableOperandNumber() and
-			operand->GetType() == KWType::Unknown) or
-		       KWType::Check(operand->GetType()));
+		// Pour la regle generique, seul le dernier operande, en cas de nombre variables d'operandes,
+		// a le droit d'etre de type Unknown
+		if (bResult and bIsGenericRule)
+		{
+			if ((i < oaOperands.GetSize() - 1 or not GetVariableOperandNumber()) and
+			    operand->GetType() == KWType::Unknown)
+			{
+				AddError("In the definition of a registered derivation rule with a variable number of "
+					 "operands, first operands must have their type specified");
+				bResult = false;
+			}
+		}
 	}
 
 	// Cas des regle avec scope multiple
@@ -591,6 +543,7 @@ boolean KWDerivationRule::CheckOperandsFamily(const KWDerivationRule* ruleFamily
 {
 	boolean bResult = true;
 	KWDerivationRuleOperand* operand;
+	KWDerivationRuleOperand* familyVariableOperand;
 	int i;
 	ALString sTmp;
 
@@ -602,18 +555,22 @@ boolean KWDerivationRule::CheckOperandsFamily(const KWDerivationRule* ruleFamily
 	{
 		operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
 
-		// Cas du nombre variable d'operandes utilise effectivement
-		if (i >= ruleFamily->GetOperandNumber())
+		// Cas des derniers operandes pour un nombre variable d'operandes
+		if (ruleFamily->GetVariableOperandNumber() and i >= ruleFamily->GetOperandNumber() - 1)
 		{
-			assert(ruleFamily->GetVariableOperandNumber());
-			if (not operand->CheckFamily(ruleFamily->GetOperandAt(ruleFamily->GetOperandNumber() - 1)))
+			familyVariableOperand = ruleFamily->GetOperandAt(ruleFamily->GetOperandNumber() - 1);
+
+			// Controle sauf dans le cas de type Unknown pour la famille
+			// Dans ce cas, le controle est a effectuer dans la classe
+			if (familyVariableOperand->GetType() != KWType::Unknown and
+			    not operand->CheckFamily(familyVariableOperand))
 			{
 				AddError(sTmp + "Operand " + IntToString(i + 1) +
 					 " inconsistent with that of the registered rule");
 				bResult = false;
 			}
 		}
-		// Cas du nombre constant d'operandes (ou nombre variable sous-utilise)
+		// Cas des premiers operandes
 		else
 		{
 			if (not operand->CheckFamily(ruleFamily->GetOperandAt(i)))
@@ -628,10 +585,10 @@ boolean KWDerivationRule::CheckOperandsFamily(const KWDerivationRule* ruleFamily
 	return bResult;
 }
 
-boolean KWDerivationRule::CheckCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDerivationRule::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
 	// On test d'abord les operandes, qui peuvent etre a l'origine d'erreur sur la regle elle-meme
-	return CheckOperandsCompletness(kwcOwnerClass) and CheckRuleCompletness(kwcOwnerClass);
+	return CheckOperandsCompleteness(kwcOwnerClass) and CheckRuleCompletness(kwcOwnerClass);
 }
 
 boolean KWDerivationRule::CheckRuleCompletness(const KWClass* kwcOwnerClass) const
@@ -710,7 +667,7 @@ boolean KWDerivationRule::CheckRuleCompletness(const KWClass* kwcOwnerClass) con
 	return bResult;
 }
 
-boolean KWDerivationRule::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDerivationRule::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bResult = true;
 	KWDerivationRuleOperand* operand;
@@ -730,7 +687,7 @@ boolean KWDerivationRule::CheckOperandsCompletness(const KWClass* kwcOwnerClass)
 			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
 
 			// Verification de l'operande
-			if (not operand->CheckCompletness(kwcOwnerClass))
+			if (not operand->CheckCompleteness(kwcOwnerClass))
 			{
 				AddError(sTmp + "Incomplete operand " + IntToString(i + 1));
 				bResult = false;
@@ -747,7 +704,7 @@ boolean KWDerivationRule::CheckOperandsCompletness(const KWClass* kwcOwnerClass)
 			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
 
 			// Verification de l'operande
-			if (not operand->CheckCompletness(scopeClass))
+			if (not operand->CheckCompleteness(scopeClass))
 			{
 				AddError(sTmp + "Incomplete operand " + IntToString(i + 1));
 				bResult = false;
@@ -898,7 +855,7 @@ boolean KWDerivationRule::CheckBlockAttributesAt(const KWClass* kwcOwnerClass, c
 				else
 				{
 					nVarKey = originAttributeBlock->GetContinuousVarKey(originAttribute);
-					nkdOriginAttributesByVarKeys.SetAt((NUMERIC)(longint)nVarKey, originAttribute);
+					nkdOriginAttributesByVarKeys.SetAt(nVarKey, originAttribute);
 				}
 
 				// Arret si derniere variable du bloc trouvee
@@ -926,8 +883,7 @@ boolean KWDerivationRule::CheckBlockAttributesAt(const KWClass* kwcOwnerClass, c
 				{
 					nVarKey = attributeBlock->GetContinuousVarKey(checkedAttribute);
 					originAttribute =
-					    cast(KWAttribute*,
-						 nkdOriginAttributesByVarKeys.Lookup((NUMERIC)(longint)nVarKey));
+					    cast(KWAttribute*, nkdOriginAttributesByVarKeys.Lookup(nVarKey));
 				}
 
 				// Erreur si attribut non trouve
@@ -1034,33 +990,33 @@ boolean KWDerivationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 				if (calledAttributeBlock == NULL)
 				{
 					// L'attribut est marque en Grey: presence d'une cycle
-					if (nkdGreyAttributes->Lookup((NUMERIC)calledAttribute) != NULL)
+					if (nkdGreyAttributes->Lookup(calledAttribute) != NULL)
 					{
 						calledAttribute->GetParentClass()->AddError(
 						    "Existing derivation cycle caused by the recursive use of "
 						    "variable " +
-						    calledAttribute->GetName());
+						    calledAttribute->GetName() + " in " + GetName() + " rule");
 						bContainsCycle = true;
 					}
 					// Attribut non marque: il faut continuer l'analyse
-					else if (nkdBlackAttributes->Lookup((NUMERIC)calledAttribute) == NULL)
+					else if (nkdBlackAttributes->Lookup(calledAttribute) == NULL)
 						bContainsCycle = calledAttribute->ContainsCycle(nkdGreyAttributes,
 												nkdBlackAttributes);
 				}
 				// Cas ou l'attribut appele est dans un bloc
 				else
 				{
-					// Le bloc est marque en Grey: presence d'une cycle
-					if (nkdGreyAttributes->Lookup((NUMERIC)calledAttributeBlock) != NULL)
+					// Le bloc est marque en Grey: presence d'un cycle
+					if (nkdGreyAttributes->Lookup(calledAttributeBlock) != NULL)
 					{
 						calledAttribute->GetParentClass()->AddError(
 						    "Existing derivation cycle caused by the recursive use of "
 						    "variable " +
-						    calledAttribute->GetName());
+						    calledAttribute->GetName() + " in " + GetName() + " rule");
 						bContainsCycle = true;
 					}
 					// Bloc non marque: il faut continuer l'analyse
-					else if (nkdBlackAttributes->Lookup((NUMERIC)calledAttributeBlock) == NULL)
+					else if (nkdBlackAttributes->Lookup(calledAttributeBlock) == NULL)
 						bContainsCycle = calledAttributeBlock->ContainsCycle(
 						    nkdGreyAttributes, nkdBlackAttributes);
 				}
@@ -1071,17 +1027,17 @@ boolean KWDerivationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 				calledAttributeBlock = operand->GetOriginAttributeBlock();
 				if (calledAttributeBlock != NULL)
 				{
-					// Le bloc est marque en Grey: presence d'une cycle
-					if (nkdGreyAttributes->Lookup((NUMERIC)calledAttributeBlock) != NULL)
+					// Le bloc est marque en Grey: presence d'un cycle
+					if (nkdGreyAttributes->Lookup(calledAttributeBlock) != NULL)
 					{
 						calledAttributeBlock->GetParentClass()->AddError(
 						    "Existing derivation cycle caused by the recursive use of sparse "
 						    "variable block " +
-						    calledAttributeBlock->GetName());
+						    calledAttributeBlock->GetName() + " in " + GetName() + " rule");
 						bContainsCycle = true;
 					}
 					// Bloc non marque: il faut continuer l'analyse
-					else if (nkdBlackAttributes->Lookup((NUMERIC)calledAttributeBlock) == NULL)
+					else if (nkdBlackAttributes->Lookup(calledAttributeBlock) == NULL)
 						bContainsCycle = calledAttributeBlock->ContainsCycle(
 						    nkdGreyAttributes, nkdBlackAttributes);
 				}
@@ -1092,7 +1048,6 @@ boolean KWDerivationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 		if (bContainsCycle)
 			break;
 	}
-
 	return bContainsCycle;
 }
 
@@ -1179,7 +1134,7 @@ void KWDerivationRule::Compile(KWClass* kwcOwnerClass)
 	KWClass* scopeClass;
 
 	require(kwcOwnerClass != NULL);
-	require(CheckCompletness(kwcOwnerClass));
+	require(CheckCompleteness(kwcOwnerClass));
 	require(kwcOwnerClass->IsIndexed());
 	require(kwcOwnerClass->GetName() == GetClassName());
 
@@ -1312,6 +1267,33 @@ Timestamp KWDerivationRule::ComputeTimestampResult(const KWObject* kwoObject) co
 	return tsValue;
 }
 
+TimestampTZ KWDerivationRule::ComputeTimestampTZResult(const KWObject* kwoObject) const
+{
+	TimestampTZ tstzValue;
+
+	// Doit etre reimplemente si le type est Timestamp
+	kwoObject = NULL; // Pour eviter le warning
+	tstzValue.Reset();
+	assert(false);
+	return tstzValue;
+}
+
+Symbol KWDerivationRule::ComputeTextResult(const KWObject* kwoObject) const
+{
+	// Doit etre reimplemente si le type est Text
+	kwoObject = NULL; // Pour eviter le warning
+	assert(false);
+	return Symbol();
+}
+
+SymbolVector* KWDerivationRule::ComputeTextListResult(const KWObject* kwoObject) const
+{
+	// Doit etre reimplemente si le type est TextList
+	kwoObject = NULL; // Pour eviter le warning
+	assert(false);
+	return NULL;
+}
+
 KWObject* KWDerivationRule::ComputeObjectResult(const KWObject* kwoObject) const
 {
 	// Doit etre reimplemente si le type est Object
@@ -1380,28 +1362,6 @@ Symbol& KWDerivationRule::GetValueBlockSymbolDefaultValue() const
 	// Doit etre reimplemente si le type est SymbolValueBlock
 	assert(false);
 	return KWSymbolValueBlock::GetDefaultDefaultValue();
-}
-
-const ALString KWDerivationRule::ComputeAttributeName() const
-{
-	ALString sTargetName;
-	KWDerivationRuleOperand* operand;
-	int i;
-
-	// Initialisation avec le nom, puis ajout des operandes
-	sTargetName = GetName();
-	sTargetName += "(";
-	for (i = 0; i < oaOperands.GetSize(); i++)
-	{
-		operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
-
-		// Ajout d'un nom fabrique par l'operande
-		if (i > 0)
-			sTargetName += ",";
-		sTargetName += operand->ComputeOperandName();
-	}
-	sTargetName += ")";
-	return sTargetName;
 }
 
 KWDerivationRule* KWDerivationRule::Clone() const
@@ -1477,9 +1437,9 @@ int KWDerivationRule::FullCompare(const KWDerivationRule* rule) const
 
 	require(rule != NULL);
 	require(rule->kwcClass != NULL);
-	require(rule->CheckCompletness(rule->kwcClass));
+	require(rule->CheckCompleteness(rule->kwcClass));
 	require(kwcClass != NULL);
-	require(CheckCompletness(kwcClass));
+	require(CheckCompleteness(kwcClass));
 
 	// Comparaison sur la classe sur laquelle la regle est applicable
 	nDiff = GetClassName().Compare(rule->GetClassName());
@@ -1807,27 +1767,28 @@ void KWDerivationRule::Write(ostream& ost) const
 
 void KWDerivationRule::WriteUsedRule(ostream& ost) const
 {
-	// Le passage a la ligne n'est pas tres lisible (nMaxOperandPerLine=0: pas de passage a la ligne)
-	// Un vrai "pretty print" serait assez cher a developper, et peut-etre pas tres utile
-	int nMaxOperandPerLine = 0;
-	KWDerivationRuleOperand* operand;
-	int i;
-
 	// Nom de la regle utilisee
 	ost << KWClass::GetExternalName(GetName());
 
-	// Operandes
+	// Operandes entre parentheses
 	ost << "(";
+	WriteUsedRuleOperands(ost);
+	ost << ")";
+}
+
+void KWDerivationRule::WriteUsedRuleOperands(ostream& ost) const
+{
+	KWDerivationRuleOperand* operand;
+	int i;
+
+	// Operandes
 	for (i = 0; i < GetOperandNumber(); i++)
 	{
 		operand = GetOperandAt(i);
 		if (i > 0)
 			ost << ", ";
-		if (nMaxOperandPerLine > 0 and GetOperandNumber() > nMaxOperandPerLine and i > 0)
-			ost << "\n\t\t\t\t\t";
 		operand->WriteUsedOperand(ost);
 	}
-	ost << ")";
 }
 
 void KWDerivationRule::PushScope(const KWClass* kwcOwnerClass, const KWClass* kwcScopeClass,
@@ -2053,7 +2014,7 @@ void KWDerivationRule::Test()
 	if (rule->CheckDefinition())
 	{
 		// Creation d'une classe
-		testClass = KWClass::CreateClass("TestClass", 0, 2, 0, 0, 0, 0, 0, 0, 0, false, NULL);
+		testClass = KWClass::CreateClass("TestClass", 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false, NULL);
 		testClass->IndexClass();
 		KWClassDomain::GetCurrentDomain()->InsertClass(testClass);
 		KWClassDomain::GetCurrentDomain()->Compile();
@@ -2066,7 +2027,7 @@ void KWDerivationRule::Test()
 		// Verification de la regle
 		refRule = LookupDerivationRule(refCopySymbolRule.GetName());
 		rule->CheckFamily(refRule);
-		rule->CheckCompletness(testClass);
+		rule->CheckCompleteness(testClass);
 
 		// Compilation
 		rule->Compile(testClass);
@@ -2117,7 +2078,7 @@ void KWDerivationRule::Test()
 			attribute = new KWAttribute;
 			attribute->SetType(availableRule->GetType());
 			attribute->SetDerivationRule(availableRule);
-			attribute->SetName(availableRule->ComputeAttributeName());
+			attribute->SetName(testClass->BuildAttributeName(availableRule->GetName()));
 			testClass->InsertAttribute(attribute);
 		}
 		testClass->Compile();
@@ -2126,11 +2087,8 @@ void KWDerivationRule::Test()
 		cout << *kwoObject << endl;
 		delete kwoObject;
 
-		// Renommage de la classe et de l'attribut references
+		// Renommage de la classe
 		cout << "\nRename:\n";
-		rule->RenameAttribute(testClass,
-				      testClass->LookupAttribute(rule->GetFirstOperand()->GetAttributeName()),
-				      "New" + rule->GetFirstOperand()->GetAttributeName());
 		rule->RenameClass(testClass, "NewTestClass");
 		cout << *rule << endl;
 
@@ -2146,8 +2104,9 @@ void KWDerivationRule::RegisterDerivationRule(KWDerivationRule* kwdrRule)
 {
 	require(kwdrRule != NULL);
 	require(kwdrRule->GetName() != "");
-	require(KWClass::CheckName(kwdrRule->GetName(), kwdrRule));
+	require(KWClass::CheckName(kwdrRule->GetName(), KWClass::Rule, kwdrRule));
 	require(odDerivationRules == NULL or odDerivationRules->Lookup(kwdrRule->GetName()) == NULL);
+	require(kwdrRule->CheckDefinition());
 
 	// Creation si necessaire du dictionnaire de regles
 	if (odDerivationRules == NULL)

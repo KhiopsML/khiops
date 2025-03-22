@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -9,27 +9,27 @@
 
 KDClassBuilder::KDClassBuilder()
 {
-	domainKnowlege = NULL;
-	nAttributeIndex = 0;
+	multiTableFeatureConstruction = NULL;
+	nAttributeNameIndex = 0;
 }
 
 KDClassBuilder::~KDClassBuilder() {}
 
-void KDClassBuilder::SetDomainKnowledge(KDDomainKnowledge* domainKnowledgeParam)
+void KDClassBuilder::SetMultiTableFeatureConstruction(KDMultiTableFeatureConstruction* featureConstructionParam)
 {
-	domainKnowlege = domainKnowledgeParam;
+	multiTableFeatureConstruction = featureConstructionParam;
 }
 
-KDDomainKnowledge* KDClassBuilder::GetDomainKnowledge() const
+KDMultiTableFeatureConstruction* KDClassBuilder::GetMultiTableFeatureConstruction() const
 {
-	require(domainKnowlege != NULL);
-	return domainKnowlege;
+	require(multiTableFeatureConstruction != NULL);
+	return multiTableFeatureConstruction;
 }
 
 KDConstructionDomain* KDClassBuilder::GetConstructionDomain() const
 {
-	require(domainKnowlege != NULL);
-	return domainKnowlege->GetConstructionDomain();
+	require(multiTableFeatureConstruction != NULL);
+	return multiTableFeatureConstruction->GetConstructionDomain();
 }
 
 KWClass* KDClassBuilder::BuildClassFromConstructedRules(const KWClass* initialClass,
@@ -38,7 +38,7 @@ KWClass* KDClassBuilder::BuildClassFromConstructedRules(const KWClass* initialCl
 {
 	KWClass* constructedClass;
 
-	require(domainKnowlege != NULL);
+	require(multiTableFeatureConstruction != NULL);
 	require(initialClass != NULL);
 	require(oaConstructedRules != NULL);
 	require(selectionOperandAnalyser != NULL);
@@ -74,12 +74,12 @@ KWClass* KDClassBuilder::BuildClassFromSelectionRules(const KWClass* initialClas
 	KDClassDomainCompliantRules classDomainCompliantRules;
 	SortedList slUsedConstructedRules(KDSparseUsedConstructedRuleCompareCostName);
 
-	require(domainKnowlege != NULL);
+	require(multiTableFeatureConstruction != NULL);
 	require(initialClass != NULL);
 	require(selectionOperandAnalyser != NULL);
 	require(selectionOperandAnalyser->GetClass() == initialClass);
 
-	// Reinitialisation des index utilises pour nnommer les variables
+	// Reinitialisation des index utilises pour nommer les variables
 	ResetAttributeNameIndexes();
 
 	// Construction de la classe avec ses regles de selection
@@ -100,10 +100,10 @@ void KDClassBuilder::UpdateAllAttributeCosts(KWClass* constructedClass) const
 	KWAttribute* attribute;
 
 	require(constructedClass != NULL);
-	require(GetDomainKnowledge()->GetLearningSpec()->GetInitialAttributeNumber() != -1);
+	require(GetMultiTableFeatureConstruction()->GetLearningSpec()->GetInitialAttributeNumber() != -1);
 
 	// Calcul du cout de selection d'un attribut natif
-	dInitialAttributeCost = GetDomainKnowledge()->GetLearningSpec()->GetSelectionCost();
+	dInitialAttributeCost = GetMultiTableFeatureConstruction()->GetLearningSpec()->GetSelectionCost();
 
 	// Nettoyage des meta-data des attributs de la classe
 	constructedClass->RemoveAllAttributesMetaDataKey(KWAttribute::GetCostMetaDataKey());
@@ -120,7 +120,7 @@ void KDClassBuilder::UpdateAllAttributeCosts(KWClass* constructedClass) const
 				attribute->SetMetaDataCost(attribute->GetCost());
 			// Sinon, test si attribut initial
 			else if (attribute->GetUsed() and KWType::IsSimple(attribute->GetType()) and
-				 attribute->GetName() != GetDomainKnowledge()->GetTargetAttributeName())
+				 attribute->GetName() != GetMultiTableFeatureConstruction()->GetTargetAttributeName())
 			{
 				attribute->SetCost(dInitialAttributeCost);
 				attribute->SetMetaDataCost(attribute->GetCost());
@@ -222,20 +222,20 @@ ALString KDClassBuilder::BuildPartAttributeName(const KDConstructedPart* part) c
 
 ALString KDClassBuilder::BuildIndexedAttributeName() const
 {
-	const ALString sVariablePrefix = "ConstructedFeature";
-	ALString sVariableName;
+	const ALString sAttributePrefix = "MultiTableFeature_";
+	ALString sAttributeName;
 
-	require(nAttributeIndex >= 0);
+	require(nAttributeNameIndex >= 0);
 
 	// Construction d'un nom indexe
-	nAttributeIndex++;
-	sVariableName = sVariablePrefix + IntToString(nAttributeIndex);
-	return sVariableName;
+	nAttributeNameIndex++;
+	sAttributeName = sAttributePrefix + IntToString(nAttributeNameIndex);
+	return sAttributeName;
 }
 
 void KDClassBuilder::ResetAttributeNameIndexes() const
 {
-	nAttributeIndex = 0;
+	nAttributeNameIndex = 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -258,7 +258,7 @@ KDClassBuilder::BuildStandardClassFromConstructedRules(const KWClass* initialCla
 	int nRule;
 	boolean bNewAttribute;
 
-	require(domainKnowlege != NULL);
+	require(multiTableFeatureConstruction != NULL);
 	require(initialClass != NULL);
 	require(oaConstructedRules != NULL);
 	require(selectionOperandAnalyser != NULL);
@@ -276,7 +276,7 @@ KDClassBuilder::BuildStandardClassFromConstructedRules(const KWClass* initialCla
 
 	// Collecte des attribut derives s'ils existent deja dans une classe du domaine
 	constructedDomain->Compile();
-	domainKnowlege->ComputeAllClassesCompliantRules(constructedClass, &classDomainCompliantRules);
+	multiTableFeatureConstruction->ComputeAllClassesCompliantRules(constructedClass, &classDomainCompliantRules);
 
 	// Creation d'une regle de derivation par regle construite
 	nConstructedRuleNumber = 0;
@@ -285,7 +285,7 @@ KDClassBuilder::BuildStandardClassFromConstructedRules(const KWClass* initialCla
 		constructedRule = cast(KDConstructedRule*, oaConstructedRules->GetAt(nRule));
 
 		// Arret si assez de regles construites
-		if (nConstructedRuleNumber == domainKnowlege->GetMaxRuleNumber())
+		if (nConstructedRuleNumber == multiTableFeatureConstruction->GetMaxRuleNumber())
 			break;
 
 		// Creation directe, sans optimisation
@@ -363,7 +363,7 @@ KDClassBuilder::BuildOptimizedClassFromConstructedRules(const KWClass* initialCl
 	int nRule;
 	boolean bNewAttribute;
 
-	require(domainKnowlege != NULL);
+	require(multiTableFeatureConstruction != NULL);
 	require(initialClass != NULL);
 	require(oaConstructedRules != NULL);
 	require(selectionOperandAnalyser != NULL);
@@ -403,10 +403,11 @@ KDClassBuilder::BuildOptimizedClassFromConstructedRules(const KWClass* initialCl
 		cout << "Rules\t" << oaConstructedRules->GetSize() << endl;
 		cout << "=== All used constructed rules\t" << slUsedConstructedRules.GetCount() << " ===" << endl;
 		DisplayUsedConstructedRules(&slUsedConstructedRules, cout);
-		cout
-		    << "Initial rule attribute number\t"
-		    << GetDomainKnowledge()->GetClassDomainCompliantRules()->GetTotalInitialConstructedAttributeNumber()
-		    << endl;
+		cout << "Initial rule attribute number\t"
+		     << GetMultiTableFeatureConstruction()
+			    ->GetClassDomainCompliantRules()
+			    ->GetTotalInitialConstructedAttributeNumber()
+		     << endl;
 	}
 
 	// Construction des attributs par parcours des regles construites
@@ -417,7 +418,7 @@ KDClassBuilder::BuildOptimizedClassFromConstructedRules(const KWClass* initialCl
 		assert(LookupUsedConstructedRule(&slUsedConstructedRules, constructedRule) != NULL);
 
 		// Arret si assez de regles construites
-		if (nConstructedRuleNumber == domainKnowlege->GetMaxRuleNumber())
+		if (nConstructedRuleNumber == multiTableFeatureConstruction->GetMaxRuleNumber())
 			break;
 
 		// Recherche si attribut existant
@@ -511,7 +512,7 @@ KWClass* KDClassBuilder::BuildSparseOptimizedClassFromConstructedRules(
 	boolean bNewAttribute;
 	boolean bSparseConstruction;
 
-	require(domainKnowlege != NULL);
+	require(multiTableFeatureConstruction != NULL);
 	require(initialClass != NULL);
 	require(oaConstructedRules != NULL);
 	require(selectionOperandAnalyser != NULL);
@@ -561,10 +562,11 @@ KWClass* KDClassBuilder::BuildSparseOptimizedClassFromConstructedRules(
 		     << " ===" << endl;
 		DisplayUsedConstructedBlockRules(&slUsedConstructedBlockRules, cout);
 		cout << "============================================\n";
-		cout
-		    << "Initial rule attribute number\t"
-		    << GetDomainKnowledge()->GetClassDomainCompliantRules()->GetTotalInitialConstructedAttributeNumber()
-		    << endl;
+		cout << "Initial rule attribute number\t"
+		     << GetMultiTableFeatureConstruction()
+			    ->GetClassDomainCompliantRules()
+			    ->GetTotalInitialConstructedAttributeNumber()
+		     << endl;
 	}
 
 	// Construction des attributs par parcours des regles construites
@@ -575,7 +577,7 @@ KWClass* KDClassBuilder::BuildSparseOptimizedClassFromConstructedRules(
 		assert(LookupUsedConstructedRule(&slUsedConstructedRules, constructedRule) != NULL);
 
 		// Arret si assez de regles construites
-		if (nConstructedRuleNumber == domainKnowlege->GetMaxRuleNumber())
+		if (nConstructedRuleNumber == multiTableFeatureConstruction->GetMaxRuleNumber())
 			break;
 
 		// Recherche si attribut existant
@@ -942,7 +944,7 @@ KWClass* KDClassBuilder::InternalBuildClassFromSelectionRules(
 	ObjectArray oaSelectionConstructedAttributes;
 
 	require(initialClass != NULL);
-	require(domainKnowlege != NULL);
+	require(multiTableFeatureConstruction != NULL);
 	require(classDomainCompliantRules != NULL);
 	require(classDomainCompliantRules->GetAllClassesCompliantRules()->GetSize() == 0);
 	require(slUsedConstructedRules != NULL);
@@ -957,7 +959,7 @@ KWClass* KDClassBuilder::InternalBuildClassFromSelectionRules(
 	constructedClass = constructedDomain->LookupClass(initialClass->GetName());
 
 	// Collecte des attribut derives s'ils existent deja dans une classe du domaine
-	domainKnowlege->ComputeAllClassesCompliantRules(constructedClass, classDomainCompliantRules);
+	multiTableFeatureConstruction->ComputeAllClassesCompliantRules(constructedClass, classDomainCompliantRules);
 
 	// En cas d'optimisation des regles, recherche des regles intermediaires
 	if (GetConstructionDomain()->GetRuleOptimization())
@@ -1608,7 +1610,7 @@ void KDClassBuilder::ReorderAttributesInClassDomain(const KWClassDomain* kwcdIni
 			kwcClass->MoveAttributeToClassTail(attribute);
 
 			// Memorisation dans un dictionnaire
-			nkdConstructedAttributes.SetAt((NUMERIC)attribute, attribute);
+			nkdConstructedAttributes.SetAt(attribute, attribute);
 		}
 	}
 
@@ -1696,7 +1698,7 @@ void KDClassBuilder::ReorderAttributeBlocksInClassDomain(const SortedList* slUse
 				assert(constructedPartition->GetPartitionAttribute() != NULL);
 
 				// Memorisation de la partition pour laquelle des attributs ont ete crees
-				nkdUsedPartitions.SetAt((NUMERIC)constructedPartition, constructedPartition);
+				nkdUsedPartitions.SetAt(constructedPartition, constructedPartition);
 			}
 		}
 	}
@@ -2104,8 +2106,8 @@ boolean KDClassBuilder::CreateAttributeTablePartitionBlock(KWClassDomain* classD
 		bNewAttribute = true;
 
 		// Recherche de la classe associee a la partition
-		kwcPartitionClass =
-		    kwcPartitionOwnerClass->GetDomain()->LookupClass(constructedPartition->GetClass()->GetName());
+		kwcPartitionClass = kwcPartitionOwnerClass->GetDomain()->LookupClass(
+		    constructedPartition->GetPartitionClass()->GetName());
 
 		// Creation de l'attribut
 		partAttribute = new KWAttribute;
@@ -2446,7 +2448,7 @@ void KDSparseUsedConstructedRule::WriteLineReport(ostream& ost) const
 	ost << "\t";
 	ost << nUsingRuleNumber << "\t";
 	if (usedConstructedRule != NULL)
-		cout << *usedConstructedRule;
+		ost << *usedConstructedRule;
 	ost << "\t";
 	if (usedConstructedRule != NULL)
 		ost << usedConstructedRule->BuildAttributeName(false);
@@ -2521,9 +2523,9 @@ int KDAttributeDerivationRuleCompare(const void* elem1, const void* elem2)
 	assert(attribute1->GetAnyDerivationRule() != NULL);
 	assert(attribute2->GetAnyDerivationRule() != NULL);
 	assert(
-	    attribute1->GetAnyDerivationRule()->CheckCompletness(attribute1->GetAnyDerivationRule()->GetOwnerClass()));
+	    attribute1->GetAnyDerivationRule()->CheckCompleteness(attribute1->GetAnyDerivationRule()->GetOwnerClass()));
 	assert(
-	    attribute2->GetAnyDerivationRule()->CheckCompletness(attribute2->GetAnyDerivationRule()->GetOwnerClass()));
+	    attribute2->GetAnyDerivationRule()->CheckCompleteness(attribute2->GetAnyDerivationRule()->GetOwnerClass()));
 
 	// Difference entre les regles de derivation
 	nDiff = attribute1->GetAnyDerivationRule()->FullCompare(attribute2->GetAnyDerivationRule());
@@ -2561,9 +2563,9 @@ int KDAttributeBlockDerivationRuleCompare(const void* elem1, const void* elem2)
 	attributeBlock2 = cast(KWAttributeBlock*, *(Object**)elem2);
 	assert(attributeBlock1->GetDerivationRule() != NULL);
 	assert(attributeBlock2->GetDerivationRule() != NULL);
-	assert(attributeBlock1->GetDerivationRule()->CheckCompletness(
+	assert(attributeBlock1->GetDerivationRule()->CheckCompleteness(
 	    attributeBlock1->GetDerivationRule()->GetOwnerClass()));
-	assert(attributeBlock2->GetDerivationRule()->CheckCompletness(
+	assert(attributeBlock2->GetDerivationRule()->CheckCompleteness(
 	    attributeBlock2->GetDerivationRule()->GetOwnerClass()));
 
 	// Difference entre les regles de derivation

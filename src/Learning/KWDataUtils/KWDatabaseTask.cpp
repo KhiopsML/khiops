@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -13,6 +13,9 @@ KWDatabaseTask::KWDatabaseTask()
 	bDisplayEndTaskMessage = true;
 	bDisplayTaskTime = true;
 
+	// Indexeur de base de donnee reutiulisable par plusieurs taches
+	reusableDatabaseIndexer = NULL;
+
 	// Gestion des chunks dans le cas multi-tables
 	nChunkCurrentIndex = 0;
 	nForcedBufferSize = 0;
@@ -23,13 +26,13 @@ KWDatabaseTask::KWDatabaseTask()
 	DeclareSharedParameter(&shared_sourceDatabase);
 
 	// Declaration des variables en entree de l'esclave dans le cas multi-tables
-	DeclareTaskInput(&input_lvChunkBeginPos);
-	DeclareTaskInput(&input_lvChunkEndPos);
-	DeclareTaskInput(&input_lvChunkBeginRecordIndex);
-	DeclareTaskInput(&input_ChunkLastRootKey);
-	DeclareTaskInput(&input_nBufferSize);
+	DeclareTaskInput(&input_lvChunkBeginPositions);
+	DeclareTaskInput(&input_lvChunkEndPositions);
+	DeclareTaskInput(&input_lvChunkPreviousRecordIndexes);
+	DeclareTaskInput(&input_ChunkLastMainKey);
 	DeclareTaskInput(&input_lFileBeginPosition);
-	DeclareTaskInput(&input_lFileBeginRecordIndex);
+	DeclareTaskInput(&input_lFileEndPosition);
+	DeclareTaskInput(&input_lFilePreviousRecordIndex);
 
 	// Resultats envoyes par l'esclave dans le cas general
 	DeclareTaskOutput(&output_lReadRecords);
@@ -39,9 +42,16 @@ KWDatabaseTask::KWDatabaseTask()
 	DeclareTaskOutput(&output_lvMappingReadRecords);
 }
 
-KWDatabaseTask::~KWDatabaseTask()
+KWDatabaseTask::~KWDatabaseTask() {}
+
+void KWDatabaseTask::SetReusableDatabaseIndexer(KWDatabaseIndexer* databaseIndexer)
 {
-	assert(not mtDatabaseIndexer.IsComputed());
+	reusableDatabaseIndexer = databaseIndexer;
+}
+
+KWDatabaseIndexer* KWDatabaseTask::GetReusableDatabaseIndexer() const
+{
+	return reusableDatabaseIndexer;
 }
 
 void KWDatabaseTask::SetDisplaySpecificTaskMessage(boolean bValue)
@@ -110,35 +120,103 @@ const ALString KWDatabaseTask::GetObjectLabel() const
 boolean KWDatabaseTask::RunDatabaseTask(const KWDatabase* sourceDatabase)
 {
 	boolean bOk = true;
+	boolean bDisplay = false;
 	KWMTDatabaseTextFile refMTDatabaseTextFile;
 	KWSTDatabaseTextFile refSTDatabaseTextFile;
-	ALString sTmp;
 
 	require(sourceDatabase != NULL);
 	require(sourceDatabase->Check());
 	require(sourceDatabase->GetTechnologyName() == refMTDatabaseTextFile.GetTechnologyName() or
 		sourceDatabase->GetTechnologyName() == refSTDatabaseTextFile.GetTechnologyName());
 
-	// Initialisation des bases de travail pour un transfer mono-table si c'est possible
-	// (une seule table et pas de cle; en presence de cle, il faut en effet detecter les doublons potentiels)
-	// En effet, dans ce cas, il n'y a pas besoin de pre-indexer la table d'entree pour la parallelisation
-	shared_sourceDatabase.GetPLDatabase()->InitializeFrom(sourceDatabase);
+	// Parametrage du ChunkBuilder par le DatabaseIndexer reutilisable s'il est disponible
+	if (reusableDatabaseIndexer != NULL)
+		databaseChunkBuilder.SetDatabaseIndexer(reusableDatabaseIndexer);
+	// Parametre par le DatabaseIndexer specifique a la tache sinon
+	else
+		databaseChunkBuilder.SetDatabaseIndexer(&taskDatabaseIndexer);
+
+	// On force l'indexation dans le cas parallele simule
+	if (PLParallelTask::GetParallelSimulated())
+	{
+		// On ne la force que la premiere fois, pour reutiliser l'indexation
+		if (databaseChunkBuilder.GetDatabaseIndexer()->GetMaxSlaveNumber() == 0)
+		{
+			databaseChunkBuilder.GetDatabaseIndexer()->SetMaxSlaveNumber(
+			    PLParallelTask::GetSimulatedSlaveNumber());
+
+			// On force egalement une petite taille de chunks
+			databaseChunkBuilder.GetDatabaseIndexer()->SetMaxTotalFileSizePerProcess(lMB);
+		}
+	}
+
+	// Parametrage de la base
+	databaseChunkBuilder.InitializeFromDatabase(sourceDatabase);
+
+	// Reinitialisation de la variable partagee, pour ne pas la detruire
+	shared_sourceDatabase.RemoveObject();
+
+	// Initialisation des bases de travail
+	shared_sourceDatabase.SetPLDatabase(
+	    cast(PLDatabaseTextFile*, databaseChunkBuilder.GetDatabaseIndexer()->GetPLDatabase()));
+
+	// Affichage
+	if (bDisplay)
+	{
+		cout << "Database task\t" << GetTaskName() << endl;
+		cout << "\tDatabase indexer\t" << databaseChunkBuilder.GetDatabaseIndexer() << endl;
+		if (reusableDatabaseIndexer != NULL)
+			cout << "\tReusable database indexer" << endl;
+		cout << "\tIs indexation available\t"
+		     << databaseChunkBuilder.GetDatabaseIndexer()->IsIndexationComputed() << endl;
+		cout << "\tClass\t"
+		     << databaseChunkBuilder.GetDatabaseIndexer()->GetPLDatabase()->GetDatabase()->GetClassName()
+		     << endl;
+		cout << "\tDatabase\t" << databaseChunkBuilder.GetDatabaseIndexer()->GetPLDatabase()->GetDatabase()
+		     << endl;
+		cout << "\tDatabase name\t"
+		     << databaseChunkBuilder.GetDatabaseIndexer()->GetPLDatabase()->GetDatabase()->GetDatabaseName()
+		     << endl;
+		cout << "\tSample rate\t"
+		     << databaseChunkBuilder.GetDatabaseIndexer()
+			    ->GetPLDatabase()
+			    ->GetDatabase()
+			    ->GetSampleNumberPercentage()
+		     << endl;
+		cout << "\tSampling mode\t"
+		     << databaseChunkBuilder.GetDatabaseIndexer()->GetPLDatabase()->GetDatabase()->GetSamplingMode()
+		     << endl;
+	}
 
 	// Calcul du plan d'indexation des tables
 	bOk = bOk and ComputeAllDataTableIndexation();
+
+	// Installation du handler specifique pour ignorer le flow des erreur dans le cas du memory guard
+	KWDatabaseMemoryGuard::InstallMemoryGuardErrorFlowIgnoreFunction();
 
 	// Lancement de la tache
 	CleanJobResults();
 	if (bOk)
 		bOk = Run();
 
+	// Desinstallation du handler specifique pour ignorer le flow des erreur dans le cas du memory guard
+	KWDatabaseMemoryGuard::UninstallMemoryGuardErrorFlowIgnoreFunction();
+
+	// Affichage des messages de la tache
+	DisplayTaskMessage();
+
 	// Nettoyage des informations d'indexation
 	CleanAllDataTableIndexation();
+
+	// On dereference la variable partagee en fin de tache, car elle appartient au DatabaseIndexer
+	shared_sourceDatabase.RemoveObject();
 	return bOk;
 }
 
 void KWDatabaseTask::DisplayTaskMessage()
 {
+	require(shared_sourceDatabase.GetPLDatabase() != NULL);
+
 	// Messages de fin de tache
 	if (GetDisplaySpecificTaskMessage())
 	{
@@ -151,7 +229,8 @@ void KWDatabaseTask::DisplayTaskMessage()
 	if (GetDisplayEndTaskMessage())
 	{
 		// Message d'erreur si necessaire
-		if (IsJobDone() and IsTaskInterruptedByUser())
+		if (databaseChunkBuilder.GetDatabaseIndexer()->IsInterruptedByUser() or
+		    (IsJobDone() and IsTaskInterruptedByUser()))
 			AddWarning("Interrupted by user");
 		else if (not IsJobDone() or not IsJobSuccessful())
 			AddError("Interrupted because of errors");
@@ -167,6 +246,7 @@ void KWDatabaseTask::DisplayTaskMessage()
 
 void KWDatabaseTask::DisplaySpecificTaskMessage()
 {
+	require(shared_sourceDatabase.GetPLDatabase() != NULL);
 	shared_sourceDatabase.GetPLDatabase()->DisplayAllTableMessages("Input database", "Read records", lReadRecords,
 								       lReadObjects, &lvMappingReadRecords);
 }
@@ -174,19 +254,16 @@ void KWDatabaseTask::DisplaySpecificTaskMessage()
 boolean KWDatabaseTask::ComputeAllDataTableIndexation()
 {
 	boolean bOk = true;
-	boolean bShowTime = false;
+	boolean bDisplay = false;
 	PLDatabaseTextFile* sourceDatabase;
 	RMTaskResourceGrant grantedResources;
 	KWFileIndexerTask fileIndexerTask;
 	int nSlaveNumber;
 	longint lMinSlaveGrantedMemoryForSourceDatabase;
-	ObjectArray oaRootKeys;
 	ObjectArray oaAllTableFoundKeyPositions;
-	int nSourceBufferSize;
 	Timer timer;
 
 	require(shared_sourceDatabase.GetDatabase()->Check());
-	require(not mtDatabaseIndexer.IsComputed());
 
 	/////////////////////////////////////////////////////////////////////////////////////////
 	// Collectes d'informations prealables sur les tables a traiter en lecture ou en ecriture
@@ -197,8 +274,6 @@ boolean KWDatabaseTask::ComputeAllDataTableIndexation()
 
 	// Calcul d'informations lie a l'ouverture des bases
 	bOk = bOk and ComputeDatabaseOpenInformation();
-	if (bShowTime)
-		cout << GetClassLabel() << "\tCompute databases open information\t" << timer.GetElapsedTime() << endl;
 
 	// Appel prealable pour evaluer les ressources allouees, de facon a piloter les taches d'indexation
 	if (bOk)
@@ -215,9 +290,8 @@ boolean KWDatabaseTask::ComputeAllDataTableIndexation()
 			nSlaveNumber = grantedResources.GetSlaveNumber();
 
 			// Calcul de la memoire allouee pour la base source
-			lMinSlaveGrantedMemoryForSourceDatabase =
-			    ComputeSlaveGrantedMemory(GetResourceRequirements()->GetSlaveRequirement(),
-						      grantedResources.GetMinSlaveMemory(), true);
+			lMinSlaveGrantedMemoryForSourceDatabase = ComputeSlaveGrantedMemory(
+			    GetResourceRequirements()->GetSlaveRequirement(), grantedResources.GetSlaveMemory(), true);
 		}
 		else
 		{
@@ -233,42 +307,18 @@ boolean KWDatabaseTask::ComputeAllDataTableIndexation()
 	// Plan d'indexation des tables
 	if (bOk)
 	{
-		// Indexation multi-tables
-		if (sourceDatabase->IsMultiTableTechnology())
+		// Indexation de la base
+		bOk = databaseChunkBuilder.BuildChunks(nSlaveNumber, lMinSlaveGrantedMemoryForSourceDatabase,
+						       lForcedMaxFileSizePerProcess);
+
+		// Affichage des resultats d'indexation et des chunks
+		if (bDisplay)
 		{
-			bOk = mtDatabaseIndexer.ComputeIndexation(sourceDatabase->GetMTDatabase(), nSlaveNumber,
-								  lMinSlaveGrantedMemoryForSourceDatabase,
-								  lForcedMaxFileSizePerProcess);
-
-			// Message d'erreur si necessaire
-			if (mtDatabaseIndexer.IsInterruptedByUser())
-				AddWarning("Preliminary indexation of database interrupted by user");
-			else if (not bOk)
-				AddError("A problem occurred during preliminary indexation of database");
-		}
-		// Indexation mono-table
-		else
-		{
-			// Calcul des tailles de buffer permises par ces memoire allouees
-			nSourceBufferSize = shared_sourceDatabase.GetPLDatabase()->ComputeOpenBufferSize(
-			    true, lMinSlaveGrantedMemoryForSourceDatabase);
-
-			// Calcul de l'indexation
-			fileIndexerTask.SetFileName(sourceDatabase->GetDatabase()->GetDatabaseName());
-			bOk = fileIndexerTask.ComputeIndexation(nSourceBufferSize, &lvFileBeginPositions,
-								&lvFileBeginRecordIndexes);
-
-			// Message d'erreur si necessaire
-			if (fileIndexerTask.IsTaskInterruptedByUser())
-				AddWarning("Preliminary indexation of database interrupted by user");
-			else if (not bOk)
-				AddError("A problem occurred during preliminary indexation of database");
+			cout << "=== " << GetTaskName() << " ===\n";
+			cout << *databaseChunkBuilder.GetDatabaseIndexer() << endl;
+			cout << databaseChunkBuilder << endl;
 		}
 	}
-
-	// Message synthetique en cas d'erreur
-	if (not bOk)
-		sourceDatabase->GetDatabase()->AddError("Unable to open input database due to previous errors");
 
 	// Memorisation du temps d'indexation
 	timer.Stop();
@@ -278,43 +328,22 @@ boolean KWDatabaseTask::ComputeAllDataTableIndexation()
 
 int KWDatabaseTask::GetIndexationSlaveProcessNumber()
 {
-	int nSlaveProcessNumber;
-	PLDatabaseTextFile* sourceDatabase;
-
-	// Acces a la base source
-	sourceDatabase = shared_sourceDatabase.GetPLDatabase();
-
-	// Cas multi-tables
-	if (sourceDatabase->IsMultiTableTechnology())
-		nSlaveProcessNumber = mtDatabaseIndexer.GetChunkNumber();
-	// Cas mono-tables
-	else
-		nSlaveProcessNumber = max(0, lvFileBeginPositions.GetSize() - 1);
-	return nSlaveProcessNumber;
+	return databaseChunkBuilder.GetChunkNumber();
 }
 
 void KWDatabaseTask::CleanAllDataTableIndexation()
 {
-	// Nettoyage des informations d'indexation des bases
-	mtDatabaseIndexer.CleanIndexation();
-
-	// Nettoyage des informations d'ouverture des bases
-	shared_sourceDatabase.GetPLDatabase()->CleanOpenInformation();
-
-	// Nettoyage dans le cas mono-table
-	lvFileBeginPositions.SetSize(0);
-	lvFileBeginRecordIndexes.SetSize(0);
+	databaseChunkBuilder.CleanChunks();
 }
 
 boolean KWDatabaseTask::ComputeDatabaseOpenInformation()
 {
-	boolean bOk = true;
-	const boolean bIncludingClassMemory = true;
+	boolean bOk;
 
-	// Calcul de la memoire necessaire et collecte des informations permettant d'ouvir les bases dans les esclaves
+	// Calcul de la memoire necessaire et collecte des informations permettant d'ouvrir les bases dans les esclaves
 	// Attention: on ne prend en compte qu'une seule fois le dictionaire de la base, qui est partage entre
 	// les bases en lecture et en ecriture
-	bOk = bOk and shared_sourceDatabase.GetPLDatabase()->ComputeOpenInformation(true, bIncludingClassMemory, NULL);
+	bOk = shared_sourceDatabase.GetPLDatabase()->ComputeOpenInformation(true, true, NULL);
 	return bOk;
 }
 
@@ -342,7 +371,7 @@ boolean KWDatabaseTask::ComputeResourceRequirements()
 	// Calcul des resources pour le maitre: rien de special
 	GetResourceRequirements()->GetMasterRequirement()->GetMemory()->Set(lMB);
 
-	// Acces au nombre de taches elementaires resultant de lindexation (0 si non calcule)
+	// Acces au nombre de taches elementaires resultant de l'indexation (0 si non calcule)
 	nSlaveProcessNumber = GetIndexationSlaveProcessNumber();
 	if (nSlaveProcessNumber == 0)
 		nSlaveProcessNumber = sourceDatabase->GetMaxSlaveProcessNumber();
@@ -357,16 +386,27 @@ boolean KWDatabaseTask::MasterInitialize()
 	boolean bOk = true;
 	KWClass* kwcClass;
 	ALString sClassTmpFile;
+	ALString sAlphaNumClassName;
 	int i;
+	char c;
 
-	require(not shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology() or mtDatabaseIndexer.IsComputed());
+	require(databaseChunkBuilder.IsComputed());
 
 	// Ecriture du fichier dictionnaire dans un repertoire temporaire pour passage au slave
 	if (IsParallel())
 	{
+		// Le nom du dictionnaire temporaire ne doit contenir que des alphanumeriques. Sinon, on remplace les char par '_'
+		for (i = 0; i < shared_sourceDatabase.GetDatabase()->GetClassName().GetLength(); i++)
+		{
+			c = shared_sourceDatabase.GetDatabase()->GetClassName().GetAt(i);
+			if (isalnum(c))
+				sAlphaNumClassName += c;
+			else
+				sAlphaNumClassName += '_';
+		}
+
 		// Construction du nom du dictionnaire temporaire
-		sClassTmpFile = FileService::CreateUniqueTmpFile(
-		    shared_sourceDatabase.GetDatabase()->GetClassName() + ".kdic", this);
+		sClassTmpFile = FileService::CreateUniqueTmpFile(sAlphaNumClassName + ".kdic", this);
 		bOk = sClassTmpFile != "";
 
 		// Recherche de la classe du dictionnaire
@@ -389,6 +429,11 @@ boolean KWDatabaseTask::MasterInitialize()
 			FileService::RemoveFile(sClassTmpFile);
 	}
 
+	// Initialisation de la base via sa variable partagee, notamment pour le dimensionnement de ses ressources
+	// propres
+	if (bOk)
+		bOk = MasterInitializeDatabase();
+
 	// Initialisations
 	lReadRecords = 0;
 	lReadObjects = 0;
@@ -403,59 +448,104 @@ boolean KWDatabaseTask::MasterInitialize()
 	return bOk;
 }
 
-boolean KWDatabaseTask::MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished)
+boolean KWDatabaseTask::MasterInitializeDatabase()
 {
-	require(not shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology() or mtDatabaseIndexer.IsComputed());
+	boolean bOk = true;
+	ALString sClassName;
+	PLDatabaseTextFile* sourceDatabase;
+	longint lSourceDatabaseGrantedMemory;
+	int nSourceBufferSize;
 
-	// Cas multi-tables
+	///////////////////////////////////////////////////////////////////////////////////////
+	// Gestion des ressources pour determiner la taille des buffers
+	// En multi-table, chaque esclave gere ses buffers en fonctionnement du dimensionnement
+	// effectue au niveau des esclaves.
+
+	// Acces a la base
+	sourceDatabase = shared_sourceDatabase.GetPLDatabase();
+
+	// Parametrage de l'ouverture a la demande dans le cas multi-tables
 	if (shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology())
 	{
-		// Est-ce qu'il y a encore du travail ?
-		if (nChunkCurrentIndex >= mtDatabaseIndexer.GetChunkNumber())
-			bIsTaskFinished = true;
-		else
+		// On passe en mode ouverture a la demande s'il y a trop de tables locales (avec un petite marge)
+		if (shared_sourceDatabase.GetMTDatabase()->GetMainLocalTableNumber() + 10 > GetMaxOpenedFileNumber())
+			shared_sourceDatabase.GetMTDatabase()->SetOpenOnDemandMode(true);
+	}
+
+	// Calcul des tailles de buffer et gestion du MemoryGuard
+	nSourceBufferSize = 0;
+	if (bOk)
+	{
+		// Calcul de la memoire allouee pour la base source
+		lSourceDatabaseGrantedMemory = ComputeSlaveGrantedMemory(GetSlaveResourceRequirement(),
+									 GetSlaveResourceGrant()->GetMemory(), true);
+
+		// Calcul des tailles de buffer permises par ces memoire allouees
+		nSourceBufferSize =
+		    sourceDatabase->ComputeOpenBufferSize(true, lSourceDatabaseGrantedMemory, GetProcessNumber());
+
+		// On peut imposer la taille du buffer pour raison de tests
+		if (nForcedBufferSize > 0)
+			nSourceBufferSize = nForcedBufferSize;
+
+		// Parametrage du MemoryGuard dans le cas multi-tables
+		if (shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology())
 		{
-			/////////////////////////////////////////////////////////////////////////////////////////////////////
-			// Gestion de la partie de la base a traiter
-
-			// Recopie de la cle racine
-			input_ChunkLastRootKey.GetKey()->CopyFrom(
-			    mtDatabaseIndexer.GetChunkLastRootKeyAt(nChunkCurrentIndex));
-
-			// Recopie des vecteurs de position de debut et fin pour l'esclave
-			input_lvChunkBeginPos.GetLongintVector()->CopyFrom(
-			    mtDatabaseIndexer.GetChunkBeginPositionsAt(nChunkCurrentIndex));
-			input_lvChunkEndPos.GetLongintVector()->CopyFrom(
-			    mtDatabaseIndexer.GetChunkEndPositionsAt(nChunkCurrentIndex));
-			input_lvChunkBeginRecordIndex.GetLongintVector()->CopyFrom(
-			    mtDatabaseIndexer.GetChunkBeginRecordIndexesAt(nChunkCurrentIndex));
-			nChunkCurrentIndex++;
-
-			// Calcul de la progression
-			dTaskPercent = 1.0 / mtDatabaseIndexer.GetChunkNumber();
+			shared_sourceDatabase.GetMTDatabase()->SetMemoryGuardMaxSecondaryRecordNumber(
+			    shared_sourceDatabase.GetMTDatabase()->GetEstimatedMaxSecondaryRecordNumber());
+			shared_sourceDatabase.GetMTDatabase()->SetMemoryGuardSingleInstanceMemoryLimit(
+			    shared_sourceDatabase.GetMTDatabase()->ComputeEstimatedSingleInstanceMemoryLimit(
+				lSourceDatabaseGrantedMemory));
 		}
 	}
-	// et dans le cas mono-table
+
+	// Parametrage des tailles de buffer
+	if (bOk)
+		sourceDatabase->SetBufferSize(nSourceBufferSize);
+	return bOk;
+}
+
+boolean KWDatabaseTask::MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished)
+{
+	require(databaseChunkBuilder.IsComputed());
+
+	// Est-ce qu'il y a encore du travail ?
+	if (nChunkCurrentIndex >= databaseChunkBuilder.GetChunkNumber() or
+	    shared_sourceDatabase.GetPLDatabase()->GetFileSizeAt(0) == 0)
+		bIsTaskFinished = true;
 	else
 	{
-		// Est-ce qu'il y a encore du travail ?
-		if (nChunkCurrentIndex >= lvFileBeginPositions.GetSize() - 1)
-			bIsTaskFinished = true;
+		/////////////////////////////////////////////////////////////////////////////////////////////////////
+		// Gestion de la partie de la base a traiter
+
+		// Cas multi-tables
+		if (shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology())
+		{
+			// Recopie de la cle principale
+			databaseChunkBuilder.GetChunkLastMainKeyAt(nChunkCurrentIndex, input_ChunkLastMainKey.GetKey());
+
+			// Recopie des vecteurs de position de debut et fin pour l'esclave
+			databaseChunkBuilder.GetChunkPreviousRecordIndexesAt(
+			    nChunkCurrentIndex, input_lvChunkPreviousRecordIndexes.GetLongintVector());
+			databaseChunkBuilder.GetChunkBeginPositionsAt(nChunkCurrentIndex,
+								      input_lvChunkBeginPositions.GetLongintVector());
+			databaseChunkBuilder.GetChunkEndPositionsAt(nChunkCurrentIndex,
+								    input_lvChunkEndPositions.GetLongintVector());
+			nChunkCurrentIndex++;
+		}
+		// Cas mono-table
 		else
 		{
 			// Preparation des infos de lecture du buffer
-			input_lFileBeginPosition = lvFileBeginPositions.GetAt(nChunkCurrentIndex);
-			input_lFileBeginRecordIndex = lvFileBeginRecordIndexes.GetAt(nChunkCurrentIndex);
-			input_nBufferSize = int(lvFileBeginPositions.GetAt(nChunkCurrentIndex + 1) -
-						lvFileBeginPositions.GetAt(nChunkCurrentIndex));
+			input_lFileBeginPosition = databaseChunkBuilder.GetChunkBeginPositionAt(nChunkCurrentIndex);
+			input_lFileEndPosition = databaseChunkBuilder.GetChunkEndPositionAt(nChunkCurrentIndex);
+			input_lFilePreviousRecordIndex =
+			    databaseChunkBuilder.GetChunkPreviousRecordIndexAt(nChunkCurrentIndex);
 			nChunkCurrentIndex++;
-			assert(input_nBufferSize > 0);
-
-			// Calcul de la progression (la derniere valeur de lvFileBeginPositions contient la taille du
-			// fichier)
-			dTaskPercent =
-			    input_nBufferSize * 1.0 / lvFileBeginPositions.GetAt(lvFileBeginPositions.GetSize() - 1);
 		}
+
+		// Calcul de la progression
+		dTaskPercent = 1.0 / databaseChunkBuilder.GetChunkNumber();
 	}
 	return true;
 }
@@ -600,13 +690,6 @@ boolean KWDatabaseTask::SlaveInitializePrepareDictionary()
 boolean KWDatabaseTask::SlaveInitializePrepareDatabase()
 {
 	boolean bOk = true;
-	ALString sClassName;
-	PLDatabaseTextFile* sourceDatabase;
-	longint lSourceDatabaseGrantedMemory;
-	int nSourceBufferSize;
-
-	// Acces aux bases
-	sourceDatabase = shared_sourceDatabase.GetPLDatabase();
 
 	// Cas specifique au multi-tables
 	if (shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology())
@@ -618,31 +701,6 @@ boolean KWDatabaseTask::SlaveInitializePrepareDatabase()
 			assert(shared_sourceDatabase.GetDatabase()->Check());
 		}
 	}
-
-	///////////////////////////////////////////////////////////////////////////////////////
-	// Gestion des ressources pour determiner la taille des buffers
-	// En multi-table, chaque esclave gere ses buffers en fonctionnement du dimensionnement
-	// effectue au niveau des esclaves.
-
-	// Calcul des tailles de buffer
-	nSourceBufferSize = 0;
-	if (bOk)
-	{
-		// Calcul de la memoire allouee pour la base source
-		lSourceDatabaseGrantedMemory = ComputeSlaveGrantedMemory(GetSlaveResourceRequirement(),
-									 GetSlaveResourceGrant()->GetMemory(), true);
-
-		// Calcul des tailles de buffer permises par ces memoire allouees
-		nSourceBufferSize = sourceDatabase->ComputeOpenBufferSize(true, lSourceDatabaseGrantedMemory);
-
-		// On peut imposer la taille du buffer pour raison de tests
-		if (nForcedBufferSize > 0)
-			nSourceBufferSize = nForcedBufferSize;
-	}
-
-	// Parametrage des tailles de buffer
-	if (bOk)
-		sourceDatabase->SetBufferSize(nSourceBufferSize);
 	return bOk;
 }
 
@@ -664,12 +722,16 @@ boolean KWDatabaseTask::SlaveInitializeOpenDatabase()
 		bOk = bOk and sourceDatabase->OpenInputBuffers();
 	}
 
-	// Cas mono-tables
+	// Cas mono-table
 	if (bOk and not shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology())
 	{
+		// Parametrage du buffer en entree de la table
 		inputFileMonoTable.SetFileName(shared_sourceDatabase.GetDatabase()->GetDatabaseName());
 		inputFileMonoTable.SetFieldSeparator(shared_sourceDatabase.GetSTDatabase()->GetFieldSeparator());
 		inputFileMonoTable.SetHeaderLineUsed(shared_sourceDatabase.GetSTDatabase()->GetHeaderLineUsed());
+		shared_sourceDatabase.GetSTDatabase()->SetInputBuffer(&inputFileMonoTable);
+
+		// Ouverture du buffer en entree
 		bOk = inputFileMonoTable.Open();
 	}
 	return bOk;
@@ -700,11 +762,12 @@ boolean KWDatabaseTask::SlaveProcessStartDatabase()
 	int i;
 	KWMTDatabaseMapping* mapping;
 	PLDataTableDriverTextFile* driver;
-	KWObjectKey lastRootObjectKey;
+	KWObjectKey lastMainObjectKey;
 	InputBufferedFile* inputBuffer;
+	boolean bLineTooLong;
 	ALString sChunkFileName;
 	int nBufferSize;
-	PeriodicTest periodicTestInterruption;
+	longint lChunkSize;
 	ALString sTmp;
 
 	// Initialisation des variables de travail
@@ -723,14 +786,14 @@ boolean KWDatabaseTask::SlaveProcessStartDatabase()
 	{
 		sourceMTDatabase = shared_sourceDatabase.GetMTDatabase();
 
-		// Parametrage de la derniere cle racine lue, apres avoir transforme la cle de fichier (KWKey) en cle
+		// Parametrage de la derniere cle principale lue, apres avoir transforme la cle de fichier (KWKey) en cle
 		// d'objet (KWObjectKey)
 		if (bOk)
 		{
-			lastRootObjectKey.SetSize(input_ChunkLastRootKey.GetKey()->GetSize());
-			for (i = 0; i < lastRootObjectKey.GetSize(); i++)
-				lastRootObjectKey.SetAt(i, (Symbol)input_ChunkLastRootKey.GetKey()->GetAt(i));
-			sourceMTDatabase->SetLastReadRootKey(&lastRootObjectKey);
+			lastMainObjectKey.SetSize(input_ChunkLastMainKey.GetKey()->GetSize());
+			for (i = 0; i < lastMainObjectKey.GetSize(); i++)
+				lastMainObjectKey.SetAt(i, (Symbol)input_ChunkLastMainKey.GetKey()->GetAt(i));
+			sourceMTDatabase->SetLastReadMainKey(&lastMainObjectKey);
 		}
 
 		// Parcours des mapping pour lire les buffers en lecture
@@ -749,33 +812,36 @@ boolean KWDatabaseTask::SlaveProcessStartDatabase()
 
 					// Parametrage de la portion du fichier a lire par le driver
 					driver = sourceMTDatabase->GetDriverAt(mapping);
-					driver->SetBeginPosition(input_lvChunkBeginPos.GetAt(i));
-					driver->SetEndPosition(input_lvChunkEndPos.GetAt(i));
-					driver->SetRecordIndex(input_lvChunkBeginRecordIndex.GetAt(i));
+					driver->SetBeginPosition(input_lvChunkBeginPositions.GetAt(i));
+					driver->SetEndPosition(input_lvChunkEndPositions.GetAt(i));
+					driver->SetRecordIndex(input_lvChunkPreviousRecordIndexes.GetAt(i));
 
 					// Parametrage de la taille du buffer
 					nBufferSize = sourceMTDatabase->GetBufferSize();
-					if (nBufferSize > input_lvChunkEndPos.GetAt(i) - input_lvChunkBeginPos.GetAt(i))
-						nBufferSize = (int)(input_lvChunkEndPos.GetAt(i) -
-								    input_lvChunkBeginPos.GetAt(i));
+					lChunkSize =
+					    input_lvChunkEndPositions.GetAt(i) - input_lvChunkBeginPositions.GetAt(i);
+					if (nBufferSize > lChunkSize)
+						nBufferSize = (int)lChunkSize;
 					inputBuffer->SetBufferSize(nBufferSize);
 
 					// On remet a 0 le nombre de records traites
 					driver->SetUsedRecordNumber(0);
 
-					// Lecture du pemier buffer
+					// Lecture du premier buffer
 					bOk = driver->FillFirstInputBuffer();
 					if (not bOk)
 						break;
 
 					// Cas particulier : traitement du header
+					// Il n'est pas utile ici d'avoir un warning en cas de ligne trop longue
 					if (GetTaskIndex() == 0 and inputBuffer->GetHeaderLineUsed())
 					{
 						// On ne lit pas la premiere ligne du fichier
-						inputBuffer->SkipLine();
+						if (not driver->IsEnd())
+							driver->SetRecordIndex(driver->GetRecordIndex() + 1);
+						inputBuffer->SkipLine(bLineTooLong);
 
 						// Ne pas oublier de relire le buffer si necessaire
-						driver->SetRecordIndex(driver->GetRecordIndex() + 1);
 						driver->UpdateInputBuffer();
 						bOk = not driver->IsError();
 						if (not bOk)
@@ -785,15 +851,19 @@ boolean KWDatabaseTask::SlaveProcessStartDatabase()
 					// Trace
 					if (bTrace)
 					{
-						cout << "Slave\t" << GetTaskIndex() << "\tinput"
+						if (GetTaskIndex() == 0 and i == 0)
+							cout << "Task\tSlave\tTask\tinput\tTable\tData path\tPrev "
+								"index\tChunk begin\tChunk end\tLast key\tBufferSize\n";
+						cout << GetTaskLabel() << "\tSlave\t" << GetTaskIndex() << "\tinput"
 						     << "\t" << i << "\t"
 						     << cast(KWMTDatabaseMapping*,
 							     sourceMTDatabase->GetMultiTableMappings()->GetAt(i))
 							    ->GetDataPath()
-						     << "\t" << input_lvChunkBeginRecordIndex.GetAt(i) << "\t"
-						     << input_lvChunkBeginPos.GetAt(i) << "\t"
-						     << input_lvChunkEndPos.GetAt(i) << "\t"
-						     << *input_ChunkLastRootKey.GetKey() << endl;
+						     << "\t" << input_lvChunkPreviousRecordIndexes.GetAt(i) << "\t"
+						     << input_lvChunkBeginPositions.GetAt(i) << "\t"
+						     << input_lvChunkEndPositions.GetAt(i) << "\t"
+						     << *input_ChunkLastMainKey.GetKey() << "\t"
+						     << sourceMTDatabase->GetBufferSize() << endl;
 					}
 				}
 			}
@@ -807,31 +877,51 @@ boolean KWDatabaseTask::SlaveProcessStartDatabase()
 		// Parametrage du buffer de lecture
 		if (bOk)
 		{
-			// Lecture et remplissage du buffer
-			inputFileMonoTable.SetBufferSize(input_nBufferSize);
-			bOk = inputFileMonoTable.Fill(input_lFileBeginPosition);
-			if (bOk)
+			assert(sourceSTDatabase->GetInputBuffer() == &inputFileMonoTable);
+
+			// Parametrage de la taille du buffer
+			inputBuffer = sourceSTDatabase->GetInputBuffer();
+			nBufferSize = sourceSTDatabase->GetBufferSize();
+			lChunkSize = input_lFileEndPosition - input_lFileBeginPosition;
+			if (nBufferSize > lChunkSize and lChunkSize > 0)
+				nBufferSize = (int)lChunkSize;
+			inputBuffer->SetBufferSize(nBufferSize);
+
+			// Initialisation des buffers des databases
+			driver = sourceSTDatabase->GetDriver();
+			driver->SetBeginPosition(input_lFileBeginPosition);
+			driver->SetEndPosition(input_lFileEndPosition);
+
+			// Initialisation du nombre de lignes du fichier d'entree
+			driver->SetRecordIndex(input_lFilePreviousRecordIndex);
+
+			// Lecture du premier buffer
+			bOk = driver->FillFirstInputBuffer();
+
+			// Cas particulier : traitement du header
+			// Il n'est pas utile ici d'avoir un warning en cas de ligne trop longue
+			if (bOk and GetTaskIndex() == 0 and inputBuffer->GetHeaderLineUsed())
 			{
-				// Initialisation des buffers des databases
-				sourceSTDatabase->SetInputBuffer(&inputFileMonoTable);
-				sourceSTDatabase->GetDriver()->SetBeginPosition(input_lFileBeginPosition);
-				sourceSTDatabase->GetDriver()->SetEndPosition(input_lFileBeginPosition +
-									      input_nBufferSize);
-				assert(inputFileMonoTable.GetCurrentBufferSize() == inputFileMonoTable.GetBufferSize());
+				// On ne lit pas la premiere ligne du fichier
+				if (not driver->IsEnd())
+					driver->SetRecordIndex(driver->GetRecordIndex() + 1);
+				inputBuffer->SkipLine(bLineTooLong);
 
-				// Initialisation du nombre de lignes du fichier d'entree
-				sourceSTDatabase->GetDriver()->SetRecordIndex(input_lFileBeginRecordIndex);
+				// Ne pas oublier de relire le buffer si necessaire
+				driver->UpdateInputBuffer();
+				bOk = not driver->IsError();
+			}
 
-				// Cas particulier : traitement du header
-				if (GetTaskIndex() == 0 and inputFileMonoTable.GetHeaderLineUsed())
-				{
-					// On ne lit pas la premiere ligne du fichier
-					inputFileMonoTable.SkipLine();
-
-					// On indique au driver qu'une ligne a ete sautee
-					sourceSTDatabase->GetDriver()->SetRecordIndex(
-					    sourceSTDatabase->GetDriver()->GetRecordIndex() + 1);
-				}
+			// Trace
+			if (bTrace)
+			{
+				if (GetTaskIndex() == 0)
+					cout << "Task\tSlave\tTask\tinput\tTable\tData path\tPrev index\tChunk "
+						"begin\tChunk end\tLast key\tBufferSize\n";
+				cout << GetTaskLabel() << "\tSlave\t" << GetTaskIndex() << "\t"
+				     << sourceSTDatabase->GetDatabaseName() << "\t" << input_lFilePreviousRecordIndex
+				     << "\t" << input_lFileBeginPosition << "\t" << input_lFileEndPosition << "\t"
+				     << sourceSTDatabase->GetBufferSize() << endl;
 			}
 		}
 	}
@@ -845,11 +935,9 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 	longint lObjectNumber;
 	longint lRecordNumber;
 	KWMTDatabaseMapping* mapping;
-	KWObjectKey lastRootObjectKey;
 	KWObject* kwoObject;
 	ALString sChunkFileName;
-	PeriodicTest periodicTestInterruption;
-	PLDataTableDriverTextFile* rootDriver;
+	PLDataTableDriverTextFile* mainDriver;
 	double dProgression;
 	ALString sTmp;
 
@@ -861,34 +949,40 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 	lRecordNumber = 0;
 	if (bOk)
 	{
-		// Dans le cas multi-tables, acces au buffer de la table racine, pour la gestion de la progression
-		rootDriver = NULL;
+		// Dans le cas multi-tables, acces au driver de la table principale, pour la gestion de la progression
+		mainDriver = NULL;
 		if (sourceDatabase->IsMultiTableTechnology())
 		{
 			mapping = cast(KWMTDatabaseMapping*,
 				       shared_sourceDatabase.GetMTDatabase()->GetMultiTableMappings()->GetAt(0));
-			rootDriver = shared_sourceDatabase.GetMTDatabase()->GetDriverAt(mapping);
+			mainDriver = shared_sourceDatabase.GetMTDatabase()->GetDriverAt(mapping);
 		}
+		// Sinon, on prend le driver de la base mono-table
+		else
+			mainDriver = shared_sourceDatabase.GetSTDatabase()->GetDriver();
 
 		// Parcours des objets sources
 		Global::ActivateErrorFlowControl();
 		while (not sourceDatabase->IsEnd())
 		{
 			// Suivi de la tache
-			if (periodicTestInterruption.IsTestAllowed(lRecordNumber))
+			if (TaskProgression::IsRefreshNecessary())
 			{
-				// Avancement selon le type de base
-				if (sourceDatabase->IsMultiTableTechnology())
-					dProgression = rootDriver->GetReadPercentage();
-				else
-					dProgression = inputFileMonoTable.GetCurrentLineNumber() * 1.0 /
-						       max(1, inputFileMonoTable.GetBufferLineNumber());
+				// Avancement
+				dProgression = mainDriver->GetReadPercentage();
 				TaskProgression::DisplayProgression((int)floor(dProgression * 100));
 
 				// Message d'avancement, uniquement dans la premiere tache (la seule ou les comptes sont
 				// corrects)
 				if (GetTaskIndex() == 0)
 					sourceDatabase->DisplayReadTaskProgressionLabel(lRecordNumber, lObjectNumber);
+
+				// Arret si interruption utilisateur
+				if (TaskProgression::IsInterruptionRequested())
+				{
+					bOk = false;
+					break;
+				}
 			}
 
 			// Lecture (la gestion de l'avancement se fait dans la methode Read)
@@ -906,18 +1000,12 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 				if (not bOk)
 					break;
 			}
-			// Arret si interruption utilisateur (deja detectee avant et ayant donc rendu un objet NULL)
-			else if (TaskProgression::IsInterruptionRequested())
-			{
-				assert(kwoObject == NULL);
-				bOk = false;
-				break;
-			}
 
 			// Arret si erreur de lecture
+			// On emet pas de message d'erreur, vcar le message ddetaille a deja ete emis precedemment,
+			// et le message synthetique sera emis par l'appelant
 			if (sourceDatabase->IsError())
 			{
-				sourceDatabase->AddError(GetTaskLabel() + " interrupted because of read errors");
 				bOk = false;
 				break;
 			}
@@ -946,10 +1034,12 @@ boolean KWDatabaseTask::SlaveProcessStopDatabase(boolean bProcessEndedCorrectly)
 	boolean bOk = true;
 	boolean bTrace = false;
 	PLMTDatabaseTextFile* sourceMTDatabase;
+	PLSTDatabaseTextFile* sourceSTDatabase;
 	int i;
 	KWMTDatabaseMapping* mapping;
+	PLDataTableDriverTextFile* driver;
 
-	// On renvoie le nombre de records traites par mapping en en entree
+	// Dans le cas multi-table, on renvoie le nombre de records traites par mapping en entree
 	// et nettoie le contexte de travail des mapping en entree (last key et last record)
 	bOk = bProcessEndedCorrectly;
 	if (shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology())
@@ -984,28 +1074,45 @@ boolean KWDatabaseTask::SlaveProcessStopDatabase(boolean bProcessEndedCorrectly)
 				output_lvMappingReadRecords.SetAt(i, -1);
 		}
 	}
+	// Dans le cas mono-table, on nettoie le contexte de travail
+	else
+	{
+		sourceSTDatabase = shared_sourceDatabase.GetSTDatabase();
+
+		// Nettoyage du contexte de travail
+		driver = sourceSTDatabase->GetDriver();
+		check(driver);
+		driver->SetBeginPosition(0);
+		driver->SetEndPosition(0);
+		driver->SetRecordIndex(0);
+	}
 	return bOk;
 }
 
 boolean KWDatabaseTask::SlaveFinalize(boolean bProcessEndedCorrectly)
 {
 	boolean bOk = true;
-	PLMTDatabaseTextFile* sourceDatabase;
+	PLMTDatabaseTextFile* sourceMTDatabase;
+	PLSTDatabaseTextFile* sourceSTDatabase;
 	boolean bCloseOk;
+
+	// Initialisation
+	bOk = bProcessEndedCorrectly and not TaskProgression::IsInterruptionRequested();
 
 	// Cas multi-tables
 	if (shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology())
 	{
 		// Acces a la base source
-		sourceDatabase = shared_sourceDatabase.GetMTDatabase();
+		sourceMTDatabase = shared_sourceDatabase.GetMTDatabase();
 
 		// Fermeture et de destruction des buffers d'entree et de sortie
-		bOk = sourceDatabase->CloseInputBuffers() and bOk;
-		bOk = sourceDatabase->DeleteInputBuffers() and bOk;
+		bOk = sourceMTDatabase->CloseInputBuffers() and bOk;
+		bOk = sourceMTDatabase->DeleteInputBuffers() and bOk;
 	}
 	// Cas mono-table
 	else
 	{
+		// Fermeture de l'input buffer mono-table
 		if (inputFileMonoTable.IsOpened())
 		{
 			bOk = inputFileMonoTable.Close() and bOk;
@@ -1021,6 +1128,13 @@ boolean KWDatabaseTask::SlaveFinalize(boolean bProcessEndedCorrectly)
 		if (not bCloseOk)
 			AddError("Error while closing input database " +
 				 FileService::GetURIUserLabel(shared_sourceDatabase.GetDatabase()->GetDatabaseName()));
+	}
+
+	// Nettoyage du driver dans le cas mono-table
+	if (not shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology())
+	{
+		sourceSTDatabase = shared_sourceDatabase.GetSTDatabase();
+		sourceSTDatabase->SetInputBuffer(NULL);
 	}
 
 	// Destruction du dictionnaire

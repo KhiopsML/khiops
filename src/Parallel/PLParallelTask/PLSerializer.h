@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -29,8 +29,8 @@ public:
 	void OpenForRead(PLMsgContext* context);
 	void OpenForWrite(PLMsgContext* context);
 	void Close();
-	boolean IsOpenForRead();
-	boolean IsOpenForWrite();
+	boolean IsOpenForRead() const;
+	boolean IsOpenForWrite() const;
 
 	// Reinitialisation
 	void Initialize();
@@ -108,7 +108,7 @@ protected:
 	void GetBufferChars(char* sTarget, int nSize);
 
 	// Ajout d'un vecteur de tres grande taille au buffer
-	// La taille et la tailel allouee sont exprimees pour les CharVector (nElementSize=1)
+	// La taille et la taille allouee sont exprimees pour les CharVector (nElementSize=1)
 	void AddMemVectorToBuffer(MemHugeVector& memHugeVector, int nSize, int nAllocSize);
 
 	// Extraction d'un vecteur de tres grande taille du buffer
@@ -171,6 +171,16 @@ protected:
 // Contexte de la serialization
 // A vocation a etre reimplementee notamment pour l'envoi de serializer avec MPI
 
+enum class MSGTYPE
+{
+	UNKNOW,
+	SEND,
+	RECV,
+	BCAST,
+	RSEND,
+	ISEND
+};
+
 class PLMsgContext : public Object
 {
 public:
@@ -181,14 +191,8 @@ protected:
 	// Constructeur
 	PLMsgContext();
 	~PLMsgContext();
-	enum MSGTYPE
-	{
-		SEND,
-		RECV,
-		BCAST,
-		RSEND
-	};
-	int nMsgType;
+
+	MSGTYPE nMsgType;
 
 	friend class PLMPITaskDriver;
 	friend class PLSerializer;
@@ -199,18 +203,18 @@ protected:
 
 inline boolean PLSerializer::IsSendMode() const
 {
-	return context != NULL and
-	       (context->nMsgType == PLMsgContext::SEND or context->nMsgType == PLMsgContext::RSEND);
+	return context != NULL and (context->nMsgType == MSGTYPE::SEND or context->nMsgType == MSGTYPE::RSEND or
+				    context->nMsgType == MSGTYPE::ISEND);
 }
 
 inline boolean PLSerializer::IsRecvMode() const
 {
-	return context != NULL and context->nMsgType == PLMsgContext::RECV;
+	return context != NULL and context->nMsgType == MSGTYPE::RECV;
 }
 
 inline boolean PLSerializer::IsBCastMode() const
 {
-	return context != NULL and context->nMsgType == PLMsgContext::BCAST;
+	return context != NULL and context->nMsgType == MSGTYPE::BCAST;
 }
 inline boolean PLSerializer::IsStdMode() const
 {

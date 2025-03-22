@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -103,9 +103,7 @@ void PLTaskDriver::InitializeResourceSystem()
 
 void PLTaskDriver::MasterInitializeResourceSystem()
 {
-	RMResourceManager::GetResourceSystem()->InitializeFromLocaleHost();
-	RMTaskResourceRequirement::GetMasterSystemAtStart()->GetMemory()->Set(
-	    RMResourceManager::GetHeapLogicalMemory());
+	InitializeResourceSystem();
 }
 
 boolean PLTaskDriver::IsFileServer(int nRank) const
@@ -132,8 +130,10 @@ PLIncrementalStats* PLTaskDriver::GetIORemoteReadingStats()
 
 void PLTaskDriver::SetFileServerOnSingleHost(boolean bValue)
 {
+	PLRemoteFileService::SetRemoteIsNeverLocal(true);
 	bFileServerOnSingleHost = bValue;
 }
+
 boolean PLTaskDriver::GetFileServerOnSingleHost()
 {
 	return bFileServerOnSingleHost;

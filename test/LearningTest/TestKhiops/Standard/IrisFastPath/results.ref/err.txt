@@ -1,0 +1,15 @@
+File format detected: header line and field separator tabulation
+Database ../../../datasets/Iris/Iris.txt : Recognized variable types: 1 Categorical, 4 Numerical
+
+warning : A dictionary has been generated automatically. The field types should be checked and the dictionary saved if necessary.
+For standard use, refer to the 'Data dictionary/Manage dictionaries...' menu.
+
+Train supervised model for classification of target variable Class
+Database ../../../datasets/Iris/Iris.txt: Read records: 150	Selected records: 105
+Data preparation time: 0:00:00.01
+SNB train time: 0:00:00
+Build Selective Naive Bayes SNB_Iris
+Train evaluation of Selective Naive Bayes on database ../../../datasets/Iris/Iris.txt
+Test evaluation of Selective Naive Bayes on database ../../../datasets/Iris/Iris.txt
+Write report ./results/AnalysisResults.khj
+

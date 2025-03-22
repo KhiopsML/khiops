@@ -1,0 +1,33 @@
+#Khiops 10.5.2-b.0
+Modeling report
+
+Dictionary	Iris
+Target variable	Class
+Database	../../../datasets/Iris/Iris.txt
+Sample percentage	70
+Sampling mode	Include sample
+Selection variable	
+Selection value	
+
+
+Trained predictors
+
+Predictor	Variables
+Selective Naive Bayes	2
+Univariate PetalWidth	1
+
+
+--------------------------------------------------------------------------------
+
+Trained predictors details
+
+
+Predictor	Selective Naive Bayes
+
+Selected variables
+Prepared name	Name	Level	Weight	Importance
+PPetalWidth	PetalWidth	0.663031	0.5	0.575774
+PPetalLength	PetalLength	0.621617	0.453125	0.530726
+
+----------------------------------------------
+Predictor	Univariate PetalWidth

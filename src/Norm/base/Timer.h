@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -7,16 +7,11 @@
 #include "Object.h"
 
 // Utilisation de la bibliotheque chrono uniquement a partir de C++ 11
-#if defined __UNIX__ and not defined __C11__
-#undef __CHRONO__
-#else
-// Chrono est toujous disponible sous Windows
+#ifdef __C11__
 #include <chrono>
-#define __CHRONO__
 #endif
 
 class Timer;
-class PeriodicTest;
 
 //////////////////////////////////////////////////////////
 // Classe Timer
@@ -69,7 +64,7 @@ protected:
 	longint lStartNumber;
 
 	// Implementation preferentielle avec chrono, qui est tres precis, mais disponible uniquement en C++ 11
-#ifdef __CHRONO__
+#ifdef __C11__
 	// Doc sur https://www.modernescpp.com/index.php/the-three-clocks
 	std::chrono::steady_clock::time_point tLastStartNanoTime;
 	double dElapsedNanoTime;
@@ -77,28 +72,7 @@ protected:
 #else
 	time_t tLastStartTime;
 	time_t tElapsedTime;
-#endif // __CHRONO__
-};
-
-//////////////////////////////////////////////////////////
-// Classe PeriodicTest
-// Utilitaire pour effectuer des test selon une frequence d'evenement et de temps controlee
-class PeriodicTest : public Object
-{
-public:
-	// Constructeur
-	PeriodicTest();
-	~PeriodicTest();
-
-	// Indique si on peut effectuer un test, pour un nombre d'evenement donne
-	// Les tests sont effectues au plus selon une periodicite en nombre d'evenements et en secondes
-	boolean IsTestAllowed(longint lEventNumber) const;
-
-	////////////////////////////////////////////////////////
-	///// Implementation
-protected:
-	// Timer pour gerer la periodicite
-	mutable Timer timer;
+#endif // __C11__
 };
 
 //////////////////////////////////
@@ -122,13 +96,14 @@ inline double Timer::GetMeanElapsedTime() const
 		return GetElapsedTime() / lStartNumber;
 }
 
-// Implementation avec chrono
-#ifdef __CHRONO__
+// Implementation avec chrono a partir de C++ 11
+#ifdef __C11__
 
 inline void Timer::Start()
 {
 	require(not bIsStarted);
 	bIsStarted = true;
+	lStartNumber++;
 	tLastStartNanoTime = std::chrono::steady_clock::now();
 }
 
@@ -172,6 +147,7 @@ inline void Timer::Start()
 	assert(bRet == 0);
 	tLastStartTime = tv.tv_sec * 1e6 + tv.tv_usec;
 	bIsStarted = true;
+	lStartNumber++;
 }
 
 inline void Timer::Stop()
@@ -214,30 +190,4 @@ inline double Timer::GetElapsedTime() const
 	else
 		return ((double)tElapsedTime) / 1e6;
 }
-#endif // __CHRONO__
-
-/////////////////////////////////////////
-// Implementation inline de PeriodicTest
-
-inline PeriodicTest::PeriodicTest()
-{
-	timer.Start();
-}
-
-inline PeriodicTest::~PeriodicTest()
-{
-	timer.Stop();
-}
-
-inline boolean PeriodicTest::IsTestAllowed(longint lEventNumber) const
-{
-	if (lEventNumber % 128 == 0 and timer.GetElapsedTime() > 0.25)
-	{
-		// On reinitialise le timer
-		timer.Reset();
-		timer.Start();
-		return true;
-	}
-	else
-		return false;
-}
+#endif // __C11__

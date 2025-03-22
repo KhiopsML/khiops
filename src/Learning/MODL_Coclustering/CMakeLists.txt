@@ -1,28 +1,42 @@
 file(GLOB cppfiles ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+generate_gui_add_view_get_log_list(ddlogfiles)
 
-if(NOT MODL_SO)
-  # on fedora, binaries built with mpi must ended by _mpich suffix is set with -DMPI_SUFFIX
+# on fedora, binaries built with mpi must ended by _mpich suffix
+add_executable(MODL_Coclustering ${cppfiles} ${ddlogfiles} MODL_Coclustering.rc)
+set_khiops_options(MODL_Coclustering)
+target_link_libraries(MODL_Coclustering PUBLIC KMDRRuleLibrary KWLearningProblem)
 
-  add_executable(MODL_Coclustering ${cppfiles})
+# on fedora, binaries built with mpi must ended by _mpich or _openmpi suffix
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set_target_properties(MODL_Coclustering PROPERTIES OUTPUT_NAME "MODL_Coclustering${MPI_SUFFIX}")
+endif()
 
-  set_khiops_options(MODL_Coclustering)
+if(MPI)
+  target_link_libraries(MODL_Coclustering PUBLIC PLMPI)
+endif()
 
-  target_link_libraries(MODL_Coclustering PUBLIC KWLearningProblem DTForest KMDRRuleLibrary)
+add_library(MODL_Coclustering_DLL SHARED ${cppfiles} ${ddlogfiles})
+target_link_libraries(MODL_Coclustering_DLL PUBLIC KMDRRuleLibrary KWLearningProblem)
 
-  if(MSVC)
-    target_link_options(MODL_Coclustering PUBLIC "/INCREMENTAL")
-  endif()
+if(MPI)
+  target_link_libraries(MODL_Coclustering_DLL PUBLIC PLMPI)
+endif()
 
-else(NOT MODL_SO)
-  add_library(MODL_Coclustering SHARED ${cppfiles})
+set_target_properties(
+  MODL_Coclustering_DLL
+  PROPERTIES PUBLIC_HEADER MODL_Coclustering_dll.h
+             SOVERSION ${PROJECT_VERSION_MAJOR}
+             VERSION ${KHIOPS_VERSION})
+set_khiops_options(MODL_Coclustering_DLL)
 
-  target_link_libraries(MODL_Coclustering PUBLIC KWLearningProblem DTForest KMDRRuleLibrary PLParallelTask)
+# Generate cpp files from dd file
+# cmake-format: off
+ generate_gui_add_view(CCCoclusteringSpec "Coclustering parameters" CCCoclusteringSpec.dd CCCoclusteringSpec.dd.log -noarrayview)
+ generate_gui_add_view(CCPostProcessingSpec "Simplification parameters" CCPostProcessingSpec.dd CCPostProcessingSpec.dd.log -noarrayview)
+ generate_gui_add_view(CCPostProcessedAttribute "Coclustering variable" CCPostProcessedAttribute.dd CCPostProcessedAttribute.dd.log)
+ generate_gui_add_view(CCDeploymentSpec "Deployment parameters" CCDeploymentSpec.dd CCDeploymentSpec.dd.log -noarrayview)
+ generate_gui_add_view(CCAnalysisResults "Results" CCAnalysisResults.dd CCAnalysisResults.dd.log -noarrayview)
+# cmake-format: on
 
-  set_target_properties(
-    MODL_Coclustering
-    PROPERTIES PUBLIC_HEADER MODL_Coclustering_dll.h
-               SOVERSION ${PROJECT_VERSION_MAJOR}
-               VERSION ${PROJECT_VERSION})
-
-  set_khiops_options(MODL_Coclustering)
-endif(NOT MODL_SO)
+# Add dependency to ensure that genere will be built before the gui generation
+generate_gui_add_view_add_dependency(MODL_Coclustering)

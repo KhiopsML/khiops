@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -8,6 +8,9 @@ JSONFile::JSONFile()
 {
 	nCurrentListLevel = 0;
 	bCamelCaseKeys = false;
+
+	// Initialisation des stats sur les caracteres encodes
+	InitializeEncodingStats();
 }
 
 JSONFile::~JSONFile() {}
@@ -35,10 +38,14 @@ boolean JSONFile::OpenForWrite()
 	// Ajout de log memoire
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + GetObjectLabel() + " Write report Begin");
 
+	// Initialisation des stats sur les caracteres encodes
+	InitializeEncodingStats();
+
 	// Preparation de la copie sur HDFS si necessaire
 	bOk = PLRemoteFileService::BuildOutputWorkingFile(sFileName, sLocalFileName);
+
+	// Ouverture du fichier
 	if (bOk)
-		// Ouverture du fichier
 		bOk = FileService::OpenOutputFile(sLocalFileName, fstJSON);
 
 	// Debut de l'objet global
@@ -58,25 +65,12 @@ boolean JSONFile::IsOpened()
 
 boolean JSONFile::Close()
 {
-	boolean bOk;
+	return InternalClose(true);
+}
 
-	require(IsOpened());
-
-	// Fin de l'objet global
-	Unindent();
-	fstJSON << "\n}\n";
-
-	// Fermeture du fichier
-	bOk = FileService::CloseOutputFile(sLocalFileName, fstJSON);
-
-	// Copie vers HDFS si necessaire
-	PLRemoteFileService::CleanOutputWorkingFile(sFileName, sLocalFileName);
-
-	// Ajout de log memoire
-	MemoryStatsManager::AddLog(GetClassLabel() + " " + GetObjectLabel() + " Write report End");
-	ensure(ivLevelElementNumber.GetSize() == 0);
-	ensure(nCurrentListLevel == 0);
-	return bOk;
+boolean JSONFile::CloseWithoutEncodingStats()
+{
+	return InternalClose(false);
 }
 
 void JSONFile::WriteString(const ALString& sValue)
@@ -289,6 +283,16 @@ const ALString JSONFile::ToCamelCase(const ALString& sKey)
 	return sConvertedKey;
 }
 
+void JSONFile::SetVerboseMode(boolean bValue)
+{
+	bVerboseMode = bValue;
+}
+
+boolean JSONFile::GetVerboseMode()
+{
+	return bVerboseMode;
+}
+
 const ALString JSONFile::GetClassLabel() const
 {
 	return "JSON file";
@@ -305,27 +309,25 @@ void JSONFile::Test()
 	ALString sFileName;
 	int i;
 	int j;
-	ALString sUnicodeChars;
-	int nCode;
+	ALString sTmp;
 
-	// Test des encodages unicode des caracteres ascii etendus
-	for (i = 0; i < 256; i++)
+	// Fichier decrivant l'encodage ansi utilise par khiops
+	sFileName = FileService::BuildFilePathName(FileService::GetSystemTmpDir(), "khiops_ansi_encoding.json");
+	cout << "Khiops ansi encoding file\t" << sFileName << endl;
+	fJSON.SetFileName(sFileName);
+	fJSON.OpenForWrite();
+	if (fJSON.IsOpened())
 	{
-		Windows1252ToUnicode(i, sUnicodeChars);
-		nCode = UnicodeToWindows1252(sUnicodeChars);
-		cout << i << "\t";
-		if (0x20 <= i and i <= 0x7F)
-			cout << (char)i << "\t";
-		else
-			cout << "\t";
-		cout << sUnicodeChars << "\t";
-		cout << nCode << "\t";
-		cout << (i == nCode) << endl;
-		assert(i == nCode);
+		fJSON.BeginKeyArray("khiops_ansi_encoding_chars");
+		for (i = 128; i < 256; i++)
+			fJSON.WriteString(sTmp + (char)i);
+		fJSON.EndArray();
 	}
+	fJSON.Close();
 
-	// Ouverture
-	sFileName = FileService::CreateTmpFile("Test.json", NULL);
+	// Ouverture d'un fichier de test json
+	sFileName = FileService::BuildFilePathName(FileService::GetSystemTmpDir(), "Test.json");
+	cout << "JSON test file\t" << sFileName << endl;
 	fJSON.SetFileName(sFileName);
 	fJSON.OpenForWrite();
 
@@ -414,9 +416,42 @@ void JSONFile::Test()
 	fJSON.Close();
 }
 
+boolean JSONFile::InternalClose(boolean bExploitEncodingStats)
+{
+	boolean bOk;
+
+	require(IsOpened());
+
+	// Exploitation des stats d'encodage: memorisation dans le fichier json et message utilisateur
+	if (bExploitEncodingStats)
+		ExploitEncodingStats();
+
+	// Fin de l'objet global
+	Unindent();
+	fstJSON << "\n}\n";
+
+	// Fermeture du fichier
+	bOk = FileService::CloseOutputFile(sLocalFileName, fstJSON);
+
+	// Copie vers HDFS si necessaire
+	PLRemoteFileService::CleanOutputWorkingFile(sFileName, sLocalFileName);
+
+	// Nettoyage du buffer de travail
+	sStringBuffer = "";
+
+	// Re-initialisation des stats sur les caracteres encodes
+	InitializeEncodingStats();
+
+	// Ajout de log memoire
+	MemoryStatsManager::AddLog(GetClassLabel() + " " + GetObjectLabel() + " Write report End");
+	ensure(ivLevelElementNumber.GetSize() == 0);
+	ensure(nCurrentListLevel == 0);
+	return bOk;
+}
 void JSONFile::WriteKey(const ALString& sKey)
 {
 	require(IsOpened());
+	require(sKey != "");
 	WriteIndent();
 	if (bCamelCaseKeys)
 		WriteStringValue(ToCamelCase(sKey));
@@ -427,95 +462,16 @@ void JSONFile::WriteKey(const ALString& sKey)
 
 void JSONFile::WriteStringValue(const ALString& sValue)
 {
-	int i;
-	unsigned char c;
-	const char* cHexMap = "0123456789ABCDEF";
-	ALString sUnicodeChars;
-	int nUTF8CharNumber;
-
 	require(IsOpened());
 
-	// Chaine entre double-quotes
+	// Encodage de la chaine C au format json
+	CToJsonString(sValue, sStringBuffer);
 	fstJSON << '"';
-	i = 0;
-	while (i < sValue.GetLength())
-	{
-		// Recherche du nombre de caracteres UTF8 consecutifs valides
-		nUTF8CharNumber = GetValidUTF8CharNumberAt(sValue, i);
-
-		// Cas avec 0 ou un caractere valide
-		if (nUTF8CharNumber <= 1)
-		{
-			c = (unsigned char)sValue.GetAt(i);
-			i++;
-
-			// Gestion des caracteres speciaux
-			switch (c)
-			{
-			case '"':
-				fstJSON << "\\\"";
-				break;
-			case '\\':
-				fstJSON << "\\\\";
-				break;
-			case '/':
-				fstJSON << "\\/";
-				break;
-			case '\b':
-				fstJSON << "\\b";
-				break;
-			case '\f':
-				fstJSON << "\\f";
-				break;
-			case '\n':
-				fstJSON << "\\n";
-				break;
-			case '\r':
-				fstJSON << "\\r";
-				break;
-			case '\t':
-				fstJSON << "\\t";
-				break;
-			default:
-				// Caracteres de controle ansi
-				if (c < 0x20)
-					fstJSON << "\\u00" << cHexMap[c / 16] << cHexMap[c % 16];
-				// Caracteres de ascii etendu
-				else if (c >= 0x80)
-				{
-					Windows1252ToUnicode(c, sUnicodeChars);
-					fstJSON << "\\u" << sUnicodeChars;
-				}
-				// Caractere standard
-				else
-					fstJSON << c;
-				break;
-			}
-		}
-		// Cas d'un catactere UTF8 multi-byte
-		else if (nUTF8CharNumber == 2)
-		{
-			fstJSON << (unsigned char)sValue.GetAt(i);
-			fstJSON << (unsigned char)sValue.GetAt(i + 1);
-			i += 2;
-		}
-		else if (nUTF8CharNumber == 3)
-		{
-			fstJSON << (unsigned char)sValue.GetAt(i);
-			fstJSON << (unsigned char)sValue.GetAt(i + 1);
-			fstJSON << (unsigned char)sValue.GetAt(i + 2);
-			i += 3;
-		}
-		else if (nUTF8CharNumber == 4)
-		{
-			fstJSON << (unsigned char)sValue.GetAt(i);
-			fstJSON << (unsigned char)sValue.GetAt(i + 1);
-			fstJSON << (unsigned char)sValue.GetAt(i + 2);
-			fstJSON << (unsigned char)sValue.GetAt(i + 3);
-			i += 4;
-		}
-	}
+	fstJSON << sStringBuffer;
 	fstJSON << '"';
+
+	// Mise a jour des stats d'encodage
+	UpdateEncodingStats(sValue);
 }
 
 void JSONFile::WriteIntValue(int nValue)
@@ -629,184 +585,203 @@ void JSONFile::Unindent()
 	ivLevelElementNumber.SetSize(ivLevelElementNumber.GetSize() - 1);
 }
 
-int JSONFile::GetValidUTF8CharNumberAt(const ALString& sValue, int nStart)
+void JSONFile::InitializeEncodingStats()
 {
-	int nCharNumber;
-	int c;
-	int nLength;
-
-	require(0 <= nStart and nStart < sValue.GetLength());
-
-	// Initialisations
-	nCharNumber = 0;
-	nLength = sValue.GetLength();
-	c = (unsigned char)sValue.GetAt(nStart);
-
-	// Cas d'un caractere ascii 0bbbbbbb
-	if (0x00 <= c and c <= 0x7f)
-		nCharNumber = 1;
-	// Debut d'un caractere UTF8 sur deux octets 110bbbbb
-	else if ((c & 0xE0) == 0xC0)
-	{
-		if (nStart + 1 < nLength and ((unsigned char)sValue.GetAt(nStart + 1) & 0xC0) == 0x80)
-			nCharNumber = 2;
-		else
-			nCharNumber = 0;
-	}
-	// Debut d'un caractere UTF8 sur trois octets 1110bbbb
-	else if ((c & 0xF0) == 0xE0)
-	{
-		if (nStart + 2 < nLength and ((unsigned char)sValue.GetAt(nStart + 1) & 0xC0) == 0x80 and
-		    ((unsigned char)sValue.GetAt(nStart + 2) & 0xC0) == 0x80)
-			nCharNumber = 3;
-		else
-			nCharNumber = 0;
-	}
-	// Debut d'un caractere UTF8 sur trois octets 11110bbb
-	else if ((c & 0xF8) == 0xF0)
-	{
-		if (nStart + 3 < nLength and ((unsigned char)sValue.GetAt(nStart + 1) & 0xC0) == 0x80 and
-		    ((unsigned char)sValue.GetAt(nStart + 2) & 0xC0) == 0x80 and
-		    ((unsigned char)sValue.GetAt(nStart + 3) & 0xC0) == 0x80)
-			nCharNumber = 3;
-		else
-			nCharNumber = 0;
-	}
-	return nCharNumber;
+	lvWindows1252AnsiCharNumbers.SetSize(256);
+	lvWindows1252AnsiCharNumbers.Initialize();
+	lvWindows1252Utf8CharNumbers.SetSize(256);
+	lvWindows1252Utf8CharNumbers.Initialize();
+	lAsciiCharNumber = 0;
+	lAnsiCharNumber = 0;
+	lUtf8CharNumber = 0;
 }
 
-void JSONFile::Windows1252ToUnicode(int nCode, ALString& sUnicodeChars)
+void JSONFile::UpdateEncodingStats(const ALString& sCString)
 {
-	require(0 <= nCode and nCode <= 255);
-
-	// Initialisation si necessaire de la table de conversion
-	InitializeWindows1252UnicodeSequences();
-	sUnicodeChars = svWindows1252UnicodeSequences.GetAt(nCode);
-}
-
-int JSONFile::UnicodeToWindows1252(const ALString& sUnicodeChars)
-{
-	int nCode;
 	int i;
+	int j;
+	unsigned char c;
+	int nUTF8CharLength;
+	int nUtf8Code;
+	int nAnsiCodeFromUtf8;
 
-	require(sUnicodeChars.GetLength() == 1 or sUnicodeChars.GetLength() == 4);
-
-	// Initialisation si necessaire de la table de conversion
-	InitializeWindows1252UnicodeSequences();
-
-	// Cas de un seul caractere
-	nCode = -1;
-	if (sUnicodeChars.GetLength() == 1)
+	// Encodage de la chaine au format json
+	i = 0;
+	while (i < sCString.GetLength())
 	{
-		nCode = (int)sUnicodeChars.GetAt(0);
-	}
-	// Cas ou les deux premiers caracteres sont encodes avec "00"
-	else if (sUnicodeChars.GetAt(0) == '0' and sUnicodeChars.GetAt(1) == '0')
-	{
-		// Decodage du premier caractere suivant
-		if (sUnicodeChars.GetAt(2) >= 'A')
-			nCode = 10 + sUnicodeChars.GetAt(2) - 'A';
-		else
-			nCode = sUnicodeChars.GetAt(2) - '0';
-		// Le caractere est soit un caractere special, soit ascii etendu si on est audessus de 0xA0
-		if (nCode < 2 or nCode >= 10)
+		// Recherche du nombre de caracteres UTF8 consecutifs valides
+		nUTF8CharLength = GetValidUTF8CharLengthAt(sCString, i);
+
+		// Cas avec 0 ou un caractere valide
+		if (nUTF8CharLength <= 1)
 		{
-			nCode *= 16;
-			if (sUnicodeChars.GetAt(3) >= 'A')
-				nCode += 10 + sUnicodeChars.GetAt(3) - 'A';
-			else
-				nCode += sUnicodeChars.GetAt(3) - '0';
-		}
-		else
-			nCode = -1;
-	}
+			c = (unsigned char)sCString.GetAt(i);
+			i++;
 
-	// Sinon, on recherche dans la table des caracteres speciaux
-	if (nCode == -1)
-	{
-		for (i = 0x80; i <= 0x9F; i++)
-		{
-			if (sUnicodeChars == svWindows1252UnicodeSequences.GetAt(i))
+			// Caracteres de ascii etendu
+			if (c >= 0x80)
 			{
-				nCode = i;
-				break;
+				lAnsiCharNumber++;
+
+				// Mise a jour des stats d'encodage pour ce caractere
+				lvWindows1252AnsiCharNumbers.UpgradeAt(c, 1);
+			}
+			// Caractere standard
+			else
+				lAsciiCharNumber++;
+		}
+		// Cas d'un caractere UTF8 multi-byte trop long pour la plage windows-1252
+		else if (nUTF8CharLength == 4)
+		{
+			lUtf8CharNumber++;
+			i += nUTF8CharLength;
+		}
+		// Cas d'un caractere UTF8 multi-byte pouvant etre encode sur la plage windows-1252
+		else
+		{
+			assert(2 <= nUTF8CharLength and nUTF8CharLength <= nWindows1252EncodingMaxByteNumber);
+
+			lUtf8CharNumber++;
+
+			// Calcul du code utf8 et deplacement dans la chaine
+			nUtf8Code = 0;
+			for (j = 0; j < nUTF8CharLength; j++)
+			{
+				c = (unsigned char)sCString.GetAt(i);
+				i++;
+				nUtf8Code *= 256;
+				nUtf8Code += c;
+			}
+
+			// Mise a jour des stats d'encodage pour ce caractere s'il correspond a un caractere windows-1252
+			nAnsiCodeFromUtf8 = Windows1252Utf8CodeToWindows1252(nUtf8Code);
+			if (nAnsiCodeFromUtf8 != -1)
+			{
+				assert(128 <= nAnsiCodeFromUtf8 and nAnsiCodeFromUtf8 < 256);
+				lvWindows1252Utf8CharNumbers.UpgradeAt(nAnsiCodeFromUtf8, 1);
 			}
 		}
 	}
-	ensure(nCode == -1 or (0 <= nCode and nCode <= 255));
-	ensure(nCode == -1 or svWindows1252UnicodeSequences.GetAt(nCode) == sUnicodeChars);
-	return nCode;
 }
 
-void JSONFile::InitializeWindows1252UnicodeSequences()
+void JSONFile::ExploitEncodingStats()
 {
-	boolean bWindows1252Encoding = true;
+	boolean bDisplay = false;
+	int nCollisionNumber;
+	int nDistinctWindows1252AnsiCharNumber;
+	int nDistinctWindows1252Utf8CharNumber;
+	int i;
+	ALString sByteString;
+	ALString sTmp;
 
-	if (svWindows1252UnicodeSequences.GetSize() == 0)
+	require(IsOpened());
+
+	// Calcul du nombre de collisions
+	nCollisionNumber = 0;
+	nDistinctWindows1252AnsiCharNumber = 0;
+	nDistinctWindows1252Utf8CharNumber = 0;
+	for (i = 128; i < 256; i++)
 	{
-		const char* cHexMap = "0123456789ABCDEF";
-		int i;
-		ALString sUnicodePrefix = "00";
-		ALString sEmpty;
+		if (lvWindows1252AnsiCharNumbers.GetAt(i) > 0 and lvWindows1252Utf8CharNumbers.GetAt(i) > 0)
+			nCollisionNumber++;
+		if (lvWindows1252AnsiCharNumbers.GetAt(i) > 0)
+			nDistinctWindows1252AnsiCharNumber++;
+		if (lvWindows1252Utf8CharNumbers.GetAt(i) > 0)
+			nDistinctWindows1252Utf8CharNumber++;
+	}
 
-		// Encodage des caracteres de controle ANSI, avec 4 caracteres hexa
-		for (i = 0; i < 0x20; i++)
-			svWindows1252UnicodeSequences.Add(sUnicodePrefix + cHexMap[i / 16] + cHexMap[i % 16]);
+	// Mise a jour du json
+	// Cas ascii
+	if (lAnsiCharNumber == 0 and lUtf8CharNumber == 0)
+	{
+		WriteKeyString("khiops_encoding", "ascii");
+	}
+	// Cas utf8
+	else if (lAnsiCharNumber == 0)
+	{
+		WriteKeyString("khiops_encoding", "utf8");
+	}
+	// Cas ansi
+	else if (lUtf8CharNumber == 0)
+		WriteKeyString("khiops_encoding", "ansi");
+	// Cas mixed, avec des caracteres ansi et utf8, mais pas de caractere utf8 encodant un caractere ansi
+	else if (nDistinctWindows1252Utf8CharNumber == 0)
+	{
+		assert(nDistinctWindows1252AnsiCharNumber > 0);
+		WriteKeyString("khiops_encoding", "mixed_ansi_utf8");
+	}
+	// Cas avec a la fois des caracteres ansi et des caracteres utf8 encodant des caracteres ansi
+	else
+	{
+		WriteKeyString("khiops_encoding", "colliding_ansi_utf8");
 
-		// Encodage tel quel des caracteres ANSI, avec un seul caractere
-		for (i = 0x20; i < 0x80; i++)
-			svWindows1252UnicodeSequences.Add(sEmpty + (char)i);
-
-		// Encodage des caracteres de controle ascii etendu windows-1252, avec 4 caracteres hexa
-		assert(svWindows1252UnicodeSequences.GetSize() == 128);
-		if (bWindows1252Encoding)
+		// Encodage de la liste des caracteres ansi
+		BeginKeyArray("ansi_chars");
+		for (i = 128; i < 256; i++)
 		{
-			svWindows1252UnicodeSequences.Add("20AC"); // Euro Sign
-			svWindows1252UnicodeSequences.Add("0081"); // UNASSIGNED
-			svWindows1252UnicodeSequences.Add("201A"); // Single Low-9 Quotation Mark
-			svWindows1252UnicodeSequences.Add("0192"); // Latin Small Letter F With Hook
-			svWindows1252UnicodeSequences.Add("201E"); // Double Low-9 Quotation Mark
-			svWindows1252UnicodeSequences.Add("2026"); // Horizontal Ellipsis
-			svWindows1252UnicodeSequences.Add("2020"); // Dagger
-			svWindows1252UnicodeSequences.Add("2021"); // Double Dagger
-			svWindows1252UnicodeSequences.Add("02C6"); // Modifier Letter Circumflex Accent
-			svWindows1252UnicodeSequences.Add("2030"); // Per Mille Sign
-			svWindows1252UnicodeSequences.Add("0160"); // Latin Capital Letter S With Caron
-			svWindows1252UnicodeSequences.Add("2039"); // Single Left-Pointing Angle Quotation Mark
-			svWindows1252UnicodeSequences.Add("0152"); // Latin Capital Ligature OE
-			svWindows1252UnicodeSequences.Add("008D"); // UNASSIGNED
-			svWindows1252UnicodeSequences.Add("017D"); // Latin Capital Letter Z With Caron
-			svWindows1252UnicodeSequences.Add("008F"); // UNASSIGNED
-			svWindows1252UnicodeSequences.Add("0090"); // UNASSIGNED
-			svWindows1252UnicodeSequences.Add("2018"); // Left Single Quotation Mark
-			svWindows1252UnicodeSequences.Add("2019"); // Right Single Quotation Mark
-			svWindows1252UnicodeSequences.Add("201C"); // Left Double Quotation Mark
-			svWindows1252UnicodeSequences.Add("201D"); // Right Double Quotation Mark
-			svWindows1252UnicodeSequences.Add("2022"); // Bullet
-			svWindows1252UnicodeSequences.Add("2013"); // En Dash
-			svWindows1252UnicodeSequences.Add("2014"); // Em Dash
-			svWindows1252UnicodeSequences.Add("02DC"); // Small Tilde
-			svWindows1252UnicodeSequences.Add("2122"); // Trade Mark Sign
-			svWindows1252UnicodeSequences.Add("0161"); // Latin Small Letter S With Caron
-			svWindows1252UnicodeSequences.Add("203A"); // Single Right-Pointing Angle Quotation Mark
-			svWindows1252UnicodeSequences.Add("0153"); // Latin Small Ligature OE
-			svWindows1252UnicodeSequences.Add("009D"); // UNASSIGNED
-			svWindows1252UnicodeSequences.Add("017E"); // Latin Small Letter Z With Caron
-			svWindows1252UnicodeSequences.Add("0178"); // Latin Capital Letter Y With Diaeresis
+			if (lvWindows1252AnsiCharNumbers.GetAt(i) > 0)
+			{
+				WriteString(sTmp + (char)i);
+			}
 		}
-		// Encodage ISO-8859-1
-		else
-		{
-			for (i = 128; i < 160; i++)
-				svWindows1252UnicodeSequences.Add(sUnicodePrefix + cHexMap[i / 16] + cHexMap[i % 16]);
-		}
-		assert(svWindows1252UnicodeSequences.GetSize() == 160);
+		EndArray();
 
-		// Encodage des caracteres ascii etendu windows-1252, latin etendu, avec 4 caracteres hexa
-		for (i = 160; i < 256; i++)
-			svWindows1252UnicodeSequences.Add(sUnicodePrefix + cHexMap[i / 16] + cHexMap[i % 16]);
-		assert(svWindows1252UnicodeSequences.GetSize() == 256);
+		// Encodage de la liste des caracteres en collision, a la fois sous forme ansi et utf8
+		if (nCollisionNumber > 0)
+		{
+			BeginKeyArray("colliding_utf8_chars");
+			for (i = 128; i < 256; i++)
+			{
+				if (lvWindows1252AnsiCharNumbers.GetAt(i) > 0 and
+				    lvWindows1252Utf8CharNumbers.GetAt(i) > 0)
+				{
+					sByteString = HexCharStringToByteString(svWindows1252Utf8HexEncoding.GetAt(i));
+					WriteString(sByteString);
+				}
+			}
+			EndArray();
+		}
+
+		// Warning si dans le cas colliding
+		if (bVerboseMode)
+			AddWarning(sTmp +
+				   "Ansi characters had to be recoded in utf8 format using the Windows-1252/ISO-8859-1 "
+				   "encoding," +
+				   " with collisions with existing utf8 chars. " +
+				   "This may limit the use of json files: see the Khiops guide for more information.");
+	}
+
+	// Affichage des stats d'encodage
+	if (bDisplay)
+	{
+		cout << "Encoding stats\t" << GetFileName() << "\n";
+		cout << "acsii\t" << lAsciiCharNumber << "\n";
+		cout << "ansi\t" << lAnsiCharNumber << "\n";
+		cout << "utf8\t" << lUtf8CharNumber << "\n";
+		cout << "Distinct windows-1252 ansi chars\t" << nDistinctWindows1252AnsiCharNumber << "\n";
+		cout << "Distinct windows-1252 utf8 chars\t" << nDistinctWindows1252Utf8CharNumber << "\n";
+		cout << "Collisions\t" << nCollisionNumber << "\n";
+		if (nDistinctWindows1252AnsiCharNumber + nDistinctWindows1252Utf8CharNumber > 0)
+		{
+			cout << "windows-1252 encoding\n";
+			cout << "Index\tAnsi\tUtf8\tAnsi nb\tUtf8 nb\tCollision\n";
+			for (i = 128; i < 256; i++)
+			{
+				if (lvWindows1252AnsiCharNumbers.GetAt(i) > 0 or
+				    lvWindows1252Utf8CharNumbers.GetAt(i) > 0)
+				{
+					cout << i << "\t";
+					cout << svWindows1252UnicodeHexEncoding.GetAt(i) << "\t";
+					cout << svWindows1252Utf8HexEncoding.GetAt(i) << "\t";
+					cout << lvWindows1252AnsiCharNumbers.GetAt(i) << "\t";
+					cout << lvWindows1252Utf8CharNumbers.GetAt(i) << "\t";
+					cout << (lvWindows1252AnsiCharNumbers.GetAt(i) > 0 and
+						 lvWindows1252Utf8CharNumbers.GetAt(i) > 0)
+					     << "\n";
+				}
+			}
+		}
 	}
 }
 
-StringVector JSONFile::svWindows1252UnicodeSequences;
+boolean JSONFile::bVerboseMode = true;

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -7,7 +7,9 @@
 KWClassBuilderView::KWClassBuilderView()
 {
 	KWSTDatabaseTextFileView* sourceDataTableView;
+	ALString sStoredTypesLabel;
 	int i;
+	ALString sTmp;
 
 	// Initialisation
 	nBuildClassNumber = 0;
@@ -24,19 +26,13 @@ KWClassBuilderView::KWClassBuilderView()
 	// Ajout du parametrage de la base d'origine
 	sourceDataTableView = new KWSTDatabaseTextFileView;
 	sourceDataTableView->SetObject(&sourceDataTable);
-	sourceDataTableView->GetFieldAt("DatabaseName")->SetLabel("Data table file");
 	AddCardField("SourceDataTable", "Input data table", sourceDataTableView);
 
 	// Parametrage de la visibilite des specifications de la base d'origine
-	for (i = 0; i < sourceDataTableView->GetFieldNumber(); i++)
-		sourceDataTableView->GetFieldAtIndex(i)->SetVisible(false);
-	sourceDataTableView->GetFieldAt("DatabaseName")->SetVisible(true);
-	sourceDataTableView->GetFieldAt("HeaderLineUsed")->SetVisible(true);
-	sourceDataTableView->GetFieldAt("FieldSeparator")->SetVisible(true);
-	sourceDataTableView->GetFieldAt("DatabaseFormatDetector")->SetVisible(true);
+	sourceDataTableView->ToBasicReadMode();
 
 	// Le detecteur de format est en mode sans utilisation de dictionnaire
-	cast(KWDatabaseFormatDetectorView*, sourceDataTableView->GetFieldAt("DatabaseFormatDetector"))
+	cast(KWDatabaseFormatDetectorView*, sourceDataTableView->GetDataView()->GetFieldAt("DatabaseFormatDetector"))
 	    ->SetUsingClass(false);
 
 	// Ajout de l'action de visualisation des premieres lignes
@@ -48,14 +44,26 @@ KWClassBuilderView::KWClassBuilderView()
 	AddListField("Classes", "Existing dictionaries", classNameList);
 	GetFieldAt("Classes")->SetEditable(false);
 
+	// Liste des types stockes pour les info-bulles
+	for (i = 0; i < KWType::None; i++)
+	{
+		if (KWType::IsStored(i))
+		{
+			if (sStoredTypesLabel != "")
+				sStoredTypesLabel += ", ";
+			sStoredTypesLabel += KWType::ToString(i);
+		}
+	}
+
 	// Info-bulles
-	sourceDataTableView->GetFieldAt("DatabaseName")->SetHelpText("Name of the data table file");
+	sourceDataTableView->GetDataView()->GetFieldAt("DatabaseName")->SetHelpText("Name of the data table file");
 	classNameList->GetFieldAt("Name")->SetHelpText("Name of dictionary.");
 	GetActionAt("BuildClassDef")
-	    ->SetHelpText("Start the analysis of the data table file to build a dictionary."
-			  "\n The first lines of the file are analyzed in order to determine the type of the variables:"
-			  "\n Categorical, Numerical, Date, Time or Timestamp."
-			  "\n After analysis, the user can choose the name of the dictionary.");
+	    ->SetHelpText(
+		sTmp +
+		"Start the analysis of the data table file to build a dictionary."
+		"\n The first lines of the file are analyzed in order to determine the type of the variables:\n " +
+		sStoredTypesLabel + "\n After analysis, the user can choose the name of the dictionary.");
 	GetActionAt("Exit")->SetHelpText("Close the dialog box."
 					 "\n If dictionaries have been built,"
 					 "\n proposes to save them in a dictionary file.");
@@ -130,10 +138,17 @@ void KWClassBuilderView::BuildClass()
 		TaskProgression::SetTitle("Build dictionary fom data table");
 		TaskProgression::Start();
 
+		// Parametrage du driver la base source pour qu'il n'emette pas de warning pour des champs categoriels
+		// trop long Cela permet d'identifier des champs Text via des champs categoriel
+		KWDataTableDriverTextFile::SetOverlengthyFieldsVerboseMode(false);
+
 		// Construction effective de la classe
 		sourceDataTable.SetClassName(sClassName);
 		kwcClass = sourceDataTable.ComputeClass();
 		bOk = (kwcClass != NULL);
+
+		// Restitutuion du parametrage initial du driver
+		KWDataTableDriverTextFile::SetOverlengthyFieldsVerboseMode(true);
 
 		// Fin du suivi de la tache
 		TaskProgression::Stop();
@@ -192,7 +207,7 @@ void KWClassBuilderView::BuildClass()
 			// Test si le nom de classe est valide et different du nom par defaut
 			if (bOk and sClassName != kwcClass->GetName())
 			{
-				assert(KWClass::CheckName(sClassName, NULL));
+				assert(KWClass::CheckName(sClassName, KWClass::Class, NULL));
 				bOk = (KWClassDomain::GetCurrentDomain()->LookupClass(sClassName) == NULL);
 				if (not bOk)
 				{

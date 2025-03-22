@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -12,6 +12,8 @@ void KWDRRegisterMultiTableRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRGetDateValue);
 	KWDerivationRule::RegisterDerivationRule(new KWDRGetTimeValue);
 	KWDerivationRule::RegisterDerivationRule(new KWDRGetTimestampValue);
+	KWDerivationRule::RegisterDerivationRule(new KWDRGetTimestampTZValue);
+	KWDerivationRule::RegisterDerivationRule(new KWDRGetTextValue);
 	KWDerivationRule::RegisterDerivationRule(new KWDRGetObjectValue);
 	KWDerivationRule::RegisterDerivationRule(new KWDRGetObjectArrayValue);
 	KWDerivationRule::RegisterDerivationRule(new KWDRTableAt);
@@ -326,6 +328,100 @@ Timestamp KWDRGetTimestampValue::ComputeTimestampResult(const KWObject* kwoObjec
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
+// Classe KWDRGetTimestampTZValue
+
+KWDRGetTimestampTZValue::KWDRGetTimestampTZValue()
+{
+	SetName("GetValueTSTZ");
+	SetLabel("TimestampTZ value in a sub-entity");
+	SetType(KWType::TimestampTZ);
+	SetMultipleScope(true);
+	SetOperandNumber(2);
+	GetFirstOperand()->SetType(KWType::Object);
+	GetSecondOperand()->SetType(KWType::TimestampTZ);
+}
+
+KWDRGetTimestampTZValue::~KWDRGetTimestampTZValue() {}
+
+KWDerivationRule* KWDRGetTimestampTZValue::Create() const
+{
+	return new KWDRGetTimestampTZValue;
+}
+
+TimestampTZ KWDRGetTimestampTZValue::ComputeTimestampTZResult(const KWObject* kwoObject) const
+{
+	KWDerivationRuleOperand* valueOperand;
+	KWObject* kwoContainedObject;
+	TimestampTZ tstzResult;
+
+	require(IsCompiled());
+
+	// Evaluation des operandes secondaires de scope principal
+	EvaluateMainScopeSecondaryOperands(kwoObject);
+
+	// Recherche de la valeur TimestampTZ dans le sous-objet
+	kwoContainedObject = GetFirstOperand()->GetObjectValue(kwoObject);
+	if (kwoContainedObject == NULL)
+	{
+		tstzResult.Reset();
+	}
+	else
+	{
+		valueOperand = GetSecondOperand();
+		tstzResult = valueOperand->GetTimestampTZValue(kwoContainedObject);
+	}
+
+	// Nettoyage des operandes secondaires de scope principal
+	CleanMainScopeSecondaryOperands();
+	return tstzResult;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Classe KWDRGetTextValue
+
+KWDRGetTextValue::KWDRGetTextValue()
+{
+	SetName("GetText");
+	SetLabel("Text value in a sub-entity");
+	SetType(KWType::Text);
+	SetMultipleScope(true);
+	SetOperandNumber(2);
+	GetFirstOperand()->SetType(KWType::Object);
+	GetSecondOperand()->SetType(KWType::Text);
+}
+
+KWDRGetTextValue::~KWDRGetTextValue() {}
+
+KWDerivationRule* KWDRGetTextValue::Create() const
+{
+	return new KWDRGetTextValue;
+}
+
+Symbol KWDRGetTextValue::ComputeTextResult(const KWObject* kwoObject) const
+{
+	KWDerivationRuleOperand* valueOperand;
+	KWObject* kwoContainedObject;
+	Symbol sResult;
+
+	require(IsCompiled());
+
+	// Evaluation des operandes secondaires de scope principal
+	EvaluateMainScopeSecondaryOperands(kwoObject);
+
+	// Recherche de la valeur Symbol dans le sous-objet
+	kwoContainedObject = GetFirstOperand()->GetObjectValue(kwoObject);
+	if (kwoContainedObject != NULL)
+	{
+		valueOperand = GetSecondOperand();
+		sResult = valueOperand->GetTextValue(kwoContainedObject);
+	}
+
+	// Nettoyage des operandes secondaires de scope principal
+	CleanMainScopeSecondaryOperands();
+	return sResult;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDRGetContinuousValueBlock
 
 KWDRGetContinuousValueBlock::KWDRGetContinuousValueBlock()
@@ -452,7 +548,7 @@ KWDRGetSymbolValueBlock::ComputeSymbolValueBlockResult(const KWObject* kwoObject
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRObjectRule
 
-boolean KWDRObjectRule::CheckCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRObjectRule::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	KWDerivationRuleOperand* valueOperand;
@@ -460,7 +556,7 @@ boolean KWDRObjectRule::CheckCompletness(const KWClass* kwcOwnerClass) const
 	require(kwcOwnerClass != NULL);
 
 	// Methode ancetre
-	bOk = KWDerivationRule::CheckCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckCompleteness(kwcOwnerClass);
 
 	// On verifie en plus la coherence avec le type de l'attribut retourne
 	if (bOk and GetOperandNumber() >= 1)
@@ -515,11 +611,11 @@ boolean KWDRObjectArrayRule::CheckObjectArray(const ObjectArray* oaObjects) cons
 			return false;
 
 		// Erreur si doublon
-		if (nkdObjects.Lookup((NUMERIC)kwoObject) != NULL)
+		if (nkdObjects.Lookup(kwoObject) != NULL)
 			return false;
 		// Sinon, insertion dans un dictionnaire
 		else
-			nkdObjects.SetAt((NUMERIC)kwoObject, kwoObject);
+			nkdObjects.SetAt(kwoObject, kwoObject);
 	}
 	return true;
 }
@@ -527,7 +623,7 @@ boolean KWDRObjectArrayRule::CheckObjectArray(const ObjectArray* oaObjects) cons
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRObjectSetRule
 
-boolean KWDRObjectSetRule::CheckCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRObjectSetRule::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	KWDerivationRuleOperand* valueOperandRef;
@@ -537,7 +633,7 @@ boolean KWDRObjectSetRule::CheckCompletness(const KWClass* kwcOwnerClass) const
 	require(kwcOwnerClass != NULL);
 
 	// Methode ancetre
-	bOk = KWDerivationRule::CheckCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckCompleteness(kwcOwnerClass);
 
 	// On verifie en plus la coherence avec le type de l'attribut retourne
 	if (bOk and GetOperandNumber() >= 1)
@@ -599,7 +695,7 @@ int KWSortableObjectCompareKeyIndex(const void* elem1, const void* elem2)
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRSubObjectRule
 
-boolean KWDRSubObjectRule::CheckCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRSubObjectRule::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	KWDerivationRuleOperand* valueOperand;
@@ -607,7 +703,7 @@ boolean KWDRSubObjectRule::CheckCompletness(const KWClass* kwcOwnerClass) const
 	require(kwcOwnerClass != NULL);
 
 	// Methode ancetre
-	bOk = KWDerivationRule::CheckCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckCompleteness(kwcOwnerClass);
 
 	// On verifie en plus la coherence avec le type de l'attribut retourne
 	if (bOk and GetOperandNumber() >= 2)
@@ -849,7 +945,7 @@ KWObject* KWDRTableAtKey::ComputeObjectResult(const KWObject* kwoObject) const
 	return NULL;
 }
 
-boolean KWDRTableAtKey::CheckCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRTableAtKey::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	KWDerivationRuleOperand* tableOperand;
@@ -860,7 +956,7 @@ boolean KWDRTableAtKey::CheckCompletness(const KWClass* kwcOwnerClass) const
 	require(kwcOwnerClass != NULL);
 
 	// Methode ancetre
-	bOk = KWDRObjectRule::CheckCompletness(kwcOwnerClass);
+	bOk = KWDRObjectRule::CheckCompleteness(kwcOwnerClass);
 
 	// Test du nombre d'operande de la cle
 	if (bOk)
@@ -1024,13 +1120,13 @@ ObjectArray* KWDRTableUnion::ComputeObjectArrayResult(const KWObject* kwoObject)
 					kwoContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
 
 					// Prise en compte sauf si doublon
-					if (nkdAllObjects.Lookup((NUMERIC)kwoContainedObject) == NULL)
+					if (nkdAllObjects.Lookup(kwoContainedObject) == NULL)
 					{
 						// Ajout dans le tableau resultat
 						oaResult.Add(kwoContainedObject);
 
 						// Memorisation dans le dictionnaire assurant l'unicite des elements
-						nkdAllObjects.SetAt((NUMERIC)kwoContainedObject, kwoContainedObject);
+						nkdAllObjects.SetAt(kwoContainedObject, kwoContainedObject);
 					}
 				}
 			}
@@ -1107,7 +1203,7 @@ ObjectArray* KWDRTableIntersection::ComputeObjectArrayResult(const KWObject* kwo
 			for (nObject = 0; nObject < oaObjectArrayOperand->GetSize(); nObject++)
 			{
 				kwoContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
-				nkdReferenceObjects->SetAt((NUMERIC)kwoContainedObject, kwoContainedObject);
+				nkdReferenceObjects->SetAt(kwoContainedObject, kwoContainedObject);
 			}
 		}
 
@@ -1132,9 +1228,8 @@ ObjectArray* KWDRTableIntersection::ComputeObjectArrayResult(const KWObject* kwo
 					kwoContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
 
 					// Prise en compte si existant dans le dictionnaire de reference
-					if (nkdReferenceObjects->Lookup((NUMERIC)kwoContainedObject) != NULL)
-						nkdSelectedObjects->SetAt((NUMERIC)kwoContainedObject,
-									  kwoContainedObject);
+					if (nkdReferenceObjects->Lookup(kwoContainedObject) != NULL)
+						nkdSelectedObjects->SetAt(kwoContainedObject, kwoContainedObject);
 				}
 
 				// On change de dictionnaire de reference
@@ -1157,7 +1252,7 @@ ObjectArray* KWDRTableIntersection::ComputeObjectArrayResult(const KWObject* kwo
 			for (nObject = 0; nObject < oaObjectArrayOperand->GetSize(); nObject++)
 			{
 				kwoContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
-				if (nkdReferenceObjects->Lookup((NUMERIC)kwoContainedObject) != NULL)
+				if (nkdReferenceObjects->Lookup(kwoContainedObject) != NULL)
 					oaResult.Add(kwoContainedObject);
 			}
 		}
@@ -1212,13 +1307,13 @@ ObjectArray* KWDRTableDifference::ComputeObjectArrayResult(const KWObject* kwoOb
 		for (nObject = 0; nObject < oaObjectArrayOperand1->GetSize(); nObject++)
 		{
 			kwoContainedObject = cast(KWObject*, oaObjectArrayOperand1->GetAt(nObject));
-			nkdObjects1.SetAt((NUMERIC)kwoContainedObject, kwoContainedObject);
+			nkdObjects1.SetAt(kwoContainedObject, kwoContainedObject);
 		}
 		for (nObject = 0; nObject < oaObjectArrayOperand2->GetSize(); nObject++)
 		{
 			kwoContainedObject = cast(KWObject*, oaObjectArrayOperand2->GetAt(nObject));
-			if (nkdObjects1.Lookup((NUMERIC)kwoContainedObject) != NULL)
-				nkdIntersectionObjects.SetAt((NUMERIC)kwoContainedObject, kwoContainedObject);
+			if (nkdObjects1.Lookup(kwoContainedObject) != NULL)
+				nkdIntersectionObjects.SetAt(kwoContainedObject, kwoContainedObject);
 		}
 		nkdObjects1.RemoveAll();
 
@@ -1226,13 +1321,13 @@ ObjectArray* KWDRTableDifference::ComputeObjectArrayResult(const KWObject* kwoOb
 		for (nObject = 0; nObject < oaObjectArrayOperand1->GetSize(); nObject++)
 		{
 			kwoContainedObject = cast(KWObject*, oaObjectArrayOperand1->GetAt(nObject));
-			if (nkdIntersectionObjects.Lookup((NUMERIC)kwoContainedObject) == NULL)
+			if (nkdIntersectionObjects.Lookup(kwoContainedObject) == NULL)
 				oaResult.Add(kwoContainedObject);
 		}
 		for (nObject = 0; nObject < oaObjectArrayOperand2->GetSize(); nObject++)
 		{
 			kwoContainedObject = cast(KWObject*, oaObjectArrayOperand2->GetAt(nObject));
-			if (nkdIntersectionObjects.Lookup((NUMERIC)kwoContainedObject) == NULL)
+			if (nkdIntersectionObjects.Lookup(kwoContainedObject) == NULL)
 				oaResult.Add(kwoContainedObject);
 		}
 	}
@@ -1319,15 +1414,14 @@ ObjectArray* KWDRTableSubUnion::ComputeObjectArrayResult(const KWObject* kwoObje
 							    cast(KWObject*, oaObjectArrayOperand->GetAt(nSubObject));
 
 							// Prise en compte sauf si doublon
-							if (nkdAllObjects.Lookup((NUMERIC)kwoContainedSubObject) ==
-							    NULL)
+							if (nkdAllObjects.Lookup(kwoContainedSubObject) == NULL)
 							{
 								// Ajout dans le tableau resultat
 								oaResult.Add(kwoContainedSubObject);
 
 								// Memorisation dans le dictionnaire assurant l'unicite
 								// des elements
-								nkdAllObjects.SetAt((NUMERIC)kwoContainedSubObject,
+								nkdAllObjects.SetAt(kwoContainedSubObject,
 										    kwoContainedSubObject);
 							}
 						}
@@ -1421,7 +1515,7 @@ ObjectArray* KWDRTableSubIntersection::ComputeObjectArrayResult(const KWObject* 
 					{
 						kwoContainedSubObject =
 						    cast(KWObject*, oaObjectArrayOperand->GetAt(nSubObject));
-						nkdReferenceSubObjects->SetAt((NUMERIC)kwoContainedSubObject,
+						nkdReferenceSubObjects->SetAt(kwoContainedSubObject,
 									      kwoContainedSubObject);
 					}
 				}
@@ -1452,11 +1546,10 @@ ObjectArray* KWDRTableSubIntersection::ComputeObjectArrayResult(const KWObject* 
 							    cast(KWObject*, oaObjectArrayOperand->GetAt(nSubObject));
 
 							// Prise en compte si existant dans le dictionnaire de reference
-							if (nkdReferenceSubObjects->Lookup(
-								(NUMERIC)kwoContainedSubObject) != NULL)
-								nkdSelectedSubObjects->SetAt(
-								    (NUMERIC)kwoContainedSubObject,
-								    kwoContainedSubObject);
+							if (nkdReferenceSubObjects->Lookup(kwoContainedSubObject) !=
+							    NULL)
+								nkdSelectedSubObjects->SetAt(kwoContainedSubObject,
+											     kwoContainedSubObject);
 						}
 					}
 
@@ -1484,7 +1577,7 @@ ObjectArray* KWDRTableSubIntersection::ComputeObjectArrayResult(const KWObject* 
 				{
 					kwoContainedSubObject =
 					    cast(KWObject*, oaObjectArrayOperand->GetAt(nSubObject));
-					if (nkdReferenceSubObjects->Lookup((NUMERIC)kwoContainedSubObject) != NULL)
+					if (nkdReferenceSubObjects->Lookup(kwoContainedSubObject) != NULL)
 						oaResult.Add(kwoContainedSubObject);
 				}
 			}
@@ -1537,10 +1630,10 @@ ObjectArray* KWDREntitySet::ComputeObjectArrayResult(const KWObject* kwoObject) 
 		if (kwoObjectOperand != NULL)
 		{
 			// Prise en compte sauf si doublon
-			if (nkdAllObjects.Lookup((NUMERIC)kwoObjectOperand) == NULL)
+			if (nkdAllObjects.Lookup(kwoObjectOperand) == NULL)
 			{
 				// Memorisation dans le dictionnaire assurant l'unicite des elements
-				nkdAllObjects.SetAt((NUMERIC)kwoObjectOperand, kwoObjectOperand);
+				nkdAllObjects.SetAt(kwoObjectOperand, kwoObjectOperand);
 
 				// Ajout dans le tableau resultat
 				oaResult.Add(kwoObjectOperand);
@@ -1755,6 +1848,13 @@ int KWDRTableSortCompareObjects(const void* elem1, const void* elem2)
 		case KWType::Timestamp:
 			nDiff =
 			    sortOperand->GetTimestampValue(object1).Compare(sortOperand->GetTimestampValue(object2));
+			break;
+		case KWType::TimestampTZ:
+			nDiff = sortOperand->GetTimestampTZValue(object1).Compare(
+			    sortOperand->GetTimestampTZValue(object2));
+			break;
+		case KWType::Text:
+			nDiff = sortOperand->GetTextValue(object1).CompareValue(sortOperand->GetTextValue(object2));
 			break;
 		default:
 			nDiff = 0;
@@ -1985,7 +2085,7 @@ Continuous KWDRTableCount::ComputeContinuousResult(const KWObject* kwoObject) co
 
 	require(IsCompiled());
 
-	// Calcul du nombre d'instance verifiant la selection
+	// Calcul du nombre d'instances verifiant la selection
 	oaObjects = GetFirstOperand()->GetObjectArrayValue(kwoObject);
 	if (oaObjects == NULL)
 		return 0;

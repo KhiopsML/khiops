@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -7,6 +7,7 @@
 
 #include "FileService.h"
 #include "MemoryStatsManager.h"
+#include "Utils.h"
 
 ///////////////////////////////////////////////////////////////////////////
 // Classe SystemFileDriverLibrary
@@ -27,15 +28,17 @@ public:
 	boolean Connect() override;
 	boolean Disconnect() override;
 	boolean IsConnected() const override;
-	boolean Exist(const char* sFilePathName) const override;
+	longint GetSystemPreferredBufferSize() const override;
+	boolean FileExists(const char* sFilePathName) const override;
+	boolean DirExists(const char* sFilePathName) const override;
 	longint GetFileSize(const char* sFilePathName) const override;
 	void* Open(const char* sFilePathName, char cMode) override;
 	boolean Close(void* stream) override;
-	longint fread(void* ptr, size_t size, size_t count, void* stream) override;
+	longint Fread(void* ptr, size_t size, size_t count, void* stream) override;
 	boolean SeekPositionInFile(longint lPosition, void* stream) override;
 	const char* GetLastErrorMessage() const override;
-	longint fwrite(const void* ptr, size_t size, size_t count, void* stream) override;
-	boolean flush(void* stream) override;
+	longint Fwrite(const void* ptr, size_t size, size_t count, void* stream) override;
+	boolean Flush(void* stream) override;
 	boolean RemoveFile(const char* sFilePathName) const override;
 	boolean MakeDirectory(const char* sPathName) const override;
 	boolean RemoveDirectory(const char* sFilePathName) const override;
@@ -44,9 +47,13 @@ public:
 	boolean CopyFileToLocal(const char* sSourceFilePathName, const char* sDestFilePathName) override;
 
 	// De/chargement de la bibliotheque dynamique
-	boolean LoadLibrary(const ALString& sLibraryName);
+	boolean LoadLibrary(const ALString& sLibraryFilePathName);
 	void UnloadLibrary();
 	boolean IsLibraryLoaded() const;
+
+	// Libelles utilisateurs
+	const ALString GetClassLabel() const override;
+	const ALString GetObjectLabel() const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -72,7 +79,9 @@ protected:
 	int (*ptr_driver_connect)();
 	int (*ptr_driver_disconnect)();
 	int (*ptr_driver_isConnected)();
-	int (*ptr_driver_exist)(const char* filename);
+	long long int (*ptr_driver_getSystemPreferredBufferSize)();
+	int (*ptr_driver_fileExists)(const char* filename);
+	int (*ptr_driver_dirExists)(const char* filename);
 	long long int (*ptr_driver_getFileSize)(const char* filename);
 	void* (*ptr_driver_fopen)(const char* filename, char mode);
 	int (*ptr_driver_fclose)(void* stream);

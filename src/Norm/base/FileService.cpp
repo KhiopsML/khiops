@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -10,69 +10,53 @@ boolean FileService::bIOStats = false;
 ////////////////////////////////////////////
 // Implementation de la classe FileService
 
-boolean FileService::Exist(const ALString& sPathName)
+boolean FileService::FileExists(const ALString& sPathName)
 {
-	boolean bOk;
+	boolean bIsFile = false;
 
 	p_SetMachineLocale();
-// Pour UNIX ou wgpp
-#if defined __UNIX__ or defined __WGPP__
-	bOk = access(sPathName, 00) != -1;
-	// Pour Visual C++ 2005, 2008
-#elif _MSC_VER >= 1400
-	bOk = _access(sPathName, 0) != -1; // 00=existence only
-	// Pour Visual C++ 2003
-#else
-	bOk = access(sPathName, _IOREAD) != -1;
-#endif
-	p_SetApplicationLocale();
-	return bOk;
-}
-
-boolean FileService::IsFile(const ALString& sPathName)
-{
-	boolean bIsFile;
-
-	p_SetMachineLocale();
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#ifdef _WIN32
 	struct __stat64 fileStat;
-	int nError = _stat64(sPathName, &fileStat);
-	if (nError != 0)
-		bIsFile = false;
-	else
+	if (_stat64(sPathName, &fileStat) == 0)
 		bIsFile = ((fileStat.st_mode & S_IFMT) == S_IFREG);
 #else
 	struct stat s;
-	int nError = stat(sPathName, &s);
-	if (nError != 0)
-		bIsFile = false;
-	else
+	if (stat(sPathName, &s) == 0)
 		bIsFile = ((s.st_mode & S_IFMT) == S_IFREG);
-
-#endif
+#endif // _WIN32
 	p_SetApplicationLocale();
+
 	return bIsFile;
 }
 
-boolean FileService::IsDirectory(const ALString& sPathName)
+boolean FileService::DirExists(const ALString& sPathName)
 {
-	boolean bIsDirectory;
+	boolean bIsDirectory = false;
 
 	p_SetMachineLocale();
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
-	// On passe par Exist(), car sous Windows, la racine ("C:") existe mais n'est
-	// consideree par l'API _stat64 ni comme une fichier ni comme un repertoire
-	bIsDirectory = Exist(sPathName);
-	if (bIsDirectory)
-		bIsDirectory = not IsFile(sPathName);
-#else
+#ifdef _WIN32
+	boolean bExist;
+
+	bExist = _access(sPathName, 0) != -1;
+	if (bExist)
+	{
+		// On test si ca n'est pas un fichier, car sous Windows, la racine ("C:") existe mais n'est
+		// consideree par l'API _stat64 ni comme une fichier ni comme un repertoire
+		boolean bIsFile = false;
+		struct __stat64 fileStat;
+		if (_stat64(sPathName, &fileStat) == 0)
+			bIsFile = ((fileStat.st_mode & S_IFMT) == S_IFREG);
+		bIsDirectory = not bIsFile;
+	}
+#else // _WIN32
+
 	struct stat s;
-	int nError = stat(sPathName, &s);
-	if (nError != 0)
-		return false;
-	bIsDirectory = ((s.st_mode & S_IFMT) == S_IFDIR);
-#endif
+	if (stat(sPathName, &s) == 0)
+		bIsDirectory = ((s.st_mode & S_IFMT) == S_IFDIR);
+
+#endif // _WIN32
 	p_SetApplicationLocale();
+
 	return bIsDirectory;
 }
 
@@ -81,8 +65,13 @@ boolean FileService::SetFileMode(const ALString& sFilePathName, boolean bReadOnl
 	boolean bOk;
 
 	p_SetMachineLocale();
-	// Pour UNIX ou wgpp
-#if defined __UNIX__ or defined __WGPP__
+
+#ifdef _WIN32
+	if (bReadOnly)
+		bOk = _chmod(sFilePathName, _S_IREAD) == 0;
+	else
+		bOk = _chmod(sFilePathName, _S_IREAD | _S_IWRITE) == 0;
+#else
 	if (bReadOnly)
 		// Lecture par owner  S_IRUSR, groupe S_IRGRP
 		bOk = chmod(sFilePathName, S_IRUSR | S_IRGRP) == 0;
@@ -90,11 +79,6 @@ boolean FileService::SetFileMode(const ALString& sFilePathName, boolean bReadOnl
 		// idem + ecriture owner S_IWUSR
 		bOk = chmod(sFilePathName, S_IRUSR | S_IRGRP | S_IWUSR) == 0;
 		// Pour Visual C++
-#else
-	if (bReadOnly)
-		bOk = _chmod(sFilePathName, _S_IREAD) == 0;
-	else
-		bOk = _chmod(sFilePathName, _S_IREAD | _S_IWRITE) == 0;
 #endif
 	p_SetApplicationLocale();
 	return bOk;
@@ -103,25 +87,27 @@ boolean FileService::SetFileMode(const ALString& sFilePathName, boolean bReadOnl
 longint FileService::GetFileSize(const ALString& sFilePathName)
 {
 	longint lFileSize;
+	int nError;
 
 	p_SetMachineLocale();
+
 	// Pour les fichiers de plus de 4 Go, il existe une API speciale (stat64...)
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#ifdef _WIN32
 	struct __stat64 fileStat;
-	int nError = _stat64(sFilePathName, &fileStat);
-	if (nError != 0)
-		lFileSize = 0;
-	else
-		lFileSize = fileStat.st_size;
+	nError = _stat64(sFilePathName, &fileStat);
+#elif defined(__APPLE__)
+	struct stat fileStat;
+	nError = stat(sFilePathName, &fileStat);
 #else
 	struct stat64 fileStat;
-	int nError = stat64(sFilePathName, &fileStat);
+	nError = stat64(sFilePathName, &fileStat);
+#endif
+
+	p_SetApplicationLocale();
 	if (nError != 0)
 		lFileSize = 0;
 	else
 		lFileSize = fileStat.st_size;
-#endif
-	p_SetApplicationLocale();
 	return lFileSize;
 }
 
@@ -401,11 +387,11 @@ boolean FileService::ReserveExtraSize(FILE* fFile, longint lSize)
 
 const ALString& FileService::GetEOL()
 {
-#ifndef __UNIX__
-	static const ALString sEOL = "\r";
-#else  // __UNIX__
+#ifdef _WIN32
 	static const ALString sEOL = "\r\n";
-#endif // __UNIX__
+#else
+	static const ALString sEOL = "\n";
+#endif
 	return sEOL;
 }
 
@@ -468,10 +454,70 @@ const ALString FileService::GetLastSystemIOErrorMessage()
 	return sMessage;
 }
 
+boolean FileService::GetDirectoryContentExtended(const ALString& sPathName, StringVector* svDirectoryNames,
+						 StringVector* svFileNames)
+{
+#ifdef _WIN32
+	return GetDirectoryContent(sPathName, svDirectoryNames, svFileNames);
+#else
+	boolean bOk = true;
+	DIR* dir;
+	struct dirent* ent;
+	int nRet;
+
+	require(svDirectoryNames != NULL);
+	require(svDirectoryNames->GetSize() == 0);
+	require(svFileNames != NULL);
+	require(svFileNames->GetSize() == 0);
+
+	p_SetMachineLocale();
+	if ((dir = opendir(sPathName)) != NULL)
+	{
+		/* print all the files and directories within directory */
+		while ((ent = readdir(dir)) != NULL)
+		{
+			// On traite tous les fichiers, sauf les fichiers predefinis "." et ".."
+			if (strcmp(ent->d_name, ".") != 0 and strcmp(ent->d_name, "..") != 0)
+			{
+				if (ent->d_type == DT_DIR)
+					svDirectoryNames->Add(ent->d_name);
+				if (ent->d_type == DT_REG)
+					svFileNames->Add(ent->d_name);
+				if (ent->d_type == DT_LNK)
+				{
+					struct stat sb;
+
+					nRet = stat(BuildFilePathName(sPathName, ent->d_name), &sb);
+					if (nRet != -1)
+					{
+						switch (sb.st_mode & S_IFMT)
+						{
+						case S_IFDIR:
+							svDirectoryNames->Add(ent->d_name);
+							break;
+						case S_IFREG:
+							svFileNames->Add(ent->d_name);
+							break;
+						default:
+							break;
+						}
+					}
+				}
+			}
+		}
+		closedir(dir);
+	}
+	else
+		bOk = false;
+	p_SetApplicationLocale();
+	return bOk;
+#endif
+}
+
 boolean FileService::GetDirectoryContent(const ALString& sPathName, StringVector* svDirectoryNames,
 					 StringVector* svFileNames)
 {
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#ifdef _WIN32
 	boolean bOk = true;
 	void* hFind = NULL;
 	void* pFileData;
@@ -507,7 +553,8 @@ boolean FileService::GetDirectoryContent(const ALString& sPathName, StringVector
 	}
 
 	// Nettoyage
-	p_FindClose(hFind);
+	if (hFind != NULL)
+		p_FindClose(hFind);
 	p_DeleteFileData(pFileData);
 	p_SetApplicationLocale();
 	return bOk;
@@ -547,18 +594,16 @@ boolean FileService::GetDirectoryContent(const ALString& sPathName, StringVector
 
 boolean FileService::MakeDirectory(const ALString& sPathName)
 {
-	// Pour UNIX ou wgpp
-#if defined __UNIX__ // MinGW make use of__MSVCRT_VERSION__
-	int nError;
-	p_SetMachineLocale();
-	nError = mkdir(sPathName, S_IRWXU);
-	p_SetApplicationLocale();
-	return nError == 0;
-	// Pour Visual C++
-#else
+#ifdef _WIN32
 	int nError;
 	p_SetMachineLocale();
 	nError = _mkdir(sPathName);
+	p_SetApplicationLocale();
+	return nError == 0;
+#else
+	int nError;
+	p_SetMachineLocale();
+	nError = mkdir(sPathName, S_IRWXU);
 	p_SetApplicationLocale();
 	return nError == 0;
 #endif
@@ -581,30 +626,28 @@ boolean FileService::MakeDirectories(const ALString& sPathName)
 		nEnd++;
 
 		// Creation du directory
-		if (sDirectory != "" and not IsDirectory(sDirectory))
+		if (sDirectory != "" and not DirExists(sDirectory))
 		{
 			bOk = MakeDirectory(sDirectory);
 			if (not bOk)
 				return false;
 		}
 	}
-	return IsDirectory(sPathName);
+	return DirExists(sPathName);
 }
 
 boolean FileService::RemoveDirectory(const ALString& sPathName)
 {
-	// Pour UNIX ou wgpp
-#if defined __UNIX__ or defined __WGPP__
-	int nError;
-	p_SetMachineLocale();
-	nError = rmdir(sPathName);
-	p_SetApplicationLocale();
-	return nError == 0;
-	// Pour Visual C++
-#else
+#ifdef _WIN32
 	int nError;
 	p_SetMachineLocale();
 	nError = _rmdir(sPathName);
+	p_SetApplicationLocale();
+	return nError == 0;
+#else
+	int nError;
+	p_SetMachineLocale();
+	nError = rmdir(sPathName);
 	p_SetApplicationLocale();
 	return nError == 0;
 #endif
@@ -614,20 +657,20 @@ boolean FileService::RemoveDirectory(const ALString& sPathName)
 
 char FileService::GetFileSeparator()
 {
-#ifndef __UNIX__
+#ifdef _WIN32
 	return '\\';
 #else
 	return '/';
-#endif // UNIX
+#endif
 }
 
 boolean FileService::IsFileSeparator(char c)
 {
-#ifndef __UNIX__
+#ifdef _WIN32
 	return c == GetFileSeparator() or c == '/';
 #else
 	return c == GetFileSeparator();
-#endif // UNIX
+#endif
 }
 
 boolean FileService::IsPathInFilePath(const ALString& sFilePathName)
@@ -653,6 +696,14 @@ const ALString FileService::GetPathName(const ALString& sFilePathName)
 	ALString sPathName;
 	int nPos;
 	int nSeparatorPos;
+	ALString sScheme;
+	char cFileSeparator;
+
+	// Attention au cas specifique des URI
+	sScheme = GetURIScheme(sFilePathName);
+	cFileSeparator = GetFileSeparator();
+	if (sScheme != "")
+		cFileSeparator = GetURIFileSeparator();
 
 	// Recherche du dernier caractere separateur de chemin
 	nSeparatorPos = -1;
@@ -662,7 +713,7 @@ const ALString FileService::GetPathName(const ALString& sFilePathName)
 		{
 			nSeparatorPos = nPos;
 
-			// On supprime les eventuel separator immediatement avant
+			// On supprime les eventuels separators immediatement avant
 			while (nSeparatorPos > 0 and IsFileSeparator(sFilePathName[nSeparatorPos - 1]))
 				nSeparatorPos--;
 			break;
@@ -671,7 +722,11 @@ const ALString FileService::GetPathName(const ALString& sFilePathName)
 
 	// On retourne la partie chemin suivi du separateur (sinon, vide)
 	if (nSeparatorPos >= 0)
-		sPathName = sFilePathName.Left(nSeparatorPos) + GetFileSeparator();
+		sPathName = sFilePathName.Left(nSeparatorPos) + cFileSeparator;
+
+	// Dans le cas d'une URI, on ajoute 2 '/' pour en avoir 3
+	if (sScheme != "" and sPathName.GetLength() < sScheme.GetLength() + 3)
+		sPathName = sPathName + cFileSeparator + cFileSeparator;
 	return sPathName;
 }
 
@@ -763,7 +818,12 @@ const ALString FileService::SetFileSuffix(const ALString& sFilePathName, const A
 const ALString FileService::BuildFileName(const ALString& sFilePrefix, const ALString& sFileSuffix)
 {
 	if (sFilePrefix == "")
-		return sFileSuffix;
+	{
+		if (sFileSuffix == "")
+			return "";
+		else
+			return '.' + sFileSuffix;
+	}
 	else if (sFileSuffix == "")
 		return sFilePrefix;
 	else
@@ -772,8 +832,15 @@ const ALString FileService::BuildFileName(const ALString& sFilePrefix, const ALS
 
 const ALString FileService::BuildFilePathName(const ALString& sPathName, const ALString& sFileName)
 {
+	ALString sNormalizedPathName;
 	int nSeparatorPos;
 	int nPos;
+	ALString sScheme;
+	char cFileSeparator;
+	ALString sPathOfFileName;
+	boolean bIsStartingCurrentPath;
+
+	require(not IsAbsoluteFilePathName(sFileName));
 
 	if (sPathName == "")
 		return sFileName;
@@ -781,24 +848,56 @@ const ALString FileService::BuildFilePathName(const ALString& sPathName, const A
 		return sPathName;
 	else
 	{
+		// Normalisation de la forme du path name avec separateur potentiel en fin
+		sNormalizedPathName = GetPathName(sPathName + GetFileSeparator());
+
+		// Attention au cas specifique des URI
+		sScheme = GetURIScheme(sNormalizedPathName);
+		cFileSeparator = GetFileSeparator();
+		if (sScheme != "")
+			cFileSeparator = GetURIFileSeparator();
+
 		// Tolerance pour les chemin se terminant par un separateur
-		assert(sPathName.GetLength() > 0);
+		assert(sNormalizedPathName.GetLength() > 0);
 		nSeparatorPos = -1;
-		nPos = sPathName.GetLength() - 1;
-		if (IsFileSeparator(sPathName.GetAt(nPos)))
+		nPos = sNormalizedPathName.GetLength() - 1;
+		if (IsFileSeparator(sNormalizedPathName.GetAt(nPos)))
 		{
 			nSeparatorPos = nPos;
 
-			// On supprime les eventuel separator immediatement avant
-			while (nSeparatorPos > 0 and IsFileSeparator(sPathName[nSeparatorPos - 1]))
-				nSeparatorPos--;
+			// On supprime les eventuels separateurs immediatement avant
+			if (sScheme == "")
+			{
+				// cas d'un fichier standard
+				while (nSeparatorPos > 0 and IsFileSeparator(sNormalizedPathName[nSeparatorPos - 1]))
+					nSeparatorPos--;
+			}
+			else
+			{
+				// Cas d'une URI ou on ne supprime pas les separateurs avant scheme:///
+				while (nSeparatorPos > sScheme.GetLength() + 3 and
+				       IsFileSeparator(sNormalizedPathName[nSeparatorPos - 1]))
+					nSeparatorPos--;
+			}
 
-			// On renvoie le nom complet, en ayant supprime les doublons de separateur
-			// et en ayant utilise le sepetauer du systeme en cours
-			return sPathName.Left(nSeparatorPos) + GetFileSeparator() + sFileName;
+			// On supprime les doublons de separateur
+			sNormalizedPathName = sNormalizedPathName.Left(nSeparatorPos);
 		}
+
+		// caracteristique du path du fichier
+		sPathOfFileName = GetPathName(sFileName);
+		bIsStartingCurrentPath =
+		    sFileName == "." or
+		    (sFileName.GetLength() >= 2 and sFileName.GetAt(0) == '.' and IsFileSeparator(sFileName.GetAt(1)));
+
+		// Construction du chemin complet, en traitant le cas particulier du repertoire courant suivi
+		// d'un fichier lui meme avec un path de type courant
+		if (sNormalizedPathName == "." and sPathOfFileName != "" and sPathOfFileName.GetAt(0) == '.')
+			return sFileName;
+		else if (sNormalizedPathName.GetLength() > 1 and bIsStartingCurrentPath)
+			return sNormalizedPathName + sFileName.Right(sFileName.GetLength() - 1);
 		else
-			return sPathName + GetFileSeparator() + sFileName;
+			return sNormalizedPathName + cFileSeparator + sFileName;
 	}
 }
 
@@ -813,7 +912,7 @@ boolean FileService::IsAbsoluteFilePathName(const ALString& sURIFilePathName)
 	// Ici, on se contente d'une regle simplifiee
 	//   - sous unix: nom du chemin commencant par '/'
 	//   - sous windows: nom du chemin [drive letter:]\ ou \\[server name]\[volume]
-#ifndef __UNIX__
+#ifdef _WIN32
 	// Test si on commence par "\\"
 	bIsAbsolutePath =
 	    sFilePathName.GetLength() > 1 and (sFilePathName.GetAt(0) == '\\' and sFilePathName.GetAt(1) == '\\');
@@ -829,7 +928,7 @@ boolean FileService::IsAbsoluteFilePathName(const ALString& sURIFilePathName)
 	}
 #else
 	bIsAbsolutePath = sFilePathName.GetLength() > 0 and sFilePathName.GetAt(0) == '/';
-#endif // UNIX
+#endif
 	return bIsAbsolutePath;
 }
 
@@ -837,7 +936,7 @@ boolean FileService::IsAbsoluteFilePathName(const ALString& sURIFilePathName)
 
 char FileService::GetPathSeparator()
 {
-#ifndef __UNIX__
+#ifdef _WIN32
 	return ';';
 #else
 	return ':';
@@ -867,7 +966,7 @@ const ALString FileService::GetFilePath(const ALString& sFileName, const ALStrin
 	int nEnd;
 
 	// Test d'existance dans le directory courant
-	if (IsFile(sFileName))
+	if (FileExists(sFileName))
 		return sFileName;
 
 	// Parcours des directories
@@ -884,7 +983,7 @@ const ALString FileService::GetFilePath(const ALString& sFileName, const ALStrin
 
 		// Recherche si le fichier existe dans le directory
 		sFilePath = BuildFilePathName(sDirectory, sFileName);
-		if (IsFile(sFilePath))
+		if (FileExists(sFilePath))
 		{
 			return sFilePath;
 		}
@@ -909,7 +1008,7 @@ const ALString FileService::CreateNewFile(const ALString& sBaseFilePathName)
 
 	// Test d'existence avec le fichier de base
 	sNewFileName = sBaseFilePathName;
-	bNewFile = not Exist(sNewFileName);
+	bNewFile = not FileExists(sNewFileName);
 
 	// Tentative de creation si possible
 	if (bNewFile)
@@ -933,7 +1032,7 @@ const ALString FileService::CreateNewFile(const ALString& sBaseFilePathName)
 		    BuildFilePathName(sPathName, BuildFileName(sFilePrefix + "_" + IntToString(nId), sFileSuffix));
 
 		// Test d'existence avec le nouveau nom
-		bNewFile = not Exist(sNewFileName);
+		bNewFile = not FileExists(sNewFileName);
 
 		// Si nouveau nom de fichier, on tente de creer le fichier
 		if (bNewFile)
@@ -959,7 +1058,7 @@ const ALString FileService::CreateNewDirectory(const ALString& sBasePathName)
 
 	// Test d'existence avec le repertoire de base
 	sNewDirectoryName = sBasePathName;
-	bNewDirectory = not Exist(sNewDirectoryName);
+	bNewDirectory = not DirExists(sNewDirectoryName);
 
 	// Tentative de creation si possible
 	if (bNewDirectory)
@@ -983,7 +1082,7 @@ const ALString FileService::CreateNewDirectory(const ALString& sBasePathName)
 		    sPathName, BuildFileName(sDirectoryPrefix + "_" + IntToString(nId), sDirectorySuffix));
 
 		// Test d'existence avec le nouveau nom
-		bNewDirectory = not Exist(sNewDirectoryName);
+		bNewDirectory = not DirExists(sNewDirectoryName);
 
 		// Si nouveau nom de fichier, on tente de creer le repertoire
 		if (bNewDirectory)
@@ -1009,7 +1108,7 @@ const ALString FileService::GetSystemTmpDir()
 	sTmpDir = p_getenv("TEMP");
 
 	// Test si directory inexistant
-	if (sTmpDir != "" and not IsDirectory(sTmpDir))
+	if (sTmpDir != "" and not DirExists(sTmpDir))
 		sTmpDir = "";
 
 	// Recherche de directory temporaire dans TMP
@@ -1018,7 +1117,7 @@ const ALString FileService::GetSystemTmpDir()
 		sTmpDir = p_getenv("TMP");
 
 		// Test si directory inexistant
-		if (sTmpDir != "" and not IsDirectory(sTmpDir))
+		if (sTmpDir != "" and not DirExists(sTmpDir))
 			sTmpDir = "";
 	}
 
@@ -1028,11 +1127,11 @@ const ALString FileService::GetSystemTmpDir()
 		sTmpDir = p_getenv("TMPDIR");
 
 		// Test si directory inexistant
-		if (sTmpDir != "" and not IsDirectory(sTmpDir))
+		if (sTmpDir != "" and not DirExists(sTmpDir))
 			sTmpDir = "";
 	}
 
-#ifndef __UNIX__
+#ifdef _WIN32
 	// Encore un essai avec "\temp"
 	if (sTmpDir == "")
 	{
@@ -1041,7 +1140,7 @@ const ALString FileService::GetSystemTmpDir()
 		sTmpDir += "temp";
 
 		// Test si directory inexistant
-		if (not IsDirectory(sTmpDir))
+		if (not DirExists(sTmpDir))
 			sTmpDir = "";
 	}
 #else
@@ -1052,11 +1151,22 @@ const ALString FileService::GetSystemTmpDir()
 		sTmpDir += "tmp";
 
 		// Test si directory inexistant
-		if (not IsDirectory(sTmpDir))
+		if (not DirExists(sTmpDir))
 			sTmpDir = "";
 	}
-#endif // #ifndef __UNIX__
+#endif // _WIN32
+
+// Sur apple, le chemin du repertoire temporaire peut se terminer par un '/'
+// ce qui n'est pas le cas sur windows et linux. Pour unifier, on supprime
+// ce dernier caractere s'il est egal a '/' et si ce n'est pas le repertoire racine
+#ifdef __APPLE__
+	if (sTmpDir.GetAt(sTmpDir.GetLength() - 1) == GetFileSeparator() && sTmpDir.GetLength() > 1)
+		return sTmpDir.Left(sTmpDir.GetLength() - 1);
+	else
+		return sTmpDir;
+#else
 	return sTmpDir;
+#endif
 }
 
 void FileService::SetUserTmpDir(const ALString& sPathName)
@@ -1108,11 +1218,12 @@ boolean FileService::CreateApplicationTmpDir()
 
 	// Si deja cree, on sort
 	if (nApplicationTmpDirCreationFreshness == nApplicationTmpDirFreshness and sApplicationTmpDir != "" and
-	    FileService::Exist(sApplicationTmpDir) and
-	    FileService::Exist(BuildFilePathName(sApplicationTmpDir, GetAnchorFileName())))
+	    FileService::DirExists(sApplicationTmpDir) and
+	    FileService::FileExists(BuildFilePathName(sApplicationTmpDir, GetAnchorFileName())))
 		return true;
 
 	// Enregistrement de la fonction de destruction des fichiers temporaires
+	// Ce n'est fait qu'une seule fois grace a la variable booleenne
 	if (not bApplicationTmpDirAutomaticRemove)
 	{
 		atexit(FileServiceApplicationTmpDirAutomaticRemove);
@@ -1131,7 +1242,7 @@ boolean FileService::CreateApplicationTmpDir()
 
 	// Nettoyage des repertoires inactifs precedents
 	// On le fait a chaque fois, mais en fait cela ne devrait se passer que s'il y a un changement
-	// dans le nom de repertoire temporaire ouy dans le nom de l'application
+	// dans le nom de repertoire temporaire ou dans le nom de l'application
 	CleanExpiredApplicationTmpDirs(sApplicationTmpDir);
 
 	// Creation du repertoire temporaire utilisateur si different de la valeur par defaut (vide)
@@ -1145,11 +1256,11 @@ boolean FileService::CreateApplicationTmpDir()
 					 "Temp file directory must be an absolute path");
 		}
 		// Tentative de creation si necessaire
-		else if (not IsDirectory(sUserTmpDir))
+		else if (not DirExists(sUserTmpDir))
 		{
 			bOk = MakeDirectories(sUserTmpDir);
 			if (bOk)
-				bOk = IsDirectory(sUserTmpDir);
+				bOk = DirExists(sUserTmpDir);
 			if (not bOk)
 				Global::AddError("Temp file directory", sUserTmpDir,
 						 "Unable to create temp file directory");
@@ -1179,7 +1290,7 @@ boolean FileService::CreateApplicationTmpDir()
 	}
 
 	// Test l'existence du repertoire temporaire (le repertoire systeme peut avoir disparu)
-	if (bOk and not Exist(GetTmpDir()))
+	if (bOk and not DirExists(GetTmpDir()))
 	{
 		// Emission du message d'erreur
 		// (emis uniquement pour cette cause)
@@ -1226,7 +1337,7 @@ boolean FileService::CreateApplicationTmpDir()
 		nApplicationTmpDirCreationFreshness = nApplicationTmpDirFreshness;
 
 	// On initialise la date d'expiration avec une heure de delai
-	// Cela ne peut etre fait que tout s'est passe avec succes
+	// Cela ne peut etre fait que si tout s'est passe avec succes
 	if (bOk)
 		TouchApplicationTmpDir(3600);
 	return bOk;
@@ -1256,7 +1367,7 @@ boolean FileService::CheckApplicationTmpDir()
 	// Test d'existence du repertoire utilisateur
 	if (bOk)
 	{
-		bOk = FileService::Exist(sTmpDir);
+		bOk = FileService::DirExists(sTmpDir);
 		if (not bOk)
 			Global::AddError(sCategoryLabel, sTmpDir, "Directory does not exist");
 	}
@@ -1266,7 +1377,7 @@ boolean FileService::CheckApplicationTmpDir()
 	{
 		bOk = FileService::GetDiskFreeSpace(sTmpDir) >= lMB;
 		if (not bOk)
-			Global::AddError(sCategoryLabel, sTmpDir, "Less than 1 MB available");
+			Global::AddError(sCategoryLabel, sTmpDir, "Less than one MB available");
 	}
 
 	// Test d'existence du repertoire applicatif
@@ -1275,7 +1386,7 @@ boolean FileService::CheckApplicationTmpDir()
 		Global::AddError("Application temp directory", "", "Directory not created");
 		bOk = false;
 	}
-	if (bOk and not FileService::Exist(sApplicationTmpDir))
+	if (bOk and not FileService::DirExists(sApplicationTmpDir))
 	{
 		Global::AddError("Application temp directory", sApplicationTmpDir, "Directory does not exist");
 		bOk = false;
@@ -1363,7 +1474,7 @@ const ALString FileService::CreateUniqueTmpFile(const ALString& sBaseName, const
 		sFilePathName = BuildFilePathName(GetApplicationTmpDir(), GetTmpPrefix() + sBaseName);
 
 		// Erreur si fichier deja existant
-		if (Exist(sFilePathName))
+		if (FileExists(sFilePathName))
 		{
 			sFilePathName = "";
 			if (errorSender != NULL)
@@ -1380,7 +1491,7 @@ const ALString FileService::CreateUniqueTmpFile(const ALString& sBaseName, const
 			{
 				sFilePathName = "";
 				if (errorSender != NULL)
-					errorSender->AddError("Unable to create temporary file " + sBaseName +
+					errorSender->AddError("Unable to create unique temporary file " + sBaseName +
 							      " in directory " + GetApplicationTmpDir() + " " +
 							      GetLastSystemIOErrorMessage());
 			}
@@ -1408,7 +1519,7 @@ const ALString FileService::CreateUniqueTmpDirectory(const ALString& sBaseName, 
 		sDirPathName = BuildFilePathName(GetApplicationTmpDir(), GetTmpPrefix() + sBaseName);
 
 		// Erreur si fichier deja existant
-		if (Exist(sDirPathName))
+		if (FileExists(sDirPathName))
 		{
 			sDirPathName = "";
 			if (errorSender != NULL)
@@ -1549,7 +1660,6 @@ boolean FileService::IsURIWellFormed(const ALString& sURI)
 
 const ALString FileService::BuildURI(const ALString& sScheme, const ALString& sHostName, const ALString& sFileName)
 {
-
 	ALString sRelativePath;
 
 	require(GetURIScheme(sFileName) == "");
@@ -1562,7 +1672,7 @@ const ALString FileService::BuildURI(const ALString& sScheme, const ALString& sH
 	{
 		// On ne rajoute "./" que s'il n'y a pas deja "." au debut
 		if (sFileName.GetLength() >= 1 and sFileName.GetAt(0) != '.')
-			sRelativePath = sRelativePath + "." + GetFileSeparator();
+			sRelativePath = sRelativePath + "." + GetURIFileSeparator();
 	}
 	return sScheme + "://" + sHostName + "/" + sRelativePath + sFileName;
 }
@@ -1611,6 +1721,13 @@ const ALString FileService::GetURIHostName(const ALString& sFileURI)
 	return sHostName;
 }
 
+boolean FileService::IsLocalURI(const ALString& sFileURI)
+{
+	return FileService::GetURIScheme(sFileURI) == "" or
+	       (FileService::GetURIScheme(sFileURI) == sRemoteScheme and
+		FileService::GetURIHostName(sFileURI) == GetLocalHostName());
+}
+
 const ALString FileService::GetURIFilePathName(const ALString& sFileURI)
 {
 	ALString sFilePathName;
@@ -1641,22 +1758,32 @@ const ALString FileService::GetURIFilePathName(const ALString& sFileURI)
 				nNextSlashPos = i;
 				break;
 			}
-		};
+		}
 
-		// Ok si un slash a ete trouve
-		if (nNextSlashPos != -1)
+		// Cas ou le chemin ne contient que scheme:///
+		if (nNextSlashPos == sFileURI.GetLength() - 1)
 		{
-#ifndef __UNIX__
-			// Sur windows on renvoie C:\XXX et non /C:\XXX
-			sFilePathName = sFileURI.Right(sFileURI.GetLength() - nNextSlashPos - 1);
-#else
-			// Par contre, sur linux on renvoie le slash : /home/XXX
-			// Mais si c'est un chemin relatif, on ne prend pas le slash
-			if (sFileURI.GetLength() > nNextSlashPos and sFileURI.GetAt(nNextSlashPos + 1) == '.')
-				sFilePathName = sFileURI.Right(sFileURI.GetLength() - nNextSlashPos - 1);
-			else
-				sFilePathName = sFileURI.Right(sFileURI.GetLength() - nNextSlashPos);
-#endif // __UNIX__
+			sFilePathName = "/";
+		}
+		else
+		{
+			// Ok si un slash a ete trouve
+			if (nNextSlashPos != -1)
+			{
+				// On renvoie le slash : /home/XXX
+				// Mais si c'est un chemin relatif, on ne prend pas le slash
+				if (sFileURI.GetLength() > nNextSlashPos and sFileURI.GetAt(nNextSlashPos + 1) == '.')
+					sFilePathName = sFileURI.Right(sFileURI.GetLength() - nNextSlashPos - 1);
+				else
+					sFilePathName = sFileURI.Right(sFileURI.GetLength() - nNextSlashPos);
+
+#ifdef _WIN32
+				// Sur windows, cas particulier de la racine d'un drive:  on renvoie C:\XXX et non /C:\XXX
+				if (sFilePathName.GetLength() > 3 and sFilePathName[0] == '/' and
+				    isalpha(sFilePathName[1]) and sFilePathName[2] == ':')
+					sFilePathName = sFilePathName.Right(sFilePathName.GetLength() - 1);
+#endif
+			}
 		}
 	}
 
@@ -1704,7 +1831,7 @@ void FileService::SetURISmartLabels(boolean bValue)
 
 ALString FileService::GetSystemNulFileName()
 {
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#ifdef _WIN32
 	return "NUL";
 #else
 	return "/dev/null";
@@ -1721,8 +1848,8 @@ boolean FileService::FileCompare(const ALString& sFileName1, const ALString& sFi
 	char c2;
 	boolean bSame;
 
-	require(FileService::IsFile(sFileName1));
-	require(FileService::IsFile(sFileName2));
+	require(FileService::FileExists(sFileName1));
+	require(FileService::FileExists(sFileName2));
 
 	// Test sur la taille
 	lFileSize = FileService::GetFileSize(sFileName1);
@@ -1771,7 +1898,7 @@ longint FileService::GetDiskFreeSpace(const ALString& sPathName)
 {
 	longint lFreeDiskSpace = 0;
 
-	require(not IsFile(sPathName));
+	require(not FileExists(sPathName));
 	if (sPathName == "")
 		lFreeDiskSpace = DiskGetFreeSpace(".");
 	else
@@ -1785,6 +1912,7 @@ const ALString FileService::GetPortableTmpFilePathName(const ALString& sFilePath
 	ALString sTmpDir;
 	const ALString sAppTmpDirAlias = "APPTMPDIR";
 	const ALString sTmpDirAlias = "TMPDIR";
+	int nTmpDirLength;
 	ALString sPortableTmpFilePathName;
 
 	// Remplacement eventuel du nom de chemin par le repertoire applicatif puis systeme temporaire
@@ -1793,14 +1921,26 @@ const ALString FileService::GetPortableTmpFilePathName(const ALString& sFilePath
 	sPortableTmpFilePathName = sFilePathName;
 	if (sAppTmpDir != "" and sAppTmpDir.GetLength() <= sFilePathName.GetLength() and
 	    sFilePathName.Left(sAppTmpDir.GetLength()) == sAppTmpDir)
+	{
+		nTmpDirLength = sAppTmpDir.GetLength();
+		if (sFilePathName.GetLength() > nTmpDirLength and
+		    sFilePathName.GetAt(nTmpDirLength) == GetFileSeparator())
+			nTmpDirLength++;
 		sPortableTmpFilePathName =
-		    sTmpDirAlias + sFilePathName.Right(sFilePathName.GetLength() - sAppTmpDir.GetLength());
+		    BuildFilePathName(sAppTmpDirAlias, sFilePathName.Right(sFilePathName.GetLength() - nTmpDirLength));
+	}
 	if (sTmpDir.GetLength() <= sFilePathName.GetLength() and sFilePathName.Left(sTmpDir.GetLength()) == sTmpDir)
+	{
+		nTmpDirLength = sTmpDir.GetLength();
+		if (sFilePathName.GetLength() > nTmpDirLength and
+		    sFilePathName.GetAt(nTmpDirLength) == GetFileSeparator())
+			nTmpDirLength++;
 		sPortableTmpFilePathName =
-		    sTmpDirAlias + sFilePathName.Right(sFilePathName.GetLength() - sTmpDir.GetLength());
+		    BuildFilePathName(sTmpDirAlias, sFilePathName.Right(sFilePathName.GetLength() - nTmpDirLength));
+	}
 
-		// Uniformation du caractere separateur de chemin
-#ifndef __UNIX__
+	// Uniformation du caractere separateur de chemin
+#ifdef _WIN32
 	for (int i = 0; i < sPortableTmpFilePathName.GetLength(); i++)
 	{
 		if (sPortableTmpFilePathName.GetAt(i) == '\\')
@@ -1827,6 +1967,7 @@ void FileService::Test()
 	StringVector svDirectoryNames;
 	fstream fst;
 	boolean bOk;
+	boolean bOsSpecificResult;
 
 	// Test de base
 	cout << "Test de la classe FileService" << endl;
@@ -1843,7 +1984,9 @@ void FileService::Test()
 	cout << endl << "Dans la suite, le repertoire des fichiers temporaires est designe par TMPDIR" << endl << endl;
 
 	// Test d'ouverture d'un fichier au nom incorrect
-	cout << "SYS PATH\tOuverture d'un fichier au nom incorrect: " << OpenInputFile("////toto////", fst) << endl;
+	cout << "SYS PATH\t";
+	bOk = OpenInputFile("////toto////", fst);
+	cout << "Ouverture d'un fichier au nom incorrect: " << bOk << endl;
 
 	// Test de presence de chemin
 	cout << endl << "Indique si un chemin de fichier comporte une partie chemin" << endl;
@@ -1860,9 +2003,11 @@ void FileService::Test()
 	// Indique si un chemin est absolu
 	cout << endl << "Indique si un chemin de fichier est absolu" << endl;
 	cout << GetPortableTmpFilePathName(sFileName) << "->" << IsAbsoluteFilePathName(sFileName) << endl;
-	cout << GetPortableTmpFilePathName(sFilePathName) << "->" << IsAbsoluteFilePathName(sFilePathName) << endl;
+	cout << "SYS PATH\t" << GetPortableTmpFilePathName(sFilePathName) << "->"
+	     << IsAbsoluteFilePathName(sFilePathName) << endl;
 	cout << GetPortableTmpFilePathName(sFilePathName2) << "->" << IsAbsoluteFilePathName(sFilePathName2) << endl;
-	cout << GetPortableTmpFilePathName(sFilePathName3) << "->" << IsAbsoluteFilePathName(sFilePathName3) << endl;
+	cout << "SYS PATH\t" << GetPortableTmpFilePathName(sFilePathName3) << "->"
+	     << IsAbsoluteFilePathName(sFilePathName3) << endl;
 
 	// Extraction de nom de chemin
 	cout << endl << "Extraction de la partie chemin depuis un chemin de fichier" << endl;
@@ -1888,16 +2033,71 @@ void FileService::Test()
 	cout << GetPortableTmpFilePathName(sFilePathName) << "->" << GetFileSuffix(sFilePathName) << endl;
 	cout << GetPortableTmpFilePathName(sFilePathName2) << "->" << GetFileSuffix(sFilePathName2) << endl;
 
+	// Test de GetPathName
+	cout << endl << "Extract path name" << endl;
+#ifdef _WIN32
+	sFilePathName = "c:\\standard\\linux\\path\\file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "c:\\standard\\linux\\path\\\\\\\\file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "c:\\file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "c:\\\\\\\\\\file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+#else
+	sFilePathName = "/standard/linux/path/file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "/standard/linux/path////file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "/file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "//////file.txt";
+	cout << "SYS PATH\t" << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+#endif // __linux_or_apple__
+	sFilePathName = "hdfs:///standard/path/file.txt";
+	cout << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "hdfs:///standard/path////file.txt";
+	cout << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "hdfs:///file.txt";
+	cout << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+	sFilePathName = "gs:///////file.txt";
+	cout << sFilePathName << " => " << GetPathName(sFilePathName) << endl;
+
+	// Test de BuildFilePathName
+	cout << endl << "Build path" << endl;
+	sPathName = "/standard/path/";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	sPathName = "/standard/path";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	sPathName = "/standard/path///";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	sPathName = "/";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	sPathName = "////";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	sPathName = "gs:///standard/path///";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	sPathName = "gs:///";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	sPathName = "gs://////";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	sPathName = ".";
+	cout << sPathName << " => " << BuildFilePathName(sPathName, "file.txt") << endl;
+	cout << sPathName << " (.) => " << BuildFilePathName(sPathName, "./file.txt") << endl;
+	cout << sPathName << " (..) => " << BuildFilePathName(sPathName, "../file.txt") << endl;
+
+	// Destruction eventuelle du fichier pour repartir du meme etat et
+	// assurer la reproductibilite des tests
+	RemoveFile(sFilePathName);
+
 	// Construction d'un nom de chemin
+	sFileName = "toto.txt";
+	sFilePathName = FileService::GetFileSeparator() + sFileName;
 	cout << endl << "Construction d'un chemin complet de fichier" << endl;
 	sPathName = GetTmpDir();
 	cout << GetPortableTmpFilePathName(sPathName) << " + " << GetPortableTmpFilePathName(sFileName) << endl;
 	sFilePathName = BuildFilePathName(sPathName, sFileName);
 	cout << "-> " << GetPortableTmpFilePathName(sFilePathName) << endl;
-
-	// Destruction eventuelle du fichier pour repartir du meme etat et
-	// assurer la reproductibilite des tests
-	RemoveFile(sFilePathName);
 
 	// Modification de parties d'un nom de fichier
 	cout << endl << "Modification de parties d'un nom de fichier" << endl;
@@ -1944,22 +2144,20 @@ void FileService::Test()
 	cout << endl
 	     << "Test d'existence du fichier existant " << GetPortableTmpFilePathName(GetFileName(sFilePathName2))
 	     << endl;
-	if (Exist(sFilePathName2))
+	if (FileExists(sFilePathName2))
 		cout << "OK " << GetPortableTmpFilePathName(GetFileName(sFilePathName2)) << " exists" << endl;
 	else
 		cout << "KO " << GetPortableTmpFilePathName(GetFileName(sFilePathName2)) << " not exists" << endl;
-	cout << "\tIsFile: " << IsFile(sFilePathName2) << "\tIsDir: " << IsDirectory(sFilePathName2) << endl;
 
 	// Test d'existence d'un fichier inexistant
 	sFilePathName3 = sFilePathName2 + ".unknown";
 	cout << endl
 	     << "Test d'existence du fichier inexistant " << GetPortableTmpFilePathName(GetFileName(sFilePathName3))
 	     << endl;
-	if (Exist(sFilePathName3))
+	if (FileExists(sFilePathName3))
 		cout << "KO " << GetPortableTmpFilePathName(GetFileName(sFilePathName3)) << " exists" << endl;
 	else
 		cout << "OK " << GetPortableTmpFilePathName(GetFileName(sFilePathName3)) << " not exists" << endl;
-	cout << "\tIsFile: " << IsFile(sFilePathName3) << "\tIsDir: " << IsDirectory(sFilePathName3) << endl;
 
 	// Recherche d'un fichier
 	cout << endl
@@ -1996,7 +2194,6 @@ void FileService::Test()
 	sFullDirName = BuildFilePathName(GetTmpDir(), sNewDirName);
 	bOk = MakeDirectory(sFullDirName);
 	cout << "Test de creation de repertoire " << GetPortableTmpFilePathName(sFullDirName) << ": " << bOk << endl;
-	cout << "\tIsFile: " << IsFile(sFullDirName) << "\tIsDir: " << IsDirectory(sFullDirName) << endl;
 	bOk = RemoveDirectory(sFullDirName);
 	cout << "Test de supression de repertoire " << GetPortableTmpFilePathName(sFullDirName) << ": " << bOk << endl;
 
@@ -2055,28 +2252,44 @@ void FileService::Test()
 
 	// Test des URI
 	StringVector svURItests;
-	svURItests.Add("hdfs:///tmp/test.txt");
-	svURItests.Add("hdfs://datanode/tmp/test.txt");
+	svURItests.Add("hdfs:///toto/test.txt");
+	svURItests.Add("hdfs://datanode/toto/test.txt");
 	svURItests.Add("hdfs://datanode-wrong-uri");
 	svURItests.Add("s3:///good-URI/test");
 	svURItests.Add("s3://host/good-URI/test");
+	svURItests.Add("gcs:///good-URI.txt");
+	svURItests.Add("gcs:///");
 
-#ifndef __UNIX
+	// Test oriente linux
 	svURItests.Add("file:///home/test.txt");
 	svURItests.Add("file://host-name/home/test.txt");
 	svURItests.Add("file:///home/test.txt");
 	svURItests.Add("file:///./test.txt");
 	svURItests.Add("file:///..\\test.txt");
-#else
+
+	// Test orientes windows
 	svURItests.Add("file:///c:\\home\\test.txt");
 	svURItests.Add("file://host-name/c:\\home\\test.txt");
-#endif // __UNIX__
+
+	// Lancement des tests
 	for (i = 0; i < svURItests.GetSize(); i++)
 	{
 		cout << svURItests.GetAt(i) << endl;
+
+		// Affichage des resultats
 		cout << "\t well-formed : " << FileService::IsURIWellFormed(svURItests.GetAt(i)) << endl;
 		cout << "\t scheme : " << FileService::GetURIScheme(svURItests.GetAt(i)) << endl;
-		cout << "\t file name : " << FileService::GetURIFilePathName(svURItests.GetAt(i)) << endl;
+
+		// Le resultat pour le FilePathName depend de l'OS dans le cas d'un chemin de type windows "C:\...")
+		// On desactive la comparaison complete dans les cas limites en prefixant par "SYS"
+		bOsSpecificResult = FileService::GetURIFilePathName(svURItests.GetAt(i)).Find(":") >= 0 and
+				    FileService::GetURIFilePathName(svURItests.GetAt(i)).Find(":") <= 3;
+		cout << "\t file name : ";
+		if (bOsSpecificResult)
+			cout << "SYS PATH ";
+		cout << FileService::GetURIFilePathName(svURItests.GetAt(i)) << endl;
+
+		// Hostname
 		cout << "\t host name : " << FileService::GetURIHostName(svURItests.GetAt(i)) << endl;
 		cout << endl;
 	}
@@ -2148,6 +2361,11 @@ void FileService::Test()
 	}
 }
 
+char FileService::GetURIFileSeparator()
+{
+	return '/';
+}
+
 boolean FileService::SystemSeekPositionInBinaryFile(FILE* fFile, longint lOffset, int nWhence)
 {
 	boolean bOk;
@@ -2155,9 +2373,9 @@ boolean FileService::SystemSeekPositionInBinaryFile(FILE* fFile, longint lOffset
 	require(nWhence == SEEK_SET or nWhence == SEEK_CUR or nWhence == SEEK_END);
 
 	// Pour les fichiers de plus de 4 Go, il existe une API speciale (stat64...)
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#ifdef _WIN32
 	_fseeki64(fFile, lOffset, nWhence);
-#elif defined __clang__
+#elif defined(__APPLE__)
 	fseeko(fFile, lOffset, nWhence);
 #else
 	fseeko64(fFile, lOffset, nWhence);
@@ -2187,7 +2405,7 @@ boolean FileService::DeleteApplicationTmpDir()
 	boolean bOk = true;
 
 	// Destruction uniquement si necessaire
-	if (sApplicationTmpDir != "" and Exist(sApplicationTmpDir))
+	if (sApplicationTmpDir != "" and DirExists(sApplicationTmpDir))
 	{
 		// Nettoyage prealable, en gardant le fichier anchor ouvert pour laisser
 		// le repertoire actif vis a vis des autres applications le temps de sa destruction
@@ -2287,11 +2505,11 @@ void FileService::CleanExpiredApplicationTmpDirs(const ALString& sExpiredApplica
 		// Test si le repertoire correspond a un repertoire temporaire applicatif inactif
 		// C'est le cas s'il contient un fichier anchor contenant une date d'exprimeation valide
 		// et si cette date est expiree
-		bIsExpiredDirectory = IsDirectory(sTestedDirectoryName);
+		bIsExpiredDirectory = DirExists(sTestedDirectoryName);
 		fAnchor = NULL;
 		sAnchorPathName = BuildFilePathName(sTestedDirectoryName, GetAnchorFileName());
 		if (bIsExpiredDirectory)
-			bIsExpiredDirectory = IsFile(sAnchorPathName);
+			bIsExpiredDirectory = FileExists(sAnchorPathName);
 		if (bIsExpiredDirectory)
 		{
 			// La fonction p_fopen gere deja les locale correctement
@@ -2493,8 +2711,14 @@ boolean FileSpec::CheckReferenceFileSpec(const FileSpec* refFileSpec) const
 		// Verification de l'egalite des chemins de facon recursive
 		sPathName = GetFilePathName();
 		sRefPathName = refFileSpec->GetFilePathName();
-		if (sPathName.GetLength() == sRefPathName.GetLength())
+
+		if (sPathName.GetLength() == sRefPathName.GetLength() and
+		    FileService::GetURIScheme(sPathName) == FileService::GetURIScheme(sRefPathName) and
+		    FileService::GetURIHostName(sPathName) == FileService::GetURIHostName(sRefPathName))
 		{
+			// On enleve la partie URI des chemins (file://hostname/)
+			sPathName = FileService::GetURIFilePathName(sPathName);
+			sRefPathName = FileService::GetURIFilePathName(sRefPathName);
 			bOk = false;
 			while (sPathName != "")
 			{
@@ -2551,4 +2775,66 @@ const ALString FileSpec::GetClassLabel() const
 const ALString FileSpec::GetObjectLabel() const
 {
 	return GetLabel() + " " + GetFilePathName();
+}
+
+boolean FileSpec::Test()
+{
+	FileSpec spec1;
+	FileSpec spec2;
+	boolean bTest;
+	boolean bOk = true;
+
+	const ALString sPathName1 = "/user/toto/LearningTest/TestKhiops/Standard/IrisTransfer/results/T_Iris.txt";
+	const ALString sPathName2 = "/user/titi/LearningTest/TestKhiops/Standard/IrisTransfer/results/T_Iris.txt";
+	const ALString sScheme1 = "foo";
+	const ALString sScheme2 = "bar";
+	const ALString host1 = "host1";
+	const ALString host2 = "host2";
+
+	spec1.SetLabel("std");
+	spec2.SetLabel("std");
+
+	// Fichiers std identiques
+	spec1.SetFilePathName(sPathName1);
+	spec2.SetFilePathName(sPathName1);
+	bTest = spec2.CheckReferenceFileSpec(&spec1);
+	bOk = not bTest and bOk;
+	ensure(bOk);
+
+	// Fichiers std differents (mais longueur du path identique)
+	spec1.SetFilePathName(sPathName1);
+	spec2.SetFilePathName(sPathName2);
+	bTest = spec2.CheckReferenceFileSpec(&spec1);
+	bOk = bTest and bOk;
+	ensure(bOk);
+
+	// URI identiques
+	spec1.SetFilePathName(FileService::BuildURI(sScheme1, host1, sPathName1));
+	spec2.SetFilePathName(FileService::BuildURI(sScheme1, host1, sPathName1));
+	bTest = spec2.CheckReferenceFileSpec(&spec1);
+	bOk = not bTest and bOk;
+	ensure(bOk);
+
+	// URI schemas differents (mais longueur du path identique)
+	spec1.SetFilePathName(FileService::BuildURI(sScheme1, host1, sPathName1));
+	spec2.SetFilePathName(FileService::BuildURI(sScheme2, host1, sPathName1));
+	bTest = spec2.CheckReferenceFileSpec(&spec1);
+	bOk = bTest and bOk;
+	ensure(bOk);
+
+	// URI hosts differents (mais longueur du path identique)
+	spec1.SetFilePathName(FileService::BuildURI(sScheme1, host1, sPathName1));
+	spec2.SetFilePathName(FileService::BuildURI(sScheme1, host2, sPathName1));
+	bTest = spec2.CheckReferenceFileSpec(&spec1);
+	bOk = bTest and bOk;
+	ensure(bOk);
+
+	// URI nom de fichiers differents (mais longueur du path identique)
+	spec1.SetFilePathName(FileService::BuildURI(sScheme1, host1, sPathName1));
+	spec2.SetFilePathName(FileService::BuildURI(sScheme1, host1, sPathName2));
+	bTest = spec2.CheckReferenceFileSpec(&spec1);
+	bOk = bTest and bOk;
+	ensure(bOk);
+
+	return bOk;
 }

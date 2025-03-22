@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -27,6 +27,36 @@ KWAttribute::~KWAttribute()
 		delete kwdrRule;
 	if (advancedTypeSpecification.genericSpecification != NULL)
 		delete advancedTypeSpecification.genericSpecification;
+}
+
+const ALString KWAttribute::GetTypeLabel() const
+{
+	ALString sTypeLabel;
+
+	// Libelle de base du type
+	sTypeLabel = KWType::ToString(GetType());
+
+	// Complement dans le cas d'un type relation
+	if (KWType::IsRelation(GetType()))
+	{
+		sTypeLabel += '(';
+		if (GetClass() != NULL)
+			sTypeLabel += GetClass()->GetName();
+		else
+			sTypeLabel += '?';
+		sTypeLabel += ')';
+	}
+	// Complement dans le cas d'un type structure
+	else if (GetType() == KWType::Structure)
+	{
+		sTypeLabel += '(';
+		if (GetStructureName() != "")
+			sTypeLabel += GetStructureName();
+		else
+			sTypeLabel += '?';
+		sTypeLabel += ')';
+	}
+	return sTypeLabel;
 }
 
 const ALString KWAttribute::GetFormatMetaDataKey(int nComplexType)
@@ -68,10 +98,10 @@ void KWAttribute::InternalCompleteTypeInfo(KWClass* kwcOwnerClass, NumericKeyDic
 	require(nkdCompletedAttributes != NULL);
 
 	// Completion des infos de l'attributs, si cela n'a pas deja ete fait
-	if (nkdCompletedAttributes->Lookup((NUMERIC)this) == NULL)
+	if (nkdCompletedAttributes->Lookup(this) == NULL)
 	{
 		// Memorisation de l'attribut
-		nkdCompletedAttributes->SetAt((NUMERIC)this, this);
+		nkdCompletedAttributes->SetAt(this, this);
 
 		// Informations de type si premier attribut d'un bloc
 		if (IsFirstInBlock() and GetBlockDerivationRule() != NULL)
@@ -149,6 +179,17 @@ void KWAttribute::BuildAdvancedTypeSpecification()
 		bOk = advancedTypeSpecification.timestampFormat->SetFormatString(sFormat);
 		assert(bOk);
 	}
+	// Construction d'un objet de format TimestampTZ
+	else if (GetType() == KWType::TimestampTZ)
+	{
+		sFormatMetaDataKey = GetFormatMetaDataKey(KWType::TimestampTZ);
+		sFormat = metaData.GetStringValueAt(sFormatMetaDataKey);
+		if (sFormat == "")
+			sFormat = KWTimestampTZFormat::GetDefaultFormatString();
+		advancedTypeSpecification.timestampTZFormat = new KWTimestampTZFormat;
+		bOk = advancedTypeSpecification.timestampTZFormat->SetFormatString(sFormat);
+		assert(bOk);
+	}
 }
 
 KWAttribute* KWAttribute::Clone() const
@@ -159,6 +200,7 @@ KWAttribute* KWAttribute::Clone() const
 	kwaClone->usName = usName;
 	kwaClone->metaData.CopyFrom(&metaData);
 	kwaClone->usLabel = usLabel;
+	kwaClone->svComments.CopyFrom(&svComments);
 	kwaClone->cType = cType;
 	kwaClone->attributeClass = attributeClass;
 	kwaClone->usStructureName = usStructureName;
@@ -179,6 +221,7 @@ boolean KWAttribute::Check() const
 	KWDateFormat dateFormat;
 	KWTimeFormat timeFormat;
 	KWTimestampFormat timestampFormat;
+	KWTimestampTZFormat timestampTZFormat;
 	ALString sFormat;
 	int nComplexType;
 
@@ -186,11 +229,15 @@ boolean KWAttribute::Check() const
 		parentClass->GetDomain()->LookupClass(parentClass->GetName()) == parentClass);
 
 	// Nom
-	if (not KWClass::CheckName(GetName(), this))
+	if (not KWClass::CheckName(GetName(), KWClass::Attribute, this))
 		bOk = false;
 
 	// Libelle
-	if (not KWClass::CheckLabel(GetLabel(), this))
+	if (not KWClass::CheckLabel(GetLabel(), KWClass::Attribute, this))
+		bOk = false;
+
+	// Commentaires
+	if (not KWClass::CheckComments(GetComments(), KWClass::Attribute, this))
 		bOk = false;
 
 	// Type
@@ -205,9 +252,9 @@ boolean KWAttribute::Check() const
 	if (bOk)
 	{
 		// Parcours des types complexes
-		for (nComplexType = KWType::Date; nComplexType <= KWType::Timestamp; nComplexType++)
+		for (nComplexType = KWType::Date; nComplexType <= KWType::TimestampTZ; nComplexType++)
 		{
-			// Verification pour les types Date, Type et Timestamp
+			// Verification pour les types complexes
 			if (KWType::IsComplex(nComplexType))
 			{
 				// Verification du format
@@ -237,6 +284,8 @@ boolean KWAttribute::Check() const
 							bOk = timeFormat.SetFormatString(sFormat);
 						else if (GetType() == KWType::Timestamp)
 							bOk = timestampFormat.SetFormatString(sFormat);
+						else if (GetType() == KWType::TimestampTZ)
+							bOk = timestampTZFormat.SetFormatString(sFormat);
 						if (not bOk)
 							AddError("Invalid " + KWType::ToString(GetType()) + " format " +
 								 sFormat + " in meta-data " + sFormatMetaDataKey);
@@ -249,22 +298,13 @@ boolean KWAttribute::Check() const
 	// Classe si type Object
 	if (KWType::IsGeneralRelation(GetType()))
 	{
-		// Une variable native de type relation ne doit pas avoir de back-quote dans son nom, pour qu'il n'y
-		// ait pas d'ambiguite dans les DataPath natifs (cf database multi-tables)
-		if (kwdrRule == NULL and attributeBlock == NULL and GetName().Find('`') >= 0)
-		{
-			AddError("Incorrect name for a native variable of type " + KWType::ToString(GetType()) +
-				 ": must not contain back-quote");
-			bOk = false;
-		}
-
 		// Presence de la classe
 		if (attributeClass == NULL)
 		{
 			AddError("No reference dictionary for type " + KWType::ToString(GetType()));
 			bOk = false;
 		}
-		else if (not KWClass::CheckName(attributeClass->GetName(), this))
+		else if (not KWClass::CheckName(attributeClass->GetName(), KWClass::Class, this))
 		{
 			AddError("Incorrect name of reference dictionary for type " + KWType::ToString(GetType()));
 			bOk = false;
@@ -275,27 +315,6 @@ boolean KWAttribute::Check() const
 		{
 			AddError("Dictionary " + attributeClass->GetName() + " used within type " +
 				 KWType::ToString(GetType()) + " should not be a root dictionary");
-			bOk = false;
-		}
-
-		// La classe utilisee doit avoir une cle
-		if (attributeClass != NULL and attributeClass->GetKeyAttributeNumber() == 0)
-		{
-			AddError("The used dictionary " + attributeClass->GetName() + " should have a key");
-			bOk = false;
-		}
-
-		// La cle de la classe utilisee doit etre au moins aussi longue que
-		// celle de la classe utilisante dans le cas d'un lien de composition
-		if (not GetReference() and kwdrRule == NULL and attributeClass != NULL and parentClass != NULL and
-		    not attributeClass->GetRoot() and
-		    attributeClass->GetKeyAttributeNumber() < parentClass->GetKeyAttributeNumber())
-		{
-			AddError("In used dictionary (" + attributeClass->GetName() + "), the length of the key (" +
-				 IntToString(attributeClass->GetKeyAttributeNumber()) +
-				 " variables) should not be inferior to that of the parent dictionary (" +
-				 parentClass->GetName() + " with a key of " +
-				 IntToString(parentClass->GetKeyAttributeNumber()) + " variables)");
 			bOk = false;
 		}
 	}
@@ -309,30 +328,33 @@ boolean KWAttribute::Check() const
 			AddError("No name for type Structure");
 			bOk = false;
 		}
-		else if (not KWClass::CheckName(GetStructureName(), this))
+		else if (not KWClass::CheckName(GetStructureName(), KWClass::Structure, this))
 		{
 			AddError("Incorrect name for type Structure");
 			bOk = false;
 		}
 	}
 
-	// Warning si classe sans type Relation
+	// Erreur si classe sans type Relation
 	if (not KWType::IsGeneralRelation(GetType()) and attributeClass != NULL)
 	{
-		AddWarning("Dictionary (" + attributeClass->GetName() +
-			   ") referenced by a variable with non relation type");
+		AddError("Dictionary (" + attributeClass->GetName() +
+			 ") referenced by a variable with non relation type");
+		bOk = false;
 	}
 
-	// Warning si nom de structure sans type Structure
+	// Erreur si nom de structure sans type Structure
 	if (GetType() != KWType::Structure and GetStructureName() != "")
 	{
-		AddWarning("Structure name used with a non Structure type");
+		AddError("Structure name used with a non Structure type");
+		bOk = false;
 	}
 
-	// Warning si type Structure sans regle associee
-	if (GetType() == KWType::Structure and kwdrRule == NULL)
+	// Erreur si type non stocke et non data
+	if (not KWType::IsStored(GetType()) and not KWType::IsRelation(GetType()) and kwdrRule == NULL)
 	{
-		AddWarning("Structure type should be related to a derivation rule");
+		AddError(KWType::ToString(GetType()) + " type should be related to a derivation rule");
+		bOk = false;
 	}
 
 	// Verification de la regle de derivation
@@ -361,7 +383,7 @@ boolean KWAttribute::Check() const
 		}
 
 		// Verification de la regle de derivation elle-meme
-		if (bOk and parentClass != NULL and not kwdrRule->CheckCompletness(parentClass))
+		if (bOk and parentClass != NULL and not kwdrRule->CheckCompleteness(parentClass))
 		{
 			AddError(kwdrRule->GetClassLabel() + " " + GetDerivationRule()->GetName() +
 				 " incorrectly specified");
@@ -407,7 +429,7 @@ void KWAttribute::Compile()
 	require(Check());
 
 	// Compilation de l'eventuelle regle de derivation
-	if (GetDerivationRule() != NULL)
+	if (GetDerivationRule() != NULL and not GetDerivationRule()->IsCompiled())
 		GetDerivationRule()->Compile(parentClass);
 
 	// Compilation de l'eventuel bloc, uniquement si l'attribut est le premier du bloc
@@ -429,17 +451,20 @@ boolean KWAttribute::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 	require(parentClass->IsCompiled());
 	require(not IsInBlock());
 
-	// Marquage de l'attribut en Grey
-	nkdGreyAttributes->SetAt((NUMERIC)this, (Object*)this);
-
 	// Analyse de l'eventuelle regle de derivation attachee a l'attribut
+	// Sinon, l'attribut est un noeud terminal du graphe, et n'a pas besoin d'etre analyse
 	if (GetDerivationRule() != NULL)
+	{
+		// Marquage de l'attribut en Grey
+		nkdGreyAttributes->SetAt(this, (Object*)this);
+
+		// Analyse la regle de derivation
 		bContainsCycle = GetDerivationRule()->ContainsCycle(nkdGreyAttributes, nkdBlackAttributes);
 
-	// Marquage de l'attribut en Black
-	nkdGreyAttributes->SetAt((NUMERIC)this, NULL);
-	nkdBlackAttributes->SetAt((NUMERIC)this, (Object*)this);
-
+		// Marquage de l'attribut en Black
+		nkdGreyAttributes->RemoveKey(this);
+		nkdBlackAttributes->SetAt(this, (Object*)this);
+	}
 	return bContainsCycle;
 }
 
@@ -455,6 +480,7 @@ longint KWAttribute::GetUsedMemory() const
 	lUsedMemory += usName.GetUsedMemory();
 	lUsedMemory += usName.GetValue().GetUsedMemory();
 	lUsedMemory += usLabel.GetUsedMemory();
+	lUsedMemory += svComments.GetUsedMemory();
 	lUsedMemory += metaData.GetUsedMemory() - sizeof(KWMetaData);
 
 	// Prise en compte de la regle de derivation
@@ -490,6 +516,12 @@ longint KWAttribute::ComputeHashValue() const
 
 void KWAttribute::Write(ostream& ost) const
 {
+	int i;
+
+	// Commentaires
+	for (i = 0; i < GetComments()->GetSize(); i++)
+		ost << "\t// " << GetComments()->GetAt(i) << "\n";
+
 	// Attribute a ne pas utiliser
 	if (not GetUsed())
 		ost << "Unused";
@@ -534,7 +566,7 @@ void KWAttribute::Write(ostream& ost) const
 	ost << ";";
 
 	// Meta-donnees
-	WriteNotLoadedMetaData(ost);
+	WritePrivateMetaData(ost);
 	if (metaData.GetKeyNumber() > 0)
 	{
 		ost << ' ';
@@ -542,7 +574,7 @@ void KWAttribute::Write(ostream& ost) const
 	}
 	ost << "\t";
 
-	// Commentaire
+	// Libelle
 	if (GetLabel() != "")
 		ost << "// " << GetLabel();
 }
@@ -550,15 +582,26 @@ void KWAttribute::Write(ostream& ost) const
 void KWAttribute::WriteJSONFields(JSONFile* fJSON)
 {
 	ALString sOutputString;
+	int i;
 
 	// Nom
 	fJSON->WriteKeyString("name", GetName());
 
-	// Commentaire
+	// Libelle
 	if (GetLabel() != "")
 		fJSON->WriteKeyString("label", GetLabel());
 
-	// Attribute a ne pas utiliser
+	// Commentaires, ecrits uniquement si presents, comme pour les autres champs facultatifs,
+	// ce qui facilite la compatibilite ascendante, et diminue la volumetrie
+	if (GetComments()->GetSize() > 0)
+	{
+		fJSON->BeginKeyArray("comments");
+		for (i = 0; i < GetComments()->GetSize(); i++)
+			fJSON->WriteString(GetComments()->GetAt(i));
+		fJSON->EndArray();
+	}
+
+	// Attribut a ne pas utiliser
 	if (not GetUsed())
 		fJSON->WriteKeyBoolean("used", false);
 
@@ -594,21 +637,21 @@ void KWAttribute::WriteJSONFields(JSONFile* fJSON)
 		metaData.WriteJSONKeyReport(fJSON, "metaData");
 }
 
-void KWAttribute::WriteNotLoadedMetaData(ostream& ost) const
+void KWAttribute::WritePrivateMetaData(ostream& ost) const
 {
-	KWMetaData usedNotLoadedMetaData;
+	KWMetaData privateMetaData;
 
 	// Memorisation dans une meta-data temporaire de l'information d'utilisation d'un attribut non charge en memoire
 	// Permet de transferer cette information "privee", par exemple pour une tache parallele
 	if (GetUsed() and not GetLoaded())
 	{
-		usedNotLoadedMetaData.SetNoValueAt("_NotLoaded");
+		privateMetaData.SetNoValueAt("_NotLoaded");
 		ost << ' ';
-		usedNotLoadedMetaData.Write(ost);
+		privateMetaData.Write(ost);
 	}
 }
 
-void KWAttribute::ReadNotLoadedMetaData()
+void KWAttribute::ReadPrivateMetaData()
 {
 	if (GetMetaData()->GetKeyNumber() > 0 and GetMetaData()->IsMissingTypeAt("_NotLoaded"))
 	{
@@ -658,7 +701,7 @@ int KWAttributeCompareBlockName(const void* elem1, const void* elem2)
 	attribute1 = cast(KWAttribute*, *(Object**)elem1);
 	attribute2 = cast(KWAttribute*, *(Object**)elem2);
 
-	// Difference
+	// Difference sur le nom de bloc puis d'attribut
 	if (attribute1->GetAttributeBlock() == attribute2->GetAttributeBlock())
 		nDiff = attribute1->GetName().Compare(attribute2->GetName());
 	else if (attribute1->GetAttributeBlock() == NULL)
@@ -667,6 +710,35 @@ int KWAttributeCompareBlockName(const void* elem1, const void* elem2)
 		nDiff = 1;
 	else
 		nDiff = attribute1->GetAttributeBlock()->GetName().Compare(attribute2->GetAttributeBlock()->GetName());
+	return nDiff;
+}
+
+int KWAttributeCompareClassAndAttributeName(const void* elem1, const void* elem2)
+{
+	KWAttribute* attribute1;
+	KWAttribute* attribute2;
+	int nDiff;
+
+	require(elem1 != NULL);
+	require(elem2 != NULL);
+
+	// Acces aux attributs
+	attribute1 = cast(KWAttribute*, *(Object**)elem1);
+	attribute2 = cast(KWAttribute*, *(Object**)elem2);
+
+	// Comparaison d'abord sur la classe
+	if (attribute1->GetParentClass() == attribute2->GetParentClass())
+		nDiff = 0;
+	else if (attribute1->GetParentClass() == NULL)
+		nDiff = -1;
+	else if (attribute2->GetParentClass() == NULL)
+		nDiff = 1;
+	else
+		nDiff = attribute1->GetParentClass()->GetName().Compare(attribute2->GetParentClass()->GetName());
+
+	// Difference
+	if (nDiff == 0)
+		nDiff = attribute1->GetName().Compare(attribute2->GetName());
 	return nDiff;
 }
 

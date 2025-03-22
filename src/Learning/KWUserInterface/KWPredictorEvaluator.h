@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -10,6 +10,7 @@
 #include "KWPredictor.h"
 #include "KWEvaluatedPredictorSpec.h"
 #include "KWLearningErrorManager.h"
+#include "KWResultFilePathBuilder.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWPredictorEvaluator
@@ -26,16 +27,16 @@ public:
 	////////////////////////////////////////////////////////
 	// Parametrage de l'evaluateur de predicteurs
 
-	// Evaluation report
+	// Evaluation report au format .khj
 	const ALString& GetEvaluationFileName() const;
 	void SetEvaluationFileName(const ALString& sValue);
 
-	// Indique si on export le rapport d'evaluation (defaut: true)
-	// Dans ce cas, le fichier JSON aura le meme nom que le rapport d'evaluation, avec extension .khj
-	boolean GetExportJSON() const;
-	void SetExportJSON(boolean bValue);
+	// Indique si on export le rapport d'evaluation au format tabulaire .xls (defaut: false)
+	// Dans ce cas, le fichier exporte aura le meme nom que le rapport d'evaluation, avec extension .xls
+	boolean GetExportAsXls() const;
+	void SetExportAsXls(boolean bValue);
 
-	// Suffix des fichiers de rapports au format json: json, ou khj depuis les rapports au format Khiops V10
+	// Suffixe des fichiers de rapports au format json: json, ou khj depuis les rapports au format Khiops V10
 	static const ALString GetJSONReportSuffix();
 
 	// Nom du chemin complet du rapport d'evaluation
@@ -43,8 +44,8 @@ public:
 	// on utilise le repertoire de la base
 	const ALString GetEvaluationFilePathName() const;
 
-	// Nom du chemin complet du rapport JSON, base sur le nom du rapport d'evaluation
-	const ALString GetJSONFilePathName() const;
+	// Nom du chemin complet du rapport xls, base sur le nom du rapport d'evaluation
+	const ALString GetXlsEvaluationFilePathName() const;
 
 	// Main target value
 	const ALString& GetMainTargetModality() const;
@@ -93,17 +94,18 @@ public:
 
 	// Evaluation d'un ensemble de predicteurs
 	// Le libelle d'evaluation vaut typiquement Train ou Test
+	// Renvoie false en cas d'erreur ou d'interruption utilisateur
 	// Memoire: le contenu du tableau en sortie est a liberer par l'appelant
-	void EvaluatePredictors(ObjectArray* oaPredictors, KWDatabase* database, const ALString& sEvaluationLabel,
-				ObjectArray* oaOutputPredictorEvaluations);
+	boolean EvaluatePredictors(ObjectArray* oaPredictors, KWDatabase* database, const ALString& sEvaluationLabel,
+				   ObjectArray* oaOutputPredictorEvaluations);
 
-	// Ecriture d'un rapport d'evaluation
+	// Ecriture d'un rapport d'evaluation au format xls
 	void WriteEvaluationReport(const ALString& sEvaluationReportName, const ALString& sEvaluationLabel,
 				   ObjectArray* oaPredictorEvaluations);
 
-	// Ecriture d'un rapport JSON
-	void WriteJSONReport(const ALString& sJSONReportName, const ALString& sEvaluationLabel,
-			     ObjectArray* oaPredictorEvaluations);
+	// Ecriture d'un rapportd'evaluation au format json JSON
+	void WriteJSONEvaluationReport(const ALString& sEvaluationReportName, const ALString& sEvaluationLabel,
+				       ObjectArray* oaPredictorEvaluations);
 
 	// Evaluation d'un predicteurs
 	// Retourne NULL si probleme d'evaluation
@@ -156,12 +158,18 @@ protected:
 	// Effacement des classes si le domaine initiale est NULL
 	void RenameDatabaseClasses(KWDatabase* database, KWClassDomain* kwcdInitialDomain);
 
+	// Retourne le service de construction des chemins de fichier en sortie
+	const KWResultFilePathBuilder* GetResultFilePathBuilder() const;
+
 	// Attributs de la classe
 	ALString sEvaluationFileName;
-	boolean bExportJSON;
+	boolean bExportAsXls;
 	ALString sMainTargetModality;
 	KWDatabase* evaluationDatabase;
 	ObjectArray oaEvaluatedPredictorSpecs;
+
+	// Service de construction du chemin des fichiers en sortie
+	mutable KWResultFilePathBuilder resultFilePathBuilder;
 
 	// Domaine des classes initiales, permettant de parametrer la base d'evaluation
 	KWClassDomain* kwcdInitialClassesDomain;
@@ -181,16 +189,16 @@ public:
 	~KWPredictorExternal();
 
 	// Type de predicteur disponible: classification et regression
-	boolean IsTargetTypeManaged(int nType) const;
+	boolean IsTargetTypeManaged(int nType) const override;
 
 	// Constructeur generique
-	KWPredictor* Create() const;
+	KWPredictor* Create() const override;
 
 	// Nom du predicteur
-	const ALString GetName() const;
+	const ALString GetName() const override;
 
 	// Prefixe du predicteur
-	const ALString GetPrefix() const;
+	const ALString GetPrefix() const override;
 
 	// Parametrage du predicteur par un objet KWTrainedPredictor externe
 	// Memoire: le KWTrainedPredictor appartient a l'appele
@@ -206,7 +214,7 @@ public:
 	//// Implementation
 protected:
 	// Redefinition de la methode d'apprentissage
-	boolean InternalTrain();
+	boolean InternalTrain() override;
 
 	// Memorisation
 	KWTrainedPredictor* externalTrainedPredictor;

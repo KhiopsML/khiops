@@ -1,13 +1,3 @@
-Rank;
-Name;
-Type;
-Style;
-Label 1;
-TargetAttributeName;
-ALString;
-;
-Target variable 2;
-MainTargetModality;
-ALString;
-;
-Main target value
+Rank;Name;Type;Style;Label
+1;TargetAttributeName  ;ALString;           ;Target variable
+2;MainTargetModality   ;ALString;           ;Main target value

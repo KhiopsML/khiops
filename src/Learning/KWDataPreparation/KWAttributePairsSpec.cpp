@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -38,18 +38,6 @@ void KWAttributePairsSpec::SetAllAttributePairs(boolean bValue)
 	bAllAttributePairs = bValue;
 }
 
-#ifdef DEPRECATED_V10
-const ALString& KWAttributePairsSpec::GetMandatoryAttributeInPairs() const
-{
-	return sMandatoryAttributeInPairs;
-}
-
-void KWAttributePairsSpec::SetMandatoryAttributeInPairs(const ALString& sValue)
-{
-	sMandatoryAttributeInPairs = sValue;
-}
-#endif // DEPRECATED_V10
-
 ObjectArray* KWAttributePairsSpec::GetSpecificAttributePairs()
 {
 	return &oaSpecificAttributePairs;
@@ -67,8 +55,11 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 	KWAttributePairName* attributePairName;
 	int i;
 	char* sField;
+	int nFieldLength;
 	int nFieldError;
 	boolean bEndOfLine;
+	boolean bLineTooLong;
+	longint lBeginPos;
 	ALString sTmp;
 
 	require(sFileName != "");
@@ -97,19 +88,19 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 		while (bOk and not inputFile.IsError() and not inputFile.IsFileEnd())
 		{
 			// Remplissage d'un buffer
-			bOk = inputFile.Fill(inputFile.GetPositionInFile());
+			lBeginPos = inputFile.GetPositionInFile();
+			bOk = inputFile.FillInnerLines(lBeginPos);
 			if (not bOk)
 				AddError("Error while reading file");
 
-			// Erreur si ligne trop longue
-			if (bOk)
-				bOk = inputFile.GetBufferSkippedLine() == 0;
-			if (not bOk)
+			// Erreur si ligne trop longue: on n'a besoin que de lignes tres courtes pour lire des paires
+			// d'identifiant
+			if (bOk and inputFile.GetCurrentBufferSize() == 0)
 			{
-				// On modifie localement l'index de ligne pour le warning
-				lContextLineIndex += inputFile.GetBufferLineNumber() + 1;
-				AddWarning("Line too long, ignored record");
-				lContextLineIndex -= inputFile.GetBufferLineNumber();
+				assert(inputFile.GetBufferSize() > 5 * KWClass::GetNameMaxLength());
+				AddError(sTmp + "Line too long for a file of variable pairs (beyond " +
+					 LongintToHumanReadableString(inputFile.GetBufferSize()) + ")");
+				bOk = false;
 			}
 
 			// Traitement du buffer
@@ -120,12 +111,13 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 				// Lecture du premier champ de la ligne
 				bRecordOk = false;
 				nContextAttributeIndex = 1;
-				bEndOfLine = inputFile.GetNextField(sField, nFieldError);
+				bEndOfLine = inputFile.GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 
+				// Warning si ligne trop longue
+				if (bLineTooLong)
+					AddWarning(InputBufferedFile::GetLineTooLongErrorLabel() + ", ignored record");
 				// Warning pour certaines erreurs sur le champ
-				if (nFieldError == InputBufferedFile::FieldTabReplaced or
-				    nFieldError == InputBufferedFile::FieldCtrlZReplaced or
-				    nFieldError == InputBufferedFile::FieldTooLong)
+				else if (nFieldError == InputBufferedFile::FieldTooLong)
 					AddWarning(InputBufferedFile::GetFieldErrorLabel(nFieldError) +
 						   ", ignored record");
 				// Warning si un seul champ
@@ -146,10 +138,11 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 				// Warning si champs trop long: attention, on le gere specifiquement sans passer par la
 				// methode check de KWClass, pour eviter d'allouer implicitement une ALString
 				// potentiellement de tres grande taille
-				else if ((int)strlen(sField) > KWClass::GetNameMaxLength())
+				else if (nFieldLength > KWClass::GetNameMaxLength())
 					AddWarning("Name too long, ignored record");
 				// Warning si nom d'attribut present et invalide
-				else if (sField[0] != '\0' and not KWClass::CheckNameWithMessage(sField, sMessage))
+				else if (sField[0] != '\0' and
+					 not KWClass::CheckNameWithMessage(sField, KWClass::Attribute, sMessage))
 					AddWarning(sMessage + ", ignored record");
 				// OK: on memorise le premier attribut de la paire
 				else
@@ -163,12 +156,15 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 				{
 					bRecordOk = false;
 					nContextAttributeIndex = 2;
-					bEndOfLine = inputFile.GetNextField(sField, nFieldError);
+					bEndOfLine =
+					    inputFile.GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 
+					// Warning si ligne trop longue
+					if (bLineTooLong)
+						AddWarning(InputBufferedFile::GetLineTooLongErrorLabel() +
+							   ", ignored record");
 					// Warning pour certaines erreurs sur le champ
-					if (nFieldError == InputBufferedFile::FieldTabReplaced or
-					    nFieldError == InputBufferedFile::FieldCtrlZReplaced or
-					    nFieldError == InputBufferedFile::FieldTooLong)
+					else if (nFieldError == InputBufferedFile::FieldTooLong)
 						AddWarning(InputBufferedFile::GetFieldErrorLabel(nFieldError));
 					// Warning si strictement plus de deux champs
 					else if (not bEndOfLine)
@@ -187,11 +183,11 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 							AddWarning("Two many fields in line, ignored record");
 					}
 					// Warning si champs trop long
-					else if ((int)strlen(sField) > KWClass::GetNameMaxLength())
+					else if (nFieldLength > KWClass::GetNameMaxLength())
 						AddWarning("Name too long, ignored record");
 					// Warning si nom d'attribut present et invalide
-					else if (sField[0] != '\0' and
-						 not KWClass::CheckNameWithMessage(sField, sMessage))
+					else if (sField[0] != '\0' and not KWClass::CheckNameWithMessage(
+									   sField, KWClass::Attribute, sMessage))
 						AddWarning(sMessage + ", ignored record");
 					// OK: on memorise le second attribut de la paire
 					else
@@ -254,9 +250,10 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 					// Memorisation dans la liste triee permettant de detecter les doublons
 					slSpecificPairs.Add(attributePairName);
 				}
-				// Sauf de ligne si necessaire sinon
+				// On va jusqu'au bout de la ligne si necessaire sinon
+				// On a deja ignore la ligne si on arrive la
 				else if (not bEndOfLine)
-					inputFile.SkipLine();
+					inputFile.SkipLastFields(bLineTooLong);
 			}
 
 			// Arret si le maximum de paires est atteint
@@ -326,7 +323,8 @@ void KWAttributePairsSpec::ExportAllAttributePairs(const ALString& sFileName)
 			// Warning si le nom du premier attribut est present et invalide
 			nContextAttributeIndex = 1;
 			if (bPairOk and attributePairName->GetFirstName() != "" and
-			    not KWClass::CheckNameWithMessage(attributePairName->GetFirstName(), sMessage))
+			    not KWClass::CheckNameWithMessage(attributePairName->GetFirstName(), KWClass::Attribute,
+							      sMessage))
 			{
 				AddWarning(sMessage + ", ignored pair");
 				bPairOk = false;
@@ -334,7 +332,8 @@ void KWAttributePairsSpec::ExportAllAttributePairs(const ALString& sFileName)
 			// Warning si le nom du second attribut est present et invalide
 			nContextAttributeIndex = 2;
 			if (bPairOk and attributePairName->GetSecondName() != "" and
-			    not KWClass::CheckNameWithMessage(attributePairName->GetSecondName(), sMessage))
+			    not KWClass::CheckNameWithMessage(attributePairName->GetSecondName(), KWClass::Attribute,
+							      sMessage))
 			{
 				AddWarning(sMessage + ", ignored pair");
 				bPairOk = false;
@@ -410,9 +409,10 @@ void KWAttributePairsSpec::DeleteDuplicateAttributePairs()
 		// Verification de la validite de la paire, sans warning
 		bPairOk = true;
 		bPairOk = bPairOk and (attributePairName->GetFirstName() == "" or
-				       KWClass::CheckName(attributePairName->GetFirstName(), NULL));
-		bPairOk = bPairOk and (attributePairName->GetSecondName() == "" or
-				       KWClass::CheckName(attributePairName->GetSecondName(), NULL));
+				       KWClass::CheckName(attributePairName->GetFirstName(), KWClass::Attribute, NULL));
+		bPairOk =
+		    bPairOk and (attributePairName->GetSecondName() == "" or
+				 KWClass::CheckName(attributePairName->GetSecondName(), KWClass::Attribute, NULL));
 		bPairOk = bPairOk and attributePairName->GetFirstName() != attributePairName->GetSecondName();
 		bPairOk = bPairOk and slSpecificPairs.Find(attributePairName) == NULL;
 
@@ -490,15 +490,6 @@ int KWAttributePairsSpec::GetMaxRequestedAttributePairNumber(const ALString& sTa
 			       kwcAnalyzedClass->GetUsedAttributeNumberForType(KWType::Symbol);
 	if (kwcAnalyzedClass->LookupAttribute(sTargetAttributeName) != NULL)
 		lUsedAttributeNumber--;
-
-#ifdef DEPRECATED_V10
-	// Cas avec attribut particulier dans les paires: cas obsolete
-	if (GetMandatoryAttributeInPairs() != "")
-	{
-		nRequestedAttributePairNumber = min(GetMaxAttributePairNumber(), max((int)lUsedAttributeNumber - 1, 0));
-		return nRequestedAttributePairNumber;
-	}
-#endif // DEPRECATED_V10
 
 	// Cas ou toutes les paires sont a analyser: seul le nombre max peut limiter le nombre de paires
 	if (GetAllAttributePairs())
@@ -618,55 +609,6 @@ void KWAttributePairsSpec::SelectAttributePairStats(const ObjectArray* oaAttribu
 
 	// Recherche et priorisation des attributs a analyser
 	SelectAttributeStatsForAttributePairs(oaAttributeStats, &odAttributeStats, &oaSelectedAttributeStats);
-
-#ifdef DEPRECATED_V10
-	// Cas avec attribut particulier dans les paires: cas obsolete
-	if (GetMandatoryAttributeInPairs() != "")
-	{
-		// Warning si attribut inexistant
-		if (kwcAnalyzedClass->LookupAttribute(GetMandatoryAttributeInPairs()) == NULL)
-			AddWarning("Mandatory variable in pairs " + GetMandatoryAttributeInPairs() +
-				   " not found in dictionary " + GetClassName());
-		else if (odAttributeStats.Lookup(GetMandatoryAttributeInPairs()) == NULL)
-			AddWarning("Mandatory variable in pairs " + GetMandatoryAttributeInPairs() +
-				   " not analyzed in data preparation");
-		// Sinon, on va rechercher les paires correspondantes
-		else
-		{
-			// Creation des paires a analyser
-			workingAttributePairName.SetFirstName(GetMandatoryAttributeInPairs());
-			for (i = 0; i < oaSelectedAttributeStats.GetSize(); i++)
-			{
-				attributeStats2 = cast(KWAttributeStats*, oaSelectedAttributeStats.GetAt(i));
-
-				// On n'insere pas les paires impliquant un autre attribut
-				if (attributeStats2->GetSortName() != GetMandatoryAttributeInPairs())
-				{
-					// Creation et initialisation d'un objet de stats pour la paire d'attributs
-					attributePairStats = new KWAttributePairStats;
-					attributePairStats->SetLearningSpec(learningSpec);
-					oaAttributePairStats->Add(attributePairStats);
-
-					// Parametrage des attributs de la paire par ordre alphabetique
-					workingAttributePairName.SetSecondName(attributeStats2->GetSortName());
-					attributePairStats->SetAttributeName1(
-					    workingAttributePairName.GetFirstSortedName());
-					attributePairStats->SetAttributeName2(
-					    workingAttributePairName.GetSecondSortedName());
-
-					// Arret si assez de paires
-					if (oaAttributePairStats->GetSize() >= GetMaxAttributePairNumber())
-						break;
-				}
-			}
-		}
-
-		// On arrete avec un warning, sans chercher a hybrider ce mode obsolete avec les nouvelles
-		// specifications
-		AddWarning("Parameter 'Mandatory variable in pairs' is deprecated since Khiops V10");
-		return;
-	}
-#endif // DEPRECATED_V10
 
 	// Recherche des paires d'attributs specifique valides
 	Global::ActivateErrorFlowControl();

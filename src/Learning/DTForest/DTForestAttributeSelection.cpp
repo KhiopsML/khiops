@@ -1,20 +1,20 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "DTForestAttributeSelection.h"
 
-int DTTreeAttributeLevelCampare(const void* elem1, const void* elem2);
-int DTTreeAttributeRankCampare(const void* elem1, const void* elem2);
+int DTTreeAttributeLevelCompare(const void* elem1, const void* elem2);
+int DTTreeAttributeRankCompare(const void* elem1, const void* elem2);
 
 ////////////////////////////////////////////////////////////////////
 // Classe DTForestAttributeSelection
 
 DTForestAttributeSelection::DTForestAttributeSelection()
 {
-
-	nMaxAttributesNumber = 0;
 	sDrawingType = DTGlobalTag::UNIFORM_SAMPLING_WITH_REPLACEMENT_LABEL;
+	nMaxSelectionNumber = 0;
+	nOriginalAttributesNumber = 0;
 }
 
 DTForestAttributeSelection::~DTForestAttributeSelection()
@@ -24,7 +24,6 @@ DTForestAttributeSelection::~DTForestAttributeSelection()
 
 void DTForestAttributeSelection::CleanAll()
 {
-
 	svAttributeNames.Initialize();
 	odOriginalAttributesUsed.RemoveAll();
 	oaOriginalAttributesUsed.DeleteAll();
@@ -33,8 +32,6 @@ void DTForestAttributeSelection::CleanAll()
 
 void DTForestAttributeSelection::Clean()
 {
-	nMaxAttributesNumber = 0;
-
 	ivSelectionAttributeNumber.Initialize();
 	ivSeedselection.Initialize();
 	oaSelectionAttributes.DeleteAll();
@@ -80,6 +77,7 @@ void DTForestAttributeSelection::Initialization(const ObjectDictionary* odInputA
 			taAttribute = new DTTreeAttribute;
 			svAttributeNames.Add(attributeStats->GetAttributeName());
 			taAttribute->aAttribute = attribute;
+			taAttribute->sAttributeName = attributeStats->GetAttributeName();
 			taAttribute->dLevel = attributeStats->GetLevel(); //  + 1.0 / nNbInstence);
 			oaOriginalAttributesUsed.Add(
 			    taAttribute); //			cout << "les attibut " << attribute->GetName() << " : "
@@ -87,7 +85,7 @@ void DTForestAttributeSelection::Initialization(const ObjectDictionary* odInputA
 			odOriginalAttributesUsed.SetAt(attribute->GetName(), taAttribute);
 		}
 	}
-	oaOriginalAttributesUsed.SetCompareFunction(DTTreeAttributeLevelCampare);
+	oaOriginalAttributesUsed.SetCompareFunction(DTTreeAttributeLevelCompare);
 	oaOriginalAttributesUsed.Sort();
 
 	for (nAttribute = 0; nAttribute < oaOriginalAttributesUsed.GetSize(); nAttribute++)
@@ -170,7 +168,7 @@ void DTForestAttributeSelection::BuildForestUniformSelections(int nmaxselectionn
 			ivSelectionAttributeNumber.Add(nAttributesNumber);
 			if (sSelectionType == DTGlobalTag::LEVEL_SAMPLING_WITH_REPLACEMENT_LABEL)
 			{
-				oaOriginalAttributesUsed.SetCompareFunction(DTTreeAttributeLevelCampare);
+				oaOriginalAttributesUsed.SetCompareFunction(DTTreeAttributeLevelCompare);
 				oaOriginalAttributesUsed.Sort();
 			}
 			else
@@ -195,7 +193,6 @@ void DTForestAttributeSelection::BuildForestUniformSelections(int nmaxselectionn
 			}
 			svRandattibuteselection->SetUsableAttributesNumber(nusableAttributesNumber);
 			oaSelectionAttributes.Add(svRandattibuteselection);
-			svRandattibuteselection->SetIndex(nSelection);
 			ivSelectionAttributeNumberInf.Add(nTinf);
 			ivSelectionAttributeNumberNull.Add(nTnull);
 		}
@@ -253,16 +250,16 @@ void DTForestAttributeSelection::BuildForestSelections(int nmaxselectionnumber, 
 			nTmax = MIN_VARIABLE_2_BUILTREE_BORNE +
 				RandomInt(MAX_VARIABLE_2_BUILTREE_BORNE - MIN_VARIABLE_2_BUILTREE_BORNE);
 
-			// Probabilite de tirer une variable de level null Pnull: tire aléatoirement de façon uniforme
+			// Probabilite de tirer une variable de level null Pnull: tire aleatoirement de facon uniforme
 			// dans [Pnull_lb, Pnull_ub]
 			dPNull = MIN_DRAWING_NULL_VARIABLE_PROBABILITY +
 				 RandomDouble() *
 				     (MAX_DRAWING_NULL_VARIABLE_PROBABILITY - MIN_DRAWING_NULL_VARIABLE_PROBABILITY);
 
-			// Probabilité de tirer une variable informative Pinf = 1-Pnul
+			// Probabilite de tirer une variable informative Pinf = 1-Pnul
 			dPInf = 1 - dPNull;
 
-			// Nombre de variables à tirer nT = min(Tmax, sqrt(K log2(K+ct))
+			// Nombre de variables a tirer nT = min(Tmax, sqrt(K log2(K+ct))
 			// dct est une constante dependant MIN_VARIABLE_2_BUILTREE telque MIN_VARIABLE_2_BUILTREE =
 			// sqrt(MIN_VARIABLE_2_BUILTREE log2(MIN_VARIABLE_2_BUILTREE+ct)
 			dct = pow(2.0, nvariableNumberMin) - nvariableNumberMin;
@@ -285,7 +282,7 @@ void DTForestAttributeSelection::BuildForestSelections(int nmaxselectionnumber, 
 			// nRmax_lb = nTinf;
 			// Borne sup:
 			// nRmax_ub = nKinf;
-			// Rang max choisi: Rmax, tiré aléatoirement de façon uniforme dans [Rmax_lb, Rmax_ub]
+			// Rang max choisi: Rmax, tire alaatoirement de facon uniforme dans [Rmax_lb, Rmax_ub]
 			nRmax = nTinf + RandomInt(nKinf - nTinf);
 
 			ivSelectionAttributeNumberInf.Add(nTinf);
@@ -332,7 +329,6 @@ void DTForestAttributeSelection::BuildForestSelections(int nmaxselectionnumber, 
 
 void DTForestAttributeSelection::WriteReport(ostream& ost)
 {
-
 	int nSelection, nAttribute;
 	ObjectArray oaVariablesNull;
 	ObjectArray oaVariablesInf;
@@ -343,7 +339,7 @@ void DTForestAttributeSelection::WriteReport(ostream& ost)
 	for (nAttribute = 0; nAttribute < oaOriginalAttributesUsed.GetSize(); nAttribute++)
 	{
 		taAttribute = cast(DTTreeAttribute*, oaOriginalAttributesUsed.GetAt(nAttribute));
-		ost << taAttribute->GetName() << endl;
+		ost << TSV::Export(taAttribute->GetName()) << endl;
 	}
 	ost << "nombre de selection : " << ivSelectionAttributeNumber.GetSize() << endl;
 
@@ -358,7 +354,7 @@ void DTForestAttributeSelection::WriteReport(ostream& ost)
 		svRandattibuteselection = cast(DTAttributeSelection*, oaSelectionAttributes.GetAt(nSelection));
 		for (nAttribute = 0; nAttribute < svRandattibuteselection->GetSize(); nAttribute++)
 		{
-			ost << (char*)svRandattibuteselection->GetAttributeAt(nAttribute)->GetName() << endl;
+			ost << TSV::Export(svRandattibuteselection->GetAttributeAt(nAttribute)->GetName()) << endl;
 		}
 	}
 }
@@ -429,11 +425,6 @@ int DTForestAttributeSelection::GetMaxAttributesNumber()
 			nMax = svattibuteselection->GetSize();
 	}
 	return nMax;
-}
-
-void DTForestAttributeSelection::SetMaxAttributesNumber(int nmax)
-{
-	nMaxAttributesNumber = nmax;
 }
 
 ObjectArray* DTForestAttributeSelection::GetAttributeSelections()
@@ -542,7 +533,6 @@ ObjectArray* DTForestAttributeSelection::GetAttributesFromLevels(const int maxAt
 DTAttributeSelectionsSlices::DTAttributeSelectionsSlices()
 {
 	oaTreeAttributes.SetCompareFunction(DTTreeAttributeCompareName);
-	// oaSlices.SetCompareFunction(KWDataTableSliceCompareLexicographicIndex);
 }
 
 DTAttributeSelectionsSlices::~DTAttributeSelectionsSlices() {}
@@ -590,7 +580,7 @@ void DTAttributeSelectionsSlices::AddAttributeSelectionsSlices(
 }
 
 void DTAttributeSelectionsSlices::AddAttributeSelection(const DTAttributeSelection* otherAttributeselection,
-							ObjectDictionary* odSliceAttributes)
+							const ObjectDictionary* odSliceAttributes)
 {
 	int nattribute;
 	ObjectArray oaTmpFirstArray;
@@ -661,7 +651,6 @@ int DTAttributeSelectionsSlices::UnionAttributesCount(const DTAttributeSelection
 
 int DTAttributeSelectionsSlices::CompareSlices(const DTAttributeSelectionsSlices* otherAttributePairsSlices) const
 {
-
 	int nSliceIdentique;
 	int nCompare;
 
@@ -693,7 +682,6 @@ DoubleVector* DTAttributeSelectionsSlices::GetLexicographicSortCriterion()
 int DTAttributeSelectionsSlices::CompareLexicographicSortCriterion(
     const DTAttributeSelectionsSlices* otherAttributePairsSlices) const
 {
-
 	int nCompare;
 	int nMaxSize;
 	int i;
@@ -907,7 +895,7 @@ void DTAttributeSelectionsSlices::Write(ostream& ost) const
 	for (i = 0; i < oaTreeAttributes.GetSize(); i++)
 	{
 		treeattribute = cast(DTTreeAttribute*, oaTreeAttributes.GetAt(i));
-		ost << "\t" << treeattribute->GetName() << "\n";
+		ost << "\t" << TSV::Export(treeattribute->GetName()) << "\n";
 	}
 
 	// Affichages des tranches
@@ -915,13 +903,13 @@ void DTAttributeSelectionsSlices::Write(ostream& ost) const
 	for (i = 0; i < oaSlices.GetSize(); i++)
 	{
 		slice = cast(KWDataTableSlice*, oaSlices.GetAt(i));
-		ost << "\t" << slice->GetClass()->GetName() << "\n";
+		ost << "\t" << TSV::Export(slice->GetClass()->GetName()) << "\n";
 	}
 }
 
 const ALString DTAttributeSelectionsSlices::GetClassLabel() const
 {
-	return "Variable pair slices";
+	return "Tree attributes slices";
 }
 
 const ALString DTAttributeSelectionsSlices::GetObjectLabel() const

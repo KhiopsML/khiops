@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -14,8 +14,8 @@ boolean Date::Init(int nYear, int nMonth, int nDay)
 	// Initialisation a invalide
 	Reset();
 
-	// L'annee doit etre comprise entre 1 et 9999
-	if (nYear < 1 or nYear > 9999)
+	// L'annee doit etre valide
+	if (nYear < 1 or nYear > DateTime::nMaxYear)
 		bOk = false;
 	// Le mois doit etre compris entre 1 et 12
 	else if (nMonth < 1 or nMonth > 12)
@@ -192,7 +192,7 @@ boolean Date::AddDays(int nValue)
 	nYear = e / 1461 - 4716 + (14 - nMonth) / 12;
 
 	// Initialisation si annee valide
-	if (1 <= nYear and nYear <= 9999)
+	if (1 <= nYear and nYear <= DateTime::nMaxYear)
 	{
 		SetYear(nYear);
 		SetMonth(nMonth);
@@ -227,7 +227,7 @@ const char* const Date::ToString() const
 	if (not Check())
 		sDate[0] = '\0';
 	else
-		sprintf(sDate, "%04d-%02d-%02d", GetYear(), GetMonth(), GetDay());
+		snprintf(sDate, BUFFER_LENGTH, "%04d-%02d-%02d", GetYear(), GetMonth(), GetDay());
 	return sDate;
 }
 
@@ -297,6 +297,37 @@ void Date::UnitTest(int nYear, int nMonth, int nDay)
 	cout << dtCopy << "\t";
 	cout << dtValue.Compare(dtCopy) << "\t";
 	cout << endl;
+}
+
+const char* const Date::TimeZoneToString(boolean bExtended) const
+{
+	char* sTimeZone = StandardGetBuffer();
+	char cSign;
+
+	if (not CheckTimeZone())
+		sTimeZone[0] = '\0';
+	else
+	{
+		if (GetTimeZoneHour() == 0 and GetTimeZoneMinute() == 0)
+		{
+			sTimeZone[0] = 'Z';
+			sTimeZone[1] = '\0';
+		}
+		else
+		{
+			if (GetTimeZoneSign() == 1)
+				cSign = '+';
+			else
+				cSign = '-';
+			if (bExtended)
+				snprintf(sTimeZone, BUFFER_LENGTH, "%c%02d:%02d", cSign, GetTimeZoneHour(),
+					 GetTimeZoneMinute());
+			else
+				snprintf(sTimeZone, BUFFER_LENGTH, "%c%02d%02d", cSign, GetTimeZoneHour(),
+					 GetTimeZoneMinute());
+		}
+	}
+	return sTimeZone;
 }
 
 void Date::Test()
@@ -376,6 +407,7 @@ void Date::Test()
 	UnitTest(2003, 12, 31);
 	UnitTest(2004, 12, 31);
 	UnitTest(2013, 4, 5);
+	UnitTest(4000, 1, 1);
 	UnitTest(9999, 1, 1);
 }
 
@@ -384,13 +416,7 @@ void Date::Test()
 
 KWDateFormat::KWDateFormat()
 {
-	nTotalCharNumber = 0;
-	cSeparatorChar = '\0';
-	nSeparatorOffset1 = 0;
-	nSeparatorOffset2 = 0;
-	nYearOffset = 0;
-	nMonthOffset = 0;
-	nDayOffset = 0;
+	Reset();
 }
 
 KWDateFormat::~KWDateFormat() {}
@@ -467,21 +493,25 @@ boolean KWDateFormat::SetFormatString(const ALString& sValue)
 
 	// Reinitialisation des caracteristiques du format si invalide
 	if (not bCheck)
-	{
-		nTotalCharNumber = 0;
-		cSeparatorChar = '\0';
-		nSeparatorOffset1 = 0;
-		nSeparatorOffset2 = 0;
-		nYearOffset = 0;
-		nMonthOffset = 0;
-		nDayOffset = 0;
-	}
+		Reset();
 	return bCheck;
 }
 
 const ALString& KWDateFormat::GetFormatString() const
 {
 	return sFormatString;
+}
+
+void KWDateFormat::Reset()
+{
+	sFormatString = "";
+	nTotalCharNumber = 0;
+	cSeparatorChar = '\0';
+	nSeparatorOffset1 = 0;
+	nSeparatorOffset2 = 0;
+	nYearOffset = 0;
+	nMonthOffset = 0;
+	nDayOffset = 0;
 }
 
 boolean KWDateFormat::IsConsistentWith(const KWDateFormat* otherFormat) const
@@ -590,11 +620,11 @@ const char* const KWDateFormat::DateToString(Date dtValue) const
 		nOffset = 0;
 		assert(nOffset == nYearOffset or nOffset == nMonthOffset or nOffset == nDayOffset);
 		if (nYearOffset == 0)
-			nOffset += sprintf(sBuffer, "%04d", dtValue.GetYear());
+			nOffset += snprintf(sBuffer, BUFFER_LENGTH, "%04d", dtValue.GetYear());
 		else if (nMonthOffset == 0)
-			nOffset += sprintf(sBuffer, "%02d", dtValue.GetMonth());
+			nOffset += snprintf(sBuffer, BUFFER_LENGTH, "%02d", dtValue.GetMonth());
 		else
-			nOffset += sprintf(sBuffer, "%02d", dtValue.GetDay());
+			nOffset += snprintf(sBuffer, BUFFER_LENGTH, "%02d", dtValue.GetDay());
 
 		// Ecriture du premier separateur optionnel
 		if (nSeparatorOffset1 == nOffset)
@@ -606,11 +636,11 @@ const char* const KWDateFormat::DateToString(Date dtValue) const
 		// Ecriture du deuxieme champ
 		assert(nOffset == nYearOffset or nOffset == nMonthOffset or nOffset == nDayOffset);
 		if (nYearOffset == nOffset)
-			nOffset += sprintf(sBuffer + nOffset, "%04d", dtValue.GetYear());
+			nOffset += snprintf(sBuffer + nOffset, BUFFER_LENGTH - nOffset, "%04d", dtValue.GetYear());
 		else if (nMonthOffset == nOffset)
-			nOffset += sprintf(sBuffer + nOffset, "%02d", dtValue.GetMonth());
+			nOffset += snprintf(sBuffer + nOffset, BUFFER_LENGTH - nOffset, "%02d", dtValue.GetMonth());
 		else
-			nOffset += sprintf(sBuffer + nOffset, "%02d", dtValue.GetDay());
+			nOffset += snprintf(sBuffer + nOffset, BUFFER_LENGTH - nOffset, "%02d", dtValue.GetDay());
 
 		// Ecriture du deuxiemme separateur optionnel
 		if (nSeparatorOffset2 == nOffset)
@@ -622,11 +652,11 @@ const char* const KWDateFormat::DateToString(Date dtValue) const
 		// Ecriture du troisieme champ
 		assert(nOffset == nYearOffset or nOffset == nMonthOffset or nOffset == nDayOffset);
 		if (nYearOffset == nOffset)
-			nOffset += sprintf(sBuffer + nOffset, "%04d", dtValue.GetYear());
+			nOffset += snprintf(sBuffer + nOffset, BUFFER_LENGTH - nOffset, "%04d", dtValue.GetYear());
 		else if (nMonthOffset == nOffset)
-			nOffset += sprintf(sBuffer + nOffset, "%02d", dtValue.GetMonth());
+			nOffset += snprintf(sBuffer + nOffset, BUFFER_LENGTH - nOffset, "%02d", dtValue.GetMonth());
 		else
-			nOffset += sprintf(sBuffer + nOffset, "%02d", dtValue.GetDay());
+			nOffset += snprintf(sBuffer + nOffset, BUFFER_LENGTH - nOffset, "%02d", dtValue.GetDay());
 	}
 	return sBuffer;
 }
@@ -699,6 +729,7 @@ void KWDateFormat::UnitTest(const ALString& sInputValue, KWDateFormat* inputForm
 	require(outputFormat != NULL);
 
 	dtInputValue.Reset();
+	dtOutputValue.Reset();
 	if (inputFormat->Check())
 		dtInputValue = inputFormat->StringToDate(sInputValue);
 	if (outputFormat->Check())

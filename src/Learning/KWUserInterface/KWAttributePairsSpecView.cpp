@@ -1,10 +1,9 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-04-25 11:10:58
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "KWAttributePairsSpecView.h"
@@ -15,7 +14,6 @@ KWAttributePairsSpecView::KWAttributePairsSpecView()
 	SetLabel("Variable pairs parameters");
 	AddIntField("MaxAttributePairNumber", "Max number of variable pairs", 0);
 	AddBooleanField("AllAttributePairs", "All pairs", false);
-	AddStringField("MandatoryAttributeInPairs", "Only pairs with variable (deprecated)", "");
 
 	// Parametrage des styles;
 	GetFieldAt("MaxAttributePairNumber")->SetStyle("Spinner");
@@ -87,17 +85,6 @@ KWAttributePairsSpecView::KWAttributePairsSpecView()
 	specificAttributePairs->GetActionAt("InsertItemAfter")->SetShortCut('I');
 	specificAttributePairs->GetActionAt("RemoveItem")->SetShortCut('R');
 
-#ifdef DEPRECATED_V10
-	// DEPRECATED V10: champ obsolete, conserve de facon cachee en V10 pour compatibilite ascendante des scenarios
-	// A suuprimer du fichier KWAttributePairsSpec.dd apres la V10
-	GetFieldAt("MandatoryAttributeInPairs")->SetVisible(false);
-	GetFieldAt("MandatoryAttributeInPairs")->SetStyle("HelpedComboBox");
-	GetFieldAt("MandatoryAttributeInPairs")->SetParameters("Attributes:Name");
-	GetFieldAt("MandatoryAttributeInPairs")
-	    ->SetHelpText("Only the pairs containing the specified variable are preprocessed"
-			  "\n (default: no specified mandatory variable)");
-#endif // DEPRECATED_V10
-
 	// ##
 }
 
@@ -126,10 +113,6 @@ void KWAttributePairsSpecView::EventUpdate(Object* object)
 
 	// ## Custom update
 
-#ifdef DEPRECATED_V10
-	editedObject->SetMandatoryAttributeInPairs(GetStringValueAt("MandatoryAttributeInPairs"));
-#endif // DEPRECATED_V10
-
 	// ##
 }
 
@@ -144,10 +127,6 @@ void KWAttributePairsSpecView::EventRefresh(Object* object)
 	SetBooleanValueAt("AllAttributePairs", editedObject->GetAllAttributePairs());
 
 	// ## Custom refresh
-
-#ifdef DEPRECATED_V10
-	SetStringValueAt("MandatoryAttributeInPairs", editedObject->GetMandatoryAttributeInPairs());
-#endif // DEPRECATED_V10
 
 	// Mise a jour du champ contenant la taille de la liste des paires
 	SetIntValueAt("SpecificPairsNumber", editedObject->GetSpecificAttributePairs()->GetSize());

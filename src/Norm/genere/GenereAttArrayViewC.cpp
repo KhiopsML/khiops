@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -9,16 +9,17 @@ void TableGenerator::GenerateAttributeArrayViewC(ostream& ost) const
 	int nCurrent;
 	Attribute* att;
 
+	GenerateCopyrightHeader(ost);
 	GenerateFileHeader(ost);
 
 	ost << ""
 	    << "\n";
-	ost << "#include \"" << GetClassName() << "ArrayView.h\""
+	ost << "#include \"" << GetArrayViewClassName() << ".h\""
 	    << "\n";
 	ost << ""
 	    << "\n";
 
-	ost << GetClassName() << "ArrayView::" << GetClassName() << "ArrayView()"
+	ost << GetArrayViewClassName() << "::" << GetArrayViewClassName() << "()"
 	    << "\n";
 	ost << "{"
 	    << "\n";
@@ -31,7 +32,7 @@ void TableGenerator::GenerateAttributeArrayViewC(ostream& ost) const
 	{
 		att = GetFieldAt(nCurrent);
 
-		if (att->GetVisible() == true)
+		if (att->GetVisible())
 		{
 			ost << "\tAdd" << att->GetFieldType() << "Field(\"" << att->GetName() << "\", \""
 			    << att->GetLabel() << "\", " << att->GetTypeVarToField(att->GetDefaultValue()) << ");"
@@ -42,7 +43,7 @@ void TableGenerator::GenerateAttributeArrayViewC(ostream& ost) const
 	    << "\n";
 	ost << "\t// Card and help prameters"
 	    << "\n";
-	ost << "\tSetItemView(new " << GetClassName() << "View);"
+	ost << "\tSetItemView(new " << GetViewClassName() << ");"
 	    << "\n";
 	ost << "\tCopyCardHelpTexts();"
 	    << "\n";
@@ -57,7 +58,7 @@ void TableGenerator::GenerateAttributeArrayViewC(ostream& ost) const
 		{
 			att = GetFieldAt(nCurrent);
 
-			if (att->GetVisible() == true and att->GetStyle() != "")
+			if (att->GetVisible() and att->GetStyle() != "")
 			{
 				ost << "\tGetFieldAt(\"" << att->GetName() << "\")->SetStyle(\"" << att->GetStyle()
 				    << "\");"
@@ -74,7 +75,7 @@ void TableGenerator::GenerateAttributeArrayViewC(ostream& ost) const
 	ost << ""
 	    << "\n";
 
-	ost << GetClassName() << "ArrayView::~" << GetClassName() << "ArrayView()"
+	ost << GetArrayViewClassName() << "::~" << GetArrayViewClassName() << "()"
 	    << "\n";
 	ost << "{"
 	    << "\n";
@@ -84,22 +85,22 @@ void TableGenerator::GenerateAttributeArrayViewC(ostream& ost) const
 	ost << ""
 	    << "\n";
 
-	ost << "Object* " << GetClassName() << "ArrayView::EventNew()"
+	ost << "Object* " << GetArrayViewClassName() << "::EventNew()"
 	    << "\n";
 	ost << "{"
 	    << "\n";
-	ost << "\treturn new " << GetClassName() << ";"
+	ost << "\treturn new " << GetModelClassName() << ";"
 	    << "\n";
 	ost << "}"
 	    << "\n";
 	ost << ""
 	    << "\n";
 
-	ost << "void " << GetClassName() << "ArrayView::EventUpdate(Object* object)"
+	ost << "void " << GetArrayViewClassName() << "::EventUpdate(Object* object)"
 	    << "\n";
 	ost << "{"
 	    << "\n";
-	ost << "\t" << GetClassName() << "* editedObject;"
+	ost << "\t" << GetModelClassName() << "* editedObject;"
 	    << "\n";
 	ost << ""
 	    << "\n";
@@ -108,14 +109,14 @@ void TableGenerator::GenerateAttributeArrayViewC(ostream& ost) const
 	ost << ""
 	    << "\n";
 	if (GetSuperClassName() != "")
-		ost << "\t" << GetSuperClassName() << "ArrayView::EventUpdate(object);\n";
-	ost << "\teditedObject = cast(" << GetClassName() << "*, object);"
+		ost << "\t" << GetArrayViewSuperClassName() << "::EventUpdate(object);\n";
+	ost << "\teditedObject = cast(" << GetModelClassName() << "*, object);"
 	    << "\n";
 	for (nCurrent = 0; nCurrent < GetFieldNumber(); nCurrent++)
 	{
 		att = GetFieldAt(nCurrent);
 
-		if (att->GetVisible() == true and not att->GetDerived())
+		if (att->GetVisible() and not att->GetDerived())
 		{
 			ost << "\teditedObject->Set" << att->GetName() << "("
 			    << "Get" << att->GetFieldType() << "ValueAt(\"" << att->GetName() << "\")"
@@ -132,11 +133,11 @@ void TableGenerator::GenerateAttributeArrayViewC(ostream& ost) const
 	ost << ""
 	    << "\n";
 
-	ost << "void " << GetClassName() << "ArrayView::EventRefresh(Object* object)"
+	ost << "void " << GetArrayViewClassName() << "::EventRefresh(Object* object)"
 	    << "\n";
 	ost << "{"
 	    << "\n";
-	ost << "\t" << GetClassName() << "* editedObject;"
+	ost << "\t" << GetModelClassName() << "* editedObject;"
 	    << "\n";
 	ost << ""
 	    << "\n";
@@ -145,14 +146,14 @@ void TableGenerator::GenerateAttributeArrayViewC(ostream& ost) const
 	ost << ""
 	    << "\n";
 	if (GetSuperClassName() != "")
-		ost << "\t" << GetSuperClassName() << "ArrayView::EventRefresh(object);\n";
-	ost << "\teditedObject = cast(" << GetClassName() << "*, object);"
+		ost << "\t" << GetArrayViewSuperClassName() << "::EventRefresh(object);\n";
+	ost << "\teditedObject = cast(" << GetModelClassName() << "*, object);"
 	    << "\n";
 	for (nCurrent = 0; nCurrent < GetFieldNumber(); nCurrent++)
 	{
 		att = GetFieldAt(nCurrent);
 
-		if (att->GetVisible() == true)
+		if (att->GetVisible())
 		{
 			ost << "\tSet" << att->GetFieldType() << "ValueAt(\"" << att->GetName() << "\", "
 			    << "editedObject->Get" << att->GetName() << "()"
@@ -168,7 +169,7 @@ void TableGenerator::GenerateAttributeArrayViewC(ostream& ost) const
 
 	ost << ""
 	    << "\n";
-	ost << "const ALString " << GetClassName() << "ArrayView::GetClassLabel() const"
+	ost << "const ALString " << GetArrayViewClassName() << "::GetClassLabel() const"
 	    << "\n";
 	ost << "{"
 	    << "\n";
@@ -179,5 +180,7 @@ void TableGenerator::GenerateAttributeArrayViewC(ostream& ost) const
 
 	ost << ""
 	    << "\n";
-	GenerateUserCodeSection(ost, "", "Method implementation");
+	GenerateUserCodeHeader(ost, "", "Method implementation");
+	ost << "\n";
+	GenerateUserCodeTrailer(ost, "", "Method implementation", true);
 }

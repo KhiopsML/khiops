@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -15,8 +15,6 @@ import javax.swing.text.PlainDocument;
 
 /**
  * Definit un element de type reel
- *
- * @author Marc Boulle
  */
 public abstract class GUIDoubleElement extends GUIElement
 {
@@ -108,10 +106,10 @@ public abstract class GUIDoubleElement extends GUIElement
                 // Appel de la methode native
                 // Remarque: on utilise Float plutot que Double pour limiter le nombre
                 // de chiffres apres la virgule a l'affichage
-                // C'est le seul endroit on on accede a la methode getDoubleValueAt, mais
-                // cela reste une solution "bricolo" pour controler le formatage de
-                // l'afficahge des reels
-                return new Float(unit.getDoubleValueAt(getIdentifier()));
+                // C'est le seul endroit on on accede a la methode getDoubleValueAt,
+                //  mais cela reste une solution "bricolo" pour controler le formatage
+                // de l'affichage des reels
+                return Float.valueOf((float)unit.getDoubleValueAt(getIdentifier()));
         }
 
         /**
@@ -163,8 +161,6 @@ public abstract class GUIDoubleElement extends GUIElement
 /**
  * Definit l'element graphique par defaut permettant l'affichage de reels. Cette
  * classe utilise un JTextField.
- *
- * @author Marc Boulle
  */
 class GUIDoubleElementTextField extends GUIDoubleElement
 {
@@ -177,8 +173,7 @@ class GUIDoubleElementTextField extends GUIDoubleElement
         protected JComponent buildComponent() { return getDefaultComponent(); }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -136,14 +136,14 @@ KWObject* KWMTDatabaseStream::ReadFromBuffer(const char* sBuffer)
 	int i;
 
 	require(sBuffer != NULL);
-	require(rootMultiTableMapping->GetDataTableDriver() != NULL);
+	require(mainMultiTableMapping->GetDataTableDriver() != NULL);
 
 	// On repositionne le flag d'erreur a false, pour permettre des lectures sucessives
 	bIsError = false;
 	bSecondaryRecordError = false;
 
 	// Alimentation du buffer en entree
-	cast(KWDataTableDriverStream*, rootMultiTableMapping->GetDataTableDriver())->FillBufferWithRecord(sBuffer);
+	cast(KWDataTableDriverStream*, mainMultiTableMapping->GetDataTableDriver())->FillBufferWithRecord(sBuffer);
 
 	// Lecture de l'objet
 	kwoObject = Read();
@@ -173,13 +173,13 @@ boolean KWMTDatabaseStream::WriteToBuffer(KWObject* kwoObject, char* sBuffer, in
 {
 	boolean bOk;
 
-	require(rootMultiTableMapping->GetDataTableDriver() != NULL);
+	require(mainMultiTableMapping->GetDataTableDriver() != NULL);
 
 	// On repositionne le flag d'erreur a false, pour permettre des ecritures sucessives
 	bIsError = false;
 
 	// Vidage du buffer en sortie
-	cast(KWDataTableDriverStream*, rootMultiTableMapping->GetDataTableDriver())->ResetOutputBuffer();
+	cast(KWDataTableDriverStream*, mainMultiTableMapping->GetDataTableDriver())->ResetOutputBuffer();
 
 	// Ecriture de l'objet dans le buffer du stream
 	Write(kwoObject);
@@ -187,7 +187,7 @@ boolean KWMTDatabaseStream::WriteToBuffer(KWObject* kwoObject, char* sBuffer, in
 	// On recupere le resultat
 	bOk = not IsError();
 	if (bOk)
-		bOk = cast(KWDataTableDriverStream*, rootMultiTableMapping->GetDataTableDriver())
+		bOk = cast(KWDataTableDriverStream*, mainMultiTableMapping->GetDataTableDriver())
 			  ->FillRecordWithBuffer(sBuffer, nMaxBufferLength);
 	return bOk;
 }

@@ -1,12 +1,8 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
-/******************************************************************************
- * Khiops Native Interface (KNI)
- * Copyright (c) 2021 Orange Labs. All rights reserved.
- *****************************************************************************/
 
 /* Use of C linkage from C++ */
 #ifdef __cplusplus
@@ -105,16 +101,14 @@ extern "C"
 #define KNI_ErrorLogFile (-25)                  /* Bad error file */
 
 	/*
-	 * Version of KNI
-	 */
-#define KNI_VERSION_10_0 100
-#define KNI_VERSION_9_0 90
-#define KNI_VERSION_8_0 80
-#define KNI_VERSION_7_5 75
-
-	/*
 	 * Get version of KNI
-	 * Enable to check the major version of the DLL
+	 *
+	 * Enable to check the major and minor version of the DLL, which is the same as that of the Khiops tool
+	 * The version is given as an integer (10*major + minor) to ease comparisons
+	 * Exemple:
+	 *   75 for Khiops 7.5
+	 *   100 for Khiops 10.0
+	 *   101 for Khiops 10.1
 	 *
 	 * Return code:
 	 *    version number, an integer constant
@@ -223,11 +217,14 @@ extern "C"
 	 *  . declare each external tables
 	 * Secondary tables are identified by a data path (name of the Entity or Table variable of the
 	 * stream main dictionary).
-	 * External tables are identified by a data root (root dictionary of the external table) and
-	 * optionally a data path for secondary external tables.
-	 * Secondary records related to the main record to recode just need a data path to be identified.
-	 * For multi-table schemas beyond the star schema (snowflake schema), the variables names in the
-	 * data path are separated by back-quote characters.
+	 * External tables are identified by a data root (root dictionary of the external table) plus
+	 * if necessary a data path for secondary external tables.
+	 * Secondary records related to the main record to be recoded need only a data path to be identified.
+	 * For multi-table schemas beyond the star schema (snowflake schema), the variable names in the
+	 * data path are separated by a slash '/'.
+	 * If a dictionary or variable in a data path contains back-quote or slash characters,
+	 * it must be enclosed between back-quotes characters, with doubled internal back-quotes characters,
+	 * as for the syntax of dictionary variables.
 	 * For single-table schema, none of the methods dedicated to the multi-table case can be used.
 	 * See Khiops Guide and tutorial for detailed specification of data root and data path.
 	 **********************************************************************************************/

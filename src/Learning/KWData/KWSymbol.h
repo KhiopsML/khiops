@@ -1,10 +1,11 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
 class Symbol;
+class SymbolObject;
 class SymbolVector;
 class KWSymbolData;
 class KWSymbolDictionary;
@@ -47,6 +48,7 @@ public:
 	// Constructeur/destructeur
 	Symbol();
 	Symbol(const char* sString);
+	Symbol(const char* sString, int nLength);
 	Symbol(const Symbol& sSymbol);
 	~Symbol();
 
@@ -126,19 +128,19 @@ public:
 	/////////////////////////////////////////////////////////
 	//// Implementation
 
-#if defined __UNIX__ and defined __C11__
+#ifdef __C11__
 	// Constructeur et affectation de deplacement, pour l'optimisation de la
 	// gestion des variables temporaires par le compilateur
-	Symbol(Symbol&& sSymbol);
-	Symbol& operator=(Symbol&& sSymbol);
-#endif // defined __UNIX__ and defined __C11__
+	Symbol(Symbol&& sSymbol) noexcept;
+	Symbol& operator=(Symbol&& sSymbol) noexcept;
+#endif
 
 protected:
 	// Implementation specifique en protected pour interdire l'utilisation de *
 	int* operator*() const;
 
 	// Gestion dans le dictionnaire centralise des donnees des Symbol
-	void NewSharedSymbolData(const char* sValue);
+	void NewSharedSymbolData(const char* sValue, int nLength);
 	void DeleteSharedSymbolData();
 
 	// Donnees portee par la valeur d'un Symbol
@@ -172,6 +174,7 @@ public:
 	SymbolObject();
 	~SymbolObject();
 
+	// Valeur
 	void SetSymbol(const Symbol& sValue);
 	Symbol& GetSymbol() const;
 
@@ -286,6 +289,35 @@ int SymbolVectorCompare(const void* elem1, const void* elem2);
 ////////////// Implementation
 
 ///////////////////////////////////////////////////////////////////
+// Classe KWSymbolAsString
+// Sous-classe de ALString dediee a la manipulation des Symbol
+// Permet d'optimiser la creation d'une ALString temporaire a partir d'un Symbol en
+// recuperant son contenu (chaine de caracteres et longueur) sans allocation ni calcul.
+// Le destructeur dereference ce contenu pour ne pas le desallouer.
+// Attention, usage expert. Les chaines ainsi constituees ne doivent etre utilisees
+// que pour acceder aux methodes const de ALString qui ne modifient pas sont contenu.
+// Sinon, cela entrainera des corruptions dans la memoire.
+// Le bon usage est de declarer une variable locale de travail en const:
+//   const KWSymbolAsString sTmpValue(sMySymbol);
+class KWSymbolAsString : public ALString
+{
+public:
+	// Constructeur, referencant les donnees internes d'un Symbol
+	inline KWSymbolAsString(Symbol sValue)
+	{
+		nDataLength = sValue.GetLength();
+		nAllocLength = nDataLength;
+		pchData = (char*)sValue.GetValue();
+	}
+
+	// Destructeur, dereferencant ses donnees internes pour ne pas les desallouer
+	inline ~KWSymbolAsString()
+	{
+		Init();
+	};
+};
+
+///////////////////////////////////////////////////////////////////
 // Classe KWSymbolData
 // Cette classe est une classe privee, dont l'unique role est de definir
 //  les donnees portee par un Symbol pour sa gestion automatique
@@ -298,18 +330,24 @@ class KWSymbolData : public SystemObject
 	/////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Longueur de la chaine de caracteres
+	inline int GetLength() const
+	{
+		return nLength;
+	}
+
 	// Acces a la valeur chaine de caracteres
-	inline char* GetString()
+	inline const char* GetString() const
 	{
 		return cFirstStringChar;
 	}
-	inline char GetAt(int nIndex)
+	inline char GetAt(int nIndex) const
 	{
 		return cFirstStringChar[nIndex];
 	}
 
 	// Gestion des donnees des symboles
-	static KWSymbolData* NewSymbolData(const char* sValue);
+	static KWSymbolData* NewSymbolData(const char* sValue, int nLength);
 	static void DeleteSymbolData(KWSymbolData* pSymbolData);
 
 	// Acces au symbol special StarValue (gere a part, different des symboles standards)
@@ -340,9 +378,13 @@ protected:
 	// hashage
 	UINT nHashValue;
 
+	// Taille de la chaine de caractere correspondant a la valeur du Symbol
+	// Permet d'exploiter plus directement les Symbol via des ALString
+	int nLength;
+
 	// Stockage de la valeur du symbole (de taille quelconque)
-	// On utilise une taille de 4 pour que la memoire total soit un multiple de 8 octets en 64 bits
-	static const int nMinStringSize = 4;
+	// On utilise une taille de 8 pour que la memoire total soit un multiple de 8 octets en 64 bits
+	static const int nMinStringSize = 8;
 	char cFirstStringChar[nMinStringSize]; // Pour acceder au debut de la chaine
 
 	friend class Symbol;
@@ -383,7 +425,7 @@ protected:
 	KWSymbolDataPtr Lookup(const char* key) const;
 
 	// Ajout d'un nouveau Symbol, ou acces a un Symbol existant
-	KWSymbolDataPtr AsSymbol(const char* key);
+	KWSymbolDataPtr AsSymbol(const char* key, int nLength);
 
 	// Supression des Symbol
 	void RemoveSymbol(KWSymbolDataPtr symbolData);
@@ -518,8 +560,8 @@ public:
 	int GetSize() const;
 
 	// Reimplementation des methodes virtuelles
-	void SerializeObject(PLSerializer*, const Object*) const override;
-	void DeserializeObject(PLSerializer*, Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	// Methode de test
 	static void Test();
@@ -565,7 +607,17 @@ inline Symbol::Symbol(const char* sString)
 	if (sString[0] == '\0')
 		symbolData = NULL;
 	else
-		NewSharedSymbolData(sString);
+		NewSharedSymbolData(sString, (int)strlen(sString));
+}
+
+inline Symbol::Symbol(const char* sString, int nLength)
+{
+	require(sString != NULL);
+
+	if (sString[0] == '\0')
+		symbolData = NULL;
+	else
+		NewSharedSymbolData(sString, nLength);
 }
 
 inline Symbol::Symbol(const Symbol& sSymbol)
@@ -593,14 +645,19 @@ inline void Symbol::Reset()
 	symbolData = NULL;
 }
 
-#if defined __UNIX__ and defined __C11__
-inline Symbol::Symbol(Symbol&& sSymbol)
+inline int Symbol::GetSymbolNumber()
+{
+	return sdSharedSymbols.GetCount();
+}
+
+#ifdef __C11__
+inline Symbol::Symbol(Symbol&& sSymbol) noexcept
 {
 	symbolData = sSymbol.symbolData;
 	sSymbol.symbolData = NULL;
 }
 
-inline Symbol& Symbol::operator=(Symbol&& sSymbol)
+inline Symbol& Symbol::operator=(Symbol&& sSymbol) noexcept
 {
 	if (this != &sSymbol)
 	{
@@ -611,7 +668,7 @@ inline Symbol& Symbol::operator=(Symbol&& sSymbol)
 	}
 	return (*this);
 }
-#endif // defined __UNIX__ and defined __C11__
+#endif // defined __C11__
 
 inline Symbol& Symbol::operator=(const char* sString)
 {
@@ -622,7 +679,7 @@ inline Symbol& Symbol::operator=(const char* sString)
 	if (sString[0] == '\0')
 		symbolData = NULL;
 	else
-		NewSharedSymbolData(sString);
+		NewSharedSymbolData(sString, int(strlen(sString)));
 	return (*this);
 }
 
@@ -694,7 +751,7 @@ inline const char* Symbol::GetValue() const
 
 inline int Symbol::GetLength() const
 {
-	return (symbolData ? (int)strlen(symbolData->GetString()) : 0);
+	return (symbolData ? symbolData->GetLength() : 0);
 }
 
 inline char Symbol::GetAt(int nIndex) const
@@ -710,11 +767,11 @@ inline void* Symbol::GetNumericKey() const
 	return symbolData;
 }
 
-inline void Symbol::NewSharedSymbolData(const char* sValue)
+inline void Symbol::NewSharedSymbolData(const char* sValue, int nLength)
 {
 	require(sValue != NULL);
 	require(sValue[0] != '\0');
-	symbolData = sdSharedSymbols.AsSymbol(sValue);
+	symbolData = sdSharedSymbols.AsSymbol(sValue, nLength);
 	++symbolData->lRefCount;
 }
 

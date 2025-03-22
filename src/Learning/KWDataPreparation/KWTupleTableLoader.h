@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -64,6 +64,12 @@ public:
 	// Il doit y avoir la base d'objet en entree et/ou l'attribut supplementaire
 	// et ses valeurs, specifies de facon coherente
 	boolean CheckInputs() const;
+
+	// Parametrage de la verification ou non de la coherence entre la classe en entree et les objets de la base
+	// Methode avancee, utile si l'on change la classe apres avoir avoir charge les objets de la base
+	// Attention: usage risque
+	void SetCheckDatabaseObjectClass(boolean bValue);
+	boolean GetCheckDatabaseObjectClass() const;
 
 	// Supression de tous les parametres en entree
 	void RemoveAllInputs();
@@ -172,6 +178,7 @@ protected:
 	const SymbolVector* svInputExtraAttributeSymbolValues;
 	const ContinuousVector* cvInputExtraAttributeContinuousValues;
 	const KWTupleTable* inputExtraAttributeTupleTable;
+	boolean bCheckDatabaseObjectsClass;
 };
 
 //////////////////////////////////////////////////////

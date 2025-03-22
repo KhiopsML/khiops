@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -23,12 +23,11 @@ public:
 	// Informations sur les fichiers
 	// Pas d'emission de messages d'erreur dans ces methodes
 
-	// Test d'existence d'un fichier (ou d'un directory)
-	static boolean Exist(const ALString& sPathName);
+	// Test d'existence d'un fichier
+	static boolean FileExists(const ALString& sPathName);
 
-	// Test si fichier ou repertoire
-	static boolean IsFile(const ALString& sPathName);
-	static boolean IsDirectory(const ALString& sPathName);
+	// Test d'existence d'un repertoire
+	static boolean DirExists(const ALString& sPathName);
 
 	// Changement du mode d'un fichier en lecture seulement ou lecture/ecriture sinon
 	// Renvoie false si changement non effectue
@@ -103,6 +102,10 @@ public:
 	static boolean GetDirectoryContent(const ALString& sPathName, StringVector* svDirectoryNames,
 					   StringVector* svFileNames);
 
+	// Idem GetDirectoryContent avec prise en compte des symlinks sur linux
+	static boolean GetDirectoryContentExtended(const ALString& sPathName, StringVector* svDirectoryNames,
+						   StringVector* svFileNames);
+
 	// Creation d'un repertoire
 	// Indique en sortie si le repertoire existe, sans message d'erreur
 	static boolean MakeDirectory(const ALString& sPathName);
@@ -159,6 +162,8 @@ public:
 	static const ALString BuildFileName(const ALString& sFilePrefix, const ALString& sFileSuffix);
 
 	// Construction d'un chemin complet de fichier
+	// Si le FileName est lui-meme un chemin non absolu, cela permet egalement de concatener le chemin
+	// en sortie au chemin en entree
 	static const ALString BuildFilePathName(const ALString& sPathName, const ALString& sFileName);
 
 	// Indique si un chemin est absolu (comprend la racine)
@@ -329,13 +334,19 @@ public:
 	// Renvoie vide si l'URI est mal formee
 	static const ALString GetURIHostName(const ALString& sFileURI);
 
-	// Extraction du nom du fichier a partir de l'URI
+	// Extraction du chemin du fichier a partir de l'URI
 	// Renvoie le chemin en entree si l'URI est mal formee
 	static const ALString GetURIFilePathName(const ALString& sFileURI);
+
+	// Renvoie true si le fichier est local. Rend local si c'est un fichier standard
+	// ou si c'est un fichier distant (file) sur le localhost
+	static boolean IsLocalURI(const ALString& sFileURI);
 
 	// Mode d'affichage des libelles utilisateurs d'URI (defaut: true)
 	// Si true, on ne rend la partie HostName de l'URI que si le HostName n'est pas local
 	// Si false, on rend l'URI complete avec son hostname
+	// TODO dans les taches paralleles, il faudrait initialiser automatiquement le smartlabel suivant le type de
+	// systeme (cluster ou machine)
 	static boolean GetURISmartLabels();
 	static void SetURISmartLabels(boolean bValue);
 
@@ -358,6 +369,9 @@ public:
 
 	// Prefixe des URI des fichiers distants (file)
 	static const ALString sRemoteScheme;
+
+	// Separateur des fichiers dans les chemins dans le cas d'une URI
+	static char GetURIFileSeparator();
 
 protected:
 	friend void FileServiceApplicationTmpDirAutomaticRemove();
@@ -471,6 +485,9 @@ public:
 	// Libelles utilisateurs
 	const ALString GetClassLabel() const override;
 	const ALString GetObjectLabel() const override;
+
+	// Test de la classe
+	static boolean Test();
 
 	////////////////////////////////////////////////////////
 	//// Implementation

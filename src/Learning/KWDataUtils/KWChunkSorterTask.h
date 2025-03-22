@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -12,6 +12,7 @@
 #include "KWSortedChunkBuilderTask.h"
 #include "KWArtificialDataset.h"
 #include "PLFileConcatenater.h"
+#include "MemoryBufferedFile.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWChunkSorterTask
@@ -103,6 +104,7 @@ public:
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
+
 protected:
 	// Algorithme
 	// Le maitre parcourt les fichiers des buckets, les fait trier par les esclaves,
@@ -125,8 +127,6 @@ protected:
 
 	// Specification de la tache
 	boolean bIsInputHeaderLineUsed;
-	char cInputSeparator;
-	char cOutputSeparator;
 	KWSortBuckets* buckets;
 	longint lLineNumber;
 	longint lKeySize;
@@ -141,16 +141,18 @@ protected:
 	// Resultat en plus du fichier trie
 	longint lSortedLinesNumber;
 
+	/////////////////////////////////////////////////////////////////
+	// Variables du Slave
+	boolean bSameSeparator;
+
 	///////////////////////////////////////////////////////////
 	// Parametres partages
 
 	// En entree des taches
 	// Pour des raisons d'optimisation, le chunk a trier peut etre constitue
 	// d'un ou plusieurs fichiers constitues par une tache precedente
-	PLShared_Int input_nBucketIndex;            // Index du bucket a trier
-	PLShared_InputBufferedFile input_inputFile; // Fichier a trier
-	PLShared_StringVector input_svFileNames;    // Liste des noms des fichier contituant le chunk a trier
-	PLShared_Char input_cOutputSeparator;       // Separateur du fichier de sortie
+	PLShared_Int input_nBucketIndex;         // Index du bucket a trier
+	PLShared_StringVector input_svFileNames; // Liste des noms des fichier constituant le chunk a trier
 
 	// En sortie des taches
 	PLShared_Int output_nBucketIndex; // Index du bucket trie (recopie d'apres la variable correspondante en entree)
@@ -162,18 +164,16 @@ protected:
 	PLShared_Boolean shared_bHeaderLineUsed;
 	PLShared_Boolean shared_bOnlyOneBucket;
 	PLShared_Longint shared_lBucketSize;
+	PLShared_Char shared_cOutputSeparator; // Separateur du fichier de sortie
+	PLShared_Char shared_cInputSeparator;  // Separetur du fichier d'entree
 
 	/////////////////////////////////////////////////////////////////
 	// Methodes techniques
 
-	// Remplacement de tous les separateur de champ cOriginalSeparator par cNewSeparator dans cvLineToWrite
-	// Prend en compte les double-quotes. Ils delimitent un champ qui contient un separateur (celui-ci ne sera pas
-	// remplace). C'est egalement le caracter d'echapement pour le double-quote
-	void ReplaceSeparator(CharVector* cvLineToWrite, char cOriginalSeparator, char cNewSeparator) const;
-
 	// Saut d'un champ a partir de l'indice i
 	// Prend en compte les double-quotes (Utilise dans la methode ReplaceSeparator)
-	void SkipField(CharVector* cvLineToWrite, char cOriginalSeparator, int& nPos) const;
+	// On reproduit ici le comportement de InputBufferedFile::SkipField
+	static void SkipField(CharVector* cvLineToWrite, char cOriginalSeparator, int& nPos);
 };
 
 ////////////////////////////////////////////////////////////

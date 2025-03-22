@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -12,6 +12,7 @@ int TaskProgression::nMaxDisplayedLevelNumber = 20;
 int TaskProgression::nCurrentLevel = -1;
 ALString TaskProgression::sTitle = "";
 clock_t TaskProgression::tLastDisplayTime = 0;
+longint TaskProgression::lDisplayFreshness = 0;
 StringVector TaskProgression::svLastDisplayedMainLabels;
 IntVector TaskProgression::ivLastDisplayedProgressions;
 StringVector TaskProgression::svLastDisplayedLabels;
@@ -22,6 +23,7 @@ clock_t TaskProgression::tLastInterruptionTest = 0;
 boolean TaskProgression::bIsInterruptionRequested = false;
 longint TaskProgression::lInterruptionRequestNumber = 0;
 longint TaskProgression::lInterruptionRequestIndex = 0;
+boolean TaskProgression::bInterruptible = true;
 clock_t TaskProgression::tStartRequested = 0;
 const double TaskProgression::dMinElapsedTime = 0.3;
 boolean TaskProgression::bIsManagerStarted = false;
@@ -75,6 +77,11 @@ boolean TaskProgression::IsInterruptionRequested()
 	clock_t tTime;
 	double dElapsedTime;
 
+	// On renvoie false tout de suite si les taches ne sont pas interruptibles
+	// Sauf si une interruption a ete forcee par la methode ForceInterruptionRequested
+	if (not bInterruptible and not bIsInterruptionRequested)
+		return false;
+
 	// Incrementation du nombre de demandes d'interruptions
 	lInterruptionRequestNumber++;
 
@@ -100,6 +107,7 @@ boolean TaskProgression::IsInterruptionRequested()
 		}
 
 		// Test d'interruption utilisateur
+		// Comme le TaskProgressionManager peut ne pas etre reactif, on temporise pour ne pas tester trop souvent
 		DifferedStart();
 		if (bIsManagerStarted)
 		{
@@ -579,4 +587,9 @@ void TaskProgression::Test()
 	// Message sur le taux de progression final
 	Global::AddSimpleMessage(sTmp +
 				 "Pourcentage effectue: " + IntToString(int(nOuterLoop * 100.0 / nMaxOuterLoop)) + "%");
+}
+
+void TaskProgression::ForceInterruptionRequested()
+{
+	bIsInterruptionRequested = true;
 }

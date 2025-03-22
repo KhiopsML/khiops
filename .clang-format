@@ -2,6 +2,7 @@
 BasedOnStyle: LLVM
 Language: Cpp
 ColumnLimit: 120
+ReflowComments: false
 IndentWidth: 8
 AccessModifierOffset: -8
 BreakBeforeBraces: Allman
@@ -12,6 +13,7 @@ AlignOperands: true
 SortIncludes: false
 UseTab: ForContinuationAndIndentation
 AllowShortFunctionsOnASingleLine: Empty
+WhitespaceSensitiveMacros: [KHIOPS_STR]
 ---
 BasedOnStyle: Mozilla
 Language: Java

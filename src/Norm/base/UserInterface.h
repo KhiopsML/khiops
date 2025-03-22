@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -26,16 +26,16 @@ class UIAction;
 #include "Vector.h"
 #include "Ermgt.h"
 #include "TaskProgression.h"
-#include "LMLicenseService.h"
 #include "PLRemoteFileService.h"
 #include "FileService.h"
 #include "CommandLine.h"
+#include "CommandFile.h"
 
 // Directive de compilation dediee au developpement des composants UI
-// Seul la librairie Base a besoin effectivement de <jni.h> pour etre compilee
+// Seule la librairie Base a besoin effectivement de <jni.h> pour etre compilee
 // (donc du define UIDEV)
 // Les sources utilisant la librairie Base n'ont besoin que du header et des
-// psuedo-declaration a des pointeurs JNI qui ne sont jamais accedes
+// pseudo-declarations a des pointeurs JNI qui ne sont jamais accedes
 #ifdef UIDEV
 #include "jni_wrapper.h"
 // Pointeur vers les fonctions java
@@ -169,9 +169,6 @@ public:
 	//
 	const ALString& GetHelpText() const;
 
-	// Ajout de texte pour l'aide (par concatenation, sans retour a la ligne)
-	void AddHelpText(const ALString& sValue);
-
 	// Style d'un composant (aucun par defaut)
 	/*! Le style permet d'influer sur le choix de representation du
 	 composant par l'interface.
@@ -210,6 +207,7 @@ public:
 
 	// Si on echoue a passer en mode Graphic (probleme java), on passe
 	// inconditionnellement en Textual et on renvoie false
+	// Les taches sont interruptible par l'utilisateur uniquement en mode Graphic
 	static boolean SetUIMode(int nValue);
 	static int GetUIMode();
 
@@ -235,6 +233,18 @@ public:
 	// Indique si on est en mode batch (defaut: false)
 	// Ce mode peut etre modifie suite a un parametrage de la ligne de commande
 	static boolean IsBatchMode();
+
+	// Indicateur du mode de l'outil avec gestion du mode fast exist pour l'execution d'un scenario
+	// En mode fast exit a true (par defaut)
+	// - lors de l'execution d'un scenario en mode batch, on arrete des qu'une erreur applicative est detectee
+	// - on sort avec un exit code 0, avec dans le log la premiere erreur applicative detectee
+	//   - cela evite la sortie en fatal error, qui est plutot reservee au cas d'un scenario vraiment invalide
+	//   - cela est suffisant en informant correctement l'utilisateur sur la nature de l'erreur
+	// En mode fast exit a false
+	// - on continue l'execution du scenario
+	// - cela permet l'utilisation de scenarios testant de nombreux type d'erreur
+	static void SetFastExitMode(boolean bValue);
+	static boolean GetFastExitMode();
 
 	// Indique si le mode textuel peut-etre utilise de facon interactive
 	// avec des saisies d'actiosn ou de valeurs de champs depuis une fenetre shell
@@ -304,7 +314,7 @@ public:
 
 	// Obtention de l'environnement Java JNI, utile pour toutes les methodes JNI
 	// (l'environnement est alloue a la premiere utilisation, et desalloue
-	// automatiquement des qu'il n'y a plus de UIObject en memoire
+	// automatiquement des qu'il n'y a plus de UIObject en memoire)
 	static JNIEnv* GetJNIEnv();
 
 	// Dechargement de la dll JVM si necessaire
@@ -373,16 +383,18 @@ protected:
 	//      <ListIdentifierPath>.List.Index <value>  // List index comment
 	//      <ListIdentifierPath>.List.Key <value>  // List key comment
 
-	// Ouverture des fichiers d'entree-sortie des commandes
-	static boolean OpenInputCommandFile(const ALString& sFileName);
-	static boolean OpenOutputCommandFile(const ALString& sFileName);
+	// Parametrage des options de la ligne de commande
+	static boolean InputCommand(const ALString& sFileName);
+	static boolean OutputCommand(const ALString& sFileName);
+	static boolean OutputCommandNoReplay(const ALString& sFileName);
+	static boolean JsonCommand(const ALString& sFileName);
 	static boolean ReplaceCommand(const ALString& sSearchReplacePattern);
 	static boolean BatchCommand(const ALString& sParameter);
 	static boolean ErrorCommand(const ALString& sErrorLog);
 	static boolean TaskProgressionCommand(const ALString& sTaskFile);
 
-	// Fermeture des fichiers d'entree-sortie des commandes
-	static void CloseCommandFiles();
+	// Nettoyage de la gestion de la ligne de commande, fermeture des fichiers ouverts...
+	static void CleanCommandLineManagement();
 
 	// Fonction de sortie utilisateur pour fermer les fichiers d'entre-sortie de commande
 	static void ExitHandlerCloseCommandFiles(int nExitCode);
@@ -401,30 +413,8 @@ protected:
 	// Conditionne par le mode batch
 	static void InitializeMessageManagers();
 
-	/////////////////////////////////////////////////////////////
-	// Personnalisation des fichiers de commandes en entree par des
-	// paires (Search value, Replace value).
-	// Chaque paire est appliquee sur les operandes de chaque ligne de commande en
-	// entree avant son execution
-
-	// Ajout d'une paire (SearchValue, ReplaceValue) pour la personnalisation des commandes en entree
-	static void AddInputSearchReplaceValues(const ALString& sSearchValue, const ALString& sReplaceValue);
-
-	// Application des recherche/remplacement de valeurs successivement sur une commande
-	static const ALString ProcessSearchReplaceCommand(const ALString& sInputCommand);
-
-	// Nombre de paires de personnalisation
-	static int GetInputSearchReplaceValueNumber();
-
-	// Acces aux valeurs d'une paire de personnalisation
-	static const ALString& GetInputSearchValueAt(int nIndex);
-	static const ALString& GetInputReplaceValueAt(int nIndex);
-
-	// Nettoyage de toutes les paires
-	static void DeleteAllInputSearchReplaceValues();
-
 	// Verifie que les noms de fichiers passes en parametres sont coherents
-	static boolean CheckOptions(const ObjectArray& oaOptions);
+	static boolean CheckCommandLineOptions(const ObjectArray& oaOptions);
 
 	// Attributs d'instance
 	ALString sLabel;
@@ -441,24 +431,18 @@ protected:
 	static int nInstanceNumber;
 	static boolean bVerboseCommandReplay;
 	static boolean bBatchMode;
+	static boolean bOutputCommandNoReplay;
+	static boolean bFastExitMode;
 	static boolean bTextualInteractiveModeAllowed;
 	static ALString sIconImageJarPath;
-	static ALString sLocalInputCommandsFileName;
-	static ALString sLocalOutputCommandsFileName;
-	static ALString sInputCommandFileName;
-	static ALString sOutputCommandFileName;
 	static ALString sLocalErrorLogFileName;
 	static ALString sErrorLogFileName;
 	static ALString sTaskProgressionLogFileName;
 	static CommandLine commandLineOptions;
+	static boolean bNoReplayMode;
 
-	// Fichiers de gestion des scenarii
-	static FILE* fInputCommands;
-	static FILE* fOutputCommands;
-
-	// Gestion des chaines des patterns a remplacer par des valeurs dans les fichiers d'input de scenario
-	static StringVector svInputCommandSearchValues;
-	static StringVector svInputCommandReplaceValues;
+	// Gestion des fichiers de commande
+	static CommandFile commandFile;
 
 	// Dictionnaire de bufferisation des commandes de selection d'index dans les listes
 	// Permet de ne memoriser que la derniere selection avant une action, et evite
@@ -992,6 +976,18 @@ public:
 	UIFileChooserCard();
 	~UIFileChooserCard();
 
+	// Style: valeurs possibles
+	//  FileChooser: ouverture directe du FileChooser (defaut)
+	//  vide: ouverture d'une boite de dialogue ne comportant qu'un seul champ
+	// Le style vide est utile pur des environnement de type cloud, pour permettre de specifier un path dans
+	// le systeme de gestion de fichier du cloud. Ainsi, le champ de la boite de dialogue peut etre saisi soit
+	// directement avec un URI, soit via un bouton FileChooser
+
+	// Style par defaut (par defaut: FileChooser)
+	// Permet de changer le style utilise lors de la creation des objets UIFileChooserCard
+	static void SetDefaultStyle(const ALString& sValue);
+	static const ALString& GetDefaultStyle();
+
 	// Ouverture d'une boite de dialogue permettant de choisir un nom de fichier ou de repertoire
 	// Entree:
 	//   . DialogBoxTitle: titre de la boite de dialogue
@@ -1030,11 +1026,17 @@ protected:
 	// d'ouvrir le FileChooser. Dans cette version, on ouvre directement le FileChooser du systeme, ce  qui
 	// simplifie l'ergonomie en faisant economiser deux clics, pour ouvir et fermer le FileChooser
 
+	// Redefinition de l'action de sortie, associee au choix No
+	void EventExit() override;
+
 	// Action OK, pour compatibilite ascendante avec les anciennes boite de dialogue
 	void OK();
 
 	// Resultat de confirmation
 	boolean bConfirmed;
+
+	// Style par defaut
+	static ALString sDefaultStyle;
 };
 
 ///////////////////////////////////////////////////////////////////
@@ -1131,7 +1133,7 @@ public:
 	void SetLastColumnExtraWidth(int nValue);
 	int GetLastColumnExtraWidth() const;
 
-	// Redefinition du SetEditable (pour la propagation aux composant et les
+	// Redefinition du SetEditable (pour la propagation aux composants et les
 	// actions d'edition de la liste)
 	void SetEditable(boolean bValue) override;
 
@@ -1547,6 +1549,9 @@ public:
 
 	// Style: par defaut TextField (ou vide)
 	// Valeurs possibles: TextField, ComboBox, EditableComboBox, RadioButton
+	//
+	// Pour le style ComboBox, EditableComboBox ou RadioButton, les Parameters contiennent
+	//   la liste des valeurs separees par des '\n' (exemple: "R\nG\nB")
 
 	// Valeur par defaut
 	void SetDefaultValue(char cValue);
@@ -1589,8 +1594,10 @@ public:
 	~UIIntElement();
 
 	// Style: par defaut TextField (ou vide)
-	// Valeurs possibles: TextField, ComboBox, EditableComboBox, RadioButton,
-	//                    Spinner, Slider
+	// Valeurs possibles: TextField, ComboBox, EditableComboBox, RadioButton, Spinner, Slider
+	//
+	// Pour le style ComboBox, EditableComboBox ou RadioButton, les Parameters contiennent
+	//   la liste des valeurs separees par des '\n' (exemple: "1\n2\n3")
 
 	// Valeur par defaut
 	void SetDefaultValue(int nValue);
@@ -1646,7 +1653,14 @@ public:
 	~UIDoubleElement();
 
 	// Style: par defaut TextField (ou vide)
-	// Valeurs possibles: TextField, ComboBox, EditableComboBox, RadioButton
+	// Valeurs possibles: TextField, ComboBox, EditableComboBox, RadioButton, Spinner
+	//
+	// Pour le style ComboBox, EditableComboBox ou RadioButton, les Parameters contiennent
+	//   la liste des valeurs separees par des '\n' (exemple: "1\n2\n3")
+	//
+	// Pour le style Spinner, les Parameters contiennent le nombre de chiffre apres la virgule a a afficher (defaut:
+	// 0) Par exemple, si on precise 2, les reel seront affiches au 1/100 pres et on pourra les choisir avec cette
+	// precision
 
 	// Valeur par defaut
 	void SetDefaultValue(double dValue);
@@ -1704,8 +1718,10 @@ public:
 	////////////////////////////////////////////////////////////////////////
 	// Style: par defaut vide
 	// Valeurs possibles:
-	//     vide: action maquettee dans les menus, et en plus dans les popup
-	//           pour les actions de liste
+	//     vide: action maquettee dans les menus, y compris dans les UIList
+	//           pour les actions d'edition predefinies
+	//     PopupMenu: action maquettee dans les menus popup dans la cas d'une
+	//           action de UIList
 	//     Button: action maquettee sous forme de boutton
 	//     SmallButton: action maquettee sous forme de boutton de plus petite taille
 	//                  et insere a gauche dans la colonne des libelles

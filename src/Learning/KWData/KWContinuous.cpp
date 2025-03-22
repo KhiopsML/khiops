@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -728,10 +728,10 @@ const char* const KWContinuous::ContinuousToString(Continuous cValue)
 		sBuffer[0] = '0';
 		sBuffer[1] = '\0';
 	}
-#ifdef __UNIX__
-	else if (isnan(cValue))
-#else
+#ifdef _WIN32
 	else if (_isnan(cValue))
+#else
+	else if (isnan(cValue))
 #endif
 	{
 		sBuffer[0] = 'N';
@@ -1085,7 +1085,7 @@ int KWContinuous::StringToContinuousError(const char* const sValue, Continuous& 
 
 		// On saute les blancs initiaux
 		nOffset = 0;
-		while (isspace(sValue[nOffset]))
+		while (iswspace(sValue[nOffset]))
 			nOffset++;
 
 		// Analyse du signe optionnel
@@ -1567,7 +1567,7 @@ const char* const KWContinuous::StandardContinuousToString(Continuous cValue)
 	if (cValue == GetMissingValue())
 		sBuffer[0] = '\0';
 	else
-		sprintf(sBuffer, "%.10g", cValue);
+		snprintf(sBuffer, BUFFER_LENGTH, "%.10g", cValue);
 	return sBuffer;
 }
 
@@ -1609,10 +1609,10 @@ int KWContinuous::StandardStringToContinuousError(const char* const sValue, Cont
 				return ErrorBadEndString;
 		}
 		// Cas du NaN (not a number): traite comme missing
-#ifdef __UNIX__
-		else if (isnan(dValue))
-#else
+#ifdef _WIN32
 		else if (_isnan(dValue))
+#else
+		else if (isnan(dValue))
 #endif
 		{
 			cValue = GetMissingValue();
@@ -1860,7 +1860,7 @@ void KWContinuous::CompareStringToContinuous(Continuous cValue, boolean bShow)
 		return;
 
 	// Conversion
-	sprintf(sValue, "%.15g", cValue);
+	snprintf(sValue, sizeof(sValue), "%.15g", cValue);
 	dRefValue = StandardStringToContinuous(sValue);
 	dNewValue = StringToContinuous(sValue);
 
@@ -1884,7 +1884,7 @@ const char* const KWContinuous::MaxPrecisionDoubleToString(double dValue)
 {
 	char* sBuffer = StandardGetBuffer();
 
-	sprintf(sBuffer, "%.15g", dValue);
+	snprintf(sBuffer, BUFFER_LENGTH, "%.15g", dValue);
 
 	return sBuffer;
 }
@@ -1939,7 +1939,7 @@ void KWContinuous::TestPerformanceStringToContinuous(int nMaxLowerBaseValue, dou
 				{
 					// Nombre positif avec exposant positif
 					cValue = (cUpperBaseValue + nLowerBaseValue) * dPositivePower10[nExponent];
-					sprintf(sValue, "%.15g", cValue);
+					snprintf(sValue, sizeof(sValue), "%.15g", cValue);
 					if (bRefConversion)
 						StandardStringToContinuous(sValue);
 					if (bNewConversion)
@@ -1949,7 +1949,7 @@ void KWContinuous::TestPerformanceStringToContinuous(int nMaxLowerBaseValue, dou
 
 					// Nombre positif avec exposant negatif
 					cValue = (cUpperBaseValue + nLowerBaseValue) * dNegativePower10[nExponent];
-					sprintf(sValue, "%.15g", cValue);
+					snprintf(sValue, sizeof(sValue), "%.15g", cValue);
 					if (bRefConversion)
 						StandardStringToContinuous(sValue);
 					if (bNewConversion)
@@ -1959,7 +1959,7 @@ void KWContinuous::TestPerformanceStringToContinuous(int nMaxLowerBaseValue, dou
 
 					// Nombre negatif avec exposant positif
 					cValue = -(cUpperBaseValue + nLowerBaseValue) * dPositivePower10[nExponent];
-					sprintf(sValue, "%.15g", cValue);
+					snprintf(sValue, sizeof(sValue), "%.15g", cValue);
 					if (bRefConversion)
 						StandardStringToContinuous(sValue);
 					if (bNewConversion)
@@ -1969,7 +1969,7 @@ void KWContinuous::TestPerformanceStringToContinuous(int nMaxLowerBaseValue, dou
 
 					// Nombre negatif avec exposant negatif
 					cValue = -(cUpperBaseValue + nLowerBaseValue) * dNegativePower10[nExponent];
-					sprintf(sValue, "%.15g", cValue);
+					snprintf(sValue, sizeof(sValue), "%.15g", cValue);
 					if (bRefConversion)
 						StandardStringToContinuous(sValue);
 					if (bNewConversion)

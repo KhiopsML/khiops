@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -148,8 +148,6 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 	int i;
 	int j;
 	PLFileConcatenater concatenater;
-	int nBufferToConcatenate;
-	longint lOverWeightSize;
 
 	require(sInputFileName != "");
 
@@ -157,7 +155,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 	bTrace = bTrace or PLParallelTask::GetVerbose();
 
 	// Test d'existence du fichier d'entree
-	if (not PLRemoteFileService::Exist(sInputFileName))
+	if (not PLRemoteFileService::FileExists(sInputFileName))
 	{
 		AddError("Input file is missing");
 		return false;
@@ -184,7 +182,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 	if (lFileSize == 0)
 	{
 		bOk = false;
-		if (PLRemoteFileService::Exist(sInputFileName))
+		if (PLRemoteFileService::FileExists(sInputFileName))
 			AddWarning("Empty input file");
 		else
 			AddWarning("Missing input file");
@@ -211,7 +209,8 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 	// Recherche des index des clefs
 	if (bOk)
 		// Extraction des champs de  la premiere ligne du fichier d'entree
-		bOk = InputBufferedFile::GetFirstLineFields(sInputFileName, cInputFieldSeparator, &svFirstLine, this);
+		bOk = InputBufferedFile::GetFirstLineFields(sInputFileName, cInputFieldSeparator, false, false,
+							    &svFirstLine);
 
 	// Calcul des index des champs de la cle
 	if (bOk)
@@ -251,31 +250,19 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 			bOk = parallelSorter.Sort();
 
 			// Copie du fichier trie vers le fichier de sortie (utilisation de l'API de concatenation)
-			concatenater.SetFileName(sOutputFileName);
-			concatenater.SetFieldSeparator(cOutputFieldSeparator);
-			if (bOutputHeaderLineUsed)
-				concatenater.GetHeaderLine()->CopyFrom(&svFirstLine);
-			concatenater.SetDisplayProgression(false);
+			if (bOk)
+			{
+				concatenater.SetFileName(sOutputFileName);
+				concatenater.SetFieldSeparator(cOutputFieldSeparator);
+				concatenater.SetVerbose(PLParallelTask::GetVerbose());
+				if (bOutputHeaderLineUsed)
+					concatenater.GetHeaderLine()->CopyFrom(&svFirstLine);
+				concatenater.SetHeaderLineUsed(bOutputHeaderLineUsed);
+				concatenater.SetDisplayProgression(false);
 
-			// Memoire disponible pour la concatenation
-			nBufferToConcatenate =
-			    InputBufferedFile::FitBufferSize(RMResourceManager::GetRemainingAvailableMemory());
-
-			// On prend au moins 8 Mo
-			if (nBufferToConcatenate < 8 * lMB)
-				nBufferToConcatenate = 8 * lMB;
-
-			// On ne prend pas plus de 1Go
-			if (nBufferToConcatenate > lGB)
-				nBufferToConcatenate = lGB;
-
-			// On ne prend pas plus que la taille du fichier
-			if (nBufferToConcatenate > lFileSize)
-				nBufferToConcatenate = (int)lFileSize;
-			concatenater.SetBufferSize(nBufferToConcatenate);
-
-			// Concatenation
-			concatenater.Concatenate(parallelSorter.GetSortedFiles(), this, true);
+				// Concatenation
+				concatenater.Concatenate(parallelSorter.GetSortedFiles(), this);
+			}
 
 			bIsInterruptedByUser = parallelSorter.IsTaskInterruptedByUser();
 			if (bTrace)
@@ -355,7 +342,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 				{
 					if (bTrace)
 						AddMessage(
-						    sTmp + "Remaining overweigt chunk with size " +
+						    sTmp + "Remaining overweight chunk with size " +
 						    LongintToHumanReadableString(overweightBucket->GetChunkSize()));
 
 					// Concatenation des fichiers du bucket pour utiliser l'api de
@@ -367,29 +354,11 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 					bOk = sNewFileName != "";
 					if (bOk)
 					{
+						// Concatenation interne, sans ligne d'entete
 						concatenater.SetFileName(sNewFileName);
-
-						// Memoire disponible pour la concatenation
-						nBufferToConcatenate = InputBufferedFile::FitBufferSize(
-						    RMResourceManager::GetRemainingAvailableMemory());
-
-						// On prend au moins 8 Mo
-						if (nBufferToConcatenate < 8 * lMB)
-							nBufferToConcatenate = 8 * lMB;
-
-						// On ne prend pas plus de 1Go
-						if (nBufferToConcatenate > lGB)
-							nBufferToConcatenate = lGB;
-
-						// On ne prend pas plus que la taille du fichier
-						lOverWeightSize = overweightBucket->GetChunkSize();
-						if (nBufferToConcatenate > lOverWeightSize)
-							nBufferToConcatenate = (int)lOverWeightSize;
-						concatenater.SetBufferSize(nBufferToConcatenate);
-
-						// Concatenation
+						concatenater.SetHeaderLineUsed(false);
 						bOk = concatenater.Concatenate(overweightBucket->GetChunkFileNames(),
-									       this, true);
+									       this);
 					}
 					else
 					{
@@ -476,29 +445,12 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 					concatenater.SetFieldSeparator(cOutputFieldSeparator);
 					if (bOutputHeaderLineUsed)
 						concatenater.GetHeaderLine()->CopyFrom(&svFirstLine);
+					concatenater.SetHeaderLineUsed(bOutputHeaderLineUsed);
 					concatenater.SetFileName(sOutputFileName);
-
-					// Memoire disponible pour la concatenation
-					nBufferToConcatenate = InputBufferedFile::FitBufferSize(
-					    RMResourceManager::GetRemainingAvailableMemory());
-
-					// On prend au moins 8 Mo
-					if (nBufferToConcatenate < 8 * lMB)
-						nBufferToConcatenate = 8 * lMB;
-
-					// On ne prend pas plus de 1Go
-					if (nBufferToConcatenate > lGB)
-						nBufferToConcatenate = lGB;
-
-					// On ne prend pas plus que la taille du fichier
-					if (nBufferToConcatenate > lFileSize)
-						nBufferToConcatenate = (int)lFileSize;
-					concatenater.SetBufferSize(nBufferToConcatenate);
-
 					TaskProgression::BeginTask();
 					TaskProgression::DisplayMainLabel("files concatenation");
 					timerConcat.Start();
-					bOk = concatenater.Concatenate(parallelSorter.GetSortedFiles(), this, true);
+					bOk = concatenater.Concatenate(parallelSorter.GetSortedFiles(), this);
 					timerConcat.Stop();
 					TaskProgression::EndTask();
 					if (bTrace)
@@ -506,8 +458,8 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 								 DoubleToString(timerConcat.GetElapsedTime()));
 				}
 			}
-		} // if (IsFileTooSmall(sInputFileName) or lFileSize < nChunkSize)
-	}         // if (bOk and not bIsInterruptedByUser)
+		} // Fin du if (IsFileTooSmall(sInputFileName) or lFileSize < nChunkSize)
+	}         // Fin du if (bOk and not bIsInterruptedByUser)
 
 	// Fin du timer
 	timerSort.Stop();
@@ -547,6 +499,12 @@ void KWFileSorter::ComputeChunkSize(longint lFileSize, longint lLineNumber, long
 	nChunkSizeMin = -1;
 	nChunkSize = -1;
 
+	// Nombre de chunks que chaque esclave doit traite, plus il y en a, plus le travail sera bien
+	// reparti et plus les esclaves finiront leur traitement en meme temps.
+	// A contrario plus il y a en a plus la taille des chunks va etre petite, ce qui conduira a une
+	// sous-utilisation de la memoire disponible
+	const int nChunkNumberPerSlave = 4;
+
 	// Taille minimum des fragments contigus ecrits sur le disque: 2MB
 	// Si on compte environ 10 ms pour un temps d'acces disque, et un debit de 100 MB/s, cela fait 20 ms pour la
 	// lecture, soit deux fois plus seulement que pour l'acces. Avec des chunks plus petits, il y aura trop de
@@ -571,10 +529,12 @@ void KWFileSorter::ComputeChunkSize(longint lFileSize, longint lLineNumber, long
 	if (bTrace)
 		AddMessage(sTmp + "Min chunk size " + LongintToHumanReadableString(lMinChunkSize));
 
-	// Calcul des ressources disponibles avec la taille de buffer calculee
+	// Calcul des ressources necessaires avec la taille de buffer calculee
 	taskRequirement.GetGlobalSlaveRequirement()->GetDisk()->Set(lFileSize);
 	taskRequirement.GetSlaveRequirement()->GetMemory()->SetMin(KWChunkSorterTask::ComputeSlaveMemoryRequirements(
 	    lMinChunkSize, (longint)(lLineNumber / dMaxBucketNumber), lKeySize));
+	taskRequirement.GetSlaveRequirement()->GetMemory()->SetMax(LLONG_MAX);
+
 	taskRequirement.SetMemoryAllocationPolicy(RMTaskResourceRequirement::slavePreferred);
 	RMParallelResourceManager::ComputeGrantedResources(&taskRequirement, &grantedResources);
 
@@ -587,14 +547,14 @@ void KWFileSorter::ComputeChunkSize(longint lFileSize, longint lLineNumber, long
 
 	// Minimum des memoires et espaces disques disponibles sur l'ensemble des esclaves
 	// On enleve 10 Mo pour tenir compte de la variation de memoire a reserver actuellement et dans la tache de tri
-	lSlaveMemory = grantedResources.GetMinSlaveMemory() - 10 * lMB;
+	lSlaveMemory = grantedResources.GetSlaveMemory() - 10 * lMB;
 
 	// Calcul de la taille maximum des chunk que la tache KWChunkSorterTask peut traiter si chaque esclave a
 	// au moins lSlaveMemory de memoire disponible
 	lMaxChunkSize = KWChunkSorterTask::ComputeMaxChunkSize(lKeySize, lSlaveMemory, lLineNumber, lFileSize);
 
 	if (bTrace)
-		AddMessage(sTmp + "Max Chunk size allowed by KWChunkSorterTask : " +
+		AddMessage(sTmp + "Max Chunk size allowed by KWChunkSorterTask: " +
 			   LongintToHumanReadableString(lMaxChunkSize));
 
 	// Un chunk ne peut depasser 2 Go - 1 (taille des CharVector)
@@ -604,23 +564,35 @@ void KWFileSorter::ComputeChunkSize(longint lFileSize, longint lLineNumber, long
 	lMaxChunkSize = min(lMaxChunkSize, lFileSize);
 
 	if (bTrace)
-		AddMessage(sTmp + "Chunk size : " + LongintToHumanReadableString(lMaxChunkSize));
+		AddMessage(sTmp + "Chunk size: " + LongintToHumanReadableString(lMaxChunkSize));
 
 	// Si les chunks sont trop gros par rapport au fichier.
 	// En sequentiel plus ils sont gros mieux c'est.
-	// En parallele, on souhaite que chaque esclave traite 2 chunks, pour avoir une bonne repartition des
+	// En parallele, on souhaite que chaque esclave traite 4 chunks, pour avoir une bonne repartition des
 	// traitements
 	if (not grantedResources.IsSequentialTask() and
-	    grantedResources.GetSlaveNumber() * 2 * lMaxChunkSize > lFileSize)
+	    grantedResources.GetSlaveNumber() * nChunkNumberPerSlave * lMaxChunkSize > lFileSize)
 	{
 		if (bTrace)
-			AddMessage("Chunks are too big");
+			AddMessage(sTmp + "Chunks are too big: we want " + IntToString(nChunkNumberPerSlave) +
+				   " chunks per slave");
 
-		// Calcul de la taille optimale : 1(?) chunks par esclave
-		lChunkSize = lFileSize / (1 * grantedResources.GetSlaveNumber());
+		// Calcul de la taille optimale : 4 chunks par esclave
+		lChunkSize = lFileSize / (nChunkNumberPerSlave * grantedResources.GetSlaveNumber());
+
+		// TODO BG: eviter la boucle si possible
+		// Par contre on veut eviter que lChunkSize==nChunkSizeMin pour donner de la latitude a l'algo de DeWitt
+		// (si on demande precisement lChunkSize on risque de se tromper, il faut mieux demander 0.8*lChunkSize
+		// et on peut le faire uniquement si 0.8*lChunkSize > nChunkSizeMin )
+		int nbChunks = nChunkNumberPerSlave - 1;
+		while (dDeWittRatio * lChunkSize < lMinChunkSize and nbChunks > 1)
+		{
+			lChunkSize = lFileSize / (nbChunks * grantedResources.GetSlaveNumber());
+			nbChunks--;
+		}
 		lChunkSize = min(lMaxChunkSize, lChunkSize);
 		if (bTrace)
-			AddMessage(sTmp + "New estimated chunk size : " + LongintToHumanReadableString(lChunkSize));
+			AddMessage(sTmp + "New estimated chunk size: " + LongintToHumanReadableString(lChunkSize));
 	}
 	else
 	{
@@ -638,13 +610,7 @@ void KWFileSorter::ComputeChunkSize(longint lFileSize, longint lLineNumber, long
 
 	// Un chunk ne peut pas faire plus de 2 Go car il est charge en memoire entierement dans un BufferedFile = un
 	// charVector indexe par un int Il faut donc veiller a renvoyer moins de 2 Go dans cette methode
-	require(lChunkSize <= INT_MAX);
-
-	// Verification que tout est consistant
-	debug(; taskRequirement.GetSlaveRequirement()->GetMemory()->SetMin(2 * lChunkSize);
-	      taskRequirement.GetSlaveRequirement()->GetDisk()->SetMin(2 * lChunkSize);
-	      RMParallelResourceManager::ComputeGrantedResources(&taskRequirement, &grantedResources);
-	      require(not grantedResources.IsEmpty()););
+	ensure(lChunkSize <= INT_MAX);
 
 	nChunkSizeMin = (int)lMinChunkSize;
 	nChunkSize = (int)lChunkSize;
@@ -664,7 +630,6 @@ KWSortBuckets* KWFileSorter::SplitDatabase(int nChunkSizeMin, int nChunkSize, KW
 	ObjectArray oaSplitkeys;
 	int nSampleSize;
 	int nConservativeChunkSize;
-
 	ALString sLine;
 	KWKeySampleExtractorTask sampleExtractor;
 	KWSortedChunkBuilderTask chunksBuilder;
@@ -686,8 +651,8 @@ KWSortBuckets* KWFileSorter::SplitDatabase(int nChunkSizeMin, int nChunkSize, KW
 	sFileURI = bucket->GetChunkFileNames()->GetAt(0);
 
 	// Pour minimiser le nombre de redecoupage (appel recursif de Splitdatabase)
-	// On vise une taille inferieur a la taille max
-	nConservativeChunkSize = (int)(nChunkSize * 0.9);
+	// On vise une taille inferieure a la taille max
+	nConservativeChunkSize = (int)(nChunkSize * dDeWittRatio);
 	if (nConservativeChunkSize < nChunkSizeMin)
 		nConservativeChunkSize = nChunkSizeMin;
 
@@ -703,13 +668,15 @@ KWSortBuckets* KWFileSorter::SplitDatabase(int nChunkSizeMin, int nChunkSize, KW
 				    ((1 - 1 / dSkew) * (1 - 1 / dSkew) * dSkew) +
 				1000);
 	ensure((nSampleSize * 1.0) / lLineNumber > 0);
+	if (nSampleSize > lLineNumber)
+		nSampleSize = (int)lLineNumber;
 
 	if (bTrace)
 	{
-		AddMessage(sTmp + "Min sample size : " + LongintToReadableString(nSampleSize) + " / " +
+		AddMessage(sTmp + "Min sample size: " + LongintToReadableString(nSampleSize) + " / " +
 			   LongintToReadableString(lLineNumber));
-		AddMessage(sTmp + "Chunk number min :" + IntToString(nEstimatedChunkNumberMin) +
-			   " max : " + IntToString(nEstimatedChunkNumberMax));
+		AddMessage(sTmp + "Chunk number min: " + IntToString(nEstimatedChunkNumberMin) +
+			   " max: " + IntToString(nEstimatedChunkNumberMax));
 	}
 	// Extraction du sample
 	sampleExtractor.SetTaskUserLabel(sampleExtractor.GetTaskLabel() + " (sort phase 1/3)");
@@ -737,7 +704,7 @@ KWSortBuckets* KWFileSorter::SplitDatabase(int nChunkSizeMin, int nChunkSize, KW
 		chunksBuilder.SetTaskUserLabel(chunksBuilder.GetTaskLabel() + " (sort phase 2/3)");
 		chunksBuilder.GetKeyFieldIndexes()->CopyFrom(keyFieldsIndexer.GetConstKeyFieldIndexes());
 		chunksBuilder.SetFileURI(sFileURI);
-		chunksBuilder.SetFieldSeparator(cFieldSeparator);
+		chunksBuilder.SetInputFieldSeparator(cFieldSeparator);
 		chunksBuilder.SetHeaderLineUsed(bIsHeaderLineUsed);
 		sortedBuckets = new KWSortBuckets;
 
@@ -761,8 +728,6 @@ KWSortBuckets* KWFileSorter::SplitDatabase(int nChunkSizeMin, int nChunkSize, KW
 	{
 		delete sortedBuckets;
 		sortedBuckets = NULL;
-		if (bIsInterruptedByUser)
-			AddWarning("Interrupted by user");
 	}
 
 	// Nettoyage

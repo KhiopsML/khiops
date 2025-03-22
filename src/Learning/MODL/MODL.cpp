@@ -1,42 +1,44 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "MODL.h"
 
-#ifndef __ANDROID__
+// Parametrage des variables d'environnement pour les jeux de test de LearningTest (via .vs/launch.vs.json sous Windows Visual C++)
+// KHIOPS_API_MODE="true"
+// - pour que les chemins relatifs soient traites par rapport au cwd (current working directory) pour le stockage des rapports
+// - sinon, en mode GUI, les chemins relatifs sont geres par rapport au repertoire contenant le fichier de donnees
+// KhiopsFastExitMode="false"
+// - pour que l'on puisse exploiter un scenario de test integralement, meme en cas d'erreurs multiples
+// - sinon, on sort du scenario apres la premiere erreur
 
 int main(int argc, char** argv)
 {
 	MDKhiopsLearningProject learningProject;
 
-	// Pour desactiver l'interception du signal "segmentation fault", pour permettre au debugger d'identifier le
-	// probleme debug(signal(SIGSEGV, NULL));
+	// Activation de la gestion des signaux via des erreurs, pour afficher des messages d'erreur explicites
+	// A potentiellement commenter sur certains IDE lors des phases de debuggage
+	//Global::ActivateSignalErrorManagement();
 
-	// Parametrage de l'arret pour la memoire ou les interruptions utilisateurs
-	// MemSetAllocSizeExit(62181);
+	// Parametrage des logs memoires depuis les variables d'environnement, pris en compte dans KWLearningProject
+	//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
+	// On ne tente d'ouvrir le fichier que si ces trois variables sont presentes et valides
+	// Sinon, on ne fait rien, sans message d'erreur
+	// Pour avoir toutes les stats: KhiopsMemStatsLogToCollect=16383
+	// Pour la trace des IO: KhiopsIOTraceMode
+	// FileService::SetIOStatsActive(true);
+	// MemoryStatsManager::OpenLogFile("D:\\temp\\KhiopsMemoryStats\\Test\\KhiopsMemoryStats.log", 10000,
+	// MemoryStatsManager::AllStats);
+
+	// Point d'arret sur l'allocation d'un bloc memoire
+	// MemSetAllocIndexExit(37140);
+
+	// Parametrage de l'arret pour les interruptions utilisateurs
 	// TaskProgression::SetExternalInterruptionRequestIndex();
 	// TaskProgression::SetInterruptionRequestIndex(75);
 
-	// #define USE_MPI (on passe par les directive de compilation)
-#if defined(USE_MPI)
-	PLParallelTask::UseMPI(GetLearningVersion());
-#endif // defined(USE_MPI)
-
-	// Possibilite de parametrage des log memoire depuis les variable d'environnement
-	// p_setenv("KhiopsExpertMode", "true");
-	if (GetLearningExpertMode())
-	{
-		//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
-		// On ne tente d'ouvrir le fichier que si ces trois variables sont presentes et valides
-		// Sinon, on ne fait rien, sans message d'erreur
-		// Pour avoir toutes les stats: KhiopsMemStatsLogToCollect=16383
-		if (GetIOTraceMode())
-			FileService::SetIOStatsActive(true);
-		MemoryStatsManager::OpenLogFileFromEnvVars(true);
-		// MemoryStatsManager::OpenLogFile("D:\\temp\\KhiopsMemoryStats\\Test\\KhiopsMemoryStats.log", 10000,
-		// MemoryStatsManager::AllStats);
-	}
+	// Parametrage de l'utilisation de MPI
+	UseMPI();
 
 	// Simulation du mode parallele pour le debuggage
 	// PLParallelTask::SetParallelSimulated(true);
@@ -61,8 +63,7 @@ int main(int argc, char** argv)
 
 	// Nombre total d'interruptions utilisateurs
 	// cout << "Interruption request number: " << TaskProgression::GetInterruptionRequestNumber() << endl;
-	MemoryStatsManager::CloseLogFile();
+
+	// On renvoie 0 si tout s'est bien passe, 1 en cas de FatalError (dans Standard.cpp)
 	return EXIT_SUCCESS;
 }
-
-#endif // __ANDROID__

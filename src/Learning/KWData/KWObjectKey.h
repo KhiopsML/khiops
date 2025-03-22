@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -8,6 +8,7 @@ class KWObjectKey;
 class KWObject;
 
 #include "KWSymbol.h"
+#include "KWKey.h"
 
 //////////////////////////////////////////////////////////
 // Classe KWObjectKey
@@ -60,6 +61,10 @@ public:
 	// Libelles utilisateurs
 	const ALString GetClassLabel() const override;
 	const ALString GetObjectLabel() const override;
+
+	// Construction de libelles utilisateurs de deux cles garantis distincts l'un de l'autre
+	void BuildDistinctObjectLabels(const KWObjectKey* otherObjectKey, ALString& sObjectLabel,
+				       ALString& sOtherObjectLabel);
 
 	// Test de la classe
 	static void Test();

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -177,14 +177,10 @@ void KWPredictorSpecArrayView::Test()
 	// Enregistrement de predicteurs
 	KWPredictor::RegisterPredictor(new KWPredictorUnivariate);
 	KWPredictor::RegisterPredictor(new KWPredictorNaiveBayes);
-	KWPredictor::RegisterPredictor(new KWPredictorSelectiveNaiveBayes);
-
-	// Enregistrement de vues sur les predicteurs
-	KWPredictorView::RegisterPredictorView(new KWPredictorSelectiveNaiveBayesView);
 
 	// Ouverture de la liste d'edition des specifications des predicteurs
 	predictorSpecArrayView = new KWPredictorSpecArrayView;
-	predictorSpecArrayView->SetPredictorFilter("Univariate;Selective Naive Bayes");
+	predictorSpecArrayView->SetPredictorFilter("Univariate;Naive Bayes");
 	predictorSpecArrayView->SetObjectArray(&oaPredictorSpecs);
 	predictorSpecArrayView->Open();
 

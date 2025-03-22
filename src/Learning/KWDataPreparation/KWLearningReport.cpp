@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -29,8 +29,6 @@ void KWLearningReport::WriteReportFile(const ALString& sFileName)
 	fstream ost;
 	boolean bOk;
 	ALString sLocalFileName;
-
-	require(IsStatsComputed());
 
 	// Ajout de log memoire
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + GetObjectLabel() + " Write report Begin");
@@ -104,23 +102,11 @@ int KWLearningReport::CompareName(const KWLearningReport* otherReport) const
 int KWLearningReport::CompareValue(const KWLearningReport* otherReport) const
 {
 	int nCompare;
-	longint lSortValue1;
-	longint lSortValue2;
 
-	// On se base sur un comparaison a dix decimales pres
-	if (GetSortValue() >= 0)
-		lSortValue1 = longint(GetSortValue() * 1e10);
-	else
-		lSortValue1 = -longint(-GetSortValue() * 1e10);
-	if (otherReport->GetSortValue() >= 0)
-		lSortValue2 = longint(otherReport->GetSortValue() * 1e10);
-	else
-		lSortValue2 = -longint(-otherReport->GetSortValue() * 1e10);
+	// Comparaison selon la precision du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(GetSortValue(), otherReport->GetSortValue());
 
-	// Comparaison par
-	nCompare = -CompareLongint(lSortValue1, lSortValue2);
-
-	// En cas d'égalite, on se base sur le nom
+	// En cas d'egalite, on se base sur le nom
 	if (nCompare == 0)
 		nCompare = CompareName(otherReport);
 	return nCompare;
@@ -481,10 +467,17 @@ double KWDataPreparationStats::GetLevel() const
 	return dPreparedLevel;
 }
 
+boolean KWDataPreparationStats::IsInformative() const
+{
+	return GetSortValue() > 0;
+}
+
 void KWDataPreparationStats::SetConstructionCost(double dValue)
 {
 	require(dValue >= 0);
 	dConstructionCost = dValue;
+	if (dConstructionCost < dEpsilonCost)
+		dConstructionCost = 0;
 }
 
 double KWDataPreparationStats::GetConstructionCost() const
@@ -496,6 +489,8 @@ void KWDataPreparationStats::SetPreparationCost(double dValue)
 {
 	require(dValue >= 0);
 	dPreparationCost = dValue;
+	if (dPreparationCost < dEpsilonCost)
+		dPreparationCost = 0;
 }
 
 double KWDataPreparationStats::GetPreparationCost() const
@@ -512,6 +507,8 @@ void KWDataPreparationStats::SetDataCost(double dValue)
 {
 	require(dValue >= 0);
 	dDataCost = dValue;
+	if (dDataCost < dEpsilonCost)
+		dDataCost = 0;
 }
 
 double KWDataPreparationStats::GetDataCost() const
@@ -544,7 +541,7 @@ void KWDataPreparationStats::ComputeLevel()
 			dPreparedLevel = 0;
 
 		// On met a zero si negatif (ou tres proche de zero)
-		if (dPreparedLevel < 1e-10)
+		if (dPreparedLevel < dEpsilonCost)
 		{
 			dPreparedLevel = 0;
 
@@ -574,6 +571,29 @@ longint KWDataPreparationStats::GetUsedMemory() const
 	if (preparedDataGridStats != NULL)
 		lUsedMemory += preparedDataGridStats->GetUsedMemory();
 	return lUsedMemory;
+}
+
+const ALString KWDataPreparationStats::GetClassLabel() const
+{
+	if (GetAttributeNumber() > 1)
+		return "Variables";
+	else
+		return "Variable";
+}
+
+const ALString KWDataPreparationStats::GetObjectLabel() const
+{
+	ALString sLabel;
+	int i;
+
+	// Calcul d'un nom par concatenation des noms des attributs
+	for (i = 0; i < GetAttributeNumber(); i++)
+	{
+		if (i > 0)
+			sLabel += "`";
+		sLabel += GetAttributeNameAt(i);
+	}
+	return sLabel;
 }
 
 double KWDataPreparationStats::GetSortValue() const
@@ -615,18 +635,6 @@ KWLearningReport* PLShared_LearningReport::GetLearningReport()
 	return cast(KWLearningReport*, GetObject());
 }
 
-void PLShared_LearningReport::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	KWLearningReport* learningReport;
-
-	require(serializer->IsOpenForRead());
-	require(o != NULL);
-
-	learningReport = cast(KWLearningReport*, o);
-	learningReport->bIsStatsComputed = serializer->GetBoolean();
-	learningReport->sIdentifier = serializer->GetString();
-}
-
 void PLShared_LearningReport::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	KWLearningReport* learningReport;
@@ -637,6 +645,18 @@ void PLShared_LearningReport::SerializeObject(PLSerializer* serializer, const Ob
 	learningReport = cast(KWLearningReport*, o);
 	serializer->PutBoolean(learningReport->bIsStatsComputed);
 	serializer->PutString(learningReport->sIdentifier);
+}
+
+void PLShared_LearningReport::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWLearningReport* learningReport;
+
+	require(serializer->IsOpenForRead());
+	require(o != NULL);
+
+	learningReport = cast(KWLearningReport*, o);
+	learningReport->bIsStatsComputed = serializer->GetBoolean();
+	learningReport->sIdentifier = serializer->GetString();
 }
 
 Object* PLShared_LearningReport::Create() const
@@ -662,6 +682,28 @@ KWDataPreparationStats* PLShared_DataPreparationStats::GetDataPreparationStats()
 	return cast(KWDataPreparationStats*, GetObject());
 }
 
+void PLShared_DataPreparationStats::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	KWDataPreparationStats* dataPreparationStats;
+	PLShared_DataGridStats shared_dataGrid;
+
+	require(serializer->IsOpenForWrite());
+	require(o != NULL);
+
+	// Appel de la methode ancetre
+	PLShared_LearningReport::SerializeObject(serializer, o);
+
+	// Serialisation specifique
+	dataPreparationStats = cast(KWDataPreparationStats*, o);
+	AddNull(serializer, dataPreparationStats->preparedDataGridStats);
+	if (dataPreparationStats->preparedDataGridStats != NULL)
+		shared_dataGrid.SerializeObject(serializer, dataPreparationStats->preparedDataGridStats);
+	serializer->PutDouble(dataPreparationStats->dPreparedLevel);
+	serializer->PutDouble(dataPreparationStats->dPreparationCost);
+	serializer->PutDouble(dataPreparationStats->dConstructionCost);
+	serializer->PutDouble(dataPreparationStats->dDataCost);
+}
+
 void PLShared_DataPreparationStats::DeserializeObject(PLSerializer* serializer, Object* o) const
 {
 	KWDataPreparationStats* dataPreparationStats;
@@ -685,26 +727,4 @@ void PLShared_DataPreparationStats::DeserializeObject(PLSerializer* serializer, 
 	dataPreparationStats->dPreparationCost = serializer->GetDouble();
 	dataPreparationStats->dConstructionCost = serializer->GetDouble();
 	dataPreparationStats->dDataCost = serializer->GetDouble();
-}
-
-void PLShared_DataPreparationStats::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	KWDataPreparationStats* dataPreparationStats;
-	PLShared_DataGridStats shared_dataGrid;
-
-	require(serializer->IsOpenForWrite());
-	require(o != NULL);
-
-	// Appel de la methode ancetre
-	PLShared_LearningReport::SerializeObject(serializer, o);
-
-	// Serialisation specifique
-	dataPreparationStats = cast(KWDataPreparationStats*, o);
-	AddNull(serializer, dataPreparationStats->preparedDataGridStats);
-	if (dataPreparationStats->preparedDataGridStats != NULL)
-		shared_dataGrid.SerializeObject(serializer, dataPreparationStats->preparedDataGridStats);
-	serializer->PutDouble(dataPreparationStats->dPreparedLevel);
-	serializer->PutDouble(dataPreparationStats->dPreparationCost);
-	serializer->PutDouble(dataPreparationStats->dConstructionCost);
-	serializer->PutDouble(dataPreparationStats->dDataCost);
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -41,9 +41,9 @@ public:
 	// Services divers
 
 	// Comparaison d'une valeur entre deux tuple
-	int CompareContinuousAt(const KWTuple* tuple, int nAttributeIndex);
-	int CompareSymbolAt(const KWTuple* tuple, int nAttributeIndex);
-	int CompareSymbolValueAt(const KWTuple* tuple, int nAttributeIndex);
+	int CompareContinuousAt(const KWTuple* tuple, int nAttributeIndex) const;
+	int CompareSymbolAt(const KWTuple* tuple, int nAttributeIndex) const;
+	int CompareSymbolValueAt(const KWTuple* tuple, int nAttributeIndex) const;
 
 	// Affichage detaille, a l'aide de la structure du tuple definie par sa table
 	void FullWrite(const KWTupleTable* ownerTupleTable, ostream& ost) const;
@@ -162,6 +162,11 @@ public:
 
 	// Effectif total des tuples de la table
 	int GetTotalFrequency() const;
+
+	// Nombre des valeurs manquantes pour les attributs sparse
+	// Pertinent dans le cas de table de tuples univariees
+	void SetSparseMissingValueNumber(int nValueNumber);
+	int GetSparseMissingValueNumber() const;
 
 	// Acces aux tuples
 	// Les tuples sont tries par valeurs croissantes
@@ -292,6 +297,9 @@ protected:
 	// Effectif total
 	int nTotalFrequency;
 
+	// Nombre des valeurs manquantes en mode sparse
+	int nSparseMissingValueNumber;
+
 	// Liste triee pour la gestion du mode edition
 	// En mode edition, tous les tuples sont dans cette liste, qui en assure l'unicite
 	SortedList* slTuples;
@@ -317,8 +325,8 @@ public:
 	const KWTupleTable* GetConstTupleTable() const;
 
 	// Reimplementation des methodes virtuelles
-	void SerializeObject(PLSerializer*, const Object*) const override;
-	void DeserializeObject(PLSerializer*, Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	// Methode de test
 	static void Test();
@@ -332,9 +340,9 @@ protected:
 ////////////////////////////////////////////////////////////////////
 // Methode en inline
 
-#ifdef _MSC_VER
+#ifdef __MSC__
 #pragma warning(disable : 26495) // disable C26495 warning("La variable'% variable% 'n'est pas initialisee...")
-#endif                           // _MSC_VER
+#endif                           // __MSC__
 
 inline KWTuple::KWTuple()
 {
@@ -342,9 +350,9 @@ inline KWTuple::KWTuple()
 	// methode NewTuple appelante Cela declenche un warning sous Visual C++ 2019, que l'on peut ignorer
 }
 
-#ifdef _MSC_VER
+#ifdef __MSC__
 #pragma warning(default : 26495)
-#endif // _MSC_VER
+#endif // __MSC__
 
 inline KWTuple::~KWTuple() {}
 
@@ -395,7 +403,7 @@ inline int KWTuple::GetFrequency() const
 	return nFrequency;
 }
 
-inline int KWTuple::CompareContinuousAt(const KWTuple* tuple, int nAttributeIndex)
+inline int KWTuple::CompareContinuousAt(const KWTuple* tuple, int nAttributeIndex) const
 {
 	require(tuple != NULL);
 	debug(require(tupleTable == tuple->tupleTable));
@@ -405,7 +413,7 @@ inline int KWTuple::CompareContinuousAt(const KWTuple* tuple, int nAttributeInde
 	return tupleValues[nAttributeIndex].CompareContinuous(tuple->tupleValues[nAttributeIndex]);
 }
 
-inline int KWTuple::CompareSymbolAt(const KWTuple* tuple, int nAttributeIndex)
+inline int KWTuple::CompareSymbolAt(const KWTuple* tuple, int nAttributeIndex) const
 {
 	require(tuple != NULL);
 	debug(require(tupleTable == tuple->tupleTable));
@@ -415,7 +423,7 @@ inline int KWTuple::CompareSymbolAt(const KWTuple* tuple, int nAttributeIndex)
 	return tupleValues[nAttributeIndex].CompareSymbol(tuple->tupleValues[nAttributeIndex]);
 }
 
-inline int KWTuple::CompareSymbolValueAt(const KWTuple* tuple, int nAttributeIndex)
+inline int KWTuple::CompareSymbolValueAt(const KWTuple* tuple, int nAttributeIndex) const
 {
 	require(tuple != NULL);
 	debug(require(tupleTable == tuple->tupleTable));
@@ -450,6 +458,16 @@ inline int KWTupleTable::GetSize() const
 inline int KWTupleTable::GetTotalFrequency() const
 {
 	return nTotalFrequency;
+}
+
+inline void KWTupleTable::SetSparseMissingValueNumber(int nValueNumber)
+{
+	nSparseMissingValueNumber = nValueNumber;
+}
+
+inline int KWTupleTable::GetSparseMissingValueNumber() const
+{
+	return nSparseMissingValueNumber;
 }
 
 inline const KWTuple* KWTupleTable::GetAt(int nIndex) const

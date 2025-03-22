@@ -1,0 +1,20 @@
+Train supervised model for regression of target variable PetalLength
+Database ../../../datasets/Iris/Iris.txt: Read records: 150	Selected records: 105
+Data preparation time: 0:00:00.11
+SNB train time: 0:00:00.01
+Build Selective Naive Bayes SNB_Iris
+Build Baseline B_Iris
+Build Univariate BU1_Iris
+Train evaluation of Selective Naive Bayes on database ../../../datasets/Iris/Iris.txt
+Train evaluation of Baseline on database ../../../datasets/Iris/Iris.txt
+Train evaluation of Univariate SPetalLength on database ../../../datasets/Iris/Iris.txt
+Test evaluation of Selective Naive Bayes on database ../../../datasets/Iris/Iris.txt
+Test evaluation of Baseline on database ../../../datasets/Iris/Iris.txt
+Test evaluation of Univariate SPetalLength on database ../../../datasets/Iris/Iris.txt
+Write report ./results/AnalysisResults.khj
+
+Deploy model SNB_Iris
+Input database ../../../datasets/Iris/Iris.txt: Read records: 150
+Output database ./results/D_IrisR.txt: Written records: 105
+Model deployment time: 0:00:00.01
+

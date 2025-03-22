@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -155,7 +155,7 @@ protected:
 
 	// Redecoupage d'une tranche en un ensemble de tranches plus petites, de facon a respecter les contraintes
 	// memoire Entree:
-	//   . slice: tranche avec son dictionnaire comportant tous les atributs utilises
+	//   . slice: tranche avec son dictionnaire comportant tous les attributs utilises
 	//   . lAvailableWorkingMemory: taille memoire disponible pour le chargement des valeurs ainsi que pour la
 	//   preparation du
 	//                              du pus gand bloc de la tranche, ce qui definit la contrainte memoire par
@@ -170,7 +170,7 @@ protected:
 	// Partitionnement des attributs d'une tranche a charger selon une contrainte de taille memoire maximum
 	// pour le stockage de l'ensemble des valeurs denses ou sparse (cf.
 	// KWDataPreparationTask::ComputeDatabaseAllValuesMemory) Entree:
-	//   . slice: tranche avec son dictionnaire comportant tous les atributs utilises
+	//   . slice: tranche avec son dictionnaire comportant tous les attributs utilises
 	//   . nObjectNumber: nombre d'instances
 	//   . lAvailableWorkingMemory: taille memoire disponible pour le chargement des valeurs ainsi que pour la
 	//   preparation du
@@ -179,7 +179,7 @@ protected:
 	// Sortie:
 	//   . ivUsedAttributeStepIndexes: pour chaque attribut, index de l'etape de chargement (-1 si attribut en
 	//   Unused)
-	// Retourne le nombre de partie de la partition
+	// Retourne le nombre de parties de la partition
 	int ComputeSlicePartition(KWDataTableSlice* slice, int nObjectNumber, longint lAvailableWorkingMemory,
 				  IntVector* ivUsedAttributePartIndexes);
 
@@ -206,7 +206,7 @@ protected:
 	// Variables partagees pour le indiquer aux esclaves les elements
 	// de dimensionnement concernant la plus grande tranche
 	// Ces elements de dimensionnement ont ete evalues selon les
-	// heuristique dinitiales d'evaluation du taux de sparsite des blocs
+	// heuristique initiales d'evaluation du taux de sparsite des blocs
 	// Chaque esclave, connaissant les taux de sparsite reel, aura ainsi
 	// les informations utiles pour evaluer si les ressources disponible
 	// permettent de tout traiter en une seule passe, ou si plusieurs

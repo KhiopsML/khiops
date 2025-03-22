@@ -1,12 +1,11 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2019-10-29 15:12:24
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "Object.h"
@@ -29,7 +28,7 @@ public:
 	void CopyFrom(const PRWorker* aSource);
 	PRWorker* Clone() const;
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
 	// Prenom
@@ -40,7 +39,7 @@ public:
 	const ALString& GetFamilyName() const;
 	void SetFamilyName(const ALString& sValue);
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Divers
 
 	// Ecriture
@@ -55,7 +54,7 @@ public:
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
 	ALString sFirstName;

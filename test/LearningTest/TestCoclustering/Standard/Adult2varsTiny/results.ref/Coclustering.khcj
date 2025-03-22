@@ -1,0 +1,278 @@
+{
+	"tool": "Khiops Coclustering",
+	"version": "10.5.6-b.0",
+	"shortDescription": "",
+	"coclusteringReport": {
+		"summary": {
+			"instances": 240,
+			"cells": 14,
+			"nullCost": 1066.368632,
+			"cost": 1051.339073,
+			"level": 0.01409414988,
+			"initialDimensions": 2,
+			"frequencyVariable": "",
+			"dictionary": "Adult",
+			"database": "..\/..\/..\/datasets\/Adult\/Adult.txt",
+			"samplePercentage": 0.5,
+			"samplingMode": "Include sample",
+			"selectionVariable": "native_country",
+			"selectionValue": "United-States"
+		},
+		"dimensionSummaries": [
+			{
+				"name": "occupation",
+				"type": "Categorical",
+				"parts": 3,
+				"initialParts": 3,
+				"values": 12,
+				"interest": 1,
+				"description": ""
+			},
+			{
+				"name": "education",
+				"type": "Categorical",
+				"parts": 5,
+				"initialParts": 5,
+				"values": 13,
+				"interest": 1,
+				"description": ""
+			}
+		],
+		"dimensionPartitions": [
+			{
+				"name": "occupation",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{Prof-specialty, Exec-managerial}",
+						"values": ["Prof-specialty","Exec-managerial"],
+						"valueFrequencies": [54,23],
+						"valueTypicalities": [1,0.187835]
+					},
+					{
+						"cluster": "{Other-service, Craft-repair, Adm-clerical, ...}",
+						"values": ["Other-service","Craft-repair","Adm-clerical","Handlers-cleaners","Tech-support"],
+						"valueFrequencies": [33,27,21,12,7],
+						"valueTypicalities": [1,0.728324,0.575775,0.352893,0.111175]
+					},
+					{
+						"cluster": "{Farming-fishing, Sales, Machine-op-inspct, ...}",
+						"values": ["Farming-fishing","Sales","Machine-op-inspct","Transport-moving","Protective-serv"],
+						"valueFrequencies": [11,27,9,10,6],
+						"valueTypicalities": [1,0.833384,0.634058,0.502203,0.194958]
+					}
+				],
+				"defaultGroupIndex": 2
+			},
+			{
+				"name": "education",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{HS-grad, 11th, 9th}",
+						"values": ["HS-grad","11th","9th"],
+						"valueFrequencies": [82,12,5],
+						"valueTypicalities": [1,0.317081,0.193035]
+					},
+					{
+						"cluster": "{10th, Assoc-voc, 7th-8th}",
+						"values": ["10th","Assoc-voc","7th-8th"],
+						"valueFrequencies": [8,10,3],
+						"valueTypicalities": [1,0.807475,0.610774]
+					},
+					{
+						"cluster": "{Masters, Doctorate, Prof-school}",
+						"values": ["Masters","Doctorate","Prof-school"],
+						"valueFrequencies": [14,2,4],
+						"valueTypicalities": [1,0.235805,0.21572]
+					},
+					{
+						"cluster": "{Bachelors}",
+						"values": ["Bachelors"],
+						"valueFrequencies": [39],
+						"valueTypicalities": [1]
+					},
+					{
+						"cluster": "{Some-college, Assoc-acdm, 12th}",
+						"values": ["Some-college","Assoc-acdm","12th"],
+						"valueFrequencies": [47,10,4],
+						"valueTypicalities": [1,0.257549,0.186032]
+					}
+				],
+				"defaultGroupIndex": 2
+			}
+		],
+		"dimensionHierarchies": [
+			{
+				"name": "occupation",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{Prof-specialty, Exec-managerial}",
+						"parentCluster": "A1",
+						"frequency": 77,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 8,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{Other-service, Craft-repair, Adm-clerical, ...}",
+						"parentCluster": "A3",
+						"frequency": 100,
+						"interest": 0.801763,
+						"hierarchicalLevel": 1,
+						"rank": 3,
+						"hierarchicalRank": 8,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{Farming-fishing, Sales, Machine-op-inspct, ...}",
+						"parentCluster": "A3",
+						"frequency": 63,
+						"interest": 0.769793,
+						"hierarchicalLevel": 1,
+						"rank": 5,
+						"hierarchicalRank": 8,
+						"isLeaf": true
+					},
+					{
+						"cluster": "A1",
+						"parentCluster": "",
+						"frequency": 240,
+						"interest": 0.856972,
+						"hierarchicalLevel": 0,
+						"rank": 2,
+						"hierarchicalRank": 2,
+						"isLeaf": false
+					},
+					{
+						"cluster": "A3",
+						"parentCluster": "A1",
+						"frequency": 163,
+						"interest": 0.789406,
+						"hierarchicalLevel": 0.561115,
+						"rank": 4,
+						"hierarchicalRank": 4,
+						"isLeaf": false
+					}
+				]
+			},
+			{
+				"name": "education",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{HS-grad, 11th, 9th}",
+						"parentCluster": "B4",
+						"frequency": 99,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 8,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{10th, Assoc-voc, 7th-8th}",
+						"parentCluster": "B4",
+						"frequency": 21,
+						"interest": 0.782844,
+						"hierarchicalLevel": 1,
+						"rank": 3,
+						"hierarchicalRank": 8,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{Masters, Doctorate, Prof-school}",
+						"parentCluster": "B6",
+						"frequency": 20,
+						"interest": 0.814654,
+						"hierarchicalLevel": 1,
+						"rank": 5,
+						"hierarchicalRank": 8,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{Bachelors}",
+						"parentCluster": "B6",
+						"frequency": 39,
+						"interest": 0.688257,
+						"hierarchicalLevel": 1,
+						"rank": 7,
+						"hierarchicalRank": 8,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{Some-college, Assoc-acdm, 12th}",
+						"parentCluster": "B5",
+						"frequency": 61,
+						"interest": 0.701355,
+						"hierarchicalLevel": 1,
+						"rank": 9,
+						"hierarchicalRank": 8,
+						"isLeaf": true
+					},
+					{
+						"cluster": "B4",
+						"parentCluster": "B2",
+						"frequency": 120,
+						"interest": 0.961998,
+						"hierarchicalLevel": 0.402343,
+						"rank": 2,
+						"hierarchicalRank": 5,
+						"isLeaf": false
+					},
+					{
+						"cluster": "B2",
+						"parentCluster": "",
+						"frequency": 240,
+						"interest": 0.838989,
+						"hierarchicalLevel": -0.678346,
+						"rank": 4,
+						"hierarchicalRank": 3,
+						"isLeaf": false
+					},
+					{
+						"cluster": "B6",
+						"parentCluster": "B5",
+						"frequency": 59,
+						"interest": 0.731103,
+						"hierarchicalLevel": 0.989103,
+						"rank": 6,
+						"hierarchicalRank": 7,
+						"isLeaf": false
+					},
+					{
+						"cluster": "B5",
+						"parentCluster": "B2",
+						"frequency": 120,
+						"interest": 0.715981,
+						"hierarchicalLevel": 0.657326,
+						"rank": 8,
+						"hierarchicalRank": 6,
+						"isLeaf": false
+					}
+				]
+			}
+		],
+		"cellPartIndexes": [
+			[1,0],
+			[2,0],
+			[1,4],
+			[0,3],
+			[0,4],
+			[0,2],
+			[2,1],
+			[1,3],
+			[0,0],
+			[2,4],
+			[2,3],
+			[0,1],
+			[2,2],
+			[1,1]
+		],
+		"cellFrequencies": [58,33,32,25,22,19,17,9,8,7,5,3,1,1]
+	},
+	"khiops_encoding": "ascii"
+}

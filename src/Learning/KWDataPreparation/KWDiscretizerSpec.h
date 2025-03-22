@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -46,14 +46,12 @@ public:
 	void SetParam(double dValue);
 
 	// Effectif minimum par intervalle (defaut: 0)
-	// Ce parametre est determine automatiquement par l'algorithme
-	// s'il vaut 0
+	// Ce parametre est determine automatiquement par l'algorithme s'il vaut 0
 	int GetMinIntervalFrequency() const;
 	void SetMinIntervalFrequency(int nValue);
 
 	// Nombre maximum d'intervalles (defaut: 0)
-	// Ce parametre est determine automatiquement par l'algorithme
-	// s'il vaut 0
+	// Ce parametre est determine automatiquement par l'algorithme s'il vaut 0
 	int GetMaxIntervalNumber() const;
 	void SetMaxIntervalNumber(int nValue);
 
@@ -78,6 +76,9 @@ public:
 
 	// Fraicheur de l'objet, incrementee a chaque modification
 	int GetFreshness() const;
+
+	// Affichage, ecriture dans un fichier
+	void Write(ostream& ost) const override;
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
@@ -114,8 +115,8 @@ public:
 	KWDiscretizerSpec* GetDiscretizerSpec();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

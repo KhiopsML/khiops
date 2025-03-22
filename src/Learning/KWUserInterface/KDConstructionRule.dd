@@ -1,21 +1,5 @@
-Rank;
-Name;
-Type;
-Style;
-Label 1;
-Used;
-boolean;
-CheckBox;
-Used 2;
-FamilyName;
-ALString;
-;
-Family 3;
-Name;
-ALString;
-;
-Name 4;
-Label;
-ALString;
-;
-Label
+Rank;Name;Type;Style;Label
+1;Used       ;boolean ;CheckBox;Used
+2;FamilyName ;ALString;        ;Family
+3;Name       ;ALString;        ;Name
+4;Label      ;ALString;        ;Label

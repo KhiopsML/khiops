@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -245,7 +245,7 @@ void KWGrouperMODL::GranularizeFrequencyTable(KWFrequencyTable* kwftSource, KWFr
 			// Creation de la table d'effectif cible
 			kwftTarget = new KWFrequencyTable;
 			kwftTarget->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-			kwftTarget->Initialize(nActualPartileNumber);
+			kwftTarget->SetFrequencyVectorNumber(nActualPartileNumber);
 
 			// Initialisation du nombre de valeurs initiales et apres granularisation
 			kwftTarget->SetInitialValueNumber(kwftSource->GetInitialValueNumber());
@@ -318,7 +318,7 @@ void KWGrouperMODL::TestGranularizeFrequencyTable()
 	nSourceNumber = 100;
 	nTargetNumber = 2;
 	nTableFrequency = 1000;
-	kwftTest.Initialize(nSourceNumber);
+	kwftTest.SetFrequencyVectorNumber(nSourceNumber);
 
 	// Initialisation de la taille des vecteurs de la table
 	for (nSource = 0; nSource < nSourceNumber; nSource++)
@@ -594,7 +594,7 @@ void KWGrouperMODL::GroupPreprocessedTable(KWFrequencyTable* kwftSource, KWFrequ
 			dCost = ComputeGroupingCost(kwftOptimizedGranularizedTable, nCurrentPartileNumber);
 
 			// Cas de l'amelioration du cout
-			if (dCost < dBestCost)
+			if (dCost < dBestCost - dEpsilon)
 			{
 				// Memorisation du cout optimal
 				dBestCost = dCost;
@@ -761,7 +761,7 @@ void KWGrouperMODL::SmallSourceNumberGroup(KWFrequencyTable* kwftSource, KWFrequ
 		{
 			kwftTarget = new KWFrequencyTable;
 			kwftTarget->SetFrequencyVectorCreator(kwftSource->GetFrequencyVectorCreator()->Clone());
-			kwftTarget->Initialize(1);
+			kwftTarget->SetFrequencyVectorNumber(1);
 			kwftTarget->SetInitialValueNumber(kwftSource->GetInitialValueNumber());
 			kwftTarget->SetGranularizedValueNumber(kwftSource->GetGranularizedValueNumber());
 			// Parametrage granularite et poubelle
@@ -813,7 +813,7 @@ void KWGrouperMODL::SmallSourceNumberGroup(KWFrequencyTable* kwftSource, KWFrequ
 		MergeFrequencyVectors(workingFrequencyVector, kwftSource->GetFrequencyVectorAt(1),
 				      kwftSource->GetFrequencyVectorAt(2));
 		dCost = ComputeGroupCost(workingFrequencyVector) + dCostGroup0;
-		if (dCost < dBestCost)
+		if (dCost < dBestCost - dEpsilon)
 		{
 			dBestCost = dCost;
 			nBestTwoGroupsIndex = 0;
@@ -822,7 +822,7 @@ void KWGrouperMODL::SmallSourceNumberGroup(KWFrequencyTable* kwftSource, KWFrequ
 		MergeFrequencyVectors(workingFrequencyVector, kwftSource->GetFrequencyVectorAt(0),
 				      kwftSource->GetFrequencyVectorAt(2));
 		dCost = ComputeGroupCost(workingFrequencyVector) + dCostGroup1;
-		if (dCost < dBestCost)
+		if (dCost < dBestCost - dEpsilon)
 		{
 			dBestCost = dCost;
 			nBestTwoGroupsIndex = 1;
@@ -831,7 +831,7 @@ void KWGrouperMODL::SmallSourceNumberGroup(KWFrequencyTable* kwftSource, KWFrequ
 		MergeFrequencyVectors(workingFrequencyVector, kwftSource->GetFrequencyVectorAt(0),
 				      kwftSource->GetFrequencyVectorAt(1));
 		dCost = ComputeGroupCost(workingFrequencyVector) + dCostGroup2;
-		if (dCost < dBestCost)
+		if (dCost < dBestCost - dEpsilon)
 		{
 			dBestCost = dCost;
 			nBestTwoGroupsIndex = 2;
@@ -844,7 +844,7 @@ void KWGrouperMODL::SmallSourceNumberGroup(KWFrequencyTable* kwftSource, KWFrequ
 		{
 			kwftTarget = new KWFrequencyTable;
 			kwftTarget->SetFrequencyVectorCreator(kwftSource->GetFrequencyVectorCreator()->Clone());
-			kwftTarget->Initialize(1);
+			kwftTarget->SetFrequencyVectorNumber(1);
 			// Parametrage granularite et poubelle
 			kwftTarget->SetGranularity(kwftSource->GetGranularity());
 			kwftTarget->SetGarbageModalityNumber(kwftSource->GetGarbageModalityNumber());
@@ -865,7 +865,7 @@ void KWGrouperMODL::SmallSourceNumberGroup(KWFrequencyTable* kwftSource, KWFrequ
 		{
 			kwftTarget = new KWFrequencyTable;
 			kwftTarget->SetFrequencyVectorCreator(kwftSource->GetFrequencyVectorCreator()->Clone());
-			kwftTarget->Initialize(2);
+			kwftTarget->SetFrequencyVectorNumber(2);
 			kwftTarget->SetInitialValueNumber(kwftSource->GetInitialValueNumber());
 			kwftTarget->SetGranularizedValueNumber(kwftSource->GetGranularizedValueNumber());
 			// Parametrage granularite et poubelle

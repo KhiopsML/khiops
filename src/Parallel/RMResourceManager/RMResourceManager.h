@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -11,18 +11,13 @@
 #include "RMResourceSystem.h"
 #include "RMStandardResourceDriver.h"
 
-class RMResourceManager;   // Acces aux ressources disponibles et calcul des ressources en fonction des exigences
-class RMResourceGrant;     // Ressources allouees a un processus
-class RMTaskResourceGrant; // Ressources alouees pour une tache. Resultat du RMResourceManager qui contient un ensemble
-			   // de RMResourceGrant
+class RMResourceManager;     // Acces aux ressources disponibles et calcul des ressources en fonction des exigences
 class RMResourceRequirement; // Exigences sur le disque et la memoire
 class RMPhysicalResource;    // Contrainte sur l'utilisation d'une ressource generique (memoire ou disque)
 
 //////////////////////////////////////////////////////////////////////////
 // Classe RMResourceManager
-// Cette classe a deux roles :
-//	- Acces aux ressources disponibles sur la machine courante (memoire et disque)
-//	- Gestionnaire des ressources d'un systeme mono-machine avec la methode ComputeGrantedResources
+// Acces aux ressources disponibles sur la machine courante (memoire et disque)
 class RMResourceManager : public Object
 {
 public:
@@ -112,16 +107,16 @@ protected:
 //////////////////////////////////////////////////////////////////////////
 // Classe RMResourceRequirement
 // Cette classe represente les exigences utilisateurs sur les ressources systeme.
-// L'utilisateur peut fixer la memoire requise minimum et l'espace disque minimum.
+// L'utilisateur doit fixer la memoire requise minimum et l'espace disque minimum.
 // Avec la semantique que si ces contraintes min ne sont pas respectees, la tache ne
-// peut pas etre executer. L'utilisateur peut egalement fixer des bornes max. Dans ce cas
-// la semantique est moins forte : il n'est pas utile d'utiliser plus de resources que le max
-// mais la tache peut s'executer.
+// peut pas etre executer.
+// Les exigences max doivent etre renseignees, si il y a un surplus de ressources, celles-ci
+// seront attribuees jusqu'a saturation de l'exigence max.
 // Par defaut
 //			- la memoire min est fixee a 0
 //			- l'espace disque min est fixe a 0
-//			- la memoire max est fixee a INF
-//			- l'espace disque max est fixe a INF
+//			- la memoire max est fixee a 0
+//			- l'espace disque max est fixe a 0
 class RMResourceRequirement : public Object
 {
 public:
@@ -147,6 +142,7 @@ public:
 
 	// Affichage
 	void Write(ostream& ost) const override;
+	void WriteDetails(ostream& ost) const;
 
 	//////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -161,13 +157,13 @@ protected:
 class RMPhysicalResource : public Object
 {
 public:
-	// Constructeur, initialisation a 0 et +inf
+	// Constructeur, initialisation a min=max=0
 	RMPhysicalResource();
 	~RMPhysicalResource();
 
 	// Copie et duplication
 	RMPhysicalResource* Clone() const;
-	void CopyFrom(const RMPhysicalResource* ressource);
+	void CopyFrom(const RMPhysicalResource* resource);
 
 	// Ressource maximum
 	void SetMax(longint lMax);
@@ -187,6 +183,7 @@ public:
 
 	// Affichage
 	void Write(ostream& ost) const override;
+	void WriteDetails(ostream& ost) const;
 
 	// Verifie que le min est plus petit que le max
 	boolean Check() const override;
@@ -197,3 +194,19 @@ protected:
 	longint lMin;
 	longint lMax;
 };
+
+inline RMPhysicalResource* RMResourceRequirement::GetResource(int nResourceIndex) const
+{
+	require(nResourceIndex < RESOURCES_NUMBER);
+	return cast(RMPhysicalResource*, oaResources.GetAt(nResourceIndex));
+}
+
+inline longint RMPhysicalResource::GetMin() const
+{
+	return lMin;
+}
+
+inline longint RMPhysicalResource::GetMax() const
+{
+	return lMax;
+}

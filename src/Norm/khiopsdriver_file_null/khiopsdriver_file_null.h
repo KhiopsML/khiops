@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -57,7 +57,10 @@ extern "C"
 	// The following read-only functions are mandatory and they need to be implemented
 
 	// Returns 1 if the file exists, 0 otherwise
-	VISIBLE int driver_exist(const char* filename);
+	VISIBLE int driver_fileExists(const char* filename);
+
+	// Returns 1 if the directory exists, 0 otherwise
+	VISIBLE int driver_dirExists(const char* filename);
 
 	// Returns the size of the file, -1 on error
 	// Supports files larger than 4 Gb

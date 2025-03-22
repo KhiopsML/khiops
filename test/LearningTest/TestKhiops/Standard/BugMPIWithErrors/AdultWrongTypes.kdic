@@ -1,0 +1,21 @@
+
+
+Dictionary	Adult
+{
+	Numerical	Label		;	
+	Numerical	age		;	
+	Categorical	workclass		;	
+	Numerical	fnlwgt		;	
+	Categorical	education		;	
+	Numerical	education_num		;	
+	Categorical	marital_status		;	
+	Categorical	occupation		;	
+	Categorical	relationship		;	
+	Categorical	race		;	
+	Numerical	sex		;	
+	Numerical	capital_gain		;	
+	Numerical	capital_loss		;	
+	Numerical	hours_per_week		;	
+	Categorical	native_country		;	
+	Categorical	class		;	
+};

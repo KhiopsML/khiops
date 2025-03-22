@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -98,7 +98,7 @@ Symbol KWDRFormatContinuous::ComputeSymbolResult(const KWObject* kwoObject) cons
 			nLength--;
 		if (cValue < 0)
 			nLength++;
-		sprintf(sBuffer, "%0*.*f", nLength, nPrecision, (double)cValue);
+		snprintf(sBuffer, sizeof(sBuffer), "%0*.*f", nLength, nPrecision, (double)cValue);
 		return (Symbol)sBuffer;
 	}
 }
@@ -1143,16 +1143,19 @@ Continuous KWDRArgMin::ComputeContinuousResult(const KWObject* kwoObject) const
 	for (i = 0; i < GetOperandNumber(); i++)
 	{
 		cValue = GetOperandAt(i)->GetContinuousValue(kwoObject);
-		if (cValue == KWContinuous::GetMissingValue())
-			return KWContinuous::GetMissingValue();
-		if (cValue < cMinValue)
+		if (cValue != KWContinuous::GetMissingValue() and cValue < cMinValue)
 		{
 			cMinValue = cValue;
 			nArgMin = i;
 		}
 	}
-	assert(nArgMin >= 0);
-	return (Continuous)(nArgMin + 1);
+
+	// On retourne l'argmin si au moins une valeur non manquante
+	if (nArgMin != -1)
+		return (Continuous)(nArgMin + 1);
+	// Sinon, on retourne la valeur manquante
+	else
+		return KWContinuous::GetMissingValue();
 }
 
 ///////////////////////////////////////////////////////////////
@@ -1190,14 +1193,17 @@ Continuous KWDRArgMax::ComputeContinuousResult(const KWObject* kwoObject) const
 	for (i = 0; i < GetOperandNumber(); i++)
 	{
 		cValue = GetOperandAt(i)->GetContinuousValue(kwoObject);
-		if (cValue == KWContinuous::GetMissingValue())
-			return KWContinuous::GetMissingValue();
-		if (cValue > cMaxValue)
+		if (cValue != KWContinuous::GetMissingValue() and cValue > cMaxValue)
 		{
 			cMaxValue = cValue;
 			nArgMax = i;
 		}
 	}
-	assert(nArgMax >= 0);
-	return (Continuous)(nArgMax + 1);
+
+	// On retourne l'argmax si au moins une valeur non manquante
+	if (nArgMax != -1)
+		return (Continuous)(nArgMax + 1);
+	// Sinon, on retourne la valeur manquante
+	else
+		return KWContinuous::GetMissingValue();
 }

@@ -1,19 +1,20 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
+#include "PLSharedVariable.h"
+
 class PLSharedObject;
 class PLShared_ObjectArray;
+class PLShared_ObjectArrayArray;
 class PLShared_ObjectDictionary;
 class PLShared_ObjectList;
 class PLShared_StringObject;
 class PLShared_DoubleObject;
 class PLShared_IntObject;
 class PLShared_LongintObject;
-
-#include "PLSharedVariable.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // Classe PLSharedObject.
@@ -43,8 +44,8 @@ public:
 	void RemoveObject();
 
 	// Methodes de serialisation / deserialisation d'un objet non null
-	virtual void DeserializeObject(PLSerializer*, Object*) const = 0;
-	virtual void SerializeObject(PLSerializer*, const Object*) const = 0;
+	virtual void SerializeObject(PLSerializer* serializer, const Object* o) const = 0;
+	virtual void DeserializeObject(PLSerializer* serializer, Object* o) const = 0;
 
 	// Ajout de null dans le serializer, si l'objet passe en parametre est null
 	void AddNull(PLSerializer* serializer, const Object*) const;
@@ -57,8 +58,8 @@ protected:
 	virtual Object* Create() const = 0;
 
 	// Serialisation / Deserialization de l'objet, potentiellement null
-	void SerializeValue(PLSerializer*) const override final;
-	void DeserializeValue(PLSerializer*) override final;
+	void SerializeValue(PLSerializer*) const final;
+	void DeserializeValue(PLSerializer*) final;
 
 	// L'objet appartient a l'appele (construit a la premiere utilisation, detruit si necessaire au destructeur,
 	// remplace au set)
@@ -76,6 +77,7 @@ private:
 
 	// Classes friend
 	friend class PLShared_ObjectArray;
+	friend class PLShared_ObjectArrayArray;
 	friend class PLShared_ObjectList;
 	friend class PLShared_ObjectDictionary;
 	friend class PLShared_StringVector;
@@ -92,7 +94,7 @@ private:
 // L'objet contenu doit avoir un type serialise associe (qui efectue la serialisation / deserialisation)
 // Par exemple pour serialiser un tableau de SampleObject, il faut avoir construit le type PLShared_SampleObject.
 // Une instance de cet objet est passee au constructeur.
-// Un PLShared_ObjectArray donne un pointeur vers un ObjectArray qui peut etre manipuler comme d'habitude.
+// Un PLShared_ObjectArray donne un pointeur vers un ObjectArray qui peut etre manipule comme d'habitude.
 // Cet ObjectArray appartient au PLShared_ObjectArray (ainsi que tous les elements qu'il contient)
 //
 // Un exemple d'utilisation est donne dans la methode de test
@@ -113,8 +115,8 @@ public:
 	ObjectArray* GetObjectArray();
 
 	// Reimplementation des methodes virtuelles
-	void SerializeObject(PLSerializer*, const Object*) const override;
-	void DeserializeObject(PLSerializer*, Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void Clean() override;
 
 	// Methodes de test
@@ -131,6 +133,40 @@ protected:
 
 	// Fonction de comparaison
 	CompareFunction compareFunction;
+};
+
+/////////////////////////////////////////////////////////////////////////////
+// Classe PLShared_ObjectArrayArray
+// Specialisation de PLShared_ObjectArray pour serialiser un tableau de tableaux d'objets
+//
+// L'objet contenu doit avoir un type serialise associe (qui efectue la serialisation / deserialisation),
+// comme pour PLShared_ObjectArray
+// Par exemple pour serialiser un tableau de tableau de SampleObject, il faut avoir construit le type
+// PLShared_SampleObject. Une instance de cet objet est passee au constructeur. Un PLShared_ObjectArrayArray donne un
+// pointeur vers un ObjectArray qui peut etre manipule comme d'habitude. Cet ObjectArray appartient au
+// PLShared_ObjectArrayArray (ainsi que tous les tableaux qu'il contient et leur contenu)
+class PLShared_ObjectArrayArray : public PLShared_ObjectArray
+{
+public:
+	// Constructeur
+	PLShared_ObjectArrayArray(const PLSharedObject* object);
+	~PLShared_ObjectArrayArray();
+
+	// Acces au tableau de tableaux
+	void SetObjectArray(ObjectArray* oa);
+	ObjectArray* GetObjectArray();
+
+	// Reimplementation des methodes virtuelles
+	void Clean() override;
+
+	// Methodes de test
+	static void Test();
+
+	//////////////////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	// Destruction de tous les tableaux d'un ta bleau de tableu et de leur contenu
+	void DeleteAllArrays(ObjectArray* oaaArray) const;
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -154,8 +190,8 @@ public:
 	ObjectList* GetObjectList();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void Clean() override;
 
 	// Methode de test
@@ -179,7 +215,7 @@ protected:
 // L'objet contenu doit avoir un type serialise associe (qui efectue la serialisation / deserialisation)
 // Par exemple pour serialiser un dictionnaire de SampleObject, il faut avoir construit le type PLShared_SampleObject.
 // Une instance de cet objet est passee au constructeur.
-// Un PLShared_ObjectDictionary donne un pointeur vers un ObjectDictionary qui peut etre manipuler comme d'habitude.
+// Un PLShared_ObjectDictionary donne un pointeur vers un ObjectDictionary qui peut etre manipule comme d'habitude.
 // Cet ObjectDictionary appartient au PLShared_ObjectDictionary (ainsi que tous les elements qu'il contient)
 //
 class PLShared_ObjectDictionary : public PLSharedObject
@@ -193,8 +229,8 @@ public:
 	ObjectDictionary* GetObjectDictionary();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void Clean() override;
 
 	// Methode de test
@@ -226,8 +262,8 @@ public:
 	StringObject* GetStringObject();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	//////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -251,8 +287,8 @@ public:
 	DoubleObject* GetDoubleObject();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	//////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -276,8 +312,8 @@ public:
 	IntObject* GetIntObject();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	//////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -297,12 +333,12 @@ public:
 	~PLShared_LongintObject();
 
 	// Acces au LongintObject
-	void SetHostResource(LongintObject* hr);
-	LongintObject* GetHostResource();
+	void SetLongintObject(LongintObject* hr);
+	LongintObject* GetLongintObject();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	//////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -381,6 +417,19 @@ inline void PLShared_ObjectArray::Clean()
 		}
 	}
 	PLSharedObject::Clean();
+}
+
+inline void PLShared_ObjectArrayArray::SetObjectArray(ObjectArray* oa)
+{
+	// Specialisation de la methode pour detruire le contenu des tableaux
+	if (oValue != NULL)
+		DeleteAllArrays(cast(ObjectArray*, oValue));
+	SetObject(oa);
+}
+
+inline ObjectArray* PLShared_ObjectArrayArray::GetObjectArray()
+{
+	return cast(ObjectArray*, GetObject());
 }
 
 inline void PLShared_ObjectList::SetObjectList(ObjectList* ol)
@@ -473,12 +522,12 @@ inline Object* PLShared_IntObject::Create() const
 	return new IntObject;
 }
 
-inline void PLShared_LongintObject::SetHostResource(LongintObject* lo)
+inline void PLShared_LongintObject::SetLongintObject(LongintObject* lo)
 {
 	SetObject(lo);
 }
 
-inline LongintObject* PLShared_LongintObject::GetHostResource()
+inline LongintObject* PLShared_LongintObject::GetLongintObject()
 {
 	return cast(LongintObject*, GetObject());
 }

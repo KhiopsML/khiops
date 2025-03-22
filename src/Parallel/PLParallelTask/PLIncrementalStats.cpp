@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -119,6 +119,20 @@ PLIncrementalStats* PLSharedIncrementalStats::GetStats()
 	return cast(PLIncrementalStats*, GetObject());
 }
 
+void PLSharedIncrementalStats::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	const PLIncrementalStats* stat = cast(PLIncrementalStats*, o);
+
+	require(serializer->IsOpenForWrite());
+
+	serializer->PutDouble(stat->dMin);
+	serializer->PutDouble(stat->dMax);
+	serializer->PutDouble(stat->dTotal);
+	serializer->PutInt(stat->nValueNumber);
+	serializer->PutDouble(stat->dTotalSquare);
+	serializer->PutString(stat->sDescription);
+}
+
 void PLSharedIncrementalStats::DeserializeObject(PLSerializer* serializer, Object* o) const
 {
 	PLIncrementalStats* stat = cast(PLIncrementalStats*, o);
@@ -131,19 +145,6 @@ void PLSharedIncrementalStats::DeserializeObject(PLSerializer* serializer, Objec
 	stat->nValueNumber = serializer->GetInt();
 	stat->dTotalSquare = serializer->GetDouble();
 	stat->sDescription = serializer->GetString();
-}
-void PLSharedIncrementalStats::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	PLIncrementalStats* stat = cast(PLIncrementalStats*, o);
-
-	require(serializer->IsOpenForWrite());
-
-	serializer->PutDouble(stat->dMin);
-	serializer->PutDouble(stat->dMax);
-	serializer->PutDouble(stat->dTotal);
-	serializer->PutInt(stat->nValueNumber);
-	serializer->PutDouble(stat->dTotalSquare);
-	serializer->PutString(stat->sDescription);
 }
 
 Object* PLSharedIncrementalStats::Create() const

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -66,6 +66,7 @@ KWTupleTable::KWTupleTable()
 {
 	nSize = 0;
 	nTotalFrequency = 0;
+	nSparseMissingValueNumber = 0;
 	slTuples = NULL;
 	inputTuple = NULL;
 }
@@ -730,8 +731,8 @@ KWTuple* KWTupleTable::NewTuple() const
 	// en plus des donnees du symbol (le caractere fin de chaine '\0' est deja prevu)
 	pTupleMemory = NewMemoryBlock(nMemorySize);
 
-	// On utilise le "placement new" pour appeler un constructeur avec de la memoire preallouee (attention, C++
-	// avance)
+	// On utilise le "placement new" pour appeler un constructeur avec de la memoire preallouee
+	// (attention, C++ avance)
 	newTuple = new (pTupleMemory) KWTuple;
 	assert((void*)newTuple == pTupleMemory);
 
@@ -866,7 +867,7 @@ void PLShared_TupleTable::SerializeObject(PLSerializer* serializer, const Object
 		nSortFunctionIndex = 2;
 	else if (tupleTable->oaTuples.GetCompareFunction() == tupleTable->GetCompareDecreasingFrequenciesFunction())
 		nSortFunctionIndex = 3;
-	assert(nSortFunctionIndex != 0);
+	assert(nSortFunctionIndex != 0 or tupleTable->GetSize() == 0);
 	serializer->PutInt(nSortFunctionIndex);
 }
 
@@ -927,7 +928,7 @@ void PLShared_TupleTable::DeserializeObject(PLSerializer* serializer, Object* o)
 
 	// Deserialisation de la fonction de tri, et tri seulement si necessaire
 	nSortFunctionIndex = serializer->GetInt();
-	assert(nSortFunctionIndex != 0);
+	assert(nSortFunctionIndex != 0 or tupleTable->GetSize() == 0);
 	if (nSortFunctionIndex == 1)
 	{
 		// Le tri est necessaire en cas de presence d'attributs Symbol, dont la valeur

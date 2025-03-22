@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -92,7 +92,7 @@ void BellNumber(int argc, char** argv);
 // Creation d'un fichier de donnees avec tous les caracteres ascii 1 a 255
 void AnyCharFileGenerator();
 
-// Creation d'un fichier de donnees avec tous les caracteres ascii 1 a 255 plus des caractères UTF8
+// Creation d'un fichier de donnees avec tous les caracteres ascii 1 a 255 plus des caracteres UTF8
 void MixedAsciiUTF8CharFileGenerator();
 void BuildAllCharValueFile();
 void BuildAllCharValueJsonFile();

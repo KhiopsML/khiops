@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -94,11 +94,13 @@ boolean Timestamp::AddSeconds(double dSeconds)
 		dDaySeconds -= 60.0 * nMinute;
 		assert(0 <= dDaySeconds and dDaySeconds < 60);
 
-		// Mise a jour
-		GetInternalTime().Init(nHour, nMinute, dDaySeconds);
+		// Mise a jour, sans passer par Init qui reinitialise les autre champs de DateTime
+		GetInternalTime().SetHour(nHour);
+		GetInternalTime().SetMinute(nMinute);
+		GetInternalTime().SetSecond(dDaySeconds);
 	}
 
-	// Reinitialistaion si non valide
+	// Reinitialistation si non valide
 	if (not bOk)
 	{
 		Reset();
@@ -109,8 +111,13 @@ boolean Timestamp::AddSeconds(double dSeconds)
 
 void Timestamp::SetCurrentTimestamp()
 {
-	GetInternalDate().SetCurrentDate();
-	GetInternalTime().SetCurrentTime();
+	Date dtValue;
+	Time tmValue;
+
+	dtValue.SetCurrentDate();
+	tmValue.SetCurrentTime();
+	SetDate(dtValue);
+	SetTime(tmValue);
 }
 
 const char* const Timestamp::ToString() const
@@ -120,7 +127,7 @@ const char* const Timestamp::ToString() const
 	if (not Check())
 		sTimestamp[0] = '\0';
 	else
-		sprintf(sTimestamp, "%s %s", GetDate().ToString(), GetTime().ToString());
+		snprintf(sTimestamp, BUFFER_LENGTH, "%s %s", GetDate().ToString(), GetTime().ToString());
 	return sTimestamp;
 }
 
@@ -133,7 +140,18 @@ void Timestamp::UnitTest(int nYear, int nMonth, int nDay, int nHour, int nMinute
 {
 	Timestamp tsValue;
 	Timestamp tsCopy;
+	DoubleVector dvSeconds;
+	int i;
 
+	// Liste des increments en secondes a prendre en compte
+	dvSeconds.Add(0);
+	dvSeconds.Add(0.1);
+	dvSeconds.Add(1);
+	dvSeconds.Add(60);
+	dvSeconds.Add(3600);
+	dvSeconds.Add(86400);
+
+	// Tests complets
 	tsValue.Init(nYear, nMonth, nDay, nHour, nMinute, dSecond);
 	tsCopy = tsValue;
 	cout << "(" << nYear << ", " << nMonth << ", " << nDay << ", " << nHour << ", " << nMinute << ", " << dSecond
@@ -146,30 +164,16 @@ void Timestamp::UnitTest(int nYear, int nMonth, int nDay, int nHour, int nMinute
 	if (tsValue.Check())
 	{
 		cout << tsValue.GetAbsoluteSecond() << "\t";
-		tsCopy = tsValue;
-		tsCopy.AddSeconds(0);
-		cout << tsCopy << " ,\t" << flush;
-		cout << tsValue.Diff(tsCopy) << "\t";
-		tsCopy = tsValue;
-		tsCopy.AddSeconds(0.1);
-		cout << tsCopy << " ,\t";
-		cout << tsValue.Diff(tsCopy) << "\t";
-		tsCopy = tsValue;
-		tsCopy.AddSeconds(1);
-		cout << tsCopy << " ,\t";
-		cout << tsValue.Diff(tsCopy) << "\t";
-		tsCopy = tsValue;
-		tsCopy.AddSeconds(60);
-		cout << tsCopy << " ,\t";
-		cout << tsValue.Diff(tsCopy) << "\t";
-		tsCopy = tsValue;
-		tsCopy.AddSeconds(3600);
-		cout << tsCopy << " ,\t";
-		cout << tsValue.Diff(tsCopy) << "\t";
-		tsCopy = tsValue;
-		tsCopy.AddSeconds(86400);
-		cout << tsCopy << " ,\t";
-		cout << tsValue.Diff(tsCopy) << "\t";
+
+		// Prise en compte de tous les increments en secondes
+		for (i = 0; i < dvSeconds.GetSize(); i++)
+		{
+			tsCopy = tsValue;
+			tsCopy.AddSeconds(dvSeconds.GetAt(i));
+			cout << tsCopy << " ,\t" << flush;
+			cout << tsValue.Diff(tsCopy) << "\t";
+			assert(fabs(tsValue.Diff(tsCopy) + dvSeconds.GetAt(i)) < 1e-3);
+		}
 	}
 	cout << endl;
 }
@@ -191,8 +195,7 @@ void Timestamp::Test()
 	int nTotalSecondNumber;
 
 	cout << "sizeof(Timestamp): " << sizeof(Timestamp) << endl;
-	assert(sizeof(Timestamp) == sizeof(Date) + sizeof(Time));
-	assert(sizeof(Timestamp) == 2 * sizeof(int));
+	assert(sizeof(Timestamp) == sizeof(longint));
 	tsCurrent.SetCurrentTimestamp();
 	cout << "SYSTEM\tCurrent Timestamp\t" << tsCurrent << "\t" << tsCurrent.GetDate().GetWeekDay() << endl;
 
@@ -216,6 +219,7 @@ void Timestamp::Test()
 		tsTimestamp = tsOrigin;
 		tsTimestamp.AddSeconds(86400.0 * (i - nOriginAbsoluteDay));
 		assert(tsTimestamp.GetDate().GetAbsoluteDay() == i);
+		assert(tsTimestamp.Diff(tsOrigin) == 86400.0 * (i - nOriginAbsoluteDay));
 		if (tsTimestamp.GetDate().GetYear() != tsPreviousTimestamp.GetDate().GetYear())
 			nTotalYearNumber++;
 		if (tsTimestamp.GetDate().GetMonth() != tsPreviousTimestamp.GetDate().GetMonth())
@@ -292,6 +296,7 @@ void Timestamp::Test()
 	UnitTest(2013, 4, 5, 23, 59, 59.9999);
 	UnitTest(2013, 4, 5, 23, 59, 59.99999);
 	UnitTest(2013, 4, 5, 23, 59, 60);
+	UnitTest(4000, 1, 1, 0, 0, 0);
 	UnitTest(9999, 1, 1, 0, 0, 0);
 	UnitTest(9999, 12, 30, 23, 59, 59.9999);
 }
@@ -301,13 +306,7 @@ void Timestamp::Test()
 
 KWTimestampFormat::KWTimestampFormat()
 {
-	nTotalCharNumber = 0;
-	cSeparatorChar = '\0';
-	nSeparatorOffset = 0;
-	nDateOffset = 0;
-	nTimeOffset = 0;
-	nMinCharNumber = 0;
-	nMaxCharNumber = 0;
+	Reset();
 }
 
 KWTimestampFormat::~KWTimestampFormat() {}
@@ -333,7 +332,6 @@ boolean KWTimestampFormat::SetFormatString(const ALString& sValue)
 	// Recherche des motifs dans la chaine
 	if (bCheck)
 	{
-		nDateOffset = 0;
 		nTimeOffset = sValue.Find("HH");
 		if (nTimeOffset == -1)
 			nTimeOffset = sValue.Find("(H)H");
@@ -361,7 +359,8 @@ boolean KWTimestampFormat::SetFormatString(const ALString& sValue)
 			cSeparatorChar = sValue.GetAt(nSeparatorOffset);
 
 			// Test de validite
-			bCheck = (cSeparatorChar == ' ' or cSeparatorChar == '-' or cSeparatorChar == '_');
+			bCheck = (cSeparatorChar == ' ' or cSeparatorChar == '-' or cSeparatorChar == '_' or
+				  cSeparatorChar == 'T');
 		}
 	}
 
@@ -390,7 +389,7 @@ boolean KWTimestampFormat::SetFormatString(const ALString& sValue)
 			bCheck = (cSeparatorChar != '\0');
 	}
 
-	// Calcul des nombre min et max de caracteres
+	// Calcul des nombres min et max de caracteres
 	if (bCheck)
 	{
 		nMinCharNumber = GetDateFormat()->GetMinCharNumber() + GetTimeFormat()->GetMinCharNumber();
@@ -403,21 +402,26 @@ boolean KWTimestampFormat::SetFormatString(const ALString& sValue)
 
 	// Reinitialisation des caracteristiques du format si invalide
 	if (not bCheck)
-	{
-		nTotalCharNumber = 0;
-		cSeparatorChar = '\0';
-		nSeparatorOffset = 0;
-		nDateOffset = 0;
-		nTimeOffset = 0;
-		nMinCharNumber = 0;
-		nMaxCharNumber = 0;
-	}
+		Reset();
 	return bCheck;
 }
 
 const ALString& KWTimestampFormat::GetFormatString() const
 {
 	return sFormatString;
+}
+
+void KWTimestampFormat::Reset()
+{
+	sFormatString = "";
+	dateFormat.Reset();
+	timeFormat.Reset();
+	nTotalCharNumber = 0;
+	cSeparatorChar = '\0';
+	nSeparatorOffset = 0;
+	nTimeOffset = 0;
+	nMinCharNumber = 0;
+	nMaxCharNumber = 0;
 }
 
 boolean KWTimestampFormat::IsConsistentWith(const KWTimestampFormat* otherFormat) const
@@ -551,7 +555,7 @@ void KWTimestampFormat::GetAllAvailableFormats(ObjectArray* oaAvailableFormats)
 	require(oaAvailableFormats != NULL);
 	require(oaAvailableFormats->GetSize() == 0);
 
-	// Recherche de tous les format de Date et Time
+	// Recherche de tous les formats de Date et Time
 	KWDateFormat::GetAllAvailableFormats(&oaAllAvailableDateFormats);
 	KWTimeFormat::GetAllAvailableFormats(&oaAllAvailableTimeFormats);
 
@@ -573,6 +577,8 @@ void KWTimestampFormat::GetAllAvailableFormats(ObjectArray* oaAvailableFormats)
 				  dateFormat->GetFormatString() + '-' + timeFormat->GetFormatString());
 			AddFormat(oaAvailableFormats,
 				  dateFormat->GetFormatString() + '_' + timeFormat->GetFormatString());
+			AddFormat(oaAvailableFormats,
+				  dateFormat->GetFormatString() + 'T' + timeFormat->GetFormatString());
 		}
 	}
 
@@ -606,6 +612,7 @@ void KWTimestampFormat::UnitTest(const ALString& sInputValue, KWTimestampFormat*
 	require(outputFormat != NULL);
 
 	tsInputValue.Reset();
+	tsOutputValue.Reset();
 	if (inputFormat->Check())
 		tsInputValue = inputFormat->StringToTimestamp(sInputValue);
 	if (outputFormat->Check())
@@ -667,6 +674,7 @@ void KWTimestampFormat::Test()
 	svStringTimestamps.Add("20031231235959.9");
 	svStringTimestamps.Add("20041231235959.9");
 	svStringTimestamps.Add("20130405235959.9");
+	svStringTimestamps.Add("40000101235959.9");
 	svStringTimestamps.Add("99990101235959.9");
 
 	// Affichages des timestamps testees

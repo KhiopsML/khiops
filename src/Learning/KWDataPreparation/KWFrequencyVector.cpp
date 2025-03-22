@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -89,20 +89,29 @@ KWFrequencyTable::~KWFrequencyTable()
 		delete kwfvFrequencyVectorCreator;
 }
 
-void KWFrequencyTable::Initialize(int nFrequencyVectorNumber)
+void KWFrequencyTable::SetFrequencyVectorNumber(int nFrequencyVectorNumber)
 {
 	int i;
+	int nCurrentSize;
 
 	require(kwfvFrequencyVectorCreator != NULL);
 	require(nFrequencyVectorNumber >= 0);
 
-	// Nettoyage
-	oaFrequencyVectors.DeleteAll();
+	// Nettoyage des eventuels vecteurs surnumeraires
+	nCurrentSize = oaFrequencyVectors.GetSize();
+	for (i = nFrequencyVectorNumber; i < nCurrentSize; i++)
+		delete oaFrequencyVectors.GetAt(i);
 
-	// Creation des vecteur d'effectifs
+	// Retaillage
 	oaFrequencyVectors.SetSize(nFrequencyVectorNumber);
-	for (i = 0; i < oaFrequencyVectors.GetSize(); i++)
+
+	// Creation des nouveau vecteur d'effectifs
+	oaFrequencyVectors.SetSize(nFrequencyVectorNumber);
+	for (i = nCurrentSize; i < nFrequencyVectorNumber; i++)
 		oaFrequencyVectors.SetAt(i, kwfvFrequencyVectorCreator->Create());
+
+	// Pour reforcer le calcul de l'effectif total
+	nTotalFrequency = -1;
 }
 
 int KWFrequencyTable::GetTotalFrequency() const
@@ -304,7 +313,7 @@ void KWFrequencyTable::CopyFrom(const KWFrequencyTable* kwftSource)
 	SetGranularizedValueNumber(kwftSource->GetGranularizedValueNumber());
 
 	// Recopie des vecteurs apres les avoir crees
-	Initialize(kwftSource->GetFrequencyVectorNumber());
+	SetFrequencyVectorNumber(kwftSource->GetFrequencyVectorNumber());
 	for (i = 0; i < kwftSource->GetFrequencyVectorNumber(); i++)
 	{
 		// Acces aux vecteurs d'effectifs source et courant
@@ -323,6 +332,24 @@ KWFrequencyTable* KWFrequencyTable::Clone() const
 	kwftClone = new KWFrequencyTable;
 	kwftClone->CopyFrom(this);
 	return kwftClone;
+}
+
+boolean KWFrequencyTable::CheckNoEmptyFrequencyVectors() const
+{
+	boolean bOk = true;
+	int i;
+	KWFrequencyVector* kwfvVector;
+
+	// Aucun vecteur ne doit etre vide, sauf s'il n'y a qu'un seul vecteur (cas du model null)
+	if (oaFrequencyVectors.GetSize() > 1)
+	{
+		for (i = 0; i < oaFrequencyVectors.GetSize(); i++)
+		{
+			kwfvVector = GetFrequencyVectorAt(i);
+			bOk = bOk and kwfvVector->ComputeTotalFrequency() > 0;
+		}
+	}
+	return bOk;
 }
 
 void KWFrequencyTable::ImportFrom(KWFrequencyTable* kwftSource)
@@ -365,24 +392,6 @@ void KWFrequencyTable::DeleteAllFrequencyVectors()
 	RemoveAllFrequencyVectors();
 }
 
-boolean KWFrequencyTable::Check() const
-{
-	boolean bOk = true;
-	int i;
-	KWFrequencyVector* kwfvVector;
-
-	// Aucun vecteur ne doit etre vide, sauf s'il n'y a qu'un seul vecteur (cas du model null)
-	if (oaFrequencyVectors.GetSize() > 1)
-	{
-		for (i = 0; i < oaFrequencyVectors.GetSize(); i++)
-		{
-			kwfvVector = GetFrequencyVectorAt(i);
-			bOk = bOk and kwfvVector->ComputeTotalFrequency() > 0;
-		}
-	}
-	return bOk;
-}
-
 void KWFrequencyTable::ComputeNullTable(KWFrequencyTable* kwftSource)
 {
 	KWDenseFrequencyVector refDenseFrequencyVector;
@@ -399,7 +408,7 @@ void KWFrequencyTable::ComputeNullTable(KWFrequencyTable* kwftSource)
 
 	// Initialisation
 	SetFrequencyVectorCreator(kwftSource->GetFrequencyVectorCreator()->Clone());
-	Initialize(1);
+	SetFrequencyVectorNumber(1);
 
 	// Parametrage granularite et nombre de modalites poubelle
 	SetGranularity(kwftSource->GetGranularity());
@@ -427,7 +436,7 @@ void KWFrequencyTable::ImportDataGridStats(const KWDataGridStats* dataGridStats)
 	require(dataGridStats->Check());
 
 	// Initialisation de la table
-	Initialize(dataGridStats->ComputeSourceGridSize());
+	SetFrequencyVectorNumber(dataGridStats->ComputeSourceGridSize());
 	for (nSource = 0; nSource < GetFrequencyVectorNumber(); nSource++)
 	{
 		// Acces au vecteur de la table (sense etre en representation dense)
@@ -440,7 +449,8 @@ void KWFrequencyTable::ImportDataGridStats(const KWDataGridStats* dataGridStats)
 	nGranularity = dataGridStats->GetGranularity();
 
 	// Initialisation  du nombre de valeurs initial et apres granularisation selon les caracteristiques du premier
-	// attribut de la grille CH V9 Lot 8 TODO pas de sens s'il y a plusieurs attributs source ?
+	// attribut de la grille
+	// CH V9 Lot 8 TODO pas de sens s'il y a plusieurs attributs source ?
 	nInitialValueNumber = dataGridStats->GetAttributeAt(0)->GetInitialValueNumber();
 	nGranularizedValueNumber = dataGridStats->GetAttributeAt(0)->GetGranularizedValueNumber();
 
@@ -795,10 +805,10 @@ void KWFrequencyTable::Write(ostream& ost) const
 	int i;
 	KWFrequencyVector* kwfvCurrent;
 
-	ost << "Nombre initial de valeurs\t" << nInitialValueNumber << "\tNombre de valeurs apres granularisation\t"
+	ost << "Initial value number\t" << nInitialValueNumber << "\tGranularized value number\t"
 	    << nGranularizedValueNumber << endl;
 	// Affichage de la granularite et de la taille du groupe poubelle
-	ost << "Granularite\t" << nGranularity << "\tTaillePoubelle\t" << nGarbageModalityNumber << "\n";
+	ost << "Granularity\t" << nGranularity << "\tGarbage modality number\t" << nGarbageModalityNumber << "\n";
 
 	// Affichage de la table si non vide
 	assert(oaFrequencyVectors.GetSize() == 0 or kwfvFrequencyVectorCreator != NULL);

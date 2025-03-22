@@ -1,0 +1,103 @@
+
+
+Current domain
+
+
+// Label of Class1
+Dictionary	Class1	(Key1, Key2, Key3)
+{
+	Categorical	Key1		;	// Label of Key1
+	Categorical	Key2		;	// Label of Key2
+	Categorical	Key3		;	// Label of Key3
+	Categorical	AttC1		;	// Label of AttC1
+	{
+	Categorical	SAttC2		; <VarKey="2">	// Label of SAttC2
+	}	SAttCategoricalBlock		;	
+	Numerical	AttN1		;	// Label of AttN1
+	{
+	Numerical	SAttN2		; <VarKey="2">	// Label of SAttN2
+	}	SAttNumericalBlock		; <DefaultNumericalValue=0>	
+};
+
+// Label of Class2
+Dictionary	Class2	(Key1, Key2)
+{
+	Categorical	Key1		;	// Label of Key1
+	Categorical	Key2		;	// Label of Key2
+	Date	Date1		;	// Label of Date1
+	Time	Time1		;	// Label of Time1
+	Timestamp	Timestamp1		;	// Label of Timestamp1
+	TimestampTZ	TimestampTZ1		;	// Label of TimestampTZ1
+	Text	Text1		;	// Label of Text1
+	Entity(Class1)	Entity1		;	// Label of Entity1
+	Entity(Class1)	Entity2		;	// Label of Entity2
+	Entity(Class1)	Entity3		;	// Label of Entity3
+	Table(Class1)	Table1		;	// Label of Table1
+	Table(Class1)	Table2		;	// Label of Table2
+	Table(Class1)	Table3		;	// Label of Table3
+};
+
+// Label of Class3
+Root	Dictionary	Class3	(Key1)
+{
+	Categorical	Key1		;	// Label of Key1
+	Categorical	SAttC1		;	// Label of SAttC1
+	Numerical	SAttN1		;	// Label of SAttN1
+	Entity(Class2)	SAttEntity1		;	// Label of SAttEntity1
+	Table(Class2)	SAttTable1		;	// Label of SAttTable1
+};
+
+
+Clone domain (RootClone) and remove dictionary Class3
+
+
+// Label of Class1
+Dictionary	Class1	(Key1, Key2, Key3)
+{
+	Categorical	Key1		;	// Label of Key1
+	Categorical	Key2		;	// Label of Key2
+	Categorical	Key3		;	// Label of Key3
+	Categorical	AttC1		;	// Label of AttC1
+	{
+	Categorical	SAttC2		; <VarKey="2">	// Label of SAttC2
+	}	SAttCategoricalBlock		;	
+	Numerical	AttN1		;	// Label of AttN1
+	{
+	Numerical	SAttN2		; <VarKey="2">	// Label of SAttN2
+	}	SAttNumericalBlock		; <DefaultNumericalValue=0>	
+};
+
+// Label of Class2
+Dictionary	Class2	(Key1, Key2)
+{
+	Categorical	Key1		;	// Label of Key1
+	Categorical	Key2		;	// Label of Key2
+	Date	Date1		;	// Label of Date1
+	Time	Time1		;	// Label of Time1
+	Timestamp	Timestamp1		;	// Label of Timestamp1
+	TimestampTZ	TimestampTZ1		;	// Label of TimestampTZ1
+	Text	Text1		;	// Label of Text1
+	Entity(Class1)	Entity1		;	// Label of Entity1
+	Entity(Class1)	Entity2		;	// Label of Entity2
+	Entity(Class1)	Entity3		;	// Label of Entity3
+	Table(Class1)	Table1		;	// Label of Table1
+	Table(Class1)	Table2		;	// Label of Table2
+	Table(Class1)	Table3		;	// Label of Table3
+};
+
+
+Rename domain as RootNew
+
+
+
+List of domains
+	RootClone	2 dictionaries written in temp dir
+	RootNew	3 dictionaries written in temp dir
+
+
+Read/write of domains
+	Read RootClone from temp dir
+	RootClone	2 dictionaries written in temp dir
+	Read RootNew from temp dir
+	RootNew	3 dictionaries written in temp dir
+

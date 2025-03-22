@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -78,10 +78,6 @@ public:
 	void SetKeyUsedMemory(longint lValue);
 	longint GetKeyUsedMemory() const;
 
-	// Taille des buffers de fichiers (par defaut: la valeur par defaut definie dans BufferedFile)
-	void SetBufferSize(int nValue);
-	int GetBufferSize() const;
-
 	/////////////////////////////////////////////////////
 	// Methode principale
 
@@ -125,6 +121,15 @@ protected:
 	boolean SlaveProcess() override;
 	boolean SlaveFinalize(boolean bProcessEndedCorrectly) override;
 
+	// Methodes du maitre
+
+	// TODO BG renommer en ComputeNecessaryMemory
+	// Renvoie la memoire globale necessaire (lecture + traitement) quand le buffer de lecture fait nBufferSize
+	longint ComputeGlobalMemory(int nBufferSize) const;
+
+	// Renvoie la taille du buffer de lecture quand la memoire allouee est de lGlobalMemory
+	int ComputeBufferSize(longint lGlobalMemory) const;
+
 	////////////////////////////////////////////////////
 	// Variables du Master
 
@@ -135,7 +140,6 @@ protected:
 	int nSplitKeyNumberMin;
 	int nSplitKeyNumberMax;
 	double dSamplingRate;
-	int nBufferSize;
 	longint lInputFileSize;
 	longint lFileLineNumber;
 	int nSampleSize;
@@ -169,6 +173,9 @@ protected:
 	PLShared_Boolean shared_bHeaderLineUsed;
 	PLShared_Char shared_cFieldSeparator;
 
+	// Taille du buffer de lecture
+	PLShared_Int shared_nBufferSize;
+
 	///////////////////////////////////////////////////////////
 	// Parametres en entree et sortie des esclaves
 
@@ -184,9 +191,6 @@ protected:
 	// Taux d'echantillonnage en sortie
 	PLShared_Double output_dSamplingRate;
 
-	// Taille du buffer en entree
-	PLShared_Int input_nBufferSize;
-
 	// Position dans le fichier
 	PLShared_Longint input_lFilePos;
 
@@ -198,6 +202,9 @@ protected:
 
 	// Extracteur de cle
 	KWKeyExtractor keyExtractor;
+
+	// Fichier de travail pour l'esclave
+	InputBufferedFile inputFile;
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -236,7 +243,7 @@ public:
 	void ImportKeys(ObjectArray* oaSourceKeys);
 
 	// Echantillonne la liste et on renvoie la memoire utilisee par les cles detruites
-	longint Sample(double dRatio);
+	longint Sample(double dRatio, int nTaskIndex);
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

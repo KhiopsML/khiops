@@ -1,8 +1,10 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
+
+class KWLearningProblem;
 
 #include "Object.h"
 #include "KWVersion.h"
@@ -24,8 +26,10 @@
 #include "KWPredictorUnivariate.h"
 #include "KWPredictorEvaluation.h"
 #include "KWDataPreparationClass.h"
-#include "KDDomainKnowledge.h"
+#include "KDMultiTableFeatureConstruction.h"
+#include "KDTextFeatureConstruction.h"
 #include "KDDataPreparationAttributeCreationTask.h"
+#include "MHDiscretizerMODLHistogram.h"
 #include "KWLearningErrorManager.h"
 #include "JSONFile.h"
 
@@ -57,6 +61,18 @@ public:
 
 	// Resultats d'analyse
 	KWAnalysisResults* GetAnalysisResults();
+
+	//////////////////////////////////////////////////////////////////////////////////
+	// Synchronisation du dictionnaire entre le AnalysisDictionary de ClassManagement
+	// et celui de TrainDatabase et TestDatabase.
+	// En effet, ces trois dictionnaires doivent etre les meme, mais il peuvent etre
+	// edites depuis l'interface depuis plusieurs vues, et doivent etre synchronises.
+
+	// Synchronisation depuis ClassManagement
+	void UpdateClassNameFromClassManagement();
+
+	// Synchronisation depuis TrainDatabase
+	void UpdateClassNameFromTrainDatabase();
 
 	////////////////////////////////////////////////////////
 	// Acces direct aux attributs principaux
@@ -104,11 +120,6 @@ public:
 	// Verification de la validite de l'attribut cible (s'il est specifie)
 	boolean CheckTargetAttribute() const;
 
-#ifdef DEPRECATED_V10
-	// Verification de la validite de l'attribut obligatoire dans les paires (s'il est specifie)
-	boolean CheckMandatoryAttributeInPairs() const;
-#endif // DEPRECATED_V10
-
 	// Verification si le nom du fichier d'apprentissage est bien renseigne
 	// Emission de message d'erreur si non renseigne
 	boolean CheckTrainDatabaseName() const;
@@ -126,26 +137,6 @@ public:
 	// Emission de message d'erreur en cas de probleme
 	boolean CheckResultFileNames() const;
 
-	// Construction d'un chemin de fichier a partir d'un nom de fichier
-	// et d'un prefixe pour la partie nom du fichier
-	// Si le repertoire des fichiers resultats n'est pas specifie, on prend celui de la base d'apprentissage
-	// On ajoute l'eventuel suffix aux noms des fichiers de sortie
-	// On rend vide si le fichier en entree est vide
-	const ALString BuildOutputFilePathName(const ALString& sFileName) const;
-
-	// Construction du nom du chemin des fichier en sortie
-	// Si le repertoire des fichiers resultats n'est pas specifie, on prend celui de la base d'apprentissage
-	// S'il est relatif, on le concatene a celui de la base d'apprentissage
-	// S'il est absolu, on le prend tel quel
-	// S'il commence par ./, on le considere comme absolu, ce qui revient a le traiter  en relatif par
-	//  rapport au directory courant
-	// TODO BG sur HDFS on fait quoi ? on interdit les chemins relatifs ?
-	// si c'est relatif c'est relatif par rapport a quoi ?
-	// Avec la code actuel, le chemin ../path est relatif par rapport a la base d'apprentissage (comme la spec)
-	// par contre ./path ne fonctionne pas... c'est un chemin relatif par rapport a quoi ?? quel est le directory
-	// courant ?
-	const ALString BuildOutputPathName() const;
-
 	// Libelles utilisateur: nom du module de l'application (GetLearningModuleName())
 	const ALString GetClassLabel() const override;
 
@@ -161,8 +152,11 @@ protected:
 	// dans la classe initiale si rien n'a ete construit
 	// Les specifications d'apprentissage sont mis a jour avec la nouvelle classe et la specification des
 	// familles de construction de variables
+	// En sortie, on fournit les attributs utilises construits references par leur nom, par type de construction
 	// Code retour a false si un probleme ou une interruption utilisateur est survenue (et classe construite NULL)
-	virtual boolean BuildConstructedClass(KWLearningSpec* learningSpec, KWClass*& constructedClass);
+	virtual boolean BuildConstructedClass(KWLearningSpec* learningSpec, KWClass*& constructedClass,
+					      ObjectDictionary* odMultiTableConstructedAttributes,
+					      ObjectDictionary* odTextConstructedAttributes);
 
 	// Creation d'une classe en important les couts specifie dans les meta-donnees
 	// Code retour a false si un probleme ou une interruption utilisateur est survenue (et classe construite NULL)
@@ -183,7 +177,7 @@ protected:
 	virtual void DeleteAllOutputFiles();
 	void DeleteOutputFile(const ALString& sOutputFilePathName);
 
-	// Ecriture des rapports de preparation des donnees
+	// Ecriture des rapports de preparation des donnees au format tabulaire xls
 	virtual void WritePreparationReports(KWClassStats* classStats);
 
 	// Ecriture du rapport JSON
@@ -202,9 +196,10 @@ protected:
 	// Apprentissage
 
 	// Methode principale: apprentissage des predicteurs et memorisation de leur dictionnaire dans le domaine
-	// courant Memoire: les objets du tableau en sortie sont a liberer par l'appelant
-	virtual void TrainPredictors(const KWClassDomain* initialDomain, KWClassStats* classStats,
-				     ObjectArray* oaTrainedPredictors);
+	// courant Renvoie en cas d'erreur ou d'interruption utilisateur Memoire: les objets du tableau en sortie sont a
+	// liberer par l'appelant
+	virtual boolean TrainPredictors(const KWClassDomain* initialDomain, KWClassStats* classStats,
+					ObjectArray* oaTrainedPredictors);
 
 	// Collecte des classes de prediction de predicteurs dans un domaine de classe
 	// Les classes des predicteurs sont transferees dans le domaine de classe en sortie, et dereferencees des
@@ -221,8 +216,9 @@ protected:
 	// Le domaine initial permet apres apprentissage de nettoyer la classe du predicteurs de ses attributs
 	// construction ou preparation) inutiles
 	// Les stats permettent de reutiliser la preparation pour chaque predicteur
-	virtual void TrainPredictor(const KWClassDomain* initialDomain, KWClassStats* classStats,
-				    KWPredictor* predictor);
+	// Renvoie en cas d'erreur ou d'interruption utilisateur
+	virtual boolean TrainPredictor(const KWClassDomain* initialDomain, KWClassStats* classStats,
+				       KWPredictor* predictor);
 
 	// Sous-parties du probleme d'apprentissage
 	KWClassManagement* classManagement;

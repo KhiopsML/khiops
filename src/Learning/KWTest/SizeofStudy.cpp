@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -399,7 +399,7 @@ void SizeofStudyTest()
 	cout << "sizeof(IntVector)\t" << sizeof(IntVector) << endl;
 	cout << "sizeof(ObjectArray)\t" << sizeof(ObjectArray) << endl;
 	cout << "sizeof(NumericKeyDictionary)\t" << sizeof(NumericKeyDictionary) << endl;
-	cout << "sizeof(NKDAssoc)\t" << sizeof(NKDAssoc) << endl;
+	cout << "sizeof(GDAssoc)\t" << sizeof(GDAssoc) << endl;
 	cout << "sizeof(SortedList)\t" << sizeof(SortedList) << endl;
 	cout << "sizeof(AVLNode)\t" << sizeof(AVLNode) << endl;
 	cout << "sizeof(KWClass)\t" << sizeof(KWClass) << endl;

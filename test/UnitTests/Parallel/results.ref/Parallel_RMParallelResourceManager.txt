@@ -1,0 +1,2187 @@
+
+----------------------------------
+		unbalanced cluster
+
+
+Outside task
+
+
+System resources :
+	Host number 3
+	Physical cores on system 24
+	Logical processes on system 24
+	Available memory on system 140.0 GB (Logical 87.5 GB)
+	Available disk space on system 140.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	big-host	16,17,18,19,20,21,22,23	62.5 GB	100.0 GB	8
+	std-host	8,9,10,11,12,13,14,15	20.0 GB	32.0 GB	8
+	master-host	0,1,2,3,4,5,6,7	5.0 GB	8.0 GB	8
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+nMaxCoreNumber: 8
+Classes number: 2
+	master_class
+	8_34359738368_107374182401_34359738368_107374182401
+
+--    Granted resources    --
+#procs 8
+Memory
+  master 4.9 GB -> 5,301,471,104
+  slave  6.6 GB -> 7,091,040,810
+  shared 0 B -> 0
+Disk  
+  master 8.0 GB -> 8,589,934,592
+  slave  10.7 GB -> 11,453,246,122
+  shared 0 B -> 0
+
+big-host	4 procs
+master-host	1 procs
+std-host	3 procs
+Ranks involved : 0 8 9 10 16 17 18 19
+
+
+----------------------------------
+		100 process
+
+
+Outside task
+
+
+System resources :
+	Host number 1
+	Physical cores on system 100
+	Logical processes on system 100
+	Available memory on system 1000.0 GB (Logical 625.0 GB)
+	Available disk space on system 1000.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	625.0 GB	1000.0 GB	100
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 1
+	master_class
+
+--    Granted resources    --
+#procs 100
+Memory
+  master 43 B -> 43
+  slave  6.2 GB -> 6,710,755,943
+  shared 0 B -> 0
+Disk  
+  master 10 B -> 10
+  slave  10.1 GB -> 10,845,877,010
+  shared 0 B -> 0
+
+host_0	100 procs
+Ranks involved : 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99
+
+
+----------------------------------
+		100 process
+
+
+Outside task
+
+
+System resources :
+	Host number 1
+	Physical cores on system 100
+	Logical processes on system 100
+	Available memory on system 1000.0 GB (Logical 625.0 GB)
+	Available disk space on system 1000.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	625.0 GB	1000.0 GB	100
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 100.0 GB max : 100.0 GB
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 1
+	master_class
+
+--    Granted resources    --
+#procs 100
+Memory
+  master 43 B -> 43
+  slave  6.2 GB -> 6,710,755,943
+  shared 0 B -> 0
+Disk  
+  master 10 B -> 10
+  slave  10.1 GB -> 10,845,877,010
+  shared 0 B -> 0
+
+host_0	100 procs
+Ranks involved : 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99
+
+
+----------------------------------
+		Max proc with 1 Gb
+
+
+Outside task
+
+
+System resources :
+	Host number 1
+	Physical cores on system 1000
+	Logical processes on system 1000
+	Available memory on system 1.0 GB (Logical 640.0 MB)
+	Available disk space on system 1.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	640.0 MB	1.0 GB	1000
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 1
+	master_class
+
+--    Granted resources    --
+#procs 9
+Memory
+  master 0 B -> 0
+  slave  7.9 MB -> 8,243,312
+  shared 0 B -> 0
+Disk  
+  master 0 B -> 0
+  slave  128.0 MB -> 134,217,728
+  shared 0 B -> 0
+
+host_0	9 procs
+Ranks involved : 0 1 2 3 4 5 6 7 8
+
+
+----------------------------------
+		Max proc with 2 Gb
+
+
+Outside task
+
+
+System resources :
+	Host number 1
+	Physical cores on system 1000
+	Logical processes on system 1000
+	Available memory on system 2.0 GB (Logical 1.2 GB)
+	Available disk space on system 1.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	1.2 GB	1.0 GB	1000
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 1
+	master_class
+
+--    Granted resources    --
+#procs 19
+Memory
+  master 2 B -> 2
+  slave  3.4 MB -> 3,591,943
+  shared 0 B -> 0
+Disk  
+  master 10 B -> 10
+  slave  56.9 MB -> 59,652,323
+  shared 0 B -> 0
+
+host_0	19 procs
+Ranks involved : 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18
+
+
+----------------------------------
+		Max proc with 10 Gb on host
+
+
+Outside task
+
+
+System resources :
+	Host number 1
+	Physical cores on system 1000
+	Logical processes on system 1000
+	Available memory on system 10.0 GB (Logical 6.2 GB)
+	Available disk space on system 1.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	6.2 GB	1.0 GB	1000
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 1
+	master_class
+
+--    Granted resources    --
+#procs 99
+Memory
+  master 44 B -> 44
+  slave  541.3 KB -> 554,314
+  shared 0 B -> 0
+Disk  
+  master 22 B -> 22
+  slave  10.4 MB -> 10,956,549
+  shared 0 B -> 0
+
+host_0	99 procs
+Ranks involved : 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98
+
+
+----------------------------------
+		Max proc with 10 Gb on constraint
+
+
+Outside task
+
+
+System resources :
+	Host number 1
+	Physical cores on system 1000
+	Logical processes on system 1000
+	Available memory on system 100.0 GB (Logical 62.5 GB)
+	Available disk space on system 100.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	62.5 GB	100.0 GB	1000
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+nResourceLimit[MEMORY]: 10.0 GB
+nResourceLimit[DISK]: 1.0 KB
+Classes number: 1
+	master_class
+
+--    Granted resources    --
+#procs 99
+Memory
+  master 44 B -> 44
+  slave  541.3 KB -> 554,314
+  shared 0 B -> 0
+Disk  
+  master 22 B -> 22
+  slave  10.4 MB -> 10,956,549
+  shared 0 B -> 0
+
+host_0	99 procs
+Ranks involved : 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98
+
+
+----------------------------------
+		2 Gb on host and 200 Mo disk per salve
+
+
+Outside task
+
+
+System resources :
+	Host number 1
+	Physical cores on system 1000
+	Logical processes on system 1000
+	Available memory on system 2.0 GB (Logical 1.2 GB)
+	Available disk space on system 1.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	1.2 GB	1.0 GB	1000
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 200.0 MB max : 200.0 MB
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 1
+	master_class
+
+--    Granted resources    --
+#procs 6
+Memory
+  master 4 B -> 4
+  slave  179.1 MB -> 187,749,836
+  shared 0 B -> 0
+Disk  
+  master 24.0 MB -> 25,165,824
+  slave  200.0 MB -> 209,715,200
+  shared 0 B -> 0
+
+host_0	6 procs
+Ranks involved : 0 1 2 3 4 5
+
+
+----------------------------------
+		Non regression 32 bits
+
+
+Outside task
+
+
+System resources :
+	Host number 1
+	Physical cores on system 4
+	Logical processes on system 4
+	Available memory on system 2.0 GB (Logical 1.2 GB)
+	Available disk space on system 0 B
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3	1.2 GB	0 B	4
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 1.0 GB max : 1.0 GB
+	Disk   min : 0 B max : INF
+Master requirement: 
+	Memory min : 1.0 GB max : 1.0 GB
+	Disk   min : 0 B max : INF
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+nResourceLimit[MEMORY]: 2.0 GB
+Classes number: 1
+	master_class
+
+--    Granted resources    --
+ No resource available
+
+system resources are not sufficient to run the task (need 1.6 GB of additional memory)
+
+----------------------------------
+		multi machines : 100 process config 0
+
+
+Outside task
+
+
+System resources :
+	Host number 10
+	Physical cores on system 1000
+	Logical processes on system 1000
+	Available memory on system 1000.0 GB (Logical 625.0 GB)
+	Available disk space on system 1000.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	62.5 GB	100.0 GB	100
+	host_1	100,101,102,103,104,105,106,107,...	62.5 GB	100.0 GB	100
+	host_2	200,201,202,203,204,205,206,207,...	62.5 GB	100.0 GB	100
+	host_3	300,301,302,303,304,305,306,307,...	62.5 GB	100.0 GB	100
+	host_4	400,401,402,403,404,405,406,407,...	62.5 GB	100.0 GB	100
+	host_5	500,501,502,503,504,505,506,507,...	62.5 GB	100.0 GB	100
+	host_6	600,601,602,603,604,605,606,607,...	62.5 GB	100.0 GB	100
+	host_7	700,701,702,703,704,705,706,707,...	62.5 GB	100.0 GB	100
+	host_8	800,801,802,803,804,805,806,807,...	62.5 GB	100.0 GB	100
+	host_9	900,901,902,903,904,905,906,907,...	62.5 GB	100.0 GB	100
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 2
+	master_class
+	100_107374182400_107374182401_107374182400_107374182401
+
+--    Granted resources    --
+#procs 1000
+Memory
+  master 25 B -> 25
+  slave  575.9 MB -> 603,850,624
+  shared 0 B -> 0
+Disk  
+  master 1 B -> 1
+  slave  1.0 GB -> 1,073,741,824
+  shared 0 B -> 0
+
+host_0	100 procs
+host_1	100 procs
+host_2	100 procs
+host_3	100 procs
+host_4	100 procs
+host_5	100 procs
+host_6	100 procs
+host_7	100 procs
+host_8	100 procs
+host_9	100 procs
+Ranks involved : 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 ...
+
+
+----------------------------------
+		multi machines : 100 process config 1
+
+
+Outside task
+
+
+System resources :
+	Host number 10
+	Physical cores on system 55
+	Logical processes on system 55
+	Available memory on system 55.0 GB (Logical 34.4 GB)
+	Available disk space on system 55.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0	640.0 MB	1.0 GB	1
+	host_1	1,2	1.2 GB	2.0 GB	2
+	host_2	3,4,5	1.9 GB	3.0 GB	3
+	host_3	6,7,8,9	2.5 GB	4.0 GB	4
+	host_4	10,11,12,13,14	3.1 GB	5.0 GB	5
+	host_5	15,16,17,18,19,20	3.8 GB	6.0 GB	6
+	host_6	21,22,23,24,25,26,27	4.4 GB	7.0 GB	7
+	host_7	28,29,30,31,32,33,34,35	5.0 GB	8.0 GB	8
+	host_8	36,37,38,39,40,41,42,43,...	5.6 GB	9.0 GB	9
+	host_9	45,46,47,48,49,50,51,52,...	6.2 GB	10.0 GB	10
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 10
+	master_class
+	2_2147483648_2147483649_2147483648_2147483649
+	3_3221225472_3221225473_3221225472_3221225473
+	4_4294967296_4294967297_4294967296_4294967297
+	5_5368709120_5368709121_5368709120_5368709121
+	6_6442450944_6442450945_6442450944_6442450945
+	7_7516192768_7516192769_7516192768_7516192769
+	8_8589934592_8589934593_8589934592_8589934593
+	9_9663676416_9663676417_9663676416_9663676417
+	10_10737418240_10737418241_10737418240_10737418241
+
+--    Granted resources    --
+#procs 55
+Memory
+  master 575.9 MB -> 603,850,624
+  slave  575.9 MB -> 603,850,624
+  shared 0 B -> 0
+Disk  
+  master 1.0 GB -> 1,073,741,824
+  slave  1.0 GB -> 1,073,741,824
+  shared 0 B -> 0
+
+host_0	1 procs
+host_1	2 procs
+host_2	3 procs
+host_3	4 procs
+host_4	5 procs
+host_5	6 procs
+host_6	7 procs
+host_7	8 procs
+host_8	9 procs
+host_9	10 procs
+Ranks involved : 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54
+
+
+----------------------------------
+		multi machines : 100 process config 2
+
+
+Outside task
+
+
+System resources :
+	Host number 10
+	Physical cores on system 55
+	Logical processes on system 55
+	Available memory on system 55.0 GB (Logical 34.4 GB)
+	Available disk space on system 55.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	6.2 GB	10.0 GB	10
+	host_1	10,11,12,13,14,15,16,17,...	5.6 GB	9.0 GB	9
+	host_2	19,20,21,22,23,24,25,26	5.0 GB	8.0 GB	8
+	host_3	27,28,29,30,31,32,33	4.4 GB	7.0 GB	7
+	host_4	34,35,36,37,38,39	3.8 GB	6.0 GB	6
+	host_5	40,41,42,43,44	3.1 GB	5.0 GB	5
+	host_6	45,46,47,48	2.5 GB	4.0 GB	4
+	host_7	49,50,51	1.9 GB	3.0 GB	3
+	host_8	52,53	1.2 GB	2.0 GB	2
+	host_9	54	640.0 MB	1.0 GB	1
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 10
+	master_class
+	1_1073741824_1073741825_1073741824_1073741825
+	2_2147483648_2147483649_2147483648_2147483649
+	3_3221225472_3221225473_3221225472_3221225473
+	4_4294967296_4294967297_4294967296_4294967297
+	5_5368709120_5368709121_5368709120_5368709121
+	6_6442450944_6442450945_6442450944_6442450945
+	7_7516192768_7516192769_7516192768_7516192769
+	8_8589934592_8589934593_8589934592_8589934593
+	9_9663676416_9663676417_9663676416_9663676417
+
+--    Granted resources    --
+#procs 55
+Memory
+  master 7 B -> 7
+  slave  575.9 MB -> 603,850,624
+  shared 0 B -> 0
+Disk  
+  master 1 B -> 1
+  slave  1.0 GB -> 1,073,741,824
+  shared 0 B -> 0
+
+host_0	10 procs
+host_1	9 procs
+host_2	8 procs
+host_3	7 procs
+host_4	6 procs
+host_5	5 procs
+host_6	4 procs
+host_7	3 procs
+host_8	2 procs
+host_9	1 procs
+Ranks involved : 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54
+
+
+----------------------------------
+		multi machines : 10 GB per slave, config 0
+
+
+Outside task
+
+
+System resources :
+	Host number 10
+	Physical cores on system 1000
+	Logical processes on system 1000
+	Available memory on system 1000.0 GB (Logical 625.0 GB)
+	Available disk space on system 1000.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	62.5 GB	100.0 GB	100
+	host_1	100,101,102,103,104,105,106,107,...	62.5 GB	100.0 GB	100
+	host_2	200,201,202,203,204,205,206,207,...	62.5 GB	100.0 GB	100
+	host_3	300,301,302,303,304,305,306,307,...	62.5 GB	100.0 GB	100
+	host_4	400,401,402,403,404,405,406,407,...	62.5 GB	100.0 GB	100
+	host_5	500,501,502,503,504,505,506,507,...	62.5 GB	100.0 GB	100
+	host_6	600,601,602,603,604,605,606,607,...	62.5 GB	100.0 GB	100
+	host_7	700,701,702,703,704,705,706,707,...	62.5 GB	100.0 GB	100
+	host_8	800,801,802,803,804,805,806,807,...	62.5 GB	100.0 GB	100
+	host_9	900,901,902,903,904,905,906,907,...	62.5 GB	100.0 GB	100
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 1.0 GB max : INF
+	Disk   min : 0 B max : INF
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 2
+	master_class
+	100_107374182400_107374182401_107374182400_107374182401
+
+--    Granted resources    --
+#procs 581
+Memory
+  master 10 B -> 10
+  slave  1.0 GB -> 1,088,652,087
+  shared 0 B -> 0
+Disk  
+  master 52 B -> 52
+  slave  1.7 GB -> 1,851,279,006
+  shared 0 B -> 0
+
+host_0	59 procs
+host_1	58 procs
+host_2	58 procs
+host_3	58 procs
+host_4	58 procs
+host_5	58 procs
+host_6	58 procs
+host_7	58 procs
+host_8	58 procs
+host_9	58 procs
+Ranks involved : 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 ...
+
+
+----------------------------------
+		multi machines : 10 GB per slave, config 1
+
+
+Outside task
+
+
+System resources :
+	Host number 10
+	Physical cores on system 55
+	Logical processes on system 55
+	Available memory on system 55.0 GB (Logical 34.4 GB)
+	Available disk space on system 55.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0	640.0 MB	1.0 GB	1
+	host_1	1,2	1.2 GB	2.0 GB	2
+	host_2	3,4,5	1.9 GB	3.0 GB	3
+	host_3	6,7,8,9	2.5 GB	4.0 GB	4
+	host_4	10,11,12,13,14	3.1 GB	5.0 GB	5
+	host_5	15,16,17,18,19,20	3.8 GB	6.0 GB	6
+	host_6	21,22,23,24,25,26,27	4.4 GB	7.0 GB	7
+	host_7	28,29,30,31,32,33,34,35	5.0 GB	8.0 GB	8
+	host_8	36,37,38,39,40,41,42,43,...	5.6 GB	9.0 GB	9
+	host_9	45,46,47,48,49,50,51,52,...	6.2 GB	10.0 GB	10
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 1.0 GB max : INF
+	Disk   min : 0 B max : INF
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 3.8 MB max : 3.8 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 10
+	master_class
+	2_2147483648_2147483649_2147483648_2147483649
+	3_3221225472_3221225473_3221225472_3221225473
+	4_4294967296_4294967297_4294967296_4294967297
+	5_5368709120_5368709121_5368709120_5368709121
+	6_6442450944_6442450945_6442450944_6442450945
+	7_7516192768_7516192769_7516192768_7516192769
+	8_8589934592_8589934593_8589934592_8589934593
+	9_9663676416_9663676417_9663676416_9663676417
+	10_10737418240_10737418241_10737418240_10737418241
+
+--    Granted resources    --
+#procs 28
+Memory
+  master 580.1 MB -> 608,239,232
+  slave  1.0 GB -> 1,107,167,104
+  shared 0 B -> 0
+Disk  
+  master 1.0 GB -> 1,073,741,824
+  slave  1.8 GB -> 1,879,048,192
+  shared 0 B -> 0
+
+host_0	1 procs
+host_1	1 procs
+host_2	1 procs
+host_3	2 procs
+host_4	2 procs
+host_5	3 procs
+host_6	4 procs
+host_7	4 procs
+host_8	5 procs
+host_9	5 procs
+Ranks involved : 0 1 3 6 7 10 11 15 16 17 21 22 23 24 28 29 30 31 36 37 38 39 40 45 46 47 48 49
+
+
+----------------------------------
+		multi machines : 10 GB per slave, config 2
+
+
+Outside task
+
+
+System resources :
+	Host number 10
+	Physical cores on system 55
+	Logical processes on system 55
+	Available memory on system 55.0 GB (Logical 34.4 GB)
+	Available disk space on system 55.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	6.2 GB	10.0 GB	10
+	host_1	10,11,12,13,14,15,16,17,...	5.6 GB	9.0 GB	9
+	host_2	19,20,21,22,23,24,25,26	5.0 GB	8.0 GB	8
+	host_3	27,28,29,30,31,32,33	4.4 GB	7.0 GB	7
+	host_4	34,35,36,37,38,39	3.8 GB	6.0 GB	6
+	host_5	40,41,42,43,44	3.1 GB	5.0 GB	5
+	host_6	45,46,47,48	2.5 GB	4.0 GB	4
+	host_7	49,50,51	1.9 GB	3.0 GB	3
+	host_8	52,53	1.2 GB	2.0 GB	2
+	host_9	54	640.0 MB	1.0 GB	1
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 1.0 GB max : INF
+	Disk   min : 0 B max : INF
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : INF
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 10
+	master_class
+	1_1073741824_1073741825_1073741824_1073741825
+	2_2147483648_2147483649_2147483648_2147483649
+	3_3221225472_3221225473_3221225472_3221225473
+	4_4294967296_4294967297_4294967296_4294967297
+	5_5368709120_5368709121_5368709120_5368709121
+	6_6442450944_6442450945_6442450944_6442450945
+	7_7516192768_7516192769_7516192768_7516192769
+	8_8589934592_8589934593_8589934592_8589934593
+	9_9663676416_9663676417_9663676416_9663676417
+
+--    Granted resources    --
+#procs 28
+Memory
+  master 4 B -> 4
+  slave  1.0 GB -> 1,107,167,104
+  shared 0 B -> 0
+Disk  
+  master 0 B -> 0
+  slave  1.8 GB -> 1,879,048,192
+  shared 0 B -> 0
+
+host_0	6 procs
+host_1	5 procs
+host_2	4 procs
+host_3	4 procs
+host_4	3 procs
+host_5	2 procs
+host_6	2 procs
+host_7	1 procs
+host_8	1 procs
+Ranks involved : 0 1 2 3 4 5 10 11 12 13 14 19 20 21 22 27 28 29 30 34 35 36 40 41 45 46 49 52
+
+
+----------------------------------
+		mono machines : sequential
+
+
+Outside task
+
+
+System resources :
+	Host number 1
+	Physical cores on system 100
+	Logical processes on system 100
+	Available memory on system 10.0 GB (Logical 6.2 GB)
+	Available disk space on system 100.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	6.2 GB	100.0 GB	100
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 4.0 GB max : INF
+	Disk   min : 0 B max : INF
+Master requirement: 
+	Memory min : 1.0 GB max : INF
+	Disk   min : 0 B max : INF
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 1
+	master_class
+
+--    Granted resources    --
+#procs 1
+Memory
+  master 1.0 GB -> 1,073,741,824
+  slave  5.2 GB -> 5,570,037,632
+  shared 0 B -> 0
+Disk  
+  master 0 B -> 0
+  slave  100.0 GB -> 107,374,182,400
+  shared 0 B -> 0
+
+host_0	1 procs
+Ranks involved : 0
+
+
+----------------------------------
+		mono machines : 1 slave process
+
+
+Outside task
+
+
+System resources :
+	Host number 1
+	Physical cores on system 1
+	Logical processes on system 1
+	Available memory on system 10.0 GB (Logical 6.2 GB)
+	Available disk space on system 100.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0	6.2 GB	100.0 GB	1
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 25.0 MB max : 25.0 MB
+	Disk   min : 0 B max : INF
+Master requirement: 
+	Memory min : 16.0 MB max : 16.0 MB
+	Disk   min : 0 B max : 0 B
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: 1
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 1
+	master_class
+
+--    Granted resources    --
+#procs 1
+Memory
+  master 16.0 MB -> 16,777,216
+  slave  25.0 MB -> 26,214,400
+  shared 0 B -> 0
+Disk  
+  master 0 B -> 0
+  slave  100.0 GB -> 107,374,182,400
+  shared 0 B -> 0
+
+host_0	1 procs
+Ranks involved : 0
+
+
+----------------------------------
+		regression : Master requirement 300 KB and granted 0
+
+
+Outside task
+
+
+System resources :
+	Host number 1
+	Physical cores on system 16
+	Logical processes on system 16
+	Available memory on system 1.1 GB (Logical 687.5 MB)
+	Available disk space on system 0 B
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	687.5 MB	0 B	16
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 15.7 MB max : INF
+	Disk   min : 0 B max : 0 B
+Master requirement: 
+	Memory min : 350.3 KB max : 350.3 KB
+	Disk   min : 0 B max : 0 B
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 6.9 MB max : 6.9 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.1 MB max : 8.1 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+nResourceLimit[MEMORY]: 1.1 GB
+Classes number: 1
+	master_class
+
+--    Granted resources    --
+#procs 8
+Memory
+  master 350.3 KB -> 358,692
+  slave  26.0 MB -> 27,228,677
+  shared 0 B -> 0
+Disk  
+  master 0 B -> 0
+  slave  0 B -> 0
+  shared 0 B -> 0
+
+host_0	8 procs
+Ranks involved : 0 1 2 3 4 5 6 7
+
+
+----------------------------------
+		regression : slave is low
+
+
+Outside task
+
+
+System resources :
+	Host number 1
+	Physical cores on system 4
+	Logical processes on system 4
+	Available memory on system 2.0 GB (Logical 1.2 GB)
+	Available disk space on system 0 B
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3	1.2 GB	0 B	4
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 3.0 MB max : 23.0 MB
+	Disk   min : 0 B max : 0 B
+Master requirement: 
+	Memory min : 17.0 MB max : 17.0 MB
+	Disk   min : 0 B max : 0 B
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 5.2 MB max : 5.2 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 18.5 MB max : 18.5 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 1
+	master_class
+
+--    Granted resources    --
+#procs 4
+Memory
+  master 17.0 MB -> 17,825,792
+  slave  23.0 MB -> 24,117,248
+  shared 0 B -> 0
+Disk  
+  master 0 B -> 0
+  slave  0 B -> 0
+  shared 0 B -> 0
+
+host_0	4 procs
+Ranks involved : 0 1 2 3
+
+
+----------------------------------
+		regression
+
+
+Outside task
+
+
+System resources :
+	Host number 1
+	Physical cores on system 1
+	Logical processes on system 1
+	Available memory on system 2.0 GB (Logical 1.2 GB)
+	Available disk space on system 0 B
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0	1.2 GB	0 B	1
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 8.2 MB max : INF
+	Disk   min : 0 B max : 0 B
+Master requirement: 
+	Memory min : 373.4 MB max : INF
+	Disk   min : 0 B max : 0 B
+Shared variables requirement: 
+	Memory min : 129.9 MB max : 129.9 MB
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 85.8 MB max : 85.8 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 1
+	master_class
+
+--    Granted resources    --
+#procs 1
+Memory
+  master 373.4 MB -> 391,500,000
+  slave  634.8 MB -> 665,681,111
+  shared 129.9 MB -> 136,259,321
+Disk  
+  master 0 B -> 0
+  slave  0 B -> 0
+  shared 0 B -> 0
+
+host_0	1 procs
+Ranks involved : 0
+
+
+----------------------------------
+		Global Constraint
+
+
+Outside task
+
+
+System resources :
+	Host number 1
+	Physical cores on system 100
+	Logical processes on system 100
+	Available memory on system 10.0 GB (Logical 6.2 GB)
+	Available disk space on system 0 B
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	6.2 GB	0 B	100
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 1.0 GB max : 1.0 GB
+	Disk   min : 0 B max : 0 B
+Master requirement: 
+	Memory min : 1.0 GB max : 1.0 GB
+	Disk   min : 0 B max : 0 B
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 1.0 GB max : 100.0 GB
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 1
+	master_class
+
+--    Granted resources    --
+#procs 4
+Memory
+  master 1.0 GB -> 1,073,741,824
+  slave  1.7 GB -> 1,789,397,504
+  shared 0 B -> 0
+Disk  
+  master 0 B -> 0
+  slave  0 B -> 0
+  shared 0 B -> 0
+
+host_0	4 procs
+Ranks involved : 0 1 2 3
+
+
+----------------------------------
+		multi machines : 10 GB per slave, config 0 - Global Constraint
+
+
+Outside task
+
+
+System resources :
+	Host number 10
+	Physical cores on system 1000
+	Logical processes on system 1000
+	Available memory on system 1000.0 GB (Logical 625.0 GB)
+	Available disk space on system 1000.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	62.5 GB	100.0 GB	100
+	host_1	100,101,102,103,104,105,106,107,...	62.5 GB	100.0 GB	100
+	host_2	200,201,202,203,204,205,206,207,...	62.5 GB	100.0 GB	100
+	host_3	300,301,302,303,304,305,306,307,...	62.5 GB	100.0 GB	100
+	host_4	400,401,402,403,404,405,406,407,...	62.5 GB	100.0 GB	100
+	host_5	500,501,502,503,504,505,506,507,...	62.5 GB	100.0 GB	100
+	host_6	600,601,602,603,604,605,606,607,...	62.5 GB	100.0 GB	100
+	host_7	700,701,702,703,704,705,706,707,...	62.5 GB	100.0 GB	100
+	host_8	800,801,802,803,804,805,806,807,...	62.5 GB	100.0 GB	100
+	host_9	900,901,902,903,904,905,906,907,...	62.5 GB	100.0 GB	100
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 1.0 GB max : INF
+	Disk   min : 0 B max : 0 B
+Master requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 10.0 GB max : 10.0 GB
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 2
+	master_class
+	100_107374182400_107374182401_107374182400_107374182401
+
+--    Granted resources    --
+#procs 571
+Memory
+  master 0 B -> 0
+  slave  1.0 GB -> 1,108,930,860
+  shared 0 B -> 0
+Disk  
+  master 0 B -> 0
+  slave  0 B -> 0
+  shared 0 B -> 0
+
+host_0	58 procs
+host_1	57 procs
+host_2	57 procs
+host_3	57 procs
+host_4	57 procs
+host_5	57 procs
+host_6	57 procs
+host_7	57 procs
+host_8	57 procs
+host_9	57 procs
+Ranks involved : 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 ...
+
+
+----------------------------------
+		multi machines : 10 GB per slave, config 1 - Global Constraint
+
+
+Outside task
+
+
+System resources :
+	Host number 10
+	Physical cores on system 55
+	Logical processes on system 55
+	Available memory on system 55.0 GB (Logical 34.4 GB)
+	Available disk space on system 55.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0	640.0 MB	1.0 GB	1
+	host_1	1,2	1.2 GB	2.0 GB	2
+	host_2	3,4,5	1.9 GB	3.0 GB	3
+	host_3	6,7,8,9	2.5 GB	4.0 GB	4
+	host_4	10,11,12,13,14	3.1 GB	5.0 GB	5
+	host_5	15,16,17,18,19,20	3.8 GB	6.0 GB	6
+	host_6	21,22,23,24,25,26,27	4.4 GB	7.0 GB	7
+	host_7	28,29,30,31,32,33,34,35	5.0 GB	8.0 GB	8
+	host_8	36,37,38,39,40,41,42,43,...	5.6 GB	9.0 GB	9
+	host_9	45,46,47,48,49,50,51,52,...	6.2 GB	10.0 GB	10
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 1.0 GB max : INF
+	Disk   min : 0 B max : 0 B
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : 0 B
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 1.0 GB max : 1.0 GB
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 3.8 MB max : 3.8 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 10
+	master_class
+	2_2147483648_2147483649_2147483648_2147483649
+	3_3221225472_3221225473_3221225472_3221225473
+	4_4294967296_4294967297_4294967296_4294967297
+	5_5368709120_5368709121_5368709120_5368709121
+	6_6442450944_6442450945_6442450944_6442450945
+	7_7516192768_7516192769_7516192768_7516192769
+	8_8589934592_8589934593_8589934592_8589934593
+	9_9663676416_9663676417_9663676416_9663676417
+	10_10737418240_10737418241_10737418240_10737418241
+
+--    Granted resources    --
+#procs 27
+Memory
+  master 580.1 MB -> 608,239,232
+  slave  1.1 GB -> 1,140,721,536
+  shared 0 B -> 0
+Disk  
+  master 0 B -> 0
+  slave  0 B -> 0
+  shared 0 B -> 0
+
+host_0	1 procs
+host_1	1 procs
+host_2	1 procs
+host_3	2 procs
+host_4	2 procs
+host_5	3 procs
+host_6	3 procs
+host_7	4 procs
+host_8	5 procs
+host_9	5 procs
+Ranks involved : 0 1 3 6 7 10 11 15 16 17 21 22 23 28 29 30 31 36 37 38 39 40 45 46 47 48 49
+
+
+----------------------------------
+		multi machines : 10 GB per slave, config 2 - Global Constraint
+
+
+Outside task
+
+
+System resources :
+	Host number 10
+	Physical cores on system 55
+	Logical processes on system 55
+	Available memory on system 55.0 GB (Logical 34.4 GB)
+	Available disk space on system 55.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	6.2 GB	10.0 GB	10
+	host_1	10,11,12,13,14,15,16,17,...	5.6 GB	9.0 GB	9
+	host_2	19,20,21,22,23,24,25,26	5.0 GB	8.0 GB	8
+	host_3	27,28,29,30,31,32,33	4.4 GB	7.0 GB	7
+	host_4	34,35,36,37,38,39	3.8 GB	6.0 GB	6
+	host_5	40,41,42,43,44	3.1 GB	5.0 GB	5
+	host_6	45,46,47,48	2.5 GB	4.0 GB	4
+	host_7	49,50,51	1.9 GB	3.0 GB	3
+	host_8	52,53	1.2 GB	2.0 GB	2
+	host_9	54	640.0 MB	1.0 GB	1
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 1.0 GB max : INF
+	Disk   min : 0 B max : 0 B
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : 0 B
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 1.0 GB max : 1.0 GB
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 10
+	master_class
+	1_1073741824_1073741825_1073741824_1073741825
+	2_2147483648_2147483649_2147483648_2147483649
+	3_3221225472_3221225473_3221225472_3221225473
+	4_4294967296_4294967297_4294967296_4294967297
+	5_5368709120_5368709121_5368709120_5368709121
+	6_6442450944_6442450945_6442450944_6442450945
+	7_7516192768_7516192769_7516192768_7516192769
+	8_8589934592_8589934593_8589934592_8589934593
+	9_9663676416_9663676417_9663676416_9663676417
+
+--    Granted resources    --
+#procs 27
+Memory
+  master 4 B -> 4
+  slave  1.1 GB -> 1,140,721,536
+  shared 0 B -> 0
+Disk  
+  master 0 B -> 0
+  slave  0 B -> 0
+  shared 0 B -> 0
+
+host_0	6 procs
+host_1	5 procs
+host_2	4 procs
+host_3	3 procs
+host_4	3 procs
+host_5	2 procs
+host_6	2 procs
+host_7	1 procs
+host_8	1 procs
+Ranks involved : 0 1 2 3 4 5 10 11 12 13 14 19 20 21 22 27 28 29 34 35 36 40 41 45 46 49 52
+
+
+----------------------------------
+		1 machine : global constraint with min and max on slaves
+
+
+Outside task
+
+
+System resources :
+	Host number 1
+	Physical cores on system 2
+	Logical processes on system 2
+	Available memory on system 2.0 GB (Logical 1.2 GB)
+	Available disk space on system 40.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1	1.2 GB	40.0 GB	2
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 30.0 KB max : 36.0 KB
+	Disk   min : 0 B max : 0 B
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : 0 B
+Shared variables requirement: 
+	Memory min : 650.0 MB max : 650.0 MB
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 1.0 MB max : 22.0 MB
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 1
+	master_class
+
+--    Granted resources    --
+#procs 1
+Memory
+  master 555.8 MB -> 582,848,143
+  slave  10.2 MB -> 10,647,792
+  shared 650.0 MB -> 681,574,400
+Disk  
+  master 0 B -> 0
+  slave  0 B -> 0
+  shared 0 B -> 0
+
+host_0	1 procs
+Ranks involved : 0
+
+
+----------------------------------
+		1 machine : global constraint with min and max on slaves
+
+
+Outside task
+
+
+System resources :
+	Host number 3
+	Physical cores on system 18
+	Logical processes on system 18
+	Available memory on system 377.4 GB (Logical 235.9 GB)
+	Available disk space on system 56.2 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5	78.6 GB	18.7 GB	6
+	host_1	6,7,8,9,10,11	78.6 GB	18.7 GB	6
+	host_2	12,13,14,15,16,17	78.6 GB	18.7 GB	6
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 498.3 KB max : 498.3 KB
+	Disk   min : 86.2 MB max : 86.2 MB
+Master requirement: 
+	Memory min : 394.9 KB max : 394.9 KB
+	Disk   min : 86.2 MB max : 86.2 MB
+Shared variables requirement: 
+	Memory min : 265.0 MB max : 265.0 MB
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 36.0 MB max : 2.9 GB
+	Disk   min : 2.9 GB max : 2.9 GB
+Slave system at start: 
+	Memory min : 10.1 MB max : 10.1 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 80.0 MB max : 80.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: 11
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+nMaxCoreNumber: 21
+nResourceLimit[MEMORY]: 56.3 GB
+Classes number: 2
+	master_class
+	6_135089496064_135089496065_20122406912_20122406913
+
+--    Granted resources    --
+#procs 12
+Memory
+  master 394.9 KB -> 404,331
+  slave  270.5 MB -> 283,587,657
+  shared 265.0 MB -> 277,892,739
+Disk  
+  master 86.2 MB -> 90,374,169
+  slave  356.2 MB -> 373,451,558
+  shared 0 B -> 0
+
+host_0	6 procs
+host_1	3 procs
+host_2	3 procs
+Ranks involved : 0 1 2 3 4 5 6 7 8 12 13 14
+
+
+----------------------------------
+		1 machine : adhoc cluster with global requirement
+
+
+Outside task
+
+
+System resources :
+	Host number 6
+	Physical cores on system 600
+	Logical processes on system 36
+	Available memory on system 313.5 GB (Logical 195.9 GB)
+	Available disk space on system 120.7 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	l-neobi-3	8,9,10,11,12,13	24.4 GB	18.8 GB	100
+	l-neobi-8	0,2,3,4,5,6	49.1 GB	18.9 GB	100
+	l-neobi-2	29,30,31,32,33,34	24.4 GB	18.8 GB	100
+	l-neobi-10	22,23,24,25,26,27	49.0 GB	18.8 GB	100
+	l-neobi-1	15,16,17,18,19,20	24.5 GB	26.5 GB	100
+	l-neobi-4	36,37,38,39,40,41	24.4 GB	18.9 GB	100
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 579.6 MB max : 5.0 GB
+	Disk   min : 0 B max : 0 B
+Master requirement: 
+	Memory min : 1.0 MB max : 1.0 MB
+	Disk   min : 0 B max : 0 B
+Shared variables requirement: 
+	Memory min : 134.5 MB max : 134.5 MB
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 28.5 GB max : 28.5 GB
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 2
+	master_class
+	6_41983305318_84181359002_20186346291_28454158337
+
+--    Granted resources    --
+#procs 36
+Memory
+  master 1.0 MB -> 1,048,576
+  slave  3.9 GB -> 4,164,989,482
+  shared 134.5 MB -> 141,033,472
+Disk  
+  master 0 B -> 0
+  slave  833.8 MB -> 874,332,628
+  shared 0 B -> 0
+
+l-neobi-1	6 procs
+l-neobi-10	6 procs
+l-neobi-2	6 procs
+l-neobi-3	6 procs
+l-neobi-4	6 procs
+l-neobi-8	6 procs
+Ranks involved : 0 2 3 4 5 6 8 9 10 11 12 13 15 16 17 18 19 20 22 23 24 25 26 27 29 30 31 32 33 34 36 37 38 39 40 41
+
+
+----------------------------------
+		Global with 100 hosts plus 1 mini host
+
+
+Outside task
+
+
+System resources :
+	Host number 11
+	Physical cores on system 101
+	Logical processes on system 101
+	Available memory on system 1010.0 GB (Logical 631.2 GB)
+	Available disk space on system 1000.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	62.5 GB	100.0 GB	10
+	host_1	10,11,12,13,14,15,16,17,...	62.5 GB	100.0 GB	10
+	host_2	20,21,22,23,24,25,26,27,...	62.5 GB	100.0 GB	10
+	host_3	30,31,32,33,34,35,36,37,...	62.5 GB	100.0 GB	10
+	host_4	40,41,42,43,44,45,46,47,...	62.5 GB	100.0 GB	10
+	host_5	50,51,52,53,54,55,56,57,...	62.5 GB	100.0 GB	10
+	host_6	60,61,62,63,64,65,66,67,...	62.5 GB	100.0 GB	10
+	host_7	70,71,72,73,74,75,76,77,...	62.5 GB	100.0 GB	10
+	host_8	80,81,82,83,84,85,86,87,...	62.5 GB	100.0 GB	10
+	host_9	90,91,92,93,94,95,96,97,...	62.5 GB	100.0 GB	10
+	mini	100	6.2 GB	0 B	1
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 6.0 GB max : 8.0 GB
+	Disk   min : 0 B max : 0 B
+Master requirement: 
+	Memory min : 1.0 GB max : 1.0 GB
+	Disk   min : 0 B max : 0 B
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 4.0 GB max : 4.0 GB
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 3
+	master_class
+	1_10737418240_10737418241_0_1
+	10_107374182400_107374182401_107374182400_107374182401
+
+--    Granted resources    --
+#procs 101
+Memory
+  master 1.0 GB -> 1,073,741,824
+  slave  6.2 GB -> 6,643,648,384
+  shared 0 B -> 0
+Disk  
+  master 0 B -> 0
+  slave  0 B -> 0
+  shared 0 B -> 0
+
+host_0	10 procs
+host_1	10 procs
+host_2	10 procs
+host_3	10 procs
+host_4	10 procs
+host_5	10 procs
+host_6	10 procs
+host_7	10 procs
+host_8	10 procs
+host_9	10 procs
+mini	1 procs
+Ranks involved : 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 ...
+
+
+----------------------------------
+		multi machines : 10 GB per slave, config 0 - Global Constraint - 100 hosts
+
+
+Outside task
+
+
+System resources :
+	Host number 100
+	Physical cores on system 2000
+	Logical processes on system 2000
+	Available memory on system 9.8 TB (Logical 6.1 TB)
+	Available disk space on system 9.8 TB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	62.5 GB	100.0 GB	20
+	host_1	20,21,22,23,24,25,26,27,...	62.5 GB	100.0 GB	20
+	host_2	40,41,42,43,44,45,46,47,...	62.5 GB	100.0 GB	20
+	host_3	60,61,62,63,64,65,66,67,...	62.5 GB	100.0 GB	20
+	host_4	80,81,82,83,84,85,86,87,...	62.5 GB	100.0 GB	20
+	host_5	100,101,102,103,104,105,106,107,...	62.5 GB	100.0 GB	20
+	host_6	120,121,122,123,124,125,126,127,...	62.5 GB	100.0 GB	20
+	host_7	140,141,142,143,144,145,146,147,...	62.5 GB	100.0 GB	20
+	host_8	160,161,162,163,164,165,166,167,...	62.5 GB	100.0 GB	20
+	host_9	180,181,182,183,184,185,186,187,...	62.5 GB	100.0 GB	20
+	host_10	200,201,202,203,204,205,206,207,...	62.5 GB	100.0 GB	20
+	host_11	220,221,222,223,224,225,226,227,...	62.5 GB	100.0 GB	20
+	host_12	240,241,242,243,244,245,246,247,...	62.5 GB	100.0 GB	20
+	host_13	260,261,262,263,264,265,266,267,...	62.5 GB	100.0 GB	20
+	host_14	280,281,282,283,284,285,286,287,...	62.5 GB	100.0 GB	20
+	host_15	300,301,302,303,304,305,306,307,...	62.5 GB	100.0 GB	20
+	host_16	320,321,322,323,324,325,326,327,...	62.5 GB	100.0 GB	20
+	host_17	340,341,342,343,344,345,346,347,...	62.5 GB	100.0 GB	20
+	host_18	360,361,362,363,364,365,366,367,...	62.5 GB	100.0 GB	20
+	host_19	380,381,382,383,384,385,386,387,...	62.5 GB	100.0 GB	20
+	...
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 1.0 GB max : INF
+	Disk   min : 0 B max : 0 B
+Master requirement: 
+	Memory min : 0 B max : INF
+	Disk   min : 0 B max : 0 B
+Shared variables requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 1.0 GB max : 1.0 GB
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 3.8 MB max : 3.8 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: INF
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 2
+	master_class
+	20_107374182400_107374182401_107374182400_107374182401
+
+--    Granted resources    --
+#procs 2000
+Memory
+  master 2 B -> 2
+  slave  3.1 GB -> 3,288,205,184
+  shared 0 B -> 0
+Disk  
+  master 0 B -> 0
+  slave  0 B -> 0
+  shared 0 B -> 0
+
+host_0	20 procs
+host_1	20 procs
+host_10	20 procs
+host_11	20 procs
+host_12	20 procs
+host_13	20 procs
+host_14	20 procs
+host_15	20 procs
+host_16	20 procs
+host_17	20 procs
+host_18	20 procs
+host_19	20 procs
+host_2	20 procs
+host_20	20 procs
+host_21	20 procs
+host_22	20 procs
+host_23	20 procs
+host_24	20 procs
+host_25	20 procs
+host_26	20 procs
+...
+Ranks involved : 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 ...
+
+
+----------------------------------
+		10 machines : 9 slaves max - horizontal
+
+
+Outside task
+
+
+System resources :
+	Host number 10
+	Physical cores on system 1000
+	Logical processes on system 1000
+	Available memory on system 1000.0 GB (Logical 625.0 GB)
+	Available disk space on system 1000.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	62.5 GB	100.0 GB	100
+	host_1	100,101,102,103,104,105,106,107,...	62.5 GB	100.0 GB	100
+	host_2	200,201,202,203,204,205,206,207,...	62.5 GB	100.0 GB	100
+	host_3	300,301,302,303,304,305,306,307,...	62.5 GB	100.0 GB	100
+	host_4	400,401,402,403,404,405,406,407,...	62.5 GB	100.0 GB	100
+	host_5	500,501,502,503,504,505,506,507,...	62.5 GB	100.0 GB	100
+	host_6	600,601,602,603,604,605,606,607,...	62.5 GB	100.0 GB	100
+	host_7	700,701,702,703,704,705,706,707,...	62.5 GB	100.0 GB	100
+	host_8	800,801,802,803,804,805,806,807,...	62.5 GB	100.0 GB	100
+	host_9	900,901,902,903,904,905,906,907,...	62.5 GB	100.0 GB	100
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 1.0 GB max : 5.0 GB
+	Disk   min : 0 B max : 0 B
+Master requirement: 
+	Memory min : 1.0 GB max : 1.0 GB
+	Disk   min : 0 B max : 0 B
+Shared variables requirement: 
+	Memory min : 5.0 GB max : 5.0 GB
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: 9
+memory policy: slave first
+disk   policy: slave first
+paral. policy: horizontal
+
+Classes number: 2
+	master_class
+	100_107374182400_107374182401_107374182400_107374182401
+
+--    Granted resources    --
+#procs 10
+Memory
+  master 1.0 GB -> 1,073,741,824
+  slave  5.0 GB -> 5,368,709,120
+  shared 5.0 GB -> 5,368,709,120
+Disk  
+  master 0 B -> 0
+  slave  0 B -> 0
+  shared 0 B -> 0
+
+host_0	1 procs
+host_1	1 procs
+host_2	1 procs
+host_3	1 procs
+host_4	1 procs
+host_5	1 procs
+host_6	1 procs
+host_7	1 procs
+host_8	1 procs
+host_9	1 procs
+Ranks involved : 0 100 200 300 400 500 600 700 800 900
+
+
+----------------------------------
+		10 machines : 9 slaves max - vertical
+
+
+Outside task
+
+
+System resources :
+	Host number 10
+	Physical cores on system 1000
+	Logical processes on system 1000
+	Available memory on system 1000.0 GB (Logical 625.0 GB)
+	Available disk space on system 1000.0 GB
+	hostname	MPI ranks	logical memory	disk	cores
+	host_0	0,1,2,3,4,5,6,7,...	62.5 GB	100.0 GB	100
+	host_1	100,101,102,103,104,105,106,107,...	62.5 GB	100.0 GB	100
+	host_2	200,201,202,203,204,205,206,207,...	62.5 GB	100.0 GB	100
+	host_3	300,301,302,303,304,305,306,307,...	62.5 GB	100.0 GB	100
+	host_4	400,401,402,403,404,405,406,407,...	62.5 GB	100.0 GB	100
+	host_5	500,501,502,503,504,505,506,507,...	62.5 GB	100.0 GB	100
+	host_6	600,601,602,603,604,605,606,607,...	62.5 GB	100.0 GB	100
+	host_7	700,701,702,703,704,705,706,707,...	62.5 GB	100.0 GB	100
+	host_8	800,801,802,803,804,805,806,807,...	62.5 GB	100.0 GB	100
+	host_9	900,901,902,903,904,905,906,907,...	62.5 GB	100.0 GB	100
+	Slave reserve 56.0 MB
+	Master reserve 56.0 MB
+
+--   Task requirements    --
+Slave requirement: 
+	Memory min : 1.0 GB max : 5.0 GB
+	Disk   min : 0 B max : 0 B
+Master requirement: 
+	Memory min : 1.0 GB max : 1.0 GB
+	Disk   min : 0 B max : 0 B
+Shared variables requirement: 
+	Memory min : 5.0 GB max : 5.0 GB
+	Disk   min : 0 B max : 0 B
+Slave global requirement: 
+	Memory min : 0 B max : 0 B
+	Disk   min : 0 B max : 0 B
+Slave system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Master system at start: 
+	Memory min : 8.0 MB max : 8.0 MB
+	Disk   min : 0 B max : 0 B
+Number of slaves processes: 9
+memory policy: slave first
+disk   policy: slave first
+paral. policy: vertical  
+
+Classes number: 2
+	master_class
+	100_107374182400_107374182401_107374182400_107374182401
+
+--    Granted resources    --
+#procs 10
+Memory
+  master 1.0 GB -> 1,073,741,824
+  slave  1.2 GB -> 1,297,294,535
+  shared 5.0 GB -> 5,368,709,120
+Disk  
+  master 0 B -> 0
+  slave  0 B -> 0
+  shared 0 B -> 0
+
+host_0	10 procs
+Ranks involved : 0 1 2 3 4 5 6 7 8 9
+

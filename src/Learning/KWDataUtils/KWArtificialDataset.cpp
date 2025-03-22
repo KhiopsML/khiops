@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -200,7 +200,7 @@ void KWArtificialDataset::CreateDataset() const
 	int nField;
 	int nLine;
 	int nKey;
-	int nRootBaseKey;
+	int nMainBaseKey;
 	int nBaseKey;
 	StringVector svFieldValues;
 	int nKeyValue;
@@ -253,16 +253,16 @@ void KWArtificialDataset::CreateDataset() const
 
 		// On calcule la valeur de base de la cle, de facon a ce que les cles de poids forts evoluent de facon
 		// monotone
-		nRootBaseKey = 1;
-		nBaseKey = nRootBaseKey;
+		nMainBaseKey = 1;
+		nBaseKey = nMainBaseKey;
 		for (nKey = 0; nKey < ivKeyFieldIndexes.GetSize(); nKey++)
 			nBaseKey *= 10;
 		while (nMaxLineNumberPerKey * nBaseKey / 10 < nLineNumber)
 		{
 			nBaseKey *= 10;
-			nRootBaseKey *= 10;
+			nMainBaseKey *= 10;
 		}
-		assert(nMaxLineNumberPerKey * nRootBaseKey * pow(10.0, 1.0 * ivKeyFieldIndexes.GetSize()) / 10 >=
+		assert(nMaxLineNumberPerKey * nMainBaseKey * pow(10.0, 1.0 * ivKeyFieldIndexes.GetSize()) / 10 >=
 		       nLineNumber);
 
 		// Creation des lignes
@@ -278,7 +278,7 @@ void KWArtificialDataset::CreateDataset() const
 								IntToString(nField + 1));
 
 			// On alimente d'abord les cles de poids faible, par puissance de 10
-			nBaseKey = nRootBaseKey;
+			nBaseKey = nMainBaseKey;
 			for (nKey = ivKeyFieldIndexes.GetSize() - 1; nKey >= 0; nKey--)
 			{
 				// On cree les cle selon l'ordre souhaite
@@ -289,8 +289,8 @@ void KWArtificialDataset::CreateDataset() const
 					nKeyValue = nBaseKey - 1 - ((nLine / nMaxLineNumberPerKey) % nBaseKey);
 
 				// Les cles de poids fort sont incrementees plus lentement que les cle de poids faible
-				nKeyValue /= (nBaseKey / nRootBaseKey);
-				nKeyValue *= (nBaseKey / nRootBaseKey);
+				nKeyValue /= (nBaseKey / nMainBaseKey);
+				nKeyValue *= (nBaseKey / nMainBaseKey);
 
 				// Memorisation de la cle (on maintenant en categoriel son ordre numerique)
 				sKeyValue = sTmp + IntToString(nBaseKey + nKeyValue);
@@ -381,14 +381,14 @@ void KWArtificialDataset::DisplayFileFirstLines(const ALString& sFilePathName, i
 	cout << "File " << FileService::GetFileName(sFilePathName);
 
 	// Test si fichier manquant
-	if (not FileService::Exist(sFilePathName))
+	if (not FileService::FileExists(sFilePathName))
 		cout << " : missing file";
 	else
 		cout << " (size=" << FileService::GetFileSize(sFilePathName) << ")";
 	cout << endl;
 
 	// Lecture des premieres lignes du fichier de cle
-	if (FileService::Exist(sFilePathName))
+	if (FileService::FileExists(sFilePathName))
 	{
 		sTmpBuffer = NewCharArray(nTmpBufferSize);
 		FileService::OpenInputFile(sFilePathName, fst);
@@ -448,8 +448,9 @@ boolean KWArtificialDataset::AddLinesInFile(const ALString& sFileName, const ALS
 	boolean bOk;
 	longint lBeginPos;
 	CharVector cvLine;
+	boolean bLineTooLong;
 
-	require(FileService::Exist(sFileName));
+	require(FileService::FileExists(sFileName));
 	require(ivLines != NULL);
 	require(ivLines->GetSize() != 0);
 
@@ -461,6 +462,7 @@ boolean KWArtificialDataset::AddLinesInFile(const ALString& sFileName, const ALS
 		Global::AddError("", "", "unable to open " + sFileName);
 		return false;
 	}
+
 	// Ouverture en ecriture du fichier de sortie
 	outputFile.SetFileName(sDestFileName);
 	bOk = outputFile.Open();
@@ -474,14 +476,16 @@ boolean KWArtificialDataset::AddLinesInFile(const ALString& sFileName, const ALS
 		index = 0;
 		nLineIndexToInsert = ivLines->GetAt(index);
 		lBeginPos = 0;
-		while (not inputFile.IsFileEnd())
+		while (bOk and not inputFile.IsFileEnd())
 		{
 			// Lecture d'un buffer
-			inputFile.Fill(lBeginPos);
-			lBeginPos += inputFile.GetBufferSize();
+			bOk = inputFile.FillInnerLines(lBeginPos);
+			assert(not bOk or
+			       inputFile.GetCurrentBufferSize()); // Il ne devrait pas y avoir de lignes trop longues
+			lBeginPos += inputFile.GetCurrentBufferSize();
 			while (not inputFile.IsBufferEnd())
 			{
-				inputFile.GetNextLine(&cvLine);
+				inputFile.GetNextLine(&cvLine, bLineTooLong);
 
 				// Insertion si on a numero de ligne recherche
 				if (nLineIndexToInsert == nLineIndex)
@@ -509,7 +513,7 @@ boolean KWArtificialDataset::AddLinesInFile(const ALString& sFileName, const ALS
 		Global::AddError("", "", "unable to open " + sDestFileName);
 	}
 	inputFile.Close();
-	assert(FileService::Exist(sDestFileName));
+	assert(FileService::FileExists(sDestFileName));
 	return bOk;
 }
 

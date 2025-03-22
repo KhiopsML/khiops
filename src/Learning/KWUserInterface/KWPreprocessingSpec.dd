@@ -1,16 +1,4 @@
-Rank;
-Name;
-Type;
-Status;
-Style;
-Label 1;
-ObjectLabel;
-ALString;
-Derived;
-;
-Preprocessing 2;
-TargetGrouped;
-boolean;
-;
-CheckBox;
-Group target values
+Rank;Name;Type;Style;Label
+1;TargetGrouped;boolean ;CheckBox;Group target values
+2;MaxPartNumber;int     ;Spinner ;Max part number
+3;MinPartFrequency;int  ;Spinner ;Min part frequency

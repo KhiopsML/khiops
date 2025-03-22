@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -140,8 +140,8 @@ protected:
 	// Vecteur des valeurs min et max par intervalle, pour l'ecriture des discretisations JSON
 	// Dans le cas d'une evaluation de grille, il faut memorise ces vecteurs pour pouvoir
 	// appeler la methode d'ecriture du rapport JSON de la classe ancetre
-	ContinuousVector cvJSONEvaluatedAttributeMinValues;
-	ContinuousVector cvJSONEvaluatedAttributeMaxValues;
+	ContinuousVector cvJSONEvaluatedAttributeDomainLowerBounds;
+	ContinuousVector cvJSONEvaluatedAttributeDomainUpperBounds;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -1,10 +1,9 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-02-05 18:19:44
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "CCPostProcessingSpecView.h"
@@ -13,16 +12,21 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 {
 	SetIdentifier("CCPostProcessingSpec");
 	SetLabel("Simplification parameters");
-	AddStringField("ShortDescription", "ShortDescription", "");
+	AddStringField("CoclusteringType", "Coclustering type", "");
+	AddStringField("ShortDescription", "Short description", "");
 	AddIntField("InstanceNumber", "Instance number", 0);
 	AddIntField("NonEmptyCellNumber", "Non empty cell number", 0);
 	AddIntField("CellNumber", "Cell number", 0);
 	AddIntField("MaxCellNumber", "Max cell number", 0);
 	AddIntField("MaxPreservedInformation", "Max preserved information", 0);
-	AddStringField("FrequencyAttribute", "Frequency variable", "");
+	AddIntField("TotalPartNumber", "Total part number", 0);
+	AddIntField("MaxTotalPartNumber", "Max total part number", 0);
+	AddStringField("FrequencyAttributeName", "Frequency variable", "");
 
 	// Parametrage des styles;
+	GetFieldAt("MaxCellNumber")->SetStyle("Spinner");
 	GetFieldAt("MaxPreservedInformation")->SetStyle("Spinner");
+	GetFieldAt("MaxTotalPartNumber")->SetStyle("Spinner");
 
 	// ## Custom constructor
 
@@ -31,6 +35,7 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 	GetFieldAt("InstanceNumber")->SetEditable(false);
 	GetFieldAt("NonEmptyCellNumber")->SetEditable(false);
 	GetFieldAt("CellNumber")->SetEditable(false);
+	GetFieldAt("TotalPartNumber")->SetEditable(false);
 
 	// Ajout d'un tableau des variables de coclustering
 	CCPostProcessedAttributeArrayView* postProcessedAttributeArrayView;
@@ -45,16 +50,21 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 	cast(UIIntElement*, GetFieldAt("MaxCellNumber"))->SetMinValue(0);
 	cast(UIIntElement*, GetFieldAt("MaxPreservedInformation"))->SetMinValue(0);
 	cast(UIIntElement*, GetFieldAt("MaxPreservedInformation"))->SetMaxValue(100);
+	cast(UIIntElement*, GetFieldAt("MaxTotalPartNumber"))->SetMinValue(0);
 	cast(UIIntElement*, postProcessedAttributeArrayView->GetFieldAt("MaxPartNumber"))->SetMinValue(0);
 	cast(UIIntElement*, postProcessedAttributeArrayView->GetFieldAt("MaxPartNumber"))->SetMaxValue(1000000);
 
 	// Le tableau des variable est affiche avant la variable d'effectif
-	MoveFieldBefore("PostProcessedAttributes", "FrequencyAttribute");
+	MoveFieldBefore("PostProcessedAttributes", "FrequencyAttributeName");
+
+	// La variable de type de coclustering n'est pas editable
+	GetFieldAt("CoclusteringType")->SetEditable(false);
 
 	// La variable d'effectif n'est pas editable
-	GetFieldAt("FrequencyAttribute")->SetEditable(false);
+	GetFieldAt("FrequencyAttributeName")->SetEditable(false);
 
 	// Info-bulles
+	GetFieldAt("CoclusteringType")->SetHelpText("Type of coclustering.");
 	GetFieldAt("InstanceNumber")->SetHelpText("Instance number in the input coclustering.");
 	GetFieldAt("NonEmptyCellNumber")->SetHelpText("Non empty cell number in the input coclustering.");
 	GetFieldAt("CellNumber")->SetHelpText("Cell number in the input coclustering.");
@@ -66,7 +76,11 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 			  "\n in the simplified coclustering (0: no constraint)."
 			  "\n Low percentages correspond to weakly informative coarse models whereas"
 			  "\n high percentages correspond to highly informative detailed models.");
-	GetFieldAt("FrequencyAttribute")->SetHelpText("Frequency variable in the input coclustering.");
+	GetFieldAt("TotalPartNumber")->SetHelpText("Total part number in the input coclustering.");
+	GetFieldAt("MaxTotalPartNumber")
+	    ->SetHelpText("Max total number of parts to keep"
+			  "\n in the simplified coclustering (0: no constraint).");
+	GetFieldAt("FrequencyAttributeName")->SetHelpText("Frequency variable in the input coclustering.");
 
 	// ##
 }
@@ -91,13 +105,16 @@ void CCPostProcessingSpecView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(CCPostProcessingSpec*, object);
+	editedObject->SetCoclusteringType(GetStringValueAt("CoclusteringType"));
 	editedObject->SetShortDescription(GetStringValueAt("ShortDescription"));
 	editedObject->SetInstanceNumber(GetIntValueAt("InstanceNumber"));
 	editedObject->SetNonEmptyCellNumber(GetIntValueAt("NonEmptyCellNumber"));
 	editedObject->SetCellNumber(GetIntValueAt("CellNumber"));
 	editedObject->SetMaxCellNumber(GetIntValueAt("MaxCellNumber"));
 	editedObject->SetMaxPreservedInformation(GetIntValueAt("MaxPreservedInformation"));
-	editedObject->SetFrequencyAttribute(GetStringValueAt("FrequencyAttribute"));
+	editedObject->SetTotalPartNumber(GetIntValueAt("TotalPartNumber"));
+	editedObject->SetMaxTotalPartNumber(GetIntValueAt("MaxTotalPartNumber"));
+	editedObject->SetFrequencyAttributeName(GetStringValueAt("FrequencyAttributeName"));
 
 	// ## Custom update
 
@@ -111,13 +128,16 @@ void CCPostProcessingSpecView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(CCPostProcessingSpec*, object);
+	SetStringValueAt("CoclusteringType", editedObject->GetCoclusteringType());
 	SetStringValueAt("ShortDescription", editedObject->GetShortDescription());
 	SetIntValueAt("InstanceNumber", editedObject->GetInstanceNumber());
 	SetIntValueAt("NonEmptyCellNumber", editedObject->GetNonEmptyCellNumber());
 	SetIntValueAt("CellNumber", editedObject->GetCellNumber());
 	SetIntValueAt("MaxCellNumber", editedObject->GetMaxCellNumber());
 	SetIntValueAt("MaxPreservedInformation", editedObject->GetMaxPreservedInformation());
-	SetStringValueAt("FrequencyAttribute", editedObject->GetFrequencyAttribute());
+	SetIntValueAt("TotalPartNumber", editedObject->GetTotalPartNumber());
+	SetIntValueAt("MaxTotalPartNumber", editedObject->GetMaxTotalPartNumber());
+	SetStringValueAt("FrequencyAttributeName", editedObject->GetFrequencyAttributeName());
 
 	// ## Custom refresh
 
@@ -138,6 +158,7 @@ void CCPostProcessingSpecView::SetPostProcessingParametersVisible(boolean bValue
 	// Parametrage
 	GetFieldAt("MaxCellNumber")->SetVisible(bValue);
 	GetFieldAt("MaxPreservedInformation")->SetVisible(bValue);
+	GetFieldAt("MaxTotalPartNumber")->SetVisible(bValue);
 	postProcessedAttributeArrayView =
 	    cast(CCPostProcessedAttributeArrayView*, GetFieldAt("PostProcessedAttributes"));
 	postProcessedAttributeArrayView->GetFieldAt("MaxPartNumber")->SetVisible(bValue);

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -16,7 +16,7 @@ PLSharedVariable::PLSharedVariable()
 
 PLSharedVariable::~PLSharedVariable() {}
 
-void PLSharedVariable::Serialize(PLSerializer* serializer)
+void PLSharedVariable::Serialize(PLSerializer* serializer) const
 {
 	check(serializer);
 	require(serializer->IsOpenForWrite());
@@ -349,7 +349,6 @@ void PLShared_Int::Test()
 	// Affichage des resultats
 	cout << "Initial value " << nInitialValue << endl;
 	cout << "Serialized value " << shared_valueOut << endl;
-	;
 	cout << "Serialized form " << serializer << endl;
 
 	// Deserialisation une deuxieme fois sur le meme objet

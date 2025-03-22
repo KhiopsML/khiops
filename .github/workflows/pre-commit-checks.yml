@@ -1,19 +1,15 @@
-name: "Run pre-commit checks"
-
+---
+name: Run pre-commit checks
 on:
   pull_request:
-  push:
   workflow_dispatch:
-
 jobs:
   pre-commit-checks:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
-
+        uses: actions/checkout@v4
       - name: Setup Python
-        uses: actions/setup-python@v3
-
+        uses: actions/setup-python@v5
       - name: Run pre-commit checks
-        uses: pre-commit/action@v3.0.0
+        uses: pre-commit/action@v3.0.1

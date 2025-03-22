@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -19,7 +19,7 @@ PLShared_ObjectDictionary::~PLShared_ObjectDictionary()
 
 void PLShared_ObjectDictionary::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
-	ObjectDictionary* odToSerialize;
+	const ObjectDictionary* odToSerialize;
 	Object* oToSerialize;
 	POSITION position;
 	ALString sKeyToSerialize;

@@ -1,12 +1,11 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2021-04-25 11:10:58
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "UserInterface.h"
@@ -51,17 +50,9 @@ public:
 
 	// ## Custom declarations
 
-#ifdef DEPRECATED_V10
-	// DEPRECATED V10: actions obsoletes, conserves de facon cachee en V10 pour compatibilite ascendante des
-	// scenarios
-	void DEPRECATEDInspectConstructionDomain();
-	void DEPRECATEDInspectAttributeCreationParameters();
-	void DEPRECATEDInspectRecodingSpec();
-#endif // DEPRECATED_V10
-
 	// ##
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// ## Custom implementation
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -25,30 +25,17 @@ KWLearningProblemActionView::KWLearningProblemActionView()
 		  (ActionMethod)(&KWLearningProblemActionView::TransferDatabase));
 	AddAction("EvaluatePredictors", "Evaluate model...",
 		  (ActionMethod)(&KWLearningProblemActionView::EvaluatePredictors));
-
-#ifdef DEPRECATED_V10
-	{
-		// DEPRECATED V10: fonctionnalite obsolete, conservee de facon cachee en V10 pour compatibilite
-		// ascendante des scenarios
-		LMLicenseManager::DEPRECATEDAddLicenseManagementMenu(this);
-	}
-#endif // DEPRECATED_V10
+	AddAction("InterpretPredictor", "Interpret model...",
+		  (ActionMethod)(&KWLearningProblemActionView::InterpretPredictor));
 
 	// Ajout d'accelateurs sur les actions principales
 	GetActionAt("ComputeStats")->SetAccelKey("control T");
 	GetActionAt("TransferDatabase")->SetAccelKey("control D");
 	GetActionAt("EvaluatePredictors")->SetAccelKey("control E");
+	GetActionAt("InterpretPredictor")->SetAccelKey("control I");
 
 	// Construction du dictionnaire uniquement en mode expert
-	if (not GetLearningExpertMode())
-		GetActionAt("BuildConstructedDictionary")->SetVisible(false);
-
-	// Tri des tables uniquement en mode multi-tables
-	if (not GetLearningMultiTableMode())
-	{
-		GetActionAt("SortDataTableByKey")->SetVisible(false);
-		GetActionAt("ExtractKeysFromDataTable")->SetVisible(false);
-	}
+	GetActionAt("BuildConstructedDictionary")->SetVisible(GetLearningExpertMode());
 
 	// Info-bulles
 	GetActionAt("CheckData")
@@ -57,7 +44,7 @@ KWLearningProblemActionView::KWLearningProblemActionView()
 			  "\n During formatting checks, the number of fields in the train database is compared"
 			  "\n to the number of native variables in the dictionary."
 			  "\n Data conversion checks are performed for the fields corresponding to "
-			  "\n numerical, date, time and timestamp variables."
+			  "\n numerical, date, time, timestamp and timestampTZ variables."
 			  "\n In case of multi-tables database, data tables must be sorted by key."
 			  "\n Error messages are displayed in the message log window.");
 	GetActionAt("SortDataTableByKey")
@@ -67,12 +54,15 @@ KWLearningProblemActionView::KWLearningProblemActionView()
 	GetActionAt("ExtractKeysFromDataTable")
 	    ->SetHelpText("Extract keys from a sorted input data table."
 			  "\n It is dedicated to the preparation of multi-table databases,"
-			  "\n where a root entity has to be extracted from a detailed 0-n entity."
+			  "\n where a main entity has to be extracted from a detailed 0-n entity."
 			  "\n For example, in case of a web log file with cookies, page, timestamp in each log,"
 			  "\n extracting keys allow to build a table with unique cookies from the table of logs.");
 	GetActionAt("EvaluatePredictors")
 	    ->SetHelpText("Open a dialog box allowing to specify an evaluation report, an evaluation database"
 			  "\n and to choose the predictor(s) to evaluate.");
+	GetActionAt("InterpretPredictor")
+	    ->SetHelpText("Open a dialog box allowing to specify and build an interpretation dictionary for a "
+			  "predictor to interpret.");
 
 	// Recopie des info-bulles de la vue principale (KWLearningProblemView)
 	// (pas de reutilisation possible)
@@ -98,6 +88,7 @@ KWLearningProblemActionView::KWLearningProblemActionView()
 	GetActionAt("ComputeStats")->SetShortCut('T');
 	GetActionAt("TransferDatabase")->SetShortCut('D');
 	GetActionAt("EvaluatePredictors")->SetShortCut('E');
+	GetActionAt("InterpretPredictor")->SetShortCut('I');
 }
 
 KWLearningProblemActionView::~KWLearningProblemActionView() {}
@@ -145,6 +136,11 @@ void KWLearningProblemActionView::TransferDatabase()
 void KWLearningProblemActionView::EvaluatePredictors()
 {
 	GetLearningProblemView()->EvaluatePredictors();
+}
+
+void KWLearningProblemActionView::InterpretPredictor()
+{
+	GetLearningProblemView()->InterpretPredictor();
 }
 
 KWLearningProblem* KWLearningProblemActionView::GetLearningProblem()

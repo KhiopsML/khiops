@@ -1,0 +1,8 @@
+Rank;Name;Type;Style;Label
+1;DataPreparationOnly          ;boolean ;CheckBox   ;Do data preparation only
+2;InterpretableNames;           boolean ;CheckBox   ;Build interpretable names
+3;BaselinePredictor            ;boolean ;CheckBox   ;Baseline predictor
+4;UnivariatePredictorNumber    ;int     ;Spinner    ;Number of univariate predictors
+5;SelectiveNaiveBayesPredictor ;boolean ;CheckBox   ;Selective Naive Bayes predictor
+6;NaiveBayesPredictor          ;boolean ;CheckBox   ;Naive Bayes predictor
+7;DataGridPredictor            ;boolean ;CheckBox   ;Data Grid predictor

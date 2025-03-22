@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -8,32 +8,27 @@ PLMPISlaveProgressionManager::PLMPISlaveProgressionManager(void)
 {
 	int nCommunicatorSize;
 
-	bRMA_ON = true;
 	MPI_Comm_size(*PLMPITaskDriver::GetTaskComm(), &nCommunicatorSize);
 	dPeriod = (nCommunicatorSize - 1.0) / (nMessagesFrequency * 1.0);
 	tMessages.Start();
 
-	// Creation de la fenetre RMA pour controler l'arret
-	MPI_Alloc_mem(sizeof(int), MPI_INFO_NULL, &bInterruptionRequested);
-	MPI_Win_create(&bInterruptionRequested, sizeof(int), sizeof(int), MPI_INFO_NULL,
-		       *PLMPITaskDriver::GetTaskComm(), &winForInterruption);
-
-	bInterruptionRequested = false;
+	bIsInterruptionRequested = false;
 	nOldProgression = 0;
 	sendRequest = MPI_REQUEST_NULL;
-	bInterruptionDiscovered = false;
+	ivMaxErrorReached = NULL;
+	nSlaveState = State::VOID;
+	sBuffer[0] = '\0';
 }
 
 PLMPISlaveProgressionManager::~PLMPISlaveProgressionManager(void)
 {
-	int flag;
-	void* adressWinInterruption;
-
 	if (sendRequest != MPI_REQUEST_NULL)
 		MPI_Request_free(&sendRequest);
 
-	MPI_Win_get_attr(winForInterruption, MPI_WIN_BASE, &adressWinInterruption, &flag);
-	MPI_Win_free(&winForInterruption);
+	// Reception des messages qu'on n'aurait pas encore recu
+	IsInterruptionRequested();
+
+	ivMaxErrorReached = NULL;
 }
 
 void PLMPISlaveProgressionManager::SetProgression(int nValue)
@@ -48,7 +43,7 @@ void PLMPISlaveProgressionManager::SetProgression(int nValue)
 	// et quand on fait TaskProgression::EndTask(); Norm fait automatiquement SetProgression(0) et il ne faut pas
 	if (nValue == 0)
 		return;
-	if (bInterruptionRequested)
+	if (bIsInterruptionRequested)
 		return;
 	if (nValue == nOldProgression)
 		return;
@@ -67,7 +62,7 @@ void PLMPISlaveProgressionManager::SetProgression(int nValue)
 	{
 		serializer.OpenForWrite(NULL);
 		serializer.PutInt(nValue);
-		serializer.PutInt(nSlaveState);
+		serializer.PutInt(PLSlaveState::StateToInt(nSlaveState));
 		serializer.Close();
 
 		// Envoi du serializer : on sait que sa taille fait 6 (c'est juste un int)
@@ -76,12 +71,68 @@ void PLMPISlaveProgressionManager::SetProgression(int nValue)
 	}
 }
 
-void PLMPISlaveProgressionManager::SetSlaveState(PLSlaveState::State nState)
+void PLMPISlaveProgressionManager::SetSlaveState(State nState)
 {
 	nSlaveState = nState;
 }
 
+void PLMPISlaveProgressionManager::SetInterruptionRequested(boolean bInterruption)
+{
+	bIsInterruptionRequested = bInterruption;
+}
+
+boolean PLMPISlaveProgressionManager::GetInterruptionRequested() const
+{
+	return bIsInterruptionRequested;
+}
+
+void PLMPISlaveProgressionManager::SetMaxErrorReached(IntVector* ivMaxErrors)
+{
+	assert(ivMaxErrors != NULL and ivMaxErrors->GetSize() == 3);
+	ivMaxErrorReached = ivMaxErrors;
+}
+IntVector* PLMPISlaveProgressionManager::GetMaxErrorReached() const
+{
+	return ivMaxErrorReached;
+}
+
 void PLMPISlaveProgressionManager::Start() {}
+
+boolean PLMPISlaveProgressionManager::IsInterruptionRequested()
+{
+	int nMessage;
+	MPI_Status status;
+	PLMPIMsgContext context;
+	PLSerializer serializer;
+
+	if (not bIsInterruptionRequested)
+	{
+		MPI_Iprobe(0, INTERRUPTION_REQUESTED, MPI_COMM_WORLD, &nMessage, &status);
+		if (nMessage)
+		{
+
+			context.Recv(MPI_COMM_WORLD, 0, INTERRUPTION_REQUESTED);
+			serializer.OpenForRead(&context);
+			serializer.Close();
+
+			if (GetTracerMPI()->GetActiveMode())
+				GetTracerMPI()->AddRecv(0, INTERRUPTION_REQUESTED);
+			bIsInterruptionRequested = true;
+		}
+
+		MPI_Iprobe(0, MAX_ERROR_FLOW, MPI_COMM_WORLD, &nMessage, &status);
+		if (nMessage)
+		{
+			context.Recv(MPI_COMM_WORLD, 0, MAX_ERROR_FLOW);
+			serializer.OpenForRead(&context);
+			serializer.GetIntVector(ivMaxErrorReached);
+			serializer.Close();
+			if (GetTracerMPI()->GetActiveMode())
+				GetTracerMPI()->AddRecv(0, MAX_ERROR_FLOW);
+		}
+	}
+	return bIsInterruptionRequested;
+}
 
 void PLMPISlaveProgressionManager::Stop() {}
 

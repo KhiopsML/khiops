@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -7,8 +7,24 @@
 /////////////////////////////////////////////////////////////////////////
 // Classe KWQuantileIntervalBuilder
 
+KWQuantileBuilder::KWQuantileBuilder()
+{
+	bIsFrequencyInitialized = false;
+	bIsValueInitialized = false;
+	nInstanceNumber = 0;
+	nValueNumber = 0;
+	nRequestedQuantileNumber = 0;
+}
+
+KWQuantileBuilder::~KWQuantileBuilder() {}
+
+/////////////////////////////////////////////////////////////////////////
+// Classe KWQuantileIntervalBuilder
+
 KWQuantileIntervalBuilder::KWQuantileIntervalBuilder()
 {
+	bIsFrequencyInitialized = false;
+	bIsValueInitialized = false;
 	nInstanceNumber = 0;
 	nValueNumber = 0;
 	nRequestedQuantileNumber = 0;
@@ -23,9 +39,10 @@ void KWQuantileIntervalBuilder::InitializeValues(const ContinuousVector* cvInput
 	int i;
 
 	require(cvInputValues != NULL);
-	require(cvInputValues->GetSize() > 0);
 
 	// Reinitialisation des resultats
+	bIsValueInitialized = true;
+	bIsFrequencyInitialized = true;
 	nRequestedQuantileNumber = 0;
 	bIsEqualWidth = false;
 	ivIntervalQuantileIndexes.SetSize(0);
@@ -74,9 +91,10 @@ void KWQuantileIntervalBuilder::InitializeFrequencies(const IntVector* ivInputFr
 	int i;
 
 	require(ivInputFrequencies != NULL);
-	require(ivInputFrequencies->GetSize() > 0);
 
 	// Reinitialisation des resultats
+	bIsValueInitialized = false;
+	bIsFrequencyInitialized = true;
 	nRequestedQuantileNumber = 0;
 	bIsEqualWidth = false;
 	ivIntervalQuantileIndexes.SetSize(0);
@@ -99,6 +117,7 @@ void KWQuantileIntervalBuilder::InitializeFrequencies(const IntVector* ivInputFr
 
 int KWQuantileIntervalBuilder::ComputeQuantiles(int nQuantileNumber)
 {
+	const double dEpsilon = 1e-10;
 	int nQuantile;
 	double dSearchedCumulativeFrequency;
 	int nSearchedCumulativeFrequency;
@@ -125,15 +144,14 @@ int KWQuantileIntervalBuilder::ComputeQuantiles(int nQuantileNumber)
 	bSequentialSearch = false;
 	for (nQuantile = 0; nQuantile < nQuantileNumber; nQuantile++)
 	{
-		// Calcul de l'index en passant par un longint pour eviter les problemes de depassement de capacite des
-		// int
+		// Calcul de l'index en passant par un double pour eviter les problemes de depassement de capacite des int
 		dSearchedCumulativeFrequency = nInstanceNumber * (nQuantile + 1.0) / nQuantileNumber;
 
 		// On biaise vers une des extremites
 		if (nQuantile >= nQuantileNumber / 2)
-			dSearchedCumulativeFrequency += 1.0 / nInstanceNumber;
+			dSearchedCumulativeFrequency += dEpsilon;
 		else
-			dSearchedCumulativeFrequency -= 1.0 / nInstanceNumber;
+			dSearchedCumulativeFrequency -= dEpsilon;
 		nSearchedCumulativeFrequency = (int)floor(dSearchedCumulativeFrequency + 0.5);
 		assert(0 <= nSearchedCumulativeFrequency and nSearchedCumulativeFrequency <= nInstanceNumber);
 
@@ -198,14 +216,10 @@ int KWQuantileIntervalBuilder::ComputeEqualWidthQuantiles(int nQuantileNumber)
 	ivIntervalQuantileIndexes.SetSize(0);
 	ivIntervalUpperValueIndexes.SetSize(0);
 
-	// Recherche de la valeur min effective, en ignorant les valeurs manquantes
+	// Recherche des valeurs extremes
 	nMissingNumber = GetMissingValueNumber();
-	cMinValue = cvValues.GetAt(0);
-	if (cMinValue == KWContinuous::GetMissingValue() and cvValues.GetSize() > 1)
-		cMinValue = cvValues.GetAt(1);
-
-	// Recherche de la valeur max
-	cMaxValue = cvValues.GetAt(cvValues.GetSize() - 1);
+	cMinValue = GetMinValue();
+	cMaxValue = GetMaxValue();
 
 	// Calcul des dernier index des quantiles
 	nRefUniqueIndex = 0;
@@ -223,13 +237,10 @@ int KWQuantileIntervalBuilder::ComputeEqualWidthQuantiles(int nQuantileNumber)
 		// Index de la valeur unique correspondante
 		nRefUniqueIndex = SearchValueIndex(cIntervalUpperBound, nRefUniqueIndex, nValueNumber - 1);
 
-		// Creation d'un intervalle si quantile non vide
-		if (nQuantile == 0 or nRefUniqueIndex > nLastValidQuantileUpperValueIndex)
-		{
-			nLastValidQuantileUpperValueIndex = nRefUniqueIndex;
-			ivIntervalQuantileIndexes.Add(nQuantile);
-			ivIntervalUpperValueIndexes.Add(nLastValidQuantileUpperValueIndex);
-		}
+		// Creation d'un intervalle, potentiellement vide
+		nLastValidQuantileUpperValueIndex = nRefUniqueIndex;
+		ivIntervalQuantileIndexes.Add(nQuantile);
+		ivIntervalUpperValueIndexes.Add(nLastValidQuantileUpperValueIndex);
 	}
 	ensure(ivIntervalQuantileIndexes.GetSize() == ivIntervalUpperValueIndexes.GetSize());
 	ensure(0 < ivIntervalUpperValueIndexes.GetSize() and
@@ -245,12 +256,18 @@ Continuous KWQuantileIntervalBuilder::GetIntervalLowerBoundAt(int nIntervalIndex
 	require(IsComputed());
 	require(0 <= nIntervalIndex and nIntervalIndex < GetIntervalNumber());
 
-	nLowerValueIndexes = GetIntervalFirstValueIndexAt(nIntervalIndex);
-	if (nLowerValueIndexes == 0)
-		return KWContinuous::GetMissingValue();
+	if (IsEqualWidth())
+		return ComputeEqualWidthIntervalLowerBound(nIntervalIndex, GetIntervalNumber(), GetMinValue(),
+							   GetMaxValue(), GetMissingValueNumber());
 	else
-		return KWContinuous::GetHumanReadableLowerMeanValue(cvValues.GetAt(nLowerValueIndexes),
-								    cvValues.GetAt(nLowerValueIndexes - 1));
+	{
+		nLowerValueIndexes = GetIntervalFirstValueIndexAt(nIntervalIndex);
+		if (nLowerValueIndexes == 0)
+			return KWContinuous::GetMissingValue();
+		else
+			return KWContinuous::GetHumanReadableLowerMeanValue(cvValues.GetAt(nLowerValueIndexes),
+									    cvValues.GetAt(nLowerValueIndexes - 1));
+	}
 }
 
 Continuous KWQuantileIntervalBuilder::GetIntervalUpperBoundAt(int nIntervalIndex) const
@@ -261,12 +278,18 @@ Continuous KWQuantileIntervalBuilder::GetIntervalUpperBoundAt(int nIntervalIndex
 	require(IsComputed());
 	require(0 <= nIntervalIndex and nIntervalIndex < GetIntervalNumber());
 
-	nUpperValueIndexes = GetIntervalLastValueIndexAt(nIntervalIndex);
-	if (nUpperValueIndexes == GetValueNumber() - 1)
-		return KWContinuous::GetMaxValue();
+	if (IsEqualWidth())
+		return ComputeEqualWidthIntervalUpperBound(nIntervalIndex, GetIntervalNumber(), GetMinValue(),
+							   GetMaxValue(), GetMissingValueNumber());
 	else
-		return KWContinuous::GetHumanReadableLowerMeanValue(cvValues.GetAt(nUpperValueIndexes),
-								    cvValues.GetAt(nUpperValueIndexes + 1));
+	{
+		nUpperValueIndexes = GetIntervalLastValueIndexAt(nIntervalIndex);
+		if (nUpperValueIndexes == GetValueNumber() - 1)
+			return KWContinuous::GetMaxValue();
+		else
+			return KWContinuous::GetHumanReadableLowerMeanValue(cvValues.GetAt(nUpperValueIndexes),
+									    cvValues.GetAt(nUpperValueIndexes + 1));
+	}
 }
 
 void KWQuantileIntervalBuilder::WriteIntervals(ostream& ost) const
@@ -292,6 +315,21 @@ void KWQuantileIntervalBuilder::WriteIntervals(ostream& ost) const
 		}
 		cout << endl;
 	}
+}
+
+int KWQuantileIntervalBuilder::GetComputedQuantileNumber() const
+{
+	return GetIntervalNumber();
+}
+
+int KWQuantileIntervalBuilder::GetQuantileFrequencyAt(int nQuantileIndex) const
+{
+	return GetIntervalFrequencyAt(nQuantileIndex);
+}
+
+void KWQuantileIntervalBuilder::WriteQuantiles(ostream& ost) const
+{
+	WriteIntervals(ost);
 }
 
 void KWQuantileIntervalBuilder::Test()
@@ -605,6 +643,8 @@ int KWQuantileIntervalBuilder::SearchValueIndex(Continuous cSearchedValue, int n
 
 KWQuantileGroupBuilder::KWQuantileGroupBuilder()
 {
+	bIsFrequencyInitialized = false;
+	bIsValueInitialized = false;
 	nInstanceNumber = 0;
 	nValueNumber = 0;
 	nRequestedQuantileNumber = 0;
@@ -622,9 +662,10 @@ void KWQuantileGroupBuilder::InitializeValues(const SymbolVector* svInputValues)
 	int i;
 
 	require(svInputValues != NULL);
-	require(svInputValues->GetSize() > 0);
 
 	// Reinitialisation des resultats
+	bIsValueInitialized = true;
+	bIsFrequencyInitialized = true;
 	nRequestedQuantileNumber = 0;
 	nGroupNumber = 0;
 
@@ -686,12 +727,13 @@ void KWQuantileGroupBuilder::InitializeFrequencies(const IntVector* ivInputFrequ
 	int i;
 
 	require(ivInputFrequencies != NULL);
-	require(ivInputFrequencies->GetSize() > 0);
 
 	// Reinitialisation des resultats
 	nRequestedQuantileNumber = 0;
 
-	// Calcul et memorisation des efefctifs cumules
+	// Calcul et memorisation des effectifs cumules
+	bIsValueInitialized = false;
+	bIsFrequencyInitialized = true;
 	nInstanceNumber = 0;
 	nValueNumber = ivInputFrequencies->GetSize();
 	svValues.SetSize(0);
@@ -772,6 +814,21 @@ void KWQuantileGroupBuilder::WriteGroups(ostream& ost) const
 		}
 		cout << endl;
 	}
+}
+
+int KWQuantileGroupBuilder::GetComputedQuantileNumber() const
+{
+	return GetGroupNumber();
+}
+
+int KWQuantileGroupBuilder::GetQuantileFrequencyAt(int nQuantileIndex) const
+{
+	return GetGroupFrequencyAt(nQuantileIndex);
+}
+
+void KWQuantileGroupBuilder::WriteQuantiles(ostream& ost) const
+{
+	WriteGroups(ost);
 }
 
 void KWQuantileGroupBuilder::Test()

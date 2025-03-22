@@ -1,9 +1,13 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "SystemFile.h"
 #include "SystemFileDriverCreator.h"
+
+boolean SystemFile::bAlwaysErrorOnOpen = false;
+boolean SystemFile::bAlwaysErrorOnRead = false;
+boolean SystemFile::bAlwaysErrorOnFlush = false;
 
 SystemFile::SystemFile()
 {
@@ -26,7 +30,7 @@ boolean SystemFile::OpenInputFile(const ALString& sFilePathName)
 	boolean bOk;
 	ALString sTmp;
 
-	require(fileDriver == NULL);
+	require(fileHandle == NULL);
 	require(not bIsOpenForRead and not bIsOpenForWrite);
 	assert(lRequestedExtraSize == 0);
 	assert(lReservedExtraSize == 0);
@@ -36,35 +40,26 @@ boolean SystemFile::OpenInputFile(const ALString& sFilePathName)
 	if (fileDriver == NULL)
 		return false;
 
-	// Test si nom de fichier renseigne
-	bOk = (strcmp(sFilePathName, "") != 0);
-	if (not bOk)
-		Global::AddError("File", sFilePathName, "Unable to open file (missing file name)");
-	// Tentative d'ouverture du fichier
-	else
+	// Mode de test : toujours en echec
+	if (bAlwaysErrorOnOpen)
 	{
-		p_SetMachineLocale();
-		if (FileService::LogIOStats())
-			MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open Begin");
-		fileHandle = fileDriver->Open(sFilePathName, 'r');
-		if (FileService::LogIOStats())
-			MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open End");
-		p_SetApplicationLocale();
-		bOk = fileHandle != NULL;
-		if (not bOk)
-			Global::AddError("File", sFilePathName,
-					 sTmp + "Unable to open file (" + fileDriver->GetLastErrorMessage() + ")");
-		else
-			bIsOpenForRead = true;
+		errno = ECANCELED;
+		return false;
 	}
 
-	// Nettoyage en cas d'erreur
-	if (not bOk)
-	{
-		assert(not bIsOpenForRead);
-		fileDriver = NULL;
-		fileHandle = NULL;
-	}
+	// Ouverture du fichier
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open Begin");
+	p_SetMachineLocale();
+	fileHandle = fileDriver->Open(sFilePathName, 'r');
+	p_SetApplicationLocale();
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open End");
+
+	// Gestion de l'erreur
+	bOk = fileHandle != NULL;
+	if (bOk)
+		bIsOpenForRead = true;
 	return bOk;
 }
 
@@ -73,7 +68,6 @@ boolean SystemFile::OpenOutputFile(const ALString& sFilePathName)
 	boolean bOk;
 	ALString sTmp;
 
-	require(fileDriver == NULL);
 	require(fileHandle == NULL);
 	require(not bIsOpenForRead and not bIsOpenForWrite);
 	assert(lRequestedExtraSize == 0);
@@ -84,38 +78,26 @@ boolean SystemFile::OpenOutputFile(const ALString& sFilePathName)
 	if (fileDriver == NULL)
 		return false;
 
-	// Le nom du fichier doit etre present
-	bOk = sFilePathName != "";
-	if (not bOk)
-		Global::AddError("File", sFilePathName, "Unable to open output file (missing file name)");
-	// Tentative d'ouverture du fichier
-	else
+	// Mode de test : toujours en echec
+	if (bAlwaysErrorOnOpen)
 	{
-		p_SetMachineLocale();
-		if (FileService::LogIOStats())
-			MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open Begin");
-
-		fileHandle = fileDriver->Open(sFilePathName, 'w');
-		if (FileService::LogIOStats())
-			MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open End");
-
-		p_SetApplicationLocale();
-		bOk = fileHandle != NULL;
-		if (not bOk)
-			Global::AddError("File", sFilePathName,
-					 sTmp + "Unable to open output file (" + fileDriver->GetLastErrorMessage() +
-					     ")");
-		else
-			bIsOpenForWrite = true;
+		errno = ECANCELED;
+		return false;
 	}
 
-	// Nettoyage en cas d'erreur
-	if (not bOk)
-	{
-		assert(not bIsOpenForWrite);
-		fileDriver = NULL;
-		fileHandle = NULL;
-	}
+	// Ouverture du fichier
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open Begin");
+	p_SetMachineLocale();
+	fileHandle = fileDriver->Open(sFilePathName, 'w');
+	p_SetApplicationLocale();
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open End");
+
+	// Gestion de l'erreur
+	bOk = fileHandle != NULL;
+	if (bOk)
+		bIsOpenForWrite = true;
 	return bOk;
 }
 
@@ -124,7 +106,6 @@ boolean SystemFile::OpenOutputFileForAppend(const ALString& sFilePathName)
 	boolean bOk;
 	ALString sTmp;
 
-	require(fileDriver == NULL);
 	require(fileHandle == NULL);
 	require(not bIsOpenForRead and not bIsOpenForWrite);
 	assert(lRequestedExtraSize == 0);
@@ -135,38 +116,26 @@ boolean SystemFile::OpenOutputFileForAppend(const ALString& sFilePathName)
 	if (fileDriver == NULL)
 		return false;
 
-	// Le nom du fichier doit etre present
-	bOk = sFilePathName != "";
-	if (not bOk)
-		Global::AddError("File", sFilePathName, "Unable to open output file for append (missing file name)");
-	// Tentative d'ouverture du fichier
-	else
+	// Mode de test : toujours en echec
+	if (bAlwaysErrorOnOpen)
 	{
-		p_SetMachineLocale();
-		if (FileService::LogIOStats())
-			MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open Begin");
-
-		fileHandle = fileDriver->Open(sFilePathName, 'a');
-		if (FileService::LogIOStats())
-			MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open End");
-
-		p_SetApplicationLocale();
-		bOk = fileHandle != NULL;
-		if (not bOk)
-			Global::AddError("File", sFilePathName,
-					 sTmp + "Unable to open output file for append (" +
-					     fileDriver->GetLastErrorMessage() + ")");
-		else
-			bIsOpenForWrite = true;
+		errno = ECANCELED;
+		return false;
 	}
 
-	// Nettoyage en cas d'erreur
-	if (not bOk)
-	{
-		assert(not bIsOpenForWrite);
-		fileDriver = NULL;
-		fileHandle = NULL;
-	}
+	// Ouverture du fichier
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open Begin");
+	p_SetMachineLocale();
+	fileHandle = fileDriver->Open(sFilePathName, 'a');
+	p_SetApplicationLocale();
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open End");
+
+	// Gestion de l'erreur
+	bOk = fileHandle != NULL;
+	if (bOk)
+		bIsOpenForWrite = true;
 	return bOk;
 }
 
@@ -201,26 +170,20 @@ boolean SystemFile::CloseOutputFile(const ALString& sFilePathName)
 	require(fileHandle != NULL);
 	require(bIsOpenForWrite);
 
-	// Gestionde la reserve
-	if (lReservedExtraSize > 0)
-	{
-		// Message d'erreur uniquement s'il n'y a pas eu d'erreur avant
-		// En release, on n'emet pas jamais de message d'erreur, car ce cas peut se produire
-		// legitimement en cas d'interruption de tache
-		debug(if (bOk) Global::AddError("File", sFilePathName,
-						"Physical error when closing file (remaining reserved size)"));
-	}
+	// Gestion de la reserve
+	// Assertion uniquement s'il n'y a pas eu d'erreur avant
+	// En principe, on ne peut pas fermer un fichier sans avoir ecrit dans toute la place reservee
+	// Attention, la place demandee (requested) ne peut etre negative, alors que la place effectivement
+	// reservee (reserved) peut l'etre (car elle elle est decrementee, meme si elle n'a pas ete reservee)
+	assert(lRequestedExtraSize == 0 or errno != 0);
+	assert(lReservedExtraSize <= 0 or errno != 0);
 
 	// Flush du contenu du rapport juste avant la fermeture pour detecter une erreur en ecriture
-	bOk = fileDriver->flush(fileHandle);
-	if (not bOk)
-		Global::AddError("File", sFilePathName,
-				 sTmp + "Physical error when writing data to file (" +
-				     fileDriver->GetLastErrorMessage() + ")");
+	bOk = fileDriver->Flush(fileHandle);
 
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] close write Begin");
-	fileDriver->Close(fileHandle);
+	bOk = fileDriver->Close(fileHandle) and bOk;
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] close write End");
 
@@ -233,43 +196,174 @@ boolean SystemFile::CloseOutputFile(const ALString& sFilePathName)
 	return bOk;
 }
 
+longint SystemFile::Read(void* pBuffer, size_t size, size_t count)
+{
+	longint lRes;
+	ALString sTmp;
+	require(fileDriver != NULL);
+	require(fileHandle != NULL);
+	require(bIsOpenForRead);
+
+	// Mode de test : toujours en echec
+	if (bAlwaysErrorOnRead)
+	{
+		errno = ECANCELED;
+		return 0;
+	}
+
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fread Begin");
+	lRes = fileDriver->Fread(pBuffer, size, count, fileHandle);
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fread End");
+
+	// Renvoie 0 en cas d'erreur
+	if (lRes == -1)
+		lRes = 0;
+	return lRes;
+}
+
+boolean SystemFile::SeekPositionInFile(longint lPosition)
+{
+	boolean bRes;
+	ALString sTmp;
+
+	require(fileDriver != NULL);
+	require(fileHandle != NULL);
+	require(bIsOpenForRead);
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fseek Begin");
+
+	bRes = fileDriver->SeekPositionInFile(lPosition, fileHandle);
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fseek End");
+
+	return bRes;
+}
+
+longint SystemFile::Write(const void* pBuffer, size_t size, size_t count)
+{
+	longint lRes;
+	ALString sTmp;
+
+	require(fileDriver != NULL);
+	require(fileHandle != NULL);
+	require(bIsOpenForWrite);
+
+	// Mode de test : toujours en echec
+	if (bAlwaysErrorOnFlush)
+	{
+		errno = ECANCELED;
+		return 0;
+	}
+
+	// Mise a jour des informations sur la reserve
+	// Ce n'est pas la peine de remettre la reserve a zero si elle est negative,
+	// car toute nouvelle reserve ecrasera necessairement l'etat actuel
+	lReservedExtraSize -= count * size;
+	lRequestedExtraSize -= count * size;
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fwrite Begin");
+
+	lRes = fileDriver->Fwrite(pBuffer, size, count, fileHandle);
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fwrite End");
+
+	return lRes;
+}
+
+boolean SystemFile::Flush()
+{
+	boolean bRes;
+	ALString sTmp;
+
+	require(fileDriver != NULL);
+	require(fileHandle != NULL);
+	require(bIsOpenForWrite);
+
+	// Mode de test : toujours en echec
+	if (bAlwaysErrorOnFlush)
+	{
+		errno = ECANCELED;
+		return false;
+	}
+
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] flush Begin");
+	bRes = fileDriver->Flush(fileHandle);
+	if (FileService::LogIOStats())
+		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] flush End");
+	return bRes;
+}
+
+ALString SystemFile::GetLastErrorMessage()
+{
+	// Le driver peut etre null dans le cas ou on ne peut pas ouvrir le fichier
+	if (fileDriver == NULL)
+	{
+		return "file driver is missing";
+	}
+	return fileDriver->GetLastErrorMessage();
+}
+
 longint SystemFile::GetFileSize(const ALString& sFilePathName)
 {
 	longint lFileSize = 0;
 	SystemFileDriver* driver;
 	ALString sTmp;
+
 	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, NULL);
 	if (driver != NULL)
 	{
-		p_SetMachineLocale();
 		if (FileService::LogIOStats())
 			MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] GetFileSize Begin");
 
+		p_SetMachineLocale();
 		lFileSize = driver->GetFileSize(sFilePathName);
+		p_SetApplicationLocale();
+
 		if (FileService::LogIOStats())
 			MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] GetFileSize End");
-
-		p_SetApplicationLocale();
 	}
 	return lFileSize;
 }
 
-boolean SystemFile::Exist(const ALString& sFilePathName)
+boolean SystemFile::FileExists(const ALString& sFilePathName)
 {
 	boolean bOk = false;
 	SystemFileDriver* driver;
 	ALString sTmp;
+
 	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, NULL);
 	if (driver != NULL)
 	{
 		if (FileService::LogIOStats())
-			MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] Exist Begin");
+			MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] FileExists Begin");
 		p_SetMachineLocale();
-		// TODO le setMachineLocale est fait ici est mais il est aussi fait dans FileService
-		bOk = driver->Exist(sFilePathName);
+		bOk = driver->FileExists(sFilePathName);
 		p_SetApplicationLocale();
 		if (FileService::LogIOStats())
-			MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] Exist End");
+			MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] FileExists End");
+	}
+	return bOk;
+}
+
+boolean SystemFile::DirExists(const ALString& sFilePathName)
+{
+	boolean bOk = false;
+	SystemFileDriver* driver;
+	ALString sTmp;
+
+	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, NULL);
+	if (driver != NULL)
+	{
+		if (FileService::LogIOStats())
+			MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] DirExists Begin");
+		p_SetMachineLocale();
+		bOk = driver->DirExists(sFilePathName);
+		p_SetApplicationLocale();
+		if (FileService::LogIOStats())
+			MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] DirExists End");
 	}
 	return bOk;
 }
@@ -395,11 +489,13 @@ boolean SystemFile::CopyFileFromLocal(const ALString& sSourceFilePathName, const
 	// Copie
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] CopyFileFromLocal Begin");
+
 	p_SetMachineLocale();
 	bOk = driver->CopyFileFromLocal(sSourceFilePathName, sDestFilePathName);
-	if (not bOk)
-		Global::AddError("file", "", sTmp + "Unable to copy file to " + driver->GetScheme());
 	p_SetApplicationLocale();
+
+	if (not bOk)
+		Global::AddError("File", sSourceFilePathName, sTmp + "Unable to copy file to " + driver->GetScheme());
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] CopyFileFromLocal End");
 
@@ -420,14 +516,46 @@ boolean SystemFile::CopyFileToLocal(const ALString& sSourceFilePathName, const A
 	// Copie
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] CopyFileToLocal Begin");
+
 	p_SetMachineLocale();
 	bOk = driver->CopyFileToLocal(sSourceFilePathName, sDestFilePathName);
-	if (not bOk)
-		Global::AddError("file", "", sTmp + "Unable to copy file from " + driver->GetScheme());
 	p_SetApplicationLocale();
+
+	if (not bOk)
+		Global::AddError("File", sSourceFilePathName,
+				 sTmp + "Unable to copy " + sSourceFilePathName + " from " + driver->GetScheme());
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + driver->GetDriverName() + "] CopyFileToLocal End");
 	return bOk;
+}
+
+void SystemFile::SetAlwaysErrorOnOpen(boolean bValue)
+{
+	bAlwaysErrorOnOpen = bValue;
+}
+
+boolean SystemFile::GetAlwaysErrorOnOpen()
+{
+	return bAlwaysErrorOnOpen;
+}
+
+void SystemFile::SetAlwaysErrorOnRead(boolean bValue)
+{
+	bAlwaysErrorOnRead = bValue;
+}
+boolean SystemFile::GetAlwaysErrorOnRead()
+{
+	return bAlwaysErrorOnRead;
+}
+
+void SystemFile::SetAlwaysErrorOnFlush(boolean bValue)
+{
+	bAlwaysErrorOnFlush = bValue;
+}
+
+boolean SystemFile::GetAlwaysErrorOnFlush()
+{
+	return bAlwaysErrorOnFlush;
 }
 
 SystemFileDriver* SystemFile::LookupWriteDriver(const ALString& sFilePathName, const ALString& sFunctionLabel)
@@ -444,8 +572,9 @@ SystemFileDriver* SystemFile::LookupWriteDriver(const ALString& sFilePathName, c
 		if (driver->IsReadOnly())
 		{
 			Global::AddError("File", sFilePathName,
-					 sTmp + driver->GetScheme() + " is a read-only scheme and does not support '" +
-					     sFunctionLabel + "' function");
+					 sTmp + driver->GetScheme() +
+					     " is a read-only URI scheme and does not support '" + sFunctionLabel +
+					     "' function");
 			driver = NULL;
 		}
 	}
@@ -466,7 +595,7 @@ boolean SystemFile::ReserveExtraSize(longint lSize)
 
 	// Si la reserve est epuisee et qu'une nouvelle reserve est specifie et suffisante, on l'applique
 	// (la reserve, decrementee dans chaque fwrite, peut etre negative)
-	// On choisit un seul de 1 MB, car c'est appromativement le cas ou le temps d'acces (~10 ms) est
+	// On choisit un seuil de 1 MB, car c'est appromativement le cas ou le temps d'acces (~10 ms) est
 	// du meme ordre que le temps d'ecriture (pour 100 MB/s)
 	if (lReservedExtraSize <= 0 and lRequestedExtraSize >= lMB)
 	{
@@ -474,4 +603,18 @@ boolean SystemFile::ReserveExtraSize(longint lSize)
 		bOk = fileDriver->ReserveExtraSize(lReservedExtraSize, fileHandle);
 	}
 	return bOk;
+}
+
+int SystemFile::GetPreferredBufferSize() const
+{
+	longint lPreferredSize;
+
+	assert(bIsOpenForRead or bIsOpenForWrite);
+	assert(fileDriver != NULL);
+
+	// On borne par les min et max
+	lPreferredSize = fileDriver->GetSystemPreferredBufferSize();
+	lPreferredSize = min(lPreferredSize, (longint)SystemFile::nMaxPreferredBufferSize);
+	lPreferredSize = max(lPreferredSize, (longint)SystemFile::nMinPreferredBufferSize);
+	return (int)lPreferredSize;
 }

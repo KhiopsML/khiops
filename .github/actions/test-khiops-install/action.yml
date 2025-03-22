@@ -1,0 +1,212 @@
+---
+name: Test Khiops Installation
+description: Test khiops' scripts (khiops_env, khiops and khiops_coclustering)
+runs:
+  using: composite
+  steps:
+    - name: Test that the executables are installed (Linux/macOS)
+      # We compute the directory of khiops_env if khiops_env is in the PATH,
+      # otherwise we get this directory from the environment
+      # We call khiops_env a first time to test the calling of _khiopsgetprocnumber
+      # then we play with KHIOPS_PROC_NUMBER:
+      # - with KHIOPS_PROC_NUMBER=2, khiops should not use MPI, we check that KHIOPS_MPI_COMMAND is empty
+      # - with KHIOPS_PROC_NUMBER=8, khiops should use MPI, we check that KHIOPS_MPI_COMMAND is not empty and KHIOPS_MPI_ERROR is empty
+      #
+      # The env var OMPI_MCA_rmaps_base_oversubscribe is for openmpi it corresponds to
+      # the flag --oversubscribe (Nodes are allowed to be oversubscribed)
+      # KHIOPS_MPI_VERBOSE is set to true to detect errors from MPI
+      if: runner.os != 'Windows'
+      shell: bash
+      env:
+        OMPI_MCA_rmaps_base_oversubscribe: true
+        KHIOPS_MPI_VERBOSE: true
+      run: |
+        # Compute or get the khiops_env directory
+        if type -P khiops_env &> /dev/null
+        then
+          KHIOPS_ENV_DIR=$(dirname $(type -P khiops_env))
+        elif [[ -n "$CONDA_ENV_BIN_DIR" ]]
+        then
+          KHIOPS_ENV_DIR=$CONDA_ENV_BIN_DIR
+        else
+          echo "::error::This action expects CONDA_ENV_BIN_DIR to be defined"
+          false
+        fi
+        echo
+        echo --- khiops_env directory $KHIOPS_ENV_DIR
+        echo
+        echo --- Khiops environment with KHIOPS_PROC_NUMBER not set
+
+        # khiops_env is not in the path anymore, for Conda environments
+        $KHIOPS_ENV_DIR/khiops_env --env
+        echo
+        export KHIOPS_PROC_NUMBER=2
+        echo --- Khiops environment with KHIOPS_PROC_NUMBER=$KHIOPS_PROC_NUMBER
+        source $KHIOPS_ENV_DIR/khiops_env --env
+        if [ ! -z "$KHIOPS_MPI_COMMAND" ]; 
+        then 
+          echo "::error::MPI is used even though there are only 2 procs available"
+          false
+        fi
+        echo
+        export KHIOPS_PROC_NUMBER=8
+        echo --- Khiops environment with KHIOPS_PROC_NUMBER=$KHIOPS_PROC_NUMBER
+        source $KHIOPS_ENV_DIR/khiops_env --env
+        if [ ! -z "$KHIOPS_MPI_ERROR" ]; 
+        then 
+          echo "::error::Unexpected MPI error: $KHIOPS_MPI_ERROR"
+          false
+        fi
+        if [ -z "$KHIOPS_MPI_COMMAND" ]; 
+        then 
+          echo "::error::KHIOPS_MPI_COMMAND is not set"
+          false
+        fi
+        echo
+        echo --- Khiops status
+        $KHIOPS_ENV_DIR/khiops -s
+        echo
+        echo --- Khiops Coclustering status
+        $KHIOPS_ENV_DIR/khiops_coclustering -s
+    - name: Test that the executables are installed (windows)
+      if: runner.os == 'Windows'
+      shell: cmd /C call {0}
+      run: |
+        echo.
+        echo --- Khiops environment with KHIOPS_PROC_NUMBER not set
+        call khiops_env --env
+        echo.
+        set KHIOPS_PROC_NUMBER=2
+        echo --- Khiops environment with KHIOPS_PROC_NUMBER=%KHIOPS_PROC_NUMBER%
+        call khiops_env --env
+        call khiops_env
+        if not "%KHIOPS_MPI_COMMAND%". == "". (
+          echo "::error::MPI is used even though there are only 2 procs available"
+          exit 1
+        )
+        set KHIOPS_PROC_NUMBER=8
+        echo.
+        echo --- Khiops environment with KHIOPS_PROC_NUMBER=%KHIOPS_PROC_NUMBER%
+        call khiops_env --env
+        call khiops_env
+        if not "%KHIOPS_MPI_ERROR%".=="". (
+          echo "::error::Unexpected MPI error: %KHIOPS_MPI_ERROR%"
+          exit 1
+        )
+        if "%KHIOPS_MPI_COMMAND%". == "". (
+          echo "::error::KHIOPS_MPI_COMMAND is not set"
+          exit 1
+        )
+        echo.
+        echo --- Khiops status
+        khiops -s
+        echo.
+        echo --- Khiops Coclustering status
+        khiops_coclustering -s
+    - name: Check Khiops output [UNIXes]
+      # Test if the output of Khiops in the console is as expected (no mpi or java errors)
+      # We expect only one line in stdout+stderr when running 'khiops -v'
+      if: runner.os != 'Windows'
+      shell: bash
+      env:
+        KHIOPS_PROC_NUMBER: 4
+        OMPI_MCA_rmaps_base_oversubscribe: true
+        KHIOPS_MPI_VERBOSE: true
+      run: |
+        # Compute or get the khiops_env directory
+        if type -P khiops_env &> /dev/null
+        then
+          KHIOPS_ENV_DIR=$(dirname $(type -P khiops_env))
+        elif [[ -n "$CONDA_ENV_BIN_DIR" ]]
+        then
+          KHIOPS_ENV_DIR=$CONDA_ENV_BIN_DIR
+        else
+          echo "::error::This action expects CONDA_ENV_BIN_DIR to be defined"
+          false
+        fi
+        $KHIOPS_ENV_DIR/khiops -s
+        $KHIOPS_ENV_DIR/khiops -v &> output
+        LINE_NUMBER=$(wc -l < output)
+        if [ $LINE_NUMBER -gt 1 ] ;
+        then 
+          echo "::error::Unexpected output in khiops scripts"
+          false
+        fi
+    - name: Check Khiops output [Windows]
+      if: runner.os == 'Windows'
+      shell: cmd /C call {0}
+      env:
+        KHIOPS_PROC_NUMBER: 4
+      run: |
+        khiops -s
+        for /f %%i in (' khiops -v ^| find /c /v "" ') do set "LINE_NUMBER=%%i"
+        if not "%LINE_NUMBER%" == "1" (
+          echo "::error::Unexpected output in khiops scripts"
+          exit 1
+        )
+    - name: Check Khiops coclustering output [UNIXes]
+      if: runner.os != 'Windows'
+      shell: bash
+      env:
+        KHIOPS_PROC_NUMBER: 4
+        OMPI_MCA_rmaps_base_oversubscribe: true
+        KHIOPS_MPI_VERBOSE: true
+      run: |-
+        # Compute or get the khiops_env directory
+        if type -P khiops_env &> /dev/null
+        then
+          KHIOPS_ENV_DIR=$(dirname $(type -P khiops_env))
+        elif [[ -n "$CONDA_ENV_BIN_DIR" ]]
+        then
+          KHIOPS_ENV_DIR=$CONDA_ENV_BIN_DIR
+        else
+          echo "::error::This action expects CONDA_ENV_BIN_DIR to be defined"
+          false
+        fi
+        $KHIOPS_ENV_DIR/khiops_coclustering -s
+        $KHIOPS_ENV_DIR/khiops_coclustering -v &> output
+        LINE_NUMBER=$(wc -l < output)
+        if [ $LINE_NUMBER -gt 1 ] ;
+        then 
+          echo "::error::Unexpected output in khiops_coclustering scripts"
+          false
+        fi
+    - name: Check Khiops coclustering output [Windows]
+      if: runner.os == 'Windows'
+      shell: cmd /C call {0}
+      env:
+        KHIOPS_PROC_NUMBER: 4
+      run: |
+        khiops_coclustering -s
+        for /f %%i in (' khiops_coclustering -v ^| find /c /v "" ') do set "LINE_NUMBER=%%i"
+        if not "%LINE_NUMBER%" == "1" (
+          echo "::error::Unexpected output in khiops_coclustering scripts"
+          exit 1
+        )
+    - name: Check process number [UNIXes]
+      # Test if Khiops has the right number of logical processes
+      # (it's obvious but you never know)
+      if: runner.os != 'Windows'
+      shell: bash
+      env:
+        KHIOPS_PROC_NUMBER: 4
+        OMPI_MCA_rmaps_base_oversubscribe: true
+        KHIOPS_MPI_VERBOSE: true
+      run: |-
+        # Compute or get the khiops_env directory
+        if type -P khiops_env &> /dev/null
+        then
+          KHIOPS_ENV_DIR=$(dirname $(type -P khiops_env))
+        elif [[ -n "$CONDA_ENV_BIN_DIR" ]]
+        then
+          KHIOPS_ENV_DIR=$CONDA_ENV_BIN_DIR
+        else
+          echo "::error::This action expects CONDA_ENV_BIN_DIR to be defined"
+          false
+        fi
+        PROC_NUMBER=$($KHIOPS_ENV_DIR/khiops -s | grep "Logical processes" | awk '{print $NF}')
+        if [ "$PROC_NUMBER" != "$KHIOPS_PROC_NUMBER" ] ;
+        then
+          echo "::error::Wrong proc number ($PROC_NUMBER vs $KHIOPS_PROC_NUMBER)"
+          false
+        fi

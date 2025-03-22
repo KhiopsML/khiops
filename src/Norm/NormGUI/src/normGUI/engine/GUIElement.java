@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -21,8 +21,6 @@ import javax.swing.table.TableCellRenderer;
 /**
  * Definit un element d'interface. Un element d'interface est un composant d'une
  * unite (fiche ou liste)
- *
- * @author Marc Boulle
  */
 public abstract class GUIElement extends GUIData implements FocusListener
 {
@@ -33,15 +31,13 @@ public abstract class GUIElement extends GUIData implements FocusListener
         private boolean bTriggerRefresh;
 
         /**
-         * Renvoie le parametre de declenchement d'un refresh suite a toute
-         * modification de la donnee
+         * Renvoie le parametre de declenchement d'un refresh suite a toute modification
+         * de la donnee
          */
         public boolean getTriggerRefresh() { return bTriggerRefresh; }
 
         /**
          * Definit un element dans un tableau, son editeur et son rendu
-         *
-         * @author Marc Boulle
          */
         protected abstract class CellElement
           extends AbstractCellEditor implements TableCellEditor, TableCellRenderer, FocusListener
@@ -54,8 +50,8 @@ public abstract class GUIElement extends GUIData implements FocusListener
                 public JComponent editorComponent;
 
                 /**
-                 * Cree l'element du tableau, instancie l'editeur et positionne l'ecouteur
-                 * de focus
+                 * Cree l'element du tableau, instancie l'editeur et positionne l'ecouteur de
+                 * focus
                  */
                 public CellElement()
                 {
@@ -70,9 +66,9 @@ public abstract class GUIElement extends GUIData implements FocusListener
                 public void focusGained(FocusEvent e) {}
 
                 /**
-                 * Appelee lorsque le composant charge de l'edition perd le focus, l'edition
-                 * est stoppee, la methode setValueAt() de GUITableModel est appelee pour
-                 * sauver les valeurs
+                 * Appelee lorsque le composant charge de l'edition perd le focus, l'edition est
+                 * stoppee, la methode setValueAt() de GUITableModel est appelee pour sauver les
+                 * valeurs
                  */
                 public void focusLost(FocusEvent e)
                 {
@@ -146,9 +142,9 @@ public abstract class GUIElement extends GUIData implements FocusListener
                 // Cela evite des updateElement inutiles, qui de plus perturbent la
                 // synchronisation entre Java et C++
                 if (e.getOppositeComponent() != null && (!e.isTemporary() || !getParentUnit().getActionRunning())) {
-                        // On ne traite pas les pertes de focus d'une fenetre inactive avec action
-                        // en cours (crash sinon, pour cause potentielle de thread d'execution
-                        // different))
+                        // On ne traite pas les pertes de focus d'une fenetre inactive avec action en
+                        // cours
+                        // (crash sinon, pour cause potentielle de thread d'execution different))
                         if (!getParentUnit().getParentRoot().getActionRunning())
                                 updateElement();
                 }
@@ -192,8 +188,7 @@ public abstract class GUIElement extends GUIData implements FocusListener
                         } catch (Exception ex) {
                         }
 
-                        // On rafraichit les composants graphiques de l'unite avec les donnees
-                        // logiques
+                        // On rafraichit les composants graphiques de l'unite avec les donnees logiques
                         window.setIgnoreRepaint(true);
                         try {
                                 guiUnit.getParentRoot().graphicRefreshAll();
@@ -220,8 +215,8 @@ public abstract class GUIElement extends GUIData implements FocusListener
         {
                 return new CellElement() {
                         /**
-                         * Renvoie la valeur contenue dans l'editeur Attention : utilisation de
-                         * l'objet editorComponent (idem pour getTableCellEditorComponent())
+                         * Renvoie la valeur contenue dans l'editeur Attention : utilisation de l'objet
+                         * editorComponent (idem pour getTableCellEditorComponent())
                          *
                          * @return La valeur contenue dans l'editeur
                          */
@@ -231,9 +226,9 @@ public abstract class GUIElement extends GUIData implements FocusListener
                         }
 
                         /**
-                         * Renvoie le composant graphique d'edition du tableau, sa valeur doit
-                         * etre initialisee avec l'objet o Attention : utilisation de l'objet
-                         * editorComponent (idem pour getCellEditorValue())
+                         * Renvoie le composant graphique d'edition du tableau, sa valeur doit etre
+                         * initialisee avec l'objet o Attention : utilisation de l'objet editorComponent
+                         * (idem pour getCellEditorValue())
                          *
                          * @param table      La table qui contient l'editeur
                          * @param o          La valeur a editer
@@ -251,8 +246,8 @@ public abstract class GUIElement extends GUIData implements FocusListener
 
                         /**
                          * Renvoie le rendu du composant graphique du tableau, sa valeur doit etre
-                         * initialisee avec l'objet o Attention : Creation d'un nouvel objet
-                         * composant graphique obligatoire
+                         * initialisee avec l'objet o Attention : Creation d'un nouvel objet composant
+                         * graphique obligatoire
                          *
                          * @param table      La table qui contient la cellule
                          * @param o          La valeur de la cellule
@@ -285,8 +280,8 @@ public abstract class GUIElement extends GUIData implements FocusListener
         public JComponent getComponent() { return component; }
 
         /**
-         * Renvoie le composant d'affichage par defaut. Ce composant est utilise par
-         * les widgets par defaut
+         * Renvoie le composant d'affichage par defaut. Ce composant est utilise par les
+         * widgets par defaut
          *
          * @return Le composant d'affichage par defaut
          */
@@ -336,8 +331,8 @@ public abstract class GUIElement extends GUIData implements FocusListener
         protected abstract void setValueIn(GUIUnit unit, Object value);
 
         /**
-         * Modifie le parametre de declenchement d'un refresh suite a toute
-         * modification de la donnee
+         * Modifie le parametre de declenchement d'un refresh suite a toute modification
+         * de la donnee
          */
         public void setTriggerRefresh(boolean bValue) { bTriggerRefresh = bValue; }
 }

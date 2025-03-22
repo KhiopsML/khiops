@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -17,12 +17,13 @@ class FileTaskProgressionManager;
 /////////////////////////////////////////////////////////////////////////
 // Classe TaskProgressionManager
 // Definition d'une classe ancetre des managers.
-// Toutes les methodes, calquant les methodes de pilotage de la classe
+// Toutes les methodes, similaires aux methodes de pilotage de la classe
 // TaskProgression, sont virtuelles et doivent etre reimplementees
 // dans les sous-classes.
 class TaskProgressionManager : public Object
 {
 public:
+	// Methodes similaires a celles de TaskProgression
 	virtual void Start() = 0;
 	virtual boolean IsInterruptionRequested() = 0;
 	virtual void Stop() = 0;
@@ -81,6 +82,7 @@ protected:
 	int nCurrentLevel;
 	StringVector svMainLabels;
 	IntVector ivProgressions;
+	int nTaskIndex;
 
 	// Bufferisation des derniers messages
 	Timer tLastProgressionMessage;
@@ -90,4 +92,9 @@ protected:
 	ALString sLastProgressionMessage;
 	static int nMaxCompletedTaskMessageNumber;
 	static double dMinInterMessageSeconds;
+	ALString sStartTimeStamp;
+
+	// Sortie dans la console
+	boolean bPrintProgressionInConsole;
+	const ALString sLinePrefix = "Khiops.progression";
 };

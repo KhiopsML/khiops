@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -52,15 +52,10 @@ void CCLearningProblemToolView::SelectInputCoclustering()
 	UIFileChooserCard openCard;
 	ALString sCoclusteringReportFileName;
 
-	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
-
 	// Ouverture du FileChooser
-	sCoclusteringReportFileName =
-	    openCard.ChooseFile("Select input coclustering", "Open", "FileChooser", "Coclustering\nkhc\nkhcj\njson",
-				"InputCoclusteringFileName", "Input coclustering file",
-				GetLearningProblem()->GetAnalysisResults()->GetInputCoclusteringFileName());
+	sCoclusteringReportFileName = openCard.ChooseFile(
+	    "Select input coclustering", "Open", "FileChooser", "Coclustering\nkhcj", "InputCoclusteringFileName",
+	    "Input coclustering file", GetLearningProblem()->GetAnalysisResults()->GetInputCoclusteringFileName());
 
 	// Parametrage des specifications de coclustering a partir du rapport de coclustering
 	if (sCoclusteringReportFileName != "")

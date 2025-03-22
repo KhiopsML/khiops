@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -6,23 +6,22 @@
 
 #include "Timer.h"
 #include "Standard.h"
-#include "Ermgt.h"
 #include "ALString.h"
 #include "Object.h"
 #include "SortedList.h"
-#include "LMLicenseService.h"
 #include "UITestClassSpecArrayView.h"
 #include "UITest.h"
-#include "MemoryManager.h"
-#include "MemoryStatsManager.h"
 #include "SystemResource.h"
 #include "CharVector.h"
 #include "InputBufferedFile.h"
 #include "OutputBufferedFile.h"
-#include "Regex.h"
+#include "Regexp.h"
 #include "DiversTests.h"
 #include "UITestObject.h"
 #include "UITestObjectView.h"
+#include "MemoryTest.h"
+#include "JSONObject.h"
+#include "JSONTokenizer.h"
 
 // Classe de test des composants de base
 class TestBaseComponents : public UICard
@@ -46,6 +45,8 @@ public:
 	void SortedListTest();
 	void ObjectDictionaryTest();
 	void NumericKeyDictionaryTest();
+	void LongintDictionaryTest();
+	void LongintNumericKeyDictionaryTest();
 	void DoubleVectorTest();
 	void IntVectorTest();
 	void LongintVectorTest();

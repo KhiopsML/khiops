@@ -1,0 +1,9 @@
+Database ./OccupationEducationFrequency.txt : Read records: 209
+Database ./OccupationEducationFrequency.txt : Total frequency: 48,842
+  0:00:00	Write intermediate report Coclustering(1).khcj	Level: 0.008869	Size: 3*4	Granularity: 3
+  0:00:00	Write intermediate report Coclustering(2).khcj	Level: 0.0165635	Size: 6*4	Granularity: 4
+  0:00:00	Write intermediate report Coclustering(3).khcj	Level: 0.029554	Size: 8*8	Granularity: 5
+  0:00:00	Write intermediate report Coclustering(4).khcj	Level: 0.0396542	Size: 9*9
+Write coclustering report ./results/Coclustering.khcj
+Coclustering analysis time: 0:00:00.05
+

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -71,9 +71,25 @@ public:
 	longint GetEstimatedObjectNumber() override;
 	longint ComputeOpenNecessaryMemory(boolean bRead) override;
 	longint ComputeNecessaryMemoryForFullExternalRead(const KWClass* kwcLogicalClass) override;
-	longint ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass) override;
+	longint ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass, longint lInputFileSize) override;
 	double GetReadPercentage() override;
 	longint GetUsedMemory() const override;
+
+	// Variante de l'estimation du nombre d'objets dans la base, en memoire et sans acces disque,
+	// en analysant la structure du dictionnaire avec dimensionnement heuristique
+	longint GetInMemoryEstimatedObjectNumber(longint lInputFileSize) const;
+
+	// Estimation heuristique de la place disque par record d'un fichier a lire en se basant sur les variable native
+	// du dictionnaire
+	longint GetEstimatedUsedInputDiskSpacePerObject() const;
+
+	// Estimation heuristique de la memoire utilise par KWObject en se basant sur les variables utilisee du
+	// dictionnaire, natives ou calculees
+	longint GetEstimatedUsedMemoryPerObject() const;
+
+	// Estimation heuristique de la place disque par record d'un fichier a ecrire en se basant sur les variables
+	// utilisees du dictionnaire logique
+	longint GetEstimatedUsedOutputDiskSpacePerObject(const KWClass* kwcLogicalClass) const;
 
 	// Lecture des champs de la ligne d'entete
 	virtual boolean ReadHeaderLineFields(StringVector* svFirstLineFields);
@@ -89,7 +105,6 @@ public:
 
 	// Taille du buffer lors de la prochaine ouverture
 	// Initialisement a la valeur par defaut
-	// N'a aucun effet dans la classe fille PLDataTableDriverTextFileParallel
 	void SetBufferSize(int nSize);
 	int GetBufferSize() const;
 
@@ -100,12 +115,23 @@ public:
 	// lecture
 	static int ComputeBufferNecessaryMemory(boolean bRead, int nBufferSize, longint lFileSize);
 
+	// Mode verbeux pour la detection des champs trop long (defaut: true)
+	static void SetOverlengthyFieldsVerboseMode(boolean bValue);
+	static boolean GetOverlengthyFieldsVerboseMode();
+
+	// Redefinition du parametrage du mode silencieux, pour le synchroniser avec celui du buffer
+	void SetSilentMode(boolean bValue) override;
+
 	/////////////////////////////////////////////////
 	///// Implementation
 protected:
-	// Implementation specifique du saut de ligne dans le cas d'une classe racine
+	// Ecriture d'un bloc sparse au format dense
+	void WriteContinuousBlockUsingDenseFormat(KWAttributeBlock* attributeBlock, KWContinuousValueBlock* valueBlock);
+	void WriteSymbolBlockUsingDenseFormat(KWAttributeBlock* attributeBlock, KWSymbolValueBlock* valueBlock);
+
+	// Implementation specifique du saut de ligne dans le cas d'une classe principale
 	// En effet, dans ce cas, on analyse partiellement la ligne pour en extraire la derniere cle
-	void SkipRootRecord();
+	void SkipMainRecord();
 
 	// Remplissage du buffer si necessaire (fin de buffer et pas fin de fichier)
 	virtual boolean UpdateInputBuffer();
@@ -113,10 +139,10 @@ protected:
 	// Remplissage du buffer a partir de la position courante dans le fichier jusqu'a
 	// remplir completement le buffer avec des lignes entieres.
 	// En cas de lignes trop longues, le remplissage du buffer continue jusqu'a obtenir
-	// des lignes entieres ou jusqu'a la fin du fichier
-	// Si une ligne ne tient pas dans la taille max elle n'est pas prise en compte, le
-	// buffer commence au debut de la suivante
-	virtual boolean FillInputBufferWithFullLines();
+	// des lignes entieres ou jusqu'a la position de fin max en parametre
+	// Dans le cas d'une ligne trop longue en fin de buffer, on emet un warning, et on
+	// continue a lire jusqu'a ce que le buffer soit vide ou contienne le debut de la ligne suivante
+	virtual boolean FillInputBufferWithFullLines(longint lBeginPos, longint lMaxEndPos);
 
 	// Verification du buffer pour tester s'il y a des caracteres null
 	// Si echec, renvoie, false, emet des messages d'erreur, et met le buffer a NULL
@@ -125,7 +151,7 @@ protected:
 	// Calcul des indexes des data items (attributs ou blocs d'attributs) de la classe logique associee
 	// a chaque champ du fichier en comparant la classe logique comportant les champs necessaires
 	// et une classe representant le header du fichier a analyser (optionnelle si pas de ligne d'entete)
-	// On calcule egalement les index des attributs de la cle dans le cas d'un classe racine
+	// On calcule egalement les index des attributs de la cle dans le cas d'un classe principale
 	virtual boolean ComputeDataItemLoadIndexes(const KWClass* kwcLogicalClass, const KWClass* kwcHeaderLineClass);
 
 	// Ouverture du fichier en lecture ou ecriture: retourne true si OK
@@ -140,9 +166,6 @@ protected:
 	// coherente des flags internes de gestion du fichier
 	virtual void ResetDatabaseFile();
 
-	// Memorisation de l'etat de suivi des taches
-	PeriodicTest periodicTestInterruption;
-
 	// Utilisation d'une ligne d'en-tete
 	boolean bHeaderLineUsed;
 
@@ -153,14 +176,14 @@ protected:
 	// Index invalide si champ du fichier inutilise ou inexistant dans la classe
 	KWLoadIndexVector livDataItemLoadIndexes;
 
-	// Index des champs de la cle dans le cas d'une classe racine
+	// Index des champs de la cle dans le cas d'une classe principale d'un schema multi-table
 	// A chaque index de champ de fichier, on associe soit -1 si le champ ne fait pas partie de la cle,
 	// soit l'index du champs de la cle
 	// On a en effet besoin de memoriser les champs de la cle dans ce cas, que ce soit lors des
 	// lecture par Read (que l'enregistrement soit errone ou non) ou lors des sauts de ligne
 	// C'est necessaire pour faire le controle des enregistrements dupliques, et de ne garder
 	// que le premier (si valide), et ignorant tous les suivants consideres comme dupliques
-	IntVector ivRootKeyIndexes;
+	IntVector ivMainKeyIndexes;
 
 	// Fichier utilise pour la gestion de la base
 	InputBufferedFile* inputBuffer;
@@ -168,10 +191,17 @@ protected:
 	boolean bWriteMode;
 
 	// Taille des buffers (taille allouee a la prochaine ouverture)
-	int nBufferedFileSize;
+	int nBufferSize;
 
-	// Taille par defaut des buffers
-	static const int nDefaultBufferSize = InputBufferedFile::nDefaultBufferSize;
+	// Mode verbeux pour la detection des champs trop long
+	static boolean bOverlengthyFieldsVerboseMode;
+
+	// Constantes pour l'estimation heuristique conservatrice de la taille des champs sur fichier
+	static const int nMinRecordSize = 5;
+	static const int nDenseValueSize = 2;
+	static const int nSparseValueSize = 7;
+	static const int nTextValueSize = 200;
+	static const int nKeyFieldSize = 5;
 };
 
 ////////////////////////////////////////
@@ -216,12 +246,12 @@ inline boolean KWDataTableDriverTextFile::IsEnd() const
 inline boolean KWDataTableDriverTextFile::UpdateInputBuffer()
 {
 	if (inputBuffer->IsBufferEnd() and not inputBuffer->IsFileEnd())
-		return FillInputBufferWithFullLines();
+		return FillInputBufferWithFullLines(inputBuffer->GetPositionInFile(), inputBuffer->GetFileSize());
 	else
 		return true;
 }
 
 inline int KWDataTableDriverTextFile::GetDefaultBufferSize()
 {
-	return nDefaultBufferSize;
+	return InputBufferedFile::nDefaultBufferSize;
 }

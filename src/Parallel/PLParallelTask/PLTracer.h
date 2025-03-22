@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -8,6 +8,9 @@
 #include "Vector.h"
 #include "OutputBufferedFile.h"
 #include "PLSharedObject.h"
+
+class PLTracer;
+class PLShared_Tracer; // serialisatuion de la configuration
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe PLTracer
@@ -22,6 +25,9 @@ public:
 	// Copie
 	void CopyFrom(const PLTracer*);
 
+	// Duplication
+	PLTracer* Clone() const;
+
 	// Affiche les messages dans la console des qu'ils sont ajoutes
 	// Sinon ils sont stockes (par defaut false)
 	void SetSynchronousMode(boolean bValue);
@@ -29,17 +35,17 @@ public:
 
 	// Ajoute un timestamp a chaque message (par defaut true)
 	void SetTimeDecorationMode(boolean bValue);
-	boolean GetTimeDecorationMode();
+	boolean GetTimeDecorationMode() const;
 
 	// Message abrege ou normal
 	void SetShortDescription(boolean bShort);
-	boolean GetShortDescription();
+	boolean GetShortDescription() const;
 
 	// Mode passif ou actif
 	//	si le mode est passif, le tracer ne fait strictement rien
 	//	actif par defaut
 	void SetActiveMode(boolean bValue);
-	boolean GetActiveMode();
+	boolean GetActiveMode() const;
 
 	// Ajoute un message simple
 	void AddTrace(const ALString&);
@@ -62,7 +68,7 @@ public:
 	// Fichier dans lequel les traces seront ecrites (concatenation des differentes taches)
 	// Le fichier est detruit si deja existant
 	void SetFileName(const ALString& sLogFileName);
-	const ALString& GetFileName();
+	const ALString& GetFileName() const;
 
 	////////////////////////////////////////////////////////
 	//// Implementation
@@ -91,6 +97,32 @@ protected:
 
 	// Abrege ou long
 	boolean bShortDescription;
+
+	friend class PLShared_Tracer;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Classe PLShared_Tracer
+// Serialisation des parametre d'un tracer
+class PLShared_Tracer : public PLSharedObject
+{
+public:
+	// Constructeur
+	PLShared_Tracer();
+	~PLShared_Tracer();
+
+	// Acces au PLTracer
+	void SetTracer(PLTracer* tracer);
+	PLTracer* GetTracer();
+
+	// Reimplementation des methodes virtuelles
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
+
+	//////////////////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	Object* Create() const override;
 };
 
 ////////////////////////////////////////////////////////////
@@ -104,7 +136,6 @@ inline void PLTracer::AddTraceAsString(const ALString& sTrace)
 		return;
 
 	sDecoratedTrace = Decoration(sTrace);
-
 	if (bSynchronous)
 	{
 		cout << sDecoratedTrace << endl;
@@ -120,17 +151,17 @@ inline boolean PLTracer::GetSynchronousMode() const
 	return bSynchronous;
 }
 
-inline boolean PLTracer::GetActiveMode()
+inline boolean PLTracer::GetActiveMode() const
 {
 	return bActive;
 }
 
-inline const ALString& PLTracer::GetFileName()
+inline const ALString& PLTracer::GetFileName() const
 {
 	return sFileName;
 }
 
-inline boolean PLTracer::GetTimeDecorationMode()
+inline boolean PLTracer::GetTimeDecorationMode() const
 {
 	return bTimeDecoration;
 }
@@ -154,7 +185,7 @@ inline void PLTracer::SetShortDescription(boolean bShort)
 	bShortDescription = bShort;
 }
 
-inline boolean PLTracer::GetShortDescription()
+inline boolean PLTracer::GetShortDescription() const
 {
 	return bShortDescription;
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -60,7 +60,7 @@ void KWPredictorView::RegisterPredictorView(KWPredictorView* predictorView)
 {
 	require(predictorView != NULL);
 	require(predictorView->GetName() != "");
-	require(KWClass::CheckName(predictorView->GetName(), predictorView));
+	require(KWClass::CheckName(predictorView->GetName(), KWClass::None, predictorView));
 	require(odPredictorViews == NULL or odPredictorViews->Lookup(predictorView->GetName()) == NULL);
 
 	// Creation si necessaire du dictionnaire de predictorViews

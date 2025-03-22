@@ -1,25 +1,29 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-04-06 18:11:58
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "KWAnalysisResults.h"
 
 KWAnalysisResults::KWAnalysisResults()
 {
+	bExportAsXls = false;
+
 	// ## Custom constructor
 
+	trainDatabase = NULL;
+	sReportFileName = "AnalysisResults.khj";
 	sPreparationFileName = "PreparationReport.xls";
+	sTextPreparationFileName = "TextPreparationReport.xls";
+	sTreePreparationFileName = "TreePreparationReport.xls";
 	sPreparation2DFileName = "Preparation2DReport.xls";
-	sModelingDictionaryFileName = "Modeling.kdic";
+	sModelingDictionaryFileName = "model.kdic";
 	sModelingFileName = "ModelingReport.xls";
 	sTrainEvaluationFileName = "TrainEvaluationReport.xls";
 	sTestEvaluationFileName = "TestEvaluationReport.xls";
-	sJSONFileName = "AllReports.khj";
 
 	// ##
 }
@@ -35,17 +39,17 @@ void KWAnalysisResults::CopyFrom(const KWAnalysisResults* aSource)
 {
 	require(aSource != NULL);
 
-	sResultFilesDirectory = aSource->sResultFilesDirectory;
-	sResultFilesPrefix = aSource->sResultFilesPrefix;
+	sReportFileName = aSource->sReportFileName;
 	sShortDescription = aSource->sShortDescription;
+	bExportAsXls = aSource->bExportAsXls;
 	sPreparationFileName = aSource->sPreparationFileName;
+	sTextPreparationFileName = aSource->sTextPreparationFileName;
+	sTreePreparationFileName = aSource->sTreePreparationFileName;
 	sPreparation2DFileName = aSource->sPreparation2DFileName;
 	sModelingDictionaryFileName = aSource->sModelingDictionaryFileName;
 	sModelingFileName = aSource->sModelingFileName;
 	sTrainEvaluationFileName = aSource->sTrainEvaluationFileName;
 	sTestEvaluationFileName = aSource->sTestEvaluationFileName;
-	sVisualizationFileName = aSource->sVisualizationFileName;
-	sJSONFileName = aSource->sJSONFileName;
 
 	// ## Custom copyfrom
 
@@ -67,17 +71,9 @@ KWAnalysisResults* KWAnalysisResults::Clone() const
 
 void KWAnalysisResults::Write(ostream& ost) const
 {
-	ost << "Result files directory\t" << GetResultFilesDirectory() << "\n";
-	ost << "Result files prefix\t" << GetResultFilesPrefix() << "\n";
+	ost << "Analysis report\t" << GetReportFileName() << "\n";
 	ost << "Short description\t" << GetShortDescription() << "\n";
-	ost << "Preparation report\t" << GetPreparationFileName() << "\n";
-	ost << "2D preparation report\t" << GetPreparation2DFileName() << "\n";
-	ost << "Modeling dictionary file\t" << GetModelingDictionaryFileName() << "\n";
-	ost << "Modeling report\t" << GetModelingFileName() << "\n";
-	ost << "Train evaluation report\t" << GetTrainEvaluationFileName() << "\n";
-	ost << "Test evaluation report\t" << GetTestEvaluationFileName() << "\n";
-	ost << "Visualization report\t" << GetVisualizationFileName() << "\n";
-	ost << "JSON report\t" << GetJSONFileName() << "\n";
+	ost << "Export as xls\t" << BooleanToString(GetExportAsXls()) << "\n";
 }
 
 const ALString KWAnalysisResults::GetClassLabel() const
@@ -92,6 +88,48 @@ const ALString KWAnalysisResults::GetObjectLabel() const
 	ALString sLabel;
 
 	return sLabel;
+}
+
+boolean KWAnalysisResults::CheckResultDirectory() const
+{
+	// Verification du repertoire
+	return GetResultFilePathBuilder()->CheckResultDirectory("Train model");
+}
+
+const ALString KWAnalysisResults::BuildOutputFilePathName(const ALString& sOutputFileName) const
+{
+	// Construction du nom du fichier en sortie
+	if (sOutputFileName == GetReportFileName())
+		return GetResultFilePathBuilder()->BuildResultFilePathName();
+	else
+	{
+		assert(
+		    sOutputFileName == GetPreparationFileName() or sOutputFileName == GetTextPreparationFileName() or
+		    sOutputFileName == GetTreePreparationFileName() or sOutputFileName == GetPreparation2DFileName() or
+		    sOutputFileName == GetModelingDictionaryFileName() or sOutputFileName == GetModelingFileName() or
+		    sOutputFileName == GetTrainEvaluationFileName() or sOutputFileName == GetTestEvaluationFileName());
+		return GetResultFilePathBuilder()->BuildOtherResultFilePathName(sOutputFileName);
+	}
+}
+
+void KWAnalysisResults::SetTrainDatabase(const KWDatabase* database)
+{
+	trainDatabase = database;
+}
+
+const KWDatabase* KWAnalysisResults::GetTrainDatabase() const
+{
+	return trainDatabase;
+}
+
+const KWResultFilePathBuilder* KWAnalysisResults::GetResultFilePathBuilder() const
+{
+	require(GetTrainDatabase() != NULL);
+
+	resultFilePathBuilder.SetInputFilePathName(GetTrainDatabase()->GetDatabaseName());
+	resultFilePathBuilder.SetOutputFilePathName(GetReportFileName());
+	resultFilePathBuilder.SetFileSuffix("khj");
+	return &resultFilePathBuilder;
 }
 
 // ##

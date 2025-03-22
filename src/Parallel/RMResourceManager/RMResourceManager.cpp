@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -50,7 +50,8 @@ longint RMResourceManager::GetHeapLogicalMemory()
 
 longint RMResourceManager::GetSystemMemoryReserve()
 {
-	return RMStandardResourceDriver::PhysicalToLogical(MEMORY, UIObject::GetUserInterfaceMemoryReserve() +
+	return SystemFileDriverCreator::GetMaxPreferredBufferSize() +
+	       RMStandardResourceDriver::PhysicalToLogical(MEMORY, UIObject::GetUserInterfaceMemoryReserve() +
 								       MemGetPhysicalMemoryReserve() +
 								       MemGetAllocatorReserve());
 }
@@ -149,12 +150,6 @@ void RMResourceRequirement::CopyFrom(const RMResourceRequirement* requirement)
 	}
 }
 
-RMPhysicalResource* RMResourceRequirement::GetResource(int nResourceIndex) const
-{
-	require(nResourceIndex < UNKNOWN);
-	return cast(RMPhysicalResource*, oaResources.GetAt(nResourceIndex));
-}
-
 RMPhysicalResource* RMResourceRequirement::GetMemory() const
 {
 	return GetResource(MEMORY);
@@ -178,10 +173,16 @@ boolean RMResourceRequirement::Check() const
 
 void RMResourceRequirement::Write(ostream& ost) const
 {
-	ost << "\t"
-	    << "Mem " << *oaResources.GetAt(MEMORY) << endl
-	    << "\t"
-	    << "Disk " << *oaResources.GetAt(DISK) << endl;
+	ost << "\t" << ResourceToString(MEMORY) << " " << *oaResources.GetAt(MEMORY) << endl
+	    << "\t" << ResourceToString(DISK) << " " << *oaResources.GetAt(DISK) << endl;
+}
+void RMResourceRequirement::WriteDetails(ostream& ost) const
+{
+	ost << "\t" << ResourceToString(MEMORY) << " ";
+	cast(RMPhysicalResource*, oaResources.GetAt(MEMORY))->WriteDetails(ost);
+	ost << endl << "\t" << ResourceToString(DISK) << " ";
+	cast(RMPhysicalResource*, oaResources.GetAt(DISK))->WriteDetails(ost);
+	ost << endl;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -190,7 +191,7 @@ void RMResourceRequirement::Write(ostream& ost) const
 RMPhysicalResource::RMPhysicalResource()
 {
 	lMin = 0;
-	lMax = LLONG_MAX;
+	lMax = 0;
 }
 
 RMPhysicalResource::~RMPhysicalResource() {}
@@ -215,19 +216,9 @@ void RMPhysicalResource::SetMax(longint lValue)
 	lMax = lValue;
 }
 
-longint RMPhysicalResource::GetMax() const
-{
-	return lMax;
-}
-
 void RMPhysicalResource::SetMin(longint lValue)
 {
 	lMin = lValue;
-}
-
-longint RMPhysicalResource::GetMin() const
-{
-	return lMin;
 }
 
 void RMPhysicalResource::UpgradeMin(longint lDeltaMin)
@@ -261,6 +252,15 @@ void RMPhysicalResource::Write(ostream& ost) const
 		ost << "INF";
 	else
 		ost << LongintToHumanReadableString(lMax);
+}
+
+void RMPhysicalResource::WriteDetails(ostream& ost) const
+{
+	ost << "min : " << lMin << " max : ";
+	if (lMax == LLONG_MAX)
+		ost << "INF";
+	else
+		ost << lMax;
 }
 
 boolean RMPhysicalResource::Check() const

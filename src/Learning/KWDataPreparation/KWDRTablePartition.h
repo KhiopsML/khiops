@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -58,8 +58,8 @@ public:
 	//      dimension de la grille
 	//      - Structure(IntervalBounds) pour les discretisations
 	//      - Structure(ValueGroups) pour les groupements de valeur
-	//      - Structure(ContinuousValueSet) pour les ensembles de valeurs Continuous
-	//      - Structure(SymbolValueSet) pour les ensembles de valeurs Symbol
+	//      - Structure(ValueSet) pour les ensembles de valeurs Continuous
+	//      - Structure(ValueSetC) pour les ensembles de valeurs Symbol
 	//
 	// Exemple:
 	//    MyPartition = Partition(IntervalBounds(0.8, 1.45, 1.75),
@@ -172,7 +172,7 @@ public:
 	// Redefinition de methodes virtuelles
 	void Compile(KWClass* kwcOwnerClass) override;
 	boolean CheckOperandsFamily(const KWDerivationRule* ruleFamily) const override;
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 	boolean IsSecondaryScopeOperand(int nOperandIndex) const override;
 	boolean CheckBlockAttributes(const KWClass* kwcOwnerClass,
 				     const KWAttributeBlock* attributeBlock) const override;

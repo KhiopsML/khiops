@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -52,6 +52,13 @@ public:
 	// des Continuous indiscernables
 	static Continuous DoubleToContinuous(double dValue);
 
+	// Conversion vers un int
+	// Renvoie true si la conversion est un succes
+	static boolean ContinuousToInt(Continuous cValue, int& nValue);
+
+	// Test si une valeur est entiere
+	static boolean IsInt(Continuous cValue);
+
 	// Test si une chaine contient un Continuous (avec tolerance sur les underflow et overflow)
 	static boolean IsStringContinuous(const char* const sValue);
 
@@ -70,7 +77,7 @@ public:
 	// Test de validite du numero d'erreur
 	static boolean CheckError(int nValue);
 
-	// Libelle d'erreur (en anglais) associe a un diagnostique de conversion
+	// Libelle d'erreur (en anglais) associe a un diagnostic de conversion
 	static const ALString ErrorLabel(int nError);
 
 	// Methode utilitaire pour tranformer le separateur decimal ',' en '.'
@@ -111,6 +118,10 @@ public:
 
 	// Comparaison
 	static int Compare(Continuous cValue1, Continuous cValue2);
+
+	// Comparaison de deux valeurs de type indicateur, en principe entre 0 et 1
+	// Permet d'avoir une resultat de comparaison robuste, selon la precision des Continuous
+	static int CompareIndicatorValue(double dValue1, double dValue2);
 
 	// Test des fonctionnalites
 	static void Test();
@@ -360,8 +371,8 @@ public:
 	int GetSize() const;
 
 	// Reimplementation des methodes virtuelles
-	void SerializeObject(PLSerializer*, const Object*) const override;
-	void DeserializeObject(PLSerializer*, Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	// Methode de test
 	static void Test();
@@ -384,6 +395,27 @@ inline Continuous KWContinuous::StringToContinuous(const char* const sValue)
 inline boolean KWContinuous::CheckError(int nValue)
 {
 	return (NoError <= nValue and nValue <= ErrorBadEndString);
+}
+
+inline boolean KWContinuous::ContinuousToInt(Continuous cValue, int& nValue)
+{
+	// Recherche de l'entier le plus proche
+	nValue = int(floor(cValue + 0.5));
+
+	// Ok si presque egale, avec tolerance par rapport au nombre max de digits GetDigitNumber
+	if (fabs(cValue - nValue) < 1e-8)
+		return true;
+	else
+	{
+		nValue = 0;
+		return false;
+	}
+}
+
+inline boolean KWContinuous::IsInt(Continuous cValue)
+{
+	int nValue;
+	return ContinuousToInt(cValue, nValue);
 }
 
 inline boolean KWContinuous::IsStringContinuous(const char* const sValue)
@@ -505,6 +537,12 @@ inline int KWContinuous::GetDigitNumber()
 inline int KWContinuous::Compare(Continuous cValue1, Continuous cValue2)
 {
 	return (cValue1 == cValue2 ? 0 : (cValue1 > cValue2 ? 1 : -1));
+}
+
+inline int KWContinuous::CompareIndicatorValue(double dValue1, double dValue2)
+{
+	// On ajoute 1 pour avoir une precision de mantisse limitee de facon absolue par rapprt au 0
+	return Compare(DoubleToContinuous(1 + dValue1), DoubleToContinuous(1 + dValue2));
 }
 
 // Classe ContinuousObject

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -28,7 +28,7 @@ public:
 	//   KWType::Symbol: classification
 	//   KWType::Continuous: regression
 	//   KWType::None: non supervise
-	boolean IsTargetTypeManaged(int nType) const;
+	boolean IsTargetTypeManaged(int nType) const override;
 
 	// Creation pour renvoyer une instance du meme type dynamique
 	// Doit etre reimplementer dans les sous-classes
@@ -37,20 +37,20 @@ public:
 	//      {
 	//          return new KWSpecificPredictor;
 	//      }
-	KWPredictor* Create() const;
+	KWPredictor* Create() const override;
 
 	// Nom du predicteur
 	// Doit etre reimplementer dans les sous-classes
-	const ALString GetName() const;
+	const ALString GetName() const override;
 
 	// Prefixe du predicteur, utilisable pour le nommage de la classe en deploiement (par defaut: "P_")
-	const ALString GetPrefix() const;
+	const ALString GetPrefix() const override;
 
 	///////////////////////////////////////////////////////
 	//// Implementation
 protected:
 	// Redefinition de la methode d'apprentissage
-	boolean InternalTrain();
+	boolean InternalTrain() override;
 
 	// Construction d'un predicteur bayesien naif a partir d'un tableau d'attributs prepares
 	// La methode filtre les attributs inutiles (partition source singleton ou poids nul)

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -16,7 +16,7 @@ class KWSortedKeySample;
 // Extraction d'une liste ordonnee de K cles et de leur position a partir d'un fichier deja trie
 //
 //	En entree : principalement le fichier, l'index des champs de la cle a extraire,
-//              et le nombre de cle a extraire
+//              et le taux d'echantillonnage des cles a extraire
 //	En sortie : un tableau ordonne de cles et de leur positions
 class KWKeyPositionSampleExtractorTask : public PLParallelTask
 {
@@ -65,12 +65,19 @@ public:
 	/////////////////////////////////////////////////////
 	// Methode principale
 
-	// Extraction de l'ensemble des cles avec leur position (KWKeyPosition)
+	// Extraction de l'ensemble des cles avec leur position (KWKeyPosition), en garantissant
+	// l'unicite des cle extraites par supressions des doublons potentiel de l'echantillon
 	// Le resultat est stocke dans le tableau passe en parametre et appartient a l'appelant
+	// Il peut y avoir des erreurs detectees si par exemple les cles ne sont pas ordonnees
+	// parmi les cles echantillonnees
+	// En cas d'erreur, on renvoie un tableau vide
 	boolean ExtractSample(ObjectArray* oaKeyPositions);
 
 	///////////////////////////////////////////////////////////////
 	// Services divers
+
+	// Affichage d'un tableau de positions de cles
+	void WriteKeyPositions(const ObjectArray* oaKeyPositions, ostream& ost) const;
 
 	// Libelles utilisateurs
 	const ALString GetObjectLabel() const override;
@@ -120,6 +127,11 @@ protected:
 	longint lKeyUsedMemory;
 	longint lInputFileSize;
 
+	// Definition des exigences pour la taille du buffer
+	int nReadSizeMin;
+	int nReadSizeMax;
+	int nReadBufferSize;
+
 	// Table d'echantillons de cle (ObjectArray de KWKeyPosition)
 	// Memorisation des resultats d'analyse des esclaves
 	ObjectArray oaAllKeyPositionSamples;
@@ -167,6 +179,9 @@ protected:
 
 	// Extracteur de cle
 	KWKeyExtractor keyExtractor;
+
+	// Fichier de travail pour l'esclave
+	InputBufferedFile inputFile;
 };
 
 int KWSortedKeyPositionArrayCompare(const void* elem1, const void* elem2);

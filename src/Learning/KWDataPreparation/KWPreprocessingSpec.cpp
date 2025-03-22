@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -10,6 +10,8 @@
 KWPreprocessingSpec::KWPreprocessingSpec()
 {
 	bTargetGrouped = false;
+	nMaxPartNumber = 0;
+	nMinPartFrequency = 0;
 }
 
 KWPreprocessingSpec::~KWPreprocessingSpec() {}
@@ -22,6 +24,66 @@ boolean KWPreprocessingSpec::GetTargetGrouped() const
 void KWPreprocessingSpec::SetTargetGrouped(boolean bValue)
 {
 	bTargetGrouped = bValue;
+}
+
+int KWPreprocessingSpec::GetMaxPartNumber() const
+{
+	require(discretizerSpec.GetMaxIntervalNumber() == nMaxPartNumber);
+	require(grouperSpec.GetMaxGroupNumber() == nMaxPartNumber);
+	require(dataGridOptimizerParameters.GetMaxPartNumber() == nMaxPartNumber);
+
+	return nMaxPartNumber;
+}
+
+void KWPreprocessingSpec::SetMaxPartNumber(int nValue)
+{
+	require(nValue >= 0);
+
+	nMaxPartNumber = nValue;
+
+	// Synchronisation avec les parametres correspondant des methodes de pretraitement
+	discretizerSpec.SetMaxIntervalNumber(nMaxPartNumber);
+	grouperSpec.SetMaxGroupNumber(nMaxPartNumber);
+	dataGridOptimizerParameters.SetMaxPartNumber(nMaxPartNumber);
+}
+
+int KWPreprocessingSpec::GetMinPartFrequency() const
+{
+	require(discretizerSpec.GetMinIntervalFrequency() == nMinPartFrequency);
+	require(grouperSpec.GetMinGroupFrequency() == nMinPartFrequency);
+
+	return nMinPartFrequency;
+}
+
+void KWPreprocessingSpec::SetMinPartFrequency(int nValue)
+{
+	require(nValue >= 0);
+
+	nMinPartFrequency = nValue;
+
+	// Synchronisation avec les parametres correspondant des methodes de pretraitement
+	discretizerSpec.SetMinIntervalFrequency(nMinPartFrequency);
+	grouperSpec.SetMinGroupFrequency(nMinPartFrequency);
+}
+
+const ALString& KWPreprocessingSpec::GetDiscretizerUnsupervisedMethodName() const
+{
+	return discretizerSpec.GetUnsupervisedMethodName();
+}
+
+void KWPreprocessingSpec::SetDiscretizerUnsupervisedMethodName(const ALString& sValue)
+{
+	discretizerSpec.SetUnsupervisedMethodName(sValue);
+}
+
+const ALString& KWPreprocessingSpec::GetGrouperUnsupervisedMethodName() const
+{
+	return grouperSpec.GetUnsupervisedMethodName();
+}
+
+void KWPreprocessingSpec::SetGrouperUnsupervisedMethodName(const ALString& sValue)
+{
+	grouperSpec.SetUnsupervisedMethodName(sValue);
 }
 
 KWDiscretizerSpec* KWPreprocessingSpec::GetDiscretizerSpec()
@@ -42,8 +104,10 @@ KWDataGridOptimizerParameters* KWPreprocessingSpec::GetDataGridOptimizerParamete
 void KWPreprocessingSpec::WriteHeaderLineReport(ostream& ost)
 {
 	ost << "Grouped target\t";
-	ost << "Discretization\tMin freq.\tMax nb\tParam. D.\t";
-	ost << "Value grouping\tMin freq.\tMax nb\tParam. G.\t";
+	ost << "Max parts\t";
+	ost << "Min freq\t";
+	ost << "Discretization\tParam. D.\t";
+	ost << "Value grouping\tParam. G.\t";
 	ost << "DG algorithm\tLevel\tUnivariate initialization\tPre-optimize\tOptimize\tPost-optimize\t";
 }
 
@@ -53,12 +117,11 @@ void KWPreprocessingSpec::WriteLineReport(int nTargetAttributeType, ostream& ost
 		nTargetAttributeType == KWType::None);
 
 	ost << BooleanToString(bTargetGrouped) << "\t";
-	ost << discretizerSpec.GetMethodName(nTargetAttributeType) << "\t" << discretizerSpec.GetMinIntervalFrequency()
-	    << "\t" << discretizerSpec.GetMaxIntervalNumber() << "\t" << discretizerSpec.GetParam() << "\t";
-	ost << grouperSpec.GetMethodName(nTargetAttributeType) << "\t" << grouperSpec.GetMinGroupFrequency() << "\t"
-	    << grouperSpec.GetMaxGroupNumber() << "\t" << grouperSpec.GetParam() << "\t";
-	ost << dataGridOptimizerParameters.GetOptimizationAlgorithm() << "\t"
-	    << dataGridOptimizerParameters.GetOptimizationLevel() << "\t"
+	ost << nMaxPartNumber << "\t";
+	ost << nMinPartFrequency << "\t";
+	ost << discretizerSpec.GetMethodName(nTargetAttributeType) << "\t" << discretizerSpec.GetParam() << "\t";
+	ost << grouperSpec.GetMethodName(nTargetAttributeType) << "\t" << grouperSpec.GetParam() << "\t";
+	ost << "VNS\t" << dataGridOptimizerParameters.GetOptimizationLevel() << "\t"
 	    << dataGridOptimizerParameters.GetUnivariateInitialization() << "\t"
 	    << dataGridOptimizerParameters.GetPreOptimize() << "\t" << dataGridOptimizerParameters.GetOptimize() << "\t"
 	    << dataGridOptimizerParameters.GetPostOptimize() << "\t";
@@ -73,6 +136,15 @@ boolean KWPreprocessingSpec::Check() const
 	bOk = discretizerSpec.Check() and bOk;
 	bOk = grouperSpec.Check() and bOk;
 	bOk = dataGridOptimizerParameters.Check() and bOk;
+
+	// On verifie que le nombre maximum de partie est le meme que pour chaque algorithme
+	bOk = bOk and nMaxPartNumber == discretizerSpec.GetMaxIntervalNumber();
+	bOk = bOk and nMaxPartNumber == grouperSpec.GetMaxGroupNumber();
+	bOk = bOk and nMaxPartNumber == dataGridOptimizerParameters.GetMaxPartNumber();
+
+	// On verifie que l'effectif minimum par partie est le meme que pour chaque algorithme
+	bOk = bOk and nMinPartFrequency == discretizerSpec.GetMinIntervalFrequency();
+	bOk = bOk and nMinPartFrequency == grouperSpec.GetMinGroupFrequency();
 	return bOk;
 }
 
@@ -92,6 +164,8 @@ void KWPreprocessingSpec::CopyFrom(const KWPreprocessingSpec* kwpsSource)
 {
 	require(kwpsSource != NULL);
 	bTargetGrouped = kwpsSource->bTargetGrouped;
+	nMaxPartNumber = kwpsSource->nMaxPartNumber;
+	nMinPartFrequency = kwpsSource->nMinPartFrequency;
 	discretizerSpec.CopyFrom(&(kwpsSource->discretizerSpec));
 	grouperSpec.CopyFrom(&(kwpsSource->grouperSpec));
 	dataGridOptimizerParameters.CopyFrom(&(kwpsSource->dataGridOptimizerParameters));
@@ -109,6 +183,17 @@ KWPreprocessingSpec* KWPreprocessingSpec::Clone() const
 int KWPreprocessingSpec::GetFreshness() const
 {
 	return discretizerSpec.GetFreshness() + grouperSpec.GetFreshness() + dataGridOptimizerParameters.GetFreshness();
+}
+
+void KWPreprocessingSpec::Write(ostream& ost) const
+{
+	ost << GetClassLabel() << "(";
+	ost << bTargetGrouped << ", ";
+	ost << nMaxPartNumber << ", ";
+	ost << nMinPartFrequency << ")\n";
+	ost << "\t" << discretizerSpec << "\n";
+	ost << "\t" << grouperSpec << "\n";
+	ost << "\t" << dataGridOptimizerParameters << "\n";
 }
 
 const ALString KWPreprocessingSpec::GetClassLabel() const
@@ -143,23 +228,6 @@ KWPreprocessingSpec* PLShared_PreprocessingSpec::GetPreprocessingSpec()
 	return cast(KWPreprocessingSpec*, GetObject());
 }
 
-void PLShared_PreprocessingSpec::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	KWPreprocessingSpec* preprocessingSpec;
-	PLShared_DiscretizerSpec sharedDiscretizerSpec;
-	PLShared_GrouperSpec sharedGrouperSpec;
-	PLShared_DataGridOptimizerParameters sharedDataGridOptimizerParameters;
-
-	require(serializer->IsOpenForRead());
-
-	preprocessingSpec = cast(KWPreprocessingSpec*, o);
-	preprocessingSpec->SetTargetGrouped(serializer->GetBoolean());
-	sharedDiscretizerSpec.DeserializeObject(serializer, preprocessingSpec->GetDiscretizerSpec());
-	sharedGrouperSpec.DeserializeObject(serializer, preprocessingSpec->GetGrouperSpec());
-	sharedDataGridOptimizerParameters.DeserializeObject(serializer,
-							    preprocessingSpec->GetDataGridOptimizerParameters());
-}
-
 void PLShared_PreprocessingSpec::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	KWPreprocessingSpec* preprocessingSpec;
@@ -171,10 +239,31 @@ void PLShared_PreprocessingSpec::SerializeObject(PLSerializer* serializer, const
 
 	preprocessingSpec = cast(KWPreprocessingSpec*, o);
 	serializer->PutBoolean(preprocessingSpec->GetTargetGrouped());
+	serializer->PutInt(preprocessingSpec->GetMaxPartNumber());
+	serializer->PutInt(preprocessingSpec->GetMinPartFrequency());
 	sharedDiscretizerSpec.SerializeObject(serializer, preprocessingSpec->GetDiscretizerSpec());
 	sharedGrouperSpec.SerializeObject(serializer, preprocessingSpec->GetGrouperSpec());
 	sharedDataGridOptimizerParameters.SerializeObject(serializer,
 							  preprocessingSpec->GetDataGridOptimizerParameters());
+}
+
+void PLShared_PreprocessingSpec::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWPreprocessingSpec* preprocessingSpec;
+	PLShared_DiscretizerSpec sharedDiscretizerSpec;
+	PLShared_GrouperSpec sharedGrouperSpec;
+	PLShared_DataGridOptimizerParameters sharedDataGridOptimizerParameters;
+
+	require(serializer->IsOpenForRead());
+
+	preprocessingSpec = cast(KWPreprocessingSpec*, o);
+	preprocessingSpec->SetTargetGrouped(serializer->GetBoolean());
+	preprocessingSpec->SetMaxPartNumber(serializer->GetInt());
+	preprocessingSpec->SetMinPartFrequency(serializer->GetInt());
+	sharedDiscretizerSpec.DeserializeObject(serializer, preprocessingSpec->GetDiscretizerSpec());
+	sharedGrouperSpec.DeserializeObject(serializer, preprocessingSpec->GetGrouperSpec());
+	sharedDataGridOptimizerParameters.DeserializeObject(serializer,
+							    preprocessingSpec->GetDataGridOptimizerParameters());
 }
 
 Object* PLShared_PreprocessingSpec::Create() const

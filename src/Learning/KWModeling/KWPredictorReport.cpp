@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -92,19 +92,20 @@ void KWPredictorReport::WriteFullReport(ostream& ost, ObjectArray* oaTrainReport
 	if (firstReport != NULL)
 	{
 		ost << "Dictionary"
-		    << "\t" << firstReport->GetClass()->GetName() << "\n";
+		    << "\t" << TSV::Export(firstReport->GetClass()->GetName()) << "\n";
 		if (firstReport->GetTargetAttributeName() != "")
 			ost << "Target variable"
-			    << "\t" << firstReport->GetTargetAttributeName() << "\n";
-		ost << "Database\t" << firstReport->GetDatabase()->GetDatabaseName() << "\n";
+			    << "\t" << TSV::Export(firstReport->GetTargetAttributeName()) << "\n";
+		ost << "Database\t" << TSV::Export(firstReport->GetDatabase()->GetDatabaseName()) << "\n";
 
 		// Taux d'echantillonnage
 		ost << "Sample percentage\t" << firstReport->GetDatabase()->GetSampleNumberPercentage() << "\n";
 		ost << "Sampling mode\t" << firstReport->GetDatabase()->GetSamplingMode() << "\n";
 
 		// Variable de selection
-		ost << "Selection variable\t" << firstReport->GetDatabase()->GetSelectionAttribute() << "\n";
-		ost << "Selection value\t" << firstReport->GetDatabase()->GetSelectionValue() << "\n";
+		ost << "Selection variable\t" << TSV::Export(firstReport->GetDatabase()->GetSelectionAttribute())
+		    << "\n";
+		ost << "Selection value\t" << TSV::Export(firstReport->GetDatabase()->GetSelectionValue()) << "\n";
 	}
 
 	// Tableau synthetique des predicteurs appris
@@ -121,13 +122,13 @@ void KWPredictorReport::WriteHeaderLineReport(ostream& ost)
 
 void KWPredictorReport::WriteLineReport(ostream& ost)
 {
-	ost << GetPredictorName() << "\t";
+	ost << TSV::Export(GetPredictorName()) << "\t";
 	ost << GetUsedAttributeNumber();
 }
 
 void KWPredictorReport::WriteReport(ostream& ost)
 {
-	ost << "Predictor\t" << GetPredictorName() << "\n";
+	ost << "Predictor\t" << TSV::Export(GetPredictorName()) << "\n";
 }
 
 void KWPredictorReport::WriteJSONFullReportFields(JSONFile* fJSON, ObjectArray* oaTrainReports)
@@ -423,22 +424,15 @@ int KWSelectedAttributeReport::CompareValue(const KWLearningReport* otherReport)
 {
 	int nCompare;
 	KWSelectedAttributeReport* otherAttributeReport = cast(KWSelectedAttributeReport*, otherReport);
-	longint lSortValue1;
-	longint lSortValue2;
 
-	// On se base sur un comparaison a dix decimales pres
-	lSortValue1 = longint(floor(fabs(GetImportance()) * 1e10));
-	lSortValue2 = longint(floor(fabs(otherAttributeReport->GetImportance()) * 1e10));
-	assert(lSortValue1 >= 0);
-	assert(lSortValue2 >= 0);
-	nCompare = -CompareLongint(lSortValue1, lSortValue2);
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(GetImportance(), otherAttributeReport->GetImportance());
 
 	// En cas d'egalite, on se base sur l'evaluation univariee
 	if (nCompare == 0)
 	{
-		lSortValue1 = longint(floor(fabs(GetUnivariateEvaluation()) * 1e10));
-		lSortValue2 = longint(floor(fabs(otherAttributeReport->GetUnivariateEvaluation()) * 1e10));
-		nCompare = -CompareLongint(lSortValue1, lSortValue2);
+		nCompare = -KWContinuous::CompareIndicatorValue(GetUnivariateEvaluation(),
+								otherAttributeReport->GetUnivariateEvaluation());
 	}
 
 	// En cas d'egalite, on se base sur le nom
@@ -511,8 +505,8 @@ void KWSelectedAttributeReport::WriteArrayLineReport(ostream& ost, const ALStrin
 			}
 
 			// Ligne de de stats
-			ost << attributeReport->GetPreparedAttributeName();
-			ost << "\t" << attributeReport->GetNativeAttributeName();
+			ost << TSV::Export(attributeReport->GetPreparedAttributeName());
+			ost << "\t" << TSV::Export(attributeReport->GetNativeAttributeName());
 			if (bWriteUnivariateEvaluation)
 				ost << "\t" << attributeReport->GetUnivariateEvaluation();
 			if (bWriteWeight)
@@ -531,7 +525,8 @@ void KWSelectedAttributeReport::WriteHeaderLineReport(ostream& ost) const
 
 void KWSelectedAttributeReport::WriteLineReport(ostream& ost) const
 {
-	ost << sPreparedAttributeName << "\t" << sNativeAttributeName << "\t" << dUnivariateEvaluation;
+	ost << TSV::Export(sPreparedAttributeName) << "\t" << TSV::Export(sNativeAttributeName) << "\t"
+	    << dUnivariateEvaluation;
 	if (GetWeight() > 0)
 	{
 		ost << "\t" << GetWeight();

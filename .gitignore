@@ -1,18 +1,40 @@
 # Mac OS
 .DS_Store
 
-# Visual Studio
+# Editors
 .vs/
 .vscode/
+.devcontainer/
+*.un~
 
-# Build directory
+# Log file using genere tool and the cmake module genere-views
+*.dd.log
+
+# CMake User Preset
+CMakeUserPresets.json
+
+# Build directories
 build/
+khiops-conda/
+
+# Packaging directories
+packaging/windows/nsis/assets/
 
 # Cmake exceptions
 CMakeFiles/
 
 # Test exceptions
-test/*/results/
-LearningTest/*/*/*/results/
-LearningTest/*/*/*/results.ref/time.log
+test/UnitTests/*/results/
+test/LearningTest/*/*/*/results/
+comparisonResults.log
 
+# Visualization file and summaries produced by the MemoryStatsVisualizer tool
+KhiopsMemoryStats.html
+KhiopsMemoryStats.Summary.txt
+KhiopsMemoryStats.aggregate_stats.xlsx
+KhiopsMemoryStats.all_stats.xlsx
+
+# Python
+*.pyc
+__pycache__/
+.idea/

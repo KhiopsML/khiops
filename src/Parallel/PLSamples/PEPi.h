@@ -1,11 +1,11 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
+
 ////////////////////////////////////////////////////////////
-// 2015-03-30 17:27:37
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "Object.h"
@@ -30,7 +30,7 @@ public:
 	void CopyFrom(const PEPi* aSource);
 	PEPi* Clone() const;
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
 	// Number of iterations
@@ -45,15 +45,15 @@ public:
 	double GetElapsedTime() const;
 	void SetElapsedTime(double dValue);
 
-	////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 	// Divers
 
 	// Ecriture
-	void Write(ostream& ost) const;
+	void Write(ostream& ost) const override;
 
 	// Libelles utilisateur
-	const ALString GetClassLabel() const;
-	const ALString GetObjectLabel() const;
+	const ALString GetClassLabel() const override;
+	const ALString GetObjectLabel() const override;
 
 	// ## Custom declarations
 	//  Action de calcul
@@ -63,7 +63,7 @@ public:
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
 	int nIterationNumber;

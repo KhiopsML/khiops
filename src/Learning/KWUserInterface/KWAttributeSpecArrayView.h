@@ -1,12 +1,11 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2021-04-25 11:10:57
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "UserInterface.h"
@@ -54,34 +53,14 @@ public:
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// ## Custom implementation
-
-	// Construction des informations permettant de savoir pour chaque attribut d'une classe s'il est utilise la cle
-	void BuildKeyAttributes(KWClass* kwcClass, NumericKeyDictionary* nkdKeyAttributes) const;
-
-	// Construction des informations permettant de savoir pour chaque attribut d'une classe s'il est utilise
-	// dans une regle de derivation par un data item (attribut ou un bloc d'attribut)
-	// Dans le dictionnaire en sortie, la cle est le data item utilise, et la valeur un data item referencant
-	// le data item utilise au moyen d'une regle
-	void BuildClassUsedAttributeReferences(KWClass* kwcClass,
-					       NumericKeyDictionary* nkdUsedAttributeReferences) const;
-
-	// Idem pour une regle de derivation
-	// Comme on n'analyse pas les regles attributs parametres de regles, il n'y a pas de risque de recursion infinie
-	void BuildRuleUsedAttributeReferences(KWDerivationRule* rule, KWDataItem* referenceDataItem,
-					      NumericKeyDictionary* nkdUsedAttributeReferences) const;
 
 	// Classe editee
 	KWClass* kwcEditedClass;
 
-	// Dictionnaires des infortion d'utilisation des attributs de la classe editees (dans cle ou dans regles de
-	// derivation) pour permettre la correction des informations de types a la volee
-	NumericKeyDictionary nkdEditedClassKeyAttributes;
-	NumericKeyDictionary nkdEditedClassUsedAttributeReferences;
-
-	// Liste des types d'attributs stockes, pour les message d'erreur
+	// Liste des types d'attributs stockes, pour les messages d'erreur
 	ALString sStoredTypes;
 
 	// ##

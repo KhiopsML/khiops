@@ -1,0 +1,2714 @@
+{
+	"tool": "Khiops",
+	"version": "10.5.2-b.0",
+	"shortDescription": "",
+	"preparationReport": {
+		"reportType": "Preparation",
+		"summary": {
+			"dictionary": "Iris",
+			"variables": {
+				"types": [
+					"Categorical",
+					"Numerical"
+				],
+				"numbers": [
+					4,
+					8
+				]
+			},
+			"database": "..\/..\/..\/datasets\/Iris\/Iris.txt",
+			"samplePercentage": 70,
+			"samplingMode": "Include sample",
+			"selectionVariable": "",
+			"selectionValue": "",
+			"instances": 105,
+			"learningTask": "Unsupervised analysis",
+			"evaluatedVariables": 12,
+			"nativeVariables": 5,
+			"constructedVariables": 7,
+			"featureEngineering": {
+				"maxNumberOfConstructedVariables": 0,
+				"maxNumberOfTextFeatures": 0,
+				"maxNumberOfTrees": 0,
+				"maxNumberOfVariablePairs": 100
+			},
+			"discretization": "MODL",
+			"valueGrouping": "MODL"
+		},
+		"variablesStatistics": [
+			{
+				"rank": "R01",
+				"name": "Class",
+				"type": "Categorical",
+				"parts": 3,
+				"values": 3,
+				"mode": "Iris-setosa",
+				"modeFrequency": 38,
+				"missingNumber": 0,
+				"sparseMissingNumber": 0,
+				"constructionCost": 3.17805
+			},
+			{
+				"rank": "R02",
+				"name": "Class1",
+				"type": "Categorical",
+				"parts": 2,
+				"values": 2,
+				"mode": "",
+				"modeFrequency": 67,
+				"missingNumber": 67,
+				"sparseMissingNumber": 0,
+				"constructionCost": 3.17805,
+				"derivationRule": "IfC(EQc(Class, \"Iris-setosa\"), \"setosa\", \"\")"
+			},
+			{
+				"rank": "R03",
+				"name": "Class2",
+				"type": "Categorical",
+				"parts": 2,
+				"values": 2,
+				"mode": "",
+				"modeFrequency": 73,
+				"missingNumber": 73,
+				"sparseMissingNumber": 0,
+				"constructionCost": 3.17805,
+				"derivationRule": "IfC(EQc(Class, \"Iris-versicolor\"), \"versicolor\", \"\")"
+			},
+			{
+				"rank": "R04",
+				"name": "Dummy1",
+				"type": "Numerical",
+				"parts": 1,
+				"values": 1,
+				"min": 0,
+				"max": 0,
+				"mean": 0,
+				"stdDev": 0,
+				"missingNumber": 0,
+				"sparseMissingNumber": 0,
+				"constructionCost": 3.17805,
+				"derivationRule": "Copy(0)"
+			},
+			{
+				"rank": "R05",
+				"name": "Dummy2",
+				"type": "Numerical",
+				"parts": 1,
+				"values": 105,
+				"min": 0.005121241265,
+				"max": 0.9859650261,
+				"mean": 0.5173966838,
+				"stdDev": 0.2650019122,
+				"missingNumber": 0,
+				"sparseMissingNumber": 0,
+				"constructionCost": 3.17805,
+				"derivationRule": "Random()"
+			},
+			{
+				"rank": "R06",
+				"name": "LowerPetalLength",
+				"type": "Numerical",
+				"parts": 4,
+				"values": 10,
+				"min": 1,
+				"max": 3,
+				"mean": 2.446666667,
+				"stdDev": 0.7433600251,
+				"missingNumber": 0,
+				"sparseMissingNumber": 0,
+				"constructionCost": 3.17805,
+				"derivationRule": "If(LE(PetalLength, 3), PetalLength, 3)"
+			},
+			{
+				"rank": "R07",
+				"name": "PetalLength",
+				"type": "Numerical",
+				"parts": 5,
+				"values": 36,
+				"min": 1,
+				"max": 6.9,
+				"mean": 3.686666667,
+				"stdDev": 1.80132579,
+				"missingNumber": 0,
+				"sparseMissingNumber": 0,
+				"constructionCost": 3.17805
+			},
+			{
+				"rank": "R08",
+				"name": "PetalWidth",
+				"type": "Numerical",
+				"parts": 5,
+				"values": 21,
+				"min": 0.1,
+				"max": 2.5,
+				"mean": 1.175238095,
+				"stdDev": 0.7880996979,
+				"missingNumber": 0,
+				"sparseMissingNumber": 0,
+				"constructionCost": 3.17805
+			},
+			{
+				"rank": "R09",
+				"name": "SPetalLength",
+				"type": "Categorical",
+				"parts": 5,
+				"values": 5,
+				"mode": "1",
+				"modeFrequency": 38,
+				"missingNumber": 0,
+				"sparseMissingNumber": 0,
+				"constructionCost": 3.17805,
+				"derivationRule": "AsCategorical(Floor(PetalLength))"
+			},
+			{
+				"rank": "R10",
+				"name": "SepalLength",
+				"type": "Numerical",
+				"parts": 2,
+				"values": 31,
+				"min": 4.3,
+				"max": 7.7,
+				"mean": 5.827619048,
+				"stdDev": 0.8375127846,
+				"missingNumber": 0,
+				"sparseMissingNumber": 0,
+				"constructionCost": 3.17805
+			},
+			{
+				"rank": "R11",
+				"name": "SepalWidth",
+				"type": "Numerical",
+				"parts": 3,
+				"values": 23,
+				"min": 2,
+				"max": 4.4,
+				"mean": 3.081904762,
+				"stdDev": 0.4284592446,
+				"missingNumber": 0,
+				"sparseMissingNumber": 0,
+				"constructionCost": 3.17805
+			},
+			{
+				"rank": "R12",
+				"name": "UpperPetalWidth",
+				"type": "Numerical",
+				"parts": 2,
+				"values": 11,
+				"min": 1.5,
+				"max": 2.5,
+				"mean": 1.692380952,
+				"stdDev": 0.2962287527,
+				"missingNumber": 0,
+				"sparseMissingNumber": 0,
+				"constructionCost": 3.17805,
+				"derivationRule": "If(GE(PetalWidth, 1.5), PetalWidth, 1.5)"
+			}
+		],
+		"variablesDetailedStatistics": {
+			"R01": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["Iris-setosa"],
+								["Iris-virginica"],
+								["Iris-versicolor"]
+							],
+							"defaultGroupIndex": 2
+						}
+					],
+					"frequencies": [38,35,32]
+				},
+				"inputValues": {
+					"values": ["Iris-setosa","Iris-virginica","Iris-versicolor"],
+					"frequencies": [38,35,32]
+				}
+			},
+			"R02": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class1",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								[""],
+								["setosa"]
+							],
+							"defaultGroupIndex": 1
+						}
+					],
+					"frequencies": [67,38]
+				},
+				"inputValues": {
+					"values": ["","setosa"],
+					"frequencies": [67,38]
+				}
+			},
+			"R03": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class2",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								[""],
+								["versicolor"]
+							],
+							"defaultGroupIndex": 1
+						}
+					],
+					"frequencies": [73,32]
+				},
+				"inputValues": {
+					"values": ["","versicolor"],
+					"frequencies": [73,32]
+				}
+			},
+			"R05": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Dummy2",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[0.00390625,1]
+							]
+						}
+					],
+					"frequencies": [105]
+				},
+				"modlHistograms": {
+					"histogramNumber": 1,
+					"interpretableHistogramNumber": 1,
+					"truncationEpsilon": 0,
+					"removedSingularIntervalNumber": 0,
+					"granularities": [0],
+					"intervalNumbers": [1],
+					"peakIntervalNumbers": [0],
+					"spikeIntervalNumbers": [0],
+					"emptyIntervalNumbers": [0],
+					"levels": [0],
+					"informationRates": [0],
+					"histograms": [
+						{
+							"bounds": [0.00390625,1],
+							"frequencies": [105]
+						}
+					]
+				}
+			},
+			"R06": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "LowerPetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[0.95,1.25],
+								[1.25,1.75],
+								[1.75,2.95],
+								[2.95,3.05]
+							]
+						}
+					],
+					"frequencies": [4,32,2,67]
+				},
+				"modlHistograms": {
+					"histogramNumber": 5,
+					"interpretableHistogramNumber": 4,
+					"truncationEpsilon": 0.1,
+					"removedSingularIntervalNumber": 0,
+					"granularities": [0,2,3,5,28],
+					"intervalNumbers": [1,3,5,4,12],
+					"peakIntervalNumbers": [0,0,1,1,5],
+					"spikeIntervalNumbers": [0,0,0,0,5],
+					"emptyIntervalNumbers": [0,0,1,0,4],
+					"levels": [0,0.01356921313,0.04765003824,0.06838973265,0.6853858332],
+					"informationRates": [0,19.84100917,69.67425722,100,1002.176506],
+					"histograms": [
+						{
+							"bounds": [0.95,3.05],
+							"frequencies": [105]
+						},
+						{
+							"bounds": [0.95,1.65,2.45,3.05],
+							"frequencies": [32,6,67]
+						},
+						{
+							"bounds": [0.95,1.25,1.65,2.05,2.85,3.05],
+							"frequencies": [4,28,6,0,67]
+						},
+						{
+							"bounds": [0.95,1.25,1.75,2.95,3.05],
+							"frequencies": [4,32,2,67]
+						},
+						{
+							"bounds": [0.9375,1.299999997,1.300000012,1.399999991,1.400000006,1.499999985,1.5,1.599999994,1.600000009,1.699999988,1.700000003,2.999999985,3],
+							"frequencies": [4,4,0,9,0,10,0,5,0,4,2,67]
+						}
+					]
+				}
+			},
+			"R07": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "PetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[0.95,1.25],
+								[1.25,1.75],
+								[1.75,3.85],
+								[3.85,6.15],
+								[6.15,6.95]
+							]
+						}
+					],
+					"frequencies": [4,32,7,59,3]
+				},
+				"modlHistograms": {
+					"histogramNumber": 5,
+					"interpretableHistogramNumber": 4,
+					"truncationEpsilon": 0.1,
+					"removedSingularIntervalNumber": 0,
+					"granularities": [0,3,5,7,29],
+					"intervalNumbers": [1,3,7,5,41],
+					"peakIntervalNumbers": [0,0,2,2,20],
+					"spikeIntervalNumbers": [0,0,0,0,20],
+					"emptyIntervalNumbers": [0,0,0,0,14],
+					"levels": [0,0.005142168327,0.006968300144,0.00863976387,0.2871300831],
+					"informationRates": [0,59.51746372,80.6538263,100,3323.355678],
+					"histograms": [
+						{
+							"bounds": [0.95,6.95],
+							"frequencies": [105]
+						},
+						{
+							"bounds": [0.95,1.65,3.25,6.95],
+							"frequencies": [32,7,66]
+						},
+						{
+							"bounds": [0.95,1.25,1.65,2.05,3.25,4.45,5.65,6.95],
+							"frequencies": [4,28,6,1,17,37,12]
+						},
+						{
+							"bounds": [0.95,1.25,1.75,3.85,6.15,6.95],
+							"frequencies": [4,32,7,59,3]
+						},
+						{
+							"bounds": [0.875,1.299999997,1.300000012,1.399999991,1.400000006,1.499999985,1.5,1.599999994,1.600000009,1.699999988,1.700000003,1.899999991,1.900000006,3.499999985,3.5,3.899999991,3.900000006,3.999999985,4,4.099999994,4.100000009,4.499999985,4.5,4.699999988,4.700000003,4.799999997,4.800000012,4.899999991,4.900000006,4.999999985,5,5.099999994,5.100000009,5.499999985,5.5,5.599999994,5.600000009,6.099999994,6.100000009,6.699999988,6.700000003,7],
+							"frequencies": [4,4,0,9,0,10,0,5,0,4,0,2,2,2,1,3,0,4,0,3,3,5,0,4,0,3,0,3,0,3,0,5,5,3,0,6,6,3,0,2,1]
+						}
+					]
+				}
+			},
+			"R08": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "PetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[0.05,0.15],
+								[0.15,0.25],
+								[0.25,0.45],
+								[0.45,0.85],
+								[0.85,2.55]
+							]
+						}
+					],
+					"frequencies": [6,20,11,1,67]
+				},
+				"modlHistograms": {
+					"histogramNumber": 5,
+					"interpretableHistogramNumber": 4,
+					"truncationEpsilon": 0.1,
+					"removedSingularIntervalNumber": 0,
+					"granularities": [0,1,2,3,30],
+					"intervalNumbers": [1,2,2,5,28],
+					"peakIntervalNumbers": [0,0,0,1,13],
+					"spikeIntervalNumbers": [0,0,0,1,13],
+					"emptyIntervalNumbers": [0,0,0,0,9],
+					"levels": [0,0.003138504791,0.003358793296,0.004913113283,0.5003837405],
+					"informationRates": [0,63.88016335,68.36384798,100,10184.65709],
+					"histograms": [
+						{
+							"bounds": [0.05,2.55],
+							"frequencies": [105]
+						},
+						{
+							"bounds": [0.05,0.45,2.55],
+							"frequencies": [37,68]
+						},
+						{
+							"bounds": [0.05,0.25,2.55],
+							"frequencies": [26,79]
+						},
+						{
+							"bounds": [0.05,0.15,0.25,0.45,0.85,2.55],
+							"frequencies": [6,20,11,1,67]
+						},
+						{
+							"bounds": [0.09999999963,0.1000000001,0.1999999993,0.2000000002,0.2999999989,0.3000000007,0.3999999985,0.4000000004,0.9999999963,1,1.299999997,1.300000004,1.399999999,1.400000006,1.499999993,1.5,1.599999994,1.600000001,1.799999997,1.800000004,1.999999993,2,2.099999994,2.100000009,2.199999988,2.200000003,2.299999997,2.300000012,2.5],
+							"frequencies": [6,0,20,0,5,0,6,1,5,4,9,0,6,0,5,0,3,1,9,2,5,0,4,0,3,0,8,3]
+						}
+					]
+				}
+			},
+			"R09": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "SPetalLength",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["1"],
+								["5"],
+								["4"],
+								["3"],
+								["6"]
+							],
+							"defaultGroupIndex": 4
+						}
+					],
+					"frequencies": [38,27,25,8,7]
+				},
+				"inputValues": {
+					"values": ["1","5","4","3","6"],
+					"frequencies": [38,27,25,8,7]
+				}
+			},
+			"R10": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "SepalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[4.25,7],
+								[7,7.75]
+							]
+						}
+					],
+					"frequencies": [97,8]
+				},
+				"modlHistograms": {
+					"histogramNumber": 2,
+					"interpretableHistogramNumber": 2,
+					"truncationEpsilon": 0,
+					"removedSingularIntervalNumber": 0,
+					"granularities": [0,2],
+					"intervalNumbers": [1,2],
+					"peakIntervalNumbers": [0,0],
+					"spikeIntervalNumbers": [0,0],
+					"emptyIntervalNumbers": [0,0],
+					"levels": [0,0.0003815098758],
+					"informationRates": [0,100],
+					"histograms": [
+						{
+							"bounds": [4.25,7.75],
+							"frequencies": [105]
+						},
+						{
+							"bounds": [4.25,7,7.75],
+							"frequencies": [97,8]
+						}
+					]
+				}
+			},
+			"R11": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "SepalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1.95,2.45],
+								[2.45,3.25],
+								[3.25,4.45]
+							]
+						}
+					],
+					"frequencies": [5,72,28]
+				},
+				"modlHistograms": {
+					"histogramNumber": 4,
+					"interpretableHistogramNumber": 3,
+					"truncationEpsilon": 0.1,
+					"removedSingularIntervalNumber": 0,
+					"granularities": [0,1,2,29],
+					"intervalNumbers": [1,2,3,23],
+					"peakIntervalNumbers": [0,0,1,11],
+					"spikeIntervalNumbers": [0,0,0,11],
+					"emptyIntervalNumbers": [0,0,0,8],
+					"levels": [0,0.002413792626,0.009713296272,0.471063928],
+					"informationRates": [0,24.85039639,100,4849.681455],
+					"histograms": [
+						{
+							"bounds": [1.95,4.45],
+							"frequencies": [105]
+						},
+						{
+							"bounds": [1.95,3.25,4.45],
+							"frequencies": [77,28]
+						},
+						{
+							"bounds": [1.95,2.45,3.25,4.45],
+							"frequencies": [5,72,28]
+						},
+						{
+							"bounds": [1.9921875,2.499999985,2.5,2.599999994,2.600000009,2.699999988,2.700000003,2.799999997,2.800000012,2.899999991,2.900000006,2.999999985,3,3.099999994,3.100000009,3.199999988,3.200000003,3.399999991,3.400000006,3.499999985,3.5,3.799999997,3.800000012,4.40625],
+							"frequencies": [5,6,0,3,0,5,0,11,0,6,0,20,0,10,0,11,2,10,0,3,3,4,6]
+						}
+					]
+				}
+			},
+			"R12": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "UpperPetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1.45,1.55],
+								[1.55,2.55]
+							]
+						}
+					],
+					"frequencies": [67,38]
+				},
+				"modlHistograms": {
+					"histogramNumber": 4,
+					"interpretableHistogramNumber": 3,
+					"truncationEpsilon": 0.1,
+					"removedSingularIntervalNumber": 0,
+					"granularities": [0,1,5,28],
+					"intervalNumbers": [1,2,2,14],
+					"peakIntervalNumbers": [0,0,0,6],
+					"spikeIntervalNumbers": [0,0,0,6],
+					"emptyIntervalNumbers": [0,0,0,4],
+					"levels": [0,0.02500256671,0.03972305577,0.6316260053],
+					"informationRates": [0,62.94220379,100,1590.074059],
+					"histograms": [
+						{
+							"bounds": [1.45,2.55],
+							"frequencies": [105]
+						},
+						{
+							"bounds": [1.45,1.65,2.55],
+							"frequencies": [70,35]
+						},
+						{
+							"bounds": [1.45,1.55,2.55],
+							"frequencies": [67,38]
+						},
+						{
+							"bounds": [1.499999985,1.5,1.599999994,1.600000009,1.799999997,1.800000012,1.999999985,2,2.099999994,2.100000009,2.199999988,2.200000003,2.299999997,2.300000012,2.5],
+							"frequencies": [67,0,3,1,9,2,5,0,4,0,3,0,8,3]
+						}
+					]
+				}
+			}
+		}
+	},
+	"bivariatePreparationReport": {
+		"reportType": "BivariatePreparation",
+		"summary": {
+			"dictionary": "Iris",
+			"variables": {
+				"types": [
+					"Categorical",
+					"Numerical"
+				],
+				"numbers": [
+					4,
+					8
+				]
+			},
+			"database": "..\/..\/..\/datasets\/Iris\/Iris.txt",
+			"samplePercentage": 70,
+			"samplingMode": "Include sample",
+			"selectionVariable": "",
+			"selectionValue": "",
+			"instances": 105,
+			"learningTask": "Unsupervised analysis",
+			"evaluatedVariablePairs": 55,
+			"informativeVariablePairs": 38
+		},
+		"variablesPairsStatistics": [
+			{
+				"rank": "R01",
+				"name1": "Class",
+				"name2": "Class1",
+				"level": 0.286471,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 2,
+				"constructionCost": 6.71557,
+				"preparationCost": 18.9311,
+				"dataCost": 110.25
+			},
+			{
+				"rank": "R02",
+				"name1": "Class",
+				"name2": "Class2",
+				"level": 0.270234,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 2,
+				"constructionCost": 6.71557,
+				"preparationCost": 19.0156,
+				"dataCost": 110.25
+			},
+			{
+				"rank": "R03",
+				"name1": "Class",
+				"name2": "SPetalLength",
+				"level": 0.258511,
+				"variables": 2,
+				"parts1": 3,
+				"parts2": 3,
+				"cells": 5,
+				"constructionCost": 6.71557,
+				"preparationCost": 41.7647,
+				"dataCost": 157.188
+			},
+			{
+				"rank": "R04",
+				"name1": "Class1",
+				"name2": "SPetalLength",
+				"level": 0.231831,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 2,
+				"constructionCost": 6.71557,
+				"preparationCost": 27.2099,
+				"dataCost": 142.253
+			},
+			{
+				"rank": "R05",
+				"name1": "PetalLength",
+				"name2": "SPetalLength",
+				"level": 0.151582,
+				"variables": 2,
+				"parts1": 5,
+				"parts2": 5,
+				"cells": 5,
+				"constructionCost": 6.71557,
+				"preparationCost": 69.091,
+				"dataCost": 386.913
+			},
+			{
+				"rank": "R06",
+				"name1": "Class2",
+				"name2": "SPetalLength",
+				"level": 0.142436,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 4,
+				"constructionCost": 6.71557,
+				"preparationCost": 27.7273,
+				"dataCost": 158.704
+			},
+			{
+				"rank": "R07",
+				"name1": "Class",
+				"name2": "PetalWidth",
+				"level": 0.14197,
+				"variables": 2,
+				"parts1": 3,
+				"parts2": 3,
+				"cells": 5,
+				"constructionCost": 6.71557,
+				"preparationCost": 31.1679,
+				"dataCost": 396.708
+			},
+			{
+				"rank": "R08",
+				"name1": "Class",
+				"name2": "PetalLength",
+				"level": 0.136908,
+				"variables": 2,
+				"parts1": 3,
+				"parts2": 3,
+				"cells": 5,
+				"constructionCost": 6.71557,
+				"preparationCost": 31.1679,
+				"dataCost": 399.272
+			},
+			{
+				"rank": "R09",
+				"name1": "Class1",
+				"name2": "LowerPetalLength",
+				"level": 0.111506,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 2,
+				"constructionCost": 6.71557,
+				"preparationCost": 13.7255,
+				"dataCost": 386.913
+			},
+			{
+				"rank": "R10",
+				"name1": "Class1",
+				"name2": "PetalLength",
+				"level": 0.111506,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 2,
+				"constructionCost": 6.71557,
+				"preparationCost": 13.7255,
+				"dataCost": 386.913
+			},
+			{
+				"rank": "R11",
+				"name1": "Class1",
+				"name2": "PetalWidth",
+				"level": 0.111506,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 2,
+				"constructionCost": 6.71557,
+				"preparationCost": 13.7255,
+				"dataCost": 386.913
+			},
+			{
+				"rank": "R12",
+				"name1": "PetalWidth",
+				"name2": "SPetalLength",
+				"level": 0.109807,
+				"variables": 2,
+				"parts1": 3,
+				"parts2": 3,
+				"cells": 5,
+				"constructionCost": 6.71557,
+				"preparationCost": 40.5555,
+				"dataCost": 438.232
+			},
+			{
+				"rank": "R13",
+				"name1": "Class",
+				"name2": "LowerPetalLength",
+				"level": 0.0982915,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 2,
+				"constructionCost": 6.71557,
+				"preparationCost": 19.0436,
+				"dataCost": 430.955
+			},
+			{
+				"rank": "R14",
+				"name1": "LowerPetalLength",
+				"name2": "SPetalLength",
+				"level": 0.0887331,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 2,
+				"constructionCost": 6.71557,
+				"preparationCost": 27.3225,
+				"dataCost": 462.959
+			},
+			{
+				"rank": "R15",
+				"name1": "PetalLength",
+				"name2": "PetalWidth",
+				"level": 0.0785935,
+				"variables": 2,
+				"parts1": 3,
+				"parts2": 3,
+				"cells": 4,
+				"constructionCost": 6.71557,
+				"preparationCost": 29.9587,
+				"dataCost": 676.972
+			},
+			{
+				"rank": "R16",
+				"name1": "Class",
+				"name2": "UpperPetalWidth",
+				"level": 0.0721164,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 4,
+				"constructionCost": 6.71557,
+				"preparationCost": 19.0868,
+				"dataCost": 444.17
+			},
+			{
+				"rank": "R17",
+				"name1": "PetalWidth",
+				"name2": "UpperPetalWidth",
+				"level": 0.0703191,
+				"variables": 2,
+				"parts1": 3,
+				"parts2": 3,
+				"cells": 3,
+				"constructionCost": 6.71557,
+				"preparationCost": 29.9587,
+				"dataCost": 683.381
+			},
+			{
+				"rank": "R18",
+				"name1": "LowerPetalLength",
+				"name2": "PetalLength",
+				"level": 0.0701201,
+				"variables": 2,
+				"parts1": 3,
+				"parts2": 3,
+				"cells": 3,
+				"constructionCost": 6.71557,
+				"preparationCost": 29.9587,
+				"dataCost": 683.535
+			},
+			{
+				"rank": "R19",
+				"name1": "Class2",
+				"name2": "PetalWidth",
+				"level": 0.0662843,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 3,
+				"cells": 5,
+				"constructionCost": 6.71557,
+				"preparationCost": 20.8147,
+				"dataCost": 396.708
+			},
+			{
+				"rank": "R20",
+				"name1": "SPetalLength",
+				"name2": "SepalLength",
+				"level": 0.0654694,
+				"variables": 2,
+				"parts1": 3,
+				"parts2": 4,
+				"cells": 5,
+				"constructionCost": 6.71557,
+				"preparationCost": 49.4973,
+				"dataCost": 453.472
+			},
+			{
+				"rank": "R21",
+				"name1": "Class2",
+				"name2": "PetalLength",
+				"level": 0.0606416,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 3,
+				"cells": 5,
+				"constructionCost": 6.71557,
+				"preparationCost": 20.8147,
+				"dataCost": 399.272
+			},
+			{
+				"rank": "R22",
+				"name1": "LowerPetalLength",
+				"name2": "PetalWidth",
+				"level": 0.0598398,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 2,
+				"constructionCost": 6.71557,
+				"preparationCost": 13.838,
+				"dataCost": 707.618
+			},
+			{
+				"rank": "R23",
+				"name1": "Class",
+				"name2": "SepalLength",
+				"level": 0.059526,
+				"variables": 2,
+				"parts1": 3,
+				"parts2": 3,
+				"cells": 7,
+				"constructionCost": 6.71557,
+				"preparationCost": 31.1679,
+				"dataCost": 438.466
+			},
+			{
+				"rank": "R24",
+				"name1": "Class1",
+				"name2": "Class2",
+				"level": 0.0559199,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 3,
+				"constructionCost": 6.71557,
+				"preparationCost": 13.6129,
+				"dataCost": 110.25
+			},
+			{
+				"rank": "R25",
+				"name1": "Class1",
+				"name2": "SepalLength",
+				"level": 0.0531576,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 4,
+				"constructionCost": 6.71557,
+				"preparationCost": 13.7255,
+				"dataCost": 413.664
+			},
+			{
+				"rank": "R26",
+				"name1": "SPetalLength",
+				"name2": "UpperPetalWidth",
+				"level": 0.0466723,
+				"variables": 2,
+				"parts1": 3,
+				"parts2": 2,
+				"cells": 5,
+				"constructionCost": 6.71557,
+				"preparationCost": 31.8478,
+				"dataCost": 481.373
+			},
+			{
+				"rank": "R27",
+				"name1": "PetalLength",
+				"name2": "SepalLength",
+				"level": 0.0407398,
+				"variables": 2,
+				"parts1": 4,
+				"parts2": 4,
+				"cells": 8,
+				"constructionCost": 6.71557,
+				"preparationCost": 47.7303,
+				"dataCost": 688.519
+			},
+			{
+				"rank": "R28",
+				"name1": "PetalLength",
+				"name2": "UpperPetalWidth",
+				"level": 0.0401281,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 3,
+				"constructionCost": 6.71557,
+				"preparationCost": 13.838,
+				"dataCost": 722.885
+			},
+			{
+				"rank": "R29",
+				"name1": "PetalWidth",
+				"name2": "SepalLength",
+				"level": 0.0303985,
+				"variables": 2,
+				"parts1": 3,
+				"parts2": 3,
+				"cells": 8,
+				"constructionCost": 6.71557,
+				"preparationCost": 29.9587,
+				"dataCost": 714.3
+			},
+			{
+				"rank": "R30",
+				"name1": "LowerPetalLength",
+				"name2": "SepalLength",
+				"level": 0.0253003,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 4,
+				"constructionCost": 6.71557,
+				"preparationCost": 13.838,
+				"dataCost": 734.369
+			},
+			{
+				"rank": "R31",
+				"name1": "Class1",
+				"name2": "UpperPetalWidth",
+				"level": 0.0166012,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 3,
+				"constructionCost": 6.71557,
+				"preparationCost": 13.7255,
+				"dataCost": 430.424
+			},
+			{
+				"rank": "R32",
+				"name1": "SepalLength",
+				"name2": "UpperPetalWidth",
+				"level": 0.0164148,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 4,
+				"constructionCost": 6.71557,
+				"preparationCost": 13.838,
+				"dataCost": 741.251
+			},
+			{
+				"rank": "R33",
+				"name1": "Class1",
+				"name2": "SepalWidth",
+				"level": 0.00749643,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 3,
+				"cells": 5,
+				"constructionCost": 6.71557,
+				"preparationCost": 20.8147,
+				"dataCost": 427.509
+			},
+			{
+				"rank": "R34",
+				"name1": "Class2",
+				"name2": "LowerPetalLength",
+				"level": 0.0065114,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 3,
+				"constructionCost": 6.71557,
+				"preparationCost": 13.7255,
+				"dataCost": 430.955
+			},
+			{
+				"rank": "R35",
+				"name1": "Class",
+				"name2": "SepalWidth",
+				"level": 0.00543684,
+				"variables": 2,
+				"parts1": 3,
+				"parts2": 2,
+				"cells": 6,
+				"constructionCost": 6.71557,
+				"preparationCost": 22.1365,
+				"dataCost": 474.893
+			},
+			{
+				"rank": "R36",
+				"name1": "LowerPetalLength",
+				"name2": "UpperPetalWidth",
+				"level": 0.00366071,
+				"variables": 2,
+				"parts1": 2,
+				"parts2": 2,
+				"cells": 3,
+				"constructionCost": 6.71557,
+				"preparationCost": 13.838,
+				"dataCost": 751.129
+			},
+			{
+				"rank": "R37",
+				"name1": "PetalWidth",
+				"name2": "SepalWidth",
+				"level": 0.00221737,
+				"variables": 2,
+				"parts1": 3,
+				"parts2": 2,
+				"cells": 6,
+				"constructionCost": 6.71557,
+				"preparationCost": 20.9273,
+				"dataCost": 745.158
+			},
+			{
+				"rank": "R38",
+				"name1": "SPetalLength",
+				"name2": "SepalWidth",
+				"level": 0.00143264,
+				"variables": 2,
+				"parts1": 3,
+				"parts2": 3,
+				"cells": 9,
+				"constructionCost": 6.71557,
+				"preparationCost": 40.2319,
+				"dataCost": 497.662
+			},
+			{
+				"rank": "R39",
+				"name1": "Class",
+				"name2": "Dummy2",
+				"level": 0,
+				"variables": 0,
+				"parts1": 1,
+				"parts2": 1,
+				"cells": 1,
+				"constructionCost": 0.693147,
+				"preparationCost": 8.64312,
+				"dataCost": 497.163
+			},
+			{
+				"rank": "R40",
+				"name1": "Class1",
+				"name2": "Dummy2",
+				"level": 0,
+				"variables": 0,
+				"parts1": 1,
+				"parts2": 1,
+				"cells": 1,
+				"constructionCost": 0.693147,
+				"preparationCost": 4.66344,
+				"dataCost": 453.12
+			},
+			{
+				"rank": "R41",
+				"name1": "Class2",
+				"name2": "Dummy2",
+				"level": 0,
+				"variables": 0,
+				"parts1": 1,
+				"parts2": 1,
+				"cells": 1,
+				"constructionCost": 0.693147,
+				"preparationCost": 4.66344,
+				"dataCost": 448.998
+			},
+			{
+				"rank": "R42",
+				"name1": "Class2",
+				"name2": "SepalLength",
+				"level": 0,
+				"variables": 0,
+				"parts1": 1,
+				"parts2": 1,
+				"cells": 1,
+				"constructionCost": 0.693147,
+				"preparationCost": 4.66344,
+				"dataCost": 448.998
+			},
+			{
+				"rank": "R43",
+				"name1": "Class2",
+				"name2": "SepalWidth",
+				"level": 0,
+				"variables": 0,
+				"parts1": 1,
+				"parts2": 1,
+				"cells": 1,
+				"constructionCost": 0.693147,
+				"preparationCost": 4.66344,
+				"dataCost": 448.998
+			},
+			{
+				"rank": "R44",
+				"name1": "Class2",
+				"name2": "UpperPetalWidth",
+				"level": 0,
+				"variables": 0,
+				"parts1": 1,
+				"parts2": 1,
+				"cells": 1,
+				"constructionCost": 0.693147,
+				"preparationCost": 4.66344,
+				"dataCost": 448.998
+			},
+			{
+				"rank": "R45",
+				"name1": "Dummy2",
+				"name2": "LowerPetalLength",
+				"level": 0,
+				"variables": 0,
+				"parts1": 1,
+				"parts2": 1,
+				"cells": 1,
+				"constructionCost": 0.693147,
+				"preparationCost": 0,
+				"dataCost": 773.825
+			},
+			{
+				"rank": "R46",
+				"name1": "Dummy2",
+				"name2": "PetalLength",
+				"level": 0,
+				"variables": 0,
+				"parts1": 1,
+				"parts2": 1,
+				"cells": 1,
+				"constructionCost": 0.693147,
+				"preparationCost": 0,
+				"dataCost": 773.825
+			},
+			{
+				"rank": "R47",
+				"name1": "Dummy2",
+				"name2": "PetalWidth",
+				"level": 0,
+				"variables": 0,
+				"parts1": 1,
+				"parts2": 1,
+				"cells": 1,
+				"constructionCost": 0.693147,
+				"preparationCost": 0,
+				"dataCost": 773.825
+			},
+			{
+				"rank": "R48",
+				"name1": "Dummy2",
+				"name2": "SPetalLength",
+				"level": 0,
+				"variables": 0,
+				"parts1": 1,
+				"parts2": 1,
+				"cells": 1,
+				"constructionCost": 0.693147,
+				"preparationCost": 15.5317,
+				"dataCost": 529.166
+			},
+			{
+				"rank": "R49",
+				"name1": "Dummy2",
+				"name2": "SepalLength",
+				"level": 0,
+				"variables": 0,
+				"parts1": 1,
+				"parts2": 1,
+				"cells": 1,
+				"constructionCost": 0.693147,
+				"preparationCost": 0,
+				"dataCost": 773.825
+			},
+			{
+				"rank": "R50",
+				"name1": "Dummy2",
+				"name2": "SepalWidth",
+				"level": 0,
+				"variables": 0,
+				"parts1": 1,
+				"parts2": 1,
+				"cells": 1,
+				"constructionCost": 0.693147,
+				"preparationCost": 0,
+				"dataCost": 773.825
+			},
+			{
+				"rank": "R51",
+				"name1": "Dummy2",
+				"name2": "UpperPetalWidth",
+				"level": 0,
+				"variables": 0,
+				"parts1": 1,
+				"parts2": 1,
+				"cells": 1,
+				"constructionCost": 0.693147,
+				"preparationCost": 0,
+				"dataCost": 773.825
+			},
+			{
+				"rank": "R52",
+				"name1": "LowerPetalLength",
+				"name2": "SepalWidth",
+				"level": 0,
+				"variables": 0,
+				"parts1": 1,
+				"parts2": 1,
+				"cells": 1,
+				"constructionCost": 0.693147,
+				"preparationCost": 0,
+				"dataCost": 773.825
+			},
+			{
+				"rank": "R53",
+				"name1": "PetalLength",
+				"name2": "SepalWidth",
+				"level": 0,
+				"variables": 0,
+				"parts1": 1,
+				"parts2": 1,
+				"cells": 1,
+				"constructionCost": 0.693147,
+				"preparationCost": 0,
+				"dataCost": 773.825
+			},
+			{
+				"rank": "R54",
+				"name1": "SepalLength",
+				"name2": "SepalWidth",
+				"level": 0,
+				"variables": 0,
+				"parts1": 1,
+				"parts2": 1,
+				"cells": 1,
+				"constructionCost": 0.693147,
+				"preparationCost": 0,
+				"dataCost": 773.825
+			},
+			{
+				"rank": "R55",
+				"name1": "SepalWidth",
+				"name2": "UpperPetalWidth",
+				"level": 0,
+				"variables": 0,
+				"parts1": 1,
+				"parts2": 1,
+				"cells": 1,
+				"constructionCost": 0.693147,
+				"preparationCost": 0,
+				"dataCost": 773.825
+			}
+		],
+		"variablesPairsDetailedStatistics": {
+			"R01": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["Iris-virginica","Iris-versicolor"],
+								["Iris-setosa"]
+							],
+							"defaultGroupIndex": 0
+						},
+						{
+							"variable": "Class1",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								[""],
+								["setosa"]
+							],
+							"defaultGroupIndex": 1
+						}
+					],
+					"cellIds": ["C1","C4"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,1]
+					],
+					"cellFrequencies": [67,38]
+				}
+			},
+			"R02": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["Iris-setosa","Iris-virginica"],
+								["Iris-versicolor"]
+							],
+							"defaultGroupIndex": 1
+						},
+						{
+							"variable": "Class2",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								[""],
+								["versicolor"]
+							],
+							"defaultGroupIndex": 1
+						}
+					],
+					"cellIds": ["C1","C4"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,1]
+					],
+					"cellFrequencies": [73,32]
+				}
+			},
+			"R03": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["Iris-setosa"],
+								["Iris-virginica"],
+								["Iris-versicolor"]
+							],
+							"defaultGroupIndex": 2
+						},
+						{
+							"variable": "SPetalLength",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["1"],
+								["5","6"],
+								["4","3"]
+							],
+							"defaultGroupIndex": 1
+						}
+					],
+					"cellIds": ["C1","C5","C6","C8","C9"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,1],
+						[2,1],
+						[1,2],
+						[2,2]
+					],
+					"cellFrequencies": [38,32,2,3,30]
+				}
+			},
+			"R04": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class1",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								[""],
+								["setosa"]
+							],
+							"defaultGroupIndex": 1
+						},
+						{
+							"variable": "SPetalLength",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["5","4","3","6"],
+								["1"]
+							],
+							"defaultGroupIndex": 0
+						}
+					],
+					"cellIds": ["C1","C4"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,1]
+					],
+					"cellFrequencies": [67,38]
+				}
+			},
+			"R05": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "PetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,2.4],
+								[2.4,3.95],
+								[3.95,4.95],
+								[4.95,5.95],
+								[5.95,6.9]
+							]
+						},
+						{
+							"variable": "SPetalLength",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["1"],
+								["5"],
+								["4"],
+								["3"],
+								["6"]
+							],
+							"defaultGroupIndex": 4
+						}
+					],
+					"cellIds": ["C1","C9","C13","C17","C25"],
+					"cellPartIndexes": [
+						[0,0],
+						[3,1],
+						[2,2],
+						[1,3],
+						[4,4]
+					],
+					"cellFrequencies": [38,27,25,8,7]
+				}
+			},
+			"R06": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class2",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								[""],
+								["versicolor"]
+							],
+							"defaultGroupIndex": 1
+						},
+						{
+							"variable": "SPetalLength",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["1","5","6"],
+								["4","3"]
+							],
+							"defaultGroupIndex": 0
+						}
+					],
+					"cellIds": ["C1","C2","C3","C4"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,0],
+						[0,1],
+						[1,1]
+					],
+					"cellFrequencies": [70,2,3,30]
+				}
+			},
+			"R07": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["Iris-setosa"],
+								["Iris-virginica"],
+								["Iris-versicolor"]
+							],
+							"defaultGroupIndex": 2
+						},
+						{
+							"variable": "PetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[0.1,0.75],
+								[0.75,1.75],
+								[1.75,2.5]
+							]
+						}
+					],
+					"cellIds": ["C1","C5","C6","C8","C9"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,1],
+						[2,1],
+						[1,2],
+						[2,2]
+					],
+					"cellFrequencies": [38,2,31,33,1]
+				}
+			},
+			"R08": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["Iris-setosa"],
+								["Iris-virginica"],
+								["Iris-versicolor"]
+							],
+							"defaultGroupIndex": 2
+						},
+						{
+							"variable": "PetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,2.4],
+								[2.4,4.85],
+								[4.85,6.9]
+							]
+						}
+					],
+					"cellIds": ["C1","C5","C6","C8","C9"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,1],
+						[2,1],
+						[1,2],
+						[2,2]
+					],
+					"cellFrequencies": [38,1,29,34,3]
+				}
+			},
+			"R09": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class1",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								[""],
+								["setosa"]
+							],
+							"defaultGroupIndex": 1
+						},
+						{
+							"variable": "LowerPetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,2.4],
+								[2.4,3]
+							]
+						}
+					],
+					"cellIds": ["C2","C3"],
+					"cellPartIndexes": [
+						[1,0],
+						[0,1]
+					],
+					"cellFrequencies": [38,67]
+				}
+			},
+			"R10": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class1",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								[""],
+								["setosa"]
+							],
+							"defaultGroupIndex": 1
+						},
+						{
+							"variable": "PetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,2.4],
+								[2.4,6.9]
+							]
+						}
+					],
+					"cellIds": ["C2","C3"],
+					"cellPartIndexes": [
+						[1,0],
+						[0,1]
+					],
+					"cellFrequencies": [38,67]
+				}
+			},
+			"R11": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class1",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								[""],
+								["setosa"]
+							],
+							"defaultGroupIndex": 1
+						},
+						{
+							"variable": "PetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[0.1,0.75],
+								[0.75,2.5]
+							]
+						}
+					],
+					"cellIds": ["C2","C3"],
+					"cellPartIndexes": [
+						[1,0],
+						[0,1]
+					],
+					"cellFrequencies": [38,67]
+				}
+			},
+			"R12": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "PetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[0.1,0.75],
+								[0.75,1.65],
+								[1.65,2.5]
+							]
+						},
+						{
+							"variable": "SPetalLength",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["1"],
+								["5","6"],
+								["4","3"]
+							],
+							"defaultGroupIndex": 1
+						}
+					],
+					"cellIds": ["C1","C5","C6","C8","C9"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,1],
+						[2,1],
+						[1,2],
+						[2,2]
+					],
+					"cellFrequencies": [38,3,31,29,4]
+				}
+			},
+			"R13": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["Iris-virginica","Iris-versicolor"],
+								["Iris-setosa"]
+							],
+							"defaultGroupIndex": 0
+						},
+						{
+							"variable": "LowerPetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,2.4],
+								[2.4,3]
+							]
+						}
+					],
+					"cellIds": ["C2","C3"],
+					"cellPartIndexes": [
+						[1,0],
+						[0,1]
+					],
+					"cellFrequencies": [38,67]
+				}
+			},
+			"R14": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "LowerPetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,2.4],
+								[2.4,3]
+							]
+						},
+						{
+							"variable": "SPetalLength",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["5","4","3","6"],
+								["1"]
+							],
+							"defaultGroupIndex": 0
+						}
+					],
+					"cellIds": ["C2","C3"],
+					"cellPartIndexes": [
+						[1,0],
+						[0,1]
+					],
+					"cellFrequencies": [67,38]
+				}
+			},
+			"R15": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "PetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,2.4],
+								[2.4,4.75],
+								[4.75,6.9]
+							]
+						},
+						{
+							"variable": "PetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[0.1,0.75],
+								[0.75,1.65],
+								[1.65,2.5]
+							]
+						}
+					],
+					"cellIds": ["C1","C5","C6","C9"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,1],
+						[2,1],
+						[2,2]
+					],
+					"cellFrequencies": [38,27,5,35]
+				}
+			},
+			"R16": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["Iris-setosa","Iris-versicolor"],
+								["Iris-virginica"]
+							],
+							"defaultGroupIndex": 0
+						},
+						{
+							"variable": "UpperPetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1.5,1.75],
+								[1.75,2.5]
+							]
+						}
+					],
+					"cellIds": ["C1","C2","C3","C4"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,0],
+						[0,1],
+						[1,1]
+					],
+					"cellFrequencies": [69,2,1,33]
+				}
+			},
+			"R17": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "PetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[0.1,1.55],
+								[1.55,2.05],
+								[2.05,2.5]
+							]
+						},
+						{
+							"variable": "UpperPetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1.5,1.55],
+								[1.55,2.05],
+								[2.05,2.5]
+							]
+						}
+					],
+					"cellIds": ["C1","C5","C9"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,1],
+						[2,2]
+					],
+					"cellFrequencies": [67,20,18]
+				}
+			},
+			"R18": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "LowerPetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,1.45],
+								[1.45,2.4],
+								[2.4,3]
+							]
+						},
+						{
+							"variable": "PetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,1.45],
+								[1.45,2.4],
+								[2.4,6.9]
+							]
+						}
+					],
+					"cellIds": ["C1","C5","C9"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,1],
+						[2,2]
+					],
+					"cellFrequencies": [17,21,67]
+				}
+			},
+			"R19": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class2",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								[""],
+								["versicolor"]
+							],
+							"defaultGroupIndex": 1
+						},
+						{
+							"variable": "PetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[0.1,0.75],
+								[0.75,1.75],
+								[1.75,2.5]
+							]
+						}
+					],
+					"cellIds": ["C1","C3","C4","C5","C6"],
+					"cellPartIndexes": [
+						[0,0],
+						[0,1],
+						[1,1],
+						[0,2],
+						[1,2]
+					],
+					"cellFrequencies": [38,2,31,33,1]
+				}
+			},
+			"R20": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "SPetalLength",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["5","4"],
+								["1","3"],
+								["6"]
+							],
+							"defaultGroupIndex": 2
+						},
+						{
+							"variable": "SepalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[4.3,5.35],
+								[5.35,5.85],
+								[5.85,7.15],
+								[7.15,7.7]
+							]
+						}
+					],
+					"cellIds": ["C2","C4","C5","C7","C12"],
+					"cellPartIndexes": [
+						[1,0],
+						[0,1],
+						[1,1],
+						[0,2],
+						[2,3]
+					],
+					"cellFrequencies": [34,10,12,42,7]
+				}
+			},
+			"R21": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class2",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								[""],
+								["versicolor"]
+							],
+							"defaultGroupIndex": 1
+						},
+						{
+							"variable": "PetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,2.4],
+								[2.4,4.85],
+								[4.85,6.9]
+							]
+						}
+					],
+					"cellIds": ["C1","C3","C4","C5","C6"],
+					"cellPartIndexes": [
+						[0,0],
+						[0,1],
+						[1,1],
+						[0,2],
+						[1,2]
+					],
+					"cellFrequencies": [38,1,29,34,3]
+				}
+			},
+			"R22": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "LowerPetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,2.4],
+								[2.4,3]
+							]
+						},
+						{
+							"variable": "PetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[0.1,0.75],
+								[0.75,2.5]
+							]
+						}
+					],
+					"cellIds": ["C1","C4"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,1]
+					],
+					"cellFrequencies": [38,67]
+				}
+			},
+			"R23": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["Iris-setosa"],
+								["Iris-virginica"],
+								["Iris-versicolor"]
+							],
+							"defaultGroupIndex": 2
+						},
+						{
+							"variable": "SepalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[4.3,5.45],
+								[5.45,6.15],
+								[6.15,7.7]
+							]
+						}
+					],
+					"cellIds": ["C1","C3","C4","C5","C6","C8","C9"],
+					"cellPartIndexes": [
+						[0,0],
+						[2,0],
+						[0,1],
+						[1,1],
+						[2,1],
+						[1,2],
+						[2,2]
+					],
+					"cellFrequencies": [34,5,4,5,19,30,8]
+				}
+			},
+			"R24": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class1",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								[""],
+								["setosa"]
+							],
+							"defaultGroupIndex": 1
+						},
+						{
+							"variable": "Class2",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								[""],
+								["versicolor"]
+							],
+							"defaultGroupIndex": 1
+						}
+					],
+					"cellIds": ["C1","C2","C3"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,0],
+						[0,1]
+					],
+					"cellFrequencies": [35,38,32]
+				}
+			},
+			"R25": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class1",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								[""],
+								["setosa"]
+							],
+							"defaultGroupIndex": 1
+						},
+						{
+							"variable": "SepalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[4.3,5.45],
+								[5.45,7.7]
+							]
+						}
+					],
+					"cellIds": ["C1","C2","C3","C4"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,0],
+						[0,1],
+						[1,1]
+					],
+					"cellFrequencies": [5,34,62,4]
+				}
+			},
+			"R26": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "SPetalLength",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["1","3"],
+								["5","6"],
+								["4"]
+							],
+							"defaultGroupIndex": 1
+						},
+						{
+							"variable": "UpperPetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1.5,1.55],
+								[1.55,2.5]
+							]
+						}
+					],
+					"cellIds": ["C1","C2","C3","C5","C6"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,0],
+						[2,0],
+						[1,1],
+						[2,1]
+					],
+					"cellFrequencies": [46,2,19,32,6]
+				}
+			},
+			"R27": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "PetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,3.55],
+								[3.55,4.6],
+								[4.6,5.95],
+								[5.95,6.9]
+							]
+						},
+						{
+							"variable": "SepalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[4.3,5.45],
+								[5.45,5.85],
+								[5.85,7.15],
+								[7.15,7.7]
+							]
+						}
+					],
+					"cellIds": ["C1","C2","C5","C6","C7","C10","C11","C16"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,0],
+						[0,1],
+						[1,1],
+						[2,1],
+						[1,2],
+						[2,2],
+						[3,3]
+					],
+					"cellFrequencies": [37,2,5,10,2,7,35,7]
+				}
+			},
+			"R28": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "PetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,4.75],
+								[4.75,6.9]
+							]
+						},
+						{
+							"variable": "UpperPetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1.5,1.65],
+								[1.65,2.5]
+							]
+						}
+					],
+					"cellIds": ["C1","C2","C4"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,0],
+						[1,1]
+					],
+					"cellFrequencies": [65,5,35]
+				}
+			},
+			"R29": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "PetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[0.1,0.75],
+								[0.75,1.35],
+								[1.35,2.5]
+							]
+						},
+						{
+							"variable": "SepalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[4.3,5.45],
+								[5.45,5.85],
+								[5.85,7.7]
+							]
+						}
+					],
+					"cellIds": ["C1","C2","C3","C4","C5","C6","C8","C9"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,0],
+						[2,0],
+						[0,1],
+						[1,1],
+						[2,1],
+						[1,2],
+						[2,2]
+					],
+					"cellFrequencies": [34,3,2,4,10,3,5,44]
+				}
+			},
+			"R30": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "LowerPetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,2.4],
+								[2.4,3]
+							]
+						},
+						{
+							"variable": "SepalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[4.3,5.45],
+								[5.45,7.7]
+							]
+						}
+					],
+					"cellIds": ["C1","C2","C3","C4"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,0],
+						[0,1],
+						[1,1]
+					],
+					"cellFrequencies": [34,5,4,62]
+				}
+			},
+			"R31": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class1",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								[""],
+								["setosa"]
+							],
+							"defaultGroupIndex": 1
+						},
+						{
+							"variable": "UpperPetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1.5,1.55],
+								[1.55,2.5]
+							]
+						}
+					],
+					"cellIds": ["C1","C2","C3"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,0],
+						[0,1]
+					],
+					"cellFrequencies": [29,38,38]
+				}
+			},
+			"R32": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "SepalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[4.3,5.85],
+								[5.85,7.7]
+							]
+						},
+						{
+							"variable": "UpperPetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1.5,1.55],
+								[1.55,2.5]
+							]
+						}
+					],
+					"cellIds": ["C1","C2","C3","C4"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,0],
+						[0,1],
+						[1,1]
+					],
+					"cellFrequencies": [54,13,2,36]
+				}
+			},
+			"R33": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class1",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								[""],
+								["setosa"]
+							],
+							"defaultGroupIndex": 1
+						},
+						{
+							"variable": "SepalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[2,2.85],
+								[2.85,3.35],
+								[3.35,4.4]
+							]
+						}
+					],
+					"cellIds": ["C1","C3","C4","C5","C6"],
+					"cellPartIndexes": [
+						[0,0],
+						[0,1],
+						[1,1],
+						[0,2],
+						[1,2]
+					],
+					"cellFrequencies": [30,32,17,5,21]
+				}
+			},
+			"R34": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class2",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								[""],
+								["versicolor"]
+							],
+							"defaultGroupIndex": 1
+						},
+						{
+							"variable": "LowerPetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,2.4],
+								[2.4,3]
+							]
+						}
+					],
+					"cellIds": ["C1","C3","C4"],
+					"cellPartIndexes": [
+						[0,0],
+						[0,1],
+						[1,1]
+					],
+					"cellFrequencies": [38,35,32]
+				}
+			},
+			"R35": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "Class",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["Iris-setosa"],
+								["Iris-virginica"],
+								["Iris-versicolor"]
+							],
+							"defaultGroupIndex": 2
+						},
+						{
+							"variable": "SepalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[2,2.95],
+								[2.95,4.4]
+							]
+						}
+					],
+					"cellIds": ["C1","C2","C3","C4","C5","C6"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,0],
+						[2,0],
+						[0,1],
+						[1,1],
+						[2,1]
+					],
+					"cellFrequencies": [1,13,22,37,22,10]
+				}
+			},
+			"R36": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "LowerPetalLength",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1,2.4],
+								[2.4,3]
+							]
+						},
+						{
+							"variable": "UpperPetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[1.5,1.55],
+								[1.55,2.5]
+							]
+						}
+					],
+					"cellIds": ["C1","C2","C4"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,0],
+						[1,1]
+					],
+					"cellFrequencies": [38,29,38]
+				}
+			},
+			"R37": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "PetalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[0.1,0.75],
+								[0.75,1.45],
+								[1.45,2.5]
+							]
+						},
+						{
+							"variable": "SepalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[2,2.95],
+								[2.95,4.4]
+							]
+						}
+					],
+					"cellIds": ["C1","C2","C3","C4","C5","C6"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,0],
+						[2,0],
+						[0,1],
+						[1,1],
+						[2,1]
+					],
+					"cellFrequencies": [1,21,14,37,3,29]
+				}
+			},
+			"R38": {
+				"dataGrid": {
+					"isSupervised": false,
+					"dimensions": [
+						{
+							"variable": "SPetalLength",
+							"type": "Categorical",
+							"partitionType": "Value groups",
+							"partition": [
+								["4","3","6"],
+								["1"],
+								["5"]
+							],
+							"defaultGroupIndex": 0
+						},
+						{
+							"variable": "SepalWidth",
+							"type": "Numerical",
+							"partitionType": "Intervals",
+							"partition": [
+								[2,2.95],
+								[2.95,3.25],
+								[3.25,4.4]
+							]
+						}
+					],
+					"cellIds": ["C1","C2","C3","C4","C5","C6","C7","C8","C9"],
+					"cellPartIndexes": [
+						[0,0],
+						[1,0],
+						[2,0],
+						[0,1],
+						[1,1],
+						[2,1],
+						[0,2],
+						[1,2],
+						[2,2]
+					],
+					"cellFrequencies": [26,1,9,10,15,16,4,22,2]
+				}
+			}
+		}
+	},
+	"khiops_encoding": "ascii"
+}

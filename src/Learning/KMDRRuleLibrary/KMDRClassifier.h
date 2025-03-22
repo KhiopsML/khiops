@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -31,7 +31,7 @@ public:
 	boolean CheckOperandsFamily(const KWDerivationRule* ruleFamily) const;
 
 	/** Verification que la regle est completement renseignee */
-	boolean CheckOperandsCompletness(KWClass* kwcOwnerClass) const;
+	boolean CheckOperandsCompleteness(KWClass* kwcOwnerClass) const;
 
 	////////////////////////////////////////////////////////////////////
 	// Application  de la regle a une objet, et services associes
@@ -91,7 +91,7 @@ protected:
 
 inline boolean KMDRClassifier::IsOptimized() const
 {
-	return IsCompiled() and nOptimizationFreshness == nCompileFreshness;
+	return IsCompiled() and nOptimizationFreshness == GetOwnerClass()->GetCompileFreshness();
 }
 
 #endif // KMDRCLASSIFIER_H

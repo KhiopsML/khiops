@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -20,7 +20,7 @@ public:
 
 	// Actions etendues
 	// Verification de la validite des specifications
-	void CheckLearningSpec();
+	boolean CheckLearningSpec();
 
 	// Affichage des attributs de la classe
 	void ShowClass();
@@ -32,19 +32,6 @@ public:
 	void ExportStats();
 
 	// Acces au probleme d'apprentissage
-	void SetObject(Object* object);
+	void SetObject(Object* object) override;
 	SampleOneLearningProblem* GetSampleOneLearningProblem();
-};
-
-////////////////////////////////////////////////////////////
-// Classe SampleOneAnalysisSpecView
-//    Version specialisee des Analysis parameters permettant
-//     de preciser les parametre de modelisation
-// Editeur de SampleOneAnalysisSpec
-class SampleOneAnalysisSpecView : public KWAnalysisSpecView
-{
-public:
-	// Constructeur
-	SampleOneAnalysisSpecView();
-	~SampleOneAnalysisSpecView();
 };

@@ -1,26 +1,94 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
 // Service  de calcul de quantiles intervalles ou groupes
+class KWQuantileBuilder;
 class KWQuantileIntervalBuilder;
 class KWQuantileGroupBuilder;
 
+#include "KWType.h"
 #include "KWContinuous.h"
 #include "KWSymbol.h"
 #include "KWSortableIndex.h"
 #include "Vector.h"
 
 //////////////////////////////////////////////////////////////////////////////
-// Service de calcul de quantiles intervalels a partir d'un vecteur de valeurs continues
-class KWQuantileIntervalBuilder : public Object
+// Service de calcul de quantiles intervalles a partir d'un vecteur de valeurs continues
+class KWQuantileBuilder : public Object
+{
+public:
+	// Constructeur
+	KWQuantileBuilder();
+	~KWQuantileBuilder();
+
+	// Type de quantile collectes
+	virtual int GetType() const = 0;
+
+	// Test si initialise
+	boolean IsFrequencyInitialized() const;
+
+	// Nombre d'instances
+	int GetInstanceNumber() const;
+
+	// Nombre de valeurs uniques
+	virtual int GetValueNumber() const;
+
+	//////////////////////////////////////////////////////////////////////////
+	// Calcul de quantiles
+
+	// Calcul des quantiles
+	virtual int ComputeQuantiles(int nQuantileNumber) = 0;
+
+	// Test si quantiles calcules
+	boolean IsComputed() const;
+
+	// Nombre de quantiles demandes lors du dernier calcul
+	int GetQuantileNumber() const;
+
+	//////////////////////////////////////////////////////////////////////////
+	// Acces aux resultats par quantile
+
+	// Nombre de quantiles effectivement produits
+	virtual int GetComputedQuantileNumber() const = 0;
+
+	// Effectif d'un quantile
+	virtual int GetQuantileFrequencyAt(int nQuantileIndex) const = 0;
+
+	// Affichage des quantiles
+	virtual void WriteQuantiles(ostream& ost) const = 0;
+
+	/////////////////////////////////////////////////////////////////
+	//// Implementation
+protected:
+	// Statistiques sur les valeurs en entrees
+	int nInstanceNumber;
+	int nValueNumber;
+
+	// Indicateur d'initialisation
+	boolean bIsFrequencyInitialized;
+	boolean bIsValueInitialized;
+
+	// Effectifs cumules par valeur en entrees
+	IntVector ivValuesCumulatedFrequencies;
+
+	// Nombre de quantiles demandes
+	int nRequestedQuantileNumber;
+};
+
+//////////////////////////////////////////////////////////////////////////////
+// Service de calcul de quantiles intervalles a partir d'un vecteur de valeurs continues
+class KWQuantileIntervalBuilder : public KWQuantileBuilder
 {
 public:
 	// Constructeur
 	KWQuantileIntervalBuilder();
 	~KWQuantileIntervalBuilder();
+
+	// Type de quantile collectes: Continuous
+	int GetType() const override;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Initialisation et calcul de statistiques sur les valeurs a traiter
@@ -37,15 +105,8 @@ public:
 	// Memoire: les effctifs appartiennent a l'appelant
 	void InitializeFrequencies(const IntVector* ivInputFrequencies);
 
-	// Test si initialise
-	boolean IsFrequencyInitialized() const;
+	// Test si initialise par les valeurs
 	boolean IsValueInitialized() const;
-
-	// Nombre d'instances
-	int GetInstanceNumber() const;
-
-	// Nombre de valeurs uniques
-	int GetValueNumber() const;
 
 	// Acces a la frequence des valeurs
 	int GetValueFrequencyAt(int nIndex) const;
@@ -56,11 +117,17 @@ public:
 	// Acces aux valeurs (prerequis: initialisation valeur)
 	Continuous GetValueAt(int nIndex) const;
 
+	// Valeur min, en ignorant les valeur manquantes
+	Continuous GetMinValue() const;
+
+	// Valeur max
+	Continuous GetMaxValue() const;
+
 	// Nombre d'instances avec valeur manquante (prerequis: initialisation valeur)
 	int GetMissingValueNumber() const;
 
 	//////////////////////////////////////////////////////////////////////////
-	// Calcul de quantiles et acces aux resultats par quantile
+	// Calcul de quantiles
 
 	// Calcul de quantiles d'effectif egal
 	// En raison de doublons potentiels sur les valeurs, le nombre d'intervalles produits peut
@@ -71,24 +138,17 @@ public:
 	//  . si deux valeurs a egale distances, on prend la plus proche du bord (debut ou fin)
 	//  . si encore egalite, on prend la plus proche du debut
 	// On retourne le nombre de quantiles effectivement produits
-	int ComputeQuantiles(int nQuantileNumber);
+	int ComputeQuantiles(int nQuantileNumber) override;
 
 	// Calcul de quantiles de largeur egale (prerequis: initialisation valeur)
-	// En raison de doublons potentiels sur les valeurs, le nombre d'intervalles produits peut
-	// etre inferieur au nombre de quantiles demandes
 	// En cas de valeur manquante, un intervalle est cree uniquement pour la valeur manquante
-	// Sinon, pour chaque frontiere de quantile base sur une valeur, on cherche la premiere instance depassant la
-	// valeur et on utilise cette valeur (avec la valeur suivsnat) comme frontiere d'intervalle. Les intervalles
-	// vides sont ensuite supprimes. On retourne le nombre de quantiles effectivement produits
+	// On retourne le nombre de quantiles demandes, y compris les intervalles vides
 	int ComputeEqualWidthQuantiles(int nQuantileNumber);
 
-	// Test si quantiles calcules
-	boolean IsComputed() const;
+	//////////////////////////////////////////////////////////////////////////
+	// Acces aux resultats par quantile
 
-	// Nombre de quantiles demandes lors du dernier calcul
-	int GetQuantileNumber() const;
-
-	// Inque si on a demande des quantiles en EqualWidth
+	// Indique si on a demande des quantiles en EqualWidth
 	boolean IsEqualWidth() const;
 
 	// Nombre d'intervalles effectivement produits
@@ -115,6 +175,11 @@ public:
 
 	// Affichage des intervalles
 	void WriteIntervals(ostream& ost) const;
+
+	// Redefinition des methodes virtuelles
+	int GetComputedQuantileNumber() const override;
+	int GetQuantileFrequencyAt(int nQuantileIndex) const override;
+	void WriteQuantiles(ostream& ost) const override;
 
 	// Methode de test
 	static void Test();
@@ -145,13 +210,9 @@ protected:
 	int SearchValueIndex(Continuous cSearchedValue, int nLowerIndex, int nUpperIndex) const;
 
 	// Statistiques sur les valeurs en entrees
-	int nInstanceNumber;
-	int nValueNumber;
 	ContinuousVector cvValues;
-	IntVector ivValuesCumulatedFrequencies;
 
 	// Resultats de calcul des quantiles
-	int nRequestedQuantileNumber;
 	boolean bIsEqualWidth;
 	IntVector ivIntervalQuantileIndexes;
 	IntVector ivIntervalUpperValueIndexes;
@@ -159,12 +220,15 @@ protected:
 
 //////////////////////////////////////////////////////////////////////////////
 // Service de calcul de quantiles groupes a partir d'un vecteur de valeurs symbol
-class KWQuantileGroupBuilder : public Object
+class KWQuantileGroupBuilder : public KWQuantileBuilder
 {
 public:
 	// Constructeur
 	KWQuantileGroupBuilder();
 	~KWQuantileGroupBuilder();
+
+	// Type de quantile collectes: Symbol
+	int GetType() const override;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Initialisation et calcul de statistiques sur les valeurs a traiter
@@ -182,14 +246,7 @@ public:
 	void InitializeFrequencies(const IntVector* ivInputFrequencies);
 
 	// Test si initialise
-	boolean IsFrequencyInitialized() const;
 	boolean IsValueInitialized() const;
-
-	// Nombre d'instances
-	int GetInstanceNumber() const;
-
-	// Nombre de valeurs uniques
-	int GetValueNumber() const;
 
 	// Acces a la frequence cumulee des valeurs
 	int GetValueFrequencyAt(int nIndex) const;
@@ -202,19 +259,16 @@ public:
 	Symbol& GetValueAt(int nIndex) const;
 
 	//////////////////////////////////////////////////////////////////////////
-	// Calcul de quantiles et acces aux resultats par quantile
+	// Calcul de quantiles
 
 	// Calcul de quantiles d'effectif egal
 	// Il s'agit en fait de rechercher toutes les valeurs dont l'effectif est au moins
 	// celui d'un partile theorique (InstanceNumber/QuantileNumber).
 	// Les petites valeurs sont rangees dans un dernier groupe poubelle
-	int ComputeQuantiles(int nQuantileNumber);
+	int ComputeQuantiles(int nQuantileNumber) override;
 
-	// Test si quantiles calcules
-	boolean IsComputed() const;
-
-	// Nombre de quantiles demandes lors du dernier calcul
-	int GetQuantileNumber() const;
+	//////////////////////////////////////////////////////////////////////////
+	// Acces aux resultats par quantile
 
 	// Nombre de groupes effectivement produits
 	// Les premiers groupes sont des singletons, dont la valeur est
@@ -237,11 +291,16 @@ public:
 	// Index de quantile pour chaque groupe
 	// Les index de quantiles des groupes singletons coincident avec leur index de groupe
 	// L'index de quantile du groupe poubelle est celui du dernier quantile demande
-	// Les autres auntiles sont vides
+	// Les autres quantiles sont vides
 	int GetGroupQuantileIndexAt(int nGroupIndex) const;
 
 	// Affichage des groupes
 	void WriteGroups(ostream& ost) const;
+
+	// Redefinition des methodes virtuelles
+	int GetComputedQuantileNumber() const override;
+	int GetQuantileFrequencyAt(int nQuantileIndex) const override;
+	void WriteQuantiles(ostream& ost) const override;
 
 	// Methode de test
 	static void Test();
@@ -258,41 +317,55 @@ protected:
 	int SearchFrequencyIndex(int nSearchedFrequency, int nLowerIndex, int nUpperIndex) const;
 
 	// Statistiques sur les valeurs en entrees
-	int nInstanceNumber;
-	int nValueNumber;
 	SymbolVector svValues;
-	IntVector ivValuesCumulatedFrequencies;
 
 	// Resultats de calcul des quantiles
-	int nRequestedQuantileNumber;
 	int nGroupNumber;
 };
 
 ///////////////////////////////////////////
 // Methodes en inline
 
-inline boolean KWQuantileIntervalBuilder::IsFrequencyInitialized() const
+inline boolean KWQuantileBuilder::IsFrequencyInitialized() const
 {
-	return (nInstanceNumber > 0);
+	return bIsFrequencyInitialized;
 }
 
-inline boolean KWQuantileIntervalBuilder::IsValueInitialized() const
-{
-	assert(cvValues.GetSize() == 0 or cvValues.GetSize() == nValueNumber);
-	return (cvValues.GetSize() > 0);
-}
-
-inline int KWQuantileIntervalBuilder::GetInstanceNumber() const
+inline int KWQuantileBuilder::GetInstanceNumber() const
 {
 	require(IsFrequencyInitialized());
 	return nInstanceNumber;
 }
 
-inline int KWQuantileIntervalBuilder::GetValueNumber() const
+inline int KWQuantileBuilder::GetValueNumber() const
 {
 	require(IsFrequencyInitialized());
 	assert(nValueNumber == ivValuesCumulatedFrequencies.GetSize());
 	return nValueNumber;
+}
+
+inline boolean KWQuantileBuilder::IsComputed() const
+{
+	return (nRequestedQuantileNumber > 0);
+}
+
+inline int KWQuantileBuilder::GetQuantileNumber() const
+{
+	require(IsComputed());
+	return nRequestedQuantileNumber;
+}
+
+///
+
+inline int KWQuantileIntervalBuilder::GetType() const
+{
+	return KWType::Continuous;
+}
+
+inline boolean KWQuantileIntervalBuilder::IsValueInitialized() const
+{
+	assert(cvValues.GetSize() == 0 or cvValues.GetSize() == nValueNumber);
+	return bIsValueInitialized;
 }
 
 inline int KWQuantileIntervalBuilder::GetValueFrequencyAt(int nIndex) const
@@ -320,6 +393,24 @@ inline Continuous KWQuantileIntervalBuilder::GetValueAt(int nIndex) const
 	return cvValues.GetAt(nIndex);
 }
 
+inline Continuous KWQuantileIntervalBuilder::GetMinValue() const
+{
+	Continuous cMinValue;
+	require(IsFrequencyInitialized());
+	require(IsValueInitialized());
+	cMinValue = cvValues.GetAt(0);
+	if (cMinValue == KWContinuous::GetMissingValue() and cvValues.GetSize() > 1)
+		cMinValue = cvValues.GetAt(1);
+	return cMinValue;
+}
+
+inline Continuous KWQuantileIntervalBuilder::GetMaxValue() const
+{
+	require(IsFrequencyInitialized());
+	require(IsValueInitialized());
+	return cvValues.GetAt(cvValues.GetSize() - 1);
+}
+
 inline int KWQuantileIntervalBuilder::GetMissingValueNumber() const
 {
 	require(IsFrequencyInitialized());
@@ -328,17 +419,6 @@ inline int KWQuantileIntervalBuilder::GetMissingValueNumber() const
 		return 0;
 	else
 		return ivValuesCumulatedFrequencies.GetAt(0);
-}
-
-inline boolean KWQuantileIntervalBuilder::IsComputed() const
-{
-	return (nRequestedQuantileNumber > 0);
-}
-
-inline int KWQuantileIntervalBuilder::GetQuantileNumber() const
-{
-	require(IsComputed());
-	return nRequestedQuantileNumber;
 }
 
 inline boolean KWQuantileIntervalBuilder::IsEqualWidth() const
@@ -407,28 +487,15 @@ inline int KWQuantileIntervalBuilder::GetIntervalQuantileIndexAt(int nIntervalIn
 
 ///
 
-inline boolean KWQuantileGroupBuilder::IsFrequencyInitialized() const
+inline int KWQuantileGroupBuilder::GetType() const
 {
-	return (nInstanceNumber > 0);
+	return KWType::Symbol;
 }
 
 inline boolean KWQuantileGroupBuilder::IsValueInitialized() const
 {
 	assert(svValues.GetSize() == 0 or svValues.GetSize() == nValueNumber);
-	return (svValues.GetSize() > 0);
-}
-
-inline int KWQuantileGroupBuilder::GetInstanceNumber() const
-{
-	require(IsFrequencyInitialized());
-	return nInstanceNumber;
-}
-
-inline int KWQuantileGroupBuilder::GetValueNumber() const
-{
-	require(IsFrequencyInitialized());
-	assert(nValueNumber == ivValuesCumulatedFrequencies.GetSize());
-	return nValueNumber;
+	return bIsValueInitialized;
 }
 
 inline int KWQuantileGroupBuilder::GetValueFrequencyAt(int nIndex) const
@@ -454,17 +521,6 @@ inline Symbol& KWQuantileGroupBuilder::GetValueAt(int nIndex) const
 	require(IsValueInitialized());
 	require(0 <= nIndex and nIndex < GetValueNumber());
 	return svValues.GetAt(nIndex);
-}
-
-inline boolean KWQuantileGroupBuilder::IsComputed() const
-{
-	return (nRequestedQuantileNumber > 0);
-}
-
-inline int KWQuantileGroupBuilder::GetQuantileNumber() const
-{
-	require(IsComputed());
-	return nRequestedQuantileNumber;
 }
 
 inline int KWQuantileGroupBuilder::GetGroupNumber() const
@@ -494,13 +550,18 @@ inline int KWQuantileGroupBuilder::GetGroupFrequencyAt(int nGroupIndex) const
 {
 	require(IsComputed());
 	require(0 <= nGroupIndex and nGroupIndex < GetGroupNumber());
-	if (nGroupIndex == 0)
-		return ivValuesCumulatedFrequencies.GetAt(0);
-	else if (nGroupIndex < GetGroupNumber() - 1)
-		return ivValuesCumulatedFrequencies.GetAt(nGroupIndex) -
-		       ivValuesCumulatedFrequencies.GetAt(nGroupIndex - 1);
+	if (GetGroupNumber() == 1)
+		return GetInstanceNumber();
 	else
-		return GetInstanceNumber() - ivValuesCumulatedFrequencies.GetAt(GetGroupNumber() - 2);
+	{
+		if (nGroupIndex == 0)
+			return ivValuesCumulatedFrequencies.GetAt(0);
+		else if (nGroupIndex < GetGroupNumber() - 1)
+			return ivValuesCumulatedFrequencies.GetAt(nGroupIndex) -
+			       ivValuesCumulatedFrequencies.GetAt(nGroupIndex - 1);
+		else
+			return GetInstanceNumber() - ivValuesCumulatedFrequencies.GetAt(GetGroupNumber() - 2);
+	}
 }
 
 inline int KWQuantileGroupBuilder::GetGroupValueNumberAt(int nGroupIndex) const

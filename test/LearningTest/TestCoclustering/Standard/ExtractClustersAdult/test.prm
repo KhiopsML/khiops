@@ -1,0 +1,56 @@
+// Fri Dec 02 15:33:16 2011
+// c:\Users\boullema\Learning\Win32\Debug\MODL_Coclustering.exe
+// Output command file
+//
+//This file contains recorded commands, that can be replayed.
+//Commands are based on user interactions:
+//	field update
+//	list item selection
+//	menu action
+//Every command can be commented, using //.
+//For example, commenting the last Exit command will allow other
+//user interactions, after the commands have been replayed.
+//
+//
+
+
+
+LearningTools.ExtractClusters  // Extract clusters...
+
+SelectInputCoclustering        // Select input coclustering...
+// -> Cluster extraction
+
+// -> Open
+InputCoclusteringFileName ./AdultCoclustering.khcj   // Input coclustering file
+OK                             // Open
+// <- Open
+
+
+CoclusteringAttribute age         // Coclustering variable
+ClusterFileName ./results/ClustersAge.txt     // Cluster table file
+ExtractClusters                // Extract clusters
+
+CoclusteringAttribute occupation         // Coclustering variable
+ClusterFileName ./results/ClustersOccupation.txt     // Cluster table file
+ExtractClusters                // Extract clusters
+
+PostProcessingSpec.MaxPreservedInformation 50      // Max preserved information
+CoclusteringAttribute age         // Coclustering variable
+ClusterFileName ./results/I50_ClustersAge.txt     // Cluster table file
+ExtractClusters                // Extract clusters
+
+CoclusteringAttribute occupation         // Coclustering variable
+ClusterFileName ./results/I50_ClustersOccupation.txt     // Cluster table file
+ExtractClusters                // Extract clusters
+
+Exit                           // Close
+// <- Cluster extraction
+
+Exit                           // Close
+// <- Khiops Coclustering
+
+
+// -> Khiops Coclustering
+OK                             // Close
+// <- Khiops Coclustering
+

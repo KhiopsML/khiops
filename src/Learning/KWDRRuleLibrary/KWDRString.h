@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -19,7 +19,6 @@ class KWDRTranslate;
 class KWDRSearch;
 class KWDRReplace;
 class KWDRReplaceAll;
-class KWDRReplaceValues;
 class KWDRRegexMatch;
 class KWDRRegexSearch;
 class KWDRRegexReplace;
@@ -29,18 +28,53 @@ class KWDRToLower;
 class KWDRConcat;
 class KWDRHash;
 class KWDREncrypt;
+class KWDRBuildKey;
 
 #include "KWDerivationRule.h"
 #include "KWDRVector.h"
-#include "Regex.h"
+#include "Regexp.h"
 
 // Enregistrement de ces regles
 void KWDRRegisterStringRules();
 
 ////////////////////////////////////////////////////////////////////////////
+// Classe KWDRStringRule
+// Ancetre des regles portant sur les chaines de caracteres, pour factoriser les services
+// entre les regles portant sur les Symbol et les Text, qui sont gerees via des valeurs
+// de meme type Symbol
+class KWDRStringRule : public KWDerivationRule
+{
+	// Calcul de l'attribut derive dans le cas d'une regle de type Text
+	Symbol ComputeTextResult(const KWObject* kwoObject) const override;
+
+	///////////////////////////////////////////
+	///// Implementation
+protected:
+	// Transformation d'une regle de type Symbol en regle de type Text
+	// Une regle de type Symbol prend en premier parametre un Symbol et renvoie potentiellement un Symbol
+	// La transformation est a appeler en fin de constructeur
+	void TransformSymbolToTextRule();
+
+	// Acces generique a la valeur du premier operande, de type Text ou Symbol
+	Symbol GetFirstOperandGenericSymbolValue(const KWObject* kwoObject) const;
+
+	// Acces generique aux valeurs des operandes, de type Text ou Symbol
+	Symbol GetGenericSymbolValue(const KWDerivationRuleOperand* operand, const KWObject* kwoObject) const;
+
+	// Conversion optimisee d'une chaine de caractere en Symbol
+	// On exploite ici la longueur de la chaine qui est disponible
+	// Remarque: on ne peut pas ajouter un constructeur de Symbol avec une
+	//  ALString en parametre car cela est ambigu pour le compilateur C++
+	//  par rapport au constructeur avec un const char* en parametre
+	// Remarque: pour a l'inverse reutiliser les methodes de ALString a partir de Symbol,
+	//  se referer a la classe KWSymbolAsString
+	Symbol StringToSymbol(const ALString& sValue) const;
+};
+
+////////////////////////////////////////////////////////////////////////////
 // Classe KWDRLength
 // Longueur d'un attribut Symbol
-class KWDRLength : public KWDerivationRule
+class KWDRLength : public KWDRStringRule
 {
 public:
 	// Constructeur
@@ -59,7 +93,7 @@ public:
 // Extraction de la sous-chaine gauche d'un attribut Symbol
 // Si le nombre de caracteres est negatif, retourne chaine vide
 // Si le nombre de caracteres depasse la longueur, retourne la chaine initiale
-class KWDRLeft : public KWDerivationRule
+class KWDRLeft : public KWDRStringRule
 {
 public:
 	// Constructeur
@@ -78,7 +112,7 @@ public:
 // Extraction de la sous-chaine droite d'un attribut Symbol
 // Si le nombre de caracteres est negatif, retourne chaine vide
 // Si le nombre de caracteres depasse la longueur, retourne la chaine initiale
-class KWDRRight : public KWDerivationRule
+class KWDRRight : public KWDRStringRule
 {
 public:
 	// Constructeur
@@ -99,7 +133,7 @@ public:
 // Si le nombre de caracteres est negatif, retourne chaine vide
 // Si la fin d'extraction depasse la chaine initiale, retourne la fin
 //   de la chaine initiale
-class KWDRMiddle : public KWDerivationRule
+class KWDRMiddle : public KWDRStringRule
 {
 public:
 	// Constructeur
@@ -124,7 +158,7 @@ public:
 // Exemple: avec des caracteres delimiteur " ," (blanc et espace), la chaine
 // " Nombres: 1, 2, 3.14, 4,5 " contient exactement 6 tokens:
 //   'Nombres:'  '1'  '2' '3.14'  '4'  '5'.
-class KWDRTokenLength : public KWDerivationRule
+class KWDRTokenLength : public KWDRStringRule
 {
 public:
 	// Constructeur
@@ -146,7 +180,7 @@ public:
 // Si le nombre de tokens est negatif, retourne chaine vide
 // Si le nombre de tokens depasse la longueur en token, retourne la chaine
 //   initiale(expurgee de ses delimiteurs de debut et fin)
-class KWDRTokenLeft : public KWDerivationRule
+class KWDRTokenLeft : public KWDRStringRule
 {
 public:
 	// Constructeur
@@ -168,7 +202,7 @@ public:
 // Si le nombre de tokens est negatif, retourne chaine vide
 // Si le nombre de tokens depasse la longueur en token, retourne la chaine
 //   initiale(expurgee de ses delimiteurs de debut et fin)
-class KWDRTokenRight : public KWDerivationRule
+class KWDRTokenRight : public KWDRStringRule
 {
 public:
 	// Constructeur
@@ -192,7 +226,7 @@ public:
 // Si le nombre de tokens est negatif, retourne chaine vide
 // Si le nombre de tokens depasse la longueur en token, retourne la fin de
 //   la chaine initiale(expurgee de ses delimiteurs de debut et fin)
-class KWDRTokenMiddle : public KWDerivationRule
+class KWDRTokenMiddle : public KWDRStringRule
 {
 public:
 	// Constructeur
@@ -209,10 +243,10 @@ public:
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRTranslate
 // Remplacement en sequence des valeurs d'une liste de valeurs recherchees
-// les valeurs d'une liste de valeurs de remplacement,s de meme taille
+// les valeurs d'une liste de valeurs de remplacement de meme taille
 // Pratique par exemple pour remplacer tous les caracteres accentues,
 // quelque soit leur taille
-class KWDRTranslate : public KWDerivationRule
+class KWDRTranslate : public KWDRStringRule
 {
 public:
 	// Constructeur
@@ -226,7 +260,7 @@ public:
 	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
 
 	// Verification de la validite: les listes de valeurs doivent etre de meme taille
-	boolean CheckCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckCompleteness(const KWClass* kwcOwnerClass) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -234,7 +268,7 @@ public:
 // Recherche de la position d'une sous-chaine dans un attributs Symbol
 // Si la position de depart est invalide (debut a 1), retourne -1
 // Si la sous-chaine n'est pas trouvee, retourne -1
-class KWDRSearch : public KWDerivationRule
+class KWDRSearch : public KWDRStringRule
 {
 public:
 	// Constructeur
@@ -254,7 +288,7 @@ public:
 // Si la position de depart est invalide (debut a 1), retourne la chaine initiale
 // Si la sous-chaine n'est pas trouvee, retourne la chaine initiale, sinon retourne la
 //   la chaine modifiee
-class KWDRReplace : public KWDerivationRule
+class KWDRReplace : public KWDRStringRule
 {
 public:
 	// Constructeur
@@ -275,7 +309,7 @@ public:
 // Si la position de depart est invalide (debut a 1), retourne la chaine initiale
 // Si la sous-chaine n'est pas trouvee, retourne la chaine initiale, sinon retourne la
 //   la chaine modifiee
-class KWDRReplaceAll : public KWDerivationRule
+class KWDRReplaceAll : public KWDRStringRule
 {
 public:
 	// Constructeur
@@ -292,7 +326,7 @@ public:
 //////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDRRegex
 // classe ancetre (abstraite) des regles utilisant des regex
-class KWDRRegex : public KWDerivationRule
+class KWDRRegex : public KWDRStringRule
 {
 public:
 	KWDRRegex();
@@ -302,7 +336,10 @@ public:
 	KWDerivationRule* Create() const override = 0;
 
 	// Verification qu'une regle est completement renseignee et compilable
-	boolean CheckCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckCompleteness(const KWClass* kwcOwnerClass) const override;
+
+	// Compilation pour optimiser la gestion du format
+	void Compile(KWClass* kwcOwnerClass) override;
 
 	///////////////////////////////////////////
 	///// Implementation
@@ -382,7 +419,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRToUpper
 // Mise en majuscules d'un attribut Symbol
-class KWDRToUpper : public KWDerivationRule
+class KWDRToUpper : public KWDRStringRule
 {
 public:
 	// Constructeur
@@ -399,7 +436,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRToLower
 // Mise en minuscules d'un attribut Symbol
-class KWDRToLower : public KWDerivationRule
+class KWDRToLower : public KWDRStringRule
 {
 public:
 	// Constructeur
@@ -417,7 +454,7 @@ public:
 // Classe KWDRHash
 // Calcul d'une valeur de hachage d'un attribut Symbol,
 // entre 0 et une valeur entiere max (non comprise)
-class KWDRHash : public KWDerivationRule
+class KWDRHash : public KWDRStringRule
 {
 public:
 	// Constructeur
@@ -434,12 +471,29 @@ public:
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRConcat
 // Concatenation de un, deux (ou plus) attributs Symbol
-class KWDRConcat : public KWDerivationRule
+class KWDRConcat : public KWDRStringRule
 {
 public:
 	// Constructeur
 	KWDRConcat();
 	~KWDRConcat();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildKey
+// Construit une valeur de cle unique, sous condition que les valeurs en entree soient uniques
+class KWDRBuildKey : public KWDRStringRule
+{
+public:
+	// Constructeur
+	KWDRBuildKey();
+	~KWDRBuildKey();
 
 	// Creation
 	KWDerivationRule* Create() const override;
@@ -460,7 +514,7 @@ public:
 // Attention: seuls les caracteres imprimables sont encodables. Une valeur
 // comportant des caracteres non imprimables sera au prealable transformee
 // en remplacant les caracteres non imprimables par des blancs)
-class KWDREncrypt : public KWDerivationRule
+class KWDREncrypt : public KWDRStringRule
 {
 public:
 	// Constructeur
@@ -535,3 +589,33 @@ protected:
 	mutable ALString sEncryptionKey;
 	mutable int nEncryptionHashCode;
 };
+
+//////////////////////////
+// Methodes en inline
+
+inline Symbol KWDRStringRule::GetFirstOperandGenericSymbolValue(const KWObject* kwoObject) const
+{
+	require(kwoObject != NULL);
+	require(GetFirstOperand()->GetType() == KWType::Symbol or GetFirstOperand()->GetType() == KWType::Text);
+	if (GetFirstOperand()->GetType() == KWType::Symbol)
+		return GetFirstOperand()->GetSymbolValue(kwoObject);
+	else
+		return GetFirstOperand()->GetTextValue(kwoObject);
+}
+
+inline Symbol KWDRStringRule::GetGenericSymbolValue(const KWDerivationRuleOperand* operand,
+						    const KWObject* kwoObject) const
+{
+	require(operand != NULL);
+	require(kwoObject != NULL);
+	require(operand->GetType() == KWType::Symbol or operand->GetType() == KWType::Text);
+	if (operand->GetType() == KWType::Symbol)
+		return operand->GetSymbolValue(kwoObject);
+	else
+		return operand->GetTextValue(kwoObject);
+}
+
+inline Symbol KWDRStringRule::StringToSymbol(const ALString& sValue) const
+{
+	return Symbol(sValue, sValue.GetLength());
+}

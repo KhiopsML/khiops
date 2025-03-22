@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -16,8 +16,6 @@ import normGUI.engine.GUIIntElement;
  * entier au sein d'une regle (slider). Les bornes inferieures et superieures de
  * la regles sont determinees a partir des valeurs min et max de l'element.
  * Utilisation de JSlider.
- *
- * @author Marc Boulle
  */
 public class GUIIntElementSlider extends GUIIntElement
 {
@@ -32,8 +30,7 @@ public class GUIIntElementSlider extends GUIIntElement
                 int min = getMinValue();
                 int max = getMaxValue();
 
-                // Calcul de l'intervalle entre les ticks, en arrondissant a une puissance
-                // de 10
+                // Calcul de l'intervalle entre les ticks, en arrondissant a une puissance de 10
                 int major = (max - min) / 4;
                 if (major < 1)
                         major = 1;
@@ -58,8 +55,7 @@ public class GUIIntElementSlider extends GUIIntElement
         }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage
@@ -93,7 +89,7 @@ public class GUIIntElementSlider extends GUIIntElement
          */
         protected String graphicGetValue()
         {
-                Integer nValue = new Integer(((JSlider)component).getValue());
+                Integer nValue = Integer.valueOf(((JSlider)component).getValue());
                 return nValue.toString();
         }
 

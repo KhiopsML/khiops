@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -58,7 +58,10 @@ protected:
 	// Elles correspondent principalement aux champs de saisie de l'IHM
 
 	// Fichier d'entree
-	PLShared_InputBufferedFile shared_inputFile;
+	PLShared_String shared_sInputFileName;
+	PLShared_Char shared_cInputFieldSeparator;
+	PLShared_Boolean shared_bInputHeaderLineUsed;
+	PLShared_Int shared_nBufferSize;
 
 	// Index des clefs
 	PLShared_IntVector shared_ivKeyFieldIndexes;
@@ -101,4 +104,7 @@ protected:
 
 	// Extracteur de cle
 	KWKeyExtractor keyExtractor;
+
+	// Fichier de travail pour l'esclave
+	InputBufferedFile inputFile;
 };

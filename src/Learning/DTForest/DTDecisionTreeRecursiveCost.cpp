@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -177,8 +177,8 @@ double DTDecisionTreeRecursiveCost::ComputeInternalNodeCost(DTDecisionTreeNode* 
 	if (node->GetSplitAttributeStats()->GetPreparedDataGridStats()->GetAttributeNumber() == 1)
 	{
 		// a partir de learningEnv v8, les attributs a level nul ne sont plus prepares. Le seul attribut prepare
-		// correspond ici a l'attribut cible NVDELL AddWarning("ComputeInternalNodeCost :
-		// GetPreparedDataGridStats()->GetAttributeNumber() == 1");
+		// correspond ici a l'attribut cible
+		// NVDELL AddWarning("ComputeInternalNodeCost : GetPreparedDataGridStats()->GetAttributeNumber() == 1");
 		return dInternalCost;
 	}
 

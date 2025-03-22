@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -15,6 +15,7 @@ KWDatabaseSlicerTask::KWDatabaseSlicerTask()
 	DeclareSharedParameter(&shared_DataTableSliceSet);
 	DeclareSharedParameter(&shared_nTotalBlockNumber);
 	DeclareSharedParameter(&shared_nTotalDenseSymbolAttributeNumber);
+	DeclareSharedParameter(&shared_nAllSliceOutputBufferSize);
 
 	// Variable en entree et sortie des esclaves
 	DeclareTaskOutput(&output_lWrittenObjects);
@@ -109,9 +110,6 @@ boolean KWDatabaseSlicerTask::SliceDatabase(const KWDatabase* sourceDatabase, co
 		AddMessage(sTmp + "Slices: " + IntToString(outputDataTableSliceSet->GetSliceNumber()));
 		AddMessage(sTmp + "Chunks: " + IntToString(outputDataTableSliceSet->GetChunkNumber()));
 	}
-
-	// Messages de fin de tache
-	DisplayTaskMessage();
 	return bOk;
 }
 
@@ -165,17 +163,14 @@ void KWDatabaseSlicerTask::DisplaySpecificTaskMessage()
 
 boolean KWDatabaseSlicerTask::ComputeDatabaseOpenInformation()
 {
-	boolean bOk = true;
-	const boolean bIncludingClassMemory = true;
-
-	// Creation d'une pseudo-base en sortie pour evaluer la place necessaire sur le disque
+	boolean bOk;
 
 	// Calcul de la memoire necessaire et collecte des informations permettant d'ouvir les bases dans les esclaves
 	// Attention: on ne prend en compte qu'une seule fois le dictionaire de la base, qui est partage entre
 	// les bases en lecture et en ecriture
 	// On passe ici la base en entree comme parametre de base en sortie, pour evaluer la place disque necessaire
-	bOk = bOk and shared_sourceDatabase.GetPLDatabase()->ComputeOpenInformation(
-			  true, bIncludingClassMemory, shared_sourceDatabase.GetPLDatabase());
+	bOk = shared_sourceDatabase.GetPLDatabase()->ComputeOpenInformation(true, true,
+									    shared_sourceDatabase.GetPLDatabase());
 	return bOk;
 }
 
@@ -195,8 +190,8 @@ longint KWDatabaseSlicerTask::GetMinOutputNecessaryMemory()
 	lNecessaryMemorySpace = GetEmptyOutputNecessaryMemory();
 
 	// On rajoute au minimum 64 KB par tranche plus deux tailles de buffer pour la tranche courante
-	lNecessaryMemorySpace += 2 * BufferedFile::nDefaultBufferSize +
-				 shared_DataTableSliceSet.GetDataTableSliceSet()->GetSliceNumber() * 64 * lKB;
+	lNecessaryMemorySpace += 2 * (longint)BufferedFile::nDefaultBufferSize +
+				 (longint)shared_DataTableSliceSet.GetDataTableSliceSet()->GetSliceNumber() * 64 * lKB;
 	return lNecessaryMemorySpace;
 }
 
@@ -207,9 +202,9 @@ longint KWDatabaseSlicerTask::GetMaxOutputNecessaryMemory()
 
 	// On rajoute au maximum une taille de buffer standard par tranche plus deux tailles de buffer pour la tranche
 	// courante
-	lNecessaryMemorySpace +=
-	    2 * BufferedFile::nDefaultBufferSize + shared_DataTableSliceSet.GetDataTableSliceSet()->GetSliceNumber() *
-						       longint(BufferedFile::nDefaultBufferSize);
+	lNecessaryMemorySpace += 2 * (longint)BufferedFile::nDefaultBufferSize +
+				 shared_DataTableSliceSet.GetDataTableSliceSet()->GetSliceNumber() *
+				     longint(BufferedFile::nDefaultBufferSize);
 	return lNecessaryMemorySpace;
 }
 
@@ -313,6 +308,54 @@ boolean KWDatabaseSlicerTask::MasterInitialize()
 			assert(dataTableSlice->GetDenseSymbolAttributeDiskSizes()->GetSize() == 0);
 			dataTableSlice->GetDenseSymbolAttributeDiskSizes()->SetSize(
 			    dataTableSlice->GetClass()->GetLoadedDenseAttributeNumber());
+		}
+	}
+	return bOk;
+}
+
+boolean KWDatabaseSlicerTask::MasterInitializeDatabase()
+{
+	boolean bOk = true;
+	ALString sClassName;
+	longint lDataTableSplicerGrantedMemory;
+	int nSliceNumber;
+	longint lAllSliceOutputBufferSize;
+	KWDataTableSliceSet* dataTableSliceSet;
+
+	// Appel de la methode ancetre
+	bOk = KWDatabaseTask::MasterInitializeDatabase();
+
+	///////////////////////////////////////////////////////////////////////////////////////
+	// Gestion des ressources pour determiner la taille des buffers de sortie
+
+	// Calcul des tailles de buffer
+	shared_nAllSliceOutputBufferSize = 0;
+	if (bOk)
+	{
+		// Calcul de la memoire allouee pour le slicer (hors base source)
+		lDataTableSplicerGrantedMemory = ComputeSlaveGrantedMemory(GetSlaveResourceRequirement(),
+									   GetSlaveResourceGrant()->GetMemory(), false);
+
+		// Acces au caracteristiques des tranches
+		dataTableSliceSet = shared_DataTableSliceSet.GetDataTableSliceSet();
+		nSliceNumber = shared_DataTableSliceSet.GetDataTableSliceSet()->GetSliceNumber();
+
+		// Calcul des tailles de buffer permises par ces memoire allouees
+		if (nSliceNumber > 0)
+		{
+			lAllSliceOutputBufferSize = lDataTableSplicerGrantedMemory - GetEmptyOutputNecessaryMemory();
+			assert(lAllSliceOutputBufferSize > 0);
+			lAllSliceOutputBufferSize =
+			    min(longint(dataTableSliceSet->GetTotalAttributeNumber() * sizeof(KWValue) *
+					dataTableSliceSet->GetTotalInstanceNumber()),
+				lAllSliceOutputBufferSize);
+			lAllSliceOutputBufferSize = min(lGB, lAllSliceOutputBufferSize);
+			shared_nAllSliceOutputBufferSize = (int)lAllSliceOutputBufferSize;
+			shared_nAllSliceOutputBufferSize =
+			    MemSegmentByteSize *
+			    ((shared_nAllSliceOutputBufferSize + MemSegmentByteSize - 1) / MemSegmentByteSize);
+			if (shared_nAllSliceOutputBufferSize < SystemFile::nMinPreferredBufferSize)
+				shared_nAllSliceOutputBufferSize = SystemFile::nMinPreferredBufferSize;
 		}
 	}
 	return bOk;
@@ -488,6 +531,13 @@ boolean KWDatabaseSlicerTask::MasterFinalize(boolean bProcessEndedCorrectly)
 			}
 			else
 				break;
+
+			// Arret si d'interruption utilisateur
+			if (TaskProgression::IsInterruptionRequested())
+			{
+				bOk = false;
+				break;
+			}
 		}
 	}
 
@@ -505,64 +555,16 @@ boolean KWDatabaseSlicerTask::SlaveInitialize()
 {
 	boolean bOk;
 
-	// Appel de la methode ancetre
-	bOk = KWDatabaseTask::SlaveInitialize();
-	return bOk;
-}
-
-boolean KWDatabaseSlicerTask::SlaveInitializePrepareDatabase()
-{
-	boolean bOk = true;
-	ALString sClassName;
-	longint lDataTableSplicerGrantedMemory;
-	int nSliceNumber;
-	longint lAllSliceOutputBufferSize;
-	int nAllSliceOutputBufferSize;
-	KWDataTableSliceSet* dataTableSliceSet;
-
 	require(allSliceOutputBuffer == NULL);
 
 	// Appel de la methode ancetre
-	bOk = KWDatabaseTask::SlaveInitializePrepareDatabase();
+	bOk = KWDatabaseTask::SlaveInitialize();
 
-	///////////////////////////////////////////////////////////////////////////////////////
-	// Gestion des ressources pour determiner la taille des buffers de sortie
+	// Creation et initialisation du buffer en sortie pour l'ensemble des tranches
+	allSliceOutputBuffer = new KWDatabaseSlicerOutputBufferedFile;
+	allSliceOutputBuffer->SetDataTableSliceSet(shared_DataTableSliceSet.GetDataTableSliceSet());
+	allSliceOutputBuffer->SetBufferSize(shared_nAllSliceOutputBufferSize);
 
-	// Calcul des tailles de buffer
-	nAllSliceOutputBufferSize = 0;
-	if (bOk)
-	{
-		// Calcul de la memoire allouee pour le slicer (hors base source)
-		lDataTableSplicerGrantedMemory = ComputeSlaveGrantedMemory(GetSlaveResourceRequirement(),
-									   GetSlaveResourceGrant()->GetMemory(), false);
-
-		// Acces au caracteristiques des tranches
-		dataTableSliceSet = shared_DataTableSliceSet.GetDataTableSliceSet();
-		nSliceNumber = shared_DataTableSliceSet.GetDataTableSliceSet()->GetSliceNumber();
-
-		// Calcul des tailles de buffer permises par ces memoire allouees
-		if (nSliceNumber > 0)
-		{
-			lAllSliceOutputBufferSize = lDataTableSplicerGrantedMemory - GetEmptyOutputNecessaryMemory();
-			assert(lAllSliceOutputBufferSize > 0);
-			lAllSliceOutputBufferSize =
-			    min(longint(dataTableSliceSet->GetTotalAttributeNumber() * sizeof(KWValue) *
-					dataTableSliceSet->GetTotalInstanceNumber()),
-				lAllSliceOutputBufferSize);
-			lAllSliceOutputBufferSize = min(lGB, lAllSliceOutputBufferSize);
-			nAllSliceOutputBufferSize = (int)lAllSliceOutputBufferSize;
-			nAllSliceOutputBufferSize =
-			    MemSegmentByteSize *
-			    ((nAllSliceOutputBufferSize + MemSegmentByteSize - 1) / MemSegmentByteSize);
-			nAllSliceOutputBufferSize =
-			    max(BufferedFile::nDefaultBufferSize / 8, nAllSliceOutputBufferSize);
-		}
-
-		// Creation et initialisation du buffer en sortie pour l'ensemble des tranches
-		allSliceOutputBuffer = new KWDatabaseSlicerOutputBufferedFile;
-		allSliceOutputBuffer->SetDataTableSliceSet(dataTableSliceSet);
-		allSliceOutputBuffer->SetBufferSize(nAllSliceOutputBufferSize);
-	}
 	return bOk;
 }
 
@@ -582,6 +584,8 @@ boolean KWDatabaseSlicerTask::SlaveProcessStartDatabase()
 	ALString sSliceBaseName;
 	ALString sSliceFileName;
 	ALString sTmp;
+
+	require(allSliceOutputBuffer != NULL);
 
 	// Initialisation des variables en sortie
 	output_lWrittenObjects = 0;
@@ -611,22 +615,37 @@ boolean KWDatabaseSlicerTask::SlaveProcessStartDatabase()
 
 			// Memorisation du fichier
 			if (bOk)
+			{
 				allSliceOutputBuffer->GetSliceFileNames()->SetAt(nSlice, sSliceFileName);
+				SlaveRegisterUniqueTmpFile(sSliceFileName);
+			}
 			else
 				break;
+
+			// Arret si d'interruption utilisateur
+			if (TaskProgression::IsInterruptionRequested())
+			{
+				bOk = false;
+				break;
+			}
 		}
 
 		// Ouverture du buffer en sortie pour l'ensemble des tranches
 		if (bOk)
 			bOk = allSliceOutputBuffer->Open();
 
+		// Test d'interruption utilisateur
+		if (TaskProgression::IsInterruptionRequested())
+			bOk = false;
+
 		// Destruction des fichiers cree en cas d'erreur
 		if (not bOk)
 		{
-			assert(not allSliceOutputBuffer->IsOpened());
+			assert(not allSliceOutputBuffer->IsOpened() or TaskProgression::IsInterruptionRequested());
 			DeleteSliceFiles();
 		}
 	}
+	ensure(allSliceOutputBuffer != NULL);
 	return bOk;
 }
 
@@ -634,6 +653,7 @@ boolean KWDatabaseSlicerTask::SlaveProcessExploitDatabaseObject(const KWObject* 
 {
 	boolean bOk = true;
 
+	require(allSliceOutputBuffer != NULL);
 	require(shared_DataTableSliceSet.GetDataTableSliceSet() == allSliceOutputBuffer->GetDataTableSliceSet());
 
 	// Ecriture de l'objet pour le dispatcher dans les fichiers de tranche
@@ -646,6 +666,7 @@ boolean KWDatabaseSlicerTask::SlaveProcessExploitDatabaseObject(const KWObject* 
 		AddError("Error in writing database slice files");
 		bOk = false;
 	}
+	ensure(allSliceOutputBuffer != NULL);
 	return bOk;
 }
 
@@ -655,6 +676,8 @@ boolean KWDatabaseSlicerTask::SlaveProcessStopDatabase(boolean bProcessEndedCorr
 	int nSlice;
 	ALString sSliceFileName;
 	boolean bCloseOk;
+
+	require(allSliceOutputBuffer != NULL);
 
 	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::SlaveProcessStopDatabase(bProcessEndedCorrectly);
@@ -946,7 +969,7 @@ boolean KWDatabaseSlicerOutputBufferedFile::Close()
 	require(IsOpened());
 
 	// Ecriture du contenu du buffer
-	Flush();
+	FlushCache();
 	bOk = not bIsError;
 
 	// Nettoyage
@@ -959,7 +982,6 @@ boolean KWDatabaseSlicerOutputBufferedFile::Close()
 	outputSliceFile = NULL;
 
 	// Fermeture du buffer
-	assert(fileDriver == NULL);
 	assert(fileHandle == NULL);
 	bIsOpened = false;
 	bIsError = false;
@@ -967,7 +989,7 @@ boolean KWDatabaseSlicerOutputBufferedFile::Close()
 	return bOk;
 }
 
-void KWDatabaseSlicerOutputBufferedFile::Flush()
+boolean KWDatabaseSlicerOutputBufferedFile::FlushCache()
 {
 	boolean bOk;
 	int nOutputBufferSize;
@@ -988,9 +1010,9 @@ void KWDatabaseSlicerOutputBufferedFile::Flush()
 
 	// Arret si traitement inutile
 	if (nCurrentBufferSize == 0)
-		return;
+		return not bIsError;
 	if (bIsError)
-		return;
+		return false;
 
 	// Calcul du nombre de tranche a ecrire
 	nSliceNumber = dataTableSliceSet->GetSliceNumber();
@@ -1019,7 +1041,7 @@ void KWDatabaseSlicerOutputBufferedFile::Flush()
 		// Ecriture de tout le buffer dans le fichier
 		if (not bIsError)
 		{
-			outputSliceFile->WriteSubPart(GetBuffer(), 0, nCurrentBufferSize);
+			outputSliceFile->WriteSubPart(GetCache(), 0, nCurrentBufferSize);
 
 			// Fermeture du fichier
 			bOk = outputSliceFile->Close();
@@ -1095,7 +1117,7 @@ void KWDatabaseSlicerOutputBufferedFile::Flush()
 						nEndOffset = ivLineOffsets.GetAt(nLine);
 					else
 						nEndOffset = nCurrentBufferSize;
-					outputSliceFile->WriteSubPart(GetBuffer(), nBeginOffset,
+					outputSliceFile->WriteSubPart(GetCache(), nBeginOffset,
 								      nEndOffset - nBeginOffset);
 
 					// Passage a la ligne suivante pour cette tranche
@@ -1125,4 +1147,6 @@ void KWDatabaseSlicerOutputBufferedFile::Flush()
 
 	// On vide le buffer
 	nCurrentBufferSize = 0;
+
+	return not bIsError;
 }

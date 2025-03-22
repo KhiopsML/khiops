@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -15,8 +15,6 @@ import javax.swing.text.PlainDocument;
 
 /**
  * Definit un element de type caractere
- *
- * @author Marc Boulle
  */
 public abstract class GUICharElement extends GUIElement
 {
@@ -75,7 +73,7 @@ public abstract class GUICharElement extends GUIElement
         public Object getValueIn(GUIUnit unit)
         {
                 // Appel de la methode native
-                return new Character(unit.getCharValueAt(getIdentifier()));
+                return Character.valueOf(unit.getCharValueAt(getIdentifier()));
         }
 
         /**
@@ -84,7 +82,7 @@ public abstract class GUICharElement extends GUIElement
          */
         public void graphicRefreshAll()
         {
-                graphicSetValue(new Character(getParentUnit().getCharValueAt(getIdentifier())).toString());
+                graphicSetValue(Character.valueOf(getParentUnit().getCharValueAt(getIdentifier())).toString());
         }
 
         /**
@@ -116,8 +114,6 @@ public abstract class GUICharElement extends GUIElement
 /**
  * Definit l'element graphique par defaut permettant l'affichage de caracteres.
  * Cette classe utilise un JTextField.
- *
- * @author Marc Boulle
  */
 class GUICharElementTextField extends GUICharElement
 {
@@ -130,8 +126,7 @@ class GUICharElementTextField extends GUICharElement
         protected JComponent buildComponent() { return getDefaultComponent(); }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -31,10 +31,6 @@ public:
 	// petit nombre de Schroder
 	static double NbSchroder(int nValue);
 
-	// Logarithme du nombre de Bell "generalise"
-	// Nombre de partition de n elements en k classes (eventuellements vides)
-	static double LnBell(int n, int k);
-
 	// derivee du codage RISSANEN 2log(n) + 1
 	static double NumbersCodeLength1(int n);
 
@@ -44,12 +40,8 @@ public:
 	// renvoie un nombre entier aleatoire selon la distribution de rissanen bornee
 	static int RissanenMaxNumber(int nMax);
 
-	////////////////////////////
-	// Test
-	static void Test();
-
 	///////////////////////////////////////////////////////////////
-	///// Implementation
+	// Implementation
 protected:
 	///////////////////////////////////////////////////////////////
 	// Methodes internes

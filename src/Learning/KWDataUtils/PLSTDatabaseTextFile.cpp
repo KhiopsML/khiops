@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -6,11 +6,16 @@
 
 PLSTDatabaseTextFile::PLSTDatabaseTextFile()
 {
-	lTotalInputFileSize = 0;
+	lTotalFileSize = 0;
+	nDatabasePreferredBufferSize = 0;
+	lInMemoryEstimatedFileObjectNumber = 0;
+	lEstimatedUsedMemoryPerObject = 0;
 	lOutputNecessaryDiskSpace = 0;
 	lEmptyOpenNecessaryMemory = 0;
 	lMinOpenNecessaryMemory = 0;
 	lMaxOpenNecessaryMemory = 0;
+	nReadSizeMin = 0;
+	nReadSizeMax = 0;
 
 	// Changement de driver : on prend le driver de table parallele
 	KWDataTableDriver* parallelDataTableDriver = new PLDataTableDriverTextFile;
@@ -21,11 +26,22 @@ PLSTDatabaseTextFile::PLSTDatabaseTextFile()
 
 PLSTDatabaseTextFile::~PLSTDatabaseTextFile() {}
 
+void PLSTDatabaseTextFile::Reset()
+{
+	kwcHeaderLineClass.SetName("");
+	kwcHeaderLineClass.DeleteAllAttributes();
+	lTotalFileSize = 0;
+	CleanOpenInformation();
+}
+
 boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bIncludingClassMemory,
 						     PLSTDatabaseTextFile* outputDatabaseTextFile)
 {
-	boolean bDisplay = false;
 	boolean bOk = true;
+	boolean bDisplay = GetPreparationTraceMode();
+	PLDataTableDriverTextFile* driver;
+	boolean bCurrentVerboseMode;
+	KWClass* kwcUsedHeaderLineClass;
 	longint lDatabaseClassNecessaryMemory;
 	int nReferenceBufferSize;
 
@@ -48,35 +64,69 @@ boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 	if (bRead)
 	{
 		// Parametrage du driver
-		assert(cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->GetDataTableName() == "");
-		assert(cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->GetClass() == NULL);
-		cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->SetDataTableName(sDatabaseName);
-		cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->SetClass(kwcPhysicalClass);
+		driver = cast(PLDataTableDriverTextFile*, dataTableDriverCreator);
+		assert(driver->GetDataTableName() == "");
+		assert(driver->GetClass() == NULL);
+		driver->SetDataTableName(sDatabaseName);
+		driver->SetClass(kwcPhysicalClass);
+
+		// Creation d'une classe fictive basee sur l'analyse de la premiere ligne du fichier, dans le cas d'une
+		// ligne d'entete
+		kwcUsedHeaderLineClass = NULL;
+		if (GetHeaderLineUsed())
+		{
+			// Calcul bufferise pour minimiser les acces au fichier
+			if (kwcHeaderLineClass.GetName() == "")
+			{
+				// On passe temporairement par un mode verbeux, car ce calcul bufferise ne sera effectue
+				// qu'une seule fois
+				bCurrentVerboseMode = dataTableDriverCreator->GetVerboseMode();
+				dataTableDriverCreator->SetVerboseMode(true);
+
+				// Calcul d'une classe representant le header a partir du fichier
+				kwcHeaderLineClass.SetName(
+				    kwcClass->GetDomain()->BuildClassName(GetClassName() + "HeaderLine"));
+				bOk = driver->BuildDataTableClass(&kwcHeaderLineClass);
+				assert(bOk or kwcHeaderLineClass.GetName() == "");
+
+				// Restitution du mode initial
+				dataTableDriverCreator->SetVerboseMode(bCurrentVerboseMode);
+			}
+			kwcUsedHeaderLineClass = &kwcHeaderLineClass;
+		}
 
 		// Calcul des index
-		bOk = cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->ComputeDataItemLoadIndexes(kwcClass);
+		bOk = bOk and driver->ComputeDataItemLoadIndexes(kwcClass, kwcUsedHeaderLineClass);
 
-		// Calcul de la taille du fichier
-		lTotalInputFileSize = PLRemoteFileService::GetFileSize(sDatabaseName);
+		// Calcul de la taille du fichier si non deja calcule ou si erreur
+		if (bRead and lTotalFileSize == 0)
+			lTotalFileSize = PLRemoteFileService::GetFileSize(sDatabaseName);
+
+		// Memorisation de l'estimation du nombre d'objet du fichier
+		lInMemoryEstimatedFileObjectNumber = driver->GetInMemoryEstimatedObjectNumber(lTotalFileSize);
+
+		// Memorisation de la memoire utilisee par KWObject
+		lEstimatedUsedMemoryPerObject = driver->GetEstimatedUsedMemoryPerObject();
 
 		// Calcul de la taille memoire en sortie
 		if (outputDatabaseTextFile != NULL)
 		{
-			lOutputNecessaryDiskSpace = cast(PLDataTableDriverTextFile*, dataTableDriverCreator)
-							->ComputeNecessaryDiskSpaceForFullWrite(kwcClass);
+			lOutputNecessaryDiskSpace =
+			    driver->ComputeNecessaryDiskSpaceForFullWrite(kwcClass, lTotalFileSize);
 		}
 
 		// Nettoyage
-		cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->SetClass(NULL);
-		cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->SetDataTableName("");
+		driver->SetClass(NULL);
+		driver->SetDataTableName("");
 	}
 
 	// Correction de la place disque necessaire en sortie en fonction du pourcentage d'exemples a lire dans la base
 	// d'entree
 	if (GetModeExcludeSample())
-		lOutputNecessaryDiskSpace = (lOutputNecessaryDiskSpace * (100 - GetSampleNumberPercentage())) / 100;
+		lOutputNecessaryDiskSpace =
+		    (longint)(lOutputNecessaryDiskSpace * (100 - GetSampleNumberPercentage()) / 100);
 	else
-		lOutputNecessaryDiskSpace = (lOutputNecessaryDiskSpace * GetSampleNumberPercentage()) / 100;
+		lOutputNecessaryDiskSpace = (longint)(lOutputNecessaryDiskSpace * GetSampleNumberPercentage() / 100);
 
 	// S'il y a un critere de selection, on ne peut prevoir la place necessaire
 	// On se place alors de facon heuristique sur 5% (pour ne pas sur-estimer cette place et interdire la tache)
@@ -84,24 +134,57 @@ boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 	if (GetSelectionAttribute() != "")
 		lOutputNecessaryDiskSpace /= 20;
 
-	// Estimation de la memoire minimale et maximale necessaire pour ouvrir la base ave un buffer vide
-	nReferenceBufferSize = GetBufferSize();
-	SetBufferSize(0);
-	lEmptyOpenNecessaryMemory = ComputeOpenNecessaryMemory(bRead, bIncludingClassMemory);
-	SetBufferSize(nMinOpenBufferSize);
-	lMinOpenNecessaryMemory = ComputeOpenNecessaryMemory(bRead, bIncludingClassMemory);
-	SetBufferSize(nMaxOpenBufferSize);
-	lMaxOpenNecessaryMemory = ComputeOpenNecessaryMemory(bRead, bIncludingClassMemory);
-	SetBufferSize(nReferenceBufferSize);
+	// Exigences sur la taille du buffer de lecture
+	nDatabasePreferredBufferSize = PLRemoteFileService::GetPreferredBufferSize(sDatabaseName);
+	nReadSizeMin = SystemFile::nMinPreferredBufferSize;
+	nReadSizeMax =
+	    (SystemFile::nMaxPreferredBufferSize / nDatabasePreferredBufferSize) * nDatabasePreferredBufferSize;
+	nReadSizeMax = max(nReadSizeMax, nReadSizeMin);
+
+	// En mono-table, on prevoie la presence systematique d'un cache
+	// en demandant en plus une taille preferee pour le min et le max
+	if (bRead)
+	{
+		nReadSizeMin += nDatabasePreferredBufferSize;
+		nReadSizeMax += nDatabasePreferredBufferSize;
+	}
+
+	// En mode lecture, on limite la taille des buffer par la taille du fichier en entree
+	// (lTotalFileSize est la taille du fichier en mono-table)
+	if (bRead)
+	{
+		if (nReadSizeMin > lTotalFileSize)
+			nReadSizeMin = (int)lTotalFileSize;
+		if (nReadSizeMax > lTotalFileSize)
+			nReadSizeMax = (int)lTotalFileSize;
+	}
+
+	// Estimation de la memoire minimale et maximale necessaire pour ouvrir la base avec un buffer vide
+	if (bOk)
+	{
+		nReferenceBufferSize = GetBufferSize();
+		SetBufferSize(0);
+		lEmptyOpenNecessaryMemory = ComputeOpenNecessaryMemory(bRead, bIncludingClassMemory);
+		SetBufferSize(nReadSizeMin);
+		lMinOpenNecessaryMemory = ComputeOpenNecessaryMemory(bRead, bIncludingClassMemory);
+		SetBufferSize(nReadSizeMax);
+		lMaxOpenNecessaryMemory = ComputeOpenNecessaryMemory(bRead, bIncludingClassMemory);
+		SetBufferSize(nReferenceBufferSize);
+	}
 
 	// La memoire precedente est estimee principalement en fonction de la taille occupee par le dictionnaire
 	// qui peut etre largement sous-estimee dans certains cas (difference d'occupation memoire selon que le
 	// dictionnaire vient d'etre charge en memoire, est optimise, compile...)
 	// On corrige cette sous-estimation en prenant en compte en plus deux fois les dictionnaires
-	lDatabaseClassNecessaryMemory = 2 * KWDatabase::ComputeOpenNecessaryMemory(bRead, bIncludingClassMemory);
-	lEmptyOpenNecessaryMemory += lDatabaseClassNecessaryMemory;
-	lMinOpenNecessaryMemory += lDatabaseClassNecessaryMemory;
-	lMaxOpenNecessaryMemory += lEmptyOpenNecessaryMemory * 2;
+	lDatabaseClassNecessaryMemory = 0;
+	if (bOk)
+	{
+		lDatabaseClassNecessaryMemory =
+		    2 * KWDatabase::ComputeOpenNecessaryMemory(bRead, bIncludingClassMemory);
+		lEmptyOpenNecessaryMemory += lDatabaseClassNecessaryMemory;
+		lMinOpenNecessaryMemory += lDatabaseClassNecessaryMemory;
+		lMaxOpenNecessaryMemory += lEmptyOpenNecessaryMemory * 2;
+	}
 
 	// Affichage
 	if (bDisplay)
@@ -111,9 +194,9 @@ boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 		     << LongintToHumanReadableString(lDatabaseClassNecessaryMemory) << endl;
 		cout << "\tEmptyOpenNecessaryMemory\t" << LongintToHumanReadableString(lEmptyOpenNecessaryMemory)
 		     << endl;
-		cout << "\tMinOpenBufferSize\t" << LongintToHumanReadableString(nMinOpenBufferSize) << endl;
+		cout << "\tMinOpenBufferSize\t" << LongintToHumanReadableString(nReadSizeMin) << endl;
 		cout << "\tMinOpenNecessaryMemory\t" << LongintToHumanReadableString(lMinOpenNecessaryMemory) << endl;
-		cout << "\tMaxOpenBufferSize\t" << LongintToHumanReadableString(nMaxOpenBufferSize) << endl;
+		cout << "\tMaxOpenBufferSize\t" << LongintToHumanReadableString(nReadSizeMax) << endl;
 		cout << "\tMaxOpenNecessaryMemory\t" << LongintToHumanReadableString(lMaxOpenNecessaryMemory) << endl;
 	}
 
@@ -130,11 +213,15 @@ boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 
 void PLSTDatabaseTextFile::CleanOpenInformation()
 {
-	lTotalInputFileSize = 0;
+	nDatabasePreferredBufferSize = 0;
+	lInMemoryEstimatedFileObjectNumber = 0;
+	lEstimatedUsedMemoryPerObject = 0;
 	lOutputNecessaryDiskSpace = 0;
 	lEmptyOpenNecessaryMemory = 0;
 	lMinOpenNecessaryMemory = 0;
 	lMaxOpenNecessaryMemory = 0;
+	nReadSizeMin = 0;
+	nReadSizeMax = 0;
 }
 
 boolean PLSTDatabaseTextFile::IsOpenInformationComputed() const
@@ -154,10 +241,34 @@ KWLoadIndexVector* PLSTDatabaseTextFile::GetDataItemLoadIndexes()
 	return cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->GetDataItemLoadIndexes();
 }
 
-longint PLSTDatabaseTextFile::GetTotalInputFileSize() const
+longint PLSTDatabaseTextFile::GetTotalFileSize() const
 {
 	require(IsOpenInformationComputed());
-	return lTotalInputFileSize;
+	return lTotalFileSize;
+}
+
+longint PLSTDatabaseTextFile::GetTotalUsedFileSize() const
+{
+	require(IsOpenInformationComputed());
+	return lTotalFileSize;
+}
+
+int PLSTDatabaseTextFile::GetDatabasePreferredBuferSize() const
+{
+	require(IsOpenInformationComputed());
+	return nDatabasePreferredBufferSize;
+}
+
+longint PLSTDatabaseTextFile::GetInMemoryEstimatedFileObjectNumber() const
+{
+	require(IsOpenInformationComputed());
+	return lInMemoryEstimatedFileObjectNumber;
+}
+
+longint PLSTDatabaseTextFile::GetEstimatedUsedMemoryPerObject() const
+{
+	require(IsOpenInformationComputed());
+	return lEstimatedUsedMemoryPerObject;
 }
 
 longint PLSTDatabaseTextFile::GetEmptyOpenNecessaryMemory() const
@@ -187,30 +298,52 @@ longint PLSTDatabaseTextFile::GetOutputNecessaryDiskSpace() const
 int PLSTDatabaseTextFile::GetMaxSlaveProcessNumber() const
 {
 	require(IsOpenInformationComputed());
-	return (int)ceil((lTotalInputFileSize + 1.0) / nMinOpenBufferSize);
+	return (int)ceil((lTotalFileSize + 1.0) / (nReadSizeMin + 1));
 }
 
-int PLSTDatabaseTextFile::ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory) const
+int PLSTDatabaseTextFile::ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory, int nProcessNumber) const
 {
 	boolean bDisplay = false;
-	longint lBufferSize;
 	int nBufferSize;
-	longint lChunkNumber;
 
 	require(IsOpenInformationComputed());
 	require(lMinOpenNecessaryMemory <= lOpenGrantedMemory);
 	require(lOpenGrantedMemory <= lMaxOpenNecessaryMemory);
-	require(lOpenGrantedMemory - lEmptyOpenNecessaryMemory + nMaxOpenBufferSize);
+	require(lOpenGrantedMemory - lEmptyOpenNecessaryMemory + SystemFile::nMaxPreferredBufferSize);
+	require(nProcessNumber >= 1);
 
 	// On calcul la taille du buffer en fonction de la memoire alouee
 	if (lOpenGrantedMemory == lMinOpenNecessaryMemory)
-		lBufferSize = nMinOpenBufferSize;
+		nBufferSize = nReadSizeMin;
 	else if (lOpenGrantedMemory == lMaxOpenNecessaryMemory)
-		lBufferSize = nMaxOpenBufferSize;
+		nBufferSize = nReadSizeMax;
+	// Cas d'un dimensionnement intermediaire
 	else
-		lBufferSize = nMinOpenBufferSize + (longint)floor((nMaxOpenBufferSize - nMinOpenBufferSize) * 1.0 *
-								  (lOpenGrantedMemory - lMinOpenNecessaryMemory) /
-								  (lMaxOpenNecessaryMemory - lMinOpenNecessaryMemory));
+	{
+		// Calcul de la taille au prorata de la memoire disponible
+		nBufferSize =
+		    nReadSizeMin +
+		    (int)floor(((nReadSizeMax - nReadSizeMin) * 1.0 * (lOpenGrantedMemory - lMinOpenNecessaryMemory)) /
+			       (lMaxOpenNecessaryMemory - lMinOpenNecessaryMemory));
+	}
+
+	// En lecture, chaque esclave doit lire au moins 5 buffer (pour que le travail soit bien reparti entre les
+	// esclaves)
+	if (bRead)
+	{
+		if (lTotalFileSize / (nProcessNumber * 5) < nBufferSize)
+			nBufferSize = int(lTotalFileSize / (nProcessNumber * 5));
+		nBufferSize = InputBufferedFile::FitBufferSize(nBufferSize);
+	}
+
+	// Arrondi a un multiple de preferredBufferSize du buffer de lecture
+	assert(nDatabasePreferredBufferSize == PLRemoteFileService::GetPreferredBufferSize(sDatabaseName));
+	if (nBufferSize > nDatabasePreferredBufferSize)
+		nBufferSize = (nBufferSize / nDatabasePreferredBufferSize) * nDatabasePreferredBufferSize;
+
+	// Projection sur les exigences min et max
+	nBufferSize = max(nBufferSize, nReadSizeMin);
+	nBufferSize = min(nBufferSize, nReadSizeMax);
 
 	// Affichage
 	if (bDisplay)
@@ -219,49 +352,19 @@ int PLSTDatabaseTextFile::ComputeOpenBufferSize(boolean bRead, longint lOpenGran
 		cout << "\tMinOpenNecessaryMemory\t" << lMinOpenNecessaryMemory << endl;
 		cout << "\tMaxOpenNecessaryMemory\t" << lMaxOpenNecessaryMemory << endl;
 		cout << "\tOpenGrantedMemory\t" << lOpenGrantedMemory << endl;
-		cout << "\tBufferSize\t" << lBufferSize << endl;
-		cout << "\tTotalInputFileSize\t" << lTotalInputFileSize << endl;
+		cout << "\tBufferSize\t" << nBufferSize << endl;
+		cout << "\tTotalFileSize\t" << lTotalFileSize << endl;
 	}
 
-	// On ajuste si necessaire la taille du buffer pour eviter le cas d'un dernier buffer de lecture tres peu rempli
-	if (bRead and lBufferSize <= lTotalInputFileSize)
-	{
-		// Retaillage si le dernier chunk est trop petit
-		lChunkNumber = lTotalInputFileSize / lBufferSize;
-		if (lTotalInputFileSize - lChunkNumber * lBufferSize < lBufferSize / 2)
-		{
-			// On calcul la taille du buffer avec un chunk supplemenatire
-			lChunkNumber++;
-			lBufferSize = 1 + longint(ceil(lTotalInputFileSize * 1.0) / lChunkNumber);
-
-			// On ajuste a un nombre entier de segments superieur
-			lBufferSize = MemSegmentByteSize * (longint)ceil(lBufferSize * 1.0 / MemSegmentByteSize);
-		}
-	}
-
-	// Ajustement final pour que les buffer soient un nombre entier de segments
-	lBufferSize = MemSegmentByteSize * (lBufferSize / MemSegmentByteSize);
-	if (lBufferSize < nMinOpenBufferSize)
-		lBufferSize = nMinOpenBufferSize;
-	if (lBufferSize > nMaxOpenBufferSize)
-		lBufferSize = nMaxOpenBufferSize;
-
-	// Retaillage en lecture si on depasse la taille du fichier
-	if (bRead and lBufferSize > lTotalInputFileSize)
-		lBufferSize = lTotalInputFileSize + 1;
-
-	// Passage en entier court
-	assert((nMinOpenBufferSize <= lBufferSize and lBufferSize <= lMaxOpenNecessaryMemory) or
-	       lTotalInputFileSize < nMinOpenBufferSize);
-	assert(lBufferSize <= INT_MAX);
-	nBufferSize = (int)lBufferSize;
-	ensure(nBufferSize > 0);
+	assert(SystemFile::nMinPreferredBufferSize <= nBufferSize or
+	       lTotalFileSize < SystemFile::nMinPreferredBufferSize);
+	ensure(nBufferSize > 0 or lTotalFileSize == 0);
 	return nBufferSize;
 }
 
-void PLSTDatabaseTextFile::SetBufferSize(int nBufferSize)
+void PLSTDatabaseTextFile::SetBufferSize(int nSize)
 {
-	cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->SetBufferSize(nBufferSize);
+	cast(PLDataTableDriverTextFile*, dataTableDriverCreator)->SetBufferSize(nSize);
 }
 
 int PLSTDatabaseTextFile::GetBufferSize() const
@@ -330,26 +433,38 @@ void PLShared_STDatabaseTextFile::SerializeObject(PLSerializer* serializer, cons
 	// Ecriture des parametres de specification de la base
 	serializer->PutString(database->GetDatabaseName());
 	serializer->PutString(database->GetClassName());
-	serializer->PutInt(database->GetSampleNumberPercentage());
+	serializer->PutDouble(database->GetSampleNumberPercentage());
 	serializer->PutBoolean(database->GetModeExcludeSample());
 	serializer->PutString(database->GetSelectionAttribute());
 	serializer->PutString(database->GetSelectionValue());
 	serializer->PutIntVector(database->GetMarkedInstances());
+	serializer->PutBoolean(database->GetDenseOutputFormat());
 	serializer->PutBoolean(database->GetVerboseMode());
 	serializer->PutBoolean(database->GetSilentMode());
 	serializer->PutBoolean(database->GetHeaderLineUsed());
 	serializer->PutChar(database->GetFieldSeparator());
 
 	// Ecriture des informations d'ouverture de la base
-	serializer->PutLongint(database->lTotalInputFileSize);
+	serializer->PutLongint(database->lTotalFileSize);
+	serializer->PutInt(database->nDatabasePreferredBufferSize);
+	serializer->PutLongint(database->lInMemoryEstimatedFileObjectNumber);
+	serializer->PutLongint(database->lEstimatedUsedMemoryPerObject);
 	serializer->PutLongint(database->lOutputNecessaryDiskSpace);
 	serializer->PutLongint(database->lEmptyOpenNecessaryMemory);
 	serializer->PutLongint(database->lMinOpenNecessaryMemory);
 	serializer->PutLongint(database->lMaxOpenNecessaryMemory);
+	serializer->PutInt(database->nReadSizeMin);
+	serializer->PutInt(database->nReadSizeMax);
 
 	// Ecriture des parametres specifiques au driver
 	shared_livDataItemLoadIndexes.SerializeObject(serializer, database->GetDataItemLoadIndexes());
 	serializer->PutInt(database->GetBufferSize());
+
+	// Ecriture des parametres du memory guard
+	serializer->PutLongint(database->GetMemoryGuardMaxSecondaryRecordNumber());
+	serializer->PutLongint(database->GetMemoryGuardSingleInstanceMemoryLimit());
+	serializer->PutLongint(KWDatabaseMemoryGuard::GetCrashTestMaxSecondaryRecordNumber());
+	serializer->PutLongint(KWDatabaseMemoryGuard::GetCrashTestSingleInstanceMemoryLimit());
 }
 
 void PLShared_STDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Object* o) const
@@ -365,26 +480,38 @@ void PLShared_STDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 	// Lecture des parametres de specification de la base
 	database->SetDatabaseName(serializer->GetString());
 	database->SetClassName(serializer->GetString());
-	database->SetSampleNumberPercentage(serializer->GetInt());
+	database->SetSampleNumberPercentage(serializer->GetDouble());
 	database->SetModeExcludeSample(serializer->GetBoolean());
 	database->SetSelectionAttribute(serializer->GetString());
 	database->SetSelectionValue(serializer->GetString());
 	serializer->GetIntVector(database->GetMarkedInstances());
+	database->SetDenseOutputFormat(serializer->GetBoolean());
 	database->SetVerboseMode(serializer->GetBoolean());
 	database->SetSilentMode(serializer->GetBoolean());
 	database->SetHeaderLineUsed(serializer->GetBoolean());
 	database->SetFieldSeparator(serializer->GetChar());
 
 	// Lecture des informations d'ouverture de la base
-	database->lTotalInputFileSize = serializer->GetLongint();
+	database->lTotalFileSize = serializer->GetLongint();
+	database->nDatabasePreferredBufferSize = serializer->GetInt();
+	database->lInMemoryEstimatedFileObjectNumber = serializer->GetLongint();
+	database->lEstimatedUsedMemoryPerObject = serializer->GetLongint();
 	database->lOutputNecessaryDiskSpace = serializer->GetLongint();
 	database->lEmptyOpenNecessaryMemory = serializer->GetLongint();
 	database->lMinOpenNecessaryMemory = serializer->GetLongint();
 	database->lMaxOpenNecessaryMemory = serializer->GetLongint();
+	database->nReadSizeMin = serializer->GetInt();
+	database->nReadSizeMax = serializer->GetInt();
 
 	// Lecture des parametres specifiques au driver
 	shared_livDataItemLoadIndexes.DeserializeObject(serializer, database->GetDataItemLoadIndexes());
 	database->SetBufferSize(serializer->GetInt());
+
+	// Lecture des parametres du memory guard
+	database->SetMemoryGuardMaxSecondaryRecordNumber(serializer->GetLongint());
+	database->SetMemoryGuardSingleInstanceMemoryLimit(serializer->GetLongint());
+	KWDatabaseMemoryGuard::SetCrashTestMaxSecondaryRecordNumber(serializer->GetLongint());
+	KWDatabaseMemoryGuard::SetCrashTestSingleInstanceMemoryLimit(serializer->GetLongint());
 }
 
 Object* PLShared_STDatabaseTextFile::Create() const

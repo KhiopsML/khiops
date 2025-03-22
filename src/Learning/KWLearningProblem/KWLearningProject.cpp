@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -12,20 +12,40 @@ void KWLearningProject::Start(int argc, char** argv)
 {
 	ALString sTmp;
 
-	if (GetParallelTraceMode() < 3)
-	{
-		if (PLParallelTask::GetTracerResources() == 0)
-			PLParallelTask::SetTracerResources(GetParallelTraceMode());
-	}
-	else
-	{
-		if (GetParallelTraceMode() == 3)
-		{
-			PLParallelTask::SetTracerResources(2);
-			PLParallelTask::SetTracerProtocolActive(true);
-		}
-	}
+	// Enregistrements des drivers pour l'acces au fichiers (hdfs,s3 ...)
+	// On doit le faire ici, avant la gestion des options de ligne de commandes, qui peuvent
+	// concerner des fichiers sur un systeme de fichier distant
+	// Note: en cas d'erreur, les messages sont dans la console
+	// Et avant l'ouverture du fichier du MemoryStatsManager
+	SystemFileDriverCreator::RegisterExternalDrivers();
 
+	// Parametrage des logs memoires depuis les variables d'environnement
+	//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
+	// On ne tente d'ouvrir le fichier que si ces trois variables sont presentes et valides
+	// Sinon, on ne fait rien, sans message d'erreur
+	// Pour avoir toutes les stats: KhiopsMemStatsLogToCollect=16383
+	// Pour la trace des IO: KhiopsIOTraceMode
+	if (GetIOTraceMode())
+		FileService::SetIOStatsActive(true);
+	MemoryStatsManager::OpenLogFileFromEnvVars(true);
+
+	// Parametrage si necessaire d'un mode de fonctionnement basique des boites de dialogue de type FileChooser
+	if (GetLearningRawGuiModeMode())
+		UIFileChooserCard::SetDefaultStyle("");
+
+	// Parametrage de la gestion des traces paralleles
+	if (GetParallelTraceMode() >= 1)
+		PLParallelTask::SetTracerResources(1);
+	if (GetParallelTraceMode() >= 2)
+	{
+		PLParallelTask::SetTracerResources(2);
+		PLParallelTask::SetTracerProtocolActive(true);
+	}
+	if (GetParallelTraceMode() >= 3)
+	{
+		PLParallelTask::SetTracerResources(3);
+		PLParallelTask::SetTracerMPIActive(true);
+	}
 	// Ajout du nom du host dans les logs
 	if (MemoryStatsManager::IsOpened())
 		MemoryStatsManager::AddLog(
@@ -41,8 +61,8 @@ void KWLearningProject::Start(int argc, char** argv)
 	// (le LearningApplicationName peut avoir ete modifie dans une sous classe)
 	FileService::SetApplicationName(GetLearningApplicationName());
 
-	// Enregsitrements des drivers pour l'acces au fichiers (hdfs,s3 ...)
-	SystemFileDriverCreator::RegisterDrivers();
+	// Parametrage du mode d'interface graphique en fonction des drivers de fichiers enregistres
+	SetLearningDefaultRawGuiModeMode(SystemFileDriverCreator::GetExternalDriverNumber());
 
 	// Seul endroit ou on capture les exceptions, pour le lancement du projet principal
 	try
@@ -56,7 +76,7 @@ void KWLearningProject::Start(int argc, char** argv)
 	// Pour rappel, la bibliotheque Norm gere deja les cas suivant:
 	//   . memory overflow pour les allocations gerees par SystemObject et ses sous classe par l'allocateur de Norm
 	//   . signal (de type segmentation fault, ou ctrl break par l'utilisateur), capturees dans la classe Global
-	// Les exceptions capturees ci-dessous ici sont par exemple celle de l'allocateur standard pour les allocations
+	// Les exceptions capturees ci-dessous ici sont par exemple celles de l'allocateur standard pour les allocations
 	// depuis les classes systeme, comme les stream.
 	//
 	// Les erreurs arithmetiques de type divide by zero sont en principe capturees par un signal, mais ce
@@ -67,22 +87,25 @@ void KWLearningProject::Start(int argc, char** argv)
 	// n'utilise pas non plus la possibilite de capturer toutes les exceptions par un "catch(...)", car cela entre
 	// en competition avec la gestion par signal, et on perd alors les informations precises sur la cause des
 	// problemes, notamment le message de "segmentation fault" gere par un signal. Le "divide by zero" n'est pas
-	// capture pasous windows, mais on prefere ce compromis plutot que d'utiliser le "catch(...)" qui le capture,
-	// mais sans aucune information sur la nature du probleme Enin, des tests avec la methode set_terminate
-	// permettant de positionner un handler de gestion des exceptions non captures se sont montres non concluants:
-	// on ne fait que perdre des informations traitees sinon.
+	// capture sous windows, mais on prefere ce compromis plutot que d'utiliser le "catch(...)" qui le capture, mais
+	// sans aucune information sur la nature du probleme Enfin, des tests avec la methode set_terminate permettant
+	// de positionner un handler de gestion des exceptions non captures se sont montres non concluants : on ne fait
+	// que perdre des informations traitees sinon.
 	catch (std::exception& e)
 	{
 		Global::AddFatalError("Global exception", "", e.what());
 	}
 
-	// Liberation des drivers de fichier
-	SystemFileDriverCreator::UnregisterDrivers();
-
 	// Terminaison de l'environnment d'apprentissage
 	MemoryStatsManager::AddLog(GetClassLabel() + " CloseLearningEnvironnement Begin");
 	CloseLearningEnvironnement();
 	MemoryStatsManager::AddLog(GetClassLabel() + " CloseLearningEnvironnement End");
+
+	// Fermeture du fichier de stats memoire
+	MemoryStatsManager::CloseLogFile();
+
+	// Liberation des drivers de fichier
+	SystemFileDriverCreator::UnregisterDrivers();
 }
 
 void KWLearningProject::Begin()
@@ -119,9 +142,8 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	UIQuestionCard quitCard;
 	boolean bContinue;
 	ALString sTmpDirFromEnv;
-	CommandLineOption* optionLicenceInfo;
-	CommandLineOption* optionLicenceUpdate;
 	CommandLineOption* optionGetVersion;
+	CommandLineOption* optionStatus;
 
 	require(PLParallelTask::IsMasterProcess());
 
@@ -130,32 +152,14 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	// lies a la compilation croisee, pour le portage vers les plate-formes linux
 	KWValueBlock::CheckPacking();
 
+	// Suppression des options car dans le cas d'appeles successifs a StartMaster
+	// Les options s'accumulent (on a ce cas notamment dans MODL_dll)
+	UIObject::GetCommandLineOptions()->DeleteAllOptions();
+
 	// Ajout d'options a l'interface
 	UIObject::GetCommandLineOptions()->SetCommandName(GetLearningCommandName());
 
-	optionLicenceInfo = new CommandLineOption;
-	optionLicenceInfo->SetFlag('l');
-	optionLicenceInfo->AddDescriptionLine(
-	    "print information to get a license: Computer name, Machine ID and remaining days");
-	optionLicenceInfo->AddDescriptionLine("exit with code 0 if khiops finds an active license (code 1 otherwise)");
-	optionLicenceInfo->SetSingle(true);
-	optionLicenceInfo->SetFinal(true);
-	optionLicenceInfo->SetGroup(1);
-	optionLicenceInfo->SetMethod(ShowLicenseInfo);
-	UIObject::GetCommandLineOptions()->AddOption(optionLicenceInfo);
-
-	optionLicenceUpdate = new CommandLineOption;
-	optionLicenceUpdate->SetFlag('u');
-	optionLicenceUpdate->AddDescriptionLine("update license");
-	optionLicenceUpdate->AddDescriptionLine(
-	    "exit with code 0 if the license is successfully updated (code 1 otherwise)");
-	optionLicenceUpdate->SetGroup(1);
-	optionLicenceUpdate->SetFinal(true);
-	optionLicenceUpdate->SetMethod(UpdateLicense);
-	optionLicenceUpdate->SetParameterRequired(true);
-	optionLicenceUpdate->SetParameterDescription(CommandLineOption::sParameterFile);
-	UIObject::GetCommandLineOptions()->AddOption(optionLicenceUpdate);
-
+	// Option pour obtenir la version
 	optionGetVersion = new CommandLineOption;
 	optionGetVersion->SetFlag('v');
 	optionGetVersion->AddDescriptionLine("print version");
@@ -165,6 +169,15 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	optionGetVersion->SetSingle(true);
 	UIObject::GetCommandLineOptions()->AddOption(optionGetVersion);
 
+	optionStatus = new CommandLineOption;
+	optionStatus->SetFlag('s');
+	optionStatus->AddDescriptionLine("print system information");
+	optionStatus->SetGroup(1);
+	optionStatus->SetFinal(true);
+	optionStatus->SetMethod(ShowSystemInformation);
+	optionStatus->SetSingle(true);
+	UIObject::GetCommandLineOptions()->AddOption(optionStatus);
+
 	// Analyse de la ligne de commande
 	UIObject::ParseMainParameters(argc, argv);
 
@@ -172,14 +185,17 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	if (not UIObject::IsBatchMode())
 		cout << GetLearningShellBanner() << endl;
 
-	// Affichage du start des licences
-	LMLicenseManager::ShowLicenseStatus();
+	// Parametrage du mode fast exist
+	UIObject::SetFastExitMode(GetLearningFastExitMode());
 
 	// Parametrage du repertoire temporaire via les variables d'environnement
 	// (la valeur du repertoire temporaire peut etre modifiee par l'IHM)
-	sTmpDirFromEnv = p_getenv("KhiopsTmpDir");
+	sTmpDirFromEnv = p_getenv("KHIOPS_TMP_DIR");
 	if (sTmpDirFromEnv != "")
 		FileService::SetUserTmpDir(sTmpDirFromEnv);
+
+	// Evaluation des ressources disponibles
+	PLParallelTask::GetDriver()->MasterInitializeResourceSystem();
 
 	// Acces au projet et a sa vue
 	learningProblem = CreateGenericLearningProblem();
@@ -202,8 +218,8 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	delete learningProblemView;
 	delete learningProblem;
 
-	// Fermeture des fichiers input output et erreurs
-	UIObject::CloseCommandFiles();
+	// Fermeture des fichiers de commandes input, output et erreurs
+	UIObject::CleanCommandLineManagement();
 
 	// Dechargement de la DLL jvm, potentiellement chargee soit pour l'IHM, soit pour HDFS
 	// Et cela n'est pas un probleme d'appeler cette methode si la DLL jvm
@@ -227,11 +243,6 @@ void KWLearningProject::OpenLearningEnvironnement()
 	KWSTDatabaseTextFile defaultDatabaseTechnology;
 	KWMTDatabaseTextFile multiTableDatabaseTechnology;
 
-	// Initialisation de la gestion des licences
-	// Fonctionnalites de Modeling et de Scoring
-	if (GetProcessId() == 0)
-		LMLicenseManager::Initialize();
-
 	// Parametrage du nom du module applicatif
 	SetLearningModuleName("");
 
@@ -244,10 +255,7 @@ void KWLearningProject::OpenLearningEnvironnement()
 	// Enregistrement des technologies de bases de donnees
 	KWDatabase::RegisterDatabaseTechnology(new KWSTDatabaseTextFile);
 	KWDatabase::RegisterDatabaseTechnology(new KWMTDatabaseTextFile);
-	if (GetLearningMultiTableMode())
-		KWDatabase::SetDefaultTechnologyName(multiTableDatabaseTechnology.GetTechnologyName());
-	else
-		KWDatabase::SetDefaultTechnologyName(defaultDatabaseTechnology.GetTechnologyName());
+	KWDatabase::SetDefaultTechnologyName(multiTableDatabaseTechnology.GetTechnologyName());
 
 	// Enregistrement des vues sur les technologies de bases de donnees (uniquement pour le maitre)
 	KWDatabaseView::RegisterDatabaseTechnologyView(new KWSTDatabaseTextFileView);
@@ -260,35 +268,36 @@ void KWLearningProject::OpenLearningEnvironnement()
 	KWDRRegisterDataGridRules();
 	KWDRRegisterTablePartitionRules();
 	KWDRRegisterTableBlockRules();
+	KWDRRegisterDataGridBlockRules();
 	KWDRRegisterDataGridDeploymentRules();
 	KWDRRegisterNBPredictorRules();
+	KIDRRegisterAllRules();
 
-	// Enregistrement des methodes de pretraitement
-	KWDiscretizer::RegisterDiscretizer(new KWDiscretizerMODL);
-	KWDiscretizer::RegisterDiscretizer(new KWDiscretizerEqualWidth);
-	KWDiscretizer::RegisterDiscretizer(new KWDiscretizerEqualFrequency);
-	KWDiscretizer::RegisterDiscretizer(new KWDiscretizerMODLEqualWidth);
-	KWDiscretizer::RegisterDiscretizer(new KWDiscretizerMODLEqualFrequency);
-	KWGrouper::RegisterGrouper(new KWGrouperMODL);
-	KWGrouper::RegisterGrouper(new KWGrouperBasicGrouping);
-	KWGrouper::RegisterGrouper(new KWGrouperMODLBasic);
+	// Enregistrement des methodes de pretraitement supervisees et non supervisees
+	KWDiscretizer::RegisterDiscretizer(KWType::Symbol, new KWDiscretizerMODL);
+	KWDiscretizer::RegisterDiscretizer(KWType::Symbol, new KWDiscretizerEqualWidth);
+	KWDiscretizer::RegisterDiscretizer(KWType::Symbol, new KWDiscretizerEqualFrequency);
+	KWDiscretizer::RegisterDiscretizer(KWType::Symbol, new KWDiscretizerMODLEqualWidth);
+	KWDiscretizer::RegisterDiscretizer(KWType::Symbol, new KWDiscretizerMODLEqualFrequency);
+	KWDiscretizer::RegisterDiscretizer(KWType::None, new MHDiscretizerTruncationMODLHistogram);
+	KWDiscretizer::RegisterDiscretizer(KWType::None, new KWDiscretizerEqualWidth);
+	KWDiscretizer::RegisterDiscretizer(KWType::None, new KWDiscretizerEqualFrequency);
+	KWGrouper::RegisterGrouper(KWType::Symbol, new KWGrouperMODL);
+	KWGrouper::RegisterGrouper(KWType::Symbol, new KWGrouperBasicGrouping);
+	KWGrouper::RegisterGrouper(KWType::Symbol, new KWGrouperMODLBasic);
+	KWGrouper::RegisterGrouper(KWType::None, new KWGrouperBasicGrouping);
+	KWGrouper::RegisterGrouper(KWType::None, new KWGrouperUnsupervisedMODL);
 
 	// Enregistrement de predicteurs
 	KWPredictor::RegisterPredictor(new KWPredictorBaseline);
 	KWPredictor::RegisterPredictor(new KWPredictorUnivariate);
 	KWPredictor::RegisterPredictor(new KWPredictorBivariate);
 	KWPredictor::RegisterPredictor(new KWPredictorNaiveBayes);
-	if (GetForceSNBV9ExpertMode())
-		KWPredictor::RegisterPredictor(new KWPredictorSelectiveNaiveBayes);
-	else
-		KWPredictor::RegisterPredictor(new SNBPredictorSelectiveNaiveBayes);
+	KWPredictor::RegisterPredictor(new SNBPredictorSelectiveNaiveBayes);
 	KWPredictor::RegisterPredictor(new KWPredictorDataGrid);
 
 	// Enregistrement de vues sur les predicteurs (uniquement pour le maitre)
-	if (GetForceSNBV9ExpertMode())
-		KWPredictorView::RegisterPredictorView(new KWPredictorSelectiveNaiveBayesView);
-	else
-		KWPredictorView::RegisterPredictorView(new SNBPredictorSelectiveNaiveBayesView);
+	KWPredictorView::RegisterPredictorView(new SNBPredictorSelectiveNaiveBayesView);
 	KWPredictorView::RegisterPredictorView(new KWPredictorDataGridView);
 
 	////////////////////////////////////////////////////////////////
@@ -316,26 +325,20 @@ void KWLearningProject::OpenLearningEnvironnement()
 	PLParallelTask::RegisterTask(new KWDatabaseSlicerTask);
 	PLParallelTask::RegisterTask(new KWDataPreparationUnivariateTask);
 	PLParallelTask::RegisterTask(new KWDataPreparationBivariateTask);
-	PLParallelTask::RegisterTask(new KWPredictorEvaluationTask);
 	PLParallelTask::RegisterTask(new KWClassifierEvaluationTask);
 	PLParallelTask::RegisterTask(new KWRegressorEvaluationTask);
 	PLParallelTask::RegisterTask(new KWClassifierUnivariateEvaluationTask);
 	PLParallelTask::RegisterTask(new KWRegressorUnivariateEvaluationTask);
-	if (not GetForceSNBV9ExpertMode())
-	{
-		PLParallelTask::RegisterTask(new SNBPredictorSNBDirectTrainingTask);
-		PLParallelTask::RegisterTask(new SNBPredictorSNBEnsembleTrainingTask);
-	}
-	PLParallelTask::RegisterTask(new KDSelectionOperandExtractionTask);
+	PLParallelTask::RegisterTask(new SNBPredictorSelectiveNaiveBayesTrainingTask);
+	PLParallelTask::RegisterTask(new KDSelectionOperandSamplingTask);
+	PLParallelTask::RegisterTask(new DTDecisionTreeCreationTask);
+	PLParallelTask::RegisterTask(new KDTextTokenSampleCollectionTask);
 }
 
 void KWLearningProject::CloseLearningEnvironnement()
 {
 	// Arret des esclaves
 	PLParallelTask::GetDriver()->StopSlaves();
-
-	// Terminaison de la gestion des licences
-	LMLicenseManager::Close();
 
 	// Nettoyage de l'administration des classifieurs
 	KWPredictorView::DeleteAllPredictorViews();
@@ -382,29 +385,7 @@ UIObjectView* KWLearningProject::CreateGenericLearningProblemView()
 	return CreateLearningProblemView();
 }
 
-boolean KWLearningProject::ShowLicenseInfo(const ALString& sParam)
-{
-	int nRemainingDays;
-
-	nRemainingDays = LMLicenseManager::GetRemainingDays();
-	cout << "License information:" << endl;
-	cout << "Computer name"
-	     << "\t" << LMLicenseService::GetComputerName() << endl;
-	cout << "Machine ID    "
-	     << "\t" << LMLicenseService::GetMachineID() << endl;
-	cout << "Remaining days"
-	     << "\t" << nRemainingDays << endl;
-	cout << "To obtain or renew your license, go to www.khiops.com" << endl;
-
-	return nRemainingDays != 0;
-}
-
-boolean KWLearningProject::UpdateLicense(const ALString& sFileName)
-{
-	return LMLicenseManager::UpdateLicenseFromFile(sFileName);
-}
-
-boolean KWLearningProject::ShowVersion(const ALString&)
+boolean KWLearningProject::ShowVersion(const ALString& sValue)
 {
 	cout << GetLearningApplicationName() << " ";
 	if (GetLearningModuleName() != "")
@@ -413,31 +394,94 @@ boolean KWLearningProject::ShowVersion(const ALString&)
 	return true;
 }
 
-#ifdef KWLearningBatchMode
-#ifndef __ANDROID__
-/********************************************************************
- * Le source suivant permet de compiler des sources developpes avec *
- * l'environnement Norm, d'utiliser le mode UIObject::Textual et    *
- * de ne pas linker avec jvm.lib (a eviter absoluement).            *
- * Moyennant ces conditions, on peut livrer un executable en mode   *
- * textuel ne necessitant pas l'intallation prealable du JRE Java   *
- ********************************************************************/
-
-extern "C"
+boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
 {
-#ifdef _MSC_VER
-	int __stdcall _imp__JNI_CreateJavaVM(void** pvm, void** penv, void* args)
-	{
-		exit(0);
-	}
-#endif // _MSC_VER
+	int i;
+	const SystemFileDriver* fileDriver;
+	ALString sTmp;
+	StringVector svEnvironmentVariables;
+	ALString sEnv;
+	ALString sEnvValue;
+	boolean bEnvVarDefined;
 
-#ifdef __UNIX__
-	int JNI_CreateJavaVM(void** pvm, void** penv, void* args)
+	// Version
+	ShowVersion(sTmp);
+	cout << endl;
+
+	// Drivers
+	if (SystemFileDriverCreator::GetDriverNumber() > 0)
 	{
-		exit(0);
+		cout << "Drivers:" << endl;
+		for (i = 0; i < SystemFileDriverCreator::GetDriverNumber(); i++)
+		{
+			fileDriver = SystemFileDriverCreator::GetRegisteredDriverAt(i);
+			cout << "\t" << fileDriver->GetDriverName() << " (" << fileDriver->GetVersion()
+			     << ") for URI scheme '" << fileDriver->GetScheme() << "'" << endl;
+		}
 	}
-#endif // __UNIX__
+
+	// Affichage des variables d'environement propres a Khiops, seulement si elles sont definies
+	svEnvironmentVariables.Add("KHIOPS_RAW_GUI");
+	svEnvironmentVariables.Add("KHIOPS_TMP_DIR");
+	svEnvironmentVariables.Add("KHIOPS_HOME");
+	svEnvironmentVariables.Add("KHIOPS_API_MODE");
+	svEnvironmentVariables.Add("KHIOPS_MEMORY_LIMIT");
+	svEnvironmentVariables.Add("KHIOPS_DRIVERS_PATH");
+	svEnvironmentVariables.Sort();
+	bEnvVarDefined = false;
+	cout << "Environment variables:" << endl;
+	for (i = 0; i < svEnvironmentVariables.GetSize(); i++)
+	{
+		sEnv = svEnvironmentVariables.GetAt(i);
+		sEnvValue = p_getenv(sEnv);
+		if (sEnvValue != "")
+		{
+			cout << "\t" << sEnv << "\t" << sEnvValue << endl;
+			bEnvVarDefined = true;
+		}
+	}
+	if (not bEnvVarDefined)
+		cout << "\tNone" << endl;
+
+	svEnvironmentVariables.Initialize();
+	bEnvVarDefined = false;
+	svEnvironmentVariables.Add("KhiopsExpertMode");
+	svEnvironmentVariables.Add("KhiopsDefaultMemoryLimit");
+	svEnvironmentVariables.Add("KhiopsHardMemoryLimitMode");
+	svEnvironmentVariables.Add("KhiopsCrashTestMode");
+	svEnvironmentVariables.Add("KhiopsFastExitMode");
+	svEnvironmentVariables.Add("KhiopsPreparationTraceMode");
+	svEnvironmentVariables.Add("KhiopsIOTraceMode");
+	svEnvironmentVariables.Add("KhiopsForestExpertMode");
+	svEnvironmentVariables.Add("KhiopsCoclusteringExpertMode");
+	svEnvironmentVariables.Add("KhiopsCoclusteringIVExpertMode");
+	svEnvironmentVariables.Add("KhiopsExpertParallelMode");
+	svEnvironmentVariables.Add("KhiopsParallelTrace");
+	svEnvironmentVariables.Add("KhiopsFileServerActivated");
+	svEnvironmentVariables.Add("hiopsPriorStudyModeRAW");
+	svEnvironmentVariables.Add("KhiopsDistanceStudyMode");
+	svEnvironmentVariables.Sort();
+
+	// Affichage des variables d'environement techniques
+	cout << "Internal environment variables:" << endl;
+	for (i = 0; i < svEnvironmentVariables.GetSize(); i++)
+	{
+		sEnv = svEnvironmentVariables.GetAt(i);
+		sEnvValue = p_getenv(sEnv);
+		if (sEnvValue != "")
+		{
+			cout << "\t" << sEnv << "\t" << sEnvValue << endl;
+			bEnvVarDefined = true;
+		}
+	}
+	if (not bEnvVarDefined)
+		cout << "\tNone" << endl;
+
+	// Resources
+	cout << *RMResourceManager::GetResourceSystem();
+
+	// System
+	cout << "System\n";
+	cout << GetSystemInfos();
+	return true;
 }
-#endif // __ANDROID__
-#endif // KWLearningBatchMode

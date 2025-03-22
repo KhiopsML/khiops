@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -84,10 +84,11 @@ public:
 	int Find(const char* pszSub) const; // cf. "C" strstr
 
 	// Estimation de la memoire utilisee
+	// C'est la taille utilisee et non la taille allouee qui peut etre plus grande
 	longint GetUsedMemory() const;
 
-	// Access a l'implementation (buffer) sous forme d'une tableau "C" de caracteres
-	// Si nNewLength vaut -1, on positionne la taille sur celle de la string (terminee par '\0'=
+	// Acces a l'implementation (buffer) sous forme d'une tableau "C" de caracteres
+	// Si nNewLength vaut -1, on positionne la taille sur celle de la string (terminee par '\0')
 	char* GetBuffer(int nMinBufLength);
 	void ReleaseBuffer(int nNewLength = -1);
 	char* GetBufferSetLength(int nNewLength);
@@ -98,17 +99,18 @@ public:
 	////////////////////////////////////////////////////////////////////
 	// Implementation
 public:
+	// Longueur allouee
 	int GetAllocLength() const;
 
 	// Constructeur et affectation de deplacement, pour l'optimisation de la
 	// gestion des variables temporaires par le compilateur
-#if not defined __UNIX__ or defined __C11__
+#if defined __C11__
 	ALString(ALString&& stringSrc) noexcept;
 	ALString& operator=(ALString&& stringSrc) noexcept;
-#endif // not defined __UNIX__ or defined __C11__
+#endif
 
 protected:
-	// Longueur/tailles en caracteres (note: un caractere supplementaire est toujours alloue)
+	// Longueur/taille en caracteres (note: un caractere supplementaire est toujours alloue)
 	// En principe, la longueur d'un string est de type size_t (impact notamment en 64 bits)
 	// On impose neanmoins qu'elle soit toujours inferieure a INT_MAX, ce qui d'une part permet
 	// des chaines de tres grandes taille, d'autre part permet d'utiliser le type int de facon
@@ -297,14 +299,15 @@ inline int operator>=(const char* s1, const ALString& s2)
 extern char ALSCHARNIL;
 inline void ALString::Init()
 {
-	nDataLength = nAllocLength = 0;
+	nDataLength = 0;
+	nAllocLength = 0;
 	pchData = (char*)&ALSCHARNIL;
 }
 inline ALString::ALString()
 {
 	Init();
 }
-#if not defined __UNIX__ or defined __C11__
+#if defined __C11__
 inline ALString::ALString(ALString&& stringSrc) noexcept
 {
 	// On transfere le contenu de la chaine
@@ -326,10 +329,10 @@ inline ALString& ALString::operator=(ALString&& stringSrc) noexcept
 	}
 	return (*this);
 }
-#endif // not defined __UNIX__ or defined __C11__
+#endif // defined __C11__
 inline longint ALString::GetUsedMemory() const
 {
-	return sizeof(ALString) + nAllocLength;
+	return sizeof(ALString) + nDataLength + 1;
 }
 
 // Redefinition de l'operateur << de ostream

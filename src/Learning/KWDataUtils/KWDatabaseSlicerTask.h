@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -106,11 +106,11 @@ protected:
 	PLParallelTask* Create() const override;
 	boolean ComputeResourceRequirements() override;
 	boolean MasterInitialize() override;
+	boolean MasterInitializeDatabase() override;
 	boolean MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished) override;
 	boolean MasterAggregateResults() override;
 	boolean MasterFinalize(boolean bProcessEndedCorrectly) override;
 	boolean SlaveInitialize() override;
-	boolean SlaveInitializePrepareDatabase() override;
 	boolean SlaveProcess() override;
 	boolean SlaveProcessStartDatabase() override;
 	boolean SlaveProcessExploitDatabaseObject(const KWObject* kwoObject) override;
@@ -126,7 +126,7 @@ protected:
 
 	// Specification du decoupage de la base en tranches
 	// La specification des dictionnaires par tranche est partagee entre le maitre et les esclaves
-	// Par contre, la specification des fichiers par tranche, initialement vide, et completee
+	// Par contre, la specification des fichiers par tranche, initialement vide, est completee
 	// par le maitre au fur et a mesure des agregations des resultats des esclaves
 	PLShared_DataTableSliceSet shared_DataTableSliceSet;
 
@@ -135,6 +135,9 @@ protected:
 
 	// Nombre total d'attributs denses Symbol sur l'ensemble des tranches
 	PLShared_Int shared_nTotalDenseSymbolAttributeNumber;
+
+	// Taille de buffer a utiliser pour gerer toutes les slice en sortie des esclave
+	PLShared_Int shared_nAllSliceOutputBufferSize;
 
 	//////////////////////////////////////////////////////
 	// Parametre en entree et sortie des esclaves
@@ -216,7 +219,7 @@ public:
 	static longint GetMinimumNecessaryMemory();
 
 	///////////////////////////////////////////////////////////////////////////////////
-	// Methodes a utiliser pour ecrire dans les fichier en sortie
+	// Methodes a utiliser pour ecrire dans les fichiers en sortie
 
 	// Ecriture d'une instance du sliceSet en le dispatchant sur l'ensemble des fichiers de tranche en sortie
 	// On met egalement a jour le nombre de valeurs par bloc ainsi que la taille occupee sur le fichier par
@@ -231,10 +234,10 @@ public:
 	boolean IsOpened() const override;
 
 	// Reimplementation de la methode Flush, pour ecriture dans chaque fichier par tranche
-	void Flush() override;
+	boolean FlushCache() override;
 
 	// Redefinition de l'ecriture d'une fin de ligne (methode non virtuelle), avec memorisation
-	// d'une position dans le buffer, permettant d'assosicier la ligne a une tranche
+	// d'une position dans le buffer, permettant d'associer la ligne a une tranche
 	void WriteEOL();
 
 	/////////////////////////////////////////////////////////////

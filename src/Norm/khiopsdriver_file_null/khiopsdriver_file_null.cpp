@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -8,6 +8,10 @@
 #endif
 
 #include "khiopsdriver_file_null.h"
+
+#if defined(__linux__) || defined(__APPLE__)
+#define __linux_or_apple__
+#endif
 
 #include <string.h>
 #include <stdio.h>
@@ -21,14 +25,14 @@
 #include <windows.h>
 #endif // _MSC_VER
 
-#ifdef __UNIX__
+#ifdef __linux_or_apple__
 #include <unistd.h>
-#ifdef __clang__
+#ifdef __gnu_linux__
 #include <sys/vfs.h> // ANDROID https://svn.boost.org/trac/boost/ticket/8816
 #else
 #include <sys/statvfs.h>
 #endif // __clang__
-#endif // __UNIX__
+#endif // __linux_or_apple__
 
 // Define to compile a read-only version of the driver
 // Uncomment the following line to compile the read-only version of the driver
@@ -64,7 +68,7 @@ int driver_isReadOnly()
 
 int driver_connect()
 {
-	return 1;
+	return 0;
 }
 
 int driver_disconnect()
@@ -91,14 +95,11 @@ int isManaged(const char* sFilePathName)
 
 	assert(sFilePathName != NULL);
 
-	// Le debut du nom de fichier doit etre de la forme 'scheme:'
+	// Le debut du nom de fichier doit etre de la forme 'scheme://' ou 'scheme:///'
 	ok = strncmp(sFilePathName, driver_getScheme(), getSchemeCharNumber()) == 0;
 	ok = ok && sFilePathName[getSchemeCharNumber()] == ':';
-
-	// Sous linux, on doit ensuite commencer par un '/'
-#ifndef _MSC_VER
-	ok = ok && sFilePathName[getSchemeCharNumber()] == '/';
-#endif // _MSC_VER
+	ok = ok && sFilePathName[getSchemeCharNumber() + 1] == '/';
+	ok = ok && sFilePathName[getSchemeCharNumber() + 2] == '/';
 	return ok;
 }
 
@@ -135,43 +136,75 @@ const char* getFilePath(const char* sFilePathName)
 		return sFilePathName;
 }
 
-int driver_exist(const char* filename)
+int driver_fileExists(const char* filename)
 {
-	int ok;
+	int bIsFile = false;
 
-// Pour UNIX ou wgpp
-#if defined __UNIX__ || defined __WGPP__
-	ok = access(getFilePath(filename), 0) != -1;
-	// Pour Visual C++ 2005, 2008
-#elif _MSC_VER >= 1400
-	ok = _access(getFilePath(filename), 0) != -1; // 00=existence only
-						      //  Pour Visual C++ 2003
+#ifdef _WIN32
+	struct __stat64 fileStat;
+	if (_stat64(getFilePath(filename), &fileStat) == 0)
+		bIsFile = ((fileStat.st_mode & S_IFMT) == S_IFREG);
 #else
-	ok = access(getFilePath(filename), _IOREAD) != -1;
-#endif
-	return ok;
+	struct stat s;
+	if (stat(getFilePath(filename), &s) == 0)
+		bIsFile = ((s.st_mode & S_IFMT) == S_IFREG);
+#endif // _WIN32
+
+	return bIsFile;
+}
+
+int driver_dirExists(const char* filename)
+{
+	int bIsDirectory = false;
+
+#ifdef _WIN32
+	boolean bExist;
+
+	bExist = _access(getFilePath(filename), 0) != -1;
+	if (bExist)
+	{
+		// On test si ca n'est pas un fichier, car sous Windows, la racine ("C:") existe mais n'est
+		// consideree par l'API _stat64 ni comme une fichier ni comme un repertoire
+		boolean bIsFile = false;
+		struct __stat64 fileStat;
+		if (_stat64(filename, &fileStat) == 0)
+			bIsFile = ((fileStat.st_mode & S_IFMT) == S_IFREG);
+		bIsDirectory = !bIsFile;
+	}
+#else // _WIN32
+
+	struct stat s;
+	if (stat(getFilePath(filename), &s) == 0)
+		bIsDirectory = ((s.st_mode & S_IFMT) == S_IFDIR);
+
+#endif // _WIN32
+
+	return bIsDirectory;
 }
 
 long long int driver_getFileSize(const char* filename)
 {
 	long long int filesize;
+	int nError;
 
 	// Pour les fichiers de plus de 4 Go, il existe une API speciale (stat64...)
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#if defined _WIN32
 	struct __stat64 fileStat;
-	int nError = _stat64(getFilePath(filename), &fileStat);
-	if (nError != 0)
-		filesize = 0;
-	else
-		filesize = fileStat.st_size;
-#else
+	nError = _stat64(getFilePath(filename), &fileStat);
+#elif defined(__APPLE__)
+	struct stat fileStat;
+	nError = stat(getFilePath(filename), &fileStat);
+#elif defined(__linux__)
 	struct stat64 fileStat;
-	int nError = stat64(getFilePath(filename), &fileStat);
+	nError = stat64(filename, &fileStat);
+#elif
+	nError = 1; // undefined in the current OS
+#endif
 	if (nError != 0)
 		filesize = 0;
 	else
 		filesize = fileStat.st_size;
-#endif
+
 	return filesize;
 }
 
@@ -202,8 +235,13 @@ void* driver_fopen(const char* filename, char mode)
 
 int driver_fclose(void* stream)
 {
+	int nRet;
 	assert(stream != NULL);
-	return fclose((FILE*)stream) == 0;
+	nRet = fclose((FILE*)stream);
+	if (nRet == 0)
+		return 0;
+	else
+		return EOF;
 }
 
 long long int driver_fread(void* ptr, size_t size, size_t count, void* stream)
@@ -223,14 +261,17 @@ int driver_fseek(void* stream, long long int offset, int whence)
 {
 	int ok;
 	// Pour les fichiers de plus de 4 Go, il existe une API speciale (stat64...)
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#if defined _WIN32
 	_fseeki64((FILE*)stream, offset, whence);
-#elif defined __clang__
+#elif defined __APPLE__
 	fseeko((FILE*)stream, offset, whence);
 #else
 	fseeko64((FILE*)stream, offset, whence);
 #endif
-	ok = (ferror((FILE*)stream) == 0);
+	if (ferror((FILE*)stream) == 0)
+		ok = 0;
+	else
+		ok = -1;
 	return ok;
 }
 
@@ -273,7 +314,7 @@ int driver_remove(const char* filename)
 int driver_mkdir(const char* pathname)
 {
 	// Pour UNIX ou wgpp
-#if defined __UNIX__ // MinGW make use of__MSVCRT_VERSION__
+#if defined __linux_or_apple__
 	int error;
 	error = mkdir(getFilePath(pathname), S_IRWXU);
 	return error == 0;
@@ -288,7 +329,7 @@ int driver_mkdir(const char* pathname)
 int driver_rmdir(const char* pathname)
 {
 	// Pour UNIX ou wgpp
-#if defined __UNIX__ || defined __WGPP__
+#if defined __linux_or_apple__
 	int error;
 	error = rmdir(getFilePath(pathname));
 	return error == 0;
@@ -344,8 +385,8 @@ long long int driver_diskFreeSpace(const char* filename)
 #endif // _MSC_VER
 
 // Implementation Linux
-#if defined __UNIX__
-#ifdef __clang__
+#if defined __linux_or_apple__
+#if defined(__gnu_linux__)
 	{
 		struct statfs fiData;
 		long long int lFree;
@@ -364,17 +405,18 @@ long long int driver_diskFreeSpace(const char* filename)
 		return lFree;
 	}
 
-#else  // __clang__
+#else  // __gnu_linux__
+
 	{
 		// cf. statvfs for linux.
 		// http://stackoverflow.com/questions/1449055/disk-space-used-free-total-how-do-i-get-this-in-c
 		// http://pubs.opengroup.org/onlinepubs/009695399/basedefs/sys/statvfs.h.html
-		struct statvfs64 fiData;
+		struct statvfs fiData;
 		long long int lFree;
 
 		assert(sPathName != NULL);
 
-		if ((statvfs64(sPathName, &fiData)) < 0)
+		if ((statvfs(sPathName, &fiData)) < 0)
 		{
 			lFree = 0;
 		}
@@ -386,8 +428,8 @@ long long int driver_diskFreeSpace(const char* filename)
 		assert(lFree >= 0);
 		return lFree;
 	}
-#endif // __clang__
-#endif // __UNIX__
+#endif // __gnu_linux__
+#endif // __linux_or_apple__
 }
 
 #endif // __nullreadonlydriver__

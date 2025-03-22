@@ -1,0 +1,8 @@
+file(GLOB cppfiles *.cpp)
+add_executable(parallel_test ${cppfiles})
+set_khiops_options(parallel_test)
+target_compile_definitions(parallel_test PUBLIC MPI_DEV)
+target_link_libraries(parallel_test GTest::gtest_main PLParallelTask PLSamples testutils)
+target_compile_options(parallel_test PUBLIC ${GTEST_CFLAGS})
+include(GoogleTest)
+gtest_discover_tests(parallel_test)

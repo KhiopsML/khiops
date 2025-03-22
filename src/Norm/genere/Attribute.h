@@ -1,19 +1,10 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
-////////////////////////////////////////////////////////////
-// 2017-08-09 17:02:21
-// File generated  with GenereTable
-// Insert your specific code inside "//## " sections
-
 #include "ManagedObject.h"
-
-// ## Custom includes
-
-// ##
 
 ////////////////////////////////////////////////////////////
 // Classe Attribute
@@ -56,25 +47,13 @@ public:
 	boolean GetInvisible() const;
 	void SetInvisible(boolean bValue);
 
-	// Storage name (stored)
-	const ALString& GetStorageName() const;
-	void SetStorageName(const ALString& sValue);
-
 	// Label (stored)
 	const ALString& GetLabel() const;
 	void SetLabel(const ALString& sValue);
 
-	// Key field (stored)
-	boolean GetKeyField() const;
-	void SetKeyField(boolean bValue);
-
-	// Stats (stored)
-	boolean GetStats() const;
-	void SetStats(boolean bValue);
-
 	// Champs de la cle
 	//    Name
-	const ALString& GetKey() const;
+	const ALString& GetKey() const override;
 
 	////////////////////////////////////////////////////////
 	// Fonctionnalites generiques
@@ -93,30 +72,27 @@ public:
 		Status,
 		Style,
 		Invisible,
-		StorageName,
 		Label,
-		KeyField,
-		Stats,
 		LastField
 	};
 
 	// Nombre de champs
-	int GetFieldNumber() const;
+	int GetFieldNumber() const override;
 
 	// Acces generique aux champs, par une valeur de
 	// type chaine de caracteres
 	// (les champs derives sont ignores en ecriture)
-	void SetFieldAt(int nFieldIndex, const char* sValue);
-	const char* GetFieldAt(int nFieldIndex) const;
+	void SetFieldAt(int nFieldIndex, const char* sValue) override;
+	const char* GetFieldAt(int nFieldIndex) const override;
 
 	// Nom d'un champ d'apres son index
-	const ALString GetFieldNameAt(int nFieldIndex) const;
+	const ALString GetFieldNameAt(int nFieldIndex) const override;
 
 	// Libelle d'un champ d'apres son index
-	const ALString GetFieldLabelAt(int nFieldIndex) const;
+	const ALString GetFieldLabelAt(int nFieldIndex) const override;
 
 	// Nom de stockage d'un champ d'apres son index
-	const ALString GetFieldStorageNameAt(int nFieldIndex) const;
+	const ALString GetFieldStorageNameAt(int nFieldIndex) const override;
 
 	// Parametrage du separateur de champs (par defaut: '\t')
 	static void SetFieldSeparator(char cValue);
@@ -132,11 +108,7 @@ public:
 	const ALString GetClassLabel() const override;
 	const ALString GetObjectLabel() const override;
 
-	// ## Custom declarations
-
 	// Consultation du status
-	boolean GetPermanent() const;
-	boolean GetTransient() const;
 	boolean GetDerived() const;
 
 	// Visible
@@ -195,17 +167,15 @@ public:
 	// Comparaison entre 2 variables du type donne
 	const ALString GetTypeVarComparison(const ALString& sFirstElem, const ALString& sSecondElem) const;
 
-	// ##
-
 	////////////////////////////////////////////////////////
 	//// Implementation
 protected:
 	// Implementation des methodes virtuelles de ManagedObject
-	ManagedObject* CloneManagedObject() const;
-	boolean GetFieldStored(int nFieldIndex) const;
-	IntVector* GetStoredFieldIndexes() const;
-	CompareFunction GetCompareKeyFunction() const;
-	char GetSeparator() const;
+	ManagedObject* CloneManagedObject() const override;
+	boolean GetFieldStored(int nFieldIndex) const override;
+	IntVector* GetStoredFieldIndexes() const override;
+	CompareFunction GetCompareKeyFunction() const override;
+	char GetSeparator() const override;
 
 	// Exemplaire d'objet gere
 	static Attribute managedObjectClass;
@@ -219,14 +189,7 @@ protected:
 	ALString sStatus;
 	ALString sStyle;
 	boolean bInvisible;
-	ALString sStorageName;
 	ALString sLabel;
-	boolean bKeyField;
-	boolean bStats;
-
-	// ## Custom implementation
-
-	// ##
 };
 
 // Fonction de comparaison sur les champs de la cle
@@ -299,16 +262,6 @@ inline void Attribute::SetInvisible(boolean bValue)
 	bInvisible = bValue;
 }
 
-inline const ALString& Attribute::GetStorageName() const
-{
-	return sStorageName;
-}
-
-inline void Attribute::SetStorageName(const ALString& sValue)
-{
-	sStorageName = sValue;
-}
-
 inline const ALString& Attribute::GetLabel() const
 {
 	return sLabel;
@@ -317,38 +270,6 @@ inline const ALString& Attribute::GetLabel() const
 inline void Attribute::SetLabel(const ALString& sValue)
 {
 	sLabel = sValue;
-}
-
-inline boolean Attribute::GetKeyField() const
-{
-	return bKeyField;
-}
-
-inline void Attribute::SetKeyField(boolean bValue)
-{
-	bKeyField = bValue;
-}
-
-inline boolean Attribute::GetStats() const
-{
-	return bStats;
-}
-
-inline void Attribute::SetStats(boolean bValue)
-{
-	bStats = bValue;
-}
-
-// ## Custom inlines
-
-inline boolean Attribute::GetPermanent() const
-{
-	return sStatus == "Stored";
-}
-
-inline boolean Attribute::GetTransient() const
-{
-	return sStatus == "Standard" or sStatus == "";
 }
 
 inline boolean Attribute::GetDerived() const
@@ -370,5 +291,3 @@ inline boolean Attribute::IsLabel() const
 {
 	return sType == "";
 }
-
-// ##

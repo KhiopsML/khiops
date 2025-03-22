@@ -1,0 +1,30 @@
+#Khiops 7.7.2i
+
+Dictionary	IrisMissing
+{
+	Numerical	SepalLength		;	
+	Numerical	SepalWidth		;	
+	Numerical	PetalLength		;	
+	Numerical	PetalWidth		;	
+	Categorical	Class		;	
+	Numerical	PW_allM		;	
+	Numerical	PW_UM5		;	
+	Numerical	PW_UM10		;	
+	Numerical	PW_UM20		;	
+	Numerical	PW_UM40		;	
+	Numerical	PW_LM5		;	
+	Numerical	PW_LM10		;	
+	Numerical	PW_LM20		;	
+	Numerical	PW_LM40		;	
+	Numerical	PW_MM5		;	
+	Numerical	PW_MM10		;	
+	Numerical	PW_MM20		;	
+	Numerical	PW_MM40		;	
+	Numerical	PW_RM5		;	
+	Numerical	PW_RM10		;	
+	Numerical	PW_RM20		;	
+	Numerical	PW_RM40		;	
+	Numerical	PW_RM80		;	
+	Numerical	Alea	 = Random()	;	
+	Numerical	PW_UM40_1	 = If(G(PW_UM40, 0), 0, PW_UM40)	;	
+};

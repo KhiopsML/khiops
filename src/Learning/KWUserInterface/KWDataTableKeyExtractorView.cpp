@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -8,7 +8,6 @@ KWDataTableKeyExtractorView::KWDataTableKeyExtractorView()
 {
 	KWSTDatabaseTextFileView* sourceDataTableView;
 	KWSTDatabaseTextFileView* targetDataTableView;
-	int i;
 
 	// Parametrage general
 	SetIdentifier("KWDataTableKeyExtractor");
@@ -29,43 +28,26 @@ KWDataTableKeyExtractorView::KWDataTableKeyExtractorView()
 
 	// Ajout du parametrage de la base d'origine
 	sourceDataTableView = new KWSTDatabaseTextFileView;
+	sourceDataTableView->ToBasicReadMode();
 	sourceDataTableView->SetObject(&sourceDataTable);
 	AddCardField("SourceDataTable", "Input data table", sourceDataTableView);
 
-	// Parametrage de la visibilite des specifications de la base de destination
-	for (i = 0; i < sourceDataTableView->GetFieldNumber(); i++)
-		sourceDataTableView->GetFieldAtIndex(i)->SetVisible(false);
-	for (i = 0; i < sourceDataTableView->GetActionNumber(); i++)
-		sourceDataTableView->GetActionAtIndex(i)->SetVisible(false);
-	sourceDataTableView->GetFieldAt("DatabaseName")->SetVisible(true);
-	sourceDataTableView->GetFieldAt("HeaderLineUsed")->SetVisible(true);
-	sourceDataTableView->GetFieldAt("FieldSeparator")->SetVisible(true);
-	sourceDataTableView->GetFieldAt("DatabaseFormatDetector")->SetVisible(true);
-
 	// Ajout du parametrage de la base destination
 	targetDataTableView = new KWSTDatabaseTextFileView;
+	targetDataTableView->ToWriteOnlyMode();
 	targetDataTableView->SetObject(&targetDataTable);
 	AddCardField("TargetDataTable", "Extracted key data table", targetDataTableView);
-
-	// Parametrage de la visibilite des specifications de la base de destination
-	for (i = 0; i < targetDataTableView->GetFieldNumber(); i++)
-		targetDataTableView->GetFieldAtIndex(i)->SetVisible(false);
-	for (i = 0; i < targetDataTableView->GetActionNumber(); i++)
-		targetDataTableView->GetActionAtIndex(i)->SetVisible(false);
-	targetDataTableView->GetFieldAt("DatabaseName")->SetVisible(true);
-	targetDataTableView->GetFieldAt("HeaderLineUsed")->SetVisible(true);
-	targetDataTableView->GetFieldAt("FieldSeparator")->SetVisible(true);
 
 	// Info-bulles
 	GetFieldAt("ClassName")->SetHelpText("Dictionary that describes the content of the input data table.");
 	GetActionAt("ExtractKeysFromDataTable")
 	    ->SetHelpText("Extract keys from a sorted input data table."
 			  "\n It is dedicated to the preparation of multi-table databases, where a"
-			  "\n root entity has to be extracted from a detailed 0-n entity."
+			  "\n main entity has to be extracted from a detailed 0-n entity."
 			  "\n For example, in case of a web log file with cookies, page, timestamp in each log,"
 			  "\n extracting keys allow to build a table with unique cookies from the table of logs.");
 	GetActionAt("BuildMultiTableClass")
-	    ->SetHelpText("Build a root dictionary with a Table variable based on"
+	    ->SetHelpText("Build a main dictionary with a Table variable based on"
 			  "\n the input dictionary, then save the dictionary file.");
 
 	// Short cuts
@@ -138,6 +120,8 @@ void KWDataTableKeyExtractorView::Open()
 
 	// Parametrage du champ de saisie des dictionnaires en style ComboBox,
 	// avec la liste des dictionnaires en cours
+	// Les dictionnaires sont ici utilises uniquement en tant que format d'un fichier de donnees.
+	// Leurs caracteristiques multi-tables sont ignorees.
 	SetStringValueAt("ClassName", sInputClassName);
 	for (i = 0; i < KWClassDomain::GetCurrentDomain()->GetClassNumber(); i++)
 	{
@@ -155,9 +139,9 @@ void KWDataTableKeyExtractorView::Open()
 
 void KWDataTableKeyExtractorView::ExtractKeysFromDataTable()
 {
+	boolean bOk = true;
 	KWSTDatabaseTextFile workingTargetDataTable;
 	ALString sOutputPathName;
-	boolean bOk;
 	KWClass* initialClass;
 	KWFileKeyExtractorTask keyExtractorTask;
 	ALString sTmp;
@@ -169,59 +153,53 @@ void KWDataTableKeyExtractorView::ExtractKeysFromDataTable()
 	require(sourceDataTable.GetObjects()->GetSize() == 0);
 	require(workingTargetDataTable.GetObjects()->GetSize() == 0);
 
-	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
-
 	// Verification du directory des fichiers temporaires
-	if (not FileService::CreateApplicationTmpDir())
-		return;
+	bOk = FileService::CreateApplicationTmpDir();
 
 	// On passe par une autre table en sortie, pour pouvoir specifier son chemin si elle n'en a pas
 	workingTargetDataTable.CopyFrom(&targetDataTable);
 	workingTargetDataTable.AddPathToUsedFiles(FileService::GetPathName(sourceDataTable.GetDatabaseName()));
 
-	// On sort si on ne peut effectuer le traitement demande
-	if (not CheckSpec(&workingTargetDataTable))
-		return;
+	// Verification de la validite des specification
+	if (bOk)
+		bOk = CheckSpec(&workingTargetDataTable);
 
-	// On tente de cree le repertoire cible, et on sort en cas d'echec
+	// On tente de cree le repertoire cible
 	sOutputPathName = FileService::GetPathName(workingTargetDataTable.GetDatabaseName());
-	bOk = true;
-	if (sOutputPathName != "" and not PLRemoteFileService::Exist(sOutputPathName))
+	if (bOk)
+		bOk = KWResultFilePathBuilder::CheckResultDirectory(sOutputPathName, GetClassLabel());
+
+	// Extraction des cle si tout est valide
+	if (bOk)
 	{
-		bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
-		if (not bOk)
-			AddError("Unable to create output directory (" + sOutputPathName + ")");
+		// Recherche de la classe initiale
+		initialClass = KWClassDomain::GetCurrentDomain()->LookupClass(sInputClassName);
+		check(initialClass);
+
+		// Demarrage du suivi de la tache
+		TaskProgression::SetTitle("Extract key data table " + workingTargetDataTable.GetDatabaseName());
+		TaskProgression::Start();
+		AddSimpleMessage("Create key data table file " + workingTargetDataTable.GetDatabaseName());
+
+		// Parametres
+		initialClass->ExportKeyAttributeNames(keyExtractorTask.GetKeyAttributeNames());
+		initialClass->ExportNativeFieldNames(keyExtractorTask.GetNativeFieldNames());
+		keyExtractorTask.SetInputFileName(sourceDataTable.GetDatabaseName());
+		keyExtractorTask.SetInputHeaderLineUsed(sourceDataTable.GetHeaderLineUsed());
+		keyExtractorTask.SetInputFieldSeparator(sourceDataTable.GetFieldSeparator());
+		keyExtractorTask.SetOutputFileName(workingTargetDataTable.GetDatabaseName());
+		keyExtractorTask.SetOutputHeaderLineUsed(workingTargetDataTable.GetHeaderLineUsed());
+		keyExtractorTask.SetOutputFieldSeparator(workingTargetDataTable.GetFieldSeparator());
+
+		// Appel de la tache d'extraction des cles
+		bOk = keyExtractorTask.ExtractKeys(true);
+
+		// Fin suivi de la tache
+		TaskProgression::Stop();
 	}
-	if (not bOk)
-		return;
 
-	// Recherche de la classe initiale
-	initialClass = KWClassDomain::GetCurrentDomain()->LookupClass(sInputClassName);
-	check(initialClass);
-
-	// Demarrage du suivi de la tache
-	TaskProgression::SetTitle("Extract key data table " + workingTargetDataTable.GetDatabaseName());
-	TaskProgression::Start();
-	AddSimpleMessage("Create key data table file " + workingTargetDataTable.GetDatabaseName());
-
-	// Parametres
-	initialClass->ExportKeyAttributeNames(keyExtractorTask.GetKeyAttributeNames());
-	initialClass->ExportNativeFieldNames(keyExtractorTask.GetNativeFieldNames());
-	keyExtractorTask.SetInputFileName(sourceDataTable.GetDatabaseName());
-	keyExtractorTask.SetInputHeaderLineUsed(sourceDataTable.GetHeaderLineUsed());
-	keyExtractorTask.SetInputFieldSeparator(sourceDataTable.GetFieldSeparator());
-	keyExtractorTask.SetOutputFileName(workingTargetDataTable.GetDatabaseName());
-	keyExtractorTask.SetOutputHeaderLineUsed(workingTargetDataTable.GetHeaderLineUsed());
-	keyExtractorTask.SetOutputFieldSeparator(workingTargetDataTable.GetFieldSeparator());
-
-	// Appel de la tache d'extraction des cles
-	bOk = keyExtractorTask.ExtractKeys(true);
+	// Ligne de separation dans le log
 	AddSimpleMessage("");
-
-	// Fin suivi de la tache
-	TaskProgression::Stop();
 }
 
 void KWDataTableKeyExtractorView::BuildMultiTableClass()

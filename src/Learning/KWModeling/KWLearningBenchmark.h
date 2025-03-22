@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -14,7 +14,8 @@
 #include "KWPredictor.h"
 #include "KWTrainedPredictor.h"
 #include "KWPredictorEvaluation.h"
-#include "KDDomainKnowledge.h"
+#include "KDMultiTableFeatureConstruction.h"
+#include "KDTextFeatureConstruction.h"
 #include "KDDataPreparationAttributeCreationTask.h"
 
 ////////////////////////////////////////////////////////////
@@ -208,8 +209,10 @@ protected:
 	// Sinon, les nouvelle variables sont construites dans la nouvelle classe construite et un nouveau domaine,
 	// Les couts de construction par variables sont mis a jour, dans la classe construite ou
 	// dans la classe initiale si rien n'a etet construit
-	virtual KWClass* BuildLearningSpecConstructedClass(KWLearningSpec* learningSpec,
-							   KWPredictorSpec* predictorSpec);
+	// En sortie, on fournit les attributs utilises construits references par leur nom, par type de construction
+	virtual KWClass* BuildLearningSpecConstructedClass(KWLearningSpec* learningSpec, KWPredictorSpec* predictorSpec,
+							   ObjectDictionary* odMultiTableConstructedAttributes,
+							   ObjectDictionary* odTextConstructedAttributes);
 
 	// Mise a jour des resultats d'evaluation sur tous les criteres
 	// en apprentissage et en test

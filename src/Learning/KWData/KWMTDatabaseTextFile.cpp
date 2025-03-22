@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -30,7 +30,7 @@ void KWMTDatabaseTextFile::AddPrefixToUsedFiles(const ALString& sPrefix)
 	// Renommage si nom existant
 	if (GetDatabaseName() != "")
 	{
-		// Personnalisation des noms de table du mapping (qui comprennent la table racine)
+		// Personnalisation des noms de table du mapping (qui comprennent la table principale)
 		for (nMapping = 0; nMapping < GetMultiTableMappings()->GetSize(); nMapping++)
 		{
 			mapping = cast(KWMTDatabaseMapping*, GetMultiTableMappings()->GetAt(nMapping));
@@ -64,7 +64,7 @@ void KWMTDatabaseTextFile::AddSuffixToUsedFiles(const ALString& sSuffix)
 	// Renommage si nom existant
 	if (GetDatabaseName() != "")
 	{
-		// Personnalisation des noms de table du mapping (qui comprennent la table racine)
+		// Personnalisation des noms de table du mapping (qui comprennent la table principale)
 		for (nMapping = 0; nMapping < GetMultiTableMappings()->GetSize(); nMapping++)
 		{
 			mapping = cast(KWMTDatabaseMapping*, GetMultiTableMappings()->GetAt(nMapping));
@@ -92,21 +92,27 @@ void KWMTDatabaseTextFile::AddPathToUsedFiles(const ALString& sPathName)
 	int nMapping;
 	KWMTDatabaseMapping* mapping;
 	ALString sDataTableName;
+	KWResultFilePathBuilder resultFilePathBuilder;
 
 	// Renommage si nom existant
 	if (GetDatabaseName() != "" and sPathName != "")
 	{
-		// Personnalisation des noms de table du mapping (qui comprennent la table racine)
+		// On passe ar le service de construction des chemins de fichier en sortie
+		// avec un fichier bidon en entree pour qu'il extrait correctement la path en entree
+		resultFilePathBuilder.SetInputFilePathName(FileService::BuildFilePathName(sPathName, "dummy.txt"));
+
+		// Personnalisation des chemins pour les tables du mapping (qui comprennent la table principale)
 		for (nMapping = 0; nMapping < GetMultiTableMappings()->GetSize(); nMapping++)
 		{
 			mapping = cast(KWMTDatabaseMapping*, GetMultiTableMappings()->GetAt(nMapping));
 
 			// Nom par defaut de la base de donnee cible
 			sDataTableName = mapping->GetDataTableName();
-			if (sDataTableName != "" and not FileService::IsPathInFilePath(sDataTableName))
+			if (sDataTableName != "")
 			{
 				// On construit le nom complet du fichier
-				sDataTableName = FileService::BuildFilePathName(sPathName, sDataTableName);
+				resultFilePathBuilder.SetOutputFilePathName(sDataTableName);
+				sDataTableName = resultFilePathBuilder.BuildResultFilePathName();
 
 				// Parametrage avec le nouveau nom
 				mapping->SetDataTableName(sDataTableName);
@@ -124,7 +130,7 @@ void KWMTDatabaseTextFile::ExportUsedFileSpecs(ObjectArray* oaUsedFileSpecs) con
 	// Appel de la methode ancetre
 	KWMTDatabase::ExportUsedFileSpecs(oaUsedFileSpecs);
 
-	// Personnalisation des noms de table du mapping (hors table racine, deja traitee)
+	// Personnalisation des noms de table du mapping (hors table principale, deja traitee)
 	for (nMapping = 1; nMapping < oaMultiTableMappings.GetSize(); nMapping++)
 	{
 		mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(nMapping));
@@ -148,7 +154,7 @@ void KWMTDatabaseTextFile::ExportUsedWriteFileSpecs(ObjectArray* oaUsedFileSpecs
 	// Appel de la methode ancetre
 	KWMTDatabase::ExportUsedFileSpecs(oaUsedFileSpecs);
 
-	// Personnalisation des noms de table du mapping (hors table racine, deja traitee)
+	// Personnalisation des noms de table du mapping (hors table principale, deja traitee)
 	for (nMapping = 1; nMapping < oaMultiTableMappings.GetSize(); nMapping++)
 	{
 		mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(nMapping));

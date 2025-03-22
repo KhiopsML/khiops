@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -7,7 +7,7 @@
 KWGrouperSpec::KWGrouperSpec()
 {
 	sSupervisedMethodName = "MODL";
-	sUnsupervisedMethodName = "BasicGrouping";
+	sUnsupervisedMethodName = "MODL";
 	dParam = 0;
 	nMinGroupFrequency = 0;
 	nMaxGroupNumber = 0;
@@ -41,17 +41,42 @@ const ALString KWGrouperSpec::GetMethodName(int nTargetAttributeType) const
 
 const ALString KWGrouperSpec::GetMethodLabel(int nTargetAttributeType) const
 {
+	ALString sLabel;
+	int nParamNumber;
+	ALString sTmp;
+
 	require(nTargetAttributeType == KWType::Symbol or nTargetAttributeType == KWType::Continuous or
 		nTargetAttributeType == KWType::None);
 
-	if (GetParam() > 0)
-		return GetMethodName(nTargetAttributeType) + "(" + IntToString(GetMinGroupFrequency()) + ", " +
-		       IntToString(GetMaxGroupNumber()) + ", " + DoubleToString(GetParam()) + ")";
-	else if (GetMinGroupFrequency() > 0 or GetMaxGroupNumber() > 0)
-		return GetMethodName(nTargetAttributeType) + "(" + IntToString(GetMinGroupFrequency()) + ", " +
-		       IntToString(GetMaxGroupNumber()) + ")";
-	else
-		return GetMethodName(nTargetAttributeType);
+	sLabel = GetMethodName(nTargetAttributeType);
+	if (GetMinGroupFrequency() > 0 or GetMaxGroupNumber() > 0 or GetParam() > 0)
+	{
+		nParamNumber = 0;
+		sLabel += '(';
+		if (GetMinGroupFrequency() > 0)
+		{
+			if (nParamNumber > 0)
+				sLabel += ", ";
+			sLabel += sTmp + "Min frequency=" + IntToString(GetMinGroupFrequency());
+			nParamNumber++;
+		}
+		if (GetMaxGroupNumber() > 0)
+		{
+			if (nParamNumber > 0)
+				sLabel += ", ";
+			sLabel += sTmp + "Max parts=" + IntToString(GetMaxGroupNumber());
+			nParamNumber++;
+		}
+		if (GetParam() > 0)
+		{
+			if (nParamNumber > 0)
+				sLabel += ", ";
+			sLabel += sTmp + "Param=" + DoubleToString(GetParam());
+			nParamNumber++;
+		}
+		sLabel += ')';
+	}
+	return sLabel;
 }
 
 const ALString& KWGrouperSpec::GetSupervisedMethodName() const
@@ -206,10 +231,16 @@ const KWGrouper* KWGrouperSpec::GetGrouper(int nTargetAttributeType) const
 		// On ne peut demander None qu'en non supervise
 		else if (not(GetMethodName(nTargetAttributeType) == "None" and nTargetAttributeType == KWType::None))
 		{
-			grouper = KWGrouper::CloneGrouper(GetMethodName(nTargetAttributeType));
+			grouper = KWGrouper::CloneGrouper(nTargetAttributeType, GetMethodName(nTargetAttributeType));
 			if (grouper == NULL)
-				Global::AddError(GetClassLabel(), GetMethodName(nTargetAttributeType),
-						 "Unknown method");
+			{
+				if (nTargetAttributeType == KWType::Symbol)
+					Global::AddError(GetClassLabel(), GetMethodName(nTargetAttributeType),
+							 "Unknown supervised method");
+				else
+					Global::AddError(GetClassLabel(), GetMethodName(nTargetAttributeType),
+							 "Unknown unsupervised method");
+			}
 		}
 
 		// Parametrage
@@ -252,6 +283,16 @@ int KWGrouperSpec::GetFreshness() const
 	return nFreshness;
 }
 
+void KWGrouperSpec::Write(ostream& ost) const
+{
+	ost << GetClassLabel() << "(";
+	ost << sSupervisedMethodName << ", ";
+	ost << sUnsupervisedMethodName << ", ";
+	ost << nMinGroupFrequency << ", ";
+	ost << nMaxGroupNumber << ", ";
+	ost << dParam << ")";
+}
+
 const ALString KWGrouperSpec::GetClassLabel() const
 {
 	return "Value grouping";
@@ -280,20 +321,6 @@ KWGrouperSpec* PLShared_GrouperSpec::GetGrouperSpec()
 	return cast(KWGrouperSpec*, GetObject());
 }
 
-void PLShared_GrouperSpec::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	KWGrouperSpec* grouperSpec;
-
-	require(serializer->IsOpenForRead());
-
-	grouperSpec = cast(KWGrouperSpec*, o);
-	grouperSpec->SetSupervisedMethodName(serializer->GetString());
-	grouperSpec->SetUnsupervisedMethodName(serializer->GetString());
-	grouperSpec->SetParam(serializer->GetDouble());
-	grouperSpec->SetMinGroupFrequency(serializer->GetInt());
-	grouperSpec->SetMaxGroupNumber(serializer->GetInt());
-}
-
 void PLShared_GrouperSpec::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	KWGrouperSpec* grouperSpec;
@@ -306,6 +333,20 @@ void PLShared_GrouperSpec::SerializeObject(PLSerializer* serializer, const Objec
 	serializer->PutDouble(grouperSpec->GetParam());
 	serializer->PutInt(grouperSpec->GetMinGroupFrequency());
 	serializer->PutInt(grouperSpec->GetMaxGroupNumber());
+}
+
+void PLShared_GrouperSpec::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWGrouperSpec* grouperSpec;
+
+	require(serializer->IsOpenForRead());
+
+	grouperSpec = cast(KWGrouperSpec*, o);
+	grouperSpec->SetSupervisedMethodName(serializer->GetString());
+	grouperSpec->SetUnsupervisedMethodName(serializer->GetString());
+	grouperSpec->SetParam(serializer->GetDouble());
+	grouperSpec->SetMinGroupFrequency(serializer->GetInt());
+	grouperSpec->SetMaxGroupNumber(serializer->GetInt());
 }
 
 Object* PLShared_GrouperSpec::Create() const

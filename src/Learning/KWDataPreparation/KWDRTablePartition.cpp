@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -295,9 +295,9 @@ KWDRTablePartition::ComputeObjectArrayValueBlockResult(const KWObject* kwoObject
 	//
 	// Variables de travail
 	//  . oaSparseParts: tableau de travail de taille P, memorisant pour chaque index sparse de partie
-	//       la partie si elle a	 ete pas retenue;
+	//       la partie si elle a ete pas retenue;
 	//       ce vecteur de taille P est preinitialise avec des NULL, qui servent d'indicateur de non utilisation
-	//  . ivUsedSparseIndexes: vecteur des index sparse de partie utilises;
+	//  . ivUsedSparseIndexes: vecteur des index sparse de parties utilises;
 	//       ce vecteur est utilise temporairement, et atteint sa taille maximum T en fin de traitement
 	//       quand toutes les parties utilises ont ete identifiees
 	//
@@ -496,7 +496,7 @@ boolean KWDRTablePartition::CheckOperandsFamily(const KWDerivationRule* ruleFami
 	return bOk;
 }
 
-boolean KWDRTablePartition::CheckOperandsCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRTablePartition::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk = true;
 	int nPartitionAttributeNumber;
@@ -512,7 +512,7 @@ boolean KWDRTablePartition::CheckOperandsCompletness(const KWClass* kwcOwnerClas
 	require(kwcOwnerClass != NULL);
 
 	// Methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	// Verification que le premier operande reference une regle de type partition
 	if (bOk)
@@ -586,7 +586,7 @@ boolean KWDRTablePartition::CheckBlockAttributes(const KWClass* kwcOwnerClass,
 	require(kwcOwnerClass->GetDomain() != NULL);
 	require(attributeBlock != NULL);
 	require(attributeBlock->GetFirstAttribute()->GetParentClass()->GetDomain() == kwcOwnerClass->GetDomain());
-	require(CheckOperandsCompletness(kwcOwnerClass));
+	require(CheckOperandsCompleteness(kwcOwnerClass));
 	require(attributeBlock->GetVarKeyType() == KWType::Continuous);
 
 	// Appel de la methode ancetre
@@ -651,7 +651,7 @@ void KWDRTablePartition::InternalCompleteTypeInfo(const KWClass* kwcOwnerClass,
 	// Appel de la methode ancetre
 	KWDerivationRule::InternalCompleteTypeInfo(kwcOwnerClass, nkdCompletedAttributes);
 
-	// Completion du tu type d'ObjectArray du bloc a partir du premier operande
+	// Completion du type d'ObjectArray du bloc a partir du premier operande
 	if (GetOperandNumber() > 1 and GetFirstOperand()->GetType() == KWType::ObjectArray)
 	{
 		SetObjectClassName(GetFirstOperand()->GetObjectClassName());

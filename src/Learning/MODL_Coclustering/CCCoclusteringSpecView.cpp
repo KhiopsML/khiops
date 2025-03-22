@@ -1,10 +1,9 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-02-05 18:19:44
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "CCCoclusteringSpecView.h"
@@ -13,7 +12,7 @@ CCCoclusteringSpecView::CCCoclusteringSpecView()
 {
 	SetIdentifier("CCCoclusteringSpec");
 	SetLabel("Coclustering parameters");
-	AddStringField("FrequencyAttribute", "Frequency variable", "");
+	AddStringField("FrequencyAttributeName", "Frequency variable", "");
 
 	// ## Custom constructor
 
@@ -32,7 +31,7 @@ CCCoclusteringSpecView::CCCoclusteringSpecView()
 	attributeNameArrayView->GetActionAt("RemoveItem")->SetLabel("Remove variable");
 
 	// Le tableau des variables est affiche avant la variable d'effectif
-	MoveFieldBefore("Attributes", "FrequencyAttribute");
+	MoveFieldBefore("Attributes", "FrequencyAttributeName");
 
 	// Info-bulles
 	attributeNameArrayView->GetFieldAt("Name")->SetHelpText(
@@ -41,7 +40,7 @@ CCCoclusteringSpecView::CCCoclusteringSpecView()
 	    "are allowed.");
 	attributeNameArrayView->GetActionAt("InsertItemAfter")->SetHelpText("Add a coclustering variable.");
 	attributeNameArrayView->GetActionAt("RemoveItem")->SetHelpText("Remove coclustering variable.");
-	GetFieldAt("FrequencyAttribute")
+	GetFieldAt("FrequencyAttributeName")
 	    ->SetHelpText(
 		"Frequency variable (optional)."
 		"\n Name of a variable that contains the frequency of the records."
@@ -75,7 +74,7 @@ void CCCoclusteringSpecView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(CCCoclusteringSpec*, object);
-	editedObject->SetFrequencyAttribute(GetStringValueAt("FrequencyAttribute"));
+	editedObject->SetFrequencyAttributeName(GetStringValueAt("FrequencyAttributeName"));
 
 	// ## Custom update
 
@@ -89,7 +88,7 @@ void CCCoclusteringSpecView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(CCCoclusteringSpec*, object);
-	SetStringValueAt("FrequencyAttribute", editedObject->GetFrequencyAttribute());
+	SetStringValueAt("FrequencyAttributeName", editedObject->GetFrequencyAttributeName());
 
 	// ## Custom refresh
 
@@ -113,7 +112,8 @@ void CCCoclusteringSpecView::SetObject(Object* object)
 	coclusteringSpec = cast(CCCoclusteringSpec*, object);
 
 	// Parametrage du tableau des variables de coclustering
-	cast(KWAttributeNameArrayView*, GetFieldAt("Attributes"))->SetObjectArray(coclusteringSpec->GetAttributes());
+	cast(KWAttributeNameArrayView*, GetFieldAt("Attributes"))
+	    ->SetObjectArray(coclusteringSpec->GetAttributeNames());
 
 	// Memorisation de l'objet pour la fiche courante
 	UIObjectView::SetObject(object);

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -11,12 +11,14 @@ KWDatabaseBasicStatsTask::KWDatabaseBasicStatsTask()
 	bMasterCollectValues = false;
 	lMasterAllValuesGrantedMemory = 0;
 	lMasterAllValuesUsedMemory = 0;
+	lSlaveValuesUsedMemory = 0;
 
 	// Declaration des variables partagees
 	DeclareSharedParameter(&shared_sTargetAttributeName);
+	DeclareSharedParameter(&shared_bCollectValues);
+	DeclareSharedParameter(&shared_lSlaveValuesMaxMemory);
 
 	// Variables en entree et sortie des esclaves
-	DeclareTaskInput(&input_bCollectValues);
 	DeclareTaskOutput(&output_svReadValues);
 	DeclareTaskOutput(&output_cvReadValues);
 }
@@ -84,9 +86,6 @@ boolean KWDatabaseBasicStatsTask::CollectBasicStats(const KWDatabase* sourceData
 	kwcClass->SetAllAttributesLoaded(true);
 	kwcClass->Compile();
 
-	// Messages de fin de tache
-	DisplayTaskMessage();
-
 	// Nettoyage
 	shared_sTargetAttributeName.SetValue("");
 	svReadValues.SetSize(0);
@@ -107,36 +106,58 @@ PLParallelTask* KWDatabaseBasicStatsTask::Create() const
 boolean KWDatabaseBasicStatsTask::ComputeResourceRequirements()
 {
 	boolean bOk = true;
-	longint lMinMasterAdditionalMemory;
+	PLDatabaseTextFile* sourceDatabase;
+	longint lSlaveValuesMinRequiredMemory;
+	longint lSlaveValuesMaxRequiredMemory;
 
 	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::ComputeResourceRequirements();
 
-	// On ajoute la taille de deux buffers pour le stockage des valeurs cibles par esclave
+	// Memorisation des ressources initiales demandee pour le maitre et l'esclave
+	databaseTaskMasterMemoryRequirement.CopyFrom(GetResourceRequirements()->GetMasterRequirement()->GetMemory());
+	databaseTaskSlaveMemoryRequirement.CopyFrom(GetResourceRequirements()->GetSlaveRequirement()->GetMemory());
+	assert(databaseTaskMasterMemoryRequirement.GetMax() < LLONG_MAX);
+
+	// Acces a la base source
+	sourceDatabase = shared_sourceDatabase.GetPLDatabase();
+
+	// On ajoute la taille d'un buffer pour le stockage des valeurs cibles par esclave, qui dans le pire des cas ne
+	// contiendra que les cles On rajoute une taille de buffer standard pour prendre en compte la taille des
+	// structures
+	lSlaveValuesMinRequiredMemory = sourceDatabase->GetMinOpenNecessaryMemory() -
+					sourceDatabase->GetEmptyOpenNecessaryMemory() +
+					InputBufferedFile::nDefaultBufferSize;
+	lSlaveValuesMaxRequiredMemory = sourceDatabase->GetMaxOpenNecessaryMemory() -
+					sourceDatabase->GetEmptyOpenNecessaryMemory() +
+					InputBufferedFile::nDefaultBufferSize;
 	if (bOk and shared_sTargetAttributeName.GetValue() != "")
 	{
 		GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->UpgradeMin(
-		    BufferedFile::nDefaultBufferSize * 2);
+		    lSlaveValuesMinRequiredMemory);
 		GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->UpgradeMax(
-		    BufferedFile::nDefaultBufferSize * 2);
+		    lSlaveValuesMaxRequiredMemory);
 	}
 
 	// On donne pour le maitre une capacite de stockage importante pour les valeurs cibles
 	if (bOk and shared_sTargetAttributeName.GetValue() != "")
 	{
-		// Calcul d'une memoire minimale additionnelle reservee au master
-		lMinMasterAdditionalMemory = RMResourceManager::GetRemainingAvailableMemory() -
-					     GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->GetMin() -
-					     GetResourceRequirements()->GetMasterRequirement()->GetMemory()->GetMin();
-		if (lMinMasterAdditionalMemory < 0)
-			lMinMasterAdditionalMemory = 0;
-		lMinMasterAdditionalMemory /= 10;
-
-		// Parametrage de la memoire du master
-		GetResourceRequirements()->GetMasterRequirement()->GetMemory()->UpgradeMin(lMinMasterAdditionalMemory);
+		// On demande au minimum la meme chose que pour un esclave
+		GetResourceRequirements()->GetMasterRequirement()->GetMemory()->UpgradeMin(
+		    lSlaveValuesMinRequiredMemory);
 		GetResourceRequirements()->GetMasterRequirement()->GetMemory()->UpgradeMax(
-		    RMResourceManager::GetRemainingAvailableMemory() / 2);
+		    lSlaveValuesMinRequiredMemory);
+
+		// Et au maximum la moitie de ce qui est disponible
+		// Pas plus, car il faudra de toute facon faire bien d'autres traitements
+		GetResourceRequirements()->GetMasterRequirement()->GetMemory()->SetMax(
+		    max(GetResourceRequirements()->GetMasterRequirement()->GetMemory()->GetMax(),
+			RMResourceManager::GetRemainingAvailableMemory() / 2));
 	}
+
+	// On chosi une politique d'allocation des ressources equilibre entre le maitre et les esclaves, ce qui permet a
+	// chacun de beneficier de davantage de ressources. A noter que l'on a quand meme demande un max potentiel tres
+	// important pour le maitre, ce qui tend a le privilegier.
+	GetResourceRequirements()->SetMemoryAllocationPolicy(RMTaskResourceRequirement::balanced);
 	return bOk;
 }
 
@@ -144,6 +165,8 @@ boolean KWDatabaseBasicStatsTask::MasterInitialize()
 {
 	boolean bOk = true;
 	KWClass* kwcClass;
+	longint lMasterGrantedMemory;
+	longint lSlaveGrantedMemory;
 	ALString sTmp;
 
 	require(masterTargetAttribute == NULL);
@@ -175,11 +198,36 @@ boolean KWDatabaseBasicStatsTask::MasterInitialize()
 	lMasterAllValuesGrantedMemory = 0;
 	lMasterAllValuesUsedMemory = 0;
 
-	// On memorise les informations sur la collecte des valeurs
+	// Initialisation des variables partagee
+	shared_bCollectValues = false;
+	shared_lSlaveValuesMaxMemory = 0;
+
+	// Parametrage specifique dans le cas de la collecte des valeurs
 	if (masterTargetAttribute != NULL)
 	{
 		bMasterCollectValues = true;
-		lMasterAllValuesGrantedMemory = GetMasterResourceGrant()->GetMemory();
+		shared_bCollectValues = true;
+
+		// Parametrage de la memoire disponible pour la collecte des valeurs par le maitre
+		lMasterGrantedMemory = GetMasterResourceGrant()->GetMemory();
+		lMasterAllValuesGrantedMemory = ComputeTaskSelfMemory(
+		    lMasterGrantedMemory, GetResourceRequirements()->GetMasterRequirement()->GetMemory(),
+		    &databaseTaskMasterMemoryRequirement);
+
+		// Parametrage de la memoire disponible pour la collecte des valeurs par chaque esclave, dans le cas
+		// parallel
+		if (GetTaskResourceGrant()->GetSlaveNumber() > 1)
+		{
+			lSlaveGrantedMemory = GetTaskResourceGrant()->GetSlaveMemory();
+			shared_lSlaveValuesMaxMemory = ComputeTaskSelfMemory(
+			    lSlaveGrantedMemory, GetResourceRequirements()->GetSlaveRequirement()->GetMemory(),
+			    &databaseTaskSlaveMemoryRequirement);
+		}
+		// Dans le cas sequentiel, on donne a l'esclave toute la memoire reservee au maitre
+		// En effet, dans ce cas, il n'y a pas d'indexation prealabe de la base et l'unique esclave doit traiter
+		// l'integralite des valeurs de la base avant qu'elles soit recopiee dans le maitre
+		else
+			shared_lSlaveValuesMaxMemory = lMasterAllValuesGrantedMemory;
 	}
 	return bOk;
 }
@@ -200,9 +248,6 @@ boolean KWDatabaseBasicStatsTask::MasterPrepareTaskInput(double& dTaskPercent, b
 		else if (masterTargetAttribute->GetType() == KWType::Continuous)
 			oaAllSlaveResults.Add(new ContinuousVector);
 	}
-
-	// On indique s'il faut collecter les stats
-	input_bCollectValues = bMasterCollectValues;
 	return bOk;
 }
 
@@ -215,6 +260,7 @@ boolean KWDatabaseBasicStatsTask::MasterAggregateResults()
 	int nValue;
 	longint lParsedObjects;
 	longint lInputFileSize;
+	LongintVector lvChunkEndPos;
 	double dOveralTaskPercent;
 	ALString sTmp;
 
@@ -226,19 +272,20 @@ boolean KWDatabaseBasicStatsTask::MasterAggregateResults()
 	// Erreur si trop d'enregistrements
 	if (bOk and lReadObjects > INT_MAX)
 	{
+		// Taille du fichier a traiter
+		lInputFileSize = databaseChunkBuilder.GetDatabaseIndexer()->GetPLDatabase()->GetFileSizeAt(0);
+
 		// Calcul du pourcentage du fichier traite, dans le cas multi-table
 		if (shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology())
 		{
-			lInputFileSize =
-			    mtDatabaseIndexer.GetChunkEndPositionsAt(mtDatabaseIndexer.GetChunkNumber() - 1)->GetAt(0);
-			dOveralTaskPercent =
-			    (mtDatabaseIndexer.GetChunkEndPositionsAt(GetTaskIndex())->GetAt(0) * 1.0) / lInputFileSize;
+			databaseChunkBuilder.GetChunkEndPositionsAt(GetTaskIndex(), &lvChunkEndPos);
+			dOveralTaskPercent = (lvChunkEndPos.GetAt(0) * 1.0) / lInputFileSize;
 		}
 		// et dans le cas mono-table
 		else
 		{
-			lInputFileSize = lvFileBeginPositions.GetAt(lvFileBeginPositions.GetSize() - 1);
-			dOveralTaskPercent = (lvFileBeginPositions.GetAt(GetTaskIndex() + 1) * 1.0) / lInputFileSize;
+			dOveralTaskPercent =
+			    (databaseChunkBuilder.GetChunkEndPositionAt(GetTaskIndex()) * 1.0) / lInputFileSize;
 		}
 
 		// Message d'erreur
@@ -472,6 +519,9 @@ boolean KWDatabaseBasicStatsTask::SlaveProcess()
 {
 	boolean bOk;
 
+	// Initialisation de la memoire dediee a la collecte des valeurs
+	lSlaveValuesUsedMemory = 0;
+
 	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::SlaveProcess();
 	return bOk;
@@ -479,17 +529,53 @@ boolean KWDatabaseBasicStatsTask::SlaveProcess()
 
 boolean KWDatabaseBasicStatsTask::SlaveProcessExploitDatabaseObject(const KWObject* kwoObject)
 {
+	boolean bOk = true;
+	Symbol sValue;
+	longint lValueMemory;
+	longint lValueNumber;
+
 	// Appel de la methode ancetre
-	if (slaveTargetAttribute != NULL and input_bCollectValues == true)
+	if (slaveTargetAttribute != NULL and shared_bCollectValues == true)
 	{
+		lValueMemory = 0;
+		lValueNumber = 0;
 		if (slaveTargetAttribute->GetType() == KWType::Symbol)
-			output_svReadValues.Add(
-			    kwoObject->GetSymbolValueAt(slaveTargetAttribute->GetLoadIndex()).GetValue());
+		{
+			sValue = kwoObject->GetSymbolValueAt(slaveTargetAttribute->GetLoadIndex());
+			lValueMemory = sizeof(ALString*) + sizeof(ALString) + sValue.GetLength();
+
+			// Prise en compte de la valeur si pas de depassement memoire
+			bOk = lSlaveValuesUsedMemory + lValueMemory <= shared_lSlaveValuesMaxMemory;
+			if (bOk)
+				output_svReadValues.Add(sValue.GetValue());
+			lValueNumber = output_svReadValues.GetSize();
+		}
 		else if (slaveTargetAttribute->GetType() == KWType::Continuous)
-			output_cvReadValues.Add(
-			    (Continuous)kwoObject->GetContinuousValueAt(slaveTargetAttribute->GetLoadIndex()));
+		{
+			lValueMemory = sizeof(Continuous);
+
+			// Prise en compte de la valeur si pas de depassement memoire
+			bOk = lSlaveValuesUsedMemory + lValueMemory <= shared_lSlaveValuesMaxMemory;
+			if (bOk)
+				output_cvReadValues.Add(
+				    (Continuous)kwoObject->GetContinuousValueAt(slaveTargetAttribute->GetLoadIndex()));
+			lValueNumber = output_cvReadValues.GetSize();
+		}
+
+		// Incrementation de la memoire utilisee si ok
+		if (bOk)
+			lSlaveValuesUsedMemory += lValueMemory;
+		// Message d'erreur sinon
+		else
+		{
+			AddError("Too much memory necessary to store the values of the target variable " +
+				 slaveTargetAttribute->GetName() + " (more than " +
+				 RMResourceManager::ActualMemoryToString(lSlaveValuesUsedMemory) + " after parsing " +
+				 LongintToReadableString(lValueNumber) + " records in slave process " +
+				 IntToString(GetTaskIndex() + 1) + ")");
+		}
 	}
-	return true;
+	return bOk;
 }
 
 boolean KWDatabaseBasicStatsTask::SlaveFinalize(boolean bProcessEndedCorrectly)
@@ -502,4 +588,50 @@ boolean KWDatabaseBasicStatsTask::SlaveFinalize(boolean bProcessEndedCorrectly)
 	// Nettoyage
 	slaveTargetAttribute = NULL;
 	return bOk;
+}
+
+longint KWDatabaseBasicStatsTask::ComputeTaskSelfMemory(longint lTaskGrantedMemory,
+							RMPhysicalResource* taskMemoryRequirement,
+							RMPhysicalResource* parentTaskMemoryRequirement) const
+{
+	longint lDeltaMinMemory;
+	longint lDeltaMaxMemory;
+	longint lTaskMemoryRequirementRange;
+	longint lTaskSelfMemory;
+	double dMemoryRatio;
+
+	require(taskMemoryRequirement != NULL);
+	require(taskMemoryRequirement->GetMin() <= taskMemoryRequirement->GetMax());
+	require(taskMemoryRequirement->GetMin() <= lTaskGrantedMemory and
+		lTaskGrantedMemory <= taskMemoryRequirement->GetMax());
+	require(parentTaskMemoryRequirement != NULL);
+	require(parentTaskMemoryRequirement->GetMin() <= parentTaskMemoryRequirement->GetMax());
+
+	// Calcul "delta" exigences de cette classe par rapport aux exigences de la classe ancetre
+	lDeltaMinMemory = taskMemoryRequirement->GetMin() - parentTaskMemoryRequirement->GetMin();
+	lDeltaMaxMemory = taskMemoryRequirement->GetMax() - parentTaskMemoryRequirement->GetMax();
+	assert(0 < lDeltaMinMemory and lDeltaMinMemory <= lDeltaMaxMemory);
+
+	// Si l'on a attribue le min a la tache alors on rends le delta min avec la classe ancetre
+	if (lTaskGrantedMemory == taskMemoryRequirement->GetMin())
+		lTaskSelfMemory = lDeltaMinMemory;
+	// Si l'on a attribue le max a la tache alors on rends le delta max avec la classe ancetre
+	else if (lTaskGrantedMemory == taskMemoryRequirement->GetMax())
+		lTaskSelfMemory = lDeltaMaxMemory;
+	// Sinon on rends au prorata du rang la memoire propre
+	else
+	{
+		lTaskMemoryRequirementRange = taskMemoryRequirement->GetMax() - taskMemoryRequirement->GetMin();
+		if (lTaskMemoryRequirementRange > 0)
+		{
+			dMemoryRatio =
+			    double(lTaskGrantedMemory - taskMemoryRequirement->GetMin()) / lTaskMemoryRequirementRange;
+			lTaskSelfMemory =
+			    (longint)(lDeltaMinMemory + dMemoryRatio * (lDeltaMaxMemory - lDeltaMinMemory));
+		}
+		else
+			lTaskSelfMemory = lDeltaMinMemory;
+	}
+	ensure(lTaskSelfMemory > 0);
+	return lTaskSelfMemory;
 }

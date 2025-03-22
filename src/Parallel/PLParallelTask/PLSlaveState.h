@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -8,6 +8,18 @@
 #include "Object.h"
 #include "Vector.h"
 #include "PLErrorWithIndex.h"
+
+// Etats des esclaves
+enum class State
+{
+	VOID,       // SlaveInitialize pas effectuee
+	INIT,       // En cours d'initialisation
+	READY,      // Initialisation effectuee, peut travailler
+	PROCESSING, // En slave Process
+	FINALIZE,   // Finalization en cours
+	DONE,       // Apres le finalize, ou en cas d'ereur
+	UNKNOW
+};
 
 ////////////////////////////////////////////////////////////
 // Classe PLSlaveState.
@@ -60,23 +72,16 @@ public:
 	// Est-ce que l'esclave a travaille
 	boolean HasWorked() const;
 
-	// Etats des esclaves
-	enum State
-	{
-		VOID,       // SlaveInitialize pas effectuee
-		INIT,       // En cours d'initialisation
-		READY,      // Initialisation effectuee, peut travailler
-		PROCESSING, // En slave Process
-		FINALIZE,   // Finalization en cours
-		DONE,       // Apres le finalize, ou en cas d'ereur
-		UNKNOWN
-	};
 	void SetState(State nState);
 	State GetState() const;
-	const ALString PrintState() const;
+	const ALString& PrintState() const;
 
 	// Affiche sous forme de string l'etat passer en parametre
-	static const ALString GetStateAsString(State nState);
+	static const ALString& GetStateAsString(State nState);
+
+	// Transformation en int
+	static State IntToState(int nState);
+	static int StateToInt(State nState);
 
 	// Ecriture des attributs pour le debug
 	void Write(ostream& ost) const override;
@@ -107,6 +112,14 @@ protected:
 
 	// Est-ce qu el'esclave doit se reposer
 	boolean bMustRest;
+
+	static const ALString sVOID;
+	static const ALString sINIT;
+	static const ALString sREADY;
+	static const ALString sPROCESSING;
+	static const ALString sFINALIZE;
+	static const ALString sDONE;
+	static const ALString sUNKNOW;
 };
 
 ////////////////////////////////////////////////////////////
@@ -119,40 +132,39 @@ inline int PLSlaveState::GetProgression() const
 
 inline boolean PLSlaveState::IsVoid() const
 {
-	return state == VOID;
+	return state == State::VOID;
 }
 
 inline boolean PLSlaveState::IsInit() const
 {
-	return state == INIT;
+	return state == State::INIT;
 }
 
 inline boolean PLSlaveState::IsReady() const
 {
-	return state == READY;
+	return state == State::READY;
 }
 
 inline boolean PLSlaveState::IsProcessing() const
 {
-	return state == PROCESSING;
+	return state == State::PROCESSING;
 }
 
 inline boolean PLSlaveState::IsEnding() const
 {
-	return state == DONE;
+	return state == State::DONE;
 }
 
 inline boolean PLSlaveState::IsFinalize() const
 {
-	return state == FINALIZE;
+	return state == State::FINALIZE;
 }
 inline boolean PLSlaveState::HasWorked() const
 {
 	return bHasWorked;
 }
 
-inline PLSlaveState::State PLSlaveState::GetState() const
+inline State PLSlaveState::GetState() const
 {
-	ensure(VOID <= state and state <= DONE);
 	return state;
 }

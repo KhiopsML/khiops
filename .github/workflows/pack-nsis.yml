@@ -1,0 +1,180 @@
+---
+name: Windows Installer
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '**CMakeLists.txt'
+      - packaging/windows/nsis/*.nsh
+      - packaging/windows/nsis/*.nsi
+      - .github/workflows/pack-nsis.yml
+  push:
+    tags: ['*']
+# Cancel any ongoing run of this workflow on the same PR or ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref
+    }}
+  cancel-in-progress: true
+jobs:
+  build:
+    outputs:
+      khiops-version: ${{ steps.get-version.outputs.khiops-version }}
+    runs-on: windows-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Check the tag consistency with the source version
+        if: github.ref_type == 'tag'
+        uses: ./.github/actions/check-tag-version
+      - name: Install Java Temurin
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Put the package version on the environment and output
+        id: get-version
+        shell: bash
+        run: |
+          # Build the versions
+          KHIOPS_VERSION="$(./scripts/khiops-version)"
+          KHIOPS_REDUCED_VERSION="$(echo $KHIOPS_VERSION | cut -d'-' -f1)"
+          echo "KHIOPS_VERSION=$KHIOPS_VERSION" >> "$GITHUB_ENV"
+          echo "KHIOPS_REDUCED_VERSION=$KHIOPS_REDUCED_VERSION" >> "$GITHUB_ENV"
+          echo "khiops-version=$KHIOPS_VERSION" >> "$GITHUB_OUTPUT"
+      - name: Download Windows install assets
+        uses: robinraju/release-downloader@v1.9
+        with:
+          repository: khiopsml/khiops-win-install-assets
+          latest: true
+      - name: Extract Windows installer assets and load assets-info.env
+        shell: bash
+        run: |
+          assets_tar_gz=$(ls khiops-win-install-assets*.tar.gz)
+          tar -zxvf "$assets_tar_gz"
+          cat assets/assets-info.env >> "$GITHUB_ENV"
+      - name: Build the Khiops Binaries
+        uses: ./.github/actions/build-khiops
+        with:
+          preset-name: windows-msvc-release
+          targets: MODL MODL_Coclustering norm_jar khiops_jar KhiopsNativeInterface
+            KNITransfer _khiopsgetprocnumber
+          override-flags: -DTESTING=OFF -DBUILD_JARS=ON
+      - name: Build NSIS package
+        shell: pwsh
+        run: |-
+          cd ./packaging/windows/nsis
+          makensis `
+            /DKHIOPS_VERSION=${{ env.KHIOPS_VERSION }} `
+            /DKHIOPS_REDUCED_VERSION=${{ env.KHIOPS_REDUCED_VERSION }} `
+            /DKHIOPS_WINDOWS_BUILD_DIR=..\..\..\build\windows-msvc-release `
+            /DJRE_PATH=..\..\..\assets\jre `
+            /DMSMPI_INSTALLER_PATH=..\..\..\assets\${{ env.MSMPI_FILENAME }} `
+            /DMSMPI_VERSION=${{ env.MSMPI_VERSION }} `
+            /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\assets\${{ env.KHIOPS_VIZ_FILENAME }} `
+            /DKHIOPS_COVIZ_INSTALLER_PATH=..\..\..\assets\${{ env.KHIOPS_COVIZ_FILENAME }} `
+            /DKHIOPS_SAMPLES_DIR=..\..\..\assets\samples `
+            /DKHIOPS_DOC_DIR=..\..\..\assets\doc `
+            khiops.nsi
+      - name: Build ZIP packages
+        shell: bash
+        run: |-
+          cd build/windows-msvc-release && CPACK -G ZIP
+      - name: Upload the Installer Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: khiops-setup
+          path: ./packaging/windows/nsis/khiops-${{ env.KHIOPS_VERSION }}-setup.exe
+      - name: Upload the KNI zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: KNI
+          path: |
+            ./build/windows-msvc-release/packages/KNI-${{ env.KHIOPS_VERSION }}.zip
+            ./build/windows-msvc-release/packages/kni-transfer-${{ env.KHIOPS_VERSION }}.zip
+  test-khiops:
+    needs: build
+    runs-on: windows-2019
+    steps:
+      - name: Download NSIS installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: khiops-setup
+      - name: Install Khiops
+        shell: pwsh
+        run: |
+          # Execute the installer
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+          Start-Process `
+            -FilePath .\khiops-${{ needs.build.outputs.khiops-version }}-setup.exe `
+            -ArgumentList '/S' `
+            -Wait
+          # Add Khiops and MPI to the path
+          $Env:Path += ";${Env:ProgramFiles}\khiops\bin;${Env:ProgramFiles}\Microsoft MPI\Bin"
+          echo "PATH=${Env:PATH}" >> ${Env:GITHUB_ENV}
+          echo ${Env:GITHUB_ENV}
+          type ${Env:GITHUB_ENV}
+      - name: Checkout the khiops sources
+        uses: actions/checkout@v4
+      - name: Test the installation
+        uses: ./.github/actions/test-khiops-install
+      - name: Test Khiops on Iris dataset
+        uses: ./.github/actions/test-khiops-on-iris
+        with:
+          os-decription: windows
+  test-kni:
+    needs: build
+    runs-on: windows-2022
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Download KNI zip
+        uses: actions/download-artifact@v4
+        with:
+          name: KNI
+      - name: Install KNI
+        shell: bash
+        run: |
+          7z x KNI-${{ needs.build.outputs.khiops-version }}.zip -o${GITHUB_WORKSPACE}/KNI
+      - name: Test KNI zip
+        uses: ./.github/actions/test-kni
+  # Release is only executed on tags
+  release:
+    if: github.ref_type == 'tag'
+    needs: [build, test-khiops, test-kni]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download NSIS installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: khiops-setup
+      - name: Download KNI installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: KNI
+      - name: Rename packages with tag version
+        run: |
+          # Build the package file names
+          SOURCE_VERSION="${{ needs.build.outputs.khiops-version }}"
+          PKG_FILE=$(ls *-setup.exe)
+          NEW_PKG_FILE=$(echo $PKG_FILE | sed "s/-${SOURCE_VERSION}-/-${{ github.ref_name }}-/")
+
+          # Rename to the tag version only if it is not coherent with the source version
+          if [[ "$PKG_FILE" != "$NEW_PKG_FILE" ]]
+          then
+            mv $PKG_FILE $NEW_PKG_FILE
+          fi
+      - name: Upload NSIS installer and KNI to the release
+        uses: ncipollo/release-action@v1.14.0
+        with:
+          allowUpdates: true
+          artifacts: khiops-*-setup.exe,KNI-*.zip,kni-transfer-*.zip
+          body: |
+            **This release is for testing purposes only and there is no support for it.**
+            **Go to https://khiops.org to install the latest supported version.**
+          draft: false
+          makeLatest: false
+          prerelease: true
+          updateOnlyUnreleased: true

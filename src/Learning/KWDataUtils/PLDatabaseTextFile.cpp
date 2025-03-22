@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -43,7 +43,7 @@ void PLDatabaseTextFile::InitializeFrom(const KWDatabase* database)
 
 	require(database != NULL);
 
-	// Initialisation des bases de travail pour un transfer mono-table si c'est possible
+	// Initialisation des bases de travail pour un traitement mono-table si c'est possible
 	// (une seule table et pas de cle; en presence de cle, il faut en effet detecter les doublons potentiels)
 	// En effet, dans ce cas, il n'y a pas besoin de pre-indexer la table d'entree pour la parallelisation
 	kwcDatabaseClass = KWClassDomain::GetCurrentDomain()->LookupClass(database->GetClassName());
@@ -90,6 +90,27 @@ PLMTDatabaseTextFile* PLDatabaseTextFile::GetMTDatabase()
 }
 
 KWDatabase* PLDatabaseTextFile::GetDatabase()
+{
+	require(IsInitialized());
+	if (IsMultiTableTechnology())
+		return plmtDatabaseTextFile;
+	else
+		return plstDatabaseTextFile;
+}
+
+const PLSTDatabaseTextFile* PLDatabaseTextFile::GetSTDatabase() const
+{
+	require(not IsMultiTableTechnology());
+	return plstDatabaseTextFile;
+}
+
+const PLMTDatabaseTextFile* PLDatabaseTextFile::GetMTDatabase() const
+{
+	require(IsMultiTableTechnology());
+	return plmtDatabaseTextFile;
+}
+
+const KWDatabase* PLDatabaseTextFile::GetDatabase() const
 {
 	require(IsInitialized());
 	if (IsMultiTableTechnology())
@@ -211,13 +232,60 @@ void PLDatabaseTextFile::CleanOpenInformation()
 		return plstDatabaseTextFile->CleanOpenInformation();
 }
 
-longint PLDatabaseTextFile::GetTotalInputFileSize() const
+longint PLDatabaseTextFile::GetTotalFileSize() const
 {
 	require(IsInitialized());
 	if (IsMultiTableTechnology())
-		return plmtDatabaseTextFile->GetTotalInputFileSize();
+		return plmtDatabaseTextFile->GetTotalFileSize();
 	else
-		return plstDatabaseTextFile->GetTotalInputFileSize();
+		return plstDatabaseTextFile->GetTotalFileSize();
+}
+
+longint PLDatabaseTextFile::GetTotalUsedFileSize() const
+{
+	require(IsInitialized());
+	if (IsMultiTableTechnology())
+		return plmtDatabaseTextFile->GetTotalUsedFileSize();
+	else
+		return plstDatabaseTextFile->GetTotalUsedFileSize();
+}
+
+longint PLDatabaseTextFile::GetFileSizeAt(int nTableIndex) const
+{
+	require(IsInitialized());
+	require(0 <= nTableIndex and nTableIndex < GetDatabase()->GetTableNumber());
+
+	if (IsMultiTableTechnology())
+		return plmtDatabaseTextFile->GetFileSizes()->GetAt(nTableIndex);
+	else
+		return plstDatabaseTextFile->GetTotalFileSize();
+}
+
+int PLDatabaseTextFile::GetDatabasePreferredBuferSize() const
+{
+	require(IsInitialized());
+	if (IsMultiTableTechnology())
+		return plmtDatabaseTextFile->GetDatabasePreferredBuferSize();
+	else
+		return plstDatabaseTextFile->GetDatabasePreferredBuferSize();
+}
+
+longint PLDatabaseTextFile::GetInMemoryEstimatedFileObjectNumber() const
+{
+	require(IsInitialized());
+	if (IsMultiTableTechnology())
+		return plmtDatabaseTextFile->GetInMemoryEstimatedFileObjectNumbers()->GetAt(0);
+	else
+		return plstDatabaseTextFile->GetInMemoryEstimatedFileObjectNumber();
+}
+
+longint PLDatabaseTextFile::GetEstimatedUsedMemoryPerObject() const
+{
+	require(IsInitialized());
+	if (IsMultiTableTechnology())
+		return plmtDatabaseTextFile->GetEstimatedUsedMemoryPerObject()->GetAt(0);
+	else
+		return plstDatabaseTextFile->GetEstimatedUsedMemoryPerObject();
 }
 
 longint PLDatabaseTextFile::GetEmptyOpenNecessaryMemory() const
@@ -265,22 +333,22 @@ int PLDatabaseTextFile::GetMaxSlaveProcessNumber() const
 		return plstDatabaseTextFile->GetMaxSlaveProcessNumber();
 }
 
-int PLDatabaseTextFile::ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory) const
+int PLDatabaseTextFile::ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory, int nProcessNumber) const
 {
 	require(IsInitialized());
 	if (IsMultiTableTechnology())
-		return plmtDatabaseTextFile->ComputeOpenBufferSize(bRead, lOpenGrantedMemory);
+		return plmtDatabaseTextFile->ComputeOpenBufferSize(bRead, lOpenGrantedMemory, nProcessNumber);
 	else
-		return plstDatabaseTextFile->ComputeOpenBufferSize(bRead, lOpenGrantedMemory);
+		return plstDatabaseTextFile->ComputeOpenBufferSize(bRead, lOpenGrantedMemory, nProcessNumber);
 }
 
-void PLDatabaseTextFile::SetBufferSize(int nBufferSize)
+void PLDatabaseTextFile::SetBufferSize(int nSize)
 {
 	require(IsInitialized());
 	if (IsMultiTableTechnology())
-		return plmtDatabaseTextFile->SetBufferSize(nBufferSize);
+		return plmtDatabaseTextFile->SetBufferSize(nSize);
 	else
-		return plstDatabaseTextFile->SetBufferSize(nBufferSize);
+		return plstDatabaseTextFile->SetBufferSize(nSize);
 }
 
 int PLDatabaseTextFile::GetBufferSize() const
@@ -383,29 +451,6 @@ PLMTDatabaseTextFile* PLShared_DatabaseTextFile::GetMTDatabase()
 	return cast(PLDatabaseTextFile*, GetObject())->GetMTDatabase();
 }
 
-void PLShared_DatabaseTextFile::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	PLDatabaseTextFile* database;
-	boolean bIsMultiTableTechnology;
-	PLShared_STDatabaseTextFile shared_stDatabase;
-	PLShared_MTDatabaseTextFile shared_mtDatabase;
-
-	require(serializer != NULL);
-	require(serializer->IsOpenForRead());
-
-	database = cast(PLDatabaseTextFile*, o);
-
-	// Recherche du type de base
-	bIsMultiTableTechnology = serializer->GetBoolean();
-
-	// Deserialisation selon le type de base
-	database->Initialize(bIsMultiTableTechnology);
-	if (bIsMultiTableTechnology)
-		shared_mtDatabase.DeserializeObject(serializer, database->GetMTDatabase());
-	else
-		shared_stDatabase.DeserializeObject(serializer, database->GetSTDatabase());
-}
-
 void PLShared_DatabaseTextFile::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	PLDatabaseTextFile* database;
@@ -427,6 +472,29 @@ void PLShared_DatabaseTextFile::SerializeObject(PLSerializer* serializer, const 
 		shared_mtDatabase.SerializeObject(serializer, database->GetMTDatabase());
 	else
 		shared_stDatabase.SerializeObject(serializer, database->GetSTDatabase());
+}
+
+void PLShared_DatabaseTextFile::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	PLDatabaseTextFile* database;
+	boolean bIsMultiTableTechnology;
+	PLShared_STDatabaseTextFile shared_stDatabase;
+	PLShared_MTDatabaseTextFile shared_mtDatabase;
+
+	require(serializer != NULL);
+	require(serializer->IsOpenForRead());
+
+	database = cast(PLDatabaseTextFile*, o);
+
+	// Recherche du type de base
+	bIsMultiTableTechnology = serializer->GetBoolean();
+
+	// Deserialisation selon le type de base
+	database->Initialize(bIsMultiTableTechnology);
+	if (bIsMultiTableTechnology)
+		shared_mtDatabase.DeserializeObject(serializer, database->GetMTDatabase());
+	else
+		shared_stDatabase.DeserializeObject(serializer, database->GetSTDatabase());
 }
 
 Object* PLShared_DatabaseTextFile::Create() const

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -31,9 +31,9 @@ const char* const SecondsToString(double dValue)
 
 	// Formatage du resultat
 	if (nHundredth == 0)
-		sprintf(sBuffer, "%d:%2.2d:%2.2d", nHours, nMinutes, nSeconds);
+		snprintf(sBuffer, BUFFER_LENGTH, "%d:%2.2d:%2.2d", nHours, nMinutes, nSeconds);
 	else
-		sprintf(sBuffer, "%d:%2.2d:%2.2d.%2.2d", nHours, nMinutes, nSeconds, nHundredth);
+		snprintf(sBuffer, BUFFER_LENGTH, "%d:%2.2d:%2.2d.%2.2d", nHours, nMinutes, nSeconds, nHundredth);
 
 	return sBuffer;
 }
@@ -41,7 +41,7 @@ const char* const SecondsToString(double dValue)
 const char* const IntToString(int nValue)
 {
 	char* sBuffer = StandardGetBuffer();
-	sprintf(sBuffer, "%d", nValue);
+	snprintf(sBuffer, BUFFER_LENGTH, "%d", nValue);
 
 	return sBuffer;
 }
@@ -49,16 +49,8 @@ const char* const IntToString(int nValue)
 const char* const LongintToString(longint lValue)
 {
 	char* sBuffer = StandardGetBuffer();
-	sprintf(sBuffer, "%lld", lValue);
+	snprintf(sBuffer, BUFFER_LENGTH, "%lld", lValue);
 
-	return sBuffer;
-}
-
-const char* const FloatToString(float fValue)
-{
-	char* sBuffer = StandardGetBuffer();
-
-	sprintf(sBuffer, "%g", fValue);
 	return sBuffer;
 }
 
@@ -66,7 +58,7 @@ const char* const DoubleToString(double dValue)
 {
 	char* sBuffer = StandardGetBuffer();
 
-	sprintf(sBuffer, "%g", dValue);
+	snprintf(sBuffer, BUFFER_LENGTH, "%g", dValue);
 
 	return sBuffer;
 }
@@ -117,9 +109,9 @@ const char* const BooleanToString(boolean bValue)
 	char* sBuffer = StandardGetBuffer();
 
 	if (bValue)
-		sprintf(sBuffer, "%s", "true");
+		snprintf(sBuffer, BUFFER_LENGTH, "%s", "true");
 	else
-		sprintf(sBuffer, "%s", "false");
+		snprintf(sBuffer, BUFFER_LENGTH, "%s", "false");
 
 	return sBuffer;
 }
@@ -127,7 +119,7 @@ const char* const BooleanToString(boolean bValue)
 const char* const PointerToString(const void* pValue)
 {
 	char* sBuffer = StandardGetBuffer();
-	sprintf(sBuffer, "%p", pValue);
+	snprintf(sBuffer, BUFFER_LENGTH, "%p", pValue);
 
 	return sBuffer;
 }
@@ -154,31 +146,6 @@ longint StringToLongint(const char* sValue)
 	require(sValue != NULL);
 
 	return atoll(sValue);
-}
-
-float StringToFloat(const char* sValue)
-{
-	int i;
-	char* sBuffer = StandardGetBuffer();
-	const char* sSource;
-
-	require(sValue != NULL);
-
-	// Recopie dans un buffer, en changeant les
-	// ',' en '.'
-	i = 0;
-	sSource = sValue;
-	while (sSource[i] != '\0' and i < BUFFER_LENGTH)
-	{
-		if (sSource[i] == ',')
-			sBuffer[i] = '.';
-		else
-			sBuffer[i] = sSource[i];
-		i++;
-	}
-	sBuffer[i] = '\0';
-
-	return float(atof(sBuffer));
 }
 
 double StringToDouble(const char* sValue)
@@ -559,48 +526,37 @@ double RandomDouble()
 
 int RandomInt(int nMax)
 {
+	double dRandom;
 	int nRand;
 
 	require(nMax >= 0);
-	require(nMax < INT_MAX);
 
-	nRand = (int)floor((nMax + 1) * RandomDouble());
-	if (nRand > nMax)
-		nRand--;
+	dRandom = RandomDouble();
+	if (dRandom == 1)
+		nRand = nMax;
+	else
+		nRand = (int)floor((double(nMax) + 1) * dRandom);
 	return nRand;
-}
-
-// Reference: Numerical recipes: the art of scientific computing THIRD EDITION
-// Chapter 7: Random numbers, p 352
-// Generateur sans etat et sans graine
-inline unsigned long long int InternalIthRandomLongint(unsigned long long int n, int nMax)
-{
-	require(nMax <= 2147483646);
-	unsigned long long int v = n * 3935559000370003845LL + 2691343689449507681LL;
-	v ^= v >> 21;
-	v ^= v << 37;
-	v ^= v >> 4;
-	v *= 4768777513237032717LL;
-	v ^= v << 20;
-	v ^= v >> 41;
-	v ^= v << 5;
-	return v % (nMax + 1);
 }
 
 double IthRandomDouble(longint lIndex)
 {
-	static const int nMaxInt = 2147483646;
-	static const double dMaxInt = 2147483646.0;
 	require(lIndex >= 0);
-	return (InternalIthRandomLongint((unsigned long long int)lIndex, nMaxInt) / dMaxInt);
+	// Version de Numerical Recipes
+	return 5.42101086242752217E-20 * IthRandomUnsignedLongint((unsigned long long int)lIndex);
+}
+
+longint IthRandomLongint(longint lIndex)
+{
+	require(lIndex >= 0);
+	return (longint)(IthRandomUnsignedLongint((unsigned long long int)lIndex));
 }
 
 int IthRandomInt(longint lIndex, int nMax)
 {
 	require(lIndex >= 0);
 	require(nMax >= 0);
-	require(nMax <= 2147483646);
-	return (int)InternalIthRandomLongint((unsigned long long int)lIndex, nMax);
+	return (int)(IthRandomUnsignedLongint((unsigned long long int)lIndex) % ((unsigned long long int)nMax + 1));
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -668,18 +624,6 @@ void _CastFailure(const char* __type, const char* __object, const char* __file, 
 	GlobalExit();
 }
 
-// Pauses for a specified number of milliseconds
-// portage Unix
-#ifndef __UNIX__
-void sleep(clock_t wait)
-{
-	clock_t goal;
-	goal = wait + clock();
-	while (goal > clock())
-		;
-}
-#endif // __UNIX__
-
 // Flag de sortie utilisateur
 //(pour conditionner les traitements enregistres en atexit)
 int nStandardGlobalExit = 0;
@@ -712,21 +656,16 @@ void GlobalExit()
 		nStandardGlobalExit = 1;
 
 		// Flush des streams standard C et C++
+		// Permet de forcer la sotie standard, en particulier pour les assertions
 		fflush(stdout);
 		fflush(stderr);
 		cout << flush;
 		cerr << flush;
 
-		// Flush et fermeture de tous les fichiers
-#if defined __UNIX__ or defined __WGPP__
-		fflush(NULL);
-#else
-		_flushall();
-		_fcloseall();
-#endif
-
 		// Appel des methodes de sortie utilisateur
-		// On execute les derniere methode enregistree en premier
+		// On execute les dernieres methodes enregistrees en premier
+		// Attention a appeller ces methodes avant les flushall et closeall
+		// pour pouvoir continuer a exploiter les fichiers de log ou trace
 		for (i = nUserExitHandlerNumber - 1; i >= 0; i--)
 		{
 			fUserExitHandler = arrayUserExitHandler[i];
@@ -734,7 +673,15 @@ void GlobalExit()
 			fUserExitHandler(nExitCode);
 		}
 
-		// Sortie fatale (seul exit de toutes)
+		// Flush et fermeture de tous les fichiers
+#ifdef _WIN32
+		_flushall();
+		_fcloseall();
+#else
+		fflush(NULL);
+#endif
+
+		// Sortie fatale (seul exit de tout le code)
 		// les librairies NORM)
 		exit(nExitCode);
 	}
@@ -742,9 +689,18 @@ void GlobalExit()
 
 void AddUserExitHandler(UserExitHandler fUserExit)
 {
+	int i;
+	boolean bDebug = false;
 	require(fUserExit != NULL);
 	require(nUserExitHandlerNumber < nMaxUserExitHandlerNumber);
 
+	// On verifie que la fonction n'a pas deja ete ajoutee
+	debug(bDebug = true);
+	if (bDebug)
+	{
+		for (i = nUserExitHandlerNumber - 1; i >= 0; i--)
+			require(fUserExit != arrayUserExitHandler[i]);
+	}
 	arrayUserExitHandler[nUserExitHandlerNumber] = fUserExit;
 	nUserExitHandlerNumber++;
 }
@@ -761,4 +717,92 @@ void SetProcessId(int nValue)
 {
 	require(nValue >= 0);
 	nProcessId = nValue;
+}
+
+void TraceMaster(const char* sTrace)
+{
+	if (GetProcessId() == 0)
+		TraceWithRank(sTrace);
+}
+void TraceSlave(const char* sTrace)
+{
+	if (GetProcessId() != 0)
+		TraceWithRank(sTrace);
+}
+void TraceWithRank(const char* sTrace)
+{
+	cout << "[" << GetProcessId() << "] " << sTrace << endl;
+}
+
+void TestRandom()
+{
+	int nStartClock;
+	int nStopClock;
+	int nNumber = 100000000;
+	int i;
+	longint lRandomMean;
+	double dMeanRandom;
+
+	SetRandomSeed(1);
+
+	// Random int standard
+	nStartClock = clock();
+	lRandomMean = 0;
+	for (i = 0; i < nNumber; i++)
+	{
+		lRandomMean += RandomInt(1000000000);
+	}
+	dMeanRandom = lRandomMean * 1.0 / nNumber;
+	nStopClock = clock();
+	cout << "Standard random int mean\t" << dMeanRandom << "\n";
+	cout << "SYS TIME\tStandard random int\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n\n";
+
+	// Random double standard
+	nStartClock = clock();
+	dMeanRandom = 0;
+	for (i = 0; i < nNumber; i++)
+	{
+		dMeanRandom += RandomDouble();
+	}
+	dMeanRandom = dMeanRandom / nNumber;
+	nStopClock = clock();
+	cout << "Standard random double mean\t" << dMeanRandom << "\n";
+	cout << "SYS TIME\tStandard random double\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n\n";
+
+	// Ith random int
+	nStartClock = clock();
+	lRandomMean = 0;
+	for (i = 0; i < nNumber; i++)
+	{
+		lRandomMean += IthRandomInt(i, 1000000000);
+	}
+	dMeanRandom = lRandomMean * 1.0 / nNumber;
+	nStopClock = clock();
+	cout << "Standard ith random int mean\t" << dMeanRandom << "\n";
+	cout << "SYS TIME\tStandard ith random int\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n\n";
+
+	// Ith random longint
+	nStartClock = clock();
+	lRandomMean = 0;
+	for (i = 0; i < nNumber; i++)
+	{
+		lRandomMean += abs(IthRandomLongint(i)) % 1000000000;
+	}
+	lRandomMean /= nNumber;
+	nStopClock = clock();
+	cout << "Standard ith random longint mean\t" << dMeanRandom << "\n";
+	cout << "SYS TIME\tStandard ith random longint\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC
+	     << "\n\n";
+
+	// Ith random double
+	nStartClock = clock();
+	dMeanRandom = 0;
+	for (i = 0; i < nNumber; i++)
+	{
+		dMeanRandom += IthRandomDouble(i);
+	}
+	dMeanRandom /= nNumber;
+	nStopClock = clock();
+	cout << "Standard ith random double mean\t" << dMeanRandom << "\n";
+	cout << "SYS TIME\tStandard ith random double\t" << (nStopClock - nStartClock) * 1.0 / CLOCKS_PER_SEC << "\n\n";
 }

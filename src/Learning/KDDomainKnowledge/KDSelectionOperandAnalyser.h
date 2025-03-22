@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -22,8 +22,9 @@ class KDSelectionValue;
 #include "KWQuantileBuilder.h"
 #include "KDClassBuilder.h"
 #include "KDClassCompliantRules.h"
-#include "KDDomainKnowledge.h"
-#include "KDSelectionOperandExtractionTask.h"
+#include "KDMultiTableFeatureConstruction.h"
+#include "KDSelectionOperandDataSampler.h"
+#include "KDSelectionOperandSamplingTask.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KDSelectionOperandAnalyser
@@ -58,7 +59,7 @@ class KDSelectionValue;
 //     ainsi etre references par plusieurs partitioopn univariees ou multivariees
 // et contient:
 //   . l'ensemble des parties (KDConstructedPart) effectivement utilisees
-// Il est a noter que la classe KDDomainKnowledge, qui construite l'ensemble des
+// Il est a noter que la classe KDMultiTableFeatureConstruction, qui construite l'ensemble des
 // regle construite (KDConstructedRule), contient un tableau de ces regles avant de les transformer
 // en regles de derivation (KWDerivationRule). Les regles construites ont une structure recursive,
 // composee de trois types d'operandes:
@@ -76,8 +77,8 @@ public:
 	// Parametrage du domaine de connaissance
 	// Attention, parametrage obligatoire (initialement a NULL)
 	// Memoire: appartient a l'appelant
-	void SetDomainKnowledge(KDDomainKnowledge* domainKnowledgeParam);
-	KDDomainKnowledge* GetDomainKnowledge() const;
+	void SetMultiTableFeatureConstruction(KDMultiTableFeatureConstruction* featureConstructionParam);
+	KDMultiTableFeatureConstruction* GetMultiTableFeatureConstruction() const;
 
 	// Acces au domaine de construction, depuis le domaine de connaissance
 	KDConstructionDomain* GetConstructionDomain() const;
@@ -139,14 +140,6 @@ public:
 	/////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
-	// Calcul du nombre max d'objet analysables pour limiter l'empreinte memoire des
-	// algorithmes et des resultats d'analyse
-	// Le probleme se pose notament dans le cas de table secondaire de tres gros volumes.
-	// Le nombre max d'objet analyses sert a parametrer un algorithme de type reservoir sampling
-	// pour obtenir un echantillon representatif par classe d'objet danalyse
-	// Renvoie true s'il y a assez de memoire (par exemple s'il n'y a aucun operande de selection)
-	boolean ComputeMaxAnalysedObjectNumber();
-
 	//////////////////////////////////////////////////////////////////////////////////
 	// Exploitation de l'ensemble des operandes de selection extraits pour analyser la
 	// base et pretraiter les partitions possibles par operande de selection
@@ -155,53 +148,34 @@ protected:
 	// Renvoie true si OK (false si par exemple tache interrompue)
 	boolean ExtractSelectionOperandPartitions();
 
-	// Lecture de la base pour collecter un echantillon de valeurs par variable secondaire de selection
+	// Tache de lecture de la base pour collecter un echantillon de valeurs par variable secondaire de selection
 	// On renvoie le nombre d'objets lus dans la base
-	boolean CollectSelectionOperandSamples(int& nReadObjectNumber);
+	boolean TaskCollectSelectionOperandSamples(int& nReadObjectNumber);
 
-	// Construction d'un domain de lecture de la base oriente operandes de selection,
-	// c'est a dire ayant tout en Unused, suaf l'acces aux classes de selection et
+	// Construction de specifications d'echantillonnage des donnees par operande a partit des specification
+	// d'analyse en entrees Seules les classes et les operandes effectivement utilisees, ayant un attribut de
+	// selection, sont prises en compte Memoire: l'objet construit appartient a l'appelant
+	KDSelectionOperandDataSampler* BuildSelectionOperandDataSamplerSpec() const;
+
+	// Prise en compte des donnees collectees par un echantilonneur de donnees
+	// Les donnees sources sont transferees depuis l'echantillonneur, puis nettoyees de celui-ci
+	void CollectClassSelectionData(KDSelectionOperandDataSampler* sourceSelectionOperandDataSampler);
+
+	// Construction d'un domaine de lecture de la base orientee operandes de selection,
+	// c'est a dire ayant tout en Unused, sauf l'acces aux classes de selection et
 	// avec des variables creee par operande de selection
 	// Memoire: le domaine et son contenu appartiennt a l'appelant
 	KWClassDomain* BuildSelectionDomain();
 
-	// Analyse d'objet pour enregistrer les objets des classes de selection
-	// Le dictionnaire permet de gerer les objet comportant des cycles, possible via
-	// des utilisation d'objet references se referencant entre eux ou via des regles de derivation
-	// On assure ainsi l'unicite de la visite de chaque sous objet
-	void ExtractSelectionObjects(const KWObject* kwoObject, NumericKeyDictionary* nkdAllSubObjects);
-
-	// Extraction des valeurs de selection d'un objet
-	void ExtractSelectionObjectValues(KDClassSelectionStats* classSelectionStats, const KWObject* kwoObject);
-
 	//////////////////////////////////////////////////////////////////////////////////////
-	// Gestion des objet references
-	// Les objet references sont memorises dans un dictionnaire global une fois pour toute
-	// apres ouverture de la base
-	// On verifie ensuite qu'ils ne sont analyses qu'une seule fois globalement, alors
-	// que la verification est locale a chaque arborescence d'objet pour les objets
-	// de la classe a analyser
-
-	// Enregistrement de tous les objet references globaux
-	void RegisterAllReferencedObjects();
-
-	// Enregistrement recursif d'un objet et de sa composition
-	void RegisterReferencedObject(KWObject* kwoObject);
+	// Variables d'instance
 
 	// Domaine de connaissance
-	KDDomainKnowledge* domainKnowlege;
+	KDMultiTableFeatureConstruction* multiTableFeatureConstruction;
 
 	// Donnees de travail
 	ObjectArray oaClassSelectionStats;
 	ObjectDictionary odClassSelectionStats;
-	int nMaxAnalysedObjectNumber;
-
-	// Dictionnaire de l'ensemble des objets en references dans la base
-	NumericKeyDictionary nkdAllReferencedObjects;
-
-	// Dictionnaire de l'ensemble des objets en references deja analyses
-	// Permet de verifier que les objet references ne sont analyses qu'une seule fois
-	NumericKeyDictionary nkdAllAnalyzedReferencedObjects;
 
 	// Effectif minimum par partile
 	static const int nMinPartileFrequency = 4;
@@ -226,8 +200,8 @@ public:
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	// Gestion des operandes de selection
-	// Ces operandes de selection appartiennent toutes a l'appele, et contiennent chcune une dimension
-	// de partition; d=ce dimensions de partition seront mutualisee par l'ensemble des partitions
+	// Ces operandes de selection appartiennent toutes a l'appele, et contiennent chacune une dimension
+	// de partition; ces dimensions de partition seront mutualisees par l'ensemble des partitions
 
 	// Acces aux operandes de selection
 	const ObjectArray* GetClassSelectionOperandStats() const;
@@ -276,9 +250,12 @@ public:
 	// Memoire: la partition appartient a l'appele
 	void AddPartition(KDConstructedPartition* partition);
 
+	// Calcul de la granularite max de tous les operandes de selection utilises en dimension d'une partition
+	int ComputeMaxOperandGranularity() const;
+
 	//////////////////////////////////////////////////////////////////////////////////////..
 	// Gestion des resultats d'analyse
-	// Aopres calcul des stats, chaque operande de selection contient les resultats d'analyse
+	// Apres calcul des stats, chaque operande de selection contient les resultats d'analyse
 
 	// Memorisation du nombre d'objet de la base pour la classe d'objet, a mettre a jour conjointement avec les
 	// stats par operande

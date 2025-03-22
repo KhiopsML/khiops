@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -15,6 +15,7 @@ class KWDataPreparationTargetAttribute;
 #include "KWDataGridStats.h"
 #include "KWDRMath.h"
 #include "KWDRCompare.h"
+#include "KWDRDataGridBlock.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe de gestion de la preparation des donnees
@@ -75,6 +76,15 @@ public:
 	// Memoire: le container et son contenu appartiennent a l'appele
 	ObjectArray* GetDataPreparationAttributes();
 
+	// Ajout d'un block d'attributs prepares
+	// Tous les attributs natifs correspondants doivent appartenir a un seul bloc
+	KWAttribute* AddDataGridBlock(ObjectArray* oaDataGridBlockDataPreparationAttributes,
+				      const ALString& sNameInfix);
+
+	// Ajout d'un block d'indexes
+	// Tous les attributs natifs correspondants doivent appartenir a un seul bloc
+	KWAttributeBlock* AddPreparedIndexingAttributeBlock(KWAttribute* dataGridBlockAttribute,
+							    ObjectArray* oaDataGridBlockDataPreparationAttributes);
 	///////////////////////////////////////////////////////////////////////
 	// Services divers
 
@@ -109,7 +119,7 @@ public:
 	KWDataPreparationAttribute();
 	~KWDataPreparationAttribute();
 
-	// Index d'acces dans le container GetDataPreparationAttributes de KWDataPreparationBase
+	// Index d'acces a l'attribut
 	void SetIndex(int nValue);
 	int GetIndex() const;
 
@@ -139,15 +149,21 @@ public:
 	void SetNativeAttribute(KWAttribute* kwaNativeAttribute);
 	KWAttribute* GetNativeAttribute();
 
+	// True s'il y a un seul attribut natif et il est dans un bloc sparse
+	boolean IsNativeAttributeInBlock();
+
 	// Attribut prepare base sur une regle KWDRDataGrid
 	// Il s'agit de la grille de preparation des attributs sources
 	// (attributs natifs a l'origine de la grille) pour la prediction de l'attribut cible
 	void SetPreparedAttribute(KWAttribute* kwaPreparedAttribute);
-	KWAttribute* GetPreparedAttribute();
+	KWAttribute* GetPreparedAttribute() const;
 
 	// Statistiques de preparation (grille de preparation, evaluation...)
 	void SetPreparedStats(KWDataPreparationStats* kwdpsAttributeStats);
-	KWDataPreparationStats* GetPreparedStats();
+	KWDataPreparationStats* GetPreparedStats() const;
+
+	// True si l'attribut est predictif de la cible (disponible seulement dans le cas supervise)
+	bool IsInformativeOnTarget() const;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Specifications complementaires pour un attribut recode,
@@ -170,7 +186,7 @@ public:
 	void SetNativeAttributeAt(int nAttribute, KWAttribute* kwaNativeAttribute);
 	KWAttribute* GetNativeAttributeAt(int nAttribute);
 
-	///////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////
 	// Creation d'attributs ou de regles de preparation, exploitant la grille de donnees portee par
 	// le PreparedAttribute.
 	// Les attributs crees sont ajoutes a la classe de preparation
@@ -216,7 +232,7 @@ public:
 	///////////////////////////////////////////////////////////////////////
 	// Services divers
 
-	// Calcul d'un nom decrivant le ou les attributs natifs (dans ce cas, les noms sont separes par "`")
+	// Calcul d'un nom decrivant le ou les attributs natifs
 	const ALString ComputeNativeAttributeName() const;
 
 	// Test de validite
@@ -343,3 +359,6 @@ protected:
 // Comparaison de deux preparations d'attribut par importance predictive decroissante
 // Le tri se fait selon le caractere obligatoire d'abord, puis sur la valeur predictive
 int KWDataPreparationAttributeCompareSortValue(const void* elem1, const void* elem2);
+
+// Comparaison de deux preparation d'attribut venant d'un bloc sparse par son VarKey
+int KWDataPreparationAttributeCompareVarKey(const void* elem1, const void* elem2);

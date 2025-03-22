@@ -1,11 +1,11 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2015-03-30 17:27:37
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
+
 #include "PEPiView.h"
 
 PEPiView::PEPiView()
@@ -13,19 +13,20 @@ PEPiView::PEPiView()
 	SetIdentifier("PEPi");
 	SetLabel("Pi parallel computation");
 	AddIntField("IterationNumber", "Number of iterations", 0);
-	AddIntField("ProcessusNumber", "Number of process", 0);
 	AddStringField("Pi", "Pi approximation", "");
 	AddDoubleField("ElapsedTime", "Computation time", 0);
-
-	// Parametrage des styles;
-	GetFieldAt("ProcessusNumber")->SetStyle("Spinner");
 
 	// ## Custom constructor
 	int nMaxCores;
 
+	// Champ specifique sur la limite du nombre de processeur
+	// synchronise avec la classe RMResourceConstraints
+	AddIntField("ProcessusNumber", "Number of process", 0);
+	GetFieldAt("ProcessusNumber")->SetStyle("Spinner");
+
 	// Limites du nombre de processor
 	nMaxCores = max(RMResourceManager::GetLogicalProcessNumber() - 1, 1);
-	RMResourceConstraints::SetMaxCoreNumber(nMaxCores);
+	RMResourceConstraints::SetMaxCoreNumberOnCluster(nMaxCores);
 	cast(UIIntElement*, GetFieldAt("ProcessusNumber"))->SetMinValue(1);
 	cast(UIIntElement*, GetFieldAt("ProcessusNumber"))->SetMaxValue(nMaxCores);
 	cast(UIIntElement*, GetFieldAt("ProcessusNumber"))->SetDefaultValue(1);
@@ -48,6 +49,12 @@ PEPiView::~PEPiView()
 	// ##
 }
 
+PEPi* PEPiView::GetPEPi()
+{
+	require(objValue != NULL);
+	return cast(PEPi*, objValue);
+}
+
 void PEPiView::EventUpdate(Object* object)
 {
 	PEPi* editedObject;
@@ -56,11 +63,13 @@ void PEPiView::EventUpdate(Object* object)
 
 	editedObject = cast(PEPi*, object);
 	editedObject->SetIterationNumber(GetIntValueAt("IterationNumber"));
-	RMResourceConstraints::SetMaxCoreNumber(GetIntValueAt("ProcessusNumber"));
 	editedObject->SetPi(GetStringValueAt("Pi"));
 	editedObject->SetElapsedTime(GetDoubleValueAt("ElapsedTime"));
 
 	// ## Custom update
+
+	// Synchronisation avec la gestion des contraintes
+	RMResourceConstraints::SetMaxCoreNumberOnCluster(GetIntValueAt("ProcessusNumber"));
 
 	// ##
 }
@@ -73,11 +82,13 @@ void PEPiView::EventRefresh(Object* object)
 
 	editedObject = cast(PEPi*, object);
 	SetIntValueAt("IterationNumber", editedObject->GetIterationNumber());
-	SetIntValueAt("ProcessusNumber", RMResourceConstraints::GetMaxCoreNumber());
 	SetStringValueAt("Pi", editedObject->GetPi());
 	SetDoubleValueAt("ElapsedTime", editedObject->GetElapsedTime());
 
 	// ## Custom refresh
+
+	// Synchronisation avec la gestion des contraintes
+	SetIntValueAt("ProcessusNumber", RMResourceConstraints::GetMaxCoreNumberOnCluster());
 
 	// ##
 }
@@ -98,7 +109,7 @@ void PEPiView::ComputePi()
 
 	// Calcul de Pi
 	pi->ComputePi();
-	AddMessage(IntToString(RMResourceConstraints::GetMaxCoreNumber()));
+	AddMessage(IntToString(RMResourceConstraints::GetMaxCoreNumberOnCluster()));
 	AddMessage("Pi = " + pi->GetPi());
 	AddMessage(SecondsToString(pi->GetElapsedTime()));
 }

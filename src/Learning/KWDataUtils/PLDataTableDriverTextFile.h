@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -17,8 +17,8 @@
 //  La methode ComputeDataItemLoadIndexes permet de calculer les index (a faire dans le Master)
 //  Les methodes GetConstDataItemLoadIndexes et GetDataItemLoadIndexes permettent de transmettre
 //  l'index entre le maitre et les esclaves
-//  Dans le cas multi-table, les methodes GetConstRootKeyIndexes et GetRootKeyIndexes permettent
-//  de transmettre les index des attributs de la cle en cas de classe racine
+//  Dans le cas multi-table, les methodes GetConstMainKeyIndexes et GetMainKeyIndexes permettent
+//  de transmettre les index des attributs de la cle en cas de classe principale
 //  Enfin, chaque process gere une portion de fichier comprise entre une position de debut et de fin,
 //  qui peut potentiellement necessiter la lecture de plusieurs buffers pour etre traitee.
 class PLDataTableDriverTextFile : public KWDataTableDriverTextFile
@@ -81,16 +81,16 @@ protected:
 	/////////////////////////////////////////////////////////////////////
 	// Gestion des index des data items (attributs ou blocs d'attributs)
 
-	// Calcul des index a partir du dictionaire
-	boolean ComputeDataItemLoadIndexes(const KWClass* kwcLogicalClass);
+	// Re-immplementation du calcul des index a partir du dictionaire
+	boolean ComputeDataItemLoadIndexes(const KWClass* kwcLogicalClass, const KWClass* kwcHeaderLineClass) override;
 
 	// Acces en lecture et ecriture aux index des data items
 	const KWLoadIndexVector* GetConstDataItemLoadIndexes() const;
 	KWLoadIndexVector* GetDataItemLoadIndexes();
 
-	// Acces en lecture et ecriture aux index des attributs de la cle en cas de classe racine
-	const IntVector* GetConstRootKeyIndexes() const;
-	IntVector* GetRootKeyIndexes();
+	// Acces en lecture et ecriture aux index des attributs de la cle en cas de classe principale
+	const IntVector* GetConstMainKeyIndexes() const;
+	IntVector* GetMainKeyIndexes();
 
 	// Initialisation de la taille de la derniere cle lu
 	void InitializeLastReadKeySize(int nValue);

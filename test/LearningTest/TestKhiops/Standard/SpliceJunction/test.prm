@@ -1,0 +1,51 @@
+// Wed Apr 15 18:02:49 2009
+// MODL.exe
+// Output command file
+//
+//This file contains recorded commands, that can be replayed.
+//Commands are based on user interactions:
+//	field update
+//	list index selection
+//	menu action
+//Every command can be commented, using //.
+//For example, commenting the last Exit command will allow other
+//user interactions, after the commands have been replayed.
+//
+//
+
+// -> Data preparation and scoring
+ClassManagement.OpenFile       // Open...
+// -> Open
+ClassFileName ../../../MTdatasets/SpliceJunction/SpliceJunction.kdic  // Dictionary file
+OK                             // Open
+
+TrainDatabase.ClassName SpliceJunction        // Dictionary
+
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunction.txt      // Data table file
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key DNA               // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt      // Data table file
+
+TrainDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 10  // Sample percentage
+
+AnalysisSpec.TargetAttributeName Class   // Target variable
+
+
+AnalysisResults.ReportFileName ./results/AnalysisResults.khj // Analysis report
+
+AnalysisResults.ReportFileName ./results/C100_AnalysisResults.khj // Analysis report
+AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxConstructedAttributeNumber 100 // Max number of constructed variables
+AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxTextFeatureNumber 0    // Max number of text features
+AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxTreeNumber 0  // Max Tree number
+AnalysisSpec.PredictorsSpec.ConstructionSpec.KeepSelectedAttributesOnly false    // Keep selected variables only
+AnalysisResults.ExportAsXls true         // Export as xls
+ComputeStats                   // Analyse database
+
+Exit                           // Close
+// <- MultiTable Data preparation and scoring
+
+
+// -> MultiTable Data preparation and scoring
+OK                             // Close
+// <- MultiTable Data preparation and scoring
+

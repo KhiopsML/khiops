@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -7,6 +7,7 @@
 KWDataTableDriver::KWDataTableDriver()
 {
 	kwcClass = NULL;
+	bDenseOutputFormat = false;
 	bVerboseMode = true;
 	bSilentMode = false;
 	lRecordIndex = 0;
@@ -38,6 +39,7 @@ void KWDataTableDriver::CopyFrom(const KWDataTableDriver* kwdtdSource)
 
 	// Reinitialisation prealable de toutes les variables
 	kwcClass = NULL;
+	bDenseOutputFormat = false;
 	bVerboseMode = true;
 	bSilentMode = false;
 	lRecordIndex = 0;
@@ -46,6 +48,7 @@ void KWDataTableDriver::CopyFrom(const KWDataTableDriver* kwdtdSource)
 
 	// Recopie des parametres de specification de la base
 	SetDataTableName(kwdtdSource->GetDataTableName());
+	SetDenseOutputFormat(kwdtdSource->GetDenseOutputFormat());
 	SetVerboseMode(kwdtdSource->GetVerboseMode());
 	SetSilentMode(kwdtdSource->GetSilentMode());
 }
@@ -178,9 +181,9 @@ KWObject* KWDataTableDriver::Read()
 
 void KWDataTableDriver::Skip() {}
 
-const KWObjectKey* KWDataTableDriver::GetLastReadRootKey() const
+const KWObjectKey* KWDataTableDriver::GetLastReadMainKey() const
 {
-	return &lastReadRootKey;
+	return &lastReadMainKey;
 }
 
 void KWDataTableDriver::Write(const KWObject* kwoObject)
@@ -216,9 +219,10 @@ longint KWDataTableDriver::ComputeNecessaryMemoryForFullExternalRead(const KWCla
 	return 0;
 }
 
-longint KWDataTableDriver::ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass)
+longint KWDataTableDriver::ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass, longint lInputFileSize)
 {
 	require(kwcLogicalClass != NULL);
+	require(lInputFileSize >= 0);
 	return 0;
 }
 

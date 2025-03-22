@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -6,13 +6,15 @@
 
 KWDataGridOptimizerParameters::KWDataGridOptimizerParameters()
 {
-	sOptimizationAlgorithm = "VNS";
+	nMaxPartNumber = 0;
 	nOptimizationTime = 0;
 	nOptimizationLevel = 4;
 	bUnivariateInitialization = true;
 	bPreOptimize = true;
 	bOptimize = true;
 	bPostOptimize = true;
+	bVarPartPostMerge = true;
+	bVarPartPostOptimize = true;
 	sInternalParameter = "";
 	bDisplayDetails = false;
 	nFreshness = 0;
@@ -20,15 +22,16 @@ KWDataGridOptimizerParameters::KWDataGridOptimizerParameters()
 
 KWDataGridOptimizerParameters::~KWDataGridOptimizerParameters() {}
 
-const ALString& KWDataGridOptimizerParameters::GetOptimizationAlgorithm() const
+int KWDataGridOptimizerParameters::GetMaxPartNumber() const
 {
-	return sOptimizationAlgorithm;
+	return nMaxPartNumber;
 }
 
-void KWDataGridOptimizerParameters::SetOptimizationAlgorithm(const ALString& sValue)
+void KWDataGridOptimizerParameters::SetMaxPartNumber(int nValue)
 {
-	require(sValue == "Greedy" or sValue == "MultiStart" or sValue == "VNS" or sValue == "None");
-	sOptimizationAlgorithm = sValue;
+	require(nValue >= 0);
+	nMaxPartNumber = nValue;
+	nFreshness++;
 }
 
 int KWDataGridOptimizerParameters::GetOptimizationTime() const
@@ -99,6 +102,26 @@ void KWDataGridOptimizerParameters::SetPostOptimize(boolean bValue)
 	nFreshness++;
 }
 
+boolean KWDataGridOptimizerParameters::GetVarPartPostMerge() const
+{
+	return bVarPartPostMerge;
+}
+
+void KWDataGridOptimizerParameters::SetVarPartPostMerge(boolean bValue)
+{
+	bVarPartPostMerge = bValue;
+}
+
+boolean KWDataGridOptimizerParameters::GetVarPartPostOptimize() const
+{
+	return bVarPartPostOptimize;
+}
+
+void KWDataGridOptimizerParameters::SetVarPartPostOptimize(boolean bValue)
+{
+	bVarPartPostOptimize = bValue;
+}
+
 const ALString& KWDataGridOptimizerParameters::GetInternalParameter() const
 {
 	return sInternalParameter;
@@ -107,6 +130,7 @@ const ALString& KWDataGridOptimizerParameters::GetInternalParameter() const
 void KWDataGridOptimizerParameters::SetInternalParameter(const ALString& sValue)
 {
 	sInternalParameter = sValue;
+	nFreshness++;
 }
 
 boolean KWDataGridOptimizerParameters::GetDisplayDetails() const
@@ -127,13 +151,15 @@ boolean KWDataGridOptimizerParameters::Check() const
 
 void KWDataGridOptimizerParameters::CopyFrom(const KWDataGridOptimizerParameters* kwdgopSource)
 {
-	sOptimizationAlgorithm = kwdgopSource->sOptimizationAlgorithm;
+	nMaxPartNumber = kwdgopSource->nMaxPartNumber;
 	nOptimizationTime = kwdgopSource->nOptimizationTime;
 	nOptimizationLevel = kwdgopSource->nOptimizationLevel;
 	bUnivariateInitialization = kwdgopSource->bUnivariateInitialization;
 	bPreOptimize = kwdgopSource->bPreOptimize;
 	bOptimize = kwdgopSource->bOptimize;
 	bPostOptimize = kwdgopSource->bPostOptimize;
+	bVarPartPostMerge = kwdgopSource->bVarPartPostMerge;
+	bVarPartPostOptimize = kwdgopSource->bVarPartPostOptimize;
 	sInternalParameter = kwdgopSource->sInternalParameter;
 	bDisplayDetails = kwdgopSource->bDisplayDetails;
 }
@@ -153,6 +179,20 @@ int KWDataGridOptimizerParameters::GetFreshness() const
 	return nFreshness;
 }
 
+void KWDataGridOptimizerParameters::Write(ostream& ost) const
+{
+	ost << GetClassLabel() << "(";
+	ost << nMaxPartNumber << ", ";
+	ost << nOptimizationTime << ", ";
+	ost << nOptimizationLevel << ", ";
+	ost << bUnivariateInitialization << ", ";
+	ost << bPreOptimize << ", ";
+	ost << bOptimize << ", ";
+	ost << bPostOptimize << ", ";
+	ost << sInternalParameter << ", ";
+	ost << bDisplayDetails << ")";
+}
+
 const ALString KWDataGridOptimizerParameters::GetClassLabel() const
 {
 	return "Data Grid optimization";
@@ -162,13 +202,17 @@ const ALString KWDataGridOptimizerParameters::GetObjectLabel() const
 {
 	ALString sLabel;
 
-	sLabel = sLabel + sOptimizationAlgorithm + "(" + IntToString(GetOptimizationLevel()) + ")";
+	sLabel = sLabel + "VNS(" + IntToString(GetOptimizationLevel()) + ")";
 	if (GetPreOptimize())
 		sLabel += "+PreOpt";
 	if (GetOptimize())
 		sLabel += "+Opt";
 	if (GetPostOptimize())
 		sLabel += "+PostOpt";
+	if (GetVarPartPostMerge())
+		sLabel += "+VarPartPostMerge";
+	if (GetVarPartPostOptimize())
+		sLabel += "+VarPartPostOpt";
 	if (GetInternalParameter() != "")
 		sLabel += "(" + sInternalParameter + ")";
 	return sLabel;
@@ -193,23 +237,6 @@ KWDataGridOptimizerParameters* PLShared_DataGridOptimizerParameters::GetDataGrid
 	return cast(KWDataGridOptimizerParameters*, GetObject());
 }
 
-void PLShared_DataGridOptimizerParameters::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	KWDataGridOptimizerParameters* dataGridOptimizerParameters;
-
-	require(serializer->IsOpenForRead());
-
-	dataGridOptimizerParameters = cast(KWDataGridOptimizerParameters*, o);
-	dataGridOptimizerParameters->SetOptimizationAlgorithm(serializer->GetString());
-	dataGridOptimizerParameters->SetOptimizationTime(serializer->GetInt());
-	dataGridOptimizerParameters->SetOptimizationLevel(serializer->GetInt());
-	dataGridOptimizerParameters->SetUnivariateInitialization(serializer->GetBoolean());
-	dataGridOptimizerParameters->SetPreOptimize(serializer->GetBoolean());
-	dataGridOptimizerParameters->SetOptimize(serializer->GetBoolean());
-	dataGridOptimizerParameters->SetPostOptimize(serializer->GetBoolean());
-	dataGridOptimizerParameters->SetDisplayDetails(serializer->GetBoolean());
-}
-
 void PLShared_DataGridOptimizerParameters::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	KWDataGridOptimizerParameters* dataGridOptimizerParameters;
@@ -217,14 +244,35 @@ void PLShared_DataGridOptimizerParameters::SerializeObject(PLSerializer* seriali
 	require(serializer->IsOpenForWrite());
 
 	dataGridOptimizerParameters = cast(KWDataGridOptimizerParameters*, o);
-	serializer->PutString(dataGridOptimizerParameters->GetOptimizationAlgorithm());
+	serializer->PutInt(dataGridOptimizerParameters->GetMaxPartNumber());
 	serializer->PutInt(dataGridOptimizerParameters->GetOptimizationTime());
 	serializer->PutInt(dataGridOptimizerParameters->GetOptimizationLevel());
 	serializer->PutBoolean(dataGridOptimizerParameters->GetUnivariateInitialization());
 	serializer->PutBoolean(dataGridOptimizerParameters->GetPreOptimize());
 	serializer->PutBoolean(dataGridOptimizerParameters->GetOptimize());
 	serializer->PutBoolean(dataGridOptimizerParameters->GetPostOptimize());
+	serializer->PutBoolean(dataGridOptimizerParameters->GetVarPartPostMerge());
+	serializer->PutBoolean(dataGridOptimizerParameters->GetVarPartPostOptimize());
 	serializer->PutBoolean(dataGridOptimizerParameters->GetDisplayDetails());
+}
+
+void PLShared_DataGridOptimizerParameters::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWDataGridOptimizerParameters* dataGridOptimizerParameters;
+
+	require(serializer->IsOpenForRead());
+
+	dataGridOptimizerParameters = cast(KWDataGridOptimizerParameters*, o);
+	dataGridOptimizerParameters->SetMaxPartNumber(serializer->GetInt());
+	dataGridOptimizerParameters->SetOptimizationTime(serializer->GetInt());
+	dataGridOptimizerParameters->SetOptimizationLevel(serializer->GetInt());
+	dataGridOptimizerParameters->SetUnivariateInitialization(serializer->GetBoolean());
+	dataGridOptimizerParameters->SetPreOptimize(serializer->GetBoolean());
+	dataGridOptimizerParameters->SetOptimize(serializer->GetBoolean());
+	dataGridOptimizerParameters->SetPostOptimize(serializer->GetBoolean());
+	dataGridOptimizerParameters->SetVarPartPostMerge(serializer->GetBoolean());
+	dataGridOptimizerParameters->SetVarPartPostOptimize(serializer->GetBoolean());
+	dataGridOptimizerParameters->SetDisplayDetails(serializer->GetBoolean());
 }
 
 Object* PLShared_DataGridOptimizerParameters::Create() const

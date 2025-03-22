@@ -1,11 +1,6 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
-
-////////////////////////////////////////////////////////////
-// 2017-08-09 17:02:21
-// File generated  with GenereTable
-// Insert your specific code inside "//## " sections
 
 #include "Attribute.h"
 
@@ -13,20 +8,9 @@ Attribute::Attribute()
 {
 	nRank = 0;
 	bInvisible = false;
-	bKeyField = false;
-	bStats = false;
-
-	// ## Custom constructor
-
-	// ##
 }
 
-Attribute::~Attribute()
-{
-	// ## Custom destructor
-
-	// ##
-}
+Attribute::~Attribute() {}
 
 void Attribute::CopyFrom(const Attribute* aSource)
 {
@@ -38,14 +22,7 @@ void Attribute::CopyFrom(const Attribute* aSource)
 	sStatus = aSource->sStatus;
 	sStyle = aSource->sStyle;
 	bInvisible = aSource->bInvisible;
-	sStorageName = aSource->sStorageName;
 	sLabel = aSource->sLabel;
-	bKeyField = aSource->bKeyField;
-	bStats = aSource->bStats;
-
-	// ## Custom copyfrom
-
-	// ##
 }
 
 Attribute* Attribute::Clone() const
@@ -54,10 +31,6 @@ Attribute* Attribute::Clone() const
 
 	aClone = new Attribute;
 	aClone->CopyFrom(this);
-
-	// ## Custom clone
-
-	// ##
 	return aClone;
 }
 
@@ -102,17 +75,8 @@ void Attribute::SetFieldAt(int nFieldIndex, const char* sValue)
 	case Invisible:
 		SetInvisible(StringToBoolean(sValue));
 		break;
-	case StorageName:
-		SetStorageName(sValue);
-		break;
 	case Label:
 		SetLabel(sValue);
-		break;
-	case KeyField:
-		SetKeyField(StringToBoolean(sValue));
-		break;
-	case Stats:
-		SetStats(StringToBoolean(sValue));
 		break;
 	default:
 		break;
@@ -137,14 +101,8 @@ const char* Attribute::GetFieldAt(int nFieldIndex) const
 		return GetStyle();
 	case Invisible:
 		return BooleanToString(GetInvisible());
-	case StorageName:
-		return GetStorageName();
 	case Label:
 		return GetLabel();
-	case KeyField:
-		return BooleanToString(GetKeyField());
-	case Stats:
-		return BooleanToString(GetStats());
 	default:
 		return "";
 	};
@@ -168,14 +126,8 @@ const ALString Attribute::GetFieldNameAt(int nFieldIndex) const
 		return "Style";
 	case Invisible:
 		return "Invisible";
-	case StorageName:
-		return "StorageName";
 	case Label:
 		return "Label";
-	case KeyField:
-		return "KeyField";
-	case Stats:
-		return "Stats";
 	default:
 		return "";
 	};
@@ -199,14 +151,8 @@ const ALString Attribute::GetFieldLabelAt(int nFieldIndex) const
 		return "Style";
 	case Invisible:
 		return "Invisible";
-	case StorageName:
-		return "Storage name";
 	case Label:
 		return "Label";
-	case KeyField:
-		return "Key field";
-	case Stats:
-		return "Stats";
 	default:
 		return "";
 	};
@@ -230,14 +176,8 @@ const ALString Attribute::GetFieldStorageNameAt(int nFieldIndex) const
 		return "Style";
 	case Invisible:
 		return "Invisible";
-	case StorageName:
-		return "Storage name";
 	case Label:
 		return "Label";
-	case KeyField:
-		return "Key field";
-	case Stats:
-		return "Stats";
 	default:
 		return "";
 	};
@@ -251,10 +191,7 @@ void Attribute::Write(ostream& ost) const
 	ost << "Status\t" << GetStatus() << "\n";
 	ost << "Style\t" << GetStyle() << "\n";
 	ost << "Invisible\t" << BooleanToString(GetInvisible()) << "\n";
-	ost << "Storage name\t" << GetStorageName() << "\n";
 	ost << "Label\t" << GetLabel() << "\n";
-	ost << "Key field\t" << BooleanToString(GetKeyField()) << "\n";
-	ost << "Stats\t" << BooleanToString(GetStats()) << "\n";
 }
 
 char Attribute::cFieldSeparator = '\t';
@@ -313,10 +250,7 @@ IntVector* Attribute::GetStoredFieldIndexes() const
 		ivStoredFieldIndexes.Add(Status);
 		ivStoredFieldIndexes.Add(Style);
 		ivStoredFieldIndexes.Add(Invisible);
-		ivStoredFieldIndexes.Add(StorageName);
 		ivStoredFieldIndexes.Add(Label);
-		ivStoredFieldIndexes.Add(KeyField);
-		ivStoredFieldIndexes.Add(Stats);
 	}
 	return &ivStoredFieldIndexes;
 }
@@ -357,8 +291,6 @@ const ALString AttributeGetRank(const Object* object)
 	return IntToString(cast(Attribute*, object)->GetRank());
 }
 
-// ## Method implementation
-
 const ALString Attribute::GetObjectLabel() const
 {
 	return GetName();
@@ -373,8 +305,6 @@ void Attribute::NormalizeValues()
 
 	// Normalisation de la casse des caracteres du Status
 	sStatus.MakeLower();
-	if (GetStatus() == "stored")
-		SetStatus("Stored");
 	if (GetStatus() == "standard")
 		SetStatus("Standard");
 	if (GetStatus() == "derived")
@@ -391,7 +321,7 @@ boolean Attribute::Check() const
 	if (GetName() == "")
 	{
 		bOk = false;
-		AddError("Le nom doit etre non vide");
+		AddError("The name must not be empty");
 	}
 
 	// Test de la validite lexicale du nom
@@ -404,7 +334,7 @@ boolean Attribute::Check() const
 			if (not isalnum(c) and c != '_')
 			{
 				bOk = false;
-				AddError("Le nom ne doit comporter que des lettres ou des chiffres");
+				AddError("The name must contain only alphanumeric characteres");
 				break;
 			}
 		}
@@ -413,7 +343,7 @@ boolean Attribute::Check() const
 		if (isdigit(GetName().GetAt(0)))
 		{
 			bOk = false;
-			AddError("Le nom ne doit pas commence par un chiffre");
+			AddError("The name must not start with a digit");
 		}
 	}
 
@@ -423,31 +353,26 @@ boolean Attribute::Check() const
 		if (GetStatus() != "")
 		{
 			bOk = false;
-			AddError("Le champs Status doit etre vide pour une ligne de libelle");
-		}
-		if (GetStorageName() != "")
-		{
-			bOk = false;
-			AddError("Le champs StorageName doit etre vide pour une ligne de libelle");
+			AddError("The Status field muts be empty in case of a label line");
 		}
 	}
 
 	// Test du type
 	if (IsField())
 	{
-		if (GetType() != "int" and GetType() != "ALString" and GetType() != "float" and
-		    GetType() != "double" and GetType() != "boolean" and GetType() != "char")
+		if (GetType() != "int" and GetType() != "ALString" and GetType() != "double" and
+		    GetType() != "boolean" and GetType() != "char")
 		{
 			bOk = false;
-			AddError("Le type doit etre char, int, float, double, boolean ou ALString");
+			AddError("The type must be char, int, double, boolean ou ALString");
 		}
 	}
 
 	// Test du status
-	if (GetStatus() != "Stored" and GetStatus() != "Standard" and GetStatus() != "" and GetStatus() != "Derived")
+	if (GetStatus() != "Standard" and GetStatus() != "" and GetStatus() != "Derived")
 	{
 		bOk = false;
-		AddError("Le status doit etre Stored, Standard ou Derived");
+		AddError("The status must be Standard or Derived");
 	}
 
 	// Test du style
@@ -460,7 +385,7 @@ boolean Attribute::Check() const
 			    GetStyle() != "Spinner" and GetStyle() != "Slider")
 			{
 				bOk = false;
-				AddError("Le style d'un attribut de type " + GetType() + " doit etre " +
+				AddError("The style of an attribute of type " + GetType() + " must be " +
 					 "TextField, ComboBox, EditableComboBox, RadioButton, Slider");
 			}
 		}
@@ -474,19 +399,20 @@ boolean Attribute::Check() const
 			    GetStyle() != "UriLabel")
 			{
 				bOk = false;
-				AddError("Le style d'un attribut de type " + GetType() + " doit etre " +
+				AddError("The style of an attribute of type " + GetType() + " must be " +
 					 "TextField, ComboBox, EditableComboBox, HelpedComboBox, FileChooser, "
 					 "DirectoryChooser,"
 					 " Password, RadioButton, TextArea, FormattedLabel, SelectableLabel, UriLabel");
 			}
 		}
-		if (GetType() == "float" or GetType() == "double")
+		if (GetType() == "double")
 		{
 			if (GetStyle() != "TextField" and GetStyle() != "ComboBox" and
-			    GetStyle() != "EditableComboBox" and GetStyle() != "RadioButton")
+			    GetStyle() != "EditableComboBox" and GetStyle() != "RadioButton" and
+			    GetStyle() != "Spinner")
 			{
 				bOk = false;
-				AddError("Le style d'un attribut de type " + GetType() + " doit etre " +
+				AddError("The style of an attribute of type " + GetType() + " must be " +
 					 "TextField, ComboBox, EditableComboBox, RadioButton");
 			}
 		}
@@ -496,7 +422,7 @@ boolean Attribute::Check() const
 			    GetStyle() != "RadioButton")
 			{
 				bOk = false;
-				AddError("Le style d'un attribut de type " + GetType() + " doit etre " +
+				AddError("The style of an attribute of type " + GetType() + " must be " +
 					 "TextField, CheckBox, ComboBox, RadioButton");
 			}
 		}
@@ -506,7 +432,7 @@ boolean Attribute::Check() const
 			    GetStyle() != "EditableComboBox" and GetStyle() != "RadioButton")
 			{
 				bOk = false;
-				AddError("Le style d'un attribut de type " + GetType() + " doit etre " +
+				AddError("The style of an attribute of type " + GetType() + " must be " +
 					 "TextField, ComboBox, EditableComboBox, RadioButton");
 			}
 		}
@@ -515,12 +441,7 @@ boolean Attribute::Check() const
 	return bOk;
 }
 
-void Attribute::ComputeDefaultValues()
-{
-	// Valeurs par defaut
-	if (GetStorageName() == "")
-		SetStorageName(GetLabel());
-}
+void Attribute::ComputeDefaultValues() {}
 
 const ALString Attribute::GetPrefix() const
 {
@@ -528,8 +449,6 @@ const ALString Attribute::GetPrefix() const
 		return "n";
 	else if (sType == "ALString")
 		return "s";
-	else if (sType == "float")
-		return "f";
 	else if (sType == "double")
 		return "d";
 	else if (sType == "boolean")
@@ -548,8 +467,6 @@ const ALString Attribute::GetFieldType() const
 		return "Int";
 	else if (sType == "ALString")
 		return "String";
-	else if (sType == "float")
-		return "Double";
 	else if (sType == "double")
 		return "Double";
 	else if (sType == "boolean")
@@ -568,8 +485,6 @@ const ALString Attribute::GetDefaultValue() const
 		return "0";
 	else if (sType == "ALString")
 		return "\"\"";
-	else if (sType == "float")
-		return "0";
 	else if (sType == "double")
 		return "0";
 	else if (sType == "boolean")
@@ -588,8 +503,6 @@ boolean Attribute::IsConstructorInit() const
 		return true;
 	else if (sType == "ALString")
 		return false;
-	else if (sType == "float")
-		return true;
 	else if (sType == "double")
 		return true;
 	else if (sType == "boolean")
@@ -621,8 +534,6 @@ const ALString Attribute::GetCharVarToType(const ALString& sVarName) const
 		return "StringToInt(" + sVarName + ")";
 	else if (sType == "ALString")
 		return sVarName;
-	else if (sType == "float")
-		return "StringToFloat(" + sVarName + ")";
 	else if (sType == "double")
 		return "StringToDouble(" + sVarName + ")";
 	else if (sType == "boolean")
@@ -640,8 +551,6 @@ const ALString Attribute::GetTypeVarToString(const ALString& sVarName) const
 		return "IntToString(" + sVarName + ")";
 	else if (sType == "ALString")
 		return sVarName;
-	else if (sType == "float")
-		return "FloatToString(" + sVarName + ")";
 	else if (sType == "double")
 		return "DoubleToString(" + sVarName + ")";
 	else if (sType == "boolean")
@@ -677,9 +586,6 @@ const ALString Attribute::GetTypeVarComparison(const ALString& sFirstElem, const
 		return sFirstElem + ".Compare( " + sSecondElem + ")";
 	else if (sType == "int")
 		return sFirstElem + " - " + sSecondElem;
-	else if (sType == "float")
-		return "(" + sFirstElem + " == " + sSecondElem + " ? 0 : (" + sFirstElem + " < " + sSecondElem +
-		       " ? -1 : 1))";
 	else if (sType == "double")
 		return "(" + sFirstElem + " == " + sSecondElem + " ? 0 : (" + sFirstElem + " < " + sSecondElem +
 		       " ? -1 : 1))";
@@ -691,5 +597,3 @@ const ALString Attribute::GetTypeVarComparison(const ALString& sFirstElem, const
 		// portage unix ?? au lieu de ??? pour eviter le trigraphe
 		return sFirstElem + " ?? " + sSecondElem;
 }
-
-// ##

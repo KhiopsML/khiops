@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -71,11 +71,11 @@ Symbol KWDRSymbolHashMap::LookupValue(const Symbol& sKey)
 	return sValue;
 }
 
-boolean KWDRSymbolHashMap::CheckCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRSymbolHashMap::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 
-	bOk = KWDerivationRule::CheckCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckCompleteness(kwcOwnerClass);
 
 	// Verification des vecteurs de cle et valeurs
 	if (bOk)
@@ -145,7 +145,7 @@ boolean KWDRSymbolHashMap::CheckCompletness(const KWClass* kwcOwnerClass) const
 
 void KWDRSymbolHashMap::Compile(KWClass* kwcOwnerClass)
 {
-	require(CheckCompletness(kwcOwnerClass));
+	require(CheckCompleteness(kwcOwnerClass));
 
 	// Compilation ancetre
 	KWDerivationRule::Compile(kwcOwnerClass);
@@ -247,11 +247,11 @@ Continuous KWDRContinuousHashMap::LookupValue(const Symbol& sKey)
 	return cValue;
 }
 
-boolean KWDRContinuousHashMap::CheckCompletness(const KWClass* kwcOwnerClass) const
+boolean KWDRContinuousHashMap::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 
-	bOk = KWDerivationRule::CheckCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckCompleteness(kwcOwnerClass);
 
 	// Verification des vecteurs de cle et valeurs
 	if (bOk)
@@ -321,7 +321,7 @@ boolean KWDRContinuousHashMap::CheckCompletness(const KWClass* kwcOwnerClass) co
 
 void KWDRContinuousHashMap::Compile(KWClass* kwcOwnerClass)
 {
-	require(CheckCompletness(kwcOwnerClass));
+	require(CheckCompleteness(kwcOwnerClass));
 
 	// Compilation ancetre
 	KWDerivationRule::Compile(kwcOwnerClass);

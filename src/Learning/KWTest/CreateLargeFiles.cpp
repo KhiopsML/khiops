@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -9,9 +9,9 @@ boolean MovePositionInBinaryFile(FILE* fFile, longint lOffset)
 	boolean bOk;
 
 	// Pour les fichiers de plus de 4 Go, il existe une API speciale (stat64...)
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#ifdef _WIN32
 	_fseeki64(fFile, lOffset, SEEK_CUR);
-#elif defined __clang__
+#elif defined(__APPLE__)
 	fseeko(fFile, lOffset, SEEK_CUR);
 #else
 	fseeko64(fFile, lOffset, SEEK_CUR);
@@ -25,12 +25,12 @@ longint TellPositionInBinaryFile(FILE* fFile)
 	longint lCurrentPosition;
 
 	// Pour les fichiers de plus de 4 Go, il existe une API speciale (stat64...)
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#ifdef _WIN32
 	lCurrentPosition = _ftelli64(fFile);
-#elif defined __clang__
-	lCurrentPosition = fseeko(fFile);
+#elif defined(__APPLE__)
+	lCurrentPosition = ftello(fFile);
 #else
-	lCurrentPosition = fseeko64(fFile);
+	lCurrentPosition = ftello64(fFile);
 #endif
 	return lCurrentPosition;
 }
@@ -107,7 +107,7 @@ void StudyCreateLargeFiles(int argc, char** argv)
 		// Creation du repertoire racine
 		FileService::MakeDirectories(sRootDir);
 
-		// Liste des modes testes (wb et w+b ne marchent pas, car un fichier est recrée e chaque fois)
+		// Liste des modes testes (wb et w+b ne marchent pas, car un fichier est recree e chaque fois)
 		svOpenModes.Add("r+b");
 		svOpenModes.Add("a+b");
 		svOpenModes.Add("ab");
@@ -229,6 +229,7 @@ void CopyFileTwiceThenConcatenate(const ALString& sPathName, boolean bFast)
 	longint lPosition;
 	const int nBufferLength = MemSegmentByteSize;
 	char sBuffer[nBufferLength];
+	int nByteReadNumber;
 	FILE* fFile;
 	FILE* fCopy1;
 	FILE* fCopy2;
@@ -284,14 +285,14 @@ void CopyFileTwiceThenConcatenate(const ALString& sPathName, boolean bFast)
 	{
 		if (lPosition + nBufferLength < lFileSize)
 		{
-			fread(sBuffer, sizeof(char), nBufferLength, fFile);
+			nByteReadNumber = (int)fread(sBuffer, sizeof(char), nBufferLength, fFile);
 			fwrite(sBuffer, sizeof(char), nBufferLength, fCopy1);
 			fwrite(sBuffer, sizeof(char), nBufferLength, fCopy2);
 			lPosition += nBufferLength;
 		}
 		else
 		{
-			fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fFile);
+			nByteReadNumber = (int)fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fFile);
 			fwrite(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy1);
 			fwrite(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy2);
 			lPosition = lFileSize;
@@ -337,13 +338,13 @@ void CopyFileTwiceThenConcatenate(const ALString& sPathName, boolean bFast)
 	{
 		if (lPosition + nBufferLength < lFileSize)
 		{
-			fread(sBuffer, sizeof(char), nBufferLength, fCopy1);
+			nByteReadNumber = (int)fread(sBuffer, sizeof(char), nBufferLength, fCopy1);
 			fwrite(sBuffer, sizeof(char), nBufferLength, fConcat);
 			lPosition += nBufferLength;
 		}
 		else
 		{
-			fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy1);
+			nByteReadNumber = (int)fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy1);
 			fwrite(sBuffer, sizeof(char), int(lFileSize - lPosition), fConcat);
 			lPosition = lFileSize;
 		}
@@ -357,13 +358,13 @@ void CopyFileTwiceThenConcatenate(const ALString& sPathName, boolean bFast)
 	{
 		if (lPosition + nBufferLength < lFileSize)
 		{
-			fread(sBuffer, sizeof(char), nBufferLength, fCopy2);
+			nByteReadNumber = (int)fread(sBuffer, sizeof(char), nBufferLength, fCopy2);
 			fwrite(sBuffer, sizeof(char), nBufferLength, fConcat);
 			lPosition += nBufferLength;
 		}
 		else
 		{
-			fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy2);
+			nByteReadNumber = (int)fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy2);
 			fwrite(sBuffer, sizeof(char), int(lFileSize - lPosition), fConcat);
 			lPosition = lFileSize;
 		}

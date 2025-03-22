@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -50,6 +50,9 @@ public:
 	const ALString& GetStructureName() const;
 	void SetStructureName(const ALString& sValue);
 
+	// Libelle complet associe au type, notamment dans le cas d'un type relation ou structure
+	const ALString GetTypeLabel() const;
+
 	// Utilisation des attributs de type objets par referencement (sinon: sous-partie)
 	// Faux si pas de regle de derivation ou type non Object, sinon selon la regle
 	boolean GetReference() const;
@@ -66,11 +69,9 @@ public:
 	const KWMetaData* GetConstMetaData() const;
 	KWMetaData* GetMetaData();
 
-	// Cle de meta-donnee predefinie pour stocker le format des types Date, Time et Timestamps
-	// Les attributs de type Date, Time, Timestamp sont selon les formats par defaut des
-	// types correspondant.
-	// On peut cependant sppecifier un format specifique au moyen d'une meta donnee
-	// (par exemple: <DateFormat="DDMMYYYY").
+	// Cle de meta-donnee predefinie pour stocker le format des types complexes: Date, Time; Timestamp et
+	// TimestampTZ Les attributs de type complexe sont selon les formats par defaut des types correspondant. On peut
+	// cependant sppecifier un format specifique au moyen d'une meta donnee (par exemple: <DateFormat="DDMMYYYY").
 	// Dans ce cas, les lectures/ecritures dans les bases de donnees se feront au moyen du format specifie
 	// Cette meta-donnee de format ne doit etre utilisee qu'avec un format valide, pour les attributs
 	// du type correspondant
@@ -81,10 +82,17 @@ public:
 	const KWDateFormat* GetDateFormat() const;
 	const KWTimeFormat* GetTimeFormat() const;
 	const KWTimestampFormat* GetTimestampFormat() const;
+	const KWTimestampTZFormat* GetTimestampTZFormat() const;
 
 	// Libelle
+	// Fin de ligne prefixee par '//' suivant la declaration de l'attribut dans le fichier dictionnaire
 	const ALString& GetLabel() const;
 	void SetLabel(const ALString& sValue);
+
+	// Commentaires
+	// Lignes prefixees par '//' precedent la declaration de l'attribut dans le fichier dictionnaire
+	const StringVector* GetComments() const;
+	void SetComments(const StringVector* svValue);
 
 	// Attribut effectivement utilise, chargeable en memoire
 	// Un attribut non utilise devient non charge
@@ -98,7 +106,7 @@ public:
 	boolean GetLoaded() const;
 	void SetLoaded(boolean bValue);
 
-	// Index de chargement de l'attribut parmi les atributs charges en memoire
+	// Index de chargement de l'attribut parmi les attributs charges en memoire
 	// Permet l'acces a la valeur dans les KWObjets
 	// Attention: toute modification de la classe englobante ou
 	// d'un de ses attributs invalide la classe, qui doit
@@ -109,7 +117,7 @@ public:
 	KWClass* GetParentClass() const;
 
 	/////////////////////////////////////////
-	// Lien enre attribut et bloc
+	// Lien entre attribut et bloc
 
 	// Indique si l'attribut est dans un bloc
 	boolean IsInBlock() const;
@@ -191,7 +199,7 @@ public:
 
 	// Completion eventuelle de la regle avec les informations de type
 	// en maintenant un dictionnaire d'attributs pour eviter les boucles
-	void InternalCompleteTypeInfo(KWClass* kwcOwnerClass, NumericKeyDictionary* nkdAttributes);
+	void InternalCompleteTypeInfo(KWClass* kwcOwnerClass, NumericKeyDictionary* nkdCompletedAttributes);
 
 protected:
 	// Seule la KWClass englobante peut acceder au fonctionnalites internes
@@ -201,8 +209,7 @@ protected:
 	friend class KWObject;
 	friend class KWMTDatabase;
 
-	// Rang de l'attribut parmi les attributs charges en memoire, pour un attribut natif inutilise de type Object ou
-	// ObjectArray
+	// Rang de l'attribut parmi les attributs charges en memoire, pour un attribut natif ou cree inutilise de type Relation
 	KWLoadIndex GetInternalLoadIndex() const;
 
 	// Construction de l'objet de format pour les type complexes
@@ -210,26 +217,27 @@ protected:
 	void BuildAdvancedTypeSpecification();
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// Gestion des attribut Used mais pas Loaded, pour la lecture/ecriture de dictionnaire dans les fichiers
+	// Gestion des attributs Used mais pas Loaded, pour la lecture/ecriture de dictionnaire dans les fichiers
 	// Permet de transferer cette information "privee", par exemple pour une tache parallele
 
-	// Ecriture si necessaire de l'information NotLoaded dans les meta-data
-	void WriteNotLoadedMetaData(ostream& ost) const;
+	// Ecriture si necessaire des informations prives dans les meta-data (_NotLoaded)
+	void WritePrivateMetaData(ostream& ost) const;
 
-	// Lecture et prise en compte de l'information NotLoaded depuis les meta-data et nettoyage de ceux-ci
-	void ReadNotLoadedMetaData();
+	// Lecture et prise en compte des informations privees depuis les meta-data et nettoyage de ceux-ci
+	void ReadPrivateMetaData();
 
 	// Bloc d'attribut eventuel auquel l'attribut appartient
 	KWAttributeBlock* attributeBlock;
 
 	// Specification avancee pour certains types d'attributs
-	//   . format pour la conversion des types Date, Time, Timestamp
+	//   . format pour la conversion des types complexe
 	// Un seul objet sert a stocker toutes ces specification avancee (gain memoire)
 	union
 	{
 		KWDateFormat* dateFormat;
 		KWTimeFormat* timeFormat;
 		KWTimestampFormat* timestampFormat;
+		KWTimestampTZFormat* timestampTZFormat;
 		Object* genericSpecification;
 	} advancedTypeSpecification;
 
@@ -242,6 +250,7 @@ protected:
 	// Specifications de l'attribut
 	KWCDUniqueString usName;
 	KWCDUniqueString usLabel;
+	StringVector svComments;
 	KWMetaData metaData;
 	KWClass* attributeClass;
 	KWCDUniqueString usStructureName;
@@ -258,6 +267,9 @@ int KWAttributeCompareName(const void* elem1, const void* elem2);
 
 // Methode de comparaison base sur le nom du bloc de l'attribut, puis de son nom
 int KWAttributeCompareBlockName(const void* elem1, const void* elem2);
+
+// Methode de comparaison base sur le nom de la classe contenant l'attribut puis celui de l'attribut
+int KWAttributeCompareClassAndAttributeName(const void* elem1, const void* elem2);
 
 // Methode de comparaison base sur la VarKey d'un attribut pour deux attribut d'un meme bloc
 int KWAttributeCompareVarKey(const void* elem1, const void* elem2);
@@ -323,11 +335,15 @@ inline void KWAttribute::SetStructureName(const ALString& sValue)
 
 inline boolean KWAttribute::GetReference() const
 {
+	KWDerivationRule* kwdrAnyRule;
+
 	require(KWType::IsRelation(GetType()));
-	if (kwdrRule == NULL)
+
+	kwdrAnyRule = GetAnyDerivationRule();
+	if (kwdrAnyRule == NULL)
 		return false;
 	else
-		return kwdrRule->GetReference();
+		return kwdrAnyRule->GetReference();
 }
 
 inline void KWAttribute::SetDerivationRule(KWDerivationRule* kwdrValue)
@@ -379,6 +395,12 @@ inline const KWTimestampFormat* KWAttribute::GetTimestampFormat() const
 	return advancedTypeSpecification.timestampFormat;
 }
 
+inline const KWTimestampTZFormat* KWAttribute::GetTimestampTZFormat() const
+{
+	require(GetType() == KWType::TimestampTZ and advancedTypeSpecification.timestampTZFormat != NULL);
+	return advancedTypeSpecification.timestampTZFormat;
+}
+
 inline const ALString& KWAttribute::GetLabel() const
 {
 	return usLabel.GetValue();
@@ -387,6 +409,16 @@ inline const ALString& KWAttribute::GetLabel() const
 inline void KWAttribute::SetLabel(const ALString& sValue)
 {
 	usLabel.SetValue(sValue);
+}
+
+inline const StringVector* KWAttribute::GetComments() const
+{
+	return &svComments;
+}
+
+inline void KWAttribute::SetComments(const StringVector* svValue)
+{
+	svComments.CopyFrom(svValue);
 }
 
 inline boolean KWAttribute::GetUsed() const
@@ -436,7 +468,7 @@ inline KWLoadIndex KWAttribute::GetInternalLoadIndex() const
 	require(parentClass != NULL);
 	require(parentClass->IsIndexed());
 	require(KWType::IsRelation(GetType()));
-	require(GetDerivationRule() == NULL);
+	require(not GetReference());
 	require(not GetLoaded());
 	ensure(parentClass->GetLoadedDataItemNumber() <= liLoadIndex.GetDenseIndex() and
 	       liLoadIndex.GetDenseIndex() < parentClass->GetTotalInternallyLoadedDataItemNumber());

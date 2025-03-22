@@ -1,0 +1,44 @@
+// Thu Jun 12 13:31:06 2008
+// modl
+// Output command file
+//
+//This file contains recorded commands, that can be replayed.
+//Commands are based on user interactions:
+//	field update
+//	list index selection
+//	menu action
+//Every command can be commented, using //.
+//For example, commenting the last Exit command will allow other
+//user interactions, after the commands have been replayed.
+//
+//
+
+ClassManagement.OpenFile       // Open...
+ClassFileName ./IrisModeling.kdic       // Dictionary file
+OK                             // Open
+
+TransferDatabase               // Deploy model
+
+// -> Database transfer
+ClassName SNB_Iris             // Deployment dictionary
+SourceDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
+SourceDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_Iris.txt     // Database file
+TransferDatabase               // Deploy model
+
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/KNI_Iris.txt     // Database file
+KNILogFileName results/KNILog.txt      // KNI log file name
+KNIStreamMaxMemory 100         // KNI max stream memory in Mo
+KNITransferDatabase            // KNI transfer database
+Exit                           // Close
+// <- Database transfer
+
+Exit                           // Close
+// <- Data preparation and scoring
+
+
+// -> Data preparation and scoring
+OK                             // Close
+// <- Data preparation and scoring
+

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -684,6 +684,40 @@ KWMetaData* PLShared_MetaData::GetMetaData()
 	return cast(KWMetaData*, GetObject());
 }
 
+void PLShared_MetaData::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	KWMetaData* metaData;
+	KWKeyValuePair* keyValuePair;
+	int i;
+
+	require(serializer != NULL);
+	require(serializer->IsOpenForWrite());
+	require(o != NULL);
+
+	// Acces a l'objet a deserialiser
+	metaData = cast(KWMetaData*, o);
+
+	// Serialisation des meta-donnees sous forme d'une liste de valeurs typees
+	// Attention, le tableau est a NULL s'il est vide
+	if (metaData->oaKeyValuePairs == NULL)
+		serializer->PutInt(0);
+	else
+	{
+		assert(metaData->oaKeyValuePairs->GetSize() > 0);
+		serializer->PutInt(metaData->oaKeyValuePairs->GetSize());
+		for (i = 0; i < metaData->oaKeyValuePairs->GetSize(); i++)
+		{
+			keyValuePair = cast(KWKeyValuePair*, metaData->oaKeyValuePairs->GetAt(i));
+			serializer->PutString(keyValuePair->usKey.GetValue());
+			serializer->PutInt(keyValuePair->nType);
+			if (keyValuePair->nType == KWKeyValuePair::StringType)
+				serializer->PutString(keyValuePair->GetStringValue());
+			else if (keyValuePair->nType == KWKeyValuePair::DoubleType)
+				serializer->PutDouble(keyValuePair->GetDoubleValue());
+		}
+	}
+}
+
 void PLShared_MetaData::DeserializeObject(PLSerializer* serializer, Object* o) const
 {
 	KWMetaData* metaData;
@@ -721,40 +755,6 @@ void PLShared_MetaData::DeserializeObject(PLSerializer* serializer, Object* o) c
 			else if (nType == KWKeyValuePair::DoubleType)
 				keyValuePair->SetDoubleValue(serializer->GetDouble());
 			assert(keyValuePair->nType == nType);
-		}
-	}
-}
-
-void PLShared_MetaData::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	KWMetaData* metaData;
-	KWKeyValuePair* keyValuePair;
-	int i;
-
-	require(serializer != NULL);
-	require(serializer->IsOpenForWrite());
-	require(o != NULL);
-
-	// Acces a l'objet a deserialiser
-	metaData = cast(KWMetaData*, o);
-
-	// Serialisation des meta-donnees sous forme d'une liste de valeurs typees
-	// Attention, le tableau est a NULL s'il est vide
-	if (metaData->oaKeyValuePairs == NULL)
-		serializer->PutInt(0);
-	else
-	{
-		assert(metaData->oaKeyValuePairs->GetSize() > 0);
-		serializer->PutInt(metaData->oaKeyValuePairs->GetSize());
-		for (i = 0; i < metaData->oaKeyValuePairs->GetSize(); i++)
-		{
-			keyValuePair = cast(KWKeyValuePair*, metaData->oaKeyValuePairs->GetAt(i));
-			serializer->PutString(keyValuePair->usKey.GetValue());
-			serializer->PutInt(keyValuePair->nType);
-			if (keyValuePair->nType == KWKeyValuePair::StringType)
-				serializer->PutString(keyValuePair->GetStringValue());
-			else if (keyValuePair->nType == KWKeyValuePair::DoubleType)
-				serializer->PutDouble(keyValuePair->GetDoubleValue());
 		}
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -66,7 +66,7 @@ void KNIDatabaseTransferView::KNITransferDatabase()
 		if (sourceMTDatabase->IsReferencedClassMapping(mapping))
 		{
 			strcpy(recodingOperands.ExternalFiles[recodingOperands.ExternalFileNumber].DataRoot,
-			       mapping->GetDataPathClassName());
+			       mapping->GetOriginClassName());
 			strcpy(recodingOperands.ExternalFiles[recodingOperands.ExternalFileNumber].DataPath,
 			       mapping->GetDataPathAttributeNames());
 			strcpy(recodingOperands.ExternalFiles[recodingOperands.ExternalFileNumber].FileName,
@@ -76,7 +76,7 @@ void KNIDatabaseTransferView::KNITransferDatabase()
 		// Recopie des caracteristiques de la table principale ou des tables secondaires
 		else
 		{
-			// Cas du mapping racine (premier des mapping)
+			// Cas du mapping principal (premier des mappings)
 			if (nMapping == 0)
 			{
 				strcpy(recodingOperands.InputFile.DataPath, "");

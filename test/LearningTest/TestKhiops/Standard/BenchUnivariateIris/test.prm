@@ -1,0 +1,94 @@
+// Mon Mar 02 17:01:01 2009
+// modl
+// Output command file
+//
+//This file contains recorded commands, that can be replayed.
+//Commands are based on user interactions:
+//	field update
+//	list index selection
+//	menu action
+//Every command can be commented, using //.
+//For example, commenting the last Exit command will allow other
+//user interactions, after the commands have been replayed.
+//
+//
+
+ClassManagement.OpenFile       // Open...
+
+// -> Open
+ClassFileName ../../../datasets/Iris/Iris.kdic       // Dictionary file
+OK                             // Open
+// <- Open
+
+TrainDatabase.ClassName Iris          // Dictionary
+
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
+
+TransferDatabase               // Deploy model
+
+// -> Database transfer
+ClassName Iris             // Deployment dictionary
+SourceDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 100  // Sample percentage
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/Iris.txt     // Database file
+TransferDatabase               // Deploy model
+Exit                           // Close
+// <- Database transfer
+
+
+// -> Data preparation and scoring
+LearningProblemStudy.ClassifierBenchmarkUnivariate   // Evaluate classifiers...
+
+// -> Learning benchmark
+CrossValidationNumber 1        // Cross-validation number
+FoldNumber 2                   // Fold number
+Stratified true               // Stratified
+SignificanceLevel 0.05         // Significance level
+ReportFileName ./results/benchmark.xls  // Benchmark report
+RunReport true
+ExportBenchmarkDatabases true
+
+
+
+PredictorSpecs.InsertItemAfter          // Insert after
+PredictorSpecs.InspectItem    // Inspect
+// -> Predictor
+PredictorLabel MODL           // Label
+Exit                           // OK
+// <- Predictor
+
+PredictorSpecs.InsertItemAfter          // Insert after
+PredictorSpecs.InspectItem    // Inspect
+// -> Predictor
+PredictorLabel MODL_2           // Label
+PreprocessingSpec.MaxPartNumber 2        // Max part number
+Exit                           // OK
+// <- Predictor
+
+
+
+BenchmarkSpecs.InsertItemAfter      // Insert after
+// -> Benchmark
+BenchmarkClassSpec.ClassFileName ../../../datasets/Iris/Iris.kdic        // Dictionary file
+BenchmarkClassSpec.ClassName Iris              // Dictionary
+BenchmarkClassSpec.TargetAttributeName Class    // Target variable
+Database.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
+Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
+Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/Iris.txt     // Database file
+Exit                           // OK
+// <- Benchmark
+
+
+Evaluate                       // Evaluation of classifiers
+Exit                           // OK
+// <- Learning benchmark
+
+Exit                           // Close
+// <- Data preparation and scoring
+
+
+// -> Data preparation and scoring
+OK                             // Close
+// <- Data preparation and scoring
+

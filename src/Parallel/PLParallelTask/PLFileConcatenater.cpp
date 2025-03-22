@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -12,19 +12,20 @@ PLFileConcatenater::PLFileConcatenater()
 	dProgressionEnd = 1;
 	cSep = '\t';
 	bDisplayProgression = false;
-	nBufferSize = BufferedFile::nDefaultBufferSize;
+	bVerbose = false;
+	bHeaderLineUsed = true;
 }
 
 PLFileConcatenater::~PLFileConcatenater() {}
 
 void PLFileConcatenater::SetFileName(const ALString& sValue)
 {
-	sFileName = sValue;
+	sOutputFileName = sValue;
 }
 
 ALString PLFileConcatenater::GetFileName() const
 {
-	return sFileName;
+	return sOutputFileName;
 }
 
 StringVector* PLFileConcatenater::GetHeaderLine()
@@ -42,15 +43,14 @@ char PLFileConcatenater::GetFieldSeparator() const
 	return cSep;
 }
 
-void PLFileConcatenater::SetBufferSize(int nValue)
+void PLFileConcatenater::SetHeaderLineUsed(boolean bUsed)
 {
-	require(nValue > 0);
-	nBufferSize = nValue;
+	bHeaderLineUsed = bUsed;
 }
 
-int PLFileConcatenater::GetBufferSize() const
+boolean PLFileConcatenater::GetHeaderLineUsed() const
 {
-	return nBufferSize;
+	return bHeaderLineUsed;
 }
 
 void PLFileConcatenater::SetDisplayProgression(boolean bDisplay)
@@ -83,6 +83,21 @@ void PLFileConcatenater::SetProgressionEnd(double dProgression)
 double PLFileConcatenater::GetProgressionEnd() const
 {
 	return dProgressionEnd;
+}
+
+void PLFileConcatenater::SetVerbose(boolean bValue)
+{
+	bVerbose = bValue;
+}
+
+boolean PLFileConcatenater::GetVerbose() const
+{
+	return bVerbose;
+}
+
+const ALString PLFileConcatenater::GetClassLabel() const
+{
+	return "file concatenater";
 }
 
 void PLFileConcatenater::RemoveChunks(const StringVector* svChunkURIs) const
@@ -123,8 +138,7 @@ void PLFileConcatenater::RemoveChunks(const StringVector* svChunkURIs) const
 		PLParallelTask::GetDriver()->StopFileServers();
 }
 
-boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const Object* errorSender,
-					boolean bRemoveChunks) const
+boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const Object* errorSender) const
 {
 	int nChunkIndex;
 	ALString sChunkURI;
@@ -135,16 +149,25 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 	ALString sTmp;
 	boolean bOk;
 	int i;
-	int nChunkSize;
 	SystemFile* fileHandle;
+	longint lInputBufferSize;
+	int nOutputBufferSize;
+	int nInputPreferredSize;
+	int nOutputPreferredSize;
+	longint lRemainingMemory;
+	longint lOutputFileSize;
+	longint lChunkSize;
+	ALString sField;
 
-	require(sFileName != "");
+	require(sOutputFileName != "");
 	require(svChunkURIs != NULL);
 	require(not bDisplayProgression or dProgressionEnd > dProgressionBegin);
 	require(not bDisplayProgression or dProgressionEnd <= 1);
 
-	fileHandle = NULL;
+	// Initialisations
 	bOk = true;
+	nChunkIndex = 0;
+	fileHandle = NULL;
 	dTaskPercent = dProgressionEnd - dProgressionBegin;
 
 	// Lancement des serveurs de fichiers si on n'est pas dans une tache
@@ -153,117 +176,176 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 		PLParallelTask::GetDriver()->StartFileServers();
 	}
 
-	// Ecriture du Header en passant par la methode WriteField  de OutputBufferFile qui gere les separateur dans les
-	// champs
-	if (svHeaderLine.GetSize() > 0)
+	// Memoire disponible sur la machine
+	lRemainingMemory = RMResourceManager::GetRemainingAvailableMemory();
+	if (svChunkURIs->GetSize() > 0)
+		nInputPreferredSize = PLRemoteFileService::GetPreferredBufferSize(svChunkURIs->GetAt(0));
+	else
+		nInputPreferredSize = SystemFile::nMinPreferredBufferSize;
+	nOutputPreferredSize = PLRemoteFileService::GetPreferredBufferSize(sOutputFileName);
+
+	if (lRemainingMemory >= (longint)nInputPreferredSize + nOutputPreferredSize)
 	{
-		outputBuffer.SetBufferSize(64 * lKB);
-		outputBuffer.SetFileName(sFileName);
-		outputBuffer.SetFieldSeparator(cSep);
-		bOk = outputBuffer.Open();
-		if (bOk)
+		nOutputBufferSize = nOutputPreferredSize;
+		lInputBufferSize = lRemainingMemory - nOutputBufferSize;
+
+		// Ajustement de la taille a un multiple de preferred size
+		if (lInputBufferSize > nInputPreferredSize)
+			lInputBufferSize = (lInputBufferSize / nInputPreferredSize) * nInputPreferredSize;
+
+		// On n'utilise pas plus de 8 preferred size
+		if (lInputBufferSize > 8 * (longint)nOutputPreferredSize)
+			lInputBufferSize = 8 * (longint)nOutputPreferredSize;
+	}
+	else
+	{
+		// On fait au mieux avec les ressources disponibles
+		lInputBufferSize = lRemainingMemory / 2;
+		nOutputBufferSize = (int)(lRemainingMemory - lInputBufferSize);
+	}
+
+	// Ajustement a des tailles raisonables
+	nOutputBufferSize = InputBufferedFile::FitBufferSize(nOutputBufferSize);
+	lInputBufferSize = InputBufferedFile::FitBufferSize(lInputBufferSize);
+
+	if (bVerbose)
+	{
+		cout << "Available memory on the host " << LongintToHumanReadableString(lRemainingMemory) << endl;
+		cout << "Dispatched for input " << LongintToHumanReadableString(lInputBufferSize) << " and output "
+		     << LongintToHumanReadableString(nOutputBufferSize) << endl;
+	}
+
+	outputBuffer.SetBufferSize(nOutputBufferSize);
+	outputBuffer.SetFileName(sOutputFileName);
+	outputBuffer.SetFieldSeparator(cSep);
+	bOk = outputBuffer.Open();
+
+	if (bOk)
+	{
+		// Calcul de la taille du fichier de sortie pour reserver la taille,
+		//  en commencant par la taille du header
+		lOutputFileSize = 0;
+		if (bHeaderLineUsed and svHeaderLine.GetSize() > 0)
 		{
 			for (i = 0; i < svHeaderLine.GetSize(); i++)
 			{
-				if (i > 0)
-					outputBuffer.Write(cSep);
-				outputBuffer.WriteField(svHeaderLine.GetAt(i));
+				sField = svHeaderLine.GetAt(i);
+				lOutputFileSize += sField.GetLength();
 			}
-			outputBuffer.WriteEOL();
-			bOk = outputBuffer.Close();
+			lOutputFileSize += max(0, svHeaderLine.GetSize() - 1); // Les separateurs
+			lOutputFileSize += FileService::GetEOL().GetLength();  // la fin de ligne
 		}
-	}
 
-	// Ouverture du fichier de sortie (en mode append si le header a deja ete ecrit)
-	if (bOk)
-	{
-		fileHandle = new SystemFile;
-		if (svHeaderLine.GetSize() > 0)
-			bOk = fileHandle->OpenOutputFileForAppend(sFileName) and bOk;
-		else
-			bOk = fileHandle->OpenOutputFile(sFileName) and bOk;
-	}
-	nChunkIndex = 0;
-	if (bOk)
-	{
-		// TODO reserver la taille du fichier de sortie (moins ce qui est deja ecrit pdans le header)
-		// Parcours de tous les chunks
+		// Calcul de la taille du fichier de sortie
 		for (nChunkIndex = 0; nChunkIndex < svChunkURIs->GetSize(); nChunkIndex++)
 		{
 			sChunkURI = svChunkURIs->GetAt(nChunkIndex);
-
-			// Interruption ?
-			if (not bOk or TaskProgression::IsInterruptionRequested())
-				break;
-
-			// Concatenation d'un nouveau chunk
-			if (PLRemoteFileService::Exist(sChunkURI))
+			lChunkSize = PLRemoteFileService::GetFileSize(sChunkURI);
+			lOutputFileSize += lChunkSize;
+			if (lChunkSize == 0 and not PLRemoteFileService::FileExists(sChunkURI))
 			{
+				bOk = false;
+				if (errorSender != NULL)
+					errorSender->AddError("Missing chunk file : " + sChunkURI);
+				break;
+			}
+			if (TaskProgression::IsInterruptionRequested())
+			{
+				bOk = false;
+				break;
+			}
+		}
+
+		// Concatenation
+		nChunkIndex = 0;
+		if (bOk)
+		{
+			// Reservation de la taille du fichier de sortie
+			outputBuffer.ReserveExtraSize(lOutputFileSize);
+
+			// Ecriture du header en passant par la methode WriteField de OutputBufferFile qui gere les separateurs dans les champs.
+			if (bHeaderLineUsed)
+			{
+				for (i = 0; i < svHeaderLine.GetSize(); i++)
+				{
+					if (i > 0)
+					{
+						outputBuffer.Write(cSep);
+					}
+					outputBuffer.WriteField(svHeaderLine.GetAt(i));
+				}
+				outputBuffer.WriteEOL();
+			}
+
+			// Parcours de tous les chunks
+			for (nChunkIndex = 0; nChunkIndex < svChunkURIs->GetSize(); nChunkIndex++)
+			{
+				sChunkURI = svChunkURIs->GetAt(nChunkIndex);
+
+				// Interruption utilisateur ?
+				if (TaskProgression::IsInterruptionRequested())
+				{
+					bOk = false;
+					break;
+				}
+
+				// Concatenation d'un nouveau chunk
 				inputFile.SetFileName(sChunkURI);
 
-				// Ouverture du chunk en lecture
+				// Ouverture du chunk en lecture (en ignorant la gestion des BOM, car on a des fichiers internes)
+				inputFile.SetUTF8BomManagement(false);
 				bOk = inputFile.Open();
 				if (bOk)
 				{
-					if (nBufferSize > inputFile.GetFileSize())
-						nChunkSize = (int)inputFile.GetFileSize();
-					else
-						nChunkSize = nBufferSize;
-					inputFile.SetBufferSize(inputFile.FitBufferSize(nChunkSize));
+					inputFile.SetBufferSize((int)min(lInputBufferSize, inputFile.GetFileSize()));
 
 					// Lecture du chunk par blocs et ecriture dans le fichier de sortie
 					lPosition = 0;
 					while (lPosition < inputFile.GetFileSize())
 					{
 						// Lecture efficace d'un buffer
-						bOk = inputFile.BasicFill(lPosition);
+						bOk = inputFile.FillBytes(lPosition);
 						if (bOk)
-							bOk = inputFile.fbBuffer.WriteToFile(
-							    fileHandle, inputFile.GetCurrentBufferSize(), errorSender);
+							outputBuffer.WriteSubPart(inputFile.GetCache(),
+										  inputFile.GetBufferStartInCache(),
+										  inputFile.GetCurrentBufferSize());
 						else
 							break;
-						lPosition += inputFile.GetBufferSize();
+						lPosition += inputFile.GetCurrentBufferSize();
 					}
 
 					// Fermeture du chunk
 					bOk = inputFile.Close() and bOk;
 
 					// Suppression du chunk
-					if (bRemoveChunks)
-						PLRemoteFileService::RemoveFile(sChunkURI);
+					PLRemoteFileService::RemoveFile(sChunkURI);
 
-					// Affichage de la progression en prenant en compte la progression intiale
-					// dProgressionLevel et la portion de progression represente par la
-					// concatenation dTaskPercent
+					// Affichage de la progression en prenant en compte la progression intiale dProgressionLevel
+					// et la portion de progression represente par la concatenation dTaskPercent
 					if (bDisplayProgression)
 						TaskProgression::DisplayProgression((int)ceil(
 						    100 * (dProgressionBegin +
 							   dTaskPercent * (nChunkIndex + 1) / svChunkURIs->GetSize())));
 				}
-			}
-			else
-			{
-				if (errorSender != NULL)
-					errorSender->AddError("Missing chunk file : " + sChunkURI);
-				bOk = false;
-				break;
+				if (not bOk)
+					break;
 			}
 		}
 		if (bDisplayProgression)
 			TaskProgression::DisplayProgression((int)(100 * dProgressionEnd));
 
 		// Fermeture du fichier de sortie
-		bOk = fileHandle->CloseOutputFile(sFileName) and bOk;
+		bOk = outputBuffer.Close() and bOk;
 	}
 
 	// Nettoyage du resultat si echec ou interruption
-	if (not bOk and FileService::Exist(sFileName))
-		FileService::RemoveFile(sFileName);
+	if (not bOk and PLRemoteFileService::FileExists(sOutputFileName))
+		PLRemoteFileService::RemoveFile(sOutputFileName);
 
 	// Suppression des chunks en cas d'echec
-	if (not bOk and bRemoveChunks)
+	if (not bOk)
 	{
-		// On a commence le traitement au chunk nChunkIndex, on n'est pas sur qu'il ait ete detruit
+		// On a commence le traitement du chunk nChunkIndex, on n'est pas sur qu'il ait ete detruit
 		for (i = nChunkIndex; i < svChunkURIs->GetSize(); i++)
 		{
 			PLRemoteFileService::RemoveFile(svChunkURIs->GetAt(i));

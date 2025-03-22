@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -12,7 +12,7 @@ KWPredictorEvaluatorView::KWPredictorEvaluatorView()
 	SetIdentifier("KWPredictorEvaluator");
 	SetLabel("Evaluate model");
 	AddStringField("EvaluationFileName", "Evaluation report", "");
-	AddBooleanField("ExportJSON", "Export JSON", true);
+	AddBooleanField("ExportAsXls", "Export as xls", false);
 	AddStringField("MainTargetModality", "Main target value", "");
 
 	// Parametrage des styles des champs
@@ -39,13 +39,11 @@ KWPredictorEvaluatorView::KWPredictorEvaluatorView()
 	GetActionAt("EvaluatePredictors")->SetStyle("Button");
 
 	// Info-bulles
-	GetFieldAt("EvaluationFileName")->SetHelpText("Name of the evaluation report file.");
-	GetFieldAt("ExportJSON")
-	    ->SetHelpText("Export the evaluation report under a JSON format."
-			  "\n The exported JSON file has the same name as the evaluation report file, with a ." +
-			  KWPredictorEvaluator::GetJSONReportSuffix() +
-			  " extension."
-			  "\n The JSON file is useful to inspect the evaluation results from any external tool.");
+	GetFieldAt("EvaluationFileName")
+	    ->SetHelpText("Name of the evaluation report file in JSON format."
+			  "\n The JSON file is useful to inspect the modeling results from any external tool.");
+	GetFieldAt("ExportAsXls")
+	    ->SetHelpText("Option to export the evaluation report to a tabular file that can be opened using Excel.");
 	GetFieldAt("MainTargetModality")
 	    ->SetHelpText("Value of the target variable in case of classification,"
 			  "\n for the lift curves in the evaluation reports.");
@@ -72,7 +70,7 @@ void KWPredictorEvaluatorView::EventUpdate(Object* object)
 
 	predictorEvaluator = cast(KWPredictorEvaluator*, object);
 	predictorEvaluator->SetEvaluationFileName(GetStringValueAt("EvaluationFileName"));
-	predictorEvaluator->SetExportJSON(GetBooleanValueAt("ExportJSON"));
+	predictorEvaluator->SetExportAsXls(GetBooleanValueAt("ExportAsXls"));
 	predictorEvaluator->SetMainTargetModality(GetStringValueAt("MainTargetModality"));
 }
 
@@ -84,14 +82,13 @@ void KWPredictorEvaluatorView::EventRefresh(Object* object)
 
 	predictorEvaluator = cast(KWPredictorEvaluator*, object);
 	SetStringValueAt("EvaluationFileName", predictorEvaluator->GetEvaluationFileName());
-	SetBooleanValueAt("ExportJSON", predictorEvaluator->GetExportJSON());
+	SetBooleanValueAt("ExportAsXls", predictorEvaluator->GetExportAsXls());
 	SetStringValueAt("MainTargetModality", predictorEvaluator->GetMainTargetModality());
 }
 
 void KWPredictorEvaluatorView::Open(KWPredictorEvaluator* predictorEvaluator)
 {
 	KWDatabaseView* evaluationDatabaseView;
-	boolean bIsMultiTableTechnology;
 	KWClassDomain* kwcdInitialClassesDomain;
 	KWClassDomain* kwcdCurrentDomain;
 	KWClass* kwcClass;
@@ -104,9 +101,6 @@ void KWPredictorEvaluatorView::Open(KWPredictorEvaluator* predictorEvaluator)
 
 	// Acces aux vues sur les bases source et cible
 	evaluationDatabaseView = cast(KWDatabaseView*, GetFieldAt("EvaluationDatabase"));
-
-	// On determine si on est dans le cas multi-table par recherche d'une sous-vue sur les fichiers
-	bIsMultiTableTechnology = evaluationDatabaseView->GetFieldIndex("DatabaseFiles") != -1;
 
 	// Acces au domaines de classes courant et initiaux
 	kwcdCurrentDomain = KWClassDomain::GetCurrentDomain();
@@ -125,7 +119,7 @@ void KWPredictorEvaluatorView::Open(KWPredictorEvaluator* predictorEvaluator)
 		kwcClass = KWClassDomain::GetCurrentDomain()->GetClassAt(i);
 
 		// Mise a jour des nombre max de mappings
-		if (bIsMultiTableTechnology)
+		if (evaluationDatabaseView->IsMultiTableTechnology())
 		{
 			nMaxInputNativeRelationAttributeNumber =
 			    max(nMaxInputNativeRelationAttributeNumber,
@@ -144,9 +138,8 @@ void KWPredictorEvaluatorView::Open(KWPredictorEvaluator* predictorEvaluator)
 	}
 
 	// Parametrage des tailles des listes de fichier des mapping en entree dans le cas multi-table
-	if (bIsMultiTableTechnology)
-		cast(UIObjectArrayView*, evaluationDatabaseView->GetFieldAt("DatabaseFiles"))
-		    ->SetLineNumber(1 + nMaxInputNativeRelationAttributeNumber);
+	if (evaluationDatabaseView->IsMultiTableTechnology())
+		evaluationDatabaseView->SetEditableTableNumber(1 + nMaxInputNativeRelationAttributeNumber);
 
 	// Parametrage des liste de predicteurs evalues
 	cast(UIList*, GetFieldAt("EvaluatedPredictors"))->SetLineNumber(max(1, nEvaluatedPredictorSpecNumber));
@@ -168,10 +161,6 @@ void KWPredictorEvaluatorView::EvaluatePredictors()
 {
 	KWPredictorEvaluator* predictorEvaluator;
 	ObjectArray oaEvaluatedPredictors;
-
-	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
 
 	// Recherche de l'objet edite
 	predictorEvaluator = cast(KWPredictorEvaluator*, GetObject());

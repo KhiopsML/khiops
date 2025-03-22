@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -23,8 +23,6 @@ import javax.swing.JScrollPane;
 
 /**
  * Definit une fenetre d'avertissement
- *
- * @author Marc Boulle
  */
 public class GUITaskProgression extends JFrame
 {
@@ -117,7 +115,7 @@ public class GUITaskProgression extends JFrame
                         GUIObject.setComponentPreferredSize(progressBar, 10);
                         label = new JLabel();
                         GUIObject.setComponentPreferredSize(label, 10);
-                        progression = new Integer(0);
+                        progression = Integer.valueOf(0);
 
                         // Memorisation dans les containers
                         mainLabels.setElementAt(mainLabel, level);
@@ -449,7 +447,7 @@ public class GUITaskProgression extends JFrame
         {
                 if (currentLevel < 0 || currentLevel > levelNumber)
                         return;
-                Integer progression = new Integer(progressionValue);
+                Integer progression = Integer.valueOf(progressionValue);
                 progressions.setElementAt(progression, currentLevel);
                 JProgressBar progressBar = (JProgressBar)progressBars.get(currentLevel);
                 progressBar.setValue(progressionValue);

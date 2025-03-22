@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -31,6 +31,8 @@ public:
 	void SetTaskLineNumber(int nTaskIndex, longint lLocalLineNumber);
 
 	// Affichage et nettoyage des messages dont la taskIndex est inferieure ou egale a nTaskIndexToPrint
+	// N'envoie les erreurs que d'un seul esclave (celui dont la taskindex est la plus petite) les autres erreurs
+	// sont ignorees
 	void PrintMessages();
 
 	boolean IsEmpty() const;
@@ -55,6 +57,9 @@ protected:
 	// Ca n'est pas un tableau de boolean car on doit envoyer un message en plus apres avoir atteind le max
 	// C'est la seul facon d'avoir un affichage des "..." vers l'utilisateur.
 	int nIsMaxErrorFlowReachedPerGravity[3];
+
+	// Index de la tache pour laquelle on a affiche la premiere erreur
+	int nTaskIndexError;
 };
 
 /////////////////////////////////////////////////////////////////////////////

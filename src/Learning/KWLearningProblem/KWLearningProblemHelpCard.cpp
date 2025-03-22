@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -13,68 +13,78 @@ KWLearningProblemHelpCard::KWLearningProblemHelpCard()
 	SetLabel("Help");
 
 	// Declaration des actions
+	AddAction("ShowQuickStart", "Quick start...", (ActionMethod)(&KWLearningProblemHelpCard::ShowQuickStart));
 	AddAction("ShowDocumentation", "Documentation...",
 		  (ActionMethod)(&KWLearningProblemHelpCard::ShowDocumentation));
-	AddAction("LicenseManagement", "License management...",
-		  (ActionMethod)(&KWLearningProblemHelpCard::LicenseManagement));
 	AddAction("ShowAbout", "About " + GetLearningFullApplicationName() + "... ",
 		  (ActionMethod)(&KWLearningProblemHelpCard::ShowAbout));
 
 	// Action de documentation non visible si pas de texte
 	GetActionAt("ShowDocumentation")->SetVisible(sDocumentationText != "");
 
-	// Info-bulles
-	GetActionAt("LicenseManagement")
-	    ->SetHelpText("Open a dialog box that displays the information relative to license management"
-			  "\n and describes the process to obtain or renew a license.");
-
 	// Short cuts
 	SetShortCut('H');
+	GetActionAt("ShowQuickStart")->SetShortCut('Q');
 	GetActionAt("ShowAbout")->SetShortCut('A');
-	GetActionAt("LicenseManagement")->SetShortCut('L');
 	GetActionAt("ShowDocumentation")->SetShortCut('D');
 }
 
 KWLearningProblemHelpCard::~KWLearningProblemHelpCard() {}
 
-void KWLearningProblemHelpCard::ShowDocumentation()
+void KWLearningProblemHelpCard::ShowQuickStart()
 {
-	UICard documentationCard;
+	UICard quickStartCard;
 
 	require(GetFieldNumber() == 0);
 
 	// Titre
+	quickStartCard.SetIdentifier("QuickStart");
+	quickStartCard.SetLabel(GetLearningFullApplicationName() + " quick start");
+
+	// Parametrage du texte a afficher
+	quickStartCard.AddStringField("Information", "", sQuickStartText);
+	quickStartCard.GetFieldAt("Information")->SetStyle("FormattedLabel");
+
+	// Affichage
+	quickStartCard.Open();
+}
+
+void KWLearningProblemHelpCard::ShowDocumentation()
+{
+	UICard documentationCard;
+	ALString sDocumentationHeader;
+
+	require(GetFieldNumber() == 0);
+
+	// Parametrage basique de la carte
 	documentationCard.SetIdentifier("Documentation");
 	documentationCard.SetLabel("Documentation " + GetLearningFullApplicationName());
 
-	// Affichage
-	if (sDocumentationText != "")
-	{
-		documentationCard.AddStringField("Information", "", sDocumentationText);
-		documentationCard.GetFieldAt("Information")->SetStyle("FormattedLabel");
-	}
-
-	// Site web
+	// Entete
+	sDocumentationHeader = "<h3> " + GetLearningFullApplicationName() + "</h3>" + sDocumentationHeader +=
+	    "<p> Khiops is an AutoML suite for supervised and unsupervised learning </p>";
 	if (GetLearningWebSite() != "")
 	{
-		// Saut de ligne
-		documentationCard.AddStringField("NewLine", "", "");
-		documentationCard.GetFieldAt("NewLine")->SetStyle("FormattedLabel");
-
-		// Site web
-		documentationCard.AddStringField("WebSite", "Web site",
-						 "<html> <a href=\"\">" + GetLearningWebSite() + "</a>  </html>");
-		documentationCard.GetFieldAt("WebSite")->SetStyle("UriLabel");
-		documentationCard.GetFieldAt("WebSite")->SetParameters(GetLearningWebSite());
+		sDocumentationHeader += "<p> Official website: ";
+		sDocumentationHeader += "<a href=\"\">" + GetLearningWebSite() + "</a> </p>";
+	}
+	documentationCard.AddStringField("Header", "", "<html>" + sDocumentationHeader + "</html>");
+	if (GetLearningWebSite() != "")
+	{
+		documentationCard.GetFieldAt("Header")->SetStyle("UriLabel");
+		documentationCard.GetFieldAt("Header")->SetParameters(GetLearningWebSite());
+	}
+	else
+	{
+		documentationCard.GetFieldAt("Header")->SetStyle("FormattedLabel");
 	}
 
-	// Affichage
-	documentationCard.Open();
-}
+	// Contenus
+	documentationCard.AddStringField("Body", "", "<html>" + sDocumentationText + "</html>");
+	documentationCard.GetFieldAt("Body")->SetStyle("FormattedLabel");
 
-void KWLearningProblemHelpCard::LicenseManagement()
-{
-	LMLicenseManager::OpenLicenseManagementCard();
+	// Affichage du widget
+	documentationCard.Open();
 }
 
 void KWLearningProblemHelpCard::ShowAbout()
@@ -123,7 +133,17 @@ void KWLearningProblemHelpCard::ShowAbout()
 	aboutCard.Open();
 }
 
-void KWLearningProblemHelpCard::SetDocumentationText(const ALString sValue)
+void KWLearningProblemHelpCard::SetQuickStartText(const ALString& sValue)
+{
+	sQuickStartText = sValue;
+}
+
+const ALString& KWLearningProblemHelpCard::GetQuickStartText()
+{
+	return sQuickStartText;
+}
+
+void KWLearningProblemHelpCard::SetDocumentationText(const ALString& sValue)
 {
 	sDocumentationText = sValue;
 }
@@ -133,4 +153,5 @@ const ALString& KWLearningProblemHelpCard::GetDocumentationText()
 	return sDocumentationText;
 }
 
+ALString KWLearningProblemHelpCard::sQuickStartText;
 ALString KWLearningProblemHelpCard::sDocumentationText;

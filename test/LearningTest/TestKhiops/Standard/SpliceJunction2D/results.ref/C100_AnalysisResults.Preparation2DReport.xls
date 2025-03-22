@@ -1,0 +1,363 @@
+#Khiops 10.5.5-b.0
+Descriptive statistics
+
+
+Problem description
+Short description	
+
+Dictionary	SpliceJunction
+Variables
+	Categorical	12
+	Numerical	90
+	Table	1
+	Total	103
+
+Database	../../../MTdatasets/SpliceJunction/SpliceJunction.txt
+Sample percentage	10
+Sampling mode	Include sample
+Selection variable	
+Selection value	
+Instances	303
+
+Learning task	Classification analysis
+
+Target variable	Categorical	Class
+
+Target variable stats
+Value	Frequency	Coverage
+EI	67	0.221122
+IE	69	0.227723
+N	167	0.551155
+
+Evaluated variable pairs	100
+Informative variable pairs	1
+
+
+Variables pairs statistics
+
+Rank	Name 1	Name 2	DeltaLevel	Level	Level 1	Level 2	Variables	Parts 1	Parts 2	Cells	Constr. cost	Prep. cost	Data cost
+R001	Count(DNA) where Char = C	Mean(DNA.Pos) where Char = G	0.00199714	0.0281231	0	0.0261259	2	2	3	6	19.767	51.0062	228.918
+R002	Count(DNA) where Char = A	Count(DNA) where Char = C	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R003	Count(DNA) where Char = A	Count(DNA) where Char = T	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R004	Count(DNA) where Char = A	Count(DNA) where Char not in {C, G, T, A}	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R005	Count(DNA) where Char = A	Count(DNA) where Char not in {C, G}	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R006	Count(DNA) where Char = A	CountDistinct(DNA.Char)	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R007	Count(DNA) where Char = A	CountDistinct(DNA.Char) where Char = G	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R008	Count(DNA) where Char = A	CountDistinct(DNA.Char) where Char not in {C, G}	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R009	Count(DNA) where Char = C	Count(DNA) where Char = T	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R010	Count(DNA) where Char = C	Count(DNA) where Char not in {C, G, T, A}	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R011	Count(DNA) where Char = C	Count(DNA) where Char not in {C, G}	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R012	Count(DNA) where Char = C	CountDistinct(DNA.Char)	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R013	Count(DNA) where Char = C	CountDistinct(DNA.Char) where Char = G	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R014	Count(DNA) where Char = C	CountDistinct(DNA.Char) where Char not in {C, G}	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R015	Count(DNA) where Char = T	Count(DNA) where Char not in {C, G, T, A}	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R016	Count(DNA) where Char = T	Count(DNA) where Char not in {C, G}	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R017	Count(DNA) where Char = T	CountDistinct(DNA.Char)	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R018	Count(DNA) where Char = T	CountDistinct(DNA.Char) where Char = G	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R019	Count(DNA) where Char not in {C, G, T, A}	Count(DNA) where Char not in {C, G}	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R020	Count(DNA) where Char not in {C, G, T, A}	CountDistinct(DNA.Char)	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R021	Count(DNA) where Char not in {C, G, T, A}	CountDistinct(DNA.Char) where Char = G	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R022	Count(DNA) where Char not in {C, G}	CountDistinct(DNA.Char)	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R023	Count(DNA) where Char not in {C, G}	CountDistinct(DNA.Char) where Char = G	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R024	CountDistinct(DNA.Char)	CountDistinct(DNA.Char) where Char = G	0	0	0	0	0	1	1	1	0.693147	10.7442	296.926
+R025	Count(DNA) where Char = A	Mode(DNA.Char)	-0.00189687	0.0428942	0	0.0447911	1	1	3	3	6.42789	29.7151	258.994
+R026	Count(DNA) where Char = C	Mode(DNA.Char)	-0.00189687	0.0428942	0	0.0447911	1	1	3	3	6.42789	29.7151	258.994
+R027	Count(DNA) where Char = T	Mode(DNA.Char)	-0.00189687	0.0428942	0	0.0447911	1	1	3	3	6.42789	29.7151	258.994
+R028	Count(DNA) where Char not in {C, G}	Mode(DNA.Char)	-0.00189687	0.0428942	0	0.0447911	1	1	3	3	6.42789	29.7151	258.994
+R029	Count(DNA) where Char = A	Count(DNA) where Char = G	-0.00566135	0.00909347	0	0.0147548	1	1	2	2	11.3057	21.0465	273.207
+R030	Count(DNA) where Char = A	Mean(DNA.Pos) where Char = G	-0.00566135	0.0204646	0	0.0261259	1	1	2	2	11.3057	19.4458	271.302
+R031	Count(DNA) where Char = A	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
+R032	Count(DNA) where Char = A	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
+R033	Count(DNA) where Char = A	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R034	Count(DNA) where Char = A	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00566135	0.0439064	0	0.0495677	1	1	3	3	11.3057	31.5551	251.964
+R035	Count(DNA) where Char = C	Count(DNA) where Char = G	-0.00566135	0.00909347	0	0.0147548	1	1	2	2	11.3057	21.0465	273.207
+R036	Count(DNA) where Char = C	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
+R037	Count(DNA) where Char = C	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
+R038	Count(DNA) where Char = C	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R039	Count(DNA) where Char = C	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00566135	0.0439064	0	0.0495677	1	1	3	3	11.3057	31.5551	251.964
+R040	Count(DNA) where Char = G	Count(DNA) where Char = T	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
+R041	Count(DNA) where Char = G	Count(DNA) where Char not in {C, G, T, A}	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
+R042	Count(DNA) where Char = G	Count(DNA) where Char not in {C, G}	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
+R043	Count(DNA) where Char = G	CountDistinct(DNA.Char)	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
+R044	Count(DNA) where Char = G	CountDistinct(DNA.Char) where Char = G	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
+R045	Count(DNA) where Char = G	CountDistinct(DNA.Char) where Char not in {C, G}	-0.00566135	0.00909347	0.0147548	0	1	2	1	2	11.3057	21.0465	273.207
+R046	Count(DNA) where Char = T	Mean(DNA.Pos) where Char = G	-0.00566135	0.0204646	0	0.0261259	1	1	2	2	11.3057	19.4458	271.302
+R047	Count(DNA) where Char = T	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
+R048	Count(DNA) where Char = T	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
+R049	Count(DNA) where Char = T	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R050	Count(DNA) where Char = T	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00566135	0.0439064	0	0.0495677	1	1	3	3	11.3057	31.5551	251.964
+R051	Count(DNA) where Char not in {C, G, T, A}	Mean(DNA.Pos) where Char = G	-0.00566135	0.0204646	0	0.0261259	1	1	2	2	11.3057	19.4458	271.302
+R052	Count(DNA) where Char not in {C, G, T, A}	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
+R053	Count(DNA) where Char not in {C, G, T, A}	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
+R054	Count(DNA) where Char not in {C, G, T, A}	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R055	Count(DNA) where Char not in {C, G, T, A}	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00566135	0.0439064	0	0.0495677	1	1	3	3	11.3057	31.5551	251.964
+R056	Count(DNA) where Char not in {C, G}	Mean(DNA.Pos) where Char = G	-0.00566135	0.0204646	0	0.0261259	1	1	2	2	11.3057	19.4458	271.302
+R057	Count(DNA) where Char not in {C, G}	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
+R058	Count(DNA) where Char not in {C, G}	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
+R059	Count(DNA) where Char not in {C, G}	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R060	Count(DNA) where Char not in {C, G}	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00566135	0.0439064	0	0.0495677	1	1	3	3	11.3057	31.5551	251.964
+R061	CountDistinct(DNA.Char)	Mean(DNA.Pos) where Char = G	-0.00566135	0.0204646	0	0.0261259	1	1	2	2	11.3057	19.4458	271.302
+R062	CountDistinct(DNA.Char)	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
+R063	CountDistinct(DNA.Char)	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
+R064	CountDistinct(DNA.Char)	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R065	CountDistinct(DNA.Char)	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00566135	0.0439064	0	0.0495677	1	1	3	3	11.3057	31.5551	251.964
+R066	CountDistinct(DNA.Char) where Char = G	Mean(DNA.Pos) where Char = G	-0.00566135	0.0204646	0	0.0261259	1	1	2	2	11.3057	19.4458	271.302
+R067	CountDistinct(DNA.Char) where Char = G	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
+R068	CountDistinct(DNA.Char) where Char = G	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
+R069	CountDistinct(DNA.Char) where Char = G	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R070	CountDistinct(DNA.Char) where Char = G	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00566135	0.0439064	0	0.0495677	1	1	3	3	11.3057	31.5551	251.964
+R071	CountDistinct(DNA.Char) where Char not in {C, G}	Mean(DNA.Pos) where Char = G	-0.00566135	0.0204646	0	0.0261259	1	1	2	2	11.3057	19.4458	271.302
+R072	CountDistinct(DNA.Char) where Char not in {C, G}	Median(DNA.Pos) where Char = C	-0.00566135	0.0031661	0	0.00882745	1	1	2	2	11.3057	19.4456	276.636
+R073	CountDistinct(DNA.Char) where Char not in {C, G}	Median(DNA.Pos) where Char = G	-0.00566135	0.0156045	0	0.0212659	1	1	3	3	11.3057	29.3732	262.873
+R074	CountDistinct(DNA.Char) where Char not in {C, G}	Mode(DNA.Char) where Pos <= 30.5	-0.00566135	0.0674603	0	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R075	CountDistinct(DNA.Char) where Char not in {C, G}	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.00566135	0.0439064	0	0.0495677	1	1	3	3	11.3057	31.5551	251.964
+R076	Count(DNA) where Char = G	Median(DNA.Pos) where Char = C	-0.0081426	0.0154397	0.0147548	0.00882745	2	3	2	6	19.767	48.0934	235.742
+R077	Count(DNA) where Char = G	Median(DNA.Pos) where Char = G	-0.00875321	0.0272675	0.0147548	0.0212659	2	2	3	6	19.767	45.3883	234.8
+R078	Median(DNA.Pos) where Char = C	Mode(DNA.Char)	-0.0107243	0.0428942	0.00882745	0.0447911	1	1	3	3	6.42789	29.7151	258.994
+R079	Mean(DNA.Pos) where Char = G	Median(DNA.Pos) where Char = C	-0.0144888	0.0204646	0.0261259	0.00882745	1	2	1	2	11.3057	19.4458	271.302
+R080	Median(DNA.Pos) where Char = C	Median(DNA.Pos) where Char = G	-0.0144888	0.0156045	0.00882745	0.0212659	1	1	3	3	11.3057	29.3732	262.873
+R081	Median(DNA.Pos) where Char = C	Mode(DNA.Char) where Pos <= 30.5	-0.0144888	0.0674603	0.00882745	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R082	Median(DNA.Pos) where Char = C	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.0144888	0.0439064	0.00882745	0.0495677	1	1	3	3	11.3057	31.5551	251.964
+R083	Median(DNA.Pos) where Char = G	Mode(DNA.Char)	-0.0145649	0.051492	0.0212659	0.0447911	2	3	3	9	14.8892	68.663	208.933
+R084	Count(DNA) where Char not in {C, G, T, A}	Mode(DNA.Char)	-0.0159326	0.0288585	0	0.0447911	1	1	3	3	6.42789	34.0432	258.994
+R085	CountDistinct(DNA.Char)	Mode(DNA.Char)	-0.0159326	0.0288585	0	0.0447911	1	1	3	3	6.42789	34.0432	258.994
+R086	CountDistinct(DNA.Char) where Char = G	Mode(DNA.Char)	-0.0159326	0.0288585	0	0.0447911	1	1	3	3	6.42789	34.0432	258.994
+R087	CountDistinct(DNA.Char) where Char not in {C, G}	Mode(DNA.Char)	-0.0159326	0.0288585	0	0.0447911	1	1	3	3	6.42789	34.0432	258.994
+R088	Count(DNA) where Char = G	Mode(DNA.Char)	-0.0166517	0.0428942	0.0147548	0.0447911	1	1	3	3	6.42789	29.7151	258.994
+R089	Count(DNA) where Char = G	Mean(DNA.Pos) where Char = G	-0.017638	0.0232427	0.0147548	0.0261259	2	2	2	4	19.767	35.2334	246.196
+R090	Mean(DNA.Pos) where Char = G	Mode(DNA.Char)	-0.0202285	0.0506885	0.0261259	0.0447911	2	2	3	6	14.8892	45.9195	231.924
+R091	Count(DNA) where Char = G	Mode(DNA.Char) where Pos <= 30.5	-0.0204162	0.0674603	0.0147548	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R092	Count(DNA) where Char = G	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.0204162	0.0439064	0.0147548	0.0495677	1	1	3	3	11.3057	31.5551	251.964
+R093	Mean(DNA.Pos) where Char = G	Median(DNA.Pos) where Char = G	-0.0269272	0.0204646	0.0261259	0.0212659	1	2	1	2	11.3057	19.4458	271.302
+R094	Median(DNA.Pos) where Char = G	Mode(DNA.Char) where Pos <= 30.5	-0.0269272	0.0674603	0.0212659	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R095	Median(DNA.Pos) where Char = G	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.0269272	0.0439064	0.0212659	0.0495677	1	1	3	3	11.3057	31.5551	251.964
+R096	Mean(DNA.Pos) where Char = G	Mode(DNA.Char) where Pos <= 30.5	-0.0317873	0.0674603	0.0261259	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R097	Mean(DNA.Pos) where Char = G	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.0317873	0.0439064	0.0261259	0.0495677	1	1	3	3	11.3057	31.5551	251.964
+R098	Mode(DNA.Char)	Mode(DNA.Char) where Pos <= 30.5	-0.0504524	0.0674603	0.0447911	0.0731216	1	1	2	2	9.91939	23.5167	254.125
+R099	Mode(DNA.Char)	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.0514646	0.0428942	0.0447911	0.0495677	1	3	1	3	6.42789	29.7151	258.994
+R100	Mode(DNA.Char) where Pos <= 30.5	Mode(DNA.Char) where Pos in ]15.5, 30.5]	-0.0552291	0.0674603	0.0731216	0.0495677	1	2	1	2	9.91939	23.5167	254.125
+
+
+--------------------------------------------------------------------------------
+
+Variables pairs detailed statistics
+(Pairs with two jointly informative variables)
+
+
+Rank	R001
+Variables
+	Type	Name
+	Numerical	Count(DNA) where Char = C
+	Numerical	Mean(DNA.Pos) where Char = G
+
+Variables stats
+Count(DNA) where Char = C
+Interval	Frequency	Coverage
+]-inf;16.5]	152	0.50165
+]16.5;+inf[	151	0.49835
+Mean(DNA.Pos) where Char = G
+Interval	Frequency	Coverage
+]-inf;31.698]	151	0.49835
+]31.698;37.6]	114	0.376238
+]37.6;+inf[	38	0.125413
+
+Cell frequencies
+	Mean(DNA.Pos) where Char = G
+Count(DNA) where Char = C	]-inf;31.698]	]31.698;37.6]	]37.6;+inf[	Total	Coverage
+]-inf;16.5]	79	57	16	152	0.50165
+]16.5;+inf[	72	57	22	151	0.49835
+Total	151	114	38	303
+Coverage	0.49835	0.376238	0.125413
+
+Cells	6
+Cell Id	Count(DNA) where Char = C	Mean(DNA.Pos) where Char = G	EI	IE	N	Interest	Frequency	Coverage
+C1	]-inf;16.5]	]-inf;31.698]	0.202532	0.0253165	0.772152	0.274659	79	0.260726
+C5	]-inf;16.5]	]37.6;+inf[	0	0.75	0.25	0.207197	16	0.0528053
+C4	]16.5;+inf[	]31.698;37.6]	0.0877193	0.491228	0.421053	0.194172	57	0.188119
+C3	]-inf;16.5]	]31.698;37.6]	0.421053	0.0701754	0.508772	0.15674	57	0.188119
+C6	]16.5;+inf[	]37.6;+inf[	0.181818	0.590909	0.227273	0.1336	22	0.0726073
+C2	]16.5;+inf[	]-inf;31.698]	0.25	0.138889	0.611111	0.0336322	72	0.237624
+	Total		0.221122	0.227723	0.551155	1	303	1
+
+----------------------------------------------
+Rank	R076
+Variables
+	Type	Name
+	Numerical	Count(DNA) where Char = G
+	Numerical	Median(DNA.Pos) where Char = C
+
+Variables stats
+Count(DNA) where Char = G
+Interval	Frequency	Coverage
+]-inf;12.5]	75	0.247525
+]12.5;19.5]	161	0.531353
+]19.5;+inf[	67	0.221122
+Median(DNA.Pos) where Char = C
+Interval	Frequency	Coverage
+]-inf;27.75]	150	0.49505
+]27.75;+inf[	153	0.50495
+
+Cell frequencies
+	Median(DNA.Pos) where Char = C
+Count(DNA) where Char = G	]-inf;27.75]	]27.75;+inf[	Total	Coverage
+]-inf;12.5]	35	40	75	0.247525
+]12.5;19.5]	84	77	161	0.531353
+]19.5;+inf[	31	36	67	0.221122
+Total	150	153	303
+Coverage	0.49505	0.50495
+
+Cells	6
+Cell Id	Count(DNA) where Char = G	Median(DNA.Pos) where Char = C	EI	IE	N	Interest	Frequency	Coverage
+C6	]19.5;+inf[	]27.75;+inf[	0.388889	0	0.611111	0.215965	36	0.118812
+C5	]12.5;19.5]	]27.75;+inf[	0.220779	0.0519481	0.727273	0.203532	77	0.254125
+C2	]12.5;19.5]	]-inf;27.75]	0.178571	0.440476	0.380952	0.199181	84	0.277228
+C3	]19.5;+inf[	]-inf;27.75]	0.483871	0.0322581	0.483871	0.166373	31	0.10231
+C4	]-inf;12.5]	]27.75;+inf[	0.025	0.3	0.675	0.14009	40	0.132013
+C1	]-inf;12.5]	]-inf;27.75]	0.142857	0.428571	0.428571	0.0748584	35	0.115512
+	Total		0.221122	0.227723	0.551155	1	303	1
+
+----------------------------------------------
+Rank	R077
+Variables
+	Type	Name
+	Numerical	Count(DNA) where Char = G
+	Numerical	Median(DNA.Pos) where Char = G
+
+Variables stats
+Count(DNA) where Char = G
+Interval	Frequency	Coverage
+]-inf;19.5]	236	0.778878
+]19.5;+inf[	67	0.221122
+Median(DNA.Pos) where Char = G
+Interval	Frequency	Coverage
+]-inf;27.75]	72	0.237624
+]27.75;37.25]	161	0.531353
+]37.25;+inf[	70	0.231023
+
+Cell frequencies
+	Median(DNA.Pos) where Char = G
+Count(DNA) where Char = G	]-inf;27.75]	]27.75;37.25]	]37.25;+inf[	Total	Coverage
+]-inf;19.5]	60	116	60	236	0.778878
+]19.5;+inf[	12	45	10	67	0.221122
+Total	72	161	70	303
+Coverage	0.237624	0.531353	0.231023
+
+Cells	6
+Cell Id	Count(DNA) where Char = G	Median(DNA.Pos) where Char = G	EI	IE	N	Interest	Frequency	Coverage
+C5	]-inf;19.5]	]37.25;+inf[	0.0833333	0.566667	0.35	0.330661	60	0.19802
+C4	]19.5;+inf[	]27.75;37.25]	0.4	0	0.6	0.258497	45	0.148515
+C1	]-inf;19.5]	]-inf;27.75]	0.116667	0.05	0.833333	0.232266	60	0.19802
+C6	]19.5;+inf[	]37.25;+inf[	0.7	0.1	0.2	0.104024	10	0.0330033
+C2	]19.5;+inf[	]-inf;27.75]	0.333333	0	0.666667	0.063096	12	0.039604
+C3	]-inf;19.5]	]27.75;37.25]	0.224138	0.267241	0.508621	0.0114554	116	0.382838
+	Total		0.221122	0.227723	0.551155	1	303	1
+
+----------------------------------------------
+Rank	R083
+Variables
+	Type	Name
+	Numerical	Median(DNA.Pos) where Char = G
+	Categorical	Mode(DNA.Char)
+
+Variables stats
+Median(DNA.Pos) where Char = G
+Interval	Frequency	Coverage
+]-inf;30.25]	109	0.359736
+]30.25;38.25]	136	0.448845
+]38.25;+inf[	58	0.191419
+Mode(DNA.Char)
+Group	Frequency	Coverage	Size	Value list
+{C}	119	0.392739	1	C
+{T, A}	107	0.353135	2	T	A	 * 
+{G}	77	0.254125	1	G
+
+Cell frequencies
+	Mode(DNA.Char)
+Median(DNA.Pos) where Char = G	{C}	{T, A}	{G}	Total	Coverage
+]-inf;30.25]	41	43	25	109	0.359736
+]30.25;38.25]	44	48	44	136	0.448845
+]38.25;+inf[	34	16	8	58	0.191419
+Total	119	107	77	303
+Coverage	0.392739	0.353135	0.254125
+
+Cells	9
+Cell Id	Median(DNA.Pos) where Char = G	Mode(DNA.Char)	EI	IE	N	Interest	Frequency	Coverage
+C8	]30.25;38.25]	{G}	0.5	0	0.5	0.228745	44	0.145215
+C4	]-inf;30.25]	{T, A}	0.0930233	0.0232558	0.883721	0.176489	43	0.141914
+C2	]30.25;38.25]	{C}	0.113636	0.545455	0.340909	0.150925	44	0.145215
+C3	]38.25;+inf[	{C}	0.117647	0.588235	0.294118	0.147254	34	0.112211
+C9	]38.25;+inf[	{G}	0.75	0.25	0	0.10875	8	0.0264026
+C6	]38.25;+inf[	{T, A}	0	0.5625	0.4375	0.0943793	16	0.0528053
+C7	]-inf;30.25]	{G}	0.24	0.04	0.72	0.0515547	25	0.0825083
+C1	]-inf;30.25]	{C}	0.195122	0.121951	0.682927	0.0271938	41	0.135314
+C5	]30.25;38.25]	{T, A}	0.25	0.145833	0.604167	0.0147099	48	0.158416
+	Total		0.221122	0.227723	0.551155	1	303	1
+
+----------------------------------------------
+Rank	R089
+Variables
+	Type	Name
+	Numerical	Count(DNA) where Char = G
+	Numerical	Mean(DNA.Pos) where Char = G
+
+Variables stats
+Count(DNA) where Char = G
+Interval	Frequency	Coverage
+]-inf;19.5]	236	0.778878
+]19.5;+inf[	67	0.221122
+Mean(DNA.Pos) where Char = G
+Interval	Frequency	Coverage
+]-inf;31.698]	151	0.49835
+]31.698;+inf[	152	0.50165
+
+Cell frequencies
+	Mean(DNA.Pos) where Char = G
+Count(DNA) where Char = G	]-inf;31.698]	]31.698;+inf[	Total	Coverage
+]-inf;19.5]	114	122	236	0.778878
+]19.5;+inf[	37	30	67	0.221122
+Total	151	152	303
+Coverage	0.49835	0.50165
+
+Cells	4
+Cell Id	Count(DNA) where Char = G	Mean(DNA.Pos) where Char = G	EI	IE	N	Interest	Frequency	Coverage
+C3	]-inf;19.5]	]31.698;+inf[	0.139344	0.459016	0.401639	0.375437	122	0.40264
+C2	]19.5;+inf[	]-inf;31.698]	0.351351	0	0.648649	0.234491	37	0.122112
+C4	]19.5;+inf[	]31.698;+inf[	0.533333	0.0333333	0.433333	0.213467	30	0.0990099
+C1	]-inf;19.5]	]-inf;31.698]	0.184211	0.105263	0.710526	0.176604	114	0.376238
+	Total		0.221122	0.227723	0.551155	1	303	1
+
+----------------------------------------------
+Rank	R090
+Variables
+	Type	Name
+	Numerical	Mean(DNA.Pos) where Char = G
+	Categorical	Mode(DNA.Char)
+
+Variables stats
+Mean(DNA.Pos) where Char = G
+Interval	Frequency	Coverage
+]-inf;37.6]	265	0.874587
+]37.6;+inf[	38	0.125413
+Mode(DNA.Char)
+Group	Frequency	Coverage	Size	Value list
+{C}	119	0.392739	1	C
+{T, A}	107	0.353135	2	T	A	 * 
+{G}	77	0.254125	1	G
+
+Cell frequencies
+	Mode(DNA.Char)
+Mean(DNA.Pos) where Char = G	{C}	{T, A}	{G}	Total	Coverage
+]-inf;37.6]	100	90	75	265	0.874587
+]37.6;+inf[	19	17	2	38	0.125413
+Total	119	107	77	303
+Coverage	0.392739	0.353135	0.254125
+
+Cells	6
+Cell Id	Mean(DNA.Pos) where Char = G	Mode(DNA.Char)	EI	IE	N	Interest	Frequency	Coverage
+C5	]-inf;37.6]	{G}	0.426667	0.04	0.533333	0.268268	75	0.247525
+C3	]-inf;37.6]	{T, A}	0.177778	0.0555556	0.766667	0.22622	90	0.29703
+C4	]37.6;+inf[	{T, A}	0	0.705882	0.294118	0.193064	17	0.0561056
+C2	]37.6;+inf[	{C}	0.105263	0.684211	0.210526	0.165905	19	0.0627063
+C1	]-inf;37.6]	{C}	0.15	0.36	0.49	0.0907069	100	0.330033
+C6	]37.6;+inf[	{G}	1	0	0	0.0558357	2	0.00660066
+	Total		0.221122	0.227723	0.551155	1	303	1

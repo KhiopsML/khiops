@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -41,8 +41,8 @@ public:
 	///// Implementation
 protected:
 	// Reimplementation des methodes virtuelles
-	void SerializeObject(PLSerializer*, const Object*) const override;
-	void DeserializeObject(PLSerializer*, Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	Object* Create() const override;
 };
 
@@ -62,7 +62,7 @@ public:
 	void Add(int nValue);
 
 	// Taille du vecteur
-	int GetSize();
+	int GetSize() const;
 
 	// Acces au vecteur
 	const IntVector* GetConstIntVector() const;
@@ -75,8 +75,8 @@ public:
 	///// Implementation
 protected:
 	// Reimplementation des methodes virtuelles
-	void SerializeObject(PLSerializer*, const Object*) const override;
-	void DeserializeObject(PLSerializer*, Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	Object* Create() const override;
 };
 
@@ -96,7 +96,7 @@ public:
 	void Add(longint lValue);
 
 	// Taille du vecteur
-	int GetSize();
+	int GetSize() const;
 
 	// Acces au vecteur
 	const LongintVector* GetConstLongintVector() const;
@@ -109,8 +109,8 @@ public:
 	///// Implementation
 protected:
 	// Reimplementation des methodes virtuelles
-	void SerializeObject(PLSerializer*, const Object*) const override;
-	void DeserializeObject(PLSerializer*, Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	Object* Create() const override;
 };
 
@@ -143,8 +143,8 @@ public:
 	///// Implementation
 protected:
 	// Reimplementation des methodes virtuelles
-	void SerializeObject(PLSerializer*, const Object*) const override;
-	void DeserializeObject(PLSerializer*, Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	Object* Create() const override;
 };
 
@@ -177,13 +177,54 @@ public:
 	///// Implementation
 protected:
 	// Reimplementation des methodes virtuelles
-	void SerializeObject(PLSerializer*, const Object*) const override;
-	void DeserializeObject(PLSerializer*, Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	Object* Create() const override;
 };
 
 ////////////////////////////////////////////////////////////
 // Implementations inline
+
+inline int PLShared_IntVector::GetAt(int nIndex) const
+{
+	require(bIsReadable);
+	require(bIsDeclared);
+
+	return GetConstIntVector()->GetAt(nIndex);
+}
+
+inline void PLShared_IntVector::SetAt(int nIndex, int nValue)
+{
+	require(bIsWritable);
+	GetIntVector()->SetAt(nIndex, nValue);
+}
+
+inline void PLShared_IntVector::Add(int nValue)
+{
+	require(bIsWritable);
+	GetIntVector()->Add(nValue);
+}
+
+inline int PLShared_IntVector::GetSize() const
+{
+	return GetConstIntVector()->GetSize();
+}
+
+inline const IntVector* PLShared_IntVector::GetConstIntVector() const
+{
+	require(bIsReadable);
+	require(bIsDeclared);
+
+	return cast(IntVector*, GetObject());
+}
+
+inline IntVector* PLShared_IntVector::GetIntVector()
+{
+	require(bIsWritable);
+	require(bIsDeclared);
+
+	return cast(IntVector*, GetObject());
+}
 
 inline longint PLShared_LongintVector::GetAt(int nIndex) const
 {
@@ -205,7 +246,7 @@ inline void PLShared_LongintVector::Add(longint lValue)
 	GetLongintVector()->Add(lValue);
 }
 
-inline int PLShared_LongintVector::GetSize()
+inline int PLShared_LongintVector::GetSize() const
 {
 	require(bIsReadable);
 	require(bIsDeclared);
@@ -275,7 +316,6 @@ inline DoubleVector* PLShared_DoubleVector::GetDoubleVector()
 	require(bIsDeclared);
 
 	return cast(DoubleVector*, GetObject());
-	;
 }
 
 inline char PLShared_CharVector::GetAt(int nIndex) const

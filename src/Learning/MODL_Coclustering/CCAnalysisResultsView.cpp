@@ -1,10 +1,9 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-02-05 18:19:44
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "CCAnalysisResultsView.h"
@@ -13,46 +12,29 @@ CCAnalysisResultsView::CCAnalysisResultsView()
 {
 	SetIdentifier("CCAnalysisResults");
 	SetLabel("Results");
-	AddStringField("ResultFilesDirectory", "Result files directory", "");
-	AddStringField("ResultFilesPrefix", "Result files prefix", "");
-	AddStringField("ShortDescription", "Short description", "");
 	AddStringField("CoclusteringFileName", "Coclustering report", "");
-	AddStringField("InputCoclusteringFileName", "Input coclustering report", "");
-	AddStringField("ClusterFileName", "Cluster table file", "");
-	AddStringField("PostProcessedCoclusteringFileName", "Simplified coclustering report", "");
-	AddStringField("CoclusteringDictionaryFileName", "Coclustering dictionary file", "");
-	AddBooleanField("ExportJSON", "Export JSON", false);
+	AddStringField("ShortDescription", "Short description", "");
 
 	// Parametrage des styles;
-	GetFieldAt("ResultFilesDirectory")->SetStyle("DirectoryChooser");
+	GetFieldAt("CoclusteringFileName")->SetStyle("FileChooser");
 
 	// ## Custom constructor
 
+	// Action de visualisation des resultats
+	AddAction("VisualizeReport", "Visualize report", (ActionMethod)(&CCAnalysisResultsView::VisualizeReport));
+	GetActionAt("VisualizeReport")->SetStyle("Button");
+
 	// Info-bulles
+	GetFieldAt("CoclusteringFileName")
+	    ->SetHelpText(
+		"Name of the coclustering report that contains the full definition of the coclustering model."
+		"\n By default, the report is stored in the database directory, unless an absolute path is specified."
+		"\n The coclustering report is the input of the Khiops Covisualization tool.");
 	GetFieldAt("ShortDescription")
 	    ->SetHelpText(
 		"Brief description to summarize the current analysis, which will be included in the reports.");
-	GetFieldAt("ResultFilesDirectory")
-	    ->SetHelpText("Name of the directory where the results files are stored."
-			  "\n By default, the results files are stored in the directory of the train database.");
-	GetFieldAt("ResultFilesPrefix")->SetHelpText("Prefix added before the name of each result file.");
-	GetFieldAt("CoclusteringFileName")
-	    ->SetHelpText("Name of the coclustering report that contains the full definition of the coclustering model."
-			  "\n The coclustering report is the input of the Khiops Covisualization tool.");
-	GetFieldAt("InputCoclusteringFileName")->SetHelpText("Name of the coclustering report to post-process.");
-	GetFieldAt("ClusterFileName")->SetHelpText("Name of the file that contains the extracted clusters.");
-	GetFieldAt("PostProcessedCoclusteringFileName")
-	    ->SetHelpText("Name of the simplified coclustering report,"
-			  "\n that is the most detailed version of the input coclustering report"
-			  "\n that meets all the simplification constraints.");
-	GetFieldAt("CoclusteringDictionaryFileName")
-	    ->SetHelpText("Name of the deployment dictionary that contains the coclustering deployment model.");
-	GetFieldAt("ExportJSON")
-	    ->SetHelpText("Export the coclustering report under a JSON format."
-			  "\n The exported JSON file has the same name as the coclustering report file, with a ." +
-			  CCCoclusteringReport::GetJSONReportSuffix() +
-			  "extension."
-			  "\n The JSON file is useful to inspect the coclustering results from any external tool.");
+	GetActionAt("VisualizeReport")
+	    ->SetHelpText("Visualize coclustering report if available, using Khiops covisualization tool.");
 
 	// ##
 }
@@ -77,15 +59,8 @@ void CCAnalysisResultsView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(CCAnalysisResults*, object);
-	editedObject->SetResultFilesDirectory(GetStringValueAt("ResultFilesDirectory"));
-	editedObject->SetResultFilesPrefix(GetStringValueAt("ResultFilesPrefix"));
-	editedObject->SetShortDescription(GetStringValueAt("ShortDescription"));
 	editedObject->SetCoclusteringFileName(GetStringValueAt("CoclusteringFileName"));
-	editedObject->SetInputCoclusteringFileName(GetStringValueAt("InputCoclusteringFileName"));
-	editedObject->SetClusterFileName(GetStringValueAt("ClusterFileName"));
-	editedObject->SetPostProcessedCoclusteringFileName(GetStringValueAt("PostProcessedCoclusteringFileName"));
-	editedObject->SetCoclusteringDictionaryFileName(GetStringValueAt("CoclusteringDictionaryFileName"));
-	editedObject->SetExportJSON(GetBooleanValueAt("ExportJSON"));
+	editedObject->SetShortDescription(GetStringValueAt("ShortDescription"));
 
 	// ## Custom update
 
@@ -99,15 +74,8 @@ void CCAnalysisResultsView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(CCAnalysisResults*, object);
-	SetStringValueAt("ResultFilesDirectory", editedObject->GetResultFilesDirectory());
-	SetStringValueAt("ResultFilesPrefix", editedObject->GetResultFilesPrefix());
-	SetStringValueAt("ShortDescription", editedObject->GetShortDescription());
 	SetStringValueAt("CoclusteringFileName", editedObject->GetCoclusteringFileName());
-	SetStringValueAt("InputCoclusteringFileName", editedObject->GetInputCoclusteringFileName());
-	SetStringValueAt("ClusterFileName", editedObject->GetClusterFileName());
-	SetStringValueAt("PostProcessedCoclusteringFileName", editedObject->GetPostProcessedCoclusteringFileName());
-	SetStringValueAt("CoclusteringDictionaryFileName", editedObject->GetCoclusteringDictionaryFileName());
-	SetBooleanValueAt("ExportJSON", editedObject->GetExportJSON());
+	SetStringValueAt("ShortDescription", editedObject->GetShortDescription());
 
 	// ## Custom refresh
 
@@ -121,15 +89,45 @@ const ALString CCAnalysisResultsView::GetClassLabel() const
 
 // ## Method implementation
 
-void CCAnalysisResultsView::SetResultFieldsVisible(boolean bValue)
+void CCAnalysisResultsView::VisualizeReport()
 {
-	GetFieldAt("ShortDescription")->SetVisible(bValue);
-	GetFieldAt("CoclusteringFileName")->SetVisible(bValue);
-	GetFieldAt("InputCoclusteringFileName")->SetVisible(bValue);
-	GetFieldAt("ClusterFileName")->SetVisible(bValue);
-	GetFieldAt("PostProcessedCoclusteringFileName")->SetVisible(bValue);
-	GetFieldAt("CoclusteringDictionaryFileName")->SetVisible(bValue);
-	GetFieldAt("ExportJSON")->SetVisible(bValue);
+	CCAnalysisResults* analysisResults;
+	ALString sAnalysisReportFileName;
+	boolean bOk;
+	KWResultFilePathBuilder resultFilePathBuilder;
+	char sResult[SYSTEM_MESSAGE_LENGTH + 1];
+
+	// Acces aux resultats d'analyse
+	analysisResults = GetCCAnalysisResults();
+	assert(analysisResults->GetTrainDatabase() != NULL);
+
+	// Initialisation du createur de chemin de fichier
+	if (analysisResults->GetTrainDatabase() != NULL)
+		resultFilePathBuilder.SetInputFilePathName(analysisResults->GetTrainDatabase()->GetDatabaseName());
+	resultFilePathBuilder.SetOutputFilePathName(analysisResults->GetCoclusteringFileName());
+	resultFilePathBuilder.SetFileSuffix("khcj");
+
+	// Recherche du nom du rapport d'analyse
+	sAnalysisReportFileName = resultFilePathBuilder.BuildResultFilePathName();
+
+	// Warning si pas de fichier de rapprot
+	if (not FileService::FileExists(sAnalysisReportFileName))
+		AddWarning("No report found for file name " + sAnalysisReportFileName);
+	// Ouverture sinon
+	else
+	{
+		assert(FileService::GetFileSuffix(sAnalysisReportFileName) == "khcj");
+		bOk = OpenApplication("khiops-covisualization", "Khiops covisualization", sAnalysisReportFileName,
+				      sResult);
+		if (not bOk)
+			AddWarning(sResult);
+	}
+}
+
+const ALString CCAnalysisResultsView::GetObjectLabel() const
+{
+	// Redefini a vide, car le ClassLabel est suffisant dans les messages
+	return "";
 }
 
 // ##

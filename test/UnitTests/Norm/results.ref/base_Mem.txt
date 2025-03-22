@@ -1,0 +1,59 @@
+SYS MEMORY	Memoire physique theorique adressable	1.0 TB
+SYS MEMORY	Memoire physique totale	31.1 GB
+SYS MEMORY	Memoire physique disponible	17.6 GB
+SYS MEMORY	Memoire virtuelle utilisee	16.9 MB
+SYS MEMORY	Memoire heap utilisee	6.0 MB
+Keep default alloc error handler (y/n) [y]:
+Huge alloc (may cause a fatal error) (y/n) [n]:
+Test of alloc of large vectors
+Size of vectors (1 to 100000000) [1000]:
+Alloc number (0 to 10000000) [1000]:
+Print progression dots (y/n) [n]:
+Allocated vectors:	1000
+SYS TIME	Allocation	0.00143015
+
+Sequential use of allocated vectors (y/n) [y]:
+SYS TIME	Sequential use of vectors	0.00041307
+
+Random use of allocated vectors (y/n) [y]:
+SYS TIME	Random use of vectors	0.00643451
+
+Free memory (y/n) [y]:
+SYS TIME	Free memory	0.000244843
+
+Extensive memory benchmark
+Percentage of available memory to exploit (0 to 100) [10]:
+SYS MEMORY	Memoire utilisee pour le benchmark	3182 Mo
+	Allocation de grands nombres de vecteurs d'entiers
+	  Size: taille des vecteur d'entier
+	  Nb: nombre d'allocations demandees
+	  NbAlloc: nombre d'allocations effectuees
+	  Memory: taille totale allouee en Mo
+	  T new: temps d'allocation
+	  T delete: temps de liberation
+Size	Nb	NbAlloc	Memory	T new	T delete
+SYS	100	8343162	8343162	3182	1.30631	0.523274
+SYS	200	4171581	4171581	3182	1.08752	0.345026
+SYS	400	2085790	2085790	3182	1.02837	0.32806
+SYS	800	1042895	1042895	3182	1.00369	0.218545
+SYS	1600	521447	521447	3182	1.06916	0.177725
+SYS	3200	260723	260723	3182	1.10028	0.158315
+SYS	6400	130361	130361	3182	1.00201	0.138216
+SYS	12800	65180	65180	3182	0.940139	0.123385
+SYS	25600	32590	32590	3182	0.91925	0.120753
+SYS	51200	16295	16295	3182	0.903165	0.11727
+SYS	102400	8147	8147	3182	0.897064	0.115526
+SYS	204800	4073	4073	3182	0.89609	0.117363
+SYS	409600	2036	2036	3181	0.886	0.113013
+SYS	819200	1018	1018	3181	0.869248	0.114738
+Massive segment allocation
+Iteration number (0 to 10) [1]:
+Alloc number (0 to 10000000) [10000]:
+Creation of segments	0	10000	SYS	720.9 MB	732.0 MB	0.177624
+Deletion of segments	0	10000	SYS	6.5 MB	20.5 MB	0.0310556
+Creation of segments	0	10000	SYS	720.9 MB	732.0 MB	0.17755
+Bloc deletion of segments	0	10000	SYS	6.5 MB	20.5 MB	0.0311565
+Creation of segments	0	10000	SYS	720.9 MB	732.5 MB	0.175781
+Reverse deletion of segments	0	10000	SYS	6.5 MB	732.5 MB	0.00104274
+Creation of segments	0	10000	SYS	720.9 MB	733.0 MB	0.0299581
+Random deletion of segments	0	10000	SYS	6.5 MB	91.5 MB	0.0278713

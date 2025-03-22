@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -34,6 +34,10 @@ public:
 	// Memoire: les specifications sont referencees et destinees a etre partagees par plusieurs algorithmes
 	void SetDataGridCosts(const KWDataGridCosts* kwdgcCosts);
 	const KWDataGridCosts* GetDataGridCosts() const;
+
+	// Nombre maximum de parties par dimension (defaut: 0, signifie pas de contrainte)
+	int GetMaxPartNumber() const;
+	void SetMaxPartNumber(int nValue);
 
 	// Optimisation du groupage du DataGrid
 	// Renvoie le cout optimise
@@ -186,6 +190,9 @@ protected:
 	// (probleme si depassement de capacite des entiers lors du produit)
 	int ComputeProductModulo(int nFactor1, int nFactor2, int nModuloRange) const;
 
+	// Contrainte sur le nombre max de partie par dimension
+	int nMaxPartNumber;
+
 	// Table de hashage des cellules, geree au moyen d'un tableau, et de l'attribut
 	// hashNextCell des cellules pour gerer les collision
 	ObjectArray oaCellDictionary;
@@ -312,7 +319,7 @@ protected:
 	friend class CCCoclusteringBuilder;
 
 	//////////////////////////////////////////////////////////////
-	// Gestion des fusions dans lesquelles la partie est implique
+	// Gestion des fusions dans lesquelles la partie est impliquee
 	// Les fusions sont accessible par cle de la partie extremite de la fusion
 
 	// Ajout d'une fusion
@@ -404,7 +411,7 @@ public:
 	~KWDGMPartMerge();
 
 	/////////////////////////////////////////////////////
-	// Gestions des parties impliques dans le groupage
+	// Gestions des parties impliquees dans le groupage
 
 	// Parametrage de la partie origine
 	void SetPart1(KWDGMPart* part);
@@ -449,6 +456,13 @@ public:
 
 	///////////////////////////////
 	///// Implementation
+
+	// Variante tronquee de la variation de cout, a utiliser uniquement dans les methodes de comparaison
+	// Cela permet de stabilise le comportement des algoritjme quand on change de d'OS ou de processeur
+	// en minimisant les cas de changement d'ordre a epsilon pret
+	// Cette variante tronque est stockee ici pour des raison d'optimisation des methodes de comparaison
+	double GetTruncatedMergeCost() const;
+
 protected:
 	// Parties origine et destination
 	KWDGMPart* part1;
@@ -456,6 +470,7 @@ protected:
 
 	// Cout de fusion
 	double dMergeCost;
+	double dTruncatedMergeCost;
 
 	// Position dans une liste
 	POSITION position;
@@ -528,7 +543,19 @@ inline void KWDGMAttribute::RemovePartFromValueNumberList(KWDGMPart* partM)
 
 inline void KWDGMAttribute::RemoveAllPartsFromValueNumberList()
 {
+	KWDGPart* part;
+	KWDGMPart* partM;
+
 	slPartValueNumbers->RemoveAll();
+
+	// Dereferencement des positions dans la liste qui vient d'etre detruite
+	part = GetHeadPart();
+	while (part != NULL)
+	{
+		partM = cast(KWDGMPart*, part);
+		partM->SetPosition(NULL);
+		GetNextPart(part);
+	}
 }
 
 inline void KWDGMAttribute::AddPartMerge(KWDGMPartMerge* partMerge)
@@ -630,7 +657,7 @@ inline void KWDGMPart::AddPartMerge(KWDGMPartMerge* partMerge)
 	require(partMerge->GetPart1() == this or partMerge->GetPart2() == this);
 	require(LookupPartMerge(partMerge->GetOppositePart(this)) == NULL);
 
-	nkdPartMerges.SetAt((NUMERIC)partMerge->GetOppositePart(this), partMerge);
+	nkdPartMerges.SetAt(partMerge->GetOppositePart(this), partMerge);
 }
 
 inline KWDGMPartMerge* KWDGMPart::LookupPartMerge(KWDGMPart* oppositePart) const
@@ -640,7 +667,7 @@ inline KWDGMPartMerge* KWDGMPart::LookupPartMerge(KWDGMPart* oppositePart) const
 	require(oppositePart != NULL);
 	require(oppositePart->GetAttribute() == GetAttribute());
 
-	partMerge = cast(KWDGMPartMerge*, nkdPartMerges.Lookup((NUMERIC)oppositePart));
+	partMerge = cast(KWDGMPartMerge*, nkdPartMerges.Lookup(oppositePart));
 	ensure(partMerge == NULL or partMerge->GetOppositePart(this) == oppositePart);
 	return partMerge;
 }
@@ -649,7 +676,7 @@ inline void KWDGMPart::RemovePartMerge(KWDGMPart* oppositePart)
 {
 	require(LookupPartMerge(oppositePart) != NULL);
 
-	nkdPartMerges.RemoveKey((NUMERIC)oppositePart);
+	nkdPartMerges.RemoveKey(oppositePart);
 }
 
 inline POSITION KWDGMPart::GetStartPartMerge() const
@@ -668,7 +695,7 @@ inline void KWDGMPart::GetNextPartMerge(POSITION& positionPartMerge, KWDGMPartMe
 	partMerge = cast(KWDGMPartMerge*, object);
 	ensure(partMerge->Check());
 	ensure(partMerge->GetPart1() == this or partMerge->GetPart2() == this);
-	ensure((NUMERIC)partMerge->GetOppositePart(this) == key);
+	ensure(partMerge->GetOppositePart(this) == key);
 }
 
 inline void KWDGMPart::RemoveAllPartMerges()
@@ -711,6 +738,7 @@ inline KWDGMPartMerge::KWDGMPartMerge()
 	part1 = NULL;
 	part2 = NULL;
 	dMergeCost = 0;
+	dTruncatedMergeCost = 0;
 	position = NULL;
 	bGarbagePresence = false;
 }
@@ -757,11 +785,17 @@ inline void KWDGMPartMerge::SetMergeCost(double dValue)
 	// comparaisons)
 	require(position == NULL);
 	dMergeCost = dValue;
+	dTruncatedMergeCost = KWContinuous::DoubleToContinuous(dMergeCost);
 }
 
 inline double KWDGMPartMerge::GetMergeCost() const
 {
 	return dMergeCost;
+}
+
+inline double KWDGMPartMerge::GetTruncatedMergeCost() const
+{
+	return dTruncatedMergeCost;
 }
 
 inline void KWDGMPartMerge::SetPosition(POSITION pos)

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -15,8 +15,6 @@ import javax.swing.text.PlainDocument;
 
 /**
  * Definit un element de type booleen
- *
- * @author Marc Boulle
  */
 public abstract class GUIBooleanElement extends GUIElement
 {
@@ -80,7 +78,7 @@ public abstract class GUIBooleanElement extends GUIElement
         public Object getValueIn(GUIUnit unit)
         {
                 // Appel de la bonne methode native
-                return new Boolean(unit.getBooleanValueAt(getIdentifier()));
+                return Boolean.valueOf(unit.getBooleanValueAt(getIdentifier()));
         }
 
         /**
@@ -89,7 +87,7 @@ public abstract class GUIBooleanElement extends GUIElement
          */
         public void graphicRefreshAll()
         {
-                graphicSetValue(new Boolean(getParentUnit().getBooleanValueAt(getIdentifier())).toString());
+                graphicSetValue(Boolean.valueOf(getParentUnit().getBooleanValueAt(getIdentifier())).toString());
         }
 
         /**
@@ -107,15 +105,13 @@ public abstract class GUIBooleanElement extends GUIElement
          */
         protected void setValueIn(GUIUnit unit, Object value)
         {
-                unit.setBooleanValueAt(getIdentifier(), new Boolean(value.toString()).booleanValue());
+                unit.setBooleanValueAt(getIdentifier(), Boolean.valueOf(value.toString()).booleanValue());
         }
 }
 
 /**
  * Definit l'element graphique par defaut permettant l'affichage de booleens.
  * Cette classe utilise un JTextField.
- *
- * @author Marc Boulle
  */
 class GUIBooleanElementTextField extends GUIBooleanElement
 {
@@ -128,8 +124,7 @@ class GUIBooleanElementTextField extends GUIBooleanElement
         protected JComponent buildComponent() { return getDefaultComponent(); }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage

@@ -1,29 +1,15 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
-////////////////////////////////////////////////////////////
-// 2021-04-25 11:10:56
-// File generated  with GenereTable
-// Insert your specific code inside "//## " sections
-
-#include "UserInterface.h"
-
 #include "KWMTDatabaseTextFile.h"
 #include "KWDatabaseView.h"
-
-// ## Custom includes
-
-#include "KWMTDatabaseMappingArrayView.h"
-#include "KWDatabaseFormatDetectorView.h"
-
-// ##
+#include "KWMTDatabaseTextFileDataView.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWMTDatabaseTextFileView
-//    Database
 // Editeur de KWMTDatabaseTextFile
 class KWMTDatabaseTextFileView : public KWDatabaseView
 {
@@ -31,9 +17,6 @@ public:
 	// Constructeur
 	KWMTDatabaseTextFileView();
 	~KWMTDatabaseTextFileView();
-
-	// Acces a l'objet edite
-	KWMTDatabaseTextFile* GetKWMTDatabaseTextFile();
 
 	///////////////////////////////////////////////////////////
 	// Redefinition des methodes a reimplementer obligatoirement
@@ -47,7 +30,17 @@ public:
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
 
-	// ## Custom declarations
+	// Indique si on est en mode multi-table
+	boolean IsMultiTableTechnology() const override;
+
+	// Parametrage du nombre de table editable, si le mode le permet
+	void SetEditableTableNumber(int nValue) override;
+	int GetEditableTableNumber() const override;
+
+	// Parametrage du mode d'utilisation de la base: general ou ecriture seulement
+	// En mode ecriture seulement, seul le mapping de la classe principale et
+	// de sa composition sont specifies
+	void ToWriteOnlyMode() override;
 
 	// Creation dynamique
 	KWDatabaseView* Create() const override;
@@ -55,25 +48,10 @@ public:
 	// Nom d'une technologie de base de donnees editee
 	ALString GetTechnologyName() const override;
 
-	// Acces au probleme d'apprentissage
-	void SetObject(Object* object) override;
+	// Acces a la base
 	KWMTDatabaseTextFile* GetMTDatabaseTextFile();
 
-	// ##
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
-	// ## Custom implementation
-
-	// Mise a jour des mapping multi-tables editables, selon le mode Read ou Write
-	void ResfreshMultiTableMapping();
-
-	// Tableau des mappings
-	ObjectArray oaMultiTableMapping;
-
-	// ##
 };
-
-// ## Custom inlines
-
-// ##

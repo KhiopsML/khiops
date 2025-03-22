@@ -1,21 +1,4 @@
-Rank;
-Name;
-Type;
-Status;
-Style;
-Label 1;
-ClassName;
-ALString;
-Derived;
-;
-Dictionary 2;
-TargetAttributeName;
-ALString;
-Derived;
-;
-Target variable 3;
-DatabaseName;
-ALString;
-Derived;
-;
-Database file
+Rank;Name;Type;Status;Style;Label
+1;ClassName                ;ALString;Derived;  ;Dictionary
+2;TargetAttributeName      ;ALString;Derived;  ;Target variable
+3;DatabaseName             ;ALString;Derived;  ;Database file

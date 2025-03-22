@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -127,6 +127,9 @@ void KDConstructionDomain::InitializeStandardConstructionRules()
 	InitializeConstructionRule("Timestamp", new KWDRGetTime, NULL, NULL);
 	InitializeConstructionRule("Timestamp", new KWDRDecimalWeekDay, NULL, NULL);
 	InitializeConstructionRule("Timestamp", new KWDRDecimalYearTS, NULL, NULL);
+
+	// Regles portant sur les timestampTZ
+	InitializeConstructionRule("TimestampTZ", new KWDRLocalTimestamp, NULL, NULL);
 }
 
 void KDConstructionDomain::SelectDefaultConstructionRules()
@@ -143,7 +146,8 @@ void KDConstructionDomain::SelectDefaultConstructionRules()
 		constructionRule->SetPriority(0);
 		constructionRule->SetUsed(true);
 		if (constructionRule->GetFamilyName() == "Time" or constructionRule->GetFamilyName() == "Date" or
-		    constructionRule->GetFamilyName() == "Timestamp")
+		    constructionRule->GetFamilyName() == "Timestamp" or
+		    constructionRule->GetFamilyName() == "TimestampTZ")
 		{
 			constructionRule->SetPriority(1);
 			constructionRule->SetUsed(false);

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -8,7 +8,9 @@ int main(int argc, char** argv)
 {
 	const ALString sBatchOption = "-batch";
 
-	// MemSetAllocIndexExit(435);
+	debug(signal(SIGSEGV, NULL));
+
+	// MemSetAllocIndexExit(11445);
 	// MemoryStatsManager::OpenLogFile("d:\\temp\\MemoryStats.log", 10000, MemoryStatsManager::AllStats);
 	// MemoryStatsManager::OpenLogFileFromEnvVars();
 
@@ -48,6 +50,8 @@ int main(int argc, char** argv)
 	// Execution des test en mode interactif dans une fenetre de shell
 	else
 	{
+		UIObject::SetUIMode(UIObject::Textual);
+		UIObject::SetTextualInteractiveModeAllowed(true);
 		UIObject::ParseMainParameters(argc, argv);
 
 		// Test des composants en mode interactif
@@ -56,6 +60,6 @@ int main(int argc, char** argv)
 
 	// Affichage des stats sur la heap
 	// MemPrintHeapStats(stdout);
-	MemoryStatsManager::CloseLogFile();
+	// MemoryStatsManager::CloseLogFile();
 	return 0;
 }

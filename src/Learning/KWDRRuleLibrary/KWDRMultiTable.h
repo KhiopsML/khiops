@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -17,6 +17,8 @@ class KWDRGetSymbolValue;
 class KWDRGetDateValue;
 class KWDRGetTimeValue;
 class KWDRGetTimestampValue;
+class KWDRGetTimestampTZValue;
+class KWDRGetTextValue;
 
 // Extraction d'un bloc sparse d'un attribut Object
 class KWDRGetContinuousValueBlock;
@@ -194,6 +196,42 @@ public:
 };
 
 ////////////////////////////////////////////////////////////////////////////
+// Classe KWDRGetTimestampTZValue
+// Valeur d'un attribut TimestampTZ d'un sous-objet (valeur vide si absent)
+// Le premier operande porte sur l'objet, le second sur l'attribut a renvoyer
+class KWDRGetTimestampTZValue : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRGetTimestampTZValue();
+	~KWDRGetTimestampTZValue();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	TimestampTZ ComputeTimestampTZResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRGetTextValue
+// Valeur d'un attribut Text d'un sous-objet (valeur vide si absent)
+// Le premier operande porte sur l'objet, le second sur l'attribut a renvoyer
+class KWDRGetTextValue : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRGetTextValue();
+	~KWDRGetTextValue();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Symbol ComputeTextResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
 // Classe KWDRGetContinuousValueBlock
 // Acces a un bloc sparse de valeurs Continuous d'un sous-objet (bloc vide si absent)
 // Le premier operande porte sur l'objet, le second sur l'attribut a renvoyer
@@ -239,7 +277,7 @@ class KWDRObjectRule : public KWDerivationRule
 {
 public:
 	// Reimplementation de la verification qu'une regle est completement renseignee et compilable
-	boolean CheckCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	///////////////////////////////////////////////////////
 	///// Implementation
@@ -257,7 +295,7 @@ class KWDRSubObjectRule : public KWDerivationRule
 {
 public:
 	// Reimplementation de la verification qu'une regle est completement renseignee et compilable
-	boolean CheckCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	///////////////////////////////////////////////////////
 	///// Implementation
@@ -291,7 +329,7 @@ class KWDRObjectSetRule : public KWDRObjectArrayRule
 {
 public:
 	// Reimplementation de la verification qu'une regle est completement renseignee et compilable
-	boolean CheckCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckCompleteness(const KWClass* kwcOwnerClass) const override;
 };
 
 // Fonction de comparaison de deux KWSortableObject, selon la cle des KWObjects (SortValue) puis leur index
@@ -370,7 +408,7 @@ public:
 	KWObject* ComputeObjectResult(const KWObject* kwoObject) const override;
 
 	// Reimplementation de la verification qu'une regle est completement renseignee et compilable
-	boolean CheckCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckCompleteness(const KWClass* kwcOwnerClass) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -22,17 +22,16 @@ KWKeySampleExtractorTask::KWKeySampleExtractorTask()
 	dSamplingRate = 0;
 	lInputFileSize = 0;
 	lFilePos = 0;
-	nBufferSize = BufferedFile::nDefaultBufferSize;
 
 	// Variables partagees
 	DeclareSharedParameter(&shared_ivKeyFieldIndexes);
 	DeclareSharedParameter(&shared_sFileName);
 	DeclareSharedParameter(&shared_bHeaderLineUsed);
 	DeclareSharedParameter(&shared_cFieldSeparator);
+	DeclareSharedParameter(&shared_nBufferSize);
 
 	// Variable en entree des esclaves
 	DeclareTaskInput(&input_dSamplingRate);
-	DeclareTaskInput(&input_nBufferSize);
 	DeclareTaskInput(&input_lFilePos);
 
 	// Variables resultats des esclaves
@@ -148,7 +147,6 @@ boolean KWKeySampleExtractorTask::ExtractSample(ObjectArray* oaResult)
 	require(nSplitKeyNumberMin > 0); // Le nombre de splits doit etre renseigne
 	require(lKeyUsedMemory > 0);
 	require(shared_ivKeyFieldIndexes.GetSize() > 0);
-	require(nBufferSize > 0);
 	require(oaSplitKeys.GetSize() == 0);
 	require(lFileLineNumber > 0);
 	require(nSampleSize > 0);
@@ -257,30 +255,63 @@ PLParallelTask* KWKeySampleExtractorTask::Create() const
 	return new KWKeySampleExtractorTask;
 }
 
+longint KWKeySampleExtractorTask::ComputeGlobalMemory(int nMaxBufferSize) const
+{
+	int nBufferLineNumber;
+
+	// Estimation du nombre de clefs dans un buffer
+	nBufferLineNumber = (int)ceil(lFileLineNumber * (nMaxBufferSize / (1.0 + lInputFileSize)));
+	return nMaxBufferSize + nBufferLineNumber * lKeyUsedMemory * 2;
+}
+
+int KWKeySampleExtractorTask::ComputeBufferSize(longint lGlobalMemory) const
+{
+	return (int)floor(lGlobalMemory / (1.0 + 2 * lFileLineNumber * lKeyUsedMemory / (1.0 + lInputFileSize)));
+}
+
 boolean KWKeySampleExtractorTask::ComputeResourceRequirements()
 {
 	boolean bOk = true;
-	int nBufferLineNumber;
+	longint lSlaveMemoryMin;
+	longint lReadMemoryMax;
+	const longint lMemoryLimit = 128 * lMB;
+	const int nPreferredSize = PLRemoteFileService::GetPreferredBufferSize(sFileURI);
+
+	lInputFileSize = PLRemoteFileService::GetFileSize(sFileURI);
 
 	// Taille du sample (*2 pour etre tranquille)
 	// On met la meme chose en max : on part du principe que la taille du sample en parametre de la tache est
 	// correctement estimee
 	GetResourceRequirements()->GetMasterRequirement()->GetMemory()->Set(nSampleSize * lKeyUsedMemory * 2);
 
-	// Estimation du nombre de clefs dans un buffer
-	lInputFileSize = PLRemoteFileService::GetFileSize(sFileURI);
-	nBufferLineNumber = (int)ceil(lFileLineNumber * (nBufferSize / (1.0 + lInputFileSize)));
-	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMin(nBufferSize +
-									      nBufferLineNumber * lKeyUsedMemory * 2);
+	// Pour la memoire min, dans les esclaves on veut lire au moins GetPreferredBufferSize
+	// On calcule la memoire "globale" necessaire resultante de la lecture d'un buffer de taille
+	// GetPreferredBufferSize
+	lSlaveMemoryMin = ComputeGlobalMemory(nPreferredSize);
+	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMin(lSlaveMemoryMin);
+
+	// On se protege d'un depassement de la limite des int qui posera probleme lors du cast
+	if (lSlaveMemoryMin > INT_MAX)
+		lSlaveMemoryMin = INT_MAX;
+
+	// Pour la memoire max, on ne veut souhaite pas lire plus de 128Mo et on veut un arrondi par un multiple de
+	// GetPreferredBufferSize
+	lReadMemoryMax = (lMemoryLimit / nPreferredSize) * nPreferredSize;
+	lReadMemoryMax = max(lReadMemoryMax, lSlaveMemoryMin);
+	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMax(ComputeGlobalMemory((int)lReadMemoryMax));
+	ensure(GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->Check());
 
 	// Nombre max de slaveProcess
-	GetResourceRequirements()->SetMaxSlaveProcessNumber((int)ceil(lInputFileSize * 1.0 / nBufferSize));
+	GetResourceRequirements()->SetMaxSlaveProcessNumber((int)ceil(lInputFileSize * 1.0 / nPreferredSize));
 	return bOk;
 }
 
 boolean KWKeySampleExtractorTask::MasterInitialize()
 {
 	boolean bOk = true;
+	int nBufferSize;
+	ALString sTmp;
+	const int nPreferredBufferSize = PLRemoteFileService::GetPreferredBufferSize(sFileURI);
 
 	// Parametrage du fichier a analyser
 	shared_sFileName.SetValue(sFileURI);
@@ -294,7 +325,7 @@ boolean KWKeySampleExtractorTask::MasterInitialize()
 	assert(oaSplitKeys.GetSize() == 0);
 
 	// Test si fichier d'entree present
-	if (not PLRemoteFileService::Exist(sFileURI))
+	if (not PLRemoteFileService::FileExists(sFileURI))
 	{
 		AddError("Input file " + FileService::GetURIUserLabel(sFileURI) + " does not exist");
 		bOk = false;
@@ -314,36 +345,50 @@ boolean KWKeySampleExtractorTask::MasterInitialize()
 	dSamplingRate = ((double)nSampleSize) / lFileLineNumber;
 	assert(dSamplingRate > 0 and dSamplingRate <= 1);
 
+	if (GetVerbose())
+		AddMessage(sTmp + "Available memory per slave " +
+			   LongintToHumanReadableString(GetSlaveResourceGrant()->GetMemory()));
+
+	// Calcul de la memoire utilisable pour le buffer a partir de la memoire disponible
+	nBufferSize = InputBufferedFile::FitBufferSize(ComputeBufferSize(GetSlaveResourceGrant()->GetMemory()));
+	if (GetVerbose())
+		AddMessage(sTmp + "Computed max buffer size " + LongintToHumanReadableString(nBufferSize));
+
+	// Chaque esclave doit lire au moins 5 buffers (pour que le travail soit bien reparti entre les esclaves)
+	if (lInputFileSize / (GetProcessNumber() * 5) < nBufferSize)
+	{
+		nBufferSize = InputBufferedFile::FitBufferSize(lInputFileSize / (GetProcessNumber() * 5));
+		if (GetVerbose())
+			AddMessage(sTmp + "Buffer size reduced to " + LongintToHumanReadableString(nBufferSize));
+	}
+
+	// Si le buffer est plus grand que nPrefferedBufferSize, on prend un multiple de nPrefferedBufferSize
+	if (nBufferSize > nPreferredBufferSize)
+	{
+		nBufferSize = (nBufferSize / nPreferredBufferSize) * nPreferredBufferSize;
+		if (GetVerbose())
+			AddMessage(sTmp + "Buffer size rounded to " + LongintToHumanReadableString(nBufferSize));
+	}
+	else
+	// On prend a minima nPrefferedBufferSize comme taille de buffer
+	{
+		nBufferSize = nPreferredBufferSize;
+		if (GetVerbose())
+			AddMessage(sTmp + "Buffer size bounded to " + LongintToHumanReadableString(nBufferSize));
+	}
+
+	shared_nBufferSize = nBufferSize;
 	lFilePos = 0;
 	return bOk;
 }
 
 boolean KWKeySampleExtractorTask::MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished)
 {
-	int nMaxBufferSize;
-
 	// Est-ce qu'il y a encore du travail ?
 	if (lFilePos >= lInputFileSize)
 		bIsTaskFinished = true;
 	else
 	{
-		// Calcul de la memoire residuelle pour la lecture du buffer
-		nMaxBufferSize = InputBufferedFile::FitBufferSize(
-		    (longint)floor(GetSlaveResourceGrant()->GetMemory() /
-				   (1.0 + 2 * lFileLineNumber * lKeyUsedMemory / (1.0 + lInputFileSize))));
-
-		// Chaque esclave doit lire au moins 5 buffers
-		if (lInputFileSize / (GetProcessNumber() * 5) < nMaxBufferSize)
-		{
-			nMaxBufferSize = InputBufferedFile::FitBufferSize(lInputFileSize / (GetProcessNumber() * 5));
-		}
-
-		// La taille du buffer doit etre superiereure a 8Mo
-		if (nMaxBufferSize < BufferedFile::nDefaultBufferSize)
-			nMaxBufferSize = BufferedFile::nDefaultBufferSize;
-		// Parametrage de la taille du buffer
-		input_nBufferSize = nMaxBufferSize;
-
 		// Position dans le fichier
 		input_lFilePos = lFilePos;
 
@@ -351,12 +396,12 @@ boolean KWKeySampleExtractorTask::MasterPrepareTaskInput(double& dTaskPercent, b
 		input_dSamplingRate = dSamplingRate;
 
 		// Calcul de la progression
-		dTaskPercent = input_nBufferSize * 1.0 / lInputFileSize;
+		dTaskPercent = shared_nBufferSize * 1.0 / lInputFileSize;
 		if (dTaskPercent > 1)
 			dTaskPercent = 1;
 
 		// Position dans le fichier pour la prochaine lecture
-		lFilePos += nMaxBufferSize;
+		lFilePos += shared_nBufferSize;
 	}
 	return true;
 }
@@ -401,7 +446,8 @@ boolean KWKeySampleExtractorTask::MasterAggregateResults()
 			for (i = 0; i < oaAllSortedKeySamples.GetSize(); i++)
 			{
 				sampleToReSample = cast(KWSortedKeySample*, oaAllSortedKeySamples.GetAt(i));
-				lRemovedKeysUsedMemory = sampleToReSample->Sample(dNewSamplingRatio / dSamplingRate);
+				lRemovedKeysUsedMemory =
+				    sampleToReSample->Sample(dNewSamplingRatio / dSamplingRate, GetTaskIndex());
 				lCurrentUsedMemory -= lRemovedKeysUsedMemory;
 			}
 
@@ -427,7 +473,8 @@ boolean KWKeySampleExtractorTask::MasterAggregateResults()
 		bNeedResampling = (fabs(output_dSamplingRate - dSamplingRate) > dEpsilon * dSamplingRate);
 		if (bNeedResampling)
 		{
-			lRemovedKeysUsedMemory = aSortedKeySamples->Sample(dSamplingRate / output_dSamplingRate);
+			lRemovedKeysUsedMemory =
+			    aSortedKeySamples->Sample(dSamplingRate / output_dSamplingRate, GetTaskIndex());
 			lCurrentUsedMemory -= lRemovedKeysUsedMemory;
 		}
 	}
@@ -633,109 +680,151 @@ boolean KWKeySampleExtractorTask::MasterFinalize(boolean bProcessEndedCorrectly)
 
 boolean KWKeySampleExtractorTask::SlaveInitialize()
 {
+	boolean bOk = true;
+
 	require(shared_ivKeyFieldIndexes.GetSize() > 0);
 
 	// Initialisation de l'extracteur de clef a partir du tableau d'index envoye par le master
 	keyExtractor.SetKeyFieldIndexes(shared_ivKeyFieldIndexes.GetConstIntVector());
-	return true;
+
+	// Parametrage du fichier d'entree a analyser pour la tache
+	inputFile.SetFileName(shared_sFileName.GetValue());
+	inputFile.SetFieldSeparator(shared_cFieldSeparator.GetValue());
+	inputFile.SetHeaderLineUsed(shared_bHeaderLineUsed);
+
+	// Ouverture du fichier en entree
+	bOk = inputFile.Open();
+	return bOk;
 }
 
 boolean KWKeySampleExtractorTask::SlaveProcess()
 {
 	boolean bOk = true;
 	KWKey* recordKey;
-	PeriodicTest periodicTestInterruption;
 	double dProgression;
-	InputBufferedFile inputBuffer;
 	int nCount;
+	longint lBeginPos;
+	longint lMaxEndPos;
+	longint lNextLinePos;
+	boolean bLineTooLong;
+	boolean bIsLineOk;
 
-	inputBuffer.SetFileName(shared_sFileName.GetValue());
-	inputBuffer.SetBufferSize(input_nBufferSize);
-	inputBuffer.SetFieldSeparator(shared_cFieldSeparator.GetValue());
-	inputBuffer.SetHeaderLineUsed(shared_bHeaderLineUsed);
+	inputFile.SetBufferSize(shared_nBufferSize);
 
-	bOk = inputBuffer.Open();
-	if (bOk)
+	// Specification de la portion du fichier a traiter
+	lBeginPos = input_lFilePos;
+	lMaxEndPos = min(input_lFilePos + shared_nBufferSize, inputFile.GetFileSize());
+
+	// On commence par se caller sur un debut de ligne, sauf si on est en debut de fichier
+	if (lBeginPos > 0)
 	{
-		bOk = inputBuffer.Fill(input_lFilePos);
-
+		bOk = inputFile.SearchNextLineUntil(lBeginPos, lMaxEndPos, lNextLinePos);
 		if (bOk)
 		{
-			// Saut du Header
-			if (shared_bHeaderLineUsed and input_lFilePos == (longint)0)
+			// On se positionne sur le debut de la ligne suivante si elle est trouvee
+			if (lNextLinePos != -1)
 			{
-				inputBuffer.SkipLine();
+				lBeginPos = lNextLinePos;
 			}
-
-			// Parcours du buffer d'entree
-			output_lSampledKeysUsedMemory = 0;
-			keyExtractor.SetBufferedFile(&inputBuffer);
-			nCount = 0;
-			while (not inputBuffer.IsBufferEnd())
-			{
-				// Gestion de la progesssion
-				nCount++;
-				if (periodicTestInterruption.IsTestAllowed(nCount))
-				{
-					dProgression = inputBuffer.GetCurrentLineNumber() * 1.0 /
-						       inputBuffer.GetBufferLineNumber();
-					TaskProgression::DisplayProgression((int)floor(dProgression * 100));
-					if (TaskProgression::IsInterruptionRequested())
-					{
-						bOk = false;
-						break;
-					}
-				}
-
-				// Tirage aleatoire pour decider si on garde chaque record
-				if (IthRandomDouble(inputBuffer.GetPositionInFile()) <= input_dSamplingRate)
-				{
-					keyExtractor.ParseNextKey(NULL);
-					recordKey = new KWKey;
-					keyExtractor.ExtractKey(recordKey);
-
-					// Memorisation de la cle et de sa memoire utilisee
-					output_oaSampledKeys->GetObjectArray()->Add(recordKey);
-					output_lSampledKeysUsedMemory += sizeof(KWKey*) + recordKey->GetUsedMemory();
-				}
-				// Saut de ligne sinon
-				else
-				{
-					inputBuffer.SkipLine();
-				}
-			}
-			// Tri des cle extraites dans l'esclave
-			if (not TaskProgression::IsInterruptionRequested())
-			{
-				// Tri des clefs extraites du buffer
-				output_oaSampledKeys->GetObjectArray()->SetCompareFunction(KWKeyCompare);
-				output_oaSampledKeys->GetObjectArray()->Sort();
-			}
+			// Si non trouvee, on se place en fin de chunk
 			else
-				bOk = false;
-
-			// On renvoie au master le ratio qu'on a eu en entree
-			// Cela permet a celui ci de savoir si l'esclave avait ete echantillonne avec un taux different
-			// du taux dans le maitre (qui peut changer a tout moment)
-			output_dSamplingRate = input_dSamplingRate;
-
-			// On envoi la taille du buffer traite dans l'esclave
-			output_dBufferSize = inputBuffer.GetCurrentBufferSize();
+				lBeginPos = lMaxEndPos;
 		}
-		inputBuffer.Close();
-
-		// Nettoyage si KO
-		if (not bOk)
-			output_oaSampledKeys->GetObjectArray()->DeleteAll();
 	}
+
+	assert(inputFile.GetCurrentBufferSize() == 0);
+
+	// Remplissage du buffer avec des lignes entieres dans la limite de la taille du buffer
+	// On ignorera ainsi le debut de la derniere ligne commencee avant lMaxEndPos
+	// Ce n'est pas grave d'ignorer au plus une ligne par buffer, puisque l'on est ici dans une optique
+	// d'echantillonnage
+	if (bOk and lBeginPos < lMaxEndPos)
+		bOk = inputFile.FillInnerLinesUntil(lBeginPos, lMaxEndPos);
+
+	if (bOk and inputFile.GetCurrentBufferSize() > 0)
+	{
+		// Saut du Header
+		// Il n'est pas utile ici d'avoir un warning en cas de ligne trop longue
+		if (shared_bHeaderLineUsed and input_lFilePos == (longint)0)
+			inputFile.SkipLine(bLineTooLong);
+
+		// Parcours du buffer d'entree
+		output_lSampledKeysUsedMemory = 0;
+		keyExtractor.SetBufferedFile(&inputFile);
+		nCount = 0;
+		while (not inputFile.IsBufferEnd())
+		{
+			// Gestion de la progesssion
+			nCount++;
+			if (TaskProgression::IsRefreshNecessary())
+			{
+				dProgression = inputFile.GetCurrentLineIndex() * 1.0 / inputFile.GetBufferLineNumber();
+				TaskProgression::DisplayProgression((int)floor(dProgression * 100));
+				if (TaskProgression::IsInterruptionRequested())
+				{
+					bOk = false;
+					break;
+				}
+			}
+
+			// Tirage aleatoire pour decider si on garde chaque record
+			if (IthRandomDouble(inputFile.GetPositionInFile()) <= input_dSamplingRate)
+			{
+				// Extraction de la cle, que la ligne soti valdie ou non
+				recordKey = new KWKey;
+				bIsLineOk = keyExtractor.ParseNextKey(recordKey, NULL);
+
+				// Memorisation de la cle et de sa memoire utilisee
+				output_oaSampledKeys->GetObjectArray()->Add(recordKey);
+				output_lSampledKeysUsedMemory += sizeof(KWKey*) + recordKey->GetUsedMemory();
+			}
+			// Saut de ligne sinon
+			else
+			{
+				inputFile.SkipLine(bLineTooLong);
+			}
+		}
+
+		// Tri des clefs extraites dans l'esclave
+		if (not TaskProgression::IsInterruptionRequested())
+		{
+			output_oaSampledKeys->GetObjectArray()->SetCompareFunction(KWKeyCompare);
+			output_oaSampledKeys->GetObjectArray()->Sort();
+		}
+		else
+			bOk = false;
+
+		// On renvoie au master le ratio qu'on a eu en entree
+		// Cela permet a celui ci de savoir si l'esclave avait ete echantillonne avec un taux different
+		// du taux dans le maitre (qui peut changer a tout moment)
+		output_dSamplingRate = input_dSamplingRate;
+
+		// On envoi la taille du buffer traite dans l'esclave
+		output_dBufferSize = inputFile.GetCurrentBufferSize();
+	}
+	else
+	{
+		output_dSamplingRate = input_dSamplingRate;
+		output_dBufferSize = 0;
+	}
+
+	// Nettoyage si KO
+	if (not bOk)
+		output_oaSampledKeys->GetObjectArray()->DeleteAll();
 	return bOk;
 }
 
 boolean KWKeySampleExtractorTask::SlaveFinalize(boolean bProcessEndedCorrectly)
 {
+	boolean bOk = true;
+
 	// Nettoyage
 	keyExtractor.Clean();
-	return true;
+
+	// Fermeture du fichier
+	if (inputFile.IsOpened())
+		bOk = inputFile.Close();
+	return bOk;
 }
 
 //////////////////////////////////
@@ -762,7 +851,7 @@ void KWSortedKeySample::ImportKeys(ObjectArray* oaSourceKeys)
 	oaSourceKeys->SetSize(0);
 }
 
-longint KWSortedKeySample::Sample(double dSamplingRatio)
+longint KWSortedKeySample::Sample(double dSamplingRatio, int ntaskIndex)
 {
 	KWKey* key;
 	longint lRemovedKeysUsedMemory;
@@ -780,7 +869,7 @@ longint KWSortedKeySample::Sample(double dSamplingRatio)
 		check(key);
 
 		// Destruction si necessaire
-		if (RandomDouble() > dSamplingRatio)
+		if (IthRandomDouble(ntaskIndex) > dSamplingRatio)
 		{
 			lRemovedKeysUsedMemory += sizeof(KWKey*) + key->GetUsedMemory();
 			delete key;

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -8,8 +8,6 @@
 #include "KWLearningProblemView.h"
 #include "KWLearningBenchmarkView.h"
 #include "KWAnalysisSpecView.h"
-#include "MDKhiopsModelingSpecView.h"
-#include "LMLicenseManager.h"
 
 ////////////////////////////////////////////////////////////
 // Classe MDKhiopsLearningProblemView
@@ -54,7 +52,7 @@ public:
 	// Mise a jour des valeurs de l'interface par l'objet
 	void EventRefresh(Object* object) override;
 
-	// Actions de menu
+	// Actions de menu en mode expert
 	void ClassifierBenchmark();
 	void RegressorBenchmark();
 	void ClassifierBenchmarkUnivariate();
@@ -65,17 +63,4 @@ public:
 
 	// Acces a la vue principale sur le probleme d'apprentissage
 	MDKhiopsLearningProblemView* GetKhiopsLearningProblemView();
-};
-
-////////////////////////////////////////////////////////////
-// Classe MDKhiopsAnalysisSpecView
-//    Version specialisee des Analysis specs permettant
-//     de preciser les parametre de modelisation
-// Editeur de MDKhiopsAnalysisSpec
-class MDKhiopsAnalysisSpecView : public KWAnalysisSpecView
-{
-public:
-	// Constructeur
-	MDKhiopsAnalysisSpecView();
-	~MDKhiopsAnalysisSpecView();
 };

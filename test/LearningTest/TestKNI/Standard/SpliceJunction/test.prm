@@ -1,0 +1,50 @@
+// Fri Oct 21 15:42:08 2011
+// c:\Users\boullema\Learning\Win32\Debug\MODL_coclustering.exe
+// Output command file
+//
+//This file contains recorded commands, that can be replayed.
+//Commands are based on user interactions:
+//	field update
+//	list item selection
+//	menu action
+//Every command can be commented, using //.
+//For example, commenting the last Exit command will allow other
+//user interactions, after the commands have been replayed.
+//
+//
+
+// -> Khiops Data preparation and scoring
+ClassManagement.OpenFile       // Open...
+
+// -> Open
+ClassFileName ./SpliceJunction.kdic  // Dictionary file
+OK                             // Open
+// <- Open
+
+TransferDatabase               // Deploy model...
+
+// -> Database transfer
+ClassName SpliceJunction        // Deployment dictionary
+SourceDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
+SourceDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunction.txt      // Data table file
+SourceDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key DNA               // List item selection
+SourceDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt      // Data table file
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key               // List item selection
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/D_SpliceJunction.txt    // Data table file
+TransferDatabase               // Deploy model
+
+TargetDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ./results/KNI_SpliceJunction.txt    // Data table file
+KNILogFileName results/KNILog.txt      // KNI log file name
+KNIStreamMaxMemory 100         // KNI max stream memory in Mo
+KNITransferDatabase            // KNI transfer database
+
+Exit                           // Close
+// <- Database transfer
+
+Exit                           // Close
+// <- Khiops
+
+
+// -> Khiops
+OK                             // Close
+// <- Khiops

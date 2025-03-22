@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -10,7 +10,6 @@ KWDataTableSorterView::KWDataTableSorterView()
 	UIList* attributeNameHelpList;
 	KWSTDatabaseTextFileView* sourceDataTableView;
 	KWSTDatabaseTextFileView* targetDataTableView;
-	int i;
 
 	// Parametrage general
 	SetIdentifier("KWDataTableSorter");
@@ -55,28 +54,15 @@ KWDataTableSorterView::KWDataTableSorterView()
 
 	// Ajout du parametrage de la base d'origine
 	sourceDataTableView = new KWSTDatabaseTextFileView;
+	sourceDataTableView->ToBasicReadMode();
 	sourceDataTableView->SetObject(&sourceDataTable);
 	AddCardField("SourceDataTable", "Input data table", sourceDataTableView);
 
-	// Parametrage de la visibilite des specifications de la base d'origine
-	for (i = 0; i < sourceDataTableView->GetFieldNumber(); i++)
-		sourceDataTableView->GetFieldAtIndex(i)->SetVisible(false);
-	sourceDataTableView->GetFieldAt("DatabaseName")->SetVisible(true);
-	sourceDataTableView->GetFieldAt("HeaderLineUsed")->SetVisible(true);
-	sourceDataTableView->GetFieldAt("FieldSeparator")->SetVisible(true);
-	sourceDataTableView->GetFieldAt("DatabaseFormatDetector")->SetVisible(true);
-
 	// Ajout du parametrage de la base destination
 	targetDataTableView = new KWSTDatabaseTextFileView;
+	targetDataTableView->ToWriteOnlyMode();
 	targetDataTableView->SetObject(&targetDataTable);
 	AddCardField("TargetDataTable", "Output data table", targetDataTableView);
-
-	// Parametrage de la visibilite des specifications de la base de destination
-	for (i = 0; i < targetDataTableView->GetFieldNumber(); i++)
-		targetDataTableView->GetFieldAtIndex(i)->SetVisible(false);
-	targetDataTableView->GetFieldAt("DatabaseName")->SetVisible(true);
-	targetDataTableView->GetFieldAt("HeaderLineUsed")->SetVisible(true);
-	targetDataTableView->GetFieldAt("FieldSeparator")->SetVisible(true);
 
 	// Info-bulles
 	GetFieldAt("ClassName")->SetHelpText("Dictionary that describes all native variables of the database file.");
@@ -168,6 +154,8 @@ void KWDataTableSorterView::Open()
 
 	// Parametrage du champ de saisie des dictionnaires en style ComboBox,
 	// avec la liste des dictionnaires en cours
+	// Les dictionnaires sont ici utilises uniquement en tant que format d'un fichier de donnees.
+	// Leurs caracteristiques multi-tables sont ignorees.
 	SetStringValueAt("ClassName", sSortClassName);
 	for (i = 0; i < KWClassDomain::GetCurrentDomain()->GetClassNumber(); i++)
 	{
@@ -259,7 +247,7 @@ boolean KWDataTableSorterView::Check(const ObjectArray* oaCheckedSortAttributeNa
 				// Un meme attribut ne doit pas etre utilise plusieurs fois pour la cle
 				else
 				{
-					// Test d'utilisation de l'atribut pour la cle
+					// Test d'utilisation de l'attribut pour la cle
 					if (nkdSortAttributes.Lookup(attribute) != NULL)
 					{
 						bOk = false;
@@ -305,10 +293,6 @@ void KWDataTableSorterView::SortDataTableByKey()
 	KWClass* kwClass;
 	KWAttributeName* attribute;
 	int nAttributes;
-
-	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
 
 	// Verification du directory des fichiers temporaires
 	if (not FileService::CreateApplicationTmpDir())
@@ -359,12 +343,7 @@ void KWDataTableSorterView::SortDataTableByKey()
 	{
 		// Acces au repertoire du fichier resultat du tri
 		sOutputPathName = FileService::GetPathName(workingTargetDataTable.GetDatabaseName());
-		if (sOutputPathName != "" and not PLRemoteFileService::Exist(sOutputPathName))
-		{
-			bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
-			if (not bOk)
-				AddError("Unable to create output directory (" + sOutputPathName + ")");
-		}
+		bOk = KWResultFilePathBuilder::CheckResultDirectory(sOutputPathName, GetClassLabel());
 	}
 
 	// Tri des donnees si specifications valides

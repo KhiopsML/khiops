@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -93,13 +93,10 @@ boolean KWDataPreparationUnivariateTask::BasicCollectPreparationStats(KWLearning
 	require(tupleTableLoader->GetInputClass()->IsCompiled());
 	require(tupleTableLoader->GetInputDatabaseObjects() != NULL);
 	require(learningSpec->GetTargetAttributeName() == tupleTableLoader->GetInputExtraAttributeName());
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// TODO TREE: les require suivants sont actuellement commentes, car ils ne passent pas avec la construction des
-	// arbres
-	//  require(learningSpec->GetInstanceNumber() == tupleTableLoader->GetInputDatabaseObjects()->GetSize());
-	//  require(learningSpec->GetTargetDescriptiveStats()->GetInstanceNumber() ==
-	//  tupleTableLoader->GetInputDatabaseObjects()->GetSize());
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////
+	require(learningSpec->GetInstanceNumber() == tupleTableLoader->GetInputDatabaseObjects()->GetSize());
+	require(learningSpec->GetTargetAttributeType() == KWType::None or
+		learningSpec->GetTargetDescriptiveStats()->GetInstanceNumber() ==
+		    tupleTableLoader->GetInputDatabaseObjects()->GetSize());
 	require(learningSpec->GetTargetAttributeType() != KWType::Symbol or
 		tupleTableLoader->GetInputDatabaseObjects()->GetSize() ==
 		    tupleTableLoader->GetInputExtraAttributeSymbolValues()->GetSize());
@@ -307,9 +304,14 @@ boolean KWDataPreparationUnivariateTask::ComputeResourceRequirements()
 	KWDataTableSlice* slice;
 	int nSlice;
 	int nTotalAttributeNumber;
-	longint lEstimatedMaxValueNumberPerBlock;
 	longint lSliceMaxBlockWorkingMemory;
 	longint lSliceDatabaseAllValuesMemory;
+	longint lTotalSliceMaxBlockWorkingMemory;
+	longint lTotalSliceDatabaseAllValuesMemory;
+	longint lMaxSliceMaxBlockWorkingMemory;
+	longint lMaxSliceDatabaseAllValuesMemory;
+	longint lMeanSliceMaxBlockWorkingMemory;
+	longint lMeanSliceDatabaseAllValuesMemory;
 	longint lNecessaryWorkingMemory;
 	longint lNecessaryTargetAttributMemory;
 	longint lNecessaryUnivariateStatsMemory;
@@ -343,22 +345,22 @@ boolean KWDataPreparationUnivariateTask::ComputeResourceRequirements()
 	// remplissage des blocs sparse), les memes estimations qui ont ete utilisees pour le dimensionnement du
 	// sliceSet. Cela permet de lancer la taches, meme si les taux de remplissage effectifs sont plus grands que les
 	// estimations. Au cas ou ces estimations serait sous-evaluees, se sera a la charge de chaque esclave d'adapter
-	// ses algorithmes aux ressources disponibles. Pour cela, l'esclave dispose des element de dimensionnement et
-	// des estimations de nombre de tuples ou de valeurs a la base de ces estimations.
+	// ses algorithmes aux ressources disponibles. Pour cela, l'esclave dispose des elements de dimensionnement et
+	// des estimations de nombre de tuples ou de valeurs a la base de ces estimations. Attention: dans les cas
+	// extremes, on peut avoir obtenu assez de ressources pour lancer la tache de construction du slice set, base
+	// sur une estimation heuristique du nombre moyen de valeur par tranche, mais ne pas pouvoir exploiter ce slice
+	// set une fois fabrique, en raison des nombres de valeurs obtenus par tranche du slice set instancie
 	shared_nLargestSliceAttributeNumber = 0;
 	shared_lLargestSliceUsedMemory = 0;
 	shared_lLargestSliceMaxBlockWorkingMemory = 0;
 	shared_lLargestSliceDatabaseAllValuesMemory = 0;
+	lTotalSliceMaxBlockWorkingMemory = 0;
+	lTotalSliceDatabaseAllValuesMemory = 0;
+	lMaxSliceMaxBlockWorkingMemory = 0;
+	lMaxSliceDatabaseAllValuesMemory = 0;
 	for (nSlice = 0; nSlice < masterDataTableSliceSet->GetSliceNumber(); nSlice++)
 	{
 		slice = masterDataTableSliceSet->GetSliceAt(nSlice);
-
-		// Estimation heuristiques des nombres max de valeur par bloc d'une sous-partie d'une classe a
-		// partitionner
-		// TODO MB: variable non utilisee!!!
-		lEstimatedMaxValueNumberPerBlock =
-		    ComputeEstimatedMaxValueNumberPerBlock(learningSpec, targetTupleTable, learningSpec->GetClass(),
-							   slice->GetClass(), slice->GetClass()->GetAttributeNumber());
 
 		// Evaluation de la memoire necessaire pour le traitement de la tranche
 		// On ne prend pas en compte les valeurs des variables denses Symbol, etant donne qu'une petite marge a
@@ -373,15 +375,35 @@ boolean KWDataPreparationUnivariateTask::ComputeResourceRequirements()
 		shared_nLargestSliceAttributeNumber =
 		    max((int)shared_nLargestSliceAttributeNumber, slice->GetClass()->GetAttributeNumber());
 		shared_lLargestSliceUsedMemory = max((longint)shared_lLargestSliceUsedMemory, slice->GetUsedMemory());
-		shared_lLargestSliceMaxBlockWorkingMemory =
-		    max((longint)shared_lLargestSliceMaxBlockWorkingMemory, lSliceMaxBlockWorkingMemory);
-		shared_lLargestSliceDatabaseAllValuesMemory =
-		    max((longint)shared_lLargestSliceDatabaseAllValuesMemory, lSliceDatabaseAllValuesMemory);
+		lTotalSliceMaxBlockWorkingMemory += lSliceMaxBlockWorkingMemory;
+		lTotalSliceDatabaseAllValuesMemory += lSliceDatabaseAllValuesMemory;
+		lMaxSliceMaxBlockWorkingMemory = max(lMaxSliceMaxBlockWorkingMemory, lSliceMaxBlockWorkingMemory);
+		lMaxSliceDatabaseAllValuesMemory = max(lMaxSliceDatabaseAllValuesMemory, lSliceDatabaseAllValuesMemory);
+	}
+
+	// En ce qui concerne les evaluation de memoire pour les valeurs, on cherche a eviter  que le dimensionnement
+	// initial a l'origine du slicer soit invalide par le resultat affine dans les tranches On choisi donc un
+	// dimensionnement min de la tache base sur au moins la moitie de la moyenne moyenne des estimation par tranche
+	lMeanSliceMaxBlockWorkingMemory =
+	    lTotalSliceMaxBlockWorkingMemory / max(1, masterDataTableSliceSet->GetSliceNumber());
+	lMeanSliceDatabaseAllValuesMemory =
+	    lTotalSliceDatabaseAllValuesMemory / max(1, masterDataTableSliceSet->GetSliceNumber());
+	if (nTotalAttributeNumber > 2 * masterDataTableSliceSet->GetSliceNumber())
+	{
+		shared_lLargestSliceMaxBlockWorkingMemory = lMeanSliceMaxBlockWorkingMemory / 2;
+		shared_lLargestSliceDatabaseAllValuesMemory = lMeanSliceDatabaseAllValuesMemory / 2;
+	}
+	else
+	{
+		shared_lLargestSliceMaxBlockWorkingMemory = lMeanSliceMaxBlockWorkingMemory;
+		shared_lLargestSliceDatabaseAllValuesMemory = lMeanSliceDatabaseAllValuesMemory;
 	}
 
 	// Pour le maitre: stockage de tous les resultats d'analyse
 	GetResourceRequirements()->GetMasterRequirement()->GetMemory()->SetMin(lNecessaryUnivariateStatsMemory *
 									       nTotalAttributeNumber);
+	GetResourceRequirements()->GetMasterRequirement()->GetMemory()->SetMax(
+	    2 * GetResourceRequirements()->GetMasterRequirement()->GetMemory()->GetMin());
 
 	// Pour l'esclave:
 	//   . memoire de definition de la tranche (kwClass)
@@ -393,6 +415,9 @@ boolean KWDataPreparationUnivariateTask::ComputeResourceRequirements()
 	    shared_lLargestSliceUsedMemory + lNecessaryWorkingMemory + shared_lLargestSliceDatabaseAllValuesMemory +
 	    shared_lLargestSliceMaxBlockWorkingMemory +
 	    lNecessaryUnivariateStatsMemory * shared_nLargestSliceAttributeNumber);
+	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMax(
+	    2 * (GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->GetMin() +
+		 lMaxSliceMaxBlockWorkingMemory + lMaxSliceDatabaseAllValuesMemory));
 
 	// En partage: stockage des variables partagees
 	GetResourceRequirements()->GetSharedRequirement()->GetMemory()->Set(lNecessaryTargetAttributMemory);
@@ -418,12 +443,20 @@ boolean KWDataPreparationUnivariateTask::ComputeResourceRequirements()
 		cout << "\tSliceSet slice number\t" << masterDataTableSliceSet->GetSliceNumber() << endl;
 		cout << "\tSliceSet chunk number\t" << masterDataTableSliceSet->GetChunkNumber() << endl;
 		cout << "\tLargest slice attribute number\t" << shared_nLargestSliceAttributeNumber << endl;
-		cout << "\tLargest slice all values memory\t"
-		     << LongintToHumanReadableString(shared_lLargestSliceDatabaseAllValuesMemory) << endl;
 		cout << "\tLargest slice used memory\t" << LongintToHumanReadableString(shared_lLargestSliceUsedMemory)
 		     << endl;
+		cout << "\tLargest slice all values memory\t"
+		     << LongintToHumanReadableString(shared_lLargestSliceDatabaseAllValuesMemory) << endl;
 		cout << "\tLargest slice max block working memory\t"
 		     << LongintToHumanReadableString(shared_lLargestSliceMaxBlockWorkingMemory) << endl;
+		cout << "\tMean slice all values memory\t"
+		     << LongintToHumanReadableString(lMeanSliceDatabaseAllValuesMemory) << endl;
+		cout << "\tMean slice max block working memory\t"
+		     << LongintToHumanReadableString(lMeanSliceMaxBlockWorkingMemory) << endl;
+		cout << "\tMax slice all values memory\t"
+		     << LongintToHumanReadableString(lMaxSliceDatabaseAllValuesMemory) << endl;
+		cout << "\tMax slice max block working memory\t"
+		     << LongintToHumanReadableString(lMaxSliceMaxBlockWorkingMemory) << endl;
 		cout << endl;
 	}
 	return bOk;
@@ -758,7 +791,7 @@ boolean KWDataPreparationUnivariateTask::SlaveProcess()
 	// la memoire minimum demandee
 	lAvailableWorkingMemory =
 	    shared_lLargestSliceUsedMemory - lSliceUsedMemory +
-	    +(shared_nLargestSliceAttributeNumber - slice->GetClass()->GetLoadedAttributeNumber()) *
+	    +(shared_nLargestSliceAttributeNumber - (longint)slice->GetClass()->GetLoadedAttributeNumber()) *
 		lNecessaryUnivariateStatsMemory +
 	    shared_lLargestSliceMaxBlockWorkingMemory + shared_lLargestSliceDatabaseAllValuesMemory;
 
@@ -816,8 +849,6 @@ boolean KWDataPreparationUnivariateTask::SlaveProcess()
 		     << LongintToHumanReadableString(lSliceMaxBlockWorkingMemory) << endl;
 		cout << "\tSlice all values memory\t" << LongintToHumanReadableString(lSliceDatabaseAllValuesMemory)
 		     << endl;
-		cout << "\tSlice max block working memory\t"
-		     << LongintToHumanReadableString(lSliceMaxBlockWorkingMemory) << endl;
 		cout << "\tSlice working memory\t" << LongintToHumanReadableString(lSliceWorkingMemory) << endl;
 		cout << "\tLargest slice attribute number\t" << shared_nLargestSliceAttributeNumber << endl;
 		cout << "\tLargest slice used memory\t" << LongintToHumanReadableString(shared_lLargestSliceUsedMemory)
@@ -903,7 +934,7 @@ void KWDataPreparationUnivariateTask::InitializeSliceLexicographicSortCriterion(
 	require(masterDataTableSliceSet != NULL);
 
 	// Premier critere: nombre total de valeurs, dense plus sparse
-	slice->GetLexicographicSortCriterion()->Add(double(slice->GetClass()->GetLoadedDenseAttributeNumber() *
+	slice->GetLexicographicSortCriterion()->Add(double((longint)slice->GetClass()->GetLoadedDenseAttributeNumber() *
 							       masterDataTableSliceSet->GetTotalInstanceNumber() +
 							   slice->GetTotalAttributeBlockValueNumber()));
 
@@ -1080,7 +1111,6 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 	int nSubSliceBlockIndex;
 	int nSliceDenseSymbolAttributeIndex;
 	int nSubSliceDenseAttributeIndex;
-	PeriodicTest periodicTestInterruption;
 	KWObject* kwoObject;
 	longint lRecordNumber;
 	ALString sSliceBaseName;
@@ -1160,7 +1190,10 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 
 				// Memorisation du fichier
 				if (bOk)
+				{
 					allSliceOutputBuffer.GetSliceFileNames()->SetAt(nSubSlice, sSliceFileName);
+					SlaveRegisterUniqueTmpFile(sSliceFileName);
+				}
 				else
 					break;
 			}
@@ -1182,7 +1215,6 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 					// Ajout de l'objet au tableau
 					if (kwoObject != NULL)
 					{
-
 						// Ecriture de l'objet pour le dispatcher dans les fichiers de tranche
 						bOk = allSliceOutputBuffer.WriteObject(
 						    kwoObject, &lvSliceAttributeBlockValueNumbers,
@@ -1206,23 +1238,23 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 					}
 
 					// Suivi de la tache
-					if (periodicTestInterruption.IsTestAllowed(lRecordNumber))
+					if (TaskProgression::IsRefreshNecessary())
 						TaskProgression::DisplayProgression(
 						    (int)(100 * slice->GetReadPercentage()));
 				}
 
 				// Test si interruption sans qu'il y ait d'erreur
-				if (slice->IsError() or TaskProgression::IsInterruptionRequested())
+				if (not bOk or slice->IsError() or TaskProgression::IsInterruptionRequested())
 				{
 					bOk = false;
 
 					// Warning ou erreur selon le cas
-					if (slice->IsError())
-						slice->AddError("Read data table slice interrupted because of errors");
+					if (TaskProgression::IsInterruptionRequested())
+						slice->AddWarning("Read data table slice interrupted by user");
 					else if (allSliceOutputBuffer.IsError())
 						slice->AddError("Error in writing database sub-slice files");
 					else
-						slice->AddWarning("Read data table slice interrupted by user");
+						slice->AddError("Read data table slice interrupted because of errors");
 				}
 			}
 
@@ -1323,6 +1355,7 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 		assert(nSliceBlockIndex == lvSliceAttributeBlockValueNumbers.GetSize());
 		assert(nSliceDenseSymbolAttributeIndex == lvSliceDenseSymbolAttributeDiskSizes.GetSize());
 
+		////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// Verifications de coherence entre la tranche et l'ensemble des sous-tranches correspondantes
 		// Pour la taille des fichiers, il peut y avoir le cas ou des attributs symbol issu de regles de
 		// derivation ont ete ecrits avec des blancs en debut ou fin dans la tranche originelle, ont ete relus
@@ -1344,20 +1377,30 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 		//      . necessite de traiter certains effets de bord, comme l'utilisation des valeurs pour fabriquer
 		//      des noms de variable
 		// Cf. jeu de test LearningTest\TestKhiops\SmallInstability\BugConstructionWithTrailingBlank
-		assert(slice->GetTotalDataFileSize() + (dataTableSliceSet.GetSliceNumber() - 1) * nObjectNumber <=
+
+		// S'il ny a pas d'attributs Symbol, la taille cumulee des fichiers de slices finale doit etre au moins
+		// egale a celle du fichier de slice initial, plus une fin de ligne - un separateur par ligne (objet) de
+		// chaque fichier additionnel
+		assert(slice->GetTotalDataFileSize() + (dataTableSliceSet.GetSliceNumber() - 1) * nObjectNumber *
+							   (FileService::GetEOL().GetLength() - 1) <=
 			   dataTableSliceSet.GetTotalDataFileSize() or
 		       slice->GetClass()->GetUsedAttributeNumberForType(KWType::Symbol) > 0);
+
+		// Verification sur les valeur dans les blocs d'attributs
 		assert(slice->GetTotalAttributeBlockValueNumber() ==
 			   dataTableSliceSet.GetTotalAttributeBlockValueNumber() or
 		       (slice->GetClass()->GetUsedAttributeNumberForType(KWType::Symbol) > 0 and
 			slice->GetTotalAttributeBlockValueNumber() >=
 			    dataTableSliceSet.GetTotalAttributeBlockValueNumber()));
+
+		// Verifications sur le nombre total d'attributs, dense et dans les blocs
 		assert(slice->GetClass()->GetAttributeNumber() == dataTableSliceSet.GetTotalAttributeNumber());
 		assert(slice->GetClass()->GetLoadedDenseAttributeNumber() ==
 		       dataTableSliceSet.GetTotalDenseAttributeNumber());
 		assert(slice->GetClass()->GetLoadedAttributeBlockNumber() <=
 		       dataTableSliceSet.GetTotalAttributeBlockNumber());
 
+		/////////////////////////////////////////////////////////////////////////////////////////////
 		// Transfert du contenu du sliceset de travail vers le tableau de slice resultat
 		oaSubSlices->CopyFrom(dataTableSliceSet.GetSlices());
 		dataTableSliceSet.GetSlices()->RemoveAll();
@@ -1394,9 +1437,13 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 		lSliceMaxBlockWorkingMemory = ComputeBlockWorkingMemory(
 		    slice->GetMaxBlockAttributeNumber(), slice->GetMaxAttributeBlockValueNumber(), nObjectNumber);
 		lSliceDatabaseAllValuesMemory = ComputeDatabaseAllValuesMemory(slice, nObjectNumber);
+		cout << "\tName\tVars\tCat vars\tMem\tFile size\tDense cat disk size\tAll values mem\tMax block work "
+			"mem\tOverall mem\n";
 		cout << "\t" << slice->GetClass()->GetName() << "\t" << slice->GetClass()->GetAttributeNumber() << "\t"
-		     << slice->GetUsedMemory() << "\t" << slice->GetTotalDenseSymbolAttributeDiskSize() << "\t"
-		     << lSliceDatabaseAllValuesMemory << "\t" << lSliceMaxBlockWorkingMemory << "\t"
+		     << slice->GetClass()->GetUsedAttributeNumberForType(KWType::Symbol) << "\t"
+		     << slice->GetUsedMemory() << "\t" << slice->GetTotalDataFileSize() << "\t"
+		     << slice->GetTotalDenseSymbolAttributeDiskSize() << "\t" << lSliceDatabaseAllValuesMemory << "\t"
+		     << lSliceMaxBlockWorkingMemory << "\t"
 		     << lSliceDatabaseAllValuesMemory + lSliceMaxBlockWorkingMemory << "\n";
 
 		// Affichage de statistiques par sous-tranches
@@ -1410,12 +1457,14 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 						      subSlice->GetMaxAttributeBlockValueNumber(), nObjectNumber);
 			lSliceDatabaseAllValuesMemory = ComputeDatabaseAllValuesMemory(subSlice, nObjectNumber);
 			cout << "\t" << subSlice->GetClass()->GetName() << "\t"
-			     << subSlice->GetClass()->GetAttributeNumber() << "\t" << subSlice->GetUsedMemory() << "\t"
+			     << subSlice->GetClass()->GetAttributeNumber() << "\t"
+			     << subSlice->GetClass()->GetUsedAttributeNumberForType(KWType::Symbol) << "\t"
+			     << subSlice->GetUsedMemory() << "\t" << subSlice->GetTotalDataFileSize() << "\t"
 			     << subSlice->GetTotalDenseSymbolAttributeDiskSize() << "\t"
 			     << lSliceDatabaseAllValuesMemory << "\t" << lSliceMaxBlockWorkingMemory << "\t"
 			     << lSliceDatabaseAllValuesMemory + lSliceMaxBlockWorkingMemory << "\n";
 		}
-		cout << flush;
+		cout << "\n";
 	}
 	return bOk;
 }

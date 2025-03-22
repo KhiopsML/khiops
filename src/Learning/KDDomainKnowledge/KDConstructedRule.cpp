@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -12,6 +12,7 @@ KDConstructedRule::KDConstructedRule()
 	int i;
 	constructionRule = NULL;
 	dCost = 0;
+	nRandomIndex = 0;
 	for (i = 0; i < sizeof(cOperandOrigins); i++)
 		cOperandOrigins[i] = None;
 }
@@ -212,7 +213,16 @@ void KDConstructedRule::RemoveOperandAt(int nIndex)
 
 	// Reinitialisation de l'operande
 	oaConstructedOperands.SetAt(nIndex, NULL);
+#if defined(__GNUC__) && !defined(__clang__)
+// Dans plusieurs parties du code, on desactive le warning stringop-overflow
+// pour le compilateur gcc car il emet ce warning a tord (au moins pour la version 11)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 	cOperandOrigins[nIndex] = None;
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 }
 
 void KDConstructedRule::DeleteAllOperands()
@@ -233,6 +243,17 @@ void KDConstructedRule::RemoveAllOperands()
 
 	for (i = 0; i < GetOperandNumber(); i++)
 		RemoveOperandAt(i);
+}
+
+void KDConstructedRule::SetRandomIndex(int nValue)
+{
+	require(nValue >= 0);
+	nRandomIndex = nValue;
+}
+
+int KDConstructedRule::GetRandomIndex() const
+{
+	return nRandomIndex;
 }
 
 void KDConstructedRule::IncrementUseCounts()
@@ -355,6 +376,30 @@ boolean KDConstructedRule::IsBlockRule() const
 boolean KDConstructedRule::IsStandardRule() const
 {
 	return not IsSelectionRule() and not IsBlockRule();
+}
+
+boolean KDConstructedRule::UsesSelectionRule() const
+{
+	boolean bUsesSelectionRule;
+	int i;
+
+	// Test si la regle est une regle de selection
+	bUsesSelectionRule = IsSelectionRule();
+
+	// Test sur les oiperande si necessaire
+	if (not bUsesSelectionRule)
+	{
+		for (i = 0; i < GetOperandNumber(); i++)
+		{
+			if (GetOperandOriginAt(i) == KDConstructedRule::Rule)
+			{
+				bUsesSelectionRule = GetRuleOperandAt(i)->UsesSelectionRule();
+				if (bUsesSelectionRule)
+					break;
+			}
+		}
+	}
+	return bUsesSelectionRule;
 }
 
 const KDConstructedPart* KDConstructedRule::GetUsedPart() const
@@ -748,25 +793,29 @@ int KDConstructedRule::CompareCost(const KDConstructedRule* rule) const
 	return nResult;
 }
 
-int KDConstructedRule::CompareCostName(const KDConstructedRule* rule) const
+int KDConstructedRule::CompareCostRandomIndex(const KDConstructedRule* rule) const
 {
 	int nResult;
-	longint lSortValue1;
-	longint lSortValue2;
 
 	require(rule != NULL);
 
-	// Les regles de constructions doivent etre specifiees
-	assert(GetConstructionRule() != NULL);
-	assert(rule->GetConstructionRule() != NULL);
+	// Comparaison sur le cout
+	nResult = CompareCost(rule);
 
-	// On se base sur un comparaison a sept decimales pres pour le critere de cout
-	// Sept decimales semblent le bon niveau pour assurer la stabilite de la comparaison
-	lSortValue1 = longint(floor(GetCost() * 1e7 + 0.5));
-	lSortValue2 = longint(floor(rule->GetCost() * 1e7 + 0.5));
+	// Comparaison sur l'index aleatoire si egalite
+	if (nResult == 0)
+		nResult = GetRandomIndex() - rule->GetRandomIndex();
+	return nResult;
+}
+
+int KDConstructedRule::CompareCostName(const KDConstructedRule* rule) const
+{
+	int nResult;
+
+	require(rule != NULL);
 
 	// Comparaison sur le cout
-	nResult = CompareLongint(lSortValue1, lSortValue2);
+	nResult = CompareCost(rule);
 
 	// Comparaison sur le nom de la variable si egalite
 	if (nResult == 0)
@@ -952,6 +1001,18 @@ ALString KDConstructedRule::BuildInterpretableName(boolean bIsBlockName) const
 		else
 			sVariableName = sOperandName + "." + GetName();
 	}
+	// Cas d'une regle de type TimestampTZ
+	else if (constructionRule->GetFamilyName() == "TimestampTZ")
+	{
+		sOperandName = BuildInterpretableNameFromOperandAt(0, bIsBlockName);
+
+		// Cas particulier si on extrait la date ou l'heure
+		if (GetName() == "LocalTimestamp")
+			sVariableName = sOperandName + ".LocalTZ";
+		// Cas standard
+		else
+			sVariableName = sOperandName + "." + GetName();
+	}
 	// Cas d'une regle de type Entity
 	else if (constructionRule->GetFamilyName() == "Entity")
 	{
@@ -1118,6 +1179,21 @@ int KDConstructedRuleCompareCost(const void* elem1, const void* elem2)
 	return nResult;
 }
 
+int KDConstructedRuleCompareCostRandomIndex(const void* elem1, const void* elem2)
+{
+	int nResult;
+	KDConstructedRule* rule1;
+	KDConstructedRule* rule2;
+
+	// Acces aux partitions
+	rule1 = cast(KDConstructedRule*, *(Object**)elem1);
+	rule2 = cast(KDConstructedRule*, *(Object**)elem2);
+
+	// Comparaison
+	nResult = rule1->CompareCostRandomIndex(rule2);
+	return nResult;
+}
+
 int KDConstructedRuleCompareCostName(const void* elem1, const void* elem2)
 {
 	int nResult;
@@ -1155,25 +1231,32 @@ KDConstructedPartition::~KDConstructedPartition()
 	oaPartitionBuiltPartIndexes.DeleteAll();
 }
 
-void KDConstructedPartition::SetClass(const KWClass* kwcClass)
+void KDConstructedPartition::SetPartitionClass(const KWClass* kwcClass)
 {
 	kwcPartitionClass = kwcClass;
 	SetDimensionNumber(0);
 }
 
-const KWClass* KDConstructedPartition::GetClass() const
+const KWClass* KDConstructedPartition::GetPartitionClass() const
 {
 	return kwcPartitionClass;
 }
 
 void KDConstructedPartition::SetTableAttribute(const KWAttribute* kwaAttribute)
 {
+	require(kwaAttribute == NULL or kwaAttribute->GetClass()->GetName() == GetPartitionClass()->GetName());
 	tableAttribute = kwaAttribute;
 }
 
 const KWAttribute* KDConstructedPartition::GetTableAttribute() const
 {
 	return tableAttribute;
+}
+
+const KWClass* KDConstructedPartition::GetParentClass() const
+{
+	require(GetTableAttribute() != NULL);
+	return GetTableAttribute()->GetParentClass();
 }
 
 void KDConstructedPartition::SetDimensionNumber(int nValue)
@@ -1236,14 +1319,14 @@ int KDConstructedPartition::GetGranularityAt(int nIndex) const
 
 void KDConstructedPartition::SetDimensionAt(int nIndex, const KDConstructedPartitionDimension* dimension)
 {
-	require(GetClass() != NULL);
+	require(GetPartitionClass() != NULL);
 	require(0 <= nIndex and nIndex < GetDimensionNumber());
 	oaPartitionDimensions.SetAt(nIndex, cast(Object*, dimension));
 }
 
 const KDConstructedPartitionDimension* KDConstructedPartition::GetDimensionAt(int nIndex) const
 {
-	require(GetClass() != NULL);
+	require(GetPartitionClass() != NULL);
 	require(0 <= nIndex and nIndex < GetDimensionNumber());
 	return cast(const KDConstructedPartitionDimension*, oaPartitionDimensions.GetAt(nIndex));
 }
@@ -1582,7 +1665,7 @@ KWDerivationRule* KDConstructedPartition::BuildTablePartitionBlockDerivationRule
 	// Parametrage du premier operande: la table secondaire
 	tablePartitionRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
 	tablePartitionRule->GetFirstOperand()->SetAttributeName(GetTableAttribute()->GetName());
-	tablePartitionRule->GetFirstOperand()->SetObjectClassName(GetClass()->GetName());
+	tablePartitionRule->GetFirstOperand()->SetObjectClassName(GetPartitionClass()->GetName());
 
 	// Parametrage du deuxieme operande: la partition
 	tablePartitionRule->GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
@@ -1687,6 +1770,7 @@ const KWAttribute* KDConstructedPartition::GetPartitionAttribute() const
 
 void KDConstructedPartition::SetPartitionAttribute(const KWAttribute* attribute)
 {
+	require(attribute == NULL or attribute->GetParentClass()->GetName() == GetParentClass()->GetName());
 	kwaPartitionAttribute = attribute;
 }
 
@@ -1697,6 +1781,7 @@ const KWAttributeBlock* KDConstructedPartition::GetTablePartitionAttributeBlock(
 
 void KDConstructedPartition::SetTablePartitionAttributeBlock(const KWAttributeBlock* attributeBlock)
 {
+	require(attributeBlock == NULL or attributeBlock->GetParentClass()->GetName() == GetParentClass()->GetName());
 	kwabTablePartitionAttributeBlock = attributeBlock;
 }
 
@@ -1744,7 +1829,7 @@ boolean KDConstructedPartition::Check() const
 	int nCompare;
 
 	// Test si la classe est renseignee
-	if (bOk and GetClass() == NULL)
+	if (bOk and GetPartitionClass() == NULL)
 	{
 		AddError("No dictionary specified");
 		bOk = false;
@@ -1756,9 +1841,9 @@ boolean KDConstructedPartition::Check() const
 		AddError("No table variable specified");
 		bOk = false;
 	}
-	if (bOk and GetTableAttribute()->GetClass() != GetClass())
+	if (bOk and GetTableAttribute()->GetClass() != GetPartitionClass())
 	{
-		AddError("Dictionary " + GetClass()->GetName() + " not consistent that of table variable " +
+		AddError("Dictionary " + GetPartitionClass()->GetName() + " not consistent that of table variable " +
 			 GetTableAttribute()->GetName() + " (" + GetTableAttribute()->GetClass()->GetName() + ")");
 		bOk = false;
 	}
@@ -1835,16 +1920,20 @@ int KDConstructedPartition::Compare(const KDConstructedPartition* partition) con
 	int nDiff;
 	int i;
 
-	require(GetClass() != NULL);
+	require(GetPartitionClass() != NULL);
 	require(Check());
 	require(partition != NULL);
-	require(partition->GetClass() != NULL);
+	require(partition->GetPartitionClass() != NULL);
 	require(partition->Check());
 
-	// Comparaison des classes
-	nDiff = GetClass()->GetName().Compare(partition->GetClass()->GetName());
+	// Comparaison des classes de partition
+	nDiff = GetPartitionClass()->GetName().Compare(partition->GetPartitionClass()->GetName());
 
-	// Comparaison des attribut d'acces aux tables
+	// Comparaison des classes a l'origine des attributs d'acces aux tables
+	if (nDiff == 0)
+		nDiff = GetParentClass()->GetName().Compare(partition->GetParentClass()->GetName());
+
+	// Comparaison des attributs d'acces aux tables
 	if (nDiff == 0)
 		nDiff = GetTableAttribute()->GetName().Compare(partition->GetTableAttribute()->GetName());
 
@@ -1877,10 +1966,10 @@ void KDConstructedPartition::Write(ostream& ost) const
 	const KDConstructedPartitionDimension* dimension;
 
 	// Nom de la classe utilisee
-	if (GetClass() != NULL)
+	if (GetPartitionClass() != NULL)
 	{
 		// Nom de la classe
-		ost << GetClass()->GetName();
+		ost << GetPartitionClass()->GetName();
 
 		// Attribut d'acces a la table
 		if (GetTableAttribute() != NULL)
@@ -1910,7 +1999,7 @@ void KDConstructedPartition::WriteDimensionAt(int nIndex, ostream& ost)
 	const KDConstructedPartitionDimension* dimension;
 
 	// Si la classe est specifiee
-	if (GetClass() != NULL)
+	if (GetPartitionClass() != NULL)
 	{
 		assert(0 <= nIndex and nIndex < GetDimensionNumber());
 
@@ -1941,12 +2030,18 @@ const ALString KDConstructedPartition::GetObjectLabel() const
 
 	// Chemin d'acces a la partition
 	if (GetTableAttribute() != NULL)
-		sLabel = GetTableAttribute()->GetName();
+	{
+		sLabel += "[";
+		sLabel += GetParentClass()->GetName();
+		sLabel += ".";
+		sLabel += GetTableAttribute()->GetName();
+		sLabel += "]";
+	}
 
 	// Nom de la classe utilisee
-	if (GetClass() != NULL)
+	if (GetPartitionClass() != NULL)
 	{
-		sLabel += ':' + GetClass()->GetName();
+		sLabel += ':' + GetPartitionClass()->GetName();
 
 		// Dimensions
 		sLabel += "(";

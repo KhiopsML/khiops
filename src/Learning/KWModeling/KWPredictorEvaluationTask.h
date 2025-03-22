@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -18,7 +18,7 @@ class PLShared_ClassifierInstanceEvaluation;
 #include "KWDatabase.h"
 #include "KWDatabaseTask.h"
 
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Tache parallele d'evaluation d'un predicteur sur une base de donnees
 // Classe algorithmique de service, dont les resultats sont destine a alimenter
 // un rapports d'evaluation (cf hierarchie de classe de KWPredictorEvaluation)
@@ -54,12 +54,13 @@ protected:
 	const ALString GetTaskName() const override;
 	PLParallelTask* Create() const override;
 	boolean MasterAggregateResults() override;
+	boolean MasterFinalize(boolean bProcessEndedCorrectly) override;
 
 	// Objet d'evaluation demandeur de la tache et ou l'on stocke les resultats
 	KWPredictorEvaluation* predictorEvaluation;
 };
 
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Tache parallele d'evaluation d'un classifieur sur une base de donnees
 class KWClassifierEvaluationTask : public KWPredictorEvaluationTask
 {
@@ -74,30 +75,34 @@ protected:
 	///////////////////////////////////////////////////////////////////////////////
 	// Pour l'evaluation d'un classifieur, ll y a trois objets qui se aggregent dans chaque esclave:
 	// - La matrice de confusion
-	// - Les evaluations d'instances pour le calcul de l'AUC
+	// - Les evaluations d'instances pour le calcul de l'AUC et courbes de lift
 	// - La vraisemblasce totale
 	//
 	// La vraisemblance et la matrice de confusion sont associatives, et donc il suffit de calculer
 	// ses versions locaux a chaque esclave et ensuite les aggreger dans le maitre.
 	// Dans la finalisation la plupart des indicateurs s'en deduissent de la matrice de confusion.
 	//
-	// Pour l'AUC, la situation est un peu plus delicate car il faut avoir
+	// Pour l'AUC et les courbes de lift, la situation est un peu plus delicate car il faut avoir
 	// l'integralite des evaluation d'instances pour pouvoir la calculer.
 	// Si la base de donnes a une grande taille cela peut entrainer des soucis de memoire
 	// et donc la paralellisation n'est pas trivial comme dans les cas precedantes.
 	//
-	// Donc, pour calculer l'AUC dans chaque esclave :
-	//   - Si sa capacite n'est pas depassee on renvoie au maitre
-	//     tous les instances de KWClassifierEvaluationInstance creees lors du processus esclave
-	//   - Sinon, on signale l'overflow au maitre et ceci arrete le calcul de l'AUC
+	// Donc, pour calculer l'AUC et les courbes dans chaque esclave on utilise un reservoir sampler et
+	// dans chaque sous-tache on reenvoie:
+	//    - L'echantillon de KWClassifierEvaluationInstance
+	//    - Le nombre d'objets vus et la taille de l'echantillon
+	// Le reservoir est reintialise a chaque sous-tache
 	//
-	// Le maitre pour sa part :
-	//   - Si sa capacite n'est pas depassee il garde tous les objets
-	//     KWClassifierEvaluationInstance recus depuis l'esclave
-	//   - Sinon, il echantillone l'instances recus avec un ReservoirSampler
+	// Le maitre pour sa part a egalement un reservoir sampler, mais aussi un taux d'echantillonnage.
+	// Ce taux est intialement a 1 et :
+	//   - Si l'esclave a echantillonne avec un taux plus petit que celui du maitre alors il
+	//     reechantillone avec proba (proba esclave)/(proba maitre) et il rajoute l'integralite de
+	//     l'echantillon de l'esclave
+	//   - Si l'esclave a echantillonne avec un taux plus grande que celui du maitre alors il ajoute
+	//     l'echantillon de l'esclave avec proba (proba maitre)/(proba esclave)
 	//
-	// A la fin, la collection (echantillone ou non) de KWClassifierEvaluationInstance
-	// s'utilise pour estimer l'AUC du classifieur
+	// A la fin, la collection (echantillonne ou non) de KWClassifierEvaluationInstance s'utilise pour
+	// estimer l'AUC et les courbes de lift du classifieur
 
 	// Reimplementation des methodes virtuelles (en gros les etapes) de DatabaseTask
 	const ALString GetTaskName() const override;
@@ -129,8 +134,18 @@ protected:
 	// Index de valeur cible du predicteur pour un index de courbe de lift
 	int GetPredictorTargetIndexAtLiftCurveIndex(int nLiftCurveIndex) const;
 
+	// Calcul de la capacite d'un echantillonneur en fonction de la memoire disponible
+	int ComputeSamplerCapacity(longint lMemory, int nTargetValueNumber) const;
+
+	// Calcul de la memoire attribuee exclusivement a la tache (exclue celle de la classe ancetre)
+	longint ComputeTaskSelfMemory(longint lTaskGrantedMemory, RMPhysicalResource* taskMemoryRequirement,
+				      RMPhysicalResource* parentTaskMemoryRequirement) const;
+
 	// Calcul de la taille memoire d'une evaluation d'instance
-	longint ComputeInstanceEvaluationNecessaryMemory() const;
+	longint ComputeInstanceEvaluationNecessaryMemory(int nTargetValueNumber) const;
+
+	// Mise a jour de l'echantillonneur du maitre
+	void MasterAggregateResultsUpdateSampler();
 
 	// Nombre max de valeurs cible pour lesquelles on evalue la courbe de lift
 	static const int nMaxLiftEvaluationNumber = 100;
@@ -145,31 +160,48 @@ protected:
 	KWConfusionMatrixEvaluation* masterConfMatrixEvaluation;
 
 	// Services d'evaluation de l'AUC et des courbes de lift
-	KWAucEvaluation* aucEvaluation;
+	KWAucEvaluation* masterAucEvaluation;
 
-	// Echantilloneur d'instances d'evaluation pour les esclaves (pour le calcul de l'AUC)
-	KWReservoirSampler* instanceEvaluationSampler;
+	// Echantilloneur d'instances d'evaluation du maitre (pour le calcul de l'AUC)
+	// Attention, la taille du reservoir (Capacity) est correcte, mais le nombre d'objet traites (SeenObjectNumber)
+	// peut etre inferieur au nombre total d'objet vues par les esclaves, si un de ceux-ci a sature
+	KWReservoirSampler* masterInstanceEvaluationSampler;
 
-	// Tableau de tous les resultats des esclaves (pour reproductibilite de l'AUC)
-	ObjectArray oaSlaveEvaluationBatches;
+	// Probabilite d'echantillonnage utilise dans le reservoir du maitre, qui peut etre struictement inferieure a 1
+	// si un esclave passe etait sature, et que le maitre l'a integre sans toutefois remplir entierement son
+	// propre reservoir: il garde alors une proba strictement inferieure a 1, bien que n'etant pas plein
+	double dMasterSamplingProb;
 
-	// Indice dans l'array du prochait batch d'evaluations a processer
-	int nNextEvaluationBatch;
+	// Tableau des echantillons des esclaves (contiennent des tableaux de KWClassifierInstanceEvaluation).
+	// Il est indexe par le index de sous-tache (GetTaskIndex()). Il est necessaire pour parcourir les
+	// sorties de sous-taches dans le meme ordre en sequentiel et ainsi qu'en parallele. Pour ce-faire
+	// on accumule les echantillons des esclaves de maniere provisoire dans ce tableau (dans la
+	// position donnee par GetTaskIndex()) et on les ajoute a l'echantillon du maitre au fur et a
+	// mesure que l'on peut faire dans l'ordre de sous-taches.
+	// NB: La probabilite que ce tableau soit rempli est negligeable (eg. la sous-tache 0 ne retourne jamais)
+	ObjectArray oaAllInstanceEvaluationSamples;
+
+	// Nombre total d'objets vus pour la constitution des echantillons de chaque esclave
+	LongintVector lvSeenInstanceEvaluationNumberPerSample;
+
+	// Indice du prochain echantillon issu d'un esclave a ajouter a l'echantillon du maitre
+	int nCurrentSample;
 
 	// Indique si la tache calcule l'AUC
 	boolean bIsAucEvaluated;
 
-	// Indique si l'AUC est calculee sur un sous-echantillon
-	boolean bIsAucFromSubsample;
+	// Exigences de memoire de classe ancetre (PLDatabaseTask)
+	RMPhysicalResource databaseTaskMasterMemoryRequirement;
+	RMPhysicalResource databaseTaskSlaveMemoryRequirement;
 
 	//////////////////////////////////////////////////////////////////////////////
 	// Variables de l'esclave
 
-	// Service d'evaluation des matrices de confusion des esclaves (local)
-	KWConfusionMatrixEvaluation* slaveConfMatrixEvaluation;
+	// Echantilloneur d'instances d'evaluation du esclaves (pour le calcul de l'AUC)
+	KWReservoirSampler* slaveInstanceEvaluationSampler;
 
-	// Taille maximale du tableau d'instances d'evaluation du esclave
-	int nSlaveInstanceEvaluationCapacity;
+	// Service d'evaluation des matrices de confusion des esclaves (local)
+	KWConfusionMatrixEvaluation* slaveConfusionMatrixEvaluation;
 
 	//////////////////////////////////////////////////////////////////////////////
 	// Inputs et outputs des esclaves
@@ -177,20 +209,17 @@ protected:
 	// Signale a l'esclave s'il doit collecter les evaluation d'instances pour le calcul d'AUC
 	PLShared_Boolean input_bIsAucEvaluated;
 
-	// Matrice de confusion d'output des esclaves sous forme de DataGridStat
+	// Matrice de confusion de sortie d'un esclave sous forme de DataGridStat
 	PLShared_DataGridStats output_confusionMatrix;
 
-	// Ratio de compression des esclaves
+	// Ratio de compression de sortie d'un esclave
 	PLShared_Double output_dCompressionRate;
 
-	// Indique si l'esclave a fait overflow en collectant d'evaluations d'instances pour l'AUC
-	PLShared_Boolean output_bAreSlaveInstanceEvaluationsOverflowed;
+	// Instances d'evaluation de l'esclave. Potentiellement sous-echantillonees
+	PLShared_ObjectArray* output_oaInstanceEvaluationSample;
 
-	// Taille de l'overflow de l'esclave (0 s'il n'y a pas d'overflow)
-	PLShared_Int output_nSlaveCapacityOverflowSize;
-
-	// Instances d'evaluation du esclave. Potentiellement sous-echantillonees
-	PLShared_ObjectArray* output_slaveEvaluationInstances;
+	// Nombre d'instances d'evaluation vus par l'esclave dans la sous-tache
+	PLShared_Longint output_lSeenInstanceEvaluationNumber;
 
 	//////////////////////////////////////////////////////////////////////////////
 	// Variables partagees
@@ -209,9 +238,12 @@ protected:
 
 	// Modalites predites du attribut cible
 	PLShared_SymbolVector shared_svPredictedModalities;
+
+	// Taille maximale du tableau d'instances d'evaluation du esclave
+	PLShared_Int shared_nSlaveInstanceEvaluationCapacity;
 };
 
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Tache parallele d'evaluation d'un regresseur sur une base de donnees
 class KWRegressorEvaluationTask : public KWPredictorEvaluationTask
 {
@@ -286,7 +318,7 @@ protected:
 	PLShared_Int output_nSlaveCapacityOverflowSize;
 };
 
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Evaluation online de la matrice de confusion d'un classifieur
 class KWConfusionMatrixEvaluation : public Object
 {
@@ -366,7 +398,7 @@ protected:
 	static int nMaxSize;
 };
 
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Service Evaluation de l'AUC d'un classifieur
 class KWAucEvaluation : public Object
 {
@@ -420,7 +452,7 @@ protected:
 	static double dEpsilon;
 };
 
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Evaluation d'une instance
 // Contient la classe reelle et le vecteur de probas conditionnelles aux classes
 class KWClassifierInstanceEvaluation : public Object
@@ -462,10 +494,10 @@ protected:
 	friend class PLShared_ClassifierInstanceEvaluation;
 
 	// Fonction auxilier pour trier des tableaux d'evaluations d'instances
-	friend int KWClassifierEvaluationInstanceCompare(const void* elem1, const void* elem2);
+	friend int KWClassifierInstanceEvaluationCompare(const void* elem1, const void* elem2);
 };
 
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Echantillonneur uniforme en ligne d'objets avec taille maximale
 // Implementation via la methode de "Reservoir Sampling" (Vitter, 1985)
 class KWReservoirSampler : public Object
@@ -475,12 +507,23 @@ public:
 	KWReservoirSampler();
 	~KWReservoirSampler();
 
-	// Parametrage/Acces de la capacite maximale de l'echantillon
+	// Parametrage de la capacite maximale de l'echantillon
 	void SetCapacity(int nCapacity);
 	int GetCapacity();
 
+	// Parametrage de la graine du RNG
+	void SetSamplerRandomSeed(longint lNewRandomSeed);
+	longint GetSamplerRandomSeed() const;
+
+	// Nombre d'objets echantillonnes
+	int GetSampleSize() const;
+
+	// Nombre d'objets vus
+	longint GetSeenObjectNumber() const;
+
 	// Acces aux objets echantillonees
 	// Memoire: Responsabilite de l'appele
+	Object* GetSampledObjectAt(int nIndex) const;
 	ObjectArray* GetSampledObjects();
 
 	// Ajout d'un objet a l'echantillon
@@ -489,10 +532,15 @@ public:
 	// Dans le cas que l'objet n'est pas ajoute alors il est detruit
 	// Memoire: Responsabilite de l'appele
 	void Add(Object* object);
+	void AddWithProb(Object* object, double dProb);
 
 	// Ajout d'un tableau d'objets a l'echantillon
 	// Memoire: Responsabilite de l'appele (objets potentiellement detruits)
 	void AddArray(const ObjectArray* objects);
+	void AddArrayWithProb(const ObjectArray* objects, double dProb);
+
+	// Reechantillonnage de l'echantillon avec une probabilite donnee
+	void Resample(double dProb);
 
 	// Elimination de toutes les references aux objets echantillones (ne libere pas la memoire)
 	void RemoveAll();
@@ -509,17 +557,23 @@ public:
 	//////////////////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Longint pseudo-aleatoire entre 0 et lMax
+	longint RandomLongint(longint lMax);
+
 	// Nombre maximal d'objects dans le tableau
 	int nCapacity;
 
+	// Graine du RNG
+	longint lRandomSeed;
+
 	// Nombre total d'objets vus
-	int nSeenObjects;
+	longint lSeenObjectNumber;
 
 	// Echantillon
 	ObjectArray oaSampledObjects;
 };
 
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe PLShared_ClassifierInstanceEvaluation
 // Serialisation de la classe KWClassifierEvaluationInstance
 class PLShared_ClassifierInstanceEvaluation : public PLSharedObject
@@ -535,34 +589,30 @@ public:
 	// Obtient le CleanPredictorSharedVariables enveloppe
 	KWClassifierInstanceEvaluation* GetClassifierInstanceEvaluation();
 
-	// Deserialisation d'un ClassifierEvaluationInstance (reimplementation)
-	void DeserializeObject(PLSerializer* serializer, Object* object) const override;
-
 	// Serialisation d'un ClassifierEvaluationInstance (reimplementation)
-	void SerializeObject(PLSerializer* serializer, const Object* object) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+
+	// Deserialisation d'un ClassifierEvaluationInstance (reimplementation)
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 protected:
 	// Wrapper generique du constructeur de ClassifierEvaluationInstance
 	Object* Create() const override;
 };
 
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Methodes en inline
 
 inline KWLoadIndex KWPredictorEvaluationTask::GetLoadIndex(KWAttribute* attribute) const
 {
 	KWLoadIndex liInvalid;
 
-	if (attribute == NULL)
-	{
-		return liInvalid;
-	}
-	else
-	{
-		assert(attribute->GetLoaded());
-		assert(attribute->GetLoadIndex().IsValid());
+	require(attribute == NULL or (attribute->GetLoaded() and attribute->GetLoadIndex().IsValid()));
+
+	if (attribute != NULL)
 		return attribute->GetLoadIndex();
-	}
+	else
+		return liInvalid;
 }
 
 inline void KWAucEvaluation::SetTargetValueNumber(int nValue)
@@ -574,17 +624,6 @@ inline void KWAucEvaluation::SetTargetValueNumber(int nValue)
 inline int KWAucEvaluation::GetTargetValueNumber() const
 {
 	return nTargetValueNumber;
-}
-
-inline void KWReservoirSampler::SetCapacity(int nSampleSize)
-{
-	require(nSampleSize >= 0);
-	nCapacity = nSampleSize;
-}
-
-inline int KWReservoirSampler::GetCapacity()
-{
-	return nCapacity;
 }
 
 inline KWClassifierInstanceEvaluation::KWClassifierInstanceEvaluation()

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -169,6 +169,11 @@ public:
 	void SetReadClass(const KWClass* kwcInputClass);
 	const KWClass* GetReadClass() const;
 
+	// Parametrage de la taille totale des buffers des slices utilises pour la lecture de la base (defaut: 0 pour
+	// automatique)
+	void SetTotalBufferSize(longint lValue);
+	longint GetTotalBufferSize() const;
+
 	// Ouverture de la base de donnees pour lecture
 	boolean OpenForRead();
 
@@ -227,7 +232,7 @@ public:
 	// a vis des noms, types, et blocs d'attributs, et son nom sera specifie dans l'appele
 	// Memoire: la classe construite en retour appartient a l'appelant
 	KWClass* BuildClassFromAttributeNames(const ALString& sInputClassName,
-					      const StringVector* svInputAttributeNames);
+					      const StringVector* svInputAttributeNames) const;
 
 	// Acces au tableau des tranches
 	// Memoire: le tableau et son contenu appartiennent a l'appelant, mais peuvent etre modifies sous la
@@ -262,7 +267,8 @@ public:
 	// Principalement, les tranches doivent constituer une partition des attributs simples utilises du dictionnaire
 	// en entree. Les blocs doivent se trouver par plages contigues, dans des tranches dont l'ordre est le meme que
 	// celui des plages d'attributs des blocs, ce qui permet de reconstituer des blocs presents dans plusieurs
-	// tranches par simple concatenation Cette methode est tolerante d'un dictionnaire en entree non specifie
+	// tranches par simple concatenation Cette methode est tolerante s'il n'y a pas de dictionnaire en entree
+	// specifie
 	boolean Check() const override;
 
 	// Copie et duplication
@@ -347,6 +353,7 @@ protected:
 	// Variables pour la gestion de la lecture au moyen d'une classe s'appuyant sur les attributs du sliceSet
 	// Toutes ces variables, prefixees par _read, ne sont actives que le temps de l'utilisation des
 	// methodes de lecture, entre l'ouverture et la fermeture
+	longint lTotalBufferSize;
 	const KWClass* read_Class;
 	KWClass* read_PhysicalClass;
 	ObjectArray read_oaPhysicalSlices;
@@ -510,8 +517,11 @@ public:
 	// Variable de travail utilisable depuis d'autres classes pour personnaliser des
 	// criteres de tri lexicographique
 
-	// Vecteur de critere pour un tri lexocographique
-	// La gestion de la taille et des valeur de ce vecteur est entierement a la cahrge de l'appelant
+	// Vecteur de critere pour un tri lexicographique utilisateur
+	// La gestion de la taille et des valeur de ce vecteur est entierement a la charge de l'appelant
+	// Attention, ce tri permet de prioriser les tranche seon un criter utilisateurn quelconque.
+	// Le sliceset complet doit lui toujours etretrie selon son ordre par defaut (selon GetLexicographicIndex)
+	// pour etre utilisable
 	DoubleVector* GetLexicographicSortCriterion();
 
 	// Methode de comparaison de deux tranches selon leur critere lexicographique
@@ -568,8 +578,11 @@ protected:
 	// Ouverture physique de la base de donnees pour lecture en passant en parametre une classe de driver
 	// potentiellement differente de la classe de la tranche
 	// Cela permet de cree des objets avec une classe plus grande, et de demander a chaque tranche d'alimenter
-	// la pertie des attributs qui sont dans la tranche
-	boolean PhysicalOpenForRead(KWClass* driverClass);
+	// la partie des attributs qui sont dans la tranche
+	// Le parametre bOpenOnDemandMode peut etre mis a true dans le cas ou de nombeuses tranches doivent etre
+	// ouvertes simultanement Le parametre nBufferSize est pris en compte s'il est different de 0 pour avoir  une
+	// taille specifique si necessaire
+	boolean PhysicalOpenForRead(KWClass* driverClass, boolean bOpenOnDemandMode, int nBufferSize);
 
 	// Lecture d'un objet dans son chunk courant
 	// L'objet peut etre soit a creer, soit a completer avec les attributs provenant de la tranche
@@ -667,6 +680,10 @@ protected:
 	// Une fois les information d'ouverture calculees, on peut lire
 	// un ou plusieurs chunks, en ayant correctement specifie le DataTableName
 
+	// Ouverture a la demande (defaut: false)
+	void SetOpenOnDemandMode(boolean bValue);
+	boolean GetOpenOnDemandMode() const;
+
 	// Ouverture d'un chunk de la tranche
 	// URI: un fichier de chunk est potentiellement distant
 	// La taille en entree est utilisee pour verifier que la taille du chunk lu correspond a celle enregistree
@@ -701,6 +718,9 @@ private:
 	boolean IsOpenedForWrite() const override;
 	KWObject* Read() override;
 	void Write(const KWObject* kwoObject) override;
+
+	// Mode d'ouverture a la demande
+	boolean bOpenOnDemandMode;
 };
 
 ///////////////////////////////////////////////////
@@ -718,8 +738,8 @@ public:
 	KWDataTableSliceSet* GetDataTableSliceSet();
 
 	// Reimplementation des methodes virtuelles, avec transfer des specifications des bases
-	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -742,8 +762,8 @@ public:
 	KWDataTableSlice* GetDataTableSlice();
 
 	// Reimplementation des methodes virtuelles, avec transfer des specifications de la base
-	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

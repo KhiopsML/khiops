@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -18,6 +18,7 @@ class KWDerivationRule;
 #include "JSONFile.h"
 #include "KWCDUniqueString.h"
 #include "MemoryStatsManager.h"
+#include "KWResultFilePathBuilder.h"
 #include "KWVersion.h"
 
 //////////////////////////////////////////////////////////////////////////////
@@ -63,7 +64,7 @@ public:
 	boolean WriteFile(const ALString& sFileName) const;
 
 	// Ecriture dans un fichier d'une classe avec toutes ses classes dependantes
-	boolean WriteFileFromClass(const KWClass* rootClass, const ALString& sFileName) const;
+	boolean WriteFileFromClass(const KWClass* mainClass, const ALString& sFileName) const;
 
 	// Ecriture dans un fichier au format JSON
 	boolean WriteJSONFile(const ALString& sJSONFileName) const;
@@ -71,24 +72,23 @@ public:
 	// Recherche (retourne NULL si echec)
 	KWClass* LookupClass(const ALString& sClassName) const;
 
-	// Insertion (echec si classe de meme nom existante)
-	boolean InsertClass(KWClass* newObject);
+	// Insertion d'une nouvelle classe
+	void InsertClass(KWClass* newObject);
 
 	// Insertion avec nouveau non (ce nom ne doit pas deja exister)
 	// Apres insertion, la classe a changee de nom
 	void InsertClassWithNewName(KWClass* newObject, const ALString& sNewName);
 
 	// Supression
-	boolean RemoveClass(const ALString& sClassName);
+	void RemoveClass(const ALString& sClassName);
 
 	// Supression et destruction
-	boolean DeleteClass(const ALString& sClassName);
+	void DeleteClass(const ALString& sClassName);
 
-	// Renommage d'une classe ou d'un attribut
-	// Retourne true si OK. Sans effet si le nom cible existe deja.
+	// Renommage d'une classe
+	// Le nom cible ne doit pas exister
 	// Propagation a toutes les utilisations dans les regles de derivation
-	boolean RenameClass(KWClass* refClass, const ALString& sNewClassName);
-	boolean RenameAttribute(KWAttribute* refAttribute, const ALString& sNewAttributeName);
+	void RenameClass(KWClass* refClass, const ALString& sNewClassName);
 
 	// Acces massifs
 	int GetClassNumber() const;
@@ -121,7 +121,7 @@ public:
 	// La compilation du domaine verifie egalement la presence de cycles
 	// de derivations, qui dans ce cas annule la validite des classes
 	// Prerequis: la classe doit etre valide (Check)
-	void Compile();
+	boolean Compile();
 
 	// Duplication d'un domaine
 	// Toutes les classes sont dupliquees
@@ -131,27 +131,27 @@ public:
 
 	// Duplication partielle d'un domaine a partir d'une classe
 	// La classe et ses classes referencees recursivement sont dupliquees de facon coherente
-	KWClassDomain* CloneFromClass(const KWClass* rootClass) const;
+	KWClassDomain* CloneFromClass(const KWClass* mainClass) const;
 
-	// Import de toutes les classes d'un domaine, en y a joutant un prefixe  et un suffixe
+	// Import de toutes les classes d'un domaine, en y ajoutant un prefixe  et un suffixe
 	// et en les renommant si necessaire
 	// Le domaine source est vide a l'issue de l'import
 	void ImportDomain(KWClassDomain* kwcdInputDomain, const ALString& sClassPrefix, const ALString& sClassSuffix);
 
-	// Calcul de l'ensemble des classes (y compris la racine) dependante d'une classe
+	// Calcul de l'ensemble des classes (y compris la classe principale) dependante d'une classe
 	// Le resultat est un dictionnaire referencant les classes resultats par leur nom
-	void ComputeClassDependence(const KWClass* rootClass, ObjectDictionary* odDependentClasses) const;
+	void ComputeClassDependence(const KWClass* mainClass, ObjectDictionary* odDependentClasses) const;
 
 	// Memoire utilisee par le domaine
 	longint GetUsedMemory() const override;
 
 	// Memoire utilisee par la classe et toutes ses classes referencees recursivement
-	longint GetClassDependanceUsedMemory(const KWClass* rootClass) const;
+	longint GetClassDependanceUsedMemory(const KWClass* mainClass) const;
 
 	// Cle de hashage du domaine et de sa composition
 	longint ComputeHashValue() const;
 
-	// Affichage, ecriture dans un fichier
+	// Affichage
 	void Write(ostream& ost) const override;
 
 	// Libelles utilisateurs
@@ -179,17 +179,17 @@ public:
 	static KWClassDomain* LookupDomain(const ALString& sName);
 
 	// Insertion
-	static boolean InsertDomain(KWClassDomain* newObject);
+	static void InsertDomain(KWClassDomain* newObject);
 
 	// Supression
-	static boolean RemoveDomain(const ALString& sName);
+	static void RemoveDomain(const ALString& sName);
 
 	// Supression et destruction
-	static boolean DeleteDomain(const ALString& sName);
+	static void DeleteDomain(const ALString& sName);
 
 	// Renommage du domaine
 	// Retourne true si OK. Sans effet si le nom cible existe deja.
-	static boolean RenameDomain(KWClassDomain* domain, const ALString& sNewName);
+	static void RenameDomain(KWClassDomain* domain, const ALString& sNewName);
 
 	// Acces massifs
 	static int GetDomainNumber();
@@ -205,6 +205,7 @@ public:
 	// Calcul d'un nouveau nom de domaine a partir d'un prefix
 	static const ALString BuildDomainName(const ALString& sPrefix);
 
+	///////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
 	//////////////////////////////////////////////////////

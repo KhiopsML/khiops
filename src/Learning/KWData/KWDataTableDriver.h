@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -63,6 +63,11 @@ public:
 	////////////////////////////////////////////////////////////////////////////////
 	// Fonctionnalites de base
 
+	// Format de d'ecriture de type dense (defaut: false)
+	// En format dense, meme les blocs sparses sont ecrits de facon dense
+	void SetDenseOutputFormat(boolean bValue);
+	boolean GetDenseOutputFormat() const;
+
 	// Verification du format
 	// A redefinir dans les sous-classes specifiant un format physique
 	virtual boolean CheckFormat() const;
@@ -79,7 +84,7 @@ public:
 	boolean GetVerboseMode() const;
 
 	// Mode silencieux, pour inhiber tout affichage de message, verbeux ou non (defaut: false)
-	void SetSilentMode(boolean bValue);
+	virtual void SetSilentMode(boolean bValue);
 	boolean GetSilentMode() const;
 
 	// Redefinition des methodes de gestion des erreurs pour tenir compte du mode d'affichage
@@ -109,6 +114,9 @@ public:
 	// doivent etre initialises par la methode.
 	// Si cette fonctionnalite n'est pas disponible, la methode n'est pas a
 	// reimplementer (par defaut: ne fait rien et renvoie false).
+	// La classe ne doit pas faire partie d'un domaine en entree.
+	// En sortie, elle est indexe si ok, et videe de ses champs avec son nom
+	// a vide si ko.
 	// Retourne true si la classe a ete construite sans erreurs
 	virtual boolean BuildDataTableClass(KWClass* kwcDataTableClass);
 
@@ -161,10 +169,10 @@ public:
 	// Lecture sans production d'un objet physique, pour sauter un enregistrement
 	virtual void Skip();
 
-	// Cle du dernier objet lu physiquement, uniquement dans le cas d'une classe racine
+	// Cle du dernier objet lu physiquement, uniquement dans le cas d'une classe principale d'un schema multi-table
 	// Permet de verifier l'ordre et la duplication des instances dans le fichier
 	// Mise a jour apres toute analyse d'une ligne, soit par Skip ou par Read (meme si la lecture echoue)
-	virtual const KWObjectKey* GetLastReadRootKey() const;
+	virtual const KWObjectKey* GetLastReadMainKey() const;
 
 	// Ecriture d'une instance (de la classe initiale)
 	virtual void Write(const KWObject* kwoObject);
@@ -196,12 +204,10 @@ public:
 
 	// Estimation de la taille disque necessaire pour l'ecriture complet de la table (en octets)
 	// La classe (logique) en parametre permet d'avoir acces a la definition logique des objets a ecrire
-	// Le fichier d'entree doit etre present pour pouvoir estime le nombre de records si necessaire.
-	// Si le le nombre de records est specifie en entree, il est utilise pour l'estimation.
-	// Sinon, il vaut -1, et l'estimation se fera grace ua fichier d'entree
+	// La taille du fichier en entree doit etre specifiee pour pouvoir estime le nombre de records si necessaire.
 	// Attention, les ecriture se font au niveau logique et l'estimation memoire se base sur ce niveau
 	// Peut ne pas etre reimplementee (par defaut: 0)
-	virtual longint ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass);
+	virtual longint ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass, longint lInputFileSize);
 
 	// Estimation du pourcentage d'avancement de la lecture d'un fichier
 	// Methode a priori rapide, sans effet important sur le temps de lecture
@@ -225,9 +231,10 @@ protected:
 	// Attributs
 	ALString sDataTableName;
 	const KWClass* kwcClass;
+	boolean bDenseOutputFormat;
 
-	// Cle correspondant a la derniere ligne lue, dans le cas d'une classe racine
-	KWObjectKey lastReadRootKey;
+	// Cle correspondant a la derniere ligne lue, dans le cas d'une classe principale d'un schema multi-table
+	KWObjectKey lastReadMainKey;
 
 	// Des entiers long sont utilises, pour la gestion de fichiers ayant
 	// potentiellement plus de deux milliards d'enregistrements (limite des int)
@@ -262,6 +269,17 @@ inline void KWDataTableDriver::SetClass(const KWClass* kwcValue)
 inline const KWClass* KWDataTableDriver::GetClass() const
 {
 	return kwcClass;
+}
+
+inline void KWDataTableDriver::SetDenseOutputFormat(boolean bValue)
+{
+	require(not IsOpenedForWrite());
+	bDenseOutputFormat = bValue;
+}
+
+inline boolean KWDataTableDriver::GetDenseOutputFormat() const
+{
+	return bDenseOutputFormat;
 }
 
 inline boolean KWDataTableDriver::IsError() const

@@ -1,8 +1,10 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
+
+class JSONFile;
 
 #include "Object.h"
 #include "ALString.h"
@@ -10,10 +12,13 @@
 #include "FileService.h"
 #include "MemoryStatsManager.h"
 #include "PLRemoteFileService.h"
+#include "TextService.h"
 
 //////////////////////////////////////////
 // Fichier JSON
-class JSONFile : public Object
+// Service specifique aux rapports de modelisation, avec gestion du type Continuous
+// et de l'encodage des fichier par une balise dediee en fin de fichier JSON
+class JSONFile : public TextService
 {
 public:
 	// Constructeur
@@ -28,8 +33,30 @@ public:
 	boolean OpenForWrite();
 	boolean IsOpened();
 
-	// fermeture du fichier (precede de la fin de l'objet global et d'un flush)
+	// Fermeture du fichier (precede de la fin de l'objet global et d'un flush)
+	//
+	// Le fichier json est au format utf8, ce qui pose des problemes potentiels pour
+	// les caracteres ansi (128 a 255) sui sont alors recodes en utf8 avec windows1252/iso8859-1.
+	// Ces caracteres ansi sont encodes sous leur forme unicode \uXXXX dans le fichier json, ce qui
+	// permet de les distinguer des caracteres utf8 latins initiaux
+	// L'encodage du fichier est ecrit avant la fermeture au moyen d'un champ "khiops_encoding"
+	// pouvant prendre les valeurs suivantes:
+	//  . ascii: ascii uniquement
+	//  . ansi: ansi, sans utf8
+	//  . utf8: utf8, sans ansi
+	//  . mixed_ansi_utf8: ansi et utf8, sans utf8 provenant de windows1252/iso8859-1
+	//  . colliding_ansi_utf8: ansi et utf8, avec utf8 provenant de windows1252/iso8859-1
+	// Seul le dernier cas pose probleme, car une fois lu depuis un json reader, il y a des collisions
+	// potentielles entres les caracteres ansi initiaux recodes en utf8 avec windows1252/iso8859-1
+	// et les caracteres utf8 initiaux presents dans windows1252/iso8859-1.
+	// En cas de collision, les deux champs supplementaires sont ajoutes dans le json pour aide
+	// au diagnostic:
+	//   . ansi_chars: tableau des caracteres ansi utilises
+	//   . colliding_utf8_chars: tableau des caracteres utf8 initiaux utilises dans windows1252/iso8859-1.
 	boolean Close();
+
+	// Variante de la fermeture, permetant d'ignorer la gestion de l'encodage
+	boolean CloseWithoutEncodingStats();
 
 	////////////////////////////////////////////////////
 	// Ecriture des structures JSON
@@ -74,7 +101,7 @@ public:
 	void EndList();
 
 	////////////////////////////////////////////////////
-	// Methodes avancees
+	// Options avancees
 
 	// Passage de toutes les cles au format camel case (defaut: false)
 	void SetCamelCaseKeys(boolean bValue);
@@ -84,18 +111,10 @@ public:
 	// Les blancs sont supprimes, les mots commencent par une minuscule, sauf le premier
 	static const ALString ToCamelCase(const ALString& sKey);
 
-	// Nombre de caracteres UTF8 valides a partir d'une position donnees
-	// Retourne 1 a 4 dans le cas d'un caractere valides, 0 sinon pour un caractere ANSI non encodable directement
-	static int GetValidUTF8CharNumberAt(const ALString& sValue, int nStart);
-
-	// Conversion d'un caractere asci windows-1252 vers un caractere unicode pour les caractere ascii etendus non
-	// ansi Les caracteres speciaux ansi 0x20 a 0x7F sont encodes tels quel avec un caracteres Tous les autres
-	// caracteres sont encode sont 4 caracteres hexas en unicode
-	static void Windows1252ToUnicode(int nCode, ALString& sUnicodeChars);
-
-	// Tentative de conversion inverse
-	// Renvoie un code entre 0 et 255 si ok, -1 sinon
-	static int UnicodeToWindows1252(const ALString& sUnicodeChars);
+	// Parametrage global du mode verbeux pour les messages d'erreur ou de warning (defaut: true)
+	// Ces messages sont emis notamment pour les probleme potentiels d'encodage
+	static void SetVerboseMode(boolean bValue);
+	static boolean GetVerboseMode();
 
 	////////////////////////////////////////////////////
 	// Divers
@@ -110,6 +129,9 @@ public:
 	//////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Fermeture du fichier, en choisissant d'ignorer ou non la gestion de l'encodage
+	boolean InternalClose(boolean bExploitEncodingStats);
+
 	// Ecriture d'une cle (suivi de ": ")
 	void WriteKey(const ALString& sKey);
 
@@ -132,14 +154,17 @@ protected:
 	void Indent();
 	void Unindent();
 
-	// Initialisation de la table de transcodage entre les caracteres asci windows-1252 et les caracteres unicode
-	// Les caracteres speciaux 0x00 a 0x1F sont encodes en 0x00HH (4 caractere hexa)
-	// Les caracteres ansi 0x20 a 0x7F sont encodes tels quels avec un seul caractere (par de sequence unicode)
-	// Les caracteres speciaux 0x80 a 0x9F sont encodes de facon speciale pour avoir le meme
-	// caractere imprimable qu'avec l'encodage windows-1252 (4 caractere hexa).
-	// Cf. https://www.i18nqa.com/debug/table-iso8859-1-vs-windows-1252.html
-	// Les caracteres latin etendus speciaux 0xA0 a 0xEF sont encodes en 0x00HH (4 caractere hexa)
-	static void InitializeWindows1252UnicodeSequences();
+	// Initialisation des statistiques d'encodage par type de caracteres
+	void InitializeEncodingStats();
+
+	// Mise a jour des stats d'encodage
+	void UpdateEncodingStats(const ALString& sCString);
+
+	// Exploitation des stats d'encodage: memorisation dans le fichier json et message utilisateur
+	void ExploitEncodingStats();
+
+	///////////////////////////////////////////////////////////////////////////////////
+	// Variable d'instance
 
 	// Nom du fichier
 	ALString sFileName;      // URI specifiee par l'utilisateur (hdfs ou locale)
@@ -148,7 +173,7 @@ protected:
 	// Fichier en cours
 	fstream fstJSON;
 
-	// Niveau de list courant
+	// Niveau de liste courant
 	int nCurrentListLevel;
 
 	// Nombre d'elements dans la structure (objet au tableau) par niveau
@@ -157,7 +182,21 @@ protected:
 	// Parametrage des cles en mode camel case
 	boolean bCamelCaseKeys;
 
-	// Table de transcodage entre les caracteres asci windows-1252 et les caracteres unicode
-	// pour les caracteres de controle entre 128 et 159
-	static StringVector svWindows1252UnicodeSequences;
+	// Vecteurs de collecte de stats pour les caracteres ansi etendus (128 a 255) encodes soit en unicode,
+	// soit directement presents avec leur encodage.
+	// Les vecteurs sont de taille 256, mais seul les index 128 a 255 sont collectes
+	LongintVector lvWindows1252AnsiCharNumbers;
+	LongintVector lvWindows1252Utf8CharNumbers;
+
+	// Stats par caracteres ascii, ansi etendu, et utf8 (hors ascii)
+	longint lAsciiCharNumber;
+	longint lAnsiCharNumber;
+	longint lUtf8CharNumber;
+
+	// Buffer de travail pour les encodages CString vers UTF8, pour eviter de reallouer sans arret les chaines de
+	// caracteres
+	ALString sStringBuffer;
+
+	// Mode verbeux
+	static boolean bVerboseMode;
 };

@@ -1,0 +1,246 @@
+---
+name: Run Standard Tests
+# Run minimal end-to-end tests for Khiops, Khiops Coclustering and KNITransfer
+# Tests are lauched on Linux, Windows and macOS ; in serial and in parallel (4 procs)
+# On release, it runs Standard test for binary. Plus MultiTables/SpliceJunction for KNITransfer
+# On debug, it runs only Standard/Iris for Coclustering and KNITransfer and Standard/IrisLight for Khiops
+# In case of errors, test results are available as artifacts for 7 days
+# It is automatically triggered on PR when sources files are modified (files in src directory)
+on:
+  workflow_dispatch:
+    inputs:
+      warning_as_error:
+        type: boolean
+        description: Treat warnings as errors
+        required: false
+        default: false
+  pull_request:
+    paths:
+      - '**CMakeLists.txt'
+      - src/**.h
+      - src/**.cpp
+      - src/**.java
+      - src/**.dd
+      - src/**.inc
+      - src/**.lex
+      - src/**.yac
+      - test/LearningTest/**
+# Cancel any ongoing run of this workflow on the same PR or ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref
+    }}
+  cancel-in-progress: true
+env:
+  KhiopsBatchMode: true
+jobs:
+  # Build the project on each platform for all targets to ensure that all sources and cmake files are correct
+  # The useful binaries are cached for the current run_id. It will be restored only in the same run of the
+  # build. The cached binaries are delete in the last job (cleanup-cache)
+  build-full-project:
+    strategy:
+      matrix:
+        build-setup:
+          - {os: windows-2022, cmake-preset: windows-msvc}
+          - {os: ubuntu-latest, cmake-preset: linux-gcc}
+          - {os: macos-14, cmake-preset: macos-clang}
+        config: [debug, release]
+    runs-on: ${{ matrix.build-setup.os }}
+    env:
+      PRESET_NAME: ${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Build all binaries
+        uses: ./.github/actions/build-khiops
+        with:
+          preset-name: ${{ env.PRESET_NAME }}
+          override-flags: -DTESTING=OFF
+          targets: all
+      - name: Cache binaries (windows)
+        id: cache-binaries-windows
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          # We add binaries path one by one to avoid *.pdb and other msvc stuffs that generate a cache of 200Mo for windows
+          path: |
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL.exe
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL_Coclustering.exe
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KNITransfer.exe
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KhiopsNativeInterface.dll
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/KhiopsNativeInterface.lib
+          key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ env.PRESET_NAME
+            }}
+          fail-on-cache-miss: false
+      - name: Cache binaries (macOS, Linux)
+        id: cache-binaries-unix
+        if: runner.os != 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/*          
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/libKhiopsNativeInterface.*
+          key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ env.PRESET_NAME
+            }}
+          fail-on-cache-miss: false
+  run-standard-tests:
+    needs: build-full-project
+    strategy:
+      fail-fast: false
+      matrix:
+        build-setup:
+          - {os: windows-2022, cmake-preset: windows-msvc}
+          - {os: ubuntu-latest, cmake-preset: linux-gcc}
+          - {os: macos-14, cmake-preset: macos-clang}
+        running-mode: [parallel, serial]
+        config: [debug, release]
+    runs-on: ${{ matrix.build-setup.os }}
+    env:
+      PRESET_NAME: ${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Restore cached binaries (windows)
+        if: runner.os == 'Windows'
+        id: restore-binaries-windows
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL.exe
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL_Coclustering.exe
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KNITransfer.exe
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KhiopsNativeInterface.dll
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/KhiopsNativeInterface.lib
+          key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ env.PRESET_NAME
+            }}
+          fail-on-cache-miss: true
+      - name: Restore cached binaries (macOS, Linux)
+        if: runner.os != 'Windows'
+        id: restore-binaries
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/*           
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/libKhiopsNativeInterface.*
+          key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ env.PRESET_NAME
+            }}
+          fail-on-cache-miss: true
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Set environment variables
+        shell: bash
+        run: |
+          echo "TEST_PY=test/LearningTestTool/py/kht_test.py" >> "$GITHUB_ENV"
+          echo "APPLY_PY=test/LearningTestTool/py/kht_apply.py" >> "$GITHUB_ENV"
+          echo "COLLECT_PY=test/LearningTestTool/py/kht_collect_results.py" >> "$GITHUB_ENV"
+          echo "BIN_PATH=${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin" >> "$GITHUB_ENV"
+      - name: Setup MPI (windows)
+        if: runner.os == 'Windows'
+        uses: mpi4py/setup-mpi@v1
+      - name: Setup MPI (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          brew install mpich
+      - name: Setup MPI (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install openmpi-bin
+          sudo update-alternatives --set mpi /usr/bin/mpicc.openmpi
+          sudo update-alternatives --set mpirun /usr/bin/mpirun.openmpi
+      - name: Run Tests
+      # Run test on linux and macOS as describe in the top comment:
+      # - In parallel, run only MODL tests
+      # - In debug run only Standard/Iris for KNITRansfer and MODL_Coclustering, Standard/IrisLight for MODL
+      # - In release run all Standard tests
+        shell: bash
+        run: |
+          if [[ "${{ matrix.running-mode }}" == "parallel" ]] ; then
+            export PARALLEL_ARG="-p 4"
+          fi
+          if [[ "${{ matrix.config }}" == "release" ]] ; then
+            python $TEST_PY test/LearningTest/TestKhiops/Standard ${BIN_PATH} ${PARALLEL_ARG}
+            python $TEST_PY test/LearningTest/TestCoclustering/Standard ${BIN_PATH} ${PARALLEL_ARG}
+            if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then 
+              python $TEST_PY test/LearningTest/TestKNI/Standard ${BIN_PATH}
+            fi
+          else
+            python $TEST_PY test/LearningTest/TestKhiops/Standard/IrisLight ${BIN_PATH} ${PARALLEL_ARG}
+            python $TEST_PY test/LearningTest/TestCoclustering/Standard/Iris ${BIN_PATH} ${PARALLEL_ARG}
+            if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
+              python $TEST_PY test/LearningTest/TestKNI/Standard/Iris ${BIN_PATH}
+            fi
+          fi
+      - name: Collect results
+        shell: bash
+        if: success() || failure()
+        run: |
+          mkdir results
+          if [[ "${{ matrix.config }}" == "release" ]] ; then
+            python $APPLY_PY test/LearningTest/TestKhiops/Standard errors | tee -a results/errors.txt
+            python $APPLY_PY test/LearningTest/TestCoclustering/Standard errors | tee -a results/errors.txt
+            if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
+              python $APPLY_PY test/LearningTest/TestKNI/Standard errors | tee -a results/errors.txt
+            fi
+          else
+            python $APPLY_PY test/LearningTest/TestKhiops/Standard/IrisLight errors | tee -a results/errors.txt
+            python $APPLY_PY test/LearningTest/TestCoclustering/Standard/Iris errors | tee -a results/errors.txt
+            if [[ "${{ matrix.running-mode }}" != "parallel" ]] ; then
+              python $APPLY_PY test/LearningTest/TestKNI/Standard/Iris errors | tee -a results/errors.txt
+            fi
+          fi
+          python $COLLECT_PY test/LearningTest/ results --collect-type warnings -f basic
+      - name: Check results
+        # We escape eol in the results file to print multilines in the github UI https://github.com/orgs/community/discussions/26288
+        shell: bash
+        run: |
+          MSG=$(<results/errors.txt)
+          MSG="${MSG//'%'/'%25'}"
+          MSG="${MSG//$'\n'/'%0A'}"
+          MSG="${MSG//$'\r'/'%0D'}"
+          if grep -q -e "error" -e "The test has not been launched" results/errors.txt ; then
+            echo "::error::$MSG"
+            false
+          fi
+          if [ "${{ inputs.warning_as_error }}" == "true" ] && grep -q "warning" results/errors.txt  ; then
+            echo "::error::$MSG"
+            false
+          fi
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ env.PRESET_NAME }}-${{ matrix.running-mode }}
+          retention-days: 7
+          path: |-
+            results/
+  cleanup-cache:
+    # Clean up all caches belonging to the current run
+    if: always()
+    needs: run-standard-tests
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .git
+      - name: Cleanup cache
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |-
+          gh extension install actions/gh-actions-cache
+          echo "Fetching list of cache key for the current workflow"
+          cache_keys_for_delete=$(gh actions-cache list --key ${{ github.run_id }} | cut -f 1 )
+          set +e
+          echo "Deleting caches..."
+          for cache_key in $cache_keys_for_delete
+          do
+            gh actions-cache delete $cache_key --confirm
+          done
+          echo "Done"

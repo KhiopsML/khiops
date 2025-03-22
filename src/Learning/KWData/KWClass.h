@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -21,7 +21,7 @@ class KWDerivationRule;
 #include "KWType.h"
 #include "KWMetaData.h"
 #include "KWLoadIndex.h"
-#include "JSONFile.h"
+#include "TextService.h"
 #include "KWCDUniqueString.h"
 
 ///////////////////////////////////////////////////////////////////////////
@@ -31,13 +31,14 @@ class KWDerivationRule;
 //  - donnees elementaires
 //    . Continuous
 //    . Symbol
+//  - donnees de type temporel ou textuel
 //  - donnees structurees
 //    . Object
 //    . ObjectArray
 //  - donnees algorithmiques, pour stocker les calculs intermediaires, les modeles et les appliquer
 //    . Structure
 // Elle possede:
-//  . un nom(obligatoire)
+//  . un nom (obligatoire)
 //  . un libelle
 //  . un status de classe racine ou composante
 // Les attributs de type Object ou Array d'Object possede un statut
@@ -67,18 +68,57 @@ public:
 	KWMetaData* GetMetaData();
 
 	// Libelle
+	// Premiere ligne prefixee par '//' precedant la declaration du dictionnaire
+	// dans le fichier dictionnaire
 	const ALString& GetLabel() const;
 	void SetLabel(const ALString& sValue);
+
+	// Commentaires
+	// Ensemble des lignes prefixees par '//', entre le libelle et le debut de la declaration du dictionnaire
+	// Par tolerance du parser, on accepte egalement tout commentaire situe apres la partie obligatoire
+	// de la declaration du dictionnaire (("Root") "Dictionary" <Name>)
+	// - avant la declaration de cle
+	// - avant la declaration de meta-donnees
+	// - avant le tout debut du bloc '{'
+	// Il s'agit uniquement d'une tolerance: tous les commentaires presents avant, au milieu, ou apres la
+	// declaration seront concatenes et re-ecrit apres le libelle, avant le debut de la declaration du dictionnaire
+	const StringVector* GetComments() const;
+	void SetComments(const StringVector* svValue);
+
+	// Commentaires internes
+	// Ensemble des lignes prefixees par '//', precedents la fin du bloc '}'
+	// de declaration des variables dans le fichier dictionnaire
+	const StringVector* GetInternalComments() const;
+	void SetInternalComments(const StringVector* svValue);
 
 	// Classe racine ou composant(par defaut: false -> component)
 	// Une classe racine gere sa destruction memoire, alors qu'une
 	// classe composant est geree par sa classe englobante.
 	// Une classe racine a necessairement une cle, avec une verification
-	// de l'uncite des objets selon cette cle
+	// de l'unicite des objets selon cette cle
 	// Un classe racine ne peut etre que referencee, et pas utilise
 	// en tant que sous-partie
 	boolean GetRoot() const;
 	void SetRoot(boolean bValue);
+
+	// Unicite des instances de la classe
+	// - soit la classe est racine
+	// - soit elle contient des attributs de type relation non calcules, ce qui implique une unicite
+	//   de ses instances pour que chaque enregistrement de sous-table soit rattache de facon
+	//   unique a son enregistrement parent dans le schema multi-table hierachique
+	// L'unicite est controlee uniquement au moment de la lecture des donnes a partir d'une base
+	// pour des dictionnaire ayant des cles. Cela ne concerne pas les dictionnaires avec ou sans cle
+	// utilise pour la construction de table en memoire
+	// Cette caracteristique est calculee au moment de l'indexation de la classe
+	boolean IsUnique() const;
+
+	// Capacite a etre stocke sur un systeme de fichiers multi-tables a l'aide de cles
+	// Dans le cas de classes construites via des regles de derivation, on a pas necessairement des cles,
+	// et on ne peut charger en memoire les instances correspondante via des fichiers de donnees
+	boolean IsKeyBasedStorable() const;
+
+	// Verification de la capacite a etre stocke, pour afficher les erreurs si necessaire
+	boolean CheckKeyBasedStorability() const;
 
 	/////////////////////////////////////////////////////////////
 	// Specification des attributs de la cle de la classe
@@ -102,7 +142,7 @@ public:
 	// Prerequis: la classe doit etre compilee
 	boolean IsKeyLoaded() const;
 
-	// Rang d'un attribut cle parmi les atributs charges en memoire (-1 si non charge)
+	// Rang d'un attribut cle parmi les attributs charges en memoire (-1 si non charge)
 	// Permet l'acces a la valeur de la cle dans les KWObjets
 	// Prerequis: la classe doit etre compilee
 	KWLoadIndex GetKeyAttributeLoadIndexAt(int nIndex) const;
@@ -121,23 +161,16 @@ public:
 	KWAttribute* LookupAttribute(const ALString& sAttributeName) const;
 
 	// Ajout d'un attribut en fin de liste, et par rapport a un autre attribut
-	// Renvoie true si OK, false sinon (attribut ou bloc existant)
-	boolean InsertAttribute(KWAttribute* attribute);
+	// Le nom de l'attribut ne doit pas deja exister
+	void InsertAttribute(KWAttribute* attribute);
 
 	// Insertion avant ou apres un attribut existant
 	// Erreur de programmation si attribut de reference inexistant,
 	// ou au milieu d'un bloc (on peut etre au debut d'un bloc pour
 	// le InsertBefore ou a la fin d'un bloc pour le InsertAfter)
-	// Renvoie true si OK, false sinon (attribut ou bloc existant)
-	boolean InsertAttributeBefore(KWAttribute* attribute, KWAttribute* attributeRef);
-	boolean InsertAttributeAfter(KWAttribute* attribute, KWAttribute* attributeRef);
-
-	// Renommage d'un attribut
-	// Retourne true si OK. Sans effet si le nom cible existe deja
-	// parmi les attribut ou les blocs.
-	// Propagation a toutes les references a cet attribut dans les regles
-	// de derivations des attributs de la classe
-	boolean RenameAttribute(KWAttribute* refAttribute, const ALString& sNewName);
+	// Le nom de l'attribut ne doit pas deja exister
+	void InsertAttributeBefore(KWAttribute* attribute, KWAttribute* attributeRef);
+	void InsertAttributeAfter(KWAttribute* attribute, KWAttribute* attributeRef);
 
 	// Renommage d'un attribut sans se soucier des utilisation dans les regles
 	// Le nom doit etre inexistant dans la classe
@@ -223,7 +256,7 @@ public:
 	int GetNativeDataItemNumber() const;
 
 	// Nombre d'attributs natifs de type relation utilises recursivement par la classe
-	// Le parametre InternalOnly indique que l'on ne prendre ignore les classe referencees
+	// Le parametre InternalOnly indique que l'on ignore les classe referencees
 	int ComputeOverallNativeRelationAttributeNumber(boolean bIncludingReferences) const;
 
 	// Nombre d'attribut initiaux d'une classe a analyser
@@ -247,8 +280,8 @@ public:
 					       KWAttribute* lastAttribute);
 
 	// Ajout d'un attribut en fin d'un bloc existant
-	// Renvoie true si OK, false sinon (attribut ou bloc existant)
-	boolean InsertAttributeInBlock(KWAttribute* attribute, KWAttributeBlock* attributeBlockRef);
+	// Le nom de l'attribut ne doit pas deja exister
+	void InsertAttributeInBlock(KWAttribute* attribute, KWAttributeBlock* attributeBlockRef);
 
 	// Recherche d'un bloc par son nom
 	// Retourne NUL si bloc inexistant
@@ -285,8 +318,8 @@ public:
 	// Deplacement d'un bloc et de tous ses attributs vers la fin de la classe
 	void MoveAttributeBlockToClassTail(KWAttributeBlock* attributeBlock);
 
-	///////////////////////////////////////////////////////////
-	// Services divers
+	///////////////////////////////////////////////////////////////////
+	// Services lies a la compilation d'une classe
 
 	// Compilation d'une classe (et indexation)
 	// Il s'agit de la compilation de ses regles de derivation,
@@ -302,10 +335,16 @@ public:
 	void Compile();
 	boolean IsCompiled() const;
 
+	// Fraicheur de compilation
+	int GetCompileFreshness() const;
+
 	// Mise a jour de la fraicheur de la classe
 	// (provoque la necessite de recompiler)
 	int GetFreshness() const;
 	void UpdateFreshness();
+
+	// Completion eventuelle des attributs avec les informations de type de leur regle de derivation
+	void CompleteTypeInfo();
 
 	// Acces au domaine de classe contenant la classe
 	KWClassDomain* GetDomain() const;
@@ -314,33 +353,111 @@ public:
 	const ALString BuildAttributeName(const ALString& sPrefix);
 	const ALString BuildAttributeBlockName(const ALString& sPrefix);
 
+	///////////////////////////////////////////////////////////////////
+	// Services exploitant les resultats de compilation d'une classe
+	// pour extraire des information
+
 	// Simplification d'une classe en supprimant les attributs derives
 	// non utilises directement ou indirectement, y compris dans une
 	// autre classe du domaine.
+	// On supprime egalement les classes non utilisees su diomaines, qui sinon pourraient perdre
+	// leur integrite structurelle (par exemple en referencant des attributs supprimes d'autres classes)
+	// On garde par contre les attributs natifs des classes nettoyeers, pour eviter les warning
+	// lors des lectures de fichier de donnee.
+	//
 	// Si le domaine de reference n'est pas NULL, les attributs doivent
-	// etre absent de ce dernier pour etre supprimes
+	// etre absent de ce dernier pour etre supprimes.
+	// Attention, si le domaine de reference est nul, cela peut impacter le mapping  dans le
+	// cas multi-table, et les bases doivent actualiser ce mapping avec le dictionnaire simplifie.
+	//
 	// Prerequis: la classe doit etre compilee (elle ne le sera plus apres)
 	void DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain);
 
-	// Completion eventuelle des attributs avec les informations de type de leur regle de derivation
-	void CompleteTypeInfo();
+	// Calcul de l'ensemble de tous les attributs utilises, Used et Loaded, par analyse recursive
+	// du graphe de calcul, avec en complement des info sur les classes utilises, par type d'usage
+	// Parametres:
+	// - nkdAllUsedAttributes
+	//   - contient tous les attributs utilises recursivement
+	//   - peut etre initialement non vide pour specifier des attributs a utiliser
+	//     meme s'ils ne sont pas Used, comme par exemple un attribut de selection
+	// - nkdAllUsedClasses
+	//   - contient toutes les classes utilisees recursivement, deduites des attributs utilises
+	// - nkdAllLoadedClasses
+	//   - contient toutes les classes chargees explicitement, sans tenir compte des besoins des attributs derives
+	// - nkdAllNativeClasses
+	//   - contient toutes les classes natives, quelle soient utilisees ou non
+	//
+	// Les principe de l'algorithme sont resumes ci-dessous.
+	//
+	// La premiere etape consiste en
+	// - initialisation avec l'ensemble des attributs utilises et de leur classe
+	// - analyse des regles de derivation de ces attributs par la methode BuildAllUsedAttributes
+	//   pour en deduire tous les attributs utilises en operandes des regles, meme s'il ne sont
+	//   pas utilises (Used) directement dans les attributs des classes
+	//
+	// Il est a noter que certaines regles ont un comportement special
+	// - regle produisant un bloc en sortie, a partir d'un bloc en entree
+	//   - on deduit des attributs utilises du bloc en sortie les attribut a utiliser dans le bloc en entree
+	// - regle de creation de table de type vue
+	//   - on deduit des attributs utilises de la table en sortie les attributs a utiliser dans la table en entree
+	// - regle de creation de table avec operandes en sortie
+	//   - on deduit des attributs utilises de la table en sortie les operandes de la regle a analyser pour le calcul
+	//     des valeurs des attributs en sortie
+	//
+	// Il est egalement a noter le traitement de la partie native du schema de donnees, c'est a dire les classes utilisees
+	// par des attributs non derives de type relation, ou des tables externes.
+	// Pour les classes natives utilisees, il faut implicitement utiliser les attributs de la cle des classes, necessaire
+	// pour la lecture des donnees.
+	// Ce n'est pas necessaire pour des classes utilisees uniquement en sortie de regles de creation de table.
+	//
+	// Une deuxieme passe est necessaire pour decouvrir tous les attributs utilises, car par exemple, on ne peut connaitre
+	// la liste des attributs utilises d'une vue qu'apres avoir analyse tout le graphe de calcul.
+	// Cette deuxieme passe est reiteree tant que l'on decrouvre de nouveaux attributs utilises
+	void BuildAllUsedAttributes(NumericKeyDictionary* nkdAllUsedAttributes, NumericKeyDictionary* nkdAllUsedClasses,
+				    NumericKeyDictionary* nkdAllLoadedClasses,
+				    NumericKeyDictionary* nkdAllNativeClasses) const;
 
-	// Calcul de l'ensemble des classes utilisees recursivement par les attributs de la classe courante (y compris
-	// la classe courante) Prerequis: la classe doit etre compilee Memoire: le tableau du code retour appartient a
-	// l'appelant, et contient des references aux classes utilisees
+	// Finalisation du calcul de l'ensemble de tous les attributs utilises, pour le cas ou on dispose deja
+	// d'un ensemble d'attributs utilises de depart
+	// Methode interne utilisee pour effectuer la deuxieme passe de la methode BuildAllUsedAttributes
+	void FinalizeBuildAllUsedAttributes(NumericKeyDictionary* nkdAllUsedAttributes,
+					    NumericKeyDictionary* nkdAllUsedClasses) const;
+
+	// Calcul de l'ensemble des classes utilisees recursivement par les attributs de la classe courante
+	// (y compris la classe courante)
+	// Prerequis: la classe doit etre compilee
+	// Memoire: le tableau du code retour appartient a l'appelant, et contient des references aux classes utilisees
 	void BuildAllUsedClasses(ObjectArray* oaUsedClasses) const;
 
+	// Calcul de l'ensemble des classes natives utilisees recursivement par les attributs de la classe courante
+	// (y compris la classe courante)
+	// Prerequis: la classe doit etre compilee
+	// Memoire: le tableau du code retour appartient a l'appelant, et contient des references aux classes utilisees
+	void BuildAllNativeClasses(ObjectArray* oaNativeClasses) const;
+
+	// Calcul de l'ensemble des classes chargees (Loaded) utilisees recursivement par les attributs de la classe courante
+	// (y compris la classe courante)
+	// Prerequis: la classe doit etre compilee
+	// Memoire: le tableau du code retour appartient a l'appelant, et contient des references aux classes utilisees
+	void BuildAllLoadedClasses(ObjectArray* oaLoadedClasses) const;
+
 	// Export des noms des champs natifs (stockes et non calcules, utilises ou non), dans l'ordre du dictionnaire
-	// (utile pour constituer une ligne de header) Il peut s'agir d'attributs denses natifs ou de blocs d'attributs
-	// non calcules
+	// (utile pour constituer une ligne de header)
+	// Il peut s'agir d'attributs denses natifs ou de blocs d'attributs  non calcules
 	void ExportNativeFieldNames(StringVector* svNativeFieldNames) const;
 
-	// Export des noms des champs stockes (et loades), dans l'ordre du dictionnaire (utile pour constituer une ligne
-	// de header) Il peut s'agir d'attributs denses ou de blocs d'attributs
-	void ExportStoredFieldNames(StringVector* svStoredFieldNames) const;
+	// Export des noms des champs stockes (et loades), dans l'ordre du dictionnaire
+	// Utile pour constituer une ligne de header
+	// En mode de sortie standard, il peut agit des attributs denses ou des blocs d'attributs
+	// En mode de sortie dense, il s'agit de tous les attributs denses ou sparse, en ignorant
+	// l'appartenance ou non aux blocs d'attributs
+	void ExportStoredFieldNames(StringVector* svStoredFieldNames, boolean bDenseOutputFormat) const;
 
 	// Export des noms des attributs cles dans l'ordre des cles
 	void ExportKeyAttributeNames(StringVector* svAttributedNames) const;
+
+	////////////////////////////////////////////////////////
+	// Services standard
 
 	// Recopie, uniquemet a partir d'une classe vide
 	// Toute la description (attributs, derivations sont dupliques,
@@ -390,14 +507,35 @@ public:
 	// Taille limite des noms de variables
 	static int GetNameMaxLength();
 
+	// Liste des entites disponibles, pour parametrer des messages d'erreur
+	enum
+	{
+		Class,          // Dictionnaire
+		ClassDomain,    // Domaine de dictionnaire
+		Attribute,      // Variable
+		AttributeBlock, // Block de variable sparse
+		Rule,           // Regle de derivation
+		Structure,      // Structure, pour une regle de derivation
+		None,           // Rien de precise
+		Unknown         // Entite inconnue (non valide)
+	};
+
+	// Conversion d'une famille d'entite vers une chaine
+	static const ALString EntityToString(int nEntity);
+
 	// Controles de validite avec emission de message d'erreur
 	// par la classe passee en parametre (pas de message si NULL)
-	static boolean CheckName(const ALString& sValue, const Object* errorSender);
-	static boolean CheckLabel(const ALString& sValue, const Object* errorSender);
+	static boolean CheckName(const ALString& sValue, int nEntity, const Object* errorSender);
+	static boolean CheckLabel(const ALString& sValue, int nEntity, const Object* errorSender);
+	static boolean CheckComments(const StringVector* svValue, int nEntity, const Object* errorSender);
 
 	// Methode similaire avec message est alimente avec la cause de l'erreur
-	static boolean CheckNameWithMessage(const ALString& sValue, ALString& sMessage);
-	static boolean CheckLabelWithMessage(const ALString& sValue, ALString& sMessage);
+	static boolean CheckNameWithMessage(const ALString& sValue, int nEntity, ALString& sMessage);
+	static boolean CheckLabelWithMessage(const ALString& sValue, int nEntity, ALString& sMessage);
+	static boolean CheckCommentsWithMessage(const StringVector* svValue, int nEntity, ALString& sMessage);
+
+	// Renvoie une version courte d'une chaine de caractere en entree, avec "..." en fin de chaine si necessaire
+	static const ALString GetShortValue(const ALString& sValue);
 
 	// Extraction d'une sous-chaine valide pour le format utf8
 	static ALString BuildUTF8SubString(const ALString sValue);
@@ -424,9 +562,9 @@ public:
 
 	// Creation d'un dictionnaire
 	static KWClass* CreateClass(const ALString& sClassName, int nKeySize, int nSymbolNumber, int nContinuousNumber,
-				    int nDateNumber, int nTimeNumber, int nTimestampNumber, int nObjectNumber,
-				    int nObjectArrayNumber, int nStructureNumber, boolean bCreateAttributeBlocks,
-				    KWClass* attributeClass);
+				    int nDateNumber, int nTimeNumber, int nTimestampNumber, int nTimestampTZNumber,
+				    int nTextNumber, int nTextListNumber, int nObjectNumber, int nObjectArrayNumber,
+				    int nStructureNumber, boolean bCreateAttributeBlocks, KWClass* attributeClass);
 
 	// Test des parcours des attributs avec affichage
 	void TestAttributeBrowsings(boolean bList, boolean bInverseList, boolean bUsed, boolean bLoaded,
@@ -459,7 +597,28 @@ public:
 
 protected:
 	///////////////////////////////////////////////////////////////////////////////////////////////
-	// Service interne de gestion de la classe
+	// Services pour l'optimisation des la gestion des KWObjet par les KWDatabase
+
+	// Seule la classe KWDatabase a l'usage des deux listes ci-dessous
+	friend class KWDatabase;
+
+	// Parametrage force du caractere unique d'une classe
+	// Parametrage avance, utilise par exemple pour une classe unique en raison de
+	// ses sous-tables non calculees, mais pour la quelle ces sous tables ont ete
+	// supprimees pour optimiser les lectures de donnees
+	boolean GetForceUnique() const;
+	void SetForceUnique(boolean bValue);
+
+	// Liste des elements de donnees devant etre calcules
+	ObjectArray* GetDatabaseDataItemsToCompute();
+	const ObjectArray* GetConstDatabaseDataItemsToCompute() const;
+
+	// Liste des elements de donnees temporaires a calculer, pouvant etre nettoyes et recalcules plusieurs fois
+	ObjectArray* GetDatabaseTemporayDataItemsToComputeAndClean();
+	const ObjectArray* GetConstDatabaseTemporayDataItemsToComputeAndClean() const;
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	// Services internes de gestion de la classe
 
 	// Seule la classe KWClassDomain peut modifier
 	// le domaine de classe gerant la classe
@@ -478,19 +637,46 @@ protected:
 	void InitializeRandomRuleParameters(KWDerivationRule* rule, const ALString& sAttributeName,
 					    int& nRuleRankInAttribute);
 
-	// Verification de l'integrite de la classe en ce qui concerne sa composition
-	// Il ne doit pas y avoir de cycle dans le graphe des utilisation entre classes par composition
-	// La taille des cles doit etre croissante avec la profondeur d'utilisation dans la composition
-	// L'attribut parent en parametre (potentiellement NULL) fournit des informations sur la profondeur
-	// dans l'arbre de composition, ce qui permet de tester la coherence de longueur des cle
-	// Le dictionnaire de classes en parametre permet de detecter les cycles
-	boolean CheckClassComposition(KWAttribute* parentAttribute, NumericKeyDictionary* nkdComponentClasses) const;
+	// Verification de l'integrite de la classe en ce qui concerne sa composition native,
+	// c'est a dire de sa hierarchie induite par l'ensemble des attributs relations non calcules,
+	// et si demande la coherence de son utilisation des cles dans la hierarchie pour permettre
+	// de rendre les donnees stockable sur une base multi-table a base de fichiers
+	//
+	// Il ne doit pas y avoir de cycle dans le graphe des utilisations entre classes par composition
+	// Le parametre de verification des cles, avec ou sans message d'erreur, permet de verifier qu'un
+	// dictionnaire est stockable sur disque via un mapping multi-fichier, au moyen de cles coherentes.
+	// - le dictionnaire doit avoir une cle s'il contient des sous-tables
+	// - la taille des cles doit etre croissante avec la profondeur d'utilisation dans la composition
+	// Note que l'on peut avoir des dictionnaires non stockage dans le cas de regles de derivation de creation
+	// de table, qui peuvent exploiter des dictionnaire quelconques (non Root), avec ou sans cle
+	boolean CheckNativeComposition(boolean bCheckKeys, boolean bVerboseCheckKeys) const;
+
+	// Methode interne utilisee par CheckNativeComposition, avec des parametres techniques supplementaire
+	// permettant son implementation de facon recursive
+	// - parentAttribute: correspond a l'attribut utilisant la classe (NULL pour l'appel initial),
+	//   ce qui fournit des informations sur la profondeur dans l'arbre de composition, et qui
+	//   permet de tester la coherence de longueur des cles
+	// - nkdComponentClasses: dictionnaire de classes traitees permettant de detecter les cycles
+	boolean InternalCheckNativeComposition(boolean bCheckKeys, boolean bVerboseCheckKeys,
+					       KWAttribute* parentAttribute,
+					       NumericKeyDictionary* nkdComponentClasses) const;
+
+	// Type d'une variable relationnelles complet sous forme d'une chaine de caracteres
+	const ALString RelationTypeToString(const KWAttribute* attribute) const;
 
 	// Attributs Symbol charges en memoire, pour optimiser leur destruction et mutation
 	// Attention, seuls les attributs Symbol dense sont concernes. Les attributs faisant
 	// faisant partie de bloc de type SymbolValueBlock sont geres par leur bloc
 	int GetLoadedDenseSymbolAttributeNumber() const;
 	KWAttribute* GetLoadedDenseSymbolAttributeAt(int nIndex) const;
+
+	// Attributs Text charges en memoire, pour optimiser leur destruction et mutation
+	int GetLoadedTextAttributeNumber() const;
+	KWAttribute* GetLoadedTextAttributeAt(int nIndex) const;
+
+	// Attributs TextList charges en memoire, pour optimiser leur destruction et mutation
+	int GetLoadedTextListAttributeNumber() const;
+	KWAttribute* GetLoadedTextListAttributeAt(int nIndex) const;
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Methodes internes utilises en particulier dans les KWObject, pour s'assurer de la
@@ -505,19 +691,29 @@ protected:
 	int GetTotalInternallyLoadedDataItemNumber() const;
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
-	// Gestion des attributs Object et ObjectArray natifs, non utilises (not Used) et non
-	// charges en memoire (not Loaded) selon les specifications.
+	// Gestion des attributs Object et ObjectArray natifs ou crees par une regle (non references),
+	// non utilises (not Used) et non charges en memoire (not Loaded) selon les specifications.
 	// Il faut prevoir de les charger en interne au cas ou ils serait utilises comme arguments de regles
 	// de derivation renvoyant des Object ou ObjectArray. En effet, dans ce cas, les attributs
 	// issu de regles peuvent referencer des Object natifs, qui ne doivent pas etre detruits.
 
-	// Attributs Relation natifs non charges en memoire
-	int GetUnloadedNativeRelationAttributeNumber() const;
-	KWAttribute* GetUnloadedNativeRelationAttributeAt(int nIndex) const;
+	// Attributs Relation natifs ou cree et non references non charges en memoire
+	// Ces attribut appartient a l'objet courant et devront etre detruits avec celui-ci
+	int GetUnloadedOwnedRelationAttributeNumber() const;
+	KWAttribute* GetUnloadedOwnedRelationAttributeAt(int nIndex) const;
 
-	// Prise en compte des attributs utilises non charges en memoire suite a une lecture de dictionnaire (cf.
-	// KWAttribute::ReadNotLoadedMetaData)
-	void ReadNotLoadedMetaData();
+	// Affichage d'un tableau d'attributs
+	void WriteAttributes(const ALString& sTitle, const ObjectArray* oaAttributes, ostream& ost) const;
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Gestion du ForceUnique de la classe pour la lecture/ecriture de dictionnaire dans les fichiers
+	// Permet de transferer cette information "privee", par exemple pour une tache parallele
+
+	// Ecriture si necessaire des informations prives dans les meta-data (_ForceUnique, plus celles des attributs)
+	void WritePrivateMetaData(ostream& ost) const;
+
+	// Lecture et prise en compte des informations privees depuis les meta-data et nettoyage de ceux-ci
+	void ReadPrivateMetaData();
 
 	// Nom de la classe
 	KWCDUniqueString usName;
@@ -528,8 +724,23 @@ protected:
 	// Libelle
 	KWCDUniqueString usLabel;
 
+	// Commentaires
+	StringVector svComments;
+
+	// Commentaires internes
+	StringVector svInternalComments;
+
 	// Statut racine ou composant
 	boolean bRoot;
+
+	// Statut unique force
+	boolean bForceUnique;
+
+	// Statut unique:
+	// - racine: unicite necessaire pour les references aux tables externes
+	// - classe ayant des attribut relation natifs: unicite necessaire pour que chaque
+	//   enregistrement secondaire soit rattache de facon unique a son enregistrement parent
+	boolean bIsUnique;
 
 	// Nom des attributs cles (potentiellement specifies avant la specification des attributs de la classe)
 	StringVector svKeyAttributeNames;
@@ -547,7 +758,7 @@ protected:
 
 	// Dictionnaire des blocs utilises
 	// Les blocs appartiennent directement a leurs attribut et sont seulement reference par leur dictionnaire
-	// Les blocs peuevnt etre detruits explicitement; il sont egalement detruit quand leur dernier attribut est
+	// Les blocs peuvent etre detruits explicitement; il sont egalement detruit quand leur dernier attribut est
 	// detruit Attention, les noms d'attributs et de blocs, geres par deux dictionnaire, doivent etre uniques
 	// collectivement
 	ObjectDictionary odAttributeBlocks;
@@ -562,8 +773,10 @@ protected:
 	ObjectArray oaLoadedDenseAttributes;
 	ObjectArray oaLoadedAttributeBlocks;
 	ObjectArray oaLoadedDenseSymbolAttributes;
+	ObjectArray oaLoadedTextAttributes;
+	ObjectArray oaLoadedTextListAttributes;
 	ObjectArray oaLoadedRelationAttributes;
-	ObjectArray oaUnloadedNativeRelationAttributes;
+	ObjectArray oaUnloadedOwnedRelationAttributes;
 
 	// Tableau de tous les valeurs denses (attributs dense ou blocs) charges en memoire
 	// pour permettre une verification des LoadIndex, dont la partie DenseIndex
@@ -575,6 +788,13 @@ protected:
 	IntVector ivUsedDenseAttributeNumbers;
 	IntVector ivUsedSparseAttributeNumbers;
 
+	// Listes d'attributs dont l'usage est reserve a la classe KWDatabase
+	ObjectArray oaDatabaseDataItemsToCompute;
+	ObjectArray oaDatabaseTemporayDataItemsToComputeAndClean;
+
+	// Capacite a etre stocke sur un systeme de fichiers multi-tables a l'aide de cles
+	boolean bIsKeyBasedStorable;
+
 	// Valeur de hash de la classe, bufferise avec une fraicheur
 	// Ces variables sont mutable, car modifiee par ComputeHashValue()
 	mutable longint lClassHashValue;
@@ -584,6 +804,12 @@ protected:
 	int nFreshness;
 	int nIndexFreshness;
 	int nCompileFreshness;
+
+	// Limites sur la longueur des noms de variables, libelles et commentaires
+	static const int nNameMaxLength = 128;
+	static const int nLabelMaxLength = 100000;
+	static const int nCommentMaxNumber = 100000;
+	static const int nCommentMaxLength = 100000;
 };
 
 #include "KWAttribute.h"
@@ -601,7 +827,6 @@ inline const ALString& KWClass::GetName() const
 inline void KWClass::SetName(const ALString& sValue)
 {
 	require(domain == NULL);
-	require(CheckName(sValue, this));
 
 	usName.SetValue(sValue);
 	UpdateFreshness();
@@ -624,8 +849,27 @@ inline const ALString& KWClass::GetLabel() const
 
 inline void KWClass::SetLabel(const ALString& sValue)
 {
-	require(CheckLabel(sValue, this));
 	usLabel.SetValue(sValue);
+}
+
+inline const StringVector* KWClass::GetComments() const
+{
+	return &svComments;
+}
+
+inline void KWClass::SetComments(const StringVector* svValue)
+{
+	svComments.CopyFrom(svValue);
+}
+
+inline const StringVector* KWClass::GetInternalComments() const
+{
+	return &svInternalComments;
+}
+
+inline void KWClass::SetInternalComments(const StringVector* svValue)
+{
+	svInternalComments.CopyFrom(svValue);
 }
 
 inline boolean KWClass::GetRoot() const
@@ -637,6 +881,27 @@ inline void KWClass::SetRoot(boolean bValue)
 {
 	bRoot = bValue;
 	UpdateFreshness();
+}
+
+inline boolean KWClass::IsUnique() const
+{
+	require(IsIndexed());
+	return bIsUnique;
+}
+
+inline boolean KWClass::IsKeyBasedStorable() const
+{
+	require(IsIndexed());
+	return bIsKeyBasedStorable;
+}
+
+inline boolean KWClass::CheckKeyBasedStorability() const
+{
+	boolean bOk;
+	require(IsIndexed());
+	bOk = CheckNativeComposition(true, true);
+	ensure(bOk == bIsKeyBasedStorable);
+	return bIsKeyBasedStorable;
 }
 
 inline int KWClass::GetKeyAttributeNumber() const
@@ -785,6 +1050,30 @@ inline KWAttribute* KWClass::GetLoadedDenseSymbolAttributeAt(int nIndex) const
 	return cast(KWAttribute*, oaLoadedDenseSymbolAttributes.GetAt(nIndex));
 }
 
+inline int KWClass::GetLoadedTextAttributeNumber() const
+{
+	require(IsIndexed());
+	return oaLoadedTextAttributes.GetSize();
+}
+
+inline KWAttribute* KWClass::GetLoadedTextAttributeAt(int nIndex) const
+{
+	require(IsIndexed());
+	return cast(KWAttribute*, oaLoadedTextAttributes.GetAt(nIndex));
+}
+
+inline int KWClass::GetLoadedTextListAttributeNumber() const
+{
+	require(IsIndexed());
+	return oaLoadedTextListAttributes.GetSize();
+}
+
+inline KWAttribute* KWClass::GetLoadedTextListAttributeAt(int nIndex) const
+{
+	require(IsIndexed());
+	return cast(KWAttribute*, oaLoadedTextListAttributes.GetAt(nIndex));
+}
+
 inline int KWClass::GetLoadedDataItemNumber() const
 {
 	require(IsIndexed());
@@ -816,26 +1105,62 @@ inline KWDataItem* KWClass::GetDataItemAtLoadIndex(KWLoadIndex liIndex) const
 	return cast(KWDataItem*, oaLoadedDataItems.GetAt(liIndex.GetDenseIndex()));
 }
 
+inline boolean KWClass::GetForceUnique() const
+{
+	return bForceUnique;
+}
+
+inline void KWClass::SetForceUnique(boolean bValue)
+{
+	bForceUnique = bValue;
+	UpdateFreshness();
+}
+
+inline ObjectArray* KWClass::GetDatabaseDataItemsToCompute()
+{
+	return &oaDatabaseDataItemsToCompute;
+}
+
+inline const ObjectArray* KWClass::GetConstDatabaseDataItemsToCompute() const
+{
+	return &oaDatabaseDataItemsToCompute;
+}
+
+inline ObjectArray* KWClass::GetDatabaseTemporayDataItemsToComputeAndClean()
+{
+	return &oaDatabaseTemporayDataItemsToComputeAndClean;
+}
+
+inline const ObjectArray* KWClass::GetConstDatabaseTemporayDataItemsToComputeAndClean() const
+{
+	return &oaDatabaseTemporayDataItemsToComputeAndClean;
+}
+
 inline int KWClass::GetTotalInternallyLoadedDataItemNumber() const
 {
 	require(IsIndexed());
-	return oaLoadedDataItems.GetSize() + oaUnloadedNativeRelationAttributes.GetSize();
+	return oaLoadedDataItems.GetSize() + oaUnloadedOwnedRelationAttributes.GetSize();
 }
 
-inline int KWClass::GetUnloadedNativeRelationAttributeNumber() const
+inline int KWClass::GetUnloadedOwnedRelationAttributeNumber() const
 {
 	require(IsIndexed());
-	return oaUnloadedNativeRelationAttributes.GetSize();
+	return oaUnloadedOwnedRelationAttributes.GetSize();
 }
 
-inline KWAttribute* KWClass::GetUnloadedNativeRelationAttributeAt(int nIndex) const
+inline KWAttribute* KWClass::GetUnloadedOwnedRelationAttributeAt(int nIndex) const
 {
-	return cast(KWAttribute*, oaUnloadedNativeRelationAttributes.GetAt(nIndex));
+	return cast(KWAttribute*, oaUnloadedOwnedRelationAttributes.GetAt(nIndex));
 }
 
 inline boolean KWClass::IsCompiled() const
 {
 	return nFreshness == nCompileFreshness;
+}
+
+inline int KWClass::GetCompileFreshness() const
+{
+	return nCompileFreshness;
 }
 
 inline int KWClass::GetFreshness() const

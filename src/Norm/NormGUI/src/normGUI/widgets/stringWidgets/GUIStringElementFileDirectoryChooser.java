@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -30,15 +30,13 @@ import normGUI.engine.GUIUnit;
  * fichier (JFileChooser). Cette fenetre s'ouvre en pointant sur le repertoire
  * du dernier fichier selectionne. Utilisation de JPanel, JTextField, JButton et
  * JFileChooser.
- *
- * @author Marc Boulle
  */
 public class GUIStringElementFileDirectoryChooser extends GUIStringElement implements ActionListener
 {
 
         /**
-         * Appelee lors d'un click sur le bouton (lorsque le widget est insere dans
-         * une fiche)
+         * Appelee lors d'un click sur le bouton (lorsque le widget est insere dans une
+         * fiche)
          */
         public void actionPerformed(ActionEvent e)
         {
@@ -46,8 +44,8 @@ public class GUIStringElementFileDirectoryChooser extends GUIStringElement imple
         }
 
         /**
-         * Ouverture d'un file chooser, et mise a jour de la donnee texte Les donnees
-         * de contexte (guiList...) sont a null en cas d'appel depuis une fiche
+         * Ouverture d'un file chooser, et mise a jour de la donnee texte Les donnees de
+         * contexte (guiList...) sont a null en cas d'appel depuis une fiche
          */
         public void showFileChooser(JTextField textField, GUIList guiList, int currentRow, int currentColumn)
         {
@@ -73,8 +71,8 @@ public class GUIStringElementFileDirectoryChooser extends GUIStringElement imple
                 if (guiList != null)
                         guiList.getGUITable().updateIndex(currentRow);
 
-                // On ouvre le JFileChooser, en indiquant qu'une action (systeme) est en
-                // cours pour se proteger lors de la gestion des pertes de focus
+                // On ouvre le JFileChooser, en indiquant qu'une action (systeme) est en cours
+                // pour se proteger lors de la gestion des pertes de focus
                 parentRoot.setActionRunning(true);
 
                 // Ouverture du FileChooser
@@ -92,8 +90,7 @@ public class GUIStringElementFileDirectoryChooser extends GUIStringElement imple
                         graphicSetValue(jfc.getSelectedFile().getPath());
                         updateElement();
 
-                        // On previent la liste qu'un changement a ete effectue, dans le cas d'une
-                        // liste
+                        // On previent la liste qu'un changement a ete effectue, dans le cas d'une liste
                         if (guiList != null) {
                                 guiUnit.graphicFireDataChange();
                                 guiUnit.graphicRefreshAll();
@@ -223,8 +220,7 @@ public class GUIStringElementFileDirectoryChooser extends GUIStringElement imple
         }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -16,8 +16,6 @@ import javax.swing.filechooser.FileNameExtensionFilter;
  * fichier (JFileChooser). Cette fenetre s'ouvre en pointant sur le repertoire
  * du dernier fichier selectionne. REf:
  * https://docs.oracle.com/javase/tutorial/uiswing/components/filechooser.html
- *
- * @author Marc Boulle
  */
 public class GUIFileDirectoryChooser extends GUIObject
 {
@@ -40,8 +38,7 @@ public class GUIFileDirectoryChooser extends GUIObject
          * @param inputPath      Le chemin en entree pour lancer la recherche
          * @param selectionMode: le type de selection ("FileChooser" ou
          *                       "DirectoryChooser")
-         * @param filterParams:  les parametres de filtrage sous la forme [label,
-         *   ext1,
+         * @param filterParams:  les parametres de filtrage sous la forme [label, ext1,
          *                       ext2,...]
          */
 
@@ -51,11 +48,11 @@ public class GUIFileDirectoryChooser extends GUIObject
 
                 if (isUnix()) {
                         // Il y a un bug incomprehensible sur Linux :
-                        // on n'arrive pas a initialiser le JFileChooser correctement entre 2
-                        // appels et seul le premier appel fonctionne a partir du deuxieme appel,
-                        // le fichier selectionne est "" combien meme si l'utilisateur selectionne
-                        // un fichier. Le seul moyen de gerer cette erreur est de construire un
-                        // nouvel objet a chaque appel (en initialisant le repertoire courant)
+                        // on n'arrive pas a initialiser le JFileChooser correctement entre 2 appels
+                        // et seul le premier appel fonctionne a partir du deuxieme appel, le fichier
+                        // selectionne est "" combien meme si l'utilisateur selectionne un fichier.
+                        // Le seul moyen de gerer cette erreur est de construire un nouvel objet
+                        // a chaque appel (en initialisant le repertoire courant)
                         globalFileChooser = new JFileChooser();
                         globalFileChooser.setCurrentDirectory(currentDirectory);
                 }
@@ -80,8 +77,8 @@ public class GUIFileDirectoryChooser extends GUIObject
                         }
                 }
 
-                // Extraction des parametres de filtrage des extensions de fichier dans le
-                // cas des fichiers
+                // Extraction des parametres de filtrage des extensions de fichier dans le cas
+                // des fichiers
                 String label;
                 String[] extensions = null;
                 if (selectionMode == JFileChooser.FILES_ONLY) {
@@ -98,8 +95,8 @@ public class GUIFileDirectoryChooser extends GUIObject
                                 }
                                 label = label + ")";
 
-                                // Parametrage du file chooser, avec le parametrage en priorite sur
-                                // l'option par defaut "All files"
+                                // Parametrage du file chooser, avec le parametrage en priorite sur l'option par
+                                // defaut "All files"
                                 FileNameExtensionFilter filter = new FileNameExtensionFilter(label, extensions);
                                 globalFileChooser.setFileFilter(filter);
                         }
@@ -125,8 +122,8 @@ public class GUIFileDirectoryChooser extends GUIObject
          *
          * @param guiUnit L'unite d'interface a tester Ce type de fiche permet d'une
          *                part un parametrage complet d'un FileChooser, d'autre part
-         *                assure une compatibilite ascendante par rapport aux
-         * anciennes fiches utilises auparavant ayant un seul champ String de style
+         *                assure une compatibilite ascendante par rapport aux anciennes
+         *                fiches utilises auparavant ayant un seul champ String de style
          *                FileChooser, pour les versions de Khiops jusqu'a V9
          */
         static public boolean isFileChooserCard(GUIUnit guiUnit)

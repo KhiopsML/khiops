@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -15,6 +15,10 @@ class KWDROr;
 class KWDRNot;
 class KWDRSymbolIf;
 class KWDRContinuousIf;
+class KWDRTimeIf;
+class KWDRDateIf;
+class KWDRTimestampIf;
+class KWDRTimestampTZIf;
 class KWDRSymbolSwitch;
 class KWDRContinuousSwitch;
 
@@ -110,6 +114,82 @@ public:
 
 	// Calcul de l'attribut derive
 	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRDateIf
+// Calcul d'une valeur Date en fonction du resultat d'un test
+// Si test positif (premier parametre), le resultat est contenu dans le
+// dexuieme parametre, sinon dans le troisieme
+class KWDRDateIf : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRDateIf();
+	~KWDRDateIf();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Date ComputeDateResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRTimeIf
+// Calcul d'une valeur Time en fonction du resultat d'un test
+// Si test positif (premier parametre), le resultat est contenu dans le
+// dexuieme parametre, sinon dans le troisieme
+class KWDRTimeIf : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRTimeIf();
+	~KWDRTimeIf();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Time ComputeTimeResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRTimestampIf
+// Calcul d'une valeur Timestamp en fonction du resultat d'un test
+// Si test positif (premier parametre), le resultat est contenu dans le
+// dexuieme parametre, sinon dans le troisieme
+class KWDRTimestampIf : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRTimestampIf();
+	~KWDRTimestampIf();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Timestamp ComputeTimestampResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRTimestampTZIf
+// Calcul d'une valeur TimestampTZ en fonction du resultat d'un test
+// Si test positif (premier parametre), le resultat est contenu dans le
+// dexuieme parametre, sinon dans le troisieme
+class KWDRTimestampTZIf : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRTimestampTZIf();
+	~KWDRTimestampTZIf();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	TimestampTZ ComputeTimestampTZResult(const KWObject* kwoObject) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////

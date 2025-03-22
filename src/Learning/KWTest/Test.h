@@ -1,9 +1,10 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
+#include "PLUseMPI.h"
 #include "UserInterface.h"
 #include "KWContinuous.h"
 #include "KWSymbol.h"
@@ -41,8 +42,9 @@
 #include "KWDate.h"
 #include "KWTime.h"
 #include "KWTimestamp.h"
+#include "KWTimestampTZ.h"
 #include "KWTypeAutomaticRecognition.h"
-#include "FileBuffer.h"
+#include "FileCache.h"
 #include "InputBufferedFile.h"
 #include "OutputBufferedFile.h"
 #include "KWMetaData.h"
@@ -80,6 +82,10 @@
 #include "SizeofStudy.h"
 #include "SparseStudy.h"
 #include "KWValueBlock.h"
-#include "KWDRTokenCounts.h"
+#include "KWDRTextualAnalysis.h"
+#include "SNBIndexVector.h"
+#include "TextService.h"
+#include "KWTextTokenizer.h"
+#include "KWResultFilePathBuilder.h"
 
 #include "HanoiTower.h"

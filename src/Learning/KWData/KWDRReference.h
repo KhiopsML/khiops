@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -44,7 +44,7 @@ public:
 	static KWObjectReferenceResolver* GetObjectReferenceResolver();
 
 	// Verification de la compatibilite des operandes avec la cle de la classe referencee
-	boolean CheckOperandsCompletness(const KWClass* kwcOwnerClass) const override;
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 
 	// Affichage, ecriture dans un fichier, de l'usage de la regle
 	void WriteUsedRule(ostream& ost) const override;
@@ -86,7 +86,7 @@ public:
 	// Renvoie NULL si classe absente
 	KWClass* LookupClass(const ALString& sClassName) const;
 
-	// Export des classes dans un tableau
+	// Export des classes dans un tableau, triees par nom
 	void ExportClasses(ObjectArray* oaClasses) const;
 
 	//////////////////////////////////////////////////////////////////

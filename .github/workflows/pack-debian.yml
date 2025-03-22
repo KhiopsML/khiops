@@ -1,46 +1,202 @@
-name: Create Debian package
-
+---
+name: DEB Packages
 on:
   workflow_dispatch:
-
-
-env:
-  BUILD_TYPE: Release
-
+    inputs:
+      mpi_implementation:
+        description: mpi implementation
+        type: choice
+        default: openmpi
+        options:
+          - mpich
+          - openmpi
+  pull_request:
+    paths:
+      - '**CMakeLists.txt'
+      - '**.cmake'
+      - .github/workflows/pack-debian.yml
+  push:
+    tags: ['*']
+# Cancel any ongoing run of this workflow on the same PR or ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
-  package:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-20.04]
-    runs-on: ${{ matrix.os }}
-
+        os: [debian10, debian11, debian12, ubuntu20.04, ubuntu22.04, ubuntu24.04]
+    container:
+      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Check the tag consistency with the source version
+        if: github.ref_type == 'tag'
+        uses: ./.github/actions/check-tag-version
+      - name: Set environment variables
+        run: |
+          source /etc/os-release
+          echo "ID=$ID" >> "$GITHUB_ENV"
+          echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
+          echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
 
-    - name: install dependencies
-      run: |
-        sudo apt-get -y --no-install-recommends install libmpich-dev  
+      - name: Configure CMake
+        run: |
+          update-alternatives --set mpi /usr/bin/mpicc.$MPI_IMPLEMENTATION
+          update-alternatives --set mpirun /usr/bin/mpirun.$MPI_IMPLEMENTATION
+          cmake --preset linux-gcc-release -DBUILD_JARS=ON -DTESTING=OFF
+      - name: Build Khiops binaries
+        run: |
+          cmake --build --preset linux-gcc-release --parallel \
+            --target MODL MODL_Coclustering _khiopsgetprocnumber KhiopsNativeInterface KNITransfer norm_jar khiops_jar
+      - name: Build package with CPack
+        run: cd build/linux-gcc-release && cpack -G DEB
+      - name: Rename the packages to include the ubuntu codename
+        run: |
+          source /etc/os-release
+          cd build/linux-gcc-release/packages/
+          for filename in *.deb
+          do
+            mv -v $filename ${filename%_*}-${VERSION_CODENAME}.${filename##*_}
+          done
+      - name: Upload the packages as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          # We add a `deb-` prefix so we can later recover all artifacts with the pattern `deb-*`
+          # Note: The more natural pattern `*-deb` or `*` does not work
+          name: deb-${{ env.ID }}-${{ env.VERSION_CODENAME }}
+          path: build/linux-gcc-release/packages/*.deb
+          if-no-files-found: error
+  # Test packages on a brand new runner to check:
+  # - the installation process (including dependencies installation)
+  # - that executable works (run with -v)
+  # - that it executes a small test
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['debian:10', 'debian:11', 'debian:12',  'ubuntu:20.04', 'ubuntu:22.04', 'ubuntu:24.04']
+    container:
+      image: ${{ matrix.os }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Set environment variables
+        run: |
+          source /etc/os-release
+          echo "ID=$ID" >> "$GITHUB_ENV"
+          echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
+          echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
 
-    - name : set environment variables
-      run : |
-        source /etc/os-release 
-        echo "ID=$ID" >> "$GITHUB_ENV"
-        echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
-        set KHIOPS_VERSION=$(grep "KHIOPS_VERSION" src/Learning/KWUtils/KWKhiopsVersion.h | cut -d"(" -f2 | cut -d")" -f1)
-        echo "KHIOPS_VERSION=$KHIOPS_VERSION" >> "$GITHUB_ENV"
-
-    - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DMPI=ON -DTESTING=OFF -DFULL=OFF -DBUILD_JARS=ON
-
-    - name: Build
-      run: time cmake --build ${{github.workspace}}/build --parallel
-    
-    - name: Pack
-      run: cd ${{github.workspace}}/build && cpack -G DEB
-    
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
-        path: build/packages/*.deb
-
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: deb-${{ env.ID }}-${{ env.VERSION_CODENAME }}
+          path: artifacts
+      - name: Install Khiops core
+        run: |
+          apt-get update
+          dpkg -i ./artifacts/khiops-core* || true
+          apt-get -f install -y
+      - name: Check Khiops core installation
+        uses: ./.github/actions/test-khiops-install
+      - name: Install Khiops Desktop (with java)
+        run: |
+          dpkg -i ./artifacts//khiops_* || true
+          apt-get -f install -y
+      - name: Check Khiops installation
+        uses: ./.github/actions/test-khiops-install
+      - name: Test Khiops on Iris dataset
+        uses: ./.github/actions/test-khiops-on-iris
+        with:
+          os-decription: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
+  test-kni:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [debian10, debian11, debian12, ubuntu20.04, ubuntu22.04, ubuntu24.04]
+    container:
+      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
+    steps:
+      - name: Put OS info on the environment
+        run: |
+          source /etc/os-release
+          echo "ID=$ID" >> "$GITHUB_ENV"
+          echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: deb-${{ env.ID }}-${{ env.VERSION_CODENAME }}
+          path: artifacts
+      - name: Install KNI Package
+        run: |
+          apt-get update
+          dpkg -i ./artifacts/kni* || true
+          apt-get -f install -y
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github
+      - name: Test KNI package
+        uses: ./.github/actions/test-kni
+  # Release is only executed on tags
+  release:
+    if: github.ref_type == 'tag'
+    # We release even if the tests fail (we delete from the release whatever fails manually)
+    needs: build
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          # See the upload-artifact step in the build job for the explanation of this pattern
+          pattern: deb-*
+          merge-multiple: true
+      - name: Rename packages with tag version
+        run: |
+         # Renames the packge only if the source version differs from the tag
+         SOURCE_VERSION=$(./scripts/khiops-version | sed 's/-/_/')
+         TAG_VERSION=$(echo "${{ github.ref_name }}" | sed 's/-/_/')
+         for PKG_FILE in *.deb
+         do
+           NEW_PKG_FILE=$(echo $PKG_FILE | sed "s/_${SOURCE_VERSION}-/_${TAG_VERSION}-/")
+           if [[ "$PKG_FILE" != "$NEW_PKG_FILE" ]]
+           then
+             echo "Renaming '$PKG_FILE' to '$NEW_PKG_FILE'"
+             mv $PKG_FILE $NEW_PKG_FILE
+           fi
+         done
+      - name: Upload packages to the release
+        uses: ncipollo/release-action@v1.14.0
+        with:
+          allowUpdates: true
+          artifacts: '*.deb'
+          body: |
+            **This release is for testing purposes only and there is no support for it.**
+            **Go to https://khiops.org to install the latest supported version.**
+          draft: false
+          makeLatest: false
+          prerelease: true
+          updateOnlyUnreleased: true

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -58,7 +58,7 @@ public:
 				  IntVector*& ivGroups) const;
 
 	// Nom de l'algorithme
-	const ALString GetName() const;
+	const ALString GetName() const override;
 
 	/////////////////////////////////////////////////////////////////
 	//// Implementation
@@ -68,8 +68,8 @@ protected:
 	// Initialisation des variables de travail
 	// Reimplementation vide de ces methodes virtuelle pour les inhiber
 	// (le parametrage est fait par l'appelant)
-	void InitializeWorkingData(const KWFrequencyTable* kwftSource) const;
-	void CleanWorkingData() const;
+	void InitializeWorkingData(const KWFrequencyTable* kwftSource) const override;
+	void CleanWorkingData() const override;
 
 	// Discretisation d'une table granularisee avec recherche d'une table optimale avec groupe poubelle
 	void DiscretizeFrequencyTable(KWFrequencyTable* kwftSource, KWFrequencyTable*& kwftTarget) const;
@@ -88,8 +88,8 @@ protected:
 
 	// Ajout et retrait d'un intervalle de la liste de travail triee par nombre de modalites de l'intervalle
 	// Necessite que la liste soit initialisee
-	virtual void AddIntervalToWorkingFrequencyList(KWMODLLine* interval) const;
-	virtual void RemoveIntervalFromWorkingFrequencyList(KWMODLLine* interval) const;
+	void AddIntervalToWorkingFrequencyList(KWMODLLine* interval) const override;
+	void RemoveIntervalFromWorkingFrequencyList(KWMODLLine* interval) const override;
 
 	// Rangement des intervalles dans une liste triee ordonnee par effectif decroissant du nombre de modalites
 	// En entree : frequencyList est NULL
@@ -99,7 +99,7 @@ protected:
 
 	// Calcul du nombre de modalites d'une ligne de contingence decrite par ses index de debut et de fin par rapport
 	// a une table kwftSource En entree, la table kwftSource est initialisee En sortie, le nombre de modalites
-	virtual int ComputeModalityNumber(const KWFrequencyTable* kwftSource, int nFirstIndex, int LastIndex) const;
+	int ComputeModalityNumber(const KWFrequencyTable* kwftSource, int nFirstIndex, int LastIndex) const override;
 
 	// Calcul du nombre de modalites du groupe poubelle d'une partition
 	// En entree, la table kwftTargetWithGarbage dont les KWFrequencyVector contiennent le nombre de modalites par

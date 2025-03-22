@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -20,8 +20,6 @@ import normGUI.engine.GUICharElement;
  * de caracteres dans des boutons radio. Un seul choix est possible. Les
  * differents boutons sont deduits a partir de l'attribut parameters, chaque
  * libelle de bouton etant separe par un ; Utilisation de JPanel, JRadioButton.
- *
- * @author Marc Boulle
  */
 public class GUICharElementRadioButton extends GUICharElement
 {
@@ -58,8 +56,7 @@ public class GUICharElementRadioButton extends GUICharElement
         }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage
@@ -72,9 +69,10 @@ public class GUICharElementRadioButton extends GUICharElement
                 JLabel label = new JLabel(getLabel());
                 setComponentHelpText(label);
 
-                // On met le label a la premiere ligne d'un panel avec un gridlayout
-                // comportant le meme nombre de lignes que le nombre de boutons afin de
-                // d'aligner le label avec le premier bouton
+                // On met le label a la premiere ligne d'un panel avec un gridlayout comportant
+                // le meme
+                // nombre de lignes que le nombre de boutons afin de d'aligner le label avec le
+                // premier bouton
                 JPanel labelPanel = new JPanel(new GridLayout(getParametersAsArray().length, 1));
                 labelPanel.add(label);
 

@@ -1,21 +1,11 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
-////////////////////////////////////////////////////////////
-// 2021-02-05 18:19:44
-// File generated  with GenereTable
-// Insert your specific code inside "//## " sections
-
-#include "Object.h"
-
-// ## Custom includes
-
 #include "CCCoclusteringSpec.h"
-
-// ##
+#include "KWDataGridOptimizerParameters.h"
 
 ////////////////////////////////////////////////////////////
 // Classe CCAnalysisSpec
@@ -27,42 +17,35 @@ public:
 	CCAnalysisSpec();
 	~CCAnalysisSpec();
 
-	// Copie et duplication
-	void CopyFrom(const CCAnalysisSpec* aSource);
-	CCAnalysisSpec* Clone() const;
+	// Parametrage du type de coclustering
+	// A true pour un coclustering de type VarPart, instances * variables
+	// A false sinon pour un coclustering de variables (valeur par defaut)
+	void SetVarPartCoclustering(boolean bValue);
+	boolean GetVarPartCoclustering() const;
 
-	///////////////////////////////////////////////////////////
-	// Divers
+	// Parametrage du coclustering
+	CCCoclusteringSpec* GetCoclusteringSpec();
 
-	// Ecriture
-	void Write(ostream& ost) const override;
+	// Libelles correspondant aux type de coclustering
+	// pour les cas VartPart (coclustering instances x variables) ou standard (coclustering de variables)
+	static const ALString GetCoclusteringLabelFromType(boolean bIsVarPartCoclustering);
+
+	// Type correspond a un libelle de coclustering
+	// Renvoie true dans la cas VarPart, false sinon
+	static boolean GetCoclusteringTypeFromLabel(const ALString& sLabel);
+
+	// Parametres d'optimisation
+	KWDataGridOptimizerParameters* GetOptimizationParameters();
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
 	const ALString GetObjectLabel() const override;
 
-	// ## Custom declarations
-
-	// Parametrage du coclustering
-	CCCoclusteringSpec* GetCoclusteringSpec();
-
-	// ##
-
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
-
-	// ## Custom implementation
-
+	boolean bVarPartCoclustering;
 	CCCoclusteringSpec coclusteringSpec;
-
-	// ##
+	KWDataGridOptimizerParameters optimizationParameters;
 };
-
-////////////////////////////////////////////////////////////
-// Implementations inline
-
-// ## Custom inlines
-
-// ##

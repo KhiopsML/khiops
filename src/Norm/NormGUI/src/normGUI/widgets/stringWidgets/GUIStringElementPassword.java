@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -22,8 +22,6 @@ import normGUI.engine.GUIUnit;
  * d'une chaine de caracteres dans une zone de texte de type mot de passe. Les
  * caracteres de saisie sont remplaces par des points a l'affichage. Utilisation
  * de JPasswordField.
- *
- * @author Marc Boulle
  */
 public class GUIStringElementPassword extends GUIStringElement
 {
@@ -97,8 +95,7 @@ public class GUIStringElementPassword extends GUIStringElement
         }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage

@@ -1,17 +1,3 @@
-Rank;
-Name;
-Type;
-Style;
-Label 1;
-MaxAttributePairNumber;
-int;
-Spinner;
-Max number of variable pairs 2;
-AllAttributePairs;
-boolean;
-CheckBox;
-All pairs 3;
-MandatoryAttributeInPairs;
-ALString;
-;
-Only pairs with variable(deprecated)
+Rank;Name;Type;Style;Label
+1;MaxAttributePairNumber       ;int     ;Spinner ;Max number of variable pairs
+2;AllAttributePairs            ;boolean ;CheckBox;All pairs

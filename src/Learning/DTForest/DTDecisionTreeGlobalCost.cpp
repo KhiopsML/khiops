@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -170,11 +170,11 @@ double DTDecisionTreeGlobalCost::ComputeStructureCost(int nInstanceNumber, int n
 	// Cas ou il y au moins un noeud interne
 	if (nLeaveNumber > 0)
 	{
-		if (this->nDTCriterion == 0)
+		if (nDTCriterion == 0)
 		{
 			dStructureCost += DTStat::LnCatalan(nLeaveNumber - 1);
 		}
-		else if (this->nDTCriterion == 1)
+		else if (nDTCriterion == 1)
 		{
 			dStructureCost += DTStat::LnSchroder(nLeaveNumber - 1);
 		}
@@ -417,9 +417,9 @@ void DTDecisionTreeGlobalCost::ComputeHypotheticalAugmentedTreeCost(DTDecisionTr
 	else
 	{
 		// Nombre de valeurs distinctes pour l'attribut
-		nVariableValueNumber =
-		    0; // NV9  cast(KWAttributeStats*,
-		       // sourceNode->GetNodeClassStats()->LookupAttributeStats(sAttributeName))->GetDescriptiveStats()->GetValueNumber();
+		nVariableValueNumber = 0;
+		// NV9  cast(KWAttributeStats*, sourceNode->GetNodeClassStats()->LookupAttributeStats(sAttributeName))
+		// ->GetDescriptiveStats()->GetValueNumber();
 	}
 	assert(nVariableValueNumber > 0);
 
@@ -461,7 +461,8 @@ void DTDecisionTreeGlobalCost::ComputeHypotheticalAugmentedTreeCost(DTDecisionTr
 	if (nodeSplit->GetAttributeStats()->GetPreparedDataGridStats()->GetAttributeNumber() == 1)
 	{
 		// a partir de learningEnv v8, les attributs a level nul ne sont plus prepares. Le seul attribut prepare
-		// correspond ici a l'attribut cible NVDELL AddWarning("ComputeHypotheticalAugmentedTreeCost :
+		// correspond ici a l'attribut cible
+		// NVDELL AddWarning("ComputeHypotheticalAugmentedTreeCost :
 		// GetPreparedDataGridStats()->GetAttributeNumber() == 1");
 		return;
 	}

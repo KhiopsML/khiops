@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -56,7 +56,7 @@ public:
 	// Nombre total de regles appliquables sur l'ensemble des classes
 	int GetTotalClassCompliantRuleNumber() const;
 
-	// Indique si la regle de selection est appliqauble sur au moins une classe
+	// Indique si la regle de selection est appliquable sur au moins une classe
 	boolean IsSelectionRuleUsed() const;
 
 	// Nombre total d'attribut derives initiaux identifie dans l'ensemble des classes
@@ -148,6 +148,10 @@ public:
 	// Collecte de tous les attributs et blocs derives de la classe, potentiellement reconstructibles avec une regle
 	// de construction et identification des attributs redondants
 	void CollectConstructedAttributesAndBlocks();
+
+	// Collecte de tous les attributs et blocs derives de la classe, cette fois en passant un dictionnaire des
+	// regles de derivation utilisables, et identification des attributs redondants
+	void CollectConstructedAttributesAndBlocksUsingDerivationRules(const ObjectDictionary* odUsableDerivationRules);
 
 	// Nombre d'attributs ou de blocs derives de la classe
 	int GetConstructedAttributeNumber() const;
@@ -247,7 +251,7 @@ protected:
 	// Nombre de recherches, pour des raisons de collecte de statistiques uniquement
 	mutable int nLookupNumber;
 
-	// Nombre d'attributs et bloc  derives pour la classe
+	// Nombre d'attributs et bloc derives pour la classe
 	// Redondant avec la taille de slDerivedAttributes et slDerivedAttributeBlocks, mais permet d'etre plus efficace
 	// dans le cas ou ce nombre est 0
 	int nDerivedAttributeNumber;

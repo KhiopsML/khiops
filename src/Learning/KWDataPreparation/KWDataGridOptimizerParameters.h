@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -20,9 +20,11 @@ public:
 	KWDataGridOptimizerParameters();
 	~KWDataGridOptimizerParameters();
 
-	// Optimization algorithm: None, Greedy, MultiStart, ou VNS (default)
-	const ALString& GetOptimizationAlgorithm() const;
-	void SetOptimizationAlgorithm(const ALString& sValue);
+	// Nombre maximum de parties (defaut: 0)
+	// Permet de specifier une contrainte d'interpretabilite des resultats de pretraitement
+	// Ce parametre est determine automatiquement par l'algorithme s'il vaut 0
+	int GetMaxPartNumber() const;
+	void SetMaxPartNumber(int nValue);
 
 	// Optimization time (en secondes)
 	// Par defaut: 0, ce qui signifie que ce parametre n'est pas actif
@@ -41,17 +43,26 @@ public:
 	boolean GetUnivariateInitialization() const;
 	void SetUnivariateInitialization(boolean bValue);
 
-	// Pre-optimize each solution
+	// Pre-optimise chaque solution
 	boolean GetPreOptimize() const;
 	void SetPreOptimize(boolean bValue);
 
-	// Optimize each solution
+	// Optimise chaque solution
 	boolean GetOptimize() const;
 	void SetOptimize(boolean bValue);
 
-	// Post-optimize each solution
+	// Post-optimise chaque solution
 	boolean GetPostOptimize() const;
 	void SetPostOptimize(boolean bValue);
+
+	// Post-fusion des parties de variable mitoyennes d'un meme cluster pour le coclustering instances * variables
+	boolean GetVarPartPostMerge() const;
+	void SetVarPartPostMerge(boolean bValue);
+
+	// VarPart Post-optimisation des parties de variable (modification des frontieres) pour le coclustering
+	// instances * variables
+	boolean GetVarPartPostOptimize() const;
+	void SetVarPartPostOptimize(boolean bValue);
 
 	// Parametre interne, pour personnalisation avancee
 	const ALString& GetInternalParameter() const;
@@ -76,6 +87,9 @@ public:
 	// Fraicheur de l'objet, incrementee a chaque modification
 	int GetFreshness() const;
 
+	// Affichage, ecriture dans un fichier
+	void Write(ostream& ost) const override;
+
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
 	const ALString GetObjectLabel() const override;
@@ -84,13 +98,15 @@ public:
 	//// Implementation
 protected:
 	// Attributs de la classe
-	ALString sOptimizationAlgorithm;
+	int nMaxPartNumber;
 	int nOptimizationTime;
 	int nOptimizationLevel;
 	boolean bUnivariateInitialization;
 	boolean bPreOptimize;
 	boolean bOptimize;
 	boolean bPostOptimize;
+	boolean bVarPartPostMerge;
+	boolean bVarPartPostOptimize;
 	ALString sInternalParameter;
 	boolean bDisplayDetails;
 	int nFreshness;
@@ -111,8 +127,8 @@ public:
 	KWDataGridOptimizerParameters* GetDataGridOptimizerParameters();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

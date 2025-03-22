@@ -1,0 +1,326 @@
+{
+	"tool": "Khiops Coclustering",
+	"version": "10.5.6-b.0",
+	"shortDescription": "",
+	"coclusteringReport": {
+		"summary": {
+			"instances": 150,
+			"cells": 10,
+			"nullCost": 1379.668177,
+			"cost": 1174.923843,
+			"level": 0.1484011427,
+			"initialDimensions": 3,
+			"frequencyVariable": "",
+			"dictionary": "IrisMissing",
+			"database": ".\/IrisMissing.txt",
+			"samplePercentage": 100,
+			"samplingMode": "Include sample",
+			"selectionVariable": "",
+			"selectionValue": ""
+		},
+		"dimensionSummaries": [
+			{
+				"name": "PetalLength",
+				"type": "Numerical",
+				"parts": 3,
+				"initialParts": 3,
+				"values": 150,
+				"interest": 1,
+				"description": "",
+				"min": 1,
+				"max": 6.9
+			},
+			{
+				"name": "PW_MM40",
+				"type": "Numerical",
+				"parts": 4,
+				"initialParts": 4,
+				"values": 150,
+				"interest": 1,
+				"description": "",
+				"min": 0.1,
+				"max": 2.5
+			},
+			{
+				"name": "Class",
+				"type": "Categorical",
+				"parts": 3,
+				"initialParts": 3,
+				"values": 3,
+				"interest": 1,
+				"description": ""
+			}
+		],
+		"dimensionPartitions": [
+			{
+				"name": "PetalLength",
+				"type": "Numerical",
+				"intervals": [
+					{
+						"cluster": "]-inf;2.4]",
+						"bounds": [1,2.4]
+					},
+					{
+						"cluster": "]2.4;4.75]",
+						"bounds": [2.4,4.75]
+					},
+					{
+						"cluster": "]4.75;+inf[",
+						"bounds": [4.75,6.9]
+					}
+				]
+			},
+			{
+				"name": "PW_MM40",
+				"type": "Numerical",
+				"intervals": [
+					{
+						"cluster": "Missing",
+						"bounds": []
+					},
+					{
+						"cluster": "]-inf;0.8]",
+						"bounds": [0.1,0.8]
+					},
+					{
+						"cluster": "]0.8;1.75]",
+						"bounds": [0.8,1.75]
+					},
+					{
+						"cluster": "]1.75;+inf[",
+						"bounds": [1.75,2.5]
+					}
+				]
+			},
+			{
+				"name": "Class",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{Iris-setosa}",
+						"values": ["Iris-setosa"],
+						"valueFrequencies": [50],
+						"valueTypicalities": [1]
+					},
+					{
+						"cluster": "{Iris-versicolor}",
+						"values": ["Iris-versicolor"],
+						"valueFrequencies": [50],
+						"valueTypicalities": [1]
+					},
+					{
+						"cluster": "{Iris-virginica}",
+						"values": ["Iris-virginica"],
+						"valueFrequencies": [50],
+						"valueTypicalities": [1]
+					}
+				],
+				"defaultGroupIndex": 2
+			}
+		],
+		"dimensionHierarchies": [
+			{
+				"name": "PetalLength",
+				"type": "Numerical",
+				"clusters": [
+					{
+						"cluster": "]-inf;2.4]",
+						"parentCluster": "]-inf;+inf[",
+						"frequency": 50,
+						"interest": 0.548784,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 10,
+						"isLeaf": true
+					},
+					{
+						"cluster": "]2.4;4.75]",
+						"parentCluster": "]2.4;+inf[",
+						"frequency": 45,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 3,
+						"hierarchicalRank": 10,
+						"isLeaf": true
+					},
+					{
+						"cluster": "]4.75;+inf[",
+						"parentCluster": "]2.4;+inf[",
+						"frequency": 55,
+						"interest": 0.451216,
+						"hierarchicalLevel": 1,
+						"rank": 5,
+						"hierarchicalRank": 10,
+						"isLeaf": true
+					},
+					{
+						"cluster": "]-inf;+inf[",
+						"parentCluster": "",
+						"frequency": 150,
+						"interest": 0.648374,
+						"hierarchicalLevel": -0.0152813,
+						"rank": 2,
+						"hierarchicalRank": 4,
+						"isLeaf": false
+					},
+					{
+						"cluster": "]2.4;+inf[",
+						"parentCluster": "]-inf;+inf[",
+						"frequency": 100,
+						"interest": 0.698169,
+						"hierarchicalLevel": 0.844892,
+						"rank": 4,
+						"hierarchicalRank": 8,
+						"isLeaf": false
+					}
+				]
+			},
+			{
+				"name": "PW_MM40",
+				"type": "Numerical",
+				"clusters": [
+					{
+						"cluster": "Missing",
+						"parentCluster": "*]-inf;0.8]",
+						"frequency": 40,
+						"interest": 0.653296,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 10,
+						"isLeaf": true
+					},
+					{
+						"cluster": "]-inf;0.8]",
+						"parentCluster": "*]-inf;0.8]",
+						"frequency": 50,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 3,
+						"hierarchicalRank": 10,
+						"isLeaf": true
+					},
+					{
+						"cluster": "]0.8;1.75]",
+						"parentCluster": "]0.8;+inf[",
+						"frequency": 14,
+						"interest": 0.562739,
+						"hierarchicalLevel": 1,
+						"rank": 5,
+						"hierarchicalRank": 10,
+						"isLeaf": true
+					},
+					{
+						"cluster": "]1.75;+inf[",
+						"parentCluster": "]0.8;+inf[",
+						"frequency": 46,
+						"interest": 0.216035,
+						"hierarchicalLevel": 1,
+						"rank": 7,
+						"hierarchicalRank": 10,
+						"isLeaf": true
+					},
+					{
+						"cluster": "*]-inf;0.8]",
+						"parentCluster": "*]-inf;+inf[",
+						"frequency": 90,
+						"interest": 0.84591,
+						"hierarchicalLevel": 0.488499,
+						"rank": 2,
+						"hierarchicalRank": 6,
+						"isLeaf": false
+					},
+					{
+						"cluster": "*]-inf;+inf[",
+						"parentCluster": "",
+						"frequency": 150,
+						"interest": 0.626319,
+						"hierarchicalLevel": 0.393664,
+						"rank": 4,
+						"hierarchicalRank": 5,
+						"isLeaf": false
+					},
+					{
+						"cluster": "]0.8;+inf[",
+						"parentCluster": "*]-inf;+inf[",
+						"frequency": 60,
+						"interest": 0.296933,
+						"hierarchicalLevel": 0.986078,
+						"rank": 6,
+						"hierarchicalRank": 9,
+						"isLeaf": false
+					}
+				]
+			},
+			{
+				"name": "Class",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{Iris-setosa}",
+						"parentCluster": "C1",
+						"frequency": 50,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 10,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{Iris-versicolor}",
+						"parentCluster": "C5",
+						"frequency": 50,
+						"interest": 0.931969,
+						"hierarchicalLevel": 1,
+						"rank": 3,
+						"hierarchicalRank": 10,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{Iris-virginica}",
+						"parentCluster": "C5",
+						"frequency": 50,
+						"interest": 0.931969,
+						"hierarchicalLevel": 1,
+						"rank": 5,
+						"hierarchicalRank": 10,
+						"isLeaf": true
+					},
+					{
+						"cluster": "C1",
+						"parentCluster": "",
+						"frequency": 150,
+						"interest": 0.954646,
+						"hierarchicalLevel": 0,
+						"rank": 2,
+						"hierarchicalRank": 3,
+						"isLeaf": false
+					},
+					{
+						"cluster": "C5",
+						"parentCluster": "C1",
+						"frequency": 100,
+						"interest": 0.931969,
+						"hierarchicalLevel": 0.719764,
+						"rank": 4,
+						"hierarchicalRank": 7,
+						"isLeaf": false
+					}
+				]
+			}
+		],
+		"cellPartIndexes": [
+			[0,1,0],
+			[2,3,2],
+			[1,0,1],
+			[1,2,1],
+			[2,0,1],
+			[2,2,2],
+			[2,2,1],
+			[1,2,2],
+			[2,0,2],
+			[2,3,1]
+		],
+		"cellFrequencies": [50,45,36,8,3,3,2,1,1,1]
+	},
+	"khiops_encoding": "ascii"
+}

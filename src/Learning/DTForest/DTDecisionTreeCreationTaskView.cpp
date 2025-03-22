@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -10,6 +10,7 @@
 DTDecisionTreeCreationTaskView::DTDecisionTreeCreationTaskView()
 {
 	sName = "Decision Tree variable creation";
+
 	SetIdentifier("DTDecisionTreeCreationTask");
 	SetLabel(sName);
 	AddStringField("CreatedAttributePrefix", "Create variable prefix", "");
@@ -24,31 +25,31 @@ DTDecisionTreeCreationTaskView::~DTDecisionTreeCreationTaskView() {}
 
 void DTDecisionTreeCreationTaskView::EventUpdate(Object* object)
 {
-	DTDecisionTreeCreationTask* editedObject;
-
 	require(object != NULL);
 
+	DTDecisionTreeCreationTask* editedObject;
 	editedObject = cast(DTDecisionTreeCreationTask*, object);
+
 	editedObject->SetCreatedAttributePrefix(GetStringValueAt("CreatedAttributePrefix"));
 }
 
 void DTDecisionTreeCreationTaskView::EventRefresh(Object* object)
 {
-	DTDecisionTreeCreationTask* editedObject;
-
 	require(object != NULL);
 
+	DTDecisionTreeCreationTask* editedObject;
 	editedObject = cast(DTDecisionTreeCreationTask*, object);
+
 	SetStringValueAt("CreatedAttributePrefix", editedObject->GetCreatedAttributePrefix());
 }
 
 void DTDecisionTreeCreationTaskView::SetObject(Object* object)
 {
-	DTDecisionTreeCreationTask* dttask;
-
 	require(object != NULL);
 
 	// Acces a l'objet edite
+
+	DTDecisionTreeCreationTask* dttask;
 	dttask = cast(DTDecisionTreeCreationTask*, object);
 
 	// Parametrages des sous-fiches par les sous-objets

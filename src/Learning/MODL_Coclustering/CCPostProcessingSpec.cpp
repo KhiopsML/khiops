@@ -1,10 +1,9 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-02-05 18:19:44
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "CCPostProcessingSpec.h"
@@ -16,6 +15,8 @@ CCPostProcessingSpec::CCPostProcessingSpec()
 	nCellNumber = 0;
 	nMaxCellNumber = 0;
 	nMaxPreservedInformation = 0;
+	nTotalPartNumber = 0;
+	nMaxTotalPartNumber = 0;
 
 	// ## Custom constructor
 
@@ -35,13 +36,16 @@ void CCPostProcessingSpec::CopyFrom(const CCPostProcessingSpec* aSource)
 {
 	require(aSource != NULL);
 
+	sCoclusteringType = aSource->sCoclusteringType;
 	sShortDescription = aSource->sShortDescription;
 	nInstanceNumber = aSource->nInstanceNumber;
 	nNonEmptyCellNumber = aSource->nNonEmptyCellNumber;
 	nCellNumber = aSource->nCellNumber;
 	nMaxCellNumber = aSource->nMaxCellNumber;
 	nMaxPreservedInformation = aSource->nMaxPreservedInformation;
-	sFrequencyAttribute = aSource->sFrequencyAttribute;
+	nTotalPartNumber = aSource->nTotalPartNumber;
+	nMaxTotalPartNumber = aSource->nMaxTotalPartNumber;
+	sFrequencyAttributeName = aSource->sFrequencyAttributeName;
 
 	// ## Custom copyfrom
 
@@ -75,13 +79,16 @@ CCPostProcessingSpec* CCPostProcessingSpec::Clone() const
 
 void CCPostProcessingSpec::Write(ostream& ost) const
 {
-	ost << "ShortDescription\t" << GetShortDescription() << "\n";
+	ost << "Coclustering type\t" << GetCoclusteringType() << "\n";
+	ost << "Short description\t" << GetShortDescription() << "\n";
 	ost << "Instance number\t" << GetInstanceNumber() << "\n";
 	ost << "Non empty cell number\t" << GetNonEmptyCellNumber() << "\n";
 	ost << "Cell number\t" << GetCellNumber() << "\n";
 	ost << "Max cell number\t" << GetMaxCellNumber() << "\n";
 	ost << "Max preserved information\t" << GetMaxPreservedInformation() << "\n";
-	ost << "Frequency variable\t" << GetFrequencyAttribute() << "\n";
+	ost << "Total part number\t" << GetTotalPartNumber() << "\n";
+	ost << "Max total part number\t" << GetMaxTotalPartNumber() << "\n";
+	ost << "Frequency variable\t" << GetFrequencyAttributeName() << "\n";
 }
 
 const ALString CCPostProcessingSpec::GetClassLabel() const
@@ -109,13 +116,14 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 	boolean bDisplay = false;
 	const double dEpsilon = 1e-6;
 	CCCoclusteringReport coclusteringReport;
-	SortedList slSortedMergeableParts(CCHDGPartCompareHierarchicalLevel);
+	SortedList slSortedMergeableParts(CCHDGPartCompareHierarchicalRank);
 	int nAttribute;
 	CCHDGAttribute* hdgAttribute;
 	KWDGPart* dgPart;
 	CCHDGPart* hdgPart;
 	CCHDGPart* hdgMergedPart;
 	double dActualCellNumber;
+	int nActualTotalPartNumber;
 	CCPostProcessedAttribute* postProcessedAttribute;
 	IntVector ivAttributMaxPartNumbers;
 	int nMaxPartViolationNumber;
@@ -150,12 +158,14 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 		}
 	}
 
-	// Calcul du nombre de cellules
+	// Calcul du nombre de cellules et de partie
 	dActualCellNumber = 1;
+	nActualTotalPartNumber = 0;
 	for (nAttribute = 0; nAttribute < postProcessedCoclusteringDataGrid->GetAttributeNumber(); nAttribute++)
 	{
 		hdgAttribute = cast(CCHDGAttribute*, postProcessedCoclusteringDataGrid->GetAttributeAt(nAttribute));
 		dActualCellNumber *= hdgAttribute->GetPartNumber();
+		nActualTotalPartNumber += hdgAttribute->GetPartNumber();
 	}
 
 	// Initialisation des contraintes en nombre de parties par attributs
@@ -182,6 +192,10 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Execution du post-traitement en verifiant les contraintes
 
+	// Affichage de l'entete
+	if (bDisplay)
+		cout << "Variable\tPart\tHierarchical rank\tHierarchical level\n";
+
 	// Merges des parties de la grille tant que les contraintes ne sont pas verifiees
 	postProcessedCoclusteringDataGrid->SetCellUpdateMode(true);
 	while (slSortedMergeableParts.GetCount() > 0)
@@ -195,6 +209,10 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 		    hdgPart->GetHierarchicalLevel() * 100 > GetMaxPreservedInformation())
 			bMerge = true;
 		if (GetMaxCellNumber() > 0 and dActualCellNumber > GetMaxCellNumber() + dEpsilon)
+			bMerge = true;
+		if (GetMaxTotalPartNumber() > 0 and
+		    nActualTotalPartNumber >
+			max(GetMaxTotalPartNumber(), postProcessedCoclusteringDataGrid->GetAttributeNumber()))
 			bMerge = true;
 		if (nMaxPartViolationNumber > 0)
 			bMerge = true;
@@ -219,18 +237,21 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 			// Actualisation des parametres de contraintes
 			dActualCellNumber /= hdgAttribute->GetPartNumber() + 1;
 			dActualCellNumber *= hdgAttribute->GetPartNumber();
+			nActualTotalPartNumber--;
 			if (ivAttributMaxPartNumbers.GetAt(hdgAttribute->GetAttributeIndex()) > 0 and
 			    ivAttributMaxPartNumbers.GetAt(hdgAttribute->GetAttributeIndex()) ==
 				hdgAttribute->GetPartNumber())
 				nMaxPartViolationNumber--;
 			assert(dActualCellNumber > 1 - dEpsilon);
+			assert(nActualTotalPartNumber >= oaPostProcessedAttributes.GetSize());
 			assert(nMaxPartViolationNumber >= 0);
 
 			// Affichage de la partie fusionnees
 			if (bDisplay)
 			{
 				cout << hdgAttribute->GetAttributeName() << "\t" << hdgMergedPart->GetObjectLabel()
-				     << "\t" << hdgMergedPart->GetHierarchicalLevel() << "\n";
+				     << "\t" << hdgMergedPart->GetHierarchicalRank() << "\t"
+				     << hdgMergedPart->GetHierarchicalLevel() << "\n";
 			}
 		}
 	}
@@ -259,7 +280,8 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 	nCellNumber = 0;
 	nMaxCellNumber = 0;
 	nMaxPreservedInformation = 0;
-	sFrequencyAttribute = "";
+	nTotalPartNumber = 0;
+	sFrequencyAttributeName = "";
 	oaPostProcessedAttributes.DeleteAll();
 
 	// Si pas de fichier, cela revient a reinitialiser les infos de coclustering
@@ -267,20 +289,25 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 
 	// Lecture de l'entete du rapport de coclustering
 	if (bOk)
-		bOk = coclusteringReport.ReadGenericReportHeader(sCoclusteringReportFileName, &coclusteringDataGrid,
-								 nInstanceNumber, nNonEmptyCellNumber);
+		bOk = coclusteringReport.ReadReportHeader(sCoclusteringReportFileName, &coclusteringDataGrid,
+							  nInstanceNumber, nNonEmptyCellNumber);
 
 	// On rappatrie les informations du rapport
 	if (bOk)
 	{
+		// Attribute identifiant (coclustering instances * variables)
+		sCoclusteringType =
+		    CCAnalysisSpec::GetCoclusteringLabelFromType(coclusteringDataGrid.IsVarPartDataGrid());
+
 		// Description courte
 		sShortDescription = coclusteringDataGrid.GetShortDescription();
 
 		// Variable de frequence
-		sFrequencyAttribute = coclusteringDataGrid.GetFrequencyAttributeName();
+		sFrequencyAttributeName = coclusteringDataGrid.GetFrequencyAttributeName();
 
 		// Information sur les attributs de coclustering
 		nCellNumber = 1;
+		nTotalPartNumber = 0;
 		for (nAttribute = 0; nAttribute < coclusteringDataGrid.GetAttributeNumber(); nAttribute++)
 		{
 			dgAttribute = coclusteringDataGrid.GetAttributeAt(nAttribute);
@@ -291,6 +318,7 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 			postProcessedAttribute->SetType(KWType::ToString(dgAttribute->GetAttributeType()));
 			postProcessedAttribute->SetPartNumber(dgAttribute->GetPartNumber());
 			nCellNumber *= dgAttribute->GetPartNumber();
+			nTotalPartNumber += dgAttribute->GetPartNumber();
 			oaPostProcessedAttributes.Add(postProcessedAttribute);
 		}
 	}
@@ -300,12 +328,14 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 	{
 		// Evaluation si le coclustering est le meme
 		bSameCoclustering = true;
+		bSameCoclustering =
+		    bSameCoclustering and (sCoclusteringType == refPostProcessingSpec.sCoclusteringType);
 		bSameCoclustering = bSameCoclustering and (nInstanceNumber == refPostProcessingSpec.nInstanceNumber);
 		bSameCoclustering =
 		    bSameCoclustering and (nNonEmptyCellNumber == refPostProcessingSpec.nNonEmptyCellNumber);
 		bSameCoclustering = bSameCoclustering and (nCellNumber == refPostProcessingSpec.nCellNumber);
 		bSameCoclustering =
-		    bSameCoclustering and (sFrequencyAttribute == refPostProcessingSpec.sFrequencyAttribute);
+		    bSameCoclustering and (sFrequencyAttributeName == refPostProcessingSpec.sFrequencyAttributeName);
 		bSameCoclustering = bSameCoclustering and (oaPostProcessedAttributes.GetSize() ==
 							   refPostProcessingSpec.oaPostProcessedAttributes.GetSize());
 		if (bSameCoclustering)

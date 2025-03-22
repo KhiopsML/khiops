@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -36,12 +36,18 @@ boolean KWDatabaseFormatDetector::GetUsingClass()
 	return bUsingClass;
 }
 
-void KWDatabaseFormatDetector::DetectFileFormat()
+boolean KWDatabaseFormatDetector::DetectFileFormat()
 {
 	boolean bOk = true;
 	KWClass* kwcDatabaseClass;
 	RewindableInputBufferedFile inputFile;
 	CharVector cvLine;
+	longint lBeginPos;
+	KWMTDatabase* mtDatabase;
+	KWMTDatabaseMapping* mapping;
+	int nMapping;
+	ALString sInputFileName;
+	ALString sTmp;
 
 	require(analysedDatabase != NULL);
 
@@ -93,15 +99,9 @@ void KWDatabaseFormatDetector::DetectFileFormat()
 
 	// Verification si utilisation d'un dictionnaire
 	kwcDatabaseClass = NULL;
-	if (GetUsingClass())
+	sInputFileName = analysedDatabase->GetDatabaseName();
+	if (GetUsingClass() and analysedDatabase->GetClassName() != "")
 	{
-		// Verification de la presence d'un nom de base
-		if (bOk and analysedDatabase->GetClassName() == "")
-		{
-			AddError("Missing dictionary name for database " + analysedDatabase->GetDatabaseName());
-			bOk = false;
-		}
-
 		// Recherche du dictionnaire associee a la base
 		if (bOk)
 		{
@@ -123,13 +123,39 @@ void KWDatabaseFormatDetector::DetectFileFormat()
 				bOk = false;
 			}
 		}
+
+		// Cas d'un seul attribut natif : il est alors impossible de detecter un champ separateur
+		// Dans le cas multi-table, recherche d'un eventuel autre dictionnaire avec plus d'un attribut natif
+		if (bOk)
+		{
+			if (kwcDatabaseClass->GetNativeDataItemNumber() == 1 and
+			    analysedDatabase->IsMultiTableTechnology())
+			{
+				mtDatabase = cast(KWMTDatabase*, analysedDatabase);
+
+				// Recherche d'une table secondaire contenant au moins deux attributs natifs
+				for (nMapping = 0; nMapping < mtDatabase->GetTableNumber(); nMapping++)
+				{
+					mapping = cast(KWMTDatabaseMapping*,
+						       mtDatabase->GetMultiTableMappings()->GetAt(nMapping));
+					kwcDatabaseClass =
+					    KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetClassName());
+					if (kwcDatabaseClass != NULL and mapping->GetDataTableName() != "" and
+					    kwcDatabaseClass->GetNativeDataItemNumber() > 1)
+					{
+						sInputFileName = mapping->GetDataTableName();
+						break;
+					}
+				}
+			}
+		}
 	}
 
 	// Ouverture du fichier
 	if (bOk)
 	{
 		// Ouverture
-		inputFile.SetFileName(analysedDatabase->GetDatabaseName());
+		inputFile.SetFileName(sInputFileName);
 		bOk = inputFile.Open();
 		if (not bOk)
 			AddError("No possible format detection");
@@ -144,26 +170,46 @@ void KWDatabaseFormatDetector::DetectFileFormat()
 	}
 
 	// Lecture du premier buffer du fichier
+	inputFile.SetBufferSize(InputBufferedFile::GetMaxLineLength());
 	if (bOk)
-		inputFile.Fill(0);
+	{
+		lBeginPos = 0;
+		inputFile.FillInnerLines(lBeginPos);
+	}
+
+	// Erreur si premiere ligne trop longue
+	if (bOk and inputFile.GetCurrentBufferSize() == 0)
+	{
+		AddError(sTmp + "First line too long (beyond " +
+			 LongintToHumanReadableString(InputBufferedFile::GetMaxLineLength()) + ")");
+		bOk = false;
+	}
+
+	// Detection de problemes d'encodage potentiels
+	if (bOk)
+		bOk = inputFile.CheckEncoding();
 
 	// Detection de format
 	if (bOk)
 	{
-		if (GetUsingClass())
-			DetectFileFormatUsingClass(kwcDatabaseClass, &inputFile);
+		if (GetUsingClass() and analysedDatabase->GetClassName() != "")
+			bOk = DetectFileFormatUsingClass(kwcDatabaseClass, &inputFile);
 		else
-			DetectFileFormatWithoutClass(&inputFile);
+			bOk = DetectFileFormatWithoutClass(&inputFile);
 	}
 
 	// Fermeture du fichier
 	if (inputFile.IsOpened())
 		inputFile.Close();
+	return bOk;
 }
 
 void KWDatabaseFormatDetector::ShowFirstLines(int nMaxLineNumber)
 {
 	InputBufferedFile inputFile;
+	boolean bOk;
+	longint lBeginPos;
+	ALString sTmp;
 
 	require(analysedDatabase != NULL);
 	require(nMaxLineNumber > 0);
@@ -173,10 +219,10 @@ void KWDatabaseFormatDetector::ShowFirstLines(int nMaxLineNumber)
 	{
 		// Ouverture du fichier
 		inputFile.SetFileName(analysedDatabase->GetDatabaseName());
-		inputFile.Open();
+		bOk = inputFile.Open();
 
 		// Lecture des premieres lignes
-		if (inputFile.IsOpened())
+		if (bOk)
 		{
 			// Cas d'un fichier vide
 			if (inputFile.GetFileSize() == 0)
@@ -187,9 +233,35 @@ void KWDatabaseFormatDetector::ShowFirstLines(int nMaxLineNumber)
 			// Sinon, affichage du debut du fichier
 			else
 			{
-				inputFile.Fill(0);
-				ShowCurrentLines(&inputFile, "First lines of " + GetDatabase()->GetDatabaseName(),
-						 false, true, nMaxLineNumber);
+				// Lecture du premier buffer du fichier
+				inputFile.SetBufferSize(InputBufferedFile::GetMaxLineLength());
+				if (bOk)
+				{
+					lBeginPos = 0;
+					bOk = inputFile.FillInnerLines(lBeginPos);
+				}
+
+				// Erreur si premiere ligne trop longue
+				if (bOk and inputFile.GetCurrentBufferSize() == 0)
+				{
+					AddError(sTmp + "First line too long (beyond " +
+						 LongintToHumanReadableString(InputBufferedFile::GetMaxLineLength()) +
+						 ")");
+					AddSimpleMessage("");
+					bOk = false;
+				}
+
+				// Affichage des premiere lignes
+				if (bOk)
+				{
+					// Detection d'erreurs de format potentielles
+					bOk = inputFile.CheckEncoding();
+
+					// Affichage des premieres lignes, meme en cas d'erreur
+					ShowCurrentLines(&inputFile,
+							 "First lines of " + GetDatabase()->GetDatabaseName(), false,
+							 true, nMaxLineNumber);
+				}
 			}
 
 			// Fermeture du fichier
@@ -214,6 +286,7 @@ const ALString KWDatabaseFormatDetector::GetObjectLabel() const
 void KWDatabaseFormatDetector::UpdateDatabaseFormat(boolean bHeaderLineUsed, char cFieldSeparator)
 {
 	KWDataTableDriverTextFile* analysedDatabaseDriverTextFile;
+	ALString sMessage;
 
 	require(analysedDatabase != NULL);
 
@@ -221,6 +294,22 @@ void KWDatabaseFormatDetector::UpdateDatabaseFormat(boolean bHeaderLineUsed, cha
 	analysedDatabaseDriverTextFile = cast(KWDataTableDriverTextFile*, analysedDatabase->GetDataTableDriver());
 	analysedDatabaseDriverTextFile->SetHeaderLineUsed(bHeaderLineUsed);
 	analysedDatabaseDriverTextFile->SetFieldSeparator(cFieldSeparator);
+
+	// Message utilisateur
+	sMessage = "File format detected:";
+	if (bHeaderLineUsed)
+		sMessage += " header line and field separator ";
+	else
+		sMessage += " no header line and field separator ";
+	if (cFieldSeparator == '\t')
+		sMessage += "tabulation";
+	else
+	{
+		sMessage += '\'';
+		sMessage += cFieldSeparator;
+		sMessage += '\'';
+	}
+	AddSimpleMessage(sMessage);
 	if (bShowDetails)
 		cout << "=> Update file format: header=" << bHeaderLineUsed << ", separator='"
 		     << CharToString(cFieldSeparator) << "\n";
@@ -233,13 +322,14 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClass(const KWClass* kwcC
 	boolean bIsNoHeaderLine;
 	ALString sDisplayedSeparators;
 	ALString sMessage;
+	int nTotalAnalysedLineNumber;
 	int nNumber;
 
 	require(kwcClass != NULL);
 	require(kwcClass->GetNativeDataItemNumber() > 0);
 	require(inputFile != NULL);
 	require(inputFile->IsOpened());
-	require(inputFile->GetPositionInFile() == 0);
+	require(inputFile->IsFirstPositionInFile());
 
 	// Tentative d'initialisation avec la ligne d'entete
 	bIsHeaderLine = DetectFileFormatUsingClassWithHeaderLine(kwcClass, inputFile);
@@ -257,6 +347,9 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClass(const KWClass* kwcC
 		assert(cvBestSeparatorList.GetSize() >= 1);
 		assert(nBestCorrectLineNumber <= nBestAnalysedLineNumber);
 
+		// Mise a jour du format de la base
+		UpdateDatabaseFormat(bIsHeaderLine, cBestSeparator);
+
 		// Emission de warning si necessaire
 		if (cvBestSeparatorList.GetSize() > 1 or
 		    nBestMatchedFieldNumber < kwcClass->GetNativeDataItemNumber() or nBestUnknownFieldNumber > 0 or
@@ -270,26 +363,21 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClass(const KWClass* kwcC
 				sDisplayedSeparators = BuildSeparatorsLabel(&cvBestSeparatorList, cBestSeparator);
 			}
 
-			// Personnalisation du warning selon les cas
-			sMessage = "Found file format but:";
-
 			// Cas ou d'autre separateurs sont possible
 			if (cvBestSeparatorList.GetSize() > 1)
 			{
 				// Particularisation du message dans le cas d'un seul champ
 				if (nBestFieldNumber == 1)
 				{
-					sMessage += "\n   . ";
 					sMessage += "one single field has been detected in the file and a default "
-						    "separator has been choosen";
+						    "field separator has been choosen";
 				}
 				// Message dans le cas general
 				else
 				{
 					nNumber = cvBestSeparatorList.GetSize() - 1;
-					sMessage += "\n   . ";
 					sMessage += IntToString(nNumber);
-					sMessage += " other separator" + Plural("", nNumber) + " ";
+					sMessage += " other field separator" + Plural("", nNumber) + " ";
 					sMessage += Plural("is", nNumber) + " possible: " + sDisplayedSeparators;
 				}
 			}
@@ -299,7 +387,8 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClass(const KWClass* kwcC
 			{
 				assert(bIsHeaderLine);
 				nNumber = kwcClass->GetNativeDataItemNumber() - nBestMatchedFieldNumber;
-				sMessage += "\n   . ";
+				if (sMessage != "")
+					sMessage += ", ";
 				sMessage += IntToString(nNumber);
 				sMessage +=
 				    " variable" + Plural("", nNumber) + " in dictionary " + kwcClass->GetName() + " ";
@@ -311,7 +400,8 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClass(const KWClass* kwcC
 			{
 				assert(bIsHeaderLine);
 				nNumber = nBestUnknownFieldNumber;
-				sMessage += "\n   . ";
+				if (sMessage != "")
+					sMessage += ", ";
 				sMessage += IntToString(nNumber);
 				sMessage += " field name" + Plural("", nNumber) + " in the header line ";
 				sMessage += Plural("is", nNumber) + " missing in dictionary " + kwcClass->GetName();
@@ -320,13 +410,16 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClass(const KWClass* kwcC
 			// Cas avec des lignes erronees
 			if (nBestCorrectLineNumber < nBestAnalysedLineNumber)
 			{
+				// La premiere ligne doit etre prise en compte dans le total des lignes analysees
+				nTotalAnalysedLineNumber = nBestAnalysedLineNumber + 1;
 				nNumber = nBestAnalysedLineNumber - nBestCorrectLineNumber;
-				sMessage += "\n   . ";
+				if (sMessage != "")
+					sMessage += ", ";
 				sMessage += IntToString(nNumber);
 				sMessage += " record" + Plural("", nNumber) + " ";
-				sMessage += Plural("has", nNumber) + " an incorrect field number in the first ";
-				sMessage += IntToString(nBestAnalysedLineNumber);
-				sMessage += " record" + Plural("", nNumber) + " of the file";
+				sMessage += Plural("is", nNumber) + " not correctly parsed in the first ";
+				sMessage += IntToString(nTotalAnalysedLineNumber);
+				sMessage += " record" + Plural("", nTotalAnalysedLineNumber) + " of the file";
 			}
 
 			// Emission du message
@@ -339,14 +432,11 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClass(const KWClass* kwcC
 			    nBestUnknownFieldNumber > 0 or nBestCorrectLineNumber <= nMinCorrectLineNumber)
 				ShowHeadLines(inputFile);
 		}
-
-		// Mise a jour du format de la base
-		UpdateDatabaseFormat(bIsHeaderLine, cBestSeparator);
 	}
 	// Message d'erreur sinon
 	else
 	{
-		AddError("No file format found consistent with dictionary " + GetDatabase()->GetClassName());
+		AddError("No detected file format compatible with the dictionary " + GetDatabase()->GetClassName());
 		ShowHeadLines(inputFile);
 	}
 	return (bIsHeaderLine or bIsNoHeaderLine);
@@ -356,9 +446,10 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClassWithHeaderLine(const
 									   RewindableInputBufferedFile* inputFile)
 {
 	boolean bIsHeaderLine;
-	StringVector svMandatoryAttributeNames;
+	StringVector svMandatoryDataItemNames;
 	StringVector svNativeAttributeNames;
 	CharVector cvLine;
+	boolean bLineTooLong;
 	KWCharFrequencyVector cfvAttributeNames;
 	KWCharFrequencyVector cfvFirstLine;
 	KWCharFrequencyVector cfvCandidateSeparators;
@@ -375,29 +466,51 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClassWithHeaderLine(const
 	require(inputFile->GetCurrentBufferSize() > 0);
 
 	// Export des noms des attributs obligatoires du dictionnaire
-	BuildMandatoryAttributeNames(kwcClass, &svMandatoryAttributeNames);
+	// On ne se concentre que sur les attributs obligatoires, car la lectre des fichiers est tolerante
+	// aux attributs absents du fichier s'ils ne sont pas utilises
+	BuildMandatoryDataItemNames(kwcClass, &svMandatoryDataItemNames);
 
-	// Export des nom des attributs natifs du dictionnaire
+	// Export des noms des attributs natifs du dictionnaire
 	kwcClass->ExportNativeFieldNames(&svNativeAttributeNames);
-	assert(svNativeAttributeNames.GetSize() >= svMandatoryAttributeNames.GetSize());
+	assert(svNativeAttributeNames.GetSize() >= svMandatoryDataItemNames.GetSize());
+
+	// Dans le cas particulier ou aucun attribut n'est obligatoire, on les prend tous pour detecter le format
+	// Sinon, on est incapable d'identifier un caractere separateur de champs
+	if (svMandatoryDataItemNames.GetSize() == 0)
+		svMandatoryDataItemNames.CopyFrom(&svNativeAttributeNames);
 
 	// Calcul des effectifs des caracteres utilises dans les nom des variables
-	cfvAttributeNames.InitializeFromStringVector(&svMandatoryAttributeNames);
+	cfvAttributeNames.InitializeFromStringVector(&svMandatoryDataItemNames);
 	if (bShowDetails)
 		cout << "Variables names: " << cfvAttributeNames << "\n";
 
 	// Lecture de la premiere ligne du fichier
 	inputFile->RewindBuffer();
-	inputFile->GetNextLine(&cvLine);
+	inputFile->GetNextLine(&cvLine, bLineTooLong);
+
+	// Erreur et retour immediat dans le cas d'une ligne trop longue
+	if (bLineTooLong)
+	{
+		AddError("First line, " + InputBufferedFile::GetLineTooLongErrorLabel());
+		return false;
+	}
 
 	// Calcul des effectifs des caracteres utilises dans la premiere ligne du fichier
 	cfvFirstLine.InitializeFromBuffer(&cvLine);
 	if (bShowDetails)
 		cout << "First line: " << cfvFirstLine << "\n";
 
-	// Initialisation des separateurs candidats avec les caracteres de la premiere ligne
-	cfvCandidateSeparators.CopyFrom(&cfvFirstLine);
+	// Initialisation des separateurs candidats
+	// Cas particulier d'un seul champ natif
+	if (kwcClass->GetNativeDataItemNumber() == 1)
+		cfvCandidateSeparators.InitializeFrequencies(1);
+	// Cas general avec au moins deux champs
+	// Initialisation avec les caracteres de la premiere ligne
+	else
+		cfvCandidateSeparators.CopyFrom(&cfvFirstLine);
 	bIsHeaderLine = not cfvCandidateSeparators.IsZero();
+	if (bShowDetails)
+		cout << "Initialisation des separateurs candidats: " << cfvCandidateSeparators << "\n";
 
 	// On soustrait les caracteres des champs obligatoire
 	if (bIsHeaderLine)
@@ -405,6 +518,10 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClassWithHeaderLine(const
 		bIsHeaderLine = cfvCandidateSeparators.IsGreaterOrEqual(&cfvAttributeNames);
 		if (bIsHeaderLine)
 			cfvCandidateSeparators.Substract(&cfvAttributeNames);
+		if (bShowDetails)
+			cout << "Separateurs candidats apres caracteres des champs obligatoires: "
+			     << cfvCandidateSeparators << "\n";
+
 		bIsHeaderLine = not cfvCandidateSeparators.IsZero();
 	}
 
@@ -428,7 +545,7 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClassWithHeaderLine(const
 
 			// On doit avoir assez de separateurs pour les champs obligatoires
 			if (cfvCandidateSeparators.GetFrequencyAt(cSeparator) >=
-				svMandatoryAttributeNames.GetSize() - 1 and
+				svMandatoryDataItemNames.GetSize() - 1 and
 			    cfvInvalidSeparators.GetFrequencyAt(cSeparator) == 0)
 			{
 				if (bShowDetails)
@@ -441,7 +558,7 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClassWithHeaderLine(const
 				inputFile->RewindBuffer();
 				inputFile->SetFieldSeparator(cCurrentSeparator);
 				bIsHeaderLine = true;
-				assert(inputFile->GetPositionInFile() == 0);
+				require(inputFile->IsFirstPositionInFile());
 
 				// Test si une header line est possible
 				if (bIsHeaderLine)
@@ -457,26 +574,26 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClassWithHeaderLine(const
 				if (bIsHeaderLine)
 				{
 					nCurrentMatchedFieldNumber =
-					    headerLineAnaliser.ComputePresentNameNumber(&svMandatoryAttributeNames);
+					    headerLineAnaliser.ComputePresentNameNumber(&svMandatoryDataItemNames);
 					nCurrentUnknownFieldNumber =
 					    headerLineAnaliser.GetSize() - nCurrentMatchedFieldNumber;
 					bIsHeaderLine =
-					    nCurrentMatchedFieldNumber == svMandatoryAttributeNames.GetSize();
+					    nCurrentMatchedFieldNumber == svMandatoryDataItemNames.GetSize();
 					if (bShowDetails)
-						cout << "\tMantatory fields (" << svMandatoryAttributeNames.GetSize()
+						cout << "\tMantatory fields (" << svMandatoryDataItemNames.GetSize()
 						     << "): " << bIsHeaderLine << "\n";
 				}
 
 				// Recherche du nombre de champ natifs reconnus
 				if (bIsHeaderLine and
-				    svNativeAttributeNames.GetSize() > svMandatoryAttributeNames.GetSize())
+				    svNativeAttributeNames.GetSize() > svMandatoryDataItemNames.GetSize())
 				{
 					assert(svNativeAttributeNames.GetSize() >= 1);
 					nCurrentMatchedFieldNumber =
 					    headerLineAnaliser.ComputePresentNameNumber(&svNativeAttributeNames);
 					nCurrentUnknownFieldNumber =
 					    headerLineAnaliser.GetSize() - nCurrentMatchedFieldNumber;
-					assert(nCurrentMatchedFieldNumber >= svMandatoryAttributeNames.GetSize());
+					assert(nCurrentMatchedFieldNumber >= svMandatoryDataItemNames.GetSize());
 					if (bShowDetails)
 						cout << "\tNative fields (" << svNativeAttributeNames.GetSize()
 						     << "): " << bIsHeaderLine << "\n";
@@ -516,6 +633,7 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClassWithoutHeaderLine(co
 {
 	boolean bIsFirstLineValid;
 	CharVector cvLine;
+	boolean bLineTooLong;
 	KWCharFrequencyVector cfvFirstLine;
 	KWCharFrequencyVector cfvCandidateSeparators;
 	IntVector ivLineFieldNumbers;
@@ -534,7 +652,14 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClassWithoutHeaderLine(co
 
 	// Lecture de la premiere ligne du fichier
 	inputFile->RewindBuffer();
-	inputFile->GetNextLine(&cvLine);
+	inputFile->GetNextLine(&cvLine, bLineTooLong);
+
+	// Erreur et retour immediat dans le cas d'une ligne trop longue
+	if (bLineTooLong)
+	{
+		AddError("First line, " + InputBufferedFile::GetLineTooLongErrorLabel());
+		return false;
+	}
 
 	// Calcul des effectifs des caracteres utilises dans la premiere ligne du fichier
 	cfvFirstLine.InitializeFromBuffer(&cvLine);
@@ -594,7 +719,7 @@ boolean KWDatabaseFormatDetector::DetectFileFormatUsingClassWithoutHeaderLine(co
 				inputFile->RewindBuffer();
 				inputFile->SetFieldSeparator(cCurrentSeparator);
 				bIsFirstLineValid = true;
-				assert(inputFile->GetPositionInFile() == 0);
+				assert(inputFile->IsFirstPositionInFile());
 
 				// Test si la premiere ligne est valide
 				if (bIsFirstLineValid)
@@ -659,10 +784,12 @@ boolean KWDatabaseFormatDetector::DetectFileFormatWithoutClass(RewindableInputBu
 	IntVector ivLineFieldNumbers;
 	int nAnalysedLineNumber;
 	CharVector cvLine;
+	boolean bLineTooLong;
 	int i;
 	char cSeparator;
 	ALString sDisplayedSeparators;
 	ALString sMessage;
+	int nTotalAnalysedLineNumber;
 	int nNumber;
 
 	require(inputFile != NULL);
@@ -675,7 +802,14 @@ boolean KWDatabaseFormatDetector::DetectFileFormatWithoutClass(RewindableInputBu
 
 	// Lecture de la premiere ligne du fichier
 	inputFile->RewindBuffer();
-	inputFile->GetNextLine(&cvLine);
+	inputFile->GetNextLine(&cvLine, bLineTooLong);
+
+	// Erreur et retour immediat dans le cas d'une ligne trop longue
+	if (bLineTooLong)
+	{
+		AddError("First line, " + InputBufferedFile::GetLineTooLongErrorLabel());
+		return false;
+	}
 
 	// Test s'il y a plus d'une ligne
 	if (bIsValid)
@@ -715,7 +849,7 @@ boolean KWDatabaseFormatDetector::DetectFileFormatWithoutClass(RewindableInputBu
 			{
 				sMessage += "the first ";
 				sMessage += LongintToHumanReadableString(inputFile->GetCurrentBufferSize());
-				sMessage += " of the file ";
+				sMessage += " bytes of the file ";
 			}
 			if (not bErrorDisplayed)
 			{
@@ -779,7 +913,7 @@ boolean KWDatabaseFormatDetector::DetectFileFormatWithoutClass(RewindableInputBu
 			if (cfvCandidateSeparators.GetFrequencyAt(cSeparator) > 0)
 			{
 				if (bShowDetails)
-					cout << "Test line separator for field number consistency'"
+					cout << "Test line separator for field number consistency: '"
 					     << CharToString(cSeparator) << "'\n";
 
 				// Initialisation de la solution courante
@@ -930,7 +1064,8 @@ boolean KWDatabaseFormatDetector::DetectFileFormatWithoutClass(RewindableInputBu
 		{
 			for (i = 0; i < headerLineAnaliser.GetSize(); i++)
 			{
-				bIsHeaderLine = KWClass::CheckName(headerLineAnaliser.GetAt(i), NULL);
+				bIsHeaderLine =
+				    KWClass::CheckName(headerLineAnaliser.GetAt(i), KWClass::Attribute, NULL);
 				if (not bIsHeaderLine)
 					break;
 			}
@@ -947,6 +1082,9 @@ boolean KWDatabaseFormatDetector::DetectFileFormatWithoutClass(RewindableInputBu
 		assert(nBestCorrectLineNumber <= nBestAnalysedLineNumber);
 		assert(nBestTypeConsistency >= nBestFieldNumber);
 
+		// Mise a jour du format de la base
+		UpdateDatabaseFormat(bIsHeaderLine, cBestSeparator);
+
 		// Emission de warning si necessaire
 		if (cvBestSeparatorList.GetSize() > 1 or nBestCorrectLineNumber < nBestAnalysedLineNumber)
 		{
@@ -958,26 +1096,21 @@ boolean KWDatabaseFormatDetector::DetectFileFormatWithoutClass(RewindableInputBu
 				sDisplayedSeparators = BuildSeparatorsLabel(&cvBestSeparatorList, cBestSeparator);
 			}
 
-			// Personnalisation du warning selon les cas
-			sMessage = "Found file format but:";
-
 			// Cas ou d'autre separateurs sont possible
 			if (cvBestSeparatorList.GetSize() > 1)
 			{
 				// Particularisation du message dans le cas d'un seul champ
 				if (nBestFieldNumber == 1)
 				{
-					sMessage += "\n   . ";
 					sMessage += "one single field has been detected in the file and a default "
-						    "separator has been choosen";
+						    "field separator has been choosen";
 				}
 				// Message dans le cas general
 				else
 				{
 					nNumber = cvBestSeparatorList.GetSize() - 1;
-					sMessage += "\n   . ";
 					sMessage += IntToString(nNumber);
-					sMessage += " other separator" + Plural("", nNumber) + " ";
+					sMessage += " other field separator" + Plural("", nNumber) + " ";
 					sMessage += Plural("is", nNumber) + " possible: " + sDisplayedSeparators;
 				}
 			}
@@ -985,13 +1118,16 @@ boolean KWDatabaseFormatDetector::DetectFileFormatWithoutClass(RewindableInputBu
 			// Cas avec des lignes erronees
 			if (nBestCorrectLineNumber < nBestAnalysedLineNumber)
 			{
+				// La premiere ligne doit etre prise en compte dans le total des lignes analysees
+				nTotalAnalysedLineNumber = nBestAnalysedLineNumber + 1;
 				nNumber = nBestAnalysedLineNumber - nBestCorrectLineNumber;
-				sMessage += "\n   . ";
+				if (sMessage != "")
+					sMessage += ", ";
 				sMessage += IntToString(nNumber);
 				sMessage += " record" + Plural("", nNumber) + " ";
-				sMessage += Plural("has", nNumber) + " an incorrect field number in the first ";
-				sMessage += IntToString(nBestAnalysedLineNumber);
-				sMessage += " record" + Plural("", nNumber) + " of the file";
+				sMessage += Plural("is", nNumber) + " not correctly parsed in the first ";
+				sMessage += IntToString(nTotalAnalysedLineNumber);
+				sMessage += " record" + Plural("", nTotalAnalysedLineNumber) + " of the file";
 			}
 
 			// Emission du message
@@ -1002,20 +1138,16 @@ boolean KWDatabaseFormatDetector::DetectFileFormatWithoutClass(RewindableInputBu
 			if (cvBestSeparatorList.GetSize() > 1 or nBestCorrectLineNumber <= nMinCorrectLineNumber)
 				ShowHeadLines(inputFile);
 		}
-
-		// Mise a jour du format de la base
-		UpdateDatabaseFormat(bIsHeaderLine, cBestSeparator);
 	}
 	// Message d'erreur sinon
 	else
 	{
 		if (not bErrorDisplayed)
 		{
-			AddError("No consistent file format found");
+			AddError("No consistent file format detected");
 			ShowHeadLines(inputFile);
 		}
 	}
-
 	return cBestSeparator != '\0';
 }
 
@@ -1041,6 +1173,7 @@ void KWDatabaseFormatDetector::ShowCurrentLines(InputBufferedFile* inputFile, co
 	int i;
 	char c;
 	CharVector cvLine;
+	boolean bLineTooLong;
 	ALString sLine;
 
 	require(inputFile != NULL);
@@ -1052,7 +1185,7 @@ void KWDatabaseFormatDetector::ShowCurrentLines(InputBufferedFile* inputFile, co
 	nLine = 0;
 	while (not inputFile->IsBufferEnd())
 	{
-		inputFile->GetNextLine(&cvLine);
+		inputFile->GetNextLine(&cvLine, bLineTooLong);
 
 		// Ajout des caracteres a afficher
 		sLine = "";
@@ -1081,6 +1214,10 @@ void KWDatabaseFormatDetector::ShowCurrentLines(InputBufferedFile* inputFile, co
 			if (sTitle != "")
 				AddSimpleMessage(sTitle);
 		}
+
+		// Warning si ligne trop longue
+		if (bLineTooLong)
+			AddWarning("Next line, " + InputBufferedFile::GetLineTooLongErrorLabel());
 
 		// Affichage de la ligne
 		AddSimpleMessage(sLine);
@@ -1125,10 +1262,10 @@ int KWDatabaseFormatDetector::ComputeSeparatorPriority(char cSeparator) const
 	// Recherche de la position dans les separateurs preferes
 	nPriority = sPreferredSeparators.Find(cSeparator);
 
-	// Si non trouve, on prend le le cracater lui meme d'abord dans sa plage ascii, puis dans la plage ascii etendue
+	// Si non trouve, on prend le le caractere lui meme d'abord dans sa plage ascii, puis dans la plage ascii etendue
 	if (nPriority == -1)
 	{
-		if (isprint(cSeparator))
+		if (p_isprint(cSeparator))
 		{
 			if (cSeparator >= 0)
 				nPriority = 1000 + cSeparator;
@@ -1149,7 +1286,7 @@ int KWDatabaseFormatDetector::ComputeSeparatorPriority(char cSeparator) const
 
 void KWDatabaseFormatDetector::SortSeparators(CharVector* cvSeparators) const
 {
-	KWIntVectorSorter sorter;
+	IntVectorSorter sorter;
 	IntVector ivSeparatorPriorities;
 	int i;
 	char cSeparator;
@@ -1243,45 +1380,78 @@ void KWDatabaseFormatDetector::InitializeInvalidSeparators()
 	}
 }
 
-void KWDatabaseFormatDetector::BuildMandatoryAttributeNames(const KWClass* kwcClass,
-							    StringVector* svMandatoryAttributeNames) const
+void KWDatabaseFormatDetector::BuildMandatoryDataItemNames(const KWClass* kwcClass,
+							   StringVector* svMandatoryDataItemNames) const
 {
+	NumericKeyDictionary nkdAllUsedAttributes;
+	NumericKeyDictionary nkdAllUsedClasses;
+	NumericKeyDictionary nkdAllLoadedClasses;
+	NumericKeyDictionary nkdAllNativeClasses;
+	ObjectArray oaAllUsedAttributes;
+	NumericKeyDictionary nkdAllUsedAttributeBlocks;
+	ObjectArray oaAllUsedAttributeBlocks;
 	KWAttribute* attribute;
+	KWAttributeBlock* attributeBlock;
 	KWDerivationRule* derivationRule;
-	NumericKeyDictionary nkdNeededAttributes;
-	ObjectArray oaNeedAttributes;
 	int nAttribute;
+	int nAttributeBlock;
 
 	require(kwcClass != NULL);
-	require(svMandatoryAttributeNames != NULL);
-	require(svMandatoryAttributeNames->GetSize() == 0);
+	require(svMandatoryDataItemNames != NULL);
+	require(svMandatoryDataItemNames->GetSize() == 0);
 
 	// Recherche des attributs necessaires pour cette classe
+	// On a ici une tolerance en n'imposant pas que tous les attributs natifs soient presents dans le header
+	// On n'exige que la presence des attributs utilises (Used et Loaded), ainsi que les attributs necessaires
+	// au calcul des attributs derives utilises
 	for (nAttribute = 0; nAttribute < kwcClass->GetLoadedAttributeNumber(); nAttribute++)
 	{
 		attribute = kwcClass->GetLoadedAttributeAt(nAttribute);
 
 		// Memorisation si l'attribut est natif
 		if (attribute->IsNative())
-			nkdNeededAttributes.SetAt((NUMERIC)attribute, cast(Object*, attribute));
+			nkdAllUsedAttributes.SetAt(attribute, cast(Object*, attribute));
 
 		// Analyse de la regle de derivation
 		// Dans le cas d'un bloc, il faut en effet la reanalyser pour chaque attribut du bloc
 		// pour detecter les attributs utilises des blocs potentiellement en operande
 		derivationRule = attribute->GetAnyDerivationRule();
 		if (derivationRule != NULL)
-			derivationRule->BuildAllUsedAttributes(attribute, &nkdNeededAttributes);
+			derivationRule->BuildAllUsedAttributes(attribute, &nkdAllUsedAttributes);
 	}
 
-	// Export des attributs identifies
-	nkdNeededAttributes.ExportObjectArray(&oaNeedAttributes);
+	// Collecte des attributs utilises recursivement dans les operandes des regles ou via les
+	// attribut cles necessaires dans le cas multi-table
+	kwcClass->BuildAllUsedAttributes(&nkdAllUsedAttributes, &nkdAllUsedClasses, &nkdAllLoadedClasses,
+					 &nkdAllNativeClasses);
+
+	// Export des attributs utilises
+	nkdAllUsedAttributes.ExportObjectArray(&oaAllUsedAttributes);
 
 	// On garde les attribut natifs de la classe en cours
-	for (nAttribute = 0; nAttribute < oaNeedAttributes.GetSize(); nAttribute++)
+	for (nAttribute = 0; nAttribute < oaAllUsedAttributes.GetSize(); nAttribute++)
 	{
-		attribute = cast(KWAttribute*, oaNeedAttributes.GetAt(nAttribute));
+		attribute = cast(KWAttribute*, oaAllUsedAttributes.GetAt(nAttribute));
 		if (attribute->IsNative() and attribute->GetParentClass() == kwcClass)
-			svMandatoryAttributeNames->Add(attribute->GetName());
+		{
+			// Memorisation si attribut
+			if (not attribute->IsInBlock())
+				svMandatoryDataItemNames->Add(attribute->GetName());
+			// Enregistrement du bloc sinon
+			else
+				nkdAllUsedAttributeBlocks.SetAt(attribute->GetAttributeBlock(),
+								attribute->GetAttributeBlock());
+		}
+	}
+
+	// Export des blocs utilises
+	nkdAllUsedAttributeBlocks.ExportObjectArray(&oaAllUsedAttributeBlocks);
+
+	// On garde les attribut natifs de la classe en cours
+	for (nAttributeBlock = 0; nAttributeBlock < oaAllUsedAttributeBlocks.GetSize(); nAttributeBlock++)
+	{
+		attributeBlock = cast(KWAttributeBlock*, oaAllUsedAttributeBlocks.GetAt(nAttributeBlock));
+		svMandatoryDataItemNames->Add(attributeBlock->GetName());
 	}
 }
 
@@ -1306,6 +1476,8 @@ int KWDatabaseFormatDetector::ComputeCorrectLineNumber(IntVector* ivLineFieldNum
 void KWDatabaseFormatDetector::CollectLineFieldNumbers(RewindableInputBufferedFile* inputFile, int nMaxLineNumber,
 						       IntVector* ivLineFieldNumbers) const
 {
+	int nLineFieldNumber;
+
 	require(inputFile != NULL);
 	require(inputFile->IsOpened());
 	require(not inputFile->IsBufferEnd());
@@ -1315,14 +1487,23 @@ void KWDatabaseFormatDetector::CollectLineFieldNumbers(RewindableInputBufferedFi
 	// Boucle de lecture sur le fichier, au plus jusqu'a la fin du buffer
 	ivLineFieldNumbers->SetSize(0);
 	while (not inputFile->IsBufferEnd() and ivLineFieldNumbers->GetSize() < nMaxLineNumber)
-		ivLineFieldNumbers->Add(ComputeLineFieldNumber(inputFile));
+	{
+		nLineFieldNumber = ComputeLineFieldNumber(inputFile);
+
+		// On prend en compte les lignes non vide uniquement
+		// Les ligne erronnees (retour -1) ou non vides sont prise en compte
+		if (nLineFieldNumber != 0)
+			ivLineFieldNumbers->Add(nLineFieldNumber);
+	}
 }
 
 int KWDatabaseFormatDetector::ComputeLineFieldNumber(RewindableInputBufferedFile* inputFile) const
 {
 	int nFieldNumber;
 	boolean bEndOfLine;
+	boolean bLineTooLong;
 	char* sField;
+	int nFieldLength;
 	int nFieldError;
 	boolean bIsError;
 
@@ -1336,14 +1517,33 @@ int KWDatabaseFormatDetector::ComputeLineFieldNumber(RewindableInputBufferedFile
 	bIsError = false;
 	while (not bEndOfLine)
 	{
-		bEndOfLine = inputFile->GetNextField(sField, nFieldError);
+		bEndOfLine = inputFile->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 
-		// Memorisation des erreurs, en considerant qu'un tabulation remplacee par un blanc n'est pas une erreur
-		if (nFieldError != InputBufferedFile::FieldNoError and
-		    nFieldError != InputBufferedFile::FieldTabReplaced)
+		// Memorisation des erreurs
+		if (bLineTooLong or (nFieldError != InputBufferedFile::FieldNoError))
+		{
 			bIsError = true;
+
+			// On saute les champ jusqu'a la fin de ligne
+			if (not bEndOfLine)
+			{
+				inputFile->SkipLastFields(bLineTooLong);
+				bEndOfLine = true;
+			}
+			break;
+		}
+
+		// On compte 0 champ dans le cas particulier d'une ligne vide
+		if (bEndOfLine and nFieldNumber == 0 and sField[0] == '\0' and
+		    nFieldError == InputBufferedFile::FieldNoError)
+			break;
+
+		// Incrementation du nombre de champs trouves
 		nFieldNumber++;
 	}
+	assert(bEndOfLine);
+
+	// On renvoie -1 si une erreur a ete detectee
 	if (bIsError)
 		nFieldNumber = -1;
 	return nFieldNumber;
@@ -1395,7 +1595,7 @@ int KWDatabaseFormatDetector::ComputeTypeConsistency(RewindableInputBufferedFile
 	nAnalysedLineNumber = 0;
 	while (not inputFile->IsBufferEnd() and nLine < nMaxLineNumber)
 	{
-		// Lecture des champ d'un ligne
+		// Lecture des champs d'un ligne
 		bOk = ReadLineFields(inputFile, nExpectedFieldNumber, &svFields);
 		nAnalysedLineNumber++;
 
@@ -1492,7 +1692,9 @@ boolean KWDatabaseFormatDetector::ReadLineFields(RewindableInputBufferedFile* in
 	boolean bOk;
 	int nFieldNumber;
 	boolean bEndOfLine;
+	boolean bLineTooLong;
 	char* sField;
+	int nFieldLength;
 	int nFieldError;
 
 	require(inputFile != NULL);
@@ -1510,16 +1712,21 @@ boolean KWDatabaseFormatDetector::ReadLineFields(RewindableInputBufferedFile* in
 	bOk = true;
 	while (not bEndOfLine)
 	{
-		bEndOfLine = inputFile->GetNextField(sField, nFieldError);
+		bEndOfLine = inputFile->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 
-		// Memorisation des erreurs, en considerant qu'un tabulation remplacee par un blanc n'est pas une erreur
-		if (nFieldError != InputBufferedFile::FieldNoError and
-		    nFieldError != InputBufferedFile::FieldTabReplaced)
+		// Memorisation des erreurs
+		if (bLineTooLong or (nFieldError != InputBufferedFile::FieldNoError))
+		{
 			bOk = false;
+			break;
+		}
 
 		// Erreur si in depasse le nombre de champ attendus
 		if (nFieldNumber >= nExpectedFieldNumber)
+		{
 			bOk = false;
+			break;
+		}
 
 		// Memorisation de la valeur si pas d'erreur
 		if (bOk)
@@ -1539,7 +1746,9 @@ int KWDatabaseFormatDetector::CollectCharFrequenciesLineStats(RewindableInputBuf
 							      KWCharFrequencyVector* cfvLineMaxCharFrequencies) const
 {
 	int nAnalysedLineNumber;
+	boolean bIsEmptyLine;
 	CharVector cvLine;
+	boolean bLineTooLong;
 	KWCharFrequencyVector cfvLineCharFrequencies;
 
 	require(inputFile != NULL);
@@ -1555,25 +1764,37 @@ int KWDatabaseFormatDetector::CollectCharFrequenciesLineStats(RewindableInputBuf
 	cfvLineMaxCharFrequencies->Initialize();
 	while (not inputFile->IsBufferEnd() and nAnalysedLineNumber < nMaxLineNumber)
 	{
-		inputFile->GetNextLine(&cvLine);
-		if (cvLine.GetSize() > 0)
+		inputFile->GetNextLine(&cvLine, bLineTooLong);
+
+		// Detection de ligne vide
+		bIsEmptyLine = false;
+		if (cvLine.GetSize() <= 2)
 		{
-			// On ne compte pas les caracteres fin de ligne
-			if ((cvLine.GetAt(0) != '\n' and cvLine.GetAt(0) != '\r') or cvLine.GetSize() > 2)
-				nAnalysedLineNumber++;
+			if (cvLine.GetSize() == 0)
+				bIsEmptyLine = true;
+			else if (cvLine.GetSize() == 1)
+				bIsEmptyLine = cvLine.GetAt(0) == '\n';
+			else
+				bIsEmptyLine = (cvLine.GetAt(0) == '\r' and cvLine.GetAt(1) == '\n');
 		}
 
-		// Collecte des stats d'utilisation de caractere de la ligne
-		cfvLineCharFrequencies.InitializeFromBuffer(&cvLine);
+		// Analyse uniquement des lignes non vides et pas trop longues
+		if (not bIsEmptyLine and not bLineTooLong)
+		{
+			nAnalysedLineNumber++;
 
-		// On prend le minimum par rapport aux stats precedentes, sauf pour la premiere fois
-		if (nAnalysedLineNumber == 1)
-			cfvLineMinCharFrequencies->CopyFrom(&cfvLineCharFrequencies);
-		else
-			cfvLineMinCharFrequencies->Min(&cfvLineCharFrequencies);
+			// Collecte des stats d'utilisation de caractere de la ligne
+			cfvLineCharFrequencies.InitializeFromBuffer(&cvLine);
 
-		// On prend le maximum dirctement
-		cfvLineMaxCharFrequencies->Max(&cfvLineCharFrequencies);
+			// On prend le minimum par rapport aux stats precedentes, sauf pour la premiere fois
+			if (nAnalysedLineNumber == 1)
+				cfvLineMinCharFrequencies->CopyFrom(&cfvLineCharFrequencies);
+			else
+				cfvLineMinCharFrequencies->Min(&cfvLineCharFrequencies);
+
+			// On prend le maximum directement
+			cfvLineMaxCharFrequencies->Max(&cfvLineCharFrequencies);
+		}
 	}
 	return nAnalysedLineNumber;
 }
@@ -1583,11 +1804,11 @@ void KWDatabaseFormatDetector::InitCurrentSolution(char cSeparator)
 	cCurrentSeparator = cSeparator;
 	nCurrentMatchedFieldNumber = 0;
 	nCurrentUnknownFieldNumber = INT_MAX;
-	nCurrentFieldNumber = INT_MAX;
 	nCurrentCorrectLineNumber = 0;
-	nCurrentAnalysedLineNumber = -1;
 	nCurrentTypeConsistency = 0;
+	nCurrentFieldNumber = INT_MAX;
 	nCurrentSeparatorPriority = INT_MAX;
+	nCurrentAnalysedLineNumber = -1;
 }
 
 void KWDatabaseFormatDetector::InitBestSolution()
@@ -1596,23 +1817,23 @@ void KWDatabaseFormatDetector::InitBestSolution()
 	cBestSeparator = '\0';
 	nBestMatchedFieldNumber = 0;
 	nBestUnknownFieldNumber = INT_MAX;
-	nBestFieldNumber = INT_MAX;
 	nBestCorrectLineNumber = 0;
-	nBestAnalysedLineNumber = -1;
 	nBestTypeConsistency = 0;
+	nBestFieldNumber = INT_MAX;
 	nBestSeparatorPriority = INT_MAX;
+	nBestAnalysedLineNumber = -1;
 }
 
 boolean KWDatabaseFormatDetector::UpdateBestSolution()
 {
-	boolean bImprovedSeparator;
+	int nDiffSeparator;
 
 	require(cCurrentSeparator != '\0');
-	require(nCurrentFieldNumber != INT_MAX);
-	require(nCurrentAnalysedLineNumber != -1);
 	require(nCurrentCorrectLineNumber <= nCurrentAnalysedLineNumber);
+	require(nCurrentFieldNumber != INT_MAX);
 	require(nCurrentSeparatorPriority != INT_MAX);
 	require(nCurrentTypeConsistency >= 0);
+	require(nCurrentAnalysedLineNumber != -1);
 
 	// On memorise le separateur de toutes facon
 	cvBestSeparatorList.Add(cCurrentSeparator);
@@ -1620,48 +1841,57 @@ boolean KWDatabaseFormatDetector::UpdateBestSolution()
 		cout << "-> possible separator: " << CharToString(cCurrentSeparator) << "\n";
 
 	// On regarde si on a trouve un meilleur separateur
-	bImprovedSeparator = true;
+	// On evalue si on a une evaluation stricte ou non
+	nDiffSeparator = 1;
 	if (cvBestSeparatorList.GetSize() > 1)
 	{
-		if (nCurrentMatchedFieldNumber < nBestMatchedFieldNumber)
-			bImprovedSeparator = false;
-		else if (nCurrentUnknownFieldNumber > nBestUnknownFieldNumber)
-			bImprovedSeparator = false;
-		else if (nCurrentFieldNumber > nBestFieldNumber)
-			bImprovedSeparator = false;
-		else if (nCurrentCorrectLineNumber < nBestCorrectLineNumber)
-			bImprovedSeparator = false;
-		else if (nCurrentTypeConsistency < nBestTypeConsistency)
-			bImprovedSeparator = false;
-		else if (nCurrentSeparatorPriority > nBestSeparatorPriority)
-			bImprovedSeparator = false;
+		nDiffSeparator = 0;
+
+		// Criteres dans le cas de l'utilisation d'une classe
+		if (GetUsingClass())
+		{
+			if (nDiffSeparator == 0)
+				nDiffSeparator = nCurrentMatchedFieldNumber - nBestMatchedFieldNumber;
+			if (nDiffSeparator == 0)
+				nDiffSeparator = -(nCurrentUnknownFieldNumber - nBestUnknownFieldNumber);
+		}
+
+		// Autre criteres d'amelioration
+		if (nDiffSeparator == 0)
+			nDiffSeparator = nCurrentCorrectLineNumber - nBestCorrectLineNumber;
+		if (nDiffSeparator == 0)
+			nDiffSeparator = nCurrentTypeConsistency - nBestTypeConsistency;
+		if (nDiffSeparator == 0)
+			nDiffSeparator = -(nCurrentFieldNumber - nBestFieldNumber);
+		if (nDiffSeparator == 0)
+			nDiffSeparator = -(nCurrentSeparatorPriority - nBestSeparatorPriority);
 	}
 
 	// Memorisation du meilleur separateur
-	if (bImprovedSeparator)
+	if (nDiffSeparator > 0)
 	{
 		cBestSeparator = cCurrentSeparator;
 		nBestMatchedFieldNumber = nCurrentMatchedFieldNumber;
 		nBestUnknownFieldNumber = nCurrentUnknownFieldNumber;
-		nBestFieldNumber = nCurrentFieldNumber;
 		nBestCorrectLineNumber = nCurrentCorrectLineNumber;
-		nBestAnalysedLineNumber = nCurrentAnalysedLineNumber;
 		nBestTypeConsistency = nCurrentTypeConsistency;
+		nBestFieldNumber = nCurrentFieldNumber;
 		nBestSeparatorPriority = nCurrentSeparatorPriority;
+		nBestAnalysedLineNumber = nCurrentAnalysedLineNumber;
 		if (bShowDetails)
 		{
 			cout << "=> best separator: " << CharToString(cBestSeparator);
 			cout << "( " << nBestMatchedFieldNumber;
 			cout << ", " << nBestUnknownFieldNumber;
-			cout << ", " << nBestFieldNumber;
 			cout << ", " << nBestCorrectLineNumber;
-			cout << ", " << nBestAnalysedLineNumber;
 			cout << ", " << nBestTypeConsistency;
+			cout << ", " << nBestFieldNumber;
 			cout << ", " << nBestSeparatorPriority;
+			cout << ", " << nBestAnalysedLineNumber;
 			cout << ")\n";
 		}
 	}
-	return bImprovedSeparator;
+	return (nDiffSeparator > 0);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1681,13 +1911,15 @@ boolean KWHeaderLineAnalyser::FillFromFile(InputBufferedFile* inputFile)
 {
 	boolean bOk = true;
 	boolean bEndOfLine;
+	boolean bLineTooLong;
 	char* sField;
+	int nFieldLength;
 	int nFieldError;
 	ALString sFieldName;
 
 	require(inputFile != NULL);
 	require(inputFile->IsOpened());
-	require(inputFile->GetPositionInFile() == 0);
+	require(inputFile->IsFirstPositionInFile());
 	require(not inputFile->IsBufferEnd());
 
 	// Initialiszation
@@ -1697,11 +1929,10 @@ boolean KWHeaderLineAnalyser::FillFromFile(InputBufferedFile* inputFile)
 	bEndOfLine = false;
 	while (not bEndOfLine)
 	{
-		bEndOfLine = inputFile->GetNextField(sField, nFieldError);
+		bEndOfLine = inputFile->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 
 		// Arret si erreur
-		if (nFieldError != InputBufferedFile::FieldNoError and
-		    nFieldError != InputBufferedFile::FieldTabReplaced)
+		if (bLineTooLong or (nFieldError != InputBufferedFile::FieldNoError))
 		{
 			bOk = false;
 			break;
@@ -1849,6 +2080,11 @@ RewindableInputBufferedFile::~RewindableInputBufferedFile() {}
 void RewindableInputBufferedFile::RewindBuffer()
 {
 	require(IsOpened());
-	nPositionInBuffer = 0;
-	nReadLineNumber = 0;
+
+	// Il faut tenir compte du fait qu'un BOM a peut-etre ete rencontre
+	assert(nBufferStartInCache == nUTF8BomSkippedCharNumber);
+	nPositionInCache = nBufferStartInCache;
+	nLastBolPositionInCache = nBufferStartInCache;
+	nCurrentLineIndex = 1;
+	bLastFieldReachEol = false;
 }

@@ -1,0 +1,74 @@
+Hello, StringObject
+
+Test de changement de taille
+Test de changement de taille dynamique
+Nombre d'objects a inserer (1 to 1000000) [1000]:
+Nombre d'iterations) (1 to 100000) [1000]:
+SYS TIME	ObjectArray change size	0.024377
+
+
+Test d'acces aux valeurs
+Nombre d'objects (1 to 1000) [100]:
+
+Array [100]
+	0:	 [0,]
+	1:	 [0,]
+	2:	 [0,]
+	3:	 [0,]
+	4:	 [0,]
+	5:	 [0,]
+	6:	 [0,]
+	7:	 [0,]
+	8:	 [0,]
+	9:	 [0,]
+	10:	 [0,]
+	...
+
+
+Test de performance
+Nombre d'iterations (lecture et ecriture) (1 to 100000) [1000]:
+SYS TIME	ObjectArray access	0.000731
+
+SYS MEMORY	Used memory	100	832	4032
+
+Tests de tri
+Impression du contenu initial
+ [24,so] [14,so] [14,so] [88,so] [60,so] [21,so] [53,so] [44,so] [71,so] [97,so]
+Impression du contenu apres perturbation
+ [97,so] [71,so] [60,so] [44,so] [24,so] [53,so] [21,so] [14,so] [88,so] [14,so]
+Impression du contenu, apres tri utilisateur
+ [14,so] [14,so] [21,so] [24,so] [44,so] [53,so] [60,so] [71,so] [88,so] [97,so]
+Duplication
+ [14,so] [14,so] [21,so] [24,so] [44,so] [53,so] [60,so] [71,so] [88,so] [97,so]
+Concatenation	1
+Copy	1
+Tri systeme	1
+Recherche par cle en iterant de 0 a 100
+ [14,so] [21,so] [24,so] [44,so] [53,so] [60,so] [71,so] [88,so] [97,so]
+Recherche avancee par cle dans un tableau de doublons
+  [1,so]  [1,so]  [3,so]  [3,so]  [5,so]  [5,so]  [7,so]  [7,so]  [9,so]  [9,so]
+	Key	Found	Index	Preceding
+	 [0,]		-1	-1
+	 [1,]	 [1,so]	0	0
+	 [2,]		-1	1
+	 [3,]	 [3,so]	2	2
+	 [4,]		-1	3
+	 [5,]	 [5,so]	4	4
+	 [6,]		-1	5
+	 [7,]	 [7,so]	6	6
+	 [8,]		-1	7
+	 [9,]	 [9,so]	8	8
+	 [10,]		-1	9
+
+
+Tests ensemblistes
+Ensemble First
+ [0,so] [1,so] [2,so] [3,so] [4,so] [5,so] [6,so] [7,so] [8,so] [9,so]
+Ensemble Second
+ [5,so] [6,so] [7,so] [8,so] [9,so] [10,so] [11,so] [12,so] [13,so] [14,so]
+Ensemble Union(First,Second)
+ [0,so] [1,so] [2,so] [3,so] [4,so] [5,so] [6,so] [7,so] [8,so] [9,so] [10,so] [11,so] [12,so] [13,so] [14,so]
+Ensemble Intersection(First,Second)
+ [5,so] [6,so] [7,so] [8,so] [9,so]
+Ensemble Difference(First,Second)
+ [0,so] [1,so] [2,so] [3,so] [4,so] [10,so] [11,so] [12,so] [13,so] [14,so]

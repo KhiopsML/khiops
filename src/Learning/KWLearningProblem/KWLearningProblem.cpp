@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -14,9 +14,13 @@ KWLearningProblem::KWLearningProblem()
 	analysisResults = new KWAnalysisResults;
 	predictorEvaluator = new KWPredictorEvaluator;
 
+	// Parametrage de la base associee au resultats
+	analysisResults->SetTrainDatabase(trainDatabase);
+
 	// Valeurs par defaut
 	trainDatabase->SetSampleNumberPercentage(70);
-	analysisSpec->GetModelingSpec()->GetAttributeConstructionSpec()->SetMaxConstructedAttributeNumber(100);
+	analysisSpec->GetModelingSpec()->GetAttributeConstructionSpec()->SetMaxConstructedAttributeNumber(1000);
+	analysisSpec->GetModelingSpec()->GetAttributeConstructionSpec()->SetMaxTextFeatureNumber(10000);
 	analysisSpec->GetModelingSpec()->GetAttributeConstructionSpec()->SetMaxTreeNumber(10);
 }
 
@@ -34,20 +38,22 @@ KWLearningProblem::~KWLearningProblem()
 
 KWClassManagement* KWLearningProblem::GetClassManagement()
 {
+	require(trainDatabase->GetClassName() == classManagement->GetClassName());
+	require(testDatabase->GetClassName() == classManagement->GetClassName());
 	return classManagement;
 }
 
 KWDatabase* KWLearningProblem::GetTrainDatabase()
 {
-	// Synchronisation du dictionnaire de la base
-	trainDatabase->SetClassName(classManagement->GetClassName());
+	require(trainDatabase->GetClassName() == classManagement->GetClassName());
+	require(testDatabase->GetClassName() == classManagement->GetClassName());
 	return trainDatabase;
 }
 
 KWDatabase* KWLearningProblem::GetTestDatabase()
 {
-	// Synchronisation du dictionnaire de la base
-	testDatabase->SetClassName(classManagement->GetClassName());
+	require(trainDatabase->GetClassName() == classManagement->GetClassName());
+	require(testDatabase->GetClassName() == classManagement->GetClassName());
 	return testDatabase;
 }
 
@@ -59,6 +65,18 @@ KWAnalysisSpec* KWLearningProblem::GetAnalysisSpec()
 KWAnalysisResults* KWLearningProblem::GetAnalysisResults()
 {
 	return analysisResults;
+}
+
+void KWLearningProblem::UpdateClassNameFromClassManagement()
+{
+	trainDatabase->SetClassName(classManagement->GetClassName());
+	testDatabase->SetClassName(classManagement->GetClassName());
+}
+
+void KWLearningProblem::UpdateClassNameFromTrainDatabase()
+{
+	classManagement->SetClassName(trainDatabase->GetClassName());
+	testDatabase->SetClassName(trainDatabase->GetClassName());
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -214,64 +232,6 @@ boolean KWLearningProblem::CheckTargetAttribute() const
 	return bOk;
 }
 
-#ifdef DEPRECATED_V10
-boolean KWLearningProblem::CheckMandatoryAttributeInPairs() const
-{
-	boolean bOk = true;
-	ALString sMandatoryAttributeInPairs;
-	KWClass* kwcClass;
-	KWAttribute* attribute;
-
-	require(CheckClass());
-
-	// Acces au nom de l'attribut obligatoire dans les paires
-	sMandatoryAttributeInPairs = analysisSpec->GetModelingSpec()
-					 ->GetAttributeConstructionSpec()
-					 ->GetAttributePairsSpec()
-					 ->GetMandatoryAttributeInPairs();
-
-	// Verification
-	if (sMandatoryAttributeInPairs != "")
-	{
-		// Recherche de la classe
-		kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
-		check(kwcClass);
-
-		// Recherche de l'attribut cible
-		attribute = kwcClass->LookupAttribute(sMandatoryAttributeInPairs);
-		if (attribute == NULL)
-		{
-			bOk = false;
-			Global::AddError("", "",
-					 "Mandatory variable in pair analysis " + sMandatoryAttributeInPairs +
-					     " unknown in dictionary " + GetClassName());
-		}
-		else if (not KWType::IsSimple(attribute->GetType()))
-		{
-			bOk = false;
-			Global::AddError("", "",
-					 "Incorrect type for mandatory variable in pair analysis " +
-					     sMandatoryAttributeInPairs);
-		}
-		else if (not attribute->GetUsed())
-		{
-			bOk = false;
-			Global::AddError("", "",
-					 "Mandatory variable in pair analysis " + sMandatoryAttributeInPairs +
-					     " unused in dictionary " + GetClassName());
-		}
-		else if (GetTargetAttributeName() != "" and sMandatoryAttributeInPairs == GetTargetAttributeName())
-		{
-			bOk = false;
-			Global::AddError("", "",
-					 "Mandatory variable in pair analysis " + sMandatoryAttributeInPairs +
-					     " should be different from target variable");
-		}
-	}
-	return bOk;
-}
-#endif // DEPRECATED_V10
-
 boolean KWLearningProblem::CheckTrainDatabaseName() const
 {
 	if (GetDatabaseName() == "")
@@ -352,13 +312,15 @@ boolean KWLearningProblem::CheckResultFileNames() const
 	FileSpec specInputClass;
 	FileSpec specInputTrainDatabase;
 	FileSpec specInputTestDatabase;
+	FileSpec specOutputAnalysisReport;
 	FileSpec specOutputPreparation;
+	FileSpec specOutputTextPreparation;
+	FileSpec specOutputTreePreparation;
 	FileSpec specOutputPreparation2D;
 	FileSpec specOutputModelingDictionary;
 	FileSpec specOutputModeling;
 	FileSpec specOutputTrainEvaluation;
 	FileSpec specOutputTestEvaluation;
-	FileSpec specOutputJSON;
 	ObjectArray oaTrainDatabaseFileSpecs;
 	ObjectArray oaTestDatabaseFileSpecs;
 	ObjectArray oaInputFileSpecs;
@@ -369,61 +331,88 @@ boolean KWLearningProblem::CheckResultFileNames() const
 	FileSpec* specCurrent;
 	FileSpec* specOutput;
 	FileSpec* specRef;
-	ALString sOutputPathName;
 
-	// Initialisation des fichiers d'entree concernes
-	specInputClass.SetLabel("input dictionary");
-	specInputClass.SetFilePathName(classManagement->GetClassFileName());
-	oaInputFileSpecs.Add(&specInputClass);
-
-	// Ajout du ou des fichiers de la base d'apprentissage
-	trainDatabase->ExportUsedFileSpecs(&oaTrainDatabaseFileSpecs);
-	for (n = 0; n < oaTrainDatabaseFileSpecs.GetSize(); n++)
+	// Le nom du rapport doit etre renseigne
+	if (bOk and analysisResults->GetReportFileName() == "")
 	{
-		specCurrent = cast(FileSpec*, oaTrainDatabaseFileSpecs.GetAt(n));
-		specCurrent->SetLabel("train " + specCurrent->GetLabel());
+		bOk = false;
+		AddError("Missing report file name");
 	}
-	oaInputFileSpecs.InsertObjectArrayAt(oaInputFileSpecs.GetSize(), &oaTrainDatabaseFileSpecs);
 
-	// Ajout du ou des fichiers de la base de test
-	testDatabase->ExportUsedFileSpecs(&oaTestDatabaseFileSpecs);
-	for (n = 0; n < oaTestDatabaseFileSpecs.GetSize(); n++)
+	// Verification de l'ensemble des fichiers en sortie
+	if (bOk)
 	{
-		specCurrent = cast(FileSpec*, oaTestDatabaseFileSpecs.GetAt(n));
-		specCurrent->SetLabel("test " + specCurrent->GetLabel());
+		// Initialisation des fichiers d'entree concernes
+		specInputClass.SetLabel("input dictionary");
+		specInputClass.SetFilePathName(classManagement->GetClassFileName());
+		oaInputFileSpecs.Add(&specInputClass);
+
+		// Ajout du ou des fichiers de la base d'apprentissage
+		trainDatabase->ExportUsedFileSpecs(&oaTrainDatabaseFileSpecs);
+		for (n = 0; n < oaTrainDatabaseFileSpecs.GetSize(); n++)
+		{
+			specCurrent = cast(FileSpec*, oaTrainDatabaseFileSpecs.GetAt(n));
+			specCurrent->SetLabel("train " + specCurrent->GetLabel());
+		}
+		oaInputFileSpecs.InsertObjectArrayAt(oaInputFileSpecs.GetSize(), &oaTrainDatabaseFileSpecs);
+
+		// Ajout du ou des fichiers de la base de test
+		testDatabase->ExportUsedFileSpecs(&oaTestDatabaseFileSpecs);
+		for (n = 0; n < oaTestDatabaseFileSpecs.GetSize(); n++)
+		{
+			specCurrent = cast(FileSpec*, oaTestDatabaseFileSpecs.GetAt(n));
+			specCurrent->SetLabel("test " + specCurrent->GetLabel());
+		}
+		oaInputFileSpecs.InsertObjectArrayAt(oaInputFileSpecs.GetSize(), &oaTestDatabaseFileSpecs);
+
+		// Specification des fichiers de sortie standard
+		specOutputAnalysisReport.SetLabel("analysis report");
+		specOutputAnalysisReport.SetFilePathName(analysisResults->GetReportFileName());
+		oaOutputFileSpecs.Add(&specOutputAnalysisReport);
+		specOutputModelingDictionary.SetLabel("modeling dictionary");
+		specOutputModelingDictionary.SetFilePathName(analysisResults->GetModelingDictionaryFileName());
+		oaOutputFileSpecs.Add(&specOutputModelingDictionary);
+
+		// Specification des fichiers de sortie tabulaire au format xls
+		if (analysisResults->GetExportAsXls())
+		{
+			specOutputPreparation.SetLabel("preparation report");
+			specOutputPreparation.SetFilePathName(analysisResults->GetPreparationFileName());
+			oaOutputFileSpecs.Add(&specOutputPreparation);
+			specOutputTextPreparation.SetLabel("text preparation report");
+			specOutputTextPreparation.SetFilePathName(analysisResults->GetTextPreparationFileName());
+			oaOutputFileSpecs.Add(&specOutputTextPreparation);
+			specOutputTreePreparation.SetLabel("tree preparation report");
+			specOutputTreePreparation.SetFilePathName(analysisResults->GetTreePreparationFileName());
+			oaOutputFileSpecs.Add(&specOutputTreePreparation);
+			specOutputPreparation2D.SetLabel("preparation report (2D)");
+			specOutputPreparation2D.SetFilePathName(analysisResults->GetPreparation2DFileName());
+			oaOutputFileSpecs.Add(&specOutputPreparation2D);
+			specOutputModeling.SetLabel("modeling report");
+			specOutputModeling.SetFilePathName(analysisResults->GetModelingFileName());
+			oaOutputFileSpecs.Add(&specOutputModeling);
+			specOutputTrainEvaluation.SetLabel("train evaluation report");
+			specOutputTrainEvaluation.SetFilePathName(analysisResults->GetTrainEvaluationFileName());
+			oaOutputFileSpecs.Add(&specOutputTrainEvaluation);
+			specOutputTestEvaluation.SetLabel("test evaluation report");
+			specOutputTestEvaluation.SetFilePathName(analysisResults->GetTestEvaluationFileName());
+			oaOutputFileSpecs.Add(&specOutputTestEvaluation);
+		}
 	}
-	oaInputFileSpecs.InsertObjectArrayAt(oaInputFileSpecs.GetSize(), &oaTestDatabaseFileSpecs);
 
-	// Specification des fichiers de sortie concernes
-	specOutputPreparation.SetLabel("preparation report");
-	specOutputPreparation.SetFilePathName(analysisResults->GetPreparationFileName());
-	oaOutputFileSpecs.Add(&specOutputPreparation);
-	specOutputPreparation2D.SetLabel("preparation report (2D)");
-	specOutputPreparation2D.SetFilePathName(analysisResults->GetPreparation2DFileName());
-	oaOutputFileSpecs.Add(&specOutputPreparation2D);
-	specOutputModelingDictionary.SetLabel("modeling dictionary");
-	specOutputModelingDictionary.SetFilePathName(analysisResults->GetModelingDictionaryFileName());
-	oaOutputFileSpecs.Add(&specOutputModelingDictionary);
-	specOutputModeling.SetLabel("modeling report");
-	specOutputModeling.SetFilePathName(analysisResults->GetModelingFileName());
-	oaOutputFileSpecs.Add(&specOutputModeling);
-	specOutputTrainEvaluation.SetLabel("train evaluation report");
-	specOutputTrainEvaluation.SetFilePathName(analysisResults->GetTrainEvaluationFileName());
-	oaOutputFileSpecs.Add(&specOutputTrainEvaluation);
-	specOutputTestEvaluation.SetLabel("test evaluation report");
-	specOutputTestEvaluation.SetFilePathName(analysisResults->GetTestEvaluationFileName());
-	oaOutputFileSpecs.Add(&specOutputTestEvaluation);
-	specOutputJSON.SetLabel("JSON report");
-	specOutputJSON.SetFilePathName(analysisResults->GetJSONFileName());
-	oaOutputFileSpecs.Add(&specOutputJSON);
-
-	// Verification que les fichiers en sortie sont des fichiers simple, sans chemin
-	for (nOutput = 0; nOutput < oaOutputFileSpecs.GetSize(); nOutput++)
+	// Verification que les fichiers en sortie sont des fichiers simples, sans chemin
+	if (bOk)
 	{
-		specOutput = cast(FileSpec*, oaOutputFileSpecs.GetAt(nOutput));
-		bOk = bOk and specOutput->CheckSimplePath();
-		if (not bOk)
-			break;
+		for (nOutput = 0; nOutput < oaOutputFileSpecs.GetSize(); nOutput++)
+		{
+			specOutput = cast(FileSpec*, oaOutputFileSpecs.GetAt(nOutput));
+
+			// Verification, sauf pour le fichier de rapport principal
+			if (specOutput != &specOutputAnalysisReport)
+				bOk = bOk and specOutput->CheckSimplePath();
+			if (not bOk)
+				break;
+		}
 	}
 
 	// Calcul des chemins complets des fichiers de sortie concernes
@@ -432,7 +421,8 @@ boolean KWLearningProblem::CheckResultFileNames() const
 		for (nOutput = 0; nOutput < oaOutputFileSpecs.GetSize(); nOutput++)
 		{
 			specOutput = cast(FileSpec*, oaOutputFileSpecs.GetAt(nOutput));
-			specOutput->SetFilePathName(BuildOutputFilePathName(specOutput->GetFilePathName()));
+			specOutput->SetFilePathName(
+			    analysisResults->BuildOutputFilePathName(specOutput->GetFilePathName()));
 		}
 	}
 
@@ -482,64 +472,12 @@ boolean KWLearningProblem::CheckResultFileNames() const
 
 	// Creation du repertoire des fichiers de sortie
 	if (bOk)
-	{
-		sOutputPathName = BuildOutputPathName();
-		if (sOutputPathName != "" and not PLRemoteFileService::Exist(sOutputPathName))
-		{
-			bOk = PLRemoteFileService::MakeDirectories(sOutputPathName);
-			if (not bOk)
-				Global::AddError("", "",
-						 "Unable to create results directory (" + sOutputPathName + ")");
-		}
-	}
+		bOk = analysisResults->CheckResultDirectory();
 
 	// Nettoyage
 	oaTrainDatabaseFileSpecs.DeleteAll();
 	oaTestDatabaseFileSpecs.DeleteAll();
 	return bOk;
-}
-
-const ALString KWLearningProblem::BuildOutputFilePathName(const ALString& sFileName) const
-{
-	ALString sOutputPathName;
-	ALString sOutputFilePathName;
-
-	require(sFileName == "" or not FileService::IsPathInFilePath(sFileName));
-
-	// Calcul du repertoire effectif des resultats
-	sOutputPathName = BuildOutputPathName();
-
-	// On construit le nom complet du fichier, s'il est specifie
-	if (sFileName != "")
-	{
-		sOutputFilePathName = FileService::BuildFilePathName(
-		    sOutputPathName, analysisResults->GetResultFilesPrefix() + sFileName);
-	}
-	return sOutputFilePathName;
-}
-
-const ALString KWLearningProblem::BuildOutputPathName() const
-{
-	ALString sResultPathName;
-	ALString sDatabasePathName;
-	ALString sOutputPathName;
-
-	// Si le repertoire des resultats n'est pas specifie, on utilise celui de la base d'apprentissage
-	sDatabasePathName = FileService::GetPathName(GetDatabaseName());
-	sResultPathName = analysisResults->GetResultFilesDirectory();
-	if (sResultPathName == "")
-		sOutputPathName = sDatabasePathName;
-	// S'il est absolu, on le prend tel quel
-	else if (FileService::IsAbsoluteFilePathName(sResultPathName))
-		sOutputPathName = sResultPathName;
-	// S'il commence par "./", on le traite comme un chemin absolu
-	else if (sResultPathName.GetLength() > 2 and sResultPathName.GetAt(0) == '.' and
-		 sResultPathName.GetAt(1) != '.')
-		sOutputPathName = sResultPathName;
-	// s'il est relatif, on le concatene a celui de la base d'apprentissage
-	else
-		sOutputPathName = FileService::BuildFilePathName(sDatabasePathName, sResultPathName);
-	return sOutputPathName;
 }
 
 const ALString KWLearningProblem::GetClassLabel() const
@@ -565,15 +503,23 @@ void KWLearningProblem::InitializeLearningSpec(KWLearningSpec* learningSpec, KWC
 	ensure(learningSpec->Check());
 }
 
-boolean KWLearningProblem::BuildConstructedClass(KWLearningSpec* learningSpec, KWClass*& constructedClass)
+boolean KWLearningProblem::BuildConstructedClass(KWLearningSpec* learningSpec, KWClass*& constructedClass,
+						 ObjectDictionary* odMultiTableConstructedAttributes,
+						 ObjectDictionary* odTextConstructedAttributes)
 {
 	boolean bOk = true;
 	KWClass* kwcClass;
-	KDDomainKnowledge domainKnowledge;
+	KDMultiTableFeatureConstruction multiTableFeatureConstruction;
+	KDTextFeatureConstruction textFeatureConstruction;
+	boolean bIsTextConstructionPossible;
 	KWClassDomain* constructedDomain;
 
 	require(learningSpec != NULL);
 	require(learningSpec->Check());
+	require(odMultiTableConstructedAttributes != NULL);
+	require(odMultiTableConstructedAttributes->GetCount() == 0);
+	require(odTextConstructedAttributes != NULL);
+	require(odTextConstructedAttributes->GetCount() == 0);
 
 	// Recherche de la classe initiale
 	constructedClass = NULL;
@@ -581,17 +527,37 @@ boolean KWLearningProblem::BuildConstructedClass(KWLearningSpec* learningSpec, K
 	check(kwcClass);
 	assert(kwcClass == KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName()));
 
+	// Parametrage des noms interpretables, commune a tous les types de construction de variable
+	GetAnalysisSpec()
+	    ->GetModelingSpec()
+	    ->GetAttributeConstructionSpec()
+	    ->GetConstructionDomain()
+	    ->SetInterpretableNames(GetAnalysisSpec()->GetModelingSpec()->GetInterpretableNames());
+
+	// Initialisation de la construction de variables multi-tables
+	multiTableFeatureConstruction.SetLearningSpec(learningSpec);
+	multiTableFeatureConstruction.SetConstructionDomain(
+	    GetAnalysisSpec()->GetModelingSpec()->GetAttributeConstructionSpec()->GetConstructionDomain());
+	multiTableFeatureConstruction.SetMaxRuleNumber(
+	    GetAnalysisSpec()->GetModelingSpec()->GetAttributeConstructionSpec()->GetMaxConstructedAttributeNumber());
+
+	// Initialisation de la construction de variables a base de textes
+	textFeatureConstruction.SetLearningSpec(learningSpec);
+	textFeatureConstruction.SetConstructionDomain(
+	    GetAnalysisSpec()->GetModelingSpec()->GetAttributeConstructionSpec()->GetConstructionDomain());
+	textFeatureConstruction.SetTextFeatures(GetAnalysisSpec()
+						    ->GetModelingSpec()
+						    ->GetAttributeConstructionSpec()
+						    ->GetTextFeatureSpec()
+						    ->GetTextFeatures());
+
+	// Detection si des variable de type texte peuvent etre construites
+	bIsTextConstructionPossible = textFeatureConstruction.ContainsTextAttributes(kwcClass);
+
 	// Parametrage des familles de construction de variables
 	// En non supervise, on ne compte pas les paires de variables comme une famille
 	GetAnalysisSpec()->GetModelingSpec()->GetAttributeConstructionSpec()->SpecifyLearningSpecConstructionFamilies(
-	    learningSpec, true);
-
-	// Initialisation du domaine de connaissance
-	domainKnowledge.SetLearningSpec(learningSpec);
-	domainKnowledge.SetConstructionDomain(
-	    GetAnalysisSpec()->GetModelingSpec()->GetAttributeConstructionSpec()->GetConstructionDomain());
-	domainKnowledge.SetMaxRuleNumber(
-	    GetAnalysisSpec()->GetModelingSpec()->GetAttributeConstructionSpec()->GetMaxConstructedAttributeNumber());
+	    learningSpec, true, bIsTextConstructionPossible);
 
 	// Calcul de la nouvelle classe si demande
 	constructedDomain = NULL;
@@ -599,16 +565,16 @@ boolean KWLearningProblem::BuildConstructedClass(KWLearningSpec* learningSpec, K
 	    0)
 	{
 		// Construction de variable
-		domainKnowledge.ComputeStats();
-		bOk = domainKnowledge.IsStatsComputed();
+		multiTableFeatureConstruction.ComputeStats();
+		bOk = multiTableFeatureConstruction.IsStatsComputed();
 		if (bOk)
 		{
 			// Acces a la classe construite si la construction est effective
-			if (domainKnowledge.IsClassConstructed())
+			if (multiTableFeatureConstruction.IsClassConstructed())
 			{
-				constructedClass = domainKnowledge.GetConstructedClass();
+				constructedClass = multiTableFeatureConstruction.GetConstructedClass();
 				constructedDomain = constructedClass->GetDomain();
-				domainKnowledge.RemoveConstructedClass();
+				multiTableFeatureConstruction.RemoveConstructedClass();
 
 				// Il peut y avoir des cas ou aucune variable n'a ete effectivement construite, en
 				// raison par exemple de variables existantes avec meme regle de derivation Dans ce cas,
@@ -619,8 +585,9 @@ boolean KWLearningProblem::BuildConstructedClass(KWLearningSpec* learningSpec, K
 					GetAnalysisSpec()
 					    ->GetModelingSpec()
 					    ->GetAttributeConstructionSpec()
-					    ->SpecifyLearningSpecConstructionFamilies(learningSpec, false);
-					domainKnowledge.ComputeInitialAttributeCosts(constructedClass);
+					    ->SpecifyLearningSpecConstructionFamilies(learningSpec, false,
+										      bIsTextConstructionPossible);
+					multiTableFeatureConstruction.ComputeInitialAttributeCosts(constructedClass);
 				}
 			}
 			// Mise a jour des familles de construction de variable sinon
@@ -628,11 +595,12 @@ boolean KWLearningProblem::BuildConstructedClass(KWLearningSpec* learningSpec, K
 				GetAnalysisSpec()
 				    ->GetModelingSpec()
 				    ->GetAttributeConstructionSpec()
-				    ->SpecifyLearningSpecConstructionFamilies(learningSpec, false);
+				    ->SpecifyLearningSpecConstructionFamilies(learningSpec, false,
+									      bIsTextConstructionPossible);
 		}
 	}
 
-	// Duplication de la classe initiale si pas de construction demandee ou pas de classez constructible
+	// Duplication de la classe initiale si pas de construction demandee ou pas de classe constructible
 	if (bOk and constructedDomain == NULL)
 	{
 		assert(constructedDomain == NULL);
@@ -641,13 +609,39 @@ boolean KWLearningProblem::BuildConstructedClass(KWLearningSpec* learningSpec, K
 		constructedClass = constructedDomain->LookupClass(GetClassName());
 
 		// Calcul des couts de variable de facon standard
-		domainKnowledge.ComputeInitialAttributeCosts(constructedClass);
+		multiTableFeatureConstruction.ComputeInitialAttributeCosts(constructedClass);
+	}
+
+	// Collecte des attributs construits en multi-tables
+	if (bOk)
+	{
+		assert(constructedClass != NULL);
+		multiTableFeatureConstruction.CollectConstructedAttributes(learningSpec->GetClass(), constructedClass,
+									   odMultiTableConstructedAttributes);
+	}
+
+	// Construction de variable en mode texte si necessaire
+	if (bOk)
+	{
+		assert(constructedClass != NULL);
+		if (GetAnalysisSpec()->GetModelingSpec()->GetAttributeConstructionSpec()->GetMaxTextFeatureNumber() >
+			0 and
+		    bIsTextConstructionPossible)
+			bOk = textFeatureConstruction.ConstructTextFeatures(constructedClass,
+									    GetAnalysisSpec()
+										->GetModelingSpec()
+										->GetAttributeConstructionSpec()
+										->GetMaxTextFeatureNumber(),
+									    odTextConstructedAttributes);
 	}
 
 	// Modification de la classe des learning spec si ok et classe construite
 	if (bOk)
 	{
 		assert(constructedClass != NULL);
+		assert(learningSpec->GetClass()->GetUsedAttributeNumber() +
+			   odMultiTableConstructedAttributes->GetCount() + odTextConstructedAttributes->GetCount() ==
+		       constructedClass->GetUsedAttributeNumber());
 		learningSpec->SetClass(constructedClass);
 	}
 
@@ -665,7 +659,7 @@ boolean KWLearningProblem::ImportAttributeMetaDataCosts(KWLearningSpec* learning
 {
 	boolean bOk = true;
 	KWClass* kwcClass;
-	KDDomainKnowledge domainKnowledge;
+	KDFeatureConstruction featureConstruction;
 	KWClassDomain* constructedDomain;
 
 	require(learningSpec != NULL);
@@ -680,12 +674,10 @@ boolean KWLearningProblem::ImportAttributeMetaDataCosts(KWLearningSpec* learning
 	check(kwcClass);
 	assert(kwcClass == KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName()));
 
-	// Initialisation du domaine de connaissance
-	domainKnowledge.SetLearningSpec(learningSpec);
-	domainKnowledge.SetConstructionDomain(
+	// Initialisation de la construction de variable
+	featureConstruction.SetLearningSpec(learningSpec);
+	featureConstruction.SetConstructionDomain(
 	    GetAnalysisSpec()->GetModelingSpec()->GetAttributeConstructionSpec()->GetConstructionDomain());
-	domainKnowledge.SetMaxRuleNumber(
-	    GetAnalysisSpec()->GetModelingSpec()->GetAttributeConstructionSpec()->GetMaxConstructedAttributeNumber());
 
 	// On ne peut importer des couts que si aucune construction n'est demandee
 	if (GetAnalysisSpec()->GetModelingSpec()->GetAttributeConstructionSpec()->GetMaxConstructedAttributeNumber() >
@@ -714,7 +706,7 @@ boolean KWLearningProblem::ImportAttributeMetaDataCosts(KWLearningSpec* learning
 		constructedClass = constructedDomain->LookupClass(GetClassName());
 
 		// Tentative d'imort des couts
-		bOk = domainKnowledge.ImportAttributeMetaDataCosts(constructedClass);
+		bOk = featureConstruction.ImportAttributeMetaDataCosts(constructedClass);
 	}
 
 	// Modification de la classe des learning spec si ok et classe construite
@@ -736,7 +728,8 @@ boolean KWLearningProblem::ImportAttributeMetaDataCosts(KWLearningSpec* learning
 
 void KWLearningProblem::InitializeClassStats(KWClassStats* classStats, KWLearningSpec* learningSpec)
 {
-	KWAttributeConstructionReport* attributeConstructionReport;
+	KWAttributeConstructionReport* attributeTreeConstructionReport;
+	ALString sOutputReportFilePathName;
 
 	require(classStats != NULL);
 	require(learningSpec != NULL);
@@ -745,10 +738,10 @@ void KWLearningProblem::InitializeClassStats(KWClassStats* classStats, KWLearnin
 	classStats->SetLearningSpec(learningSpec);
 
 	// Parametrage d'un rapport dedie au parametrage de la construction d'attribut
-	attributeConstructionReport = new KWAttributeConstructionReport;
-	attributeConstructionReport->SetAttributeConstructionSpec(
+	attributeTreeConstructionReport = new KWAttributeConstructionReport;
+	attributeTreeConstructionReport->SetAttributeConstructionSpec(
 	    GetAnalysisSpec()->GetModelingSpec()->GetAttributeConstructionSpec());
-	classStats->SetAttributeConstructionReport(attributeConstructionReport);
+	classStats->SetAttributeTreeConstructionReport(attributeTreeConstructionReport);
 
 	// Parametrage des arbres a construire
 	if (KDDataPreparationAttributeCreationTask::GetGlobalCreationTask())
@@ -766,6 +759,14 @@ void KWLearningProblem::InitializeClassStats(KWClassStats* classStats, KWLearnin
 	classStats->SetAttributePairsSpec(
 	    analysisSpec->GetModelingSpec()->GetAttributeConstructionSpec()->GetAttributePairsSpec());
 
+	// Parametrage de la construction d'histogrammes
+	MHDiscretizerMODLHistogram::GetHistogramSpec()->CopyFrom(GetAnalysisSpec()->GetHistogramSpec());
+	sOutputReportFilePathName =
+	    GetAnalysisResults()->BuildOutputFilePathName(GetAnalysisResults()->GetReportFileName());
+	MHDiscretizerMODLHistogram::GetHistogramSpec()->SetResultFilesDirectory(
+	    FileService::GetPathName(sOutputReportFilePathName));
+	MHDiscretizerMODLHistogram::GetHistogramSpec()->SetResultFilesPrefix(
+	    FileService::GetFilePrefix(sOutputReportFilePathName));
 	assert(classStats->Check());
 }
 
@@ -901,22 +902,28 @@ void KWLearningProblem::DeleteAllOutputFiles()
 	ALString sOutputFileName;
 
 	// Destruction de tous les fichiers de sortie potentiels
-	DeleteOutputFile(BuildOutputFilePathName(analysisResults->GetJSONFileName()));
-	DeleteOutputFile(BuildOutputFilePathName(analysisResults->GetPreparationFileName()));
-	DeleteOutputFile(BuildOutputFilePathName(analysisResults->GetPreparation2DFileName()));
-	DeleteOutputFile(BuildOutputFilePathName(analysisResults->GetModelingFileName()));
-	DeleteOutputFile(BuildOutputFilePathName(analysisResults->GetModelingDictionaryFileName()));
-	DeleteOutputFile(BuildOutputFilePathName(analysisResults->GetTrainEvaluationFileName()));
-	DeleteOutputFile(BuildOutputFilePathName(analysisResults->GetTestEvaluationFileName()));
+	DeleteOutputFile(analysisResults->BuildOutputFilePathName(analysisResults->GetReportFileName()));
+	DeleteOutputFile(analysisResults->BuildOutputFilePathName(analysisResults->GetModelingDictionaryFileName()));
+	if (analysisResults->GetExportAsXls())
+	{
+		DeleteOutputFile(analysisResults->BuildOutputFilePathName(analysisResults->GetPreparationFileName()));
+		DeleteOutputFile(
+		    analysisResults->BuildOutputFilePathName(analysisResults->GetTextPreparationFileName()));
+		DeleteOutputFile(
+		    analysisResults->BuildOutputFilePathName(analysisResults->GetTreePreparationFileName()));
+		DeleteOutputFile(analysisResults->BuildOutputFilePathName(analysisResults->GetPreparation2DFileName()));
+		DeleteOutputFile(analysisResults->BuildOutputFilePathName(analysisResults->GetModelingFileName()));
+		DeleteOutputFile(
+		    analysisResults->BuildOutputFilePathName(analysisResults->GetTrainEvaluationFileName()));
+		DeleteOutputFile(
+		    analysisResults->BuildOutputFilePathName(analysisResults->GetTestEvaluationFileName()));
+	}
 }
 
 void KWLearningProblem::DeleteOutputFile(const ALString& sOutputFilePathName)
 {
-	if (sOutputFilePathName != "" and FileService::Exist(sOutputFilePathName))
-	{
-		FileService::SetFileMode(sOutputFilePathName, false);
-		FileService::RemoveFile(sOutputFilePathName);
-	}
+	if (sOutputFilePathName != "")
+		PLRemoteFileService::RemoveFile(sOutputFilePathName);
 }
 
 void KWLearningProblem::WritePreparationReports(KWClassStats* classStats)
@@ -924,33 +931,55 @@ void KWLearningProblem::WritePreparationReports(KWClassStats* classStats)
 	ALString sReportName;
 
 	require(classStats != NULL);
-	require(classStats->IsStatsComputed());
+	require(analysisResults->GetExportAsXls());
 
-	// Ecriture d'un rapport de stats univarie complet
-	sReportName = BuildOutputFilePathName(analysisResults->GetPreparationFileName());
-	if (sReportName != "")
+	// Rapport de preparation minimaliste ne contenant que les specifications d'apprentissage
+	// en cas d'echec de la preparation, pour avoir un rapport avec les erreurs
+	sReportName = analysisResults->BuildOutputFilePathName(analysisResults->GetPreparationFileName());
+	if (not classStats->IsStatsComputed() and sReportName != "")
 	{
-		AddSimpleMessage("Write preparation report " + sReportName);
-		classStats->SetAllWriteOptions(false);
-		classStats->SetWriteOptionStats1D(true);
-		classStats->SetWriteOptionDetailedStats(true);
 		classStats->WriteReportFile(sReportName);
-		classStats->SetAllWriteOptions(true);
+	}
+	// Ecriture d'un rapport de stats univarie complet sinon
+	else if (classStats->IsStatsComputed() and sReportName != "")
+	{
+		classStats->SetWriteOptionStatsNativeOrConstructed(true);
+		classStats->WriteReportFile(sReportName);
+		classStats->SetWriteOptionStatsNativeOrConstructed(false);
+	}
+
+	// Ecriture d'un rapport de stats univarie dans le cas des textes
+	sReportName = analysisResults->BuildOutputFilePathName(analysisResults->GetTextPreparationFileName());
+	if (classStats->IsStatsComputed() and sReportName != "" and
+	    analysisSpec->GetModelingSpec()->GetAttributeConstructionSpec()->GetMaxTextFeatureNumber() > 0 and
+	    classStats->GetTextAttributeStats()->GetSize() > 0)
+	{
+		classStats->SetWriteOptionStatsText(true);
+		classStats->WriteReportFile(sReportName);
+		classStats->SetWriteOptionStatsText(false);
+	}
+
+	// Ecriture d'un rapport de stats univarie dans le cas des arbres
+	sReportName = analysisResults->BuildOutputFilePathName(analysisResults->GetTreePreparationFileName());
+	if (classStats->IsStatsComputed() and sReportName != "" and
+	    analysisSpec->GetModelingSpec()->GetAttributeConstructionSpec()->GetMaxTreeNumber() > 0 and
+	    classStats->GetTreeAttributeStats()->GetSize() > 0)
+	{
+		classStats->SetWriteOptionStatsTrees(true);
+		classStats->WriteReportFile(sReportName);
+		classStats->SetWriteOptionStatsTrees(false);
 	}
 
 	// Ecriture d'un rapport de stats bivarie complet
-	sReportName = BuildOutputFilePathName(analysisResults->GetPreparation2DFileName());
-	if (sReportName != "" and
+	sReportName = analysisResults->BuildOutputFilePathName(analysisResults->GetPreparation2DFileName());
+	if (classStats->IsStatsComputed() and sReportName != "" and
 	    analysisSpec->GetModelingSpec()->GetAttributeConstructionSpec()->GetMaxAttributePairNumber() > 0 and
 	    classStats->GetAttributePairStats()->GetSize() > 0 and
 	    classStats->GetTargetAttributeType() != KWType::Continuous)
 	{
-		AddSimpleMessage("Write 2D preparation report " + sReportName);
-		classStats->SetAllWriteOptions(false);
 		classStats->SetWriteOptionStats2D(true);
-		classStats->SetWriteOptionDetailedStats(true);
 		classStats->WriteReportFile(sReportName);
-		classStats->SetAllWriteOptions(true);
+		classStats->SetWriteOptionStats2D(false);
 	}
 }
 
@@ -962,15 +991,18 @@ void KWLearningProblem::WriteJSONAnalysisReport(KWClassStats* classStats, Object
 	JSONFile fJSON;
 
 	require(classStats != NULL);
-	require(classStats->IsStatsComputed());
 	require(oaTrainedPredictorReports != NULL);
 	require(oaTrainPredictorEvaluations != NULL);
 	require(oaTestPredictorEvaluations != NULL);
 
 	// Ecriture d'un rapport de stats univarie complet
-	sJSONReportName = BuildOutputFilePathName(analysisResults->GetJSONFileName());
+	sJSONReportName = analysisResults->BuildOutputFilePathName(analysisResults->GetReportFileName());
 	if (sJSONReportName != "")
 	{
+		// Message synthetique signifiant que tout s'est bien passe et indiquant
+		// ou se trouve le fichier de resultat
+		AddSimpleMessage("Write report " + sJSONReportName);
+
 		// Ouverture du fichier JSON
 		fJSON.SetFileName(sJSONReportName);
 		fJSON.OpenForWrite();
@@ -980,6 +1012,8 @@ void KWLearningProblem::WriteJSONAnalysisReport(KWClassStats* classStats, Object
 		{
 			// Outil et version
 			fJSON.WriteKeyString("tool", GetLearningApplicationName());
+			if (GetLearningModuleName() != "")
+				fJSON.WriteKeyString("sub_tool", GetLearningModuleName());
 			fJSON.WriteKeyString("version", GetLearningVersion());
 
 			// Description courte
@@ -1017,45 +1051,55 @@ void KWLearningProblem::WriteJSONAnalysisReport(KWClassStats* classStats, Object
 				fJSON.EndObject();
 			}
 
-			// Rapport de preparation
-			if (analysisResults->GetPreparationFileName() != "")
+			// Rapport de preparation minimaliste ne contenant que les specifications d'apprentissage
+			// en cas d'echec de la preparation, pour avoir un rapport avec les erreurs
+			if (not classStats->IsStatsComputed() and analysisResults->GetPreparationFileName() != "")
 			{
-				classStats->SetAllWriteOptions(false);
-				classStats->SetWriteOptionStats1D(true);
-				classStats->SetWriteOptionDetailedStats(true);
 				classStats->WriteJSONKeyReport(&fJSON, "preparationReport");
-				classStats->SetAllWriteOptions(true);
+			}
+			// Rapport de preparation complet sinon
+			else if (classStats->IsStatsComputed() and analysisResults->GetPreparationFileName() != "")
+			{
+				classStats->SetWriteOptionStatsNativeOrConstructed(true);
+				classStats->WriteJSONKeyReport(&fJSON, "preparationReport");
+				classStats->SetWriteOptionStatsNativeOrConstructed(false);
 			}
 
-			// Rapport de preparation pour les variables creees
-			if (analysisResults->GetPreparationFileName() != "" and classStats->IsCreationRequired() and
-			    classStats->GetCreatedAttributeStats()->GetSize() > 0)
+			// Rapport de preparation pour les variables de type texte
+			if (classStats->IsStatsComputed() and analysisResults->GetPreparationFileName() != "" and
+			    classStats->GetTextAttributeStats()->GetSize() > 0)
 			{
-				classStats->SetAllWriteOptions(false);
-				classStats->SetWriteOptionStatsCreated(true);
-				classStats->SetWriteOptionDetailedStats(true);
+				classStats->SetWriteOptionStatsText(true);
+				classStats->WriteJSONKeyReport(&fJSON, "textPreparationReport");
+				classStats->SetWriteOptionStatsText(false);
+			}
+
+			// Rapport de preparation pour les variables de type arbre
+			if (classStats->IsStatsComputed() and analysisResults->GetPreparationFileName() != "" and
+			    classStats->IsTreeConstructionRequired() and
+			    classStats->GetTreeAttributeStats()->GetSize() > 0)
+			{
+				classStats->SetWriteOptionStatsTrees(true);
 				classStats->WriteJSONKeyReport(
-				    &fJSON,
-				    classStats->GetAttributeCreationTask()->GetReportPrefix() + "PreparationReport");
-				classStats->SetAllWriteOptions(true);
+				    &fJSON, classStats->GetAttributeTreeConstructionTask()->GetReportPrefix() +
+						"PreparationReport");
+				classStats->SetWriteOptionStatsTrees(false);
 			}
 
 			// On a plus besoin du rapport de preparation des arbres une fois exploite pour le rapport
-			classStats->DeleteAttributeCreationTask();
+			classStats->DeleteAttributeTreeConstructionTask();
 
 			// Rapport de preparation bivarie
-			if (analysisResults->GetPreparation2DFileName() != "" and
+			if (classStats->IsStatsComputed() and analysisResults->GetPreparation2DFileName() != "" and
 			    analysisSpec->GetModelingSpec()
 				    ->GetAttributeConstructionSpec()
 				    ->GetMaxAttributePairNumber() > 0 and
 			    classStats->GetAttributePairStats()->GetSize() > 0 and
 			    classStats->GetTargetAttributeType() != KWType::Continuous)
 			{
-				classStats->SetAllWriteOptions(false);
 				classStats->SetWriteOptionStats2D(true);
-				classStats->SetWriteOptionDetailedStats(true);
 				classStats->WriteJSONKeyReport(&fJSON, "bivariatePreparationReport");
-				classStats->SetAllWriteOptions(true);
+				classStats->SetWriteOptionStats2D(false);
 			}
 
 			// Fermeture du fichier
@@ -1149,8 +1193,7 @@ void KWLearningProblem::BuildRecodingClass(const KWClassDomain* initialDomain, K
 		if (recodingSpec->GetMaxFilteredAttributeNumber() == 0 or
 		    (recodingSpec->GetMaxFilteredAttributeNumber() > 0 and
 		     nkdSelectedDataPreparationAttributes.GetCount() < recodingSpec->GetMaxFilteredAttributeNumber()))
-			nkdSelectedDataPreparationAttributes.SetAt((NUMERIC)dataPreparationAttribute,
-								   dataPreparationAttribute);
+			nkdSelectedDataPreparationAttributes.SetAt(dataPreparationAttribute, dataPreparationAttribute);
 	}
 	oaSelectedDataPreparationAttributes.SetSize(0);
 	assert(recodingSpec->GetMaxFilteredAttributeNumber() == 0 or
@@ -1175,8 +1218,7 @@ void KWLearningProblem::BuildRecodingClass(const KWClassDomain* initialDomain, K
 						dataPreparationClass.GetDataPreparationAttributes()->GetAt(nAttribute));
 
 		// Filtrage de l'attribut s'il n'est pas informatif
-		bFilterAttribute =
-		    (nkdSelectedDataPreparationAttributes.Lookup((NUMERIC)dataPreparationAttribute) == NULL);
+		bFilterAttribute = (nkdSelectedDataPreparationAttributes.Lookup(dataPreparationAttribute) == NULL);
 
 		// Creation des variables recodees
 		dataPreparationAttribute->GetPreparedAttribute()->SetUsed(false);

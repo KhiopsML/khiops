@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -62,6 +62,7 @@ public:
 
 	// Interruption utilisateur au bout de nSeconds secondes
 	// 0 secondes = pas d'interruption
+	// Doit etre utilise en mode graphic sinon il n'y a pas d'interruption utilisateur
 	void SetInterruptionByUser(int nSeconds);
 	boolean GetInterruptionByUser() const;
 

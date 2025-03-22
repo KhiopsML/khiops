@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -13,6 +13,7 @@ class PLShared_DataPreparationStats;
 #include "KWLearningSpec.h"
 #include "KWTupleTable.h"
 #include "KWDataGridStats.h"
+#include "TSV.h"
 #include "JSONFile.h"
 #include "PLSharedObject.h"
 
@@ -137,7 +138,7 @@ public:
 	////////////////////////////////////////////////////////////////////////////////
 	// Specification de la preparation, pour un attribut ou un ensemble d'attributs
 	// Attention: une fois prepare, une grille de preparation peut contenir moins
-	// d'attribits que le nombre d'attributs initiaux (cas non informatif).
+	// d'attributs que le nombre d'attributs initiaux (cas non informatif).
 	// A redefinir dans les sous-classes
 
 	// Nombre d'attributs a utiliser
@@ -169,7 +170,14 @@ public:
 	void SetLevel(double dValue);
 	double GetLevel() const;
 
+	// Indique si la variable est informative
+	// Base sur le SortValue plutot que sur le Level, pour pouvoir etre utilisable
+	// de facon generique, comme pour les paires de variables
+	boolean IsInformative() const;
+
 	// Criteres de tri a redefinir dans les sous-classe
+	// Il s'agit par defaut du Level par defaut, mais cela peut etre specialise
+	// comme dans le cas du DeltaLevel pour les paires
 	double GetSortValue() const override;
 
 	/////////////////////////////////////////////////////////
@@ -205,9 +213,17 @@ public:
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
 
+	// Libelles
+	const ALString GetClassLabel() const override;
+	const ALString GetObjectLabel() const override;
+
 	/////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Seuil pour passer les valeur de cout ou de level a zero, pour ameliorer
+	// la lisibilite des rapports
+	const double dEpsilonCost = 1e-10;
+
 	// Nettoyage des resultats de preparation de donnees
 	virtual void CleanDataPreparationResults();
 
@@ -235,8 +251,8 @@ public:
 	KWLearningReport* GetLearningReport();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -259,6 +275,6 @@ public:
 	KWDataPreparationStats* GetDataPreparationStats();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 };

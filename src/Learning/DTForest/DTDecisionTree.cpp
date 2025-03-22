@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -9,6 +9,7 @@
 
 const ALString GetDisplayString(const double d);
 const ALString GetDisplayString(const int);
+const ALString GetDisplayString(const ALString&);
 
 boolean bVerbatim = false;
 
@@ -140,9 +141,14 @@ boolean DTDecisionTree::ComputeStats()
 {
 	require(GetCostClass() != NULL);
 	dEvaluation = 0;
+	boolean bCurrentSilentMode;
 
+	// enregistrement du mode silence
+	bCurrentSilentMode = Global::GetSilentMode();
 	if (not dtPredictorParameter->GetVerboseMode())
+	{
 		Global::SetSilentMode(true); // eviter les warnings sur valeur unique de modalite cible
+	}
 
 	assert(Check());
 
@@ -170,7 +176,8 @@ boolean DTDecisionTree::ComputeStats()
 
 	bIsStatsComputed = true;
 
-	Global::SetSilentMode(false);
+	// retour au mode silence itnitiale
+	Global::SetSilentMode(bCurrentSilentMode);
 
 	return true;
 }
@@ -181,6 +188,8 @@ boolean DTDecisionTree::Build()
 
 	boolean bContinue = true;
 	boolean bpostmode = true;
+	const boolean bIsRegression =
+	    (GetOrigineBaseLoader()->GetTupleLoader()->GetInputExtraAttributeContinuousValues() != NULL ? true : false);
 
 	// Debut de suivi des taches
 	TaskProgression::BeginTask();
@@ -277,7 +286,7 @@ boolean DTDecisionTree::Build()
 			StartTimer(DTTimerTree1);
 			bContinue = SetUpInternalNode(bestSplit->GetTreeCost(),
 						      bestSplit->GetSplittableNode()->GetNodeIdentifier(),
-						      bestSplit->GetAttributeStats(), nPartNumber);
+						      bestSplit->GetAttributeStats(), nPartNumber, bIsRegression);
 			StopTimer(DTTimerTree1);
 
 			if (bContinue == false)
@@ -312,7 +321,12 @@ boolean DTDecisionTree::Build()
 
 			if (dtPredictorParameter->GetVerboseMode())
 				AddSimpleMessage(GetDisplayString(nDownStepNumber) +
-						 bestSplit->GetSplittableNode()->GetNodeIdentifier() + "\t" +
+						 ALString(bestSplit->GetSplittableNode()->GetNodeIdentifier()) + "\t" +
+						 (bestSplit->GetSplittableNode()->GetSplitAttributeStats() == NULL
+						      ? "\t\t"
+						      : GetDisplayString(bestSplit->GetSplittableNode()
+									     ->GetSplitAttributeStats()
+									     ->GetAttributeName())) +
 						 GetDisplayString(dPreviousCost) + GetDisplayString(dOptimalCost) +
 						 GetDisplayString(dBestDecreasedCost) +
 						 GetDisplayString(dTrainingAccuracy) +
@@ -519,7 +533,8 @@ NumericKeyDictionary* DTDecisionTree::SelectPossibleSplits()
 				if (bOk == false)
 					continue;
 
-				if (attributeStats->GetPreparedDataGridStats()->GetAttributeNumber() == 1)
+				if (attributeStats->GetPreparedDataGridStats() == NULL or
+				    attributeStats->GetPreparedDataGridStats()->GetAttributeNumber() == 1)
 					continue; // a partir de learningEnv v8, les attributs a level nul ne sont plus
 						  // prepares. Le seul attribut prepare correspond ici a l'attribut
 						  // cible
@@ -794,7 +809,8 @@ DTDecisionTreeNode* DTDecisionTree::GetRootNode() const
 }
 
 boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sFatherNodeKey,
-					  KWAttributeStats* fatherNodeBestAttributeStats, const int nValueNumber)
+					  KWAttributeStats* fatherNodeBestAttributeStats, const int nValueNumber,
+					  const boolean bIsRegression)
 {
 	DTBaseLoaderSplitter* databaseSplitterTrain;
 	DTBaseLoaderSplitter* databaseSplitterOutOfBag;
@@ -825,7 +841,7 @@ boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sF
 	// Calcul du partitionnement de la KWDatabase selon cette assertion
 	databaseSplitterTrain = new DTBaseLoaderSplitter;
 	databaseSplitterTrain->SetOrigineBaseLoader(fatherNode->GetTrainBaseLoader());
-	databaseSplitterTrain->CreateDaughterBaseloaderFromSplitAttribute(fatherNodeBestAttributeStats);
+	databaseSplitterTrain->CreateDaughterBaseloaderFromSplitAttribute(fatherNodeBestAttributeStats, learningSpec);
 
 	databaseSplitterOutOfBag = NULL;
 
@@ -833,7 +849,8 @@ boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sF
 	{
 		databaseSplitterOutOfBag = new DTBaseLoaderSplitter;
 		databaseSplitterOutOfBag->SetOrigineBaseLoader(fatherNode->GetOutOfBagBaseLoader());
-		databaseSplitterOutOfBag->CreateDaughterBaseloaderFromSplitAttribute(fatherNodeBestAttributeStats);
+		databaseSplitterOutOfBag->CreateDaughterBaseloaderFromSplitAttribute(fatherNodeBestAttributeStats,
+										     learningSpec);
 	}
 	StopTimer(DTTimerTree2);
 	if (dtPredictorParameter->GetMinInstancesPerLeaveNumber() > 0)
@@ -1021,12 +1038,11 @@ boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sF
 		    sonNode->GetTrainBaseLoader()->GetDatabaseObjects());
 		// attribute = kwclass->LookupAttribute(attributeStats->GetAttributeName());
 		// attribute->SetLoaded(false);
-		// attribute =
-		// sonNode->GetNodeLearningSpec()->GetClass()->LookupAttribute(learningSpec->GetTargetAttributeName());
 		// attribute->SetLoaded(true);
 		sonNode->GetNodeLearningSpec()->GetClass()->Compile();
 		// sonNode->GetTrainBaseLoader()->GetTupleLoader()->LoadUnivariate(learningSpec->GetTargetAttributeName(),
 		// &targetTupleTable);
+		sonNode->GetNodeLearningSpec()->SetCheckTargetAttribute(false);
 		sonNode->GetNodeLearningSpec()->ComputeTargetStats(
 		    sonNode->GetTrainBaseLoader()->GetTupleLoader()->GetInputExtraAttributeTupleTable());
 		// attribute->SetLoaded(false);
@@ -1053,9 +1069,6 @@ boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sF
 
 		// Initialisation de l'effectif de la classe majoritaire
 		int nMajoritarySize = 0;
-
-		assert(sonNode->GetClass()->LookupAttribute(sonNode->GetLearningSpec()->GetTargetAttributeName()) !=
-		       NULL);
 
 		NumericKeyDictionary* targetModalitiesCountTrain =
 		    ComputeTargetModalitiesCount(sonNode->GetTrainBaseLoader());
@@ -1086,6 +1099,11 @@ boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sF
 
 		// calcul du level de la regle de la feuille
 		// GetCostClass()->ComputeNodeCost(sonNode, this);
+
+		// En cas de regression ayant ete transformee "artificiellement" en classification : mise a jour du
+		// dictionnaire des instances de base, associant chaque KWObject a l'id de noeud
+		if (bIsRegression)
+			UpdateDatabaseObjectsNodeIds(sonNode);
 	}
 
 	// Mise a jour du cout de l'arbre ainsi augmente
@@ -1622,8 +1640,8 @@ void DTDecisionTree::InitializeRootNode(const NumericKeyDictionary* randomForest
 	// database de train
 	UpdateDatabaseObjectsTargetModalities();
 
-	assert(GetRootNode()->GetClass()->LookupAttribute(GetRootNode()->GetLearningSpec()->GetTargetAttributeName()) !=
-	       NULL);
+	// assert(GetRootNode()->GetClass()->LookupAttribute(GetRootNode()->GetLearningSpec()->GetTargetAttributeName())
+	// != NULL);
 
 	NumericKeyDictionary* targetModalitiesCountTrain =
 	    ComputeTargetModalitiesCount(GetRootNode()->GetTrainBaseLoader());
@@ -1701,7 +1719,7 @@ void WriteReportDetailedInternalNode(ostream& ost, DTDecisionTreeNode* ndRoot)
 	// Parcour en largeur de l'arbre
 	while (ndCurrent != NULL)
 	{
-		//// tests
+		// tests
 		// if (ndCurrent->IsLeaf()){
 		//	ost << "------------------------------------------------------------------\n" ;
 		//		ost << "Leave node\t" << ndCurrent->GetNodeIdentifier() << endl ;
@@ -2330,7 +2348,7 @@ void DTDecisionTree::WriteReport(ostream& ost)
 	    << "\n";
 	ost << "\n";
 	ost << "Database"
-	    << "\t" << GetLearningSpec()->GetClass()->GetName() << "\n";
+	    << "\t" << TSV::Export(GetLearningSpec()->GetClass()->GetName()) << "\n";
 
 	// Nombres d'attributs
 	ost << "Variables"
@@ -2361,19 +2379,17 @@ void DTDecisionTree::WriteReport(ostream& ost)
 	{
 		// Attribut cible
 		ost << "\nTarget variable"
-		    << "\t" << GetTargetAttributeName() << "\n";
+		    << "\t" << TSV::Export(GetTargetAttributeName()) << "\n";
 
 		// Valeur cible principale
 		if (GetMainTargetModality() != Symbol())
 		{
 			ost << "Main target value"
-			    << "\t" << GetMainTargetModality() << "\n";
+			    << "\t" << TSV::Export(GetMainTargetModality().GetValue()) << "\n";
 		}
 
 		// Statistiques descriptives
-		if (GetTargetAttributeType() == KWType::Continuous or
-		    (GetTargetAttributeType() == KWType::Symbol and
-		     GetTargetDescriptiveStats()->GetValueNumber() > GetMaxModalityNumber()))
+		if (GetTargetAttributeType() == KWType::Continuous or GetTargetAttributeType() == KWType::Symbol)
 			GetTargetDescriptiveStats()->WriteReport(ost);
 
 		// Detail des valeurs
@@ -2388,21 +2404,12 @@ void DTDecisionTree::WriteReport(ostream& ost)
 			for (i = 0; i < valueStats->GetPartNumber(); i++)
 			{
 				// Affichage
-				ost << "\t" << valueStats->GetValueAt(i);
+				ost << "\t" << TSV::Export(valueStats->GetValueAt(i).GetValue());
 				ost << "\t" << GetTargetValueStats()->GetUnivariateCellFrequencyAt(i);
 				ost << "\t"
 				    << GetTargetValueStats()->GetUnivariateCellFrequencyAt(i) * 1.0 /
 					   GetInstanceNumber();
 				ost << "\n";
-
-				// Test si nombre max atteint
-				if (GetTargetValueStats()->GetAttributeAt(0)->GetPartNumber() >
-					GetMaxModalityNumber() and
-				    i == GetMaxModalityNumber() - 1)
-				{
-					ost << "\t...\n";
-					break;
-				}
 			}
 		}
 		ost << "\n";
@@ -2537,7 +2544,7 @@ void DTDecisionTree::UpdateDatabaseObjectsTargetModalities()
 	assert(nkdDatabaseObjects->GetCount() > 0);
 	assert(svReferenceTargetModalities->GetSize() > 0);
 
-	const ALString sTargetName = this->GetLearningSpec()->GetTargetAttributeName();
+	const ALString sTargetName = GetLearningSpec()->GetTargetAttributeName();
 
 	// POSITION position = nkdDatabaseObjects->GetStartPosition();
 	// NUMERIC key;
@@ -2567,6 +2574,25 @@ void DTDecisionTree::UpdateDatabaseObjectsTargetModalities()
 				break;
 			}
 		}
+	}
+}
+
+void DTDecisionTree::UpdateDatabaseObjectsNodeIds(DTDecisionTreeNode* node)
+{
+	assert(nkdDatabaseObjects != NULL);
+	assert(nkdDatabaseObjects->GetCount() > 0);
+
+	Object* obj;
+	ObjectArray* oaDatabaseObjects = cast(ObjectArray*, node->GetTrainBaseLoader()->GetDatabaseObjects());
+
+	for (int i = 0; i < oaDatabaseObjects->GetSize(); i++)
+	{
+		KWObject* kwo = cast(KWObject*, oaDatabaseObjects->GetAt(i));
+
+		obj = nkdDatabaseObjects->Lookup(kwo);
+		assert(obj != NULL);
+		DTDecisionTreeDatabaseObject* dbo = cast(DTDecisionTreeDatabaseObject*, obj);
+		dbo->SetNodeIdentifier(node->GetNodeIdentifier());
 	}
 }
 
@@ -2778,7 +2804,7 @@ DTDecisionTree::ComputeAdaBoostCumulatedWeights(const NumericKeyDictionary* rand
 			result->Add(result->GetAt(i - 1) + dbo->GetBoostingTreeWeight());
 
 		// garder la memoire de l'ordre des KWObjects qui correspond aux valeurs cumulees
-		kwoObjectsList->Add((KWObject*)key);
+		kwoObjectsList->Add(cast(KWObject*, (Object*)key.ToPointer()));
 
 		i++;
 	}
@@ -2876,7 +2902,7 @@ void DTDecisionTree::ReplaceCurrentTreeWithOptimalTree()
 		odCurrentInternalNodes->GetNextAssoc(position, sKey, object);
 		node = cast(DTDecisionTreeNode*, object);
 
-		// mise à jour de la profondeur de l'arbre courant
+		// mise a jour de la profondeur de l'arbre courant
 		nTreeDepth = (nTreeDepth < node->GetDepth()) ? node->GetDepth() : nTreeDepth;
 
 		if (node->GetSplitAttributeStats() == NULL)
@@ -3115,7 +3141,6 @@ const ALString GetDisplayString(const double d)
 {
 	ALString s(DoubleToString(d));
 
-	// return s + (s.GetLength() < 12 ? "\t\t" : "\t");
 	return s + "\t";
 }
 
@@ -3124,4 +3149,9 @@ const ALString GetDisplayString(const int d)
 	ALString s(IntToString(d));
 
 	return s + "\t";
+}
+
+const ALString GetDisplayString(const ALString& s)
+{
+	return s + (s.GetLength() < 13 ? "\t\t" : "\t");
 }

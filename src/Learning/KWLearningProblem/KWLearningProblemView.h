@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -8,7 +8,7 @@
 
 #include "KWLearningProblem.h"
 
-#include "KWClassManagementView.h"
+#include "KWClassManagementActionView.h"
 #include "KWDatabaseView.h"
 #include "KWPredictorEvaluatorView.h"
 #include "KWDataGridOptimizerParametersView.h"
@@ -19,7 +19,6 @@
 #include "KWDataTableKeyExtractorView.h"
 #include "KWClassAttributeHelpList.h"
 #include "KWDatabaseAttributeValuesHelpList.h"
-#include "LMLicenseManager.h"
 #include "KWLearningProblemHelpCard.h"
 
 class KWLearningProblemActionView;
@@ -52,6 +51,7 @@ public:
 	void ComputeStats();
 	void TransferDatabase();
 	void EvaluatePredictors();
+	void InterpretPredictor();
 
 	// Acces au probleme d'apprentissage
 	void SetObject(Object* object) override;
@@ -60,6 +60,14 @@ public:
 	/////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Construction de dictionnaire a partir d'un fichier
+	// On fait une detection automatique de format suivi d'une construction de dictionnaire,
+	// pour permettre l'analyse de donnees sans dictionnaire prealable
+	// On renvoie true OK
+	// Sinon, un nouveau dictionnaire de nom base sur le nom du fichier, est cree est disponible en memoire
+	// Il n'est pas sauve dansd le fichier des dictionnaires
+	boolean BuildClassFromDataTable();
+
 	// Rafraichissement des listes d'aide
 	void RefreshHelpLists();
 
@@ -74,18 +82,4 @@ protected:
 	// ce qui correspond a la nouvelle ergonomie depuis Khiops V10
 	KWDatabaseView* trainDatabaseView;
 	KWDatabaseView* testDatabaseView;
-
-#ifdef DEPRECATED_V10
-	// DEPRECATED V10: ergonomie, conservee de facon cachee en V10 pour compatibilite ascendante des scenarios
-	// Vue et donnees sur une base de test cachee correspondant a l'ancien onglet "Test database"
-	// Les anciens scenarios peuvent toujours exploiter cette vue sans planter, mais cette vue est utilisee,
-	// cela sera detecte au moment d'un mise a jour des donnees par l'interface. On recopiera alors
-	// les donnees de la base de test obsolete vers la base de test, en emettant un warning pour l'utilisateur
-	// (au plus une fois)
-	KWDatabase* deprecatedEmptyDatabase;
-	KWDatabase* deprecatedTestDatabase;
-	KWDatabaseView* deprecatedTestDatabaseView;
-	boolean bDeprecatedTestDataViewUsed;
-	boolean bDeprecatedTestDataViewWarningEmited;
-#endif // DEPRECATED_V10
 };

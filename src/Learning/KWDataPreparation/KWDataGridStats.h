@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -22,6 +22,9 @@ class PLShared_DGSAttributeSymbolValues;
 #include "KWType.h"
 #include "KWSymbol.h"
 #include "KWContinuous.h"
+#include "TSV.h"
+#include "KWFrequencyVector.h"
+#include "KWClass.h"
 #include "JSONFile.h"
 #include "PLSharedObject.h"
 
@@ -251,19 +254,19 @@ public:
 	////////////////////////////////////////////////////////
 	// Gestion d'un rapport JSON
 	//
-	// Il faut avoir parametrer un veceteur des valeurs min et max par attribut
-	// pour permettre l'ecritures des partition en intervalles, avec les valeurs
-	// des bornes extremes.
+	// Il faut avoir parametrer un vecteur des bornes inf et sup de domaine numerique
+	// par attribut pour permettre l'ecritures des partition en intervalles, avec les valeurs
+	// des bornes extremes (soit bornes de domaines, soit valeur min et max par attribut).
 	// Ces vecteur appartienne a l'appelant, et ne doivent etre parametre que le temps
 	// de l'appel des methodes d'ecriture JSON
 
-	// Vecteur des valeurs min par attribut
-	void SetJSONAttributeMinValues(const ContinuousVector* cvValues);
-	const ContinuousVector* GetJSONAttributeMinValues() const;
+	// Vecteur des bornes inf et sup de domaine numerique par attribut
+	void SetJSONAttributeDomainLowerBounds(const ContinuousVector* cvValues);
+	const ContinuousVector* GetJSONAttributeDomainLowerBounds() const;
 
 	// Vecteur des valeurs max par attribut
-	void SetJSONAttributeMaxValues(const ContinuousVector* cvValues);
-	const ContinuousVector* GetJSONAttributeMaxValues() const;
+	void SetJSONAttributeDomainUpperBounds(const ContinuousVector* cvValues);
+	const ContinuousVector* GetJSONAttributeDomainUpperBounds() const;
 
 	// Ecriture du contenu d'un rapport JSON
 	virtual void WriteJSONFields(JSONFile* fJSON);
@@ -379,18 +382,12 @@ protected:
 	virtual void SortSourceCells(ObjectArray* oaSourceCells, int nTargetAttributeIndex) const;
 
 	// Services d'indexation des cellules avec un nombre quelconque d'attributs
-	boolean InternalCheckPartIndexes(const IntVector* ivPartIndexes, int nFirstAtributeIndex,
+	boolean InternalCheckPartIndexes(const IntVector* ivPartIndexes, int nFirstAttributeIndex,
 					 int nLastAttributeIndex) const;
-	int InternalComputeCellIndex(const IntVector* ivPartIndexes, int nFirstAtributeIndex,
+	int InternalComputeCellIndex(const IntVector* ivPartIndexes, int nFirstAttributeIndex,
 				     int nLastAttributeIndex) const;
-	void InternalComputePartIndexes(int nCellIndex, IntVector* ivPartIndexes, int nFirstAtributeIndex,
+	void InternalComputePartIndexes(int nCellIndex, IntVector* ivPartIndexes, int nFirstAttributeIndex,
 					int nLastAttributeIndex) const;
-
-	// Nombre max d'item dans les rapports (redirige sur KWLearningReport)
-	int GetMaxModalityNumber() const;
-
-	// Calcul d'un nombre max d'item, en se limitant au parametre MaxModalityNumber
-	int ComputeMaxWrittenItemNumber(int nItemNumber) const;
 
 	// Tableau des attributs du DataGrid
 	ObjectArray oaAttributes;
@@ -408,8 +405,8 @@ protected:
 	int nGranularity;
 
 	// Vecteur des valeurs min et max par intervalle, pour l'ecriture des discretisation JSON
-	const ContinuousVector* cvJSONAttributeMinValues;
-	const ContinuousVector* cvJSONAttributeMaxValues;
+	const ContinuousVector* cvJSONAttributeDomainLowerBounds;
+	const ContinuousVector* cvJSONAttributeDomainUpperBounds;
 
 	friend class PLShared_DataGridStats;
 };
@@ -664,6 +661,7 @@ public:
 	// nGranularizedValueNumber + nCatchAllValueNumber = nInitialValueNumber
 	void SetCatchAllValueNumber(int nValue);
 	int GetCatchAllValueNumber() const;
+
 	///////////////////////////////////////
 	// Methodes de test de la classe
 
@@ -913,8 +911,8 @@ public:
 	KWDataGridStats* GetDataGridStats();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	// Methode de test
 	static boolean Test();
@@ -924,7 +922,7 @@ public:
 protected:
 	Object* Create() const override;
 
-	// Test de la serialisation de la grilel passe en parametre (celle-ci est detruite a la fin du test)
+	// Test de la serialisation de la grille passee en parametre (celle-ci est detruite a la fin du test)
 	static boolean TestDataGrid(KWDataGridStats* testDataGrid);
 };
 
@@ -939,8 +937,8 @@ public:
 	~PLShared_DGSAttributePartition();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 };
 
 ////////////////////////////////////////////////////////////
@@ -958,8 +956,8 @@ public:
 	KWDGSAttributeDiscretization* GetAttributePartition();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	// Methode de test
 	static boolean Test();
@@ -985,8 +983,8 @@ public:
 	KWDGSAttributeGrouping* GetAttributePartition();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	// Methode de test
 	static boolean Test();
@@ -1012,8 +1010,8 @@ public:
 	KWDGSAttributeContinuousValues* GetAttributePartition();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	// Methode de test
 	static boolean Test();
@@ -1039,8 +1037,8 @@ public:
 	KWDGSAttributeSymbolValues* GetAttributePartition();
 
 	// Reimplementation des methodes virtuelles
-	void DeserializeObject(PLSerializer*, Object*) const override;
-	void SerializeObject(PLSerializer*, const Object*) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	// Methode de test
 	static boolean Test();
@@ -1203,27 +1201,18 @@ inline void KWDataGridStats::ComputeTargetPartIndexes(int nCellIndex, IntVector*
 	InternalComputePartIndexes(nCellIndex, ivPartIndexes, GetFirstTargetAttributeIndex(), GetAttributeNumber() - 1);
 }
 
-inline int KWDataGridStats::ComputeMaxWrittenItemNumber(int nItemNumber) const
-{
-	require(nItemNumber >= 0);
-	if (nItemNumber <= GetMaxModalityNumber())
-		return nItemNumber;
-	else
-		return GetMaxModalityNumber();
-}
-
-inline int KWDataGridStats::InternalComputeCellIndex(const IntVector* ivPartIndexes, int nFirstAtributeIndex,
+inline int KWDataGridStats::InternalComputeCellIndex(const IntVector* ivPartIndexes, int nFirstAttributeIndex,
 						     int nLastAttributeIndex) const
 {
 	int nCellIndex;
 	int nAttribute;
 	const KWDGSAttributePartition* attribute;
 
-	require(InternalCheckPartIndexes(ivPartIndexes, nFirstAtributeIndex, nLastAttributeIndex));
+	require(InternalCheckPartIndexes(ivPartIndexes, nFirstAttributeIndex, nLastAttributeIndex));
 
 	// Calcul de l'index de la cellule dans la grille
 	nCellIndex = 0;
-	for (nAttribute = nLastAttributeIndex; nAttribute >= nFirstAtributeIndex; nAttribute--)
+	for (nAttribute = nLastAttributeIndex; nAttribute >= nFirstAttributeIndex; nAttribute--)
 	{
 		attribute = GetAttributeAt(nAttribute);
 		if (nAttribute < nLastAttributeIndex)
@@ -1236,7 +1225,7 @@ inline int KWDataGridStats::InternalComputeCellIndex(const IntVector* ivPartInde
 }
 
 inline void KWDataGridStats::InternalComputePartIndexes(int nCellIndex, IntVector* ivPartIndexes,
-							int nFirstAtributeIndex, int nLastAttributeIndex) const
+							int nFirstAttributeIndex, int nLastAttributeIndex) const
 {
 	int nIndex;
 	int nPartIndex;
@@ -1244,13 +1233,13 @@ inline void KWDataGridStats::InternalComputePartIndexes(int nCellIndex, IntVecto
 	const KWDGSAttributePartition* attribute;
 
 	require(0 <= nCellIndex and nCellIndex < ComputeTotalGridSize());
-	require(0 <= nFirstAtributeIndex and nFirstAtributeIndex <= nLastAttributeIndex);
+	require(0 <= nFirstAttributeIndex and nFirstAttributeIndex <= nLastAttributeIndex);
 	require(0 <= nLastAttributeIndex and nLastAttributeIndex < GetAttributeNumber());
 	require(nLastAttributeIndex < ivPartIndexes->GetSize());
 
 	// Calcul de l'index de la cellule dans la grille
 	nIndex = nCellIndex;
-	for (nAttribute = nFirstAtributeIndex; nAttribute <= nLastAttributeIndex; nAttribute++)
+	for (nAttribute = nFirstAttributeIndex; nAttribute <= nLastAttributeIndex; nAttribute++)
 	{
 		attribute = GetAttributeAt(nAttribute);
 		nPartIndex = nIndex % attribute->GetPartNumber();
@@ -1258,7 +1247,7 @@ inline void KWDataGridStats::InternalComputePartIndexes(int nCellIndex, IntVecto
 		if (nAttribute < nLastAttributeIndex)
 			nIndex /= attribute->GetPartNumber();
 	}
-	ensure(nCellIndex == InternalComputeCellIndex(ivPartIndexes, nFirstAtributeIndex, nLastAttributeIndex));
+	ensure(nCellIndex == InternalComputeCellIndex(ivPartIndexes, nFirstAttributeIndex, nLastAttributeIndex));
 }
 
 inline KWDGSCell::KWDGSCell()

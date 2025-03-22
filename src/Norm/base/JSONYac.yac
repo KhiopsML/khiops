@@ -1,0 +1,446 @@
+%{
+// Parser de json, inspire de la grammaire  de reference https://www.json.org/json-en.html
+
+#include "Object.h"
+#include "ALString.h"
+#include "TextService.h"
+#include "JSONObject.h"
+
+// Declaration du lexer utilise
+int jsonlex();
+
+// Methode de gestion des erreurs
+void jsonerror(char const *fmt);
+const ALString jsonPrintableValue(const ALString& sValue);
+
+// Objet json principal a utiliser pendant la lecture d'un fichier.
+// Ce domaine est positionner par la methode ReadFile de JSONObject
+static JSONObject* mainReadJSONObject=NULL;
+
+// Work around a bug in the relation between bison and GCC 3.x:
+#if defined (__GNUC__) && 3 <= __GNUC__
+#define __attribute__(arglist)
+#endif
+
+// Nombre total d'erreurs de parsing
+static int nJsonFileParsingErrorNumber = 0;
+
+// Desactivation de warnings pour le Visual C++
+#ifdef __MSC__
+#pragma warning(disable : 4702) // C4702: unreachable code (mal gere par Visual C++)
+#endif                          // __MSC__
+
+#define YY_STATIC
+
+// Debugging YAC
+
+// Debugging YAC
+// Ajouter ici les instruction suivantes
+//   #define YYDEBUG 1 
+//   extern char   *yyptok(int i); 
+// Ajouter l'instruction yydebug = 1 dans le code d'une action du fichier .lex ou .yac
+
+%}
+
+%define api.prefix {json}
+
+%union {
+  ALString* sValue;
+  double dValue;
+  boolean bValue;
+  JSONValue* jsonValue;
+  JSONObject* jsonObject;
+  JSONArray* jsonArray;
+  JSONMember* jsonMember;
+};
+
+%token <sValue>    STRINGVALUE
+%token <dValue>    NUMBERVALUE
+%token <bValue>    BOOLEANVALUE
+%token <sValue>    STRINGERROR
+%token <sValue>    ERROR
+%token NULLVALUE 
+%type <jsonObject> jsonFile
+%type <jsonValue> value
+%type <jsonObject> object
+%type <jsonObject> members
+%type <jsonMember> member
+%type <jsonArray> array
+%type <jsonArray> values
+
+
+// Parametrage du destructeur a appeler en cas d'erreur
+%destructor {if ($$ != NULL) delete $$; $$=NULL;} <sValue> <jsonValue> <jsonObject> <jsonArray> <jsonMember>
+
+
+%start jsonFile
+
+%%
+
+jsonFile: object
+    {
+		JSONObject* jsonObject = $1;
+		JSONMember* member;
+		int i;
+		
+		// On memorise l'objet construit, qui sera detruit par le parser
+		$$ = jsonObject;
+
+		// Transfert du contenu vers l'objet principal
+		assert(mainReadJSONObject->GetMemberNumber() == 0);
+		for (i = 0; i < jsonObject->GetMemberNumber(); i++)
+		{
+			member = jsonObject->GetMemberAt(i);
+			mainReadJSONObject->AddMember(member);
+		}
+		jsonObject->RemoveAll();
+	}
+	| error
+	{
+		$$ = NULL;
+		YYABORT;
+	}
+	;
+
+
+value: object     { $$ = $1; } 
+	| array   { $$ = $1; } 
+	| STRINGVALUE  
+	{ 
+	    ALString* sValue = $1;
+		JSONString* jsonString;
+		
+		// Creation d'une valeur chaine de caractere
+		jsonString = new JSONString;
+		$$ = jsonString;
+
+		// Alimentation
+		jsonString->SetString(*sValue);
+		delete sValue;
+	}
+	| NUMBERVALUE
+	{ 
+		double dValue = $1;
+		JSONNumber* jsonNumber;
+		
+		// Creation d'une valeur chaine de caractere
+		jsonNumber = new JSONNumber;
+		$$ = jsonNumber;
+
+		// Alimentation
+		jsonNumber->SetNumber(dValue);
+	}
+	| BOOLEANVALUE
+	{ 
+		boolean bValue = $1;
+		JSONBoolean* jsonBoolean;
+		
+		// Creation d'une valeur chaine de caractere
+		jsonBoolean = new JSONBoolean;
+		$$ = jsonBoolean;
+
+		// Alimentation
+		jsonBoolean->SetBoolean(bValue);
+	}
+	| NULLVALUE
+	{ 
+		JSONNull* jsonNull;
+		
+		// Creation d'une valeur chaine de caractere
+		jsonNull = new JSONNull;
+		$$ = jsonNull;
+	}
+	| STRINGERROR  
+	{
+	    ALString* sError = $1;
+
+		// Message d'erreur
+		jsonerror("Invalid json string \"" + jsonPrintableValue(*sError) + "\" with non-utf8 encoding");
+
+		// Nettoyage et sortie
+		delete sError;
+		$$ = NULL;
+		YYABORT;
+	}
+	| ERROR  
+	{ 
+	    ALString* sError = $1;
+		ALString sValueError;
+
+		// Message d'erreur, avec indication de la valeur sauf si elle se reduit au caractete '"'
+		if (*sError != "\"")
+			sValueError = " \"" + jsonPrintableValue(*sError) + "\"";
+		jsonerror("Invalid json value" + sValueError);
+
+		// Nettoyage et sortie
+		delete sError;
+		$$ = NULL;
+		YYABORT;
+	}
+	;
+
+object: '{' '}'            
+	{ $$ = new JSONObject; }
+	| '{' members '}'  
+	{ $$ = $2; }
+	;
+
+members: member                    
+	{ 
+		JSONMember* member = $1;
+		JSONObject* jsonObject;
+		
+		// Creation d'un objet json
+		jsonObject = new JSONObject;
+		$$ = jsonObject;
+		
+		// Alimentation avec un premier membre d'objet
+		jsonObject->AddMember(member);
+	}
+	| members ',' member
+	{ 
+		JSONObject* jsonObject = $1;
+		JSONMember* member = $3;
+		ALString sJsonKey;
+		
+		// On recupere l'objet json en cours
+		$$ = jsonObject;
+		
+		// Ajout d'un nouveau membre d'objet, s'il n'en existe pas deja un du meme nom
+		if (jsonObject->LookupMember(member->GetKey()) == NULL)
+			jsonObject->AddMember(member);
+		// Erreur sinon
+		else
+		{
+			TextService::CToJsonString(member->GetKey(), sJsonKey);
+			jsonerror("Duplicate key \"" + jsonPrintableValue(sJsonKey) + "\" in json object");
+
+			// Nettoyage et sortie
+			delete member;
+			delete jsonObject;
+			$$ = NULL;
+			YYABORT;
+		}
+	}
+	| STRINGERROR  
+	{ 
+	    ALString* sError = $1;
+
+		// Message d'erreur
+		jsonerror("Invalid json key \"" + jsonPrintableValue(*sError) + "\" with non-utf8 encoding");
+
+		// Nettoyage et sortie
+		delete sError;
+		$$ = NULL;
+		YYABORT;
+	}
+	| ERROR  
+	{ 
+	    ALString* sError = $1;
+		ALString sValueError;
+
+		// Message d'erreur, avec indication de la valeur sauf si elle se reduit au caractete '"'
+		if (*sError != "\"")
+			sValueError = " \"" + jsonPrintableValue(*sError) + "\"";
+		jsonerror("Invalid json key" + sValueError);
+
+		// Nettoyage et sortie
+		delete sError;
+		$$ = NULL;
+		YYABORT;
+	}
+	;
+
+member: STRINGVALUE ':' value 	 
+	{ 
+	    ALString* sKey = $1;
+		JSONValue* jsonValue = $3;
+		JSONMember* member;
+
+		// Creation d'un membre d'objet
+		member = new JSONMember;
+		$$ = member;
+
+		// Alimentation
+		member->SetKey(*sKey);
+		member->SetValue(jsonValue);
+		delete sKey;
+	}
+	;
+
+array: '[' ']'
+	{ $$ = new JSONArray; }
+	| '[' values ']'  
+	{ $$ = $2; }
+	;
+
+values: value
+	{ 
+		JSONValue* jsonValue = $1;
+		JSONArray* jsonArray;
+		
+		// Creation d'un tableau de valeur
+		jsonArray = new JSONArray;
+		$$ = jsonArray;
+		
+		// Alimentation avec un premier membre d'objet
+		jsonArray->AddValue(jsonValue);
+	}
+	| values ',' value   
+	{ 
+		JSONArray* jsonArray = $1;
+		JSONValue* jsonValue = $3;
+		
+		// On recupere le tableau en cours
+		$$ = jsonArray;
+		
+		// Ajout d'un nouveau membre d'objet
+		jsonArray->AddValue(jsonValue);
+	}
+	;
+
+%%
+
+
+#include "JSONLex.inc"
+
+// default yyerror for YACC and LEX
+void jsonerror(char const *fmt)
+{
+  char sErrorLine[20];
+  ALString sLabel;
+
+  nJsonFileParsingErrorNumber++;
+  snprintf(sErrorLine, sizeof(sErrorLine), "Line %d", yylineno);
+  sLabel = fmt;
+  Global::AddError("Read json file",
+                    sErrorLine,
+                    sLabel);
+}
+
+const ALString jsonPrintableValue(const ALString& sValue)
+{
+	const int nMaxPrintableLength = 30;
+
+	if (sValue.GetLength() <= nMaxPrintableLength)
+		return sValue;
+	else
+		return sValue.Left(nMaxPrintableLength) + "...";
+}
+
+int jsonparse();
+
+// Implementation de la methode de lecture de fichier de KWClassDomain
+boolean JSONObject::ReadFile(const ALString& sFileName)
+{
+  boolean bOk = true;
+  FILE* fFile;
+  ALString sLocalFileName;
+
+  // Affichage de stats memoire si log memoire actif
+  MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " ReadFile Begin");
+
+  // Initialisation de l'objet json principal a utiliser pour la lecture
+  assert(mainReadJSONObject == NULL);
+  mainReadJSONObject = this;
+  mainReadJSONObject->DeleteAll();
+
+  // Erreur si pas de nom de fichier
+  fFile = NULL;
+  if (sFileName == "")
+  {
+     AddError("Missing file name");
+	 bOk = false;
+  }
+  // Sinon, ouverture du fichier
+  else
+  { 
+		// Copie depuis un fichier distant si necessaire
+		bOk = PLRemoteFileService::BuildInputWorkingFile(sFileName, sLocalFileName);
+		if (bOk)
+			bOk = FileService::OpenInputBinaryFile(sLocalFileName, fFile);
+  }
+
+  // On continue si fichier ouvert correctement
+  if (bOk)
+  {
+    assert(fFile != NULL);
+
+	// Activation du nombre max d'erreurs a afficher
+	nJsonFileParsingErrorNumber = 0;
+	Global::ActivateErrorFlowControl();
+
+    // Positionnement du fichier a parser par la variable yyin de LEX
+    jsonlineno = 1;
+    jsonrestart(fFile);
+    
+	// Parsing
+    jsonparse();
+
+	// Cleaning lexer
+	jsonlex_destroy();
+
+    // Fermeture du fichier
+	FileService::CloseInputBinaryFile(sLocalFileName, fFile);
+	
+	// Si fichier distant, on supprime la copie locale
+	PLRemoteFileService::CleanInputWorkingFile(sFileName, sLocalFileName);
+
+	// Desactivation du nombre max d'erreurs a afficher
+	Global::DesactivateErrorFlowControl();
+
+    // Nettoyage si erreurs
+	if (nJsonFileParsingErrorNumber > 0)
+    {
+	  // Destruction du contenu de l'objet construit
+	  mainReadJSONObject->DeleteAll();
+
+	  // En cas d'erreur, ajout d'une ligne blanche pour separer des autres logs
+      AddError("Errors detected during parsing " + sFileName + ": read operation cancelled");
+	  bOk = false;
+	}
+	nJsonFileParsingErrorNumber = 0;
+  }
+
+  // Nettoyage
+  mainReadJSONObject = NULL;
+
+  // Affichage de stats memoire si log memoire actif
+  MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " ReadFile End");
+
+  return bOk;
+}
+
+void JSONObject::SetLineno(int nValue)
+{
+	jsonlineno = nValue;
+}
+
+int JSONObject::GetLineno()
+{
+	return jsonlineno;
+}
+
+void JSONObject::Restart(FILE* inputFile) 
+{
+	jsonrestart(inputFile);
+}
+
+int JSONObject::Lex(JSONSTYPE* jsonValue)
+{
+	int nToken;
+
+	require(jsonValue != NULL);
+
+	// Lecture du token, puis de sa valeur
+	nToken = jsonlex();
+	*jsonValue = jsonlval;
+	return nToken;
+}
+
+int JSONObject::LexDestroy()
+{
+	return jsonlex_destroy();
+}
+
+

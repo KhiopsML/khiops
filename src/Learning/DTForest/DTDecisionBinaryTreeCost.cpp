@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -70,7 +70,6 @@ double DTDecisionBinaryTreeCost::ComputeTotalTreeCost(DTDecisionTree* tree)
 
 double DTDecisionBinaryTreeCost::ComputeTreeConstructionCost(DTDecisionTree* tree)
 {
-
 	DoubleVector dvCost;
 	POSITION position;
 	Object* object;
@@ -81,13 +80,14 @@ double DTDecisionBinaryTreeCost::ComputeTreeConstructionCost(DTDecisionTree* tre
 	int nInternalNodesNumber;
 	int nUsedAttributeNumber;
 
-	if (nTotalAttributeNumber == 0)
-		// pas d'attribut informatif ?
-		return 0;
-
 	// Extraction du nombre de predicteurs utilises dans l'arbre
 	nUsedAttributeNumber = tree->GetUsedVariablesDictionary()->GetCount();
 
+	if (nUsedAttributeNumber == 0 || nTotalAttributeNumber == 0)
+	{ // pas d'attribut informatif ?
+		tree->SetConstructionCost(0.0);
+		return 0;
+	}
 	// Extraction du nombre de noeuds internes
 	if (tree->GetInternalNodes() != NULL)
 		nInternalNodesNumber = tree->GetInternalNodes()->GetCount();
@@ -185,8 +185,8 @@ double DTDecisionBinaryTreeCost::ComputeInternalNodeCost(DTDecisionTree* tree, D
 	if (node->GetSplitAttributeStats()->GetPreparedDataGridStats()->GetAttributeNumber() == 1)
 	{
 		// a partir de learningEnv v8, les attributs a level nul ne sont plus prepares. Le seul attribut prepare
-		// correspond ici a l'attribut cible NVDELL AddWarning("ComputeInternalNodeCost :
-		// GetPreparedDataGridStats()->GetAttributeNumber() == 1");
+		// correspond ici a l'attribut cible
+		// NVDELL AddWarning("ComputeInternalNodeCost : GetPreparedDataGridStats()->GetAttributeNumber() == 1");
 		return dInternalCost;
 	}
 

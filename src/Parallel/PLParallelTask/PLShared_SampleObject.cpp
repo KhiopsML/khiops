@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -64,6 +64,20 @@ void PLShared_SampleObject::Test()
 	delete soOut;
 }
 
+void PLShared_SampleObject::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	const SampleObject* so = cast(SampleObject*, o);
+
+	require(serializer->IsOpenForWrite());
+	require(o != NULL);
+
+	// Serialisation de la chaine de caracteres
+	serializer->PutString(so->GetString());
+
+	// Serialisation de l'entier
+	serializer->PutInt(so->GetInt());
+}
+
 void PLShared_SampleObject::DeserializeObject(PLSerializer* serializer, Object* o) const
 {
 	SampleObject* so = cast(SampleObject*, o);
@@ -76,18 +90,4 @@ void PLShared_SampleObject::DeserializeObject(PLSerializer* serializer, Object* 
 
 	// Deserialisation de l'entier
 	so->SetInt(serializer->GetInt());
-}
-
-void PLShared_SampleObject::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	SampleObject* so = cast(SampleObject*, o);
-
-	require(serializer->IsOpenForWrite());
-	require(o != NULL);
-
-	// Serialisation de la chaine de caracteres
-	serializer->PutString(so->GetString());
-
-	// Serialisation de l'entier
-	serializer->PutInt(so->GetInt());
 }

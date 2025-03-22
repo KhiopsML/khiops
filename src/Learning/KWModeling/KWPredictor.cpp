@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -126,6 +126,8 @@ boolean KWPredictor::IsTrained() const
 void KWPredictor::RemoveTrainedResults()
 {
 	// Dereferencement des resultats d'apprentissage
+	nkdSelectedDataPreparationStats.RemoveAll();
+	nkdRecursivelySelectedDataPreparationStats.RemoveAll();
 	predictorReport = NULL;
 	trainedPredictor = NULL;
 	ensure(not IsTrained());
@@ -134,6 +136,8 @@ void KWPredictor::RemoveTrainedResults()
 void KWPredictor::DeleteTrainedResults()
 {
 	// Destruction des resultats d'apprentissage
+	nkdSelectedDataPreparationStats.RemoveAll();
+	nkdRecursivelySelectedDataPreparationStats.RemoveAll();
 	if (predictorReport != NULL)
 		delete predictorReport;
 	predictorReport = NULL;
@@ -142,6 +146,18 @@ void KWPredictor::DeleteTrainedResults()
 	trainedPredictor = NULL;
 
 	ensure(not IsTrained());
+}
+
+const NumericKeyDictionary* KWPredictor::GetSelectedDataPreparationStats() const
+{
+	require(IsTrained());
+	return &nkdSelectedDataPreparationStats;
+}
+
+const NumericKeyDictionary* KWPredictor::GetRecursivelySelectedDataPreparationStats() const
+{
+	require(IsTrained());
+	return &nkdRecursivelySelectedDataPreparationStats;
 }
 
 KWPredictorReport* KWPredictor::GetPredictorReport()
@@ -287,6 +303,110 @@ boolean KWPredictor::InternalTrain()
 {
 	require(IsTraining());
 	return false;
+}
+
+void KWPredictor::CollectSelectedPreparationStats(ObjectArray* oaUsedDataPreparationStats)
+{
+	const boolean bDisplay = false;
+	KWDataPreparationStats* dataPreparationStats;
+	KWAttributeStats* attributeStats;
+	int i;
+	int nAttribute;
+	ALString sAttributeName;
+	KWClass* kwcPreparedClass;
+	KWAttribute* attribute;
+	NumericKeyDictionary nkdAllUsedAttributes;
+	NumericKeyDictionary nkdAllUsedClasses;
+	ObjectArray oaAllUsedAttributes;
+
+	require(nkdSelectedDataPreparationStats.GetCount() == 0);
+	require(nkdRecursivelySelectedDataPreparationStats.GetCount() == 0);
+	require(oaUsedDataPreparationStats != NULL);
+	require(GetClassStats() != NULL);
+	require(GetClass() != NULL);
+	require(GetClass() == GetClassStats()->GetClass());
+
+	// Acces au dictionnaire de la classe preparee
+	kwcPreparedClass = GetClass();
+	if (bDisplay)
+		cout << GetName() << endl;
+
+	// Parcours des preparations d'attributs utilisees
+	for (i = 0; i < oaUsedDataPreparationStats->GetSize(); i++)
+	{
+		dataPreparationStats = cast(KWDataPreparationStats*, oaUsedDataPreparationStats->GetAt(i));
+		check(dataPreparationStats);
+
+		// Memorisation dans le dictionnaire des preparations de donnees selectionnes directement ou non
+		nkdSelectedDataPreparationStats.SetAt(dataPreparationStats, dataPreparationStats);
+		nkdRecursivelySelectedDataPreparationStats.SetAt(dataPreparationStats, dataPreparationStats);
+		if (bDisplay)
+			cout << "\t" << dataPreparationStats->GetSortName() << endl;
+
+		// Analyse de la preparation pour en extraire les attributs
+		for (nAttribute = 0; nAttribute < dataPreparationStats->GetAttributeNumber(); nAttribute++)
+		{
+			sAttributeName = dataPreparationStats->GetAttributeNameAt(nAttribute);
+
+			// Recherche de l'attribut prepare correspondant
+			attributeStats = GetClassStats()->LookupAttributeStats(sAttributeName);
+
+			// Pris en compte si non nul, comme dans le cas d'une paire ou d'une grille
+			if (attributeStats != NULL)
+			{
+				// Memorisation dans le dictionnaire des preparations d'attributs selectionnes
+				// recursivement
+				nkdRecursivelySelectedDataPreparationStats.SetAt(attributeStats, attributeStats);
+				if (bDisplay)
+				{
+					if (nkdSelectedDataPreparationStats.Lookup(attributeStats) == NULL)
+						cout << "\t\t" << attributeStats->GetSortName() << endl;
+				}
+			}
+
+			// Analyse des attributs utilise recursivement dans une formule de calcul, comme par exemple
+			// pour les arbres
+			attribute = kwcPreparedClass->LookupAttribute(sAttributeName);
+			check(attribute);
+			nkdAllUsedAttributes.SetAt(attribute, attribute);
+			if (attribute->GetDerivationRule() != NULL)
+				attribute->GetDerivationRule()->BuildAllUsedAttributes(attribute,
+										       &nkdAllUsedAttributes);
+		}
+	}
+
+	// Finalisation de la collecte des attributs utilises via les regles de construction de table
+	// Cette finalization permet une analyse plus exhaustive de la propagation des regles
+	// de derivation utilisee, en ne partant que des attributs exploites en preparation
+	// L'enjeu est ici essentiellement de fournir des statistiques d'uilisation des attributs pour les utlisateurs
+	// Il n'y a pas d'enjeu de compilation ni de bugs potentiels
+	kwcPreparedClass->FinalizeBuildAllUsedAttributes(&nkdAllUsedAttributes, &nkdAllUsedClasses);
+
+	// Prise en compte des preparation de tous les attributs utilises recursivement
+	nkdAllUsedAttributes.ExportObjectArray(&oaAllUsedAttributes);
+	for (i = 0; i < oaAllUsedAttributes.GetSize(); i++)
+	{
+		attribute = cast(KWAttribute*, oaAllUsedAttributes.GetAt(i));
+
+		// On ne prend comte que les attribut de la classe prepares, et non ceux des sous-tables
+		if (attribute->GetParentClass() == kwcPreparedClass)
+		{
+			attributeStats = GetClassStats()->LookupAttributeStats(attribute->GetName());
+
+			// Pris en compte si non nul
+			if (attributeStats != NULL)
+			{
+				// Memorisation dans le dictionnaire des preparations d'attributs selectionnes
+				// recursivement
+				nkdRecursivelySelectedDataPreparationStats.SetAt(attributeStats, attributeStats);
+				if (bDisplay)
+				{
+					if (nkdSelectedDataPreparationStats.Lookup(attributeStats) == NULL)
+						cout << "\t\t" << attributeStats->GetSortName() << endl;
+				}
+			}
+		}
+	}
 }
 
 int KWPredictorCompareName(const void* first, const void* second)

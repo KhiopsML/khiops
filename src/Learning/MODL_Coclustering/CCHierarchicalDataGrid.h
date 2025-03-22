@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -7,9 +7,6 @@
 class CCHierarchicalDataGrid;
 class CCHDGAttribute;
 class CCHDGPart;
-class CCHDGValueSet;
-class CCHDGValue;
-class CCHDGCell;
 
 #include "KWDataGrid.h"
 #include "KWDatabase.h"
@@ -63,6 +60,10 @@ public:
 	KWDatabase* GetDatabaseSpec();
 	const KWDatabase* GetConstDatabaseSpec() const;
 
+	// Nom de l'attribute d'identifiant (optionnel)
+	void SetIdentifierAttributeName(const ALString& sValue);
+	const ALString& GetIdentifierAttributeName() const;
+
 	/////////////////////////////////////////////////////////////////////////
 	// Services divers
 
@@ -72,12 +73,14 @@ public:
 	// Verification de l'integrite pour les infos supplementaires sur la hierarchie
 	boolean CheckHierarchy() const;
 
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override;
+
 	///////////////////////////////
 	//// Implementation
 protected:
 	// Reimplementation des methodes virtuelles
 	KWDGAttribute* NewAttribute() const override;
-	KWDGCell* NewCell() const override;
 
 	// Informations synthetique sur la grille de coclustering
 	ALString sShortDescription;
@@ -86,6 +89,10 @@ protected:
 	int nInitialAttributeNumber;
 	ALString sFrequencyAttributeName;
 	KWDatabase databaseSpec;
+
+	// CH IV Refactoring: le sIdentifierAttributeName est-il toujours utile???
+	// CH IV Refactoring: on le conserve pour l'instant dans l'hypothese ou l'on etende le coclustering IV a plusieurs variables hors variable varPart
+	ALString sIdentifierAttributeName;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -254,9 +261,6 @@ public:
 	///////////////////////////////
 	///// Implementation
 protected:
-	// Reimplementation des methodes virtuelles
-	KWDGValueSet* NewValueSet() const override;
-
 	// Reimplementation de la methode indiquant si les donnees sont emulees
 	// pour gerer les effectifs des parties de la hierarchie, n'ayant pas directement de cellules
 	boolean GetEmulated() const override;
@@ -281,69 +285,5 @@ protected:
 // Comparaison de deux parties, en mettant les feuilles en tete, puis le rank
 int CCHDGPartCompareLeafRank(const void* elem1, const void* elem2);
 
-// Comparaison de deux parties selon leur niveau hierarchique, index d'attribut et partie (pointeur)
-int CCHDGPartCompareHierarchicalLevel(const void* elem1, const void* elem2);
-
-//////////////////////////////////////////////////////////////////////////////
-// Classe CCHDGValueSet
-// Ensemble de valeurs d'une partie symbolique d'un HierarchicalDataGrid
-class CCHDGValueSet : public KWDGValueSet
-{
-public:
-	// Constructeur
-	CCHDGValueSet();
-	~CCHDGValueSet();
-
-	// Tri des valeurs par typicalite decroissante
-	void SortValuesByTypicality();
-
-	// Controle d'integrite pour la hierarchie
-	boolean CheckHierarchy() const;
-
-	///////////////////////////////
-	///// Implementation
-protected:
-	// Reimplementation des methodes virtuelles
-	KWDGValue* NewValue(const Symbol& sValue) const override;
-};
-
-//////////////////////////////////////////////////////////////////////////////
-// Classe CCHDGValue
-// Valeur symbolique d'un HierarchicalDataGrid
-class CCHDGValue : public KWDGValue
-{
-public:
-	// Constructeur
-	CCHDGValue(const Symbol& sValue);
-	~CCHDGValue();
-
-	// Typicalite
-	void SetTypicality(double dValue);
-	double GetTypicality() const;
-
-	// Controle d'integrite pour la hierarchie
-	boolean CheckHierarchy() const;
-
-	///////////////////////////////
-	///// Implementation
-protected:
-	double dTypicality;
-};
-
-// Comparaison de deux valeurs symboliques, par typicalite decroissante
-int CCHDGValueCompareDecreasingTypicality(const void* elem1, const void* elem2);
-
-//////////////////////////////////////////////////////////////////////////////
-// Classe CCHDGCell
-// Cellule d'un HierarchicalDataGrid
-class CCHDGCell : public KWDGCell
-{
-public:
-	// Constructeur
-	CCHDGCell();
-	~CCHDGCell();
-
-	///////////////////////////////
-	///// Implementation
-protected:
-};
+// Comparaison de deux parties selon leur rang hierarchique, index d'attribut et partie (pointeur)
+int CCHDGPartCompareHierarchicalRank(const void* elem1, const void* elem2);

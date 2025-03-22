@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -223,9 +223,9 @@ double DTDecisionTreeCost::ComputeNodeCost(DTDecisionTreeNode* node, DTDecisionT
 
 					// Extraction du nombre d'intervalles de la regle de discretisation Is
 					// nPartNumber = oaGroups->GetSize();
-					attributeStats =
-					    NULL; // NV9 cast(KWAttributeStats*,
-						  // node->GetNodeAttributeStats()->Lookup(->LookupAttributeStats(sAttributeName));
+					attributeStats = NULL;
+					// NV9 cast(KWAttributeStats*,
+					// node->GetNodeAttributeStats()->Lookup(->LookupAttributeStats(sAttributeName));
 
 					// cout << "sAttributeName = " << sAttributeName << endl;
 

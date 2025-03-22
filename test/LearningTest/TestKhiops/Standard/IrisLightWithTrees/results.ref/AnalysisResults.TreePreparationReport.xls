@@ -1,0 +1,102 @@
+#Khiops 10.5.2-b.0
+Descriptive statistics
+
+
+Problem description
+Short description	
+
+Dictionary	Iris
+Variables
+	Categorical	1
+	Numerical	5
+	Total	6
+
+Database	../../../datasets/Iris/Iris.txt
+Sample percentage	70
+Sampling mode	Include sample
+Selection variable	
+Selection value	
+Instances	105
+
+Learning task	Classification analysis
+
+Target variable	Categorical	Class
+
+Target variable stats
+Value	Frequency	Coverage
+Iris-setosa	38	0.361905
+Iris-versicolor	32	0.304762
+Iris-virginica	35	0.333333
+
+Evaluated variables	2
+Informative variables	2
+Selected variables	0
+
+Discretization	MODL
+Value grouping	MODL
+
+Null model
+	Constr. cost	0.693147
+	Prep. cost	8.64312
+	Data cost	110.25
+
+
+Categorical variables statistics
+
+Rank	Name	Level	Groups	Values	Mode	Mode coverage	Missing number	Sparse missing number	Constr. cost	Prep. cost	Data cost	Derivation rule
+R1	Tree_2	0.46019	3	5	L1	0.361905	0	0	27.4103	27.264	9.87971	SwitchC(IntervalIndex(IntervalBounds(0.75), PetalWidth), "L0", "L1", SwitchC(IntervalIndex(IntervalBounds(6.25), SepalLength), "L0", SwitchC(IntervalIndex(IntervalBounds(4.75), PetalLength), "L2", "L7", "L8"), SwitchC(IntervalIndex(IntervalBounds(8.66), PetalArea), "L2", "L5", "L6")))
+R2	Tree_1	0.399978	3	4	L5	0.352381	0	0	29.0975	24.7419	17.9152	SwitchC(IntervalIndex(IntervalBounds(5.75), SepalLength), "L0", SwitchC(IntervalIndex(IntervalBounds(2), PetalArea), "L0", "L5", "L6"), SwitchC(IntervalIndex(IntervalBounds(1.75), PetalWidth), "L0", "L3", "L4"))
+
+
+--------------------------------------------------------------------------------
+
+Variables detailed statistics
+
+
+Rank	R1
+Variable	Categorical	Tree_2
+
+Variable stats
+Group	Size	Value list
+{L1}	1	L1
+{L6, L8}	2	L6	L8	 * 
+{L7, L5}	2	L7	L5
+
+% target values
+Group	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
+{L1}	1	0	0	0.375137	38	0.361905
+{L7, L5}	0	0.967742	0.0322581	0.313998	31	0.295238
+{L6, L8}	0	0.0555556	0.944444	0.310865	36	0.342857
+Total	0.361905	0.304762	0.333333	1	105	1
+
+Values
+Value	Frequency	Coverage
+L1	38	0.361905
+L6	28	0.266667
+L7	22	0.209524
+L5	9	0.0857143
+L8	8	0.0761905
+
+----------------------------------------------
+Rank	R2
+Variable	Categorical	Tree_1
+
+Variable stats
+Group	Size	Value list
+{L5}	1	L5
+{L3, L6}	2	L3	L6	 * 
+{L4}	1	L4
+
+% target values
+Group	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
+{L5}	1	0	0	0.401605	37	0.352381
+{L4}	0	0.03125	0.96875	0.328872	32	0.304762
+{L3, L6}	0.0277778	0.861111	0.111111	0.269523	36	0.342857
+Total	0.361905	0.304762	0.333333	1	105	1
+
+Values
+Value	Frequency	Coverage
+L5	37	0.352381
+L4	32	0.304762
+L3	20	0.190476
+L6	16	0.152381

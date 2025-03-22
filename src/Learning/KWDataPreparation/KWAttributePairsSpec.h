@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -31,12 +31,6 @@ public:
 	// Indicateur d'analyse de toutes les paires, dans la limite du nombre max
 	boolean GetAllAttributePairs() const;
 	void SetAllAttributePairs(boolean bValue);
-
-#ifdef DEPRECATED_V10
-	// Only pairs with variable (deprecated)
-	const ALString& GetMandatoryAttributeInPairs() const;
-	void SetMandatoryAttributeInPairs(const ALString& sValue);
-#endif // DEPRECATED_V10
 
 	////////////////////////////////////////////////////////////////////////
 	// Specification des paires d'attributs specifiques
@@ -81,7 +75,7 @@ public:
 	// Une fois specifiees et en utilisant la classe, les paires a analyser
 	// effectivement sont calculees en ignorant avec warning les paires
 	// impliquant des variables absentes de la classe.
-	// Les paires specifique sont prioritaires par rapport à toutes les
+	// Les paires specifique sont prioritaires par rapport a toutes les
 	// paires si celles si-sont demandees. Si le nombre total de paires
 	// depasse le max, on priorise en prenant d'abord les paires impliquant
 	// les attributs de plus fort level dans le cas supervise, puis
@@ -133,10 +127,6 @@ protected:
 	// Attributs de la classe
 	int nMaxAttributePairNumber;
 	boolean bAllAttributePairs;
-
-#ifdef DEPRECATED_V10
-	ALString sMandatoryAttributeInPairs;
-#endif // DEPRECATED_V10
 
 	// Tableau des paires
 	ObjectArray oaSpecificAttributePairs;

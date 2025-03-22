@@ -1,24 +1,15 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
-////////////////////////////////////////////////////////////
-// 2021-02-05 18:19:44
-// File generated  with GenereTable
-// Insert your specific code inside "//## " sections
-
 #include "UserInterface.h"
-
 #include "CCAnalysisSpec.h"
-
-// ## Custom includes
-
 #include "CCCoclusteringSpecView.h"
+#include "KWDataGridOptimizerParametersView.h"
 #include "KWSystemParametersView.h"
-
-// ##
+#include "KWCrashTestParametersView.h"
 
 ////////////////////////////////////////////////////////////
 // Classe CCAnalysisSpecView
@@ -31,9 +22,6 @@ public:
 	CCAnalysisSpecView();
 	~CCAnalysisSpecView();
 
-	// Acces a l'objet edite
-	CCAnalysisSpec* GetCCAnalysisSpec();
-
 	///////////////////////////////////////////////////////////
 	// Redefinition des methodes a reimplementer obligatoirement
 
@@ -43,23 +31,9 @@ public:
 	// Mise a jour des valeurs de l'interface par l'objet
 	void EventRefresh(Object* object) override;
 
-	// Libelles utilisateur
-	const ALString GetClassLabel() const override;
-
-	// ## Custom declarations
-
 	// Parametrage de l'objet edite
 	void SetObject(Object* object) override;
 
-	// ##
-	////////////////////////////////////////////////////////
-	//// Implementation
-protected:
-	// ## Custom implementation
-
-	// ##
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override;
 };
-
-// ## Custom inlines
-
-// ##

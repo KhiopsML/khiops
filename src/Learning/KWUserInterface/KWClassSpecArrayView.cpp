@@ -1,10 +1,9 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-04-25 11:10:57
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "KWClassSpecArrayView.h"
@@ -27,8 +26,8 @@ KWClassSpecArrayView::KWClassSpecArrayView()
 
 	// ## Custom constructor
 
-	// La visualisation du parametre Root n'est disponible qu'en mode multitables
-	GetFieldAt("Root")->SetVisible(GetLearningMultiTableMode());
+	// Specialisation de la methode d'inspection, pour perdonnaliser les warning
+	GetActionAt("InspectItem")->SetActionMethod((ActionMethod)(&KWClassSpecArrayView::ActionInspectItem));
 
 	// La cle n'est pas visible en mode tableau
 	GetFieldAt("Key")->SetVisible(false);
@@ -97,5 +96,18 @@ const ALString KWClassSpecArrayView::GetClassLabel() const
 }
 
 // ## Method implementation
+
+void KWClassSpecArrayView::ActionInspectItem()
+{
+	// Warning si aucun item n'est selectionne
+	if (GetSelectedItemIndex() == -1 and GetItemNumber() > 0)
+	{
+		// On passe par Global pour avoir un warning simple
+		Global::AddWarning("", "", "Click in the list to select the dictionary to inspect");
+	}
+	// Sinon, inspection en appelant l'implementation de la classe ancetre
+	else
+		UIObjectArrayView::ActionInspectItem();
+}
 
 // ##

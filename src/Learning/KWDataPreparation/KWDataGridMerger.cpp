@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -9,6 +9,7 @@
 
 KWDataGridMerger::KWDataGridMerger()
 {
+	nMaxPartNumber = 0;
 	nCellDictionaryCount = 0;
 	dCost = 0;
 	dataGridCosts = NULL;
@@ -17,6 +18,17 @@ KWDataGridMerger::KWDataGridMerger()
 }
 
 KWDataGridMerger::~KWDataGridMerger() {}
+
+int KWDataGridMerger::GetMaxPartNumber() const
+{
+	return nMaxPartNumber;
+}
+
+void KWDataGridMerger::SetMaxPartNumber(int nValue)
+{
+	require(nValue >= 0);
+	nMaxPartNumber = nValue;
+}
 
 double KWDataGridMerger::Merge()
 {
@@ -189,6 +201,8 @@ double KWDataGridMerger::OptimizeMerge()
 	double dDataGridTotalCost;
 	double dBestDataGridTotalCost;
 	double dBestDeltaCost;
+	boolean bIsBestSolutionValid;
+	boolean bIsSolutionValid;
 	KWDGMPartMerge* bestPartMerge;
 	boolean bContinue;
 	int nCount;
@@ -208,6 +222,12 @@ double KWDataGridMerger::OptimizeMerge()
 	InitializeAllCosts();
 	dDataGridTotalCost = GetDataGridCosts()->ComputeDataGridMergerTotalCost(this);
 	dBestDataGridTotalCost = dDataGridTotalCost;
+
+	// Initialisation de la gestion de la contrainte sur le nombre max de partie par attribut
+	bIsSolutionValid = true;
+	if (GetMaxPartNumber() > 0)
+		bIsSolutionValid = ComputeMaxPartNumber() <= GetMaxPartNumber();
+	bIsBestSolutionValid = bIsSolutionValid;
 
 	// Initialisation de la table de hash des cellules
 	CellDictionaryInit();
@@ -232,7 +252,7 @@ double KWDataGridMerger::OptimizeMerge()
 	if (bDisplayDataGrid)
 	{
 		cout << "Debut de OptimizeMerge" << endl;
-		this->Write(cout);
+		Write(cout);
 	}
 
 	// Boucle de recherche d'ameliorations
@@ -256,6 +276,7 @@ double KWDataGridMerger::OptimizeMerge()
 		{
 			CellDictionaryRemoveAll();
 			DeleteAllPartMerges();
+			RemoveAllPartLists();
 			InitializeAllCosts();
 			CellDictionaryInit();
 			InitializeAllPartMerges();
@@ -285,10 +306,16 @@ double KWDataGridMerger::OptimizeMerge()
 		// ou si c'est la derniere grille qui est optimale)
 		if (dBestDeltaCost > dEpsilon and fabs(dBestDataGridTotalCost - dDataGridTotalCost) <= dEpsilon)
 		{
+			// CH 231 Ajout pour debug
+			ensure(fabs(dDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
+			       dEpsilon);
+			// CH 231 probleme pose ici avec la base Iris : si la grille courante est sans attribut informatif, cet ensure
+			// est verifie a ce niveau mais n'est plus vrai quand on fait un CopyInformativeDataGrid
+
 			if (optimizedDataGrid != NULL)
 				delete optimizedDataGrid;
 			optimizedDataGrid = new KWDataGrid;
-			dataGridManager.CopyInformativeDataGrid(this, optimizedDataGrid);
+			dataGridManager.CopyDataGrid(this, optimizedDataGrid);
 		}
 
 		// Impact de la meilleure amelioration
@@ -298,14 +325,34 @@ double KWDataGridMerger::OptimizeMerge()
 			if (bDisplayMergeDetails)
 			{
 				cout << "Best part Merge\t" << nCount << "\t" << dBestDeltaCost << "\t"
-				     << dDataGridTotalCost + dBestDeltaCost << "\t" << *bestPartMerge << flush;
+				     << dDataGridTotalCost + dBestDeltaCost << "\t" << *bestPartMerge << endl;
 			}
 
 			// Realisation de la fusion
 			PerformPartMerge(bestPartMerge);
 			dDataGridTotalCost += dBestDeltaCost;
-			if (dDataGridTotalCost < dBestDataGridTotalCost + dEpsilon)
+
+			// CH 231 Debug
+			ensure(fabs(dDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
+			       dEpsilon);
+
+			// Gestion de la contrainte sur le nombre max de partie par attribut
+			if (GetMaxPartNumber() > 0)
+			{
+				// On ne reevalue la contrainte que si la meilleure solution ne la respecte pas
+				// car le max du nombre de partie ne fait que diminuer lors des etapes de fusions de
+				// partie
+				assert(not bIsBestSolutionValid or ComputeMaxPartNumber() <= GetMaxPartNumber());
+				bIsSolutionValid = bIsBestSolutionValid or ComputeMaxPartNumber() <= GetMaxPartNumber();
+			}
+
+			// Memorisation du meilleur cout si amelioration ou si la solution passe de non valide a valide
+			if ((dDataGridTotalCost < dBestDataGridTotalCost + dEpsilon) or
+			    (not bIsBestSolutionValid and bIsSolutionValid))
+			{
 				dBestDataGridTotalCost = dDataGridTotalCost;
+				bIsBestSolutionValid = bIsSolutionValid;
+			}
 
 			// Verification de la mise a jour correcte des structures et des couts
 			assert(Check());
@@ -316,7 +363,7 @@ double KWDataGridMerger::OptimizeMerge()
 			{
 				cout << "Apres PerformPartMerge " << nCount << "\t dDataGridTotalCost \t"
 				     << dDataGridTotalCost << endl;
-				this->Write(cout);
+				Write(cout);
 				cout << "Tous les couts de la grille" << endl;
 				GetDataGridCosts()->WriteDataGridAllCosts(this, cout);
 			}
@@ -330,7 +377,7 @@ double KWDataGridMerger::OptimizeMerge()
 	// On restaure la meilleure solution rencontree lors de l'optimisation
 	if (optimizedDataGrid != NULL)
 	{
-		dataGridManager.CopyInformativeDataGrid(optimizedDataGrid, this);
+		dataGridManager.CopyDataGrid(optimizedDataGrid, this);
 		InitializeAllCosts();
 		delete optimizedDataGrid;
 		optimizedDataGrid = NULL;
@@ -340,7 +387,7 @@ double KWDataGridMerger::OptimizeMerge()
 	if (bDisplayDataGrid)
 	{
 		cout << "Apres restauration de la meilleure solution " << nCount << endl;
-		this->Write(cout);
+		Write(cout);
 	}
 
 	// Fin de tache
@@ -375,8 +422,8 @@ void KWDataGridMerger::InitializeAllPartLists()
 		attribute = GetAttributeAt(nAttribute);
 		attributeM = cast(KWDGMAttribute*, attribute);
 
-		// Cas d'un attribut categoriel (donc eligible au groupe poubelle)
-		if (attribute->GetAttributeType() == KWType::Symbol)
+		// Cas d'un attribut groupable (donc eligible au groupe poubelle)
+		if (KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()))
 		{
 			// Parcours des parties de l'attribut
 			part = attribute->GetHeadPart();
@@ -412,6 +459,7 @@ void KWDataGridMerger::RemoveAllPartLists()
 		attributeM->RemoveAllPartsFromValueNumberList();
 	}
 }
+
 void KWDataGridMerger::InitializeAllPartMerges()
 {
 	int nAttribute;
@@ -451,7 +499,7 @@ void KWDataGridMerger::InitializeAllPartMerges()
 		if (attribute->GetAttributeType() == KWType::Continuous)
 		{
 			// Tri des intervalles
-			oaParts.SetCompareFunction(KWDGPartContinuousCompare);
+			oaParts.SetCompareFunction(KWDGPartCompareValues);
 			oaParts.Sort();
 
 			// Creation des fusions entre intervalles adjacents
@@ -482,7 +530,7 @@ void KWDataGridMerger::InitializeAllPartMerges()
 		else
 		{
 			// Tri des parties (pour des raisons d'affichage uniquement)
-			oaParts.SetCompareFunction(KWDGPartSymbolCompare);
+			oaParts.SetCompareFunction(KWDGPartCompareValues);
 			oaParts.Sort();
 
 			// Creation des fusions entre toutes les paires de parties
@@ -833,8 +881,8 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 										 nNewInformativeAttributeNumber) -
 					 GetCost();
 
-			// Cas d'un attribut categoriel pour lequel un groupe poubelle est envisageable
-			if (attribute->GetAttributeType() == KWType::Symbol)
+			// Cas d'un attribut groupable pour lequel un groupe poubelle est envisageable
+			if (KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()))
 			{
 				// Memorisation de la presence d'un groupe poubelle pour restitution ulterieure
 				bGarbageBeforeMerge = attributeM->GetGarbageModalityNumber() > 0;
@@ -888,24 +936,32 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 				bestPartMerge = partMerge;
 			}
 
-			// Cas d'un attribut categoriel avec un nombre de parties apres fusion est >= 3 (sinon il ne
-			// peut pas y avoir de groupe poubelle)
-			if (attribute->GetAttributeType() == KWType::Symbol and attributeM->GetPartNumber() - 1 >= 3)
+			// Cas ou l'on envisage un groupe poubelle :
+			// attribut categoriel avec un nombre de parties apres fusion est >= 3 (sinon il ne peut pas y
+			// avoir de groupe poubelle) attribut VarPart ET mode poubelle pour ce type d'attributs + nbre
+			// de parties apres fusion >=3
+			// CH AB voir l'impact de la variation d'un cout avec groupe poubelle lorsque le nombre
+			// de PV est reduit du fait de la post-fusion
+			if ((attribute->GetAttributeType() == KWType::Symbol or
+			     (attribute->GetAttributeType() == KWType::VarPart and GetVarPartAttributeGarbage())) and
+			    attributeM->GetPartNumber() - 1 >= 3)
 			{
 				partMerge->SetGarbagePresence(true);
 				garbagePart = NULL;
 
 				// Cas d'un attribut AVEC groupe poubelle apres fusion
 				// Cas ou les deux parties fusionnees deviennent le groupe poubelle
-				if (partMerge->GetPart1()->GetValueSet()->GetTrueValueNumber() +
-					partMerge->GetPart2()->GetValueSet()->GetTrueValueNumber() >
+				if (partMerge->GetPart1()->GetValueSet()->GetValueNumber() +
+					partMerge->GetPart2()->GetValueSet()->GetValueNumber() >
 				    cast(KWDGPart*, attributeM->slPartValueNumbers->GetHead())
 					->GetValueSet()
-					->GetTrueValueNumber())
+					->GetValueNumber())
 				{
 					// Creation du nouveau groupe poubelle
 					garbagePart = new KWDGPart;
-					garbagePart->SetPartType(KWType::Symbol);
+					// Cas categoriel
+
+					garbagePart->SetPartType(attribute->GetAttributeType());
 					// Copie des valeurs de la partie 1 de la fusion
 					garbagePart->GetValueSet()->CopyFrom(partMerge->GetPart1()->GetValueSet());
 					// Mise a jour avec les valeurs de la partie 2 de la fusion
@@ -923,7 +979,7 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 							  attributeM, attributeM->GetPartNumber() - 1) -
 						      attributeM->GetCost();
 
-				// Cout total de l'amelioration pour une partition sans groupe poubelle
+				// Cout total de l'amelioration pour une partition avec groupe poubelle
 				dDeltaCostWithGarbage =
 				    dGridDeltaCost + dAttributeDeltaCost + partMerge->GetMergeCost();
 
@@ -973,7 +1029,10 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 				if (garbagePart != NULL)
 					delete garbagePart;
 			}
-			if (attribute->GetAttributeType() == KWType::Symbol)
+
+			// Finalisation de la gestion du groupe poubelle
+			if (attribute->GetAttributeType() == KWType::Symbol or
+			    (attribute->GetAttributeType() == KWType::VarPart and GetVarPartAttributeGarbage()))
 			{
 				// Restitution de la poubelle initiale
 				if (not bGarbageBeforeMerge)
@@ -1242,28 +1301,6 @@ KWDGMPart* KWDataGridMerger::PerformPartMerge(KWDGMPartMerge* bestPartMerge)
 	return mergedPart;
 }
 
-//////////////////////////////////////////////////////////////////
-// Gestion d'une table de hash dediee aux cellules
-
-// Tableau des tailles d'allocations des dictionnaires
-static const UINT nCellDictionaryPrimeSizes[] = {17,       37,       79,        163,       331,      673,      1361,
-						 2729,     5471,     10949,     21911,     43853,    87719,    175447,
-						 350899,   701819,   1403641,   2807303,   5614657,  11229331, 22458671,
-						 44917381, 89834777, 179669557, 359339171, 718678369};
-static const int nCellDictionaryPrimeSizeNumber = sizeof(nCellDictionaryPrimeSizes) / sizeof(UINT);
-
-// Rend la taille de table superieure ou egale a une taille donnee
-static int CellDictionaryGetNextTableSize(UINT nSize)
-{
-	int i;
-	for (i = 0; i < nCellDictionaryPrimeSizeNumber; i++)
-	{
-		if (nCellDictionaryPrimeSizes[i] >= nSize)
-			return nCellDictionaryPrimeSizes[i];
-	}
-	return nSize + 1;
-}
-
 void KWDataGridMerger::CellDictionaryInit()
 {
 	int nCellDictionarySize;
@@ -1282,8 +1319,8 @@ void KWDataGridMerger::CellDictionaryInit()
 	// Initialisation de la table de hash
 	// Calcul de la taille de la table de hash, suffisante pour accueillir
 	// tous les cellules
-	// On prend un nombre premier pour minimiser le nombre de collisions
-	nCellDictionarySize = CellDictionaryGetNextTableSize(2 * (GetCellNumber() + GetAttributeNumber()));
+	nCellDictionarySize =
+	    DictionaryGetNextTableSize(2 * min(INT_MAX / 2, (GetCellNumber() + GetAttributeNumber())));
 	oaCellDictionary.SetSize(0);
 	oaCellDictionary.SetSize(nCellDictionarySize);
 	nCellDictionaryCount = 0;
@@ -1821,13 +1858,14 @@ boolean KWDGMPart::Check() const
 {
 	boolean bOk = true;
 	int nTotalValueFrequency;
+	ALString sValueClassLabel;
 	ALString sTmp;
 
 	// Verification de base
 	bOk = KWDGPart::Check();
 
-	// Verification de l'ensemble de valeurs
-	if (bOk and GetPartType() == KWType::Symbol)
+	// Verification de l'ensemble de valeurs dans le cas groupable
+	if (bOk and KWType::IsCoclusteringGroupableType(GetPartType()))
 	{
 		// Verification de la compatibilite entre l'effectif de la partie
 		// et l'effectif cumule de ses valeurs
@@ -1837,12 +1875,13 @@ boolean KWDGMPart::Check() const
 		// de la grille (les parties et leurs valeurs sont creees avant
 		// la creation des cellules).
 		// La verification n'est pas faite dans tous les cas dans la classe ancetre
-		nTotalValueFrequency = valueSet->ComputeTotalFrequency();
+		nTotalValueFrequency = GetValueSet()->ComputeTotalFrequency();
 		if (bOk and GetPartFrequency() > 0 and nTotalValueFrequency > 0 and
 		    GetPartFrequency() != nTotalValueFrequency)
 		{
+			sValueClassLabel = GetValueSet()->GetHeadValue()->GetClassLabel();
 			AddError(sTmp + "Part frequency (" + IntToString(GetPartFrequency()) +
-				 ") different from the cumulated frequency of its values (" +
+				 ") different from the cumulated frequency of its " + sValueClassLabel + "s (" +
 				 IntToString(nTotalValueFrequency) + ")");
 			bOk = false;
 		}
@@ -1879,12 +1918,21 @@ int KWDGMPartValueNumberCompare(const void* elem1, const void* elem2)
 {
 	KWDGMPart* partM1;
 	KWDGMPart* partM2;
+	int nCompare;
 
+	// Acces aux parties
 	partM1 = cast(KWDGMPart*, *(Object**)elem1);
 	partM2 = cast(KWDGMPart*, *(Object**)elem2);
+	assert(KWType::IsCoclusteringGroupableType(partM1->GetPartType()));
+	assert(partM1->GetPartType() == partM2->GetPartType());
 
-	// Comparaison du nombre de modalites par valeurs decroissantes
-	return (partM2->GetValueSet()->GetTrueValueNumber() - partM1->GetValueSet()->GetTrueValueNumber());
+	// Comparaison du nombre de modalites par valeurs decroissantes dans le cas groupable
+	nCompare = partM2->GetValueSet()->GetValueNumber() - partM1->GetValueSet()->GetValueNumber();
+
+	// En cas d'egalite, comparaison des premieres valeurs
+	if (nCompare == 0)
+		nCompare = partM1->GetValueSet()->GetHeadValue()->CompareValue(partM2->GetValueSet()->GetHeadValue());
+	return nCompare;
 }
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGMCell
@@ -1936,7 +1984,7 @@ void KWDGMPartMerge::Write(ostream& ost) const
 	// Valeur de la fusion
 	ost << dMergeCost << "\t";
 
-	// Nombre de cellules impliques
+	// Nombre de cellules associees
 	if (part1 != NULL and part2 != NULL)
 		ost << part1->GetCellNumber() + part2->GetCellNumber();
 	ost << "\t" << bGarbagePresence;
@@ -1981,13 +2029,15 @@ const ALString KWDGMPartMerge::GetObjectLabel() const
 
 int KWDGMPartMergeCompare(const void* elem1, const void* elem2)
 {
-	// On utilise Epsilon=0 en escomptant le resultat du Diff est reproductible si les operandes sont les memes
-	// Pour Epsilon > 0, on court le risque d'avoir diff(PM1,PM2) < Epsilon et diff(PM2,PM3) < Epsilon,
-	// mais diff(PM1,PM3) >= Epsilon (ce bug (avec consequence desatreuse dans une SortedList) est deja arrive)
-	const double dEpsilon = 0;
+	int nCompare;
 	KWDGMPartMerge* partMerge1;
 	KWDGMPartMerge* partMerge2;
 	double dDiff;
+	ALString sFirstPartLabel1;
+	ALString sSecondPartLabel1;
+	ALString sFirstPartLabel2;
+	ALString sSecondPartLabel2;
+	ALString sSwapPartLabel;
 
 	require(elem1 != NULL);
 	require(elem2 != NULL);
@@ -1998,16 +2048,54 @@ int KWDGMPartMergeCompare(const void* elem1, const void* elem2)
 	assert(partMerge1->Check());
 	assert(partMerge2->Check());
 
-	// Calcul de la difference
-	dDiff = partMerge1->GetMergeCost() - partMerge2->GetMergeCost();
-	if (dDiff > dEpsilon)
-		return 1;
-	else if (dDiff < -dEpsilon)
-		return -1;
-	// Si egalite, on renvoie 0
+	// Calcul de la difference, avec tolerance pour favoriser la stabilite
+	nCompare = 0;
+	dDiff = partMerge1->GetTruncatedMergeCost() - partMerge2->GetTruncatedMergeCost();
+	if (dDiff > 0)
+		nCompare = 1;
+	else if (dDiff < 0)
+		nCompare = -1;
+
+	// Si egalite, on compare sur les nom de des attributs, puis sur celui des parties
 	// On ne peut se baser sur le nombre de cellules des fusions, qui varie a cout egal,
-	// ce qui empeche les optimisation poussees visant a ne reevaluer que les
-	// fusions impactees
-	else
-		return 0;
+	// ce qui empeche les optimisation poussees visant a ne reevaluer que les fusions impactees
+	if (nCompare == 0)
+	{
+		// On se base d'abord sur le libelle de l'attribut
+		// (on pourrait avoir des attribut differents ayant meme libelle de partie)
+		assert(partMerge1->GetPart1()->GetAttribute() == partMerge1->GetPart2()->GetAttribute());
+		assert(partMerge2->GetPart1()->GetAttribute() == partMerge2->GetPart2()->GetAttribute());
+		nCompare = partMerge1->GetPart1()->GetAttribute()->GetAttributeName().Compare(
+		    partMerge2->GetPart1()->GetAttribute()->GetAttributeName());
+
+		// On se base ensuite sur le libelle du plus petit des deux libelles de partie
+		if (nCompare == 0)
+		{
+			// Collecte des libelles de parties pour le Merge 1
+			sFirstPartLabel1 = partMerge1->GetPart1()->GetObjectLabel();
+			sSecondPartLabel1 = partMerge1->GetPart2()->GetObjectLabel();
+			if (sFirstPartLabel1 > sSecondPartLabel1)
+			{
+				sSwapPartLabel = sSecondPartLabel1;
+				sSecondPartLabel1 = sFirstPartLabel1;
+				sFirstPartLabel1 = sSwapPartLabel;
+			}
+
+			// Collecte des libelles de parties pour le Merge 2
+			sFirstPartLabel2 = partMerge2->GetPart1()->GetObjectLabel();
+			sSecondPartLabel2 = partMerge2->GetPart2()->GetObjectLabel();
+			if (sFirstPartLabel2 > sSecondPartLabel2)
+			{
+				sSwapPartLabel = sSecondPartLabel2;
+				sSecondPartLabel2 = sFirstPartLabel2;
+				sFirstPartLabel2 = sSwapPartLabel;
+			}
+
+			// Comparaison des libelles
+			nCompare = sFirstPartLabel1.Compare(sFirstPartLabel2);
+			if (nCompare == 0)
+				nCompare = sSecondPartLabel1.Compare(sSecondPartLabel2);
+		}
+	}
+	return nCompare;
 }

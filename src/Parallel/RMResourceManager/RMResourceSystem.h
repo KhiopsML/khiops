@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -43,7 +43,7 @@ public:
 	const RMHostResource* GetMasterHostResource() const;
 
 	// Acces au ith eme host
-	const RMHostResource* GetHostResourceAt(int ith) const;
+	RMHostResource* GetHostResourceAt(int ith) const;
 
 	// Renvoie l'index de l'host sur lequel se trouve le process processId
 	// Renvoie -1 si le processId n'est sur aucun host
@@ -96,6 +96,20 @@ public:
 	// - 2 elles sont de taille decroissante (nCoresNumber pour le maitre)
 	static RMResourceSystem* CreateSyntheticCluster(int nHostNumber, int nProcNumber, longint lPhysicalMemory,
 							longint lDiskFreeSpace, int nSystemConfig);
+
+	// Cree un ensemble artificiel de resources pour les tests.
+	// Les machines ont toute sles memes ressources, pour creer des classe differentes on fait varier le nombre de
+	// processeurs.
+	static RMResourceSystem* CreateSyntheticClusterWithClasses(int nHostNumber, int nProcNumber,
+								   longint lPhysicalMemory, longint lDiskFreeSpace,
+								   int bClassNumber);
+
+	static RMResourceSystem* CreateAdhocCluster();
+
+	// Creation d'un cluster de 2 machines, chacune ayant 8 coeurs
+	// La premiere a 8 Go de memoire la seconde 100 Go
+	// Le master est sur la premiere machine
+	static RMResourceSystem* CreateUnbalancedCluster();
 
 	//////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -184,7 +198,7 @@ public:
 	///// Implementation
 protected:
 	ALString sHostName;
-	LongintVector lvResources;
+	LongintVector lvResources; // TODO remplacer par RMResourecContainer
 	IntVector ivRanks;
 	int nPhysicalCoresNumber;
 

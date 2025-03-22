@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -13,8 +13,6 @@ import javax.swing.JPanel;
 
 /**
  * Definit une unite d'interface de type fiche
- *
- * @author Marc Boulle
  */
 public class GUICard extends GUIUnit
 {
@@ -29,22 +27,12 @@ public class GUICard extends GUIUnit
          */
         public void addCardField(String sFieldId, String sLabel, GUICard card, String sStyle)
         {
-                // Recherche de la classe de la sous fiche
-                Class c = getUserCardClass(sStyle);
-                try {
-                        // Instanciation de la sous fiche
-                        GUICard guiCard = (GUICard)c.newInstance();
-                        guiCard = card;
-                        guiCard.setIdentifier(sFieldId);
-                        guiCard.setLabel(sLabel);
-                        guiCard.setStyle(sStyle);
-                        guiCard.setParentUnit(this);
-                        addField(guiCard);
-                } catch (InstantiationException ie) {
-                        System.err.println("La classe java " + c + " ne peut etre instanciee " + ie);
-                } catch (IllegalAccessException iae) {
-                        System.err.println("La classe java " + c + " ne peut etre instanciee " + iae);
-                }
+                // Instanciation de la sous fiche
+                card.setIdentifier(sFieldId);
+                card.setLabel(sLabel);
+                card.setStyle(sStyle);
+                card.setParentUnit(this);
+                addField(card);
         }
 
         /**
@@ -57,21 +45,11 @@ public class GUICard extends GUIUnit
          */
         public void addListField(String sFieldId, String sLabel, GUIList list, String sStyle)
         {
-                // Recherche de la classe de la sous liste
-                Class c = getUserListClass(sStyle);
-                try {
-                        GUIUnit guiUnit = (GUIUnit)c.newInstance();
-                        guiUnit = list;
-                        guiUnit.setIdentifier(sFieldId);
-                        guiUnit.setLabel(sLabel);
-                        guiUnit.setStyle(sStyle);
-                        guiUnit.setParentUnit(this);
-                        addField(guiUnit);
-                } catch (InstantiationException ie) {
-                        System.err.println("La classe java " + c + " ne peut etre instanciee " + ie);
-                } catch (IllegalAccessException iae) {
-                        System.err.println("La classe java " + c + " ne peut etre instanciee " + iae);
-                }
+                list.setIdentifier(sFieldId);
+                list.setLabel(sLabel);
+                list.setStyle(sStyle);
+                list.setParentUnit(this);
+                addField(list);
         }
 
         /**
@@ -194,9 +172,9 @@ public class GUICard extends GUIUnit
 
                 if (hasActionButton()) {
 
-                        // S'il n'y a aucune action ou bien s'il ne s'agit pas d'une fenetre (dans
-                        // ce cas les boutons apparaissent deja dans le panel sud grace a
-                        // addToolBar() de GUIUnit)
+                        // S'il n'y a aucune action ou bien s'il ne s'agit pas d'une fenetre (dans ce
+                        // cas les
+                        // boutons apparaissent deja dans le panel sud grace a addToolBar() de GUIUnit)
                         if (getActionCount() == 0 || frame != null)
                                 return;
 
@@ -215,7 +193,7 @@ public class GUICard extends GUIUnit
                                                 GridBagConstraints localConstraints = new GridBagConstraints();
                                                 Insets currentInsets = constraints.insets;
 
-                                                // Personnalisation des gridbagconstraints lovcaux pour afficher le
+                                                // Personnalisation des gridbagconstraints locaux pour afficher le
                                                 // bouton a droite avec une marge verticale minimale
                                                 localConstraints.gridx = 2;
                                                 localConstraints.fill = GridBagConstraints.NONE;

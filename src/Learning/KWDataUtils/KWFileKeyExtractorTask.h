@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -103,7 +103,7 @@ protected:
 
 	// Concatenation de chunks en evitant de dupliquer les lignes de fin de chunk et de debut de chunks suivants
 	// (chaque esclave peut avoir une cle en commun avec l'esclave suivant)
-	boolean ConcatenateFilesWithoutDuplicateKeys(StringVector* svFileURIs, int nBufferSize, StringVector* svHeader);
+	boolean ConcatenateFilesWithoutDuplicateKeys(StringVector* svFileURIs, StringVector* svHeader);
 
 	// Nom des champs de cle et natifs, memorises au moyen KWKeyFieldsIndexer
 	KWKeyFieldsIndexer keyFieldsIndexer;
@@ -122,16 +122,17 @@ protected:
 	// Parametres partages par le maitre et les esclaves
 	// tout au long du programme
 
-	// Fichier de sortie
-	PLShared_OutputBufferedFile shared_outputFile;
-
 	// Tableau des index des clefs
 	PLShared_IntVector shared_ivKeyFieldIndexes;
 
 	// Attributs du fichier d'entree
 	PLShared_String shared_sInputFileName;
-	PLShared_Boolean shared_bHeaderLineUsed;
-	PLShared_Char shared_cFieldSeparator;
+	PLShared_Boolean shared_bInputHeaderLineUsed;
+	PLShared_Char shared_cInputFieldSeparator;
+
+	// Attributs du fichier de sortie
+	PLShared_String shared_sOutputFileName;
+	PLShared_Char shared_cOutputFieldSeparator;
 
 	//////////////////////////////////////////////////////
 	// Input de la tache parallelisee
@@ -181,9 +182,18 @@ protected:
 	// Position dans le fichier d'entree
 	longint lFilePos;
 
+	// Gestion des exigences
+	int nReadSizeMin;
+	int nReadSizeMax;
+	int nWriteSizeMin;
+	int nWriteSizeMax;
+
 	//////////////////////////////////////////////////////////
 	// Variables du slave
 
 	// Parser de cles
 	KWKeyExtractor keyExtractor;
+
+	// Fichier de travail pour l'esclave
+	InputBufferedFile inputFile;
 };

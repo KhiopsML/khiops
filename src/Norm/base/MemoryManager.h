@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -36,7 +36,7 @@
 // la librairie dediee baseONM pour beneficier du nouvel allocateur
 // en mode release.
 //
-// En mode debug, un diagnostique de la memoire est realise au fur et a
+// En mode debug, un diagnostic de la memoire est realise au fur et a
 // mesure des allocations, ce qui permet de detecter la plupart des erreurs
 // suivantes de gestion de la memoire:
 // Un compte rendu d'utilisation est affiche apres la fin du main.
@@ -116,7 +116,7 @@ public:
 // l'allocation du ieme bloc memoire
 // Permet en se servant du debuger et en mettant un point
 // d'arret sur GlobalExit() de reperer le lieu d'allocation
-// d'un bloc non desaloue (diagnostique par MemCompleteCheck())
+// d'un bloc non desaloue (diagnostic par MemCompleteCheck())
 // Par defaut, 0 signifie pas d'arret
 void MemSetAllocIndexExit(longint lAllocIndex);
 longint MemGetAllocIndexExit();
@@ -133,7 +133,7 @@ void MemSetAllocBlockExit(void* pBlock);
 void* MemGetAllocBlockExit();
 
 // Methode limitant physiquement la taille totale allouee,  meme en release
-// En cas de passement, une erreur fatale est declenchee, avec sortie par GlobalExit()
+// En cas de depassement, une erreur fatale est declenchee, avec sortie par GlobalExit()
 // Par defaut, 0 signifie pas de limite
 void MemSetMaxHeapSize(longint lSize);
 longint MemGetMaxHeapSize();
@@ -166,7 +166,9 @@ public:
 	static void operator delete(void* pBlock);
 
 	// Redefinition de l'allocateur pour le placement new (usage avance)
-	static inline void* operator new(size_t nSize, void* where);
+	// Le destructeur n'est specifie que pour eviter un warning sur certains compilateurs
+	static void* operator new(size_t nSize, void* where);
+	static void operator delete(void* pBlock, void* where);
 #endif // !defined NOMEMCONTROL || defined RELEASENEWMEM
 
 	///////////////////////////////////////////////////////////////////////
@@ -233,7 +235,7 @@ longint MemGetTotalHeapRequestedMemory();
 void MemPrintHeapStats(FILE* fOutput);
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// Methodes avancees pour diagnostiquement finement la consommation memoire
+// Methodes avancees pour diagnostiquer finement la consommation memoire
 // Attention, ces methodes ont potentiellement un impact limite, mais potentiellement
 // non negligeable sur les performances, si le handler doit etre appele frequemment
 // Elles ne doivent etre utilisee pour le suivi fin de l'utilisation de l'allocateur
@@ -291,5 +293,10 @@ longint MemGetTotalFreeSize();      // taille totale liberee
 inline void* SystemObject::operator new(size_t nSize, void* where)
 {
 	return where;
+}
+
+inline void SystemObject::operator delete(void* pBlock, void* where)
+{
+	delete (char*)pBlock;
 }
 #endif // !defined NOMEMCONTROL || defined RELEASENEWMEM

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -28,16 +28,6 @@ KWAttributeBlock::~KWAttributeBlock()
 		delete loadedAttributesIndexedKeyBlock;
 	if (ivLoadedAttributeMutationIndexes != NULL)
 		delete ivLoadedAttributeMutationIndexes;
-}
-
-void KWAttributeBlock::SetVarKeyType(int nValue)
-{
-	require(loadedAttributesIndexedKeyBlock == NULL);
-	require(nValue == KWType::Continuous or nValue == KWType::Symbol);
-	if (nValue == KWType::Continuous)
-		loadedAttributesIndexedKeyBlock = new KWIndexedNKeyBlock;
-	else
-		loadedAttributesIndexedKeyBlock = new KWIndexedCKeyBlock;
 }
 
 const ALString& KWAttributeBlock::GetAttributeKeyMetaDataKey()
@@ -98,6 +88,31 @@ void KWAttributeBlock::ImportMetaDataFrom(const KWAttributeBlock* sourceAttribut
 	}
 }
 
+int KWAttributeBlock::ComputeAttributeNumber() const
+{
+	int nNumber;
+	KWAttribute* attribute;
+
+	require(GetParentClass() != NULL);
+	require(GetFirstAttribute() != NULL);
+	require(GetLastAttribute() != NULL);
+
+	// Comptage par parcours des attributs du bloc
+	nNumber = 0;
+	attribute = GetFirstAttribute();
+	while (attribute != NULL)
+	{
+		nNumber++;
+		// Traitemet sur l'attribut en cours
+
+		// Arret si fin du bloc
+		if (attribute == GetLastAttribute())
+			break;
+		GetParentClass()->GetNextAttribute(attribute);
+	}
+	return nNumber;
+}
+
 boolean KWAttributeBlock::Check() const
 {
 	boolean bOk = true;
@@ -112,7 +127,19 @@ boolean KWAttributeBlock::Check() const
 	int nAttributeKey;
 
 	// Nom
-	if (not KWClass::CheckName(GetName(), this))
+	if (not KWClass::CheckName(GetName(), KWClass::AttributeBlock, this))
+		bOk = false;
+
+	// Verification du Label
+	if (not KWClass::CheckLabel(GetLabel(), KWClass::AttributeBlock, this))
+		bOk = false;
+
+	// Verification des commentaires
+	if (not KWClass::CheckComments(GetComments(), KWClass::AttributeBlock, this))
+		bOk = false;
+
+	// Verification des commentaires internes
+	if (not KWClass::CheckComments(GetInternalComments(), KWClass::AttributeBlock, this))
 		bOk = false;
 
 	// Tests de base sur la specification du block
@@ -193,7 +220,7 @@ boolean KWAttributeBlock::Check() const
 					 metaData.GetExternalValueAt(sDefaultValueMetaDataKey) +
 					 ") should not be specified for a categorical sparse variable block");
 			}
-			else if (not metaData.IsDoubleTypeAt(sDefaultValueMetaDataKey))
+			else if (not metaData.IsStringTypeAt(sDefaultValueMetaDataKey))
 			{
 				bOk = false;
 				AddError("Meta-data " + sDefaultValueMetaDataKey + " (" +
@@ -318,7 +345,7 @@ boolean KWAttributeBlock::Check() const
 						// Conversion en entier
 						dAttributeKey = attribute->GetConstMetaData()->GetDoubleValueAt(
 						    sAttributeKeyMetaDataKey);
-						nAttributeKey = (int)floor(dAttributeKey + 0.5);
+						bOk = KWContinuous::ContinuousToInt(dAttributeKey, nAttributeKey);
 
 						// On memorise egalement sous forme chaine de caracteres, pour les test
 						// d'unicite et pour les messages utilisant la valeur de cle entiere
@@ -327,32 +354,33 @@ boolean KWAttributeBlock::Check() const
 						sAttributeKey = IntToString(nAttributeKey);
 
 						// Test de la validite du format
-						if (fabs(dAttributeKey - nAttributeKey) > 1e-5)
+						if (not bOk)
 						{
 							AddError("Meta-data " + sAttributeKeyMetaDataKey + " (" +
 								 attribute->GetConstMetaData()->GetExternalValueAt(
 								     sAttributeKeyMetaDataKey) +
 								 ") should be an integer for variable " +
 								 attribute->GetName() + " in the block");
-							bOk = false;
+							assert(bOk == false);
 						}
-						// Test de validite
-						else if (nAttributeKey < 1)
+						// Test de valeur min
+						else if (nAttributeKey < KWIndexedNKeyBlock::GetMinKey())
 						{
 							AddError("Meta-data " + sAttributeKeyMetaDataKey + " (" +
-								 sAttributeKey +
-								 ") should be greater or equal than 1 for variable " +
-								 attribute->GetName() + " in the block");
+								 sAttributeKey + ") should be greater or equal than " +
+								 IntToString(KWIndexedNKeyBlock::GetMinKey()) +
+								 " for variable " + attribute->GetName() +
+								 " in the block");
 							bOk = false;
 						}
-						// Test de validite
-						else if (nAttributeKey > 1000000000)
+						// Test de valeur max
+						else if (nAttributeKey > KWIndexedNKeyBlock::GetMaxKey())
 						{
-							AddError(
-							    "Meta-data " + sAttributeKeyMetaDataKey + " (" +
-							    sAttributeKey +
-							    ") should be less or equal than 1000000000 for variable " +
-							    attribute->GetName() + " in the block");
+							AddError("Meta-data " + sAttributeKeyMetaDataKey + " (" +
+								 sAttributeKey + ") should be less or equal than " +
+								 IntToString(KWIndexedNKeyBlock::GetMaxKey()) +
+								 " for variable " + attribute->GetName() +
+								 " in the block");
 							bOk = false;
 						}
 					}
@@ -432,7 +460,7 @@ boolean KWAttributeBlock::Check() const
 		}
 
 		// Verification de la regle de derivation elle-meme
-		if (bOk and parentClass != NULL and not kwdrRule->CheckCompletness(parentClass))
+		if (bOk and parentClass != NULL and not kwdrRule->CheckCompleteness(parentClass))
 		{
 			AddError(kwdrRule->GetClassLabel() + " incorrectly specified");
 			bOk = false;
@@ -490,6 +518,119 @@ boolean KWAttributeBlock::Check() const
 	return bOk;
 }
 
+void KWAttributeBlock::SetVarKeyType(int nValue)
+{
+	require(loadedAttributesIndexedKeyBlock == NULL);
+	require(nValue == KWType::Continuous or nValue == KWType::Symbol);
+	if (nValue == KWType::Continuous)
+		loadedAttributesIndexedKeyBlock = new KWIndexedNKeyBlock;
+	else
+		loadedAttributesIndexedKeyBlock = new KWIndexedCKeyBlock;
+}
+
+KWIndexedKeyBlock* KWAttributeBlock::BuildAttributesIndexedKeyBlock() const
+{
+	KWIndexedKeyBlock* attributesIndexedKeyBlock;
+	KWIndexedCKeyBlock* attributesIndexedCKeyBlock;
+	KWIndexedNKeyBlock* attributesIndexedNKeyBlock;
+	KWClass* parentClass;
+	KWAttribute* attribute;
+	NumericKeyDictionary nkdBlockAttributesByVarKeys;
+	SymbolVector svVarKeys;
+	IntVector ivVarKeys;
+	Symbol sVarKey;
+	int nVarKey;
+	int i;
+
+	require(GetVarKeyType() == KWType::Continuous or GetVarKeyType() == KWType::Symbol);
+
+	// Cas de cles categorielles
+	attributesIndexedKeyBlock = NULL;
+	if (GetVarKeyType() == KWType::Symbol)
+	{
+		// Creation du bloc de cle
+		attributesIndexedCKeyBlock = new KWIndexedCKeyBlock;
+		attributesIndexedKeyBlock = attributesIndexedCKeyBlock;
+
+		// Parcours des attribut du bloc pour les enregistrer dans le dictionnaire par VarKey
+		// et collecter les cles dans un vecteur
+		parentClass = GetParentClass();
+		attribute = firstAttribute;
+		while (attribute != NULL)
+		{
+			sVarKey = GetSymbolVarKey(attribute);
+			svVarKeys.Add(sVarKey);
+
+			// Arret si derniere variable du bloc trouvee
+			if (attribute == lastAttribute)
+				break;
+
+			// Passage a l'attribut suivant
+			parentClass->GetNextAttribute(attribute);
+		}
+
+		// Tri des cles par valeur
+		svVarKeys.SortValues();
+
+		// Memorisation des cles dans le block
+		for (i = 0; i < svVarKeys.GetSize(); i++)
+		{
+			sVarKey = svVarKeys.GetAt(i);
+
+			// Memorisation uniquement des cles valides
+			if (not sVarKey.IsEmpty() and
+			    (attributesIndexedCKeyBlock->GetKeyNumber() == 0 or
+			     attributesIndexedCKeyBlock->GetKeyAt(attributesIndexedCKeyBlock->GetKeyNumber() - 1)
+				 .CompareValue(sVarKey)))
+				attributesIndexedCKeyBlock->AddKey(sVarKey);
+		}
+	}
+	// Cas de cles numeriques
+	else
+	{
+		// Creation du bloc de cle
+		attributesIndexedNKeyBlock = new KWIndexedNKeyBlock;
+		attributesIndexedKeyBlock = attributesIndexedNKeyBlock;
+
+		// Parcours des attribut du bloc pour les enregistrer dans le dictionnaire par VarKey
+		// et collecter les cles dans un vecteur
+		parentClass = GetParentClass();
+		attribute = firstAttribute;
+		while (attribute != NULL)
+		{
+			nVarKey = GetContinuousVarKey(attribute);
+			ivVarKeys.Add(nVarKey);
+
+			// Arret si derniere variable du bloc trouvee
+			if (attribute == lastAttribute)
+				break;
+
+			// Passage a l'attribut suivant
+			parentClass->GetNextAttribute(attribute);
+		}
+
+		// Tri des cles
+		ivVarKeys.Sort();
+
+		// Memorisation des cles dans le block
+		for (i = 0; i < ivVarKeys.GetSize(); i++)
+		{
+			nVarKey = ivVarKeys.GetAt(i);
+
+			// Memorisation uniquement des cles valides
+			if (nVarKey >= 1 and (attributesIndexedNKeyBlock->GetKeyNumber() == 0 or
+					      attributesIndexedNKeyBlock->GetKeyAt(
+						  attributesIndexedNKeyBlock->GetKeyNumber() - 1) < nVarKey))
+				attributesIndexedNKeyBlock->AddKey(nVarKey);
+		}
+	}
+	check(attributesIndexedKeyBlock);
+
+	// Indexcation des cles
+	attributesIndexedKeyBlock->IndexKeys();
+	return attributesIndexedKeyBlock;
+}
+
 void KWAttributeBlock::SortAttributesByVarKey()
 {
 	KWClass* parentClass;
@@ -544,8 +685,8 @@ void KWAttributeBlock::SortAttributesByVarKey()
 		while (attribute != NULL)
 		{
 			nVarKey = GetContinuousVarKey(attribute);
-			assert(nkdBlockAttributesByVarKeys.Lookup((NUMERIC)(longint)nVarKey) == NULL);
-			nkdBlockAttributesByVarKeys.SetAt((NUMERIC)(longint)nVarKey, attribute);
+			assert(nkdBlockAttributesByVarKeys.Lookup(nVarKey) == NULL);
+			nkdBlockAttributesByVarKeys.SetAt(nVarKey, attribute);
 			ivVarKeys.Add(nVarKey);
 
 			// Arret si derniere variable du bloc trouvee
@@ -562,8 +703,7 @@ void KWAttributeBlock::SortAttributesByVarKey()
 		// Parcours des cles dans l'ordre pour reordonnancer les attributs
 		for (i = 0; i < ivVarKeys.GetSize(); i++)
 		{
-			attribute = cast(KWAttribute*,
-					 nkdBlockAttributesByVarKeys.Lookup((NUMERIC)(longint)ivVarKeys.GetAt(i)));
+			attribute = cast(KWAttribute*, nkdBlockAttributesByVarKeys.Lookup(ivVarKeys.GetAt(i)));
 			parentClass->MoveAttributeToBlockTail(attribute);
 		}
 	}
@@ -576,7 +716,7 @@ void KWAttributeBlock::Compile()
 	loadedAttributesIndexedKeyBlock->IndexKeys();
 
 	// Compilation de la regle du bloc
-	if (kwdrRule != NULL)
+	if (kwdrRule != NULL and not kwdrRule->IsCompiled())
 		kwdrRule->Compile(GetParentClass());
 
 	// Calcul des valeur par defaut
@@ -593,17 +733,20 @@ boolean KWAttributeBlock::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 	require(Check());
 	require(GetParentClass()->IsCompiled());
 
-	// Marquage de l'attribut en Grey
-	nkdGreyAttributes->SetAt((NUMERIC)this, (Object*)this);
-
-	// Analyse de l'eventuelle regle de derivation attachee au bloc
+	// Analyse de l'eventuelle regle de derivation attachee a l'attribut
+	// Sinon, l'attribut est un noeud terminal du graphe, et n'a pas besoin d'etre analyse
 	if (GetDerivationRule() != NULL)
+	{
+		// Marquage de l'attribut en Grey
+		nkdGreyAttributes->SetAt(this, (Object*)this);
+
+		// Analyse de la regle de derivation
 		bContainsCycle = GetDerivationRule()->ContainsCycle(nkdGreyAttributes, nkdBlackAttributes);
 
-	// Marquage du bloc d'attributs en Black
-	nkdGreyAttributes->SetAt((NUMERIC)this, NULL);
-	nkdBlackAttributes->SetAt((NUMERIC)this, (Object*)this);
-
+		// Marquage du bloc d'attributs en Black
+		nkdGreyAttributes->RemoveKey(this);
+		nkdBlackAttributes->SetAt(this, (Object*)this);
+	}
 	return bContainsCycle;
 }
 
@@ -615,18 +758,22 @@ longint KWAttributeBlock::GetUsedMemory() const
 	lUsedMemory = sizeof(KWAttributeBlock);
 	lUsedMemory += usName.GetUsedMemory();
 	lUsedMemory += usLabel.GetUsedMemory();
+	lUsedMemory += svComments.GetUsedMemory();
+	lUsedMemory += svInternalComments.GetUsedMemory();
 	lUsedMemory += metaData.GetUsedMemory() - sizeof(KWMetaData);
 
 	// Prise en compte de la regle de derivation
 	if (kwdrRule != NULL)
 		lUsedMemory += kwdrRule->GetUsedMemory();
 
-	// Prise en compte des donne additionnelle de gestion du bloc
+	// Prise en compte des donnees additionnelles de gestion du bloc
 	if (loadedAttributesIndexedKeyBlock != NULL)
 		lUsedMemory += loadedAttributesIndexedKeyBlock->GetUsedMemory();
 	if (ivLoadedAttributeMutationIndexes != NULL)
 		lUsedMemory += ivLoadedAttributeMutationIndexes->GetUsedMemory();
 	lUsedMemory += nkdAttributesByVarKeys.GetUsedMemory() - sizeof(NumericKeyDictionary);
+	lUsedMemory += oaLoadedAttributes.GetUsedMemory() - sizeof(ObjectArray);
+	lUsedMemory += ivLoadedAttributeIndexesBySparseIndex.GetUsedMemory() - sizeof(IntVector);
 	return lUsedMemory;
 }
 
@@ -647,27 +794,63 @@ longint KWAttributeBlock::ComputeHashValue() const
 
 void KWAttributeBlock::Write(ostream& ost) const
 {
-	KWAttribute* secondAttribute;
+	KWClass* parentClass;
+	KWAttribute* attribute;
+	int i;
 
-	ost << '{';
-	if (firstAttribute != NULL)
+	// Commentaires precedant le debut du bloc
+	for (i = 0; i < GetComments()->GetSize(); i++)
+		ost << "\t// " << GetComments()->GetAt(i) << "\n";
+	ost << "\t{\n";
+
+	// Attributs du bloc
+	parentClass = GetParentClass();
+	attribute = firstAttribute;
+	while (attribute != NULL)
 	{
-		ost << firstAttribute->GetName();
+		// Ecriture de l'attribut
+		ost << *attribute << "\n";
 
-		// Acces au deuxieme attribut
-		secondAttribute = firstAttribute;
-		if (GetParentClass() != NULL)
-			GetParentClass()->GetNextAttribute(secondAttribute);
+		// Arret si derniere variable du bloc trouvee
+		if (attribute == lastAttribute)
+			break;
 
-		// Si au moins trois attributs
-		if (lastAttribute != NULL and secondAttribute != NULL and lastAttribute != secondAttribute)
-			ost << ",..., ";
-
-		// Dernier attribut si au moins deux attributs
-		if (lastAttribute != NULL and lastAttribute != firstAttribute)
-			ost << ", " + lastAttribute->GetName();
+		// Passage a l'attribut suivant
+		parentClass->GetNextAttribute(attribute);
 	}
-	ost << "}\t" << GetName() << endl;
+
+	// Commentaires internes precedents la fin du bloc
+	for (i = 0; i < GetInternalComments()->GetSize(); i++)
+		ost << "\t// " << GetInternalComments()->GetAt(i) << "\n";
+	ost << "\t}";
+
+	// Nom du bloc
+	ost << "\t" << KWClass::GetExternalName(GetName());
+	ost << "\t";
+
+	// Regle de derivation
+	if (GetDerivationRule() != NULL)
+	{
+		// Dans le cas de la regle predefinie de Reference, on n'utilise pas le signe '='
+		if (GetDerivationRule()->GetName() != KWDerivationRule::GetReferenceRuleName())
+			ost << " = ";
+		GetDerivationRule()->WriteUsedRule(ost);
+	}
+
+	// Fin de declaration
+	ost << "\t;";
+
+	// Meta-donnees
+	if (GetConstMetaData()->GetKeyNumber() > 0)
+	{
+		ost << ' ';
+		GetConstMetaData()->Write(ost);
+	}
+	ost << "\t";
+
+	// Libelle
+	if (GetLabel() != "")
+		ost << "// " << GetLabel();
 }
 
 void KWAttributeBlock::WriteJSONFields(JSONFile* fJSON)
@@ -675,13 +858,24 @@ void KWAttributeBlock::WriteJSONFields(JSONFile* fJSON)
 	KWClass* parentClass;
 	KWAttribute* attribute;
 	ALString sOutputString;
+	int i;
 
 	// Nom
 	fJSON->WriteKeyString("blockName", GetName());
 
-	// Commentaire
+	// Libelle
 	if (GetLabel() != "")
 		fJSON->WriteKeyString("label", GetLabel());
+
+	// Commentaires, ecrits uniquement si presents, comme pour les autres champs facultatifs,
+	// ce qui facilite la compatibilite ascendante, et diminue la volumetrie
+	if (GetComments()->GetSize() > 0)
+	{
+		fJSON->BeginKeyArray("comments");
+		for (i = 0; i < GetComments()->GetSize(); i++)
+			fJSON->WriteString(GetComments()->GetAt(i));
+		fJSON->EndArray();
+	}
 
 	// Regle de derivation
 	if (kwdrRule != NULL)
@@ -711,6 +905,15 @@ void KWAttributeBlock::WriteJSONFields(JSONFile* fJSON)
 		parentClass->GetNextAttribute(attribute);
 	}
 	fJSON->EndArray();
+
+	// Commentaires internes, uniquement si presents, comme pour les commentaires
+	if (GetInternalComments()->GetSize() > 0)
+	{
+		fJSON->BeginKeyArray("internalComments");
+		for (i = 0; i < GetInternalComments()->GetSize(); i++)
+			fJSON->WriteString(GetInternalComments()->GetAt(i));
+		fJSON->EndArray();
+	}
 }
 
 const ALString KWAttributeBlock::GetClassLabel() const

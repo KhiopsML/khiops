@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -10,20 +10,20 @@
 #include "KWDRDataGridDeployment.h"
 #include "KWDRTablePartition.h"
 #include "KWDRTableBlock.h"
+#include "KWDRDataGridBlock.h"
 #include "KWClassStats.h"
 #include "KWPredictorBaseline.h"
 #include "KWPredictorUnivariate.h"
 #include "KWPredictorBivariate.h"
 #include "KWPredictorNaiveBayes.h"
-#include "KWPredictorSelectiveNaiveBayes.h"
 #include "SNBPredictorSelectiveNaiveBayes.h"
 #include "KWPredictorDataGrid.h"
-#include "KWPredictorSelectiveNaiveBayesView.h"
 #include "SNBPredictorSelectiveNaiveBayesView.h"
 #include "KWPredictorDataGridView.h"
 #include "KWDiscretizer.h"
 #include "KWDiscretizerMODL.h"
 #include "KWDiscretizerUnsupervised.h"
+#include "MHDiscretizerTruncationMODLHistogram.h"
 #include "KWDatabase.h"
 #include "KWSTDatabaseTextFile.h"
 #include "KWMTDatabaseTextFile.h"
@@ -45,10 +45,12 @@
 #include "KWDataPreparationUnivariateTask.h"
 #include "KWDataPreparationBivariateTask.h"
 #include "KWDatabaseSlicerTask.h"
-#include "KDSelectionOperandExtractionTask.h"
+#include "KDSelectionOperandSamplingTask.h"
 #include "KDDataPreparationAttributeCreationTask.h"
 #include "KDDataPreparationAttributeCreationTaskView.h"
 #include "InputBufferedFile.h"
+#include "DTDecisionTreeCreationTask.h"
+#include "KIDRRegisterAllRules.h"
 
 // Service de lancement d'un projet d'apprentissage, defini
 // par un probleme d'apprentissage et sa vue
@@ -110,8 +112,7 @@ protected:
 	virtual Object* CreateGenericLearningProblem();
 	virtual UIObjectView* CreateGenericLearningProblemView();
 
-	// Methodes appelees lorsque l'utilisateur saisi les flag -l -u et -v dans la ligne de commande
-	static boolean ShowLicenseInfo(const ALString&);
-	static boolean UpdateLicense(const ALString& sFileName);
-	static boolean ShowVersion(const ALString&);
+	// Methodes appelees lorsque l'utilisateur saisi le flag -v ou -s dans la ligne de commande
+	static boolean ShowVersion(const ALString& sValue);
+	static boolean ShowSystemInformation(const ALString& sValue);
 };

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -20,8 +20,10 @@ DTForestParameter::DTForestParameter()
 	sTreesVariablesSelection = DTGlobalTag::RANK_WITH_REPLACEMENT_LABEL;
 	// sTreesVariablesSelection = DTGlobalTag::LEVEL_SAMPLING_WITH_REPLACEMENT_LABEL;
 	bWriteDetailedStatistics = false;
-	//	sHeuristicCreation = DTForestParameter::Heuristic_NODRAW_LABEL;
+	//	sHeuristicCreation = DTForestParameter::HEURISTIC_NODRAW_LABEL;
 	nVariableNumberMin = MIN_VARIABLE_2_BUILTREE;
+	sDiscretizationTargetMethod = DISCRETIZATION_MODL; // DISCRETIZATION_EQUAL_FREQUENCY
+	nMaxIntervalsNumberForTarget = 4;
 }
 
 DTForestParameter::~DTForestParameter() {}
@@ -98,6 +100,24 @@ ALString DTForestParameter::GetWeightedClassifier() const
 {
 	return sWeightedClassifier;
 }
+void DTForestParameter::SetDiscretizationTargetMethod(ALString sValue)
+{
+	sDiscretizationTargetMethod = sValue;
+}
+
+ALString DTForestParameter::GetDiscretizationTargetMethod() const
+{
+	return sDiscretizationTargetMethod;
+}
+void DTForestParameter::SetMaxIntervalsNumberForTarget(int i)
+{
+	nMaxIntervalsNumberForTarget = i;
+}
+
+int DTForestParameter::GetMaxIntervalsNumberForTarget() const
+{
+	return nMaxIntervalsNumberForTarget;
+}
 
 void DTForestParameter::SetInitRFOptimisation(ALString sValue)
 {
@@ -135,6 +155,8 @@ void DTForestParameter::CopyFrom(const DTForestParameter* dtParam)
 	nVariableNumberMin = dtParam->nVariableNumberMin;
 	// sHeuristicCreation = dtParam->sHeuristicCreation;
 	pDecisionTreeParameter.CopyFrom(&dtParam->pDecisionTreeParameter);
+	sDiscretizationTargetMethod = dtParam->sDiscretizationTargetMethod;
+	nMaxIntervalsNumberForTarget = dtParam->nMaxIntervalsNumberForTarget;
 }
 
 void DTForestParameter::SetTreesVariablesSelection(ALString sValue)
@@ -224,4 +246,81 @@ void DTForestParameter::WriteReport(ostream& ost)
 const ALString DTForestParameter::DRAWING_TYPE_NO_REPLACEMENT_LABEL = "No draw, use all data";
 const ALString DTForestParameter::DRAWING_TYPE_USE_OUT_OF_BAG_LABEL = "Random draw, use out-of-bag data";
 const ALString DTForestParameter::DRAWING_TYPE_ADABOOST_REPLACEMENT_LABEL = "AdaBoost draw";
-const ALString DTForestParameter::Heuristic_NODRAW_LABEL = "No draw";
+const ALString DTForestParameter::HEURISTIC_NODRAW_LABEL = "No draw";
+const ALString DTForestParameter::DISCRETIZATION_EQUAL_FREQUENCY = "EFDiscretization";
+const ALString DTForestParameter::DISCRETIZATION_BINARY_EQUAL_FREQUENCY = "EFBinDiscretization";
+const ALString DTForestParameter::DISCRETIZATION_MODL = "MODLDiscretization";
+
+/////////////  classe PLShared_ForestParameter
+
+PLShared_ForestParameter::PLShared_ForestParameter()
+{
+	shared_DecisionTreeParameter = new PLShared_DecisionTreeParameter;
+}
+
+PLShared_ForestParameter::~PLShared_ForestParameter()
+{
+	delete shared_DecisionTreeParameter;
+}
+
+void PLShared_ForestParameter::DeserializeObject(PLSerializer* serializer, Object* object) const
+{
+	DTForestParameter* param;
+	require(serializer != NULL);
+	require(serializer->IsOpenForRead());
+	require(object != NULL);
+
+	param = cast(DTForestParameter*, object);
+
+	param->sTreesVariablesSelection = serializer->GetString();
+	param->cInstancePercentage = serializer->GetDouble();
+	param->cKeptAttributePercentage = serializer->GetDouble();
+	param->bRecodeRFDictionary = serializer->GetBoolean();
+	param->nVariableNumberMin = serializer->GetInt();
+	param->sInitRFOptimisation = serializer->GetString();
+	param->nOptimizationLoopNumber = serializer->GetInt();
+	param->sWeightedClassifier = serializer->GetString();
+	param->bWriteDetailedStatistics = serializer->GetBoolean();
+	shared_DecisionTreeParameter->DeserializeObject(serializer, &param->pDecisionTreeParameter);
+	param->sDiscretizationTargetMethod = serializer->GetString();
+	param->nMaxIntervalsNumberForTarget = serializer->GetInt();
+}
+
+void PLShared_ForestParameter::SerializeObject(PLSerializer* serializer, const Object* object) const
+{
+	DTForestParameter* param;
+	require(serializer != NULL);
+	require(serializer->IsOpenForWrite());
+	require(object != NULL);
+
+	param = cast(DTForestParameter*, object);
+
+	serializer->PutString(param->sTreesVariablesSelection);
+	serializer->PutDouble(param->cInstancePercentage);
+	serializer->PutDouble(param->cKeptAttributePercentage);
+	serializer->PutBoolean(param->bRecodeRFDictionary);
+	serializer->PutInt(param->nVariableNumberMin);
+	serializer->PutString(param->sInitRFOptimisation);
+	serializer->PutInt(param->nOptimizationLoopNumber);
+	serializer->PutString(param->sWeightedClassifier);
+	serializer->PutBoolean(param->bWriteDetailedStatistics);
+	shared_DecisionTreeParameter->SerializeObject(serializer, &param->pDecisionTreeParameter);
+	serializer->PutString(param->sDiscretizationTargetMethod);
+	serializer->PutInt(param->nMaxIntervalsNumberForTarget);
+}
+
+Object* PLShared_ForestParameter::Create() const
+{
+	return new DTForestParameter;
+}
+
+void PLShared_ForestParameter::SetForestParameter(DTForestParameter* r)
+{
+	require(r != NULL);
+	SetObject(r);
+}
+
+DTForestParameter* PLShared_ForestParameter::GetForestParameter() const
+{
+	return cast(DTForestParameter*, GetObject());
+}

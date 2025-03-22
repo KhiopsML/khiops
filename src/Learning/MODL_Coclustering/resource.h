@@ -1,11 +1,11 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 // Fichier genere automatiquement pour l'affichage des ressources
 // Ne pas modifier
 
-#ifndef __UNIX__
+#ifdef _WIN32
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
 // Used by MODL_Coclustering.rc

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -223,7 +223,7 @@ void FormattedLabelCard::Test()
 		"<li> Tutorial: KhiopsTutorial.pdf\n"
 		"</ul>\n"
 		"<h3> See doc directory under Khiops installation directory. </h3> <p>\n"
-		"<a href=\"http://www.khiops.com\">Khiops (c) Orange Labs software for data mining</a> \n"
+		"<a href=\"http://khiops.org\">Khiops (c) Orange software for data mining</a> \n"
 		"</html>";
 
 	// Parametrage de la boite et ouverture
@@ -259,7 +259,7 @@ LabelCard::LabelCard()
 	// Chaine de caracteres dans UriLabel
 	AddStringField("FourthText", "", "");
 	GetFieldAt("FourthText")->SetStyle("UriLabel");
-	GetFieldAt("FourthText")->SetParameters("www.khiops.com");
+	GetFieldAt("FourthText")->SetParameters("khiops.org");
 }
 
 LabelCard::~LabelCard() {}
@@ -279,7 +279,7 @@ void LabelCard::Test()
 		"<li> Tutorial: KhiopsTutorial.pdf\n"
 		"</ul>\n"
 		"<h3> See doc directory under Khiops installation directory. </h3> <p>\n"
-		"<a href=\"http://www.khiops.com\">Khiops (c) Orange Labs software for data mining</a> \n";
+		"<a href=\"http://khiops.org\">Khiops (c) Orange software for data mining</a> \n";
 
 	// Parametrage de la boite et ouverture
 	UIObject::SetUIMode(UIObject::Graphic);
@@ -562,6 +562,12 @@ DoubleList::DoubleList()
 	GetFieldAt("doubleEditableComboBox")->SetStyle("EditableComboBox");
 	GetFieldAt("doubleEditableComboBox")->SetHelpText("EditableComboBox contenant un reel");
 
+	// Reel dans Spinner
+	AddRangedDoubleField("doubleSpinner", "Reel dans Spinner", 1.75, 1.00, 2.00);
+	GetFieldAt("doubleSpinner")->SetParameters("1");
+	GetFieldAt("doubleSpinner")->SetStyle("Spinner");
+	GetFieldAt("doubleSpinner")->SetHelpText("Spinner contenant un reel");
+
 	AddItem();
 	AddItem();
 }
@@ -582,26 +588,32 @@ DoubleCard::DoubleCard()
 	// Reel dans TextField
 	AddRangedDoubleField("doubleTextField", "Reel dans TextField", 1.75, 1.00, 2.00);
 	GetFieldAt("doubleTextField")->SetStyle("TextField");
-	GetFieldAt("doubleTextField")->SetHelpText("TextField contenant un entier");
+	GetFieldAt("doubleTextField")->SetHelpText("TextField contenant un reel");
 
 	// Reel dans ComboBox
 	AddRangedDoubleField("doubleComboBox", "Reel dans ComboBox", 1.75, 1.00, 2.00);
 	GetFieldAt("doubleComboBox")->SetParameters("1.50\n1.55\n1.60\n1.65\n1.70\n1.75\n1.80\n1.85\n1.90\n1.95\n2.00");
 	GetFieldAt("doubleComboBox")->SetStyle("ComboBox");
-	GetFieldAt("doubleComboBox")->SetHelpText("ComboBox contenant un entier");
+	GetFieldAt("doubleComboBox")->SetHelpText("ComboBox contenant un reel");
 
 	// Reel dans RadioButton
 	AddRangedDoubleField("doubleRadioButton", "Reel dans RadioButton", 1.70, 1.00, 2.00);
 	GetFieldAt("doubleRadioButton")->SetParameters("1.50\n1.60\n1.70\n1.80\n1.90\n2.00");
 	GetFieldAt("doubleRadioButton")->SetStyle("RadioButton");
-	GetFieldAt("doubleRadioButton")->SetHelpText("RadioButton contenant un entier");
+	GetFieldAt("doubleRadioButton")->SetHelpText("RadioButton contenant un reel");
 
 	// Reel dans EditableComboBox
 	AddRangedDoubleField("doubleEditableComboBox", "Reel dans EditableComboBox", 1.75, 1.00, 2.00);
 	GetFieldAt("doubleEditableComboBox")
 	    ->SetParameters("1.50\n1.55\n1.60\n1.65\n1.70\n1.75\n1.80\n1.85\n1.90\n1.95\n2.00");
 	GetFieldAt("doubleEditableComboBox")->SetStyle("EditableComboBox");
-	GetFieldAt("doubleEditableComboBox")->SetHelpText("EditableComboBox contenant un entier");
+	GetFieldAt("doubleEditableComboBox")->SetHelpText("EditableComboBox contenant un reel");
+
+	// Reel dans Spinner
+	AddRangedDoubleField("doubleSpinner", "Reel dans Spinner", 1.75, 1.00, 2.00);
+	GetFieldAt("doubleSpinner")->SetParameters("1");
+	GetFieldAt("doubleSpinner")->SetStyle("Spinner");
+	GetFieldAt("doubleSpinner")->SetHelpText("Spinner contenant un reel");
 
 	DoubleList* doubleList = new DoubleList();
 	AddListField("doubleList", "sous liste double", doubleList);
@@ -718,13 +730,13 @@ void UITest::DisplaySampleObjectArray()
 ////////////////////////////////////////////////////////////////////////
 // Classe FileReaderCard
 
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#ifdef _WIN32
 const ALString FileReaderCard::sRootPath = "C:/temp";
 #else
 const ALString FileReaderCard::sRootPath = "/temp";
 #endif
 
-#ifdef _MSC_VER
+#ifdef __MSC__
 #pragma warning(disable : 4310) // disable C4310 warning("le cast tronque la valeur constante")
 #endif
 
@@ -799,6 +811,10 @@ void FileReaderCard::OpenFile()
 			SetStringValueAt("FileName", sFileName);
 		}
 	}
+
+	// Test d'existence du fichier
+	sFileName = GetStringValueAt("FileName");
+	AddSimpleMessage("Is file " + sFileName + ": " + BooleanToString(FileService::FileExists(sFileName)));
 }
 
 void FileReaderCard::CreateFiles()
@@ -808,6 +824,8 @@ void FileReaderCard::CreateFiles()
 	ALString sRootDir;
 	ALString sFileName;
 	ALString sTmp;
+	StringVector svDirectoryNames;
+	StringVector svFileNames;
 	boolean bOk;
 
 	// Creation de fichiers avec tous les caracteres ANSI possibles
@@ -819,14 +837,38 @@ void FileReaderCard::CreateFiles()
 		sFileName = sTmp + '_' + IntToString(i) + "_" + c + "_.txt";
 		bOk = FileService::CreateEmptyFile(FileService::BuildFilePathName(sRootDir, sFileName));
 		AddMessage(sFileName + " " + c + " (" + IntToString(i) + "): " + BooleanToString(bOk));
-		cout << sFileName << " " << c << " (" << i << "): " << bOk << endl;
 	}
 
-	// Creation d'un fichier avec un caractere UTF_8 special (GREEK CAPITAL LETTER THETA (U+0398) ce98)
-	sFileName = sTmp + "_theta" + "_" + (char)0xce + (char)0x98 + "_.txt";
+	// Creation d'un fichier avec un caractere UTF_8 special (GREEK CAPITAL LETTER THETA (U+0398) ceb8)
+	sFileName = sTmp + "_theta" + "_" + (char)0xce + (char)0xb8 + "_.txt";
 	bOk = FileService::CreateEmptyFile(FileService::BuildFilePathName(sRootDir, sFileName));
-	AddMessage(sFileName + " " + c + " (" + IntToString(i) + "): " + BooleanToString(bOk));
-	cout << sFileName << " " << c << " (" << i << "): " << bOk << endl;
+	AddMessage(sFileName + " " + BooleanToString(bOk));
+
+	// Creation d'un fichier avec un caractere e accent aigu code UTF8l (c3a9)
+	sFileName = sTmp + "_233_utf8" + "_" + (char)0xc3 + (char)0xa9 + "_.txt";
+	bOk = FileService::CreateEmptyFile(FileService::BuildFilePathName(sRootDir, sFileName));
+	AddMessage(sFileName + " " + BooleanToString(bOk));
+
+	// Parcours des fichiers existants
+	bOk = FileService::GetDirectoryContent(sRootDir, &svDirectoryNames, &svFileNames);
+	for (i = 0; i < svFileNames.GetSize(); i++)
+	{
+		sFileName = svFileNames.GetAt(i);
+		bOk = FileService::FileExists(FileService::BuildFilePathName(sRootDir, sFileName));
+		AddMessage("-> " + sFileName + " " + IntToString(sFileName.GetLength()) + " " + BooleanToString(bOk));
+		if (i > svFileNames.GetSize() - 2 or sFileName.Find("233") >= 0)
+		{
+			int j;
+			cout << "-> " + sTmp + " " + IntToString(sFileName.GetLength()) + " " + BooleanToString(bOk)
+			     << endl;
+			for (j = 0; j < sFileName.GetLength(); j++)
+			{
+				cout << "\t" << j << "\t" << int(sFileName.GetAt(j)) << endl;
+				AddMessage(sTmp + "\t" + IntToString(j) + "\t" + sFileName.GetAt(j) + "\t" +
+					   IntToString(int(sFileName.GetAt(j))));
+			}
+		}
+	}
 }
 
 void FileReaderCard::TestFileServices()
@@ -848,7 +890,7 @@ void FileReaderCard::TestFileServices()
 	AddMessage("Test des services pour le fichier " + sFileName);
 
 	// Existence du fichier
-	bOk = FileService::Exist(sFileName);
+	bOk = FileService::FileExists(sFileName);
 	AddMessage("Existence de " + sFileName + ": " + IntToString(bOk) + " " +
 		   FileService::GetLastSystemIOErrorMessage());
 

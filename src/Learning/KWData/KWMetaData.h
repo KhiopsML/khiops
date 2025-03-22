@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -203,8 +203,8 @@ public:
 
 	// Reimplementation des methodes virtuelles, avec transfer des specifications de la base ainsi que des index
 	// d'attribut par mapping
-	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

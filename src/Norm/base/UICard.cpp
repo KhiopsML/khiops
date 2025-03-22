@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -414,12 +414,14 @@ void UIQuestionCard::OK()
 ////////////////////////////////////////////////////////////////////////
 // Classe UIFileChooserCard
 
+ALString UIFileChooserCard::sDefaultStyle = "FileChooser";
+
 UIFileChooserCard::UIFileChooserCard()
 {
 	// Initialisation
 	SetIdentifier("FileChooser");
 	SetLabel("File chooser");
-	SetStyle("FileChooser");
+	SetStyle(GetDefaultStyle());
 	bConfirmed = false;
 
 	// Ajout d'un champ file chooser
@@ -438,6 +440,17 @@ UIFileChooserCard::UIFileChooserCard()
 }
 
 UIFileChooserCard::~UIFileChooserCard() {}
+
+void UIFileChooserCard::SetDefaultStyle(const ALString& sValue)
+{
+	require(sValue == "FileChooser" or sValue == "");
+	sDefaultStyle = sValue;
+}
+
+const ALString& UIFileChooserCard::GetDefaultStyle()
+{
+	return sDefaultStyle;
+}
 
 const ALString UIFileChooserCard::ChooseFile(const ALString& sDialogBoxTitle, const ALString& sApproveActionLabel,
 					     const ALString& sChooseType, const ALString& sChooseParameters,
@@ -508,6 +521,15 @@ const ALString& UIFileChooserCard::GetApproveActionHelpText()
 const ALString UIFileChooserCard::GetClassLabel() const
 {
 	return "UI file chooser dialog box";
+}
+
+void UIFileChooserCard::EventExit()
+{
+	bConfirmed = false;
+
+	// On reinitialise le premier champ qui contient le nom du fichier
+	assert(GetFieldNumber() > 0);
+	SetStringValueAt(GetFieldAtIndex(0)->GetIdentifier(), "");
 }
 
 void UIFileChooserCard::OK()

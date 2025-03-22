@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -50,7 +50,7 @@ const ALString KWLearningService::GetObjectLabel() const
 
 //////////////////////////////////////////////////
 
-int KWLearningSpec::nMaxModalityNumber = 1000000;
+boolean KWLearningSpec::bTextConstructionUsedByTrees = false;
 
 KWLearningSpec::KWLearningSpec()
 {
@@ -67,6 +67,7 @@ KWLearningSpec::KWLearningSpec()
 	dNullDataCost = 0;
 	nInitialAttributeNumber = -1;
 	bMultiTableConstruction = false;
+	bTextConstruction = false;
 	bTrees = false;
 	bAttributePairs = false;
 	nConstructionFamilyNumber = 0;
@@ -239,8 +240,10 @@ boolean KWLearningSpec::ComputeContinuousValueStats(const ALString& sAttributeNa
 	int nTuple;
 
 	require(Check());
-	require(GetClass()->LookupAttribute(sAttributeName) != NULL);
-	require(GetClass()->LookupAttribute(sAttributeName)->GetType() == KWType::Continuous);
+	require((not GetCheckTargetAttribute() and sAttributeName == GetTargetAttributeName()) or
+		GetClass()->LookupAttribute(sAttributeName) != NULL);
+	require((not GetCheckTargetAttribute() and sAttributeName == GetTargetAttributeName()) or
+		GetClass()->LookupAttribute(sAttributeName)->GetType() == KWType::Continuous);
 	require(tupleTable != NULL);
 	require(tupleTable->GetAttributeNameAt(0) == sAttributeName);
 	require(valueStats != NULL);
@@ -292,8 +295,10 @@ boolean KWLearningSpec::ComputeSymbolValueStats(const ALString& sAttributeName, 
 	int nStarValueFrequency;
 
 	require(Check());
-	require(GetClass()->LookupAttribute(sAttributeName) != NULL);
-	require(GetClass()->LookupAttribute(sAttributeName)->GetType() == KWType::Symbol);
+	require((not GetCheckTargetAttribute() and sAttributeName == GetTargetAttributeName()) or
+		GetClass()->LookupAttribute(sAttributeName) != NULL);
+	require((not GetCheckTargetAttribute() and sAttributeName == GetTargetAttributeName()) or
+		GetClass()->LookupAttribute(sAttributeName)->GetType() == KWType::Symbol);
 	require(tupleTable != NULL);
 	require(tupleTable->GetAttributeNameAt(0) == sAttributeName);
 	require(valueStats != NULL);
@@ -411,6 +416,7 @@ void KWLearningSpec::CopyFrom(const KWLearningSpec* kwlsSource)
 	dNullDataCost = kwlsSource->dNullDataCost;
 	nInitialAttributeNumber = kwlsSource->nInitialAttributeNumber;
 	bMultiTableConstruction = kwlsSource->bMultiTableConstruction;
+	bTextConstruction = kwlsSource->bTextConstruction;
 	bTrees = kwlsSource->bTrees;
 	bAttributePairs = kwlsSource->bAttributePairs;
 	bIsTargetStatsComputed = kwlsSource->bIsTargetStatsComputed;
@@ -508,7 +514,7 @@ boolean KWLearningSpec::Check() const
 		}
 	}
 
-	// Verificatiopn des algorithmes de pretraitement selon le type de la cible
+	// Verification des algorithmes de pretraitement selon le type de la cible
 	if (not preprocessingSpec.CheckForTargetType(GetTargetAttributeType()))
 	{
 		bOk = false;
@@ -684,7 +690,7 @@ void KWLearningSpec::ComputeNullCost()
 
 		// Creation d'une table de contingence cible avec une seule ligne et une colonne par valeur
 		nValueNumber = GetTargetValueStats()->GetAttributeAt(0)->GetPartNumber();
-		nullFrequencyTable.Initialize(1);
+		nullFrequencyTable.SetFrequencyVectorNumber(1);
 
 		// Acces au vecteur de la ligne et parametrage de sa taille (sense etre en representation dense)
 		kwdfvFrequencyVector = cast(KWDenseFrequencyVector*, nullFrequencyTable.GetFrequencyVectorAt(0));
@@ -774,6 +780,58 @@ void PLShared_LearningSpec::FinalizeSpecification(KWClass* kwcValue, KWDatabase*
 	ensure(learningSpec->Check());
 }
 
+void PLShared_LearningSpec::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	KWLearningSpec* learningSpec;
+	PLShared_Symbol sharedSymbol;
+	PLShared_PreprocessingSpec sharedPreprocessingSpec;
+	PLShared_DescriptiveContinuousStats sharedDescriptiveContinuousStats;
+	PLShared_DescriptiveSymbolStats sharedDescriptiveSymbolStats;
+	PLShared_DataGridStats sharedDataGridStats;
+
+	require(serializer->IsOpenForWrite());
+
+	learningSpec = cast(KWLearningSpec*, o);
+
+	// Serialisation des donnees de base
+	serializer->PutString(learningSpec->sShortDescription);
+	serializer->PutString(learningSpec->sTargetAttributeName);
+	serializer->PutInt(learningSpec->nTargetAttributeType);
+	sharedSymbol = learningSpec->sMainTargetModality;
+	sharedSymbol.Serialize(serializer);
+	serializer->PutBoolean(learningSpec->bIsTargetStatsComputed);
+	serializer->PutInt(learningSpec->nInstanceNumber);
+	serializer->PutDouble(learningSpec->dNullConstructionCost);
+	serializer->PutDouble(learningSpec->dNullPreparationCost);
+	serializer->PutDouble(learningSpec->dNullDataCost);
+	serializer->PutInt(learningSpec->nInitialAttributeNumber);
+	serializer->PutBoolean(learningSpec->bMultiTableConstruction);
+	serializer->PutBoolean(learningSpec->bTextConstruction);
+	serializer->PutBoolean(learningSpec->bTrees);
+	serializer->PutBoolean(learningSpec->bAttributePairs);
+	serializer->PutInt(learningSpec->nConstructionFamilyNumber);
+	serializer->PutInt(learningSpec->nMainTargetModalityIndex);
+	serializer->PutBoolean(learningSpec->bCheckTargetAttribute);
+
+	// Serialisation des specification de preprocessing
+	sharedPreprocessingSpec.SerializeObject(serializer, &(learningSpec->preprocessingSpec));
+
+	// Serialisation des statistiques sur l'attribut cible
+	AddNull(serializer, learningSpec->targetDescriptiveStats);
+	if (learningSpec->targetDescriptiveStats != NULL)
+	{
+		// Serialisation selon le type d'attribut
+		if (learningSpec->nTargetAttributeType == KWType::Continuous)
+			sharedDescriptiveContinuousStats.SerializeObject(serializer,
+									 learningSpec->targetDescriptiveStats);
+		else if (learningSpec->nTargetAttributeType == KWType::Symbol)
+			sharedDescriptiveSymbolStats.SerializeObject(serializer, learningSpec->targetDescriptiveStats);
+	}
+	AddNull(serializer, learningSpec->targetValueStats);
+	if (learningSpec->targetValueStats != NULL)
+		sharedDataGridStats.SerializeObject(serializer, learningSpec->targetValueStats);
+}
+
 void PLShared_LearningSpec::DeserializeObject(PLSerializer* serializer, Object* o) const
 {
 	KWLearningSpec* learningSpec;
@@ -800,11 +858,11 @@ void PLShared_LearningSpec::DeserializeObject(PLSerializer* serializer, Object* 
 	learningSpec->dNullDataCost = serializer->GetDouble();
 	learningSpec->nInitialAttributeNumber = serializer->GetInt();
 	learningSpec->bMultiTableConstruction = serializer->GetBoolean();
+	learningSpec->bTextConstruction = serializer->GetBoolean();
 	learningSpec->bTrees = serializer->GetBoolean();
 	learningSpec->bAttributePairs = serializer->GetBoolean();
 	learningSpec->nConstructionFamilyNumber = serializer->GetInt();
 	learningSpec->nMainTargetModalityIndex = serializer->GetInt();
-	learningSpec->nMaxModalityNumber = serializer->GetInt();
 	learningSpec->bCheckTargetAttribute = serializer->GetBoolean();
 
 	// Deserialisation des specification de preprocessing
@@ -835,58 +893,6 @@ void PLShared_LearningSpec::DeserializeObject(PLSerializer* serializer, Object* 
 		learningSpec->targetValueStats = new KWDataGridStats;
 		sharedDataGridStats.DeserializeObject(serializer, learningSpec->targetValueStats);
 	}
-}
-
-void PLShared_LearningSpec::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	KWLearningSpec* learningSpec;
-	PLShared_Symbol sharedSymbol;
-	PLShared_PreprocessingSpec sharedPreprocessingSpec;
-	PLShared_DescriptiveContinuousStats sharedDescriptiveContinuousStats;
-	PLShared_DescriptiveSymbolStats sharedDescriptiveSymbolStats;
-	PLShared_DataGridStats sharedDataGridStats;
-
-	require(serializer->IsOpenForWrite());
-
-	learningSpec = cast(KWLearningSpec*, o);
-
-	// Serialisation des donnees de base
-	serializer->PutString(learningSpec->sShortDescription);
-	serializer->PutString(learningSpec->sTargetAttributeName);
-	serializer->PutInt(learningSpec->nTargetAttributeType);
-	sharedSymbol = learningSpec->sMainTargetModality;
-	sharedSymbol.Serialize(serializer);
-	serializer->PutBoolean(learningSpec->bIsTargetStatsComputed);
-	serializer->PutInt(learningSpec->nInstanceNumber);
-	serializer->PutDouble(learningSpec->dNullConstructionCost);
-	serializer->PutDouble(learningSpec->dNullPreparationCost);
-	serializer->PutDouble(learningSpec->dNullDataCost);
-	serializer->PutInt(learningSpec->nInitialAttributeNumber);
-	serializer->PutBoolean(learningSpec->bMultiTableConstruction);
-	serializer->PutBoolean(learningSpec->bTrees);
-	serializer->PutBoolean(learningSpec->bAttributePairs);
-	serializer->PutInt(learningSpec->nConstructionFamilyNumber);
-	serializer->PutInt(learningSpec->nMainTargetModalityIndex);
-	serializer->PutInt(learningSpec->nMaxModalityNumber);
-	serializer->PutBoolean(learningSpec->bCheckTargetAttribute);
-
-	// Serialisation des specification de preprocessing
-	sharedPreprocessingSpec.SerializeObject(serializer, &(learningSpec->preprocessingSpec));
-
-	// Serialisation des statistiques sur l'attribut cible
-	AddNull(serializer, learningSpec->targetDescriptiveStats);
-	if (learningSpec->targetDescriptiveStats != NULL)
-	{
-		// Serialisation selon le type d'attribut
-		if (learningSpec->nTargetAttributeType == KWType::Continuous)
-			sharedDescriptiveContinuousStats.SerializeObject(serializer,
-									 learningSpec->targetDescriptiveStats);
-		else if (learningSpec->nTargetAttributeType == KWType::Symbol)
-			sharedDescriptiveSymbolStats.SerializeObject(serializer, learningSpec->targetDescriptiveStats);
-	}
-	AddNull(serializer, learningSpec->targetValueStats);
-	if (learningSpec->targetValueStats != NULL)
-		sharedDataGridStats.SerializeObject(serializer, learningSpec->targetValueStats);
 }
 
 Object* PLShared_LearningSpec::Create() const

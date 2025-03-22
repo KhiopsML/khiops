@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -27,6 +27,8 @@ public:
 	KWDatabase* GetDatabase() const;
 
 	// Utilisation ou non du dictionnaire pour detecter le format (defaut: true)
+	// Si le dictionnaire est utilisable, on l'utilise s'il est specifie, et sinon
+	// on se rabat sur le comprtement sans dictionnaire
 	void SetUsingClass(boolean bValue);
 	boolean GetUsingClass();
 

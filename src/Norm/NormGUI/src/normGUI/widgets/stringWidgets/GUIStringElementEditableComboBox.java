@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -20,8 +20,6 @@ import normGUI.engine.GUIUnit;
  * Represente l'element graphique correspondant au style EditableComboBox.
  * Affichage de chaines de caracteres dans une zone de liste editable.
  * Utilisation d'une JComboBox.
- *
- * @author Marc Boulle
  */
 public class GUIStringElementEditableComboBox extends GUIStringElement
 {
@@ -94,8 +92,7 @@ public class GUIStringElementEditableComboBox extends GUIStringElement
         }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage

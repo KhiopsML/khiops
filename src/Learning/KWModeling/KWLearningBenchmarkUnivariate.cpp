@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -49,8 +49,15 @@ void KWLearningBenchmarkUnivariate::Evaluate()
 		cout << "CRASH" << endl;
 		KWLearningBenchmarkUnivariate* crashBench = NULL;
 
-		// Appel d'une methode sur un pointeur NULL
+// Appel d'une methode sur un pointeur NULL
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnonnull"
+#endif
 		crashBench->Evaluate();
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 	}
 
 	// Evaluation standard

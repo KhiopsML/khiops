@@ -1,8 +1,9 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "KWDataPreparationClass.h"
+#include "KWLearningReport.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KWDataPreparationClass
@@ -185,6 +186,189 @@ ObjectArray* KWDataPreparationClass::GetDataPreparationAttributes()
 	// Verification a minima que la preparation a ete effectue
 	require(kwcDataPreparationClass != NULL);
 	return &oaDataPreparationAttributes;
+}
+
+KWAttribute* KWDataPreparationClass::AddDataGridBlock(ObjectArray* oaDataGridBlockDataPreparationAttributes,
+						      const ALString& sPrefix)
+{
+	KWDataPreparationAttribute* dataPreparationAttribute;
+	KWAttribute* nativeAttribute;
+	KWAttributeBlock* firstNativeAttributeBlock;
+	KWDRDataGridBlock* dataGridBlock;
+	KWDRContinuousValueSet* continuousValueSetRule;
+	KWDRSymbolValueSet* symbolValueSetRule;
+	KWAttribute* dataGridBlockAttribute;
+	int nAttribute;
+	KWAttribute* preparedAttribute;
+	KWDerivationRuleOperand* preparedAttributeOperand;
+
+	require(oaDataGridBlockDataPreparationAttributes != NULL);
+	require(oaDataGridBlockDataPreparationAttributes->GetSize() > 0);
+
+	// Tri des attributs de preparation par VarKey des attributs natifs du bloc
+	oaDataGridBlockDataPreparationAttributes->SetCompareFunction(KWDataPreparationAttributeCompareVarKey);
+	oaDataGridBlockDataPreparationAttributes->Sort();
+
+	// Obtention des informations du bloc
+	dataPreparationAttribute =
+	    cast(KWDataPreparationAttribute*, oaDataGridBlockDataPreparationAttributes->GetAt(0));
+	firstNativeAttributeBlock = dataPreparationAttribute->GetNativeAttribute()->GetAttributeBlock();
+	assert(firstNativeAttributeBlock != NULL);
+
+	// Creation de la regle data grid bloc
+	dataGridBlock = new KWDRDataGridBlock;
+	dataGridBlock->SetOperandNumber(1);
+
+	// Initialisation de la liste de VarKeys (premier operand du DataGridBlock) en fonction du type des VarKeys du bloc
+	continuousValueSetRule = NULL;
+	symbolValueSetRule = NULL;
+	if (firstNativeAttributeBlock->GetVarKeyType() == KWType::Continuous)
+	{
+		continuousValueSetRule = new KWDRContinuousValueSet;
+		continuousValueSetRule->SetValueNumber(oaDataGridBlockDataPreparationAttributes->GetSize());
+		dataGridBlock->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
+		dataGridBlock->GetFirstOperand()->SetDerivationRule(continuousValueSetRule);
+	}
+	else
+	{
+		assert(firstNativeAttributeBlock->GetVarKeyType() == KWType::Symbol);
+		symbolValueSetRule = new KWDRSymbolValueSet;
+		symbolValueSetRule->SetValueNumber(oaDataGridBlockDataPreparationAttributes->GetSize());
+		dataGridBlock->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
+		dataGridBlock->GetFirstOperand()->SetDerivationRule(symbolValueSetRule);
+	}
+
+	// Creation et insertion de l'attribut conteneur de la structure DataGridBlock
+	dataGridBlockAttribute = new KWAttribute;
+	dataGridBlockAttribute->SetType(KWType::Structure);
+	dataGridBlockAttribute->SetDerivationRule(dataGridBlock);
+	dataGridBlockAttribute->SetName(
+	    kwcDataPreparationClass->BuildAttributeName(sPrefix + firstNativeAttributeBlock->GetName()));
+	dataGridBlockAttribute->SetUsed(false);
+	kwcDataPreparationClass->InsertAttribute(dataGridBlockAttribute);
+
+	// Completion du DataGridBlock et creation des attributs du CellIndexBlock
+	for (nAttribute = 0; nAttribute < oaDataGridBlockDataPreparationAttributes->GetSize(); nAttribute++)
+	{
+		// Acces aux information de l'attribut courant
+		dataPreparationAttribute =
+		    cast(KWDataPreparationAttribute*, oaDataGridBlockDataPreparationAttributes->GetAt(nAttribute));
+		nativeAttribute = dataPreparationAttribute->GetNativeAttribute();
+		preparedAttribute = dataPreparationAttribute->GetPreparedAttribute();
+		assert(nativeAttribute->GetAttributeBlock() == firstNativeAttributeBlock);
+
+		// Creation et ajout de l'attribut prepare comme operand pour la regle du DataGridBlock
+		preparedAttributeOperand = new KWDerivationRuleOperand;
+		preparedAttributeOperand->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+		preparedAttributeOperand->SetAttributeName(preparedAttribute->GetName());
+		dataGridBlock->AddOperand(preparedAttributeOperand);
+
+		// Mise-a-jour de la liste de VarKeys dans le DataGridBlock et de la metadata de l'attribut CellIndex
+		if (firstNativeAttributeBlock->GetVarKeyType() == KWType::Continuous)
+		{
+			assert(continuousValueSetRule != NULL);
+			continuousValueSetRule->SetValueAt(
+			    nAttribute, firstNativeAttributeBlock->GetContinuousVarKey(nativeAttribute));
+		}
+		else
+		{
+			assert(symbolValueSetRule != NULL);
+			assert(firstNativeAttributeBlock->GetVarKeyType() == KWType::Symbol);
+			symbolValueSetRule->SetValueAt(nAttribute,
+						       firstNativeAttributeBlock->GetSymbolVarKey(nativeAttribute));
+		}
+	}
+	dataGridBlockAttribute->CompleteTypeInfo(kwcDataPreparationClass);
+
+	ensure(kwcDataPreparationClass->Check());
+	return dataGridBlockAttribute;
+}
+
+KWAttributeBlock*
+KWDataPreparationClass::AddPreparedIndexingAttributeBlock(KWAttribute* dataGridBlockAttribute,
+							  ObjectArray* oaDataGridBlockDataPreparationAttributes)
+{
+	KWDRCellIndexBlock* cellIndexBlockRule;
+	KWAttributeBlock* cellIndexBlock;
+	KWAttributeBlock* nativeAttributeBlock;
+	KWAttribute* nativeAttribute;
+	KWAttribute* firstCellIndexAttribute;
+	KWAttribute* cellIndexAttribute;
+	int nAttribute;
+	KWDataPreparationAttribute* dataPreparationAttribute;
+	ALString sLevelMetaDataKey;
+
+	require(oaDataGridBlockDataPreparationAttributes != NULL);
+	require(oaDataGridBlockDataPreparationAttributes->GetSize() > 0);
+
+	// Tri des attributs de preparation par VarKey des attributs natifs du bloc
+	oaDataGridBlockDataPreparationAttributes->SetCompareFunction(KWDataPreparationAttributeCompareVarKey);
+	oaDataGridBlockDataPreparationAttributes->Sort();
+
+	// Obtention des informations du bloc
+	dataPreparationAttribute =
+	    cast(KWDataPreparationAttribute*, oaDataGridBlockDataPreparationAttributes->GetAt(0));
+	nativeAttributeBlock = dataPreparationAttribute->GetNativeAttribute()->GetAttributeBlock();
+	assert(nativeAttributeBlock != NULL);
+	assert(kwcDataPreparationClass->LookupAttributeBlock(nativeAttributeBlock->GetName()) != NULL);
+
+	// Completion du DataGridBlock et creation des attributs du CellIndexBlock
+	firstCellIndexAttribute = NULL;
+	cellIndexAttribute = NULL;
+	for (nAttribute = 0; nAttribute < oaDataGridBlockDataPreparationAttributes->GetSize(); nAttribute++)
+	{
+		// Acces aux information de l'attribut courant
+		dataPreparationAttribute =
+		    cast(KWDataPreparationAttribute*, oaDataGridBlockDataPreparationAttributes->GetAt(nAttribute));
+		assert(dataPreparationAttribute->GetNativeAttributeNumber() == 1);
+		nativeAttribute = dataPreparationAttribute->GetNativeAttribute();
+		assert(nativeAttribute->GetAttributeBlock() == nativeAttributeBlock);
+
+		// Creation et ajout de l'attribut numerique pour l'index de attribut prepare
+		cellIndexAttribute = new KWAttribute;
+		cellIndexAttribute->SetName(kwcDataPreparationClass->BuildAttributeName(
+		    "Index" + dataPreparationAttribute->GetPreparedAttribute()->GetName()));
+		cellIndexAttribute->SetType(KWType::Continuous);
+		sLevelMetaDataKey = dataPreparationAttribute->GetLevelMetaDataKey();
+		cellIndexAttribute->GetMetaData()->SetDoubleValueAt(
+		    sLevelMetaDataKey, nativeAttribute->GetMetaData()->GetDoubleValueAt(sLevelMetaDataKey));
+		kwcDataPreparationClass->InsertAttribute(cellIndexAttribute);
+
+		// Mise-a-jour de la liste de VarKeys dans le DataGridBlock et de la metadata de l'attribut CellIndex
+		if (nativeAttributeBlock->GetVarKeyType() == KWType::Continuous)
+		{
+			cellIndexAttribute->GetMetaData()->SetDoubleValueAt(
+			    "VarKey", nativeAttributeBlock->GetContinuousVarKey(nativeAttribute));
+		}
+		else
+		{
+			assert(nativeAttributeBlock->GetVarKeyType() == KWType::Symbol);
+			cellIndexAttribute->GetMetaData()->SetStringValueAt(
+			    "VarKey", nativeAttributeBlock->GetSymbolVarKey(nativeAttribute).GetValue());
+		}
+
+		if (nAttribute == 0)
+			firstCellIndexAttribute = cellIndexAttribute;
+	}
+
+	// Creation de la regle pour le bloc de CellIndex
+	cellIndexBlockRule = new KWDRCellIndexBlock;
+	cellIndexBlockRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+	cellIndexBlockRule->GetFirstOperand()->SetAttributeName(dataGridBlockAttribute->GetName());
+	cellIndexBlockRule->GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+	cellIndexBlockRule->GetSecondOperand()->SetAttributeBlockName(nativeAttributeBlock->GetName());
+
+	// Creation du bloc de CellIndex dans la classe de preparation
+	assert(firstCellIndexAttribute != NULL);
+	assert(cellIndexAttribute != NULL);
+
+	cellIndexBlock = kwcDataPreparationClass->CreateAttributeBlock(
+	    kwcDataPreparationClass->BuildAttributeBlockName("IndexesTmpPB" + nativeAttributeBlock->GetName()),
+	    firstCellIndexAttribute, cellIndexAttribute);
+	cellIndexBlock->SetDerivationRule(cellIndexBlockRule);
+	cellIndexBlockRule->CompleteTypeInfo(kwcDataPreparationClass);
+
+	return cellIndexBlock;
 }
 
 boolean KWDataPreparationClass::CheckDataPreparation() const
@@ -434,7 +618,18 @@ void KWDataPreparationAttribute::SetPreparedAttribute(KWAttribute* kwaPreparedAt
 	preparedAttribute = kwaPreparedAttribute;
 }
 
-KWAttribute* KWDataPreparationAttribute::GetPreparedAttribute()
+boolean KWDataPreparationAttribute::IsNativeAttributeInBlock()
+{
+	require(GetNativeAttributeNumber() >= 1);
+	require(GetNativeAttributeAt(0) != NULL);
+
+	if (GetNativeAttributeNumber() == 1)
+		return GetNativeAttributeAt(0)->GetAttributeBlock() != NULL;
+	else
+		return false;
+}
+
+KWAttribute* KWDataPreparationAttribute::GetPreparedAttribute() const
 {
 	require(Check());
 	return preparedAttribute;
@@ -445,10 +640,21 @@ void KWDataPreparationAttribute::SetPreparedStats(KWDataPreparationStats* kwdpsA
 	preparedStats = kwdpsAttributeStats;
 }
 
-KWDataPreparationStats* KWDataPreparationAttribute::GetPreparedStats()
+KWDataPreparationStats* KWDataPreparationAttribute::GetPreparedStats() const
 {
 	require(Check());
 	return preparedStats;
+}
+
+bool KWDataPreparationAttribute::IsInformativeOnTarget() const
+{
+	require(GetPreparedStats() != NULL);
+	require(GetPreparedStats()->GetTargetAttributeName() != "");
+	require(GetPreparedStats()->GetPreparedDataGridStats() != NULL);
+
+	return GetPreparedStats()->GetPreparedDataGridStats() != NULL and
+	       GetPreparedStats()->GetPreparedDataGridStats()->ComputeSourceGridSize() > 1 and
+	       GetPreparedStats()->GetSortValue() > 0;
 }
 
 void KWDataPreparationAttribute::SetNativeAttribute1(KWAttribute* kwaNativeAttribute)
@@ -1079,7 +1285,7 @@ boolean KWDataPreparationAttribute::CheckSpecification(const ObjectArray* oaChec
 			if (kwcPreparedClass->LookupAttribute(kwaNativeAttribute->GetName()) == NULL)
 			{
 				AddError("Native variable " + kwaNativeAttribute->GetName() +
-					 " unkwnown in the prepared dictionary");
+					 " unknown in the prepared dictionary");
 				bOk = false;
 				break;
 			}
@@ -1098,7 +1304,7 @@ boolean KWDataPreparationAttribute::CheckSpecification(const ObjectArray* oaChec
 			if (kwcPreparedClass->LookupAttribute(attributePartition->GetAttributeName()) == NULL)
 			{
 				AddError("Prepared variable " + attributePartition->GetAttributeName() +
-					 " unkwnown in the prepared dictionary");
+					 " unknown in the prepared dictionary");
 				bOk = false;
 				break;
 			}
@@ -1112,39 +1318,70 @@ int KWDataPreparationAttributeCompareSortValue(const void* elem1, const void* el
 {
 	KWDataPreparationAttribute* dataPreparationAttribute1;
 	KWDataPreparationAttribute* dataPreparationAttribute2;
-	double dSortValue1;
-	double dSortValue2;
-	longint lSortValue1;
-	longint lSortValue2;
 	int nCompare;
 
-	check(elem1);
-	check(elem2);
+	require(elem1 != NULL);
+	require(elem2 != NULL);
 
 	// Acces aux objets
 	dataPreparationAttribute1 = cast(KWDataPreparationAttribute*, *(Object**)elem1);
 	dataPreparationAttribute2 = cast(KWDataPreparationAttribute*, *(Object**)elem2);
-
-	// Test d'integrite
-	check(dataPreparationAttribute1);
 	assert(dataPreparationAttribute1->Check());
-	check(dataPreparationAttribute2);
 	assert(dataPreparationAttribute2->Check());
 
-	// Evaluation univariee des attributs
-	dSortValue1 = dataPreparationAttribute1->GetPreparedStats()->GetSortValue();
-	dSortValue2 = dataPreparationAttribute2->GetPreparedStats()->GetSortValue();
+	// Comparaison selon la precision du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(dataPreparationAttribute1->GetPreparedStats()->GetSortValue(),
+							dataPreparationAttribute2->GetPreparedStats()->GetSortValue());
 
-	// On se base sur un comparaison a dix decimales pres
-	lSortValue1 = longint(floor(dSortValue1 * 1e10));
-	lSortValue2 = longint(floor(dSortValue2 * 1e10));
-	nCompare = -CompareLongint(lSortValue1, lSortValue2);
-
-	// Comparaison si necessaire sur le nom
+	// Comparaison sur le nom en cas d'egalite du level (sort value)
 	if (nCompare == 0)
-		nCompare = dataPreparationAttribute1->GetPreparedStats()->GetSortName().Compare(
-		    dataPreparationAttribute2->GetPreparedStats()->GetSortName());
+		nCompare = dataPreparationAttribute1->GetPreparedStats()->CompareName(
+		    dataPreparationAttribute2->GetPreparedStats());
 	return nCompare;
+}
+
+int KWDataPreparationAttributeCompareVarKey(const void* elem1, const void* elem2)
+{
+	KWDataPreparationAttribute* dataPreparationAttribute1;
+	KWDataPreparationAttribute* dataPreparationAttribute2;
+	KWAttribute* nativeAttribute1;
+	KWAttribute* nativeAttribute2;
+	KWAttributeBlock* attributeBlock;
+	int nDiff;
+
+	require(elem1 != NULL);
+	require(elem2 != NULL);
+
+	// Acces aux attributs de preparation
+	dataPreparationAttribute1 = cast(KWDataPreparationAttribute*, *(Object**)elem1);
+	dataPreparationAttribute2 = cast(KWDataPreparationAttribute*, *(Object**)elem2);
+
+	// Test d'integrite des attributs de preparation
+	assert(dataPreparationAttribute1->Check());
+	assert(dataPreparationAttribute2->Check());
+	assert(dataPreparationAttribute1->GetNativeAttributeNumber() == 1);
+	assert(dataPreparationAttribute2->GetNativeAttributeNumber() == 1);
+
+	// Acces aux attributs natifs
+	nativeAttribute1 = dataPreparationAttribute1->GetNativeAttribute();
+	nativeAttribute2 = dataPreparationAttribute2->GetNativeAttribute();
+
+	// Test d'integrite des attributs natif
+	assert(nativeAttribute1->GetAttributeBlock() != NULL);
+	assert(nativeAttribute2->GetAttributeBlock() != NULL);
+	assert(nativeAttribute1->GetAttributeBlock() == nativeAttribute2->GetAttributeBlock());
+
+	// Acces au bloc common
+	attributeBlock = nativeAttribute1->GetAttributeBlock();
+
+	// Difference pour chaque type de VarKey: Symbol ou Continuous
+	if (attributeBlock->GetVarKeyType() == KWType::Symbol)
+		nDiff = attributeBlock->GetSymbolVarKey(nativeAttribute1)
+			    .CompareValue(attributeBlock->GetSymbolVarKey(nativeAttribute2));
+	else
+		nDiff = KWContinuous::CompareIndicatorValue(attributeBlock->GetContinuousVarKey(nativeAttribute1),
+							    attributeBlock->GetContinuousVarKey(nativeAttribute2));
+	return nDiff;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1329,7 +1566,7 @@ boolean KWDataPreparationTargetAttribute::CheckSpecification(KWAttribute* kwaNat
 		if (kwcPreparedClass->LookupAttribute(kwaNativeAttribute->GetName()) == NULL)
 		{
 			AddError("Native variable " + kwaNativeAttribute->GetName() +
-				 " unkwnown in the prepared dictionary");
+				 " unknown in the prepared dictionary");
 			bOk = false;
 		}
 	}

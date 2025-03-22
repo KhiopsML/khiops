@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -34,6 +34,14 @@ void KWDRRegisterDateTimeRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRAddSeconds);
 	KWDerivationRule::RegisterDerivationRule(new KWDRIsTimestampValid);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildTimestamp);
+	KWDerivationRule::RegisterDerivationRule(new KWDRUtcTimestamp);
+	KWDerivationRule::RegisterDerivationRule(new KWDRLocalTimestamp);
+	KWDerivationRule::RegisterDerivationRule(new KWDRSetTimeZoneMinutes);
+	KWDerivationRule::RegisterDerivationRule(new KWDRGetTimeZoneMinutes);
+	KWDerivationRule::RegisterDerivationRule(new KWDRDiffTimestampTZ);
+	KWDerivationRule::RegisterDerivationRule(new KWDRAddSecondsTSTZ);
+	KWDerivationRule::RegisterDerivationRule(new KWDRIsTimestampTZValid);
+	KWDerivationRule::RegisterDerivationRule(new KWDRBuildTimestampTZ);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -882,7 +890,7 @@ Timestamp KWDRAddSeconds::ComputeTimestampResult(const KWObject* kwoObject) cons
 
 	// Ajout des jours a la timestamp, si validite des operandes
 	if (tsTimestamp.Check() and cSeconds != KWContinuous::GetMissingValue())
-		tsTimestamp.AddSeconds((int)floor(cSeconds + 0.5));
+		tsTimestamp.AddSeconds(cSeconds);
 	// Sinon, on rend un timestamp invalide
 	else
 		tsTimestamp.Reset();
@@ -957,4 +965,294 @@ Timestamp KWDRBuildTimestamp::ComputeTimestampResult(const KWObject* kwoObject) 
 		tsTimestamp.SetTime(tmTime);
 	}
 	return tsTimestamp;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+KWDRUtcTimestamp::KWDRUtcTimestamp()
+{
+	SetName("UtcTimestamp");
+	SetLabel("Universal time zone (UTC) timestamp from a timestampTZ");
+	SetType(KWType::Timestamp);
+	SetOperandNumber(1);
+	GetOperandAt(0)->SetType(KWType::TimestampTZ);
+}
+
+KWDRUtcTimestamp::~KWDRUtcTimestamp() {}
+
+KWDerivationRule* KWDRUtcTimestamp::Create() const
+{
+	return new KWDRUtcTimestamp;
+}
+
+Timestamp KWDRUtcTimestamp::ComputeTimestampResult(const KWObject* kwoObject) const
+{
+	TimestampTZ tstzTimestamp;
+	Timestamp tsTimestamp;
+
+	require(IsCompiled());
+
+	tstzTimestamp = GetFirstOperand()->GetTimestampTZValue(kwoObject);
+	if (tstzTimestamp.Check())
+		tsTimestamp = tstzTimestamp.GetUtcTimestamp();
+	else
+		tsTimestamp.Reset();
+	return tsTimestamp;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+KWDRLocalTimestamp::KWDRLocalTimestamp()
+{
+	SetName("LocalTimestamp");
+	SetLabel("Local timestamp from a timestampTZ");
+	SetType(KWType::Timestamp);
+	SetOperandNumber(1);
+	GetOperandAt(0)->SetType(KWType::TimestampTZ);
+}
+
+KWDRLocalTimestamp::~KWDRLocalTimestamp() {}
+
+KWDerivationRule* KWDRLocalTimestamp::Create() const
+{
+	return new KWDRLocalTimestamp;
+}
+
+Timestamp KWDRLocalTimestamp::ComputeTimestampResult(const KWObject* kwoObject) const
+{
+	TimestampTZ tstzTimestamp;
+	Timestamp tsTimestamp;
+
+	require(IsCompiled());
+
+	tstzTimestamp = GetFirstOperand()->GetTimestampTZValue(kwoObject);
+	if (tstzTimestamp.Check())
+		tsTimestamp = tstzTimestamp.GetLocalTimestamp();
+	else
+		tsTimestamp.Reset();
+	return tsTimestamp;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+KWDRSetTimeZoneMinutes::KWDRSetTimeZoneMinutes()
+{
+	SetName("SetTimeZoneMinutes");
+	SetLabel("Set the time zone total minutes of a timestampTZ");
+	SetType(KWType::TimestampTZ);
+	SetOperandNumber(2);
+	GetOperandAt(0)->SetType(KWType::TimestampTZ);
+	GetOperandAt(1)->SetType(KWType::Continuous);
+}
+
+KWDRSetTimeZoneMinutes::~KWDRSetTimeZoneMinutes() {}
+
+KWDerivationRule* KWDRSetTimeZoneMinutes::Create() const
+{
+	return new KWDRSetTimeZoneMinutes;
+}
+
+TimestampTZ KWDRSetTimeZoneMinutes::ComputeTimestampTZResult(const KWObject* kwoObject) const
+{
+	TimestampTZ tstzTimestamp;
+	Continuous cMinutes;
+	int nMinutes;
+	boolean bOk;
+
+	require(IsCompiled());
+
+	// Modifie la time zone que si les operandes sont valides
+	tstzTimestamp = GetFirstOperand()->GetTimestampTZValue(kwoObject);
+	bOk = false;
+	if (tstzTimestamp.Check())
+	{
+		cMinutes = GetSecondOperand()->GetContinuousValue(kwoObject);
+		if (cMinutes != KWContinuous::GetMissingValue())
+		{
+			nMinutes = int(floor(cMinutes + 0.5));
+			bOk = tstzTimestamp.SetTimeZoneTotalMinutes(nMinutes);
+		}
+	}
+	if (not bOk)
+		tstzTimestamp.Reset();
+	return tstzTimestamp;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+KWDRGetTimeZoneMinutes::KWDRGetTimeZoneMinutes()
+{
+	SetName("GetTimeZoneMinutes");
+	SetLabel("Get the time zone total minutes of a timestampTZ");
+	SetType(KWType::Continuous);
+	SetOperandNumber(1);
+	GetOperandAt(0)->SetType(KWType::TimestampTZ);
+}
+
+KWDRGetTimeZoneMinutes::~KWDRGetTimeZoneMinutes() {}
+
+KWDerivationRule* KWDRGetTimeZoneMinutes::Create() const
+{
+	return new KWDRGetTimeZoneMinutes;
+}
+
+Continuous KWDRGetTimeZoneMinutes::ComputeContinuousResult(const KWObject* kwoObject) const
+{
+	TimestampTZ tstzTimestamp;
+
+	require(IsCompiled());
+
+	// Modifie la time zone que si les operandes sont valides
+	tstzTimestamp = GetFirstOperand()->GetTimestampTZValue(kwoObject);
+	if (tstzTimestamp.Check())
+		return (Continuous)tstzTimestamp.GetTimeZoneTotalMinutes();
+	else
+		return KWContinuous::GetMissingValue();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+KWDRDiffTimestampTZ::KWDRDiffTimestampTZ()
+{
+	SetName("DiffTimestampTZ");
+	SetLabel("Difference in seconds between two timestampTZs");
+	SetType(KWType::Continuous);
+	SetOperandNumber(2);
+	GetFirstOperand()->SetType(KWType::TimestampTZ);
+	GetSecondOperand()->SetType(KWType::TimestampTZ);
+}
+
+KWDRDiffTimestampTZ::~KWDRDiffTimestampTZ() {}
+
+KWDerivationRule* KWDRDiffTimestampTZ::Create() const
+{
+	return new KWDRDiffTimestampTZ;
+}
+
+Continuous KWDRDiffTimestampTZ::ComputeContinuousResult(const KWObject* kwoObject) const
+{
+	TimestampTZ tsTimestampTZ1;
+	TimestampTZ tsTimestampTZ2;
+
+	require(IsCompiled());
+
+	tsTimestampTZ1 = GetFirstOperand()->GetTimestampTZValue(kwoObject);
+	tsTimestampTZ2 = GetSecondOperand()->GetTimestampTZValue(kwoObject);
+	if (tsTimestampTZ1.Check() and tsTimestampTZ2.Check())
+		return (Continuous)tsTimestampTZ1.Diff(tsTimestampTZ2);
+	else
+		return KWContinuous::GetMissingValue();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+KWDRAddSecondsTSTZ::KWDRAddSecondsTSTZ()
+{
+	SetName("AddSecondsTSTZ");
+	SetLabel("Add a number of seconds to a timestampTZ");
+	SetType(KWType::TimestampTZ);
+	SetOperandNumber(2);
+	GetOperandAt(0)->SetType(KWType::TimestampTZ);
+	GetOperandAt(1)->SetType(KWType::Continuous);
+}
+
+KWDRAddSecondsTSTZ::~KWDRAddSecondsTSTZ() {}
+
+KWDerivationRule* KWDRAddSecondsTSTZ::Create() const
+{
+	return new KWDRAddSecondsTSTZ;
+}
+
+TimestampTZ KWDRAddSecondsTSTZ::ComputeTimestampTZResult(const KWObject* kwoObject) const
+{
+	TimestampTZ tsTimestampTZ;
+	Continuous cSeconds;
+
+	require(IsCompiled());
+
+	// Acces aux operandes
+	tsTimestampTZ = GetOperandAt(0)->GetTimestampTZValue(kwoObject);
+	cSeconds = GetOperandAt(1)->GetContinuousValue(kwoObject);
+
+	// Ajout des jours a la timestampTZ, si validite des operandes
+	if (tsTimestampTZ.Check() and cSeconds != KWContinuous::GetMissingValue())
+		tsTimestampTZ.AddSeconds((int)floor(cSeconds + 0.5));
+	// Sinon, on rend un timestampTZ invalide
+	else
+		tsTimestampTZ.Reset();
+
+	return tsTimestampTZ;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+KWDRIsTimestampTZValid::KWDRIsTimestampTZValid()
+{
+	SetName("IsTimestampTZValid");
+	SetLabel("Check if a timestampTZ is valid");
+	SetType(KWType::Continuous);
+	SetOperandNumber(1);
+	GetFirstOperand()->SetType(KWType::TimestampTZ);
+}
+
+KWDRIsTimestampTZValid::~KWDRIsTimestampTZValid() {}
+
+KWDerivationRule* KWDRIsTimestampTZValid::Create() const
+{
+	return new KWDRIsTimestampTZValid;
+}
+
+Continuous KWDRIsTimestampTZValid::ComputeContinuousResult(const KWObject* kwoObject) const
+{
+	TimestampTZ tsTimestampTZ;
+
+	require(IsCompiled());
+
+	tsTimestampTZ = GetFirstOperand()->GetTimestampTZValue(kwoObject);
+	return (Continuous)tsTimestampTZ.Check();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+KWDRBuildTimestampTZ::KWDRBuildTimestampTZ()
+{
+	SetName("BuildTimestampTZ");
+	SetLabel("Build a timestampTZ from a timestamp and the time zone total minutes");
+	SetType(KWType::TimestampTZ);
+	SetOperandNumber(2);
+	GetOperandAt(0)->SetType(KWType::Timestamp);
+	GetOperandAt(1)->SetType(KWType::Continuous);
+}
+
+KWDRBuildTimestampTZ::~KWDRBuildTimestampTZ() {}
+
+KWDerivationRule* KWDRBuildTimestampTZ::Create() const
+{
+	return new KWDRBuildTimestampTZ;
+}
+
+TimestampTZ KWDRBuildTimestampTZ::ComputeTimestampTZResult(const KWObject* kwoObject) const
+{
+	Timestamp tsTimestamp;
+	TimestampTZ tstzTimestamp;
+	Continuous cMinutes;
+	int nMinutes;
+	boolean bOk;
+
+	require(IsCompiled());
+
+	// Modifie la time zone que si les operandes sont valides
+	tsTimestamp = GetFirstOperand()->GetTimestampValue(kwoObject);
+	bOk = false;
+	tstzTimestamp.Reset();
+	if (tsTimestamp.Check())
+	{
+		cMinutes = GetSecondOperand()->GetContinuousValue(kwoObject);
+		if (cMinutes != KWContinuous::GetMissingValue())
+		{
+			nMinutes = int(floor(cMinutes + 0.5));
+			bOk = tstzTimestamp.Init(tsTimestamp, nMinutes);
+		}
+	}
+	return tstzTimestamp;
 }

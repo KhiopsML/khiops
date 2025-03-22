@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -18,6 +18,8 @@ PESerializerTestTask::PESerializerTestTask()
 	DeclareSharedParameter(&shared_nLargeCharVectorSize);
 	DeclareSharedParameter(&shared_nLargeStringSize);
 
+	nLargeCharVectorSize = 0;
+	nLargeStringSize = 0;
 	sSimpleStringToSerialize = "A simple string";
 	sSimpleCharVectorToSerialize = "A simple CharVector !!";
 }
@@ -141,6 +143,7 @@ boolean PESerializerTestTask::SlaveProcess()
 	ALString sLargeString;
 	ALString sSimpleString;
 	CharVector* cvCharVector;
+	const IntVector* ivIntvector;
 	boolean bOk;
 	int i;
 	int nCount;
@@ -249,6 +252,7 @@ boolean PESerializerTestTask::SlaveProcess()
 	}
 	if (bOk)
 	{
+		ivIntvector = input_ivIntVector.GetConstIntVector();
 		bOk = input_ivIntVector.GetConstIntVector()->GetSize() == 100000;
 		assert(bOk);
 		for (i = 0; i < 100000; i++)

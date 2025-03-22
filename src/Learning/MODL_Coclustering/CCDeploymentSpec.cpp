@@ -1,10 +1,9 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-02-05 18:19:44
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "CCDeploymentSpec.h"
@@ -354,10 +353,10 @@ boolean CCDeploymentSpec::CheckAttributeConsistencyWithPostProcessedSpec(const K
 	// Verification de l'attribut de frequence
 	if (bOk)
 	{
-		if (postProcessingSpec->GetFrequencyAttribute() != "")
+		if (postProcessingSpec->GetFrequencyAttributeName() != "")
 		{
 			kwaFrequencyAttribute =
-			    kwcDistributionClass->LookupAttribute(postProcessingSpec->GetFrequencyAttribute());
+			    kwcDistributionClass->LookupAttribute(postProcessingSpec->GetFrequencyAttributeName());
 			if (kwaFrequencyAttribute == NULL or kwaFrequencyAttribute->GetType() != KWType::Continuous)
 				bOk = false;
 		}

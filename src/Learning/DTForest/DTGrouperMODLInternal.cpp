@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -362,7 +362,8 @@ void DTGrouperMODLTwoClasses::DiscretizeFrequencyTable(KWFrequencyTable* kwftSou
 			kwftTargetWithGarbage->SetGranularity(kwftSource->GetGranularity());
 
 			// On doit recalculer la taille de la poubelle qui pourrait avoir change suite a la
-			// post-optimisation nGarbageModalityNumber = ComputeGarbageModalityNumberFromTables(kwftSource,
+			// post-optimisation
+			// nGarbageModalityNumber = ComputeGarbageModalityNumberFromTables(kwftSource,
 			// kwftTargetWithGarbage);
 			nGarbageModalityNumber = ComputeGarbageModalityNumberFromTable(kwftTargetWithGarbage);
 			kwftTargetWithGarbage->SetGarbageModalityNumber(nGarbageModalityNumber);
@@ -1772,7 +1773,8 @@ void DTGrouperMODLTwoClasses::IntervalListMergeOptimizationWithGarbagePartitionC
 			if (bDisplayResults and nIntervalNumber == 3)
 			{
 				// Affichage de la partition obtenue pour I=3 i.e. derniere partition avec groupe
-				// poubelle cout << "Table courante " << endl;
+				// poubelle
+				// cout << "Table courante " << endl;
 				interval = headInterval;
 				while (interval != NULL)
 				{

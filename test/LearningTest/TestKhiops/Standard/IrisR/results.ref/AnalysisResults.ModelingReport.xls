@@ -1,0 +1,40 @@
+#Khiops 10.5.2-b.0
+Modeling report
+
+Dictionary	Iris
+Target variable	PetalLength
+Database	../../../datasets/Iris/Iris.txt
+Sample percentage	70
+Sampling mode	Include sample
+Selection variable	
+Selection value	
+
+
+Trained predictors
+
+Predictor	Variables
+Baseline	0
+Selective Naive Bayes	5
+Univariate SPetalLength	1
+
+
+--------------------------------------------------------------------------------
+
+Trained predictors details
+
+
+Predictor	Baseline
+
+----------------------------------------------
+Predictor	Selective Naive Bayes
+
+Selected variables
+Prepared name	Name	Level	Weight	Importance
+PSPetalLength	SPetalLength	0.212092	0.609375	0.359504
+PLowerPetalLength	LowerPetalLength	0.157721	0.546875	0.29369
+PUpperPetalWidth	UpperPetalWidth	0.0912549	0.359375	0.181093
+PSepalLength	SepalLength	0.0903617	0.234375	0.145528
+PClass2	Class2	0.0691819	0.203125	0.118544
+
+----------------------------------------------
+Predictor	Univariate SPetalLength

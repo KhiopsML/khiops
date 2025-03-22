@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -378,49 +378,53 @@ void KWTextParser::BuildLineWordDictionary(char* sLine, ObjectDictionary* odWord
 	nWordChar = 0;
 	nWordState = StateEmpty;
 	if (bInspectChars)
-		cout << "Offset\tChar\tisalnum\tispunct\tisspace\tisprint" << endl;
+		cout << "Offset\tChar\tisalnum\tispunct\tiswspace\tisprint" << endl;
 	while (sLine[i] != '\0')
 	{
 		cLineChar = sLine[i];
 		if (bInspectChars)
 		{
 			cout << i << "\t" << cLineChar << "\t" << isalnum(cLineChar) << "\t" << ispunct(cLineChar)
-			     << "\t" << isspace(cLineChar) << "\t" << isprint(cLineChar) << endl;
+			     << "\t" << iswspace(cLineChar) << "\t" << p_isprint(cLineChar) << endl;
 		}
 
 		// Transformation des caracteres accentues
 		if (bFilterAccentuation)
 		{
-			if (cLineChar == 'é')
+			// Compilation uniquement sous windows pour cette methode prototype,
+			// pour eviter les warnings de type illegal character encoding
+#ifdef _WIN32
+			if (cLineChar == 'Ã©')
 				cLineChar = 'e';
-			else if (cLineChar == 'è')
+			else if (cLineChar == 'Ã¨')
 				cLineChar = 'e';
-			else if (cLineChar == 'ê')
+			else if (cLineChar == 'Ãª')
 				cLineChar = 'e';
-			else if (cLineChar == 'ë')
+			else if (cLineChar == 'Ã«')
 				cLineChar = 'e';
-			else if (cLineChar == 'É')
+			else if (cLineChar == 'Ã‰')
 				cLineChar = 'e';
-			else if (cLineChar == 'à')
+			else if (cLineChar == 'Ã ')
 				cLineChar = 'a';
-			else if (cLineChar == 'â')
+			else if (cLineChar == 'Ã¢')
 				cLineChar = 'a';
-			else if (cLineChar == 'ä')
+			else if (cLineChar == 'Ã¤')
 				cLineChar = 'a';
-			else if (cLineChar == 'ô')
+			else if (cLineChar == 'Ã´')
 				cLineChar = 'o';
-			else if (cLineChar == 'ö')
+			else if (cLineChar == 'Ã¶')
 				cLineChar = 'o';
-			else if (cLineChar == 'î')
+			else if (cLineChar == 'Ã®')
 				cLineChar = 'i';
-			else if (cLineChar == 'ï')
+			else if (cLineChar == 'Ã¯')
 				cLineChar = 'i';
-			else if (cLineChar == 'û')
+			else if (cLineChar == 'Ã»')
 				cLineChar = 'u';
-			else if (cLineChar == 'ü')
+			else if (cLineChar == 'Ã¼')
 				cLineChar = 'u';
-			else if (cLineChar == 'ç')
+			else if (cLineChar == 'Ã§')
 				cLineChar = 'c';
+#endif // _WIN32
 		}
 
 		// Traitement du caractere en fonction de l'etat courant

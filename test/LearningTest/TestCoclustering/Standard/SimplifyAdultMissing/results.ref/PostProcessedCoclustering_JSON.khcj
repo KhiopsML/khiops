@@ -1,0 +1,229 @@
+{
+	"tool": "Khiops Coclustering",
+	"version": "10.5.6-b.0",
+	"shortDescription": "",
+	"coclusteringReport": {
+		"summary": {
+			"instances": 10000,
+			"cells": 8,
+			"nullCost": 100361.8732,
+			"cost": 96954.36343,
+			"level": 0.03395223367,
+			"initialDimensions": 3,
+			"frequencyVariable": "",
+			"dictionary": "Adult",
+			"database": "AdultMissing10000.txt",
+			"samplePercentage": 100,
+			"samplingMode": "Include sample",
+			"selectionVariable": "",
+			"selectionValue": ""
+		},
+		"dimensionSummaries": [
+			{
+				"name": "age",
+				"type": "Numerical",
+				"parts": 2,
+				"initialParts": 8,
+				"values": 10000,
+				"interest": 1,
+				"description": "",
+				"min": 23,
+				"max": 90
+			},
+			{
+				"name": "marital_status",
+				"type": "Categorical",
+				"parts": 2,
+				"initialParts": 4,
+				"values": 7,
+				"interest": 1,
+				"description": ""
+			},
+			{
+				"name": "class",
+				"type": "Categorical",
+				"parts": 2,
+				"initialParts": 2,
+				"values": 2,
+				"interest": 1,
+				"description": ""
+			}
+		],
+		"dimensionPartitions": [
+			{
+				"name": "age",
+				"type": "Numerical",
+				"intervals": [
+					{
+						"cluster": "*]-inf;29.5]",
+						"bounds": [23,29.5]
+					},
+					{
+						"cluster": "]29.5;+inf[",
+						"bounds": [29.5,90]
+					}
+				]
+			},
+			{
+				"name": "marital_status",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{Never-married, Married-AF-spouse}",
+						"values": ["Never-married","Married-AF-spouse"],
+						"valueFrequencies": [3311,7],
+						"valueTypicalities": [1,0.00710994]
+					},
+					{
+						"cluster": "B4",
+						"values": ["Married-civ-spouse","Widowed","Divorced","Separated","Married-spouse-absent"],
+						"valueFrequencies": [4553,292,1385,321,131],
+						"valueTypicalities": [1,1,1,0.295948,0.117569]
+					}
+				],
+				"defaultGroupIndex": 0
+			},
+			{
+				"name": "class",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{less}",
+						"values": ["less"],
+						"valueFrequencies": [7621],
+						"valueTypicalities": [1]
+					},
+					{
+						"cluster": "{more}",
+						"values": ["more"],
+						"valueFrequencies": [2379],
+						"valueTypicalities": [1]
+					}
+				],
+				"defaultGroupIndex": 1
+			}
+		],
+		"dimensionHierarchies": [
+			{
+				"name": "age",
+				"type": "Numerical",
+				"clusters": [
+					{
+						"cluster": "*]-inf;29.5]",
+						"parentCluster": "*]-inf;+inf[",
+						"frequency": 3001,
+						"interest": 0.805779,
+						"hierarchicalLevel": 0.828873,
+						"rank": 2,
+						"hierarchicalRank": 7,
+						"isLeaf": true
+					},
+					{
+						"cluster": "]29.5;+inf[",
+						"parentCluster": "*]-inf;+inf[",
+						"frequency": 6999,
+						"interest": 0.760874,
+						"hierarchicalLevel": 0.887727,
+						"rank": 12,
+						"hierarchicalRank": 8,
+						"isLeaf": true
+					},
+					{
+						"cluster": "*]-inf;+inf[",
+						"parentCluster": "",
+						"frequency": 10000,
+						"interest": 0.77435,
+						"hierarchicalLevel": -0.00192694,
+						"rank": 6,
+						"hierarchicalRank": 4,
+						"isLeaf": false
+					}
+				]
+			},
+			{
+				"name": "marital_status",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{Never-married, Married-AF-spouse}",
+						"parentCluster": "B1",
+						"frequency": 3318,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 14,
+						"isLeaf": true
+					},
+					{
+						"cluster": "B4",
+						"parentCluster": "B1",
+						"frequency": 6682,
+						"interest": 0.685401,
+						"hierarchicalLevel": 0.689671,
+						"rank": 4,
+						"hierarchicalRank": 6,
+						"isLeaf": true
+					},
+					{
+						"cluster": "B1",
+						"parentCluster": "",
+						"frequency": 10000,
+						"interest": 0.789785,
+						"hierarchicalLevel": 0,
+						"rank": 2,
+						"hierarchicalRank": 3,
+						"isLeaf": false
+					}
+				]
+			},
+			{
+				"name": "class",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{less}",
+						"parentCluster": "C3",
+						"frequency": 7621,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 14,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{more}",
+						"parentCluster": "C3",
+						"frequency": 2379,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 3,
+						"hierarchicalRank": 14,
+						"isLeaf": true
+					},
+					{
+						"cluster": "C3",
+						"parentCluster": "",
+						"frequency": 10000,
+						"interest": 1,
+						"hierarchicalLevel": 0.462365,
+						"rank": 2,
+						"hierarchicalRank": 5,
+						"isLeaf": false
+					}
+				]
+			}
+		],
+		"cellPartIndexes": [
+			[1,1,0],
+			[0,0,0],
+			[1,1,1],
+			[1,0,0],
+			[0,1,0],
+			[1,0,1],
+			[0,1,1],
+			[0,0,1]
+		],
+		"cellFrequencies": [3791,2199,2111,966,665,131,115,22]
+	},
+	"khiops_encoding": "ascii"
+}

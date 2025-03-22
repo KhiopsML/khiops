@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -51,8 +51,6 @@ int PEProtocolTestTask::GetIterationNumber() const
 
 void PEProtocolTestTask::SetSlaveInitializeIssue(boolean bIssue)
 {
-	if (bIssue)
-		SetTaskUserLabel("PEProtocolTestTask SlaveInitialize Issue");
 	shared_bSlaveInitializeIssue = bIssue;
 }
 
@@ -67,7 +65,6 @@ void PEProtocolTestTask::SetSlaveProcessIssue(int nSlaveProcessIssue)
 		shared_nSlaveProcessIssue = INT_MAX;
 	else
 	{
-		SetTaskUserLabel("PEProtocolTestTask SlaveProcess Issue");
 		shared_nSlaveProcessIssue = nSlaveProcessIssue;
 	}
 }
@@ -79,8 +76,6 @@ int PEProtocolTestTask::GetSlaveProcessIssue() const
 
 void PEProtocolTestTask::SetSlaveFinalizeIssue(boolean bIssue)
 {
-	if (bIssue)
-		SetTaskUserLabel("PEProtocolTestTask SlaveFinalize Issue");
 	shared_bSlaveFinalizeIssue = bIssue;
 }
 
@@ -91,8 +86,7 @@ boolean PEProtocolTestTask::GetSlaveFinalizeIssue() const
 
 void PEProtocolTestTask::SetMasterInitializeIssue(boolean bIssue)
 {
-	if (bIssue)
-		SetTaskUserLabel("PEProtocolTestTask MasterInitialize Issue");
+
 	bMasterInitializeIssue = bIssue;
 }
 
@@ -119,7 +113,6 @@ void PEProtocolTestTask::SetMasterAggregateIssue(int nIterationNumberIssue)
 		nMasterAggregateIssue = INT_MAX;
 	else
 	{
-		SetTaskUserLabel("PEProtocolTestTask MasterAggregate Issue");
 		nMasterAggregateIssue = nIterationNumberIssue;
 	}
 }
@@ -131,8 +124,6 @@ int PEProtocolTestTask::GetMasterAggregateIssue() const
 
 void PEProtocolTestTask::SetMasterFinalizeIssue(boolean bIssue)
 {
-	if (bIssue)
-		SetTaskUserLabel("PEProtocolTestTask MasterFinalize Issue");
 	bMasterFinalizeIssue = bIssue;
 }
 
@@ -148,7 +139,7 @@ void PEProtocolTestTask::SetInterruptionByUser(int nSeconds)
 	// Arret utilisateur
 	if (nTimeBeforeInterruption > 0)
 	{
-		SetTaskUserLabel("PEProtocolTestTask Interruption By User");
+		assert(UIObject::GetUIMode() == UIObject::Graphic);
 		TaskProgression::SetMaxTaskTime(nTimeBeforeInterruption);
 	}
 }
@@ -192,13 +183,16 @@ boolean PEProtocolTestTask::Test()
 	testingTask.AddMessage("Test nominal behavior");
 	bOk = testingTask.Run();
 	ensure(bOk);
-
+	if (not bOk)
+		Global::AddFatalError("", "", "Test nominal behavior");
 	// Test d'un erreur lors de MasterInitialize
 	testingTask.AddMessage("Test issue on MasterInitialize");
 	testingTask.Init();
 	testingTask.SetMasterInitializeIssue(true);
 	bOk = bOk and not testingTask.Run();
 	ensure(bOk);
+	if (not bOk)
+		Global::AddFatalError("", "", "Test issue on MasterInitialize");
 
 	// Test d'un erreur lors de MasterFinalize
 	testingTask.AddMessage("Test issue on MasterFinalize");
@@ -206,6 +200,8 @@ boolean PEProtocolTestTask::Test()
 	testingTask.SetMasterFinalizeIssue(true);
 	bOk = bOk and not testingTask.Run();
 	ensure(bOk);
+	if (not bOk)
+		Global::AddFatalError("", "", "Test issue on MasterFinalize");
 
 	// Test d'un erreur lors de SlaveInitialize
 	testingTask.AddMessage("Test issue on SlaveInitialize");
@@ -213,6 +209,8 @@ boolean PEProtocolTestTask::Test()
 	testingTask.SetSlaveInitializeIssue(true);
 	bOk = bOk and not testingTask.Run();
 	ensure(bOk);
+	if (not bOk)
+		Global::AddFatalError("", "", "Test issue on SlaveInitialize");
 
 	// Test d'un erreur lors de SlaveFinalize
 	testingTask.AddMessage("Test issue on SlaveFinalize");
@@ -220,6 +218,8 @@ boolean PEProtocolTestTask::Test()
 	testingTask.SetSlaveFinalizeIssue(true);
 	bOk = bOk and not testingTask.Run();
 	ensure(bOk);
+	if (not bOk)
+		Global::AddFatalError("", "", "Test issue on SlaveFinalize");
 
 	// Test d'un erreur lors de MasterAggregate a l'iteration 500
 	testingTask.AddMessage("Test issue on MasterAggregate at 500");
@@ -227,6 +227,8 @@ boolean PEProtocolTestTask::Test()
 	testingTask.SetMasterAggregateIssue(500);
 	bOk = bOk and not testingTask.Run();
 	ensure(bOk);
+	if (not bOk)
+		Global::AddFatalError("", "", "Test issue on MasterAggregate at 500");
 
 	// Test d'un erreur lors de SlaveProcess a l'iteration 500
 	testingTask.AddMessage("Test issue on SlaveProcess at 500");
@@ -234,16 +236,22 @@ boolean PEProtocolTestTask::Test()
 	testingTask.SetSlaveProcessIssue(500);
 	bOk = bOk and not testingTask.Run();
 	ensure(bOk);
+	if (not bOk)
+		Global::AddFatalError("", "", "Test issue on SlaveProcess at 500");
 
 	// Test d'un arret utilisateur
-	testingTask.AddMessage("Test user interruption in 2 seconds");
-	testingTask.Init();
-	testingTask.SetInterruptionByUser(2);
-	testingTask.SetIterationNumber(100000000);
-	bOk = bOk and not testingTask.Run();
-	bOk = bOk and testingTask.IsTaskInterruptedByUser();
-	ensure(bOk);
-
+	if (UIObject::GetUIMode() == UIObject::Graphic)
+	{
+		testingTask.AddMessage("Test user interruption in 2 seconds");
+		testingTask.Init();
+		testingTask.SetInterruptionByUser(2);
+		testingTask.SetIterationNumber(100000000);
+		bOk = bOk and not testingTask.Run();
+		bOk = bOk and testingTask.IsTaskInterruptedByUser();
+		ensure(bOk);
+		if (not bOk)
+			Global::AddFatalError("", "", "Test user interruption in 2 seconds");
+	}
 	if (bOk)
 		testingTask.AddMessage("Test is OK");
 	else
@@ -398,6 +406,13 @@ boolean PEProtocolTestTask::MasterFinalize(boolean bProcessEndedCorrectly)
 		else
 			return false;
 	}
+
+	// On verifie que bProcessEndedCorrectly vaut false quand il y a eu un erreur quelque part (maitre ou esclave)
+	if ((bMasterInitializeIssue or nMasterAggregateIssue != INT_MAX or shared_bSlaveInitializeIssue or
+	     shared_bSlaveFinalizeIssue or shared_nSlaveProcessIssue != INT_MAX) and
+	    bProcessEndedCorrectly)
+		AddFatalError("MasterFinalize error, bProcessEndedCorrectly is true");
+
 	return true;
 }
 
@@ -429,10 +444,16 @@ boolean PEProtocolTestTask::SlaveProcess()
 
 boolean PEProtocolTestTask::SlaveFinalize(boolean bProcessEndedCorrectly)
 {
+
 	if (shared_bSlaveFinalizeIssue and not shared_bFatalError)
 		return false;
 	if (shared_bSlaveFinalizeIssue and shared_bFatalError and GetProcessId() == 1)
 		AddFatalError("SlaveFinalize error");
 
+	// On s'assure que bProcessEndedCorrectly vaut false lorsque il y a une erreur quelque part (maitre ou esclave)
+	if ((bMasterInitializeIssue or nMasterAggregateIssue != INT_MAX or shared_bSlaveInitializeIssue or
+	     shared_bSlaveFinalizeIssue or shared_nSlaveProcessIssue != INT_MAX) and
+	    bProcessEndedCorrectly)
+		AddFatalError("SlaveFinalize error, bProcessEndedCorrectly is true");
 	return true;
 }

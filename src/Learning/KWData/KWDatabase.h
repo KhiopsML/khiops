@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -16,6 +16,8 @@ class KWDatabase;
 #include "Timer.h"
 #include "RMResourceManager.h"
 #include "KWLoadIndex.h"
+#include "KWDatabaseMemoryGuard.h"
+#include "KWResultFilePathBuilder.h"
 
 ///////////////////////////////////////////////////////////
 // Gestion d'une base de donnees de KWObject
@@ -83,7 +85,7 @@ public:
 	/////////////////////////////////////////////////////////////////////
 	// Services et information de nommage et de technologie utilisee
 
-	// Ajout d'un prefixe ou ux fichiers utilises pour gerer la base
+	// Ajout d'un prefixe ou aux fichiers utilises pour gerer la base
 	virtual void AddPrefixToUsedFiles(const ALString& sPrefix);
 
 	// Ajout d'un d'un suffixe aux fichiers utilises pour gerer la base (ici, fin du nom du fichier, avant le
@@ -128,6 +130,11 @@ public:
 	// Methode interruptible, sans consequence autre qu'une analyse d'un moins
 	// grand nombre d'enregistrements
 	KWClass* ComputeClass();
+
+	// Format de d'ecriture de type dense (defaut: false)
+	// En format dense, meme les blocs sparses sont ecrits de facon dense
+	void SetDenseOutputFormat(boolean bValue);
+	boolean GetDenseOutputFormat() const;
 
 	// Ouverture de la base de donnees pour lecture ou ecriture
 	// L'etat passe en IsOpened si l'ouverture a reussie
@@ -204,7 +211,7 @@ public:
 	// Nombre approximatif d'objets presents dans la base de donnees
 	// Permet une evaluation du volume memoire d'un chargement global
 	// L'interet de cette methode est sa rapidite, car elle opere sur un
-	// echantillon d'objets, sans charger toute la base
+	// echantillon d'objets
 	// Renvoie 0 si on ne sait pas
 	longint GetEstimatedObjectNumber();
 
@@ -229,8 +236,8 @@ public:
 	// d'echantillonnage
 
 	// Pourcentage des exemples a garder ou ignorer (defaut: 100)
-	void SetSampleNumberPercentage(int nValue);
-	int GetSampleNumberPercentage() const;
+	void SetSampleNumberPercentage(double dValue);
+	double GetSampleNumberPercentage() const;
 
 	// Indique si on est en mode exclusion des exemples pour l'echantillonage
 	void SetModeExcludeSample(boolean bValue);
@@ -281,6 +288,25 @@ public:
 
 	// Parametrage avance: index de record du dernier enregistrement lu, pour le marquer
 	longint GetLastReadMarkIndex() const;
+
+	////////////////////////////////////////////////////////////////////////////////
+	// Pametrage de la protection memoire des acces en lecture
+	// Permet d'eviter de depasser la memoire en cas d'instance volumineuse a lire et traiter
+	// Ce parametrage est a effectuer avant ouverture de la base
+
+	// Reinitialisation des parametres la protection memoire
+	void ResetMemoryGuard();
+
+	// Nombre d'enregistrements secondaires au dela duquel une alerte est declenchee
+	// Cela ne declenche qu'un warning informatif en cas de depassement
+	// Parametrage inactif si 0
+	void SetMemoryGuardMaxSecondaryRecordNumber(longint lValue);
+	longint GetMemoryGuardMaxSecondaryRecordNumber() const;
+
+	// Limite a ne pas depasser de la memoire utilisable dans la heap pour gerer l'ensemble de la lecture et du
+	// calcul des attributs derivee Parametrage inactif si 0
+	void SetMemoryGuardSingleInstanceMemoryLimit(longint lValue);
+	longint GetMemoryGuardSingleInstanceMemoryLimit() const;
 
 	////////////////////////////////////////////////////////////////////////////////
 	// Fonctionnalites de base
@@ -407,7 +433,21 @@ protected:
 	// Gestion de la classe physique
 
 	// Construction de la classe physique
+	// Completion en identifiant les attributs natif Object ou ObjecArray utilises par des regles
+	// de derivation et ne devant pas etre detruit suite a leur traitement par la classe physique.
+	// Ces attributs natifs sont geres dans les "UnusedNative...Attribute" de la classe (KWClass),
+	// qui, lors de la compilation, prevoit un emplacement memoire systematique pour les stocker
+	// et assurer leur memorisation au cas ou ils seraient referencables par des regles de derivation.
+	// On determine ainsi les attribut de type relation natifs ou crees non utilises a garder,
+	// pour piloter efficacement la methode de mutation des object physiques
 	virtual void BuildPhysicalClass();
+
+	// Calcul du dictionnaire des attributs natifs inutilises a garder, en precisant les classes qui sont necessaires
+	void ComputeUnusedNativeAttributesToKeep(const NumericKeyDictionary* nkdNeededClasses,
+						 NumericKeyDictionary* nkdAttributes);
+	void ComputeUnusedNativeAttributesToKeepForRule(const NumericKeyDictionary* nkdNeededClasses,
+							NumericKeyDictionary* nkdAttributes,
+							NumericKeyDictionary* nkdAnalysedRules, KWDerivationRule* rule);
 
 	// Destruction de la classe physique
 	virtual void DeletePhysicalClass();
@@ -487,7 +527,8 @@ protected:
 	// Utile en cas d'erreur d'ecriture, pour tout nettoyer correctement
 	virtual void PhysicalDeleteDatabase();
 
-	// Nombre approximatif d'objet present dans la base de donnees
+	// Nombre approximatif d'objets presents dans la base de donnees
+	// Potentiellement base sur une estimation heuristique, sans lecture du fichier
 	// Peut ne pas etre reimplementee (par defaut: 0)
 	virtual longint GetPhysicalEstimatedObjectNumber();
 
@@ -522,8 +563,28 @@ protected:
 	// Meme remarque que pour kwcClass, mais uniquement en lecture.
 	KWClass* kwcPhysicalClass;
 
+	// Dictionnaire des classes de mutation, avec en cle la classe physique des objets a muter
+	// et en valeur la classe suite a la mutation
+	//
+	// Dans la majorite des cas, la classe de mutation est la classe logique de meme nom,
+	// qui garde les attributs charges en memoire de la classe logique, alors que la classe physique
+	// a potentiellement plus d'attributs charges en memoire, en unused dans la classe logique, mais
+	// necessaires dans la classe physique pour le calcul des attribut derives
+	//
+	// Dans des cas a effet de bord, la classe de mutation peut rester la classe physique si la classe
+	// logique est en unused, mais est necessaire en tant qu'attribut de type relation non charge en
+	// memoire, mais a garder pour la destruction des objets (cf. UnloadedOwnedRelationAttribute dans KWClass)
+	// Exemple d'effet de bord:
+	//   La classe Customer a des Services en Unused, ses services on des Usages, et la classe Customer
+	//   a tous ses usages utilises via la regle TableSubUnion(Services, Usages)
+	//   Dans ce cas, les Services physiques sont gardes dans leur classe physique pour gerer recursivement
+	//   la destruction des Usages, mais ils ne sont pas mutes, car non utilises au niveau logique
+	NumericKeyDictionary nkdMutationClasses;
+
 	// Dictionnaire des attributs natifs Object ou ObjectArray a garder lors des mutations d'objet
-	// Utile dans le cas multi-table
+	// Utile dans le cas multi-table, que ce soit dans le cas d'un schema multi-table "logique"
+	// avec des fichiers mappes pour chaque table secondaire ou un schema multi-table "conceptuel"
+	// avec des variables Table ou Entity issues de regles de creation de table
 	// Identifie les attributs de kwcClass natif Object ou ObjectArray, non utilises, mais referencables
 	// par des regles de derivation. Ils ne doivent pas etre detruits pour que les attributs calcules
 	// referencent des objects existants
@@ -532,9 +593,10 @@ protected:
 	// Objets charges en memoire
 	ObjectArray oaAllObjects;
 
-	// Attributs
+	// Attributs principaux
 	ALString sClassName;
 	ALString sDatabaseName;
+	boolean bDenseOutputFormat;
 	boolean bOpenedForRead;
 	boolean bOpenedForWrite;
 	boolean bVerboseMode;
@@ -543,7 +605,7 @@ protected:
 
 	// Gestion des echantillons
 	boolean bModeExcludeSample;
-	int nSampleNumberPercentage;
+	double dSampleNumberPercentage;
 	ALString sSelectionAttribute;
 	ALString sSelectionValue;
 	KWLoadIndex liSelectionAttributeLoadIndex;
@@ -552,14 +614,15 @@ protected:
 	Continuous cSelectionContinuous;
 	IntVector ivMarkedInstances;
 
-	// Memorisation de l'etat de suivi des taches
-	PeriodicTest periodicTestInterruption;
-	PeriodicTest periodicTestDisplay;
-
 	// Formats par defaut des types complexes, pour gerer les conversions vers les chaines de caracteres
 	KWDateFormat dateDefaultConverter;
 	KWTimeFormat timeDefaultConverter;
 	KWTimestampFormat timestampDefaultConverter;
+	KWTimestampTZFormat timestampTZDefaultConverter;
+
+	// Service de protection memoire pour gerer les enregistrement trop volumineux, notamment dans le cas
+	// multi-tables ou le nombre d'enregistrements secondaires peut etre tres important
+	mutable KWDatabaseMemoryGuard memoryGuard;
 
 	// Administration des technologies de bases de donnees (objets KWDatabase)
 	static ALString* sDefaultTechnologyName;
@@ -568,6 +631,17 @@ protected:
 
 //////////////////////////////////////////////////////////////////////
 // Methodes en inline
+
+inline void KWDatabase::SetDenseOutputFormat(boolean bValue)
+{
+	require(not IsOpenedForWrite());
+	bDenseOutputFormat = bValue;
+}
+
+inline boolean KWDatabase::GetDenseOutputFormat() const
+{
+	return bDenseOutputFormat;
+}
 
 inline boolean KWDatabase::IsOpenedForRead() const
 {
@@ -633,8 +707,8 @@ inline longint KWDatabase::GetSampleEstimatedObjectNumber()
 	require(not IsOpenedForRead());
 	require(not IsOpenedForWrite());
 	lEstimatedObjectNumber = GetEstimatedObjectNumber();
-	return (GetModeExcludeSample() ? ((100 - GetSampleNumberPercentage()) * lEstimatedObjectNumber / 100)
-				       : (GetSampleNumberPercentage() * lEstimatedObjectNumber / 100));
+	return (GetModeExcludeSample() ? (longint)(lEstimatedObjectNumber * (100 - GetSampleNumberPercentage()) / 100)
+				       : (longint)(lEstimatedObjectNumber * GetSampleNumberPercentage() / 100));
 }
 
 inline double KWDatabase::GetReadPercentage()
@@ -644,16 +718,16 @@ inline double KWDatabase::GetReadPercentage()
 	return GetPhysicalReadPercentage();
 }
 
-inline void KWDatabase::SetSampleNumberPercentage(int nValue)
+inline void KWDatabase::SetSampleNumberPercentage(double dValue)
 {
-	require(0 <= nValue and nValue <= 100);
+	require(0 <= dValue and dValue <= 100);
 
-	nSampleNumberPercentage = nValue;
+	dSampleNumberPercentage = dValue;
 }
 
-inline int KWDatabase::GetSampleNumberPercentage() const
+inline double KWDatabase::GetSampleNumberPercentage() const
 {
-	return nSampleNumberPercentage;
+	return dSampleNumberPercentage;
 }
 
 inline void KWDatabase::SetModeExcludeSample(boolean bValue)

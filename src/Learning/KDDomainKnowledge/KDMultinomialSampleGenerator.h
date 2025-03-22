@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -30,7 +30,7 @@ public:
 	// Pour un effectif N donne et un vecteur de proba dvProbs donne (potentiellement partiel),
 	// il s'agit de tirer l'echantillon (ivFrequencies) le plus probable
 
-	// Meilleur echantillon pour un effectif donne et une distribution multinomiale donnees
+	// Meilleur echantillon pour un effectif donne et une distribution multinomiale donnee
 	// On choisit l'echantillon le plus probable (calcul "presque" exact)
 	void ComputeBestSample(double dTotalFrequency, const DoubleVector* dvProbs, DoubleVector* dvFrequencies) const;
 
@@ -166,6 +166,9 @@ protected:
 	// Verification d'un vecteur de proba
 	// Si bComplete=false, la somme des proba doit seulement etre plus petite que 1
 	boolean InternalCheckProbVector(const DoubleVector* dvProbs, boolean bComplete) const;
+
+	// Graine pour l'appel du generateur aleatoire IthRandomDouble, pour assurer la reporudctibilite des resultats
+	mutable longint lRankedRandomSeed;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////

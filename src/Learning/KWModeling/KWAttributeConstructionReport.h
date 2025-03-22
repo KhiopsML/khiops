@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -26,7 +26,7 @@ public:
 	void SetAttributeConstructionSpec(const KWAttributeConstructionSpec* spec);
 	const KWAttributeConstructionSpec* GetAttributeConstructionSpec() const;
 
-	// Redefinition des methode d'écriture d'une partie de rapport
+	// Redefinition des methode d'ecriture d'une partie de rapport
 	// Sans effet si les parametres de construction d'attributs ne sont pas specifies
 	void WriteReport(ostream& ost) override;
 	void WriteJSONReport(JSONFile* fJSON) override;

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -14,12 +14,15 @@
 KWClassStats::KWClassStats()
 {
 	attributePairSpec = NULL;
-	attributeConstructionReport = NULL;
-	bWriteOptionStats1D = true;
-	bWriteOptionStatsCreated = true;
-	bWriteOptionStats2D = true;
-	bWriteOptionDetailedStats = true;
-	attributeCreationTask = NULL;
+	bWriteSelectedAttributeNumbers = false;
+	bKeepSelectedAttributesOnly = false;
+	attributeTreeConstructionReport = NULL;
+	bWriteOptionStatsNativeOrConstructed = false;
+	bWriteOptionStatsText = false;
+	bWriteOptionStatsTrees = false;
+	bWriteOptionStats2D = false;
+	bWriteDetailedStats = true;
+	attributeTreeConstructionTask = NULL;
 	dataTableSliceSet = NULL;
 	svSymbolTargetValues = NULL;
 	cvContinuousTargetValues = NULL;
@@ -27,17 +30,27 @@ KWClassStats::KWClassStats()
 
 KWClassStats::~KWClassStats()
 {
-	if (attributeConstructionReport != NULL)
-		delete attributeConstructionReport;
+	if (attributeTreeConstructionReport != NULL)
+		delete attributeTreeConstructionReport;
 	CleanWorkingData();
 }
 
-void KWClassStats::SetAttributePairsSpec(KWAttributePairsSpec* spec)
+ObjectDictionary* KWClassStats::GetMultiTableConstructionSpec()
+{
+	return &odMultiTableConstructedAttributes;
+}
+
+ObjectDictionary* KWClassStats::GetTextConstructionSpec()
+{
+	return &odTextConstructedAttributes;
+}
+
+void KWClassStats::SetAttributePairsSpec(const KWAttributePairsSpec* spec)
 {
 	attributePairSpec = spec;
 }
 
-KWAttributePairsSpec* KWClassStats::GetAttributePairsSpec()
+const KWAttributePairsSpec* KWClassStats::GetAttributePairsSpec() const
 {
 	return attributePairSpec;
 }
@@ -51,6 +64,8 @@ boolean KWClassStats::ComputeStats()
 	KWDatabaseSlicerTask databaseSlicerTask;
 	KWDataPreparationUnivariateTask univariateDataPreparationTask;
 	KWDataPreparationBivariateTask bivariateDataPreparationTask;
+	ObjectDictionary odUnivariateAttributeStats;
+	ObjectDictionary* odTreeInputAttributeStats;
 	longint lRecordNumber;
 	longint lCollectedObjectNumber;
 	KWTupleTableLoader tupleTableLoader;
@@ -63,8 +78,6 @@ boolean KWClassStats::ComputeStats()
 	ALString sTmp;
 
 	require(Check());
-	require(attributePairSpec != NULL);
-	require(attributePairSpec->GetClassName() == GetClass()->GetName());
 
 	// Message d'info sur le type de tache d'apprentissage effectue
 	if (GetTargetAttributeName() == "")
@@ -101,6 +114,7 @@ boolean KWClassStats::ComputeStats()
 	{
 		databaseBasicClassStatsTask.SetDisplayAllTaskMessages(false);
 		GetDatabase()->SetVerboseMode(false);
+		databaseBasicClassStatsTask.SetReusableDatabaseIndexer(GetLearningSpec()->GetDatabaseIndexer());
 		bOk = databaseBasicClassStatsTask.CollectBasicStats(GetDatabase(), GetTargetAttributeName(),
 								    lRecordNumber, lCollectedObjectNumber,
 								    svSymbolTargetValues, cvContinuousTargetValues);
@@ -114,6 +128,12 @@ boolean KWClassStats::ComputeStats()
 		AddError(sTmp + "Too many instances in the train dataset (" +
 			 LongintToReadableString(lCollectedObjectNumber) + ")");
 		bOk = false;
+	}
+	// Warning si nombre tres important d'instances
+	if (bOk and lCollectedObjectNumber >= GetLargeDatabaseSize())
+	{
+		AddWarning(sTmp + "The train dataset contains many instances (" +
+			   LongintToReadableString(lCollectedObjectNumber) + ")");
 	}
 
 	// Calcul des statistiques de l'attribut cible (ou du nombre d'instances a traiter en non supervise)
@@ -212,6 +232,10 @@ boolean KWClassStats::ComputeStats()
 	if (GetTargetAttributeName() != "")
 		nUsedAttributeNumber--;
 
+	// Warning si aucun attribut a analyser
+	if (bOk and nUsedAttributeNumber == 0)
+		AddWarning("No input variable in analysis dictionary " + GetClass()->GetName());
+
 	// Dimensionnement des taches de preparation univariee
 	nMaxLoadableAttributeNumber = 0;
 	bOk = bOk and not TaskProgression::IsInterruptionRequested();
@@ -235,6 +259,7 @@ boolean KWClassStats::ComputeStats()
 		// On n'affiche que les messages sur les statistiques par table traitees
 		databaseSlicerTask.SetDisplayEndTaskMessage(false);
 		databaseSlicerTask.SetDisplayTaskTime(false);
+		databaseSlicerTask.SetReusableDatabaseIndexer(GetLearningSpec()->GetDatabaseIndexer());
 		bOk = databaseSlicerTask.SliceDatabase(GetDatabase(), GetTargetAttributeName(), nDatabaseObjectNumber,
 						       nMaxLoadableAttributeNumber, dataTableSliceSet);
 	}
@@ -244,8 +269,8 @@ boolean KWClassStats::ComputeStats()
 	if (bOk)
 	{
 		// La tache gere sa propre progression
-		bOk = univariateDataPreparationTask.CollectPreparationStats(GetLearningSpec(), &tupleTableLoader,
-									    dataTableSliceSet, &odAttributeStats);
+		bOk = univariateDataPreparationTask.CollectPreparationStats(
+		    GetLearningSpec(), &tupleTableLoader, dataTableSliceSet, &odUnivariateAttributeStats);
 
 		// On range les statistiques par attributs dans le meme ordre que dans la classe initiale
 		if (bOk)
@@ -253,16 +278,37 @@ boolean KWClassStats::ComputeStats()
 			for (i = 0; i < GetLearningSpec()->GetClass()->GetUsedAttributeNumber(); i++)
 			{
 				attribute = GetLearningSpec()->GetClass()->GetUsedAttributeAt(i);
-				attributeStats = cast(KWAttributeStats*, odAttributeStats.Lookup(attribute->GetName()));
+				attributeStats =
+				    cast(KWAttributeStats*, odUnivariateAttributeStats.Lookup(attribute->GetName()));
+
+				// Memorisation du resultats de preparation
 				if (attributeStats != NULL)
-					oaAttributeStats.Add(attributeStats);
+				{
+					// Rangement dans le tableau dedies pour les variables de type texte
+					if (GetTextConstructionSpec()->Lookup(attribute->GetName()) != NULL)
+					{
+						assert(GetTextConstructionSpec()->Lookup(attribute->GetName()) ==
+						       attribute);
+						oaTextAttributeStats.Add(attributeStats);
+					}
+					// Rangement dans le tableau et le dictionnaire des attribut standard (attribut
+					// initial ou multi-table) sinon
+					else
+					{
+						oaAttributeStats.Add(attributeStats);
+						odAttributeStats.SetAt(attribute->GetName(), attributeStats);
+					}
+				}
 			}
+
+			// Memorisation dans le tableau global
+			assert(oaAllPreparedStats.GetSize() == 0);
 			oaAllPreparedStats.CopyFrom(&oaAttributeStats);
+			oaAllPreparedStats.InsertObjectArrayAt(oaAllPreparedStats.GetSize(), &oaTextAttributeStats);
+			assert(oaAllPreparedStats.GetSize() ==
+			       oaAttributeStats.GetSize() + oaTextAttributeStats.GetSize());
 		}
 	}
-
-	// Prise en compte de couts de selection basiques pour les attributs utilisable pour les paires ou les arbres
-	UseUnivariateBasicSelectionCosts();
 
 	// Calcul des stats pour les paires d'attributs (non disponible en regression)
 	if (bOk and attributePairSpec->GetMaxAttributePairNumber() > 0 and nDatabaseObjectNumber > 0 and
@@ -272,6 +318,10 @@ boolean KWClassStats::ComputeStats()
 	{
 		AddSimpleMessage("Evaluation of variable pairs");
 
+		// Prise en compte de couts de selection basiques pour les attributs utilisable pour les paires,
+		// qui peuvent utiliser les variables de type texte
+		UseUnivariateBasicSelectionCosts(true);
+
 		// La tache gere sa propre progression
 		bIsStatsComputed = true;
 		bOk = bivariateDataPreparationTask.CollectPreparationPairStats(
@@ -279,40 +329,67 @@ boolean KWClassStats::ComputeStats()
 
 		// Collecte des resultats dans le tableau de toutes les stats de preparation
 		oaAllPreparedStats.InsertObjectArrayAt(oaAllPreparedStats.GetSize(), &oaAttributePairStats);
-		assert(oaAllPreparedStats.GetSize() == oaAttributeStats.GetSize() + oaAttributePairStats.GetSize());
+		assert(oaAllPreparedStats.GetSize() ==
+		       oaAttributeStats.GetSize() + +oaTextAttributeStats.GetSize() + oaAttributePairStats.GetSize());
+
+		// Restoration des couts de selection standards
+		RestoreUnivariateSelectionCosts(true);
 	}
 
-	// Creation d'attributs
+	// Dictionnaire des attributs a utiliser pour les arbres, avec ou sans les variables de type texte
+	if (GetLearningSpec()->GetTextConstructionUsedByTrees())
+		odTreeInputAttributeStats = &odUnivariateAttributeStats;
+	else
+		odTreeInputAttributeStats = &odAttributeStats;
+
+	// Creation d'attributs de type arbre
 	bOk = bOk and not TaskProgression::IsInterruptionRequested();
 	if (bOk and KDDataPreparationAttributeCreationTask::GetGlobalCreationTask() != NULL and
-	    nDatabaseObjectNumber > 0 and odAttributeStats.GetCount() > 0 and
+	    nDatabaseObjectNumber > 0 and odTreeInputAttributeStats->GetCount() > 0 and
 	    KDDataPreparationAttributeCreationTask::GetGlobalCreationTask()->GetMaxCreatedAttributeNumber() > 0)
 	{
 		ObjectArray oaOutputAttributeStats;
 
-		// Recherche de la tache de creation d'attribut
-		assert(attributeCreationTask == NULL);
-		attributeCreationTask = KDDataPreparationAttributeCreationTask::CloneGlobalCreationTask();
+		// Prise en compte de couts de selection basiques pour les attributs utilisable pour les arbres,
+		// selon ce qui est specifie dans les learningSpec
+		UseUnivariateBasicSelectionCosts(GetLearningSpec()->GetTextConstructionUsedByTrees());
+
+		// Recherche de la tache de creation d'attribut, specifiee dans la classe
+		// KDDataPreparationAttributeCreationTask Le passage par cette classe a permis de modulariser le
+		// developpement de la librairie DTForest
+		assert(attributeTreeConstructionTask == NULL);
+		attributeTreeConstructionTask = KDDataPreparationAttributeCreationTask::CloneGlobalCreationTask();
+
+		// Parametrage du classStas, ce qui permettra au rapports des arbres de filtrer si necessaire
+		// les arbres selectionnes par les predicteurs
+		attributeTreeConstructionTask->SetClassStats(this);
 
 		// La tache gere sa propre progression
-		MemoryStatsManager::AddLog(attributeCreationTask->GetClassLabel() + " CreatePreparedAttributes Begin");
-		bOk = attributeCreationTask->CreatePreparedAttributes(GetLearningSpec(), &tupleTableLoader,
-								      dataTableSliceSet, &odAttributeStats,
-								      &oaOutputAttributeStats);
-		MemoryStatsManager::AddLog(attributeCreationTask->GetClassLabel() + " CreatePreparedAttributes End");
+		// Meme en cas d'echec de la preparation des arbres, on continue les traitements (pas de mise a jour de
+		// bOk)
+		MemoryStatsManager::AddLog(attributeTreeConstructionTask->GetClassLabel() +
+					   " CreatePreparedAttributes Begin");
+		bOk = attributeTreeConstructionTask->CreatePreparedAttributes(
+		    GetLearningSpec(), &tupleTableLoader, dataTableSliceSet, odTreeInputAttributeStats,
+		    &oaOutputAttributeStats);
+		MemoryStatsManager::AddLog(attributeTreeConstructionTask->GetClassLabel() +
+					   " CreatePreparedAttributes End");
 
 		// Enregistrement des preparations d'attributs si ok
 		if (bOk)
 		{
 			// Memorisation des preparations, sans les memoriser avec les preparations univaries
 			// Cela a l'avantage de garder un rapport de preparation univarie plus propre
-			oaCreatedAttributeStats.CopyFrom(&oaOutputAttributeStats);
+			oaTreeAttributeStats.CopyFrom(&oaOutputAttributeStats);
 			oaAllPreparedStats.InsertObjectArrayAt(oaAllPreparedStats.GetSize(), &oaOutputAttributeStats);
+			assert(oaAllPreparedStats.GetSize() ==
+			       oaAttributeStats.GetSize() + +oaTextAttributeStats.GetSize() +
+				   oaTreeAttributeStats.GetSize() + oaAttributePairStats.GetSize());
 		}
-	}
 
-	// Restoration des cout de selection standards
-	RestoreUnivariateSelectionCosts();
+		// Restoration des couts de selection standards
+		RestoreUnivariateSelectionCosts(GetLearningSpec()->GetTextConstructionUsedByTrees());
+	}
 
 	// Temps final
 	timerTotal.Stop();
@@ -322,7 +399,7 @@ boolean KWClassStats::ComputeStats()
 		AddSimpleMessage(sTmp + "Data preparation time: " + SecondsToString(timerTotal.GetElapsedTime()));
 	else
 	{
-		// Message differents selon le tye d'erreur
+		// Message differents selon le type d'erreur
 		if (TaskProgression::IsInterruptionRequested())
 			AddSimpleMessage(sTmp + "Data preparation interrupted by user after " +
 					 SecondsToString(timerTotal.GetElapsedTime()));
@@ -339,6 +416,7 @@ boolean KWClassStats::ComputeStats()
 	}
 
 	// Nettoyage si probleme (il y a remise a zero des timers: doit etre appele a la fin)
+	bOk = bOk and not TaskProgression::IsInterruptionRequested();
 	bIsStatsComputed = bOk;
 	if (not bIsStatsComputed)
 		CleanWorkingData();
@@ -359,7 +437,7 @@ ObjectArray* KWClassStats::GetAttributeStats()
 	return &oaAttributeStats;
 }
 
-KWAttributeStats* KWClassStats::LookupAttributeStats(const ALString& sAttributeName)
+KWAttributeStats* KWClassStats::LookupAttributeStats(const ALString& sAttributeName) const
 {
 	require(IsStatsComputed());
 	require(sAttributeName != "");
@@ -373,11 +451,18 @@ ObjectArray* KWClassStats::GetAttributePairStats()
 	return &oaAttributePairStats;
 }
 
-ObjectArray* KWClassStats::GetCreatedAttributeStats()
+ObjectArray* KWClassStats::GetTextAttributeStats()
 {
 	require(IsStatsComputed());
 
-	return &oaCreatedAttributeStats;
+	return &oaTextAttributeStats;
+}
+
+ObjectArray* KWClassStats::GetTreeAttributeStats()
+{
+	require(IsStatsComputed());
+
+	return &oaTreeAttributeStats;
 }
 
 int KWClassStats::GetEvaluatedAttributeNumber() const
@@ -420,71 +505,42 @@ int KWClassStats::GetConstructedAttributeNumber() const
 	return nConstructedAttributeNumber;
 }
 
-int KWClassStats::GetInformativeAttributeNumber() const
+int KWClassStats::GetTotalInformativeAttributeNumber() const
 {
-	KWAttributeStats* attributeStats;
 	int nInformativeAttributeNumber;
-	int nAttribute;
 
 	require(IsStatsComputed());
 
 	// Comptage des attributs informatifs
-	nInformativeAttributeNumber = 0;
-	for (nAttribute = 0; nAttribute < oaAttributeStats.GetSize(); nAttribute++)
-	{
-		attributeStats = cast(KWAttributeStats*, oaAttributeStats.GetAt(nAttribute));
-		if (attributeStats->GetLevel() > 0)
-			nInformativeAttributeNumber++;
-	}
-
+	nInformativeAttributeNumber = ComputeInformativeDataPreparationStats(&oaAllPreparedStats);
+	assert(nInformativeAttributeNumber == GetInformativeAttributeNumber() + GetInformativeTextAttributeNumber() +
+						  GetInformativeTreeAttributeNumber() +
+						  GetInformativeAttributePairNumber());
 	return nInformativeAttributeNumber;
 }
 
-int KWClassStats::GetInformativeCreatedAttributeNumber() const
+int KWClassStats::GetInformativeAttributeNumber() const
 {
-	KWAttributeStats* attributeStats;
-	int nInformativeAttributeNumber;
-	int nAttribute;
-
 	require(IsStatsComputed());
+	return ComputeInformativeDataPreparationStats(&oaAttributeStats);
+}
 
-	// Comptage des attributs informatifs
-	nInformativeAttributeNumber = 0;
-	for (nAttribute = 0; nAttribute < oaCreatedAttributeStats.GetSize(); nAttribute++)
-	{
-		attributeStats = cast(KWAttributeStats*, oaCreatedAttributeStats.GetAt(nAttribute));
-		if (attributeStats->GetLevel() > 0)
-			nInformativeAttributeNumber++;
-	}
+int KWClassStats::GetInformativeTextAttributeNumber() const
+{
+	require(IsStatsComputed());
+	return ComputeInformativeDataPreparationStats(&oaTextAttributeStats);
+}
 
-	return nInformativeAttributeNumber;
+int KWClassStats::GetInformativeTreeAttributeNumber() const
+{
+	require(IsStatsComputed());
+	return ComputeInformativeDataPreparationStats(&oaTreeAttributeStats);
 }
 
 int KWClassStats::GetInformativeAttributePairNumber() const
 {
-	KWAttributePairStats* attributePairStats;
-	int nInformativeAttributePairNumber;
-	int nAttribute;
-
 	require(IsStatsComputed());
-
-	// Comptage des attributs informatifs
-	nInformativeAttributePairNumber = 0;
-	for (nAttribute = 0; nAttribute < oaAttributePairStats.GetSize(); nAttribute++)
-	{
-		attributePairStats = cast(KWAttributePairStats*, oaAttributePairStats.GetAt(nAttribute));
-		if (GetTargetAttributeName() != "")
-		{
-			if (attributePairStats->GetDeltaLevel() > 0)
-				nInformativeAttributePairNumber++;
-		}
-		else
-		{
-			if (attributePairStats->GetLevel() > 0)
-				nInformativeAttributePairNumber++;
-		}
-	}
-	return nInformativeAttributePairNumber;
+	return ComputeInformativeDataPreparationStats(&oaAttributePairStats);
 }
 
 int KWClassStats::GetUsedAttributeNumberForType(int nType) const
@@ -528,21 +584,21 @@ double KWClassStats::GetTotalComputeTime() const
 	return timerTotal.GetElapsedTime();
 }
 
-const KDDataPreparationAttributeCreationTask* KWClassStats::GetAttributeCreationTask() const
+const KDDataPreparationAttributeCreationTask* KWClassStats::GetAttributeTreeConstructionTask() const
 {
-	return attributeCreationTask;
+	return attributeTreeConstructionTask;
 }
 
-void KWClassStats::RemoveAttributeCreationTask()
+void KWClassStats::RemoveAttributeTreeConstructionTask()
 {
-	attributeCreationTask = NULL;
+	attributeTreeConstructionTask = NULL;
 }
 
-void KWClassStats::DeleteAttributeCreationTask()
+void KWClassStats::DeleteAttributeTreeConstructionTask()
 {
-	if (attributeCreationTask != NULL)
-		delete attributeCreationTask;
-	attributeCreationTask = NULL;
+	if (attributeTreeConstructionTask != NULL)
+		delete attributeTreeConstructionTask;
+	attributeTreeConstructionTask = NULL;
 }
 
 void KWClassStats::AddAttributeStats(KWAttributeStats* attributeStats)
@@ -552,22 +608,6 @@ void KWClassStats::AddAttributeStats(KWAttributeStats* attributeStats)
 	oaAttributeStats.Add(attributeStats);
 	odAttributeStats.SetAt(attributeStats->GetAttributeName(), attributeStats);
 	oaAllPreparedStats.Add(attributeStats);
-	bIsStatsComputed = true;
-}
-
-void KWClassStats::AddAttributePairStats(KWAttributePairStats* attributePairStats)
-{
-	require(attributePairStats != NULL);
-	oaAttributePairStats.Add(attributePairStats);
-	oaAllPreparedStats.Add(attributePairStats);
-	bIsStatsComputed = true;
-}
-
-void KWClassStats::AddCreatedAttributeStats(KWAttributeStats* createdAttributeStats)
-{
-	require(createdAttributeStats != NULL);
-	oaCreatedAttributeStats.Add(createdAttributeStats);
-	oaAllPreparedStats.Add(createdAttributeStats);
 	bIsStatsComputed = true;
 }
 
@@ -648,7 +688,8 @@ void KWClassStats::RemoveAll()
 {
 	oaAttributeStats.RemoveAll();
 	oaAttributePairStats.RemoveAll();
-	oaCreatedAttributeStats.RemoveAll();
+	oaTextAttributeStats.RemoveAll();
+	oaTreeAttributeStats.RemoveAll();
 	CleanWorkingData();
 }
 
@@ -657,18 +698,116 @@ void KWClassStats::DeleteAll()
 	CleanWorkingData();
 }
 
+void KWClassStats::SetWriteSelectedAttributeNumbers(boolean bValue)
+{
+	bWriteSelectedAttributeNumbers = bValue;
+}
+
+boolean KWClassStats::GetWriteSelectedAttributeNumbers() const
+{
+	require(not IsStatsComputed() or not bWriteSelectedAttributeNumbers or
+		GetTargetAttributeType() != KWType::None);
+	return bWriteSelectedAttributeNumbers;
+}
+
+void KWClassStats::SetKeepSelectedAttributesOnly(boolean bValue)
+{
+	bKeepSelectedAttributesOnly = bValue;
+}
+
+boolean KWClassStats::GetKeepSelectedAttributesOnly() const
+{
+	require(not IsStatsComputed() or not bKeepSelectedAttributesOnly or GetTargetAttributeType() != KWType::None);
+	return bKeepSelectedAttributesOnly;
+}
+
+NumericKeyDictionary* KWClassStats::GetSelectedDataPreparationStats()
+{
+	return &nkdSelectedDataPreparationStats;
+}
+
+NumericKeyDictionary* KWClassStats::GetRecursivelySelectedDataPreparationStats()
+{
+	return &nkdRecursivelySelectedDataPreparationStats;
+}
+
+boolean KWClassStats::CheckSelectedDataPreparationStatsSpec() const
+{
+	boolean bOk = true;
+	int nSelectedDataPreparationStatsCount;
+	int nRecursivelySelectedDataPreparationStats;
+	KWDataPreparationStats* preparationStats;
+	int i;
+
+	// Parcours de toutes les preparations pour compter le nombre se trouvant dans chaque dictionnaire de
+	// specification
+	nSelectedDataPreparationStatsCount = 0;
+	nRecursivelySelectedDataPreparationStats = 0;
+	for (i = 0; i < oaAllPreparedStats.GetSize(); i++)
+	{
+		preparationStats = cast(KWDataPreparationStats*, oaAllPreparedStats.GetAt(i));
+		if (nkdSelectedDataPreparationStats.Lookup(preparationStats) != NULL)
+			nSelectedDataPreparationStatsCount++;
+		if (nkdRecursivelySelectedDataPreparationStats.Lookup(preparationStats) != NULL)
+			nRecursivelySelectedDataPreparationStats++;
+	}
+
+	// La verification est correcte si tout le contenu des dictionnaire de specification a etet trouve
+	bOk = bOk and nSelectedDataPreparationStatsCount == nkdSelectedDataPreparationStats.GetCount();
+	bOk = bOk and nRecursivelySelectedDataPreparationStats == nkdRecursivelySelectedDataPreparationStats.GetCount();
+	return bOk;
+}
+
+int KWClassStats::GetSelectedAttributeNumber() const
+{
+	require(IsStatsComputed());
+	require(CheckSelectedDataPreparationStatsSpec());
+	return ComputeSelectedDataPreparationStats(&oaAttributeStats);
+}
+
+int KWClassStats::GetSelectedTextAttributeNumber() const
+{
+	require(IsStatsComputed());
+	require(CheckSelectedDataPreparationStatsSpec());
+	return ComputeSelectedDataPreparationStats(&oaTextAttributeStats);
+}
+
+int KWClassStats::GetSelectedTreeAttributeNumber() const
+{
+	require(IsStatsComputed());
+	require(CheckSelectedDataPreparationStatsSpec());
+	return ComputeSelectedDataPreparationStats(&oaTreeAttributeStats);
+}
+
+int KWClassStats::GetSelectedAttributePairNumber() const
+{
+	require(IsStatsComputed());
+	require(CheckSelectedDataPreparationStatsSpec());
+	return ComputeSelectedDataPreparationStats(&oaAttributePairStats);
+}
+
 void KWClassStats::WriteReport(ostream& ost)
 {
-	ObjectArray oaSymbolAttributeStats;
-	ObjectArray oaContinuousAttributeStats;
-	KWAttributeStats* attributeStats;
-	int i;
+	ObjectArray* oaInputDataPreparationStats;
+	ObjectArray oaFilteredDataPreparationStats;
+	ObjectArray oaFilteredSymbolAttributeStats;
+	ObjectArray oaFilteredContinuousAttributeStats;
+	ALString sDataLabel;
+	ALString sDataStartLabel;
 	int nType;
 	int nAttributeNumber;
 	int nTotalAttributeNumber;
 
+	require(not IsStatsComputed() or GetWriteOptionStats1D() or GetWriteOptionStats2D());
+	require(IsStatsComputed() or not GetWriteOptionStats1D());
+	require(IsStatsComputed() or not GetWriteOptionStats2D());
+	require(not GetWriteOptionStatsNativeOrConstructed() or not GetWriteOptionStats2D());
+	require(not GetWriteOptionStatsNativeOrConstructed() or not GetWriteOptionStatsText());
+	require(not GetWriteOptionStatsNativeOrConstructed() or not GetWriteOptionStatsTrees());
+	require(not GetWriteOptionStatsText() or not GetWriteOptionStatsTrees());
+	require(not GetWriteOptionStatsText() or not GetWriteOptionStats2D());
+	require(not GetWriteOptionStatsTrees() or not GetWriteOptionStats2D());
 	require(Check());
-	require(IsStatsComputed());
 	require(GetClass()->GetUsedAttributeNumber() == GetClass()->GetLoadedAttributeNumber());
 
 	// Titre
@@ -682,45 +821,52 @@ void KWClassStats::WriteReport(ostream& ost)
 
 	// Description courte
 	ost << "Short description"
-	    << "\t" << GetShortDescription() << "\n";
+	    << "\t" << TSV::Export(GetShortDescription()) << "\n";
 
 	// Disctionnaire
 	ost << "\n";
 	ost << "Dictionary"
-	    << "\t" << GetClass()->GetName() << "\n";
+	    << "\t" << TSV::Export(GetClass()->GetName()) << "\n";
 
 	// Nombres d'attributs par type
-	ost << "Variables"
-	    << "\n";
-	nTotalAttributeNumber = 0;
-	for (nType = 0; nType < KWType::None; nType++)
+	if (IsStatsComputed())
 	{
-		if (KWType::IsData(nType))
+		ost << "Variables"
+		    << "\n";
+		nTotalAttributeNumber = 0;
+		for (nType = 0; nType < KWType::None; nType++)
 		{
-			nAttributeNumber = GetUsedAttributeNumberForType(nType);
-			nTotalAttributeNumber += nAttributeNumber;
-			if (nAttributeNumber > 0)
-				ost << "\t" << KWType::ToString(nType) << "\t" << nAttributeNumber << "\n";
+			if (KWType::IsData(nType))
+			{
+				nAttributeNumber = GetUsedAttributeNumberForType(nType);
+				if (nAttributeNumber > 0)
+				{
+					ost << "\t" << KWType::ToString(nType) << "\t" << nAttributeNumber << "\n";
+					nTotalAttributeNumber += nAttributeNumber;
+				}
+			}
 		}
+		ost << "\t"
+		    << "Total"
+		    << "\t" << nTotalAttributeNumber << "\n";
+		ost << "\n";
 	}
-	ost << "\t"
-	    << "Total"
-	    << "\t" << nTotalAttributeNumber << "\n";
-	ost << "\n";
 
 	// Base de donnees
-	ost << "Database\t" << GetDatabase()->GetDatabaseName() << "\n";
+	ost << "Database\t" << TSV::Export(GetDatabase()->GetDatabaseName()) << "\n";
 
 	// Taux d'echantillonnage
 	ost << "Sample percentage\t" << GetDatabase()->GetSampleNumberPercentage() << "\n";
 	ost << "Sampling mode\t" << GetDatabase()->GetSamplingMode() << "\n";
 
 	// Variable de selection
-	ost << "Selection variable\t" << GetDatabase()->GetSelectionAttribute() << "\n";
-	ost << "Selection value\t" << GetDatabase()->GetSelectionValue() << "\n";
+	ost << "Selection variable\t" << TSV::Export(GetDatabase()->GetSelectionAttribute()) << "\n";
+	ost << "Selection value\t" << TSV::Export(GetDatabase()->GetSelectionValue()) << "\n";
 
-	// Nombre d'instances
-	ost << "Instances\t" << GetInstanceNumber() << "\n";
+	// Nombre d'instances si disponible
+	// Peut etre 0 si aucune instance n'est disponible ou selectionnee selon le critere de selection
+	if (GetLearningSpec()->IsTargetStatsComputed())
+		ost << "Instances\t" << GetInstanceNumber() << "\n";
 
 	// Type de tache d'apprentissage effectue
 	ost << "\nLearning task";
@@ -746,94 +892,104 @@ void KWClassStats::WriteReport(ostream& ost)
 	}
 
 	// Parametrage eventuel de l'apprentissage supervise
+	// On accepte un affichage incomplet au cas ou le traitement aurait echoue partiellement ou totalement
 	if (GetTargetAttributeName() != "")
 	{
 		// Attribut cible
-		// On demande un affichage complet (source et cible) pour forcer
-		// l'utilisation explicite du libelle "Target"
-		assert(GetTargetValueStats()->GetSourceAttributeNumber() == 0);
 		ost << "\n";
-		GetTargetValueStats()->WriteAttributeArrayLineReports(ost, true, true);
+		ost << "Target variable"
+		    << "\t" << KWType::ToString(GetTargetAttributeType()) << "\t"
+		    << TSV::Export(GetTargetAttributeName()) << "\n";
 
-		// Statistiques descriptives
-		if (GetTargetAttributeType() == KWType::Continuous or
-		    (GetTargetAttributeType() == KWType::Symbol and
-		     GetTargetDescriptiveStats()->GetValueNumber() > GetTargetValueLargeNumber(GetInstanceNumber())))
-		{
-			ost << "\n";
-			GetTargetDescriptiveStats()->WriteReport(ost);
-		}
+		// Modalite cible principale si specifiee par l'utilisateur
+		if (GetTargetAttributeType() == KWType::Symbol and GetMainTargetModality() != Symbol())
+			ost << "Main target value\t" << TSV::Export(GetMainTargetModality().GetValue()) << "\n";
 
-		// Detail par valeur dans le cas symbol
-		if (GetTargetAttributeType() == KWType::Symbol)
+		// Statistiques descriptives sur l'attribut cible si disponible
+		if (GetLearningSpec()->IsTargetStatsComputed())
 		{
-			ost << "\n";
-			GetTargetValueStats()->WriteAttributePartArrayLineReports(ost, true, true);
+			// Statistiques descriptives
+			if (GetTargetAttributeType() == KWType::Continuous or
+			    (GetTargetAttributeType() == KWType::Symbol and
+			     GetTargetDescriptiveStats()->GetValueNumber() >
+				 GetTargetValueLargeNumber(GetInstanceNumber())))
+			{
+				ost << "\n";
+				GetTargetDescriptiveStats()->WriteReport(ost);
+			}
+
+			// Detail par valeur dans le cas symbol
+			if (GetTargetAttributeType() == KWType::Symbol)
+			{
+				ost << "\n";
+				GetTargetValueStats()->WriteAttributePartArrayLineReports(ost, true, true);
+			}
 		}
 	}
 
-	// Arret si base vide
-	if (GetInstanceNumber() == 0)
+	// Arret si base vide ou erreur
+	if (not IsStatsComputed() or GetInstanceNumber() == 0)
 		return;
 
-	// Statistiques sur les nombres de variables evaluees, natives, construites, informatives
+	// Choix des stats a ecrire selon l'option
+	oaInputDataPreparationStats = NULL;
+	if (GetWriteOptionStatsNativeOrConstructed())
+		oaInputDataPreparationStats = &oaAttributeStats;
+	else if (GetWriteOptionStatsText())
+		oaInputDataPreparationStats = &oaTextAttributeStats;
+	else if (GetWriteOptionStatsTrees())
+		oaInputDataPreparationStats = &oaTreeAttributeStats;
+	else if (GetWriteOptionStats2D())
+		oaInputDataPreparationStats = &oaAttributePairStats;
+	check(oaInputDataPreparationStats);
+
+	// Libelles specifiques dans le cas des paires
+	sDataLabel = "variables";
+	sDataStartLabel = "Variables";
+	if (GetWriteOptionStats2D())
+	{
+		sDataLabel = "variable pairs";
+		sDataStartLabel = "Variables pairs";
+	}
+
+	// Filtrage si necessaire, en gardant les preparations d'attributs selectionnes directement ou indirectement
+	if (GetKeepSelectedAttributesOnly())
+		FilterSelectedDataPreparationStats(oaInputDataPreparationStats, &oaFilteredDataPreparationStats);
+	// Sinon, on garde tout
+	else
+		oaFilteredDataPreparationStats.CopyFrom(oaInputDataPreparationStats);
+
+	// Nombre de variable evaluees
+	ost << "\n";
+	ost << "Evaluated " + sDataLabel << "\t" << oaInputDataPreparationStats->GetSize() << "\n";
+
+	// Nombre de variables natives et construites, uniquement pour le rapport 1D en cas de variables construites
+	if (GetWriteOptionStatsNativeOrConstructed() and GetConstructedAttributeNumber() > 0)
+	{
+		ost << "Native " << sDataLabel << "\t" << GetNativeAttributeNumber() << "\n";
+		ost << "Constructed " << sDataLabel << "\t" << GetConstructedAttributeNumber() << "\n";
+	}
+
+	// Nombre de variables informatives
+	if (GetTargetAttributeName() != "" or GetWriteOptionStats2D())
+		ost << "Informative " << sDataLabel << "\t"
+		    << ComputeInformativeDataPreparationStats(oaInputDataPreparationStats) << "\n";
+
+	// Nombre de variables selectionnees
+	if (GetTargetAttributeName() != "" and GetWriteSelectedAttributeNumbers())
+		ost << "Selected " << sDataLabel << "\t"
+		    << ComputeSelectedDataPreparationStats(oaInputDataPreparationStats) << "\n";
+
+	// Algorithme utilises
 	if (GetWriteOptionStats1D())
 	{
 		ost << "\n";
-		ost << "Evaluated variables"
-		    << "\t" << GetEvaluatedAttributeNumber() << "\n";
-		if (GetConstructedAttributeNumber() > 0)
-		{
-			ost << "Native variables"
-			    << "\t" << GetNativeAttributeNumber() << "\n";
-			ost << "Constructed variables"
-			    << "\t" << GetConstructedAttributeNumber() << "\n";
-		}
-		if (GetTargetAttributeName() != "")
-			ost << "Informative variables"
-			    << "\t" << GetInformativeAttributeNumber() << "\n";
-	}
 
-	// Statistiques sur les nombres de variables evaluees, natives, construites, informatives
-	// dans le cas des variables construites
-	if (GetWriteOptionStatsCreated())
-	{
-		ost << "\n";
-		ost << "Evaluated variables"
-		    << "\t" << GetCreatedAttributeStats()->GetSize() << "\n";
-		if (GetConstructedAttributeNumber() > 0)
-		{
-			ost << "Native variables"
-			    << "\t0\n";
-			ost << "Constructed variables"
-			    << "\t" << GetCreatedAttributeStats()->GetSize() << "\n";
-		}
-		if (GetTargetAttributeName() != "")
-			ost << "Informative variables"
-			    << "\t" << GetInformativeCreatedAttributeNumber() << "\n";
-	}
+		// Parametres de construction de variables de type arbre
+		if (GetWriteOptionStatsNativeOrConstructed() and GetAttributeTreeConstructionReport() != NULL)
+			GetAttributeTreeConstructionReport()->WriteReport(ost);
 
-	// Statistiques sur les nombres de variables evaluees, informatives
-	// dans le cas des paires de variables
-	if (GetWriteOptionStats2D())
-	{
-		ost << "\n";
-		ost << "Evaluated variable pairs"
-		    << "\t" << GetAttributePairStats()->GetSize() << "\n";
-		ost << "Informative variable pairs"
-		    << "\t" << GetInformativeAttributePairNumber() << "\n";
-	}
-
-	// Algorithme utilises
-	if (GetWriteOptionStats1D() or GetWriteOptionStatsCreated())
-	{
-		ost << "\n";
-
-		// Parametres de construction de variable
-		if (GetWriteOptionStats1D() and GetAttributeConstructionReport() != NULL)
-			GetAttributeConstructionReport()->WriteReport(ost);
-
-		// Parametrage des partraitements
+		// Parametrage des pretraitements
 		ost << GetPreprocessingSpec()->GetDiscretizerSpec()->GetClassLabel() << "\t";
 		if (IsTargetGrouped())
 			ost << "MODL"
@@ -851,7 +1007,7 @@ void KWClassStats::WriteReport(ostream& ost)
 	}
 
 	// Cout du model null
-	if ((GetWriteOptionStats1D() or GetWriteOptionStatsCreated()) and GetTargetAttributeName() != "")
+	if (GetWriteOptionStats1D() and GetTargetAttributeName() != "")
 	{
 		ost << "\nNull model\n";
 		ost << "\tConstr. cost\t" << GetNullConstructionCost() << "\n";
@@ -860,67 +1016,81 @@ void KWClassStats::WriteReport(ostream& ost)
 	}
 
 	// Calcul des identifiants des rapports bases sur leur rang
-	if (GetWriteOptionStats1D())
-		ComputeRankIdentifiers(&oaAttributeStats);
-	if (GetWriteOptionStatsCreated())
-		ComputeRankIdentifiers(&oaCreatedAttributeStats);
-	if (GetWriteOptionStats2D())
-		ComputeRankIdentifiers(GetAttributePairStats());
-
-	// On dispatche les statistiques univariee par type d'attribut dans le cas univarie
-	if (GetWriteOptionStats1D())
-	{
-		for (i = 0; i < oaAttributeStats.GetSize(); i++)
-		{
-			attributeStats = cast(KWAttributeStats*, oaAttributeStats.GetAt(i));
-			if (attributeStats->GetAttributeType() == KWType::Symbol)
-				oaSymbolAttributeStats.Add(attributeStats);
-			else if (attributeStats->GetAttributeType() == KWType::Continuous)
-				oaContinuousAttributeStats.Add(attributeStats);
-		}
-	}
-
-	// On dispatche egalement les statistiques univariee par type d'attribut dans le cas d'attributs cree
-	if (GetWriteOptionStatsCreated())
-	{
-		for (i = 0; i < oaCreatedAttributeStats.GetSize(); i++)
-		{
-			attributeStats = cast(KWAttributeStats*, oaCreatedAttributeStats.GetAt(i));
-			if (attributeStats->GetAttributeType() == KWType::Symbol)
-				oaSymbolAttributeStats.Add(attributeStats);
-			else if (attributeStats->GetAttributeType() == KWType::Continuous)
-				oaContinuousAttributeStats.Add(attributeStats);
-		}
-	}
+	ComputeRankIdentifiers(&oaFilteredDataPreparationStats);
 
 	// Rapports synthetiques
-	if (GetWriteOptionStats1D() or GetWriteOptionStatsCreated())
+	if (GetWriteOptionStats1D())
 	{
-		WriteArrayLineReport(ost, "Categorical variables statistics", &oaSymbolAttributeStats);
-		WriteArrayLineReport(ost, "Numerical variables statistics", &oaContinuousAttributeStats);
+		DispatchAttributeStatsByType(&oaFilteredDataPreparationStats, &oaFilteredSymbolAttributeStats,
+					     &oaFilteredContinuousAttributeStats);
+		WriteArrayLineReport(ost, "Categorical " + sDataLabel + " statistics", &oaFilteredSymbolAttributeStats);
+		WriteArrayLineReport(ost, "Numerical " + sDataLabel + " statistics",
+				     &oaFilteredContinuousAttributeStats);
 	}
-	if (GetWriteOptionStats2D())
-		WriteArrayLineReport(ost, "Variables pairs statistics", GetAttributePairStats());
+	else if (GetWriteOptionStats2D())
+		WriteArrayLineReport(ost, sDataStartLabel + " statistics", &oaFilteredDataPreparationStats);
 
 	// Rapports detailles
 	if (GetWriteOptionStats1D())
-		WriteArrayReport(ost, "Variables detailed statistics", &oaAttributeStats);
-	if (GetWriteOptionStatsCreated())
-		WriteArrayReport(ost, "Variables detailed statistics", &oaCreatedAttributeStats);
-	if (GetWriteOptionStats2D())
-		WriteArrayReport(ost,
-				 "Variables pairs detailed statistics\n(Pairs with two jointly informative variables)",
-				 GetAttributePairStats());
+		WriteArrayReport(ost, sDataStartLabel + " detailed statistics", &oaFilteredDataPreparationStats);
+	else if (GetWriteOptionStats2D())
+		WriteArrayReport(
+		    ost, sDataStartLabel + " detailed statistics\n(Pairs with two jointly informative variables)",
+		    &oaFilteredDataPreparationStats);
 }
 
-void KWClassStats::SetWriteOptionStats1D(boolean bValue)
+void KWClassStats::SetWriteOptionStatsNativeOrConstructed(boolean bValue)
 {
-	bWriteOptionStats1D = bValue;
+	bWriteOptionStatsNativeOrConstructed = bValue;
+}
+
+boolean KWClassStats::GetWriteOptionStatsNativeOrConstructed() const
+{
+	return bWriteOptionStatsNativeOrConstructed;
+}
+
+void KWClassStats::SetAttributeTreeConstructionReport(KWLearningReport* report)
+{
+	if (attributeTreeConstructionReport != NULL)
+		delete attributeTreeConstructionReport;
+	attributeTreeConstructionReport = report;
+}
+
+KWLearningReport* KWClassStats::GetAttributeTreeConstructionReport() const
+{
+	return attributeTreeConstructionReport;
+}
+
+boolean KWClassStats::IsTreeConstructionRequired() const
+{
+	return (KDDataPreparationAttributeCreationTask::GetGlobalCreationTask() != NULL and
+		KDDataPreparationAttributeCreationTask::GetGlobalCreationTask()->GetMaxCreatedAttributeNumber() > 0 and
+		attributeTreeConstructionTask != NULL);
+}
+
+void KWClassStats::SetWriteOptionStatsText(boolean bValue)
+{
+	bWriteOptionStatsText = bValue;
+}
+
+boolean KWClassStats::GetWriteOptionStatsText() const
+{
+	return bWriteOptionStatsText;
+}
+
+void KWClassStats::SetWriteOptionStatsTrees(boolean bValue)
+{
+	bWriteOptionStatsTrees = bValue;
+}
+
+boolean KWClassStats::GetWriteOptionStatsTrees() const
+{
+	return bWriteOptionStatsTrees;
 }
 
 boolean KWClassStats::GetWriteOptionStats1D() const
 {
-	return bWriteOptionStats1D;
+	return GetWriteOptionStatsNativeOrConstructed() or GetWriteOptionStatsText() or GetWriteOptionStatsTrees();
 }
 
 void KWClassStats::SetWriteOptionStats2D(boolean bValue)
@@ -933,51 +1103,14 @@ boolean KWClassStats::GetWriteOptionStats2D() const
 	return bWriteOptionStats2D;
 }
 
-boolean KWClassStats::IsCreationRequired() const
+void KWClassStats::SetWriteDetailedStats(boolean bValue)
 {
-	return (KDDataPreparationAttributeCreationTask::GetGlobalCreationTask() != NULL and
-		KDDataPreparationAttributeCreationTask::GetGlobalCreationTask()->GetMaxCreatedAttributeNumber() > 0 and
-		attributeCreationTask != NULL);
+	bWriteDetailedStats = bValue;
 }
 
-void KWClassStats::SetAttributeConstructionReport(KWLearningReport* report)
+boolean KWClassStats::GetWriteDetailedStats() const
 {
-	if (attributeConstructionReport != NULL)
-		delete attributeConstructionReport;
-	attributeConstructionReport = report;
-}
-
-KWLearningReport* KWClassStats::GetAttributeConstructionReport() const
-{
-	return attributeConstructionReport;
-}
-
-void KWClassStats::SetWriteOptionStatsCreated(boolean bValue)
-{
-	bWriteOptionStatsCreated = bValue;
-}
-
-boolean KWClassStats::GetWriteOptionStatsCreated() const
-{
-	return bWriteOptionStatsCreated;
-}
-
-void KWClassStats::SetWriteOptionDetailedStats(boolean bValue)
-{
-	bWriteOptionDetailedStats = bValue;
-}
-
-boolean KWClassStats::GetWriteOptionDetailedStats() const
-{
-	return bWriteOptionDetailedStats;
-}
-
-void KWClassStats::SetAllWriteOptions(boolean bValue)
-{
-	bWriteOptionStats1D = bValue;
-	bWriteOptionStatsCreated = bValue;
-	bWriteOptionStats2D = bValue;
-	bWriteOptionDetailedStats = bValue;
+	return bWriteDetailedStats;
 }
 
 void KWClassStats::WriteJSONFields(JSONFile* fJSON)
@@ -985,18 +1118,25 @@ void KWClassStats::WriteJSONFields(JSONFile* fJSON)
 	int nType;
 	int nAttributeNumber;
 	KWLearningReport* attributeCreationReport;
+	ObjectArray* oaInputDataPreparationStats;
+	ObjectArray oaFilteredDataPreparationStats;
+	ALString sDataLabel;
+	ALString sDataStartLabel;
 
-	require(not GetWriteOptionStats1D() or not GetWriteOptionStats2D());
-	require(not GetWriteOptionStats1D() or not GetWriteOptionStatsCreated());
-	require(not GetWriteOptionStatsCreated() or not GetWriteOptionStats2D());
+	require(not IsStatsComputed() or GetWriteOptionStats1D() or GetWriteOptionStats2D());
+	require(IsStatsComputed() or not GetWriteOptionStats1D());
+	require(IsStatsComputed() or not GetWriteOptionStats2D());
+	require(not GetWriteOptionStatsNativeOrConstructed() or not GetWriteOptionStats2D());
+	require(not GetWriteOptionStatsNativeOrConstructed() or not GetWriteOptionStatsText());
+	require(not GetWriteOptionStatsNativeOrConstructed() or not GetWriteOptionStatsTrees());
+	require(not GetWriteOptionStatsText() or not GetWriteOptionStatsTrees());
+	require(not GetWriteOptionStatsText() or not GetWriteOptionStats2D());
+	require(not GetWriteOptionStatsTrees() or not GetWriteOptionStats2D());
 	require(Check());
-	require(IsStatsComputed());
 	require(GetClass()->GetUsedAttributeNumber() == GetClass()->GetLoadedAttributeNumber());
 
 	// Type de rapport
-	if (GetWriteOptionStats1D())
-		fJSON->WriteKeyString("reportType", "Preparation");
-	else if (GetWriteOptionStatsCreated())
+	if (GetWriteOptionStats1D() or not IsStatsComputed())
 		fJSON->WriteKeyString("reportType", "Preparation");
 	else if (GetWriteOptionStats2D())
 		fJSON->WriteKeyString("reportType", "BivariatePreparation");
@@ -1006,34 +1146,41 @@ void KWClassStats::WriteJSONFields(JSONFile* fJSON)
 	fJSON->WriteKeyString("dictionary", GetClass()->GetName());
 
 	// Nombres d'attributs par type
-	fJSON->BeginKeyObject("variables");
-	fJSON->BeginKeyArray("types");
-	for (nType = 0; nType < KWType::None; nType++)
+	if (IsStatsComputed())
 	{
-		if (KWType::IsData(nType))
+		fJSON->BeginKeyObject("variables");
+		fJSON->BeginKeyArray("types");
+		for (nType = 0; nType < KWType::None; nType++)
 		{
-			nAttributeNumber = GetUsedAttributeNumberForType(nType);
-			if (nAttributeNumber > 0)
-				fJSON->WriteString(KWType::ToString(nType));
+			if (KWType::IsData(nType))
+			{
+				nAttributeNumber = GetUsedAttributeNumberForType(nType);
+				if (nAttributeNumber > 0)
+					fJSON->WriteString(KWType::ToString(nType));
+			}
 		}
-	}
-	fJSON->EndArray();
-	fJSON->BeginKeyArray("numbers");
-	for (nType = 0; nType < KWType::None; nType++)
-	{
-		if (KWType::IsData(nType))
+		fJSON->EndArray();
+		fJSON->BeginKeyArray("numbers");
+		for (nType = 0; nType < KWType::None; nType++)
 		{
-			nAttributeNumber = GetUsedAttributeNumberForType(nType);
-			if (nAttributeNumber > 0)
-				fJSON->WriteInt(nAttributeNumber);
+			if (KWType::IsData(nType))
+			{
+				nAttributeNumber = GetUsedAttributeNumberForType(nType);
+				if (nAttributeNumber > 0)
+					fJSON->WriteInt(nAttributeNumber);
+			}
 		}
+		fJSON->EndArray();
+		fJSON->EndObject();
 	}
-	fJSON->EndArray();
-	fJSON->EndObject();
 
 	// Base de donnees
 	GetDatabase()->WriteJSONFields(fJSON);
-	fJSON->WriteKeyLongint("instances", GetInstanceNumber());
+
+	// Nombre d'instances si disponible
+	// Peut etre 0 si aucune instance n'est disponible ou selectionnee selon le critere de selection
+	if (GetLearningSpec()->IsTargetStatsComputed())
+		fJSON->WriteKeyLongint("instances", GetInstanceNumber());
 
 	// Cas ou l'attribut cible n'est pas renseigne
 	if (GetTargetAttributeType() == KWType::None)
@@ -1053,75 +1200,91 @@ void KWClassStats::WriteJSONFields(JSONFile* fJSON)
 	}
 
 	// Parametrage eventuel de l'apprentissage supervise
+	// On accepte un affichage incomplet au cas ou le traitement aurait echoue partiellement ou totalement
 	if (GetTargetAttributeName() != "")
 	{
+		assert(not GetLearningSpec()->IsTargetStatsComputed() or
+		       GetTargetValueStats()->GetSourceAttributeNumber() == 0);
+
 		// Attribut cible
-		// On demande un affichage complet (source et cible) pour forcer
-		// l'utilisation explicite du libelle "Target"
-		assert(GetTargetValueStats()->GetSourceAttributeNumber() == 0);
 		fJSON->WriteKeyString("targetVariable", GetTargetAttributeName());
 
-		// Modalite cible principale
-		if (GetTargetAttributeType() == KWType::Symbol and GetMainTargetModalityIndex() != -1)
+		// Modalite cible principale si specifiee par l'utilisateur
+		if (GetTargetAttributeType() == KWType::Symbol and GetMainTargetModality() != Symbol())
 			fJSON->WriteKeyString("mainTargetValue", GetMainTargetModality().GetValue());
 
-		// Statistiques descriptives
-		GetTargetDescriptiveStats()->WriteJSONKeyReport(fJSON, "targetDescriptiveStats");
-
-		// Detail par valeur dans le cas symbol
-		if (GetTargetAttributeType() == KWType::Symbol)
+		// Statistiques descriptives sur l'attribut cible si disponible
+		if (GetLearningSpec()->IsTargetStatsComputed())
 		{
-			GetTargetValueStats()->WriteJSONKeyValueFrequencies(fJSON, "targetValues");
+			GetTargetDescriptiveStats()->WriteJSONKeyReport(fJSON, "targetDescriptiveStats");
+
+			// Detail par valeur dans le cas symbol
+			if (GetTargetAttributeType() == KWType::Symbol)
+				GetTargetValueStats()->WriteJSONKeyValueFrequencies(fJSON, "targetValues");
 		}
 	}
 
-	// Arret si base vide
-	if (GetInstanceNumber() == 0)
+	// Arret si base vide ou erreur
+	if (not IsStatsComputed() or GetInstanceNumber() == 0)
 	{
 		fJSON->EndObject();
 		return;
 	}
 
-	// Statistiques sur les nombres de variables evaluees, natives, construites, informatives
-	if (GetWriteOptionStats1D())
-	{
-		fJSON->WriteKeyInt("evaluatedVariables", GetEvaluatedAttributeNumber());
-		if (GetConstructedAttributeNumber() > 0)
-		{
-			fJSON->WriteKeyInt("nativeVariables", GetNativeAttributeNumber());
-			fJSON->WriteKeyInt("constructedVariables", GetConstructedAttributeNumber());
-		}
-		if (GetTargetAttributeName() != "")
-			fJSON->WriteKeyInt("informativeVariables", GetInformativeAttributeNumber());
-	}
+	// Choix des stats a ecrire selon l'option
+	oaInputDataPreparationStats = NULL;
+	if (GetWriteOptionStatsNativeOrConstructed())
+		oaInputDataPreparationStats = &oaAttributeStats;
+	else if (GetWriteOptionStatsText())
+		oaInputDataPreparationStats = &oaTextAttributeStats;
+	else if (GetWriteOptionStatsTrees())
+		oaInputDataPreparationStats = &oaTreeAttributeStats;
+	else if (GetWriteOptionStats2D())
+		oaInputDataPreparationStats = &oaAttributePairStats;
+	check(oaInputDataPreparationStats);
 
-	// Statistiques sur les nombres de variables evaluees, natives, construites, informatives
-	// pour les variables construites
-	if (GetWriteOptionStatsCreated())
-	{
-		fJSON->WriteKeyInt("evaluatedVariables", oaCreatedAttributeStats.GetSize());
-		if (GetConstructedAttributeNumber() > 0)
-		{
-			fJSON->WriteKeyInt("nativeVariables", 0);
-			fJSON->WriteKeyInt("constructedVariables", oaCreatedAttributeStats.GetSize());
-		}
-		if (GetTargetAttributeName() != "")
-			fJSON->WriteKeyInt("informativeVariables", GetInformativeCreatedAttributeNumber());
-	}
-
-	// Statistiques sur les nombres de variables evaluees, informatives pour les paires de variables
+	// Libelles specifiques dans le cas des paires
+	sDataLabel = "Variables";
+	sDataStartLabel = "variables";
 	if (GetWriteOptionStats2D())
 	{
-		fJSON->WriteKeyInt("evaluatedVariablePairs", oaAttributePairStats.GetSize());
-		fJSON->WriteKeyInt("informativeVariablePairs", GetInformativeAttributePairNumber());
+		sDataLabel = "VariablePairs";
+		sDataStartLabel = "variablesPairs";
 	}
 
-	// Algorithme utilises
-	if (GetWriteOptionStats1D())
+	// Filtrage si necessaire, en gardant les preparations d'attributs selectionnes directement ou indirectement
+	if (GetKeepSelectedAttributesOnly())
+		FilterSelectedDataPreparationStats(oaInputDataPreparationStats, &oaFilteredDataPreparationStats);
+	// Sinon, on garde tout
+	else
+		oaFilteredDataPreparationStats.CopyFrom(oaInputDataPreparationStats);
+
+	// Nombre de variables evaluees
+	fJSON->WriteKeyInt("evaluated" + sDataLabel, oaInputDataPreparationStats->GetSize());
+
+	// Nombre de variables natives et construites, uniquement pour le rapport 1D en cas de variables construites
+	if (GetWriteOptionStatsNativeOrConstructed() and GetConstructedAttributeNumber() > 0)
 	{
-		// Parametres de construction de variable
-		if (GetAttributeConstructionReport() != NULL)
-			GetAttributeConstructionReport()->WriteJSONReport(fJSON);
+		fJSON->WriteKeyInt("native" + sDataLabel, GetNativeAttributeNumber());
+		fJSON->WriteKeyInt("constructed" + sDataLabel, GetConstructedAttributeNumber());
+	}
+
+	// Nombre de variables informatives
+	if (GetTargetAttributeName() != "" or GetWriteOptionStats2D())
+		fJSON->WriteKeyInt("informative" + sDataLabel,
+				   ComputeInformativeDataPreparationStats(oaInputDataPreparationStats));
+
+	// Nombre de variables selectionnees
+	if (GetTargetAttributeName() != "" and GetWriteSelectedAttributeNumbers())
+		fJSON->WriteKeyInt("selected" + sDataLabel,
+				   ComputeSelectedDataPreparationStats(oaInputDataPreparationStats));
+
+	// Algorithme utilises
+	if (GetWriteOptionStatsNativeOrConstructed())
+	{
+		// Parametres de construction de variables de type arbre
+		if (GetAttributeTreeConstructionReport() != NULL)
+			GetAttributeTreeConstructionReport()->WriteJSONReport(fJSON);
 
 		// Discretisation
 		if (IsTargetGrouped())
@@ -1140,7 +1303,7 @@ void KWClassStats::WriteJSONFields(JSONFile* fJSON)
 	}
 
 	// Cout du model null
-	if (GetWriteOptionStats1D() and GetTargetAttributeName() != "")
+	if (GetWriteOptionStatsNativeOrConstructed() and GetTargetAttributeName() != "")
 	{
 		fJSON->BeginKeyObject("nullModel");
 		fJSON->WriteKeyDouble("constructionCost", GetNullConstructionCost());
@@ -1153,37 +1316,61 @@ void KWClassStats::WriteJSONFields(JSONFile* fJSON)
 	fJSON->EndObject();
 
 	// Calcul des identifiants des rapports bases sur leur rang
-	if (GetWriteOptionStats1D())
-		ComputeRankIdentifiers(&oaAttributeStats);
-	if (GetWriteOptionStatsCreated())
-		ComputeRankIdentifiers(&oaCreatedAttributeStats);
-	if (GetWriteOptionStats2D())
-		ComputeRankIdentifiers(GetAttributePairStats());
+	ComputeRankIdentifiers(&oaFilteredDataPreparationStats);
 
 	// Rapports synthetiques
-	if (GetWriteOptionStats1D())
-		WriteJSONArrayReport(fJSON, "variablesStatistics", &oaAttributeStats, true);
-	if (GetWriteOptionStatsCreated())
-		WriteJSONArrayReport(fJSON, "variablesStatistics", &oaCreatedAttributeStats, true);
-	if (GetWriteOptionStats2D())
-		WriteJSONArrayReport(fJSON, "variablesPairsStatistics", GetAttributePairStats(), true);
+	WriteJSONArrayReport(fJSON, sDataStartLabel + "Statistics", &oaFilteredDataPreparationStats, true);
 
 	// Rapports detailles
-	if (GetWriteOptionStats1D())
-		WriteJSONDictionaryReport(fJSON, "variablesDetailedStatistics", &oaAttributeStats, false);
-	if (GetWriteOptionStatsCreated())
-		WriteJSONDictionaryReport(fJSON, "variablesDetailedStatistics", &oaCreatedAttributeStats, false);
-	if (GetWriteOptionStats2D())
-		WriteJSONDictionaryReport(fJSON, "variablesPairsDetailedStatistics", GetAttributePairStats(), false);
+	WriteJSONDictionaryReport(fJSON, sDataStartLabel + "DetailedStatistics", &oaFilteredDataPreparationStats,
+				  false);
 
-	// // Rapport detaille additionnel dans le cas de la creation d'attributs
-	if (GetWriteOptionStatsCreated() and attributeCreationTask != NULL)
+	// // Rapport detaille additionnel dans le cas des arbres
+	if (GetWriteOptionStatsTrees() and attributeTreeConstructionTask != NULL and
+	    oaFilteredDataPreparationStats.GetSize() > 0)
 	{
-		attributeCreationReport = attributeCreationTask->GetCreationReport();
+		attributeCreationReport = attributeTreeConstructionTask->GetCreationReport();
 		if (attributeCreationReport != NULL)
-			attributeCreationReport->WriteJSONKeyReport(fJSON, attributeCreationTask->GetReportPrefix() +
-									       "Details");
+			attributeCreationReport->WriteJSONKeyReport(
+			    fJSON, attributeTreeConstructionTask->GetReportPrefix() + "Details");
 	}
+}
+
+boolean KWClassStats::Check() const
+{
+	boolean bOk;
+
+	// Appel de la methode ancetre
+	bOk = KWLearningReport::Check();
+
+	// Verification de la specification des paires de variables
+	// On passe par learningSpec->GetClass() pour eviter un appel recursif au Check de la classe ancetre
+	if (bOk)
+	{
+		if (attributePairSpec != NULL and
+		    attributePairSpec->GetClassName() != learningSpec->GetClass()->GetName())
+		{
+			bOk = false;
+			AddError("Wrong specification for bivariate variable construction (dictionary " +
+				 attributePairSpec->GetClassName() + " instead of " +
+				 learningSpec->GetClass()->GetName() + ")");
+		}
+	}
+
+	// Verification de la specification de construction multi-tables
+	if (bOk and not CheckConstructionAttributes(&odMultiTableConstructedAttributes))
+	{
+		bOk = false;
+		AddError("Wrong specification for multi-table variable construction");
+	}
+
+	// Verification de la specification de construction de type texte
+	if (bOk and not CheckConstructionAttributes(&odTextConstructedAttributes))
+	{
+		bOk = false;
+		AddError("Wrong specification for text variable construction");
+	}
+	return bOk;
 }
 
 const ALString KWClassStats::GetClassLabel() const
@@ -1199,15 +1386,15 @@ const ALString KWClassStats::GetObjectLabel() const
 		return GetLearningSpec()->GetObjectLabel();
 }
 
-void KWClassStats::UseUnivariateBasicSelectionCosts()
+void KWClassStats::UseUnivariateBasicSelectionCosts(boolean bUsingTextConstruction)
 {
 	InternalUpdateUnivariateSelectionCosts(GetLearningSpec()->GetSelectionCost(),
-					       GetLearningSpec()->GetBasicSelectionCost());
+					       GetLearningSpec()->GetBasicSelectionCost(bUsingTextConstruction));
 }
 
-void KWClassStats::RestoreUnivariateSelectionCosts()
+void KWClassStats::RestoreUnivariateSelectionCosts(boolean bUsingTextConstruction)
 {
-	InternalUpdateUnivariateSelectionCosts(GetLearningSpec()->GetBasicSelectionCost(),
+	InternalUpdateUnivariateSelectionCosts(GetLearningSpec()->GetBasicSelectionCost(bUsingTextConstruction),
 					       GetLearningSpec()->GetSelectionCost());
 }
 
@@ -1291,15 +1478,18 @@ void KWClassStats::CleanWorkingData()
 	odAttributeStats.RemoveAll();
 	oaAttributeStats.DeleteAll();
 	oaAttributePairStats.DeleteAll();
-	oaCreatedAttributeStats.DeleteAll();
-	DeleteAttributeCreationTask();
+	oaTextAttributeStats.DeleteAll();
+	oaTreeAttributeStats.DeleteAll();
+	DeleteAttributeTreeConstructionTask();
 	DeleteDataTableSliceSet();
 	DeleteTargetValues();
+	nkdSelectedDataPreparationStats.RemoveAll();
+	nkdRecursivelySelectedDataPreparationStats.RemoveAll();
 	timerTotal.Reset();
 	bIsStatsComputed = false;
 }
 
-KWAttributeStats* KWClassStats::CreateAttributeStats() const
+KWAttributeStats* KWClassStats::TreeAttributeStats() const
 {
 	return new KWAttributeStats;
 }
@@ -1313,4 +1503,140 @@ int KWClassStats::GetTargetValueLargeNumber(int nDatabaseSize)
 {
 	require(nDatabaseSize >= 0);
 	return 10 + (int)sqrt(1.0 * nDatabaseSize);
+}
+
+int KWClassStats::GetLargeDatabaseSize()
+{
+	return 10000000;
+}
+
+boolean KWClassStats::CheckConstructionAttributes(const ObjectDictionary* odConstructedAttributes) const
+{
+	boolean bOk = true;
+	POSITION position;
+	ALString sName;
+	Object* oElement;
+	KWAttribute* attribute;
+	KWAttribute* foundAttribute;
+
+	require(GetLearningSpec() != NULL);
+	require(GetLearningSpec()->GetClass() != NULL);
+	require(odConstructedAttributes != NULL);
+
+	// Verification des attributs construits du dictionnaire
+	position = odConstructedAttributes->GetStartPosition();
+	while (position != NULL)
+	{
+		// Acces a chaque attribut et a son nom
+		odConstructedAttributes->GetNextAssoc(position, sName, oElement);
+		attribute = cast(KWAttribute*, oElement);
+		assert(attribute != NULL);
+		assert(attribute->GetName() == sName);
+
+		// Verification de l'utilisation et du type d'attribut
+		bOk = bOk and attribute->GetUsed();
+		bOk = bOk and KWType::IsSimple(attribute->GetType());
+
+		// Verification de l'existence de l'attribut
+		foundAttribute = GetLearningSpec()->GetClass()->LookupAttribute(sName);
+		bOk = bOk and foundAttribute == attribute;
+
+		// Arret si erreur
+		if (not bOk)
+			break;
+	}
+	return bOk;
+}
+
+int KWClassStats::ComputeInformativeDataPreparationStats(const ObjectArray* oaInputDataPreparationStats) const
+{
+	KWDataPreparationStats* dataPreparationStats;
+	int i;
+	int nInformativeNumber;
+
+	require(oaInputDataPreparationStats != NULL);
+
+	// Comptage des attributs informatifs
+	nInformativeNumber = 0;
+	for (i = 0; i < oaInputDataPreparationStats->GetSize(); i++)
+	{
+		dataPreparationStats = cast(KWDataPreparationStats*, oaInputDataPreparationStats->GetAt(i));
+		if (dataPreparationStats->IsInformative())
+			nInformativeNumber++;
+	}
+	return nInformativeNumber;
+}
+
+int KWClassStats::ComputeSelectedDataPreparationStats(const ObjectArray* oaInputDataPreparationStats) const
+{
+	KWDataPreparationStats* dataPreparationStats;
+	int i;
+	int nUsedNumber;
+
+	require(oaInputDataPreparationStats != NULL);
+
+	// Comptage des attributs informatifs
+	nUsedNumber = 0;
+	for (i = 0; i < oaInputDataPreparationStats->GetSize(); i++)
+	{
+		dataPreparationStats = cast(KWDataPreparationStats*, oaInputDataPreparationStats->GetAt(i));
+		if (nkdSelectedDataPreparationStats.Lookup(dataPreparationStats) != NULL)
+			nUsedNumber++;
+	}
+	return nUsedNumber;
+}
+
+void KWClassStats::FilterSelectedDataPreparationStats(const ObjectArray* oaInputDataPreparationStats,
+						      ObjectArray* oaFilteredDataPreparationStats) const
+{
+	KWDataPreparationStats* dataPreparationStats;
+	int i;
+
+	require(oaInputDataPreparationStats != NULL);
+	require(oaFilteredDataPreparationStats != NULL);
+	require(oaFilteredDataPreparationStats->GetSize() == 0);
+
+	// Filtrage des preparation selon le dictionnaire en parametre
+	for (i = 0; i < oaInputDataPreparationStats->GetSize(); i++)
+	{
+		dataPreparationStats = cast(KWDataPreparationStats*, oaInputDataPreparationStats->GetAt(i));
+
+		// On garde l'attribut s'il est utilise recursivement par une preparation d'attribut selectionne
+		if (nkdRecursivelySelectedDataPreparationStats.Lookup(dataPreparationStats) != NULL)
+			oaFilteredDataPreparationStats->Add(dataPreparationStats);
+		// Sinon, on garde inconditionnellement les attributs natifs ou construits initiaux
+		else if (dataPreparationStats->GetAttributeNumber() == 1 and
+			 LookupAttributeStats(dataPreparationStats->GetAttributeNameAt(0)) != NULL)
+		{
+			// On ne le garde que s'il ne fait pas partie des attributs construits
+			if (odMultiTableConstructedAttributes.Lookup(dataPreparationStats->GetAttributeNameAt(0)) ==
+			    NULL)
+				oaFilteredDataPreparationStats->Add(dataPreparationStats);
+		}
+	}
+}
+
+void KWClassStats::DispatchAttributeStatsByType(const ObjectArray* oaInputAttributeStats,
+						ObjectArray* oaSymbolAttributeStats,
+						ObjectArray* oaContinuousAttributeStats) const
+{
+	KWAttributeStats* attributeStats;
+	int i;
+
+	require(oaInputAttributeStats != NULL);
+	require(oaSymbolAttributeStats != NULL);
+	require(oaContinuousAttributeStats != NULL);
+	require(oaSymbolAttributeStats->GetSize() == 0);
+	require(oaSymbolAttributeStats->GetSize() == 0);
+
+	// Dispatch des stats d'attribut selon leur type
+	for (i = 0; i < oaInputAttributeStats->GetSize(); i++)
+	{
+		attributeStats = cast(KWAttributeStats*, oaInputAttributeStats->GetAt(i));
+		assert(KWType::IsSimple(attributeStats->GetAttributeType()));
+		if (attributeStats->GetAttributeType() == KWType::Symbol)
+			oaSymbolAttributeStats->Add(attributeStats);
+		else if (attributeStats->GetAttributeType() == KWType::Continuous)
+			oaContinuousAttributeStats->Add(attributeStats);
+	}
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -9,6 +9,8 @@
 
 class DTDecisionTreeSpec;
 class DTDecisionTreeNodeSpec;
+class PLShared_DecisionTreeNodeSpec;
+
 int DTDecisionTreeNodesModalitiesCountCompare(const void* elem1, const void* elem2);
 
 ///////////////////////////////////////////////////////////////////////////
@@ -30,7 +32,7 @@ public:
 	// creation de l'attribut a partir de la specification
 	KWAttribute* BuildAttribute(const ALString& svariablename);
 
-	/// Acces au cout de construction de l'arbre
+	// Acces au cout de construction de l'arbre
 	void SetConstructionCost(double);
 	double GetConstructionCost() const;
 
@@ -46,6 +48,12 @@ public:
 	void SetLevel(const double);
 	double GetLevel() const;
 
+	void SetTargetMin(const double);
+	double GetTargetMin() const;
+
+	void SetTargetMax(const double);
+	double GetTargetMax() const;
+
 	void SetVariablesNumber(const int);
 	int GetVariablesNumber() const;
 
@@ -55,15 +63,25 @@ public:
 	void SetLeavesNumber(const int);
 	int GetLeavesNumber() const;
 
+	void SetTargetType(const int);
+	int GetTargetType() const;
+
 	void SetDepth(const int);
 	int GetDepth() const;
+
+	KWDataGridStats* GetTargetStats() const;
+	void SetTargetStats(KWDataGridStats* a);
 
 	const ObjectArray& GetTreeNodes() const;
 
 	// ecriture du rapport json
 	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const;
+	//ecriture rapport de la discretisation de la target en cas de regression
+	void WriteTargetJSONFields(JSONFile* fJSON) const;
 
 protected:
+	friend class PLShared_DecisionTreeSpec;
+
 	// fonction pour ajouter un nodespec a la structure d'arbre a partir d'un DTDecisionTreeNode
 	DTDecisionTreeNodeSpec* AddNodeSpec(const DTDecisionTreeNode* nNode, DTDecisionTreeNodeSpec* nsFather);
 
@@ -78,22 +96,70 @@ protected:
 	ALString sTreeVariableName;
 	double dTreeLevel;
 	double dLevel;
+	double dTargetMin;
+	double dTargetMax;
 	int nVariablesNumber;
 	int nInternalNodesNumber;
 	int nLeavesNumber;
 	int nDepth;
 	double dConstructionCost;
+	int nTargetType;
 
 	// adresse du noeud racine
 	DTDecisionTreeNodeSpec* nsRootNode;
 	// tableau de l'ensemble des DTDecisionTreeNodeSpec
 	ObjectArray oaTreeNodes;
+
+	// stat de la target si regression
+	KWDataGridStats* dgsTargetStats;
 };
 
 inline const ObjectArray& DTDecisionTreeSpec::GetTreeNodes() const
 {
 	return oaTreeNodes;
 }
+
+inline KWDataGridStats* DTDecisionTreeSpec::GetTargetStats() const
+{
+	return dgsTargetStats;
+}
+
+inline void DTDecisionTreeSpec::SetTargetStats(KWDataGridStats* a)
+{
+	if (dgsTargetStats != NULL)
+		delete dgsTargetStats;
+
+	dgsTargetStats = a;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Classe PLShared_DecisionTreeSpec
+// Serialisation de la classe DTDecisionTreeSpec
+class PLShared_DecisionTreeSpec : public PLSharedObject
+{
+public:
+	// Constructor
+	PLShared_DecisionTreeSpec();
+	~PLShared_DecisionTreeSpec();
+
+	void SetDecisionTreeSpec(DTDecisionTreeSpec*);
+	DTDecisionTreeSpec* GetDecisionTreeSpec() const;
+
+	void DeserializeObject(PLSerializer* serializer, Object* object) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* object) const override;
+
+protected:
+	void AddNode(ObjectArray& oaTreeNodes, DTDecisionTreeNodeSpec*) const;
+
+	// noeud racine
+	PLShared_DecisionTreeNodeSpec* shared_nsRootNode;
+	PLShared_DataGridStats* shared_dgsTargetStats;
+
+	// liste d'objets PLShared_DecisionTreeNodeSpec
+	// PLShared_ObjectArray* shared_oaTreeNodes;
+
+	Object* Create() const override;
+};
 
 ///////////////////////////////////////////////////////////////////////////
 // Specification d'une coupure d'un noued interne de l'arbre
@@ -139,8 +205,8 @@ public:
 	const ALString& GetVariableName() const;
 	void SetVariableName(const ALString& stemps);
 
-	/// Acces a la distribution de la classe cible. Tableau d'objets TargetModalityCount, tri par valeur cible
-	/// alphabetique croissante
+	// Acces a la distribution de la classe cible. Tableau d'objets TargetModalityCount, tri par valeur cible
+	// alphabetique croissante
 	ObjectArray* GetTargetModalitiesCountTrain() const;
 	void SetTargetModalitiesCountTrain(ObjectArray*);
 
@@ -152,6 +218,7 @@ public:
 
 protected:
 	friend class DTDecisionTreeSpec;
+	friend PLShared_DecisionTreeNodeSpec;
 
 	longint ComputeHashOfGroupIndexRule() const;
 	longint ComputeHashOfIntervalIndexRule() const;
@@ -177,8 +244,8 @@ protected:
 	Continuous cJSONMinValue;
 	Continuous cJSONMaxValue;
 
-	/// Distribution de la variable cible pour ce noeud (database train). Tableau d'objets TargetModalitiesCount,
-	/// tri par valeur cible alphabetique croissante
+	// Distribution de la variable cible pour ce noeud (database train). Tableau d'objets TargetModalitiesCount,
+	// tri par valeur cible alphabetique croissante
 	ObjectArray* oaTargetModalitiesCountTrain;
 };
 
@@ -243,3 +310,28 @@ inline void DTDecisionTreeSpec::SetConstructionCost(double d)
 {
 	dConstructionCost = d;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Classe PLShared_DecisionTreeNodeSpec
+// Serialisation de la classe DTDecisionTreeNodeSpec
+class PLShared_DecisionTreeNodeSpec : public PLSharedObject
+{
+public:
+	// Constructor
+	PLShared_DecisionTreeNodeSpec();
+	~PLShared_DecisionTreeNodeSpec();
+
+	void SetDecisionTreeNodeSpec(DTDecisionTreeNodeSpec*);
+	DTDecisionTreeNodeSpec* GetDecisionTreeNodeSpec() const;
+
+	void DeserializeObject(PLSerializer* serializer, Object* object) const override;
+	void SerializeObject(PLSerializer* serializer, const Object* object) const override;
+
+protected:
+	Object* Create() const override;
+
+	mutable PLShared_ObjectArray* shared_oaChildrenNode;
+	PLShared_ObjectArray* shared_oaTargetModalitiesCountTrain;
+	PLShared_DGSAttributeDiscretization* shared_dgsAttributeDiscretization;
+	PLShared_DGSAttributeGrouping* shared_dgsAttributeGrouping;
+};

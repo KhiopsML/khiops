@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -68,17 +68,32 @@ public:
 	///////////////////////////////////////////////////////////////
 	// Services divers
 
+	// Verification de l'integrite d'un tableau de cles
+	boolean CheckKeys(const ObjectArray* oaKeys) const;
+
+	// Verification de l'integrite d'un tableau de positions
+	boolean CheckKeyPositions(const ObjectArray* oaKeyPositions) const;
+
+	// Verification de la coherence d'un tableau de positions avec un tableau de cles
+	boolean CheckKeyPositionsConsistency(const ObjectArray* oaKeys, const ObjectArray* oaKeyPositions) const;
+
+	// Affichage d'un tableau de cles
+	void WriteKeys(const ObjectArray* oaKeys, ostream& ost) const;
+
+	// Affichage d'un tableau de positions de cles
+	void WriteKeyPositions(const ObjectArray* oaKeyPositions, ostream& ost) const;
+
 	// Libelles utilisateurs
 	const ALString GetObjectLabel() const override;
 
 	// Methode de test
 	static void Test();
 
-	// Test en specifiant les caracteristiques d'une table racine et d'une table secondaire
+	// Test en specifiant les caracteristiques d'une table principale et d'une table secondaire
 	// au moyen de jeux de donnees artificiels
 	// La taille de buffer n'est prise en compte que si elle est differente de 0.
-	static boolean TestWithArtificialRootAndSecondaryTables(int nRootLineNumber, int nRootLineNumberPerKey,
-								double dRootSamplingRate, int nSecondaryLineNumber,
+	static boolean TestWithArtificialMainAndSecondaryTables(int nMainLineNumber, int nMainLineNumberPerKey,
+								double dMainSamplingRate, int nSecondaryLineNumber,
 								int nSecondaryLineNumberPerKey,
 								double dSecondarySamplingRate, int nBufferSize);
 
@@ -125,6 +140,15 @@ protected:
 	ALString sFileName;
 	boolean bHeaderLineUsed;
 	char cFieldSeparator;
+
+	// Memoire utilisee pour le stckage des cle
+	longint lInputKeysUsedMemory;
+	longint lOutputKeysUsedMemory;
+
+	// Definition des exigences pour la taille du buffer
+	int nReadSizeMin;
+	int nReadSizeMax;
+	int nReadBufferSize;
 
 	// Table d'echantillons de cle (ObjectArray de KWKeyPosition)
 	// Memorisation des resultats d'analyse des esclaves
@@ -188,4 +212,7 @@ protected:
 
 	// Extracteur de cle
 	KWKeyExtractor keyExtractor;
+
+	// Fichier de travail pour l'esclave
+	InputBufferedFile inputFile;
 };

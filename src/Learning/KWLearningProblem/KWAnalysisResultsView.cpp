@@ -1,10 +1,9 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-04-06 18:11:58
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "KWAnalysisResultsView.h"
@@ -13,59 +12,47 @@ KWAnalysisResultsView::KWAnalysisResultsView()
 {
 	SetIdentifier("KWAnalysisResults");
 	SetLabel("Results");
-	AddStringField("ResultFilesDirectory", "Result files directory", "");
-	AddStringField("ResultFilesPrefix", "Result files prefix", "");
+	AddStringField("ReportFileName", "Analysis report", "");
 	AddStringField("ShortDescription", "Short description", "");
-	AddStringField("PreparationFileName", "Preparation report", "");
-	AddStringField("Preparation2DFileName", "2D preparation report", "");
-	AddStringField("ModelingDictionaryFileName", "Modeling dictionary file", "");
-	AddStringField("ModelingFileName", "Modeling report", "");
-	AddStringField("TrainEvaluationFileName", "Train evaluation report", "");
-	AddStringField("TestEvaluationFileName", "Test evaluation report", "");
-	AddStringField("VisualizationFileName", "Visualization report", "");
-	AddStringField("JSONFileName", "JSON report", "");
+	AddBooleanField("ExportAsXls", "Export as xls", false);
 
 	// Parametrage des styles;
-	GetFieldAt("ResultFilesDirectory")->SetStyle("DirectoryChooser");
+	GetFieldAt("ReportFileName")->SetStyle("FileChooser");
 
 	// ## Custom constructor
 
-#ifdef DEPRECATED_V10
-	{
-		// A terme, suprrimer VisualizationFileName du fichier KWAnalysisResults.dd et regenerer
-		// DEPRECATED V10: champ obsolete, conserve de facon cachee en V10 pour compatibilite ascendante des
-		// scenarios Pas de message, car pas de vrai impact utilisateur
-		GetFieldAt("VisualizationFileName")->SetVisible(false);
-	}
-#endif // DEPRECATED_V10
+	// Action de visualisation des resultats
+	AddAction("VisualizeReport", "Visualize report", (ActionMethod)(&KWAnalysisResultsView::VisualizeReport));
+	GetActionAt("VisualizeReport")->SetStyle("Button");
 
 	// Info-bulles
-	GetFieldAt("ResultFilesDirectory")
-	    ->SetHelpText("Name of the directory where the results files are stored."
-			  "\n By default, the results files are stored in the directory of the train database.");
-	GetFieldAt("ResultFilesPrefix")->SetHelpText("Prefix added before the name of each result file.");
+	GetFieldAt("ReportFileName")
+	    ->SetHelpText("Name of the analysis report file in JSON format."
+			  "\n An additionnal dictionary file with extension.model.kdic is built, which contains the "
+			  "trained models."
+			  "\n By default, the result files are stored in the train database directory, unless an "
+			  "absolute path is specified."
+			  "\n The JSON file is useful to inspect the modeling results from any external tool.");
 	GetFieldAt("ShortDescription")
 	    ->SetHelpText(
 		"Brief description to summarize the current analysis, which will be included in the reports.");
-	GetFieldAt("PreparationFileName")
-	    ->SetHelpText(
-		"Name of the data report file produced after the univariate data analysis on the train database.");
-	GetFieldAt("Preparation2DFileName")
-	    ->SetHelpText("Name of the report file produced after the bivariate data analysis on the train database.");
-	GetFieldAt("ModelingDictionaryFileName")
-	    ->SetHelpText("Name of the dictionary file that contains the trained predictors."
-			  "\n This dictionary file can then be used to deploy the predictors on new data.");
-	GetFieldAt("ModelingFileName")
-	    ->SetHelpText("Name of the report file produced once the predictors have been trained.");
-	GetFieldAt("TrainEvaluationFileName")
-	    ->SetHelpText(
-		"Name of the report file produced after the evaluation of the predictors on the train database.");
-	GetFieldAt("TestEvaluationFileName")
-	    ->SetHelpText(
-		"Name of the report file produced after the evaluation of the predictors on the test database.");
-	GetFieldAt("JSONFileName")
-	    ->SetHelpText("Name of the JSON file that contains the results of all the reports."
-			  "\n The JSON file is useful to inspect the modeling results from any external tool.");
+	GetFieldAt("ExportAsXls")
+	    ->SetHelpText("Option to export each report to a tabular file that can be opened using Excel, with the "
+			  "following extensions:"
+			  "\n - PreparationReport.xls: data preparation report produced after the univariate data "
+			  "analysis on the train database"
+			  "\n - TextPreparationReport.xls: data preparation report for text variables"
+			  "\n - TreePreparationReport.xls: data preparation report for tree variables"
+			  "\n - Preparation2DReport.xls: data preparation report for bivariate analysis"
+			  "\n - ModelingReport.xls: modeling report produced once the predictors have been trained"
+			  "\n - TrainEvaluationReport.xls: evaluation report produced after the evaluation of the "
+			  "predictors on the train database."
+			  "\n - TestEvaluationReport.xls: evaluation report produced after the evaluation of the "
+			  "predictors on the train database.");
+	GetActionAt("VisualizeReport")->SetHelpText("Visualize report if available, using Khiops visualization tool.");
+
+	// Short cuts
+	GetActionAt("VisualizeReport")->SetShortCut('V');
 
 	// ##
 }
@@ -90,17 +77,9 @@ void KWAnalysisResultsView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWAnalysisResults*, object);
-	editedObject->SetResultFilesDirectory(GetStringValueAt("ResultFilesDirectory"));
-	editedObject->SetResultFilesPrefix(GetStringValueAt("ResultFilesPrefix"));
+	editedObject->SetReportFileName(GetStringValueAt("ReportFileName"));
 	editedObject->SetShortDescription(GetStringValueAt("ShortDescription"));
-	editedObject->SetPreparationFileName(GetStringValueAt("PreparationFileName"));
-	editedObject->SetPreparation2DFileName(GetStringValueAt("Preparation2DFileName"));
-	editedObject->SetModelingDictionaryFileName(GetStringValueAt("ModelingDictionaryFileName"));
-	editedObject->SetModelingFileName(GetStringValueAt("ModelingFileName"));
-	editedObject->SetTrainEvaluationFileName(GetStringValueAt("TrainEvaluationFileName"));
-	editedObject->SetTestEvaluationFileName(GetStringValueAt("TestEvaluationFileName"));
-	editedObject->SetVisualizationFileName(GetStringValueAt("VisualizationFileName"));
-	editedObject->SetJSONFileName(GetStringValueAt("JSONFileName"));
+	editedObject->SetExportAsXls(GetBooleanValueAt("ExportAsXls"));
 
 	// ## Custom update
 
@@ -114,17 +93,9 @@ void KWAnalysisResultsView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWAnalysisResults*, object);
-	SetStringValueAt("ResultFilesDirectory", editedObject->GetResultFilesDirectory());
-	SetStringValueAt("ResultFilesPrefix", editedObject->GetResultFilesPrefix());
+	SetStringValueAt("ReportFileName", editedObject->GetReportFileName());
 	SetStringValueAt("ShortDescription", editedObject->GetShortDescription());
-	SetStringValueAt("PreparationFileName", editedObject->GetPreparationFileName());
-	SetStringValueAt("Preparation2DFileName", editedObject->GetPreparation2DFileName());
-	SetStringValueAt("ModelingDictionaryFileName", editedObject->GetModelingDictionaryFileName());
-	SetStringValueAt("ModelingFileName", editedObject->GetModelingFileName());
-	SetStringValueAt("TrainEvaluationFileName", editedObject->GetTrainEvaluationFileName());
-	SetStringValueAt("TestEvaluationFileName", editedObject->GetTestEvaluationFileName());
-	SetStringValueAt("VisualizationFileName", editedObject->GetVisualizationFileName());
-	SetStringValueAt("JSONFileName", editedObject->GetJSONFileName());
+	SetBooleanValueAt("ExportAsXls", editedObject->GetExportAsXls());
 
 	// ## Custom refresh
 
@@ -137,5 +108,38 @@ const ALString KWAnalysisResultsView::GetClassLabel() const
 }
 
 // ## Method implementation
+
+void KWAnalysisResultsView::VisualizeReport()
+{
+	KWAnalysisResults* analysisResults;
+	ALString sAnalysisReportFileName;
+	boolean bOk;
+	char sResult[SYSTEM_MESSAGE_LENGTH + 1];
+
+	// Acces aux resultats d'analyse
+	analysisResults = GetKWAnalysisResults();
+	assert(analysisResults->GetTrainDatabase() != NULL);
+
+	// Recherche du nom du rapport d'analyse
+	sAnalysisReportFileName = analysisResults->BuildOutputFilePathName(analysisResults->GetReportFileName());
+
+	// Warning si pas de fichier de rapprot
+	if (not FileService::FileExists(sAnalysisReportFileName))
+		AddWarning("No report found for file name " + sAnalysisReportFileName);
+	// Ouverture sinon
+	else
+	{
+		assert(FileService::GetFileSuffix(sAnalysisReportFileName) == "khj");
+		bOk = OpenApplication("khiops-visualization", "Khiops visualization", sAnalysisReportFileName, sResult);
+		if (not bOk)
+			AddWarning(sResult);
+	}
+}
+
+const ALString KWAnalysisResultsView::GetObjectLabel() const
+{
+	// Redefini a vide, car le ClassLabel est suffisant dans les messages
+	return "";
+}
 
 // ##

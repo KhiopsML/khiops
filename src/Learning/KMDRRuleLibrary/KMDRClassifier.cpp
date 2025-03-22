@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -37,9 +37,6 @@ KWDerivationRule* KMDRClassifier::Create() const
 boolean KMDRClassifier::CheckOperandsFamily(const KWDerivationRule* ruleFamily) const
 {
 	boolean bOk = true;
-	KWDRContinuousVector continuousVectorRule;
-	KWDRDataGridStats dataGridStatsRule;
-	KWDRDataGrid dataGridRule;
 	ALString sTmp;
 
 	require(ruleFamily != NULL);
@@ -55,12 +52,12 @@ boolean KMDRClassifier::CheckOperandsFamily(const KWDerivationRule* ruleFamily) 
 	return bOk;
 }
 
-boolean KMDRClassifier::CheckOperandsCompletness(KWClass* kwcOwnerClass) const
+boolean KMDRClassifier::CheckOperandsCompleteness(KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 
 	//	// Methode ancetre
-	bOk = KWDerivationRule::CheckOperandsCompletness(kwcOwnerClass);
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
 	return bOk;
 }
@@ -205,14 +202,13 @@ void KMDRClassifier::Compile(KWClass* kwcOwnerClass)
 	// Appel de la methode ancetre
 	KWDerivationRule::Compile(kwcOwnerClass);
 
-	// Optimisation si necessaire
-	// Compilation dynamique si necessaire
-	if (nOptimizationFreshness < nCompileFreshness)
+	// Optimisation si necessaire, en comparant a la fraicheur de la classe entiere
+	if (nOptimizationFreshness < kwcOwnerClass->GetCompileFreshness())
 	{
 		const KWDRSymbolValueSet* targetSymbolValueSet;
 
 		// Memorisation de la fraicheur
-		nOptimizationFreshness = nCompileFreshness;
+		nOptimizationFreshness = kwcOwnerClass->GetCompileFreshness();
 
 		// Recherche du dernier operande: distribution des valeurs cibles
 		targetSymbolValueSet =

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -9,12 +9,29 @@ boolean KWDiscretizerMODLFamily::IsMODLFamily() const
 	return true;
 }
 
+KWMODLHistogramResults* KWDiscretizerMODLFamily::BuildMODLHistogramResults() const
+{
+	return NULL;
+}
+
+KWMODLHistogramResults* KWDiscretizerMODLFamily::CreateMODLHistogramResults() const
+{
+	return NULL;
+}
+
+const PLSharedObject* KWDiscretizerMODLFamily::GetMODLHistogramResultsSharedObject() const
+{
+	return NULL;
+}
+
 //////////////////////////////////////////////////////////////////////////////////
 // Classe KWDiscretizerMODL
 
-double KWDiscretizerMODL::dPriorityDeltaCost = -1e9;
+const double KWDiscretizerMODL::dPriorityDeltaCost = -1e9;
 
-double KWDiscretizerMODL::dInfiniteCost = 1e20;
+const double KWDiscretizerMODL::dInfiniteCost = 1e20;
+
+const double KWDiscretizerMODL::dEpsilon = 1e-6;
 
 KWDiscretizerMODL::KWDiscretizerMODL()
 {
@@ -25,7 +42,6 @@ KWDiscretizerMODL::KWDiscretizerMODL()
 	nMergeSplitNumber = 0;
 	nMergeMergeSplitNumber = 0;
 	discretizationCosts = new KWMODLDiscretizationCosts;
-	dEpsilon = 1e-8;
 }
 
 KWDiscretizerMODL::~KWDiscretizerMODL()
@@ -194,7 +210,7 @@ void KWDiscretizerMODL::Discretize(KWFrequencyTable* kwftSource, KWFrequencyTabl
 				delete kwftMergedTable;
 				kwftMergedTable = NULL;
 
-				if (dCost < dBestCost)
+				if (dCost < dBestCost - dEpsilon)
 				{
 					dBestCost = dCost;
 					// Destruction de l'optimum precedent
@@ -504,7 +520,7 @@ void KWDiscretizerMODL::GranularizeFrequencyTable(KWFrequencyTable* kwftSource, 
 			// Creation de la table de contingence cible
 			kwftTarget = new KWFrequencyTable;
 			kwftTarget->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-			kwftTarget->Initialize(nActualPartileNumber);
+			kwftTarget->SetFrequencyVectorNumber(nActualPartileNumber);
 
 			// Initialisation du nombre initial de valeurs et du nombre de valeurs apres granularisation
 			// Dans le cas d'une variable numerique, on conserve le nombre theorique de valeurs apres
@@ -573,7 +589,7 @@ void KWDiscretizerMODL::TestGranularizeFrequencyTable()
 	nSourceNumber = 100;
 	nTargetNumber = 2;
 	nTableFrequency = 1000;
-	kwftTest.Initialize(nSourceNumber);
+	kwftTest.SetFrequencyVectorNumber(nSourceNumber);
 
 	// Initialisation de la taille des vecteurs de la table
 	for (nSource = 0; nSource < nSourceNumber; nSource++)
@@ -789,7 +805,7 @@ void KWDiscretizerMODL::MergeFrequencyTablePureIntervals(KWFrequencyTable* kwftS
 	// Creation de la table de contingence issue de la fusion
 	kwftTarget = new KWFrequencyTable;
 	kwftTarget->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-	kwftTarget->Initialize(oaFrequencies.GetSize());
+	kwftTarget->SetFrequencyVectorNumber(oaFrequencies.GetSize());
 	kwftTarget->SetInitialValueNumber(kwftSource->GetInitialValueNumber());
 	kwftTarget->SetGranularizedValueNumber(kwftSource->GetGranularizedValueNumber());
 	kwftTarget->SetGranularity(kwftSource->GetGranularity());
@@ -870,7 +886,7 @@ KWFrequencyTable* KWDiscretizerMODL::BuildFrequencyTableFromIntervalList(KWMODLL
 	{
 		// Dimensionnement
 		kwftFrequencyTable->SetFrequencyVectorCreator(GetFrequencyVectorCreator()->Clone());
-		kwftFrequencyTable->Initialize(nLineNumber);
+		kwftFrequencyTable->SetFrequencyVectorNumber(nLineNumber);
 
 		// Initialisation
 		line = headLine;
@@ -1532,7 +1548,6 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 	int nIntervalNumber;
 	int nSurnumerousIntervalNumber;
 	int nStepNumber;
-	PeriodicTest periodicTestOptimize;
 
 	require(kwftSource != NULL);
 	require(headInterval != NULL);
@@ -1575,7 +1590,7 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 		nStepNumber++;
 
 		// Test si arret de tache demandee
-		if (periodicTestOptimize.IsTestAllowed(0) and TaskProgression::IsInterruptionRequested())
+		if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
 			break;
 
 		// Calcul du nombre d'inetrvalles surnumeraires pour la prise en compte de
@@ -1745,12 +1760,9 @@ void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTa
 	SortedList mergeSplitList(KWMODLLineDeepOptimizationCompareMergeSplitDeltaCost);
 	boolean bContinue;
 	KWMODLLineDeepOptimization* mergeSplitInterval;
-	double dMergeSplitDeltaCost;
 	double dBestDeltaCost;
 	int nIntervalNumber;
-	int nSurnumerousIntervalNumber;
 	int nStepNumber;
-	PeriodicTest periodicTestOptimize;
 
 	require(kwftSource != NULL);
 	require(headInterval != NULL);
@@ -1788,44 +1800,27 @@ void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTa
 		nStepNumber++;
 
 		// Test si arret de tache demandee
-		if (periodicTestOptimize.IsTestAllowed(0) and TaskProgression::IsInterruptionRequested())
+		if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
 			break;
-
-		// Calcul du nombre d'inetrvalles surnumeraires pour la prise en compte de
-		// la contrainte de nombre max d'intervalles
-		nSurnumerousIntervalNumber = -1;
-		if (GetMaxIntervalNumber() > 0)
-			nSurnumerousIntervalNumber = nIntervalNumber - GetMaxIntervalNumber();
 
 		// Recherche du meilleur MergeSplit et de son cout
 		if (mergeSplitList.GetCount() > 0)
 		{
 			mergeSplitInterval = cast(KWMODLLineDeepOptimization*, mergeSplitList.GetHead());
-			dMergeSplitDeltaCost = mergeSplitInterval->GetMergeSplit()->GetDeltaCost();
+			dBestDeltaCost = mergeSplitInterval->GetMergeSplit()->GetDeltaCost();
 		}
 		else
 		{
 			mergeSplitInterval = NULL;
-			dMergeSplitDeltaCost = dInfiniteCost;
+			dBestDeltaCost = dInfiniteCost;
 		}
 
 		// Gestion des problemes numeriques pour les valeur proches de zero
-		if (fabs(dMergeSplitDeltaCost) < dEpsilon)
-			dMergeSplitDeltaCost = 0;
+		if (fabs(dBestDeltaCost) < dEpsilon)
+			dBestDeltaCost = 0;
 
-		// Calcul de la plus petite variation de cout, en privilegiant les
-		// optimisation diminuant le nombre d'intervalles
-		// Initialisation avec un cout infini, pour gestion de la contrainte
-		// de nombre max d'intervalles
-		dBestDeltaCost = dInfiniteCost;
-
-		// Prise en compte des MergeSplit si la contrainte de nombre max d'intervalles
-		// est respectee
-		if (nSurnumerousIntervalNumber <= 0 and dMergeSplitDeltaCost < dBestDeltaCost + dEpsilon)
-			dBestDeltaCost = dMergeSplitDeltaCost;
-
-		// Pas d'optimisation si la variation de cout est strictement positive
-		if (dBestDeltaCost > 0)
+		// Pas d'optimisation si la variation de cout est positive ou nulle
+		if (dBestDeltaCost >= 0)
 		{
 			bContinue = false;
 
@@ -1839,20 +1834,8 @@ void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTa
 				cout << nIntervalNumber << endl;
 			}
 		}
-		// En cas de variation nulle, arret si pas de diminution du nombre d'intervalles
-		else if (dBestDeltaCost == 0)
-		{
-			bContinue = false;
-
-			// Affichage d'un message
-			if (bPrintOptimisationDetails)
-			{
-				cout << dBestDeltaCost << "\t" << ComputePartitionDeltaCost(nIntervalNumber) << "\t"
-				     << nIntervalNumber << endl;
-			}
-		}
 		// Test si MergeSplit
-		else if (dBestDeltaCost == dMergeSplitDeltaCost)
+		else
 		{
 			// Affichage d'un message
 			if (bPrintOptimisationDetails)

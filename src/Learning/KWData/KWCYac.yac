@@ -1,1424 +1,1878 @@
-%
-{
+%{
 
-	/* ATTENTION: les regles openparenthesis et closeparenthesis generent             */
-	/* 3 shift/reduce conflicts et 15 reduce/reduce conflicts                         */
-	/* La regle kwclassBegin genere 1 reduce/reduce conflict supplementaire           */
-	/* Attention: modifier ces regles en cas d'evolution du parser                    */
-	/* Ces regles ne sont utiles que pour le diagnostique des erreurs de parenthesage */
-	/* ou de rattrapage sur declaration d'attribut erronee                            */
-	/* Ces regles sont reperables par le mot cle ERRORMGT                             */
+// ATTENTION: les regles openparenthesis et closeparenthesis generent
+// de nombreux shift/reduce et reduce/reduce conflicts
+// D'autre regles, notamment pour le gestion des commentaires, generent
+// egalement des conflits                   
 
 #include "KWClassDomain.h"
 #include "KWClass.h"
 #include "KWContinuous.h"
 #include "KWDerivationRule.h"
+#include "KWRelationCreationRule.h"
 #include "KWStructureRule.h"
 #include "KWMetaData.h"
 
-	/* Declaration du lexer utilise */
-	void yyerror(char const* fmt);
-	void yyerrorWithLineCorrection(char const* fmt, int nDeltaLineNumber);
-	int yylex();
+// Declaration du lexer utilise
+void yyerror(char const *fmt);
+void yyerrorWithLineCorrection(char const *fmt, int nDeltaLineNumber);
+int yylex();
 
-/* Work around a bug in the relation between bison and GCC 3.x: */
-#if defined(__GNUC__) && 3 <= __GNUC__
+// Fonctions utilitaires pour rappatrier les information du parser vers une regle
+boolean ImportParserRuleOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule);
+boolean ImportParserRuleOutputOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule);
+boolean ImportParserOperand(const ALString& sRuleName, int nOperandIndex, 
+                            KWDerivationRuleOperand* parsedOperand, KWDerivationRuleOperand* operand);
+
+// Work around a bug in the relation between bison and GCC 3.x:
+#if defined (__GNUC__) && 3 <= __GNUC__
 #define __attribute__(arglist)
 #endif
 
-	/* Domaine de classe courant a utiliser pendant la lecture d'un fichier. */
-	/* Ce domaine est positionner par la methode Load de KWClassDomain       */
-	static KWClassDomain* kwcdLoadDomain = NULL;
+// Domaine de classe courant a utiliser pendant la lecture d'un fichier.
+// Ce domaine est positionner par la methode Load de KWClassDomain
+static KWClassDomain* kwcdLoadDomain=NULL;
 
-	/* Classe courante a utiliser pendant la lecture d'un fichier.     */
-	/* Ce domaine est positionner par la methode Load de KWClassDomain */
-	static KWClass* kwcLoadCurrentClass = NULL;
+// Classe courante a utiliser pendant la lecture d'un fichier.
+// Ce domaine est positionner par la methode Load de KWClassDomain
+static KWClass* kwcLoadCurrentClass=NULL;
 
-	/* Dictionnaire des classes referencees creees a la volee lorsqu'elles sont      */
-	/* utilisees, mais non crees.                                                    */
-	/* On rajoute les classes referencees non crees, et on retire les classes crees. */
-	static ObjectDictionary* odReferencedUncreatedClasses = NULL;
+// Dictionnaire des classes referencees creees a la volee lorsqu'elles sont
+// utilisees, mais non crees.              
+// On rajoute les classes referencees non crees, et on retire les classes crees.
+static ObjectDictionary* odReferencedUncreatedClasses=NULL;
 
-	/* Nombre total d'erreurs de parsing */
-	static int nFileParsingErrorNumber = 0;
+// Nombre total d'erreurs de parsing
+static int nFileParsingErrorNumber = 0;
+
 
 #define YY_STATIC
 
-	/* Debugging YAC */
+// Debugging YAC
+// Ajouter ici les instruction suivantes
+//   #define YYDEBUG 1 
+//   extern char   *yyptok(int i); 
+// Ajouter l'instruction yydebug = 1 dans le code d'une action du fichier .lex ou .yac
 
-	/*
-	#define YYDEBUG 1
-	extern char   *yyptok(int i);
-	*/
 
-	%
-}
+%}
 
-% union
-{
-	Continuous cValue;
-	ALString* sValue;
-	boolean bValue;
-	StringVector* svValue;
-	KWDerivationRule* kwdrValue;
-	KWDerivationRuleOperand* kwdroValue;
-	KWClass* kwcValue;
-	KWAttribute* kwaValue;
-	ObjectArray* oaAttributes;
-	KWMetaData* kwmdMetaData;
-	int nValue;
+%union {
+  Continuous cValue;
+  ALString* sValue;
+  boolean bValue;
+  StringVector* svValue;
+  KWDerivationRule* kwdrValue;
+  KWDerivationRuleOperand* kwdroValue;
+  KWClass* kwcValue;
+  KWAttribute* kwaValue;
+  ObjectArray* oaAttributes;
+  ObjectArray* oaOperands;
+  KWMetaData* kwmdMetaData;
+  int nValue;
 };
 
-% token<sValue> BASICIDENTIFIER % token<sValue> EXTENDEDIDENTIFIER % token<cValue> CONTINUOUSLITTERAL % token<sValue> STRINGLITTERAL % token<sValue> LABEL % token<sValue> APPLICATIONID % token CLASS % token CONTINUOUSTYPE % token SYMBOLTYPE % token OBJECTTYPE % token OBJECTARRAYTYPE % token ROOT % token UNUSED % token DATETYPE % token TIMETYPE % token TIMESTAMPTYPE % token STRUCTURETYPE
 
-    % type<nValue> CLASS % type<nValue> CONTINUOUSTYPE % type<nValue> SYMBOLTYPE % type<nValue> OBJECTTYPE % type<nValue> OBJECTARRAYTYPE % type<sValue> IDENTIFIER % type<sValue> SIMPLEIDENTIFIER % type<sValue> comments % type<sValue> applicationids % type<sValue> bigstring % type<sValue> refIdentifier % type<bValue> rootDeclaration % type<bValue> usedDeclaration % type<nValue> typeDeclaration % type<kwcValue> kwclassHeader % type<kwcValue> kwclassBegin % type<kwaValue> kwattributeDeclaration % type<oaAttributes> oaAttributeArrayDeclaration % type<kwdrValue> usedDerivationRule % type<kwdrValue> referenceRule % type<kwdrValue> referenceRuleBody % type<kwdrValue> derivationRule % type<kwdrValue> derivationRuleBody % type<kwdrValue> derivationRuleHeader % type<kwdrValue> derivationRuleBegin % type<kwdroValue> derivationRuleOperand % type<svValue> keyFields % type<svValue> keyFieldList % type<kwmdMetaData> metaData
+%token <sValue>    BASICIDENTIFIER
+%token <sValue>    EXTENDEDIDENTIFIER
+%token <cValue>    CONTINUOUSLITTERAL
+%token <sValue>    STRINGLITTERAL
+%token <sValue>    COMMENT
+%token <sValue>    LABEL 
+%token <sValue>    APPLICATIONID 
+%token CLASS 
+%token CONTINUOUSTYPE
+%token SYMBOLTYPE
+%token OBJECTTYPE
+%token OBJECTARRAYTYPE
+%token ROOT
+%token UNUSED
+%token DATETYPE
+%token TIMETYPE
+%token TIMESTAMPTYPE
+%token TIMESTAMPTZTYPE
+%token TEXTTYPE
+%token TEXTLISTTYPE
+%token STRUCTURETYPE
 
-    /* Parametrage du destructeur a appeler en cas d'erreur, sauf pour les KWClass <kwcValue> qui sont integree dans des KWClassDomain */
-    % destructor
-{
-	if ($$ != NULL)
-		delete $$;
-	$$ = NULL;
-}
-<sValue><svValue><kwdrValue><kwdroValue><oaAttributes><kwmdMetaData><kwaValue>
+%type <nValue> CLASS 
+%type <nValue> CONTINUOUSTYPE
+%type <nValue> SYMBOLTYPE
+%type <nValue> OBJECTTYPE
+%type <nValue> OBJECTARRAYTYPE
+%type <sValue> IDENTIFIER
+%type <sValue> SIMPLEIDENTIFIER
+%type <sValue> label
+%type <svValue> comments
+%type <svValue> labelOrComments
+%type <sValue> applicationids
+%type <sValue> bigstring
+%type <sValue> refIdentifier
+%type <bValue> rootDeclaration
+%type <bValue> usedDeclaration
+%type <nValue> typeDeclaration
+%type <kwcValue> kwclassHeader
+%type <kwcValue> kwclassBegin
+%type <kwaValue> kwattributeDeclaration
+%type <oaAttributes> oaAttributeArrayDeclaration
+%type <kwdrValue> usedDerivationRule
+%type <kwdrValue> referenceRule
+%type <kwdrValue> referenceRuleBody
+%type <kwdrValue> derivationRule
+%type <kwdrValue> derivationRuleBody
+%type <kwdrValue> derivationRuleHeader
+%type <kwdrValue> derivationRuleBegin
+%type <kwdroValue> derivationRuleOperand
+%type <oaOperands> operandList
+%type <svValue> keyFields
+%type <svValue> fieldList
+%type <kwmdMetaData> metaData
 
-    % start kwclassFile
 
-    % %
+// Parametrage du destructeur a appeler en cas d'erreur, sauf pour les KWClass <kwcValue> qui sont integree dans des KWClassDomain
+%destructor {if ($$ != NULL) delete $$; $$=NULL;} <sValue> <svValue> <kwdrValue> <kwdroValue> <oaAttributes> <oaOperands> <kwmdMetaData> <kwaValue>
 
-    IDENTIFIER : SIMPLEIDENTIFIER
-{
-	$$ = $1;
-}
-| EXTENDEDIDENTIFIER
-{
-	$$ = $1;
-};
 
-SIMPLEIDENTIFIER : BASICIDENTIFIER
-{
-	$$ = $1;
-}
-| CLASS
-{
-	$$ = new ALString("Dictionary");
-}
-| CONTINUOUSTYPE
-{
-	$$ = new ALString("Numerical");
-}
-| SYMBOLTYPE
-{
-	$$ = new ALString("Categorical");
-}
-| OBJECTTYPE
-{
-	$$ = new ALString("Entity");
-}
-| OBJECTARRAYTYPE
-{
-	$$ = new ALString("Table");
-}
-| ROOT
-{
-	$$ = new ALString("Root");
-}
-| UNUSED
-{
-	$$ = new ALString("Unused");
-}
-| DATETYPE
-{
-	$$ = new ALString("Date");
-}
-| TIMETYPE
-{
-	$$ = new ALString("Time");
-}
-| TIMESTAMPTYPE
-{
-	$$ = new ALString("Timestamp");
-}
-| STRUCTURETYPE
-{
-	$$ = new ALString("Structure");
-};
 
-kwclassFile : applicationids kwclasses comments
-{
-	/* On ignore l'identification d'application */
-	if ($1 != NULL)
-		delete $1;
+%start kwclassFile
 
-	/* On ignore les commentaires en fin de fichier */
-	if ($3 != NULL)
-		delete $3;
-};
+%%
 
-kwclasses : kwclasses kwclass | kwclasses error
-{
-	yyerror("Error outside the definition of a dictionary");
-	YYABORT;
-}
-| /* NULL */
+IDENTIFIER:
+	  SIMPLEIDENTIFIER
+        {
+          $$ = $1;
+        }
+	| EXTENDEDIDENTIFIER
+        {
+          $$ = $1;
+        }
+	;
+
+SIMPLEIDENTIFIER:
+	  BASICIDENTIFIER
+        {
+          $$ = $1;
+        }
+	|	CLASS
+        {
+          $$ = new ALString("Dictionary");
+        }
+	|	CONTINUOUSTYPE
+		{
+          $$ = new ALString("Numerical");
+		}
+	|	SYMBOLTYPE
+		{
+          $$ = new ALString("Categorical");
+		}
+	|	OBJECTTYPE
+		{
+          $$ = new ALString("Entity");
+		}
+	|	OBJECTARRAYTYPE
+		{
+          $$ = new ALString("Table");
+		}
+	|	ROOT
+		{
+          $$ = new ALString("Root");
+		}
+	|	UNUSED
+		{
+          $$ = new ALString("Unused");
+		}
+	|	DATETYPE
+		{
+          $$ = new ALString("Date");
+		}
+	|	TIMETYPE
+		{
+          $$ = new ALString("Time");
+		}
+	|	TIMESTAMPTYPE
+		{
+          $$ = new ALString("Timestamp");
+		}
+	|	TIMESTAMPTZTYPE
+		{
+          $$ = new ALString("TimestampTZ");
+		}
+	|	TEXTTYPE
+		{
+          $$ = new ALString("Text");
+		}
+	|	TEXTLISTTYPE
+		{
+          $$ = new ALString("TextList");
+		}
+	|	STRUCTURETYPE
+		{
+          $$ = new ALString("Structure");
+		}
+	;
+    
+kwclassFile: applicationids kwclasses comments
+    {
+	  ALString* sId = $1;
+	  StringVector* svComments = $3;
+
+	  // On ignore l'identification d'application
+	  if (sId != NULL)
+	    delete sId;
+	
+	  // On interdit les commentaires en fin de fichier
+	  if (svComments != NULL)
+	  {
+	    delete svComments;
+	    yyerrorWithLineCorrection("Comments at the end of the file are not allowed", -1);
+	  }
+	}
+	;
+
+kwclasses: // NULL
+  | kwclasses kwclass
+  | kwclasses error 
+      { yyerror("Error outside the definition of a dictionary"); 
+	    YYABORT; }
+  ;
+
+kwclass: kwclassBegin comments '}' semicolon
+		{
+		  KWClass* kwcClass=$1;
+		  StringVector* svComments = $2;
+
+		  // La completion des informations de type (CompleteTypeInfo) est centralisee
+		  // au niveau du domaine en fin de parsing
+
+		  // Commentaires internes
+		  if (svComments != NULL)
+		  {
+		    kwcClass->SetInternalComments(svComments);
+			delete svComments;
+		  }
+
+		  // Reinitialisation de la classe courante
+  		  kwcLoadCurrentClass = NULL;
+		}
+	;
+
+kwclassBegin: kwclassHeader
+		{
+		  assert(kwcLoadCurrentClass == $1);
+		  $$ = $1;
+		}
+	| kwclassBegin kwattributeDeclaration
+        {
+		  KWClass* kwcClass=$1;
+		  KWAttribute* attribute=$2;
+		  ALString sMessage;
+		  assert(kwcLoadCurrentClass == $1);
+
+		  // Si attribut non valide: on ne fait rien
+		  if (attribute == NULL)
+		    ; 
+		  // Si classe non valide, supression de l'attribut
+		  else if (kwcClass == NULL)
+		    delete attribute;
+	      // Sinon, test de validite du nom de l'attribut
+		  else if (! kwcClass->CheckNameWithMessage(attribute->GetName(), KWClass::Attribute, sMessage))
+		  {
+		    yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() + 
+			", " + sMessage, -1);
+			delete attribute;
+		  }
+		  // Test de non existence parmi les attributs
+		  else if (kwcClass->LookupAttribute(attribute->GetName()) != NULL)
+		  {
+		    yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() + 
+			": Variable name already used (" + attribute->GetName() + ")", -1);
+			delete attribute;
+  		  }
+		  // Test de non existence parmi les blocs
+		  else if (kwcClass->LookupAttributeBlock(attribute->GetName()) != NULL)
+		  {
+		    yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() + 
+			": Variable name already used by a block (" + attribute->GetName() + ")", -1);
+			delete attribute;
+  		  }
+		  // Si OK, d'insertion
+		  else
+		  {
+		    kwcClass->InsertAttribute(attribute);
+		  }
+
+		  $$ = kwcClass;       
+		 }
+	| kwclassBegin comments '{'  oaAttributeArrayDeclaration comments '}' IDENTIFIER usedDerivationRule semicolon metaData label
+		{
+		  KWClass* kwcClass=$1;
+		  StringVector* svComments = $2;
+		  ObjectArray* oaAttributes = $4;
+		  StringVector* svInternalComments = $5;
+  		  ALString* sBlockName = $7;
+		  KWDerivationRule* rule = $8;
+		  KWMetaData* metaData = $10;
+		  ALString* sLabel = $11;
+		  KWAttributeBlock* attributeBlock;
+		  KWAttribute* firstAttribute;
+		  KWAttribute* lastAttribute;
+		  ALString sMessage;
+		  assert(kwcLoadCurrentClass == $1);
+		  check(oaAttributes);
+
+		  // Cas d'un bloc avec au moins un attribut valide
+		  if (oaAttributes->GetSize() > 0)
+		  {
+	        // Test de validite du nom de l'attribut
+		    if (! kwcClass->CheckNameWithMessage(*sBlockName, KWClass::AttributeBlock, sMessage))
+		    {
+		      yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() + 
+			  ", " + sMessage, -1);
+  		    }
+			// Test de non existence parmi les attributs
+		    else if (kwcClass->LookupAttribute(*sBlockName) != NULL)
+		    {
+		      yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() + 
+			  ": Sparse variable block name already used by a variable (" + *sBlockName + ")", -1);
+  		    }
+			// Test de non existence parmi les blocs
+		    else if (kwcClass->LookupAttributeBlock(*sBlockName) != NULL)
+		    {
+		      yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() + 
+			  ": Sparse variable block name already used by a block (" + *sBlockName + ")", -1);
+  		    }
+ 	        // Creation du bloc dans la classe
+			else
+			{
+			  // Creation du bloc
+		      firstAttribute = cast(KWAttribute*, oaAttributes->GetAt(0));
+		      lastAttribute = cast(KWAttribute*, oaAttributes->GetAt(oaAttributes->GetSize()-1));
+		      attributeBlock = kwcClass->CreateAttributeBlock(*sBlockName, firstAttribute, lastAttribute);
+
+			  // Parametrage du bloc
+			  attributeBlock->SetDerivationRule(rule);
+			  if (metaData != NULL)
+			    attributeBlock->GetMetaData()->CopyFrom(metaData);
+  		      if (sLabel != NULL)
+			    attributeBlock->SetLabel(*(sLabel));
+			  if (svComments != NULL)
+			    attributeBlock->SetComments(svComments);
+			  if (svInternalComments != NULL)
+			    attributeBlock->SetInternalComments(svInternalComments);
+
+			  // On marque la rule a NULL pour indiquer qu'elle est utilisee
+			  rule = NULL;
+			}
+		  }
+
+	      // Destruction de l'eventuelle regle si non utilisee
+		  if (rule != NULL)
+		    delete rule;
+
+		  // Tous les attributs du tableau ont deja ete inseres dans la classe
+		  // On se contente de detruire le tableau
+		  delete oaAttributes;
+		  
+		  // Nettoyage
+		  if (svComments != NULL)
+		    delete svComments;
+		  if (svInternalComments != NULL)
+		    delete svInternalComments;
+		  if (sBlockName != NULL)
+		    delete sBlockName;
+		  if (metaData != NULL)
+		    delete metaData;
+		  if (sLabel != NULL)
+		    delete sLabel;
+		  
+		  $$ = kwcClass;
+		  }
+	| kwclassBegin comments '{' comments '}' IDENTIFIER usedDerivationRule semicolon metaData comments
+		{
+		  KWClass* kwcClass=$1;
+
+		  // Message d'erreur
+		  yyerror("Empty sparse variable block not allowed");
+
+		  // Nettoyage
+		  if ($2 != NULL)
+		    delete $2;
+		  if ($4 != NULL)
+		    delete $4;
+		  delete $6;
+		  if ($7 != NULL)
+		      delete $7;
+		  if ($9 != NULL)
+		    delete $9;
+		  if ($10 != NULL)
+		    delete $10;
+		  $$ = kwcClass;
+		  }
+	| kwclassBegin error 
+	    {
+		  // Attention: cette regle qui permet une gestion des erreurs amelioree
+		  // genere un conflit reduce/reduce
+		  kwcLoadCurrentClass = NULL;
+		  YYABORT;
+		}
+       	;
+
+oaAttributeArrayDeclaration : 
+	  oaAttributeArrayDeclaration kwattributeDeclaration
+        {
+		  ObjectArray* oaAttributes = $1;
+		  KWAttribute* attribute=$2;
+		  KWClass* kwcClass=kwcLoadCurrentClass;
+		  ALString sMessage;
+		  check(oaAttributes);
+
+		  // Si attribut non valide: on ne fait rien
+		  if (attribute == NULL)
+		    ; 
+		  // Si classe non valide, supression de l'attribut
+		  else if (kwcClass == NULL)
+		    delete attribute;
+	      // Sinon, test de validite du nom de l'attribut
+		  else if (! kwcClass->CheckNameWithMessage(attribute->GetName(), KWClass::Attribute, sMessage))
+		  {
+		    yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() + 
+			", " + sMessage, -1);
+			delete attribute;
+		  }
+		  // Test de non existence parmi les attributs
+		  else if (kwcClass->LookupAttribute(attribute->GetName()) != NULL)
+		  {
+		    yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() + 
+			": Variable name already used (" + attribute->GetName() + ")", -1);
+			delete attribute;
+  		  }
+		  // Test de non existence parmi les blocs
+		  else if (kwcClass->LookupAttributeBlock(attribute->GetName()) != NULL)
+		  {
+		    yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() + 
+			": Variable name already used by a block (" + attribute->GetName() + ")", -1);
+			delete attribute;
+  		  }
+		  // Si OK, d'insertion
+		  else
+		  {
+		    kwcClass->InsertAttribute(attribute);
+		    oaAttributes->Add(attribute);
+		  }
+
+		  $$ = oaAttributes;       
+		 }
+	| kwattributeDeclaration
+        {
+		  KWAttribute* attribute=$1;
+		  ObjectArray* oaAttributes;
+		  KWClass* kwcClass=kwcLoadCurrentClass;
+		  ALString sMessage;
+
+		  // Creation d'un tableau
+		  oaAttributes = new ObjectArray;
+
+		  // Si attribut non valide: on ne fait rien
+		  if (attribute == NULL)
+		    ; 
+		  // Si classe non valide, supression de l'attribut
+		  else if (kwcClass == NULL)
+		    delete attribute;
+	      // Sinon, test de validite du nom de l'attribut
+		  else if (! kwcClass->CheckNameWithMessage(attribute->GetName(), KWClass::Attribute, sMessage))
+		  {
+		    yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() + 
+			", " + sMessage, -1);
+			delete attribute;
+		  }
+		  // Test de non existence parmi les attributs
+		  else if (kwcClass->LookupAttribute(attribute->GetName()) != NULL)
+		  {
+		    yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() + 
+			": Variable name already used (" + attribute->GetName() + ")", -1);
+			delete attribute;
+  		  }
+		  // Test de non existence parmi les blocs
+		  else if (kwcClass->LookupAttributeBlock(attribute->GetName()) != NULL)
+		  {
+		    yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() + 
+			": Variable name already used by a block (" + attribute->GetName() + ")", -1);
+			delete attribute;
+  		  }
+		  // Si OK, d'insertion
+		  else
+		  {
+		    kwcClass->InsertAttribute(attribute);
+		    oaAttributes->Add(attribute);
+		  }
+
+		  $$ = oaAttributes;       
+		 }
+		;
+
+kwclassHeader: comments 
+       rootDeclaration CLASS IDENTIFIER labelOrComments 
+	   keyFields labelOrComments 
+	   metaData labelOrComments 
+	   '{'
+	   {
+	      StringVector* svComments1 = $1;
+		  boolean bRoot = $2;
+	      ALString* sIdentifier = $4;
+	      StringVector* svComments2 = $5;
+          StringVector* svKeyFields = $6;
+	      StringVector* svComments3 = $7;
+		  KWMetaData* metaData = $8;
+	      StringVector* svComments4 = $9;
+          KWClass *kwcClass;
+		  KWClass* kwcReferencedClass;
+		  StringVector svAllComments;
+		  StringVector svClassComments;
+		  int nCommentStartIndex;
+		  int i;
+		  ALString sMessage;
+
+          // Test d'existence de la classe
+          kwcClass = kwcdLoadDomain->LookupClass(*sIdentifier);
+
+          // Test d'existence de la classe en tant que classe referencee uniquement
+          kwcReferencedClass = cast(KWClass*, odReferencedUncreatedClasses->Lookup(*sIdentifier));
+		  assert(kwcReferencedClass == NULL or kwcClass == NULL);
+
+          // Erreur si la classe existe deja
+          if (kwcClass != NULL)
+          {
+            yyerror("Dictionary " + *sIdentifier + " already exists");
+   	        kwcClass = NULL;
+          }
+		  // On utilise la classe referencee si elle existe
+		  else if (kwcReferencedClass != NULL)
+		  {
+		     // Insertion dans le domaine
+		     kwcClass = kwcReferencedClass;
+			 kwcdLoadDomain->InsertClass(kwcClass);
+
+			 // Supression de la classe referencees
+			 odReferencedUncreatedClasses->RemoveKey(kwcReferencedClass->GetName());
+			 kwcReferencedClass = NULL;
+		  }
+ 		  // Sinon, on cree la classe et on l'enregistre
+          else
+          {
+		    // Test de nom de classe
+		    if (KWClass::CheckNameWithMessage(*sIdentifier, KWClass::Class, sMessage))
+		    {
+              kwcClass = new KWClass;
+              kwcClass->SetName(*sIdentifier);
+              kwcdLoadDomain->InsertClass(kwcClass);
+		    }
+		    else
+		      yyerror(sMessage);
+          }
+
+		  // Initialisation si necessaire de la classe
+		  if (kwcClass != NULL)
+		  {
+		    // Commentaire de la classe en cours
+			svClassComments.CopyFrom(kwcClass->GetComments());
+
+            // Classe racine
+            kwcClass->SetRoot(bRoot);
+            
+            // Attribut key field
+            if (svKeyFields!=NULL)
+            {
+              // Transfert des champs de la cle 
+              svKeyFields = cast(StringVector*, svKeyFields);
+              kwcClass->SetKeyAttributeNumber(svKeyFields->GetSize());
+              for (i = 0; i < svKeyFields->GetSize(); i++)
+                kwcClass->SetKeyAttributeNameAt(i, svKeyFields->GetAt(i));
+            }
+
+			// Meta-donnees de la classe
+			if (metaData != NULL)
+			    kwcClass->GetMetaData()->CopyFrom(metaData);
+
+			// On recupere les commentaires existants
+			svAllComments.CopyFrom(kwcClass->GetComments()); 
+
+ 		    // On recupere tous les commentaires entre le debut et la fin de la declaration de la classe
+            if (svComments1!=NULL)
+			{
+			  for (i = 0; i < svComments1->GetSize(); i++)
+			    svAllComments.Add(svComments1->GetAt(i));
+			}
+            if (svComments2!=NULL)
+			{
+			  for (i = 0; i < svComments2->GetSize(); i++)
+			    svAllComments.Add(svComments2->GetAt(i));
+			}
+            if (svComments3!=NULL)
+			{
+			  for (i = 0; i < svComments3->GetSize(); i++)
+			    svAllComments.Add(svComments3->GetAt(i));
+			}
+            if (svComments4!=NULL)
+			{
+			  for (i = 0; i < svComments4->GetSize(); i++)
+			    svAllComments.Add(svComments4->GetAt(i));
+			}
+
+			// Libelle de la classe: le premier des commentaires, sauf s'il existe deja
+			nCommentStartIndex = 0;
+			if (kwcClass->GetLabel() == "" and svAllComments.GetSize() > 0)
+			{
+			  kwcClass->SetLabel(svAllComments.GetAt(0));
+			  nCommentStartIndex = 1;
+			}
+
+			// Mise a jour des commentaires de la classe, en excluant potentiellement le premier commentaire reserve au libelle
+			if (svAllComments.GetSize() > 0)
+			{
+  	          for (i = nCommentStartIndex; i < svAllComments.GetSize(); i++)
+			    svClassComments.Add(svAllComments.GetAt(i));
+			  kwcClass->SetComments(&svClassComments);
+			}
+          }
+
+          // Liberation des tokens
+          delete sIdentifier;
+          if (svKeyFields!=NULL) delete svKeyFields;
+          if (metaData!=NULL) delete metaData;
+          if (svComments1!=NULL) delete svComments1;
+          if (svComments2!=NULL) delete svComments2;
+          if (svComments3!=NULL) delete svComments3;
+          if (svComments4!=NULL) delete svComments4;
+
+		  // Memorisation de la classe courante
+		  kwcLoadCurrentClass = kwcClass;
+		  $$ = kwcClass;
+	   }
+	   ;
+ 
+
+keyFields: // NULL
+        {
+          $$ = NULL; // pas de champ cle
+        }
+    | '(' fieldList ')'
+        {
+		  $$ = $2;
+        }
     ;
 
-kwclass : kwclassBegin '}' semicolon
-{
-	/* La completion des informations de type (CompleteTypeInfo) est centralisee */
-	/* au niveau du domaine en fin de parsing */
+fieldList:
+	  fieldList ',' IDENTIFIER
+        {
+            StringVector* svFields = $1;
+			ALString* sIdentifier = $3;
+            
+            // Ajout d'un nouveau de champ
+            svFields->Add(*sIdentifier);
+		    delete sIdentifier;
+			$$ = svFields;
+        }
+    | IDENTIFIER 
+        {
+			ALString* sIdentifier = $1;
+            StringVector* svFields;
+            
+            // Creation d'un tableau de champs, avec un premier champ
+            svFields = new StringVector;
+            svFields->Add(*sIdentifier);
+		    delete sIdentifier;
+			$$ = svFields;
+        }
+    ;
 
-	/* Reinitialisation de la classe courante */
-	kwcLoadCurrentClass = NULL;
-};
+metaData: // NULL
+        {
+          $$ = NULL; // pas de paires cle valeurs
+        }
+	| metaData '<' SIMPLEIDENTIFIER '=' STRINGLITTERAL '>'
+        {
+            KWMetaData* metaData = $1;
+			ALString* sKey = $3;
+			ALString* sValue = $5;
+            
+            // Creation si necessaire d'une ensemble de paires cles valeur
+			if (metaData == NULL)
+			    metaData = new KWMetaData;
 
-kwclassBegin : kwclassHeader comments
-{
-	/* On ignore les premiers comemntaires */
-	if ($2 != NULL)
-		delete $2;
-	assert(kwcLoadCurrentClass == $1);
-	$$ = $1;
-}
-| kwclassBegin kwattributeDeclaration
-{
-	KWClass* kwcClass = $1;
-	KWAttribute* attribute = $2;
-	assert(kwcLoadCurrentClass == $1);
-	boolean bOk;
-
-	/* Si attribut non valide: on ne fait rien */
-	if (attribute == NULL)
-		;
-	/* Si classe non valide, supression de l'attribut */
-	else if (kwcClass == NULL)
-		delete attribute;
-	/* Sinon, test de validite du nom de l'attribut */
-	else if (!kwcClass->CheckName(attribute->GetName(), kwcClass))
-	{
-		yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() +
-					      ": Incorrect variable name",
-					  -1);
-		delete attribute;
-	}
-	/* Test de non existence parmi les attributs */
-	else if (kwcClass->LookupAttribute(attribute->GetName()) != NULL)
-	{
-		yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() +
-					      ": Variable name already used (" + attribute->GetName() + ")",
-					  -1);
-		delete attribute;
-	}
-	/* Test de non existence parmi les blocs */
-	else if (kwcClass->LookupAttributeBlock(attribute->GetName()) != NULL)
-	{
-		yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() +
-					      ": Variable name already used by a block (" + attribute->GetName() + ")",
-					  -1);
-		delete attribute;
-	}
-	/* Si OK, d'insertion */
-	else
-	{
-		bOk = kwcClass->InsertAttribute(attribute);
-		assert(bOk);
-	}
-
-	$$ = kwcClass;
-}
-| kwclassBegin '{' comments oaAttributeArrayDeclaration '}' IDENTIFIER usedDerivationRule semicolon metaData comments
-{
-	KWClass* kwcClass = $1;
-	KWAttributeBlock* attributeBlock;
-	ObjectArray* oaAttributes = $4;
-	ALString sBlockName;
-	KWAttribute* firstAttribute;
-	KWAttribute* lastAttribute;
-	KWDerivationRule* rule = $7;
-	assert(kwcLoadCurrentClass == $1);
-	check(oaAttributes);
-
-	/* On ignore les premiers comemntaires */
-	if ($3 != NULL)
-		delete $3;
-
-	/* Nom du bloc */
-	if ($6 != NULL)
-		sBlockName = *($6);
-
-	/* Cas d'un bloc avec au moins un attribut valide */
-	if (oaAttributes->GetSize() > 0)
-	{
-		/* Test de validite du nom de l'attribut */
-		if (!kwcClass->CheckName(sBlockName, kwcClass))
-		{
-			yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() +
-						      ": Incorrect sparse variable block name (" + sBlockName + ")",
-						  -1);
-		}
-		/* Test de non existence parmi les attributs */
-		else if (kwcClass->LookupAttribute(sBlockName) != NULL)
-		{
-			yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() +
-						      ": Sparse variable block name already used by a variable (" + sBlockName + ")",
-						  -1);
-		}
-		/* Test de non existence parmi les blocs */
-		else if (kwcClass->LookupAttributeBlock(sBlockName) != NULL)
-		{
-			yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() +
-						      ": Sparse variable block name already used by a block (" + sBlockName + ")",
-						  -1);
-		}
-		/* Creation du bloc dans la classe */
-		else
-		{
-			/* Creation du bloc */
-			firstAttribute = cast(KWAttribute*, oaAttributes->GetAt(0));
-			lastAttribute = cast(KWAttribute*, oaAttributes->GetAt(oaAttributes->GetSize() - 1));
-			attributeBlock = kwcClass->CreateAttributeBlock(sBlockName, firstAttribute, lastAttribute);
-
-			/* Parametrage du bloc */
-			attributeBlock->SetDerivationRule(rule);
-			if ($9 != NULL)
-				attributeBlock->GetMetaData()->CopyFrom($9);
-			if ($10 != NULL)
-				attributeBlock->SetLabel(*($10));
-
-			/* On marque la rule a NULL pour indiquer qu'elle est utilisee */
-			rule = NULL;
-		}
-	}
-
-	/* Destruction de l'eventuelle regle si non utilisee */
-	if (rule != NULL)
-		delete rule;
-
-	/* Tous les attributs du tableau ont deja ete inseres dans la classe */
-	// On se contente de detruire le tableau */
-	delete oaAttributes;
-
-	/* Nettoyage */
-	if ($6 != NULL)
-		delete $6;
-	if ($9 != NULL)
-		delete $9;
-	if ($10 != NULL)
-		delete $10;
-
-	$$ = kwcClass;
-}
-| kwclassBegin '{' comments '}' IDENTIFIER usedDerivationRule semicolon metaData comments
-{
-	KWClass* kwcClass = $1;
-
-	/* Message d'erreur */
-	yyerror("Empty sparse variable block not allowed");
-
-	/* Nettoyage */
-	if ($3 != NULL)
-		delete $3;
-	delete $5;
-	if ($6 != NULL)
-		delete $6;
-	if ($8 != NULL)
-		delete $8;
-	if ($9 != NULL)
-		delete $9;
-	$$ = kwcClass;
-}
-| kwclassBegin error
-{
-	/* ERRORMGT */
-	/* Attention: cette regle qui permet une gestion des erreurs amelioree */
-	/* genere un conflit reduce/reduce */
-	kwcLoadCurrentClass = NULL;
-	YYABORT;
-};
-
-oaAttributeArrayDeclaration : oaAttributeArrayDeclaration kwattributeDeclaration
-{
-	ObjectArray* oaAttributes = $1;
-	KWAttribute* attribute = $2;
-	KWClass* kwcClass = kwcLoadCurrentClass;
-	boolean bOk;
-	check(oaAttributes);
-
-	/* Si attribut non valide: on ne fait rien */
-	if (attribute == NULL)
-		;
-	/* Si classe non valide, supression de l'attribut */
-	else if (kwcClass == NULL)
-		delete attribute;
-	/* Sinon, test de validite du nom de l'attribut */
-	else if (!kwcClass->CheckName(attribute->GetName(), kwcClass))
-	{
-		yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() +
-					      ": Incorrect variable name (" + attribute->GetName() + ")",
-					  -1);
-		delete attribute;
-	}
-	/* Test de non existence parmi les attributs */
-	else if (kwcClass->LookupAttribute(attribute->GetName()) != NULL)
-	{
-		yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() +
-					      ": Variable name already used (" + attribute->GetName() + ")",
-					  -1);
-		delete attribute;
-	}
-	/* Test de non existence parmi les blocs */
-	else if (kwcClass->LookupAttributeBlock(attribute->GetName()) != NULL)
-	{
-		yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() +
-					      ": Variable name already used by a block (" + attribute->GetName() + ")",
-					  -1);
-		delete attribute;
-	}
-	/* Si OK, d'insertion */
-	else
-	{
-		bOk = kwcClass->InsertAttribute(attribute);
-		oaAttributes->Add(attribute);
-		assert(bOk);
-	}
-
-	$$ = oaAttributes;
-}
-| kwattributeDeclaration
-{
-	ObjectArray* oaAttributes;
-	KWAttribute* attribute = $1;
-	KWClass* kwcClass = kwcLoadCurrentClass;
-	boolean bOk;
-
-	/* Creation d'un tableau */
-	oaAttributes = new ObjectArray;
-
-	/* Si attribut non valide: on ne fait rien */
-	if (attribute == NULL)
-		;
-	/* Si classe non valide, supression de l'attribut */
-	else if (kwcClass == NULL)
-		delete attribute;
-	/* Sinon, test de validite du nom de l'attribut */
-	else if (!kwcClass->CheckName(attribute->GetName(), kwcClass))
-	{
-		yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() +
-					      ": Incorrect variable name (" + attribute->GetName() + ")",
-					  -1);
-		delete attribute;
-	}
-	/* Test de non existence parmi les attributs */
-	else if (kwcClass->LookupAttribute(attribute->GetName()) != NULL)
-	{
-		yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() +
-					      ": Variable name already used (" + attribute->GetName() + ")",
-					  -1);
-		delete attribute;
-	}
-	/* Test de non existence parmi les blocs */
-	else if (kwcClass->LookupAttributeBlock(attribute->GetName()) != NULL)
-	{
-		yyerrorWithLineCorrection("Dictionary " + kwcClass->GetName() +
-					      ": Variable name already used by a block (" + attribute->GetName() + ")",
-					  -1);
-		delete attribute;
-	}
-	/* Si OK, d'insertion */
-	else
-	{
-		bOk = kwcClass->InsertAttribute(attribute);
-		oaAttributes->Add(attribute);
-		assert(bOk);
-	}
-
-	$$ = oaAttributes;
-};
-
-kwclassHeader : comments rootDeclaration CLASS IDENTIFIER keyFields metaData '{'
-{
-	KWClass* kwcClass;
-	KWClass* kwcReferencedClass;
-
-	/* Test d'existence de la classe */
-	kwcClass = kwcdLoadDomain->LookupClass(*($4));
-
-	/* Test d'existence de la classe en tant que classe referencee uniquement */
-	kwcReferencedClass = cast(KWClass*, odReferencedUncreatedClasses->Lookup(*($4)));
-	assert(kwcReferencedClass == NULL or kwcClass == NULL);
-
-	/* Erreur si la classe existe deja */
-	if (kwcClass != NULL)
-	{
-		yyerror("Dictionary " + *($4) + " already exists");
-		kwcClass = NULL;
-	}
-	/* On utilise la classe referencee si elle existe */
-	else if (kwcReferencedClass != NULL)
-	{
-		/* Insertion dans le domaine */
-		kwcClass = kwcReferencedClass;
-		kwcdLoadDomain->InsertClass(kwcClass);
-
-		/* Supression de la classe referencees */
-		odReferencedUncreatedClasses->RemoveKey(kwcReferencedClass->GetName());
-		kwcReferencedClass = NULL;
-	}
-	/* Sinon, on cree la classe et on l'enregistre */
-	else
-	{
-		/* Test de nom de classe */
-		if (KWClass::CheckName(*($4), NULL))
-		{
-			kwcClass = new KWClass;
-			kwcClass->SetName(*($4));
-			kwcdLoadDomain->InsertClass(kwcClass);
-		}
-		else
-			yyerror("Incorrect dictionary name (" + *($4) + ")");
-	}
-
-	/* Initialisation si necessaire de la classe */
-	if (kwcClass != NULL)
-	{
-		/* Class Label */
-		if ($1 != NULL)
-			kwcClass->SetLabel(*($1));
-
-		/* Classe racine */
-		kwcClass->SetRoot($2);
-
-		/* Attribut key field */
-		if ($5 != NULL)
-		{
-			StringVector* svKeyFields;
-			int i;
-
-			// Transfert des champs de la cle */
-			svKeyFields = cast(StringVector*, $5);
-			kwcClass->SetKeyAttributeNumber(svKeyFields->GetSize());
-			for (i = 0; i < svKeyFields->GetSize(); i++)
-				kwcClass->SetKeyAttributeNameAt(i, svKeyFields->GetAt(i));
-		}
-
-		/* Meta-donnees de la classe */
-		if ($6 != NULL)
-		{
-			kwcClass->GetMetaData()->CopyFrom($6);
-		}
-	}
-
-	/* Liberation des tokens */
-	if ($1 != NULL)
-		delete $1; /* Label */
-	delete $4;         /* Name */
-	if ($5 != NULL)    /* Key fields */
-	{
-		StringVector* svKeyFields;
-		svKeyFields = cast(StringVector*, $5);
-		delete svKeyFields;
-	}
-	if ($6 != NULL)
-		delete $6; /* Key value pairs */
-
-	/* Memorisation dz la classe courante */
-	kwcLoadCurrentClass = kwcClass;
-	$$ = kwcClass;
-};
-
-keyFields : '(' keyFieldList ')' comments
-{
-	/* On ignore les comemntaires */
-	if ($4 != NULL)
-		delete $4;
-	$$ = $2;
-}
-| comments
-{
-	/* On ignore les comemntaires */
-	if ($1 != NULL)
-		delete $1;
-	$$ = NULL; /* pas de champ cle */
-}
-| /* NULL */
-{
-	$$ = NULL; /* pas de champ cle */
-};
-
-keyFieldList : keyFieldList ',' IDENTIFIER
-{
-	StringVector* svKeyFields;
-
-	/* Creation d'un nouveau de champ dans le tableau de champs cles */
-	svKeyFields = cast(StringVector*, $1);
-	svKeyFields->Add(*$3);
-	delete $3;
-	$$ = svKeyFields;
-}
-| IDENTIFIER
-{
-	StringVector* svKeyFields;
-
-	/* Creation d'un tableau de champ cle, et d'un premier champ dans la cle */
-	svKeyFields = new StringVector;
-	svKeyFields->Add(*$1);
-	delete $1;
-	$$ = svKeyFields;
-};
-
-metaData : metaData '<' SIMPLEIDENTIFIER '=' STRINGLITTERAL '>'
-{
-	KWMetaData* metaData;
-
-	/* Creation si necessaire d'une ensemble de paires cles valeur */
-	if ($1 == NULL)
-		metaData = new KWMetaData;
-	else
-		metaData = cast(KWMetaData*, $1);
-
-	/* Erreur si cle deja existante */
-	if (metaData->IsKeyPresent(*$3))
-		yyerror("Duplicate key in meta-data for key " + *($3));
-	/* Insertion d'une paire avec valeur chaine de caracteres sinon */
-	else
-		metaData->SetStringValueAt(*($3), *($5));
-	delete $3;
-	delete $5;
-	$$ = metaData;
-}
-| metaData '<' SIMPLEIDENTIFIER '=' CONTINUOUSLITTERAL '>'
-{
-	KWMetaData* metaData;
-
-	/* Creation si necessaire d'une ensemble de paires cles valeur */
-	if ($1 == NULL)
-		metaData = new KWMetaData;
-	else
-		metaData = cast(KWMetaData*, $1);
-
-	/* Erreur si cle deja existante */
-	if (metaData->IsKeyPresent(*$3))
-		yyerror("Duplicate key in meta-data for key " + *($3));
-	/* Insertion d'une paire avec valeur numerique sinon */
-	else
-		metaData->SetDoubleValueAt(*($3), $5);
-	delete $3;
-	$$ = metaData;
-}
-| metaData '<' SIMPLEIDENTIFIER '>'
-{
-	KWMetaData* metaData;
-
-	/* Creation si necessaire d'une ensemble de paires cles valeur */
-	if ($1 == NULL)
-		metaData = new KWMetaData;
-	else
-		metaData = cast(KWMetaData*, $1);
-
-	/* Erreur si cle deja existante */
-	if (metaData->IsKeyPresent(*$3))
-		yyerror("Duplicate key in meta-data for key " + *($3));
-	/* Insertion d'une paire avec valeur numerique sinon */
-	else
-		metaData->SetNoValueAt(*($3));
-	delete $3;
-	$$ = metaData;
-}
-| metaData '<' SIMPLEIDENTIFIER '=' IDENTIFIER '>'
-{
-	KWMetaData* metaData;
-
-	/* Creation si necessaire d'une ensemble de paires cles valeur */
-	if ($1 == NULL)
-		metaData = new KWMetaData;
-	else
-		metaData = cast(KWMetaData*, $1);
-
-	/* Erreur car la valeur n'est pas du bon type */
-	yyerror("Value (" + *($5) + ") of meta-data for key " + *($3) + " should be a string value between double quotes");
-	delete $3;
-	delete $5;
-	$$ = metaData;
-}
-| /* NULL */
-{
-	$$ = NULL; /* pas de paires cle valeurs */
-};
-
-kwattributeDeclaration : usedDeclaration
-			     typeDeclaration
-				 refIdentifier
-				     IDENTIFIER
-					 usedDerivationRule
-					     semicolon
-						 metaData
-						     comments
-{
-	KWAttribute* attribute;
-	KWDerivationRule* rule;
-
-	/* Creation  et initialisation d'un attribut */
-	attribute = new KWAttribute;
-	attribute->SetUsed($1);
-	attribute->SetType($2);
-
-	/* Test de coherence entre le type et le complement de type dans le cas d'un type relation */
-	if (KWType::IsRelation(attribute->GetType()))
-	{
-		if ($3 == NULL)
-			yyerrorWithLineCorrection("Variable " + *($4) + " of type " + KWType::ToString($2) +
-						      ": missing " + KWType::ToString($2) + " dictionary",
-						  -1);
-	}
-	/* Test de coherence entre le type et le complement de type dans le cas d'un type Structure */
-	else if (attribute->GetType() == KWType::Structure)
-	{
-		if ($3 == NULL)
-			yyerrorWithLineCorrection("Variable " + *($4) + " of type " + KWType::ToString($2) +
-						      ": missing " + KWType::ToString($2) + " dictionary",
-						  -1);
-	}
-	/* Test d'absence de complement de type dans les autres cas */
-	else
-	{
-		if ($3 != NULL)
-			yyerrorWithLineCorrection("Variable " + *($4) + " of type " + KWType::ToString($2) +
-						      ": erroneous (" + *($3) + ") type complement",
-						  -1);
-	}
-
-	/* Classe referencee */
-	if (KWType::IsRelation(attribute->GetType()))
-	{
-		KWClass* kwcReferencedClass = NULL;
-
-		/* Test d'existence de la classe */
-		if ($3 != NULL)
-			kwcReferencedClass = kwcdLoadDomain->LookupClass(*($3));
-
-		/* Sinon, test d'existence de la classe en tant que classe referencee uniquement */
-		if (kwcReferencedClass == NULL and $3 != NULL)
-			kwcReferencedClass = cast(KWClass*, odReferencedUncreatedClasses->Lookup(*($3)));
-
-		/* Si la classe n'existe pas, on essaie de la creer */
-		if (kwcReferencedClass == NULL and $3 != NULL)
-		{
-			/* Test de nom de classe */
-			if (KWClass::CheckName(*($3), NULL))
-			{
-				kwcReferencedClass = new KWClass;
-				kwcReferencedClass->SetName(*($3));
-
-				/* Memorisation dans le dictionnaire des classe referencees */
-				odReferencedUncreatedClasses->SetAt(kwcReferencedClass->GetName(), kwcReferencedClass);
-			}
+			// Erreur si cle deja existante
+			if (metaData->IsKeyPresent(*sKey))
+			    yyerror("Duplicate key in meta-data for key " + *(sKey) );
+			// Insertion d'une paire avec valeur chaine de caracteres sinon
 			else
-				yyerrorWithLineCorrection("Incorrect referenced dictionary name (" + *($3) + ")", -1);
-		}
+			    metaData->SetStringValueAt(*(sKey), *(sValue));
+		    delete sKey;
+		    delete sValue;
+			$$ = metaData;
+        }
+	| metaData '<' SIMPLEIDENTIFIER '=' CONTINUOUSLITTERAL '>'
+        {
+            KWMetaData* metaData = $1;
+			ALString* sKey = $3;
+			Continuous cValue = $5;
+            
+            // Creation si necessaire d'une ensemble de paires cles valeur
+			if (metaData == NULL)
+			    metaData = new KWMetaData;
 
-		/* On memorise la classe referencee */
-		attribute->SetClass(kwcReferencedClass);
-	}
-	/* Structure referencee */
-	else if (attribute->GetType() == KWType::Structure)
-	{
-		if ($3 != NULL)
-			attribute->SetStructureName(*($3));
-	}
-	if ($3 != NULL)
-		delete $3;
+			// Erreur si cle deja existante
+			if (metaData->IsKeyPresent(*sKey))
+			    yyerror("Duplicate key in meta-data for key " + *(sKey) );
+			// Erreur si valeur Missing
+			else if (cValue == KWContinuous::GetMissingValue())
+			    yyerror("Missing value not allowed in meta-data for key " + *(sKey) );
+			// Insertion d'une paire avec valeur numerique sinon
+			else
+			    metaData->SetDoubleValueAt(*(sKey), cValue);
+		    delete sKey;
+			$$ = metaData;
+        }
+	| metaData '<' SIMPLEIDENTIFIER '>'
+        {
+            KWMetaData* metaData = $1;
+			ALString* sKey = $3;
+            
+            // Creation si necessaire d'une ensemble de paires cles valeur
+			if (metaData == NULL)
+			    metaData = new KWMetaData;
 
-	/* Nom de l'attribut */
-	attribute->SetName(*($4));
-	delete $4; /* liberation de la valeur de IDENTIFIER */
-	rule = $5;
-	attribute->SetDerivationRule(rule);
+			// Erreur si cle deja existante
+			if (metaData->IsKeyPresent(*sKey))
+			    yyerror("Duplicate key in meta-data for key " + *(sKey) );
+			// Insertion d'une paire avec valeur numerique sinon
+			else
+			    metaData->SetNoValueAt(*(sKey));
+		    delete sKey;
+			$$ = metaData;
+        }
+	|  metaData '<' SIMPLEIDENTIFIER '=' IDENTIFIER '>'
+        {
+            KWMetaData* metaData = $1;
+			ALString* sKey = $3;
+			ALString* sValue = $5;
+            
+            // Creation si necessaire d'une ensemble de paires cles valeur
+			if (metaData == NULL)
+			    metaData = new KWMetaData;
 
-	/* Completion eventuelle de la regle par les infos de type de l'attribut */
-	if (rule != NULL)
-	{
-		// Completion specifique dans le cas de la regle de gestion des references
-		if (rule->GetName() == KWDerivationRule::GetReferenceRuleName() and rule->GetOperandNumber() > 0)
-		{
-			if (KWType::IsRelation(rule->GetType()) and
+			// Erreur car la valeur n'est pas du bon type
+		    yyerror("Value (" + *(sValue) + ") of meta-data for key " + *(sKey) + " should be a string value between double quotes");
+		    delete sKey;
+		    delete sValue;
+			$$ = metaData;
+        }
+    ;
+
+
+
+kwattributeDeclaration:
+      comments
+      usedDeclaration 
+	  typeDeclaration 
+	  refIdentifier 
+	  IDENTIFIER 
+	  usedDerivationRule 
+	  semicolon
+	  metaData
+	  label
+        {
+		  StringVector* svComments = $1;
+		  boolean bUsed = $2;
+		  int nType = $3;
+		  ALString* sRefIdentifier = $4;
+		  ALString* sIdentifier = $5;
+          KWDerivationRule* rule = $6;
+		  KWMetaData* metaData = $8;
+		  ALString* slabel = $9;
+          KWAttribute *attribute;
+
+          // Creation  et initialisation d'un attribut
+          attribute = new KWAttribute;
+		  attribute->SetUsed(bUsed);
+		  attribute->SetType(nType);
+		  
+		  // Test de coherence entre le type et le complement de type dans le cas d'un type relation
+		  if (KWType::IsRelation(attribute->GetType()))
+		  {
+			 if (sRefIdentifier == NULL)
+			    yyerrorWithLineCorrection("Variable " + *sIdentifier + " of type " + KWType::ToString(nType) + 
+				": missing " +  KWType::ToString(nType) + " dictionary", -1);
+		  }
+		  // Test de coherence entre le type et le complement de type dans le cas d'un type Structure
+		  else if (attribute->GetType() == KWType::Structure)
+		  {
+			 if (sRefIdentifier == NULL)
+			    yyerrorWithLineCorrection("Variable " + *sIdentifier + " of type " + KWType::ToString(nType) + 
+				": missing " +  KWType::ToString(nType) + " dictionary", -1);
+		  }
+		  // Test d'absence de complement de type dans les autres cas
+		  else
+		  {
+			 if (sRefIdentifier != NULL)
+			    yyerrorWithLineCorrection("Variable " + *sIdentifier + " of type " + KWType::ToString(nType) + 
+				": erroneous (" +  *(sRefIdentifier) + ") type complement", -1);
+		  }
+
+		  // Classe referencee
+		  if (KWType::IsRelation(attribute->GetType()))
+		  {
+		    KWClass* kwcReferencedClass = NULL;
+
+            // Test d'existence de la classe
+            if (sRefIdentifier != NULL)
+              kwcReferencedClass = kwcdLoadDomain->LookupClass(*sRefIdentifier);
+
+            // Sinon, test d'existence de la classe en tant que classe referencee uniquement
+            if (kwcReferencedClass == NULL and sRefIdentifier != NULL)
+                kwcReferencedClass = cast(KWClass*, odReferencedUncreatedClasses->Lookup(*sRefIdentifier));
+
+            // Si la classe n'existe pas, on essaie de la creer
+            if (kwcReferencedClass == NULL and sRefIdentifier != NULL)
+		    {
+		      // Test de nom de classe
+		      if (KWClass::CheckName(*sRefIdentifier, KWClass::Class, NULL))
+		      {
+                kwcReferencedClass = new KWClass;
+                kwcReferencedClass->SetName(*sRefIdentifier);
+
+				// Memorisation dans le dictionnaire des classe referencees
+                odReferencedUncreatedClasses->SetAt(kwcReferencedClass->GetName(), kwcReferencedClass);
+		      }
+		      else
+		        yyerrorWithLineCorrection("Incorrect referenced dictionary name (" + *sRefIdentifier + ")", -1);
+		    }
+
+		    // On memorise la classe referencee
+		    attribute->SetClass(kwcReferencedClass);
+          }
+		  // Structure referencee
+		  else if (attribute->GetType() == KWType::Structure)
+		  {
+		    if (sRefIdentifier != NULL)
+              attribute->SetStructureName(*sRefIdentifier);
+          }
+          if (sRefIdentifier != NULL)
+            delete sRefIdentifier;
+
+		  // Nom de l'attribut
+		  attribute->SetName (*sIdentifier);
+          delete sIdentifier;
+		  attribute->SetDerivationRule(rule);
+
+		  // Completion eventuelle de la regle par les infos de type de l'attribut
+		  if (rule != NULL)
+		  {
+            // Completion specifique dans le cas de la regle de gestion des references
+            if (rule->GetName() == KWDerivationRule::GetReferenceRuleName() and rule->GetOperandNumber() > 0)
+            {
+			  if (KWType::IsRelation(rule->GetType()) and
+		          rule->GetObjectClassName() == "" and attribute->GetClass() != NULL)
+		        rule->SetObjectClassName(attribute->GetClass()->GetName());
+            }
+            
+ 		    // Completion standard
+ 		    if (KWType::IsRelation(rule->GetType()) and
 			    rule->GetObjectClassName() == "" and attribute->GetClass() != NULL)
-				rule->SetObjectClassName(attribute->GetClass()->GetName());
-		}
+              rule->SetObjectClassName(attribute->GetClass()->GetName());
+            
+            // Erreur si type renvoye par la regle different du type de l'attribut
+            if (attribute->GetType() != rule->GetType())
+		        yyerrorWithLineCorrection("Type of variable " + attribute->GetName() + " (" + 
+                KWType::ToString(attribute->GetType()) + ") inconsistent with that returned by derivation rule " +
+                attribute->GetDerivationRule()->GetName() + " (" + KWType::ToString(attribute->GetDerivationRule()->GetType()) + ")", -1);
+            // Erreur dans le cas du type Structure
+            else if (attribute->GetType() == KWType::Structure and attribute->GetStructureName() != rule->GetStructureName())
+		        yyerrorWithLineCorrection("Type of variable " + attribute->GetName() + " (" + 
+                KWType::ToString(attribute->GetType()) + "(" + attribute->GetStructureName() + ")) inconsistent with that returned by derivation rule " +
+                attribute->GetDerivationRule()->GetName() + " (" + KWType::ToString(attribute->GetDerivationRule()->GetType()) + "(" + rule->GetStructureName() + "))", -1);
+		  }
 
-		// Completion standard
-		if (KWType::IsRelation(rule->GetType()) and
-		    rule->GetObjectClassName() == "" and attribute->GetClass() != NULL)
-			rule->SetObjectClassName(attribute->GetClass()->GetName());
+		  // Meta-donnees de l'attribut
+		  if (metaData != NULL)
+		  {
+		    attribute->GetMetaData()->CopyFrom(metaData);
+		    delete metaData;
+		  }
 
-		// Erreur si type renvoye par la regle different du type de l'attribut
-		if (attribute->GetType() != rule->GetType())
-			yyerrorWithLineCorrection("Type of variable " + attribute->GetName() + " (" +
-						      KWType::ToString(attribute->GetType()) + ") inconsistent with that returned by derivation rule " +
-						      attribute->GetDerivationRule()->GetName() + " (" + KWType::ToString(attribute->GetDerivationRule()->GetType()) + ")",
-						  -1);
-	}
+		  // Libelle
+		  if (slabel != NULL)
+		  {
+		    attribute->SetLabel(*slabel);
+		    delete slabel;
+		  }
 
-	/* Meta-donnees de l'attribut */
-	if ($7 != NULL)
-	{
-		attribute->GetMetaData()->CopyFrom($7);
-		delete $7;
-	}
+		  // Commentaires
+		  if (svComments != NULL)
+		  {
+		    attribute->SetComments(svComments);
+		    delete svComments;
+		  }
 
-	/* Commentaires */
-	if ($8 != NULL)
-	{
-		attribute->SetLabel(*($8));
-		delete $8;
-	}
+		  $$ = attribute;
+        }
+    ;
 
-	$$ = attribute;
-};
 
-applicationids : applicationids APPLICATIONID
-{
-	/* On ne garde que la premiere ligne de chaque identification d'application */
-	if ($1 == NULL)
-		$$ = $2;
-	else
-	{
-		delete $2;
-		$$ = $1;
-	}
-}
-| /* NULL */
-{
-	$$ = NULL; /* pas d'identification d'application */
-};
 
-comments : comments LABEL
-{
-	/* On ne garde que la premiere ligne de chaque commentaire */
-	if ($1 == NULL)
-		$$ = $2;
-	else
-	{
-		delete $2;
-		$$ = $1;
-	}
-}
-| /* NULL */
-{
-	$$ = NULL; /* pas de commentaire */
-};
+applicationids: // NULL
+        {
+          $$ = NULL; // pas d'identification d'application
+        }
+    | applicationids APPLICATIONID
+        {
+		  // On ne garde que la premiere ligne de chaque identification d'application
+		  if ($1 == NULL)
+            $$ = $2;
+		  else
+		  {
+		    delete $2;
+			$$ = $1;
+		  }
+        }
+    ;
 
-rootDeclaration : ROOT
-{
-	$$ = true;
-}
-| /* NULL */
-{
-	$$ = false; /* valeur par defaut */
-};
 
-usedDeclaration : UNUSED
-{
-	$$ = false;
-}
-| /* NULL */
-{
-	$$ = true; /* valeur par defaut */
-};
+label: // NULL
+        {
+          $$ = NULL; // pas de libelle
+        }
+    | LABEL
+        {
+		  $$ = $1;
+        }
+    ;
 
-typeDeclaration : CONTINUOUSTYPE
-{
-	$$ = KWType::Continuous;
-}
-| SYMBOLTYPE
-{
-	$$ = KWType::Symbol;
-}
-| DATETYPE
-{
-	$$ = KWType::Date;
-}
-| TIMETYPE
-{
-	$$ = KWType::Time;
-}
-| TIMESTAMPTYPE
-{
-	$$ = KWType::Timestamp;
-}
-| OBJECTTYPE
-{
-	$$ = KWType::Object;
-}
-| OBJECTARRAYTYPE
-{
-	$$ = KWType::ObjectArray;
-}
-| STRUCTURETYPE
-{
-	$$ = KWType::Structure;
-};
+comments: // NULL
+        {
+          $$ = NULL; // pas de commentaire
+        }
+    | comments COMMENT
+        {
+		  StringVector* svComments = $1;
+		  ALString* sComment = $2;
 
-refIdentifier : '(' IDENTIFIER ')'
-{
-	$$ = $2;
-}
-| /* NULL */
-{
-	$$ = NULL;
-};
+		  // Creation du vecteur de commentaires si neccesaire
+		  if (svComments == NULL)
+		    svComments = new StringVector;
+		  
+		  // Ajout du commentaire
+		  svComments->Add(*sComment);
+		  delete sComment;
+          $$ = svComments;
+        }
+    ;
 
-usedDerivationRule : '=' derivationRule
-{
-	$$ = $2;
-}
-| referenceRule
-{
-	$$ = $1;
-}
-| '=' derivationRule ')'
-{
-	yyerror("Too many ')'");
-	$$ = $2;
-}
-| '(' IDENTIFIER ')'
-{
-	ALString sTmp;
-	yyerror(sTmp + "Invalid syntax (" + *$2 + ")");
-	if ($2 != NULL)
-		delete $2;
-	$$ = NULL;
-}
-| /* NULL */
-{
-	$$ = NULL;
-};
+labelOrComments: // NULL
+        {
+          $$ = NULL; // pas de commentaire
+        }
+    | LABEL
+        {
+		  ALString* sComment = $1;
+		  StringVector* svComments;
 
-referenceRule : referenceRuleBody ']'
-{
-	$$ = $1;
-};
+		  svComments = new StringVector;
+		  svComments->Add(*sComment);
+		  delete sComment;
+          $$ = svComments;
+        }
+    | labelOrComments COMMENT
+        {
+		  StringVector* svComments = $1;
+		  ALString* sComment = $2;
 
-referenceRuleBody : '[' derivationRuleOperand
-{
-	KWDerivationRule* rule;
-	KWDerivationRuleOperand* operand;
+		  // Creation du vecteur de commentaires si neccesaire
+		  if (svComments == NULL)
+		    svComments = new StringVector;
+		  
+		  // Ajout du commentaire
+		  svComments->Add(*sComment);
+		  delete sComment;
+          $$ = svComments;
+        }
+    ;
 
-	/* Construction d'une regle pour accueillir les specifications */
-	rule = KWDerivationRule::CloneDerivationRule(KWDerivationRule::GetReferenceRuleName());
+rootDeclaration: // NULL
+        {
+          $$ = false; // valeur par defaut
+        }
+    | ROOT
+        {
+          $$ = true;
+        }
+    ;
 
-	/* Destruction des operandes */
-	rule->DeleteAllOperands();
 
-	/* Ajout d'un premier operande: le premier champ de la cle de reference */
-	operand = $2;
-	if (operand->GetType() == KWType::Unknown)
-		operand->SetType(KWType::Symbol);
-	rule->AddOperand(operand);
+usedDeclaration: // NULL
+        {
+          $$ = true; // valeur par defaut
+        }
+    | UNUSED
+        {
+          $$ = false;
+        }
+    ;
 
-	/* On retourner la regle */
-	$$ = rule;
-}
-| referenceRuleBody ',' derivationRuleOperand
-{
-	KWDerivationRule* rule = $1;
-	KWDerivationRuleOperand* operand;
 
-	/* Ajout d'un autre operande: un autre champ de la cle de reference */
-	operand = $3;
-	if (operand->GetType() == KWType::Unknown)
-		operand->SetType(KWType::Symbol);
-	rule->AddOperand(operand);
+typeDeclaration:
+      CONTINUOUSTYPE
+        {
+          $$ = KWType::Continuous;
+        }
+    | SYMBOLTYPE
+        {
+          $$ = KWType::Symbol;
+        }
+    | DATETYPE
+        {
+          $$ = KWType::Date;
+        }
+    | TIMETYPE
+        {
+          $$ = KWType::Time;
+        }
+    | TIMESTAMPTYPE
+        {
+          $$ = KWType::Timestamp;
+        }
+    | TIMESTAMPTZTYPE
+        {
+          $$ = KWType::TimestampTZ;
+        }
+    | TEXTTYPE
+        {
+          $$ = KWType::Text;
+        }
+    | TEXTLISTTYPE
+        {
+          $$ = KWType::TextList;
+        }
+    | OBJECTTYPE
+        {
+          $$ = KWType::Object;
+        }
+    | OBJECTARRAYTYPE
+        {
+          $$ = KWType::ObjectArray;
+        }
+    | STRUCTURETYPE
+        {
+          $$ = KWType::Structure;
+        }
+    ;
 
-	/* On retourner la regle */
-	$$ = rule;
-};
 
-derivationRule : derivationRuleBody closeparenthesis
-{
-	KWDerivationRule* ruleBody = $1;
-	KWDerivationRule* rule;
-	KWDerivationRuleOperand* ruleBodyOperand;
-	KWDerivationRuleOperand* ruleOperand;
-	int i;
-	boolean bRuleOk;
-	ALString sTmp;
+refIdentifier:  // NULL
+        {
+		  $$ = NULL;
+        }
+	 | '(' IDENTIFIER ')'
+        {
+		  $$ = $2;
+        }
+    ;
 
-	/* Recherche de la regle de reference */
-	check(ruleBody);
-	rule = KWDerivationRule::CloneDerivationRule(ruleBody->GetName());
 
-	/* Erreur si regle inexistante */
-	if (rule == NULL)
-	{
-		yyerror("Unknown derivation rule '" + ruleBody->GetName() + "'");
-	}
-	/* Erreur si regle predefinie de Reference */
-	else if (rule->GetName() == KWDerivationRule::GetReferenceRuleName())
-	{
-		yyerror("Unknown derivation rule '" + ruleBody->GetName() + "'");
-		delete rule;
-		rule = NULL;
-	}
-	/* Sinon, test du nombre d'arguments */
-	else if ((rule->GetVariableOperandNumber() and
-		  ruleBody->GetOperandNumber() < rule->GetOperandNumber() - 1) or
-		 (not rule->GetVariableOperandNumber() and
-		  ruleBody->GetOperandNumber() != rule->GetOperandNumber()))
-
-	{
-		yyerror(sTmp + "Number of operands (" +
-			IntToString(ruleBody->GetOperandNumber()) +
-			") inconsistent with that of rule " + rule->GetName() + " (" +
-			IntToString(rule->GetOperandNumber()) + ")");
-		delete rule;
-		rule = NULL;
-	}
-	/* Verification et transfert des operandes */
-	else
-	{
-		/* Dans le cas d'un nombre variable d'operandes, on commence par rajouter */
-		/* eventuellement des operandes en fin de regle pour preparer l'instanciation */
-		if (ruleBody->GetOperandNumber() > rule->GetOperandNumber())
+usedDerivationRule: // NULL
+        {
+		  $$ = NULL;
+        }
+   | '=' derivationRule
 		{
-			assert(rule->GetVariableOperandNumber());
-			while (rule->GetOperandNumber() < ruleBody->GetOperandNumber())
-				rule->AddOperand(rule->GetOperandAt(rule->GetOperandNumber() - 1)->Clone());
+		  $$ = $2;
 		}
-
-		/* Dans le cas d'un nombre variable d'operandes, on supprime eventuellement */
-		/* le dernier operande, qui n'est pas obligatoire */
-		if (ruleBody->GetOperandNumber() < rule->GetOperandNumber())
+    |  referenceRule
 		{
-			assert(rule->GetVariableOperandNumber());
-			assert(ruleBody->GetOperandNumber() == rule->GetOperandNumber() - 1);
-			rule->DeleteAllVariableOperands();
+		  $$ = $1;
 		}
-		assert(ruleBody->GetOperandNumber() == rule->GetOperandNumber());
+    |  '=' derivationRule ')'
+        {
+		  yyerror("Too many ')'");
+		  $$ = $2;
+        }
+    |  '(' IDENTIFIER ')'
+        { 
+		  ALString* sIdentifier = $2;
+		  ALString sTmp;
 
-		/* Transfert des operandes */
-		bRuleOk = true;
-		for (i = 0; i < rule->GetOperandNumber(); i++)
+		  yyerror(sTmp + "Invalid syntax (" + *sIdentifier + ")");
+		  if (sIdentifier != NULL)
+		     delete sIdentifier;
+		  $$ = NULL;
+        }
+		;
+
+referenceRule: referenceRuleBody ']'
 		{
-			/* acces aux operandes */
-			ruleOperand = rule->GetOperandAt(i);
-			ruleBodyOperand = ruleBody->GetOperandAt(i);
+		  $$ = $1;
+		}
+		;
 
-			/* Transfert d'informations de la regle de reference vers la regle a verifier */
-			if (ruleBodyOperand->GetOrigin() != KWDerivationRuleOperand::OriginConstant)
+referenceRuleBody: '[' derivationRuleOperand
+		{
+		  KWDerivationRuleOperand* operand = $2;
+		  KWDerivationRule* rule;
+
+		  // Construction d'une regle pour accueillir les specifications
+		  rule = KWDerivationRule::CloneDerivationRule(KWDerivationRule::GetReferenceRuleName());
+		
+		  // Destruction des operandes
+		  rule->DeleteAllOperands();
+		  
+		  // Ajout d'un premier operande: le premier champ de la cle de reference
+		  if (operand->GetType() == KWType::Unknown)
+		      operand->SetType(KWType::Symbol);
+		  rule->AddOperand(operand);
+		  
+		  // On retourner la regle
+		  $$ = rule;
+		}
+	| referenceRuleBody ',' derivationRuleOperand
+		{
+		  KWDerivationRule* rule = $1;
+		  KWDerivationRuleOperand* operand = $3;
+
+		  // Ajout d'un autre operande: un autre champ de la cle de reference
+		  if (operand->GetType() == KWType::Unknown)
+		      operand->SetType(KWType::Symbol);
+		  rule->AddOperand(operand);
+		  
+		  // On retourner la regle
+		  $$ = rule;
+		}
+	;
+
+derivationRule: derivationRuleBody closeparenthesis
+		{
+			KWDerivationRule* ruleBody = $1;
+			boolean bOk = true;
+			KWDerivationRule* rule;
+			ALString sTmp;
+
+			// Recherche de la regle de reference
+			// On ensuite recuperer au maximum les informations de la regle clonee
+			// et rapatrier les informations issues du parsing concernant les operandes
+			check(ruleBody);
+			rule = KWDerivationRule::CloneDerivationRule(ruleBody->GetName());
+
+			// Erreur si regle inexistante
+			if (rule == NULL)
 			{
-				ruleBodyOperand->SetType(ruleOperand->GetType());
-				if (KWType::IsRelation(ruleOperand->GetType()))
-					ruleBodyOperand->SetObjectClassName(ruleOperand->GetObjectClassName());
+				yyerror("Unknown derivation rule '" + ruleBody->GetName() + "'");
+				bOk = false;
 			}
-			if (ruleOperand->GetType() == KWType::Structure)
+			// Erreur si regle predefinie de Reference
+			else if (rule->GetName() == KWDerivationRule::GetReferenceRuleName())
 			{
-				ruleBodyOperand->SetType(KWType::Structure);
-				ruleBodyOperand->SetStructureName(ruleOperand->GetStructureName());
+				yyerror("Unknown derivation rule '" + ruleBody->GetName() + "'");
+				bOk = false;
 			}
 
-			/* Test si operande candidate valide */
-			if (not ruleBodyOperand->CheckDefinition())
+			// Import des operandes de la regle
+			if (bOk)
+				bOk = ImportParserRuleOperands(ruleBody, rule);
+
+			// Gestion des operandes en sortie dans le cas ou le parser a stocke des operandes en sortie
+			if (bOk and KWType::IsRelation(ruleBody->GetType()) and not ruleBody->GetReference())
 			{
-				bRuleOk = false;
-				yyerror(sTmp + "Incorrect operand " + IntToString(1 + i) + " for rule " +
-					rule->GetName());
+				// Erreur si la regle en cours n'est pas une regle de creation d'instance
+				if (not KWType::IsRelation(rule->GetType()) or rule->GetReference())
+				{
+					yyerror(sTmp + "Derivation rule " + rule->GetName() +
+						" does not accept output operands");
+					bOk = false;
+				}
+				// Sinon, transfert des operandes en sortie
+				else
+				{
+					// Import des operandes en sortie de la regle
+					// On est passe prealablement dans le parser par une regle de creation de relation
+					// pour stocker les operandes en sortie, que l'on va ici exploiter
+					bOk = ImportParserRuleOutputOperands(ruleBody, rule);
+				}
 			}
-			/* Test de compatibilite avec la regle enregistree, sauf si regle avec operande de type indetermine */
-			else if (ruleOperand->GetType() != KWType::Unknown and not ruleBodyOperand->CheckFamily(ruleOperand))
+			// Gestion des operandes en sortie dans le cas ou le parser n'a stocke des operandes en sortie
+			else if (bOk and KWType::IsRelation(rule->GetType()) and not rule->GetReference())
 			{
-				bRuleOk = false;
-				yyerror(sTmp + "Operand " + IntToString(1 + i) +
-					" inconsistent with that of rule " + rule->GetName());
-				break;
+				// Test du nombre d'operandes en sortie
+				if ((rule->GetVariableOutputOperandNumber() and rule->GetOutputOperandNumber() > 1) or
+    				(not rule->GetVariableOutputOperandNumber() and rule->GetOutputOperandNumber() > 0))
+				{
+					yyerror(sTmp + "Missing output operands for rule " + rule->GetName() + " that requires them (at least " +
+						IntToString(rule->GetOutputOperandNumber() -
+						(rule->GetVariableOutputOperandNumber() ? 1 : 0)) + ")");
+					bOk = false;
+				}
+				// Supression des eventuels operandes en sortie inutiles
+				else if (rule->GetOutputOperandNumber() > 0)
+					cast(KWDRRelationCreationRule*, rule)->DeleteAllOutputOperands();
 			}
-			/* Transfert de l'origine de l'operande */
+
+			// Verification de la definition de la regle
+			if (bOk and not rule->CheckDefinition())
+			{
+				yyerror(sTmp + "Derivation rule " + rule->GetName() + " incorrectly specified");
+				bOk = false;
+			}
+
+			// Test si erreur dans le transfert des operandes
+			if (not bOk)
+			{
+				if (rule != NULL)
+				{
+					delete rule;
+					rule = NULL;
+				}
+			}
+			// Sinon, on tente de compresser la regle
 			else
 			{
-				/* Transfert du niveau de scope */
-				ruleOperand->SetScopeLevel(ruleBodyOperand->GetScopeLevel());
-
-				/* Transfert d'une valeur constante */
-				ruleOperand->SetOrigin(ruleBodyOperand->GetOrigin());
-				if (ruleOperand->GetOrigin() == KWDerivationRuleOperand::OriginConstant)
+				if (rule->IsStructureRule())
 				{
-					ruleOperand->SetType(ruleBodyOperand->GetType());
-					ruleOperand->SetStringConstant(ruleBodyOperand->GetStringConstant());
-				}
-				/* Transfert d'un attribut */
-				else if (ruleOperand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute)
-					ruleOperand->SetDataItemName(ruleBodyOperand->GetDataItemName());
-				else
-				/* Transfert d'une regle */
-				{
-					// Transfert de la regle */
-					if (ruleOperand->GetDerivationRule() != NULL)
-					{
-						assert(ruleBodyOperand->GetDerivationRule() != NULL);
-						delete ruleOperand->GetDerivationRule();
-					}
-					ruleOperand->SetDerivationRule(ruleBodyOperand->GetDerivationRule());
+					KWDRStructureRule* structureRule;
 
-					/* Transfert des infos portees par la regle de derivation */
-					if (ruleOperand->GetDerivationRule() != NULL)
-					{
-						ruleOperand->SetType(ruleOperand->GetDerivationRule()->GetType());
-						if (KWType::IsRelation(ruleOperand->GetType()))
-							ruleOperand->SetObjectClassName(ruleOperand->GetDerivationRule()->GetObjectClassName());
-						if (ruleOperand->GetType() == KWType::Structure)
-							ruleOperand->SetStructureName(ruleOperand->GetDerivationRule()->GetStructureName());
-					}
-
-					/* Dereferencement de la regle de derivation depuis l'operande de travail */
-					ruleBodyOperand->SetDerivationRule(NULL);
+					// Acces a la regle de structure, transformation au format structure et nettoyage memoire
+					// Cette optimisation memoire des regles structure est critique dans le cas de dictionnaires
+					// de tres grande taille. Sinon, des millions d'operandes de regles sont potentiellement crees,
+					// puis lors de la compilation des dictionnaire, l'essentiel de la memoire liberee laisse des trous
+					// dans les segments de la heap, qui ne peuvent etre rendus au systeme
+					assert(rule->CheckDefinition());
+					structureRule = cast(KWDRStructureRule*, rule);
+					structureRule->BuildStructureFromBase(rule);
+					structureRule->CleanCompiledBaseInterface();
 				}
 			}
-		}
 
-		/* Test si erreur dans le transfert des operandes */
-		if (not bRuleOk)
+			// Finalisation
+			delete ruleBody;
+			$$ = rule;
+		}
+	;
+
+
+derivationRuleBody: derivationRuleBegin
 		{
-			delete rule;
-			rule = NULL;
+		  $$ = $1;
 		}
-		/* Sinon, on tente de compresser la regle */
-		else
+	| derivationRuleBegin ':' operandList
 		{
-			if (rule->IsStructureRule())
-			{
-				KWDRStructureRule* structureRule;
+		  KWDerivationRule* ruleBody = $1;
+		  ObjectArray* oaOutputOperands = $3;
+		  KWDRRelationCreationRule* ruleRelationCreationBody;
+		  ObjectArray oaOperands;
+		  int nOperand;
+		  KWDerivationRuleOperand* operand;
+          
+		  // On passe par une regle de creation de relation pour stocker les operandes en sortie
+		  ruleRelationCreationBody = new KWDRRelationCreationRule;
 
-				/* Acces a la regle de structure, transformation au format structure et nettoyage memoire */
-				/* Cette optimisation memoire des regles structure est critique dans le cas de dictionnaires */
-				/* de tres grande taille. Sinon, des millions d'operandes de regles sont potentiellement crees, */
-				/* puis lors de la compilation des dictionnaire, l'essentiel de la memoire liberee laisse des trous */
-				/* dans les segments de la heap, qui ne peuvent etre rendus au systeme */
-				assert(rule->CheckDefinition());
-				structureRule = cast(KWDRStructureRule*, rule);
-				structureRule->BuildStructureFromBase(rule);
-				structureRule->CleanCompiledBaseInterface();
-			}
+		  // On transfer les operande initiaux vers un tableau
+		  for (nOperand = 0; nOperand < ruleBody->GetOperandNumber(); nOperand++)
+		  {
+		      operand = cast(KWDerivationRuleOperand*, ruleBody->GetOperandAt(nOperand));
+			  oaOperands.Add(operand);
+		  }
+		  ruleBody->RemoveAllOperands();
+
+		  // On copie la regle initiale, maintenant nettoyee de ses operandes
+		  ruleBody->SetType(KWType::ObjectArray);
+		  ruleRelationCreationBody->CopyFrom(ruleBody);
+		  delete ruleBody;
+
+		  // On recupere les operandes initiaux
+		  for (nOperand = 0; nOperand < oaOperands.GetSize(); nOperand++)
+		  {
+		      operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(nOperand));
+			  ruleRelationCreationBody->AddOperand(operand);
+		  }
+
+		  // Parametrage des operandes en sortie
+		  assert(ruleRelationCreationBody->GetOutputOperandNumber() == 0);
+		  for (nOperand = 0; nOperand < oaOutputOperands->GetSize(); nOperand++)
+		  {
+		      operand = cast(KWDerivationRuleOperand*, oaOutputOperands->GetAt(nOperand));
+			  ruleRelationCreationBody->AddOutputOperand(operand);
+		  }
+		  delete oaOutputOperands;
+
+		  $$ = ruleRelationCreationBody;
 		}
-	}
-	delete ruleBody;
+	| derivationRuleHeader
+		{
+		  $$ = $1;
+		}
+	;
 
-	$$ = rule;
-};
+operandList:
+	  operandList ',' derivationRuleOperand
+		{
+		  ObjectArray* oaOperandList = $1;
+		  KWDerivationRuleOperand* operand = $3;
+		  check(oaOperandList);
+		  check(operand);
 
-derivationRuleBody : derivationRuleBegin
-{
-	$$ = $1;
-}
-| derivationRuleHeader
-{
-	$$ = $1;
-};
+		  // Ajout d'un operande
+		  oaOperandList->Add(operand);
+		  $$ = oaOperandList;
+		}
+    | derivationRuleOperand 
+		{
+		  KWDerivationRuleOperand* operand = $1;
+		  ObjectArray* oaOperandList;
+		  check(operand);
+		  
+		  // Creation d'un tableau doperandes, avec un premier operande
+		  oaOperandList = new ObjectArray;
+		  oaOperandList->Add(operand);
+		  $$ = oaOperandList;
+		}
+    ;
 
-derivationRuleHeader : IDENTIFIER openparenthesis
-{
-	KWDerivationRule* rule;
+derivationRuleHeader: IDENTIFIER openparenthesis
+		{
+		  ALString* sIdentifier = $1;
+		  KWDerivationRule* rule;
 
-	/* Construction d'une regle pour accueillir les specification */
-	rule = new KWDerivationRule;
-	rule->SetName(*($1));
-	delete $1;
-	$$ = rule;
-};
+		  // Construction d'une regle pour accueillir les specification
+		  rule = new KWDerivationRule;
+		  rule->SetName(*sIdentifier);
+		  delete sIdentifier;
+		  $$ = rule;
+		}
+		;
 
-derivationRuleBegin : derivationRuleHeader derivationRuleOperand
-{
-	KWDerivationRule* rule = $1;
-	KWDerivationRuleOperand* operand = $2;
 
-	check(rule);
-	assert(rule->GetOperandNumber() == 0);
-	check(operand);
-	rule->AddOperand(operand);
-	$$ = rule;
-}
-| derivationRuleBegin ',' derivationRuleOperand
-{
-	KWDerivationRule* rule = $1;
-	KWDerivationRuleOperand* operand = $3;
+derivationRuleBegin: derivationRuleHeader derivationRuleOperand
+		{
+		  KWDerivationRule* rule = $1;
+		  KWDerivationRuleOperand* operand = $2;
+		  
+		  check(rule);
+		  assert(rule->GetOperandNumber() == 0);
+		  check(operand);
+		  rule->AddOperand(operand);
+		  $$ = rule;
+		}
+	| derivationRuleBegin ',' derivationRuleOperand
+		{
+		  KWDerivationRule* rule = $1;
+		  KWDerivationRuleOperand* operand = $3;
+		  
+		  check(rule);
+		  assert(rule->GetOperandNumber() > 0);
+		  check(operand);
+		  rule->AddOperand(operand);
+		  $$ = rule;
+		}
+		;
 
-	check(rule);
-	assert(rule->GetOperandNumber() > 0);
-	check(operand);
-	rule->AddOperand(operand);
-	$$ = rule;
-};
 
-derivationRuleOperand : IDENTIFIER
-{
-	KWDerivationRuleOperand* operand;
-	operand = new KWDerivationRuleOperand;
-	operand->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
-	operand->SetDataItemName(*($1));
-	delete $1;
-	$$ = operand;
-}
-| CONTINUOUSLITTERAL
-{
-	KWDerivationRuleOperand* operand;
-	operand = new KWDerivationRuleOperand;
-	operand->SetType(KWType::Continuous);
-	operand->SetOrigin(KWDerivationRuleOperand::OriginConstant);
-	operand->SetContinuousConstant($1);
-	$$ = operand;
-}
-| bigstring
-{
-	KWDerivationRuleOperand* operand;
-	operand = new KWDerivationRuleOperand;
-	operand->SetType(KWType::Symbol);
-	operand->SetOrigin(KWDerivationRuleOperand::OriginConstant);
-	operand->SetSymbolConstant(Symbol(*($1)));
-	delete $1;
-	$$ = operand;
-}
-| derivationRule
-{
-	KWDerivationRuleOperand* operand;
-	operand = new KWDerivationRuleOperand;
-	operand->SetOrigin(KWDerivationRuleOperand::OriginRule);
-	operand->SetDerivationRule($1);
-	if (operand->GetDerivationRule() != NULL)
-		operand->SetType(operand->GetDerivationRule()->GetType());
-	$$ = operand;
-}
-| '.' derivationRuleOperand
-{
-	KWDerivationRuleOperand* operand;
-	operand = $2;
-	operand->SetScopeLevel(operand->GetScopeLevel() + 1);
-	$$ = operand;
-};
+derivationRuleOperand: IDENTIFIER 
+		{
+		  ALString* sIdentifier = $1;
+		  KWDerivationRuleOperand* operand;
 
-bigstring : bigstring '+' STRINGLITTERAL
-{
-	/* Concatenation des deux chaines */
-	$$ = new ALString(*$1 + *$3);
+		  operand = new KWDerivationRuleOperand;
+		  operand->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+		  operand->SetDataItemName(*sIdentifier);
+		  delete sIdentifier;
+		  $$ = operand;
+		}
+	| CONTINUOUSLITTERAL
+		{
+		  Continuous cValue = $1;
+		  KWDerivationRuleOperand* operand;
 
-	/* Destruction des ancienne chaines */
-	delete $1;
-	delete $3;
-}
-| STRINGLITTERAL
-{
-	$$ = $1;
-};
+		  operand = new KWDerivationRuleOperand;
+		  operand->SetType(KWType::Continuous);
+		  operand->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+		  operand->SetContinuousConstant(cValue);
+		  $$ = operand;
+		}
+	| bigstring
+		{
+		  ALString* sValue = $1;
+		  KWDerivationRuleOperand* operand;
 
-semicolon : ';' | ';' ';'
-{
-	yyerror("There is one superfluous ';'");
-}
-| ';' ';' ';'
-{
-	yyerror("Too many ';'");
-}
-| /* NULL */
-{
-	yyerror("Missing ';'");
-};
+		  operand = new KWDerivationRuleOperand;
+		  operand->SetType(KWType::Symbol);
+		  operand->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+		  operand->SetSymbolConstant(Symbol(*sValue));
+		  delete sValue;
+		  $$ = operand;
+		}
+	| derivationRule
+		{
+		  KWDerivationRule* rule = $1;
+		  KWDerivationRuleOperand* operand;
 
-openparenthesis : '(' | '(' '('
-{
-	yyerror("There is one superfluous '('");
-}
-| '(' '(' '('
-{
-	yyerror("Too many '('");
-}
-| /* NULL */
-{
-	/* ERRORMGT */
-	/* Attention: supprimer cette instruction en cas d'evolution du parser */
-	/* Cette instruction est la pour aider au diagnostique des erreurs */
-	/* de parenthesage: elle est utile dans ce cas, mais genere (avec  */
-	/* sa consoeur 3 shift/reduce conflicts et 12 reduce conflicts     */
-	yyerror("Missing '('");
-};
+		  operand = new KWDerivationRuleOperand;
+		  operand->SetOrigin(KWDerivationRuleOperand::OriginRule);
+		  operand->SetDerivationRule(rule);
+		  if (operand->GetDerivationRule() != NULL)
+		      operand->SetType(operand->GetDerivationRule()->GetType());
+		  $$ = operand;
+		}
+	| '.' derivationRuleOperand
+		{
+		  KWDerivationRuleOperand* operand = $2;
 
-closeparenthesis : ')' | /* NULL */
-{
-	/* ERRORMGT */
-	/* Attention: supprimer cette instruction en cas d'evolution du parser */
-	/* Cette instruction est la pour aider au diagnostique des erreurs */
-	/* de parenthesage: elle est utile dans ce cas, mais genere (avec  */
-	/* sa consoeur 3 shift/reduce conflicts et 12 reduce conflicts     */
-	yyerror("Missing ')'");
-};
+		  operand->SetScopeLevel(operand->GetScopeLevel()+1);
+		  $$ = operand;
+		}
+		;
 
-% %
+
+bigstring:
+	  bigstring '+' STRINGLITTERAL
+        {
+		  ALString* sValue1 = $1;
+		  ALString* sValue2 = $3;
+
+		  // Concatenation des deux chaines
+          $$ = new ALString (*sValue1 + *sValue2);
+
+		  // Destruction des ancienne chaines
+		  delete sValue1;
+		  delete sValue2;
+        }
+	|	STRINGLITTERAL
+		{
+		  $$ = $1;
+		}
+	;
+
+semicolon: // NULL
+        {
+          yyerror("Missing ';'");
+        }
+   | ';'
+   | ';' ';'
+        {
+          yyerror("There is one superfluous ';'");
+        }
+   | ';' ';' ';'
+        {
+          yyerror("Too many ';'");
+        }
+    ;
+
+openparenthesis: // NULL
+        {
+		  // Cette instruction est la pour aider au diagnostic des erreurs
+		  // de parenthesage: elle est utile dans ce cas, mais genere (avec
+		  // sa consoeur de nombreux shift/reduce et reduce conflicts
+          yyerror("Missing '('");
+        }
+   | '('
+   | '(' '('
+        {
+          yyerror("There is one superfluous '('");
+        }
+   | '(' '(' '('
+        {
+          yyerror("Too many '('");
+        }
+    ;
+
+
+closeparenthesis: // NULL
+        {
+		  // Cette instruction est la pour aider au diagnostic des erreurs
+		  // de parenthesage: elle est utile dans ce cas, mais genere (avec
+		  // sa consoeur de nombreux shift/reduce et reduce conflicts
+          yyerror("Missing ')'");
+        }
+   | ')'
+	;
+
+
+%%
+
 
 #include "KWCLex.inc"
 
-    /* default yywrap that tells yylex to return 0 */
-    int yywrap()
+
+// default yywrap that tells yylex to return 0
+int yywrap()
 {
-	return 1;
+  return 1;
 }
 
-/* default yyerror for YACC and LEX */
-void yyerror(char const* fmt)
+
+// default yyerror for YACC and LEX
+void yyerror(char const *fmt)
 {
-	yyerrorWithLineCorrection(fmt, 0);
+   yyerrorWithLineCorrection(fmt, 0);
 }
 
-/* Variante avec une correction du numero de ligne */
-void yyerrorWithLineCorrection(char const* fmt, int nDeltaLineNumber)
+// Variante avec une correction du numero de ligne
+void yyerrorWithLineCorrection(char const *fmt, int nDeltaLineNumber)
 {
-	char sErrorLine[20];
-	ALString sLabel;
-	int nLineNumber;
+  char sErrorLine[20];
+  ALString sLabel;
+  int nLineNumber;
 
-	nFileParsingErrorNumber++;
-	nLineNumber = yylineno + nDeltaLineNumber;
-	if (nLineNumber <= 0)
-		nLineNumber = 1;
-	sprintf(sErrorLine, "Line %d", nLineNumber);
-	sLabel = fmt;
-	Global::AddError("Read dictionary file",
-			 sErrorLine,
-			 sLabel);
+  nFileParsingErrorNumber++;
+  nLineNumber = yylineno+nDeltaLineNumber;
+  if (nLineNumber <= 0)
+    nLineNumber = 1;
+  snprintf(sErrorLine, sizeof(sErrorLine), "Line %d", nLineNumber);
+  sLabel = fmt;
+  Global::AddError("Read dictionary file",
+                    sErrorLine,
+                    sLabel);
 }
+
+boolean ImportParserRuleOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule)
+{
+	boolean bOk = true;
+	KWDerivationRuleOperand* parsedOperand;
+	KWDerivationRuleOperand* operand;
+	int i;
+	ALString sTmp;
+
+	require(parsedRule != NULL);
+	require(rule != NULL);
+
+	// Test du nombre d'operandes
+	if ((rule->GetVariableOperandNumber() and parsedRule->GetOperandNumber() < rule->GetOperandNumber() - 1) or
+	    (not rule->GetVariableOperandNumber() and parsedRule->GetOperandNumber() != rule->GetOperandNumber()))
+
+	{
+		yyerror(sTmp + "Number of operands (" + IntToString(parsedRule->GetOperandNumber()) +
+			") inconsistent with that of rule " + rule->GetName() + " (" +
+			IntToString(rule->GetOperandNumber()) + ")");
+		bOk = false;
+	}
+	// Verification et transfert des operandes
+	else
+	{
+		// Dans le cas d'un nombre variable d'operandes, on commence par rajouter
+		// eventuellement des operandes en fin de regle pour preparer l'instanciation
+		if (parsedRule->GetOperandNumber() > rule->GetOperandNumber())
+		{
+			assert(rule->GetVariableOperandNumber());
+			while (rule->GetOperandNumber() < parsedRule->GetOperandNumber())
+				rule->AddOperand(rule->GetOperandAt(rule->GetOperandNumber() - 1)->Clone());
+		}
+
+		// Dans le cas d'un nombre variable d'operandes, on supprime eventuellement
+		// le dernier operande, qui n'est pas obligatoire
+		if (parsedRule->GetOperandNumber() < rule->GetOperandNumber())
+		{
+			assert(rule->GetVariableOperandNumber());
+			assert(parsedRule->GetOperandNumber() == rule->GetOperandNumber() - 1);
+			rule->DeleteAllVariableOperands();
+		}
+		assert(parsedRule->GetOperandNumber() == rule->GetOperandNumber());
+
+		// Transfert des operandes
+		for (i = 0; i < rule->GetOperandNumber(); i++)
+		{
+			// acces aux operandes
+			operand = rule->GetOperandAt(i);
+			parsedOperand = parsedRule->GetOperandAt(i);
+
+			// Import de l'operande
+			bOk = ImportParserOperand(rule->GetName(), i, parsedOperand, operand);
+			if (not bOk)
+				break;
+		}
+	}
+	return bOk;
+}
+
+boolean ImportParserRuleOutputOperands(const KWDerivationRule* parsedRule, KWDerivationRule* rule)
+{
+	boolean bOk = true;
+	KWDRRelationCreationRule* creationRule;
+	KWDerivationRuleOperand* parsedOperand;
+	KWDerivationRuleOperand* operand;
+	int i;
+	ALString sTmp;
+
+	require(parsedRule != NULL);
+	require(rule != NULL);
+	require(not parsedRule->GetReference());
+	require(not rule->GetReference());
+
+	// Test du nombre d'operandes en sortie
+	if ((rule->GetVariableOutputOperandNumber() and parsedRule->GetOutputOperandNumber() < rule->GetOutputOperandNumber() - 1) or
+	    (not rule->GetVariableOutputOperandNumber() and parsedRule->GetOutputOperandNumber() != rule->GetOutputOperandNumber()))
+
+	{
+		yyerror(sTmp + "Number of output operands (" + IntToString(parsedRule->GetOutputOperandNumber()) +
+			") inconsistent with that of rule " + rule->GetName() + " (" +
+			IntToString(rule->GetOutputOperandNumber()) + ")");
+		bOk = false;
+	}
+	// Verification et transfert des operandes en sortie
+	else
+	{
+		// Cast de la regle a alimenter en regle de creation de relation pour acceder a ses methodes dediees
+		creationRule = cast(KWDRRelationCreationRule*, rule);
+
+		// Dans le cas d'un nombre variable d'operandes en sortie, on commence par rajouter
+		// eventuellement des operandes en fin de regle pour preparer l'instanciation
+		if (parsedRule->GetOutputOperandNumber() > rule->GetOutputOperandNumber())
+		{
+			assert(rule->GetVariableOutputOperandNumber());
+			while (rule->GetOutputOperandNumber() < parsedRule->GetOutputOperandNumber())
+				creationRule->AddOutputOperand(rule->GetOutputOperandAt(rule->GetOutputOperandNumber() - 1)->Clone());
+		}
+
+		// Dans le cas d'un nombre variable d'operandes en sortie, on supprime eventuellement
+		// le dernier operande, qui n'est pas obligatoire
+		if (parsedRule->GetOutputOperandNumber() < rule->GetOutputOperandNumber())
+		{
+			assert(rule->GetVariableOutputOperandNumber());
+			assert(parsedRule->GetOutputOperandNumber() == rule->GetOutputOperandNumber() - 1);
+			creationRule->DeleteAllVariableOutputOperands();
+		}
+		assert(parsedRule->GetOutputOperandNumber() == rule->GetOutputOperandNumber());
+
+		// Transfert des operandes en sortie
+		for (i = 0; i < rule->GetOutputOperandNumber(); i++)
+		{
+			// acces aux operandes en sortie
+			operand = rule->GetOutputOperandAt(i);
+			parsedOperand = parsedRule->GetOutputOperandAt(i);
+
+			// Import de l'operande
+			bOk = ImportParserOperand(rule->GetName(), i, parsedOperand, operand);
+			if (not bOk)
+				break;
+		}
+	}
+	return bOk;
+}
+
+boolean ImportParserOperand(const ALString& sRuleName, int nOperandIndex,
+                            KWDerivationRuleOperand* parsedOperand, KWDerivationRuleOperand* operand)
+{
+	boolean bOk = true;
+	ALString sTmp;
+
+	require(parsedOperand != NULL);
+	require(operand != NULL);
+
+	// Transfert d'informations de la regle de reference vers la regle a verifier
+	if (parsedOperand->GetOrigin() != KWDerivationRuleOperand::OriginConstant)
+	{
+		parsedOperand->SetType(operand->GetType());
+		if (KWType::IsRelation(operand->GetType()))
+			parsedOperand->SetObjectClassName(operand->GetObjectClassName());
+	}
+	if (operand->GetType() == KWType::Structure)
+	{
+		parsedOperand->SetType(KWType::Structure);
+		parsedOperand->SetStructureName(operand->GetStructureName());
+	}
+
+	// Test si operande candidate valide
+	if (not parsedOperand->CheckDefinition())
+	{
+		bOk = false;
+		yyerror(sTmp + "Incorrect operand " + IntToString(1 + nOperandIndex) + " for rule " + sRuleName);
+	}
+	// Test de compatibilite avec la regle enregistree, sauf si regle avec operande de type indetermine
+	else if (operand->GetType() != KWType::Unknown and not parsedOperand->CheckFamily(operand))
+	{
+		bOk = false;
+		yyerror(sTmp + "Operand " + IntToString(1 + nOperandIndex) + " inconsistent with that of rule " +
+			sRuleName);
+	}
+	// Transfert de l'origine de l'operande
+	else
+	{
+		// Transfert du niveau de scope
+		operand->SetScopeLevel(parsedOperand->GetScopeLevel());
+
+		// Transfert d'une valeur constante
+		operand->SetOrigin(parsedOperand->GetOrigin());
+		if (operand->GetOrigin() == KWDerivationRuleOperand::OriginConstant)
+		{
+			operand->SetType(parsedOperand->GetType());
+			operand->SetStringConstant(parsedOperand->GetStringConstant());
+		}
+		// Transfert d'un attribut
+		else if (operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute)
+			operand->SetDataItemName(parsedOperand->GetDataItemName());
+		else
+		// Transfert d'une regle
+		{
+			// Transfert de la regle
+			if (operand->GetDerivationRule() != NULL)
+			{
+				assert(parsedOperand->GetDerivationRule() != NULL);
+				delete operand->GetDerivationRule();
+			}
+			operand->SetDerivationRule(parsedOperand->GetDerivationRule());
+
+			// Transfert des infos portees par la regle de derivation
+			if (operand->GetDerivationRule() != NULL)
+			{
+				operand->SetType(operand->GetDerivationRule()->GetType());
+				if (KWType::IsRelation(operand->GetType()))
+					operand->SetObjectClassName(operand->GetDerivationRule()->GetObjectClassName());
+				if (operand->GetType() == KWType::Structure)
+					operand->SetStructureName(operand->GetDerivationRule()->GetStructureName());
+			}
+
+			// Dereferencement de la regle de derivation depuis l'operande de travail
+			parsedOperand->SetDerivationRule(NULL);
+		}
+	}
+	return bOk;
+}
+
 
 int yyparse();
 
-/* Implementation de la methode de lecture de fichier de KWClassDomain */
+
+// Implementation de la methode de lecture de fichier de KWClassDomain
 boolean KWClassDomain::ReadFile(const ALString& sFileName)
 {
-	boolean bOk = true;
-	FILE* fFile;
-	ObjectDictionary odInitialClasses;
-	ObjectArray oaNewClasses;
-	ObjectArray oaReferencedUncreatedClasses;
-	int i;
-	KWClass* kwcClass;
-	ALString sLocalFileName;
+  boolean bOk = true;
+  FILE* fFile;
+  ObjectDictionary odInitialClasses;
+  ObjectArray oaNewClasses;
+  ObjectArray oaReferencedUncreatedClasses;
+  int i;
+  KWClass* kwcClass;
+  ALString sLocalFileName;
 
-	/* Affichage de stats memoire si log memoire actif */
-	MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " ReadFile Begin");
+  // Affichage de stats memoire si log memoire actif
+  MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " ReadFile Begin");
 
-	/* Initialisation du domaine de classe a utiliser pour le Load */
-	assert(kwcdLoadDomain == NULL);
-	kwcdLoadDomain = this;
+  // Initialisation du domaine de classe a utiliser pour le Load
+  assert(kwcdLoadDomain == NULL);
+  kwcdLoadDomain = this;
 
-	/* Initialisation de la classe courante a utiliser pour le Load */
-	assert(kwcLoadCurrentClass == NULL);
-	kwcLoadCurrentClass = NULL;
+  // Initialisation de la classe courante a utiliser pour le Load
+  assert(kwcLoadCurrentClass == NULL);
+  kwcLoadCurrentClass = NULL;
 
-	/* Creation du dictionnaire des classes referencees non crees */
-	assert(odReferencedUncreatedClasses == NULL);
-	odReferencedUncreatedClasses = new ObjectDictionary;
+  // Creation du dictionnaire des classes referencees non crees
+  assert(odReferencedUncreatedClasses == NULL);
+  odReferencedUncreatedClasses = new ObjectDictionary;
 
-	/* Erreur si pas de nom de fichier */
-	fFile = NULL;
-	if (sFileName == "")
-	{
-		AddError("Missing file name");
-		bOk = false;
-	}
-	/* Sinon, ouverture du fichier */
-	else
-	{
+  // Erreur si pas de nom de fichier
+  fFile = NULL;
+  if (sFileName == "")
+  {
+     AddError("Missing file name");
+	 bOk = false;
+  }
+  // Sinon, ouverture du fichier
+  else
+  { 
 		// Copie depuis HDFS si necessaire
 		bOk = PLRemoteFileService::BuildInputWorkingFile(sFileName, sLocalFileName);
 		if (bOk)
 			bOk = FileService::OpenInputBinaryFile(sLocalFileName, fFile);
-	}
+  }
 
-	/* On continue si fichier ouvert correctement */
-	if (bOk)
+  // On continue si fichier ouvert correctement
+  if (bOk)
+  {
+    assert(fFile != NULL);
+
+    // Memorisation de toutes les classes initiales
+    kwcdLoadDomain->ExportClassDictionary(&odInitialClasses);
+
+	// Activation du nombre max d'erreurs a afficher
+	nFileParsingErrorNumber = 0;
+	Global::ActivateErrorFlowControl();
+
+    // Positionnement du fichier a parser par la variable yyin de LEX
+    yylineno = 1;
+    yyrestart(fFile);
+    
+	// Parsing
+    yyparse();
+
+	// Cleaning lexer
+	yylex_destroy();
+
+    // Fermeture du fichier
+	FileService::CloseInputBinaryFile(sLocalFileName, fFile);
+	
+	// Si HDFS on supprime la copie locale
+	PLRemoteFileService::CleanInputWorkingFile(sFileName, sLocalFileName);
+
+	// Completion des informations de type au niveau du domaine
+	if (nFileParsingErrorNumber == 0)
+	  kwcdLoadDomain->CompleteTypeInfo();
+
+	// Lecture des informations privees depuis les meta donnees
+	if (nFileParsingErrorNumber == 0)
 	{
-		assert(fFile != NULL);
-
-		/* Memorisation de toutes les classes initiales */
-		kwcdLoadDomain->ExportClassDictionary(&odInitialClasses);
-
-		/* Activation du nombre max d'erreurs a afficher */
-		nFileParsingErrorNumber = 0;
-		Global::ActivateErrorFlowControl();
-
-		/* Positionnement du fichier a parser par la variable yyin de LEX */
-		yylineno = 1;
-		yyrestart(fFile);
-
-		/* Parsing */
-		yyparse();
-
-		/* Cleaning lexer */
-		yylex_destroy();
-
-		/* Fermeture du fichier */
-		FileService::CloseInputBinaryFile(sLocalFileName, fFile);
-
-		/* Si HDFS on supprime la copie locale */
-		PLRemoteFileService::CleanInputWorkingFile(sFileName, sLocalFileName);
-
-		/* Completion des informations de type au niveau du domaine */
-		if (nFileParsingErrorNumber == 0)
-			kwcdLoadDomain->CompleteTypeInfo();
-
-		/* Lecture des informations sur les attributs utilises mais non charges en memoire */
-		if (nFileParsingErrorNumber == 0)
+		for (i = 0; i < kwcdLoadDomain->GetClassNumber(); i++)
 		{
-			for (i = 0; i < kwcdLoadDomain->GetClassNumber(); i++)
-			{
-				kwcClass = kwcdLoadDomain->GetClassAt(i);
-				kwcClass->ReadNotLoadedMetaData();
-			}
+			kwcClass = kwcdLoadDomain->GetClassAt(i);
+			kwcClass->ReadPrivateMetaData();
 		}
-
-		/* Messages d'erreur pour les classes referencees non crees */
-		if (nFileParsingErrorNumber > 0 or odReferencedUncreatedClasses->GetCount() > 0)
-		{
-			odReferencedUncreatedClasses->ExportObjectArray(&oaReferencedUncreatedClasses);
-			for (i = 0; i < oaReferencedUncreatedClasses.GetSize(); i++)
-			{
-				kwcClass = cast(KWClass*, oaReferencedUncreatedClasses.GetAt(i));
-				AddError("Error detected during parsing " + sFileName + ": dictionary " + kwcClass->GetName() + " used, but not declared");
-			}
-		}
-
-		/* Desactivation du nombre max d'erreurs a afficher */
-		Global::DesactivateErrorFlowControl();
-
-		/* Destruction des classes crees si au moins une erreur de parsing detectee */
-		/* ou au moins une classe referencee non cree                               */
-		if (nFileParsingErrorNumber > 0 or odReferencedUncreatedClasses->GetCount() > 0)
-		{
-			AddError("Error detected during parsing " + sFileName + ": read operation cancelled");
-			bOk = false;
-
-			/* Recherche des nouvelles classes crees */
-			for (i = 0; i < kwcdLoadDomain->GetClassNumber(); i++)
-			{
-				kwcClass = kwcdLoadDomain->GetClassAt(i);
-				if (odInitialClasses.Lookup(kwcClass->GetName()) == NULL)
-					oaNewClasses.Add(kwcClass);
-			}
-
-			/* Destruction des classes nouvellement crees */
-			for (i = 0; i < oaNewClasses.GetSize(); i++)
-			{
-				kwcClass = cast(KWClass*, oaNewClasses.GetAt(i));
-				kwcdLoadDomain->DeleteClass(kwcClass->GetName());
-			}
-
-			/* Destruction des classes referencees non crees */
-			odReferencedUncreatedClasses->DeleteAll();
-		}
-		nFileParsingErrorNumber = 0;
 	}
 
-	/* Nettoyage */
-	kwcdLoadDomain = NULL;
-	kwcLoadCurrentClass = NULL;
-	delete odReferencedUncreatedClasses;
-	odReferencedUncreatedClasses = NULL;
+    // Messages d'erreur pour les classes referencees non crees
+	if (nFileParsingErrorNumber > 0 or odReferencedUncreatedClasses->GetCount() > 0)
+	{
+	  odReferencedUncreatedClasses->ExportObjectArray(&oaReferencedUncreatedClasses);
+	  for (i = 0; i < oaReferencedUncreatedClasses.GetSize(); i++)
+	  {
+	    kwcClass = cast(KWClass*, oaReferencedUncreatedClasses.GetAt(i));
+        AddError("Dictionary " + kwcClass->GetName() + " used, but not declared");
+	  }
+	}
 
-	/* Affichage de stats memoire si log memoire actif */
-	MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " ReadFile End");
+	// Desactivation du nombre max d'erreurs a afficher
+	Global::DesactivateErrorFlowControl();
 
-	return bOk;
+    // Destruction des classes crees si au moins une erreur de parsing detectee
+	// ou au moins une classe referencee non cree
+	if (nFileParsingErrorNumber > 0 or odReferencedUncreatedClasses->GetCount() > 0)
+    {
+	  // En cas d'erreur, ajout d'une ligne blanche pour separer des autres logs
+      AddError("Errors detected during parsing " + sFileName + ": read operation cancelled");
+	  AddSimpleMessage("");
+	  bOk = false;
+
+ 	  // Recherche des nouvelles classes crees
+	  for (i = 0; i < kwcdLoadDomain->GetClassNumber(); i++)
+	  {
+	    kwcClass = kwcdLoadDomain->GetClassAt(i);
+	    if (odInitialClasses.Lookup(kwcClass->GetName()) == NULL)
+	      oaNewClasses.Add(kwcClass);
+	  }
+
+	  // Destruction des classes nouvellement crees
+	  for (i = 0; i < oaNewClasses.GetSize(); i++)
+	  {
+	    kwcClass = cast(KWClass*, oaNewClasses.GetAt(i));
+	    kwcdLoadDomain->DeleteClass(kwcClass->GetName());
+	  }
+
+	  // Destruction des classes referencees non crees
+      odReferencedUncreatedClasses->DeleteAll();
+	}
+	nFileParsingErrorNumber = 0;
+  }
+
+  // Nettoyage
+  kwcdLoadDomain = NULL;
+  kwcLoadCurrentClass = NULL;
+  delete odReferencedUncreatedClasses;
+  odReferencedUncreatedClasses = NULL;
+
+  // Affichage de stats memoire si log memoire actif
+  MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " ReadFile End");
+
+  return bOk;
 }

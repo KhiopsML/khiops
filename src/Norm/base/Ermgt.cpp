@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -6,6 +6,12 @@
 
 ///////////////////////////////////////
 // Implementation de la classe Global
+
+boolean Global::bPrintMessagesInConsole = false;
+
+ErrorFlowIgnoreFunction Global::fErrorFlowIgnoreFunction = NULL;
+
+boolean Global::bIsSignalErrorManagementActivated = false;
 
 void Global::AddSimpleMessage(const ALString& sLabelValue)
 {
@@ -24,7 +30,15 @@ void Global::AddWarning(const ALString& sCategoryValue, const ALString& sLocalis
 
 void Global::AddError(const ALString& sCategoryValue, const ALString& sLocalisationValue, const ALString& sLabelValue)
 {
-	AddErrorObjectValued(Error::GravityError, sCategoryValue, sLocalisationValue, sLabelValue);
+	// Traitement de l'erreur comme un warning
+	if (GetErrorAsWarningMode())
+		AddWarning(sCategoryValue, sLocalisationValue, sLabelValue);
+	// Traitement standard de l'erreur
+	else
+	{
+		bIsAtLeastOneError = true;
+		AddErrorObjectValued(Error::GravityError, sCategoryValue, sLocalisationValue, sLabelValue);
+	}
 }
 
 void Global::AddFatalError(const ALString& sCategoryValue, const ALString& sLocalisationValue,
@@ -33,42 +47,40 @@ void Global::AddFatalError(const ALString& sCategoryValue, const ALString& sLoca
 	AddErrorObjectValued(Error::GravityFatalError, sCategoryValue, sLocalisationValue, sLabelValue);
 }
 
-Global::Global()
+boolean Global::IgnoreErrorFlowForDisplay(const Error* e)
 {
-	static boolean bSignalHandlersInitialized = false;
-
-	// Initialisation des handler de gestion de signal
-	// On ne gere pas SIGBREAK, qui n'est pas connu sous linux
-	if (not bSignalHandlersInitialized)
-	{
-		bSignalHandlersInitialized = true;
-		signal(SIGTERM, SignalHandler);
-		signal(SIGSEGV, SignalHandler);
-		signal(SIGINT, SignalHandler);
-		signal(SIGILL, SignalHandler);
-		signal(SIGABRT, SignalHandler);
-		signal(SIGFPE, SignalHandler);
-	}
+	require(e != NULL);
+	if (fErrorFlowIgnoreFunction == NULL)
+		return false;
+	else
+		return fErrorFlowIgnoreFunction(e, true);
 }
-
-Global::~Global() {}
 
 void Global::SignalHandler(int nSigNum)
 {
+	// On doit eviter les allocations et les routines d'entree:sortie de bas niveau ou de sdtio.h
 	if (nSigNum == SIGTERM)
-		AddFatalError("Signal", IntToString(nSigNum), "termination request, sent to the program ");
+		cout << "Interrupt signal " << nSigNum << " : termination request, sent to the program " << endl;
 	else if (nSigNum == SIGSEGV)
-		AddFatalError("Signal", IntToString(nSigNum), "invalid memory access (segmentation fault)");
+		cout << "Interrupt signal " << nSigNum << " : invalid memory access (segmentation fault)" << endl;
 	else if (nSigNum == SIGINT)
-		AddFatalError("Signal", IntToString(nSigNum), "external interrupt, usually initiated by the user");
+		cout << "Interrupt signal " << nSigNum << " : external interrupt, usually initiated by the user"
+		     << endl;
 	else if (nSigNum == SIGILL)
-		AddFatalError("Signal", IntToString(nSigNum), "invalid program image, such as invalid instruction");
+		cout << "Interrupt signal " << nSigNum << " : invalid program image, such as invalid instruction"
+		     << endl;
 	else if (nSigNum == SIGABRT)
-		AddFatalError("Signal", IntToString(nSigNum), "abnormal termination condition triggered by abort call");
+		cout << "Interrupt signal " << nSigNum << " : abnormal termination condition triggered by abort call"
+		     << endl;
 	else if (nSigNum == SIGFPE)
-		AddFatalError("Signal", IntToString(nSigNum), "erroneous arithmetic operation such as divide by zero");
+		cout << "Interrupt signal " << nSigNum << " : erroneous arithmetic operation such as divide by zero"
+		     << endl;
 	else
-		AddFatalError("Signal", IntToString(nSigNum), "Unknown error");
+		cout << "Interrupt signal " << nSigNum << " : Unknown error" << endl;
+
+	// Sortie du programe
+	// (on n'utilise pas les signaux comme valeurs de retour car on renvoie 1 en cas d'erreur fatale)
+	exit(EXIT_FAILURE);
 }
 
 Global Global::singletonSignalManager;
@@ -92,7 +104,7 @@ void Global::AddErrorObjectValued(int nGravityValue, const ALString& sCategoryVa
 	// Sortie si erreur fatale
 	if (nGravityValue == Error::GravityFatalError)
 	{
-		ShowError(e);
+		ShowError(&e);
 		GlobalExit();
 	}
 	// Cas des autres types de message
@@ -117,8 +129,9 @@ void Global::AddErrorObjectValued(int nGravityValue, const ALString& sCategoryVa
 		}
 
 		// Affichage si autorise
-		if (nErrorFlowControlLevel == 0 or lErrorFlowNumber <= nMaxErrorFlowNumber)
-			ShowError(e);
+		if (nErrorFlowControlLevel == 0 or lErrorFlowNumber <= nMaxErrorFlowNumber or
+		    IgnoreErrorFlowForDisplay(&e))
+			ShowError(&e);
 
 		// Affichage special si depassement du nombre max autorise
 		if (nErrorFlowControlLevel > 0 and lErrorFlowNumber > nMaxErrorFlowNumber)
@@ -127,7 +140,7 @@ void Global::AddErrorObjectValued(int nGravityValue, const ALString& sCategoryVa
 			if (lErrorFlowNumber == nMaxErrorFlowNumber + 1)
 			{
 				e.Initialize(nGravityValue, sCategoryValue, "", "...");
-				ShowError(e);
+				ShowError(&e);
 			}
 			// Sinon, on re-affiche un message toutes les puissances de 10
 			// ou tous les millions
@@ -140,26 +153,35 @@ void Global::AddErrorObjectValued(int nGravityValue, const ALString& sCategoryVa
 						  "th " + Error::GetGravityLabel(nGravityValue) + ")";
 				e.Initialize(nGravityValue, sCategoryValue, sLocalisationValue,
 					     sLabelValue + " " + sAdditionalInfo);
-				ShowError(e);
+				ShowError(&e);
 
 				// Message de suite
 				e.Initialize(nGravityValue, sCategoryValue, "", "...");
-				ShowError(e);
+				ShowError(&e);
 			}
 		}
 	}
 }
 
-void Global::ShowError(Error e)
+void Global::ShowError(const Error* e)
 {
-	if (not GetSilentMode() or e.GetGravity() == Error::GravityFatalError)
+	require(e != NULL);
+
+	if (not GetSilentMode() or e->GetGravity() == Error::GravityFatalError)
 	{
 		// Ecriture dans le fichier de log
 		if (fstError.is_open())
-			fstError << e << flush;
+		{
+			// Si c'est une redirection dans la console, on prefixe le message
+			// pour qu'il soit facilement identifiable parmi les autres types de messages
+			// (progression, output etc...)
+			if (bPrintMessagesInConsole)
+				fstError << "Khiops.log\t";
+			fstError << *e << flush;
+		}
 
 		// Affichage avec interface utilisateur
-		e.Display();
+		e->Display();
 	}
 }
 
@@ -220,6 +242,25 @@ boolean Global::IsMaxErrorFlowReachedPerGravity(int nErrorGravity)
 		return false;
 }
 
+boolean Global::IgnoreErrorFlow(const Error* e)
+{
+	require(e != NULL);
+	if (fErrorFlowIgnoreFunction == NULL)
+		return false;
+	else
+		return fErrorFlowIgnoreFunction(e, false);
+}
+
+void Global::SetErrorFlowIgnoreFunction(ErrorFlowIgnoreFunction fErrorFlowIgnore)
+{
+	fErrorFlowIgnoreFunction = fErrorFlowIgnore;
+}
+
+ErrorFlowIgnoreFunction Global::GetErrorFlowIgnoreFunction()
+{
+	return fErrorFlowIgnoreFunction;
+}
+
 void Global::SetSilentMode(boolean bValue)
 {
 	bSilentMode = bValue;
@@ -228,6 +269,16 @@ void Global::SetSilentMode(boolean bValue)
 boolean Global::GetSilentMode()
 {
 	return bSilentMode;
+}
+
+void Global::SetErrorAsWarningMode(boolean bValue)
+{
+	bErrorAsWarningMode = bValue;
+}
+
+boolean Global::GetErrorAsWarningMode()
+{
+	return bErrorAsWarningMode;
 }
 
 // Les erreurs de l'allocateur sont redirigees sur la gestion centralisee des erreurs
@@ -256,6 +307,11 @@ boolean Global::SetErrorLogFileName(const ALString& sValue)
 		// Creation si necessaire des repertoires intermediaires
 		FileService::MakeDirectories(FileService::GetPathName(sErrorLogFileName));
 
+		// Fermeture du fichier si celui-ci est deja ouvert
+		// Ce cas peut arriver si on appelle plusieurs fois ParseParameters (notamment via MODL_dll)
+		if (fstError.is_open())
+			fstError.close();
+
 		// Ici, on ne passe pas par la classe FileService pour ne pas
 		// entrainer une boucle entre FileService et Global
 		p_SetMachineLocale();
@@ -268,6 +324,14 @@ boolean Global::SetErrorLogFileName(const ALString& sValue)
 			AddError("File", sErrorLogFileName, "Unable to open log file");
 			bOk = false;
 		}
+
+		// Si le fichier de log est /dev/stdout ou /dev/stderr
+		// C'est une redirection des messages vers la console
+		// (on ajoutera un prefix a chaque ligne)
+#ifdef __linux_or_apple__
+		if (sValue == "/dev/stdout" or sValue == "/dev/stderr")
+			bPrintMessagesInConsole = true;
+#endif
 	}
 	return bOk;
 }
@@ -275,6 +339,36 @@ boolean Global::SetErrorLogFileName(const ALString& sValue)
 const ALString Global::GetErrorLogFileName()
 {
 	return sErrorLogFileName;
+}
+
+boolean Global::IsAtLeastOneError()
+{
+	return bIsAtLeastOneError;
+}
+
+void Global::ActivateSignalErrorManagement()
+{
+	require(not bIsSignalErrorManagementActivated);
+
+// Defini seulement en debug ou RelWithDebInfo (alpha)
+#if defined(__ALPHA__) || !defined(NOALL)
+
+	// Initialisation des handler de gestion de signal
+	// On ne gere pas SIGBREAK, qui n'est pas connu sous linux
+	bIsSignalErrorManagementActivated = true;
+	signal(SIGTERM, SignalHandler);
+	signal(SIGSEGV, SignalHandler);
+	signal(SIGINT, SignalHandler);
+	signal(SIGILL, SignalHandler);
+	signal(SIGABRT, SignalHandler);
+	signal(SIGFPE, SignalHandler);
+
+#endif
+}
+
+boolean Global::IsSignalErrorManagementActivated()
+{
+	return bIsSignalErrorManagementActivated;
 }
 
 int Global::nErrorFlowControlLevel = 0;
@@ -287,9 +381,13 @@ longint Global::lErrorFlowErrorNumber = 0;
 
 boolean Global::bSilentMode = false;
 
+boolean Global::bErrorAsWarningMode = false;
+
 ALString Global::sErrorLogFileName;
 
 fstream Global::fstError;
+
+boolean Global::bIsAtLeastOneError = false;
 
 //////////////////////////////////////////////////////////////
 //            Implementation de la classe Error

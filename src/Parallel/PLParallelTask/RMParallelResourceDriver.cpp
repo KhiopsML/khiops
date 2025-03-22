@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -35,20 +35,13 @@ longint RMParallelResourceDriver::GetTotalAvailableMemory() const
 	// Si on est dans une tache parallele
 	if (PLParallelTask::IsRunning())
 	{
-		if (grantedResources->IsSequentialTask())
-		{
-			if (PLParallelTask::IsMasterProcess())
-				// Memoire destinee au maitre
-				lAvailableMemory = grantedResources->GetResourceAtRank(0)->GetMemory();
-			else
-				// Memoire destinee a l'esclave
-				lAvailableMemory = grantedResources->GetResourceAtRank(1)->GetMemory();
-		}
+
+		if (PLParallelTask::IsMasterProcess())
+			// Memoire destinee au maitre
+			lAvailableMemory = grantedResources->GetMasterResource(MEMORY);
 		else
-		{
-			// Memoire destinee au processus courant
-			lAvailableMemory = grantedResources->GetResourceAtRank(GetProcessId())->GetMemory();
-		}
+			// Memoire destinee a l'esclave
+			lAvailableMemory = grantedResources->GetSlaveResource(MEMORY);
 	}
 	else
 	{
@@ -93,9 +86,9 @@ longint RMParallelResourceDriver::GetRemainingAvailableResource(Resource resourc
 
 	if (PLParallelTask::GetParallelSimulated())
 	{
-		lSharedResource = grantedResources->GetResourceAtRank(0)->GetSharedResource(resource);
-		lMasterResource = grantedResources->GetResourceAtRank(0)->GetResource(resource);
-		lSlaveResource = grantedResources->GetResourceAtRank(1)->GetResource(resource);
+		lSharedResource = grantedResources->GetSharedResource(resource);
+		lMasterResource = grantedResources->GetMasterResource(resource);
+		lSlaveResource = grantedResources->GetSlaveResource(resource);
 
 		// Memoire disponible en ne depassant pas  nbSlave * (Mem pour chaque slave + shared) + Mem pour master
 		// +shared + system
@@ -105,9 +98,9 @@ longint RMParallelResourceDriver::GetRemainingAvailableResource(Resource resourc
 	}
 	else if (grantedResources->IsSequentialTask())
 	{
-		lMasterResource = grantedResources->GetResourceAtRank(0)->GetResource(resource);
-		lSlaveResource = grantedResources->GetResourceAtRank(1)->GetResource(resource);
-		lSharedResource = grantedResources->GetResourceAtRank(0)->GetSharedResource(resource);
+		lMasterResource = grantedResources->GetMasterResource(resource);
+		lSlaveResource = grantedResources->GetSlaveResource(resource);
+		lSharedResource = grantedResources->GetSharedResource(resource);
 
 		// On ne distingue pas la memoire destinee au maitre de celle destinee a l'esclave
 		lRemaininResource =
@@ -116,8 +109,11 @@ longint RMParallelResourceDriver::GetRemainingAvailableResource(Resource resourc
 	}
 	else
 	{
-		lGrantedResource = grantedResources->GetResourceAtRank(GetProcessId())->GetResource(resource);
-		lSharedResource = grantedResources->GetResourceAtRank(GetProcessId())->GetSharedResource(resource);
+		if (PLParallelTask::IsMasterProcess())
+			lGrantedResource = grantedResources->GetMasterResource(resource);
+		else
+			lGrantedResource = grantedResources->GetSlaveResource(resource);
+		lSharedResource = grantedResources->GetSharedResource(resource);
 		if (GetProcessId() == 0)
 		{
 			lSystemAtStart =

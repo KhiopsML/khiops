@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -102,7 +102,7 @@ public:
 	///// Implementation
 protected:
 	///////////////////////////////////////////////////////////////////
-	// Les cles categorielles sont geree au moyen d'un dictionnaire
+	// Les cles categorielles sont gerees au moyen d'un dictionnaire
 	// a cles numerique, efficace en temps de calcul, mais avec une
 	// empreinte memoire non negligeable
 
@@ -134,7 +134,7 @@ public:
 	//////////////////////////////////////////////////////////////////
 	// Alimentation des cles
 
-	// Ajout d'une cle (entier superieur ou egal a 1)
+	// Ajout d'une cle (entier valide entre MinKey et MaxKey)
 	// Les cles doivent etre inserees dans le bon ordre
 	void AddKey(int nKey);
 
@@ -143,6 +143,10 @@ public:
 
 	// Nombre total de cles
 	int GetKeyNumber() const override;
+
+	// Valeurr min et max des cles numerique
+	static int GetMinKey();
+	static int GetMaxKey();
 
 	///////////////////////////////////////////////////////////////////
 	// Acces aux cle et a leur index
@@ -186,7 +190,7 @@ protected:
 	// au lieu de symbol et d'objets(Key, Index) est tres avantageuse
 	// a la fois en memoire et en temps.
 	//
-	// Cette fonctionnalite es utile en particulier pour indexer un bloc de
+	// Cette fonctionnalite est utile en particulier pour indexer un bloc de
 	// valeurs sparses dont les variables sont identifiees par des cles entieres
 
 	// Indexation des cles selon un mode specifie, pour permettre de tester
@@ -406,7 +410,7 @@ inline KWIndexedNKeyBlock::~KWIndexedNKeyBlock() {}
 
 inline void KWIndexedNKeyBlock::AddKey(int nKey)
 {
-	require(nKey >= 1);
+	require(GetMinKey() <= nKey and nKey <= GetMaxKey());
 	require(ivKeys.GetSize() == 0 or nKey > ivKeys.GetAt(ivKeys.GetSize() - 1));
 	ivKeys.Add(nKey);
 }
@@ -419,6 +423,16 @@ inline boolean KWIndexedNKeyBlock::IsKeyPresent(int nKey) const
 inline int KWIndexedNKeyBlock::GetKeyNumber() const
 {
 	return ivKeys.GetSize();
+}
+
+inline int KWIndexedNKeyBlock::GetMinKey()
+{
+	return 1;
+}
+
+inline int KWIndexedNKeyBlock::GetMaxKey()
+{
+	return 1000000000;
 }
 
 inline int KWIndexedNKeyBlock::GetKeyAt(int nIndex) const

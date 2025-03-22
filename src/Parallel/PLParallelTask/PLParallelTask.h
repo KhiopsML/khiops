@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -11,13 +11,13 @@
 #include "PLSharedVariable.h"
 #include "PLSharedObject.h"
 #include "PLSharedVector.h"
-#include "PLShared_BufferedFile.h"
 #include "PLShared_ResourceRequirement.h"
 #include "PLSlaveState.h"
 #include "PLTaskDriver.h"
 #include "PLTracer.h"
 #include "RMParallelResourceManager.h"
 #include "RMParallelResourceDriver.h"
+#include "RMTaskResourceGrant.h"
 #include "PLIncrementalStats.h"
 #include "PLRemoteFileService.h"
 #include "PLErrorWithIndex.h"
@@ -49,20 +49,14 @@ public:
 	PLParallelTask();
 	~PLParallelTask();
 
-	// Methode a appeler en debut de programme pour avoir une execution parallele
-	// Met en place toute la configuration necessaire a MPI (bibliotheques, driver, header...)
-	// Sans l'appel a cette methode la code sera execute en sequentiel
-	// La version du logiciel doit etre passe en parametre
-	static void UseMPI(const ALString& sVersion);
-
-	// Retourne vrai quand la tache a ete executee
-	// Les resultats sont disponibles
+	// Retourne true quand la tache a ete executee (en echec ou non)
 	boolean IsJobDone() const;
 
-	// Renvoie vrai si la tache s'est bien terminee
+	// Renvoie true si la tache s'est bien terminee
+	// et qu'il n'y a pas eu d'interruption utilisateur
 	boolean IsJobSuccessful() const;
 
-	// Renvoie true si il ya eu une interruption utilisateur
+	// Renvoie true si il y a eu une interruption utilisateur
 	// et que la tache s'est deroulee sans erreur
 	boolean IsTaskInterruptedByUser() const;
 
@@ -146,36 +140,15 @@ public:
 	// Destruction de toutes les taches enregistrees
 	static void DeleteAllTasks();
 
+	// Met a jour le vector passe en parametre avec la signature de chaque tache enregistree
+	static void GetRegisteredTaskSignatures(StringVector& svSignatures);
+
 	///////////////////////////////////////////////
 	// Outils de debugage
 
 	// Fichier de log pour la mise au point
 	static void SetParallelLogFileName(const ALString& sValue);
 	static const ALString& GetParallelLogFileName();
-
-	// Mode de test avance : detruit les repertoires temporaires pendant l'execution de la tache
-	// Celle-ci doit se termine correctement (sans plantage) en renvoyant false
-	// La suppression peut intervenir a differents endroits suivant le mode choisi :
-	//		- 0: pas de suppression
-	//		- MASTER_INITIALIZE: apres MasterInitialize
-	//		- MASTER_AGGREGATE: apres chaque MasterAggregate
-	//		- MASTER_FINALIZE: avant MasterFinalize
-	//		- SLAVE_INITIALIZE: apres SlaveInitialize
-	//		- SLAVE_PROCESS: apres le premier SlaveProcess realise
-	//		- SLAVE_FINALIZE: avant SlaveFinalize
-	enum CRASH_TEST_MODE
-	{
-		CRASH_NONE,
-		CRASH_MASTER_INITIALIZE,
-		CRASH_MASTER_AGGREGATE,
-		CRASH_MASTER_FINALIZE,
-		CRASH_SLAVE_INITIALIZE,
-		CRASH_SLAVE_PROCESS,
-		CRASH_SLAVE_FINALIZE,
-		CRASH_TEST_NUMBER
-	};
-	void SetCrashTestMode(int nMode);
-	CRASH_TEST_MODE GetCrashTestMode() const;
 
 	// Mode verbeux, ajoute des messages vers l'utilisateur :
 	// - Lors d'echec, Warning qui designe explicitement quelle methode de la tache a echoue
@@ -199,6 +172,55 @@ public:
 	static void SetTracerResources(int nTraceLevel); // 0: pas de trace, 1: trace ON, 2: traces techniques
 	static int GetTracerResources();
 
+	///////////////////////////////////////////////
+	// Methode de tests avances
+
+	// Methodes des taches paralleles
+	enum Method
+	{
+		NONE,
+		SLAVE_INITIALIZE,
+		SLAVE_PROCESS,
+		SLAVE_FINALIZE,
+		MASTER_INITIALIZE,
+		MASTER_PREPARE_INPUT,
+		MASTER_AGGREGATE,
+		MASTER_FINALIZE,
+		METHODS_NUMBER
+	};
+
+	// Renvoie le nom de la methode qui correspond a l'enum METHOD
+	static ALString MethodToString(Method nMethod);
+	static Method StringToMethod(const ALString& sMethod);
+
+	// Type de test a effectuer
+	enum TestType
+	{
+		NO_TEST,
+		IO_FAILURE_OPEN,
+		IO_FAILURE_READ,
+		IO_FAILURE_WRITE,
+		USER_INTERRUPTION,
+		TESTS_NUMBER
+	};
+
+	// Renvoie le nom du test qui correspond a l'enum TEST
+	static ALString CrashTestToString(TestType nTest);
+	static TestType StringToCrashTest(const ALString& sTest);
+
+	// Test des taches paralleles
+	// Le test est effectue dans la tache dont la signature est sTaskSignature dans la methode nMethod et lors
+	// de l'iteration nCallIndex de cette methode (pour les methodes MasterAggregate MasterPrepareTaskInput et
+	// SlaveProcess) Il y a 4 types de tests :
+	// - IO_FAILURE_OPEN : la methode Open de SystemFile renvoie Open false dans la methode et a un comportement
+	// normal en dehors de celle-ci
+	// - IO_FAILURE_READ : la methode Read de SystemFile renvoie Read false dans la methode et a un comportement
+	// normal en dehors de celle-ci
+	// - IO_FAILURE_WRITE: la methode Flush de SystemFile renvoie Flush false dans la methode et a un comportement
+	// normal en dehors de celle-ci
+	// - USER_INTERRUPTION : une interruption utilisateur est forcee avant l'appel a la methode
+	static void CrashTest(TestType nTestType, const ALString& sTaskSignature, Method nMethod, int nCallIndex);
+
 	//////////////////////////////////////////////////////////////////
 	///// Implementation
 
@@ -210,8 +232,8 @@ public:
 	static boolean IsRunning();
 
 	// Test de la methode ComputeStairBufferSize
-	static void TestComputeStairBufferSize(int nBufferSizeMin, int nBufferSizeMax, longint lFileSize,
-					       int nProcessNumber);
+	static void TestComputeStairBufferSize(int nBufferSizeMin, int nBufferSizeMax, int nBufferStep,
+					       longint lFileSize, int nProcessNumber);
 
 protected:
 	/////////////////////////////////////////////////////////////////////////////////////////
@@ -328,7 +350,7 @@ protected:
 	const RMResourceGrant* GetMasterResourceGrant() const;
 
 	// Acces aux exigences des esclaves
-	// Accessible uniquement depuis les esclaves
+	// Accessible uniquement depuis le master et les esclaves
 	const RMResourceRequirement* GetSlaveResourceRequirement() const;
 
 	// Acces aux ressources allouees a la tache
@@ -388,6 +410,38 @@ protected:
 	void SetAllSlavesAtWork();
 
 	/////////////////////////////////////////////////////////////////
+	// Gestion des fichiers temporaires uniques cree par l'esclave
+	//
+	// Les fichiers temporaires crees dans les esclaves dans les SlaveProcess sont collectes
+	// par le maitre lors des AggregateResults via des variables partagees en output contenant
+	// les noms de ces fichiers temporaires
+	// En cas d'erreur ou d'interruption utilisateur, il faut detruire ces fichiers temporaires.
+	// 1) Si l'erreur intervient dans un SlaveProcess, l'esclave detruit les eventuels fichiers crees
+	// et n'envoie pas les noms des fichiers temporaires au maitre.
+	// 2) Sinon, le maitre peut demander la destruction de tous les fichiers temporaires qu'il
+	// a collectes lors des AggregateResults.
+	// 3) Il reste le cas d'un arret de la tache alors que des esclaves ont fini sans erreur leur
+	// SlaveProcess, mais que le maitre n'a pas effectue les AggegateResults correspondants, qui
+	// ne seront pas traites pour arreter la tache au plus vite. Dans ce cas, l'esclave doit
+	// les memoriser, pour pouvoir les detruire lors du SlaveFinalize.
+	// Au debut du SlaveProcess suivant, il est assure que ses fichiers temporaires precedents ont
+	// ete memorises par le maitre dans le AggregateResults, et il peut repartir d'une liste vide
+
+	// Ajout d'un fichier ou plusieurs fichiers a la liste des fichiers temporaires cree par l'esclave
+	// A appeler en fin de SlaveProcess si pas d'erreur
+	void SlaveRegisterUniqueTmpFile(const ALString& sFileName);
+	void SlaveRegisterUniqueTmpFiles(const StringVector* svFileNames);
+
+	// Mise a vide de la liste des fichiers temporaires
+	// Methode appelee systematiquement en debut de SlaveProcess et
+	// dans SlaveFinalize s'il n'y ni erreur ni interruption
+	void SlaveInitializeRegisteredUniqueTmpFiles();
+
+	// Destruction des fichiers temporaires creees par l'esclave
+	// Methode appelee systematiquement dans SlaveFinalize si erreur ou interruption
+	void SlaveDeleteRegisteredUniqueTmpFiles();
+
+	/////////////////////////////////////////////////////////////////
 	// Methodes avancees
 
 	// Mode hyper-actif : le maitre et les eclaves ne s'endorment jamais +  reception efficace des message
@@ -407,7 +461,7 @@ protected:
 	// InputBufferedFile::GetMaxBufferSize()
 	//
 	// Ne peut etre appele que dans MasterPrepareTaskInput
-	int ComputeStairBufferSize(int nBufferSizeMin, int nBufferSizeMax, longint lFileProcessed,
+	int ComputeStairBufferSize(int nBufferSizeMin, int nBufferSizeMax, int nBufferSizeStep, longint lFileProcessed,
 				   longint lFileSize) const;
 
 	// Permet de specifier si on affiche les messages de tous les esclaves pendant l'initialisation
@@ -478,12 +532,13 @@ private:
 	boolean CallMasterInitialize();
 	boolean CallMasterFinalize(boolean bProcessOk);
 	boolean CallMasterAggregate();
-	boolean CallMasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished, PLSlaveState* slave);
+	boolean CallMasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished, const PLSlaveState* slave);
 
 	// Calcul de la taille du bufefr pour lire un fichier
 	// appelee dans ComputeStairBufferSize et TestComputeStairBufferSize
-	static int InternalComputeStairBufferSize(int nBufferSizeMin, int nBufferSizeMax, longint lFileProcessed,
-						  longint lFileSize, int nProcessNumber, int nTaskIndex);
+	static int InternalComputeStairBufferSize(int nBufferSizeMin, int nBufferSizeMax, int nMultiple,
+						  longint lFileProcessed, longint lFileSize, int nProcessNumber,
+						  int nTaskIndex);
 
 	// Nom de la tache en cours
 	static ALString GetCurrentTaskName();
@@ -500,18 +555,6 @@ private:
 	static boolean bParallelSimulated;
 	static int nSimulatedSlaveNumber;
 	static ALString sVersion;
-
-	enum METHOD
-	{
-		NONE,
-		SLAVE_INITIALIZE,
-		SLAVE_PROCESS,
-		SLAVE_FINALIZE,
-		MASTER_INITIALIZE,
-		MASTER_PREPARE_INPUT,
-		MASTER_AGGREGATE,
-		MASTER_FINALIZE
-	};
 
 	// Methode a appeler en fin de programme pour arreter tous les esclaves
 	static void Exit(int nExitCode);
@@ -541,6 +584,7 @@ private:
 	PLSlaveState* GetReadySlave();
 
 	// Renvoie un slave dont le status est READY parmi ceux passes en parametre
+	// Les esclaves deja initialises sont privilegies
 	PLSlaveState* GetReadySlaveOnHost(ObjectArray* oaSlaves);
 
 	// Renvoie le slave dont le rang est rank
@@ -559,7 +603,7 @@ private:
 
 	// Initialisation des attributs de la tache a partir des variables partagees
 	// et creation du repertoire applicatif
-	boolean InitializeParametersFromSharedVariables();
+	void InitializeParametersFromSharedVariables();
 
 	// Erreur indexee  generique
 	void AddLocalGenericError(int nGravity, const ALString& sLabel, longint lLineNumber);
@@ -587,19 +631,26 @@ private:
 	// Nombre de process esclave
 	int nWorkingProcessNumber;
 
-	// Parametres qui corespondent aux userTmpDir et applicationName de la classe FileService
-	PLShared_String shared_sUserTmpDir;
-	PLShared_String shared_sApplicationName;
-
 	// Parametres  de la classe Global
 	PLShared_Boolean input_bSilentMode;
 	PLShared_Int shared_nMaxErrorFlowNumber;
+
+	// Parametre sur la taille max des lignes des InputBufferedFile
+	PLShared_Int shared_nMaxLineLength;
+
+	// Parametre sur la taille max de la la heap, pour les crash test sur la memoire
+	PLShared_Longint shared_lMaxHeapSize;
 
 	// Nom de la tache
 	PLShared_String shared_sTaskUserLabel;
 
 	// Exigences pour les esclaves
 	PLShared_ResourceRequirement shared_slaveResourceRequirement;
+
+	// Tracers
+	PLShared_Tracer shared_tracerProtocol;
+	PLShared_Tracer shared_tracerMPI;
+	PLShared_Tracer shared_tracerPerformance;
 
 	// Parametres de tracers (on n'utilise pas les variables partagees car c'est envoye en dehors du protocole
 	// standard)
@@ -640,7 +691,7 @@ private:
 	// Utilise pour contraindre  le contexte d'utilisation de certaine methode
 	// et pour empecher de lancer des taches imbriquees les unes dans les autres (c'est pourquoi cette variable est
 	// statique)
-	static METHOD method;
+	static Method method;
 
 	// Status du programme : en cours d'execution ou non
 	// utilise dans les assertion
@@ -696,11 +747,11 @@ private:
 	// Gestion des permissions de parametres et des variables resultats
 	// pour garantir une bonne utilisation via les asserts
 	// Ne fait rien si NDEBUG n'est pas defini (assertions)
-	void SetSharedVariablesRO(ObjectArray*);
-	void SetSharedVariablesRW(ObjectArray*);
-	void SetSharedVariablesNoPermission(ObjectArray*);
+	void SetSharedVariablesRO(const ObjectArray*);
+	void SetSharedVariablesRW(const ObjectArray*);
+	void SetSharedVariablesNoPermission(const ObjectArray*);
 
-	// Driver courant qui pointe soit vers un driver pparallele soit vers un driver sequentiel (par defaut)
+	// Driver courant qui pointe soit vers un driver parallele soit vers un driver sequentiel (par defaut)
 	static PLTaskDriver* currentDriver;
 
 	// Administration des objets Task
@@ -723,8 +774,18 @@ private:
 	// Nombre de Run effectues (utile pour le nom de la tache dans les performances)
 	static int nRunNumber;
 
-	// Crash mode
-	PLShared_Int shared_nCrashTestMode;
+	// Crash test
+	static TestType nCrashTestType;
+	static ALString sCrashTestTaskSignature;
+	static Method nCrashTestMethod;
+	static int nCrashTestCallIndex;
+	PLShared_Int shared_nCrashTestType;
+	PLShared_Int shared_nCrashTestMethod;
+	PLShared_Int shared_nCrashTestCallIndex;
+
+	// Compteurs du nombre d'appels aux methodes SlaveProcess, PrepareTaskInput et MasterAggregate
+	int nPrepareTaskInputCount;
+	int nMasterAggregateCount;
 
 	// Mode boost : les esclaves ne font plus de prob et SystemSleep
 	PLShared_Boolean shared_bBoostedMode;
@@ -733,10 +794,10 @@ private:
 	// on ajoute le nombre d'instances au nom de la tache : la meme tache peut etre lancee plusieurs fois
 	ALString sPerformanceTaskName;
 
-	// Suppression du contenu du repertoire temporaire (utilise dans le crash test)
-	void RemoveTempDirContent() const;
+	// Liste de tous les fichiers temporaires enregistres par l'esclave
+	StringVector svSlaveRegisteredUniqueTmpFiles;
 
-	// Est-ce que l'esclave qui instancie cetet tache est initialise
+	// Est-ce que l'esclave qui instancie cette tache est initialise
 	boolean bIsSlaveInitialized;
 
 	// Tableau des messages utilisateurs en attente d'affichage
@@ -772,7 +833,9 @@ private:
 	friend class PLMasterSequential;
 	friend class PLSlaveSequential;
 	friend class RMParallelResourceManager; // Pour acces a ivFileServerRanks
+	friend class RMParallelResourceManager; // Pour acces a ivFileServerRanks
 	friend class KWKeyExtractor;            // Pour acces aux methodes AddLocalError ..
+	friend class KWCrashTestParametersView;
 };
 
 ////////////////////////////////////////////////////////////
@@ -807,11 +870,6 @@ inline void PLParallelTask::SetVerbose(int bValue)
 inline boolean PLParallelTask::GetVerbose()
 {
 	return bVerbose;
-}
-
-inline PLParallelTask::CRASH_TEST_MODE PLParallelTask::GetCrashTestMode() const
-{
-	return (PLParallelTask::CRASH_TEST_MODE)(int)shared_nCrashTestMode;
 }
 
 inline boolean PLParallelTask::IsParallel() const
@@ -926,7 +984,7 @@ inline int PLParallelTask::GetTracerResources()
 
 inline void PLParallelTask::SetBoostMode(boolean bBoost)
 {
-	require(method == MASTER_INITIALIZE);
+	require(method == Method::MASTER_INITIALIZE);
 	shared_bBoostedMode = bBoost;
 }
 

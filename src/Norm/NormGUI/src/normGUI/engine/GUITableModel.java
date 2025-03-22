@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -10,8 +10,6 @@ import javax.swing.table.AbstractTableModel;
 /**
  * Definit le modele de tableau. Cette classe communique avec le tableau
  * (GUITable) et avec la partie c++ (UIList)
- *
- * @author Marc Boulle
  */
 public class GUITableModel extends AbstractTableModel
 {
@@ -216,10 +214,10 @@ public class GUITableModel extends AbstractTableModel
         }
 
         /**
-         * Liste des valeurs de la table, permettant de bufferiser les valeurs
-         * provenant du C++ Ces valeur sont collectees en fonction des besoins
-         * d'affichage, et utilisees pour // les reaffichage pour ne pas rentrer en
-         * conflit avec les acces C++
+         * Liste des valeurs de la table, permettant de bufferiser les valeurs provenant
+         * du C++ Ces valeur sont collectees en fonction des besoins d'affichage, et
+         * utilisees pour // les reaffichage pour ne pas rentrer en conflit avec les
+         * acces C++
          */
         private Vector<Object> vectorOfBufferValues;
         private int nBufferRowNumber;

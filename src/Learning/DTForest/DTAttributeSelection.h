@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -11,6 +11,11 @@
 class DTAttributeSelection;
 class DTTreeAttribute;
 
+int DTTreeAttributeLevelCompare(const void* elem1, const void* elem2);
+int DTTreeAttributeRankCompare(const void* elem1, const void* elem2);
+int DTAttributeSelectionCompareAttributesNumber(const void* elem1, const void* elem2);
+int DTAttributeSelectionCompareAttributesIndex(const void* elem1, const void* elem2);
+
 ////////////////////////////////////////////////////////////////////
 // Classe DTAttributeSelection
 // Specification d'une selection d'attributs
@@ -21,8 +26,14 @@ class DTAttributeSelection : public Object
 public:
 	// Constructeur
 	DTAttributeSelection();
-	// DTAttributeSelection(const ObjectArray* oaAttributeStats);
 	~DTAttributeSelection();
+
+	// copie / clonage
+	void CopyFrom(const DTAttributeSelection* source);
+	DTAttributeSelection* Clone() const;
+
+	// initialisation des membres KWAttribute des DTTreeAttribute contenus par la classe, a partir d'un dictionnaire
+	void InitializeTreeAttributesFromClass(const KWClass*);
 
 	// Index de la selection, dans la liste des selection a analyser
 	void SetIndex(int nValue);
@@ -55,10 +66,10 @@ public:
 	ObjectArray* GetTreeAttributesFromLevels(const int maxAttributesNumber);
 	ObjectArray* GetAttributesFromLevels(const int maxAttributesNumber);
 
-	static ObjectArray* SortObjectArrayFromContinuous(const int nMaxAttributesNumber, DoubleVector& vLevels,
-							  ObjectArray& oaListAttributes);
+	static ObjectArray* SortObjectArrayFromContinuous(const int nMaxAttributesNumber, const DoubleVector& vLevels,
+							  const ObjectArray& oaListAttributes);
 
-	// Comparaison avec une autre paire, vis a vis de leurs blocs
+	// Comparaison avec une autre selection, vis a vis de leurs blocs
 	// Les selections sont comparees selon les criteres hierarchiques suivant
 	//   . premier bloc (taille decroissante, puis nom)
 	//   . second bloc (taille decroissante, puis nom)
@@ -71,7 +82,7 @@ public:
 	// table de tuples par groupes pour beneficier de la represenattion sparse
 	// des attribut, dans le cas de l'analyse bivariee
 	// L'ensemble des 4 criteres assure la reproductibilite des traitement
-	int CompareBlocks(const DTAttributeSelection* otherAttributePair);
+	int CompareBlocks(const DTAttributeSelection* otherAttributePair) const;
 
 	void SortByBlocks();
 
@@ -98,9 +109,13 @@ public:
 
 	void WriteReport(ostream& ost);
 
+	virtual longint GetUsedMemory() const override;
+
 	///////////////////////////////////////////////////////////////////////////////
-	///// Implementation
+	// Implementation
 protected:
+	friend class PLShared_AttributeSelection;
+
 	// index index de la selection
 	int nIndex;
 	int nUsableAttributesNumber;
@@ -111,7 +126,7 @@ protected:
 };
 
 /////////////////////////////////////////////////////////////////////
-/// Classe DTTreeAttribute
+// Classe DTTreeAttribute
 class DTTreeAttribute : public Object
 {
 public:
@@ -120,12 +135,61 @@ public:
 	DTTreeAttribute* Clone() const;
 	const ALString& GetName() const;
 
+	virtual longint GetUsedMemory() const;
+
 	// attribut
 	KWAttribute* aAttribute;
+
+	ALString sAttributeName;
 
 	// level et rang
 	double dLevel;
 	int nRank;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// Classe PLShared_TreeAttribute
+// Serialisation de la classe DTTreeAttribute
+class PLShared_TreeAttribute : public PLSharedObject
+{
+public:
+	// Constructor
+	PLShared_TreeAttribute();
+	~PLShared_TreeAttribute();
+
+	void SetTreeAttribute(DTTreeAttribute*);
+
+	DTTreeAttribute* GetTreeAttribute() const;
+
+	void DeserializeObject(PLSerializer* serializer, Object* object) const override;
+
+	void SerializeObject(PLSerializer* serializer, const Object* object) const override;
+
+protected:
+	Object* Create() const override;
+};
+////////////////////////////////////////////////////////////////////////////////
+// Classe PLShared_AttributeSelection
+// Serialisation de la classe DTAttributeSelection
+class PLShared_AttributeSelection : public PLSharedObject
+{
+public:
+	// Constructor
+	PLShared_AttributeSelection();
+	~PLShared_AttributeSelection();
+
+	void SetAttributeSelection(DTAttributeSelection*);
+
+	DTAttributeSelection* GetAttributeSelection() const;
+
+	void DeserializeObject(PLSerializer* serializer, Object* object) const override;
+
+	void SerializeObject(PLSerializer* serializer, const Object* object) const override;
+
+protected:
+	Object* Create() const override;
+
+	PLShared_ObjectArray* shared_oaTreeAttributeSelection;
 };
 
 // Methode de comparaison sur les blocs (cf DTAttributeSelections::CompareBlocks)

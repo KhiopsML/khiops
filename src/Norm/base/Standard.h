@@ -1,10 +1,11 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
 #include "Longint.h"
+#include "MemoryManager.h"
 #include "Portability.h"
 
 ////////////////////////////////////////////////////////////////////////////
@@ -60,13 +61,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Type et operateurs booleens
-#if not defined __UNIX__ or defined __C11__
 typedef bool boolean;
-#else
-typedef int boolean;
-#define true 1
-#define false 0
-#endif // __C11__
 
 // Comparaison par type, pour implementation dans les methodes de comparaison
 // Pour les entiers: une difference suffit? Pour les chaines de caracteres, utilise la methode Compare de ALString.
@@ -100,7 +95,6 @@ const char* const SecondsToString(double dValue);
 // Conversions des types simples vers les chaines de caracteres
 const char* const IntToString(int nValue);
 const char* const LongintToString(longint lValue);
-const char* const FloatToString(float fValue);
 const char* const DoubleToString(double dValue);
 const char* const CharToString(char cValue);
 const char* const BooleanToString(boolean bValue);
@@ -113,7 +107,6 @@ const char* const CharsToString(const char* sValue);
 // Conversions des chaines de caracteres vers les types simples
 int StringToInt(const char* sValue);
 longint StringToLongint(const char* sValue);
-float StringToFloat(const char* sValue);
 double StringToDouble(const char* sValue);
 char StringToChar(const char* sValue);
 boolean StringToBoolean(const char* sValue);
@@ -136,7 +129,7 @@ longint AcquireLongint(const char* const sLabel, longint lDefaultValue);
 longint AcquireRangedLongint(const char* const sLabel, longint lMin, longint lMax, longint lDefaultValue);
 
 // Gestion d'un mode batch global(par defaut false)
-// En mode batch, les fonctions Acquire... en mode batch retournent systematique la valeur
+// En mode batch, les fonctions Acquire... en mode batch retournent systematiquement la valeur
 // par defaut en parametre, sans interaction utilisateur
 void SetAcquireBatchMode(boolean bValue);
 boolean GetAcquireBatchMode();
@@ -159,8 +152,9 @@ int RandomInt(int nMax);
 // Acces directement au ieme nombre aleatoire
 // Fonctions independantes des precedentes, sans graine initiale
 // L'index est un entier long
-double IthRandomDouble(longint lIndex);
-int IthRandomInt(longint lIndex, int nMax);
+double IthRandomDouble(longint lIndex);     // Entre 0 et 1
+longint IthRandomLongint(longint lIndex);   // Longint quelconque
+int IthRandomInt(longint lIndex, int nMax); // Entre 0 et nMax inclus
 
 // Hashage d'une chaine de caracteres
 int HashValue(const char* sString);
@@ -253,9 +247,11 @@ void AddUserExitHandler(UserExitHandler fUserExit);
 
 // Verification de l'option de compilation RTTI du C++
 #ifndef NOCASTCONTROL
-#ifndef _CPPRTTI
+
+#if not(defined __GXX_RTTI or defined _CPPRTTI)
 #error "In safe cast version, use RTTI compile option"
 #endif
+
 #endif
 
 // Object buffer pour les controle de cast, pour eviter
@@ -264,7 +260,7 @@ void AddUserExitHandler(UserExitHandler fUserExit);
 class Object;
 extern const Object* objectCastControlBuffer;
 
-#ifdef _MSC_VER
+#ifdef __MSC__
 // C28182: "unreference the NULL pointer..." (pour la macro cast)
 #pragma warning(disable : 28182) // disable 28182 warning
 #endif
@@ -293,6 +289,22 @@ extern const Object* objectCastControlBuffer;
 #else
 #define debug(exp) exp
 #endif
+
+// Reference: Numerical recipes: the art of scientific computing THIRD EDITION
+// Chapter 7: Random numbers, p 352
+// Generateur sans etat et sans graine
+inline unsigned long long int IthRandomUnsignedLongint(unsigned long long int n)
+{
+	unsigned long long int v = n * 3935559000370003845LL + 2691343689449507681LL;
+	v ^= v >> 21;
+	v ^= v << 37;
+	v ^= v >> 4;
+	v *= 4768777513237032717LL;
+	v ^= v << 20;
+	v ^= v >> 41;
+	v ^= v << 5;
+	return v;
+}
 
 // Fonction de hash Jenkins one at a time
 inline int HashValue(const char* sString)
@@ -331,5 +343,11 @@ int GetProcessId();
 // Attention: usage reserve a la bibliotheque parallele
 void SetProcessId(int nValue);
 
-// Gestion de la memoire
-#include "MemoryManager.h"
+// Traces pour debugger les applications paralleles
+// Ajoute la rang devant la trace et l'ecrit dans la sortie standard
+void TraceMaster(const char* sTrace);
+void TraceSlave(const char* sTrace);
+void TraceWithRank(const char* sTrace);
+
+//  Test du generateur aleatoire
+void TestRandom();

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -155,9 +155,8 @@ MYLearningProblemView* MYLearningProblemExtendedActionView::GetMyLearningProblem
 
 MYAnalysisSpecView::MYAnalysisSpecView()
 {
-
 	MYModelingSpecView* modelingSpecView;
-	const ALString sModelingSpecIdentifier = "ModelingSpec";
+	const ALString sModelingSpecIdentifier = "PredictorsSpec";
 
 	// Specialisation de la fiche des parametres de modelisation,
 	// en remplacant l'ancienne version par une sous-classe

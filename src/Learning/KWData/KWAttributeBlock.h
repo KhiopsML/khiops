@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -59,6 +59,7 @@ public:
 	// Acces a la valeur par defaut pour les types bloc d'attributs
 	// Acces uniquement pour la valeur par defaut du bon type, pour une classe compilee
 	// La valeur par defaut est necessairement NULL dans les cas des blocs de type ObjectArrayValueBlock
+	// Le bloc doit etre compile pour actualiser cette valeur par defaut
 	Continuous GetContinuousDefaultValue() const;
 	Symbol& GetSymbolDefaultValue() const;
 
@@ -69,8 +70,19 @@ public:
 	void ImportMetaDataFrom(const KWAttributeBlock* sourceAttributeBlock);
 
 	// Libelle
+	// Fin de ligne prefixee par '//' suivant la declaration du bloc d'attributs dans le fichier dictionnaire
 	const ALString& GetLabel() const;
 	void SetLabel(const ALString& sValue);
+
+	// Commentaires
+	// Ensemble des lignes prefixees par '//' precedant le debut du bloc d'attributs '{' dans le fichier dictionnaire
+	const StringVector* GetComments() const;
+	void SetComments(const StringVector* svValue);
+
+	// Commentaires internes
+	// Ensemble des lignes prefixees par '//' precedant la fin du bloc d'attributs '}' dans le fichier dictionnaire
+	const StringVector* GetInternalComments() const;
+	void SetInternalComments(const StringVector* svValue);
 
 	/////////////////////////////////////////////////////////
 	// Informations de specification du bloc, suite a sa
@@ -82,7 +94,7 @@ public:
 	//    attribute = attributeBlock->GetFirstAttribute();
 	//    while (attribute != NULL)
 	//    {
-	//    		// Traitemet sur l'attribut en cours
+	//    		// Traitement sur l'attribut en cours
 	//
 	//    	    // Arret si fin du bloc
 	//    		if (attribute == attributeBlock->GetLastAttribute())
@@ -91,6 +103,10 @@ public:
 	//    	}
 	KWAttribute* GetFirstAttribute() const;
 	KWAttribute* GetLastAttribute() const;
+
+	// Calcul du nombre total d'attributs du bloc, qui n'a pas besoin d'etre indexe
+	// a la difference du cas de la methode GetAttributeNumber
+	int ComputeAttributeNumber() const;
 
 	// Type de block
 	int GetBlockType() const;
@@ -114,7 +130,7 @@ public:
 	// Bloc charge en memoire
 	boolean GetLoaded() const;
 
-	// Index de chargement du bloc dans la classe parmi les atributs charges en memoire
+	// Index de chargement du bloc dans la classe parmi les attributs charges en memoire
 	// Permet l'acces a la valeur du bloc dans les KWObjets
 	KWLoadIndex GetLoadIndex() const;
 
@@ -122,6 +138,9 @@ public:
 	// Attention: les attribut charges ne sont pas necessairement dans le meme ordre que les attributs de la classe
 	int GetLoadedAttributeNumber() const;
 	KWAttribute* GetLoadedAttributeAt(int nIndex) const;
+
+	// Index d'un attribut charge en memoire selon l'ordre des attributs dans le bloc, selon son index pparse dans le bloc
+	int GetLoadedAttributeIndexAtSparseIndex(int nSparseIndex) const;
 
 	// Ensemble des cles d'attribut (VarKey) pour les attributs du blocs charges en memoire
 	// A chaque cle correspond l'index sparse de l'attribut dans son bloc
@@ -158,6 +177,12 @@ public:
 	// Recherche d'un attribut du bloc par VarKey, pour un bloc d'une classe indexee
 	KWAttribute* LookupAttributeByContinuousVarKey(int nVarKey) const;
 	KWAttribute* LookupAttributeBySymbolVarKey(Symbol sVarKey) const;
+
+	// Construction d'un bloc de cle pour tous les attributs du bloc, que la classe soit indexee ou non
+	// Seules les cles valides sont memorisees
+	// Utile pour les check avant indexation de la classe
+	// Memoire: le bloc de cle en retour appartient a l'appelant
+	KWIndexedKeyBlock* BuildAttributesIndexedKeyBlock() const;
 
 	/////////////////////////////////////////
 	// Services divers
@@ -215,7 +240,7 @@ protected:
 
 	/////////////////////////////////////////
 	// Service avances lies aux VarKey
-	// A n'utiliser que pour se servir d'un bloc pour gerer temporaire les attribut par VarKey,
+	// A n'utiliser que pour se servir d'un bloc pour gerer temporaire les attributs par VarKey,
 	// hors indexation de la classe
 	friend class KDClassBuilder;
 
@@ -248,6 +273,8 @@ protected:
 	// Specifications du bloc
 	KWCDUniqueString usName;
 	KWCDUniqueString usLabel;
+	StringVector svComments;
+	StringVector svInternalComments;
 	KWDerivationRule* kwdrRule;
 	KWMetaData metaData;
 
@@ -269,6 +296,7 @@ protected:
 	KWIndexedKeyBlock* loadedAttributesIndexedKeyBlock;
 	int nAttributeNumber;
 	NumericKeyDictionary nkdAttributesByVarKeys;
+	IntVector ivLoadedAttributeIndexesBySparseIndex;
 
 	// Gestion des index de mutation du bloc vers un bloc cible constituant un sous-bloc
 	// Utilise pour la mutation des objets lors de la lecture d'une base
@@ -362,6 +390,26 @@ inline void KWAttributeBlock::SetLabel(const ALString& sValue)
 	usLabel.SetValue(sValue);
 }
 
+inline const StringVector* KWAttributeBlock::GetComments() const
+{
+	return &svComments;
+}
+
+inline void KWAttributeBlock::SetComments(const StringVector* svValue)
+{
+	svComments.CopyFrom(svValue);
+}
+
+inline const StringVector* KWAttributeBlock::GetInternalComments() const
+{
+	return &svInternalComments;
+}
+
+inline void KWAttributeBlock::SetInternalComments(const StringVector* svValue)
+{
+	svInternalComments.CopyFrom(svValue);
+}
+
 inline KWAttribute* KWAttributeBlock::GetFirstAttribute() const
 {
 	return firstAttribute;
@@ -432,8 +480,16 @@ inline KWAttribute* KWAttributeBlock::GetLoadedAttributeAt(int nIndex) const
 	return cast(KWAttribute*, oaLoadedAttributes.GetAt(nIndex));
 }
 
+inline int KWAttributeBlock::GetLoadedAttributeIndexAtSparseIndex(int nSparseIndex) const
+{
+	require(GetParentClass()->IsIndexed());
+	require(0 <= nSparseIndex and nSparseIndex < GetLoadedAttributeNumber());
+	return ivLoadedAttributeIndexesBySparseIndex.GetAt(nSparseIndex);
+}
+
 inline const KWIndexedKeyBlock* KWAttributeBlock::GetLoadedAttributesIndexedKeyBlock() const
 {
+	require(GetParentClass()->IsIndexed());
 	require(GetVarKeyType() != KWType::None);
 	ensure(oaLoadedAttributes.GetSize() == loadedAttributesIndexedKeyBlock->GetKeyNumber());
 	return loadedAttributesIndexedKeyBlock;
@@ -498,7 +554,7 @@ inline KWAttribute* KWAttributeBlock::LookupAttributeByContinuousVarKey(int nVar
 	require(GetParentClass()->IsIndexed());
 	require(GetVarKeyType() == KWType::Continuous);
 
-	attribute = cast(KWAttribute*, nkdAttributesByVarKeys.Lookup((NUMERIC)(longint)nVarKey));
+	attribute = cast(KWAttribute*, nkdAttributesByVarKeys.Lookup(nVarKey));
 	return attribute;
 }
 
@@ -517,7 +573,7 @@ inline void KWAttributeBlock::InternalIndexAttributeByContinuousVarKey(int nVarK
 {
 	require(attribute != NULL);
 	require(attribute->GetAttributeBlock() == this);
-	nkdAttributesByVarKeys.SetAt((NUMERIC)(longint)nVarKey, attribute);
+	nkdAttributesByVarKeys.SetAt(nVarKey, attribute);
 }
 
 inline void KWAttributeBlock::InternalIndexAttributeBySymbolVarKey(Symbol sVarKey, KWAttribute* attribute)
@@ -533,7 +589,7 @@ inline KWAttribute* KWAttributeBlock::InternalLookupAttributeByContinuousVarKey(
 
 	require(GetVarKeyType() == KWType::Continuous);
 
-	attribute = cast(KWAttribute*, nkdAttributesByVarKeys.Lookup((NUMERIC)(longint)nVarKey));
+	attribute = cast(KWAttribute*, nkdAttributesByVarKeys.Lookup(nVarKey));
 	return attribute;
 }
 

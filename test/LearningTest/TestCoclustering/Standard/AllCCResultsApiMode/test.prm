@@ -1,0 +1,150 @@
+// Mon Jul 04 14:13:56 2011
+// C:\Users\boullema\Learning\Win32\debug\MODL_Coclustering
+// Output command file
+//
+//This file contains recorded commands, that can be replayed.
+//Commands are based on user interactions:
+//	field update
+//	list item selection
+//	menu action
+//Every command can be commented, using //.
+//For example, commenting the last Exit command will allow other
+//user interactions, after the commands have been replayed.
+//
+//
+
+// -> Khiops Coclustering
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+// Build coclustering
+
+ClassManagement.OpenFile       // Open...
+
+// -> Open
+ClassFileName ./SubDir/Iris.kdic       // Dictionary file
+OK                             // Open
+// <- Open
+
+Database.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
+Database.DatabaseSpec.Data.DatabaseFiles.DataTableName ./SubDir/Iris.txt     // Database file
+AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter          // Insert variable
+AnalysisSpec.CoclusteringParameters.Attributes.Name PetalLength          // Name
+AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter          // Insert variable
+AnalysisSpec.CoclusteringParameters.Attributes.Name PetalWidth          // Name
+AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter          // Insert variable
+AnalysisSpec.CoclusteringParameters.Attributes.Name Class     // Name
+
+AnalysisResults.CoclusteringFileName ./results/Coclustering.khcj // Coclustering report
+BuildCoclustering              // Build coclustering
+
+AnalysisResults.CoclusteringFileName ./results/Coclustering_bad.json // Coclustering report
+BuildCoclustering              // Build coclustering
+
+AnalysisResults.CoclusteringFileName  // Coclustering report
+BuildCoclustering              // Build coclustering
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+// Simplify coclustering
+
+LearningTools.PostProcessCoclustering    // Simplify coclustering...
+
+// -> Coclustering post-processing
+SelectInputCoclustering        // Select input coclustering...
+
+// -> Open
+InputCoclusteringFileName ./results/Coclustering.khcj   // Input coclustering file
+OK                             // Open
+// <- Open
+
+PostProcessedCoclusteringFileName ./results/SimplifiedCoclustering.khcj         // Simplified coclustering report
+PostProcessCoclustering        // Simplify coclustering
+
+PostProcessedCoclusteringFileName ./results/SimplifiedCoclustering_bad.json         // Simplified coclustering report
+PostProcessCoclustering        // Simplify coclustering
+
+PostProcessedCoclusteringFileName         // Simplified coclustering report
+PostProcessCoclustering        // Simplify coclustering
+
+Exit                           // Close
+// <- Coclustering post-processing
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+// Extract clusters
+
+LearningTools.ExtractClusters  // Extract clusters...
+
+SelectInputCoclustering        // Select input coclustering...
+// -> Cluster extraction
+
+// -> Open
+InputCoclusteringFileName ./results/Coclustering.khcj   // Input coclustering file
+OK                             // Open
+// <- Open
+
+CoclusteringAttribute Class         // Coclustering variable
+
+ClusterFileName ./results/Clusters.txt     // Cluster table file
+ExtractClusters                // Extract clusters
+
+ClusterFileName ./results/Clusters_bad.json     // Cluster table file
+ExtractClusters                // Extract clusters
+
+ClusterFileName      // Cluster table file
+ExtractClusters                // Extract clusters
+
+Exit                           // Close
+// <- Cluster extraction
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+// Prepare deployment
+
+ClassManagement.OpenFile       // Open...
+
+// -> Open
+ClassFileName ../../../MTdatasets/SpliceJunction/SpliceJunction.kdic       // Dictionary file
+OK                             // Open
+// <- Open
+
+Database.ClassName SpliceJunction // Analysis dictionary
+
+LearningTools.PrepareDeployment          // Prepare deployment...
+
+// -> Coclustering deployment preparation
+SelectInputCoclustering        // Select input coclustering...
+
+// -> Open
+InputCoclusteringFileName ./SubDir/SpliceJunctionDNACoclustering.khcj   // Input coclustering file
+OK                             // Open
+// <- Open
+
+DeploymentSpec.InputClassName SpliceJunction // Input dictionary
+DeploymentSpec.InputObjectArrayAttributeName DNA          // Input array variable
+DeploymentSpec.DeployedAttributeName SampleId    // Coclustering deployed variable
+DeploymentSpec.BuildPredictedClusterAttribute true // Build predicted cluster variable
+DeploymentSpec.BuildClusterDistanceAttributes true // Build inter-cluster distance variables
+DeploymentSpec.BuildFrequencyRecodingAttributes true         // Build frequency recoding variables
+DeploymentSpec.OutputAttributesPrefix P_ // Output variables prefix
+
+CoclusteringDictionaryFileName ./results/DeploymentCoclustering.kdic   // Coclustering dictionary file
+PrepareDeployment              // Prepare deployment
+
+CoclusteringDictionaryFileName ./results/DeploymentCoclustering_bad.json   // Coclustering dictionary file
+PrepareDeployment              // Prepare deployment
+
+CoclusteringDictionaryFileName    // Coclustering dictionary file
+PrepareDeployment              // Prepare deployment
+
+Exit                           // Close
+// <- Coclustering deployment preparation
+
+
+Exit                           // Close
+// <- Khiops Coclustering
+
+// -> Khiops Coclustering
+OK                             // Close
+// <- Khiops Coclustering
+

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -15,8 +15,6 @@ import javax.swing.text.PlainDocument;
 
 /**
  * Definit un element de type reel
- *
- * @author Marc Boulle
  */
 public abstract class GUIIntElement extends GUIElement
 {
@@ -106,7 +104,7 @@ public abstract class GUIIntElement extends GUIElement
         public Object getValueIn(GUIUnit unit)
         {
                 // Appel de la methode native
-                return new Integer(unit.getIntValueAt(getIdentifier()));
+                return Integer.valueOf(unit.getIntValueAt(getIdentifier()));
         }
 
         /**
@@ -115,7 +113,7 @@ public abstract class GUIIntElement extends GUIElement
          */
         public void graphicRefreshAll()
         {
-                graphicSetValue(new Integer(getParentUnit().getIntValueAt(getIdentifier())).toString());
+                graphicSetValue(Integer.valueOf(getParentUnit().getIntValueAt(getIdentifier())).toString());
         }
 
         /**
@@ -161,8 +159,6 @@ public abstract class GUIIntElement extends GUIElement
 /**
  * Definit l'element graphique par defaut permettant l'affichage d'entiers.
  * Cette classe utilise un JTextField.
- *
- * @author Marc Boulle
  */
 class GUIIntElementTextField extends GUIIntElement
 {
@@ -175,8 +171,7 @@ class GUIIntElementTextField extends GUIIntElement
         protected JComponent buildComponent() { return getDefaultComponent(); }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage

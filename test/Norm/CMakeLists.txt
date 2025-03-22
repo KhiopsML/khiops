@@ -1,7 +1,0 @@
-file(GLOB cppfiles *.cpp)
-add_executable(norm_test ${cppfiles})
-set_khiops_options(norm_test)
-target_link_libraries(norm_test GTest::gtest_main base)
-target_compile_options(norm_test PUBLIC ${GTEST_CFLAGS})
-include(GoogleTest)
-gtest_discover_tests(norm_test)

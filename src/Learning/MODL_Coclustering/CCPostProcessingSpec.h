@@ -1,12 +1,11 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2021-02-05 18:19:44
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "Object.h"
@@ -15,6 +14,7 @@
 
 #include "CCPostProcessedAttribute.h"
 #include "CCCoclusteringReport.h"
+#include "CCAnalysisSpec.h"
 
 // ##
 
@@ -35,7 +35,11 @@ public:
 	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
-	// ShortDescription
+	// Coclustering type
+	const ALString& GetCoclusteringType() const;
+	void SetCoclusteringType(const ALString& sValue);
+
+	// Short description
 	const ALString& GetShortDescription() const;
 	void SetShortDescription(const ALString& sValue);
 
@@ -59,9 +63,17 @@ public:
 	int GetMaxPreservedInformation() const;
 	void SetMaxPreservedInformation(int nValue);
 
+	// Total part number
+	int GetTotalPartNumber() const;
+	void SetTotalPartNumber(int nValue);
+
+	// Max total part number
+	int GetMaxTotalPartNumber() const;
+	void SetMaxTotalPartNumber(int nValue);
+
 	// Frequency variable
-	const ALString& GetFrequencyAttribute() const;
-	void SetFrequencyAttribute(const ALString& sValue);
+	const ALString& GetFrequencyAttributeName() const;
+	void SetFrequencyAttributeName(const ALString& sValue);
 
 	///////////////////////////////////////////////////////////
 	// Divers
@@ -96,16 +108,19 @@ public:
 	// ##
 
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// Attributs de la classe
+	ALString sCoclusteringType;
 	ALString sShortDescription;
 	int nInstanceNumber;
 	int nNonEmptyCellNumber;
 	int nCellNumber;
 	int nMaxCellNumber;
 	int nMaxPreservedInformation;
-	ALString sFrequencyAttribute;
+	int nTotalPartNumber;
+	int nMaxTotalPartNumber;
+	ALString sFrequencyAttributeName;
 
 	// ## Custom implementation
 
@@ -117,6 +132,16 @@ protected:
 
 ////////////////////////////////////////////////////////////
 // Implementations inline
+
+inline const ALString& CCPostProcessingSpec::GetCoclusteringType() const
+{
+	return sCoclusteringType;
+}
+
+inline void CCPostProcessingSpec::SetCoclusteringType(const ALString& sValue)
+{
+	sCoclusteringType = sValue;
+}
 
 inline const ALString& CCPostProcessingSpec::GetShortDescription() const
 {
@@ -178,14 +203,34 @@ inline void CCPostProcessingSpec::SetMaxPreservedInformation(int nValue)
 	nMaxPreservedInformation = nValue;
 }
 
-inline const ALString& CCPostProcessingSpec::GetFrequencyAttribute() const
+inline int CCPostProcessingSpec::GetTotalPartNumber() const
 {
-	return sFrequencyAttribute;
+	return nTotalPartNumber;
 }
 
-inline void CCPostProcessingSpec::SetFrequencyAttribute(const ALString& sValue)
+inline void CCPostProcessingSpec::SetTotalPartNumber(int nValue)
 {
-	sFrequencyAttribute = sValue;
+	nTotalPartNumber = nValue;
+}
+
+inline int CCPostProcessingSpec::GetMaxTotalPartNumber() const
+{
+	return nMaxTotalPartNumber;
+}
+
+inline void CCPostProcessingSpec::SetMaxTotalPartNumber(int nValue)
+{
+	nMaxTotalPartNumber = nValue;
+}
+
+inline const ALString& CCPostProcessingSpec::GetFrequencyAttributeName() const
+{
+	return sFrequencyAttributeName;
+}
+
+inline void CCPostProcessingSpec::SetFrequencyAttributeName(const ALString& sValue)
+{
+	sFrequencyAttributeName = sValue;
 }
 
 // ## Custom inlines

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -19,8 +19,8 @@ class PLMPISlaveProgressionManager : public TaskProgressionManager
 {
 public:
 	// Constructeur
-	PLMPISlaveProgressionManager(void);
-	~PLMPISlaveProgressionManager(void);
+	PLMPISlaveProgressionManager();
+	~PLMPISlaveProgressionManager();
 
 	void Start() override;
 	boolean IsInterruptionRequested() override;
@@ -33,21 +33,26 @@ public:
 	void SetProgression(int nValue) override;
 
 	// Etat de l'esclave (VOID,PROCESS,FINALIZE)
-	void SetSlaveState(PLSlaveState::State nState);
+	void SetSlaveState(State nState);
 
-	// Renvoie true si l'interruption utilisateur a deja ete detectee
-	boolean IsInterruptionDiscovered() const;
+	// Acces direct l'interruption sans passer par MPI
+	void SetInterruptionRequested(boolean bInterruption);
+	boolean GetInterruptionRequested() const;
+
+	// Acces au tableau qui recense si le nombre d'erreur max est atteint
+	// cet tableau appartient a PLMPISlave, il est mis a jour pendant la requete d'interruption
+	void SetMaxErrorReached(IntVector* ivMaxErrors);
+	IntVector* GetMaxErrorReached() const;
+
+	PLMPITracer* GetTracerMPI();
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 private:
-	MPI_Win winForInterruption; // Fenetre RMA pour l'arret
 	int nOldProgression; // Derniere progression enregistree (utilisee pour ne pas ecrire tout le temps dans la
 			     // fentere)
-	boolean bRMA_ON;
 	MPI_Request sendRequest;
-	boolean bInterruptionRequested;
-	boolean bInterruptionDiscovered;
+	boolean bIsInterruptionRequested;
 
 	// On n'envoie pas le message a chaque fois pour ne pas charger le maitre (en fonction du nombre d'esclaves)
 	// nombre de message envoyes par secondes si il y a un esclave
@@ -66,19 +71,12 @@ private:
 	char sBuffer[12];
 
 	// Status de l'esclave qui envoie le message
-	int nSlaveState;
+	State nSlaveState;
+
+	IntVector* ivMaxErrorReached;
 };
 
-inline boolean PLMPISlaveProgressionManager::IsInterruptionDiscovered() const
+inline PLMPITracer* PLMPISlaveProgressionManager::GetTracerMPI()
 {
-	return bInterruptionDiscovered;
-}
-
-inline boolean PLMPISlaveProgressionManager::IsInterruptionRequested()
-{
-	if (bInterruptionRequested)
-	{
-		bInterruptionDiscovered = true;
-	}
-	return bInterruptionRequested;
+	return cast(PLMPITracer*, PLParallelTask::GetDriver()->GetTracerMPI());
 }

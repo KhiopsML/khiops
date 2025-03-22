@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -29,11 +29,14 @@ public:
 	PLMTDatabaseTextFile();
 	~PLMTDatabaseTextFile();
 
+	// Remise dans l'etat non initialise
+	void Reset();
+
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Calculs prealables a l'utilisation de la base, avant son utilisation en
 	// lecture ou en ecriture
 
-	// Calcul d'informations necessaires a l'ouverture de la base en lecture ou ecriture
+	// Calcul des informations necessaires a l'ouverture de la base en lecture ou ecriture
 	// Cette methode est a appeler dans le maitre, essentiellement pour permettre un
 	// dimensionnment fin des ressources
 	// Le parametre outputDatabaseTextFile est optionnel, et n'est utilise que pour l'estimation
@@ -41,7 +44,6 @@ public:
 	//   . taille des fichiers en lecture
 	//   . memoire minimum necessaire pour l'ouverture de la base
 	//   . indexation des champs de la table en lecture
-	// Les resultats ne sont pas transmis aux esclaves (sauf l'indexation des champs)
 	boolean ComputeOpenInformation(boolean bRead, boolean bIncludingClassMemory,
 				       PLMTDatabaseTextFile* outputDatabaseTextFile);
 	boolean IsOpenInformationComputed() const;
@@ -49,41 +51,80 @@ public:
 	// Nettoyage des informations d'ouverture
 	void CleanOpenInformation();
 
-	// Acces aux mappings effectivement utilises
-	// Les mappings (KWLoadIndexVector) sont collectes dans le meme ordre et nombre que les mappings de la base
-	// s'ils sont utilises (NULL sinon)
-	// Memoire: le tableau et son contenu appartiennent a l'appele
-	const ObjectArray* GetUsedMappings() const;
+	// Acces aux mappings effectivement utilises, avec un index de table parmi toute les tables possibles
+	// Les mappings renvoyes sont a NULL s'il ne sont pas utilises
+	KWMTDatabaseMapping* GetUsedMappingAt(int nTableIndex) const;
 
-	// Nombre de mapping effectivement utilises, c'est a dire non NULL dans le tableau precedent
-	int GetUsedMappingNumber() const;
+	// Nombre de mapping effectivement utilises, c'est a dire non NULL
+	int ComputeUsedMappingNumber() const;
 
-	// Acces aux tailles des fichiers pour les mapping effectivement utilises en lecture (0 sinon)
-	const LongintVector* GetInputFileSizes() const;
-	longint GetTotalInputFileSize() const;
+	// Acces aux classes de gestion des ligne d'entete par table
+	// Renvoie NULL pour les entete pour des tables non encore utiliseees
+	const KWClass* GetUsedMappingHeaderLineClassAt(int nIndex) const;
+
+	// Acces aux tailles des fichiers
+	// Les tailles des fichiers pour les tables non encore utilisees sont a 0
+	const LongintVector* GetFileSizes() const;
+
+	// Taille cumulee de tous les fichiers en lecture (0 sinon)
+	longint GetTotalFileSize() const;
+
+	// Taille cumulee des fichiers pour les mapping effectivement utilises en lecture
+	longint GetTotalUsedFileSize() const;
+
+	// Taille de buffer preferee pour l'ensemble de la base
+	int GetDatabasePreferredBuferSize() const;
+
+	// Nombre d'objets par fichier, estime de facon heuristique
+	// Renvoie 0 pour les fichiers des tables non encore utilisees
+	const LongintVector* GetInMemoryEstimatedFileObjectNumbers() const;
+
+	// Memoire utilisee par KWObject physique pour chaque fichier
+	// Renvoie 0 pour les fichiers des tables non concernees
+	const LongintVector* GetEstimatedUsedMemoryPerObject() const;
+
+	// Nombre de tables principales, hors tables externes, avec des fichiers locaux (sans URI)
+	int GetMainLocalTableNumber() const;
 
 	// Memoire minimum necessaire pour ouvrir la base sans tenir compte des buffers
 	longint GetEmptyOpenNecessaryMemory() const;
 
 	// Memoire minimum et maximum necessaire pour ouvrir la base, en tenant compte des buffers
+	// et de la la memoire dediee au DatabaseMemoryGuard pour gerer les instances "elephants"
 	longint GetMinOpenNecessaryMemory() const;
 	longint GetMaxOpenNecessaryMemory() const;
 
 	// Memoire necessaire pour stocker le fichier d'une base en sortie a partir d'une base en lecture (0 sinon)
 	longint GetOutputNecessaryDiskSpace() const;
 
+	// Nombre max de records secondaires pour la parametrage du DatabaseMemoryGuard
+	// On renvoie 0 s'il n'est pas necessaire d'activer le DatabaseMemoryGuard, meme si
+	// on reserve de la memoire pour sa gestion
+	longint GetEstimatedMaxSecondaryRecordNumber() const;
+
+	// Memoire minimum et maximum necessaire pour le parametrage du DatabaseMemoryGuard
+	longint GetEstimatedMinSingleInstanceMemoryLimit() const;
+	longint GetEstimatedMaxSingleInstanceMemoryLimit() const;
+
 	// Nombre maximum de taches elementaires qui devront etre traitees par les esclaves
 	int GetMaxSlaveProcessNumber() const;
 
-	// Calcul de la memoire par buffer pour une memoire allouee pour l'ouverture
-	int ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory) const;
+	// Calcul de la memoire par buffer pour une memoire allouee pour l'ouverture et un nombre de process
+	int ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory, int nProcessNumber) const;
+
+	// Calcul de la memoire a reserver pour le DatabaseMemoryGuard
+	longint ComputeEstimatedSingleInstanceMemoryLimit(longint lOpenGrantedMemory) const;
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Parametrage des buffers
 
+	// Ouverture a la demande (defaut: false)
+	void SetOpenOnDemandMode(boolean bValue);
+	boolean GetOpenOnDemandMode() const;
+
 	// Taille du buffer du driver : a manipuler avec precaution
 	// Taille du buffer lors de la prochaine ouverture
-	void SetBufferSize(int nBufferSize);
+	void SetBufferSize(int nSize);
 	int GetBufferSize() const;
 
 	// Parametrage des buffers d'entree par mapping
@@ -120,7 +161,7 @@ public:
 	boolean IsMappingInitialized(KWMTDatabaseMapping* mapping);
 
 	// Parametrage de la derniere cle lue dans la table principale
-	void SetLastReadRootKey(const KWObjectKey* objectKey);
+	void SetLastReadMainKey(const KWObjectKey* objectKey);
 
 	// Nettoyage d'un mapping de ses informations de contexte (last key ou last object)
 	void CleanMapping(KWMTDatabaseMapping* mapping);
@@ -134,6 +175,11 @@ public:
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	friend class PLShared_MTDatabaseTextFile;
+
+	// Calcul des informations necessaires pour la DatabaseMemoryGuard lors de l'ouverture de la base en lecture
+	void ComputeMemoryGuardOpenInformation();
+
 	// Calcul de necessaire pour les buffers pour l'ouverture, en fonction d'une taille de buffer
 	longint ComputeBufferNecessaryMemory(boolean bRead, int nBufferSize) const;
 
@@ -141,27 +187,45 @@ protected:
 	// Parametrage a la volee des headerlines des driver de type stream
 	KWDataTableDriver* CreateDataTableDriver(KWMTDatabaseMapping* mapping) const override;
 
+	// Calcul du nombre de tables principales, hors tables externes, avec des fichiers locaux (sans URI)
+	int ComputeMainLocalTableNumber();
+
 	// Resultat de l'appel de la methode ComputeOpenInformation
-	mutable ObjectArray oaUsedMappings;
-	LongintVector lvInputFileSizes;
-	longint lTotalInputFileSize;
+	mutable IntVector ivUsedMappingFlags;
+	LongintVector lvFileSizes;
+	longint lTotalFileSize;
+	longint lTotalUsedFileSize;
+	int nDatabasePreferredBufferSize;
+	LongintVector lvInMemoryEstimatedFileObjectNumbers;
+	LongintVector lvEstimatedUsedMemoryPerObject;
+	int nMainLocalTableNumber;
 	longint lOutputNecessaryDiskSpace;
 	longint lEmptyOpenNecessaryMemory;
 	longint lMinOpenNecessaryMemory;
 	longint lMaxOpenNecessaryMemory;
+	longint lEstimatedMaxSecondaryRecordNumber;
+	longint lEstimatedMinSingleInstanceMemoryLimit;
+	longint lEstimatedMaxSingleInstanceMemoryLimit;
 
-	// Memoire minimum par buffer pour l'ouverture de la base
-	static const int nMinOpenBufferSize = BufferedFile::nDefaultBufferSize / 8;
-	static const int nMaxOpenBufferSize = BufferedFile::nDefaultBufferSize * 8;
+	// Definition des exigences pour la taille du buffer
+	// La taille de buffer est porte par le driver
+	int nReadSizeMin;
+	int nReadSizeMax;
+
+	// Ouverture des fichiers a la demande
+	boolean bOpenOnDemandMode;
+
+	// Memorisation des classes de lignes d'entete par fichier du mapping
+	ObjectArray oaUsedMappingHeaderLineClasses;
 
 	// Memorisation des index des attributs pour les mappings pour la serialisation
 	// Un vecteur d'index est memorise pour chaque mapping
-	// ainsi qu'un vecteur des index des attributs de cle dans le cas de classes racines
+	// ainsi qu'un vecteur des index des attributs de cle dans le cas de classes principales,
+	// plus precisement de toute classe "unique" d'un schema multi-table
 	// Utile pour la serialisation des bases destinees a etre ouverte en lecture,
 	// pour transferer aux esclaves les index calcules une fois pour toutes par le maitre
 	ObjectArray oaIndexedMappingsDataItemLoadIndexes;
-	ObjectArray oaIndexedMappingsRootKeyIndexes;
-	friend class PLShared_MTDatabaseTextFile;
+	ObjectArray oaIndexedMappingsMainKeyIndexes;
 };
 
 ///////////////////////////////////////////////////
@@ -180,8 +244,8 @@ public:
 
 	// Reimplementation des methodes virtuelles, avec transfer des specification de la base ainsi que des index
 	// d'attribut par mapping
-	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 	void SerializeObject(PLSerializer* serializer, const Object* o) const override;
+	void DeserializeObject(PLSerializer* serializer, Object* o) const override;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

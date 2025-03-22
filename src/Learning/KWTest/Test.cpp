@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -50,6 +50,8 @@ void Test(int argc, char** argv)
 	// KWTimeFormat::Test();
 	// Timestamp::Test();
 	// KWTimestampFormat::Test();
+	// TimestampTZ::Test();
+	// KWTimestampTZFormat::Test();
 	// KWTypeAvailableFormats::Test();
 	// KWTypeAutomaticRecognition::Test();
 	// KWClass::Test();
@@ -70,7 +72,7 @@ void Test(int argc, char** argv)
 	// ObjectKey::Test();
 	// KDMultinomialSamplingStudy::Test();
 	// KDMultinomialSampleGenerator::Test();
-	// FileBuffer::TestCountLines("C:\\Users\\boullema\\LearningTest\\datasets\\Census\\Census.txt", false);
+	// FileCache::TestCountLines("C:\\Users\\boullema\\LearningTest\\datasets\\Census\\Census.txt", false);
 	// InputBufferedFile::Test();
 	// InputBufferedFile::TestCountLines("C:\\Users\\boullema\\LearningTest\\datasets\\Census\\Census.txt");
 	// OutputBufferedFile::TestWriteFile("C:\\Users\\boullema\\LearningTest\\datasets\\Census\\Census.txt",
@@ -128,7 +130,13 @@ void Test(int argc, char** argv)
 	// KWContinuousValueBlock::Test();
 	// KWSymbolValueBlock::Test();
 	// KWObjectArrayValueBlock::Test();
-	KWCDUniqueString::Test();
+	// KWCDUniqueString::Test();
+	// SNBIndexVector::Test();
+	// TextService::Test();
+	// KWTextNgramTokenizer::Test();
+	// KWTextWordTokenizer::Test();
+	// KWTextTokenizer::Test();
+	KWResultFilePathBuilder::Test();
 }
 
 void KWTestAllComponents(boolean bLong)
@@ -256,10 +264,8 @@ int main(int argc, char** argv)
 	const ALString sBigBatchOption = "-bigbatch";
 	boolean bBigBatch;
 
-#define USE_MPI
-#if defined(USE_MPI)
-	PLParallelTask::UseMPI(GetLearningVersion());
-#endif // defined(USE_MPI)
+	// Parametrage de l'utilisation de MPI
+	UseMPI();
 
 	// Initialisation de l'environnement
 	learningProject.Begin();
@@ -313,7 +319,7 @@ int main(int argc, char** argv)
 		// Lancement des tests classiques
 		else
 		{
-			UIObject::ParseMainParameters(argc, argv);
+			// UIObject::ParseMainParameters(argc, argv);
 			Test(argc, argv);
 		}
 	}

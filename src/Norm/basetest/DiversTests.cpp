@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -15,8 +15,6 @@ void ShowKeyInfo()
 	cout << "PROCESSOR_IDENTIFIER: " << p_getenv("PROCESSOR_IDENTIFIER") << endl;
 	cout << "PROCESSOR_REVISION: " << p_getenv("PROCESSOR_REVISION") << endl;
 	cout << "MAC Address: " << GetMACAddress() << endl;
-	cout << "Computer name: " << LMLicenseService::GetComputerName() << endl;
-	cout << "Machine ID: " << LMLicenseService::GetMachineID() << endl;
 }
 
 void TestMemAdvanced()
@@ -49,128 +47,140 @@ void TestMemAdvanced()
 	MemPrintHeapStats(stdout);
 }
 
-void TestBigFile()
+////////////////////////////////////////////////////////////////////////////////
+// Test avec des caracteres non ascii
+//   . Ansi: e accent aigu
+//   . AnsiAsUtf8: e accent aigu code utf8
+//   . Utf8: theta
+//
+//  Ecriture dans un fichier binaire: ok
+//
+// Test d'affichage dans la fenetre de log java (ca plante avec cout):
+//   . l'affichage dans java est correct: on voit le deux e accent aigu identiquement, et le theta correctement
+//
+// Test de creation de fichier
+//   . avec le code page de la machine (ansi): creation des trois fichiers avec affichage des caractere en utf8
+//      . le e accent aigu ansi s'affiche correctement
+//      . les caracteres utf8 s'afficage avec deux caracteres ansi
+//   . avec le code page utf8 (en commentant le code de p_SetApplicationLocale)
+//      . plante avec le nom de fichier ansi
+//         . devrait etre re-encode en utf8?
+//      . si on supprime le nom ansi du test
+//         . cree correctement les deux fichiers utf8, qui s'affichent correctement dans le file explorer
+//         . par contre, le GetDirectoryContent renvoie un reencodage ansi des noms de fichier, en echouant
+//         potentiellement
+//           (Utf8?.txt pour le theta, au lieun des deux octets attendus)
+//         . les api microsoft (de type FindNextFileA) sont delicates a utiliser, sans lien avec la gestion du code page
+//           cf. https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findnextfilea
+//           "The fileapi.h header defines FindNextFile as an alias which automatically selects the ANSI or Unicode
+//           version
+//            of this function based on the definition of the UNICODE preprocessor constant.
+//           "The fileapi.h header defines FindNextFile as an alias which automatically selects the ANSI or Unicode
+//           version
+//            of this function based on the definition of the UNICODE preprocessor constant. Mixing usage of the
+//            encoding-neutral alias with code that not encoding-neutral can lead to mismatches that result in
+//            compilation or runtime errors."
+void StudyCharacterEncodings()
 {
-	CharVector cvTest;
-	InputBufferedFile inputFile1;
-	OutputBufferedFile outputFile1;
-	InputBufferedFile inputFile2;
-	OutputBufferedFile outputFile2;
+	const ALString sRootPath = "C:\\temp";
+	OutputBufferedFile logFile;
 	OutputBufferedFile outputFile;
-	char cIn;
-	Timer timer;
-	boolean bTestCreate = true;
-	boolean bTestIO = true;
+	StringVector svDirectoryNames;
+	StringVector svFileNames;
+	ALString sPathName;
+	UICard testCard;
+	ALString sAnsi;
+	ALString sAnsiAsUtf8;
+	ALString sUtf8;
+	StringVector svEncodings;
 	int i;
-	char* sField;
-	int nFieldError;
-	longint lBeginPos;
-	int nBufferNumber;
-	boolean bEol;
+	ALString sTmp;
 
-	if (bTestCreate)
+#ifdef __MSC__
+// C4310: le cast tronque la valeur constante
+#pragma warning(disable : 4310) // disable 4310 warning
+#endif
+
+	// Initialisation des chaines de caracteres
+	sAnsi = sTmp + "Ansi_" + (char)(0xE9) + "_";
+	sAnsiAsUtf8 = sTmp + "AnsiAsUtf8" + char(0xC3) + char(0xA9) + "_";
+	sUtf8 = sTmp + "Utf8" + char(0xCE) + char(0xB8) + "_";
+	svEncodings.Add(sAnsi);
+	svEncodings.Add(sAnsiAsUtf8);
+	svEncodings.Add(sUtf8);
+
+#ifdef __MSC__
+// C4310: le cast tronque la valeur constante
+#pragma warning(default : 4310) // enable 4310 warning
+#endif
+
+	// Ecriture des caracteres dans un fichier de log
+	logFile.SetFileName(FileService::BuildFilePathName(sRootPath, "LogEncodings.txt"));
+	logFile.Open();
+	if (logFile.IsOpened())
 	{
-		cvTest.SetSize(1024);
-		for (i = 0; i < cvTest.GetSize(); i++)
-		{
-			if (i % 1024 == 0)
-				cvTest.SetAt(i, '\n');
-			else if (i % 8 == 0)
-				cvTest.SetAt(i, '\t');
-			else
-				cvTest.SetAt(i, '.');
-		}
+		for (i = 0; i < svEncodings.GetSize(); i++)
+			logFile.Write("Write chars: " + svEncodings.GetAt(i) + "\n");
+	}
 
+	// Affichage dans la fenetre de log java
+	// (cela ne marche pas avec un "cout <<" dans la fenetre de console)
+	UIObject::SetUIMode(UIObject::Graphic);
+	for (i = 0; i < svEncodings.GetSize(); i++)
+		Global::AddSimpleMessage(svEncodings.GetAt(i));
+
+	// Affichage dans une boite de dialogue
+	testCard.SetIdentifier("Encodings");
+	testCard.SetLabel("Encodings");
+	testCard.AddStringField("Text", "Chaine de caracteres", "");
+	for (i = 0; i < svEncodings.GetSize(); i++)
+	{
+		testCard.SetStringValueAt("Text", svEncodings.GetAt(i));
+		testCard.Open();
+		logFile.Write("Show chars: " + svEncodings.GetAt(i) + " -> " + testCard.GetStringValueAt("Text") +
+			      "\n");
+	}
+
+	// Creation de fichiers dont le nom comporte ces caracteres
+	for (i = 0; i < svEncodings.GetSize(); i++)
+	{
 		// Creation du fichier
-		timer.Start();
-		outputFile1.SetFileName("c:/temp/BigFileIn1.txt");
-		outputFile1.Open();
-		outputFile2.SetFileName("c:/temp/BigFileIn2.txt");
-		outputFile2.Open();
-		for (i = 0; i < 1048576; i++)
-		{
-			outputFile1.Write(&cvTest);
-			outputFile2.Write(&cvTest);
-		}
-		outputFile1.Close();
-		outputFile2.Close();
-		timer.Stop();
-		cout << "Creation time: " << timer.GetElapsedTime() << endl;
-	}
-
-	if (bTestIO)
-	{
-		// Lecture/ecriture du fichier
-		timer.Start();
-		inputFile1.SetFileName("c:/temp/BigFileIn1.txt");
-		inputFile2.SetFileName("c:/temp/BigFileIn2.txt");
-		outputFile.SetFileName("c:/temp/BigFileOut.txt");
-		inputFile1.Open();
-		inputFile2.Open();
+		outputFile.SetFileName(FileService::BuildFilePathName(sRootPath, svEncodings.GetAt(i) + ".txt"));
 		outputFile.Open();
-		nBufferNumber = 0;
-
-		//
-		lBeginPos = 0;
-		while (not inputFile1.IsLastBuffer())
+		if (outputFile.IsOpened())
 		{
-			// Lecture d'un buffer
-			inputFile1.Fill(lBeginPos);
-			lBeginPos += inputFile1.GetBufferSize();
-			nBufferNumber++;
-
-			// Analyse du buffer
-			while (not inputFile1.IsBufferEnd())
-			{
-				bEol = inputFile1.GetNextField(sField, nFieldError);
-				outputFile.Write(sField);
-				if (bEol)
-					outputFile.Write('\n');
-				else
-					outputFile.Write('\t');
-			}
+			outputFile.Write(svEncodings.GetAt(i) + "\n");
+			outputFile.Close();
 		}
 
-		//
-		lBeginPos = 0;
-		while (not inputFile2.IsLastBuffer())
-		{
-			// Lecture d'un buffer
-			inputFile2.Fill(lBeginPos);
-			lBeginPos += inputFile2.GetBufferSize();
-			nBufferNumber++;
-
-			// Analyse du buffer
-			while (not inputFile2.IsBufferEnd())
-			{
-				bEol = inputFile2.GetNextField(sField, nFieldError);
-				outputFile.Write(sField);
-				if (bEol)
-					outputFile.Write('\n');
-				else
-					outputFile.Write('\t');
-			}
-		}
-
-		//
-		inputFile1.Close();
-		inputFile2.Close();
-		outputFile.Close();
-		timer.Stop();
-		cout << "Buffers: " << nBufferNumber << endl;
-		cout << "Read/write time: " << timer.GetElapsedTime() << endl;
+		// Test si le fichier existe
+		logFile.Write("Is file  " + outputFile.GetFileName() + ": ");
+		logFile.Write(BooleanToString(FileService::FileExists(outputFile.GetFileName())));
+		logFile.Write("\n");
 	}
-	cin >> cIn;
+
+	// Parcours des fichiers
+	FileService::GetDirectoryContent(sRootPath, &svDirectoryNames, &svFileNames);
+	for (i = 0; i < svFileNames.GetSize(); i++)
+	{
+		if (svFileNames.GetAt(i).Find(".txt") != -1)
+			logFile.Write("Found file: " + svFileNames.GetAt(i) + "\n");
+	}
+
+	// Fermeture du fichier de log
+	if (logFile.IsOpened())
+		logFile.Close();
 }
 
 ///////////////////////////////////////////////////////
-// Classe avec ses propre methode d'allocation
+// Classe avec ses propres methode d'allocation
 class MemoryTest
 {
 public:
 	// Constructeur
 	MemoryTest()
 	{
+		nTest = 0;
 		cout << "MemoryTest()\n";
 	};
 	~MemoryTest()

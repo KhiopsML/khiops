@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -12,11 +12,6 @@ KWCharFrequencyVector::KWCharFrequencyVector()
 }
 
 KWCharFrequencyVector::~KWCharFrequencyVector() {}
-
-int KWCharFrequencyVector::GetSize() const
-{
-	return nCharNumber;
-}
 
 void KWCharFrequencyVector::Initialize()
 {
@@ -36,32 +31,6 @@ void KWCharFrequencyVector::InitializeFrequencies(int nFrequency)
 	nTotalFrequency = nFrequency * GetSize();
 }
 
-char KWCharFrequencyVector::GetCharAtIndex(int nIndex) const
-{
-	require(0 <= nIndex and nIndex < GetSize());
-	return (char)nIndex;
-}
-
-void KWCharFrequencyVector::SetFrequencyAt(char cValue, int nFrequency)
-{
-	require(nTotalFrequency - GetFrequencyAt(cValue) <= INT_MAX - nFrequency);
-	nTotalFrequency -= GetFrequencyAt(cValue);
-	ivCharFrequencies.SetAt((unsigned char)cValue, nFrequency);
-	nTotalFrequency += GetFrequencyAt(cValue);
-}
-
-int KWCharFrequencyVector::GetFrequencyAt(char cValue) const
-{
-	return ivCharFrequencies.GetAt((unsigned char)cValue);
-}
-
-void KWCharFrequencyVector::UpgradeFrequencyAt(char cValue, int nDeltaFrequency)
-{
-	require(nTotalFrequency <= INT_MAX - nDeltaFrequency);
-	ivCharFrequencies.UpgradeAt((unsigned char)cValue, nDeltaFrequency);
-	nTotalFrequency += nDeltaFrequency;
-}
-
 boolean KWCharFrequencyVector::IsZero() const
 {
 	int i;
@@ -71,11 +40,6 @@ boolean KWCharFrequencyVector::IsZero() const
 			return false;
 	}
 	return true;
-}
-
-int KWCharFrequencyVector::GetTotalFrequency() const
-{
-	return nTotalFrequency;
 }
 
 void KWCharFrequencyVector::InitializeFromString(const ALString& sValue)

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -12,10 +12,13 @@
 #include "KWDRLogical.h"
 #include "KWDRDateTime.h"
 #include "KWDRString.h"
+#include "KWDRText.h"
+#include "KWDRTextList.h"
 #include "KWDRVector.h"
 #include "KWDRHashMap.h"
 #include "KWDRMultiTable.h"
-#include "KWDRTokenCounts.h"
+#include "KWDRBuildRelation.h"
+#include "KWDRTextualAnalysis.h"
 
 // Enregistrement de toutes les regles de derivation
 void KWDRRegisterAllRules();

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -29,6 +29,7 @@ KWDataTableSliceSet::KWDataTableSliceSet()
 	bDeleteFilesAtClean = true;
 
 	// Initialisation des variables de gestion de lecture
+	lTotalBufferSize = 0;
 	read_Class = NULL;
 	read_PhysicalClass = NULL;
 	read_CurrentDomain = NULL;
@@ -107,7 +108,7 @@ void KWDataTableSliceSet::ComputeSpecification(const KWClass* kwcClassToPartitio
 		// Memorisation de l'index associe a l'attribut
 		ioIndex = new IntObject;
 		ioIndex->SetInt(nAttributeIndex);
-		nkdAttributeIndexes.SetAt((NUMERIC)attribute, ioIndex);
+		nkdAttributeIndexes.SetAt(attribute, ioIndex);
 
 		// Attribut suivant
 		nAttributeIndex++;
@@ -215,7 +216,7 @@ void KWDataTableSliceSet::ComputeSpecification(const KWClass* kwcClassToPartitio
 				{
 					// Les attributs sont repartis de facon contigue dans les tranches
 					nAttributeIndex =
-					    cast(IntObject*, nkdAttributeIndexes.Lookup((NUMERIC)attribute))->GetInt();
+					    cast(IntObject*, nkdAttributeIndexes.Lookup(attribute))->GetInt();
 					nSliceIndex = ivSliceAttributeNumbers.GetSize() - nBlockSliceNumber +
 						      (i * nBlockSliceNumber) / nBlockSize;
 					ivUsedAttributesSliceIndexes.SetAt(nAttributeIndex, nSliceIndex);
@@ -262,7 +263,7 @@ void KWDataTableSliceSet::ComputeSpecification(const KWClass* kwcClassToPartitio
 				if (attribute != targetAttribute)
 				{
 					nAttributeIndex =
-					    cast(IntObject*, nkdAttributeIndexes.Lookup((NUMERIC)attribute))->GetInt();
+					    cast(IntObject*, nkdAttributeIndexes.Lookup(attribute))->GetInt();
 					ivUsedAttributesSliceIndexes.SetAt(nAttributeIndex, nSliceIndex);
 					ivSliceAttributeNumbers.UpgradeAt(nSliceIndex, 1);
 				}
@@ -316,7 +317,7 @@ void KWDataTableSliceSet::ComputeSpecification(const KWClass* kwcClassToPartitio
 		assert(attribute != targetAttribute);
 
 		// Acces a l'index de l'attribut
-		nAttributeIndex = cast(IntObject*, nkdAttributeIndexes.Lookup((NUMERIC)attribute))->GetInt();
+		nAttributeIndex = cast(IntObject*, nkdAttributeIndexes.Lookup(attribute))->GetInt();
 
 		// On cherche d'abord a remplir uniformenent les eventuelles tranches supplementaires
 		if (n < nEmptySliceNumber * nMaxDenseAttributeNumberPerSlice)
@@ -933,7 +934,7 @@ boolean KWDataTableSliceSet::CheckReadClass(const KWClass* kwcInputClass) const
 					    currentDerivationRule, &odSliceAttributes, &nkdAllUsedSliceAttributes,
 					    &nkdAllUsedDerivedAttributes, sErrorAttribute);
 					if (not bOk)
-						AddError("Variable " + attribute->GetName() + " in read dictionnary " +
+						AddError("Variable " + attribute->GetName() + " in read dictionary " +
 							 kwcInputClass->GetName() +
 							 " relies on a derivation rule involving variable " +
 							 sErrorAttribute + " that is not in a slice");
@@ -994,14 +995,27 @@ const KWClass* KWDataTableSliceSet::GetReadClass() const
 	return read_Class;
 }
 
+void KWDataTableSliceSet::SetTotalBufferSize(longint lValue)
+{
+	require(lValue >= 0);
+	lTotalBufferSize = lValue;
+}
+
+longint KWDataTableSliceSet::GetTotalBufferSize() const
+{
+	return lTotalBufferSize;
+}
+
 boolean KWDataTableSliceSet::OpenForRead()
 {
 	boolean bOk = true;
+	boolean bOpenOnDemandMode;
 	int nSlice;
 	KWDataTableSlice* slice;
 	KWAttributeBlock* attributeBlock;
 	KWAttribute* attribute;
 	KWDataItem* dataItem;
+	longint lSliceBufferSize;
 	int i;
 
 	require(read_Class != NULL);
@@ -1014,6 +1028,13 @@ boolean KWDataTableSliceSet::OpenForRead()
 	// Calcul des informations necessaire a la lecture
 	ComputeReadInformation(read_Class, read_PhysicalClass, &read_oaPhysicalSlices);
 	read_FirstPhysicalSlice = cast(KWDataTableSlice*, read_oaPhysicalSlices.GetAt(0));
+
+	// S'il y a un probleme de nombre de fichiers ouverts simultanement trop important,
+	// on passe en mode ouverture a la demande
+	// Au plus un fichier par tranche est ouvert simultanement, mais toutes les tranches necessaires
+	// peuvent etre ouvertes simultanement. On se base ici sur le nombre total de tranches, meme
+	// si certaines d'entres elles peuvent impliquer des fichiers distants
+	bOpenOnDemandMode = read_oaPhysicalSlices.GetSize() + 10 > GetMaxOpenedFileNumber();
 
 	// Parametrage d'un domaine de classe physique
 	read_CurrentDomain = KWClassDomain::GetCurrentDomain();
@@ -1054,6 +1075,28 @@ boolean KWDataTableSliceSet::OpenForRead()
 		}
 	}
 
+	// Calcul de la taille de buffer par slice, en fonction de la taille totale de buffer disponible
+	lSliceBufferSize = 0;
+	if (read_oaPhysicalSlices.GetSize() > 0 and lTotalBufferSize > 0)
+	{
+		// On divise la taille totale par le nombre de slices
+		lSliceBufferSize = max((longint)1, lTotalBufferSize / read_oaPhysicalSlices.GetSize());
+
+		// On se ramene a un nombre entier de segments
+		lSliceBufferSize =
+		    MemSegmentByteSize * ((lSliceBufferSize + MemSegmentByteSize - 1) / MemSegmentByteSize);
+		assert(lSliceBufferSize >= MemSegmentByteSize);
+
+		// On limite la taille max
+		lSliceBufferSize = min((longint)(SystemFile::nMaxPreferredBufferSize), lSliceBufferSize);
+	}
+
+	// Parametrage par defaut si pas de parametrage disponible
+	// On utilise la taille de buffer par defaut, qui pourrait etre trop grrande dans les cas
+	// patholgiques avec de tres grands nombres de slices a lire
+	if (lSliceBufferSize == 0)
+		lSliceBufferSize = BufferedFile::nDefaultBufferSize;
+
 	// Creation et initialisation des drivers des tranches impliquees
 	// Il est a note que toutes les tranches sont parametrees par la meme classe physique,
 	// ce qui permettra d'un avoir un seul objet dont l'alimentation sera completee au fur et
@@ -1066,7 +1109,7 @@ boolean KWDataTableSliceSet::OpenForRead()
 	for (nSlice = 0; nSlice < read_oaPhysicalSlices.GetSize(); nSlice++)
 	{
 		slice = cast(KWDataTableSlice*, read_oaPhysicalSlices.GetAt(nSlice));
-		bOk = bOk and slice->PhysicalOpenForRead(read_PhysicalClass);
+		bOk = bOk and slice->PhysicalOpenForRead(read_PhysicalClass, bOpenOnDemandMode, (int)lSliceBufferSize);
 	}
 
 	// Fermeture en cas de probleme
@@ -1242,7 +1285,6 @@ boolean KWDataTableSliceSet::Close()
 boolean KWDataTableSliceSet::ReadAllObjectsWithClass(const KWClass* kwcInputClass, ObjectArray* oaReadObjects)
 {
 	boolean bOk = true;
-	PeriodicTest periodicTestInterruption;
 	KWObject* kwoObject;
 	longint lRecordNumber;
 	ALString sTmp;
@@ -1252,6 +1294,7 @@ boolean KWDataTableSliceSet::ReadAllObjectsWithClass(const KWClass* kwcInputClas
 	require(kwcInputClass->IsCompiled());
 	require(oaReadObjects != NULL);
 	require(oaReadObjects->GetSize() == 0);
+	require(Check());
 
 	// Demarrage des serveurs de fichiers : les slices peuvent etre sur des machines distantes
 	if (GetProcessId() == 0)
@@ -1288,7 +1331,7 @@ boolean KWDataTableSliceSet::ReadAllObjectsWithClass(const KWClass* kwcInputClas
 			}
 
 			// Suivi de la tache
-			if (periodicTestInterruption.IsTestAllowed(lRecordNumber))
+			if (TaskProgression::IsRefreshNecessary())
 				TaskProgression::DisplayProgression((int)(100 * GetReadPercentage()));
 		}
 		Global::DesactivateErrorFlowControl();
@@ -1300,10 +1343,10 @@ boolean KWDataTableSliceSet::ReadAllObjectsWithClass(const KWClass* kwcInputClas
 
 			// Warning ou erreur selon le cas
 			if (IsError())
-				Object::AddError("Read using dictionary " + read_Class->GetName() +
+				Object::AddError("Read slices using dictionary " + read_Class->GetName() +
 						 " interrupted because of errors");
 			else
-				Object::AddWarning("Read using dictionary " + read_Class->GetName() +
+				Object::AddWarning("Read slices using dictionary " + read_Class->GetName() +
 						   " interrupted by user");
 		}
 
@@ -1337,7 +1380,7 @@ boolean KWDataTableSliceSet::ReadAllObjectsWithClass(const KWClass* kwcInputClas
 }
 
 KWClass* KWDataTableSliceSet::BuildClassFromAttributeNames(const ALString& sInputClassName,
-							   const StringVector* svInputAttributeNames)
+							   const StringVector* svInputAttributeNames) const
 {
 	KWClass* kwcNewClass;
 	ObjectDictionary odSliceAttributes;
@@ -1354,9 +1397,7 @@ KWClass* KWDataTableSliceSet::BuildClassFromAttributeNames(const ALString& sInpu
 	require(sInputClassName != "");
 	require(svInputAttributeNames != NULL);
 	require(svInputAttributeNames->GetSize() > 0);
-
-	// Memoirsation du nom de la classe
-	sClassName = sInputClassName;
+	require(Check());
 
 	// Creation de la classe
 	kwcNewClass = new KWClass;
@@ -1654,7 +1695,7 @@ boolean KWDataTableSliceSet::Check() const
 			{
 				// Recherche de l'attribut de tranche correspondant, et verifications de type et de bloc
 				sliceAttribute = cast(KWAttribute*, odSliceAttributes.Lookup(attribute->GetName()));
-				bOk = bOk and (sliceAttribute != NULL or attribute->GetDerivationRule() != NULL);
+				bOk = bOk and (sliceAttribute != NULL or attribute->GetAnyDerivationRule() != NULL);
 				if (sliceAttribute != NULL)
 				{
 					nCheckedAttributeNumber++;
@@ -1781,55 +1822,59 @@ void KWDataTableSliceSet::Write(ostream& ost) const
 	ost << "Slices\t" << GetSliceNumber() << "\n";
 	ost << "Chunks\t" << GetChunkNumber() << "\n";
 
-	// Nombre total des nombres de valeur par blocs d'attribut
-	ost << "Total block value number\t" << GetTotalAttributeBlockValueNumber() << "\n";
-
-	// Taille totale occupee sur disque par les attributs denses Symbol
-	ost << "Total dense cat variable disk size\t" << GetTotalDenseSymbolAttributeDiskSize() << "\n";
-
-	// Taille totale des fichiers
-	ost << "Total data file size\t" << GetTotalDataFileSize() << "\n";
-
-	// Descriptif detaille par tranches
-	ost << "Slice\tDictionary\tVars\tDense vars\tVar blocks\t"
-	    << "Max block size\tMax block values\tTotal block values\t"
-	    << "Cat vars le disk size\tData file size\n";
-	for (nSlice = 0; nSlice < oaSlices.GetSize(); nSlice++)
+	// Statistique detaillee si elles sont disponibles
+	if (ivChunkInstanceNumbers.GetSize() > 0)
 	{
-		dataTableSlice = cast(KWDataTableSlice*, oaSlices.GetAt(nSlice));
-		ost << nSlice + 1 << "\t";
-		ost << dataTableSlice->GetClass()->GetName() << "\t";
-		ost << dataTableSlice->GetClass()->GetUsedAttributeNumber() << "\t";
-		ost << dataTableSlice->GetClass()->GetLoadedDenseAttributeNumber() << "\t";
-		ost << dataTableSlice->GetClass()->GetLoadedAttributeBlockNumber() << "\t";
-		ost << dataTableSlice->GetMaxBlockAttributeNumber() << "\t";
-		ost << dataTableSlice->GetMaxAttributeBlockValueNumber() << "\t";
-		ost << dataTableSlice->GetTotalAttributeBlockValueNumber() << "\t";
-		ost << dataTableSlice->GetTotalDenseSymbolAttributeDiskSize() << "\t";
-		ost << dataTableSlice->GetTotalDataFileSize() << "\n";
-	}
+		// Nombre total des nombres de valeur par blocs d'attribut
+		ost << "Total block value number\t" << GetTotalAttributeBlockValueNumber() << "\n";
 
-	// Descriptif detaille par chunk
-	ost << "Chunk\tInstances\tTotal instances\tData file size\n";
-	nInstanceNumber = 0;
-	for (nChunk = 0; nChunk < GetChunkNumber(); nChunk++)
-	{
-		// Calcul de la taille totale des fichiers de chunk
-		lTotalChunkFileSize = 0;
-		for (nSlice = 0; nSlice < GetSliceNumber(); nSlice++)
+		// Taille totale occupee sur disque par les attributs denses Symbol
+		ost << "Total dense cat variable disk size\t" << GetTotalDenseSymbolAttributeDiskSize() << "\n";
+
+		// Taille totale des fichiers
+		ost << "Total data file size\t" << GetTotalDataFileSize() << "\n";
+
+		// Descriptif detaille par tranches
+		ost << "Slice\tDictionary\tVars\tDense vars\tVar blocks\t"
+		    << "Max block size\tMax block values\tTotal block values\t"
+		    << "Cat vars le disk size\tData file size\n";
+		for (nSlice = 0; nSlice < oaSlices.GetSize(); nSlice++)
 		{
 			dataTableSlice = cast(KWDataTableSlice*, oaSlices.GetAt(nSlice));
-			lTotalChunkFileSize += dataTableSlice->GetDataFileSizes()->GetAt(nChunk);
+			ost << nSlice + 1 << "\t";
+			ost << dataTableSlice->GetClass()->GetName() << "\t";
+			ost << dataTableSlice->GetClass()->GetUsedAttributeNumber() << "\t";
+			ost << dataTableSlice->GetClass()->GetLoadedDenseAttributeNumber() << "\t";
+			ost << dataTableSlice->GetClass()->GetLoadedAttributeBlockNumber() << "\t";
+			ost << dataTableSlice->GetMaxBlockAttributeNumber() << "\t";
+			ost << dataTableSlice->GetMaxAttributeBlockValueNumber() << "\t";
+			ost << dataTableSlice->GetTotalAttributeBlockValueNumber() << "\t";
+			ost << dataTableSlice->GetTotalDenseSymbolAttributeDiskSize() << "\t";
+			ost << dataTableSlice->GetTotalDataFileSize() << "\n";
 		}
 
-		// Affichage
-		ost << nChunk + 1 << "\t";
-		ost << ivChunkInstanceNumbers.GetAt(nChunk) << "\t";
-		ost << nInstanceNumber << "\t";
-		ost << lTotalChunkFileSize << "\n";
+		// Descriptif detaille par chunk
+		ost << "Chunk\tInstances\tTotal instances\tData file size\n";
+		nInstanceNumber = 0;
+		for (nChunk = 0; nChunk < GetChunkNumber(); nChunk++)
+		{
+			// Calcul de la taille totale des fichiers de chunk
+			lTotalChunkFileSize = 0;
+			for (nSlice = 0; nSlice < GetSliceNumber(); nSlice++)
+			{
+				dataTableSlice = cast(KWDataTableSlice*, oaSlices.GetAt(nSlice));
+				lTotalChunkFileSize += dataTableSlice->GetDataFileSizes()->GetAt(nChunk);
+			}
 
-		// Mise a jour du nombre total d'instances lus
-		nInstanceNumber += ivChunkInstanceNumbers.GetAt(nChunk);
+			// Affichage
+			ost << nChunk + 1 << "\t";
+			ost << ivChunkInstanceNumbers.GetAt(nChunk) << "\t";
+			ost << nInstanceNumber << "\t";
+			ost << lTotalChunkFileSize << "\n";
+
+			// Mise a jour du nombre total d'instances lus
+			nInstanceNumber += ivChunkInstanceNumbers.GetAt(nChunk);
+		}
 	}
 }
 
@@ -1922,7 +1967,7 @@ KWDataTableSliceSet* KWDataTableSliceSet::CreateDataTableSliceSet(const KWClass*
 			nSliceObjectNumber = ((nObjectNumber - nObject) / (nChunkNumber - nChunk));
 			for (i = 0; i < nSliceObjectNumber; i++)
 			{
-				kwoObject = KWObject::CreateObject(dataTableSlice->GetClass(), nObject + 1);
+				kwoObject = KWObject::CreateObject(dataTableSlice->GetClass(), (longint)nObject + 1);
 				nObject++;
 				databaseTextFile.GetObjects()->Add(kwoObject);
 			}
@@ -2043,7 +2088,7 @@ void KWDataTableSliceSet::Test()
 	// Creation d'une classe
 	sTestClassName = KWClassDomain::GetCurrentDomain()->BuildClassName("TestClass");
 	kwcTestClass = KWClass::CreateClass(sTestClassName, 0, nAttributeNumber / 2, nAttributeNumber / 2, 0, 0, 0, 0,
-					    0, 0, true, NULL);
+					    0, 0, 0, 0, 0, true, NULL);
 	KWClassDomain::GetCurrentDomain()->InsertClass(kwcTestClass);
 	kwcTestClass->Compile();
 
@@ -2488,7 +2533,7 @@ void KWDataTableSliceSet::ComputeReadInformation(const KWClass* kwcInputClass, K
 	assert(physicalClass->GetAttributeNumber() ==
 	       kwcInputClass->GetLoadedAttributeNumber() + oaNeededAttributes.GetSize());
 
-	// Export des tranches a utilisees, selon leur ordre initial
+	// Export des tranches a utiliser, selon leur ordre initial
 	for (nSlice = 0; nSlice < GetSliceNumber(); nSlice++)
 	{
 		slice = cast(KWDataTableSlice*, oaSlices.GetAt(nSlice));
@@ -2576,7 +2621,7 @@ boolean KWDataTableSliceSet::BuildAllUsedSliceAttributes(const KWDerivationRule*
 
 				// Enregistrement si attribut dans le sliceset
 				if (slice != NULL)
-					nkdAllUsedSliceAttributes->SetAt((NUMERIC)originAttribute, originAttribute);
+					nkdAllUsedSliceAttributes->SetAt(originAttribute, originAttribute);
 				// Sinon, erreur
 				else
 				{
@@ -2591,10 +2636,9 @@ boolean KWDataTableSliceSet::BuildAllUsedSliceAttributes(const KWDerivationRule*
 					else
 					{
 						// On propage uniquement si necessaire
-						if (nkdAllUsedDerivedAttributes->Lookup((NUMERIC)originAttribute) ==
-						    NULL)
+						if (nkdAllUsedDerivedAttributes->Lookup(originAttribute) == NULL)
 						{
-							nkdAllUsedDerivedAttributes->SetAt((NUMERIC)originAttribute,
+							nkdAllUsedDerivedAttributes->SetAt(originAttribute,
 											   originAttribute);
 							bOk = BuildAllUsedSliceAttributes(
 							    originAttribute->GetAnyDerivationRule(), odSliceAttributes,
@@ -2615,14 +2659,24 @@ boolean KWDataTableSliceSet::BuildAllUsedSliceAttributes(const KWDerivationRule*
 				originAttribute = originAttributeBlock->GetFirstAttribute();
 				while (originAttribute != NULL)
 				{
+					// On ignore l'attribut cible si present dans le bloc
+					if (originAttribute->GetName() == sClassTargetAttributeName)
+					{
+						if (originAttribute != originAttributeBlock->GetLastAttribute())
+							originAttribute->GetParentClass()->GetNextAttribute(
+							    originAttribute);
+						else
+							originAttribute = NULL;
+						continue;
+					}
+
 					// Recherche de l'attribut dans le sliceset
 					slice = cast(KWDataTableSlice*,
 						     odSliceAttributes->Lookup(originAttribute->GetName()));
 
 					// Enregistrement si attribut dans le sliceset
 					if (slice != NULL)
-						nkdAllUsedSliceAttributes->SetAt((NUMERIC)originAttribute,
-										 originAttribute);
+						nkdAllUsedSliceAttributes->SetAt(originAttribute, originAttribute);
 					// Sinon on verifie sa provenance
 					else
 					{
@@ -2644,10 +2698,10 @@ boolean KWDataTableSliceSet::BuildAllUsedSliceAttributes(const KWDerivationRule*
 							{
 								// On propage uniquement si necessaire
 								if (nkdAllUsedDerivedAttributes->Lookup(
-									(NUMERIC)originAttribute) == NULL)
+									originAttribute) == NULL)
 								{
 									nkdAllUsedDerivedAttributes->SetAt(
-									    (NUMERIC)originAttribute, originAttribute);
+									    originAttribute, originAttribute);
 									bOk = BuildAllUsedSliceAttributes(
 									    originAttribute->GetAnyDerivationRule(),
 									    odSliceAttributes,
@@ -2661,7 +2715,7 @@ boolean KWDataTableSliceSet::BuildAllUsedSliceAttributes(const KWDerivationRule*
 								// bloc
 								else
 									nkdAllUsedDerivedAttributes->SetAt(
-									    (NUMERIC)originAttribute, originAttribute);
+									    originAttribute, originAttribute);
 							}
 						}
 					}
@@ -2693,6 +2747,7 @@ KWObject* KWDataTableSliceSet::PhysicalRead()
 	KWDataItem* dataItem;
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
+	NumericKeyDictionary nkdMutationClasses;
 	NumericKeyDictionary nkdUnusedNativeAttributesToKeep;
 	ALString sMessage;
 
@@ -2744,6 +2799,15 @@ KWObject* KWDataTableSliceSet::PhysicalRead()
 				case KWType::Timestamp:
 					kwoObject->ComputeTimestampValueAt(liLoadIndex);
 					break;
+				case KWType::TimestampTZ:
+					kwoObject->ComputeTimestampTZValueAt(liLoadIndex);
+					break;
+				case KWType::Text:
+					kwoObject->ComputeTextValueAt(liLoadIndex);
+					break;
+				case KWType::TextList:
+					kwoObject->ComputeTextListValueAt(liLoadIndex);
+					break;
 				case KWType::Structure:
 					kwoObject->ComputeStructureValueAt(liLoadIndex);
 					break;
@@ -2768,8 +2832,10 @@ KWObject* KWDataTableSliceSet::PhysicalRead()
 	// Mutation de l'objet
 	if (bOk)
 	{
+		assert(nkdMutationClasses.GetCount() == 0);
 		assert(nkdUnusedNativeAttributesToKeep.GetCount() == 0);
-		kwoObject->Mutate(read_Class, &nkdUnusedNativeAttributesToKeep);
+		nkdMutationClasses.SetAt(kwoObject->GetClass(), cast(KWClass*, read_Class));
+		kwoObject->Mutate(read_Class, &nkdMutationClasses, &nkdUnusedNativeAttributesToKeep);
 	}
 
 	// Destruction de l'objet en cas d'erreur
@@ -2983,7 +3049,9 @@ longint KWDataTableSlice::GetTotalAttributeBlockValueNumber() const
 
 boolean KWDataTableSlice::OpenForRead()
 {
-	return PhysicalOpenForRead(GetClass());
+	// Ici, on ne lit qu'une tranche a la fois, et il n'y a pas de risque de depassement
+	// du nombre total de fichiers ouverts, ni de buffer trop gros
+	return PhysicalOpenForRead(GetClass(), false, 0);
 }
 
 boolean KWDataTableSlice::IsOpenedForRead() const
@@ -3081,7 +3149,6 @@ boolean KWDataTableSlice::Close()
 boolean KWDataTableSlice::ReadAll()
 {
 	boolean bOk = true;
-	PeriodicTest periodicTestInterruption;
 	KWObject* kwoObject;
 	longint lRecordNumber;
 
@@ -3118,21 +3185,21 @@ boolean KWDataTableSlice::ReadAll()
 			}
 
 			// Suivi de la tache
-			if (periodicTestInterruption.IsTestAllowed(lRecordNumber))
+			if (TaskProgression::IsRefreshNecessary())
 				TaskProgression::DisplayProgression((int)(100 * GetReadPercentage()));
 		}
 		Global::DesactivateErrorFlowControl();
 
 		// Test si interruption sans qu'il y ait d'erreur
-		if (IsError() or TaskProgression::IsInterruptionRequested())
+		if (not bOk or IsError() or TaskProgression::IsInterruptionRequested())
 		{
 			bOk = false;
 
 			// Warning ou erreur selon le cas
-			if (IsError())
-				AddError("Read data table slice interrupted because of errors");
-			else
+			if (TaskProgression::IsInterruptionRequested())
 				AddWarning("Read data table slice interrupted by user");
+			else
+				AddError("Read data table slice interrupted because of errors");
 		}
 
 		// Fermeture
@@ -3291,7 +3358,6 @@ DoubleVector* KWDataTableSlice::GetLexicographicSortCriterion()
 
 int KWDataTableSlice::CompareLexicographicSortCriterion(KWDataTableSlice* otherSlice) const
 {
-
 	int nCompare;
 	int nMaxSize;
 	int i;
@@ -3510,7 +3576,7 @@ const ALString KWDataTableSlice::GetObjectLabel() const
 	return kwcClass.GetName();
 }
 
-boolean KWDataTableSlice::PhysicalOpenForRead(KWClass* driverClass)
+boolean KWDataTableSlice::PhysicalOpenForRead(KWClass* driverClass, boolean bOpenOnDemandMode, int nBufferSize)
 {
 	require(Check());
 	require(GetClass()->IsCompiled());
@@ -3518,10 +3584,16 @@ boolean KWDataTableSlice::PhysicalOpenForRead(KWClass* driverClass)
 	require(svDataFileNames.GetSize() > 0);
 	require(read_nDataFileIndex == 0);
 	require(driverClass != NULL);
+	require(nBufferSize >= 0);
 
 	// Parametrage du driver dedie a la gestion des tranches
 	read_SliceDataTableDriver = new KWDataTableDriverSlice;
 	read_SliceDataTableDriver->SetClass(driverClass);
+	read_SliceDataTableDriver->SetOpenOnDemandMode(bOpenOnDemandMode);
+	if (nBufferSize > 0)
+		read_SliceDataTableDriver->SetBufferSize(nBufferSize);
+
+	// Calcul des informations d'ouverture du driver
 	read_SliceDataTableDriver->ComputeOpenInformation(GetClass());
 
 	// On saute les eventuels fichiers vides
@@ -3532,6 +3604,7 @@ boolean KWDataTableSlice::PhysicalOpenForRead(KWClass* driverClass)
 boolean KWDataTableSlice::PhysicalReadObject(KWObject*& kwoObject, boolean bCreate)
 {
 	boolean bOk = true;
+	const int nMaxSymbolNumber = 2000000000;
 	ALString sTmp;
 
 	require(IsOpenedForRead());
@@ -3575,6 +3648,18 @@ boolean KWDataTableSlice::PhysicalReadObject(KWObject*& kwoObject, boolean bCrea
 				 LongintToString(read_SliceDataTableDriver->GetRecordIndex()) + " (slice " +
 				 FileService::GetURIUserLabel(svDataFileNames.GetAt(read_nDataFileIndex)) + ")");
 		}
+
+		// Arret si trop de valeurs unique dans les Symbol avec risque de depassement de la capacite
+		// des dictionnaires de Symbol
+		if (bOk and Symbol::GetSymbolNumber() > nMaxSymbolNumber)
+		{
+			bOk = false;
+			AddError(sTmp + "Read slice file interrupted " +
+				 "because of too many unique categorical values in the data (beyond " +
+				 LongintToReadableString(nMaxSymbolNumber) + "), after line " +
+				 LongintToString(read_SliceDataTableDriver->GetRecordIndex()) + " (slice " +
+				 FileService::GetURIUserLabel(svDataFileNames.GetAt(read_nDataFileIndex)) + ")");
+		}
 	}
 
 	// Fermeture si necessaire du fichier courant
@@ -3593,9 +3678,6 @@ boolean KWDataTableSlice::PhysicalOpenCurrentChunk()
 
 	bOk = read_SliceDataTableDriver->OpenChunkForRead(svDataFileNames.GetAt(read_nDataFileIndex),
 							  lvDataFileSizes.GetAt(read_nDataFileIndex));
-	if (not bOk)
-		AddError("Unable to open slice file " +
-			 FileService::GetURIUserLabel(svDataFileNames.GetAt(read_nDataFileIndex)));
 	return bOk;
 }
 
@@ -3674,6 +3756,7 @@ KWDataTableDriverSlice::KWDataTableDriverSlice()
 {
 	bHeaderLineUsed = false;
 	assert(cFieldSeparator == '\t');
+	bOpenOnDemandMode = false;
 }
 
 KWDataTableDriverSlice::~KWDataTableDriverSlice() {}
@@ -3693,7 +3776,8 @@ void KWDataTableDriverSlice::ComputeOpenInformation(const KWClass* kwcSliceClass
 	inputBuffer = new InputBufferedFile;
 	inputBuffer->SetFieldSeparator(cFieldSeparator);
 	inputBuffer->SetHeaderLineUsed(bHeaderLineUsed);
-	inputBuffer->SetBufferSize(nBufferedFileSize);
+	inputBuffer->SetBufferSize(nBufferSize);
+	inputBuffer->SetOpenOnDemandMode(GetOpenOnDemandMode());
 }
 
 boolean KWDataTableDriverSlice::IsOpenInformationComputed() const
@@ -3712,11 +3796,21 @@ void KWDataTableDriverSlice::CleanOpenInformation()
 	inputBuffer = NULL;
 }
 
+void KWDataTableDriverSlice::SetOpenOnDemandMode(boolean bValue)
+{
+	bOpenOnDemandMode = bValue;
+}
+
+boolean KWDataTableDriverSlice::GetOpenOnDemandMode() const
+{
+	return bOpenOnDemandMode;
+}
+
 boolean KWDataTableDriverSlice::OpenChunkForRead(const ALString& sDataFileName, longint lDataFileSize)
 {
 	boolean bOk;
 	longint lInputFileSize;
-	int nInputBufferSize;
+	int nPreferredBufferSize;
 	ALString sTmp;
 
 	require(IsOpenInformationComputed());
@@ -3730,20 +3824,33 @@ boolean KWDataTableDriverSlice::OpenChunkForRead(const ALString& sDataFileName, 
 	// Parametrage du nom du fichier
 	SetDataTableName(sDataFileName);
 	inputBuffer->SetFileName(GetDataTableName());
+	assert(FileService::IsLocalURI(GetDataTableName()) or FileService::GetURIScheme(GetDataTableName()) == "file");
 
-	// Parametrage de la taille du buffer
-	if (lDataFileSize > BufferedFile::nDefaultBufferSize)
-		nInputBufferSize = BufferedFile::nDefaultBufferSize;
+	// Ajustement de la taille du buffer en fonction de la taille du fichier
+	// Inspire de l'implementation disponible dans KWDataTableDriverTextFile::OpenInputDatabaseFile
+	if (lDataFileSize < nBufferSize)
+	{
+		inputBuffer->SetBufferSize((int)lDataFileSize);
+		inputBuffer->SetCacheOn(false);
+	}
+	// Prise en compte du cache selon lma taille disponible pour le buffer
 	else
 	{
-		nInputBufferSize = (int)lDataFileSize;
-		nInputBufferSize =
-		    MemSegmentByteSize * ((nInputBufferSize + MemSegmentByteSize - 1) / MemSegmentByteSize);
-		nInputBufferSize = min((int)BufferedFile::nDefaultBufferSize, nInputBufferSize);
+		nPreferredBufferSize = PLRemoteFileService::GetPreferredBufferSize(GetDataTableName());
+		if (nBufferSize >= nPreferredBufferSize + SystemFile::nMinPreferredBufferSize)
+		{
+			inputBuffer->SetBufferSize(nBufferSize - nPreferredBufferSize);
+			inputBuffer->SetCacheOn(true);
+		}
+		else
+		{
+			inputBuffer->SetBufferSize(nBufferSize);
+			inputBuffer->SetCacheOn(false);
+		}
 	}
-	inputBuffer->SetBufferSize(nInputBufferSize);
 
-	// Ouverture du fichier
+	// Ouverture du fichier sans gestion du BOM (fichier interne)
+	inputBuffer->SetUTF8BomManagement(false);
 	bOk = inputBuffer->Open();
 
 	// Verification de la taille du fichier
@@ -3794,8 +3901,10 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 {
 	boolean bOk = true;
 	char* sField;
+	int nFieldLength;
 	int nFieldError;
 	boolean bEndOfLine;
+	boolean bLineTooLong;
 	ALString sTmp;
 	int nField;
 	int nError;
@@ -3819,7 +3928,7 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 	require(kwoObject->GetClass() == GetClass());
 
 	// On retourne NULL, sans message, si interruption utilisateur
-	if (periodicTestInterruption.IsTestAllowed(lRecordIndex))
+	if (TaskProgression::IsRefreshNecessary())
 	{
 		if (TaskProgression::IsInterruptionRequested())
 			return false;
@@ -3827,8 +3936,10 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 
 	// Lecture des champs de la ligne
 	bEndOfLine = false;
+	bLineTooLong = false;
 	nField = 0;
 	sField = NULL;
+	nFieldLength = 0;
 	nFieldError = inputBuffer->FieldNoError;
 	lRecordIndex++;
 	while (not bEndOfLine)
@@ -3842,9 +3953,9 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 
 		// On lit toujours le champ ou oon le saute selon que le champ soit traite ou non
 		if (liLoadIndex.IsValid())
-			bEndOfLine = inputBuffer->GetNextField(sField, nFieldError);
+			bEndOfLine = inputBuffer->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 		else
-			bEndOfLine = inputBuffer->SkipField();
+			bEndOfLine = inputBuffer->SkipField(bLineTooLong);
 
 		// Analyse des attributs a traiter
 		if (liLoadIndex.IsValid())
@@ -3885,7 +3996,7 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 				// Cas attribut Symbol
 				if (attribute->GetType() == KWType::Symbol)
 				{
-					kwoObject->SetSymbolValueAt(liLoadIndex, Symbol(sField));
+					kwoObject->SetSymbolValueAt(liLoadIndex, Symbol(sField, nFieldLength));
 				}
 				// Cas attribut Continuous
 				else
@@ -3985,7 +4096,7 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 					}
 				}
 
-				// Warning si erreur de parsing des valeurs du bloc de variables
+				// Erreur si erreur de parsing des valeurs du bloc de variables
 				if (not bValueBlockOk)
 				{
 					AddError(sTmp + "Field " + IntToString(nField) + ", " +
@@ -4001,15 +4112,20 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 	// Verification du nombre de champs
 	if (nField != livDataItemLoadIndexes.GetSize())
 	{
-		// Emission d'un warning
 		AddError(sTmp + " Incorrect record, with bad field number (" + IntToString(nField) +
 			 " read fields for " + IntToString(livDataItemLoadIndexes.GetSize()) + " expected fields)");
+		bOk = false;
+	}
+	// Erreur a ce niveau en cas de ligne trop longue
+	else if (bLineTooLong)
+	{
+		AddError("Incorrect record, " + InputBufferedFile::GetLineTooLongErrorLabel());
 		bOk = false;
 	}
 
 	// Remplissage du buffer si necessaire
 	UpdateInputBuffer();
-	bOk = not IsError();
+	bOk = bOk and not IsError();
 	return bOk;
 }
 
@@ -4173,6 +4289,27 @@ KWDataTableSliceSet* PLShared_DataTableSliceSet::GetDataTableSliceSet()
 	return cast(KWDataTableSliceSet*, GetObject());
 }
 
+void PLShared_DataTableSliceSet::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	KWDataTableSliceSet* dataTableSliceSet;
+	PLShared_ObjectArray shared_oa(new PLShared_DataTableSlice);
+
+	require(serializer != NULL);
+	require(serializer->IsOpenForWrite());
+	require(o != NULL);
+
+	// Acces a l'objet a serialiser
+	dataTableSliceSet = cast(KWDataTableSliceSet*, o);
+
+	// Serialisation
+	serializer->PutBoolean(dataTableSliceSet->GetDeleteFilesAtClean());
+	serializer->PutString(dataTableSliceSet->GetClassName());
+	serializer->PutString(dataTableSliceSet->GetTargetAttributeName());
+	serializer->PutInt(dataTableSliceSet->GetTotalInstanceNumber());
+	serializer->PutIntVector(&(dataTableSliceSet->ivChunkInstanceNumbers));
+	shared_oa.SerializeObject(serializer, &dataTableSliceSet->oaSlices);
+}
+
 void PLShared_DataTableSliceSet::DeserializeObject(PLSerializer* serializer, Object* o) const
 {
 	KWDataTableSliceSet* dataTableSliceSet;
@@ -4193,27 +4330,6 @@ void PLShared_DataTableSliceSet::DeserializeObject(PLSerializer* serializer, Obj
 	dataTableSliceSet->nTotalInstanceNumber = serializer->GetInt();
 	serializer->GetIntVector(&(dataTableSliceSet->ivChunkInstanceNumbers));
 	shared_oa.DeserializeObject(serializer, &dataTableSliceSet->oaSlices);
-}
-
-void PLShared_DataTableSliceSet::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	KWDataTableSliceSet* dataTableSliceSet;
-	PLShared_ObjectArray shared_oa(new PLShared_DataTableSlice);
-
-	require(serializer != NULL);
-	require(serializer->IsOpenForWrite());
-	require(o != NULL);
-
-	// Acces a l'objet a serialiser
-	dataTableSliceSet = cast(KWDataTableSliceSet*, o);
-
-	// Serialisation
-	serializer->PutBoolean(dataTableSliceSet->GetDeleteFilesAtClean());
-	serializer->PutString(dataTableSliceSet->GetClassName());
-	serializer->PutString(dataTableSliceSet->GetTargetAttributeName());
-	serializer->PutInt(dataTableSliceSet->GetTotalInstanceNumber());
-	serializer->PutIntVector(&(dataTableSliceSet->ivChunkInstanceNumbers));
-	shared_oa.SerializeObject(serializer, &dataTableSliceSet->oaSlices);
 }
 
 Object* PLShared_DataTableSliceSet::Create() const
@@ -4237,6 +4353,79 @@ void PLShared_DataTableSlice::SetDataTableSlice(KWDataTableSlice* dataTableSlice
 KWDataTableSlice* PLShared_DataTableSlice::GetDataTableSlice()
 {
 	return cast(KWDataTableSlice*, GetObject());
+}
+
+void PLShared_DataTableSlice::SerializeObject(PLSerializer* serializer, const Object* o) const
+{
+	KWDataTableSlice* dataTableSlice;
+	KWClass* kwcDataTableClass;
+	PLShared_MetaData shared_MetaData;
+	PLShared_LoadIndexVector shared_livDataItemLoadIndexes;
+	KWAttribute* attribute;
+	int nBlockNumber;
+	KWAttributeBlock* attributeBlock;
+
+	require(serializer != NULL);
+	require(serializer->IsOpenForWrite());
+	require(o != NULL);
+
+	// Acces a l'objet a serialiser
+	dataTableSlice = cast(KWDataTableSlice*, o);
+	assert(dataTableSlice->GetObjects()->GetSize() == 0);
+
+	// Serialisation de l'index lexicographique
+	serializer->PutIntVector(&(dataTableSlice->ivLexicographicIndex));
+
+	// Serialisation de la classe
+	kwcDataTableClass = &(dataTableSlice->kwcClass);
+	serializer->PutString(kwcDataTableClass->GetName());
+	shared_MetaData.SerializeObject(serializer, kwcDataTableClass->GetConstMetaData());
+
+	// Serialisation des attributs de la classe
+	serializer->PutInt(kwcDataTableClass->GetAttributeNumber());
+	attribute = kwcDataTableClass->GetHeadAttribute();
+	while (attribute != NULL)
+	{
+		serializer->PutString(attribute->GetName());
+		serializer->PutInt(attribute->GetType());
+		serializer->PutDouble(attribute->GetCost());
+		shared_MetaData.SerializeObject(serializer, attribute->GetConstMetaData());
+		kwcDataTableClass->GetNextAttribute(attribute);
+	}
+
+	// Comptage du nombre de blocks
+	nBlockNumber = 0;
+	attributeBlock = kwcDataTableClass->GetHeadAttributeBlock();
+	while (attributeBlock != NULL)
+	{
+		nBlockNumber++;
+		kwcDataTableClass->GetNextAttributeBlock(attributeBlock);
+	}
+
+	// Serialisation des blocs d'attributs de la classe
+	serializer->PutInt(nBlockNumber);
+	attributeBlock = kwcDataTableClass->GetHeadAttributeBlock();
+	while (attributeBlock != NULL)
+	{
+		serializer->PutString(attributeBlock->GetName());
+		serializer->PutString(attributeBlock->GetFirstAttribute()->GetName());
+		serializer->PutString(attributeBlock->GetLastAttribute()->GetName());
+		shared_MetaData.SerializeObject(serializer, attributeBlock->GetConstMetaData());
+		kwcDataTableClass->GetNextAttributeBlock(attributeBlock);
+	}
+
+	// Serialisation des noms et tailles de fichier
+	serializer->PutStringVector(&(dataTableSlice->svDataFileNames));
+	serializer->PutLongintVector(&(dataTableSlice->lvDataFileSizes));
+
+	// Serialisation des vecteurs de statistique sur les valeurs
+	serializer->PutLongintVector(&(dataTableSlice->lvAttributeBlockValueNumbers));
+	serializer->PutLongintVector(&(dataTableSlice->lvDenseSymbolAttributeDiskSizes));
+
+	// Serialisation des vecteurs d'index
+	shared_livDataItemLoadIndexes.SerializeObject(serializer, dataTableSlice->GetDataItemLoadIndexes());
+	serializer->PutIntVector(dataTableSlice->GetValueBlockFirstSparseIndexes());
+	serializer->PutIntVector(dataTableSlice->GetValueBlockLastSparseIndexes());
 }
 
 void PLShared_DataTableSlice::DeserializeObject(PLSerializer* serializer, Object* o) const
@@ -4312,79 +4501,6 @@ void PLShared_DataTableSlice::DeserializeObject(PLSerializer* serializer, Object
 	shared_livDataItemLoadIndexes.DeserializeObject(serializer, dataTableSlice->GetDataItemLoadIndexes());
 	serializer->GetIntVector(dataTableSlice->GetValueBlockFirstSparseIndexes());
 	serializer->GetIntVector(dataTableSlice->GetValueBlockLastSparseIndexes());
-}
-
-void PLShared_DataTableSlice::SerializeObject(PLSerializer* serializer, const Object* o) const
-{
-	KWDataTableSlice* dataTableSlice;
-	KWClass* kwcDataTableClass;
-	PLShared_MetaData shared_MetaData;
-	PLShared_LoadIndexVector shared_livDataItemLoadIndexes;
-	KWAttribute* attribute;
-	int nBlockNumber;
-	KWAttributeBlock* attributeBlock;
-
-	require(serializer != NULL);
-	require(serializer->IsOpenForWrite());
-	require(o != NULL);
-
-	// Acces a l'objet a serialiser
-	dataTableSlice = cast(KWDataTableSlice*, o);
-	assert(dataTableSlice->GetObjects()->GetSize() == 0);
-
-	// Serialisation de l'index lexicographique
-	serializer->PutIntVector(&(dataTableSlice->ivLexicographicIndex));
-
-	// Serialisation de la classe
-	kwcDataTableClass = &(dataTableSlice->kwcClass);
-	serializer->PutString(kwcDataTableClass->GetName());
-	shared_MetaData.SerializeObject(serializer, kwcDataTableClass->GetConstMetaData());
-
-	// Serialisation des attributs de la classe
-	serializer->PutInt(kwcDataTableClass->GetAttributeNumber());
-	attribute = kwcDataTableClass->GetHeadAttribute();
-	while (attribute != NULL)
-	{
-		serializer->PutString(attribute->GetName());
-		serializer->PutInt(attribute->GetType());
-		serializer->PutDouble(attribute->GetCost());
-		shared_MetaData.SerializeObject(serializer, attribute->GetConstMetaData());
-		kwcDataTableClass->GetNextAttribute(attribute);
-	}
-
-	// Comptage du nombre de blocks
-	nBlockNumber = 0;
-	attributeBlock = kwcDataTableClass->GetHeadAttributeBlock();
-	while (attributeBlock != NULL)
-	{
-		nBlockNumber++;
-		kwcDataTableClass->GetNextAttributeBlock(attributeBlock);
-	}
-
-	// Serialisation des blocs d'attributs de la classe
-	serializer->PutInt(nBlockNumber);
-	attributeBlock = kwcDataTableClass->GetHeadAttributeBlock();
-	while (attributeBlock != NULL)
-	{
-		serializer->PutString(attributeBlock->GetName());
-		serializer->PutString(attributeBlock->GetFirstAttribute()->GetName());
-		serializer->PutString(attributeBlock->GetLastAttribute()->GetName());
-		shared_MetaData.SerializeObject(serializer, attributeBlock->GetConstMetaData());
-		kwcDataTableClass->GetNextAttributeBlock(attributeBlock);
-	}
-
-	// Serialisation des noms et tailles de fichier
-	serializer->PutStringVector(&(dataTableSlice->svDataFileNames));
-	serializer->PutLongintVector(&(dataTableSlice->lvDataFileSizes));
-
-	// Serialisation des vecteurs de statistique sur les valeurs
-	serializer->PutLongintVector(&(dataTableSlice->lvAttributeBlockValueNumbers));
-	serializer->PutLongintVector(&(dataTableSlice->lvDenseSymbolAttributeDiskSizes));
-
-	// Serialisation des vecteurs d'index
-	shared_livDataItemLoadIndexes.SerializeObject(serializer, dataTableSlice->GetDataItemLoadIndexes());
-	serializer->PutIntVector(dataTableSlice->GetValueBlockFirstSparseIndexes());
-	serializer->PutIntVector(dataTableSlice->GetValueBlockLastSparseIndexes());
 }
 
 Object* PLShared_DataTableSlice::Create() const

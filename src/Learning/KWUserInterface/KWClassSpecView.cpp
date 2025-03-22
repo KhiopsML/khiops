@@ -1,10 +1,9 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-04-25 11:10:57
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "KWClassSpecView.h"
@@ -29,10 +28,6 @@ KWClassSpecView::KWClassSpecView()
 	for (nField = 0; nField < GetFieldNumber(); nField++)
 		GetFieldAtIndex(nField)->SetVisible(false);
 	GetFieldAt("ClassName")->SetVisible(true);
-
-	// La visualisation des parametres Root et Key n'est disponible qu'en mode multitables
-	GetFieldAt("Root")->SetVisible(GetLearningMultiTableMode());
-	GetFieldAt("Key")->SetVisible(GetLearningMultiTableMode());
 
 	// Ajout d'une liste des attributs
 	attributeSpecArrayView = new KWAttributeSpecArrayView;
@@ -195,7 +190,6 @@ void KWClassSpecView::SetObject(Object* object)
 	KWClass* kwcClass;
 	KWAttribute* attribute;
 	KWAttributeSpec* attributeSpec;
-	ALString sCompleteType;
 	ALString sMetaData;
 
 	require(object != NULL);
@@ -215,19 +209,12 @@ void KWClassSpecView::SetObject(Object* object)
 			attributeSpec = new KWAttributeSpec;
 			oaAttributeSpecs.Add(attributeSpec);
 
-			// Calcul du type complet de l'attribut
-			sCompleteType = KWType::ToString(attribute->GetType());
-			if (KWType::IsRelation(attribute->GetType()) and attribute->GetClass() != NULL)
-				sCompleteType = sCompleteType + "(" + attribute->GetClass()->GetName() + ")";
-			else if (attribute->GetType() == KWType::Structure)
-				sCompleteType = sCompleteType + "(" + attribute->GetStructureName() + ")";
-
 			// Acces aux meta-data
 			sMetaData = attribute->GetMetaData()->WriteString();
 
 			// Initialisation a partir de l'attribut
 			attributeSpec->SetUsed(attribute->GetUsed());
-			attributeSpec->SetType(sCompleteType);
+			attributeSpec->SetType(attribute->GetTypeLabel());
 			attributeSpec->SetName(attribute->GetName());
 			attributeSpec->SetDerived(attribute->GetAnyDerivationRule() != NULL);
 			attributeSpec->SetMetaData(sMetaData);

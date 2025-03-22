@@ -1,10 +1,8 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
-
-#ifdef __ANDROID__
 
 /* Use of C linkage from C++ */
 #ifdef __cplusplus
@@ -12,9 +10,9 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-	/* The following ifdef block is the standard way of creating macros
+	/*The following ifdef block is the standard way of creating macros
 	 * which make exporting from a DLL simpler, in Visual C++.
-	 * All files within this DLL are compiled with the KNI_EXPORTS symbol defined.
+	 * All files within this DLL are compiled with the KHIOPS_EXPORTS symbol defined.
 	 * This symbol should not be defined on any project that uses this DLL.
 	 * This way any other project whose source files include this file see
 	 * KNI_API functions as being imported from a DLL, whereas this DLL
@@ -32,20 +30,28 @@ extern "C"
 #endif
 
 	/*
-	 * Version of KHIOPS_API
-	 */
-#define KHIOPS_API_VERSION_10_0 100
-
-	/*
 	 * Get version of Khiops
-	 * Enable to check the version of the DLL
 	 *
-	 * Success return code:
-	 *    0
-	 * Failure return code:
-	 *    1
+	 * Enable to check the major and minor version of the DLL, which is the same as that of the Khiops tool
+	 * The version is given as an integer (10*major + minor) to ease comparisons
+	 * Exemple:
+	 *   75 for Khiops 7.5
+	 *   100 for Khiops 10.0
+	 *   101 for Khiops 10.1
+	 *
+	 * Return code:
+	 *    version number, an integer constant
 	 */
 	KHIOPS_API int GetVersion();
+
+	/*
+	 * Get full version of Khiops
+	 * Enable to check the full version of the DLL
+	 *
+	 * Return code:
+	 *    full version as a sequence-based identifier (ex: "9.0.1")
+	 */
+	KHIOPS_API const char* GetFullVersion();
 
 	/*
 	 * Start Khiops with a scenario, a log file and a task file. With the standalone Khiops tool,
@@ -63,5 +69,3 @@ extern "C"
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
-
-#endif // __ANDROID__

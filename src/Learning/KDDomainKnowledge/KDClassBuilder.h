@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -12,7 +12,7 @@ class KDSparseUsedConstructedBlockRule;
 #include "KWClass.h"
 #include "KDConstructionDomain.h"
 #include "KDConstructedRule.h"
-#include "KDDomainKnowledge.h"
+#include "KDMultiTableFeatureConstruction.h"
 
 //////////////////////////////////////////////////////////////////////////
 // Classe KDClassBuilder
@@ -29,8 +29,8 @@ public:
 	// Parametrage du domaine de connaissance
 	// Attention, parametrage obligatoire (initialement a NULL)
 	// Memoire: appartient a l'appelant
-	void SetDomainKnowledge(KDDomainKnowledge* domainKnowledgeParam);
-	KDDomainKnowledge* GetDomainKnowledge() const;
+	void SetMultiTableFeatureConstruction(KDMultiTableFeatureConstruction* featureConstructionParam);
+	KDMultiTableFeatureConstruction* GetMultiTableFeatureConstruction() const;
 
 	// Acces au domaine de construction, depuis le domaine de connaissance
 	KDConstructionDomain* GetConstructionDomain() const;
@@ -239,7 +239,7 @@ protected:
 	void ReorderAttributeBlocksInClassDomain(const SortedList* slUsedConstructedBlockRules) const;
 
 	// Creation d'un attribut et eventuellement de son bloc d'attribut, dans le cas
-	// des partition, des partition de table, des blocs de type partition ou valeur
+	// des partitions, des partitions de table, des blocs de type partition ou valeur
 	// Le bloc d'attribut a creer est en dernier parametre, et sera cree si necessaire
 	// La creation est potentiellement recursive, en creant les bloc utilises en operandes
 	// En entree, le parametre usedConstructedRule ne doit pas avoir d'attribut associe,
@@ -276,10 +276,10 @@ protected:
 					  KDSparseUsedConstructedBlockRule* usedConstructedBlockRule) const;
 
 	// Domaine de connaissance
-	KDDomainKnowledge* domainKnowlege;
+	KDMultiTableFeatureConstruction* multiTableFeatureConstruction;
 
-	// Index du prochain attribut
-	mutable int nAttributeIndex;
+	// Index du prochain attribut dans le cas d'un nommage indexe, non interpretable
+	mutable int nAttributeNameIndex;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -302,12 +302,12 @@ public:
 
 	// Memorisation d'un attribut calcule avec sa regle de derivation correspondant
 	// a la regle construite
-	// Attention: un meme attribut peut être utilise par plusieurs usedConstructedRule,
+	// Attention: un meme attribut peut etre utilise par plusieurs usedConstructedRule,
 	// car plusieurs regles construites peuvent correspondre au meme attribut existant en cas
 	// d'attribut initiaux avec regles de derivation en collision avec un nouvel attribut construit
 	// Exemple:
 	//   DecimalTime = DecimalTime(Time) : attribut existant
-	//   Time.DecimalTime = = DecimalTime(Time) : attribut construit à partir d'une regle appliquée sur Time
+	//   Time.DecimalTime = = DecimalTime(Time) : attribut construit a partir d'une regle appliquee sur Time
 	// Memoire: appartient a l'appelant
 	void SetAttribute(KWAttribute* attribute);
 	KWAttribute* GetAttribute() const;
@@ -342,7 +342,8 @@ protected:
 // Methode de comparaison entre deux regles construites utilisees
 int KDSparseUsedConstructedRuleCompareCostName(const void* elem1, const void* elem2);
 
-// Methode de VarKey si ce sont des attributs de bloc calcule
+// Methode de comparaison entre deux attributs (KWAttributeBlock) selon leurs regles de derivation,
+// et selon leur VarKey en cas de deux attributs de bloc
 int KDAttributeDerivationRuleCompare(const void* elem1, const void* elem2);
 
 // Methode de comparaison entre deux blocs d'attributs (KWAttributeBlock) selon leurs regles de derivation
@@ -367,7 +368,7 @@ public:
 
 	// Memorisation d'un bloc d'attribut calcule avec sa regle de derivation correspondant
 	// a la regle construite
-	// Attention: un meme attributeBlock peut être utilise par plusieurs usedConstructedBlockRule,
+	// Attention: un meme attributeBlock peut etre utilise par plusieurs usedConstructedBlockRule,
 	// comme dans le cas des KDSparseUsedConstructedRule
 	// Memoire: appartient a l'appelant
 	void SetAttributeBlock(const KWAttributeBlock* attributeBlock);

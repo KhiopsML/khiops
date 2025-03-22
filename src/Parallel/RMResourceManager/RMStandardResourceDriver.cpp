@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -22,7 +22,6 @@ longint RMStandardResourceDriver::GetTmpDirFreeSpace() const
 
 	// Bornee par la limite par proc et la limite sur le systeme (en mono-machine mono-proc c'est la meme chose)
 	lFreeMemory = min(lFreeMemory, lMB * RMResourceConstraints::GetDiskLimit());
-	lFreeMemory = min(lFreeMemory, lMB * RMResourceConstraints::GetDiskLimitPerProc());
 	return lFreeMemory;
 }
 
@@ -35,9 +34,7 @@ longint RMStandardResourceDriver::GetTotalAvailableMemory() const
 	// On part de la memoire disponible
 	lUserMemory = min(MemGetAvailablePhysicalMemory(), MemGetAdressablePhysicalMemory());
 
-	// Bornee par les contraintes utilisateur: limite par proc et limite sur le systeme (en mono-machine mono-proc
-	// c'est la meme chose)
-	lUserMemory = min(lUserMemory, lMB * RMResourceConstraints::GetMemoryLimitPerProc());
+	// Bornee par les contraintes utilisateur: limite sur la machine (en mono-machine mono-proc c'est la meme chose)
 	lUserMemory = min(lUserMemory, lMB * RMResourceConstraints::GetMemoryLimit());
 
 	// Prise en compte de l'overhead d'allocation memoire
@@ -51,7 +48,7 @@ longint RMStandardResourceDriver::PhysicalToLogical(int nResourceType, longint l
 	longint lLogicalMemory;
 	double dOverhead;
 
-	require(nResourceType < UNKNOWN);
+	require(nResourceType < RESOURCES_NUMBER);
 
 	// Affectation de l'overhead selon le tuype de ressource
 	switch (nResourceType)

@@ -1,12 +1,11 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "SystemResource.h"
-#include "Portability.h"
 #include "MemoryManager.h"
 
-// Pour eviter les warning sur strcpy et sprintf
+// Pour eviter les warning sur strcpy
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_WARNINGS
 #endif
@@ -44,7 +43,7 @@ longint MemGetPhysicalMemoryReserve()
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Implementation Windows
-#if defined _MSC_VER || defined __MSVCRT_VERSION__
+#ifdef _WIN32
 
 #include <winsock2.h>
 #include <iphlpapi.h>
@@ -216,8 +215,8 @@ const char* CurrentPreciseTimestamp()
 	SYSTEMTIME st;
 
 	GetLocalTime(&st);
-	sprintf_s(sBuffer, 30, "%04d-%02d-%02d %02d:%02d:%02d.%03d%c", st.wYear, st.wMonth, st.wDay, st.wHour,
-		  st.wMinute, st.wSecond, st.wMilliseconds, '\0');
+	snprintf(sBuffer, BUFFER_LENGTH, "%04d-%02d-%02d %02d:%02d:%02d.%03d%c", st.wYear, st.wMonth, st.wDay, st.wHour,
+		 st.wMinute, st.wSecond, st.wMilliseconds, '\0');
 	return sBuffer;
 }
 
@@ -227,8 +226,8 @@ const char* CurrentTimestamp()
 	SYSTEMTIME st;
 
 	GetLocalTime(&st);
-	sprintf_s(sBuffer, 30, "%04d-%02d-%02d %02d:%02d:%02d%c", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute,
-		  st.wSecond, '\0');
+	snprintf(sBuffer, BUFFER_LENGTH, "%04d-%02d-%02d %02d:%02d:%02d%c", st.wYear, st.wMonth, st.wDay, st.wHour,
+		 st.wMinute, st.wSecond, '\0');
 	return sBuffer;
 }
 
@@ -262,6 +261,7 @@ longint MemGetAdressablePhysicalMemory()
 longint MemGetAvailablePhysicalMemory()
 {
 	MEMORYSTATUS memstat;
+
 	// L'utilisation conseillee GlobalMemoryStatusEx n'a pas ete concluante
 	// On renvoie en effet la memoire totale de la machine, sans la limiter a 2 GB
 	GlobalMemoryStatus(&memstat);
@@ -271,6 +271,7 @@ longint MemGetAvailablePhysicalMemory()
 longint MemGetFreePhysicalMemory()
 {
 	MEMORYSTATUS memstat;
+
 	// L'utilisation conseillee GlobalMemoryStatusEx n'a pas ete concluante
 	// On renvoie en effet la memoire totale de la machine, sans la limiter a 2 GB
 	GlobalMemoryStatus(&memstat);
@@ -384,13 +385,13 @@ const char* GetMACAddress()
 				// Memorisation de la nouvelle adresse que si elle est plus grande que la precedente
 				// (ou d'une priorite plus forte, pour favoriser les cates reseau persistantes)
 				// Pour garantir que l'on ne depend pas de l'ordre dans la liste
-				sprintf(sNewMACAddress, "%02x-%02x-%02x-%02x-%02x-%02x",
-					(unsigned char)pAdapterAddresses->PhysicalAddress[0],
-					(unsigned char)pAdapterAddresses->PhysicalAddress[1],
-					(unsigned char)pAdapterAddresses->PhysicalAddress[2],
-					(unsigned char)pAdapterAddresses->PhysicalAddress[3],
-					(unsigned char)pAdapterAddresses->PhysicalAddress[4],
-					(unsigned char)pAdapterAddresses->PhysicalAddress[5]);
+				snprintf(sNewMACAddress, sizeof(sNewMACAddress), "%02x-%02x-%02x-%02x-%02x-%02x",
+					 (unsigned char)pAdapterAddresses->PhysicalAddress[0],
+					 (unsigned char)pAdapterAddresses->PhysicalAddress[1],
+					 (unsigned char)pAdapterAddresses->PhysicalAddress[2],
+					 (unsigned char)pAdapterAddresses->PhysicalAddress[3],
+					 (unsigned char)pAdapterAddresses->PhysicalAddress[4],
+					 (unsigned char)pAdapterAddresses->PhysicalAddress[5]);
 				if (nPriority > nBestPriority || strcmp(sNewMACAddress, sMACAddress) > 0)
 					strcpy(sMACAddress, sNewMACAddress);
 				if (bDisplayDetails)
@@ -477,11 +478,84 @@ const char* GetMachineGUID()
 	return res;
 }
 
-#endif // defined _MSC_VER || defined __MSVCRT_VERSION__
+int GetMaxOpenedFileNumber()
+{
+	return _getmaxstdio();
+}
+
+// Pur acceder aux information du processeur
+#include <intrin.h>
+
+// Acces au nom du processeur pour alimenter les SystemInfos
+// https : //vcpptips.wordpress.com/2012/12/30/how-to-get-the-cpu-name/
+static char* GetProcessorName()
+{
+	static char CPUBrandString[0x40];
+	int CPUInfo[4] = {-1};
+	__cpuid(CPUInfo, 0x80000000);
+	int nExIds = CPUInfo[0];
+
+	memset(CPUBrandString, 0, sizeof(CPUBrandString));
+
+	// Get the information associated with each extended ID.
+	for (int i = 0x80000000; i <= nExIds; ++i)
+	{
+		__cpuid(CPUInfo, i);
+		// Interpret CPU brand string.
+		if (i == 0x80000002)
+			memcpy(CPUBrandString, CPUInfo, sizeof(CPUInfo));
+		else if (i == 0x80000003)
+			memcpy(CPUBrandString + 16, CPUInfo, sizeof(CPUInfo));
+		else if (i == 0x80000004)
+			memcpy(CPUBrandString + 32, CPUInfo, sizeof(CPUInfo));
+	}
+	return CPUBrandString;
+}
+
+typedef NTSTATUS(WINAPI* RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
+
+// Acces a la version de windows pour alimenter les SystemInfos
+// https://stackoverflow.com/questions/36543301/detecting-windows-10-version/36543774#36543774
+static char* GetOsVersion()
+{
+	static char sWindowsVersion[100];
+
+	sWindowsVersion[0] = '\0';
+
+	// Acces a la DLL
+	HMODULE hMod = ::GetModuleHandleW(L"ntdll.dll");
+	if (hMod)
+	{
+		// Recherche de la fonction donnant les information de version
+		RtlGetVersionPtr fxPtr = (RtlGetVersionPtr)::GetProcAddress(hMod, "RtlGetVersion");
+		if (fxPtr != nullptr)
+		{
+			RTL_OSVERSIONINFOW osInfo = {0};
+			osInfo.dwOSVersionInfoSize = sizeof(osInfo);
+			if (fxPtr(&osInfo) == 0)
+			{
+				snprintf(sWindowsVersion, sizeof(sWindowsVersion), "windows %d.%d (%d)",
+					 osInfo.dwMajorVersion, osInfo.dwMinorVersion, osInfo.dwBuildNumber);
+			}
+		}
+	}
+	return sWindowsVersion;
+}
+
+const char* GetSystemInfos()
+{
+	char* sInfo = StandardGetBuffer();
+
+	// Nom du processeur et de l'OS
+	snprintf(sInfo, BUFFER_LENGTH, "cpu=%s\nos=%s\n", GetProcessorName(), GetOsVersion());
+	return sInfo;
+}
+
+#endif // _WIN32
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Implementation Linux
-#if defined __UNIX__
+#ifdef __linux_or_apple__
 
 #include <unistd.h>
 #include <sys/time.h>
@@ -493,6 +567,7 @@ const char* GetMachineGUID()
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/utsname.h>
 
 #ifndef __ANDROID__
 #include <ifaddrs.h>
@@ -510,11 +585,11 @@ const char* GetMachineGUID()
 #include <netpacket/packet.h>
 #include <sys/sysinfo.h>
 
-#ifdef __clang__
+#ifdef __ANDROID__
 #include <sys/vfs.h> // ANDROID https://svn.boost.org/trac/boost/ticket/8816
 #else
 #include <sys/statvfs.h>
-#endif // __clang__
+#endif // __ANDROID__
 #endif // __APPLE__
 using namespace std;
 
@@ -526,41 +601,31 @@ void SystemSleep(double dSeconds)
 	nanosleep(&req, NULL);
 }
 
-#ifdef __clang__
-longint DiskGetFreeSpace(const char* sPathName)
-{
-	struct statfs fiData;
-	longint lFree;
-
-	assert(sPathName != NULL);
-	p_SetMachineLocale();
-	if ((statfs(sPathName, &fiData)) < 0)
-	{
-		lFree = 0;
-	}
-	else
-	{
-		lFree = fiData.f_bavail;
-		lFree *= fiData.f_bsize;
-	}
-	p_SetApplicationLocale();
-	assert(lFree >= 0);
-	return lFree;
-}
-
-#else  // __clang__
 longint DiskGetFreeSpace(const char* sPathName)
 {
 	// cf. statvfs for linux.
 	// http://stackoverflow.com/questions/1449055/disk-space-used-free-total-how-do-i-get-this-in-c
 	// http://pubs.opengroup.org/onlinepubs/009695399/basedefs/sys/statvfs.h.html
+
+#if defined(__ANDROID__) || defined(__APPLE__)
+	struct statfs fiData;
+#else
 	struct statvfs64 fiData;
+#endif
 	longint lFree;
+	int nRet;
 
 	assert(sPathName != NULL);
 
 	p_SetMachineLocale();
-	if ((statvfs64(sPathName, &fiData)) < 0)
+
+#if defined(__ANDROID__) || defined(__APPLE__)
+	nRet = statfs(sPathName, &fiData);
+#else
+	nRet = statvfs64(sPathName, &fiData);
+#endif
+
+	if (nRet < 0)
 	{
 		lFree = 0;
 	}
@@ -573,7 +638,6 @@ longint DiskGetFreeSpace(const char* sPathName)
 	assert(lFree >= 0);
 	return lFree;
 }
-#endif // __clang__
 
 int SystemGetProcessorNumber()
 {
@@ -761,7 +825,7 @@ const char* CurrentPreciseTimestamp()
 	milliseconds = tv.tv_usec / 1000;
 	/* Print the formatted time, in seconds, followed by a decimal point
 	and the milliseconds. */
-	sprintf(sBuffer, "%s.%03ld", time_string, milliseconds);
+	snprintf(sBuffer, BUFFER_LENGTH, "%s.%03ld", time_string, milliseconds);
 
 	return sBuffer;
 }
@@ -864,9 +928,10 @@ longint MemGetFreePhysicalMemory()
 	if (pagesize == -1 or pagepurge == -1 or pagefree == -1)
 		return 0;
 	return pagesize * (pagepurge + pagefree);
-#else  // __APPLE__
-       // Lecture du fichier /proc/meminfo pour extraire la memoire dispoible et la memoire en cache
-       // On additionne la memoire disponible et 80% de la memoire cache (borne a 2Go)
+#else  // __APPLE_
+
+	// Lecture du fichier /proc/meminfo pour extraire la memoire dispoible et la memoire en cache
+	// On additionne la memoire disponible et 80% de la memoire cache (borne a 2Go)
 	FILE* file;
 	const int nLineSize = 4096;
 	char sLine[nLineSize];
@@ -1056,7 +1121,7 @@ int IsVirtual(const char* sInterfaceName)
 		// L'heuristique ne fonctionne pas, on ne sait pas si c'est virtuel ou non
 		return 0;
 
-	sprintf(sDeviceDirectory, "%s%s/device/", sRep, sInterfaceName);
+	snprintf(sDeviceDirectory, sizeof(sDeviceDirectory), "%s%s/device/", sRep, sInterfaceName);
 	if (IsDirectory(sDeviceDirectory))
 		// C'est une interface physique
 		return 0;
@@ -1152,10 +1217,11 @@ const char* GetMACAddress()
 					// Si l'interface est prioritaire
 					if (nPriority >= nBestPriority)
 					{
-						sprintf(sNewMACAddress, "%02x-%02x-%02x-%02x-%02x-%02x",
-							(unsigned char)s->sll_addr[0], (unsigned char)s->sll_addr[1],
-							(unsigned char)s->sll_addr[2], (unsigned char)s->sll_addr[3],
-							(unsigned char)s->sll_addr[4], (unsigned char)s->sll_addr[5]);
+						snprintf(sNewMACAddress, sizeof(sNewMACAddress),
+							 "%02x-%02x-%02x-%02x-%02x-%02x", (unsigned char)s->sll_addr[0],
+							 (unsigned char)s->sll_addr[1], (unsigned char)s->sll_addr[2],
+							 (unsigned char)s->sll_addr[3], (unsigned char)s->sll_addr[4],
+							 (unsigned char)s->sll_addr[5]);
 
 						// On garde la prioritaire
 						// En cas d'egalite, on garde l'adresse qui est la plus grande suivant
@@ -1259,24 +1325,100 @@ static void GetFileFirstLine(const char* sFileName, char* sContent, int nMaxSize
 const char* GetMachineGUID()
 {
 #ifdef __APPLE__
-	const int nLineSize = 120;
-	static char sLine[nLineSize];
+	const int nMaxLineSize = 120;
+	static char sLine[nMaxLineSize];
 	strcpy(sLine, "not yet implemented");
 	return sLine;
 #else  // __APPLE__
-	const int nLineSize = 40;
-	static char sLine[nLineSize];
+	const int nMaxLineSize = 40;
+	static char sLine[nMaxLineSize];
+	int nLineSize;
 
 	// On test successivement 3 fichiers ou devrait se situer le UID
 	// Les fichiers peuvent etre presents et vides
-	GetFileFirstLine("/etc/machine-id", sLine, nLineSize);
+	GetFileFirstLine("/etc/machine-id", sLine, nMaxLineSize);
 	if (strlen(sLine) == 0)
-		GetFileFirstLine("/var/lib/dbus/machine-id", sLine, nLineSize);
+		GetFileFirstLine("/var/lib/dbus/machine-id", sLine, nMaxLineSize);
 	if (strlen(sLine) == 0)
-		GetFileFirstLine("/var/db/dbus/machine-id", sLine, nLineSize);
+		GetFileFirstLine("/var/db/dbus/machine-id", sLine, nMaxLineSize);
 
+	// Remplacement si necessaire du derniere caractere '\n'
+	nLineSize = (int)strlen(sLine);
+	if (nLineSize > 0 and sLine[nLineSize - 1] == '\n')
+		sLine[nLineSize - 1] = '\0';
 	return sLine;
 #endif // __APPLE__
 }
 
-#endif // __UNIX__
+int GetMaxOpenedFileNumber()
+{
+	struct rlimit lim;
+	getrlimit(RLIMIT_NOFILE, &lim);
+	return lim.rlim_cur;
+}
+
+const char* GetSystemInfos()
+{
+	FILE* file = NULL;
+	int i = 0;
+	int nLineCount;
+	char* sInfo = StandardGetBuffer();
+	int nPos;
+	char c;
+	struct utsname buffer;
+	bool bOk;
+
+	sInfo[0] = '\0';
+
+#ifndef __APPLE__
+	// Parcours du fichier os-release
+	file = p_fopen("/etc/os-release", "rb");
+	if (file == NULL)
+		sInfo[0] = '\0';
+	else
+	{
+		// on ne garde que les 3 premieres lignes
+		c = ' ';
+		nLineCount = 0;
+		while (nLineCount < 3 and i < BUFFER_LENGTH)
+		{
+			c = fgetc(file);
+			if (c == EOF)
+				break;
+			if (c == '\n')
+				nLineCount++;
+			sInfo[i] = c;
+			i++;
+		}
+		sInfo[i] = '\0';
+		fclose(file);
+	}
+#endif // __APPLE__
+
+	// Ajout de l'architecture (fonctionne sur Linux et macOS)
+	if (uname(&buffer) >= 0)
+	{
+		bOk = true;
+		nPos = (int)strlen(sInfo);
+		snprintf(&sInfo[nPos], BUFFER_LENGTH - nPos, "system=%s\nrelease=%s\nversion=%s\n", buffer.sysname,
+			 buffer.release, buffer.version);
+	}
+	return sInfo;
+}
+
+#endif // __linux_or_apple__
+
+void TestSystemResource()
+{
+	// Ressources systeme
+	cout << "SYS MAC Address\t" << GetMACAddress() << endl;
+	cout << "SYS machine GUID " << GetMachineGUID() << endl;
+	cout << "SYS RESOURCE\tProcessor number\t" << SystemGetProcessorNumber() << "\n";
+	cout << "SYS RESOURCE\tDisk Free Space on current directory\t"
+	     << LongintToHumanReadableString(DiskGetFreeSpace(".")) << "\n";
+	cout << "SYS RESOURCE\tCurrent timestamp\t" << CurrentTimestamp() << "\n";
+	cout << "SYS RESOURCE\tCurrent precise timestamp\t" << CurrentPreciseTimestamp() << "\n";
+	cout << "Sleep(0.1)\n";
+	SystemSleep(0.1);
+	cout << "SYS RESOURCE\tCurrent precise timestamp\t" << CurrentPreciseTimestamp() << "\n";
+}

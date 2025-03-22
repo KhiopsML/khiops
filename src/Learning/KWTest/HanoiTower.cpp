@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -85,7 +85,7 @@ int HanoiTower::RemoveDisk()
 longint HanoiTower::SolveHanoiProblem(HanoiTower* destinationTower, HanoiTower* intermediateTower,
 				      const ALString& sMoveStepsTraceFileName)
 {
-	longint liStepNumber;
+	longint lStepNumber;
 
 	require(intermediateTower != NULL);
 	require(destinationTower != NULL);
@@ -103,13 +103,13 @@ longint HanoiTower::SolveHanoiProblem(HanoiTower* destinationTower, HanoiTower* 
 		bTrace = FileService::OpenOutputFile(sMoveStepsTraceFileName, fstsMoveStepsTraceFileName);
 
 	// Resolution du probleme
-	liStepNumber = MoveSubTower(GetDiskNumber(), destinationTower, intermediateTower);
+	lStepNumber = MoveSubTower(GetDiskNumber(), destinationTower, intermediateTower);
 
 	// Ouverture si necessaire du fichier de trace
 	if (bTrace)
 		FileService::CloseInputFile(sMoveStepsTraceFileName, fstsMoveStepsTraceFileName);
 	bTrace = false;
-	return liStepNumber;
+	return lStepNumber;
 }
 
 boolean HanoiTower::Check() const
@@ -161,15 +161,15 @@ void HanoiTower::Test()
 	const int nMaxHanoiTowerHeight = 30;
 	const int nMaxHanoiTowerHeightWithTrace = 10;
 	const int nMinIterNumber = 10;
-	const longint liMinTotalStepNumber = 100000000;
+	const longint lMinTotalStepNumber = 100000000;
 	HanoiTower originTower;
 	HanoiTower destinationTower;
 	HanoiTower intermediateTower;
 	ALString sTraceFileName;
 	Timer timer;
 	int nHeight;
-	longint liTotalStepNumber;
-	longint liStepNumber;
+	longint lTotalStepNumber;
+	longint lStepNumber;
 	int nIter;
 	double dPreviousMeanElapedTime;
 	double dMeanElapedTime;
@@ -198,13 +198,13 @@ void HanoiTower::Test()
 	{
 		// Initialisation
 		timer.Reset();
-		liTotalStepNumber = 0;
+		lTotalStepNumber = 0;
 		nIter = 0;
 		dMeanElapedTime = 0;
 
 		// Boucle sur la resolution, en accumulant assez d'etapes pour fiabiliser l'estimation du temps de
 		// calcul
-		while (nIter < nMinIterNumber or liTotalStepNumber < liMinTotalStepNumber)
+		while (nIter < nMinIterNumber or lTotalStepNumber < lMinTotalStepNumber)
 		{
 			// Initialisation du probleme
 			originTower.Initialize(nMaxHanoiTowerHeight, nHeight, "D");
@@ -213,9 +213,9 @@ void HanoiTower::Test()
 
 			// Resolution du probleme
 			timer.Start();
-			liStepNumber = originTower.SolveHanoiProblem(&destinationTower, &intermediateTower, "");
+			lStepNumber = originTower.SolveHanoiProblem(&destinationTower, &intermediateTower, "");
 			timer.Stop();
-			liTotalStepNumber += liStepNumber;
+			lTotalStepNumber += lStepNumber;
 			nIter++;
 		}
 
@@ -227,7 +227,7 @@ void HanoiTower::Test()
 
 			// Affichage
 			cout << nHeight << "\t";
-			cout << liTotalStepNumber / nIter << "\t";
+			cout << lTotalStepNumber / nIter << "\t";
 			if (dPreviousMeanElapedTime > 0)
 				cout << dMeanElapedTime / dPreviousMeanElapedTime;
 			cout << "\t";
@@ -241,7 +241,7 @@ void HanoiTower::Test()
 
 longint HanoiTower::MoveSubTower(int nSubTowerDiskNumber, HanoiTower* destinationTower, HanoiTower* intermediateTower)
 {
-	longint liStepNumber;
+	longint lStepNumber;
 
 	require(nSubTowerDiskNumber <= GetDiskNumber());
 
@@ -260,14 +260,14 @@ longint HanoiTower::MoveSubTower(int nSubTowerDiskNumber, HanoiTower* destinatio
 	else
 	{
 		// On deplace la sous tour composee de tous les disques du dessus sauf 1 vers la pile intermediaire
-		liStepNumber = MoveSubTower(nSubTowerDiskNumber - 1, intermediateTower, destinationTower);
+		lStepNumber = MoveSubTower(nSubTowerDiskNumber - 1, intermediateTower, destinationTower);
 
 		// On deplace le disque restant vers la la pile destination
-		liStepNumber += MoveSubTower(1, destinationTower, intermediateTower);
+		lStepNumber += MoveSubTower(1, destinationTower, intermediateTower);
 
 		// On deplace la sous tour de la pile intermediare vers la pile destination
-		liStepNumber += intermediateTower->MoveSubTower(nSubTowerDiskNumber - 1, destinationTower, this);
-		return liStepNumber;
+		lStepNumber += intermediateTower->MoveSubTower(nSubTowerDiskNumber - 1, destinationTower, this);
+		return lStepNumber;
 	}
 }
 

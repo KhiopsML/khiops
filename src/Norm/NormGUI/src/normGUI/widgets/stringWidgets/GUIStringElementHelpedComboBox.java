@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -27,10 +27,8 @@ import normGUI.engine.GUIUnit;
  * Represente l'element graphique correspondant au style EditableComboBox.
  * Affichage de chaines de caracteres dans une zone de liste editable.
  * Utilisation d'une JComboBox.
- *
- * @author Marc Boulle
  */
-public class GUIStringElementHelpedComboBox extends GUIStringElement
+@SuppressWarnings("unchecked") public class GUIStringElementHelpedComboBox extends GUIStringElement
 {
 
         /**
@@ -75,16 +73,18 @@ public class GUIStringElementHelpedComboBox extends GUIStringElement
                                 GUIUnit guiUnit = getParentUnit();
                                 GUIList guiListRef = new GUIList();
 
-                                // On previent la liste qu'un changement a ete effectue, dans le cas
-                                // d'une liste, pour memoriser l'index courant
+                                // On previent la liste qu'un changement a ete effectue, dans le cas d'une
+                                // liste,
+                                // pour memoriser l'index courant
                                 if (guiUnit.getClass() == guiListRef.getClass()) {
                                         GUIList guiList = (GUIList)guiUnit;
                                         int row = guiList.getGUITable().getSelectedRow();
                                         guiList.getGUITable().updateIndex(row);
                                 }
 
-                                // On simule le focus sur la ComboBox pour forcer la mise a jour des
-                                // donnees logiques, permettant le recalcul correct des listes d'aide
+                                // On simule le focus sur la ComboBox pour forcer la mise a jour des donnees
+                                // logiques,
+                                // permettant le recalcul correct des listes d'aide
                                 KeyboardFocusManager focusManager =
                                   KeyboardFocusManager.getCurrentKeyboardFocusManager();
                                 Component focusOwner = focusManager.getFocusOwner();
@@ -96,8 +96,7 @@ public class GUIStringElementHelpedComboBox extends GUIStringElement
                                 // Recalcul des valeurs
                                 refreshComboBox(ejcb);
 
-                                // On previent la liste qu'un changement a ete effectue, dans le cas
-                                // d'une liste
+                                // On previent la liste qu'un changement a ete effectue, dans le cas d'une liste
                                 if (guiUnit.getClass() == guiListRef.getClass()) {
                                         guiUnit.graphicFireDataChange();
                                 }
@@ -107,8 +106,8 @@ public class GUIStringElementHelpedComboBox extends GUIStringElement
         }
 
         /**
-         * Recherche la liste et la colonne source pour la construction de la comboBox
-         * a partir des parametres
+         * Recherche la liste et la colonne source pour la construction de la comboBox a
+         * partir des parametres
          */
         private void findSource()
         {
@@ -189,8 +188,7 @@ public class GUIStringElementHelpedComboBox extends GUIStringElement
         }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage
@@ -243,23 +241,23 @@ public class GUIStringElementHelpedComboBox extends GUIStringElement
                 if (sourceList == null || sourceElement == null || !(sourceElement instanceof GUIStringElement))
                         return;
 
-                // On execute l'action refresh pour synchroniser les tiers logiques et
-                // metiers de maniere a recuperer des donnees coherentes On reste dans le
-                // meme thread pour empecher toute autre action utilisateur Il faut que
-                // l'implmentation cote C++ soit rapide pour ne pas bloquer l'interface
+                // On execute l'action refresh pour synchroniser les tiers logiques et metiers
+                // de maniere a recuperer des donnees coherentes
+                // On reste dans le meme thread pour empecher toute autre action utilisateur
+                // Il faut que l'implmentation cote C++ soit rapide pour ne pas bloquer
+                // l'interface
                 try {
                         getParentUnit().executeUserActionAt(GUIUnit.Refresh);
                 } catch (Exception ex) {
                 }
 
-                // On remplit un tableau avec les items sans doublons
+                // On remplit un tableau avec les items
                 Vector<String> items = new Vector<String>();
                 String s;
                 for (int i = 0; i < sourceList.getItemNumber(); i++) {
                         sourceList.setCurrentItemIndex(i);
                         s = sourceElement.getValueIn(sourceList).toString();
-                        if (!items.contains(s))
-                                items.add(s);
+                        items.add(s);
                 }
 
                 // On memorise le contenu de l'editeur avant de supprimer les items

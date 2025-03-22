@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -19,8 +19,6 @@ import normGUI.engine.GUIBooleanElement;
  * de booleens dans des boutons radio. Un seul choix est possible. Les
  * differents boutons sont deduits a partir de l'attribut parameters, chaque
  * libelle de bouton etant separe par un ; Utilisation de JPanel, JRadioButton.
- *
- * @author Marc Boulle
  */
 public class GUIBooleanElementRadioButton extends GUIBooleanElement
 {
@@ -67,8 +65,7 @@ public class GUIBooleanElementRadioButton extends GUIBooleanElement
         }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage
@@ -81,8 +78,8 @@ public class GUIBooleanElementRadioButton extends GUIBooleanElement
                 JLabel label = new JLabel(getLabel());
                 setComponentHelpText(label);
 
-                // On met le label a la premiere ligne d'un panel a 2 lignes pour l'aligner
-                // avec le true
+                // On met le label a la premiere ligne d'un panel a 2 lignes pour l'aligner avec
+                // le true
                 JPanel labelPanel = new JPanel(new GridLayout(2, 1));
                 labelPanel.add(label);
 

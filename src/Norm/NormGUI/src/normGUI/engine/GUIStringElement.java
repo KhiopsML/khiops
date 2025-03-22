@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -15,8 +15,6 @@ import javax.swing.text.PlainDocument;
 
 /**
  * Definit un element de type chaine de caracteres
- *
- * @author Marc Boulle
  */
 public abstract class GUIStringElement extends GUIElement
 {
@@ -149,8 +147,6 @@ public abstract class GUIStringElement extends GUIElement
 /**
  * Definit l'element graphique par defaut permettant l'affichage de chaines de
  * caracteres. Cette classe utilise un JTextField.
- *
- * @author Marc Boulle
  */
 class GUIStringElementTextField extends GUIStringElement
 {
@@ -164,8 +160,7 @@ class GUIStringElementTextField extends GUIStringElement
         public JComponent buildComponent() { return getDefaultComponent(); }
 
         /**
-         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite
-         * mere
+         * Ajoute le composant d'affichage et son libelle dans le panel de l'unite mere
          *
          * @param panel       Panneau de l'unite mere dans lequel sera ajoute le
          *                    composant d'affichage

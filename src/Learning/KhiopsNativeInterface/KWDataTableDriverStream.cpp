@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -114,9 +114,11 @@ longint KWDataTableDriverStream::ComputeNecessaryMemoryForFullExternalRead(const
 	return 0;
 }
 
-longint KWDataTableDriverStream::ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass)
+longint KWDataTableDriverStream::ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass,
+								       longint lInputFileSize)
 {
 	require(kwcLogicalClass != NULL);
+	require(lInputFileSize >= 0);
 	return 0;
 }
 
@@ -140,8 +142,10 @@ boolean KWDataTableDriverStream::UpdateInputBuffer()
 	return true;
 }
 
-boolean KWDataTableDriverStream::FillInputBufferWithFullLines()
+boolean KWDataTableDriverStream::FillInputBufferWithFullLines(longint lBeginPos, longint lMaxEndPos)
 {
+	require(0 <= lBeginPos);
+	require(lBeginPos <= lMaxEndPos);
 	return true;
 }
 
@@ -165,7 +169,7 @@ boolean KWDataTableDriverStream::OpenInputDatabaseFile()
 	inputBuffer->SetFieldSeparator(cFieldSeparator);
 	inputBuffer->SetHeaderLineUsed(bHeaderLineUsed);
 	inputBuffer->SetFileName(GetDataTableName());
-	inputBuffer->SetBufferSize(nBufferedFileSize);
+	inputBuffer->SetBufferSize(nBufferSize);
 
 	// Ouverture du fichier
 	bOk = inputBuffer->Open();
@@ -202,7 +206,7 @@ boolean KWDataTableDriverStream::OpenOutputDatabaseFile()
 	outputBuffer->SetFieldSeparator(cFieldSeparator);
 	outputBuffer->SetHeaderLineUsed(bHeaderLineUsed);
 	outputBuffer->SetFileName(GetDataTableName());
-	outputBuffer->SetBufferSize(nBufferedFileSize);
+	outputBuffer->SetBufferSize(nBufferSize);
 
 	// Ouverture du fichier
 	bOk = outputBuffer->Open();
@@ -222,7 +226,9 @@ boolean KWDataTableDriverStream::ReadHeaderLineFields(StringVector* svFirstLineF
 {
 	boolean bOk;
 	boolean bEndOfLine;
+	boolean bLineTooLong;
 	int nField;
+	int nFieldLength;
 	int nFieldError;
 	char* sField;
 	ALString sTmp;
@@ -241,8 +247,11 @@ boolean KWDataTableDriverStream::ReadHeaderLineFields(StringVector* svFirstLineF
 		nField = 0;
 		while (not bEndOfLine)
 		{
-			bEndOfLine = inputBuffer->GetNextField(sField, nFieldError);
+			bEndOfLine = inputBuffer->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 			nField++;
+
+			// Il ne doit pas y avoir de probleme de ligne trop longue dans KNI
+			assert(not bLineTooLong);
 
 			// Erreur sur le nom du champ
 			if (nFieldError != inputBuffer->FieldNoError)
@@ -274,10 +283,12 @@ StreamInputBufferedFile::~StreamInputBufferedFile() {}
 void StreamInputBufferedFile::ResetBuffer()
 {
 	// Initialisations
-	nPositionInBuffer = 0;
+	nPositionInCache = 0;
 	nCurrentBufferSize = 0;
-	nReadLineNumber = 0;
+	nCacheSize = 0;
+	nCurrentLineIndex = 1;
 	bLastFieldReachEol = false;
+	nLastBolPositionInCache = 0;
 	nBufferLineNumber = 0;
 }
 
@@ -312,7 +323,7 @@ boolean StreamInputBufferedFile::FillBufferWithRecord(const char* sInputRecord)
 				// Ajout si necessaire d'un fin de ligne pour marquer la fin de l'enregistrement
 				if (i == 0 or sInputRecord[i - 1] != '\n')
 				{
-					fbBuffer.SetAt(nCurrentBufferSize, '\n');
+					fcCache.SetAt(nCurrentBufferSize, '\n');
 					nCurrentBufferSize++;
 					nBufferLineNumber++;
 				}
@@ -322,13 +333,17 @@ boolean StreamInputBufferedFile::FillBufferWithRecord(const char* sInputRecord)
 			// Memorisation du caractere sinon
 			else
 			{
-				fbBuffer.SetAt(nCurrentBufferSize, c);
+				fcCache.SetAt(nCurrentBufferSize, c);
 				nCurrentBufferSize++;
 				if (c == '\n')
 					nBufferLineNumber++;
 				i++;
 			}
 		}
+
+		// Memorisation de la taille du cache a la taille du buffer courant
+		if (bOk)
+			nCacheSize = nCurrentBufferSize;
 
 		// On annule la recopie du record en cas d'espace insuffisant
 		if (not bOk)
@@ -338,7 +353,7 @@ boolean StreamInputBufferedFile::FillBufferWithRecord(const char* sInputRecord)
 		}
 
 		// Protection de la fin du buffer
-		fbBuffer.SetAt(nBufferSize - 1, '\0');
+		fcCache.SetAt(nBufferSize - 1, '\0');
 	}
 	ensure(nCurrentBufferSize >= nInitialCurrentBufferSize);
 	ensure(not bOk or nCurrentBufferSize >= nInitialCurrentBufferSize + (int)strlen(sInputRecord));
@@ -358,7 +373,7 @@ boolean StreamInputBufferedFile::Open()
 
 	bIsOpened = AllocateBuffer();
 	if (bIsOpened)
-		lBufferBeginPos = 0;
+		nPositionInCache = 0;
 	return bIsOpened;
 }
 
@@ -407,7 +422,7 @@ boolean StreamOutputBufferedFile::FillRecordWithBuffer(char* sOutputRecord, int 
 		}
 
 		// Memorisation du caractere courant
-		c = fbBuffer.GetAt(i);
+		c = fcCache.GetAt(i);
 		sOutputRecord[i] = c;
 
 		// Ok si fin de chaine

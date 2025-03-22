@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -58,3 +58,13 @@ const char* GetLocalHostName();
 
 // Identifiant unique de la machine
 const char* GetMachineGUID();
+
+// Nombre maximum de fichier ouverts en meme temps par un processus
+int GetMaxOpenedFileNumber();
+
+// Informations systeme (os version, nom etc...)
+// la chaine retournee depend de l'OS, il y a plusieurs lignes (clef/valeur)
+const char* GetSystemInfos();
+
+// Affichage des ressources systeme dans la console
+void TestSystemResource();

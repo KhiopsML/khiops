@@ -1,33 +1,56 @@
-ClassManagement.OpenFile
-ClassFileName Stulong.kdic
-OK
-ClassManagement.ClassName Entry
+// Thu Jun 12 13:31:06 2008
+// modl
+// Output command file
+//
+//This file contains recorded commands, that can be replayed.
+//Commands are based on user interactions:
+//	field update
+//	list index selection
+//	menu action
+//Every command can be commented, using //.
+//For example, commenting the last Exit command will allow other
+//user interactions, after the commands have been replayed.
+//
+//
 
-TrainDatabase.DatabaseFiles.List.Key Entry
-TrainDatabase.DatabaseFiles.DataTableName Entry.txt
-TrainDatabase.DatabaseFiles.List.Key Entry`ListContr
-TrainDatabase.DatabaseFiles.DataTableName Contr.txt
-TrainDatabase.DatabaseFiles.List.Key Entry`Letter
-TrainDatabase.DatabaseFiles.DataTableName Letter.txt
-TrainDatabase.DatabaseFiles.List.Key Entry`Death
-TrainDatabase.DatabaseFiles.DataTableName Death.txt
-TrainDatabase.SampleNumberPercentage 70
-TrainDatabase.FillTestDatabaseSettings
+// -> Data preparation and scoring
+ClassManagement.OpenFile       // Open...
 
-AnalysisSpec.TargetAttributeName CHOLRISK
-AnalysisSpec.ModelingSpec.NaiveBayesPredictor true
-AnalysisSpec.ModelingSpec.SelectiveNaiveBayesPredictor true
-AnalysisSpec.ModelingSpec.BaselinePredictor true
-AnalysisSpec.ModelingSpec.UnivariatePredictorNumber 1
+// -> Open
+ClassFileName Stulong.kdic        // Dictionary file
+OK                             // Open
+// <- Open
 
-AnalysisResults.ResultFilesDirectory ./results
-AnalysisResults.ResultFilesPrefix Std_
-AnalysisResults.ComputeBasicSecondaryStats false
-ComputeStats
+ClassManagement.ClassName Entry          // Dictionary
+TrainDatabase.DatabaseFiles.List.Key Entry         // List item selection
+TrainDatabase.DatabaseFiles.DataTableName Entry.txt   // Data table file
+TrainDatabase.DatabaseFiles.List.Key Entry`ListContr         // List item selection
+TrainDatabase.DatabaseFiles.DataTableName Contr.txt   // Data table file
+TrainDatabase.DatabaseFiles.List.Key Entry`Letter  // List item selection
+TrainDatabase.DatabaseFiles.DataTableName Letter.txt  // Data table file
+TrainDatabase.DatabaseFiles.List.Key Entry`Death   // List item selection
+TrainDatabase.DatabaseFiles.DataTableName Death.txt   // Data table file
 
-AnalysisResults.ResultFilesPrefix MT_
-AnalysisResults.ComputeBasicSecondaryStats true
-ComputeStats
+AnalysisSpec.TargetAttributeName CHOLRISK   // Target variable
 
-// Exit
-// OK
+AnalysisSpec.PredictorsSpec.NaiveBayesPredictor true         // Predicteur Bayesien Naif
+AnalysisSpec.PredictorsSpec.SelectiveNaiveBayesPredictor true // Predicteur Bayesien Naif Selectif
+
+AnalysisResults.ResultFilesDirectory ./results   // Result files directory
+
+AnalysisResults.ResultFilesPrefix Std_   // Result files prefix
+AnalysisResults.ComputeBasicSecondaryStats false     // Compute basic secondary stats
+ComputeStats                   // Analyse database
+
+AnalysisResults.ResultFilesPrefix MT_   // Result files prefix
+AnalysisResults.ComputeBasicSecondaryStats true     // Compute basic secondary stats
+ComputeStats                   // Analyse database
+
+//Exit                           // Close
+// <- Data preparation and scoring
+
+
+// -> Data preparation and scoring
+//OK                             // Close
+// <- Data preparation and scoring
+

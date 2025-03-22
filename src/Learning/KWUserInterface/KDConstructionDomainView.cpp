@@ -1,10 +1,9 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 ////////////////////////////////////////////////////////////
-// 2021-04-25 11:10:58
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "KDConstructionDomainView.h"
@@ -13,16 +12,13 @@ KDConstructionDomainView::KDConstructionDomainView()
 {
 	SetIdentifier("KDConstructionDomain");
 	SetLabel("Variable construction parameters");
-	AddBooleanField("InterpretableNames", "Build interpretable names", false);
 	AddBooleanField("RuleOptimization", "Optimize constructed rules", false);
 	AddBooleanField("SparseOptimization", "Build sparse rules", false);
 	AddIntField("SparseBlockMinSize", "Sparse blokc min size", 0);
-	AddBooleanField("ImportAttributeConstructionCosts",
-			"Import variable construction costs from dictionary (expert)", false);
+	AddBooleanField("ImportAttributeConstructionCosts", "Import variable construction costs (expert)", false);
 	AddBooleanField("ConstructionRegularization", "Construction regularization (expert)", false);
 
 	// Parametrage des styles;
-	GetFieldAt("InterpretableNames")->SetStyle("CheckBox");
 	GetFieldAt("RuleOptimization")->SetStyle("CheckBox");
 	GetFieldAt("SparseOptimization")->SetStyle("CheckBox");
 	GetFieldAt("SparseBlockMinSize")->SetStyle("Spinner");
@@ -53,7 +49,6 @@ KDConstructionDomainView::KDConstructionDomainView()
 
 	// Le parametrage expert n'est visible qu'en mode expert
 	boolean bConstructionExpertMode = false;
-	GetFieldAt("InterpretableNames")->SetVisible(bConstructionExpertMode and GetLearningExpertMode());
 	GetFieldAt("RuleOptimization")->SetVisible(bConstructionExpertMode and GetLearningExpertMode());
 	GetFieldAt("SparseOptimization")->SetVisible(bConstructionExpertMode and GetLearningExpertMode());
 	GetFieldAt("SparseBlockMinSize")->SetVisible(bConstructionExpertMode and GetLearningExpertMode());
@@ -69,8 +64,6 @@ KDConstructionDomainView::KDConstructionDomainView()
 	GetActionAt("UnselectAll")->SetStyle("Button");
 
 	// Info-bulles
-	GetFieldAt("InterpretableNames")
-	    ->SetHelpText("Build interpretable name for the automatically constructed variables.");
 	GetFieldAt("RuleOptimization")
 	    ->SetHelpText("Optimize the overall computation of all the constructed variables.");
 	GetFieldAt("SparseOptimization")
@@ -113,7 +106,6 @@ void KDConstructionDomainView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KDConstructionDomain*, object);
-	editedObject->SetInterpretableNames(GetBooleanValueAt("InterpretableNames"));
 	editedObject->SetRuleOptimization(GetBooleanValueAt("RuleOptimization"));
 	editedObject->SetSparseOptimization(GetBooleanValueAt("SparseOptimization"));
 	editedObject->SetSparseBlockMinSize(GetIntValueAt("SparseBlockMinSize"));
@@ -132,7 +124,6 @@ void KDConstructionDomainView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KDConstructionDomain*, object);
-	SetBooleanValueAt("InterpretableNames", editedObject->GetInterpretableNames());
 	SetBooleanValueAt("RuleOptimization", editedObject->GetRuleOptimization());
 	SetBooleanValueAt("SparseOptimization", editedObject->GetSparseOptimization());
 	SetIntValueAt("SparseBlockMinSize", editedObject->GetSparseBlockMinSize());

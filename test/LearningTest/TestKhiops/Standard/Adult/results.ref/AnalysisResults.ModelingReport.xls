@@ -1,0 +1,43 @@
+#Khiops 10.5.2-b.0
+Modeling report
+
+Dictionary	Adult
+Target variable	class
+Database	../../../datasets/Adult/Adult.txt
+Sample percentage	70
+Sampling mode	Include sample
+Selection variable	
+Selection value	
+
+
+Trained predictors
+
+Predictor	Variables
+Selective Naive Bayes	12
+Univariate relationship	1
+
+
+--------------------------------------------------------------------------------
+
+Trained predictors details
+
+
+Predictor	Selective Naive Bayes
+
+Selected variables
+Prepared name	Name	Level	Weight	Importance
+Pcapital_gain	capital_gain	0.139679	0.999542	0.373651
+Prelationship	relationship	0.208145	0.547394	0.337546
+Peducation_num	education_num	0.112569	0.726105	0.285897
+Page	age	0.117931	0.581573	0.261888
+Pmarital_status	marital_status	0.197864	0.343048	0.260532
+Pcapital_loss	capital_loss	0.0536587	0.8638	0.215291
+Poccupation	occupation	0.090111	0.505402	0.213406
+Phours_per_week	hours_per_week	0.0717333	0.466339	0.182899
+Pworkclass	workclass	0.0224888	0.135284	0.0551578
+Pnative_country	native_country	0.00652175	0.422394	0.0524857
+Prace	race	0.0102259	0.242706	0.0498187
+Psex	sex	0.0466409	0.0278625	0.0360491
+
+----------------------------------------------
+Predictor	Univariate relationship

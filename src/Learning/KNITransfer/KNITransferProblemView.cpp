@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -7,7 +7,6 @@
 KNITransferProblemView::KNITransferProblemView()
 {
 	const ALString sTrainDatabaseIdentifier = "TrainDatabase";
-	const ALString sTestDatabaseIdentifier = "TestDatabase";
 	const ALString sAnalysisSpecIdentifier = "AnalysisSpec";
 	const ALString sAnalysisResultsIdentifier = "AnalysisResults";
 	const ALString sLearningToolsIdentifier = "LearningTools";
@@ -15,9 +14,8 @@ KNITransferProblemView::KNITransferProblemView()
 	const ALString sTransferDatabaseIdentifier = "TransferDatabase";
 	UIAction* action;
 
-	// On inhibe toules onglets inutiles pour le transfer
+	// On inhibe tous les onglets inutiles pour le transfer
 	GetFieldAt(sTrainDatabaseIdentifier)->SetVisible(false);
-	GetFieldAt(sTestDatabaseIdentifier)->SetVisible(false);
 	GetFieldAt(sAnalysisSpecIdentifier)->SetVisible(false);
 	GetFieldAt(sAnalysisResultsIdentifier)->SetVisible(false);
 	GetFieldAt(sLearningToolsIdentifier)->SetVisible(false);
@@ -38,7 +36,8 @@ void KNITransferProblemView::KNITransferDatabase()
 	databaseTransferView.SetClassFileName(GetLearningProblem()->GetClassFileName());
 
 	// Initialisation a partir de la base d'apprentissage (pour recuperer le nom du dictionnaire par defaut)
-	databaseTransferView.InitializeSourceDatabase(GetLearningProblem()->GetTrainDatabase());
+	databaseTransferView.InitializeSourceDatabase(GetLearningProblem()->GetTrainDatabase(),
+						      GetLearningProblem()->GetClassFileName());
 
 	// Ouverture
 	databaseTransferView.Open();

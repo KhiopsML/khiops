@@ -1,10 +1,9 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 package normGUI.extensions;
 
-import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -27,8 +26,6 @@ import normGUI.engine.GUIUnit;
 
 /**
  * Cette classe represente une unite d'interface de type fiche
- *
- * @author Marc Boulle
  */
 public class GUICardTabbedPanes extends GUICard implements ChangeListener, FocusListener
 {
@@ -179,21 +176,14 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                                 refreshMenus();
                                 tabbedPanes.addChangeListener(this);
                                 tabbedPanes.addFocusListener(this);
-
-                                // On agrandit un peut la largeur preferee, trop juste avec la methode
-                                // par defaut
-                                Dimension preferredDimension = tabbedPanes.getPreferredSize();
-                                preferredDimension.setSize(preferredDimension.getWidth() + 25,
-                                                           preferredDimension.getHeight());
-                                tabbedPanes.setPreferredSize(preferredDimension);
                         }
                 }
 
                 if (hasActionButton()) {
 
-                        // S'il n'y a aucune action ou bien s'il ne s'agit pas d'une fenetre (dans
-                        // ce cas les boutons apparaissent deja dans le panel sud grace a
-                        // addToolBar() de GUIUnit)
+                        // S'il n'y a aucune action ou bien s'il ne s'agit pas d'une fenetre (dans ce
+                        // cas les
+                        // boutons apparaissent deja dans le panel sud grace a addToolBar() de GUIUnit)
                         if (getActionCount() == 0 || frame != null)
                                 return;
 

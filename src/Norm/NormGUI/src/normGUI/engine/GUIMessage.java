@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -10,7 +10,6 @@ import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.Insets;
 import java.awt.Rectangle;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.JButton;
@@ -27,8 +26,6 @@ import javax.swing.text.StyledDocument;
 
 /**
  * Definit une fenetre d'avertissement
- *
- * @author Marc Boulle
  */
 public class GUIMessage extends JFrame
 {
@@ -53,8 +50,7 @@ public class GUIMessage extends JFrame
                 currentTextLength = 0;
 
                 // On recupere les dimensions de l'ecran
-                int screenWidth = Toolkit.getDefaultToolkit().getScreenSize().width;
-                int screenHeight = Toolkit.getDefaultToolkit().getScreenSize().height;
+                Rectangle screenBounds = GUIObject.getCurrentScreenBounds();
 
                 // Creation de la zone de texte
                 pane = new NonWrappingTextPane();
@@ -65,7 +61,7 @@ public class GUIMessage extends JFrame
 
                 // Creation et ajout des composants au panel
                 JScrollPane scrollPane = new JScrollPane(pane);
-                scrollPane.setPreferredSize(new Dimension(screenWidth / 3, screenHeight / 3));
+                scrollPane.setPreferredSize(new Dimension(screenBounds.width / 3, screenBounds.height / 3));
                 getContentPane().add(scrollPane, BorderLayout.CENTER);
                 JPanel panelButton = new JPanel();
                 JButton buttonClear = new JButton("Clear");
@@ -139,8 +135,8 @@ public class GUIMessage extends JFrame
         {
                 try {
                         // On passe un Runnable pour se securiser vis a vis des thread
-                        // Sinon, la modification du Caret en fin de methode genere des
-                        // exceptions. cf.
+                        // Sinon, la modification du Caret en fin de methode genere des exceptions.
+                        // cf.
                         // http://forums.codeguru.com/showthread.php?503858-RESOLVED-JTextArea-Null-Pointer-Exception-on-append
                         javax.swing.SwingUtilities.invokeLater(new Runnable() {
                                 public void run()
@@ -174,18 +170,20 @@ public class GUIMessage extends JFrame
                 // Affichage du message
                 try {
                         // On passe un Runnable pour se securiser vis a vis des thread
-                        // Sinon, la modification du Caret en fin de methode genere des
-                        // exceptions. cf.
+                        // Sinon, la modification du Caret en fin de methode genere des exceptions.
+                        // cf.
                         // http://forums.codeguru.com/showthread.php?503858-RESOLVED-JTextArea-Null-Pointer-Exception-on-append
 
-                        // Une fois sur 200, on attend la fin du thread pour nettoyer les
-                        // ressources de Java potentiellement fortement sollicitee en cas d'envoi
-                        // massif de messages On utilise egalement le invokeAndWait, plus sur,
-                        // pour les faibles nombre de messages en esperant resoudre les (rare)
-                        // "plantages" sous Linux pour les executions tres courtes
+                        // Une fois sur 200, on attend la fin du thread pour nettoyer les ressources de
+                        // Java
+                        // potentiellement fortement sollicitee en cas d'envoi massif de messages
+                        // On utilise egalement le invokeAndWait, plus sur, pour les faibles nombre de
+                        // messages
+                        // en esperant resoudre les (rare) "plantages" sous Linux pour les executions
+                        // tres courtes
                         //
-                        // Attention: on ne peut utiliser le invokeAndWait quand on est sur le
-                        // thread principal de Swing (EventDispatchThread)
+                        // Attention: on ne peut utiliser le invokeAndWait quand on est sur le thread
+                        // principal de Swing (EventDispatchThread)
                         if (!SwingUtilities.isEventDispatchThread() &&
                             (messageNumber < 100 || messageNumber % 200 == 0)) {
                                 javax.swing.SwingUtilities.invokeAndWait(new Runnable() {
@@ -195,8 +193,7 @@ public class GUIMessage extends JFrame
                                         }
                                 });
                         }
-                        // Le reste du temps, on fait une invocation differee, beaucoup plus
-                        // rapide
+                        // Le reste du temps, on fait une invocation differee, beaucoup plus rapide
                         else {
                                 javax.swing.SwingUtilities.invokeLater(new Runnable() {
                                         public void run()
@@ -228,7 +225,6 @@ public class GUIMessage extends JFrame
                                 if (currentTextLength + message.length() > maxTextLength) {
                                         String currentText = pane.getText();
                                         int startIndex;
-                                        int nextIndex;
                                         int removedLength;
                                         int removedLines;
 
@@ -245,8 +241,7 @@ public class GUIMessage extends JFrame
                                         if (removedLength == 0)
                                                 removedLength = currentTextLength / 2;
 
-                                        // On supprime le debut dans le panneau, qui memorise les styles
-                                        // utilises
+                                        // On supprime le debut dans le panneau, qui memorise les styles utilises
                                         if (removedLength > 0) {
                                                 try {
                                                         // Correction "heuristique" sur le nombre de caracteres a
@@ -293,8 +288,8 @@ public class GUIMessage extends JFrame
                                 } catch (BadLocationException e) {
                                 }
 
-                                // On met le caret en fin, seulement si c'est le dernier message restant
-                                // a afficher
+                                // On met le caret en fin, seulement si c'est le dernier message restant a
+                                // afficher
                                 if (messageNumber == displayedMessageNumber) {
                                         try {
                                                 pane.setCaretPosition(doc.getLength());
@@ -312,8 +307,8 @@ public class GUIMessage extends JFrame
                                 // Si necessaire, on repasse la fenetre au premier plan
                                 // Inactivee car trop penible lors de batch qui font reapparaitre la
                                 // fenetre sans arret
-                                // Reactivee carvraiment necessaire en mode interface, quand on ne sait
-                                // plus ou est la fenetre de log
+                                // Reactivee carvraiment necessaire en mode interface, quand on ne sait plus
+                                // ou est la fenetre de log
                                 boolean toFrontActivated = true;
                                 if (toFront && toFrontActivated) {
                                         int currentFrameState = getExtendedState();
@@ -334,10 +329,9 @@ public class GUIMessage extends JFrame
         {
                 public boolean getScrollableTracksViewportWidth()
                 {
-                        // On retourne false pour avoir une barre de scroll horizontale sans
-                        // wrapping On retourne true pour avoir wrapping sans barre de scroll
-                        // horizontale On prend ce dernier choix, qui a l'usage s'avere le plus
-                        // pertinent
+                        // On retourne false pour avoir une barre de scroll horizontale sans wrapping
+                        // On retourne true pour avoir wrapping sans barre de scroll horizontale
+                        // On prend ce dernier choix, qui a l'usage s'avere le plus pertinent
                         return true;
                 }
 

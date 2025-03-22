@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -14,10 +14,13 @@ KWTypeAutomaticRecognition::KWTypeAutomaticRecognition()
 {
 	nValueNumber = 0;
 	nMissingValueNumber = 0;
+	nValue0Number = 0;
+	nValue1Number = 0;
 	nMaxValueLength = 0;
-	cMinFirstChar = '\0';
 	nMatchingTypeNumber = 1;
+	cMinFirstChar = '\0';
 	bMatchingContinuous = false;
+	bMatchingText = false;
 	bIsFinalized = false;
 
 	// Creation si necessaire des formats de references
@@ -46,10 +49,13 @@ void KWTypeAutomaticRecognition::Initialize()
 	// Reinitialisation
 	nValueNumber = 0;
 	nMissingValueNumber = 0;
+	nValue0Number = 0;
+	nValue1Number = 0;
 	nMaxValueLength = 0;
-	cMinFirstChar = '\0';
 	nMatchingTypeNumber = 1;
+	cMinFirstChar = '\0';
 	bMatchingContinuous = false;
+	bMatchingText = false;
 	bIsFinalized = false;
 	oaMatchingDateFormats.SetSize(0);
 	oaMatchingTimeFormats.SetSize(0);
@@ -77,6 +83,15 @@ void KWTypeAutomaticRecognition::AddStringValue(const char* const sValue)
 	// Analyse si valeur non vide
 	else
 	{
+		// Comptage des valeurs 0 et 1
+		if (sValue[1] == '\0')
+		{
+			if (sValue[0] == '0')
+				nValue0Number++;
+			else if (sValue[0] == '1')
+				nValue1Number++;
+		}
+
 		// Traitement de la longueur de la chaine
 		nValueLength = (int)strlen(sValue);
 		if (nValueLength > nMaxValueLength)
@@ -101,6 +116,7 @@ void KWTypeAutomaticRecognition::AddFirstStringValue(const char* const sValue, i
 	const KWDateFormat* dateFormat;
 	const KWTimeFormat* timeFormat;
 	const KWTimestampFormat* timestampFormat;
+	const KWTimestampTZFormat* timestampTZFormat;
 	char sRecodedValue[nMaxContinuousFieldSize + 1];
 	int nRecodedValueLength;
 	int i;
@@ -109,9 +125,12 @@ void KWTypeAutomaticRecognition::AddFirstStringValue(const char* const sValue, i
 	Date dtDate;
 	Time tmTime;
 	Timestamp tsTimestamp;
+	TimestampTZ tstzTimestamp;
 	int nDecimalPointOffset;
 	int nSignificantLength;
 	int nMaxAnalysisLength;
+	char cLastChar;
+	int nTimeZoneOffset;
 
 	require(not bIsFinalized);
 	require(sValue != NULL);
@@ -135,7 +154,7 @@ void KWTypeAutomaticRecognition::AddFirstStringValue(const char* const sValue, i
 	// Cela permet de simplifier l'ecriture des tests
 	else
 	{
-		strcpy(sRecodedValue, "Z");
+		strcpy(sRecodedValue, "X");
 		nRecodedValueLength = 1;
 	}
 
@@ -149,61 +168,72 @@ void KWTypeAutomaticRecognition::AddFirstStringValue(const char* const sValue, i
 		}
 	}
 	// Sinon, tous les types sont eventuellement possibles, si le dernier caractere est numerique ou '.'
+	// ou meme 'Z' pour les timestamps avec time zone
 	else
 	{
-		// On continue si le dernier caractere est numerique ou '.'
-		if (isdigit(sValue[nValueLength - 1]) or sValue[nValueLength - 1] == '.' or
+		// On continue si le dernier caractere est numerique ou '.' ou 'Z'
+		cLastChar = sValue[nValueLength - 1];
+		if (isdigit(cLastChar) or cLastChar == '.' or cLastChar == 'Z' or
 		    sRecodedValue[nRecodedValueLength - 1] == '.')
 		{
-			// Ajout eventuel du type Continuous
-			if (KWContinuous::IsStringContinuous(sValue) or KWContinuous::IsStringContinuous(sRecodedValue))
+			// Si le dernier caractere n'est pas 'Z', on ne peut avoir que le type timestamp
+			if (cLastChar != 'Z')
 			{
-				nMatchingTypeNumber++;
-				bMatchingContinuous = true;
-			}
-
-			// Test si Date
-			if (nValueLength >= allReferenceFormats->GetDateMinCharNumber() and
-			    nValueLength <= allReferenceFormats->GetDateMaxCharNumber())
-			{
-				// Test sur les separateurs
-				cDateSeparator = '\0';
-				for (i = nValueLength - 3; i >= 2; i--)
+				// Ajout eventuel du type Continuous
+				if (KWContinuous::IsStringContinuous(sValue) or
+				    KWContinuous::IsStringContinuous(sRecodedValue))
 				{
-					if (not isdigit(sValue[i]))
-					{
-						cDateSeparator = sValue[i];
-						break;
-					}
+					nMatchingTypeNumber++;
+					bMatchingContinuous = true;
 				}
 
-				// On continue si le separateur est compatible
-				if (cDateSeparator == '\0' or allReferenceFormats->IsDateSeparator(cDateSeparator))
+				// Test si Date
+				if (nValueLength >= allReferenceFormats->GetDateMinCharNumber() and
+				    nValueLength <= allReferenceFormats->GetDateMaxCharNumber())
 				{
-					// On passe en revue les formats Date
-					for (i = 0; i < allReferenceFormats->GetAvailableDateFormatNumber(); i++)
+					// Test sur les separateurs
+					cDateSeparator = '\0';
+					for (i = nValueLength - 3; i >= 2; i--)
 					{
-						dateFormat = allReferenceFormats->GetAvailableDateFormatAt(i);
-
-						// On memorise le format de date s'il est compatible
-						if (cDateSeparator == dateFormat->GetSeparatorChar())
+						if (not isdigit(sValue[i]))
 						{
-							dtDate = dateFormat->StringToDate(sValue);
-							if (dtDate.Check())
-								oaMatchingDateFormats.Add(cast(Object*, dateFormat));
+							cDateSeparator = sValue[i];
+							break;
 						}
 					}
 
-					// Ajout eventuel du format Date
-					if (oaMatchingDateFormats.GetSize() > 0)
-						nMatchingTypeNumber++;
+					// On continue si le separateur est compatible
+					if (cDateSeparator == '\0' or
+					    allReferenceFormats->IsDateSeparator(cDateSeparator))
+					{
+						// On passe en revue les formats Date
+						for (i = 0; i < allReferenceFormats->GetAvailableDateFormatNumber();
+						     i++)
+						{
+							dateFormat = allReferenceFormats->GetAvailableDateFormatAt(i);
+
+							// On memorise le format de date s'il est compatible
+							if (cDateSeparator == dateFormat->GetSeparatorChar())
+							{
+								dtDate = dateFormat->StringToDate(sValue);
+								if (dtDate.Check())
+									oaMatchingDateFormats.Add(
+									    cast(Object*, dateFormat));
+							}
+						}
+
+						// Ajout eventuel du format Date
+						if (oaMatchingDateFormats.GetSize() > 0)
+							nMatchingTypeNumber++;
+					}
 				}
 			}
 
 			// Si Date non reconnu, test si Time ou Timestamp
 			if (oaMatchingDateFormats.GetSize() == 0)
 			{
-				// Recherche de la position du point decimal
+				// Recherche de la position du point decimal, potentiellement a +-3 pres selon les
+				// formats
 				nDecimalPointOffset = -1;
 				for (i = nValueLength - 1; i > allReferenceFormats->GetTimeMinCharNumber(); i--)
 				{
@@ -223,111 +253,242 @@ void KWTypeAutomaticRecognition::AddFirstStringValue(const char* const sValue, i
 					nSignificantLength = nDecimalPointOffset;
 
 				// Test si Time
-				if (nSignificantLength >= allReferenceFormats->GetTimeMinCharNumber() and
-				    nSignificantLength <= allReferenceFormats->GetTimeMaxCharNumber())
+				if (cLastChar != 'Z')
 				{
-					// Test sur les separateurs
-					cTimeSeparator = '\0';
-					for (i = nSignificantLength - 2; i >= 1; i--)
+					if (nSignificantLength >= allReferenceFormats->GetTimeMinCharNumber() and
+					    nSignificantLength <= allReferenceFormats->GetTimeMaxCharNumber())
 					{
-						if (not isdigit(sValue[i]))
+						// Test sur les separateurs
+						cTimeSeparator = '\0';
+						for (i = nSignificantLength - 2; i >= 1; i--)
 						{
-							cTimeSeparator = sValue[i];
-							break;
-						}
-					}
-
-					// On continue si le separateur est compatible
-					if (cTimeSeparator == '\0' or
-					    allReferenceFormats->IsTimeSeparator(cTimeSeparator))
-					{
-						// On passe en revue les formats Time
-						for (i = 0; i < allReferenceFormats->GetAvailableTimeFormatNumber();
-						     i++)
-						{
-							timeFormat = allReferenceFormats->GetAvailableTimeFormatAt(i);
-
-							// On memorise le format de time s'il est compatible
-							if (cTimeSeparator == timeFormat->GetSeparatorChar())
+							if (not isdigit(sValue[i]))
 							{
-								tmTime = timeFormat->StringToTime(sValue);
-								if (tmTime.Check())
-									oaMatchingTimeFormats.Add(
-									    cast(Object*, timeFormat));
+								cTimeSeparator = sValue[i];
+								break;
 							}
 						}
 
-						// Ajout eventuel du format Time
-						if (oaMatchingTimeFormats.GetSize() > 0)
-							nMatchingTypeNumber++;
+						// On continue si le separateur est compatible
+						if (cTimeSeparator == '\0' or
+						    allReferenceFormats->IsTimeSeparator(cTimeSeparator))
+						{
+							// On passe en revue les formats Time
+							for (i = 0;
+							     i < allReferenceFormats->GetAvailableTimeFormatNumber();
+							     i++)
+							{
+								timeFormat =
+								    allReferenceFormats->GetAvailableTimeFormatAt(i);
+
+								// On memorise le format de time s'il est compatible
+								if (cTimeSeparator == timeFormat->GetSeparatorChar())
+								{
+									tmTime = timeFormat->StringToTime(sValue);
+									if (tmTime.Check())
+										oaMatchingTimeFormats.Add(
+										    cast(Object*, timeFormat));
+								}
+							}
+
+							// Ajout eventuel du format Time
+							if (oaMatchingTimeFormats.GetSize() > 0)
+								nMatchingTypeNumber++;
+						}
 					}
 				}
 
-				// Si Time non reconnu, test si Timestamp
-				// On ajoute une tolerance de 3 a la longueur, car le separateur decimal peut en fait
-				// provenir d'un separateur de format time sans les secondes (par exemple: (H)H.(M)M)
+				// Si Time non reconnu, test si Timestamp ou TimestampTZ
 				assert(not allReferenceFormats->IsTimestampSeparator('.'));
-				if (oaMatchingTimeFormats.GetSize() == 0 and
-				    nSignificantLength >= allReferenceFormats->GetTimestampMinCharNumber() - 3 and
-				    nSignificantLength <= allReferenceFormats->GetTimestampMaxCharNumber() + 3)
+				if (oaMatchingTimeFormats.GetSize() == 0)
 				{
-					// Test sur les separateurs
-					cDateSeparator = '\0';
-					for (i = allReferenceFormats->GetDateMinCharNumber() - 3; i >= 2; i--)
+					// On regarde si on est dans un format potentiellement de type time zone
+					nTimeZoneOffset = -1;
+					if (cLastChar == 'Z')
+						nTimeZoneOffset = nValueLength - 1;
+
+					// S'il y a une time zone non 'Z', il doit y avoir la place pour cette time zone
+					if (nTimeZoneOffset == -1 and
+					    nValueLength >= allReferenceFormats->GetTimestampMinCharNumber() +
+								KWTimestampTZFormat::nBasicTimeZoneMaxLength)
 					{
-						if (not isdigit(sValue[i]))
-						{
-							cDateSeparator = sValue[i];
-							break;
-						}
-					}
-					cTimeSeparator = '\0';
-					nMaxAnalysisLength = allReferenceFormats->GetDateMaxCharNumber() +
-							     allReferenceFormats->GetTimeMinCharNumber() + 1;
-					if (nMaxAnalysisLength > nValueLength)
-						nMaxAnalysisLength = nValueLength;
-					for (i = allReferenceFormats->GetDateMaxCharNumber() + 1;
-					     i < nMaxAnalysisLength; i++)
-					{
-						if (i >= nValueLength)
-							break;
-						if (not isdigit(sValue[i]))
-						{
-							cTimeSeparator = sValue[i];
-							break;
-						}
+						if (sValue[nValueLength -
+							   KWTimestampTZFormat::nBasicTimeZoneMaxLength] == '-' or
+						    sValue[nValueLength -
+							   KWTimestampTZFormat::nBasicTimeZoneMaxLength] == '+')
+							nTimeZoneOffset =
+							    nValueLength - KWTimestampTZFormat::nBasicTimeZoneMaxLength;
+						else if (sValue[nValueLength -
+								KWTimestampTZFormat::nExtendedTimeZoneMaxLength] ==
+							     '-' or
+							 sValue[nValueLength -
+								KWTimestampTZFormat::nExtendedTimeZoneMaxLength] == '+')
+							nTimeZoneOffset =
+							    nValueLength -
+							    KWTimestampTZFormat::nExtendedTimeZoneMaxLength;
 					}
 
-					// On continue si le separateur est compatible
-					if ((cDateSeparator == '\0' or
-					     allReferenceFormats->IsDateSeparator(cDateSeparator)) and
-					    (cTimeSeparator == '\0' or
-					     allReferenceFormats->IsTimeSeparator(cTimeSeparator)))
+					// Si time zone, on recherche a nouveau la position du point decimal des time
+					// avant la partie time zone
+					if (nTimeZoneOffset != -1)
 					{
-						// On passe en revue les formats Timestamp
-						for (i = 0;
-						     i < allReferenceFormats->GetAvailableTimestampFormatNumber(); i++)
+						nDecimalPointOffset = -1;
+						for (i = nTimeZoneOffset - 1;
+						     i > allReferenceFormats->GetDateMinCharNumber(); i--)
 						{
-							timestampFormat =
-							    allReferenceFormats->GetAvailableTimestampFormatAt(i);
-
-							// On memorise le format de time s'il est compatible
-							if (cDateSeparator ==
-								timestampFormat->GetDateFormat()->GetSeparatorChar() and
-							    cTimeSeparator ==
-								timestampFormat->GetTimeFormat()->GetSeparatorChar())
+							if (sValue[i] == '.')
 							{
-								tsTimestamp =
-								    timestampFormat->StringToTimestamp(sValue);
-								if (tsTimestamp.Check())
-									oaMatchingTimestampFormats.Add(
-									    cast(Object*, timestampFormat));
+								nDecimalPointOffset = i;
+								break;
+							}
+							else if (not isdigit(sValue[i]))
+								break;
+						}
+
+						// Calcul de la longueur significative (avant la partie decimale
+						// potentielle des secondes)
+						nSignificantLength = nTimeZoneOffset;
+						if (nDecimalPointOffset != -1)
+							nSignificantLength = nDecimalPointOffset;
+					}
+					assert(nDecimalPointOffset == -1 or nSignificantLength == nDecimalPointOffset);
+
+					// Correction de la longueur significative dont l'heuriristique de calcul peut
+					// etre erronnee dans le cas d'un format Time de type HH.MM ou H(H).M(M) sans
+					// les secondes (le dernier '.' n'est alors pas le separateur des secondes)
+					if (nDecimalPointOffset != -1)
+					{
+						if (nDecimalPointOffset >
+							allReferenceFormats->GetDateMinCharNumber() and
+						    nDecimalPointOffset <
+							allReferenceFormats->GetDateMinCharNumber() + 4)
+						{
+							if (nTimeZoneOffset != -1)
+								nSignificantLength = nTimeZoneOffset;
+							else
+								nSignificantLength = nValueLength;
+						}
+					}
+
+					// Ajout d'un timestamp si possible
+					if (nSignificantLength >= allReferenceFormats->GetDateMinCharNumber() +
+								      allReferenceFormats->GetTimeMinCharNumber() and
+					    nSignificantLength <= allReferenceFormats->GetDateMaxCharNumber() + 1 +
+								      allReferenceFormats->GetTimeMaxCharNumber())
+					{
+						// Test sur les separateurs de Date
+						cDateSeparator = '\0';
+						for (i = allReferenceFormats->GetDateMinCharNumber() - 3; i >= 2; i--)
+						{
+							if (not isdigit(sValue[i]))
+							{
+								cDateSeparator = sValue[i];
+								break;
 							}
 						}
 
-						// Ajout eventuel du format Timestamp
-						if (oaMatchingTimestampFormats.GetSize() > 0)
-							nMatchingTypeNumber++;
+						// Test sur les separateurs de Time
+						// On va rechercher en separateur strictement apres la fin du champ
+						// Date, avant la fin du champ Time
+						cTimeSeparator = '\0';
+						nMaxAnalysisLength = allReferenceFormats->GetDateMaxCharNumber() + 1 +
+								     allReferenceFormats->GetTimeMinCharNumber();
+						if (cDateSeparator == '\0')
+							nMaxAnalysisLength -= 2;
+						if (nMaxAnalysisLength > nValueLength)
+							nMaxAnalysisLength = nValueLength;
+						for (i = allReferenceFormats->GetDateMaxCharNumber() + 1;
+						     i < nMaxAnalysisLength; i++)
+						{
+							if (not isdigit(sValue[i]))
+							{
+								cTimeSeparator = sValue[i];
+								break;
+							}
+						}
+
+						// On continue si le separateur est compatible
+						if ((cDateSeparator == '\0' or
+						     allReferenceFormats->IsDateSeparator(cDateSeparator)) and
+						    (cTimeSeparator == '\0' or
+						     allReferenceFormats->IsTimeSeparator(cTimeSeparator)))
+						{
+							// Cas sans time zone
+							if (nTimeZoneOffset == -1)
+							{
+								// On passe en revue les formats Timestamp
+								for (i = 0;
+								     i < allReferenceFormats
+									     ->GetAvailableTimestampFormatNumber();
+								     i++)
+								{
+									timestampFormat =
+									    allReferenceFormats
+										->GetAvailableTimestampFormatAt(i);
+
+									// On memorise le format de time s'il est
+									// compatible
+									if (cDateSeparator ==
+										timestampFormat->GetDateFormat()
+										    ->GetSeparatorChar() and
+									    cTimeSeparator ==
+										timestampFormat->GetTimeFormat()
+										    ->GetSeparatorChar())
+									{
+										tsTimestamp =
+										    timestampFormat->StringToTimestamp(
+											sValue);
+										if (tsTimestamp.Check())
+											oaMatchingTimestampFormats.Add(
+											    cast(Object*,
+												 timestampFormat));
+									}
+								}
+
+								// Ajout eventuel du format Timestamp
+								if (oaMatchingTimestampFormats.GetSize() > 0)
+									nMatchingTypeNumber++;
+							}
+							// Cas avec time zone
+							else
+							{
+								// On passe en revue les formats TimestampTZ
+								for (i = 0;
+								     i < allReferenceFormats
+									     ->GetAvailableTimestampTZFormatNumber();
+								     i++)
+								{
+									timestampTZFormat =
+									    allReferenceFormats
+										->GetAvailableTimestampTZFormatAt(i);
+
+									// On memorise le format de time s'il est
+									// compatible
+									if (cDateSeparator ==
+										timestampTZFormat->GetTimestampFormat()
+										    ->GetDateFormat()
+										    ->GetSeparatorChar() and
+									    cTimeSeparator ==
+										timestampTZFormat->GetTimestampFormat()
+										    ->GetTimeFormat()
+										    ->GetSeparatorChar())
+									{
+										tstzTimestamp =
+										    timestampTZFormat
+											->StringToTimestampTZ(sValue);
+										if (tstzTimestamp.Check())
+											oaMatchingTimestampTZFormats
+											    .Add(cast(
+												Object*,
+												timestampTZFormat));
+									}
+								}
+
+								// Ajout eventuel du format Timestamp
+								if (oaMatchingTimestampTZFormats.GetSize() > 0)
+									nMatchingTypeNumber++;
+							}
+						}
 					}
 				}
 			}
@@ -340,13 +501,16 @@ void KWTypeAutomaticRecognition::AddNewStringValue(const char* const sValue, int
 	const KWDateFormat* dateFormat;
 	const KWTimeFormat* timeFormat;
 	const KWTimestampFormat* timestampFormat;
+	const KWTimestampTZFormat* timestampTZFormat;
 	char sRecodedValue[nMaxContinuousFieldSize + 1];
 	int nRecodedValueLength;
 	int i;
 	Date dtDate;
 	Time tmTime;
 	Timestamp tsTimestamp;
+	TimestampTZ tstzTimestamp;
 	int nNewI;
+	char cLastChar;
 
 	require(not bIsFinalized);
 	require(sValue != NULL);
@@ -373,7 +537,7 @@ void KWTypeAutomaticRecognition::AddNewStringValue(const char* const sValue, int
 	// Cela permet de simplifier l'ecriture des tests
 	else
 	{
-		strcpy(sRecodedValue, "Z");
+		strcpy(sRecodedValue, "X");
 		nRecodedValueLength = 1;
 	}
 
@@ -388,11 +552,12 @@ void KWTypeAutomaticRecognition::AddNewStringValue(const char* const sValue, int
 		}
 	}
 	// Sinon, tous les types sont eventuellement possibles, si le dernier caractere est numerique ou '.'
+	// ou meme 'Z' pour les timestamps avec time zone
 	else
 	{
-		// Suppression eventuelle des types si le dernier caractere n'est ni numerique ni point
-		if (not isdigit(sValue[nValueLength - 1]) and sValue[nValueLength - 1] != '.' and
-		    sRecodedValue[nRecodedValueLength - 1] != '.')
+		// Suppression eventuelle des types si le dernier caractere n'est ni numerique ni '.'
+		cLastChar = sValue[nValueLength - 1];
+		if (not isdigit(cLastChar) and cLastChar != '.' and sRecodedValue[nRecodedValueLength - 1] != '.')
 		{
 			if (bMatchingContinuous and not KWContinuous::IsStringContinuous(sValue) and
 			    not KWContinuous::IsStringContinuous(sRecodedValue))
@@ -415,7 +580,13 @@ void KWTypeAutomaticRecognition::AddNewStringValue(const char* const sValue, int
 				nMatchingTypeNumber--;
 				oaMatchingTimestampFormats.SetSize(0);
 			}
-			assert(nMatchingTypeNumber == 1);
+			// On accepte egalement du type TimestampTZ avec time zone, se terminant par 'Z'
+			else if (oaMatchingTimestampTZFormats.GetSize() > 0 and cLastChar != 'Z')
+			{
+				nMatchingTypeNumber--;
+				oaMatchingTimestampTZFormats.SetSize(0);
+			}
+			assert(nMatchingTypeNumber == 1 or oaMatchingTimestampTZFormats.GetSize() > 0);
 		}
 		// On continue si le dernier caractere est numerique ou '.'
 		else
@@ -499,6 +670,34 @@ void KWTypeAutomaticRecognition::AddNewStringValue(const char* const sValue, int
 					nMatchingTypeNumber--;
 			}
 		}
+
+		// Suppression eventuelle du type TimestampTZ, traite a part pour tenir compte des terminaison
+		// potentielles par 'Z'
+		if (oaMatchingTimestampTZFormats.GetSize() > 0)
+		{
+			assert(cLastChar == 'Z' or cLastChar == '.' or isdigit(cLastChar));
+
+			// On passe en revue les formats TimestampTZ
+			nNewI = 0;
+			for (i = 0; i < oaMatchingTimestampTZFormats.GetSize(); i++)
+			{
+				timestampTZFormat =
+				    cast(const KWTimestampTZFormat*, oaMatchingTimestampTZFormats.GetAt(i));
+
+				// On garde les formats de timestampTZ compatibles
+				tstzTimestamp = timestampTZFormat->StringToTimestampTZ(sValue);
+				if (tstzTimestamp.Check())
+				{
+					oaMatchingTimestampTZFormats.SetAt(nNewI, cast(Object*, timestampTZFormat));
+					nNewI++;
+				}
+			}
+			oaMatchingTimestampTZFormats.SetSize(nNewI);
+
+			// Suppression eventuelle du format Timestamp
+			if (oaMatchingTimestampTZFormats.GetSize() == 0)
+				nMatchingTypeNumber--;
+		}
 	}
 }
 
@@ -510,6 +709,16 @@ int KWTypeAutomaticRecognition::GetValueNumber() const
 int KWTypeAutomaticRecognition::GetMissingValueNumber() const
 {
 	return nMissingValueNumber;
+}
+
+int KWTypeAutomaticRecognition::GetValue0Number() const
+{
+	return nValue0Number;
+}
+
+int KWTypeAutomaticRecognition::GetValue1Number() const
+{
+	return nValue1Number;
 }
 
 int KWTypeAutomaticRecognition::GetMaxValueLength() const
@@ -525,6 +734,20 @@ void KWTypeAutomaticRecognition::Finalize()
 	const KWTimeFormat* timeFormat;
 
 	require(not bIsFinalized);
+	assert(nMinTextFieldSize < KWValue::nMaxSymbolFieldSize);
+
+	// Detection du type Text
+	bMatchingText = (nMaxValueLength >= nMinTextFieldSize);
+
+	// Invalidation du type Continuous s'il n'y a des 0 et des 1, plus eventuellement des Missing
+	if (bMatchingContinuous)
+	{
+		if (nValue0Number + nValue1Number + nMissingValueNumber == nValueNumber)
+		{
+			bMatchingContinuous = false;
+			nMatchingTypeNumber--;
+		}
+	}
 
 	// Nettoyage des formats time
 	if (oaMatchingTimeFormats.GetSize() > 0)
@@ -579,11 +802,18 @@ int KWTypeAutomaticRecognition::GetMainMatchingType() const
 	if (bMatchingContinuous)
 		return KWType::Continuous;
 	else if (nMatchingTypeNumber == 1)
-		return KWType::Symbol;
+	{
+		if (bMatchingText)
+			return KWType::Text;
+		else
+			return KWType::Symbol;
+	}
 	else if (GetMatchingDateFormatNumber() > 0)
 		return KWType::Date;
 	else if (GetMatchingTimestampFormatNumber() > 0)
 		return KWType::Timestamp;
+	else if (GetMatchingTimestampTZFormatNumber() > 0)
+		return KWType::TimestampTZ;
 	// On teste le format Time en dernier, car c'est le seul a avoir des exceptions heuristiques (plus long a
 	// calculer)
 	else
@@ -592,17 +822,23 @@ int KWTypeAutomaticRecognition::GetMainMatchingType() const
 
 int KWTypeAutomaticRecognition::GetMatchingTypeNumber() const
 {
-	return nMatchingTypeNumber;
+	return nMatchingTypeNumber + bMatchingText;
 }
 
 int KWTypeAutomaticRecognition::GetMatchingTypeAt(int nIndex) const
 {
 	require(0 <= nIndex and nIndex < GetMatchingTypeNumber());
 
+	// On renvoie d'abord le type principal
 	if (nIndex == 0)
 		return GetMainMatchingType();
+	// Le type Symbol arrive forcement en dernier
 	else if (nIndex == GetMatchingTypeNumber() - 1)
 		return KWType::Symbol;
+	// Le type Text, s'il est disponible, arrive forcement en avant dernier
+	else if (nIndex == GetMatchingTypeNumber() - 2 and bMatchingText)
+		return KWType::Text;
+	// Les types Complex arrivent en fin
 	else
 	{
 		assert(nIndex == 1 and GetMatchingTypeNumber() == 3);
@@ -661,6 +897,18 @@ const KWTimestampFormat* KWTypeAutomaticRecognition::GetMatchingTimestampFormatA
 	return cast(const KWTimestampFormat*, oaMatchingTimestampFormats.GetAt(nIndex));
 }
 
+int KWTypeAutomaticRecognition::GetMatchingTimestampTZFormatNumber() const
+{
+	require(bIsFinalized);
+	return oaMatchingTimestampTZFormats.GetSize();
+}
+
+const KWTimestampTZFormat* KWTypeAutomaticRecognition::GetMatchingTimestampTZFormatAt(int nIndex) const
+{
+	require(bIsFinalized);
+	return cast(const KWTimestampTZFormat*, oaMatchingTimestampTZFormats.GetAt(nIndex));
+}
+
 boolean KWTypeAutomaticRecognition::AreMatchingDateFormatConsistent() const
 {
 	int i;
@@ -704,6 +952,85 @@ boolean KWTypeAutomaticRecognition::AreMatchingTimestampFormatConsistent() const
 			return false;
 	}
 	return true;
+}
+
+boolean KWTypeAutomaticRecognition::AreMatchingTimestampTZFormatConsistent() const
+{
+	int i;
+
+	require(bIsFinalized);
+
+	// Test de coherents des formats avec le premier
+	for (i = 1; i < GetMatchingTimestampTZFormatNumber(); i++)
+	{
+		if (not GetMatchingTimestampTZFormatAt(0)->IsConsistentWith(GetMatchingTimestampTZFormatAt(i)))
+			return false;
+	}
+	return true;
+}
+
+boolean KWTypeAutomaticRecognition::IsMatchingDateFormat(const KWDateFormat* format) const
+{
+	int i;
+
+	require(format != NULL);
+	require(bIsFinalized);
+
+	// Test de coherents des formats avec le premier
+	for (i = 0; i < GetMatchingDateFormatNumber(); i++)
+	{
+		if (GetMatchingDateFormatAt(i)->GetFormatString() == format->GetFormatString())
+			return true;
+	}
+	return false;
+}
+
+boolean KWTypeAutomaticRecognition::IsMatchingTimeFormat(const KWTimeFormat* format) const
+{
+	int i;
+
+	require(format != NULL);
+	require(bIsFinalized);
+
+	// Test de coherents des formats avec le premier
+	for (i = 0; i < GetMatchingTimeFormatNumber(); i++)
+	{
+		if (GetMatchingTimeFormatAt(i)->GetFormatString() == format->GetFormatString())
+			return true;
+	}
+	return false;
+}
+
+boolean KWTypeAutomaticRecognition::IsMatchingTimestampFormat(const KWTimestampFormat* format) const
+{
+	int i;
+
+	require(format != NULL);
+	require(bIsFinalized);
+
+	// Test de coherents des formats avec le premier
+	for (i = 0; i < GetMatchingTimestampFormatNumber(); i++)
+	{
+		if (GetMatchingTimestampFormatAt(i)->GetFormatString() == format->GetFormatString())
+			return true;
+	}
+	return false;
+}
+
+boolean KWTypeAutomaticRecognition::IsMatchingTimestampTZFormat(const KWTimestampTZFormat* format) const
+{
+	int i;
+
+	require(format != NULL);
+	require(bIsFinalized);
+
+	// Test de coherents des formats avec le premier
+	for (i = 0; i < GetMatchingTimestampTZFormatNumber(); i++)
+	{
+		if (GetMatchingTimestampTZFormatAt(i)->GetFormatString() == format->GetFormatString())
+			return true;
+	}
+	return false;
 }
 
 void KWTypeAutomaticRecognition::Write(ostream& ost) const
@@ -768,6 +1095,15 @@ void KWTypeAutomaticRecognition::WriteLine(ostream& ost) const
 				ost << GetMatchingTimestampFormatAt(nFormat)->GetFormatString() << " ";
 			ost << "\t" << AreMatchingTimestampFormatConsistent();
 		}
+		else if (GetMainMatchingType() == KWType::TimestampTZ or
+			 (GetMainMatchingType() == KWType::Continuous and GetMatchingTimestampTZFormatNumber() > 0))
+		{
+			ost << GetMatchingTimestampTZFormatNumber() << "\t";
+			ost << GetMatchingTimestampTZFormatAt(0)->GetFormatString() << "\t";
+			for (nFormat = 1; nFormat < GetMatchingTimestampTZFormatNumber(); nFormat++)
+				ost << GetMatchingTimestampTZFormatAt(nFormat)->GetFormatString() << " ";
+			ost << "\t" << AreMatchingTimestampTZFormatConsistent();
+		}
 		else
 			ost << "\t\t\t";
 	}
@@ -782,16 +1118,24 @@ void KWTypeAutomaticRecognition::Test()
 	const KWDateFormat* dateFormat;
 	const KWTimeFormat* timeFormat;
 	const KWTimestampFormat* timestampFormat;
+	const KWTimestampTZFormat* timestampTZFormat;
 	int nFormat;
 	Timestamp tsTimestamp;
+	TimestampTZ tstzTimestamp;
 	ALString sValue;
 	ALString sSampleValue;
+	int nTotalTestNumber;
+	int nTotalMatchNumber;
 	boolean bOk;
 
 	// Ligne d'entete generique pour tous les resultats
-	cout << "Type\tFormat\tSample value\t";
+	cout << "Type\tIndex\tFormat\tSample value\t";
 	typeAutomaticRecognition.WriteHeaderLine(cout);
 	cout << "\tOk\n";
+
+	// OInitialisation des statistiques collectees
+	nTotalTestNumber = 0;
+	nTotalMatchNumber = 0;
 
 	// Reconnaissance de Symbol
 	SetRandomSeed(1);
@@ -809,10 +1153,13 @@ void KWTypeAutomaticRecognition::Test()
 			sSampleValue = sValue;
 		typeAutomaticRecognition.AddStringValue(sValue);
 	}
-	cout << "Categorical\t\t" << sSampleValue << "\t";
+	cout << "Categorical\t\t\t" << sSampleValue << "\t";
+	typeAutomaticRecognition.Finalize();
 	typeAutomaticRecognition.WriteLine(cout);
 	bOk = (KWType::Symbol == typeAutomaticRecognition.GetMainMatchingType());
 	cout << "\t" << bOk << "\n";
+	nTotalTestNumber++;
+	nTotalMatchNumber += bOk;
 
 	// Reconnaissance de Continuous
 	SetRandomSeed(1);
@@ -827,10 +1174,13 @@ void KWTypeAutomaticRecognition::Test()
 			sSampleValue = sValue;
 		typeAutomaticRecognition.AddStringValue(sValue);
 	}
-	cout << "Numerical\t\t" << sSampleValue << "\t";
+	cout << "Numerical\t\t\t" << sSampleValue << "\t";
+	typeAutomaticRecognition.Finalize();
 	typeAutomaticRecognition.WriteLine(cout);
 	bOk = (KWType::Continuous == typeAutomaticRecognition.GetMainMatchingType());
 	cout << "\t" << bOk << "\n";
+	nTotalTestNumber++;
+	nTotalMatchNumber += bOk;
 
 	// Reconnaissance de Date
 	for (nFormat = 0; nFormat < availableFormats.GetAvailableDateFormatNumber(); nFormat++)
@@ -853,12 +1203,13 @@ void KWTypeAutomaticRecognition::Test()
 				sSampleValue = sValue;
 			typeAutomaticRecognition.AddStringValue(sValue);
 		}
-		cout << "Date\t" << dateFormat->GetFormatString() << "\t" << sSampleValue << "\t";
+		cout << "Date\t" << nFormat << "\t" << dateFormat->GetFormatString() << "\t" << sSampleValue << "\t";
+		typeAutomaticRecognition.Finalize();
 		typeAutomaticRecognition.WriteLine(cout);
-		bOk = (KWType::Date == typeAutomaticRecognition.GetMainMatchingType());
-		if (bOk)
-			bOk = (dateFormat->IsConsistentWith(typeAutomaticRecognition.GetMatchingDateFormatAt(0)));
+		bOk = typeAutomaticRecognition.IsMatchingDateFormat(dateFormat);
 		cout << "\t" << bOk << "\n";
+		nTotalTestNumber++;
+		nTotalMatchNumber += bOk;
 	}
 
 	// Reconnaissance de Date avec confusion possible sur ordre de jour et mois
@@ -881,12 +1232,13 @@ void KWTypeAutomaticRecognition::Test()
 				sSampleValue = sValue;
 			typeAutomaticRecognition.AddStringValue(sValue);
 		}
-		cout << "Date\t" << dateFormat->GetFormatString() << "\t" << sSampleValue << "\t";
+		cout << "Date\t" << nFormat << "\t" << dateFormat->GetFormatString() << "\t" << sSampleValue << "\t";
+		typeAutomaticRecognition.Finalize();
 		typeAutomaticRecognition.WriteLine(cout);
-		bOk = (KWType::Date == typeAutomaticRecognition.GetMainMatchingType());
-		if (bOk)
-			bOk = (dateFormat->IsConsistentWith(typeAutomaticRecognition.GetMatchingDateFormatAt(0)));
+		bOk = typeAutomaticRecognition.IsMatchingDateFormat(dateFormat);
 		cout << "\t" << bOk << "\n";
+		nTotalTestNumber++;
+		nTotalMatchNumber += bOk;
 	}
 
 	// Reconnaissance de Time
@@ -910,12 +1262,13 @@ void KWTypeAutomaticRecognition::Test()
 				sSampleValue = sValue;
 			typeAutomaticRecognition.AddStringValue(sValue);
 		}
-		cout << "Time\t" << timeFormat->GetFormatString() << "\t" << sSampleValue << "\t";
+		cout << "Time\t" << nFormat << "\t" << timeFormat->GetFormatString() << "\t" << sSampleValue << "\t";
+		typeAutomaticRecognition.Finalize();
 		typeAutomaticRecognition.WriteLine(cout);
-		bOk = (KWType::Time == typeAutomaticRecognition.GetMainMatchingType());
-		if (bOk)
-			bOk = (timeFormat->IsConsistentWith(typeAutomaticRecognition.GetMatchingTimeFormatAt(0)));
+		bOk = typeAutomaticRecognition.IsMatchingTimeFormat(timeFormat);
 		cout << "\t" << bOk << "\n";
+		nTotalTestNumber++;
+		nTotalMatchNumber += bOk;
 	}
 
 	// Reconnaissance de Time avec pas de dizaine sur les heures, minutes et secondes
@@ -939,12 +1292,13 @@ void KWTypeAutomaticRecognition::Test()
 				sSampleValue = sValue;
 			typeAutomaticRecognition.AddStringValue(sValue);
 		}
-		cout << "Time\t" << timeFormat->GetFormatString() << "\t" << sSampleValue << "\t";
+		cout << "Time\t" << nFormat << "\t" << timeFormat->GetFormatString() << "\t" << sSampleValue << "\t";
+		typeAutomaticRecognition.Finalize();
 		typeAutomaticRecognition.WriteLine(cout);
-		bOk = (KWType::Time == typeAutomaticRecognition.GetMainMatchingType());
-		if (bOk)
-			bOk = (timeFormat->IsConsistentWith(typeAutomaticRecognition.GetMatchingTimeFormatAt(0)));
+		bOk = typeAutomaticRecognition.IsMatchingTimeFormat(timeFormat);
 		cout << "\t" << bOk << "\n";
+		nTotalTestNumber++;
+		nTotalMatchNumber += bOk;
 	}
 
 	// Reconnaissance de Timestamp
@@ -968,14 +1322,53 @@ void KWTypeAutomaticRecognition::Test()
 				sSampleValue = sValue;
 			typeAutomaticRecognition.AddStringValue(sValue);
 		}
-		cout << "Timestamp\t" << timestampFormat->GetFormatString() << "\t" << sSampleValue << "\t";
+		cout << "Timestamp\t" << nFormat << "\t" << timestampFormat->GetFormatString() << "\t" << sSampleValue
+		     << "\t";
+		typeAutomaticRecognition.Finalize();
 		typeAutomaticRecognition.WriteLine(cout);
-		bOk = (KWType::Timestamp == typeAutomaticRecognition.GetMainMatchingType());
-		if (bOk)
-			bOk = (timestampFormat->IsConsistentWith(
-			    typeAutomaticRecognition.GetMatchingTimestampFormatAt(0)));
+		bOk = typeAutomaticRecognition.IsMatchingTimestampFormat(timestampFormat);
 		cout << "\t" << bOk << "\n";
+		nTotalTestNumber++;
+		nTotalMatchNumber += bOk;
 	}
+
+	// Reconnaissance de TimestampTZ
+	for (nFormat = 0; nFormat < availableFormats.GetAvailableTimestampTZFormatNumber(); nFormat++)
+	{
+		timestampTZFormat = availableFormats.GetAvailableTimestampTZFormatAt(nFormat);
+		SetRandomSeed(1);
+		typeAutomaticRecognition.Initialize();
+		sSampleValue = "";
+		for (nValue = 0; nValue < nValueNumber; nValue++)
+		{
+			sValue = "";
+			tstzTimestamp.Reset();
+			if (RandomDouble() > 0.1)
+			{
+				tsTimestamp.Reset();
+				tsTimestamp.Init(2010, 1, 1, 0, 0, 0);
+				tsTimestamp.AddSeconds(100000000 * RandomDouble());
+				tstzTimestamp.Init(tsTimestamp, (-12 + RandomInt(26)) * 60);
+			}
+			sValue = timestampTZFormat->TimestampTZToString(tstzTimestamp);
+			if (sSampleValue == "" and sValue != "")
+				sSampleValue = sValue;
+			typeAutomaticRecognition.AddStringValue(sValue);
+		}
+		cout << "TimestampTZ\t" << nFormat << "\t" << timestampTZFormat->GetFormatString() << "\t"
+		     << sSampleValue << "\t";
+		typeAutomaticRecognition.Finalize();
+		typeAutomaticRecognition.WriteLine(cout);
+		bOk = typeAutomaticRecognition.IsMatchingTimestampTZFormat(timestampTZFormat);
+		cout << "\t" << bOk << "\n";
+		nTotalTestNumber++;
+		nTotalMatchNumber += bOk;
+	}
+
+	// Affichage des statistiques
+	cout << "\nSynthesis\n";
+	cout << "\tTotal test number\t" << nTotalTestNumber << "\n";
+	cout << "\tTotal match number\t" << nTotalMatchNumber << "\n";
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -987,18 +1380,22 @@ KWTypeAvailableFormats::KWTypeAvailableFormats()
 	KWDateFormat* dateFormat;
 	KWTimeFormat* timeFormat;
 	KWTimestampFormat* timestampFormat;
+	KWTimestampTZFormat* timestampTZFormat;
 
+	// Initialisation
 	nDateMinCharNumber = 0;
 	nDateMaxCharNumber = 0;
 	nTimeMinCharNumber = 0;
 	nTimeMaxCharNumber = 0;
 	nTimestampMinCharNumber = 0;
 	nTimestampMaxCharNumber = 0;
+	nTimezoneMaxCharNumber = 0;
 
 	// Collecte des formats disponibles
 	KWDateFormat::GetAllAvailableFormats(&oaAvailableDateFormats);
 	KWTimeFormat::GetAllAvailableFormats(&oaAvailableTimeFormats);
 	KWTimestampFormat::GetAllAvailableFormats(&oaAvailableTimestampFormats);
+	KWTimestampTZFormat::GetAllAvailableFormats(&oaAvailableTimestampTZFormats);
 
 	// Collecte des statistiques sur les formats Date
 	for (i = 0; i < oaAvailableDateFormats.GetSize(); i++)
@@ -1066,16 +1463,33 @@ KWTypeAvailableFormats::KWTypeAvailableFormats()
 		// Mise a jour sinon, pour trouver le min des min et le max des max
 		else
 		{
-			if (nTimestampMinCharNumber > timestampFormat->GetMinCharNumber())
-				nTimestampMinCharNumber = timestampFormat->GetMinCharNumber();
-			if (nTimestampMaxCharNumber < timestampFormat->GetMaxCharNumber())
-				nTimestampMaxCharNumber = timestampFormat->GetMaxCharNumber();
+			nTimestampMinCharNumber = min(nTimestampMinCharNumber, timestampFormat->GetMinCharNumber());
+			nTimestampMaxCharNumber = max(nTimestampMaxCharNumber, timestampFormat->GetMaxCharNumber());
 		}
 
 		// Collecte des caracteres de separation
 		if (timestampFormat->GetSeparatorChar() != '\0' and
 		    sTimestampSeparators.Find(timestampFormat->GetSeparatorChar()) == -1)
 			sTimestampSeparators += timestampFormat->GetSeparatorChar();
+	}
+
+	// Collecte des statistiques sur les formats TimestampTZ
+	nTimezoneMaxCharNumber = 0;
+	for (i = 0; i < oaAvailableTimestampTZFormats.GetSize(); i++)
+	{
+		timestampTZFormat = cast(KWTimestampTZFormat*, oaAvailableTimestampTZFormats.GetAt(i));
+
+		// Mise a jour sinon, pour trouver le min des min et le max des max
+		nTimestampMinCharNumber = min(nTimestampMinCharNumber, timestampTZFormat->GetMinCharNumber());
+		nTimestampMaxCharNumber = max(nTimestampMaxCharNumber, timestampTZFormat->GetMaxCharNumber());
+		nTimezoneMaxCharNumber =
+		    max(nTimezoneMaxCharNumber,
+			KWTimestampTZFormat::GetTimeZoneMaxLength(timestampTZFormat->GetTimeZoneFormat()));
+
+		// Collecte des caracteres de separation
+		if (timestampTZFormat->GetTimestampFormat()->GetSeparatorChar() != '\0' and
+		    sTimestampSeparators.Find(timestampTZFormat->GetTimestampFormat()->GetSeparatorChar()) == -1)
+			sTimestampSeparators += timestampTZFormat->GetTimestampFormat()->GetSeparatorChar();
 	}
 }
 
@@ -1084,6 +1498,7 @@ KWTypeAvailableFormats::~KWTypeAvailableFormats()
 	oaAvailableDateFormats.DeleteAll();
 	oaAvailableTimeFormats.DeleteAll();
 	oaAvailableTimestampFormats.DeleteAll();
+	oaAvailableTimestampTZFormats.DeleteAll();
 }
 
 int KWTypeAvailableFormats::GetAvailableDateFormatNumber() const
@@ -1116,6 +1531,16 @@ const KWTimestampFormat* KWTypeAvailableFormats::GetAvailableTimestampFormatAt(i
 	return cast(const KWTimestampFormat*, oaAvailableTimestampFormats.GetAt(nIndex));
 }
 
+int KWTypeAvailableFormats::GetAvailableTimestampTZFormatNumber() const
+{
+	return oaAvailableTimestampTZFormats.GetSize();
+}
+
+const KWTimestampTZFormat* KWTypeAvailableFormats::GetAvailableTimestampTZFormatAt(int nIndex) const
+{
+	return cast(const KWTimestampTZFormat*, oaAvailableTimestampTZFormats.GetAt(nIndex));
+}
+
 int KWTypeAvailableFormats::GetDateMinCharNumber() const
 {
 	return nDateMinCharNumber;
@@ -1146,6 +1571,11 @@ int KWTypeAvailableFormats::GetTimestampMaxCharNumber() const
 	return nTimestampMaxCharNumber;
 }
 
+int KWTypeAvailableFormats::GetTimezoneMaxCharNumber() const
+{
+	return nTimezoneMaxCharNumber;
+}
+
 boolean KWTypeAvailableFormats::IsDateSeparator(char cValue) const
 {
 	return (sDateSeparators.Find(cValue) != -1);
@@ -1168,6 +1598,7 @@ void KWTypeAvailableFormats::Test()
 	const KWDateFormat* dateFormat;
 	const KWTimeFormat* timeFormat;
 	const KWTimestampFormat* timestampFormat;
+	const KWTimestampTZFormat* timestampTZFormat;
 
 	// Date
 	cout << "Date\n";
@@ -1203,5 +1634,18 @@ void KWTypeAvailableFormats::Test()
 	{
 		timestampFormat = availableFormats.GetAvailableTimestampFormatAt(i);
 		cout << "\t" << *timestampFormat << endl;
+	}
+
+	// TimestampTZ
+	cout << "TimestampTZ\n";
+	cout << "Min size\t" << availableFormats.GetTimestampMinCharNumber() << endl;
+	cout << "Max size\t" << availableFormats.GetTimestampMaxCharNumber() << endl;
+	cout << "Time zone max size\t" << availableFormats.GetTimezoneMaxCharNumber() << endl;
+	cout << "Separators\t" << availableFormats.sTimestampSeparators << endl;
+	cout << "Format number\t" << availableFormats.GetAvailableTimestampTZFormatNumber() << endl;
+	for (i = 0; i < availableFormats.GetAvailableTimestampTZFormatNumber(); i++)
+	{
+		timestampTZFormat = availableFormats.GetAvailableTimestampTZFormatAt(i);
+		cout << "\t" << *timestampTZFormat << endl;
 	}
 }

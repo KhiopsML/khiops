@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -146,6 +146,73 @@ void KWGrouper::Group(KWFrequencyTable* kwftSource, KWFrequencyTable*& kwftTarge
 	ensure(ivGroups->GetSize() <= kwftSource->GetTotalFrequency());
 }
 
+void KWGrouper::RegisterGrouper(int nTargetAttributeType, KWGrouper* grouper)
+{
+	require(nTargetAttributeType == KWType::Symbol or nTargetAttributeType == KWType::None);
+	require(grouper != NULL);
+	require(grouper->GetName() != "");
+	require(GetGroupers(nTargetAttributeType)->Lookup(grouper->GetName()) == NULL);
+
+	// Memorisation du Grouper
+	GetGroupers(nTargetAttributeType)->SetAt(grouper->GetName(), grouper);
+}
+
+KWGrouper* KWGrouper::LookupGrouper(int nTargetAttributeType, const ALString& sName)
+{
+	KWGrouper* grouper;
+
+	require(nTargetAttributeType == KWType::Symbol or nTargetAttributeType == KWType::None);
+
+	// Recherche du predicteur du bon type
+	grouper = cast(KWGrouper*, GetGroupers(nTargetAttributeType)->Lookup(sName));
+	return grouper;
+}
+
+KWGrouper* KWGrouper::CloneGrouper(int nTargetAttributeType, const ALString& sName)
+{
+	KWGrouper* referenceGrouper;
+
+	require(nTargetAttributeType == KWType::Symbol or nTargetAttributeType == KWType::None);
+
+	// Recherche d'un Grouper de meme nom
+	referenceGrouper = cast(KWGrouper*, GetGroupers(nTargetAttributeType)->Lookup(sName));
+
+	// Retour de son Clone si possible
+	if (referenceGrouper != NULL)
+		return referenceGrouper->Clone();
+	else
+		return NULL;
+}
+
+void KWGrouper::ExportAllGroupers(int nTargetAttributeType, ObjectArray* oaGroupers)
+{
+	require(oaGroupers != NULL);
+
+	require(nTargetAttributeType == KWType::Symbol or nTargetAttributeType == KWType::None);
+
+	// Recherche des predicteurs du bon type
+	oaGroupers->RemoveAll();
+	GetGroupers(nTargetAttributeType)->ExportObjectArray(oaGroupers);
+
+	// Tri des predicteurs avant de retourner le tableau
+	oaGroupers->SetCompareFunction(KWGrouperCompareName);
+	oaGroupers->Sort();
+}
+
+void KWGrouper::RemoveAllGroupers()
+{
+	odSupervisedGroupers.RemoveAll();
+	odUnsupervisedGroupers.RemoveAll();
+}
+
+void KWGrouper::DeleteAllGroupers()
+{
+	odSupervisedGroupers.DeleteAll();
+	odUnsupervisedGroupers.DeleteAll();
+}
+
+////////////////////////////////////////////////////////////////////////////
+
 void KWGrouper::GroupPreprocessedTable(KWFrequencyTable* kwftSource, KWFrequencyTable*& kwftTarget,
 				       IntVector*& ivGroups) const
 {
@@ -185,6 +252,15 @@ const ALString KWGrouper::GetObjectLabel() const
 		       ")";
 	else
 		return GetName();
+}
+
+ObjectDictionary* KWGrouper::GetGroupers(int nTargetAttributeType)
+{
+	require(nTargetAttributeType == KWType::Symbol or nTargetAttributeType == KWType::None);
+	if (nTargetAttributeType == KWType::Symbol)
+		return &odSupervisedGroupers;
+	else
+		return &odUnsupervisedGroupers;
 }
 
 KWFrequencyTable* KWGrouper::BuildPreprocessedTable(KWFrequencyTable* table) const
@@ -310,7 +386,7 @@ KWFrequencyTable* KWGrouper::BuildReducedTable(KWFrequencyTable* table, int nNew
 	// Creation de la table
 	reducedTable = new KWFrequencyTable;
 	reducedTable->SetFrequencyVectorCreator(table->GetFrequencyVectorCreator()->Clone());
-	reducedTable->Initialize(nNewLineNumber);
+	reducedTable->SetFrequencyVectorNumber(nNewLineNumber);
 
 	// Initialisation par defaut des nombres de valeurs
 	reducedTable->SetInitialValueNumber(table->GetInitialValueNumber());
@@ -359,93 +435,8 @@ KWFrequencyTable* KWGrouper::BuildReducedTable(KWFrequencyTable* table, int nNew
 	return reducedTable;
 }
 
-///////////////////////////////////////////////////////////////////////////
-
-void KWGrouper::RegisterGrouper(KWGrouper* grouper)
-{
-	require(grouper != NULL);
-	require(grouper->GetName() != "");
-	require(odGroupers == NULL or odGroupers->Lookup(grouper->GetName()) == NULL);
-
-	// Creation si necessaire du dictionnaire de Groupers
-	if (odGroupers == NULL)
-		odGroupers = new ObjectDictionary;
-
-	// Memorisation du Grouper
-	odGroupers->SetAt(grouper->GetName(), grouper);
-}
-
-KWGrouper* KWGrouper::LookupGrouper(const ALString& sName)
-{
-	KWGrouper* grouper;
-
-	// Creation si necessaire du dictionnaire de Groupers
-	if (odGroupers == NULL)
-		odGroupers = new ObjectDictionary;
-
-	// Recherche du predicteur du bon type
-	grouper = cast(KWGrouper*, odGroupers->Lookup(sName));
-	return grouper;
-}
-
-KWGrouper* KWGrouper::CloneGrouper(const ALString& sName)
-{
-	KWGrouper* referenceGrouper;
-
-	// Creation si necessaire du dictionnaire de Groupers
-	if (odGroupers == NULL)
-		odGroupers = new ObjectDictionary;
-
-	// Recherche d'un Grouper de meme nom
-	referenceGrouper = cast(KWGrouper*, odGroupers->Lookup(sName));
-
-	// Retour de son Clone si possible
-	if (referenceGrouper != NULL)
-		return referenceGrouper->Clone();
-	else
-		return NULL;
-}
-
-void KWGrouper::ExportAllGroupers(ObjectArray* oaGroupers)
-{
-	require(oaGroupers != NULL);
-
-	// Creation si necessaire du dictionnaire de predicteurs
-	if (odGroupers == NULL)
-		odGroupers = new ObjectDictionary;
-
-	// Recherche des predicteurs du bon type
-	oaGroupers->RemoveAll();
-	odGroupers->ExportObjectArray(oaGroupers);
-
-	// Tri des predicteurs avant de retourner le tableau
-	oaGroupers->SetCompareFunction(KWGrouperCompareName);
-	oaGroupers->Sort();
-}
-
-void KWGrouper::RemoveAllGroupers()
-{
-	if (odGroupers != NULL)
-	{
-		odGroupers->RemoveAll();
-		delete odGroupers;
-		odGroupers = NULL;
-	}
-	ensure(odGroupers == NULL);
-}
-
-void KWGrouper::DeleteAllGroupers()
-{
-	if (odGroupers != NULL)
-	{
-		odGroupers->DeleteAll();
-		delete odGroupers;
-		odGroupers = NULL;
-	}
-	ensure(odGroupers == NULL);
-}
-
-ObjectDictionary* KWGrouper::odGroupers = NULL;
+ObjectDictionary KWGrouper::odSupervisedGroupers;
+ObjectDictionary KWGrouper::odUnsupervisedGroupers;
 
 int KWGrouperCompareName(const void* first, const void* second)
 {

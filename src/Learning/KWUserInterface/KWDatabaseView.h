@@ -1,12 +1,11 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #pragma once
 
 ////////////////////////////////////////////////////////////
-// 2021-04-25 11:10:56
-// File generated  with GenereTable
+// File generated with Genere tool
 // Insert your specific code inside "//## " sections
 
 #include "UserInterface.h"
@@ -15,6 +14,7 @@
 
 // ## Custom includes
 
+#include "KWDatabaseSpecView.h"
 #include "KWMTDatabase.h"
 #include "KWClassAttributeHelpList.h"
 #include "KWDatabaseAttributeValuesHelpList.h"
@@ -49,14 +49,35 @@ public:
 
 	// ## Custom declarations
 
-	// Parametrage du mode d'utilisation de la base: general ou ecriture seulement
-	// En mode ecriture seulement, seul le mapping de la classe principale et
-	// de sa composition sont specifies (dans le cas multi-tables)
-	void SetModeWriteOnly(boolean bValue);
-	boolean GetModeWriteOnly() const;
+	// Acces aux vues pirncipales sur les specifications de la base
+	// La vue de Data est generique, car elle differe selon le mode mono-table ou multi-table
+	UIObjectView* GetDataView();
+	KWDatabaseSamplingView* GetSamplingView();
+	KWDatabaseSelectionView* GetSelectionView();
+
+	// Acces a la base
+	void SetObject(Object* object) override;
+	KWDatabase* GetDatabase();
+
+	// Indique si on est en mode multi-table
+	virtual boolean IsMultiTableTechnology() const;
+
+	// Parametrage du nombre de table editable, si le mode le permet
+	virtual void SetEditableTableNumber(int nValue);
+	virtual int GetEditableTableNumber() const;
+
+	// Passage en mode de lecture basique
+	// En mode lecture basique, seule la fiche de saisie Data de la base est visible (avec le detecteur de format),
+	// les fiches de Sampling et Selection devenant invisibles
+	virtual void ToBasicReadMode();
+
+	// Passage en mode ecriture seulement
+	// En mode ecriture seulement, seule la fiche de saisie Data de la base est visible (sans le detecteur de
+	// format), les fiches de Sampling et Selection devenant invisibles
+	virtual void ToWriteOnlyMode();
 
 	// Specialisation des listes d'aide, en ajoutant le chemin d'acces a la fiche si elle n'est
-	// pas destinee a etre ouverture directement, mais en tant que sous-fiche.
+	// pas destinee a etre ouverte directement, mais en tant que sous-fiche.
 	// Par exemple, appeler SetHelpListViewPath("TrainDatabase") si la fiche est une sous-fiche
 	// d'identifiant "TrainDatabase" dans la vue principale
 	void SetHelpListViewPath(const ALString& sViewPath);
@@ -171,9 +192,29 @@ public:
 
 	// ##
 	////////////////////////////////////////////////////////
-	//// Implementation
+	///// Implementation
 protected:
 	// ## Custom implementation
+
+	////////////////////////////////////////////////////////////////////////////
+	// Structure de l'interface de saisie des Database
+	//
+	// KWDatabaseView: classe ancetre generale associee a l'edition d'une KWDatabase
+	//   KWSTDatabaseTextFileView: sous classe dediee a KWSTDatabaseTextFile (mono-table)
+	//   KWMTDatabaseTextFileView: sous classe dediee a KWMTDatabaseTextFile (multi-table)
+	//
+	// La fiche KWDatabaseView comporte une sous-fiche de gestion des specifications generiques
+	//  KWDatabaseSpecView
+	//    - fiche cachee (affichee sans cadre visible)
+	//    - trois sous-fiches, pour passage en onglet
+	//       - Data: KWSTDatabaseTextFileDataView (mono-table) ou KWMTDatabaseTextFileDataView (multi-table)
+	//       - Sampling: KWDatabaseSamplingView
+	//       - Selection: KWDatabaseSelectionView
+	//
+	// Toutes les vues sont des vue generiques sur KWDatabase, sauf:
+	//   - KWSTDatabaseTextFileDataView: vue specialisee sur KWSTDatabaseTextFile
+	//   - KWMTDatabaseTextFileDataView: vue specialisee sur KWMTDatabaseTextFile
+	// Les vues de Data gerent le ou les fichier, plus le detecteur de format, plus le format tabulaire
 
 	// Rafraichissement des listes d'aide
 	void RefreshHelpLists();
@@ -186,12 +227,15 @@ protected:
 	static const ALString sDefaultSelectionAttributeParameters;
 	static const ALString sDefaultSelectionValueParameters;
 
-	// Mode ecriture seulement
-	boolean bModeWriteOnly;
-
 	// Bases d'apprentissage et de test
 	KWDatabase* trainDatabase;
 	KWDatabase* testDatabase;
+
+	// Dernier mode de specification utilise pour la base de test
+	ALString sLastTestDatabaseSpecificationMode;
+
+	// Dernier classe utilisee pour la base de test
+	ALString sLastTestDatabaseClassName;
 
 	// Vue sur la base de test
 	KWDatabaseView* testDatabaseView;

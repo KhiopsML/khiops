@@ -1,53 +1,58 @@
+---
 name: Run Unit Tests
-
 on:
   workflow_dispatch:
-  push:
-
+  pull_request:
+    paths:
+      - '**CMakeLists.txt'
+      - src/**.h
+      - src/**.cpp
+      - src/**.java
+      - src/**.dd
+      - src/**.inc
+      - src/**.lex
+      - src/**.yac
+      - test/**.h
+      - test/**.cpp
+# Cancel any ongoing run of this workflow on the same PR or ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref
+    }}
+  cancel-in-progress: true
 jobs:
   run-unit-tests:
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
-        build-setup: [
-          {os: windows-2022, cmake-preset: windows-msvc-debug},
-          {os: ubuntu-latest, cmake-preset: linux-gcc-debug}]
-
+        build-setup:
+          - {os: windows-2022, cmake-preset: windows-msvc-debug}
+          - {os: ubuntu-latest, cmake-preset: linux-gcc-debug}
+          - {os: macos-latest, cmake-preset: macos-clang-debug}
     runs-on: ${{ matrix.build-setup.os }}
-
     permissions:
       id-token: write
       contents: read
       checks: write
-
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - name: Build Khiops
+        uses: actions/checkout@v4
+      - name: Build Khiops test executables
         uses: ./.github/actions/build-khiops
         with:
           preset-name: ${{ matrix.build-setup.cmake-preset }}
-
-      - name: Run Unit Tests for the Norm Module
-        if: success() || failure()
-        run: build/${{ matrix.build-setup.cmake-preset }}/bin/norm_test --gtest_output="xml:${{github.workspace}}/reports/report-norm.xml"
-
-      - name: Run Unit Tests for the Parallel Module
-        if: success() || failure()
-        run: build/${{ matrix.build-setup.cmake-preset }}/bin/Parallel_test --gtest_output="xml:${{github.workspace}}/reports/report-parallel.xml"
-
-      - name: Run Unit Tests for the Learning Module
-        if: success() || failure()
-        run: build/${{ matrix.build-setup.cmake-preset }}/bin/learning_test --gtest_output="xml:${{github.workspace}}/reports/report-learning.xml"
-
-      - name: Create Unit Test Report
-        uses: dorny/test-reporter@v1
-        if: success() || failure()
+          targets: norm_test parallel_test parallel_mpi_test learning_test KNITest
+          override-flags: -DTESTING=ON
+      - name: Run Unit Tests
+        run: |-
+          ctest --preset ${{ matrix.build-setup.cmake-preset }}
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
         with:
-            name: Unit Tests
-            path: ${{github.workspace}}/reports/report-*.xml
-            reporter: jest-junit
-
-
-
+          name: unit-test-results-${{ matrix.build-setup.cmake-preset }}
+          retention-days: 7
+          path: |-
+            test/UnitTests/*/results

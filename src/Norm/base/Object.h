@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -14,8 +14,9 @@ class ObjectArray;
 class ObjectList;
 class SortedList;
 class ObjectDictionary;
-class ObjectArray;
 class NumericKeyDictionary;
+class LongintDictionary;
+class LongintNumericKeyDictionary;
 
 #include "Standard.h"
 #include "ALString.h"
@@ -23,7 +24,6 @@ class NumericKeyDictionary;
 
 // Position d'un element dans une container
 typedef void* POSITION;
-typedef void* NUMERIC;
 
 // Classes techniques pour l'implementation des containers
 struct ListNode;
@@ -39,10 +39,9 @@ typedef unsigned int UINT; // Pour les valeurs de hashage servant d'index
 typedef int (*CompareFunction)(const void* first, const void* second);
 
 /////////////////////////////////////
-// Classe Object                   //
-// Toute classe doit en heriter    //
-// Est utilisee pour les container //
-/////////////////////////////////////
+// Classe Object
+// Toute classe doit en heriter
+// Est utilisee pour les container
 class Object : public SystemObject
 {
 public:
@@ -89,8 +88,19 @@ public:
 	virtual void AddError(const ALString& sLabel) const;
 	virtual void AddFatalError(const ALString& sLabel) const;
 
-	// Libelle traduit de la classe
-	const ALString GetTranslatedClassLabel() const;
+	///////////////////////////////////////////////////////////////////////////////////////
+	///// Implementation
+private:
+	// On interdit les operateurs suivant generes par defaut par le C++:
+	//   . le constructeur par copie (Object myObject(sourceObject) et
+	//   . l'operateur = (Object = sourceObject),
+	// Ces operateurs sont tres dangereux, car il recopient le bloc memoire de l'objet source tel quel,
+	// y compris dans le cas de pointeurs, ce qui fait que les memes sous-objets peuvent etre partages
+	// par la source et la cible de la copie (et donc detruits deux fois, par exemple).
+	// Si on a besoin de copier un objet explicitement, il faut implementer une methode de type
+	//  void CopyFrom(const MyClass* sourceObject)
+	Object(const Object&) = delete;
+	Object& operator=(const Object&) = delete;
 };
 
 // Ecriture dans un stream
@@ -104,9 +114,8 @@ inline ostream& operator<<(ostream& ost, const Object& value)
 int ObjectCompare(const void* elem1, const void* elem2);
 
 ///////////////////////////////////////////////////////
-// Classe SampleObject                               //
-// Classe tres simple, permettant de faire des tests //
-///////////////////////////////////////////////////////
+// Classe SampleObject
+// Classe tres simple, permettant de faire des tests
 class SampleObject : public Object
 {
 public:
@@ -133,7 +142,8 @@ public:
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
 
-	/// Implementation ///
+	///////////////////////////////////////////////////////////////////////////////////////
+	///// Implementation
 protected:
 	int nInt;
 	ALString sString;
@@ -171,6 +181,7 @@ public:
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
 
+	///////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	ALString sString;
@@ -204,6 +215,7 @@ public:
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
 
+	///////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	double dDouble;
@@ -237,6 +249,7 @@ public:
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
 
+	///////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	int nInt;
@@ -270,6 +283,7 @@ public:
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
 
+	///////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	longint lLongint;
@@ -279,14 +293,13 @@ protected:
 int LongintObjectCompare(const void* elem1, const void* elem2);
 
 //////////////////////////////////////////////////////////////////
-// Tableau d'objet                                              //
-// Tableau se rataillant automatiquement lors des insertions    //
-// Fonctionnalite de tris disponibles                           //
-//                                                              //
-// Memoire                                                       //
-//   Les objets n'appartiennent pas au tableau: leur liberation //
-//   n'est pas geree par cette classe                           //
-//////////////////////////////////////////////////////////////////
+// Tableau d'objet
+// Tableau se rataillant automatiquement lors des insertions
+// Fonctionnalite de tris disponibles
+//
+// Memoire
+//   Les objets n'appartiennent pas au tableau: leur liberation
+//   n'est pas geree par cette classe
 class ObjectArray : public Object
 {
 public:
@@ -438,12 +451,11 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////
-// Liste doublement chainee d'objets                                //
-//                                                                  //
-// Memoire                                                           //
-//   Les objets n'appartiennent pas a la liste: leur liberation     //
-//   n'est pas geree par cette classe                               //
-//////////////////////////////////////////////////////////////////////
+// Liste doublement chainee d'objets
+//
+// Memoire
+//   Les objets n'appartiennent pas a la liste: leur liberation
+//   n'est pas geree par cette classe
 class ObjectList : public Object
 {
 public:
@@ -550,62 +562,96 @@ protected:
 	void FreeNode(ListNode* pNode);
 };
 
+// Definition d'un cle generique
+union GenericKey
+{
+	GenericKey() : genericKey(0){};
+	GenericKey(char* s) : sKey(s){};
+	GenericKey(const char* s) : sKey((char*)s){};
+	GenericKey(longint l) : genericKey(l){};
+	char* sKey;
+	unsigned long long int unsignedKey; // Type le plus long a la fois en 32 et 64 bits
+	longint genericKey;                 // Type le plus long a la fois en 32 et 64 bits
+};
+
+// Definition d'un valeur generique
+union GenericValue
+{
+	GenericValue() : lValue(0){};
+	GenericValue(Object* o) : oValue(o){};
+	GenericValue(longint l) : lValue(l){};
+	Object* oValue;
+	longint lValue;
+	longint genericValue; // Type le plus long a la fois en 32 et 64 bits
+};
+
+// Association pour GenericDictionary
+struct GDAssoc : public SystemObject
+{
+	GDAssoc* pNext;
+	UINT nHashValue;
+	GenericKey key;
+	GenericValue value;
+};
+
 //////////////////////////////////////////////////////////////////////
-// Dictionaire d'objet                                              //
-// Les objets sont identifies par cle                               //
-//                                                                  //
-// Memoire                                                           //
-//   Les objets n'appartiennent pas au dictionaire: leur liberation //
-//   n'est pas geree par cette classe                               //
-//////////////////////////////////////////////////////////////////////
-class ObjectDictionary : public Object
+// Dictionaire generique
+// Classe ancetre de toutes les classe dictionnaires
+// Les dictionnaires sont differencies selon:
+//  . le type de cle: String ou NUMERIC
+//  . le type de valeur: Object* ou longint
+class GenericDictionary : public Object
 {
 public:
-	// Constructeur
-	ObjectDictionary();
-	~ObjectDictionary();
+	// Destructeur generique
+	~GenericDictionary();
 
 	// Nombre d'elements
 	int GetCount() const;
 	boolean IsEmpty() const;
 
-	// Recherche par cle
-	// Renvoie NULL si non trouve
-	Object* Lookup(const char* key) const;
-
-	// Ajout d'une nouvelle paire (key, value)
-	// (ou remplacement d'une valeur pour une cle donnee)
-	void SetAt(const char* key, Object* newValue);
-
-	// Supression d'une cle
-	boolean RemoveKey(const char* key);
-
 	// Supression ou destruction de tous les elements
 	void RemoveAll();
 	void DeleteAll();
 
-	// Parcours de toutes les paires (key, value)
-	// Example:
-	//  position = myDic->GetStartPosition();
-	//	while (position != NULL)
-	//	{
-	//		myDic->GetNextAssoc(position, sKey, oElement);
-	//      myObject = cast(MyClass*, oElement);
-	//		cout << sKey << ": " << *myObject << "\n";
-	//	}
-	POSITION GetStartPosition() const;
-	void GetNextAssoc(POSITION& rNextPosition, ALString& rKey, Object*& rValue) const;
+	// Indique si les cles sont de type chaine de caracteres (NUMERIC sinon)
+	boolean IsStringKey() const;
 
-	// Copie du contenu d'un dictionnaire source
-	void CopyFrom(const ObjectDictionary* odSource);
+	// Indique si les valeur sont de type Object* (longint sinon)
+	boolean IsObjectValue() const;
 
-	// Clone: alloue et retourne le Clone
-	ObjectDictionary* Clone() const;
+	// Supression de toutes les cles correspondant a des valeurs NULL (Object*) ou 0 (longint)
+	// On renvoie le nombre de cle supprimees
+	int RemoveAllNullValues();
+
+	/////////////////////////////////////////////////////////////////////////
+	// Services dans le cas de dictionnaire le cas de valeurs de type Object*
 
 	// Conversions vers les autres containers
 	// Memoire: le contenu precedent du container resultat n'est plus reference (mais pas detruit)
 	void ExportObjectArray(ObjectArray* oaResult) const;
 	void ExportObjectList(ObjectList* olResult) const;
+
+	/////////////////////////////////////////////////////////////////////////
+	// Services dans le cas de dictionnaire le cas de valeurs de type longint
+
+	// Modification par addition d'une valeur pour toutes les cles
+	void UpgradeAll(longint liDeltaValue);
+
+	// Modification par addition d'une valeur pour toutes les cles, puis se limitant au bornes passees en parametres
+	void BoundedUpgradeAll(longint liDeltaValue, longint lLowerBound, longint lUpperBound);
+
+	// Calcul de la valeur min pour toutes les cles
+	longint ComputeMinValue() const;
+
+	// Calcul de la valeur max pour toutes les cles
+	longint ComputeMaxValue() const;
+
+	// Calcul de la valeur totale pour toutes les cles
+	longint ComputeTotalValue() const;
+
+	/////////////////////////////////////////////////////////////
+	// Services generiques
 
 	// Affichage du contenu du dictionaire
 	void Write(ostream& ost) const override;
@@ -619,15 +665,61 @@ public:
 	// Estimation de la memoire utilisee par element (sans la cle), pour le dimensionnement a prior des containers
 	longint GetUsedMemoryPerElement() const;
 
-	// Libelle de la classe
-	const ALString GetClassLabel() const override;
-
-	// Test de la classe
-	static void Test();
+	// Libelle de la classe, pour rendre la classe virtuelle
+	const ALString GetClassLabel() const override = 0;
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
+	//
+	// Les cles, gerees par des GenericKey, peuvent soit de type chaine de caractere, soit du type NUMERIC
+	// (int, longintint, pointeur), ce qui est plus efficace en memoire et temps de calul en evitant la
+	// gestion memoire des chaines de caracteres.
+	// Les valeurs, geree par des GenericValue, peuvent etre soit des Object, soit des longint, ce qui est
+	// plus efficace si on ne doit memoriser qu'un entier (un compteur par exemple). On pourra passer
+	// a des valeurs d'autre type elementaire (double par exemple) si necessaire.
+	// La specialisation des traitements selon le type de cle et de caleur se fait dans le constructeur
+	// des sous-classes a l'aide des boolen bIsStringKey et bIsObjectValue, ce qui est plus efficace en temps
+	// de calcul que via des methodes virtielles reimplementees, et plus simple a specialiser.
+	// Sinon, les sous-classe n'ont a redefinir que les methodes specifiques liees aux type des cles et
+	// des valeurs en reutilisant les methodes de type Generic*
 protected:
+	// Constructeur en protected, pour rendre la classe non instanciable
+	GenericDictionary();
+
+	///////////////////////////////////////////////////////////////////////////////////////
+	// Implementation generique permetant une redefinition simple avec
+	// le bon type de cle et de valeur
+
+	// Recherche par cle
+	// Renvoie 0 si non trouve
+	GenericValue GenericLookup(GenericKey genericKey) const;
+
+	// Ajout d'une nouvelle cle ou recherche de d'une cle existante
+	GDAssoc* GenericGetAssocAt(GenericKey genericKey);
+
+	// Ajout d'une nouvelle paire (key, value)
+	// (ou remplacement d'une valeur pour une cle donnee)
+	void GenericSetAt(GenericKey genericKey, GenericValue genericNewValue);
+
+	// Supression d'une cle
+	// Retourne true si la cle existait
+	boolean GenericRemoveKey(GenericKey genericKey);
+
+	// Parcours de toutes les paires (key, value)
+	// Example:
+	//  position = myDic->GetStartPosition();
+	//	while (position != NULL)
+	//	{
+	//		myDic->GetNextAssoc(position, sKey, oElement);
+	//      myObject = cast(MyClass*, oElement);
+	//		cout << sKey << ": " << *myObject << "\n";
+	//	}
+	POSITION GenericGetStartPosition() const;
+	void GenericGetNextAssoc(POSITION& rNextPosition, GenericKey& genericKey, GenericValue& genericValue) const;
+
+	// Copie du contenu d'un dictionnaire source
+	void GenericCopyFrom(const GenericDictionary* gdSource);
+
 	// Taille de la table de hashage
 	int GetHashTableSize() const;
 
@@ -638,43 +730,123 @@ protected:
 	void ReinitHashTable(int nNewHashSize);
 
 	// Fonction de hashage
-	UINT HashKey(const char* key) const;
+	UINT HashKey(GenericKey genericKey) const;
 
-	// Variables
-	PointerVector pvODAssocs;
-	int nCount;
-	ODAssoc* pFreeList;
+	// Gestion des associations
+	GDAssoc* NewAssoc();
+	void FreeAssoc(GDAssoc* pAssoc);
+	GDAssoc* GetAssocAt(GenericKey genericKey, UINT& nHash) const;
+
+	// Variables de gestion du dictionnaire
+	PointerVector pvGDAssocs;
+	GDAssoc* pFreeList;
 	struct CPlex* pBlocks;
 	static const int nBlockSize = 16;
+	int nCount;
 
-	ODAssoc* NewAssoc();
-	void FreeAssoc(ODAssoc* pAssoc);
-	ODAssoc* GetAssocAt(const char* key, UINT& nHash) const;
+	// Indique si les cles sont de type chaine de caracteres
+	boolean bIsStringKey;
 
-private:
-	// Methode eliminee volontairement de l'interface publique
-	Object*& operator[](const char* key);
+	// Indique si les valeur sont de type Object*
+	boolean bIsObjectValue;
 };
 
 //////////////////////////////////////////////////////////////////////
-// Dictionaire d'objet, a cle numerique                             //
-// Les objets sont identifies par cle numerique                     //
-// Cette cle peut etre un entier, un pointeur, un Object*...        // //
-//                                                                  //
-// Memoire                                                           //
-//   Les objets n'appartiennent pas au dictionaire: leur liberation //
-//   n'est pas geree par cette classe                               //
+// Dictionaire d'objet
+// Les objets sont identifies par cle de type chaine de caracteres
+//
+// Memoire
+//   Les objets n'appartiennent pas au dictionaire: leur liberation
+//   n'est pas geree par cette classe
+class ObjectDictionary : public GenericDictionary
+{
+public:
+	// Constructeur
+	ObjectDictionary();
+	~ObjectDictionary();
+
+	// Recherche par cle
+	// Renvoie NULL si non trouve
+	Object* Lookup(const char* sKey) const;
+
+	// Ajout d'une nouvelle paire (key, value)
+	// (ou remplacement d'une valeur pour une cle donnee)
+	void SetAt(const char* sKey, Object* newValue);
+
+	// Supression d'une cle
+	boolean RemoveKey(const char* sKey);
+
+	// Parcours de toutes les paires (key, value)
+	// Example:
+	//  position = myDic->GetStartPosition();
+	//	while (position != NULL)
+	//	{
+	//		myDic->GetNextAssoc(position, sKey, oElement);
+	//      myObject = cast(MyClass*, oElement);
+	//		cout << sKey << ": " << *myObject << "\n";
+	//	}
+	POSITION GetStartPosition() const;
+	void GetNextAssoc(POSITION& rNextPosition, ALString& sKey, Object*& oValue) const;
+
+	// Copie du contenu d'un dictionnaire source
+	void CopyFrom(const ObjectDictionary* odSource);
+
+	// Clone: alloue et retourne le Clone
+	ObjectDictionary* Clone() const;
+
+	// Libelle de la classe
+	const ALString GetClassLabel() const override;
+
+	// Test de la classe
+	static void Test();
+};
+
+// Type NUMERIC: type generique servant de cle pour les NumericKeyDictionary
+class NUMERIC
+{
+public:
+	// Constructeurs, pour avoir des conversion automatique avec tous les types numeriques
+	NUMERIC();
+	NUMERIC(const void* p);
+	NUMERIC(const int n);
+	NUMERIC(const longint l);
+
+	////////////////////////////////////////////////////////////////
+	// Acces au contenu de la valeur NUMERIC
+	// Attention, ces methodes sont potentiellement risquees
+
+	// Acces au contenu sous la forme d'un pointeur
+	void* ToPointer() const;
+
+	// Acces au contenu sous la forme d'un pointeur vers un Object*
+	Object* ToObjectPointer() const;
+
+	// Acces au contenu sous la forme d'un longint
+	longint ToLongint() const;
+
+	//////////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	friend int operator==(const NUMERIC num1, const NUMERIC num2);
+	friend int operator!=(const NUMERIC num1, const NUMERIC num2);
+	friend ostream& operator<<(ostream& ost, const NUMERIC value);
+	longint lValue;
+};
+
 //////////////////////////////////////////////////////////////////////
-class NumericKeyDictionary : public Object
+// Dictionaire d'objet, a cle numerique
+// Les objets sont identifies par cle numerique
+// Cette cle peut etre un entier, un pointeur, un Object*...
+//
+// Memoire
+//   Les objets n'appartiennent pas au dictionaire: leur liberation
+//   n'est pas geree par cette classe
+class NumericKeyDictionary : public GenericDictionary
 {
 public:
 	// Constructeur
 	NumericKeyDictionary();
 	~NumericKeyDictionary();
-
-	// Nombre d'elements
-	int GetCount() const;
-	boolean IsEmpty() const;
 
 	// Recherche par cle
 	// Renvoie NULL si non trouve
@@ -687,80 +859,125 @@ public:
 	// Supression d'une cle
 	boolean RemoveKey(NUMERIC key);
 
-	// Supression ou destruction de tous les elements
-	void RemoveAll();
-	void DeleteAll();
-
 	// Parcours de toutes les paires (key, value)
 	// Example:
 	//  position = myDic->GetStartPosition();
 	//	while (position != NULL)
 	//	{
-	//		myDic->GetNextAssoc(position, rKey, oElement);
+	//		myDic->GetNextAssoc(position, sKey, oElement);
 	//      myObject = cast(MyClass*, oElement);
-	//		cout << rKey << ": " << *myObject << "\n";
+	//		cout << sKey << ": " << *myObject << "\n";
 	//	}
 	POSITION GetStartPosition() const;
-	void GetNextAssoc(POSITION& rNextPosition, NUMERIC& rKey, Object*& rValue) const;
+	void GetNextAssoc(POSITION& rNextPosition, NUMERIC& key, Object*& oValue) const;
 
 	// Copie du contenu d'un dictionnaire source
-	void CopyFrom(const NumericKeyDictionary* nkdSource);
+	void CopyFrom(const NumericKeyDictionary* odSource);
 
 	// Clone: alloue et retourne le Clone
 	NumericKeyDictionary* Clone() const;
-
-	// Conversions vers les autres containers
-	// Memoire: le contenu precedent du container resultat n'est plus reference (mais pas detruit)
-	void ExportObjectArray(ObjectArray* oaResult) const;
-	void ExportObjectList(ObjectList* olResult) const;
-
-	// Affichage du contenu du dictionaire
-	void Write(ostream& ost) const override;
-
-	// Estimation de la memoire utilisee
-	longint GetUsedMemory() const override;
-
-	// Estimation de la memoire utilisee avec prise en compte des objet contenus
-	longint GetOverallUsedMemory() const;
-
-	// Estimation de la memoire utilisee par element, pour le dimensionnement a prior des containers
-	longint GetUsedMemoryPerElement() const;
 
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
 
 	// Test de la classe
 	static void Test();
+};
 
-	///////////////////////////////////////////////////////////////////////////////////////
-	///// Implementation
-protected:
-	// Taille de la table de hashage
-	int GetHashTableSize() const;
+//////////////////////////////////////////////////////////////////////
+// Dictionaire de longint
+class LongintDictionary : public GenericDictionary
+{
+public:
+	// Constructeur
+	LongintDictionary();
+	~LongintDictionary();
 
-	// Initialisation de la table de hashage
-	void InitHashTable(int hashSize);
+	// Recherche par cle
+	// Renvoie 0 si non trouve
+	longint Lookup(const char* sKey) const;
 
-	// Pour le retaillage dynamique, preservant le contenu
-	void ReinitHashTable(int nNewHashSize);
+	// Ajout d'une nouvelle paire (key, value)
+	// (ou remplacement d'une valeur pour une cle donnee)
+	void SetAt(const char* sKey, longint liNewValue);
 
-	// Fonction de hashage
-	UINT HashKey(NUMERIC key) const;
+	// Modification par addition d'une valeur pour une cle donnee
+	// Si une cle n'existait pas, c'est comme si la valeur precedente etait egale a 0
+	void UpgradeAt(const char* sKey, longint liDeltaValue);
 
-	// Variables
-	PointerVector pvNKDAssocs;
-	int nCount;
-	NKDAssoc* pFreeList;
-	struct CPlex* pBlocks;
-	static const int nBlockSize = 16;
+	// Supression d'une cle
+	boolean RemoveKey(const char* sKey);
 
-	NKDAssoc* NewAssoc();
-	void FreeAssoc(NKDAssoc* pAssoc);
-	NKDAssoc* GetAssocAt(NUMERIC key, UINT& nHash) const;
+	// Parcours de toutes les paires (key, value)
+	// Example:
+	//  position = myDic->GetStartPosition();
+	//	while (position != NULL)
+	//	{
+	//		myDic->GetNextAssoc(position, sKey, lValue);
+	//		cout << sKey << ": " << lValue << "\n";
+	//	}
+	POSITION GetStartPosition() const;
+	void GetNextAssoc(POSITION& rNextPosition, ALString& sKey, longint& lValue) const;
 
-private:
-	// Methode eliminee volontairement de l'interface publique
-	Object*& operator[](NUMERIC key);
+	// Copie du contenu d'un dictionnaire source
+	void CopyFrom(const LongintDictionary* ldSource);
+
+	// Clone: alloue et retourne le Clone
+	LongintDictionary* Clone() const;
+
+	// Libelle de la classe
+	const ALString GetClassLabel() const override;
+
+	// Test de la classe
+	static void Test();
+};
+
+//////////////////////////////////////////////////////////////////////
+// Dictionaire de longint a cle numerique
+class LongintNumericKeyDictionary : public GenericDictionary
+{
+public:
+	// Constructeur
+	LongintNumericKeyDictionary();
+	~LongintNumericKeyDictionary();
+
+	// Recherche par cle
+	// Renvoie 0 si non trouve
+	longint Lookup(NUMERIC key) const;
+
+	// Ajout d'une nouvelle paire (key, value)
+	// (ou remplacement d'une valeur pour une cle donnee)
+	void SetAt(NUMERIC key, longint lNewValue);
+
+	// Modification par addition d'une valeur pour une cle donnee
+	// Si une cle n'existait pas, c'est comme si la valeur precedente etait egale a 0
+	void UpgradeAt(NUMERIC key, longint lDeltaValue);
+
+	// Supression d'une cle
+	boolean RemoveKey(NUMERIC key);
+
+	// Parcours de toutes les paires (key, value)
+	// Example:
+	//  position = myDic->GetStartPosition();
+	//	while (position != NULL)
+	//	{
+	//		myDic->GetNextAssoc(position, sKey, lValue);
+	//		cout << sKey << ": " << lValue << "\n";
+	//	}
+	POSITION GetStartPosition() const;
+	void GetNextAssoc(POSITION& rNextPosition, NUMERIC& key, longint& lValue) const;
+
+	// Copie du contenu d'un dictionnaire source
+	void CopyFrom(const LongintNumericKeyDictionary* linkdSource);
+
+	// Clone: alloue et retourne le Clone
+	LongintNumericKeyDictionary* Clone() const;
+
+	// Libelle de la classe
+	const ALString GetClassLabel() const override;
+
+	// Test de la classe
+	static void Test();
 };
 
 ///////////////////////////////////////////////////////////
@@ -773,22 +990,7 @@ struct ListNode : public SystemObject
 	ListNode* pPrev;
 	Object* data;
 };
-// Association pour ObjectDictionary
-struct ODAssoc : public SystemObject
-{
-	ODAssoc* pNext;
-	UINT nHashValue;
-	char* key;
-	Object* value;
-};
-// Association pour NumericKeyDictionary
-struct NKDAssoc : public SystemObject
-{
-	NKDAssoc* pNext;
-	UINT nHashValue;
-	NUMERIC key;
-	Object* value;
-};
+
 struct CPlex : public SystemObject // Attention: structure de longueur variable
 {
 	CPlex* pNext;
@@ -814,40 +1016,50 @@ int DictionaryGetNextTableSize(int nSize);
 // Implementations en inline
 
 inline Object::Object() {}
+
 inline Object::~Object() {}
 
 inline SampleObject::SampleObject()
 {
 	nInt = 0;
 }
+
 inline SampleObject::~SampleObject() {}
+
 inline void SampleObject::SetInt(int nValue)
 {
 	nInt = nValue;
 }
+
 inline int SampleObject::GetInt() const
 {
 	return nInt;
 }
+
 inline void SampleObject::SetString(const ALString& sValue)
 {
 	sString = sValue;
 }
+
 inline const ALString& SampleObject::GetString() const
 {
 	return sString;
 }
 
 inline StringObject::StringObject() {}
+
 inline StringObject::~StringObject() {}
+
 inline void StringObject::SetString(const ALString& sValue)
 {
 	sString = sValue;
 }
+
 inline const ALString& StringObject::GetString() const
 {
 	return sString;
 }
+
 inline void StringObject::Write(ostream& ost) const
 {
 	ost << sString;
@@ -857,15 +1069,19 @@ inline DoubleObject::DoubleObject()
 {
 	dDouble = 0;
 }
+
 inline DoubleObject::~DoubleObject() {}
+
 inline void DoubleObject::SetDouble(double dValue)
 {
 	dDouble = dValue;
 }
+
 inline double DoubleObject::GetDouble() const
 {
 	return dDouble;
 }
+
 inline void DoubleObject::Write(ostream& ost) const
 {
 	ost << dDouble;
@@ -875,15 +1091,19 @@ inline IntObject::IntObject()
 {
 	nInt = 0;
 }
+
 inline IntObject::~IntObject() {}
+
 inline void IntObject::SetInt(int nValue)
 {
 	nInt = nValue;
 }
+
 inline int IntObject::GetInt() const
 {
 	return nInt;
 }
+
 inline void IntObject::Write(ostream& ost) const
 {
 	ost << nInt;
@@ -893,15 +1113,19 @@ inline LongintObject::LongintObject()
 {
 	lLongint = 0;
 }
+
 inline LongintObject::~LongintObject() {}
+
 inline void LongintObject::SetLongint(longint lValue)
 {
 	lLongint = lValue;
 }
+
 inline longint LongintObject::GetLongint() const
 {
 	return lLongint;
 }
+
 inline void LongintObject::Write(ostream& ost) const
 {
 	ost << lLongint;
@@ -912,10 +1136,12 @@ inline ObjectArray::ObjectArray()
 	MemVector::Create(pData.hugeVector, nSize, nAllocSize, nBlockSize, nElementSize);
 	fCompareFunction = NULL;
 }
+
 inline int ObjectArray::GetSize() const
 {
 	return nSize;
 }
+
 inline void ObjectArray::SetAt(int nIndex, Object* oElement)
 {
 	require(0 <= nIndex and nIndex < GetSize());
@@ -924,6 +1150,7 @@ inline void ObjectArray::SetAt(int nIndex, Object* oElement)
 	else
 		(pData.pValueBlocks[nIndex / nBlockSize])[nIndex % nBlockSize] = oElement;
 }
+
 inline Object* ObjectArray::GetAt(int nIndex) const
 {
 	require(0 <= nIndex and nIndex < GetSize());
@@ -932,6 +1159,7 @@ inline Object* ObjectArray::GetAt(int nIndex) const
 	else
 		return (pData.pValueBlocks[nIndex / nBlockSize])[nIndex % nBlockSize];
 }
+
 inline void ObjectArray::Add(Object* oElement)
 {
 	if (nSize < nAllocSize)
@@ -940,6 +1168,7 @@ inline void ObjectArray::Add(Object* oElement)
 		SetSize(nSize + 1);
 	SetAt(nSize - 1, oElement);
 }
+
 inline void ObjectArray::RemoveAll()
 {
 	SetSize(0);
@@ -949,30 +1178,36 @@ inline int ObjectList::GetCount() const
 {
 	return nCount;
 }
+
 inline boolean ObjectList::IsEmpty() const
 {
 	return nCount == 0;
 }
+
 inline Object* ObjectList::GetHead() const
 {
 	require(not IsEmpty());
 	assert(pNodeHead != NULL);
 	return pNodeHead->data;
 }
+
 inline Object* ObjectList::GetTail() const
 {
 	require(not IsEmpty());
 	assert(pNodeTail != NULL);
 	return pNodeTail->data;
 }
+
 inline POSITION ObjectList::GetHeadPosition() const
 {
 	return (POSITION)pNodeHead;
 }
+
 inline POSITION ObjectList::GetTailPosition() const
 {
 	return (POSITION)pNodeTail;
 }
+
 inline Object* ObjectList::GetNext(POSITION& rPosition) const
 {
 	ListNode* pNode = (ListNode*)rPosition;
@@ -980,6 +1215,7 @@ inline Object* ObjectList::GetNext(POSITION& rPosition) const
 	rPosition = (POSITION)pNode->pNext;
 	return pNode->data;
 }
+
 inline Object* ObjectList::GetPrev(POSITION& rPosition) const
 {
 	ListNode* pNode = (ListNode*)rPosition;
@@ -987,18 +1223,21 @@ inline Object* ObjectList::GetPrev(POSITION& rPosition) const
 	rPosition = (POSITION)pNode->pPrev;
 	return pNode->data;
 }
+
 inline Object* ObjectList::GetAt(POSITION position) const
 {
 	ListNode* pNode = (ListNode*)position;
 	check(pNode);
 	return pNode->data;
 }
+
 inline void ObjectList::SetAt(POSITION pos, Object* newElement)
 {
 	ListNode* pNode = (ListNode*)pos;
 	check(pNode);
 	pNode->data = newElement;
 }
+
 inline void ObjectList::FreeNode(ListNode* pNode)
 {
 	pNode->pNext = pNodeFree;
@@ -1007,72 +1246,285 @@ inline void ObjectList::FreeNode(ListNode* pNode)
 	ensure(nCount >= 0);
 }
 
-inline int ObjectDictionary::GetCount() const
+inline GenericDictionary::~GenericDictionary()
+{
+	RemoveAll();
+	assert(nCount == 0);
+}
+
+inline int GenericDictionary::GetCount() const
 {
 	return nCount;
 }
-inline boolean ObjectDictionary::IsEmpty() const
+
+inline boolean GenericDictionary::IsEmpty() const
 {
 	return nCount == 0;
 }
-inline void ObjectDictionary::SetAt(const char* key, Object* newValue)
+
+inline boolean GenericDictionary::IsStringKey() const
 {
-	(*this)[key] = newValue;
+	return bIsStringKey;
 }
-inline POSITION ObjectDictionary::GetStartPosition() const
+
+inline boolean GenericDictionary::IsObjectValue() const
 {
-	return (nCount == 0) ? NULL : BEFORE_START_POSITION;
+	return bIsObjectValue;
 }
-inline int ObjectDictionary::GetHashTableSize() const
-{
-	return pvODAssocs.GetSize();
-}
-inline Object* ObjectDictionary::Lookup(const char* key) const
+
+inline GenericValue GenericDictionary::GenericLookup(GenericKey genericKey) const
 {
 	UINT nHash;
-	ODAssoc* pAssoc = GetAssocAt(key, nHash);
+
+	GDAssoc* pAssoc = GetAssocAt(genericKey, nHash);
 	if (pAssoc == NULL)
-		return NULL;
+		return {(longint)0};
 	return pAssoc->value;
 }
 
-inline int NumericKeyDictionary::GetCount() const
+inline void GenericDictionary::GenericSetAt(GenericKey genericKey, GenericValue genericNewValue)
 {
-	return nCount;
+	GenericGetAssocAt(genericKey)->value = genericNewValue;
 }
-inline boolean NumericKeyDictionary::IsEmpty() const
-{
-	return nCount == 0;
-}
-inline void NumericKeyDictionary::SetAt(NUMERIC key, Object* newValue)
-{
-	(*this)[key] = newValue;
-}
-inline POSITION NumericKeyDictionary::GetStartPosition() const
+
+inline POSITION GenericDictionary::GenericGetStartPosition() const
 {
 	return (nCount == 0) ? NULL : BEFORE_START_POSITION;
 }
-inline int NumericKeyDictionary::GetHashTableSize() const
+
+inline int GenericDictionary::GetHashTableSize() const
 {
-	return pvNKDAssocs.GetSize();
+	return pvGDAssocs.GetSize();
 }
-inline UINT NumericKeyDictionary::HashKey(NUMERIC key) const
+
+inline void GenericDictionary::InitHashTable(int nHashSize)
 {
-	// Fonction de hashage basique - marche pour la plupart de type primitifs
-	return (UINT)(((uintptr_t)key) >> 4);
+	assert(nCount == 0);
+	assert(nHashSize > 0);
+	pvGDAssocs.SetSize(nHashSize);
 }
+
+inline UINT GenericDictionary::HashKey(GenericKey genericKey) const
+{
+	if (bIsStringKey)
+		return (UINT)HashValue(genericKey.sKey);
+	else
+		return (UINT)IthRandomUnsignedLongint(genericKey.unsignedKey);
+}
+
+inline ObjectDictionary::ObjectDictionary()
+{
+	bIsStringKey = true;
+	bIsObjectValue = true;
+}
+
+inline ObjectDictionary::~ObjectDictionary() {}
+
+inline Object* ObjectDictionary::Lookup(const char* sKey) const
+{
+	return GenericLookup((GenericKey)sKey).oValue;
+}
+
+inline void ObjectDictionary::SetAt(const char* sKey, Object* newValue)
+{
+	GenericSetAt((GenericKey)sKey, (GenericValue)newValue);
+}
+
+inline boolean ObjectDictionary::RemoveKey(const char* sKey)
+{
+	return GenericRemoveKey((GenericKey)sKey);
+}
+
+inline POSITION ObjectDictionary::GetStartPosition() const
+{
+	return GenericGetStartPosition();
+}
+
+inline void ObjectDictionary::GetNextAssoc(POSITION& rNextPosition, ALString& sKey, Object*& oValue) const
+{
+	GenericKey genericKey;
+	GenericValue genericValue;
+
+	GenericGetNextAssoc(rNextPosition, genericKey, genericValue);
+	sKey = genericKey.sKey;
+	oValue = genericValue.oValue;
+}
+
+inline NUMERIC::NUMERIC()
+{
+	lValue = 0;
+}
+
+inline NUMERIC::NUMERIC(const void* p)
+{
+	lValue = (longint)p;
+}
+
+inline NUMERIC::NUMERIC(const int n)
+{
+	lValue = (longint)n;
+}
+
+inline NUMERIC::NUMERIC(const longint l)
+{
+	lValue = (longint)l;
+}
+
+inline void* NUMERIC::ToPointer() const
+{
+	return (void*)lValue;
+}
+
+inline Object* NUMERIC::ToObjectPointer() const
+{
+	return (Object*)lValue;
+}
+
+inline longint NUMERIC::ToLongint() const
+{
+	return lValue;
+}
+
+inline int operator==(const NUMERIC num1, const NUMERIC num2)
+{
+	return num1.lValue == num2.lValue;
+}
+
+inline int operator!=(const NUMERIC num1, const NUMERIC num2)
+{
+	return num1.lValue != num2.lValue;
+}
+
+inline ostream& operator<<(ostream& ost, const NUMERIC value)
+{
+	ost << '[' << (unsigned long long int)value.lValue << ']';
+	return ost;
+}
+
+inline NumericKeyDictionary::NumericKeyDictionary()
+{
+	bIsStringKey = false;
+	bIsObjectValue = true;
+}
+
+inline NumericKeyDictionary::~NumericKeyDictionary() {}
+
 inline Object* NumericKeyDictionary::Lookup(NUMERIC key) const
 {
-	UINT nHash;
-	NKDAssoc* pAssoc = GetAssocAt(key, nHash);
-	if (pAssoc == NULL)
-		return NULL;
-	return pAssoc->value;
+	return GenericLookup((GenericKey)key.ToLongint()).oValue;
 }
-inline void NumericKeyDictionary::FreeAssoc(NKDAssoc* pAssoc)
+
+inline void NumericKeyDictionary::SetAt(NUMERIC key, Object* newValue)
 {
-	pAssoc->pNext = pFreeList;
-	pFreeList = pAssoc;
-	nCount--;
-	ensure(nCount >= 0);
+	GenericSetAt((GenericKey)key.ToLongint(), (GenericValue)newValue);
+}
+
+inline boolean NumericKeyDictionary::RemoveKey(NUMERIC key)
+{
+	return GenericRemoveKey((GenericKey)key.ToLongint());
+}
+
+inline POSITION NumericKeyDictionary::GetStartPosition() const
+{
+	return GenericGetStartPosition();
+}
+
+inline void NumericKeyDictionary::GetNextAssoc(POSITION& rNextPosition, NUMERIC& key, Object*& oValue) const
+{
+	GenericKey genericKey;
+	GenericValue genericValue;
+
+	GenericGetNextAssoc(rNextPosition, genericKey, genericValue);
+	key = genericKey.genericKey;
+	oValue = genericValue.oValue;
+}
+
+inline LongintDictionary::LongintDictionary()
+{
+	bIsStringKey = true;
+	bIsObjectValue = false;
+}
+
+inline LongintDictionary::~LongintDictionary() {}
+
+inline longint LongintDictionary::Lookup(const char* sKey) const
+{
+	return GenericLookup((GenericKey)sKey).genericValue;
+}
+
+inline void LongintDictionary::SetAt(const char* sKey, longint liNewValue)
+{
+	GenericSetAt((GenericKey)sKey, (GenericValue)liNewValue);
+}
+
+inline void LongintDictionary::UpgradeAt(const char* sKey, longint liDeltaValue)
+{
+	GDAssoc* pAssoc;
+	pAssoc = GenericGetAssocAt((GenericKey)sKey);
+	pAssoc->value.genericValue += liDeltaValue;
+}
+
+inline boolean LongintDictionary::RemoveKey(const char* sKey)
+{
+	return GenericRemoveKey((GenericKey)sKey);
+}
+
+inline POSITION LongintDictionary::GetStartPosition() const
+{
+	return GenericGetStartPosition();
+}
+
+inline void LongintDictionary::GetNextAssoc(POSITION& rNextPosition, ALString& sKey, longint& lValue) const
+{
+	GenericKey genericKey;
+	GenericValue genericValue;
+
+	GenericGetNextAssoc(rNextPosition, genericKey, genericValue);
+	sKey = genericKey.sKey;
+	lValue = genericValue.genericValue;
+}
+
+inline LongintNumericKeyDictionary::LongintNumericKeyDictionary()
+{
+	bIsStringKey = false;
+	bIsObjectValue = false;
+}
+
+inline LongintNumericKeyDictionary::~LongintNumericKeyDictionary() {}
+
+inline longint LongintNumericKeyDictionary::Lookup(NUMERIC key) const
+{
+	return GenericLookup((GenericKey)key.ToLongint()).genericValue;
+}
+
+inline void LongintNumericKeyDictionary::SetAt(NUMERIC key, longint liNewValue)
+{
+	GenericSetAt((GenericKey)key.ToLongint(), (GenericValue)liNewValue);
+}
+
+inline void LongintNumericKeyDictionary::UpgradeAt(NUMERIC key, longint liDeltaValue)
+{
+	GDAssoc* pAssoc;
+	pAssoc = GenericGetAssocAt((GenericKey)key.ToLongint());
+	pAssoc->value.genericValue += liDeltaValue;
+}
+
+inline boolean LongintNumericKeyDictionary::RemoveKey(NUMERIC key)
+{
+	return GenericRemoveKey((GenericKey)key.ToLongint());
+}
+
+inline POSITION LongintNumericKeyDictionary::GetStartPosition() const
+{
+	return GenericGetStartPosition();
+}
+
+inline void LongintNumericKeyDictionary::GetNextAssoc(POSITION& rNextPosition, NUMERIC& key, longint& lValue) const
+{
+	GenericKey genericKey;
+	GenericValue genericValue;
+
+	GenericGetNextAssoc(rNextPosition, genericKey, genericValue);
+	key = genericKey.genericKey;
+	lValue = genericValue.genericValue;
 }

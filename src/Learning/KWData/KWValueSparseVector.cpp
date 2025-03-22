@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -218,7 +218,7 @@ void KWObjectArrayValueSparseVector::Test()
 	ALString sTmp;
 
 	// Creation d'une classe de test
-	attributeClass = KWClass::CreateClass("AttributeClass", 1, 1, 1, 0, 0, 0, 0, 0, 0, true, NULL);
+	attributeClass = KWClass::CreateClass("AttributeClass", 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, true, NULL);
 	KWClassDomain::GetCurrentDomain()->InsertClass(attributeClass);
 	KWClassDomain::GetCurrentDomain()->Compile();
 

@@ -1,10 +1,10 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "KWPredictorEvaluationTask.h"
 
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWPredictorEvaluationTask
 
 KWPredictorEvaluationTask::KWPredictorEvaluationTask()
@@ -30,11 +30,17 @@ boolean KWPredictorEvaluationTask::Evaluate(KWPredictor* predictor, KWDatabase* 
 	predictorEvaluation = requesterPredictorEvaluation;
 	InitializePredictorSharedVariables(predictor);
 
+	// On ne souhaite que les messages de fin de tache en cas d'arret
+	SetDisplaySpecificTaskMessage(false);
+	SetDisplayTaskTime(false);
+	SetDisplayEndTaskMessage(true);
+
+	// Lancement de la tache
+	SetReusableDatabaseIndexer(predictor->GetLearningSpec()->GetDatabaseIndexer());
 	bOk = RunDatabaseTask(database);
 
 	// Verification de l'alimentation et nettoyage des variables partagees
 	assert(Check());
-
 	CleanPredictorSharedVariables();
 
 	return bOk;
@@ -83,7 +89,20 @@ boolean KWPredictorEvaluationTask::MasterAggregateResults()
 	return bOk;
 }
 
-////////////////////////////////////////////////////////////////////////////////
+boolean KWPredictorEvaluationTask::MasterFinalize(boolean bProcessEndedCorrectly)
+{
+	boolean bOk;
+
+	// Appel a la methode ancetre
+	bOk = KWDatabaseTask::MasterFinalize(bProcessEndedCorrectly);
+
+	// Warning si la base est vide
+	if (bOk and predictorEvaluation->GetEvaluationInstanceNumber() == 0)
+		AddWarning("Empty evaluation database");
+	return bOk;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWClassifierEvaluationTask
 
 KWClassifierEvaluationTask::KWClassifierEvaluationTask()
@@ -91,15 +110,15 @@ KWClassifierEvaluationTask::KWClassifierEvaluationTask()
 	// Initialisation des variables du maitre
 	classifierEvaluation = NULL;
 	masterConfMatrixEvaluation = NULL;
-	aucEvaluation = NULL;
-	instanceEvaluationSampler = NULL;
-	nNextEvaluationBatch = -1;
+	masterAucEvaluation = NULL;
+	masterInstanceEvaluationSampler = NULL;
+	dMasterSamplingProb = -1.0;
+	nCurrentSample = -1;
 	bIsAucEvaluated = false;
-	bIsAucFromSubsample = false;
 
 	// Initialisation des variables de l'esclave
-	slaveConfMatrixEvaluation = NULL;
-	nSlaveInstanceEvaluationCapacity = 0;
+	slaveInstanceEvaluationSampler = NULL;
+	slaveConfusionMatrixEvaluation = NULL;
 
 	// Initialisation des variables partagees
 	DeclareTaskInput(&input_bIsAucEvaluated);
@@ -108,24 +127,24 @@ KWClassifierEvaluationTask::KWClassifierEvaluationTask()
 	DeclareSharedParameter(&shared_livProbAttributes);
 	DeclareSharedParameter(&shared_nTargetValueNumber);
 	DeclareSharedParameter(&shared_svPredictedModalities);
+	DeclareSharedParameter(&shared_nSlaveInstanceEvaluationCapacity);
 	DeclareTaskOutput(&output_confusionMatrix);
 	DeclareTaskOutput(&output_dCompressionRate);
-	DeclareTaskOutput(&output_bAreSlaveInstanceEvaluationsOverflowed);
-	DeclareTaskOutput(&output_nSlaveCapacityOverflowSize);
-	output_slaveEvaluationInstances = new PLShared_ObjectArray(new PLShared_ClassifierInstanceEvaluation);
-	DeclareTaskOutput(output_slaveEvaluationInstances);
+	output_oaInstanceEvaluationSample = new PLShared_ObjectArray(new PLShared_ClassifierInstanceEvaluation);
+	DeclareTaskOutput(output_oaInstanceEvaluationSample);
+	DeclareTaskOutput(&output_lSeenInstanceEvaluationNumber);
 }
 
 KWClassifierEvaluationTask::~KWClassifierEvaluationTask()
 {
 	assert(masterConfMatrixEvaluation == NULL);
-	assert(slaveConfMatrixEvaluation == NULL);
-	assert(aucEvaluation == NULL);
-	assert(instanceEvaluationSampler == NULL);
-	assert(oaSlaveEvaluationBatches.GetSize() == 0);
+	assert(slaveConfusionMatrixEvaluation == NULL);
+	assert(masterAucEvaluation == NULL);
+	assert(masterInstanceEvaluationSampler == NULL);
+	assert(oaAllInstanceEvaluationSamples.GetSize() == 0);
 
 	// Nettoyage du tableau de sortie des esclaves (force a etre en reference)
-	delete output_slaveEvaluationInstances;
+	delete output_oaInstanceEvaluationSample;
 }
 
 const ALString KWClassifierEvaluationTask::GetTaskName() const
@@ -145,93 +164,86 @@ boolean KWClassifierEvaluationTask::ComputeResourceRequirements()
 	longint lMaxRequiredEvaluationMemory;
 	longint lRemainingMemory;
 	longint lMaxMasterMemoryRequirement;
+	longint lMaxSlaveMemoryRequirement;
 
-	// Appel a la methode ancetre
+	// Appel a la methode ancetre et sauvegarde ses exigences en memoire
 	bOk = KWPredictorEvaluationTask::ComputeResourceRequirements();
+	databaseTaskMasterMemoryRequirement.CopyFrom(GetResourceRequirements()->GetMasterRequirement()->GetMemory());
+	databaseTaskSlaveMemoryRequirement.CopyFrom(GetResourceRequirements()->GetSlaveRequirement()->GetMemory());
 
-	// Estimation du nombre total d'instance de la base en tenant compte du taux d'achantillonnage
+	// Estimation du nombre total d'instances de la base en tenant compte du taux d'achantillonnage
 	lEstimatedTotalObjectNumber =
 	    shared_sourceDatabase.GetPLDatabase()->GetDatabase()->GetSampleEstimatedObjectNumber();
 
 	// Estimation de la memoire totale necessaire pour le calcul de toutes les courbes de lift
 	lMaxRequiredEvaluationMemory =
-	    lEstimatedTotalObjectNumber * ComputeInstanceEvaluationNecessaryMemory() + lMB / 2;
+	    lEstimatedTotalObjectNumber * ComputeInstanceEvaluationNecessaryMemory(shared_nTargetValueNumber) + lMB / 2;
 
 	// Estimation de la memoire totale restante pour en donner au max la moitie au maitre
 	lRemainingMemory = RMResourceManager::GetRemainingAvailableMemory();
 
 	// On diminue potentiellement la memoire max du maitre, en tenant compte de la memoire disponible restante
-	lMaxMasterMemoryRequirement = min(2 * lGB, 32 * lMB + lRemainingMemory / 2);
-	lMaxMasterMemoryRequirement = min(lMaxMasterMemoryRequirement, 2 * lMaxRequiredEvaluationMemory);
+	lMaxMasterMemoryRequirement = min({2 * lGB, 32 * lMB + lRemainingMemory / 2, 2 * lMaxRequiredEvaluationMemory});
 
-	// Memoire Maitre: on demande un min et un max "raisonnable" permettant d'avoir une
-	// tres bonne estimation des courbes de lift, du critere d'AUC, avec dans le pire des cas
-	// un temps de calcul raisonnable. Ce ne serait pas raisonnable de trier des tres
-	// nombreux vecteurs de score de tres grande taille, pour gagner une precision
-	// supplementaire negligeable par rapport a la variance des resultats.
+	// On estime la memoire max du esclave avec un facteur 4
+	lMaxSlaveMemoryRequirement = lMaxMasterMemoryRequirement / 4;
+
+	// Memoire Maitre: on demande un min et un max "raisonnable" permettant d'avoir une bonne
+	// estimation des courbes de lift, du critere d'AUC, et dans le pire cas un temps de calcul
+	// raisonnable. Ce ne serait pas raisonnable de trier des grands vecteurs de score pour gagner une
+	// precision negligeable par rapport a l'erreur statistique du calcul.
 	GetResourceRequirements()->GetMasterRequirement()->GetMemory()->UpgradeMin(
 	    min(32 * lMB, lMaxRequiredEvaluationMemory));
 	GetResourceRequirements()->GetMasterRequirement()->GetMemory()->UpgradeMax(lMaxMasterMemoryRequirement);
+	assert(GetResourceRequirements()->GetMasterRequirement()->GetMemory()->Check());
 
 	// Memoire esclave: meme logique que pour le maitre, et un peu moins pour le max
 	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->UpgradeMin(
-	    min(32 * lMB, lMaxRequiredEvaluationMemory));
-	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->UpgradeMax(
-	    min(lGB / 2, 2 * lMaxRequiredEvaluationMemory));
+	    min(8 * lMB, lMaxSlaveMemoryRequirement));
+	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->UpgradeMax(lMaxSlaveMemoryRequirement);
+	assert(GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->Check());
 
-	// En priorite, on attribut la memoire au maitre, qui collecte l'ensemble des scores
-	// calcules par les esclaves
+	// En priorite, on attribut la memoire au maitre, qui collecte
+	// l'ensemble des scores calcules par les esclaves
 	GetResourceRequirements()->SetMemoryAllocationPolicy(RMTaskResourceRequirement::masterPreferred);
+
 	return bOk;
 }
 
 boolean KWClassifierEvaluationTask::MasterInitialize()
 {
+	boolean bDisplay = false;
 	boolean bOk;
-	int i;
-	longint lInstanceEvaluationSize;
-	longint lGrantedMemory;
-	ALString sTmp = "";
+	int nTargetValue;
+	longint lMasterGrantedMemory;
+	longint lMasterSelfMemory;
+	longint lSlaveGrantedMemory;
+	longint lSlaveSelfMemory;
+	ALString sTmp;
 
 	require(masterConfMatrixEvaluation == NULL);
-	require(slaveConfMatrixEvaluation == NULL);
-	require(aucEvaluation == NULL);
-	require(instanceEvaluationSampler == NULL);
+	require(slaveConfusionMatrixEvaluation == NULL);
+	require(masterAucEvaluation == NULL);
+	require(masterInstanceEvaluationSampler == NULL);
 
 	// Appel a la methode ancetre
 	bOk = KWPredictorEvaluationTask::MasterInitialize();
 
 	// Memorisation de la specialisation du rapport d'evaluation demandeur
 	classifierEvaluation = cast(KWClassifierEvaluation*, predictorEvaluation);
+	assert(classifierEvaluation->oaAllLiftCurveValues.GetSize() == 0);
 
 	// Initialisation du service d'evaluation de la matrice de confusion
 	masterConfMatrixEvaluation = new KWConfusionMatrixEvaluation;
 	masterConfMatrixEvaluation->Initialize();
-	for (i = 0; i < shared_nTargetValueNumber; i++)
-		masterConfMatrixEvaluation->AddPredictedTarget(shared_svPredictedModalities.GetAt(i));
-
-	// Initialisation des services d'echantillonage et de calcul de l'AUC
-	bIsAucFromSubsample = false;
-	bIsAucEvaluated = shared_livProbAttributes.GetSize() > 0 and shared_nTargetValueNumber > 0;
-	nNextEvaluationBatch = 0;
-	instanceEvaluationSampler = new KWReservoirSampler;
-	aucEvaluation = new KWAucEvaluation;
-	aucEvaluation->SetTargetValueNumber(shared_nTargetValueNumber);
-
-	// Dimensionnement de la capacite du reservoir sampler
-	lInstanceEvaluationSize = ComputeInstanceEvaluationNecessaryMemory();
-	lGrantedMemory = GetMasterResourceGrant()->GetMemory();
-	if (lGrantedMemory / lInstanceEvaluationSize < INT_MAX)
-		instanceEvaluationSampler->SetCapacity((int)(lGrantedMemory / lInstanceEvaluationSize));
-	else
-		instanceEvaluationSampler->SetCapacity(INT_MAX);
+	for (nTargetValue = 0; nTargetValue < shared_nTargetValueNumber; nTargetValue++)
+		masterConfMatrixEvaluation->AddPredictedTarget(shared_svPredictedModalities.GetAt(nTargetValue));
 
 	// Initialisation des courbes de lift pour l'ensemble des modalites
-	assert(classifierEvaluation->oaAllLiftCurveValues.GetSize() == 0);
-	for (i = 0; i < shared_nTargetValueNumber; i++)
+	for (nTargetValue = 0; nTargetValue < shared_nTargetValueNumber; nTargetValue++)
 	{
 		// Arret et warning si le maximum de courbes est atteint
-		if (i == nMaxLiftEvaluationNumber)
+		if (nTargetValue == nMaxLiftEvaluationNumber)
 		{
 			AddWarning(sTmp + "The lift curves will be computed only for " +
 				   IntToString(nMaxLiftEvaluationNumber) + " values (among " +
@@ -241,9 +253,56 @@ boolean KWClassifierEvaluationTask::MasterInitialize()
 		classifierEvaluation->oaAllLiftCurveValues.Add(new DoubleVector);
 	}
 
-	// Verification de l'initialisation
-	assert(Check());
+	// Initialisation du compteur des echantillons d'evaluation des esclaves pour le calcul d'AUC et courbes de lift
+	nCurrentSample = 0;
 
+	// Initialisation du service de calcul de l'AUC
+	bIsAucEvaluated = shared_livProbAttributes.GetSize() > 0 and shared_nTargetValueNumber > 0;
+	masterAucEvaluation = new KWAucEvaluation;
+	masterAucEvaluation->SetTargetValueNumber(shared_nTargetValueNumber);
+
+	// Initialisation de l'echantillonneur du maitre et son proba
+	// Etat du RNG a 2^60 pour etre dans une plage differente des esclaves
+	dMasterSamplingProb = 1.0;
+	masterInstanceEvaluationSampler = new KWReservoirSampler;
+	masterInstanceEvaluationSampler->SetSamplerRandomSeed(1ll << 60);
+
+	// Dimensionnement de la capacite de l'echantillonneur du maitre et du esclave
+	lMasterGrantedMemory = GetMasterResourceGrant()->GetMemory();
+	lMasterSelfMemory =
+	    ComputeTaskSelfMemory(lMasterGrantedMemory, GetResourceRequirements()->GetMasterRequirement()->GetMemory(),
+				  &databaseTaskMasterMemoryRequirement);
+	masterInstanceEvaluationSampler->SetCapacity(
+	    ComputeSamplerCapacity(lMasterGrantedMemory, shared_nTargetValueNumber));
+
+	// Dimensionnement de la capacite des echantillonneurs des esclaves
+	// En parallele: La capacite de l'echantillonneur est celle de memoire propre de cette sous-classe
+	//               C'est-a-dire en decomptant la memoire utilise par PLDatabaseTask
+	if (GetTaskResourceGrant()->GetSlaveNumber() > 1)
+	{
+		lSlaveGrantedMemory = GetTaskResourceGrant()->GetSlaveMemory();
+		lSlaveSelfMemory = ComputeTaskSelfMemory(lSlaveGrantedMemory,
+							 GetResourceRequirements()->GetSlaveRequirement()->GetMemory(),
+							 &databaseTaskSlaveMemoryRequirement);
+		shared_nSlaveInstanceEvaluationCapacity =
+		    ComputeSamplerCapacity(lSlaveGrantedMemory, shared_nTargetValueNumber);
+	}
+	// En sequentiel : La capacite est la meme du maitre parce qu'ils partangent le meme espace de memoire
+	else
+		shared_nSlaveInstanceEvaluationCapacity = masterInstanceEvaluationSampler->GetCapacity();
+
+	// Trace de deboggage
+	if (bDisplay)
+	{
+		cout << "Master Initialized\n";
+		cout << "master      mem = " << LongintToHumanReadableString(lMasterGrantedMemory) << "\n";
+		cout << "master capacity = " << masterInstanceEvaluationSampler->GetCapacity() << "\n";
+		cout << "slave       mem = " << LongintToHumanReadableString(GetTaskResourceGrant()->GetSlaveMemory())
+		     << "\n";
+		cout << "slave capacity  =  " << shared_nSlaveInstanceEvaluationCapacity << "\n";
+	}
+
+	ensure(Check());
 	return bOk;
 }
 
@@ -254,8 +313,9 @@ boolean KWClassifierEvaluationTask::MasterPrepareTaskInput(double& dTaskPercent,
 	// Appel a la methode ancetre
 	bOk = KWPredictorEvaluationTask::MasterPrepareTaskInput(dTaskPercent, bIsTaskFinished);
 
-	// Ajout d'une reference nulle dans la place du batch pour les evaluations de l'esclave en cours
-	oaSlaveEvaluationBatches.Add(NULL);
+	// Ajout d'une reference nulle pour l'echantillon d'evaluation de l'esclave en cours
+	oaAllInstanceEvaluationSamples.Add(NULL);
+	lvSeenInstanceEvaluationNumberPerSample.Add(-1);
 	input_bIsAucEvaluated = bIsAucEvaluated;
 	return bOk;
 }
@@ -263,9 +323,7 @@ boolean KWClassifierEvaluationTask::MasterPrepareTaskInput(double& dTaskPercent,
 boolean KWClassifierEvaluationTask::MasterAggregateResults()
 {
 	boolean bOk;
-	ObjectArray* oaSlaveEvaluations;
-	int i;
-	ALString sTmp = "";
+	ObjectArray* oaInstanceEvaluationSample;
 
 	// Appel a la methode ancetre
 	bOk = KWPredictorEvaluationTask::MasterAggregateResults();
@@ -274,81 +332,130 @@ boolean KWClassifierEvaluationTask::MasterAggregateResults()
 	masterConfMatrixEvaluation->AddEvaluatedMatrix(output_confusionMatrix.GetDataGridStats());
 	classifierEvaluation->dCompressionRate += output_dCompressionRate;
 
-	// Si les esclaves overflowent, l'AUC n'est plus evaluee
-	// On nettoie les batchs et met un warning a l'utilisateur
-	if (bIsAucEvaluated and output_bAreSlaveInstanceEvaluationsOverflowed)
-	{
-		// Nettoyage des donnees collectees en cours pour l'AUC
-		bIsAucEvaluated = false;
-		for (i = 0; i < oaSlaveEvaluationBatches.GetSize(); i++)
-		{
-			oaSlaveEvaluations = cast(ObjectArray*, oaSlaveEvaluationBatches.GetAt(i));
-			if (oaSlaveEvaluations != NULL)
-				oaSlaveEvaluations->DeleteAll();
-		}
-		output_slaveEvaluationInstances->GetObjectArray()->DeleteAll();
-		instanceEvaluationSampler->DeleteAll();
-
-		// Warning utilsateur (les autres criteres sont toujours calcules)
-		AddWarning(sTmp + "Not enough memory in slave to compute AUC (needs extra " +
-			   RMResourceManager::ActualMemoryToString(output_nSlaveCapacityOverflowSize *
-								   ComputeInstanceEvaluationNecessaryMemory()) +
-			   ") (maybe too many modalities in target)");
-	}
-
-	// Si l'AUC est evalue, on echantillonne les evaluations d'instance
-	// Ceci se fait dans l'ordre d'expedition des esclaves via le tableau de batches
+	// Cas de l'evaluation du AUC
 	if (bIsAucEvaluated)
 	{
-		// On transfert les instances d'evaluation de l'esclave en cours au tableau de batches
-		// Memoire: Responsabilite transferee aux tableaux de oaSlaveInstancesBatches
-		assert(oaSlaveEvaluationBatches.GetAt(GetTaskIndex()) == NULL);
-		oaSlaveEvaluations = new ObjectArray;
-		oaSlaveEvaluations->CopyFrom(output_slaveEvaluationInstances->GetObjectArray());
-		oaSlaveEvaluationBatches.SetAt(GetTaskIndex(), oaSlaveEvaluations);
-		output_slaveEvaluationInstances->GetObjectArray()->RemoveAll();
+		// On transfert les instances d'evaluation de l'esclave en cours au tableau des echantillons
+		// Memoire: Responsabilite transferee au tableau d'achantillons du maitre
+		assert(oaAllInstanceEvaluationSamples.GetAt(GetTaskIndex()) == NULL);
+		assert(lvSeenInstanceEvaluationNumberPerSample.GetAt(GetTaskIndex()) == -1);
+		oaInstanceEvaluationSample = new ObjectArray;
+		oaInstanceEvaluationSample->CopyFrom(output_oaInstanceEvaluationSample->GetObjectArray());
+		oaAllInstanceEvaluationSamples.SetAt(GetTaskIndex(), oaInstanceEvaluationSample);
+		lvSeenInstanceEvaluationNumberPerSample.SetAt(GetTaskIndex(), output_lSeenInstanceEvaluationNumber);
+		output_oaInstanceEvaluationSample->GetObjectArray()->RemoveAll();
 
-		// Echantillonage d'instances d'evaluation du tableau de batches au sampler du maitre
+		// Echantillonnage d'instances d'evaluation du tableau d'echantillons au sampler du maitre
 		// Ceci se fait en respectant l'ordre ou les esclaves ont ete expedies
 		// Memoire: Responsabilite transferee vers masterInstanceSampler
-		while (nNextEvaluationBatch < oaSlaveEvaluationBatches.GetSize())
+		while (nCurrentSample < oaAllInstanceEvaluationSamples.GetSize())
 		{
-			oaSlaveEvaluations = cast(ObjectArray*, oaSlaveEvaluationBatches.GetAt(nNextEvaluationBatch));
-
-			// Si le prochain batch a traiter est NUL => il n'est pas pret => on pause le echantillonage
-			if (oaSlaveEvaluations == NULL)
-			{
+			// Si le prochain echantillon a traiter est NULL => il n'est pas pret => on pause le
+			// echantillonnage
+			if (oaAllInstanceEvaluationSamples.GetAt(nCurrentSample) == NULL)
 				break;
-			}
+			// Sinon on met a jour l'echantillon
 			else
 			{
-				instanceEvaluationSampler->AddArray(oaSlaveEvaluations);
-				oaSlaveEvaluations->RemoveAll();
-				nNextEvaluationBatch++;
+				MasterAggregateResultsUpdateSampler();
+				nCurrentSample++;
 			}
-		}
-
-		// Warning la premiere fois que l'on atteint la capacite maximale du sampler
-		if (instanceEvaluationSampler->IsOverflowed() and not bIsAucFromSubsample)
-		{
-			bIsAucFromSubsample = true;
-			AddWarning(
-			    sTmp +
-			    "Not enough memory to compute the exact AUC (estimation made on a sub-sample of size " +
-			    IntToString(instanceEvaluationSampler->GetCapacity()) + ")");
 		}
 	}
 
 	return bOk;
 }
 
+void KWClassifierEvaluationTask::MasterAggregateResultsUpdateSampler()
+{
+	ObjectArray* oaCurrentInstanceEvaluationSample;
+	longint lCurrentSampleSeenObjectNumber;
+	int nMasterSampleSize;
+	double dSlaveSamplingProb;
+	double dMasterResamplingProb;
+	int nExpectedMasterResampleSize;
+
+	require(oaAllInstanceEvaluationSamples.GetAt(nCurrentSample) != NULL);
+	require(lvSeenInstanceEvaluationNumberPerSample.GetAt(nCurrentSample) >= 0);
+	require(0 <= dMasterSamplingProb and dMasterSamplingProb <= 1.0);
+
+	// Acces a l'echantillon courant, le nombre d'objets vus et la taille de l'echantillon du maitre
+	oaCurrentInstanceEvaluationSample = cast(ObjectArray*, oaAllInstanceEvaluationSamples.GetAt(nCurrentSample));
+	lCurrentSampleSeenObjectNumber = lvSeenInstanceEvaluationNumberPerSample.GetAt(nCurrentSample);
+	nMasterSampleSize = masterInstanceEvaluationSampler->GetSampleSize();
+
+	// Calcul de la proba d'echantillonage de l'echantillon a traiter
+	if ((longint)oaCurrentInstanceEvaluationSample->GetSize() == lCurrentSampleSeenObjectNumber)
+		dSlaveSamplingProb = 1.0;
+	else
+		dSlaveSamplingProb =
+		    (1.0 * oaCurrentInstanceEvaluationSample->GetSize()) / lCurrentSampleSeenObjectNumber;
+
+	// Cas simple de l'echantillon vide:
+	//  - Mise a jour la proba d'echantillonage du maitre si celle du esclave est plus petite
+	//  - Ajout l'echantillon complet
+	if (nMasterSampleSize == 0)
+	{
+		assert(dMasterSamplingProb == 1);
+		if (dSlaveSamplingProb < dMasterSamplingProb)
+			dMasterSamplingProb = dSlaveSamplingProb;
+		masterInstanceEvaluationSampler->AddArray(oaCurrentInstanceEvaluationSample);
+	}
+	// Cas general
+	else
+	{
+		// Si la proba d'echantilonnage du esclave est plus petite que celle du maitre :
+		//  - Mise-a-jour de diminution de la proba du maitre pour l'ajuster a celle de l'esclave
+		// Voir details ci-dessous
+		if (dSlaveSamplingProb < dMasterSamplingProb)
+		{
+			// Calcul de la proba de reechantillonnage et de la taille esperee du reechantillon
+			// Le reechantillonage avec proba dSlaveSamplingProb / dMasterSamplingProb est necessaire pour
+			// diminuer la proba d'echantillonage du maitre de dMasterSamplingProb a dSlaveSamplingProb
+			dMasterResamplingProb = dSlaveSamplingProb / dMasterSamplingProb;
+			nExpectedMasterResampleSize = int(ceil((dMasterResamplingProb * nMasterSampleSize)));
+
+			// Si le reechantillonnage diminue la taille esperee de l'echantillon, reechantillonnage de
+			// reservoir
+			if (nExpectedMasterResampleSize < nMasterSampleSize)
+				masterInstanceEvaluationSampler->Resample(dMasterResamplingProb);
+
+			// Mise a jour de la proba du maitre
+			dMasterSamplingProb = dSlaveSamplingProb;
+
+			// Ajout complet de l'echantillon du esclave, ce qui ne pose pas de probleme puisque
+			// le maitre et l'esclave ont des echantillons a la meme proba
+			masterInstanceEvaluationSampler->AddArray(oaCurrentInstanceEvaluationSample);
+		}
+		// Si la proba d'echantillonage du esclave est plus grande que celle du maitre :
+		//   - Ajout avec une proba de reechantillonage dMasterSamplingProb / dSlaveSamplingProb.
+		// Cette probabilite de reechantillonage permet de preserver proba d'echantillonage du maitre
+		// lors de l'ajout de l'echantillon courant.
+		// NB: Le cas le plus courant rentre ici (ie. dMasterSamplingProb == dSlaveSamplingProb == 1.0)
+		else
+		{
+			dMasterResamplingProb = dMasterSamplingProb / dSlaveSamplingProb;
+			masterInstanceEvaluationSampler->AddArrayWithProb(oaCurrentInstanceEvaluationSample,
+									  dMasterResamplingProb);
+		}
+	}
+	// Nettoyage
+	oaCurrentInstanceEvaluationSample->RemoveAll();
+
+	ensure(0 <= dMasterSamplingProb and dMasterSamplingProb <= 1.0);
+	ensure(oaCurrentInstanceEvaluationSample->GetSize() == 0);
+}
+
 boolean KWClassifierEvaluationTask::MasterFinalize(boolean bProcessEndedCorrectly)
 {
 	const int nPartileNumber = 1000;
 	boolean bOk;
-	int i;
+	int nLiftCurve;
 	int nPredictorTarget;
 	DoubleVector* dvLiftCurveValues;
+	int nSample;
+	longint lSeenInstanceEvaluationNumber;
+	ALString sTmp;
 
 	// Appel a la methode ancetre
 	bOk = KWPredictorEvaluationTask::MasterFinalize(bProcessEndedCorrectly);
@@ -385,41 +492,65 @@ boolean KWClassifierEvaluationTask::MasterFinalize(boolean bProcessEndedCorrectl
 			// On arrondit si necessaire a 0
 			if (fabs(classifierEvaluation->dCompressionRate) <
 			    classifierEvaluation->dTargetEntropy / classifierEvaluation->lInstanceEvaluationNumber)
+			{
 				classifierEvaluation->dCompressionRate = 0;
+			}
 		}
 
-		// Calcul de l'AUC
-		if (bIsAucEvaluated)
+		// Calcul de l'AUC s'il y y a des instances en evaluation
+		if (bIsAucEvaluated and masterInstanceEvaluationSampler->GetSampledObjects()->GetSize() > 0)
 		{
-			aucEvaluation->SetInstanceEvaluations(instanceEvaluationSampler->GetSampledObjects());
-			if (shared_livProbAttributes.GetSize() > 0 and aucEvaluation->GetTargetValueNumber() > 0)
-				classifierEvaluation->dAUC = aucEvaluation->ComputeGlobalAUCValue();
+			masterAucEvaluation->SetInstanceEvaluations(
+			    masterInstanceEvaluationSampler->GetSampledObjects());
+			if (shared_livProbAttributes.GetSize() > 0 and masterAucEvaluation->GetTargetValueNumber() > 0)
+				classifierEvaluation->dAUC = masterAucEvaluation->ComputeGlobalAUCValue();
 
 			// Calcul des courbes de lift
-			for (i = 0; i < classifierEvaluation->oaAllLiftCurveValues.GetSize(); i++)
+			for (nLiftCurve = 0; nLiftCurve < classifierEvaluation->oaAllLiftCurveValues.GetSize();
+			     nLiftCurve++)
 			{
 				dvLiftCurveValues =
-				    cast(DoubleVector*, classifierEvaluation->oaAllLiftCurveValues.GetAt(i));
+				    cast(DoubleVector*, classifierEvaluation->oaAllLiftCurveValues.GetAt(nLiftCurve));
 
 				// L'index de lift de la modalite est celui de la modalite directement, sauf si la
 				// derniere courbe memorise la courbe pour la modalite cible principale
-				nPredictorTarget = GetPredictorTargetIndexAtLiftCurveIndex(i);
+				nPredictorTarget = GetPredictorTargetIndexAtLiftCurveIndex(nLiftCurve);
 
 				// Si l'on a avant la modalite cible est au debut
-				aucEvaluation->ComputeLiftCurveAt(nPredictorTarget, nPartileNumber, dvLiftCurveValues);
+				masterAucEvaluation->ComputeLiftCurveAt(nPredictorTarget, nPartileNumber,
+									dvLiftCurveValues);
 			}
 		}
 	}
 
+	// Warning si du sampling a ete utilise
+	if (bOk)
+	{
+		lSeenInstanceEvaluationNumber = 0;
+		for (nSample = 0; nSample < lvSeenInstanceEvaluationNumberPerSample.GetSize(); nSample++)
+			lSeenInstanceEvaluationNumber += lvSeenInstanceEvaluationNumberPerSample.GetAt(nSample);
+
+		if ((longint)masterInstanceEvaluationSampler->GetSampleSize() < lSeenInstanceEvaluationNumber)
+		{
+			AddWarning(
+			    sTmp +
+			    "Not enough memory to compute the exact AUC: estimation made on a sub-sample of size " +
+			    IntToString(masterInstanceEvaluationSampler->GetSampleSize()) + " taken from " +
+			    LongintToString(lSeenInstanceEvaluationNumber));
+		}
+	}
+
 	// Nettoyage
-	delete masterConfMatrixEvaluation;
-	delete aucEvaluation;
-	delete instanceEvaluationSampler;
-	masterConfMatrixEvaluation = NULL;
-	aucEvaluation = NULL;
-	instanceEvaluationSampler = NULL;
-	oaSlaveEvaluationBatches.DeleteAll();
 	classifierEvaluation = NULL;
+	delete masterConfMatrixEvaluation;
+	masterConfMatrixEvaluation = NULL;
+	delete masterAucEvaluation;
+	masterAucEvaluation = NULL;
+	delete masterInstanceEvaluationSampler;
+	masterInstanceEvaluationSampler = NULL;
+	dMasterSamplingProb = -1.0;
+	nCurrentSample = -1;
+	oaAllInstanceEvaluationSamples.DeleteAll();
 
 	return bOk;
 }
@@ -427,54 +558,52 @@ boolean KWClassifierEvaluationTask::MasterFinalize(boolean bProcessEndedCorrectl
 boolean KWClassifierEvaluationTask::SlaveInitialize()
 {
 	boolean bOk;
-	longint lInstanceEvaluationSize;
-	longint lGrantedMemory;
 
-	require(slaveConfMatrixEvaluation == NULL);
+	require(slaveConfusionMatrixEvaluation == NULL);
+	require(slaveInstanceEvaluationSampler == NULL);
 
 	// Appel a la methode ancetre
 	bOk = KWPredictorEvaluationTask::SlaveInitialize();
 
-	// Initialisation pour l'evaluation
-	slaveConfMatrixEvaluation = new KWConfusionMatrixEvaluation;
+	// Initialisation des objets de travail de l'esclave
+	slaveInstanceEvaluationSampler = new KWReservoirSampler;
+	slaveConfusionMatrixEvaluation = new KWConfusionMatrixEvaluation;
 
 	// Dimensionnement de la capacite du vecteur de score de l'esclave
-	lInstanceEvaluationSize = ComputeInstanceEvaluationNecessaryMemory();
-	lGrantedMemory =
-	    ComputeSlaveGrantedMemory(GetSlaveResourceRequirement(), GetSlaveResourceGrant()->GetMemory(), false);
-	if (lGrantedMemory / lInstanceEvaluationSize < INT_MAX)
-		nSlaveInstanceEvaluationCapacity = (int)(lGrantedMemory / lInstanceEvaluationSize);
-	else
-		nSlaveInstanceEvaluationCapacity = INT_MAX;
+	slaveInstanceEvaluationSampler->SetCapacity(shared_nSlaveInstanceEvaluationCapacity);
+
 	return bOk;
 }
 
 boolean KWClassifierEvaluationTask::SlaveProcessExploitDatabase()
 {
 	boolean bOk;
-	longint lCapacityOverflowSize;
+	int nInstanceEvaluation;
+	KWClassifierInstanceEvaluation* instanceEvaluation;
+
+	require(slaveInstanceEvaluationSampler != NULL);
+	require(slaveInstanceEvaluationSampler->GetSampleSize() == 0);
 
 	// Initialisation des resultats de l'esclave
 	output_dCompressionRate = 0;
-	slaveConfMatrixEvaluation->Initialize();
-	output_bAreSlaveInstanceEvaluationsOverflowed = false;
-	output_nSlaveCapacityOverflowSize = 0;
+	slaveConfusionMatrixEvaluation->Initialize();
 
 	// Appel a la methode ancetre
 	bOk = KWPredictorEvaluationTask::SlaveProcessExploitDatabase();
 
-	// En cas d'overflow, on calcule sa taille pour la renvoyer au maitre
-	if (output_bAreSlaveInstanceEvaluationsOverflowed)
-	{
-		lCapacityOverflowSize = output_lReadObjects - nSlaveInstanceEvaluationCapacity;
-		if (lCapacityOverflowSize > INT_MAX)
-			output_nSlaveCapacityOverflowSize = INT_MAX;
-		else
-			output_nSlaveCapacityOverflowSize = (int)lCapacityOverflowSize;
-	}
-
 	// Remplisement des sorties de l'esclave
-	slaveConfMatrixEvaluation->ExportDataGridStats(output_confusionMatrix.GetDataGridStats());
+	slaveConfusionMatrixEvaluation->ExportDataGridStats(output_confusionMatrix.GetDataGridStats());
+	for (nInstanceEvaluation = 0; nInstanceEvaluation < slaveInstanceEvaluationSampler->GetSampleSize();
+	     nInstanceEvaluation++)
+	{
+		instanceEvaluation = cast(KWClassifierInstanceEvaluation*,
+					  slaveInstanceEvaluationSampler->GetSampledObjectAt(nInstanceEvaluation));
+		output_oaInstanceEvaluationSample->GetObjectArray()->Add(instanceEvaluation);
+	}
+	output_lSeenInstanceEvaluationNumber = slaveInstanceEvaluationSampler->GetSeenObjectNumber();
+
+	// Remise a zero de l'echantillonneur
+	slaveInstanceEvaluationSampler->RemoveAll();
 
 	return bOk;
 }
@@ -483,38 +612,38 @@ boolean KWClassifierEvaluationTask::SlaveProcessExploitDatabaseObject(const KWOb
 {
 	const Continuous cEpsilon = (Continuous)1e-6;
 	boolean bOk;
-	int nActualValueIndex;
-	int i;
+	int nActualValue;
+	int nTargetValue;
 	Symbol sActualTargetValue;
 	Symbol sPredictedTargetValue;
 	Continuous cActualTargetValueProb;
 	KWClassifierInstanceEvaluation* instanceEvaluation;
 
 	require(kwoObject != NULL);
+	require(shared_liTargetAttribute.GetValue().IsValid());
+	require(shared_liPredictionAttribute.GetValue().IsValid());
 
 	// Appel de la methode ancetre
 	bOk = KWPredictorEvaluationTask::SlaveProcessExploitDatabaseObject(kwoObject);
 
-	// Obtention des modalites predites et effectives
-	assert(shared_liTargetAttribute.GetValue().IsValid());
-	assert(shared_liPredictionAttribute.GetValue().IsValid());
+	// Acces aux modalites predites et effectives
 	sActualTargetValue = kwoObject->GetSymbolValueAt(shared_liTargetAttribute.GetValue());
 	sPredictedTargetValue = kwoObject->GetSymbolValueAt(shared_liPredictionAttribute.GetValue());
 
 	// Mise a jour de la matrice de confusion
-	slaveConfMatrixEvaluation->AddInstanceEvaluation(sPredictedTargetValue, sActualTargetValue);
+	slaveConfusionMatrixEvaluation->AddInstanceEvaluation(sPredictedTargetValue, sActualTargetValue);
 
 	// Recherche de l'index en apprentissage de la modalite effective
 	// Par defaut: le nombre de modalites cible en apprentissage
 	// (signifie valeur cible inconnue en apprentissage)
-	nActualValueIndex = shared_nTargetValueNumber;
+	nActualValue = shared_nTargetValueNumber;
 	if (shared_livProbAttributes.GetSize() > 0)
 	{
-		for (i = 0; i < shared_nTargetValueNumber; i++)
+		for (nTargetValue = 0; nTargetValue < shared_nTargetValueNumber; nTargetValue++)
 		{
-			if (shared_svPredictedModalities.GetAt(i) == sActualTargetValue)
+			if (shared_svPredictedModalities.GetAt(nTargetValue) == sActualTargetValue)
 			{
-				nActualValueIndex = i;
+				nActualValue = nTargetValue;
 				break;
 			}
 		}
@@ -525,12 +654,12 @@ boolean KWClassifierEvaluationTask::SlaveProcessExploitDatabaseObject(const KWOb
 	{
 		// Recherche de la probabilite predite pour la valeur cible reelle
 		cActualTargetValueProb = 0;
-		if (nActualValueIndex < shared_livProbAttributes.GetSize())
+		if (nActualValue < shared_livProbAttributes.GetSize())
 		{
 			assert(kwoObject->GetSymbolValueAt(shared_liTargetAttribute.GetValue()) ==
-			       shared_svPredictedModalities.GetAt(nActualValueIndex));
+			       shared_svPredictedModalities.GetAt(nActualValue));
 			cActualTargetValueProb =
-			    kwoObject->GetContinuousValueAt(shared_livProbAttributes.GetAt(nActualValueIndex));
+			    kwoObject->GetContinuousValueAt(shared_livProbAttributes.GetAt(nActualValue));
 
 			// On projete sur [0, 1] pour avoir une probabilite quoi qu'il arrive
 			if (cActualTargetValueProb < cEpsilon)
@@ -547,27 +676,23 @@ boolean KWClassifierEvaluationTask::SlaveProcessExploitDatabaseObject(const KWOb
 	}
 
 	// Collecte des informations necessaires a l'estimation de l'AUC et aux courbes de lift
-	if (input_bIsAucEvaluated and not output_bAreSlaveInstanceEvaluationsOverflowed)
+	if (input_bIsAucEvaluated)
 	{
-		// On arrete tout si l'on a va depasser la capacite de l'esclave
-		if (output_slaveEvaluationInstances->GetObjectArray()->GetSize() == nSlaveInstanceEvaluationCapacity)
+		// Initialisation du RNG de l'echantillonneur avec l'index de creation du premier objet de la sous-tache
+		if (slaveInstanceEvaluationSampler->GetSampleSize() == 0)
+			slaveInstanceEvaluationSampler->SetSamplerRandomSeed(kwoObject->GetCreationIndex());
+
+		// Ajout de l'evaluation de l'instance
+		instanceEvaluation = new KWClassifierInstanceEvaluation;
+		instanceEvaluation->SetTargetValueNumber(shared_nTargetValueNumber);
+		instanceEvaluation->SetActualTargetIndex(nActualValue);
+		for (nTargetValue = 0; nTargetValue < shared_nTargetValueNumber; nTargetValue++)
 		{
-			output_slaveEvaluationInstances->GetObjectArray()->DeleteAll();
-			output_bAreSlaveInstanceEvaluationsOverflowed = true;
+			instanceEvaluation->SetTargetProbAt(
+			    nTargetValue,
+			    kwoObject->GetContinuousValueAt(shared_livProbAttributes.GetAt(nTargetValue)));
 		}
-		// Sinon, on ajoute l'instance
-		else
-		{
-			instanceEvaluation = new KWClassifierInstanceEvaluation;
-			instanceEvaluation->SetTargetValueNumber(shared_nTargetValueNumber);
-			instanceEvaluation->SetActualTargetIndex(nActualValueIndex);
-			for (i = 0; i < shared_nTargetValueNumber; i++)
-			{
-				instanceEvaluation->SetTargetProbAt(
-				    i, kwoObject->GetContinuousValueAt(shared_livProbAttributes.GetAt(i)));
-			}
-			output_slaveEvaluationInstances->GetObjectArray()->Add(instanceEvaluation);
-		}
+		slaveInstanceEvaluationSampler->Add(instanceEvaluation);
 	}
 
 	return bOk;
@@ -577,13 +702,17 @@ boolean KWClassifierEvaluationTask::SlaveFinalize(boolean bProcessEndedCorrectly
 {
 	boolean bOk;
 
+	require(slaveInstanceEvaluationSampler != NULL);
+	require(slaveConfusionMatrixEvaluation != NULL);
+
 	// Appel a la methode ancetre
 	bOk = KWPredictorEvaluationTask::SlaveFinalize(bProcessEndedCorrectly);
 
 	// Nettoyage
-	nSlaveInstanceEvaluationCapacity = 0;
-	delete slaveConfMatrixEvaluation;
-	slaveConfMatrixEvaluation = NULL;
+	delete slaveInstanceEvaluationSampler;
+	slaveInstanceEvaluationSampler = NULL;
+	delete slaveConfusionMatrixEvaluation;
+	slaveConfusionMatrixEvaluation = NULL;
 	return bOk;
 }
 
@@ -594,7 +723,7 @@ void KWClassifierEvaluationTask::InitializePredictorSharedVariables(KWPredictor*
 	KWLoadIndex liTarget;
 	KWLoadIndex liPrediction;
 	KWLoadIndex liProbAttribute;
-	ALString sTmp = "";
+	ALString sTmp;
 
 	// Informations du predicteur necessaires pour l'evaluation: Globalement des LoadIndex
 	classifier = predictor->GetTrainedClassifier();
@@ -604,7 +733,6 @@ void KWClassifierEvaluationTask::InitializePredictorSharedVariables(KWPredictor*
 	shared_liPredictionAttribute.SetValue(liPrediction);
 	shared_nTargetValueNumber = classifier->GetTargetValueNumber();
 	shared_livProbAttributes.GetLoadIndexVector()->SetSize(shared_nTargetValueNumber);
-
 	for (nTargetIndex = 0; nTargetIndex < shared_livProbAttributes.GetSize(); nTargetIndex++)
 	{
 		liProbAttribute = GetLoadIndex(classifier->GetProbAttributeAt(nTargetIndex));
@@ -612,12 +740,13 @@ void KWClassifierEvaluationTask::InitializePredictorSharedVariables(KWPredictor*
 		shared_svPredictedModalities.Add(classifier->GetTargetValueAt(nTargetIndex));
 	}
 
-	// Warning si pas de modalites cibles specifiees
+	// La capacite de l'echantillonneur du esclave est initialisee dans MasterInitialize apres dimensionnement
+	shared_nSlaveInstanceEvaluationCapacity = 0;
+
+	// Warning s'il n'y a pas de modalites cibles specifiees
 	if (shared_nTargetValueNumber == 0)
-	{
-		AddWarning(sTmp + "The AUC value will not be evaluated " +
-			   "as the target value probabilities are not available from the predictor");
-	}
+		AddWarning(sTmp + "The AUC value will not be evaluated as the target value probabilities are not "
+				  "available from the predictor");
 }
 
 void KWClassifierEvaluationTask::CleanPredictorSharedVariables()
@@ -632,6 +761,7 @@ void KWClassifierEvaluationTask::CleanPredictorSharedVariables()
 int KWClassifierEvaluationTask::GetMainTargetModalityLiftIndex() const
 {
 	require(classifierEvaluation != NULL);
+
 	if (classifierEvaluation->GetMainTargetModalityIndex() == -1)
 		return -1;
 	else
@@ -649,29 +779,88 @@ int KWClassifierEvaluationTask::GetMainTargetModalityLiftIndex() const
 int KWClassifierEvaluationTask::GetComputedLiftCurveNumber() const
 {
 	require(classifierEvaluation != NULL);
-
 	return classifierEvaluation->oaAllLiftCurveValues.GetSize();
 }
 
-int KWClassifierEvaluationTask::GetPredictorTargetIndexAtLiftCurveIndex(int nLiftCurveIndex) const
+int KWClassifierEvaluationTask::GetPredictorTargetIndexAtLiftCurveIndex(int nLiftCurve) const
 {
 	require(classifierEvaluation != NULL);
-	require(0 <= nLiftCurveIndex and nLiftCurveIndex < GetComputedLiftCurveNumber());
+	require(0 <= nLiftCurve and nLiftCurve < GetComputedLiftCurveNumber());
 
-	if (nLiftCurveIndex == classifierEvaluation->oaAllLiftCurveValues.GetSize() - 1 and
+	if (nLiftCurve == classifierEvaluation->oaAllLiftCurveValues.GetSize() - 1 and
 	    GetMainTargetModalityLiftIndex() == classifierEvaluation->oaAllLiftCurveValues.GetSize() - 1)
 		return classifierEvaluation->GetMainTargetModalityIndex();
 	else
-		return nLiftCurveIndex;
+		return nLiftCurve;
 }
 
-longint KWClassifierEvaluationTask::ComputeInstanceEvaluationNecessaryMemory() const
+int KWClassifierEvaluationTask::ComputeSamplerCapacity(longint lMemory, int nTargetValueNumber) const
 {
-	return sizeof(KWClassifierInstanceEvaluation) + sizeof(KWClassifierInstanceEvaluation*) +
-	       shared_nTargetValueNumber * sizeof(Continuous);
+	int nCapacity;
+	longint lInstanceEvaluationSize;
+
+	lInstanceEvaluationSize = ComputeInstanceEvaluationNecessaryMemory(nTargetValueNumber);
+	if (lMemory / lInstanceEvaluationSize < INT_MAX)
+		nCapacity = (int)(lMemory / lInstanceEvaluationSize);
+	else
+		nCapacity = INT_MAX;
+
+	return nCapacity;
 }
 
-////////////////////////////////////////////////////////////////////////////////
+longint KWClassifierEvaluationTask::ComputeTaskSelfMemory(longint lTaskGrantedMemory,
+							  RMPhysicalResource* taskMemoryRequirement,
+							  RMPhysicalResource* parentTaskMemoryRequirement) const
+{
+	longint lDeltaMinMemory;
+	longint lDeltaMaxMemory;
+	longint lTaskMemoryRequirementRange;
+	longint lTaskSelfMemory;
+	double dMemoryRatio;
+
+	require(taskMemoryRequirement != NULL);
+	require(taskMemoryRequirement->GetMin() <= taskMemoryRequirement->GetMax());
+	require(taskMemoryRequirement->GetMin() <= lTaskGrantedMemory and
+		lTaskGrantedMemory <= taskMemoryRequirement->GetMax());
+	require(parentTaskMemoryRequirement != NULL);
+	require(parentTaskMemoryRequirement->GetMin() <= parentTaskMemoryRequirement->GetMax());
+
+	// Calcul "delta" exigences de cette classe par rapport aux exigences de la classe ancetre
+	lDeltaMinMemory = taskMemoryRequirement->GetMin() - parentTaskMemoryRequirement->GetMin();
+	lDeltaMaxMemory = taskMemoryRequirement->GetMax() - parentTaskMemoryRequirement->GetMax();
+	assert(0 < lDeltaMinMemory and lDeltaMinMemory <= lDeltaMaxMemory);
+
+	// Si l'on a attribue le min a la tache alors on rends le delta min avec la classe ancetre
+	if (lTaskGrantedMemory == taskMemoryRequirement->GetMin())
+		lTaskSelfMemory = lDeltaMinMemory;
+	// Si l'on a attribue le max a la tache alors on rends le delta max avec la classe ancetre
+	else if (lTaskGrantedMemory == taskMemoryRequirement->GetMax())
+		lTaskSelfMemory = lDeltaMaxMemory;
+	// Sinon on rends au prorata du rang la memoire propre
+	else
+	{
+		lTaskMemoryRequirementRange = taskMemoryRequirement->GetMax() - taskMemoryRequirement->GetMin();
+		if (lTaskMemoryRequirementRange > 0)
+		{
+			dMemoryRatio =
+			    double(lTaskGrantedMemory - taskMemoryRequirement->GetMin()) / lTaskMemoryRequirementRange;
+			lTaskSelfMemory =
+			    (longint)(lDeltaMinMemory + dMemoryRatio * (lDeltaMaxMemory - lDeltaMinMemory));
+		}
+		else
+			lTaskSelfMemory = lDeltaMinMemory;
+	}
+	ensure(lTaskSelfMemory > 0);
+	return lTaskSelfMemory;
+}
+
+longint KWClassifierEvaluationTask::ComputeInstanceEvaluationNecessaryMemory(int nTargetValueNumber) const
+{
+	return (longint)sizeof(KWClassifierInstanceEvaluation) + sizeof(KWClassifierInstanceEvaluation*) +
+	       (longint)nTargetValueNumber * sizeof(Continuous);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWRegressorEvaluationTask
 
 KWRegressorEvaluationTask::KWRegressorEvaluationTask()
@@ -755,8 +944,8 @@ boolean KWRegressorEvaluationTask::ComputeResourceRequirements()
 	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->UpgradeMax(
 	    min(64 * lMB, 2 * lMaxRequiredEvaluationMemory));
 
-	// En priorite, on attribut la memoire au maitre, qui collecte l'ensemble des scores
-	// calcules par les esclaves
+	// En priorite, on attribut la memoire au maitre, qui collecte
+	// l'ensemble des scores calcules par les esclaves
 	GetResourceRequirements()->SetMemoryAllocationPolicy(RMTaskResourceRequirement::masterPreferred);
 	return bOk;
 }
@@ -800,7 +989,7 @@ boolean KWRegressorEvaluationTask::MasterAggregateResults()
 {
 	boolean bOk;
 	int nMasterCapacityOverflowSize;
-	int i;
+	int nRankAbsoluteError;
 
 	// Appel a la methode ancetre
 	bOk = KWPredictorEvaluationTask::MasterAggregateResults();
@@ -815,16 +1004,17 @@ boolean KWRegressorEvaluationTask::MasterAggregateResults()
 	regressorEvaluation->dRankNLPD += output_dRankNLPD;
 
 	// Si les esclaves overflowent, la courbe de REC n'est plus evaluee
-	// On nettoie les batchs et met un warning a l'utilisateur
+	// On nettoie les donnees collectees et on emet un warning a l'utilisateur
 	if (bIsRecCurveCalculated and output_bIsRecCurveVectorOverflowed)
 	{
-		// Nettoyage des donnees collectees en cours pour l'AUC
+		// Nettoyage des donnees collectees en cours
 		bIsRecCurveCalculated = false;
 		dvRankAbsoluteErrors.SetSize(0);
 
-		// Warning utilisteur (les autres criteres sont toujours calcules)
+		// Warning utilisateur (les autres criteres sont toujours calcules)
 		AddWarning("Not enough memory in slave to compute REC curve (needs extra " +
-			   RMResourceManager::ActualMemoryToString(output_nSlaveCapacityOverflowSize * sizeof(double)) +
+			   RMResourceManager::ActualMemoryToString((longint)output_nSlaveCapacityOverflowSize *
+								   sizeof(double)) +
 			   ")");
 	}
 
@@ -838,10 +1028,10 @@ boolean KWRegressorEvaluationTask::MasterAggregateResults()
 		if (nMasterCapacityOverflowSize > 0)
 		{
 			// Warning utilisteur (les autres criteres sont toujours calcules)
-			AddWarning(
-			    "Not enough memory in master to compute REC curve (needs extra " +
-			    RMResourceManager::ActualMemoryToString(nMasterCapacityOverflowSize * sizeof(double)) +
-			    ")");
+			AddWarning("Not enough memory in master to compute REC curve (needs extra " +
+				   RMResourceManager::ActualMemoryToString((longint)nMasterCapacityOverflowSize *
+									   sizeof(double)) +
+				   ")");
 
 			// Nettoyage
 			dvRankAbsoluteErrors.SetSize(0);
@@ -850,8 +1040,9 @@ boolean KWRegressorEvaluationTask::MasterAggregateResults()
 		// Collecte des erreur veannt de l'esclave
 		else
 		{
-			for (i = 0; i < output_dvRankAbsoluteErrors.GetSize(); i++)
-				dvRankAbsoluteErrors.Add(output_dvRankAbsoluteErrors.GetAt(i));
+			for (nRankAbsoluteError = 0; nRankAbsoluteError < output_dvRankAbsoluteErrors.GetSize();
+			     nRankAbsoluteError++)
+				dvRankAbsoluteErrors.Add(output_dvRankAbsoluteErrors.GetAt(nRankAbsoluteError));
 		}
 	}
 	return bOk;
@@ -861,7 +1052,7 @@ boolean KWRegressorEvaluationTask::MasterFinalize(boolean bProcessEndedCorrectly
 {
 	const int nRankRECPartileNumber = 1000;
 	boolean bOk;
-	int i;
+	int nRankAbsoluteError;
 	int nPartile;
 	double dRankAbsoluteErrorThreshold;
 	ALString sMessage;
@@ -917,19 +1108,21 @@ boolean KWRegressorEvaluationTask::MasterFinalize(boolean bProcessEndedCorrectly
 					       regressorEvaluation->lInstanceEvaluationNumber);
 					dvRankAbsoluteErrors.Sort();
 					regressorEvaluation->dvRankRECCurveValues.SetSize(nRankRECPartileNumber + 1);
-					i = 0;
+					nRankAbsoluteError = 0;
 					for (nPartile = 1; nPartile <= nRankRECPartileNumber; nPartile++)
 					{
 						dRankAbsoluteErrorThreshold = nPartile * 1.0 / nRankRECPartileNumber;
 
 						// Calcul du nombre d'instance ayant une erreur inferieure au seuil
-						while (i < dvRankAbsoluteErrors.GetSize() and
-						       dvRankAbsoluteErrors.GetAt(i) <= dRankAbsoluteErrorThreshold)
-							i++;
+						while (nRankAbsoluteError < dvRankAbsoluteErrors.GetSize() and
+						       dvRankAbsoluteErrors.GetAt(nRankAbsoluteError) <=
+							   dRankAbsoluteErrorThreshold)
+							nRankAbsoluteError++;
 
 						// Memorisation de la valeur de la courbe de REC
 						regressorEvaluation->dvRankRECCurveValues.SetAt(
-						    nPartile, (1.0 * i) / dvRankAbsoluteErrors.GetSize());
+						    nPartile,
+						    (1.0 * nRankAbsoluteError) / dvRankAbsoluteErrors.GetSize());
 					}
 				}
 			}
@@ -966,7 +1159,7 @@ boolean KWRegressorEvaluationTask::SlaveProcessExploitDatabase()
 	boolean bOk;
 	longint lCapacityOverflowSize;
 
-	// Initialisation des resultats de l'eclave
+	// Initialisation des resultats de l'esclave
 	output_nTargetMissingValueNumber = 0;
 	output_dRMSE = 0;
 	output_dMAE = 0;
@@ -1120,7 +1313,7 @@ void KWRegressorEvaluationTask::CleanPredictorSharedVariables()
 	shared_liRankDensityAttribute.GetValue().Reset();
 }
 
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWConfusionMatrixEvaluation
 
 int KWConfusionMatrixEvaluation::nMaxSize = 1000;
@@ -1354,7 +1547,7 @@ void KWConfusionMatrixEvaluation::ExportDataGridStats(KWDataGridStats* dgsConfus
 	for (nActual = 0; nActual < svActualValues.GetSize(); nActual++)
 	{
 		sActualTarget = svActualValues.GetAt(nActual);
-		if (nkdPredictedValues.Lookup((NUMERIC)sActualTarget.GetNumericKey()) == NULL)
+		if (nkdPredictedValues.Lookup(sActualTarget.GetNumericKey()) == NULL)
 			svConfusionMatrixAllValues->Add(sActualTarget);
 	}
 
@@ -1387,11 +1580,11 @@ void KWConfusionMatrixEvaluation::ExportDataGridStats(KWDataGridStats* dgsConfus
 			nFrequency = 0;
 			nkdActualFrequencies =
 			    cast(NumericKeyDictionary*,
-				 nkdPredictedValuesActualFreqs.Lookup((NUMERIC)sPredictedTarget.GetNumericKey()));
+				 nkdPredictedValuesActualFreqs.Lookup(sPredictedTarget.GetNumericKey()));
 			if (nkdActualFrequencies != NULL)
 			{
-				ioFrequency = cast(
-				    IntObject*, nkdActualFrequencies->Lookup((NUMERIC)sActualTarget.GetNumericKey()));
+				ioFrequency =
+				    cast(IntObject*, nkdActualFrequencies->Lookup(sActualTarget.GetNumericKey()));
 				if (ioFrequency != NULL)
 					nFrequency = ioFrequency->GetInt();
 				nTruncatedFrequency += nFrequency;
@@ -1416,14 +1609,13 @@ void KWConfusionMatrixEvaluation::ExportDataGridStats(KWDataGridStats* dgsConfus
 
 				// Recherche de l'effectif correspondant
 				nFrequency = 0;
-				nkdActualFrequencies = cast(
-				    NumericKeyDictionary*,
-				    nkdPredictedValuesActualFreqs.Lookup((NUMERIC)sPredictedTarget.GetNumericKey()));
+				nkdActualFrequencies =
+				    cast(NumericKeyDictionary*,
+					 nkdPredictedValuesActualFreqs.Lookup(sPredictedTarget.GetNumericKey()));
 				if (nkdActualFrequencies != NULL)
 				{
-					ioFrequency =
-					    cast(IntObject*,
-						 nkdActualFrequencies->Lookup((NUMERIC)sActualTarget.GetNumericKey()));
+					ioFrequency = cast(IntObject*,
+							   nkdActualFrequencies->Lookup(sActualTarget.GetNumericKey()));
 					if (ioFrequency != NULL)
 						nFrequency = ioFrequency->GetInt();
 					nTruncatedFrequency += nFrequency;
@@ -1445,14 +1637,13 @@ void KWConfusionMatrixEvaluation::ExportDataGridStats(KWDataGridStats* dgsConfus
 
 				// Recherche de l'effectif correspondant
 				nFrequency = 0;
-				nkdActualFrequencies = cast(
-				    NumericKeyDictionary*,
-				    nkdPredictedValuesActualFreqs.Lookup((NUMERIC)sPredictedTarget.GetNumericKey()));
+				nkdActualFrequencies =
+				    cast(NumericKeyDictionary*,
+					 nkdPredictedValuesActualFreqs.Lookup(sPredictedTarget.GetNumericKey()));
 				if (nkdActualFrequencies != NULL)
 				{
-					ioFrequency =
-					    cast(IntObject*,
-						 nkdActualFrequencies->Lookup((NUMERIC)sActualTarget.GetNumericKey()));
+					ioFrequency = cast(IntObject*,
+							   nkdActualFrequencies->Lookup(sActualTarget.GetNumericKey()));
 					if (ioFrequency != NULL)
 						nFrequency = ioFrequency->GetInt();
 					nTruncatedFrequency += nFrequency;
@@ -1562,8 +1753,8 @@ void KWConfusionMatrixEvaluation::AddInstances(const Symbol& sPredictedTarget, c
 
 	require(nFrequency >= 0);
 
-	predictedTargetKey = (NUMERIC)sPredictedTarget.GetNumericKey();
-	actualTargetKey = (NUMERIC)sActualTarget.GetNumericKey();
+	predictedTargetKey = sPredictedTarget.GetNumericKey();
+	actualTargetKey = sActualTarget.GetNumericKey();
 
 	// Memorisation de la valeur predite si n'est pas encore enregistree
 	if (nkdPredictedValues.Lookup(predictedTargetKey) == NULL)
@@ -1613,11 +1804,11 @@ int KWConfusionMatrixEvaluation::ComputeFrequencyAt(const Symbol& sPredictedTarg
 	nFrequency = 0;
 
 	// Recherche de l'effectif de la cellule [target, actual]
-	predictedTargetKey = (NUMERIC)sPredictedTarget.GetNumericKey();
+	predictedTargetKey = sPredictedTarget.GetNumericKey();
 	nkdActualFrequencies = cast(NumericKeyDictionary*, nkdPredictedValuesActualFreqs.Lookup(predictedTargetKey));
 	if (nkdActualFrequencies != NULL)
 	{
-		actualTargetKey = (NUMERIC)sActualTarget.GetNumericKey();
+		actualTargetKey = sActualTarget.GetNumericKey();
 		ioFrequency = cast(IntObject*, nkdActualFrequencies->Lookup(actualTargetKey));
 
 		if (ioFrequency != NULL)
@@ -1644,12 +1835,10 @@ int KWConfusionMatrixEvaluation::ComputeCumulatedActualFrequencyAt(const Symbol&
 
 		// Recherche de l'existance d'une cellule non vide pour la modalite reelle
 		nkdActualFrequencies =
-		    cast(NumericKeyDictionary*,
-			 nkdPredictedValuesActualFreqs.Lookup((NUMERIC)sPredictedTarget.GetNumericKey()));
+		    cast(NumericKeyDictionary*, nkdPredictedValuesActualFreqs.Lookup(sPredictedTarget.GetNumericKey()));
 		if (nkdActualFrequencies != NULL)
 		{
-			ioFrequency =
-			    cast(IntObject*, nkdActualFrequencies->Lookup((NUMERIC)sActualTarget.GetNumericKey()));
+			ioFrequency = cast(IntObject*, nkdActualFrequencies->Lookup(sActualTarget.GetNumericKey()));
 			if (ioFrequency != NULL)
 				nCumulatedFrequency += ioFrequency->GetInt();
 		}
@@ -1669,8 +1858,8 @@ int KWConfusionMatrixEvaluation::ComputeCumulatedPredictedFrequencyAt(const Symb
 	// Recherche du dictionnaire de modalites relles correspondant a la modalite predite
 	// Efficace algorithmiquement si la matrice est creuse
 	nCumulatedFrequency = 0;
-	nkdActualFrequencies = cast(NumericKeyDictionary*,
-				    nkdPredictedValuesActualFreqs.Lookup((NUMERIC)sPredictedTarget.GetNumericKey()));
+	nkdActualFrequencies =
+	    cast(NumericKeyDictionary*, nkdPredictedValuesActualFreqs.Lookup(sPredictedTarget.GetNumericKey()));
 	if (nkdActualFrequencies != NULL)
 	{
 		// Somme des frequences de cellules non vides pour cette modalite predite
@@ -1685,10 +1874,10 @@ int KWConfusionMatrixEvaluation::ComputeCumulatedPredictedFrequencyAt(const Symb
 	return nCumulatedFrequency;
 }
 
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWAucEvaluation
 
-int KWClassifierEvaluationInstanceCompare(const void* elem1, const void* elem2)
+int KWClassifierInstanceEvaluationCompare(const void* elem1, const void* elem2)
 {
 	KWClassifierInstanceEvaluation* instanceA;
 	KWClassifierInstanceEvaluation* instanceB;
@@ -1728,10 +1917,10 @@ void KWAucEvaluation::SetInstanceEvaluations(ObjectArray* instances)
 double KWAucEvaluation::ComputeGlobalAUCValue()
 {
 	double dEvaluation;
-	int nTargetValueIndex;
+	int nTargetValue;
 	IntVector ivTargetValueFrequencies;
-	int nUnknownTargetValueIndex;
-	KWClassifierInstanceEvaluation* evaluationInstance;
+	int nUnknownTargetValue;
+	KWClassifierInstanceEvaluation* instanceEvaluation;
 	int nInstance;
 
 	require(oaInstanceEvaluations != NULL);
@@ -1750,27 +1939,26 @@ double KWAucEvaluation::ComputeGlobalAUCValue()
 		// Le dernier effectif du vecteur (surnumeraire) sert a gerer les modalites cibles en test
 		// non vues en apprentissage
 		ivTargetValueFrequencies.SetSize(GetTargetValueNumber() + 1);
-		nUnknownTargetValueIndex = GetTargetValueNumber();
+		nUnknownTargetValue = GetTargetValueNumber();
 		for (nInstance = 0; nInstance < oaInstanceEvaluations->GetSize(); nInstance++)
 		{
-			evaluationInstance =
+			instanceEvaluation =
 			    cast(KWClassifierInstanceEvaluation*, oaInstanceEvaluations->GetAt(nInstance));
-			nTargetValueIndex = evaluationInstance->GetActualTargetIndex();
-			assert(0 <= nTargetValueIndex and nTargetValueIndex <= GetTargetValueNumber());
+			nTargetValue = instanceEvaluation->GetActualTargetIndex();
+			assert(0 <= nTargetValue and nTargetValue <= GetTargetValueNumber());
 
 			// On ignore les instances des classes non vues en apprentissage
-			if (nTargetValueIndex < GetTargetValueNumber())
-				ivTargetValueFrequencies.UpgradeAt(nTargetValueIndex, 1);
+			if (nTargetValue < GetTargetValueNumber())
+				ivTargetValueFrequencies.UpgradeAt(nTargetValue, 1);
 			else
-				ivTargetValueFrequencies.UpgradeAt(nUnknownTargetValueIndex, 1);
+				ivTargetValueFrequencies.UpgradeAt(nUnknownTargetValue, 1);
 		}
 
 		// Evaluation: On table sur une AUC de 0.5 pour les valeurs cibles inconnues
 		dEvaluation = 0;
-		for (nTargetValueIndex = 0; nTargetValueIndex < GetTargetValueNumber(); nTargetValueIndex++)
-			dEvaluation +=
-			    ivTargetValueFrequencies.GetAt(nTargetValueIndex) * ComputeAUCValueAt(nTargetValueIndex);
-		dEvaluation += ivTargetValueFrequencies.GetAt(nUnknownTargetValueIndex) * 0.5;
+		for (nTargetValue = 0; nTargetValue < GetTargetValueNumber(); nTargetValue++)
+			dEvaluation += ivTargetValueFrequencies.GetAt(nTargetValue) * ComputeAUCValueAt(nTargetValue);
+		dEvaluation += ivTargetValueFrequencies.GetAt(nUnknownTargetValue) * 0.5;
 		dEvaluation /= oaInstanceEvaluations->GetSize();
 	}
 	return dEvaluation;
@@ -1778,8 +1966,8 @@ double KWAucEvaluation::ComputeGlobalAUCValue()
 
 double KWAucEvaluation::ComputeAUCValueAt(int nTargetValueIndex)
 {
-	boolean bTrace = false;
-	KWClassifierInstanceEvaluation* evaluationInstance;
+	boolean bDisplay = false;
+	KWClassifierInstanceEvaluation* instanceEvaluation;
 	double dEvaluation;
 	int nInstance;
 	Continuous cBlockScore;
@@ -1799,7 +1987,7 @@ double KWAucEvaluation::ComputeAUCValueAt(int nTargetValueIndex)
 	SortInstanceEvaluationsAt(nTargetValueIndex);
 
 	// Entete de la trace
-	if (bTrace)
+	if (bDisplay)
 		cout << "Instance\tScore\tTP\tFP\tROC area\tTotal AUC" << endl;
 
 	// Calcul de la surface de la courbe de ROC observee
@@ -1811,11 +1999,11 @@ double KWAucEvaluation::ComputeAUCValueAt(int nTargetValueIndex)
 	cBlockScore = 0;
 	for (nInstance = 0; nInstance < oaInstanceEvaluations->GetSize(); nInstance++)
 	{
-		evaluationInstance = cast(KWClassifierInstanceEvaluation*, oaInstanceEvaluations->GetAt(nInstance));
+		instanceEvaluation = cast(KWClassifierInstanceEvaluation*, oaInstanceEvaluations->GetAt(nInstance));
 
 		// Acces aux valeurs
-		cScore = evaluationInstance->GetTargetProbAt(nTargetValueIndex);
-		nModalityIndex = evaluationInstance->GetActualTargetIndex();
+		cScore = instanceEvaluation->GetTargetProbAt(nTargetValueIndex);
+		nModalityIndex = instanceEvaluation->GetActualTargetIndex();
 
 		// Memorisation de la premiere valeur de lift
 		if (nInstance == 0)
@@ -1833,7 +2021,7 @@ double KWAucEvaluation::ComputeAUCValueAt(int nTargetValueIndex)
 			dObservedROCCurveArea += dBlockROCCurveArea;
 
 			// Trace
-			if (bTrace)
+			if (bDisplay)
 			{
 				cout << nInstance << "\t" << cBlockScore << "\t" << nTruePositive << "\t"
 				     << nFalsePositive << "\t" << dBlockROCCurveArea << "\t" << dObservedROCCurveArea
@@ -1859,7 +2047,7 @@ double KWAucEvaluation::ComputeAUCValueAt(int nTargetValueIndex)
 	dObservedROCCurveArea += dBlockROCCurveArea;
 
 	// Trace du dernier bloc
-	if (bTrace)
+	if (bDisplay)
 	{
 		cout << nInstance << "\t" << cBlockScore << "\t" << nTruePositive << "\t" << nFalsePositive << "\t"
 		     << dBlockROCCurveArea << "\t" << dObservedROCCurveArea << endl;
@@ -1874,7 +2062,7 @@ double KWAucEvaluation::ComputeAUCValueAt(int nTargetValueIndex)
 	dEvaluation = dObservedROCCurveArea;
 
 	// Trace pour les calculs totaux
-	if (bTrace)
+	if (bDisplay)
 		cout << "EvaluatedAUC\t" << dEvaluation << endl;
 
 	return dEvaluation;
@@ -2037,22 +2225,84 @@ void KWAucEvaluation::SortInstanceEvaluationsAt(int nTargetValueIndex)
 		instance = cast(KWClassifierInstanceEvaluation*, oaInstanceEvaluations->GetAt(nInstanceIndex));
 		instance->SetSortValue(-instance->GetTargetProbAt(nTargetValueIndex));
 	}
-	oaInstanceEvaluations->SetCompareFunction(KWClassifierEvaluationInstanceCompare);
+	oaInstanceEvaluations->SetCompareFunction(KWClassifierInstanceEvaluationCompare);
 	oaInstanceEvaluations->Sort();
 }
 
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWReservoirSampler
 
 KWReservoirSampler::KWReservoirSampler()
 {
+	lRandomSeed = 0;
 	nCapacity = 0;
-	nSeenObjects = 0;
+	lSeenObjectNumber = 0;
 }
 
 KWReservoirSampler::~KWReservoirSampler()
 {
 	oaSampledObjects.DeleteAll();
+}
+
+void KWReservoirSampler::SetCapacity(int nSampleSize)
+{
+	require(nSampleSize >= 0);
+	nCapacity = nSampleSize;
+}
+
+int KWReservoirSampler::GetCapacity()
+{
+	return nCapacity;
+}
+
+void KWReservoirSampler::SetSamplerRandomSeed(longint lSomeRandomState)
+{
+	require(lSomeRandomState >= 0);
+	lRandomSeed = lSomeRandomState;
+}
+
+longint KWReservoirSampler::GetSamplerRandomSeed() const
+{
+	return lRandomSeed;
+}
+
+longint KWReservoirSampler::RandomLongint(longint lMax)
+{
+	longint lRightBound;
+	longint lRemainder;
+	longint lRandom;
+
+	require(lMax >= 0);
+
+	// Echantillonnage non-biase dans le rang [0, lMax]
+	lRightBound = lMax + 1;
+	lRemainder = LLONG_MAX % lRightBound;
+	lRandom = IthRandomLongint(lRandomSeed++);
+	if (lRandom < 0)
+		lRandom = -lRandom;
+	while (lRandom >= LLONG_MAX - lRemainder)
+	{
+		lRandom = IthRandomLongint(lRandomSeed++);
+		if (lRandom < 0)
+			lRandom = -lRandom;
+	}
+
+	return lRandom % lRightBound;
+}
+
+int KWReservoirSampler::GetSampleSize() const
+{
+	return oaSampledObjects.GetSize();
+}
+
+longint KWReservoirSampler::GetSeenObjectNumber() const
+{
+	return lSeenObjectNumber;
+}
+
+Object* KWReservoirSampler::GetSampledObjectAt(int nIndex) const
+{
+	return oaSampledObjects.GetAt(nIndex);
 }
 
 ObjectArray* KWReservoirSampler::GetSampledObjects()
@@ -2062,13 +2312,13 @@ ObjectArray* KWReservoirSampler::GetSampledObjects()
 
 void KWReservoirSampler::Add(Object* object)
 {
-	int nRandomIndex;
+	longint lRandomIndex;
 
 	require(object != NULL);
 	require(nCapacity > 0);
+	require(oaSampledObjects.GetSize() <= nCapacity);
 
-	nSeenObjects++;
-	assert(oaSampledObjects.GetSize() <= nCapacity);
+	lSeenObjectNumber++;
 
 	// 1) si le reservoir n'est pas rempli, on ajoute une evaluation (nValueIndex == Size)
 	if (oaSampledObjects.GetSize() < nCapacity)
@@ -2076,46 +2326,108 @@ void KWReservoirSampler::Add(Object* object)
 	// 2) sinon, on tire au hasard une position d'insertion (RandomIndex) de la valeur
 	else
 	{
-		nRandomIndex = RandomInt(nSeenObjects - 1);
+		lRandomIndex = RandomLongint(lSeenObjectNumber - 1);
 
 		// 2.a) on memorise l'evaluation si l'index est valide pour le tableau
-		if (nRandomIndex < nCapacity)
+		if (lRandomIndex < (longint)nCapacity)
 		{
-			delete oaSampledObjects.GetAt(nRandomIndex);
-			oaSampledObjects.SetAt(nRandomIndex, object);
+			delete oaSampledObjects.GetAt((int)lRandomIndex);
+			oaSampledObjects.SetAt((int)lRandomIndex, object);
 		}
 		// 2.b) sinon, on l'efface
 		else
 			delete object;
 	}
+
+	ensure(oaSampledObjects.GetSize() <= nCapacity);
+}
+
+void KWReservoirSampler::AddWithProb(Object* object, double dProb)
+{
+	require(0 <= dProb and dProb <= 1);
+
+	if (RandomDouble() <= dProb)
+		Add(object);
 }
 
 void KWReservoirSampler::AddArray(const ObjectArray* oaObjects)
 {
-	int i;
+	int nObject;
 
 	require(oaObjects != NULL);
 	require(nCapacity > 0);
 
-	for (i = 0; i < oaObjects->GetSize(); i++)
-		Add(oaObjects->GetAt(i));
+	for (nObject = 0; nObject < oaObjects->GetSize(); nObject++)
+		Add(oaObjects->GetAt(nObject));
+}
+
+void KWReservoirSampler::AddArrayWithProb(const ObjectArray* oaObjects, double dProb)
+{
+	int nObject;
+
+	require(oaObjects != NULL);
+	require(0.0 <= dProb and dProb <= 1.0);
+	require(nCapacity > 0);
+
+	if (dProb == 1.0)
+		AddArray(oaObjects);
+	else
+	{
+		for (nObject = 0; nObject < oaObjects->GetSize(); nObject++)
+			AddWithProb(oaObjects->GetAt(nObject), dProb);
+	}
+}
+
+void KWReservoirSampler::Resample(double dProb)
+{
+	int nRandomSeed;
+	int nObject;
+	Object* object;
+	int nNewSampleSize;
+
+	require(0.0 <= dProb and dProb <= 1.0);
+
+	// On n'agit que dans les cas non triviaux
+	if (GetSampleSize() > 0 and dProb < 1.0)
+	{
+		// Estimation de la taille esperee apres echantillonnage
+		nNewSampleSize = int(ceil(dProb * GetSampleSize()));
+
+		// Si la taille espere est plus petite alors on procede au reechantillonnage
+		if (nNewSampleSize < GetSampleSize())
+		{
+			// Randomisation de l'echantillon
+			nRandomSeed = GetRandomSeed();
+			SetRandomSeed(int(GetSamplerRandomSeed() % INT_MAX));
+			oaSampledObjects.Shuffle();
+			SetRandomSeed(nRandomSeed);
+
+			// Retaillage du tableau d'echantillonnage a la taille esperee
+			for (nObject = nNewSampleSize; nObject < GetSampleSize(); nObject++)
+			{
+				object = oaSampledObjects.GetAt(nObject);
+				delete object;
+			}
+			oaSampledObjects.SetSize(nNewSampleSize);
+		}
+	}
 }
 
 void KWReservoirSampler::RemoveAll()
 {
 	oaSampledObjects.RemoveAll();
-	nSeenObjects = 0;
+	lSeenObjectNumber = 0;
 }
 
 void KWReservoirSampler::DeleteAll()
 {
 	oaSampledObjects.DeleteAll();
-	nSeenObjects = 0;
+	lSeenObjectNumber = 0;
 }
 
 boolean KWReservoirSampler::IsOverflowed()
 {
-	return (nSeenObjects > nCapacity);
+	return (lSeenObjectNumber > (longint)nCapacity);
 }
 
 const ALString KWReservoirSampler::GetClassLabel() const
@@ -2123,7 +2435,7 @@ const ALString KWReservoirSampler::GetClassLabel() const
 	return "Reservoir Sampler";
 }
 
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe PLShared_ClassifierInstanceEvaluation
 
 PLShared_ClassifierInstanceEvaluation::PLShared_ClassifierInstanceEvaluation() {}
@@ -2140,21 +2452,6 @@ KWClassifierInstanceEvaluation* PLShared_ClassifierInstanceEvaluation::GetClassi
 	return cast(KWClassifierInstanceEvaluation*, GetObject());
 }
 
-void PLShared_ClassifierInstanceEvaluation::DeserializeObject(PLSerializer* serializer, Object* object) const
-{
-	KWClassifierInstanceEvaluation* evaluation;
-	PLShared_ContinuousVector scvHelper;
-
-	require(serializer != NULL);
-	require(serializer->IsOpenForRead());
-	require(object != NULL);
-
-	// Deserialisation du nombre de modalites cibles, l'index de la reelle et les probas de chacune
-	evaluation = cast(KWClassifierInstanceEvaluation*, object);
-	scvHelper.DeserializeObject(serializer, &(evaluation->cvTargetProbs));
-	evaluation->SetActualTargetIndex(serializer->GetInt());
-}
-
 void PLShared_ClassifierInstanceEvaluation::SerializeObject(PLSerializer* serializer, const Object* object) const
 {
 	KWClassifierInstanceEvaluation* evaluation;
@@ -2168,6 +2465,21 @@ void PLShared_ClassifierInstanceEvaluation::SerializeObject(PLSerializer* serial
 	evaluation = cast(KWClassifierInstanceEvaluation*, object);
 	scvHelper.SerializeObject(serializer, &(evaluation->cvTargetProbs));
 	serializer->PutInt(evaluation->GetActualTargetIndex());
+}
+
+void PLShared_ClassifierInstanceEvaluation::DeserializeObject(PLSerializer* serializer, Object* oObject) const
+{
+	KWClassifierInstanceEvaluation* evaluation;
+	PLShared_ContinuousVector scvHelper;
+
+	require(serializer != NULL);
+	require(serializer->IsOpenForRead());
+	require(oObject != NULL);
+
+	// Deserialisation du nombre de modalites cibles, l'index de la reelle et les probas de chacune
+	evaluation = cast(KWClassifierInstanceEvaluation*, oObject);
+	scvHelper.DeserializeObject(serializer, &(evaluation->cvTargetProbs));
+	evaluation->SetActualTargetIndex(serializer->GetInt());
 }
 
 Object* PLShared_ClassifierInstanceEvaluation::Create() const

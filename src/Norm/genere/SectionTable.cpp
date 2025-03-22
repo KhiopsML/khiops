@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -21,9 +21,11 @@ void SectionTable::Write(ostream& ost) const
 
 int SectionTable::Load(fstream& fst)
 {
+	const ALString sCommentSeparator = "//";
+	const ALString sSectionSeparator = "##";
+	const boolean bCleanLastSourceLine = false;
 	char sBuffer[1000];
 	ALString sWork;
-	const ALString sSectionSeparator = "//##";
 
 	// Donnees courantes lors du parsing, correctement initialisees
 	int nCurrentState;
@@ -63,31 +65,49 @@ int SectionTable::Load(fstream& fst)
 			sCurrentLine = sBuffer;
 			nLineNumber++;
 
-			// Recherche du separateur de  section
+			// Recherche du separateur de section
 			sWork = sCurrentLine;
 			sWork.TrimLeft();
 			sWork.TrimRight();
-			if (sWork == sSectionSeparator)
+
+			// Cas d'un commentaire
+			if (sWork.GetLength() >= sCommentSeparator.GetLength() and
+			    sWork.Left(sCommentSeparator.GetLength()) == sCommentSeparator)
 			{
-				nCurrentTransition = nTransitionEndSection;
-				sCurrentIdentifier = "";
-			}
-			else
-			{
-				if (sWork.Left(sSectionSeparator.GetLength()) == sSectionSeparator)
+				// Supression du debut de commentaire pour analyser son contenu
+				sWork = sWork.Right(sWork.GetLength() - sCommentSeparator.GetLength());
+				sWork.TrimLeft();
+
+				// Analyse pour reperer les sections
+				if (sWork == sSectionSeparator)
 				{
-					nCurrentTransition = nTransitionBeginSection;
-					sWork = sWork.Mid(sSectionSeparator.GetLength());
-					sWork.TrimLeft();
-					sWork.TrimRight();
-					sCurrentIdentifier = sWork;
-					assert(sCurrentIdentifier.GetLength() > 0);
+					nCurrentTransition = nTransitionEndSection;
+					sCurrentIdentifier = "";
 				}
 				else
 				{
-					nCurrentTransition = nTransitionNormal;
-					sCurrentIdentifier = "";
+					if (sWork.GetLength() >= sSectionSeparator.GetLength() and
+					    sWork.Left(sSectionSeparator.GetLength()) == sSectionSeparator)
+					{
+						nCurrentTransition = nTransitionBeginSection;
+						sWork = sWork.Mid(sSectionSeparator.GetLength());
+						sWork.TrimLeft();
+						sWork.TrimRight();
+						sCurrentIdentifier = sWork;
+						assert(sCurrentIdentifier.GetLength() > 0);
+					}
+					else
+					{
+						nCurrentTransition = nTransitionNormal;
+						sCurrentIdentifier = "";
+					}
 				}
+			}
+			// Cas hors commentaire
+			else
+			{
+				nCurrentTransition = nTransitionNormal;
+				sCurrentIdentifier = "";
 			}
 		}
 
@@ -114,7 +134,7 @@ int SectionTable::Load(fstream& fst)
 			}
 			else if (nCurrentTransition == nTransitionEndSection)
 			{
-				Error("Fin de section dectectee avant un debut de section", nLineNumber);
+				Error("End of section dectected before a start of section", nLineNumber);
 
 				// On cree une section sans Id pour rattraper l'erreur
 				currentSection = new Section;
@@ -145,7 +165,7 @@ int SectionTable::Load(fstream& fst)
 			}
 			else if (nCurrentTransition == nTransitionEndSection)
 			{
-				Error("Fin de section dectectee avant un debut de section", nLineNumber);
+				Error("End of section dectected before a start of section", nLineNumber);
 
 				// On cree une section sans identifier pour rattraper l'erreur
 				currentSection = new Section;
@@ -168,7 +188,7 @@ int SectionTable::Load(fstream& fst)
 			}
 			else if (nCurrentTransition == nTransitionBeginSection)
 			{
-				Error("Debut de section dectecte dans une section non terminee", nLineNumber);
+				Error("Start of section dectected in a non-terminated section", nLineNumber);
 
 				// On cree une section avec identifier pour rattraper l'erreur
 				currentSection = new Section;
@@ -184,7 +204,7 @@ int SectionTable::Load(fstream& fst)
 			}
 			else if (nCurrentTransition == nTransitionEndFile)
 			{
-				Error("Fin de fichier detectee dans une section non terminee", nLineNumber);
+				Error("End of file detected in a non-terminated section", nLineNumber);
 
 				// Pas de rattrapage d'erreur necessaire
 				nCurrentState = nStateEnd; // Fin de la section courante
@@ -194,6 +214,20 @@ int SectionTable::Load(fstream& fst)
 		       nCurrentState == nStateSectionWithId or nCurrentState == nStateEnd);
 	}
 	assert(nCurrentState == nStateEnd);
+
+	// Nettoyage de l'eventuelle derniere section pour ne pas generer de ligne en fin de fichier dans le cas d'un
+	// fichier d'implementation (.cpp) pour rester compatible avec le pretty print de codemaid On teste sur le
+	// dernier caractere pour ne pas traiter les headers (.h), qui ne sont pas pretty printes de la meme facon
+	// Desactive depuis le passage sur github et le nouveau pretty print + pre-commit hook
+	if (bCleanLastSourceLine)
+	{
+		if (oaTable.GetSize() > 0 and GetFileName() != " " and GetFileName().Right(1) != "h")
+		{
+			if (currentSection->GetLines().GetLength() > 0 and currentSection->GetLines().Right(1) == "\n")
+				currentSection->SetLines(
+				    currentSection->GetLines().Left(currentSection->GetLines().GetLength() - 1));
+		}
+	}
 
 	// Calcul de l'index
 	ComputeSectionIndex();
@@ -208,7 +242,7 @@ void SectionTable::Unload(ostream& ost) const
 {
 	Section* currentSection;
 
-	// Sortie de chaque sectionligne
+	// Sortie de chaque section avec ses lignes
 	for (int i = 0; i < oaTable.GetSize(); i++)
 	{
 		currentSection = cast(Section*, oaTable.GetAt(i));
@@ -265,7 +299,7 @@ void SectionTable::ImportSectionsFrom(SectionTable* stSource)
 			{
 				// Message si sections source et cibles sont differentes
 				if (targetSection->Compare(sourceSection) != 0)
-					Message("Section <" + targetSection->GetIdentifier() + "> remplacee");
+					Message("Section <" + targetSection->GetIdentifier() + "> replaced");
 
 				// Remplacement
 				delete targetSection;
@@ -291,8 +325,8 @@ void SectionTable::ImportSectionsFrom(SectionTable* stSource)
 			if (targetSection == NULL)
 			{
 				Warning("Section <" + sourceSection->GetIdentifier() +
-					"> du fichier importe, non trouvee " + "dans le fichier cible");
-				Message("  -> Ajout en fin de fichier cible");
+					"> of the initial file not found in ouput file");
+				Message("  -> Add of section at the end of the output file");
 				targetSection = sourceSection->Clone();
 				oaTargetTable.Add(targetSection);
 			}
@@ -365,7 +399,7 @@ void SectionTable::CheckDuplicateSections()
 		if (sCurrentIdentifier != sReference)
 		{
 			if (nNbElements >= 2 and sReference != "")
-				Error("La section <" + sReference + "> apparait " + IntToString(nNbElements) + " fois");
+				Error("Section <" + sReference + "> occurs " + IntToString(nNbElements) + " times");
 			sReference = sCurrentIdentifier;
 			nNbElements = 1;
 		}
@@ -378,7 +412,7 @@ void SectionTable::CheckDuplicateSections()
 		if (nCurrent == oaSorted->GetSize() - 1)
 		{
 			if (nNbElements >= 2 and sReference != "")
-				Error("La section <" + sReference + "> apparait " + IntToString(nNbElements) + " fois");
+				Error("Section <" + sReference + "> occurs " + IntToString(nNbElements) + " times");
 		}
 	}
 }
@@ -390,10 +424,10 @@ void SectionTable::Message(const ALString& sMessage, int nLineNumber)
 
 	// Preparation des elements du message
 	if (GetFileName() != "")
-		sCategory = "fichier";
+		sCategory = "file";
 	if (nLineNumber >= 0)
 	{
-		sLineLocalisation = " ligne";
+		sLineLocalisation = " line ";
 		sLineLocalisation += IntToString(nLineNumber);
 	}
 
@@ -407,10 +441,10 @@ void SectionTable::Warning(const ALString& sMessage, int nLineNumber)
 
 	// Preparation des elements du message
 	if (GetFileName() != "")
-		sCategory = "fichier";
+		sCategory = "file";
 	if (nLineNumber >= 0)
 	{
-		sLineLocalisation = " ligne";
+		sLineLocalisation = " line ";
 		sLineLocalisation += IntToString(nLineNumber);
 	}
 
@@ -424,10 +458,10 @@ void SectionTable::Error(const ALString& sMessage, int nLineNumber)
 
 	// Preparation des elements du message
 	if (GetFileName() != "")
-		sCategory = "fichier";
+		sCategory = "file";
 	if (nLineNumber >= 0)
 	{
-		sLineLocalisation = " ligne";
+		sLineLocalisation = " line ";
 		sLineLocalisation += IntToString(nLineNumber);
 	}
 

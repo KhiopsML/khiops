@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -9,10 +9,11 @@ class KWHeaderLineAnalyser;
 class RewindableInputBufferedFile;
 
 #include "KWDatabase.h"
+#include "KWMTDatabase.h"
 #include "KWSTDatabaseTextFile.h"
 #include "KWDataTableDriverTextFile.h"
 #include "KWCharFrequencyVector.h"
-#include "KWSortableIndex.h"
+#include "IntVectorSorter.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWDatabaseFormatDetector
@@ -31,6 +32,8 @@ public:
 	KWDatabase* GetDatabase() const;
 
 	// Utilisation ou non du dictionnaire pour detecter le format (defaut: true)
+	// Si le dictionnaire est utilisable, on l'utilise s'il est specifie, et sinon
+	// on se rabat sur le comportement sans dictionnaire
 	void SetUsingClass(boolean bValue);
 	boolean GetUsingClass();
 
@@ -39,8 +42,8 @@ public:
 	// ligne du fichier associee a la premiere table.
 	// Sinon, la detection se base sur l'analyse des premiere lignes du fichier
 	// En cas de succes, les champs de format de la base sont mis a jour.
-	// Sinon, des warning ou des erreur sont emis
-	void DetectFileFormat();
+	// Sinon, des warnings ou des erreurs sont emis
+	boolean DetectFileFormat();
 
 	// Affichage des premiere lignes de la base
 	void ShowFirstLines(int nMaxLineNumber);
@@ -68,13 +71,13 @@ protected:
 	// Affichage de l'entete d'un fichier
 	void ShowHeadLines(RewindableInputBufferedFile* inputFile);
 
-	// Affichage parametrable de lignes d'un fichier ouverte en lecture
+	// Affichage parametrable de lignes d'un fichier ouvert en lecture
 	void ShowCurrentLines(InputBufferedFile* inputFile, const ALString& sTitle, boolean bEmptyLineBefore,
 			      boolean bEmptyLineAfter, int nMaxLineNumber);
 
 	// Fonction cosmetique de gestion du pluriel
 	// Passage au pluriel pour un nombre strictement plus grand que 1
-	// Règles: ""->"s"; "is"->"are", "has",->"have"
+	// Regles: ""->"s"; "is"->"are", "has",->"have"
 	const ALString Plural(const ALString& sSource, int nNumber) const;
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
@@ -98,19 +101,22 @@ protected:
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	// Methode d'analyse du format du fichier
 
-	// Recherche de noms de tous les attributs obligatoire, natifs et utilises de facon directe ou indirecte
-	void BuildMandatoryAttributeNames(const KWClass* kwcClass, StringVector* svMandatoryAttributeNames) const;
+	// Recherche de noms de tous les attributs ou blocs d'attributs obligatoires, natifs et utilises de facon
+	// directe ou indirecte
+	void BuildMandatoryDataItemNames(const KWClass* kwcClass, StringVector* svMandatoryDataItemNames) const;
 
 	// Calcul du nombre de lignes dont le nombre de champ est celui attendu
 	// Attention, nExpectedFieldNumber peut etre egal a -1 s'il y avait eu une erreur lors du parsing de la premiere
 	// ligne
 	int ComputeCorrectLineNumber(IntVector* ivLineFieldNumbers, int nExpectedFieldNumber) const;
 
-	// Collecte des nombre de champs par ligne d'un fichier ouvert en lecture pour les lignes suivantes du buffer
+	// Collecte du nombre de champs par ligne d'un fichier ouvert en lecture pour les lignes suivantes du buffer
+	// warning quelque soit le format du fichier. On ignore les lignes vides.
 	void CollectLineFieldNumbers(RewindableInputBufferedFile* inputFile, int nMaxLineNumber,
 				     IntVector* ivLineFieldNumbers) const;
 
 	// Calcul du nombre de champs de la prochaine ligne d'un fichier ouvert en lecture
+	// On compte 0 champs dans le cas particulier de lignes vides
 	// On renvoie le nombre de champs lus si pas d'erreur, -1 sinon
 	int ComputeLineFieldNumber(RewindableInputBufferedFile* inputFile) const;
 
@@ -120,7 +126,7 @@ protected:
 	// Liste de caracteres dont la presence est obligatoire en au moins un exemplaire danbs une ligne d'entete
 	const ALString GetHeaderLineMandatoryChars() const;
 
-	// Calcul d'un indicateur d'homegenite vis a vis des types des lignes d'un fichier
+	// Calcul d'un indicateur d'homogeneite vis a vis des types des lignes d'un fichier
 	// On n'exploite que les lignes ayant le bon nombre de champs et on calcul le type des champs de chaque ligne
 	// On en deduit les types les plus frequents par champ, et l'indicateur et celui qui conduit a miximiser le
 	// nombre total de champs reconnus dans leur type
@@ -139,7 +145,9 @@ protected:
 
 	// Collecte de stats sur les caracteres utilisees dans les premieres lignes d'un fichier
 	// On alimente un vecteur d'effectif par caractere, contenant pour chaque caractere le min et le max des
-	// utilisations par ligne On renvoie le nombre de lignes non vides effectivement analysees
+	// utilisations par ligne en ignorant les lignes vides ou trop longues (qui sont ignoree avec un warning lors
+	// des lectures de table, quelque soit le format) On renvoie le nombre de lignes non vides effectivement
+	// analysees
 	int CollectCharFrequenciesLineStats(RewindableInputBufferedFile* inputFile, int nMaxLineNumber,
 					    KWCharFrequencyVector* cfvLineMinCharFrequencies,
 					    KWCharFrequencyVector* cfvLineMaxCharFrequencies) const;
@@ -181,25 +189,26 @@ protected:
 	KWCharFrequencyVector cfvInvalidSeparators;
 
 	// Solution courante
+	// Les criteres d'evaluation sont geres de facon lexicographique
 	char cCurrentSeparator;
-	int nCurrentMatchedFieldNumber;
-	int nCurrentUnknownFieldNumber;
-	int nCurrentFieldNumber;
-	int nCurrentCorrectLineNumber;
-	int nCurrentAnalysedLineNumber;
-	int nCurrentTypeConsistency;
-	int nCurrentSeparatorPriority;
+	int nCurrentMatchedFieldNumber; // Nombre de champ reconnu de la ligne d'entete, a maximiser
+	int nCurrentUnknownFieldNumber; // Nombre de champ surnumeraire de la ligne d'entete, a minimiser
+	int nCurrentCorrectLineNumber;  // Nombre de lignes compatible avec le separateur, a maximiser
+	int nCurrentTypeConsistency;    // Nombre de champs coherent avec leur type, a maximiser
+	int nCurrentFieldNumber;        // Nombre de champ de la premiere ligne, a minimiser
+	int nCurrentSeparatorPriority;  // Priorite du separateur, a minimiser
+	int nCurrentAnalysedLineNumber; // Nombre de lignes analysees, hors critere
 
 	// Meilleure solution
 	CharVector cvBestSeparatorList;
 	char cBestSeparator;
 	int nBestMatchedFieldNumber;
 	int nBestUnknownFieldNumber;
-	int nBestFieldNumber;
 	int nBestCorrectLineNumber;
-	int nBestAnalysedLineNumber;
 	int nBestTypeConsistency;
+	int nBestFieldNumber;
 	int nBestSeparatorPriority;
+	int nBestAnalysedLineNumber;
 
 	// Indicateur d'affichage des details d'optimisation
 	boolean bShowDetails;

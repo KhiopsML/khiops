@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -50,7 +50,7 @@ public:
 
 	// Acces a la methode de verification de options qui vont etre lancees
 	// La methode par defaut renvoie toujours true
-	// SI cette methode renvoie false, rien n'est execxuté et le programme sort en erreur
+	// SI cette methode renvoie false, rien n'est execute et le programme sort en erreur
 	const GlobalCheckMethod GetGlobalCheckMethod() const;
 	void SetGlobalCheckMethod(GlobalCheckMethod fMethod);
 

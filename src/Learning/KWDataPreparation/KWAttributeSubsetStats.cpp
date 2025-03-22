@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -80,7 +80,6 @@ boolean KWAttributeSubsetStats::CheckSpecifications() const
 	ALString sAttributeName;
 	KWAttribute* attribute;
 	boolean bTargetAttributeUsed;
-	ALString sTmp;
 
 	require(Check());
 
@@ -105,28 +104,28 @@ boolean KWAttributeSubsetStats::CheckSpecifications() const
 		if (attribute == NULL)
 		{
 			bOk = false;
-			AddError(sTmp + "Variable " + sAttributeName + " does not exist");
+			AddError("Variable " + sAttributeName + " does not exist");
 		}
 
 		// Test d'utilisation de l'attribut
 		if (attribute != NULL and not attribute->GetUsed())
 		{
 			bOk = false;
-			AddError(sTmp + "Variable " + sAttributeName + " is not used");
+			AddError("Variable " + sAttributeName + " is not used");
 		}
 
 		// Test du type de l'attribut
 		if (attribute != NULL and not KWType::IsSimple(attribute->GetType()))
 		{
 			bOk = false;
-			AddError(sTmp + "Variable " + sAttributeName + " is not of numerical or categorical type");
+			AddError("Variable " + sAttributeName + " is not of numerical or categorical type");
 		}
 
 		// Test de chargement en memoire de l'attribut
 		if (attribute != NULL and not attribute->GetLoaded())
 		{
 			bOk = false;
-			AddError(sTmp + "Variable " + sAttributeName + " is not loaded");
+			AddError("Variable " + sAttributeName + " is not loaded");
 		}
 
 		// Arret si erreurs
@@ -140,7 +139,7 @@ boolean KWAttributeSubsetStats::CheckSpecifications() const
 		if (bTargetAttributeUsed)
 		{
 			bOk = false;
-			AddError(sTmp + "Target variable " + GetTargetAttributeName() + " is used in the subset");
+			AddError("Target variable " + GetTargetAttributeName() + " is used in the subset");
 		}
 	}
 
@@ -171,8 +170,14 @@ boolean KWAttributeSubsetStats::ComputeStats(const KWTupleTable* tupleTable)
 	// pretraitements MODL
 	currentDiscretizerSpec.CopyFrom(learningSpec->GetPreprocessingSpec()->GetDiscretizerSpec());
 	currentGrouperSpec.CopyFrom(learningSpec->GetPreprocessingSpec()->GetGrouperSpec());
-	learningSpec->GetPreprocessingSpec()->GetDiscretizerSpec()->CopyFrom(&modlRefDiscretizerSpec);
-	learningSpec->GetPreprocessingSpec()->GetGrouperSpec()->CopyFrom(&modlRefGrouperSpec);
+	learningSpec->GetPreprocessingSpec()->GetDiscretizerSpec()->SetSupervisedMethodName(
+	    modlRefDiscretizerSpec.GetSupervisedMethodName());
+	learningSpec->GetPreprocessingSpec()->GetDiscretizerSpec()->SetSupervisedMethodName(
+	    modlRefDiscretizerSpec.GetUnsupervisedMethodName());
+	learningSpec->GetPreprocessingSpec()->GetGrouperSpec()->SetSupervisedMethodName(
+	    modlRefGrouperSpec.GetSupervisedMethodName());
+	learningSpec->GetPreprocessingSpec()->GetGrouperSpec()->SetSupervisedMethodName(
+	    modlRefGrouperSpec.GetUnsupervisedMethodName());
 
 	// Nettoyage des donnees de preparation
 	CleanDataPreparationResults();
@@ -185,58 +190,64 @@ boolean KWAttributeSubsetStats::ComputeStats(const KWTupleTable* tupleTable)
 	// Creation du DataGrid
 	dataGrid = CreateDataGrid(tupleTable);
 
-	// Arret si grille non creee
+	// Arret si grille non creee, par exemple en raison d'une interruption utilisateur
 	if (dataGrid == NULL)
-	{
 		bIsStatsComputed = false;
-		return bIsStatsComputed;
-	}
-
-	// Creation et initialisation de la structure de couts
-	dataGridCosts = CreateDataGridCost();
-	dataGridCosts->InitializeDefaultCosts(dataGrid);
-
-	// Parametrage des couts de l'optimiseur de grille
-	dataGridOptimizer.SetDataGridCosts(dataGridCosts);
-
-	// Optimisation de la grille
-	optimizedDataGrid = new KWDataGrid;
-	dGridCost = dataGridOptimizer.OptimizeDataGrid(dataGrid, optimizedDataGrid);
-
-	// Memorisation des couts MODL
-	SetConstructionCost(dataGridCosts->ComputeDataGridTotalConstructionCost(optimizedDataGrid));
-	SetPreparationCost(dataGridCosts->ComputeDataGridTotalPreparationCost(optimizedDataGrid));
-	SetDataCost(dataGridCosts->ComputeDataGridTotalDataCost(optimizedDataGrid));
-
-	// Evaluation de la grille par son taux de compression
-	// On passe par les couts de grille, qui gerent un modele nul par ensemble d'attributs,
-	// ce qui est indispensable notamment dans le cas non supervise
-	assert(0 <= dGridCost and dGridCost <= dataGridCosts->GetTotalDefaultCost());
-	dPreparedLevel = dataGridCosts->ComputeDataGridCompressionCoefficient(optimizedDataGrid);
-
-	// On tronque a 0 si level trop petit
-	// Avec 1e-10, on peut encore detecter des informations de niches dans des bases
-	// de tres grande tailes (mots dans un corpus de texte), tout en restant loin
-	// du bruit numerique (1e-15)
-	if (dPreparedLevel < 1e-10)
-		dPreparedLevel = 0;
-
-	// Calcul des donnes de preparation si necessaire
-	// Dans le cas supervise, on garde quand meme la grille, qui permet le recodage
-	// de tous els attributs, y compris non informatifs
-	if (dPreparedLevel > 0 or GetTargetAttributeType() != KWType::None)
-		ComputeDataPreparationResults(optimizedDataGrid);
-
-	// Nettoyage
-	delete dataGrid;
-	delete dataGridCosts;
-	delete optimizedDataGrid;
-
-	// Reinitialisation des resultats si interruption utilisateur
-	if (TaskProgression::IsInterruptionRequested())
+	// On continue
+	else
 	{
-		CleanDataPreparationResults();
-		bIsStatsComputed = false;
+		// Creation et initialisation de la structure de couts
+		dataGridCosts = CreateDataGridCost();
+		dataGridCosts->InitializeDefaultCosts(dataGrid);
+
+		// Parametrage des couts de l'optimiseur de grille
+		dataGridOptimizer.SetDataGridCosts(dataGridCosts);
+
+		// Optimisation de la grille
+		optimizedDataGrid = new KWDataGrid;
+		dGridCost = dataGridOptimizer.OptimizeDataGrid(dataGrid, optimizedDataGrid);
+
+		// Simplification eventuelle de la grille pour tenir compte de la contrainte du MaxPartNumber
+		if (not TaskProgression::IsInterruptionRequested() and
+		    GetPreprocessingSpec()->GetMaxPartNumber() > 0 and
+		    optimizedDataGrid->ComputeMaxPartNumber() > GetPreprocessingSpec()->GetMaxPartNumber())
+			dGridCost = dataGridOptimizer.SimplifyDataGrid(optimizedDataGrid);
+
+		// Memorisation des couts MODL
+		SetConstructionCost(dataGridCosts->ComputeDataGridTotalConstructionCost(optimizedDataGrid));
+		SetPreparationCost(dataGridCosts->ComputeDataGridTotalPreparationCost(optimizedDataGrid));
+		SetDataCost(dataGridCosts->ComputeDataGridTotalDataCost(optimizedDataGrid));
+
+		// Evaluation de la grille par son taux de compression
+		// On passe par les couts de grille, qui gerent un modele nul par ensemble d'attributs,
+		// ce qui est indispensable notamment dans le cas non supervise
+		assert(0 <= dGridCost and dGridCost <= dataGridCosts->GetTotalDefaultCost());
+		dPreparedLevel = dataGridCosts->ComputeDataGridCompressionCoefficient(optimizedDataGrid);
+
+		// On tronque a 0 si level trop petit
+		// Avec 1e-10, on peut encore detecter des informations de niches dans des bases
+		// de tres grande tailes (mots dans un corpus de texte), tout en restant loin
+		// du bruit numerique (1e-15)
+		if (dPreparedLevel < 1e-10)
+			dPreparedLevel = 0;
+
+		// Calcul des donnes de preparation si necessaire
+		// Dans le cas supervise, on garde quand meme la grille, qui permet le recodage
+		// de tous els attributs, y compris non informatifs
+		if (dPreparedLevel > 0 or GetTargetAttributeType() != KWType::None)
+			ComputeDataPreparationResults(optimizedDataGrid);
+
+		// Nettoyage
+		delete dataGrid;
+		delete dataGridCosts;
+		delete optimizedDataGrid;
+
+		// Reinitialisation des resultats si interruption utilisateur
+		if (TaskProgression::IsInterruptionRequested())
+		{
+			CleanDataPreparationResults();
+			bIsStatsComputed = false;
+		}
 	}
 
 	// Restauration des methodes de pretraitement supervise initiales
@@ -324,7 +335,7 @@ void KWAttributeSubsetStats::WriteLineReport(ostream& ost)
 		{
 			if (i > 0)
 				ost << "&";
-			ost << GetPreparedDataGridStats()->GetAttributeAt(i)->GetAttributeName();
+			ost << TSV::Export(GetPreparedDataGridStats()->GetAttributeAt(i)->GetAttributeName());
 		}
 	}
 	ost << "\t";
@@ -352,8 +363,8 @@ void KWAttributeSubsetStats::WriteLineReport(ostream& ost)
 
 void KWAttributeSubsetStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
 {
-	ContinuousVector cvAttributeMinValues;
-	ContinuousVector cvAttributeMaxValues;
+	ContinuousVector cvAttributeDomainLowerBounds;
+	ContinuousVector cvAttributeDomainUpperBounds;
 	KWDescriptiveContinuousStats* descriptiveContinuousStats;
 	const KWDGSAttributePartition* dgsAttributePartition;
 	KWAttributeStats* attributeStats;
@@ -409,8 +420,8 @@ void KWAttributeSubsetStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSumm
 		if (preparedDataGridStats != NULL)
 		{
 			// Collecte des valeurs min et max des attributs
-			cvAttributeMinValues.SetSize(preparedDataGridStats->GetAttributeNumber());
-			cvAttributeMaxValues.SetSize(preparedDataGridStats->GetAttributeNumber());
+			cvAttributeDomainLowerBounds.SetSize(preparedDataGridStats->GetAttributeNumber());
+			cvAttributeDomainUpperBounds.SetSize(preparedDataGridStats->GetAttributeNumber());
 			for (i = 0; i < preparedDataGridStats->GetAttributeNumber(); i++)
 			{
 				dgsAttributePartition = preparedDataGridStats->GetAttributeAt(i);
@@ -421,21 +432,21 @@ void KWAttributeSubsetStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSumm
 					check(attributeStats);
 					descriptiveContinuousStats =
 					    cast(KWDescriptiveContinuousStats*, attributeStats->GetDescriptiveStats());
-					cvAttributeMinValues.SetAt(i, descriptiveContinuousStats->GetMin());
-					cvAttributeMaxValues.SetAt(i, descriptiveContinuousStats->GetMax());
+					cvAttributeDomainLowerBounds.SetAt(i, descriptiveContinuousStats->GetMin());
+					cvAttributeDomainUpperBounds.SetAt(i, descriptiveContinuousStats->GetMax());
 				}
 			}
 
 			// Parametrage de la grille
-			preparedDataGridStats->SetJSONAttributeMinValues(&cvAttributeMinValues);
-			preparedDataGridStats->SetJSONAttributeMaxValues(&cvAttributeMaxValues);
+			preparedDataGridStats->SetJSONAttributeDomainLowerBounds(&cvAttributeDomainLowerBounds);
+			preparedDataGridStats->SetJSONAttributeDomainUpperBounds(&cvAttributeDomainUpperBounds);
 
 			// Ecriture du rapport JSON
 			preparedDataGridStats->WriteJSONKeyReport(fJSON, "dataGrid");
 
 			// Nettoyage du parametrage
-			preparedDataGridStats->SetJSONAttributeMinValues(NULL);
-			preparedDataGridStats->SetJSONAttributeMaxValues(NULL);
+			preparedDataGridStats->SetJSONAttributeDomainLowerBounds(NULL);
+			preparedDataGridStats->SetJSONAttributeDomainUpperBounds(NULL);
 		}
 	}
 }
@@ -600,6 +611,12 @@ KWDataGrid* KWAttributeSubsetStats::CreateDataGrid(const KWTupleTable* tupleTabl
 	return dataGrid;
 }
 
+void KWAttributeSubsetStats::HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
+						    const KWDataGrid* initialGranularizedDataGrid,
+						    boolean bIsLastSaving) const
+{
+}
+
 boolean KWAttributeSubsetStats::GetPregranularizedNumericalAttributes()
 {
 	return bPregranularizedNumericalAttributes;
@@ -673,17 +690,21 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 			tuple = attributeTupleTable.GetAt(nTuple);
 
 			// Progression
-			if (periodicTestDisplay.IsTestAllowed(nTuple))
+			if (TaskProgression::IsRefreshNecessary())
 			{
-				// Avancement: au prorata de la base pour l'attribut en cours, en reservant 50 pour la
-				// creation des cellules
-				dProgression = dgAttribute->GetAttributeIndex() * 50.0 /
-					       dgAttribute->GetDataGrid()->GetAttributeNumber();
-				dProgression += (nTuple * 50.0 / attributeTupleTable.GetSize()) /
-						dgAttribute->GetDataGrid()->GetAttributeNumber();
-				TaskProgression::DisplayProgression((int)dProgression);
-				if (TaskProgression::IsInterruptionRequested())
-					return false;
+				// Cas d'un attribut de grille, qui n'est pas un attribut interne d'un attribut VarPart
+				if (not dgAttribute->IsInnerAttribute())
+				{
+					// Avancement: au prorata de la base pour l'attribut en cours, en reservant 50
+					// pour la creation des cellules
+					dProgression = dgAttribute->GetAttributeIndex() * 50.0 /
+						       dgAttribute->GetDataGrid()->GetAttributeNumber();
+					dProgression += (nTuple * 50.0 / attributeTupleTable.GetSize()) /
+							dgAttribute->GetDataGrid()->GetAttributeNumber();
+					TaskProgression::DisplayProgression((int)dProgression);
+					if (TaskProgression::IsInterruptionRequested())
+						return false;
+				}
 			}
 
 			// Valeur du tuple
@@ -763,22 +784,26 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 		       attributeTupleTable.GetAt(nTuple - 1)->GetSymbolAt(0).CompareValue(tuple->GetSymbolAt(0)) < 0);
 
 		// Progression
-		if (periodicTestDisplay.IsTestAllowed(nTuple))
+		if (TaskProgression::IsRefreshNecessary())
 		{
-			// Avancement: au prorata de la base pour l'attribut en cours, en reservant 50 pour la creation
-			// des cellules
-			dProgression =
-			    dgAttribute->GetAttributeIndex() * 50.0 / dgAttribute->GetDataGrid()->GetAttributeNumber();
-			dProgression += (nTuple * 50.0 / attributeTupleTable.GetSize()) /
-					dgAttribute->GetDataGrid()->GetAttributeNumber();
-			TaskProgression::DisplayProgression((int)dProgression);
-			if (TaskProgression::IsInterruptionRequested())
-				return false;
+			// Cas d'un attribut de grille, qui n'est pas un attribut interne d'un attribut VarPart
+			if (not dgAttribute->IsInnerAttribute())
+			{
+				// Avancement: au prorata de la base pour l'attribut en cours, en reservant 50 pour la
+				// creation des cellules
+				dProgression = dgAttribute->GetAttributeIndex() * 50.0 /
+					       dgAttribute->GetDataGrid()->GetAttributeNumber();
+				dProgression += (nTuple * 50.0 / attributeTupleTable.GetSize()) /
+						dgAttribute->GetDataGrid()->GetAttributeNumber();
+				TaskProgression::DisplayProgression((int)dProgression);
+				if (TaskProgression::IsInterruptionRequested())
+					return false;
+			}
 		}
 
 		// Creation d'une nouvelle partie mono-valeur
 		part = dgAttribute->AddPart();
-		value = part->GetValueSet()->AddValue(tuple->GetSymbolAt(0));
+		value = part->GetSymbolValueSet()->AddSymbolValue(tuple->GetSymbolAt(0));
 		value->SetValueFrequency(tuple->GetFrequency());
 	}
 	assert(attributeTupleTable.GetSize() == dgAttribute->GetPartNumber());
@@ -786,7 +811,7 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 
 	// Initialisation de la partie par defaut, contenant la modalite speciale
 	// Compte-tenu du tri prealable des tuples, il s'agit de la derniere partie de l'attribut
-	dgAttribute->GetTailPart()->GetValueSet()->AddValue(Symbol::GetStarValue());
+	dgAttribute->GetTailPart()->GetSymbolValueSet()->AddSymbolValue(Symbol::GetStarValue());
 
 	// Parametrage du nombre total de valeurs
 	// Pour un attribut categoriel, l'InitialValueNumber ne contient plus la StarValue
@@ -904,6 +929,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 	require(dataGrid->GetAttributeNumber() <= tupleTable->GetAttributeNumber());
 	require(dataGrid->GetCellNumber() == 0);
 	require(dataGrid->Check());
+	require(not dataGrid->IsVarPartDataGrid());
 
 	// Passage en mode update
 	Global::ActivateErrorFlowControl();
@@ -935,7 +961,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 		tuple = tupleTable->GetAt(nTuple);
 
 		// Progression
-		if (periodicTestDisplay.IsTestAllowed(nTuple))
+		if (TaskProgression::IsRefreshNecessary())
 		{
 			TaskProgression::DisplayProgression((int)(50 + nTuple * 50.0 / tupleTable->GetSize()));
 			if (TaskProgression::IsInterruptionRequested())
@@ -1257,7 +1283,7 @@ void KWAttributePairStats::WriteLineReport(ostream& ost)
 	ost << GetIdentifier();
 	for (i = 0; i < GetAttributeNumber(); i++)
 	{
-		ost << "\t" << GetAttributeNameAt(i);
+		ost << "\t" << TSV::Export(GetAttributeNameAt(i));
 	}
 
 	// Evaluation de l'apport relatif de la paire
@@ -1430,15 +1456,15 @@ void KWAttributePairStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummar
 			}
 
 			// Parametrage de la grille
-			preparedDataGridStats->SetJSONAttributeMinValues(&cvAttributeMinValues);
-			preparedDataGridStats->SetJSONAttributeMaxValues(&cvAttributeMaxValues);
+			preparedDataGridStats->SetJSONAttributeDomainLowerBounds(&cvAttributeMinValues);
+			preparedDataGridStats->SetJSONAttributeDomainUpperBounds(&cvAttributeMaxValues);
 
 			// Ecriture du rapport JSON
 			preparedDataGridStats->WriteJSONKeyReport(fJSON, "dataGrid");
 
 			// Nettoyage du parametrage
-			preparedDataGridStats->SetJSONAttributeMinValues(NULL);
-			preparedDataGridStats->SetJSONAttributeMaxValues(NULL);
+			preparedDataGridStats->SetJSONAttributeDomainLowerBounds(NULL);
+			preparedDataGridStats->SetJSONAttributeDomainUpperBounds(NULL);
 		}
 	}
 }
@@ -1461,22 +1487,6 @@ KWAttributeSubsetStats* PLShared_AttributeSubsetStats::GetAttributeSubset()
 	return cast(KWAttributeSubsetStats*, GetObject());
 }
 
-void PLShared_AttributeSubsetStats::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	KWAttributeSubsetStats* attributeSubsetStats;
-
-	require(serializer->IsOpenForRead());
-
-	// Appel de la methode ancetre
-	PLShared_DataPreparationStats::DeserializeObject(serializer, o);
-
-	// Deserialisation des attributs specifiques
-	attributeSubsetStats = cast(KWAttributeSubsetStats*, o);
-	serializer->GetStringVector(&attributeSubsetStats->svAttributeNames);
-	attributeSubsetStats->SetTargetAttributePartitioned(serializer->GetBoolean());
-	attributeSubsetStats->nMaxCellNumberConstraint = serializer->GetInt();
-}
-
 void PLShared_AttributeSubsetStats::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	KWAttributeSubsetStats* attributeSubsetStats;
@@ -1493,6 +1503,22 @@ void PLShared_AttributeSubsetStats::SerializeObject(PLSerializer* serializer, co
 	serializer->PutStringVector(&attributeSubsetStats->svAttributeNames);
 	serializer->PutBoolean(attributeSubsetStats->GetTargetAttributePartitioned());
 	serializer->PutInt(attributeSubsetStats->nMaxCellNumberConstraint);
+}
+
+void PLShared_AttributeSubsetStats::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	KWAttributeSubsetStats* attributeSubsetStats;
+
+	require(serializer->IsOpenForRead());
+
+	// Appel de la methode ancetre
+	PLShared_DataPreparationStats::DeserializeObject(serializer, o);
+
+	// Deserialisation des attributs specifiques
+	attributeSubsetStats = cast(KWAttributeSubsetStats*, o);
+	serializer->GetStringVector(&attributeSubsetStats->svAttributeNames);
+	attributeSubsetStats->SetTargetAttributePartitioned(serializer->GetBoolean());
+	attributeSubsetStats->nMaxCellNumberConstraint = serializer->GetInt();
 }
 
 Object* PLShared_AttributeSubsetStats::Create() const
@@ -1518,16 +1544,16 @@ KWAttributePairStats* PLShared_AttributePairStats::GetAttributePair()
 	return cast(KWAttributePairStats*, GetObject());
 }
 
-void PLShared_AttributePairStats::DeserializeObject(PLSerializer* serializer, Object* o) const
-{
-	// Appel de la methode ancetre
-	PLShared_AttributeSubsetStats::DeserializeObject(serializer, o);
-}
-
 void PLShared_AttributePairStats::SerializeObject(PLSerializer* serializer, const Object* o) const
 {
 	// Appel de la methode ancetre
 	PLShared_AttributeSubsetStats::SerializeObject(serializer, o);
+}
+
+void PLShared_AttributePairStats::DeserializeObject(PLSerializer* serializer, Object* o) const
+{
+	// Appel de la methode ancetre
+	PLShared_AttributeSubsetStats::DeserializeObject(serializer, o);
 }
 
 Object* PLShared_AttributePairStats::Create() const

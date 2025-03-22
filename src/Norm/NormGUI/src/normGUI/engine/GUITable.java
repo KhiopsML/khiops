@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -20,8 +20,6 @@ import javax.swing.event.ListSelectionListener;
 
 /**
  * Definit le tableau associe a la liste
- *
- * @author Marc Boulle
  */
 public class GUITable extends JTable
 {
@@ -73,8 +71,8 @@ public class GUITable extends JTable
                 addMouseListener(new MouseAdapter() {
                         public void mouseClicked(MouseEvent e)
                         {
-                                // Si on clique a droite
-                                if (e.getButton() == 3) {
+                                // Si on clique a droite et que le composant est enabled
+                                if (e.getButton() == 3 && isEnabled()) {
                                         // On recupere la ligne sous le curseur
                                         int row = rowAtPoint(e.getPoint());
                                         // On met a jour la selection graphique
@@ -117,15 +115,14 @@ public class GUITable extends JTable
          */
         public void buildPopupMenu()
         {
-                // Si la liste contient des actions, on construit le popmenu
+                // Si la liste contient des actions de type popup, on construit le popmenu
                 if (guiList.vectorOfGUIActions.size() > 0) {
                         popMenu = new JPopupMenu();
                         // Pour chaque action
                         for (int i = 0; i < guiList.vectorOfGUIActions.size(); i++) {
                                 GUIAction action = (GUIAction)guiList.vectorOfGUIActions.get(i);
-                                // Si l'action n'est pas un exit ni un refresh (actions standards des
-                                // unites)
-                                if (action.getVisible() && action.getStyle().equals("") &&
+                                // Si l'action n'est pas un exit ni un refresh (actions standards des unites)
+                                if (action.getVisible() && action.getStyle().equals("PopupMenu") &&
                                     !action.getIdentifier().equals(GUIUnit.Exit) &&
                                     !action.getIdentifier().equals(GUIUnit.Refresh)) {
                                         JMenuItem menuItem = new JMenuItem(action.getLabel());
@@ -184,8 +181,8 @@ public class GUITable extends JTable
                         // On affecte le rendu a la colonne
                         getColumnModel().getColumn(i).setCellRenderer(guiElement.getCellElement());
 
-                        // On prend en compte la largeur preferee des composants, avec un max sauf
-                        // pour la derniere colonne
+                        // On prend en compte la largeur preferee des composants, avec un max sauf pour
+                        // la derniere colonne
                         nColumnWidth = (int)guiElement.buildComponent().getPreferredSize().getWidth();
                         getColumnModel().getColumn(i).setPreferredWidth(nColumnWidth);
                         getColumnModel().getColumn(i).setMinWidth(nColumnWidth / 2);

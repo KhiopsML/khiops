@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -204,8 +204,14 @@ void KWTrainedPredictor::PrepareDeploymentClass(boolean bMandatoryAttributes, bo
 			if (attribute != NULL and KWType::IsSimple(attribute->GetType()))
 			{
 				assert(predictorClass->LookupAttribute(attribute->GetName()) == attribute);
-				attribute->SetUsed(true);
-				attribute->SetLoaded(true);
+
+				// On met l'attribut en Used, sauf pour l'attribut cible si l'evaluation n'est pas
+				// demandee
+				if (bEvaluationAttributes or attribute != GetTargetAttribute())
+				{
+					attribute->SetUsed(true);
+					attribute->SetLoaded(true);
+				}
 			}
 		}
 	}
@@ -445,7 +451,7 @@ boolean KWTrainedPredictor::Check() const
 				}
 
 				// Test de validite des noms de classe initiaux
-				if (not kwcClass->CheckName(sInitialClassName, kwcClass))
+				if (not kwcClass->CheckName(sInitialClassName, KWClass::Class, kwcClass))
 				{
 					AddError("Bad initial dictionary name (" + sInitialClassName +
 						 ") for predictor dictionary (" + kwcClass->GetName() + ")");

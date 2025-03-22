@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -8,7 +8,6 @@ CCLearningProblemDeploymentPreparationView::CCLearningProblemDeploymentPreparati
 {
 	CCPostProcessingSpecView* postProcessingSpecView;
 	CCDeploymentSpecView* deploymentSpecView;
-	CCAnalysisResultsView* analysisResultsView;
 	UIList* inputAttributeNameHelpList;
 
 	// Libelles
@@ -19,17 +18,17 @@ CCLearningProblemDeploymentPreparationView::CCLearningProblemDeploymentPreparati
 	AddStringField("ClassFileName", "Input dictionary file", "");
 	GetFieldAt("ClassFileName")->SetEditable(false);
 
+	// Champ du dictionnaire de deploiement en resultat
+	AddStringField("CoclusteringDictionaryFileName", "Coclustering dictionary file", "");
+	GetFieldAt("CoclusteringDictionaryFileName")->SetStyle("FileChooser");
+
 	// Creation des sous fiches (creation generique pour les vues sur bases de donnees)
 	postProcessingSpecView = new CCPostProcessingSpecView;
 	deploymentSpecView = new CCDeploymentSpecView;
-	analysisResultsView = new CCAnalysisResultsView;
 
 	// Ajout des sous-fiches
 	AddCardField("PostProcessingSpec", "Simplification parameters", postProcessingSpecView);
 	AddCardField("DeploymentSpec", "Deployment parameters", deploymentSpecView);
-	AddCardField("AnalysisResults", "Results", analysisResultsView);
-	analysisResultsView->SetResultFieldsVisible(false);
-	analysisResultsView->GetFieldAt("CoclusteringDictionaryFileName")->SetVisible(true);
 
 	// Parametrage de liste d'aide pour le nom de l'attribut de coclustering a deployer
 	deploymentSpecView->GetFieldAt("DeployedAttributeName")->SetStyle("HelpedComboBox");
@@ -65,6 +64,8 @@ CCLearningProblemDeploymentPreparationView::CCLearningProblemDeploymentPreparati
 	    ->SetHelpText(
 		"Name of the dictionary file that corresponds to the deployment database."
 		"\n The input dictionary file must be opened from the main window using the 'Dictionary file' menu.");
+	GetFieldAt("CoclusteringDictionaryFileName")
+	    ->SetHelpText("Name of the deployment dictionary that contains the coclustering deployment model.");
 	GetActionAt("PrepareDeployment")
 	    ->SetHelpText(
 		"Build a coclustering deployment dictionary."
@@ -83,7 +84,6 @@ CCLearningProblemDeploymentPreparationView::CCLearningProblemDeploymentPreparati
 	// Short cuts
 	GetFieldAt("PostProcessingSpec")->SetShortCut('M');
 	GetFieldAt("DeploymentSpec")->SetShortCut('D');
-	GetFieldAt("AnalysisResults")->SetShortCut('R');
 	GetActionAt("PrepareDeployment")->SetShortCut('P');
 }
 
@@ -91,8 +91,17 @@ CCLearningProblemDeploymentPreparationView::~CCLearningProblemDeploymentPreparat
 
 void CCLearningProblemDeploymentPreparationView::EventUpdate(Object* object)
 {
-	// Class ancetre
+	CCLearningProblem* editedObject;
+
+	require(object != NULL);
+
+	// Appel de la methode ancetre
 	CCLearningProblemToolView::EventUpdate(object);
+
+	// Specialisation
+	editedObject = cast(CCLearningProblem*, object);
+	editedObject->GetAnalysisResults()->SetCoclusteringDictionaryFileName(
+	    GetStringValueAt("CoclusteringDictionaryFileName"));
 
 	// Rafraichissement des listes d'aide
 	RefreshHelpLists();
@@ -104,29 +113,29 @@ void CCLearningProblemDeploymentPreparationView::EventRefresh(Object* object)
 
 	require(object != NULL);
 
-	// Class ancetre
+	// Appel de la methode ancetre
 	CCLearningProblemToolView::EventRefresh(object);
 
-	// Refresh des champs
+	// Specialisation
 	editedObject = cast(CCLearningProblem*, object);
 	SetStringValueAt("ClassFileName", editedObject->GetClassFileName());
+	SetStringValueAt("CoclusteringDictionaryFileName",
+			 editedObject->GetAnalysisResults()->GetCoclusteringDictionaryFileName());
 }
 
 //////////////////////////////////////////////////////////////////////////
 
 void CCLearningProblemDeploymentPreparationView::PrepareDeployment()
 {
-	// Execution controlee par licence
-	if (not LMLicenseManager::RequestLicenseKey())
-		return;
-
 	// OK si classe correcte et fichiers corrects
 	if (GetLearningProblem()->CheckResultFileNames(CCLearningProblem::TaskPrepareDeployment))
 	{
 		// Calcul des stats
 		GetLearningProblem()->PrepareDeployment();
-		AddSimpleMessage("");
 	}
+
+	// Ligne de separation dans le log
+	AddSimpleMessage("");
 }
 
 void CCLearningProblemDeploymentPreparationView::SetObject(Object* object)
@@ -142,7 +151,6 @@ void CCLearningProblemDeploymentPreparationView::SetObject(Object* object)
 	cast(CCPostProcessingSpecView*, GetFieldAt("PostProcessingSpec"))
 	    ->SetObject(learningProblem->GetPostProcessingSpec());
 	cast(CCDeploymentSpecView*, GetFieldAt("DeploymentSpec"))->SetObject(learningProblem->GetDeploymentSpec());
-	cast(CCAnalysisResultsView*, GetFieldAt("AnalysisResults"))->SetObject(learningProblem->GetAnalysisResults());
 
 	// Memorisation de l'objet pour la fiche courante
 	UIObjectView::SetObject(object);

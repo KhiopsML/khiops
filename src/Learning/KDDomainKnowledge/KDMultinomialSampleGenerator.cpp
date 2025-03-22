@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -7,7 +7,10 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KDMultinomialSampleGenerator
 
-KDMultinomialSampleGenerator::KDMultinomialSampleGenerator() {}
+KDMultinomialSampleGenerator::KDMultinomialSampleGenerator()
+{
+	lRankedRandomSeed = 0;
+}
 
 KDMultinomialSampleGenerator::~KDMultinomialSampleGenerator() {}
 
@@ -17,6 +20,9 @@ void KDMultinomialSampleGenerator::ComputeBestSample(double dTotalFrequency, con
 	require(CheckPartialProbVector(dvProbs));
 	require(dTotalFrequency >= 0);
 	require(dvFrequencies != NULL);
+
+	// Reinitialisation de la graine aleatoire
+	lRankedRandomSeed = 0;
 
 	// Calcul de la meilleure distribution sur la base des partie entieres superieure
 	ComputeBestCeilSample(dTotalFrequency, dvProbs, dvFrequencies);
@@ -36,6 +42,9 @@ void KDMultinomialSampleGenerator::ComputeBestEquidistributedSample(double dTota
 	require(dTotalFrequency >= 0);
 	require(nValueNumber >= 0);
 	require(dvFrequencies != NULL);
+
+	// Reinitialisation de la graine aleatoire
+	lRankedRandomSeed = 0;
 
 	// Taillage du vecteur deffectif
 	dvFrequencies->SetSize(nValueNumber);
@@ -89,6 +98,9 @@ void KDMultinomialSampleGenerator::ComputeBestHierarchicalSamples(double dTotalF
 	require(nValueNumber + nSubValueNumber > 0);
 	require(dvFrequencies != NULL);
 	require(dvSubFrequencies != NULL);
+
+	// Reinitialisation de la graine aleatoire
+	lRankedRandomSeed = 0;
 
 	// Initialisation des tableaux
 	dvFrequencies->SetSize(nValueNumber);
@@ -146,6 +158,10 @@ void KDMultinomialSampleGenerator::ComputeBestBaselSample(double dTotalFrequency
 	require(nMaxIndex > 0);
 	require(dvFrequencies != NULL);
 
+	// Reinitialisation de la graine aleatoire
+	lRankedRandomSeed = 0;
+
+	// Calcul de l'echantillon
 	ComputeBaselProbs(nMaxIndex, &dvProbs);
 	ComputeBestSample(dTotalFrequency, &dvProbs, dvFrequencies);
 }
@@ -194,6 +210,10 @@ void KDMultinomialSampleGenerator::ComputeBestNaturalNumbersUniversalPriorSample
 	require(nMaxIndex > 0);
 	require(dvFrequencies != NULL);
 
+	// Reinitialisation de la graine aleatoire
+	lRankedRandomSeed = 0;
+
+	// Calcul de l'echantillon
 	ComputeNaturalNumbersUniversalPriorProbs(nMaxIndex, &dvProbs);
 	ComputeBestSample(dTotalFrequency, &dvProbs, dvFrequencies);
 }
@@ -216,6 +236,9 @@ void KDMultinomialSampleGenerator::ComputeBestProductSample(double dTotalFrequen
 							    ObjectArray* oaIndexedFrequencies) const
 {
 	ObjectArray oaProbVectors;
+
+	// Reinitialisation de la graine aleatoire
+	lRankedRandomSeed = 0;
 
 	// Appel du cas a plus de deux vecteurs de proabbilites
 	oaProbVectors.SetSize(2);
@@ -247,6 +270,9 @@ void KDMultinomialSampleGenerator::ComputeBestMultipleProductSample(double dTota
 	require(oaProbVectors != NULL);
 	require(oaProbVectors->GetSize() > 0);
 	require(oaIndexedFrequencies != NULL);
+
+	// Reinitialisation de la graine aleatoire
+	lRankedRandomSeed = 0;
 
 	// Nettoyage
 	oaIndexedFrequencies->SetSize(0);
@@ -360,6 +386,9 @@ void KDMultinomialSampleGenerator::ComputeBestSelectionSample(double dTotalFrequ
 	require(dvProbs->GetSize() > 0);
 	require(CheckPartialProbVector(dvProbs));
 	require(oaIndexedFrequencies != NULL);
+
+	// Reinitialisation de la graine aleatoire
+	lRankedRandomSeed = 0;
 
 	// Nettoyage
 	oaIndexedFrequencies->SetSize(0);
@@ -1080,6 +1109,9 @@ void KDMultinomialSampleGenerator::ComputeBestCeilSample(double dTotalFrequency,
 	require(dTotalFrequency >= 0);
 	require(CheckPartialProbVector(dvProbs));
 
+	// Reinitialisation de la graine aleatoire
+	lRankedRandomSeed = 0;
+
 	// Indicateur d'effectifs tres important (au dela de la precision numerique des double)
 	bVeryLargeTotalFrequency = IsVeryLargeFrequency(dTotalFrequency);
 
@@ -1500,7 +1532,8 @@ double KDMultinomialSampleGenerator::EpsilonPerturbation(double dProb) const
 	const double dEpsilon = 1e-10;
 	double dPerturbatedProb;
 
-	dPerturbatedProb = dProb + dProb * dEpsilon * (RandomDouble() - 0.5);
+	lRankedRandomSeed++;
+	dPerturbatedProb = dProb + dProb * dEpsilon * (IthRandomDouble(lRankedRandomSeed) - 0.5);
 	ensure(fabs(dProb - dPerturbatedProb) < 1.01 * dProb * dEpsilon / 2.0);
 	return dPerturbatedProb;
 }

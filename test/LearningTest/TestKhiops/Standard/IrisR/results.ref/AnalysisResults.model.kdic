@@ -1,0 +1,103 @@
+#Khiops 10.5.2-b.0
+
+Dictionary	BU1_Iris
+<InitialDictionary="Iris"> <PredictorLabel="Univariate SPetalLength"> <PredictorType="Regressor">
+{
+Unused	Numerical	SepalLength		; <Cost=2.3979> <Level=0.0903617>	
+Unused	Numerical	SepalWidth		; <Cost=2.3979> <Level=0.01974>	
+Unused	Numerical	PetalLength		; <TargetVariable>	
+Unused	Numerical	PetalWidth		; <Cost=2.3979> <Level=0.16061>	
+Unused	Categorical	SPetalLength	 = AsCategorical(Floor(PetalLength))	; <Cost=2.3979> <Level=0.212092> <SourceVariable>	
+Unused	Numerical	LowerPetalLength	 = If(LE(PetalLength, 3), PetalLength, 3)	; <Cost=2.3979> <Level=0.157721>	
+Unused	Numerical	UpperPetalWidth	 = If(GE(PetalWidth, 1.5), PetalWidth, 1.5)	; <Cost=2.3979> <Level=0.0912549>	
+Unused	Categorical	Class1	 = IfC(EQc(Class, "Iris-setosa"), "setosa", "")	; <Cost=2.3979> <Level=0.129937>	
+Unused	Categorical	Class2	 = IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")	; <Cost=2.3979> <Level=0.0691819>	
+Unused	Numerical	Dummy1	 = Copy(0)	; <Cost=2.3979> <Level=0>	
+Unused	Numerical	Dummy2	 = Random()	; <Cost=2.3979> <Level=0>	
+Unused	Categorical	Class		; <Cost=2.3979> <Level=0.174746>	
+Unused	Structure(DataGrid)	VPetalLength	 = DataGrid(ValueSet(1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.9, 3, 3.3, 3.5, 3.6, 3.9, 4, 4.1, 4.3, 4.4, 4.5, 4.7, 4.8, 4.9, 5, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 6, 6.1, 6.7, 6.9), Frequencies(1, 1, 2, 4, 9, 10, 5, 4, 2, 1, 1, 2, 1, 3, 4, 3, 1, 2, 5, 4, 3, 3, 3, 5, 2, 1, 2, 3, 6, 1, 2, 2, 1, 3, 2, 1))	; <TargetValues>	
+Unused	Structure(DataGrid)	PSPetalLength	 = DataGrid(ValueGroups(ValueGroup("1"), ValueGroup("5"), ValueGroup("4"), ValueGroup("3"), ValueGroup("6", " * ")), IntervalBounds(2.4, 3.95, 4.95, 5.95), Frequencies(38, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 25, 0, 0, 0, 27, 0, 0, 0, 0, 0, 0, 0, 7))	; <Level=0.212092>	// DataGrid(SPetalLength, PetalLength)
+Unused	Structure(RankRegressor)	BU1RPetalLength	 = NBRankRegressor(DataGridStats(PSPetalLength, SPetalLength))	;	
+Unused	Numerical	MRPetalLength	 = TargetRankMean(BU1RPetalLength)	; <MeanRank>	
+Unused	Numerical	SDRPetalLength	 = TargetRankStandardDeviation(BU1RPetalLength)	; <StandardDeviationRank>	
+Unused	Numerical	CPR1PetalLength	 = TargetRankCumulativeProbAt(BU1RPetalLength, 0.2)	; <CumulativeProbRank1>	// Partile 1 on 5
+Unused	Numerical	CPR2PetalLength	 = TargetRankCumulativeProbAt(BU1RPetalLength, 0.4)	; <CumulativeProbRank2>	// Partile 2 on 5
+Unused	Numerical	CPR3PetalLength	 = TargetRankCumulativeProbAt(BU1RPetalLength, 0.6)	; <CumulativeProbRank3>	// Partile 3 on 5
+Unused	Numerical	CPR4PetalLength	 = TargetRankCumulativeProbAt(BU1RPetalLength, 0.8)	; <CumulativeProbRank4>	// Partile 4 on 5
+Unused	Numerical	CPR5PetalLength	 = TargetRankCumulativeProbAt(BU1RPetalLength, 1)	; <CumulativeProbRank5>	// Partile 5 on 5
+Unused	Numerical	RankPetalLength	 = ValueRank(VPetalLength, PetalLength)	; <TargetVariableRank>	
+Unused	Numerical	DRPetalLength	 = TargetRankDensityAt(BU1RPetalLength, RankPetalLength)	; <DensityRank>	
+Unused	Structure(Regressor)	BU1PetalLength	 = NBRegressor(BU1RPetalLength, VPetalLength)	;	
+	Numerical	MPetalLength	 = TargetMean(BU1PetalLength)	; <Mean>	
+Unused	Numerical	SDPetalLength	 = TargetStandardDeviation(BU1PetalLength)	; <StandardDeviation>	
+Unused	Numerical	DPetalLength	 = TargetDensityAt(BU1PetalLength, PetalLength)	; <Density>	
+};
+
+Dictionary	B_Iris
+<InitialDictionary="Iris"> <PredictorLabel="Baseline"> <PredictorType="Regressor">
+{
+Unused	Numerical	SepalLength		; <Cost=2.3979> <Level=0.0903617>	
+Unused	Numerical	SepalWidth		; <Cost=2.3979> <Level=0.01974>	
+Unused	Numerical	PetalLength		; <TargetVariable>	
+Unused	Numerical	PetalWidth		; <Cost=2.3979> <Level=0.16061>	
+Unused	Categorical	SPetalLength	 = AsCategorical(Floor(PetalLength))	; <Cost=2.3979> <Level=0.212092>	
+Unused	Numerical	LowerPetalLength	 = If(LE(PetalLength, 3), PetalLength, 3)	; <Cost=2.3979> <Level=0.157721>	
+Unused	Numerical	UpperPetalWidth	 = If(GE(PetalWidth, 1.5), PetalWidth, 1.5)	; <Cost=2.3979> <Level=0.0912549>	
+Unused	Categorical	Class1	 = IfC(EQc(Class, "Iris-setosa"), "setosa", "")	; <Cost=2.3979> <Level=0.129937>	
+Unused	Categorical	Class2	 = IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")	; <Cost=2.3979> <Level=0.0691819>	
+Unused	Numerical	Dummy1	 = Copy(0)	; <Cost=2.3979> <Level=0>	
+Unused	Numerical	Dummy2	 = Random()	; <Cost=2.3979> <Level=0>	
+Unused	Categorical	Class		; <Cost=2.3979> <Level=0.174746>	
+Unused	Structure(DataGrid)	VPetalLength	 = DataGrid(ValueSet(1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.9, 3, 3.3, 3.5, 3.6, 3.9, 4, 4.1, 4.3, 4.4, 4.5, 4.7, 4.8, 4.9, 5, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 6, 6.1, 6.7, 6.9), Frequencies(1, 1, 2, 4, 9, 10, 5, 4, 2, 1, 1, 2, 1, 3, 4, 3, 1, 2, 5, 4, 3, 3, 3, 5, 2, 1, 2, 3, 6, 1, 2, 2, 1, 3, 2, 1))	; <TargetValues>	
+Unused	Structure(RankRegressor)	BRPetalLength	 = NBRankRegressor(DataGridStats(DataGrid(IntervalBounds(), Frequencies(105))))	;	
+Unused	Numerical	MRPetalLength	 = TargetRankMean(BRPetalLength)	; <MeanRank>	
+Unused	Numerical	SDRPetalLength	 = TargetRankStandardDeviation(BRPetalLength)	; <StandardDeviationRank>	
+Unused	Numerical	CPR1PetalLength	 = TargetRankCumulativeProbAt(BRPetalLength, 0.2)	; <CumulativeProbRank1>	// Partile 1 on 5
+Unused	Numerical	CPR2PetalLength	 = TargetRankCumulativeProbAt(BRPetalLength, 0.4)	; <CumulativeProbRank2>	// Partile 2 on 5
+Unused	Numerical	CPR3PetalLength	 = TargetRankCumulativeProbAt(BRPetalLength, 0.6)	; <CumulativeProbRank3>	// Partile 3 on 5
+Unused	Numerical	CPR4PetalLength	 = TargetRankCumulativeProbAt(BRPetalLength, 0.8)	; <CumulativeProbRank4>	// Partile 4 on 5
+Unused	Numerical	CPR5PetalLength	 = TargetRankCumulativeProbAt(BRPetalLength, 1)	; <CumulativeProbRank5>	// Partile 5 on 5
+Unused	Numerical	RankPetalLength	 = ValueRank(VPetalLength, PetalLength)	; <TargetVariableRank>	
+Unused	Numerical	DRPetalLength	 = TargetRankDensityAt(BRPetalLength, RankPetalLength)	; <DensityRank>	
+Unused	Structure(Regressor)	BPetalLength	 = NBRegressor(BRPetalLength, VPetalLength)	;	
+	Numerical	MPetalLength	 = TargetMean(BPetalLength)	; <Mean>	
+Unused	Numerical	SDPetalLength	 = TargetStandardDeviation(BPetalLength)	; <StandardDeviation>	
+Unused	Numerical	DPetalLength	 = TargetDensityAt(BPetalLength, PetalLength)	; <Density>	
+};
+
+Dictionary	SNB_Iris
+<InitialDictionary="Iris"> <PredictorLabel="Selective Naive Bayes"> <PredictorType="Regressor">
+{
+Unused	Numerical	SepalLength		; <Cost=2.3979> <Importance=0.145528> <Level=0.0903617> <Weight=0.234375>	
+Unused	Numerical	SepalWidth		; <Cost=2.3979> <Level=0.01974>	
+Unused	Numerical	PetalLength		; <TargetVariable>	
+Unused	Numerical	PetalWidth		; <Cost=2.3979> <Level=0.16061>	
+Unused	Categorical	SPetalLength	 = AsCategorical(Floor(PetalLength))	; <Cost=2.3979> <Importance=0.359504> <Level=0.212092> <Weight=0.609375>	
+Unused	Numerical	LowerPetalLength	 = If(LE(PetalLength, 3), PetalLength, 3)	; <Cost=2.3979> <Importance=0.29369> <Level=0.157721> <Weight=0.546875>	
+Unused	Numerical	UpperPetalWidth	 = If(GE(PetalWidth, 1.5), PetalWidth, 1.5)	; <Cost=2.3979> <Importance=0.181093> <Level=0.0912549> <Weight=0.359375>	
+Unused	Categorical	Class1	 = IfC(EQc(Class, "Iris-setosa"), "setosa", "")	; <Cost=2.3979> <Level=0.129937>	
+Unused	Categorical	Class2	 = IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")	; <Cost=2.3979> <Importance=0.118544> <Level=0.0691819> <Weight=0.203125>	
+Unused	Numerical	Dummy1	 = Copy(0)	; <Cost=2.3979> <Level=0>	
+Unused	Numerical	Dummy2	 = Random()	; <Cost=2.3979> <Level=0>	
+Unused	Categorical	Class		; <Cost=2.3979> <Level=0.174746>	
+Unused	Structure(DataGrid)	VPetalLength	 = DataGrid(ValueSet(1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.9, 3, 3.3, 3.5, 3.6, 3.9, 4, 4.1, 4.3, 4.4, 4.5, 4.7, 4.8, 4.9, 5, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 6, 6.1, 6.7, 6.9), Frequencies(1, 1, 2, 4, 9, 10, 5, 4, 2, 1, 1, 2, 1, 3, 4, 3, 1, 2, 5, 4, 3, 3, 3, 5, 2, 1, 2, 3, 6, 1, 2, 2, 1, 3, 2, 1))	; <TargetValues>	
+Unused	Structure(DataGrid)	PSepalLength	 = DataGrid(IntervalBounds(5.45, 6.15), IntervalBounds(3.55, 4.85), Frequencies(37, 5, 0, 2, 18, 6, 0, 5, 32))	; <Level=0.0903617>	// DataGrid(SepalLength, PetalLength)
+Unused	Structure(DataGrid)	PSPetalLength	 = DataGrid(ValueGroups(ValueGroup("1"), ValueGroup("5"), ValueGroup("4"), ValueGroup("3"), ValueGroup("6", " * ")), IntervalBounds(2.4, 3.95, 4.95, 5.95), Frequencies(38, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 25, 0, 0, 0, 27, 0, 0, 0, 0, 0, 0, 0, 7))	; <Level=0.212092>	// DataGrid(SPetalLength, PetalLength)
+Unused	Structure(DataGrid)	PLowerPetalLength	 = DataGrid(IntervalBounds(1.45, 2.4), IntervalBounds(1.45, 2.4), Frequencies(17, 0, 0, 0, 21, 0, 0, 0, 67))	; <Level=0.157721>	// DataGrid(LowerPetalLength, PetalLength)
+Unused	Structure(DataGrid)	PUpperPetalWidth	 = DataGrid(IntervalBounds(1.55), IntervalBounds(4.75), Frequencies(63, 2, 4, 36))	; <Level=0.0912549>	// DataGrid(UpperPetalWidth, PetalLength)
+Unused	Structure(DataGrid)	PClass2	 = DataGrid(ValueGroups(ValueGroup(""), ValueGroup("versicolor", " * ")), IntervalBounds(2.4, 4.85), Frequencies(38, 0, 1, 29, 34, 3))	; <Level=0.0691819>	// DataGrid(Class2, PetalLength)
+Unused	Structure(RankRegressor)	SNBRPetalLength	 = SNBRankRegressor(Vector(0.234375, 0.609375, 0.546875, 0.359375, 0.203125), DataGridStats(PSepalLength, SepalLength), DataGridStats(PSPetalLength, SPetalLength), DataGridStats(PLowerPetalLength, LowerPetalLength), DataGridStats(PUpperPetalWidth, UpperPetalWidth), DataGridStats(PClass2, Class2))	;	
+Unused	Numerical	MRPetalLength	 = TargetRankMean(SNBRPetalLength)	; <MeanRank>	
+Unused	Numerical	SDRPetalLength	 = TargetRankStandardDeviation(SNBRPetalLength)	; <StandardDeviationRank>	
+Unused	Numerical	CPR1PetalLength	 = TargetRankCumulativeProbAt(SNBRPetalLength, 0.2)	; <CumulativeProbRank1>	// Partile 1 on 5
+Unused	Numerical	CPR2PetalLength	 = TargetRankCumulativeProbAt(SNBRPetalLength, 0.4)	; <CumulativeProbRank2>	// Partile 2 on 5
+Unused	Numerical	CPR3PetalLength	 = TargetRankCumulativeProbAt(SNBRPetalLength, 0.6)	; <CumulativeProbRank3>	// Partile 3 on 5
+Unused	Numerical	CPR4PetalLength	 = TargetRankCumulativeProbAt(SNBRPetalLength, 0.8)	; <CumulativeProbRank4>	// Partile 4 on 5
+Unused	Numerical	CPR5PetalLength	 = TargetRankCumulativeProbAt(SNBRPetalLength, 1)	; <CumulativeProbRank5>	// Partile 5 on 5
+Unused	Numerical	RankPetalLength	 = ValueRank(VPetalLength, PetalLength)	; <TargetVariableRank>	
+Unused	Numerical	DRPetalLength	 = TargetRankDensityAt(SNBRPetalLength, RankPetalLength)	; <DensityRank>	
+Unused	Structure(Regressor)	SNBPetalLength	 = SNBRegressor(SNBRPetalLength, VPetalLength)	;	
+	Numerical	MPetalLength	 = TargetMean(SNBPetalLength)	; <Mean>	
+Unused	Numerical	SDPetalLength	 = TargetStandardDeviation(SNBPetalLength)	; <StandardDeviation>	
+Unused	Numerical	DPetalLength	 = TargetDensityAt(SNBPetalLength, PetalLength)	; <Density>	
+};

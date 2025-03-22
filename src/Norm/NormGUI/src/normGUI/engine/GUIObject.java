@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -20,8 +20,6 @@ import javax.swing.JTextField;
 
 /**
  * Definit un objet d'interface
- *
- * @author Marc Boulle
  */
 public abstract class GUIObject
 {
@@ -65,8 +63,8 @@ public abstract class GUIObject
         {
                 if (!debug)
                         messageWindow.displayMessageChars(sMessage);
-                // En mode debug, on passe directement par la console pour eviter le
-                // probleme des erreurs de la fenetre de message elle-meme (boucle infinie)
+                // En mode debug, on passe directement par la console pour eviter le probleme
+                // des erreurs de la fenetre de message elle-meme (boucle infinie)
                 else
                         System.out.println(sMessage);
         }
@@ -129,8 +127,8 @@ public abstract class GUIObject
 
         /**
          * Renvoie le chemin d'un fichier de ressource se trouvant soit dans le
-         * repertoire courant, soit dans le CLASSPATH, soit dans repertoire de nom
-         * "dat" frere d'un repertoire du CLASSPATH
+         * repertoire courant, soit dans le CLASSPATH, soit dans repertoire de nom "dat"
+         * frere d'un repertoire du CLASSPATH
          *
          * @param sRessourceFileName Le nom du fichier de ressource
          * @return Le chemin complet de la ressource, ou chaine vide si non trouve
@@ -142,7 +140,6 @@ public abstract class GUIObject
                 String sNextPath;
                 String sPath;
                 File file;
-                int nDirectoryIndex;
                 int i;
 
                 if (sRessourceFileName.equals(""))
@@ -184,8 +181,34 @@ public abstract class GUIObject
         }
 
         /*
-         * Recherche des caracteristiques de l'ecran courant, contena t la fenetre
-         * active
+         * Ajustement d'une dimension initiale par rapport a une largeur de frame minimale et a la taille de l'ecran
+         */
+        static public Dimension computeAdjustedDimension(Dimension initialDimension, int minFrameWidth)
+        {
+                // On recupere les dimensions de l'ecran
+                Rectangle screenBounds = getCurrentScreenBounds();
+
+                // Ajustement des dimensions a la largeur minimale
+                int newWidth = (int)initialDimension.getWidth();
+                int newHeight = (int)initialDimension.getHeight();
+                if (newWidth < minFrameWidth)
+                        newWidth = minFrameWidth;
+
+                // Ajout heuristique d'une petite marge en largeur
+                newWidth = (newWidth * 105) / 100;
+
+                // Ajustement a la taille de l'ecran, avec une marge heuristique
+                // pour tenir compte de la barre de tache, de la barre de titre, de menu, d'un libelle, de boutons...
+                int maxUsableHeight = (screenBounds.height * 95) / 100;
+                if (newWidth > screenBounds.width)
+                        newWidth = screenBounds.width;
+                if (newHeight > maxUsableHeight)
+                        newHeight = maxUsableHeight;
+                return new Dimension(newWidth, newHeight);
+        }
+
+        /*
+         * Recherche des caracteristiques de l'ecran courant, contenant la fenetre active
          */
         static public Rectangle getCurrentScreenBounds()
         {
@@ -196,8 +219,6 @@ public abstract class GUIObject
                 Rectangle commonBounds = null;
                 int screenWidth = 0;
                 int screenHeight = 0;
-                int x = 0;
-                int y = 0;
 
                 // Recherche de la fenetre active et de sa position
                 try {
@@ -215,8 +236,7 @@ public abstract class GUIObject
                         GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
                         GraphicsDevice[] gd = ge.getScreenDevices();
 
-                        // Recherche de l'ecran contenant la plus grande proportion de la fenetre
-                        // active
+                        // Recherche de l'ecran contenant la plus grande proportion de la fenetre active
                         double bestCommonSurface = -1;
                         double commonSurface = -1;
                         for (screen = 0; screen < gd.length; screen++) {
@@ -248,7 +268,7 @@ public abstract class GUIObject
         }
 
         /**
-         * Method utilitaire d'affichage du contenu d'un GridBagConstrainte
+         * Methode utilitaire d'affichage du contenu d'un GridBagConstrainte
          */
         public void displayGridBagConstraint(String title, GridBagConstraints constraint)
         {
@@ -272,6 +292,7 @@ public abstract class GUIObject
         public static void main(String[] args)
         {
                 System.out.println("Java GUI engine version: " + getGUIEngineVersion());
+                System.exit(0);
         }
 
         /**
@@ -341,8 +362,8 @@ public abstract class GUIObject
                 int charWidth;
 
                 // Recherche de la dimension preferee d'un textfield
-                // Solution bidulique pour avoir la taille moyenne par caractere, en prenant
-                // la taille moyenne entre 'n' et 'm'
+                // Solution bidulique pour avoir la taille moyenne par caractere, en prenant la taille moyenne entre 'n'
+                // et 'm'
                 JTextField textFieldEmpty = new JTextField("");
                 JTextField textFieldMN = new JTextField("mn");
                 charWidth =
@@ -361,6 +382,19 @@ public abstract class GUIObject
                 JTextField textField = new JTextField();
                 dim = textField.getPreferredSize();
                 return (int)(dim.getHeight());
+        }
+
+        /**
+         * Largeur minimale d'une fenetre pour un titre donne
+         */
+        static public int getMinFramedWidth(String title)
+        {
+                // Estimation pour tenir compte des boutons systemes
+                int frameEmptySize = getComponentPreferredWidth(12);
+
+                // Prise en compte du titre
+                int titleSize = getComponentPreferredWidth(title.length());
+                return frameEmptySize + titleSize;
         }
 
         /**
@@ -401,12 +435,10 @@ public abstract class GUIObject
         public String[] getParametersAsArray()
         {
                 if (sParameters != null) {
-                        // On ajoute un blanc en fin des parametres pour forcer la methode split a
-                        // cree un dernier token
-                        String[] params = (sParameters + " ").split("\n");
-                        // On supprime le blan du dernier token
-                        String lastToken = params[params.length - 1];
-                        params[params.length - 1] = lastToken.substring(0, lastToken.length() - 1);
+                        // Le parametre -1 du split permet de forcer la methode split a creer
+                        // autant d'items dans le tableau qu'il y a de separateurs (plus un)
+                        // Sinon, on ne peut avoir d'item vide au milieu ou en fin de liste par exemple
+                        String[] params = sParameters.split("\n", -1);
                         return params;
                 } else
                         return null;

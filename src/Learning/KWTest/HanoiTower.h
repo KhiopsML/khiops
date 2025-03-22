@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -13,7 +13,7 @@
 // Tour de Hanoi
 // Une tour de Hanoi est une pile de disques dont les taille sont decroissantes du bas vers le haut.
 // Les tours de Hanoi sont un jeu de reflexion consistant a deplacer des disques de diametres differents
-// d'une tour de « depart » a une tour d'« arrivee » en passant par une tour « intermediaire », et ceci
+// d'une tour de " depart " a une tour d'" arrivee " en passant par une tour " intermediaire ", et ceci
 // en un minimum de coups, tout en respectant les regles suivantes:
 //    . on ne peut deplacer plus d'un disque a la fois,
 //    . on ne peut placer un disque que sur un autre disque plus grand que lui ou sur un emplacement vide.

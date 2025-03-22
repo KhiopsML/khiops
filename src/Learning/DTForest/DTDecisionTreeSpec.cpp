@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -18,6 +18,10 @@ DTDecisionTreeSpec::DTDecisionTreeSpec()
 	nInternalNodesNumber = 0;
 	dTreeLevel = -1;
 	nVariablesNumber = 0;
+	dgsTargetStats = NULL;
+	dTargetMin = 0.0;
+	dTargetMax = 0.0;
+	nTargetType = KWType::Symbol;
 }
 
 DTDecisionTreeSpec::~DTDecisionTreeSpec()
@@ -31,6 +35,9 @@ void DTDecisionTreeSpec::Clean()
 
 	// destruction du tableau des noeuds (y compris le noeud root)
 	oaTreeNodes.DeleteAll();
+
+	if (dgsTargetStats != NULL)
+		delete dgsTargetStats;
 }
 
 DTDecisionTreeNodeSpec* DTDecisionTreeSpec::AddNodeSpec(const DTDecisionTreeNode* nNode,
@@ -308,8 +315,8 @@ KWDerivationRule* DTDecisionTreeSpec::CreateGroupIndexRule(const DTDecisionTreeN
 {
 	// creation d'une regle de type  Switch(GroupIndex(
 	//												ValueGroups(
-	// ValueGroup(“val1”,”val2”),
-	// ValueGroup(“val3”)
+	// ValueGroup("val1", "val2"),
+	// ValueGroup("val3")
 	//															),
 	//												var_categorielle_de_test),
 	//												1,2,1)
@@ -380,9 +387,88 @@ KWDerivationRule* DTDecisionTreeSpec::CreateGroupIndexRule(const DTDecisionTreeN
 
 void DTDecisionTreeSpec::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const
 {
+	ContinuousVector cvAttributeDomainLowerBounds;
+	ContinuousVector cvAttributeDomainUpperBounds;
+
+	cvAttributeDomainLowerBounds.SetSize(1);
+	cvAttributeDomainUpperBounds.SetSize(1);
+
 	fJSON->WriteKeyString("name", sTreeVariableName);
 	fJSON->WriteKeyInt("variableNumber", nVariablesNumber);
 	fJSON->WriteKeyInt("depth", nDepth);
+	if (dgsTargetStats != NULL)
+	{
+		//initialisation des borne du rapport json
+		cvAttributeDomainLowerBounds.SetAt(0, dTargetMin);
+		cvAttributeDomainUpperBounds.SetAt(0, dTargetMax);
+		dgsTargetStats->SetJSONAttributeDomainLowerBounds(&cvAttributeDomainLowerBounds);
+		dgsTargetStats->SetJSONAttributeDomainUpperBounds(&cvAttributeDomainUpperBounds);
+
+		fJSON->BeginKeyObject("targetPartition");
+
+		WriteTargetJSONFields(fJSON);
+		dgsTargetStats->SetJSONAttributeDomainLowerBounds(NULL);
+		dgsTargetStats->SetJSONAttributeDomainUpperBounds(NULL);
+
+		fJSON->EndObject();
+	}
+}
+
+void DTDecisionTreeSpec::WriteTargetJSONFields(JSONFile* fJSON) const
+{
+	const KWDGSAttributeDiscretization attributeDiscretization;
+	KWDGSAttributePartition* attribute;
+	KWDGSAttributePartition* attribute1;
+	IntVector ivPartIndexes;
+	boolean bShowCellInterest;
+	ObjectArray oaNonEmptyCells;
+	int nPart1;
+	int nFrequency;
+	ALString sTmp;
+
+	require(dgsTargetStats != NULL);
+	require(dgsTargetStats->GetTargetAttributeNumber() == 1 or
+		dgsTargetStats->GetTargetAttributeNumber() == dgsTargetStats->GetAttributeNumber());
+	require(dgsTargetStats->GetJSONAttributeDomainLowerBounds() != NULL and
+		dgsTargetStats->GetJSONAttributeDomainUpperBounds() != NULL);
+	require(dgsTargetStats->GetJSONAttributeDomainLowerBounds()->GetSize() ==
+		dgsTargetStats->GetJSONAttributeDomainUpperBounds()->GetSize());
+	require(dgsTargetStats->GetJSONAttributeDomainLowerBounds()->GetSize() == dgsTargetStats->GetAttributeNumber());
+
+	// On determine s'il faut afficher les interets des cellules
+	bShowCellInterest =
+	    dgsTargetStats->GetTargetAttributeNumber() == 1 and dgsTargetStats->GetSourceAttributeNumber() >= 1;
+
+	// Ecriture de la partition de la target
+
+	attribute = cast(KWDGSAttributePartition*, dgsTargetStats->GetAttributeAt(0));
+
+	// Cas specifique de la discretisation
+	if (attribute->GetClassLabel() == attributeDiscretization.GetClassLabel())
+	{
+		// On utilise les bornes pour ecrire les intervalles extremes avec leur vraies bornes
+
+		cast(KWDGSAttributeDiscretization*, attribute)
+		    ->WriteJSONFieldsWithBounds(fJSON, dgsTargetStats->GetJSONAttributeDomainLowerBounds()->GetAt(0),
+						dgsTargetStats->GetJSONAttributeDomainUpperBounds()->GetAt(0));
+	}
+	// Cas general
+	else
+		attribute->WriteJSONReport(fJSON);
+
+	// Effectifs de la target
+	if (dgsTargetStats->GetAttributeNumber() == 1)
+	{
+		assert(not bShowCellInterest);
+		attribute1 = cast(KWDGSAttributePartition*, dgsTargetStats->GetAttributeAt(0));
+		fJSON->BeginKeyList("frequencies");
+		for (nPart1 = 0; nPart1 < attribute1->GetPartNumber(); nPart1++)
+		{
+			nFrequency = dgsTargetStats->GetUnivariateCellFrequencyAt(nPart1);
+			fJSON->WriteInt(nFrequency);
+		}
+		fJSON->EndList();
+	}
 }
 
 const ALString& DTDecisionTreeSpec::GetTreeVariableName() const
@@ -414,6 +500,24 @@ double DTDecisionTreeSpec::GetLevel() const
 	return dLevel;
 }
 
+void DTDecisionTreeSpec::SetTargetMin(const double d)
+{
+	dTargetMin = d;
+}
+double DTDecisionTreeSpec::GetTargetMin() const
+{
+	return dTargetMin;
+}
+
+void DTDecisionTreeSpec::SetTargetMax(const double d)
+{
+	dTargetMax = d;
+}
+double DTDecisionTreeSpec::GetTargetMax() const
+{
+	return dTargetMax;
+}
+
 void DTDecisionTreeSpec::SetVariablesNumber(const int i)
 {
 	nVariablesNumber = i;
@@ -440,6 +544,17 @@ int DTDecisionTreeSpec::GetLeavesNumber() const
 {
 	return nLeavesNumber;
 }
+
+void DTDecisionTreeSpec::SetTargetType(const int i)
+{
+	nTargetType = i;
+}
+
+int DTDecisionTreeSpec::GetTargetType() const
+{
+	return nTargetType;
+}
+
 int DTDecisionTreeSpec::GetDepth() const
 {
 	return nDepth;
@@ -459,7 +574,7 @@ double DTDecisionTreeSpec::GetConstructionCost() const
 
 DTDecisionTreeNodeSpec::DTDecisionTreeNodeSpec()
 {
-	// adresse du noeud père
+	// adresse du noeud pere
 	nsFatherNode = NULL;
 
 	// type de la variable continue ou categoriel
@@ -556,7 +671,7 @@ void DTDecisionTreeNodeSpec::SetTargetModalitiesCountTrain(ObjectArray* n)
 {
 	oaTargetModalitiesCountTrain = n;
 }
-///////////////////////////////////////////////  HASH VALUE ///////////////////////////////////////
+////////////////////////////////////////////  HASH VALUE ///////////////////////////////////////
 
 longint DTDecisionTreeNodeSpec::ComputeHashValue() const
 {
@@ -645,8 +760,8 @@ longint DTDecisionTreeNodeSpec::ComputeHashOfGroupIndexRule() const
 {
 	// creation d'une regle de type  Switch(GroupIndex(
 	//												ValueGroups(
-	// ValueGroup(“val1”,”val2”),
-	// ValueGroup(“val3”)
+	// ValueGroup("val1", "val2"),
+	// ValueGroup("val3")
 	//															),
 	//												var_categorielle_de_test),
 	//												1,2,1)
@@ -682,6 +797,277 @@ longint DTDecisionTreeNodeSpec::ComputeHashOfGroupIndexRule() const
 	}
 
 	return lHash;
+}
+/////////////  classe PLShared_DecisionTreeSpec
+
+PLShared_DecisionTreeSpec::PLShared_DecisionTreeSpec()
+{
+	// shared_oaTreeNodes = new PLShared_ObjectArray(new PLShared_DecisionTreeNodeSpec);
+	shared_nsRootNode = new PLShared_DecisionTreeNodeSpec;
+	shared_dgsTargetStats = new PLShared_DataGridStats;
+}
+
+PLShared_DecisionTreeSpec::~PLShared_DecisionTreeSpec()
+{
+	// delete shared_oaTreeNodes;
+	delete shared_nsRootNode;
+	delete shared_dgsTargetStats;
+}
+
+void PLShared_DecisionTreeSpec::DeserializeObject(PLSerializer* serializer, Object* object) const
+{
+	DTDecisionTreeSpec* tree;
+	require(serializer != NULL);
+	require(serializer->IsOpenForRead());
+	require(object != NULL);
+
+	tree = cast(DTDecisionTreeSpec*, object);
+	tree->sRank = serializer->GetString();
+	tree->sTreeVariableName = serializer->GetString();
+	tree->dTreeLevel = serializer->GetDouble();
+	tree->dLevel = serializer->GetDouble();
+	tree->nVariablesNumber = serializer->GetInt();
+	tree->nInternalNodesNumber = serializer->GetInt();
+	tree->nLeavesNumber = serializer->GetInt();
+	tree->nDepth = serializer->GetInt();
+	tree->dConstructionCost = serializer->GetDouble();
+	tree->dTargetMin = serializer->GetDouble();
+	tree->dTargetMax = serializer->GetDouble();
+	tree->nTargetType = serializer->GetInt();
+	if (tree->nTargetType == KWType::Continuous)
+	{
+		tree->dgsTargetStats = new KWDataGridStats;
+		shared_dgsTargetStats->DeserializeObject(serializer, tree->dgsTargetStats);
+	}
+	tree->nsRootNode = new DTDecisionTreeNodeSpec;
+	// la deserialisation du noeud racine entraine la deserialisation de tous les noeuds qui en dependent
+	// on procede de cette maniere afin d'eviter une recursivite infinie et un debordement de pile, lors de la
+	// deserialisation des noeuds (car le noeud racine reference ses noeuds enfants ET est reference par eux)
+	shared_nsRootNode->DeserializeObject(serializer, tree->nsRootNode);
+	assert(tree->nsRootNode != NULL);
+
+	// renseigner recursivement le tableau des noeuds tree->oaTreeNodes,  a partir de l'ensemble des noeuds
+	// deserialises
+	AddNode(tree->oaTreeNodes, tree->nsRootNode);
+}
+
+void PLShared_DecisionTreeSpec::SerializeObject(PLSerializer* serializer, const Object* object) const
+{
+	DTDecisionTreeSpec* tree;
+	require(serializer != NULL);
+	require(serializer->IsOpenForWrite());
+	require(object != NULL);
+
+	tree = cast(DTDecisionTreeSpec*, object);
+	serializer->PutString(tree->sRank);
+	serializer->PutString(tree->sTreeVariableName);
+	serializer->PutDouble(tree->dTreeLevel);
+	serializer->PutDouble(tree->dLevel);
+	serializer->PutInt(tree->nVariablesNumber);
+	serializer->PutInt(tree->nInternalNodesNumber);
+	serializer->PutInt(tree->nLeavesNumber);
+	serializer->PutInt(tree->nDepth);
+	serializer->PutDouble(tree->dConstructionCost);
+	serializer->PutDouble(tree->dTargetMin);
+	serializer->PutDouble(tree->dTargetMax);
+	serializer->PutInt(tree->nTargetType);
+	if (tree->nTargetType == KWType::Continuous)
+	{
+		assert(tree->dgsTargetStats != NULL);
+		shared_dgsTargetStats->SerializeObject(serializer, tree->dgsTargetStats);
+	}
+	assert(tree->nsRootNode != NULL);
+	// la serialisation du noeud racine entraine la serialisation de tous les noeuds qui en dependent
+	// on procede de cette maniere afin d'eviter une recursivite infinie et un debordement de pile, lors de la
+	// serialisation des noeuds (car le noeud racine reference ses noeuds enfants ET est reference par eux)
+	shared_nsRootNode->SerializeObject(serializer, tree->nsRootNode);
+}
+
+Object* PLShared_DecisionTreeSpec::Create() const
+{
+	return new DTDecisionTreeSpec;
+}
+
+void PLShared_DecisionTreeSpec::SetDecisionTreeSpec(DTDecisionTreeSpec* r)
+{
+	require(r != NULL);
+	SetObject(r);
+}
+
+DTDecisionTreeSpec* PLShared_DecisionTreeSpec::GetDecisionTreeSpec() const
+{
+	return cast(DTDecisionTreeSpec*, GetObject());
+}
+
+void PLShared_DecisionTreeSpec::AddNode(ObjectArray& oaTreeNodes, DTDecisionTreeNodeSpec* node) const
+{
+	oaTreeNodes.Add(node);
+
+	for (int i = 0; i < node->GetChildNodes().GetSize(); i++)
+	{
+		DTDecisionTreeNodeSpec* child = cast(DTDecisionTreeNodeSpec*, node->GetChildNodes().GetAt(i));
+		child->SetFatherNode(node);
+		AddNode(oaTreeNodes, child);
+	}
+}
+
+//////////////////  classe PLShared_DecisionTreeNodeSpec
+
+PLShared_DecisionTreeNodeSpec::PLShared_DecisionTreeNodeSpec()
+{
+	shared_oaChildrenNode = NULL;
+	shared_oaTargetModalitiesCountTrain = new PLShared_ObjectArray(new PLShared_TargetModalityCount);
+	shared_dgsAttributeDiscretization = new PLShared_DGSAttributeDiscretization;
+	shared_dgsAttributeGrouping = new PLShared_DGSAttributeGrouping;
+}
+
+PLShared_DecisionTreeNodeSpec::~PLShared_DecisionTreeNodeSpec()
+{
+	if (shared_oaChildrenNode != NULL)
+		delete shared_oaChildrenNode;
+
+	delete shared_oaTargetModalitiesCountTrain;
+	delete shared_dgsAttributeDiscretization;
+	delete shared_dgsAttributeGrouping;
+}
+
+void PLShared_DecisionTreeNodeSpec::DeserializeObject(PLSerializer* serializer, Object* object) const
+{
+	DTDecisionTreeNodeSpec* node;
+	require(serializer != NULL);
+	require(serializer->IsOpenForRead());
+	require(object != NULL);
+
+	node = cast(DTDecisionTreeNodeSpec*, object);
+
+	node->sIdentifier = serializer->GetString();
+	node->sVariableName = serializer->GetString();
+	node->nVariableType = serializer->GetInt();
+	node->bIsLeaf = serializer->GetBoolean();
+	node->ndepth = serializer->GetInt();
+
+	if (not node->bIsLeaf)
+	{
+		if (shared_oaChildrenNode == NULL)
+			shared_oaChildrenNode = new PLShared_ObjectArray(new PLShared_DecisionTreeNodeSpec);
+		shared_oaChildrenNode->DeserializeObject(serializer, &node->oaChildNode);
+		assert(node->oaChildNode.GetSize() > 0);
+
+		if (node->nVariableType == KWType::Continuous)
+		{
+			node->apAttributePartitionSpec = new KWDGSAttributeDiscretization;
+			shared_dgsAttributeDiscretization->DeserializeObject(serializer,
+									     node->apAttributePartitionSpec);
+		}
+		else
+		{
+			node->apAttributePartitionSpec = new KWDGSAttributeGrouping;
+			shared_dgsAttributeGrouping->DeserializeObject(serializer, node->apAttributePartitionSpec);
+		}
+		node->cJSONMinValue = serializer->GetDouble();
+		node->cJSONMaxValue = serializer->GetDouble();
+	}
+
+	node->oaTargetModalitiesCountTrain = new ObjectArray;
+	shared_oaTargetModalitiesCountTrain->DeserializeObject(serializer, node->oaTargetModalitiesCountTrain);
+}
+
+void PLShared_DecisionTreeNodeSpec::SerializeObject(PLSerializer* serializer, const Object* object) const
+{
+	DTDecisionTreeNodeSpec* node;
+	require(serializer != NULL);
+	require(serializer->IsOpenForWrite());
+	require(object != NULL);
+
+	node = cast(DTDecisionTreeNodeSpec*, object);
+
+	serializer->PutString(node->sIdentifier);
+	serializer->PutString(node->sVariableName);
+	serializer->PutInt(node->nVariableType);
+	serializer->PutBoolean(node->bIsLeaf);
+	serializer->PutInt(node->ndepth);
+
+	if (not node->bIsLeaf)
+	{
+		assert(node->oaChildNode.GetSize() > 0);
+
+		if (shared_oaChildrenNode == NULL)
+			shared_oaChildrenNode = new PLShared_ObjectArray(new PLShared_DecisionTreeNodeSpec);
+		shared_oaChildrenNode->SerializeObject(serializer, &node->oaChildNode);
+
+		if (node->nVariableType == KWType::Continuous)
+			shared_dgsAttributeDiscretization->SerializeObject(serializer, node->apAttributePartitionSpec);
+		else
+			shared_dgsAttributeGrouping->SerializeObject(serializer, node->apAttributePartitionSpec);
+		serializer->PutDouble(node->cJSONMinValue);
+		serializer->PutDouble(node->cJSONMaxValue);
+	}
+
+	shared_oaTargetModalitiesCountTrain->SerializeObject(serializer, node->oaTargetModalitiesCountTrain);
+}
+
+Object* PLShared_DecisionTreeNodeSpec::Create() const
+{
+	return new DTDecisionTreeNodeSpec;
+}
+
+void PLShared_DecisionTreeNodeSpec::SetDecisionTreeNodeSpec(DTDecisionTreeNodeSpec* r)
+{
+	require(r != NULL);
+	SetObject(r);
+}
+
+DTDecisionTreeNodeSpec* PLShared_DecisionTreeNodeSpec::GetDecisionTreeNodeSpec() const
+{
+	return cast(DTDecisionTreeNodeSpec*, GetObject());
+}
+
+///////////////////////////////////////////////////////////
+
+/////////////  classe PLShared_TargetModalityCount
+
+PLShared_TargetModalityCount::PLShared_TargetModalityCount() {}
+
+PLShared_TargetModalityCount::~PLShared_TargetModalityCount() {}
+
+void PLShared_TargetModalityCount::DeserializeObject(PLSerializer* serializer, Object* object) const
+{
+	DTDecisionTree::TargetModalityCount* tmc;
+	require(serializer != NULL);
+	require(serializer->IsOpenForRead());
+	require(object != NULL);
+
+	tmc = cast(DTDecisionTree::TargetModalityCount*, object);
+	tmc->sModality = serializer->GetString();
+	tmc->iCount = serializer->GetInt();
+}
+
+void PLShared_TargetModalityCount::SerializeObject(PLSerializer* serializer, const Object* object) const
+{
+	DTDecisionTree::TargetModalityCount* tmc;
+	require(serializer != NULL);
+	require(serializer->IsOpenForWrite());
+	require(object != NULL);
+
+	tmc = cast(DTDecisionTree::TargetModalityCount*, object);
+	serializer->PutString(tmc->sModality.GetValue());
+	serializer->PutInt(tmc->iCount);
+}
+
+Object* PLShared_TargetModalityCount::Create() const
+{
+	return new DTDecisionTree::TargetModalityCount;
+}
+
+void PLShared_TargetModalityCount::SetTargetModalityCount(DTDecisionTree::TargetModalityCount* r)
+{
+	require(r != NULL);
+	SetObject(r);
+}
+
+DTDecisionTree::TargetModalityCount* PLShared_TargetModalityCount::GetTargetModalityCount() const
+{
+	return cast(DTDecisionTree::TargetModalityCount*, GetObject());
 }
 
 int DTDecisionTreeNodesModalitiesCountCompare(const void* elem1, const void* elem2)

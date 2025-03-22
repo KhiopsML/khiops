@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Orange. All rights reserved.
+// Copyright (c) 2023-2025 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -1829,9 +1829,8 @@ void AnyCharFileGenerator()
 	char cChar;
 
 	FileService::OpenOutputFile(sFileName, fTest);
-	fTest
-	    << "Index\tChar\t<Char>"
-	       "\tisupper\tislower\tisdigit\tisxdigit\tisalnum\tisspace\tispunct\tisprint\tisgraph\tiscntrl\tisascii\n";
+	fTest << "Index\tChar\t<Char>\tisupper\tislower\tisdigit\tisxdigit\tisalnum\t"
+	      << "isspace\tispunct\tp_isprint\tisprint\tisgraph\tiscntrl\tisascii\n";
 	for (i = 0; i < 20; i++)
 	{
 		for (nChar = 1; nChar < 256; nChar++)
@@ -1859,8 +1858,9 @@ void AnyCharFileGenerator()
 			fTest << (isdigit(nChar) != 0) << "\t";
 			fTest << (isxdigit(nChar) != 0) << "\t";
 			fTest << (isalnum(nChar) != 0) << "\t";
-			fTest << (isspace(nChar) != 0) << "\t";
+			fTest << (iswspace((char)nChar) != 0) << "\t";
 			fTest << (ispunct(nChar) != 0) << "\t";
+			fTest << (p_isprint(nChar) != 0) << "\t";
 			fTest << (isprint(nChar) != 0) << "\t";
 			fTest << (isgraph(nChar) != 0) << "\t";
 			fTest << (iscntrl(nChar) != 0) << "\t";
@@ -2312,17 +2312,17 @@ void StudyHanoi()
 	int nIterNumber = 10;
 	IntVector ivIndexes;
 	DoubleVector dvTimes;
-	LongintVector livOperations;
+	LongintVector lvOperations;
 	int i;
 	int nIter;
 	int nIndex;
-	longint liOperations;
+	longint lOperations;
 	Timer timer;
 
 	// Initialisation des index
 	ivIndexes.SetSize(nMax);
 	dvTimes.SetSize(nMax);
-	livOperations.SetSize(nMax);
+	lvOperations.SetSize(nMax);
 	for (i = 0; i < nMax; i++)
 		ivIndexes.SetAt(i, i);
 
@@ -2338,10 +2338,10 @@ void StudyHanoi()
 			nIndex = ivIndexes.GetAt(i);
 			timer.Reset();
 			timer.Start();
-			liOperations = ComputeHanoi(nIndex + 1, 'A', 'C', 'B');
+			lOperations = ComputeHanoi(nIndex + 1, 'A', 'C', 'B');
 			timer.Stop();
 			dvTimes.UpgradeAt(nIndex, timer.GetElapsedTime());
-			livOperations.UpgradeAt(nIndex, liOperations);
+			lvOperations.UpgradeAt(nIndex, lOperations);
 		}
 	}
 
@@ -2349,12 +2349,12 @@ void StudyHanoi()
 	for (i = 0; i < nMax; i++)
 	{
 		dvTimes.SetAt(i, dvTimes.GetAt(i) / nIter);
-		livOperations.SetAt(i, livOperations.GetAt(i) / nIter);
+		lvOperations.SetAt(i, lvOperations.GetAt(i) / nIter);
 	}
 
 	// Affichage des resultats
 	cout << "N\tRatio\tOperations\tTime\n";
 	for (i = 1; i < nMax; i++)
-		cout << i + 1 << "\t" << dvTimes.GetAt(i) / dvTimes.GetAt(i - 1) << "\t" << livOperations.GetAt(i)
+		cout << i + 1 << "\t" << dvTimes.GetAt(i) / dvTimes.GetAt(i - 1) << "\t" << lvOperations.GetAt(i)
 		     << "\t" << dvTimes.GetAt(i) << endl;
 }

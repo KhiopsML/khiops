@@ -1,0 +1,13 @@
+#Khiops 7.7.2i
+
+Root	Dictionary	Occupation	(occupation)
+{
+	Categorical	occupation		;	
+	Table(OccupationSample)	Samples		;	
+};
+
+Dictionary	OccupationSample	(occupation)
+{
+	Categorical	education		;	
+	Categorical	occupation		;	
+};
