@@ -1,10 +1,9 @@
+---
 # GitHub Actions workflow for integrating Renovate Bot into your CI/CD pipeline.
 name: Renovate
-
 on:
   # Conservative rollout: manually trigger the workflow via the GitHub UI.
   workflow_dispatch:
-
 jobs:
   renovate:
     runs-on: ubuntu-latest
@@ -70,12 +69,12 @@ jobs:
           docker-socket-host-path: /var/run/docker.sock
           docker-volumes: /tmp:/tmp
         env:
-          LOG_LEVEL: debug # Set log level to debug for detailed output (useful for troubleshooting).
+          LOG_LEVEL: debug  # Set log level to debug for detailed output (useful for troubleshooting).
 
       # STEP 5: Check for any Renovate update branches in the remote repository.
       # This step verifies whether Renovate has proposed any updates by creating new branches.
       - name: Check for Renovate Update Branches
-        run: |
+        run: |-
           echo "Checking for Renovate update branches in the remote repository..."
           RENOVATE_BRANCHES=$(git ls-remote --heads origin | grep 'refs/heads/renovate/' || true)
           if [ -z "$RENOVATE_BRANCHES" ]; then
