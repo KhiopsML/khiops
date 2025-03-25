@@ -67,6 +67,39 @@ const ALString KIModelService::GetObjectLabel() const
 	return sPredictorClassName;
 }
 
+boolean KIModelService::Check() const
+{
+	boolean bOk = true;
+
+	// Test si un predicteur est disponible
+	if (GetPredictorClassName() == "")
+	{
+		AddError("Missing predictor dictionary");
+		bOk = false;
+	}
+	else if (KWClassDomain::GetCurrentDomain()->LookupClass(GetPredictorClassName()) == NULL)
+	{
+		AddError("Dictionary " + GetPredictorClassName() + " does not exist");
+		bOk = false;
+	}
+	else if (not classBuilder.IsPredictorImported())
+	{
+		AddError("Dictionary " + GetPredictorClassName() + " is not a valid predictor");
+		bOk = false;
+	}
+
+	// Erreur si le predicteur ne contient aucun attribut
+	if (bOk and GetPredictorAttributeNumber() == 0)
+	{
+		AddError("No prediction variable in predictor " + GetPredictorClassName());
+		bOk = false;
+	}
+
+	ensure(not bOk or GetPredictorClassName() == classBuilder.GetPredictorClass()->GetName());
+	ensure(not bOk or classBuilder.GetPredictorClass()->IsCompiled());
+	return bOk;
+}
+
 KIInterpretationClassBuilder* KIModelService::GetClassBuilder()
 {
 	return &classBuilder;

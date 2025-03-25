@@ -52,6 +52,18 @@ KWPredictorSelectionReport* SNBPredictorSelectiveNaiveBayes::GetPredictorSelecti
 	return cast(KWPredictorSelectionReport*, GetPredictorReport());
 }
 
+const ALString& SNBPredictorSelectiveNaiveBayes::GetWeightMetaDataKey()
+{
+	static const ALString sLevelMetaDataKey = "Weight";
+	return sLevelMetaDataKey;
+}
+
+const ALString& SNBPredictorSelectiveNaiveBayes::GetImportanceMetaDataKey()
+{
+	static const ALString sLevelMetaDataKey = "Importance";
+	return sLevelMetaDataKey;
+}
+
 boolean SNBPredictorSelectiveNaiveBayes::InternalTrain()
 {
 	boolean bOk;
@@ -392,8 +404,8 @@ void SNBPredictorSelectiveNaiveBayes::InternalTrainFinalizeWithUnivariatePredict
 
 void SNBPredictorSelectiveNaiveBayes::FillPredictorAttributeMetaData()
 {
-	const ALString sWeightMetaDataKey = "Weight";
-	const ALString sImportanceMetaDataKey = "Importance";
+	const ALString sWeightMetaDataKey = GetWeightMetaDataKey();
+	const ALString sImportanceMetaDataKey = GetImportanceMetaDataKey();
 	KWClass* predictorClass;
 	ObjectDictionary oaAttributes;
 	KWAttribute* attribute;

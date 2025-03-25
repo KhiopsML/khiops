@@ -75,6 +75,75 @@ const ALString KIModelReinforcer::GetClassLabel() const
 
 // ## Method implementation
 
+const ALString KIModelReinforcer::GetObjectLabel() const
+{
+	ALString sLabel;
+
+	return sLabel;
+}
+
+boolean KIModelReinforcer::Check() const
+{
+	boolean bOk;
+	int nSelectedLeverAttributeNumber;
+	boolean bTargetValueFound;
+	int i;
+
+	// Appel de la methode ancetre
+	bOk = KIModelService::Check();
+
+	// Specialisation de la varification
+	if (bOk)
+	{
+		nSelectedLeverAttributeNumber = ComputeSelectedLeverAttributeNumber();
+
+		// Erreur si aucun attribut levier selectionne
+		if (nSelectedLeverAttributeNumber == 0)
+		{
+			AddError("Number of selected lever variables must be at least 1");
+			bOk = false;
+		}
+
+		// Erreur si pas de classe cible choisie
+		bTargetValueFound = false;
+		for (i = 0; i < classBuilder.GetTargetValues()->GetSize(); i++)
+		{
+			if (classBuilder.GetTargetValues()->GetAt(i).GetValue() == GetReinforcedTargetValue())
+			{
+				bTargetValueFound = true;
+				break;
+			}
+		}
+		if (not bTargetValueFound)
+		{
+			// Specialisation du message d'erreur si la valeur est vide
+			if (GetReinforcedTargetValue() == "")
+				AddError("A target value to reinforce must be selected");
+			else
+				AddError("An existing target value to reinforce must be selected");
+			bOk = false;
+		}
+	}
+	return bOk;
+}
+
+int KIModelReinforcer::ComputeSelectedLeverAttributeNumber() const
+{
+	int nSelectedLeverAttributeNumber;
+	KIPredictorAttribute* leverAttribute;
+	int i;
+
+	// Parcours des attributs
+	nSelectedLeverAttributeNumber = 0;
+	for (i = 0; i < oaLeverAttributes.GetSize(); i++)
+	{
+		leverAttribute = cast(KIPredictorAttribute*, oaLeverAttributes.GetAt(i));
+		if (leverAttribute->GetUsed())
+			nSelectedLeverAttributeNumber++;
+	}
+	return nSelectedLeverAttributeNumber;
+}
+
 void KIModelReinforcer::UpdateLeverAttributes()
 {
 	KIPredictorAttribute* leverAttribute;
@@ -83,10 +152,6 @@ void KIModelReinforcer::UpdateLeverAttributes()
 	double dWeight;
 	double dImportance;
 	int i;
-
-	require((GetClassBuilder()->IsPredictorImported() and
-		 GetPredictorClassName() == GetClassBuilder()->GetPredictorClass()->GetName()) or
-		(not GetClassBuilder()->IsPredictorImported() and GetPredictorClassName() == ""));
 
 	// Nettoyage initial
 	oaLeverAttributes.DeleteAll();
@@ -108,16 +173,28 @@ void KIModelReinforcer::UpdateLeverAttributes()
 			leverAttribute->SetType(KWType::ToString(attribute->GetType()));
 			leverAttribute->SetName(attribute->GetName());
 
-			// Attention, pour l'importance, on reproduit le calcul effectue dans la methode KWSelectedAttributeReport::GetImportance
-			// Il n'y a pas de meta-data disponible pour le critere d'importance
-			// Ce code est pour l'instant "adhoc", et on se premunit contre les meta-data erronnees
-			dLevel = attribute->GetConstMetaData()->GetDoubleValueAt("Level");
-			dWeight = attribute->GetConstMetaData()->GetDoubleValueAt("Weight");
-			dLevel = max(dLevel, (double)0);
-			dLevel = min(dLevel, (double)1);
-			dWeight = max(dLevel, (double)0);
-			dWeight = min(dWeight, (double)1);
-			dImportance = sqrt(dLevel * dWeight);
+			// Recherche de l'importance via les meta-data, en se protegeant contre les meta-data erronnees
+			if (attribute->GetConstMetaData()->IsKeyPresent(
+				SNBPredictorSelectiveNaiveBayes::GetImportanceMetaDataKey()))
+			{
+				dImportance = attribute->GetConstMetaData()->GetDoubleValueAt(
+				    SNBPredictorSelectiveNaiveBayes::GetImportanceMetaDataKey());
+				dImportance = max(dImportance, (double)0);
+				dImportance = min(dImportance, (double)1);
+			}
+			// Recherche a partir du Level et du Weight si Importance non trouve
+			else
+			{
+				dLevel = attribute->GetConstMetaData()->GetDoubleValueAt(
+				    KWDataPreparationAttribute::GetLevelMetaDataKey());
+				dLevel = max(dLevel, (double)0);
+				dLevel = min(dLevel, (double)1);
+				dWeight = attribute->GetConstMetaData()->GetDoubleValueAt(
+				    SNBPredictorSelectiveNaiveBayes::GetWeightMetaDataKey());
+				dLevel = max(dLevel, (double)0);
+				dLevel = min(dLevel, (double)1);
+				dImportance = sqrt(dLevel * dWeight);
+			}
 			leverAttribute->SetImportance(KWContinuous::DoubleToContinuous(dImportance));
 		}
 
@@ -125,13 +202,6 @@ void KIModelReinforcer::UpdateLeverAttributes()
 		oaLeverAttributes.SetCompareFunction(KIPredictorAttributeCompareImportance);
 		oaLeverAttributes.Sort();
 	}
-}
-
-const ALString KIModelReinforcer::GetObjectLabel() const
-{
-	ALString sLabel;
-
-	return sLabel;
 }
 
 // ##

@@ -52,6 +52,9 @@ public:
 
 	// ## Custom declarations
 
+	// Test de validite des specifications
+	boolean Check() const override;
+
 	// Nombre par defaut de variables de contribution
 	static const int nDefaultContributionAttributeNumber = 100;
 

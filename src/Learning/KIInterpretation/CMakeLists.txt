@@ -4,7 +4,8 @@ generate_gui_add_view_get_log_list(ddlogfiles)
 add_library(KIInterpretation STATIC "${cppfiles}" "${ddlogfiles}")
 
 target_include_directories(KIInterpretation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(KIInterpretation PUBLIC KDDomainKnowledge KWDataPreparation KWModeling KWUserInterface)
+target_link_libraries(KIInterpretation PUBLIC KDDomainKnowledge KWDataPreparation KWModeling SNBPredictor
+                                              KWUserInterface)
 
 set_khiops_options(KIInterpretation)
 

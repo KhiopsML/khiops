@@ -41,7 +41,7 @@ KIModelReinforcerView::KIModelReinforcerView()
 	GetFieldAt("ReinforcedTargetValue")->SetParameters("TargetValues:Value");
 
 	// Ajout de l'action de construction d'un dictionnaire d'interpretation
-	AddAction("BuildReinforcementClass", "Build interpretation dictionary...",
+	AddAction("BuildReinforcementClass", "Build reinforcement dictionary...",
 		  (ActionMethod)(&KIModelReinforcerView::BuildReinforcementClass));
 	GetActionAt("BuildReinforcementClass")->SetStyle("Button");
 
@@ -144,7 +144,43 @@ const ALString KIModelReinforcerView::GetClassLabel() const
 
 void KIModelReinforcerView::BuildReinforcementClass()
 {
-	AddSimpleMessage("Not yet implemented");
+	boolean bOk;
+	ALString sPredictorClassName;
+	UIFileChooserCard registerCard;
+	ALString sReinforcementClassFileName;
+	KWResultFilePathBuilder resultFilePathBuilder;
+	KWClass* reinforcerClass;
+
+	// Test de la validite des specifications
+	bOk = GetKIModelReinforcer()->Check();
+
+	// Construction du renforcer
+	if (bOk)
+	{
+		// Creation d'un nom de fichier de dictionnaire par defaut
+		sReinforcementClassFileName = ChooseDictionaryFileName("Reinforcement");
+
+		// Verification du nom du fichier de dictionnaire
+		if (sReinforcementClassFileName != "")
+		{
+			// Message utilisateur
+			AddSimpleMessage("Write reinforcement dictionary file " + sReinforcementClassFileName);
+
+			// Construction du dictionnaire et ecriture
+			reinforcerClass =
+			    GetKIModelReinforcer()->GetClassBuilder()->BuildReinforcementClass(GetKIModelReinforcer());
+
+			// Eciture du dictionnaire
+			reinforcerClass->GetDomain()->WriteFile(sReinforcementClassFileName);
+
+			// Nettoyage
+			delete reinforcerClass->GetDomain();
+		}
+	}
+
+	// Ligne de separation dans le log si une erreur affiche, ou action effectuee
+	if (not bOk or sReinforcementClassFileName != "")
+		AddSimpleMessage("");
 }
 
 void KIModelReinforcerView::SetObject(Object* object)
@@ -184,7 +220,7 @@ void KIModelReinforcerView::RefreshHelpLists()
 	// On commence par la vider
 	targetValueHelpList->RemoveAllItems();
 
-	// Ajout d'autant de ligne que de valeurs cible
+	// Ajout d'autant de lignes que de valeurs cibles
 	if (GetKIModelReinforcer()->GetClassBuilder()->IsPredictorImported())
 	{
 		for (nValue = 0; nValue < GetKIModelReinforcer()->GetClassBuilder()->GetTargetValues()->GetSize();

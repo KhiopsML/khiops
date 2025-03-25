@@ -14,6 +14,7 @@
 // ## Custom includes
 
 #include "KIPredictorAttribute.h"
+#include "SNBPredictorSelectiveNaiveBayes.h"
 
 // ##
 
@@ -50,9 +51,16 @@ public:
 
 	// ## Custom declarations
 
+	// Test de validite des specifications
+	boolean Check() const override;
+
 	// Tableau des attributs du predicteur pour choisir les variables leviers (classe KIPredictorAttribute)
 	// Memoire: appartient a l'appele
+	const ObjectArray* GeConstLeverAttributes() const;
 	ObjectArray* GeLeverAttributes();
+
+	// Calcul du nombre de variables selectionnees comme variable levier
+	int ComputeSelectedLeverAttributeNumber() const;
 
 	// Mise ajour du tableau des attributs du predicteur
 	void UpdateLeverAttributes();
@@ -87,6 +95,11 @@ inline void KIModelReinforcer::SetReinforcedTargetValue(const ALString& sValue)
 }
 
 // ## Custom inlines
+
+inline const ObjectArray* KIModelReinforcer::GeConstLeverAttributes() const
+{
+	return &oaLeverAttributes;
+}
 
 inline ObjectArray* KIModelReinforcer::GeLeverAttributes()
 {

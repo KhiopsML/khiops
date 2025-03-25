@@ -51,6 +51,19 @@ public:
 	void SetDefaultClassName(const ALString& sValue);
 	const ALString& GetDefaultClassName() const;
 
+	// Base de donnees en entree, utilise potentiellement pour le choix du repertoire en sortie
+	void SetTrainDatabase(const KWDatabase* database);
+	const KWDatabase* GetTrainDatabase() const;
+
+	// Fichier du dictionnaire en entree, utilise potentiellement pour le choix du repertoire en sortie
+	void SetClassFileName(const ALString& sValue);
+	const ALString& GetClassFileName() const;
+
+	// Choix d'un nom de fichier dictionnaire avec son repertoire
+	// Une boite de dialogue est presentee a l'utilisateur, avec un repertoire de sortie par defaut
+	// On retourne un nom de fichier non vide si un choix valide a etet effectue
+	ALString ChooseDictionaryFileName(const ALString& sDictionaryPrefix);
+
 	// Reimplementation de la methode Open, pour prealimenter la liste des predicteurs utilisables
 	void Open() override;
 
@@ -63,8 +76,10 @@ protected:
 	// Rafraichissement des specifications liees au predicteur courant selectionne
 	virtual void RefreshPredictorSpec(KIModelService* modelService);
 
-	// Nom de dictionnaire par defaut
+	// Parametres de la classe
 	ALString sDefaultClassName;
+	const KWDatabase* trainDatabase;
+	ALString sClassFileName;
 
 	// ##
 };

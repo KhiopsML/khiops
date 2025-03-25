@@ -1338,7 +1338,7 @@ void KIDRClassifierReinforcement::ComputeReinforcementProbas(IntVector* ivModali
 		attribute = kwcClass->LookupAttribute(sPredictorAttributeName);
 
 		// Cas ou cette variable est une variable levier selectionnee
-		if (attribute->GetConstMetaData()->GetStringValueAt(LEVER_ATTRIBUTE_META_TAG) == "true")
+		if (attribute->GetConstMetaData()->IsMissingTypeAt(LEVER_ATTRIBUTE_META_TAG))
 		{
 			// Extraction du nom de la variable explicative
 			sPredictorPartitionedAttributeName =
@@ -1357,7 +1357,7 @@ void KIDRClassifierReinforcement::ComputeReinforcementProbas(IntVector* ivModali
 			cBestScore = cInitialScore;
 
 			// Parcours des modalites
-			nReinforcementClassHasChanged = -2;
+			nReinforcementClassHasChanged = -1;
 			for (nModalityIndex = 0; nModalityIndex < nModalityNumber; nModalityIndex++)
 			{
 				if (ivModalityIndexes->GetAt(nAttributeIndex) != nModalityIndex)

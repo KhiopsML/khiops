@@ -15,6 +15,7 @@ KIModelInterpreter::KIModelInterpreter()
 	// ## Custom constructor
 
 	nContributionAttributeNumber = nDefaultContributionAttributeNumber;
+	sShapleyValueRanking = "Global";
 
 	// ##
 }
@@ -72,6 +73,26 @@ const ALString KIModelInterpreter::GetObjectLabel() const
 	ALString sLabel;
 
 	return sLabel;
+}
+
+boolean KIModelInterpreter::Check() const
+{
+	boolean bOk;
+
+	// Appel de la methode ancetre
+	bOk = KIModelService::Check();
+
+	// Specialisation de la varification
+	if (bOk)
+	{
+		// Erreur si aucun attribut de contribution demande
+		if (GetContributionAttributeNumber() == 0)
+		{
+			AddError("Number of contribution variables must be at least 1");
+			bOk = false;
+		}
+	}
+	return bOk;
 }
 
 // ##

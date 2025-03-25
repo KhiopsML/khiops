@@ -41,8 +41,8 @@ KIModelInterpreterView::KIModelInterpreterView()
 		"\n- Global: predictor variables are ranked by decreasing global importance"
 		"\n and one Shapley value is written per target value and predictor variable, by decreasing variable "
 		"rank"
-		"\n- Individual: predictor variables are ranked by decreasing individual Shapley values"
-		"\n and three importance variables are written by target values by decreasing Shapley value:"
+		"\n- Individual: predictor variables are ranked by decreasing individual importance"
+		"\n and three importance variables are written per target values by decreasing Shapley value:"
 		"\n name of predictor variable, variable part and Shapley value");
 	GetFieldAt("ContributionAttributeNumber")
 	    ->SetHelpText("Number of predictor variables exploited the interpretation model");
@@ -106,7 +106,43 @@ const ALString KIModelInterpreterView::GetClassLabel() const
 
 void KIModelInterpreterView::BuildInterpretationClass()
 {
-	AddSimpleMessage("Not yet implemented");
+	boolean bOk;
+	ALString sPredictorClassName;
+	UIFileChooserCard registerCard;
+	ALString sInterpretationClassFileName;
+	KWResultFilePathBuilder resultFilePathBuilder;
+	KWClass* interpreterClass;
+
+	// Test de la validite des specifications
+	bOk = GetKIModelInterpreter()->Check();
+
+	// Construction de l'interpreteur
+	if (bOk)
+	{
+		// Creation d'un nom de fichier de dictionnaire par defaut
+		sInterpretationClassFileName = ChooseDictionaryFileName("Interpretation");
+
+		// Verification du nom du fichier de dictionnaire
+		if (sInterpretationClassFileName != "")
+		{
+			// Message utilisateur
+			AddSimpleMessage("Write interpretation dictionary file " + sInterpretationClassFileName);
+
+			// Construction du dictionnaire et ecriture
+			interpreterClass = GetKIModelInterpreter()->GetClassBuilder()->BuildInterpretationClass(
+			    GetKIModelInterpreter());
+
+			// Eciture du dictionnaire
+			interpreterClass->GetDomain()->WriteFile(sInterpretationClassFileName);
+
+			// Nettoyage
+			delete interpreterClass->GetDomain();
+		}
+	}
+
+	// Ligne de separation dans le log si une erreur affiche, ou action effectuee
+	if (not bOk or sInterpretationClassFileName != "")
+		AddSimpleMessage("");
 }
 
 // ##

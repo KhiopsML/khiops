@@ -26,6 +26,9 @@ KIPredictorAttributeArrayView::KIPredictorAttributeArrayView()
 
 	// ## Custom constructor
 
+	// Champ a utiliser pour les selections
+	SetKeyFieldId("Name");
+
 	// Ajout des actions
 	AddAction("SelectAll", "Select all", (ActionMethod)(&KIPredictorAttributeArrayView::SelectAll));
 	AddAction("UnselectAll", "Unselect all", (ActionMethod)(&KIPredictorAttributeArrayView::UnselectAll));

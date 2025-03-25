@@ -17,6 +17,9 @@ KIModelServiceView::KIModelServiceView()
 
 	// ## Custom constructor
 
+	// Base d'apprentissage
+	trainDatabase = NULL;
+
 	// Le nombre d'attributs du predicteur est en read-only
 	GetFieldAt("PredictorAttributeNumber")->SetEditable(false);
 
@@ -108,6 +111,100 @@ const ALString& KIModelServiceView::GetDefaultClassName() const
 	return sDefaultClassName;
 }
 
+void KIModelServiceView::SetTrainDatabase(const KWDatabase* database)
+{
+	trainDatabase = database;
+}
+
+const KWDatabase* KIModelServiceView::GetTrainDatabase() const
+{
+	return trainDatabase;
+}
+
+void KIModelServiceView::SetClassFileName(const ALString& sValue)
+{
+	sClassFileName = sValue;
+}
+
+const ALString& KIModelServiceView::GetClassFileName() const
+{
+	return sClassFileName;
+}
+
+ALString KIModelServiceView::ChooseDictionaryFileName(const ALString& sDictionaryPrefix)
+{
+	boolean bOk = true;
+	ALString sDictionaryFileName;
+	KWResultFilePathBuilder resultFilePathBuilder;
+	UIFileChooserCard registerCard;
+	ObjectArray oaTrainDatabaseFileSpecs;
+	int nRef;
+	FileSpec* specRef;
+	FileSpec specInputDictionaryFile;
+	FileSpec specDictionaryFile;
+
+	// Construction du nom du fichier de dictionnaire en utilisant si possible les repertoires disponibles
+	if (GetTrainDatabase() != NULL and GetTrainDatabase()->GetDatabaseName() != "")
+		resultFilePathBuilder.SetInputFilePathName(GetTrainDatabase()->GetDatabaseName());
+	else if (GetClassFileName() != "")
+		resultFilePathBuilder.SetInputFilePathName(GetClassFileName());
+	else
+		resultFilePathBuilder.SetInputFilePathName(".");
+	resultFilePathBuilder.SetOutputFilePathName(sDictionaryPrefix + ".kdic");
+	resultFilePathBuilder.SetFileSuffix("kdic");
+	sDictionaryFileName = resultFilePathBuilder.BuildResultFilePathName();
+
+	// Ouverture du FileChooser pour obtenir le nom du fichier a transfere, ou vide si annulation
+	sDictionaryFileName =
+	    registerCard.ChooseFile("Save as", "Save", "FileChooser", "Dictionary\nkdic", "ClassFileName",
+				    sDictionaryPrefix + " dictionary file", sDictionaryFileName);
+	bOk = (sDictionaryFileName != "");
+
+	// Verification du nom du fichier de dictionnaire
+	if (bOk)
+	{
+		// Construction du chemin complet du dictionnaire a sauver
+		resultFilePathBuilder.SetOutputFilePathName(sDictionaryFileName);
+		sDictionaryFileName = resultFilePathBuilder.BuildResultFilePathName();
+
+		// Specification du fichier dictionnaire en sortie
+		specDictionaryFile.SetLabel(sDictionaryPrefix + " dictionary");
+		specDictionaryFile.SetFilePathName(sDictionaryFileName);
+
+		// Test de non collision avec le fichier de dictionnaire en entree
+		if (bOk and GetClassFileName() != "")
+		{
+			// Specification du fichier dictionnaire en entree
+			specInputDictionaryFile.SetLabel("input dictionary");
+			specInputDictionaryFile.SetFilePathName(GetClassFileName());
+
+			// Verification de non collision
+			bOk = bOk and specDictionaryFile.CheckReferenceFileSpec(&specInputDictionaryFile);
+		}
+
+		// Test de non collision avec des fichiers de la base source
+		if (bOk and GetTrainDatabase() != NULL)
+		{
+			GetTrainDatabase()->ExportUsedFileSpecs(&oaTrainDatabaseFileSpecs);
+			for (nRef = 0; nRef < oaTrainDatabaseFileSpecs.GetSize(); nRef++)
+			{
+				specRef = cast(FileSpec*, oaTrainDatabaseFileSpecs.GetAt(nRef));
+				specRef->SetLabel("source " + specRef->GetLabel());
+				bOk = bOk and specDictionaryFile.CheckReferenceFileSpec(specRef);
+				if (not bOk)
+					break;
+			}
+			oaTrainDatabaseFileSpecs.DeleteAll();
+		}
+
+		// On annule le choix du dictionnaire en cas d'erreur
+		if (not bOk)
+			sDictionaryFileName = "";
+	}
+	ensure(not bOk or sDictionaryFileName != "");
+	return sDictionaryFileName;
+}
+
 void KIModelServiceView::Open()
 {
 	KWClass* kwcClass;
@@ -123,28 +220,32 @@ void KIModelServiceView::Open()
 		kwcClass = KWClassDomain::GetCurrentDomain()->GetClassAt(nClass);
 
 		// On cherche a s'avoir si le dictionnaire correspond a un predicteur interpretable
-		if (GetKIModelService()->GetClassBuilder()->ImportPredictor(kwcClass))
+		if (KWType::IsSimple(KWTrainedPredictor::GetMetaDataPredictorType(kwcClass)))
 		{
-			// Memorisation du premier predicteur
-			if (nPredictorNumber == 0)
-				sFirstPredictorClassName = kwcClass->GetName();
+			if (GetKIModelService()->GetClassBuilder()->ImportPredictor(kwcClass))
+			{
+				// Memorisation du premier predicteur
+				if (nPredictorNumber == 0)
+					sFirstPredictorClassName = kwcClass->GetName();
 
-			// On choisit le predicteur si'il correspond au dictionnaire par defaut
-			if (kwcClass->GetName() == GetDefaultClassName())
-				sFirstPredictorClassName = kwcClass->GetName();
+				// On choisit le predicteur si'il correspond au dictionnaire par defaut
+				if (kwcClass->GetName() == GetDefaultClassName())
+					sFirstPredictorClassName = kwcClass->GetName();
 
-			// Memorisation de la liste de tous les predicteurs disponibles
-			if (nPredictorNumber > 0)
-				sPredictorClassNames += "\n";
-			sPredictorClassNames += kwcClass->GetName();
-			nPredictorNumber++;
+				// Memorisation de la liste de tous les predicteurs disponibles
+				if (nPredictorNumber > 0)
+					sPredictorClassNames += "\n";
+				sPredictorClassNames += kwcClass->GetName();
+				nPredictorNumber++;
+			}
 		}
 	}
 
 	// Warning si aucun predicteur interpretable trouve
 	if (nPredictorNumber == 0)
 	{
-		Global::AddWarning("Interpret model", "", "No available classifier dictionary for interpretation");
+		Global::AddWarning("Interpret model", "",
+				   "No available classifier dictionary for interpretation services");
 	}
 	else
 	{
@@ -168,24 +269,27 @@ void KIModelServiceView::RefreshPredictorSpec(KIModelService* modelService)
 
 	require(modelService != NULL);
 
-	// Nettoyage de l'import si pas de predicteur specifie
-	if (modelService->GetPredictorClassName() == "")
-	{
-		modelService->GetClassBuilder()->Clean();
-		modelService->SetPredictorAttributeNumber(0);
-	}
-	// Import sinon, et cela doit marcher, selon les valeurs possible specifiees dans la methode Open
-	else
+	// Nettoyage prealable
+	modelService->GetClassBuilder()->Clean();
+	modelService->SetPredictorAttributeNumber(0);
+
+	// Import selon le nom du preducteur choisi
+	if (modelService->GetPredictorClassName() != "")
 	{
 		// Recherche de la classe
 		kwcPredictorClass =
 		    KWClassDomain::GetCurrentDomain()->LookupClass(modelService->GetPredictorClassName());
-		assert(kwcPredictorClass != NULL);
 
-		// Import du predicteur
-		modelService->GetClassBuilder()->ImportPredictor(kwcPredictorClass);
-		modelService->SetPredictorAttributeNumber(
-		    modelService->GetClassBuilder()->GetPredictorAttributeNumber());
+		// Import du predicteur si la classe correspondante existe
+		if (kwcPredictorClass != NULL)
+		{
+			modelService->GetClassBuilder()->ImportPredictor(kwcPredictorClass);
+
+			// Memorisation du nombre d'attribut si possible
+			if (modelService->GetClassBuilder()->IsPredictorImported())
+				modelService->SetPredictorAttributeNumber(
+				    modelService->GetClassBuilder()->GetPredictorAttributeNumber());
+		}
 	}
 }
 

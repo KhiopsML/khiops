@@ -54,6 +54,9 @@ public:
 
 	// ## Custom declarations
 
+	// Test de validite des specifications, en particulier du predicteur en entree
+	boolean Check() const override;
+
 	// Service de construction de classe dediee a l'interpretation ou au reenforcement
 	KIInterpretationClassBuilder* GetClassBuilder();
 
