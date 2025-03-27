@@ -76,6 +76,12 @@ jobs:
             echo "KHIOPS_APPLE_CERTIFICATE_PASSWORD=${{ secrets.KHIOPS_APPLE_CERTIFICATE_PASSWORD }}" >> "$GITHUB_ENV"
             echo "KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD=${{ secrets.KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD }}" >> "$GITHUB_ENV"
           fi
+      - name: Set the Visual Studio Environment Variables (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
+          set >> %GITHUB_ENV%
       - name: Build conda packages
         run: |
           conda build --package-format=tar.bz2 --output-folder ./build/conda ./packaging/conda
