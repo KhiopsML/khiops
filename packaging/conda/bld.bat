@@ -22,7 +22,7 @@ copy build\conda\lib\KhiopsNativeInterface.lib %PREFIX%\lib
 
 REM Copy the scripts to the Conda PREFIX path
 copy build\conda\tmp\khiops_env.cmd %PREFIX%\bin
-copy packaging\windows\khiops_coclustering.cmd %PREFIX%\bin
-copy packaging\windows\khiops.cmd %PREFIX%\bin
+copy build\conda\tmp\khiops_coclustering.cmd %PREFIX%\bin
+copy build\conda\tmp\khiops.cmd %PREFIX%\bin
 
 if errorlevel 1 exit 1

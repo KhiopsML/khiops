@@ -18,8 +18,8 @@ mv ./build/conda/lib/libKhiopsNativeInterface* "$PREFIX/lib"
 
 # Copy the scripts to the Conda PREFIX path
 cp ./build/conda/tmp/khiops_env "$PREFIX/bin"
-cp ./packaging/linux/common/khiops "$PREFIX/bin"
-cp ./packaging/linux/common/khiops_coclustering "$PREFIX/bin"
+cp ./build/conda/tmp/khiops "$PREFIX/bin"
+cp ./build/conda/tmp/khiops_coclustering "$PREFIX/bin"
 
 # Custom rpath relocation and signing executables for macOS in arm64
 #
