@@ -67,12 +67,19 @@ _Note 1_: See [below](#build-script-arguments) for the details of the installer 
 _Note 2_: If your are using powershell replace the `^` characters by backticks `` ` `` in the
 multi-line command.
 
+## Signature of the uninstaller
+The unsinstaller is signed during the packaging with [jsign](https://docs.digicert.com/en/software-trust-manager/code-signing/sign-with-third-party-signing-tools/general-packages/sign-authenticode-with-jsign-using-pkcs11-library.html). There are 4 additional parameters to enable the uninstaller signing:
+
+- SIGN: if defined, enables the signing of the uninstaller. The 3 parameters below are mandatory only if SIGN is defined.
+- PATH_TO_JSIGN: path to [jsign.jar](https://docs.digicert.com/en/software-trust-manager/client-tools/signing-tools/third-party-signing-tool-integrations/jsign.html)
+- PKCS11_CONF: the SunPKCS11 configuration file.
+- KEY_PASSWORD: The password to open the keystore.
 
 ## Github Workflow
 This process is automatized in the [pack-nsis.yml workflow](../../../.github/workflows/pack-nsis.yml).
 
 ## Build script arguments
-All the arguments are mandatory except for `DEBUG`, they must be prefixed by `/D` and post fixed by
+All the arguments are mandatory except for `DEBUG` and `SIGN`, they must be prefixed by `/D` and post fixed by
 `=<value>` to specify a value.
 
 - `DEBUG`: Enables debug messages in the installer. They are "OK" message boxes.

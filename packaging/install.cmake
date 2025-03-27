@@ -176,10 +176,10 @@ if(UNIX)
     DESTINATION usr/share/applications
     COMPONENT KHIOPS)
 
-  install(
-    FILES ${CMAKE_BINARY_DIR}/jars/norm.jar ${CMAKE_BINARY_DIR}/jars/khiops.jar
-    DESTINATION usr/share/khiops
-    COMPONENT KHIOPS)
+  if(BUILD_JARS)
+    install_jar(khiops_jar DESTINATION usr/share/khiops)
+    install_jar(norm_jar DESTINATION usr/share/khiops)
+  endif()
 
 else(UNIX)
 
@@ -205,5 +205,23 @@ else(UNIX)
   set(TOOL_NAME "Khiops_coclustering")
   configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops.cmd.in ${TMP_DIR}/khiops_coclustering.cmd @ONLY
                  NEWLINE_STYLE CRLF)
+
+  install(TARGETS MODL MODL_Coclustering _khiopsgetprocnumber RUNTIME DESTINATION bin COMPONENT KHIOPS_CORE)
+
+  install(
+    PROGRAMS ${TMP_DIR}/khiops.cmd ${TMP_DIR}/khiops_coclustering.cmd ${TMP_DIR}/khiops_env.cmd
+    DESTINATION bin
+    COMPONENT KHIOPS_CORE)
+
+  if(BUILD_JARS)
+    install_jar(
+      khiops_jar
+      DESTINATION jars
+      COMPONENT KHIOPS)
+    install_jar(
+      norm_jar
+      DESTINATION jars
+      COMPONENT KHIOPS)
+  endif()
 
 endif(UNIX)
