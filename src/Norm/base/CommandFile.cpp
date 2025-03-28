@@ -330,7 +330,6 @@ void CommandFile::CloseCommandFiles()
 
 boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& sValue)
 {
-	const ALString sSpaceCommentPrefix = ' ' + sCommentPrefix;
 	const char cDEL = (char)127;
 	boolean bOk;
 	char sCharBuffer[1 + BUFFER_LENGTH];
@@ -406,10 +405,11 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 			else
 			{
 				nLength = sInputLine.GetLength();
-				for (i = nLength - sSpaceCommentPrefix.GetLength(); i >= 0; i--)
+				for (i = nLength - sCommentPrefix.GetLength() - 1; i >= 0; i--)
 				{
-					if (sInputLine.GetAt(i) == sSpaceCommentPrefix.GetAt(0) and
-					    sInputLine.Right(nLength - i).Find(sSpaceCommentPrefix) == 0)
+					if (iswspace(sInputLine.GetAt(i)) and
+					    sInputLine.GetAt(i + 1) == sCommentPrefix.GetAt(0) and
+					    sInputLine.Right(nLength - i - 1).Find(sCommentPrefix) == 0)
 					{
 						sInputLine.GetBufferSetLength(i);
 						sInputLine.TrimRight();
