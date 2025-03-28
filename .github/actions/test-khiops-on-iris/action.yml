@@ -20,8 +20,10 @@ runs:
           # Detect Debian based OS
           if [ -d "/etc/apt" ]
           then
+            apt-get update
             apt-get install -y python3 > /dev/null
           else
+            yum check-update || true
             yum install -y python3.11
           fi
         fi
