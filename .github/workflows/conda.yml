@@ -76,6 +76,12 @@ jobs:
             echo "KHIOPS_APPLE_CERTIFICATE_PASSWORD=${{ secrets.KHIOPS_APPLE_CERTIFICATE_PASSWORD }}" >> "$GITHUB_ENV"
             echo "KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD=${{ secrets.KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD }}" >> "$GITHUB_ENV"
           fi
+      - name: Set the Visual Studio Environment Variables (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
+          set >> %GITHUB_ENV%
       - name: Build conda packages
         run: |
           conda build --package-format=tar.bz2 --output-folder ./build/conda ./packaging/conda
@@ -92,21 +98,24 @@ jobs:
       fail-fast: false
       matrix:
         env:
-          - {os: ubuntu-20.04, os-family: linux-64}
-          - {os: ubuntu-22.04, os-family: linux-64}
-          - {os: ubuntu-24.04, os-family: linux-64}
-          - {os: windows-2019, os-family: win-64}
-          - {os: windows-2022, os-family: win-64}
-          - {os: macos-13, os-family: osx-64}
-          - {os: macos-14, os-family: osx-arm64}
-          - {os: macos-15, os-family: osx-arm64}
+          - {os: ubuntu-22.04, json-image: '{"image": "ubuntu:20.04"}', os-family: linux-64}
+          - {os: ubuntu-22.04, json-image: '{"image": null}', os-family: linux-64}
+          - {os: ubuntu-24.04, json-image: '{"image": null}', os-family: linux-64}
+          - {os: ubuntu-22.04, json-image: '{"image": "rockylinux:8"}', os-family: linux-64}
+          - {os: ubuntu-22.04, json-image: '{"image": "rockylinux:9"}', os-family: linux-64}
+          - {os: windows-2019, json-image: '{"image": null}', os-family: win-64}
+          - {os: windows-2022, json-image: '{"image": null}', os-family: win-64}
+          - {os: macos-13, json-image: '{"image": null}', os-family: osx-64}
+          - {os: macos-14, json-image: '{"image": null}', os-family: osx-arm64}
+          - {os: macos-15, json-image: '{"image": null}', os-family: osx-arm64}
     runs-on: ${{ matrix.env.os }}
+    container: ${{ fromJSON(matrix.env.json-image) }}
     steps:
       - name: Install Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
           miniforge-version: latest  # needed for macOS 13
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.12'
           conda-remove-defaults: true
       - name: Download Conda Package Artifact
         uses: actions/download-artifact@v4
@@ -134,7 +143,8 @@ jobs:
       - name: Test the Khiops executables on the Iris dataset
         uses: ./.github/actions/test-khiops-on-iris
         with:
-          os-decription: ${{ matrix.env.os }}-${{ matrix.env.os-family }}
+          os-decription: ${{ matrix.env.os }}-${{ fromJSON(matrix.env.json-image)
+            }}-${{ matrix.env.os-family }}
 
   # Release is only executed on tags
   # Note: For this job to work the secrets variables KHIOPS_ANACONDA_CHANNEL_TOKEN and
