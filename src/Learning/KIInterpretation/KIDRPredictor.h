@@ -8,7 +8,6 @@
 #include "KWDRNBPredictor.h"
 #include "KWDRDataGrid.h"
 #include "KIShapleyTable.h"
-#include "KIInterpretationClassBuilder.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KIPartitionedAttributeProbs
