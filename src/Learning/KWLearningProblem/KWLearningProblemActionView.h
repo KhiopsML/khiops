@@ -11,7 +11,6 @@ class KWLearningProblemView;
 #include "KWLearningProblemView.h"
 #include "KWDatabaseView.h"
 #include "KWDatabaseTransferView.h"
-#include "KIPredictorInterpretationView.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWLearningProblemActionView

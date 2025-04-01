@@ -4,14 +4,12 @@
 
 #pragma once
 
-class KIInterpretationSpec;
 class KIModelInterpreter;
 class KIModelReinforcer;
 class KIInterpretationClassBuilder;
 
 #include "KWClass.h"
 #include "KWDRNBPredictor.h"
-#include "KIInterpretationSpec.h"
 #include "KIDRPredictor.h"
 #include "KWTrainedPredictor.h"
 
@@ -24,7 +22,6 @@ class KIInterpretationClassBuilder : public Object
 public:
 	// Constructeur
 	KIInterpretationClassBuilder();
-	KIInterpretationClassBuilder(KIInterpretationSpec* spec);
 	~KIInterpretationClassBuilder();
 
 	//////////////////////////////////////////////////////////////////////
@@ -93,32 +90,6 @@ public:
 	static const ALString& GetTargetMetaDataKey();
 	static const ALString& GetShapleyLabel();
 
-	//////////////////////////////////////////////////////////////////////
-	// DEPRECATED
-
-	// Creation des meta-tags dans le dictionnaire, pour reperer les variables levier potentielles
-	void PrepareInterpretationClass();
-
-	// Domaine contenant la classe d'interpretation
-	KWClassDomain* GetInterpretationDomain() const;
-
-	// Classe d'interpretation principale
-	KWClass* GetInterpretationMainClass() const;
-
-	// Creation ou mise a jour des attributs necessaires a l'interpretation (contribution ou reenforcement),
-	// dans le dico d'interpretation
-	boolean UpdateInterpretationAttributes();
-
-	// Types de methodes d'interpretation
-	const ALString SHAPLEY_LABEL = "Shapley";
-	const ALString UNDEFINED_LABEL = "Undefined";
-
-	// Definition des type de meta-data permettant de reperer les variables dediees
-	// a l'interpretation dans les dictionnaires
-	static const ALString LEVER_ATTRIBUTE_META_TAG;
-	static const ALString INTERPRETATION_ATTRIBUTE_META_TAG;
-	static const ALString NO_VALUE_LABEL;
-
 	//////////////////////////////////////////////////
 	///// Implementation
 protected:
@@ -134,10 +105,6 @@ protected:
 
 	// Test de compatibilite du dictionnaire a ne pas utiliser les discretisation bivariees, non actuellement gerees
 	boolean IsClassifierClassUsingBivariatePreprocessing(KWClass* kwcClassifier) const;
-
-	// Creation du domaine propre a l'interpretation, ainsi que du dictionnaire
-	// d'intepretation ou de renforcement issus du classifieur d'entree
-	boolean CreateInterpretationDomain(const KWClass* inputClassifier);
 
 	////////////////////////////////////////////////////////////////////////////
 	// Creation des attributs de contribution du dictionnaite d'interpretation
@@ -207,23 +174,8 @@ protected:
 							       const KWAttribute* scoreInterpretationAttribute,
 							       int nIndex) const;
 
-	// Calcul du nombre max d'attributs de renfocement
-	// Ce nombre max est la valeur minimum entre:
-	// - le nombre d'attributs pour le renforcement, parametre via IHM
-	// - le nombre d'attributs selectionnes comme pouvant etre utilises comme variables leviers, , parametre via IHM
-	int ComputeReinforcementAttributesMaxNumber() const; // DDD DEPRECATED
-
-	// Libelle du type d'interpretation
-	const ALString& GetWhyTypeShortLabel(const ALString& asWhyTypeLongLabel) const; // DDD DEPRECATED
-
 	////////////////////////////
 	// Variables de la classe
-
-	// Domaine temporaire servant a la generation du dico de transfert
-	KWClassDomain* kwcdInterpretationDomain;
-
-	// Dictionnaire de transfert (dico principal, dans le cas d'un classifieur multi table)
-	KWClass* kwcInterpretationMainClass;
 
 	// Dictionnaire du predicteur
 	KWClass* kwcPredictorClass;
@@ -233,9 +185,6 @@ protected:
 
 	// Nom de l'attribut de prediction
 	ALString sPredictionAttributeName;
-
-	// Specification d'interpretation
-	KIInterpretationSpec* interpretationSpec;
 
 	// Vecteur des valeurs cibles
 	SymbolVector svTargetValues;
@@ -253,14 +202,4 @@ protected:
 inline const KWClass* KIInterpretationClassBuilder::GetPredictorClass() const
 {
 	return kwcPredictorClass;
-}
-
-inline KWClassDomain* KIInterpretationClassBuilder::GetInterpretationDomain() const
-{
-	return kwcdInterpretationDomain;
-}
-
-inline KWClass* KIInterpretationClassBuilder::GetInterpretationMainClass() const
-{
-	return kwcInterpretationMainClass;
 }

@@ -10,18 +10,7 @@
 
 KIInterpretationClassBuilder::KIInterpretationClassBuilder()
 {
-	interpretationSpec = NULL;
 	kwcPredictorClass = NULL;
-	kwcdInterpretationDomain = NULL;
-	kwcInterpretationMainClass = NULL;
-}
-
-KIInterpretationClassBuilder::KIInterpretationClassBuilder(KIInterpretationSpec* spec)
-{
-	interpretationSpec = spec;
-	kwcPredictorClass = NULL;
-	kwcdInterpretationDomain = NULL;
-	kwcInterpretationMainClass = NULL;
 }
 
 KIInterpretationClassBuilder::~KIInterpretationClassBuilder()
@@ -268,15 +257,6 @@ void KIInterpretationClassBuilder::Clean()
 	svTargetValues.SetSize(0);
 	svPredictorAttributeNames.SetSize(0);
 	svPredictorPartitionedAttributeNames.SetSize(0);
-
-	// Nettoyage de l'interpreteur construit
-	if (kwcdInterpretationDomain != NULL)
-	{
-		kwcdInterpretationDomain->DeleteAllClasses();
-		delete kwcdInterpretationDomain;
-		kwcdInterpretationDomain = NULL;
-		kwcInterpretationMainClass = NULL;
-	}
 }
 
 KWClass* KIInterpretationClassBuilder::BuildInterpretationServiceClass(const ALString& sServiceLabel,
@@ -402,177 +382,6 @@ boolean KIInterpretationClassBuilder::IsClassifierClassUsingBivariatePreprocessi
 		kwcClassifier->GetNextAttribute(attribute);
 	}
 	return bIsBivariatePreprocessing;
-}
-
-boolean KIInterpretationClassBuilder::CreateInterpretationDomain(const KWClass* inputClassifier)
-{
-	boolean bOk = true;
-
-	// Il doit y avoir un dico en entree
-	if (inputClassifier == NULL)
-		return false;
-
-	if (kwcdInterpretationDomain != NULL)
-	{
-		kwcdInterpretationDomain->DeleteAllClasses();
-		delete kwcdInterpretationDomain;
-	}
-
-	// Clone du domaine d'origine, afin de gerer les dictionnaires d'entree de type multi-table
-	kwcdInterpretationDomain = inputClassifier->GetDomain()->CloneFromClass(inputClassifier);
-	kwcdInterpretationDomain->SetName("InterpretationDomain");
-	kwcInterpretationMainClass = kwcdInterpretationDomain->LookupClass(inputClassifier->GetName());
-	assert(kwcInterpretationMainClass != NULL);
-	kwcdInterpretationDomain->RenameClass(kwcInterpretationMainClass,
-					      "Interpretation_" + kwcInterpretationMainClass->GetName());
-	return bOk;
-}
-
-boolean KIInterpretationClassBuilder::UpdateInterpretationAttributes()
-{
-	boolean bOk = true;
-	ALString sValue;
-	int nIndex;
-	KWTrainedClassifier trainedClassifier;
-	ObjectArray oaInterpretationAttributes;
-	KWAttribute* classifierAttribute;
-	KWAttribute* predictionAttribute;
-	KWAttribute* attribute;
-	ALString sTargetValue;
-	int i;
-
-	// Import de l'interpreteur
-	bOk = trainedClassifier.ImportPredictorClass(kwcInterpretationMainClass);
-	if (bOk)
-	{
-		// Recherche des attributs necessaires dans le modele
-		classifierAttribute = NULL;
-		predictionAttribute = NULL;
-
-		// Nettoyage des meta-data existantes
-		attribute = kwcInterpretationMainClass->GetHeadAttribute();
-		while (attribute != NULL)
-		{
-			if (attribute->GetStructureName() == "Classifier")
-				classifierAttribute = attribute;
-			else if (attribute->GetConstMetaData()->IsKeyPresent("Prediction"))
-				predictionAttribute = attribute;
-			else if (attribute->GetConstMetaData()->IsKeyPresent(INTERPRETATION_ATTRIBUTE_META_TAG))
-				oaInterpretationAttributes.Add(attribute);
-			else if (attribute->GetConstMetaData()->IsKeyPresent("ClassifierInterpretationVariable"))
-				oaInterpretationAttributes.Add(attribute);
-			else if (attribute->GetConstMetaData()->IsKeyPresent("ContributionVariable"))
-				oaInterpretationAttributes.Add(attribute);
-			else if (attribute->GetConstMetaData()->IsKeyPresent("ContributionVariableRank"))
-				oaInterpretationAttributes.Add(attribute);
-			else if (attribute->GetConstMetaData()->IsKeyPresent("ContributionPartRank"))
-				oaInterpretationAttributes.Add(attribute);
-			else if (attribute->GetConstMetaData()->IsKeyPresent("ContributionValueRank"))
-				oaInterpretationAttributes.Add(attribute);
-			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementFinalScoreRank"))
-				oaInterpretationAttributes.Add(attribute);
-			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementVariableRank"))
-				oaInterpretationAttributes.Add(attribute);
-			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementPartRank"))
-				oaInterpretationAttributes.Add(attribute);
-			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementClassChangeTagRank"))
-				oaInterpretationAttributes.Add(attribute);
-			else if (attribute->GetConstMetaData()->IsKeyPresent("ReinforcementInitialScore"))
-				oaInterpretationAttributes.Add(attribute);
-			kwcInterpretationMainClass->GetNextAttribute(attribute);
-		}
-
-		// Supression des eventuels attributs d'interpretation qui preexisteraient dans le dico,
-		// afin de gerer correctement les mises a jour des parametres via IHM
-		// (on recree systematiquement tous les attributs d'interpretation)
-		for (i = 0; i < oaInterpretationAttributes.GetSize(); i++)
-		{
-			attribute = cast(KWAttribute*, oaInterpretationAttributes.GetAt(i));
-			kwcInterpretationMainClass->DeleteAttribute(attribute->GetName());
-		}
-
-		// Compilation
-		kwcdInterpretationDomain->Compile();
-
-		// Preparation de la classe de l'interpreteur
-		PrepareInterpretationClass();
-		assert(classifierAttribute != NULL);
-		assert(predictionAttribute != NULL);
-
-		// On met toutes les variables en unused
-		kwcInterpretationMainClass->SetAllAttributesUsed(false);
-
-		// On met les attributs de cle en Used
-		for (nIndex = 0; nIndex < kwcInterpretationMainClass->GetKeyAttributeNumber(); nIndex++)
-		{
-			attribute = kwcInterpretationMainClass->GetKeyAttributeAt(nIndex);
-			check(attribute);
-			attribute->SetUsed(true);
-			attribute->SetLoaded(true);
-		}
-
-		// Creation des attributs de contribution
-		if (interpretationSpec->GetWhyAttributesNumber() > 0)
-		{
-			if (interpretationSpec->GetWhyClass() == KIInterpretationSpec::ALL_CLASSES_LABEL)
-			{
-				sValue = GetWhyTypeShortLabel(interpretationSpec->GetWhyType());
-				kwcInterpretationMainClass->GetMetaData()->SetStringValueAt("ContributionMethod",
-											    sValue);
-
-				if (interpretationSpec->GetMaxAttributesNumber() ==
-				    interpretationSpec->GetWhyAttributesNumber())
-				{
-					kwcInterpretationMainClass->GetMetaData()->SetNoValueAt(
-					    KIInterpretationSpec::ALL_CLASSES_LABEL);
-				}
-				else
-				{
-					kwcInterpretationMainClass->GetMetaData()->SetDoubleValueAt(
-					    "VariableNumber", interpretationSpec->GetWhyAttributesNumber());
-				}
-				// Parcours de toutes les classes
-				for (nIndex = 0; nIndex < svTargetValues.GetSize(); nIndex++)
-				{
-					// Extraction de la valeur de la classe cible
-					sTargetValue = svTargetValues.GetAt(nIndex).GetValue();
-					CreateContributionAttributesForClass(
-					    kwcInterpretationMainClass, sTargetValue, classifierAttribute,
-					    predictionAttribute, true, interpretationSpec->GetWhyAttributesNumber());
-				}
-			}
-			else
-			{
-				sValue = GetWhyTypeShortLabel(interpretationSpec->GetWhyType());
-				kwcInterpretationMainClass->GetMetaData()->SetStringValueAt("ContributionMethod",
-											    sValue);
-				CreateContributionAttributesForClass(
-				    kwcInterpretationMainClass, interpretationSpec->GetWhyClass(), classifierAttribute,
-				    predictionAttribute, true, interpretationSpec->GetWhyAttributesNumber());
-			}
-		}
-
-		// Creation des attributs de renforcement
-		if (bOk)
-		{
-			if (interpretationSpec->GetHowAttributesNumber() > 0 and
-			    interpretationSpec->GetHowClass() != NO_VALUE_LABEL)
-			{
-				CreateReinforcementAttributesForClass(kwcInterpretationMainClass,
-								      interpretationSpec->GetHowClass(),
-								      classifierAttribute, predictionAttribute, NULL);
-				kwcInterpretationMainClass->GetMetaData()->SetStringValueAt(
-				    "ReinforcementClass", interpretationSpec->GetHowClass());
-			}
-		}
-		if (bOk)
-		{
-			// Ajout d'un metadata permettant de reconnaitre qu'il s'agit d'un dico d'interpretation
-			kwcInterpretationMainClass->GetMetaData()->SetNoValueAt("InterpreterDictionary");
-			kwcdInterpretationDomain->Compile();
-		}
-	}
-	return bOk;
 }
 
 void KIInterpretationClassBuilder::CreateContributionAttributesForClass(
@@ -1025,34 +834,6 @@ KWAttribute* KIInterpretationClassBuilder::CreateReinforcementClassChangeAtAttri
 	return attribute;
 }
 
-int KIInterpretationClassBuilder::ComputeReinforcementAttributesMaxNumber() const
-{
-	KWAttribute* attribute;
-	int result;
-	int nbSelected;
-
-	require(interpretationSpec != NULL);
-	require(kwcInterpretationMainClass != NULL);
-
-	result = interpretationSpec->GetHowAttributesNumber();
-	nbSelected = 0;
-
-	attribute = kwcInterpretationMainClass->GetHeadAttribute();
-	while (attribute != NULL)
-	{
-		if (attribute->GetConstMetaData()->GetStringValueAt(
-			KIInterpretationClassBuilder::LEVER_ATTRIBUTE_META_TAG) == "true")
-			nbSelected++;
-
-		kwcInterpretationMainClass->GetNextAttribute(attribute);
-	}
-
-	if (nbSelected < result)
-		result = nbSelected;
-
-	return result;
-}
-
 const SymbolVector* KIInterpretationClassBuilder::GetTargetValues() const
 {
 	return &svTargetValues;
@@ -1298,62 +1079,3 @@ const ALString& KIInterpretationClassBuilder::GetShapleyLabel()
 	static const ALString sMetaDataKey = "Shapley";
 	return sMetaDataKey;
 }
-
-void KIInterpretationClassBuilder::PrepareInterpretationClass()
-{
-	KWAttribute* predictorAttribute;
-	KWAttribute* attribute;
-	KWAttribute* inputAttribute;
-	ALString sPredictorAttributeName;
-	int nAttributeIndex;
-
-	require(kwcInterpretationMainClass != NULL);
-	require(kwcdInterpretationDomain != NULL);
-
-	if (svPredictorAttributeNames.GetSize() == 0)
-		return;
-
-	// Taggage des attributs explicatifs contribuant au predicteur, et pouvant etre utilisees eventuellement comme leviers
-	for (nAttributeIndex = 0; nAttributeIndex < svPredictorAttributeNames.GetSize(); nAttributeIndex++)
-	{
-		sPredictorAttributeName = svPredictorAttributeNames.GetAt(nAttributeIndex);
-
-		// Extraction de l'attribut natif
-		predictorAttribute = kwcInterpretationMainClass->LookupAttribute(sPredictorAttributeName);
-		assert(predictorAttribute != NULL);
-		if (not predictorAttribute->GetConstMetaData()->IsKeyPresent(LEVER_ATTRIBUTE_META_TAG))
-		{
-			predictorAttribute->GetMetaData()->SetStringValueAt(
-			    LEVER_ATTRIBUTE_META_TAG,
-			    "true"); // par defaut : toutes les variables natives pourront etre utilisees comme levier
-		}
-	}
-
-	// Synchronisation des proprietes Used et Loaded du dico de transfert a partir de la selection faite dans le classifieur d'entree
-	// on parcourt cette fois-ci tous les attributs
-	attribute = kwcInterpretationMainClass->GetHeadAttribute();
-	while (attribute != NULL)
-	{
-		inputAttribute = GetPredictorClass()->LookupAttribute(attribute->GetName());
-
-		if (inputAttribute != NULL)
-		{
-			attribute->SetUsed(inputAttribute->GetUsed());
-			attribute->SetLoaded(attribute->GetUsed());
-		}
-		kwcInterpretationMainClass->GetNextAttribute(attribute);
-	}
-	kwcdInterpretationDomain->Compile();
-}
-
-const ALString& KIInterpretationClassBuilder::GetWhyTypeShortLabel(const ALString& asWhyTypeLongLabel) const
-{
-	if (asWhyTypeLongLabel == "Shapley")
-		return SHAPLEY_LABEL;
-	else
-		return UNDEFINED_LABEL;
-}
-
-const ALString KIInterpretationClassBuilder::LEVER_ATTRIBUTE_META_TAG = "LeverVariable";
-const ALString KIInterpretationClassBuilder::INTERPRETATION_ATTRIBUTE_META_TAG = "ClassifierInterpretationVariable";
-const ALString KIInterpretationClassBuilder::NO_VALUE_LABEL = "";
