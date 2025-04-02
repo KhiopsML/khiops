@@ -767,7 +767,7 @@ void KWSortBucket::SetSorted()
 
 boolean KWSortBucket::GetSorted() const
 {
-	return bSorted or IsSingleton();
+	return bSorted;
 }
 
 ///////////////////////////////////////////////////////////////////////
