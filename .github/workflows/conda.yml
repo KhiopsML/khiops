@@ -105,23 +105,21 @@ jobs:
     runs-on: ${{ matrix.env.os }}
     container: ${{ fromJSON(matrix.env.json-image) }}
     steps:
-      - name: Install Miniconda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          miniforge-version: latest  # needed for macOS 13
-          python-version: '3.12'
-          conda-remove-defaults: true
       - name: Download Conda Package Artifact
         uses: actions/download-artifact@v4
         with:
           name: khiops-conda-${{ matrix.env.os-family }}
           path: ./build/conda
-      - name: Install the Conda package
-        run: |
-          conda install --channel ./build/conda khiops-core
+      - name: Install Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest  # needed for macOS 13
+          python-version: '3.12'
+          channels: ./build/conda
+          conda-remove-defaults: true
       - name: Install the Khiops executables in the Conda environment
         run: |
-          conda install --channel conda-forge --channel ./build/conda khiops-core
+          conda install khiops-core
       - name: Add  CONDA_PREFIX to shared PATH (Windows)
         if: runner.os == 'Windows'
         run: |
