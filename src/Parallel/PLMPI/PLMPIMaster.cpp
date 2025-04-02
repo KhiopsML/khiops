@@ -455,7 +455,6 @@ boolean PLMPIMaster::Process()
 					if (theWorker->IsProcessing())
 					{
 						ReceiveAndProcessMessage(SLAVE_END_PROCESSING, theWorker->GetRank());
-						TaskProgression::EndTask();
 					}
 				}
 			}
