@@ -646,8 +646,8 @@ boolean KWChunkSorterTask::SlaveProcess()
 		// Tri des lignes extraites
 		if (bOk and not TaskProgression::IsInterruptionRequested())
 		{
+
 			// Si c'est un singleton, on ne trie pas, on veut juste changer le separateur du fichier
-			if (not input_bSingleton)
 			{
 				oaKeyLines.SetCompareFunction(KWKeyLinePairCompare);
 				oaKeyLines.Sort();
