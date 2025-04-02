@@ -455,7 +455,6 @@ boolean PLMPIMaster::Process()
 					if (theWorker->IsProcessing())
 					{
 						ReceiveAndProcessMessage(SLAVE_END_PROCESSING, theWorker->GetRank());
-						TaskProgression::EndTask();
 					}
 				}
 			}
@@ -518,14 +517,14 @@ boolean PLMPIMaster::Process()
 		if (GetTracerMPI()->GetActiveMode())
 			GetTracerMPI()->AddRecv(receivedStatus.MPI_SOURCE, receivedStatus.MPI_TAG);
 
+		assert(TaskProgression::IsInTask());
+
 		// On recoit les messages pour les afficher et les fin de slaveProcess et slaveInitialize, pour avoir
 		// les etats et les index corrects, on pourra ainsi afficher correctement les messages
 		switch (receivedStatus.MPI_TAG)
 		{
 		case SLAVE_END_PROCESSING:
-			TaskProgression::BeginTask();
 			ReceiveAndProcessMessage(SLAVE_END_PROCESSING, receivedStatus.MPI_SOURCE);
-			TaskProgression::EndTask();
 			break;
 		case SLAVE_INITIALIZE_DONE:
 			ReceiveAndProcessMessage(SLAVE_INITIALIZE_DONE, receivedStatus.MPI_SOURCE);
