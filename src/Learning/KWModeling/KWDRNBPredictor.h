@@ -117,20 +117,24 @@ public:
 	// Compilation redefinie pour l'optimisation
 	void Compile(KWClass* kwcOwnerClass) override;
 
+	// Acces aux valeurs cible
+	int GetTargetValueNumber() const;
+	Symbol GetTargetValueAt(int nTarget) const;
+
 	// Acces aux statistiques de grilles en operande
 	int GetDataGridStatsNumber() const;
-	const KWDRDataGridStats* GetDataGridStatsAt(int nDataGrid) const;
+	const KWDRDataGridStats* GetDataGridStatsAt(int nDataGridStatsOrBlock) const;
 	int GetDataGridStatsOrBlockNumber() const;
 	boolean IsDataGridStatsAt(int nDataGridStatsOrBlock) const;
 	const KWDRDataGridStatsBlock* GetDataGridStatsBlockAt(int nDataGridStatsOrBlock) const;
-	Continuous GetDataGridWeightAt(int nDataGridStatsOrBlock) const;
+	Continuous GetDataGridWeightAt(int nDataGrid) const;
 
 	// Acces aux statistiques sur l'ensemble des grilles
 	int GetDataGridSetTargetPartNumber() const;
-	int GetDataGridSetTargetFrequencyAt(int nTargetValue) const;
-	int GetDataGridSetTargetCellIndexAt(int nDataGrid, int nTargetValue) const;
-	double GetMissingLogProbaAt(int nDataGrid, int nTargetValue) const;
-	double GetMissingScoreAt(int nTargetValue) const;
+	int GetDataGridSetTargetFrequencyAt(int nTarget) const;
+	int GetDataGridSetTargetCellIndexAt(int nDataGrid, int nTarget) const;
+	double GetMissingLogProbaAt(int nDataGrid, int nTarget) const;
+	double GetMissingScoreAt(int nTarget) const;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;

@@ -11,13 +11,17 @@
 //////////////////////////////////////////////////////////
 // Classe KIShapleyTable
 // Gestion d'une table de valeurs de Shapley pour une variable source donnee
-
 class KIShapleyTable : public Object
 {
 public:
 	// Constructeur
 	KIShapleyTable();
 	~KIShapleyTable();
+
+	// Initialisation complete a partir d'une grille dont le dernier attribut contient l'attribut cible
+	// et d'un poids de variable
+	// Un epsilon de Laplace minimal (1/(N+1)) est utilise pour eviter les probabilites nulles
+	void InitializeFromDataGridStats(const KWDataGridStats* dataGridStats, double dAttributeWeight);
 
 	///////////////////////////////////////////////////////////////////////////
 	// Initialisation

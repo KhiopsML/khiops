@@ -15,9 +15,6 @@ KIPredictorAttribute::KIPredictorAttribute()
 
 	// ## Custom constructor
 
-	// Une variable est utilisee par defaut
-	bUsed = true;
-
 	// ##
 }
 

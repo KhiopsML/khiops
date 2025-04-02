@@ -664,7 +664,7 @@ void KIDRClassifierContribution::InitializeShapleyTables()
 {
 	// nModalityIndex indique dans quel intervalle (ou groupe) de l'attribut designe par nAttributeIndex, cet individu appartient
 	// nTargetClassIndex est la classe cible pour le calcul de l'importance
-
+	boolean bTrace = false;
 	Continuous cTerm1Numerator;
 	Continuous cTerm1Denominator;
 	Continuous cTerm1;
@@ -792,6 +792,19 @@ void KIDRClassifierContribution::InitializeShapleyTables()
 				// affectation au tableau des valeur de Shapley
 				stShapleyTable->SetShapleyValueAt(nModalityIndex, nClassIndex, cImportanceValue);
 			}
+		}
+	}
+
+	// Affichage des table de Shapley
+	if (bTrace)
+	{
+		cout << "Shapley tables\n";
+		for (nAttributeIndex = 0; nAttributeIndex < nVariableNumber; nAttributeIndex++)
+		{
+			stShapleyTable = cast(KIShapleyTable*, oaShapleyTables.GetAt(nAttributeIndex));
+
+			cout << "Variable " << nAttributeIndex + 1 << "\n";
+			cout << *stShapleyTable << "\n";
 		}
 	}
 }
@@ -1013,10 +1026,10 @@ Continuous KIDRClassifierContribution::ComputeScoreFromScoreVector(ContinuousVec
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Classe KIDRContributionValueAt
-KIDRContributionValueAt::KIDRContributionValueAt()
+// Classe KIDRContributionValueAtOld
+KIDRContributionValueAtOld::KIDRContributionValueAtOld()
 {
-	SetName("ContributionValueAt");
+	SetName("ContributionValueAtOld");
 	SetLabel("Variable importance value");
 	SetType(KWType::Continuous);
 	SetOperandNumber(2);
@@ -1027,14 +1040,14 @@ KIDRContributionValueAt::KIDRContributionValueAt()
 	GetSecondOperand()->SetType(KWType::Continuous);
 }
 
-KIDRContributionValueAt::~KIDRContributionValueAt() {}
+KIDRContributionValueAtOld::~KIDRContributionValueAtOld() {}
 
-KWDerivationRule* KIDRContributionValueAt::Create() const
+KWDerivationRule* KIDRContributionValueAtOld::Create() const
 {
-	return new KIDRContributionValueAt;
+	return new KIDRContributionValueAtOld;
 }
 
-Continuous KIDRContributionValueAt::ComputeContinuousResult(const KWObject* kwoObject) const
+Continuous KIDRContributionValueAtOld::ComputeContinuousResult(const KWObject* kwoObject) const
 {
 	KIDRClassifierContribution* scoreInterpretation =
 	    cast(KIDRClassifierContribution*, GetFirstOperand()->GetStructureValue(kwoObject));

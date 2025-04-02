@@ -6,12 +6,14 @@
 
 class KIModelInterpreter;
 class KIModelReinforcer;
+class KIPredictorAttribute;
 class KIInterpretationClassBuilder;
 
 #include "KWClass.h"
 #include "KWDRNBPredictor.h"
-#include "KIDRPredictor.h"
 #include "KWTrainedPredictor.h"
+#include "KIDRInterpretation.h"
+#include "KIDRPredictor.h"
 
 ///////////////////////////////////////////////////////////////
 // Classe KIInterpretationClassBuilder
@@ -56,6 +58,10 @@ public:
 
 	// Acces au tableau des noms variables partitionees du predicteur
 	const StringVector* GetPredictorPartitionedAttributeNames() const;
+
+	// Service de construction du tableau des attribut du predicteur, tries par importance decroissante
+	// Memoire: le contenu du tableau comprend des KIPredictorAttributes, a detruire par l'appelant
+	void BuildPredictorAttributes(ObjectArray* oaPredictorAttributes) const;
 
 	//////////////////////////////////////////////////////////////////////
 	// Construction de dictionnaires d'interpretation et de renforcement
@@ -110,12 +116,35 @@ protected:
 	// Creation des attributs de contribution du dictionnaite d'interpretation
 
 	// Creation des attributs de contribution du dictionnaire d'interpretation
+	void CreateInterpretationAttributes(KWClass* kwcInterpretation, const KWAttribute* predictorRuleAttribute,
+					    const SymbolVector* svInterpretedTargetValues, boolean bIsGlobalRanking,
+					    int nContributionAttributeNumber) const;
+
+	// Creation dans la classe de l'attribut gerant l'interpretation
+	KWAttribute* CreateInterpreterAttribute(KWClass* kwcInterpretation,
+						const KWAttribute* predictorRuleAttribute) const;
+
+	// Creation dans la classe d'un attribut de contribution pour un valeur cible et un attribut
+	KWAttribute* CreateContributionAttribute(KWClass* kwcInterpretation, const KWAttribute* interpreterAttribute,
+						 Symbol sTargetClass, const ALString& sAttributeName) const;
+
+	// Creation dans la classe d'un attribut de contribution pour une valeur cible et et un rang de contribution
+	// On donne en parametre le type de regle a construire, parmi "Variable", Value" ou "Part"
+	KWAttribute* CreateRankedContributionAttribute(KWClass* kwcInterpretation,
+						       const KWAttribute* interpreterAttribute,
+						       const ALString& contributionType, Symbol sTargetClass,
+						       int nRank) const;
+
+	///////
+	// DEPRECATED
+
+	// Creation des attributs de contribution du dictionnaire d'interpretation
 	void CreateContributionAttributesForClass(KWClass* kwcInterpretation, const ALString& sTargetClass,
 						  const KWAttribute* predictorRuleAttribute,
 						  const KWAttribute* predictionAttribute, boolean bIsGlobalRanking,
 						  int nContributionAttributeNumber) const;
 
-	// Creation de l'attribut gerant le renforcement
+	// Creation de l'attribut gerant l'interpretation
 	KWAttribute* CreateScoreContributionAttribute(KWClass* kwcInterpretation, const ALString& sTargetClass,
 						      const KWAttribute* predictorRuleAttribute,
 						      const KWAttribute* predictionAttribute,
@@ -201,5 +230,6 @@ protected:
 
 inline const KWClass* KIInterpretationClassBuilder::GetPredictorClass() const
 {
+	require(IsPredictorImported());
 	return kwcPredictorClass;
 }
