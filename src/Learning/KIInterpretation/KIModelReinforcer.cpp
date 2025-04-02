@@ -146,62 +146,12 @@ int KIModelReinforcer::ComputeSelectedLeverAttributeNumber() const
 
 void KIModelReinforcer::UpdateLeverAttributes()
 {
-	KIPredictorAttribute* leverAttribute;
-	KWAttribute* attribute;
-	double dLevel;
-	double dWeight;
-	double dImportance;
-	int i;
-
 	// Nettoyage initial
 	oaLeverAttributes.DeleteAll();
 
 	// Alimentation des attributs du predicteur
 	if (GetClassBuilder()->IsPredictorImported())
-	{
-		// Alimentation a partir des specification disponible dans le ClassBuilder
-		for (i = 0; i < GetClassBuilder()->GetPredictorAttributeNumber(); i++)
-		{
-			// Ajout d'une variable au tableau
-			leverAttribute = new KIPredictorAttribute;
-			oaLeverAttributes.Add(leverAttribute);
-
-			// Specification de la variable
-			attribute = GetClassBuilder()->GetPredictorClass()->LookupAttribute(
-			    GetClassBuilder()->GetPredictorAttributeNames()->GetAt(i));
-			assert(attribute != NULL);
-			leverAttribute->SetType(KWType::ToString(attribute->GetType()));
-			leverAttribute->SetName(attribute->GetName());
-
-			// Recherche de l'importance via les meta-data, en se protegeant contre les meta-data erronnees
-			if (attribute->GetConstMetaData()->IsKeyPresent(
-				SNBPredictorSelectiveNaiveBayes::GetImportanceMetaDataKey()))
-			{
-				dImportance = attribute->GetConstMetaData()->GetDoubleValueAt(
-				    SNBPredictorSelectiveNaiveBayes::GetImportanceMetaDataKey());
-				dImportance = max(dImportance, (double)0);
-				dImportance = min(dImportance, (double)1);
-			}
-			// Recherche a partir du Level et du Weight si Importance non trouve
-			else
-			{
-				dLevel = attribute->GetConstMetaData()->GetDoubleValueAt(
-				    KWDataPreparationAttribute::GetLevelMetaDataKey());
-				dLevel = max(dLevel, (double)0);
-				dLevel = min(dLevel, (double)1);
-				dWeight = attribute->GetConstMetaData()->GetDoubleValueAt(
-				    SNBPredictorSelectiveNaiveBayes::GetWeightMetaDataKey());
-				dLevel = max(dLevel, (double)0);
-				dLevel = min(dLevel, (double)1);
-				dImportance = sqrt(dLevel * dWeight);
-			}
-			leverAttribute->SetImportance(KWContinuous::DoubleToContinuous(dImportance));
-		}
-
-		// Tri par importance decroissante
-		oaLeverAttributes.SetCompareFunction(KIPredictorAttributeCompareImportance);
-		oaLeverAttributes.Sort();
-	}
+		GetClassBuilder()->BuildPredictorAttributes(&oaLeverAttributes);
 }
 
 // ##

@@ -190,6 +190,7 @@ protected:
 
 inline KWContinuousValueBlockTest::KWContinuousValueBlockTest()
 {
+	nValueNumber = 0;
 	cStartBlock = '\0';
 }
 inline int KWContinuousValueBlockTest::GetValueNumber() const

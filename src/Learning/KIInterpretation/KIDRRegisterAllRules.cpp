@@ -8,7 +8,7 @@ void KIDRRegisterAllRules()
 {
 	KWDerivationRule::RegisterDerivationRule(new KIDRClassifierContribution);
 	KWDerivationRule::RegisterDerivationRule(new KIDRContributionNameAt);
-	KWDerivationRule::RegisterDerivationRule(new KIDRContributionValueAt);
+	KWDerivationRule::RegisterDerivationRule(new KIDRContributionValueAtOld);
 	KWDerivationRule::RegisterDerivationRule(new KIDRContributionPartitionAt);
 	KWDerivationRule::RegisterDerivationRule(new KIDRClassifierReinforcement);
 	KWDerivationRule::RegisterDerivationRule(new KIDRReinforcementNameAt);

@@ -75,7 +75,7 @@ public:
 	// La taille de la table est deduite de la taille des grilles sources et cibles
 	// (produits cartesiens des attributs sources et cibles)
 	// L'indexation de la table provient de l'indexation des cellules source et cible de la grille
-	// Un espsilon de Laplace minimal (1/(N+1)) est utilise pour eviter les probabilites nulles
+	// Un epsilon de Laplace minimal (1/(N+1)) est utilise pour eviter les probabilites nulles
 	void ImportDataGridStats(const KWDataGridStats* dataGridStats, boolean bTargetDirection, boolean bLogProbValue);
 
 	// Copie a partir d'un table source

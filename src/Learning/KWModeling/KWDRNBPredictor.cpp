@@ -839,7 +839,7 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 					constDataGridStatsRule =
 					    dataGridStatsBlockRule->GetDataGridStatsAtBlockIndex(nOperand);
 					oaOperandDataGridStatsRules.Add(
-					    const_cast<KWDRDataGridStats*>(constDataGridStatsRule));
+					    cast(KWDRDataGridStats*, constDataGridStatsRule));
 				}
 			}
 
@@ -945,6 +945,19 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 		}
 		assert(nDataGridRuleNumber >= oaDataGridStatsAndBlockRules.GetSize());
 	}
+}
+
+int KWDRNBClassifier::GetTargetValueNumber() const
+{
+	require(IsOptimized());
+	return svTargetValues.GetSize();
+}
+
+Symbol KWDRNBClassifier::GetTargetValueAt(int nTarget) const
+{
+	require(IsOptimized());
+	require(0 <= nTarget and nTarget < svTargetValues.GetSize());
+	return svTargetValues.GetAt(nTarget);
 }
 
 int KWDRNBClassifier::GetDataGridStatsOrBlockNumber() const

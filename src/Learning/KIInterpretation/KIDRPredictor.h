@@ -274,14 +274,14 @@ protected:
 };
 
 ////////////////////////////////////////////////////////////
-// Classe KIDRContributionValueAt
+// Classe KIDRContributionValueAtOld
 // Donne la valeur de la contribution a partir de KIDRClassifierContribution
-class KIDRContributionValueAt : public KWDerivationRule
+class KIDRContributionValueAtOld : public KWDerivationRule
 {
 public:
 	// Constructeur
-	KIDRContributionValueAt();
-	~KIDRContributionValueAt();
+	KIDRContributionValueAtOld();
+	~KIDRContributionValueAtOld();
 
 	// Creation
 	KWDerivationRule* Create() const override;
