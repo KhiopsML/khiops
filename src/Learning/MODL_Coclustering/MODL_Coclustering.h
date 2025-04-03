@@ -6,4 +6,6 @@
 
 #include "KWVersion.h"
 #include "CCLearningProject.h"
+
+// Header a inclure en dernier pour eviter des warnings intempestifs
 #include "PLUseMPI.h"

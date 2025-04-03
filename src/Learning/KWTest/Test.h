@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "PLUseMPI.h"
 #include "UserInterface.h"
 #include "KWContinuous.h"
 #include "KWSymbol.h"
@@ -89,3 +88,6 @@
 #include "KWResultFilePathBuilder.h"
 
 #include "HanoiTower.h"
+
+// Header a inclure en dernier pour eviter des warnings intempestifs
+#include "PLUseMPI.h"
