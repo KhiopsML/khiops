@@ -116,7 +116,7 @@ extern "C"
 	 * Return code:
 	 *    version number, an integer constant
 	 */
-	KNI_API int KNIGetVersion();
+	KNI_API int KNIGetVersion(void);
 
 	/*
 	 * Get full version of KNI
@@ -125,7 +125,7 @@ extern "C"
 	 * Return code:
 	 *    full version as a sequence-based identifier (ex: "9.0.1")
 	 */
-	KNI_API const char* KNIGetFullVersion();
+	KNI_API const char* KNIGetFullVersion(void);
 
 	/**********************************************************************************************
 	 * Management of streams
@@ -316,7 +316,7 @@ extern "C"
 	 * This accounts for the memory necessary to store the stream dictionaries, external tables
 	 * as well as the secondary records under preparation for recoding.
 	 */
-	KNI_API int KNIGetStreamMaxMemory();
+	KNI_API int KNIGetStreamMaxMemory(void);
 
 	/*
 	 * Set the maximum amount of memory (in MB) available for the next opened stream.
