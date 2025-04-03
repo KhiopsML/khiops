@@ -177,8 +177,14 @@ if(UNIX)
     COMPONENT KHIOPS)
 
   if(BUILD_JARS)
-    install_jar(khiops_jar DESTINATION usr/share/khiops)
-    install_jar(norm_jar DESTINATION usr/share/khiops)
+    install_jar(
+      khiops_jar
+      DESTINATION usr/share/khiops
+      COMPONENT KHIOPS)
+    install_jar(
+      norm_jar
+      DESTINATION usr/share/khiops
+      COMPONENT KHIOPS)
   endif()
 
 else(UNIX)
