@@ -445,6 +445,20 @@ boolean PLMPIMaster::Process()
 					ReceiveAndProcessMessage(receivedStatus.MPI_TAG, receivedStatus.MPI_SOURCE);
 			}
 
+			// En cas d'erreur du maitre, on recoit et traite tous les resultats des esclaves pour eviter les deadlocks.
+			// Les esclaves seront alors tous dans l'etat READY et en etat de recevoir la demande d'arret
+			if (bMasterError)
+			{
+				for (i = 0; i < task->oaSlaves.GetSize(); i++)
+				{
+					theWorker = cast(PLSlaveState*, GetTask()->oaSlaves.GetAt(i));
+					if (theWorker->IsProcessing())
+					{
+						ReceiveAndProcessMessage(SLAVE_END_PROCESSING, theWorker->GetRank());
+					}
+				}
+			}
+
 			// Arret des esclaves
 			// Si plus personne ne travaille et si il n'y a plus de taches a lancer
 			// => le traitement est termine
@@ -867,7 +881,8 @@ void PLMPIMaster::GiveNewJob(PLSlaveState* slave, double dTaskPercent)
 	task->SetSharedVariablesNoPermission(&task->oaInputVariables);
 
 	// On envoie tous les parametres de la tache
-	context.Send(MPI_COMM_WORLD, slave->GetRank(), MASTER_TASK_INPUT); // TODO Passer cet envoi en non bloquant
+	context.Send(MPI_COMM_WORLD, slave->GetRank(),
+		     MASTER_TASK_INPUT); // TODO Passer cet envoi en non bloquant
 	serializer.OpenForWrite(&context);
 	task->SerializeSharedVariables(&serializer, &GetTask()->oaInputVariables, true);
 	if (GetTracerMPI()->GetActiveMode())
