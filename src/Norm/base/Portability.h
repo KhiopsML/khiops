@@ -37,7 +37,7 @@
 #endif
 
 // Verification que l'OS est supporte
-#if !defined(__gnu_linux__) && !defined(__ANDROID__) && !defined(__APPLE__) && !defined(_WIN32)
+#if !defined(__gnu_linux__) && !defined(__linux__) && !defined(__ANDROID__) && !defined(__APPLE__) && !defined(_WIN32)
 #error current OS is not supported
 #endif
 
