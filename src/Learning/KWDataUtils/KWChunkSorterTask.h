@@ -141,10 +141,6 @@ protected:
 	// Resultat en plus du fichier trie
 	longint lSortedLinesNumber;
 
-	/////////////////////////////////////////////////////////////////
-	// Variables du Slave
-	boolean bSameSeparator;
-
 	///////////////////////////////////////////////////////////
 	// Parametres partages
 
@@ -153,6 +149,7 @@ protected:
 	// d'un ou plusieurs fichiers constitues par une tache precedente
 	PLShared_Int input_nBucketIndex;         // Index du bucket a trier
 	PLShared_StringVector input_svFileNames; // Liste des noms des fichier constituant le chunk a trier
+	PLShared_Boolean input_bSingleton; // Est-ce que le fichier est un singleton (il ne contient qu'une seule clef)
 
 	// En sortie des taches
 	PLShared_Int output_nBucketIndex; // Index du bucket trie (recopie d'apres la variable correspondante en entree)
@@ -165,7 +162,8 @@ protected:
 	PLShared_Boolean shared_bOnlyOneBucket;
 	PLShared_Longint shared_lBucketSize;
 	PLShared_Char shared_cOutputSeparator; // Separateur du fichier de sortie
-	PLShared_Char shared_cInputSeparator;  // Separetur du fichier d'entree
+	PLShared_Char shared_cInputSeparator;  // Separateur du fichier d'entree
+	PLShared_Boolean shared_bSameSeparator;
 
 	/////////////////////////////////////////////////////////////////
 	// Methodes techniques

@@ -19,6 +19,7 @@ KWChunkSorterTask::KWChunkSorterTask()
 	// Variables en entree des taches
 	DeclareTaskInput(&input_nBucketIndex);
 	DeclareTaskInput(&input_svFileNames);
+	DeclareTaskInput(&input_bSingleton);
 
 	// Variables en sortie des taches
 	DeclareTaskOutput(&output_nBucketIndex);
@@ -32,6 +33,7 @@ KWChunkSorterTask::KWChunkSorterTask()
 	DeclareSharedParameter(&shared_lBucketSize);
 	DeclareSharedParameter(&shared_cInputSeparator);
 	DeclareSharedParameter(&shared_cOutputSeparator);
+	DeclareSharedParameter(&shared_bSameSeparator);
 
 	shared_cInputSeparator.SetValue('\t');
 	shared_cOutputSeparator.SetValue('\t');
@@ -135,7 +137,7 @@ boolean KWChunkSorterTask::Sort()
 	require(lBucketSize > 0);
 	bOk = Run();
 
-	// Nettoyage des fihiers de sortie en cas d'erreur
+	// Nettoyage des fichiers de sortie en cas d'erreur
 	if (not bOk)
 	{
 		for (i = 0; i < GetBuckets()->GetBucketNumber(); i++)
@@ -322,6 +324,7 @@ boolean KWChunkSorterTask::MasterInitialize()
 	shared_bHeaderLineUsed = bIsInputHeaderLineUsed;
 	shared_bOnlyOneBucket = buckets->GetBucketNumber() == 1;
 	shared_lBucketSize = lBucketSize;
+	shared_bSameSeparator = shared_cInputSeparator.GetValue() == shared_cOutputSeparator.GetValue();
 	return true;
 }
 
@@ -338,8 +341,10 @@ boolean KWChunkSorterTask::MasterPrepareTaskInput(double& dTaskPercent, boolean&
 		bucketToSort = buckets->GetBucketAt(nCurrentBucketIndexToSort);
 		nTreatedBucketNumber++;
 
-		// Un bucket singleton eut etre deja trie
-		if (not bucketToSort->GetSorted())
+		// On doit trier un fichier si il n'est pas un sigleton.
+		// De plus, les esclaves doivent egalement traiter les singletons quand les separateur sont differents.
+		// Dans ce dernier cas, les esclaves ne vont pas trier mais seulement reecrire le fichier pour changer le separateur.
+		if (not bucketToSort->IsSingleton() or not shared_bSameSeparator)
 		{
 			assert(bucketToSort->GetOutputFileName() == "");
 			break;
@@ -360,6 +365,7 @@ boolean KWChunkSorterTask::MasterPrepareTaskInput(double& dTaskPercent, boolean&
 		assert(bucketToSort != NULL);
 		assert(not bucketToSort->GetSorted());
 		input_svFileNames.GetStringVector()->CopyFrom(bucketToSort->GetChunkFileNames());
+		input_bSingleton = bucketToSort->IsSingleton();
 
 		// Calcul de l'avancement
 		dTaskPercent = nTreatedBucketNumber * 1.0 / buckets->GetBucketNumber();
@@ -399,7 +405,7 @@ boolean KWChunkSorterTask::MasterFinalize(boolean bProcessEndedCorrectly)
 		// Collecte du nom de fichier trie a concatener (puis detruire)
 		if (bucket->GetSorted())
 		{
-			if (bucket->IsSingleton())
+			if (bucket->IsSingleton() and shared_bSameSeparator)
 			{
 				for (j = 0; j < bucket->GetChunkFileNames()->GetSize(); j++)
 				{
@@ -433,12 +439,6 @@ boolean KWChunkSorterTask::MasterFinalize(boolean bProcessEndedCorrectly)
 
 boolean KWChunkSorterTask::SlaveInitialize()
 {
-	// Test pour savoir si on doit copier la ligne pour effectuer un traitement dessus (changement du separateur)
-	// Ou si on peut ecrire directement le buffer lu
-	if (shared_cInputSeparator.GetValue() != shared_cOutputSeparator.GetValue())
-		bSameSeparator = false;
-	else
-		bSameSeparator = true;
 	return true;
 }
 
@@ -646,8 +646,12 @@ boolean KWChunkSorterTask::SlaveProcess()
 		// Tri des lignes extraites
 		if (bOk and not TaskProgression::IsInterruptionRequested())
 		{
-			oaKeyLines.SetCompareFunction(KWKeyLinePairCompare);
-			oaKeyLines.Sort();
+			// Si c'est un singleton, on ne trie pas, on veut juste changer le separateur du fichier
+			if (not input_bSingleton)
+			{
+				oaKeyLines.SetCompareFunction(KWKeyLinePairCompare);
+				oaKeyLines.Sort();
+			}
 		}
 
 		// Ecriture du resultat du tri
@@ -663,7 +667,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 			bOk = outputFile->Open();
 			if (bOk)
 			{
-				if (bSameSeparator)
+				if (shared_bSameSeparator)
 				{
 					// On reserve la taille du fichier pour eviter la fragmentation du disque,
 					// seulement dans le cas ou les separateurs sont identiques. Si ils sont
@@ -688,7 +692,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 					keyLine->GetLinePosition(nLineBeginPos, nLineEndPos);
 
 					// Remplacement du separateur
-					if (not bSameSeparator)
+					if (not shared_bSameSeparator)
 					{
 						// extraction du buffer
 						assert(not bLastLine);

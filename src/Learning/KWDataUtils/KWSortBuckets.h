@@ -200,7 +200,6 @@ public:
 	CharVector* GetChunk();
 
 	// Est-ce que le chunk est trie
-	// C'est forcement le cas pour les chunks singletons, sinon, le tri doit positionner le flag
 	void SetSorted();
 	boolean GetSorted() const;
 
