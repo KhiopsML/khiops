@@ -506,7 +506,6 @@ boolean PLMPIMaster::Process()
 			}
 		}
 	}
-	TaskProgression::EndTask();
 
 	// A partir d'ici on est sur que les esclaves n'enverront plus de messages
 	MPI_Barrier(*PLMPITaskDriver::GetTaskComm()); // BARRIER MSG
@@ -537,6 +536,8 @@ boolean PLMPIMaster::Process()
 			ReceivePendingMessage(receivedStatus);
 		}
 	}
+
+	TaskProgression::EndTask();
 
 	// Tout les messages on ete traites par les esclaves, on peut continuer
 	MPI_Barrier(*PLMPITaskDriver::GetTaskComm()); // BARRIER MSG 2
