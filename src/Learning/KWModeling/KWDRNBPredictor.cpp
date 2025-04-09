@@ -698,6 +698,84 @@ Continuous KWDRNBClassifier::ComputeTargetProbAt(const Symbol& sValue) const
 	return cUnknownTargetProb;
 }
 
+const ContinuousVector* KWDRNBClassifier::GetTargetLogProbNumeratorTerms() const
+{
+	require(IsCompiled());
+	require(IsOptimized());
+	require(cvTargetLogProbNumeratorTerms.GetSize() == GetDataGridSetTargetPartNumber());
+
+	return &cvTargetLogProbNumeratorTerms;
+}
+
+void KWDRNBClassifier::ComputeTargetProbsFromNumeratorTerms(const ContinuousVector* cvNumeratorTerms,
+							    ContinuousVector* cvProbs) const
+{
+	int nTarget;
+	int nTargetFrequency;
+	int nTargetTotalFrequency;
+	double dMaxTargetLogProb;
+	double dProb;
+	double dTotalProb;
+	double dLaplaceEpsilon;
+	double dLaplaceDenominator;
+
+	require(IsCompiled());
+	require(IsOptimized());
+	require(cvNumeratorTerms != NULL);
+	require(cvNumeratorTerms->GetSize() == GetDataGridSetTargetPartNumber());
+	require(cvProbs != NULL);
+	require(cvProbs->GetSize() == GetDataGridSetTargetPartNumber());
+
+	///////////////////////////////////////////////////////////////////////////////
+	// Implementation recopiee depuis la methode ComputeTargetProbs
+
+	// Calcul de l'effectif global
+	nTargetTotalFrequency = 0;
+	for (nTarget = 0; nTarget < GetDataGridSetTargetPartNumber(); nTarget++)
+	{
+		nTargetFrequency = GetDataGridSetTargetFrequencyAt(nTarget);
+		assert(nTargetFrequency > 0);
+		nTargetTotalFrequency += nTargetFrequency;
+	}
+
+	// Recherche du Max des TargetLogProb
+	dMaxTargetLogProb = KWContinuous::GetMinValue();
+	for (nTarget = 0; nTarget < cvNumeratorTerms->GetSize(); nTarget++)
+	{
+		dMaxTargetLogProb = max(dMaxTargetLogProb, cvNumeratorTerms->GetAt(nTarget));
+	}
+
+	// Calcul des probabilites des valeurs cibles, en normalisant par ce max des TargetLogProb
+	// pour eviter les valeurs extremes
+	dTotalProb = 0;
+	for (nTarget = 0; nTarget < cvNumeratorTerms->GetSize(); nTarget++)
+	{
+		dProb = exp(cvNumeratorTerms->GetAt(nTarget) - dMaxTargetLogProb);
+		cvProbs->SetAt(nTarget, (Continuous)dProb);
+		dTotalProb += dProb;
+	}
+	assert(dTotalProb >= 1 - 1e-5);
+
+	// Normalisation pour obtenir des probas
+	for (nTarget = 0; nTarget < cvNumeratorTerms->GetSize(); nTarget++)
+		cvProbs->SetAt(nTarget, (Continuous)(cvProbs->GetAt(nTarget) / dTotalProb));
+
+	// Prise en compte d'un epsilon de Laplace (comme dans KWClassifierSelectionScore)
+	// en considerant qu'on ne peut pas avoir de precision meilleure que 1/N
+	//   p = p*N / N
+	//   p_Laplace = (p*N + 0.5/J)/(N + 0.5)
+	//   p_Laplace = (p + 0.5/JN)/(1 + 0.5/N)
+	// (on se base sur N+1 pour eviter le cas N=0)
+	dLaplaceEpsilon = 0.5 / (GetDataGridSetTargetPartNumber() * (nTargetTotalFrequency + 1));
+	dLaplaceDenominator = (1.0 + 0.5 / (nTargetTotalFrequency + 1));
+	for (nTarget = 0; nTarget < cvNumeratorTerms->GetSize(); nTarget++)
+		cvProbs->SetAt(nTarget, (cvProbs->GetAt(nTarget) + dLaplaceEpsilon) / dLaplaceDenominator);
+
+	// Calcul d'une probabilite par defaut pour les classes inconnues
+	// Ce calcul est refait a chaque fois
+	cUnknownTargetProb = dLaplaceEpsilon / dLaplaceDenominator;
+}
+
 Symbol KWDRNBClassifier::ComputeBiasedTargetValue(const ContinuousVector* cvOffsets) const
 {
 	int nTarget;
@@ -781,6 +859,7 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 			svTargetValues.SetAt(nTargetValue, targetSymbolValueSetRule->GetValueAt(nTargetValue));
 
 		// Initialisation des probabilites cibles
+		cvTargetLogProbNumeratorTerms.SetSize(nTargetValueNumber);
 		cvTargetProbs.SetSize(nTargetValueNumber);
 		cUnknownTargetProb = 0;
 
@@ -1054,11 +1133,12 @@ longint KWDRNBClassifier::GetUsedMemory() const
 	lUsedMemory += ivDataGridSetTargetFrequencies.GetUsedMemory();
 	lUsedMemory += ivDataGridTargetIndexes.GetUsedMemory();
 	lUsedMemory += svTargetValues.GetUsedMemory();
+	lUsedMemory += cvTargetLogProbNumeratorTerms.GetUsedMemory();
 	lUsedMemory += cvTargetProbs.GetUsedMemory();
 	return lUsedMemory;
 }
 
-void KWDRNBClassifier::ExportAttributeNames(StringVector* svPredictorAttributeNames,
+void KWDRNBClassifier::ExportAttributeNames(const KWClass* kwcOwnerClass, StringVector* svPredictorAttributeNames,
 					    StringVector* svPredictorPartitionedAttributeNames) const
 {
 	const KWDRNBClassifier referenceNBRule;
@@ -1075,12 +1155,16 @@ void KWDRNBClassifier::ExportAttributeNames(StringVector* svPredictorAttributeNa
 	KWDRDataGridStatsBlock* dataGridStatsBlockRule;
 	KWDRDataGridBlock* dataGridBlockRule;
 	KWAttributeBlock* attributeBlock;
+	KWIndexedKeyBlock* indexedKeyBlock;
+	NumericKeyDictionary nkdBlockAttributes;
 	KWDRContinuousValueSet* continuousValueSetRule;
 	int nVarKeyNumber;
 	int nVarKey;
+	Symbol sVarKey;
 	int nIndex;
 	int nUncheckedVarKeyType;
 
+	require(kwcOwnerClass != NULL);
 	require(svPredictorAttributeNames != NULL);
 	require(svPredictorPartitionedAttributeNames != NULL);
 	require(svPredictorAttributeNames->GetSize() == 0);
@@ -1099,7 +1183,6 @@ void KWDRNBClassifier::ExportAttributeNames(StringVector* svPredictorAttributeNa
 
 		if (operand->GetStructureName() == refDataGridStatsRule.GetName())
 		{
-
 			// Extraction du nom de la variable explicative
 			sAttributeName = operand->GetDerivationRule()->GetFirstOperand()->GetAttributeName();
 
@@ -1120,8 +1203,14 @@ void KWDRNBClassifier::ExportAttributeNames(StringVector* svPredictorAttributeNa
 			dataGridStatsBlockRule = cast(KWDRDataGridStatsBlock*, operand->GetDerivationRule());
 			dataGridBlockRule =
 			    cast(KWDRDataGridBlock*,
-				 dataGridStatsBlockRule->GetFirstOperand()->GetOriginAttribute()->GetDerivationRule());
-			attributeBlock = dataGridStatsBlockRule->GetSecondOperand()->GetOriginAttributeBlock();
+				 dataGridStatsBlockRule->GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
+			attributeBlock = kwcOwnerClass->LookupAttributeBlock(
+			    dataGridStatsBlockRule->GetSecondOperand()->GetAttributeBlockName());
+
+			// On doit indexer explicitement le bloc, car la classe n'est pas encore indexee a ce
+			// stade, et il faut faire la verification par rapport a toutes les VarKey sources
+			indexedKeyBlock = attributeBlock->BuildAttributesIndexedKeyBlock(&nkdBlockAttributes);
+
 			// Recherche du type de bloc
 			nUncheckedVarKeyType = dataGridBlockRule->GetUncheckedDataGridVarKeyType();
 			continuousValueSetRule = NULL;
@@ -1139,6 +1228,7 @@ void KWDRNBClassifier::ExportAttributeNames(StringVector* svPredictorAttributeNa
 							dataGridBlockRule->GetFirstOperand()->GetDerivationRule());
 				nVarKeyNumber = symbolVarKeyRule->GetValueNumber();
 			}
+
 			// Parcours generique des VarKey du bloc
 			for (nIndex = 0; nIndex < nVarKeyNumber; nIndex++)
 			{
@@ -1146,15 +1236,19 @@ void KWDRNBClassifier::ExportAttributeNames(StringVector* svPredictorAttributeNa
 				{
 					assert(continuousValueSetRule != NULL);
 					nVarKey = int(floor(continuousValueSetRule->GetValueAt(nIndex) + 0.5));
-					attribute = attributeBlock->LookupAttributeByContinuousVarKey(nVarKey);
+					attribute = cast(KWAttribute*, nkdBlockAttributes.Lookup(nVarKey));
 				}
 				else
 				{
 					assert(symbolVarKeyRule != NULL);
-					attribute = attributeBlock->LookupAttributeBySymbolVarKey(
-					    symbolVarKeyRule->GetValueAt(nIndex));
+					sVarKey = symbolVarKeyRule->GetValueAt(nIndex);
+					attribute =
+					    cast(KWAttribute*, nkdBlockAttributes.Lookup(sVarKey.GetNumericKey()));
 				}
 
+				// On traite les attributs que l'on a trouve dans le bloc
+				// Cette tolerance est necessaire, puisque la methode peut etre appelee meme
+				// si la classe n'est pas compilee
 				if (attribute != NULL)
 				{
 					// Extraction du nom de la variable explicative
@@ -1173,6 +1267,10 @@ void KWDRNBClassifier::ExportAttributeNames(StringVector* svPredictorAttributeNa
 					svPredictorPartitionedAttributeNames->Add(sAttributeName);
 				}
 			}
+
+			// Nettoyage
+			nkdBlockAttributes.RemoveAll();
+			delete indexedKeyBlock;
 		}
 	}
 }
@@ -1188,16 +1286,12 @@ void KWDRNBClassifier::ComputeTargetProbs() const
 	int nTargetFrequency;
 	int nTargetTotalFrequency;
 	double dTargetLogProb;
-	double dMaxTargetLogProb;
-	double dProb;
-	double dTotalProb;
-	double dLaplaceEpsilon;
-	double dLaplaceDenominator;
 	int nValue;
 	int nDataGrid;
 	int nDataGridIndexWithinBlock;
 
 	require(IsOptimized());
+	require(cvTargetLogProbNumeratorTerms.GetSize() == GetDataGridSetTargetPartNumber());
 	require(cvTargetProbs.GetSize() == GetDataGridSetTargetPartNumber());
 
 	// Calcul de l'effectif global
@@ -1210,7 +1304,6 @@ void KWDRNBClassifier::ComputeTargetProbs() const
 	}
 
 	// Calcul des logarithmes de probabilites des valeurs cibles
-	dMaxTargetLogProb = KWContinuous::GetMinValue();
 	for (nTarget = 0; nTarget < GetDataGridSetTargetPartNumber(); nTarget++)
 	{
 		// Initialisation avec le prior
@@ -1262,42 +1355,11 @@ void KWDRNBClassifier::ComputeTargetProbs() const
 		}
 
 		// Memorisation du resultat
-		cvTargetProbs.SetAt(nTarget, dTargetLogProb);
-
-		// Memorisation du max
-		if (dTargetLogProb > dMaxTargetLogProb)
-			dMaxTargetLogProb = dTargetLogProb;
+		cvTargetLogProbNumeratorTerms.SetAt(nTarget, dTargetLogProb);
 	}
-	assert(dMaxTargetLogProb > KWContinuous::GetMinValue());
 
-	// Calcul des probabilites des valeurs cibles, en normalisant par le dMaxTargetLogProb
-	// pour eviter les valeurs extremes
-	dTotalProb = 0;
-	for (nTarget = 0; nTarget < GetDataGridSetTargetPartNumber(); nTarget++)
-	{
-		dProb = exp(cvTargetProbs.GetAt(nTarget) - dMaxTargetLogProb);
-		cvTargetProbs.SetAt(nTarget, (Continuous)dProb);
-		dTotalProb += dProb;
-	}
-	assert(dTotalProb >= 1 - 1e-5);
-
-	// Normalisation pour obtenir des probas
-	for (nTarget = 0; nTarget < GetDataGridSetTargetPartNumber(); nTarget++)
-		cvTargetProbs.SetAt(nTarget, (Continuous)(cvTargetProbs.GetAt(nTarget) / dTotalProb));
-
-	// Prise en compte d'un epsilon de Laplace (comme dans KWClassifierSelectionScore)
-	// en considerant qu'on ne peut pas avoir de precision meilleure que 1/N
-	//   p = p*N / N
-	//   p_Laplace = (p*N + 0.5/J)/(N + 0.5)
-	//   p_Laplace = (p + 0.5/JN)/(1 + 0.5/N)
-	// (on se base sur N+1 pour eviter le cas N=0)
-	dLaplaceEpsilon = 0.5 / (GetDataGridSetTargetPartNumber() * (nTargetTotalFrequency + 1));
-	dLaplaceDenominator = (1.0 + 0.5 / (nTargetTotalFrequency + 1));
-	for (nTarget = 0; nTarget < GetDataGridSetTargetPartNumber(); nTarget++)
-		cvTargetProbs.SetAt(nTarget, (cvTargetProbs.GetAt(nTarget) + dLaplaceEpsilon) / dLaplaceDenominator);
-
-	// Calcul d'une probabilite par defaut pour les classes inconnues
-	cUnknownTargetProb = dLaplaceEpsilon / dLaplaceDenominator;
+	// Calcul des probabilites a partir d'un vecteur de termes de numerateur
+	ComputeTargetProbsFromNumeratorTerms(&cvTargetLogProbNumeratorTerms, &cvTargetProbs);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////

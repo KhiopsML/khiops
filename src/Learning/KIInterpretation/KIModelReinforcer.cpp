@@ -133,7 +133,7 @@ int KIModelReinforcer::ComputeSelectedLeverAttributeNumber() const
 	KIPredictorAttribute* leverAttribute;
 	int i;
 
-	// Parcours des attributs
+	// Comptage des attributs utilises
 	nSelectedLeverAttributeNumber = 0;
 	for (i = 0; i < oaLeverAttributes.GetSize(); i++)
 	{

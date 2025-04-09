@@ -464,160 +464,26 @@ def instruction_work(test_dir):
     suite_dir_name = utils.suite_dir_name(test_dir)
     tool_dir_name = utils.tool_dir_name(test_dir)
 
-    # Transformation du fichier .prm
-    transform_prm = False
-    if transform_prm:
-        file_path = os.path.join(test_dir, kht.TEST_PRM)
-        lines = utils.read_file_lines(file_path)
-        try:
-            with open(file_path, "w", errors="ignore") as the_file:
-                for line in lines:
-                    if line.find("EpsilonBinNumber") >= 0:
-                        continue
-                    if line.find("OutlierManagementHeuristic") >= 0:
-                        continue
-                    if line.find("OptimalAlgorithm") >= 0:
-                        continue
-                    if line.find("EpsilonBinWidth") >= 0:
-                        continue
-                    if line.find("MaxIntervalNumber") >= 0:
-                        continue
-                    if line.find("HistogramCriterion") >= 0:
-                        continue
-                    if line.find("MaxHierarchyLevel") >= 0:
-                        continue
-                    the_file.write(line)
-        except Exception as e:
-            print("BUG: " + file_path + " : " + str(e))
-
-    # Parcours du repertoire de reference
-    compare_histograms = True
-    if compare_histograms:
-        print("COMPARE " + test_dir)
-        indicators = [
-            "Null cost",
-            "Reference null cost",
-            "Cost",
-            "Level",
-            "Partition cost",
-        ]
-        if os.path.isdir(results_ref_dir):
-            for file_name in os.listdir(results_ref_dir):
-                ref_file_path = os.path.join(results_ref_dir, file_name)
-                test_file_path = os.path.join(results_dir, file_name)
-                if not os.path.isfile(test_file_path):
-                    print("Missing ref file: " + file_name)
-                elif "istogram.log" in file_name:
-                    ref_lines = utils.read_file_lines(ref_file_path)
-                    test_lines = utils.read_file_lines(test_file_path)
-                    ref_indicators = {}
-                    test_indicators = {}
-                    ref_histogram = []
-                    test_histogram = []
-                    # Analyse des resultats de references
-                    for line in ref_lines:
-                        # Collecte des indicateurs
-                        for indicator in indicators:
-                            if len(line) < 70 and indicator in line:
-                                fields = line[:-1].split("\t")
-                                try:
-                                    ref_indicators[indicator] = float(
-                                        fields[len(fields) - 1]
-                                    )
-                                except Exception as e:
-                                    print(
-                                        "  "
-                                        + file_name
-                                        + ": Ref conversion error: "
-                                        + line[:-1]
-                                        + " "
-                                        + str(e)
-                                    )
-                        # Collectes des lignes de l'histogramme
-                        if (
-                            len(ref_histogram) > 0
-                            or "Lower bound\tUpper bound\tFrequency" in line
-                        ):
-                            ref_histogram.append(line)
-                    # Analyse des resultats de test
-                    for line in test_lines:
-                        # Collecte des indicateurs
-                        for indicator in indicators:
-                            if len(line) < 70 and indicator in line:
-                                fields = line[:-1].split("\t")
-                                try:
-                                    test_indicators[indicator] = float(
-                                        fields[len(fields) - 1]
-                                    )
-                                except Exception as e:
-                                    print(
-                                        "  "
-                                        + file_name
-                                        + ": Test conversion error: "
-                                        + line[:-1]
-                                        + " "
-                                        + str(e)
-                                    )
-                        # Collectes des lignes de l'histogramme
-                        if (
-                            len(test_histogram) > 0
-                            or "Lower bound\tUpper bound\tFrequency" in line
-                        ):
-                            test_histogram.append(line)
-                    # Comparaison des resultats
-                    for indicator in indicators:
-                        ref_value = ref_indicators[indicator]
-                        test_value = test_indicators[indicator]
-                        if (
-                            abs(ref_value - test_value)
-                            > abs(ref_value + test_value) / 100000
-                        ):
-                            print(
-                                "  "
-                                + file_name
-                                + ": Difference in "
-                                + indicator
-                                + ": "
-                                + str(ref_value)
-                                + " vs "
-                                + str(test_value)
-                            )
-                    if len(ref_histogram) != len(test_histogram):
-                        print(
-                            "  "
-                            + file_name
-                            + ": Difference in interval number: "
-                            + str(len(ref_histogram) - 1)
-                            + " vs "
-                            + str(len(test_histogram) - 1)
-                        )
-                    else:
-                        for i in range(len(ref_histogram)):
-                            ref_line = ref_histogram[i]
-                            test_line = test_histogram[i]
-                            ref_line_fields = ref_line.split("\t")
-                            test_line_fields = test_line.split("\t")
-                            # Comparaison des 9 permiers champs
-                            compare_ok = True
-                            for f in range(8):
-                                compare_ok = (
-                                    compare_ok
-                                    and ref_line_fields[f] == test_line_fields[f]
-                                )
-                                if not compare_ok:
-                                    print(
-                                        "  "
-                                        + file_name
-                                        + ": Difference in interval "
-                                        + str(i)
-                                        + " field "
-                                        + str(f + 1)
-                                        + ": \n\t"
-                                        + ref_line
-                                        + "\t"
-                                        + test_line
-                                    )
-                                    break
+    # Transformation du fichier err.txt du repertoire de reference
+    ref_err_file_path = os.path.join(results_ref_dir, kht.ERR_TXT)
+    if os.path.isfile(ref_err_file_path):
+        lines = utils.read_file_lines(ref_err_file_path)
+        to_transform = False
+        new_lines = []
+        for i, line in enumerate(lines):
+            new_lines.append(line)
+            if "Write deployed dictionary file" in line:
+                if i < len(lines) - 1:
+                    next_line = lines[i + 1].strip()
+                    if len(next_line) > 0:
+                        to_transform = True
+                        new_lines.append("\n")
+                else:
+                    to_transform = True
+                    new_lines.append("\n")
+        if to_transform:
+            utils.write_file_lines(ref_err_file_path, new_lines)
+            print(tool_dir_name + "/" + suite_dir_name + "/" + test_dir_name)
 
 
 def instruction_template(test_dir):

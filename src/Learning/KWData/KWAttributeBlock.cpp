@@ -528,14 +528,13 @@ void KWAttributeBlock::SetVarKeyType(int nValue)
 		loadedAttributesIndexedKeyBlock = new KWIndexedCKeyBlock;
 }
 
-KWIndexedKeyBlock* KWAttributeBlock::BuildAttributesIndexedKeyBlock() const
+KWIndexedKeyBlock* KWAttributeBlock::BuildAttributesIndexedKeyBlock(NumericKeyDictionary* nkdBlockAttributes) const
 {
 	KWIndexedKeyBlock* attributesIndexedKeyBlock;
 	KWIndexedCKeyBlock* attributesIndexedCKeyBlock;
 	KWIndexedNKeyBlock* attributesIndexedNKeyBlock;
 	KWClass* parentClass;
 	KWAttribute* attribute;
-	NumericKeyDictionary nkdBlockAttributesByVarKeys;
 	SymbolVector svVarKeys;
 	IntVector ivVarKeys;
 	Symbol sVarKey;
@@ -543,6 +542,8 @@ KWIndexedKeyBlock* KWAttributeBlock::BuildAttributesIndexedKeyBlock() const
 	int i;
 
 	require(GetVarKeyType() == KWType::Continuous or GetVarKeyType() == KWType::Symbol);
+	require(nkdBlockAttributes != NULL);
+	require(nkdBlockAttributes->GetCount() == 0);
 
 	// Cas de cles categorielles
 	attributesIndexedKeyBlock = NULL;
@@ -560,6 +561,7 @@ KWIndexedKeyBlock* KWAttributeBlock::BuildAttributesIndexedKeyBlock() const
 		{
 			sVarKey = GetSymbolVarKey(attribute);
 			svVarKeys.Add(sVarKey);
+			nkdBlockAttributes->SetAt(sVarKey.GetNumericKey(), attribute);
 
 			// Arret si derniere variable du bloc trouvee
 			if (attribute == lastAttribute)
@@ -600,6 +602,7 @@ KWIndexedKeyBlock* KWAttributeBlock::BuildAttributesIndexedKeyBlock() const
 		{
 			nVarKey = GetContinuousVarKey(attribute);
 			ivVarKeys.Add(nVarKey);
+			nkdBlockAttributes->SetAt(nVarKey, attribute);
 
 			// Arret si derniere variable du bloc trouvee
 			if (attribute == lastAttribute)
@@ -628,6 +631,7 @@ KWIndexedKeyBlock* KWAttributeBlock::BuildAttributesIndexedKeyBlock() const
 
 	// Indexcation des cles
 	attributesIndexedKeyBlock->IndexKeys();
+	ensure(nkdBlockAttributes->GetCount() <= attributesIndexedKeyBlock->GetKeyNumber());
 	return attributesIndexedKeyBlock;
 }
 

@@ -912,6 +912,7 @@ void KDTextFeatureConstruction::ConstructTextAttributeTokenBlock(KDClassComplian
 	KWAttribute* attribute;
 	int nAttribute;
 	KWIndexedCKeyBlock* existingAttributesIndexKeyBlock;
+	NumericKeyDictionary nkdBlockAttributes;
 	ALString sAttributeKey;
 	Symbol sKey;
 	KWTokenFrequency* token;
@@ -952,7 +953,7 @@ void KDTextFeatureConstruction::ConstructTextAttributeTokenBlock(KDClassComplian
 
 		// Indexation des attributs existants
 		existingAttributesIndexKeyBlock =
-		    cast(KWIndexedCKeyBlock*, attributeBlock->BuildAttributesIndexedKeyBlock());
+		    cast(KWIndexedCKeyBlock*, attributeBlock->BuildAttributesIndexedKeyBlock(&nkdBlockAttributes));
 	}
 
 	// Creation des variables du bloc en parcourant les tokens
