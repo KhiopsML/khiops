@@ -17,6 +17,8 @@
 #include "KWLearningProblemActionView.h"
 #include "KWDataTableSorterView.h"
 #include "KWDataTableKeyExtractorView.h"
+#include "KIModelInterpreterView.h"
+#include "KIModelReinforcerView.h"
 #include "KWClassAttributeHelpList.h"
 #include "KWDatabaseAttributeValuesHelpList.h"
 #include "KWLearningProblemHelpCard.h"
@@ -52,6 +54,7 @@ public:
 	void TransferDatabase();
 	void EvaluatePredictors();
 	void InterpretPredictor();
+	void ReinforcePredictor();
 
 	// Acces au probleme d'apprentissage
 	void SetObject(Object* object) override;

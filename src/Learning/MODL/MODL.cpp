@@ -31,7 +31,7 @@ int main(int argc, char** argv)
 	// MemoryStatsManager::AllStats);
 
 	// Point d'arret sur l'allocation d'un bloc memoire
-	// MemSetAllocIndexExit(37140);
+	// MemSetAllocIndexExit(68702);
 
 	// Parametrage de l'arret pour les interruptions utilisateurs
 	// TaskProgression::SetExternalInterruptionRequestIndex();

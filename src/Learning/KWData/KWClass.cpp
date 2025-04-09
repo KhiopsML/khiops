@@ -152,6 +152,7 @@ void KWClass::SetAllAttributesUsed(boolean bValue)
 		attribute->SetUsed(bValue);
 		GetNextAttribute(attribute);
 	}
+	nFreshness++;
 }
 
 void KWClass::SetAllAttributesLoaded(boolean bValue)
@@ -164,6 +165,7 @@ void KWClass::SetAllAttributesLoaded(boolean bValue)
 		attribute->SetLoaded(bValue);
 		GetNextAttribute(attribute);
 	}
+	nFreshness++;
 }
 
 void KWClass::RemoveAllAttributesMetaDataKey(const ALString& sKey)

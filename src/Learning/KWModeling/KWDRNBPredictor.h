@@ -135,9 +135,9 @@ public:
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
 
-	// Export des noms des variables natives et partitionnees du classifieur
-	void ExportAttributeNames(StringVector* oaPartitionedPredictiveAttributeNames,
-				  StringVector* oaNativePredictiveAttributeNames) const;
+	// Export des noms des variables du classifieur, dans leur version initiale et partitionnee
+	void ExportAttributeNames(StringVector* svPredictorAttributeNames,
+				  StringVector* svPredictorPartitionedAttributeNames) const;
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation

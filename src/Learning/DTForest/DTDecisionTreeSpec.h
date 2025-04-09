@@ -26,10 +26,10 @@ public:
 	DTDecisionTreeSpec();
 	~DTDecisionTreeSpec();
 
-	// inisialisation de dtTree
+	// Initialisation de dtTree
 	bool InitFromDecisionTree(DTDecisionTree* dtTree);
 
-	// creation de l'attribut a partir de la specification
+	// Creation de l'attribut a partir de la specification
 	KWAttribute* BuildAttribute(const ALString& svariablename);
 
 	// Acces au cout de construction de l'arbre

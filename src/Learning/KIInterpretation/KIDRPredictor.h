@@ -8,61 +8,99 @@
 #include "KWDRNBPredictor.h"
 #include "KWDRDataGrid.h"
 #include "KIShapleyTable.h"
-#include "KIInterpretationDictionary.h"
 
 ////////////////////////////////////////////////////////////
-// Classe KIPartitionedAttributeProbas
-// Classe de stockage des contribution ou renforcement d'un attribut partitionne
+// Classe KIPartitionedAttributeProbs
+// Classe de stockage des contributions ou renforcemenst d'un attribut partitionne
 // pemet de stocker pour une variable et une modalite la contribution et le reinforcement
-class KIPartitionedAttributeProbas : public Object
+class KIPartitionedAttributeProbs : public Object
 {
+public:
 	// Constructeur
-	KIPartitionedAttributeProbas();
-	~KIPartitionedAttributeProbas();
+	KIPartitionedAttributeProbs();
+	~KIPartitionedAttributeProbs();
 
+	// Index de l'attribut
+	void SetAttributeIndex(int nValue);
+	int GetAttributeIndex() const;
+
+	// Index de la modalite
+	void SetModalityIndex(int nValue);
+	int GetModalityIndex() const;
+
+	// Nouveau score de renforcement
+	void SetReinforcementNewScore(Continuous cValue);
+	Continuous GetReinforcementNewScore() const;
+
+	// Indique si la classe a changee apres renforcement
+	// - 0: la classe etait deja la bonne
+	// - -1: ps de changement de classe
+	// - 1: changement de classe
+	void SetReinforcementClassHasChanged(int nValue);
+	int GetReinforcementClassHasChanged() const;
+
+	// Valeur d'importance
+	void SetContributionImportanceValue(Continuous cValue);
+	Continuous GetContributionImportanceValue() const;
+
+	//////////////////////////////////////////////////////////
+	///// Implementation
 protected:
-	friend class KIDRClassifierContribution;
-	friend class KIDRClassifierReinforcement;
-	friend int KICompareReinforcementNewScore(const void* elem1, const void* elem2);
-	friend int KICompareContributionImportanceValue(const void* elem1, const void* elem2);
-
+	// Variables de la classe
 	int nAttributeIndex;
 	int nModalityIndex;
-	Continuous dReinforcementNewScore;
-	Continuous dReinforcementClassHasChanged;
-	Continuous dContributionImportanceValue;
+	Continuous cReinforcementNewScore;
+	int nReinforcementClassHasChanged;
+	Continuous cContributionImportanceValue;
 };
 
+// Methode de compraison
+int KIPartitionedAttributeProbsCompareReinforcementNewScore(const void* elem1, const void* elem2);
+int KIPartitionedAttributeProbsCompareContributionImportanceValue(const void* elem1, const void* elem2);
+
 ////////////////////////////////////////////////////////////
-// Classe KITargetValueProbas
+// Classe KITargetValueLogProbs
 // Classe de stockage des probas du modele pour une cible (target value) donnee
 // permet de stocker les probas a posteriori de la classe pour chaque partie
 // de la variable explicative
-class KITargetValueProbas : public Object
+class KITargetValueLogProbs : public Object
 {
+public:
 	// Constructeur
-	KITargetValueProbas();
-	~KITargetValueProbas();
+	KITargetValueLogProbs();
+	~KITargetValueLogProbs();
+
+	// Valeur cible
+	void SetTargetValue(Symbol sValue);
+	Symbol GetTargetValue() const;
+
+	// Log de la probalite de la valeur cible
+	void SetTargetLogProb(Continuous cValue);
+	Continuous GetTargetLogProb() const;
+
+	// Tableau des ContinuousVector * par variable explicative.
+	// Chaque ContinuousVector contient les log des probabilites conditionnelles sources
+	// 	pour chaque partie de la variable explicative
+	ObjectArray* GetAttributeSourceConditionalLogProbs();
 
 	// Ecriture
 	void Write(ostream&) const;
 
-	// Memoire utilisee par KITargetValueProbas
+	// Memoire utilisee par KITargetValueLogProbs
 	longint GetUsedMemory() const override;
 
+	//////////////////////////////////////////////////////////
+	///// Implementation
 protected:
-	friend class KIDRClassifierInterpretation;
-	friend class KIDRClassifierReinforcement;
-	friend class KIDRClassifierContribution;
+	// Valeur cible
+	Symbol sTargetValue;
 
-	// nom de la valeur cible
-	ALString sTargetValue;
-	// proba de la valeur cible
-	Continuous dProbaApriori;
+	// Log de la probalite de la valeur cible
+	Continuous cTargetLogProb;
 
-	// un ContinuousVector * par variable explicative. Chaque ContinuousVector contient les logs des probas a
+	// Tableau des ContinuousVector * par variable explicative. Chaque ContinuousVector contient les logs des probas a
 	// 	posteriori de la classe, pour chaque partie de la variable explicative
-	ObjectArray* oaProbasAposteriori;
+	ObjectArray oaAttributeSourceConditionalLogProbs;
 };
 
 ////////////////////////////////////////////////////////////
@@ -79,10 +117,10 @@ public:
 	// Creation
 	virtual KWDerivationRule* Create() const override = 0;
 
-	// compile la regle de derivation
+	// Compilation
 	void Compile(KWClass* kwcOwnerClass) override;
 
-	// liste des labels utlises pour differencier les methodes de calcul
+	// liste des labels utilises pour differencier les methodes de calcul
 	// de score d'interpretation et leur derivationrule
 	static const ALString SHAPLEY_LABEL;
 	static const ALString PREDICTED_CLASS_LABEL;
@@ -95,8 +133,10 @@ public:
 	// Memoire utilisee par KIDRClassifierInterpretation
 	longint GetUsedMemory() const override;
 
+	//////////////////////////////////////////////////////////
+	///// Implementation
 protected:
-	// netoye la regle
+	// Nettoyage
 	virtual void Clean();
 
 	// Extraction de la log proba de la modalite donnee d'un attribut donne
@@ -108,37 +148,38 @@ protected:
 
 	//////////////// variables membres //////////////////
 
-	// probas du modele, par modalite cible (donc, valables quel que soit l'instance traitee) :
+	// Probas du modele, par modalite cible (donc, valables quel que soit l'instance traitee) :
 	// 	- 1 poste par modalite cible
-	// 	- pour chaque poste : un pointeur sur objet de type KITargetValueProbas
+	// 	- pour chaque poste : un pointeur sur objet de type KITargetValueLogProbs
 	mutable ObjectArray oaModelProbabilities;
 
 	// Probas liees a l'instance en cours de traitement :
 	// Cle = index de l'attribut partitionne.
-	// Valeur = pointeur sur objet KIPartitionedAttributeProbas
+	// Valeur = pointeur sur objet KIPartitionedAttributeProbs
 	mutable ObjectArray* oaInstanceProbabilities;
 
-	// Noms des variables partitionnees
-	mutable StringVector svPartitionedPredictiveAttributeNames;
+	// Noms des variables du predicteur
+	StringVector svPredictorAttributeNames;
 
-	// Noms des variables natives
-	StringVector svNativePredictiveAttributeNames;
+	// Noms des variables partitionnees du predicteur
+	mutable StringVector svPredictorPartitionedAttributeNames;
 
+	// Dictionnaire des index de modalites cibles
 	// 	cle = modalite cible
-	// 	valeur = entier dans un StringObject *, qui renvoie a l'entree correspondante dans le tableau oaModelProbabilities
-	mutable ObjectDictionary odClassNamesIndexes;
+	// 	valeur = index, qui renvoie a l'entree correspondante dans le tableau oaModelProbabilities
+	mutable LongintNumericKeyDictionary lnkdClassNamesIndexes;
 
-	// vecteur de poids des variables utilisees par le SNB ou NB
+	// Vecteur de poids des variables utilisees par le SNB ou NB
 	mutable ContinuousVector cvVariableWeights;
 
 	// Vecteurs des valeurs cibles
 	SymbolVector svTargetValues;
 
-	// frequences des valeurs cibles
+	// Effectif des valeurs cibles
 	IntVector ivTargetFrequencies;
 
-	// frequence total
-	Continuous dTotalFrequency;
+	// Effectif total
+	longint lTotalFrequency;
 };
 
 ////////////////////////////////////////////////////////////
@@ -155,7 +196,7 @@ public:
 	// Creation
 	KWDerivationRule* Create() const override;
 
-	//compile la regle
+	// Compilation
 	void Compile(KWClass* kwcOwnerClass) override;
 
 	// Calcul de l'attribut derive
@@ -184,6 +225,8 @@ public:
 	// Memoire utilisee par KIDRClassifierContribution
 	longint GetUsedMemory() const override;
 
+	//////////////////////////////////////////////////////////
+	///// Implementation
 protected:
 	// Calcul des donnees de contribution
 	void ComputeContribution(const KWObject* kwoObject) const;
@@ -221,12 +264,12 @@ protected:
 
 	//////////////// variables membres //////////////////
 
-	// classe cible de la contribution : classe predite pour l'individu OU classe de gain le plus eleve pour l'individu OU une classe specifiee explicitement via l'IHM
+	// Classe cible de la contribution : classe predite pour l'individu OU classe de gain le plus eleve pour l'individu OU
+	// une classe specifiee explicitement via l'IHM
 	mutable Symbol sContributionClass;
-
 	mutable boolean bSortInstanceProbas;
 
-	//structure pour sauvegarder les precalculs des valeurs de Shapley
+	// Tableau des table de Shapley, pour memoriser les precalculs des valeurs de Shapley
 	ObjectArray oaShapleyTables;
 };
 
@@ -282,52 +325,6 @@ public:
 };
 
 ////////////////////////////////////////////////////////////
-// Classe KIDRContributionValueAt
-// Donne la valeur de la cible a partir de KIDRClassifierContribution
-class KIDRContributionClass : public KWDerivationRule
-{
-public:
-	// Constructeur
-	KIDRContributionClass();
-	~KIDRContributionClass();
-
-	// Creation
-	KWDerivationRule* Create() const override;
-
-	// Calcul de l'attribut derive
-	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
-};
-
-////////////////////////////////////////////////////////////
-// Classe KIDRContributionPriorClass
-// Donne la valeur du prior de la classe a partir de KIDRClassifierContribution
-class KIDRContributionPriorClass : public KWDerivationRule
-{
-public:
-	// Constructeur
-	KIDRContributionPriorClass();
-	~KIDRContributionPriorClass();
-
-	// Creation
-	KWDerivationRule* Create() const override;
-
-	// Compilation redefinie pour optimisation
-	void Compile(KWClass* kwcOwnerClass) override;
-
-	// Calcul de l'attribut derive
-	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
-
-	const Symbol PREDICTED_CLASS_LABEL = "Predicted class";
-	const Symbol CLASS_OF_HIGHEST_GAIN_LABEL = "Class of highest gain";
-	const Symbol ALL_CLASSES_LABEL = "All classes";
-
-protected:
-	SymbolVector svTargetValues;
-	IntVector ivDataGridSetTargetFrequencies;
-	int nTotalFrequency;
-};
-
-////////////////////////////////////////////////////////////
 // Classe herite de KIDRClassifierInterpretation des classes
 // de calcul des valeur de reinforcement pour un classifieur
 // de type KWDRNBClassifier
@@ -341,7 +338,7 @@ public:
 	// Creation
 	KWDerivationRule* Create() const override;
 
-	// Compile la regle
+	// Compilation
 	void Compile(KWClass* kwcOwnerClass) override;
 
 	// Calcul de l'attribut derive
@@ -359,12 +356,14 @@ public:
 	// -1 : changement possible vers une autre classe
 	Continuous GetReinforcementClassChangeTagAt(int rank) const;
 
-	// nom de la variable de renforcement (la numerotation du rang commence a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire)
+	// Nom de la variable de renforcement (la numerotation du rang commence a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire)
 	Symbol GetReinforcementNameAt(int rank) const;
 
-	// partition ou groupement de modalites de la variable de renforcement (la numerotation du rang comemnce a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire)
-	Symbol GetReinforcementPartitionAt(int rank) const;
+	// Partie de la variable de renforcement (la numerotation du rang comemnce a 0 et non a 1, contrairement au rang figurant dans la RDD du dictionaire)
+	Symbol GetReinforcementPartAt(int rank) const;
 
+	//////////////////////////////////////////////////////////
+	///// Implementation
 protected:
 	// Calcul des differents valeurs
 	void ComputeReinforcement(const KWObject* kwoObject) const;
@@ -476,58 +475,95 @@ public:
 	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
 };
 
-//////////////////////////////  Methodes en inline ///////////////////////////////
+//////////////////////////////
+// Methodes en inline
+
+inline void KIPartitionedAttributeProbs::SetAttributeIndex(int nValue)
+{
+	require(nValue >= 0);
+	nAttributeIndex = nValue;
+}
+
+inline int KIPartitionedAttributeProbs::GetAttributeIndex() const
+{
+	return nAttributeIndex;
+}
+
+inline void KIPartitionedAttributeProbs::SetModalityIndex(int nValue)
+{
+	require(nValue >= 0);
+	nModalityIndex = nValue;
+}
+
+inline int KIPartitionedAttributeProbs::GetModalityIndex() const
+{
+	return nModalityIndex;
+}
+
+inline void KIPartitionedAttributeProbs::SetReinforcementNewScore(Continuous cValue)
+{
+	require(0 <= cValue and cValue <= 1);
+	cReinforcementNewScore = cValue;
+}
+
+inline Continuous KIPartitionedAttributeProbs::GetReinforcementNewScore() const
+{
+	return cReinforcementNewScore;
+}
+
+inline void KIPartitionedAttributeProbs::SetReinforcementClassHasChanged(int nValue)
+{
+	require(nValue == 0 or nValue == -1 or nValue == 1);
+	nReinforcementClassHasChanged = nValue;
+}
+
+inline int KIPartitionedAttributeProbs::GetReinforcementClassHasChanged() const
+{
+	return nReinforcementClassHasChanged;
+}
+
+inline void KIPartitionedAttributeProbs::SetContributionImportanceValue(Continuous cValue)
+{
+	cContributionImportanceValue = cValue;
+}
+
+inline Continuous KIPartitionedAttributeProbs::GetContributionImportanceValue() const
+{
+	return cContributionImportanceValue;
+}
+
+inline void KITargetValueLogProbs::SetTargetValue(Symbol sValue)
+{
+	sTargetValue = sValue;
+}
+
+inline Symbol KITargetValueLogProbs::GetTargetValue() const
+{
+	return sTargetValue;
+}
+
+inline void KITargetValueLogProbs::SetTargetLogProb(Continuous cValue)
+{
+	cTargetLogProb = cValue;
+}
+
+inline Continuous KITargetValueLogProbs::GetTargetLogProb() const
+{
+	return cTargetLogProb;
+}
+
+inline ObjectArray* KITargetValueLogProbs::GetAttributeSourceConditionalLogProbs()
+{
+	return &oaAttributeSourceConditionalLogProbs;
+}
 
 inline Continuous KIDRClassifierContribution::ExtractLogPriorProba(int nClassIndex) const
 {
+	KITargetValueLogProbs* targetValueProbas;
+
 	require(oaModelProbabilities.GetSize() > 0);
 
 	// Extraction du tableau des probas pour la classe cible courante
-	KITargetValueProbas* targetValueProbas = cast(KITargetValueProbas*, oaModelProbabilities.GetAt(nClassIndex));
-
-	return targetValueProbas->dProbaApriori;
-}
-
-inline int KICompareReinforcementNewScore(const void* elem1, const void* elem2)
-{
-	int nCompare;
-	KIPartitionedAttributeProbas* dataAttribute1;
-	KIPartitionedAttributeProbas* dataAttribute2;
-
-	// Acces aux objets
-	dataAttribute1 = cast(KIPartitionedAttributeProbas*, *(Object**)elem1);
-	dataAttribute2 = cast(KIPartitionedAttributeProbas*, *(Object**)elem2);
-	assert(dataAttribute1->Check());
-	assert(dataAttribute2->Check());
-
-	// Comparaison selon la precision du type Continuous, pour eviter les differences a epsilon pres
-	nCompare = -KWContinuous::CompareIndicatorValue(dataAttribute1->dReinforcementNewScore,
-							dataAttribute2->dReinforcementNewScore);
-
-	// Comparaison sur le nom en cas d'egalite du level (sort value)
-	if (nCompare == 0)
-		nCompare = dataAttribute1->nAttributeIndex - dataAttribute2->nAttributeIndex;
-	return nCompare;
-}
-
-inline int KICompareContributionImportanceValue(const void* elem1, const void* elem2)
-{
-	int nCompare;
-	KIPartitionedAttributeProbas* dataAttribute1;
-	KIPartitionedAttributeProbas* dataAttribute2;
-
-	// Acces aux objets
-	dataAttribute1 = cast(KIPartitionedAttributeProbas*, *(Object**)elem1);
-	dataAttribute2 = cast(KIPartitionedAttributeProbas*, *(Object**)elem2);
-	assert(dataAttribute1->Check());
-	assert(dataAttribute2->Check());
-
-	// Comparaison selon la precision du type Continuous, pour eviter les differences a epsilon pres
-	nCompare = -KWContinuous::CompareIndicatorValue(dataAttribute1->dContributionImportanceValue,
-							dataAttribute2->dContributionImportanceValue);
-
-	// Comparaison sur le nom en cas d'egalite du level (sort value)
-	if (nCompare == 0)
-		nCompare = dataAttribute1->nAttributeIndex - dataAttribute2->nAttributeIndex;
-	return nCompare;
+	targetValueProbas = cast(KITargetValueLogProbs*, oaModelProbabilities.GetAt(nClassIndex));
+	return targetValueProbas->GetTargetLogProb();
 }

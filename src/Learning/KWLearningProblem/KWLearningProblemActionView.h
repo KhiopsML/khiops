@@ -11,7 +11,6 @@ class KWLearningProblemView;
 #include "KWLearningProblemView.h"
 #include "KWDatabaseView.h"
 #include "KWDatabaseTransferView.h"
-#include "KIPredictorInterpretationView.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWLearningProblemActionView
@@ -41,6 +40,7 @@ public:
 	void TransferDatabase();
 	void EvaluatePredictors();
 	void InterpretPredictor();
+	void ReinforcePredictor();
 
 	// Acces au probleme d'apprentissage
 	KWLearningProblem* GetLearningProblem();

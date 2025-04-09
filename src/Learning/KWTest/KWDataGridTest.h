@@ -469,7 +469,7 @@ protected:
 	int nOptimizationParametersFreshness;
 	int nSampleExportNumber;
 
-	// Attrubuts de resultats
+	// Attributs de resultats
 	DoubleVector dvErrors;
 	DoubleVector dvDKLs;
 	DoubleVector dvMSEs;

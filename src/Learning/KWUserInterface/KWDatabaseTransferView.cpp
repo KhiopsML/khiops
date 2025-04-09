@@ -533,6 +533,9 @@ void KWDatabaseTransferView::BuildTransferredClass()
 			transferredClassDomain.DeleteAllClasses();
 		}
 	}
+
+	// Ligne de separation dans le log
+	AddSimpleMessage("");
 }
 
 void KWDatabaseTransferView::EventUpdate()

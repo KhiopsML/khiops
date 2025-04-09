@@ -101,6 +101,10 @@ public:
 	// Memoire: appartient a l'appele
 	KWPredictorSelectionReport* GetPredictorSelectionReport();
 
+	// Meta-donnees associee au variabels du predicteur
+	static const ALString& GetWeightMetaDataKey();
+	static const ALString& GetImportanceMetaDataKey();
+
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:

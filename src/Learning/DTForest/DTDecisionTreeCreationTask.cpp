@@ -2418,7 +2418,7 @@ SymbolVector* DTDecisionTreeCreationTask::EqualFreqDiscretizeContinuousTarget(KW
 			    cValue < quantileBuilder.GetIntervalUpperBoundAt(nInterval))
 			{
 				ALString s = "I" + ALString(IntToString(nInterval));
-				svTargetValues->Add(s.GetBuffer(s.GetLength()));
+				svTargetValues->Add((Symbol)s);
 				break;
 			}
 		}

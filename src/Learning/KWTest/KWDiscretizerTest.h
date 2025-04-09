@@ -265,7 +265,7 @@ protected:
 	int nStatsFreshness;
 	int nDiscretizerStatsFreshness;
 
-	// Attrubuts de resultats
+	// Attributs de resultats
 	DoubleVector dvNoInformativeAttributeNumbers;
 	DoubleVector dvDiscretizationSizes;
 	DoubleVector dvLearningErrors;

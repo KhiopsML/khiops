@@ -296,7 +296,7 @@ protected:
 	int nStatsFreshness;
 	int nGrouperStatsFreshness;
 
-	// Attrubuts de resultats
+	// Attributs de resultats
 	DoubleVector dvGroupingSizes;
 	DoubleVector dvLearningErrors;
 	DoubleVector dvTestErrors;

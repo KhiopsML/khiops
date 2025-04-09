@@ -82,7 +82,7 @@ public:
 	//
 	// Un composant de data path peut contenir des caractere separateur '/'.
 	// S'il contient des caracteres '/' ou '`', il doit etre formate a l'aide de la methode
-	// ToDataPathFormat pour le mettre entre '`', comme pour le format externes des nom de variables
+	// GetFormattedName pour le mettre entre '`', comme pour le format externes des noms de variables
 	// dans les dictionnaires
 
 	// Attributs du DataPath
