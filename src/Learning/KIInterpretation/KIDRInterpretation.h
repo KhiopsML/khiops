@@ -59,32 +59,17 @@ public:
 	// Poids des variables
 	Continuous GetPredictorAttributeWeightAt(int nAttribute) const;
 
-	// Tables des valeur de Shapley par variable
-	const KIShapleyTable* GetPredictorAttributeShapleyTableAt(int nAttribute) const;
-
 	////////////////////////////////////////////////////////////////////
 	// Application  de la regle a un objet, et services associes
 
 	// Calcul de l'attribut derive
 	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
 
-	// Valeur de contribution pour un valeur cible et un index de variable
-	Continuous GetContributionAt(Symbol sTargetValue, Symbol sAttributeName) const;
-
-	// Nom de variable de contribution pour une valeur cible et un rang de variable
-	Symbol GetRankedContributionAttributeAt(Symbol sTargetValue, int nAttributeRank) const;
-
-	// Nom de partie de variable de contribution pour une valeur cible et un rang de variable
-	Symbol GetRankedContributionPartAt(Symbol sTargetValue, int nAttributeRank) const;
-
-	// Valeur de contribution pour une valeur cible et un rang de variable
-	Continuous GetRankedContributionValueAt(Symbol sTargetValue, int nAttributeRank) const;
-
 	////////////////////////////////////////////////////////////////////
 	// Services divers
 
 	// Affichage des caracteristique detaillees de l'interpreteur
-	void WriteDetails(ostream& ost) const;
+	virtual void WriteDetails(ostream& ost) const;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -95,18 +80,8 @@ protected:
 	// Nettoyage
 	virtual void Clean();
 
-	// Creation des structures des gestion des contributions pour les acces par rang
-	void CreateRankedContributionStructures(int nTargetValueNumber, int nAttributeNumber,
-						const StringVector* svAttributeNames);
-
 	// Calcul du vecteur de index source de grille
 	void ComputeDataGridSourcesIndexes() const;
-
-	// Calcul de toute els contribution triee pour les acces aux cointributions par rang
-	void ComputeRankedContributions() const;
-
-	// Contribution par valeur cible et par rang
-	const KIAttributeContribution* GetRankedContributionAt(int nTarget, int nAttributeRank) const;
 
 	// Regle associee au classifieur
 	const KWDRNBClassifier* classifierRule;
@@ -123,9 +98,6 @@ protected:
 	// Tableau des regles de type data grid par variable du predicteur
 	ObjectArray oaPredictorAttributeDataGridRules;
 
-	// Tableau des tables de Shapley par variable du predicteur
-	ObjectArray oaPredictorAttributeShapleyTables;
-
 	// Index de chaque partie source des grilles, que l'on soit en sparse ou non
 	// Dans le cas de l'interpretation, on a besoin de tous ces index pour acceder aux
 	// tables de Shapley, ce qui fait que ce vecteur d'index est dense
@@ -135,12 +107,6 @@ protected:
 	// Permet d'avoir la reference dans le cas sparse, et de ne calculer que les index
 	// que pour les valeurs presentes
 	mutable IntVector ivDataGridSourceDefaultIndexes;
-
-	// Tableau par valeur cible de tableau de KIAttributeContribution, tries par contribution decroissante
-	ObjectArray oaTargetValueRankedAttributeContributions;
-
-	// Indicateur de calcul des contributions par rang, pour bufferisation des calcul
-	mutable boolean bIsRankedContributionComputed;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -429,27 +395,6 @@ inline Continuous KIDRClassifierService::GetPredictorAttributeWeightAt(int nAttr
 	require(IsCompiled());
 	require(0 <= nAttribute and nAttribute < GetPredictorAttributeNumber());
 	return classifierRule->GetDataGridWeightAt(nAttribute);
-}
-
-inline const KIShapleyTable* KIDRClassifierService::GetPredictorAttributeShapleyTableAt(int nAttribute) const
-{
-	require(IsCompiled());
-	require(0 <= nAttribute and nAttribute < GetPredictorAttributeNumber());
-	return cast(const KIShapleyTable*, oaPredictorAttributeShapleyTables.GetAt(nAttribute));
-}
-
-inline const KIAttributeContribution* KIDRClassifierService::GetRankedContributionAt(int nTarget,
-										     int nAttributeRank) const
-{
-	const ObjectArray* oaRankedAttributeContributions;
-
-	require(IsCompiled());
-	require(bIsRankedContributionComputed);
-	require(0 <= nTarget and nTarget < GetTargetValueNumber());
-	require(0 <= nAttributeRank and nAttributeRank < GetPredictorAttributeNumber());
-	oaRankedAttributeContributions =
-	    cast(const ObjectArray*, oaTargetValueRankedAttributeContributions.GetAt(nTarget));
-	return cast(const KIAttributeContribution*, oaRankedAttributeContributions->GetAt(nAttributeRank));
 }
 
 inline int KIDRClassifierInterpreter::GetTargetValueNumber() const

@@ -73,11 +73,10 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 	const KWDRDataGrid* dataGridRule;
 	const KWDRDataGridBlock* dataGridBlockRule;
 	const KWAttributeBlock* attributeBlock;
-	KWDataGridStats dataGridStats;
+	const KWDRUnivariatePartition* univariatePartitionRule;
 	KWAttribute* attribute;
 	ALString sAttributeName;
 	Continuous cWeight;
-	KIShapleyTable* stShapleyTable;
 	int nVarKey;
 	Symbol sVarKey;
 	int nDataGridStatsOrBlock;
@@ -99,7 +98,6 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 	ivDataGridSourceDefaultIndexes.SetSize(classifierRule->GetDataGridStatsNumber());
 	svPredictorAttributeNames.SetSize(classifierRule->GetDataGridStatsNumber());
 	oaPredictorAttributeDataGridRules.SetSize(classifierRule->GetDataGridStatsNumber());
-	oaPredictorAttributeShapleyTables.SetSize(classifierRule->GetDataGridStatsNumber());
 
 	// Collect des variables du predicteur et calcul des tables de Shapley
 	nAttribute = 0;
@@ -124,14 +122,6 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 			// Memorisation de la grille de preparation
 			oaPredictorAttributeDataGridRules.SetAt(nAttribute, cast(KWDRDataGrid*, dataGridRule));
 
-			// Export de la grille pour pouvoir calculer les valeur de Shapley
-			dataGridRule->ExportDataGridStats(&dataGridStats);
-
-			// Calcul de la table de Shapley
-			stShapleyTable = new KIShapleyTable;
-			oaPredictorAttributeShapleyTables.SetAt(nAttribute, stShapleyTable);
-			stShapleyTable->InitializeFromDataGridStats(&dataGridStats, cWeight);
-
 			// Incrementation de l'attribut
 			nAttribute++;
 		}
@@ -149,9 +139,6 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 			{
 				dataGridRule = dataGridBlockRule->GetDataGridAt(nDataGrid);
 				cWeight = classifierRule->GetDataGridWeightAt(nAttribute);
-
-				// Extraction de la grille de preparation
-				dataGridRule->ExportDataGridStats(&dataGridStats);
 
 				// Recherche de l'attribut correspondant
 				if (dataGridBlockRule->GetDataGridVarKeyType() == KWType::Continuous)
@@ -171,30 +158,24 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 				// Memorisation de la grille de preparation
 				oaPredictorAttributeDataGridRules.SetAt(nAttribute, cast(KWDRDataGrid*, dataGridRule));
 
-				// Export de la grille pour pouvoir calculer les valeur de Shapley
-				dataGridRule->ExportDataGridStats(&dataGridStats);
-				assert(dataGridStats.GetAttributeNumber() == 2);
-				assert(dataGridStats.GetAttributeAt(0)->GetAttributeType() ==
-				       attributeBlock->GetType());
+				// Acces a la partition univariee de l'attribut source de la grille
+				assert(dataGridRule->GetAttributeNumber() == 2);
+				univariatePartitionRule = cast(const KWDRUnivariatePartition*,
+							       dataGridRule->GetOperandAt(0)->GetDerivationRule());
 
 				// Recherche de l'index source correspondant a la valeur par defaut du bloc
 				if (attributeBlock->GetType() == KWType::Continuous)
 				{
 					ivDataGridSourceDefaultIndexes.SetAt(
-					    nAttribute, dataGridStats.GetAttributeAt(0)->ComputeContinuousPartIndex(
+					    nAttribute, univariatePartitionRule->GetContinuousPartIndex(
 							    attributeBlock->GetContinuousDefaultValue()));
 				}
 				else
 				{
 					ivDataGridSourceDefaultIndexes.SetAt(
-					    nAttribute, dataGridStats.GetAttributeAt(0)->ComputeSymbolPartIndex(
+					    nAttribute, univariatePartitionRule->GetSymbolPartIndex(
 							    attributeBlock->GetSymbolDefaultValue()));
 				}
-
-				// Calcul de la table de Shapley
-				stShapleyTable = new KIShapleyTable;
-				oaPredictorAttributeShapleyTables.SetAt(nAttribute, stShapleyTable);
-				stShapleyTable->InitializeFromDataGridStats(&dataGridStats, cWeight);
 
 				// Incrementation de l'attribut
 				nAttribute++;
@@ -212,10 +193,6 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 	for (nAttribute = 0; nAttribute < svPredictorAttributeNames.GetSize(); nAttribute++)
 		ldPredictorAttributeRanks.SetAt(svPredictorAttributeNames.GetAt(nAttribute), (longint)nAttribute + 1);
 
-	// Creation des structures des gestion des contributions pour les acces par rang
-	CreateRankedContributionStructures(GetTargetValueNumber(), svPredictorAttributeNames.GetSize(),
-					   &svPredictorAttributeNames);
-
 	// Trace
 	if (bTrace)
 		WriteDetails(cout);
@@ -231,116 +208,7 @@ Object* KIDRClassifierService::ComputeStructureResult(const KWObject* kwoObject)
 
 	// Calcul du vecteur de index source de grille
 	ComputeDataGridSourcesIndexes();
-
-	// On indique que les contributions sont a recalculer si necessaire
-	bIsRankedContributionComputed = false;
 	return (Object*)this;
-}
-
-Continuous KIDRClassifierService::GetContributionAt(Symbol sTargetValue, Symbol sAttributeName) const
-{
-	int nTargetValueRank;
-	int nPredictorAttributeRank;
-	int nSourceCellIndex;
-	int nTargetCellIndex;
-	Continuous cShapleyValue;
-
-	require(IsCompiled());
-
-	// Recherche du rang de la valeur cible et de l'attribut
-	nTargetValueRank = GetTargetValueRank(sTargetValue);
-	nPredictorAttributeRank = GetPredictorAttributeRank(sAttributeName.GetValue());
-
-	// Recheche des index source et cible dans la grille correspondante
-	nSourceCellIndex = ivDataGridSourceIndexes.GetAt(nPredictorAttributeRank);
-	nTargetCellIndex = classifierRule->GetDataGridSetTargetCellIndexAt(nPredictorAttributeRank, nTargetValueRank);
-
-	// Recherche de la valeur de Shapley
-	cShapleyValue = 0;
-	if (nSourceCellIndex != -1 and nTargetCellIndex != -1)
-		cShapleyValue = GetPredictorAttributeShapleyTableAt(nPredictorAttributeRank)
-				    ->GetShapleyValueAt(nSourceCellIndex, nTargetCellIndex);
-	return cShapleyValue;
-}
-
-Symbol KIDRClassifierService::GetRankedContributionAttributeAt(Symbol sTargetValue, int nAttributeRank) const
-{
-	int nTargetValueRank;
-
-	require(IsCompiled());
-
-	// Calcul des contributions pour des acces par rang
-	if (not bIsRankedContributionComputed)
-		ComputeRankedContributions();
-
-	// Recherche du rang de la valeur cible
-	nTargetValueRank = GetTargetValueRank(sTargetValue);
-
-	// On ne renvoie rein si la valeur cible est incorrecte
-	if (nTargetValueRank == -1)
-		return Symbol();
-	// Sinon, on renvoie le nom de l'attribut correspondant
-	else
-		return (Symbol)GetRankedContributionAt(nTargetValueRank, nAttributeRank)->GetAttributeName();
-}
-
-Symbol KIDRClassifierService::GetRankedContributionPartAt(Symbol sTargetValue, int nAttributeRank) const
-{
-	int nTargetValueRank;
-	int nAttributeIndex;
-	const KWDRDataGrid* dataGridRule;
-	int nDataGridSourceIndex;
-	KWDataGridStats dataGridStats;
-	ALString sCellLabel;
-	ostringstream oss;
-
-	require(IsCompiled());
-
-	// Calcul des contributions pour des acces par rang
-	if (not bIsRankedContributionComputed)
-		ComputeRankedContributions();
-
-	// Recherche du rang de la valeur cible
-	nTargetValueRank = GetTargetValueRank(sTargetValue);
-
-	// On ne renvoie rein si la valeur cible est incorrecte
-	if (nTargetValueRank == -1)
-		return Symbol();
-	// Sinon, on renvoie le nom de l'attribut correspondant
-	else
-	{
-		// Acces a l'attribut, la grille corespondant, et l'index source dans la grille
-		nAttributeIndex = GetRankedContributionAt(nTargetValueRank, nAttributeRank)->GetAttributeIndex();
-		dataGridRule = cast(const KWDRDataGrid*, oaPredictorAttributeDataGridRules.GetAt(nAttributeIndex));
-		nDataGridSourceIndex = ivDataGridSourceIndexes.GetAt(nAttributeIndex);
-
-		// Acces a la partition univariee de l'attribut pour obtenir le libelle de la partie
-		assert(dataGridRule->GetAttributeNumber() == 2);
-		sCellLabel = cast(KWDRUnivariatePartition*, dataGridRule->GetOperandAt(0)->GetDerivationRule())
-				 ->GetPartLabelAt(nDataGridSourceIndex);
-		return (Symbol)sCellLabel;
-	}
-}
-
-Continuous KIDRClassifierService::GetRankedContributionValueAt(Symbol sTargetValue, int nAttributeRank) const
-{
-	int nTargetValueRank;
-
-	require(IsCompiled());
-
-	// Calcul des contributions pour des acces par rang
-	if (not bIsRankedContributionComputed)
-		ComputeRankedContributions();
-
-	// Recherche du rang de la valeur cible
-	nTargetValueRank = GetTargetValueRank(sTargetValue);
-
-	// On ne renvoie rein si la valeur cible est incorrecte
-	if (nTargetValueRank == -1)
-		return 0;
-	// Sinon, on renvoie le nom de l'attribut correspondant
-	else
-		return GetRankedContributionAt(nTargetValueRank, nAttributeRank)->GetContribution();
 }
 
 void KIDRClassifierService::WriteDetails(ostream& ost) const
@@ -383,11 +251,6 @@ void KIDRClassifierService::WriteDetails(ostream& ost) const
 		}
 		cout << "\n";
 		dataGridStats.WriteFrequencyCrossTable(cout);
-
-		// Calcul de la table de Shapley
-		stShapleyTable = GetPredictorAttributeShapleyTableAt(nAttribute);
-		cout << "    ####  Shapley values\n";
-		cout << *stShapleyTable << "\n";
 	}
 }
 
@@ -398,13 +261,9 @@ longint KIDRClassifierService::GetUsedMemory() const
 	lUsedMemory = sizeof(KIDRClassifierService);
 	lUsedMemory += svPredictorAttributeNames.GetUsedMemory() - sizeof(StringVector);
 	lUsedMemory += oaPredictorAttributeDataGridRules.GetUsedMemory() - sizeof(ObjectArray);
-	lUsedMemory += oaPredictorAttributeShapleyTables.GetOverallUsedMemory() - sizeof(ObjectArray);
 	lUsedMemory += ivDataGridSourceIndexes.GetUsedMemory() - sizeof(IntVector);
 	lUsedMemory += ivDataGridSourceDefaultIndexes.GetUsedMemory() - sizeof(IntVector);
 	lUsedMemory += oaPredictorAttributeDataGridRules.GetUsedMemory() - sizeof(ObjectArray);
-	lUsedMemory += oaPredictorAttributeDataGridRules.GetSize() *
-		       (sizeof(ObjectArray) + svPredictorAttributeNames.GetSize() *
-						  (sizeof(KIAttributeContribution*) + sizeof(KIAttributeContribution)));
 	return lUsedMemory;
 }
 
@@ -419,53 +278,8 @@ void KIDRClassifierService::Clean()
 	svPredictorAttributeNames.SetSize(0);
 	ldPredictorAttributeRanks.RemoveAll();
 	oaPredictorAttributeDataGridRules.RemoveAll();
-	oaPredictorAttributeShapleyTables.DeleteAll();
 	ivDataGridSourceIndexes.SetSize(0);
 	ivDataGridSourceDefaultIndexes.SetSize(0);
-	for (nTarget = 0; nTarget < oaTargetValueRankedAttributeContributions.GetSize(); nTarget++)
-	{
-		oaRankedAttributeContributions =
-		    cast(ObjectArray*, oaTargetValueRankedAttributeContributions.GetAt(nTarget));
-		oaRankedAttributeContributions->DeleteAll();
-	}
-	oaTargetValueRankedAttributeContributions.DeleteAll();
-	bIsRankedContributionComputed = false;
-}
-
-void KIDRClassifierService::CreateRankedContributionStructures(int nTargetValueNumber, int nAttributeNumber,
-							       const StringVector* svAttributeNames)
-{
-	ObjectArray* oaRankedAttributeContributions;
-	KIAttributeContribution* attributeContribution;
-	int nTarget;
-	int nAttribute;
-
-	require(nTargetValueNumber > 0);
-	require(nAttributeNumber > 0);
-	require(svAttributeNames != NULL);
-	require(svAttributeNames->GetSize() == nAttributeNumber);
-	require(oaTargetValueRankedAttributeContributions.GetSize() == 0);
-
-	// Creation des tableaux par valeur cible
-	oaTargetValueRankedAttributeContributions.SetSize(nTargetValueNumber);
-	for (nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
-	{
-		// Creation du tableau pour la valeur cible
-		oaRankedAttributeContributions = new ObjectArray;
-		oaTargetValueRankedAttributeContributions.SetAt(nTarget, oaRankedAttributeContributions);
-
-		// Parametrage du tri du tableau
-		oaRankedAttributeContributions->SetCompareFunction(KIAttributeContributionCompare);
-
-		// Creation d'une contribution par variable
-		oaRankedAttributeContributions->SetSize(nAttributeNumber);
-		for (nAttribute = 0; nAttribute < nAttributeNumber; nAttribute++)
-		{
-			attributeContribution = new KIAttributeContribution;
-			attributeContribution->SetAttributeNames(svAttributeNames);
-			oaRankedAttributeContributions->SetAt(nAttribute, attributeContribution);
-		}
-	}
 }
 
 void KIDRClassifierService::ComputeDataGridSourcesIndexes() const
@@ -511,80 +325,6 @@ void KIDRClassifierService::ComputeDataGridSourcesIndexes() const
 				ivDataGridSourceIndexes.SetAt(nDataGrid + nDataGridIndexWithinBlock, nSourceCellIndex);
 			}
 			nDataGrid += dataGridStatsBlockRule->GetDataGridBlock()->GetDataGridNumber();
-		}
-	}
-}
-
-void KIDRClassifierService::ComputeRankedContributions() const
-{
-	const boolean bTrace = false;
-	ObjectArray* oaRankedAttributeContributions;
-	KIAttributeContribution* attributeContribution;
-	int nTarget;
-	int nAttribute;
-	int nSourceCellIndex;
-	int nTargetCellIndex;
-	Continuous cShapleyValue;
-
-	require(IsCompiled());
-	require(ivDataGridSourceIndexes.GetSize() == GetPredictorAttributeNumber());
-	require(classifierRule != NULL);
-	require(oaTargetValueRankedAttributeContributions.GetSize() == GetTargetValueNumber());
-	require(not bIsRankedContributionComputed);
-
-	// Calcul des contributions par valeur cible
-	for (nTarget = 0; nTarget < GetTargetValueNumber(); nTarget++)
-	{
-		oaRankedAttributeContributions =
-		    cast(ObjectArray*, oaTargetValueRankedAttributeContributions.GetAt(nTarget));
-		assert(oaRankedAttributeContributions->GetSize() == GetPredictorAttributeNumber());
-
-		// Calcul des contribution par attributs
-		for (nAttribute = 0; nAttribute < GetPredictorAttributeNumber(); nAttribute++)
-		{
-			attributeContribution =
-			    cast(KIAttributeContribution*, oaRankedAttributeContributions->GetAt(nAttribute));
-
-			// Recheche des index source et cible dans la grille correspondante
-			nSourceCellIndex = ivDataGridSourceIndexes.GetAt(nAttribute);
-			nTargetCellIndex = classifierRule->GetDataGridSetTargetCellIndexAt(nAttribute, nTarget);
-
-			// Recherche de la valeur de Shapley
-			cShapleyValue = GetPredictorAttributeShapleyTableAt(nAttribute)
-					    ->GetShapleyValueAt(nSourceCellIndex, nTargetCellIndex);
-			assert(cShapleyValue == GetContributionAt(GetTargetValueAt(nTarget),
-								  (Symbol)svPredictorAttributeNames.GetAt(nAttribute)));
-
-			// Memorisation de l'index de l'attribut et de sa contribution
-			attributeContribution->SetAttributeIndex(nAttribute);
-			attributeContribution->SetContribution(cShapleyValue);
-		}
-
-		// Tri des contribution
-		oaRankedAttributeContributions->Sort();
-	}
-
-	// On memorise que la calcul est effectue
-	bIsRankedContributionComputed = true;
-
-	// Trace des resultats
-	if (bTrace)
-	{
-		// Affichage par valeur cible
-		for (nTarget = 0; nTarget < GetTargetValueNumber(); nTarget++)
-		{
-			cout << "Contributions for " << GetTargetValueAt(nTarget) << "\n";
-
-			// Affichage par attributs
-			oaRankedAttributeContributions =
-			    cast(ObjectArray*, oaTargetValueRankedAttributeContributions.GetAt(nTarget));
-			for (nAttribute = 0; nAttribute < oaRankedAttributeContributions->GetSize(); nAttribute++)
-			{
-				attributeContribution =
-				    cast(KIAttributeContribution*, oaRankedAttributeContributions->GetAt(nAttribute));
-				cout << "\t" << attributeContribution->GetContribution() << "\t"
-				     << attributeContribution->GetAttributeName() << "\n";
-			}
 		}
 	}
 }
