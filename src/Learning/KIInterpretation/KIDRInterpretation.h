@@ -17,7 +17,7 @@ class KIAttributeContribution;
 #include "KWDRDataGrid.h"
 #include "KIShapleyTable.h"
 
-// Enregistrement des regles liee a l'interpretation ou au renforcement des modeles
+// Enregistrement des regles liee a l'interpretation des modeles
 void KIDRRegisterInterpretationRules();
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -112,7 +112,7 @@ protected:
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KIDRClassifierInterpreter
-// Service d'interpretation d'un classifier
+// Service d'interpretation d'un classifieur
 class KIDRClassifierInterpreter : public KIDRClassifierService
 {
 public:
@@ -138,7 +138,7 @@ public:
 	// Calcul de l'attribut derive
 	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
 
-	// Valeur de contribution pour un valeur cible et un index de variable
+	// Valeur de contribution pour une valeur cible et un index de variable
 	Continuous GetContributionAt(Symbol sTargetValue, Symbol sAttributeName) const;
 
 	// Nom de variable de contribution pour une valeur cible et un rang de variable

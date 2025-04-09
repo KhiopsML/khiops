@@ -385,6 +385,7 @@ protected:
 	mutable Continuous cInitialScore;
 };
 
+/*DDD
 ////////////////////////////////////////////////////////////
 // Classe KIDRReinforcementInitialScore
 // Donne la valeur de reinforcement initiale
@@ -474,6 +475,7 @@ public:
 	// Calcul de l'attribut derive
 	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
 };
+*/
 
 //////////////////////////////
 // Methodes en inline

@@ -13,6 +13,7 @@ class KIInterpretationClassBuilder;
 #include "KWDRNBPredictor.h"
 #include "KWTrainedPredictor.h"
 #include "KIDRInterpretation.h"
+#include "KIDRReinforcement.h"
 #include "KIDRPredictor.h"
 
 ///////////////////////////////////////////////////////////////
@@ -138,6 +139,8 @@ protected:
 	///////
 	// DEPRECATED
 
+	/*DDD
+
 	// Creation des attributs de contribution du dictionnaire d'interpretation
 	void CreateContributionAttributesForClass(KWClass* kwcInterpretation, const ALString& sTargetClass,
 						  const KWAttribute* predictorRuleAttribute,
@@ -164,6 +167,7 @@ protected:
 	KWAttribute* CreateContributionPartAtAttribute(KWClass* kwcInterpretation, const ALString& sTargetClass,
 						       const KWAttribute* scoreInterpretationAttribute,
 						       int nAttributeRank) const;
+
 
 	////////////////////////////////////////////////////////////////////////////
 	// Creation des attributs de renforcement du dictionnaite d'interpretation
@@ -202,6 +206,8 @@ protected:
 	KWAttribute* CreateReinforcementClassChangeAtAttribute(KWClass* kwcReinforcement, const ALString& sTargetClass,
 							       const KWAttribute* scoreInterpretationAttribute,
 							       int nIndex) const;
+
+							   */
 
 	////////////////////////////
 	// Variables de la classe

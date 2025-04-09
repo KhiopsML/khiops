@@ -1606,6 +1606,7 @@ Continuous KIDRClassifierReinforcement::ComputeScoreFromScoreVector(ContinuousVe
 	return cScore;
 }
 
+/*DDD
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KIDRReinforcementInitialScore
 KIDRReinforcementInitialScore::KIDRReinforcementInitialScore()
@@ -1753,3 +1754,4 @@ Continuous KIDRReinforcementClassChangeTagAt::ComputeContinuousResult(const KWOb
 	return scoreReinforcement->GetReinforcementClassChangeTagAt(
 	    (int)GetSecondOperand()->GetContinuousValue(kwoObject) - 1);
 }
+*/

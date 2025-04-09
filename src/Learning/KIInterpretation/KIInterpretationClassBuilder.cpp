@@ -570,6 +570,7 @@ KWAttribute* KIInterpretationClassBuilder::CreateRankedContributionAttribute(KWC
 	return contributionAttribute;
 }
 
+/*DDD
 void KIInterpretationClassBuilder::CreateContributionAttributesForClass(
     KWClass* kwcInterpretation, const ALString& sTargetClass, const KWAttribute* predictorRuleAttribute,
     const KWAttribute* predictionAttribute, boolean bIsGlobalRanking, int nContributionAttributeNumber) const
@@ -691,29 +692,29 @@ KWAttribute* KIInterpretationClassBuilder::CreateContributionValueAtAttribute(
 	// Creation de l'attribut, et affectation de la regle de derivation
 	contributionClassAttribute = new KWAttribute;
 	contributionClassAttribute->SetDerivationRule(rule);
-	/*DDD
+	///*DDD
 	if (interpretationSpec->GetWhyAttributesNumber() == svPredictorAttributeNames.GetSize() and
 	    interpretationSpec->GetSortWhyResults() == false)
 	{
-	*/
-	if (bIsGlobalRanking)
-	{
-		contributionClassAttribute->SetName(kwcInterpretation->BuildAttributeName(
-		    GetShapleyLabel() + "_" + sTargetClass + "_" + sPredictorAttributeName));
-		contributionClassAttribute->SetType(KWType::Continuous);
-		contributionClassAttribute->GetMetaData()->SetStringValueAt(GetContributionAttributeMetaDataKey(),
-									    sPredictorAttributeName);
-		contributionClassAttribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetClass);
-	}
-	else
-	{
-		contributionClassAttribute->SetName(kwcInterpretation->BuildAttributeName(
-		    GetShapleyLabel() + "Value_" + sTargetClass + "_" + IntToString(nAttributeRank)));
-		contributionClassAttribute->GetMetaData()->SetDoubleValueAt(GetContributionValueRankMetaDataKey(),
-									    nAttributeRank);
-		contributionClassAttribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetClass);
-	}
-	return contributionClassAttribute;
+	//* /
+if (bIsGlobalRanking)
+{
+	contributionClassAttribute->SetName(kwcInterpretation->BuildAttributeName(
+	    GetShapleyLabel() + "_" + sTargetClass + "_" + sPredictorAttributeName));
+	contributionClassAttribute->SetType(KWType::Continuous);
+	contributionClassAttribute->GetMetaData()->SetStringValueAt(GetContributionAttributeMetaDataKey(),
+								    sPredictorAttributeName);
+	contributionClassAttribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetClass);
+}
+else
+{
+	contributionClassAttribute->SetName(kwcInterpretation->BuildAttributeName(
+	    GetShapleyLabel() + "Value_" + sTargetClass + "_" + IntToString(nAttributeRank)));
+	contributionClassAttribute->GetMetaData()->SetDoubleValueAt(GetContributionValueRankMetaDataKey(),
+								    nAttributeRank);
+	contributionClassAttribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetClass);
+}
+return contributionClassAttribute;
 }
 
 KWAttribute* KIInterpretationClassBuilder::CreateContributionNameAtAttribute(
@@ -742,55 +743,57 @@ KWAttribute* KIInterpretationClassBuilder::CreateContributionNameAtAttribute(
 
 	attribute->GetMetaData()->SetDoubleValueAt(GetContributionAttributeRankMetaDataKey(), nAttributeRank);
 	attribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetClass);
-	/*DDD
+	///*DDD
 	if (interpretationSpec->GetWhyAttributesNumber() == svPredictorAttributeNames.GetSize() and
 	    interpretationSpec->GetSortWhyResults() == false)
 	{
-	*/
-	attribute->GetMetaData()->SetDoubleValueAt(GetContributionAttributeRankMetaDataKey(), nAttributeRank);
-	attribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetClass);
-	//DDD}
-	attribute->SetDerivationRule(rule);
+		//* /
+		attribute->GetMetaData()->SetDoubleValueAt(GetContributionAttributeRankMetaDataKey(), nAttributeRank);
+		attribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetClass);
+		//DDD}
+		attribute->SetDerivationRule(rule);
 
-	return attribute;
-}
+		return attribute;
+	}
 
-KWAttribute* KIInterpretationClassBuilder::CreateContributionPartAtAttribute(
-    KWClass* kwcInterpretation, const ALString& sTargetClass, const KWAttribute* scoreInterpretationAttribute,
-    int nAttributeRank) const
-{
-	KWDerivationRule* rule;
-	KWAttribute* attribute;
-
-	require(1 <= nAttributeRank);
-
-	// Creation de la regle de derivation
-	rule = new KIDRContributionPartitionAt;
-	rule->SetClassName(kwcInterpretation->GetName());
-	rule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
-	rule->GetFirstOperand()->SetAttributeName(scoreInterpretationAttribute->GetName());
-	rule->GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginConstant);
-	rule->GetSecondOperand()->SetContinuousConstant(nAttributeRank);
-	assert(rule->Check());
-
-	// Creation de l'attribut, et affectation de la regle de derivation
-	attribute = new KWAttribute;
-	attribute->SetName(kwcInterpretation->BuildAttributeName(GetShapleyLabel() + "Part_" + sTargetClass + "_" +
-								 IntToString(nAttributeRank)));
-	attribute->SetType(KWType::Symbol);
-	attribute->GetMetaData()->SetDoubleValueAt(GetContributionPartRankMetaDataKey(), nAttributeRank);
-	attribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetClass);
-	/*DDD
-	if (interpretationSpec->GetWhyAttributesNumber() == svPredictorAttributeNames.GetSize() and
-	    interpretationSpec->GetSortWhyResults() == false)
+	KWAttribute* KIInterpretationClassBuilder::CreateContributionPartAtAttribute(
+	    KWClass * kwcInterpretation, const ALString& sTargetClass, const KWAttribute* scoreInterpretationAttribute,
+	    int nAttributeRank) const
 	{
-	*/
-	attribute->GetMetaData()->SetDoubleValueAt(GetContributionPartRankMetaDataKey(), nAttributeRank);
-	attribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetClass);
-	//DDD}
-	attribute->SetDerivationRule(rule);
-	return attribute;
-}
+		KWDerivationRule* rule;
+		KWAttribute* attribute;
+
+		require(1 <= nAttributeRank);
+
+		// Creation de la regle de derivation
+		rule = new KIDRContributionPartitionAt;
+		rule->SetClassName(kwcInterpretation->GetName());
+		rule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+		rule->GetFirstOperand()->SetAttributeName(scoreInterpretationAttribute->GetName());
+		rule->GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+		rule->GetSecondOperand()->SetContinuousConstant(nAttributeRank);
+		assert(rule->Check());
+
+		// Creation de l'attribut, et affectation de la regle de derivation
+		attribute = new KWAttribute;
+		attribute->SetName(kwcInterpretation->BuildAttributeName(GetShapleyLabel() + "Part_" + sTargetClass +
+									 "_" + IntToString(nAttributeRank)));
+		attribute->SetType(KWType::Symbol);
+		attribute->GetMetaData()->SetDoubleValueAt(GetContributionPartRankMetaDataKey(), nAttributeRank);
+		attribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetClass);
+		///*DDD
+		if (interpretationSpec->GetWhyAttributesNumber() == svPredictorAttributeNames.GetSize() and
+		    interpretationSpec->GetSortWhyResults() == false)
+		{
+			//* /
+			attribute->GetMetaData()->SetDoubleValueAt(GetContributionPartRankMetaDataKey(),
+								   nAttributeRank);
+			attribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetClass);
+			//DDD}
+			attribute->SetDerivationRule(rule);
+			return attribute;
+		}
+		}
 
 void KIInterpretationClassBuilder::CreateReinforcementAttributesForClass(
     KWClass* kwcReinforcement, const ALString& sTargetClass, const KWAttribute* predictorRuleAttribute,
@@ -1019,6 +1022,7 @@ KWAttribute* KIInterpretationClassBuilder::CreateReinforcementClassChangeAtAttri
 	attribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetClass);
 	return attribute;
 }
+		*/
 
 const SymbolVector* KIInterpretationClassBuilder::GetTargetValues() const
 {
@@ -1102,14 +1106,12 @@ void KIInterpretationClassBuilder::BuildPredictorAttributes(ObjectArray* oaPredi
 
 KWClass* KIInterpretationClassBuilder::BuildInterpretationClass(const KIModelInterpreter* modelInterpreterSpec) const
 {
-	const boolean bProto = true;
 	KWClass* kwcInterpretationClass;
 	KWAttribute* predictorRuleAttribute;
 	KWAttribute* predictionAttribute;
 	SymbolVector svInterpretedTargetValues;
 	int nContributionAttributeNumber;
 	StringVector svInterpretationMetaDataKeys;
-	int i;
 
 	require(IsPredictorImported());
 	require(GetPredictorAttributeNumber() > 0);
@@ -1148,15 +1150,11 @@ KWClass* KIInterpretationClassBuilder::BuildInterpretationClass(const KIModelInt
 	// On interprete toutes les classes, selon la specification actuelle de l'interpreteur
 	svInterpretedTargetValues.CopyFrom(GetTargetValues());
 
-	//DDDD
-	// Prototype
-	if (bProto)
-	{
-		// Creation des attributs d'interpretation
-		CreateInterpretationAttributes(
-		    kwcInterpretationClass, predictorRuleAttribute, &svInterpretedTargetValues,
-		    modelInterpreterSpec->GetShapleyValueRanking() == "Global", nContributionAttributeNumber);
-	}
+	// Creation des attributs d'interpretation
+	CreateInterpretationAttributes(kwcInterpretationClass, predictorRuleAttribute, &svInterpretedTargetValues,
+				       modelInterpreterSpec->GetShapleyValueRanking() == "Global",
+				       nContributionAttributeNumber);
+	/*DDD
 	// Ancienne version
 	else
 	{
@@ -1169,6 +1167,7 @@ KWClass* KIInterpretationClassBuilder::BuildInterpretationClass(const KIModelInt
 			    modelInterpreterSpec->GetShapleyValueRanking() == "Global", nContributionAttributeNumber);
 		}
 	}
+	*/
 	return kwcInterpretationClass;
 }
 
@@ -1214,10 +1213,10 @@ KWClass* KIInterpretationClassBuilder::BuildReinforcementClass(const KIModelRein
 							       modelReinforcerSpec->GetReinforcedTargetValue());
 
 	// Collecte des attributs a renforcer
-	for (i = 0; i < modelReinforcerSpec->GeConstLeverAttributes()->GetSize(); i++)
+	for (i = 0; i < modelReinforcerSpec->GetConstLeverAttributes()->GetSize(); i++)
 	{
 		predictorAttribute =
-		    cast(KIPredictorAttribute*, modelReinforcerSpec->GeConstLeverAttributes()->GetAt(i));
+		    cast(KIPredictorAttribute*, modelReinforcerSpec->GetConstLeverAttributes()->GetAt(i));
 
 		// Gestion des variables levier
 		if (predictorAttribute->GetUsed())
@@ -1237,10 +1236,12 @@ KWClass* KIInterpretationClassBuilder::BuildReinforcementClass(const KIModelRein
 	svReinforcedTargetValues.Add((Symbol)modelReinforcerSpec->GetReinforcedTargetValue());
 	for (i = 0; i < svReinforcedTargetValues.GetSize(); i++)
 	{
+		/*DDD
 		// Creation des attributs d'interpretation pour la valeur cible
 		CreateReinforcementAttributesForClass(
 		    kwcReinforcementClass, svReinforcedTargetValues.GetAt(i).GetValue(), predictorRuleAttribute,
 		    predictionAttribute, &svReinforcementAttributeNames);
+			*/
 	}
 	return kwcReinforcementClass;
 }

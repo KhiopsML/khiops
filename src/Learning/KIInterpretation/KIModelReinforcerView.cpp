@@ -194,7 +194,7 @@ void KIModelReinforcerView::SetObject(Object* object)
 
 	// Parametrage des variables du predicteur
 	cast(KIPredictorAttributeArrayView*, GetFieldAt("LeverAttributes"))
-	    ->SetObjectArray(editedObject->GeLeverAttributes());
+	    ->SetObjectArray(editedObject->GetLeverAttributes());
 
 	// Appel de la methode ancetre
 	UIObjectView::SetObject(object);
