@@ -10,10 +10,12 @@ void KIDRRegisterAllRules()
 	KWDerivationRule::RegisterDerivationRule(new KIDRContributionNameAt);
 	KWDerivationRule::RegisterDerivationRule(new KIDRContributionValueAtOld);
 	KWDerivationRule::RegisterDerivationRule(new KIDRContributionPartitionAt);
+	/*DDD
 	KWDerivationRule::RegisterDerivationRule(new KIDRClassifierReinforcement);
 	KWDerivationRule::RegisterDerivationRule(new KIDRReinforcementNameAt);
 	KWDerivationRule::RegisterDerivationRule(new KIDRReinforcementInitialScore);
 	KWDerivationRule::RegisterDerivationRule(new KIDRReinforcementFinalScoreAt);
 	KWDerivationRule::RegisterDerivationRule(new KIDRReinforcementPartitionAt);
 	KWDerivationRule::RegisterDerivationRule(new KIDRReinforcementClassChangeTagAt);
+	*/
 }

@@ -187,7 +187,8 @@ void KIDRClassifierInterpretation::Compile(KWClass* kwcOwnerClass)
 
 	// Parcours des operandes du classifieur pour identifier les noms des attributs explicatifs et des attributs natifs associes
 	// La derniere operande n'est pas parcouru car reserve a l'attribut des valeurs cibles
-	classifier->ExportAttributeNames(&svPredictorAttributeNames, &svPredictorPartitionedAttributeNames);
+	classifier->ExportAttributeNames(kwcOwnerClass, &svPredictorAttributeNames,
+					 &svPredictorPartitionedAttributeNames);
 
 	// Cas d'un NB on met tous les poid a 1.0
 	if (bIsNB)
@@ -1606,6 +1607,7 @@ Continuous KIDRClassifierReinforcement::ComputeScoreFromScoreVector(ContinuousVe
 	return cScore;
 }
 
+/*DDD
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KIDRReinforcementInitialScore
 KIDRReinforcementInitialScore::KIDRReinforcementInitialScore()
@@ -1753,3 +1755,4 @@ Continuous KIDRReinforcementClassChangeTagAt::ComputeContinuousResult(const KWOb
 	return scoreReinforcement->GetReinforcementClassChangeTagAt(
 	    (int)GetSecondOperand()->GetContinuousValue(kwoObject) - 1);
 }
+*/

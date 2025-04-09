@@ -4,6 +4,7 @@
 
 #pragma once
 
+class KIDRClassifierService;
 class KIDRClassifierInterpreter;
 class KIDRContributionAt;
 class KIDRContributionAttributeAt;
@@ -16,18 +17,18 @@ class KIAttributeContribution;
 #include "KWDRDataGrid.h"
 #include "KIShapleyTable.h"
 
-// Enregistrement des regles liee a l'interpretation ou au renforcement des modeles
+// Enregistrement des regles liee a l'interpretation des modeles
 void KIDRRegisterInterpretationRules();
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-// Classe KIDRClassifierInterpreter
-// Service d'interpretation d'un classifier
-class KIDRClassifierInterpreter : public KWDerivationRule
+// Classe KIDRClassifierService
+// Classe ancetre des services exploitant un classifier de type Bayesien naif (NB ou SNB)
+class KIDRClassifierService : public KWDerivationRule
 {
 public:
 	// Constructeur
-	KIDRClassifierInterpreter();
-	~KIDRClassifierInterpreter();
+	KIDRClassifierService();
+	~KIDRClassifierService();
 
 	// Creation
 	KWDerivationRule* Create() const override;
@@ -39,7 +40,7 @@ public:
 	void Compile(KWClass* kwcOwnerClass) override;
 
 	//////////////////////////////////////////////////////////
-	// Acces aux caracteristique de l'interpreteur apres compilation
+	// Acces aux caracteristiques du classifieur apres compilation
 
 	// Valeurs cible
 	int GetTargetValueNumber() const;
@@ -58,6 +59,79 @@ public:
 	// Poids des variables
 	Continuous GetPredictorAttributeWeightAt(int nAttribute) const;
 
+	////////////////////////////////////////////////////////////////////
+	// Application  de la regle a un objet
+
+	// Calcul de l'attribut derive
+	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
+
+	////////////////////////////////////////////////////////////////////
+	// Services divers
+
+	// Affichage des caracteristique detaillees de l'interpreteur
+	virtual void WriteDetails(ostream& ost) const;
+	virtual void WriteAttributeDetails(ostream& ost, int nAttribute) const;
+
+	// Memoire utilisee
+	longint GetUsedMemory() const override;
+
+	//////////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	// Nettoyage
+	virtual void Clean();
+
+	// Calcul du vecteur de index source de grille
+	void ComputeDataGridSourcesIndexes() const;
+
+	// Regle associee au classifieur
+	const KWDRNBClassifier* classifierRule;
+
+	// Dictionnaire des rangs des valeurs cibles, en memorisant le rang+1
+	LongintNumericKeyDictionary lnkdTargetValueRanks;
+
+	// Noms des variables du predicteur
+	StringVector svPredictorAttributeNames;
+
+	// Dictionnaire des rangs des variables, en memorisant le rang+1
+	LongintDictionary ldPredictorAttributeRanks;
+
+	// Tableau des regles de type KWDRDataGrid par variable du predicteur
+	ObjectArray oaPredictorAttributeDataGridRules;
+
+	// Tableau des regles de type KWDRDataGridStats par variable du predicteur
+	ObjectArray oaPredictorAttributeDataGridStatsRules;
+
+	// Index de chaque partie source des grilles, que l'on soit en sparse ou non
+	// Dans le cas de l'interpretation, on a besoin de tous ces index pour acceder aux
+	// tables de Shapley, ce qui fait que ce vecteur d'index est dense
+	mutable IntVector ivDataGridSourceIndexes;
+
+	// Index par defaut de chaque partie source des grilles
+	// Permet d'avoir la reference dans le cas sparse, et de ne calculer que les index
+	// que pour les valeurs presentes
+	mutable IntVector ivDataGridSourceDefaultIndexes;
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+// Classe KIDRClassifierInterpreter
+// Service d'interpretation d'un classifieur
+class KIDRClassifierInterpreter : public KIDRClassifierService
+{
+public:
+	// Constructeur
+	KIDRClassifierInterpreter();
+	~KIDRClassifierInterpreter();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Compilation
+	void Compile(KWClass* kwcOwnerClass) override;
+
+	//////////////////////////////////////////////////////////
+	// Acces aux caracteristiques specifiques de l'interpreteur apres compilation
+
 	// Tables des valeur de Shapley par variable
 	const KIShapleyTable* GetPredictorAttributeShapleyTableAt(int nAttribute) const;
 
@@ -67,7 +141,7 @@ public:
 	// Calcul de l'attribut derive
 	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
 
-	// Valeur de contribution pour un valeur cible et un index de variable
+	// Valeur de contribution pour une valeur cible et un index de variable
 	Continuous GetContributionAt(Symbol sTargetValue, Symbol sAttributeName) const;
 
 	// Nom de variable de contribution pour une valeur cible et un rang de variable
@@ -83,7 +157,7 @@ public:
 	// Services divers
 
 	// Affichage des caracteristique detaillees de l'interpreteur
-	void WriteDetails(ostream& ost) const;
+	void WriteAttributeDetails(ostream& ost, int nAttribute) const override;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -92,53 +166,25 @@ public:
 	///// Implementation
 protected:
 	// Nettoyage
-	virtual void Clean();
+	void Clean() override;
 
 	// Creation des structures des gestion des contributions pour les acces par rang
 	void CreateRankedContributionStructures(int nTargetValueNumber, int nAttributeNumber,
 						const StringVector* svAttributeNames);
 
-	// Calcul du vecteur de index source de grille
-	void ComputeDataGridSourcesIndexes() const;
-
-	// Calcul de toute els contribution triee pour les acces aux cointributions par rang
+	// Calcul de toutes les contributions triees pour les acces aux contributions par rang
 	void ComputeRankedContributions() const;
 
 	// Contribution par valeur cible et par rang
 	const KIAttributeContribution* GetRankedContributionAt(int nTarget, int nAttributeRank) const;
 
-	// Regle associee au classifieur
-	const KWDRNBClassifier* classifierRule;
-
-	// Dictionnaire des rangs des valeurs cibles, en memorisant le rang+1
-	LongintNumericKeyDictionary lnkdTargetValueRanks;
-
-	// Noms des variables du predicteur
-	StringVector svPredictorAttributeNames;
-
-	// Dictionnaire des rangs des variables, en memorisant le rang+1
-	LongintDictionary ldPredictorAttributeRanks;
-
-	// Tableau des regles de type data grid par variable du predicteur
-	ObjectArray oaPredictorAttributeDataGridRules;
-
 	// Tableau des tables de Shapley par variable du predicteur
 	ObjectArray oaPredictorAttributeShapleyTables;
 
-	// Index de chaque partie source des grilles, que l'on soit en sparse ou non
-	// Dans le cas de l'interpretation, on a besoin de tous ces index pour acceder aux
-	// tables de Shapley, ce qui fait que ce vecteur d'index est dense
-	mutable IntVector ivDataGridSourceIndexes;
-
-	// Index par defaut de chaque partie source des grilles
-	// Permet d'avoir la reference dans le cas sparse, et de ne calculer que les index
-	// que pour les valeurs presentes
-	mutable IntVector ivDataGridSourceDefaultIndexes;
-
-	// Tableau par valeur cible de tableau de KIAttributeContribution, tries par contribution decroissante
+	// Tableau par valeur cible de tableaux de KIAttributeContribution, tries par contribution decroissante
 	ObjectArray oaTargetValueRankedAttributeContributions;
 
-	// Indicateur de calcul des contributions par rang, pour bufferisation des calcul
+	// Indicateur de calcul des contributions par rang, pour bufferisation des calculs
 	mutable boolean bIsRankedContributionComputed;
 };
 
@@ -216,8 +262,8 @@ public:
 
 ////////////////////////////////////////////////////////////
 // Classe KIAttributeContribution
-// Memorisation d'un index d'attribut et de sa contribution, permettant
-// ensuite un tri par contribution decroissante
+// Memorisation d'un index d'attribut et de sa contribution,
+// permettant ensuite un tri par contribution decroissante
 class KIAttributeContribution : public Object
 {
 public:
@@ -250,26 +296,26 @@ protected:
 	const StringVector* svAttributeNames;
 };
 
-// Methode de compraison
+// Methode de comparaison par contribution decroissante
 int KIAttributeContributionCompare(const void* elem1, const void* elem2);
 
 ////////////////////////////////////////////////
 // Methode en inline
 
-inline int KIDRClassifierInterpreter::GetTargetValueNumber() const
+inline int KIDRClassifierService::GetTargetValueNumber() const
 {
 	require(IsCompiled());
 	return classifierRule->GetTargetValueNumber();
 }
 
-inline Symbol KIDRClassifierInterpreter::GetTargetValueAt(int nTarget) const
+inline Symbol KIDRClassifierService::GetTargetValueAt(int nTarget) const
 {
 	require(IsCompiled());
 	require(0 <= nTarget and nTarget < GetTargetValueNumber());
 	return classifierRule->GetTargetValueAt(nTarget);
 }
 
-inline int KIDRClassifierInterpreter::GetTargetValueRank(Symbol sValue) const
+inline int KIDRClassifierService::GetTargetValueRank(Symbol sValue) const
 {
 	int nRank;
 	require(IsCompiled());
@@ -278,20 +324,20 @@ inline int KIDRClassifierInterpreter::GetTargetValueRank(Symbol sValue) const
 	return nRank;
 }
 
-inline int KIDRClassifierInterpreter::GetPredictorAttributeNumber() const
+inline int KIDRClassifierService::GetPredictorAttributeNumber() const
 {
 	require(IsCompiled());
 	return classifierRule->GetDataGridStatsNumber();
 }
 
-inline const ALString& KIDRClassifierInterpreter::GetPredictorAttributeNameAt(int nAttribute) const
+inline const ALString& KIDRClassifierService::GetPredictorAttributeNameAt(int nAttribute) const
 {
 	require(IsCompiled());
 	require(0 <= nAttribute and nAttribute < GetPredictorAttributeNumber());
 	return svPredictorAttributeNames.GetAt(nAttribute);
 }
 
-inline int KIDRClassifierInterpreter::GetPredictorAttributeRank(const ALString& sName) const
+inline int KIDRClassifierService::GetPredictorAttributeRank(const ALString& sName) const
 {
 	int nRank;
 	require(IsCompiled());
@@ -300,7 +346,7 @@ inline int KIDRClassifierInterpreter::GetPredictorAttributeRank(const ALString& 
 	return nRank;
 }
 
-inline Continuous KIDRClassifierInterpreter::GetPredictorAttributeWeightAt(int nAttribute) const
+inline Continuous KIDRClassifierService::GetPredictorAttributeWeightAt(int nAttribute) const
 {
 	require(IsCompiled());
 	require(0 <= nAttribute and nAttribute < GetPredictorAttributeNumber());

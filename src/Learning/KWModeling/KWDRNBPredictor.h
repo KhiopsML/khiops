@@ -105,11 +105,22 @@ public:
 	// Calcul de l'attribut derive
 	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
 
-	// Reimplementation des services de classification
+	// Reimplementation des services de classification, ici precalcules
 	Symbol ComputeTargetValue() const override;
 	Continuous ComputeTargetProb() const override;
 	Continuous ComputeTargetProbAt(const Symbol& sValue) const override;
 	Symbol ComputeBiasedTargetValue(const ContinuousVector* cvOffsets) const override;
+
+	////////////////////////////////////////////////////////////////////
+	// Methodes avancees pour acceder au calcul des probabilites du predicteur SNB
+
+	// Acces aux termes du numerateur des logs de probabilites, avant normalisation
+	// Ce terme est la somme additives des logs des probabilites impliquees pour un predicteur SNB
+	const ContinuousVector* GetTargetLogProbNumeratorTerms() const;
+
+	// Recalcul des probabilites a partir d'un vecteur des termes de numerateur
+	void ComputeTargetProbsFromNumeratorTerms(const ContinuousVector* cvNumeratorTerms,
+						  ContinuousVector* cvProbs) const;
 
 	////////////////////////////////////////////////////////////////////
 	// Compilation de la regle et services associes
@@ -140,7 +151,8 @@ public:
 	longint GetUsedMemory() const override;
 
 	// Export des noms des variables du classifieur, dans leur version initiale et partitionnee
-	void ExportAttributeNames(StringVector* svPredictorAttributeNames,
+	// La methode renvoie les informations exploitables au mieux
+	void ExportAttributeNames(const KWClass* kwcOwnerClass, StringVector* svPredictorAttributeNames,
 				  StringVector* svPredictorPartitionedAttributeNames) const;
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
@@ -196,6 +208,9 @@ protected:
 
 	// Vecteurs des valeurs cibles
 	SymbolVector svTargetValues;
+
+	// Vecteur des numerateurs des log de probabilites conditionnelles, avant normalisation pour obtenir des probabilites
+	mutable ContinuousVector cvTargetLogProbNumeratorTerms;
 
 	// Vecteur des probabilites conditionnelles
 	mutable ContinuousVector cvTargetProbs;

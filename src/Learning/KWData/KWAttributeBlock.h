@@ -179,10 +179,11 @@ public:
 	KWAttribute* LookupAttributeBySymbolVarKey(Symbol sVarKey) const;
 
 	// Construction d'un bloc de cle pour tous les attributs du bloc, que la classe soit indexee ou non
-	// Seules les cles valides sont memorisees
+	// Seules les cles valides sont memorisees, avec les attributs associes a leur cles dans le dictionnaire
+	// en parametres (en prenant la cle telle quelle dans le cas numerique, par sa NumericKey sinon)
 	// Utile pour les check avant indexation de la classe
 	// Memoire: le bloc de cle en retour appartient a l'appelant
-	KWIndexedKeyBlock* BuildAttributesIndexedKeyBlock() const;
+	KWIndexedKeyBlock* BuildAttributesIndexedKeyBlock(NumericKeyDictionary* nkdBlockAttributes) const;
 
 	/////////////////////////////////////////
 	// Services divers
@@ -240,7 +241,7 @@ protected:
 
 	/////////////////////////////////////////
 	// Service avances lies aux VarKey
-	// A n'utiliser que pour se servir d'un bloc pour gerer temporaire les attributs par VarKey,
+	// A n'utiliser que pour se servir d'un bloc pour gerer temporairement les attributs par VarKey,
 	// hors indexation de la classe
 	friend class KDClassBuilder;
 
