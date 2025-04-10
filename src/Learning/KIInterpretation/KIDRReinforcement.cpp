@@ -22,6 +22,12 @@ KIDRClassifierReinforcer::KIDRClassifierReinforcer()
 	SetName("ClassifierReinforcer");
 	SetLabel("Classifier reinforcer");
 	SetStructureName("ClassifierReinforcer");
+
+	// Ajout d'un deuxieme operande en plus du classifier, pour les attributs de renforcement
+	assert(GetOperandNumber() == 1);
+	SetOperandNumber(2);
+	GetSecondOperand()->SetType(KWType::Structure);
+	GetSecondOperand()->SetStructureName("VectorC");
 }
 
 KIDRClassifierReinforcer::~KIDRClassifierReinforcer() {}
@@ -31,7 +37,24 @@ KWDerivationRule* KIDRClassifierReinforcer::Create() const
 	return new KIDRClassifierReinforcer;
 }
 
-void KIDRClassifierReinforcer::Compile(KWClass* kwcOwnerClass) {}
+void KIDRClassifierReinforcer::Compile(KWClass* kwcOwnerClass)
+{
+	const boolean bTrace = false;
+
+	// Appel de la methode ancetre
+	KIDRClassifierService::Compile(kwcOwnerClass);
+	assert(classifierRule != NULL);
+
+	// Creation des structures des gestion des renforcement pour les acces par rang
+	/*DDD
+	CreateRankedContributionStructures(GetTargetValueNumber(), svPredictorAttributeNames.GetSize(),
+					   &svPredictorAttributeNames);
+					   */
+
+	// Trace
+	if (bTrace)
+		WriteDetails(cout);
+}
 
 Object* KIDRClassifierReinforcer::ComputeStructureResult(const KWObject* kwoObject) const
 {

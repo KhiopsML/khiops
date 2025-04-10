@@ -114,31 +114,54 @@ protected:
 	boolean IsClassifierClassUsingBivariatePreprocessing(KWClass* kwcClassifier) const;
 
 	////////////////////////////////////////////////////////////////////////////
-	// Creation des attributs de contribution du dictionnaite d'interpretation
+	// Creation des attributs du dictionnaite d'interpretation
 
-	// Creation des attributs de contribution du dictionnaire d'interpretation
-	void CreateInterpretationAttributes(KWClass* kwcInterpretation, const KWAttribute* predictorRuleAttribute,
+	// Creation de tous les attributs du dictionnaire d'interpretation
+	void CreateInterpretationAttributes(KWClass* kwcInterpretationClass, const KWAttribute* predictorRuleAttribute,
 					    const SymbolVector* svInterpretedTargetValues, boolean bIsGlobalRanking,
 					    int nContributionAttributeNumber) const;
 
 	// Creation dans la classe de l'attribut gerant l'interpretation
-	KWAttribute* CreateInterpreterAttribute(KWClass* kwcInterpretation,
+	KWAttribute* CreateInterpreterAttribute(KWClass* kwcInterpretationClass,
 						const KWAttribute* predictorRuleAttribute) const;
 
 	// Creation dans la classe d'un attribut de contribution pour un valeur cible et un attribut
 	// La regle de construction, a creer par l'appelant, est le parametre principal
-	KWAttribute* CreateContributionAttribute(KWClass* kwcInterpretation, const KWAttribute* interpreterAttribute,
+	KWAttribute* CreateContributionAttribute(KWClass* kwcInterpretationClass,
+						 const KWAttribute* interpreterAttribute,
 						 KWDerivationRule* kwdrContributionRule, Symbol sTargetValue,
 						 const ALString& sAttributeName,
 						 const ALString& sAttributeMetaDataKey) const;
 
 	// Creation dans la classe d'un attribut de contribution pour une valeur cible et et un rang de contribution
 	// La regle de construction, a creer par l'appelant, est le parametre principal
-	KWAttribute* CreateRankedContributionAttribute(KWClass* kwcInterpretation,
+	KWAttribute* CreateRankedContributionAttribute(KWClass* kwcInterpretationClass,
 						       const KWAttribute* interpreterAttribute,
 						       KWDerivationRule* kwdrRankedContributionRule,
 						       const ALString& sBaseName, Symbol sTargetValue, int nRank,
-						       const ALString& sMetaDataKey) const;
+						       const ALString& sRankMetaDataKey) const;
+
+	////////////////////////////////////////////////////////////////////////////
+	// Creation des attributs du dictionnaite de renforcement
+
+	// Creation de tous les attributs du dictionnaire de renforcement
+	void CreateReinforcementAttributes(KWClass* kwcReinforcementClass, const KWAttribute* predictorRuleAttribute,
+					   const SymbolVector* svReinforcedTargetValues,
+					   const StringVector* svReinforcementAttributes) const;
+
+	// Creation dans la classe de l'attribut gerant le renforcement
+	KWAttribute* CreateReinforcerAttribute(KWClass* kwcReinforcementClass,
+					       const KWAttribute* predictorRuleAttribute,
+					       const StringVector* svReinforcementAttributes) const;
+
+	// Creation dans la classe d'un attribut de renforcement pour une valeur cible et et un rang de renforcement
+	// La regle de construction, a creer par l'appelant, est le parametre principal
+	// Le rang est a -1 s'il n'est pas utilise
+	KWAttribute* CreateRankedReinforcementAttribute(KWClass* kwcReinforcementClass,
+							const KWAttribute* interpreterAttribute,
+							KWDerivationRule* kwdrRankedReinforcementRule,
+							const ALString& sBaseName, Symbol sTargetValue, int nRank,
+							const ALString& sRankMetaDataKey) const;
 
 	///////
 	// DEPRECATED
