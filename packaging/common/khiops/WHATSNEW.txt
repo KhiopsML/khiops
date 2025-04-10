@@ -2,6 +2,16 @@
 Release Notes for Khiops 10 Version Series
 ==========================================
 
+Version 10.3.1
+==============
+Bug fix of the sort algorithm: The singleton chunks don't need to be sorted, but if the input and output file 
+separators are different, they need to be rewritten to change the file separator.
+
+Minor improvement of the Java GUI (better handling of the value changes for spinner widgets).
+
+Other minor improvements and bug fixes.
+
+
 Version 10.3.0
 ==============
 
