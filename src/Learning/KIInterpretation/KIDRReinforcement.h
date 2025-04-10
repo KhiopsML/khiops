@@ -64,6 +64,13 @@ public:
 protected:
 	// Nettoyage
 	void Clean() override;
+
+	// Calcul de toutes les information de renforcement triees pour les acces aux contributions par rang,
+	// pour une valeur cible
+	void ComputeRankedReinforcementAt(int nTarget) const;
+
+	// Vecteur de score initial par valeur cible
+	mutable ContinuousVector cvInitialScores;
 };
 
 ////////////////////////////////////////////////////////////

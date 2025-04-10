@@ -45,11 +45,9 @@ void KIDRClassifierReinforcer::Compile(KWClass* kwcOwnerClass)
 	KIDRClassifierService::Compile(kwcOwnerClass);
 	assert(classifierRule != NULL);
 
-	// Creation des structures des gestion des renforcement pour les acces par rang
-	/*DDD
-	CreateRankedContributionStructures(GetTargetValueNumber(), svPredictorAttributeNames.GetSize(),
-					   &svPredictorAttributeNames);
-					   */
+	// Initialisation du vecteur de score
+	assert(cvInitialScores.GetSize() == 0);
+	cvInitialScores.SetSize(GetTargetValueNumber());
 
 	// Trace
 	if (bTrace)
@@ -58,12 +56,40 @@ void KIDRClassifierReinforcer::Compile(KWClass* kwcOwnerClass)
 
 Object* KIDRClassifierReinforcer::ComputeStructureResult(const KWObject* kwoObject) const
 {
+	int nTarget;
+
+	// Appel de la methode ancetre
+	KIDRClassifierService::ComputeStructureResult(kwoObject);
+
+	// On indique que les renforecment par classe cible sont a recalculer si necessaire,
+	// en forcant les scores a 0 (une probabilite du predicteur ne peut etre nulle)
+	for (nTarget = 0; nTarget < GetTargetValueNumber(); nTarget++)
+		cvInitialScores.SetAt(nTarget, 0);
 	return (Object*)this;
 }
 
 Continuous KIDRClassifierReinforcer::GetReinforcementInitialScoreAt(Symbol sTargetValue) const
 {
-	return 0;
+	int nTargetValueRank;
+
+	require(IsCompiled());
+
+	// Recherche du rang de la valeur cible
+	nTargetValueRank = GetTargetValueRank(sTargetValue);
+
+	// On ne renvoie rien si la valeur cible est incorrecte
+	if (nTargetValueRank == -1)
+		return 0;
+	// Sinon, on renvoie le nom de l'attribut correspondant
+	else
+	{
+		// Calcul des informations de renforcement
+		if (cvInitialScores.GetAt(nTargetValueRank) == 0)
+			ComputeRankedReinforcementAt(nTargetValueRank);
+
+		// Retourne le initial
+		return cvInitialScores.GetAt(nTargetValueRank);
+	}
 }
 
 Symbol KIDRClassifierReinforcer::GetRankedReinforcementAttributeAt(Symbol sTargetValue, int nAttributeRank) const
@@ -92,7 +118,28 @@ longint KIDRClassifierReinforcer::GetUsedMemory() const
 	return 0;
 }
 
-void KIDRClassifierReinforcer::Clean() {}
+void KIDRClassifierReinforcer::Clean()
+{
+	// Methode ancetre
+	KIDRClassifierService::Clean();
+
+	// Nettoyage des structures specifiques
+	cvInitialScores.SetSize(0);
+}
+
+void KIDRClassifierReinforcer::ComputeRankedReinforcementAt(int nTarget) const
+{
+	require(IsCompiled());
+	require(0 <= nTarget and nTarget < GetTargetValueNumber());
+	require(ivDataGridSourceIndexes.GetSize() == GetPredictorAttributeNumber());
+	require(classifierRule != NULL);
+	require(cvInitialScores.GetAt(nTarget) == 0);
+
+	// On confie au classifieur le calcul du score
+	cvInitialScores.SetAt(nTarget, classifierRule->ComputeTargetProbAt(GetTargetValueAt(nTarget)));
+
+	ensure(cvInitialScores.GetAt(nTarget) > 0);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KIDRReinforcementInitialScoreAt

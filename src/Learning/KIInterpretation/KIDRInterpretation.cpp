@@ -444,7 +444,7 @@ Symbol KIDRClassifierInterpreter::GetRankedContributionAttributeAt(Symbol sTarge
 	// Recherche du rang de la valeur cible
 	nTargetValueRank = GetTargetValueRank(sTargetValue);
 
-	// On ne renvoie rein si la valeur cible est incorrecte
+	// On ne renvoie rien si la valeur cible est incorrecte
 	if (nTargetValueRank == -1)
 		return Symbol();
 	// Sinon, on renvoie le nom de l'attribut correspondant
@@ -471,7 +471,7 @@ Symbol KIDRClassifierInterpreter::GetRankedContributionPartAt(Symbol sTargetValu
 	// Recherche du rang de la valeur cible
 	nTargetValueRank = GetTargetValueRank(sTargetValue);
 
-	// On ne renvoie rein si la valeur cible est incorrecte
+	// On ne renvoie rien si la valeur cible est incorrecte
 	if (nTargetValueRank == -1)
 		return Symbol();
 	// Sinon, on renvoie le nom de l'attribut correspondant
@@ -503,7 +503,7 @@ Continuous KIDRClassifierInterpreter::GetRankedContributionValueAt(Symbol sTarge
 	// Recherche du rang de la valeur cible
 	nTargetValueRank = GetTargetValueRank(sTargetValue);
 
-	// On ne renvoie rein si la valeur cible est incorrecte
+	// On ne renvoie rien si la valeur cible est incorrecte
 	if (nTargetValueRank == -1)
 		return 0;
 	// Sinon, on renvoie le nom de l'attribut correspondant

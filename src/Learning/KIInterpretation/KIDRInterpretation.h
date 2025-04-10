@@ -169,7 +169,7 @@ protected:
 	void CreateRankedContributionStructures(int nTargetValueNumber, int nAttributeNumber,
 						const StringVector* svAttributeNames);
 
-	// Calcul de toute els contribution triee pour les acces aux cointributions par rang
+	// Calcul de toutes les contributions triees pour les acces aux contributions par rang
 	void ComputeRankedContributions() const;
 
 	// Contribution par valeur cible et par rang
