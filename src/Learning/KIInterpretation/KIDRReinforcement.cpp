@@ -17,7 +17,12 @@ void KIDRRegisterReinforcementRules()
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KIDRClassifierReinforcer
 
-KIDRClassifierReinforcer::KIDRClassifierReinforcer() {}
+KIDRClassifierReinforcer::KIDRClassifierReinforcer()
+{
+	SetName("ClassifierReinforcer");
+	SetLabel("Classifier reinforcer");
+	SetStructureName("ClassifierReinforcer");
+}
 
 KIDRClassifierReinforcer::~KIDRClassifierReinforcer() {}
 

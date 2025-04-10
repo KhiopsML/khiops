@@ -126,15 +126,19 @@ protected:
 						const KWAttribute* predictorRuleAttribute) const;
 
 	// Creation dans la classe d'un attribut de contribution pour un valeur cible et un attribut
+	// La regle de construction, a creer par l'appelant, est le parametre principal
 	KWAttribute* CreateContributionAttribute(KWClass* kwcInterpretation, const KWAttribute* interpreterAttribute,
-						 Symbol sTargetClass, const ALString& sAttributeName) const;
+						 KWDerivationRule* kwdrContributionRule, Symbol sTargetValue,
+						 const ALString& sAttributeName,
+						 const ALString& sAttributeMetaDataKey) const;
 
 	// Creation dans la classe d'un attribut de contribution pour une valeur cible et et un rang de contribution
-	// On donne en parametre le type de regle a construire, parmi "Variable", Value" ou "Part"
+	// La regle de construction, a creer par l'appelant, est le parametre principal
 	KWAttribute* CreateRankedContributionAttribute(KWClass* kwcInterpretation,
 						       const KWAttribute* interpreterAttribute,
-						       const ALString& contributionType, Symbol sTargetClass,
-						       int nRank) const;
+						       KWDerivationRule* kwdrRankedContributionRule,
+						       const ALString& sBaseName, Symbol sTargetValue, int nRank,
+						       const ALString& sMetaDataKey) const;
 
 	///////
 	// DEPRECATED

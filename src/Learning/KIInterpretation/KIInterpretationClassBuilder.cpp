@@ -395,6 +395,7 @@ void KIInterpretationClassBuilder::CreateInterpretationAttributes(KWClass* kwcIn
 	KIPredictorAttribute* predictorAttribute;
 	int nTarget;
 	int nAttribute;
+	Symbol sTargetValue;
 
 	require(kwcInterpretation != NULL);
 	require(predictorRuleAttribute != NULL);
@@ -414,14 +415,16 @@ void KIInterpretationClassBuilder::CreateInterpretationAttributes(KWClass* kwcIn
 		// Parcours de classe cibles
 		for (nTarget = 0; nTarget < svInterpretedTargetValues->GetSize(); nTarget++)
 		{
+			sTargetValue = svInterpretedTargetValues->GetAt(nTarget);
+
 			// Parcours des attributs
 			for (nAttribute = 0; nAttribute < nContributionAttributeNumber; nAttribute++)
 			{
 				predictorAttribute =
 				    cast(KIPredictorAttribute*, oaPredictorAttributes.GetAt(nAttribute));
-				CreateContributionAttribute(kwcInterpretation, interpreterAttribute,
-							    svInterpretedTargetValues->GetAt(nTarget),
-							    predictorAttribute->GetName());
+				CreateContributionAttribute(
+				    kwcInterpretation, interpreterAttribute, new KIDRContributionAt, sTargetValue,
+				    predictorAttribute->GetName(), GetContributionAttributeMetaDataKey());
 			}
 		}
 
@@ -434,19 +437,21 @@ void KIInterpretationClassBuilder::CreateInterpretationAttributes(KWClass* kwcIn
 		// Parcours de classe cibles
 		for (nTarget = 0; nTarget < svInterpretedTargetValues->GetSize(); nTarget++)
 		{
+			sTargetValue = svInterpretedTargetValues->GetAt(nTarget);
+
 			// Parcours des attributs
 			for (nAttribute = 0; nAttribute < nContributionAttributeNumber; nAttribute++)
 			{
 				// Creation de trois attributs par rang
-				CreateRankedContributionAttribute(kwcInterpretation, interpreterAttribute, "Variable",
-								  svInterpretedTargetValues->GetAt(nTarget),
-								  nAttribute);
-				CreateRankedContributionAttribute(kwcInterpretation, interpreterAttribute, "Part",
-								  svInterpretedTargetValues->GetAt(nTarget),
-								  nAttribute);
-				CreateRankedContributionAttribute(kwcInterpretation, interpreterAttribute, "Value",
-								  svInterpretedTargetValues->GetAt(nTarget),
-								  nAttribute);
+				CreateRankedContributionAttribute(
+				    kwcInterpretation, interpreterAttribute, new KIDRContributionAttributeAt,
+				    "Variable", sTargetValue, nAttribute, GetContributionAttributeRankMetaDataKey());
+				CreateRankedContributionAttribute(kwcInterpretation, interpreterAttribute,
+								  new KIDRContributionPartAt, "Part", sTargetValue,
+								  nAttribute, GetContributionPartRankMetaDataKey());
+				CreateRankedContributionAttribute(kwcInterpretation, interpreterAttribute,
+								  new KIDRContributionValueAt, "Value", sTargetValue,
+								  nAttribute, GetContributionValueRankMetaDataKey());
 			}
 		}
 	}
@@ -480,92 +485,72 @@ KWAttribute* KIInterpretationClassBuilder::CreateInterpreterAttribute(KWClass* k
 	return interpreterAttribute;
 }
 
-KWAttribute* KIInterpretationClassBuilder::CreateContributionAttribute(KWClass* kwcInterpretation,
-								       const KWAttribute* interpreterAttribute,
-								       Symbol sTargetClass,
-								       const ALString& sAttributeName) const
+KWAttribute* KIInterpretationClassBuilder::CreateContributionAttribute(
+    KWClass* kwcInterpretation, const KWAttribute* interpreterAttribute, KWDerivationRule* kwdrContributionRule,
+    Symbol sTargetValue, const ALString& sAttributeName, const ALString& sAttributeMetaDataKey) const
 {
 	KWAttribute* contributionAttribute;
-	KWDerivationRule* rule;
-	ALString sValue;
 
 	require(kwcInterpretation != NULL);
+	require(interpreterAttribute != NULL);
+	require(kwdrContributionRule != NULL);
 	require(sAttributeName != "");
+	require(sAttributeMetaDataKey != "");
 
-	// Creation de la regle de derivation
-	rule = new KIDRContributionAt;
-	rule->SetClassName(kwcInterpretation->GetName());
-	rule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
-	rule->GetFirstOperand()->SetAttributeName(interpreterAttribute->GetName());
-	rule->GetOperandAt(1)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
-	rule->GetOperandAt(1)->SetSymbolConstant(sTargetClass);
-	rule->GetOperandAt(2)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
-	rule->GetOperandAt(2)->SetSymbolConstant((Symbol)sAttributeName);
-	assert(rule->Check());
+	// Parametrage de la regle
+	kwdrContributionRule->SetClassName(kwcInterpretation->GetName());
+	kwdrContributionRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+	kwdrContributionRule->GetFirstOperand()->SetAttributeName(interpreterAttribute->GetName());
+	kwdrContributionRule->GetOperandAt(1)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+	kwdrContributionRule->GetOperandAt(1)->SetSymbolConstant(sTargetValue);
+	kwdrContributionRule->GetOperandAt(2)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+	kwdrContributionRule->GetOperandAt(2)->SetSymbolConstant((Symbol)sAttributeName);
+	assert(kwdrContributionRule->Check());
 
 	// Creation de l'attribut, et affectation de la regle de derivation
 	contributionAttribute = new KWAttribute;
-	contributionAttribute->SetDerivationRule(rule);
-	contributionAttribute->SetType(rule->GetType());
+	contributionAttribute->SetDerivationRule(kwdrContributionRule);
+	contributionAttribute->SetType(kwdrContributionRule->GetType());
 	contributionAttribute->SetName(
-	    kwcInterpretation->BuildAttributeName(GetShapleyLabel() + "_" + sTargetClass + "_" + sAttributeName));
+	    kwcInterpretation->BuildAttributeName(GetShapleyLabel() + "_" + sTargetValue + "_" + sAttributeName));
 	contributionAttribute->SetType(KWType::Continuous);
-	contributionAttribute->GetMetaData()->SetStringValueAt(GetContributionAttributeMetaDataKey(), sAttributeName);
-	contributionAttribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetClass.GetValue());
+	contributionAttribute->GetMetaData()->SetStringValueAt(sAttributeMetaDataKey, sAttributeName);
+	contributionAttribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetValue.GetValue());
 	kwcInterpretation->InsertAttribute(contributionAttribute);
 	return contributionAttribute;
 }
 
-KWAttribute* KIInterpretationClassBuilder::CreateRankedContributionAttribute(KWClass* kwcInterpretation,
-									     const KWAttribute* interpreterAttribute,
-									     const ALString& contributionType,
-									     Symbol sTargetClass, int nRank) const
+KWAttribute* KIInterpretationClassBuilder::CreateRankedContributionAttribute(
+    KWClass* kwcInterpretation, const KWAttribute* interpreterAttribute, KWDerivationRule* kwdrRankedContributionRule,
+    const ALString& sBaseName, Symbol sTargetValue, int nRank, const ALString& sMetaDataKey) const
 {
 	KWAttribute* contributionAttribute;
-	KWDerivationRule* rule;
-	ALString sValue;
-	ALString sContributionMetaDataKey;
 
 	require(kwcInterpretation != NULL);
 	require(interpreterAttribute != NULL);
-	require(contributionType != "Variable" or contributionType != "Value" or contributionType != "Part");
+	require(kwdrRankedContributionRule != NULL);
+	require(sBaseName != "");
 	require(nRank >= 0);
-
-	// Creation de la regle de derivation selon son type
-	if (contributionType == "Variable")
-	{
-		rule = new KIDRContributionAttributeAt;
-		sContributionMetaDataKey = GetContributionAttributeRankMetaDataKey();
-	}
-	else if (contributionType == "Value")
-	{
-		rule = new KIDRContributionValueAt;
-		sContributionMetaDataKey = GetContributionValueRankMetaDataKey();
-	}
-	else
-	{
-		rule = new KIDRContributionPartAt;
-		sContributionMetaDataKey = GetContributionPartRankMetaDataKey();
-	}
+	require(sMetaDataKey != "");
 
 	// Parametrage de la regle
-	rule->SetClassName(kwcInterpretation->GetName());
-	rule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
-	rule->GetFirstOperand()->SetAttributeName(interpreterAttribute->GetName());
-	rule->GetOperandAt(1)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
-	rule->GetOperandAt(1)->SetSymbolConstant(sTargetClass);
-	rule->GetOperandAt(2)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
-	rule->GetOperandAt(2)->SetContinuousConstant(nRank + 1);
-	assert(rule->Check());
+	kwdrRankedContributionRule->SetClassName(kwcInterpretation->GetName());
+	kwdrRankedContributionRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+	kwdrRankedContributionRule->GetFirstOperand()->SetAttributeName(interpreterAttribute->GetName());
+	kwdrRankedContributionRule->GetOperandAt(1)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+	kwdrRankedContributionRule->GetOperandAt(1)->SetSymbolConstant(sTargetValue);
+	kwdrRankedContributionRule->GetOperandAt(2)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+	kwdrRankedContributionRule->GetOperandAt(2)->SetContinuousConstant(nRank + 1);
+	assert(kwdrRankedContributionRule->Check());
 
 	// Creation de l'attribut, et affectation de la regle de derivation
 	contributionAttribute = new KWAttribute;
-	contributionAttribute->SetDerivationRule(rule);
-	contributionAttribute->SetType(rule->GetType());
+	contributionAttribute->SetDerivationRule(kwdrRankedContributionRule);
+	contributionAttribute->SetType(kwdrRankedContributionRule->GetType());
 	contributionAttribute->SetName(kwcInterpretation->BuildAttributeName(
-	    GetShapleyLabel() + contributionType + "_" + sTargetClass + "_" + IntToString(nRank + 1)));
-	contributionAttribute->GetMetaData()->SetDoubleValueAt(sContributionMetaDataKey, nRank + 1);
-	contributionAttribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetClass.GetValue());
+	    GetShapleyLabel() + sBaseName + "_" + sTargetValue + "_" + IntToString(nRank + 1)));
+	contributionAttribute->GetMetaData()->SetDoubleValueAt(sMetaDataKey, nRank + 1);
+	contributionAttribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetValue.GetValue());
 	kwcInterpretation->InsertAttribute(contributionAttribute);
 	return contributionAttribute;
 }
