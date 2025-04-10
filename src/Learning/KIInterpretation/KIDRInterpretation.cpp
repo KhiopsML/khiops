@@ -54,7 +54,7 @@ boolean KIDRClassifierService::CheckOperandsCompleteness(const KWClass* kwcOwner
 		if (checkedClassifierRule->GetName() != referenceNBRule.GetName() and
 		    checkedClassifierRule->GetName() != referenceSNBRule.GetName())
 		{
-			AddError("First operand rule must be a classifier of type " + referenceNBRule.GetName() +
+			AddError("First rule operand must be a classifier of type " + referenceNBRule.GetName() +
 				 " or " + referenceSNBRule.GetName());
 			bOk = false;
 		}

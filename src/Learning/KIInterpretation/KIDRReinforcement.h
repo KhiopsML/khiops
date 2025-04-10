@@ -29,8 +29,18 @@ public:
 	// Creation
 	KWDerivationRule* Create() const override;
 
+	// Verification que la regle est completement renseignee
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
+
 	// Compilation
 	void Compile(KWClass* kwcOwnerClass) override;
+
+	//////////////////////////////////////////////////////////
+	// Acces aux caracteristiques du renforceur
+
+	// Noms des variables de renforcement
+	int GetReinforcementAttributeNumber() const;
+	const ALString& GetReinforcementAttributeNameAt(int nAttribute) const;
 
 	////////////////////////////////////////////////////////////////////
 	// Application  de la regle a un objet, et services associes
@@ -55,6 +65,9 @@ public:
 
 	////////////////////////////////////////////////////////////////////
 	// Services divers
+
+	// Affichage des caracteristique detaillees du renforceur
+	void WriteDetails(ostream& ost) const override;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -220,6 +233,19 @@ int KIAttributeReinforcementCompare(const void* elem1, const void* elem2);
 
 ////////////////////////////////////
 // Methodes en inline
+
+inline int KIDRClassifierReinforcer::GetReinforcementAttributeNumber() const
+{
+	require(IsCompiled());
+	return ivReinforcementAttributeIndexes.GetSize();
+}
+
+inline const ALString& KIDRClassifierReinforcer::GetReinforcementAttributeNameAt(int nAttribute) const
+{
+	require(IsCompiled());
+	require(0 <= nAttribute and nAttribute < GetReinforcementAttributeNumber());
+	return GetPredictorAttributeNameAt(ivReinforcementAttributeIndexes.GetAt(nAttribute));
+}
 
 inline void KIAttributeReinforcement::SetAttributeIndex(int nValue)
 {

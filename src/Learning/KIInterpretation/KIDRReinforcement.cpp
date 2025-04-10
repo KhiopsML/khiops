@@ -37,13 +37,93 @@ KWDerivationRule* KIDRClassifierReinforcer::Create() const
 	return new KIDRClassifierReinforcer;
 }
 
+boolean KIDRClassifierReinforcer::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
+{
+	boolean bOk;
+	KWDRNBClassifier* checkedNBClassifierRule;
+	KWDRSymbolVector* checkedReinforcementAttributeNames;
+	StringVector svAttributeNames;
+	StringVector svPartitionedAttributeName;
+	LongintDictionary ldPredictorAttributes;
+	LongintDictionary ldCheckedReinforcedAttributes;
+	int nAttribute;
+	ALString sTmp;
+
+	// Appel de la methode ancetre
+	bOk = KIDRClassifierService::CheckOperandsCompleteness(kwcOwnerClass);
+
+	// Verification des noms de variables de renforcement
+	if (bOk)
+	{
+		// Acces aux parametres de la regle
+		checkedNBClassifierRule =
+		    cast(KWDRNBClassifier*, GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
+		checkedReinforcementAttributeNames =
+		    cast(KWDRSymbolVector*, GetSecondOperand()->GetReferencedDerivationRule(kwcOwnerClass));
+
+		// Recherche de ses variables
+		checkedNBClassifierRule->ExportAttributeNames(&svAttributeNames, &svPartitionedAttributeName);
+
+		// On range les variables dans un dictionnaire
+		// On memorise le rang+1, car 0 correspond a la valeur retournee en cas de cle inexistante
+		for (nAttribute = 0; nAttribute < svAttributeNames.GetSize(); nAttribute++)
+			ldPredictorAttributes.SetAt(svAttributeNames.GetAt(nAttribute), 1);
+
+		// On verifie que les variables de renforcement sont bien des variables du predicteur
+		for (nAttribute = 0; nAttribute < checkedReinforcementAttributeNames->GetValueNumber(); nAttribute++)
+		{
+			// Test si la variable existe pour le predicteur
+			if (ldPredictorAttributes.Lookup(
+				checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetValue()) == 0)
+			{
+				AddError(sTmp + "Reinforced variable " +
+					 checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetValue() +
+					 " not found among the classifier variables in the first rule operand");
+				bOk = false;
+			}
+
+			// Test de l'unicite de la variable de renforcement
+			if (ldCheckedReinforcedAttributes.Lookup(
+				checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetValue()) == 1)
+			{
+				AddError(sTmp + "Reinforced variable " +
+					 checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetValue() +
+					 " used twice");
+				bOk = false;
+			}
+			ldCheckedReinforcedAttributes.SetAt(
+			    checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetValue(), 1);
+
+			// Arret si erreurs
+			if (not bOk)
+				break;
+		}
+	}
+	return bOk;
+}
+
 void KIDRClassifierReinforcer::Compile(KWClass* kwcOwnerClass)
 {
 	const boolean bTrace = false;
+	KWDRSymbolVector* reinforcementAttributeNames;
+	int nAttribute;
+	int nAttributeIndex;
 
 	// Appel de la methode ancetre
 	KIDRClassifierService::Compile(kwcOwnerClass);
 	assert(classifierRule != NULL);
+
+	// Memorisation des index des  variables de renforcement
+	reinforcementAttributeNames =
+	    cast(KWDRSymbolVector*, GetSecondOperand()->GetReferencedDerivationRule(kwcOwnerClass));
+	ivReinforcementAttributeIndexes.SetSize(reinforcementAttributeNames->GetValueNumber());
+	for (nAttribute = 0; nAttribute < reinforcementAttributeNames->GetValueNumber(); nAttribute++)
+	{
+		nAttributeIndex =
+		    GetPredictorAttributeRank(reinforcementAttributeNames->GetValueAt(nAttribute).GetValue());
+		assert(nAttributeIndex >= 0);
+		ivReinforcementAttributeIndexes.SetAt(nAttribute, nAttributeIndex);
+	}
 
 	// Initialisation du vecteur de score
 	assert(cvInitialScores.GetSize() == 0);
@@ -111,6 +191,21 @@ Continuous KIDRClassifierReinforcer::GetRankedReinforcementClassChangeTagAt(Symb
 									    int nAttributeRank) const
 {
 	return 0;
+}
+
+void KIDRClassifierReinforcer::WriteDetails(ostream& ost) const
+{
+	int nAttribute;
+
+	require(IsCompiled());
+
+	// Appel de la methode ancetre
+	KIDRClassifierService::WriteDetails(ost);
+
+	// Variables de renforcement
+	ost << " ## Reinforcement variables\t" << GetReinforcementAttributeNumber() << "\n";
+	for (nAttribute = 0; nAttribute < GetReinforcementAttributeNumber(); nAttribute++)
+		ost << "   - " << GetReinforcementAttributeNameAt(nAttribute) << "\n";
 }
 
 longint KIDRClassifierReinforcer::GetUsedMemory() const

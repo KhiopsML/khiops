@@ -40,7 +40,7 @@ public:
 	void Compile(KWClass* kwcOwnerClass) override;
 
 	//////////////////////////////////////////////////////////
-	// Acces aux caracteristiques des services du classifieurs apres compilation
+	// Acces aux caracteristiques du classifieur apres compilation
 
 	// Valeurs cible
 	int GetTargetValueNumber() const;
