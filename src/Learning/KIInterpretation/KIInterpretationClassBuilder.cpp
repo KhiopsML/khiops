@@ -443,7 +443,7 @@ void KIInterpretationClassBuilder::CreateInterpretationAttributes(KWClass* kwcIn
 			// Parcours des attributs
 			for (nAttribute = 0; nAttribute < nContributionAttributeNumber; nAttribute++)
 			{
-				// Creation de trois attributs par rang
+				// Creation des attributs pour les services par rang
 				CreateRankedContributionAttribute(
 				    kwcInterpretationClass, interpreterAttribute, new KIDRContributionAttributeAt,
 				    "Variable", sTargetValue, nAttribute, GetContributionAttributeRankMetaDataKey());
@@ -585,21 +585,28 @@ void KIInterpretationClassBuilder::CreateReinforcementAttributes(KWClass* kwcRei
 	{
 		sTargetValue = svReinforcedTargetValues->GetAt(nTarget);
 
+		// Creation de l'attribut du score initial, qui ne depend ps de l'attribut de renforcement
+		CreateRankedReinforcementAttribute(kwcReinforcementClass, reinforcerAttribute,
+						   new KIDRReinforcementInitialScoreAt, "InitialScore", sTargetValue,
+						   -1, GetReinforcementInitialScoreMetaDataKey());
+
 		// Parcours selon le nombre d'attribut de renforcement
 		for (nAttribute = 0; nAttribute < svReinforcementAttributes->GetSize(); nAttribute++)
 		{
-			// Creation de quatre attributs par rang
-			/*DDD
-			CreateRankedContributionAttribute(kwcInterpretationClass, interpreterAttribute,
-							  new KIDRContributionAttributeAt, "Variable", sTargetValue,
-							  nAttribute, GetContributionAttributeRankMetaDataKey());
-			CreateRankedContributionAttribute(kwcInterpretationClass, interpreterAttribute,
-							  new KIDRContributionPartAt, "Part", sTargetValue, nAttribute,
-							  GetContributionPartRankMetaDataKey());
-			CreateRankedContributionAttribute(kwcInterpretationClass, interpreterAttribute,
-							  new KIDRContributionValueAt, "Value", sTargetValue,
-							  nAttribute, GetContributionValueRankMetaDataKey());
-							  */
+			// Creation des attributs pour les services par rang
+			CreateRankedReinforcementAttribute(kwcReinforcementClass, reinforcerAttribute,
+							   new KIDRReinforcementAttributeAt, "Variable", sTargetValue,
+							   nAttribute, GetReinforcementAttributeRankMetaDataKey());
+			CreateRankedReinforcementAttribute(kwcReinforcementClass, reinforcerAttribute,
+							   new KIDRReinforcementPartAt, "Part", sTargetValue,
+							   nAttribute, GetReinforcementPartRankMetaDataKey());
+			CreateRankedReinforcementAttribute(
+			    kwcReinforcementClass, reinforcerAttribute, new KIDRReinforcementFinalScoreAt, "FinalScore",
+			    sTargetValue, nAttribute, GetReinforcementFinalScoreRankMetaDataKey());
+			CreateRankedReinforcementAttribute(kwcReinforcementClass, reinforcerAttribute,
+							   new KIDRReinforcementClassChangeTagAt, "ClassChangeTag",
+							   sTargetValue, nAttribute,
+							   GetReinforcementClassChangeTagRankMetaDataKey());
 		}
 	}
 }
@@ -620,7 +627,7 @@ KIInterpretationClassBuilder::CreateReinforcerAttribute(KWClass* kwcReinforcemen
 	require(svReinforcementAttributes != NULL);
 	require(svReinforcementAttributes->GetSize() > 0);
 
-	// Creation d'un regles de derivation pour les nom des attributs de renforcement
+	// Creation d'une regle de derivation pour les noms des attributs de renforcement
 	reinforcementAttributesRule = new KWDRSymbolVector;
 	reinforcementAttributesRule->SetValueNumber(svReinforcementAttributes->GetSize());
 	for (nAttribute = 0; nAttribute < svReinforcementAttributes->GetSize(); nAttribute++)
@@ -648,12 +655,46 @@ KIInterpretationClassBuilder::CreateReinforcerAttribute(KWClass* kwcReinforcemen
 }
 
 KWAttribute* KIInterpretationClassBuilder::CreateRankedReinforcementAttribute(
-    KWClass* kwcReinforcementClass, const KWAttribute* interpreterAttribute,
+    KWClass* kwcReinforcementClass, const KWAttribute* reinforcerAttribute,
     KWDerivationRule* kwdrRankedReinforcementRule, const ALString& sBaseName, Symbol sTargetValue, int nRank,
     const ALString& sRankMetaDataKey) const
 {
+	KWAttribute* reinforcementAttribute;
+	ALString sAttributeName;
+
 	require(kwcReinforcementClass != NULL);
-	return NULL;
+	require(reinforcerAttribute != NULL);
+	require(kwdrRankedReinforcementRule != NULL);
+	require(sBaseName != "");
+	require(nRank >= -1);
+	require(sRankMetaDataKey != "");
+
+	// Parametrage de la regle
+	kwdrRankedReinforcementRule->SetClassName(kwcReinforcementClass->GetName());
+	kwdrRankedReinforcementRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+	kwdrRankedReinforcementRule->GetFirstOperand()->SetAttributeName(reinforcerAttribute->GetName());
+	kwdrRankedReinforcementRule->GetOperandAt(1)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+	kwdrRankedReinforcementRule->GetOperandAt(1)->SetSymbolConstant(sTargetValue);
+	if (nRank >= 0)
+	{
+		kwdrRankedReinforcementRule->GetOperandAt(2)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+		kwdrRankedReinforcementRule->GetOperandAt(2)->SetContinuousConstant(nRank + 1);
+	}
+	assert(kwdrRankedReinforcementRule->Check());
+
+	// Creation de l'attribut, et affectation de la regle de derivation
+	reinforcementAttribute = new KWAttribute;
+	reinforcementAttribute->SetDerivationRule(kwdrRankedReinforcementRule);
+	reinforcementAttribute->SetType(kwdrRankedReinforcementRule->GetType());
+	sAttributeName = GetReinforcementLabel() + sBaseName + "_" + sTargetValue;
+	if (nRank >= 0)
+		sAttributeName = sAttributeName + "_" + IntToString(nRank + 1);
+	reinforcementAttribute->SetName(kwcReinforcementClass->BuildAttributeName(sAttributeName));
+	if (nRank >= 0)
+		reinforcementAttribute->GetMetaData()->SetDoubleValueAt(sRankMetaDataKey, nRank + 1);
+	reinforcementAttribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetValue.GetValue());
+	kwcReinforcementClass->InsertAttribute(reinforcementAttribute);
+	return reinforcementAttribute;
 }
 
 /*DDD
@@ -1431,5 +1472,11 @@ const ALString& KIInterpretationClassBuilder::GetTargetMetaDataKey()
 const ALString& KIInterpretationClassBuilder::GetShapleyLabel()
 {
 	static const ALString sMetaDataKey = "Shapley";
+	return sMetaDataKey;
+}
+
+const ALString& KIInterpretationClassBuilder::GetReinforcementLabel()
+{
+	static const ALString sMetaDataKey = "Reinforcement";
 	return sMetaDataKey;
 }

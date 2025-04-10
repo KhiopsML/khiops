@@ -68,8 +68,8 @@ protected:
 
 ////////////////////////////////////////////////////////////
 // Classe KIDRReinforcementInitialScoreAt
-// Donne la valeur de reinforcement initiale
-// a partir de KIDRClassifierReinforcement
+// Donne la valeur de renforcement initiale pour une valeur cible
+// a partir d'un renforceur
 class KIDRReinforcementInitialScoreAt : public KWDerivationRule
 {
 public:
@@ -86,8 +86,8 @@ public:
 
 ////////////////////////////////////////////////////////////
 // Classe KIDRReinforcementAttributeAt
-// Donne la valeur de la variable reenforcee
-// a partir de KIDRClassifierReinforcement
+// Donne le nom de la variable de renforcement pour une valeur cible
+// et un rang de variable a partir d'un renforceur
 class KIDRReinforcementAttributeAt : public KWDerivationRule
 {
 public:
@@ -104,8 +104,8 @@ public:
 
 ////////////////////////////////////////////////////////////
 // Classe KIDRReinforcementPartAt
-// Donne la valeur de la partition de la variable reenforcee
-// a partir de KIDRClassifierReinforcement
+// Donne la partie de la variable de renforcement pour une valeur cible
+// et un rang de variable a partir d'un renforceur
 class KIDRReinforcementPartAt : public KWDerivationRule
 {
 public:
@@ -122,8 +122,8 @@ public:
 
 ////////////////////////////////////////////////////////////
 // Classe KIDRReinforcementFinalScoreAt
-// Donne la valeur de reinforcement finale apres reinforcement
-// a partir de KIDRClassifierReinforcement
+// Donne la valeur de renforcement finale apres reinforcement pour une valeur cible
+// et un rang de variable a partir d'un renforceur
 class KIDRReinforcementFinalScoreAt : public KWDerivationRule
 {
 public:
@@ -140,8 +140,8 @@ public:
 
 ////////////////////////////////////////////////////////////
 // Classe KIDRReinforcementClassChangeTagAt
-// Donne le tag de renforcement de la variable reenforcee
-// a partir de KIDRClassifierReinforcement
+// Donne le tag de renforcement pour une valeur cible
+// et un rang de variable a partir d'un renforceur
 class KIDRReinforcementClassChangeTagAt : public KWDerivationRule
 {
 public:

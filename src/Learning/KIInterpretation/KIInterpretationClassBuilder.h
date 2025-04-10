@@ -96,6 +96,7 @@ public:
 	// Cles de meta-donne ou valeur communes
 	static const ALString& GetTargetMetaDataKey();
 	static const ALString& GetShapleyLabel();
+	static const ALString& GetReinforcementLabel();
 
 	//////////////////////////////////////////////////
 	///// Implementation
@@ -158,7 +159,7 @@ protected:
 	// La regle de construction, a creer par l'appelant, est le parametre principal
 	// Le rang est a -1 s'il n'est pas utilise
 	KWAttribute* CreateRankedReinforcementAttribute(KWClass* kwcReinforcementClass,
-							const KWAttribute* interpreterAttribute,
+							const KWAttribute* reinforcerAttribute,
 							KWDerivationRule* kwdrRankedReinforcementRule,
 							const ALString& sBaseName, Symbol sTargetValue, int nRank,
 							const ALString& sRankMetaDataKey) const;
