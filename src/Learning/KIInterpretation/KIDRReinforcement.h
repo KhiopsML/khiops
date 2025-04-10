@@ -50,7 +50,7 @@ public:
 	// Score de renforcement pour une valeur cible et un rang de variable
 	Continuous GetRankedReinforcementFinalScoreAt(Symbol sTargetValue, int nAttributeRank) const;
 
-	// Indicateur de changement de classe suite a unrenforcement pour une valeur cible et un rang de variable
+	// Indicateur de changement de classe suite a un renforcement pour une valeur cible et un rang de variable
 	Continuous GetRankedReinforcementClassChangeTagAt(Symbol sTargetValue, int nAttributeRank) const;
 
 	////////////////////////////////////////////////////////////////////
@@ -68,6 +68,9 @@ protected:
 	// Calcul de toutes les information de renforcement triees pour les acces aux contributions par rang,
 	// pour une valeur cible
 	void ComputeRankedReinforcementAt(int nTarget) const;
+
+	// Vecteur des index des variables e renforcement
+	mutable IntVector ivReinforcementAttributeIndexes;
 
 	// Vecteur de score initial par valeur cible
 	mutable ContinuousVector cvInitialScores;
@@ -162,3 +165,109 @@ public:
 	// Calcul de l'attribut derive
 	Continuous ComputeContinuousResult(const KWObject* kwoObject) const override;
 };
+
+////////////////////////////////////////////////////////////
+// Classe KIAttributeReinforcement
+// Memorisation d'un index d'attribut et de ses information de renforcement,
+// permettant ensuite un tri par contribution decroissante
+class KIAttributeReinforcement : public Object
+{
+public:
+	// Constructeur
+	KIAttributeReinforcement();
+	~KIAttributeReinforcement();
+
+	// Index de l'attribut
+	void SetAttributeIndex(int nValue);
+	int GetAttributeIndex() const;
+
+	// Index de la modalite utilise pour le renforcement
+	void SetReinforcementModalityIndex(int nValue);
+	int GetReinforcementModalityIndex() const;
+
+	// Score final apres renforcement
+	void SetReinforcementFinalScore(Continuous cValue);
+	Continuous GetReinforcementFinalScore() const;
+
+	// Indique si la classe a change apres renforcement
+	// - 0: la classe etait deja la bonne
+	// - -1: pas de changement de classe
+	// - 1: changement de classe
+	void SetReinforcementClassChangeTag(int nValue);
+	int GetReinforcementClassChangeTag() const;
+
+	// Parametrage des noms des attributs
+	// Memoire: appartient a l'appelant
+	void SetAttributeNames(const StringVector* svNames);
+	const StringVector* GetAttributeNames() const;
+
+	// Nom de l'attribut correspondant a son index
+	const ALString& GetAttributeName() const;
+
+	//////////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	// Variables de la classe
+	int nAttributeIndex;
+	int nReinforcementModalityIndex;
+	Continuous cReinforcementFinalScore;
+	int nReinforcementClassChangeTag;
+	const StringVector* svAttributeNames;
+};
+
+// Methode de comparaison par score final decroissant
+int KIAttributeReinforcementCompare(const void* elem1, const void* elem2);
+
+////////////////////////////////////
+// Methodes en inline
+
+inline void KIAttributeReinforcement::SetAttributeIndex(int nValue)
+{
+	require(nValue >= 0);
+	nAttributeIndex = nValue;
+}
+
+inline int KIAttributeReinforcement::GetAttributeIndex() const
+{
+	return nAttributeIndex;
+}
+
+inline void KIAttributeReinforcement::SetReinforcementModalityIndex(int nValue)
+{
+	require(nValue >= 0);
+	nReinforcementModalityIndex = nValue;
+}
+
+inline int KIAttributeReinforcement::GetReinforcementModalityIndex() const
+{
+	return nReinforcementModalityIndex;
+}
+
+inline void KIAttributeReinforcement::SetReinforcementFinalScore(Continuous cValue)
+{
+	require(cValue >= 0);
+	cReinforcementFinalScore = cValue;
+}
+
+inline Continuous KIAttributeReinforcement::GetReinforcementFinalScore() const
+{
+	return cReinforcementFinalScore;
+}
+
+inline void KIAttributeReinforcement::SetReinforcementClassChangeTag(int nValue)
+{
+	require(-1 <= nValue and nValue <= 1);
+	nReinforcementClassChangeTag = nValue;
+}
+
+inline int KIAttributeReinforcement::GetReinforcementClassChangeTag() const
+{
+	return nReinforcementClassChangeTag;
+}
+
+inline const ALString& KIAttributeReinforcement::GetAttributeName() const
+{
+	require(svAttributeNames != NULL);
+	require(0 <= nAttributeIndex and nAttributeIndex < svAttributeNames->GetSize());
+	return svAttributeNames->GetAt(nAttributeIndex);
+}

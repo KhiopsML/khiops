@@ -1270,10 +1270,6 @@ void KWDRNBClassifier::ComputeTargetProbs() const
 	int nTargetFrequency;
 	int nTargetTotalFrequency;
 	double dTargetLogProb;
-	double dProb;
-	double dTotalProb;
-	double dLaplaceEpsilon;
-	double dLaplaceDenominator;
 	int nValue;
 	int nDataGrid;
 	int nDataGridIndexWithinBlock;

@@ -301,3 +301,48 @@ Continuous KIDRReinforcementClassChangeTagAt::ComputeContinuousResult(const KWOb
 	return classifierReinforcer->GetRankedReinforcementClassChangeTagAt(GetOperandAt(1)->GetSymbolValue(kwoObject),
 									    nAttributeRank);
 }
+
+////////////////////////////////////////////////////////////
+// Classe KIAttributeReinforcement
+
+KIAttributeReinforcement::KIAttributeReinforcement()
+{
+	nAttributeIndex = 0;
+	nReinforcementModalityIndex = 0;
+	cReinforcementFinalScore = 0;
+	nReinforcementClassChangeTag = 0;
+	svAttributeNames = NULL;
+}
+
+KIAttributeReinforcement::~KIAttributeReinforcement() {}
+
+void KIAttributeReinforcement::SetAttributeNames(const StringVector* svNames)
+{
+	svAttributeNames = svNames;
+}
+
+const StringVector* KIAttributeReinforcement::GetAttributeNames() const
+{
+	return svAttributeNames;
+}
+
+int KIAttributeReinforcementCompare(const void* elem1, const void* elem2)
+{
+	int nCompare;
+	KIAttributeReinforcement* attributeReinforcement1;
+	KIAttributeReinforcement* attributeReinforcement2;
+
+	// Acces aux objets
+	attributeReinforcement1 = cast(KIAttributeReinforcement*, *(Object**)elem1);
+	attributeReinforcement2 = cast(KIAttributeReinforcement*, *(Object**)elem2);
+
+	// Comparaison selon la precision du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(attributeReinforcement1->GetReinforcementFinalScore(),
+							attributeReinforcement2->GetReinforcementFinalScore());
+
+	// Comparaison sur le nom de l'attribut en cas d'egalite
+	if (nCompare == 0)
+		nCompare =
+		    attributeReinforcement1->GetAttributeName().Compare(attributeReinforcement2->GetAttributeName());
+	return nCompare;
+}

@@ -259,8 +259,8 @@ public:
 
 ////////////////////////////////////////////////////////////
 // Classe KIAttributeContribution
-// Memorisation d'un index d'attribut et de sa contribution, permettant
-// ensuite un tri par contribution decroissante
+// Memorisation d'un index d'attribut et de sa contribution,
+// permettant ensuite un tri par contribution decroissante
 class KIAttributeContribution : public Object
 {
 public:
@@ -293,7 +293,7 @@ protected:
 	const StringVector* svAttributeNames;
 };
 
-// Methode de compraison
+// Methode de comparaison par contribution decroissante
 int KIAttributeContributionCompare(const void* elem1, const void* elem2);
 
 ////////////////////////////////////////////////
