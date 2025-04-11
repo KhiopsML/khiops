@@ -174,10 +174,11 @@ Symbol KIDRClassifierReinforcer::GetRankedReinforcementAttributeAt(Symbol sTarge
 	// Recherche du rang de la valeur cible
 	nTargetValueRank = GetTargetValueRank(sTargetValue);
 
-	// On ne renvoie rien si la valeur cible est incorrecte
-	if (nTargetValueRank == -1 or nAttributeRank == -1)
+	// On ne renvoie rien si la valeur cible ou le rang est incorrect
+	if (nTargetValueRank == -1 or nAttributeRank < 0 or nAttributeRank >= GetReinforcementAttributeNumber())
 		return Symbol();
-	// Recherche de la valeur sinon
+	// Recherche de l'attribut  de renforcement sinon
+	else
 	{
 		// Calcul des renforcement pour des acces par rang
 		ivTargetValueReinforcementNeeded.SetAt(nTargetValueRank, 1);
@@ -194,18 +195,97 @@ Symbol KIDRClassifierReinforcer::GetRankedReinforcementAttributeAt(Symbol sTarge
 
 Symbol KIDRClassifierReinforcer::GetRankedReinforcementPartAt(Symbol sTargetValue, int nAttributeRank) const
 {
-	return Symbol();
+	int nTargetValueRank;
+	const KIAttributeReinforcement* attributeReinforcement;
+	int nAttributeIndex;
+	const KWDRDataGrid* dataGridRule;
+	int nDataGridSourceIndex;
+	KWDataGridStats dataGridStats;
+	ALString sCellLabel;
+
+	// Recherche du rang de la valeur cible
+	nTargetValueRank = GetTargetValueRank(sTargetValue);
+
+	// On ne renvoie rien si la valeur cible ou le rang est incorrect
+	if (nTargetValueRank == -1 or nAttributeRank < 0 or nAttributeRank >= GetReinforcementAttributeNumber())
+		return Symbol();
+	// Recherche de la partie de l'attribut de renforcement sinon
+	else
+	{
+		// Calcul des renforcement pour des acces par rang
+		ivTargetValueReinforcementNeeded.SetAt(nTargetValueRank, 1);
+		if (ivTargetValueReinforcementComputed.GetAt(nTargetValueRank) == 0)
+			ComputeRankedReinforcements();
+
+		// Recherche des informations de renforcement
+		attributeReinforcement = GetRankedReinforcementAt(nTargetValueRank, nAttributeRank);
+
+		// Acces a l'attribut, la grille corespondant, et l'index source dans la grille
+		nAttributeIndex = attributeReinforcement->GetAttributeIndex();
+		dataGridRule = cast(const KWDRDataGrid*, oaPredictorAttributeDataGridRules.GetAt(nAttributeIndex));
+		nDataGridSourceIndex = ivDataGridSourceIndexes.GetAt(nAttributeIndex);
+
+		// Acces a la partition univariee de l'attribut pour obtenir le libelle de la partie
+		assert(dataGridRule->GetAttributeNumber() == 2);
+		sCellLabel = cast(KWDRUnivariatePartition*, dataGridRule->GetOperandAt(0)->GetDerivationRule())
+				 ->GetPartLabelAt(nDataGridSourceIndex);
+		return (Symbol)sCellLabel;
+	}
 }
 
 Continuous KIDRClassifierReinforcer::GetRankedReinforcementFinalScoreAt(Symbol sTargetValue, int nAttributeRank) const
 {
-	return 0;
+	int nTargetValueRank;
+	const KIAttributeReinforcement* attributeReinforcement;
+
+	// Recherche du rang de la valeur cible
+	nTargetValueRank = GetTargetValueRank(sTargetValue);
+
+	// On ne renvoie rien si la valeur cible ou le rang est incorrect
+	if (nTargetValueRank == -1 or nAttributeRank < 0 or nAttributeRank >= GetReinforcementAttributeNumber())
+		return KWContinuous::GetMissingValue();
+	// Recherche du score final apres renforcement sinon
+	else
+	{
+		// Calcul des renforcement pour des acces par rang
+		ivTargetValueReinforcementNeeded.SetAt(nTargetValueRank, 1);
+		if (ivTargetValueReinforcementComputed.GetAt(nTargetValueRank) == 0)
+			ComputeRankedReinforcements();
+
+		// Recherche des informations de renforcement
+		attributeReinforcement = GetRankedReinforcementAt(nTargetValueRank, nAttributeRank);
+
+		// Retourne le score final de renforcement
+		return attributeReinforcement->GetReinforcementFinalScore();
+	}
 }
 
 Continuous KIDRClassifierReinforcer::GetRankedReinforcementClassChangeTagAt(Symbol sTargetValue,
 									    int nAttributeRank) const
 {
-	return 0;
+	int nTargetValueRank;
+	const KIAttributeReinforcement* attributeReinforcement;
+
+	// Recherche du rang de la valeur cible
+	nTargetValueRank = GetTargetValueRank(sTargetValue);
+
+	// On ne renvoie rien si la valeur cible ou le rang est incorrect
+	if (nTargetValueRank == -1 or nAttributeRank < 0 or nAttributeRank >= GetReinforcementAttributeNumber())
+		return KWContinuous::GetMissingValue();
+	// Recherche du tage de changement de classe sinon
+	else
+	{
+		// Calcul des renforcement pour des acces par rang
+		ivTargetValueReinforcementNeeded.SetAt(nTargetValueRank, 1);
+		if (ivTargetValueReinforcementComputed.GetAt(nTargetValueRank) == 0)
+			ComputeRankedReinforcements();
+
+		// Recherche des informations de renforcement
+		attributeReinforcement = GetRankedReinforcementAt(nTargetValueRank, nAttributeRank);
+
+		// Retourne le tag de changement de classe
+		return attributeReinforcement->GetReinforcementClassChangeTag();
+	}
 }
 
 void KIDRClassifierReinforcer::WriteDetails(ostream& ost) const
@@ -268,7 +348,7 @@ void KIDRClassifierReinforcer::CreateRankedReinforcementStructures(int nTargetVa
 	require(nTargetValueNumber > 0);
 	require(nAttributeNumber > 0);
 	require(svAttributeNames != NULL);
-	require(svAttributeNames->GetSize() == nAttributeNumber);
+	require(nAttributeNumber <= svAttributeNames->GetSize());
 	require(oaTargetValueRankedAttributeReinforcements.GetSize() == 0);
 
 	// Creation des tableaux par valeur cible
@@ -303,7 +383,6 @@ void KIDRClassifierReinforcer::ComputeRankedReinforcements() const
 	int nAttribute;
 	int nSourceCellIndex;
 	int nTargetCellIndex;
-	Continuous cShapleyValue;
 
 	require(IsCompiled());
 	require(ivDataGridSourceIndexes.GetSize() == GetPredictorAttributeNumber());
@@ -321,14 +400,16 @@ void KIDRClassifierReinforcer::ComputeRankedReinforcements() const
 			// Acces au tableau des structures de renforcement
 			oaRankedAttributeReinforcements =
 			    cast(ObjectArray*, oaTargetValueRankedAttributeReinforcements.GetAt(nTarget));
-			assert(oaRankedAttributeReinforcements->GetSize() == GetPredictorAttributeNumber());
+			assert(oaRankedAttributeReinforcements->GetSize() == GetReinforcementAttributeNumber());
 
 			// Calcul du renforcement par attribut
 			for (i = 0; i < GetReinforcementAttributeNumber(); i++)
 			{
-				nAttribute = ivReinforcementAttributeIndexes.GetAt(i);
 				attributeReinforcement =
-				    cast(KIAttributeReinforcement*, oaRankedAttributeReinforcements->GetAt(nAttribute));
+				    cast(KIAttributeReinforcement*, oaRankedAttributeReinforcements->GetAt(i));
+
+				// Index de l'attribut de renforcement
+				nAttribute = ivReinforcementAttributeIndexes.GetAt(i);
 
 				// Recheche des index source et cible dans la grille correspondante
 				nSourceCellIndex = ivDataGridSourceIndexes.GetAt(nAttribute);

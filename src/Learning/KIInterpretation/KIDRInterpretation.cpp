@@ -419,16 +419,25 @@ Continuous KIDRClassifierInterpreter::GetContributionAt(Symbol sTargetValue, Sym
 	nTargetValueRank = GetTargetValueRank(sTargetValue);
 	nPredictorAttributeRank = GetPredictorAttributeRank(sAttributeName.GetValue());
 
-	// Recheche des index source et cible dans la grille correspondante
-	nSourceCellIndex = ivDataGridSourceIndexes.GetAt(nPredictorAttributeRank);
-	nTargetCellIndex = classifierRule->GetDataGridSetTargetCellIndexAt(nPredictorAttributeRank, nTargetValueRank);
+	// On ne renvoie rien si la valeur cible ou le rang est incorrect
+	if (nTargetValueRank == -1 or nPredictorAttributeRank < 0 or
+	    nPredictorAttributeRank >= GetPredictorAttributeNumber())
+		return KWContinuous::GetMissingValue();
+	// Sinon, on renvoie la valeur de Shapley
+	else
+	{
+		// Recheche des index source et cible dans la grille correspondante
+		nSourceCellIndex = ivDataGridSourceIndexes.GetAt(nPredictorAttributeRank);
+		nTargetCellIndex =
+		    classifierRule->GetDataGridSetTargetCellIndexAt(nPredictorAttributeRank, nTargetValueRank);
 
-	// Recherche de la valeur de Shapley
-	cShapleyValue = 0;
-	if (nSourceCellIndex != -1 and nTargetCellIndex != -1)
-		cShapleyValue = GetPredictorAttributeShapleyTableAt(nPredictorAttributeRank)
-				    ->GetShapleyValueAt(nSourceCellIndex, nTargetCellIndex);
-	return cShapleyValue;
+		// Recherche de la valeur de Shapley
+		cShapleyValue = 0;
+		if (nSourceCellIndex != -1 and nTargetCellIndex != -1)
+			cShapleyValue = GetPredictorAttributeShapleyTableAt(nPredictorAttributeRank)
+					    ->GetShapleyValueAt(nSourceCellIndex, nTargetCellIndex);
+		return cShapleyValue;
+	}
 }
 
 Symbol KIDRClassifierInterpreter::GetRankedContributionAttributeAt(Symbol sTargetValue, int nAttributeRank) const
@@ -444,8 +453,8 @@ Symbol KIDRClassifierInterpreter::GetRankedContributionAttributeAt(Symbol sTarge
 	// Recherche du rang de la valeur cible
 	nTargetValueRank = GetTargetValueRank(sTargetValue);
 
-	// On ne renvoie rien si la valeur cible est incorrecte
-	if (nTargetValueRank == -1)
+	// On ne renvoie rien si la valeur cible ou le rang est incorrect
+	if (nTargetValueRank == -1 or nAttributeRank < 0 or nAttributeRank >= GetPredictorAttributeNumber())
 		return Symbol();
 	// Sinon, on renvoie le nom de l'attribut correspondant
 	else
@@ -460,7 +469,6 @@ Symbol KIDRClassifierInterpreter::GetRankedContributionPartAt(Symbol sTargetValu
 	int nDataGridSourceIndex;
 	KWDataGridStats dataGridStats;
 	ALString sCellLabel;
-	ostringstream oss;
 
 	require(IsCompiled());
 
@@ -471,8 +479,8 @@ Symbol KIDRClassifierInterpreter::GetRankedContributionPartAt(Symbol sTargetValu
 	// Recherche du rang de la valeur cible
 	nTargetValueRank = GetTargetValueRank(sTargetValue);
 
-	// On ne renvoie rien si la valeur cible est incorrecte
-	if (nTargetValueRank == -1)
+	// On ne renvoie rien si la valeur cible ou le rang est incorrect
+	if (nTargetValueRank == -1 or nAttributeRank < 0 or nAttributeRank >= GetPredictorAttributeNumber())
 		return Symbol();
 	// Sinon, on renvoie le nom de l'attribut correspondant
 	else
@@ -503,9 +511,9 @@ Continuous KIDRClassifierInterpreter::GetRankedContributionValueAt(Symbol sTarge
 	// Recherche du rang de la valeur cible
 	nTargetValueRank = GetTargetValueRank(sTargetValue);
 
-	// On ne renvoie rien si la valeur cible est incorrecte
-	if (nTargetValueRank == -1)
-		return 0;
+	// On ne renvoie rien si la valeur cible ou le rang est incorrect
+	if (nTargetValueRank == -1 or nAttributeRank < 0 or nAttributeRank >= GetPredictorAttributeNumber())
+		return KWContinuous::GetMissingValue();
 	// Sinon, on renvoie le nom de l'attribut correspondant
 	else
 		return GetRankedContributionAt(nTargetValueRank, nAttributeRank)->GetContribution();
