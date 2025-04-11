@@ -10,6 +10,7 @@ class KIDRReinforcementAttributeAt;
 class KIDRReinforcementPartAt;
 class KIDRReinforcementFinalScoreAt;
 class KIDRReinforcementClassChangeTagAt;
+class KIAttributeReinforcement;
 
 #include "KIDRInterpretation.h"
 
@@ -78,15 +79,30 @@ protected:
 	// Nettoyage
 	void Clean() override;
 
-	// Calcul de toutes les information de renforcement triees pour les acces aux contributions par rang,
-	// pour une valeur cible
-	void ComputeRankedReinforcementAt(int nTarget) const;
+	// Creation des structures des gestion des contributions pour les acces par rang
+	void CreateRankedReinforcementStructures(int nTargetValueNumber, int nAttributeNumber,
+						 const StringVector* svAttributeNames);
+
+	// Calcul de toutes les informations de renforcement triees pour les acces aux contributions par rang
+	void ComputeRankedReinforcements() const;
+
+	// Renforcement par valeur cible et par rang
+	const KIAttributeReinforcement* GetRankedReinforcementAt(int nTarget, int nAttributeRank) const;
 
 	// Vecteur des index des variables e renforcement
 	mutable IntVector ivReinforcementAttributeIndexes;
 
-	// Vecteur de score initial par valeur cible
-	mutable ContinuousVector cvInitialScores;
+	// Tableau par valeur cible de tableau de KIAttributeReinforcement, tries par score final decroissant
+	ObjectArray oaTargetValueRankedAttributeReinforcements;
+
+	// Vecteur d'indicateurs memorisant le besoin de calculer les structures de renforcement par valeur cible
+	// Ce vecteur est alimente au fur et a mesure de l'execution globale, et sert a piloter les calcul de renforcement
+	mutable IntVector ivTargetValueReinforcementNeeded;
+
+	// Vecteur d'indicateurs memorisant que les structures de renforcement par valeur cible ont ete calculees
+	// Ce vecteur est alimente au fur et a mesure de l'execution individuelle par instance, et sert a bufferiser
+	// les calcul effectues
+	mutable IntVector ivTargetValueReinforcementComputed;
 };
 
 ////////////////////////////////////////////////////////////
@@ -245,6 +261,21 @@ inline const ALString& KIDRClassifierReinforcer::GetReinforcementAttributeNameAt
 	require(IsCompiled());
 	require(0 <= nAttribute and nAttribute < GetReinforcementAttributeNumber());
 	return GetPredictorAttributeNameAt(ivReinforcementAttributeIndexes.GetAt(nAttribute));
+}
+
+inline const KIAttributeReinforcement* KIDRClassifierReinforcer::GetRankedReinforcementAt(int nTarget,
+											  int nAttributeRank) const
+{
+	const ObjectArray* oaRankedAttributeReinforcements;
+
+	require(IsCompiled());
+	require(0 <= nTarget and nTarget < GetTargetValueNumber());
+	require(0 <= nAttributeRank and nAttributeRank < GetPredictorAttributeNumber());
+	require(ivTargetValueReinforcementNeeded.GetAt(nTarget) == 1);
+	require(ivTargetValueReinforcementComputed.GetAt(nTarget) == 1);
+	oaRankedAttributeReinforcements =
+	    cast(const ObjectArray*, oaTargetValueRankedAttributeReinforcements.GetAt(nTarget));
+	return cast(const KIAttributeReinforcement*, oaRankedAttributeReinforcements->GetAt(nAttributeRank));
 }
 
 inline void KIAttributeReinforcement::SetAttributeIndex(int nValue)

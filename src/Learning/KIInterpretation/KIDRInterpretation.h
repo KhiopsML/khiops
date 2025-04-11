@@ -178,10 +178,10 @@ protected:
 	// Tableau des tables de Shapley par variable du predicteur
 	ObjectArray oaPredictorAttributeShapleyTables;
 
-	// Tableau par valeur cible de tableau de KIAttributeContribution, tries par contribution decroissante
+	// Tableau par valeur cible de tableaux de KIAttributeContribution, tries par contribution decroissante
 	ObjectArray oaTargetValueRankedAttributeContributions;
 
-	// Indicateur de calcul des contributions par rang, pour bufferisation des calcul
+	// Indicateur de calcul des contributions par rang, pour bufferisation des calculs
 	mutable boolean bIsRankedContributionComputed;
 };
 

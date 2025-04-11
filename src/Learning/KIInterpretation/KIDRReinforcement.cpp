@@ -30,7 +30,13 @@ KIDRClassifierReinforcer::KIDRClassifierReinforcer()
 	GetSecondOperand()->SetStructureName("VectorC");
 }
 
-KIDRClassifierReinforcer::~KIDRClassifierReinforcer() {}
+KIDRClassifierReinforcer::~KIDRClassifierReinforcer()
+{
+	// Il faut appeler explicitement la methode dans le destructeur
+	// Car meme si la methode est virtuelle, le destructeur ancetre
+	// appelle la version de sa propre classe
+	Clean();
+}
 
 KWDerivationRule* KIDRClassifierReinforcer::Create() const
 {
@@ -125,9 +131,14 @@ void KIDRClassifierReinforcer::Compile(KWClass* kwcOwnerClass)
 		ivReinforcementAttributeIndexes.SetAt(nAttribute, nAttributeIndex);
 	}
 
-	// Initialisation du vecteur de score
-	assert(cvInitialScores.GetSize() == 0);
-	cvInitialScores.SetSize(GetTargetValueNumber());
+	// Creation des structures des gestion des renforcement pour les acces par rang
+	CreateRankedReinforcementStructures(GetTargetValueNumber(), GetReinforcementAttributeNumber(),
+					    &svPredictorAttributeNames);
+
+	// Initialisation des vecteurs de gestion de la bufferisation des calcul
+	assert(ivTargetValueReinforcementNeeded.GetSize() == 0);
+	ivTargetValueReinforcementNeeded.SetSize(GetTargetValueNumber());
+	ivTargetValueReinforcementComputed.SetSize(GetTargetValueNumber());
 
 	// Trace
 	if (bTrace)
@@ -141,40 +152,44 @@ Object* KIDRClassifierReinforcer::ComputeStructureResult(const KWObject* kwoObje
 	// Appel de la methode ancetre
 	KIDRClassifierService::ComputeStructureResult(kwoObject);
 
-	// On indique que les renforecment par classe cible sont a recalculer si necessaire,
-	// en forcant les scores a 0 (une probabilite du predicteur ne peut etre nulle)
+	// On indique que les renforcements par classe cible sont a recalculer si necessaire
 	for (nTarget = 0; nTarget < GetTargetValueNumber(); nTarget++)
-		cvInitialScores.SetAt(nTarget, 0);
+		ivTargetValueReinforcementComputed.SetAt(nTarget, 0);
 	return (Object*)this;
 }
 
 Continuous KIDRClassifierReinforcer::GetReinforcementInitialScoreAt(Symbol sTargetValue) const
 {
-	int nTargetValueRank;
-
 	require(IsCompiled());
+
+	// Retourne le score initial produit par le classifieur
+	return classifierRule->ComputeTargetProbAt(sTargetValue);
+}
+
+Symbol KIDRClassifierReinforcer::GetRankedReinforcementAttributeAt(Symbol sTargetValue, int nAttributeRank) const
+{
+	int nTargetValueRank;
+	const KIAttributeReinforcement* attributeReinforcement;
 
 	// Recherche du rang de la valeur cible
 	nTargetValueRank = GetTargetValueRank(sTargetValue);
 
 	// On ne renvoie rien si la valeur cible est incorrecte
-	if (nTargetValueRank == -1)
-		return 0;
-	// Sinon, on renvoie le nom de l'attribut correspondant
-	else
+	if (nTargetValueRank == -1 or nAttributeRank == -1)
+		return Symbol();
+	// Recherche de la valeur sinon
 	{
-		// Calcul des informations de renforcement
-		if (cvInitialScores.GetAt(nTargetValueRank) == 0)
-			ComputeRankedReinforcementAt(nTargetValueRank);
+		// Calcul des renforcement pour des acces par rang
+		ivTargetValueReinforcementNeeded.SetAt(nTargetValueRank, 1);
+		if (ivTargetValueReinforcementComputed.GetAt(nTargetValueRank) == 0)
+			ComputeRankedReinforcements();
 
-		// Retourne le initial
-		return cvInitialScores.GetAt(nTargetValueRank);
+		// Recherche des informations de renforcement
+		attributeReinforcement = GetRankedReinforcementAt(nTargetValueRank, nAttributeRank);
+
+		// Retourne le nom de l'attribut de renforcement
+		return (Symbol)attributeReinforcement->GetAttributeName();
 	}
-}
-
-Symbol KIDRClassifierReinforcer::GetRankedReinforcementAttributeAt(Symbol sTargetValue, int nAttributeRank) const
-{
-	return Symbol();
 }
 
 Symbol KIDRClassifierReinforcer::GetRankedReinforcementPartAt(Symbol sTargetValue, int nAttributeRank) const
@@ -210,30 +225,158 @@ void KIDRClassifierReinforcer::WriteDetails(ostream& ost) const
 
 longint KIDRClassifierReinforcer::GetUsedMemory() const
 {
-	return 0;
+	longint lUsedMemory;
+
+	lUsedMemory = KIDRClassifierService::GetUsedMemory();
+	lUsedMemory += sizeof(KIDRClassifierInterpreter) - sizeof(KIDRClassifierService);
+	lUsedMemory += oaTargetValueRankedAttributeReinforcements.GetSize() *
+		       (sizeof(ObjectArray) + svPredictorAttributeNames.GetSize() * (sizeof(KIAttributeReinforcement*) +
+										     sizeof(KIAttributeReinforcement)));
+	lUsedMemory += ivTargetValueReinforcementNeeded.GetSize() - sizeof(IntVector);
+	lUsedMemory += ivTargetValueReinforcementComputed.GetSize() - sizeof(IntVector);
+	return lUsedMemory;
 }
 
 void KIDRClassifierReinforcer::Clean()
 {
+	ObjectArray* oaRankedAttributeReinforcements;
+	int nTarget;
+
 	// Methode ancetre
 	KIDRClassifierService::Clean();
 
 	// Nettoyage des structures specifiques
-	cvInitialScores.SetSize(0);
+	for (nTarget = 0; nTarget < oaTargetValueRankedAttributeReinforcements.GetSize(); nTarget++)
+	{
+		oaRankedAttributeReinforcements =
+		    cast(ObjectArray*, oaTargetValueRankedAttributeReinforcements.GetAt(nTarget));
+		oaRankedAttributeReinforcements->DeleteAll();
+	}
+	oaTargetValueRankedAttributeReinforcements.DeleteAll();
+	ivTargetValueReinforcementNeeded.SetSize(0);
+	ivTargetValueReinforcementComputed.SetSize(0);
 }
 
-void KIDRClassifierReinforcer::ComputeRankedReinforcementAt(int nTarget) const
+void KIDRClassifierReinforcer::CreateRankedReinforcementStructures(int nTargetValueNumber, int nAttributeNumber,
+								   const StringVector* svAttributeNames)
 {
+	ObjectArray* oaRankedAttributeReinforcements;
+	KIAttributeReinforcement* attributeReinforcement;
+	int nTarget;
+	int nAttribute;
+
+	require(nTargetValueNumber > 0);
+	require(nAttributeNumber > 0);
+	require(svAttributeNames != NULL);
+	require(svAttributeNames->GetSize() == nAttributeNumber);
+	require(oaTargetValueRankedAttributeReinforcements.GetSize() == 0);
+
+	// Creation des tableaux par valeur cible
+	oaTargetValueRankedAttributeReinforcements.SetSize(nTargetValueNumber);
+	for (nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
+	{
+		// Creation du tableau pour la valeur cible
+		oaRankedAttributeReinforcements = new ObjectArray;
+		oaTargetValueRankedAttributeReinforcements.SetAt(nTarget, oaRankedAttributeReinforcements);
+
+		// Parametrage du tri du tableau
+		oaRankedAttributeReinforcements->SetCompareFunction(KIAttributeReinforcementCompare);
+
+		// Creation d'une Reinforcement par variable
+		oaRankedAttributeReinforcements->SetSize(nAttributeNumber);
+		for (nAttribute = 0; nAttribute < nAttributeNumber; nAttribute++)
+		{
+			attributeReinforcement = new KIAttributeReinforcement;
+			attributeReinforcement->SetAttributeNames(svAttributeNames);
+			oaRankedAttributeReinforcements->SetAt(nAttribute, attributeReinforcement);
+		}
+	}
+}
+
+void KIDRClassifierReinforcer::ComputeRankedReinforcements() const
+{
+	const boolean bTrace = false;
+	ObjectArray* oaRankedAttributeReinforcements;
+	KIAttributeReinforcement* attributeReinforcement;
+	int nTarget;
+	int i;
+	int nAttribute;
+	int nSourceCellIndex;
+	int nTargetCellIndex;
+	Continuous cShapleyValue;
+
 	require(IsCompiled());
-	require(0 <= nTarget and nTarget < GetTargetValueNumber());
 	require(ivDataGridSourceIndexes.GetSize() == GetPredictorAttributeNumber());
 	require(classifierRule != NULL);
-	require(cvInitialScores.GetAt(nTarget) == 0);
+	require(oaTargetValueRankedAttributeReinforcements.GetSize() == GetTargetValueNumber());
 
-	// On confie au classifieur le calcul du score
-	cvInitialScores.SetAt(nTarget, classifierRule->ComputeTargetProbAt(GetTargetValueAt(nTarget)));
+	// Calcul du renforcement par valeur cible
+	for (nTarget = 0; nTarget < GetTargetValueNumber(); nTarget++)
+	{
+		// On effectue le calcul que s'il est ne cessaire
+		if (ivTargetValueReinforcementNeeded.GetAt(nTarget == 1))
+		{
+			assert(ivTargetValueReinforcementComputed.GetAt(nTarget) == 0);
 
-	ensure(cvInitialScores.GetAt(nTarget) > 0);
+			// Acces au tableau des structures de renforcement
+			oaRankedAttributeReinforcements =
+			    cast(ObjectArray*, oaTargetValueRankedAttributeReinforcements.GetAt(nTarget));
+			assert(oaRankedAttributeReinforcements->GetSize() == GetPredictorAttributeNumber());
+
+			// Calcul du renforcement par attribut
+			for (i = 0; i < GetReinforcementAttributeNumber(); i++)
+			{
+				nAttribute = ivReinforcementAttributeIndexes.GetAt(i);
+				attributeReinforcement =
+				    cast(KIAttributeReinforcement*, oaRankedAttributeReinforcements->GetAt(nAttribute));
+
+				// Recheche des index source et cible dans la grille correspondante
+				nSourceCellIndex = ivDataGridSourceIndexes.GetAt(nAttribute);
+				nTargetCellIndex = classifierRule->GetDataGridSetTargetCellIndexAt(nAttribute, nTarget);
+
+				// Memorisation de l'index de l'attribut et de ses information de renforcement
+				attributeReinforcement->SetAttributeIndex(nAttribute);
+				attributeReinforcement->SetReinforcementModalityIndex(0);
+				attributeReinforcement->SetReinforcementFinalScore(0);
+				attributeReinforcement->SetReinforcementClassChangeTag(0);
+			}
+
+			// Tri des Reinforcement
+			oaRankedAttributeReinforcements->Sort();
+
+			// On memorise que la calcul est effectue
+			ivTargetValueReinforcementComputed.SetAt(nTarget, 1);
+		}
+	}
+
+	// Trace des resultats
+	if (bTrace)
+	{
+		// Affichage par valeur cible
+		for (nTarget = 0; nTarget < GetTargetValueNumber(); nTarget++)
+		{
+			// Affichage pour les valeurs effectivement calculees
+			if (ivTargetValueReinforcementComputed.GetAt(nTarget) == 1)
+			{
+				cout << "Reinforcements for " << GetTargetValueAt(nTarget) << "\n";
+
+				// Affichage par attributs
+				oaRankedAttributeReinforcements =
+				    cast(ObjectArray*, oaTargetValueRankedAttributeReinforcements.GetAt(nTarget));
+				for (nAttribute = 0; nAttribute < oaRankedAttributeReinforcements->GetSize();
+				     nAttribute++)
+				{
+					attributeReinforcement =
+					    cast(KIAttributeReinforcement*,
+						 oaRankedAttributeReinforcements->GetAt(nAttribute));
+					/*DDD
+				cout << "\t" << attributeReinforcement->GetReinforcement() << "\t"
+				     << attributeReinforcement->GetAttributeName() << "\n";
+					 */
+				}
+			}
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
