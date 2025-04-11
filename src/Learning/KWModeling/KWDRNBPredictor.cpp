@@ -724,12 +724,10 @@ void KWDRNBClassifier::ComputeTargetProbsFromNumeratorTerms(const ContinuousVect
 	require(cvNumeratorTerms != NULL);
 	require(cvNumeratorTerms->GetSize() == GetDataGridSetTargetPartNumber());
 	require(cvProbs != NULL);
+	require(cvProbs->GetSize() == GetDataGridSetTargetPartNumber());
 
 	///////////////////////////////////////////////////////////////////////////////
 	// Implementation recopiee depuis la methode ComputeTargetProbs
-
-	// Dimensionnement du vecteur resultat
-	cvProbs->SetSize(cvNumeratorTerms->GetSize());
 
 	// Calcul de l'effectif global
 	nTargetTotalFrequency = 0;
@@ -753,14 +751,14 @@ void KWDRNBClassifier::ComputeTargetProbsFromNumeratorTerms(const ContinuousVect
 	for (nTarget = 0; nTarget < cvNumeratorTerms->GetSize(); nTarget++)
 	{
 		dProb = exp(cvNumeratorTerms->GetAt(nTarget) - dMaxTargetLogProb);
-		cvTargetProbs.SetAt(nTarget, (Continuous)dProb);
+		cvProbs->SetAt(nTarget, (Continuous)dProb);
 		dTotalProb += dProb;
 	}
 	assert(dTotalProb >= 1 - 1e-5);
 
 	// Normalisation pour obtenir des probas
 	for (nTarget = 0; nTarget < cvNumeratorTerms->GetSize(); nTarget++)
-		cvTargetProbs.SetAt(nTarget, (Continuous)(cvTargetProbs.GetAt(nTarget) / dTotalProb));
+		cvProbs->SetAt(nTarget, (Continuous)(cvProbs->GetAt(nTarget) / dTotalProb));
 
 	// Prise en compte d'un epsilon de Laplace (comme dans KWClassifierSelectionScore)
 	// en considerant qu'on ne peut pas avoir de precision meilleure que 1/N
@@ -771,7 +769,7 @@ void KWDRNBClassifier::ComputeTargetProbsFromNumeratorTerms(const ContinuousVect
 	dLaplaceEpsilon = 0.5 / (GetDataGridSetTargetPartNumber() * (nTargetTotalFrequency + 1));
 	dLaplaceDenominator = (1.0 + 0.5 / (nTargetTotalFrequency + 1));
 	for (nTarget = 0; nTarget < cvNumeratorTerms->GetSize(); nTarget++)
-		cvTargetProbs.SetAt(nTarget, (cvTargetProbs.GetAt(nTarget) + dLaplaceEpsilon) / dLaplaceDenominator);
+		cvProbs->SetAt(nTarget, (cvProbs->GetAt(nTarget) + dLaplaceEpsilon) / dLaplaceDenominator);
 
 	// Calcul d'une probabilite par defaut pour les classes inconnues
 	// Ce calcul est refait a chaque fois

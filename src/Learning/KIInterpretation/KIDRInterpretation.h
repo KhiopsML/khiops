@@ -96,8 +96,11 @@ protected:
 	// Dictionnaire des rangs des variables, en memorisant le rang+1
 	LongintDictionary ldPredictorAttributeRanks;
 
-	// Tableau des regles de type data grid par variable du predicteur
+	// Tableau des regles de type KWDRDataGrid par variable du predicteur
 	ObjectArray oaPredictorAttributeDataGridRules;
+
+	// Tableau des regles de type KWDRDataGridStats par variable du predicteur
+	ObjectArray oaPredictorAttributeDataGridStatsRules;
 
 	// Index de chaque partie source des grilles, que l'on soit en sparse ou non
 	// Dans le cas de l'interpretation, on a besoin de tous ces index pour acceder aux

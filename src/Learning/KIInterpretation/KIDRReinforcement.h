@@ -86,6 +86,11 @@ protected:
 	// Calcul de toutes les informations de renforcement triees pour les acces aux contributions par rang
 	void ComputeRankedReinforcements() const;
 
+	// Calcul du renforcement pour unne valeur cible et un attribut donne
+	// La methode renseigne toutes les information de renforcement de l'objet en parametre
+	void ComputeReinforcementAt(KIAttributeReinforcement* attributeReinforcement, int nTargetIndex,
+				    int nAttributeIndex) const;
+
 	// Renforcement par valeur cible et par rang
 	const KIAttributeReinforcement* GetRankedReinforcementAt(int nTarget, int nAttributeRank) const;
 
@@ -210,9 +215,9 @@ public:
 	void SetAttributeIndex(int nValue);
 	int GetAttributeIndex() const;
 
-	// Index de la modalite utilise pour le renforcement
-	void SetReinforcementModalityIndex(int nValue);
-	int GetReinforcementModalityIndex() const;
+	// Index de la partie utilise pour le renforcement
+	void SetReinforcementPartIndex(int nValue);
+	int GetReinforcementPartIndex() const;
 
 	// Score final apres renforcement
 	void SetReinforcementFinalScore(Continuous cValue);
@@ -238,7 +243,7 @@ public:
 protected:
 	// Variables de la classe
 	int nAttributeIndex;
-	int nReinforcementModalityIndex;
+	int nReinforcementPartIndex;
 	Continuous cReinforcementFinalScore;
 	int nReinforcementClassChangeTag;
 	const StringVector* svAttributeNames;
@@ -289,15 +294,15 @@ inline int KIAttributeReinforcement::GetAttributeIndex() const
 	return nAttributeIndex;
 }
 
-inline void KIAttributeReinforcement::SetReinforcementModalityIndex(int nValue)
+inline void KIAttributeReinforcement::SetReinforcementPartIndex(int nValue)
 {
 	require(nValue >= 0);
-	nReinforcementModalityIndex = nValue;
+	nReinforcementPartIndex = nValue;
 }
 
-inline int KIAttributeReinforcement::GetReinforcementModalityIndex() const
+inline int KIAttributeReinforcement::GetReinforcementPartIndex() const
 {
-	return nReinforcementModalityIndex;
+	return nReinforcementPartIndex;
 }
 
 inline void KIAttributeReinforcement::SetReinforcementFinalScore(Continuous cValue)

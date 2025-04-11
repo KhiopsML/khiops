@@ -95,6 +95,7 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 	ivDataGridSourceDefaultIndexes.SetSize(classifierRule->GetDataGridStatsNumber());
 	svPredictorAttributeNames.SetSize(classifierRule->GetDataGridStatsNumber());
 	oaPredictorAttributeDataGridRules.SetSize(classifierRule->GetDataGridStatsNumber());
+	oaPredictorAttributeDataGridStatsRules.SetSize(classifierRule->GetDataGridStatsNumber());
 
 	// Collect des variables du predicteur et calcul des tables de Shapley
 	nAttribute = 0;
@@ -116,8 +117,10 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 			// Memorisation du nom de l'attribut
 			svPredictorAttributeNames.SetAt(nAttribute, sAttributeName);
 
-			// Memorisation de la grille de preparation
+			// Memorisation de la grille de preparation et de ses stats
 			oaPredictorAttributeDataGridRules.SetAt(nAttribute, cast(KWDRDataGrid*, dataGridRule));
+			oaPredictorAttributeDataGridStatsRules.SetAt(nAttribute,
+								     cast(KWDRDataGridStats*, dataGridStatsRule));
 
 			// Incrementation de l'attribut
 			nAttribute++;
@@ -135,6 +138,7 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 			for (nDataGrid = 0; nDataGrid < dataGridBlockRule->GetDataGridNumber(); nDataGrid++)
 			{
 				dataGridRule = dataGridBlockRule->GetDataGridAt(nDataGrid);
+				dataGridStatsRule = dataGridStatsBlockRule->GetDataGridStatsAtBlockIndex(nDataGrid);
 				cWeight = classifierRule->GetDataGridWeightAt(nAttribute);
 
 				// Recherche de l'attribut correspondant
@@ -152,8 +156,10 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 				// Memorisation du nom de l'attribut
 				svPredictorAttributeNames.SetAt(nAttribute, attribute->GetName());
 
-				// Memorisation de la grille de preparation
+				// Memorisation de la grille de preparation et de ses stats
 				oaPredictorAttributeDataGridRules.SetAt(nAttribute, cast(KWDRDataGrid*, dataGridRule));
+				oaPredictorAttributeDataGridStatsRules.SetAt(
+				    nAttribute, cast(KWDRDataGridStats*, dataGridStatsRule));
 
 				// Acces a la partition univariee de l'attribut source de la grille
 				assert(dataGridRule->GetAttributeNumber() == 2);
@@ -195,6 +201,7 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 		WriteDetails(cout);
 	ensure(svPredictorAttributeNames.GetSize() == GetPredictorAttributeNumber());
 	ensure(oaPredictorAttributeDataGridRules.GetSize() == GetPredictorAttributeNumber());
+	ensure(oaPredictorAttributeDataGridStatsRules.GetSize() == GetPredictorAttributeNumber());
 }
 
 Object* KIDRClassifierService::ComputeStructureResult(const KWObject* kwoObject) const
@@ -264,9 +271,9 @@ longint KIDRClassifierService::GetUsedMemory() const
 	lUsedMemory += sizeof(KIDRClassifierService) - sizeof(KWDerivationRule);
 	lUsedMemory += svPredictorAttributeNames.GetUsedMemory() - sizeof(StringVector);
 	lUsedMemory += oaPredictorAttributeDataGridRules.GetUsedMemory() - sizeof(ObjectArray);
+	lUsedMemory += oaPredictorAttributeDataGridStatsRules.GetUsedMemory() - sizeof(ObjectArray);
 	lUsedMemory += ivDataGridSourceIndexes.GetUsedMemory() - sizeof(IntVector);
 	lUsedMemory += ivDataGridSourceDefaultIndexes.GetUsedMemory() - sizeof(IntVector);
-	lUsedMemory += oaPredictorAttributeDataGridRules.GetUsedMemory() - sizeof(ObjectArray);
 	return lUsedMemory;
 }
 
@@ -278,6 +285,7 @@ void KIDRClassifierService::Clean()
 	svPredictorAttributeNames.SetSize(0);
 	ldPredictorAttributeRanks.RemoveAll();
 	oaPredictorAttributeDataGridRules.RemoveAll();
+	oaPredictorAttributeDataGridStatsRules.RemoveAll();
 	ivDataGridSourceIndexes.SetSize(0);
 	ivDataGridSourceDefaultIndexes.SetSize(0);
 }

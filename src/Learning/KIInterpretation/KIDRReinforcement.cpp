@@ -381,8 +381,7 @@ void KIDRClassifierReinforcer::ComputeRankedReinforcements() const
 	int nTarget;
 	int i;
 	int nAttribute;
-	int nSourceCellIndex;
-	int nTargetCellIndex;
+	Symbol sTarget;
 
 	require(IsCompiled());
 	require(ivDataGridSourceIndexes.GetSize() == GetPredictorAttributeNumber());
@@ -411,15 +410,8 @@ void KIDRClassifierReinforcer::ComputeRankedReinforcements() const
 				// Index de l'attribut de renforcement
 				nAttribute = ivReinforcementAttributeIndexes.GetAt(i);
 
-				// Recheche des index source et cible dans la grille correspondante
-				nSourceCellIndex = ivDataGridSourceIndexes.GetAt(nAttribute);
-				nTargetCellIndex = classifierRule->GetDataGridSetTargetCellIndexAt(nAttribute, nTarget);
-
-				// Memorisation de l'index de l'attribut et de ses information de renforcement
-				attributeReinforcement->SetAttributeIndex(nAttribute);
-				attributeReinforcement->SetReinforcementModalityIndex(0);
-				attributeReinforcement->SetReinforcementFinalScore(0);
-				attributeReinforcement->SetReinforcementClassChangeTag(0);
+				// Calcul des information de renforcement
+				ComputeReinforcementAt(attributeReinforcement, nTarget, nAttribute);
 			}
 
 			// Tri des Reinforcement
@@ -436,25 +428,122 @@ void KIDRClassifierReinforcer::ComputeRankedReinforcements() const
 		// Affichage par valeur cible
 		for (nTarget = 0; nTarget < GetTargetValueNumber(); nTarget++)
 		{
+			sTarget = GetTargetValueAt(nTarget);
+
 			// Affichage pour les valeurs effectivement calculees
 			if (ivTargetValueReinforcementComputed.GetAt(nTarget) == 1)
 			{
 				cout << "Reinforcements for " << GetTargetValueAt(nTarget) << "\n";
+				cout << "\t" << GetReinforcementInitialScoreAt(sTarget) << "\n";
 
-				// Affichage par attributs
-				oaRankedAttributeReinforcements =
-				    cast(ObjectArray*, oaTargetValueRankedAttributeReinforcements.GetAt(nTarget));
-				for (nAttribute = 0; nAttribute < oaRankedAttributeReinforcements->GetSize();
-				     nAttribute++)
+				// Affichage par attribut
+				for (i = 0; i < oaRankedAttributeReinforcements->GetSize(); i++)
 				{
-					attributeReinforcement =
-					    cast(KIAttributeReinforcement*,
-						 oaRankedAttributeReinforcements->GetAt(nAttribute));
-					/*DDD
-				cout << "\t" << attributeReinforcement->GetReinforcement() << "\t"
-				     << attributeReinforcement->GetAttributeName() << "\n";
-					 */
+					cout << "\t" << i + 1 << "\t";
+					cout << GetRankedReinforcementAttributeAt(sTarget, i) << "\t";
+					cout << GetRankedReinforcementPartAt(sTarget, i) << "\t";
+					cout << GetRankedReinforcementFinalScoreAt(sTarget, i) << "\t";
+					cout << GetRankedReinforcementClassChangeTagAt(sTarget, i) << "\n";
 				}
+			}
+		}
+	}
+}
+
+void KIDRClassifierReinforcer::ComputeReinforcementAt(KIAttributeReinforcement* attributeReinforcement,
+						      int nTargetIndex, int nAttributeIndex) const
+{
+	const double dEpsilon = 1e-9;
+	const KWDRDataGrid* dataGridRule;
+	const KWDRDataGridStats* dataGridStatsRule;
+	int nSourcePartIndex;
+	int nTargetPartIndex;
+	int nSourcePartNumber;
+	int nSource;
+	int nTarget;
+	Continuous cAtttributeWeight;
+	Continuous cInitialScore;
+	Continuous cNewScore;
+	Continuous cFinalScore;
+	ContinuousVector cvTargetLogProbNumeratorTerms;
+	ContinuousVector cvNewScores;
+	Continuous cCurrentSourceConditionalLogProb;
+	Continuous cNewSourceConditionalLogProb;
+
+	require(IsCompiled());
+	require(attributeReinforcement != NULL);
+	require(0 <= nTargetIndex and nTargetIndex < GetTargetValueNumber());
+	require(0 <= nAttributeIndex and nAttributeIndex < GetPredictorAttributeNumber());
+
+	// Poids de l'attribut dans le classifieur
+	cAtttributeWeight = classifierRule->GetDataGridWeightAt(nAttributeIndex);
+
+	// Acces a la grille de l'attribut et a ses stats
+	dataGridRule = cast(const KWDRDataGrid*, oaPredictorAttributeDataGridRules.GetAt(nAttributeIndex));
+	dataGridStatsRule =
+	    cast(const KWDRDataGridStats*, oaPredictorAttributeDataGridStatsRules.GetAt(nAttributeIndex));
+	assert(dataGridRule->GetAttributeNumber() == 2);
+
+	// Acces a l'attribut source de la grille
+	dataGridRule->GetAttributePartNumberAt(0);
+
+	// Recheche des index source et cible dans la grille correspondante
+	nSourcePartIndex = ivDataGridSourceIndexes.GetAt(nAttributeIndex);
+	nTargetPartIndex = classifierRule->GetDataGridSetTargetCellIndexAt(nAttributeIndex, nTargetIndex);
+
+	// Score initial avant renforcement
+	cInitialScore = classifierRule->ComputeTargetProbAt(GetTargetValueAt(nTargetIndex));
+
+	// Valeur de la log probabilite conditionnelle pour la partie source courante
+	cCurrentSourceConditionalLogProb =
+	    dataGridStatsRule->GetDataGridSourceConditionalLogProbAt(nSourcePartIndex, nTargetPartIndex);
+
+	// Dimensionnement du vecteur de score
+	cvNewScores.SetSize(GetTargetValueNumber());
+
+	// Initialisation des resultats
+	attributeReinforcement->SetAttributeIndex(nAttributeIndex);
+	attributeReinforcement->SetReinforcementPartIndex(0);
+	attributeReinforcement->SetReinforcementFinalScore(0);
+	attributeReinforcement->SetReinforcementClassChangeTag(0);
+
+	// Parcours des cellules sources de la grille pour simuler un changement de partie de variable
+	cFinalScore = cInitialScore;
+	nSourcePartNumber = dataGridRule->GetAttributePartNumberAt(0);
+	for (nSource = 0; nSource < nSourcePartNumber; nSource++)
+	{
+		// On ne traite pas la partie en cours
+		if (nSource != nSourcePartIndex)
+		{
+			// On part des numerateurs des logs de probabilites du predicteur
+			cvTargetLogProbNumeratorTerms.CopyFrom(classifierRule->GetTargetLogProbNumeratorTerms());
+
+			// On met a jour ces termes en ajout celui de la nouvelle partie et en soustrayant celui de la partie en cours
+			for (nTarget = 0; nTarget < GetTargetValueNumber(); nTarget++)
+			{
+				// Valeur de la log probabilite conditionnelle pour la partie source a evaluer
+				cNewSourceConditionalLogProb = dataGridStatsRule->GetDataGridSourceConditionalLogProbAt(
+				    nSourcePartIndex, nTargetPartIndex);
+
+				// Modification du terme de numerateur
+				cvTargetLogProbNumeratorTerms.UpgradeAt(
+				    nTarget, cAtttributeWeight *
+						 (cNewSourceConditionalLogProb - cCurrentSourceConditionalLogProb));
+			}
+
+			// Calcul du nouveau score
+			classifierRule->ComputeTargetProbsFromNumeratorTerms(&cvTargetLogProbNumeratorTerms,
+									     &cvNewScores);
+			cNewScore = cvNewScores.GetAt(nTargetIndex);
+			assert(0 <= cNewScore and cNewScore <= 1);
+
+			// Memorisation des nouvelles informations de renforcement
+			if (cNewScore > cFinalScore + dEpsilon)
+			{
+				cFinalScore = cNewScore;
+				attributeReinforcement->SetReinforcementPartIndex(nSource);
+				attributeReinforcement->SetReinforcementFinalScore(cNewScore);
+				attributeReinforcement->SetReinforcementClassChangeTag(0);
 			}
 		}
 	}
@@ -627,7 +716,7 @@ Continuous KIDRReinforcementClassChangeTagAt::ComputeContinuousResult(const KWOb
 KIAttributeReinforcement::KIAttributeReinforcement()
 {
 	nAttributeIndex = 0;
-	nReinforcementModalityIndex = 0;
+	nReinforcementPartIndex = 0;
 	cReinforcementFinalScore = 0;
 	nReinforcementClassChangeTag = 0;
 	svAttributeNames = NULL;
