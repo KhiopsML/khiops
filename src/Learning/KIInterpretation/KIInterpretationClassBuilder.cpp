@@ -96,7 +96,7 @@ boolean KIInterpretationClassBuilder::ImportPredictor(KWClass* kwcInputPredictor
 		if (trainedRegressor.ImportPredictorClass(kwcInputPredictor))
 		{
 			Global::AddWarning("Dictionary", kwcInputPredictor->GetName(),
-					   "Interpretation services not yet implemented for regressors");
+					   "Interpretation services not available for regressors");
 		}
 		trainedRegressor.DeletePredictor();
 	}
@@ -128,6 +128,7 @@ boolean KIInterpretationClassBuilder::ImportPredictor(KWClass* kwcInputPredictor
 			bIsClassifier = false;
 
 		// Recherche de l'attribut decrivant le predicteur
+		classifierRule = NULL;
 		if (bIsClassifier)
 		{
 			// Extraction de l'attribut Structure qui decrit le classifier
@@ -135,15 +136,17 @@ boolean KIInterpretationClassBuilder::ImportPredictor(KWClass* kwcInputPredictor
 			// d'une regle NB ou SNB
 			attribute = kwcInputPredictor->LookupAttribute(
 			    predictionAttribute->GetDerivationRule()->GetFirstOperand()->GetAttributeName());
-			assert(attribute != NULL);
-			sPredictorRuleAttributeName = attribute->GetName();
 
+			// L'attribut doit exister dans la classe
+			if (attribute == NULL)
+				bIsClassifier = false;
 			// Le predicteur est specifie via une regle de derivation
-			if (attribute->GetDerivationRule() == NULL)
+			else if (attribute->GetDerivationRule() == NULL)
 				bIsClassifier = false;
 			// Il doit etre soit le Naive Bayes, soit le Selective Naive Bayes
 			else
 			{
+				// Test du type de classifieur
 				if (attribute->GetDerivationRule()->GetName() != referenceNBRule.GetName() and
 				    attribute->GetDerivationRule()->GetName() != referenceSNBRule.GetName())
 				{
@@ -152,6 +155,12 @@ boolean KIInterpretationClassBuilder::ImportPredictor(KWClass* kwcInputPredictor
 					    "Interpretation services are available only for naive bayes predictors");
 					bIsClassifier = false;
 				}
+				// Memorisation du nom de l'attribut du classifieur et de sa regle si ok
+				else
+				{
+					sPredictorRuleAttributeName = attribute->GetName();
+					classifierRule = cast(KWDRNBClassifier*, attribute->GetDerivationRule());
+				}
 			}
 		}
 
@@ -159,16 +168,10 @@ boolean KIInterpretationClassBuilder::ImportPredictor(KWClass* kwcInputPredictor
 		if (bIsClassifier)
 		{
 			assert(sPredictorRuleAttributeName != "");
-
-			// Extraction de la regle de derivation de l'attribut classifieur
-			classifierRule =
-			    cast(KWDRNBClassifier*,
-				 kwcInputPredictor->LookupAttribute(sPredictorRuleAttributeName)->GetDerivationRule());
+			assert(classifierRule != NULL);
 
 			// Initialisation des listes d'attributs du classifier
-			classifierRule->ExportAttributeNames(kwcInputPredictor, &svPredictorAttributeNames,
-							     &svPredictorPartitionedAttributeNames);
-			assert(svPredictorAttributeNames.GetSize() == svPredictorPartitionedAttributeNames.GetSize());
+			classifierRule->ExportAttributeNames(kwcInputPredictor, &svPredictorAttributeNames);
 
 			// Le classifier doit avoir au moins un attribut
 			if (svPredictorAttributeNames.GetSize() == 0)
@@ -188,12 +191,6 @@ boolean KIInterpretationClassBuilder::ImportPredictor(KWClass* kwcInputPredictor
 				attribute = kwcInputPredictor->LookupAttribute(svPredictorAttributeNames.GetAt(i));
 				if (attribute == NULL)
 					bIsClassifier = false;
-
-				// Verification de l'attribut partitionne du predicteur natif
-				attribute =
-				    kwcInputPredictor->LookupAttribute(svPredictorPartitionedAttributeNames.GetAt(i));
-				if (attribute == NULL)
-					bIsClassifier = false;
 			}
 		}
 	}
@@ -209,7 +206,6 @@ boolean KIInterpretationClassBuilder::ImportPredictor(KWClass* kwcInputPredictor
 		assert(kwcPredictorClass != NULL);
 		assert(svTargetValues.GetSize() >= 2);
 		assert(svPredictorAttributeNames.GetSize() >= 1);
-		assert(svPredictorPartitionedAttributeNames.GetSize() >= svPredictorAttributeNames.GetSize());
 	}
 	// Nettoyage sinon
 	else
@@ -236,8 +232,7 @@ boolean KIInterpretationClassBuilder::ImportPredictor(KWClass* kwcInputPredictor
 			// Variables du predicteur
 			cout << "\tPredictor variables: " << svPredictorAttributeNames.GetSize() << "\n";
 			for (i = 0; i < svPredictorAttributeNames.GetSize(); i++)
-				cout << "\t\t" << svPredictorAttributeNames.GetAt(i) << "\t"
-				     << svPredictorPartitionedAttributeNames.GetAt(i) << "\n";
+				cout << "\t\t" << svPredictorAttributeNames.GetAt(i) << "\n";
 		}
 	}
 	return bOk;
@@ -256,7 +251,6 @@ void KIInterpretationClassBuilder::Clean()
 	sPredictionAttributeName = "";
 	svTargetValues.SetSize(0);
 	svPredictorAttributeNames.SetSize(0);
-	svPredictorPartitionedAttributeNames.SetSize(0);
 }
 
 KWClass* KIInterpretationClassBuilder::BuildInterpretationServiceClass(const ALString& sServiceLabel,
@@ -393,6 +387,7 @@ void KIInterpretationClassBuilder::CreateInterpretationAttributes(KWClass* kwcIn
 	KWAttribute* interpreterAttribute;
 	ObjectArray oaPredictorAttributes;
 	KIPredictorAttribute* predictorAttribute;
+	KWAttribute* attribute;
 	int nTarget;
 	int nAttribute;
 	Symbol sTargetValue;
@@ -413,6 +408,16 @@ void KIInterpretationClassBuilder::CreateInterpretationAttributes(KWClass* kwcIn
 		// Creation de la liste des attributs du predicteur, tries par importance decroissante
 		BuildPredictorAttributes(&oaPredictorAttributes);
 
+		// On passe les attribut de contribution du predicteur en used, car ceux-ci sont utilises usuellement
+		// par les outils de type visualisation des valeurs de SHAP
+		for (nAttribute = 0; nAttribute < nContributionAttributeNumber; nAttribute++)
+		{
+			predictorAttribute = cast(KIPredictorAttribute*, oaPredictorAttributes.GetAt(nAttribute));
+			attribute = kwcInterpretationClass->LookupAttribute(predictorAttribute->GetName());
+			attribute->SetUsed(true);
+			attribute->SetLoaded(true);
+		}
+
 		// Parcours de classe cibles
 		for (nTarget = 0; nTarget < svInterpretedTargetValues->GetSize(); nTarget++)
 		{
@@ -423,6 +428,8 @@ void KIInterpretationClassBuilder::CreateInterpretationAttributes(KWClass* kwcIn
 			{
 				predictorAttribute =
 				    cast(KIPredictorAttribute*, oaPredictorAttributes.GetAt(nAttribute));
+
+				// Creation de l'attribut d'interpretation
 				CreateContributionAttribute(
 				    kwcInterpretationClass, interpreterAttribute, new KIDRContributionAt, sTargetValue,
 				    predictorAttribute->GetName(), GetContributionAttributeMetaDataKey());
@@ -443,7 +450,7 @@ void KIInterpretationClassBuilder::CreateInterpretationAttributes(KWClass* kwcIn
 			// Parcours des attributs
 			for (nAttribute = 0; nAttribute < nContributionAttributeNumber; nAttribute++)
 			{
-				// Creation des attributs pour les services par rang
+				// Creation des attributs d'interpretation pour les services par rang
 				CreateRankedContributionAttribute(
 				    kwcInterpretationClass, interpreterAttribute, new KIDRContributionAttributeAt,
 				    "Variable", sTargetValue, nAttribute, GetContributionAttributeRankMetaDataKey());
@@ -715,12 +722,6 @@ const StringVector* KIInterpretationClassBuilder::GetPredictorAttributeNames() c
 	return &svPredictorAttributeNames;
 }
 
-const StringVector* KIInterpretationClassBuilder::GetPredictorPartitionedAttributeNames() const
-{
-	require(IsPredictorImported());
-	return &svPredictorPartitionedAttributeNames;
-}
-
 void KIInterpretationClassBuilder::BuildPredictorAttributes(ObjectArray* oaPredictorAttributes) const
 {
 	KIPredictorAttribute* predictorAttribute;
@@ -891,7 +892,7 @@ KWClass* KIInterpretationClassBuilder::BuildReinforcementClass(const KIModelRein
 	}
 	assert(svReinforcementAttributeNames.GetSize() > 0);
 
-	// Creation des attributs de renforcement
+	// Creation des attributs de renforcement, uniquement pour la classe a renforcer
 	svReinforcedTargetValues.Add((Symbol)modelReinforcerSpec->GetReinforcedTargetValue());
 	CreateReinforcementAttributes(kwcReinforcementClass, predictorRuleAttribute, &svReinforcedTargetValues,
 				      &svReinforcementAttributeNames);

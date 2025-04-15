@@ -60,6 +60,9 @@ public:
 	// Service de construction de classe dediee a l'interpretation ou au reenforcement
 	KIInterpretationClassBuilder* GetClassBuilder();
 
+	// Nombre max de variables en sortie sans declencher de warning
+	static int GetMaxOutputAttributeNumberWithoutWarning();
+
 	// ##
 
 	////////////////////////////////////////////////////////
@@ -70,6 +73,9 @@ protected:
 	int nPredictorAttributeNumber;
 
 	// ## Custom implementation
+
+	// Definitions des constantes
+	static const int nMaxOutputAttributeNumberWithoutWarning = 1000;
 
 	// Service de construction de classe
 	KIInterpretationClassBuilder classBuilder;
@@ -101,5 +107,10 @@ inline void KIModelService::SetPredictorAttributeNumber(int nValue)
 }
 
 // ## Custom inlines
+
+inline int KIModelService::GetMaxOutputAttributeNumberWithoutWarning()
+{
+	return nMaxOutputAttributeNumberWithoutWarning;
+}
 
 // ##

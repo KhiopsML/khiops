@@ -1027,7 +1027,7 @@ int KWDRDataGridBlockRule::ComputeContinuousCellIndex(const KWDRDataGrid* dataGr
 	return nPartIndex;
 }
 
-int KWDRDataGridBlockRule::ComputeSymbolCellIndex(const KWDRDataGrid* dataGridRule, Symbol sValue) const
+int KWDRDataGridBlockRule::ComputeSymbolCellIndex(const KWDRDataGrid* dataGridRule, const Symbol& sValue) const
 {
 	int nPartIndex;
 

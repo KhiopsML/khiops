@@ -131,7 +131,7 @@ void KWSymbolValueSparseVector::RemoveAll()
 	svValues.SetSize(0);
 }
 
-void KWSymbolValueSparseVector::AddValueAt(int nSparseIndex, Symbol sValue)
+void KWSymbolValueSparseVector::AddValueAt(int nSparseIndex, const Symbol& sValue)
 {
 	require(nSparseIndex >= 0);
 	assert(GetValueNumber() == svValues.GetSize());

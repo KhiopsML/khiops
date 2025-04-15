@@ -6,6 +6,7 @@
 
 class KIDRClassifierService;
 class KIDRClassifierInterpreter;
+class KIDRInterpretationRule;
 class KIDRContributionAt;
 class KIDRContributionAttributeAt;
 class KIDRContributionPartAt;
@@ -47,14 +48,14 @@ public:
 	Symbol GetTargetValueAt(int nTarget) const;
 
 	// Rang d'une valeur cible (-1 si non trouve)
-	int GetTargetValueRank(Symbol sValue) const;
+	int GetTargetValueRank(const Symbol& sValue) const;
 
-	// Noms des variables
+	// Noms des variables, sous forme de Symbol pour etre directement exploitable dans les regles de derivation
 	int GetPredictorAttributeNumber() const;
-	const ALString& GetPredictorAttributeNameAt(int nAttribute) const;
+	Symbol GetPredictorAttributeNameAt(int nAttribute) const;
 
 	// Rang d'une variable d'apres son nom (-1 si non trouve)
-	int GetPredictorAttributeRank(const ALString& sName) const;
+	int GetPredictorAttributeRank(const Symbol& sName) const;
 
 	// Poids des variables
 	Continuous GetPredictorAttributeWeightAt(int nAttribute) const;
@@ -87,14 +88,11 @@ protected:
 	// Regle associee au classifieur
 	const KWDRNBClassifier* classifierRule;
 
-	// Dictionnaire des rangs des valeurs cibles, en memorisant le rang+1
-	LongintNumericKeyDictionary lnkdTargetValueRanks;
-
 	// Noms des variables du predicteur
-	StringVector svPredictorAttributeNames;
+	SymbolVector svPredictorAttributeNames;
 
 	// Dictionnaire des rangs des variables, en memorisant le rang+1
-	LongintDictionary ldPredictorAttributeRanks;
+	LongintNumericKeyDictionary lnkdPredictorAttributeRanks;
 
 	// Tableau des regles de type KWDRDataGrid par variable du predicteur
 	ObjectArray oaPredictorAttributeDataGridRules;
@@ -136,22 +134,23 @@ public:
 	const KIShapleyTable* GetPredictorAttributeShapleyTableAt(int nAttribute) const;
 
 	////////////////////////////////////////////////////////////////////
-	// Application  de la regle a un objet, et services associes
+	// Application  de la regle a un objet, et services associes,
+	// pour des parametres de rang valides
 
 	// Calcul de l'attribut derive
 	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
 
 	// Valeur de contribution pour une valeur cible et un index de variable
-	Continuous GetContributionAt(Symbol sTargetValue, Symbol sAttributeName) const;
+	Continuous GetContributionAt(int nTargetValueRank, int nPredictorAttributeRank) const;
 
 	// Nom de variable de contribution pour une valeur cible et un rang de variable
-	Symbol GetRankedContributionAttributeAt(Symbol sTargetValue, int nAttributeRank) const;
+	Symbol GetRankedContributionAttributeAt(int nTargetValueRank, int nContributionRank) const;
 
 	// Nom de partie de variable de contribution pour une valeur cible et un rang de variable
-	Symbol GetRankedContributionPartAt(Symbol sTargetValue, int nAttributeRank) const;
+	Symbol GetRankedContributionPartAt(int nTargetValueRank, int nContributionRank) const;
 
 	// Valeur de contribution pour une valeur cible et un rang de variable
-	Continuous GetRankedContributionValueAt(Symbol sTargetValue, int nAttributeRank) const;
+	Continuous GetRankedContributionValueAt(int nTargetValueRank, int nContributionRank) const;
 
 	////////////////////////////////////////////////////////////////////
 	// Services divers
@@ -170,7 +169,7 @@ protected:
 
 	// Creation des structures des gestion des contributions pour les acces par rang
 	void CreateRankedContributionStructures(int nTargetValueNumber, int nAttributeNumber,
-						const StringVector* svAttributeNames);
+						const SymbolVector* svAttributeNames);
 
 	// Calcul de toutes les contributions triees pour les acces aux contributions par rang
 	void ComputeRankedContributions() const;
@@ -189,10 +188,39 @@ protected:
 };
 
 ////////////////////////////////////////////////////////////
+// Classe KIDRInterpretationRule
+// Classe abstraite ancetre des regles exploitant un interpreteur
+// pour indexer les operandes des regles
+class KIDRInterpretationRule : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KIDRInterpretationRule();
+	~KIDRInterpretationRule();
+
+	// Compilation
+	void Compile(KWClass* kwcOwnerClass) override;
+
+	//////////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	////////////////////////////////////////////////////////////////////////
+	// Rang des operandes obtenu de facon generiques pour toutes les regles
+	// Lors de la compilation, on memorise un rang en dur si l'operande est
+	// constant et valide, -1 sinon
+	// Lors de l'acces au rang, on exploite ce rang si possible, sinon on le recalcule
+
+	// Memorisation des rangs issue de la compilation
+	int nConstantTargetValueRank;
+	int nConstantPredictorAttributeRank;
+	int nConstantContributionRank;
+};
+
+////////////////////////////////////////////////////////////
 // Classe KIDRContributionAt
 // Donne la valeur de la contribution pour une valeur cible
 // et un nom de variable a partir d'un interpreteur
-class KIDRContributionAt : public KWDerivationRule
+class KIDRContributionAt : public KIDRInterpretationRule
 {
 public:
 	// Constructeur
@@ -210,7 +238,7 @@ public:
 // Classe KIDRContributionAttributeAt
 // Donne le nom de la variable de contribution pour une valeur cible
 // et un rang de variable a partir d'un interpreteur
-class KIDRContributionAttributeAt : public KWDerivationRule
+class KIDRContributionAttributeAt : public KIDRInterpretationRule
 {
 public:
 	// Constructeur
@@ -228,7 +256,7 @@ public:
 // Classe KIDRContributionPartAt
 // Donne la partie de la variable de contribution pour une valeur cible
 // et un rang de variable a partir d'un interpreteur
-class KIDRContributionPartAt : public KWDerivationRule
+class KIDRContributionPartAt : public KIDRInterpretationRule
 {
 public:
 	// Constructeur
@@ -246,7 +274,7 @@ public:
 // Classe KIDRContributionValueAt
 // Donne la valeur de contribution pour une valeur cible
 // et un rang de variable a partir d'un interpreteur
-class KIDRContributionValueAt : public KWDerivationRule
+class KIDRContributionValueAt : public KIDRInterpretationRule
 {
 public:
 	// Constructeur
@@ -281,11 +309,11 @@ public:
 
 	// Parametrage des noms des attributs
 	// Memoire: appartient a l'appelant
-	void SetAttributeNames(const StringVector* svNames);
-	const StringVector* GetAttributeNames() const;
+	void SetAttributeNames(const SymbolVector* svNames);
+	const SymbolVector* GetAttributeNames() const;
 
 	// Nom de l'attribut correspondant a son index
-	const ALString& GetAttributeName() const;
+	Symbol GetAttributeName() const;
 
 	//////////////////////////////////////////////////////////
 	///// Implementation
@@ -293,7 +321,7 @@ protected:
 	// Variables de la classe
 	int nAttributeIndex;
 	Continuous cContribution;
-	const StringVector* svAttributeNames;
+	const SymbolVector* svAttributeNames;
 };
 
 // Methode de comparaison par contribution decroissante
@@ -315,13 +343,10 @@ inline Symbol KIDRClassifierService::GetTargetValueAt(int nTarget) const
 	return classifierRule->GetTargetValueAt(nTarget);
 }
 
-inline int KIDRClassifierService::GetTargetValueRank(Symbol sValue) const
+inline int KIDRClassifierService::GetTargetValueRank(const Symbol& sValue) const
 {
-	int nRank;
 	require(IsCompiled());
-	nRank = (int)lnkdTargetValueRanks.Lookup(sValue.GetNumericKey()) - 1;
-	ensure(nRank == -1 or GetTargetValueAt(nRank) == sValue);
-	return nRank;
+	return classifierRule->GetTargetValueRank(sValue);
 }
 
 inline int KIDRClassifierService::GetPredictorAttributeNumber() const
@@ -330,18 +355,18 @@ inline int KIDRClassifierService::GetPredictorAttributeNumber() const
 	return classifierRule->GetDataGridStatsNumber();
 }
 
-inline const ALString& KIDRClassifierService::GetPredictorAttributeNameAt(int nAttribute) const
+inline Symbol KIDRClassifierService::GetPredictorAttributeNameAt(int nAttribute) const
 {
 	require(IsCompiled());
 	require(0 <= nAttribute and nAttribute < GetPredictorAttributeNumber());
 	return svPredictorAttributeNames.GetAt(nAttribute);
 }
 
-inline int KIDRClassifierService::GetPredictorAttributeRank(const ALString& sName) const
+inline int KIDRClassifierService::GetPredictorAttributeRank(const Symbol& sName) const
 {
 	int nRank;
 	require(IsCompiled());
-	nRank = (int)ldPredictorAttributeRanks.Lookup(sName) - 1;
+	nRank = (int)lnkdPredictorAttributeRanks.Lookup(sName.GetNumericKey()) - 1;
 	ensure(nRank == -1 or svPredictorAttributeNames.GetAt(nRank) == sName);
 	return nRank;
 }
@@ -395,7 +420,7 @@ inline Continuous KIAttributeContribution::GetContribution() const
 	return cContribution;
 }
 
-inline const ALString& KIAttributeContribution::GetAttributeName() const
+inline Symbol KIAttributeContribution::GetAttributeName() const
 {
 	require(svAttributeNames != NULL);
 	require(0 <= nAttributeIndex and nAttributeIndex < svAttributeNames->GetSize());

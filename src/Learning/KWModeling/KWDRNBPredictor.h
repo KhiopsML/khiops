@@ -114,6 +114,12 @@ public:
 	////////////////////////////////////////////////////////////////////
 	// Methodes avancees pour acceder au calcul des probabilites du predicteur SNB
 
+	// Acces au vecteur des probabilites par valeur cibles
+	const ContinuousVector* GetTargetProbs() const;
+
+	// Probabilite associee a uneclasse inconnue en apprentissage (presque nulle, mais non nulle)
+	double GetUnknownTargetProb() const;
+
 	// Acces aux termes du numerateur des logs de probabilites, avant normalisation
 	// Ce terme est la somme additives des logs des probabilites impliquees pour un predicteur SNB
 	const ContinuousVector* GetTargetLogProbNumeratorTerms() const;
@@ -131,6 +137,9 @@ public:
 	// Acces aux valeurs cible
 	int GetTargetValueNumber() const;
 	Symbol GetTargetValueAt(int nTarget) const;
+
+	// Rang d'une valeur cible (-1 si non trouve)
+	int GetTargetValueRank(const Symbol& sValue) const;
 
 	// Acces aux statistiques de grilles en operande
 	int GetDataGridStatsNumber() const;
@@ -150,10 +159,9 @@ public:
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
 
-	// Export des noms des variables du classifieur, dans leur version initiale et partitionnee
-	// La methode renvoie les informations exploitables au mieux
-	void ExportAttributeNames(const KWClass* kwcOwnerClass, StringVector* svPredictorAttributeNames,
-				  StringVector* svPredictorPartitionedAttributeNames) const;
+	// Export des noms des variables du classifieur
+	// La methode renvoie les informations exploitables au mieux selon la valite de la classe en cours
+	void ExportAttributeNames(const KWClass* kwcOwnerClass, StringVector* svPredictorAttributeNames) const;
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -209,14 +217,24 @@ protected:
 	// Vecteurs des valeurs cibles
 	SymbolVector svTargetValues;
 
+	// Dictionnaire des rangs des valeurs cibles, en memorisant le rang+1
+	LongintNumericKeyDictionary lnkdTargetValueRanks;
+
+	// Probabilite conditionnelle par defaut; attribue aux classes inconnues
+	Continuous cUnknownTargetProb;
+
+	// Effectif total des valeur cibles
+	int nTargetTotalFrequency;
+
+	// Gestion des epsilon de Laplace
+	double dLaplaceEpsilon;
+	double dLaplaceDenominator;
+
 	// Vecteur des numerateurs des log de probabilites conditionnelles, avant normalisation pour obtenir des probabilites
 	mutable ContinuousVector cvTargetLogProbNumeratorTerms;
 
 	// Vecteur des probabilites conditionnelles
 	mutable ContinuousVector cvTargetProbs;
-
-	// Probabilite conditionnelle par defaut; attribue aux classes inconnues
-	mutable Continuous cUnknownTargetProb;
 
 	// Fraicheur d'optimisation
 	int nOptimizationFreshness;
@@ -293,7 +311,7 @@ public:
 	int GetDataGridSetTargetValueNumber() const;
 	Continuous GetDataGridSetTargetCumulativeFrequencyAt(int nTarget) const;
 	int GetDataGridSetTargetIndexAt(int nDataGridStats, int nTarget) const;
-	int GetDataGridSetTargetCellIndexAt(int nDataGrid, int nTargetValue) const;
+	int GetDataGridSetTargetCellIndexAt(int nDataGrid, int nTarget) const;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -516,6 +534,137 @@ public:
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // Methodes en inline
+
+inline const ContinuousVector* KWDRNBClassifier::GetTargetProbs() const
+{
+	require(IsCompiled());
+	require(IsOptimized());
+	require(cvTargetProbs.GetSize() == GetDataGridSetTargetPartNumber());
+
+	return &cvTargetProbs;
+}
+
+inline double KWDRNBClassifier::GetUnknownTargetProb() const
+{
+	require(IsCompiled());
+	require(IsOptimized());
+	cUnknownTargetProb;
+}
+
+inline const ContinuousVector* KWDRNBClassifier::GetTargetLogProbNumeratorTerms() const
+{
+	require(IsCompiled());
+	require(IsOptimized());
+	require(cvTargetLogProbNumeratorTerms.GetSize() == GetDataGridSetTargetPartNumber());
+
+	return &cvTargetLogProbNumeratorTerms;
+}
+
+inline int KWDRNBClassifier::GetTargetValueNumber() const
+{
+	require(IsOptimized());
+	return svTargetValues.GetSize();
+}
+
+inline Symbol KWDRNBClassifier::GetTargetValueAt(int nTarget) const
+{
+	require(IsOptimized());
+	require(0 <= nTarget and nTarget < svTargetValues.GetSize());
+	return svTargetValues.GetAt(nTarget);
+}
+
+inline int KWDRNBClassifier::GetTargetValueRank(const Symbol& sValue) const
+{
+	int nRank;
+	require(IsCompiled());
+	nRank = (int)lnkdTargetValueRanks.Lookup(sValue.GetNumericKey()) - 1;
+	ensure(nRank == -1 or GetTargetValueAt(nRank) == sValue);
+	return nRank;
+}
+
+inline int KWDRNBClassifier::GetDataGridStatsOrBlockNumber() const
+{
+	require(IsOptimized());
+	return oaDataGridStatsAndBlockRules.GetSize();
+}
+
+inline int KWDRNBClassifier::GetDataGridStatsNumber() const
+{
+	require(IsOptimized());
+	return cvWeights.GetSize();
+}
+
+inline boolean KWDRNBClassifier::IsDataGridStatsAt(int nDataGridStatsOrBlock) const
+{
+	require(IsOptimized());
+	require(0 <= nDataGridStatsOrBlock and nDataGridStatsOrBlock < oaDataGridStatsAndBlockRules.GetSize());
+
+	return ivIsDataGridStatsRule.GetAt(nDataGridStatsOrBlock);
+}
+
+inline const KWDRDataGridStats* KWDRNBClassifier::GetDataGridStatsAt(int nDataGridStatsOrBlock) const
+{
+	require(IsOptimized());
+	require(0 <= nDataGridStatsOrBlock and nDataGridStatsOrBlock < oaDataGridStatsAndBlockRules.GetSize());
+	require(IsDataGridStatsAt(nDataGridStatsOrBlock));
+	return cast(KWDRDataGridStats*, oaDataGridStatsAndBlockRules.GetAt(nDataGridStatsOrBlock));
+}
+
+inline const KWDRDataGridStatsBlock* KWDRNBClassifier::GetDataGridStatsBlockAt(int nDataGridStatsOrBlock) const
+{
+	require(IsOptimized());
+	require(0 <= nDataGridStatsOrBlock and nDataGridStatsOrBlock < oaDataGridStatsAndBlockRules.GetSize());
+	require(not IsDataGridStatsAt(nDataGridStatsOrBlock));
+	return cast(KWDRDataGridStatsBlock*, oaDataGridStatsAndBlockRules.GetAt(nDataGridStatsOrBlock));
+}
+
+inline Continuous KWDRNBClassifier::GetDataGridWeightAt(int nDataGrid) const
+{
+	require(IsOptimized());
+	require(0 <= nDataGrid and nDataGrid < cvWeights.GetSize());
+	return cvWeights.GetAt(nDataGrid);
+}
+
+inline int KWDRNBClassifier::GetDataGridSetTargetPartNumber() const
+{
+	require(IsOptimized());
+	return ivDataGridSetTargetFrequencies.GetSize();
+}
+
+inline int KWDRNBClassifier::GetDataGridSetTargetFrequencyAt(int nTarget) const
+{
+	require(IsOptimized());
+	require(0 <= nTarget and nTarget < ivDataGridSetTargetFrequencies.GetSize());
+	return ivDataGridSetTargetFrequencies.GetAt(nTarget);
+}
+
+inline int KWDRNBClassifier::GetDataGridSetTargetCellIndexAt(int nDataGrid, int nTarget) const
+{
+	require(IsOptimized());
+	require(0 <= nDataGrid and nDataGrid < cvWeights.GetSize());
+	require(0 <= nTarget and nTarget < ivDataGridTargetIndexes.GetSize());
+	return ivDataGridTargetIndexes.GetAt(nDataGrid * ivDataGridSetTargetFrequencies.GetSize() + nTarget);
+}
+
+inline double KWDRNBClassifier::GetMissingLogProbaAt(int nDataGrid, int nTarget) const
+{
+	require(IsOptimized());
+	require(0 <= nDataGrid and nDataGrid < cvWeights.GetSize());
+	require(0 <= nTarget and nTarget < ivDataGridTargetIndexes.GetSize());
+	return dvMissingLogProbas.GetAt(nDataGrid * ivDataGridSetTargetFrequencies.GetSize() + nTarget);
+}
+
+inline double KWDRNBClassifier::GetMissingScoreAt(int nTarget) const
+{
+	require(IsOptimized());
+	require(0 <= nTarget and nTarget < dvMissingScores.GetSize());
+	return dvMissingScores.GetAt(nTarget);
+}
+
+inline boolean KWDRNBClassifier::IsOptimized() const
+{
+	return IsCompiled() and nOptimizationFreshness == GetOwnerClass()->GetCompileFreshness();
+}
 
 inline int KWDRNBRegressor::GetTargetValueIndex(Continuous cValue) const
 {
