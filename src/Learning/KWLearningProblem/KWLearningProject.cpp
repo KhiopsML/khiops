@@ -273,7 +273,6 @@ void KWLearningProject::OpenLearningEnvironnement()
 	KWDRRegisterNBPredictorRules();
 	KIDRRegisterInterpretationRules();
 	KIDRRegisterReinforcementRules();
-	KIDRRegisterAllRules();
 
 	// Enregistrement des methodes de pretraitement supervisees et non supervisees
 	KWDiscretizer::RegisterDiscretizer(KWType::Symbol, new KWDiscretizerMODL);
