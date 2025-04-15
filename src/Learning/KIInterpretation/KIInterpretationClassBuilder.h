@@ -14,7 +14,6 @@ class KIInterpretationClassBuilder;
 #include "KWTrainedPredictor.h"
 #include "KIDRInterpretation.h"
 #include "KIDRReinforcement.h"
-#include "KIDRPredictor.h"
 
 ///////////////////////////////////////////////////////////////
 // Classe KIInterpretationClassBuilder
@@ -163,79 +162,6 @@ protected:
 							KWDerivationRule* kwdrRankedReinforcementRule,
 							const ALString& sBaseName, Symbol sTargetValue, int nRank,
 							const ALString& sRankMetaDataKey) const;
-
-	///////
-	// DEPRECATED
-
-	/*DDD
-
-	// Creation des attributs de contribution du dictionnaire d'interpretation
-	void CreateContributionAttributesForClass(KWClass* kwcInterpretation, const ALString& sTargetClass,
-						  const KWAttribute* predictorRuleAttribute,
-						  const KWAttribute* predictionAttribute, boolean bIsGlobalRanking,
-						  int nContributionAttributeNumber) const;
-
-	// Creation de l'attribut gerant l'interpretation
-	KWAttribute* CreateScoreContributionAttribute(KWClass* kwcInterpretation, const ALString& sTargetClass,
-						      const KWAttribute* predictorRuleAttribute,
-						      const KWAttribute* predictionAttribute,
-						      boolean bIsGlobalRanking) const;
-
-	// Creation de l'attribut de valeur d'importance pour une valeur de classe et un index d'attribut d'importance
-	KWAttribute* CreateContributionValueAtAttribute(KWClass* kwcInterpretation, const ALString& sTargetClass,
-							const KWAttribute* scoreInterpretationAttribute,
-							boolean bIsGlobalRanking, int nAttributeRank) const;
-
-	// Creation de l'attribut du nom de la variable d'importance pour une valeur de classe et un index d'attribut d'importance
-	KWAttribute* CreateContributionNameAtAttribute(KWClass* kwcInterpretation, const ALString& sTargetClass,
-						       const KWAttribute* scoreInterpretationAttribute,
-						       int nAttributeRank) const;
-
-	// Creation de l'attribut de la partie de la variable d'importance pour une valeur de classe et un index d'attribut d'importance
-	KWAttribute* CreateContributionPartAtAttribute(KWClass* kwcInterpretation, const ALString& sTargetClass,
-						       const KWAttribute* scoreInterpretationAttribute,
-						       int nAttributeRank) const;
-
-
-	////////////////////////////////////////////////////////////////////////////
-	// Creation des attributs de renforcement du dictionnaite d'interpretation
-
-	// Creation de l'ensemble des attributs de renforcement
-	void CreateReinforcementAttributesForClass(KWClass* kwcReinforcement, const ALString& sTargetClass,
-						   const KWAttribute* predictorRuleAttribute,
-						   const KWAttribute* predictionAttribute,
-						   const StringVector* svReinforcementAttributeNames) const;
-
-	// Creation de l'attribut gerant le renforcement
-	KWAttribute* CreateScoreReinforcementAttribute(KWClass* kwcReinforcement, const ALString& sTargetClass,
-						       const KWAttribute* predictorRuleAttribute,
-						       const KWAttribute* predictionAttribute) const;
-
-	// Creation de l'attribut pour le score initial
-	KWAttribute* CreateReinforcementInitialScoreAttribute(KWClass* kwcReinforcement, const ALString& sTargetClass,
-							      const KWAttribute* scoreInterpretationAttribute) const;
-
-	// Creation de l'attribut pour le score final, pour un index d'attribut de renfortcement
-	KWAttribute* CreateReinforcementFinalScoreAtAttribute(KWClass* kwcReinforcement, const ALString& sTargetClass,
-							      const KWAttribute* scoreInterpretationAttribute,
-							      int nIndex) const;
-
-	// Creation de l'attribut pour le nom de la variable, pour un index d'attribut de renfortcement
-	KWAttribute* CreateReinforcementNameAtAttribute(KWClass* kwcReinforcement, const ALString& sTargetClass,
-							const KWAttribute* scoreInterpretationAttribute,
-							int nIndex) const;
-
-	// Creation de l'attribut pour la partie de variable, pour un index d'attribut de renfortcement
-	KWAttribute* CreateReinforcementPartAtAttribute(KWClass* kwcReinforcement, const ALString& sTargetClass,
-							const KWAttribute* scoreInterpretationAttribute,
-							int nIndex) const;
-
-	// Creation de l'attribut pour le changement de classe, pour un index d'attribut de renfortcement
-	KWAttribute* CreateReinforcementClassChangeAtAttribute(KWClass* kwcReinforcement, const ALString& sTargetClass,
-							       const KWAttribute* scoreInterpretationAttribute,
-							       int nIndex) const;
-
-							   */
 
 	////////////////////////////
 	// Variables de la classe

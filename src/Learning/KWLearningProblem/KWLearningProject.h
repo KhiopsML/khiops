@@ -52,7 +52,6 @@
 #include "DTDecisionTreeCreationTask.h"
 #include "KIDRInterpretation.h"
 #include "KIDRReinforcement.h"
-#include "KIDRRegisterAllRules.h"
 
 // Service de lancement d'un projet d'apprentissage, defini
 // par un probleme d'apprentissage et sa vue
