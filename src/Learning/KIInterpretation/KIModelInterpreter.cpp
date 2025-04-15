@@ -78,6 +78,7 @@ const ALString KIModelInterpreter::GetObjectLabel() const
 boolean KIModelInterpreter::Check() const
 {
 	boolean bOk;
+	ALString sTmp;
 
 	// Appel de la methode ancetre
 	bOk = KIModelService::Check();
@@ -88,7 +89,16 @@ boolean KIModelInterpreter::Check() const
 		// Erreur si aucun attribut de contribution demande
 		if (GetContributionAttributeNumber() == 0)
 		{
-			AddError("Number of contribution variables must be at least 1");
+			AddError("Number of contribution variables should be at least 1");
+			bOk = false;
+		}
+
+		// Erreur si trop d'attributs leviers
+		if (GetContributionAttributeNumber() > GetMaxContributionAttributeNumber())
+		{
+			AddError(sTmp + "Number of contribution variables (" +
+				 IntToString(GetContributionAttributeNumber()) + ") should be less than " +
+				 IntToString(GetMaxContributionAttributeNumber()));
 			bOk = false;
 		}
 	}

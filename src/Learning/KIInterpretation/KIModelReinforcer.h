@@ -65,6 +65,9 @@ public:
 	// Mise ajour du tableau des attributs du predicteur
 	void UpdateLeverAttributes();
 
+	// Nombre max de variables levier
+	static int GetMaxLeverAttributeNumber();
+
 	// ##
 
 	////////////////////////////////////////////////////////
@@ -77,6 +80,9 @@ protected:
 
 	// Tableau des attributs du predicteur pour le parametrage des variables leviers
 	ObjectArray oaLeverAttributes;
+
+	// Definitions des constantes
+	static const int nMaxLeverAttributeNumber = 100;
 
 	// ##
 };
@@ -104,6 +110,11 @@ inline const ObjectArray* KIModelReinforcer::GetConstLeverAttributes() const
 inline ObjectArray* KIModelReinforcer::GetLeverAttributes()
 {
 	return &oaLeverAttributes;
+}
+
+inline int KIModelReinforcer::GetMaxLeverAttributeNumber()
+{
+	return nMaxLeverAttributeNumber;
 }
 
 // ##

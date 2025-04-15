@@ -88,6 +88,7 @@ boolean KIModelReinforcer::Check() const
 	int nSelectedLeverAttributeNumber;
 	boolean bTargetValueFound;
 	int i;
+	ALString sTmp;
 
 	// Appel de la methode ancetre
 	bOk = KIModelService::Check();
@@ -100,7 +101,16 @@ boolean KIModelReinforcer::Check() const
 		// Erreur si aucun attribut levier selectionne
 		if (nSelectedLeverAttributeNumber == 0)
 		{
-			AddError("Number of selected lever variables must be at least 1");
+			AddError("Number of selected lever variables should be at least 1");
+			bOk = false;
+		}
+
+		// Erreur si trop d'attributs leviers
+		if (nSelectedLeverAttributeNumber > GetMaxLeverAttributeNumber())
+		{
+			AddError(sTmp + "Number of lever variables selected (" +
+				 IntToString(nSelectedLeverAttributeNumber) + ") should be less than " +
+				 IntToString(GetMaxLeverAttributeNumber()));
 			bOk = false;
 		}
 

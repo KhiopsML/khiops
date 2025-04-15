@@ -49,9 +49,8 @@ boolean KIDRClassifierReinforcer::CheckOperandsCompleteness(const KWClass* kwcOw
 	KWDRNBClassifier* checkedNBClassifierRule;
 	KWDRSymbolVector* checkedReinforcementAttributeNames;
 	StringVector svAttributeNames;
-	StringVector svPartitionedAttributeName;
 	LongintDictionary ldPredictorAttributes;
-	LongintDictionary ldCheckedReinforcedAttributes;
+	LongintNumericKeyDictionary lnkdUniqueReinforcedAttributes;
 	int nAttribute;
 	ALString sTmp;
 
@@ -68,8 +67,7 @@ boolean KIDRClassifierReinforcer::CheckOperandsCompleteness(const KWClass* kwcOw
 		    cast(KWDRSymbolVector*, GetSecondOperand()->GetReferencedDerivationRule(kwcOwnerClass));
 
 		// Recherche de ses variables
-		checkedNBClassifierRule->ExportAttributeNames(kwcOwnerClass, &svAttributeNames,
-							      &svPartitionedAttributeName);
+		checkedNBClassifierRule->ExportAttributeNames(kwcOwnerClass, &svAttributeNames);
 
 		// On range les variables dans un dictionnaire
 		// On memorise le rang+1, car 0 correspond a la valeur retournee en cas de cle inexistante
@@ -90,16 +88,16 @@ boolean KIDRClassifierReinforcer::CheckOperandsCompleteness(const KWClass* kwcOw
 			}
 
 			// Test de l'unicite de la variable de renforcement
-			if (ldCheckedReinforcedAttributes.Lookup(
-				checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetValue()) == 1)
+			if (lnkdUniqueReinforcedAttributes.Lookup(
+				checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetNumericKey()) == 1)
 			{
 				AddError(sTmp + "Reinforced variable " +
 					 checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetValue() +
 					 " used twice");
 				bOk = false;
 			}
-			ldCheckedReinforcedAttributes.SetAt(
-			    checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetValue(), 1);
+			lnkdUniqueReinforcedAttributes.SetAt(
+			    checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetNumericKey(), 1);
 
 			// Arret si erreurs
 			if (not bOk)
@@ -126,8 +124,7 @@ void KIDRClassifierReinforcer::Compile(KWClass* kwcOwnerClass)
 	ivReinforcementAttributeIndexes.SetSize(reinforcementAttributeNames->GetValueNumber());
 	for (nAttribute = 0; nAttribute < reinforcementAttributeNames->GetValueNumber(); nAttribute++)
 	{
-		nAttributeIndex =
-		    GetPredictorAttributeRank(reinforcementAttributeNames->GetValueAt(nAttribute).GetValue());
+		nAttributeIndex = GetPredictorAttributeRank(reinforcementAttributeNames->GetValueAt(nAttribute));
 		assert(nAttributeIndex >= 0);
 		ivReinforcementAttributeIndexes.SetAt(nAttribute, nAttributeIndex);
 	}
@@ -159,152 +156,125 @@ Object* KIDRClassifierReinforcer::ComputeStructureResult(const KWObject* kwoObje
 	return (Object*)this;
 }
 
-Continuous KIDRClassifierReinforcer::GetReinforcementInitialScoreAt(Symbol sTargetValue) const
+Continuous KIDRClassifierReinforcer::GetReinforcementInitialScoreAt(int nTargetValueRank) const
 {
 	require(IsCompiled());
+	require(0 <= nTargetValueRank and nTargetValueRank < GetTargetValueNumber());
 
 	// Retourne le score initial produit par le classifieur
-	return classifierRule->ComputeTargetProbAt(sTargetValue);
+	return classifierRule->GetTargetProbs()->GetAt(nTargetValueRank);
 }
 
-Symbol KIDRClassifierReinforcer::GetRankedReinforcementAttributeAt(Symbol sTargetValue, int nAttributeRank) const
+Symbol KIDRClassifierReinforcer::GetRankedReinforcementAttributeAt(int nTargetValueRank, int nReinforcementRank) const
 {
-	int nTargetValueRank;
 	const KIAttributeReinforcement* attributeReinforcement;
 
-	// Recherche du rang de la valeur cible
-	nTargetValueRank = GetTargetValueRank(sTargetValue);
+	require(IsCompiled());
+	require(0 <= nTargetValueRank and nTargetValueRank < GetTargetValueNumber());
+	require(0 <= nReinforcementRank and nReinforcementRank < GetReinforcementAttributeNumber());
 
-	// On ne renvoie rien si la valeur cible ou le rang est incorrect
-	if (nTargetValueRank == -1 or nAttributeRank < 0 or nAttributeRank >= GetReinforcementAttributeNumber())
+	// Calcul des renforcement pour des acces par rang
+	ivTargetValueReinforcementNeeded.SetAt(nTargetValueRank, 1);
+	if (ivTargetValueReinforcementComputed.GetAt(nTargetValueRank) == 0)
+		ComputeRankedReinforcements();
+
+	// Recherche des informations de renforcement
+	attributeReinforcement = GetRankedReinforcementAt(nTargetValueRank, nReinforcementRank);
+
+	// Retourne vide si pas de renforcement
+	if (attributeReinforcement->GetReinforcementFinalScore() == 0)
 		return Symbol();
-	// Recherche de l'attribut  de renforcement sinon
+	// Retourne le nom de l'attribut de renforcement sinon
 	else
-	{
-		// Calcul des renforcement pour des acces par rang
-		ivTargetValueReinforcementNeeded.SetAt(nTargetValueRank, 1);
-		if (ivTargetValueReinforcementComputed.GetAt(nTargetValueRank) == 0)
-			ComputeRankedReinforcements();
-
-		// Recherche des informations de renforcement
-		attributeReinforcement = GetRankedReinforcementAt(nTargetValueRank, nAttributeRank);
-
-		// Retourne vide si pas de renforcement
-		if (attributeReinforcement->GetReinforcementFinalScore() == 0)
-			return Symbol();
-		// Retourne le nom de l'attribut de renforcement sinon
-		else
-			return (Symbol)attributeReinforcement->GetAttributeName();
-	}
+		return attributeReinforcement->GetAttributeName();
 }
 
-Symbol KIDRClassifierReinforcer::GetRankedReinforcementPartAt(Symbol sTargetValue, int nAttributeRank) const
+Symbol KIDRClassifierReinforcer::GetRankedReinforcementPartAt(int nTargetValueRank, int nReinforcementRank) const
 {
-	int nTargetValueRank;
 	const KIAttributeReinforcement* attributeReinforcement;
 	int nAttributeIndex;
 	const KWDRDataGrid* dataGridRule;
 	KWDataGridStats dataGridStats;
 	ALString sCellLabel;
 
-	// Recherche du rang de la valeur cible
-	nTargetValueRank = GetTargetValueRank(sTargetValue);
+	require(IsCompiled());
+	require(0 <= nTargetValueRank and nTargetValueRank < GetTargetValueNumber());
+	require(0 <= nReinforcementRank and nReinforcementRank < GetReinforcementAttributeNumber());
 
-	// On ne renvoie rien si la valeur cible ou le rang est incorrect
-	if (nTargetValueRank == -1 or nAttributeRank < 0 or nAttributeRank >= GetReinforcementAttributeNumber())
+	// Calcul des renforcement pour des acces par rang
+	ivTargetValueReinforcementNeeded.SetAt(nTargetValueRank, 1);
+	if (ivTargetValueReinforcementComputed.GetAt(nTargetValueRank) == 0)
+		ComputeRankedReinforcements();
+
+	// Recherche des informations de renforcement
+	attributeReinforcement = GetRankedReinforcementAt(nTargetValueRank, nReinforcementRank);
+
+	// Retourne vide si pas de renforcement
+	if (attributeReinforcement->GetReinforcementFinalScore() == 0)
 		return Symbol();
-	// Recherche de la partie de l'attribut de renforcement sinon
+	// Retourne le nom de de la partie de l'attribut de renforcement sinon
 	else
 	{
-		// Calcul des renforcement pour des acces par rang
-		ivTargetValueReinforcementNeeded.SetAt(nTargetValueRank, 1);
-		if (ivTargetValueReinforcementComputed.GetAt(nTargetValueRank) == 0)
-			ComputeRankedReinforcements();
+		// Acces a l'attribut, la grille corespondant, et l'index source dans la grille
+		nAttributeIndex = attributeReinforcement->GetAttributeIndex();
+		dataGridRule = cast(const KWDRDataGrid*, oaPredictorAttributeDataGridRules.GetAt(nAttributeIndex));
 
-		// Recherche des informations de renforcement
-		attributeReinforcement = GetRankedReinforcementAt(nTargetValueRank, nAttributeRank);
-
-		// Retourne vide si pas de renforcement
-		if (attributeReinforcement->GetReinforcementFinalScore() == 0)
-			return Symbol();
-		// Retourne le nom de de la partie de l'attribut de renforcement sinon
-		else
-		{
-			// Acces a l'attribut, la grille corespondant, et l'index source dans la grille
-			nAttributeIndex = attributeReinforcement->GetAttributeIndex();
-			dataGridRule =
-			    cast(const KWDRDataGrid*, oaPredictorAttributeDataGridRules.GetAt(nAttributeIndex));
-
-			// Acces a la partition univariee de l'attribut pour obtenir le libelle de la partie
-			assert(dataGridRule->GetAttributeNumber() == 2);
-			sCellLabel = cast(KWDRUnivariatePartition*, dataGridRule->GetOperandAt(0)->GetDerivationRule())
-					 ->GetPartLabelAt(attributeReinforcement->GetReinforcementPartIndex());
-			return (Symbol)sCellLabel;
-		}
+		// Acces a la partition univariee de l'attribut pour obtenir le libelle de la partie
+		assert(dataGridRule->GetAttributeNumber() == 2);
+		sCellLabel = cast(KWDRUnivariatePartition*, dataGridRule->GetOperandAt(0)->GetDerivationRule())
+				 ->GetPartLabelAt(attributeReinforcement->GetReinforcementPartIndex());
+		return (Symbol)sCellLabel;
 	}
 }
 
-Continuous KIDRClassifierReinforcer::GetRankedReinforcementFinalScoreAt(Symbol sTargetValue, int nAttributeRank) const
+Continuous KIDRClassifierReinforcer::GetRankedReinforcementFinalScoreAt(int nTargetValueRank,
+									int nReinforcementRank) const
 {
-	int nTargetValueRank;
 	const KIAttributeReinforcement* attributeReinforcement;
 
-	// Recherche du rang de la valeur cible
-	nTargetValueRank = GetTargetValueRank(sTargetValue);
+	require(IsCompiled());
+	require(0 <= nTargetValueRank and nTargetValueRank < GetTargetValueNumber());
+	require(0 <= nReinforcementRank and nReinforcementRank < GetReinforcementAttributeNumber());
 
-	// On ne renvoie rien si la valeur cible ou le rang est incorrect
-	if (nTargetValueRank == -1 or nAttributeRank < 0 or nAttributeRank >= GetReinforcementAttributeNumber())
+	// Calcul des renforcement pour des acces par rang
+	ivTargetValueReinforcementNeeded.SetAt(nTargetValueRank, 1);
+	if (ivTargetValueReinforcementComputed.GetAt(nTargetValueRank) == 0)
+		ComputeRankedReinforcements();
+
+	// Recherche des informations de renforcement
+	attributeReinforcement = GetRankedReinforcementAt(nTargetValueRank, nReinforcementRank);
+
+	// Retourne valeur manquante si pas de renforcement
+	if (attributeReinforcement->GetReinforcementFinalScore() == 0)
 		return KWContinuous::GetMissingValue();
-	// Recherche du score final apres renforcement sinon
+	// Retourne le score final de renforcement sinon
 	else
-	{
-		// Calcul des renforcement pour des acces par rang
-		ivTargetValueReinforcementNeeded.SetAt(nTargetValueRank, 1);
-		if (ivTargetValueReinforcementComputed.GetAt(nTargetValueRank) == 0)
-			ComputeRankedReinforcements();
-
-		// Recherche des informations de renforcement
-		attributeReinforcement = GetRankedReinforcementAt(nTargetValueRank, nAttributeRank);
-
-		// Retourne valeur manquante si pas de renforcement
-		if (attributeReinforcement->GetReinforcementFinalScore() == 0)
-			return KWContinuous::GetMissingValue();
-		// Retourne le score final de renforcement sinon
-		else
-			return attributeReinforcement->GetReinforcementFinalScore();
-	}
+		return attributeReinforcement->GetReinforcementFinalScore();
 }
 
-Continuous KIDRClassifierReinforcer::GetRankedReinforcementClassChangeTagAt(Symbol sTargetValue,
-									    int nAttributeRank) const
+Continuous KIDRClassifierReinforcer::GetRankedReinforcementClassChangeTagAt(int nTargetValueRank,
+									    int nReinforcementRank) const
 {
-	int nTargetValueRank;
 	const KIAttributeReinforcement* attributeReinforcement;
 
-	// Recherche du rang de la valeur cible
-	nTargetValueRank = GetTargetValueRank(sTargetValue);
+	require(IsCompiled());
+	require(0 <= nTargetValueRank and nTargetValueRank < GetTargetValueNumber());
+	require(0 <= nReinforcementRank and nReinforcementRank < GetReinforcementAttributeNumber());
 
-	// On ne renvoie rien si la valeur cible ou le rang est incorrect
-	if (nTargetValueRank == -1 or nAttributeRank < 0 or nAttributeRank >= GetReinforcementAttributeNumber())
+	// Calcul des renforcement pour des acces par rang
+	ivTargetValueReinforcementNeeded.SetAt(nTargetValueRank, 1);
+	if (ivTargetValueReinforcementComputed.GetAt(nTargetValueRank) == 0)
+		ComputeRankedReinforcements();
+
+	// Recherche des informations de renforcement
+	attributeReinforcement = GetRankedReinforcementAt(nTargetValueRank, nReinforcementRank);
+
+	// Retourne valeur manquante si pas de renforcement
+	if (attributeReinforcement->GetReinforcementFinalScore() == 0)
 		return KWContinuous::GetMissingValue();
-	// Recherche du tage de changement de classe sinon
+	// Retourne le tag de changement de classe sinon
 	else
-	{
-		// Calcul des renforcement pour des acces par rang
-		ivTargetValueReinforcementNeeded.SetAt(nTargetValueRank, 1);
-		if (ivTargetValueReinforcementComputed.GetAt(nTargetValueRank) == 0)
-			ComputeRankedReinforcements();
-
-		// Recherche des informations de renforcement
-		attributeReinforcement = GetRankedReinforcementAt(nTargetValueRank, nAttributeRank);
-
-		// Retourne valeur manquante si pas de renforcement
-		if (attributeReinforcement->GetReinforcementFinalScore() == 0)
-			return KWContinuous::GetMissingValue();
-		// Retourne le tag de changement de classe sinon
-		else
-			return attributeReinforcement->GetReinforcementClassChangeTag();
-	}
+		return attributeReinforcement->GetReinforcementClassChangeTag();
 }
 
 void KIDRClassifierReinforcer::WriteDetails(ostream& ost) const
@@ -357,7 +327,7 @@ void KIDRClassifierReinforcer::Clean()
 }
 
 void KIDRClassifierReinforcer::CreateRankedReinforcementStructures(int nTargetValueNumber, int nAttributeNumber,
-								   const StringVector* svAttributeNames)
+								   const SymbolVector* svAttributeNames)
 {
 	ObjectArray* oaRankedAttributeReinforcements;
 	KIAttributeReinforcement* attributeReinforcement;
@@ -381,7 +351,7 @@ void KIDRClassifierReinforcer::CreateRankedReinforcementStructures(int nTargetVa
 		// Parametrage du tri du tableau
 		oaRankedAttributeReinforcements->SetCompareFunction(KIAttributeReinforcementCompare);
 
-		// Creation d'une Reinforcement par variable
+		// Creation d'un objet de renforcement par variable
 		oaRankedAttributeReinforcements->SetSize(nAttributeNumber);
 		for (nAttribute = 0; nAttribute < nAttributeNumber; nAttribute++)
 		{
@@ -402,7 +372,6 @@ void KIDRClassifierReinforcer::ComputeRankedReinforcements() const
 	int nTarget;
 	int i;
 	int nAttribute;
-	Symbol sTarget;
 
 	require(IsCompiled());
 	require(ivDataGridSourceIndexes.GetSize() == GetPredictorAttributeNumber());
@@ -454,25 +423,23 @@ void KIDRClassifierReinforcer::ComputeRankedReinforcements() const
 		// Affichage par valeur cible
 		for (nTarget = 0; nTarget < GetTargetValueNumber(); nTarget++)
 		{
-			sTarget = GetTargetValueAt(nTarget);
-
 			// Affichage pour les valeurs effectivement calculees
 			if (ivTargetValueReinforcementComputed.GetAt(nTarget) == 1)
 			{
 				cout << "Reinforcements for " << GetTargetValueAt(nTarget) << "\n";
-				cout << "\t" << GetReinforcementInitialScoreAt(sTarget) << "\n";
+				cout << "\t" << GetReinforcementInitialScoreAt(nTarget) << "\n";
 
 				// Affichage par attribut
 				for (i = 0; i < GetReinforcementAttributeNumber(); i++)
 				{
 					cout << "\t" << i + 1 << "\t";
-					cout << GetRankedReinforcementAttributeAt(sTarget, i) << "\t";
-					cout << GetRankedReinforcementPartAt(sTarget, i) << "\t";
+					cout << GetRankedReinforcementAttributeAt(nTarget, i) << "\t";
+					cout << GetRankedReinforcementPartAt(nTarget, i) << "\t";
 					cout << KWContinuous::ContinuousToString(
-						    GetRankedReinforcementFinalScoreAt(sTarget, i))
+						    GetRankedReinforcementFinalScoreAt(nTarget, i))
 					     << "\t";
 					cout << KWContinuous::ContinuousToString(
-						    GetRankedReinforcementClassChangeTagAt(sTarget, i))
+						    GetRankedReinforcementClassChangeTagAt(nTarget, i))
 					     << "\n";
 				}
 			}
@@ -660,6 +627,58 @@ int KIDRClassifierReinforcer::ComputeArgMaxScores(const ContinuousVector* cvScor
 	assert(nArgMax != -1);
 	return nArgMax;
 }
+
+////////////////////////////////////////////////////////////
+// Classe KIDRReinforcementRule
+
+KIDRReinforcementRule::KIDRReinforcementRule()
+{
+	nConstantTargetValueRank = -1;
+	nConstantReinforcementRank = -1;
+}
+
+KIDRReinforcementRule::~KIDRReinforcementRule() {}
+
+void KIDRReinforcementRule::Compile(KWClass* kwcOwnerClass)
+{
+	KIDRClassifierReinforcer* classifierReinforcer;
+	Symbol sTargetValue;
+	Symbol sPredictorAttributeName;
+
+	require(GetOperandNumber() >= 2);
+	require(GetOperandAt(1)->GetType() == KWType::Symbol);
+	require(GetOperandNumber() == 2 or GetOperandAt(2)->GetType() == KWType::Continuous);
+
+	// Appel de la methode ancetre
+	KWDerivationRule::Compile(kwcOwnerClass);
+
+	// Initialisation des rangs optimises
+	nConstantTargetValueRank = -1;
+	nConstantReinforcementRank = -1;
+
+	// Acces au renforceur du premier operande
+	classifierReinforcer =
+	    cast(KIDRClassifierReinforcer*, GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
+
+	// Calcul du rang de la valeur cible si le deuxieme operande est constant
+	if (GetOperandAt(1)->GetOrigin() == KWDerivationRuleOperand::OriginConstant)
+	{
+		sTargetValue = GetOperandAt(1)->GetSymbolConstant();
+		nConstantTargetValueRank = classifierReinforcer->GetTargetValueRank(sTargetValue);
+	}
+
+	// Calcul du rang du second parametre si le troisieme operande est constant
+	if (GetOperandNumber() >= 3 and GetOperandAt(2)->GetOrigin() == KWDerivationRuleOperand::OriginConstant)
+	{
+		nConstantReinforcementRank = (int)floor(GetOperandAt(2)->GetContinuousConstant() - 0.5);
+
+		// On verifie sa validite
+		if (nConstantReinforcementRank < 0 or
+		    nConstantReinforcementRank >= classifierReinforcer->GetReinforcementAttributeNumber())
+			nConstantReinforcementRank = -1;
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Classe KIDRReinforcementInitialScoreAt
 
@@ -684,9 +703,22 @@ KWDerivationRule* KIDRReinforcementInitialScoreAt::Create() const
 Continuous KIDRReinforcementInitialScoreAt::ComputeContinuousResult(const KWObject* kwoObject) const
 {
 	KIDRClassifierReinforcer* classifierReinforcer;
+	int nTargetValueRank;
 
+	// Acces au renforceur
 	classifierReinforcer = cast(KIDRClassifierReinforcer*, GetFirstOperand()->GetStructureValue(kwoObject));
-	return classifierReinforcer->GetReinforcementInitialScoreAt(GetOperandAt(1)->GetSymbolValue(kwoObject));
+
+	// Calcul des parametres, uniquement si necessaire
+	nTargetValueRank = nConstantTargetValueRank;
+	if (nTargetValueRank == -1)
+		nTargetValueRank = classifierReinforcer->GetTargetValueRank(GetOperandAt(1)->GetSymbolValue(kwoObject));
+
+	// Attribut de contribution si valide
+	if (nTargetValueRank >= 0)
+		return classifierReinforcer->GetReinforcementInitialScoreAt(nTargetValueRank);
+	// Valeur manquante sinon
+	else
+		return KWContinuous::GetMissingValue();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -714,12 +746,26 @@ KWDerivationRule* KIDRReinforcementAttributeAt::Create() const
 Symbol KIDRReinforcementAttributeAt::ComputeSymbolResult(const KWObject* kwoObject) const
 {
 	KIDRClassifierReinforcer* classifierReinforcer;
-	int nAttributeRank;
+	int nTargetValueRank;
+	int nReinforcementRank;
 
+	// Acces au renforceur
 	classifierReinforcer = cast(KIDRClassifierReinforcer*, GetFirstOperand()->GetStructureValue(kwoObject));
-	nAttributeRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
-	return classifierReinforcer->GetRankedReinforcementAttributeAt(GetOperandAt(1)->GetSymbolValue(kwoObject),
-								       nAttributeRank);
+
+	// Calcul des parametres, uniquement si necessaire
+	nTargetValueRank = nConstantTargetValueRank;
+	if (nTargetValueRank == -1)
+		nTargetValueRank = classifierReinforcer->GetTargetValueRank(GetOperandAt(1)->GetSymbolValue(kwoObject));
+	nReinforcementRank = nConstantReinforcementRank;
+	if (nReinforcementRank == -1)
+		nReinforcementRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
+
+	// Attribut de renforcement si valide
+	if (nTargetValueRank >= 0)
+		return classifierReinforcer->GetRankedReinforcementAttributeAt(nTargetValueRank, nReinforcementRank);
+	// Valeur manquante sinon
+	else
+		return Symbol();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -747,12 +793,26 @@ KWDerivationRule* KIDRReinforcementPartAt::Create() const
 Symbol KIDRReinforcementPartAt::ComputeSymbolResult(const KWObject* kwoObject) const
 {
 	KIDRClassifierReinforcer* classifierReinforcer;
-	int nAttributeRank;
+	int nTargetValueRank;
+	int nReinforcementRank;
 
+	// Acces au renforceur
 	classifierReinforcer = cast(KIDRClassifierReinforcer*, GetFirstOperand()->GetStructureValue(kwoObject));
-	nAttributeRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
-	return classifierReinforcer->GetRankedReinforcementPartAt(GetOperandAt(1)->GetSymbolValue(kwoObject),
-								  nAttributeRank);
+
+	// Calcul des parametres, uniquement si necessaire
+	nTargetValueRank = nConstantTargetValueRank;
+	if (nTargetValueRank == -1)
+		nTargetValueRank = classifierReinforcer->GetTargetValueRank(GetOperandAt(1)->GetSymbolValue(kwoObject));
+	nReinforcementRank = nConstantReinforcementRank;
+	if (nReinforcementRank == -1)
+		nReinforcementRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
+
+	// Partie de l'attribut de renforcement si valide
+	if (nTargetValueRank >= 0)
+		return classifierReinforcer->GetRankedReinforcementPartAt(nTargetValueRank, nReinforcementRank);
+	// Valeur manquante sinon
+	else
+		return Symbol();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -780,12 +840,26 @@ KWDerivationRule* KIDRReinforcementFinalScoreAt::Create() const
 Continuous KIDRReinforcementFinalScoreAt::ComputeContinuousResult(const KWObject* kwoObject) const
 {
 	KIDRClassifierReinforcer* classifierReinforcer;
-	int nAttributeRank;
+	int nTargetValueRank;
+	int nReinforcementRank;
 
+	// Acces au renforceur
 	classifierReinforcer = cast(KIDRClassifierReinforcer*, GetFirstOperand()->GetStructureValue(kwoObject));
-	nAttributeRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
-	return classifierReinforcer->GetRankedReinforcementFinalScoreAt(GetOperandAt(1)->GetSymbolValue(kwoObject),
-									nAttributeRank);
+
+	// Calcul des parametres, uniquement si necessaire
+	nTargetValueRank = nConstantTargetValueRank;
+	if (nTargetValueRank == -1)
+		nTargetValueRank = classifierReinforcer->GetTargetValueRank(GetOperandAt(1)->GetSymbolValue(kwoObject));
+	nReinforcementRank = nConstantReinforcementRank;
+	if (nReinforcementRank == -1)
+		nReinforcementRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
+
+	// Score final de l'attribut de renforcement si valide
+	if (nTargetValueRank >= 0)
+		return classifierReinforcer->GetRankedReinforcementFinalScoreAt(nTargetValueRank, nReinforcementRank);
+	// Valeur manquante sinon
+	else
+		return KWContinuous::GetMissingValue();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -813,12 +887,27 @@ KWDerivationRule* KIDRReinforcementClassChangeTagAt::Create() const
 Continuous KIDRReinforcementClassChangeTagAt::ComputeContinuousResult(const KWObject* kwoObject) const
 {
 	KIDRClassifierReinforcer* classifierReinforcer;
-	int nAttributeRank;
+	int nTargetValueRank;
+	int nReinforcementRank;
 
+	// Acces au renforceur
 	classifierReinforcer = cast(KIDRClassifierReinforcer*, GetFirstOperand()->GetStructureValue(kwoObject));
-	nAttributeRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
-	return classifierReinforcer->GetRankedReinforcementClassChangeTagAt(GetOperandAt(1)->GetSymbolValue(kwoObject),
-									    nAttributeRank);
+
+	// Calcul des parametres, uniquement si necessaire
+	nTargetValueRank = nConstantTargetValueRank;
+	if (nTargetValueRank == -1)
+		nTargetValueRank = classifierReinforcer->GetTargetValueRank(GetOperandAt(1)->GetSymbolValue(kwoObject));
+	nReinforcementRank = nConstantReinforcementRank;
+	if (nReinforcementRank == -1)
+		nReinforcementRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
+
+	// Indicateur de changement de classe de l'attribut de renforcement si valide
+	if (nTargetValueRank >= 0)
+		return classifierReinforcer->GetRankedReinforcementClassChangeTagAt(nTargetValueRank,
+										    nReinforcementRank);
+	// Valeur manquante sinon
+	else
+		return KWContinuous::GetMissingValue();
 }
 
 ////////////////////////////////////////////////////////////
@@ -835,12 +924,12 @@ KIAttributeReinforcement::KIAttributeReinforcement()
 
 KIAttributeReinforcement::~KIAttributeReinforcement() {}
 
-void KIAttributeReinforcement::SetAttributeNames(const StringVector* svNames)
+void KIAttributeReinforcement::SetAttributeNames(const SymbolVector* svNames)
 {
 	svAttributeNames = svNames;
 }
 
-const StringVector* KIAttributeReinforcement::GetAttributeNames() const
+const SymbolVector* KIAttributeReinforcement::GetAttributeNames() const
 {
 	return svAttributeNames;
 }
@@ -860,8 +949,9 @@ int KIAttributeReinforcementCompare(const void* elem1, const void* elem2)
 							attributeReinforcement2->GetReinforcementFinalScore());
 
 	// Comparaison sur le nom de l'attribut en cas d'egalite
+	// Attention a prendre la valeur du Symbol contenant le nom
 	if (nCompare == 0)
-		nCompare =
-		    attributeReinforcement1->GetAttributeName().Compare(attributeReinforcement2->GetAttributeName());
+		nCompare = attributeReinforcement1->GetAttributeName().CompareValue(
+		    attributeReinforcement2->GetAttributeName());
 	return nCompare;
 }

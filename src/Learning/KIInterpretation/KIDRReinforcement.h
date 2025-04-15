@@ -5,6 +5,7 @@
 #pragma once
 
 class KIDRClassifierReinforcer;
+class KIDRReinforcementRule;
 class KIDRReinforcementInitialScoreAt;
 class KIDRReinforcementAttributeAt;
 class KIDRReinforcementPartAt;
@@ -41,28 +42,29 @@ public:
 
 	// Noms des variables de renforcement
 	int GetReinforcementAttributeNumber() const;
-	const ALString& GetReinforcementAttributeNameAt(int nAttribute) const;
+	Symbol GetReinforcementAttributeNameAt(int nAttribute) const;
 
 	////////////////////////////////////////////////////////////////////
-	// Application  de la regle a un objet, et services associes
+	// Application  de la regle a un objet, et services associes,
+	// pour des parametres de rang valides
 
 	// Calcul de l'attribut derive
 	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
 
 	// Score de renforcement initial pour une valeur cible
-	Continuous GetReinforcementInitialScoreAt(Symbol sTargetValue) const;
+	Continuous GetReinforcementInitialScoreAt(int nTargetValueRank) const;
 
 	// Nom de variable de renforcement pour une valeur cible et un rang de variable
-	Symbol GetRankedReinforcementAttributeAt(Symbol sTargetValue, int nAttributeRank) const;
+	Symbol GetRankedReinforcementAttributeAt(int nTargetValueRank, int nReinforcementRank) const;
 
 	// Nom de partie de variable de renforcement pour une valeur cible et un rang de variable
-	Symbol GetRankedReinforcementPartAt(Symbol sTargetValue, int nAttributeRank) const;
+	Symbol GetRankedReinforcementPartAt(int nTargetValueRank, int nReinforcementRank) const;
 
 	// Score de renforcement pour une valeur cible et un rang de variable
-	Continuous GetRankedReinforcementFinalScoreAt(Symbol sTargetValue, int nAttributeRank) const;
+	Continuous GetRankedReinforcementFinalScoreAt(int nTargetValueRank, int nReinforcementRank) const;
 
 	// Indicateur de changement de classe suite a un renforcement pour une valeur cible et un rang de variable
-	Continuous GetRankedReinforcementClassChangeTagAt(Symbol sTargetValue, int nAttributeRank) const;
+	Continuous GetRankedReinforcementClassChangeTagAt(int nTargetValueRank, int nReinforcementRank) const;
 
 	////////////////////////////////////////////////////////////////////
 	// Services divers
@@ -81,7 +83,7 @@ protected:
 
 	// Creation des structures des gestion des contributions pour les acces par rang
 	void CreateRankedReinforcementStructures(int nTargetValueNumber, int nAttributeNumber,
-						 const StringVector* svAttributeNames);
+						 const SymbolVector* svAttributeNames);
 
 	// Calcul de toutes les informations de renforcement triees pour les acces aux contributions par rang
 	void ComputeRankedReinforcements() const;
@@ -114,10 +116,38 @@ protected:
 };
 
 ////////////////////////////////////////////////////////////
+// Classe KIDRReinforcementRule
+// Classe abstraite ancetre des regles exploitant un renforceur
+// pour indexer les operandes des regles
+class KIDRReinforcementRule : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KIDRReinforcementRule();
+	~KIDRReinforcementRule();
+
+	// Compilation
+	void Compile(KWClass* kwcOwnerClass) override;
+
+	//////////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	////////////////////////////////////////////////////////////////////////
+	// Rang des operandes obtenu de facon generiques pour toutes les regles
+	// Lors de la compilation, on memorise un rang en dur si l'operande est
+	// constant et valide, -1 sinon
+	// Lors de l'acces au rang, on exploite ce rang si possible, sinon on le recalcule
+
+	// Memorisation des rangs issue de la compilation
+	int nConstantTargetValueRank;
+	int nConstantReinforcementRank;
+};
+
+////////////////////////////////////////////////////////////
 // Classe KIDRReinforcementInitialScoreAt
 // Donne la valeur de renforcement initiale pour une valeur cible
 // a partir d'un renforceur
-class KIDRReinforcementInitialScoreAt : public KWDerivationRule
+class KIDRReinforcementInitialScoreAt : public KIDRReinforcementRule
 {
 public:
 	// Constructeur
@@ -135,7 +165,7 @@ public:
 // Classe KIDRReinforcementAttributeAt
 // Donne le nom de la variable de renforcement pour une valeur cible
 // et un rang de variable a partir d'un renforceur
-class KIDRReinforcementAttributeAt : public KWDerivationRule
+class KIDRReinforcementAttributeAt : public KIDRReinforcementRule
 {
 public:
 	// Constructeur
@@ -153,7 +183,7 @@ public:
 // Classe KIDRReinforcementPartAt
 // Donne la partie de la variable de renforcement pour une valeur cible
 // et un rang de variable a partir d'un renforceur
-class KIDRReinforcementPartAt : public KWDerivationRule
+class KIDRReinforcementPartAt : public KIDRReinforcementRule
 {
 public:
 	// Constructeur
@@ -171,7 +201,7 @@ public:
 // Classe KIDRReinforcementFinalScoreAt
 // Donne la valeur de renforcement finale apres reinforcement pour une valeur cible
 // et un rang de variable a partir d'un renforceur
-class KIDRReinforcementFinalScoreAt : public KWDerivationRule
+class KIDRReinforcementFinalScoreAt : public KIDRReinforcementRule
 {
 public:
 	// Constructeur
@@ -189,7 +219,7 @@ public:
 // Classe KIDRReinforcementClassChangeTagAt
 // Donne le tag de renforcement pour une valeur cible
 // et un rang de variable a partir d'un renforceur
-class KIDRReinforcementClassChangeTagAt : public KWDerivationRule
+class KIDRReinforcementClassChangeTagAt : public KIDRReinforcementRule
 {
 public:
 	// Constructeur
@@ -236,11 +266,11 @@ public:
 
 	// Parametrage des noms des attributs
 	// Memoire: appartient a l'appelant
-	void SetAttributeNames(const StringVector* svNames);
-	const StringVector* GetAttributeNames() const;
+	void SetAttributeNames(const SymbolVector* svNames);
+	const SymbolVector* GetAttributeNames() const;
 
 	// Nom de l'attribut correspondant a son index
-	const ALString& GetAttributeName() const;
+	Symbol GetAttributeName() const;
 
 	//////////////////////////////////////////////////////////
 	///// Implementation
@@ -250,7 +280,7 @@ protected:
 	int nReinforcementPartIndex;
 	Continuous cReinforcementFinalScore;
 	int nReinforcementClassChangeTag;
-	const StringVector* svAttributeNames;
+	const SymbolVector* svAttributeNames;
 };
 
 // Methode de comparaison par score final decroissant
@@ -265,7 +295,7 @@ inline int KIDRClassifierReinforcer::GetReinforcementAttributeNumber() const
 	return ivReinforcementAttributeIndexes.GetSize();
 }
 
-inline const ALString& KIDRClassifierReinforcer::GetReinforcementAttributeNameAt(int nAttribute) const
+inline Symbol KIDRClassifierReinforcer::GetReinforcementAttributeNameAt(int nAttribute) const
 {
 	require(IsCompiled());
 	require(0 <= nAttribute and nAttribute < GetReinforcementAttributeNumber());
@@ -331,7 +361,7 @@ inline int KIAttributeReinforcement::GetReinforcementClassChangeTag() const
 	return nReinforcementClassChangeTag;
 }
 
-inline const ALString& KIAttributeReinforcement::GetAttributeName() const
+inline Symbol KIAttributeReinforcement::GetAttributeName() const
 {
 	require(svAttributeNames != NULL);
 	require(0 <= nAttributeIndex and nAttributeIndex < svAttributeNames->GetSize());

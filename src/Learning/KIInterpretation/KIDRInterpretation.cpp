@@ -79,7 +79,6 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 	int nDataGridStatsOrBlock;
 	int nDataGrid;
 	int nAttribute;
-	int nTarget;
 
 	// Nettoyage prealable
 	Clean();
@@ -114,8 +113,8 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 			    cast(const KWDRDataGrid*,
 				 dataGridStatsRule->GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
 
-			// Memorisation du nom de l'attribut
-			svPredictorAttributeNames.SetAt(nAttribute, sAttributeName);
+			// Memorisation du nom de l'attribut sous forme de Symbol
+			svPredictorAttributeNames.SetAt(nAttribute, (Symbol)sAttributeName);
 
 			// Memorisation de la grille de preparation et de ses stats
 			oaPredictorAttributeDataGridRules.SetAt(nAttribute, cast(KWDRDataGrid*, dataGridRule));
@@ -153,8 +152,8 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 					attribute = attributeBlock->LookupAttributeBySymbolVarKey(sVarKey);
 				}
 
-				// Memorisation du nom de l'attribut
-				svPredictorAttributeNames.SetAt(nAttribute, attribute->GetName());
+				// Memorisation du nom de l'attribut sous forme de Symbol
+				svPredictorAttributeNames.SetAt(nAttribute, (Symbol)attribute->GetName());
 
 				// Memorisation de la grille de preparation et de ses stats
 				oaPredictorAttributeDataGridRules.SetAt(nAttribute, cast(KWDRDataGrid*, dataGridRule));
@@ -186,15 +185,11 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 		}
 	}
 
-	// Memorisation des rangs de valeurs cibles
-	// On memorise le rang+1, car 0 correspond a la valeur retournee en cas de cle inexistante
-	for (nTarget = 0; nTarget < GetTargetValueNumber(); nTarget++)
-		lnkdTargetValueRanks.SetAt(GetTargetValueAt(nTarget).GetNumericKey(), (longint)nTarget + 1);
-
 	// Memorisation des rangs de variables
 	// On memorise le rang+1, car 0 correspond a la valeur retournee en cas de cle inexistante
 	for (nAttribute = 0; nAttribute < svPredictorAttributeNames.GetSize(); nAttribute++)
-		ldPredictorAttributeRanks.SetAt(svPredictorAttributeNames.GetAt(nAttribute), (longint)nAttribute + 1);
+		lnkdPredictorAttributeRanks.SetAt(svPredictorAttributeNames.GetAt(nAttribute).GetNumericKey(),
+						  (longint)nAttribute + 1);
 
 	// Trace
 	if (bTrace)
@@ -270,6 +265,7 @@ longint KIDRClassifierService::GetUsedMemory() const
 	lUsedMemory = KWDerivationRule::GetUsedMemory();
 	lUsedMemory += sizeof(KIDRClassifierService) - sizeof(KWDerivationRule);
 	lUsedMemory += svPredictorAttributeNames.GetUsedMemory() - sizeof(StringVector);
+	lUsedMemory += lnkdPredictorAttributeRanks.GetUsedMemory() - sizeof(LongintNumericKeyDictionary);
 	lUsedMemory += oaPredictorAttributeDataGridRules.GetUsedMemory() - sizeof(ObjectArray);
 	lUsedMemory += oaPredictorAttributeDataGridStatsRules.GetUsedMemory() - sizeof(ObjectArray);
 	lUsedMemory += ivDataGridSourceIndexes.GetUsedMemory() - sizeof(IntVector);
@@ -281,9 +277,8 @@ void KIDRClassifierService::Clean()
 {
 	// Nettoyage des structures issuee de la compilation
 	classifierRule = NULL;
-	lnkdTargetValueRanks.RemoveAll();
 	svPredictorAttributeNames.SetSize(0);
-	ldPredictorAttributeRanks.RemoveAll();
+	lnkdPredictorAttributeRanks.RemoveAll();
 	oaPredictorAttributeDataGridRules.RemoveAll();
 	oaPredictorAttributeDataGridStatsRules.RemoveAll();
 	ivDataGridSourceIndexes.SetSize(0);
@@ -413,65 +408,42 @@ Object* KIDRClassifierInterpreter::ComputeStructureResult(const KWObject* kwoObj
 	return (Object*)this;
 }
 
-Continuous KIDRClassifierInterpreter::GetContributionAt(Symbol sTargetValue, Symbol sAttributeName) const
+Continuous KIDRClassifierInterpreter::GetContributionAt(int nTargetValueRank, int nPredictorAttributeRank) const
 {
-	int nTargetValueRank;
-	int nPredictorAttributeRank;
 	int nSourceCellIndex;
 	int nTargetCellIndex;
 	Continuous cShapleyValue;
 
 	require(IsCompiled());
+	require(0 <= nTargetValueRank and nTargetValueRank < GetTargetValueNumber());
+	require(0 <= nPredictorAttributeRank and nPredictorAttributeRank < GetPredictorAttributeNumber());
 
-	// Recherche du rang de la valeur cible et de l'attribut
-	nTargetValueRank = GetTargetValueRank(sTargetValue);
-	nPredictorAttributeRank = GetPredictorAttributeRank(sAttributeName.GetValue());
+	// Recheche des index source et cible dans la grille correspondante
+	nSourceCellIndex = ivDataGridSourceIndexes.GetAt(nPredictorAttributeRank);
+	nTargetCellIndex = classifierRule->GetDataGridSetTargetCellIndexAt(nPredictorAttributeRank, nTargetValueRank);
 
-	// On ne renvoie rien si la valeur cible ou le rang est incorrect
-	if (nTargetValueRank == -1 or nPredictorAttributeRank < 0 or
-	    nPredictorAttributeRank >= GetPredictorAttributeNumber())
-		return KWContinuous::GetMissingValue();
-	// Sinon, on renvoie la valeur de Shapley
-	else
-	{
-		// Recheche des index source et cible dans la grille correspondante
-		nSourceCellIndex = ivDataGridSourceIndexes.GetAt(nPredictorAttributeRank);
-		nTargetCellIndex =
-		    classifierRule->GetDataGridSetTargetCellIndexAt(nPredictorAttributeRank, nTargetValueRank);
-
-		// Recherche de la valeur de Shapley
-		cShapleyValue = 0;
-		if (nSourceCellIndex != -1 and nTargetCellIndex != -1)
-			cShapleyValue = GetPredictorAttributeShapleyTableAt(nPredictorAttributeRank)
-					    ->GetShapleyValueAt(nSourceCellIndex, nTargetCellIndex);
-		return cShapleyValue;
-	}
+	// Recherche de la valeur de Shapley
+	cShapleyValue = GetPredictorAttributeShapleyTableAt(nPredictorAttributeRank)
+			    ->GetShapleyValueAt(nSourceCellIndex, nTargetCellIndex);
+	return cShapleyValue;
 }
 
-Symbol KIDRClassifierInterpreter::GetRankedContributionAttributeAt(Symbol sTargetValue, int nAttributeRank) const
+Symbol KIDRClassifierInterpreter::GetRankedContributionAttributeAt(int nTargetValueRank, int nContributionRank) const
 {
-	int nTargetValueRank;
-
 	require(IsCompiled());
+	require(0 <= nTargetValueRank and nTargetValueRank < GetTargetValueNumber());
+	require(0 <= nContributionRank and nContributionRank < GetPredictorAttributeNumber());
 
 	// Calcul des contributions pour des acces par rang
 	if (not bIsRankedContributionComputed)
 		ComputeRankedContributions();
 
-	// Recherche du rang de la valeur cible
-	nTargetValueRank = GetTargetValueRank(sTargetValue);
-
-	// On ne renvoie rien si la valeur cible ou le rang est incorrect
-	if (nTargetValueRank == -1 or nAttributeRank < 0 or nAttributeRank >= GetPredictorAttributeNumber())
-		return Symbol();
-	// Sinon, on renvoie le nom de l'attribut correspondant
-	else
-		return (Symbol)GetRankedContributionAt(nTargetValueRank, nAttributeRank)->GetAttributeName();
+	// On renvoie le nom de l'attribut correspondant
+	return GetRankedContributionAt(nTargetValueRank, nContributionRank)->GetAttributeName();
 }
 
-Symbol KIDRClassifierInterpreter::GetRankedContributionPartAt(Symbol sTargetValue, int nAttributeRank) const
+Symbol KIDRClassifierInterpreter::GetRankedContributionPartAt(int nTargetValueRank, int nContributionRank) const
 {
-	int nTargetValueRank;
 	int nAttributeIndex;
 	const KWDRDataGrid* dataGridRule;
 	int nDataGridSourceIndex;
@@ -479,52 +451,37 @@ Symbol KIDRClassifierInterpreter::GetRankedContributionPartAt(Symbol sTargetValu
 	ALString sCellLabel;
 
 	require(IsCompiled());
+	require(0 <= nTargetValueRank and nTargetValueRank < GetTargetValueNumber());
+	require(0 <= nContributionRank and nContributionRank < GetPredictorAttributeNumber());
 
 	// Calcul des contributions pour des acces par rang
 	if (not bIsRankedContributionComputed)
 		ComputeRankedContributions();
 
-	// Recherche du rang de la valeur cible
-	nTargetValueRank = GetTargetValueRank(sTargetValue);
+	// Acces a l'attribut, la grille corespondant, et l'index source dans la grille
+	nAttributeIndex = GetRankedContributionAt(nTargetValueRank, nContributionRank)->GetAttributeIndex();
+	dataGridRule = cast(const KWDRDataGrid*, oaPredictorAttributeDataGridRules.GetAt(nAttributeIndex));
+	nDataGridSourceIndex = ivDataGridSourceIndexes.GetAt(nAttributeIndex);
 
-	// On ne renvoie rien si la valeur cible ou le rang est incorrect
-	if (nTargetValueRank == -1 or nAttributeRank < 0 or nAttributeRank >= GetPredictorAttributeNumber())
-		return Symbol();
-	// Sinon, on renvoie le nom de l'attribut correspondant
-	else
-	{
-		// Acces a l'attribut, la grille corespondant, et l'index source dans la grille
-		nAttributeIndex = GetRankedContributionAt(nTargetValueRank, nAttributeRank)->GetAttributeIndex();
-		dataGridRule = cast(const KWDRDataGrid*, oaPredictorAttributeDataGridRules.GetAt(nAttributeIndex));
-		nDataGridSourceIndex = ivDataGridSourceIndexes.GetAt(nAttributeIndex);
-
-		// Acces a la partition univariee de l'attribut pour obtenir le libelle de la partie
-		assert(dataGridRule->GetAttributeNumber() == 2);
-		sCellLabel = cast(KWDRUnivariatePartition*, dataGridRule->GetOperandAt(0)->GetDerivationRule())
-				 ->GetPartLabelAt(nDataGridSourceIndex);
-		return (Symbol)sCellLabel;
-	}
+	// Acces a la partition univariee de l'attribut pour obtenir le libelle de la partie
+	assert(dataGridRule->GetAttributeNumber() == 2);
+	sCellLabel = cast(KWDRUnivariatePartition*, dataGridRule->GetOperandAt(0)->GetDerivationRule())
+			 ->GetPartLabelAt(nDataGridSourceIndex);
+	return (Symbol)sCellLabel;
 }
 
-Continuous KIDRClassifierInterpreter::GetRankedContributionValueAt(Symbol sTargetValue, int nAttributeRank) const
+Continuous KIDRClassifierInterpreter::GetRankedContributionValueAt(int nTargetValueRank, int nContributionRank) const
 {
-	int nTargetValueRank;
-
 	require(IsCompiled());
+	require(0 <= nTargetValueRank and nTargetValueRank < GetTargetValueNumber());
+	require(0 <= nContributionRank and nContributionRank < GetPredictorAttributeNumber());
 
 	// Calcul des contributions pour des acces par rang
 	if (not bIsRankedContributionComputed)
 		ComputeRankedContributions();
 
-	// Recherche du rang de la valeur cible
-	nTargetValueRank = GetTargetValueRank(sTargetValue);
-
-	// On ne renvoie rien si la valeur cible ou le rang est incorrect
-	if (nTargetValueRank == -1 or nAttributeRank < 0 or nAttributeRank >= GetPredictorAttributeNumber())
-		return KWContinuous::GetMissingValue();
-	// Sinon, on renvoie le nom de l'attribut correspondant
-	else
-		return GetRankedContributionAt(nTargetValueRank, nAttributeRank)->GetContribution();
+	// On renvoie la valeur de contribution correspondante
+	return GetRankedContributionAt(nTargetValueRank, nContributionRank)->GetContribution();
 }
 
 void KIDRClassifierInterpreter::WriteAttributeDetails(ostream& ost, int nAttribute) const
@@ -576,7 +533,7 @@ void KIDRClassifierInterpreter::Clean()
 }
 
 void KIDRClassifierInterpreter::CreateRankedContributionStructures(int nTargetValueNumber, int nAttributeNumber,
-								   const StringVector* svAttributeNames)
+								   const SymbolVector* svAttributeNames)
 {
 	ObjectArray* oaRankedAttributeContributions;
 	KIAttributeContribution* attributeContribution;
@@ -648,8 +605,7 @@ void KIDRClassifierInterpreter::ComputeRankedContributions() const
 			// Recherche de la valeur de Shapley
 			cShapleyValue = GetPredictorAttributeShapleyTableAt(nAttribute)
 					    ->GetShapleyValueAt(nSourceCellIndex, nTargetCellIndex);
-			assert(cShapleyValue == GetContributionAt(GetTargetValueAt(nTarget),
-								  (Symbol)svPredictorAttributeNames.GetAt(nAttribute)));
+			assert(cShapleyValue == GetContributionAt(nTarget, nAttribute));
 
 			// Memorisation de l'index de l'attribut et de sa contribution
 			attributeContribution->SetAttributeIndex(nAttribute);
@@ -686,6 +642,66 @@ void KIDRClassifierInterpreter::ComputeRankedContributions() const
 }
 
 ////////////////////////////////////////////////////////////
+// Classe KIDRInterpretationRule
+
+KIDRInterpretationRule::KIDRInterpretationRule()
+{
+	nConstantTargetValueRank = -1;
+	nConstantPredictorAttributeRank = -1;
+	nConstantContributionRank = -1;
+}
+
+KIDRInterpretationRule::~KIDRInterpretationRule() {}
+
+void KIDRInterpretationRule::Compile(KWClass* kwcOwnerClass)
+{
+	KIDRClassifierInterpreter* classifierInterpreter;
+	Symbol sTargetValue;
+	Symbol sPredictorAttributeName;
+
+	require(GetOperandNumber() == 3);
+	require(GetOperandAt(1)->GetType() == KWType::Symbol);
+	require(GetOperandAt(2)->GetType() == KWType::Symbol or GetOperandAt(2)->GetType() == KWType::Continuous);
+
+	// Appel de la methode ancetre
+	KWDerivationRule::Compile(kwcOwnerClass);
+
+	// Initialisation des rangs optimises
+	nConstantTargetValueRank = -1;
+	nConstantPredictorAttributeRank = -1;
+	nConstantContributionRank = -1;
+
+	// Acces a l'interpreteur du premier operande
+	classifierInterpreter =
+	    cast(KIDRClassifierInterpreter*, GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
+
+	// Calcul du rang de la valeur cible si le deuxieme operande est constant
+	if (GetOperandAt(1)->GetOrigin() == KWDerivationRuleOperand::OriginConstant)
+	{
+		sTargetValue = GetOperandAt(1)->GetSymbolConstant();
+		nConstantTargetValueRank = classifierInterpreter->GetTargetValueRank(sTargetValue);
+	}
+
+	// Calcul du rang du second parametre si le troisieme operande est constant
+	if (GetOperandAt(2)->GetOrigin() == KWDerivationRuleOperand::OriginConstant)
+	{
+		// Rang d'un attribut du predicteur
+		if (GetOperandAt(2)->GetType() == KWType::Symbol)
+		{
+			sPredictorAttributeName = GetOperandAt(2)->GetSymbolConstant();
+			nConstantPredictorAttributeRank =
+			    classifierInterpreter->GetPredictorAttributeRank(sPredictorAttributeName);
+		}
+		// Rang de la variable de contribution
+		else
+		{
+			assert(GetOperandAt(2)->GetType() == KWType::Continuous);
+			nConstantContributionRank = (int)floor(GetOperandAt(2)->GetContinuousConstant() - 0.5);
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////
 // Classe KIDRContributionAt
 
 KIDRContributionAt::KIDRContributionAt()
@@ -710,10 +726,27 @@ KWDerivationRule* KIDRContributionAt::Create() const
 Continuous KIDRContributionAt::ComputeContinuousResult(const KWObject* kwoObject) const
 {
 	KIDRClassifierInterpreter* classifierInterpreter;
+	int nTargetValueRank;
+	int nPredictorAttributeRank;
 
+	// Acces a l'interpreteur
 	classifierInterpreter = cast(KIDRClassifierInterpreter*, GetFirstOperand()->GetStructureValue(kwoObject));
-	return classifierInterpreter->GetContributionAt(GetOperandAt(1)->GetSymbolValue(kwoObject),
-							GetOperandAt(2)->GetSymbolValue(kwoObject));
+
+	// Calcul des parametres, uniquement si necessaire
+	nTargetValueRank = nConstantTargetValueRank;
+	if (nTargetValueRank == -1)
+		nTargetValueRank =
+		    classifierInterpreter->GetTargetValueRank(GetOperandAt(1)->GetSymbolValue(kwoObject));
+	nPredictorAttributeRank = nConstantPredictorAttributeRank;
+	if (nPredictorAttributeRank == -1)
+		nPredictorAttributeRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
+
+	// Contribution si valide
+	if (nTargetValueRank >= 0 and nPredictorAttributeRank >= 0)
+		return classifierInterpreter->GetContributionAt(nTargetValueRank, nPredictorAttributeRank);
+	// Valeur manquante sinon
+	else
+		return KWContinuous::GetMissingValue();
 }
 
 ////////////////////////////////////////////////////////////
@@ -741,12 +774,27 @@ KWDerivationRule* KIDRContributionAttributeAt::Create() const
 Symbol KIDRContributionAttributeAt::ComputeSymbolResult(const KWObject* kwoObject) const
 {
 	KIDRClassifierInterpreter* classifierInterpreter;
-	int nAttributeRank;
+	int nTargetValueRank;
+	int nContributionRank;
 
+	// Acces a l'interpreteur
 	classifierInterpreter = cast(KIDRClassifierInterpreter*, GetFirstOperand()->GetStructureValue(kwoObject));
-	nAttributeRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
-	return classifierInterpreter->GetRankedContributionAttributeAt(GetOperandAt(1)->GetSymbolValue(kwoObject),
-								       nAttributeRank);
+
+	// Calcul des parametres, uniquement si necessaire
+	nTargetValueRank = nConstantTargetValueRank;
+	if (nTargetValueRank == -1)
+		nTargetValueRank =
+		    classifierInterpreter->GetTargetValueRank(GetOperandAt(1)->GetSymbolValue(kwoObject));
+	nContributionRank = nConstantContributionRank;
+	if (nContributionRank == -1)
+		nContributionRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
+
+	// Attribut de contribution si valide
+	if (nTargetValueRank >= 0 and nContributionRank >= 0)
+		return classifierInterpreter->GetRankedContributionAttributeAt(nTargetValueRank, nContributionRank);
+	// Valeur manquante sinon
+	else
+		return Symbol();
 }
 
 ////////////////////////////////////////////////////////////
@@ -774,12 +822,27 @@ KWDerivationRule* KIDRContributionPartAt::Create() const
 Symbol KIDRContributionPartAt::ComputeSymbolResult(const KWObject* kwoObject) const
 {
 	KIDRClassifierInterpreter* classifierInterpreter;
-	int nAttributeRank;
+	int nTargetValueRank;
+	int nContributionRank;
 
+	// Acces a l'interpreteur
 	classifierInterpreter = cast(KIDRClassifierInterpreter*, GetFirstOperand()->GetStructureValue(kwoObject));
-	nAttributeRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
-	return classifierInterpreter->GetRankedContributionPartAt(GetOperandAt(1)->GetSymbolValue(kwoObject),
-								  nAttributeRank);
+
+	// Calcul des parametres, uniquement si necessaire
+	nTargetValueRank = nConstantTargetValueRank;
+	if (nTargetValueRank == -1)
+		nTargetValueRank =
+		    classifierInterpreter->GetTargetValueRank(GetOperandAt(1)->GetSymbolValue(kwoObject));
+	nContributionRank = nConstantContributionRank;
+	if (nContributionRank == -1)
+		nContributionRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
+
+	// Partie de l'attribut de contribution si valide
+	if (nTargetValueRank >= 0 and nContributionRank >= 0)
+		return classifierInterpreter->GetRankedContributionPartAt(nTargetValueRank, nContributionRank);
+	// Valeur manquante sinon
+	else
+		return Symbol();
 }
 
 ////////////////////////////////////////////////////////////
@@ -807,12 +870,27 @@ KWDerivationRule* KIDRContributionValueAt::Create() const
 Continuous KIDRContributionValueAt::ComputeContinuousResult(const KWObject* kwoObject) const
 {
 	KIDRClassifierInterpreter* classifierInterpreter;
-	int nAttributeRank;
+	int nTargetValueRank;
+	int nContributionRank;
 
+	// Acces a l'interpreteur
 	classifierInterpreter = cast(KIDRClassifierInterpreter*, GetFirstOperand()->GetStructureValue(kwoObject));
-	nAttributeRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
-	return classifierInterpreter->GetRankedContributionValueAt(GetOperandAt(1)->GetSymbolValue(kwoObject),
-								   nAttributeRank);
+
+	// Calcul des parametres, uniquement si necessaire
+	nTargetValueRank = nConstantTargetValueRank;
+	if (nTargetValueRank == -1)
+		nTargetValueRank =
+		    classifierInterpreter->GetTargetValueRank(GetOperandAt(1)->GetSymbolValue(kwoObject));
+	nContributionRank = nConstantContributionRank;
+	if (nContributionRank == -1)
+		nContributionRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
+
+	// Valeur de contribution si valide
+	if (nTargetValueRank >= 0 and nContributionRank >= 0)
+		return classifierInterpreter->GetRankedContributionValueAt(nTargetValueRank, nContributionRank);
+	// Valeur manquante sinon
+	else
+		return KWContinuous::GetMissingValue();
 }
 
 ////////////////////////////////////////////////////////////
@@ -827,12 +905,12 @@ KIAttributeContribution::KIAttributeContribution()
 
 KIAttributeContribution::~KIAttributeContribution() {}
 
-void KIAttributeContribution::SetAttributeNames(const StringVector* svNames)
+void KIAttributeContribution::SetAttributeNames(const SymbolVector* svNames)
 {
 	svAttributeNames = svNames;
 }
 
-const StringVector* KIAttributeContribution::GetAttributeNames() const
+const SymbolVector* KIAttributeContribution::GetAttributeNames() const
 {
 	return svAttributeNames;
 }
@@ -852,8 +930,9 @@ int KIAttributeContributionCompare(const void* elem1, const void* elem2)
 							attributeContribution2->GetContribution());
 
 	// Comparaison sur le nom de l'attribut en cas d'egalite
+	// Attention a prendre la valeur du Symbol contenant le nom
 	if (nCompare == 0)
 		nCompare =
-		    attributeContribution1->GetAttributeName().Compare(attributeContribution2->GetAttributeName());
+		    attributeContribution1->GetAttributeName().CompareValue(attributeContribution2->GetAttributeName());
 	return nCompare;
 }

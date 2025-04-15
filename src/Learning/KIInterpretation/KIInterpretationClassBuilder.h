@@ -56,9 +56,6 @@ public:
 	// Acces au tableau des noms variables du predicteur
 	const StringVector* GetPredictorAttributeNames() const;
 
-	// Acces au tableau des noms variables partitionees du predicteur
-	const StringVector* GetPredictorPartitionedAttributeNames() const;
-
 	// Service de construction du tableau des attribut du predicteur, tries par importance decroissante
 	// Memoire: le contenu du tableau comprend des KIPredictorAttributes, a detruire par l'appelant
 	void BuildPredictorAttributes(ObjectArray* oaPredictorAttributes) const;
@@ -180,9 +177,6 @@ protected:
 
 	// Noms des variables du predicteur
 	StringVector svPredictorAttributeNames;
-
-	// Noms des variables partitionnees du predicteur
-	StringVector svPredictorPartitionedAttributeNames;
 };
 
 ///////////////////////////////////
