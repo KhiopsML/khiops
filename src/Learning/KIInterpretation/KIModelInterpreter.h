@@ -56,10 +56,10 @@ public:
 	boolean Check() const override;
 
 	// Nombre par defaut de variables de contribution
-	static const int nDefaultContributionAttributeNumber = 100;
+	static int GetDefaultContributionAttributeNumber();
 
-	// Nombre max de variablse de contribution
-	static const int nMaxContributionAttributeNumber = 1000;
+	// Nombre max de variables de contribution
+	static int GetMaxContributionAttributeNumber();
 
 	// ##
 
@@ -71,6 +71,10 @@ protected:
 	int nContributionAttributeNumber;
 
 	// ## Custom implementation
+
+	// Defintion des constantes
+	static const int nDefaultContributionAttributeNumber = 100;
+	static const int nMaxContributionAttributeNumber = 1000;
 
 	// ##
 };
@@ -99,5 +103,15 @@ inline void KIModelInterpreter::SetContributionAttributeNumber(int nValue)
 }
 
 // ## Custom inlines
+
+inline int KIModelInterpreter::GetDefaultContributionAttributeNumber()
+{
+	return nDefaultContributionAttributeNumber;
+}
+
+inline int KIModelInterpreter::GetMaxContributionAttributeNumber()
+{
+	return nMaxContributionAttributeNumber;
+}
 
 // ##

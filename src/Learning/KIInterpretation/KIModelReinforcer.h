@@ -56,14 +56,17 @@ public:
 
 	// Tableau des attributs du predicteur pour choisir les variables leviers (classe KIPredictorAttribute)
 	// Memoire: appartient a l'appele
-	const ObjectArray* GeConstLeverAttributes() const;
-	ObjectArray* GeLeverAttributes();
+	const ObjectArray* GetConstLeverAttributes() const;
+	ObjectArray* GetLeverAttributes();
 
 	// Calcul du nombre de variables selectionnees comme variable levier
 	int ComputeSelectedLeverAttributeNumber() const;
 
 	// Mise ajour du tableau des attributs du predicteur
 	void UpdateLeverAttributes();
+
+	// Nombre max de variables levier
+	static int GetMaxLeverAttributeNumber();
 
 	// ##
 
@@ -77,6 +80,9 @@ protected:
 
 	// Tableau des attributs du predicteur pour le parametrage des variables leviers
 	ObjectArray oaLeverAttributes;
+
+	// Definitions des constantes
+	static const int nMaxLeverAttributeNumber = 100;
 
 	// ##
 };
@@ -96,14 +102,19 @@ inline void KIModelReinforcer::SetReinforcedTargetValue(const ALString& sValue)
 
 // ## Custom inlines
 
-inline const ObjectArray* KIModelReinforcer::GeConstLeverAttributes() const
+inline const ObjectArray* KIModelReinforcer::GetConstLeverAttributes() const
 {
 	return &oaLeverAttributes;
 }
 
-inline ObjectArray* KIModelReinforcer::GeLeverAttributes()
+inline ObjectArray* KIModelReinforcer::GetLeverAttributes()
 {
 	return &oaLeverAttributes;
+}
+
+inline int KIModelReinforcer::GetMaxLeverAttributeNumber()
+{
+	return nMaxLeverAttributeNumber;
 }
 
 // ##

@@ -50,7 +50,8 @@
 #include "KDDataPreparationAttributeCreationTaskView.h"
 #include "InputBufferedFile.h"
 #include "DTDecisionTreeCreationTask.h"
-#include "KIDRRegisterAllRules.h"
+#include "KIDRInterpretation.h"
+#include "KIDRReinforcement.h"
 
 // Service de lancement d'un projet d'apprentissage, defini
 // par un probleme d'apprentissage et sa vue

@@ -463,6 +463,7 @@ boolean KWDRDataGridBlockRule::CheckOperandsCompleteness(const KWClass* kwcOwner
 	const KWIndexedKeyBlock* sourceIndexedKeyBlock;
 	const KWIndexedNKeyBlock* sourceIndexedNKeyBlock;
 	const KWIndexedCKeyBlock* sourceIndexedCKeyBlock;
+	NumericKeyDictionary nkdBlockAttributes;
 	int nSourceIndex;
 	int nIndex;
 	Symbol sKey;
@@ -515,7 +516,7 @@ boolean KWDRDataGridBlockRule::CheckOperandsCompleteness(const KWClass* kwcOwner
 		// Calcul du bloc de cle source
 		// On ne peut utiliser GetLoadedAttributesIndexedKeyBlock, car la classe n'est pas encore indexee a ce
 		// stade, et qu'il faut faire la verification par rapport a toutes les VarKey sources
-		sourceIndexedKeyBlock = originAttributeBlock->BuildAttributesIndexedKeyBlock();
+		sourceIndexedKeyBlock = originAttributeBlock->BuildAttributesIndexedKeyBlock(&nkdBlockAttributes);
 
 		// Verification de la coherence de type des VarKeys entre le DataGridBlock et le block de valeurs
 		// soiurce en deuxieme operande
@@ -1026,7 +1027,7 @@ int KWDRDataGridBlockRule::ComputeContinuousCellIndex(const KWDRDataGrid* dataGr
 	return nPartIndex;
 }
 
-int KWDRDataGridBlockRule::ComputeSymbolCellIndex(const KWDRDataGrid* dataGridRule, Symbol sValue) const
+int KWDRDataGridBlockRule::ComputeSymbolCellIndex(const KWDRDataGrid* dataGridRule, const Symbol& sValue) const
 {
 	int nPartIndex;
 

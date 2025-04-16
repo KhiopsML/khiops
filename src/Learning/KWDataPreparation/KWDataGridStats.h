@@ -319,7 +319,7 @@ public:
 	// Le resultat est rendu dans le vecteur d'entier en parametre
 	void ExportAttributePartFrequenciesAt(int nAttribute, IntVector* ivPartFrequencies) const;
 
-	// Export d'une grille reduite a un attribut, c'est a dire une partition inivariee et ses effectifs
+	// Export d'une grille reduite a un attribut, c'est a dire une partition univariee et ses effectifs
 	// Le resultat est rendu dans la grille en parametre
 	void ExportAttributeDataGridStatsAt(int nAttribute, KWDataGridStats* univariateDataGridStats) const;
 

@@ -9,8 +9,7 @@
 #include "MDKhiopsLearningProblemView.h"
 #include "KWDRDataGridDeployment.h"
 
-// Regles pour les outils de l'eco-systeme Khiops: Enneade: Interpretation
-#include "KIDRRegisterAllRules.h"
+// Regles pour les outils de l'eco-systeme Khiops: Enneade
 #include "KMDRRegisterAllRules.h"
 
 // DTFOREST
