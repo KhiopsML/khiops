@@ -45,7 +45,7 @@ jobs:
         uses: robinraju/release-downloader@v1.9
         with:
           repository: khiopsml/khiops-win-install-assets
-          latest: true
+          tag: 11.0.0
       - name: Extract Windows installer assets and load assets-info.env
         shell: bash
         run: |
