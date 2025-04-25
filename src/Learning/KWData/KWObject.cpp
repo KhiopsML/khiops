@@ -1707,7 +1707,7 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 	}
 
 	// Recherche si la mutation est necessaire
-	// Attention, meme si la mutation n'est pas necessaire, il faut muter les attribut de type relation de l'objet
+	// Attention, meme si la mutation n'est pas necessaire, il faut muter les attributs de type relation de l'objet
 	bIsMutationNeeded = (kwcNewClass != kwcClass);
 
 	// Recherche si usage de type view

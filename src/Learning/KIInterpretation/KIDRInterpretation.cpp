@@ -388,7 +388,7 @@ void KIDRClassifierInterpreter::Compile(KWClass* kwcOwnerClass)
 		stShapleyTable->InitializeFromDataGridStats(&dataGridStats, GetPredictorAttributeWeightAt(nAttribute));
 	}
 
-	// Creation des structures des gestion des contributions pour les acces par rang
+	// Creation des structures de gestion des contributions pour les acces par rang
 	CreateRankedContributionStructures(GetTargetValueNumber(), svPredictorAttributeNames.GetSize(),
 					   &svPredictorAttributeNames);
 

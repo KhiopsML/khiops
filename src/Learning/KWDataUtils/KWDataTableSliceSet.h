@@ -312,7 +312,7 @@ protected:
 	//  . physicalClass: classe physique, comportant au debut tous les attributs principaux de la classe a lire,
 	//                   et en fin de classe, les attributs necessaires au calcul des attributs principaux
 	//  . oaPhysicalSlices: tranches impliquees dans la lecture physique des bases, avec leur dictionnaire
-	//              correctement parametre pour les attribut a lire (Loaded)
+	//              correctement parametre pour les attributs a lire (Loaded)
 	// Les classes physiques (physicalClass et classes de tranches impliquees) sont valides et indexees, mais ne
 	// sont pas dans un domaine de classe Memoire: la physicalClass en sortie appartient a l'appelant, le contenu du
 	// tableau oaPhysicalSlices a l'appele
@@ -406,7 +406,7 @@ public:
 
 	// Taille occupee sur disque par chaque attribut dense de type Symbol
 	// L'index du vecteur est celui des attributs denses dans la classe, utilises ou non
-	// Le vecteur contient une taille sur fichier pour les attribut Symbol, et 0 pour oles attributs numeriques
+	// Le vecteur contient une taille sur fichier pour les attributs Symbol, et 0 pour oles attributs numeriques
 	// Attention: tous les attributs utilises ne sont pas necessaire charge en memoire (Loaded)
 	LongintVector* GetDenseSymbolAttributeDiskSizes();
 

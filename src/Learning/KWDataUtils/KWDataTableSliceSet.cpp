@@ -99,7 +99,7 @@ void KWDataTableSliceSet::ComputeSpecification(const KWClass* kwcClassToPartitio
 	}
 
 	// Memorisation de l'index de chaque attribut de la classe
-	// On va en effet traiter les attribut dans un ordre aleatroire pour les melanger dans les tranches,
+	// On va en effet traiter les attributs dans un ordre aleatroire pour les melanger dans les tranches,
 	// et on aura besoin de retrouver leur index pour les associer a leur index de tranche
 	nAttributeIndex = 0;
 	attribute = kwcClassToPartition->GetHeadAttribute();
@@ -475,7 +475,7 @@ void KWDataTableSliceSet::BuildSpecificationFromClassPartition(const KWClass* kw
 					sliceAttributeBlock = kwcSliceClass->CreateAttributeBlock(
 					    lastAttributeBlock->GetName(), sliceBlockFirstAttribute, sliceAttribute);
 
-					// On tri les attribut du bloc selon leur VarkKey, ce qui necessaire pour la
+					// On trie les attributs du bloc selon leur VarkKey, ce qui necessaire pour la
 					// gestion des blocs sur plusieurs tranches
 					sliceAttributeBlock->SortAttributesByVarKey();
 

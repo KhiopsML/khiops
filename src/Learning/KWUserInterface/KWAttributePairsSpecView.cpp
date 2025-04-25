@@ -164,7 +164,7 @@ void KWAttributePairsSpecView::SetObject(Object* object)
 
 void KWAttributePairsSpecView::RefreshHelpLists()
 {
-	// Rafraichissement de la liste d'aide pour les attribut obligatoires dans une  paire
+	// Rafraichissement de la liste d'aide pour les attributs obligatoires dans une  paire
 	classAttributeHelpList.FillAttributeNames(cast(KWAttributePairsSpec*, objValue)->GetClassName(), true, true,
 						  false, true, cast(UIList*, GetFieldAt("Attributes")), "Name");
 }

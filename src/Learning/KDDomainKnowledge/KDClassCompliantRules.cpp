@@ -558,7 +558,7 @@ KDClassCompliantRules::LookupConstructedAttribute(const KDConstructedRule* searc
 			{
 				nDerivedAttributesUsedConstructedRulesNumber++;
 
-				// Si on a identifie tous les attribut derives, on peut nettoyer la liste des
+				// Si on a identifie tous les attributs derives, on peut nettoyer la liste des
 				// des regles construites utilisees associees a NULL
 				if (nDerivedAttributesUsedConstructedRulesNumber == nDerivedAttributeNumber)
 				{

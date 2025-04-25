@@ -1425,7 +1425,7 @@ public:
 	// Test couteux, a utiliser essentiellement dans les assertions
 	boolean AreInnerAttributePartsSorted() const;
 
-	// Test si les attribut internes sont constitue des meme attributs, ne contenant que sous-partie
+	// Test si les attributs internes sont constitues des memes attributs, ne contenant que des sous-parties
 	// des VarPart des autres attributs internes en parametressi Verification du tri des parties des attributs internes :
 	// Test couteux, a utiliser essentiellement dans les assertions
 	boolean ContainsSubVarParts(const KWDGInnerAttributes* otherInnerAttributes) const;

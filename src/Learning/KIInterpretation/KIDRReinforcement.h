@@ -69,7 +69,7 @@ public:
 	////////////////////////////////////////////////////////////////////
 	// Services divers
 
-	// Affichage des caracteristique detaillees du renforceur
+	// Affichage des caracteristiques detaillees du renforceur
 	void WriteDetails(ostream& ost) const override;
 
 	// Memoire utilisee
@@ -81,7 +81,7 @@ protected:
 	// Nettoyage
 	void Clean() override;
 
-	// Creation des structures des gestion des contributions pour les acces par rang
+	// Creation des structures de gestion des contributions pour les acces par rang
 	void CreateRankedReinforcementStructures(int nTargetValueNumber, int nAttributeNumber,
 						 const SymbolVector* svAttributeNames);
 
@@ -138,7 +138,7 @@ protected:
 	// constant et valide, -1 sinon
 	// Lors de l'acces au rang, on exploite ce rang si possible, sinon on le recalcule
 
-	// Memorisation des rangs issue de la compilation
+	// Memorisation des rangs issus de la compilation
 	int nConstantTargetValueRank;
 	int nConstantReinforcementRank;
 };
@@ -248,7 +248,7 @@ public:
 	void SetAttributeIndex(int nValue);
 	int GetAttributeIndex() const;
 
-	// Index de la partie utilise pour le renforcement
+	// Index de la partie utilisee pour le renforcement
 	void SetReinforcementPartIndex(int nValue);
 	int GetReinforcementPartIndex() const;
 

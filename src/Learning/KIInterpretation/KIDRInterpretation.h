@@ -69,7 +69,7 @@ public:
 	////////////////////////////////////////////////////////////////////
 	// Services divers
 
-	// Affichage des caracteristique detaillees de l'interpreteur
+	// Affichage des caracteristiques detaillees de l'interpreteur
 	virtual void WriteDetails(ostream& ost) const;
 	virtual void WriteAttributeDetails(ostream& ost, int nAttribute) const;
 
@@ -155,7 +155,7 @@ public:
 	////////////////////////////////////////////////////////////////////
 	// Services divers
 
-	// Affichage des caracteristique detaillees de l'interpreteur
+	// Affichage des caracteristiques detaillees de l'interpreteur
 	void WriteAttributeDetails(ostream& ost, int nAttribute) const override;
 
 	// Memoire utilisee
@@ -167,7 +167,7 @@ protected:
 	// Nettoyage
 	void Clean() override;
 
-	// Creation des structures des gestion des contributions pour les acces par rang
+	// Creation des structures de gestion des contributions pour les acces par rang
 	void CreateRankedContributionStructures(int nTargetValueNumber, int nAttributeNumber,
 						const SymbolVector* svAttributeNames);
 
@@ -210,7 +210,7 @@ protected:
 	// constant et valide, -1 sinon
 	// Lors de l'acces au rang, on exploite ce rang si possible, sinon on le recalcule
 
-	// Memorisation des rangs issue de la compilation
+	// Memorisation des rangs issus de la compilation
 	int nConstantTargetValueRank;
 	int nConstantPredictorAttributeRank;
 	int nConstantContributionRank;

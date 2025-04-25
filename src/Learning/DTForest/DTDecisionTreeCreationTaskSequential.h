@@ -81,10 +81,10 @@ protected:
 					   ObjectArray* oaObjects, ObjectArray* oaInputAttributeStats,
 					   DTAttributeSelection* attgenerator);
 
-	// filtre pour un KWCLASS les attribut ayant un level=0
+	// filtre pour un KWCLASS les attributs ayant un level=0
 	void UnloadNonInformativeAttributes(KWClass* kwclass, ObjectDictionary* odInputAttributeStats);
 
-	// filtre pour un KWCLASS les attribut les moins informatif
+	// filtre pour un KWCLASS les attributs les moins informatif
 	void UnloadLessInformativeAttribute(KWClass* kwclass, ObjectDictionary* odInputAttributeStats,
 					    int nloadattribut);
 

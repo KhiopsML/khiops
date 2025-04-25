@@ -1822,7 +1822,7 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 
 		// Recherche des attributs non derives absents du fichier par parcours exhaustif de la
 		// classe d'origine (la classe "physique" a supprime les references a tous
-		// les attributs non utilises par les attribut derives, y compris les
+		// les attributs non utilises par les attributs derives, y compris les
 		// attribut inexistants (sauf si classe physique = classe logique))
 		logicalAttribute = kwcLogicalClass->GetHeadAttribute();
 		while (logicalAttribute != NULL)

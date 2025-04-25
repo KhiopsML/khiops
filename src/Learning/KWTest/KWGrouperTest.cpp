@@ -205,7 +205,7 @@ double KWSymbolSampleGenerator::ComputeGroupingTestError(KWAttributeStats* kwasG
 	assert(preparedAttributeStats->GetAttributeNumber() == 2);
 	targetAttributePartition = preparedAttributeStats->GetAttributeAt(1);
 
-	// Affichage des caracteristique de groupage
+	// Affichage des caracteristiques de groupage
 	if (bTrace)
 	{
 		cout << *kwasGrouping->GetPreparedDataGridStats() << endl;
@@ -292,7 +292,7 @@ double KWSymbolSampleGenerator::ComputeGroupingDistance(KWAttributeStats* kwasGr
 	assert(preparedAttributeStats->GetAttributeNumber() == 2);
 	targetAttributePartition = preparedAttributeStats->GetAttributeAt(1);
 
-	// Affichage des caracteristique de groupage
+	// Affichage des caracteristiques de groupage
 	if (bTrace)
 	{
 		cout << *kwasGrouping->GetPreparedDataGridStats() << endl;

@@ -397,7 +397,7 @@ public:
 	//
 	// Il est a noter que certaines regles ont un comportement special
 	// - regle produisant un bloc en sortie, a partir d'un bloc en entree
-	//   - on deduit des attributs utilises du bloc en sortie les attribut a utiliser dans le bloc en entree
+	//   - on deduit des attributs utilises du bloc en sortie les attributs a utiliser dans le bloc en entree
 	// - regle de creation de table de type vue
 	//   - on deduit des attributs utilises de la table en sortie les attributs a utiliser dans la table en entree
 	// - regle de creation de table avec operandes en sortie
@@ -681,7 +681,7 @@ protected:
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Methodes internes utilises en particulier dans les KWObject, pour s'assurer de la
 	// coherence entre les valeurs d'un KWObject et les attributs charges en memoire
-	// et pour gerer efficament les attribut dense et les blocs d'attributs
+	// et pour gerer efficament les attributs denses et les blocs d'attributs
 
 	// Methode interne de verification qu'un LoadIndex correspond a un attribut du bon type
 	boolean CheckTypeAtLoadIndex(KWLoadIndex liIndex, int nType) const;

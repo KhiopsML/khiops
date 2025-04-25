@@ -800,8 +800,8 @@ void KWDatabaseTransferView::PrepareTransferClass(KWClass* transferClass)
 	{
 		kwcUsedClass = cast(KWClass*, oaAllUsedClasses.GetAt(nClass));
 
-		// On passe en Unload tous les attribut calcules de type Object ou ObjectArray,
-		// ainsi que les attribut de type Structure
+		// On passe en Unload tous les attributs calcules de type Object ou ObjectArray,
+		// ainsi que les attributs de type Structure
 		attribute = kwcUsedClass->GetHeadAttribute();
 		while (attribute != NULL)
 		{

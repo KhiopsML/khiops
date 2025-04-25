@@ -1638,7 +1638,7 @@ int KWDerivationRule::FullCompare(const KWDerivationRule* rule) const
 					else if (operandRule2 == NULL)
 						nDiff = 1;
 					// Si les deux regles sont non nulles, on propage la comparaison
-					// On ne compare que la regle produisant les blocs, pas les attribut de chaque
+					// On ne compare que la regle produisant les blocs, pas les attributs de chaque
 					// blocs (pourtant disponibles dans le cas d'un bloc d'origine Attribute, avec
 					// une regle)
 					else

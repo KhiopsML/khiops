@@ -2061,7 +2061,7 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 		nRequestedSymbolPartNumber = 1 + (int)(dNoiseRate * nMaxSymbolPartNumber);
 	}
 
-	// Export d'un sous-ensemble d'attributs obligatoires (les attribut informatifs) en fonction du niveau de bruit
+	// Export d'un sous-ensemble d'attributs obligatoires (les attributs informatifs) en fonction du niveau de bruit
 	// Les attributs obligatoires sont les attributs de la grille optimisee que l'on va conserver
 	// Quand la grille initiale contient plus d'attributs que la grille optimisee (on ne peut pas toujours prendre
 	// tous les attributs pour des questions de complexite algorithmique), on n'en conserve que certains et on

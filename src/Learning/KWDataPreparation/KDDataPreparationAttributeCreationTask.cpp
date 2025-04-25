@@ -134,7 +134,7 @@ boolean KDDataPreparationAttributeCreationTask::CheckPreparedAttributes(KWLearni
 	{
 		attribute = learningSpec->GetClass()->GetUsedAttributeAt(i);
 
-		// On regarde uniquement les attribut concernes
+		// On regarde uniquement les attributs concernes
 		if (KWType::IsSimple(attribute->GetType()) and
 		    attribute->GetName() != learningSpec->GetTargetAttributeName())
 		{

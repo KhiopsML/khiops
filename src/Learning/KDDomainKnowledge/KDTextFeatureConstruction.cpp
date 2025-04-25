@@ -248,7 +248,7 @@ boolean KDTextFeatureConstruction::InternalCollectAllTextClasses(const KWClass* 
 	{
 		attribute = kwcClass->GetUsedAttributeAt(i);
 
-		// On ne prend en compte que les attribut de type relation ou texte
+		// On ne prend en compte que les attributs de type relation ou texte
 		if (KWType::IsTextBased(attribute->GetType()) or KWType::IsRelation(attribute->GetType()))
 		{
 			if (bDisplay)
@@ -396,7 +396,7 @@ void KDTextFeatureConstruction::ComputeTextClassConstructionCosts(const KWClass*
 				assert(nRelationAttributeNumber > 0);
 				assert(nAttribute < textAttributePath->GetAttributePathSize() - 1);
 
-				// On chosit parmi les attribut texte, plus 1 pour undiquer le choix d'une relation
+				// On chosit parmi les attributs texte, plus 1 pour undiquer le choix d'une relation
 				dCost += log(nTextAttributeNumber + 1);
 
 				// Puis parmi les relation
@@ -1078,7 +1078,7 @@ boolean KDTextFeatureConstruction::CreateConstructedDerivationRuleAttribute(KDCl
 	require(sConstructedAttributeName != "");
 	require(GetClass()->LookupAttribute(sConstructedAttributeName) == NULL);
 
-	// Recherche de l'attribut parmi les attribut existants
+	// Recherche de l'attribut parmi les attributs existants
 	foundDerivedAttribute = classCompliantRules->LookupDerivedAttribute(constructedDerivationRule);
 
 	// Memorisation de l'attribut associe a la regle construite

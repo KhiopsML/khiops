@@ -1803,7 +1803,7 @@ void KWClass::ExportNativeFieldNames(StringVector* svNativeFieldNames) const
 	attribute = GetHeadAttribute();
 	while (attribute != NULL)
 	{
-		// On ne n'exporte que les attribut natifs
+		// On ne n'exporte que les attributs natifs
 		if (attribute->IsNative())
 		{
 			// Cas d'un attribut dense
@@ -1862,7 +1862,7 @@ void KWClass::ExportStoredFieldNames(StringVector* svStoredFieldNames, boolean b
 				// On prend tous les attributs du bloc en cas de format dense
 				else
 				{
-					// On prevoit la place necessaire pour les attribut du bloc
+					// On prevoit la place necessaire pour les attributs du bloc
 					nStartSize = svStoredFieldNames->GetSize();
 					svStoredFieldNames->SetSize(nStartSize +
 								    attributeBlock->GetLoadedAttributeNumber());

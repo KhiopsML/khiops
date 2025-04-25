@@ -21,7 +21,7 @@ static boolean bKWLearningVersionModified = false;
 // Booleen de prise en compte de la poubelle
 // pour les attributs de type VarPart
 static boolean bVarPartAttributeGarbage = false;
-// pour les attribut interne categoriels
+// pour les attributs internes categoriels
 static boolean bInnerAttributeGarbage = false;
 
 const ALString GetLearningApplicationName()

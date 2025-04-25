@@ -135,7 +135,7 @@ public:
 	KWLoadIndex GetLoadIndex() const;
 
 	// Attributs charges en memoire (tous sparse)
-	// Attention: les attribut charges ne sont pas necessairement dans le meme ordre que les attributs de la classe
+	// Attention: les attributs charges ne sont pas necessairement dans le meme ordre que les attributs de la classe
 	int GetLoadedAttributeNumber() const;
 	KWAttribute* GetLoadedAttributeAt(int nIndex) const;
 

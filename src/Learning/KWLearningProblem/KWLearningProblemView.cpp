@@ -540,7 +540,7 @@ boolean KWLearningProblemView::BuildClassFromDataTable()
 
 void KWLearningProblemView::RefreshHelpLists()
 {
-	// Rafraichissement de la liste d'aide pour les attributs cibles (et les attribut obligatoires dans une  paire)
+	// Rafraichissement de la liste d'aide pour les attributs cibles (et les attributs obligatoires dans une  paire)
 	classAttributeHelpList.FillAttributeNames(GetLearningProblem()->GetClassName(), true, true, false, true,
 						  cast(UIList*, GetFieldAt("Attributes")), "Name");
 

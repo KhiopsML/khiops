@@ -408,7 +408,7 @@ void KIInterpretationClassBuilder::CreateInterpretationAttributes(KWClass* kwcIn
 		// Creation de la liste des attributs du predicteur, tries par importance decroissante
 		BuildPredictorAttributes(&oaPredictorAttributes);
 
-		// On passe les attribut de contribution du predicteur en used, car ceux-ci sont utilises usuellement
+		// On passe les attributs de contribution du predicteur en used, car ceux-ci sont utilises usuellement
 		// par les outils de type visualisation des valeurs de SHAP
 		for (nAttribute = 0; nAttribute < nContributionAttributeNumber; nAttribute++)
 		{

@@ -17,12 +17,13 @@ void KIShapleyTable::InitializeFromDataGridStats(const KWDataGridStats* dataGrid
 	IntVector ivSourceFrequencies;
 	IntVector ivTargetFrequencies;
 	int nTotalFrequency;
+	int nSourceNumber;
 	int nTargetNumber;
 	int nSource;
 	int nTarget;
 	double dLaplaceEpsilon;
-	double dProb_i1;
-	double dProb_i0;
+	double dProbOne;
+	double dProbAll;
 	double dTerm;
 	double dExpectedTerm;
 	double dShapleyValue;
@@ -40,37 +41,38 @@ void KIShapleyTable::InitializeFromDataGridStats(const KWDataGridStats* dataGrid
 	// Calcul des effectifs par partie pour l'attribut source et cible de la grille
 	dataGridStats->ExportAttributePartFrequenciesAt(0, &ivSourceFrequencies);
 	dataGridStats->ExportAttributePartFrequenciesAt(1, &ivTargetFrequencies);
+	nSourceNumber = ivSourceFrequencies.GetSize();
 	nTargetNumber = ivTargetFrequencies.GetSize();
 	nTotalFrequency = dataGridStats->ComputeGridFrequency();
 
-	// On calcul d'abord les log(p(x_i|y1)/p(x_i|y0)) pour chaque x_i et chaque y_j
-	// en mode une classe contre tous pour chaque y_j
+	// On calcul d'abord les log(p(x_i|yOne)/p(x_i|yAll)) pour chaque x_i et chaque y_j
+	// en mode one versus all pour chaque classe y_j
 	//
 	// Utilisation d'un epsilon de Laplace pour eviter les probabilite nulles
 	// On prend l'effectif total plus un pour eviter les effets de bord (cf. classe KWProbabilityTable)
-	// Pour etre au plus proche des calcul de probabilites utilises dans le SNB, on considere toujours
-	// le meme nombre de valeurs cibles dans l'utilisation de l'epsilon de Laplace, en utilisant 1 espilon
-	// pour la probabilite de la cible d'interet et (nTargetNumber-1) pour l'ensemble des autre valeurs cibles
+	// Pour etre au plus proche des calculs de probabilites utilises dans le SNB, on considere toujours
+	// le meme nombre de valeurs cibles dans l'utilisation de l'epsilon de Laplace, en utilisant 1 espilon pour
+	// la probabilite de la cible d'interet et (nTargetNumber-1) epsilon pour l'ensemble des autres valeurs cibles
 	dLaplaceEpsilon = 1.0 / (nTotalFrequency + 1);
 	for (nTarget = 0; nTarget < GetTargetSize(); nTarget++)
 	{
-		// Premiere passe pour calcul le terme de valeurn et d'esperance
+		// Premiere passe pour calcul le terme de valeur et d'esperance
 		dExpectedTerm = 0;
 		for (nSource = 0; nSource < GetSourceSize(); nSource++)
 		{
 			// Probabilite conditionnelle pour la valeur source sachant la valeur cible
-			dProb_i1 = (dataGridStats->GetBivariateCellFrequencyAt(nSource, nTarget) + dLaplaceEpsilon) /
-				   (ivTargetFrequencies.GetAt(nTarget) + nTargetNumber * dLaplaceEpsilon);
+			dProbOne = (dataGridStats->GetBivariateCellFrequencyAt(nSource, nTarget) + dLaplaceEpsilon) /
+				   (ivTargetFrequencies.GetAt(nTarget) + nSourceNumber * dLaplaceEpsilon);
 
 			// Probabilite conditionnelle pour la valeur source sachant toutes les autres valeurs cibles
-			dProb_i0 =
-			    (ivSourceFrequencies.GetAt(nSource) -
-			     dataGridStats->GetBivariateCellFrequencyAt(nSource, nTarget) +
-			     (nTargetNumber - 1) * dLaplaceEpsilon) /
-			    (nTotalFrequency - ivTargetFrequencies.GetAt(nTarget) + nTargetNumber * dLaplaceEpsilon);
+			dProbAll = (ivSourceFrequencies.GetAt(nSource) -
+				    dataGridStats->GetBivariateCellFrequencyAt(nSource, nTarget) +
+				    (nTargetNumber - 1) * dLaplaceEpsilon) /
+				   (nTotalFrequency - ivTargetFrequencies.GetAt(nTarget) +
+				    nSourceNumber * (nTargetNumber - 1) * dLaplaceEpsilon);
 
 			// Memorisation du resultats intermediaire
-			dTerm = log(dProb_i1 / dProb_i0);
+			dTerm = log(dProbOne / dProbAll);
 			SetShapleyValueAt(nSource, nTarget, dTerm);
 
 			// Mise a jour du calcul d'esperance de la valeur

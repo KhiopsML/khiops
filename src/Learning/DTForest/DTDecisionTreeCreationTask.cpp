@@ -2112,7 +2112,7 @@ void DTDecisionTreeCreationTask::LoadOnlySelectedAttributes(KWClass* kwcClass,
 	require(attributeselectionsSlices != NULL);
 	require(attributeselectionsSlices->GetTreeAttributes()->GetSize() > 0);
 
-	// On pase prealablement tous les attribut en Unload, ce qui est necessaire
+	// On pase prealablement tous les attributs en Unload, ce qui est necessaire
 	kwcClass->SetAllAttributesLoaded(false);
 
 	oaSortedAttribute = attributeselectionsSlices->GetTreeAttributes();
@@ -2146,7 +2146,7 @@ void DTDecisionTreeCreationTask::LoadOnlyMostInformativeAttributes(KWClass* kwcC
 	require(odInputAttributeStats->GetCount() > 0);
 	require(nMaxAttributeNumber >= 0);
 
-	// On pase prealablement tous les attribut en Unload, ce qui est necessaire
+	// On pase prealablement tous les attributs en Unload, ce qui est necessaire
 	kwcClass->SetAllAttributesLoaded(false);
 
 	// Export des attributs dans un tableau

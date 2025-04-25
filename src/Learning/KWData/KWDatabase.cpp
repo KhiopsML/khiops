@@ -1566,7 +1566,7 @@ void KWDatabase::BuildPhysicalClass()
 										      &nkdAllNondeletableAttributes);
 					}
 
-					// Parcours de ses operandes en sortie pour rechercher les attribut cibles de la regle a ne pas detruire
+					// Parcours de ses operandes en sortie pour rechercher les attributs cibles de la regle a ne pas detruire
 					for (nOperand = 0; nOperand < rule->GetOutputOperandNumber(); nOperand++)
 					{
 						operand = rule->GetOutputOperandAt(nOperand);

@@ -276,7 +276,7 @@ void KWDataPreparationUnivariateTask::CollectInputAttributes(KWLearningSpec* lea
 	{
 		attribute = learningSpec->GetClass()->GetLoadedAttributeAt(i);
 
-		// On regarde uniquement les attribut concernes
+		// On regarde uniquement les attributs concernes
 		if (KWType::IsSimple(attribute->GetType()) and
 		    attribute->GetName() != learningSpec->GetTargetAttributeName())
 			oaCollectedAttributes->Add(attribute);

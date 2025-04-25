@@ -377,7 +377,7 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	if (bOk)
 		bOk = CheckMemoryForDatabaseRead(GetDatabase());
 
-	// Alimentation d'une table de tuples comportant les attribut a analyser a partir de la base
+	// Alimentation d'une table de tuples comportant les attributs a analyser a partir de la base
 	if (bOk and not TaskProgression::IsInterruptionRequested())
 	{
 		// Cas ou le coclustering se ramene a un coclustering standard, appel de la methode standard de creation

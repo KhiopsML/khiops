@@ -129,7 +129,7 @@ void KIDRClassifierReinforcer::Compile(KWClass* kwcOwnerClass)
 		ivReinforcementAttributeIndexes.SetAt(nAttribute, nAttributeIndex);
 	}
 
-	// Creation des structures des gestion des renforcement pour les acces par rang
+	// Creation des structures de gestion des renforcement pour les acces par rang
 	CreateRankedReinforcementStructures(GetTargetValueNumber(), GetReinforcementAttributeNumber(),
 					    &svPredictorAttributeNames);
 

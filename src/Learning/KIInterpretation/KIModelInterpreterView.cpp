@@ -35,17 +35,6 @@ KIModelInterpreterView::KIModelInterpreterView()
 	GetActionAt("BuildInterpretationClass")->SetStyle("Button");
 
 	// Info-bulles
-	/*DDD
-	GetFieldAt("ShapleyValueRanking")
-	    ->SetHelpText(
-		"Ranking of the Shapley values produced by the interpretation model"
-		"\n- Global: predictor variables are ranked by decreasing global importance"
-		"\n and one output variable containing the Shapley value is written per target value and predictor variable, by decreasing variable "
-		"importance"
-		"\n- Individual: predictor variables are ranked by decreasing individual importance"
-		"\n and three output variables are written per target values by decreasing Shapley value:"
-		"\n name, part and Shapley value of the predictor variable");
-		*/
 	GetFieldAt("ShapleyValueRanking")
 	    ->SetHelpText("Ranking of the Shapley values produced by the interpretation model"
 			  "\n- Global: predictor variables are ranked by decreasing global importance"

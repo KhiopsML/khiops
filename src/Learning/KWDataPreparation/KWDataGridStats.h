@@ -97,7 +97,7 @@ public:
 	int GetTargetAttributeNumber() const;
 
 	// Nombre d'attribut utiles pour la prediction: les attributs sources dans le cas
-	// supervise, tous les attribut dans le cas non supervise
+	// supervise, tous les attributs dans le cas non supervise
 	// Le premier attribut de prediction est donc toujours d'index 0
 	int GetPredictionAttributeNumber() const;
 
@@ -184,8 +184,8 @@ public:
 	//       - preparation multivariee: grille KD
 	//   . Cas general: nombre quelconque d'attribut sources et cibles
 	//
-	// Dans le cas supervise, les details sont donnes par attribut pour les attribut sources,
-	// par valeur pour les attribut cibles (avec les probabilites conditionnelles)
+	// Dans le cas supervise, les details sont donnes par attribut pour les attributs sources,
+	// par valeur pour les attributs cibles (avec les probabilites conditionnelles)
 	// Dans le cas non supervise, les details sont donnes par attribut, avec des effectifs
 	// (les probabilites jointes sont trop "creuses" pour etre intelligibles).
 	//
