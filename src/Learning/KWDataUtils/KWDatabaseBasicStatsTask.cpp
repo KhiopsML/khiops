@@ -55,7 +55,7 @@ boolean KWDatabaseBasicStatsTask::CollectBasicStats(const KWDatabase* sourceData
 		assert(KWType::IsSimple(targetAttribute->GetType()));
 	}
 
-	// On passe tous les attribut en Unload, sauf l'attribut cible
+	// On passe tous les attributs en Unload, sauf l'attribut cible
 	kwcClass->SetAllAttributesLoaded(false);
 	if (targetAttribute != NULL)
 		targetAttribute->SetLoaded(true);
@@ -82,7 +82,7 @@ boolean KWDatabaseBasicStatsTask::CollectBasicStats(const KWDatabase* sourceData
 			assert(svCollectedValues->GetSize() == 0 or cvCollectedValues->GetSize() == 0);
 		}
 	}
-	// On passe tous les attribut en Load
+	// On passe tous les attributs en Load
 	kwcClass->SetAllAttributesLoaded(true);
 	kwcClass->Compile();
 

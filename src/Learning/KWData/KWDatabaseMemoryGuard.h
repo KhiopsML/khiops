@@ -188,7 +188,7 @@ protected:
 	// L'objet DatabaseMemoryGuard permet de gerer les comportements suivants:
 	//   . warning si beaucoup de records secondaires, mais traitement complet sans probleme
 	//   . erreur si pas assez de memoire pour lire tous les records secondaires
-	//   . erreur si pas assez de memoire pour calculer tous les attribut derives, apres
+	//   . erreur si pas assez de memoire pour calculer tous les attributs derives, apres
 	//     avoir lus correctement tous les records secondaires
 	// En cas d'erreur, on garde neanmoins les valeurs des variables natives de l'instance principale,
 	// et on met toutes les autre valeurs a missing. Il s'agit d'un erreur pour forcer l'utilisateur a

@@ -209,7 +209,7 @@ boolean KWDataGridCosts::CheckDataGrid(const KWDataGrid* dataGrid) const
 		{
 			defaultAttribute = dataGridDefaultCosts->GetAttributeAt(nDefaultAttribute);
 
-			// Recherche de l'index de l'attribut correspondant parmi les attribut de la grille partielle
+			// Recherche de l'index de l'attribut correspondant parmi les attributs de la grille partielle
 			bAttributeFound = defaultAttribute->GetAttributeName() == sAttributeName;
 
 			// Recherche du prochain nom d'attribut partiel si attribut trouve
@@ -395,7 +395,7 @@ double KWDataGridCosts::ComputeDataGridTotalMissingAttributeCost(const KWDataGri
 		defaultAttribute = dataGridDefaultCosts->GetAttributeAt(nDefaultAttribute);
 		defaultAttributeM = cast(KWDGMAttribute*, defaultAttribute);
 
-		// Recherche de l'index de l'attribut correspondant parmi les attribut de la grille partielle
+		// Recherche de l'index de l'attribut correspondant parmi les attributs de la grille partielle
 		bAttributeFound = defaultAttribute->GetAttributeName() == sAttributeName;
 
 		// Prise en compte du cout de l'attribut terminal s'il n'est pas utilise dans la grille partielle

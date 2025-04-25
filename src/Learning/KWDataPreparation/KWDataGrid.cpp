@@ -816,7 +816,7 @@ boolean KWDataGrid::Check() const
 			{
 				attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
 
-				// Test d'existence parmi les attribut internes
+				// Test d'existence parmi les attributs internes
 				if (GetVarPartAttribute()->GetInnerAttributes()->LookupInnerAttribute(
 					attribute->GetAttributeName()) != NULL)
 				{
@@ -3170,7 +3170,7 @@ void KWDGAttribute::SortParts()
 		}
 	}
 
-	// Tri des parties par intervalle croissant pour les attribut continus et
+	// Tri des parties par intervalle croissant pour les attributs continus et
 	// ou par effectif decroissant pour les attributs symboliques ou de type varpart
 	InternalSortParts(KWDGPartCompare);
 }
@@ -3211,7 +3211,7 @@ boolean KWDGAttribute::ArePartsSorted() const
 	// Verification du tri des parties si ok
 	if (bIsSorted)
 	{
-		// Verification du tri des parties par intervalle croissant pour les attribut continus et
+		// Verification du tri des parties par intervalle croissant pour les attributs continus et
 		// ou par effectif decroissant pour les attributs symboliques
 
 		// Initialisation

@@ -422,7 +422,7 @@ void SNBPredictorSelectiveNaiveBayes::FillPredictorAttributeMetaData()
 	predictorClass->RemoveAllAttributesMetaDataKey(sWeightMetaDataKey);
 	predictorClass->RemoveAllAttributesMetaDataKey(sImportanceMetaDataKey);
 
-	// On range les attribut du classifieurs dans un dictionnaire, pour avoir un acces rapide
+	// On range les attributs du classifieur dans un dictionnaire, pour avoir un acces rapide
 	attribute = predictorClass->GetHeadAttribute();
 	while (attribute != NULL)
 	{

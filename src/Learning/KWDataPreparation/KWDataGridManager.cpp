@@ -115,7 +115,7 @@ void KWDataGridManager::ExportDataGridWithSingletonVarParts(const KWDataGrid* so
 	// Export des attributs
 	ExportAttributes(sourceDataGrid, targetDataGrid);
 
-	// Attention, on reutilise les attribut internes de la grille optimisee
+	// Attention, on reutilise les attributs internes de la grille optimisee
 	if (targetDataGrid->IsVarPartDataGrid())
 	{
 		// Partage des partitions des attributs internes de la grille optimisee
@@ -1489,7 +1489,7 @@ void KWDataGridManager::AddRandomAttributes(const KWDataGrid* sourceDataGrid, KW
 	InitialiseDataGrid(sourceDataGrid, targetDataGrid, nAttributeNumber);
 
 	// Creation d'un vecteur d'index d'attributs cibles choisis aleatoirement,
-	// parmi les attribut non deja present dans les attributs obligatoires
+	// parmi les attributs non deja present dans les attributs obligatoires
 	for (nSourceAttribute = 0; nSourceAttribute < sourceDataGrid->GetAttributeNumber(); nSourceAttribute++)
 	{
 		sourceAttribute = sourceDataGrid->GetAttributeAt(nSourceAttribute);

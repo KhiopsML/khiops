@@ -429,7 +429,7 @@ KDClassBuilder::BuildOptimizedClassFromConstructedRules(const KWClass* initialCl
 		bNewAttribute = false;
 		if (constructedAttribute == NULL)
 		{
-			// Comme on cree les attribut les plus simples en premier, les attribut crees recursivement sont
+			// Comme on cree les attributs les plus simples en premier, les attribut crees recursivement sont
 			// soit des attributs cree precedemment (donc marque en bNewAttribute), soit des attributs
 			// temporaires
 			bNewAttribute = CreateOptimizedUsedRuleAttribute(constructedDomain, &classDomainCompliantRules,
@@ -603,7 +603,7 @@ KWClass* KDClassBuilder::BuildSparseOptimizedClassFromConstructedRules(
 			}
 
 			// Construction sparse ou non
-			// Comme on cree les attribut les plus simples en premier, les attribut crees recursivement sont
+			// Comme on cree les attributs les plus simples en premier, les attribut crees recursivement sont
 			// soit des attributs cree precedemment (donc marque en bNewAttribute), soit des attributs
 			// temporaires
 			if (bSparseConstruction)
@@ -1129,7 +1129,7 @@ boolean KDClassBuilder::CreateConstructedRuleAttribute(KWClassDomain* classDomai
 	usedRuleDerivationRule = constructedRule->BuildDerivationRule();
 	usedRuleDerivationRule->CompleteTypeInfo(usedRuleClass);
 
-	// Recherche de l'attribut parmi les attribut existants
+	// Recherche de l'attribut parmi les attributs existants
 	classCompliantRule = classDomainCompliantRules->LookupClassCompliantRules(constructedRule->GetClassName());
 	foundDerivedAttribute = classCompliantRule->LookupDerivedAttribute(usedRuleDerivationRule);
 
@@ -1290,7 +1290,7 @@ boolean KDClassBuilder::CreateOptimizedUsedRuleAttribute(KWClassDomain* classDom
 	// Completion de la regle creee
 	usedRuleDerivationRule->CompleteTypeInfo(usedRuleClass);
 
-	// Recherche de l'attribut parmi les attribut existants
+	// Recherche de l'attribut parmi les attributs existants
 	classCompliantRule = classDomainCompliantRules->LookupClassCompliantRules(constructedRule->GetClassName());
 	foundDerivedAttribute = classCompliantRule->LookupDerivedAttribute(usedRuleDerivationRule);
 
@@ -1515,7 +1515,7 @@ boolean KDClassBuilder::CreateSparseOptimizedUsedRuleAttribute(KWClassDomain* cl
 		// Completion de la regle cree
 		usedRuleDerivationRule->CompleteTypeInfo(usedRuleClass);
 
-		// Recherche de l'attribut parmi les attribut existants
+		// Recherche de l'attribut parmi les attributs existants
 		classCompliantRule =
 		    classDomainCompliantRules->LookupClassCompliantRules(constructedRule->GetClassName());
 		foundDerivedAttribute = classCompliantRule->LookupDerivedAttribute(usedRuleDerivationRule);

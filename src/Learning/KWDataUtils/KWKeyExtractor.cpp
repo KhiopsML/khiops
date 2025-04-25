@@ -258,7 +258,7 @@ boolean KWKeyFieldsIndexer::ComputeKeyFieldIndexes(boolean bHeaderLineUsed, cons
 	ivKeyFieldIndexes.SetSize(0);
 	if (bOk)
 	{
-		// Recherche des champs de la cle soit parmi les attribut natifs, soit dans la ligne d'entete
+		// Recherche des champs de la cle soit parmi les attributs natifs, soit dans la ligne d'entete
 		if (bHeaderLineUsed)
 		{
 			svSeachedFieldNames = svHeaderLineFieldNames;

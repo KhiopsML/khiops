@@ -4,6 +4,9 @@
 
 #pragma once
 
+// Header a inclure pour beneficier des traitement en parallele
+// Attention a l'inclure en dernier pour eviter des warning intempestifs
+
 #ifdef USE_MPI
 #include "PLMPITaskDriver.h"
 #include "PLMPISystemFileDriverRemote.h"

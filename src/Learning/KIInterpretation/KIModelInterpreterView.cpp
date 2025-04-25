@@ -27,7 +27,7 @@ KIModelInterpreterView::KIModelInterpreterView()
 	// Parametrage des nombres min et max
 	cast(UIIntElement*, GetFieldAt("ContributionAttributeNumber"))->SetMinValue(0);
 	cast(UIIntElement*, GetFieldAt("ContributionAttributeNumber"))
-	    ->SetMaxValue(KIModelInterpreter::nMaxContributionAttributeNumber);
+	    ->SetMaxValue(KIModelInterpreter::GetMaxContributionAttributeNumber());
 
 	// Ajout de l'action de construction d'un dictionnaire d'interpretation
 	AddAction("BuildInterpretationClass", "Build interpretation dictionary...",
@@ -36,18 +36,21 @@ KIModelInterpreterView::KIModelInterpreterView()
 
 	// Info-bulles
 	GetFieldAt("ShapleyValueRanking")
-	    ->SetHelpText(
-		"Ranking of the Shapley values produced by the interpretation model"
-		"\n- Global: predictor variables are ranked by decreasing global importance"
-		"\n and one Shapley value is written per target value and predictor variable, by decreasing variable "
-		"rank"
-		"\n- Individual: predictor variables are ranked by decreasing individual importance"
-		"\n and three importance variables are written per target values by decreasing Shapley value:"
-		"\n name of predictor variable, variable part and Shapley value");
+	    ->SetHelpText("Ranking of the Shapley values produced by the interpretation model"
+			  "\n- Global: predictor variables are ranked by decreasing global importance"
+			  "\n- Individual: predictor variables are ranked by decreasing individual Shapley value");
 	GetFieldAt("ContributionAttributeNumber")
 	    ->SetHelpText("Number of predictor variables exploited the interpretation model");
 	GetActionAt("BuildInterpretationClass")
-	    ->SetHelpText("Build an interpretation dictionary that computes the Shapley values");
+	    ->SetHelpText(
+		"Build an interpretation dictionary that computes the Shapley values"
+		"\n"
+		"\n The interpretation model produces the following variables according to the ranking of the "
+		"Shapley values:"
+		"\n - Global: the value of each contribution variable is output, as well as the Shapley value for "
+		"\n each target value and predictor variable, based on their global importance"
+		"\n - Individual: three variables are output for each target value and ranked individual "
+		"\n importance: name, part and Shapley value of the predictor variable");
 
 	// ##
 }
@@ -112,6 +115,8 @@ void KIModelInterpreterView::BuildInterpretationClass()
 	ALString sInterpretationClassFileName;
 	KWResultFilePathBuilder resultFilePathBuilder;
 	KWClass* interpreterClass;
+	int nOutputAttributeNumber;
+	ALString sTmp;
 
 	// Test de la validite des specifications
 	bOk = GetKIModelInterpreter()->Check();
@@ -125,12 +130,24 @@ void KIModelInterpreterView::BuildInterpretationClass()
 		// Verification du nom du fichier de dictionnaire
 		if (sInterpretationClassFileName != "")
 		{
-			// Message utilisateur
-			AddSimpleMessage("Write interpretation dictionary file " + sInterpretationClassFileName);
-
-			// Construction du dictionnaire et ecriture
+			// Construction du dictionnaire
 			interpreterClass = GetKIModelInterpreter()->GetClassBuilder()->BuildInterpretationClass(
 			    GetKIModelInterpreter());
+
+			// Nombre de variables utilisee en sortie
+			interpreterClass->IndexClass();
+			nOutputAttributeNumber = interpreterClass->GetUsedAttributeNumber();
+
+			// Message utilisateur
+			AddSimpleMessage("Write interpretation dictionary " + interpreterClass->GetName() + " (" +
+					 IntToString(nOutputAttributeNumber) + " output variables) to file " +
+					 sInterpretationClassFileName);
+
+			// Warning si trop de variables en sortie
+			if (nOutputAttributeNumber >
+			    GetKIModelInterpreter()->GetMaxOutputAttributeNumberWithoutWarning())
+				interpreterClass->AddWarning(sTmp +
+							     "Interpretation dictionary with many output variables");
 
 			// Eciture du dictionnaire
 			interpreterClass->GetDomain()->WriteFile(sInterpretationClassFileName);

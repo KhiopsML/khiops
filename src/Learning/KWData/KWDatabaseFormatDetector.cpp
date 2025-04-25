@@ -1428,7 +1428,7 @@ void KWDatabaseFormatDetector::BuildMandatoryDataItemNames(const KWClass* kwcCla
 	// Export des attributs utilises
 	nkdAllUsedAttributes.ExportObjectArray(&oaAllUsedAttributes);
 
-	// On garde les attribut natifs de la classe en cours
+	// On garde les attributs natifs de la classe en cours
 	for (nAttribute = 0; nAttribute < oaAllUsedAttributes.GetSize(); nAttribute++)
 	{
 		attribute = cast(KWAttribute*, oaAllUsedAttributes.GetAt(nAttribute));
@@ -1447,7 +1447,7 @@ void KWDatabaseFormatDetector::BuildMandatoryDataItemNames(const KWClass* kwcCla
 	// Export des blocs utilises
 	nkdAllUsedAttributeBlocks.ExportObjectArray(&oaAllUsedAttributeBlocks);
 
-	// On garde les attribut natifs de la classe en cours
+	// On garde les attributs natifs de la classe en cours
 	for (nAttributeBlock = 0; nAttributeBlock < oaAllUsedAttributeBlocks.GetSize(); nAttributeBlock++)
 	{
 		attributeBlock = cast(KWAttributeBlock*, oaAllUsedAttributeBlocks.GetAt(nAttributeBlock));

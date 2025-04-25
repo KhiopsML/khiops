@@ -388,7 +388,7 @@ void KWPredictor::CollectSelectedPreparationStats(ObjectArray* oaUsedDataPrepara
 	{
 		attribute = cast(KWAttribute*, oaAllUsedAttributes.GetAt(i));
 
-		// On ne prend comte que les attribut de la classe prepares, et non ceux des sous-tables
+		// On ne prend comte que les attributs de la classe preparee, et non ceux des sous-tables
 		if (attribute->GetParentClass() == kwcPreparedClass)
 		{
 			attributeStats = GetClassStats()->LookupAttributeStats(attribute->GetName());

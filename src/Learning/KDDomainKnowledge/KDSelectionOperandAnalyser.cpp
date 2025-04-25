@@ -864,7 +864,7 @@ KDClassSelectionStats::SearchAttributeClassSelectionOperandStatsFromRule(const K
 
 	// Recherche de la dimension parmi les dimensions de type attributs si l'attribut derive existe et est utilise
 	// Si l'attribut etait non utilise, on ignore ce test: l'attribut non utilise sera exploite dans la phase
-	// de construction des regles de derivation, qui s'appuiront sur les attribut disponibles, utilises ou non
+	// de construction des regles de derivation, qui s'appuiront sur les attributs disponibles, utilises ou non
 	foundClassSelectionOperandStats = NULL;
 	if (derivedAttribute != NULL and derivedAttribute->GetUsed())
 		foundClassSelectionOperandStats = SearchAttributeClassSelectionOperandStats(derivedAttribute);

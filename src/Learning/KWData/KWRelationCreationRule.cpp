@@ -1652,7 +1652,7 @@ void KWDRRelationCreationRule::FillComputeModeTargetAttributesForVariableOperand
 		liTarget = livComputeModeTargetAttributeLoadIndexes.GetAt(nAttribute);
 		nInputOperandIndex = nStartInputOperandIndex + nAttribute;
 
-		// On ignore les attribut cible non valide, qui correspondes aux attributs cibles non charges en memoire
+		// On ignore les attributs cibles non valides, qui correspondent aux attributs cibles non charges en memoire
 		if (not liTarget.IsValid())
 		{
 			assert(not kwoTargetObject->GetClass()

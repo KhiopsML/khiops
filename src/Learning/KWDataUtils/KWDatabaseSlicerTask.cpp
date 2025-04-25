@@ -72,7 +72,7 @@ boolean KWDatabaseSlicerTask::SliceDatabase(const KWDatabase* sourceDatabase, co
 	attribute = kwcClass->GetHeadAttribute();
 	while (attribute != NULL)
 	{
-		// On compte les attribut denses utilises Symbol
+		// On compte les attributs denses utilises Symbol
 		if (attribute->GetUsed() and not attribute->IsInBlock() and attribute->GetType() == KWType::Symbol and
 		    attribute->GetName() != sTargetAttributName)
 			shared_nTotalDenseSymbolAttributeNumber++;

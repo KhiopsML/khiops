@@ -359,7 +359,7 @@ public:
 	// secondaire selon l'attribut de Partition Attention: tous les attributs derives necessaires doivent avoir ete
 	// prealablement crees et parametres
 	//  . l'attribut de partition
-	//  . les attribut de selection pour chaque dimension de la partition
+	//  . les attributs de selection pour chaque dimension de la partition
 	KWDerivationRule* BuildTablePartitionBlockDerivationRule() const;
 
 	// Construction d'un nom d'attribut pour chaque type de partition (nom dediee a un bloc)

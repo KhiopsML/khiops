@@ -202,7 +202,7 @@ protected:
 
 	// Calcul de l'index d'une valeur pour un grille donnees
 	int ComputeContinuousCellIndex(const KWDRDataGrid* dataGridRule, Continuous cValue) const;
-	int ComputeSymbolCellIndex(const KWDRDataGrid* dataGridRule, Symbol sValue) const;
+	int ComputeSymbolCellIndex(const KWDRDataGrid* dataGridRule, const Symbol& sValue) const;
 
 	// Nombre d'index utilises (differents de -1) dans un vecteur d'index
 	int ComputeUsedIndexNumber(IntVector* ivIndexes) const;

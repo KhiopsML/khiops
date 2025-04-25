@@ -288,6 +288,9 @@ KWDRNBClassifier::KWDRNBClassifier()
 
 	// Gestion de l'optimisation
 	cUnknownTargetProb = 0;
+	nTargetTotalFrequency = 0;
+	dLaplaceEpsilon = 0;
+	dLaplaceDenominator = 0;
 	nOptimizationFreshness = 0;
 }
 
@@ -686,16 +689,75 @@ Continuous KWDRNBClassifier::ComputeTargetProbAt(const Symbol& sValue) const
 
 	// Recherche de l'index de la valeur cible
 	// Pour un petit nombre de valeurs cibles, une recherche indexee est suffisante en performance
-	for (nTarget = 0; nTarget < cvTargetProbs.GetSize(); nTarget++)
+	if (cvTargetProbs.GetSize() <= 10)
 	{
-		// Si trouve, on retourne sa probabilite conditionnelles
-		if (svTargetValues.GetAt(nTarget) == sValue)
+		for (nTarget = 0; nTarget < cvTargetProbs.GetSize(); nTarget++)
+		{
+			// Si trouve, on retourne sa probabilite conditionnelles
+			if (svTargetValues.GetAt(nTarget) == sValue)
+				return cvTargetProbs.GetAt(nTarget);
+		}
+	}
+	// Sinon, on passe par une rercherche en table de hashage
+	else
+	{
+		nTarget = GetTargetValueRank(sValue);
+		if (nTarget >= 0)
 			return cvTargetProbs.GetAt(nTarget);
 	}
 
 	// Si on a rien trouve (la valeur cible n'existait pas en apprentissage...)
 	// on retourne la valeur speciale
 	return cUnknownTargetProb;
+}
+
+void KWDRNBClassifier::ComputeTargetProbsFromNumeratorTerms(const ContinuousVector* cvNumeratorTerms,
+							    ContinuousVector* cvProbs) const
+{
+	int nTarget;
+	double dMaxTargetLogProb;
+	double dProb;
+	double dTotalProb;
+
+	require(IsCompiled());
+	require(IsOptimized());
+	require(dLaplaceEpsilon > 0);
+	require(dLaplaceDenominator > 0);
+	require(cvNumeratorTerms != NULL);
+	require(cvNumeratorTerms->GetSize() == GetDataGridSetTargetPartNumber());
+	require(cvProbs != NULL);
+	require(cvProbs->GetSize() == GetDataGridSetTargetPartNumber());
+
+	// Recherche du Max des TargetLogProb
+	dMaxTargetLogProb = KWContinuous::GetMinValue();
+	for (nTarget = 0; nTarget < cvNumeratorTerms->GetSize(); nTarget++)
+	{
+		dMaxTargetLogProb = max(dMaxTargetLogProb, cvNumeratorTerms->GetAt(nTarget));
+	}
+
+	// Calcul des probabilites des valeurs cibles, en normalisant par ce max des TargetLogProb
+	// pour eviter les valeurs extremes
+	dTotalProb = 0;
+	for (nTarget = 0; nTarget < cvNumeratorTerms->GetSize(); nTarget++)
+	{
+		dProb = exp(cvNumeratorTerms->GetAt(nTarget) - dMaxTargetLogProb);
+		cvProbs->SetAt(nTarget, (Continuous)dProb);
+		dTotalProb += dProb;
+	}
+	assert(dTotalProb >= 1 - 1e-5);
+
+	// Normalisation pour obtenir des probas
+	for (nTarget = 0; nTarget < cvNumeratorTerms->GetSize(); nTarget++)
+		cvProbs->SetAt(nTarget, (Continuous)(cvProbs->GetAt(nTarget) / dTotalProb));
+
+	// Prise en compte d'un epsilon de Laplace (comme dans KWClassifierSelectionScore)
+	// en considerant qu'on ne peut pas avoir de precision meilleure que 1/N
+	//   p = p*N / N
+	//   p_Laplace = (p*N + 0.5/J)/(N + 0.5)
+	//   p_Laplace = (p + 0.5/JN)/(1 + 0.5/N)
+	// (on se base sur N+1 pour eviter le cas N=0)
+	for (nTarget = 0; nTarget < cvNumeratorTerms->GetSize(); nTarget++)
+		cvProbs->SetAt(nTarget, (cvProbs->GetAt(nTarget) + dLaplaceEpsilon) / dLaplaceDenominator);
 }
 
 Symbol KWDRNBClassifier::ComputeBiasedTargetValue(const ContinuousVector* cvOffsets) const
@@ -734,7 +796,8 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 	const KWDRDataGrid* targetDataGridRule;
 	int nTargetValueNumber;
 	const KWDRSymbolValueSet* targetSymbolValueSetRule;
-	int nTargetValue;
+	int nTarget;
+	int nTargetFrequency;
 	int nDataGridRule;
 	int nDataGridOrBlockRule;
 	int nDataGridOrBlockOperand;
@@ -777,18 +840,38 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 			 targetDataGridRule->GetOperandAt(0)->GetReferencedDerivationRule(kwcOwnerClass));
 		assert(targetSymbolValueSetRule->GetValueNumber() == nTargetValueNumber);
 		svTargetValues.SetSize(nTargetValueNumber);
-		for (nTargetValue = 0; nTargetValue < nTargetValueNumber; nTargetValue++)
-			svTargetValues.SetAt(nTargetValue, targetSymbolValueSetRule->GetValueAt(nTargetValue));
+		for (nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
+		{
+			svTargetValues.SetAt(nTarget, targetSymbolValueSetRule->GetValueAt(nTarget));
+
+			// Memorisation des rangs de valeurs cibles
+			// On memorise le rang+1, car 0 correspond a la valeur retournee en cas de cle inexistante
+			lnkdTargetValueRanks.SetAt(svTargetValues.GetAt(nTarget).GetNumericKey(), (longint)nTarget + 1);
+		}
 
 		// Initialisation des probabilites cibles
+		cvTargetLogProbNumeratorTerms.SetSize(nTargetValueNumber);
 		cvTargetProbs.SetSize(nTargetValueNumber);
-		cUnknownTargetProb = 0;
 
-		// Memorisation des effectifs par partie cible
+		// Memorisation des effectifs par partie cible et de l'effectif total
 		ivDataGridSetTargetFrequencies.SetSize(nTargetValueNumber);
-		for (nTargetValue = 0; nTargetValue < nTargetValueNumber; nTargetValue++)
-			ivDataGridSetTargetFrequencies.SetAt(nTargetValue,
-							     targetDataGridRule->GetCellFrequencyAt(nTargetValue));
+		nTargetTotalFrequency = 0;
+		for (nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
+		{
+			nTargetFrequency = targetDataGridRule->GetCellFrequencyAt(nTarget);
+			ivDataGridSetTargetFrequencies.SetAt(nTarget, nTargetFrequency);
+			nTargetTotalFrequency += nTargetFrequency;
+		}
+
+		// Calcul d'un epsilon de Laplace (comme dans KWClassifierSelectionScore)
+		// en considerant qu'on ne peut pas avoir de precision meilleure que 1/N
+		// (on se base sur N+1 pour eviter le cas N=0)
+		dLaplaceEpsilon = 0.5 / (GetDataGridSetTargetPartNumber() * (nTargetTotalFrequency + 1));
+		dLaplaceDenominator = (1.0 + 0.5 / (nTargetTotalFrequency + 1));
+
+		// Calcul d'une probabilite par defaut pour les classes inconnues
+		// Ce calcul est refait a chaque fois
+		cUnknownTargetProb = dLaplaceEpsilon / dLaplaceDenominator;
 
 		// Calcul de la correspondance entre les index cibles de l'ensemble des grille et les index cibles de chaque grille
 		ivDataGridTargetIndexes.SetSize(ivDataGridSetTargetFrequencies.GetSize() * nDataGridRuleNumber);
@@ -839,7 +922,7 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 					constDataGridStatsRule =
 					    dataGridStatsBlockRule->GetDataGridStatsAtBlockIndex(nOperand);
 					oaOperandDataGridStatsRules.Add(
-					    const_cast<KWDRDataGridStats*>(constDataGridStatsRule));
+					    cast(KWDRDataGridStats*, constDataGridStatsRule));
 				}
 			}
 
@@ -869,18 +952,18 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 
 				// Calcul de la correspondance entre index cible et index des partie cible de la grille
 				// Calcul de la log-vraisemblance dans le cas des valeurs manquantes seulement pour les DataGridStatsBlock
-				for (nTargetValue = 0; nTargetValue < nTargetValueNumber; nTargetValue++)
+				for (nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
 				{
-					ivDataGridTargetIndexes.SetAt(nDataGridRule * nTargetValueNumber + nTargetValue,
-								      univariatePartitionRule->GetSymbolPartIndex(
-									  svTargetValues.GetAt(nTargetValue)));
+					ivDataGridTargetIndexes.SetAt(
+					    nDataGridRule * nTargetValueNumber + nTarget,
+					    univariatePartitionRule->GetSymbolPartIndex(svTargetValues.GetAt(nTarget)));
 					if (not naiveBayesPredictorRuleHelper.RuleHasDataGridStatsAtOperand(
 						this, nDataGridOrBlockOperand))
 					{
 						dvMissingLogProbas.SetAt(
-						    nDataGridRule * nTargetValueNumber + nTargetValue,
+						    nDataGridRule * nTargetValueNumber + nTarget,
 						    dataGridStatsRule->GetDataGridSourceConditionalLogProbAt(
-							nMissingValueIndex, nTargetValue));
+							nMissingValueIndex, nTarget));
 					}
 				}
 				nDataGridRule++;
@@ -891,14 +974,14 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 		// Calcul de la valeur de reference de la log-vraisemblance pour chaque cible et grille
 		dvMissingScores.SetSize(nTargetValueNumber);
 		dvMissingScores.Initialize();
-		for (nTargetValue = 0; nTargetValue < nTargetValueNumber; nTargetValue++)
+		for (nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
 		{
 			for (nDataGridRule = 0; nDataGridRule < nDataGridRuleNumber; nDataGridRule++)
 			{
 				dvMissingScores.UpgradeAt(
-				    nTargetValue,
+				    nTarget,
 				    cvWeights.GetAt(nDataGridRule) *
-					dvMissingLogProbas.GetAt(nDataGridRule * nTargetValueNumber + nTargetValue));
+					dvMissingLogProbas.GetAt(nDataGridRule * nTargetValueNumber + nTarget));
 			}
 		}
 		assert(ivDataGridTargetIndexes.GetSize() == nDataGridRuleNumber * nTargetValueNumber);
@@ -918,117 +1001,32 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 			for (nDataGridRule = 0; nDataGridRule < nDataGridRuleNumber; nDataGridRule++)
 				cout << "\tDataGrid " << nDataGridRule;
 			cout << endl;
-			for (nTargetValue = 0; nTargetValue < nTargetValueNumber; nTargetValue++)
+			for (nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
 			{
-				cout << ivDataGridSetTargetFrequencies.GetAt(nTargetValue);
+				cout << ivDataGridSetTargetFrequencies.GetAt(nTarget);
 				for (nDataGridRule = 0; nDataGridRule < nDataGridRuleNumber; nDataGridRule++)
 					cout << "\t"
 					     << ivDataGridTargetIndexes.GetAt(nDataGridRule * nTargetValueNumber +
-									      nTargetValue);
+									      nTarget);
 				cout << endl;
 			}
 			cout << "MissingLogProbas";
 			for (nDataGridRule = 0; nDataGridRule < nDataGridRuleNumber; nDataGridRule++)
 				cout << "\tDataGrid " << nDataGridRule;
 			cout << endl;
-			for (nTargetValue = 0; nTargetValue < nTargetValueNumber; nTargetValue++)
+			for (nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
 			{
 				for (nDataGridRule = 0; nDataGridRule < nDataGridRuleNumber; nDataGridRule++)
 					cout << "\t"
-					     << dvMissingLogProbas.GetAt(nDataGridRule * nTargetValueNumber +
-									 nTargetValue);
+					     << dvMissingLogProbas.GetAt(nDataGridRule * nTargetValueNumber + nTarget);
 				cout << endl;
 			}
 			cout << "MissingScores" << endl;
-			for (nTargetValue = 0; nTargetValue < nTargetValueNumber; nTargetValue++)
-				cout << dvMissingScores.GetAt(nTargetValue) << endl;
+			for (nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
+				cout << dvMissingScores.GetAt(nTarget) << endl;
 		}
 		assert(nDataGridRuleNumber >= oaDataGridStatsAndBlockRules.GetSize());
 	}
-}
-
-int KWDRNBClassifier::GetDataGridStatsOrBlockNumber() const
-{
-	require(IsOptimized());
-	return oaDataGridStatsAndBlockRules.GetSize();
-}
-
-int KWDRNBClassifier::GetDataGridStatsNumber() const
-{
-	require(IsOptimized());
-	return cvWeights.GetSize();
-}
-
-boolean KWDRNBClassifier::IsDataGridStatsAt(int nDataGridStatsOrBlock) const
-{
-	require(IsOptimized());
-	require(0 <= nDataGridStatsOrBlock and nDataGridStatsOrBlock < oaDataGridStatsAndBlockRules.GetSize());
-
-	return ivIsDataGridStatsRule.GetAt(nDataGridStatsOrBlock);
-}
-
-const KWDRDataGridStats* KWDRNBClassifier::GetDataGridStatsAt(int nDataGridStatsOrBlock) const
-{
-	require(IsOptimized());
-	require(0 <= nDataGridStatsOrBlock and nDataGridStatsOrBlock < oaDataGridStatsAndBlockRules.GetSize());
-	require(IsDataGridStatsAt(nDataGridStatsOrBlock));
-	return cast(KWDRDataGridStats*, oaDataGridStatsAndBlockRules.GetAt(nDataGridStatsOrBlock));
-}
-
-const KWDRDataGridStatsBlock* KWDRNBClassifier::GetDataGridStatsBlockAt(int nDataGridStatsOrBlock) const
-{
-	require(IsOptimized());
-	require(0 <= nDataGridStatsOrBlock and nDataGridStatsOrBlock < oaDataGridStatsAndBlockRules.GetSize());
-	require(not IsDataGridStatsAt(nDataGridStatsOrBlock));
-	return cast(KWDRDataGridStatsBlock*, oaDataGridStatsAndBlockRules.GetAt(nDataGridStatsOrBlock));
-}
-
-Continuous KWDRNBClassifier::GetDataGridWeightAt(int nDataGrid) const
-{
-	require(IsOptimized());
-	require(0 <= nDataGrid and nDataGrid < cvWeights.GetSize());
-	return cvWeights.GetAt(nDataGrid);
-}
-
-int KWDRNBClassifier::GetDataGridSetTargetPartNumber() const
-{
-	require(IsOptimized());
-	return ivDataGridSetTargetFrequencies.GetSize();
-}
-
-int KWDRNBClassifier::GetDataGridSetTargetFrequencyAt(int nTarget) const
-{
-	require(IsOptimized());
-	require(0 <= nTarget and nTarget < ivDataGridSetTargetFrequencies.GetSize());
-	return ivDataGridSetTargetFrequencies.GetAt(nTarget);
-}
-
-int KWDRNBClassifier::GetDataGridSetTargetCellIndexAt(int nDataGrid, int nTarget) const
-{
-	require(IsOptimized());
-	require(0 <= nDataGrid and nDataGrid < cvWeights.GetSize());
-	require(0 <= nTarget and nTarget < ivDataGridTargetIndexes.GetSize());
-	return ivDataGridTargetIndexes.GetAt(nDataGrid * ivDataGridSetTargetFrequencies.GetSize() + nTarget);
-}
-
-double KWDRNBClassifier::GetMissingLogProbaAt(int nDataGrid, int nTarget) const
-{
-	require(IsOptimized());
-	require(0 <= nDataGrid and nDataGrid < cvWeights.GetSize());
-	require(0 <= nTarget and nTarget < ivDataGridTargetIndexes.GetSize());
-	return dvMissingLogProbas.GetAt(nDataGrid * ivDataGridSetTargetFrequencies.GetSize() + nTarget);
-}
-
-double KWDRNBClassifier::GetMissingScoreAt(int nTarget) const
-{
-	require(IsOptimized());
-	require(0 <= nTarget and nTarget < dvMissingScores.GetSize());
-	return dvMissingScores.GetAt(nTarget);
-}
-
-boolean KWDRNBClassifier::IsOptimized() const
-{
-	return IsCompiled() and nOptimizationFreshness == GetOwnerClass()->GetCompileFreshness();
 }
 
 longint KWDRNBClassifier::GetUsedMemory() const
@@ -1041,12 +1039,13 @@ longint KWDRNBClassifier::GetUsedMemory() const
 	lUsedMemory += ivDataGridSetTargetFrequencies.GetUsedMemory();
 	lUsedMemory += ivDataGridTargetIndexes.GetUsedMemory();
 	lUsedMemory += svTargetValues.GetUsedMemory();
+	lUsedMemory += lnkdTargetValueRanks.GetUsedMemory();
+	lUsedMemory += cvTargetLogProbNumeratorTerms.GetUsedMemory();
 	lUsedMemory += cvTargetProbs.GetUsedMemory();
 	return lUsedMemory;
 }
 
-void KWDRNBClassifier::ExportAttributeNames(StringVector* svPredictorAttributeNames,
-					    StringVector* svPredictorPartitionedAttributeNames) const
+void KWDRNBClassifier::ExportAttributeNames(const KWClass* kwcOwnerClass, StringVector* svPredictorAttributeNames) const
 {
 	const KWDRNBClassifier referenceNBRule;
 	const KWDRSNBClassifier referenceSNBRule;
@@ -1056,22 +1055,25 @@ void KWDRNBClassifier::ExportAttributeNames(StringVector* svPredictorAttributeNa
 	ALString sAttributeName;
 	ALString sAttributePredictorName;
 	int nOperandIndex;
+	KWDRContinuousValueSet* continuousVarKeyRule;
 	KWDRSymbolValueSet* symbolVarKeyRule;
 	const KWDRDataGridStats refDataGridStatsRule;
 	const KWDRDataGridStatsBlock refDataGridStatsBlockRule;
 	KWDRDataGridStatsBlock* dataGridStatsBlockRule;
 	KWDRDataGridBlock* dataGridBlockRule;
 	KWAttributeBlock* attributeBlock;
-	KWDRContinuousValueSet* continuousValueSetRule;
+	KWIndexedKeyBlock* indexedKeyBlock;
+	NumericKeyDictionary nkdBlockAttributes;
 	int nVarKeyNumber;
 	int nVarKey;
+	Symbol sVarKey;
 	int nIndex;
 	int nUncheckedVarKeyType;
+	boolean bOperandOk;
 
+	require(kwcOwnerClass != NULL);
 	require(svPredictorAttributeNames != NULL);
-	require(svPredictorPartitionedAttributeNames != NULL);
 	require(svPredictorAttributeNames->GetSize() == 0);
-	require(svPredictorPartitionedAttributeNames->GetSize() == 0);
 
 	// Parcours des operandes pour identifier les noms des attributs explicatifs et des attributs natifs associes
 	// Le dernier operande n'est pas parcouru car reserve a l'attribut des valeurs cibles
@@ -1082,83 +1084,111 @@ void KWDRNBClassifier::ExportAttributeNames(StringVector* svPredictorAttributeNa
 	{
 
 		operand = GetOperandAt(nOperandIndex);
-		assert(operand->GetType() == KWType::Structure);
 
+		// Test d'integrite preliminaires
+		bOperandOk = (operand->GetType() == KWType::Structure);
+		bOperandOk = bOperandOk and operand->GetDerivationRule() != NULL;
+		bOperandOk = bOperandOk and operand->GetDerivationRule()->GetOperandNumber() >= 2;
+		if (not bOperandOk)
+			continue;
+
+		// Cas d'un attribut
 		if (operand->GetStructureName() == refDataGridStatsRule.GetName())
 		{
+			// Tests d'integrite
+			bOperandOk = bOperandOk and
+				     KWType::IsSimple(operand->GetDerivationRule()->GetSecondOperand()->GetType());
 
-			// Extraction du nom de la variable explicative
-			sAttributeName = operand->GetDerivationRule()->GetFirstOperand()->GetAttributeName();
-
-			// Memorisation du nom de la variable pour la synchronisation
-			// avec le tableau oaPartitionIntervals
-			svPredictorPartitionedAttributeNames->Add(sAttributeName);
-
-			// Extraction du nom de la variable native
-			sAttributeName = operand->GetDerivationRule()->GetSecondOperand()->GetAttributeName();
-
-			// Memorisation du nom de la variable pour la synchronisation
-			// avec le tableau oaPartitionIntervals
-			svPredictorAttributeNames->Add(sAttributeName);
+			// Extraction et memorisation du nom de la variable
+			if (bOperandOk)
+			{
+				sAttributeName = operand->GetDerivationRule()->GetSecondOperand()->GetAttributeName();
+				if (sAttributeName != "")
+					svPredictorAttributeNames->Add(sAttributeName);
+			}
 		}
-		else
+		// Cas d'un bloc d'attribut
+		else if (operand->GetStructureName() == refDataGridStatsBlockRule.GetName())
 		{
-			assert(operand->GetStructureName() == refDataGridStatsBlockRule.GetName());
+			// Acces aux blocs de stats de grile, de grilles et d'attributs
 			dataGridStatsBlockRule = cast(KWDRDataGridStatsBlock*, operand->GetDerivationRule());
 			dataGridBlockRule =
 			    cast(KWDRDataGridBlock*,
-				 dataGridStatsBlockRule->GetFirstOperand()->GetOriginAttribute()->GetDerivationRule());
-			attributeBlock = dataGridStatsBlockRule->GetSecondOperand()->GetOriginAttributeBlock();
-			// Recherche du type de bloc
-			nUncheckedVarKeyType = dataGridBlockRule->GetUncheckedDataGridVarKeyType();
-			continuousValueSetRule = NULL;
+				 dataGridStatsBlockRule->GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
+			attributeBlock = kwcOwnerClass->LookupAttributeBlock(
+			    dataGridStatsBlockRule->GetSecondOperand()->GetAttributeBlockName());
+
+			// Tests d'integrite
+			bOperandOk = bOperandOk and dataGridBlockRule != NULL;
+			bOperandOk = bOperandOk and attributeBlock != NULL;
+
+			// Recherche d'information sur le bloc si ok
+			nUncheckedVarKeyType = KWType::None;
+			nVarKeyNumber = -1;
+			continuousVarKeyRule = NULL;
 			symbolVarKeyRule = NULL;
-			if (nUncheckedVarKeyType == KWType::Continuous)
+			if (bOperandOk)
 			{
-				continuousValueSetRule = cast(
-				    KWDRContinuousValueSet*, dataGridBlockRule->GetFirstOperand()->GetDerivationRule());
-				nVarKeyNumber = continuousValueSetRule->GetValueNumber();
-			}
-			else
-			{
-				assert(nUncheckedVarKeyType == KWType::Symbol);
-				symbolVarKeyRule = cast(KWDRSymbolValueSet*,
-							dataGridBlockRule->GetFirstOperand()->GetDerivationRule());
-				nVarKeyNumber = symbolVarKeyRule->GetValueNumber();
-			}
-			// Parcours generique des VarKey du bloc
-			for (nIndex = 0; nIndex < nVarKeyNumber; nIndex++)
-			{
+				nUncheckedVarKeyType = dataGridBlockRule->GetUncheckedDataGridVarKeyType();
 				if (nUncheckedVarKeyType == KWType::Continuous)
 				{
-					assert(continuousValueSetRule != NULL);
-					nVarKey = int(floor(continuousValueSetRule->GetValueAt(nIndex) + 0.5));
-					attribute = attributeBlock->LookupAttributeByContinuousVarKey(nVarKey);
+					continuousVarKeyRule =
+					    cast(KWDRContinuousValueSet*,
+						 dataGridBlockRule->GetFirstOperand()->GetDerivationRule());
+					nVarKeyNumber = continuousVarKeyRule->GetValueNumber();
 				}
-				else
+				else if (nUncheckedVarKeyType == KWType::Symbol)
 				{
-					assert(symbolVarKeyRule != NULL);
-					attribute = attributeBlock->LookupAttributeBySymbolVarKey(
-					    symbolVarKeyRule->GetValueAt(nIndex));
+					symbolVarKeyRule =
+					    cast(KWDRSymbolValueSet*,
+						 dataGridBlockRule->GetFirstOperand()->GetDerivationRule());
+					nVarKeyNumber = symbolVarKeyRule->GetValueNumber();
 				}
 
-				if (attribute != NULL)
+				// Test d'integrite additionnels
+				bOperandOk = bOperandOk and KWType::IsSimple(nUncheckedVarKeyType);
+				bOperandOk = bOperandOk and (continuousVarKeyRule != NULL or symbolVarKeyRule);
+				bOperandOk = bOperandOk and nVarKeyNumber >= 0;
+			}
+
+			// Extraction des variables du bloc si ok
+			if (bOperandOk)
+			{
+				// On doit indexer explicitement le bloc, car la classe n'est pas encore indexee a ce
+				// stade, et il faut faire la verification par rapport a toutes les VarKey sources
+				indexedKeyBlock = attributeBlock->BuildAttributesIndexedKeyBlock(&nkdBlockAttributes);
+
+				// Parcours generique des VarKey du bloc
+				for (nIndex = 0; nIndex < nVarKeyNumber; nIndex++)
 				{
-					// Extraction du nom de la variable explicative
-					sAttributeName = attribute->GetName();
+					if (nUncheckedVarKeyType == KWType::Continuous)
+					{
+						assert(continuousVarKeyRule != NULL);
+						nVarKey = int(floor(continuousVarKeyRule->GetValueAt(nIndex) + 0.5));
+						attribute = cast(KWAttribute*, nkdBlockAttributes.Lookup(nVarKey));
+					}
+					else
+					{
+						assert(symbolVarKeyRule != NULL);
+						sVarKey = symbolVarKeyRule->GetValueAt(nIndex);
+						attribute = cast(KWAttribute*,
+								 nkdBlockAttributes.Lookup(sVarKey.GetNumericKey()));
+					}
 
-					// Memorisation du nom de la variable pour la synchronisation
-					// avec le tableau oaPartitionIntervals
-					svPredictorAttributeNames->Add(sAttributeName);
-
-					// Extraction du nom de la variable native
-					sAttributeName =
-					    dataGridBlockRule->GetOperandAt(nIndex + 1)->GetAttributeName();
-
-					// Memorisation du nom de la variable pour la synchronisation
-					// avec le tableau oaPartitionIntervals
-					svPredictorPartitionedAttributeNames->Add(sAttributeName);
+					// On traite les attributs que l'on a trouve dans le bloc
+					// Cette tolerance est necessaire, puisque la methode peut etre appelee meme
+					// si la classe n'est pas compilee
+					if (attribute != NULL)
+					{
+						// Extraction et memorisation du nom de la variable
+						sAttributeName = attribute->GetName();
+						svPredictorAttributeNames->Add(sAttributeName);
+					}
 				}
+
+				// Nettoyage
+				nkdBlockAttributes.RemoveAll();
+				delete indexedKeyBlock;
 			}
 		}
 	}
@@ -1172,32 +1202,17 @@ void KWDRNBClassifier::ComputeTargetProbs() const
 	int nSourceCellIndex;
 	int nTargetCellIndex;
 	int nTarget;
-	int nTargetFrequency;
-	int nTargetTotalFrequency;
 	double dTargetLogProb;
-	double dMaxTargetLogProb;
-	double dProb;
-	double dTotalProb;
-	double dLaplaceEpsilon;
-	double dLaplaceDenominator;
 	int nValue;
 	int nDataGrid;
 	int nDataGridIndexWithinBlock;
 
 	require(IsOptimized());
+	require(cvTargetLogProbNumeratorTerms.GetSize() == GetDataGridSetTargetPartNumber());
 	require(cvTargetProbs.GetSize() == GetDataGridSetTargetPartNumber());
-
-	// Calcul de l'effectif global
-	nTargetTotalFrequency = 0;
-	for (nTarget = 0; nTarget < GetDataGridSetTargetPartNumber(); nTarget++)
-	{
-		nTargetFrequency = GetDataGridSetTargetFrequencyAt(nTarget);
-		assert(nTargetFrequency > 0);
-		nTargetTotalFrequency += nTargetFrequency;
-	}
+	require(nTargetTotalFrequency > 0);
 
 	// Calcul des logarithmes de probabilites des valeurs cibles
-	dMaxTargetLogProb = KWContinuous::GetMinValue();
 	for (nTarget = 0; nTarget < GetDataGridSetTargetPartNumber(); nTarget++)
 	{
 		// Initialisation avec le prior
@@ -1249,42 +1264,11 @@ void KWDRNBClassifier::ComputeTargetProbs() const
 		}
 
 		// Memorisation du resultat
-		cvTargetProbs.SetAt(nTarget, dTargetLogProb);
-
-		// Memorisation du max
-		if (dTargetLogProb > dMaxTargetLogProb)
-			dMaxTargetLogProb = dTargetLogProb;
+		cvTargetLogProbNumeratorTerms.SetAt(nTarget, dTargetLogProb);
 	}
-	assert(dMaxTargetLogProb > KWContinuous::GetMinValue());
 
-	// Calcul des probabilites des valeurs cibles, en normalisant par le dMaxTargetLogProb
-	// pour eviter les valeurs extremes
-	dTotalProb = 0;
-	for (nTarget = 0; nTarget < GetDataGridSetTargetPartNumber(); nTarget++)
-	{
-		dProb = exp(cvTargetProbs.GetAt(nTarget) - dMaxTargetLogProb);
-		cvTargetProbs.SetAt(nTarget, (Continuous)dProb);
-		dTotalProb += dProb;
-	}
-	assert(dTotalProb >= 1 - 1e-5);
-
-	// Normalisation pour obtenir des probas
-	for (nTarget = 0; nTarget < GetDataGridSetTargetPartNumber(); nTarget++)
-		cvTargetProbs.SetAt(nTarget, (Continuous)(cvTargetProbs.GetAt(nTarget) / dTotalProb));
-
-	// Prise en compte d'un epsilon de Laplace (comme dans KWClassifierSelectionScore)
-	// en considerant qu'on ne peut pas avoir de precision meilleure que 1/N
-	//   p = p*N / N
-	//   p_Laplace = (p*N + 0.5/J)/(N + 0.5)
-	//   p_Laplace = (p + 0.5/JN)/(1 + 0.5/N)
-	// (on se base sur N+1 pour eviter le cas N=0)
-	dLaplaceEpsilon = 0.5 / (GetDataGridSetTargetPartNumber() * (nTargetTotalFrequency + 1));
-	dLaplaceDenominator = (1.0 + 0.5 / (nTargetTotalFrequency + 1));
-	for (nTarget = 0; nTarget < GetDataGridSetTargetPartNumber(); nTarget++)
-		cvTargetProbs.SetAt(nTarget, (cvTargetProbs.GetAt(nTarget) + dLaplaceEpsilon) / dLaplaceDenominator);
-
-	// Calcul d'une probabilite par defaut pour les classes inconnues
-	cUnknownTargetProb = dLaplaceEpsilon / dLaplaceDenominator;
+	// Calcul des probabilites a partir d'un vecteur de termes de numerateur
+	ComputeTargetProbsFromNumeratorTerms(&cvTargetLogProbNumeratorTerms, &cvTargetProbs);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1564,7 +1548,7 @@ void KWDRNBRankRegressor::CompileInitializeFrequencyAndCellIndexes()
 	int nDataGridStatsOrBlock;
 	const KWDRDataGridStats* constDataGridStatsRule;
 	KWDRDataGridStatsBlock* dataGridStatsBlockRule;
-	int nTargetValue;
+	int nTarget;
 	ContinuousVector cvAllCumulativeFrequencies;
 	int nBlockDataGridStats;
 	int nFrequency;
@@ -1585,10 +1569,9 @@ void KWDRNBRankRegressor::CompileInitializeFrequencyAndCellIndexes()
 		{
 			constDataGridStatsRule =
 			    cast(const KWDRDataGridStats*, oaDataGridStatsAndBlockRules.GetAt(nDataGridStatsOrBlock));
-			for (nTargetValue = 0; nTargetValue < constDataGridStatsRule->GetDataGridTargetCellNumber();
-			     nTargetValue++)
+			for (nTarget = 0; nTarget < constDataGridStatsRule->GetDataGridTargetCellNumber(); nTarget++)
 				cvAllCumulativeFrequencies.Add(
-				    constDataGridStatsRule->GetDataGridTargetCumulativeFrequencyAt(nTargetValue));
+				    constDataGridStatsRule->GetDataGridTargetCumulativeFrequencyAt(nTarget));
 		}
 		else
 		{
@@ -1600,12 +1583,10 @@ void KWDRNBRankRegressor::CompileInitializeFrequencyAndCellIndexes()
 			{
 				constDataGridStatsRule =
 				    dataGridStatsBlockRule->GetDataGridStatsAtBlockIndex(nBlockDataGridStats);
-				for (nTargetValue = 0;
-				     nTargetValue < constDataGridStatsRule->GetDataGridTargetCellNumber();
-				     nTargetValue++)
+				for (nTarget = 0; nTarget < constDataGridStatsRule->GetDataGridTargetCellNumber();
+				     nTarget++)
 					cvAllCumulativeFrequencies.Add(
-					    constDataGridStatsRule->GetDataGridTargetCumulativeFrequencyAt(
-						nTargetValue));
+					    constDataGridStatsRule->GetDataGridTargetCumulativeFrequencyAt(nTarget));
 			}
 		}
 	}
@@ -1637,20 +1618,20 @@ void KWDRNBRankRegressor::CompileInitializeFrequencyAndCellIndexes()
 			    cast(KWDRDataGridStats*, oaDataGridStatsAndBlockRules.GetAt(nDataGridStatsOrBlock));
 
 			// Parcours des index cibles de l'ensemble des grilles
-			nTargetValue = 0;
+			nTarget = 0;
 			for (nFrequency = 0; nFrequency < cvDataGridSetTargetCumulativeFrequencies.GetSize();
 			     nFrequency++)
 			{
 				// Comparaison de l'effectif cumule pour la partition sur l'ensemble des grille
 				// a l'effectif cumule pour la grille en cours
 				if (cvDataGridSetTargetCumulativeFrequencies.GetAt(nFrequency) >
-				    dataGridStatsRule->GetDataGridTargetCumulativeFrequencyAt(nTargetValue) + 0.5)
-					nTargetValue++;
+				    dataGridStatsRule->GetDataGridTargetCumulativeFrequencyAt(nTarget) + 0.5)
+					nTarget++;
 
 				// Mise a jour de la correspondance
 				ivDataGridTargetIndexes.SetAt(
 				    nDataGridStats * cvDataGridSetTargetCumulativeFrequencies.GetSize() + nFrequency,
-				    nTargetValue);
+				    nTarget);
 			}
 			// Mise a jour du compte de DGS
 			nDataGridStats++;
@@ -1665,23 +1646,22 @@ void KWDRNBRankRegressor::CompileInitializeFrequencyAndCellIndexes()
 			{
 				constDataGridStatsRule =
 				    dataGridStatsBlockRule->GetDataGridStatsAtBlockIndex(nBlockDataGridStats);
-				nTargetValue = 0;
+				nTarget = 0;
 				for (nFrequency = 0; nFrequency < cvDataGridSetTargetCumulativeFrequencies.GetSize();
 				     nFrequency++)
 				{
 					// Comparaison de l'effectif cumule pour la partition sur l'ensemble des grille
 					// a l'effectif cumule pour la grille en cours
 					if (cvDataGridSetTargetCumulativeFrequencies.GetAt(nFrequency) >
-					    constDataGridStatsRule->GetDataGridTargetCumulativeFrequencyAt(
-						nTargetValue) +
+					    constDataGridStatsRule->GetDataGridTargetCumulativeFrequencyAt(nTarget) +
 						0.5)
-						nTargetValue++;
+						nTarget++;
 
 					// Mise a jour de la correspondance
 					ivDataGridTargetIndexes.SetAt(
 					    nDataGridStats * cvDataGridSetTargetCumulativeFrequencies.GetSize() +
 						nFrequency,
-					    nTargetValue);
+					    nTarget);
 				}
 				// Mise a jour du compte de DGS
 				nDataGridStats++;
@@ -1733,7 +1713,7 @@ longint KWDRNBRankRegressor::GetUsedMemory() const
 void KWDRNBRankRegressor::ComputeTargetProbs() const
 {
 	Continuous dMaxTargetLogProb;
-	int nTargetValue;
+	int nTarget;
 	int nDataGrid;
 	double dTargetLogProb;
 	int nDataGridStatsOrBlock;
@@ -1758,7 +1738,7 @@ void KWDRNBRankRegressor::ComputeTargetProbs() const
 
 	// Calcul des logarithmes des probabilites des valeurs cibles
 	dMaxTargetLogProb = KWContinuous::GetMinValue();
-	for (nTargetValue = 0; nTargetValue < GetDataGridSetTargetValueNumber(); nTargetValue++)
+	for (nTarget = 0; nTarget < GetDataGridSetTargetValueNumber(); nTarget++)
 	{
 		nDataGrid = 0;
 		dTargetLogProb = 0;
@@ -1772,7 +1752,7 @@ void KWDRNBRankRegressor::ComputeTargetProbs() const
 
 				// Acces aux indexes de la source et la cible
 				nSourceCellIndex = dataGridStatsRule->GetCellIndex();
-				nTargetCellIndex = GetDataGridSetTargetIndexAt(nDataGrid, nTargetValue);
+				nTargetCellIndex = GetDataGridSetTargetIndexAt(nDataGrid, nTarget);
 
 				// Mise a jour du terme de proba, en prenant en compte le poids de la grille
 				dTargetLogProb += GetDataGridWeightAt(nDataGrid) *
@@ -1796,7 +1776,7 @@ void KWDRNBRankRegressor::ComputeTargetProbs() const
 					nDataGridIndexWithinBlock =
 					    dataGridStatsBlockRule->GetDataGridIndexAt(nBlockValue);
 					nTargetCellIndex = GetDataGridSetTargetCellIndexAt(
-					    nDataGrid + nDataGridIndexWithinBlock, nTargetValue);
+					    nDataGrid + nDataGridIndexWithinBlock, nTarget);
 
 					// Mise a jour du terme de proba, en prenant en compte le poids de la grille
 					dataGridStatsRule = dataGridStatsBlockRule->GetDataGridStatsAt(nBlockValue);
@@ -1810,7 +1790,7 @@ void KWDRNBRankRegressor::ComputeTargetProbs() const
 			}
 		}
 		// Memorisation de la probabilite pour la valeur cible courante
-		cvTargetProbs.SetAt(nTargetValue, (Continuous)dTargetLogProb);
+		cvTargetProbs.SetAt(nTarget, (Continuous)dTargetLogProb);
 
 		// Memorisation de la probabilite maximale
 		if (dTargetLogProb > dMaxTargetLogProb)
@@ -1822,15 +1802,15 @@ void KWDRNBRankRegressor::ComputeTargetProbs() const
 	// On normalise par dMaxTargetLogProb pour eviter les valeurs extremes
 	dTotalProb = 0;
 	dTargetCumulativeFrequency = 0;
-	for (nTargetValue = 0; nTargetValue < GetDataGridSetTargetValueNumber(); nTargetValue++)
+	for (nTarget = 0; nTarget < GetDataGridSetTargetValueNumber(); nTarget++)
 	{
 		// Recherche de l'effectif de la partie cible courante
-		dTargetFrequency = GetDataGridSetTargetCumulativeFrequencyAt(nTargetValue) - dTargetCumulativeFrequency;
-		dTargetCumulativeFrequency = GetDataGridSetTargetCumulativeFrequencyAt(nTargetValue);
+		dTargetFrequency = GetDataGridSetTargetCumulativeFrequencyAt(nTarget) - dTargetCumulativeFrequency;
+		dTargetCumulativeFrequency = GetDataGridSetTargetCumulativeFrequencyAt(nTarget);
 
 		// Normalisation de la probabilite
-		dProb = exp(cvTargetProbs.GetAt(nTargetValue) - dMaxTargetLogProb);
-		cvTargetProbs.SetAt(nTargetValue, dProb);
+		dProb = exp(cvTargetProbs.GetAt(nTarget) - dMaxTargetLogProb);
+		cvTargetProbs.SetAt(nTarget, dProb);
 
 		// Calcul de la probabilite total au denominateur, en multipliant la probabilite (uniforme par rang)
 		// par le nombre de rangs contenus dans la partie
@@ -1839,8 +1819,8 @@ void KWDRNBRankRegressor::ComputeTargetProbs() const
 	assert(dTotalProb >= 1);
 
 	// Normalisation pour obtenir des probas
-	for (nTargetValue = 0; nTargetValue < GetDataGridSetTargetValueNumber(); nTargetValue++)
-		cvTargetProbs.SetAt(nTargetValue, cvTargetProbs.GetAt(nTargetValue) / dTotalProb);
+	for (nTarget = 0; nTarget < GetDataGridSetTargetValueNumber(); nTarget++)
+		cvTargetProbs.SetAt(nTarget, cvTargetProbs.GetAt(nTarget) / dTotalProb);
 
 	// Prise en compte d'un epsilon de Laplace (comme dans KWClassifierSelectionScore)
 	// en considerant qu'on ne peut pas avoir de precision meilleure que 1/N
@@ -1854,9 +1834,8 @@ void KWDRNBRankRegressor::ComputeTargetProbs() const
 		dRankNumber = 1;
 	dLaplaceEpsilon = 0.5 / (dRankNumber * (cTargetTotalFrequency + 1));
 	dLaplaceDenominator = (1.0 + 0.5 / (cTargetTotalFrequency + 1));
-	for (nTargetValue = 0; nTargetValue < GetDataGridSetTargetValueNumber(); nTargetValue++)
-		cvTargetProbs.SetAt(nTargetValue,
-				    (cvTargetProbs.GetAt(nTargetValue) + dLaplaceEpsilon) / dLaplaceDenominator);
+	for (nTarget = 0; nTarget < GetDataGridSetTargetValueNumber(); nTarget++)
+		cvTargetProbs.SetAt(nTarget, (cvTargetProbs.GetAt(nTarget) + dLaplaceEpsilon) / dLaplaceDenominator);
 }
 
 Continuous KWDRNBRankRegressor::ComputeExpectation(const ContinuousVector* cvTargetCumulativeValues) const
@@ -2081,13 +2060,12 @@ int KWDRNBRankRegressor::GetDataGridStatsOrBlockNumber() const
 	return oaDataGridStatsAndBlockRules.GetSize();
 }
 
-int KWDRNBRankRegressor::GetDataGridSetTargetCellIndexAt(int nDataGrid, int nTargetValue) const
+int KWDRNBRankRegressor::GetDataGridSetTargetCellIndexAt(int nDataGrid, int nTarget) const
 {
 	require(IsOptimized());
 	require(0 <= nDataGrid and nDataGrid < cvWeights.GetSize());
-	require(0 <= nTargetValue and nTargetValue < ivDataGridTargetIndexes.GetSize());
-	return ivDataGridTargetIndexes.GetAt(nDataGrid * cvDataGridSetTargetCumulativeFrequencies.GetSize() +
-					     nTargetValue);
+	require(0 <= nTarget and nTarget < ivDataGridTargetIndexes.GetSize());
+	return ivDataGridTargetIndexes.GetAt(nDataGrid * cvDataGridSetTargetCumulativeFrequencies.GetSize() + nTarget);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2854,14 +2832,14 @@ Continuous KWDRNBRegressor::ComputeMeanTargetValueRange() const
 int KWDRNBRegressor::ComputeMissingValueNumber() const
 {
 	int nResult;
-	int nTargetValue;
+	int nTarget;
 
 	require(IsCompiled());
 
 	nResult = 0;
-	for (nTargetValue = 0; nTargetValue < GetSingleTargetValueNumber(); nTargetValue++)
+	for (nTarget = 0; nTarget < GetSingleTargetValueNumber(); nTarget++)
 	{
-		if (GetSingleTargetValueAt(nTargetValue) == KWContinuous::GetMissingValue())
+		if (GetSingleTargetValueAt(nTarget) == KWContinuous::GetMissingValue())
 			nResult++;
 	}
 	return nResult;

@@ -438,7 +438,7 @@ protected:
 	// Ces attributs natifs sont geres dans les "UnusedNative...Attribute" de la classe (KWClass),
 	// qui, lors de la compilation, prevoit un emplacement memoire systematique pour les stocker
 	// et assurer leur memorisation au cas ou ils seraient referencables par des regles de derivation.
-	// On determine ainsi les attribut de type relation natifs ou crees non utilises a garder,
+	// On determine ainsi les attributs de type relation natifs ou crees non utilises a garder,
 	// pour piloter efficacement la methode de mutation des object physiques
 	virtual void BuildPhysicalClass();
 

@@ -287,7 +287,7 @@ void KWDatabaseAttributeValuesHelpList::FillAttributeValues(const KWDatabase* in
 		}
 
 		// On restitue la classe dans son etat initial,
-		// avec tous les attribut utilises en Loaded
+		// avec tous les attributs utilises en Loaded
 		helpAttribute->SetUsed(bIsHelpAttributeUsed);
 		kwcClass->SetAllAttributesLoaded(true);
 		kwcClass->Compile();

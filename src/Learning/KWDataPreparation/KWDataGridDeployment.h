@@ -17,7 +17,7 @@ class KWDGDPart;
 // constituee d'un attribut de deploiement (par exemple des textes ou des courbes)
 // et d'un ou plusieurs attributs de distribution (par exemple des mots ou des points).
 // On cherche a deployer un individu caracterise par sa distribution sur
-// les attribut de distribution, en le rapporchant de son cluster de deploiement
+// les attributs de distribution, en le rapporchant de son cluster de deploiement
 // ayant la distribution la plus proche.
 // On dispose de distribution de valeurs, que l'on transforme en
 // vecteur d'effectifs sur les parties des attributs de distribution.
@@ -32,7 +32,7 @@ class KWDGDPart;
 // PLusieurs services de dploiement sont disponibles:
 //   . cluster de deploiement le plus probable
 //   . vecteur des distance a tous les clusters de deploiement
-//   . vecteur d'effectif par cluster pour les attribut de distribution
+//   . vecteur d'effectif par cluster pour les attributs de distribution
 //   ...
 class KWDataGridDeployment : public KWDataGridMerger
 {

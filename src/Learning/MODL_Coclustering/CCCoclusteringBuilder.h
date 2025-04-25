@@ -164,7 +164,7 @@ protected:
 	// Renvoie false si verification possible (pas de variable de selection) et si memoire insuffisante
 	boolean CheckMemoryForDatabaseRead(KWDatabase* database) const;
 
-	// Alimentation d'une table de tuples comportant les attribut a analyser a partir de la base
+	// Alimentation d'une table de tuples comportant les attributs a analyser a partir de la base
 	// La table de tuples est remplie au fur et a mesure de la lecture de la base, et des verification
 	// de depasssement des capacites memoire sont effectuees regulierement
 	// On renvoie true en cas de succes, false sinon avec un message d'erreur

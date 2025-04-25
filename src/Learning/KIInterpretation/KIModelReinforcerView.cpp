@@ -49,8 +49,14 @@ KIModelReinforcerView::KIModelReinforcerView()
 	GetFieldAt("ReinforcedTargetValue")
 	    ->SetHelpText("Target value for which one try to increase the probability of occurrence.");
 	GetActionAt("BuildReinforcementClass")
-	    ->SetHelpText("Build a reinforcement dictionary that computes the reinforcement variables for the "
-			  "specified target value");
+	    ->SetHelpText(
+		"Build a reinforcement dictionary that computes the reinforcement variables for the "
+		"specified target value"
+		"\n"
+		"\n The reinforcement model produces the following variables for the target value to reinforce:"
+		"\n - Initial score, containing the conditional probability of the target value before reinforcement"
+		"\n - Four variables are output per decreasing reinforcement value: name of the lever variable, "
+		"\n reinforcement part, final score after reinforcement, and class change tag");
 
 	// ##
 }
@@ -150,6 +156,8 @@ void KIModelReinforcerView::BuildReinforcementClass()
 	ALString sReinforcementClassFileName;
 	KWResultFilePathBuilder resultFilePathBuilder;
 	KWClass* reinforcerClass;
+	int nOutputAttributeNumber;
+	ALString sTmp;
 
 	// Test de la validite des specifications
 	bOk = GetKIModelReinforcer()->Check();
@@ -163,12 +171,24 @@ void KIModelReinforcerView::BuildReinforcementClass()
 		// Verification du nom du fichier de dictionnaire
 		if (sReinforcementClassFileName != "")
 		{
-			// Message utilisateur
-			AddSimpleMessage("Write reinforcement dictionary file " + sReinforcementClassFileName);
-
-			// Construction du dictionnaire et ecriture
+			// Construction du dictionnaire
 			reinforcerClass =
 			    GetKIModelReinforcer()->GetClassBuilder()->BuildReinforcementClass(GetKIModelReinforcer());
+
+			// Nombre de variables utilisee en sortie
+			reinforcerClass->IndexClass();
+			nOutputAttributeNumber = reinforcerClass->GetUsedAttributeNumber();
+
+			// Message utilisateur
+			AddSimpleMessage("Write reinforcement dictionary " + reinforcerClass->GetName() + " (" +
+					 IntToString(nOutputAttributeNumber) + " output variables) to file " +
+					 sReinforcementClassFileName);
+
+			// Warning si trop de variables en sortie
+			if (nOutputAttributeNumber >
+			    GetKIModelReinforcer()->GetMaxOutputAttributeNumberWithoutWarning())
+				reinforcerClass->AddWarning(sTmp +
+							    "Reinforcement dictionary with many output variables");
 
 			// Eciture du dictionnaire
 			reinforcerClass->GetDomain()->WriteFile(sReinforcementClassFileName);
@@ -194,7 +214,7 @@ void KIModelReinforcerView::SetObject(Object* object)
 
 	// Parametrage des variables du predicteur
 	cast(KIPredictorAttributeArrayView*, GetFieldAt("LeverAttributes"))
-	    ->SetObjectArray(editedObject->GeLeverAttributes());
+	    ->SetObjectArray(editedObject->GetLeverAttributes());
 
 	// Appel de la methode ancetre
 	UIObjectView::SetObject(object);

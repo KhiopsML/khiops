@@ -128,7 +128,7 @@ public:
 	// Alimentation et acces aux valeurs
 
 	// Ajout d'une paire (index sparse, valeur)
-	void AddValueAt(int nSparseIndex, Symbol sValue);
+	void AddValueAt(int nSparseIndex, const Symbol& sValue);
 
 	// Acces aux valeurs par index (entre 0 et le nombre de valeurs)
 	Symbol& GetValueAt(int nIndex) const;
