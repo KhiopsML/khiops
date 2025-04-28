@@ -361,14 +361,26 @@ KWDerivationRule* KIDRClassifierInterpreter::Create() const
 void KIDRClassifierInterpreter::Compile(KWClass* kwcOwnerClass)
 {
 	const boolean bTrace = false;
+	SymbolVector svTargetValues;
+	IntVector ivTargetValueFrequencies;
 	const KWDRDataGrid* dataGridRule;
 	KWDataGridStats dataGridStats;
 	KIShapleyTable* stShapleyTable;
 	int nAttribute;
+	int nTarget;
 
 	// Appel de la methode ancetre
 	KIDRClassifierService::Compile(kwcOwnerClass);
 	assert(classifierRule != NULL);
+
+	// Collecte des valeurs cibles et de leur effectif
+	svTargetValues.SetSize(classifierRule->GetTargetValueNumber());
+	ivTargetValueFrequencies.SetSize(classifierRule->GetTargetValueNumber());
+	for (nTarget = 0; nTarget < svTargetValues.GetSize(); nTarget++)
+	{
+		svTargetValues.SetAt(nTarget, classifierRule->GetTargetValueAt(nTarget));
+		ivTargetValueFrequencies.SetAt(nTarget, classifierRule->GetDataGridSetTargetFrequencyAt(nTarget));
+	}
 
 	// Initialisation des vecteur et tableau de resultats a la bonne taille
 	oaPredictorAttributeShapleyTables.SetSize(classifierRule->GetDataGridStatsNumber());
@@ -385,7 +397,8 @@ void KIDRClassifierInterpreter::Compile(KWClass* kwcOwnerClass)
 		// Calcul de la table de Shapley
 		stShapleyTable = new KIShapleyTable;
 		oaPredictorAttributeShapleyTables.SetAt(nAttribute, stShapleyTable);
-		stShapleyTable->InitializeFromDataGridStats(&dataGridStats, GetPredictorAttributeWeightAt(nAttribute));
+		stShapleyTable->InitializeFromDataGridStats(&svTargetValues, &ivTargetValueFrequencies, &dataGridStats,
+							    GetPredictorAttributeWeightAt(nAttribute));
 	}
 
 	// Creation des structures de gestion des contributions pour les acces par rang
@@ -411,7 +424,6 @@ Object* KIDRClassifierInterpreter::ComputeStructureResult(const KWObject* kwoObj
 Continuous KIDRClassifierInterpreter::GetContributionAt(int nTargetValueRank, int nPredictorAttributeRank) const
 {
 	int nSourceCellIndex;
-	int nTargetCellIndex;
 	Continuous cShapleyValue;
 
 	require(IsCompiled());
@@ -420,11 +432,10 @@ Continuous KIDRClassifierInterpreter::GetContributionAt(int nTargetValueRank, in
 
 	// Recheche des index source et cible dans la grille correspondante
 	nSourceCellIndex = ivDataGridSourceIndexes.GetAt(nPredictorAttributeRank);
-	nTargetCellIndex = classifierRule->GetDataGridSetTargetCellIndexAt(nPredictorAttributeRank, nTargetValueRank);
 
 	// Recherche de la valeur de Shapley
 	cShapleyValue = GetPredictorAttributeShapleyTableAt(nPredictorAttributeRank)
-			    ->GetShapleyValueAt(nSourceCellIndex, nTargetCellIndex);
+			    ->GetShapleyValueAt(nSourceCellIndex, nTargetValueRank);
 	return cShapleyValue;
 }
 
@@ -576,7 +587,6 @@ void KIDRClassifierInterpreter::ComputeRankedContributions() const
 	int nTarget;
 	int nAttribute;
 	int nSourceCellIndex;
-	int nTargetCellIndex;
 	Continuous cShapleyValue;
 
 	require(IsCompiled());
@@ -600,11 +610,10 @@ void KIDRClassifierInterpreter::ComputeRankedContributions() const
 
 			// Recheche des index source et cible dans la grille correspondante
 			nSourceCellIndex = ivDataGridSourceIndexes.GetAt(nAttribute);
-			nTargetCellIndex = classifierRule->GetDataGridSetTargetCellIndexAt(nAttribute, nTarget);
 
 			// Recherche de la valeur de Shapley
 			cShapleyValue = GetPredictorAttributeShapleyTableAt(nAttribute)
-					    ->GetShapleyValueAt(nSourceCellIndex, nTargetCellIndex);
+					    ->GetShapleyValueAt(nSourceCellIndex, nTarget);
 			assert(cShapleyValue == GetContributionAt(nTarget, nAttribute));
 
 			// Memorisation de l'index de l'attribut et de sa contribution

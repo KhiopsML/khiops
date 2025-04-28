@@ -33,6 +33,7 @@ boolean KIInterpretationClassBuilder::ImportPredictor(KWClass* kwcInputPredictor
 	ObjectArray oaClasses;
 	ALString sAttributeName;
 	int i;
+	ALString sTmp;
 
 	require(kwcInputPredictor != NULL);
 	require(kwcInputPredictor->Check());
@@ -72,15 +73,6 @@ boolean KIInterpretationClassBuilder::ImportPredictor(KWClass* kwcInputPredictor
 		bIsClassifier = false;
 	}
 
-	// On ne gere pas actuellement les classifieur avec groupement de la cible
-	if (bIsClassifier and IsClassifierClassUsingTargetValueGrouping(kwcInputPredictor))
-	{
-		Global::AddWarning("Dictionary", kwcInputPredictor->GetName(),
-				   "Interpretation services not yet implemented "
-				   "for classifiers with grouped target values");
-		bIsClassifier = false;
-	}
-
 	// On ne gere pas actuellement les classifieur avec pretraitement bivaries
 	if (bIsClassifier and IsClassifierClassUsingBivariatePreprocessing(kwcInputPredictor))
 	{
@@ -110,14 +102,30 @@ boolean KIInterpretationClassBuilder::ImportPredictor(KWClass* kwcInputPredictor
 
 		// Erreur s'il ny a pas au moins deux classe
 		if (svTargetValues.GetSize() <= 1)
+		{
+			Global::AddError("Dictionary", kwcInputPredictor->GetName(),
+					 sTmp + "Invalid classifier with " + IntToString(svTargetValues.GetSize()) +
+					     " target value");
 			bIsClassifier = false;
+		}
 
 		// Extraction de l'attribut de prediction
 		predictionAttribute = trainedClassifier.GetPredictionAttribute();
 		if (predictionAttribute->GetDerivationRule() == NULL)
+		{
+			Global::AddError("Dictionary", kwcInputPredictor->GetName(),
+					 sTmp + "Invalid classifier with incorrect prediction variable " +
+					     predictionAttribute->GetName() + " (missing derivation rule)");
 			bIsClassifier = false;
+		}
 		else if (predictionAttribute->GetDerivationRule()->GetOperandNumber() == 0)
+		{
+			Global::AddError("Dictionary", kwcInputPredictor->GetName(),
+					 sTmp + "Invalid classifier with incorrect prediction variable " +
+					     predictionAttribute->GetName() +
+					     " (use a derivation rule without any operand)");
 			bIsClassifier = false;
+		}
 		sPredictionAttributeName = predictionAttribute->GetName();
 
 		// L'attribut de prediction doit avoir en premier operande un attribut de type Structure
@@ -125,7 +133,13 @@ boolean KIInterpretationClassBuilder::ImportPredictor(KWClass* kwcInputPredictor
 		    (predictionAttribute->GetDerivationRule()->GetFirstOperand()->GetType() != KWType::Structure or
 		     predictionAttribute->GetDerivationRule()->GetFirstOperand()->GetOrigin() !=
 			 KWDerivationRuleOperand::OriginAttribute))
+		{
+			Global::AddError("Dictionary", kwcInputPredictor->GetName(),
+					 sTmp + "Invalid classifier with incorrect prediction variable " +
+					     predictionAttribute->GetName() +
+					     " (first operand should be a variable of type Structure(Classifier))");
 			bIsClassifier = false;
+		}
 
 		// Recherche de l'attribut decrivant le predicteur
 		classifierRule = NULL;
@@ -139,10 +153,23 @@ boolean KIInterpretationClassBuilder::ImportPredictor(KWClass* kwcInputPredictor
 
 			// L'attribut doit exister dans la classe
 			if (attribute == NULL)
+			{
+				Global::AddError("Dictionary", kwcInputPredictor->GetName(),
+						 sTmp + "Invalid classifier with missing classifier variable " +
+						     predictionAttribute->GetDerivationRule()
+							 ->GetFirstOperand()
+							 ->GetAttributeName());
 				bIsClassifier = false;
+			}
 			// Le predicteur est specifie via une regle de derivation
 			else if (attribute->GetDerivationRule() == NULL)
+			{
+				Global::AddError("Dictionary", kwcInputPredictor->GetName(),
+						 sTmp + "Invalid classifier with incorrect classifier variable " +
+						     attribute->GetName() + " (missing derivation rule)");
+
 				bIsClassifier = false;
+			}
 			// Il doit etre soit le Naive Bayes, soit le Selective Naive Bayes
 			else
 			{
@@ -190,7 +217,12 @@ boolean KIInterpretationClassBuilder::ImportPredictor(KWClass* kwcInputPredictor
 				// Verification de l'attribut du predicteur natif
 				attribute = kwcInputPredictor->LookupAttribute(svPredictorAttributeNames.GetAt(i));
 				if (attribute == NULL)
+				{
+					Global::AddWarning("Dictionary", kwcInputPredictor->GetName(),
+							   "Invalid classifier with missing predictor variable " +
+							       svPredictorAttributeNames.GetAt(i));
 					bIsClassifier = false;
+				}
 			}
 		}
 	}

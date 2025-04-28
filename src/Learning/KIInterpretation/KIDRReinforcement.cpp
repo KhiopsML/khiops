@@ -488,7 +488,7 @@ void KIDRClassifierReinforcer::ComputeReinforcementAt(KIAttributeReinforcement* 
 	// Acces a l'attribut source de la grille
 	dataGridRule->GetAttributePartNumberAt(0);
 
-	// Recheche des index source et cible dans la grille correspondante
+	// Recheche de l'index source dans la grille correspondante
 	nSourcePartIndex = ivDataGridSourceIndexes.GetAt(nAttributeIndex);
 
 	// Score initial avant renforcement

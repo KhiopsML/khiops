@@ -20,8 +20,12 @@ public:
 
 	// Initialisation complete a partir d'une grille dont le dernier attribut contient l'attribut cible
 	// et d'un poids de variable
+	// Les valeur cibles passees en entree sont utilisees pour le parametrage de la table de valeur de Shapley,
+	// et sont potentiellement dans un ordre different de celle de la grille, voire avec en nombre different
+	// du nombre de parties cibles de la grille si celle-ci exploite un groupement de valeur pour l'attribut cible
 	// Un epsilon de Laplace minimal (1/(N+1)) est utilise pour eviter les probabilites nulles
-	void InitializeFromDataGridStats(const KWDataGridStats* dataGridStats, double dAttributeWeight);
+	void InitializeFromDataGridStats(const SymbolVector* svTargetValues, const IntVector* ivTargetValueFrequencies,
+					 const KWDataGridStats* dataGridStats, double dAttributeWeight);
 
 	///////////////////////////////////////////////////////////////////////////
 	// Initialisation
