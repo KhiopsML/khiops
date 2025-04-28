@@ -1388,7 +1388,8 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 			}
 			// Erreur si type de valeur invalide
 			else if (jsonValue->GetType() != JSONValue::NumberValue and
-				 jsonValue->GetType() != JSONValue::StringValue)
+				 jsonValue->GetType() != JSONValue::StringValue and
+				 jsonValue->GetType() != JSONValue::BooleanValue)
 			{
 				bOk = false;
 				AddInputCommandFileError(
@@ -1400,11 +1401,22 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 			else
 			{
 				assert(jsonValue->GetType() == JSONValue::NumberValue or
-				       jsonValue->GetType() == JSONValue::StringValue);
+				       jsonValue->GetType() == JSONValue::StringValue or
+				       jsonValue->GetType() == JSONValue::BooleanValue);
+
+				// Cas numerique
 				if (jsonValue->GetType() == JSONValue::NumberValue)
 					sRecodedLine += jsonValue->GetNumberValue()->WriteString();
+				// Cas booleen
+				else if (jsonValue->GetType() == JSONValue::BooleanValue)
+				{
+					sRecodedLine += jsonValue->GetBooleanValue()->WriteString();
+				}
+				// Cas chaine de caracteres
 				else
 				{
+					assert(jsonValue->GetType() == JSONValue::StringValue);
+
 					// Cas avec recodage base64
 					if (bIsByteJsonKey)
 					{
