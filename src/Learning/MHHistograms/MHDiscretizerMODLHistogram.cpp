@@ -1079,7 +1079,7 @@ void MHDiscretizerMODLHistogram::ExportResultHistograms(const ALString& sExportP
 	int nLast;
 
 	// Export des resultats si necessaire
-	if (GetHistogramSpec()->GetExportResultHistograms() != "None" and oaResultHistograms.GetSize() > 0)
+	if (GetHistogramSpec()->GetExportResultHistograms() != "none" and oaResultHistograms.GetSize() > 0)
 	{
 		// Acces aux histogrammes optimaaux et post-processes
 		postprocessedOptimizedHistogram = NULL;

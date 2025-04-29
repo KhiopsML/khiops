@@ -25,7 +25,7 @@ MHHistogramSpec::MHHistogramSpec()
 	nDeltaCentralBinExponent = -1;
 	bTruncationManagementHeuristic = true;
 	bSingularityRemovalHeuristic = true;
-	sExportResultHistograms = "None";
+	sExportResultHistograms = "none";
 	nFileFormat = 1;
 
 	// Valeurs par defaut des indicateurs de gestion des logs

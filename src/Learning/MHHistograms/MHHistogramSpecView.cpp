@@ -45,7 +45,7 @@ MHHistogramSpecView::MHHistogramSpecView()
 	cast(UIDoubleElement*, GetFieldAt("EpsilonBinWidth"))->SetDefaultValue(0);
 	cast(UIBooleanElement*, GetFieldAt("TruncationManagementHeuristic"))->SetDefaultValue(true);
 	cast(UIBooleanElement*, GetFieldAt("SingularityRemovalHeuristic"))->SetDefaultValue(true);
-	cast(UIStringElement*, GetFieldAt("ExportResultHistograms"))->SetParameters("None\nBest\nBestAndRaw\nAll");
+	cast(UIStringElement*, GetFieldAt("ExportResultHistograms"))->SetParameters("none\nBest\nBestAndRaw\nAll");
 	cast(UIIntElement*, GetFieldAt("FileFormat"))->SetMinValue(1);
 	cast(UIIntElement*, GetFieldAt("FileFormat"))->SetMaxValue(3);
 	cast(UIIntElement*, GetFieldAt("FileFormat"))->SetDefaultValue(1);
@@ -85,7 +85,7 @@ MHHistogramSpecView::MHHistogramSpecView()
 			  "\n. true: optimal algorithm (O(n^3))");
 	GetFieldAt("ExportResultHistograms")
 	    ->SetHelpText("Indicates whether to export result histogram files"
-			  "\n . None"
+			  "\n . none"
 			  "\n . Best: most interpretable histogram"
 			  "\n . BestAndRaw: most interpretable histogram plus possibly raw histogram"
 			  "\n . All: all histograms");

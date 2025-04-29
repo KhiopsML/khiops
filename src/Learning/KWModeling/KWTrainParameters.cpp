@@ -14,7 +14,7 @@ KWTrainParameters::KWTrainParameters()
 
 	// ## Custom constructor
 
-	sClassifierCriterion = "None";
+	sClassifierCriterion = "none";
 
 	// ##
 }
@@ -83,7 +83,7 @@ boolean KWTrainParameters::CheckMaxEvaluatedAttributeNumber(int nValue) const
 boolean KWTrainParameters::CheckClassifierCriterion(const ALString& sValue) const
 {
 	boolean bOk;
-	bOk = sValue == "None" or sValue == "Accuracy" or sValue == "BalancedAccuracy";
+	bOk = sValue == "none" or sValue == "Accuracy" or sValue == "BalancedAccuracy";
 	if (not bOk)
 		AddError("Incorrect classifier criterion (" + sValue + ")");
 	return bOk;

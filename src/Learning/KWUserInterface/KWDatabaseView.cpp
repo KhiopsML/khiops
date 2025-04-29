@@ -347,7 +347,7 @@ void KWDatabaseView::AddTestDatabaseSpecificationMode()
 	// Ajout d'un champ de saisie pour specifier le type de base en test
 	AddStringField("TestDatabaseSpecificationMode", "Test database", "Complementary");
 	GetFieldAt("TestDatabaseSpecificationMode")->SetStyle("ComboBox");
-	GetFieldAt("TestDatabaseSpecificationMode")->SetParameters("Complementary\nSpecific\nNone");
+	GetFieldAt("TestDatabaseSpecificationMode")->SetParameters("Complementary\nSpecific\nnone");
 
 	// Info-bulles
 	GetFieldAt("TestDatabaseSpecificationMode")
@@ -356,7 +356,7 @@ void KWDatabaseView::AddTestDatabaseSpecificationMode()
 		"\n - Complementary: same as the train database, with 'Sampling mode' inverted in the test database,"
 		"\n in order to get test samples that are the exact complementary of the train samples,"
 		"\n - Specific: specific parameters for the test database,"
-		"\n - None: no test database is used.");
+		"\n - none: no test database is used.");
 }
 
 void KWDatabaseView::UpdateTestDatabase()
@@ -408,7 +408,7 @@ void KWDatabaseView::UpdateTestDatabase()
 			}
 		}
 		// Cas sans base de test
-		else if (GetStringValueAt("TestDatabaseSpecificationMode") == "None")
+		else if (GetStringValueAt("TestDatabaseSpecificationMode") == "none")
 		{
 			// Creation d'une base vide de meme technologie que la base d'apprentissage
 			emptyDatabase = KWDatabase::CloneDatabaseTechnology(editedTrainDatabase->GetTechnologyName());
@@ -476,7 +476,7 @@ void KWDatabaseView::InspectTestDatabaseSettings()
 		else
 		{
 			assert(GetStringValueAt("TestDatabaseSpecificationMode") == "Complementary" or
-			       GetStringValueAt("TestDatabaseSpecificationMode") == "None");
+			       GetStringValueAt("TestDatabaseSpecificationMode") == "none");
 
 			// Passage de tous les champs en read-only
 			testDatabaseView->SetEditable(false);

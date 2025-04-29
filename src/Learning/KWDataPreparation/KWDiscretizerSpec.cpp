@@ -166,7 +166,7 @@ boolean KWDiscretizerSpec::CheckForTargetType(int nTargetAttributeType) const
 	boolean bOk = true;
 	if (nTargetAttributeType == KWType::None)
 	{
-		if (GetUnsupervisedMethodName() != "None")
+		if (GetUnsupervisedMethodName() != "none")
 			bOk = GetDiscretizer(KWType::None) != NULL and GetDiscretizer(KWType::None)->Check() and bOk;
 	}
 	else if (nTargetAttributeType == KWType::Symbol)
@@ -230,7 +230,7 @@ const KWDiscretizer* KWDiscretizerSpec::GetDiscretizer(int nTargetAttributeType)
 		if (GetMethodName(nTargetAttributeType) == "")
 			Global::AddError(GetClassLabel(), GetMethodName(nTargetAttributeType), "Missing method name");
 		// On ne peut demander None qu'en non supervise
-		else if (not(GetMethodName(nTargetAttributeType) == "None" and nTargetAttributeType == KWType::None))
+		else if (not(GetMethodName(nTargetAttributeType) == "none" and nTargetAttributeType == KWType::None))
 		{
 			discretizer =
 			    KWDiscretizer::CloneDiscretizer(nTargetAttributeType, GetMethodName(nTargetAttributeType));
