@@ -160,7 +160,7 @@ public:
 	longint GetUsedMemory() const override;
 
 	// Export des noms des variables du classifieur
-	// La methode renvoie les informations exploitables au mieux selon la valite de la classe en cours
+	// La methode renvoie les informations exploitables au mieux selon la validite de la classe en cours
 	void ExportAttributeNames(const KWClass* kwcOwnerClass, StringVector* svPredictorAttributeNames) const;
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////

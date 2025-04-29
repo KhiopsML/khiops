@@ -73,15 +73,6 @@ boolean KIInterpretationClassBuilder::ImportPredictor(KWClass* kwcInputPredictor
 		bIsClassifier = false;
 	}
 
-	// On ne gere pas actuellement les classifieur avec pretraitement bivaries
-	if (bIsClassifier and IsClassifierClassUsingBivariatePreprocessing(kwcInputPredictor))
-	{
-		Global::AddWarning("Dictionary", kwcInputPredictor->GetName(),
-				   "Interpretation services not yet implemented "
-				   "for classifiers with variable pairs");
-		bIsClassifier = false;
-	}
-
 	// Message d'erreur specifique pour le cas des regresseurs, non geres actuellement
 	if (not bIsClassifier)
 	{
@@ -767,7 +758,7 @@ void KIInterpretationClassBuilder::BuildPredictorAttributes(ObjectArray* oaPredi
 	require(oaPredictorAttributes != NULL);
 	require(oaPredictorAttributes->GetSize() == 0);
 
-	// Alimentation a partir des specification disponible dans le ClassBuilder
+	// Alimentation a partir des specifications disponibles dans le ClassBuilder
 	for (i = 0; i < GetPredictorAttributeNumber(); i++)
 	{
 		// Ajout d'une variable au tableau

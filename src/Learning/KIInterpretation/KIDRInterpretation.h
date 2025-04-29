@@ -108,7 +108,7 @@ protected:
 	// Index par defaut de chaque partie source des grilles
 	// Permet d'avoir la reference dans le cas sparse, et de ne calculer que les index
 	// que pour les valeurs presentes
-	mutable IntVector ivDataGridSourceDefaultIndexes;
+	IntVector ivDataGridSourceDefaultIndexes;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -887,7 +887,7 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 			       naiveBayesPredictorRuleHelper.RuleHasDataGridStatsBlockAtOperand(
 				   this, nDataGridOrBlockOperand));
 
-			// Memorisation dans un tableau la seule grille de la regle ou les grilles du bloc de l'operand
+			// Memorisation dans un tableau la seule grille de la regle ou les grilles du bloc de l'operande
 			oaOperandDataGridRules.SetSize(0);
 			oaOperandDataGridStatsRules.SetSize(0);
 			if (naiveBayesPredictorRuleHelper.RuleHasDataGridStatsAtOperand(this, nDataGridOrBlockOperand))

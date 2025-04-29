@@ -55,14 +55,14 @@ protected:
 	// La preparation bivariee  exploite directement toutes les informations collectees dans les tranches.
 	// Dans un premier temps, toutes les paires d'attributs sont regroupees par paire de tranches concernees.
 	// Et le dimensionnement est effectue pour la plus grande de ces paires de tranches.
-	// On n'envisage pas ici une heuristique plus fine permettant d'analyse les paires d'attributs meme
-	// si leur paire de tranches est trop grosses, qui se baserait si plusieurs passe de lecture des tranches
+	// On n'envisage pas ici une heuristique plus fine permettant d'analyser les paires d'attributs meme
+	// si leur paire de tranches est trop grosse, qui se baserait sur plusieurs passes de lecture des tranches
 	// concernees. Cela permettrait de repousser les limites pour l'analyse des paires, mais cela demande
 	// un surcout de developpement non justifie par les besoins et usages actuels.
 	//
-	// De meme, a titre de simplification, on impose que toutes les preparations univariees impliquers
+	// De meme, a titre de simplification, on impose que toutes les preparations univariees impliquent
 	// dans les paires a analyser soit traites en variables partagees par tous les esclaves, alors que
-	// chaque esclave pourait receboir en input uniquement les preparations univariees dont il a besoin.
+	// chaque esclave pourait recevoir en input uniquement les preparations univariees dont il a besoin.
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	// Reimplementation des methodes virtuelles de tache

@@ -70,7 +70,6 @@ boolean KIDRClassifierReinforcer::CheckOperandsCompleteness(const KWClass* kwcOw
 		checkedNBClassifierRule->ExportAttributeNames(kwcOwnerClass, &svAttributeNames);
 
 		// On range les variables dans un dictionnaire
-		// On memorise le rang+1, car 0 correspond a la valeur retournee en cas de cle inexistante
 		for (nAttribute = 0; nAttribute < svAttributeNames.GetSize(); nAttribute++)
 			ldPredictorAttributes.SetAt(svAttributeNames.GetAt(nAttribute), 1);
 

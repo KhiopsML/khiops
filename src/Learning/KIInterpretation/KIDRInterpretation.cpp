@@ -64,7 +64,6 @@ boolean KIDRClassifierService::CheckOperandsCompleteness(const KWClass* kwcOwner
 
 void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 {
-	const boolean bTrace = false;
 	const KWDRDataGridStats* dataGridStatsRule;
 	const KWDRDataGridStatsBlock* dataGridStatsBlockRule;
 	const KWDRDataGrid* dataGridRule;
@@ -73,7 +72,6 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 	const KWDRUnivariatePartition* univariatePartitionRule;
 	KWAttribute* attribute;
 	ALString sAttributeName;
-	Continuous cWeight;
 	int nVarKey;
 	Symbol sVarKey;
 	int nDataGridStatsOrBlock;
@@ -96,7 +94,7 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 	oaPredictorAttributeDataGridRules.SetSize(classifierRule->GetDataGridStatsNumber());
 	oaPredictorAttributeDataGridStatsRules.SetSize(classifierRule->GetDataGridStatsNumber());
 
-	// Collect des variables du predicteur et calcul des tables de Shapley
+	// Collecte des variables du predicteur et calcul des tables de Shapley
 	nAttribute = 0;
 	for (nDataGridStatsOrBlock = 0; nDataGridStatsOrBlock < classifierRule->GetDataGridStatsOrBlockNumber();
 	     nDataGridStatsOrBlock++)
@@ -105,7 +103,8 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 		if (classifierRule->IsDataGridStatsAt(nDataGridStatsOrBlock))
 		{
 			dataGridStatsRule = classifierRule->GetDataGridStatsAt(nDataGridStatsOrBlock);
-			cWeight = classifierRule->GetDataGridWeightAt(nAttribute);
+			assert(dataGridStatsRule->GetFirstOperand()->GetOrigin() ==
+			       KWDerivationRuleOperand::OriginAttribute);
 
 			// Extraction du nom et de la grille de preparation
 			sAttributeName = dataGridStatsRule->GetSecondOperand()->GetAttributeName();
@@ -136,9 +135,10 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 			// Parcours des grilles du bloc
 			for (nDataGrid = 0; nDataGrid < dataGridBlockRule->GetDataGridNumber(); nDataGrid++)
 			{
+				assert(dataGridBlockRule->GetOperandAt(1 + nDataGrid)->GetOrigin() ==
+				       KWDerivationRuleOperand::OriginAttribute);
 				dataGridRule = dataGridBlockRule->GetDataGridAt(nDataGrid);
 				dataGridStatsRule = dataGridStatsBlockRule->GetDataGridStatsAtBlockIndex(nDataGrid);
-				cWeight = classifierRule->GetDataGridWeightAt(nAttribute);
 
 				// Recherche de l'attribut correspondant
 				if (dataGridBlockRule->GetDataGridVarKeyType() == KWType::Continuous)
@@ -190,10 +190,6 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 	for (nAttribute = 0; nAttribute < svPredictorAttributeNames.GetSize(); nAttribute++)
 		lnkdPredictorAttributeRanks.SetAt(svPredictorAttributeNames.GetAt(nAttribute).GetNumericKey(),
 						  (longint)nAttribute + 1);
-
-	// Trace
-	if (bTrace)
-		WriteDetails(cout);
 	ensure(svPredictorAttributeNames.GetSize() == GetPredictorAttributeNumber());
 	ensure(oaPredictorAttributeDataGridRules.GetSize() == GetPredictorAttributeNumber());
 	ensure(oaPredictorAttributeDataGridStatsRules.GetSize() == GetPredictorAttributeNumber());
