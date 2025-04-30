@@ -22,8 +22,8 @@ KWPreprocessingAdvancedSpecView::KWPreprocessingAdvancedSpecView()
 	// ## Custom constructor
 
 	// Valeurs possibles pour les pretraitements non supervises
-	GetFieldAt("DiscretizerUnsupervisedMethodName")->SetParameters("MODL\nEqualWidth\nEqualFrequency\nNone");
-	GetFieldAt("GrouperUnsupervisedMethodName")->SetParameters("MODL\nBasicGrouping\nNone");
+	GetFieldAt("DiscretizerUnsupervisedMethodName")->SetParameters("MODL\nEqualWidth\nEqualFrequency\nnone");
+	GetFieldAt("GrouperUnsupervisedMethodName")->SetParameters("MODL\nBasicGrouping\nnone");
 
 	// Info-bulles
 	GetFieldAt("DiscretizerUnsupervisedMethodName")

@@ -464,25 +464,22 @@ def instruction_work(test_dir):
     suite_dir_name = utils.suite_dir_name(test_dir)
     tool_dir_name = utils.tool_dir_name(test_dir)
 
-    # Transformation du fichier err.txt du repertoire de reference
-    ref_err_file_path = os.path.join(results_ref_dir, kht.ERR_TXT)
-    if os.path.isfile(ref_err_file_path):
-        lines = utils.read_file_lines(ref_err_file_path)
+    # Lecture du fichier test.prm
+    prm_file_path = os.path.join(test_dir, kht.TEST_PRM)
+    if os.path.isfile(prm_file_path):
+        lines = utils.read_file_lines(prm_file_path)
+        # Transformation du fichier test.prm pour transformer les None en none
         to_transform = False
         new_lines = []
         for i, line in enumerate(lines):
+            # Recherche si Non est utilise en tant que token avec des separateur
+            fields = line.split()
+            if "None" in fields:
+                line = line.replace("None", "none")
+                to_transform = True
             new_lines.append(line)
-            if "Write deployed dictionary file" in line:
-                if i < len(lines) - 1:
-                    next_line = lines[i + 1].strip()
-                    if len(next_line) > 0:
-                        to_transform = True
-                        new_lines.append("\n")
-                else:
-                    to_transform = True
-                    new_lines.append("\n")
         if to_transform:
-            utils.write_file_lines(ref_err_file_path, new_lines)
+            utils.write_file_lines(prm_file_path, new_lines)
             print(tool_dir_name + "/" + suite_dir_name + "/" + test_dir_name)
 
 

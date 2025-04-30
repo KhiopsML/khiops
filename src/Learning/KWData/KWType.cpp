@@ -42,7 +42,7 @@ const ALString KWType::ToString(int nType)
 	case VarPart:
 		return "VarPart";
 	case None:
-		return "None";
+		return "none";
 	case Unknown:
 		return "Unknown";
 	default:
@@ -82,7 +82,7 @@ int KWType::ToType(const ALString& sType)
 		return ObjectArrayValueBlock;
 	else if (sType == "VarPart")
 		return VarPart;
-	else if (sType == "None")
+	else if (sType == "none")
 		return None;
 	else
 		return Unknown;

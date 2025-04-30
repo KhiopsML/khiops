@@ -30,7 +30,7 @@ boolean KWClassifierPostOptimizer::PostOptimize(KWPredictor* predictor, KWTraine
 
 	// Si la post-optimisation est demandee
 	bOptimized = false;
-	if (predictor->GetTrainParameters()->GetClassifierCriterion() != "None")
+	if (predictor->GetTrainParameters()->GetClassifierCriterion() != "none")
 	{
 		// Les attributs de probabilites conditionnelles (facultatifs) doivent etre presents
 		// pour pouvoir proceder a la post-optimisation
@@ -94,7 +94,7 @@ void KWClassifierPostOptimizer::ComputeBiasedClassificationOffsets(KWPredictor* 
 
 	require(predictor != NULL);
 	require(trainedClassifier != NULL);
-	require(predictor->GetTrainParameters()->GetClassifierCriterion() != "None");
+	require(predictor->GetTrainParameters()->GetClassifierCriterion() != "none");
 	require(trainedClassifier->GetTargetValueNumber() > 1);
 	require(cvBestTargetScoreOffsets != NULL);
 
@@ -535,7 +535,7 @@ boolean KWClassifierPostOptimizer::LoadWorkingData(KWPredictor* predictor, KWTra
 	KWLoadIndexVector livProbAttributeLoadIndexes;
 	KWLoadIndex liProbAttributeLoadIndex;
 
-	require(predictor->GetTrainParameters()->GetClassifierCriterion() != "None");
+	require(predictor->GetTrainParameters()->GetClassifierCriterion() != "none");
 	require(trainedClassifier->GetTargetValueNumber() > 1);
 	require(ivTargetValueIndexes.GetSize() == 0);
 	require(oaTargetProbVectors.GetSize() == 0);

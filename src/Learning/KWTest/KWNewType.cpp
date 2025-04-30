@@ -28,7 +28,7 @@ const ALString KWNewType::ToString() const
 	case Structure:
 		return "Structure";
 	case None:
-		return "None";
+		return "none";
 	case Unknown:
 		return "Unknown";
 	default:
@@ -54,7 +54,7 @@ void KWNewType::FromString(const ALString& sType)
 		cType = ObjectArray;
 	else if (sType == "Structure")
 		cType = Structure;
-	else if (sType == "None")
+	else if (sType == "none")
 		cType = None;
 	else
 		cType = Unknown;

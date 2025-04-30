@@ -166,7 +166,7 @@ boolean KWGrouperSpec::CheckForTargetType(int nTargetAttributeType) const
 	boolean bOk = true;
 	if (nTargetAttributeType == KWType::None)
 	{
-		if (GetUnsupervisedMethodName() != "None")
+		if (GetUnsupervisedMethodName() != "none")
 			bOk = GetGrouper(KWType::None) != NULL and GetGrouper(KWType::None)->Check() and bOk;
 	}
 	else if (nTargetAttributeType == KWType::Symbol)
@@ -229,7 +229,7 @@ const KWGrouper* KWGrouperSpec::GetGrouper(int nTargetAttributeType) const
 		if (GetMethodName(nTargetAttributeType) == "")
 			Global::AddError(GetClassLabel(), GetMethodName(nTargetAttributeType), "Missing method name");
 		// On ne peut demander None qu'en non supervise
-		else if (not(GetMethodName(nTargetAttributeType) == "None" and nTargetAttributeType == KWType::None))
+		else if (not(GetMethodName(nTargetAttributeType) == "none" and nTargetAttributeType == KWType::None))
 		{
 			grouper = KWGrouper::CloneGrouper(nTargetAttributeType, GetMethodName(nTargetAttributeType));
 			if (grouper == NULL)

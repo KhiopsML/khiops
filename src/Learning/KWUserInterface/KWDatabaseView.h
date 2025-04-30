@@ -93,7 +93,7 @@ public:
 	//  . un nouveau champ TestDatabaseSpecificationMode indiquant le type de specification de la base de test:
 	//     . Complementary: on prend le complementaire de la base de train, et l'inspection est en read-only
 	//     . Specific: on peux avoir une base de test specific, et l'inspection est en read-write
-	//     . None: il n'y a pas de base de test, et l'inspection donne vide en mode read-only
+	//     . none: il n'y a pas de base de test, et l'inspection donne vide en mode read-only
 	// La vue sur la base de test permet d'importer les specifications de la base de train en etant parametre par:
 	//  . la base de train
 	//  . une nouvelle action FillTestDatabaseSettingsAction
@@ -132,14 +132,14 @@ public:
 	// Mise a jour de la base de test en fonction du choix de type de base de test:
 	//  . Complementary: on prend le complementaire de la base de train, et l'inspection est en read-only
 	//  . Specific: on peux avoir une base de test specific, et l'inspection est en read-write
-	//  . None: il n'y a pas de base de test, et l'inspection donne vide en mode read-only
+	//  . none: il n'y a pas de base de test, et l'inspection donne vide en mode read-only
 	void UpdateTestDatabase();
 
 	// Action d'inspection des parametres de la base de test
 	// Le comportement est parametre par le choix de type de base de test:
 	//  . Complementary: on prend le complementaire de la base de train, et l'inspection est en read-only
 	//  . Specific: on peux avoir une base de test specific, et l'inspection est en read-write
-	//  . None: il n'y a pas de base de test, et l'inspection donne vide en mode read-only
+	//  . none: il n'y a pas de base de test, et l'inspection donne vide en mode read-only
 	void InspectTestDatabaseSettings();
 
 	// Action d'import/export entre base d'apprentissage et de test

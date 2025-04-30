@@ -24,7 +24,7 @@ KWTrainParametersView::KWTrainParametersView()
 	// Parametrage specifique
 	cast(UIIntElement*, GetFieldAt("MaxEvaluatedAttributeNumber"))->SetMinValue(0);
 	cast(UIIntElement*, GetFieldAt("MaxEvaluatedAttributeNumber"))->SetMaxValue(1000000);
-	GetFieldAt("ClassifierCriterion")->SetParameters("None\nAccuracy\nBalancedAccuracy");
+	GetFieldAt("ClassifierCriterion")->SetParameters("none\nAccuracy\nBalancedAccuracy");
 
 	// Le parametrage expert n'est visible qu'en mode expert
 	GetFieldAt("ClassifierCriterion")->SetVisible(GetLearningExpertMode());

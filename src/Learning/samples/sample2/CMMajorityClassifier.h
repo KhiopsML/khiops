@@ -27,7 +27,7 @@ public:
 	// Type de predicteur disponible
 	//   KWType::Symbol: classification
 	//   KWType::Continuous: regression
-	//   KWType::None: non supervise
+	//   KWType::none: non supervise
 	boolean IsTargetTypeManaged(int nType) const override;
 
 	// Creation pour renvoyer une instance du meme type dynamique

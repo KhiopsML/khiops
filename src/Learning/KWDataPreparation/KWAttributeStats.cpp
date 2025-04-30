@@ -691,7 +691,7 @@ void KWAttributeStats::UnsupervisedDiscretize(const KWTupleTable* tupleTable)
 	require(preparedDataGridStats == NULL);
 
 	// Seules methodes de discretisation non supervisees
-	if (GetPreprocessingSpec()->GetDiscretizerSpec()->GetMethodName(GetTargetAttributeType()) != "None")
+	if (GetPreprocessingSpec()->GetDiscretizerSpec()->GetMethodName(GetTargetAttributeType()) != "none")
 	{
 		// Recherche de l'index de l'attribut
 		liAttributeLoadIndex = GetClass()->LookupAttribute(GetAttributeName())->GetLoadIndex();
@@ -782,7 +782,7 @@ void KWAttributeStats::UnsupervisedGroup(const KWTupleTable* tupleTable)
 	require(preparedDataGridStats == NULL);
 
 	// Seules methodes de groupement non supervisees
-	if (GetPreprocessingSpec()->GetGrouperSpec()->GetMethodName(GetTargetAttributeType()) != "None")
+	if (GetPreprocessingSpec()->GetGrouperSpec()->GetMethodName(GetTargetAttributeType()) != "none")
 	{
 		// Creation d'une table de contingence initiale et du vecteur des valeurs
 		// de l'attribut source associe par parcours de la base triee
