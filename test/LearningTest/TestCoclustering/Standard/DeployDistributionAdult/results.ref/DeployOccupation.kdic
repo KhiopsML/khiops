@@ -1,4 +1,4 @@
-#Khiops 10.5.6-b.0
+#Khiops VERSION
 
 Root	Dictionary	Occupation	(occupation)
 {
@@ -23,21 +23,21 @@ Unused	Structure(Vector)	P_occupationPartDistances	 = PredictedPartDistances(P_D
 	Numerical	`P_occupationDistance{Other-service, Priv-house-serv}`	 = ValueAt(P_occupationPartDistances, 6)	;	
 	Numerical	`P_occupationDistance{Adm-clerical, Tech-support}`	 = ValueAt(P_occupationPartDistances, 7)	;	
 Unused	Structure(Vector)	P_agePartFrequencies	 = PredictedPartFrequenciesAt(P_DeployedCoclusteringAtoccupation, 1)	;	// Vector of cluster frequencies for variable age
-	Numerical	`P_ageFrequency]-inf;18.5]`	 = ValueAt(P_agePartFrequencies, 1)	;	
-	Numerical	`P_ageFrequency]18.5;23.5]`	 = ValueAt(P_agePartFrequencies, 2)	;	
-	Numerical	`P_ageFrequency]23.5;29.5]`	 = ValueAt(P_agePartFrequencies, 3)	;	
-	Numerical	`P_ageFrequency]29.5;40.5]`	 = ValueAt(P_agePartFrequencies, 4)	;	
-	Numerical	`P_ageFrequency]40.5;59.5]`	 = ValueAt(P_agePartFrequencies, 5)	;	
-	Numerical	`P_ageFrequency]59.5;+inf[`	 = ValueAt(P_agePartFrequencies, 6)	;	
+	Numerical	`P_ageFrequency]-inf,18.5]`	 = ValueAt(P_agePartFrequencies, 1)	;	
+	Numerical	`P_ageFrequency]18.5,23.5]`	 = ValueAt(P_agePartFrequencies, 2)	;	
+	Numerical	`P_ageFrequency]23.5,29.5]`	 = ValueAt(P_agePartFrequencies, 3)	;	
+	Numerical	`P_ageFrequency]29.5,40.5]`	 = ValueAt(P_agePartFrequencies, 4)	;	
+	Numerical	`P_ageFrequency]40.5,59.5]`	 = ValueAt(P_agePartFrequencies, 5)	;	
+	Numerical	`P_ageFrequency]59.5,+inf[`	 = ValueAt(P_agePartFrequencies, 6)	;	
 Unused	Structure(Vector)	P_education_numPartFrequencies	 = PredictedPartFrequenciesAt(P_DeployedCoclusteringAtoccupation, 3)	;	// Vector of cluster frequencies for variable education_num
-	Numerical	`P_education_numFrequency]-inf;8.5]`	 = ValueAt(P_education_numPartFrequencies, 1)	;	
-	Numerical	`P_education_numFrequency]8.5;9.5]`	 = ValueAt(P_education_numPartFrequencies, 2)	;	
-	Numerical	`P_education_numFrequency]9.5;12.5]`	 = ValueAt(P_education_numPartFrequencies, 3)	;	
-	Numerical	`P_education_numFrequency]12.5;+inf[`	 = ValueAt(P_education_numPartFrequencies, 4)	;	
+	Numerical	`P_education_numFrequency]-inf,8.5]`	 = ValueAt(P_education_numPartFrequencies, 1)	;	
+	Numerical	`P_education_numFrequency]8.5,9.5]`	 = ValueAt(P_education_numPartFrequencies, 2)	;	
+	Numerical	`P_education_numFrequency]9.5,12.5]`	 = ValueAt(P_education_numPartFrequencies, 3)	;	
+	Numerical	`P_education_numFrequency]12.5,+inf[`	 = ValueAt(P_education_numPartFrequencies, 4)	;	
 Unused	Structure(Vector)	P_hours_per_weekPartFrequencies	 = PredictedPartFrequenciesAt(P_DeployedCoclusteringAtoccupation, 4)	;	// Vector of cluster frequencies for variable hours_per_week
-	Numerical	`P_hours_per_weekFrequency]-inf;36.5]`	 = ValueAt(P_hours_per_weekPartFrequencies, 1)	;	
-	Numerical	`P_hours_per_weekFrequency]36.5;43.5]`	 = ValueAt(P_hours_per_weekPartFrequencies, 2)	;	
-	Numerical	`P_hours_per_weekFrequency]43.5;+inf[`	 = ValueAt(P_hours_per_weekPartFrequencies, 3)	;	
+	Numerical	`P_hours_per_weekFrequency]-inf,36.5]`	 = ValueAt(P_hours_per_weekPartFrequencies, 1)	;	
+	Numerical	`P_hours_per_weekFrequency]36.5,43.5]`	 = ValueAt(P_hours_per_weekPartFrequencies, 2)	;	
+	Numerical	`P_hours_per_weekFrequency]43.5,+inf[`	 = ValueAt(P_hours_per_weekPartFrequencies, 3)	;	
 Unused	Structure(Vector)	P_marital_statusPartFrequencies	 = PredictedPartFrequenciesAt(P_DeployedCoclusteringAtoccupation, 5)	;	// Vector of cluster frequencies for variable marital_status
 	Numerical	`P_marital_statusFrequency{Never-married, Married-AF-spouse}`	 = ValueAt(P_marital_statusPartFrequencies, 1)	;	
 	Numerical	`P_marital_statusFrequency{Married-civ-spouse}`	 = ValueAt(P_marital_statusPartFrequencies, 2)	;	

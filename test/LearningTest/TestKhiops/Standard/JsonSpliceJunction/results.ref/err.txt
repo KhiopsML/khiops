@@ -1,9 +1,9 @@
-Variable construction time: 0:00:00.06 (100 constructed variables)
+Variable construction time: 0:00:00.16 (100 constructed variables)
 Train supervised model for classification of target variable Class
 Database ../../../MTdatasets/SpliceJunction/SpliceJunction.txt: Read records: 3178	Selected records: 303
-  Table ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt Records: 18,180
-Data preparation time: 0:00:00.10
-SNB train time: 0:00:00
+  Table ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt Records: 185,886
+Data preparation time: 0:00:00.17
+SNB train time: 0:00:00.03
 Build Selective Naive Bayes SNB_SpliceJunction
 Train evaluation of Selective Naive Bayes on database ../../../MTdatasets/SpliceJunction/SpliceJunction.txt
 Test evaluation of Selective Naive Bayes on database ../../../MTdatasets/SpliceJunction/SpliceJunction.txt

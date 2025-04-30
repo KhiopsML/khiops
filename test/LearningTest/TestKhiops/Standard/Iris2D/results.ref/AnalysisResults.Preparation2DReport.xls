@@ -1,4 +1,4 @@
-#Khiops 10.5.2-b.0
+#Khiops VERSION
 Descriptive statistics
 
 
@@ -98,27 +98,27 @@ Variables
 Variables stats
 SepalWidth
 Interval	Frequency	Coverage
-]-inf;3.05]	56	0.533333
-]3.05;+inf[	49	0.466667
+]-inf,3.05]	56	0.533333
+]3.05,+inf[	49	0.466667
 UpperPetalWidth
 Interval	Frequency	Coverage
-]-inf;1.55]	67	0.638095
-]1.55;+inf[	38	0.361905
+]-inf,1.55]	67	0.638095
+]1.55,+inf[	38	0.361905
 
 Cell frequencies
 	UpperPetalWidth
-SepalWidth	]-inf;1.55]	]1.55;+inf[	Total	Coverage
-]-inf;3.05]	34	22	56	0.533333
-]3.05;+inf[	33	16	49	0.466667
+SepalWidth	]-inf,1.55]	]1.55,+inf[	Total	Coverage
+]-inf,3.05]	34	22	56	0.533333
+]3.05,+inf[	33	16	49	0.466667
 Total	67	38	105
 Coverage	0.638095	0.361905
 
 Cells	4
 Cell Id	SepalWidth	UpperPetalWidth	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C2	]3.05;+inf[	]-inf;1.55]	0.939394	0.0606061	0	0.383327	33	0.314286
-C3	]-inf;3.05]	]1.55;+inf[	0	0.0909091	0.909091	0.256821	22	0.209524
-C1	]-inf;3.05]	]-inf;1.55]	0.205882	0.735294	0.0588235	0.212492	34	0.32381
-C4	]3.05;+inf[	]1.55;+inf[	0	0.1875	0.8125	0.14736	16	0.152381
+C2	]3.05,+inf[	]-inf,1.55]	0.939394	0.0606061	0	0.383327	33	0.314286
+C3	]-inf,3.05]	]1.55,+inf[	0	0.0909091	0.909091	0.256821	22	0.209524
+C1	]-inf,3.05]	]-inf,1.55]	0.205882	0.735294	0.0588235	0.212492	34	0.32381
+C4	]3.05,+inf[	]1.55,+inf[	0	0.1875	0.8125	0.14736	16	0.152381
 	Total		0.361905	0.304762	0.333333	1	105	1
 
 ----------------------------------------------
@@ -135,12 +135,12 @@ Group	Frequency	Coverage	Size	Value list
 {versicolor}	32	0.304762	1	versicolor	 * 
 UpperPetalWidth
 Interval	Frequency	Coverage
-]-inf;1.55]	67	0.638095
-]1.55;+inf[	38	0.361905
+]-inf,1.55]	67	0.638095
+]1.55,+inf[	38	0.361905
 
 Cell frequencies
 	UpperPetalWidth
-Class2	]-inf;1.55]	]1.55;+inf[	Total	Coverage
+Class2	]-inf,1.55]	]1.55,+inf[	Total	Coverage
 {}	40	33	73	0.695238
 {versicolor}	27	5	32	0.304762
 Total	67	38	105
@@ -148,10 +148,10 @@ Coverage	0.638095	0.361905
 
 Cells	4
 Cell Id	Class2	UpperPetalWidth	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C3	{}	]1.55;+inf[	0	0	1	0.33833	33	0.314286
-C1	{}	]-inf;1.55]	0.95	0	0.05	0.306831	40	0.380952
-C2	{versicolor}	]-inf;1.55]	0	1	0	0.299395	27	0.257143
-C4	{versicolor}	]1.55;+inf[	0	1	0	0.0554436	5	0.047619
+C3	{}	]1.55,+inf[	0	0	1	0.33833	33	0.314286
+C1	{}	]-inf,1.55]	0.95	0	0.05	0.306831	40	0.380952
+C2	{versicolor}	]-inf,1.55]	0	1	0	0.299395	27	0.257143
+C4	{versicolor}	]1.55,+inf[	0	1	0	0.0554436	5	0.047619
 	Total		0.361905	0.304762	0.333333	1	105	1
 
 ----------------------------------------------
@@ -164,27 +164,27 @@ Variables
 Variables stats
 SepalLength
 Interval	Frequency	Coverage
-]-inf;5.75]	53	0.504762
-]5.75;+inf[	52	0.495238
+]-inf,5.75]	53	0.504762
+]5.75,+inf[	52	0.495238
 SepalWidth
 Interval	Frequency	Coverage
-]-inf;3.05]	56	0.533333
-]3.05;+inf[	49	0.466667
+]-inf,3.05]	56	0.533333
+]3.05,+inf[	49	0.466667
 
 Cell frequencies
 	SepalWidth
-SepalLength	]-inf;3.05]	]3.05;+inf[	Total	Coverage
-]-inf;5.75]	23	30	53	0.504762
-]5.75;+inf[	33	19	52	0.495238
+SepalLength	]-inf,3.05]	]3.05,+inf[	Total	Coverage
+]-inf,5.75]	23	30	53	0.504762
+]5.75,+inf[	33	19	52	0.495238
 Total	56	49	105
 Coverage	0.533333	0.466667
 
 Cells	4
 Cell Id	SepalLength	SepalWidth	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C3	]-inf;5.75]	]3.05;+inf[	1	0	0	0.523397	30	0.285714
-C2	]5.75;+inf[	]-inf;3.05]	0	0.393939	0.606061	0.262519	33	0.314286
-C4	]5.75;+inf[	]3.05;+inf[	0.0526316	0.263158	0.684211	0.11478	19	0.180952
-C1	]-inf;5.75]	]-inf;3.05]	0.304348	0.608696	0.0869565	0.099304	23	0.219048
+C3	]-inf,5.75]	]3.05,+inf[	1	0	0	0.523397	30	0.285714
+C2	]5.75,+inf[	]-inf,3.05]	0	0.393939	0.606061	0.262519	33	0.314286
+C4	]5.75,+inf[	]3.05,+inf[	0.0526316	0.263158	0.684211	0.11478	19	0.180952
+C1	]-inf,5.75]	]-inf,3.05]	0.304348	0.608696	0.0869565	0.099304	23	0.219048
 	Total		0.361905	0.304762	0.333333	1	105	1
 
 ----------------------------------------------
@@ -201,12 +201,12 @@ Group	Frequency	Coverage	Size	Value list
 {versicolor}	32	0.304762	1	versicolor	 * 
 SepalLength
 Interval	Frequency	Coverage
-]-inf;5.75]	53	0.504762
-]5.75;+inf[	52	0.495238
+]-inf,5.75]	53	0.504762
+]5.75,+inf[	52	0.495238
 
 Cell frequencies
 	SepalLength
-Class2	]-inf;5.75]	]5.75;+inf[	Total	Coverage
+Class2	]-inf,5.75]	]5.75,+inf[	Total	Coverage
 {}	39	34	73	0.695238
 {versicolor}	14	18	32	0.304762
 Total	53	52	105
@@ -214,10 +214,10 @@ Coverage	0.504762	0.495238
 
 Cells	4
 Cell Id	Class2	SepalLength	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C3	{}	]5.75;+inf[	0.0294118	0	0.970588	0.318989	34	0.32381
-C1	{}	]-inf;5.75]	0.948718	0	0.0512821	0.310764	39	0.371429
-C4	{versicolor}	]5.75;+inf[	0	1	0	0.208264	18	0.171429
-C2	{versicolor}	]-inf;5.75]	0	1	0	0.161983	14	0.133333
+C3	{}	]5.75,+inf[	0.0294118	0	0.970588	0.318989	34	0.32381
+C1	{}	]-inf,5.75]	0.948718	0	0.0512821	0.310764	39	0.371429
+C4	{versicolor}	]5.75,+inf[	0	1	0	0.208264	18	0.171429
+C2	{versicolor}	]-inf,5.75]	0	1	0	0.161983	14	0.133333
 	Total		0.361905	0.304762	0.333333	1	105	1
 
 ----------------------------------------------
@@ -234,12 +234,12 @@ Group	Frequency	Coverage	Size	Value list
 {versicolor}	32	0.304762	1	versicolor	 * 
 LowerPetalLength
 Interval	Frequency	Coverage
-]-inf;2.4]	38	0.361905
-]2.4;+inf[	67	0.638095
+]-inf,2.4]	38	0.361905
+]2.4,+inf[	67	0.638095
 
 Cell frequencies
 	LowerPetalLength
-Class2	]-inf;2.4]	]2.4;+inf[	Total	Coverage
+Class2	]-inf,2.4]	]2.4,+inf[	Total	Coverage
 {}	38	35	73	0.695238
 {versicolor}	0	32	32	0.304762
 Total	38	67	105
@@ -247,9 +247,9 @@ Coverage	0.361905	0.638095
 
 Cells	3
 Cell Id	Class2	LowerPetalLength	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C1	{}	]-inf;2.4]	1	0	0	0.335563	38	0.361905
-C3	{}	]2.4;+inf[	0	0	1	0.334079	35	0.333333
-C4	{versicolor}	]2.4;+inf[	0	1	0	0.330358	32	0.304762
+C1	{}	]-inf,2.4]	1	0	0	0.335563	38	0.361905
+C3	{}	]2.4,+inf[	0	0	1	0.334079	35	0.333333
+C4	{versicolor}	]2.4,+inf[	0	1	0	0.330358	32	0.304762
 	Total		0.361905	0.304762	0.333333	1	105	1
 
 ----------------------------------------------
@@ -298,12 +298,12 @@ Group	Frequency	Coverage	Size	Value list
 {setosa}	38	0.361905	1	setosa	 * 
 UpperPetalWidth
 Interval	Frequency	Coverage
-]-inf;1.75]	71	0.67619
-]1.75;+inf[	34	0.32381
+]-inf,1.75]	71	0.67619
+]1.75,+inf[	34	0.32381
 
 Cell frequencies
 	UpperPetalWidth
-Class1	]-inf;1.75]	]1.75;+inf[	Total	Coverage
+Class1	]-inf,1.75]	]1.75,+inf[	Total	Coverage
 {}	33	34	67	0.638095
 {setosa}	38	0	38	0.361905
 Total	71	34	105
@@ -311,9 +311,9 @@ Coverage	0.67619	0.32381
 
 Cells	3
 Cell Id	Class1	UpperPetalWidth	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C2	{setosa}	]-inf;1.75]	1	0	0	0.374826	38	0.361905
-C3	{}	]1.75;+inf[	0	0.0294118	0.970588	0.319592	34	0.32381
-C1	{}	]-inf;1.75]	0	0.939394	0.0606061	0.305582	33	0.314286
+C2	{setosa}	]-inf,1.75]	1	0	0	0.374826	38	0.361905
+C3	{}	]1.75,+inf[	0	0.0294118	0.970588	0.319592	34	0.32381
+C1	{}	]-inf,1.75]	0	0.939394	0.0606061	0.305582	33	0.314286
 	Total		0.361905	0.304762	0.333333	1	105	1
 
 ----------------------------------------------
@@ -326,26 +326,26 @@ Variables
 Variables stats
 LowerPetalLength
 Interval	Frequency	Coverage
-]-inf;2.4]	38	0.361905
-]2.4;+inf[	67	0.638095
+]-inf,2.4]	38	0.361905
+]2.4,+inf[	67	0.638095
 UpperPetalWidth
 Interval	Frequency	Coverage
-]-inf;1.55]	67	0.638095
-]1.55;+inf[	38	0.361905
+]-inf,1.55]	67	0.638095
+]1.55,+inf[	38	0.361905
 
 Cell frequencies
 	UpperPetalWidth
-LowerPetalLength	]-inf;1.55]	]1.55;+inf[	Total	Coverage
-]-inf;2.4]	38	0	38	0.361905
-]2.4;+inf[	29	38	67	0.638095
+LowerPetalLength	]-inf,1.55]	]1.55,+inf[	Total	Coverage
+]-inf,2.4]	38	0	38	0.361905
+]2.4,+inf[	29	38	67	0.638095
 Total	67	38	105
 Coverage	0.638095	0.361905
 
 Cells	3
 Cell Id	LowerPetalLength	UpperPetalWidth	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C1	]-inf;2.4]	]-inf;1.55]	1	0	0	0.415191	38	0.361905
-C4	]2.4;+inf[	]1.55;+inf[	0	0.131579	0.868421	0.294541	38	0.361905
-C2	]2.4;+inf[	]-inf;1.55]	0	0.931034	0.0689655	0.290269	29	0.27619
+C1	]-inf,2.4]	]-inf,1.55]	1	0	0	0.415191	38	0.361905
+C4	]2.4,+inf[	]1.55,+inf[	0	0.131579	0.868421	0.294541	38	0.361905
+C2	]2.4,+inf[	]-inf,1.55]	0	0.931034	0.0689655	0.290269	29	0.27619
 	Total		0.361905	0.304762	0.333333	1	105	1
 
 ----------------------------------------------
@@ -358,26 +358,26 @@ Variables
 Variables stats
 SepalLength
 Interval	Frequency	Coverage
-]-inf;5.45]	39	0.371429
-]5.45;+inf[	66	0.628571
+]-inf,5.45]	39	0.371429
+]5.45,+inf[	66	0.628571
 UpperPetalWidth
 Interval	Frequency	Coverage
-]-inf;1.75]	71	0.67619
-]1.75;+inf[	34	0.32381
+]-inf,1.75]	71	0.67619
+]1.75,+inf[	34	0.32381
 
 Cell frequencies
 	UpperPetalWidth
-SepalLength	]-inf;1.75]	]1.75;+inf[	Total	Coverage
-]-inf;5.45]	39	0	39	0.371429
-]5.45;+inf[	32	34	66	0.628571
+SepalLength	]-inf,1.75]	]1.75,+inf[	Total	Coverage
+]-inf,5.45]	39	0	39	0.371429
+]5.45,+inf[	32	34	66	0.628571
 Total	71	34	105
 Coverage	0.67619	0.32381
 
 Cells	3
 Cell Id	SepalLength	UpperPetalWidth	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C4	]5.45;+inf[	]1.75;+inf[	0	0.0294118	0.970588	0.431099	34	0.32381
-C1	]-inf;5.45]	]-inf;1.75]	0.871795	0.128205	0	0.334637	39	0.371429
-C2	]5.45;+inf[	]-inf;1.75]	0.125	0.8125	0.0625	0.234263	32	0.304762
+C4	]5.45,+inf[	]1.75,+inf[	0	0.0294118	0.970588	0.431099	34	0.32381
+C1	]-inf,5.45]	]-inf,1.75]	0.871795	0.128205	0	0.334637	39	0.371429
+C2	]5.45,+inf[	]-inf,1.75]	0.125	0.8125	0.0625	0.234263	32	0.304762
 	Total		0.361905	0.304762	0.333333	1	105	1
 
 ----------------------------------------------
@@ -394,12 +394,12 @@ Group	Frequency	Coverage	Size	Value list
 {setosa}	38	0.361905	1	setosa	 * 
 SepalLength
 Interval	Frequency	Coverage
-]-inf;6.15]	67	0.638095
-]6.15;+inf[	38	0.361905
+]-inf,6.15]	67	0.638095
+]6.15,+inf[	38	0.361905
 
 Cell frequencies
 	SepalLength
-Class1	]-inf;6.15]	]6.15;+inf[	Total	Coverage
+Class1	]-inf,6.15]	]6.15,+inf[	Total	Coverage
 {}	29	38	67	0.638095
 {setosa}	38	0	38	0.361905
 Total	67	38	105
@@ -407,9 +407,9 @@ Coverage	0.638095	0.361905
 
 Cells	3
 Cell Id	Class1	SepalLength	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C2	{setosa}	]-inf;6.15]	1	0	0	0.469806	38	0.361905
-C3	{}	]6.15;+inf[	0	0.210526	0.789474	0.278648	38	0.361905
-C1	{}	]-inf;6.15]	0	0.827586	0.172414	0.251546	29	0.27619
+C2	{setosa}	]-inf,6.15]	1	0	0	0.469806	38	0.361905
+C3	{}	]6.15,+inf[	0	0.210526	0.789474	0.278648	38	0.361905
+C1	{}	]-inf,6.15]	0	0.827586	0.172414	0.251546	29	0.27619
 	Total		0.361905	0.304762	0.333333	1	105	1
 
 ----------------------------------------------
@@ -426,12 +426,12 @@ Group	Frequency	Coverage	Size	Value list
 {versicolor}	32	0.304762	1	versicolor	 * 
 PetalLength
 Interval	Frequency	Coverage
-]-inf;4.2]	53	0.504762
-]4.2;+inf[	52	0.495238
+]-inf,4.2]	53	0.504762
+]4.2,+inf[	52	0.495238
 
 Cell frequencies
 	PetalLength
-Class2	]-inf;4.2]	]4.2;+inf[	Total	Coverage
+Class2	]-inf,4.2]	]4.2,+inf[	Total	Coverage
 {}	38	35	73	0.695238
 {versicolor}	15	17	32	0.304762
 Total	53	52	105
@@ -439,10 +439,10 @@ Coverage	0.504762	0.495238
 
 Cells	4
 Cell Id	Class2	PetalLength	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C1	{}	]-inf;4.2]	1	0	0	0.335563	38	0.361905
-C3	{}	]4.2;+inf[	0	0	1	0.334079	35	0.333333
-C4	{versicolor}	]4.2;+inf[	0	1	0	0.175503	17	0.161905
-C2	{versicolor}	]-inf;4.2]	0	1	0	0.154855	15	0.142857
+C1	{}	]-inf,4.2]	1	0	0	0.335563	38	0.361905
+C3	{}	]4.2,+inf[	0	0	1	0.334079	35	0.333333
+C4	{versicolor}	]4.2,+inf[	0	1	0	0.175503	17	0.161905
+C2	{versicolor}	]-inf,4.2]	0	1	0	0.154855	15	0.142857
 	Total		0.361905	0.304762	0.333333	1	105	1
 
 ----------------------------------------------
@@ -455,26 +455,26 @@ Variables
 Variables stats
 LowerPetalLength
 Interval	Frequency	Coverage
-]-inf;2.4]	38	0.361905
-]2.4;+inf[	67	0.638095
+]-inf,2.4]	38	0.361905
+]2.4,+inf[	67	0.638095
 SepalLength
 Interval	Frequency	Coverage
-]-inf;6.15]	67	0.638095
-]6.15;+inf[	38	0.361905
+]-inf,6.15]	67	0.638095
+]6.15,+inf[	38	0.361905
 
 Cell frequencies
 	SepalLength
-LowerPetalLength	]-inf;6.15]	]6.15;+inf[	Total	Coverage
-]-inf;2.4]	38	0	38	0.361905
-]2.4;+inf[	29	38	67	0.638095
+LowerPetalLength	]-inf,6.15]	]6.15,+inf[	Total	Coverage
+]-inf,2.4]	38	0	38	0.361905
+]2.4,+inf[	29	38	67	0.638095
 Total	67	38	105
 Coverage	0.638095	0.361905
 
 Cells	3
 Cell Id	LowerPetalLength	SepalLength	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C1	]-inf;2.4]	]-inf;6.15]	1	0	0	0.469806	38	0.361905
-C4	]2.4;+inf[	]6.15;+inf[	0	0.210526	0.789474	0.278648	38	0.361905
-C2	]2.4;+inf[	]-inf;6.15]	0	0.827586	0.172414	0.251546	29	0.27619
+C1	]-inf,2.4]	]-inf,6.15]	1	0	0	0.469806	38	0.361905
+C4	]2.4,+inf[	]6.15,+inf[	0	0.210526	0.789474	0.278648	38	0.361905
+C2	]2.4,+inf[	]-inf,6.15]	0	0.827586	0.172414	0.251546	29	0.27619
 	Total		0.361905	0.304762	0.333333	1	105	1
 
 ----------------------------------------------
@@ -523,12 +523,12 @@ Group	Frequency	Coverage	Size	Value list
 {versicolor}	32	0.304762	1	versicolor	 * 
 PetalWidth
 Interval	Frequency	Coverage
-]-inf;1.35]	56	0.533333
-]1.35;+inf[	49	0.466667
+]-inf,1.35]	56	0.533333
+]1.35,+inf[	49	0.466667
 
 Cell frequencies
 	PetalWidth
-Class2	]-inf;1.35]	]1.35;+inf[	Total	Coverage
+Class2	]-inf,1.35]	]1.35,+inf[	Total	Coverage
 {}	38	35	73	0.695238
 {versicolor}	18	14	32	0.304762
 Total	56	49	105
@@ -536,10 +536,10 @@ Coverage	0.533333	0.466667
 
 Cells	4
 Cell Id	Class2	PetalWidth	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C1	{}	]-inf;1.35]	1	0	0	0.335563	38	0.361905
-C3	{}	]1.35;+inf[	0	0	1	0.334079	35	0.333333
-C2	{versicolor}	]-inf;1.35]	0	1	0	0.185826	18	0.171429
-C4	{versicolor}	]1.35;+inf[	0	1	0	0.144532	14	0.133333
+C1	{}	]-inf,1.35]	1	0	0	0.335563	38	0.361905
+C3	{}	]1.35,+inf[	0	0	1	0.334079	35	0.333333
+C2	{versicolor}	]-inf,1.35]	0	1	0	0.185826	18	0.171429
+C4	{versicolor}	]1.35,+inf[	0	1	0	0.144532	14	0.133333
 	Total		0.361905	0.304762	0.333333	1	105	1
 
 ----------------------------------------------
@@ -556,12 +556,12 @@ Group	Frequency	Coverage	Size	Value list
 {setosa}	38	0.361905	1	setosa	 * 
 PetalLength
 Interval	Frequency	Coverage
-]-inf;4.75]	65	0.619048
-]4.75;+inf[	40	0.380952
+]-inf,4.75]	65	0.619048
+]4.75,+inf[	40	0.380952
 
 Cell frequencies
 	PetalLength
-Class1	]-inf;4.75]	]4.75;+inf[	Total	Coverage
+Class1	]-inf,4.75]	]4.75,+inf[	Total	Coverage
 {}	27	40	67	0.638095
 {setosa}	38	0	38	0.361905
 Total	65	40	105
@@ -569,9 +569,9 @@ Coverage	0.619048	0.380952
 
 Cells	3
 Cell Id	Class1	PetalLength	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C2	{setosa}	]-inf;4.75]	1	0	0	0.386122	38	0.361905
-C1	{}	]-inf;4.75]	0	1	0	0.320737	27	0.257143
-C3	{}	]4.75;+inf[	0	0.125	0.875	0.293141	40	0.380952
+C2	{setosa}	]-inf,4.75]	1	0	0	0.386122	38	0.361905
+C1	{}	]-inf,4.75]	0	1	0	0.320737	27	0.257143
+C3	{}	]4.75,+inf[	0	0.125	0.875	0.293141	40	0.380952
 	Total		0.361905	0.304762	0.333333	1	105	1
 
 ----------------------------------------------
@@ -584,26 +584,26 @@ Variables
 Variables stats
 LowerPetalLength
 Interval	Frequency	Coverage
-]-inf;2.4]	38	0.361905
-]2.4;+inf[	67	0.638095
+]-inf,2.4]	38	0.361905
+]2.4,+inf[	67	0.638095
 PetalLength
 Interval	Frequency	Coverage
-]-inf;4.75]	65	0.619048
-]4.75;+inf[	40	0.380952
+]-inf,4.75]	65	0.619048
+]4.75,+inf[	40	0.380952
 
 Cell frequencies
 	PetalLength
-LowerPetalLength	]-inf;4.75]	]4.75;+inf[	Total	Coverage
-]-inf;2.4]	38	0	38	0.361905
-]2.4;+inf[	27	40	67	0.638095
+LowerPetalLength	]-inf,4.75]	]4.75,+inf[	Total	Coverage
+]-inf,2.4]	38	0	38	0.361905
+]2.4,+inf[	27	40	67	0.638095
 Total	65	40	105
 Coverage	0.619048	0.380952
 
 Cells	3
 Cell Id	LowerPetalLength	PetalLength	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C1	]-inf;2.4]	]-inf;4.75]	1	0	0	0.386122	38	0.361905
-C2	]2.4;+inf[	]-inf;4.75]	0	1	0	0.320737	27	0.257143
-C4	]2.4;+inf[	]4.75;+inf[	0	0.125	0.875	0.293141	40	0.380952
+C1	]-inf,2.4]	]-inf,4.75]	1	0	0	0.386122	38	0.361905
+C2	]2.4,+inf[	]-inf,4.75]	0	1	0	0.320737	27	0.257143
+C4	]2.4,+inf[	]4.75,+inf[	0	0.125	0.875	0.293141	40	0.380952
 	Total		0.361905	0.304762	0.333333	1	105	1
 
 ----------------------------------------------
@@ -620,12 +620,12 @@ Group	Frequency	Coverage	Size	Value list
 {setosa}	38	0.361905	1	setosa	 * 
 PetalWidth
 Interval	Frequency	Coverage
-]-inf;1.75]	71	0.67619
-]1.75;+inf[	34	0.32381
+]-inf,1.75]	71	0.67619
+]1.75,+inf[	34	0.32381
 
 Cell frequencies
 	PetalWidth
-Class1	]-inf;1.75]	]1.75;+inf[	Total	Coverage
+Class1	]-inf,1.75]	]1.75,+inf[	Total	Coverage
 {}	33	34	67	0.638095
 {setosa}	38	0	38	0.361905
 Total	71	34	105
@@ -633,9 +633,9 @@ Coverage	0.67619	0.32381
 
 Cells	3
 Cell Id	Class1	PetalWidth	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C2	{setosa}	]-inf;1.75]	1	0	0	0.374826	38	0.361905
-C3	{}	]1.75;+inf[	0	0.0294118	0.970588	0.319592	34	0.32381
-C1	{}	]-inf;1.75]	0	0.939394	0.0606061	0.305582	33	0.314286
+C2	{setosa}	]-inf,1.75]	1	0	0	0.374826	38	0.361905
+C3	{}	]1.75,+inf[	0	0.0294118	0.970588	0.319592	34	0.32381
+C1	{}	]-inf,1.75]	0	0.939394	0.0606061	0.305582	33	0.314286
 	Total		0.361905	0.304762	0.333333	1	105	1
 
 ----------------------------------------------
@@ -648,8 +648,8 @@ Variables
 Variables stats
 PetalLength
 Interval	Frequency	Coverage
-]-inf;4.75]	65	0.619048
-]4.75;+inf[	40	0.380952
+]-inf,4.75]	65	0.619048
+]4.75,+inf[	40	0.380952
 SPetalLength
 Group	Frequency	Coverage	Size	Value list
 {5, 4, 3}	67	0.638095	4	5	4	3	 * 
@@ -658,16 +658,16 @@ Group	Frequency	Coverage	Size	Value list
 Cell frequencies
 	SPetalLength
 PetalLength	{5, 4, 3}	{1}	Total	Coverage
-]-inf;4.75]	27	38	65	0.619048
-]4.75;+inf[	40	0	40	0.380952
+]-inf,4.75]	27	38	65	0.619048
+]4.75,+inf[	40	0	40	0.380952
 Total	67	38	105
 Coverage	0.638095	0.361905
 
 Cells	3
 Cell Id	PetalLength	SPetalLength	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C3	]-inf;4.75]	{1}	1	0	0	0.386122	38	0.361905
-C1	]-inf;4.75]	{5, 4, 3}	0	1	0	0.320737	27	0.257143
-C2	]4.75;+inf[	{5, 4, 3}	0	0.125	0.875	0.293141	40	0.380952
+C3	]-inf,4.75]	{1}	1	0	0	0.386122	38	0.361905
+C1	]-inf,4.75]	{5, 4, 3}	0	1	0	0.320737	27	0.257143
+C2	]4.75,+inf[	{5, 4, 3}	0	0.125	0.875	0.293141	40	0.380952
 	Total		0.361905	0.304762	0.333333	1	105	1
 
 ----------------------------------------------
@@ -680,24 +680,24 @@ Variables
 Variables stats
 PetalLength
 Interval	Frequency	Coverage
-]-inf;4.75]	65	0.619048
-]4.75;+inf[	40	0.380952
+]-inf,4.75]	65	0.619048
+]4.75,+inf[	40	0.380952
 PetalWidth
 Interval	Frequency	Coverage
-]-inf;0.75]	38	0.361905
-]0.75;+inf[	67	0.638095
+]-inf,0.75]	38	0.361905
+]0.75,+inf[	67	0.638095
 
 Cell frequencies
 	PetalWidth
-PetalLength	]-inf;0.75]	]0.75;+inf[	Total	Coverage
-]-inf;4.75]	38	27	65	0.619048
-]4.75;+inf[	0	40	40	0.380952
+PetalLength	]-inf,0.75]	]0.75,+inf[	Total	Coverage
+]-inf,4.75]	38	27	65	0.619048
+]4.75,+inf[	0	40	40	0.380952
 Total	38	67	105
 Coverage	0.361905	0.638095
 
 Cells	3
 Cell Id	PetalLength	PetalWidth	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C1	]-inf;4.75]	]-inf;0.75]	1	0	0	0.386122	38	0.361905
-C3	]-inf;4.75]	]0.75;+inf[	0	1	0	0.320737	27	0.257143
-C4	]4.75;+inf[	]0.75;+inf[	0	0.125	0.875	0.293141	40	0.380952
+C1	]-inf,4.75]	]-inf,0.75]	1	0	0	0.386122	38	0.361905
+C3	]-inf,4.75]	]0.75,+inf[	0	1	0	0.320737	27	0.257143
+C4	]4.75,+inf[	]0.75,+inf[	0	0.125	0.875	0.293141	40	0.380952
 	Total		0.361905	0.304762	0.333333	1	105	1

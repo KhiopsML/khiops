@@ -1,6 +1,6 @@
-Variable construction time: 0:00:00.22 (100 constructed variables)
+Variable construction time: 0:00:00.30 (100 constructed variables)
 Train supervised model for classification of target variable Class
 Database ./SpliceJunctionExternal.txt: Read records: 3178	Selected records: 303
-Data preparation time: 0:00:00.20
+Data preparation time: 0:00:00.24
 Write report ./results/C100_AnalysisResults.khj
 

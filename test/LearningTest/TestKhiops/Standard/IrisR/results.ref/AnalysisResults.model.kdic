@@ -1,4 +1,4 @@
-#Khiops 10.5.2-b.0
+#Khiops VERSION
 
 Dictionary	BU1_Iris
 <InitialDictionary="Iris"> <PredictorLabel="Univariate SPetalLength"> <PredictorType="Regressor">

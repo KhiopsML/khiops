@@ -1,4 +1,4 @@
-#Khiops 10.5.2-b.0
+#Khiops VERSION
 Test evaluation report
 
 Dictionary	Iris
@@ -51,7 +51,7 @@ RankMAE	0.0538632
 RankNLPD	-1.49342
 
 % target values
-Group	]-inf;2.4]	]2.4;3.95]	]3.95;4.95]	]4.95;5.95]	]5.95;+inf[	Interest	Frequency	Coverage
+Group	]-inf,2.4]	]2.4,3.95]	]3.95,4.95]	]4.95,5.95]	]5.95,+inf[	Interest	Frequency	Coverage
 {1}	1	0	0	0	0	0.247916	12	0.266667
 {5}	0	0	0	1	0	0.215978	8	0.177778
 {4}	0	0	1	0	0	0.257797	18	0.4

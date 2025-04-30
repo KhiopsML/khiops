@@ -1,7 +1,7 @@
 Deploy model Iris
 Input database ../../../datasets/Iris/Iris.txt: Read records: 150
 Output database ./results/D_Iris.txt: Written records: 105
-Model deployment time: 0:00:00.01
+Model deployment time: 0:00:00.03
 
 error : The path of the target database should be different from that of the source database (./results/D_Iris.txt)
 

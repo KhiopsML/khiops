@@ -27,7 +27,7 @@ TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key DNA               // List
 TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../MTdatasets/SpliceJunction/SpliceJunctionDNA.txt      // Data table file
 
 TrainDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 10  // Sample percentage
-TrainDatabase.TestDatabaseSpecificationMode None   // Test database
+TrainDatabase.TestDatabaseSpecificationMode none   // Test database
 
 
 AnalysisSpec.TargetAttributeName Class   // Target variable

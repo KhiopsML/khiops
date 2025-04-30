@@ -1,4 +1,4 @@
-#Khiops 10.5.5-b.0
+#Khiops VERSION
 Predictor evaluation report
 
 
@@ -117,16 +117,16 @@ SignificantTests	 0/1/0	 1/0/0	 0/1/0	 0/0/1
 Rank	3	4	2	1
 
 Total Time	SNB	NB	DG	BU
-Mean	0.0868	0.0679	0.1145	0.0707
-GeometricMean	0.0865079	0.067871	0.114419	0.0706655
+Mean	0.0797	0.0585	0.096	0.0613
+GeometricMean	0.0793022	0.0584606	0.095868	0.0611636
 SignificantTests	 0/1/0	 0/0/1	 1/0/0	 0/0/1
 Rank	3	1	4	2
 
 Pre Time	SNB	NB	DG	BU
-Mean	0.0726	0.0679	0.0705	0.0705
-GeometricMean	0.0722208	0.067871	0.0704768	0.0704653
-SignificantTests	 0/1/0	 0/1/0	 0/1/0	 0/1/0
-Rank	4	1	2	2
+Mean	0.0663	0.0585	0.0642	0.0612
+GeometricMean	0.0659282	0.0584606	0.0641167	0.0610626
+SignificantTests	 0/1/0	 0/0/1	 0/1/0	 0/1/0
+Rank	4	1	3	2
 
 
 Experiment details
@@ -214,12 +214,12 @@ Iris	2	0	0	4	0	1	1.9	1.37477	0	1	0	-1
 Total Time
 Dataset	SNB			NB			DG			BU		
 	Mean	StandardDeviation	SignificantTests	Mean	StandardDeviation	SignificantTests	Mean	StandardDeviation	SignificantTests	Mean	StandardDeviation	SignificantTests
-Iris	0.0868	0.00758683	0	0.0679	0.00197231	-1	0.1145	0.00431856	1	0.0707	0.00219317	-1
+Iris	0.0797	0.0084386	0	0.0585	0.00215639	-1	0.096	0.00503984	1	0.0613	0.00417253	-1
 
 Pre Time
 Dataset	SNB			NB			DG			BU		
 	Mean	StandardDeviation	SignificantTests	Mean	StandardDeviation	SignificantTests	Mean	StandardDeviation	SignificantTests	Mean	StandardDeviation	SignificantTests
-Iris	0.0726	0.00801499	0	0.0679	0.00197231	0	0.0705	0.00180278	0	0.0705	0.00220227	0
+Iris	0.0663	0.00747061	0	0.0585	0.00215639	-1	0.0642	0.00324962	0	0.0612	0.00419047	0
 
 
 Run details
@@ -434,26 +434,26 @@ Iris	10	2	4	1	1
 
 Total Time
 Dataset	Run	SNB	NB	DG	BU
-Iris	1	0.109	0.069	0.108	0.07
-Iris	2	0.081	0.071	0.111	0.071
-Iris	3	0.086	0.069	0.118	0.073
-Iris	4	0.085	0.064	0.111	0.071
-Iris	5	0.084	0.069	0.12	0.066
-Iris	6	0.087	0.069	0.111	0.072
-Iris	7	0.084	0.068	0.122	0.069
-Iris	8	0.085	0.065	0.117	0.069
-Iris	9	0.085	0.067	0.114	0.072
-Iris	10	0.082	0.068	0.113	0.074
+Iris	1	0.103	0.056	0.092	0.061
+Iris	2	0.079	0.057	0.094	0.065
+Iris	3	0.077	0.062	0.102	0.057
+Iris	4	0.077	0.06	0.092	0.06
+Iris	5	0.078	0.061	0.1	0.056
+Iris	6	0.076	0.058	0.092	0.059
+Iris	7	0.08	0.057	0.102	0.061
+Iris	8	0.083	0.061	0.095	0.071
+Iris	9	0.074	0.056	0.103	0.059
+Iris	10	0.07	0.057	0.088	0.064
 
 Pre Time
 Dataset	Run	SNB	NB	DG	BU
-Iris	1	0.096	0.069	0.069	0.07
-Iris	2	0.066	0.071	0.072	0.07
-Iris	3	0.071	0.069	0.071	0.073
-Iris	4	0.072	0.064	0.069	0.07
-Iris	5	0.068	0.069	0.073	0.066
-Iris	6	0.072	0.069	0.069	0.072
-Iris	7	0.069	0.068	0.072	0.069
-Iris	8	0.07	0.065	0.071	0.069
-Iris	9	0.072	0.067	0.067	0.072
-Iris	10	0.07	0.068	0.072	0.074
+Iris	1	0.087	0.056	0.064	0.061
+Iris	2	0.065	0.057	0.066	0.065
+Iris	3	0.065	0.062	0.068	0.057
+Iris	4	0.065	0.06	0.061	0.06
+Iris	5	0.065	0.061	0.066	0.056
+Iris	6	0.062	0.058	0.062	0.059
+Iris	7	0.066	0.057	0.066	0.06
+Iris	8	0.069	0.061	0.062	0.071
+Iris	9	0.061	0.056	0.069	0.059
+Iris	10	0.058	0.057	0.058	0.064

@@ -1,4 +1,4 @@
-#Khiops 10.5.2-b.0
+#Khiops VERSION
 Train evaluation report
 
 Dictionary	Iris
@@ -48,9 +48,9 @@ $Iris-virginica	0	1	33
 
 % target values
 Interval	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-]-inf;0.75]	1	0	0	0.374826	38	0.361905
-]0.75;1.75]	0	0.939394	0.0606061	0.305582	33	0.314286
-]1.75;+inf[	0	0.0294118	0.970588	0.319592	34	0.32381
+]-inf,0.75]	1	0	0	0.374826	38	0.361905
+]0.75,1.75]	0	0.939394	0.0606061	0.305582	33	0.314286
+]1.75,+inf[	0	0.0294118	0.970588	0.319592	34	0.32381
 Total	0.361905	0.304762	0.333333	1	105	1
 
 

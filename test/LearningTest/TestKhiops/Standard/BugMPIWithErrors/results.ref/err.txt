@@ -21,6 +21,6 @@ warning : Data table ../../../datasets/Adult/Adult.txt : Record 26 : Numerical v
 warning : Data table ../../../datasets/Adult/Adult.txt : Record 27 : Numerical variable sex: value <Male> converted to <> (Unconverted string)
 warning : Data table : ...
 Database ../../../datasets/Adult/Adult.txt: Read records: 48,842	Selected records: 34,291
-Data preparation time: 0:00:01.25
+Data preparation time: 0:00:01.24
 Write report ./results/AnalysisResults.khj
 

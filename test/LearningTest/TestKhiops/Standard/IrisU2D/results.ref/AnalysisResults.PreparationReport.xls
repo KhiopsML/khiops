@@ -1,4 +1,4 @@
-#Khiops 10.5.2-b.0
+#Khiops VERSION
 Descriptive statistics
 
 
@@ -111,7 +111,7 @@ Variable	Numerical	Dummy2
 
 Variable stats
 Interval	Frequency	Coverage
-]-inf;+inf[	105	1
+]-inf,+inf[	105	1
 
 
 ----------------------------------------------
@@ -120,10 +120,10 @@ Variable	Numerical	LowerPetalLength
 
 Variable stats
 Interval	Frequency	Coverage
-]-inf;1.25]	4	0.0380952
-]1.25;1.75]	32	0.304762
-]1.75;2.95]	2	0.0190476
-]2.95;+inf[	67	0.638095
+]-inf,1.25]	4	0.0380952
+]1.25,1.75]	32	0.304762
+]1.75,2.95]	2	0.0190476
+]2.95,+inf[	67	0.638095
 
 
 ----------------------------------------------
@@ -132,11 +132,11 @@ Variable	Numerical	PetalLength
 
 Variable stats
 Interval	Frequency	Coverage
-]-inf;1.25]	4	0.0380952
-]1.25;1.75]	32	0.304762
-]1.75;3.85]	7	0.0666667
-]3.85;6.15]	59	0.561905
-]6.15;+inf[	3	0.0285714
+]-inf,1.25]	4	0.0380952
+]1.25,1.75]	32	0.304762
+]1.75,3.85]	7	0.0666667
+]3.85,6.15]	59	0.561905
+]6.15,+inf[	3	0.0285714
 
 
 ----------------------------------------------
@@ -145,11 +145,11 @@ Variable	Numerical	PetalWidth
 
 Variable stats
 Interval	Frequency	Coverage
-]-inf;0.15]	6	0.0571429
-]0.15;0.25]	20	0.190476
-]0.25;0.45]	11	0.104762
-]0.45;0.85]	1	0.00952381
-]0.85;+inf[	67	0.638095
+]-inf,0.15]	6	0.0571429
+]0.15,0.25]	20	0.190476
+]0.25,0.45]	11	0.104762
+]0.45,0.85]	1	0.00952381
+]0.85,+inf[	67	0.638095
 
 
 ----------------------------------------------
@@ -179,8 +179,8 @@ Variable	Numerical	SepalLength
 
 Variable stats
 Interval	Frequency	Coverage
-]-inf;7]	97	0.92381
-]7;+inf[	8	0.0761905
+]-inf,7]	97	0.92381
+]7,+inf[	8	0.0761905
 
 
 ----------------------------------------------
@@ -189,9 +189,9 @@ Variable	Numerical	SepalWidth
 
 Variable stats
 Interval	Frequency	Coverage
-]-inf;2.45]	5	0.047619
-]2.45;3.25]	72	0.685714
-]3.25;+inf[	28	0.266667
+]-inf,2.45]	5	0.047619
+]2.45,3.25]	72	0.685714
+]3.25,+inf[	28	0.266667
 
 
 ----------------------------------------------
@@ -200,6 +200,6 @@ Variable	Numerical	UpperPetalWidth
 
 Variable stats
 Interval	Frequency	Coverage
-]-inf;1.55]	67	0.638095
-]1.55;+inf[	38	0.361905
+]-inf,1.55]	67	0.638095
+]1.55,+inf[	38	0.361905
 

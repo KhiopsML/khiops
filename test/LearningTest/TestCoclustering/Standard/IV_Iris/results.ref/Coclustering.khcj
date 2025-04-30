@@ -1,6 +1,6 @@
 {
 	"tool": "Khiops Coclustering",
-	"version": "10.6.1-b.0",
+	"version": "VERSION",
 	"shortDescription": "",
 	"coclusteringReport": {
 		"summary": {
@@ -152,15 +152,15 @@
 							"type": "Numerical",
 							"intervals": [
 								{
-									"cluster": "PetalLength ]-inf;2.4]",
+									"cluster": "PetalLength ]-inf,2.4]",
 									"bounds": [1,2.4]
 								},
 								{
-									"cluster": "PetalLength ]2.4;4.75]",
+									"cluster": "PetalLength ]2.4,4.75]",
 									"bounds": [2.4,4.75]
 								},
 								{
-									"cluster": "PetalLength ]4.75;+inf[",
+									"cluster": "PetalLength ]4.75,+inf[",
 									"bounds": [4.75,6.9]
 								}
 							]
@@ -170,15 +170,15 @@
 							"type": "Numerical",
 							"intervals": [
 								{
-									"cluster": "PetalWidth ]-inf;0.8]",
+									"cluster": "PetalWidth ]-inf,0.8]",
 									"bounds": [0.1,0.8]
 								},
 								{
-									"cluster": "PetalWidth ]0.8;1.75]",
+									"cluster": "PetalWidth ]0.8,1.75]",
 									"bounds": [0.8,1.75]
 								},
 								{
-									"cluster": "PetalWidth ]1.75;+inf[",
+									"cluster": "PetalWidth ]1.75,+inf[",
 									"bounds": [1.75,2.5]
 								}
 							]
@@ -188,15 +188,15 @@
 							"type": "Numerical",
 							"intervals": [
 								{
-									"cluster": "SepalLength ]-inf;5.45]",
+									"cluster": "SepalLength ]-inf,5.45]",
 									"bounds": [4.3,5.45]
 								},
 								{
-									"cluster": "SepalLength ]5.45;6.85]",
+									"cluster": "SepalLength ]5.45,6.85]",
 									"bounds": [5.45,6.85]
 								},
 								{
-									"cluster": "SepalLength ]6.85;+inf[",
+									"cluster": "SepalLength ]6.85,+inf[",
 									"bounds": [6.85,7.9]
 								}
 							]
@@ -206,11 +206,11 @@
 							"type": "Numerical",
 							"intervals": [
 								{
-									"cluster": "SepalWidth ]-inf;3.35]",
+									"cluster": "SepalWidth ]-inf,3.35]",
 									"bounds": [2,3.35]
 								},
 								{
-									"cluster": "SepalWidth ]3.35;+inf[",
+									"cluster": "SepalWidth ]3.35,+inf[",
 									"bounds": [3.35,4.4]
 								}
 							]
@@ -219,26 +219,26 @@
 				},
 				"valueGroups": [
 					{
-						"cluster": "{Class {Iris-setosa}, PetalLength ]-inf;2.4], PetalWidth ]-inf;0.8], ...}",
-						"values": ["Class {Iris-setosa}","PetalLength ]-inf;2.4]","PetalWidth ]-inf;0.8]","SepalLength ]-inf;5.45]","SepalWidth ]3.35;+inf["],
+						"cluster": "{Class {Iris-setosa}, PetalLength ]-inf,2.4], PetalWidth ]-inf,0.8], ...}",
+						"values": ["Class {Iris-setosa}","PetalLength ]-inf,2.4]","PetalWidth ]-inf,0.8]","SepalLength ]-inf,5.45]","SepalWidth ]3.35,+inf["],
 						"valueFrequencies": [50,50,50,52,36],
 						"valueTypicalities": [0,0,0,0,0]
 					},
 					{
-						"cluster": "{Class {Iris-virginica}, PetalLength ]4.75;+inf[, PetalWidth ]1.75;+inf[, ...}",
-						"values": ["Class {Iris-virginica}","PetalLength ]4.75;+inf[","PetalWidth ]1.75;+inf[","SepalLength ]6.85;+inf["],
+						"cluster": "{Class {Iris-virginica}, PetalLength ]4.75,+inf[, PetalWidth ]1.75,+inf[, ...}",
+						"values": ["Class {Iris-virginica}","PetalLength ]4.75,+inf[","PetalWidth ]1.75,+inf[","SepalLength ]6.85,+inf["],
 						"valueFrequencies": [50,55,46,17],
 						"valueTypicalities": [0,0,0,0]
 					},
 					{
-						"cluster": "{Class {Iris-versicolor}, PetalLength ]2.4;4.75], PetalWidth ]0.8;1.75]}",
-						"values": ["Class {Iris-versicolor}","PetalLength ]2.4;4.75]","PetalWidth ]0.8;1.75]"],
+						"cluster": "{Class {Iris-versicolor}, PetalLength ]2.4,4.75], PetalWidth ]0.8,1.75]}",
+						"values": ["Class {Iris-versicolor}","PetalLength ]2.4,4.75]","PetalWidth ]0.8,1.75]"],
 						"valueFrequencies": [50,45,54],
 						"valueTypicalities": [0,0,0]
 					},
 					{
-						"cluster": "{SepalLength ]5.45;6.85], SepalWidth ]-inf;3.35]}",
-						"values": ["SepalLength ]5.45;6.85]","SepalWidth ]-inf;3.35]"],
+						"cluster": "{SepalLength ]5.45,6.85], SepalWidth ]-inf,3.35]}",
+						"values": ["SepalLength ]5.45,6.85]","SepalWidth ]-inf,3.35]"],
 						"valueFrequencies": [81,114],
 						"valueTypicalities": [0,0]
 					}
@@ -308,7 +308,7 @@
 				"type": "Categorical",
 				"clusters": [
 					{
-						"cluster": "{Class {Iris-setosa}, PetalLength ]-inf;2.4], PetalWidth ]-inf;0.8], ...}",
+						"cluster": "{Class {Iris-setosa}, PetalLength ]-inf,2.4], PetalWidth ]-inf,0.8], ...}",
 						"parentCluster": "B1",
 						"frequency": 238,
 						"interest": 1,
@@ -318,7 +318,7 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "{Class {Iris-virginica}, PetalLength ]4.75;+inf[, PetalWidth ]1.75;+inf[, ...}",
+						"cluster": "{Class {Iris-virginica}, PetalLength ]4.75,+inf[, PetalWidth ]1.75,+inf[, ...}",
 						"parentCluster": "B3",
 						"frequency": 168,
 						"interest": 0.761842,
@@ -328,7 +328,7 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "{Class {Iris-versicolor}, PetalLength ]2.4;4.75], PetalWidth ]0.8;1.75]}",
+						"cluster": "{Class {Iris-versicolor}, PetalLength ]2.4,4.75], PetalWidth ]0.8,1.75]}",
 						"parentCluster": "B5",
 						"frequency": 149,
 						"interest": 0.712251,
@@ -338,7 +338,7 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "{SepalLength ]5.45;6.85], SepalWidth ]-inf;3.35]}",
+						"cluster": "{SepalLength ]5.45,6.85], SepalWidth ]-inf,3.35]}",
 						"parentCluster": "B5",
 						"frequency": 195,
 						"interest": 0.497622,
