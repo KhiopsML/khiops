@@ -105,7 +105,18 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////////
-// Informations sur un attribut selectionne
+// Informations sur un attribut selectionne par un predicteur
+//
+// Chaque variable selectionnee par un predicteur a un nom d'attribut prepare
+// et un nom d'attribut natif, que les variables soient natives ou issues
+// de la construction de variable en multi-table ou via des arbres ou des textes.
+//
+// Dans le cas specifique d'une paire, il n'y a pas de variable explicitement cree
+// pour la paire, le predicteur exploitant directement les valeurs de chaque variable
+// de la paire via son modele de preparation bivariee.
+// On genere neanmoins un nom de variable native "virtuel" pour designer chaque paire.
+// Et on explicite egalement le fait qu'il s'agit d'une paire, ainsi que le nom de
+// chaque variable de la paire
 class KWSelectedAttributeReport : public KWLearningReport
 {
 public:
@@ -117,9 +128,21 @@ public:
 	void SetPreparedAttributeName(const ALString& sName);
 	const ALString& GetPreparedAttributeName() const;
 
-	// Nom de l'attribut source
+	// Nom de l'attribut source representant la variable
 	void SetNativeAttributeName(const ALString& sName);
 	const ALString& GetNativeAttributeName() const;
+
+	// Specification du cas paire de variable (defaut: false)
+	void SetPair(boolean bValue);
+	boolean GetPair() const;
+
+	// Nom du premier attribut de la paire, dans le cas d'une paire
+	void SetNativeAttributeName1(const ALString& sName);
+	const ALString& SetNativeAttributeName1() const;
+
+	// Nom du second attribut de la paire, dans le cas d'une paire
+	void SetNativeAttributeName2(const ALString& sName);
+	const ALString& SetNativeAttributeName2() const;
 
 	// Evaluation univariee de l'attribut: apport de l'attribut seul
 	void SetUnivariateEvaluation(double dValue);
@@ -155,11 +178,17 @@ public:
 	// Ecriture du contenu d'un rapport JSON pour un tableau ou un dictionnaire
 	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) override;
 
+	// Verification de l'integrite
+	boolean Check() const override;
+
 	/////////////////////////////////////////////////////////
 	//// Implementation
 protected:
 	ALString sPreparedAttributeName;
 	ALString sNativeAttributeName;
+	ALString sNativeAttributeName1;
+	ALString sNativeAttributeName2;
 	double dUnivariateEvaluation;
 	double dWeight;
+	boolean bPair;
 };

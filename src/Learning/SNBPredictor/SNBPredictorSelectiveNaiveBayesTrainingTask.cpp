@@ -1665,9 +1665,18 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalizeTrainingAndRepor
 			attributeReport = new KWSelectedAttributeReport;
 			attributeReport->SetPreparedAttributeName(attribute->GetPreparedAttributeName());
 			attributeReport->SetNativeAttributeName(attribute->GetNativeAttributeName());
+			if (attribute->GetPreparedDataGridStats()->GetAttributeNumber() == 3)
+			{
+				attributeReport->SetPair(true);
+				attributeReport->SetNativeAttributeName1(
+				    attribute->GetPreparedDataGridStats()->GetAttributeAt(0)->GetAttributeName());
+				attributeReport->SetNativeAttributeName2(
+				    attribute->GetPreparedDataGridStats()->GetAttributeAt(1)->GetAttributeName());
+			}
 			attributeReport->SetUnivariateEvaluation(attribute->GetLevel());
 			attributeReport->SetWeight(
 			    masterWeightedSelectionScorer->GetAttributeSelection()->GetAttributeWeightAt(attribute));
+			assert(selectionReport->Check());
 			selectionReport->GetSelectedAttributes()->Add(attributeReport);
 		}
 	}
