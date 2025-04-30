@@ -1019,6 +1019,10 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 				// Message d'erreur si limite atteinte
 				if (dataGrid->GetCellNumber() == nMaxCellNumberConstraint)
 				{
+					//DDD BEGIN
+					cout << "cellNumber\t" << dataGrid->GetCellNumber() << " Max constraint \t"
+					     << nMaxCellNumberConstraint << endl;
+					//DDD END
 					AddError(sTmp +
 						 "Not enough memory to create initial data grid, too many data grid "
 						 "cells have been created (" +

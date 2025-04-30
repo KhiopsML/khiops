@@ -349,7 +349,6 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	boolean bOk = true;
 	boolean bProfileOptimisation = false;
 	KWTupleTable tupleTable;
-	KWTupleTable tupleFrequencyTable;
 	KWDataGridOptimizer dataGridOptimizer;
 	KWDataGrid optimizedDataGrid;
 	KWDataGridManager dataGridManager;
@@ -386,6 +385,15 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 			bOk = FillTupleTableFromDatabase(GetDatabase(), &tupleTable);
 		// Sinon, cas de coclustering VarPart
 		else
+			//DDD MB
+			// - On ne peut creer une seule table de tuple globale dans la cas IV, si la base est sparse
+			// - Sinon, cette table sera dense, alors que la base etait sparse
+			// - Dans le cas IV, il faut peut-etre directement collecter une table de tuple par attribut
+			//   pour collecter des stats de type GetSparseMissingNumber, directement dans odDescriptiveStats
+			// - On pourra alors avoir des elements de dimensionnement
+			// - a etudier: remplacer par FillVarPartTupleTableFromDatabase(GetDatabase(), &odTupleTables, odObservationNumbers);
+			//   avec odTupleTables un dictionnaire de tables de tuples par variable
+			//  - peut echouer si pas assez de memoire
 			bOk = FillVarPartTupleTableFromDatabase(GetDatabase(), &tupleTable, odObservationNumbers);
 	}
 
@@ -393,6 +401,9 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	if (bOk and not TaskProgression::IsInterruptionRequested())
 		bOk = GetLearningSpec()->ComputeTargetStats(&tupleTable);
 	if (bOk and not TaskProgression::IsInterruptionRequested())
+		//DDD MB
+		// - a etudier: dans le cas VarPart, remplacer par ComputeVarPartDescriptiveAttributeStats(GetDatabase(), &odTupleTables, &odDescriptiveStats);
+		// - voire ComputeVarPartDescriptiveAttributeStats(GetDatabase(), &odDescriptiveStats, odObservationNumbers);
 		ComputeDescriptiveAttributeStats(&tupleTable, &odDescriptiveStats);
 
 	// Verification de la memoire necessaire pour construire une grille initiale a partir des tuples
@@ -403,6 +414,8 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 			bOk = CheckMemoryForDataGridInitialization(GetDatabase(), tupleTable.GetSize(),
 								   nMaxCellNumberConstraint);
 		else
+			//DDD MB
+			// - a etudier: dans le cas VarPart, adapter en utilisant les odDescriptiveStats
 			bOk = CheckMemoryForVarPartDataGridInitialization(GetDatabase(), tupleTable.GetSize(),
 									  nMaxCellNumberConstraint);
 	}
@@ -416,6 +429,8 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 			initialDataGrid = CreateDataGrid(&tupleTable);
 		// Sinon, cas de coclustering VarPart
 		else
+			//DDD MB
+			// - a etudier: dans la cas VarPart, remplacer par CreateVarPartDataGrid(GetDatabase(), &odTupleTables, odObservationNumbers);
 			initialDataGrid = CreateVarPartDataGrid(&tupleTable, odObservationNumbers);
 		bOk = initialDataGrid != NULL;
 	}
@@ -2060,11 +2075,50 @@ boolean CCCoclusteringBuilder::CheckMemoryForDatabaseRead(KWDatabase* database) 
 		lNecessaryMemory += lFileMemory;
 
 		// Prise en compte d'une grille initiale "minimale" estimee de facon heuristique
+		/*DDD OLD
 		lSizeOfCell = sizeof(KWDGMCell) + ((longint)2 + GetClass()->GetLoadedAttributeNumber()) * sizeof(void*);
 		lInitialDataGridSize = sizeof(KWDataGrid) + nAttributeNumber * sizeof(KWDGAttribute) +
 				       (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * nAttributeNumber *
 						 (lSizeOfCell + sizeof(KWDGMPart) + sizeof(KWDGMPartMerge) +
 						  sizeof(KWDGInterval) + sizeof(KWDGValueSet) + sizeof(KWDGValue)));
+		*/
+		//DDD BEGIN
+		// Dimension d'une cellule de grille
+		// Cas Variable * Variable : cellules de dimension K avec K est le nombre de variables
+		if (not GetVarPartCoclustering())
+			lSizeOfCell =
+			    sizeof(KWDGMCell) + ((longint)2 + GetClass()->GetLoadedAttributeNumber()) * sizeof(void*);
+		// Sinon cas Individus * Variables : cellules de dimension 2
+		else
+			lSizeOfCell = sizeof(KWDGMCell) + ((longint)2 + 2) * sizeof(void*);
+		// Decomposition de la taille de la grille initiale
+		// taille de la grille : sizeof(KWDataGrid)
+		// taille des attributs : V*V -> nAttributeNumber * sizeof(KWDGAttribute) / I*V -> 2 * sizeof(KWDGAttribute)
+		// taille des parties i.e. nombre de valeurs distinctes : V*V -> sqrt(N) par variable / I*V -> N pour l'attribut Individu ou faire de meme sqrt(N) par variable
+		// taille cellules : V*V -> nombre de cellules non vides [sqrt(N) * nAttributeNumber] * lSizeOfCell / I*V -> sqrt(N) * 2 * lSizeOfCell
+		// taille additionnelle des innerVariables dans le cas I*V
+		// taille des innerVariables : nAttributeNumber * sizeof(KWDGAttribute)
+		// taille des parties des innerVariables : nombre de parties = sqrt(N) * nAttributeNumber par sizeof(KWDGMPart) + sizeof(KWDGInterval) + sizeof(KWDGValueSet) + sizeof(KWDGValue)) i.e. sans KWDGMPartMerge ?
+		if (not GetVarPartCoclustering())
+			lInitialDataGridSize =
+			    sizeof(KWDataGrid) + nAttributeNumber * sizeof(KWDGAttribute) +
+			    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * nAttributeNumber *
+				      (sizeof(KWDGMPart) + sizeof(KWDGMPartMerge) + sizeof(KWDGInterval) +
+				       sizeof(KWDGValueSet) + sizeof(KWDGValue))) +
+			    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * nAttributeNumber * lSizeOfCell);
+		// Cas d'un coclustering Individus * Variables
+		else
+			lInitialDataGridSize =
+			    sizeof(KWDataGrid) + 2 * sizeof(KWDGAttribute) +
+			    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * 2 *
+				      (sizeof(KWDGMPart) + sizeof(KWDGMPartMerge) + sizeof(KWDGInterval) +
+				       sizeof(KWDGValueSet) + sizeof(KWDGValue))) +
+			    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * 2 * lSizeOfCell) +
+			    nAttributeNumber * sizeof(KWDGAttribute) +
+			    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * nAttributeNumber *
+				      (sizeof(KWDGMPart) + sizeof(KWDGInterval) + sizeof(KWDGValueSet) +
+				       sizeof(KWDGValue)));
+		//DDD END
 		lNecessaryMemory += lInitialDataGridSize;
 
 		// Plus une grille de travail, et une pour la meilleure solution (de meme taille que la grille initiale)
@@ -2089,7 +2143,7 @@ boolean CCCoclusteringBuilder::CheckMemoryForDatabaseRead(KWDatabase* database) 
 	// Test si memoire suffisante
 	if (bOk and lNecessaryMemory > lAvailableMemory)
 	{
-		AddError("Not enough memory to load database " +
+		AddError("Not enough memory to load database" +
 			 RMResourceManager::BuildMissingMemoryMessage(lNecessaryMemory));
 		AddMessage(RMResourceManager::BuildMemoryLimitMessage());
 		if (RMResourceConstraints::GetIgnoreMemoryLimit())
@@ -2227,6 +2281,13 @@ boolean CCCoclusteringBuilder::FillTupleTableFromDatabase(KWDatabase* database, 
 				{
 					bOk = CheckMemoryForDataGridInitialization(GetDatabase(), tupleTable->GetSize(),
 										   nMaxCellNumberConstraint);
+					//DDD BEGIN???
+					/*
+					    bOk = CheckMemoryForVarPartDataGridInitialization(
+					    GetDatabase(), tupleTable->GetSize(), nMaxCellNumberConstraint);
+						*/
+					//DDD END
+
 					if (not bOk)
 						break;
 				}
@@ -2433,7 +2494,7 @@ boolean CCCoclusteringBuilder::FillVarPartTupleTableFromDatabase(KWDatabase* dat
 						    KWContinuous::ContinuousToString(kwoObject->GetContinuousValueAt(
 							identifierAttribute->GetLoadIndex()));
 
-					// Creation ou mise a jour du nombre d'onservation pour cet identifiant
+					// Creation ou mise a jour du nombre d'observations pour cet identifiant
 					ioObservationNumber =
 					    cast(IntObject*, odObservationNumbers.Lookup(sObjectIdentifier));
 					if (ioObservationNumber == NULL)
@@ -2481,8 +2542,14 @@ boolean CCCoclusteringBuilder::FillVarPartTupleTableFromDatabase(KWDatabase* dat
 				// Test regulierement si il y a assez de memoire
 				if (tupleTable->GetSize() % 65536 == 0)
 				{
+					/*DDD OLD
+					bOk = CheckMemoryForDataGridInitialization(GetDatabase(), tupleTable->GetSize(),
+										   nMaxCellNumberConstraint);
+										   */
+					//DDD BEGIN
 					bOk = CheckMemoryForVarPartDataGridInitialization(
 					    GetDatabase(), tupleTable->GetSize(), nMaxCellNumberConstraint);
+					//DDD END
 					if (not bOk)
 						break;
 				}
@@ -2993,21 +3060,21 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridInitialization(KWDatabase* 
 	if (bDisplayMemoryStats)
 	{
 		cout << "CheckMemoryForDataGridInitialization" << endl;
-		cout << "\tInitial data grid: " << lInitialDataGridSize << endl;
-		cout << "\tWorking data grid: " << lWorkingDataGridSize << endl;
+		cout << "\tInitial data grid: " << LongintToHumanReadableString(lInitialDataGridSize) << endl;
+		cout << "\tWorking data grid: " << LongintToHumanReadableString(lWorkingDataGridSize) << endl;
 		cout << "\t  Size of cell: " << lSizeOfCell << endl;
 		cout << "\tMax cell number: " << nMaxCellNumber << endl;
-		cout << "\t  Necessary: " << lNecessaryMemory << endl;
-		cout << "\t  Available: " << lAvailableMemory << endl;
+		cout << "\t  Necessary: " << LongintToHumanReadableString(lNecessaryMemory) << endl;
+		cout << "\t  Available: " << LongintToHumanReadableString(lAvailableMemory) << endl;
 		cout << "\t  OK: " << (lNecessaryMemory <= lAvailableMemory) << endl;
 	}
 
 	// Test si memoire suffisante
 	if (lNecessaryMemory > lAvailableMemory)
 	{
-		sMessage = "Not enough memory to create initial data grid ";
+		sMessage = "Not enough memory to create initial data grid";
 		if (database->IsOpenedForRead() and database->GetReadPercentage() < 0.99)
-			sMessage += sTmp + "after reading " + IntToString((int)(100 * database->GetReadPercentage())) +
+			sMessage += sTmp + " after reading " + IntToString((int)(100 * database->GetReadPercentage())) +
 				    "% of the database";
 		else
 			sMessage += RMResourceManager::BuildMissingMemoryMessage(lNecessaryMemory);
@@ -3069,7 +3136,7 @@ boolean CCCoclusteringBuilder::CheckMemoryForVarPartDataGridInitialization(KWDat
 	// valeurs par variable
 	lNecessaryMemory = 0;
 	lInitialDataGridSize = sizeof(KWDataGrid) + sizeof(void*);
-	nInstanceNumber = 0;
+	//DDD??? nInstanceNumber = 0;
 	dMaxCellNumber = 0;
 	for (nAttribute = 0; nAttribute < GetClass()->GetLoadedAttributeNumber(); nAttribute++)
 	{
@@ -3079,7 +3146,7 @@ boolean CCCoclusteringBuilder::CheckMemoryForVarPartDataGridInitialization(KWDat
 		if (attribute->GetName() != GetFrequencyAttributeName() and
 		    attribute->GetName() != GetIdentifierAttributeName())
 		{
-			// Nombre de valeur de l'attribut si ses statistiques descriptives sont disponible
+			// Nombre de valeur de l'attribut si ses statistiques descriptives sont disponibles
 			descriptiveStats = cast(KWDescriptiveStats*, odDescriptiveStats.Lookup(attribute->GetName()));
 			if (descriptiveStats != NULL)
 				nValueNumber = descriptiveStats->GetValueNumber();
@@ -3096,24 +3163,79 @@ boolean CCCoclusteringBuilder::CheckMemoryForVarPartDataGridInitialization(KWDat
 			else if (attribute->GetType() == KWType::Symbol)
 				lInitialDataGridSize += nValueNumber * (sizeof(KWDGMPart) + sizeof(KWDGValueSet) +
 									sizeof(KWDGValue) + 2 * sizeof(void*));
+
+			//DDD MB
+			// Verification des descriptive stats:
+			// - dans le cas dense, on devrait avoir un GetMissingValueNumber > 0 en cas de valeur manquantes
+			// - dans le cas sparse, on devrait avoir un GetSparseMissingValueNumber > 0 en cas de valeurs manquantes pour des raison de sparsite
+			//  - dans le cas du coclustering IV, on doit ignorer a la fois les valeurs manquantes denses, et celle issue du sparse
+			//  - par exemple, un nombre de mot absent d'un bloc sparse est "sparse missing", mais sa valeur est trate comme 0 (non missing)
+			/*DDD
+			cout << nAttribute + 1 << "\t" << attribute->GetName() << "\t" << nInstanceNumber << "\t"
+			     << nValueNumber << "\t" << descriptiveStats->GetMissingValueNumber() << "\t"
+			     << descriptiveStats->GetSparseMissingValueNumber() << "\t" << dMaxCellNumber << "\t"
+			     << lInitialDataGridSize << endl;
+				 */
 		}
 	}
 	lSizeOfCell = sizeof(KWDGMCell) + nDataGridDimensionNumber * sizeof(void*);
 	lInitialDataGridSize += (longint)ceil(dMaxCellNumber) * lSizeOfCell;
+	//DDD taille des innerVariables ?
 	lNecessaryMemory += lInitialDataGridSize;
 
 	// Plus une grille de travail, et une pour la meilleure solution (de taille estimee minimale)
+	/*DDD OLD
 	lWorkingDataGridSize = sizeof(KWDataGridMerger) + nAttributeNumber * sizeof(KWDGMAttribute) +
 			       (longint)ceil(sqrt(dMaxCellNumber)) * nAttributeNumber *
 				   (lSizeOfCell + sizeof(KWDGMPart) + sizeof(KWDGMPartMerge) + sizeof(KWDGInterval) +
 				    sizeof(KWDGValueSet) + sizeof(KWDGValue));
+	*/
+	//DDD BEGIN
+	lWorkingDataGridSize = sizeof(KWDataGridMerger) + 2 * sizeof(KWDGMAttribute) +
+			       (longint)ceil(sqrt(dMaxCellNumber)) * 2 * lSizeOfCell +
+			       (longint)ceil(sqrt(dMaxCellNumber)) * 2 *
+				   (sizeof(KWDGMPart) + sizeof(KWDGMPartMerge) + sizeof(KWDGInterval) +
+				    sizeof(KWDGValueSet) + sizeof(KWDGValue));
+	//DDD END
 	lWorkingDataGridSize *= 2;
 	lNecessaryMemory += lWorkingDataGridSize;
+
+	//DDD BEGIN
+	// Decomposition de la taille de la grille initiale
+	// taille de la grille : sizeof(KWDataGrid)
+	// taille des attributs : V*V -> nAttributeNumber * sizeof(KWDGAttribute) / I*V -> 2 * sizeof(KWDGAttribute)
+	// taille des parties i.e. nombre de valeurs distinctes : V*V -> sqrt(N) par variable / I*V -> N pour l'attribut Individu ou faire de meme sqrt(N) par variable
+	// taille cellules : V*V -> nombre de cellules non vides [sqrt(N) * nAttributeNumber] * lSizeOfCell / I*V -> sqrt(N) * 2 * lSizeOfCell
+	// taille additionnelle des innerVariables dans le cas I*V
+	// taille des innerVariables : nAttributeNumber * sizeof(KWDGAttribute)
+	// taille des parties des innerVariables : nombre de parties = sqrt(N) * nAttributeNumber par sizeof(KWDGMPart) + sizeof(KWDGInterval) + sizeof(KWDGValueSet) + sizeof(KWDGValue)) i.e. sans KWDGMPartMerge ?
+	// Rappel de checkmemory pour initialiser la base
+	//if (not GetVarPartCoclustering())
+	//	lInitialDataGridSize =
+	//	    sizeof(KWDataGrid) + nAttributeNumber * sizeof(KWDGAttribute) +
+	//	    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * nAttributeNumber *
+	//		      (sizeof(KWDGMPart) + sizeof(KWDGMPartMerge) + sizeof(KWDGInterval) +
+	//		       sizeof(KWDGValueSet) + sizeof(KWDGValue))) +
+	//	    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * nAttributeNumber * lSizeOfCell);
+	//// Cas d'un coclustering Individus * Variables
+	//else
+	//	lInitialDataGridSize =
+	//	    sizeof(KWDataGrid) + 2 * sizeof(KWDGAttribute) +
+	//	    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * 2 *
+	//		      (sizeof(KWDGMPart) + sizeof(KWDGMPartMerge) + sizeof(KWDGInterval) +
+	//		       sizeof(KWDGValueSet) + sizeof(KWDGValue))) +
+	//	    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * 2 * lSizeOfCell) +
+	//	    nAttributeNumber * sizeof(KWDGAttribute) +
+	//	    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * nAttributeNumber *
+	//		      (sizeof(KWDGMPart) + sizeof(KWDGInterval) + sizeof(KWDGValueSet) + sizeof(KWDGValue)));
+	// Fin rappel
+	//DDD END
 
 	// Estimation du nombre max de cellules que l'on peut charger en memoire, pour les grilles initiales, de
 	// travail, et finales
 	nMaxCellNumber = 0;
 	if (lNecessaryMemory < lAvailableMemory)
+		//DDD Interpretation de cette estimation ?
 		nMaxCellNumber =
 		    (int)min((longint)INT_MAX, ((lAvailableMemory - lNecessaryMemory) / (3 * lSizeOfCell)));
 
@@ -3121,21 +3243,21 @@ boolean CCCoclusteringBuilder::CheckMemoryForVarPartDataGridInitialization(KWDat
 	if (bDisplayMemoryStats)
 	{
 		cout << "CheckMemoryForDataGridInitialization" << endl;
-		cout << "\tInitial data grid: " << lInitialDataGridSize << endl;
-		cout << "\tWorking data grid: " << lWorkingDataGridSize << endl;
+		cout << "\tInitial data grid: " << LongintToHumanReadableString(lInitialDataGridSize) << endl;
+		cout << "\tWorking data grid: " << LongintToHumanReadableString(lWorkingDataGridSize) << endl;
 		cout << "\t  Size of cell: " << lSizeOfCell << endl;
 		cout << "\tMax cell number: " << nMaxCellNumber << endl;
-		cout << "\t  Necessary: " << lNecessaryMemory << endl;
-		cout << "\t  Available: " << lAvailableMemory << endl;
+		cout << "\t  Necessary: " << LongintToHumanReadableString(lNecessaryMemory) << endl;
+		cout << "\t  Available: " << LongintToHumanReadableString(lAvailableMemory) << endl;
 		cout << "\t  OK: " << (lNecessaryMemory <= lAvailableMemory) << endl;
 	}
 
 	// Test si memoire suffisante
 	if (lNecessaryMemory > lAvailableMemory)
 	{
-		sMessage = "Not enough memory to create initial data grid ";
+		sMessage = "Not enough memory to create initial data grid";
 		if (database->IsOpenedForRead() and database->GetReadPercentage() < 0.99)
-			sMessage += sTmp + "after reading " + IntToString((int)(100 * database->GetReadPercentage())) +
+			sMessage += sTmp + " after reading " + IntToString((int)(100 * database->GetReadPercentage())) +
 				    "% of the database";
 		else
 			sMessage += RMResourceManager::BuildMissingMemoryMessage(lNecessaryMemory);
@@ -3185,12 +3307,14 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridOptimization(KWDataGrid* in
 			lInitialMaxPartNumber = lPartNumber;
 
 		// Nombre total de valeurs categorielles
+		//DDD n'inclut pas les parties de type VarPart
 		if (dgAttribute->GetAttributeType() == KWType::Symbol)
 			lTotalValueNumber += dgAttribute->GetInitialValueNumber();
 	}
 
 	// Prise en compte d'une grille de travail et d'une grille pour la meilleure solution
 	lNecessaryMemory = 0;
+	//DDD Valable egalement pour le coclustering I * V ?
 	lMaxPartNumber = (longint)1 + (longint)ceil(pow(inputInitialDataGrid->GetGridFrequency(),
 							1.0 / inputInitialDataGrid->GetAttributeNumber()));
 	lWorkingDataGridSize = sizeof(KWDataGridMerger) + sizeof(void*);
@@ -3238,6 +3362,7 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridOptimization(KWDataGrid* in
 	lSizeOfCell = sizeof(KWDGMCell) + ((longint)2 + inputInitialDataGrid->GetAttributeNumber()) * sizeof(void*);
 	lWorkingDataGridSize += inputInitialDataGrid->GetCellNumber() * lSizeOfCell +
 				lTotalValueNumber * (sizeof(KWDGValue) + sizeof(void*));
+	//DDD pourquoi cet ajout est il fait une seconde fois ?
 	lWorkingDataGridSize += inputInitialDataGrid->GetCellNumber() * lSizeOfCell +
 				lTotalValueNumber * (sizeof(KWDGValue) + sizeof(void*));
 	lWorkingDataGridSize += lTotalPartMergeNumber * (sizeof(KWDGMPartMerge) + 2 * sizeof(void*));
@@ -3356,6 +3481,16 @@ void CCCoclusteringBuilder::ComputeDescriptiveAttributeStats(const KWTupleTable*
 	TaskProgression::BeginTask();
 	TaskProgression::DisplayMainLabel("Compute univariate descriptive stats");
 
+	//DDD MB
+	// On verifie ici que la table de tuple globales est enorme dans le cas d'un bloc sparse
+	// - nombre total d'attributs x nombre d'instances
+	// - la place memoire occupee est dense, alors qu'elle devrait etre sparse
+	/*DDD
+	cout << "ComputeDescriptiveAttributeStats\t" << tupleTable->GetAttributeNumber() << "\t"
+	     << tupleTable->GetSize() << "\t" << tupleTable->GetTotalFrequency() << "\t"
+	     << LongintToHumanReadableString(tupleTable->GetUsedMemory()) << endl;
+		 */
+
 	// Calcul des stats descriptives par attribut
 	for (nAttribute = 0; nAttribute < GetClass()->GetLoadedAttributeNumber(); nAttribute++)
 	{
@@ -3384,6 +3519,17 @@ void CCCoclusteringBuilder::ComputeDescriptiveAttributeStats(const KWTupleTable*
 
 			// Calcul des stats
 			descriptiveStats->ComputeStats(&univariateTupleTable);
+
+			//DDD MB
+			// - chaque table univariee extraites de la table de tuple globale est dense
+			// - elle serait sparse si elle avait ete calculee individuelle pour chaque variable de la base
+			/*DDD
+			cout << "DS\t" << descriptiveStats->GetAttributeName() << "\t"
+			     << descriptiveStats->GetValueNumber() << "\t" << descriptiveStats->GetMissingValueNumber()
+			     << "\t" << descriptiveStats->GetSparseMissingValueNumber() << "\tTT\t"
+			     << univariateTupleTable.GetSize() << "\t" << univariateTupleTable.GetTotalFrequency()
+			     << endl;
+				 */
 
 			// Memorisation
 			odOutputDescriptiveStats->SetAt(descriptiveStats->GetAttributeName(), descriptiveStats);
