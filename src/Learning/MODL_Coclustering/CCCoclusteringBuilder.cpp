@@ -2060,11 +2060,41 @@ boolean CCCoclusteringBuilder::CheckMemoryForDatabaseRead(KWDatabase* database) 
 		lNecessaryMemory += lFileMemory;
 
 		// Prise en compte d'une grille initiale "minimale" estimee de facon heuristique
-		lSizeOfCell = sizeof(KWDGMCell) + ((longint)2 + GetClass()->GetLoadedAttributeNumber()) * sizeof(void*);
-		lInitialDataGridSize = sizeof(KWDataGrid) + nAttributeNumber * sizeof(KWDGAttribute) +
-				       (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * nAttributeNumber *
-						 (lSizeOfCell + sizeof(KWDGMPart) + sizeof(KWDGMPartMerge) +
-						  sizeof(KWDGInterval) + sizeof(KWDGValueSet) + sizeof(KWDGValue)));
+		// Dimension d'une cellule de grille
+		// Cas Variable * Variable : cellules de dimension K avec K est le nombre de variables
+		if (not GetVarPartCoclustering())
+			lSizeOfCell =
+			    sizeof(KWDGMCell) + ((longint)2 + GetClass()->GetLoadedAttributeNumber()) * sizeof(void*);
+		// Sinon cas Individus * Variables : cellules de dimension 2
+		else
+			lSizeOfCell = sizeof(KWDGMCell) + ((longint)2 + 2) * sizeof(void*);
+		// Decomposition de la taille de la grille initiale
+		// taille de la grille : sizeof(KWDataGrid)
+		// taille des attributs : V*V -> nAttributeNumber * sizeof(KWDGAttribute) / I*V -> 2 * sizeof(KWDGAttribute)
+		// taille des parties i.e. nombre de valeurs distinctes : V*V -> sqrt(N) par variable / I*V -> N pour l'attribut Individu ou faire de meme sqrt(N) par variable
+		// taille cellules : V*V -> nombre de cellules non vides [sqrt(N) * nAttributeNumber] * lSizeOfCell / I*V -> sqrt(N) * 2 * lSizeOfCell
+		// taille additionnelle des innerVariables dans le cas I*V
+		// taille des innerVariables : nAttributeNumber * sizeof(KWDGAttribute)
+		// taille des parties des innerVariables : nombre de parties = sqrt(N) * nAttributeNumber par sizeof(KWDGMPart) + sizeof(KWDGInterval) + sizeof(KWDGValueSet) + sizeof(KWDGValue)) i.e. sans KWDGMPartMerge ?
+		if (not GetVarPartCoclustering())
+			lInitialDataGridSize =
+			    sizeof(KWDataGrid) + nAttributeNumber * sizeof(KWDGAttribute) +
+			    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * nAttributeNumber *
+				      (sizeof(KWDGMPart) + sizeof(KWDGMPartMerge) + sizeof(KWDGInterval) +
+				       sizeof(KWDGValueSet) + sizeof(KWDGValue))) +
+			    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * nAttributeNumber * lSizeOfCell);
+		// Cas d'un coclustering Individus * Variables
+		else
+			lInitialDataGridSize =
+			    sizeof(KWDataGrid) + 2 * sizeof(KWDGAttribute) +
+			    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * 2 *
+				      (sizeof(KWDGMPart) + sizeof(KWDGMPartMerge) + sizeof(KWDGInterval) +
+				       sizeof(KWDGValueSet) + sizeof(KWDGValue))) +
+			    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * 2 * lSizeOfCell) +
+			    nAttributeNumber * sizeof(KWDGAttribute) +
+			    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * nAttributeNumber *
+				      (sizeof(KWDGMPart) + sizeof(KWDGInterval) + sizeof(KWDGValueSet) +
+				       sizeof(KWDGValue)));
 		lNecessaryMemory += lInitialDataGridSize;
 
 		// Plus une grille de travail, et une pour la meilleure solution (de meme taille que la grille initiale)
@@ -2481,8 +2511,8 @@ boolean CCCoclusteringBuilder::FillVarPartTupleTableFromDatabase(KWDatabase* dat
 				// Test regulierement si il y a assez de memoire
 				if (tupleTable->GetSize() % 65536 == 0)
 				{
-					bOk = CheckMemoryForVarPartDataGridInitialization(
-					    GetDatabase(), tupleTable->GetSize(), nMaxCellNumberConstraint);
+					bOk = CheckMemoryForDataGridInitialization(GetDatabase(), tupleTable->GetSize(),
+										   nMaxCellNumberConstraint);
 					if (not bOk)
 						break;
 				}
@@ -3069,7 +3099,7 @@ boolean CCCoclusteringBuilder::CheckMemoryForVarPartDataGridInitialization(KWDat
 	// valeurs par variable
 	lNecessaryMemory = 0;
 	lInitialDataGridSize = sizeof(KWDataGrid) + sizeof(void*);
-	nInstanceNumber = 0;
+	//nInstanceNumber = 0;
 	dMaxCellNumber = 0;
 	for (nAttribute = 0; nAttribute < GetClass()->GetLoadedAttributeNumber(); nAttribute++)
 	{
@@ -3100,20 +3130,52 @@ boolean CCCoclusteringBuilder::CheckMemoryForVarPartDataGridInitialization(KWDat
 	}
 	lSizeOfCell = sizeof(KWDGMCell) + nDataGridDimensionNumber * sizeof(void*);
 	lInitialDataGridSize += (longint)ceil(dMaxCellNumber) * lSizeOfCell;
+	// taille des innerVariables ?
 	lNecessaryMemory += lInitialDataGridSize;
 
 	// Plus une grille de travail, et une pour la meilleure solution (de taille estimee minimale)
-	lWorkingDataGridSize = sizeof(KWDataGridMerger) + nAttributeNumber * sizeof(KWDGMAttribute) +
-			       (longint)ceil(sqrt(dMaxCellNumber)) * nAttributeNumber *
-				   (lSizeOfCell + sizeof(KWDGMPart) + sizeof(KWDGMPartMerge) + sizeof(KWDGInterval) +
+	lWorkingDataGridSize = sizeof(KWDataGridMerger) + 2 * sizeof(KWDGMAttribute) +
+			       (longint)ceil(sqrt(dMaxCellNumber)) * 2 * lSizeOfCell +
+			       (longint)ceil(sqrt(dMaxCellNumber)) * 2 *
+				   (sizeof(KWDGMPart) + sizeof(KWDGMPartMerge) + sizeof(KWDGInterval) +
 				    sizeof(KWDGValueSet) + sizeof(KWDGValue));
 	lWorkingDataGridSize *= 2;
 	lNecessaryMemory += lWorkingDataGridSize;
+
+	// Decomposition de la taille de la grille initiale
+	// taille de la grille : sizeof(KWDataGrid)
+	// taille des attributs : V*V -> nAttributeNumber * sizeof(KWDGAttribute) / I*V -> 2 * sizeof(KWDGAttribute)
+	// taille des parties i.e. nombre de valeurs distinctes : V*V -> sqrt(N) par variable / I*V -> N pour l'attribut Individu ou faire de meme sqrt(N) par variable
+	// taille cellules : V*V -> nombre de cellules non vides [sqrt(N) * nAttributeNumber] * lSizeOfCell / I*V -> sqrt(N) * 2 * lSizeOfCell
+	// taille additionnelle des innerVariables dans le cas I*V
+	// taille des innerVariables : nAttributeNumber * sizeof(KWDGAttribute)
+	// taille des parties des innerVariables : nombre de parties = sqrt(N) * nAttributeNumber par sizeof(KWDGMPart) + sizeof(KWDGInterval) + sizeof(KWDGValueSet) + sizeof(KWDGValue)) i.e. sans KWDGMPartMerge ?
+	// Rappel de checkmemory pour initialiser la base
+	//if (not GetVarPartCoclustering())
+	//	lInitialDataGridSize =
+	//	    sizeof(KWDataGrid) + nAttributeNumber * sizeof(KWDGAttribute) +
+	//	    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * nAttributeNumber *
+	//		      (sizeof(KWDGMPart) + sizeof(KWDGMPartMerge) + sizeof(KWDGInterval) +
+	//		       sizeof(KWDGValueSet) + sizeof(KWDGValue))) +
+	//	    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * nAttributeNumber * lSizeOfCell);
+	//// Cas d'un coclustering Individus * Variables
+	//else
+	//	lInitialDataGridSize =
+	//	    sizeof(KWDataGrid) + 2 * sizeof(KWDGAttribute) +
+	//	    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * 2 *
+	//		      (sizeof(KWDGMPart) + sizeof(KWDGMPartMerge) + sizeof(KWDGInterval) +
+	//		       sizeof(KWDGValueSet) + sizeof(KWDGValue))) +
+	//	    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * 2 * lSizeOfCell) +
+	//	    nAttributeNumber * sizeof(KWDGAttribute) +
+	//	    (longint)(ceil(sqrt(lEstimatedRecordNumber * 1.0)) * nAttributeNumber *
+	//		      (sizeof(KWDGMPart) + sizeof(KWDGInterval) + sizeof(KWDGValueSet) + sizeof(KWDGValue)));
+	// Fin rappel
 
 	// Estimation du nombre max de cellules que l'on peut charger en memoire, pour les grilles initiales, de
 	// travail, et finales
 	nMaxCellNumber = 0;
 	if (lNecessaryMemory < lAvailableMemory)
+		// Interpretation de cette estimation ?
 		nMaxCellNumber =
 		    (int)min((longint)INT_MAX, ((lAvailableMemory - lNecessaryMemory) / (3 * lSizeOfCell)));
 
@@ -3185,12 +3247,14 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridOptimization(KWDataGrid* in
 			lInitialMaxPartNumber = lPartNumber;
 
 		// Nombre total de valeurs categorielles
+		// n'inclut pas les parties de type VarPart
 		if (dgAttribute->GetAttributeType() == KWType::Symbol)
 			lTotalValueNumber += dgAttribute->GetInitialValueNumber();
 	}
 
 	// Prise en compte d'une grille de travail et d'une grille pour la meilleure solution
 	lNecessaryMemory = 0;
+	// Valable egalement pour le coclustering I * V ?
 	lMaxPartNumber = (longint)1 + (longint)ceil(pow(inputInitialDataGrid->GetGridFrequency(),
 							1.0 / inputInitialDataGrid->GetAttributeNumber()));
 	lWorkingDataGridSize = sizeof(KWDataGridMerger) + sizeof(void*);
@@ -3238,6 +3302,7 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridOptimization(KWDataGrid* in
 	lSizeOfCell = sizeof(KWDGMCell) + ((longint)2 + inputInitialDataGrid->GetAttributeNumber()) * sizeof(void*);
 	lWorkingDataGridSize += inputInitialDataGrid->GetCellNumber() * lSizeOfCell +
 				lTotalValueNumber * (sizeof(KWDGValue) + sizeof(void*));
+	// pourquoi cet ajout est il fait une seconde fois ?
 	lWorkingDataGridSize += inputInitialDataGrid->GetCellNumber() * lSizeOfCell +
 				lTotalValueNumber * (sizeof(KWDGValue) + sizeof(void*));
 	lWorkingDataGridSize += lTotalPartMergeNumber * (sizeof(KWDGMPartMerge) + 2 * sizeof(void*));
