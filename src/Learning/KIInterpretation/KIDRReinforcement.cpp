@@ -49,6 +49,8 @@ boolean KIDRClassifierReinforcer::CheckOperandsCompleteness(const KWClass* kwcOw
 	KWDRNBClassifier* checkedNBClassifierRule;
 	KWDRSymbolVector* checkedReinforcementAttributeNames;
 	StringVector svAttributeNames;
+	StringVector svDataGridAttributeNames;
+	ObjectArray oaPredictorDenseAttributeDataGridStatsRules;
 	LongintDictionary ldPredictorAttributes;
 	LongintNumericKeyDictionary lnkdUniqueReinforcedAttributes;
 	int nAttribute;
@@ -67,7 +69,9 @@ boolean KIDRClassifierReinforcer::CheckOperandsCompleteness(const KWClass* kwcOw
 		    cast(KWDRSymbolVector*, GetSecondOperand()->GetReferencedDerivationRule(kwcOwnerClass));
 
 		// Recherche de ses variables
-		checkedNBClassifierRule->ExportAttributeNames(kwcOwnerClass, &svAttributeNames);
+		checkedNBClassifierRule->ExportAttributeNames(kwcOwnerClass, &svAttributeNames,
+							      &svDataGridAttributeNames,
+							      &oaPredictorDenseAttributeDataGridStatsRules);
 
 		// On range les variables dans un dictionnaire
 		for (nAttribute = 0; nAttribute < svAttributeNames.GetSize(); nAttribute++)

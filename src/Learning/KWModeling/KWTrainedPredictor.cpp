@@ -247,7 +247,7 @@ void KWTrainedPredictor::CleanPredictorClass(const KWClassDomain* initialDomain)
 	predictorClass->DeleteUnusedDerivedAttributes(initialDomain);
 }
 
-boolean KWTrainedPredictor::ImportPredictorClass(KWClass* aClass)
+boolean KWTrainedPredictor::ImportPredictorClass(const KWClass* aClass)
 {
 	boolean bOk;
 	KWClassDomain* predictorDomain;
@@ -916,7 +916,7 @@ KWAttribute* KWTrainedClassifier::GetProbAttributeAt(int nIndex) const
 	    ->GetAttribute();
 }
 
-boolean KWTrainedClassifier::ImportPredictorClass(KWClass* aClass)
+boolean KWTrainedClassifier::ImportPredictorClass(const KWClass* aClass)
 {
 	const ALString sTargetProbMetaDataKey = GetTargetProbMetaDataKey();
 	boolean bOk;

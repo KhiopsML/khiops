@@ -29,10 +29,10 @@ public:
 	//////////////////////////////////////////////////////////////////////
 	// Import d'un predicteur
 
-	// Import d'un predicteur a partir d'un dictionnaire quelconque
+	// Import d'un predicteur a partir d'un dictionnaire compile quelconque
 	// Renvoie true si on a pu l'importer sans probleme et s'il est interpetable
 	// Emet un warning en cas d'un predicteur non interpretable (ex: regresseur)
-	boolean ImportPredictor(KWClass* kwcInputPredictor);
+	boolean ImportPredictor(const KWClass* kwcInputPredictor);
 
 	// Indique si un predicteur a ete importe
 	boolean IsPredictorImported() const;
@@ -53,8 +53,11 @@ public:
 	// Nombre de variables du predicteur
 	int GetPredictorAttributeNumber() const;
 
-	// Acces au tableau des noms variables du predicteur
+	// Acces au tableau des noms de variables du predicteur
 	const StringVector* GetPredictorAttributeNames() const;
+
+	// Acces au tableau des noms de variables de grille du predicteur
+	const StringVector* GetPredictorDataGridAttributeNames() const;
 
 	// Service de construction du tableau des attribut du predicteur, tries par importance decroissante
 	// Memoire: le contenu du tableau comprend des KIPredictorAttributes, a detruire par l'appelant
@@ -71,7 +74,7 @@ public:
 	// Construction d'un dictionnaire de renforcement
 	KWClass* BuildReinforcementClass(const KIModelReinforcer* modelReinforcerSpec) const;
 
-	// Cles de meta donnees pour les dictionnaires et variables d'interpretation
+	// Cles de meta-donnees pour les dictionnaires et variables d'interpretation
 	static const ALString& GetIntepreterMetaDataKey();
 	static const ALString& GetShapleyValueRankingMetaDataKey();
 	static const ALString& GetContributionAttributeMetaDataKey();
@@ -79,7 +82,7 @@ public:
 	static const ALString& GetContributionPartRankMetaDataKey();
 	static const ALString& GetContributionValueRankMetaDataKey();
 
-	// Cles de meta donnees pour les dictionnaires et variables de reneforcement
+	// Cles de meta-donnees pour les dictionnaires et variables de renforcement
 	static const ALString& GetReinforcerMetaDataKey();
 	static const ALString& GetReinforcementClassMetaDataKey();
 	static const ALString& GetLeverAttributeMetaDataKey();
@@ -89,7 +92,12 @@ public:
 	static const ALString& GetReinforcementFinalScoreRankMetaDataKey();
 	static const ALString& GetReinforcementClassChangeTagRankMetaDataKey();
 
-	// Cles de meta-donne ou valeur communes
+	// Cles de meta-donnees dediees aux attribut cree pour les pair ou valeur communes
+	static const ALString& GetIsPairMetaDataKey();
+	static const ALString& GetName1MetaDataKey();
+	static const ALString& GetName2MetaDataKey();
+
+	// Cles de meta-donnee ou valeur communes
 	static const ALString& GetTargetMetaDataKey();
 	static const ALString& GetShapleyLabel();
 	static const ALString& GetReinforcementLabel();
@@ -97,18 +105,31 @@ public:
 	//////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Creation d'un dictionnaire ayant les meme nom de variables et de blocs qu'un dictionnaire en entree,
+	// uniquement pour beneficier des service de creation de nom de variable unique
+	// Utile pour la creation de nom de paires de variables uniques
+	KWClass* BuildShadowClass(const KWClass* kwcInputClass) const;
+
+	// Import des meta-data des variables du predictor
+	void ImportPredictorVariablesMetaData(const KWClass* kwcInputPredictor);
+
+	// Message d'erreur ou de warning lie au predicteur un predicteur
+	void AddPredictorError(const KWClass* kwcInputPredictor, const ALString& sLabel) const;
+	void AddPredictorWarning(const KWClass* kwcInputPredictor, const ALString& sLabel) const;
+
 	// Construction d'un dictionnaire de service d'interpretation
 	// Creation du dictionnaire a partir de la classe
+	// - creation potentielle de variables dediees au paires utilisees par le predicteur
 	// - tous ses attributs sont mis en unused, sauf sa cle
-	// - les eventuelles mata-data sont nettoyees
+	// - les eventuelles meta-data sont nettoyees
 	KWClass* BuildInterpretationServiceClass(const ALString& sServiceLabel,
 						 const StringVector* svServiceMetaDataKeys) const;
 
-	// Test de compatibilite du dictionnaire a ne pas utiliser l'option group target Values
-	boolean IsClassifierClassUsingTargetValueGrouping(KWClass* kwcClassifier) const;
-
-	// Test de compatibilite du dictionnaire a ne pas utiliser les discretisation bivariees, non actuellement gerees
-	boolean IsClassifierClassUsingBivariatePreprocessing(KWClass* kwcClassifier) const;
+	// Creation d'un attribut dediee a une paire utilisee par le predicteur
+	KWAttribute* CreatePairAttribute(KWClass* kwcInterpretationServiceClass, const ALString& sPairAttributeName,
+					 const ALString& sPairName1, const ALString& sPairName2,
+					 const ALString& sPairDataGridAttributeName, double dLevel, double dWeight,
+					 double dImportance) const;
 
 	////////////////////////////////////////////////////////////////////////////
 	// Creation des attributs du dictionnaite d'interpretation
@@ -164,7 +185,7 @@ protected:
 	// Variables de la classe
 
 	// Dictionnaire du predicteur
-	KWClass* kwcPredictorClass;
+	const KWClass* kwcPredictorClass;
 
 	// Nom de l'attribut correspondant a la regle du predicteur
 	ALString sPredictorRuleAttributeName;
@@ -177,6 +198,17 @@ protected:
 
 	// Noms des variables du predicteur
 	StringVector svPredictorAttributeNames;
+
+	// Noms des variables de grilles du predicteur
+	StringVector svPredictorDataGridAttributeNames;
+
+	// Regles de variables preparees du predicteur dans le cas dense
+	ObjectArray oaPredictorDenseAttributeDataGridStatsRules;
+
+	// Donnees de type Weight, Level et Importance par variable du predicteur
+	DoubleVector dvPredictorAttributeLevels;
+	DoubleVector dvPredictorAttributeWeights;
+	DoubleVector dvPredictorAttributeImportances;
 };
 
 ///////////////////////////////////

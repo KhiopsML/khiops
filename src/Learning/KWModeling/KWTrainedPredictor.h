@@ -82,7 +82,7 @@ public:
 	// Renvoie true si import possible, et dans ce cas, la classe est utilisee pour la prediction
 	// dans son domaine d'origine (potentiellement partage par d'autres classes de prediction)
 	// Renvoie false sinon, sans message d'erreur
-	virtual boolean ImportPredictorClass(KWClass* aClass);
+	virtual boolean ImportPredictorClass(const KWClass* aClass);
 
 	// Test si le predicteur est consistent avec un autre predicteur et peut-etre evalue sur la meme base
 	// Emission de message d'erreur si necessaire
@@ -234,7 +234,7 @@ public:
 	// Divers
 
 	// Import d'un classe existante pour parametrer un predicteur
-	boolean ImportPredictorClass(KWClass* aClass) override;
+	boolean ImportPredictorClass(const KWClass* aClass) override;
 
 	// Test si le predicteur est consistent avec un autre predicteur
 	boolean IsConsistentWith(const KWTrainedPredictor* otherPredictor) const override;

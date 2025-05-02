@@ -86,6 +86,7 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 
 	// Memorisation du classifier du premier operande
 	classifierRule = cast(const KWDRNBClassifier*, GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
+	assert(classifierRule->IsCompiled());
 
 	// Initialisation des vecteur et tableau de resultats a la bonne taille
 	ivDataGridSourceIndexes.SetSize(classifierRule->GetDataGridStatsNumber());
