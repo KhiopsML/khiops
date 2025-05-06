@@ -71,12 +71,19 @@ public:
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
 
-	// Test
-	static void Test();
-
 	/////////////////////////////////////////////////////////
 	// Implementation
 protected:
+	// Initialisation a partir d'une grille dans le cas univarie
+	void InitializeFromUnivariateDataGridStats(const SymbolVector* svTargetValues,
+						   const IntVector* ivTargetValueFrequencies,
+						   const KWDataGridStats* dataGridStats, double dAttributeWeight);
+
+	// Initialisation a partir d'une grille dans le cas bivarie
+	void InitializeFromBivariateDataGridStats(const SymbolVector* svTargetValues,
+						  const IntVector* ivTargetValueFrequencies,
+						  const KWDataGridStats* dataGridStats, double dAttributeWeight);
+
 	// Variables d'instances
 	ContinuousVector cvTableValues;
 	int nTableSourceSize;

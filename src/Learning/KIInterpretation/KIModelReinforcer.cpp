@@ -130,7 +130,8 @@ boolean KIModelReinforcer::Check() const
 			if (GetReinforcedTargetValue() == "")
 				AddError("A target value to reinforce must be selected");
 			else
-				AddError("An existing target value to reinforce must be selected");
+				AddError("Selected target value to reinforce (" + GetReinforcedTargetValue() +
+					 ") is unknown to the predictor");
 			bOk = false;
 		}
 	}

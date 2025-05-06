@@ -19,9 +19,14 @@ void KIDRRegisterInterpretationRules()
 KIDRClassifierService::KIDRClassifierService()
 {
 	SetType(KWType::Structure);
-	SetOperandNumber(1);
+	SetOperandNumber(2);
 	GetFirstOperand()->SetType(KWType::Structure);
 	GetFirstOperand()->SetStructureName("Classifier");
+
+	// Ajout d'un second operande en nombre variable, pour memoriser les variables additionnelles
+	// generees dans le cas de paires utilisees par le predicteur
+	GetSecondOperand()->SetType(KWType::Symbol);
+	SetVariableOperandNumber(true);
 
 	// Initialisation des resultats de compilation
 	classifierRule = NULL;
@@ -42,7 +47,23 @@ boolean KIDRClassifierService::CheckOperandsCompleteness(const KWClass* kwcOwner
 	boolean bOk;
 	const KWDRNBClassifier referenceNBRule;
 	const KWDRSNBClassifier referenceSNBRule;
-	KWDerivationRule* checkedClassifierRule;
+	KWDerivationRule* checkedRule;
+	KWDRNBClassifier* checkedClassifierRule;
+	StringVector svCheckedPredictorAttributeNames;
+	StringVector svCheckedPredictorDataGridAttributeNames;
+	ObjectArray oaCheckedPredictorDenseAttributeDataGridStatsRules;
+	KWDRDataGridStats* dataGridStatsRule;
+	ALString sName1;
+	ALString sName2;
+	KWDerivationRule* referenceRule;
+	int nFirstPairOperandIndex;
+	int nPairIndex;
+	int nPairOperandIndex;
+	KWDerivationRuleOperand* pairOperand;
+	KWAttribute* pairAttribute;
+	KWDerivationRule* pairRule;
+	int nAttribute;
+	ALString sTmp;
 
 	// Appel de la methode ancetre
 	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
@@ -50,12 +71,166 @@ boolean KIDRClassifierService::CheckOperandsCompleteness(const KWClass* kwcOwner
 	// On doit se baser sur un classifieur de type naive bayes
 	if (bOk)
 	{
-		checkedClassifierRule = GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass);
-		if (checkedClassifierRule->GetName() != referenceNBRule.GetName() and
-		    checkedClassifierRule->GetName() != referenceSNBRule.GetName())
+		checkedRule = GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass);
+		if (checkedRule->GetName() != referenceNBRule.GetName() and
+		    checkedRule->GetName() != referenceSNBRule.GetName())
 		{
 			AddError("First rule operand must be a classifier of type " + referenceNBRule.GetName() +
 				 " or " + referenceSNBRule.GetName());
+			bOk = false;
+		}
+	}
+
+	// On doit verifier l'existence des variables generees en cas d'utilisation de paires par le classifieur
+	if (bOk)
+	{
+		// Acces a la regle de reference
+		referenceRule = KWDerivationRule::LookupDerivationRule(GetName());
+		assert(referenceRule != NULL);
+		assert(referenceRule->GetVariableOperandNumber());
+		assert(GetFirstOperand()->GetType() == referenceRule->GetFirstOperand()->GetType());
+
+		// Recherche de l'index de la premiere paire de variable, correspondant au dernier operande
+		// de la regle de reference, qui peut avoir ete redefini dans une sous-classe
+		nFirstPairOperandIndex = referenceRule->GetOperandNumber() - 1;
+		assert(referenceRule->GetOperandAt(nFirstPairOperandIndex)->GetType() == KWType::Symbol);
+
+		// Acces au classifieur
+		checkedClassifierRule =
+		    cast(KWDRNBClassifier*, GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
+		assert(checkedClassifierRule->CheckOperandsCompleteness(kwcOwnerClass));
+
+		// Extraction des infos sur les variables du predicteur
+		// Initialisation des listes d'attributs du classifier
+		checkedClassifierRule->ExportAttributeNames(kwcOwnerClass, &svCheckedPredictorAttributeNames,
+							    &svCheckedPredictorDataGridAttributeNames,
+							    &oaCheckedPredictorDenseAttributeDataGridStatsRules);
+
+		// Verification de la presence des variables generees pour chaque paire du predicteur
+		nPairIndex = 0;
+		for (nAttribute = 0; nAttribute < svCheckedPredictorAttributeNames.GetSize(); nAttribute++)
+		{
+			// Les paires correspondent aux variables du predicteur, n'ayant pas de nom
+			if (svCheckedPredictorAttributeNames.GetAt(nAttribute) == "")
+			{
+				// Recherche de la preparation bivariee
+				dataGridStatsRule =
+				    cast(KWDRDataGridStats*,
+					 oaCheckedPredictorDenseAttributeDataGridStatsRules.GetAt(nAttribute));
+				assert(dataGridStatsRule != NULL);
+				assert(dataGridStatsRule->GetOperandNumber() == 3);
+				assert(dataGridStatsRule->GetOperandAt(0)->GetAttributeName() ==
+				       svCheckedPredictorDataGridAttributeNames.GetAt(nAttribute));
+				assert(dataGridStatsRule->GetOperandAt(1)->GetAttributeName() != "");
+				assert(dataGridStatsRule->GetOperandAt(2)->GetAttributeName() != "");
+
+				// Extraction du nom des variables de la paire
+				sName1 = dataGridStatsRule->GetOperandAt(1)->GetAttributeName();
+				sName2 = dataGridStatsRule->GetOperandAt(2)->GetAttributeName();
+
+				// Recherche de l'operande pour la paire utilisee par le predicteur
+				nPairOperandIndex = nFirstPairOperandIndex + nPairIndex;
+				if (nPairOperandIndex >= GetOperandNumber())
+				{
+					AddError(sTmp + "Missing operand " + IntToString(nPairOperandIndex + 1) +
+						 " for pair (" + sName1 + ", " + sName2 +
+						 ") selected by the classifier");
+					bOk = false;
+				}
+
+				// Verification de l'operande
+				pairOperand = NULL;
+				if (bOk)
+				{
+					pairOperand = GetOperandAt(nPairOperandIndex);
+					if (pairOperand->GetAttributeName() == "")
+					{
+						AddError(sTmp + "Operand " + IntToString(nPairOperandIndex + 1) +
+							 " related to pair (" + sName1 + ", " + sName2 +
+							 ") selected by the classifier should use a variable in the "
+							 "dictionnary");
+						bOk = false;
+					}
+				}
+
+				// Verification de l'attribut et de sa regle
+				pairAttribute = NULL;
+				pairRule = NULL;
+				if (bOk)
+				{
+					// Recherche de la variable generee pour la paire utilisee par le predicteur
+					// Elle doit exister, puisque la validite de la regle a ete verifie par la classe ancetre
+					pairAttribute = kwcOwnerClass->LookupAttribute(pairOperand->GetAttributeName());
+					assert(pairAttribute != NULL);
+					assert(pairAttribute->GetType() == KWType::Symbol);
+
+					// Test de validite de la regle de derivation
+					pairRule = pairAttribute->GetDerivationRule();
+					if (pairRule == NULL)
+					{
+						AddError("Variable " + pairAttribute->GetName() + " related to pair (" +
+							 sName1 + ", " + sName2 +
+							 ") selected by the classifier should have a derivation rule");
+						bOk = false;
+					}
+					else if (pairRule->GetOperandNumber() != 3)
+					{
+						AddError("Variable " + pairAttribute->GetName() + " related to pair (" +
+							 sName1 + ", " + sName2 +
+							 ") selected by the classifier should have a derivation rule "
+							 "with three operands");
+						bOk = false;
+					}
+					else if (pairRule->GetOperandAt(0)->GetDataItemName() !=
+						 svCheckedPredictorDataGridAttributeNames.GetAt(nAttribute))
+					{
+						AddError("Variable " + pairAttribute->GetName() + " related to pair (" +
+							 sName1 + ", " + sName2 +
+							 ") selected by the classifier should use variable " +
+							 svCheckedPredictorDataGridAttributeNames.GetAt(nAttribute) +
+							 " (instead of " +
+							 pairRule->GetOperandAt(0)->GetDataItemName() +
+							 ") in the first operand of its derivation rule");
+						bOk = false;
+					}
+					else if (pairRule->GetOperandAt(1)->GetDataItemName() != sName1)
+					{
+						AddError("Variable " + pairAttribute->GetName() + " related to pair (" +
+							 sName1 + ", " + sName2 +
+							 ") selected by the classifier should use variable " + sName1 +
+							 " (instead of " +
+							 pairRule->GetOperandAt(1)->GetDataItemName() +
+							 ") in the second operand of its derivation rule");
+						bOk = false;
+					}
+					else if (pairRule->GetOperandAt(2)->GetDataItemName() != sName2)
+					{
+						AddError("Variable " + pairAttribute->GetName() + " related to pair (" +
+							 sName1 + ", " + sName2 +
+							 ") selected by the classifier should use variable " + sName2 +
+							 " (instead of " +
+							 pairRule->GetOperandAt(2)->GetDataItemName() +
+							 ") in the third operand of its derivation rule");
+						bOk = false;
+					}
+				}
+
+				// Arret si erreur
+				if (not bOk)
+					break;
+
+				// Incrementation de l'index de paire
+				nPairIndex++;
+			}
+		}
+
+		// Erreur si trop d'operandes
+		if (bOk and GetOperandNumber() > nFirstPairOperandIndex + nPairIndex)
+		{
+			AddError(sTmp + "Number of operands (" + IntToString(GetOperandNumber()) + ") should be " +
+				 IntToString(nFirstPairOperandIndex + nPairIndex) +
+				 ", given that the number of variable pairs selected by the classifier is " +
+				 IntToString(nPairIndex));
 			bOk = false;
 		}
 	}
@@ -77,12 +252,27 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 	int nDataGridStatsOrBlock;
 	int nDataGrid;
 	int nAttribute;
+	KWDerivationRule* referenceRule;
+	int nFirstPairOperandIndex;
+	int nPairIndex;
+	KWDerivationRuleOperand* pairOperand;
 
 	// Nettoyage prealable
 	Clean();
 
 	// Appel de la methode ancetre
 	KWDerivationRule::Compile(kwcOwnerClass);
+
+	// Acces a la regle de reference
+	referenceRule = KWDerivationRule::LookupDerivationRule(GetName());
+	assert(referenceRule != NULL);
+	assert(referenceRule->GetVariableOperandNumber());
+	assert(GetFirstOperand()->GetType() == referenceRule->GetFirstOperand()->GetType());
+
+	// Recherche de l'index de la premiere paire de variable, correspondant au dernier operande
+	// de la regle de reference, qui peut avoir ete redefini dans une sous-classe
+	nFirstPairOperandIndex = referenceRule->GetOperandNumber() - 1;
+	assert(referenceRule->GetOperandAt(nFirstPairOperandIndex)->GetType() == KWType::Symbol);
 
 	// Memorisation du classifier du premier operande
 	classifierRule = cast(const KWDRNBClassifier*, GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
@@ -95,8 +285,9 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 	oaPredictorAttributeDataGridRules.SetSize(classifierRule->GetDataGridStatsNumber());
 	oaPredictorAttributeDataGridStatsRules.SetSize(classifierRule->GetDataGridStatsNumber());
 
-	// Collecte des variables du predicteur et calcul des tables de Shapley
+	// Collecte des variables du predicteur
 	nAttribute = 0;
+	nPairIndex = 0;
 	for (nDataGridStatsOrBlock = 0; nDataGridStatsOrBlock < classifierRule->GetDataGridStatsOrBlockNumber();
 	     nDataGridStatsOrBlock++)
 	{
@@ -106,12 +297,34 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 			dataGridStatsRule = classifierRule->GetDataGridStatsAt(nDataGridStatsOrBlock);
 			assert(dataGridStatsRule->GetFirstOperand()->GetOrigin() ==
 			       KWDerivationRuleOperand::OriginAttribute);
+			assert(dataGridStatsRule->GetDataGridSourceAttributeNumber() == 1 or
+			       dataGridStatsRule->GetDataGridSourceAttributeNumber() == 2);
 
-			// Extraction du nom et de la grille de preparation
-			sAttributeName = dataGridStatsRule->GetSecondOperand()->GetAttributeName();
+			// Extraction de la grille de preparation
 			dataGridRule =
 			    cast(const KWDRDataGrid*,
 				 dataGridStatsRule->GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
+
+			// Extraction du nom dans le cas univarie
+			if (dataGridRule->GetAttributeNumber() == 2)
+				sAttributeName = dataGridStatsRule->GetSecondOperand()->GetAttributeName();
+			// Dans le cas bivarie, on recherche l'attribut genere pour la paire
+			else
+			{
+				assert(dataGridRule->GetAttributeNumber() == 3);
+
+				// Recherche de l'operande pour la paire utilisee par le predicteur
+				assert(nFirstPairOperandIndex + nPairIndex < GetOperandNumber());
+				pairOperand = GetOperandAt(nFirstPairOperandIndex + nPairIndex);
+
+				// Utilisation du nom de l'attribut genere pour la paire
+				sAttributeName = pairOperand->GetAttributeName();
+				assert(sAttributeName != "");
+				assert(kwcOwnerClass->LookupAttribute(sAttributeName) != NULL);
+
+				// Incrementation de l'index de paire
+				nPairIndex++;
+			}
 
 			// Memorisation du nom de l'attribut sous forme de Symbol
 			svPredictorAttributeNames.SetAt(nAttribute, (Symbol)sAttributeName);
@@ -252,7 +465,10 @@ void KIDRClassifierService::WriteAttributeDetails(ostream& ost, int nAttribute) 
 		ost << dataGridStats.GetAttributeAt(i)->GetPartNumber();
 	}
 	ost << "\n";
-	dataGridStats.WriteFrequencyCrossTable(ost);
+	if (dataGridStats.GetAttributeNumber() == 2)
+		dataGridStats.WriteFrequencyCrossTable(ost);
+	else
+		dataGridStats.WriteCellArrayLineReport(ost);
 }
 
 longint KIDRClassifierService::GetUsedMemory() const
@@ -280,6 +496,59 @@ void KIDRClassifierService::Clean()
 	oaPredictorAttributeDataGridStatsRules.RemoveAll();
 	ivDataGridSourceIndexes.SetSize(0);
 	ivDataGridSourceDefaultIndexes.SetSize(0);
+}
+
+const ALString KIDRClassifierService::BuildSourceCellLabel(const KWDRDataGrid* dataGridRule, int nSourceCellIndex) const
+{
+	KWDRUnivariatePartition* univariatePartition1;
+	KWDRUnivariatePartition* univariatePartition2;
+	int nPartIndex1;
+	int nPartIndex2;
+	ALString sCellLabel;
+
+	require(dataGridRule != NULL);
+	require(dataGridRule->IsCompiled());
+	require(dataGridRule->GetAttributeNumber() == 2 or dataGridRule->GetAttributeNumber() == 3);
+	require(0 <= nSourceCellIndex);
+	require(
+	    (dataGridRule->GetAttributeNumber() == 2 and
+	     nSourceCellIndex < dataGridRule->GetAttributePartNumberAt(0)) or
+	    (dataGridRule->GetAttributeNumber() == 3 and
+	     nSourceCellIndex < dataGridRule->GetAttributePartNumberAt(0) * dataGridRule->GetAttributePartNumberAt(1)));
+
+	// Acces a la partition univariee de l'attribut pour obtenir le libelle de la partie, dans le cas univarie
+	if (dataGridRule->GetAttributeNumber() == 2)
+	{
+		univariatePartition1 =
+		    cast(KWDRUnivariatePartition*, dataGridRule->GetOperandAt(0)->GetDerivationRule());
+		sCellLabel = univariatePartition1->GetPartLabelAt(nSourceCellIndex);
+	}
+	// Cas bivarie
+	else
+	{
+		assert(dataGridRule->GetAttributeNumber() == 3);
+
+		// Acces a chaque partition univariee
+		univariatePartition1 =
+		    cast(KWDRUnivariatePartition*, dataGridRule->GetOperandAt(0)->GetDerivationRule());
+		univariatePartition2 =
+		    cast(KWDRUnivariatePartition*, dataGridRule->GetOperandAt(1)->GetDerivationRule());
+
+		// On reconstuit les index de chaque variable de la paire
+		nPartIndex2 = nSourceCellIndex / univariatePartition1->GetPartNumber();
+		nPartIndex1 = nSourceCellIndex - nPartIndex2 * univariatePartition1->GetPartNumber();
+		assert(0 <= nPartIndex1 and nPartIndex1 < univariatePartition1->GetPartNumber());
+		assert(0 <= nPartIndex2 and nPartIndex2 < univariatePartition2->GetPartNumber());
+
+		// On reconstuit un nom de partie conforme a celui en sortie des attributs crees par paire
+		// utilisees par le predicteur.
+		// Ces attributs ne sont pas ici directement exploitable, car il prennent en entree des
+		// valeurs de variable, et non les index de partie ici disponibles
+		sCellLabel = univariatePartition1->GetPartLabelAt(nPartIndex1);
+		sCellLabel += " x ";
+		sCellLabel += univariatePartition2->GetPartLabelAt(nPartIndex2);
+	}
+	return sCellLabel;
 }
 
 void KIDRClassifierService::ComputeDataGridSourcesIndexes() const
@@ -471,10 +740,8 @@ Symbol KIDRClassifierInterpreter::GetRankedContributionPartAt(int nTargetValueRa
 	dataGridRule = cast(const KWDRDataGrid*, oaPredictorAttributeDataGridRules.GetAt(nAttributeIndex));
 	nDataGridSourceIndex = ivDataGridSourceIndexes.GetAt(nAttributeIndex);
 
-	// Acces a la partition univariee de l'attribut pour obtenir le libelle de la partie
-	assert(dataGridRule->GetAttributeNumber() == 2);
-	sCellLabel = cast(KWDRUnivariatePartition*, dataGridRule->GetOperandAt(0)->GetDerivationRule())
-			 ->GetPartLabelAt(nDataGridSourceIndex);
+	// Construction du libelle de la partie, valide dans les cas univaries et bivaries
+	sCellLabel = BuildSourceCellLabel(dataGridRule, nDataGridSourceIndex);
 	return (Symbol)sCellLabel;
 }
 
@@ -745,7 +1012,8 @@ Continuous KIDRContributionAt::ComputeContinuousResult(const KWObject* kwoObject
 		    classifierInterpreter->GetTargetValueRank(GetOperandAt(1)->GetSymbolValue(kwoObject));
 	nPredictorAttributeRank = nConstantPredictorAttributeRank;
 	if (nPredictorAttributeRank == -1)
-		nPredictorAttributeRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
+		nPredictorAttributeRank =
+		    classifierInterpreter->GetPredictorAttributeRank(GetOperandAt(2)->GetSymbolValue(kwoObject));
 
 	// Contribution si valide
 	if (nTargetValueRank >= 0 and nPredictorAttributeRank >= 0)

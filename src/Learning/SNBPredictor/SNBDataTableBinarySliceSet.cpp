@@ -681,8 +681,6 @@ void SNBDataTableBinarySliceSetSchema::InitializeFromDataPreparationClass(
 		// pour les paires de variables
 		sName = dataPreparationAttribute->ComputeNativeAttributeName();
 		sUniqueName = sName;
-		assert(ldUnivariateNativeAttributeNames.Lookup(sUniqueName) == 0 or
-		       dataPreparationAttribute->GetNativeAttributeNumber() == 1);
 		if (dataPreparationAttribute->GetNativeAttributeNumber() > 1)
 		{
 			// Recherche d'un nom unique, en suffixant par un index croissant

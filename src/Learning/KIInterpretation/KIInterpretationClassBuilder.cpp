@@ -194,7 +194,7 @@ boolean KIInterpretationClassBuilder::ImportPredictor(const KWClass* kwcInputPre
 		assert(sPredictorRuleAttributeName != "");
 		assert(classifierRule != NULL);
 
-		// Initialisation des listes d'attributs du classifier
+		// Extraction des infos sur les variables du predicteur
 		classifierRule->ExportAttributeNames(kwcInputPredictor, &svPredictorAttributeNames,
 						     &svPredictorDataGridAttributeNames,
 						     &oaPredictorDenseAttributeDataGridStatsRules);
@@ -759,6 +759,9 @@ KWAttribute* KIInterpretationClassBuilder::CreateInterpreterAttribute(KWClass* k
 	KWAttribute* interpreterAttribute;
 	KIDRClassifierInterpreter* interpreterRule;
 	ALString sValue;
+	KWDRDataGridStats* dataGridStatsRule;
+	KWDerivationRuleOperand* operand;
+	int i;
 
 	require(kwcInterpretationClass != NULL);
 	require(predictorRuleAttribute != NULL);
@@ -768,6 +771,26 @@ KWAttribute* KIInterpretationClassBuilder::CreateInterpreterAttribute(KWClass* k
 	interpreterRule->SetClassName(kwcInterpretationClass->GetName());
 	interpreterRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
 	interpreterRule->GetFirstOperand()->SetAttributeName(predictorRuleAttribute->GetName());
+	assert(interpreterRule->Check());
+
+	// Ajout d'operandes pour chaque attribut genere par paire utilise par le predicteur
+	interpreterRule->DeleteAllVariableOperands();
+	for (i = 0; i < svPredictorAttributeNames.GetSize(); i++)
+	{
+		// A ce stade, tous les attributs du preducteurs existent, potentiellement crees dans le cas des paires
+		assert(kwcInterpretationClass->LookupAttribute(svPredictorAttributeNames.GetAt(i)) != NULL);
+
+		// Ajout d'un operande de type paire si necessaire
+		dataGridStatsRule = cast(KWDRDataGridStats*, oaPredictorDenseAttributeDataGridStatsRules.GetAt(i));
+		if (dataGridStatsRule != NULL and dataGridStatsRule->GetOperandNumber() == 3)
+		{
+			operand = new KWDerivationRuleOperand;
+			operand->SetType(KWType::Symbol);
+			operand->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+			operand->SetAttributeName(svPredictorAttributeNames.GetAt(i));
+			interpreterRule->AddOperand(operand);
+		}
+	}
 	assert(interpreterRule->Check());
 
 	// Creation de l'attribut, et affectation de la regle de derivation
@@ -916,6 +939,9 @@ KIInterpretationClassBuilder::CreateReinforcerAttribute(KWClass* kwcReinforcemen
 	KWDRSymbolVector* reinforcementAttributesRule;
 	int nAttribute;
 	ALString sValue;
+	KWDRDataGridStats* dataGridStatsRule;
+	KWDerivationRuleOperand* operand;
+	int i;
 
 	require(kwcReinforcementClass != NULL);
 	require(predictorRuleAttribute != NULL);
@@ -936,6 +962,26 @@ KIInterpretationClassBuilder::CreateReinforcerAttribute(KWClass* kwcReinforcemen
 	reinforcerRule->GetFirstOperand()->SetAttributeName(predictorRuleAttribute->GetName());
 	reinforcerRule->GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
 	reinforcerRule->GetSecondOperand()->SetDerivationRule(reinforcementAttributesRule);
+	assert(reinforcerRule->Check());
+
+	// Ajout d'operandes pour chaque attribut genere par paire utilise par le predicteur
+	reinforcerRule->DeleteAllVariableOperands();
+	for (i = 0; i < svPredictorAttributeNames.GetSize(); i++)
+	{
+		// A ce stade, tous les attributs du preducteurs existent, potentiellement crees dans le cas des paires
+		assert(kwcReinforcementClass->LookupAttribute(svPredictorAttributeNames.GetAt(i)) != NULL);
+
+		// Ajout d'un operande de type paire si necessaire
+		dataGridStatsRule = cast(KWDRDataGridStats*, oaPredictorDenseAttributeDataGridStatsRules.GetAt(i));
+		if (dataGridStatsRule != NULL and dataGridStatsRule->GetOperandNumber() == 3)
+		{
+			operand = new KWDerivationRuleOperand;
+			operand->SetType(KWType::Symbol);
+			operand->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+			operand->SetAttributeName(svPredictorAttributeNames.GetAt(i));
+			reinforcerRule->AddOperand(operand);
+		}
+	}
 	assert(reinforcerRule->Check());
 
 	// Creation de l'attribut, et affectation de la regle de derivation

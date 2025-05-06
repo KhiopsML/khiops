@@ -16,6 +16,110 @@ void KIShapleyTable::InitializeFromDataGridStats(const SymbolVector* svTargetVal
 						 const IntVector* ivTargetValueFrequencies,
 						 const KWDataGridStats* dataGridStats, double dAttributeWeight)
 {
+	require(svTargetValues != NULL);
+	require(svTargetValues->GetSize() > 1);
+	require(ivTargetValueFrequencies != NULL);
+	require(ivTargetValueFrequencies->GetSize() == svTargetValues->GetSize());
+	require(dataGridStats != NULL);
+	require(dataGridStats->GetAttributeNumber() == 2 or dataGridStats->GetAttributeNumber() == 3);
+	require(dataGridStats->GetAttributeAt(dataGridStats->GetAttributeNumber() - 1)->GetAttributeType() ==
+		KWType::Symbol);
+	require(0 < dAttributeWeight);
+
+	// Redirection sur le cas univarie ou bivarie
+	if (dataGridStats->GetAttributeNumber() == 2)
+		InitializeFromUnivariateDataGridStats(svTargetValues, ivTargetValueFrequencies, dataGridStats,
+						      dAttributeWeight);
+	else
+		InitializeFromBivariateDataGridStats(svTargetValues, ivTargetValueFrequencies, dataGridStats,
+						     dAttributeWeight);
+}
+
+void KIShapleyTable::Initialize(int nSourceSize, int nTargetSize)
+{
+	require(nSourceSize >= 0);
+	require(nTargetSize >= 0);
+
+	// Memorisation des catacteristiques de la table
+	nTableSourceSize = nSourceSize;
+	nTableTargetSize = nTargetSize;
+
+	// Creation des valeurs (apres reinitialisation)
+	cvTableValues.SetSize(0);
+	cvTableValues.SetSize(nTableSourceSize * nTableTargetSize);
+}
+
+void KIShapleyTable::CopyFrom(const KIShapleyTable* kwptSource)
+{
+	require(kwptSource != NULL);
+
+	nTableSourceSize = kwptSource->nTableSourceSize;
+	nTableTargetSize = kwptSource->nTableTargetSize;
+	cvTableValues.CopyFrom(&(kwptSource->cvTableValues));
+}
+
+KIShapleyTable* KIShapleyTable::Clone() const
+{
+	KIShapleyTable* kwptClone;
+
+	kwptClone = new KIShapleyTable;
+	kwptClone->CopyFrom(this);
+	return kwptClone;
+}
+
+boolean KIShapleyTable::Check() const
+{
+	if (cvTableValues.GetSize() == nTableSourceSize * nTableTargetSize)
+		return true;
+
+	return false;
+}
+
+void KIShapleyTable::Write(ostream& ost) const
+{
+	const ALString sSourcePrefix = "S";
+	const ALString sTargetPrefix = "T";
+	int nSource;
+	int nTarget;
+
+	// Titre
+	ost << "Target";
+	ost << "\tShapley Value";
+	ost << "\n";
+
+	// Libelles des cibles
+	for (nTarget = 0; nTarget < GetTargetSize(); nTarget++)
+		ost << "\t" << sTargetPrefix << nTarget + 1;
+	ost << "\n";
+
+	// Affichage des valeurs de la table
+	for (nSource = 0; nSource < GetSourceSize(); nSource++)
+	{
+		// Libelle de la source
+		ost << sSourcePrefix << nSource + 1;
+
+		// Valeur par cible
+		for (nTarget = 0; nTarget < GetTargetSize(); nTarget++)
+			ost << "\t" << GetShapleyValueAt(nSource, nTarget);
+		ost << "\n";
+	}
+}
+
+longint KIShapleyTable::GetUsedMemory() const
+{
+	return sizeof(KIShapleyTable) + cvTableValues.GetUsedMemory() - sizeof(ContinuousVector);
+}
+
+const ALString KIShapleyTable::GetClassLabel() const
+{
+	return "Shapley table";
+}
+
+void KIShapleyTable::InitializeFromUnivariateDataGridStats(const SymbolVector* svTargetValues,
+							   const IntVector* ivTargetValueFrequencies,
+							   const KWDataGridStats* dataGridStats,
+							   double dAttributeWeight)
+{
 	const KWDGSAttributePartition* targetPartition;
 	IntVector ivSourcePartFrequencies;
 	IntVector ivTargetPartFrequencies;
@@ -136,84 +240,95 @@ void KIShapleyTable::InitializeFromDataGridStats(const SymbolVector* svTargetVal
 	}
 }
 
-void KIShapleyTable::Initialize(int nSourceSize, int nTargetSize)
+void KIShapleyTable::InitializeFromBivariateDataGridStats(const SymbolVector* svTargetValues,
+							  const IntVector* ivTargetValueFrequencies,
+							  const KWDataGridStats* dataGridStats, double dAttributeWeight)
 {
-	require(nSourceSize >= 0);
-	require(nTargetSize >= 0);
-
-	// Memorisation des catacteristiques de la table
-	nTableSourceSize = nSourceSize;
-	nTableTargetSize = nTargetSize;
-
-	// Creation des valeurs (apres reinitialisation)
-	cvTableValues.SetSize(0);
-	cvTableValues.SetSize(nTableSourceSize * nTableTargetSize);
-}
-
-void KIShapleyTable::CopyFrom(const KIShapleyTable* kwptSource)
-{
-	require(kwptSource != NULL);
-
-	nTableSourceSize = kwptSource->nTableSourceSize;
-	nTableTargetSize = kwptSource->nTableTargetSize;
-	cvTableValues.CopyFrom(&(kwptSource->cvTableValues));
-}
-
-KIShapleyTable* KIShapleyTable::Clone() const
-{
-	KIShapleyTable* kwptClone;
-
-	kwptClone = new KIShapleyTable;
-	kwptClone->CopyFrom(this);
-	return kwptClone;
-}
-
-boolean KIShapleyTable::Check() const
-{
-	if (cvTableValues.GetSize() == nTableSourceSize * nTableTargetSize)
-		return true;
-
-	return false;
-}
-
-void KIShapleyTable::Write(ostream& ost) const
-{
-	const ALString sSourcePrefix = "S";
-	const ALString sTargetPrefix = "T";
+	const boolean bTrace = false;
+	const ALString sCellPrefix = "C";
+	KWDataGridStats univariateDataGrid;
+	KWDGSAttributeSymbolValues* sourceDataGridAttribute;
+	KWDGSAttributeSymbolValues* targetDataGridAttribute;
+	IntVector ivPartIndexes;
+	int nSource1;
+	int nSource2;
 	int nSource;
 	int nTarget;
+	int nCellFrequency;
+	int i;
 
-	// Titre
-	ost << "Target";
-	ost << "\tShapley Value";
-	ost << "\n";
+	require(svTargetValues != NULL);
+	require(svTargetValues->GetSize() > 1);
+	require(ivTargetValueFrequencies != NULL);
+	require(ivTargetValueFrequencies->GetSize() == svTargetValues->GetSize());
+	require(dataGridStats != NULL);
+	require(dataGridStats->GetAttributeNumber() == 3);
+	require(dataGridStats->GetAttributeAt(2)->GetAttributeType() == KWType::Symbol);
+	require(dataGridStats->GetAttributeAt(0)->GetPartNumber() > 1);
+	require(dataGridStats->GetAttributeAt(1)->GetPartNumber() > 1);
+	require(dataGridStats->GetAttributeAt(2)->GetPartNumber() == svTargetValues->GetSize());
+	require(0 < dAttributeWeight);
 
-	// Libelles des cibles
-	for (nTarget = 0; nTarget < GetTargetSize(); nTarget++)
-		ost << "\t" << sTargetPrefix << nTarget + 1;
-	ost << "\n";
+	// Creation d'un attribut representant la paire d'attributs sources
+	sourceDataGridAttribute = new KWDGSAttributeSymbolValues;
+	sourceDataGridAttribute->SetAttributeName(dataGridStats->GetAttributeAt(0)->GetAttributeName() + '`' +
+						  dataGridStats->GetAttributeAt(1)->GetAttributeName());
+	sourceDataGridAttribute->SetPartNumber(dataGridStats->GetAttributeAt(0)->GetPartNumber() *
+					       dataGridStats->GetAttributeAt(1)->GetPartNumber());
+	sourceDataGridAttribute->SetInitialValueNumber(sourceDataGridAttribute->GetPartNumber());
+	sourceDataGridAttribute->SetGranularizedValueNumber(sourceDataGridAttribute->GetPartNumber());
+	for (i = 0; i < sourceDataGridAttribute->GetValueNumber(); i++)
+		sourceDataGridAttribute->SetValueAt(i, Symbol(sCellPrefix + IntToString(i + 1)));
 
-	// Affichage des valeurs de la table
-	for (nSource = 0; nSource < GetSourceSize(); nSource++)
+	// Creation d'un attribut representant l'attribut cible
+	targetDataGridAttribute = new KWDGSAttributeSymbolValues;
+	targetDataGridAttribute->SetAttributeName(dataGridStats->GetAttributeAt(2)->GetAttributeName());
+	targetDataGridAttribute->SetPartNumber(dataGridStats->GetAttributeAt(2)->GetPartNumber());
+	targetDataGridAttribute->SetInitialValueNumber(targetDataGridAttribute->GetPartNumber());
+	targetDataGridAttribute->SetGranularizedValueNumber(targetDataGridAttribute->GetPartNumber());
+	for (i = 0; i < targetDataGridAttribute->GetValueNumber(); i++)
+		targetDataGridAttribute->SetValueAt(
+		    i, cast(KWDGSAttributeSymbolValues*, dataGridStats->GetAttributeAt(2))->GetValueAt(i));
+
+	// Creation d'une grille univariee a partir attributs source et cible reconstruits
+	univariateDataGrid.AddAttribute(sourceDataGridAttribute);
+	univariateDataGrid.AddAttribute(targetDataGridAttribute);
+	univariateDataGrid.CreateAllCells();
+
+	// On commence a importer les effectifs des cellules de la grille bivariee vers la grille univariee
+	ivPartIndexes.SetSize(3);
+	for (nSource1 = 0; nSource1 < dataGridStats->GetAttributeAt(0)->GetPartNumber(); nSource1++)
 	{
-		// Libelle de la source
-		ost << sSourcePrefix << nSource + 1;
+		ivPartIndexes.SetAt(0, nSource1);
+		for (nSource2 = 0; nSource2 < dataGridStats->GetAttributeAt(1)->GetPartNumber(); nSource2++)
+		{
+			ivPartIndexes.SetAt(1, nSource2);
+			for (nTarget = 0; nTarget < dataGridStats->GetAttributeAt(2)->GetPartNumber(); nTarget++)
+			{
+				ivPartIndexes.SetAt(2, nTarget);
 
-		// Valeur par cible
-		for (nTarget = 0; nTarget < GetTargetSize(); nTarget++)
-			ost << "\t" << GetShapleyValueAt(nSource, nTarget);
-		ost << "\n";
+				// Recherche de l'effectif de la cellule
+				nCellFrequency = dataGridStats->GetCellFrequencyAt(&ivPartIndexes);
+
+				// Memorisation de l'effectif dans la grille univarie de destination
+				nSource = nSource1 + nSource2 * dataGridStats->GetAttributeAt(0)->GetPartNumber();
+				univariateDataGrid.SetBivariateCellFrequencyAt(nSource, nTarget, nCellFrequency);
+			}
+		}
+	}
+	assert(univariateDataGrid.Check());
+	assert(univariateDataGrid.ComputeGridSize() == dataGridStats->ComputeGridSize());
+	assert(univariateDataGrid.ComputeCellNumber() == dataGridStats->ComputeCellNumber());
+
+	// Appel de la methode univariee avec la grille univariee de travail
+	InitializeFromUnivariateDataGridStats(svTargetValues, ivTargetValueFrequencies, &univariateDataGrid,
+					      dAttributeWeight);
+
+	// Trace
+	if (bTrace)
+	{
+		cout << "Bivariate grid\n" << *dataGridStats << "\n";
+		cout << "Univariate grid\n" << univariateDataGrid << "\n";
+		cout << "Shapley table\n" << *this << "\n";
 	}
 }
-
-longint KIShapleyTable::GetUsedMemory() const
-{
-	return sizeof(KIShapleyTable) + cvTableValues.GetUsedMemory() - sizeof(ContinuousVector);
-}
-
-const ALString KIShapleyTable::GetClassLabel() const
-{
-	return "Shapley table";
-}
-
-void KIShapleyTable::Test() {}

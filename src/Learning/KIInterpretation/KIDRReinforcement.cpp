@@ -24,10 +24,13 @@ KIDRClassifierReinforcer::KIDRClassifierReinforcer()
 	SetStructureName("ClassifierReinforcer");
 
 	// Ajout d'un deuxieme operande en plus du classifier, pour les attributs de renforcement
-	assert(GetOperandNumber() == 1);
-	SetOperandNumber(2);
+	// Le dernier operande en nombre variable dediee aux pairers de variable est deplace en derniere position
+	assert(GetOperandNumber() == 2);
+	assert(GetVariableOperandNumber());
+	SetOperandNumber(3);
 	GetSecondOperand()->SetType(KWType::Structure);
 	GetSecondOperand()->SetStructureName("VectorC");
+	GetOperandAt(2)->SetType(KWType::Symbol);
 }
 
 KIDRClassifierReinforcer::~KIDRClassifierReinforcer()
@@ -47,11 +50,16 @@ boolean KIDRClassifierReinforcer::CheckOperandsCompleteness(const KWClass* kwcOw
 {
 	boolean bOk;
 	KWDRNBClassifier* checkedNBClassifierRule;
+	ObjectDictionary odCheckedPredictorPairVariables;
 	KWDRSymbolVector* checkedReinforcementAttributeNames;
-	StringVector svAttributeNames;
-	StringVector svDataGridAttributeNames;
-	ObjectArray oaPredictorDenseAttributeDataGridStatsRules;
-	LongintDictionary ldPredictorAttributes;
+	StringVector svCheckedPredictorAttributeNames;
+	StringVector svCheckedPredictorDataGridAttributeNames;
+	ObjectArray oaCheckedPredictorDenseAttributeDataGridStatsRules;
+	KWDerivationRule* referenceRule;
+	int nFirstPairOperandIndex;
+	int nPairIndex;
+	KWDerivationRuleOperand* pairOperand;
+	LongintDictionary ldCheckedPredictorAttributes;
 	LongintNumericKeyDictionary lnkdUniqueReinforcedAttributes;
 	int nAttribute;
 	ALString sTmp;
@@ -62,6 +70,17 @@ boolean KIDRClassifierReinforcer::CheckOperandsCompleteness(const KWClass* kwcOw
 	// Verification des noms de variables de renforcement
 	if (bOk)
 	{
+		// Acces a la regle de reference
+		referenceRule = KWDerivationRule::LookupDerivationRule(GetName());
+		assert(referenceRule != NULL);
+		assert(referenceRule->GetVariableOperandNumber());
+		assert(GetFirstOperand()->GetType() == referenceRule->GetFirstOperand()->GetType());
+
+		// Recherche de l'index de la premiere paire de variable, correspondant au dernier operande
+		// de la regle de reference, qui peut avoir ete redefini dans une sous-classe
+		nFirstPairOperandIndex = referenceRule->GetOperandNumber() - 1;
+		assert(referenceRule->GetOperandAt(nFirstPairOperandIndex)->GetType() == KWType::Symbol);
+
 		// Acces aux parametres de la regle
 		checkedNBClassifierRule =
 		    cast(KWDRNBClassifier*, GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
@@ -69,19 +88,40 @@ boolean KIDRClassifierReinforcer::CheckOperandsCompleteness(const KWClass* kwcOw
 		    cast(KWDRSymbolVector*, GetSecondOperand()->GetReferencedDerivationRule(kwcOwnerClass));
 
 		// Recherche de ses variables
-		checkedNBClassifierRule->ExportAttributeNames(kwcOwnerClass, &svAttributeNames,
-							      &svDataGridAttributeNames,
-							      &oaPredictorDenseAttributeDataGridStatsRules);
+		checkedNBClassifierRule->ExportAttributeNames(kwcOwnerClass, &svCheckedPredictorAttributeNames,
+							      &svCheckedPredictorDataGridAttributeNames,
+							      &oaCheckedPredictorDenseAttributeDataGridStatsRules);
+
+		// Completion des noms de variables dans le cas des paires
+		nPairIndex = 0;
+		for (nAttribute = 0; nAttribute < svCheckedPredictorAttributeNames.GetSize(); nAttribute++)
+		{
+			// Les paires correspondent aux variables du predicteur, n'ayant pas de nom
+			// Leur validite a ete verifiee precedement, et une variable a ete genere dans les
+			// operandes en fin de regle
+			if (svCheckedPredictorAttributeNames.GetAt(nAttribute) == "")
+			{
+				// Recherche de l'operande pour la paire utilisee par le predicteur
+				assert(nFirstPairOperandIndex + nPairIndex < GetOperandNumber());
+				pairOperand = GetOperandAt(nFirstPairOperandIndex + nPairIndex);
+
+				// Memorisation du nom de l'attribut lie a la paire
+				svCheckedPredictorAttributeNames.SetAt(nAttribute, pairOperand->GetAttributeName());
+
+				// Incrementation de l'index de paire
+				nPairIndex++;
+			}
+		}
 
 		// On range les variables dans un dictionnaire
-		for (nAttribute = 0; nAttribute < svAttributeNames.GetSize(); nAttribute++)
-			ldPredictorAttributes.SetAt(svAttributeNames.GetAt(nAttribute), 1);
+		for (nAttribute = 0; nAttribute < svCheckedPredictorAttributeNames.GetSize(); nAttribute++)
+			ldCheckedPredictorAttributes.SetAt(svCheckedPredictorAttributeNames.GetAt(nAttribute), 1);
 
 		// On verifie que les variables de renforcement sont bien des variables du predicteur
 		for (nAttribute = 0; nAttribute < checkedReinforcementAttributeNames->GetValueNumber(); nAttribute++)
 		{
 			// Test si la variable existe pour le predicteur
-			if (ldPredictorAttributes.Lookup(
+			if (ldCheckedPredictorAttributes.Lookup(
 				checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetValue()) == 0)
 			{
 				AddError(sTmp + "Reinforced variable " +
@@ -218,14 +258,12 @@ Symbol KIDRClassifierReinforcer::GetRankedReinforcementPartAt(int nTargetValueRa
 	// Retourne le nom de de la partie de l'attribut de renforcement sinon
 	else
 	{
-		// Acces a l'attribut, la grille corespondant, et l'index source dans la grille
+		// Acces a l'attribut, la grille corespondante, et l'index source dans la grille
 		nAttributeIndex = attributeReinforcement->GetAttributeIndex();
 		dataGridRule = cast(const KWDRDataGrid*, oaPredictorAttributeDataGridRules.GetAt(nAttributeIndex));
 
-		// Acces a la partition univariee de l'attribut pour obtenir le libelle de la partie
-		assert(dataGridRule->GetAttributeNumber() == 2);
-		sCellLabel = cast(KWDRUnivariatePartition*, dataGridRule->GetOperandAt(0)->GetDerivationRule())
-				 ->GetPartLabelAt(attributeReinforcement->GetReinforcementPartIndex());
+		// Construction du libelle de la partie, valide dans les cas univaries et bivaries
+		sCellLabel = BuildSourceCellLabel(dataGridRule, attributeReinforcement->GetReinforcementPartIndex());
 		return (Symbol)sCellLabel;
 	}
 }
@@ -486,10 +524,21 @@ void KIDRClassifierReinforcer::ComputeReinforcementAt(KIAttributeReinforcement* 
 	dataGridRule = cast(const KWDRDataGrid*, oaPredictorAttributeDataGridRules.GetAt(nAttributeIndex));
 	dataGridStatsRule =
 	    cast(const KWDRDataGridStats*, oaPredictorAttributeDataGridStatsRules.GetAt(nAttributeIndex));
-	assert(dataGridRule->GetAttributeNumber() == 2);
 
-	// Acces a l'attribut source de la grille
-	dataGridRule->GetAttributePartNumberAt(0);
+	// Verification dans les cas univaries et bivaries
+	assert(dataGridRule->GetAttributeNumber() == 2 or dataGridRule->GetAttributeNumber() == 3);
+	assert(dataGridStatsRule->GetDataGridSourceAttributeNumber() == dataGridRule->GetAttributeNumber() - 1);
+	assert(dataGridRule->GetAttributePartNumberAt(dataGridRule->GetAttributeNumber() - 1) ==
+	       GetTargetValueNumber());
+	assert(dataGridStatsRule->GetDataGridTargetCellNumber() == GetTargetValueNumber());
+
+	// Nombre de parties sources, dans le cas univarie ou bivarie
+	nSourcePartNumber = dataGridStatsRule->GetDataGridSourceCellNumber();
+	assert((dataGridRule->GetAttributeNumber() == 2 and
+		nSourcePartNumber == dataGridRule->GetAttributePartNumberAt(0)) or
+	       (dataGridRule->GetAttributeNumber() == 3 and
+		nSourcePartNumber ==
+		    dataGridRule->GetAttributePartNumberAt(0) * dataGridRule->GetAttributePartNumberAt(1)));
 
 	// Recheche de l'index source dans la grille correspondante
 	nSourcePartIndex = ivDataGridSourceIndexes.GetAt(nAttributeIndex);
@@ -519,9 +568,8 @@ void KIDRClassifierReinforcer::ComputeReinforcementAt(KIAttributeReinforcement* 
 		     << "\n";
 	}
 
-	// Parcours des cellules sources de la grille pour simuler un changement de partie de variable
+	// Parcours des cellules sources de la grille pour simuler un changement de partie dans les cas univaries et bivaries
 	cFinalScore = cInitialScore;
-	nSourcePartNumber = dataGridRule->GetAttributePartNumberAt(0);
 	for (nSource = 0; nSource < nSourcePartNumber; nSource++)
 	{
 		// On ne traite pas la partie en cours
@@ -582,11 +630,9 @@ void KIDRClassifierReinforcer::ComputeReinforcementAt(KIAttributeReinforcement* 
 			// Trace pour la partie evaluee
 			if (bTrace)
 			{
-				cout << "  - " << cNewScore << "\t"
-				     << cast(KWDRUnivariatePartition*,
-					     dataGridRule->GetOperandAt(0)->GetDerivationRule())
-					    ->GetPartLabelAt(nSource)
-				     << "\t" << GetTargetValueAt(ComputeArgMaxScores(&cvNewScores)) << "\n";
+				cout << "  - " << cNewScore << "\t" << nSource << "\t"
+				     << BuildSourceCellLabel(dataGridRule, nSource) << "\t"
+				     << GetTargetValueAt(ComputeArgMaxScores(&cvNewScores)) << "\n";
 			}
 		}
 	}
@@ -597,8 +643,7 @@ void KIDRClassifierReinforcer::ComputeReinforcementAt(KIAttributeReinforcement* 
 		if (attributeReinforcement->GetReinforcementFinalScore() > cInitialScore)
 		{
 			cout << "  - " << attributeReinforcement->GetReinforcementFinalScore() << "\t"
-			     << cast(KWDRUnivariatePartition*, dataGridRule->GetOperandAt(0)->GetDerivationRule())
-				    ->GetPartLabelAt(attributeReinforcement->GetReinforcementPartIndex())
+			     << BuildSourceCellLabel(dataGridRule, attributeReinforcement->GetReinforcementPartIndex())
 			     << "\t" << GetTargetValueAt(ComputeArgMaxScores(&cvNewScores)) << "\t"
 			     << "Final score"
 			     << "\n";

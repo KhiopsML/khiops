@@ -82,7 +82,12 @@ protected:
 	// Nettoyage
 	virtual void Clean();
 
-	// Calcul du vecteur de index source de grille
+	// Construction du libelle d'une cellule source
+	// - cas univarie: CellIndex = PartIndex
+	// - cas bivarie: CellIndex = PartIndex1 + Part2Index2 * PartNumber1
+	const ALString BuildSourceCellLabel(const KWDRDataGrid* dataGridRule, int nSourceCellIndex) const;
+
+	// Calcul du vecteur des index source de grille pour chaque variable du predicteur
 	void ComputeDataGridSourcesIndexes() const;
 
 	// Regle associee au classifieur

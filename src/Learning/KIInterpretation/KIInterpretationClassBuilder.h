@@ -92,7 +92,7 @@ public:
 	static const ALString& GetReinforcementFinalScoreRankMetaDataKey();
 	static const ALString& GetReinforcementClassChangeTagRankMetaDataKey();
 
-	// Cles de meta-donnees dediees aux attribut cree pour les pair ou valeur communes
+	// Cles de meta-donnees dediees aux attributs cree pour les pair ou valeur communes
 	static const ALString& GetIsPairMetaDataKey();
 	static const ALString& GetName1MetaDataKey();
 	static const ALString& GetName2MetaDataKey();
