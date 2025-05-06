@@ -1173,8 +1173,16 @@ void FileService::SetUserTmpDir(const ALString& sPathName)
 {
 	if (sUserTmpDir != sPathName)
 	{
-		sUserTmpDir = sPathName;
-		nApplicationTmpDirFreshness++;
+		if (IsLocalURI(sPathName))
+		{
+			sUserTmpDir = sPathName;
+			nApplicationTmpDirFreshness++;
+		}
+		else
+		{
+			Global::AddFatalError("Temp directory", sPathName,
+					      "The temporary directory must be located on the local file system");
+		}
 	}
 }
 
