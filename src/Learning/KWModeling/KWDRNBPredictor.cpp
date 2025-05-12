@@ -887,7 +887,7 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 			       naiveBayesPredictorRuleHelper.RuleHasDataGridStatsBlockAtOperand(
 				   this, nDataGridOrBlockOperand));
 
-			// Memorisation dans un tableau la seule grille de la regle ou les grilles du bloc de l'operand
+			// Memorisation dans un tableau la seule grille de la regle ou les grilles du bloc de l'operande
 			oaOperandDataGridRules.SetSize(0);
 			oaOperandDataGridStatsRules.SetSize(0);
 			if (naiveBayesPredictorRuleHelper.RuleHasDataGridStatsAtOperand(this, nDataGridOrBlockOperand))
@@ -1045,20 +1045,25 @@ longint KWDRNBClassifier::GetUsedMemory() const
 	return lUsedMemory;
 }
 
-void KWDRNBClassifier::ExportAttributeNames(const KWClass* kwcOwnerClass, StringVector* svPredictorAttributeNames) const
+void KWDRNBClassifier::ExportAttributeNames(const KWClass* kwcOwnerClass, StringVector* svPredictorAttributeNames,
+					    StringVector* svPredictorAttributeDataGridNames,
+					    ObjectArray* oaPredictorDenseAttributeDataGridStatsRules) const
 {
+	boolean bTrace = false;
 	const KWDRNBClassifier referenceNBRule;
 	const KWDRSNBClassifier referenceSNBRule;
 	KWAttribute* attribute;
 	KWDerivationRuleOperand* operand;
 	ObjectArray oaClasses;
 	ALString sAttributeName;
+	ALString sDataGridAttributeName;
 	ALString sAttributePredictorName;
 	int nOperandIndex;
 	KWDRContinuousValueSet* continuousVarKeyRule;
 	KWDRSymbolValueSet* symbolVarKeyRule;
 	const KWDRDataGridStats refDataGridStatsRule;
 	const KWDRDataGridStatsBlock refDataGridStatsBlockRule;
+	KWDRDataGridStats* dataGridStatsRule;
 	KWDRDataGridStatsBlock* dataGridStatsBlockRule;
 	KWDRDataGridBlock* dataGridBlockRule;
 	KWAttributeBlock* attributeBlock;
@@ -1074,6 +1079,10 @@ void KWDRNBClassifier::ExportAttributeNames(const KWClass* kwcOwnerClass, String
 	require(kwcOwnerClass != NULL);
 	require(svPredictorAttributeNames != NULL);
 	require(svPredictorAttributeNames->GetSize() == 0);
+	require(svPredictorAttributeDataGridNames != NULL);
+	require(svPredictorAttributeDataGridNames->GetSize() == 0);
+	require(oaPredictorDenseAttributeDataGridStatsRules != NULL);
+	require(oaPredictorDenseAttributeDataGridStatsRules->GetSize() == 0);
 
 	// Parcours des operandes pour identifier les noms des attributs explicatifs et des attributs natifs associes
 	// Le dernier operande n'est pas parcouru car reserve a l'attribut des valeurs cibles
@@ -1095,16 +1104,29 @@ void KWDRNBClassifier::ExportAttributeNames(const KWClass* kwcOwnerClass, String
 		// Cas d'un attribut
 		if (operand->GetStructureName() == refDataGridStatsRule.GetName())
 		{
+			dataGridStatsRule = cast(KWDRDataGridStats*, operand->GetDerivationRule());
+
 			// Tests d'integrite
-			bOperandOk = bOperandOk and
-				     KWType::IsSimple(operand->GetDerivationRule()->GetSecondOperand()->GetType());
+			bOperandOk = dataGridStatsRule != NULL;
+			bOperandOk = bOperandOk and dataGridStatsRule->GetFirstOperand()->GetOrigin() ==
+							KWDerivationRuleOperand::OriginAttribute;
+			bOperandOk = bOperandOk and dataGridStatsRule->GetFirstOperand()->GetAttributeName() != "";
+			bOperandOk = bOperandOk and KWType::IsSimple(dataGridStatsRule->GetSecondOperand()->GetType());
+			bOperandOk = bOperandOk and dataGridStatsRule->GetSecondOperand()->GetAttributeName() != "";
 
 			// Extraction et memorisation du nom de la variable
 			if (bOperandOk)
 			{
-				sAttributeName = operand->GetDerivationRule()->GetSecondOperand()->GetAttributeName();
-				if (sAttributeName != "")
-					svPredictorAttributeNames->Add(sAttributeName);
+				// Extraction et memorisation des infos sur la variable du predicteur
+				// Pas de nom de variable dans le cas d'une paire de variables
+				if (dataGridStatsRule->GetOperandNumber() > 2)
+					sAttributeName = "";
+				else
+					sAttributeName = dataGridStatsRule->GetSecondOperand()->GetAttributeName();
+				svPredictorAttributeNames->Add(sAttributeName);
+				sDataGridAttributeName = dataGridStatsRule->GetFirstOperand()->GetAttributeName();
+				svPredictorAttributeDataGridNames->Add(sDataGridAttributeName);
+				oaPredictorDenseAttributeDataGridStatsRules->Add(dataGridStatsRule);
 			}
 		}
 		// Cas d'un bloc d'attribut
@@ -1161,11 +1183,15 @@ void KWDRNBClassifier::ExportAttributeNames(const KWClass* kwcOwnerClass, String
 				// Parcours generique des VarKey du bloc
 				for (nIndex = 0; nIndex < nVarKeyNumber; nIndex++)
 				{
+					// Acces a l'attribut du bloc selon sa VarKey
+					attribute = NULL;
 					if (nUncheckedVarKeyType == KWType::Continuous)
 					{
 						assert(continuousVarKeyRule != NULL);
 						nVarKey = int(floor(continuousVarKeyRule->GetValueAt(nIndex) + 0.5));
 						attribute = cast(KWAttribute*, nkdBlockAttributes.Lookup(nVarKey));
+						assert(dataGridBlockRule->GetUncheckedContinuousVarKeyAt(nIndex) ==
+						       nVarKey);
 					}
 					else
 					{
@@ -1173,16 +1199,27 @@ void KWDRNBClassifier::ExportAttributeNames(const KWClass* kwcOwnerClass, String
 						sVarKey = symbolVarKeyRule->GetValueAt(nIndex);
 						attribute = cast(KWAttribute*,
 								 nkdBlockAttributes.Lookup(sVarKey.GetNumericKey()));
+						assert(dataGridBlockRule->GetUncheckedSymbolVarKeyAt(nIndex) ==
+						       sVarKey);
 					}
+
+					// Acces a la la grille, qui provient du bloc de grilles
+					sDataGridAttributeName = "";
+					if (dataGridBlockRule->GetOperandNumber() > nIndex + 1)
+						sDataGridAttributeName =
+						    dataGridBlockRule->GetOperandAt(nIndex + 1)->GetAttributeName();
 
 					// On traite les attributs que l'on a trouve dans le bloc
 					// Cette tolerance est necessaire, puisque la methode peut etre appelee meme
 					// si la classe n'est pas compilee
-					if (attribute != NULL)
+					if (attribute != NULL and sDataGridAttributeName != "")
 					{
-						// Extraction et memorisation du nom de la variable
+						// Extraction et memorisation des infos sur la variable du predicteur
+						// Pas de regle de type DataGridStats dans le cas d'un attribut sparse
 						sAttributeName = attribute->GetName();
 						svPredictorAttributeNames->Add(sAttributeName);
+						svPredictorAttributeDataGridNames->Add(sDataGridAttributeName);
+						oaPredictorDenseAttributeDataGridStatsRules->Add(NULL);
 					}
 				}
 
@@ -1192,6 +1229,24 @@ void KWDRNBClassifier::ExportAttributeNames(const KWClass* kwcOwnerClass, String
 			}
 		}
 	}
+
+	// Trace
+	if (bTrace)
+	{
+		cout << "KWDRNBClassifier::ExportAttributeNames\t" << svPredictorAttributeNames->GetSize() << "\n";
+		for (nIndex = 0; nIndex < svPredictorAttributeNames->GetSize(); nIndex++)
+		{
+			dataGridStatsRule =
+			    cast(KWDRDataGridStats*, oaPredictorDenseAttributeDataGridStatsRules->GetAt(nIndex));
+			cout << "\t" << svPredictorAttributeNames->GetAt(nIndex) << "\t";
+			cout << svPredictorAttributeDataGridNames->GetAt(nIndex) << "\t";
+			if (dataGridStatsRule != NULL)
+				cout << dataGridStatsRule->GetOperandNumber() - 1;
+			cout << "\n";
+		}
+	}
+	ensure(svPredictorAttributeNames->GetSize() == svPredictorAttributeDataGridNames->GetSize());
+	ensure(svPredictorAttributeNames->GetSize() == oaPredictorDenseAttributeDataGridStatsRules->GetSize());
 }
 
 void KWDRNBClassifier::ComputeTargetProbs() const

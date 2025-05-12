@@ -628,17 +628,44 @@ void SNBDataTableBinarySliceSetSchema::InitializeFromDataPreparationClass(
     KWDataPreparationClass* dataPreparationClass, ObjectArray* oaUsableDataPreparationAttributes,
     NumericKeyDictionary* nkdRecodedAttributeByDataPreparationAttribute)
 {
+	LongintDictionary ldAllNativeAttributeNames;
+	LongintDictionary ldUnivariateNativeAttributeNames;
 	int nAttribute;
 	KWDataPreparationAttribute* dataPreparationAttribute;
 	KWAttribute* recodedAttribute;
 	SNBDataTableBinarySliceSetAttribute* attribute;
 	NumericKeyDictionary nkdAttributesByDataPreparationAttribute;
+	ALString sName;
+	ALString sUniqueName;
+	int nIndex;
 
 	require(dataPreparationClass->Check());
 	require(oaUsableDataPreparationAttributes->GetSize() <=
 		dataPreparationClass->GetDataPreparationAttributes()->GetSize());
 	require(oaUsableDataPreparationAttributes->GetSize() ==
 		nkdRecodedAttributeByDataPreparationAttribute->GetCount());
+
+	// Utilisation de dictionnaires pour gerer des noms uniques d'attributs natifs pour le BinarySliceSet.
+	// En univarie, le nom est naturellement unique, mais ce n'est pas necessairement
+	// le cas des paires de variables, car le nom est compose du nom de chaque variable,
+	// et peut potentiellement rentrer en collision avec un autre nom calcule.
+	// On memorise dans un permier temps le nom de tous les attributs univaries, ce qui permettra dans
+	// un second temps de construire des noms uniques dans le cas des paires, en privilegiant le cas univarie
+	for (nAttribute = 0; nAttribute < oaUsableDataPreparationAttributes->GetSize(); nAttribute++)
+	{
+		dataPreparationAttribute =
+		    cast(KWDataPreparationAttribute*, oaUsableDataPreparationAttributes->GetAt(nAttribute));
+
+		// Memorisation dans le cas univarie
+		if (dataPreparationAttribute->GetNativeAttributeNumber() == 1)
+		{
+			sName = dataPreparationAttribute->ComputeNativeAttributeName();
+			assert(ldUnivariateNativeAttributeNames.Lookup(sName) == 0);
+			ldUnivariateNativeAttributeNames.SetAt(sName, 1);
+			ldAllNativeAttributeNames.SetAt(sName, 1);
+		}
+	}
+	assert(ldUnivariateNativeAttributeNames.GetCount() == ldAllNativeAttributeNames.GetCount());
 
 	// Initialisation presque complete des attributs
 	// L'index de l'attribut relatif a la KWDataPreparationClass s'initialise dans une deuxieme passe
@@ -650,10 +677,28 @@ void SNBDataTableBinarySliceSetSchema::InitializeFromDataPreparationClass(
 		    cast(KWAttribute*, nkdRecodedAttributeByDataPreparationAttribute->Lookup(dataPreparationAttribute));
 		assert(dataPreparationAttribute->IsInformativeOnTarget());
 
+		// Construction d'un nom d'attribut unique, pour gerer le cas des coillision de nom potentielles
+		// pour les paires de variables
+		sName = dataPreparationAttribute->ComputeNativeAttributeName();
+		sUniqueName = sName;
+		if (dataPreparationAttribute->GetNativeAttributeNumber() > 1)
+		{
+			// Recherche d'un nom unique, en suffixant par un index croissant
+			nIndex = 1;
+			while (ldAllNativeAttributeNames.Lookup(sUniqueName) == 1)
+			{
+				sUniqueName = sName + "_" + IntToString(nIndex);
+				nIndex++;
+			}
+
+			// Mamorisation du nom
+			ldAllNativeAttributeNames.SetAt(sUniqueName, 1);
+		}
+
 		// Initialisation de l'attribut
 		attribute = new SNBDataTableBinarySliceSetAttribute;
 		attribute->SetIndex(oaAttributes.GetSize());
-		attribute->SetNativeAttributeName(dataPreparationAttribute->ComputeNativeAttributeName());
+		attribute->SetNativeAttributeName(sUniqueName);
 		attribute->SetPreparedAttributeName(dataPreparationAttribute->GetPreparedAttribute()->GetName());
 		attribute->SetRecodedAttributeName(recodedAttribute->GetName());
 		attribute->SetDataPreparationClassIndex(dataPreparationAttribute->GetIndex());
@@ -661,12 +706,17 @@ void SNBDataTableBinarySliceSetSchema::InitializeFromDataPreparationClass(
 		    not GetSNBForceDenseMode())
 			attribute->SetSparseMode(true);
 		attribute->InitializeDataFromDataPreparationAttribute(dataPreparationAttribute);
+
+		// Memorisation dans les containers
 		oaAttributes.Add(attribute);
-		odAttributesByNativeAttributeName.SetAt(dataPreparationAttribute->ComputeNativeAttributeName(),
-							attribute);
-		odAttributesByRecodedAttributeName.SetAt(recodedAttribute->GetName(), attribute);
+		odAttributesByNativeAttributeName.SetAt(attribute->GetNativeAttributeName(), attribute);
+		odAttributesByRecodedAttributeName.SetAt(attribute->GetRecodedAttributeName(), attribute);
 	}
+	assert(ldUnivariateNativeAttributeNames.GetCount() <= ldAllNativeAttributeNames.GetCount());
+	assert(ldAllNativeAttributeNames.GetCount() == oaUsableDataPreparationAttributes->GetSize());
+
 	ensure(oaAttributes.GetSize() <= dataPreparationClass->GetDataPreparationAttributes()->GetSize());
+	ensure(oaAttributes.GetSize() == oaUsableDataPreparationAttributes->GetSize());
 	ensure(IsInitialized() or oaAttributes.GetSize() == 0);
 	ensure(Check());
 }

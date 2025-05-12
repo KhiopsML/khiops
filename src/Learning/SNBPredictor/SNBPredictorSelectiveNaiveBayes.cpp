@@ -388,6 +388,13 @@ void SNBPredictorSelectiveNaiveBayes::InternalTrainFinalizeWithUnivariatePredict
 	attributeReport = new KWSelectedAttributeReport;
 	attributeReport->SetNativeAttributeName(dataPreparationAttribute->ComputeNativeAttributeName());
 	attributeReport->SetPreparedAttributeName(dataPreparationAttribute->GetPreparedAttribute()->GetName());
+	if (dataPreparationAttribute->GetNativeAttributeNumber() == 3)
+	{
+		attributeReport->SetPair(true);
+		attributeReport->SetNativeAttributeName1(dataPreparationAttribute->GetNativeAttribute1()->GetName());
+		attributeReport->SetNativeAttributeName2(dataPreparationAttribute->GetNativeAttribute2()->GetName());
+	}
+
 	attributeReport->SetUnivariateEvaluation(dataPreparationAttribute->GetPreparedStats()->GetLevel());
 	attributeReport->SetWeight(1.0);
 	GetPredictorSelectionReport()->GetSelectedAttributes()->Add(attributeReport);

@@ -353,6 +353,7 @@ KWSelectedAttributeReport::KWSelectedAttributeReport()
 {
 	dUnivariateEvaluation = 0;
 	dWeight = -1;
+	bPair = false;
 }
 
 KWSelectedAttributeReport::~KWSelectedAttributeReport() {}
@@ -375,6 +376,35 @@ void KWSelectedAttributeReport::SetNativeAttributeName(const ALString& sName)
 const ALString& KWSelectedAttributeReport::GetNativeAttributeName() const
 {
 	return sNativeAttributeName;
+}
+
+void KWSelectedAttributeReport::SetPair(boolean bValue)
+{
+	bPair = bValue;
+}
+
+boolean KWSelectedAttributeReport::GetPair() const
+{
+	return bPair;
+}
+
+void KWSelectedAttributeReport::SetNativeAttributeName1(const ALString& sName)
+{
+	sNativeAttributeName1 = sName;
+}
+
+const ALString& KWSelectedAttributeReport::SetNativeAttributeName1() const
+{
+	return sNativeAttributeName1;
+}
+
+void KWSelectedAttributeReport::SetNativeAttributeName2(const ALString& sName)
+{
+	sNativeAttributeName2 = sName;
+}
+const ALString& KWSelectedAttributeReport::SetNativeAttributeName2() const
+{
+	return sNativeAttributeName1;
 }
 
 void KWSelectedAttributeReport::SetUnivariateEvaluation(double dValue)
@@ -541,10 +571,32 @@ void KWSelectedAttributeReport::WriteJSONArrayFields(JSONFile* fJSON, boolean bS
 		fJSON->WriteKeyString("preparedName", sPreparedAttributeName);
 		fJSON->WriteKeyString("name", sNativeAttributeName);
 		fJSON->WriteKeyDouble("level", dUnivariateEvaluation);
+		if (GetPair())
+		{
+			fJSON->WriteKeyBoolean("isPair", true);
+			fJSON->WriteKeyString("name1", sNativeAttributeName1);
+			fJSON->WriteKeyString("name2", sNativeAttributeName2);
+		}
 		if (GetWeight() > 0)
 		{
 			fJSON->WriteKeyDouble("weight", GetWeight());
 			fJSON->WriteKeyDouble("importance", GetImportance());
 		}
 	}
+}
+
+boolean KWSelectedAttributeReport::Check() const
+{
+	boolean bOk = true;
+
+	// Verifications rapides pour le developpeur, sans messages d'erreur
+	bOk = bOk and sPreparedAttributeName != "";
+	bOk = bOk and sNativeAttributeName != "";
+	bOk = bOk and (0 < dUnivariateEvaluation and dUnivariateEvaluation <= 1);
+	bOk = bOk and (bPair or sNativeAttributeName1 == "");
+	bOk = bOk and (bPair or sNativeAttributeName2 == "");
+	bOk = bOk and (not bPair or sNativeAttributeName1 != "");
+	bOk = bOk and (not bPair or sNativeAttributeName2 != "");
+	bOk = bOk and (not bPair or sNativeAttributeName2 != sNativeAttributeName1);
+	return bOk;
 }

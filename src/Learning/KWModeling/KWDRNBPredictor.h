@@ -159,9 +159,16 @@ public:
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
 
-	// Export des noms des variables du classifieur
-	// La methode renvoie les informations exploitables au mieux selon la valite de la classe en cours
-	void ExportAttributeNames(const KWClass* kwcOwnerClass, StringVector* svPredictorAttributeNames) const;
+	// Export des noms des variables du classifieur, ainsi que les nom des attribut des DataGrid correspondantes
+	// et des regles de preparation dans le cas dense
+	// La methode renvoie les informations exploitables au mieux selon la validite de la classe en cours
+	// Dans le cas particulier des paires de variables utilises par le predicteur, le nom de la variable
+	// associe a la paire est vide, puisqu'il n'y a pas de variable construire associee.
+	// Par contre, la variable associee a la grille de preparation est systematiquement presente.
+	// Le regle de preparation n'est elle disponible que dans le cas dense
+	void ExportAttributeNames(const KWClass* kwcOwnerClass, StringVector* svPredictorAttributeNames,
+				  StringVector* svPredictorAttributeDataGridNames,
+				  ObjectArray* oaPredictorDenseAttributeDataGridStatsRules) const;
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
