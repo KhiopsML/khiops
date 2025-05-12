@@ -202,26 +202,20 @@ void KWLearningProblem::ComputeStats()
 			// Base vide
 			if (classStats->GetInstanceNumber() == 0)
 				Global::AddWarning("", "", sTmp + "No training: database is empty");
-			// Apprentissage non supervise
-			else if (classStats->GetTargetAttributeType() == KWType::None)
-				bModelingOk = TrainPredictors(initialClassDomain, classStats, &oaTrainedPredictors);
-			// L'attribut cible n'a qu'une seule valeur
-			else if (classStats->GetTargetDescriptiveStats()->GetValueNumber() < 2)
+			// Cas de la regression, avec uniquement des valeurs manquantes
+			else if (classStats->GetTargetAttributeType() == KWType::Continuous and
+				 cast(KWDescriptiveContinuousStats*, classStats->GetTargetDescriptiveStats())
+					 ->GetMissingValueNumber() > 0)
 			{
-				if (learningSpec.GetTargetAttributeType() == KWType::Continuous and
-				    cast(KWDescriptiveContinuousStats*, learningSpec.GetTargetDescriptiveStats())
-					    ->GetMissingValueNumber() > 0)
-					Global::AddWarning(
-					    "", "", sTmp + "No training: target variable has only missing values");
-				else
-					Global::AddWarning("", "",
-							   sTmp + "No training: target variable has only one value");
+				// Pour le cas specifique de la regression, on a filtre la base en cas valeurs manquantes,
+				// s'il restait au moins une valeur non manquante.
+				// Cela garantit que soit il n'y pas de valeur manquante, pour permettre un apprentissage,
+				// soit il n'y a que des valeurs manquantes, comme dans le cas ci dessous
+				assert(classStats->GetTargetDescriptiveStats()->GetValueNumber() == 1);
+				Global::AddWarning("", "", "No training: target variable has only missing values");
 			}
-			// Apprentissage en classification
-			else if (classStats->GetTargetAttributeType() == KWType::Symbol)
-				bModelingOk = TrainPredictors(initialClassDomain, classStats, &oaTrainedPredictors);
-			// Apprentissage en regression
-			else if (classStats->GetTargetAttributeType() == KWType::Continuous)
+			// Apprentissage sinon
+			else
 				bModelingOk = TrainPredictors(initialClassDomain, classStats, &oaTrainedPredictors);
 		}
 

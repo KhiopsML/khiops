@@ -2303,7 +2303,10 @@ Continuous KWDRNBRegressor::ComputeTargetStandardDeviation() const
 	cMeanValue = rankRegressorRule->ComputeExpectation(&cvCumulativeTargetValues);
 	cMeanSquareValue = rankRegressorRule->ComputeExpectation(&cvCumulativeSquareTargetValues);
 	cVarianceValues = cMeanSquareValue - cMeanValue * cMeanValue;
-	assert(cVarianceValues > 1e-5);
+
+	// La variance peut etre nulle en cas d'une seule valeur cible, voire un epsilon negatif
+	// pour des raisons de limite de precision numerique dans les calculs
+	assert(cVarianceValues >= -1e-10);
 	if (cVarianceValues < 0)
 		cVarianceValues = 0;
 
@@ -2674,8 +2677,8 @@ void KWDRNBRegressor::ComputeCumulativeTargetValues(ContinuousVector* cvResultVe
 			// Mise a jour de la valeur cumulee
 			cCumulativeValue += nValueFrequency * GetSingleTargetValueAt(nValue);
 
-			// Correction pour la premiere et derniere instance de chaque valeur
-			if (bKernelCorrection)
+			// Correction pour la premiere et derniere instance de chaque valeur, sauf si une seule valeur
+			if (bKernelCorrection and GetSingleTargetValueNumber() > 1)
 			{
 				cCumulativeValue -= GetSingleTargetValueAt(nValue);
 				if (nValue > 0)
@@ -2765,8 +2768,8 @@ void KWDRNBRegressor::ComputeCumulativeSquareTargetValues(ContinuousVector* cvRe
 			cCumulativeValue +=
 			    nValueFrequency * GetSingleTargetValueAt(nValue) * GetSingleTargetValueAt(nValue);
 
-			// Correction pour la premiere et derniere instance de chaque valeur
-			if (bKernelCorrection)
+			// Correction pour la premiere et derniere instance de chaque valeur, sauf si une seule valeur
+			if (bKernelCorrection and GetSingleTargetValueNumber() > 1)
 			{
 				cCumulativeValue -= GetSingleTargetValueAt(nValue) * GetSingleTargetValueAt(nValue);
 				if (nValue > 0)
