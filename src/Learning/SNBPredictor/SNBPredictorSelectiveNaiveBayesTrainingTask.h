@@ -12,6 +12,7 @@ class SNBPredictorSNBDirectTrainingTask;
 #include "SNBPredictorSelectiveNaiveBayes.h"
 #include "SNBDataTableBinarySliceSet.h"
 #include "SNBAttributeSelectionScorer.h"
+#include "KIShapleyTable.h"
 
 // Implementation de l'algorithme de selection de variables du Selective Naive Bayes
 //

@@ -1634,7 +1634,12 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::InitializeNextFastForwardRun()
 
 void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalizeTrainingAndReports()
 {
+	const boolean bExportReport = false;
+	SymbolVector svTargetValues;
+	IntVector ivTargetValueFrequencies;
 	ContinuousVector cvAttributeWeights;
+	double dAttributeMeanAbsoluteShapleyValues;
+	double dSumImportance;
 	int nAttribute;
 	SNBDataTableBinarySliceSetAttribute* attribute;
 	KWSelectedAttributeReport* attributeReport;
@@ -1654,15 +1659,18 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalizeTrainingAndRepor
 	selectionReport->GetSelectedAttributes()->DeleteAll();
 
 	// Creation des rapports des attributs selectionnes et ajout au rapport de selection
-	// Memorisation des noms d'attributs selectionnees
+	// Memorisation des noms d'attributs selectionnees, et calcul de la moyenne de leur valeur de Shapley
+	dSumImportance = 0;
 	for (nAttribute = 0; nAttribute < masterBinarySliceSet->GetAttributeNumber(); nAttribute++)
 	{
 		attribute = masterBinarySliceSet->GetAttributeAt(nAttribute);
 
-		// Ajout du rapport de l'attribut s'il a un poids non nul
+		// Ajout du rapport de l'attribut s'il est utilise
 		if (masterWeightedSelectionScorer->GetAttributeSelection()->Contains(attribute))
 		{
 			attributeReport = new KWSelectedAttributeReport;
+
+			// Parametrage du nom
 			attributeReport->SetPreparedAttributeName(attribute->GetPreparedAttributeName());
 			attributeReport->SetNativeAttributeName(attribute->GetNativeAttributeName());
 			if (attribute->GetPreparedDataGridStats()->GetAttributeNumber() == 3)
@@ -1673,19 +1681,75 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalizeTrainingAndRepor
 				attributeReport->SetNativeAttributeName2(
 				    attribute->GetPreparedDataGridStats()->GetAttributeAt(1)->GetAttributeName());
 			}
+
+			// Level
 			attributeReport->SetUnivariateEvaluation(attribute->GetLevel());
+
+			// Weight
 			attributeReport->SetWeight(
 			    masterWeightedSelectionScorer->GetAttributeSelection()->GetAttributeWeightAt(attribute));
+
+			// Memorisation de la moyenne des valeurs absolues de Shapley
+			dAttributeMeanAbsoluteShapleyValues = KIShapleyTable::ComputeMeanAbsoluteShapleyValues(
+			    attribute->GetPreparedDataGridStats(),
+			    shared_learningSpec.GetLearningSpec()->GetTargetValueStats(), attributeReport->GetWeight());
+			attributeReport->SetImportance(dAttributeMeanAbsoluteShapleyValues);
+
+			// Memorisation de la somme pour normalisation
+			dSumImportance += attributeReport->GetImportance();
+
+			// Ajout du rapport
 			assert(selectionReport->Check());
 			selectionReport->GetSelectedAttributes()->Add(attributeReport);
 		}
 	}
+
+	// Memorisation du nombre d'attributs selectionnees
 	selectionReport->SetUsedAttributeNumber(
 	    masterWeightedSelectionScorer->GetAttributeSelection()->GetAttributeNumber());
+	assert(selectionReport->GetSelectedAttributes()->GetSize() == selectionReport->GetUsedAttributeNumber());
+
+	// Npormalisation des importance par leur somme
+	for (nAttribute = 0; nAttribute < selectionReport->GetSelectedAttributes()->GetSize(); nAttribute++)
+	{
+		attributeReport =
+		    cast(KWSelectedAttributeReport*, selectionReport->GetSelectedAttributes()->GetAt(nAttribute));
+		attributeReport->SetImportance(attributeReport->GetImportance() / dSumImportance);
+	}
 
 	// Tri du rapport d'attributs selectionnes selon poids dans le predicteur et level
 	selectionReport->GetSelectedAttributes()->SetCompareFunction(KWLearningReportCompareSortValue);
 	selectionReport->GetSelectedAttributes()->Sort();
+
+	// Trace du rapport
+	if (bExportReport)
+	{
+		ALString sReportFileName;
+		fstream fstReport;
+
+		// Ecriture des variables selectionnees dans un fichier
+		sReportFileName = FileService::BuildFilePathName(
+		    FileService::GetTmpDir(),
+		    "SnbReport_" + shared_learningSpec.GetLearningSpec()->GetClass()->GetName() + ".txt");
+		if (FileService::OpenOutputFile(sReportFileName, fstReport))
+		{
+			fstReport << "Name\tLevel\tWeight\tImportance\tImportanceV10\n";
+			for (nAttribute = 0; nAttribute < selectionReport->GetSelectedAttributes()->GetSize();
+			     nAttribute++)
+			{
+				attributeReport = cast(KWSelectedAttributeReport*,
+						       selectionReport->GetSelectedAttributes()->GetAt(nAttribute));
+				fstReport << attributeReport->GetNativeAttributeName() << "\t";
+				fstReport << attributeReport->GetUnivariateEvaluation() << "\t";
+				fstReport << attributeReport->GetWeight() << "\t";
+				fstReport << attributeReport->GetImportance() << "\t";
+				fstReport
+				    << sqrt(attributeReport->GetUnivariateEvaluation() * attributeReport->GetWeight())
+				    << "\n";
+			}
+			FileService::CloseOutputFile(sReportFileName, fstReport);
+		}
+	}
 
 	// Supression des attributs avec les moins importants si demande
 	nMaxSelectedAttributes = masterSnbPredictor->GetSelectionParameters()->GetMaxSelectedAttributeNumber();
@@ -1718,7 +1782,7 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalizeTrainingAndRepor
 	oaSelectedAttributes.SetCompareFunction(SNBDataTableBinarySliceSetAttributeCompareDataPreparationClassIndex);
 	oaSelectedAttributes.Sort();
 
-	// Creation du tableau de KWDataPreparationAttribute's selectiones et ses poids
+	// Creation du tableau de KWDataPreparationAttribute's selectionnes et ses poids
 	oaSelectedDataPreparationAttributes.SetSize(selectionReport->GetUsedAttributeNumber());
 	cvAttributeWeights.SetSize(selectionReport->GetUsedAttributeNumber());
 	oaDataPreparationAttributes = masterBinarySliceSet->GetDataPreparationClass()->GetDataPreparationAttributes();
