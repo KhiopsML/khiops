@@ -403,7 +403,7 @@ boolean KWChunkSorterTask::MasterFinalize(boolean bProcessEndedCorrectly)
 		bucket = buckets->GetBucketAt(i);
 
 		// Collecte du nom de fichier trie a concatener (puis detruire)
-		if (bucket->GetSorted())
+		if (bucket->GetSorted() or bucket->IsSingleton())
 		{
 			if (bucket->IsSingleton() and shared_bSameSeparator)
 			{
