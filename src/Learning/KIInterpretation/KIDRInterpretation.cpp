@@ -455,6 +455,7 @@ void KIDRClassifierService::WriteAttributeDetails(ostream& ost, int nAttribute) 
 	// Acces a la regle de grille pour pouvoir visualiser la grille
 	dataGridRule = cast(const KWDRDataGrid*, oaPredictorAttributeDataGridRules.GetAt(nAttribute));
 	dataGridRule->ExportDataGridStats(&dataGridStats);
+	dataGridStats.SetSourceAttributeNumber(dataGridStats.GetAttributeNumber() - 1);
 
 	// Affichage de la grille, avec ses dimensions
 	ost << "    ####  Data grid\t";
@@ -465,7 +466,7 @@ void KIDRClassifierService::WriteAttributeDetails(ostream& ost, int nAttribute) 
 		ost << dataGridStats.GetAttributeAt(i)->GetPartNumber();
 	}
 	ost << "\n";
-	if (dataGridStats.GetAttributeNumber() == 2)
+	if (dataGridStats.GetSourceAttributeNumber() == 2)
 		dataGridStats.WriteFrequencyCrossTable(ost);
 	else
 		dataGridStats.WriteCellArrayLineReport(ost);
@@ -664,8 +665,9 @@ void KIDRClassifierInterpreter::Compile(KWClass* kwcOwnerClass)
 		// Grille de preparation
 		dataGridRule = cast(const KWDRDataGrid*, oaPredictorAttributeDataGridRules.GetAt(nAttribute));
 
-		// Export de la grille pour pouvoir calculer les valeur de Shapley
+		// Export de la grille pour pouvoir calculer les valeurs de Shapley
 		dataGridRule->ExportDataGridStats(&attributeDataGridStats);
+		attributeDataGridStats.SetSourceAttributeNumber(attributeDataGridStats.GetAttributeNumber() - 1);
 
 		// Calcul de la table de Shapley
 		stShapleyTable = new KIShapleyTable;

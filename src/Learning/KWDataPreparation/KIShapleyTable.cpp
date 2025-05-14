@@ -51,8 +51,9 @@ double KIShapleyTable::ComputeMeanAbsoluteShapleyValues(const KWDataGridStats* a
 	const boolean bTrace = false;
 	double dMeanAbsoluteShapleyValues;
 	double dMeanAbsoluteShapleyValuesPerTarget;
-	KWDataGridStats univariateDataGrid;
-	const KWDataGridStats* workingDataGrid;
+	KWDataGridStats workingUnivariateDataGridStats;
+	KWDataGridStats workingTargetDataGridStats;
+	const KWDataGridStats* currentAttributeDataGridStats;
 	KIShapleyTable shapleyTable;
 	IntVector ivSourcePartFrequencies;
 	IntVector ivTargetPartFrequencies;
@@ -61,62 +62,135 @@ double KIShapleyTable::ComputeMeanAbsoluteShapleyValues(const KWDataGridStats* a
 	int nTargetPartNumber;
 	int nSourcePart;
 	int nTarget;
+	int nSingletonIndex;
 
 	require(attributeDataGridStats != NULL);
+	require(attributeDataGridStats->GetAttributeNumber() == 2 or attributeDataGridStats->GetAttributeNumber() == 3);
 	require(targetDataGridStats != NULL);
 	require(0 < dAttributeWeight);
 
-	// Cas univarie: on utilise la grille telle quelle
-	if (attributeDataGridStats->GetAttributeNumber() == 2)
-		workingDataGrid = attributeDataGridStats;
-	// Cas bivarie: on passe par une grille univarie interprediaire, construiote a partir le la grille bivariee
+	// Cas de la classification
+	currentAttributeDataGridStats = NULL;
+	if (attributeDataGridStats->GetAttributeAt(attributeDataGridStats->GetAttributeNumber() - 1)
+		->GetAttributeType() == KWType::Symbol)
+	{
+		// Cas univarie: on utilise la grille telle quelle
+		if (attributeDataGridStats->GetAttributeNumber() == 2)
+			currentAttributeDataGridStats = attributeDataGridStats;
+		// Cas bivarie: on passe par une grille univarie intermediaire, construite a partir de la grille bivariee
+		else
+		{
+			assert(attributeDataGridStats->GetAttributeNumber() == 3);
+			assert(attributeDataGridStats->GetAttributeAt(2)->GetAttributeType() == KWType::Symbol);
+			shapleyTable.BuildUnivariateDataGridStats(attributeDataGridStats,
+								  &workingUnivariateDataGridStats);
+			currentAttributeDataGridStats = &workingUnivariateDataGridStats;
+		}
+
+		// Appel de la methode univariee avec la grille univariee courante
+		shapleyTable.InitializeFromUnivariateDataGridStats(currentAttributeDataGridStats, targetDataGridStats,
+								   dAttributeWeight);
+		assert(shapleyTable.GetSourceSize() == attributeDataGridStats->ComputeCellNumber());
+		assert(shapleyTable.GetTargetSize() == targetDataGridStats->GetAttributeAt(0)->GetPartNumber());
+
+		// Calcul des effectifs par partie pour l'attribut source et cible de la grille de travail
+		currentAttributeDataGridStats->ExportAttributePartFrequenciesAt(0, &ivSourcePartFrequencies);
+		currentAttributeDataGridStats->ExportAttributePartFrequenciesAt(1, &ivTargetPartFrequencies);
+		nSourcePartNumber = ivSourcePartFrequencies.GetSize();
+		nTargetPartNumber = ivTargetPartFrequencies.GetSize();
+		nTotalFrequency = targetDataGridStats->ComputeGridFrequency();
+
+		// Calcul pondere sur l'ensemble des valeur cibles
+		dMeanAbsoluteShapleyValues = 0;
+		for (nTarget = 0; nTarget < nTargetPartNumber; nTarget++)
+		{
+			// Calcul de la moyennne des valeur absolue de Shapley pour une valeur cible donnees
+			dMeanAbsoluteShapleyValuesPerTarget = 0;
+			for (nSourcePart = 0; nSourcePart < shapleyTable.GetSourceSize(); nSourcePart++)
+			{
+				dMeanAbsoluteShapleyValuesPerTarget +=
+				    ivSourcePartFrequencies.GetAt(nSourcePart) *
+				    abs(shapleyTable.GetShapleyValueAt(nSourcePart, nTarget));
+			}
+			dMeanAbsoluteShapleyValuesPerTarget /= nTotalFrequency;
+
+			// Prise en compte de l'effectif de la cible
+			dMeanAbsoluteShapleyValues +=
+			    ivTargetPartFrequencies.GetAt(nTarget) * dMeanAbsoluteShapleyValuesPerTarget;
+		}
+		dMeanAbsoluteShapleyValues /= nTotalFrequency;
+	}
+	// Cas de la regression
 	else
 	{
-		shapleyTable.BuildUnivariateDataGridStats(attributeDataGridStats, &univariateDataGrid);
-		workingDataGrid = &univariateDataGrid;
-	}
+		assert(attributeDataGridStats->GetAttributeNumber() == 2);
+		assert(attributeDataGridStats->GetAttributeAt(1)->GetAttributeType() == KWType::Continuous);
 
-	// Appel de la methode univariee avec la grille univariee de travail
-	shapleyTable.InitializeFromUnivariateDataGridStats(workingDataGrid, targetDataGridStats, dAttributeWeight);
-	assert(shapleyTable.GetSourceSize() == attributeDataGridStats->ComputeCellNumber());
-	assert(shapleyTable.GetTargetSize() == targetDataGridStats->GetAttributeAt(0)->GetPartNumber());
+		// On passe transforme la grille de regression en grille de classification avec groupement
+		// des valeurs cibles, avec par intervalle une valeur singleton representative d'un rang
+		// de l'intervalle et une seconde valeur contenant le reste de l'intervalle
+		shapleyTable.BuildRegressionAnalysisDataGridStats(
+		    attributeDataGridStats, &workingUnivariateDataGridStats, &workingTargetDataGridStats);
+		currentAttributeDataGridStats = &workingUnivariateDataGridStats;
+		assert(2 * workingUnivariateDataGridStats.GetAttributeAt(1)->GetPartNumber() ==
+		       workingTargetDataGridStats.GetAttributeAt(0)->GetPartNumber());
 
-	// Calcul des effectifs par partie pour l'attribut source et cible de la grille de travail
-	workingDataGrid->ExportAttributePartFrequenciesAt(0, &ivSourcePartFrequencies);
-	workingDataGrid->ExportAttributePartFrequenciesAt(1, &ivTargetPartFrequencies);
-	nSourcePartNumber = ivSourcePartFrequencies.GetSize();
-	nTargetPartNumber = ivTargetPartFrequencies.GetSize();
-	nTotalFrequency = targetDataGridStats->ComputeGridFrequency();
+		// Appel de la methode univariee avec la grille univariee courante
+		shapleyTable.InitializeFromUnivariateDataGridStats(currentAttributeDataGridStats,
+								   &workingTargetDataGridStats, dAttributeWeight);
+		assert(shapleyTable.GetSourceSize() ==
+		       workingUnivariateDataGridStats.GetAttributeAt(0)->GetPartNumber());
+		assert(shapleyTable.GetTargetSize() == workingTargetDataGridStats.GetAttributeAt(0)->GetPartNumber());
 
-	// Calcul pondere sur l'ensemble des valeur cibles
-	dMeanAbsoluteShapleyValues = 0;
-	for (nTarget = 0; nTarget < nTargetPartNumber; nTarget++)
-	{
-		// Calcul de la moyennne des valeur absolue de Shapley pour une valeur cible donnees
-		dMeanAbsoluteShapleyValuesPerTarget = 0;
-		for (nSourcePart = 0; nSourcePart < shapleyTable.GetSourceSize(); nSourcePart++)
+		// Calcul des effectifs par partie pour l'attribut source et cible de la grille de travail
+		currentAttributeDataGridStats->ExportAttributePartFrequenciesAt(0, &ivSourcePartFrequencies);
+		currentAttributeDataGridStats->ExportAttributePartFrequenciesAt(1, &ivTargetPartFrequencies);
+		nSourcePartNumber = ivSourcePartFrequencies.GetSize();
+		nTargetPartNumber = ivTargetPartFrequencies.GetSize();
+		nTotalFrequency = targetDataGridStats->ComputeGridFrequency();
+
+		// Calcul pondere sur l'ensemble de intervalles cibles, en exploitant
+		dMeanAbsoluteShapleyValues = 0;
+		for (nTarget = 0; nTarget < nTargetPartNumber; nTarget++)
 		{
-			dMeanAbsoluteShapleyValuesPerTarget +=
-			    ivSourcePartFrequencies.GetAt(nSourcePart) *
-			    abs(shapleyTable.GetShapleyValueAt(nSourcePart, nTarget));
-		}
-		dMeanAbsoluteShapleyValuesPerTarget /= nTotalFrequency;
+			// Calcul de la moyennne des valeur absolue de Shapley pour un rang d'un interval donne
+			dMeanAbsoluteShapleyValuesPerTarget = 0;
+			for (nSourcePart = 0; nSourcePart < shapleyTable.GetSourceSize(); nSourcePart++)
+			{
+				// Acces au rang de la partie singleton representative d'un intervalle cible
+				nSingletonIndex = 2 * nTarget;
+				assert(workingTargetDataGridStats.GetUnivariateCellFrequencyAt(nSingletonIndex) == 1);
+				assert(
+				    workingTargetDataGridStats.GetUnivariateCellFrequencyAt(nSingletonIndex) +
+					workingTargetDataGridStats.GetUnivariateCellFrequencyAt(nSingletonIndex + 1) ==
+				    ivTargetPartFrequencies.GetAt(nTarget));
 
-		// Prise en compte de l'effectif de la cible
-		dMeanAbsoluteShapleyValues +=
-		    ivTargetPartFrequencies.GetAt(nTarget) * dMeanAbsoluteShapleyValuesPerTarget;
+				// Calcul de la valeur de Shapley pour ce singleton
+				dMeanAbsoluteShapleyValuesPerTarget +=
+				    ivSourcePartFrequencies.GetAt(nSourcePart) *
+				    abs(shapleyTable.GetShapleyValueAt(nSourcePart, nSingletonIndex));
+			}
+			dMeanAbsoluteShapleyValuesPerTarget /= nTotalFrequency;
+
+			// Prise en compte de l'effectif de tout l'intervalle cible, dont tous les rang
+			// se comportent de la meme facon
+			dMeanAbsoluteShapleyValues +=
+			    ivTargetPartFrequencies.GetAt(nTarget) * dMeanAbsoluteShapleyValuesPerTarget;
+		}
+		dMeanAbsoluteShapleyValues /= nTotalFrequency;
 	}
-	dMeanAbsoluteShapleyValues /= nTotalFrequency;
+	assert(currentAttributeDataGridStats != NULL);
+	assert(currentAttributeDataGridStats->GetSourceAttributeNumber() == 1);
 
 	// Trace
 	if (bTrace)
 	{
 		cout << "ComputeMeanAbsoluteShapleyValues\t";
-		cout << workingDataGrid->GetAttributeAt(0)->GetAttributeName() << "\t"
-		     << workingDataGrid->GetAttributeAt(1)->GetAttributeName() << "\t";
+		cout << currentAttributeDataGridStats->GetAttributeAt(0)->GetAttributeName() << "\t"
+		     << currentAttributeDataGridStats->GetAttributeAt(1)->GetAttributeName() << "\t";
 		cout << dAttributeWeight << "\t";
 		cout << dMeanAbsoluteShapleyValues << "\n";
-		workingDataGrid->WriteFrequencyCrossTable(cout);
+		currentAttributeDataGridStats->WriteCellArrayLineReport(cout);
 		cout << shapleyTable << "\n";
 	}
 	ensure(dMeanAbsoluteShapleyValues > 0);
@@ -277,14 +351,13 @@ void KIShapleyTable::InitializeFromUnivariateDataGridStats(const KWDataGridStats
 		// Effectif de la valeur cible
 		nTargetFrequency = targetDataGridStats->GetUnivariateCellFrequencyAt(nTarget);
 
-		// Epsilon de Laplace associe a la valeur cible, reparti au prorata de l'effectif
-		// de la valeur cible dans son eventuelle partie cible, dans le cas One
+		// Epsilon de Laplace associe a la valeur cible, dans le cas One
+		// Meme en cas de groupement de la valeur cible, on ne divise pas le epsilon au prorata
+		// de l'effectif de la valeur cible dans son eventuelle partie cible, pour exploiter toujours
+		// le meme epsilon qui fournit un majorant unique pour les logs de probabilite en cas de cellule vide
 		dConditionalOneLaplaceEpsilon = dLaplaceEpsilon;
-		if (not attributeTargetPartition->ArePartsSingletons())
-			dConditionalOneLaplaceEpsilon = (dConditionalOneLaplaceEpsilon * nTargetFrequency) /
-							ivTargetPartFrequencies.GetAt(nTargetPart);
 
-		// Idem pour la cas All
+		// Idem pour le cas All
 		dConditionalAllLaplaceEpsilon = nTargetPartNumber * dLaplaceEpsilon - dConditionalOneLaplaceEpsilon;
 
 		// Premiere passe pour calcul le terme de valeur et d'esperance
@@ -349,9 +422,11 @@ void KIShapleyTable::BuildUnivariateDataGridStats(const KWDataGridStats* bivaria
 	require(bivariateDataGridStats != NULL);
 	require(bivariateDataGridStats->Check());
 	require(bivariateDataGridStats->GetAttributeNumber() == 3);
-	require(bivariateDataGridStats->GetAttributeAt(bivariateDataGridStats->GetAttributeNumber() - 1)
-		    ->GetAttributeType() == KWType::Symbol);
+	require(bivariateDataGridStats->GetAttributeAt(2)->GetAttributeType() == KWType::Symbol);
 	require(univariateDataGridStats != NULL);
+
+	// Nettoyage prealable
+	univariateDataGridStats->DeleteAll();
 
 	// Creation d'un attribut representant la paire d'attributs sources
 	sourceDataGridAttribute = new KWDGSAttributeSymbolValues;
@@ -374,12 +449,10 @@ void KIShapleyTable::BuildUnivariateDataGridStats(const KWDataGridStats* bivaria
 		targetDataGridAttribute->SetValueAt(
 		    i, cast(KWDGSAttributeSymbolValues*, bivariateDataGridStats->GetAttributeAt(2))->GetValueAt(i));
 
-	// Nettoyage prealable
-	univariateDataGridStats->DeleteAll();
-
 	// Alimentation de la grille univariee a partir des attributs source et cible reconstruits
 	univariateDataGridStats->AddAttribute(sourceDataGridAttribute);
 	univariateDataGridStats->AddAttribute(targetDataGridAttribute);
+	univariateDataGridStats->SetSourceAttributeNumber(1);
 	univariateDataGridStats->CreateAllCells();
 
 	// On commence a importer les effectifs des cellules de la grille bivariee vers la grille univariee
@@ -408,11 +481,128 @@ void KIShapleyTable::BuildUnivariateDataGridStats(const KWDataGridStats* bivaria
 	assert(univariateDataGridStats->Check());
 	assert(univariateDataGridStats->ComputeGridSize() == bivariateDataGridStats->ComputeGridSize());
 	assert(univariateDataGridStats->ComputeCellNumber() == bivariateDataGridStats->ComputeCellNumber());
+	assert(univariateDataGridStats->ComputeGridFrequency() == bivariateDataGridStats->ComputeGridFrequency());
 
 	// Trace
 	if (bTrace)
 	{
+		cout << "BuildUnivariateDataGridStats\n";
 		cout << "Bivariate grid\n" << *bivariateDataGridStats << "\n";
 		cout << "Univariate grid\n" << *univariateDataGridStats << "\n";
+		cout << "\n";
+	}
+}
+
+void KIShapleyTable::BuildRegressionAnalysisDataGridStats(const KWDataGridStats* regressionDataGridStats,
+							  KWDataGridStats* univariateDataGridStats,
+							  KWDataGridStats* targetDataGridStats) const
+{
+	const boolean bTrace = false;
+	const ALString sSingletonPrefix = "OneOf_I";
+	const ALString sIntervalPrefix = "RestOf_I";
+	IntVector ivTargetPartFrequencies;
+	KWDGSAttributePartition* sourceDataGridAttribute;
+	KWDGSAttributeGrouping* targetDataGridAttribute;
+	KWDGSAttributeSymbolValues* targetValueDataGridAttribute;
+	int nTargetIntervalNumber;
+	int nTargetValueNumber;
+	int nTrueTargetValueNumber;
+	IntVector ivPartIndexes;
+	int nSource;
+	int nTarget;
+	int nCellFrequency;
+
+	require(regressionDataGridStats != NULL);
+	require(regressionDataGridStats->Check());
+	require(regressionDataGridStats->GetAttributeNumber() == 2);
+	require(regressionDataGridStats->GetAttributeAt(1)->GetAttributeType() == KWType::Continuous);
+	require(not regressionDataGridStats->GetAttributeAt(1)->ArePartsSingletons());
+	require(univariateDataGridStats != NULL);
+	require(targetDataGridStats != NULL);
+
+	// Nettoyage prealable
+	univariateDataGridStats->DeleteAll();
+	targetDataGridStats->DeleteAll();
+
+	// On garde le premier attribut de la grille
+	sourceDataGridAttribute = regressionDataGridStats->GetAttributeAt(0)->Clone();
+
+	// On cree un attribut de type groupement de valeur a partir du second attribut de discretisation
+	targetDataGridAttribute = new KWDGSAttributeGrouping;
+	targetDataGridAttribute->SetAttributeName(regressionDataGridStats->GetAttributeAt(1)->GetAttributeName());
+	nTargetIntervalNumber = regressionDataGridStats->GetAttributeAt(1)->GetPartNumber();
+	targetDataGridAttribute->SetPartNumber(nTargetIntervalNumber);
+
+	// Parametrage de la partition cible, avec la StarValue
+	nTargetValueNumber = 2 * nTargetIntervalNumber + 1;
+	targetDataGridAttribute->SetKeptValueNumber(nTargetValueNumber);
+	targetDataGridAttribute->SetInitialValueNumber(nTargetValueNumber);
+	targetDataGridAttribute->SetGranularizedValueNumber(nTargetValueNumber);
+	targetDataGridAttribute->SetValueAt(nTargetValueNumber - 1, Symbol::GetStarValue());
+	for (nTarget = 0; nTarget < nTargetIntervalNumber; nTarget++)
+	{
+		// Parametrage des valeurs du groupe
+		targetDataGridAttribute->SetValueAt(2 * nTarget, Symbol(sSingletonPrefix + IntToString(nTarget + 1)));
+		targetDataGridAttribute->SetValueAt(2 * nTarget + 1,
+						    Symbol(sIntervalPrefix + IntToString(nTarget + 1)));
+
+		// Parametrage du groupe
+		targetDataGridAttribute->SetGroupFirstValueIndexAt(nTarget, 2 * nTarget);
+	}
+
+	// Alimentation de la grille univariee a partir des attributs source et cible reconstruits
+	univariateDataGridStats->AddAttribute(sourceDataGridAttribute);
+	univariateDataGridStats->AddAttribute(targetDataGridAttribute);
+	univariateDataGridStats->SetSourceAttributeNumber(1);
+	univariateDataGridStats->CreateAllCells();
+
+	// Alimentation des effectifs des cellules
+	for (nSource = 0; nSource < sourceDataGridAttribute->GetPartNumber(); nSource++)
+	{
+		for (nTarget = 0; nTarget < targetDataGridAttribute->GetPartNumber(); nTarget++)
+		{
+			nCellFrequency = regressionDataGridStats->GetBivariateCellFrequencyAt(nSource, nTarget);
+			univariateDataGridStats->SetBivariateCellFrequencyAt(nSource, nTarget, nCellFrequency);
+		}
+	}
+	assert(univariateDataGridStats->Check());
+	assert(univariateDataGridStats->ComputeGridSize() == regressionDataGridStats->ComputeGridSize());
+	assert(univariateDataGridStats->ComputeCellNumber() == regressionDataGridStats->ComputeCellNumber());
+	assert(univariateDataGridStats->ComputeGridFrequency() == regressionDataGridStats->ComputeGridFrequency());
+
+	// Creation de l'attribut contenant les valeur de la grille cible, sans la StarValue
+	nTrueTargetValueNumber = nTargetValueNumber - 1;
+	targetValueDataGridAttribute = new KWDGSAttributeSymbolValues;
+	targetValueDataGridAttribute->SetAttributeName(regressionDataGridStats->GetAttributeAt(1)->GetAttributeName());
+	targetValueDataGridAttribute->SetPartNumber(nTrueTargetValueNumber);
+	targetValueDataGridAttribute->SetInitialValueNumber(nTrueTargetValueNumber);
+	targetValueDataGridAttribute->SetGranularizedValueNumber(nTrueTargetValueNumber);
+	for (nTarget = 0; nTarget < nTrueTargetValueNumber; nTarget++)
+		targetValueDataGridAttribute->SetValueAt(nTarget, targetDataGridAttribute->GetValueAt(nTarget));
+
+	// Export des effectifs par intervalle cible
+	regressionDataGridStats->ExportAttributePartFrequenciesAt(1, &ivTargetPartFrequencies);
+	assert(ivTargetPartFrequencies.GetSize() * 2 == nTrueTargetValueNumber);
+
+	// Alimentation de la grille cible et de ses efefctifs par valeurs
+	targetDataGridStats->AddAttribute(targetValueDataGridAttribute);
+	targetDataGridStats->CreateAllCells();
+	for (nTarget = 0; nTarget < ivTargetPartFrequencies.GetSize(); nTarget++)
+	{
+		targetDataGridStats->SetUnivariateCellFrequencyAt(2 * nTarget, 1);
+		targetDataGridStats->SetUnivariateCellFrequencyAt(2 * nTarget + 1,
+								  ivTargetPartFrequencies.GetAt(nTarget) - 1);
+	}
+	assert(targetDataGridStats->Check());
+	assert(targetDataGridStats->ComputeGridFrequency() == regressionDataGridStats->ComputeGridFrequency());
+
+	// Trace
+	if (bTrace)
+	{
+		cout << "BuildRegressionAnalysisDataGridStats\n";
+		cout << "Regression grid\n" << *regressionDataGridStats << "\n";
+		cout << "Univariate grid\n" << *univariateDataGridStats << "\n";
+		cout << "Target grid\n" << *targetDataGridStats << "\n";
+		cout << "\n";
 	}
 }

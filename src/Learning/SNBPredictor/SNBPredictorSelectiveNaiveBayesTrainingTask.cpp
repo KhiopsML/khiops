@@ -1638,6 +1638,7 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalizeTrainingAndRepor
 	SymbolVector svTargetValues;
 	IntVector ivTargetValueFrequencies;
 	ContinuousVector cvAttributeWeights;
+	DoubleVector dvAttributeMeanAbsoluteShapleyValues;
 	double dAttributeMeanAbsoluteShapleyValues;
 	double dSumImportance;
 	int nAttribute;
@@ -1693,10 +1694,10 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalizeTrainingAndRepor
 			dAttributeMeanAbsoluteShapleyValues = KIShapleyTable::ComputeMeanAbsoluteShapleyValues(
 			    attribute->GetPreparedDataGridStats(),
 			    shared_learningSpec.GetLearningSpec()->GetTargetValueStats(), attributeReport->GetWeight());
-			attributeReport->SetImportance(dAttributeMeanAbsoluteShapleyValues);
+			dvAttributeMeanAbsoluteShapleyValues.Add(dAttributeMeanAbsoluteShapleyValues);
 
 			// Memorisation de la somme pour normalisation
-			dSumImportance += attributeReport->GetImportance();
+			dSumImportance += dAttributeMeanAbsoluteShapleyValues;
 
 			// Ajout du rapport
 			assert(selectionReport->Check());
@@ -1714,14 +1715,14 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalizeTrainingAndRepor
 	{
 		attributeReport =
 		    cast(KWSelectedAttributeReport*, selectionReport->GetSelectedAttributes()->GetAt(nAttribute));
-		attributeReport->SetImportance(attributeReport->GetImportance() / dSumImportance);
+		attributeReport->SetImportance(dvAttributeMeanAbsoluteShapleyValues.GetAt(nAttribute) / dSumImportance);
 	}
 
 	// Tri du rapport d'attributs selectionnes selon poids dans le predicteur et level
 	selectionReport->GetSelectedAttributes()->SetCompareFunction(KWLearningReportCompareSortValue);
 	selectionReport->GetSelectedAttributes()->Sort();
 
-	// Trace du rapport
+	// Trace du rapport dans un fichier dans le repertoire temporaire de Khiops, avec la version V10 de l'importance
 	if (bExportReport)
 	{
 		ALString sReportFileName;
@@ -1730,7 +1731,8 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalizeTrainingAndRepor
 		// Ecriture des variables selectionnees dans un fichier
 		sReportFileName = FileService::BuildFilePathName(
 		    FileService::GetTmpDir(),
-		    "SnbReport_" + shared_learningSpec.GetLearningSpec()->GetClass()->GetName() + ".txt");
+		    "SnbReport_" + shared_learningSpec.GetLearningSpec()->GetClass()->GetName() + "_" +
+			shared_learningSpec.GetLearningSpec()->GetTargetAttributeName() + ".txt");
 		if (FileService::OpenOutputFile(sReportFileName, fstReport))
 		{
 			fstReport << "Name\tLevel\tWeight\tImportance\tImportanceV10\n";

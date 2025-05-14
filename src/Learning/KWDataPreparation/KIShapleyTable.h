@@ -91,6 +91,28 @@ protected:
 	void BuildUnivariateDataGridStats(const KWDataGridStats* bivariateDataGridStats,
 					  KWDataGridStats* univariateDataGridStats) const;
 
+	// Creation d'une grille d'analyse univariee a partir d'une grille univariee de regression
+	// On tranforme l'attribut cible numerique en remplacant chaque intervalle cible
+	// par un groupe de deux valeurs categorielles:
+	// - la premiere est un singleton reduit a une seule instance, representant un rang quelconque
+	//   de l'intervalle
+	// - la seconde contenant le reste des instances de l'intervalle
+	//
+	// Deux grilles sont produites en sortie:
+	// - univariateDataGridStats:
+	//   grille univarieavec autant deux groupes (a deux valeurs) que d'intervalles
+	// - targetDataGridStats:
+	//   grille cible avec toutes les valeurs, dont une sur deux est un singleton representatif d'un intervalle
+	//
+	// Cela permet de calculer la valeur Shapley pour chaque rang de chaque intervalle, en
+	// sur basant les valeur singletons, qui representent le rang typique par intervalles
+	// On peut alors calculer la moyenne des valeurs de Shapley sur toute la base en ponderant
+	// les valeurs de Shapley de type singleton par les effectifs des intervalles
+	// Memoire: la grille en sortie appartient a l'appelant, mais est alimentee par l'appele
+	void BuildRegressionAnalysisDataGridStats(const KWDataGridStats* regressionDataGridStats,
+						  KWDataGridStats* univariateDataGridStats,
+						  KWDataGridStats* targetDataGridStats) const;
+
 	// Variables d'instances
 	ContinuousVector cvTableValues;
 	int nTableSourceSize;
