@@ -82,8 +82,6 @@ void KWKey::BuildDistinctObjectLabels(const KWKey* otherKey, ALString& sObjectLa
 	int nFirstDistinctChar;
 	int i;
 
-	assert(svFields.GetSize() == otherKey->GetSize());
-
 	// Cas de libelles utilisateurs deja distincts
 	if (GetObjectLabel() != otherKey->GetObjectLabel())
 	{
@@ -93,6 +91,8 @@ void KWKey::BuildDistinctObjectLabels(const KWKey* otherKey, ALString& sObjectLa
 	// Sinon construction de libelles distincts
 	else
 	{
+		assert(svFields.GetSize() == otherKey->GetSize());
+
 		// Recherche du 1er champ qui differe
 		nFirstDistinctField = 0;
 		while (nFirstDistinctField < svFields.GetSize() and
