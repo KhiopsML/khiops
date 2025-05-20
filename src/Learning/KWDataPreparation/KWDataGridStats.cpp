@@ -2620,9 +2620,9 @@ void KWDGSAttributeDiscretization::WritePartAt(ostream& ost, int nPartIndex) con
 	else
 	{
 		if (nPartIndex == 0 or (nPartIndex == 1 and bMissingValue))
-			ost << "]-inf;";
+			ost << "]-inf,";
 		else
-			ost << "]" << KWContinuous::ContinuousToString(cvIntervalBounds.GetAt(nPartIndex - 1)) << ";";
+			ost << "]" << KWContinuous::ContinuousToString(cvIntervalBounds.GetAt(nPartIndex - 1)) << ",";
 		if (nPartIndex == GetPartNumber() - 1)
 			ost << "+inf[";
 		else

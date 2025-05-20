@@ -1,4 +1,4 @@
-#Khiops 10.5.2-b.0
+#Khiops VERSION
 Descriptive statistics
 
 
@@ -57,24 +57,24 @@ Variables
 Variables stats
 PetalLength
 Interval	Frequency	Coverage
-]-inf;4.75]	65	0.619048
-]4.75;+inf[	40	0.380952
+]-inf,4.75]	65	0.619048
+]4.75,+inf[	40	0.380952
 PetalWidth
 Interval	Frequency	Coverage
-]-inf;0.75]	38	0.361905
-]0.75;+inf[	67	0.638095
+]-inf,0.75]	38	0.361905
+]0.75,+inf[	67	0.638095
 
 Cell frequencies
 	PetalWidth
-PetalLength	]-inf;0.75]	]0.75;+inf[	Total	Coverage
-]-inf;4.75]	38	27	65	0.619048
-]4.75;+inf[	0	40	40	0.380952
+PetalLength	]-inf,0.75]	]0.75,+inf[	Total	Coverage
+]-inf,4.75]	38	27	65	0.619048
+]4.75,+inf[	0	40	40	0.380952
 Total	38	67	105
 Coverage	0.361905	0.638095
 
 Cells	3
 Cell Id	PetalLength	PetalWidth	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-C1	]-inf;4.75]	]-inf;0.75]	1	0	0	0.386122	38	0.361905
-C3	]-inf;4.75]	]0.75;+inf[	0	1	0	0.320737	27	0.257143
-C4	]4.75;+inf[	]0.75;+inf[	0	0.125	0.875	0.293141	40	0.380952
+C1	]-inf,4.75]	]-inf,0.75]	1	0	0	0.386122	38	0.361905
+C3	]-inf,4.75]	]0.75,+inf[	0	1	0	0.320737	27	0.257143
+C4	]4.75,+inf[	]0.75,+inf[	0	0.125	0.875	0.293141	40	0.380952
 	Total		0.361905	0.304762	0.333333	1	105	1

@@ -134,10 +134,10 @@ const ALString KWDRIntervalBounds::GetPartLabelAt(int nIndex) const
 		else
 		{
 			if (nIndex == 0 or (nIndex == 1 and bMissingValue))
-				sPartLabel = sPartLabel + "]-inf;";
+				sPartLabel = sPartLabel + "]-inf,";
 			else
 				sPartLabel = sPartLabel + "]" +
-					     KWContinuous::ContinuousToString(cvIntervalBounds.GetAt(nIndex - 1)) + ";";
+					     KWContinuous::ContinuousToString(cvIntervalBounds.GetAt(nIndex - 1)) + ",";
 			if (nIndex == GetPartNumber() - 1)
 				sPartLabel = sPartLabel + "+inf[";
 			else

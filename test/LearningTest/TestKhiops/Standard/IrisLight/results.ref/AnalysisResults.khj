@@ -1,6 +1,6 @@
 {
 	"tool": "Khiops",
-	"version": "10.5.2-b.0",
+	"version": "VERSION",
 	"shortDescription": "Training without setosa",
 	"modelingReport": {
 		"reportType": "Modeling",

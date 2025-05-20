@@ -1,4 +1,4 @@
-#Khiops 10.5.2-b.0
+#Khiops VERSION
 Test evaluation report
 
 Dictionary	Iris
@@ -48,9 +48,9 @@ $Iris-virginica	0	0	12
 
 % target values
 Interval	Iris-setosa	Iris-versicolor	Iris-virginica	Interest	Frequency	Coverage
-]-inf;0.75]	1	0	0	0.394348	12	0.266667
-]0.75;1.75]	0	0.857143	0.142857	0.27788	21	0.466667
-]1.75;+inf[	0	0	1	0.327772	12	0.266667
+]-inf,0.75]	1	0	0	0.394348	12	0.266667
+]0.75,1.75]	0	0.857143	0.142857	0.27788	21	0.466667
+]1.75,+inf[	0	0	1	0.327772	12	0.266667
 Total	0.266667	0.4	0.333333	1	45	1
 
 

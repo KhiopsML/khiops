@@ -23,7 +23,7 @@ OK                             // Open
 
 TrainDatabase.ClassName Iris          // Dictionary
 
-TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                // List item selection
+TrainDatabase.DatabaseSpec.Data.DatabaseFiles.List.Key                 // List item selection
 TrainDatabase.DatabaseSpec.Data.DatabaseFiles.DataTableName ../../../datasets/Iris/Iris.txt     // Database file
 TrainDatabase.DatabaseSpec.Sampling.SampleNumberPercentage 70  // Sample percentage
 TrainDatabase.DatabaseSpec.Selection.SelectionAttribute NoSetosa   // Selection variable
@@ -31,10 +31,8 @@ TrainDatabase.DatabaseSpec.Selection.SelectionValue 1        // Selection value
 
 AnalysisSpec.TargetAttributeName Class   // Target variable
 
-
 AnalysisResults.ShortDescription Training without setosa   // Short description
 AnalysisResults.ReportFileName ./results/AnalysisResults.khj // Analysis report
-
 
 AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxTextFeatureNumber 0    // Max number of text features
 AnalysisSpec.PredictorsSpec.ConstructionSpec.MaxTreeNumber 0  // Max Tree number

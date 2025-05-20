@@ -1,4 +1,4 @@
-#Khiops 10.5.6-b.0
+#Khiops VERSION
 
 Root	Dictionary	Occupation	(occupation)
 {
@@ -18,13 +18,13 @@ Unused	Structure(Vector)	P_occupationPartDistances	 = PredictedPartDistances(P_D
 	Numerical	P_occupationDistanceB18	 = ValueAt(P_occupationPartDistances, 1)	;	
 	Numerical	P_occupationDistanceB7	 = ValueAt(P_occupationPartDistances, 2)	;	
 Unused	Structure(Vector)	P_agePartFrequencies	 = PredictedPartFrequenciesAt(P_DeployedCoclusteringAtoccupation, 1)	;	// Vector of cluster frequencies for variable age
-	Numerical	`P_ageFrequency]-inf;29.5]`	 = ValueAt(P_agePartFrequencies, 1)	;	
-	Numerical	`P_ageFrequency]29.5;+inf[`	 = ValueAt(P_agePartFrequencies, 2)	;	
+	Numerical	`P_ageFrequency]-inf,29.5]`	 = ValueAt(P_agePartFrequencies, 1)	;	
+	Numerical	`P_ageFrequency]29.5,+inf[`	 = ValueAt(P_agePartFrequencies, 2)	;	
 Unused	Structure(Vector)	P_education_numPartFrequencies	 = PredictedPartFrequenciesAt(P_DeployedCoclusteringAtoccupation, 3)	;	// Vector of cluster frequencies for variable education_num
-	Numerical	`P_education_numFrequency]-inf;12.5]`	 = ValueAt(P_education_numPartFrequencies, 1)	;	
-	Numerical	`P_education_numFrequency]12.5;+inf[`	 = ValueAt(P_education_numPartFrequencies, 2)	;	
+	Numerical	`P_education_numFrequency]-inf,12.5]`	 = ValueAt(P_education_numPartFrequencies, 1)	;	
+	Numerical	`P_education_numFrequency]12.5,+inf[`	 = ValueAt(P_education_numPartFrequencies, 2)	;	
 Unused	Structure(Vector)	P_hours_per_weekPartFrequencies	 = PredictedPartFrequenciesAt(P_DeployedCoclusteringAtoccupation, 4)	;	// Vector of cluster frequencies for variable hours_per_week
-	Numerical	`P_hours_per_weekFrequency]-inf;+inf[`	 = ValueAt(P_hours_per_weekPartFrequencies, 1)	;	
+	Numerical	`P_hours_per_weekFrequency]-inf,+inf[`	 = ValueAt(P_hours_per_weekPartFrequencies, 1)	;	
 Unused	Structure(Vector)	P_marital_statusPartFrequencies	 = PredictedPartFrequenciesAt(P_DeployedCoclusteringAtoccupation, 5)	;	// Vector of cluster frequencies for variable marital_status
 	Numerical	`P_marital_statusFrequency{Never-married, Married-AF-spouse}`	 = ValueAt(P_marital_statusPartFrequencies, 1)	;	
 	Numerical	`P_marital_statusFrequency{Married-civ-spouse}`	 = ValueAt(P_marital_statusPartFrequencies, 2)	;	

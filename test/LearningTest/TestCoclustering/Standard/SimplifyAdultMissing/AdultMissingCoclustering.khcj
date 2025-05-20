@@ -59,31 +59,31 @@
 						"bounds": []
 					},
 					{
-						"cluster": "]-inf;26.5]",
+						"cluster": "]-inf,26.5]",
 						"bounds": [23,26.5]
 					},
 					{
-						"cluster": "]26.5;29.5]",
+						"cluster": "]26.5,29.5]",
 						"bounds": [26.5,29.5]
 					},
 					{
-						"cluster": "]29.5;35.5]",
+						"cluster": "]29.5,35.5]",
 						"bounds": [29.5,35.5]
 					},
 					{
-						"cluster": "]35.5;41.5]",
+						"cluster": "]35.5,41.5]",
 						"bounds": [35.5,41.5]
 					},
 					{
-						"cluster": "]41.5;54.5]",
+						"cluster": "]41.5,54.5]",
 						"bounds": [41.5,54.5]
 					},
 					{
-						"cluster": "]54.5;67.5]",
+						"cluster": "]54.5,67.5]",
 						"bounds": [54.5,67.5]
 					},
 					{
-						"cluster": "]67.5;+inf[",
+						"cluster": "]67.5,+inf[",
 						"bounds": [67.5,90]
 					}
 				]
@@ -146,7 +146,7 @@
 				"clusters": [
 					{
 						"cluster": "Missing",
-						"parentCluster": "*]-inf;29.5]",
+						"parentCluster": "*]-inf,29.5]",
 						"frequency": 1211,
 						"interest": 0.677321,
 						"hierarchicalLevel": 1,
@@ -155,8 +155,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]-inf;26.5]",
-						"parentCluster": "]-inf;29.5]",
+						"cluster": "]-inf,26.5]",
+						"parentCluster": "]-inf,29.5]",
 						"frequency": 1030,
 						"interest": 1,
 						"hierarchicalLevel": 1,
@@ -165,8 +165,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]26.5;29.5]",
-						"parentCluster": "]-inf;29.5]",
+						"cluster": "]26.5,29.5]",
+						"parentCluster": "]-inf,29.5]",
 						"frequency": 760,
 						"interest": 0.747245,
 						"hierarchicalLevel": 1,
@@ -175,8 +175,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]29.5;35.5]",
-						"parentCluster": "]29.5;54.5]",
+						"cluster": "]29.5,35.5]",
+						"parentCluster": "]29.5,54.5]",
 						"frequency": 1644,
 						"interest": 0.764431,
 						"hierarchicalLevel": 1,
@@ -185,8 +185,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]35.5;41.5]",
-						"parentCluster": "]35.5;54.5]",
+						"cluster": "]35.5,41.5]",
+						"parentCluster": "]35.5,54.5]",
 						"frequency": 1507,
 						"interest": 0.625831,
 						"hierarchicalLevel": 1,
@@ -195,8 +195,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]41.5;54.5]",
-						"parentCluster": "]35.5;54.5]",
+						"cluster": "]41.5,54.5]",
+						"parentCluster": "]35.5,54.5]",
 						"frequency": 2502,
 						"interest": 0.832737,
 						"hierarchicalLevel": 1,
@@ -205,8 +205,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]54.5;67.5]",
-						"parentCluster": "]54.5;+inf[",
+						"cluster": "]54.5,67.5]",
+						"parentCluster": "]54.5,+inf[",
 						"frequency": 1091,
 						"interest": 0.87773,
 						"hierarchicalLevel": 1,
@@ -215,8 +215,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]67.5;+inf[",
-						"parentCluster": "]54.5;+inf[",
+						"cluster": "]67.5,+inf[",
+						"parentCluster": "]54.5,+inf[",
 						"frequency": 255,
 						"interest": 0.330959,
 						"hierarchicalLevel": 1,
@@ -225,8 +225,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "*]-inf;29.5]",
-						"parentCluster": "*]-inf;+inf[",
+						"cluster": "*]-inf,29.5]",
+						"parentCluster": "*]-inf,+inf[",
 						"frequency": 3001,
 						"interest": 0.805779,
 						"hierarchicalLevel": 0.828873,
@@ -235,8 +235,8 @@
 						"isLeaf": false
 					},
 					{
-						"cluster": "]-inf;29.5]",
-						"parentCluster": "*]-inf;29.5]",
+						"cluster": "]-inf,29.5]",
+						"parentCluster": "*]-inf,29.5]",
 						"frequency": 1790,
 						"interest": 0.892685,
 						"hierarchicalLevel": 0.992494,
@@ -245,7 +245,7 @@
 						"isLeaf": false
 					},
 					{
-						"cluster": "*]-inf;+inf[",
+						"cluster": "*]-inf,+inf[",
 						"parentCluster": "",
 						"frequency": 10000,
 						"interest": 0.77435,
@@ -255,8 +255,8 @@
 						"isLeaf": false
 					},
 					{
-						"cluster": "]29.5;54.5]",
-						"parentCluster": "]29.5;+inf[",
+						"cluster": "]29.5,54.5]",
+						"parentCluster": "]29.5,+inf[",
 						"frequency": 5653,
 						"interest": 0.757714,
 						"hierarchicalLevel": 0.955432,
@@ -265,8 +265,8 @@
 						"isLeaf": false
 					},
 					{
-						"cluster": "]35.5;54.5]",
-						"parentCluster": "]29.5;54.5]",
+						"cluster": "]35.5,54.5]",
+						"parentCluster": "]29.5,54.5]",
 						"frequency": 4009,
 						"interest": 0.75496,
 						"hierarchicalLevel": 0.997035,
@@ -275,8 +275,8 @@
 						"isLeaf": false
 					},
 					{
-						"cluster": "]29.5;+inf[",
-						"parentCluster": "*]-inf;+inf[",
+						"cluster": "]29.5,+inf[",
+						"parentCluster": "*]-inf,+inf[",
 						"frequency": 6999,
 						"interest": 0.760874,
 						"hierarchicalLevel": 0.887727,
@@ -285,8 +285,8 @@
 						"isLeaf": false
 					},
 					{
-						"cluster": "]54.5;+inf[",
-						"parentCluster": "]29.5;+inf[",
+						"cluster": "]54.5,+inf[",
+						"parentCluster": "]29.5,+inf[",
 						"frequency": 1346,
 						"interest": 0.774144,
 						"hierarchicalLevel": 0.987957,

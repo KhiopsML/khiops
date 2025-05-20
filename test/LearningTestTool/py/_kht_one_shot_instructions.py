@@ -443,7 +443,7 @@ def instruction_new_data_path(test_dir):
 
 
 def instruction_clean_version(test_dir):
-    # Collecte de tous les repertoire de resultats, de reference ou non
+    # Collecte de tous les repertoires de resultats, de reference ou non
     all_results_dir = [os.path.join(test_dir, kht.RESULTS)]
     results_ref_dir, all_results_ref_dirs = results.get_results_ref_dir(
         test_dir, show=True
@@ -453,6 +453,144 @@ def instruction_clean_version(test_dir):
     # Nettoyage de chaque repertoire de reference
     for dir in all_results_dir:
         check.clean_version_from_results(dir)
+
+
+def instruction_clean_intervals(test_dir):
+    "Renommage systematique du separateur ';' en ',' dans les intervalles"
+    results_dir = os.path.join(test_dir, kht.RESULTS)
+    results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
+    if results_ref_dir is None:
+        return
+    test_dir_name = utils.test_dir_name(test_dir)
+    suite_dir_name = utils.suite_dir_name(test_dir)
+    tool_dir_name = utils.tool_dir_name(test_dir)
+    # Collecte de tous les repertoires de resultats, de reference
+    all_results_dir = []
+    results_ref_dir, all_results_ref_dirs = results.get_results_ref_dir(
+        test_dir, show=True
+    )
+
+    # On ne traite pas les repertoires avec tests de fichers a l'ancien format
+    if "SemiColumn" not in test_dir:
+        # Traitement des eventuels fichiers de Coclustering utilises en entree des prm et presents a la racine
+        for name in os.listdir(test_dir):
+            path_name = os.path.join(test_dir, name)
+            if "Coclustering" in name and ".khcj" in name:
+                lines = utils.read_file_lines(path_name)
+                # Transformation du fichier test.prm pour transformer les ";" en ","
+                to_transform = False
+                new_lines = []
+                for i, line in enumerate(lines):
+                    # Recherche si ";"" est utilise en tant que separateur
+                    fields = line.split()
+                    if ";" in line:
+                        line = line.replace(";", ",")
+                        to_transform = True
+                    new_lines.append(line)
+                if to_transform:
+                    utils.write_file_lines(path_name, new_lines)
+                    print(
+                        tool_dir_name
+                        + "/"
+                        + suite_dir_name
+                        + "/"
+                        + test_dir_name
+                        + "/"
+                        + name
+                    )
+            if "SubDir" in name:
+                for name2 in os.listdir(path_name):
+                    if "Coclustering" in name2 and ".khcj" in name2:
+                        path_name2 = os.path.join(path_name, name2)
+                        lines = utils.read_file_lines(path_name2)
+                        # Transformation du fichier test.prm pour transformer les ";" en ","
+                        to_transform = False
+                        new_lines = []
+                        for i, line in enumerate(lines):
+                            # Recherche si ";"" est utilise en tant que separateur
+                            fields = line.split()
+                            if ";" in line:
+                                line = line.replace(";", ",")
+                                to_transform = True
+                            new_lines.append(line)
+                        if to_transform:
+                            utils.write_file_lines(path_name2, new_lines)
+                            print(
+                                tool_dir_name
+                                + "/"
+                                + suite_dir_name
+                                + "/"
+                                + test_dir_name
+                                + "/"
+                                + name2
+                            )
+
+        # Traitement du contenu des repertoires results.ref
+        for dir in all_results_ref_dirs:
+            all_results_dir.append(os.path.join(test_dir, dir))
+
+            # Nettoyage de chaque repertoire de reference
+            for results_ref_dir in all_results_dir:
+                # Parcours des fichiers du repertoire de references
+                for name in os.listdir(results_ref_dir):
+                    path_name = os.path.join(test_dir, results_ref_dir, name)
+
+                    # Noms des fichiers devant etre traites
+                    bFileOk = (
+                        "PreparationReport" in name
+                        or "Preparation2DReport" in name
+                        or "EvaluationReport" in name
+                        or "ModelingReport" in name
+                        or "Deploy" in name
+                        or "Coclustering" in name
+                    )
+                    bSpecialFileOk = (
+                        "Label_D_Iris" in name
+                        or "D_20newsgroups" in name
+                        or "R_Adult_relationship" in name
+                        or "D_Adult" in name
+                        or "I_Iris" in name
+                        or "D_Iris" in name
+                        or "R_Iris" in name
+                        or "R_Isolet" in name
+                        or "D_spliceJunction" in name
+                        or "ClustersVariables" in name
+                        or "ClustersAge" in name
+                    )
+                    if bFileOk or bSpecialFileOk:
+                        lines = utils.read_file_lines(path_name)
+                        # Transformation du fichier test.prm pour transformer les ";" en ","
+                        to_transform = False
+                        new_lines = []
+                        for i, line in enumerate(lines):
+                            # Recherche si ";" est utilise en tant que separateur dans un intervalle de valeurs
+                            fields = line.split()
+                            if "inf;" in line:
+                                line = line.replace("inf;", "inf,")
+                                to_transform = True
+                            if ";+inf" in line:
+                                line = line.replace(";+inf", ",+inf")
+                                to_transform = True
+                            for i in range(0, 10):
+                                nb1 = line.count(str(i) + ";")
+                                nb2 = line.count(";)")
+                                nb3 = line.count("; )")
+                                nb4 = line.count("[") + line.count("]")
+                                if nb1 > nb2 and nb1 > nb3 and nb4 >= 2 * nb1:
+                                    line = line.replace(str(i) + ";", str(i) + ",")
+                                    to_transform = True
+                            new_lines.append(line)
+                        if to_transform:
+                            utils.write_file_lines(path_name, new_lines)
+                            print(
+                                tool_dir_name
+                                + "/"
+                                + suite_dir_name
+                                + "/"
+                                + test_dir_name
+                                + "/"
+                                + name
+                            )
 
 
 def instruction_work(test_dir):
@@ -472,7 +610,7 @@ def instruction_work(test_dir):
         to_transform = False
         new_lines = []
         for i, line in enumerate(lines):
-            # Recherche si Non est utilise en tant que token avec des separateur
+            # Recherche si None est utilise en tant que token avec des separateur
             fields = line.split()
             if "None" in fields:
                 line = line.replace("None", "none")
@@ -544,6 +682,12 @@ def register_one_shot_instructions():
         "clean-version",
         instruction_clean_version,
         "clean version info in all results dirs",
+    )
+    standard_instructions.register_instruction(
+        available_instructions,
+        "clean-intervals",
+        instruction_clean_intervals,
+        "rename ';' to ',' in all intervals",
     )
     standard_instructions.register_instruction(
         available_instructions,

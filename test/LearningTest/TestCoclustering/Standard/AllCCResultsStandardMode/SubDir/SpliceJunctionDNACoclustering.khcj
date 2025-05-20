@@ -116,55 +116,55 @@
 				"type": "Numerical",
 				"intervals": [
 					{
-						"cluster": "]-inf;15.5]",
+						"cluster": "]-inf,15.5]",
 						"bounds": [1,15.5]
 					},
 					{
-						"cluster": "]15.5;26.5]",
+						"cluster": "]15.5,26.5]",
 						"bounds": [15.5,26.5]
 					},
 					{
-						"cluster": "]26.5;27.5]",
+						"cluster": "]26.5,27.5]",
 						"bounds": [26.5,27.5]
 					},
 					{
-						"cluster": "]27.5;28.5]",
+						"cluster": "]27.5,28.5]",
 						"bounds": [27.5,28.5]
 					},
 					{
-						"cluster": "]28.5;29.5]",
+						"cluster": "]28.5,29.5]",
 						"bounds": [28.5,29.5]
 					},
 					{
-						"cluster": "]29.5;30.5]",
+						"cluster": "]29.5,30.5]",
 						"bounds": [29.5,30.5]
 					},
 					{
-						"cluster": "]30.5;31.5]",
+						"cluster": "]30.5,31.5]",
 						"bounds": [30.5,31.5]
 					},
 					{
-						"cluster": "]31.5;32.5]",
+						"cluster": "]31.5,32.5]",
 						"bounds": [31.5,32.5]
 					},
 					{
-						"cluster": "]32.5;33.5]",
+						"cluster": "]32.5,33.5]",
 						"bounds": [32.5,33.5]
 					},
 					{
-						"cluster": "]33.5;34.5]",
+						"cluster": "]33.5,34.5]",
 						"bounds": [33.5,34.5]
 					},
 					{
-						"cluster": "]34.5;35.5]",
+						"cluster": "]34.5,35.5]",
 						"bounds": [34.5,35.5]
 					},
 					{
-						"cluster": "]35.5;36.5]",
+						"cluster": "]35.5,36.5]",
 						"bounds": [35.5,36.5]
 					},
 					{
-						"cluster": "]36.5;+inf[",
+						"cluster": "]36.5,+inf[",
 						"bounds": [36.5,60]
 					}
 				]
@@ -383,8 +383,8 @@
 				"type": "Numerical",
 				"clusters": [
 					{
-						"cluster": "]-inf;15.5]",
-						"parentCluster": "]-inf;28.5]",
+						"cluster": "]-inf,15.5]",
+						"parentCluster": "]-inf,28.5]",
 						"frequency": 47850,
 						"interest": 0.256594,
 						"hierarchicalLevel": 1,
@@ -393,8 +393,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]15.5;26.5]",
-						"parentCluster": "]15.5;27.5]",
+						"cluster": "]15.5,26.5]",
+						"parentCluster": "]15.5,27.5]",
 						"frequency": 35090,
 						"interest": 0.382703,
 						"hierarchicalLevel": 1,
@@ -403,8 +403,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]26.5;27.5]",
-						"parentCluster": "]15.5;27.5]",
+						"cluster": "]26.5,27.5]",
+						"parentCluster": "]15.5,27.5]",
 						"frequency": 3190,
 						"interest": 0.287986,
 						"hierarchicalLevel": 1,
@@ -413,8 +413,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]27.5;28.5]",
-						"parentCluster": "]15.5;28.5]",
+						"cluster": "]27.5,28.5]",
+						"parentCluster": "]15.5,28.5]",
 						"frequency": 3190,
 						"interest": 0.588203,
 						"hierarchicalLevel": 1,
@@ -423,8 +423,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]28.5;29.5]",
-						"parentCluster": "]28.5;+inf[",
+						"cluster": "]28.5,29.5]",
+						"parentCluster": "]28.5,+inf[",
 						"frequency": 3190,
 						"interest": 1,
 						"hierarchicalLevel": 1,
@@ -433,8 +433,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]29.5;30.5]",
-						"parentCluster": "]29.5;31.5]",
+						"cluster": "]29.5,30.5]",
+						"parentCluster": "]29.5,31.5]",
 						"frequency": 3190,
 						"interest": 0.774911,
 						"hierarchicalLevel": 1,
@@ -443,8 +443,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]30.5;31.5]",
-						"parentCluster": "]29.5;31.5]",
+						"cluster": "]30.5,31.5]",
+						"parentCluster": "]29.5,31.5]",
 						"frequency": 3190,
 						"interest": 0.674393,
 						"hierarchicalLevel": 1,
@@ -453,8 +453,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]31.5;32.5]",
-						"parentCluster": "]31.5;+inf[",
+						"cluster": "]31.5,32.5]",
+						"parentCluster": "]31.5,+inf[",
 						"frequency": 3190,
 						"interest": 0.870658,
 						"hierarchicalLevel": 1,
@@ -463,8 +463,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]32.5;33.5]",
-						"parentCluster": "]32.5;34.5]",
+						"cluster": "]32.5,33.5]",
+						"parentCluster": "]32.5,34.5]",
 						"frequency": 3190,
 						"interest": 0.493713,
 						"hierarchicalLevel": 1,
@@ -473,8 +473,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]33.5;34.5]",
-						"parentCluster": "]32.5;34.5]",
+						"cluster": "]33.5,34.5]",
+						"parentCluster": "]32.5,34.5]",
 						"frequency": 3190,
 						"interest": 0.334615,
 						"hierarchicalLevel": 1,
@@ -483,8 +483,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]34.5;35.5]",
-						"parentCluster": "]32.5;35.5]",
+						"cluster": "]34.5,35.5]",
+						"parentCluster": "]32.5,35.5]",
 						"frequency": 3190,
 						"interest": 0.409016,
 						"hierarchicalLevel": 1,
@@ -493,8 +493,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]35.5;36.5]",
-						"parentCluster": "]35.5;+inf[",
+						"cluster": "]35.5,36.5]",
+						"parentCluster": "]35.5,+inf[",
 						"frequency": 3190,
 						"interest": 0.26895,
 						"hierarchicalLevel": 1,
@@ -503,8 +503,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]36.5;+inf[",
-						"parentCluster": "]35.5;+inf[",
+						"cluster": "]36.5,+inf[",
+						"parentCluster": "]35.5,+inf[",
 						"frequency": 76560,
 						"interest": 0.0983381,
 						"hierarchicalLevel": 1,
@@ -513,8 +513,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]-inf;28.5]",
-						"parentCluster": "]-inf;+inf[",
+						"cluster": "]-inf,28.5]",
+						"parentCluster": "]-inf,+inf[",
 						"frequency": 89320,
 						"interest": 0.319101,
 						"hierarchicalLevel": 0.691729,
@@ -523,8 +523,8 @@
 						"isLeaf": false
 					},
 					{
-						"cluster": "]15.5;27.5]",
-						"parentCluster": "]15.5;28.5]",
+						"cluster": "]15.5,27.5]",
+						"parentCluster": "]15.5,28.5]",
 						"frequency": 38280,
 						"interest": 0.37481,
 						"hierarchicalLevel": 0.960755,
@@ -533,8 +533,8 @@
 						"isLeaf": false
 					},
 					{
-						"cluster": "]15.5;28.5]",
-						"parentCluster": "]-inf;28.5]",
+						"cluster": "]15.5,28.5]",
+						"parentCluster": "]-inf,28.5]",
 						"frequency": 41470,
 						"interest": 0.391225,
 						"hierarchicalLevel": 0.825343,
@@ -543,7 +543,7 @@
 						"isLeaf": false
 					},
 					{
-						"cluster": "]-inf;+inf[",
+						"cluster": "]-inf,+inf[",
 						"parentCluster": "",
 						"frequency": 191400,
 						"interest": 0.268687,
@@ -553,8 +553,8 @@
 						"isLeaf": false
 					},
 					{
-						"cluster": "]28.5;+inf[",
-						"parentCluster": "]-inf;+inf[",
+						"cluster": "]28.5,+inf[",
+						"parentCluster": "]-inf,+inf[",
 						"frequency": 102080,
 						"interest": 0.224574,
 						"hierarchicalLevel": 0.158149,
@@ -563,8 +563,8 @@
 						"isLeaf": false
 					},
 					{
-						"cluster": "]29.5;31.5]",
-						"parentCluster": "]29.5;+inf[",
+						"cluster": "]29.5,31.5]",
+						"parentCluster": "]29.5,+inf[",
 						"frequency": 6380,
 						"interest": 0.724652,
 						"hierarchicalLevel": 0.743575,
@@ -573,8 +573,8 @@
 						"isLeaf": false
 					},
 					{
-						"cluster": "]29.5;+inf[",
-						"parentCluster": "]28.5;+inf[",
+						"cluster": "]29.5,+inf[",
+						"parentCluster": "]28.5,+inf[",
 						"frequency": 98890,
 						"interest": 0.19956,
 						"hierarchicalLevel": 0.373977,
@@ -583,8 +583,8 @@
 						"isLeaf": false
 					},
 					{
-						"cluster": "]31.5;+inf[",
-						"parentCluster": "]29.5;+inf[",
+						"cluster": "]31.5,+inf[",
+						"parentCluster": "]29.5,+inf[",
 						"frequency": 92510,
 						"interest": 0.163347,
 						"hierarchicalLevel": 0.509065,
@@ -593,8 +593,8 @@
 						"isLeaf": false
 					},
 					{
-						"cluster": "]32.5;34.5]",
-						"parentCluster": "]32.5;35.5]",
+						"cluster": "]32.5,34.5]",
+						"parentCluster": "]32.5,35.5]",
 						"frequency": 6380,
 						"interest": 0.414164,
 						"hierarchicalLevel": 0.994249,
@@ -603,8 +603,8 @@
 						"isLeaf": false
 					},
 					{
-						"cluster": "]32.5;35.5]",
-						"parentCluster": "]32.5;+inf[",
+						"cluster": "]32.5,35.5]",
+						"parentCluster": "]32.5,+inf[",
 						"frequency": 9570,
 						"interest": 0.412448,
 						"hierarchicalLevel": 0.788492,
@@ -613,8 +613,8 @@
 						"isLeaf": false
 					},
 					{
-						"cluster": "]32.5;+inf[",
-						"parentCluster": "]31.5;+inf[",
+						"cluster": "]32.5,+inf[",
+						"parentCluster": "]31.5,+inf[",
 						"frequency": 89320,
 						"interest": 0.138086,
 						"hierarchicalLevel": 0.614176,
@@ -623,8 +623,8 @@
 						"isLeaf": false
 					},
 					{
-						"cluster": "]35.5;+inf[",
-						"parentCluster": "]32.5;+inf[",
+						"cluster": "]35.5,+inf[",
+						"parentCluster": "]32.5,+inf[",
 						"frequency": 79750,
 						"interest": 0.105163,
 						"hierarchicalLevel": 0.988136,

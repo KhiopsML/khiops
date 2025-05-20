@@ -1,4 +1,4 @@
-#Khiops 10.5.6-b.0
+#Khiops 10.7.0-b.0
 
 Root	Dictionary	SpliceJunction	(SampleId)
 {
@@ -23,19 +23,19 @@ Unused	Structure(Vector)	P_SampleIdPartDistances	 = PredictedPartDistances(P_Dep
 	Numerical	`P_SampleIdDistance{HUMGHCSA-NEG-11161, HUMFMSCPO-NEG-61, HUMCYCPS3-NEG-1081, ...}`	 = ValueAt(P_SampleIdPartDistances, 8)	;	
 	Numerical	`P_SampleIdDistance{HUMMYLCA-DONOR-2559, HUMIL2-DONOR-595, HUMIL2A-DONOR-1533, ...}`	 = ValueAt(P_SampleIdPartDistances, 9)	;	
 Unused	Structure(Vector)	P_PosPartFrequencies	 = PredictedPartFrequenciesAt(P_DeployedCoclusteringAtSampleId, 2)	;	// Vector of cluster frequencies for variable Pos
-	Numerical	`P_PosFrequency]-inf;15.5]`	 = ValueAt(P_PosPartFrequencies, 1)	;	
-	Numerical	`P_PosFrequency]15.5;26.5]`	 = ValueAt(P_PosPartFrequencies, 2)	;	
-	Numerical	`P_PosFrequency]26.5;27.5]`	 = ValueAt(P_PosPartFrequencies, 3)	;	
-	Numerical	`P_PosFrequency]27.5;28.5]`	 = ValueAt(P_PosPartFrequencies, 4)	;	
-	Numerical	`P_PosFrequency]28.5;29.5]`	 = ValueAt(P_PosPartFrequencies, 5)	;	
-	Numerical	`P_PosFrequency]29.5;30.5]`	 = ValueAt(P_PosPartFrequencies, 6)	;	
-	Numerical	`P_PosFrequency]30.5;31.5]`	 = ValueAt(P_PosPartFrequencies, 7)	;	
-	Numerical	`P_PosFrequency]31.5;32.5]`	 = ValueAt(P_PosPartFrequencies, 8)	;	
-	Numerical	`P_PosFrequency]32.5;33.5]`	 = ValueAt(P_PosPartFrequencies, 9)	;	
-	Numerical	`P_PosFrequency]33.5;34.5]`	 = ValueAt(P_PosPartFrequencies, 10)	;	
-	Numerical	`P_PosFrequency]34.5;35.5]`	 = ValueAt(P_PosPartFrequencies, 11)	;	
-	Numerical	`P_PosFrequency]35.5;36.5]`	 = ValueAt(P_PosPartFrequencies, 12)	;	
-	Numerical	`P_PosFrequency]36.5;+inf[`	 = ValueAt(P_PosPartFrequencies, 13)	;	
+	Numerical	`P_PosFrequency]-inf,15.5]`	 = ValueAt(P_PosPartFrequencies, 1)	;	
+	Numerical	`P_PosFrequency]15.5,26.5]`	 = ValueAt(P_PosPartFrequencies, 2)	;	
+	Numerical	`P_PosFrequency]26.5,27.5]`	 = ValueAt(P_PosPartFrequencies, 3)	;	
+	Numerical	`P_PosFrequency]27.5,28.5]`	 = ValueAt(P_PosPartFrequencies, 4)	;	
+	Numerical	`P_PosFrequency]28.5,29.5]`	 = ValueAt(P_PosPartFrequencies, 5)	;	
+	Numerical	`P_PosFrequency]29.5,30.5]`	 = ValueAt(P_PosPartFrequencies, 6)	;	
+	Numerical	`P_PosFrequency]30.5,31.5]`	 = ValueAt(P_PosPartFrequencies, 7)	;	
+	Numerical	`P_PosFrequency]31.5,32.5]`	 = ValueAt(P_PosPartFrequencies, 8)	;	
+	Numerical	`P_PosFrequency]32.5,33.5]`	 = ValueAt(P_PosPartFrequencies, 9)	;	
+	Numerical	`P_PosFrequency]33.5,34.5]`	 = ValueAt(P_PosPartFrequencies, 10)	;	
+	Numerical	`P_PosFrequency]34.5,35.5]`	 = ValueAt(P_PosPartFrequencies, 11)	;	
+	Numerical	`P_PosFrequency]35.5,36.5]`	 = ValueAt(P_PosPartFrequencies, 12)	;	
+	Numerical	`P_PosFrequency]36.5,+inf[`	 = ValueAt(P_PosPartFrequencies, 13)	;	
 Unused	Structure(Vector)	P_CharPartFrequencies	 = PredictedPartFrequenciesAt(P_DeployedCoclusteringAtSampleId, 3)	;	// Vector of cluster frequencies for variable Char
 	Numerical	`P_CharFrequency{G, N, D, ...}`	 = ValueAt(P_CharPartFrequencies, 1)	;	
 	Numerical	`P_CharFrequency{T}`	 = ValueAt(P_CharPartFrequencies, 2)	;	

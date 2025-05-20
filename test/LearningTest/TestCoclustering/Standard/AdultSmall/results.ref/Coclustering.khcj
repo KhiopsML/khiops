@@ -1,6 +1,6 @@
 {
 	"tool": "Khiops Coclustering",
-	"version": "10.5.6-b.0",
+	"version": "VERSION",
 	"shortDescription": "",
 	"coclusteringReport": {
 		"summary": {
@@ -98,11 +98,11 @@
 				"type": "Numerical",
 				"intervals": [
 					{
-						"cluster": "]-inf;11.5]",
+						"cluster": "]-inf,11.5]",
 						"bounds": [1,11.5]
 					},
 					{
-						"cluster": "]11.5;+inf[",
+						"cluster": "]11.5,+inf[",
 						"bounds": [11.5,16]
 					}
 				]
@@ -227,8 +227,8 @@
 				"type": "Numerical",
 				"clusters": [
 					{
-						"cluster": "]-inf;11.5]",
-						"parentCluster": "]-inf;+inf[",
+						"cluster": "]-inf,11.5]",
+						"parentCluster": "]-inf,+inf[",
 						"frequency": 721,
 						"interest": 1,
 						"hierarchicalLevel": 1,
@@ -237,8 +237,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]11.5;+inf[",
-						"parentCluster": "]-inf;+inf[",
+						"cluster": "]11.5,+inf[",
+						"parentCluster": "]-inf,+inf[",
 						"frequency": 279,
 						"interest": 1,
 						"hierarchicalLevel": 1,
@@ -247,7 +247,7 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "]-inf;+inf[",
+						"cluster": "]-inf,+inf[",
 						"parentCluster": "",
 						"frequency": 1000,
 						"interest": 1,

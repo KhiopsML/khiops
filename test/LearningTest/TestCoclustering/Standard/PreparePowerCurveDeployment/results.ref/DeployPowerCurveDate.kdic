@@ -1,4 +1,4 @@
-#Khiops 10.5.6-b.0
+#Khiops VERSION
 
 // Root entity: curve, defined by its identifier (Date) and its array of points
 Root	Dictionary	PowerCurve	(Date)
@@ -75,24 +75,24 @@ Unused	Structure(Vector)	P_DatePartDistances	 = PredictedPartDistances(P_Deploye
 	Numerical	`P_DateDistance{07/04/2007, 01/10/2007, 05/06/2007, ...}`	 = ValueAt(P_DatePartDistances, 60)	;	
 	Numerical	`P_DateDistance{09/06/2007, 17/05/2007, 15/07/2007}`	 = ValueAt(P_DatePartDistances, 61)	;	
 Unused	Structure(Vector)	P_TimePartFrequencies	 = PredictedPartFrequenciesAt(P_DeployedCoclusteringAtDate, 2)	;	// Vector of cluster frequencies for variable Time
-	Numerical	`P_TimeFrequency]-inf;635]`	 = ValueAt(P_TimePartFrequencies, 1)	;	
-	Numerical	`P_TimeFrequency]635;845]`	 = ValueAt(P_TimePartFrequencies, 2)	;	
-	Numerical	`P_TimeFrequency]845;1145]`	 = ValueAt(P_TimePartFrequencies, 3)	;	
-	Numerical	`P_TimeFrequency]1145;1515]`	 = ValueAt(P_TimePartFrequencies, 4)	;	
-	Numerical	`P_TimeFrequency]1515;1835]`	 = ValueAt(P_TimePartFrequencies, 5)	;	
-	Numerical	`P_TimeFrequency]1835;2225]`	 = ValueAt(P_TimePartFrequencies, 6)	;	
-	Numerical	`P_TimeFrequency]2225;+inf[`	 = ValueAt(P_TimePartFrequencies, 7)	;	
+	Numerical	`P_TimeFrequency]-inf,635]`	 = ValueAt(P_TimePartFrequencies, 1)	;	
+	Numerical	`P_TimeFrequency]635,845]`	 = ValueAt(P_TimePartFrequencies, 2)	;	
+	Numerical	`P_TimeFrequency]845,1145]`	 = ValueAt(P_TimePartFrequencies, 3)	;	
+	Numerical	`P_TimeFrequency]1145,1515]`	 = ValueAt(P_TimePartFrequencies, 4)	;	
+	Numerical	`P_TimeFrequency]1515,1835]`	 = ValueAt(P_TimePartFrequencies, 5)	;	
+	Numerical	`P_TimeFrequency]1835,2225]`	 = ValueAt(P_TimePartFrequencies, 6)	;	
+	Numerical	`P_TimeFrequency]2225,+inf[`	 = ValueAt(P_TimePartFrequencies, 7)	;	
 Unused	Structure(Vector)	P_PowerPartFrequencies	 = PredictedPartFrequenciesAt(P_DeployedCoclusteringAtDate, 3)	;	// Vector of cluster frequencies for variable Power
-	Numerical	`P_PowerFrequency]-inf;0.203800001]`	 = ValueAt(P_PowerPartFrequencies, 1)	;	
-	Numerical	`P_PowerFrequency]0.203800001;0.2933999965]`	 = ValueAt(P_PowerPartFrequencies, 2)	;	
-	Numerical	`P_PowerFrequency]0.2933999965;0.3996000035]`	 = ValueAt(P_PowerPartFrequencies, 3)	;	
-	Numerical	`P_PowerFrequency]0.3996000035;0.5936999945]`	 = ValueAt(P_PowerPartFrequencies, 4)	;	
-	Numerical	`P_PowerFrequency]0.5936999945;1.094500005]`	 = ValueAt(P_PowerPartFrequencies, 5)	;	
-	Numerical	`P_PowerFrequency]1.094500005;1.277299989]`	 = ValueAt(P_PowerPartFrequencies, 6)	;	
-	Numerical	`P_PowerFrequency]1.277299989;1.454600006]`	 = ValueAt(P_PowerPartFrequencies, 7)	;	
-	Numerical	`P_PowerFrequency]1.454600006;1.765100003]`	 = ValueAt(P_PowerPartFrequencies, 8)	;	
-	Numerical	`P_PowerFrequency]1.765100003;2.629300004]`	 = ValueAt(P_PowerPartFrequencies, 9)	;	
-	Numerical	`P_PowerFrequency]2.629300004;+inf[`	 = ValueAt(P_PowerPartFrequencies, 10)	;	
+	Numerical	`P_PowerFrequency]-inf,0.203800001]`	 = ValueAt(P_PowerPartFrequencies, 1)	;	
+	Numerical	`P_PowerFrequency]0.203800001,0.2933999965]`	 = ValueAt(P_PowerPartFrequencies, 2)	;	
+	Numerical	`P_PowerFrequency]0.2933999965,0.3996000035]`	 = ValueAt(P_PowerPartFrequencies, 3)	;	
+	Numerical	`P_PowerFrequency]0.3996000035,0.5936999945]`	 = ValueAt(P_PowerPartFrequencies, 4)	;	
+	Numerical	`P_PowerFrequency]0.5936999945,1.094500005]`	 = ValueAt(P_PowerPartFrequencies, 5)	;	
+	Numerical	`P_PowerFrequency]1.094500005,1.277299989]`	 = ValueAt(P_PowerPartFrequencies, 6)	;	
+	Numerical	`P_PowerFrequency]1.277299989,1.454600006]`	 = ValueAt(P_PowerPartFrequencies, 7)	;	
+	Numerical	`P_PowerFrequency]1.454600006,1.765100003]`	 = ValueAt(P_PowerPartFrequencies, 8)	;	
+	Numerical	`P_PowerFrequency]1.765100003,2.629300004]`	 = ValueAt(P_PowerPartFrequencies, 9)	;	
+	Numerical	`P_PowerFrequency]2.629300004,+inf[`	 = ValueAt(P_PowerPartFrequencies, 10)	;	
 };
 
 Dictionary	PowerCurvePoint	(Date)
