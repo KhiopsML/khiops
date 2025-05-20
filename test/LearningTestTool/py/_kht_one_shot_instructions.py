@@ -456,7 +456,7 @@ def instruction_clean_version(test_dir):
 
 
 def instruction_clean_intervals(test_dir):
-    "Renommage systematique du separateur ';' en ',' dans les intervalles"
+    """Renommage systematique du separateur ';' en ',' dans les intervalles"""
     results_dir = os.path.join(test_dir, kht.RESULTS)
     results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
     if results_ref_dir is None:
@@ -593,6 +593,112 @@ def instruction_clean_intervals(test_dir):
                             )
 
 
+def instruction_copy_importance(test_dir):
+    """Recopie des importances de variable de results vers les repertoires results.ref"""
+
+    def find_lines_using_pattern(lines, pattern):
+        # Retourne un dictionnaire des lignes comportant le pattern, avec l'index de ligne en cle
+        indexed_lines = {}
+        for i, line in enumerate(lines):
+            if pattern in line:
+                indexed_lines[i] = line
+        return indexed_lines
+
+    def find_lines_in_section(lines, start_pattern_line, stop_pattern_line):
+        # Retourne un dictionnaire des lignes dans les sections, avec l'index de ligne en cle
+        indexed_lines = {}
+        in_section = False
+        for i, line in enumerate(lines):
+            trimed_line = line.strip()
+            if trimed_line == start_pattern_line:
+                in_section = True
+            elif trimed_line == stop_pattern_line:
+                in_section = False
+            elif in_section:
+                indexed_lines[i] = line
+        return indexed_lines
+
+    def replace_indexed_lines(lines, indexed_lines):
+        # Renvoie la liste des lignes en ayant remplacee celles du dictionnaire des lignes indexes
+        output_lines = []
+        for i, line in enumerate(lines):
+            if indexed_lines.get(i) is not None:
+                output_lines.append(indexed_lines.get(i))
+            else:
+                output_lines.append(line)
+        return output_lines
+
+    # Debut de la methode principale
+    results_dir = os.path.join(test_dir, kht.RESULTS)
+    results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
+    if results_ref_dir is None:
+        return
+    test_dir_name = utils.test_dir_name(test_dir)
+    suite_dir_name = utils.suite_dir_name(test_dir)
+    tool_dir_name = utils.tool_dir_name(test_dir)
+    # Collecte de tous les repertoires de resultats, de reference
+    all_results_dir = []
+    results_ref_dir, all_results_ref_dirs = results.get_results_ref_dir(
+        test_dir, show=True
+    )
+
+    # Traitement du contenu des repertoires results.ref
+    for ref_dir in all_results_ref_dirs:
+        all_results_dir.append(os.path.join(test_dir, ref_dir))
+
+        # Recopie dans chaque repertoire de reference
+        for results_ref_dir in all_results_dir:
+            # Parcours des fichiers du repertoire de references
+            for name in os.listdir(results_ref_dir):
+                path_name = os.path.join(test_dir, results_ref_dir, name)
+                initial_path_name = os.path.join(results_dir, name)
+
+                # Traitement si existance du fichier d'origine
+                if os.path.isfile(initial_path_name):
+                    to_transform = False
+                    lines = None
+                    indexed_lines = None
+
+                    # Dictionnaires de modelisation: changement des lignes comportant une meta-data Importance
+                    if name.endswith(".kdicj"):
+                        lines = utils.read_file_lines(initial_path_name)
+                        indexed_lines = find_lines_using_pattern(lines, '"Importance":')
+                    elif ".model.kdic" in name:
+                        lines = utils.read_file_lines(initial_path_name)
+                        indexed_lines = find_lines_using_pattern(lines, "<Importance=")
+                    # Rapport de modelisation: changement de la section sur les variables selectionnees du SNB
+                    elif name.endswith(".ModelingReport.xls"):
+                        lines = utils.read_file_lines(initial_path_name)
+                        indexed_lines = find_lines_in_section(
+                            lines, "Prepared name	Name	Level	Weight	Importance", ""
+                        )
+                    # Rapport .khj: : changement de la section sur les variables selectionnees du SNB
+                    elif name.endswith(".khj"):
+                        lines = utils.read_file_lines(initial_path_name)
+                        indexed_lines = find_lines_in_section(
+                            lines, '"selectedVariables": [', "}"
+                        )
+
+                    # Reecriture du fichier
+                    to_transform = indexed_lines is not None and len(indexed_lines) > 0
+                    if to_transform:
+                        new_lines = replace_indexed_lines(lines, indexed_lines)
+                        utils.write_file_lines(path_name, new_lines)
+                        print(
+                            tool_dir_name
+                            + "/"
+                            + suite_dir_name
+                            + "/"
+                            + test_dir_name
+                            + "/"
+                            + ref_dir
+                            + "/"
+                            + name
+                            + " : "
+                            + str(len(indexed_lines))
+                        )
+
+
 def instruction_work(test_dir):
     results_dir = os.path.join(test_dir, kht.RESULTS)
     results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
@@ -602,23 +708,67 @@ def instruction_work(test_dir):
     suite_dir_name = utils.suite_dir_name(test_dir)
     tool_dir_name = utils.tool_dir_name(test_dir)
 
-    # Lecture du fichier test.prm
-    prm_file_path = os.path.join(test_dir, kht.TEST_PRM)
-    if os.path.isfile(prm_file_path):
-        lines = utils.read_file_lines(prm_file_path)
-        # Transformation du fichier test.prm pour transformer les None en none
-        to_transform = False
-        new_lines = []
-        for i, line in enumerate(lines):
-            # Recherche si None est utilise en tant que token avec des separateur
-            fields = line.split()
-            if "None" in fields:
-                line = line.replace("None", "none")
-                to_transform = True
-            new_lines.append(line)
-        if to_transform:
-            utils.write_file_lines(prm_file_path, new_lines)
-            print(tool_dir_name + "/" + suite_dir_name + "/" + test_dir_name)
+    # Import khiops-python
+    try:
+        from khiops import core as kh
+    except ImportError:
+        print("This command requires the khiops-python python package")
+        exit(1)
+    import math
+
+    # Parcours des fichiers du repertoire de references pour rechercher les resultats d'evaluation
+    # et exporter un fichier sur les varaiables selectionnees par le snb
+    output_dir = "C:\\temp\\AllSnbReports"
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+    for name in os.listdir(results_dir):
+        path_name = os.path.join(test_dir, results_ref_dir, name)
+        if name.endswith(".khj"):
+            try:
+                all_reports = kh.read_analysis_results_file(path_name)
+                modeling_report = all_reports.modeling_report
+                if modeling_report is not None:
+                    snb_predictor = modeling_report.get_snb_predictor()
+                    if snb_predictor is not None:
+                        output_name = modeling_report.dictionary + "_"
+                        output_name += modeling_report.target_variable + "_"
+                        if (
+                            all_reports.preparation_report.learning_task
+                            == "Classification analysis"
+                        ):
+                            output_name += "C" + str(
+                                len(all_reports.preparation_report.target_values)
+                            )
+                        else:
+                            output_name += "R"
+                        output_name += (
+                            "("
+                            + str(
+                                all_reports.preparation_report.informative_variable_number
+                            )
+                            + ")"
+                        )
+                        print(output_name)
+                        output_path = os.path.join(
+                            output_dir, "SnbReport_" + output_name + ".txt"
+                        )
+                        if snb_predictor.selected_variables is not None:
+                            with open(output_path, "w") as output_file:
+                                output_file.write(
+                                    "Name\tLevel\tWeight\tImportance\tImportanceV10\n"
+                                )
+                                for variable in snb_predictor.selected_variables:
+                                    line = variable.name + "\t"
+                                    line += str(variable.level) + "\t"
+                                    line += str(variable.weight) + "\t"
+                                    line += str(variable.importance) + "\t"
+                                    line += (
+                                        str(math.sqrt(variable.level * variable.weight))
+                                        + "\n"
+                                    )
+                                    output_file.write(line)
+            except Exception:
+                "pass"
 
 
 def instruction_template(test_dir):
@@ -688,6 +838,12 @@ def register_one_shot_instructions():
         "clean-intervals",
         instruction_clean_intervals,
         "rename ';' to ',' in all intervals",
+    )
+    standard_instructions.register_instruction(
+        available_instructions,
+        "copy-importance",
+        instruction_copy_importance,
+        "copy var importance from results to results.ref dirs",
     )
     standard_instructions.register_instruction(
         available_instructions,
