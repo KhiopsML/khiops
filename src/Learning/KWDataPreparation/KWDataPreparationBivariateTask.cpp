@@ -347,7 +347,7 @@ boolean KWDataPreparationBivariateTask::MasterFinalize(boolean bProcessEndedCorr
 	// Nettoyage des resultats en cas d'erreur
 	if (not bProcessEndedCorrectly or TaskProgression::IsInterruptionRequested())
 		oaMasterOutputAttributePairStats->DeleteAll();
-	assert(not bProcessEndedCorrectly or
+	assert(not bProcessEndedCorrectly or TaskProgression::IsInterruptionRequested() or
 	       oaMasterOutputAttributePairStats->GetSize() == oaInputAttributePairStats.GetSize());
 
 	// Appel de la methode ancetre
