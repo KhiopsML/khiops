@@ -38,14 +38,14 @@
 						"name": "Class1",
 						"level": 0.473012,
 						"weight": 0.65625,
-						"importance": 0.557148
+						"importance": 0.535453
 					},
 					{
 						"preparedName": "PClass2",
 						"name": "Class2",
 						"level": 0.439898,
 						"weight": 0.65625,
-						"importance": 0.537292
+						"importance": 0.464547
 					}
 				]
 			}

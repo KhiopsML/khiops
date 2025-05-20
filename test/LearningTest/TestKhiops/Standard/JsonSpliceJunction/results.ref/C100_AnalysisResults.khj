@@ -31,49 +31,49 @@
 						"name": "Mode(DNA.Char) where Pos <= 30.5",
 						"level": 0.0744365,
 						"weight": 0.363281,
-						"importance": 0.164443
+						"importance": 0.282221
 					},
 					{
 						"preparedName": "PMode(DNA.Char) where Pos in ]15.5, 30.5]",
 						"name": "Mode(DNA.Char) where Pos in ]15.5, 30.5]",
 						"level": 0.0508826,
 						"weight": 0.464844,
-						"importance": 0.153794
+						"importance": 0.192941
 					},
 					{
 						"preparedName": "PMode(DNA.Char)",
 						"name": "Mode(DNA.Char)",
 						"level": 0.0461059,
 						"weight": 0.472656,
-						"importance": 0.147622
+						"importance": 0.150068
 					},
 					{
 						"preparedName": "PMedian(DNA.Pos) where Char = G",
 						"name": "Median(DNA.Pos) where Char = G",
 						"level": 0.0225808,
 						"weight": 0.433594,
-						"importance": 0.0989488
+						"importance": 0.134746
 					},
 					{
 						"preparedName": "PMean(DNA.Pos) where Char = G",
 						"name": "Mean(DNA.Pos) where Char = G",
 						"level": 0.0274408,
 						"weight": 0.285156,
-						"importance": 0.0884586
-					},
-					{
-						"preparedName": "PCount(DNA) where Char = G",
-						"name": "Count(DNA) where Char = G",
-						"level": 0.0160697,
-						"weight": 0.332031,
-						"importance": 0.0730455
+						"importance": 0.0883613
 					},
 					{
 						"preparedName": "PMedian(DNA.Pos) where Char = C",
 						"name": "Median(DNA.Pos) where Char = C",
 						"level": 0.0101423,
 						"weight": 0.300781,
-						"importance": 0.0552325
+						"importance": 0.0843754
+					},
+					{
+						"preparedName": "PCount(DNA) where Char = G",
+						"name": "Count(DNA) where Char = G",
+						"level": 0.0160697,
+						"weight": 0.332031,
+						"importance": 0.0672872
 					}
 				]
 			}

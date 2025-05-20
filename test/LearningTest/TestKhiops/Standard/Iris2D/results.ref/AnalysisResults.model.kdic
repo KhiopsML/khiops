@@ -35,8 +35,8 @@ Unused	Numerical	PetalWidth		; <Cost=2.48491> <Level=0.653844>
 Unused	Categorical	SPetalLength	 = AsCategorical(Floor(PetalLength))	; <Cost=2.48491> <Level=0.620475>	
 Unused	Numerical	LowerPetalLength	 = If(LE(PetalLength, 3), PetalLength, 3)	; <Cost=2.48491> <Level=0.478809>	
 Unused	Numerical	UpperPetalWidth	 = If(GE(PetalWidth, 1.5), PetalWidth, 1.5)	; <Cost=2.48491> <Level=0.329416>	
-Unused	Categorical	Class1	 = IfC(EQc(Class, "Iris-setosa"), "setosa", "")	; <Cost=2.48491> <Importance=0.557148> <Level=0.473012> <Weight=0.65625>	
-Unused	Categorical	Class2	 = IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")	; <Cost=2.48491> <Importance=0.537292> <Level=0.439898> <Weight=0.65625>	
+Unused	Categorical	Class1	 = IfC(EQc(Class, "Iris-setosa"), "setosa", "")	; <Cost=2.48491> <Importance=0.535453> <Level=0.473012> <Weight=0.65625>	
+Unused	Categorical	Class2	 = IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")	; <Cost=2.48491> <Importance=0.464547> <Level=0.439898> <Weight=0.65625>	
 Unused	Numerical	Dummy1	 = Copy(0)	; <Cost=2.48491> <Level=0>	
 Unused	Numerical	Dummy2	 = Random()	; <Cost=2.48491> <Level=0>	
 Unused	Categorical	Class		; <TargetVariable>	

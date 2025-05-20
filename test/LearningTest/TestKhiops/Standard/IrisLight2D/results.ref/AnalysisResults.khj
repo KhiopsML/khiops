@@ -31,14 +31,14 @@
 						"name": "PetalWidth",
 						"level": 0.65964,
 						"weight": 0.5,
-						"importance": 0.5743
+						"importance": 0.511976
 					},
 					{
 						"preparedName": "PPetalLength",
 						"name": "PetalLength",
 						"level": 0.618227,
 						"weight": 0.453125,
-						"importance": 0.529277
+						"importance": 0.488024
 					}
 				]
 			}

@@ -33,10 +33,10 @@ Unused	Numerical	SepalWidth		; <Cost=2.3979> <Level=0.0927267>
 Unused	Numerical	PetalLength		; <Cost=2.3979> <Level=0.590513>	
 Unused	Numerical	PetalWidth		; <Cost=2.3979> <Level=0.631926>	
 Unused	Categorical	SPetalLength	 = AsCategorical(Floor(PetalLength))	; <Cost=2.3979> <Level=0.587712>	
-Unused	Numerical	LowerPetalLength	 = If(LE(PetalLength, 3), PetalLength, 3)	; <Cost=2.3979> <Importance=0.313526> <Level=0.48393> <Weight=0.203125>	
+Unused	Numerical	LowerPetalLength	 = If(LE(PetalLength, 3), PetalLength, 3)	; <Cost=2.3979> <Importance=0.187098> <Level=0.48393> <Weight=0.203125>	
 Unused	Numerical	UpperPetalWidth	 = If(GE(PetalWidth, 1.5), PetalWidth, 1.5)	; <Cost=2.3979> <Level=0.327221>	
-Unused	Categorical	Class1	 = IfC(EQc(Class, "Iris-setosa"), "setosa", "")	; <Cost=2.3979> <Importance=0.435662> <Level=0.4499> <Weight=0.421875>	
-Unused	Categorical	Class2	 = IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")	; <Cost=2.3979> <Importance=0.515874> <Level=0.415416> <Weight=0.640625>	
+Unused	Categorical	Class1	 = IfC(EQc(Class, "Iris-setosa"), "setosa", "")	; <Cost=2.3979> <Importance=0.388588> <Level=0.4499> <Weight=0.421875>	
+Unused	Categorical	Class2	 = IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")	; <Cost=2.3979> <Importance=0.424315> <Level=0.415416> <Weight=0.640625>	
 Unused	Numerical	Dummy1	 = Copy(0)	; <Cost=2.3979> <Level=0>	
 Unused	Numerical	Dummy2	 = Random()	; <Cost=2.3979> <Level=0>	
 Unused	Categorical	Class		; <TargetVariable>	

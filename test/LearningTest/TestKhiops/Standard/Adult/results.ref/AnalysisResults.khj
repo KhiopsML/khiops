@@ -39,84 +39,84 @@
 						"name": "capital_gain",
 						"level": 0.139679,
 						"weight": 0.999542,
-						"importance": 0.373651
-					},
-					{
-						"preparedName": "Prelationship",
-						"name": "relationship",
-						"level": 0.208145,
-						"weight": 0.547394,
-						"importance": 0.337546
-					},
-					{
-						"preparedName": "Peducation_num",
-						"name": "education_num",
-						"level": 0.112569,
-						"weight": 0.726105,
-						"importance": 0.285897
+						"importance": 0.222698
 					},
 					{
 						"preparedName": "Page",
 						"name": "age",
 						"level": 0.117931,
 						"weight": 0.581573,
-						"importance": 0.261888
+						"importance": 0.163302
+					},
+					{
+						"preparedName": "Prelationship",
+						"name": "relationship",
+						"level": 0.208145,
+						"weight": 0.547394,
+						"importance": 0.160357
+					},
+					{
+						"preparedName": "Peducation_num",
+						"name": "education_num",
+						"level": 0.112569,
+						"weight": 0.726105,
+						"importance": 0.104159
 					},
 					{
 						"preparedName": "Pmarital_status",
 						"name": "marital_status",
 						"level": 0.197864,
 						"weight": 0.343048,
-						"importance": 0.260532
+						"importance": 0.0935011
 					},
 					{
 						"preparedName": "Pcapital_loss",
 						"name": "capital_loss",
 						"level": 0.0536587,
 						"weight": 0.8638,
-						"importance": 0.215291
+						"importance": 0.0903431
 					},
 					{
 						"preparedName": "Poccupation",
 						"name": "occupation",
 						"level": 0.090111,
 						"weight": 0.505402,
-						"importance": 0.213406
+						"importance": 0.0806003
 					},
 					{
 						"preparedName": "Phours_per_week",
 						"name": "hours_per_week",
 						"level": 0.0717333,
 						"weight": 0.466339,
-						"importance": 0.182899
-					},
-					{
-						"preparedName": "Pworkclass",
-						"name": "workclass",
-						"level": 0.0224888,
-						"weight": 0.135284,
-						"importance": 0.0551578
+						"importance": 0.0534717
 					},
 					{
 						"preparedName": "Pnative_country",
 						"name": "native_country",
 						"level": 0.00652175,
 						"weight": 0.422394,
-						"importance": 0.0524857
+						"importance": 0.0112169
 					},
 					{
 						"preparedName": "Prace",
 						"name": "race",
 						"level": 0.0102259,
 						"weight": 0.242706,
-						"importance": 0.0498187
+						"importance": 0.0100405
+					},
+					{
+						"preparedName": "Pworkclass",
+						"name": "workclass",
+						"level": 0.0224888,
+						"weight": 0.135284,
+						"importance": 0.00687907
 					},
 					{
 						"preparedName": "Psex",
 						"name": "sex",
 						"level": 0.0466409,
 						"weight": 0.0278625,
-						"importance": 0.0360491
+						"importance": 0.00343109
 					}
 				]
 			}

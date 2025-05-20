@@ -26,8 +26,8 @@ Predictor	Selective Naive Bayes
 
 Selected variables
 Prepared name	Name	Level	Weight	Importance
-PClass1	Class1	0.47374	0.65625	0.557577
-PClass2	Class2	0.440626	0.65625	0.537736
+PClass1	Class1	0.47374	0.65625	0.535453
+PClass2	Class2	0.440626	0.65625	0.464547
 
 ----------------------------------------------
 Predictor	Univariate PetalWidth
