@@ -6,17 +6,17 @@ Root	Dictionary	SNB_SpliceJunction	(SampleId)
 	Categorical	SampleId		; <Cost=0.693147> <Level=0>	
 Unused	Categorical	Class		; <TargetVariable>	
 Unused	Table(SNB_SpliceJunctionDNA)	DNA		;	
-Unused	Categorical	`Mode(DNA.Char)`	 = TableMode(DNA, Char)	; <Cost=3.58352> <Importance=0.147622> <Level=0.0461059> <Weight=0.472656>	
-Unused	Categorical	`Mode(DNA.Char) where Pos <= 30.5`	 = TableMode(`DNA where Pos <= 30.5`, Char)	; <Cost=7.07503> <Importance=0.164443> <Level=0.0744365> <Weight=0.363281>	
-Unused	Numerical	`Count(DNA) where Char = G`	 = TableCount(`DNA where Char = G`)	; <Cost=8.46132> <Importance=0.0730455> <Level=0.0160697> <Weight=0.332031>	
-Unused	Numerical	`Mean(DNA.Pos) where Char = G`	 = TableMean(`DNA where Char = G`, Pos)	; <Cost=8.46132> <Importance=0.0884586> <Level=0.0274408> <Weight=0.285156>	
-Unused	Numerical	`Median(DNA.Pos) where Char = C`	 = TableMedian(`DNA where Char = C`, Pos)	; <Cost=8.46132> <Importance=0.0552325> <Level=0.0101423> <Weight=0.300781>	
-Unused	Numerical	`Median(DNA.Pos) where Char = G`	 = TableMedian(`DNA where Char = G`, Pos)	; <Cost=8.46132> <Importance=0.0989488> <Level=0.0225808> <Weight=0.433594>	
+Unused	Categorical	`Mode(DNA.Char)`	 = TableMode(DNA, Char)	; <Cost=3.58352> <Importance=0.150068> <Level=0.0461059> <Weight=0.472656>	
+Unused	Categorical	`Mode(DNA.Char) where Pos <= 30.5`	 = TableMode(`DNA where Pos <= 30.5`, Char)	; <Cost=7.07503> <Importance=0.282221> <Level=0.0744365> <Weight=0.363281>	
+Unused	Numerical	`Count(DNA) where Char = G`	 = TableCount(`DNA where Char = G`)	; <Cost=8.46132> <Importance=0.0672872> <Level=0.0160697> <Weight=0.332031>	
+Unused	Numerical	`Mean(DNA.Pos) where Char = G`	 = TableMean(`DNA where Char = G`, Pos)	; <Cost=8.46132> <Importance=0.0883613> <Level=0.0274408> <Weight=0.285156>	
+Unused	Numerical	`Median(DNA.Pos) where Char = C`	 = TableMedian(`DNA where Char = C`, Pos)	; <Cost=8.46132> <Importance=0.0843754> <Level=0.0101423> <Weight=0.300781>	
+Unused	Numerical	`Median(DNA.Pos) where Char = G`	 = TableMedian(`DNA where Char = G`, Pos)	; <Cost=8.46132> <Importance=0.134746> <Level=0.0225808> <Weight=0.433594>	
 Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Pos <= 30.5`	 = TableSelection(DNA, LE(Pos, 30.5))	;	
 Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Char = C`	 = TableSelection(DNA, EQc(Char, "C"))	;	
 Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Char = G`	 = TableSelection(DNA, EQc(Char, "G"))	;	
 	{
-Unused	Categorical	`Mode(DNA.Char) where Pos in ]15.5, 30.5]`		; <Cost=8.46132> <Importance=0.153794> <Level=0.0508826> <VarKey=2> <Weight=0.464844>	
+Unused	Categorical	`Mode(DNA.Char) where Pos in ]15.5, 30.5]`		; <Cost=8.46132> <Importance=0.192941> <Level=0.0508826> <VarKey=2> <Weight=0.464844>	
 	}	`Mode(DNA.Char) per Pos(4)`	 = TablePartitionMode(`TablePartition(DNA) per Pos(4)`, Char)	;	
 Unused	Structure(Partition)	`Partition(SpliceJunctionDNA) per Pos(4)`	 = Partition(IntervalBounds(15.5, 30.5, 45.5))	;	
 	{

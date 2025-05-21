@@ -25,11 +25,11 @@ Predictor	Selective Naive Bayes
 
 Selected variables
 Prepared name	Name	Level	Weight	Importance
-PMode(DNA.Char) where Pos <= 30.5	Mode(DNA.Char) where Pos <= 30.5	0.0731216	0.347656	0.15944
-PMode(DNA.Char) where Pos in ]15.5, 30.5]	Mode(DNA.Char) where Pos in ]15.5, 30.5]	0.0495677	0.441406	0.147917
-PMode(DNA.Char)	Mode(DNA.Char)	0.0447911	0.457031	0.143077
-PMedian(DNA.Pos) where Char = G	Median(DNA.Pos) where Char = G	0.0212659	0.425781	0.0951557
-PMean(DNA.Pos) where Char = G	Mean(DNA.Pos) where Char = G	0.0261259	0.269531	0.0839152
-PCount(DNA) where Char = G	Count(DNA) where Char = G	0.0147548	0.347656	0.0716213
-PMedian(DNA.Pos) where Char = C	Median(DNA.Pos) where Char = C	0.00882745	0.300781	0.051528
-PTree_1	Tree_1	0.0257056	0.0351562	0.0300618
+PMode(DNA.Char) where Pos <= 30.5	Mode(DNA.Char) where Pos <= 30.5	0.0731216	0.347656	0.274117
+PMode(DNA.Char) where Pos in ]15.5, 30.5]	Mode(DNA.Char) where Pos in ]15.5, 30.5]	0.0495677	0.441406	0.18595
+PMode(DNA.Char)	Mode(DNA.Char)	0.0447911	0.457031	0.147275
+PMedian(DNA.Pos) where Char = G	Median(DNA.Pos) where Char = G	0.0212659	0.425781	0.134295
+PMedian(DNA.Pos) where Char = C	Median(DNA.Pos) where Char = C	0.00882745	0.300781	0.0856358
+PMean(DNA.Pos) where Char = G	Mean(DNA.Pos) where Char = G	0.0261259	0.269531	0.0847672
+PCount(DNA) where Char = G	Count(DNA) where Char = G	0.0147548	0.347656	0.071506
+PTree_1	Tree_1	0.0257056	0.0351562	0.0164548

@@ -6,23 +6,23 @@ Root	Dictionary	SNB_SpliceJunction	(SampleId)
 	Categorical	SampleId		; <Cost=1.09861> <Level=0>	
 Unused	Categorical	Class		; <TargetVariable>	
 Unused	Table(SNB_SpliceJunctionDNA)	DNA		;	
-Unused	Categorical	`Mode(DNA.Char)`	 = TableMode(DNA, Char)	; <Cost=3.98898> <Importance=0.143077> <Level=0.0447911> <Weight=0.457031>	
-Unused	Categorical	`Mode(DNA.Char) where Pos <= 30.5`	 = TableMode(`DNA where Pos <= 30.5`, Char)	; <Cost=7.48049> <Importance=0.15944> <Level=0.0731216> <Weight=0.347656>	
-Unused	Numerical	`Count(DNA) where Char = G`	 = TableCount(`DNA where Char = G`)	; <Cost=8.86679> <Importance=0.0716213> <Level=0.0147548> <Weight=0.347656>	
-Unused	Numerical	`Mean(DNA.Pos) where Char = G`	 = TableMean(`DNA where Char = G`, Pos)	; <Cost=8.86679> <Importance=0.0839152> <Level=0.0261259> <Weight=0.269531>	
-Unused	Numerical	`Median(DNA.Pos) where Char = C`	 = TableMedian(`DNA where Char = C`, Pos)	; <Cost=8.86679> <Importance=0.051528> <Level=0.00882745> <Weight=0.300781>	
-Unused	Numerical	`Median(DNA.Pos) where Char = G`	 = TableMedian(`DNA where Char = G`, Pos)	; <Cost=8.86679> <Importance=0.0951557> <Level=0.0212659> <Weight=0.425781>	
+Unused	Categorical	`Mode(DNA.Char)`	 = TableMode(DNA, Char)	; <Cost=3.98898> <Importance=0.147275> <Level=0.0447911> <Weight=0.457031>	
+Unused	Categorical	`Mode(DNA.Char) where Pos <= 30.5`	 = TableMode(`DNA where Pos <= 30.5`, Char)	; <Cost=7.48049> <Importance=0.274117> <Level=0.0731216> <Weight=0.347656>	
+Unused	Numerical	`Count(DNA) where Char = G`	 = TableCount(`DNA where Char = G`)	; <Cost=8.86679> <Importance=0.071506> <Level=0.0147548> <Weight=0.347656>	
+Unused	Numerical	`Mean(DNA.Pos) where Char = G`	 = TableMean(`DNA where Char = G`, Pos)	; <Cost=8.86679> <Importance=0.0847672> <Level=0.0261259> <Weight=0.269531>	
+Unused	Numerical	`Median(DNA.Pos) where Char = C`	 = TableMedian(`DNA where Char = C`, Pos)	; <Cost=8.86679> <Importance=0.0856358> <Level=0.00882745> <Weight=0.300781>	
+Unused	Numerical	`Median(DNA.Pos) where Char = G`	 = TableMedian(`DNA where Char = G`, Pos)	; <Cost=8.86679> <Importance=0.134295> <Level=0.0212659> <Weight=0.425781>	
 Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Pos <= 30.5`	 = TableSelection(DNA, LE(Pos, 30.5))	;	
 Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Char = C`	 = TableSelection(DNA, EQc(Char, "C"))	;	
 Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Char = G`	 = TableSelection(DNA, EQc(Char, "G"))	;	
 	{
-Unused	Categorical	`Mode(DNA.Char) where Pos in ]15.5, 30.5]`		; <Cost=8.86679> <Importance=0.147917> <Level=0.0495677> <VarKey=2> <Weight=0.441406>	
+Unused	Categorical	`Mode(DNA.Char) where Pos in ]15.5, 30.5]`		; <Cost=8.86679> <Importance=0.18595> <Level=0.0495677> <VarKey=2> <Weight=0.441406>	
 	}	`Mode(DNA.Char) per Pos(4)`	 = TablePartitionMode(`TablePartition(DNA) per Pos(4)`, Char)	;	
 Unused	Structure(Partition)	`Partition(SpliceJunctionDNA) per Pos(4)`	 = Partition(IntervalBounds(15.5, 30.5, 45.5))	;	
 	{
 Unused	Table(SNB_SpliceJunctionDNA)	`DNA where Pos in ]15.5, 30.5]`		; <VarKey=2>	
 	}	`TablePartition(DNA) per Pos(4)`	 = TablePartition(DNA, `Partition(SpliceJunctionDNA) per Pos(4)`, Pos)	;	
-Unused	Categorical	Tree_1	 = SwitchC(GroupIndex(ValueGroups(ValueGroup("C", "T"), ValueGroup("A", "G", " * ")), `Mode(DNA.Char) where Pos in ]15.5, 30.5]`), "L0", SwitchC(IntervalIndex(IntervalBounds(34.75), `Median(DNA.Pos) where Char = G`), "L0", "L3", "L4"), "L2")	; <Cost=28.5175> <Importance=0.0300618> <Level=0.0257056> <Tree> <Weight=0.0351562>	
+Unused	Categorical	Tree_1	 = SwitchC(GroupIndex(ValueGroups(ValueGroup("C", "T"), ValueGroup("A", "G", " * ")), `Mode(DNA.Char) where Pos in ]15.5, 30.5]`), "L0", SwitchC(IntervalIndex(IntervalBounds(34.75), `Median(DNA.Pos) where Char = G`), "L0", "L3", "L4"), "L2")	; <Cost=28.5175> <Importance=0.0164548> <Level=0.0257056> <Tree> <Weight=0.0351562>	
 Unused	Structure(DataGrid)	VClass	 = DataGrid(ValueSetC("EI", "IE", "N"), Frequencies(67, 69, 167))	; <TargetValues>	
 Unused	Structure(DataGrid)	`PMode(DNA.Char)`	 = DataGrid(ValueGroups(ValueGroup("C"), ValueGroup("T", "A", " * "), ValueGroup("G")), ValueSetC("EI", "IE", "N"), Frequencies(17, 16, 34, 49, 17, 3, 53, 74, 40))	; <Level=0.0447911>	// DataGrid(`Mode(DNA.Char)`, Class)
 Unused	Structure(DataGrid)	`PMode(DNA.Char) where Pos <= 30.5`	 = DataGrid(ValueGroups(ValueGroup("C", "T"), ValueGroup("G", "A", " * ")), ValueSetC("EI", "IE", "N"), Frequencies(29, 38, 69, 0, 88, 79))	; <Level=0.0731216>	// DataGrid(`Mode(DNA.Char) where Pos <= 30.5`, Class)

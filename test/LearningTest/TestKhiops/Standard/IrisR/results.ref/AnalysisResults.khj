@@ -45,35 +45,35 @@
 						"name": "SPetalLength",
 						"level": 0.212092,
 						"weight": 0.609375,
-						"importance": 0.359504
+						"importance": 0.342634
 					},
 					{
 						"preparedName": "PLowerPetalLength",
 						"name": "LowerPetalLength",
 						"level": 0.157721,
 						"weight": 0.546875,
-						"importance": 0.29369
+						"importance": 0.298382
 					},
 					{
 						"preparedName": "PUpperPetalWidth",
 						"name": "UpperPetalWidth",
 						"level": 0.0912549,
 						"weight": 0.359375,
-						"importance": 0.181093
+						"importance": 0.148361
 					},
 					{
 						"preparedName": "PSepalLength",
 						"name": "SepalLength",
 						"level": 0.0903617,
 						"weight": 0.234375,
-						"importance": 0.145528
+						"importance": 0.122017
 					},
 					{
 						"preparedName": "PClass2",
 						"name": "Class2",
 						"level": 0.0691819,
 						"weight": 0.203125,
-						"importance": 0.118544
+						"importance": 0.0886056
 					}
 				]
 			}

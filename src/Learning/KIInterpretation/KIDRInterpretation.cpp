@@ -455,6 +455,7 @@ void KIDRClassifierService::WriteAttributeDetails(ostream& ost, int nAttribute) 
 	// Acces a la regle de grille pour pouvoir visualiser la grille
 	dataGridRule = cast(const KWDRDataGrid*, oaPredictorAttributeDataGridRules.GetAt(nAttribute));
 	dataGridRule->ExportDataGridStats(&dataGridStats);
+	dataGridStats.SetSourceAttributeNumber(dataGridStats.GetAttributeNumber() - 1);
 
 	// Affichage de la grille, avec ses dimensions
 	ost << "    ####  Data grid\t";
@@ -465,7 +466,7 @@ void KIDRClassifierService::WriteAttributeDetails(ostream& ost, int nAttribute) 
 		ost << dataGridStats.GetAttributeAt(i)->GetPartNumber();
 	}
 	ost << "\n";
-	if (dataGridStats.GetAttributeNumber() == 2)
+	if (dataGridStats.GetSourceAttributeNumber() == 2)
 		dataGridStats.WriteFrequencyCrossTable(ost);
 	else
 		dataGridStats.WriteCellArrayLineReport(ost);
@@ -627,10 +628,10 @@ KWDerivationRule* KIDRClassifierInterpreter::Create() const
 void KIDRClassifierInterpreter::Compile(KWClass* kwcOwnerClass)
 {
 	const boolean bTrace = false;
-	SymbolVector svTargetValues;
-	IntVector ivTargetValueFrequencies;
 	const KWDRDataGrid* dataGridRule;
-	KWDataGridStats dataGridStats;
+	KWDataGridStats targetDataGridStats;
+	KWDGSAttributeSymbolValues* targetValues;
+	KWDataGridStats attributeDataGridStats;
 	KIShapleyTable* stShapleyTable;
 	int nAttribute;
 	int nTarget;
@@ -639,14 +640,21 @@ void KIDRClassifierInterpreter::Compile(KWClass* kwcOwnerClass)
 	KIDRClassifierService::Compile(kwcOwnerClass);
 	assert(classifierRule != NULL);
 
-	// Collecte des valeurs cibles et de leur effectif
-	svTargetValues.SetSize(classifierRule->GetTargetValueNumber());
-	ivTargetValueFrequencies.SetSize(classifierRule->GetTargetValueNumber());
-	for (nTarget = 0; nTarget < svTargetValues.GetSize(); nTarget++)
-	{
-		svTargetValues.SetAt(nTarget, classifierRule->GetTargetValueAt(nTarget));
-		ivTargetValueFrequencies.SetAt(nTarget, classifierRule->GetDataGridSetTargetFrequencyAt(nTarget));
-	}
+	// Creation d'une partition pour memoriser les valeurs cibles
+	targetValues = new KWDGSAttributeSymbolValues;
+	targetValues->SetAttributeName("Target");
+	targetValues->SetPartNumber(classifierRule->GetTargetValueNumber());
+	targetValues->SetInitialValueNumber(targetValues->GetPartNumber());
+	targetValues->SetGranularizedValueNumber(targetValues->GetPartNumber());
+	for (nTarget = 0; nTarget < targetValues->GetPartNumber(); nTarget++)
+		targetValues->SetValueAt(nTarget, classifierRule->GetTargetValueAt(nTarget));
+
+	// Creation de la grille ciblle pour memoriser les effectifs des valeurs cibles
+	targetDataGridStats.AddAttribute(targetValues);
+	targetDataGridStats.CreateAllCells();
+	for (nTarget = 0; nTarget < targetValues->GetPartNumber(); nTarget++)
+		targetDataGridStats.SetUnivariateCellFrequencyAt(
+		    nTarget, classifierRule->GetDataGridSetTargetFrequencyAt(nTarget));
 
 	// Initialisation des vecteur et tableau de resultats a la bonne taille
 	oaPredictorAttributeShapleyTables.SetSize(classifierRule->GetDataGridStatsNumber());
@@ -657,13 +665,14 @@ void KIDRClassifierInterpreter::Compile(KWClass* kwcOwnerClass)
 		// Grille de preparation
 		dataGridRule = cast(const KWDRDataGrid*, oaPredictorAttributeDataGridRules.GetAt(nAttribute));
 
-		// Export de la grille pour pouvoir calculer les valeur de Shapley
-		dataGridRule->ExportDataGridStats(&dataGridStats);
+		// Export de la grille pour pouvoir calculer les valeurs de Shapley
+		dataGridRule->ExportDataGridStats(&attributeDataGridStats);
+		attributeDataGridStats.SetSourceAttributeNumber(attributeDataGridStats.GetAttributeNumber() - 1);
 
 		// Calcul de la table de Shapley
 		stShapleyTable = new KIShapleyTable;
 		oaPredictorAttributeShapleyTables.SetAt(nAttribute, stShapleyTable);
-		stShapleyTable->InitializeFromDataGridStats(&svTargetValues, &ivTargetValueFrequencies, &dataGridStats,
+		stShapleyTable->InitializeFromDataGridStats(&attributeDataGridStats, &targetDataGridStats,
 							    GetPredictorAttributeWeightAt(nAttribute));
 	}
 

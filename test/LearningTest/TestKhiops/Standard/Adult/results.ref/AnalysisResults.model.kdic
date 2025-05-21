@@ -32,20 +32,20 @@ Dictionary	SNB_Adult
 <InitialDictionary="Adult"> <PredictorLabel="Selective Naive Bayes"> <PredictorType="Classifier">
 {
 Unused	Numerical	Label		; <Cost=2.70805> <Level=0>	
-Unused	Numerical	age		; <Cost=2.70805> <Importance=0.261888> <Level=0.117931> <Weight=0.581573>	
-Unused	Categorical	workclass		; <Cost=2.70805> <Importance=0.0551578> <Level=0.0224888> <Weight=0.135284>	
+Unused	Numerical	age		; <Cost=2.70805> <Importance=0.163302> <Level=0.117931> <Weight=0.581573>	
+Unused	Categorical	workclass		; <Cost=2.70805> <Importance=0.00687907> <Level=0.0224888> <Weight=0.135284>	
 Unused	Numerical	fnlwgt		; <Cost=2.70805> <Level=0>	
 Unused	Categorical	education		; <Cost=2.70805> <Level=0.112034>	
-Unused	Numerical	education_num		; <Cost=2.70805> <Importance=0.285897> <Level=0.112569> <Weight=0.726105>	
-Unused	Categorical	marital_status		; <Cost=2.70805> <Importance=0.260532> <Level=0.197864> <Weight=0.343048>	
-Unused	Categorical	occupation		; <Cost=2.70805> <Importance=0.213406> <Level=0.090111> <Weight=0.505402>	
-Unused	Categorical	relationship		; <Cost=2.70805> <Importance=0.337546> <Level=0.208145> <Weight=0.547394>	
-Unused	Categorical	race		; <Cost=2.70805> <Importance=0.0498187> <Level=0.0102259> <Weight=0.242706>	
-Unused	Categorical	sex		; <Cost=2.70805> <Importance=0.0360491> <Level=0.0466409> <Weight=0.0278625>	
-Unused	Numerical	capital_gain		; <Cost=2.70805> <Importance=0.373651> <Level=0.139679> <Weight=0.999542>	
-Unused	Numerical	capital_loss		; <Cost=2.70805> <Importance=0.215291> <Level=0.0536587> <Weight=0.8638>	
-Unused	Numerical	hours_per_week		; <Cost=2.70805> <Importance=0.182899> <Level=0.0717333> <Weight=0.466339>	
-Unused	Categorical	native_country		; <Cost=2.70805> <Importance=0.0524857> <Level=0.00652175> <Weight=0.422394>	
+Unused	Numerical	education_num		; <Cost=2.70805> <Importance=0.104159> <Level=0.112569> <Weight=0.726105>	
+Unused	Categorical	marital_status		; <Cost=2.70805> <Importance=0.0935011> <Level=0.197864> <Weight=0.343048>	
+Unused	Categorical	occupation		; <Cost=2.70805> <Importance=0.0806003> <Level=0.090111> <Weight=0.505402>	
+Unused	Categorical	relationship		; <Cost=2.70805> <Importance=0.160357> <Level=0.208145> <Weight=0.547394>	
+Unused	Categorical	race		; <Cost=2.70805> <Importance=0.0100405> <Level=0.0102259> <Weight=0.242706>	
+Unused	Categorical	sex		; <Cost=2.70805> <Importance=0.00343109> <Level=0.0466409> <Weight=0.0278625>	
+Unused	Numerical	capital_gain		; <Cost=2.70805> <Importance=0.222698> <Level=0.139679> <Weight=0.999542>	
+Unused	Numerical	capital_loss		; <Cost=2.70805> <Importance=0.0903431> <Level=0.0536587> <Weight=0.8638>	
+Unused	Numerical	hours_per_week		; <Cost=2.70805> <Importance=0.0534717> <Level=0.0717333> <Weight=0.466339>	
+Unused	Categorical	native_country		; <Cost=2.70805> <Importance=0.0112169> <Level=0.00652175> <Weight=0.422394>	
 Unused	Categorical	class		; <TargetVariable>	
 Unused	Structure(DataGrid)	Vclass	 = DataGrid(ValueSetC("less", "more"), Frequencies(26117, 8174))	; <TargetValues>	
 Unused	Structure(DataGrid)	Page	 = DataGrid(IntervalBounds(21.5, 23.5, 25.5, 27.5, 30.5, 35.5, 37.5, 42.5, 55.5, 61.5, 66.5), ValueSetC("less", "more"), Frequencies(3287, 1775, 1609, 1541, 2205, 3557, 1280, 2718, 4961, 1439, 848, 897, 7, 28, 81, 146, 430, 1074, 563, 1440, 3134, 754, 307, 210))	; <Level=0.117931>	// DataGrid(age, class)

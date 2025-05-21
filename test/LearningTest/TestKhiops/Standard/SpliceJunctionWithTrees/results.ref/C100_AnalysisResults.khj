@@ -31,56 +31,56 @@
 						"name": "Mode(DNA.Char) where Pos <= 30.5",
 						"level": 0.0731216,
 						"weight": 0.347656,
-						"importance": 0.15944
+						"importance": 0.274117
 					},
 					{
 						"preparedName": "PMode(DNA.Char) where Pos in ]15.5, 30.5]",
 						"name": "Mode(DNA.Char) where Pos in ]15.5, 30.5]",
 						"level": 0.0495677,
 						"weight": 0.441406,
-						"importance": 0.147917
+						"importance": 0.18595
 					},
 					{
 						"preparedName": "PMode(DNA.Char)",
 						"name": "Mode(DNA.Char)",
 						"level": 0.0447911,
 						"weight": 0.457031,
-						"importance": 0.143077
+						"importance": 0.147275
 					},
 					{
 						"preparedName": "PMedian(DNA.Pos) where Char = G",
 						"name": "Median(DNA.Pos) where Char = G",
 						"level": 0.0212659,
 						"weight": 0.425781,
-						"importance": 0.0951557
-					},
-					{
-						"preparedName": "PMean(DNA.Pos) where Char = G",
-						"name": "Mean(DNA.Pos) where Char = G",
-						"level": 0.0261259,
-						"weight": 0.269531,
-						"importance": 0.0839152
-					},
-					{
-						"preparedName": "PCount(DNA) where Char = G",
-						"name": "Count(DNA) where Char = G",
-						"level": 0.0147548,
-						"weight": 0.347656,
-						"importance": 0.0716213
+						"importance": 0.134295
 					},
 					{
 						"preparedName": "PMedian(DNA.Pos) where Char = C",
 						"name": "Median(DNA.Pos) where Char = C",
 						"level": 0.00882745,
 						"weight": 0.300781,
-						"importance": 0.051528
+						"importance": 0.0856358
+					},
+					{
+						"preparedName": "PMean(DNA.Pos) where Char = G",
+						"name": "Mean(DNA.Pos) where Char = G",
+						"level": 0.0261259,
+						"weight": 0.269531,
+						"importance": 0.0847672
+					},
+					{
+						"preparedName": "PCount(DNA) where Char = G",
+						"name": "Count(DNA) where Char = G",
+						"level": 0.0147548,
+						"weight": 0.347656,
+						"importance": 0.071506
 					},
 					{
 						"preparedName": "PTree_1",
 						"name": "Tree_1",
 						"level": 0.0257056,
 						"weight": 0.0351562,
-						"importance": 0.0300618
+						"importance": 0.0164548
 					}
 				]
 			}

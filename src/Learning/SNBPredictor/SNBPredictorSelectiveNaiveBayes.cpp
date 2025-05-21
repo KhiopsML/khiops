@@ -385,6 +385,8 @@ void SNBPredictorSelectiveNaiveBayes::InternalTrainFinalizeWithUnivariatePredict
 
 	// (Re)creation du rapport de selection
 	GetPredictorSelectionReport()->GetSelectedAttributes()->DeleteAll();
+
+	// Ajout d'un unique attribut, avec poids et importance a 1
 	attributeReport = new KWSelectedAttributeReport;
 	attributeReport->SetNativeAttributeName(dataPreparationAttribute->ComputeNativeAttributeName());
 	attributeReport->SetPreparedAttributeName(dataPreparationAttribute->GetPreparedAttribute()->GetName());
@@ -394,9 +396,10 @@ void SNBPredictorSelectiveNaiveBayes::InternalTrainFinalizeWithUnivariatePredict
 		attributeReport->SetNativeAttributeName1(dataPreparationAttribute->GetNativeAttribute1()->GetName());
 		attributeReport->SetNativeAttributeName2(dataPreparationAttribute->GetNativeAttribute2()->GetName());
 	}
-
 	attributeReport->SetUnivariateEvaluation(dataPreparationAttribute->GetPreparedStats()->GetLevel());
 	attributeReport->SetWeight(1.0);
+	attributeReport->SetImportance(1.0);
+	assert(attributeReport->Check());
 	GetPredictorSelectionReport()->GetSelectedAttributes()->Add(attributeReport);
 	GetPredictorSelectionReport()->SetUsedAttributeNumber(1);
 

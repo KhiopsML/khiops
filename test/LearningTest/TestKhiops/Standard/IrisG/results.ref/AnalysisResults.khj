@@ -38,21 +38,21 @@
 						"name": "Class2",
 						"level": 0.415416,
 						"weight": 0.640625,
-						"importance": 0.515874
+						"importance": 0.424315
 					},
 					{
 						"preparedName": "PClass1",
 						"name": "Class1",
 						"level": 0.4499,
 						"weight": 0.421875,
-						"importance": 0.435662
+						"importance": 0.388588
 					},
 					{
 						"preparedName": "PLowerPetalLength",
 						"name": "LowerPetalLength",
 						"level": 0.48393,
 						"weight": 0.203125,
-						"importance": 0.313526
+						"importance": 0.187098
 					}
 				]
 			}

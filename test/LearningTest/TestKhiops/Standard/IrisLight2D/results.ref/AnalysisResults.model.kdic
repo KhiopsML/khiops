@@ -5,8 +5,8 @@ Dictionary	SNB_Iris
 {
 Unused	Numerical	SepalLength		; <Cost=1.79176> <Level=0.328464>	
 Unused	Numerical	SepalWidth		; <Cost=1.79176> <Level=0.113289>	
-Unused	Numerical	PetalLength		; <Cost=1.79176> <Importance=0.529277> <Level=0.618227> <Weight=0.453125>	
-Unused	Numerical	PetalWidth		; <Cost=1.79176> <Importance=0.5743> <Level=0.65964> <Weight=0.5>	
+Unused	Numerical	PetalLength		; <Cost=1.79176> <Importance=0.488024> <Level=0.618227> <Weight=0.453125>	
+Unused	Numerical	PetalWidth		; <Cost=1.79176> <Importance=0.511976> <Level=0.65964> <Weight=0.5>	
 Unused	Numerical	Random	 = Random()	; <Cost=1.79176> <Level=0>	
 Unused	Categorical	Class		; <TargetVariable>	
 Unused	Structure(DataGrid)	VClass	 = DataGrid(ValueSetC("Iris-setosa", "Iris-versicolor", "Iris-virginica"), Frequencies(38, 32, 35))	; <TargetValues>	

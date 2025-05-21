@@ -25,6 +25,6 @@ Predictor	Selective Naive Bayes
 
 Selected variables
 Prepared name	Name	Level	Weight	Importance
-PPetalWidth	PetalWidth	0.598749	1	0.773789
-PPetalLength	PetalLength	0.493781	0.984375	0.697184
-PSepalLength	SepalLength	0.170653	0.03125	0.0730267
+PPetalWidth	PetalWidth	0.598749	1	0.550913
+PPetalLength	PetalLength	0.493781	0.984375	0.441768
+PSepalLength	SepalLength	0.170653	0.03125	0.00731812

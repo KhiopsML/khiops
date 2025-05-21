@@ -68,15 +68,15 @@ Unused	Numerical	DPetalLength	 = TargetDensityAt(BPetalLength, PetalLength)	; <D
 Dictionary	SNB_Iris
 <InitialDictionary="Iris"> <PredictorLabel="Selective Naive Bayes"> <PredictorType="Regressor">
 {
-Unused	Numerical	SepalLength		; <Cost=2.3979> <Importance=0.145528> <Level=0.0903617> <Weight=0.234375>	
+Unused	Numerical	SepalLength		; <Cost=2.3979> <Importance=0.122017> <Level=0.0903617> <Weight=0.234375>	
 Unused	Numerical	SepalWidth		; <Cost=2.3979> <Level=0.01974>	
 Unused	Numerical	PetalLength		; <TargetVariable>	
 Unused	Numerical	PetalWidth		; <Cost=2.3979> <Level=0.16061>	
-Unused	Categorical	SPetalLength	 = AsCategorical(Floor(PetalLength))	; <Cost=2.3979> <Importance=0.359504> <Level=0.212092> <Weight=0.609375>	
-Unused	Numerical	LowerPetalLength	 = If(LE(PetalLength, 3), PetalLength, 3)	; <Cost=2.3979> <Importance=0.29369> <Level=0.157721> <Weight=0.546875>	
-Unused	Numerical	UpperPetalWidth	 = If(GE(PetalWidth, 1.5), PetalWidth, 1.5)	; <Cost=2.3979> <Importance=0.181093> <Level=0.0912549> <Weight=0.359375>	
+Unused	Categorical	SPetalLength	 = AsCategorical(Floor(PetalLength))	; <Cost=2.3979> <Importance=0.342634> <Level=0.212092> <Weight=0.609375>	
+Unused	Numerical	LowerPetalLength	 = If(LE(PetalLength, 3), PetalLength, 3)	; <Cost=2.3979> <Importance=0.298382> <Level=0.157721> <Weight=0.546875>	
+Unused	Numerical	UpperPetalWidth	 = If(GE(PetalWidth, 1.5), PetalWidth, 1.5)	; <Cost=2.3979> <Importance=0.148361> <Level=0.0912549> <Weight=0.359375>	
 Unused	Categorical	Class1	 = IfC(EQc(Class, "Iris-setosa"), "setosa", "")	; <Cost=2.3979> <Level=0.129937>	
-Unused	Categorical	Class2	 = IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")	; <Cost=2.3979> <Importance=0.118544> <Level=0.0691819> <Weight=0.203125>	
+Unused	Categorical	Class2	 = IfC(EQc(Class, "Iris-versicolor"), "versicolor", "")	; <Cost=2.3979> <Importance=0.0886056> <Level=0.0691819> <Weight=0.203125>	
 Unused	Numerical	Dummy1	 = Copy(0)	; <Cost=2.3979> <Level=0>	
 Unused	Numerical	Dummy2	 = Random()	; <Cost=2.3979> <Level=0>	
 Unused	Categorical	Class		; <Cost=2.3979> <Level=0.174746>	

@@ -3,10 +3,10 @@
 Dictionary	SNB_Iris
 <InitialDictionary="Iris"> <PredictorLabel="Selective Naive Bayes"> <PredictorType="Classifier">
 {
-Unused	Numerical	SepalLength		; <Cost=1.38629> <Importance=0.0730267> <Level=0.170653> <Weight=0.03125>	
+Unused	Numerical	SepalLength		; <Cost=1.38629> <Importance=0.00731812> <Level=0.170653> <Weight=0.03125>	
 Unused	Numerical	SepalWidth		; <Cost=1.38629> <Level=0.000285089>	
-Unused	Numerical	PetalLength		; <Cost=1.38629> <Importance=0.697184> <Level=0.493781> <Weight=0.984375>	
-Unused	Numerical	PetalWidth		; <Cost=1.38629> <Importance=0.773789> <Level=0.598749> <Weight=1>	
+Unused	Numerical	PetalLength		; <Cost=1.38629> <Importance=0.441768> <Level=0.493781> <Weight=0.984375>	
+Unused	Numerical	PetalWidth		; <Cost=1.38629> <Importance=0.550913> <Level=0.598749> <Weight=1>	
 Unused	Categorical	Class		; <TargetVariable>	
 Unused	Numerical	NoSetosa	 = NEQc(Class, "Iris-setosa")	;	
 Unused	Structure(DataGrid)	VClass	 = DataGrid(ValueSetC("Iris-versicolor", "Iris-virginica"), Frequencies(32, 35))	; <TargetValues>	

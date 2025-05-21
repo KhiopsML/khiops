@@ -352,7 +352,8 @@ boolean KWPredictorSelectionReport::IsJSONReported(boolean bSummary) const
 KWSelectedAttributeReport::KWSelectedAttributeReport()
 {
 	dUnivariateEvaluation = 0;
-	dWeight = -1;
+	dWeight = 0;
+	dImportance = 0;
 	bPair = false;
 }
 
@@ -429,12 +430,15 @@ double KWSelectedAttributeReport::GetWeight() const
 	return dWeight;
 }
 
+void KWSelectedAttributeReport::SetImportance(double dValue)
+{
+	require(0 <= dValue and dValue <= 1);
+	dImportance = dValue;
+}
+
 double KWSelectedAttributeReport::GetImportance() const
 {
-	if (GetWeight() == -1)
-		return -1;
-	else
-		return sqrt(GetUnivariateEvaluation() * GetWeight());
+	return dImportance;
 }
 
 const ALString KWSelectedAttributeReport::GetSortName() const
@@ -593,6 +597,8 @@ boolean KWSelectedAttributeReport::Check() const
 	bOk = bOk and sPreparedAttributeName != "";
 	bOk = bOk and sNativeAttributeName != "";
 	bOk = bOk and (0 < dUnivariateEvaluation and dUnivariateEvaluation <= 1);
+	bOk = bOk and (0 < dWeight and dWeight <= 1);
+	bOk = bOk and (0 < dImportance and dImportance <= 1);
 	bOk = bOk and (bPair or sNativeAttributeName1 == "");
 	bOk = bOk and (bPair or sNativeAttributeName2 == "");
 	bOk = bOk and (not bPair or sNativeAttributeName1 != "");

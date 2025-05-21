@@ -529,7 +529,8 @@ void KIDRClassifierReinforcer::ComputeReinforcementAt(KIAttributeReinforcement* 
 	assert(dataGridRule->GetAttributeNumber() == 2 or dataGridRule->GetAttributeNumber() == 3);
 	assert(dataGridStatsRule->GetDataGridSourceAttributeNumber() == dataGridRule->GetAttributeNumber() - 1);
 	assert(dataGridRule->GetAttributePartNumberAt(dataGridRule->GetAttributeNumber() - 1) ==
-	       GetTargetValueNumber());
+		   GetTargetValueNumber() or
+	       dataGridRule->GetAttributeNumber() == 3);
 	assert(dataGridStatsRule->GetDataGridTargetCellNumber() == GetTargetValueNumber());
 
 	// Nombre de parties sources, dans le cas univarie ou bivarie

@@ -18,14 +18,20 @@ public:
 	KIShapleyTable();
 	~KIShapleyTable();
 
-	// Initialisation complete a partir d'une grille dont le dernier attribut contient l'attribut cible
-	// et d'un poids de variable
-	// Les valeur cibles passees en entree sont utilisees pour le parametrage de la table de valeur de Shapley,
-	// et sont potentiellement dans un ordre different de celle de la grille, voire avec en nombre different
+	// Initialisation complete a partir d'une grille dont le dernier attribut contient l'attribut cible,
+	// d'une grille de specification de l'attribut cible et d'un poids de variable
+	// Les valeurs de la grille cible en entree sont utilisees pour le parametrage de la table de valeur de Shapley,
+	// et sont potentiellement dans un ordre different de celle de la grille de l'attribut, voire avec en nombre different
 	// du nombre de parties cibles de la grille si celle-ci exploite un groupement de valeur pour l'attribut cible
 	// Un epsilon de Laplace minimal (1/(N+1)) est utilise pour eviter les probabilites nulles
-	void InitializeFromDataGridStats(const SymbolVector* svTargetValues, const IntVector* ivTargetValueFrequencies,
-					 const KWDataGridStats* dataGridStats, double dAttributeWeight);
+	void InitializeFromDataGridStats(const KWDataGridStats* attributeDataGridStats,
+					 const KWDataGridStats* targetDataGridStats, double dAttributeWeight);
+
+	// Calcul de la moyenne des valeurs absolues de Shapley sur l'ensemble de la base et l'ensemble des valeurs cibles
+	// pondere par la proportion des valeurs cibles
+	static double ComputeMeanAbsoluteShapleyValues(const KWDataGridStats* attributeDataGridStats,
+						       const KWDataGridStats* targetDataGridStats,
+						       double dAttributeWeight);
 
 	///////////////////////////////////////////////////////////////////////////
 	// Initialisation
@@ -75,14 +81,37 @@ public:
 	// Implementation
 protected:
 	// Initialisation a partir d'une grille dans le cas univarie
-	void InitializeFromUnivariateDataGridStats(const SymbolVector* svTargetValues,
-						   const IntVector* ivTargetValueFrequencies,
-						   const KWDataGridStats* dataGridStats, double dAttributeWeight);
+	void InitializeFromUnivariateDataGridStats(const KWDataGridStats* attributeDataGridStats,
+						   const KWDataGridStats* targetDataGridStats, double dAttributeWeight);
 
-	// Initialisation a partir d'une grille dans le cas bivarie
-	void InitializeFromBivariateDataGridStats(const SymbolVector* svTargetValues,
-						  const IntVector* ivTargetValueFrequencies,
-						  const KWDataGridStats* dataGridStats, double dAttributeWeight);
+	// Creation d'une grille univariee a partir d'une grille bivariee
+	// Chaque cellule bivariee correspondant au produit cartesien des deux attribnut est
+	// considere comme une valeur de l'unique attribut de la grille en sortie
+	// Memoire: la grille en sortie appartient a l'appelant, mais est alimentee par l'appele
+	void BuildUnivariateDataGridStats(const KWDataGridStats* bivariateDataGridStats,
+					  KWDataGridStats* univariateDataGridStats) const;
+
+	// Creation d'une grille d'analyse univariee a partir d'une grille univariee de regression
+	// On tranforme l'attribut cible numerique en remplacant chaque intervalle cible
+	// par un groupe de deux valeurs categorielles:
+	// - la premiere est un singleton reduit a une seule instance, representant un rang quelconque
+	//   de l'intervalle
+	// - la seconde contenant le reste des instances de l'intervalle
+	//
+	// Deux grilles sont produites en sortie:
+	// - univariateDataGridStats:
+	//   grille univarieavec autant deux groupes (a deux valeurs) que d'intervalles
+	// - targetDataGridStats:
+	//   grille cible avec toutes les valeurs, dont une sur deux est un singleton representatif d'un intervalle
+	//
+	// Cela permet de calculer la valeur Shapley pour chaque rang de chaque intervalle, en
+	// sur basant les valeur singletons, qui representent le rang typique par intervalles
+	// On peut alors calculer la moyenne des valeurs de Shapley sur toute la base en ponderant
+	// les valeurs de Shapley de type singleton par les effectifs des intervalles
+	// Memoire: la grille en sortie appartient a l'appelant, mais est alimentee par l'appele
+	void BuildRegressionAnalysisDataGridStats(const KWDataGridStats* regressionDataGridStats,
+						  KWDataGridStats* univariateDataGridStats,
+						  KWDataGridStats* targetDataGridStats) const;
 
 	// Variables d'instances
 	ContinuousVector cvTableValues;

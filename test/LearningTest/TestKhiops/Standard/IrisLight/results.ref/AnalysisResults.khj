@@ -31,21 +31,21 @@
 						"name": "PetalWidth",
 						"level": 0.598749,
 						"weight": 1,
-						"importance": 0.773789
+						"importance": 0.550913
 					},
 					{
 						"preparedName": "PPetalLength",
 						"name": "PetalLength",
 						"level": 0.493781,
 						"weight": 0.984375,
-						"importance": 0.697184
+						"importance": 0.441768
 					},
 					{
 						"preparedName": "PSepalLength",
 						"name": "SepalLength",
 						"level": 0.170653,
 						"weight": 0.03125,
-						"importance": 0.0730267
+						"importance": 0.00731812
 					}
 				]
 			}

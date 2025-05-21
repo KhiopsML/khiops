@@ -149,12 +149,11 @@ public:
 	double GetUnivariateEvaluation() const;
 
 	// Poids de l'attribut
-	// (par defaut -1 si le classifieur ne genere pas de poids)
 	void SetWeight(double dValue);
 	double GetWeight() const;
 
 	// Importance de l'attribut, combinaison de l'evaluaton univariee et du poids
-	// (par defaut -1 si le classifieur ne genere pas de poids)
+	void SetImportance(double dValue);
 	double GetImportance() const;
 
 	// Criteres de tri permettant de trier differents objets d'un rapport
@@ -190,5 +189,6 @@ protected:
 	ALString sNativeAttributeName2;
 	double dUnivariateEvaluation;
 	double dWeight;
+	double dImportance;
 	boolean bPair;
 };
