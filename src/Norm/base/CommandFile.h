@@ -88,7 +88,7 @@ public:
 	//
 	// # Parametrage par une structure de donnees contenu dans le fichier json
 	// Le fichier json contient une serie de paires cle/valeur:
-	// - valeur de type string ou number
+	// - valeur de type boolean, string ou number
 	//   - cle dans le scenario a remplacer par la valeur
 	// - valeur de type array
 	//   - la cle du tableau permet d'identifier (loop key) un bloc de lignes dans le scenario,
@@ -97,14 +97,13 @@ public:
 	//     avec la meme liste de paires cle/valeur de type string ou number
 	//   - on duplique les lignes de la boucle autant de fois qu'il y d'objets dans le tableau,
 	//     en effectuant les search/replace selon les cles/valeur de l'objet courant
-	// - valeur de type boolean
+	// - valeur de type boolean pour les blocs (IF)
 	//   - la cle du boolean permet d'identifier (if key) un bloc de lignes dans le scenario,
 	//     pour une structure de test (IF)
 	//   - on prend en compte les lignes du test selon la valeur true ou false associee a la cle
 	//
 	// # Contraintes sur la structure du json
 	// Seule une petite partie de l'expressivite du format json est geree
-	// - pas de valeur nul
 	// - pas de recursion dans la structure: la seul usage autorise et celui d'un array contenant des object
 	// Contraintes sur les cles
 	// - les cles utilisees dans le json doivent etre distinctes
@@ -115,13 +114,24 @@ public:
 	// - aucune cle ne doit etre une sous-partie d'une autre cle
 	//   - evite les ambiguites selon l'ordre de remplacement dans les search/replace
 	// Liens entre cles dans le json et dans le scenario
-	// - chaque cle dans le scenario est utilisable dans le json si elle est entouree de '__' (double tiret du 8)
+	// - chaque cle dans le scenario est utilisable dans le json si elle est entouree de '__'
 	//   - exemple, une cle name dans le json est utilisable avec la valeur a remplacer name dans le scenario
 	// - chaque cle dans le json doit etre utilisee dans le scenario, et reciproquement
 	//   - exception: si une cle de tableau peut etre absent du json, cela equivaut a un tableau vide
 	// - chaque cle dans un array du json ne peut etre utilisee que dans la boucle correspondante du scenario
 	// - dans le cas d'une cle dont la valeur est une string, la ligne du scenario utilisant cette cle devra etre
 	//   terminee par " // commentaire" afin d'autoriser les valeurs contenant la sous-chaine '//'
+	//
+	// # Tolerance sur les cles de json manquantes ou de valeur null
+	// En cas de cle manquante ou associee a la valeur null dans l'objet json principal,
+	// les lignes correspondantes du scenario ne sont pas traitees
+	// - pour une ligne simple: on ignore la ligne
+	// - pour un bloc IF ou LOOP: on ignore tout le bloc
+	// Cette tolerance permet de simplifier la gestion des valeurs facultatives.
+	// Par contre, cette possibilite n'est pas autorisee pour les lignes a l'interieur d'un bloc LOOP,
+	// qui reposent sur une structure devant etre coherente pour tous les objets du tableau de parametrage json.
+	// Afin de faciliter le debogage des scenarios et de trouver des cles jamais utilisees,
+	// un warning est emis pour toute cle manquante dans le json, si Khiops est lance avec l'option -O
 	//
 	// # Choix d'encodage
 	// On choisit un encodage UTF-8 systematique pour le json en parametre de Khiops, selon la norme Json.
@@ -172,7 +182,7 @@ public:
 	// Lecture d'une commande
 	// Renvoie false si pas de commande valide disponible, sinon un vecteur de chaines de caracteres representant
 	// le parsing de IdentifierPath et une valeur optionnelle
-	// Cette methode peut etre appelee meme en l'absence de fichier de de commande en sortie
+	// Cette methode peut etre appelee meme en l'absence de fichier de commande en sortie
 	boolean ReadInputCommand(StringVector* svIdentifierPath, ALString& sValue);
 
 	// Indique que l'on a fini de lire et traiter les commandes
@@ -261,7 +271,7 @@ protected:
 
 	// Recodage de la ligne de commande en cours en exploitant le parametrage json
 	// On renvoie la ligne recodee
-	// En cas d'erreur, le boolen en parametre est mis a false, avec emmission d'un message d'erreur
+	// En cas d'erreur, le booleen en parametre est mis a false, avec emission d'un message d'erreur
 	const ALString RecodeCurrentLineUsingJsonParameters(boolean& bOk);
 
 	// Analyse d'une nouvelle ligne de commande pour mettre a jour l'etat du parser
@@ -271,7 +281,7 @@ protected:
 	// - TokenOther: instruction standard
 	// Le parametre bContinueAnalysis en sortie indique qu'il faut continuer l'analyse
 	// du bloc en cours pour avoir une instruction executable disponible
-	// En cas d'erreur, on renvoie false, avec emmission d'un message d'erreur
+	// En cas d'erreur, on renvoie false, avec emission d'un message d'erreur
 	boolean ParseInputCommand(const ALString& sInputCommand, boolean& bContinueAnalysis);
 
 	// Tokenisation de la ligne de commande d'entree en une suite de tokens
@@ -281,7 +291,7 @@ protected:
 	//   TokenLoop TokenKey: debut de bloc loop
 	//   TokenEnd TokenLoop: fin de bloc loop
 	//   TokenOther (TokenKey|TokenOther)*: instruction standard, avec commande suivi d'une eventuelle valeur
-	// En cas d'erreur, on renvoie false, avec emmission d'un message d'erreur
+	// En cas d'erreur, on renvoie false, avec emission d'un message d'erreur
 	boolean TokenizeInputCommand(const ALString& sInputCommand, IntVector* ivTokenTypes,
 				     StringVector* svTokenValues) const;
 
@@ -293,11 +303,12 @@ protected:
 	int GetFirstInputToken(const ALString& sInputCommand, ALString& sToken, ALString& sInterToken,
 			       ALString& sEndLine) const;
 
-	// Affichage d'un vecteur de token issu de l'analyse de la ligne de command
-	void WriteInputCommandTokens(ostream& ost, IntVector* ivTokenTypes, StringVector* svTokenValues) const;
+	// Affichage d'un vecteur de token issu de l'analyse de la ligne de commande
+	void WriteInputCommandTokens(ostream& ost, const IntVector* ivTokenTypes,
+				     const StringVector* svTokenValues) const;
 
 	// Verification de la syntaxe d'un token de type cle, devant commencer par son delimiteur
-	// En cas d'erreur, on renvoie false, avec emmission d'un message d'erreur
+	// En cas d'erreur, on renvoie false, avec emission d'un message d'erreur
 	boolean CheckTokenKey(const ALString& sToken) const;
 
 	// Extraction de la cle d'un token de type cle valide entoure de ses delimiteurs
@@ -306,6 +317,10 @@ protected:
 	// Recherche de la valeur associe a une cle dans un objet json
 	// On renvoie NULL si non trouve
 	JSONValue* LookupJSONValue(JSONObject* jsonObject, const ALString& sKey) const;
+
+	// Test si un vecteur de token contient une cle absente d'un objet json, sous sa forme standard ou byte
+	boolean ContainsMissingOrNullJSONValue(JSONObject* jsonObject, const IntVector* ivTokenTypes,
+					       const StringVector* svTokenValues) const;
 
 	// Test si une valeur est trimee
 	boolean IsValueTrimed(const ALString& sValue) const;
@@ -376,6 +391,10 @@ protected:
 	IntVector ivParserTokenTypes;
 	StringVector svParserTokenValues;
 
+	// Indicateur utilise pour ignorer un bloc d'instruction en cas de cle de bloc
+	// absente de l'objet json de parametrage
+	boolean bParserIgnoreBlockState;
+
 	// Indicateur de traitement dans le cas d'un bloc de type if en cours
 	boolean bParserIfState;
 
@@ -438,4 +457,7 @@ protected:
 
 	// Taille max d'un fichier de parametrage
 	static const longint lMaxInputParameterFileSize = lMB;
+
+	// Tolerance pour accepter les cles vides ou null dans les fichiers de parametrage json
+	static const boolean bAcceptMissingOrNullKeys = true;
 };

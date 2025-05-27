@@ -425,7 +425,7 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 				sInputLine.GetBufferSetLength(sInputLine.GetLength() - 1);
 
 			// Tokenisation de la ligne en cours dans le cas d'un fichier de parametrage
-			// On continue tant que necessaire, c'est a dire jsuqu'a une commande parsee soit
+			// On continue tant que necessaire, c'est a dire jusqu'a ce qu'une commande parsee soit
 			// directement disponible, ou que l'on est prepare toutes les commandes d'un bloc loop
 			assert(bOk);
 			if (sInputLine != "" and GetInputParameterFileName() != "")
@@ -434,7 +434,7 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 				bOk = ParseInputCommand(sInputLine, bContinueParsing);
 
 				// Traitement pour ignorer des lignes en fonction l'etat du parser
-				// On force la poursuite duparsing si necessaire
+				// On force la poursuite du parsing si necessaire
 				if (bContinueParsing)
 					sInputLine = "";
 			}
@@ -1253,6 +1253,7 @@ void CommandFile::ResetParser()
 	sParserBlockKey = "";
 	ivParserTokenTypes.SetSize(0);
 	svParserTokenValues.SetSize(0);
+	bParserIgnoreBlockState = false;
 	bParserIfState = false;
 	parserLoopJSONArray = NULL;
 	oaParserLoopLinesTokenTypes.DeleteAll();
@@ -1279,6 +1280,7 @@ const ALString CommandFile::RecodeCurrentLineUsingJsonParameters(boolean& bOk)
 
 	require(GetInputParameterFileName() != "");
 	require(IsInputCommandFileOpened());
+	require(not bParserIgnoreBlockState);
 	require(nParserState == TokenOther or nParserState == TokenIf);
 
 	// Initialisation
@@ -1488,7 +1490,7 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 		{
 			assert(nNextToken == TokenKey);
 
-			// Cas valide uniquement l'etat du parser est instruction
+			// Cas valide uniquement si l'etat du parser est instruction
 			if (nParserState == TokenOther)
 			{
 				nParserState = nParserCurrentLineState;
@@ -1499,13 +1501,24 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 				// Recherche de la valeur json associee au bloc
 				jsonValue = LookupJSONValue(&jsonParameters, ExtractJsonKey(sParserBlockKey));
 
-				// Erreur si non trouve
+				// Traitement d'une cle manquante
 				if (jsonValue == NULL)
 				{
-					bOk = false;
-					AddInputCommandFileError("For beginning of " + svParserTokenValues.GetAt(0) +
-								 " block, key " + svParserTokenValues.GetAt(1) +
-								 " not found in json parameter file");
+					// Si tolerance aux cle manquantes, on ignore le bloc
+					if (bAcceptMissingOrNullKeys)
+					{
+						bParserIgnoreBlockState = true;
+						bContinueParsing = true;
+					}
+					// Erreur sinon
+					else
+					{
+						bOk = false;
+						AddInputCommandFileError("For beginning of " +
+									 svParserTokenValues.GetAt(0) + " block, key " +
+									 svParserTokenValues.GetAt(1) +
+									 " not found in json parameter file");
+					}
 				}
 				// Cas du if
 				else if (nParserCurrentLineState == TokenIf)
@@ -1577,6 +1590,9 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 		{
 			assert(nNextToken == TokenIf or nNextToken == TokenLoop);
 
+			// On quite necessairement l'etat ou on ignore les lignes d'un bloc
+			bParserIgnoreBlockState = false;
+
 			// Cas valide uniquement si l'etat du parser est le bloc de bon type en cours
 			if ((nParserState == TokenIf or nParserState == TokenLoop) and nParserState == nNextToken)
 			{
@@ -1628,11 +1644,15 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 								 IntToString(nLoopMaxLineNumber) +
 								 " non-empty command lines");
 				}
-				// Ajout des vecteur de tokens senon
+				// Ajout des vecteurs de tokens sinon
 				else
 				{
-					oaParserLoopLinesTokenTypes.Add(ivParserTokenTypes.Clone());
-					oaParserLoopLinesTokenValues.Add(svParserTokenValues.Clone());
+					// On ignore le contenu de la boucle selon l'etat du parser et la specification
+					if (not(bAcceptMissingOrNullKeys and bParserIgnoreBlockState))
+					{
+						oaParserLoopLinesTokenTypes.Add(ivParserTokenTypes.Clone());
+						oaParserLoopLinesTokenValues.Add(svParserTokenValues.Clone());
+					}
 				}
 
 				// Il faut continuer le parsing tant que le bloc loop n'est pas fini, sans erreur
@@ -1641,12 +1661,22 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 			// On ignore les ligne si necessaire dans le cas d'un bloc if
 			else if (nParserState == TokenIf)
 				bContinueParsing = not bParserIfState;
-			// Sinon, la ligne est prete a l'emploie
+			// Sinon, la ligne est prete a l'emploi
 			else
 			{
 				assert(nParserState == TokenOther);
 				bContinueParsing = false;
+
+				// Si la ligne contient des cles absentes, on l'ignore
+				if (bAcceptMissingOrNullKeys and
+				    ContainsMissingOrNullJSONValue(&jsonParameters, &ivParserTokenTypes,
+								   &svParserTokenValues))
+					bContinueParsing = true;
 			}
+
+			// On doit continuer le parsing si on ignore un bloc
+			if (bAcceptMissingOrNullKeys and bParserIgnoreBlockState)
+				bContinueParsing = true;
 		}
 	}
 	ensure(nParserState == TokenOther or nParserState == TokenIf or nParserState == TokenLoop);
@@ -1947,7 +1977,8 @@ int CommandFile::GetFirstInputToken(const ALString& sInputCommand, ALString& sTo
 	return nOutputToken;
 }
 
-void CommandFile::WriteInputCommandTokens(ostream& ost, IntVector* ivTokenTypes, StringVector* svTokenValues) const
+void CommandFile::WriteInputCommandTokens(ostream& ost, const IntVector* ivTokenTypes,
+					  const StringVector* svTokenValues) const
 {
 	int i;
 	int nToken;
@@ -2055,6 +2086,49 @@ JSONValue* CommandFile::LookupJSONValue(JSONObject* jsonObject, const ALString& 
 	if (jsonMember != NULL)
 		jsonValue = jsonMember->GetValue();
 	return jsonValue;
+}
+
+boolean CommandFile::ContainsMissingOrNullJSONValue(JSONObject* jsonObject, const IntVector* ivTokenTypes,
+						    const StringVector* svTokenValues) const
+{
+	boolean bMissing;
+	int i;
+	int nToken;
+	ALString sJsonKey;
+	JSONValue* jsonValue;
+
+	require(jsonObject != NULL);
+	require(ivTokenTypes != NULL);
+	require(svTokenValues != NULL);
+	ensure(ivTokenTypes->GetSize() == svTokenValues->GetSize());
+
+	// Affichage avec mise en forme de la liste des tokens
+	bMissing = false;
+	for (i = 0; i < ivTokenTypes->GetSize(); i++)
+	{
+		nToken = ivTokenTypes->GetAt(i);
+		assert(0 <= nToken and nToken < None);
+
+		// Traitement des token de type cle
+		if (nToken == TokenKey)
+		{
+			// Recherche d'une valeur sous sa forme standard
+			sJsonKey = ExtractJsonKey(svTokenValues->GetAt(i));
+			jsonValue = LookupJSONValue(jsonObject, sJsonKey);
+
+			// Recherche d'une valeur sous sa forme byte si non trouve
+			if (jsonValue == NULL)
+				jsonValue = LookupJSONValue(jsonObject, ToByteJsonKey(sJsonKey));
+
+			// Arret si valeur absente du json
+			if (jsonValue == NULL)
+			{
+				bMissing = true;
+				break;
+			}
+		}
+	}
+	return bMissing;
 }
 
 boolean CommandFile::IsValueTrimed(const ALString& sValue) const
