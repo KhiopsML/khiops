@@ -459,5 +459,7 @@ protected:
 	static const longint lMaxInputParameterFileSize = lMB;
 
 	// Tolerance pour accepter les cles vides ou null dans les fichiers de parametrage json
+	// La prise en compte de cette tolerance est dans les cas simple implementee dans des
+	// blocs conditionnes uniquement par ce parametre
 	static const boolean bAcceptMissingOrNullKeys = true;
 };

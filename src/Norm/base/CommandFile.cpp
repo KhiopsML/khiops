@@ -755,11 +755,16 @@ boolean CommandFile::LoadJsonParameters()
 				 jsonMember->GetValueType() != JSONObject::BooleanValue and
 				 jsonMember->GetValueType() != JSONObject::ArrayValue)
 			{
-				AddInputParameterFileError("in main json object, the " +
-							   jsonMember->GetValue()->TypeToString() +
-							   " type of value at " + BuildJsonPath(jsonMember, -1, NULL) +
-							   " should be string, number, boolean or array");
-				bOk = false;
+				// Tolerance aux valeurs null, sans le mentionner dans le message d'erreur
+				if (not(bAcceptMissingOrNullKeys and
+					jsonMember->GetValueType() == JSONObject::NullValue))
+				{
+					AddInputParameterFileError(
+					    "in main json object, the " + jsonMember->GetValue()->TypeToString() +
+					    " type of value at " + BuildJsonPath(jsonMember, -1, NULL) +
+					    " should be string, number, boolean or array");
+					bOk = false;
+				}
 			}
 			// Verification du type string dans le cas d'une cle avec sa variante de type byte
 			else if (IsByteJsonKey(jsonMember->GetKey()) and
@@ -1501,8 +1506,8 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 				// Recherche de la valeur json associee au bloc
 				jsonValue = LookupJSONValue(&jsonParameters, ExtractJsonKey(sParserBlockKey));
 
-				// Traitement d'une cle manquante
-				if (jsonValue == NULL)
+				// Traitement d'une cle manquante ou de valeur null
+				if (jsonValue == NULL or jsonValue->GetType() == JSONValue::NullValue)
 				{
 					// Si tolerance aux cle manquantes, on ignore le bloc
 					if (bAcceptMissingOrNullKeys)
@@ -1668,15 +1673,20 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 				bContinueParsing = false;
 
 				// Si la ligne contient des cles absentes, on l'ignore
-				if (bAcceptMissingOrNullKeys and
-				    ContainsMissingOrNullJSONValue(&jsonParameters, &ivParserTokenTypes,
-								   &svParserTokenValues))
-					bContinueParsing = true;
+				if (bAcceptMissingOrNullKeys)
+				{
+					if (ContainsMissingOrNullJSONValue(&jsonParameters, &ivParserTokenTypes,
+									   &svParserTokenValues))
+						bContinueParsing = true;
+				}
 			}
 
 			// On doit continuer le parsing si on ignore un bloc
-			if (bAcceptMissingOrNullKeys and bParserIgnoreBlockState)
-				bContinueParsing = true;
+			if (bAcceptMissingOrNullKeys)
+			{
+				if (bParserIgnoreBlockState)
+					bContinueParsing = true;
+			}
 		}
 	}
 	ensure(nParserState == TokenOther or nParserState == TokenIf or nParserState == TokenLoop);
@@ -2097,6 +2107,7 @@ boolean CommandFile::ContainsMissingOrNullJSONValue(JSONObject* jsonObject, cons
 	ALString sJsonKey;
 	JSONValue* jsonValue;
 
+	require(bAcceptMissingOrNullKeys);
 	require(jsonObject != NULL);
 	require(ivTokenTypes != NULL);
 	require(svTokenValues != NULL);
@@ -2116,12 +2127,12 @@ boolean CommandFile::ContainsMissingOrNullJSONValue(JSONObject* jsonObject, cons
 			sJsonKey = ExtractJsonKey(svTokenValues->GetAt(i));
 			jsonValue = LookupJSONValue(jsonObject, sJsonKey);
 
-			// Recherche d'une valeur sous sa forme byte si non trouve
-			if (jsonValue == NULL)
+			// Recherche d'une valeur sous sa forme byte si non trouve ou de valeur null
+			if (jsonValue == NULL or jsonValue->GetType() == JSONValue::NullValue)
 				jsonValue = LookupJSONValue(jsonObject, ToByteJsonKey(sJsonKey));
 
-			// Arret si valeur absente du json
-			if (jsonValue == NULL)
+			// Arret si valeur absente du json ou de valeur null
+			if (jsonValue == NULL or jsonValue->GetType() == JSONValue::NullValue)
 			{
 				bMissing = true;
 				break;
