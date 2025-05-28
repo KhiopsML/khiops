@@ -196,11 +196,12 @@ public:
 	void WriteOutputCommandHeader();
 
 	// Mode lecture/ecriture d'un fichier de de commande, sans executer les commandes
-	// Cela permet de tester la validite des fichier de command eet de parametres en entree
+	// Cela permet de tester la validite des fichier de commande et de parametres en entree
 	// et d'effectuer les transformations en fichier de commande natif, sans parametres
 	boolean ReadWriteCommandFiles();
 
 	// Personnalisation des messages d'erreur
+	void AddInputCommandFileWarning(const ALString& sMessage) const;
 	void AddInputCommandFileError(const ALString& sMessage) const;
 	void AddInputParameterFileError(const ALString& sMessage) const;
 	void AddOutputCommandFileError(const ALString& sMessage) const;
@@ -360,6 +361,9 @@ protected:
 
 	// Object json pour les parametres en entree
 	JSONObject jsonParameters;
+
+	// Mode verbeux, pour generer des warning dans le cas de cles de json manquantes, alors que leur absence est toleree
+	boolean bWarningIfMissingJsonKey;
 
 	///////////////////////////////////////////////////////////////
 	// Variables de gestion du parsing du fichier de commande en entree
