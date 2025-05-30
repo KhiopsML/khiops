@@ -362,7 +362,7 @@ protected:
 	// Object json pour les parametres en entree
 	JSONObject jsonParameters;
 
-	// Mode verbeux, pour generer des warning dans le cas de cles de json manquantes, alors que leur absence est toleree
+	// Mode verbeux, pour generer des warnings dans le cas de cles json manquantes, alors que leur absence est toleree
 	boolean bWarningIfMissingJsonKey;
 
 	///////////////////////////////////////////////////////////////
@@ -463,7 +463,7 @@ protected:
 	static const longint lMaxInputParameterFileSize = lMB;
 
 	// Tolerance pour accepter les cles vides ou null dans les fichiers de parametrage json
-	// La prise en compte de cette tolerance est dans les cas simple implementee dans des
+	// La prise en compte de cette tolerance est dans les cas simples implementee dans des
 	// blocs conditionnes uniquement par ce parametre
 	static const boolean bAcceptMissingOrNullKeys = true;
 };

@@ -6,6 +6,7 @@
 
 CommandFile::CommandFile()
 {
+	bBatchMode = false;
 	bPrintOutputInConsole = false;
 	fInputCommands = NULL;
 	fOutputCommands = NULL;
@@ -24,7 +25,6 @@ void CommandFile::Reset()
 {
 	require(not AreCommandFilesOpened());
 
-	bBatchMode = false;
 	bWarningIfMissingJsonKey = false;
 	SetInputCommandFileName("");
 	SetInputParameterFileName("");
@@ -638,7 +638,7 @@ boolean CommandFile::ReadWriteCommandFiles()
 		// Ecriture de la commande si ok
 		if (bOk)
 		{
-			// Construction de l'identifier de commande a partir des ses composant
+			// Construction de l'identifier de commande a partir de ses composants
 			sIdentifierPath = "";
 			for (i = 0; i < svIdentifierPath.GetSize(); i++)
 			{
@@ -679,7 +679,7 @@ void CommandFile::AddInputCommandFileError(const ALString& sMessage) const
 	ALString sLineLocalisation;
 	ALString sTmp;
 
-	// On precise le numero de ligne si disponible
+	// On precise le numero de ligne si disponible, pour un fichier ouvert et en cours de lecture
 	if (nParserLineIndex > 0)
 		sLineLocalisation = sTmp + ", line " + IntToString(nParserLineIndex);
 	Global::AddError("Input command file", sInputCommandFileName + sLineLocalisation, sMessage);
@@ -1534,7 +1534,7 @@ boolean CommandFile::ParseInputCommand(const ALString& sInputCommand, boolean& b
 						bParserIgnoreBlockState = true;
 						bContinueParsing = true;
 
-						// Warning
+						// Warning si la valeur json est null
 						if (bWarningIfMissingJsonKey and jsonValue == NULL)
 							AddInputCommandFileWarning(
 							    "For beginning of " + svParserTokenValues.GetAt(0) +
@@ -2148,14 +2148,16 @@ boolean CommandFile::ContainsMissingOrNullJSONValue(JSONObject* jsonObject, cons
 		nToken = ivTokenTypes->GetAt(i);
 		assert(0 <= nToken and nToken < None);
 
-		// Traitement des token de type cle
+		// Traitement des tokens de type cle
+		// Attention: une valeur peut etre disponible soit sous sa forme standard, soit sous sa forme byte
+		// Elle est consideree comme manquante si elle n'est disponible sous aucune des deux formes
 		if (nToken == TokenKey)
 		{
 			// Recherche d'une valeur sous sa forme standard
 			sJsonKey = ExtractJsonKey(svTokenValues->GetAt(i));
 			jsonValue = LookupJSONValue(jsonObject, sJsonKey);
 
-			// Recherche d'une valeur sous sa forme byte si non trouve ou de valeur null
+			// Recherche d'une valeur sous sa forme byte si non trouve
 			if (jsonValue == NULL)
 				jsonValue = LookupJSONValue(jsonObject, ToByteJsonKey(sJsonKey));
 

@@ -734,6 +734,10 @@ protected:
 	UIUnit();
 	~UIUnit();
 
+	// Messages d'erreur en cas de problemes de scenario detectes lors de l'ouverture de la fenetre
+	void AddCommandError(const StringVector* svIdentifierPath, const ALString& sValue,
+			     const ObjectArray* oaCurrenCommandUnitPath, const ALString& sMessage) const;
+
 	// Propagation des refresh et des updates
 	void PropagateRefresh();
 	void PropagateUpdate();
@@ -1151,6 +1155,9 @@ public:
 	void SetKeyFieldId(const ALString& sFieldId);
 	const ALString& GetKeyFieldId() const;
 
+	// Libelle du champ a utiliser pour la cle, s'il est specifie
+	const ALString& GetKeyFieldLabel() const;
+
 	////////////////////////////////////////////////////////////////////
 	// La description des champs de la liste se fait en utilisant l'API
 	// de UIUnit
@@ -1191,6 +1198,9 @@ public:
 	// le champ cle (optionnel)
 	void SetSelectedItemKey(const ALString& sKey);
 	const ALString GetSelectedItemKey() const;
+
+	// Collecte des cles disponibles en cas d'utilisation de champ cle
+	void CollectAvailableKeys(StringVector* svCollectedKeys) const;
 
 	/////////////////////////////////////////////////////////////////////
 	// Handler redefinissable dans des sous-classes
