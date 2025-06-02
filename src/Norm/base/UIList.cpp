@@ -123,6 +123,13 @@ const ALString& UIList::GetKeyFieldId() const
 	return sKeyFieldId;
 }
 
+const ALString& UIList::GetKeyFieldLabel() const
+{
+	require(sKeyFieldId != "" and GetFieldIndex(sKeyFieldId) != -1);
+	require(cast(UIData*, oaUIDatas.GetAt(GetFieldIndex(sKeyFieldId)))->GetDataType() == String);
+	return cast(UIData*, oaUIDatas.GetAt(GetFieldIndex(sKeyFieldId)))->GetLabel();
+}
+
 int UIList::GetItemNumber()
 {
 	return nItemNumber;
@@ -233,7 +240,7 @@ void UIList::SetCurrentItemIndex(int nIndex)
 {
 	require(-1 <= nIndex and nIndex < nItemNumber);
 
-	// Garde-fou, utile quand on rejout un scenario compose a la main (donc sujet a erreurs)
+	// Garde-fou, utile quand on rejoue un scenario compose en dehors de Khiops (donc sujet a erreurs)
 	if (nIndex < -1)
 		nIndex = -1;
 	if (nIndex > nItemNumber)
@@ -253,7 +260,7 @@ void UIList::SetSelectedItemIndex(int nIndex)
 {
 	require(-1 <= nIndex and nIndex < nItemNumber);
 
-	// Garde-fou, utile quand on rejout un scenario compose a la main (donc sujet a erreurs)
+	// Garde-fou, utile quand on rejoue un scenario compose en dehors de Khiops (donc sujet a erreurs)
 	if (nIndex < -1)
 		nIndex = -1;
 	if (nIndex > nItemNumber)
@@ -284,7 +291,7 @@ void UIList::SetSelectedItemKey(const ALString& sKey)
 	assert(nKeyFieldIndex >= 0);
 	assert(cast(UIData*, oaUIDatas.GetAt(nKeyFieldIndex))->GetDataType() == String);
 
-	// Garde-fou, utile quand on rejout un scenario compose a la main (donc sujet a erreurs)
+	// Garde-fou, utile quand on rejoue un scenario compose en dehors de Khiops (donc sujet a erreurs)
 	nFoundIndex = -1;
 	if (nKeyFieldIndex >= 0 and cast(UIData*, oaUIDatas.GetAt(nKeyFieldIndex))->GetDataType() == String)
 	{
@@ -325,6 +332,28 @@ const ALString UIList::GetSelectedItemKey() const
 	}
 	else
 		return "";
+}
+
+void UIList::CollectAvailableKeys(StringVector* svCollectedKeys) const
+{
+	int nKeyFieldIndex;
+	StringVector* values;
+
+	require(GetKeyFieldId() != "");
+
+	// Recherche de l'index du champ cle
+	nKeyFieldIndex = GetFieldIndex(GetKeyFieldId());
+	assert(nKeyFieldIndex >= 0);
+	assert(cast(UIData*, oaUIDatas.GetAt(nKeyFieldIndex))->GetDataType() == String);
+
+	// Recherche des cles, avec garde-fou, utile quand on rejoue un scenario compose en dehors de Khiops (donc sujet a erreurs)
+	svCollectedKeys->SetSize(0);
+	if (nKeyFieldIndex >= 0 and cast(UIData*, oaUIDatas.GetAt(nKeyFieldIndex))->GetDataType() == String)
+	{
+		// Recherche de l'index de la cle en parcourant toutes les valeurs du champs
+		values = cast(StringVector*, oaUnitValues.GetAt(nKeyFieldIndex));
+		svCollectedKeys->CopyFrom(values);
+	}
 }
 
 void UIList::EventInsertItemAt(int nIndex)

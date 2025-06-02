@@ -39,6 +39,7 @@ const ALString UIUnit::GetClassLabel() const
 
 void UIUnit::Open()
 {
+	boolean bOk = true;
 	StringVector svIdentifierPath;
 	ALString sValue;
 	ALString sIdentifierValue;
@@ -52,9 +53,14 @@ void UIUnit::Open()
 	int nIndex;
 	int nListIndex;
 	boolean bActionExit;
+	ObjectArray oaCommandUnits;
 	ALString sCommand;
-	int j;
 	ALString sFullCommand;
+	boolean bCommandFullyProcessed;
+	StringVector svAvailableKeys;
+	ALString sAvailableKeysSummary;
+	int j;
+	ALString sTmp;
 
 	require(Check());
 	require(GetVisible() == true);
@@ -79,10 +85,15 @@ void UIUnit::Open()
 	bActionExit = false;
 	while (not bActionExit and ReadInputCommand(&svIdentifierPath, sValue) == true)
 	{
-		// Recherche de l'unite d'interface concernee
+		// On part de l'unite d'interface courante
 		assert(svIdentifierPath.GetSize() > 0);
 		sCommand = "";
+		oaCommandUnits.SetSize(0);
 		uiUnit = this;
+		oaCommandUnits.Add(uiUnit);
+		bCommandFullyProcessed = false;
+
+		// Traitement de la commande par analyse de son chemin d'identifiants
 		for (i = 0; i < svIdentifierPath.GetSize(); i++)
 		{
 			sIdentifierValue = svIdentifierPath.GetAt(i);
@@ -92,105 +103,68 @@ void UIUnit::Open()
 				sCommand += ".";
 			sCommand += sIdentifierValue;
 
-			// Recherche d'une action
-			nIndex = uiUnit->GetActionIndex(sIdentifierValue);
-			if (nIndex != -1)
+			// Erreur si la commande a entierement ete traite, et que l'on trouve encore des parties
+			if (bCommandFullyProcessed)
 			{
-				// Execution de l'action
-				uiAction = cast(UIAction*, uiUnit->oaUIActions.GetAt(nIndex));
-				if (uiAction->GetIdentifier() == "Exit" or uiAction->GetParameters() == "Exit")
-					bActionExit = true;
-				if (bVerboseCommandReplay)
-					AddSimpleMessage("Replay user action: " + sCommand);
-				WriteOutputCommand(sCommand, sValue, uiAction->GetUnformattedLabel());
-				uiUnit->ExecuteUserActionAt(uiAction->GetIdentifier());
-
-				// Sortie en mode fast exit
-				if (bBatchMode and bFastExitMode and Global::IsAtLeastOneError())
-				{
-					commandFile.CloseCommandFiles();
-					GlobalExitOnSuccess();
-				}
-				break;
+				AddCommandError(&svIdentifierPath, sValue, &oaCommandUnits,
+						"unexpected key '" + sIdentifierValue +
+						    "' found after processing the command");
+				bOk = false;
 			}
 
-			// Recherche d'un champs
-			nIndex = uiUnit->GetFieldIndex(sIdentifierValue);
-			if (nIndex != -1)
+			// Recherche d'une action s'il n'y a pas de valeur associee a la commande
+			if (sValue == "")
 			{
-				uiData = cast(UIData*, uiUnit->oaUIDatas.GetAt(nIndex));
-
-				// Affectation de valeur si champs terminal
-				if (uiData->IsElement())
+				// Recherche d'une action
+				nIndex = uiUnit->GetActionIndex(sIdentifierValue);
+				if (not bCommandFullyProcessed and nIndex != -1)
 				{
-					// Modification du champs si index valide
-					if (0 <= uiUnit->nCurrentItemIndex and
-					    uiUnit->nCurrentItemIndex < uiUnit->nItemNumber)
-					{
-						uiField = cast(UIElement*, uiData);
-						values = uiUnit->oaUnitValues.GetAt(nIndex);
-						if (bVerboseCommandReplay)
-							AddSimpleMessage("Replay field update: " + sCommand + " " +
-									 sValue);
-						WriteOutputCommand(sCommand, sValue, uiField->GetUnformattedLabel());
-						uiField->SetFieldStringValue(values, uiUnit->nCurrentItemIndex, sValue);
-						uiUnit->nFreshness++;
+					// Execution de l'action
+					uiAction = cast(UIAction*, uiUnit->oaUIActions.GetAt(nIndex));
+					if (uiAction->GetIdentifier() == "Exit" or uiAction->GetParameters() == "Exit")
+						bActionExit = true;
+					if (bVerboseCommandReplay)
+						AddSimpleMessage("Replay user action: " + sCommand);
+					WriteOutputCommand(sCommand, sValue, uiAction->GetUnformattedLabel());
+					uiUnit->ExecuteUserActionAt(uiAction->GetIdentifier());
+					bCommandFullyProcessed = true;
 
-						// Declenchement d'un refresh selon le parametrage du champ
-						if (uiField->GetTriggerRefresh())
-						{
-							uiUnit->ExecuteUserActionAt("Refresh");
-
-							// Sortie en mode fast exit, pouvant etre declenchee par une erreur de refresh
-							if (bBatchMode and bFastExitMode and
-							    Global::IsAtLeastOneError())
-							{
-								commandFile.CloseCommandFiles();
-								GlobalExitOnSuccess();
-							}
-						}
-						break;
-					}
-					else
+					// Sortie globale en mode fast exit en cas d'erreur suite a l'execution de l'action,
+					// ce qui permet de sortir d'un scenario des la premiere erreur
+					if (bBatchMode and bFastExitMode and Global::IsAtLeastOneError())
 					{
-						assert(uiUnit->GetDataType() == List);
-						// Arret sinon
-						commandFile.AddInputCommandFileError(
-						    "Incorrect index in command: " + sCommand + " " + sValue +
-						    " at index " + IntToString(uiUnit->nCurrentItemIndex));
 						commandFile.CloseCommandFiles();
-						if (bBatchMode)
-							Global::AddFatalError("Command file", "", "Batch mode failure");
-						break;
+						GlobalExitOnSuccess();
 					}
 				}
-				// Changement d'unite d'interface courante
-				else
-					uiUnit = cast(UIUnit*, uiData);
 			}
-			else
+
+			// Traitement des elements de donnes si on n'a pas pu traiter une action
+			if (not bCommandFullyProcessed)
 			{
-				// Recherche de changement d'index
+				// Cas d'une liste: on recherche des changements d'index
 				if (uiUnit->GetDataType() == List)
 				{
 					uiList = cast(UIList*, uiUnit);
-					if (i == svIdentifierPath.GetSize() - 2)
+					if (i <= svIdentifierPath.GetSize() - 2)
 					{
 						sIdentifierValue = svIdentifierPath.GetAt(i);
 						if (sIdentifierValue == "List")
 						{
 							sIdentifierValue = svIdentifierPath.GetAt(i + 1);
 							sCommand += "." + sIdentifierValue;
+							i += 1;
+							bCommandFullyProcessed = true;
 
 							// Cas d'une selection par index
 							if (sIdentifierValue == "Index")
 							{
-								// Calcul de l'index
+								// Calcul de l'index, avec tolerance aux erreurs de debordement
 								nListIndex = atoi(sValue);
 								if (nListIndex < 0)
 									nListIndex = 0;
-								else if (nListIndex > uiList->GetItemNumber())
-									nListIndex = uiList->GetItemNumber();
+								else if (nListIndex >= uiList->GetItemNumber())
+									nListIndex = uiList->GetItemNumber() - 1;
 
 								// Changement d'index si OK
 								if (bVerboseCommandReplay)
@@ -201,49 +175,209 @@ void UIUnit::Open()
 										   "List item selection");
 								uiList->SetSelectedItemIndex(nListIndex);
 
-								// Sortie normale, sauf si execution non conforme
-								if (uiList->GetSelectedItemIndex() == atoi(sValue))
-									break;
+								// Erreur  si execution non conforme
+								if (IntToString(uiList->GetSelectedItemIndex()) !=
+								    sValue)
+								{
+									AddCommandError(
+									    &svIdentifierPath, sValue, &oaCommandUnits,
+									    sTmp + "invalid list index '" + sValue +
+										"' (valid indices are between 0 and " +
+										IntToString(uiUnit->nItemNumber - 1) +
+										")");
+									bOk = false;
+								}
 							}
-
 							// Cas d'une selection par cle
-							if (sIdentifierValue == "Key")
+							else if (sIdentifierValue == "Key")
 							{
-								// Changement d'index
-								if (bVerboseCommandReplay)
-									AddSimpleMessage(
-									    "Replay list item selection: " + sCommand +
-									    " " + sValue);
-								WriteOutputCommand(sCommand, sValue,
-										   "List item selection");
-								uiList->SetSelectedItemKey(sValue);
+								// Erreur si liste non selectionnable par cle
+								if (uiList->GetKeyFieldId() == "")
+								{
+									// Message d'erreur
+									AddCommandError(
+									    &svIdentifierPath, sValue, &oaCommandUnits,
+									    "access by key to a list lacking a key "
+									    "field is invalid");
+									bOk = false;
+								}
+								// selection par cle sinon
+								else
+								{
+									// Changement d'index
+									if (bVerboseCommandReplay)
+										AddSimpleMessage(
+										    "Replay list item selection: " +
+										    sCommand + " " + sValue);
+									WriteOutputCommand(sCommand, sValue,
+											   "List item selection");
+									uiList->SetSelectedItemKey(sValue);
 
-								// Sortie normale, sauf si execution non conforme
-								if (uiList->GetSelectedItemKey() == sValue)
-									break;
+									// Erreur  si execution non conforme
+									if (uiList->GetSelectedItemKey() != sValue)
+									{
+										// Construction d'un libelle resumant les cles disponibles
+										// Le resume exploite au maximum trois cles
+										uiList->CollectAvailableKeys(
+										    &svAvailableKeys);
+										sAvailableKeysSummary = "(";
+										for (j = 0;
+										     j < svAvailableKeys.GetSize(); j++)
+										{
+											if (j > 0)
+												sAvailableKeysSummary +=
+												    ", ";
+											if (j >= 3)
+											{
+												sAvailableKeysSummary +=
+												    "...";
+												break;
+											}
+											sAvailableKeysSummary +=
+											    "'" +
+											    svAvailableKeys.GetAt(j) +
+											    "'";
+										}
+										sAvailableKeysSummary += ")";
+
+										// Message d'erreur
+										AddCommandError(
+										    &svIdentifierPath, sValue,
+										    &oaCommandUnits,
+										    sTmp + "the '" +
+											uiList->GetKeyFieldLabel() +
+											"' value '" + sValue +
+											"' is invalid and should be "
+											"one of " +
+											sAvailableKeysSummary);
+										bOk = false;
+									}
+								}
+							}
+							// Erreur si cas autre que "Index" ou "Key" attendu
+							else
+							{
+								assert(sIdentifierValue != "Index" and
+								       sIdentifier != "Key");
+								AddCommandError(
+								    &svIdentifierPath, sValue, &oaCommandUnits,
+								    "list should be accessed using 'Index' or "
+								    "'Key', not '" +
+									sIdentifierValue + "'");
+								bOk = false;
 							}
 						}
 					}
 				}
 
-				// Arret sinon, avec message d'erreur comportant la commande complete
-				sFullCommand = "";
-				for (j = 0; j < svIdentifierPath.GetSize(); j++)
+				// Autre cas: traitement d'un champ terminal de fiche ou de liste, ou d'une sous-fiche ou sous-liste
+				if (not bCommandFullyProcessed)
 				{
-					if (j > 0)
-						sFullCommand += ".";
-					sFullCommand += svIdentifierPath.GetAt(j);
+					// Recherche d'un champ dans la fiche en cours
+					nIndex = uiUnit->GetFieldIndex(sIdentifierValue);
+					if (nIndex != -1)
+					{
+						uiData = cast(UIData*, uiUnit->oaUIDatas.GetAt(nIndex));
+
+						// Affectation de valeur si champ terminal
+						if (uiData->IsElement())
+						{
+							bCommandFullyProcessed = true;
+
+							// Modification du champ si index valide
+							// (0 dans un fiche, inferieur a la taille de la liste sinon)
+							if (0 <= uiUnit->nCurrentItemIndex and
+							    uiUnit->nCurrentItemIndex < uiUnit->nItemNumber)
+							{
+								assert(uiUnit->GetDataType() == List or
+								       uiUnit->nCurrentItemIndex == 0);
+
+								// Traitement du champ
+								uiField = cast(UIElement*, uiData);
+								values = uiUnit->oaUnitValues.GetAt(nIndex);
+								if (bVerboseCommandReplay)
+									AddSimpleMessage("Replay field update: " +
+											 sCommand + " " + sValue);
+								WriteOutputCommand(sCommand, sValue,
+										   uiField->GetUnformattedLabel());
+								uiField->SetFieldStringValue(
+								    values, uiUnit->nCurrentItemIndex, sValue);
+								uiUnit->nFreshness++;
+
+								// Declenchement d'un refresh selon le parametrage du champ
+								if (uiField->GetTriggerRefresh())
+								{
+									uiUnit->ExecuteUserActionAt("Refresh");
+
+									// Sortie en mode fast exit, pouvant etre declenchee par une erreur de refresh
+									if (bBatchMode and bFastExitMode and
+									    Global::IsAtLeastOneError())
+									{
+										commandFile.CloseCommandFiles();
+										GlobalExitOnSuccess();
+									}
+								}
+							}
+							// Erreur en cas d'acces a un index invalide dans une liste
+							else
+							{
+								assert(uiUnit->GetDataType() == List);
+								assert(uiUnit->nCurrentItemIndex < 0 or
+								       uiUnit->nCurrentItemIndex >=
+									   uiUnit->nItemNumber);
+
+								// Specialisation du message selon le cas d'une liste vide ou non
+								if (uiUnit->nItemNumber == 0)
+									AddCommandError(
+									    &svIdentifierPath, sValue, &oaCommandUnits,
+									    sTmp + "list index " +
+										IntToString(uiUnit->nCurrentItemIndex) +
+										" is not accessible in an empty list");
+								else
+									AddCommandError(
+									    &svIdentifierPath, sValue, &oaCommandUnits,
+									    sTmp + "list index " +
+										IntToString(uiUnit->nCurrentItemIndex) +
+										" out of range " +
+										"(valid indices are between 0 and " +
+										IntToString(uiUnit->nItemNumber - 1) +
+										")");
+								bOk = false;
+							}
+						}
+						// Changement d'unite d'interface courante sinon
+						else
+						{
+							uiUnit = cast(UIUnit*, uiData);
+							oaCommandUnits.Add(uiUnit);
+						}
+					}
+					// Erreur si aucune action ni champ trouve dans la fiche courante
+					else
+					{
+						bCommandFullyProcessed = true;
+						AddCommandError(&svIdentifierPath, sValue, &oaCommandUnits,
+								"no data unit or action is associated with the key '" +
+								    sIdentifierValue + "'");
+						bOk = false;
+					}
 				}
-				commandFile.AddInputCommandFileError("Incorrect command: " + sFullCommand + " " +
-								     sValue);
-				commandFile.CloseCommandFiles();
-				if (bBatchMode)
-					Global::AddFatalError("Command file", "", "Batch mode failure");
-				break;
 			}
+
+			// On arrete l'analyse en cas d'erreur
+			if (not bOk)
+				break;
 		}
 
-		// Liberation
+		// Arret si global si erreur
+		if (not bOk)
+		{
+			commandFile.CloseCommandFiles();
+			if (bBatchMode)
+				Global::AddFatalError("Command file", "", "Batch mode failure");
+		}
+
+		// Reinitialisation
 		svIdentifierPath.SetSize(0);
 	}
 	svIdentifierPath.SetSize(0);
@@ -1109,6 +1243,39 @@ UIUnit::~UIUnit()
 
 	// Destruction des definitons de l'interface
 	odUIObjects.DeleteAll();
+}
+
+void UIUnit::AddCommandError(const StringVector* svIdentifierPath, const ALString& sValue,
+			     const ObjectArray* oaCurrenCommandUnitPath, const ALString& sMessage) const
+{
+	ALString sFullMessage;
+	ALString sFullCommand;
+	UIUnit* lastValidUnit;
+	int i;
+
+	require(svIdentifierPath != NULL);
+	require(oaCurrenCommandUnitPath != NULL);
+	require(0 < oaCurrenCommandUnitPath->GetSize());
+	require(oaCurrenCommandUnitPath->GetSize() <= svIdentifierPath->GetSize());
+	require(sMessage != "");
+
+	// Reconstruction de la commande du scenario
+	for (i = 0; i < svIdentifierPath->GetSize(); i++)
+	{
+		if (i > 0)
+			sFullCommand += '.';
+		sFullCommand += svIdentifierPath->GetAt(i);
+	}
+	if (sValue != "")
+		sFullCommand += " " + sValue;
+
+	// Recherche de la derniere unite d'interface valide
+	lastValidUnit = cast(UIUnit*, oaCurrenCommandUnitPath->GetAt(oaCurrenCommandUnitPath->GetSize() - 1));
+
+	// Construction d'un message intelligible complet
+	sFullMessage = "Invalid command (" + sFullCommand + ")";
+	sFullMessage += "; in '" + lastValidUnit->GetLabel() + "', " + sMessage;
+	commandFile.AddInputCommandFileError(sFullMessage);
 }
 
 void UIUnit::PropagateRefresh()
