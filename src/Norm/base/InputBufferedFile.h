@@ -12,13 +12,6 @@
 
 ///////////////////////////////////////////////////////////////////////////
 // Fichier bufferise en lecture
-// Il ya au moins les methode suivantes :
-// 			boolean GetNextField(char* sField, int& nFieldError); // nouvelle valeur de nFieldError quand la
-// ligne est trop longue 			boolean SkipField(); 			void GetNextLine(CharVector*
-// cvLine); renvoie vide si la ligne est trops longue 			void SkipLine(); revoie false si la ligne est
-// trop longue Il faut memoriser la position du debut de la ligne courante et  comparer nCurrentPos avec le debut de la
-// ligne pour evaluer si la ligne en cours est trop longue avec le debut de la ligne pour evaluer si la ligne en cours
-// est trop longue
 class InputBufferedFile : public BufferedFile
 {
 public:
@@ -177,11 +170,12 @@ public:
 	// on peut detecter qu'un ligne est trop longue.
 
 	// Type d'erreur liees au parsing d'un champs
-	// En cas d'erreur, le parsing continue pour rattrapper l'erreur, au mieux en fin de champs, au pire en fin de
-	// ligne
+	// En cas d'erreur, le parsing continue pour rattrapper l'erreur, au mieux en fin de champs,
+	// au pire en fin de ligne
 	enum
 	{
-		FieldNoError,           // Pas d'erreur
+		FieldNoError,                 // Pas d'erreur
+		FieldMissingBeginDoubleQuote, // Manque un double-quote en debut d'un champ terminant par un double-quote
 		FieldMiddleDoubleQuote, // Double-quote non double au milieu d'un champ commencant par un double-quote
 		FieldMissingEndDoubleQuote, // Manque un double-quote en fin d'un champ commencant par un double-quote
 		FieldTooLong                // Champ trop long (le champ sera tronque)
@@ -206,9 +200,11 @@ public:
 	boolean GetNextField(char*& sField, int& nFieldLength, int& nFieldError, boolean& bLineTooLong);
 
 	// Saut d'un champ
-	// Code retour a true si le token est le dernier de la ligne, du buffer ou du fichier. Dans ce cas,
+	// Code retour a true si le token est le dernier de la ligne, du buffer ou du fichier.
 	// Dans ce cas uniquement, on peut avoir un potentiellement bLineTooLong  true
-	boolean SkipField(boolean& bLineTooLong);
+	// Le flag nFieldError est positionne en cas d'erreur comme pour GetNextField, pour permettre
+	// de choisir d'ignorer une ligne en cas d'erreur, que le champ soit parse ou saute
+	boolean SkipField(int& nFieldError, boolean& bLineTooLong);
 
 	// Saut de tous les champs jusqu'a la fin de la ligne
 	// Sans effet si on est deja sur le dernier champ d'une ligne
@@ -413,13 +409,17 @@ protected:
 	// Les champs trop longs sont tronques, mais le message est a emettre par la methode appelante
 	// (en testant la valeur de i, position du prochain caractere)
 	boolean GetNextDoubleQuoteField(char* sField, int& i, int& nFieldError);
-	boolean SkipDoubleQuoteField(boolean& bLineTooLong);
+	boolean SkipDoubleQuoteField(int& nFieldError);
 
 	// Test si la ligne courante est trop longue
 	boolean IsLineTooLong() const;
 
 	// Prochain caractere
 	char GetNextChar();
+
+	// Precedent caractere, et son precedent
+	char GetPrevChar() const;
+	char GetPrevPrevChar() const;
 
 	// Reinitialisation des donnees de travail
 	void Reset();
@@ -603,6 +603,22 @@ inline char InputBufferedFile::GetNextChar()
 	require(GetPositionInCache() < GetCacheSize());
 	c = fcCache.GetAt(nPositionInCache);
 	nPositionInCache++;
+	return c;
+}
+
+inline char InputBufferedFile::GetPrevChar() const
+{
+	char c;
+	require(GetPositionInCache() > 1);
+	c = fcCache.GetAt(nPositionInCache - 2);
+	return c;
+}
+
+inline char InputBufferedFile::GetPrevPrevChar() const
+{
+	char c;
+	require(GetPositionInCache() > 2);
+	c = fcCache.GetAt(nPositionInCache - 3);
 	return c;
 }
 

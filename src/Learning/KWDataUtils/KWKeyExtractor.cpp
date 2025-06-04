@@ -107,7 +107,7 @@ boolean KWKeyExtractor::ParseNextKey(KWKey* key, PLParallelTask* taskErrorSender
 		// Saut des separateurs jusqu'au bon champ
 		while (j < nKeyIndex and not bEol)
 		{
-			bEol = iBuffer->SkipField(bLineTooLong);
+			bEol = iBuffer->SkipField(nFieldError, bLineTooLong);
 			nLineFieldNumber++;
 			j++;
 		}

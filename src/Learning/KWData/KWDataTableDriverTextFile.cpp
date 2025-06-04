@@ -287,6 +287,7 @@ boolean KWDataTableDriverTextFile::IsOpenedForWrite() const
 
 KWObject* KWDataTableDriverTextFile::Read()
 {
+	boolean bOk;
 	char* sField;
 	int nFieldLength;
 	int nFieldError;
@@ -308,6 +309,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 	KWContinuousValueBlock* cvbValue;
 	KWSymbolValueBlock* svbValue;
 	ALString sMessage;
+	ALString sFieldLabel;
 	boolean bValueBlockOk;
 
 	require(not bWriteMode);
@@ -331,12 +333,13 @@ KWObject* KWDataTableDriverTextFile::Read()
 	}
 
 	// Lecture des champs de la ligne
+	// Lors d'une erreur de parsing, on emet un warning, et on ignore tout l'enregistrement si l'erreur est grave
+	Global::ActivateErrorFlowControl();
+	bOk = true;
 	bEndOfLine = false;
-	bLineTooLong = false;
 	nField = 0;
 	sField = NULL;
 	nFieldLength = 0;
-	nFieldError = inputBuffer->FieldNoError;
 	lRecordIndex++;
 	kwoObject = new KWObject(kwcClass, lRecordIndex);
 	while (not bEndOfLine)
@@ -351,7 +354,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 		if (liLoadIndex.IsValid() or nField == 0)
 			bEndOfLine = inputBuffer->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 		else
-			bEndOfLine = inputBuffer->SkipField(bLineTooLong);
+			bEndOfLine = inputBuffer->SkipField(nFieldError, bLineTooLong);
 
 		// Cas particulier: ligne trop longue
 		if (bLineTooLong)
@@ -360,11 +363,42 @@ KWObject* KWDataTableDriverTextFile::Read()
 
 			// Warning
 			AddWarning(sTmp + "Ignored record, " + InputBufferedFile::GetLineTooLongErrorLabel());
-
-			// Destruction de l'objet en cours et on sort
-			delete kwoObject;
-			kwoObject = NULL;
+			bOk = false;
 			break;
+		}
+
+		// Cas particulier: erreur sur un champ
+		if (nFieldError != inputBuffer->FieldNoError)
+		{
+			// Libelle du champ s'il est disponible, son index sinon
+			if (liLoadIndex.IsValid())
+			{
+				dataItem = kwcClass->GetDataItemAtLoadIndex(liLoadIndex);
+				sFieldLabel = dataItem->GetClassLabel() + " " + dataItem->GetObjectLabel();
+			}
+			else
+				sFieldLabel = sTmp + "Field " + IntToString(nField + 1);
+
+			// Message lie a l'erreur
+			sMessage = inputBuffer->GetFieldErrorLabel(nFieldError) + " (" + sFieldLabel;
+			if (liLoadIndex.IsValid())
+				sMessage += " with value <" + InputBufferedFile::GetDisplayValue(sField) + ">";
+			sMessage += ")";
+
+			// Ligne ignoree uniquement si erreur grave liee a un double-quote manquant en fin de champ,
+			// ce qui peut etre le signe d'un champ multi-lignes, et entrainer d'autres erreurs cachees
+			if (nFieldError == inputBuffer->FieldMissingEndDoubleQuote)
+			{
+				AddWarning("Ignored record, " + sMessage);
+
+				// On saute les champs de fin de ligne
+				inputBuffer->SkipLastFields(bLineTooLong);
+				bOk = false;
+				break;
+			}
+			// Simple warning sinon
+			else
+				AddWarning(sMessage);
 		}
 
 		// Cas particulier: ligne vide
@@ -379,10 +413,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 				{
 					AddWarning("Empty line");
 				}
-
-				// Destruction de l'objet en cours et on sort
-				delete kwoObject;
-				kwoObject = NULL;
+				bOk = false;
 				break;
 			}
 			// Sinon, on sort si on est dans le cas d'un dictionnaire sans attribut natif
@@ -404,7 +435,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 		{
 			if (nField < livDataItemLoadIndexes.GetSize() and ivMainKeyIndexes.GetAt(nField) >= 0)
 			{
-				// Les champs cles sont necessairement lu dans le cas d'un driver physique de classe
+				// Les champs cles sont necessairement lus dans le cas d'un driver physique de classe
 				assert(liLoadIndex.IsValid());
 				lastReadMainKey.SetAt(ivMainKeyIndexes.GetAt(nField), Symbol(sField, nFieldLength));
 			}
@@ -413,14 +444,10 @@ KWObject* KWDataTableDriverTextFile::Read()
 		// Analyse des attributs reconnus et non calcules
 		if (liLoadIndex.IsValid())
 		{
+			assert(nFieldError == inputBuffer->FieldNoError);
+
 			// Acces au dataItem correspondant a l'index de chargement
 			dataItem = kwcClass->GetDataItemAtLoadIndex(liLoadIndex);
-
-			// Message si erreur sur le champ
-			if (nFieldError != inputBuffer->FieldNoError)
-				AddWarning(sTmp + dataItem->GetClassLabel() + " " + dataItem->GetObjectLabel() +
-					   " with value <" + InputBufferedFile::GetDisplayValue(sField) +
-					   "> : " + inputBuffer->GetFieldErrorLabel(nFieldError));
 
 			// Cas d'un attribut
 			if (dataItem->IsAttribute())
@@ -570,16 +597,21 @@ KWObject* KWDataTableDriverTextFile::Read()
 		// Index du champs suivant
 		nField++;
 	}
+	assert(kwoObject != NULL);
+	Global::DesactivateErrorFlowControl();
 
 	// Verification du nombre de champs
-	if (kwoObject != NULL and nField != livDataItemLoadIndexes.GetSize())
+	if (bOk and nField != livDataItemLoadIndexes.GetSize())
 	{
 		// Emission d'un warning
 		AddWarning(sTmp + "Ignored record, bad field number (" + IntToString(nField) + " read fields for " +
 			   IntToString(livDataItemLoadIndexes.GetSize()) + " expected fields)");
+		bOk = false;
+	}
 
-		// Destruction de l'objet en cours et retour
-		// Remarque: on ne modifie pas le nRecordNumber, qui permet d'identifier la ligne fautive
+	// Si erreur, destruction de l'objet en cours et arret de l'analyse
+	if (not bOk)
+	{
 		delete kwoObject;
 		kwoObject = NULL;
 	}
@@ -587,6 +619,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 	// Remplissage du buffer si necessaire
 	UpdateInputBuffer();
 
+	ensure(bOk or kwoObject == NULL);
 	return kwoObject;
 }
 
@@ -1601,7 +1634,7 @@ void KWDataTableDriverTextFile::SkipMainRecord()
 			if (nMainKeyIndex >= 0 or nField == 0)
 				bEndOfLine = inputBuffer->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 			else
-				bEndOfLine = inputBuffer->SkipField(bLineTooLong);
+				bEndOfLine = inputBuffer->SkipField(nFieldError, bLineTooLong);
 
 			// Cas particulier: ligne vide
 			if (nField == 0 and bEndOfLine and (sField == NULL or sField[0] == '\0'))
@@ -1627,6 +1660,18 @@ void KWDataTableDriverTextFile::SkipMainRecord()
 			{
 				lastReadMainKey.Initialize();
 				AddWarning("Ignored record, " + InputBufferedFile::GetLineTooLongErrorLabel());
+			}
+
+			// Ligne ignoree uniquement si erreur grave liee a un double-quote manquant en fin de champ
+			if (nFieldError == inputBuffer->FieldMissingEndDoubleQuote)
+			{
+				lastReadMainKey.Initialize();
+				AddWarning("Ignored record, " + inputBuffer->GetFieldErrorLabel(nFieldError) +
+					   " (Field " + IntToString(nField + 1) + ")");
+
+				// On saute les champs de fin de ligne
+				inputBuffer->SkipLastFields(bLineTooLong);
+				break;
 			}
 
 			// Index du champs suivant

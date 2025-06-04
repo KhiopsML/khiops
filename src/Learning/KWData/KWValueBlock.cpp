@@ -374,32 +374,33 @@ const ALString KWValueBlock::GetFieldErrorLabel(int nFieldError)
 {
 	require(FieldNoError < nFieldError and nFieldError < FieldEnd);
 
-	if (nFieldError == FieldKeyEmpty)
-		return "empty key";
-	else if (nFieldError == FieldIntKeyStartWithZero)
-		return "integer key must not start with digit 0";
-	else if (nFieldError == FieldIntKeyTooLarge)
-		return "integer key must be less or equal than 1000000000";
-	else if (nFieldError == FieldMiddleQuote)
-		return "quote in the middle of the field should be paired";
-	else if (nFieldError == FieldMissingEndQuote)
-		return "missing quote at the end of the field";
-	else if (nFieldError == FieldWrongIntChar)
-		return "integer value containing wrong chars";
-	else if (nFieldError == FieldWrongContinuousChar)
-		return "numerical value containing wrong chars";
-	else if (nFieldError == FieldWrongChar)
-		return "field containing non alphanumeric chars should be between quotes";
-	else if (nFieldError == FieldMissingBlank)
-		return "blank separator is missing";
-	else if (nFieldError == FieldHeadBlank)
-		return "blank separator at the head of the field";
-	else if (nFieldError == FieldTailBlank)
-		return "blank separator at the tail of the field";
-	else if (nFieldError == FieldDoubledBlank)
-		return "blank separator used more than once";
-	else
+	switch (nFieldError)
 	{
+	case FieldKeyEmpty:
+		return "empty key";
+	case FieldIntKeyStartWithZero:
+		return "integer key must not start with digit 0";
+	case FieldIntKeyTooLarge:
+		return "integer key must be less or equal than 1000000000";
+	case FieldMiddleQuote:
+		return "quote in the middle of the field should be paired";
+	case FieldMissingEndQuote:
+		return "missing quote at the end of the field";
+	case FieldWrongIntChar:
+		return "integer value containing wrong chars";
+	case FieldWrongContinuousChar:
+		return "numerical value containing wrong chars";
+	case FieldWrongChar:
+		return "field containing non alphanumeric chars should be between quotes";
+	case FieldMissingBlank:
+		return "blank separator is missing";
+	case FieldHeadBlank:
+		return "blank separator at the head of the field";
+	case FieldTailBlank:
+		return "blank separator at the tail of the field";
+	case FieldDoubledBlank:
+		return "blank separator used more than once";
+	default:
 		assert(false);
 		return "";
 	}

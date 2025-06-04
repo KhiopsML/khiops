@@ -3955,7 +3955,7 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 		if (liLoadIndex.IsValid())
 			bEndOfLine = inputBuffer->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 		else
-			bEndOfLine = inputBuffer->SkipField(bLineTooLong);
+			bEndOfLine = inputBuffer->SkipField(nFieldError, bLineTooLong);
 
 		// Analyse des attributs a traiter
 		if (liLoadIndex.IsValid())
@@ -3966,23 +3966,22 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 			// Erreur ou warning si probleme sur le champ
 			if (nFieldError != inputBuffer->FieldNoError)
 			{
-				// Erreur si probleme de double quote (normalement correctement gere lors de l'ecriture)
-				if (nFieldError == inputBuffer->FieldMiddleDoubleQuote or
-				    nFieldError == inputBuffer->FieldMissingEndDoubleQuote)
+				// Warning si champ trop long
+				// (un champ peut par exemple etre trop long s'il a ete cree par une regle de derivation)
+				if (nFieldError == inputBuffer->FieldTooLong)
+					AddWarning(inputBuffer->GetFieldErrorLabel(nFieldError) + " (Field " +
+						   IntToString(nField) + ", " + dataItem->GetClassLabel() + " " +
+						   dataItem->GetObjectLabel() + " with value <" +
+						   InputBufferedFile::GetDisplayValue(sField) + ">)");
+				// Erreur sinon (les problemes de double-quotes sont normalement correctement geres lors de l'ecriture)
+				else
 				{
-					AddError(sTmp + "Field " + IntToString(nField) + ", " +
-						 dataItem->GetClassLabel() + " " + dataItem->GetObjectLabel() +
-						 " with value <" + InputBufferedFile::GetDisplayValue(sField) +
-						 "> : " + inputBuffer->GetFieldErrorLabel(nFieldError));
+					AddError(inputBuffer->GetFieldErrorLabel(nFieldError) + " (Field " +
+						 IntToString(nField) + ", " + dataItem->GetClassLabel() + " " +
+						 dataItem->GetObjectLabel() + " with value <" +
+						 InputBufferedFile::GetDisplayValue(sField) + ">)");
 					bOk = false;
 				}
-				// Warning sinon (un champ peut par exemple etre trop long s'il a ete cree par une regle
-				// de derivation)
-				else
-					AddWarning(sTmp + "Field " + IntToString(nField) + ", " +
-						   dataItem->GetClassLabel() + " " + dataItem->GetObjectLabel() +
-						   " with value <" + InputBufferedFile::GetDisplayValue(sField) +
-						   "> : " + inputBuffer->GetFieldErrorLabel(nFieldError));
 			}
 
 			// Cas d'un attribut
