@@ -869,8 +869,12 @@ KWAttribute* KIInterpretationClassBuilder::CreateRankedContributionAttribute(
 	contributionAttribute->SetType(kwdrRankedContributionRule->GetType());
 	contributionAttribute->SetName(kwcInterpretationClass->BuildAttributeName(
 	    GetShapleyLabel() + sBaseName + "_" + sTargetValue + "_" + IntToString(nRank + 1)));
+
+	// Parametrage des meta-donnees
 	contributionAttribute->GetMetaData()->SetDoubleValueAt(sRankMetaDataKey, nRank + 1);
 	contributionAttribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetValue.GetValue());
+
+	// Insertion de l'attribut dans la classe
 	kwcInterpretationClass->InsertAttribute(contributionAttribute);
 	return contributionAttribute;
 }
@@ -1031,9 +1035,16 @@ KWAttribute* KIInterpretationClassBuilder::CreateRankedReinforcementAttribute(
 	if (nRank >= 0)
 		sAttributeName = sAttributeName + "_" + IntToString(nRank + 1);
 	reinforcementAttribute->SetName(kwcReinforcementClass->BuildAttributeName(sAttributeName));
+
+	// Parametrage des meta-donnees dans le cas de variable associee a un rang de renforcement
 	if (nRank >= 0)
 		reinforcementAttribute->GetMetaData()->SetDoubleValueAt(sRankMetaDataKey, nRank + 1);
+	// Parametrage dans le cas de variable independante du rang, ce qui est specifie via un rang a -1
+	else
+		reinforcementAttribute->GetMetaData()->SetNoValueAt(sRankMetaDataKey);
 	reinforcementAttribute->GetMetaData()->SetStringValueAt(GetTargetMetaDataKey(), sTargetValue.GetValue());
+
+	// Insertion de l'attribut dans la classe
 	kwcReinforcementClass->InsertAttribute(reinforcementAttribute);
 	return reinforcementAttribute;
 }

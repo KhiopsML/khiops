@@ -260,8 +260,8 @@ void CommandFile::CloseInputCommandFile()
 	}
 	bIsParserOkAfterEnd = bParserOk;
 
-	// Detection des membres non utilises du parametrage json
-	if (bIsParserOkAfterEnd)
+	// Detection des membres non utilises du parametrage json, s'il n'y a pas d'autres erreurs
+	if (bIsParserOkAfterEnd and not Global::IsAtLeastOneError())
 		bIsParserOkAfterEnd = DetectedUnusedJsonParameterMembers();
 
 	// Fermeture du fichier d'entree
