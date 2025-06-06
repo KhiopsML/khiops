@@ -237,6 +237,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 			// Lancement de la tache KWChunkSorterTask sur un seul bucket
 			smallBucket = new KWSortBucket;
 			smallBucket->AddChunkFileName(sInputFileName);
+			smallBucket->SetChunkSize(lFileSize);
 			sortedBuckets.AddBucket(smallBucket);
 			parallelSorter.SetTaskUserLabel("In memory sort");
 			parallelSorter.SetBuckets(&sortedBuckets);
@@ -260,7 +261,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 				concatenater.SetDisplayProgression(false);
 
 				// Concatenation
-				concatenater.Concatenate(parallelSorter.GetSortedFiles(), this, true);
+				bOk = concatenater.Concatenate(parallelSorter.GetSortedFiles(), this, true);
 			}
 
 			bIsInterruptedByUser = parallelSorter.IsTaskInterruptedByUser();
@@ -296,6 +297,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 				sNewFileName = sInputFileName;
 
 			initBucket->AddChunkFileName(sNewFileName);
+			initBucket->SetChunkSize(lFileSize);
 			sortedBuckets.AddBucket(initBucket);
 			overweightBucket = sortedBuckets.GetOverweightBucket(nChunkSize);
 
@@ -398,7 +400,11 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 				parallelSorter.SetInputFieldSeparator(cInputFieldSeparator);
 				parallelSorter.SetInputHeaderLineUsed(bInputHeaderLineUsed);
 				parallelSorter.SetOutputFieldSeparator(cOutputFieldSeparator);
+
+				// Tri des fichiers.
+				// En cas d'erreur, les fichiers d'entree et de sortie sont nettoyes.
 				bOk = parallelSorter.Sort();
+				lObjectNumber = parallelSorter.GetSortedLinesNumber();
 				bIsInterruptedByUser = parallelSorter.IsTaskInterruptedByUser();
 				if (bTrace)
 					AddSimpleMessage(
@@ -407,7 +413,6 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 					    SecondsToString(parallelSorter.GetMasterInitializeElapsedTime()) +
 					    " finalize : " +
 					    SecondsToString(parallelSorter.GetMasterFinalizeElapsedTime()) + ")");
-				lObjectNumber = parallelSorter.GetSortedLinesNumber();
 
 				// Concatenation
 				if (bOk)

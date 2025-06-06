@@ -191,17 +191,21 @@ public:
 	longint GetChunkSize();
 
 	// Affectation de la taille du chunck
-	void SetChunkFileSize(longint lSize);
+	void SetChunkSize(longint lSize);
 
-	// Acces au lignes contenues dans le chunk
+	// Ajout d'une ligne au chunk
 	void AddLine(const CharVector* cvline);
 
 	// Acces au buffer
-	CharVector* GetChunk();
+	CharVector* GetBuffer();
 
 	// Est-ce que le chunk est trie
 	void SetSorted();
 	boolean GetSorted() const;
+
+	// Renvoie le nombre de lignes contenues dans le bucket
+	longint GetLineNumber() const;
+	void SetLineNumber(longint lNumber);
 
 	///////////////////////////////////////////////////////////////////////////
 	// Services divers
@@ -236,6 +240,7 @@ protected:
 	boolean bLowerBoundExcluded;
 	boolean bUpperBoundExcluded;
 	boolean bSorted;
+	longint lLineNumber;
 
 	// Classes friend
 	friend class KWSortBuckets;
@@ -247,6 +252,7 @@ int KWSortBucketCompareChunkSize(const void* first, const void* second);
 ///////////////////////////////////////////////////
 // Classe PLShared_SortBucket
 // Serialisation de la classe KWSortBucket
+// Serialise tout sauf le contenu du bucket et le fichier de sortie
 class PLShared_SortBucket : public PLSharedObject
 {
 public:
