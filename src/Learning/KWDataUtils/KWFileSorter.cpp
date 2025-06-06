@@ -409,33 +409,6 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 					    SecondsToString(parallelSorter.GetMasterFinalizeElapsedTime()) + ")");
 				lObjectNumber = parallelSorter.GetSortedLinesNumber();
 
-				// Nettoyage des chunks en cas d'erreur
-				// sauf dans la cas (rare) ou on trie directement le fichier d'entree (auquel cas
-				// nSplitNumber==0) (on devrait etre en InMemory)
-				if (not bOk and nSplitNumber > 0)
-				{
-					assert(svChunkFileNames.GetSize() == 0);
-					for (i = 0; i < sortedBuckets.GetBucketNumber(); i++)
-					{
-						if (sortedBuckets.GetBucketAt(i)->GetSorted())
-							svChunkFileNames.Add(
-							    sortedBuckets.GetBucketAt(i)->GetOutputFileName());
-						else
-						{
-							for (j = 0; j < sortedBuckets.GetBucketAt(i)
-									    ->GetChunkFileNames()
-									    ->GetSize();
-							     j++)
-							{
-								svChunkFileNames.Add(sortedBuckets.GetBucketAt(i)
-											 ->GetChunkFileNames()
-											 ->GetAt(j));
-							}
-						}
-					}
-					concatenater.RemoveChunks(&svChunkFileNames);
-				}
-
 				// Concatenation
 				if (bOk)
 				{

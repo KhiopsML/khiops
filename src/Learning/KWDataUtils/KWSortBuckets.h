@@ -175,7 +175,7 @@ public:
 	///////////////////////////////////////////////////////////////////////////
 	// Gestion du contenu du chunk
 
-	// Fichier pour le contenu du chunk
+	// Fichier resultant de la concatenation des chunks
 	void SetOutputFileName(const ALString& sValue);
 	const ALString& GetOutputFileName() const;
 

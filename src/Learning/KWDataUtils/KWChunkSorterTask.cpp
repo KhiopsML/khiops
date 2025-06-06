@@ -395,6 +395,7 @@ boolean KWChunkSorterTask::MasterFinalize(boolean bProcessEndedCorrectly)
 	int i;
 	int j;
 	KWSortBucket* bucket;
+	PLFileConcatenater concatenater;
 
 	// Construction de la liste des fichiers a concatener (et detruire ensuite)
 	bOk = bProcessEndedCorrectly;
@@ -413,16 +414,15 @@ boolean KWChunkSorterTask::MasterFinalize(boolean bProcessEndedCorrectly)
 				}
 			}
 			else
-				svResultFileNames.Add(buckets->GetBucketAt(i)->GetOutputFileName());
+				svResultFileNames.Add(bucket->GetOutputFileName());
 		}
 		// Sinon: c'est qu'il y a eu un arret utilisateur
 		else
 		{
-			// Suppression des fichiers non tries
+			// Suppression des fichiers non tries (normalement, ils sont supprimes apres le tri dans le SlaveProcess, mais on suppose qu'ils nont pas ete supprimes pusiqu'il y a une erreur)
 			// (sauf dans le cas du tri InMemory, ou le chunk est le fichier d'entree)
 			if (not shared_bOnlyOneBucket)
 			{
-				bucket = buckets->GetBucketAt(i);
 				for (j = 0; j < bucket->GetChunkFileNames()->GetSize(); j++)
 				{
 					PLRemoteFileService::RemoveFile(bucket->GetChunkFileNames()->GetAt(j));
@@ -433,7 +433,12 @@ boolean KWChunkSorterTask::MasterFinalize(boolean bProcessEndedCorrectly)
 	}
 
 	if (not bOk)
+	{
+		// Suppression des fichiers tries
+		concatenater.RemoveChunks(&svResultFileNames);
 		svResultFileNames.SetSize(0);
+	}
+
 	return bOk;
 }
 
