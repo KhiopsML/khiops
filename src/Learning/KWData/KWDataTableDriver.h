@@ -222,6 +222,10 @@ public:
 	void SetUsedRecordNumber(longint lValue);
 	longint GetUsedRecordNumber() const;
 
+	// Nombre d'erreurs d'encodage detectees impliquant des double quotes manquants
+	void SetMissingDoubleQuoteEncodingErrorNumber(longint lValue);
+	longint GetMissingDoubleQuoteEncodingErrorNumber() const;
+
 	// Acces au nom de la classe (seulement si presente)
 	const ALString& GetClassName() const;
 
@@ -238,10 +242,11 @@ protected:
 
 	// Des entiers long sont utilises, pour la gestion de fichiers ayant
 	// potentiellement plus de deux milliards d'enregistrements (limite des int)
-	// Les Index servent a identifier une position unique dans un fichier, et les Number un nombre d'enregistrements
-	// traites
+	// Les Index servent a identifier une position unique dans un fichier, et les Number
+	// un nombre d'enregistrements traites
 	longint lRecordIndex;
 	longint lUsedRecordNumber;
+	longint lMissingDoubleQuoteEncodingErrorNumber;
 
 	// Mode verbeux et silencieux
 	boolean bVerboseMode;
@@ -310,6 +315,16 @@ inline void KWDataTableDriver::SetUsedRecordNumber(longint lValue)
 inline longint KWDataTableDriver::GetUsedRecordNumber() const
 {
 	return lUsedRecordNumber;
+}
+
+inline void KWDataTableDriver::SetMissingDoubleQuoteEncodingErrorNumber(longint lValue)
+{
+	lMissingDoubleQuoteEncodingErrorNumber = lValue;
+}
+
+inline longint KWDataTableDriver::GetMissingDoubleQuoteEncodingErrorNumber() const
+{
+	return lMissingDoubleQuoteEncodingErrorNumber;
 }
 
 inline void KWDataTableDriver::SetSilentMode(boolean bValue)

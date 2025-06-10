@@ -60,6 +60,9 @@ public:
 	// Nombre total d'enregistrements lus, valides et selectionnes dans la base
 	longint GetReadObjects() const;
 
+	// Nombre total d'erreurs d'encodage detectees impliquant des double quotes manquants
+	longint GetMissingDoubleQuoteEncodingErrorTotalNumber() const;
+
 	// Duree totale du job, y compris la phase d'indexation preliminaire du transfert
 	// (il ne faut pas utiliser GetJobElapsedTime() car cette methode ne prend pas en compte le transfert monotable)
 	double GetFullJobElapsedTime() const;
@@ -91,7 +94,7 @@ protected:
 	//  . un temps d'execution de la tache
 	virtual void DisplayTaskMessage();
 
-	// Methode pour les message specifique a la tache
+	// Methode pour les messages specifiques a la tache
 	// Par defaut, affichage de stats sur les enregistrements lus dans la base en entree
 	virtual void DisplaySpecificTaskMessage();
 
@@ -261,6 +264,9 @@ protected:
 	// Nombre d'objets lus (records correctement lus et selectionnes)
 	PLShared_Longint output_lReadObjects;
 
+	// Nombre total d'erreurs d'encodage detectees impliquant des double quotes manquants
+	PLShared_Longint output_lMissingDoubleQuoteEncodingErrorTotalNumber;
+
 	// Nombre d'enregistrement lus pour chaque table secondaire
 	// La valeur -1 est utilisee pour les tables non ouvertes
 	PLShared_LongintVector output_lvMappingReadRecords;
@@ -271,6 +277,9 @@ protected:
 	// Resultats : nombre de records et d'objets lus
 	longint lReadRecords;
 	longint lReadObjects;
+
+	// Nombre total d'erreurs d'encodage detectees impliquant des double quotes manquants
+	longint lMissingDoubleQuoteEncodingErrorTotalNumber;
 
 	// Nombre d'objet lus pour toutes les tables
 	// La valeur -1 est utilisee pour les tables non ouvertes

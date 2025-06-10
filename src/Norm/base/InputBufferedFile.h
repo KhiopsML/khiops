@@ -176,7 +176,7 @@ public:
 	{
 		FieldNoError,                 // Pas d'erreur
 		FieldMissingBeginDoubleQuote, // Manque un double-quote en debut d'un champ terminant par un double-quote
-		FieldMiddleDoubleQuote, // Double-quote non double au milieu d'un champ commencant par un double-quote
+		FieldMissingMiddleDoubleQuote, // Double-quote non double au milieu d'un champ commencant par un double-quote
 		FieldMissingEndDoubleQuote, // Manque un double-quote en fin d'un champ commencant par un double-quote
 		FieldTooLong                // Champ trop long (le champ sera tronque)
 	};

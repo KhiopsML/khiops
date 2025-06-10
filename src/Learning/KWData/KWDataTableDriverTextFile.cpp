@@ -356,6 +356,12 @@ KWObject* KWDataTableDriverTextFile::Read()
 		else
 			bEndOfLine = inputBuffer->SkipField(nFieldError, bLineTooLong);
 
+		// Memorisation des eventuelles erreurs d'encodage liees aux doubles quotes
+		if (nFieldError == InputBufferedFile::FieldMissingBeginDoubleQuote or
+		    nFieldError == InputBufferedFile::FieldMissingMiddleDoubleQuote or
+		    nFieldError == InputBufferedFile::FieldMissingEndDoubleQuote)
+			SetMissingDoubleQuoteEncodingErrorNumber(GetMissingDoubleQuoteEncodingErrorNumber() + 1);
+
 		// Cas particulier: ligne trop longue
 		if (bLineTooLong)
 		{
@@ -368,7 +374,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 		}
 
 		// Cas particulier: erreur sur un champ
-		if (nFieldError != inputBuffer->FieldNoError)
+		if (nFieldError != InputBufferedFile::FieldNoError)
 		{
 			// Libelle du champ s'il est disponible, son index sinon
 			if (liLoadIndex.IsValid())
@@ -387,7 +393,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 
 			// Ligne ignoree uniquement si erreur grave liee a un double-quote manquant en fin de champ,
 			// ce qui peut etre le signe d'un champ multi-lignes, et entrainer d'autres erreurs cachees
-			if (nFieldError == inputBuffer->FieldMissingEndDoubleQuote)
+			if (nFieldError == InputBufferedFile::FieldMissingEndDoubleQuote)
 			{
 				AddWarning("Ignored record, " + sMessage);
 
@@ -444,7 +450,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 		// Analyse des attributs reconnus et non calcules
 		if (liLoadIndex.IsValid())
 		{
-			assert(nFieldError == inputBuffer->FieldNoError);
+			assert(nFieldError == InputBufferedFile::FieldNoError);
 
 			// Acces au dataItem correspondant a l'index de chargement
 			dataItem = kwcClass->GetDataItemAtLoadIndex(liLoadIndex);
@@ -1636,6 +1642,13 @@ void KWDataTableDriverTextFile::SkipMainRecord()
 			else
 				bEndOfLine = inputBuffer->SkipField(nFieldError, bLineTooLong);
 
+			// Memorisation des eventuelles erreurs d'encodage liees aux doubles quotes
+			if (nFieldError == InputBufferedFile::FieldMissingBeginDoubleQuote or
+			    nFieldError == InputBufferedFile::FieldMissingMiddleDoubleQuote or
+			    nFieldError == InputBufferedFile::FieldMissingEndDoubleQuote)
+				SetMissingDoubleQuoteEncodingErrorNumber(GetMissingDoubleQuoteEncodingErrorNumber() +
+									 1);
+
 			// Cas particulier: ligne vide
 			if (nField == 0 and bEndOfLine and (sField == NULL or sField[0] == '\0'))
 				break;
@@ -1663,7 +1676,7 @@ void KWDataTableDriverTextFile::SkipMainRecord()
 			}
 
 			// Ligne ignoree uniquement si erreur grave liee a un double-quote manquant en fin de champ
-			if (nFieldError == inputBuffer->FieldMissingEndDoubleQuote)
+			if (nFieldError == InputBufferedFile::FieldMissingEndDoubleQuote)
 			{
 				lastReadMainKey.Initialize();
 				AddWarning("Ignored record, " + inputBuffer->GetFieldErrorLabel(nFieldError) +
@@ -2223,4 +2236,5 @@ void KWDataTableDriverTextFile::ResetDatabaseFile()
 {
 	lRecordIndex = 0;
 	lUsedRecordNumber = 0;
+	lMissingDoubleQuoteEncodingErrorNumber = 0;
 }

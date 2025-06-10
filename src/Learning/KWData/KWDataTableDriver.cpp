@@ -12,6 +12,7 @@ KWDataTableDriver::KWDataTableDriver()
 	bSilentMode = false;
 	lRecordIndex = 0;
 	lUsedRecordNumber = 0;
+	lMissingDoubleQuoteEncodingErrorNumber = 0;
 }
 
 KWDataTableDriver::~KWDataTableDriver()
@@ -44,6 +45,7 @@ void KWDataTableDriver::CopyFrom(const KWDataTableDriver* kwdtdSource)
 	bSilentMode = false;
 	lRecordIndex = 0;
 	lUsedRecordNumber = 0;
+	lMissingDoubleQuoteEncodingErrorNumber = 0;
 	sDataTableName = "";
 
 	// Recopie des parametres de specification de la base

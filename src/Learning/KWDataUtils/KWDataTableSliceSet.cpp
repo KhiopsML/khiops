@@ -3940,7 +3940,7 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 	nField = 0;
 	sField = NULL;
 	nFieldLength = 0;
-	nFieldError = inputBuffer->FieldNoError;
+	nFieldError = InputBufferedFile::FieldNoError;
 	lRecordIndex++;
 	while (not bEndOfLine)
 	{
@@ -3964,11 +3964,11 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 			dataItem = kwcClass->GetDataItemAtLoadIndex(liLoadIndex);
 
 			// Erreur ou warning si probleme sur le champ
-			if (nFieldError != inputBuffer->FieldNoError)
+			if (nFieldError != InputBufferedFile::FieldNoError)
 			{
 				// Warning si champ trop long
 				// (un champ peut par exemple etre trop long s'il a ete cree par une regle de derivation)
-				if (nFieldError == inputBuffer->FieldTooLong)
+				if (nFieldError == InputBufferedFile::FieldTooLong)
 					AddWarning(inputBuffer->GetFieldErrorLabel(nFieldError) + " (Field " +
 						   IntToString(nField) + ", " + dataItem->GetClassLabel() + " " +
 						   dataItem->GetObjectLabel() + " with value <" +

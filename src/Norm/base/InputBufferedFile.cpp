@@ -515,10 +515,10 @@ const ALString InputBufferedFile::GetFieldErrorLabel(int nFieldError)
 
 	switch (nFieldError)
 	{
-	case FieldMiddleDoubleQuote:
-		return "double-quote in the middle of the field should be paired";
 	case FieldMissingBeginDoubleQuote:
-		return "missing double-quote at the beginning of the field";
+		return "missing double-quote at the start of the field";
+	case FieldMissingMiddleDoubleQuote:
+		return "double-quote in the middle of the field should be paired";
 	case FieldMissingEndDoubleQuote:
 		return "missing double-quote at the end of the field";
 	case FieldTooLong:
@@ -896,7 +896,7 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 				else
 				{
 					assert(c != '"');
-					nFieldError = FieldMiddleDoubleQuote;
+					nFieldError = FieldMissingMiddleDoubleQuote;
 
 					// On memorise le caractere double-quote isole
 					if (i < (int)nMaxFieldSize)
@@ -1104,7 +1104,7 @@ boolean InputBufferedFile::SkipDoubleQuoteField(int& nFieldError)
 				else
 				{
 					assert(c != '"');
-					nFieldError = FieldMiddleDoubleQuote;
+					nFieldError = FieldMissingMiddleDoubleQuote;
 
 					// Si carriage return suivi de fin de fichier ou de ligne, c'est OK
 					if (c == '\r')

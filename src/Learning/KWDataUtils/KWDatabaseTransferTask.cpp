@@ -679,8 +679,7 @@ boolean KWDatabaseTransferTask::SlaveProcessStartDatabase()
 				// Parametrage des mapping initialises uniquement
 				if (targetMTDatabase->IsMappingInitialized(mapping))
 				{
-					// Parametrage de l'index de depart (pour une gestion correcte des messages
-					// d'erreur)
+					// Parametrage de l'index de depart (pour une gestion correcte des messages d'erreur)
 					targetMTDatabase->GetDriverAt(mapping)->SetUsedRecordNumber(0);
 				}
 			}
