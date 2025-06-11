@@ -15,6 +15,10 @@ boolean KWDatabaseCheckTask::CheckDatabase(const KWDatabase* sourceDatabase)
 	// Lancement de la tache
 	// On utilise un DatabaseIndexer local a la tache, car il n'y pas ici d'indexation de base a partager
 	bOk = RunDatabaseTask(sourceDatabase);
+
+	// Affichage des eventuelles erreurs d'encodage
+	if (bOk)
+		sourceDatabase->AddEncodingErrorMessage(GetEncodingErrorNumber());
 	return bOk;
 }
 

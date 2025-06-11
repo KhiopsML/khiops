@@ -39,6 +39,9 @@ boolean KWPredictorEvaluationTask::Evaluate(KWPredictor* predictor, KWDatabase* 
 	SetReusableDatabaseIndexer(predictor->GetLearningSpec()->GetDatabaseIndexer());
 	bOk = RunDatabaseTask(database);
 
+	// Memorisation du nombre d'erreurs d'encodage
+	predictorEvaluation->lEncodingErrorNumber = GetEncodingErrorNumber();
+
 	// Verification de l'alimentation et nettoyage des variables partagees
 	assert(Check());
 	CleanPredictorSharedVariables();

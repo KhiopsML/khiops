@@ -223,8 +223,8 @@ public:
 	longint GetUsedRecordNumber() const;
 
 	// Nombre d'erreurs d'encodage detectees impliquant des double quotes manquants
-	void SetMissingDoubleQuoteEncodingErrorNumber(longint lValue);
-	longint GetMissingDoubleQuoteEncodingErrorNumber() const;
+	void SetEncodingErrorNumber(longint lValue);
+	longint GetEncodingErrorNumber() const;
 
 	// Acces au nom de la classe (seulement si presente)
 	const ALString& GetClassName() const;
@@ -246,7 +246,7 @@ protected:
 	// un nombre d'enregistrements traites
 	longint lRecordIndex;
 	longint lUsedRecordNumber;
-	longint lMissingDoubleQuoteEncodingErrorNumber;
+	longint lEncodingErrorNumber;
 
 	// Mode verbeux et silencieux
 	boolean bVerboseMode;
@@ -317,14 +317,14 @@ inline longint KWDataTableDriver::GetUsedRecordNumber() const
 	return lUsedRecordNumber;
 }
 
-inline void KWDataTableDriver::SetMissingDoubleQuoteEncodingErrorNumber(longint lValue)
+inline void KWDataTableDriver::SetEncodingErrorNumber(longint lValue)
 {
-	lMissingDoubleQuoteEncodingErrorNumber = lValue;
+	lEncodingErrorNumber = lValue;
 }
 
-inline longint KWDataTableDriver::GetMissingDoubleQuoteEncodingErrorNumber() const
+inline longint KWDataTableDriver::GetEncodingErrorNumber() const
 {
-	return lMissingDoubleQuoteEncodingErrorNumber;
+	return lEncodingErrorNumber;
 }
 
 inline void KWDataTableDriver::SetSilentMode(boolean bValue)

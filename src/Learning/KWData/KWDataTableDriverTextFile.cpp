@@ -360,7 +360,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 		if (nFieldError == InputBufferedFile::FieldMissingBeginDoubleQuote or
 		    nFieldError == InputBufferedFile::FieldMissingMiddleDoubleQuote or
 		    nFieldError == InputBufferedFile::FieldMissingEndDoubleQuote)
-			SetMissingDoubleQuoteEncodingErrorNumber(GetMissingDoubleQuoteEncodingErrorNumber() + 1);
+			SetEncodingErrorNumber(GetEncodingErrorNumber() + 1);
 
 		// Cas particulier: ligne trop longue
 		if (bLineTooLong)
@@ -450,8 +450,6 @@ KWObject* KWDataTableDriverTextFile::Read()
 		// Analyse des attributs reconnus et non calcules
 		if (liLoadIndex.IsValid())
 		{
-			assert(nFieldError == InputBufferedFile::FieldNoError);
-
 			// Acces au dataItem correspondant a l'index de chargement
 			dataItem = kwcClass->GetDataItemAtLoadIndex(liLoadIndex);
 
@@ -1646,8 +1644,7 @@ void KWDataTableDriverTextFile::SkipMainRecord()
 			if (nFieldError == InputBufferedFile::FieldMissingBeginDoubleQuote or
 			    nFieldError == InputBufferedFile::FieldMissingMiddleDoubleQuote or
 			    nFieldError == InputBufferedFile::FieldMissingEndDoubleQuote)
-				SetMissingDoubleQuoteEncodingErrorNumber(GetMissingDoubleQuoteEncodingErrorNumber() +
-									 1);
+				SetEncodingErrorNumber(GetEncodingErrorNumber() + 1);
 
 			// Cas particulier: ligne vide
 			if (nField == 0 and bEndOfLine and (sField == NULL or sField[0] == '\0'))
@@ -2236,5 +2233,5 @@ void KWDataTableDriverTextFile::ResetDatabaseFile()
 {
 	lRecordIndex = 0;
 	lUsedRecordNumber = 0;
-	lMissingDoubleQuoteEncodingErrorNumber = 0;
+	lEncodingErrorNumber = 0;
 }

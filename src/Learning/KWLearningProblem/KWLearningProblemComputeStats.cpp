@@ -94,9 +94,15 @@ void KWLearningProblem::ComputeStats()
 		bPreparationOk = ImportAttributeMetaDataCosts(&learningSpec, constructedClass);
 	// Creation d'une classe avec prise en compte eventuelle de construction de variables
 	else
+	{
+		// On se place en mode non verbeux, car les erreurs seront de toute facon detectees lors des passes suivantes
+		// Idem pour les erreur d'encodage
+		GetTrainDatabase()->SetVerboseMode(false);
 		bPreparationOk =
 		    BuildConstructedClass(&learningSpec, constructedClass, classStats->GetMultiTableConstructionSpec(),
 					  classStats->GetTextConstructionSpec());
+		GetTrainDatabase()->SetVerboseMode(true);
+	}
 	constructedClassDomain = NULL;
 	if (bPreparationOk)
 	{
@@ -112,7 +118,7 @@ void KWLearningProblem::ComputeStats()
 	assert(constructedClass == NULL or kwcClass == constructedClass);
 	assert(kwcClass == KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName()));
 
-	// Initialisation de domaine des predcicteurs appris
+	// Initialisation de domaine des predicteurs appris
 	trainedClassDomain.SetName("Train");
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
@@ -129,7 +135,12 @@ void KWLearningProblem::ComputeStats()
 	// Calcul des statistiques
 	bPreparationOk = bPreparationOk and not TaskProgression::IsInterruptionRequested();
 	if (bPreparationOk)
+	{
+		// On ne memorise pas le bPreparationOk, car il est ici possible que la preparation echoue
+		// On fera eventuellement un second essai, notamment pour le cas de la regression
+		// avec valeurs manquantes dans la cible
 		classStats->ComputeStats();
+	}
 
 	// Memorisation de l'eventuelle selection en cours, dont on a besoin potentiellement par la suite
 	bPreparationOk = bPreparationOk and not TaskProgression::IsInterruptionRequested();
@@ -160,7 +171,10 @@ void KWLearningProblem::ComputeStats()
 				       " are now filtered out in a new attempt to prepare for a regression model");
 
 		// Recalcul des stats avec les valeurs cibles manquantes filtrees
+		// On se place en mode non verbeux pour la base d'apprentissage qui a deja ete analysee
+		GetTrainDatabase()->SetVerboseMode(false);
 		classStats->ComputeStats();
+		GetTrainDatabase()->SetVerboseMode(true);
 		bPreparationOk = classStats->IsStatsComputed();
 		assert(not learningSpec.IsTargetStatsComputed() or
 		       cast(KWDescriptiveContinuousStats*, learningSpec.GetTargetDescriptiveStats())
@@ -177,7 +191,6 @@ void KWLearningProblem::ComputeStats()
 		bPreparationOk = classStats->IsStatsComputed();
 
 	// Creation d'une classe de recodage
-	bPreparationOk = bPreparationOk and not TaskProgression::IsInterruptionRequested();
 	if (bPreparationOk and analysisSpec->GetRecoderSpec()->GetRecoder())
 		BuildRecodingClass(initialClassDomain, classStats, &trainedClassDomain);
 
@@ -326,8 +339,12 @@ void KWLearningProblem::ComputeStats()
 			    GetTrainDatabase()->GetDatabaseName() != "" and not GetTrainDatabase()->IsEmptySampling())
 			{
 				KWLearningErrorManager::AddTask("Train evaluation");
+
+				// Evaluation en mode non verbeux pour la base d'apprentissage qui a deja ete analysee
+				GetTrainDatabase()->SetVerboseMode(false);
 				bEvaluationOk = localPredictorEvaluator.EvaluatePredictors(
 				    &oaTrainedPredictors, GetTrainDatabase(), "Train", &oaTrainPredictorEvaluations);
+				GetTrainDatabase()->SetVerboseMode(true);
 
 				// Ecriture du rapport d'evaluation au format tabulaire xls
 				if (bEvaluationOk and analysisResults->GetExportAsXls())
@@ -341,9 +358,14 @@ void KWLearningProblem::ComputeStats()
 			if (bEvaluationOk and analysisResults->GetTestEvaluationFileName() != "" and
 			    GetTestDatabase()->GetDatabaseName() != "" and not GetTestDatabase()->IsEmptySampling())
 			{
+				// Evaluation en mode non verbeux pour la base de test si elle est la meme que pour la base d'apprentissage
+				if (GetTestDatabase()->Compare(GetTrainDatabase()) == 0)
+					GetTestDatabase()->SetVerboseMode(false);
 				KWLearningErrorManager::AddTask("Test evaluation");
 				bEvaluationOk = localPredictorEvaluator.EvaluatePredictors(
 				    &oaTrainedPredictors, GetTestDatabase(), "Test", &oaTestPredictorEvaluations);
+				if (GetTestDatabase()->Compare(GetTrainDatabase()) == 0)
+					GetTestDatabase()->SetVerboseMode(true);
 
 				// Ecriture du rapport d'evaluation au format tabulaire xls
 				if (bEvaluationOk and analysisResults->GetExportAsXls())

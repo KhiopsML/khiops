@@ -107,18 +107,18 @@ public:
 	void WriteJSONEvaluationReport(const ALString& sEvaluationReportName, const ALString& sEvaluationLabel,
 				       ObjectArray* oaPredictorEvaluations);
 
-	// Evaluation d'un predicteurs
-	// Retourne NULL si probleme d'evaluation
-	// Memoire: l'objet retourne est a liberer par l'appelant
-	KWPredictorEvaluation* EvaluatePredictor(KWPredictor* predictor, KWDatabase* database,
-						 const ALString& sEvaluationLabel);
-
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
 
 	////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Evaluation d'un predicteur
+	// Retourne NULL si probleme d'evaluation
+	// Memoire: l'objet retourne est a liberer par l'appelant
+	KWPredictorEvaluation* EvaluatePredictor(KWPredictor* predictor, KWDatabase* database,
+						 const ALString& sEvaluationLabel);
+
 	///////////////////////////////////////////////////////////////////////
 	// Methode detaillees de gestion des predicteurs appris a evaluer
 	// Permet une utilisation des services de la classe a des fins batch

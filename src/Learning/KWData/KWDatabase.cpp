@@ -1189,6 +1189,35 @@ void KWDatabase::AddError(const ALString& sLabel) const
 		Object::AddError(sLabel);
 }
 
+void KWDatabase::AddEncodingErrorMessage(longint lEncodingErrorNumber) const
+{
+	ALString sMessage;
+
+	require(lEncodingErrorNumber >= 0);
+
+	// Affichage unique si erreur d'encodage
+	if (lEncodingErrorNumber > 0)
+	{
+
+		// Specialisation dans le cs d'une seule erreur
+		if (lEncodingErrorNumber == 1)
+			sMessage = "As one encoding error related to missing double quotes has been identified";
+		// Cas avec plusieurs erreur
+		else
+			sMessage = sMessage + "As " + LongintToString(lEncodingErrorNumber) +
+				   " encoding errors related to missing double quotes have been identified";
+
+		// Fin du message
+		sMessage += ", your database may include multi-line fields.";
+		sMessage += " It is recommended to recode it using single-line encoding.";
+
+		// Affichage en isolant la ligne d'erreur entre deux ligne blanches
+		AddSimpleMessage("");
+		AddError(sMessage);
+		AddSimpleMessage("");
+	}
+}
+
 void KWDatabase::DisplayReadTaskProgressionLabel(longint lRecordNumber, longint lObjectNumber)
 
 {

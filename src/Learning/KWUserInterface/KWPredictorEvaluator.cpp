@@ -297,11 +297,13 @@ boolean KWPredictorEvaluator::EvaluatePredictors(ObjectArray* oaPredictors, KWDa
 						 ObjectArray* oaOutputPredictorEvaluations)
 {
 	boolean bOk = true;
+	longint lEncodingErrorNumber;
 	ALString sLowerEvaluationLabel;
 	KWPredictor* predictor;
 	KWPredictorEvaluation* predictorEvaluation;
 	int i;
 	boolean bComputeEvaluation;
+	boolean bDatabaseInitialVerboseMode;
 	ALString sTmp;
 
 	require(oaPredictors != NULL);
@@ -333,6 +335,9 @@ boolean KWPredictorEvaluator::EvaluatePredictors(ObjectArray* oaPredictors, KWDa
 		TaskProgression::DisplayMainLabel(sEvaluationLabel + " evaluation on database " +
 						  database->GetDatabaseName());
 
+		// Memorisation du mode verbeux de la base
+		bDatabaseInitialVerboseMode = database->GetVerboseMode();
+
 		// Evaluation des predicteurs
 		for (i = 0; i < oaPredictors->GetSize(); i++)
 		{
@@ -351,6 +356,9 @@ boolean KWPredictorEvaluator::EvaluatePredictors(ObjectArray* oaPredictors, KWDa
 					if (predictorEvaluation != NULL)
 						delete predictorEvaluation;
 				}
+
+				// Apres la premiere evaluation, on passe en mode non verbeux, pour eviter les message redondants
+				database->SetVerboseMode(false);
 			}
 
 			// Suivi de progression
@@ -361,11 +369,23 @@ boolean KWPredictorEvaluator::EvaluatePredictors(ObjectArray* oaPredictors, KWDa
 		}
 		assert(oaPredictors->GetSize() >= oaOutputPredictorEvaluations->GetSize());
 
+		// Restitution du mode verbeux de la base
+		database->SetVerboseMode(bDatabaseInitialVerboseMode);
+
 		// Suivi de tache, avec libelle de fin pertinent en cas de fichier de suivi des taches (option -t de la
 		// ligne de commande)
 		TaskProgression::DisplayLabel(
 		    sTmp + "Evaluated predictors: " + IntToString(oaOutputPredictorEvaluations->GetSize()));
 		TaskProgression::EndTask();
+
+		// Affichage d'un eventuel message d'erreur sur les erreurs d'encodage
+		lEncodingErrorNumber = 0;
+		for (i = 0; i < oaOutputPredictorEvaluations->GetSize(); i++)
+		{
+			predictorEvaluation = cast(KWPredictorEvaluation*, oaOutputPredictorEvaluations->GetAt(i));
+			lEncodingErrorNumber = max(lEncodingErrorNumber, predictorEvaluation->GetEncodingErrorNumber());
+		}
+		database->AddEncodingErrorMessage(lEncodingErrorNumber);
 	}
 	return bOk;
 }
@@ -464,6 +484,11 @@ void KWPredictorEvaluator::WriteJSONEvaluationReport(const ALString& sEvaluation
 	}
 }
 
+const ALString KWPredictorEvaluator::GetClassLabel() const
+{
+	return "Evaluate model";
+}
+
 KWPredictorEvaluation* KWPredictorEvaluator::EvaluatePredictor(KWPredictor* predictor, KWDatabase* database,
 							       const ALString& sEvaluationLabel)
 {
@@ -494,11 +519,6 @@ KWPredictorEvaluation* KWPredictorEvaluator::EvaluatePredictor(KWPredictor* pred
 		}
 	}
 	return predictorEvaluation;
-}
-
-const ALString KWPredictorEvaluator::GetClassLabel() const
-{
-	return "Evaluate model";
 }
 
 void KWPredictorEvaluator::BuildEvaluatedTrainedPredictors(ObjectArray* oaEvaluatedTrainedPredictors)

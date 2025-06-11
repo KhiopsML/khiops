@@ -92,6 +92,9 @@ boolean KWDatabaseTransferTask::Transfer(const KWDatabase* sourceDatabase, const
 		databaseClass->GetDomain()->Compile();
 	}
 
+	// Affichage des eventuelles erreurs d'encodage
+	if (bOk)
+		sourceDatabase->AddEncodingErrorMessage(GetEncodingErrorNumber());
 	return bOk;
 }
 

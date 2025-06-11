@@ -337,6 +337,12 @@ public:
 	void AddWarning(const ALString& sLabel) const override;
 	void AddError(const ALString& sLabel) const override;
 
+	// Affichage d'un message standard concernant les erreurs d'encodage avec double quotes manquants
+	// La collecte du nombre d'erreur d'encodage est a la charge de l'appelant, via les taches
+	// utilisant la base
+	// Sans effet si pas d'erreur d'encodage
+	void AddEncodingErrorMessage(longint lEncodingErrorNumber) const;
+
 	// Etat d'avancement pour le suivi de taches de lecture ayant collecte le nombre de records (lecture physique)
 	// et d'objets Methode avancee
 	void DisplayReadTaskProgressionLabel(longint lRecordNumber, longint lObjectNumber);

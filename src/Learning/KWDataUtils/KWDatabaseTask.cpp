@@ -8,7 +8,7 @@ KWDatabaseTask::KWDatabaseTask()
 {
 	lReadRecords = 0;
 	lReadObjects = 0;
-	lMissingDoubleQuoteEncodingErrorTotalNumber = 0;
+	lEncodingErrorNumber = 0;
 	dDatabaseIndexerTime = -1;
 	bDisplaySpecificTaskMessage = true;
 	bDisplayEndTaskMessage = true;
@@ -38,7 +38,7 @@ KWDatabaseTask::KWDatabaseTask()
 	// Resultats envoyes par l'esclave dans le cas general
 	DeclareTaskOutput(&output_lReadRecords);
 	DeclareTaskOutput(&output_lReadObjects);
-	DeclareTaskOutput(&output_lMissingDoubleQuoteEncodingErrorTotalNumber);
+	DeclareTaskOutput(&output_lEncodingErrorNumber);
 
 	// Resultats envoyes par l'esclave dans le cas multi-tables
 	DeclareTaskOutput(&output_lvMappingReadRecords);
@@ -107,11 +107,11 @@ longint KWDatabaseTask::GetReadObjects() const
 	return lReadObjects;
 }
 
-longint KWDatabaseTask::GetMissingDoubleQuoteEncodingErrorTotalNumber() const
+longint KWDatabaseTask::GetEncodingErrorNumber() const
 {
 	assert(dDatabaseIndexerTime >= 0);
 	require(IsJobDone());
-	return lMissingDoubleQuoteEncodingErrorTotalNumber;
+	return lEncodingErrorNumber;
 }
 
 double KWDatabaseTask::GetFullJobElapsedTime() const
@@ -446,7 +446,7 @@ boolean KWDatabaseTask::MasterInitialize()
 	// Initialisations
 	lReadRecords = 0;
 	lReadObjects = 0;
-	lMissingDoubleQuoteEncodingErrorTotalNumber = 0;
+	lEncodingErrorNumber = 0;
 	nChunkCurrentIndex = 0;
 
 	// Initialisations dans le cas multi-tables
@@ -568,7 +568,7 @@ boolean KWDatabaseTask::MasterAggregateResults()
 	// Collecte du nombre d'enregistrement lus
 	lReadRecords += output_lReadRecords;
 	lReadObjects += output_lReadObjects;
-	lMissingDoubleQuoteEncodingErrorTotalNumber += output_lMissingDoubleQuoteEncodingErrorTotalNumber;
+	lEncodingErrorNumber += output_lEncodingErrorNumber;
 
 	// Cas specifique au multi-tables
 	if (shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology())
@@ -607,7 +607,7 @@ boolean KWDatabaseTask::MasterFinalize(boolean bProcessEndedCorrectly)
 	{
 		lReadRecords = 0;
 		lReadObjects = 0;
-		lMissingDoubleQuoteEncodingErrorTotalNumber = 0;
+		lEncodingErrorNumber = 0;
 		lvMappingReadRecords.Initialize();
 	}
 
@@ -790,7 +790,7 @@ boolean KWDatabaseTask::SlaveProcessStartDatabase()
 	// Initialisation des variables en sortie
 	output_lReadRecords = 0;
 	output_lReadObjects = 0;
-	output_lMissingDoubleQuoteEncodingErrorTotalNumber = 0;
+	output_lEncodingErrorNumber = 0;
 	output_lvMappingReadRecords.GetLongintVector()->SetSize(sourceDatabase->GetTableNumber());
 	output_lvMappingReadRecords.GetLongintVector()->Initialize();
 
@@ -841,7 +841,7 @@ boolean KWDatabaseTask::SlaveProcessStartDatabase()
 					driver->SetUsedRecordNumber(0);
 
 					// Idem pour les erreur
-					driver->SetMissingDoubleQuoteEncodingErrorNumber(0);
+					driver->SetEncodingErrorNumber(0);
 
 					// Lecture du premier buffer
 					bOk = driver->FillFirstInputBuffer();
@@ -1046,15 +1046,14 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 
 				// Memorisation du nombre d'erreurs d'encodage par base ouverte
 				if (sourceMTDatabase->IsMappingInitialized(mapping))
-					lEncodingErrorNumber += sourceMTDatabase->GetDriverAt(mapping)
-								    ->GetMissingDoubleQuoteEncodingErrorNumber();
+					lEncodingErrorNumber +=
+					    sourceMTDatabase->GetDriverAt(mapping)->GetEncodingErrorNumber();
 			}
 		}
 		// Sinon, on prend le driver de la base mono-table
 		else
-			lEncodingErrorNumber += shared_sourceDatabase.GetSTDatabase()
-						    ->GetDriver()
-						    ->GetMissingDoubleQuoteEncodingErrorNumber();
+			lEncodingErrorNumber +=
+			    shared_sourceDatabase.GetSTDatabase()->GetDriver()->GetEncodingErrorNumber();
 	}
 
 	// On renvoi le nombre d'object lus
@@ -1062,7 +1061,7 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 	{
 		output_lReadRecords = lRecordNumber;
 		output_lReadObjects = lObjectNumber;
-		output_lMissingDoubleQuoteEncodingErrorTotalNumber = lEncodingErrorNumber;
+		output_lEncodingErrorNumber = lEncodingErrorNumber;
 	}
 	return bOk;
 }

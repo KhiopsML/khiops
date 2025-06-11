@@ -20,9 +20,10 @@ public:
 	// Transfer d'une base source vers une base cible
 	// Les bases sources et cible doivent etre de meme type, mono ou multi-tables en fichiers textes
 	// Methode interruptible, retourne false si erreur ou interruption (avec message), true sinon
-	// Les messages utilisateurs sont affiche par defaut
-	virtual boolean Transfer(const KWDatabase* sourceDatabase, const KWDatabase* targetDatabase,
-				 longint& lWrittenObjectNumber);
+	// Les messages utilisateurs sont affiches par defaut
+	// Affiche un message d'erreur specifique en cas d'erreur d'encodage de la base
+	boolean Transfer(const KWDatabase* sourceDatabase, const KWDatabase* targetDatabase,
+			 longint& lWrittenObjectNumber);
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

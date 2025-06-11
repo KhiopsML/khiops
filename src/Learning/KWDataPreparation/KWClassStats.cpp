@@ -61,6 +61,7 @@ boolean KWClassStats::ComputeStats()
 	ALString sMessage;
 	KWDatabaseBasicStatsTask databaseBasicClassStatsTask;
 	int nDatabaseObjectNumber;
+	longint lEncodingErrorNumber;
 	KWDatabaseSlicerTask databaseSlicerTask;
 	KWDataPreparationUnivariateTask univariateDataPreparationTask;
 	KWDataPreparationBivariateTask bivariateDataPreparationTask;
@@ -103,6 +104,7 @@ boolean KWClassStats::ComputeStats()
 	nDatabaseObjectNumber = 0;
 	lRecordNumber = 0;
 	lCollectedObjectNumber = 0;
+	lEncodingErrorNumber = 0;
 
 	// Initialization des vecteurs des valeurs de la cible
 	svSymbolTargetValues = new SymbolVector;
@@ -118,6 +120,7 @@ boolean KWClassStats::ComputeStats()
 		bOk = databaseBasicClassStatsTask.CollectBasicStats(GetDatabase(), GetTargetAttributeName(),
 								    lRecordNumber, lCollectedObjectNumber,
 								    svSymbolTargetValues, cvContinuousTargetValues);
+		lEncodingErrorNumber = max(lEncodingErrorNumber, databaseBasicClassStatsTask.GetEncodingErrorNumber());
 		GetDatabase()->SetVerboseMode(true);
 	}
 
@@ -262,6 +265,7 @@ boolean KWClassStats::ComputeStats()
 		databaseSlicerTask.SetReusableDatabaseIndexer(GetLearningSpec()->GetDatabaseIndexer());
 		bOk = databaseSlicerTask.SliceDatabase(GetDatabase(), GetTargetAttributeName(), nDatabaseObjectNumber,
 						       nMaxLoadableAttributeNumber, dataTableSliceSet);
+		lEncodingErrorNumber = max(lEncodingErrorNumber, databaseSlicerTask.GetEncodingErrorNumber());
 	}
 
 	// Preparation univariee des donnees en parallele
@@ -420,6 +424,10 @@ boolean KWClassStats::ComputeStats()
 	bIsStatsComputed = bOk;
 	if (not bIsStatsComputed)
 		CleanWorkingData();
+
+	// Message sur les eventuelles erreurs d'encodage
+	if (bOk)
+		GetDatabase()->AddEncodingErrorMessage(lEncodingErrorNumber);
 	return bIsStatsComputed;
 }
 

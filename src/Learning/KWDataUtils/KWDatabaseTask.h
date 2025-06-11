@@ -61,7 +61,7 @@ public:
 	longint GetReadObjects() const;
 
 	// Nombre total d'erreurs d'encodage detectees impliquant des double quotes manquants
-	longint GetMissingDoubleQuoteEncodingErrorTotalNumber() const;
+	longint GetEncodingErrorNumber() const;
 
 	// Duree totale du job, y compris la phase d'indexation preliminaire du transfert
 	// (il ne faut pas utiliser GetJobElapsedTime() car cette methode ne prend pas en compte le transfert monotable)
@@ -265,7 +265,7 @@ protected:
 	PLShared_Longint output_lReadObjects;
 
 	// Nombre total d'erreurs d'encodage detectees impliquant des double quotes manquants
-	PLShared_Longint output_lMissingDoubleQuoteEncodingErrorTotalNumber;
+	PLShared_Longint output_lEncodingErrorNumber;
 
 	// Nombre d'enregistrement lus pour chaque table secondaire
 	// La valeur -1 est utilisee pour les tables non ouvertes
@@ -279,7 +279,7 @@ protected:
 	longint lReadObjects;
 
 	// Nombre total d'erreurs d'encodage detectees impliquant des double quotes manquants
-	longint lMissingDoubleQuoteEncodingErrorTotalNumber;
+	longint lEncodingErrorNumber;
 
 	// Nombre d'objet lus pour toutes les tables
 	// La valeur -1 est utilisee pour les tables non ouvertes
