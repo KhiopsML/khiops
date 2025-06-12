@@ -174,13 +174,13 @@ inline boolean OutputBufferedFile::WriteField(const char* sValue)
 	require(sValue != GetHugeBufferAdress());
 
 	// Recherche de la longueur du champ, et de la necessite de mettre des doubles-quotes
-	// Seulement si contient des separateur, ou si premier caractere est un double-quote
+	// Seulement si contient des double-quotes ou des separateurs
 	nLength = 0;
 	c = sValue[0];
-	bWithDoubleQuote = (c == '"');
+	bWithDoubleQuote = false;
 	while (c != '\0')
 	{
-		if (c == cFieldSeparator)
+		if (c == '"' or c == cFieldSeparator)
 			bWithDoubleQuote = true;
 		nLength++;
 		c = sValue[nLength];
