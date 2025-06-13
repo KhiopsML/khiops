@@ -339,6 +339,7 @@ boolean KWPredictorEvaluator::EvaluatePredictors(ObjectArray* oaPredictors, KWDa
 		bDatabaseInitialVerboseMode = database->GetVerboseMode();
 
 		// Evaluation des predicteurs
+		lEncodingErrorNumber = 0;
 		for (i = 0; i < oaPredictors->GetSize(); i++)
 		{
 			predictor = cast(KWPredictor*, oaPredictors->GetAt(i));
@@ -349,7 +350,13 @@ boolean KWPredictorEvaluator::EvaluatePredictors(ObjectArray* oaPredictors, KWDa
 			{
 				predictorEvaluation = EvaluatePredictor(predictor, database, sEvaluationLabel);
 				if (not TaskProgression::IsInterruptionRequested() and predictorEvaluation != NULL)
+				{
 					oaOutputPredictorEvaluations->Add(predictorEvaluation);
+
+					// Memorisation du max du nombre d'erreur d'encodage, suite a chaque evaluation sur la base
+					lEncodingErrorNumber =
+					    max(lEncodingErrorNumber, database->GetEncodingErrorNumber());
+				}
 				else
 				{
 					bOk = false;
@@ -379,13 +386,11 @@ boolean KWPredictorEvaluator::EvaluatePredictors(ObjectArray* oaPredictors, KWDa
 		TaskProgression::EndTask();
 
 		// Affichage d'un eventuel message d'erreur sur les erreurs d'encodage
-		lEncodingErrorNumber = 0;
-		for (i = 0; i < oaOutputPredictorEvaluations->GetSize(); i++)
+		if (bOk)
 		{
-			predictorEvaluation = cast(KWPredictorEvaluation*, oaOutputPredictorEvaluations->GetAt(i));
-			lEncodingErrorNumber = max(lEncodingErrorNumber, predictorEvaluation->GetEncodingErrorNumber());
+			database->SetEncodingErrorNumber(lEncodingErrorNumber);
+			database->AddEncodingErrorMessage();
 		}
-		database->AddEncodingErrorMessage(lEncodingErrorNumber);
 	}
 	return bOk;
 }

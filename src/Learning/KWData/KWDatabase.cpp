@@ -1192,22 +1192,22 @@ void KWDatabase::AddError(const ALString& sLabel) const
 		Object::AddError(sLabel);
 }
 
-void KWDatabase::AddEncodingErrorMessage(longint lDetectedEncodingErrorNumber) const
+void KWDatabase::AddEncodingErrorMessage() const
 {
 	ALString sMessage;
 
-	require(lDetectedEncodingErrorNumber >= 0);
+	require(lEncodingErrorNumber >= 0);
 
 	// Affichage unique si erreur d'encodage
-	if (lDetectedEncodingErrorNumber > 0)
+	if (lEncodingErrorNumber > 0)
 	{
 
 		// Specialisation dans le cs d'une seule erreur
-		if (lDetectedEncodingErrorNumber == 1)
+		if (lEncodingErrorNumber == 1)
 			sMessage = "As one encoding error related to missing double quotes has been identified";
 		// Cas avec plusieurs erreur
 		else
-			sMessage = sMessage + "As " + LongintToString(lDetectedEncodingErrorNumber) +
+			sMessage = sMessage + "As " + LongintToString(lEncodingErrorNumber) +
 				   " encoding errors related to missing double quotes have been identified";
 
 		// Fin du message

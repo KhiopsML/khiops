@@ -107,13 +107,6 @@ longint KWDatabaseTask::GetReadObjects() const
 	return lReadObjects;
 }
 
-longint KWDatabaseTask::GetEncodingErrorNumber() const
-{
-	assert(dDatabaseIndexerTime >= 0);
-	require(IsJobDone());
-	return lEncodingErrorNumber;
-}
-
 double KWDatabaseTask::GetFullJobElapsedTime() const
 {
 	assert(dDatabaseIndexerTime >= 0);
@@ -207,6 +200,10 @@ boolean KWDatabaseTask::RunDatabaseTask(const KWDatabase* sourceDatabase)
 	CleanJobResults();
 	if (bOk)
 		bOk = Run();
+
+	// Memorisation du nombre d'erreur d'encodage
+	if (bOk)
+		sourceDatabase->SetEncodingErrorNumber(lEncodingErrorNumber);
 
 	// Desinstallation du handler specifique pour ignorer le flow des erreur dans le cas du memory guard
 	KWDatabaseMemoryGuard::UninstallMemoryGuardErrorFlowIgnoreFunction();

@@ -60,9 +60,6 @@ public:
 	// Nombre total d'enregistrements lus, valides et selectionnes dans la base
 	longint GetReadObjects() const;
 
-	// Nombre total d'erreurs d'encodage detectees impliquant des double quotes manquants
-	longint GetEncodingErrorNumber() const;
-
 	// Duree totale du job, y compris la phase d'indexation preliminaire du transfert
 	// (il ne faut pas utiliser GetJobElapsedTime() car cette methode ne prend pas en compte le transfert monotable)
 	double GetFullJobElapsedTime() const;
@@ -82,6 +79,8 @@ protected:
 	// specifiques, puis apres la tache collecter les resultats de la taches
 	// On peut appeler ensuite la methode d'affichage des messages utilisateurs
 	// La base source doit etre mono ou multi-tables en fichiers textes
+	// Le nombre total d'erreurs d'encodage detectees impliquant des double quotes manquants
+	// est memorise dans la base en parametre
 	// La methode interruptible, retourne false si erreur ou interruption (avec message), true sinon
 	virtual boolean RunDatabaseTask(const KWDatabase* sourceDatabase);
 

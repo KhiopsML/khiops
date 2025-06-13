@@ -120,7 +120,7 @@ boolean KWClassStats::ComputeStats()
 		bOk = databaseBasicClassStatsTask.CollectBasicStats(GetDatabase(), GetTargetAttributeName(),
 								    lRecordNumber, lCollectedObjectNumber,
 								    svSymbolTargetValues, cvContinuousTargetValues);
-		lEncodingErrorNumber = max(lEncodingErrorNumber, databaseBasicClassStatsTask.GetEncodingErrorNumber());
+		lEncodingErrorNumber = max(lEncodingErrorNumber, GetDatabase()->GetEncodingErrorNumber());
 		GetDatabase()->SetVerboseMode(true);
 	}
 
@@ -265,7 +265,7 @@ boolean KWClassStats::ComputeStats()
 		databaseSlicerTask.SetReusableDatabaseIndexer(GetLearningSpec()->GetDatabaseIndexer());
 		bOk = databaseSlicerTask.SliceDatabase(GetDatabase(), GetTargetAttributeName(), nDatabaseObjectNumber,
 						       nMaxLoadableAttributeNumber, dataTableSliceSet);
-		lEncodingErrorNumber = max(lEncodingErrorNumber, databaseSlicerTask.GetEncodingErrorNumber());
+		lEncodingErrorNumber = max(lEncodingErrorNumber, GetDatabase()->GetEncodingErrorNumber());
 	}
 
 	// Preparation univariee des donnees en parallele
@@ -426,8 +426,12 @@ boolean KWClassStats::ComputeStats()
 		CleanWorkingData();
 
 	// Message sur les eventuelles erreurs d'encodage
+	GetDatabase()->SetEncodingErrorNumber(0);
 	if (bOk)
-		GetDatabase()->AddEncodingErrorMessage(lEncodingErrorNumber);
+	{
+		GetDatabase()->SetEncodingErrorNumber(lEncodingErrorNumber);
+		GetDatabase()->AddEncodingErrorMessage();
+	}
 	return bIsStatsComputed;
 }
 

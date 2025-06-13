@@ -53,9 +53,6 @@ public:
 	// Ne pas confondre avec celui de la base d'apprentissage, accessible depuis GetInstanceNumber()
 	longint GetEvaluationInstanceNumber() const;
 
-	// Nombre total d'erreurs d'encodage detectees impliquant des double quotes manquants
-	longint GetEncodingErrorNumber() const;
-
 	//////////////////////////////////////////////////////////////////////////////
 	// Ecriture de rapports
 	// Methodes supplementaires a celle de KWLearningReport
@@ -136,9 +133,6 @@ protected:
 
 	// Nombre d'instances: le principal critere d'evaluation pour le predicteur de base
 	longint lInstanceEvaluationNumber;
-
-	// Nombre total d'erreurs d'encodage detectees impliquant des double quotes manquants
-	longint lEncodingErrorNumber;
 
 	// La classe d'evaluation sous-traitante ecrit directement sur une instance de cette classe
 	friend class KWPredictorEvaluationTask;

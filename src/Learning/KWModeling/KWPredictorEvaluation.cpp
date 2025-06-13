@@ -10,7 +10,6 @@
 KWPredictorEvaluation::KWPredictorEvaluation()
 {
 	lInstanceEvaluationNumber = 0;
-	lEncodingErrorNumber = 0;
 }
 
 KWPredictorEvaluation::~KWPredictorEvaluation() {}
@@ -75,6 +74,9 @@ void KWPredictorEvaluation::Evaluate(KWPredictor* predictor, KWDatabase* databas
 	predictorEvaluationTask = CreatePredictorEvaluationTask();
 	bOk = predictorEvaluationTask->Evaluate(predictor, evaluationDatabase, this);
 
+	// Memorisaton des erreurs d'encodage dans la base en entree
+	database->SetEncodingErrorNumber(evaluationDatabase->GetEncodingErrorNumber());
+
 	// Restitution de l'etat initial
 	predictor->GetLearningSpec()->CopyFrom(&currentLearningSpec);
 	if (evaluationDomain != currentDomain)
@@ -105,7 +107,6 @@ void KWPredictorEvaluation::Initialize()
 void KWPredictorEvaluation::InitializeCriteria()
 {
 	lInstanceEvaluationNumber = 0;
-	lEncodingErrorNumber = 0;
 }
 
 const ALString& KWPredictorEvaluation::GetPredictorName() const
@@ -121,11 +122,6 @@ const ALString& KWPredictorEvaluation::GetDatabaseName() const
 longint KWPredictorEvaluation::GetEvaluationInstanceNumber() const
 {
 	return lInstanceEvaluationNumber;
-}
-
-longint KWPredictorEvaluation::GetEncodingErrorNumber() const
-{
-	return lEncodingErrorNumber;
 }
 
 void KWPredictorEvaluation::WriteFullReportFile(const ALString& sFileName, const ALString& sEvaluationLabel,

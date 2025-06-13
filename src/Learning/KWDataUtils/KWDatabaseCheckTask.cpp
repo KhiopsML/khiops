@@ -18,7 +18,7 @@ boolean KWDatabaseCheckTask::CheckDatabase(const KWDatabase* sourceDatabase)
 
 	// Affichage des eventuelles erreurs d'encodage
 	if (bOk)
-		sourceDatabase->AddEncodingErrorMessage(GetEncodingErrorNumber());
+		sourceDatabase->AddEncodingErrorMessage();
 	return bOk;
 }
 

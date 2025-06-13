@@ -339,7 +339,7 @@ public:
 
 	// Affichage d'un message standard concernant les erreurs d'encodage avec double quotes manquants
 	// Sans effet si pas d'erreur d'encodage
-	void AddEncodingErrorMessage(longint lDetectedEncodingErrorNumber) const;
+	void AddEncodingErrorMessage() const;
 
 	// Nombre d'erreur d'encodage detectee durant la derniere passe de lecture de la base
 	// Methode disponible apres la fermeture la base

@@ -220,8 +220,7 @@ void CCLearningProblemView::BuildCoclustering()
 
 	// Affichage des eventuelles erreurs d'encodage
 	if (bOk)
-		GetLearningProblem()->GetDatabase()->AddEncodingErrorMessage(
-		    GetLearningProblem()->GetDatabase()->GetEncodingErrorNumber());
+		GetLearningProblem()->GetDatabase()->AddEncodingErrorMessage();
 
 	// Ligne de separation dans le log
 	AddSimpleMessage("");
