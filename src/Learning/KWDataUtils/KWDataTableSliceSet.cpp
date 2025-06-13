@@ -3973,7 +3973,7 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 						   IntToString(nField) + ", " + dataItem->GetClassLabel() + " " +
 						   dataItem->GetObjectLabel() + " with value <" +
 						   InputBufferedFile::GetDisplayValue(sField) + ">)");
-				// Erreur sinon (les problemes de double-quotes sont normalement correctement geres lors de l'ecriture)
+				// Erreur sinon (les problemes de double quotes sont normalement correctement geres lors de l'ecriture)
 				else
 				{
 					AddError(inputBuffer->GetFieldErrorLabel(nFieldError) + " (Field " +

@@ -158,9 +158,9 @@ public:
 	// Lecture du buffer
 	// Un champ d'un fichier est compris entre deux delimiteurs
 	//
-	// Lorsqu'un champ debute par un double-quote, il doit terminer par un double-quote
+	// Lorsqu'un champ debute par un double quote, il doit terminer par un double quote
 	// Il peut alors contenir un delimiteur de champs (mais pas de multi-ligne), ou des
-	// double-quotes s'ils sont doubles
+	// double quotes s'ils sont doubles
 	//
 	// Une fois extrait, les caracteres d'espaces sont supprimes en debut et fin de champ
 	//
@@ -175,9 +175,9 @@ public:
 	enum
 	{
 		FieldNoError,                 // Pas d'erreur
-		FieldMissingBeginDoubleQuote, // Manque un double-quote en debut d'un champ terminant par un double-quote
-		FieldMissingMiddleDoubleQuote, // Double-quote non double au milieu d'un champ commencant par un double-quote
-		FieldMissingEndDoubleQuote, // Manque un double-quote en fin d'un champ commencant par un double-quote
+		FieldMissingBeginDoubleQuote, // Manque un double quote en debut d'un champ terminant par un double quote
+		FieldMissingMiddleDoubleQuote, // double quote non double au milieu d'un champ commencant par un double quote
+		FieldMissingEndDoubleQuote, // Manque un double quote en fin d'un champ commencant par un double quote
 		FieldTooLong                // Champ trop long (le champ sera tronque)
 	};
 
@@ -403,9 +403,9 @@ public:
 	static boolean TestReadWrite(const ALString& sLabel, int nFileSize, int nFileType);
 
 protected:
-	// Variantes d'analyse et de saut des champs, avec gestion d'un double-quote en debut de champ
-	// Ces methodes sont appelees si un double-quote a ete detecte en debut de champ
-	// Le methode ne gere que les erreurs liees au double-quote.
+	// Variantes d'analyse et de saut des champs, avec gestion d'un double quote en debut de champ
+	// Ces methodes sont appelees si un double quote a ete detecte en debut de champ
+	// Le methode ne gere que les erreurs liees au double quote.
 	// Les champs trop longs sont tronques, mais le message est a emettre par la methode appelante
 	// (en testant la valeur de i, position du prochain caractere)
 	boolean GetNextDoubleQuoteField(char* sField, int& i, int& nFieldError);

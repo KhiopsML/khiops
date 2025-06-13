@@ -1842,7 +1842,7 @@ def split_field(field_value):
     en un ensemble de tokens elementaire pour le parsing d'un fichier json ou kdic
     Permet ensuite de comparer chaque valeur de token, pour avoir une tolerance par rapport aux
     mirco-variations des valeurs numeriques"""
-    # Pour gerer les double-quotes a l'interieur des strings, pour les format json et kdic
+    # Pour gerer les double quotes a l'interieur des strings, pour les format json et kdic
     field_value = field_value.replace('\\"', "'")
     field_value = field_value.replace('""', "'")
     sub_fields = TOKEN_PARSER.findall(field_value)
@@ -1981,7 +1981,7 @@ def initialize_parsers():
     ]
     numeric_pattern = "-?[0-9]+\\.?[0-9]*(?:[Ee]-?[0-9]+)?"
     string_pattern = (
-        '"[^"]*"'  # Sans les double-quotes dans les strings (dur a parser...)
+        '"[^"]*"'  # Sans les double quotes dans les strings (dur a parser...)
     )
     time_pattern = "\\d{1,2}:\\d{2}:\\d{2}\\.?\\d*"
     other_tokens = "[\\w]+"
@@ -1998,7 +1998,7 @@ def initialize_parsers():
 # Parsers en variables globales, compiles une seule fois au chargement du module
 # - le parser de tokens permet d'analyser de facon detaillee le contenu d'un
 #   fichier json ou dictionnaire (.kdic) en le decomposant en une suite de tokens
-#   separateur, valeur numerique opu categorielle entre double-quotes.
+#   separateur, valeur numerique opu categorielle entre double quotes.
 # - le parser de numerique est specialise pour les valeurs numeriques au format scientifique
 # - le parser de time est specialise pour le format time hh:mm:ss.ms
 TOKEN_PARSER, NUMERIC_PARSER, TIME_PARSER = initialize_parsers()

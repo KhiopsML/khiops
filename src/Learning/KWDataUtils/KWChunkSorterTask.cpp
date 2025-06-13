@@ -846,7 +846,7 @@ void KWChunkSorterTask::SkipField(CharVector* cvLineToWrite, char cOriginalSepar
 						continue;
 					}
 					// Sinon, ok si caractere separateur
-					// Sinon, KO si on trouve un double-quote isole au milieu du champ:
+					// Sinon, KO si on trouve un double quote isole au milieu du champ:
 					//  on continue quand-meme a parser pour recuperer l'erreur
 					else
 					{

@@ -40,8 +40,8 @@ public:
 	boolean WriteSubPart(const CharVector* cvValue, int nBeginOffset, int nLength);
 
 	// Ecriture dans le buffer du contenu d'un champ entier
-	// Tout champ contenant un separateur de champ ou un double-quote est entoure de doubles-quotes
-	// Dans ce cas, les double-quotes sont doubles
+	// Tout champ contenant un separateur de champ ou un double quote est entoure de doubles-quotes
+	// Dans ce cas, les double quotes sont doubles
 	boolean WriteField(const char* sValue);
 
 	// Memoire utilisee
@@ -174,7 +174,7 @@ inline boolean OutputBufferedFile::WriteField(const char* sValue)
 	require(sValue != GetHugeBufferAdress());
 
 	// Recherche de la longueur du champ, et de la necessite de mettre des doubles-quotes
-	// Seulement si contient des double-quotes ou des separateurs
+	// Seulement si contient des double quotes ou des separateurs
 	nLength = 0;
 	c = sValue[0];
 	bWithDoubleQuote = false;
@@ -187,7 +187,7 @@ inline boolean OutputBufferedFile::WriteField(const char* sValue)
 	}
 	assert(nLength == (int)strlen(sValue));
 
-	// Ecriture avec double-quotes
+	// Ecriture avec double quotes
 	if (bWithDoubleQuote)
 	{
 		Write('"');
@@ -197,7 +197,7 @@ inline boolean OutputBufferedFile::WriteField(const char* sValue)
 		{
 			Write(c);
 
-			// Doublement si necessaire du double-quote
+			// Doublement si necessaire du double quote
 			if (c == '"')
 				Write('"');
 			nLength++;
@@ -205,7 +205,7 @@ inline boolean OutputBufferedFile::WriteField(const char* sValue)
 		}
 		Write('"');
 	}
-	// Ecriture sans double-quotes
+	// Ecriture sans double quotes
 	else
 		Write(sValue, nLength);
 	return not bIsError;

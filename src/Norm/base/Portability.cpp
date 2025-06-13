@@ -312,7 +312,7 @@ static const char* GetFileOpenAssocation(const char* sExtension)
 
 // Lancement d'un exe de facon asynchrone
 // Si on passe des arguments avec des blancs au milieu (ex: pour le path de l'exe),
-// ceux-ci doivent etre entre double-quotes
+// ceux-ci doivent etre entre double quotes
 // Renvoie 0 en cas d'erreur, et dans ce cas initialise le message d'erreur en parametre
 static int StartProcess(const char* sCommandLine, char* sErrorMessage)
 {

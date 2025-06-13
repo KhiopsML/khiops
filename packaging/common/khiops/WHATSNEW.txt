@@ -99,7 +99,7 @@ Version 10.1.1
 ==============
 Bug fixes:
 - in the sorting algorithm : in case where the field separator in the output file was different from
-  the input file, with the input file having fields surrounded by double-quotes and containing the
+  the input file, with the input file having fields surrounded by double quotes and containing the
   input field separator
 - in the construction of trees: in an edge case with a single tree and categorical fields with very
   large number of values

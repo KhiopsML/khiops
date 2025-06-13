@@ -391,7 +391,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 				sMessage += " with value <" + InputBufferedFile::GetDisplayValue(sField) + ">";
 			sMessage += ")";
 
-			// Ligne ignoree uniquement si erreur grave liee a un double-quote manquant en fin de champ,
+			// Ligne ignoree uniquement si erreur grave liee a un double quote manquant en fin de champ,
 			// ce qui peut etre le signe d'un champ multi-lignes, et entrainer d'autres erreurs cachees
 			if (nFieldError == InputBufferedFile::FieldMissingEndDoubleQuote)
 			{
@@ -1450,7 +1450,7 @@ boolean KWDataTableDriverTextFile::CheckFormat() const
 		else if (cFieldSeparator == '"')
 		{
 			bOk = false;
-			AddError(sTmp + "Field separator '\"' must not be double-quote");
+			AddError(sTmp + "Field separator '\"' must not be double quote");
 		}
 		else if (cFieldSeparator == '\r' or cFieldSeparator == '\n')
 		{
@@ -1672,7 +1672,7 @@ void KWDataTableDriverTextFile::SkipMainRecord()
 				AddWarning("Ignored record, " + InputBufferedFile::GetLineTooLongErrorLabel());
 			}
 
-			// Ligne ignoree uniquement si erreur grave liee a un double-quote manquant en fin de champ
+			// Ligne ignoree uniquement si erreur grave liee a un double quote manquant en fin de champ
 			if (nFieldError == InputBufferedFile::FieldMissingEndDoubleQuote)
 			{
 				lastReadMainKey.Initialize();

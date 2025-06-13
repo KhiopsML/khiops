@@ -11,7 +11,7 @@ ALString TSV::Export(const ALString& sValue)
 	char c;
 	int i;
 
-	// Ajout de doubles quotes autour de la valeur si elle contient des double-quotes ou des tabulations
+	// Ajout de doubles quotes autour de la valeur si elle contient des double quotes ou des tabulations
 	if (sValue.Find('"') >= 0 or sValue.Find('\t') >= 0)
 	{
 		sResult = '"';

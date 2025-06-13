@@ -646,7 +646,7 @@ void KWKeyValuePair::Write(ostream& ost) const
 	// Valeurs
 	if (nType == StringType)
 	{
-		// Entre double-quotes, avec doublement des double-quotes internes
+		// Entre double quotes, avec doublement des double quotes internes
 		ost << '=' << '"';
 		sStringValue = GetStringValue();
 		nLength = sStringValue.GetLength();

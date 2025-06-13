@@ -161,7 +161,7 @@ public:
 	// Affichage, ecriture dans un fichier, sous la forme
 	//   <key> dans le cas sans valeur
 	//   <key=value> dans le cas numerique
-	//   <key="value"> dans le cas categoriel (avec doublement des eventuel caracteres double-quotes internes)
+	//   <key="value"> dans le cas categoriel (avec doublement des eventuel caracteres double quotes internes)
 	void Write(ostream& ost) const override;
 
 	//////////////////////////////////////////////////////////

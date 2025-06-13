@@ -931,14 +931,14 @@ YY_RULE_SETUP
 						      c = (unsigned char)nInput;
 						      if (c == '\n')
 						        break;
-							  // Traitement du double-quote
+							  // Traitement du double quote
 						      if (c == '"')
 							  {
 							    // On recherche le caractere suivant
 								nNextInput = yyinput();
 								cNext = (unsigned char)nNextInput;
 
-								// Si pas d'autre double-quote (doublement de double-quote interne), on remet le caractere
+								// Si pas d'autre double quote (doublement de double quote interne), on remet le caractere
 								//a analyser avant de declarer la fin du token
 								if (cNext != '"')
 								{
