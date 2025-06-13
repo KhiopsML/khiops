@@ -210,6 +210,8 @@ boolean KWSTDatabase::PhysicalClose()
 {
 	boolean bOk = true;
 
+	if (dataTableDriverCreator->IsOpenedForRead())
+		lEncodingErrorNumber = dataTableDriverCreator->GetEncodingErrorNumber();
 	if (dataTableDriverCreator->IsOpenedForRead() or dataTableDriverCreator->IsOpenedForWrite())
 		bOk = dataTableDriverCreator->Close();
 	dataTableDriverCreator->SetDataTableName("");

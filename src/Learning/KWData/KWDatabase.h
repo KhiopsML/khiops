@@ -338,10 +338,17 @@ public:
 	void AddError(const ALString& sLabel) const override;
 
 	// Affichage d'un message standard concernant les erreurs d'encodage avec double quotes manquants
-	// La collecte du nombre d'erreur d'encodage est a la charge de l'appelant, via les taches
-	// utilisant la base
 	// Sans effet si pas d'erreur d'encodage
-	void AddEncodingErrorMessage(longint lEncodingErrorNumber) const;
+	void AddEncodingErrorMessage(longint lDetectedEncodingErrorNumber) const;
+
+	// Nombre d'erreur d'encodage detectee durant la derniere passe de lecture de la base
+	// Methode disponible apres la fermeture la base
+	longint GetEncodingErrorNumber() const;
+
+	// Modification du nombre d'erreur d'encodage
+	// Methode avancee, utilisable par exemple lors des taches exploitant une base pour memoriser
+	// cette information dans le cas ou la base est traitee par l'ensemble des esclaves
+	void SetEncodingErrorNumber(longint lValue) const;
 
 	// Etat d'avancement pour le suivi de taches de lecture ayant collecte le nombre de records (lecture physique)
 	// et d'objets Methode avancee
@@ -608,6 +615,9 @@ protected:
 	boolean bVerboseMode;
 	boolean bSilentMode;
 	boolean bIsError;
+
+	// Nombre total d'erreurs d'encodage detectees impliquant des double quotes manquants
+	mutable longint lEncodingErrorNumber;
 
 	// Gestion des echantillons
 	boolean bModeExcludeSample;

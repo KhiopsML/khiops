@@ -951,7 +951,7 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 	PLMTDatabaseTextFile* sourceMTDatabase;
 	longint lObjectNumber;
 	longint lRecordNumber;
-	longint lEncodingErrorNumber;
+	longint lOutputEncodingErrorNumber;
 	KWMTDatabaseMapping* mapping;
 	KWObject* kwoObject;
 	ALString sChunkFileName;
@@ -1033,7 +1033,7 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 	}
 
 	// Collecte des erreur d'encodage
-	lEncodingErrorNumber = 0;
+	lOutputEncodingErrorNumber = 0;
 	if (bOk)
 	{
 		if (sourceDatabase->IsMultiTableTechnology())
@@ -1046,13 +1046,13 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 
 				// Memorisation du nombre d'erreurs d'encodage par base ouverte
 				if (sourceMTDatabase->IsMappingInitialized(mapping))
-					lEncodingErrorNumber +=
+					lOutputEncodingErrorNumber +=
 					    sourceMTDatabase->GetDriverAt(mapping)->GetEncodingErrorNumber();
 			}
 		}
 		// Sinon, on prend le driver de la base mono-table
 		else
-			lEncodingErrorNumber +=
+			lOutputEncodingErrorNumber +=
 			    shared_sourceDatabase.GetSTDatabase()->GetDriver()->GetEncodingErrorNumber();
 	}
 
@@ -1061,7 +1061,7 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 	{
 		output_lReadRecords = lRecordNumber;
 		output_lReadObjects = lObjectNumber;
-		output_lEncodingErrorNumber = lEncodingErrorNumber;
+		output_lEncodingErrorNumber = lOutputEncodingErrorNumber;
 	}
 	return bOk;
 }
