@@ -332,6 +332,9 @@ boolean KWChunkSorterTask::MasterPrepareTaskInput(double& dTaskPercent, boolean&
 {
 	KWSortBucket* bucketToSort;
 	int nTreatedBucketNumber;
+	InputBufferedFile ib;
+	int i;
+	longint lBeginPos;
 
 	// Recherche du prochain bucket a trier
 	bucketToSort = NULL;
@@ -341,13 +344,18 @@ boolean KWChunkSorterTask::MasterPrepareTaskInput(double& dTaskPercent, boolean&
 		bucketToSort = buckets->GetBucketAt(nCurrentBucketIndexToSort);
 		nTreatedBucketNumber++;
 
-		// On doit trier un fichier si il n'est pas un sigleton.
+		// On doit trier un fichier si il n'est pas un singleton.
 		// De plus, les esclaves doivent egalement traiter les singletons quand les separateur sont differents.
 		// Dans ce dernier cas, les esclaves ne vont pas trier mais seulement reecrire le fichier pour changer le separateur.
 		if (not bucketToSort->IsSingleton() or not shared_bSameSeparator)
 		{
 			assert(bucketToSort->GetOutputFileName() == "");
 			break;
+		}
+		else
+		{
+			// Comptage des lignes
+			lSortedLinesNumber += bucketToSort->GetLineNumber();
 		}
 		nCurrentBucketIndexToSort++;
 	}
@@ -395,6 +403,7 @@ boolean KWChunkSorterTask::MasterFinalize(boolean bProcessEndedCorrectly)
 	int i;
 	int j;
 	KWSortBucket* bucket;
+	PLFileConcatenater concatenater;
 
 	// Construction de la liste des fichiers a concatener (et detruire ensuite)
 	bOk = bProcessEndedCorrectly;
@@ -403,7 +412,7 @@ boolean KWChunkSorterTask::MasterFinalize(boolean bProcessEndedCorrectly)
 		bucket = buckets->GetBucketAt(i);
 
 		// Collecte du nom de fichier trie a concatener (puis detruire)
-		if (bucket->GetSorted())
+		if (bucket->GetSorted() or bucket->IsSingleton())
 		{
 			if (bucket->IsSingleton() and shared_bSameSeparator)
 			{
@@ -413,16 +422,15 @@ boolean KWChunkSorterTask::MasterFinalize(boolean bProcessEndedCorrectly)
 				}
 			}
 			else
-				svResultFileNames.Add(buckets->GetBucketAt(i)->GetOutputFileName());
+				svResultFileNames.Add(bucket->GetOutputFileName());
 		}
 		// Sinon: c'est qu'il y a eu un arret utilisateur
 		else
 		{
-			// Suppression des fichiers non tries
+			// Suppression des fichiers non tries (normalement, ils sont supprimes apres le tri dans le SlaveProcess, mais on suppose qu'ils n'ont pas ete supprimes puisqu'il y a une erreur)
 			// (sauf dans le cas du tri InMemory, ou le chunk est le fichier d'entree)
 			if (not shared_bOnlyOneBucket)
 			{
-				bucket = buckets->GetBucketAt(i);
 				for (j = 0; j < bucket->GetChunkFileNames()->GetSize(); j++)
 				{
 					PLRemoteFileService::RemoveFile(bucket->GetChunkFileNames()->GetAt(j));
@@ -433,7 +441,12 @@ boolean KWChunkSorterTask::MasterFinalize(boolean bProcessEndedCorrectly)
 	}
 
 	if (not bOk)
+	{
+		// Suppression des fichiers tries
+		concatenater.RemoveChunks(&svResultFileNames);
 		svResultFileNames.SetSize(0);
+	}
+
 	return bOk;
 }
 

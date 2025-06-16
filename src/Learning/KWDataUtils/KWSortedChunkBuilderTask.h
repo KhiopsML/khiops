@@ -58,6 +58,10 @@ public:
 	// En sortie chaque bucket contient un ensemble de fichiers (les chunks)
 	// Ces fichiers ne sont pas concatenes, les fichiers d'un bucket seront
 	// tous charges en memoire lors de la phase de tri (tache KWChunkSorterTask)
+	// En sortie, chaque bucket contient :
+	// - la liste des fichiers qui le constitue
+	// - le nombre de lignes de l'ensemble de ses fichiers
+	// - la taille de l'ensemble de ses fichiers
 	boolean BuildSortedChunks(const KWSortBuckets* buckets);
 
 	// Methode de test
@@ -101,9 +105,9 @@ protected:
 	ALString sFileURI;
 	boolean bHeaderLineUsed;
 	boolean bLastSlaveProcessDone;
-	ObjectDictionary
-	    odBucketsFiles; // Dictionnaire qui pour chaque bucketId donne la liste (StringVector) de ses fichiers
-	ObjectDictionary odIdBucketsSize_master; // Dictionnaire qui pour chaque bucketId donne sa taille
+
+	// Dictionnaire bucket ID / bucket size
+	ObjectDictionary odIdBucketsSize_master;
 	longint lInputFileSize;
 	longint lFilePos;
 
@@ -125,9 +129,6 @@ protected:
 
 	// Memoire utilisee par l'ensemble des buckets
 	longint lBucketsUsedMemory;
-
-	// Dictionnaire bucket ID / bucket size
-	ObjectDictionary odIdBucketsSize_slave;
 
 	// Fichier en lecture
 	InputBufferedFile inputFile;
@@ -154,8 +155,6 @@ protected:
 	///////////////////////////////////////////////////////////
 	// Parametres en entree et sortie des esclaves
 	PLShared_Boolean input_bLastRound;
-	PLShared_StringVector output_svBucketIds;
-	PLShared_StringVector output_svBucketFilePath;
 
 	// Taille du buffer en entree
 	PLShared_Int input_nBufferSize;
@@ -163,7 +162,5 @@ protected:
 	// Position dans le fichier
 	PLShared_Longint input_lFilePos;
 
-	// Serialization du dictionnaire bucket ID / Bucket size dans la derniere phase du SlaveProcess
-	PLShared_StringVector output_svBucketIds_dictionary;
-	PLShared_LongintVector output_ivBucketSize_dictionary;
+	PLShared_ObjectArray* output_oaBuckets;
 };
