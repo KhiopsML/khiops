@@ -222,7 +222,7 @@ public:
 	// Estimation du pourcentage d'avancement de la lecture d'un fichier
 	// Methode a priori rapide, sans effet important sur le temps de lecture
 	// Peut ne pas etre reimplementee (par defaut: 0)
-	double GetReadPercentage();
+	double GetReadPercentage() const;
 
 	/////////////////////////////////////////////////////////////
 	// Gestion de la constitution d'un echantillon en lecture.
@@ -342,7 +342,7 @@ public:
 	void AddEncodingErrorMessage() const;
 
 	// Nombre d'erreur d'encodage detectee durant la derniere passe de lecture de la base
-	// Methode disponible apres la fermeture la base
+	// Methode disponible en lecture, pendant et apres la fermeture la base
 	longint GetEncodingErrorNumber() const;
 
 	// Modification du nombre d'erreur d'encodage
@@ -548,7 +548,7 @@ protected:
 	// Estimation du pourcentage d'avancement de la lecture d'un fichier
 	// Methode a priori rapide, sans effet important sur le temps de lecture
 	// Peut ne pas etre reimplementee (par defaut: 0)
-	virtual double GetPhysicalReadPercentage();
+	virtual double GetPhysicalReadPercentage() const;
 
 	// Index d'enregistrement physique, pour localiser les erreurs
 	virtual longint GetPhysicalRecordIndex() const;
@@ -727,7 +727,7 @@ inline longint KWDatabase::GetSampleEstimatedObjectNumber()
 				       : (longint)(lEstimatedObjectNumber * GetSampleNumberPercentage() / 100));
 }
 
-inline double KWDatabase::GetReadPercentage()
+inline double KWDatabase::GetReadPercentage() const
 {
 	require(IsOpenedForRead());
 	require(not IsOpenedForWrite());

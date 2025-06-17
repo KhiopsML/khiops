@@ -253,7 +253,7 @@ longint KWSTDatabase::GetPhysicalEstimatedObjectNumber()
 	return lNumber;
 }
 
-double KWSTDatabase::GetPhysicalReadPercentage()
+double KWSTDatabase::GetPhysicalReadPercentage() const
 {
 	return dataTableDriverCreator->GetReadPercentage();
 }

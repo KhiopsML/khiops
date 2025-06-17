@@ -1233,7 +1233,7 @@ boolean KWDataTableSliceSet::IsError() const
 	return read_FirstPhysicalSlice->IsError();
 }
 
-double KWDataTableSliceSet::GetReadPercentage()
+double KWDataTableSliceSet::GetReadPercentage() const
 {
 	require(IsOpenedForRead());
 	return read_FirstPhysicalSlice->GetReadPercentage();
@@ -3112,14 +3112,14 @@ boolean KWDataTableSlice::IsError() const
 	return read_SliceDataTableDriver->IsError();
 }
 
-double KWDataTableSlice::GetReadPercentage()
+double KWDataTableSlice::GetReadPercentage() const
 {
 	double dReadPercentage;
 
 	require(IsOpenedForRead());
 
-	dReadPercentage = read_nDataFileIndex / (double)GetDataFileNames()->GetSize();
-	dReadPercentage += read_SliceDataTableDriver->GetReadPercentage() / GetDataFileNames()->GetSize();
+	dReadPercentage = read_nDataFileIndex / (double)svDataFileNames.GetSize();
+	dReadPercentage += read_SliceDataTableDriver->GetReadPercentage() / svDataFileNames.GetSize();
 	return dReadPercentage;
 }
 

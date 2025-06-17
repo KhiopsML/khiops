@@ -67,7 +67,7 @@ public:
 	longint GetEstimatedObjectNumber() override;
 	longint ComputeNecessaryMemoryForFullExternalRead(const KWClass* kwcLogicalClass) override;
 	longint ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass, longint lInputFileSize) override;
-	double GetReadPercentage() override;
+	double GetReadPercentage() const override;
 	longint GetUsedMemory() const override;
 
 	/////////////////////////////////////////////////

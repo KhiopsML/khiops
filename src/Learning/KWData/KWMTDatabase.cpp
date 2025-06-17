@@ -1417,7 +1417,7 @@ longint KWMTDatabase::GetPhysicalEstimatedObjectNumber()
 	return lPhysicalEstimatedObjectNumber;
 }
 
-double KWMTDatabase::GetPhysicalReadPercentage()
+double KWMTDatabase::GetPhysicalReadPercentage() const
 {
 	require(mainMultiTableMapping->GetDataTableDriver() != NULL);
 	return mainMultiTableMapping->GetDataTableDriver()->GetReadPercentage();

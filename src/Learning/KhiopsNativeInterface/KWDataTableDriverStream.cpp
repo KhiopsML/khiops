@@ -122,7 +122,7 @@ longint KWDataTableDriverStream::ComputeNecessaryDiskSpaceForFullWrite(const KWC
 	return 0;
 }
 
-double KWDataTableDriverStream::GetReadPercentage()
+double KWDataTableDriverStream::GetReadPercentage() const
 {
 	return 0;
 }

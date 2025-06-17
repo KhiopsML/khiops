@@ -212,7 +212,7 @@ public:
 	// Estimation du pourcentage d'avancement de la lecture d'un fichier
 	// Methode a priori rapide, sans effet important sur le temps de lecture
 	// Peut ne pas etre reimplementee (par defaut: 0)
-	virtual double GetReadPercentage();
+	virtual double GetReadPercentage() const;
 
 	// Index de l'enregistrement traite (en lecture ou ecriture)
 	longint GetRecordIndex() const;

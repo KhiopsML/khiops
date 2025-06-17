@@ -1223,7 +1223,6 @@ void KWDatabase::AddEncodingErrorMessage() const
 
 longint KWDatabase::GetEncodingErrorNumber() const
 {
-	require(not IsOpenedForRead());
 	require(not IsOpenedForWrite());
 	require(GetClassName() != "");
 
@@ -2625,7 +2624,7 @@ longint KWDatabase::GetPhysicalEstimatedObjectNumber()
 	return 0;
 }
 
-double KWDatabase::GetPhysicalReadPercentage()
+double KWDatabase::GetPhysicalReadPercentage() const
 {
 	return 0;
 }

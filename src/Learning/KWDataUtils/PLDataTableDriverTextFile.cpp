@@ -154,7 +154,7 @@ boolean PLDataTableDriverTextFile::UpdateInputBuffer()
 	return bOk;
 }
 
-double PLDataTableDriverTextFile::GetReadPercentage()
+double PLDataTableDriverTextFile::GetReadPercentage() const
 {
 	double dPercentage = 0;
 	longint lPositionInFile;

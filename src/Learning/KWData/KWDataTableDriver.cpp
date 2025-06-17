@@ -228,7 +228,7 @@ longint KWDataTableDriver::ComputeNecessaryDiskSpaceForFullWrite(const KWClass* 
 	return 0;
 }
 
-double KWDataTableDriver::GetReadPercentage()
+double KWDataTableDriver::GetReadPercentage() const
 {
 	return 0;
 }
