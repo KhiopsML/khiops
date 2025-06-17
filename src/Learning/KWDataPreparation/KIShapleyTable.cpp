@@ -90,7 +90,8 @@ double KIShapleyTable::ComputeMeanAbsoluteShapleyValues(const KWDataGridStats* a
 		// Appel de la methode univariee avec la grille univariee courante
 		shapleyTable.InitializeFromUnivariateDataGridStats(currentAttributeDataGridStats, targetDataGridStats,
 								   dAttributeWeight);
-		assert(shapleyTable.GetSourceSize() == attributeDataGridStats->ComputeCellNumber());
+		assert(shapleyTable.GetSourceSize() ==
+		       currentAttributeDataGridStats->GetAttributeAt(0)->GetPartNumber());
 		assert(shapleyTable.GetTargetSize() == targetDataGridStats->GetAttributeAt(0)->GetPartNumber());
 
 		// Calcul des effectifs par partie pour l'attribut source et cible de la grille de travail

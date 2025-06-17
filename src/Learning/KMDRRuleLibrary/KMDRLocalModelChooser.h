@@ -2,8 +2,7 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
-#ifndef KMDR_LOCAL_MODEL_CHOOSER_H
-#define KMDR_LOCAL_MODEL_CHOOSER_H
+#pragma once
 
 #include "KWDerivationRule.h"
 #include "KWDRPreprocessing.h"
@@ -59,5 +58,3 @@ inline boolean KMDRLocalModelChooser::IsOptimized() const
 {
 	return IsCompiled() and nOptimizationFreshness == GetOwnerClass()->GetCompileFreshness();
 }
-
-#endif // KMDRLocalModelChooser_H

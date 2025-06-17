@@ -7,7 +7,6 @@
 ///////////////////////////////////////////////////////////////
 // Classe KMDRLocalModelChooser
 
-#include "KMDRLocalModelChooser.h"
 KMDRLocalModelChooser::KMDRLocalModelChooser()
 {
 	SetName("LocalModelChooser");
