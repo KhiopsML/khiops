@@ -266,6 +266,9 @@ protected:
 	// Nombre total d'erreurs d'encodage detectees impliquant des double quotes manquants
 	PLShared_Longint output_lEncodingErrorNumber;
 
+	// Nombre d'erreurs d'encodage detectees impliquant des double quotes manquants dans les table externes
+	PLShared_Longint output_lExternalTablesEncodingErrorNumber;
+
 	// Nombre d'enregistrement lus pour chaque table secondaire
 	// La valeur -1 est utilisee pour les tables non ouvertes
 	PLShared_LongintVector output_lvMappingReadRecords;
@@ -277,8 +280,11 @@ protected:
 	longint lReadRecords;
 	longint lReadObjects;
 
-	// Nombre total d'erreurs d'encodage detectees impliquant des double quotes manquants
+	// Nombre d'erreurs d'encodage detectees impliquant des double quotes manquants dans les tables principales
 	longint lEncodingErrorNumber;
+
+	// Nombre d'erreurs d'encodage detectees impliquant des double quotes manquants dans les tables externes
+	longint lExternalTablesEncodingErrorNumber;
 
 	// Nombre d'objet lus pour toutes les tables
 	// La valeur -1 est utilisee pour les tables non ouvertes
