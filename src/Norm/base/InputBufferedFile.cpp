@@ -653,6 +653,11 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& n
 	nFieldLength = i;
 	assert((int)strlen(sField) == nFieldLength);
 
+	// Memorisation des erreurs d'encodage
+	if (nFieldError == FieldMissingBeginDoubleQuote or nFieldError == FieldMissingMiddleDoubleQuote or
+	    nFieldError == FieldMissingEndDoubleQuote)
+		lEncodingErrorNumber++;
+
 	// Gestion d'une fin de ligne
 	if (bEndOfLine)
 	{
@@ -732,6 +737,11 @@ boolean InputBufferedFile::SkipField(int& nFieldError, boolean& bLineTooLong)
 				nFieldError = FieldMissingBeginDoubleQuote;
 		}
 	}
+
+	// Memorisation des erreurs d'encodage
+	if (nFieldError == FieldMissingBeginDoubleQuote or nFieldError == FieldMissingMiddleDoubleQuote or
+	    nFieldError == FieldMissingEndDoubleQuote)
+		lEncodingErrorNumber++;
 
 	// Test de depassement de longueur
 	if (nFieldError != FieldNoError and GetPositionInCache() - nStartPositionInCache >= (int)nMaxFieldSize)
@@ -2397,6 +2407,7 @@ void InputBufferedFile::Reset()
 	lCacheStartInFile = -1;
 	bLastFieldReachEol = false;
 	lFileSize = -1;
+	lEncodingErrorNumber = 0;
 	nAllocatedBufferSize = 0;
 	nCacheSize = 0;
 	nUTF8BomSkippedCharNumber = 0;
