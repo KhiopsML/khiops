@@ -45,7 +45,7 @@ KWMTDatabaseTextFileDataView::KWMTDatabaseTextFileDataView()
 	    ->SetHelpText("Character used as field separator in the file."
 			  "\n It can be space (S), semi-colon (;), comma (,) or any character."
 			  "\n By default, if nothing is specified, the tabulation is used as the field separator."
-			  "\n Fields can contain separator chars provided that they are surrounded by double-quotes "
+			  "\n Fields can contain separator chars provided that they are surrounded by double quotes "
 			  "(see documentation).");
 
 	// ##

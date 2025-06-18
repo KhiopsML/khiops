@@ -18,16 +18,3 @@ public:
 	KNITransferProblem();
 	~KNITransferProblem();
 };
-
-////////////////////////////////////////////////////////////
-// Classe MDKhiopsAnalysisSpec
-//    Specialisation des Analysis specs
-//    notamment pour avoir  une version etendue des Modeling specs
-//    avec parametrage des predicteurs SNB, NB et DG
-class MDKhiopsAnalysisSpec : public KWAnalysisSpec
-{
-public:
-	// Constructeur
-	MDKhiopsAnalysisSpec();
-	~MDKhiopsAnalysisSpec();
-};

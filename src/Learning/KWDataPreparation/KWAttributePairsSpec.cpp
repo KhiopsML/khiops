@@ -116,8 +116,8 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 				// Warning si ligne trop longue
 				if (bLineTooLong)
 					AddWarning(InputBufferedFile::GetLineTooLongErrorLabel() + ", ignored record");
-				// Warning pour certaines erreurs sur le champ
-				else if (nFieldError == InputBufferedFile::FieldTooLong)
+				// Warning les erreurs sur le champ
+				else if (nFieldError != InputBufferedFile::FieldNoError)
 					AddWarning(InputBufferedFile::GetFieldErrorLabel(nFieldError) +
 						   ", ignored record");
 				// Warning si un seul champ
@@ -163,8 +163,8 @@ void KWAttributePairsSpec::ImportAttributePairs(const ALString& sFileName)
 					if (bLineTooLong)
 						AddWarning(InputBufferedFile::GetLineTooLongErrorLabel() +
 							   ", ignored record");
-					// Warning pour certaines erreurs sur le champ
-					else if (nFieldError == InputBufferedFile::FieldTooLong)
+					// Warning les erreurs sur le champ
+					else if (nFieldError != InputBufferedFile::FieldNoError)
 						AddWarning(InputBufferedFile::GetFieldErrorLabel(nFieldError));
 					// Warning si strictement plus de deux champs
 					else if (not bEndOfLine)

@@ -513,14 +513,19 @@ const ALString InputBufferedFile::GetFieldErrorLabel(int nFieldError)
 
 	require(FieldNoError < nFieldError and nFieldError <= FieldTooLong);
 
-	if (nFieldError == FieldMiddleDoubleQuote)
-		return "double-quote in the middle of the field should be paired";
-	else if (nFieldError == FieldMissingEndDoubleQuote)
-		return "missing double-quote at the end of the field";
-	else
+	switch (nFieldError)
 	{
-		assert(nFieldError == FieldTooLong);
+	case FieldMissingBeginDoubleQuote:
+		return "missing double quote at the start of the field";
+	case FieldMissingMiddleDoubleQuote:
+		return "double quote in the middle of the field should be paired";
+	case FieldMissingEndDoubleQuote:
+		return "missing double quote at the end of the field";
+	case FieldTooLong:
 		return sTmp + "field too long, truncated to " + IntToString(nMaxFieldSize) + " characters";
+	default:
+		assert(false);
+		return "";
 	}
 }
 
@@ -557,16 +562,16 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& n
 	bEndOfLine = true;
 	if (not IsBufferEnd())
 	{
-		// Lecture du premier caractere: traitement special si double-quote
+		// Lecture du premier caractere: traitement special si double quote
 		c = GetNextChar();
 
-		// Traitement special si le champ commence par double-quote
-		// (sauf si separateur double-quote)
+		// Traitement special si le champ commence par double quote
+		// (sauf si separateur double quote)
 		if (c == '"' and cFieldSeparator != '"')
 		{
 			bEndOfLine = GetNextDoubleQuoteField(sField, i, nFieldError);
 		}
-		// Traitement standard si le champ ne commence pas par double-quote
+		// Traitement standard si le champ ne commence pas par double quote
 		else
 		{
 			// Analyse standard du champ
@@ -598,11 +603,19 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& n
 					break;
 				c = GetNextChar();
 			}
+
+			// Erreur si double quote a la fin du champ
+			if (GetPositionInCache() > 1 and GetPrevChar() == '"')
+				nFieldError = FieldMissingBeginDoubleQuote;
+			// Test additionnel dans le cas d'une fin de ligne, pour gestion des fins de ligne windows "\r\n
+			else if (c != cFieldSeparator and GetPositionInCache() > 2 and GetPrevChar() == '\r' and
+				 GetPrevPrevChar() == '"')
+				nFieldError = FieldMissingBeginDoubleQuote;
 		}
 	}
 
 	// Test de depassement de longueur
-	if (i >= (int)nMaxFieldSize)
+	if (nFieldError != FieldNoError and i >= (int)nMaxFieldSize)
 		nFieldError = FieldTooLong;
 
 	// Supression des blancs en fin (TrimRight)
@@ -654,31 +667,37 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& n
 	return bEndOfLine;
 }
 
-boolean InputBufferedFile::SkipField(boolean& bLineTooLong)
+boolean InputBufferedFile::SkipField(int& nFieldError, boolean& bLineTooLong)
 {
 	boolean bUnconditionalLoop = true; // Pour eviter un warning dans la boucle
 	char c;
+	boolean bEndOfLine;
+	int nStartPositionInCache;
 
 	// Si le dernier champ lu etait sur une fin de ligne,
 	// nous sommes sur un debut de ligne...
 	if (bLastFieldReachEol)
 	{
 		nCurrentLineIndex++;
-		nLastBolPositionInCache = nPositionInCache;
 		bLastFieldReachEol = false;
 	}
 
 	// Lecture des caracteres du token
+	nStartPositionInCache = GetPositionInCache();
+	nFieldError = FieldNoError;
+	bEndOfLine = true;
 	if (not IsBufferEnd())
 	{
-		// Lecture du premier caractere: traitement special si double-quote
+		// Lecture du premier caractere: traitement special si double quote
 		c = GetNextChar();
 
-		// Traitement special si le champ commence par double-quote
-		// (sauf si separateur double-quote)
+		// Traitement special si le champ commence par double quote
+		// (sauf si separateur double quote)
 		if (c == '"' and cFieldSeparator != '"')
-			return SkipDoubleQuoteField(bLineTooLong);
-		// Traitement standard si le champ ne commence pas par double-quote
+		{
+			bEndOfLine = SkipDoubleQuoteField(nFieldError);
+		}
+		// Traitement standard si le champ ne commence pas par double quote
 		else
 		{
 			// Analyse standard du champ
@@ -688,16 +707,14 @@ boolean InputBufferedFile::SkipField(boolean& bLineTooLong)
 				if (c == '\n')
 				{
 					bLastFieldReachEol = true;
-					bLineTooLong = IsLineTooLong();
-					nLastBolPositionInCache = nPositionInCache;
-					return true;
+					break;
 				}
 
 				// Arret si fin de champ
 				if (c == cFieldSeparator)
 				{
-					bLineTooLong = false;
-					return false;
+					bEndOfLine = false;
+					break;
 				}
 
 				// Caractere suivant
@@ -705,13 +722,33 @@ boolean InputBufferedFile::SkipField(boolean& bLineTooLong)
 					break;
 				c = GetNextChar();
 			}
+
+			// Erreur si double quote a la fin du champ
+			if (GetPositionInCache() > 1 and GetPrevChar() == '"')
+				nFieldError = FieldMissingBeginDoubleQuote;
+			// Test additionnel dans le cas d'une fin de ligne, pour gestion des fins de ligne windows "\r\n
+			else if (c != cFieldSeparator and GetPositionInCache() > 2 and GetPrevChar() == '\r' and
+				 GetPrevPrevChar() == '"')
+				nFieldError = FieldMissingBeginDoubleQuote;
 		}
 	}
 
-	// Retour de fin de ligne (fin de buffer)
-	bLineTooLong = IsLineTooLong();
-	nLastBolPositionInCache = nPositionInCache;
-	return true;
+	// Test de depassement de longueur
+	if (nFieldError != FieldNoError and GetPositionInCache() - nStartPositionInCache >= (int)nMaxFieldSize)
+		nFieldError = FieldTooLong;
+
+	// Gestion d'une fin de ligne
+	if (bEndOfLine)
+	{
+		// L'erreur de type ligne trop longue ecrase les autres
+		bLineTooLong = IsLineTooLong();
+		nLastBolPositionInCache = nPositionInCache;
+	}
+	else
+		bLineTooLong = false;
+
+	// Retour du fin de ligne
+	return bEndOfLine;
 }
 
 void InputBufferedFile::GetNextLine(CharVector* cvLine, boolean& bLineTooLong)
@@ -782,27 +819,28 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 	require(i == 0);
 	require(nFieldError == FieldNoError);
 
-	// On est cense avoir lu un double-quote en debut de champ
+	// On est cense avoir lu un double quote en debut de champ
 	sField[0] = '"';
 	i = 1;
 
-	// Le champ doit se terminer par un double-quote
-	// On accepte les double-quotes (doubles) a l'interieur du champ, et meme le separateur de champ
-	// En cas d'erreur (pas de double-quote final ou double-quote non double au milieu), on
+	// Le champ doit se terminer par un double quote
+	// On accepte les double quotes (doubles) a l'interieur du champ, et meme le separateur de champ
+	// En cas d'erreur (pas de double quote final ou double quote non double au milieu), on
 	// parse "normalement" jusqu'au prochain separateur et on rend le champ entier tel quel
-	// (y compris le premier double-quote)
+	// (y compris le premier double quote)
 	nFieldError = FieldMissingEndDoubleQuote;
 	bEndOfLine = true;
-	// Si on ne passe pas dans la boucle, on sera en erreur (double-quote suivi de fin de fichier)
+
+	// Si on ne passe pas dans la boucle, on sera en erreur (double quote suivi de fin de fichier)
 	if (not IsBufferEnd())
 	{
-		// Lecture du premier caractere: traitement special si double-quote
+		// Lecture du premier caractere: traitement special si double quote
 		c = GetNextChar();
 
-		// Traitement special si le champ commence par double-quote
+		// Traitement special si le champ commence par double quote
 		while (bUnconditionalLoop)
 		{
-			// Test si double-quote
+			// Test si double quote
 			if (c == '"')
 			{
 				// OK si fin du buffer
@@ -816,7 +854,7 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 				assert(not IsBufferEnd());
 				c = GetNextChar();
 
-				// OK si fin de champ apres double-quote
+				// OK si fin de champ apres double quote
 				if (c == cFieldSeparator)
 				{
 					nFieldError = FieldNoError;
@@ -824,7 +862,7 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 					break;
 				}
 
-				// OK si fin de ligne apres double-quote
+				// OK si fin de ligne apres double quote
 				if (c == '\n')
 				{
 					nFieldError = FieldNoError;
@@ -832,10 +870,10 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 					break;
 				}
 
-				// OK si nouveau double-quote (il a ete correctement double)
+				// OK si nouveau double quote (il a ete correctement double)
 				if (c == '"')
 				{
-					// On memorise ici les deux double-quote
+					// On memorise ici les deux double quote
 					if (i < (int)nMaxFieldSize)
 					{
 						sField[i] = '"';
@@ -852,15 +890,15 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 						c = GetNextChar();
 					continue;
 				}
-				// KO si on trouve un double-quote isole au milieu du champ
+				// KO si on trouve un double quote isole au milieu du champ
 				//  On continue quand-meme a parser pour recuperer l'erreur
-				//  On memorise neanmoins de double-quote isole
+				//  On memorise neanmoins de double quote isole
 				else
 				{
 					assert(c != '"');
-					nFieldError = FieldMiddleDoubleQuote;
+					nFieldError = FieldMissingMiddleDoubleQuote;
 
-					// On memorise le caractere double-quote isole
+					// On memorise le caractere double quote isole
 					if (i < (int)nMaxFieldSize)
 					{
 						sField[i] = '"';
@@ -870,7 +908,7 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 					// Si carriage return suivi de fin de fichier ou de ligne, c'est OK
 					if (c == '\r')
 					{
-						// On annule temporairement la prise du double-quote
+						// On annule temporairement la prise du double quote
 						if (i < (int)nMaxFieldSize)
 							i--;
 
@@ -885,7 +923,7 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 						assert(not IsBufferEnd());
 						c = GetNextChar();
 
-						// OK si fin de champ apres double-quote
+						// OK si fin de champ apres double quote
 						if (c == cFieldSeparator)
 						{
 							nFieldError = FieldNoError;
@@ -893,7 +931,7 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 							break;
 						}
 
-						// OK si fin de ligne apres double-quote
+						// OK si fin de ligne apres double quote
 						if (c == '\n')
 						{
 							nFieldError = FieldNoError;
@@ -902,7 +940,7 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 						}
 
 						// On memorise le caractere carriage return, apres avoir restitue le
-						// double-quote
+						// double quote
 						if (i < (int)nMaxFieldSize)
 							i++;
 						if (i < (int)nMaxFieldSize)
@@ -975,8 +1013,8 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 	{
 		assert(sField[0] == '"');
 
-		// On doit supprimer le premier double-quote, ainsi que toutes les paires de double-quote
-		// Le dernier double-quote n'a pas ete memorise
+		// On doit supprimer le premier double quote, ainsi que toutes les paires de double quote
+		// Le dernier double quote n'a pas ete memorise
 		iLast = i;
 		i = 0;
 		iNew = 1;
@@ -997,51 +1035,62 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 	return bEndOfLine;
 }
 
-boolean InputBufferedFile::SkipDoubleQuoteField(boolean& bLineTooLong)
+boolean InputBufferedFile::SkipDoubleQuoteField(int& nFieldError)
 {
 	boolean bUnconditionalLoop = true; // Pour eviter un warning dans la boucle
 	char c;
+	boolean bEndOfLine;
 
+	require(nFieldError == FieldNoError);
+
+	// Le champ doit se terminer par un double quote
+	// On accepte les double quotes (doubles) a l'interieur du champ, et meme le separateur de champ
+	// En cas d'erreur (pas de double quote final ou double quote non double au milieu), on
+	// parse "normalement" jusqu'au prochain separateur et on rend le champ entier tel quel
+	// (y compris le premier double quote)
+	nFieldError = FieldMissingEndDoubleQuote;
+	bEndOfLine = true;
+
+	// Si on ne passe pas dans la boucle, on sera en erreur (double quote suivi de fin de fichier)
 	if (not IsBufferEnd())
 	{
-		// Lecture du premier caractere: traitement special si double-quote
+		// Lecture du premier caractere: traitement special si double quote
 		c = GetNextChar();
 
-		// Analyse speciale du champs
+		// Traitement special si le champ commence par double quote
 		while (bUnconditionalLoop)
 		{
-			// Test si double-quote
+			// Test si double quote
 			if (c == '"')
 			{
-				// Arret si fin du buffer
+				// OK si fin du buffer
 				if (IsBufferEnd())
 				{
-					bLineTooLong = IsLineTooLong();
-					nLastBolPositionInCache = nPositionInCache;
-					return true;
+					nFieldError = FieldNoError;
+					break;
 				}
 
-				// Lecture caractere suivant
+				// Lecture caractere suivant, en skippant les carriage return
 				assert(not IsBufferEnd());
 				c = GetNextChar();
 
-				// OK si fin de champ apres double-quote
+				// OK si fin de champ apres double quote
 				if (c == cFieldSeparator)
 				{
-					bLineTooLong = false;
-					return false;
+					nFieldError = FieldNoError;
+					bEndOfLine = false;
+					break;
 				}
 
-				// OK si fin de ligne apres double-quote
+				// OK si fin de ligne apres double quote
 				if (c == '\n')
 				{
+					nFieldError = FieldNoError;
 					bLastFieldReachEol = true;
-					bLineTooLong = IsLineTooLong();
-					nLastBolPositionInCache = nPositionInCache;
-					return true;
+					break;
 				}
 
-				// OK si nouveau double-quote (il a ete correctement double)
+				// OK si nouveau double quote (il a ete correctement double)
 				if (c == '"')
 				{
 					// Preparation du caractere suivant
@@ -1049,11 +1098,45 @@ boolean InputBufferedFile::SkipDoubleQuoteField(boolean& bLineTooLong)
 						c = GetNextChar();
 					continue;
 				}
-				// KO si on trouve un double-quote isole au milieu du champ
+				// KO si on trouve un double quote isole au milieu du champ
 				//  On continue quand-meme a parser pour recuperer l'erreur
-				//  On memorise neanmoins de double-quote isole
+				//  On memorise neanmoins de double quote isole
 				else
 				{
+					assert(c != '"');
+					nFieldError = FieldMissingMiddleDoubleQuote;
+
+					// Si carriage return suivi de fin de fichier ou de ligne, c'est OK
+					if (c == '\r')
+					{
+						// OK si fin du buffer
+						if (IsBufferEnd())
+						{
+							nFieldError = FieldNoError;
+							break;
+						}
+
+						// Lecture caractere suivant, en skippant le carriage return
+						assert(not IsBufferEnd());
+						c = GetNextChar();
+
+						// OK si fin de champ apres double quote
+						if (c == cFieldSeparator)
+						{
+							nFieldError = FieldNoError;
+							bEndOfLine = false;
+							break;
+						}
+
+						// OK si fin de ligne apres double quote
+						if (c == '\n')
+						{
+							nFieldError = FieldNoError;
+							bLastFieldReachEol = true;
+							break;
+						}
+					}
+
 					// On recupere l'erreur en parsant jusqu'au prochain separateur de champ, de
 					// ligne , ou fin de fichier
 					while (bUnconditionalLoop)
@@ -1062,16 +1145,14 @@ boolean InputBufferedFile::SkipDoubleQuoteField(boolean& bLineTooLong)
 						if (c == '\n')
 						{
 							bLastFieldReachEol = true;
-							bLineTooLong = IsLineTooLong();
-							nLastBolPositionInCache = nPositionInCache;
-							return true;
+							break;
 						}
 
 						// Arret si fin de champ
 						if (c == cFieldSeparator)
 						{
-							bLineTooLong = false;
-							return false;
+							bEndOfLine = false;
+							break;
 						}
 
 						// Caractere suivant
@@ -1081,19 +1162,16 @@ boolean InputBufferedFile::SkipDoubleQuoteField(boolean& bLineTooLong)
 					}
 
 					// Arret
-					bLineTooLong = IsLineTooLong();
-					nLastBolPositionInCache = nPositionInCache;
-					return true;
+					break;
 				}
 			}
 
-			// Arret si fin de ligne
+			// Arret en erreur si fin de ligne
 			if (c == '\n')
 			{
+				assert(nFieldError != FieldNoError);
 				bLastFieldReachEol = true;
-				bLineTooLong = IsLineTooLong();
-				nLastBolPositionInCache = nPositionInCache;
-				return true;
+				break;
 			}
 
 			// Caractere suivant
@@ -1103,10 +1181,8 @@ boolean InputBufferedFile::SkipDoubleQuoteField(boolean& bLineTooLong)
 		}
 	}
 
-	// Retour de fin de ligne (fin de buffer)
-	bLineTooLong = IsLineTooLong();
-	nLastBolPositionInCache = nPositionInCache;
-	return true;
+	// La gestion des lignes trop longues est effectuee dans la methode appelante
+	return bEndOfLine;
 }
 
 boolean InputBufferedFile::CheckEncoding() const
@@ -2314,7 +2390,7 @@ void InputBufferedFile::Reset()
 	sLocalFileName = "";
 	nBufferStartInCache = 0;
 	nPositionInCache = 0;
-	nLastBolPositionInCache = nPositionInCache;
+	nLastBolPositionInCache = 0;
 	nCurrentBufferSize = 0;
 	nBufferLineNumber = 0;
 	nCurrentLineIndex = 1;

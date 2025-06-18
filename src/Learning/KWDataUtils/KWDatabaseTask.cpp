@@ -8,6 +8,8 @@ KWDatabaseTask::KWDatabaseTask()
 {
 	lReadRecords = 0;
 	lReadObjects = 0;
+	lEncodingErrorNumber = 0;
+	lExternalTablesEncodingErrorNumber = 0;
 	dDatabaseIndexerTime = -1;
 	bDisplaySpecificTaskMessage = true;
 	bDisplayEndTaskMessage = true;
@@ -37,6 +39,8 @@ KWDatabaseTask::KWDatabaseTask()
 	// Resultats envoyes par l'esclave dans le cas general
 	DeclareTaskOutput(&output_lReadRecords);
 	DeclareTaskOutput(&output_lReadObjects);
+	DeclareTaskOutput(&output_lEncodingErrorNumber);
+	DeclareTaskOutput(&output_lExternalTablesEncodingErrorNumber);
 
 	// Resultats envoyes par l'esclave dans le cas multi-tables
 	DeclareTaskOutput(&output_lvMappingReadRecords);
@@ -198,6 +202,10 @@ boolean KWDatabaseTask::RunDatabaseTask(const KWDatabase* sourceDatabase)
 	CleanJobResults();
 	if (bOk)
 		bOk = Run();
+
+	// Memorisation du nombre d'erreur d'encodage, en tenant compte de celle lies aux tables externes
+	if (bOk)
+		sourceDatabase->SetEncodingErrorNumber(lEncodingErrorNumber + lExternalTablesEncodingErrorNumber);
 
 	// Desinstallation du handler specifique pour ignorer le flow des erreur dans le cas du memory guard
 	KWDatabaseMemoryGuard::UninstallMemoryGuardErrorFlowIgnoreFunction();
@@ -437,6 +445,8 @@ boolean KWDatabaseTask::MasterInitialize()
 	// Initialisations
 	lReadRecords = 0;
 	lReadObjects = 0;
+	lEncodingErrorNumber = 0;
+	lExternalTablesEncodingErrorNumber = 0;
 	nChunkCurrentIndex = 0;
 
 	// Initialisations dans le cas multi-tables
@@ -558,6 +568,9 @@ boolean KWDatabaseTask::MasterAggregateResults()
 	// Collecte du nombre d'enregistrement lus
 	lReadRecords += output_lReadRecords;
 	lReadObjects += output_lReadObjects;
+	lEncodingErrorNumber += output_lEncodingErrorNumber;
+	if (output_lExternalTablesEncodingErrorNumber > lExternalTablesEncodingErrorNumber)
+		lExternalTablesEncodingErrorNumber = output_lExternalTablesEncodingErrorNumber;
 
 	// Cas specifique au multi-tables
 	if (shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology())
@@ -596,6 +609,8 @@ boolean KWDatabaseTask::MasterFinalize(boolean bProcessEndedCorrectly)
 	{
 		lReadRecords = 0;
 		lReadObjects = 0;
+		lEncodingErrorNumber = 0;
+		lExternalTablesEncodingErrorNumber = 0;
 		lvMappingReadRecords.Initialize();
 	}
 
@@ -778,6 +793,8 @@ boolean KWDatabaseTask::SlaveProcessStartDatabase()
 	// Initialisation des variables en sortie
 	output_lReadRecords = 0;
 	output_lReadObjects = 0;
+	output_lEncodingErrorNumber = 0;
+	output_lExternalTablesEncodingErrorNumber = 0;
 	output_lvMappingReadRecords.GetLongintVector()->SetSize(sourceDatabase->GetTableNumber());
 	output_lvMappingReadRecords.GetLongintVector()->Initialize();
 
@@ -826,6 +843,9 @@ boolean KWDatabaseTask::SlaveProcessStartDatabase()
 
 					// On remet a 0 le nombre de records traites
 					driver->SetUsedRecordNumber(0);
+
+					// Idem pour les erreur
+					driver->SetEncodingErrorNumber(0);
 
 					// Lecture du premier buffer
 					bOk = driver->FillFirstInputBuffer();
@@ -932,13 +952,16 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 {
 	boolean bOk = true;
 	KWDatabase* sourceDatabase;
+	PLMTDatabaseTextFile* sourceMTDatabase;
 	longint lObjectNumber;
 	longint lRecordNumber;
+	longint lOutputEncodingErrorNumber;
 	KWMTDatabaseMapping* mapping;
 	KWObject* kwoObject;
 	ALString sChunkFileName;
 	PLDataTableDriverTextFile* mainDriver;
 	double dProgression;
+	int i;
 	ALString sTmp;
 
 	// Acces a la base source
@@ -1013,11 +1036,42 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 		Global::DesactivateErrorFlowControl();
 	}
 
+	// Collecte des erreur d'encodage
+	lOutputEncodingErrorNumber = 0;
+	if (bOk)
+	{
+		if (sourceDatabase->IsMultiTableTechnology())
+		{
+			sourceMTDatabase = shared_sourceDatabase.GetMTDatabase();
+			for (i = 0; i < sourceDatabase->GetTableNumber(); i++)
+			{
+				mapping =
+				    cast(KWMTDatabaseMapping*, sourceMTDatabase->GetMultiTableMappings()->GetAt(i));
+
+				// Memorisation du nombre d'erreurs d'encodage par base ouverte
+				if (sourceMTDatabase->IsMappingInitialized(mapping))
+					lOutputEncodingErrorNumber +=
+					    sourceMTDatabase->GetDriverAt(mapping)->GetEncodingErrorNumber();
+			}
+		}
+		// Sinon, on prend le driver de la base mono-table
+		else
+			lOutputEncodingErrorNumber +=
+			    shared_sourceDatabase.GetSTDatabase()->GetDriver()->GetEncodingErrorNumber();
+	}
+
 	// On renvoi le nombre d'object lus
 	if (bOk)
 	{
 		output_lReadRecords = lRecordNumber;
 		output_lReadObjects = lObjectNumber;
+
+		// On renvoie le nombre d'erreur d'encodage
+		output_lEncodingErrorNumber = lOutputEncodingErrorNumber;
+
+		// On tient compte des erreurs d'encodages potentielles pour les table externes, qui ont ete memorisees
+		// dans la base lors de son ouverture, qui declenche la lecture des tables externes
+		output_lExternalTablesEncodingErrorNumber = sourceDatabase->GetEncodingErrorNumber();
 	}
 	return bOk;
 }

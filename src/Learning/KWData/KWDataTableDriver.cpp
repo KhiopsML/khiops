@@ -12,6 +12,7 @@ KWDataTableDriver::KWDataTableDriver()
 	bSilentMode = false;
 	lRecordIndex = 0;
 	lUsedRecordNumber = 0;
+	lEncodingErrorNumber = 0;
 }
 
 KWDataTableDriver::~KWDataTableDriver()
@@ -44,6 +45,7 @@ void KWDataTableDriver::CopyFrom(const KWDataTableDriver* kwdtdSource)
 	bSilentMode = false;
 	lRecordIndex = 0;
 	lUsedRecordNumber = 0;
+	lEncodingErrorNumber = 0;
 	sDataTableName = "";
 
 	// Recopie des parametres de specification de la base
@@ -226,7 +228,7 @@ longint KWDataTableDriver::ComputeNecessaryDiskSpaceForFullWrite(const KWClass* 
 	return 0;
 }
 
-double KWDataTableDriver::GetReadPercentage()
+double KWDataTableDriver::GetReadPercentage() const
 {
 	return 0;
 }

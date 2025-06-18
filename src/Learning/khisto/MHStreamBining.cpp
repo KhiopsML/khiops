@@ -894,7 +894,7 @@ boolean MHStreamBining::ReadValue(InputBufferedFile* inputFile, longint lRecordI
 	}
 
 	// Test si erreur de parsing
-	if (bOk and nError != inputFile->FieldNoError)
+	if (bOk and nError != InputBufferedFile::FieldNoError)
 	{
 		AddInputFileError(inputFile, lRecordIndex,
 				  "invalid value <" + InputBufferedFile::GetDisplayValue(sField) +

@@ -333,8 +333,6 @@ boolean KWChunkSorterTask::MasterPrepareTaskInput(double& dTaskPercent, boolean&
 	KWSortBucket* bucketToSort;
 	int nTreatedBucketNumber;
 	InputBufferedFile ib;
-	int i;
-	longint lBeginPos;
 
 	// Recherche du prochain bucket a trier
 	bucketToSort = NULL;
@@ -636,8 +634,8 @@ boolean KWChunkSorterTask::SlaveProcess()
 				// Gestion de l'avancement (entre 0 et 25 pour cette partie)
 				if (inputFile->GetCurrentLineIndex() % 100 == 0)
 				{
-					dLocalProgression =
-					    inputFile->GetPositionInBuffer() / inputFile->GetCurrentBufferSize();
+					dLocalProgression = inputFile->GetPositionInBuffer() /
+							    (double)inputFile->GetCurrentBufferSize();
 
 					TaskProgression::DisplayProgression(
 					    int(25.0 *
@@ -846,7 +844,7 @@ void KWChunkSorterTask::SkipField(CharVector* cvLineToWrite, char cOriginalSepar
 						continue;
 					}
 					// Sinon, ok si caractere separateur
-					// Sinon, KO si on trouve un double-quote isole au milieu du champ:
+					// Sinon, KO si on trouve un double quote isole au milieu du champ:
 					//  on continue quand-meme a parser pour recuperer l'erreur
 					else
 					{

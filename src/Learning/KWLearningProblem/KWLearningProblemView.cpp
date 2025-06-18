@@ -215,6 +215,7 @@ void KWLearningProblemView::CheckData()
 void KWLearningProblemView::SortDataTableByKey()
 {
 	KWDataTableSorterView dataTableSorterView;
+
 	// Initialisation a partir de la base d'apprentissage
 	dataTableSorterView.InitializeSourceDataTable(GetLearningProblem()->GetTrainDatabase());
 

@@ -107,7 +107,7 @@ Symbol KWDRTextLoadFile::ComputeTextResult(const KWObject* kwoObject) const
 				{
 					c = cvFileCache->GetAt(i);
 
-					// Comptage des double-quotes de la chaine pour ne pas depasser la taille limite des Text
+					// Comptage des double quotes de la chaine pour ne pas depasser la taille limite des Text
 					if (sHugeBuffer[i] == '"')
 						nDoubleQuoteNumber++;
 

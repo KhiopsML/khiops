@@ -181,7 +181,7 @@ boolean KDTextTokenSampleCollectionTask::DummyCollectTokenSamples(const KWDataba
 				token->SetToken(char('A' + nToken));
 			else
 				token->SetToken(sTmp + "W" + IntToString(nToken + 1));
-			token->SetFrequency(nTokenNumber + 1 - nToken);
+			token->SetFrequency((longint)nTokenNumber + 1 - nToken);
 			oaTokens->Add(token);
 		}
 	}

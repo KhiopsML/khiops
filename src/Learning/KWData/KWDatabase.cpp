@@ -17,6 +17,7 @@ KWDatabase::KWDatabase()
 	bVerboseMode = true;
 	bSilentMode = false;
 	bIsError = false;
+	lEncodingErrorNumber = 0;
 	bOpenedForRead = false;
 	bOpenedForWrite = false;
 
@@ -67,6 +68,7 @@ void KWDatabase::CopyFrom(const KWDatabase* kwdSource)
 	bVerboseMode = true;
 	bSilentMode = false;
 	bIsError = false;
+	lEncodingErrorNumber = 0;
 	bOpenedForRead = false;
 	bOpenedForWrite = false;
 	sClassName = "";
@@ -511,6 +513,7 @@ boolean KWDatabase::OpenForRead()
 
 	// Ouverture physique de la base
 	bIsError = false;
+	lEncodingErrorNumber = 0;
 	assert(not bOpenedForRead);
 	bOpenedForRead = PhysicalOpenForRead();
 
@@ -1187,6 +1190,53 @@ void KWDatabase::AddError(const ALString& sLabel) const
 {
 	if (not bSilentMode)
 		Object::AddError(sLabel);
+}
+
+void KWDatabase::AddEncodingErrorMessage() const
+{
+	ALString sMessage;
+
+	require(lEncodingErrorNumber >= 0);
+
+	// Affichage unique si erreur d'encodage
+	if (lEncodingErrorNumber > 0)
+	{
+
+		// Specialisation dans le cs d'une seule erreur
+		if (lEncodingErrorNumber == 1)
+			sMessage = "As one encoding error related to missing double quotes has been identified";
+		// Cas avec plusieurs erreur
+		else
+			sMessage = sMessage + "As " + LongintToString(lEncodingErrorNumber) +
+				   " encoding errors related to missing double quotes have been identified";
+
+		// Fin du message
+		sMessage += ", your database may include multi-line fields.";
+		sMessage += " It is recommended to recode it using single-line encoding.";
+
+		// Affichage en isolant la ligne d'erreur entre deux lignes blanches
+		AddSimpleMessage("");
+		AddError(sMessage);
+		AddSimpleMessage("");
+	}
+}
+
+longint KWDatabase::GetEncodingErrorNumber() const
+{
+	require(not IsOpenedForWrite());
+	require(GetClassName() != "");
+
+	return lEncodingErrorNumber;
+}
+
+void KWDatabase::SetEncodingErrorNumber(longint lValue) const
+{
+	require(not IsOpenedForRead());
+	require(not IsOpenedForWrite());
+	require(GetClassName() != "");
+	require(lValue >= 0);
+
+	lEncodingErrorNumber = lValue;
 }
 
 void KWDatabase::DisplayReadTaskProgressionLabel(longint lRecordNumber, longint lObjectNumber)
@@ -2574,7 +2624,7 @@ longint KWDatabase::GetPhysicalEstimatedObjectNumber()
 	return 0;
 }
 
-double KWDatabase::GetPhysicalReadPercentage()
+double KWDatabase::GetPhysicalReadPercentage() const
 {
 	return 0;
 }

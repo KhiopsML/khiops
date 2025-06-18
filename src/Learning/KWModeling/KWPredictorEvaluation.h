@@ -131,7 +131,7 @@ protected:
 	// Permet de memorise le nom et les criteres de selection
 	KWDatabase evaluationDatabaseSpec;
 
-	// Nombre d'instances: Le seul critere d'evaluation pour le predicteur de base
+	// Nombre d'instances: le principal critere d'evaluation pour le predicteur de base
 	longint lInstanceEvaluationNumber;
 
 	// La classe d'evaluation sous-traitante ecrit directement sur une instance de cette classe

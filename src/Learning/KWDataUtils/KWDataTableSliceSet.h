@@ -200,7 +200,7 @@ public:
 	boolean IsError() const;
 
 	// Estimation du pourcentage d'avancement de la lecture
-	double GetReadPercentage();
+	double GetReadPercentage() const;
 
 	// Index du chunk en cours
 	// Attention, dans le cas de fichiers vides, on ne passera pas par tous les index possible en cours de lecture
@@ -460,7 +460,7 @@ public:
 	boolean IsError() const;
 
 	// Estimation du pourcentage d'avancement de la lecture
-	double GetReadPercentage();
+	double GetReadPercentage() const;
 
 	// Index du chunk en cours
 	// Attention, dans le cas de fichiers vides, on ne passera pas par tous les index possible en cours de lecture

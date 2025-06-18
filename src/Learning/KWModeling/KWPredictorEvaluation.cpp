@@ -74,6 +74,9 @@ void KWPredictorEvaluation::Evaluate(KWPredictor* predictor, KWDatabase* databas
 	predictorEvaluationTask = CreatePredictorEvaluationTask();
 	bOk = predictorEvaluationTask->Evaluate(predictor, evaluationDatabase, this);
 
+	// Memorisaton des erreurs d'encodage dans la base en entree
+	database->SetEncodingErrorNumber(evaluationDatabase->GetEncodingErrorNumber());
+
 	// Restitution de l'etat initial
 	predictor->GetLearningSpec()->CopyFrom(&currentLearningSpec);
 	if (evaluationDomain != currentDomain)

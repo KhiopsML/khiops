@@ -60,7 +60,7 @@ protected:
 	boolean PhysicalClose() override;
 	void PhysicalDeleteDatabase() override;
 	longint GetPhysicalEstimatedObjectNumber() override;
-	double GetPhysicalReadPercentage() override;
+	double GetPhysicalReadPercentage() const override;
 	longint GetPhysicalRecordIndex() const override;
 
 	// Driver de gestion des acces a une table

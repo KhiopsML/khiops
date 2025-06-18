@@ -2,8 +2,7 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
-#ifndef KMDRCLASSIFIER_H
-#define KMDRCLASSIFIER_H
+#pragma once
 
 #include "KWDerivationRule.h"
 #include "KWDRPreprocessing.h"
@@ -93,5 +92,3 @@ inline boolean KMDRClassifier::IsOptimized() const
 {
 	return IsCompiled() and nOptimizationFreshness == GetOwnerClass()->GetCompileFreshness();
 }
-
-#endif // KMDRCLASSIFIER_H

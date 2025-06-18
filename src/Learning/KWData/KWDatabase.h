@@ -222,7 +222,7 @@ public:
 	// Estimation du pourcentage d'avancement de la lecture d'un fichier
 	// Methode a priori rapide, sans effet important sur le temps de lecture
 	// Peut ne pas etre reimplementee (par defaut: 0)
-	double GetReadPercentage();
+	double GetReadPercentage() const;
 
 	/////////////////////////////////////////////////////////////
 	// Gestion de la constitution d'un echantillon en lecture.
@@ -336,6 +336,19 @@ public:
 	void AddMessage(const ALString& sLabel) const override;
 	void AddWarning(const ALString& sLabel) const override;
 	void AddError(const ALString& sLabel) const override;
+
+	// Affichage d'un message standard concernant les erreurs d'encodage avec double quotes manquants
+	// Sans effet si pas d'erreur d'encodage
+	void AddEncodingErrorMessage() const;
+
+	// Nombre d'erreur d'encodage detectee durant la derniere passe de lecture de la base
+	// Methode disponible en lecture, pendant et apres la fermeture la base
+	longint GetEncodingErrorNumber() const;
+
+	// Modification du nombre d'erreur d'encodage
+	// Methode avancee, utilisable par exemple lors des taches exploitant une base pour memoriser
+	// cette information dans le cas ou la base est traitee par l'ensemble des esclaves
+	void SetEncodingErrorNumber(longint lValue) const;
 
 	// Etat d'avancement pour le suivi de taches de lecture ayant collecte le nombre de records (lecture physique)
 	// et d'objets Methode avancee
@@ -535,7 +548,7 @@ protected:
 	// Estimation du pourcentage d'avancement de la lecture d'un fichier
 	// Methode a priori rapide, sans effet important sur le temps de lecture
 	// Peut ne pas etre reimplementee (par defaut: 0)
-	virtual double GetPhysicalReadPercentage();
+	virtual double GetPhysicalReadPercentage() const;
 
 	// Index d'enregistrement physique, pour localiser les erreurs
 	virtual longint GetPhysicalRecordIndex() const;
@@ -602,6 +615,9 @@ protected:
 	boolean bVerboseMode;
 	boolean bSilentMode;
 	boolean bIsError;
+
+	// Nombre total d'erreurs d'encodage detectees impliquant des double quotes manquants
+	mutable longint lEncodingErrorNumber;
 
 	// Gestion des echantillons
 	boolean bModeExcludeSample;
@@ -711,7 +727,7 @@ inline longint KWDatabase::GetSampleEstimatedObjectNumber()
 				       : (longint)(lEstimatedObjectNumber * GetSampleNumberPercentage() / 100));
 }
 
-inline double KWDatabase::GetReadPercentage()
+inline double KWDatabase::GetReadPercentage() const
 {
 	require(IsOpenedForRead());
 	require(not IsOpenedForWrite());

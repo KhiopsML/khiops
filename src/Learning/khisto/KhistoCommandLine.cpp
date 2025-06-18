@@ -878,7 +878,7 @@ boolean KhistoCommandLine::ReadValue(InputBufferedFile* inputFile, longint lReco
 	}
 
 	// Test si erreur de parsing
-	if (bOk and nError != inputFile->FieldNoError)
+	if (bOk and nError != InputBufferedFile::FieldNoError)
 	{
 		AddInputFileError(inputFile, lRecordIndex,
 				  "invalid value <" + InputBufferedFile::GetDisplayValue(sField) +
@@ -942,7 +942,7 @@ boolean KhistoCommandLine::ReadFrequency(InputBufferedFile* inputFile, longint l
 	}
 
 	// Test si erreur de parsing
-	if (bOk and nError != inputFile->FieldNoError)
+	if (bOk and nError != InputBufferedFile::FieldNoError)
 	{
 		AddInputFileError(inputFile, lRecordIndex,
 				  "invalid frequency <" + InputBufferedFile::GetDisplayValue(sField) +

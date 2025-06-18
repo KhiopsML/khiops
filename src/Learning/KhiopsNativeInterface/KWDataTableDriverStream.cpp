@@ -122,7 +122,7 @@ longint KWDataTableDriverStream::ComputeNecessaryDiskSpaceForFullWrite(const KWC
 	return 0;
 }
 
-double KWDataTableDriverStream::GetReadPercentage()
+double KWDataTableDriverStream::GetReadPercentage() const
 {
 	return 0;
 }
@@ -254,7 +254,7 @@ boolean KWDataTableDriverStream::ReadHeaderLineFields(StringVector* svFirstLineF
 			assert(not bLineTooLong);
 
 			// Erreur sur le nom du champ
-			if (nFieldError != inputBuffer->FieldNoError)
+			if (nFieldError != InputBufferedFile::FieldNoError)
 			{
 				AddWarning(sTmp + "Header line field " + IntToString(nField) + " <" +
 					   inputBuffer->GetDisplayValue(sField) +

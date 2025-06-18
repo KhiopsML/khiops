@@ -250,7 +250,7 @@ boolean GenumCommandLine::ReadValue(InputBufferedFile* inputFile, longint lRecor
 	}
 
 	// Test si erreur de parsing
-	if (bOk and nError != inputFile->FieldNoError)
+	if (bOk and nError != InputBufferedFile::FieldNoError)
 	{
 		AddInputFileError(inputFile, lRecordIndex,
 				  "invalid value <" + InputBufferedFile::GetDisplayValue(sField) +

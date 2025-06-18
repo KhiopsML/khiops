@@ -61,7 +61,7 @@ public:
 	// Reimplementation des methodes virtuelles de KWDataTableDriverTextFile
 	// On la passe en public pour pouvoir l'utiliser directement dans les taches paralleles
 	boolean UpdateInputBuffer() override;
-	double GetReadPercentage() override;
+	double GetReadPercentage() const override;
 
 	/////////////////////////////////////////////////
 	///// Implementation

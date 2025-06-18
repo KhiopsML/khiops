@@ -50,7 +50,7 @@ null            {return NULLVALUE;}
                     boolean bOk;
                     ALString *sValue;
 
-                    // Conversion sans les double-quote de debut et fin
+                    // Conversion sans les double quote de debut et fin
                     sValue = new ALString;
                     yytext[yyleng-1] = '\0';
                     bOk = TextService::JsonToCString((char*)&yytext[1], *sValue);

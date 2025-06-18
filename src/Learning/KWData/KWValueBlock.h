@@ -113,7 +113,7 @@ public:
 	//
 	// Ce format est un format interne, qui est potentiellement transforme en format externe via les
 	// methodes des classes InputBufferedFile et OutputBufferedFile. L'utilisation des simples-quotes
-	// minimise le risque d'utilisation du caractere d'echappement double-quote utilise par ces classes.
+	// minimise le risque d'utilisation du caractere d'echappement double quote utilise par ces classes.
 	// Le format est egalement compatible avec le format sparse usuel, liste de <cle>:<valeur> avec les
 	// cle etant des valeurs entieres et les valeurs des valeurs numeriques.
 	// En cas d'absence de ':' suivant une cle, on supposera une valeur 1 dans le cas numerique, et

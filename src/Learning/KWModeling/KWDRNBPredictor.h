@@ -117,7 +117,7 @@ public:
 	// Acces au vecteur des probabilites par valeur cibles
 	const ContinuousVector* GetTargetProbs() const;
 
-	// Probabilite associee a uneclasse inconnue en apprentissage (presque nulle, mais non nulle)
+	// Probabilite associee a une classe inconnue en apprentissage (presque nulle, mais non nulle)
 	double GetUnknownTargetProb() const;
 
 	// Acces aux termes du numerateur des logs de probabilites, avant normalisation
@@ -555,7 +555,7 @@ inline double KWDRNBClassifier::GetUnknownTargetProb() const
 {
 	require(IsCompiled());
 	require(IsOptimized());
-	cUnknownTargetProb;
+	return cUnknownTargetProb;
 }
 
 inline const ContinuousVector* KWDRNBClassifier::GetTargetLogProbNumeratorTerms() const

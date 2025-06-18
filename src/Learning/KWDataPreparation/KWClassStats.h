@@ -85,6 +85,7 @@ public:
 	// des taches (auquel cas, les statistiques ne sont pas calculees)
 
 	// Tache interruptible (tester IsStatsComputed pour exploiter les resultats)
+	// Affiche un message d'erreur specifique en cas d'erreur d'encodage de la base
 	boolean ComputeStats() override;
 
 	//////////////////////////////////////////////////////////////////////////////

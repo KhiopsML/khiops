@@ -18,6 +18,7 @@ public:
 
 	// Verification de l'integrite d'une base
 	// Methode interruptible, retourne false si erreur ou interruption (avec message), true sinon
+	// Affiche un message d'erreur specifique en cas d'erreur d'encodage de la base
 	boolean CheckDatabase(const KWDatabase* sourceDatabase);
 
 	///////////////////////////////////////////////////////////////////////////////

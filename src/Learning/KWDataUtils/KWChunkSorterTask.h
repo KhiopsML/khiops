@@ -170,7 +170,7 @@ protected:
 	// Methodes techniques
 
 	// Saut d'un champ a partir de l'indice i
-	// Prend en compte les double-quotes (Utilise dans la methode ReplaceSeparator)
+	// Prend en compte les double quotes (Utilise dans la methode ReplaceSeparator)
 	// On reproduit ici le comportement de InputBufferedFile::SkipField
 	static void SkipField(CharVector* cvLineToWrite, char cOriginalSeparator, int& nPos);
 };

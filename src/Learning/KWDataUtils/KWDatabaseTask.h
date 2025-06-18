@@ -79,6 +79,8 @@ protected:
 	// specifiques, puis apres la tache collecter les resultats de la taches
 	// On peut appeler ensuite la methode d'affichage des messages utilisateurs
 	// La base source doit etre mono ou multi-tables en fichiers textes
+	// Le nombre total d'erreurs d'encodage detectees impliquant des double quotes manquants
+	// est memorise dans la base en parametre
 	// La methode interruptible, retourne false si erreur ou interruption (avec message), true sinon
 	virtual boolean RunDatabaseTask(const KWDatabase* sourceDatabase);
 
@@ -91,7 +93,7 @@ protected:
 	//  . un temps d'execution de la tache
 	virtual void DisplayTaskMessage();
 
-	// Methode pour les message specifique a la tache
+	// Methode pour les messages specifiques a la tache
 	// Par defaut, affichage de stats sur les enregistrements lus dans la base en entree
 	virtual void DisplaySpecificTaskMessage();
 
@@ -261,6 +263,12 @@ protected:
 	// Nombre d'objets lus (records correctement lus et selectionnes)
 	PLShared_Longint output_lReadObjects;
 
+	// Nombre total d'erreurs d'encodage detectees impliquant des double quotes manquants
+	PLShared_Longint output_lEncodingErrorNumber;
+
+	// Nombre d'erreurs d'encodage detectees impliquant des double quotes manquants dans les table externes
+	PLShared_Longint output_lExternalTablesEncodingErrorNumber;
+
 	// Nombre d'enregistrement lus pour chaque table secondaire
 	// La valeur -1 est utilisee pour les tables non ouvertes
 	PLShared_LongintVector output_lvMappingReadRecords;
@@ -271,6 +279,12 @@ protected:
 	// Resultats : nombre de records et d'objets lus
 	longint lReadRecords;
 	longint lReadObjects;
+
+	// Nombre d'erreurs d'encodage detectees impliquant des double quotes manquants dans les tables principales
+	longint lEncodingErrorNumber;
+
+	// Nombre d'erreurs d'encodage detectees impliquant des double quotes manquants dans les tables externes
+	longint lExternalTablesEncodingErrorNumber;
 
 	// Nombre d'objet lus pour toutes les tables
 	// La valeur -1 est utilisee pour les tables non ouvertes

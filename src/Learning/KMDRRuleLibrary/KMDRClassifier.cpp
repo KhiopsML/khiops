@@ -7,7 +7,6 @@
 ///////////////////////////////////////////////////////////////
 // Classe KMDRClassifier
 
-#include "KMDRClassifier.h"
 KMDRClassifier::KMDRClassifier()
 {
 	SetName("KMDRClassifier");

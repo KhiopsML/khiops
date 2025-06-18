@@ -102,7 +102,7 @@ public:
 	// bien que la chaine C ne soit pas avec un encodage UTF8
 	static boolean JsonToCString(const char* sJsonString, ALString& sCString);
 
-	// Encodage d'un chaine de caracteres C au format json, sans les double-quotes de debut et fin
+	// Encodage d'un chaine de caracteres C au format json, sans les double quotes de debut et fin
 	static void CToJsonString(const ALString& sCString, ALString& sJsonString);
 
 	// Encodage d'une chaine de caracteres C au format ansi en re-encodant les caracteres utf8
@@ -125,7 +125,7 @@ public:
 	// On renvoie false en cas d'erreur d'encodage
 	static boolean Base64StringToBytes(const ALString& sBase64String, char* sBytes);
 
-	// Encodage d'un tableau de bytes vers le format base64, sans les double-quotes de debut et fin
+	// Encodage d'un tableau de bytes vers le format base64, sans les double quotes de debut et fin
 	// Le teableau en entree peut contenir n'importe quel byte, y comrpis des '\0'
 	static void BytesToBase64String(const char* sBytes, int nByteNumber, ALString& sBase64String);
 

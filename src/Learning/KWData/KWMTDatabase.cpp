@@ -1417,7 +1417,7 @@ longint KWMTDatabase::GetPhysicalEstimatedObjectNumber()
 	return lPhysicalEstimatedObjectNumber;
 }
 
-double KWMTDatabase::GetPhysicalReadPercentage()
+double KWMTDatabase::GetPhysicalReadPercentage() const
 {
 	require(mainMultiTableMapping->GetDataTableDriver() != NULL);
 	return mainMultiTableMapping->GetDataTableDriver()->GetReadPercentage();
@@ -2367,6 +2367,8 @@ boolean KWMTDatabase::DMTMPhysicalClose(KWMTDatabaseMapping* mapping)
 	mappedDataTableDriver = mapping->GetDataTableDriver();
 	if (mappedDataTableDriver != NULL and mappedDataTableDriver->GetDataTableName() != "")
 	{
+		if (mappedDataTableDriver->IsOpenedForRead())
+			lEncodingErrorNumber += mappedDataTableDriver->GetEncodingErrorNumber();
 		if (mappedDataTableDriver->IsOpenedForRead() or mappedDataTableDriver->IsOpenedForWrite())
 			bOk = mappedDataTableDriver->Close() and bOk;
 	}
