@@ -123,6 +123,15 @@ KWDataTableDriver* KWSTDatabase::CreateDataTableDriver() const
 	return dataTableDriverCreator->Clone();
 }
 
+longint KWSTDatabase::GetEncodingErrorNumber() const
+{
+	// Collecte des erreur d'encodage uniquement si la base est ouverte en lecture
+	// Sinon, on renvoie les erreurs memorisees au moment de la fermeture
+	if (IsOpenedForRead())
+		lEncodingErrorNumber = dataTableDriverCreator->GetEncodingErrorNumber();
+	return lEncodingErrorNumber;
+}
+
 boolean KWSTDatabase::BuildDatabaseClass(KWClass* kwcDatabaseClass)
 {
 	boolean bOk;
@@ -210,8 +219,6 @@ boolean KWSTDatabase::PhysicalClose()
 {
 	boolean bOk = true;
 
-	if (dataTableDriverCreator->IsOpenedForRead())
-		lEncodingErrorNumber = dataTableDriverCreator->GetEncodingErrorNumber();
 	if (dataTableDriverCreator->IsOpenedForRead() or dataTableDriverCreator->IsOpenedForWrite())
 		bOk = dataTableDriverCreator->Close();
 	dataTableDriverCreator->SetDataTableName("");

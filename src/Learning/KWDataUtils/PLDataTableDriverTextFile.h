@@ -53,6 +53,7 @@ public:
 	boolean BuildDataTableClass(KWClass* kwcDataTableClass) override;
 	boolean IsEnd() const override;
 	boolean Close() override;
+	longint GetEncodingErrorNumber() const override;
 	boolean OpenInputDatabaseFile() override;
 
 	// Lecture du premier buffer a partir de la position de depart

@@ -341,11 +341,11 @@ public:
 	// Sans effet si pas d'erreur d'encodage
 	void AddEncodingErrorMessage() const;
 
-	// Nombre d'erreur d'encodage detectee durant la derniere passe de lecture de la base
-	// Methode disponible en lecture, pendant et apres la fermeture la base
-	longint GetEncodingErrorNumber() const;
+	// Nombre d'erreur d'encodage detectees durant la lecture de la base
+	// Methode disponible egalement apres la fermeture de la base
+	virtual longint GetEncodingErrorNumber() const;
 
-	// Modification du nombre d'erreur d'encodage
+	// Modification du nombre d'erreurs d'encodage
 	// Methode avancee, utilisable par exemple lors des taches exploitant une base pour memoriser
 	// cette information dans le cas ou la base est traitee par l'ensemble des esclaves
 	void SetEncodingErrorNumber(longint lValue) const;

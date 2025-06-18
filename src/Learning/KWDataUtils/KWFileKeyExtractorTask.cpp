@@ -307,9 +307,9 @@ boolean KWFileKeyExtractorTask::ComputeResourceRequirements()
 	nReadSizeMin = PLRemoteFileService::GetPreferredBufferSize(sInputFileName);
 	nWriteSizeMin = PLRemoteFileService::GetPreferredBufferSize(FileService::GetTmpDir());
 
-	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMin(nReadSizeMin + nWriteSizeMin);
+	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMin(nReadSizeMin + (longint)nWriteSizeMin);
 	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMax(SystemFile::nMaxPreferredBufferSize +
-									      nWriteSizeMin);
+									      (longint)nWriteSizeMin);
 	assert(GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->GetMax() < INT_MAX);
 
 	// Espace utilise par les clefs sur l'ensemble des esclaves
@@ -364,16 +364,17 @@ boolean KWFileKeyExtractorTask::MasterInitialize()
 	lFilePos = 0;
 
 	//	Calcule de la taille maximale du buffer de lecture
-	if (GetTaskResourceGrant()->GetSlaveMemory() > nReadSizeMin + nWriteSizeMin)
+	if (GetTaskResourceGrant()->GetSlaveMemory() > nReadSizeMin + (longint)nWriteSizeMin)
 	{
 		assert(GetTaskResourceGrant()->GetSlaveMemory() <= INT_MAX);
 		nReadSizeMax = int(GetTaskResourceGrant()->GetSlaveMemory() - nWriteSizeMin);
 
 		// Chaque esclave doit lire au moins 5 buffers (pour que le travail soit bien reparti entre les
 		// esclaves)
-		if (lInputFileSize / (GetProcessNumber() * 5) < nReadSizeMax)
+		if (lInputFileSize / (GetProcessNumber() * (longint)5) < nReadSizeMax)
 		{
-			nReadSizeMax = InputBufferedFile::FitBufferSize(lInputFileSize / (GetProcessNumber() * 5));
+			nReadSizeMax =
+			    InputBufferedFile::FitBufferSize(lInputFileSize / (GetProcessNumber() * (longint)5));
 			nReadSizeMax = max(nReadSizeMax, nReadSizeMin);
 		}
 	}

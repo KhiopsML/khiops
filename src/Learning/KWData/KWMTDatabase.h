@@ -83,6 +83,16 @@ public:
 	// Verification du format de la base
 	boolean CheckFormat() const override;
 
+	// Nombre d'erreur d'encodage detectees durant la lecture des tables externes,
+	// sous-partie du nombre total d'erreur d'encodage
+	// Methode disponible egalement apres la fermeture de la base
+	longint GetExternalTablesEncodingErrorNumber() const;
+
+	// Modification du nombre d'erreurs d'encodage
+	// Methode avancee, utilisable par exemple lors des taches exploitant une base pour memoriser
+	// cette information dans le cas ou la base est traitee par l'ensemble des esclaves
+	void SetExternalTablesEncodingErrorNumber(longint lValue) const;
+
 	// Affichage de warnings dedies au mapping multi-table
 	// Ces warnings ne sont pas affiches lors du Check, pour eviter d'entrainer une
 	// nuisance pour l'utilisateur par des affichage repetes
@@ -115,6 +125,7 @@ protected:
 	virtual KWDataTableDriver* CreateDataTableDriver(KWMTDatabaseMapping* mapping) const;
 
 	// Reimplementation des methodes virtuelles de KWDatabase
+	longint GetEncodingErrorNumber() const override;
 	boolean BuildDatabaseClass(KWClass* kwcDatabaseClass) override;
 	boolean IsTypeInitializationManaged() const override;
 	boolean PhysicalOpenForRead() override;
@@ -211,6 +222,10 @@ protected:
 	boolean DMTMPhysicalOpenForWrite(KWMTDatabaseMapping* mapping);
 	boolean DMTMPhysicalClose(KWMTDatabaseMapping* mapping);
 
+	// Comptage des erreurs d'encodage courante pour une table ouverte en lecture,
+	// avec propagation recursive aux sous-mappings
+	longint DMTMPhysicalComputeEncodingErrorNumber(KWMTDatabaseMapping* mapping) const;
+
 	// Destruction recursive des fichiers mappes
 	void DMTMPhysicalDeleteDatabase(KWMTDatabaseMapping* mapping);
 
@@ -225,6 +240,9 @@ protected:
 
 	/////////////////////////////////////////////////
 	// Attributs de l'implementation
+
+	// Nombre total d'erreurs d'encodage lies aux tables externes, detectees impliquant des double quotes manquants
+	mutable longint lExternalTablesEncodingErrorNumber;
 
 	// Mapping pour la table principale
 	// Ce mapping doit toujours etre present et contient le parametrage (nom de base, nom de classe) principal

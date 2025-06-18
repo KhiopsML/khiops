@@ -11,6 +11,7 @@ KWMTDatabase::KWMTDatabase()
 	oaMultiTableMappings.SetSize(1);
 	oaMultiTableMappings.SetAt(0, mainMultiTableMapping);
 	dataTableDriverCreator = new KWDataTableDriver;
+	lExternalTablesEncodingErrorNumber = 0;
 	nFreshness = 0;
 	nCheckReadFreshness = 0;
 	nCheckWriteFreshness = 0;
@@ -56,6 +57,7 @@ void KWMTDatabase::CopyFrom(const KWDatabase* kwdSource)
 
 	// Copie standard
 	KWDatabase::CopyFrom(kwdSource);
+	lExternalTablesEncodingErrorNumber = 0;
 	nSkippedRecordNumber = 0;
 
 	// Copie des parametres du driver
@@ -830,6 +832,23 @@ boolean KWMTDatabase::CheckFormat() const
 	return bOk;
 }
 
+longint KWMTDatabase::GetExternalTablesEncodingErrorNumber() const
+{
+	require(not IsOpenedForWrite());
+	require(GetClassName() != "");
+	return lExternalTablesEncodingErrorNumber;
+}
+
+void KWMTDatabase::SetExternalTablesEncodingErrorNumber(longint lValue) const
+{
+	require(not IsOpenedForRead());
+	require(not IsOpenedForWrite());
+	require(GetClassName() != "");
+	require(lValue >= 0);
+
+	lExternalTablesEncodingErrorNumber = lValue;
+}
+
 void KWMTDatabase::DisplayMultiTableMappingWarnings() const
 {
 	int n;
@@ -1121,6 +1140,25 @@ KWDataTableDriver* KWMTDatabase::CreateDataTableDriver(KWMTDatabaseMapping* mapp
 {
 	require(mapping != NULL);
 	return dataTableDriverCreator->Clone();
+}
+
+longint KWMTDatabase::GetEncodingErrorNumber() const
+{
+	KWMTDatabaseMapping* mapping;
+	KWDataTableDriver* mappedDataTableDriver;
+	int i;
+
+	// Collecte des erreur d'encodage uniquement si la base est ouverte en lecture
+	// Sinon, on renvoie les erreurs memorisees au moment de la fermeture
+	if (IsOpenedForRead())
+	{
+		// Collecte des erreurs d'encodage a artir de la table principale
+		lEncodingErrorNumber = DMTMPhysicalComputeEncodingErrorNumber(mainMultiTableMapping);
+
+		// Ajout des erreur d'encodage liees au tables externes
+		lEncodingErrorNumber += lExternalTablesEncodingErrorNumber;
+	}
+	return lEncodingErrorNumber;
 }
 
 boolean KWMTDatabase::BuildDatabaseClass(KWClass* kwcDatabaseClass)
@@ -1725,6 +1763,9 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 	if (kwcPhysicalClass->GetRoot())
 		objectReferenceResolver.AddClass(kwcPhysicalClass);
 
+	// Reinitialisation du nombre d'erreurs d'encodage liees aux tables externes
+	lExternalTablesEncodingErrorNumber = 0;
+
 	// Ouverture de chaque table secondaire
 	for (nReference = 0; nReference < oaRootReferenceTableMappings.GetSize(); nReference++)
 	{
@@ -1834,6 +1875,9 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 					TaskProgression::EndTask();
 				}
 			}
+
+			// Mise a jour du nombre d'erreurs d'encodage liees aux tables externes
+			lExternalTablesEncodingErrorNumber += DMTMPhysicalComputeEncodingErrorNumber(referenceMapping);
 
 			// Fermeture de toutes les sous-bases referencees (qu'il y ait echec ou non de l'ouverture)
 			bOk = DMTMPhysicalClose(referenceMapping) and bOk;
@@ -2367,8 +2411,6 @@ boolean KWMTDatabase::DMTMPhysicalClose(KWMTDatabaseMapping* mapping)
 	mappedDataTableDriver = mapping->GetDataTableDriver();
 	if (mappedDataTableDriver != NULL and mappedDataTableDriver->GetDataTableName() != "")
 	{
-		if (mappedDataTableDriver->IsOpenedForRead())
-			lEncodingErrorNumber += mappedDataTableDriver->GetEncodingErrorNumber();
 		if (mappedDataTableDriver->IsOpenedForRead() or mappedDataTableDriver->IsOpenedForWrite())
 			bOk = mappedDataTableDriver->Close() and bOk;
 	}
@@ -2399,6 +2441,33 @@ boolean KWMTDatabase::DMTMPhysicalClose(KWMTDatabaseMapping* mapping)
 		bOk = DMTMPhysicalClose(componentMapping) and bOk;
 	}
 	return bOk;
+}
+
+longint KWMTDatabase::DMTMPhysicalComputeEncodingErrorNumber(KWMTDatabaseMapping* mapping) const
+{
+	longint lNumber;
+	KWDataTableDriver* mappedDataTableDriver;
+	KWMTDatabaseMapping* componentMapping;
+	int i;
+
+	require(mapping != NULL);
+
+	// Nombre d'erreur d'encodage du mapping principal
+	lNumber = 0;
+	mappedDataTableDriver = mapping->GetDataTableDriver();
+	if (mappedDataTableDriver != NULL and mappedDataTableDriver->GetDataTableName() != "")
+	{
+		if (mappedDataTableDriver->IsOpenedForRead())
+			lNumber += mappedDataTableDriver->GetEncodingErrorNumber();
+	}
+
+	// Propagation aux mappings de la composition
+	for (i = 0; i < mapping->GetComponentTableMappings()->GetSize(); i++)
+	{
+		componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponentTableMappings()->GetAt(i));
+		lNumber += DMTMPhysicalComputeEncodingErrorNumber(componentMapping);
+	}
+	return lNumber;
 }
 
 void KWMTDatabase::DMTMPhysicalDeleteDatabase(KWMTDatabaseMapping* mapping)

@@ -214,6 +214,10 @@ public:
 	// Peut ne pas etre reimplementee (par defaut: 0)
 	virtual double GetReadPercentage() const;
 
+	// Nombre d'erreurs d'encodage detectees impliquant des double quotes manquants,
+	// pour une table ouverte en lecture (par defaut: 0)
+	virtual longint GetEncodingErrorNumber() const;
+
 	// Index de l'enregistrement traite (en lecture ou ecriture)
 	longint GetRecordIndex() const;
 
@@ -221,10 +225,6 @@ public:
 	// Compteur a maintenir par l'appelant (sauf pour sa reinitialisation au moment des ouvertures de base)
 	void SetUsedRecordNumber(longint lValue);
 	longint GetUsedRecordNumber() const;
-
-	// Nombre d'erreurs d'encodage detectees impliquant des double quotes manquants
-	void SetEncodingErrorNumber(longint lValue);
-	longint GetEncodingErrorNumber() const;
 
 	// Acces au nom de la classe (seulement si presente)
 	const ALString& GetClassName() const;
@@ -246,7 +246,6 @@ protected:
 	// un nombre d'enregistrements traites
 	longint lRecordIndex;
 	longint lUsedRecordNumber;
-	longint lEncodingErrorNumber;
 
 	// Mode verbeux et silencieux
 	boolean bVerboseMode;
@@ -317,14 +316,9 @@ inline longint KWDataTableDriver::GetUsedRecordNumber() const
 	return lUsedRecordNumber;
 }
 
-inline void KWDataTableDriver::SetEncodingErrorNumber(longint lValue)
-{
-	lEncodingErrorNumber = lValue;
-}
-
 inline longint KWDataTableDriver::GetEncodingErrorNumber() const
 {
-	return lEncodingErrorNumber;
+	return 0;
 }
 
 inline void KWDataTableDriver::SetSilentMode(boolean bValue)

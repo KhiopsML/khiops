@@ -548,6 +548,7 @@ boolean KWDatabase::OpenForWrite()
 
 	// Ouverture physique de la base
 	bIsError = false;
+	lEncodingErrorNumber = 0;
 	assert(not bOpenedForRead);
 	bOpenedForWrite = PhysicalOpenForWrite();
 
@@ -696,6 +697,10 @@ boolean KWDatabase::Close()
 	// Uniquement dans le cas des bases ouvertes en lecture
 	if (IsOpenedForRead())
 		KWDatabaseMemoryGuard::UninstallMemoryGuardErrorFlowIgnoreFunction();
+
+	// Memorisation des erreur d'encodage en lecture pour les rendre disponibles apres la fermeture de la base
+	if (IsOpenedForRead())
+		GetEncodingErrorNumber();
 
 	// Fermeture physique
 	bOk = PhysicalClose();

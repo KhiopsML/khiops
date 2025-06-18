@@ -645,7 +645,7 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& n
 		i -= iStart;
 
 		// Copie de la fin du champ (y compris le '\0')
-		memmove(sField, &sField[iStart], i + 1);
+		memmove(sField, &sField[iStart], (size_t)i + 1);
 	}
 	assert(sField[i] == '\0');
 

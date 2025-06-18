@@ -331,8 +331,8 @@ int PLSTDatabaseTextFile::ComputeOpenBufferSize(boolean bRead, longint lOpenGran
 	// esclaves)
 	if (bRead)
 	{
-		if (lTotalFileSize / (nProcessNumber * 5) < nBufferSize)
-			nBufferSize = int(lTotalFileSize / (nProcessNumber * 5));
+		if (lTotalFileSize / (nProcessNumber * (longint)5) < nBufferSize)
+			nBufferSize = int(lTotalFileSize / (nProcessNumber * (longint)5));
 		nBufferSize = InputBufferedFile::FitBufferSize(nBufferSize);
 	}
 
