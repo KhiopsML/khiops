@@ -118,8 +118,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 {
 	boolean bOk = true;
 	boolean bTrace = false;
-	int nChunkSize;    // Taille des fichier chunks : un chunk doit tenir en memoire pour etre trier. En parallel P
-			   // chunk en memoire
+	int nChunkSize;    // Taille des fichier chunks : un chunk doit tenir en memoire pour etre trie
 	int nChunkSizeMin; // Taille minimum des chunks pour ne pas (trop) fragmenter le disque
 	longint lObjectNumber;
 	RMTaskResourceRequirement taskRequirement;
@@ -145,8 +144,6 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 	longint lFileSize;
 	ALString sOutputPah;
 	longint lRemainingDisk;
-	int i;
-	int j;
 	PLFileConcatenater concatenater;
 
 	require(sInputFileName != "");
@@ -549,7 +546,7 @@ void KWFileSorter::ComputeChunkSize(longint lFileSize, longint lLineNumber, long
 	// En parallele, on souhaite que chaque esclave traite 4 chunks, pour avoir une bonne repartition des
 	// traitements
 	if (not grantedResources.IsSequentialTask() and
-	    grantedResources.GetSlaveNumber() * nChunkNumberPerSlave * lMaxChunkSize > lFileSize)
+	    grantedResources.GetSlaveNumber() * (longint)nChunkNumberPerSlave * lMaxChunkSize > lFileSize)
 	{
 		if (bTrace)
 			AddMessage(sTmp + "Chunks are too big: we want " + IntToString(nChunkNumberPerSlave) +

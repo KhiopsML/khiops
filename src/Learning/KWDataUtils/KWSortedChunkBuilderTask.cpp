@@ -416,7 +416,6 @@ boolean KWSortedChunkBuilderTask::MasterAggregateResults()
 {
 	KWSortBucket* receivedBucket;
 	KWSortBucket* aggregatedBucket;
-	Object* object;
 	int i;
 	int j;
 
@@ -466,7 +465,6 @@ boolean KWSortedChunkBuilderTask::MasterFinalize(boolean bProcessEndedCorrectly)
 	ALString sSortedFileName;
 	StringVector svFilesToRemove;
 	PLFileConcatenater concatenater;
-	LongintObject* loBucketSize;
 
 	// Nettoyage des resultats si erreur
 	if (not bProcessEndedCorrectly or TaskProgression::IsInterruptionRequested())
@@ -550,7 +548,6 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 	int nBucketToWriteIndex;
 	ObjectArray oaSortBucketsOnUsedMemory;
 	longint lBucketSizeMean;
-	Object* oElement;
 	longint lBeginPos;
 	longint lMaxEndPos;
 	longint lNextLinePos;
@@ -781,7 +778,6 @@ boolean KWSortedChunkBuilderTask::WriteBucket(KWSortBucket* bucketToWrite)
 	boolean bOk;
 	OutputBufferedFile bufferedFile;
 	ALString sBucketFilePath;
-	LongintObject* lBucketSize;
 
 	require(bucketToWrite != NULL);
 	bOk = true;

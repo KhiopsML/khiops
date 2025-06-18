@@ -333,8 +333,6 @@ boolean KWChunkSorterTask::MasterPrepareTaskInput(double& dTaskPercent, boolean&
 	KWSortBucket* bucketToSort;
 	int nTreatedBucketNumber;
 	InputBufferedFile ib;
-	int i;
-	longint lBeginPos;
 
 	// Recherche du prochain bucket a trier
 	bucketToSort = NULL;
@@ -636,8 +634,8 @@ boolean KWChunkSorterTask::SlaveProcess()
 				// Gestion de l'avancement (entre 0 et 25 pour cette partie)
 				if (inputFile->GetCurrentLineIndex() % 100 == 0)
 				{
-					dLocalProgression =
-					    inputFile->GetPositionInBuffer() / inputFile->GetCurrentBufferSize();
+					dLocalProgression = inputFile->GetPositionInBuffer() /
+							    (double)inputFile->GetCurrentBufferSize();
 
 					TaskProgression::DisplayProgression(
 					    int(25.0 *
