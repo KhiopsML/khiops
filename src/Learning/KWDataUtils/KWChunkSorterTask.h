@@ -22,6 +22,7 @@
 // Chaque fichier de bucket doit tenir en memoire
 // Les esclaves chargent un fichier different lors de chaque SlaveProcess
 // Les fichiers en entree sont supprimes a la fin de la tache
+// En cas d'erreur les fichiers de sortie (et les fichier d'entree) sont supprimes
 //
 class KWChunkSorterTask : public PLParallelTask
 {

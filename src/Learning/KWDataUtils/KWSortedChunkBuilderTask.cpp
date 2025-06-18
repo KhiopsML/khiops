@@ -32,10 +32,8 @@ KWSortedChunkBuilderTask::KWSortedChunkBuilderTask()
 	DeclareTaskInput(&input_nBufferSize);
 	DeclareTaskInput(&input_lFilePos);
 
-	DeclareTaskOutput(&output_svBucketIds);
-	DeclareTaskOutput(&output_svBucketFilePath);
-	DeclareTaskOutput(&output_svBucketIds_dictionary);
-	DeclareTaskOutput(&output_ivBucketSize_dictionary);
+	output_oaBuckets = new PLShared_ObjectArray(new PLShared_SortBucket);
+	DeclareTaskOutput(output_oaBuckets);
 
 	shared_cInputFieldSeparator.SetValue('\t');
 }
@@ -43,6 +41,7 @@ KWSortedChunkBuilderTask::KWSortedChunkBuilderTask()
 KWSortedChunkBuilderTask::~KWSortedChunkBuilderTask()
 {
 	delete shared_oaBuckets;
+	delete output_oaBuckets;
 }
 
 void KWSortedChunkBuilderTask::SetFileURI(const ALString& sValue)
@@ -415,10 +414,11 @@ boolean KWSortedChunkBuilderTask::MasterPrepareTaskInput(double& dTaskPercent, b
 
 boolean KWSortedChunkBuilderTask::MasterAggregateResults()
 {
+	KWSortBucket* receivedBucket;
+	KWSortBucket* aggregatedBucket;
+	Object* object;
 	int i;
-	StringVector* svPath;
-	LongintObject* lBucketSize;
-	ALString sBucketId;
+	int j;
 
 	// Si tous les esclaves sont en sommeil, c'est qu'ils ont tous execute le dernier SlaveProcess
 	// Il faut les reveiller pour recevoir l'ordre d'arret
@@ -428,34 +428,31 @@ boolean KWSortedChunkBuilderTask::MasterAggregateResults()
 		bLastSlaveProcessDone = true;
 	}
 
-	// Pour chaque bucket
-	for (i = 0; i < output_svBucketIds.GetSize(); i++)
+	// Reception des buckets (il sont tous envoyes lors du dernier slaveProcess)
+	for (i = 0; i < output_oaBuckets->GetObjectArray()->GetSize(); i++)
 	{
-		svPath = cast(StringVector*, odBucketsFiles.Lookup(output_svBucketIds.GetAt(i)));
+		receivedBucket = cast(KWSortBucket*, output_oaBuckets->GetObjectArray()->GetAt(i));
+		aggregatedBucket = cast(KWSortBucket*, shared_oaBuckets->GetObjectArray()->GetAt(i));
 
-		// Creation d'une nouvelle clef si cet Id n'est pas deja present
-		if (svPath == NULL)
-		{
-			svPath = new StringVector;
-			odBucketsFiles.SetAt(output_svBucketIds.GetAt(i), svPath);
-		}
+		assert(aggregatedBucket->GetId() == receivedBucket->GetId());
 
-		// Ajout du chemin pour cet Id
-		svPath->Add(output_svBucketFilePath.GetAt(i));
-	}
+		// Aggregation des fichiers
+		for (j = 0; j < receivedBucket->GetChunkFileNames()->GetSize(); j++)
+			aggregatedBucket->AddChunkFileName(receivedBucket->GetChunkFileNames()->GetAt(j));
 
-	// Reception du dictionaire id bucket / size bucket
-	for (i = 0; i < output_svBucketIds_dictionary.GetSize(); i++)
-	{
-		sBucketId = output_svBucketIds_dictionary.GetAt(i);
+		// ... de la taille du chunk
+		aggregatedBucket->SetChunkSize(aggregatedBucket->GetChunkSize() + receivedBucket->GetChunkSize());
 
-		lBucketSize = cast(LongintObject*, odIdBucketsSize_master.Lookup(sBucketId));
-		if (lBucketSize == NULL)
-		{
-			lBucketSize = new LongintObject;
-			odIdBucketsSize_master.SetAt(sBucketId, lBucketSize);
-		}
-		lBucketSize->SetLongint(lBucketSize->GetLongint() + output_ivBucketSize_dictionary.GetAt(i));
+		// ... et du nombre de lignes
+		aggregatedBucket->SetLineNumber(aggregatedBucket->GetLineNumber() + receivedBucket->GetLineNumber());
+
+		// Verification que la taille calculee correspond a ce qui est sur le disque
+		debug(; longint lCheckedSize = 0;
+		      for (j = 0; j < aggregatedBucket->GetChunkFileNames()->GetSize(); j++) {
+			      lCheckedSize +=
+				  PLRemoteFileService::GetFileSize(aggregatedBucket->GetChunkFileNames()->GetAt(j));
+		      };
+		      ensure(aggregatedBucket->GetChunkSize() == lCheckedSize););
 	}
 
 	return true;
@@ -467,53 +464,9 @@ boolean KWSortedChunkBuilderTask::MasterFinalize(boolean bProcessEndedCorrectly)
 	KWSortBucket* bucket;
 	StringVector svChunks;
 	ALString sSortedFileName;
-	StringVector* svChunkFileNames;
 	StringVector svFilesToRemove;
 	PLFileConcatenater concatenater;
 	LongintObject* loBucketSize;
-
-	svChunkFileNames = NULL;
-
-	// Verification que la taille des buckets enregistree au long des slaveProcess est bien la bonne (par rapport a
-	// GetFileSize())
-	debug(; ALString sBucketID; Object * oElement; longint lComputeFileSize; StringVector * svBucketFiles;
-	      POSITION position = odIdBucketsSize_master.GetStartPosition(); while (position != NULL) {
-		      odIdBucketsSize_master.GetNextAssoc(position, sBucketID, oElement);
-		      loBucketSize = cast(LongintObject*, oElement);
-		      svBucketFiles = cast(StringVector*, odBucketsFiles.Lookup(sBucketID));
-		      assert(svBucketFiles != NULL);
-		      lComputeFileSize = 0;
-		      for (i = 0; i < svBucketFiles->GetSize(); i++)
-		      {
-			      lComputeFileSize += PLRemoteFileService::GetFileSize(svBucketFiles->GetAt(i));
-		      }
-		      assert(lComputeFileSize == loBucketSize->GetLongint());
-	      });
-
-	// Assignation de la liste des chunks a chaque bucket
-	if (bProcessEndedCorrectly and not TaskProgression::IsInterruptionRequested())
-	{
-		for (i = 0; i < shared_oaBuckets->GetObjectArray()->GetSize(); i++)
-		{
-			// Acces au bucket
-			bucket = cast(KWSortBucket*, shared_oaBuckets->GetObjectArray()->GetAt(i));
-
-			// Acces aux chunks de ce bucket
-			svChunkFileNames = cast(StringVector*, odBucketsFiles.Lookup(bucket->GetId()));
-			assert(svChunkFileNames != NULL);
-
-			// Si le bucket contient des fichiers on les ajoute
-			// (ce n'est pas forcement le cas on peur avoir un singleton [a,a] suivi de ]a,b[ qui peut etre
-			// vide)
-			if (svChunkFileNames != NULL)
-			{
-				bucket->SetChunkFileNames(svChunkFileNames);
-				loBucketSize = cast(LongintObject*, odIdBucketsSize_master.Lookup(bucket->GetId()));
-				if (loBucketSize != NULL)
-					bucket->SetChunkFileSize(loBucketSize->GetLongint());
-			}
-		}
-	}
 
 	// Nettoyage des resultats si erreur
 	if (not bProcessEndedCorrectly or TaskProgression::IsInterruptionRequested())
@@ -532,13 +485,9 @@ boolean KWSortedChunkBuilderTask::MasterFinalize(boolean bProcessEndedCorrectly)
 			else
 			{
 				// Acces aux chunks de ce bucket
-				svChunkFileNames = cast(StringVector*, odBucketsFiles.Lookup(bucket->GetId()));
-				if (svChunkFileNames != NULL)
+				for (j = 0; j < bucket->GetChunkFileNames()->GetSize(); j++)
 				{
-					for (j = 0; j < svChunkFileNames->GetSize(); j++)
-					{
-						svFilesToRemove.Add(svChunkFileNames->GetAt(j));
-					}
+					svFilesToRemove.Add(bucket->GetChunkFileNames()->GetAt(j));
 				}
 			}
 		}
@@ -548,7 +497,6 @@ boolean KWSortedChunkBuilderTask::MasterFinalize(boolean bProcessEndedCorrectly)
 	}
 
 	// Nettoyage
-	odBucketsFiles.DeleteAll();
 	odIdBucketsSize_master.DeleteAll();
 	return not TaskProgression::IsInterruptionRequested();
 }
@@ -602,9 +550,6 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 	int nBucketToWriteIndex;
 	ObjectArray oaSortBucketsOnUsedMemory;
 	longint lBucketSizeMean;
-	POSITION position;
-	ALString sBucketID;
-	LongintObject* nBucketSize;
 	Object* oElement;
 	longint lBeginPos;
 	longint lMaxEndPos;
@@ -613,6 +558,10 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 	int nCumulatedLineNumber;
 	boolean bIsLineOk;
 
+	// Le SlaveProcess a 2 phases:
+	// - la premiere phase (input_bLastRound==true) consite a lire le fichier, remplir les buckets et ecrire le contenu des bucket si il est trop gros
+	// - la seconde phase a lieu quand le fichier a ete lu completement, c'est l'ecriture de tous les buckets. C'est seulement dans cette phase que les buckets
+	//   sont envoyes au maitre (il n'y a rien a aggreger par le maitre avant la derniere phase).
 	if (not input_bLastRound)
 	{
 		// Specification de la portion du fichier a traiter
@@ -651,8 +600,7 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 		keyExtractor.SetBufferedFile(&inputFile);
 
 		// Remplissage du buffer avec des lignes entieres dans la limite de la taille du buffer
-		// On reitere tant que l'on a pas atteint la derniere position pour lire toutes les ligne, y compris la
-		// derniere
+		// On reitere tant que l'on a pas atteint la derniere position pour lire toutes les ligne, y compris la derniere
 		while (bOk and lBeginPos < lMaxEndPos)
 		{
 			bOk = inputFile.FillOuterLinesUntil(lBeginPos, lMaxEndPos, bLineTooLong);
@@ -717,8 +665,7 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 						// Mise a jour de la memoire utilisee
 						lBucketsUsedMemory += (nLineEndPos - nLineBeginPos) * sizeof(char);
 
-						// Ecriture des plus gros bucket si depassement de la memoire de
-						// l'esclave
+						// Ecriture des plus gros bucket si depassement de la memoire de l'esclave
 						if (lBucketsUsedMemory > shared_lMaxSlaveBucketMemory)
 						{
 							// Tri des bucket suivant la memoire utilise
@@ -735,8 +682,7 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 							lBucketSizeMean =
 							    lBucketsUsedMemory / slaveBuckets.GetBucketNumber();
 
-							// Tant que la memoire utilise depasse la moitie de la memoire
-							// autorisee
+							// Tant que la memoire utilise depasse la moitie de la memoire autorisee
 							while (bOk and
 							       lBucketsUsedMemory > shared_lMaxSlaveBucketMemory / 2 and
 							       nBucketToWriteIndex <
@@ -749,12 +695,12 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 
 								// Ecriture du bucket seulement il est plus gros que la
 								// moyenne des tailles des buckets stockes
-								if ((longint)(bucket->GetChunk()->GetSize() *
+								if ((longint)(bucket->GetBuffer()->GetSize() *
 									      sizeof(char)) > lBucketSizeMean)
 								{
 									// Mise a jour de la memoire utilisee
 									lBucketsUsedMemory -=
-									    bucket->GetChunk()->GetSize() *
+									    bucket->GetBuffer()->GetSize() *
 									    sizeof(char);
 
 									// Ecriture du bucket
@@ -778,17 +724,19 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 		if (bOk)
 			SetLocalLineNumber(nCumulatedLineNumber);
 	}
-	else
+	else // if (not input_bLastRound)
 	{
+		// Deniere phase : ecriture du contenu de tous les chunks et serialisation des chunks
+
 		// On determine les buckets a ecrire
 		for (i = 0; i < slaveBuckets.GetBucketNumber(); i++)
 		{
 			bucket = slaveBuckets.GetBucketAt(i);
-			if (bucket->GetChunk()->GetSize() > 0)
+			if (bucket->GetBuffer()->GetSize() > 0)
 				oaBucketsToWrite.Add(bucket);
 		}
 
-		// Parcours des buckets a ecrire
+		// Ecriture des buckets
 		for (i = 0; i < oaBucketsToWrite.GetSize(); i++)
 		{
 			bucket = cast(KWSortBucket*, oaBucketsToWrite.GetAt(i));
@@ -800,24 +748,18 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 				break;
 		}
 
-		// Transfert du dictionnaire bucket Id / bucket size
-		position = odIdBucketsSize_master.GetStartPosition();
-		while (position != NULL)
-		{
-			odIdBucketsSize_master.GetNextAssoc(position, sBucketID, oElement);
-			nBucketSize = cast(LongintObject*, oElement);
-			if (nBucketSize != NULL)
-			{
-				output_ivBucketSize_dictionary.Add(nBucketSize->GetLongint());
-				output_svBucketIds_dictionary.Add(sBucketID);
-			}
-		}
+		// Serialisation des buckets
+		output_oaBuckets->GetObjectArray()->CopyFrom(slaveBuckets.GetBuckets());
 	}
 
 	// Nettoyage en cas d'interruption (les noms des fichiers ne sont pas envoyes au maitre)
 	if (not bOk)
 	{
-		concatenater.RemoveChunks(output_svBucketFilePath.GetConstStringVector());
+		for (i = 0; i < slaveBuckets.GetBucketNumber(); i++)
+		{
+			bucket = slaveBuckets.GetBucketAt(i);
+			concatenater.RemoveChunks(bucket->GetChunkFileNames());
+		}
 	}
 	return bOk;
 }
@@ -826,13 +768,11 @@ boolean KWSortedChunkBuilderTask::SlaveFinalize(boolean bProcessEndedCorrectly)
 {
 	boolean bOk = true;
 
-	odIdBucketsSize_master.DeleteAll();
-
 	// Nettoyage
 	if (inputFile.IsOpened())
 		bOk = inputFile.Close();
 	keyExtractor.Clean();
-	slaveBuckets.DeleteAll();
+	slaveBuckets.RemoveAll();
 	return bOk;
 }
 
@@ -857,8 +797,7 @@ boolean KWSortedChunkBuilderTask::WriteBucket(KWSortBucket* bucketToWrite)
 			bucketToWrite->SetOutputFileName(sBucketFilePath);
 
 			// Envoi au master du nom du chunk associe au bucket
-			output_svBucketIds.Add(bucketToWrite->GetId());
-			output_svBucketFilePath.Add(FileService::BuildLocalURI(sBucketFilePath));
+			bucketToWrite->AddChunkFileName(FileService::BuildLocalURI(sBucketFilePath));
 			bufferedFile.SetFileName(sBucketFilePath);
 			bOk = bufferedFile.Open();
 		}
@@ -873,23 +812,14 @@ boolean KWSortedChunkBuilderTask::WriteBucket(KWSortBucket* bucketToWrite)
 	// Ecriture du contenu du bucket
 	if (bOk)
 	{
-		bOk = bufferedFile.Write(bucketToWrite->GetChunk());
+		bOk = bufferedFile.Write(bucketToWrite->GetBuffer());
 		bOk = bufferedFile.Close() and bOk;
 
 		// Mise a jour de la taille du bucket
-		lBucketSize = cast(LongintObject*, odIdBucketsSize_master.Lookup(bucketToWrite->GetId()));
-		if (lBucketSize == NULL)
-		{
-			lBucketSize = new LongintObject;
-			odIdBucketsSize_master.SetAt(bucketToWrite->GetId(), lBucketSize);
-		}
-		assert(lBucketSize->GetLongint() + bucketToWrite->GetChunk()->GetSize() ==
-		       PLRemoteFileService::GetFileSize(bufferedFile.GetFileName()));
+		bucketToWrite->SetChunkSize(bucketToWrite->GetChunkSize() + bucketToWrite->GetBuffer()->GetSize());
 
-		lBucketSize->SetLongint(lBucketSize->GetLongint() + bucketToWrite->GetChunk()->GetSize());
-
-		// On vide le bucket
-		bucketToWrite->GetChunk()->SetSize(0);
+		// On vide le contenu du bucket
+		bucketToWrite->GetBuffer()->SetSize(0);
 	}
 	else
 		AddError("Cannot open file  " + bufferedFile.GetFileName());
