@@ -569,7 +569,7 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 	int nCumulatedLineNumber;
 	boolean bIsLineOk;
 
-	// Memorisation du nombre d'erreur d'encodage initiales
+	// Memorisation du nombre d'erreurs d'encodage initiales
 	lSlaveEncodingErrorNumber = inputFile.GetEncodingErrorNumber();
 
 	// Le SlaveProcess a 2 phases:

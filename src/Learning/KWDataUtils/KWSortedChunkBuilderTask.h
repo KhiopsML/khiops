@@ -64,7 +64,7 @@ public:
 	// - la taille de l'ensemble de ses fichiers
 	boolean BuildSortedChunks(const KWSortBuckets* buckets);
 
-	// Nombre d'erreur d'encodage detectees
+	// Nombre d'erreurs d'encodage detectees
 	longint GetEncodingErrorNumber() const;
 
 	// Methode de test
@@ -139,7 +139,7 @@ protected:
 	// Fichier en lecture
 	InputBufferedFile inputFile;
 
-	// Nombre d'erreur d'encodage detectees
+	// Nombre d'erreurs d'encodage detectees
 	PLShared_Longint output_lEncodingErrorNumber;
 
 	///////////////////////////////////////////////////////////

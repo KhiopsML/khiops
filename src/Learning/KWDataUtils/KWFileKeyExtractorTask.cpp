@@ -20,6 +20,7 @@ KWFileKeyExtractorTask::KWFileKeyExtractorTask()
 	nReadSizeMax = 0;
 	nWriteSizeMin = 0;
 	nWriteSizeMax = 0;
+	lEncodingErrorNumber = 0;
 
 	// Parametres du programme
 	DeclareSharedParameter(&shared_ivKeyFieldIndexes);
@@ -37,6 +38,7 @@ KWFileKeyExtractorTask::KWFileKeyExtractorTask()
 	DeclareTaskOutput(&output_lExtractedKeyNumber);
 	DeclareTaskOutput(&output_sChunkFileName);
 	DeclareTaskOutput(&output_nReadLineCount);
+	DeclareTaskOutput(&output_lEncodingErrorNumber);
 }
 
 KWFileKeyExtractorTask::~KWFileKeyExtractorTask() {}
@@ -185,6 +187,13 @@ longint KWFileKeyExtractorTask::GetLineNumber() const
 {
 	require(IsJobDone());
 	return lReadLineNumber;
+}
+
+longint KWFileKeyExtractorTask::GetEncodingErrorNumber() const
+{
+
+	require(IsJobDone());
+	return lEncodingErrorNumber;
 }
 
 const ALString KWFileKeyExtractorTask::GetObjectLabel() const
@@ -339,6 +348,7 @@ boolean KWFileKeyExtractorTask::MasterInitialize()
 	// Initialisation des variables aggregees
 	lExtractedKeyNumber = 0;
 	lReadLineNumber = 0;
+	lEncodingErrorNumber = 0;
 
 	// Initialisation du fichier en entree
 	shared_sInputFileName.SetValue(sInputFileName);
@@ -424,7 +434,11 @@ boolean KWFileKeyExtractorTask::MasterAggregateResults()
 	assert(svChunkFileNames.GetAt(GetTaskIndex()) == "");
 	svChunkFileNames.SetAt(GetTaskIndex(), output_sChunkFileName.GetValue());
 
+	// Mise a jout du nombre de lignes
 	lReadLineNumber += output_nReadLineCount;
+
+	// Mise a jour du nombre d'erreurs d'encodage
+	lEncodingErrorNumber += output_lEncodingErrorNumber;
 	return true;
 }
 
@@ -509,6 +523,7 @@ boolean KWFileKeyExtractorTask::SlaveInitialize()
 boolean KWFileKeyExtractorTask::SlaveProcess()
 {
 	boolean bOk = true;
+	longint lSlaveEncodingErrorNumber;
 	KWKey* previousKey;
 	KWKey* key;
 	int nCompareKey;
@@ -528,6 +543,9 @@ boolean KWFileKeyExtractorTask::SlaveProcess()
 	ALString sTmp;
 	ALString sObjectLabel;
 	ALString sOtherObjectLabel;
+
+	// Memorisation du nombre d'erreurs d'encodage initiales
+	lSlaveEncodingErrorNumber = inputFile.GetEncodingErrorNumber();
 
 	// Initialisation du resultat
 	output_lExtractedKeyNumber = 0;
@@ -705,6 +723,10 @@ boolean KWFileKeyExtractorTask::SlaveProcess()
 
 	if (sChunkFileName != "" and not bOk)
 		FileService::RemoveFile(sChunkFileName);
+
+	// Nombre d'erreurs d'encodage detectees dans la methode, par difference avec le nombre d'erreurs initiales
+	lSlaveEncodingErrorNumber = inputFile.GetEncodingErrorNumber() - lSlaveEncodingErrorNumber;
+	output_lEncodingErrorNumber = lSlaveEncodingErrorNumber;
 
 	if (bOk)
 	{
