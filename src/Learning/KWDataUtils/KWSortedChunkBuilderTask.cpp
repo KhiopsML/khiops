@@ -16,6 +16,7 @@ KWSortedChunkBuilderTask::KWSortedChunkBuilderTask()
 	nReadSizeMin = 0;
 	nReadSizeMax = 0;
 	nReadBufferSize = 0;
+	lEncodingErrorNumber = 0;
 
 	// Variables partagees
 	DeclareSharedParameter(&shared_ivKeyFieldIndexes);
@@ -34,6 +35,7 @@ KWSortedChunkBuilderTask::KWSortedChunkBuilderTask()
 
 	output_oaBuckets = new PLShared_ObjectArray(new PLShared_SortBucket);
 	DeclareTaskOutput(output_oaBuckets);
+	DeclareTaskOutput(&output_lEncodingErrorNumber);
 
 	shared_cInputFieldSeparator.SetValue('\t');
 }
@@ -126,6 +128,13 @@ boolean KWSortedChunkBuilderTask::BuildSortedChunks(const KWSortBuckets* buckets
 	// Nettoyage
 	shared_oaBuckets->Clean();
 	return bOk;
+}
+
+longint KWSortedChunkBuilderTask::GetEncodingErrorNumber() const
+{
+
+	require(IsJobDone());
+	return lEncodingErrorNumber;
 }
 
 void KWSortedChunkBuilderTask::Test()
@@ -288,6 +297,7 @@ boolean KWSortedChunkBuilderTask::MasterInitialize()
 
 	// Initialisation des attributs
 	bLastSlaveProcessDone = false;
+	lEncodingErrorNumber = 0;
 
 	// Test si fichier d'entree present
 	if (not PLRemoteFileService::FileExists(shared_sFileName.GetValue()))
@@ -454,6 +464,9 @@ boolean KWSortedChunkBuilderTask::MasterAggregateResults()
 		      ensure(aggregatedBucket->GetChunkSize() == lCheckedSize););
 	}
 
+	// Mise a jour du nombre d'erreurs d'encodage
+	lEncodingErrorNumber += output_lEncodingErrorNumber;
+
 	return true;
 }
 
@@ -536,6 +549,7 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 {
 	boolean bOk = true;
 	boolean bTrace = false;
+	longint lSlaveEncodingErrorNumber;
 	KWKey key;
 	int i;
 	double dProgression;
@@ -554,6 +568,9 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 	boolean bLineTooLong;
 	int nCumulatedLineNumber;
 	boolean bIsLineOk;
+
+	// Memorisation du nombre d'erreur d'encodage initiales
+	lSlaveEncodingErrorNumber = inputFile.GetEncodingErrorNumber();
 
 	// Le SlaveProcess a 2 phases:
 	// - la premiere phase (input_bLastRound==true) consite a lire le fichier, remplir les buckets et ecrire le contenu des bucket si il est trop gros
@@ -749,6 +766,10 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 		// Serialisation des buckets
 		output_oaBuckets->GetObjectArray()->CopyFrom(slaveBuckets.GetBuckets());
 	}
+
+	// Nombre d'erreurs d'encodage detectees dans la methode, par difference avec le nombre d'erreurs initiales
+	lSlaveEncodingErrorNumber = inputFile.GetEncodingErrorNumber() - lSlaveEncodingErrorNumber;
+	output_lEncodingErrorNumber = lSlaveEncodingErrorNumber;
 
 	// Nettoyage en cas d'interruption (les noms des fichiers ne sont pas envoyes au maitre)
 	if (not bOk)

@@ -64,6 +64,9 @@ public:
 	// - la taille de l'ensemble de ses fichiers
 	boolean BuildSortedChunks(const KWSortBuckets* buckets);
 
+	// Nombre d'erreur d'encodage detectees
+	longint GetEncodingErrorNumber() const;
+
 	// Methode de test
 	static void Test();
 
@@ -118,6 +121,9 @@ protected:
 	int nReadSizeMax;
 	int nReadBufferSize;
 
+	// Nombre d'erreurs d'encodage detectees impliquant des double quotes manquants
+	longint lEncodingErrorNumber;
+
 	//////////////////////////////////////////////////////
 	// Variables du Slave
 
@@ -132,6 +138,9 @@ protected:
 
 	// Fichier en lecture
 	InputBufferedFile inputFile;
+
+	// Nombre d'erreur d'encodage detectees
+	PLShared_Longint output_lEncodingErrorNumber;
 
 	///////////////////////////////////////////////////////////
 	// Parametres partages par le maitre et les esclaves
