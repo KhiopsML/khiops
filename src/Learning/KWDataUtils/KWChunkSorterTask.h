@@ -85,6 +85,9 @@ public:
 	// Nombre de lignes triees
 	longint GetSortedLinesNumber();
 
+	// Nombre d'erreur d'encodage detectees
+	longint GetEncodingErrorNumber() const;
+
 	///////////////////////////////////////////////////////////////
 	// Services divers
 
@@ -142,6 +145,9 @@ protected:
 	// Resultat en plus du fichier trie
 	longint lSortedLinesNumber;
 
+	// Nombre d'erreurs d'encodage detectees impliquant des double quotes manquants
+	longint lEncodingErrorNumber;
+
 	///////////////////////////////////////////////////////////
 	// Parametres partages
 
@@ -156,6 +162,7 @@ protected:
 	PLShared_Int output_nBucketIndex; // Index du bucket trie (recopie d'apres la variable correspondante en entree)
 	PLShared_String output_sOutputFileName; // Nom du fichier resultat du tri
 	PLShared_Longint output_nLinesSortedNumber;
+	PLShared_Longint output_lEncodingErrorNumber;
 
 	// Partages entre maitre et esclave
 	PLShared_IntVector shared_ivKeyFieldIndexes; // Index des champs de la cle

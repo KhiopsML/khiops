@@ -169,10 +169,12 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 	// Debut du timer
 	timerSort.Start();
 
+	// Initialisations
 	lObjectNumber = 0;
 	bIsInterruptedByUser = false;
 	lMeanKeySize = 0;
 	lLineNumber = 0;
+	nChunkSize = 0;
 	lFileSize = PLRemoteFileService::GetFileSize(sInputFileName);
 
 	// Cas d'un fichier vide ou inexistant

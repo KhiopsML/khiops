@@ -12,6 +12,7 @@ KWChunkSorterTask::KWChunkSorterTask()
 	buckets = NULL;
 	nCurrentBucketIndexToSort = 0;
 	lSortedLinesNumber = 0;
+	lEncodingErrorNumber = 0;
 	lLineNumber = 0;
 	lKeySize = 0;
 	lBucketSize = 0;
@@ -25,6 +26,7 @@ KWChunkSorterTask::KWChunkSorterTask()
 	DeclareTaskOutput(&output_nBucketIndex);
 	DeclareTaskOutput(&output_sOutputFileName);
 	DeclareTaskOutput(&output_nLinesSortedNumber);
+	DeclareTaskOutput(&output_lEncodingErrorNumber);
 
 	// Variables partagees
 	DeclareSharedParameter(&shared_bHeaderLineUsed);
@@ -154,6 +156,13 @@ longint KWChunkSorterTask::GetSortedLinesNumber()
 {
 	require(IsJobDone());
 	return lSortedLinesNumber;
+}
+
+longint KWChunkSorterTask::GetEncodingErrorNumber() const
+{
+
+	require(IsJobDone());
+	return lEncodingErrorNumber;
 }
 
 void KWChunkSorterTask::Test()
@@ -321,6 +330,7 @@ boolean KWChunkSorterTask::MasterInitialize()
 	svResultFileNames.SetSize(0);
 	nCurrentBucketIndexToSort = 0;
 	lSortedLinesNumber = 0;
+	lEncodingErrorNumber = 0;
 	shared_bHeaderLineUsed = bIsInputHeaderLineUsed;
 	shared_bOnlyOneBucket = buckets->GetBucketNumber() == 1;
 	shared_lBucketSize = lBucketSize;
@@ -392,6 +402,9 @@ boolean KWChunkSorterTask::MasterAggregateResults()
 
 	// Mise a jour du nombre de lignes triees
 	lSortedLinesNumber += output_nLinesSortedNumber;
+
+	// Mise a jour du nombre d'erreurs d'encodage
+	lEncodingErrorNumber += output_lEncodingErrorNumber;
 	return true;
 }
 
@@ -457,7 +470,8 @@ boolean KWChunkSorterTask::SlaveProcess()
 {
 	boolean bOk;
 	ALString sOutputFileName;
-	int nObjectNumer;
+	int nObjectNumber;
+	longint lSlaveEncodingErrorNumber;
 	KWKeyExtractor keysExtractor;
 	ObjectArray oaKeyLines;
 	KWKeyLinePair* keyLine;
@@ -492,7 +506,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 
 	// Initialisations
 	outputFile = NULL;
-	nObjectNumer = 0;
+	nObjectNumber = 0;
 	lOneBucketFileSize = 0;
 	lCumulatedFileSize = 0;
 	memoryFile.SetFieldSeparator(shared_cInputSeparator.GetValue());
@@ -521,7 +535,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 		// Suivi de la tache
 		TaskProgression::DisplayProgression(0);
 
-		nObjectNumer = 0;
+		nObjectNumber = 0;
 
 		// Lecture de chaque chunk : remplissage d'un inputBuffer par chunk et stockage de ces buffers dans un
 		// tableau
@@ -560,7 +574,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 			}
 
 			// Prise en compte du nombre de lignes
-			nObjectNumer += inputFile->GetBufferLineNumber();
+			nObjectNumber += inputFile->GetBufferLineNumber();
 
 			// Prise en compte de la taille du buffer courante, qui peut etre plus petite que la taille du
 			// fichier si un BOM est saute
@@ -598,7 +612,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 			{
 				assert(GetTaskIndex() == 0);
 				inputFile->SkipLine(bLineTooLong);
-				nObjectNumer--;
+				nObjectNumber--;
 
 				// Ne pas oublier de retirer la longueur de la ligne d'entete
 				lCumulatedFileSize -= inputFile->GetPositionInBuffer();
@@ -625,7 +639,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 				else
 				{
 					delete key;
-					nObjectNumer--;
+					nObjectNumber--;
 
 					// Ne pas oublier de retirer la longueur de la ligne trop longue
 					lCumulatedFileSize -= (longint)nLineEndPos - nLineBeginPos;
@@ -767,12 +781,16 @@ boolean KWChunkSorterTask::SlaveProcess()
 		}
 	}
 
-	// Fermeture des fichiers ouverts en lecture
+	// Fermeture des fichiers ouverts en lecture, avec comptage des erreur d'encodage
+	lSlaveEncodingErrorNumber = 0;
 	for (i = 0; i < oaBufferedFiles.GetSize(); i++)
 	{
 		inputFile = cast(InputBufferedFile*, oaBufferedFiles.GetAt(i));
 		if (inputFile->IsOpened())
+		{
+			lSlaveEncodingErrorNumber += inputFile->GetEncodingErrorNumber();
 			inputFile->Close();
+		}
 	}
 
 	// Nettoyage
@@ -780,7 +798,8 @@ boolean KWChunkSorterTask::SlaveProcess()
 	oaBufferedFiles.DeleteAll();
 
 	// Envoi des resultats
-	output_nLinesSortedNumber = nObjectNumer;
+	output_nLinesSortedNumber = nObjectNumber;
+	output_lEncodingErrorNumber = lSlaveEncodingErrorNumber;
 	output_sOutputFileName.SetValue(FileService::BuildLocalURI(sOutputFileName));
 
 	// Recopie en sortie de l'index du bucket, ce qui permet au maitre de retrouver son bucket

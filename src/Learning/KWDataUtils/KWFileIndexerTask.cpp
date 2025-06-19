@@ -208,7 +208,6 @@ boolean KWFileIndexerTask::MasterAggregateResults()
 	require(oaMasterFileStartLinePositionVectors.GetAt(GetTaskIndex()) == NULL);
 	require(oaMasterBufferLineCountVectors.GetAt(GetTaskIndex()) == NULL);
 	require(output_lvFileStartLinePositions.GetSize() == output_ivBufferLineCounts.GetSize());
-	require(output_ivBufferLineCounts.GetSize() >= 1);
 
 	// Memorisation en position TaskIndex des resultats de l'esclave
 	oaMasterFileStartLinePositionVectors.SetAt(
