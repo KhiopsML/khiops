@@ -1203,6 +1203,9 @@ void KWDatabase::AddEncodingErrorMessage() const
 
 	require(lEncodingErrorNumber >= 0);
 
+	// Rafraichissement des eventuelles erreurs d'encodage
+	GetEncodingErrorNumber();
+
 	// Affichage unique si erreur d'encodage
 	if (lEncodingErrorNumber > 0)
 	{

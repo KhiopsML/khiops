@@ -719,6 +719,10 @@ KNI_API int KNICloseStream(int hStream)
 		// Recherche du stream
 		kniStream = KNIGetOpenedStreamAt(hStream);
 
+		// Message sur les eventuelles erreurs d'encodage
+		if (kniStream->GetInputStream()->IsOpenedForRead())
+			kniStream->GetInputStream()->AddEncodingErrorMessage();
+
 		// Fermeture si necessaire
 		if (kniStream->GetInputStream()->IsOpenedForRead())
 			kniStream->GetInputStream()->Close();

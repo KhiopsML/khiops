@@ -807,7 +807,7 @@ def check_results(test_dir, forced_context=None):
                 error_number == error_number_in_err_txt
             )
 
-        # Filtrage d'un certain type de warning pour recommencer la comaraison
+        # Filtrage d'un certain type de warning pour recommencer la comparaison
         if varying_warning_messages_in_err_txt_recovery:
             # Acces aux lignes des fichier
             ref_file_lines = erroneous_ref_file_lines.get(kht.ERR_TXT)

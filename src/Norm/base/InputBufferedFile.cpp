@@ -902,7 +902,7 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 				}
 				// KO si on trouve un double quote isole au milieu du champ
 				//  On continue quand-meme a parser pour recuperer l'erreur
-				//  On memorise neanmoins de double quote isole
+				//  On memorise neanmoins le double quote isole
 				else
 				{
 					assert(c != '"');
@@ -1110,7 +1110,7 @@ boolean InputBufferedFile::SkipDoubleQuoteField(int& nFieldError)
 				}
 				// KO si on trouve un double quote isole au milieu du champ
 				//  On continue quand-meme a parser pour recuperer l'erreur
-				//  On memorise neanmoins de double quote isole
+				//  On memorise neanmoins le double quote isole
 				else
 				{
 					assert(c != '"');
