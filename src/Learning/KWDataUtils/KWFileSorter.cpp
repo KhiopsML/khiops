@@ -553,7 +553,7 @@ void KWFileSorter::ComputeChunkSize(longint lFileSize, longint lLineNumber, long
 				   " chunks per slave");
 
 		// Calcul de la taille optimale : 4 chunks par esclave
-		lChunkSize = lFileSize / (nChunkNumberPerSlave * grantedResources.GetSlaveNumber());
+		lChunkSize = lFileSize / ((longint)nChunkNumberPerSlave * grantedResources.GetSlaveNumber());
 
 		// TODO BG: eviter la boucle si possible
 		// Par contre on veut eviter que lChunkSize==nChunkSizeMin pour donner de la latitude a l'algo de DeWitt
@@ -562,7 +562,7 @@ void KWFileSorter::ComputeChunkSize(longint lFileSize, longint lLineNumber, long
 		int nbChunks = nChunkNumberPerSlave - 1;
 		while (dDeWittRatio * lChunkSize < lMinChunkSize and nbChunks > 1)
 		{
-			lChunkSize = lFileSize / (nbChunks * grantedResources.GetSlaveNumber());
+			lChunkSize = lFileSize / ((longint)nbChunks * grantedResources.GetSlaveNumber());
 			nbChunks--;
 		}
 		lChunkSize = min(lMaxChunkSize, lChunkSize);

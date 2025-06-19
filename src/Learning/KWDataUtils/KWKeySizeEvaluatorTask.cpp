@@ -129,7 +129,7 @@ boolean KWKeySizeEvaluatorTask::ComputeResourceRequirements()
 
 	// Pour la memoire max, on ne veut souhaite pas lire plus de 64Mo et on veut un arrondi par un multiple de
 	// GetPreferredBufferSize
-	lReadMemoryMax = (SystemFile::nMaxPreferredBufferSize / nPreferredSize) * nPreferredSize;
+	lReadMemoryMax = ((longint)SystemFile::nMaxPreferredBufferSize / nPreferredSize) * nPreferredSize;
 	lReadMemoryMax = max(lReadMemoryMax, lSlaveMemoryMin);
 	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMax(lReadMemoryMax);
 
@@ -185,7 +185,7 @@ boolean KWKeySizeEvaluatorTask::MasterInitialize()
 	assert(nBufferSize != 0);
 
 	// Reduction de la taille et du nombre de buffers si le fichier est trop petit
-	if (lInputFileSize < nBufferNumber * nBufferSize)
+	if (lInputFileSize < (longint)nBufferNumber * nBufferSize)
 	{
 		nBufferSize = (int)(lInputFileSize / nMinBufferNumber);
 		if (nBufferSize > nPreferredBufferSize)
@@ -195,7 +195,7 @@ boolean KWKeySizeEvaluatorTask::MasterInitialize()
 		if (nBufferSize < nMinBufferSize)
 		{
 			nBufferSize = nMinBufferSize;
-			if (nBufferNumber * nBufferSize > lInputFileSize)
+			if (nBufferNumber * (longint)nBufferSize > lInputFileSize)
 				nBufferNumber = (int)ceil(lInputFileSize * 1.0 / nBufferSize);
 		}
 	}

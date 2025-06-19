@@ -319,9 +319,9 @@ boolean KWSortedChunkBuilderTask::MasterInitialize()
 				   LongintToHumanReadableString(lReadBufferSize));
 
 		// Chaque esclave doit lire au moins 5 buffer (pour que le travail soit bien reparti entre les esclaves)
-		if (lInputFileSize / (GetProcessNumber() * 5) < lReadBufferSize)
+		if (lInputFileSize / (GetProcessNumber() * (longint)5) < lReadBufferSize)
 		{
-			lReadBufferSize = lInputFileSize / (GetProcessNumber() * 5);
+			lReadBufferSize = lInputFileSize / (GetProcessNumber() * (longint)5);
 			if (GetVerbose())
 				AddMessage(sTmp + "Read buffer size reduced to " +
 					   LongintToHumanReadableString(lReadBufferSize));
@@ -350,9 +350,9 @@ boolean KWSortedChunkBuilderTask::MasterInitialize()
 		assert(shared_lMaxSlaveBucketMemory > (longint)lBucketsSizeMin);
 
 		// On borne de telle sorte que chaque esclave vide 5 fois son buffer
-		if (lInputFileSize / (GetProcessNumber() * 5) < shared_lMaxSlaveBucketMemory)
+		if (lInputFileSize / (GetProcessNumber() * (longint)5) < shared_lMaxSlaveBucketMemory)
 		{
-			shared_lMaxSlaveBucketMemory = lInputFileSize / (GetProcessNumber() * 5);
+			shared_lMaxSlaveBucketMemory = lInputFileSize / (GetProcessNumber() * (longint)5);
 			if (GetVerbose())
 				AddMessage(sTmp + "Buckets size shrunk for 5 dumps " +
 					   LongintToHumanReadableString(shared_lMaxSlaveBucketMemory));
@@ -660,7 +660,8 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 						slaveBuckets.AddLineAtKey(&key, &cvLine);
 
 						// Mise a jour de la memoire utilisee
-						lBucketsUsedMemory += (nLineEndPos - nLineBeginPos) * sizeof(char);
+						lBucketsUsedMemory +=
+						    ((longint)nLineEndPos - nLineBeginPos) * sizeof(char);
 
 						// Ecriture des plus gros bucket si depassement de la memoire de l'esclave
 						if (lBucketsUsedMemory > shared_lMaxSlaveBucketMemory)

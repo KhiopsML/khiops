@@ -628,7 +628,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 					nObjectNumer--;
 
 					// Ne pas oublier de retirer la longueur de la ligne trop longue
-					lCumulatedFileSize -= nLineEndPos - nLineBeginPos;
+					lCumulatedFileSize -= (longint)nLineEndPos - nLineBeginPos;
 				}
 
 				// Gestion de l'avancement (entre 0 et 25 pour cette partie)

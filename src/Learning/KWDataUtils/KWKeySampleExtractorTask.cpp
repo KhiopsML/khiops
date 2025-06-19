@@ -355,9 +355,9 @@ boolean KWKeySampleExtractorTask::MasterInitialize()
 		AddMessage(sTmp + "Computed max buffer size " + LongintToHumanReadableString(nBufferSize));
 
 	// Chaque esclave doit lire au moins 5 buffers (pour que le travail soit bien reparti entre les esclaves)
-	if (lInputFileSize / (GetProcessNumber() * 5) < nBufferSize)
+	if (lInputFileSize / (GetProcessNumber() * (longint)5) < nBufferSize)
 	{
-		nBufferSize = InputBufferedFile::FitBufferSize(lInputFileSize / (GetProcessNumber() * 5));
+		nBufferSize = InputBufferedFile::FitBufferSize(lInputFileSize / (GetProcessNumber() * (longint)5));
 		if (GetVerbose())
 			AddMessage(sTmp + "Buffer size reduced to " + LongintToHumanReadableString(nBufferSize));
 	}

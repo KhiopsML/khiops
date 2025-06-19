@@ -1144,10 +1144,6 @@ KWDataTableDriver* KWMTDatabase::CreateDataTableDriver(KWMTDatabaseMapping* mapp
 
 longint KWMTDatabase::GetEncodingErrorNumber() const
 {
-	KWMTDatabaseMapping* mapping;
-	KWDataTableDriver* mappedDataTableDriver;
-	int i;
-
 	// Collecte des erreur d'encodage uniquement si la base est ouverte en lecture
 	// Sinon, on renvoie les erreurs memorisees au moment de la fermeture
 	if (IsOpenedForRead())
