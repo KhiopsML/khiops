@@ -333,7 +333,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 				lEncodingErrorNumber = max(lEncodingErrorNumber, lSplitEncodingErrorNumber);
 
 				// Les prochaines passes potentielles de split se feront en mode silencieux, pour eviter
-				// de geere plusieurs fois les messages d'erreur
+				// de gerer plusieurs fois les messages d'erreur
 				bSplitSilentMode = true;
 
 				// subBuckets est NULL en cas d'erreur ou d'arret utilisateur
