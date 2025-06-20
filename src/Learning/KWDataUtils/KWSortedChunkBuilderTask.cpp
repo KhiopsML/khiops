@@ -28,6 +28,7 @@ KWSortedChunkBuilderTask::KWSortedChunkBuilderTask()
 	DeclareSharedParameter(&shared_cInputFieldSeparator);
 	DeclareSharedParameter(&shared_lFileSize);
 	DeclareSharedParameter(&shared_lMaxSlaveBucketMemory);
+	DeclareSharedParameter(&shared_bSilentMode);
 
 	DeclareTaskInput(&input_bLastRound);
 	DeclareTaskInput(&input_nBufferSize);
@@ -84,6 +85,16 @@ IntVector* KWSortedChunkBuilderTask::GetKeyFieldIndexes()
 const IntVector* KWSortedChunkBuilderTask::GetConstKeyFieldIndexes() const
 {
 	return shared_ivKeyFieldIndexes.GetConstIntVector();
+}
+
+void KWSortedChunkBuilderTask::SetSilentMode(boolean bValue)
+{
+	shared_bSilentMode = bValue;
+}
+
+boolean KWSortedChunkBuilderTask::GetSilentMode() const
+{
+	return shared_bSilentMode;
 }
 
 boolean KWSortedChunkBuilderTask::BuildSortedChunks(const KWSortBuckets* buckets)
@@ -550,6 +561,7 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 	boolean bOk = true;
 	boolean bTrace = false;
 	longint lSlaveEncodingErrorNumber;
+	PLParallelTask* errorSender;
 	KWKey key;
 	int i;
 	double dProgression;
@@ -568,6 +580,12 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 	boolean bLineTooLong;
 	int nCumulatedLineNumber;
 	boolean bIsLineOk;
+
+	// On n'emet pas les messages en mode silencieux
+	if (shared_bSilentMode)
+		errorSender = NULL;
+	else
+		errorSender = this;
 
 	// Memorisation du nombre d'erreurs d'encodage initiales
 	lSlaveEncodingErrorNumber = inputFile.GetEncodingErrorNumber();
@@ -659,7 +677,7 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 					}
 
 					// Extraction de la clef
-					bIsLineOk = keyExtractor.ParseNextKey(&key, this);
+					bIsLineOk = keyExtractor.ParseNextKey(&key, errorSender);
 
 					// Ajout de la ligne dans le bucket approprie
 					if (bIsLineOk)

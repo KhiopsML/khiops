@@ -1206,27 +1206,8 @@ void KWDatabase::AddEncodingErrorMessage() const
 	// Rafraichissement des eventuelles erreurs d'encodage
 	GetEncodingErrorNumber();
 
-	// Affichage unique si erreur d'encodage
-	if (lEncodingErrorNumber > 0)
-	{
-
-		// Specialisation dans le cs d'une seule erreur
-		if (lEncodingErrorNumber == 1)
-			sMessage = "As one encoding error related to missing double quotes has been identified";
-		// Cas avec plusieurs erreur
-		else
-			sMessage = sMessage + "As " + LongintToString(lEncodingErrorNumber) +
-				   " encoding errors related to missing double quotes have been identified";
-
-		// Fin du message
-		sMessage += ", your database may include multi-line fields.";
-		sMessage += " It is recommended to recode it using single-line encoding.";
-
-		// Affichage en isolant la ligne d'erreur entre deux lignes blanches
-		AddSimpleMessage("");
-		AddError(sMessage);
-		AddSimpleMessage("");
-	}
+	// Utilisation du service de InputBufferedFile pour formatter le message
+	InputBufferedFile::AddEncodingErrorMessage(lEncodingErrorNumber, this);
 }
 
 longint KWDatabase::GetEncodingErrorNumber() const

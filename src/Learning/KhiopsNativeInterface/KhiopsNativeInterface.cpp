@@ -96,7 +96,7 @@ void KNICreateEnv()
 		// Initialisation de l'environnement
 		kniEnvLearningProject->Begin();
 
-		// On remet la fonction d'affichage des erreur a NULL
+		// On remet la fonction d'affichage des erreurs a NULL
 		// car l'initialisation de l'environnement repositionne cette fonction
 		Error::SetDisplayErrorFunction(NULL);
 

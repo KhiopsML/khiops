@@ -385,7 +385,7 @@ boolean KWPredictorEvaluator::EvaluatePredictors(ObjectArray* oaPredictors, KWDa
 		    sTmp + "Evaluated predictors: " + IntToString(oaOutputPredictorEvaluations->GetSize()));
 		TaskProgression::EndTask();
 
-		// Affichage d'un eventuel message d'erreur sur les erreurs d'encodage
+		// Message sur les eventuelles erreurs d'encodage
 		if (bOk)
 		{
 			database->SetEncodingErrorNumber(lEncodingErrorNumber);

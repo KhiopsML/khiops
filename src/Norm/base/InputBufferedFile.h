@@ -187,6 +187,10 @@ public:
 	// Libelle d'erreur associe a une ligne trop longue
 	static const ALString GetLineTooLongErrorLabel();
 
+	// Service d'affichage d'un message standard concernant les erreurs d'encodage avec double quotes manquants
+	// Sans effet si pas d'erreur d'encodage
+	static void AddEncodingErrorMessage(longint lErrorNumber, const Object* errorSender);
+
 	// Lecture du prochain champ d'une ligne, qui est rendu nettoye des blancs de debut et de fin
 	// La chaine en parametre contient en retour le contenu du champ, termine par le caractere '\0'.
 	// Le parametre sField est a declarer en variable locale dans la methode appelante.

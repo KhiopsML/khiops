@@ -536,6 +536,36 @@ const ALString InputBufferedFile::GetLineTooLongErrorLabel()
 	return sTmp + "line too long (beyond " + IntToString(GetMaxLineLength()) + " characters)";
 }
 
+void InputBufferedFile::AddEncodingErrorMessage(longint lErrorNumber, const Object* errorSender)
+{
+	ALString sMessage;
+
+	require(lErrorNumber >= 0);
+	require(errorSender != NULL);
+
+	// Affichage unique si erreur d'encodage
+	if (lErrorNumber > 0)
+	{
+
+		// Specialisation dans le cs d'une seule erreur
+		if (lErrorNumber == 1)
+			sMessage = "As one encoding error related to missing double quotes has been identified";
+		// Cas avec plusieurs erreur
+		else
+			sMessage = sMessage + "As " + LongintToString(lErrorNumber) +
+				   " encoding errors related to missing double quotes have been identified";
+
+		// Fin du message
+		sMessage += ", your database may include multi-line fields.";
+		sMessage += " It is recommended to recode it using single-line encoding.";
+
+		// Affichage en isolant la ligne d'erreur entre deux lignes blanches
+		errorSender->AddSimpleMessage("");
+		errorSender->AddError(sMessage);
+		errorSender->AddSimpleMessage("");
+	}
+}
+
 boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& nFieldError, boolean& bLineTooLong)
 {
 	boolean bUnconditionalLoop = true; // Pour eviter un warning dans la boucle

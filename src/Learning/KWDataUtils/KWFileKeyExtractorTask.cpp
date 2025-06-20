@@ -173,6 +173,10 @@ boolean KWFileKeyExtractorTask::ExtractKeys(boolean bDisplayUserMessage)
 			AddSimpleMessage(sTmp + "Extracted keys: " + LongintToReadableString(GetExtractedKeyNumber()) +
 					 " keys from " + LongintToReadableString(GetLineNumber()) +
 					 " records (Extraction time: " + SecondsToString(GetJobElapsedTime()) + ")");
+
+		// Message sur les eventuelles erreurs d'encodage
+		if (bOk)
+			InputBufferedFile::AddEncodingErrorMessage(lEncodingErrorNumber, this);
 	}
 	return bOk;
 }
