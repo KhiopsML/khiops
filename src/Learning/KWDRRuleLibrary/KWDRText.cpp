@@ -133,7 +133,7 @@ Symbol KWDRTextLoadFile::ComputeTextResult(const KWObject* kwoObject) const
 				}
 				nTextLength -= nStart;
 
-				// S'il y a risque de depassement de la taille limites des Text en doublant les doubles quotes
+				// S'il y a risque de depassement de la taille limite des Text en doublant les doubles quotes
 				// et en inserant la valeur entre 2 doubles-quote (cas ou la valeur contient le separateur
 				// de champ des fichiers tabulaires), on diminue la taille du texte en proportion
 				if (nTextLength + 2 + nDoubleQuoteNumber > InputBufferedFile::nMaxFieldSize)
@@ -160,7 +160,7 @@ Symbol KWDRTextLoadFile::ComputeTextResult(const KWObject* kwoObject) const
 			inputFile.Close();
 		}
 
-		// Si erreur, emission d'un warning permettant de localiser l'enreigistrement
+		// Si erreur, emission d'un warning permettant de localiser l'enregistrement
 		if (not bOk)
 			AddWarning(sTmp + "Enable to load text file in record " +
 				   LongintToReadableString(kwoObject->GetCreationIndex()));

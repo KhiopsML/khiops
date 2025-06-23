@@ -37,9 +37,7 @@ KWMTDatabaseMappingView::KWMTDatabaseMappingView()
 		"\n In a snowflake schema, data paths consist of a list of variable names with a '/' separator."
 		"\n External tables begin with a data root prefixed with '/', which refers to the name of the "
 		"referenced root dictionary.");
-	GetFieldAt("ClassName")
-	    ->SetHelpText("Name of the dictionary that describes the data table."
-			  "\n (multi-tables database only)");
+	GetFieldAt("ClassName")->SetHelpText("Name of the dictionary that describes the data table.");
 	GetFieldAt("DataTableName")->SetHelpText("Name of the data table file.");
 
 	// ##

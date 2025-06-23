@@ -57,11 +57,11 @@ CCAnalysisSpecView::CCAnalysisSpecView()
 	    ->SetHelpText(
 		"Type of coclustering:"
 		"\n - Variables coclustering: based on the coclustering variables parameters,"
-		"\n - Instances * Variables coclustering: based on an identifier on one dimension, and all "
-		"the numerical and categorical variables on the other dimension."
+		"\n - Instances * Variables coclustering: based on an identifier in one dimension, and all "
+		"numerical and categorical variables in the other dimension."
 		"\n If a identifier variable of the records is present in the data, it must be a key variable of the "
 		"input dictionary and the data must be sorted and unique according to this key."
-		"\n If no identifier of the records, such a variable is automatically created."
+		"\n If no identifier exists, such a variable is automatically created."
 		"\n For the 'variables' dimension of the coclustering, all numerical and categorical variables"
 		"\n used in the input dictionary are employed.");
 

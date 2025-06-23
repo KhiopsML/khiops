@@ -47,22 +47,21 @@ KWAttributeConstructionSpecView::KWAttributeConstructionSpecView()
 
 	// Info-bulles
 	GetFieldAt("KeepSelectedAttributesOnly")
-	    ->SetHelpText("In supervised analysis, constructed variables are only retained in the "
-			  "\n data preparation reports if they are selected in the Naive Bayes Selective predictor.");
+	    ->SetHelpText("In supervised analysis, constructed variables are included in the data preparation reports"
+			  "\n only if they are selected in the Naive Bayes Selective predictor.");
 	GetFieldAt("MaxConstructedAttributeNumber")
 	    ->SetHelpText("Max number of variables to construct."
 			  "\n The constructed variables allow to extract numerical or categorical values"
 			  "\n resulting from computing formula applied to existing variables in secondary tables"
 			  "\n (e.g. YearDay of a Date variable, Mean of a Numerical variable from a Table Variable).");
 	GetFieldAt("MaxTextFeatureNumber")
-	    ->SetHelpText("Max number of text features to construct."
-			  "\n Text features are constructed from variables of type Text or TextList available in "
-			  "either the main table or"
-			  "\n a secondary table. The features are constructed by default using ngrams of bytes.");
+	    ->SetHelpText(
+		"Max number of text features to construct."
+		"\n Text features are constructed from variables of type Text or TextList available in the main table"
+		"\n or any secondary tables. By default, features are created using words.");
 	GetFieldAt("MaxTreeNumber")
 	    ->SetHelpText("Max number of trees to construct."
-			  "\n The constructed trees allow to combine variables, either native or constructed."
-			  "\n Construction of trees is not available in regression analysis.");
+			  "\n The constructed trees allow to combine variables, either native or constructed.");
 	GetFieldAt("MaxAttributePairNumber")
 	    ->SetHelpText("Max number of variable pairs to analyze during data preparation."
 			  "\n The variable pairs are preprocessed using a bivariate discretization method."

@@ -77,7 +77,7 @@ def collect_stat_io(file_name):
     # Count number of process, based on existing file with slave extensions
     process_number = utils.get_process_number(file_name)
 
-    # Analyse stat files for all processes to collect stats per task (and per inter-task the the master)
+    # Analyse stat files for all processes to collect stats per task (and per inter-task the master)
     for process_id in range(process_number):
         process_file_name = utils.build_process_filename(file_name, process_id)
 

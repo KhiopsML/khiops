@@ -943,7 +943,7 @@ boolean CommandFile::LoadJsonParameters()
 							    "number of members in object " +
 							    BuildJsonPath(jsonMember, j, NULL) + " (" +
 							    IntToString(jsonSubObject->GetMemberNumber()) +
-							    " member) should be the same as in the the first object "
+							    " member) should be the same as in the first object "
 							    "in the array at " +
 							    BuildJsonPath(jsonMember, 0, NULL) + " (" +
 							    IntToString(firstJsonSubObject->GetMemberNumber()) +
@@ -973,7 +973,7 @@ boolean CommandFile::LoadJsonParameters()
 											  jsonSubObjectMember) +
 									    " should be \"" +
 									    firstJsonSubObjectMember->GetKey() +
-									    "\", as in the the first object in the "
+									    "\", as in the first object in the "
 									    "array");
 									bOk = false;
 								}
@@ -991,7 +991,7 @@ boolean CommandFile::LoadJsonParameters()
 									    " should be " +
 									    firstJsonSubObjectMember->GetValue()
 										->TypeToString() +
-									    ", as in the the first object in the "
+									    ", as in the first object in the "
 									    "array");
 									bOk = false;
 								}

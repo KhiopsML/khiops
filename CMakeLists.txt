@@ -62,9 +62,9 @@ message("\n")
 
 # Check if the os is a linux fedora-like distro (CentOS, Rocky etc...)
 #
-# The good way to do this is to use cmake_host_system_information but the the os-name is avalaible starting from the
-# cmake version 3.22. Below, we just grep 'fedora' on /etc/os-release file. It is present on the line ID_LIKE="rhel
-# centos fedora"
+# The good way to do this is to use cmake_host_system_information but the os-name is avalaible starting from the cmake
+# version 3.22. Below, we just grep 'fedora' on /etc/os-release file. It is present on the line ID_LIKE="rhel centos
+# fedora"
 set(IS_FEDORA_LIKE false)
 if(EXISTS "/etc/os-release")
   file(READ "/etc/os-release" OS_RELEASE)
