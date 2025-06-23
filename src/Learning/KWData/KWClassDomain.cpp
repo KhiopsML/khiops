@@ -943,10 +943,6 @@ longint KWClassDomain::GetUsedMemory() const
 	lUsedMemory += usName.GetUsedMemory();
 	lUsedMemory += usLabel.GetUsedMemory();
 
-	// Prise en compte du referencement des classes
-	lUsedMemory += odClasses.GetUsedMemory();
-	lUsedMemory += oaClasses.GetUsedMemory();
-
 	// Prise en compte des classe
 	for (i = 0; i < GetClassNumber(); i++)
 	{
@@ -954,6 +950,12 @@ longint KWClassDomain::GetUsedMemory() const
 		lClassUsedMemory = kwcClass->GetUsedMemory();
 		lUsedMemory += lClassUsedMemory;
 	}
+
+	// Prise en compte du referencement des classes
+	// Attention, ces methodes doivent etre appelees apres l'appel precedent GetClassNumber, qui a permis
+	// de synchroniser la taille des deux containers
+	lUsedMemory += odClasses.GetUsedMemory();
+	lUsedMemory += oaClasses.GetUsedMemory();
 	return lUsedMemory;
 }
 
