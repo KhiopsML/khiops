@@ -187,6 +187,10 @@ public:
 	// Libelle d'erreur associe a une ligne trop longue
 	static const ALString GetLineTooLongErrorLabel();
 
+	// Service d'affichage d'un message standard concernant les erreurs d'encodage avec double quotes manquants
+	// Sans effet si pas d'erreur d'encodage
+	static void AddEncodingErrorMessage(longint lErrorNumber, const Object* errorSender);
+
 	// Lecture du prochain champ d'une ligne, qui est rendu nettoye des blancs de debut et de fin
 	// La chaine en parametre contient en retour le contenu du champ, termine par le caractere '\0'.
 	// Le parametre sField est a declarer en variable locale dans la methode appelante.
@@ -234,6 +238,12 @@ public:
 
 	// Renvoie le nombre de lignes contenues dans le buffer
 	int GetBufferLineNumber() const;
+
+	// Nombre d'erreurs d'encodage detectees impliquant des double quotes manquants
+	// Ces erreurs sont detectees lors des appels aux methodes detectant des erreurs
+	// Ce nombre d'erreurs est disponible au cours de la lecture du fichier,
+	// jusqu'a sa fermeture
+	longint GetEncodingErrorNumber() const;
 
 	///////////////////////////////////////////////////////////////////////////////
 	// Gestion du BOM UTF8 (byte encoding mask)
@@ -479,6 +489,9 @@ protected:
 	// Taille du fichier
 	longint lFileSize;
 
+	// Nombre d'erreurs d'encodage detectees impliquant des double quotes manquants
+	longint lEncodingErrorNumber;
+
 	// Index de la ligne courante dans le buffer
 	int nCurrentLineIndex;
 
@@ -491,7 +504,7 @@ protected:
 	// Est-ce que le dernier champ lu etait a la fin d'une ligne ou fin de fichier
 	boolean bLastFieldReachEol;
 
-	// Taile max de lignes
+	// Taille max des lignes
 	static int nMaxLineLength;
 
 	///////////////////////////////////
@@ -554,6 +567,12 @@ inline int InputBufferedFile::GetBufferLineNumber() const
 		}
 	}
 	return nBufferLineNumber;
+}
+
+inline longint InputBufferedFile::GetEncodingErrorNumber() const
+{
+	require(bIsOpened);
+	return lEncodingErrorNumber;
 }
 
 inline int InputBufferedFile::GetPositionInBuffer() const

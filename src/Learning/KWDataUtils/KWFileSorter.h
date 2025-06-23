@@ -120,11 +120,12 @@ protected:
 
 	// Coupure du bucket passe en parametre en plusieurs buckets dont la taille doit etre comprise entre
 	// nChunkSizeMin et nChunkSizeMax Les buckets resultants sont retournes dans un KWSortBuckets
-	// bIsInterruptedByUser vaut true si les taches ont ete interrompues par l'utilisateur, auquel cas la methode
-	// renvoie NULL
+	// bIsInterruptedByUser vaut true si les taches ont ete interrompues par l'utilisateur,
+	// auquel cas la methode renvoie NULL
 	KWSortBuckets* SplitDatabase(int nChunkSizeMin, int nChunkSizeMax, KWSortBucket* bucket,
 				     boolean bIsHeaderLineUsed, char cFieldSeparator, longint lMeanKeySize,
-				     longint lLineNumber, boolean& bIsInterruptedByUser);
+				     longint lLineNumber, boolean bSilentMode, longint& lEncodingErrorNumber,
+				     boolean& bIsInterruptedByUser);
 
 	// Renvoie true si il est plus efficace de trier le fichier en memoire et en sequentiel
 	// C'est le cas si tout tient en memoire et que la taille du fichier ne depasse pas 100 Mo

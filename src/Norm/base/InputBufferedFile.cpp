@@ -536,6 +536,36 @@ const ALString InputBufferedFile::GetLineTooLongErrorLabel()
 	return sTmp + "line too long (beyond " + IntToString(GetMaxLineLength()) + " characters)";
 }
 
+void InputBufferedFile::AddEncodingErrorMessage(longint lErrorNumber, const Object* errorSender)
+{
+	ALString sMessage;
+
+	require(lErrorNumber >= 0);
+	require(errorSender != NULL);
+
+	// Affichage unique si erreur d'encodage
+	if (lErrorNumber > 0)
+	{
+
+		// Specialisation dans le cs d'une seule erreur
+		if (lErrorNumber == 1)
+			sMessage = "As one encoding error related to missing double quotes has been identified";
+		// Cas avec plusieurs erreur
+		else
+			sMessage = sMessage + "As " + LongintToString(lErrorNumber) +
+				   " encoding errors related to missing double quotes have been identified";
+
+		// Fin du message
+		sMessage += ", your database may include multi-line fields.";
+		sMessage += " It is recommended to recode it using single-line encoding.";
+
+		// Affichage en isolant la ligne d'erreur entre deux lignes blanches
+		errorSender->AddSimpleMessage("");
+		errorSender->AddError(sMessage);
+		errorSender->AddSimpleMessage("");
+	}
+}
+
 boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& nFieldError, boolean& bLineTooLong)
 {
 	boolean bUnconditionalLoop = true; // Pour eviter un warning dans la boucle
@@ -645,13 +675,18 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& n
 		i -= iStart;
 
 		// Copie de la fin du champ (y compris le '\0')
-		memmove(sField, &sField[iStart], i + 1);
+		memmove(sField, &sField[iStart], (size_t)i + 1);
 	}
 	assert(sField[i] == '\0');
 
 	// Memorisation de la longueur du champ
 	nFieldLength = i;
 	assert((int)strlen(sField) == nFieldLength);
+
+	// Memorisation des erreurs d'encodage
+	if (nFieldError == FieldMissingBeginDoubleQuote or nFieldError == FieldMissingMiddleDoubleQuote or
+	    nFieldError == FieldMissingEndDoubleQuote)
+		lEncodingErrorNumber++;
 
 	// Gestion d'une fin de ligne
 	if (bEndOfLine)
@@ -732,6 +767,11 @@ boolean InputBufferedFile::SkipField(int& nFieldError, boolean& bLineTooLong)
 				nFieldError = FieldMissingBeginDoubleQuote;
 		}
 	}
+
+	// Memorisation des erreurs d'encodage
+	if (nFieldError == FieldMissingBeginDoubleQuote or nFieldError == FieldMissingMiddleDoubleQuote or
+	    nFieldError == FieldMissingEndDoubleQuote)
+		lEncodingErrorNumber++;
 
 	// Test de depassement de longueur
 	if (nFieldError != FieldNoError and GetPositionInCache() - nStartPositionInCache >= (int)nMaxFieldSize)
@@ -892,7 +932,7 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 				}
 				// KO si on trouve un double quote isole au milieu du champ
 				//  On continue quand-meme a parser pour recuperer l'erreur
-				//  On memorise neanmoins de double quote isole
+				//  On memorise neanmoins le double quote isole
 				else
 				{
 					assert(c != '"');
@@ -1100,7 +1140,7 @@ boolean InputBufferedFile::SkipDoubleQuoteField(int& nFieldError)
 				}
 				// KO si on trouve un double quote isole au milieu du champ
 				//  On continue quand-meme a parser pour recuperer l'erreur
-				//  On memorise neanmoins de double quote isole
+				//  On memorise neanmoins le double quote isole
 				else
 				{
 					assert(c != '"');
@@ -2397,6 +2437,7 @@ void InputBufferedFile::Reset()
 	lCacheStartInFile = -1;
 	bLastFieldReachEol = false;
 	lFileSize = -1;
+	lEncodingErrorNumber = 0;
 	nAllocatedBufferSize = 0;
 	nCacheSize = 0;
 	nUTF8BomSkippedCharNumber = 0;

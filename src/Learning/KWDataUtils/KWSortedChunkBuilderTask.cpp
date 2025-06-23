@@ -16,6 +16,7 @@ KWSortedChunkBuilderTask::KWSortedChunkBuilderTask()
 	nReadSizeMin = 0;
 	nReadSizeMax = 0;
 	nReadBufferSize = 0;
+	lEncodingErrorNumber = 0;
 
 	// Variables partagees
 	DeclareSharedParameter(&shared_ivKeyFieldIndexes);
@@ -27,6 +28,7 @@ KWSortedChunkBuilderTask::KWSortedChunkBuilderTask()
 	DeclareSharedParameter(&shared_cInputFieldSeparator);
 	DeclareSharedParameter(&shared_lFileSize);
 	DeclareSharedParameter(&shared_lMaxSlaveBucketMemory);
+	DeclareSharedParameter(&shared_bSilentMode);
 
 	DeclareTaskInput(&input_bLastRound);
 	DeclareTaskInput(&input_nBufferSize);
@@ -34,6 +36,7 @@ KWSortedChunkBuilderTask::KWSortedChunkBuilderTask()
 
 	output_oaBuckets = new PLShared_ObjectArray(new PLShared_SortBucket);
 	DeclareTaskOutput(output_oaBuckets);
+	DeclareTaskOutput(&output_lEncodingErrorNumber);
 
 	shared_cInputFieldSeparator.SetValue('\t');
 }
@@ -84,6 +87,16 @@ const IntVector* KWSortedChunkBuilderTask::GetConstKeyFieldIndexes() const
 	return shared_ivKeyFieldIndexes.GetConstIntVector();
 }
 
+void KWSortedChunkBuilderTask::SetSilentMode(boolean bValue)
+{
+	shared_bSilentMode = bValue;
+}
+
+boolean KWSortedChunkBuilderTask::GetSilentMode() const
+{
+	return shared_bSilentMode;
+}
+
 boolean KWSortedChunkBuilderTask::BuildSortedChunks(const KWSortBuckets* buckets)
 {
 	boolean bOk;
@@ -126,6 +139,13 @@ boolean KWSortedChunkBuilderTask::BuildSortedChunks(const KWSortBuckets* buckets
 	// Nettoyage
 	shared_oaBuckets->Clean();
 	return bOk;
+}
+
+longint KWSortedChunkBuilderTask::GetEncodingErrorNumber() const
+{
+
+	require(IsJobDone());
+	return lEncodingErrorNumber;
 }
 
 void KWSortedChunkBuilderTask::Test()
@@ -288,6 +308,7 @@ boolean KWSortedChunkBuilderTask::MasterInitialize()
 
 	// Initialisation des attributs
 	bLastSlaveProcessDone = false;
+	lEncodingErrorNumber = 0;
 
 	// Test si fichier d'entree present
 	if (not PLRemoteFileService::FileExists(shared_sFileName.GetValue()))
@@ -319,9 +340,9 @@ boolean KWSortedChunkBuilderTask::MasterInitialize()
 				   LongintToHumanReadableString(lReadBufferSize));
 
 		// Chaque esclave doit lire au moins 5 buffer (pour que le travail soit bien reparti entre les esclaves)
-		if (lInputFileSize / (GetProcessNumber() * 5) < lReadBufferSize)
+		if (lInputFileSize / (GetProcessNumber() * (longint)5) < lReadBufferSize)
 		{
-			lReadBufferSize = lInputFileSize / (GetProcessNumber() * 5);
+			lReadBufferSize = lInputFileSize / (GetProcessNumber() * (longint)5);
 			if (GetVerbose())
 				AddMessage(sTmp + "Read buffer size reduced to " +
 					   LongintToHumanReadableString(lReadBufferSize));
@@ -350,9 +371,9 @@ boolean KWSortedChunkBuilderTask::MasterInitialize()
 		assert(shared_lMaxSlaveBucketMemory > (longint)lBucketsSizeMin);
 
 		// On borne de telle sorte que chaque esclave vide 5 fois son buffer
-		if (lInputFileSize / (GetProcessNumber() * 5) < shared_lMaxSlaveBucketMemory)
+		if (lInputFileSize / (GetProcessNumber() * (longint)5) < shared_lMaxSlaveBucketMemory)
 		{
-			shared_lMaxSlaveBucketMemory = lInputFileSize / (GetProcessNumber() * 5);
+			shared_lMaxSlaveBucketMemory = lInputFileSize / (GetProcessNumber() * (longint)5);
 			if (GetVerbose())
 				AddMessage(sTmp + "Buckets size shrunk for 5 dumps " +
 					   LongintToHumanReadableString(shared_lMaxSlaveBucketMemory));
@@ -454,6 +475,9 @@ boolean KWSortedChunkBuilderTask::MasterAggregateResults()
 		      ensure(aggregatedBucket->GetChunkSize() == lCheckedSize););
 	}
 
+	// Mise a jour du nombre d'erreurs d'encodage
+	lEncodingErrorNumber += output_lEncodingErrorNumber;
+
 	return true;
 }
 
@@ -536,6 +560,8 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 {
 	boolean bOk = true;
 	boolean bTrace = false;
+	longint lSlaveEncodingErrorNumber;
+	PLParallelTask* errorSender;
 	KWKey key;
 	int i;
 	double dProgression;
@@ -554,6 +580,15 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 	boolean bLineTooLong;
 	int nCumulatedLineNumber;
 	boolean bIsLineOk;
+
+	// On n'emet pas les messages en mode silencieux
+	if (shared_bSilentMode)
+		errorSender = NULL;
+	else
+		errorSender = this;
+
+	// Memorisation du nombre d'erreurs d'encodage initiales
+	lSlaveEncodingErrorNumber = inputFile.GetEncodingErrorNumber();
 
 	// Le SlaveProcess a 2 phases:
 	// - la premiere phase (input_bLastRound==true) consite a lire le fichier, remplir les buckets et ecrire le contenu des bucket si il est trop gros
@@ -642,7 +677,7 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 					}
 
 					// Extraction de la clef
-					bIsLineOk = keyExtractor.ParseNextKey(&key, this);
+					bIsLineOk = keyExtractor.ParseNextKey(&key, errorSender);
 
 					// Ajout de la ligne dans le bucket approprie
 					if (bIsLineOk)
@@ -660,7 +695,8 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 						slaveBuckets.AddLineAtKey(&key, &cvLine);
 
 						// Mise a jour de la memoire utilisee
-						lBucketsUsedMemory += (nLineEndPos - nLineBeginPos) * sizeof(char);
+						lBucketsUsedMemory +=
+						    ((longint)nLineEndPos - nLineBeginPos) * sizeof(char);
 
 						// Ecriture des plus gros bucket si depassement de la memoire de l'esclave
 						if (lBucketsUsedMemory > shared_lMaxSlaveBucketMemory)
@@ -748,6 +784,10 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 		// Serialisation des buckets
 		output_oaBuckets->GetObjectArray()->CopyFrom(slaveBuckets.GetBuckets());
 	}
+
+	// Nombre d'erreurs d'encodage detectees dans la methode, par difference avec le nombre d'erreurs initiales
+	lSlaveEncodingErrorNumber = inputFile.GetEncodingErrorNumber() - lSlaveEncodingErrorNumber;
+	output_lEncodingErrorNumber = lSlaveEncodingErrorNumber;
 
 	// Nettoyage en cas d'interruption (les noms des fichiers ne sont pas envoyes au maitre)
 	if (not bOk)

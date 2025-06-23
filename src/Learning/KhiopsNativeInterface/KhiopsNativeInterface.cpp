@@ -96,7 +96,7 @@ void KNICreateEnv()
 		// Initialisation de l'environnement
 		kniEnvLearningProject->Begin();
 
-		// On remet la fonction d'affichage des erreur a NULL
+		// On remet la fonction d'affichage des erreurs a NULL
 		// car l'initialisation de l'environnement repositionne cette fonction
 		Error::SetDisplayErrorFunction(NULL);
 
@@ -718,6 +718,10 @@ KNI_API int KNICloseStream(int hStream)
 
 		// Recherche du stream
 		kniStream = KNIGetOpenedStreamAt(hStream);
+
+		// Message sur les eventuelles erreurs d'encodage
+		if (kniStream->GetInputStream()->IsOpenedForRead())
+			kniStream->GetInputStream()->AddEncodingErrorMessage();
 
 		// Fermeture si necessaire
 		if (kniStream->GetInputStream()->IsOpenedForRead())

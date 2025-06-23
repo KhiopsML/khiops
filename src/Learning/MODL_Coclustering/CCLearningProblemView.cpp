@@ -218,7 +218,7 @@ void CCLearningProblemView::BuildCoclustering()
 		GetLearningProblem()->BuildCoclustering();
 	}
 
-	// Affichage des eventuelles erreurs d'encodage
+	// Message sur les eventuelles erreurs d'encodage
 	if (bOk)
 		GetLearningProblem()->GetDatabase()->AddEncodingErrorMessage();
 

@@ -118,6 +118,9 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 {
 	boolean bOk = true;
 	boolean bTrace = false;
+	longint lEncodingErrorNumber;
+	longint lSplitEncodingErrorNumber;
+	boolean bSplitSilentMode;
 	int nChunkSize;    // Taille des fichier chunks : un chunk doit tenir en memoire pour etre trie
 	int nChunkSizeMin; // Taille minimum des chunks pour ne pas (trop) fragmenter le disque
 	longint lObjectNumber;
@@ -148,6 +151,9 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 
 	require(sInputFileName != "");
 
+	// Initialisation du nombre d'erreur d'encodage
+	lEncodingErrorNumber = 0;
+
 	// Emission de trace si les tache parallele sont en mode verbeux
 	bTrace = bTrace or PLParallelTask::GetVerbose();
 
@@ -169,10 +175,12 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 	// Debut du timer
 	timerSort.Start();
 
+	// Initialisations
 	lObjectNumber = 0;
 	bIsInterruptedByUser = false;
 	lMeanKeySize = 0;
 	lLineNumber = 0;
+	nChunkSize = 0;
 	lFileSize = PLRemoteFileService::GetFileSize(sInputFileName);
 
 	// Cas d'un fichier vide ou inexistant
@@ -270,6 +278,9 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 					   " finalize : " +
 					   SecondsToString(parallelSorter.GetMasterFinalizeElapsedTime()) + ")");
 			lObjectNumber = parallelSorter.GetSortedLinesNumber();
+
+			// Mise a jour du nombre d'erreur d'encodage
+			lEncodingErrorNumber = max(lEncodingErrorNumber, parallelSorter.GetEncodingErrorNumber());
 		}
 		else
 		{
@@ -300,6 +311,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 			overweightBucket = sortedBuckets.GetOverweightBucket(nChunkSize);
 
 			// Tant qu'il y a des chunks plus gros que la taille souhaitee, on divise chaque chunk trop gros
+			bSplitSilentMode = false;
 			while (bOk and overweightBucket != NULL)
 			{
 				if (TaskProgression::IsInterruptionRequested())
@@ -312,9 +324,17 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 					bIsHeaderLineUsed = false;
 
 				// Split du chunk trop gros
-				subBuckets = SplitDatabase(nChunkSizeMin, nChunkSize, overweightBucket,
-							   bIsHeaderLineUsed, cInputFieldSeparator, lMeanKeySize,
-							   lLineNumber, bIsInterruptedByUser);
+				subBuckets =
+				    SplitDatabase(nChunkSizeMin, nChunkSize, overweightBucket, bIsHeaderLineUsed,
+						  cInputFieldSeparator, lMeanKeySize, lLineNumber, bSplitSilentMode,
+						  lSplitEncodingErrorNumber, bIsInterruptedByUser);
+
+				// Mise a jour du nombre d'erreurs d'encodage
+				lEncodingErrorNumber = max(lEncodingErrorNumber, lSplitEncodingErrorNumber);
+
+				// Les prochaines passes potentielles de split se feront en mode silencieux, pour eviter
+				// de gerer plusieurs fois les messages d'erreur
+				bSplitSilentMode = true;
 
 				// subBuckets est NULL en cas d'erreur ou d'arret utilisateur
 				if (subBuckets == NULL)
@@ -413,6 +433,10 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 					    " finalize : " +
 					    SecondsToString(parallelSorter.GetMasterFinalizeElapsedTime()) + ")");
 
+				// Mise a jour du nombre d'erreurs d'encodage
+				lEncodingErrorNumber =
+				    max(lEncodingErrorNumber, parallelSorter.GetEncodingErrorNumber());
+
 				// Concatenation
 				if (bOk)
 				{
@@ -454,6 +478,10 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 			AddWarning("Interrupted by user");
 		else
 			AddError("Interrupted because of errors");
+
+		// Message sur les eventuelles erreurs d'encodage
+		if (bOk)
+			InputBufferedFile::AddEncodingErrorMessage(lEncodingErrorNumber, this);
 	}
 	return bOk;
 }
@@ -553,7 +581,7 @@ void KWFileSorter::ComputeChunkSize(longint lFileSize, longint lLineNumber, long
 				   " chunks per slave");
 
 		// Calcul de la taille optimale : 4 chunks par esclave
-		lChunkSize = lFileSize / (nChunkNumberPerSlave * grantedResources.GetSlaveNumber());
+		lChunkSize = lFileSize / ((longint)nChunkNumberPerSlave * grantedResources.GetSlaveNumber());
 
 		// TODO BG: eviter la boucle si possible
 		// Par contre on veut eviter que lChunkSize==nChunkSizeMin pour donner de la latitude a l'algo de DeWitt
@@ -562,7 +590,7 @@ void KWFileSorter::ComputeChunkSize(longint lFileSize, longint lLineNumber, long
 		int nbChunks = nChunkNumberPerSlave - 1;
 		while (dDeWittRatio * lChunkSize < lMinChunkSize and nbChunks > 1)
 		{
-			lChunkSize = lFileSize / (nbChunks * grantedResources.GetSlaveNumber());
+			lChunkSize = lFileSize / ((longint)nbChunks * grantedResources.GetSlaveNumber());
 			nbChunks--;
 		}
 		lChunkSize = min(lMaxChunkSize, lChunkSize);
@@ -593,7 +621,8 @@ void KWFileSorter::ComputeChunkSize(longint lFileSize, longint lLineNumber, long
 
 KWSortBuckets* KWFileSorter::SplitDatabase(int nChunkSizeMin, int nChunkSize, KWSortBucket* bucket,
 					   boolean bIsHeaderLineUsed, char cFieldSeparator, longint lMeanKeySize,
-					   longint lLineNumber, boolean& bIsInterruptedByUser)
+					   longint lLineNumber, boolean bSilentMode, longint& lEncodingErrorNumber,
+					   boolean& bIsInterruptedByUser)
 {
 	boolean bTrace = false;
 	ALString sTmp;
@@ -620,6 +649,7 @@ KWSortBuckets* KWFileSorter::SplitDatabase(int nChunkSizeMin, int nChunkSize, KW
 	require(nChunkSize >= nChunkSizeMin);
 
 	// Initialisations
+	lEncodingErrorNumber = 0;
 	bIsInterruptedByUser = false;
 	bTrace = bTrace or PLParallelTask::GetVerbose();
 	sortedBuckets = NULL;
@@ -681,6 +711,7 @@ KWSortBuckets* KWFileSorter::SplitDatabase(int nChunkSizeMin, int nChunkSize, KW
 		chunksBuilder.SetFileURI(sFileURI);
 		chunksBuilder.SetInputFieldSeparator(cFieldSeparator);
 		chunksBuilder.SetHeaderLineUsed(bIsHeaderLineUsed);
+		chunksBuilder.SetSilentMode(bSilentMode);
 		sortedBuckets = new KWSortBuckets;
 
 		// Initialization des buckets a partir des splits
@@ -688,6 +719,7 @@ KWSortBuckets* KWFileSorter::SplitDatabase(int nChunkSizeMin, int nChunkSize, KW
 
 		// lancement de la tache de construction des chunks
 		bOk = chunksBuilder.BuildSortedChunks(sortedBuckets);
+		lEncodingErrorNumber = chunksBuilder.GetEncodingErrorNumber();
 		bIsInterruptedByUser = chunksBuilder.IsTaskInterruptedByUser();
 	}
 

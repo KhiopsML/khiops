@@ -49,6 +49,7 @@ protected:
 	virtual KWDataTableDriver* CreateDataTableDriver() const;
 
 	// Reimplementation d'une partie des methodes virtuelles de KWDatabase
+	longint GetEncodingErrorNumber() const override;
 	boolean BuildDatabaseClass(KWClass* kwcDatabaseClass) override;
 	boolean IsTypeInitializationManaged() const override;
 	boolean PhysicalOpenForRead() override;

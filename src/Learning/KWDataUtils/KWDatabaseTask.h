@@ -173,7 +173,7 @@ protected:
 	virtual boolean SlaveProcessStartDatabase();
 
 	// Methode principale de l'esclave
-	//  Boucle de traitement des objet lus
+	//  Boucle de traitement des objets lus
 	//  Collecte des variables en sortie pour les stats sur les objet traites
 	virtual boolean SlaveProcessExploitDatabase();
 

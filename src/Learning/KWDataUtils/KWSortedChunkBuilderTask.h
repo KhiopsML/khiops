@@ -50,6 +50,10 @@ public:
 	IntVector* GetKeyFieldIndexes();
 	const IntVector* GetConstKeyFieldIndexes() const;
 
+	// Mode silencieux, pour inhiber les messages lies aux parsing des cles (defaut: false)
+	void SetSilentMode(boolean bValue);
+	boolean GetSilentMode() const;
+
 	/////////////////////////////////////////////////////
 	// Methode principale
 
@@ -63,6 +67,9 @@ public:
 	// - le nombre de lignes de l'ensemble de ses fichiers
 	// - la taille de l'ensemble de ses fichiers
 	boolean BuildSortedChunks(const KWSortBuckets* buckets);
+
+	// Nombre d'erreurs d'encodage detectees
+	longint GetEncodingErrorNumber() const;
 
 	// Methode de test
 	static void Test();
@@ -118,6 +125,9 @@ protected:
 	int nReadSizeMax;
 	int nReadBufferSize;
 
+	// Nombre d'erreurs d'encodage detectees impliquant des double quotes manquants
+	longint lEncodingErrorNumber;
+
 	//////////////////////////////////////////////////////
 	// Variables du Slave
 
@@ -133,6 +143,9 @@ protected:
 	// Fichier en lecture
 	InputBufferedFile inputFile;
 
+	// Nombre d'erreurs d'encodage detectees
+	PLShared_Longint output_lEncodingErrorNumber;
+
 	///////////////////////////////////////////////////////////
 	// Parametres partages par le maitre et les esclaves
 	// tout au long du programme
@@ -145,6 +158,9 @@ protected:
 
 	// Taille memoire max pour la gestion memoire des buckets de chaque esclave
 	PLShared_Longint shared_lMaxSlaveBucketMemory;
+
+	// Mode silencieux pour le parsing des cles
+	PLShared_Boolean shared_bSilentMode;
 
 	// Attributs du fichier d'entree
 	PLShared_String shared_sFileName;

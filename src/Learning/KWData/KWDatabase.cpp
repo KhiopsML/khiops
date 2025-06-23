@@ -548,6 +548,7 @@ boolean KWDatabase::OpenForWrite()
 
 	// Ouverture physique de la base
 	bIsError = false;
+	lEncodingErrorNumber = 0;
 	assert(not bOpenedForRead);
 	bOpenedForWrite = PhysicalOpenForWrite();
 
@@ -696,6 +697,10 @@ boolean KWDatabase::Close()
 	// Uniquement dans le cas des bases ouvertes en lecture
 	if (IsOpenedForRead())
 		KWDatabaseMemoryGuard::UninstallMemoryGuardErrorFlowIgnoreFunction();
+
+	// Memorisation des erreur d'encodage en lecture pour les rendre disponibles apres la fermeture de la base
+	if (IsOpenedForRead())
+		GetEncodingErrorNumber();
 
 	// Fermeture physique
 	bOk = PhysicalClose();
@@ -1198,27 +1203,11 @@ void KWDatabase::AddEncodingErrorMessage() const
 
 	require(lEncodingErrorNumber >= 0);
 
-	// Affichage unique si erreur d'encodage
-	if (lEncodingErrorNumber > 0)
-	{
+	// Rafraichissement des eventuelles erreurs d'encodage
+	GetEncodingErrorNumber();
 
-		// Specialisation dans le cs d'une seule erreur
-		if (lEncodingErrorNumber == 1)
-			sMessage = "As one encoding error related to missing double quotes has been identified";
-		// Cas avec plusieurs erreur
-		else
-			sMessage = sMessage + "As " + LongintToString(lEncodingErrorNumber) +
-				   " encoding errors related to missing double quotes have been identified";
-
-		// Fin du message
-		sMessage += ", your database may include multi-line fields.";
-		sMessage += " It is recommended to recode it using single-line encoding.";
-
-		// Affichage en isolant la ligne d'erreur entre deux lignes blanches
-		AddSimpleMessage("");
-		AddError(sMessage);
-		AddSimpleMessage("");
-	}
+	// Utilisation du service de InputBufferedFile pour formatter le message
+	InputBufferedFile::AddEncodingErrorMessage(lEncodingErrorNumber, this);
 }
 
 longint KWDatabase::GetEncodingErrorNumber() const

@@ -343,9 +343,9 @@ boolean KWKeyPositionSampleExtractorTask::MasterInitialize()
 				  (1 + (2.0 * lKeyPositionUsedMemory * lFileLineNumber) / (lInputFileSize + 1)));
 
 	// Chaque esclave doit lire au moins 5 buffer (pour que le travail soit bien reparti entre les esclaves)
-	if (lInputFileSize / (GetProcessNumber() * 5) < lReadBufferSize)
+	if (lInputFileSize / (GetProcessNumber() * (longint)5) < lReadBufferSize)
 	{
-		lReadBufferSize = lInputFileSize / (GetProcessNumber() * 5);
+		lReadBufferSize = lInputFileSize / (GetProcessNumber() * (longint)5);
 		if (GetVerbose())
 			AddMessage(sTmp + "Read buffer size reduced to " +
 				   LongintToHumanReadableString(lReadBufferSize));
@@ -666,7 +666,8 @@ boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 				bIsLineOK = keyExtractor.ParseNextKey(recordKeyPosition->GetKey(), NULL);
 
 				// Memorisation du numero de ligne pour la cle
-				recordKeyPosition->SetLineIndex(nCumulatedLineNumber + inputFile.GetCurrentLineIndex());
+				recordKeyPosition->SetLineIndex((longint)nCumulatedLineNumber +
+								inputFile.GetCurrentLineIndex());
 
 				// Memorisation de la position pour le debut de ligne suivant
 				recordKeyPosition->SetLinePosition(inputFile.GetPositionInFile());

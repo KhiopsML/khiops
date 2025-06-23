@@ -20,6 +20,7 @@ KWFileKeyExtractorTask::KWFileKeyExtractorTask()
 	nReadSizeMax = 0;
 	nWriteSizeMin = 0;
 	nWriteSizeMax = 0;
+	lEncodingErrorNumber = 0;
 
 	// Parametres du programme
 	DeclareSharedParameter(&shared_ivKeyFieldIndexes);
@@ -37,6 +38,7 @@ KWFileKeyExtractorTask::KWFileKeyExtractorTask()
 	DeclareTaskOutput(&output_lExtractedKeyNumber);
 	DeclareTaskOutput(&output_sChunkFileName);
 	DeclareTaskOutput(&output_nReadLineCount);
+	DeclareTaskOutput(&output_lEncodingErrorNumber);
 }
 
 KWFileKeyExtractorTask::~KWFileKeyExtractorTask() {}
@@ -171,6 +173,10 @@ boolean KWFileKeyExtractorTask::ExtractKeys(boolean bDisplayUserMessage)
 			AddSimpleMessage(sTmp + "Extracted keys: " + LongintToReadableString(GetExtractedKeyNumber()) +
 					 " keys from " + LongintToReadableString(GetLineNumber()) +
 					 " records (Extraction time: " + SecondsToString(GetJobElapsedTime()) + ")");
+
+		// Message sur les eventuelles erreurs d'encodage
+		if (bOk)
+			InputBufferedFile::AddEncodingErrorMessage(lEncodingErrorNumber, this);
 	}
 	return bOk;
 }
@@ -185,6 +191,13 @@ longint KWFileKeyExtractorTask::GetLineNumber() const
 {
 	require(IsJobDone());
 	return lReadLineNumber;
+}
+
+longint KWFileKeyExtractorTask::GetEncodingErrorNumber() const
+{
+
+	require(IsJobDone());
+	return lEncodingErrorNumber;
 }
 
 const ALString KWFileKeyExtractorTask::GetObjectLabel() const
@@ -307,9 +320,9 @@ boolean KWFileKeyExtractorTask::ComputeResourceRequirements()
 	nReadSizeMin = PLRemoteFileService::GetPreferredBufferSize(sInputFileName);
 	nWriteSizeMin = PLRemoteFileService::GetPreferredBufferSize(FileService::GetTmpDir());
 
-	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMin(nReadSizeMin + nWriteSizeMin);
+	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMin(nReadSizeMin + (longint)nWriteSizeMin);
 	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMax(SystemFile::nMaxPreferredBufferSize +
-									      nWriteSizeMin);
+									      (longint)nWriteSizeMin);
 	assert(GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->GetMax() < INT_MAX);
 
 	// Espace utilise par les clefs sur l'ensemble des esclaves
@@ -339,6 +352,7 @@ boolean KWFileKeyExtractorTask::MasterInitialize()
 	// Initialisation des variables aggregees
 	lExtractedKeyNumber = 0;
 	lReadLineNumber = 0;
+	lEncodingErrorNumber = 0;
 
 	// Initialisation du fichier en entree
 	shared_sInputFileName.SetValue(sInputFileName);
@@ -364,16 +378,17 @@ boolean KWFileKeyExtractorTask::MasterInitialize()
 	lFilePos = 0;
 
 	//	Calcule de la taille maximale du buffer de lecture
-	if (GetTaskResourceGrant()->GetSlaveMemory() > nReadSizeMin + nWriteSizeMin)
+	if (GetTaskResourceGrant()->GetSlaveMemory() > nReadSizeMin + (longint)nWriteSizeMin)
 	{
 		assert(GetTaskResourceGrant()->GetSlaveMemory() <= INT_MAX);
 		nReadSizeMax = int(GetTaskResourceGrant()->GetSlaveMemory() - nWriteSizeMin);
 
 		// Chaque esclave doit lire au moins 5 buffers (pour que le travail soit bien reparti entre les
 		// esclaves)
-		if (lInputFileSize / (GetProcessNumber() * 5) < nReadSizeMax)
+		if (lInputFileSize / (GetProcessNumber() * (longint)5) < nReadSizeMax)
 		{
-			nReadSizeMax = InputBufferedFile::FitBufferSize(lInputFileSize / (GetProcessNumber() * 5));
+			nReadSizeMax =
+			    InputBufferedFile::FitBufferSize(lInputFileSize / (GetProcessNumber() * (longint)5));
 			nReadSizeMax = max(nReadSizeMax, nReadSizeMin);
 		}
 	}
@@ -423,7 +438,11 @@ boolean KWFileKeyExtractorTask::MasterAggregateResults()
 	assert(svChunkFileNames.GetAt(GetTaskIndex()) == "");
 	svChunkFileNames.SetAt(GetTaskIndex(), output_sChunkFileName.GetValue());
 
+	// Mise a jout du nombre de lignes
 	lReadLineNumber += output_nReadLineCount;
+
+	// Mise a jour du nombre d'erreurs d'encodage
+	lEncodingErrorNumber += output_lEncodingErrorNumber;
 	return true;
 }
 
@@ -508,6 +527,7 @@ boolean KWFileKeyExtractorTask::SlaveInitialize()
 boolean KWFileKeyExtractorTask::SlaveProcess()
 {
 	boolean bOk = true;
+	longint lSlaveEncodingErrorNumber;
 	KWKey* previousKey;
 	KWKey* key;
 	int nCompareKey;
@@ -527,6 +547,9 @@ boolean KWFileKeyExtractorTask::SlaveProcess()
 	ALString sTmp;
 	ALString sObjectLabel;
 	ALString sOtherObjectLabel;
+
+	// Memorisation du nombre d'erreurs d'encodage initiales
+	lSlaveEncodingErrorNumber = inputFile.GetEncodingErrorNumber();
 
 	// Initialisation du resultat
 	output_lExtractedKeyNumber = 0;
@@ -704,6 +727,10 @@ boolean KWFileKeyExtractorTask::SlaveProcess()
 
 	if (sChunkFileName != "" and not bOk)
 		FileService::RemoveFile(sChunkFileName);
+
+	// Nombre d'erreurs d'encodage detectees dans la methode, par difference avec le nombre d'erreurs initiales
+	lSlaveEncodingErrorNumber = inputFile.GetEncodingErrorNumber() - lSlaveEncodingErrorNumber;
+	output_lEncodingErrorNumber = lSlaveEncodingErrorNumber;
 
 	if (bOk)
 	{

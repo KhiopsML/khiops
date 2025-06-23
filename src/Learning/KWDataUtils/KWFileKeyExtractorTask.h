@@ -70,6 +70,9 @@ public:
 	longint GetExtractedKeyNumber() const;
 	longint GetLineNumber() const;
 
+	// Nombre d'erreurs d'encodage detectees
+	longint GetEncodingErrorNumber() const;
+
 	///////////////////////////////////////////////////////////////
 	// Services divers
 
@@ -157,6 +160,9 @@ protected:
 	// Nombre de lignes lues
 	PLShared_Int output_nReadLineCount;
 
+	// Nombre d'erreurs d'encodage detectees
+	PLShared_Longint output_lEncodingErrorNumber;
+
 	//////////////////////////////////////////////////////
 	// Variables du Master
 
@@ -187,6 +193,9 @@ protected:
 	int nReadSizeMax;
 	int nWriteSizeMin;
 	int nWriteSizeMax;
+
+	// Nombre d'erreurs d'encodage detectees impliquant des double quotes manquants
+	longint lEncodingErrorNumber;
 
 	//////////////////////////////////////////////////////////
 	// Variables du slave

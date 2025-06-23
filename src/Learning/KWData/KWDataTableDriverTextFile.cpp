@@ -356,12 +356,6 @@ KWObject* KWDataTableDriverTextFile::Read()
 		else
 			bEndOfLine = inputBuffer->SkipField(nFieldError, bLineTooLong);
 
-		// Memorisation des eventuelles erreurs d'encodage liees aux doubles quotes
-		if (nFieldError == InputBufferedFile::FieldMissingBeginDoubleQuote or
-		    nFieldError == InputBufferedFile::FieldMissingMiddleDoubleQuote or
-		    nFieldError == InputBufferedFile::FieldMissingEndDoubleQuote)
-			SetEncodingErrorNumber(GetEncodingErrorNumber() + 1);
-
 		// Cas particulier: ligne trop longue
 		if (bLineTooLong)
 		{
@@ -1070,6 +1064,14 @@ double KWDataTableDriverTextFile::GetReadPercentage() const
 	return dPercentage;
 }
 
+longint KWDataTableDriverTextFile::GetEncodingErrorNumber() const
+{
+	require(not bWriteMode);
+	require(inputBuffer != NULL);
+
+	return inputBuffer->GetEncodingErrorNumber();
+}
+
 longint KWDataTableDriverTextFile::GetUsedMemory() const
 {
 	longint lUsedMemory;
@@ -1639,12 +1641,6 @@ void KWDataTableDriverTextFile::SkipMainRecord()
 				bEndOfLine = inputBuffer->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 			else
 				bEndOfLine = inputBuffer->SkipField(nFieldError, bLineTooLong);
-
-			// Memorisation des eventuelles erreurs d'encodage liees aux doubles quotes
-			if (nFieldError == InputBufferedFile::FieldMissingBeginDoubleQuote or
-			    nFieldError == InputBufferedFile::FieldMissingMiddleDoubleQuote or
-			    nFieldError == InputBufferedFile::FieldMissingEndDoubleQuote)
-				SetEncodingErrorNumber(GetEncodingErrorNumber() + 1);
 
 			// Cas particulier: ligne vide
 			if (nField == 0 and bEndOfLine and (sField == NULL or sField[0] == '\0'))
@@ -2233,5 +2229,4 @@ void KWDataTableDriverTextFile::ResetDatabaseFile()
 {
 	lRecordIndex = 0;
 	lUsedRecordNumber = 0;
-	lEncodingErrorNumber = 0;
 }

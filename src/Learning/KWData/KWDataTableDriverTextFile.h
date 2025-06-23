@@ -73,6 +73,7 @@ public:
 	longint ComputeNecessaryMemoryForFullExternalRead(const KWClass* kwcLogicalClass) override;
 	longint ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass, longint lInputFileSize) override;
 	double GetReadPercentage() const override;
+	longint GetEncodingErrorNumber() const override;
 	longint GetUsedMemory() const override;
 
 	// Variante de l'estimation du nombre d'objets dans la base, en memoire et sans acces disque,

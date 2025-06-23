@@ -493,9 +493,9 @@ boolean KWKeyPositionFinderTask::MasterInitialize()
 				  (1 + (2.0 * lInputKeysUsedMemory) / (lInputFileSize + 1)));
 
 	// Chaque esclave doit lire au moins 5 buffer (pour que le travail soit bien reparti entre les esclaves)
-	if (lInputFileSize / (GetProcessNumber() * 5) < lReadBufferSize)
+	if (lInputFileSize / (GetProcessNumber() * (longint)5) < lReadBufferSize)
 	{
-		lReadBufferSize = lInputFileSize / (GetProcessNumber() * 5);
+		lReadBufferSize = lInputFileSize / (GetProcessNumber() * (longint)5);
 		if (GetVerbose())
 			AddMessage(sTmp + "Read buffer size reduced to " +
 				   LongintToHumanReadableString(lReadBufferSize));
@@ -1109,7 +1109,7 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 				{
 					output_SlaveFirstKeyPosition.GetKeyPosition()->GetKey()->CopyFrom(key);
 					output_SlaveFirstKeyPosition.GetKeyPosition()->SetLineIndex(
-					    nCumulatedLineNumber + inputFile.GetCurrentLineIndex() - 1);
+					    (longint)nCumulatedLineNumber + inputFile.GetCurrentLineIndex() - 1);
 					output_SlaveFirstKeyPosition.GetKeyPosition()->SetLinePosition(lLinePosition);
 
 					// Affichage
@@ -1212,7 +1212,8 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 							// commence a zero et correspond a la ligne sur laquelle la cle
 							// vient d'etre parsee
 							recordKeyPosition->SetLineIndex(
-							    nCumulatedLineNumber + inputFile.GetCurrentLineIndex() - 1);
+							    (longint)nCumulatedLineNumber +
+							    inputFile.GetCurrentLineIndex() - 1);
 
 							// Memorisation du debut de ligne suivant (avant parsing de la
 							// cle secondaire)
@@ -1260,7 +1261,7 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 				assert(lLinePosition >= 0);
 				output_SlaveLastKeyPosition.GetKeyPosition()->GetKey()->CopyFrom(key);
 				output_SlaveLastKeyPosition.GetKeyPosition()->SetLineIndex(
-				    nCumulatedLineNumber + inputFile.GetCurrentLineIndex() - 1);
+				    (longint)nCumulatedLineNumber + inputFile.GetCurrentLineIndex() - 1);
 				output_SlaveLastKeyPosition.GetKeyPosition()->SetLinePosition(lLinePosition);
 
 				// Affichage

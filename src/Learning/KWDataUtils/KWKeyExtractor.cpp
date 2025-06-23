@@ -110,6 +110,14 @@ boolean KWKeyExtractor::ParseNextKey(KWKey* key, PLParallelTask* taskErrorSender
 			bEol = iBuffer->SkipField(nFieldError, bLineTooLong);
 			nLineFieldNumber++;
 			j++;
+
+			// Affichage d'un warning en cas d'erreur
+			if (nFieldError != InputBufferedFile::FieldNoError and taskErrorSender != NULL)
+			{
+				taskErrorSender->AddLocalWarning(sTmp + "field " + IntToString(j) + " : " +
+								     iBuffer->GetFieldErrorLabel(nFieldError),
+								 iBuffer->GetCurrentLineIndex());
+			}
 		}
 
 		// Extraction du champ (par defaut vide si on a deja lu tous les champs de la ligne)
@@ -119,9 +127,10 @@ boolean KWKeyExtractor::ParseNextKey(KWKey* key, PLParallelTask* taskErrorSender
 			bEol = iBuffer->GetNextField(sField, nFieldLength, nFieldError, bLineTooLong);
 			nLineFieldNumber++;
 			j++;
+
+			// Affichage d'un warning en cas d'erreur
 			if (nFieldError != InputBufferedFile::FieldNoError and taskErrorSender != NULL)
 			{
-				// Affichage du warning
 				taskErrorSender->AddLocalWarning("key field <" +
 								     InputBufferedFile::GetDisplayValue(sField) +
 								     "> : " + iBuffer->GetFieldErrorLabel(nFieldError),
@@ -151,7 +160,28 @@ boolean KWKeyExtractor::ParseNextKey(KWKey* key, PLParallelTask* taskErrorSender
 
 	// On va jusqu'au bout de la ligne si necessaire, sans incrementer le numero de ligne dans le buffer
 	if (not bEol)
-		iBuffer->SkipLastFields(bLineTooLong);
+	{
+		// Saut rapide des derniers champs de la ligne s'il n'y a pas deporting des erreurs
+		if (taskErrorSender == NULL)
+			iBuffer->SkipLastFields(bLineTooLong);
+		// Sinon, on saute les champs un a un pour detecter les eventuelles erreur utilisateur
+		else
+		{
+			while (not bEol)
+			{
+				bEol = iBuffer->SkipField(nFieldError, bLineTooLong);
+				j++;
+
+				// Affichage d'un warning en cas d'erreur
+				if (nFieldError != InputBufferedFile::FieldNoError)
+				{
+					taskErrorSender->AddLocalWarning(sTmp + "field " + IntToString(j) + " : " +
+									     iBuffer->GetFieldErrorLabel(nFieldError),
+									 iBuffer->GetCurrentLineIndex());
+				}
+			}
+		}
+	}
 
 	// Warning si ligne trop longue
 	if (bLineTooLong and taskErrorSender != NULL)
