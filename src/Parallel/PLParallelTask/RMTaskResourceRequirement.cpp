@@ -160,22 +160,22 @@ boolean RMTaskResourceRequirement::Check() const
 	bOk = true;
 	if (not masterRequirement->Check())
 	{
-		AddError("Master requirements are not consitent");
+		AddError("Master requirements are not consistent");
 		bOk = false;
 	}
 	if (not slaveRequirement->Check())
 	{
-		AddError("Slave requirements are not consitent");
+		AddError("Slave requirements are not consistent");
 		bOk = false;
 	}
 	if (not sharedRequirement->Check())
 	{
-		AddError("Shared requirements are not consitent");
+		AddError("Shared requirements are not consistent");
 		bOk = false;
 	}
 	if (not globalSlaveRequirement->Check())
 	{
-		AddError("Global slave requirements are not consitent");
+		AddError("Global slave requirements are not consistent");
 		bOk = false;
 	}
 	return bOk;
