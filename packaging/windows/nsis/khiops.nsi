@@ -171,9 +171,9 @@ Section "Install" SecInstall
   File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\_khiopsgetprocnumber.exe"
   File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\norm.jar"
   File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\khiops.jar"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops_env.cmd"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops.cmd"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops_coclustering.cmd"
+  File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops_env.ps1"
+  File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops.ps1"
+  File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops_coclustering.ps1"
 
   # Install Docs
   SetOutPath "$INSTDIR"
@@ -333,7 +333,7 @@ Section "Install" SecInstall
   #############################
 
   # Create the Khiops shell
-  FileOpen $0 "$INSTDIR\bin\shell_khiops.cmd" w
+  FileOpen $0 "$INSTDIR\bin\shell_khiops.ps1" w
   FileWrite $0 '@echo off$\r$\n'
   FileWrite $0 'REM Open a shell session with access to Khiops$\r$\n'
   FileWrite $0 `if "%KHIOPS_HOME%".=="". set KHIOPS_HOME=$INSTDIR$\r$\n`
@@ -371,16 +371,16 @@ Section "Install" SecInstall
 
   # Create application shortcuts in the installation directory
   DetailPrint "Installing Start menu Shortcut..."
-  CreateShortCut "$INSTDIR\Khiops.lnk" "$INSTDIR\bin\khiops.cmd" "" "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWMINIMIZED
-  CreateShortCut "$INSTDIR\Khiops Coclustering.lnk" "$INSTDIR\bin\khiops_coclustering.cmd" "" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWMINIMIZED
+  CreateShortCut "$INSTDIR\Khiops.lnk" "$INSTDIR\bin\khiops.ps1" "" "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWMINIMIZED
+  CreateShortCut "$INSTDIR\Khiops Coclustering.lnk" "$INSTDIR\bin\khiops_coclustering.ps1" "" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWMINIMIZED
   ExpandEnvStrings $R0 "%COMSPEC%"
   CreateShortCut "$INSTDIR\Shell Khiops.lnk" "$INSTDIR\bin\shell_khiops.cmd" "" "$R0"
 
   # Create start menu shortcuts for the executables and documentation
   DetailPrint "Installing Start menu Shortcut..."
   CreateDirectory "$SMPROGRAMS\Khiops"
-  CreateShortCut "$SMPROGRAMS\Khiops\Khiops.lnk" "$INSTDIR\bin\khiops.cmd" "" "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWMINIMIZED
-  CreateShortCut "$SMPROGRAMS\Khiops\Khiops Coclustering.lnk" "$INSTDIR\bin\khiops_coclustering.cmd" "" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWMINIMIZED
+  CreateShortCut "$SMPROGRAMS\Khiops\Khiops.lnk" "$INSTDIR\bin\khiops.ps1" "" "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWMINIMIZED
+  CreateShortCut "$SMPROGRAMS\Khiops\Khiops Coclustering.lnk" "$INSTDIR\bin\khiops_coclustering.ps1" "" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWMINIMIZED
   ExpandEnvStrings $R0 "%COMSPEC%"
   CreateShortCut "$SMPROGRAMS\Khiops\Shell Khiops.lnk" "$INSTDIR\bin\shell_khiops.cmd" "" "$R0"
   CreateShortCut "$SMPROGRAMS\Khiops\Uninstall.lnk" "$INSTDIR\uninstall-khiops.exe"
@@ -435,7 +435,7 @@ Section "Install" SecInstall
     WriteRegStr HKCR "Khiops.File\shell\open\command" "" 'notepad.exe "%1"'
   ${EndIf}
   WriteRegStr HKCR "Khiops.File\shell\compile" "" "Execute Khiops Script"
-  WriteRegStr HKCR "Khiops.File\shell\compile\command" "" '"$INSTDIR\bin\khiops.cmd" -i "%1"'
+  WriteRegStr HKCR "Khiops.File\shell\compile\command" "" '"$INSTDIR\bin\khiops.ps1" -i "%1"'
 
   # Khiops coclustering scenario file
   ReadRegStr $R0 HKCR "._khc" ""
@@ -451,7 +451,7 @@ Section "Install" SecInstall
     WriteRegStr HKCR "Khiops.Coclustering.File\shell\open\command" "" 'notepad.exe "%1"'
   ${EndIf}
   WriteRegStr HKCR "Khiops.Coclustering.File\shell\compile" "" "Execute Khiops Coclustering Script"
-  WriteRegStr HKCR "Khiops.Coclustering.File\shell\compile\command" "" '"$INSTDIR\bin\khiops_coclustering.cmd" -i "%1"'
+  WriteRegStr HKCR "Khiops.Coclustering.File\shell\compile\command" "" '"$INSTDIR\bin\khiops_coclustering.ps1" -i "%1"'
 
   # Notify the file extension changes
   System::Call 'Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)'
@@ -530,9 +530,9 @@ Section "Uninstall"
   RMDir /r "$INSTDIR\bin\icons"
 
   # Delete executables and scripts
-  Delete "$INSTDIR\bin\khiops_env.cmd"
-  Delete "$INSTDIR\bin\khiops.cmd"
-  Delete "$INSTDIR\bin\khiops_coclustering.cmd"
+  Delete "$INSTDIR\bin\khiops_env.ps1"
+  Delete "$INSTDIR\bin\khiops.ps1"
+  Delete "$INSTDIR\bin\khiops_coclustering.ps1"
   Delete "$INSTDIR\bin\MODL.exe"
   Delete "$INSTDIR\bin\MODL_Coclustering.exe"
   Delete "$INSTDIR\bin\_khiopsgetprocnumber.exe"
@@ -660,8 +660,8 @@ Function "CreateDesktopShortcuts"
 
   # Create the shortcuts
   DetailPrint "Installing Desktop Shortcut..."
-  CreateShortCut "$DESKTOP\Khiops.lnk" "$INSTDIR\bin\khiops.cmd" "" "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWMINIMIZED
-  CreateShortCut "$DESKTOP\Khiops Coclustering.lnk" "$INSTDIR\bin\khiops_coclustering.cmd" "" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWMINIMIZED
+  CreateShortCut "$DESKTOP\Khiops.lnk" "$INSTDIR\bin\khiops.ps1" "" "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWMINIMIZED
+  CreateShortCut "$DESKTOP\Khiops Coclustering.lnk" "$INSTDIR\bin\khiops_coclustering.ps1" "" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWMINIMIZED
 FunctionEnd
 
 # Predefined initialization install function

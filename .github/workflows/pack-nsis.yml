@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - '**CMakeLists.txt'
+      - packaging/windows/*.in
       - packaging/windows/nsis/*.nsh
       - packaging/windows/nsis/*.nsi
       - .github/workflows/pack-nsis.yml

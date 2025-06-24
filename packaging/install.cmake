@@ -199,23 +199,23 @@ else(UNIX)
     set(GUI_STATUS "true")
   endif()
 
-  configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops_env.cmd.in ${TMP_DIR}/khiops_env.cmd @ONLY
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops_env.ps1.in ${TMP_DIR}/khiops_env.ps1 @ONLY
                  NEWLINE_STYLE CRLF)
 
-  # khiops.cmd and khiops_coclustering.cmd differ only with the binary path: KHIOPS_PATH or KHIOPS_COCLUSTRING_PATH.
-  # They both build from the same file: khiops.cmd.in
+  # khiops.ps1 and khiops_coclustering.ps1 differ only with the binary path: KHIOPS_PATH or KHIOPS_COCLUSTRING_PATH.
+  # They both build from the same file: khiops.ps1.in
   set(MODL_PATH "KHIOPS_PATH")
   set(TOOL_NAME "Khiops")
-  configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops.cmd.in ${TMP_DIR}/khiops.cmd @ONLY NEWLINE_STYLE CRLF)
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops.ps1.in ${TMP_DIR}/khiops.ps1 @ONLY NEWLINE_STYLE CRLF)
   set(MODL_PATH "KHIOPS_COCLUSTERING_PATH")
   set(TOOL_NAME "Khiops_coclustering")
-  configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops.cmd.in ${TMP_DIR}/khiops_coclustering.cmd @ONLY
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops.ps1.in ${TMP_DIR}/khiops_coclustering.ps1 @ONLY
                  NEWLINE_STYLE CRLF)
 
   install(TARGETS MODL MODL_Coclustering _khiopsgetprocnumber RUNTIME DESTINATION bin COMPONENT KHIOPS_CORE)
 
   install(
-    PROGRAMS ${TMP_DIR}/khiops.cmd ${TMP_DIR}/khiops_coclustering.cmd ${TMP_DIR}/khiops_env.cmd
+    PROGRAMS ${TMP_DIR}/khiops.ps1 ${TMP_DIR}/khiops_coclustering.ps1 ${TMP_DIR}/khiops_env.ps1
     DESTINATION bin
     COMPONENT KHIOPS_CORE)
 

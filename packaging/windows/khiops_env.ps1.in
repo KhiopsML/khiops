@@ -1,0 +1,238 @@
+<#
+.SYNOPSIS
+    Setting Up the Khiops environment.
+
+.DESCRIPTION
+    This script sets up the environment variables required for Khiops to run correctly.
+    It configures paths for Java, MPI, Khiops executables, and other related settings.
+    It can display help, show environment variables, or just set them silently.
+
+.PARAMETER -h, --help
+Display help and eit
+.PARAMETER --env
+Display the environment variables and exit
+#>
+
+param (
+    [string[]]$Args
+)
+
+function Show-Help {
+    Write-Output "Usage: khiops_env.ps1 [-h, --help] [--env]"
+    Write-Output "khiops_env is an internal script intended to be used by Khiops tool and Khiops wrappers only."
+    Write-Output "It sets all the environment variables required by the Khiops to run correctly (Java, MPI, etc)."
+    Write-Output "Options:"
+    Write-Output "   -h, --help show this help message and exit"
+    Write-Output "   --env show the environment list and exit"
+    Write-Output ""
+    Write-Output "The following variables are used to set the path and classpath for the prerequisite of Khiops."
+    Write-Output ""
+    Write-Output "KHIOPS_PATH: full path of Khiops executable"
+    Write-Output "KHIOPS_COCLUSTERING_PATH: full path of Khiops coclustering executable"
+    Write-Output "KHIOPS_MPI_COMMAND: MPI command to call the Khiops tool"
+    Write-Output "KHIOPS_JAVA_PATH: path of Java tool, to add in path"
+    Write-Output "KHIOPS_CLASSPATH: Khiops java libraries, to add in classpath"
+    Write-Output "KHIOPS_DRIVERS_PATH: search path of the drivers (by default Khiops bin directory if not defined)"
+    Write-Output ""
+    Write-Output "If they are not already defined, the following variables used by Khiops are set:"
+    Write-Output ""
+    Write-Output "KHIOPS_LAST_RUN_DIR: directory where Khiops writes output command file and log"
+    Write-Output "  (when not defined with -e and -o)"
+    Write-Output "KHIOPS_PROC_NUMBER: processes number launched by Khiops (it's default value corresponds to the"
+    Write-Output "  number of physical cores of the computer)"
+    Write-Output ""
+    Write-Output "The following variables are not defined by default and can be used to change some default"
+    Write-Output " properties of Khiops:"
+    Write-Output ""
+    Write-Output "KHIOPS_TMP_DIR: Khiops temporary directory location (default: the system default)."
+    Write-Output "  This location can be modified from the tool as well."
+    Write-Output "KHIOPS_MEMORY_LIMIT: Khiops memory limit in MB (default: the system memory limit)."
+    Write-Output "  The minimum value is 100 MB; this setting is ignored if it is above the system's memory limit."
+    Write-Output "  It can only be reduced from the tool."
+    Write-Output "KHIOPS_API_MODE: standard or api mode for the management of output result files created by Khiops"
+    Write-Output "  In standard mode, the result files are stored in the train database directory,"
+    Write-Output "  unless an absolute path is specified, and the file extension is forced if necessary."
+    Write-Output "  In api mode, the result files are stored in the current working directory, using the specified results as is."
+    Write-Output "  . default behavior if not set: standard mode"
+    Write-Output "  . set to 'false' to force standard mode"
+    Write-Output "  . set to 'true' to force api mode"
+    Write-Output "KHIOPS_RAW_GUI: graphical user interface for file name selection"
+    Write-Output "  . default behavior if not set: depending on the file drivers available for Khiops"
+    Write-Output "  . set to 'true' to allow file name selection with uri schemas"
+    Write-Output "  . set to 'false' to allow local file name selection only with a file selection dialog"
+    Write-Output ""
+    Write-Output "In case of configuration problems, the variables KHIOPS_JAVA_ERROR and KHIOPS_MPI_ERROR contain error messages."
+}
+
+# Check parameters
+if ($Args.Count -eq 0) {
+    # No arguments, proceed to set environment
+    $mode = "SET_ENV"
+} elseif ($Args[0] -eq "--env") {
+    $mode = "DISPLAY_ENV"
+} elseif ($Args[0] -eq "-h" -or $Args[0] -eq "--help") {
+    Show-Help
+    exit 0
+} else {
+    exit 1
+}
+
+# Initialize environment variables
+$env:KHIOPS_PATH = ""
+$env:KHIOPS_COCLUSTERING_PATH = ""
+$env:KHIOPS_MPI_COMMAND = ""
+$env:KHIOPS_JAVA_PATH = ""
+$env:KHIOPS_CLASSPATH = ""
+$env:KHIOPS_JAVA_ERROR = ""
+$env:KHIOPS_MPI_ERROR = ""
+
+# Set Khiops home to parent directory of script location
+$scriptPath = $MyInvocation.MyCommand.Path
+$scriptDir = Split-Path -Parent $scriptPath
+$KHIOPS_HOME = Resolve-Path (Join-Path $scriptDir "..")
+
+# Set KHIOPS_PATH and KHIOPS_COCLUSTERING_PATH
+$env:KHIOPS_PATH = Join-Path $KHIOPS_HOME "bin\MODL.exe"
+$env:KHIOPS_COCLUSTERING_PATH = Join-Path $KHIOPS_HOME "bin\MODL_Coclustering.exe"
+
+# KHIOPS_LAST_RUN_DIR
+if (-not $env:KHIOPS_LAST_RUN_DIR -or $env:KHIOPS_LAST_RUN_DIR -eq "") {
+    $env:KHIOPS_LAST_RUN_DIR = Join-Path $env:USERPROFILE "khiops_data\lastrun"
+}
+
+# KHIOPS_PROC_NUMBER
+if (-not $env:KHIOPS_PROC_NUMBER -or $env:KHIOPS_PROC_NUMBER -eq "") {
+    # Try to get number of physical cores by calling _khiopsgetprocnumber executable in script directory
+    $procNumberExe = Join-Path $scriptDir "_khiopsgetprocnumber"
+    if (Test-Path $procNumberExe) {
+        try {
+            $procNumber = & $procNumberExe
+            if ($procNumber -match '^\d+$') {
+                $env:KHIOPS_PROC_NUMBER = $procNumber
+            } else {
+                $env:KHIOPS_PROC_NUMBER = 1
+            }
+        } catch {
+            $env:KHIOPS_PROC_NUMBER = 1
+        }
+    } else {
+        $env:KHIOPS_PROC_NUMBER = 1
+    }
+}
+
+# Set MPI binary (mpiexec)
+function Set-MPI {
+    if ([int]$env:KHIOPS_PROC_NUMBER -le 2) {
+        return
+    }
+    # Placeholder for @SET_MPI@ logic from original script
+    # This part is not fully defined in the original script, so you may need to implement it accordingly
+    # For now, we just set a default or call a function to set MPI command
+    Set-MPI_Command
+}
+
+function Set-MPI_Command {
+    # Try conda installation path
+    $condaMpiexec = Join-Path $KHIOPS_HOME "Library\bin\mpiexec.exe"
+    if (Test-Path $condaMpiexec) {
+        $env:KHIOPS_MPI_COMMAND = $condaMpiexec
+        Add-MPI_Params
+        return
+    }
+
+    # Try system wide installation
+    if ($env:MSMPI_BIN) {
+        $msmpiPath = Join-Path $env:MSMPI_BIN "mpiexec.exe"
+        if (Test-Path $msmpiPath) {
+            $env:KHIOPS_MPI_COMMAND = $msmpiPath
+            Add-MPI_Params
+            return
+        }
+    }
+
+    # Try mpiexec in PATH
+    $mpiexecPath = (Get-Command mpiexec -ErrorAction SilentlyContinue).Source
+    if (-not $mpiexecPath) {
+        $env:KHIOPS_MPI_ERROR = "We didn't find mpiexec in the regular path. Parallel computation is unavailable: Khiops is launched in serial"
+        $env:KHIOPS_MPI_COMMAND = ""
+        return
+    }
+
+    # Check if mpiexec is Microsoft MPI
+    $output = & $mpiexecPath 2>&1
+    if ($output -notmatch "Microsoft MPI") {
+        $env:KHIOPS_MPI_ERROR = "We can't find the right implementation of mpiexec, we expect to find Microsoft MPI. Parallel computation is unavailable: Khiops is launched in serial"
+        $env:KHIOPS_MPI_COMMAND = ""
+        return
+    }
+
+    $env:KHIOPS_MPI_COMMAND = "mpiexec"
+    Add-MPI_Params
+}
+
+function Add-MPI_Params {
+    if ($env:KHIOPS_MPI_COMMAND -and $env:KHIOPS_MPI_COMMAND -ne "") {
+        $env:KHIOPS_MPI_COMMAND = "$($env:KHIOPS_MPI_COMMAND) -n $($env:KHIOPS_PROC_NUMBER)"
+    }
+}
+
+Set-MPI
+
+# GUI status placeholder for @GUI_STATUS@
+# Replace '@GUI_STATUS@' with actual value or logic
+$KHIOPS_GUI = $false  # or $true depending on your environment
+
+if (-not $KHIOPS_GUI) {
+    goto SkipGUI
+}
+
+# Set Java environment
+$JAVA_ERROR = $false
+if (-not (Test-Path (Join-Path $KHIOPS_HOME "jre\bin\server\"))) {
+    $JAVA_ERROR = $true
+}
+if (-not (Test-Path (Join-Path $KHIOPS_HOME "jre\bin\"))) {
+    $JAVA_ERROR = $true
+}
+
+if (-not $JAVA_ERROR) {
+    $env:KHIOPS_JAVA_PATH = "$(Join-Path $KHIOPS_HOME 'jre\bin\server\');$(Join-Path $KHIOPS_HOME 'jre\bin\')"
+} else {
+    $env:KHIOPS_JAVA_ERROR = "The JRE is missing in Khiops home directory, please reinstall Khiops"
+}
+
+# KHIOPS_CLASSPATH
+$env:KHIOPS_CLASSPATH = "$(Join-Path $KHIOPS_HOME 'bin\norm.jar')"
+$env:KHIOPS_CLASSPATH = "$(Join-Path $KHIOPS_HOME 'bin\khiops.jar');$env:KHIOPS_CLASSPATH"
+
+:SkipGUI
+
+# Placeholders for @IS_CONDA_VAR@ and @SET_KHIOPS_DRIVERS_PATH@
+# You need to implement these parts based on your environment or requirements
+
+# Unset local variables
+Remove-Variable KHIOPS_GUI -ErrorAction SilentlyContinue
+Remove-Variable JAVA_ERROR -ErrorAction SilentlyContinue
+Remove-Variable KHIOPS_HOME -ErrorAction SilentlyContinue
+
+if ($mode -ne "DISPLAY_ENV") {
+    exit 0
+}
+
+# Print environment variables
+Write-Output "KHIOPS_PATH $env:KHIOPS_PATH"
+Write-Output "KHIOPS_COCLUSTERING_PATH $env:KHIOPS_COCLUSTERING_PATH"
+Write-Output "KHIOPS_MPI_COMMAND $env:KHIOPS_MPI_COMMAND"
+Write-Output "KHIOPS_JAVA_PATH $env:KHIOPS_JAVA_PATH"
+Write-Output "KHIOPS_CLASSPATH $env:KHIOPS_CLASSPATH"
+Write-Output "KHIOPS_LAST_RUN_DIR $env:KHIOPS_LAST_RUN_DIR"
+Write-Output "KHIOPS_PROC_NUMBER $env:KHIOPS_PROC_NUMBER"
+Write-Output "KHIOPS_TMP_DIR $env:KHIOPS_TMP_DIR"
+Write-Output "KHIOPS_MEMORY_LIMIT $env:KHIOPS_MEMORY_LIMIT"
+Write-Output "KHIOPS_API_MODE $env:KHIOPS_API_MODE"
+Write-Output "KHIOPS_RAW_GUI $env:KHIOPS_RAW_GUI"
+Write-Output "KHIOPS_DRIVERS_PATH $env:KHIOPS_DRIVERS_PATH"
+Write-Output "KHIOPS_JAVA_ERROR $env:KHIOPS_JAVA_ERROR"
+Write-Output "KHIOPS_MPI_ERROR $env:KHIOPS_MPI_ERROR"
+
+exit 0

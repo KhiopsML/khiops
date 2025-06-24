@@ -1,0 +1,141 @@
+<#
+.SYNOPSIS
+    Manage @TOOL_NAME@ execution.
+
+.DESCRIPTION
+    This script initializes environment variables by sourcing 'khiops_env.ps1',
+    checks installation correctness, handles batch mode detection, sets up PATH and CLASSPATH,
+    and launches the @TOOL_NAME@ executable with or without parameters.
+    It also manages error reporting in separate windows.
+#>
+
+param (
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$Args
+)
+
+function Show-ErrorAndExit {
+    param (
+        [string]$Title,
+        [string]$Message,
+        [int]$ExitCode = 1,
+        [switch]$KeepWindowOpen
+    )
+    if ($KeepWindowOpen) {
+        # Open a new PowerShell window to display the error and keep it open
+        Start-Process powershell -ArgumentList "-NoExit", "-Command", "Write-Host '$Title - ERROR: $Message'; pause"
+    } else {
+        Write-Error "$Title - ERROR: $Message"
+    }
+    exit $ExitCode
+}
+
+# Get the directory of this script
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# Check if khiops_env.ps1 exists in the same directory
+$khiopsEnvPs1 = Join-Path $scriptDir "khiops_env.ps1"
+if (-not (Test-Path $khiopsEnvPs1)) {
+    Show-ErrorAndExit -Title "@TOOL_NAME@ CONFIGURATION PROBLEM" -Message "khiops_env.ps1 is missing in directory $scriptDir"
+}
+
+# Import environment variables by dot-sourcing the khiops_env.ps1 script
+try {
+    . $khiopsEnvPs1
+} catch {
+    Show-ErrorAndExit -Title "@TOOL_NAME@ CONFIGURATION PROBLEM" -Message "Error running khiops_env.ps1: $_"
+}
+
+# Verify that the main executable exists
+if (-not (Test-Path @MODL_PATH@)) {
+    Show-ErrorAndExit -Title "@TOOL_NAME@ CONFIGURATION PROBLEM" -Message "Incorrect installation directory for @TOOL_NAME@ (File @MODL_PATH@ not found)"
+}
+
+# Display MPI configuration problems if any
+if ($env:KHIOPS_MPI_ERROR -and $env:KHIOPS_MPI_ERROR.Trim() -ne "") {
+    Write-Host $env:KHIOPS_MPI_ERROR
+}
+
+# Detect batch mode from parameters (-h, -b, -s, -v)
+$batchFlags = @("-h", "-b", "-s", "-v")
+$batchMode = $false
+foreach ($arg in $Args) {
+    if ($batchFlags -contains $arg.ToLower()) {
+        $batchMode = $true
+        break
+    }
+}
+
+# Check for Java errors in batch mode
+if ($batchMode -and $env:KHIOPS_JAVA_ERROR -and $env:KHIOPS_JAVA_ERROR.Trim() -ne "") {
+    Show-ErrorAndExit -Title "@TOOL_NAME@ CONFIGURATION PROBLEM" -Message $env:KHIOPS_JAVA_ERROR
+}
+
+# Check for conda environment GUI availability
+if ($env:_IS_CONDA -eq "true" -and -not $batchMode) {
+    Show-ErrorAndExit -Title "@TOOL_NAME@ CONFIGURATION PROBLEM" -Message "GUI is not available, please use the '-b' flag"
+}
+
+# Update PATH and CLASSPATH environment variables
+$env:PATH = "$scriptDir;$env:KHIOPS_JAVA_PATH;$env:PATH"
+$env:CLASSPATH = "$env:KHIOPS_CLASSPATH;$env:CLASSPATH"
+
+# Clear local variables
+Remove-Variable KHIOPS_BATCH_MODE -ErrorAction SilentlyContinue
+Remove-Variable _IS_CONDA -ErrorAction SilentlyContinue
+
+function Start-Tool {
+    param (
+        [string[]]$Parameters
+    )
+
+    # Ensure last run directory exists
+    if (-not (Test-Path $env:KHIOPS_LAST_RUN_DIR)) {
+        New-Item -ItemType Directory -Path $env:KHIOPS_LAST_RUN_DIR -Force | Out-Null
+    }
+
+    $exePath = @MODL_PATH@
+    $mpiCommand = $env:KHIOPS_MPI_COMMAND
+
+    if ([string]::IsNullOrWhiteSpace($mpiCommand)) {
+        # Run executable directly
+        $command = "& `"$exePath`" $($Parameters -join ' ')"
+    } else {
+        # Run via MPI command
+        $command = "& $mpiCommand `"$exePath`" $($Parameters -join ' ')"
+    }
+
+    # Execute the command
+    Invoke-Expression $command
+    $exitCode = $LASTEXITCODE
+
+    if ($exitCode -eq 0) {
+        exit 0
+    } else {
+        # Show error with log content in a new window
+        $logFile = Join-Path $env:KHIOPS_LAST_RUN_DIR "log.txt"
+        $message = @"
+ERROR @TOOL_NAME@ ended with return code $exitCode
+Contents of the log file at $logFile:
+"@
+
+        if (Test-Path $logFile) {
+            $message += Get-Content $logFile -Raw
+        } else {
+            $message += "Log file not found."
+        }
+
+        Show-ErrorAndExit -Title "@TOOL_NAME@ EXECUTION PROBLEM" -Message $message -KeepWindowOpen
+    }
+}
+
+# Launch @TOOL_NAME@ with or without parameters
+if ($Args.Count -eq 0) {
+    # No parameters: launch with default scenario and log files
+    $scenarioFile = Join-Path $env:KHIOPS_LAST_RUN_DIR "scenario._kh"
+    $logFile = Join-Path $env:KHIOPS_LAST_RUN_DIR "log.txt"
+    Start-Tool -Parameters @("-o", "`"$scenarioFile`"", "-e", "`"$logFile`"")
+} else {
+    # Launch with provided parameters
+    Start-Tool -Parameters $Args
+}
