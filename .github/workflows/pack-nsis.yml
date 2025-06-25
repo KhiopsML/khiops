@@ -15,6 +15,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref
     }}
   cancel-in-progress: true
+env:
+  KEYPAIR_TEST: KP_Khiops_Test
+  KEYPAIR_PROD: KP_Khiops_HSM
 jobs:
   build:
     outputs:
@@ -59,6 +62,45 @@ jobs:
           targets: MODL MODL_Coclustering norm_jar khiops_jar KhiopsNativeInterface
             KNITransfer _khiopsgetprocnumber
           override-flags: -DTESTING=OFF -DBUILD_JARS=ON
+      - name: Install DigiCert Client tools from Github Custom Actions marketplace
+        uses: digicert/ssm-code-signing@v1.0.1
+      - name: Set up certificate
+        run: |
+          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12 
+        shell: bash
+      - name: Set variables for signature
+        id: variables-used-by-smctl
+        run: |
+          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV" 
+          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV" 
+          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
+          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
+
+          # The production key is only used for releases from tags that are not release candidates or alpha
+          # Note: We use the production key for the beta releases because they are distributed to external users 
+          if [[ "${{ github.ref_type }}" == "tag" ]] && [[ "${{ github.ref_name  }}" != *"-rc."* ]] && [[ "${{ github.ref_name  }}" != *"-a."* ]]; then
+             echo "KEYPAIR=$KEYPAIR_PROD" >> "$GITHUB_ENV"
+             echo "::notice::Using Production key for signature"
+          else
+            echo "KEYPAIR=$KEYPAIR_TEST" >> "$GITHUB_ENV"
+            echo "::notice::Using Test key for signature"
+          fi
+        shell: bash
+      - name: Signing using keypair alias
+        run: |
+          OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/MODL.exe)
+          echo $OUTPUT
+          echo $OUTPUT | grep -q SUCCESSFUL
+          OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/MODL_Coclustering.exe)
+          echo $OUTPUT
+          echo $OUTPUT | grep -q SUCCESSFUL
+          OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/_khiopsgetprocnumber.exe)
+          echo $OUTPUT
+          echo $OUTPUT | grep -q SUCCESSFUL
+          OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/KhiopsNativeInterface.dll)
+          echo $OUTPUT
+          echo $OUTPUT | grep -q SUCCESSFUL
+        shell: bash
       - name: Build NSIS package
         shell: pwsh
         run: |-
@@ -75,6 +117,12 @@ jobs:
             /DKHIOPS_SAMPLES_DIR=..\..\..\assets\samples `
             /DKHIOPS_DOC_DIR=..\..\..\assets\doc `
             khiops.nsi
+      - name: Signing installer
+        run: |
+          OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input packaging/windows/nsis/khiops-${{ env.KHIOPS_VERSION }}-setup.exe)
+          echo $OUTPUT
+          echo $OUTPUT | grep -q SUCCESSFUL
+        shell: bash
       - name: Build ZIP packages
         shell: bash
         run: |-
@@ -93,7 +141,7 @@ jobs:
             ./build/windows-msvc-release/packages/kni-transfer-${{ env.KHIOPS_VERSION }}.zip
   test-khiops:
     needs: build
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - name: Download NSIS installer artifact
         uses: actions/download-artifact@v4
