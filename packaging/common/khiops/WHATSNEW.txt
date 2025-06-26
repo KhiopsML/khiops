@@ -2,6 +2,11 @@
 Release Notes for Khiops 10 Version Series
 ==========================================
 
+Version 10.3.2
+==============
+Bug fix of the sort algorithm: The singleton chunks were not always concatenated.
+Other minor improvements.
+
 Version 10.3.1
 ==============
 Bug fix of the sort algorithm: The singleton chunks don't need to be sorted, but if the input and output file 
