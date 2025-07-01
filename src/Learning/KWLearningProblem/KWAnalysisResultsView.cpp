@@ -28,7 +28,7 @@ KWAnalysisResultsView::KWAnalysisResultsView()
 	// Info-bulles
 	GetFieldAt("ReportFileName")
 	    ->SetHelpText("Name of the analysis report file in JSON format."
-			  "\n An additionnal dictionary file with extension.model.kdic is built, which contains the "
+			  "\n An additionnal dictionary file with extension .model.kdic is built, which contains the "
 			  "trained models."
 			  "\n By default, the result files are stored in the train database directory, unless an "
 			  "absolute path is specified."

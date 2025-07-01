@@ -36,7 +36,7 @@ KIPredictorAttributeArrayView::KIPredictorAttributeArrayView()
 	GetActionAt("UnselectAll")->SetStyle("Button");
 
 	// Info-bulles
-	GetFieldAt("Used")->SetHelpText("Indicate whether the variable is used as a lever variabe.");
+	GetFieldAt("Used")->SetHelpText("Indicate whether the variable is used as a lever variable.");
 	GetFieldAt("Type")->SetHelpText("Type of the variable.");
 	GetFieldAt("Name")->SetHelpText("Name of the variable.");
 	GetFieldAt("Importance")->SetHelpText("Importance of the variable.");

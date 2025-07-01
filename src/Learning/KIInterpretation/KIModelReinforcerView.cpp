@@ -55,8 +55,9 @@ KIModelReinforcerView::KIModelReinforcerView()
 		"\n"
 		"\n The reinforcement model produces the following variables for the target value to reinforce:"
 		"\n - Initial score, containing the conditional probability of the target value before reinforcement"
-		"\n - Four variables are output per decreasing reinforcement value: name of the lever variable, "
-		"\n reinforcement part, final score after reinforcement, and class change tag");
+		"\n - Four variables are output per rank of lever variable sorted by decreasing reinforcement level:"
+		"\n name of the lever variable, reinforcement part, final score after reinforcement,"
+		" and class change tag");
 
 	// ##
 }

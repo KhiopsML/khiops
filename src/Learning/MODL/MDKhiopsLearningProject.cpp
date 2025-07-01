@@ -48,16 +48,26 @@ void MDKhiopsLearningProject::OpenLearningEnvironnement()
 	sQuickStartInfo += "<li>Click on the 'Train model' button</li> ";
 	sQuickStartInfo += "<li>Click on the 'Visualize results' button in the 'Results' pane</li> ";
 	sQuickStartInfo += "<h3>What is a data dictionary?</h3> ";
-	sQuickStartInfo += "<p>A data dictionary allows you to specify the type and name of variables in a data file, "
+	sQuickStartInfo += "<p>A data dictionary allows you to define the type and name of variables in a data file, "
 			   "with additional key features:</p> ";
-	sQuickStartInfo += "<li>Select variables to exclude or not from the analysis</li> ";
+	sQuickStartInfo += "<ul>";
+	sQuickStartInfo += "<li>Selecting variables to include or exclude from analysis,</li> ";
 	sQuickStartInfo +=
-	    "<li>Organize your data in a multi-table schema, such as a star schema or a snowflake schema</li> ";
-	sQuickStartInfo += "<li>Create new variables calculated via derivation rules</li> ";
-	sQuickStartInfo += "<li>Store the data transformation flows of the prediction models obtained from the machine "
-			   "learning output</li> ";
+	    "<li>Organizing data within a multi-table schema, such as a star schema or snowflake schema,</li> ";
+	sQuickStartInfo += "<li>Creating new variables through derivation rules,</li> ";
 	sQuickStartInfo +=
-	    "<li>Allow recoding of data or deployment of prediction scores via the 'Deploy Model' feature</li> ";
+	    "<li>Storing data transformation workflows derived from machine learning model outputs,</li> ";
+	sQuickStartInfo += "<li>Facilitating data transformation of the input database via the 'Deploy model' feature, "
+			   "which includes:";
+	sQuickStartInfo += "<ul>";
+	sQuickStartInfo += "<li> Deploying prediction scores using a prediction model,</li>";
+	sQuickStartInfo += "<li> Recoding data with a recoder model,</li>";
+	sQuickStartInfo += "<li> Generating interpretation indicators with an interpreter model,</li>";
+	sQuickStartInfo += "<li> Deploying or reinforcing scores using a reinforcer model,</li>";
+	sQuickStartInfo += "<li>...</li>";
+	sQuickStartInfo += "</ul>";
+	sQuickStartInfo += "</li>";
+	sQuickStartInfo += "</ul>";
 	sQuickStartInfo += "<p>A dictionary file contains one or several dictionaries.</p> ";
 	sQuickStartInfo += "<h3>Standard path</h3> ";
 	sQuickStartInfo += "<h4>Manage data dictionaries</h4> ";
@@ -67,7 +77,7 @@ void MDKhiopsLearningProject::OpenLearningEnvironnement()
 	sQuickStartInfo += "<h4>Use a data dictionary</h4> ";
 	sQuickStartInfo += "<li>Click on the 'Open' sub-menu of the 'Data dictionary' menu</li> ";
 	sQuickStartInfo += "<li>Choose the dictionary file (extentions .kdic)</li> ";
-	sQuickStartInfo += "<li>Enter the name the the dictionary in the 'Analysis dictionary' field of the 'Train "
+	sQuickStartInfo += "<li>Enter the name the dictionary in the 'Analysis dictionary' field of the 'Train "
 			   "database' pane</li> ";
 	sQuickStartInfo += "</html> ";
 	KWLearningProblemHelpCard::SetQuickStartText(sQuickStartInfo);
@@ -77,11 +87,7 @@ void MDKhiopsLearningProject::OpenLearningEnvironnement()
 
 	// Documentation
 	sDocumentation += "<h4> Reference Guide and Tutorial </h4>"
-#ifdef _WIN32
-			  "<p> In the 'doc' sub-directory of the installation directory </p>";
-#elif defined __linux_or_apple__
-			  "<p> In the '/usr/share/doc/khiops' directory </p>";
-#endif
+			  "<p> On the web site </p>";
 
 	// Sample datasets
 	sDocumentation += "<h4> Sample Datasets </h4> "
