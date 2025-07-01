@@ -53,10 +53,9 @@ ManifestDPIAware true
 
 # Sign uninstaller if requested
 !ifdef SIGN
-  !insertmacro CheckInputParameter PATH_TO_JSIGN
-  !insertmacro CheckInputParameter PKCS11_CONF
-  !insertmacro CheckInputParameter KEY_PASSWORD
-  !uninstfinalize java -Djava.security.debug=sunpkcs11,pkcs11 -jar ${PATH_TO_JSIGN} --keystore ${PKCS11_CONF} --storepass ${KEY_PASSWORD} --storetype PKCS11 --alias 'Orange SA' %1
+  !insertmacro CheckInputParameter KEYPAIR_ALIAS
+  !insertmacro CheckInputParameter PATH_TO_CONFIG_FILE
+  !uninstfinalize "smctl sign --keypair-alias ${KEYPAIR_ALIAS} --config-file ${PATH_TO_CONFIG_FILE} --input %1"
 !endif
 
 # Application name and installer file name
