@@ -2,6 +2,52 @@
 Release Notes for Khiops 10 Version Series
 ==========================================
 
+Version 11.0.0
+==============
+Text data: 
+- new Text type for variables in tabular or multi-table schema
+- Automatic feature construction from Text variables
+
+SNB classifier for sparse data: extension to sparse data
+
+Random forests for regression
+
+Khiops interpretation and reinforcement:  
+- Instance-based interpretation of scores
+- Exact computation of Shapley values
+- Importance of SNB selected variables is now computing using their mean absolute Shapley value
+- Build an interpretation dictionary, to deploy interpretation values
+- Build a reinforcement dictionary, to deploy reinforcement scores based on lever variables
+
+Histograms: Optimal histograms for univariate data exploration
+
+Coclustering instances x variables: extension of existing variable x variable coclustering, for joint density estimation to instances x variables coclustering, for exploratory analysis.
+
+Visualization tools:
+- visualization: new panel to visualize histograms
+- covisualization: accounting for the case of instances x variables coclustering
+
+Simplified ergonomy
+- simplification of panels and fields, everywhere, as much as possible
+- fast path: to train a model without a dictionary
+- results visualization and edition of dictionaries from the graphical interface
+
+Extended scenario-based management of Khiops, with control structures and a parameter file in json format
+
+Version 10.3.2
+==============
+Bug fix of the sort algorithm: The singleton chunks were not always concatenated.
+Other minor improvements.
+
+Version 10.3.1
+==============
+Bug fix of the sort algorithm: The singleton chunks don't need to be sorted, but if the input and output file 
+separators are different, they need to be rewritten to change the file separator.
+
+Minor improvement of the Java GUI (better handling of the value changes for spinner widgets).
+
+Other minor improvements and bug fixes.
+
 Version 10.3.0
 ==============
 
