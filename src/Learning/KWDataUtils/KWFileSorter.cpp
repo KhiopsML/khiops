@@ -237,6 +237,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 			// Lancement de la tache KWChunkSorterTask sur un seul bucket
 			smallBucket = new KWSortBucket;
 			smallBucket->AddChunkFileName(sInputFileName);
+			smallBucket->SetChunkSize(lFileSize);
 			sortedBuckets.AddBucket(smallBucket);
 			parallelSorter.SetTaskUserLabel("In memory sort");
 			parallelSorter.SetBuckets(&sortedBuckets);
@@ -260,7 +261,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 				concatenater.SetDisplayProgression(false);
 
 				// Concatenation
-				concatenater.Concatenate(parallelSorter.GetSortedFiles(), this, true);
+				bOk = concatenater.Concatenate(parallelSorter.GetSortedFiles(), this, true);
 			}
 
 			bIsInterruptedByUser = parallelSorter.IsTaskInterruptedByUser();
@@ -296,6 +297,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 				sNewFileName = sInputFileName;
 
 			initBucket->AddChunkFileName(sNewFileName);
+			initBucket->SetChunkSize(lFileSize);
 			sortedBuckets.AddBucket(initBucket);
 			overweightBucket = sortedBuckets.GetOverweightBucket(nChunkSize);
 
@@ -398,7 +400,11 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 				parallelSorter.SetInputFieldSeparator(cInputFieldSeparator);
 				parallelSorter.SetInputHeaderLineUsed(bInputHeaderLineUsed);
 				parallelSorter.SetOutputFieldSeparator(cOutputFieldSeparator);
+
+				// Tri des fichiers.
+				// En cas d'erreur, les fichiers d'entree et de sortie sont nettoyes.
 				bOk = parallelSorter.Sort();
+				lObjectNumber = parallelSorter.GetSortedLinesNumber();
 				bIsInterruptedByUser = parallelSorter.IsTaskInterruptedByUser();
 				if (bTrace)
 					AddSimpleMessage(
@@ -407,34 +413,6 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 					    SecondsToString(parallelSorter.GetMasterInitializeElapsedTime()) +
 					    " finalize : " +
 					    SecondsToString(parallelSorter.GetMasterFinalizeElapsedTime()) + ")");
-				lObjectNumber = parallelSorter.GetSortedLinesNumber();
-
-				// Nettoyage des chunks en cas d'erreur
-				// sauf dans la cas (rare) ou on trie directement le fichier d'entree (auquel cas
-				// nSplitNumber==0) (on devrait etre en InMemory)
-				if (not bOk and nSplitNumber > 0)
-				{
-					assert(svChunkFileNames.GetSize() == 0);
-					for (i = 0; i < sortedBuckets.GetBucketNumber(); i++)
-					{
-						if (sortedBuckets.GetBucketAt(i)->GetSorted())
-							svChunkFileNames.Add(
-							    sortedBuckets.GetBucketAt(i)->GetOutputFileName());
-						else
-						{
-							for (j = 0; j < sortedBuckets.GetBucketAt(i)
-									    ->GetChunkFileNames()
-									    ->GetSize();
-							     j++)
-							{
-								svChunkFileNames.Add(sortedBuckets.GetBucketAt(i)
-											 ->GetChunkFileNames()
-											 ->GetAt(j));
-							}
-						}
-					}
-					concatenater.RemoveChunks(&svChunkFileNames);
-				}
 
 				// Concatenation
 				if (bOk)

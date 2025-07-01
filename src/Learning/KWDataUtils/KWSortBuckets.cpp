@@ -563,7 +563,8 @@ KWSortBucket::KWSortBucket()
 	bLowerBoundExcluded = true;
 	bUpperBoundExcluded = true;
 	bSorted = false;
-	lFileSize = -1;
+	lFileSize = 0;
+	lLineNumber = 0;
 }
 
 KWSortBucket::~KWSortBucket() {}
@@ -588,6 +589,7 @@ void KWSortBucket::CopyFrom(const KWSortBucket* bSource)
 	sId = bSource->sId;
 	sOutputFileName = bSource->sOutputFileName;
 	lFileSize = bSource->lFileSize;
+	lLineNumber = bSource->lLineNumber;
 }
 
 boolean KWSortBucket::Check() const
@@ -714,9 +716,11 @@ void KWSortBucket::AddLine(const CharVector* cvLine)
 	// Ajout de la ligne
 	for (i = 0; i < cvLine->GetSize(); i++)
 		cvLines.Add(cvLine->GetAt(i));
+
+	lLineNumber++;
 }
 
-CharVector* KWSortBucket::GetChunk()
+CharVector* KWSortBucket::GetBuffer()
 {
 	return &cvLines;
 }
@@ -733,29 +737,10 @@ ALString KWSortBucket::GetId() const
 
 longint KWSortBucket::GetChunkSize()
 {
-	int i;
-
-	// Si on n'a pas la taille (deja calculee ou affectee) on la calcule
-	if (lFileSize == -1)
-	{
-		lFileSize = 0;
-		if (svChunkFileNames.GetSize() > 0)
-		{
-			for (i = 0; i < svChunkFileNames.GetSize(); i++)
-			{
-				lFileSize += PLRemoteFileService::GetFileSize(svChunkFileNames.GetAt(i));
-			}
-		}
-		else
-		{
-			ensure(GetSorted());
-			lFileSize = PLRemoteFileService::GetFileSize(sOutputFileName);
-		}
-	}
 	return lFileSize;
 }
 
-void KWSortBucket::SetChunkFileSize(longint lSize)
+void KWSortBucket::SetChunkSize(longint lSize)
 {
 	lFileSize = lSize;
 }
@@ -768,6 +753,16 @@ void KWSortBucket::SetSorted()
 boolean KWSortBucket::GetSorted() const
 {
 	return bSorted;
+}
+
+longint KWSortBucket::GetLineNumber() const
+{
+	return lLineNumber;
+}
+
+void KWSortBucket::SetLineNumber(longint lNumber)
+{
+	lLineNumber = lNumber;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -816,6 +811,11 @@ void PLShared_SortBucket::SerializeObject(PLSerializer* serializer, const Object
 
 	// Id
 	serializer->PutString(bucket->sId);
+	serializer->PutLongint(bucket->lLineNumber);
+	serializer->PutLongint(bucket->lFileSize);
+
+	// Liste des fichiers
+	serializer->PutStringVector(&(bucket->svChunkFileNames));
 }
 
 void PLShared_SortBucket::DeserializeObject(PLSerializer* serializer, Object* o) const
@@ -834,6 +834,9 @@ void PLShared_SortBucket::DeserializeObject(PLSerializer* serializer, Object* o)
 	bucket->bLowerBoundExcluded = serializer->GetBoolean();
 	bucket->bUpperBoundExcluded = serializer->GetBoolean();
 	bucket->SetId(serializer->GetString());
+	bucket->lLineNumber = serializer->GetLongint();
+	bucket->lFileSize = serializer->GetLongint();
+	serializer->GetStringVector(&(bucket->svChunkFileNames));
 }
 
 int KWSortBucketCompareChunkSize(const void* first, const void* second)
@@ -844,7 +847,7 @@ int KWSortBucketCompareChunkSize(const void* first, const void* second)
 	aFirst = cast(KWSortBucket*, *(Object**)first);
 	aSecond = cast(KWSortBucket*, *(Object**)second);
 
-	return (aFirst->GetChunk()->GetSize() == aSecond->GetChunk()->GetSize()
+	return (aFirst->GetBuffer()->GetSize() == aSecond->GetBuffer()->GetSize()
 		    ? 0
-		    : (aFirst->GetChunk()->GetSize() > aSecond->GetChunk()->GetSize() ? -1 : 1));
+		    : (aFirst->GetBuffer()->GetSize() > aSecond->GetBuffer()->GetSize() ? -1 : 1));
 }

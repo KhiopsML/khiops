@@ -229,7 +229,10 @@ boolean PLFileConcatenater::Concatenate(const StringVector* svChunkURIs, const O
 
 			// Interruption ?
 			if (not bOk or TaskProgression::IsInterruptionRequested())
+			{
+				bOk = false;
 				break;
+			}
 
 			// Concatenation d'un nouveau chunk
 			if (PLRemoteFileService::FileExists(sChunkURI))
