@@ -758,7 +758,8 @@ KWDerivationRule* KWDRGetObjectValue::Create() const
 	return new KWDRGetObjectValue;
 }
 
-KWObject* KWDRGetObjectValue::ComputeObjectResult(const KWObject* kwoObject) const
+KWObject* KWDRGetObjectValue::ComputeObjectResult(const KWObject* kwoObject,
+						  const KWLoadIndex liAttributeLoadIndex) const
 {
 	KWDerivationRuleOperand* valueOperand;
 	KWObject* kwoContainedObject;
@@ -805,7 +806,8 @@ KWDerivationRule* KWDRGetObjectArrayValue::Create() const
 	return new KWDRGetObjectArrayValue;
 }
 
-ObjectArray* KWDRGetObjectArrayValue::ComputeObjectArrayResult(const KWObject* kwoObject) const
+ObjectArray* KWDRGetObjectArrayValue::ComputeObjectArrayResult(const KWObject* kwoObject,
+							       const KWLoadIndex liAttributeLoadIndex) const
 {
 	KWDerivationRuleOperand* valueOperand;
 	KWObject* kwoContainedObject;
@@ -851,7 +853,7 @@ KWDerivationRule* KWDRTableAt::Create() const
 	return new KWDRTableAt;
 }
 
-KWObject* KWDRTableAt::ComputeObjectResult(const KWObject* kwoObject) const
+KWObject* KWDRTableAt::ComputeObjectResult(const KWObject* kwoObject, const KWLoadIndex liAttributeLoadIndex) const
 {
 	ObjectArray* oaContainedObjects;
 	int nIndex;
@@ -898,7 +900,7 @@ KWDerivationRule* KWDRTableAtKey::Create() const
 	return new KWDRTableAtKey;
 }
 
-KWObject* KWDRTableAtKey::ComputeObjectResult(const KWObject* kwoObject) const
+KWObject* KWDRTableAtKey::ComputeObjectResult(const KWObject* kwoObject, const KWLoadIndex liAttributeLoadIndex) const
 {
 	ObjectArray* oaContainedObjects;
 	int nObject;
@@ -1014,7 +1016,8 @@ KWDerivationRule* KWDRTableSelectFirst::Create() const
 	return new KWDRTableSelectFirst;
 }
 
-KWObject* KWDRTableSelectFirst::ComputeObjectResult(const KWObject* kwoObject) const
+KWObject* KWDRTableSelectFirst::ComputeObjectResult(const KWObject* kwoObject,
+						    const KWLoadIndex liAttributeLoadIndex) const
 {
 	KWObject* kwoResult;
 	ObjectArray* oaObjectArrayOperand;
@@ -1076,7 +1079,8 @@ KWDerivationRule* KWDRTableUnion::Create() const
 	return new KWDRTableUnion;
 }
 
-ObjectArray* KWDRTableUnion::ComputeObjectArrayResult(const KWObject* kwoObject) const
+ObjectArray* KWDRTableUnion::ComputeObjectArrayResult(const KWObject* kwoObject,
+						      const KWLoadIndex liAttributeLoadIndex) const
 {
 	int nOperand;
 	ObjectArray* oaObjectArrayOperand;
@@ -1157,7 +1161,8 @@ KWDerivationRule* KWDRTableIntersection::Create() const
 	return new KWDRTableIntersection;
 }
 
-ObjectArray* KWDRTableIntersection::ComputeObjectArrayResult(const KWObject* kwoObject) const
+ObjectArray* KWDRTableIntersection::ComputeObjectArrayResult(const KWObject* kwoObject,
+							     const KWLoadIndex liAttributeLoadIndex) const
 {
 	int nOperand;
 	ObjectArray* oaObjectArrayOperand;
@@ -1283,7 +1288,8 @@ KWDerivationRule* KWDRTableDifference::Create() const
 	return new KWDRTableDifference;
 }
 
-ObjectArray* KWDRTableDifference::ComputeObjectArrayResult(const KWObject* kwoObject) const
+ObjectArray* KWDRTableDifference::ComputeObjectArrayResult(const KWObject* kwoObject,
+							   const KWLoadIndex liAttributeLoadIndex) const
 {
 	ObjectArray* oaObjectArrayOperand1;
 	ObjectArray* oaObjectArrayOperand2;
@@ -1356,7 +1362,8 @@ KWDerivationRule* KWDRTableSubUnion::Create() const
 	return new KWDRTableSubUnion;
 }
 
-ObjectArray* KWDRTableSubUnion::ComputeObjectArrayResult(const KWObject* kwoObject) const
+ObjectArray* KWDRTableSubUnion::ComputeObjectArrayResult(const KWObject* kwoObject,
+							 const KWLoadIndex liAttributeLoadIndex) const
 {
 	KWDerivationRuleOperand* valueOperand;
 	ObjectArray* oaContainedObjects;
@@ -1457,7 +1464,8 @@ KWDerivationRule* KWDRTableSubIntersection::Create() const
 	return new KWDRTableSubIntersection;
 }
 
-ObjectArray* KWDRTableSubIntersection::ComputeObjectArrayResult(const KWObject* kwoObject) const
+ObjectArray* KWDRTableSubIntersection::ComputeObjectArrayResult(const KWObject* kwoObject,
+								const KWLoadIndex liAttributeLoadIndex) const
 {
 	KWDerivationRuleOperand* valueOperand;
 	ObjectArray* oaContainedObjects;
@@ -1610,7 +1618,8 @@ KWDerivationRule* KWDREntitySet::Create() const
 	return new KWDREntitySet;
 }
 
-ObjectArray* KWDREntitySet::ComputeObjectArrayResult(const KWObject* kwoObject) const
+ObjectArray* KWDREntitySet::ComputeObjectArrayResult(const KWObject* kwoObject,
+						     const KWLoadIndex liAttributeLoadIndex) const
 {
 	int nOperand;
 	KWObject* kwoObjectOperand;
@@ -1664,7 +1673,8 @@ KWDerivationRule* KWDRTableExtraction::Create() const
 	return new KWDRTableExtraction;
 }
 
-ObjectArray* KWDRTableExtraction::ComputeObjectArrayResult(const KWObject* kwoObject) const
+ObjectArray* KWDRTableExtraction::ComputeObjectArrayResult(const KWObject* kwoObject,
+							   const KWLoadIndex liAttributeLoadIndex) const
 {
 	ObjectArray* oaContainedObjects;
 	Continuous cBeginIndex;
@@ -1736,7 +1746,8 @@ KWDerivationRule* KWDRTableSelection::Create() const
 	return new KWDRTableSelection;
 }
 
-ObjectArray* KWDRTableSelection::ComputeObjectArrayResult(const KWObject* kwoObject) const
+ObjectArray* KWDRTableSelection::ComputeObjectArrayResult(const KWObject* kwoObject,
+							  const KWLoadIndex liAttributeLoadIndex) const
 {
 	ObjectArray* oaObjectArrayOperand;
 	KWDerivationRuleOperand* selectionOperand;
@@ -1869,7 +1880,8 @@ int KWDRTableSortCompareObjects(const void* elem1, const void* elem2)
 	return nDiff;
 }
 
-ObjectArray* KWDRTableSort::ComputeObjectArrayResult(const KWObject* kwoObject) const
+ObjectArray* KWDRTableSort::ComputeObjectArrayResult(const KWObject* kwoObject,
+						     const KWLoadIndex liAttributeLoadIndex) const
 {
 	ObjectArray* oaObjectArrayOperand;
 

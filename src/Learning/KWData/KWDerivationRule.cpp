@@ -1294,7 +1294,7 @@ SymbolVector* KWDerivationRule::ComputeTextListResult(const KWObject* kwoObject)
 	return NULL;
 }
 
-KWObject* KWDerivationRule::ComputeObjectResult(const KWObject* kwoObject) const
+KWObject* KWDerivationRule::ComputeObjectResult(const KWObject* kwoObject, const KWLoadIndex liAttributeLoadIndex) const
 {
 	// Doit etre reimplemente si le type est Object
 	kwoObject = NULL; // Pour eviter le warning
@@ -1302,7 +1302,8 @@ KWObject* KWDerivationRule::ComputeObjectResult(const KWObject* kwoObject) const
 	return NULL;
 }
 
-ObjectArray* KWDerivationRule::ComputeObjectArrayResult(const KWObject* kwoObject) const
+ObjectArray* KWDerivationRule::ComputeObjectArrayResult(const KWObject* kwoObject,
+							const KWLoadIndex liAttributeLoadIndex) const
 {
 	// Doit etre reimplemente si le type est ObjectArray
 	kwoObject = NULL; // Pour eviter le warning

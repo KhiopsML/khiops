@@ -29,7 +29,7 @@ KWDerivationRule* KWDRReference::Create() const
 	return new KWDRReference;
 }
 
-KWObject* KWDRReference::ComputeObjectResult(const KWObject* kwoObject) const
+KWObject* KWDRReference::ComputeObjectResult(const KWObject* kwoObject, const KWLoadIndex liAttributeLoadIndex) const
 {
 	KWObjectKey objectKey;
 	KWClass* kwcReferenceClass;

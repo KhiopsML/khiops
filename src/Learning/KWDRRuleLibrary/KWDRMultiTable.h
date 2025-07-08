@@ -350,7 +350,7 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Calcul de l'attribut derive
-	KWObject* ComputeObjectResult(const KWObject* kwoObject) const override;
+	KWObject* ComputeObjectResult(const KWObject* kwoObject, const KWLoadIndex liAttributeLoadIndex) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -368,7 +368,8 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Calcul de l'attribut derive
-	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject) const override;
+	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject,
+					      const KWLoadIndex liAttributeLoadIndex) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -386,7 +387,7 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Calcul de l'attribut derive
-	KWObject* ComputeObjectResult(const KWObject* kwoObject) const override;
+	KWObject* ComputeObjectResult(const KWObject* kwoObject, const KWLoadIndex liAttributeLoadIndex) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -405,7 +406,7 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Calcul de l'attribut derive
-	KWObject* ComputeObjectResult(const KWObject* kwoObject) const override;
+	KWObject* ComputeObjectResult(const KWObject* kwoObject, const KWLoadIndex liAttributeLoadIndex) const override;
 
 	// Reimplementation de la verification qu'une regle est completement renseignee et compilable
 	boolean CheckCompleteness(const KWClass* kwcOwnerClass) const override;
@@ -427,7 +428,7 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Calcul de l'attribut derive
-	KWObject* ComputeObjectResult(const KWObject* kwoObject) const override;
+	KWObject* ComputeObjectResult(const KWObject* kwoObject, const KWLoadIndex liAttributeLoadIndex) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -444,7 +445,8 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Calcul de l'attribut derive
-	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject) const override;
+	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject,
+					      const KWLoadIndex liAttributeLoadIndex) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -461,7 +463,8 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Calcul de l'attribut derive
-	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject) const override;
+	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject,
+					      const KWLoadIndex liAttributeLoadIndex) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -478,7 +481,8 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Calcul de l'attribut derive
-	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject) const override;
+	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject,
+					      const KWLoadIndex liAttributeLoadIndex) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -499,7 +503,8 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Calcul de l'attribut derive
-	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject) const override;
+	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject,
+					      const KWLoadIndex liAttributeLoadIndex) const override;
 
 	///////////////////////////////////////////////////////
 	///// Implementation
@@ -526,7 +531,8 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Calcul de l'attribut derive
-	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject) const override;
+	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject,
+					      const KWLoadIndex liAttributeLoadIndex) const override;
 
 	///////////////////////////////////////////////////////
 	///// Implementation
@@ -549,7 +555,8 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Calcul de l'attribut derive
-	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject) const override;
+	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject,
+					      const KWLoadIndex liAttributeLoadIndex) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -569,7 +576,8 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Calcul de l'attribut derive
-	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject) const override;
+	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject,
+					      const KWLoadIndex liAttributeLoadIndex) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -587,7 +595,8 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Calcul de l'attribut derive
-	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject) const override;
+	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject,
+					      const KWLoadIndex liAttributeLoadIndex) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -604,7 +613,8 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Calcul de l'attribut derive
-	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject) const override;
+	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject,
+					      const KWLoadIndex liAttributeLoadIndex) const override;
 
 	// Verification des operandes
 	boolean CheckOperandsFamily(const KWDerivationRule* ruleFamily) const override;
