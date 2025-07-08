@@ -934,8 +934,9 @@ inline KWObject* KWObject::ComputeObjectValueAt(KWLoadIndex liLoadIndex) const
 
 		// Derivation
 		GetAt(liLoadIndex.GetDenseIndex())
-		    .SetObject(
-			kwcClass->GetAttributeAtLoadIndex(liLoadIndex)->GetDerivationRule()->ComputeObjectResult(this));
+		    .SetObject(kwcClass->GetAttributeAtLoadIndex(liLoadIndex)
+				   ->GetDerivationRule()
+				   ->ComputeObjectResult(this, liLoadIndex));
 
 		// Verification de la valeur de l'attribut derive
 		assert(not GetAt(liLoadIndex.GetDenseIndex()).IsObjectForbidenValue());
@@ -987,7 +988,7 @@ inline ObjectArray* KWObject::ComputeObjectArrayValueAt(KWLoadIndex liLoadIndex)
 			// Le tableau d'objet rendu par la regle est duplique, et appartient desormais a l'objet
 			oaSubObjects = kwcClass->GetAttributeAtLoadIndex(liLoadIndex)
 					   ->GetDerivationRule()
-					   ->ComputeObjectArrayResult(this);
+					   ->ComputeObjectArrayResult(this, liLoadIndex);
 			if (oaSubObjects != NULL)
 				oaSubObjects = oaSubObjects->Clone();
 			GetAt(liLoadIndex.GetDenseIndex()).SetObjectArray(oaSubObjects);

@@ -225,7 +225,8 @@ protected:
 	virtual boolean IsViewModeActivated() const;
 
 	// Creation d'un objet de la vue avec le dictionnaire en sortie
-	KWObject* NewTargetObject(longint lCreationIndex) const;
+	// On passe egalement le nom de l'attribut contenant le resultat en parametre pour gere les data paths
+	KWObject* NewTargetObject(longint lCreationIndex, const KWLoadIndex liAttributeLoadIndex) const;
 
 	// Alimentation de type vue des attributs cibles
 	void FillViewModeTargetAttributes(const KWObject* kwoSourceObject, KWObject* kwoTargetObject) const;
@@ -314,14 +315,15 @@ inline boolean KWDRRelationCreationRule::IsValidOutputOperandType(int nType) con
 	return KWType::IsStored(nType) or KWType::IsRelation(nType);
 }
 
-inline KWObject* KWDRRelationCreationRule::NewTargetObject(longint lCreationIndex) const
+inline KWObject* KWDRRelationCreationRule::NewTargetObject(longint lCreationIndex,
+							   const KWLoadIndex liAttributeLoadIndex) const
 {
 	KWObject* kwoTargetObject;
 
 	require(IsCompiled());
 	require(lCreationIndex >= 1);
 
-	kwoTargetObject = new KWObject(kwcCompiledTargetClass, 1);
+	kwoTargetObject = new KWObject(kwcCompiledTargetClass, lCreationIndex);
 	kwoTargetObject->SetViewTypeUse(true);
 	return kwoTargetObject;
 }

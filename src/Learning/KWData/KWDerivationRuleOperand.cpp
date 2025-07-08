@@ -680,13 +680,14 @@ void KWDerivationRuleOperand::ComputeUpperScopeValue(const KWObject* kwoObject)
 		if (GetOrigin() == OriginAttribute)
 			kwvConstant.SetObject(kwoObject->ComputeObjectValueAt(liDataItemLoadIndex));
 		else
-			kwvConstant.SetObject(GetDerivationRule()->ComputeObjectResult(kwoObject));
+			kwvConstant.SetObject(GetDerivationRule()->ComputeObjectResult(kwoObject, liDataItemLoadIndex));
 		break;
 	case KWType::ObjectArray:
 		if (GetOrigin() == OriginAttribute)
 			kwvConstant.SetObjectArray(kwoObject->ComputeObjectArrayValueAt(liDataItemLoadIndex));
 		else
-			kwvConstant.SetObjectArray(GetDerivationRule()->ComputeObjectArrayResult(kwoObject));
+			kwvConstant.SetObjectArray(
+			    GetDerivationRule()->ComputeObjectArrayResult(kwoObject, liDataItemLoadIndex));
 		break;
 	case KWType::Structure:
 		if (GetOrigin() == OriginAttribute)
