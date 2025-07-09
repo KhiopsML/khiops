@@ -1,9 +1,9 @@
-==========================================
-Release Notes for Khiops 10 Version Series
-==========================================
+========================
+Release Notes for Khiops
+========================
 
-Version 11.0.0
-==============
+Version 11.0.0-b.0
+==================
 Text data: 
 - new Text type for variables in tabular or multi-table schema
 - Automatic feature construction from Text variables
