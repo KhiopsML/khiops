@@ -110,7 +110,7 @@ protected:
 	// Est-ce qu'on a recu au moins un message
 	boolean bNewMessage;
 
-	// Tache a laquelle est ratache le master
+	// Tache a laquelle est rattachee le master
 	PLParallelTask* task;
 
 	// Est-ce qu'au moins un ordre a ete donne

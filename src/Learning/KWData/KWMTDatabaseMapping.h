@@ -5,109 +5,35 @@
 #pragma once
 
 #include "Object.h"
+#include "KWDataPath.h"
 #include "KWDataTableDriver.h"
 #include "KWObjectKey.h"
 #include "KWLoadIndex.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWMTDatabaseMapping
-//    Multi-table mapping
-class KWMTDatabaseMapping : public Object
+// Specialisation de KWDataPath pour la partie logique d'un schema-multi-table,
+// en permettant de specifier un fichier de donnees par data path
+// Service de gestion de la lecture des objet d'un schema-multi-tables
+class KWMTDatabaseMapping : public KWDataPath
 {
 public:
 	// Constructeur
 	KWMTDatabaseMapping();
 	~KWMTDatabaseMapping();
 
-	// Copie et duplication (sans les attributs de gestion)
-	void CopyFrom(const KWMTDatabaseMapping* aSource);
-	KWMTDatabaseMapping* Clone() const;
+	// Copie (sans les attributs de gestion)
+	void CopyFrom(const KWDataPath* aSource) override;
+
+	// Creation
+	KWDataPath* Create() const override;
 
 	// Comparaison des attributs de definition
-	int Compare(const KWMTDatabaseMapping* aSource) const;
-
-	////////////////////////////////////////////////////////////////
-	// Data path, identifiant calcule a partir de la specification
-	// Les elements du data path sont formattes si necessaire,
-	// dans le cas ou ils contiennt des caracteres '`' ou '/'
-
-	// Data path, calcule d'apres les specifications
-	ALString GetDataPath() const;
-
-	// Partie du data path relative aux attributs, calculee d'apres les specifications
-	ALString GetDataPathAttributeNames() const;
-
-	////////////////////////////////////////////////////////////////
-	// Specification du data path
-
-	// Table externe
-	boolean GetExternalTable() const;
-	void SetExternalTable(boolean bValue);
-
-	// Dictionnaire origine du data path
-	// - dictionnaire Root si on est dans le cas d'une table externe
-	// - dictionnaire principal sinon
-	const ALString& GetOriginClassName() const;
-	void SetOriginClassName(const ALString& sValue);
-
-	// Nom des attribut du data paths
-	StringVector* GetAttributeNames();
-
-	// Dictionaire decrivant la table specifiee
-	const ALString& GetClassName() const;
-	void SetClassName(const ALString& sValue);
+	int Compare(const KWDataPath* aSource) const override;
 
 	// Nom du fichier de donnees pour la table
 	const ALString& GetDataTableName() const;
 	void SetDataTableName(const ALString& sValue);
-
-	////////////////////////////////////////////////////////////
-	// Decomposition du DataPath
-	//
-	// Dans un schema multi-table, chaque data path fait reference a une variable de type Table ou Entity
-	//  et identifie un fichier de table de donnees.
-	// La table principale a un data path vide.
-	// Dans un schema en etoile,
-	//  les data paths sont les noms de  variable de type Table ou Entity de chaque table secondaire.
-	// Dans un schema en flocon,
-	//   les data paths  consistent en une liste de noms de variables avec un separateur "/".
-	// Pour les tables externes,
-	//   les data paths commencent par un un nom de dictionnaire Root prefixe par "/"
-	// Exemples de DataPath pour differents types de mapping:
-	//    classe principale:
-	//    sous-objet: Address
-	//    tableau de sous-objets: Logs
-	//    Sous-objet de second niveau: Address/City
-	//    table externe: /City
-	//
-	// Un composant de data path peut contenir des caractere separateur '/'.
-	// S'il contient des caracteres '/' ou '`', il doit etre formate a l'aide de la methode
-	// GetFormattedName pour le mettre entre '`', comme pour le format externes des noms de variables
-	// dans les dictionnaires
-
-	// Attributs du DataPath
-	int GetDataPathAttributeNumber() const;
-	const ALString& GetDataPathAttributeNameAt(int nIndex) const;
-
-	// Recherche si l'attribut terminal du DataPath est Used, c'est a dire
-	// si tous les attributs intermediaires sont Used
-	// Utile notamment en ecriture, pour savoir si l'objet sera ecrit
-	boolean IsTerminalAttributeUsed() const;
-
-	// Validite du DataPath complet
-	boolean CheckDataPath() const;
-
-	// Conversion d'un element de data path vers le format externe
-	// Cela concerne les noms de dictionnaire ou de variable
-	// S'il contiennent le caractere '`' ou le separateur '/', il doivent
-	// etre mis au format externe defini pour les dictionnaires, entre '`'
-	static ALString GetFormattedName(const ALString& sValue);
-
-	// Separateur utilise dans les data paths
-	static char GetDataPathSeparator();
-
-	// Separateur d'echappement pour formatter les nom contenant le separateur ou le character d'echappement
-	static char GetDataPathEscapeChar();
 
 	////////////////////////////////////////////////////////
 	// Divers
@@ -117,7 +43,6 @@ public:
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
-	const ALString GetObjectLabel() const override;
 
 	// Memoire utilisee par le mapping
 	longint GetUsedMemory() const override;
@@ -130,11 +55,7 @@ protected:
 	friend class KWMTDatabaseStream;
 	friend class PLShared_MTDatabaseTextFile;
 
-	// Attributs de la classe
-	boolean bExternalTable;
-	ALString sOriginClassName;
-	StringVector svAttributeNames;
-	ALString sClassName;
+	// Nom de la table de donnees
 	ALString sDataTableName;
 
 	///////////////////////////////////////////////////////////////////////
@@ -163,7 +84,7 @@ protected:
 	void SetMappedAttributeType(int nType);
 	int GetMappedAttributeType() const;
 
-	// Dernier objet lu (potentiellement objet a ratacher au prochain objet utilisant)
+	// Dernier objet lu (potentiellement objet a rattacher au prochain objet utilisant)
 	// Appartient a l'appelant
 	void SetLastReadObject(KWObject* kwoObject);
 	KWObject* GetLastReadObject();
@@ -188,52 +109,6 @@ protected:
 ////////////////////////////////////////////////////////////
 // Implementations inline
 
-inline boolean KWMTDatabaseMapping::GetExternalTable() const
-{
-	return bExternalTable;
-}
-
-inline void KWMTDatabaseMapping::SetExternalTable(boolean bValue)
-{
-	bExternalTable = bValue;
-}
-
-inline const ALString& KWMTDatabaseMapping::GetOriginClassName() const
-{
-	return sOriginClassName;
-}
-
-inline void KWMTDatabaseMapping::SetOriginClassName(const ALString& sValue)
-{
-	sOriginClassName = sValue;
-}
-
-inline StringVector* KWMTDatabaseMapping::GetAttributeNames()
-{
-	return &svAttributeNames;
-}
-
-inline int KWMTDatabaseMapping::GetDataPathAttributeNumber() const
-{
-	return svAttributeNames.GetSize();
-}
-
-inline const ALString& KWMTDatabaseMapping::GetDataPathAttributeNameAt(int nIndex) const
-{
-	require(0 <= nIndex and nIndex < GetDataPathAttributeNumber());
-	return svAttributeNames.GetAt(nIndex);
-}
-
-inline const ALString& KWMTDatabaseMapping::GetClassName() const
-{
-	return sClassName;
-}
-
-inline void KWMTDatabaseMapping::SetClassName(const ALString& sValue)
-{
-	sClassName = sValue;
-}
-
 inline const ALString& KWMTDatabaseMapping::GetDataTableName() const
 {
 	return sDataTableName;
@@ -242,16 +117,6 @@ inline const ALString& KWMTDatabaseMapping::GetDataTableName() const
 inline void KWMTDatabaseMapping::SetDataTableName(const ALString& sValue)
 {
 	sDataTableName = sValue;
-}
-
-inline char KWMTDatabaseMapping::GetDataPathSeparator()
-{
-	return '/';
-}
-
-inline char KWMTDatabaseMapping::GetDataPathEscapeChar()
-{
-	return '`';
 }
 
 inline ObjectArray* KWMTDatabaseMapping::GetComponentTableMappings()

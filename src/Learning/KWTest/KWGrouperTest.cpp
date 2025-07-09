@@ -219,7 +219,7 @@ double KWSymbolSampleGenerator::ComputeGroupingTestError(KWAttributeStats* kwasG
 		sSourceModality = GetSourceModalityAt(nSource);
 		dSourceModalityProb = GetSourceModalityProbAt(nSource);
 
-		// Recherche du groupe de ratachement de la modalite source
+		// Recherche du groupe de rattachement de la modalite source
 		nGroup = attributeGrouping->ComputeSymbolPartIndex(sSourceModality);
 		sGroupLabel = "G_";
 		sGroupLabel += attributeGrouping->GetValueAt(attributeGrouping->GetGroupFirstValueIndexAt(nGroup));
@@ -307,7 +307,7 @@ double KWSymbolSampleGenerator::ComputeGroupingDistance(KWAttributeStats* kwasGr
 		sSourceModality = GetSourceModalityAt(nSource);
 		dSourceModalityProb = GetSourceModalityProbAt(nSource);
 
-		// Recherche du groupe de ratachement de la modalite source
+		// Recherche du groupe de rattachement de la modalite source
 		nGroup = attributeGrouping->ComputeSymbolPartIndex(sSourceModality);
 		sGroupLabel = "G_";
 		sGroupLabel += attributeGrouping->GetValueAt(attributeGrouping->GetGroupFirstValueIndexAt(nGroup));
@@ -725,6 +725,7 @@ KWSymbolSampleGrouperTest::KWSymbolSampleGrouperTest()
 {
 	// Initialisation des attributs d'instances
 	grouperSpec = NULL;
+	sampleGenerator = NULL;
 	nSampleSize = 0;
 	nSampleNumber = 0;
 	nFreshness = 0;

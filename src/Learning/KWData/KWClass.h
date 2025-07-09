@@ -273,7 +273,7 @@ public:
 
 	// Insertion d'un bloc d'attributs, a partir d'un nom,
 	// du premier et du dernier attribut du bloc
-	// Les attributs doivent etre consecutifs, et sans bloc de ratachement
+	// Les attributs doivent etre consecutifs, et sans bloc de rattachement
 	// Le nom doit etre correct et unique parmi les noms de bloc et d'attribut
 	// Renvoie le block cree, appartenant a l'appele
 	KWAttributeBlock* CreateAttributeBlock(const ALString& sBlockName, KWAttribute* firstAttribute,

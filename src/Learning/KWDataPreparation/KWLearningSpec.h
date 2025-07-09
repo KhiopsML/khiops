@@ -398,7 +398,7 @@ public:
 	// Attention, seules les caracteristiques propres aux specification d'apprentissage
 	// sont serialisees (y compris les statistiques sur l'attribut cible si elle sont presentes)
 	// Les complements de specification (Classe et Database) sont des objets externes
-	// references, devant etre rataches explicitement par appel des methode concernees
+	// references, devant etre rattaches explicitement par appel des methode concernees
 	// de KWLearningSpec
 
 	// Methode a appeler apres la deserialisation pour finaliser les specifications
