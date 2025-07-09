@@ -320,7 +320,7 @@ void KWMTDatabase::UpdateMultiTableMappings()
 	if (mainClass == NULL)
 	{
 		// Duplication prealable du mapping principal (sans les attributs de gestion)
-		mainMultiTableMapping = mainMultiTableMapping->Clone();
+		mainMultiTableMapping = cast(KWMTDatabaseMapping*, mainMultiTableMapping->Clone());
 
 		// Nettoyage
 		oaMultiTableMappings.DeleteAll();

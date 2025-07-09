@@ -191,7 +191,7 @@ public:
 	// Nombre total de demandes d'interruptions depuis le debut du programme
 	static longint GetInterruptionRequestNumber();
 
-	// Methode permetant de provoquer une interruption a un index donne
+	// Methode permettant de provoquer une interruption a un index donne
 	// Par defaut, 0 signifie pas d'arret
 	static void SetInterruptionRequestIndex(longint lIndex);
 	static longint GetInterruptionRequestIndex();
