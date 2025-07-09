@@ -1,5 +1,5 @@
-Khiops 10.0
-===========
+Khiops 11 Beta
+==============
   (c) 2023-2025 Orange. All rights reserved.
   https://khiops.org
 
@@ -28,38 +28,36 @@ Main features
   - easy integration in information systems via batch mode, python library and
     online deployment library
 
-Khiops 10.0 - what's new
-    - New algorithm for Selective Naive Bayes predictor
-        - improved accuracy using a direct optimization of variable weights,
-        - improved interpretability and faster deployment time, with less variables selected,
-        - faster training time, using the new algorithm and exploiting parallelization,
-    - Improved random forests
-        - faster and more accurate preprocessing,
-        - biased random selection of variable to better deal with large numbers of variables,
-    - Management of sparse data
-        - fully automatic,
-        - potentially faster algorithms in case of many constructed variables,
-    - New visualization tool
-        - available on any platform: windows, linux, mac, both in standalone and using a browser
-    - Parallelization on clusters of machine
-        - available on Hadoop (Yarn, HDFS)
-    - New version of pykhiops
-        - more compliant with python PEP8 standard, using snake case
-        - distributed as a python package
-        - new features are available: see pykhiops release notes
+Khiops 11 - what's new
+  - Text data:
+    - new Text type for variables in tabular or multi-table schema
+    - Automatic feature construction from Text variables
 
-Backward compatibility with Khiops 9
-  - dictionaries of Khiops 9 are readable with Khiops 10
-  - visualization reports of Khiops 9 are usable with the former visualization tool
-  - python scripts using pykhiops 9 are running, with warnings for the deprecated features
-  - scenarios of Khiops 9 are compatible, with warnings for the deprecated features
-  - removed features in Khiops 10, that still work when used from former python scripts or scenarios:
-    - MAP Naive Bayes is removed
-    - Naive Bayes predictor is removed
-    - Preprocessing options MODLEqualWidth, MODLEqualFrequency and MODLBasic are removed
-  - deprecated features, that still work but will be removed in next versions after Khiops 10:
-    - pykhiops 9 is replaced by pykhiops 10 (see migration guide within pykhiops release notes)
+  - SNB classifier for sparse data: extension to sparse data
 
+  - Random forests for regression
+
+  - Khiops interpretation and reinforcement:
+    - Instance-based interpretation of scores
+    - Exact computation of Shapley values
+    - Importance of SNB selected variables is now computing using their mean absolute Shapley value
+    - Build an interpretation dictionary, to deploy interpretation values
+    - Build a reinforcement dictionary, to deploy reinforcement scores based on lever variables
+
+  - Histograms: Optimal histograms for univariate data exploration
+
+  - Coclustering instances x variables: extension of existing variable x variable coclustering, for joint density estimation to instances x variables coclustering, for exploratory analysis.
+
+  - Visualization tools:
+    - visualization: new panel to visualize histograms
+    - covisualization: accounting for the case of instances x variables coclustering
+
+  - Simplified ergonomy
+    - simplification of panels and fields, everywhere, as much as possible
+    - fast path: to train a model without a dictionary
+    - results visualization and edition of dictionaries from the graphical interface
+
+  - Extended scenario-based management of Khiops, with control structures and a parameter file in JSON format
 
 Technical prerequisites
 -----------------------
