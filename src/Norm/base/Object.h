@@ -687,7 +687,7 @@ protected:
 	GenericDictionary();
 
 	///////////////////////////////////////////////////////////////////////////////////////
-	// Implementation generique permetant une redefinition simple avec
+	// Implementation generique permettant une redefinition simple avec
 	// le bon type de cle et de valeur
 
 	// Recherche par cle

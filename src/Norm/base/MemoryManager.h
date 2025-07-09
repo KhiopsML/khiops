@@ -112,7 +112,7 @@ public:
 // Methodes permettant d'identifier les allocations non desallouees
 // Ces methodes ne sont actives qu'en mode debug
 
-// Methode permetant de provoquer un arret pendant
+// Methode permettant de provoquer un arret pendant
 // l'allocation du ieme bloc memoire
 // Permet en se servant du debuger et en mettant un point
 // d'arret sur GlobalExit() de reperer le lieu d'allocation
