@@ -4,6 +4,10 @@
 
 #pragma once
 
+class KWDataPath;
+class KWObjectDataPath;
+class KWObjectDataPathManager;
+
 #include "KWClass.h"
 
 ////////////////////////////////////////////////////////////
@@ -74,7 +78,7 @@ public:
 	boolean GetExternalTable() const;
 	void SetExternalTable(boolean bValue);
 
-	// Dictionnaire origine du data path
+	// Nom du dictionnaire origine du data path
 	// - dictionnaire Root si on est dans le cas d'une table externe
 	// - dictionnaire principal sinon
 	const ALString& GetOriginClassName() const;
@@ -83,7 +87,7 @@ public:
 	// Nom des attribut du data paths
 	StringVector* GetAttributeNames();
 
-	// Dictionaire decrivant les objets a l'extremite du data path
+	// Nom du dictionaire decrivant les objets a l'extremite du data path
 	const ALString& GetClassName() const;
 	void SetClassName(const ALString& sValue);
 
@@ -135,6 +139,177 @@ protected:
 	ALString sOriginClassName;
 	StringVector svAttributeNames;
 	ALString sClassName;
+};
+
+////////////////////////////////////////////////////////////
+// Classe KWObjectDataPath
+//
+// Specialisation de KWDataPath a destination des KWObject pour gerer
+// un identifiant unique,que les objet soient stockes ou crees par des regles de derivation
+class KWObjectDataPath : public KWDataPath
+{
+public:
+	// Constructeur
+	KWObjectDataPath();
+	~KWObjectDataPath();
+
+	// Copie (sans les attributs de gestion)
+	virtual void CopyFrom(const KWDataPath* aSource);
+
+	// Creation pour renvoyer une instance du meme type dynamique
+	// Doit etre reimplemente dans les sous-classes
+	virtual KWDataPath* Create() const;
+
+	////////////////////////////////////////////////////////////////////////
+	// Service de navigation dans les data path
+
+	// Dictionaire des objets a l'extremite du data path
+	const KWClass* GetClass() const;
+
+	// Acces au data path fils pour un index d'attribut relationnel du dictionnaire extremite
+	const KWObjectDataPath* GetSubDataPath(const KWLoadIndex liAttributeLoadIndex) const;
+
+	////////////////////////////////////////////////////////////////////////
+	// Service d'identification des objets d'un schema multi-table
+	//
+	// Identifiant unique d'un objet dans une hierarchie de donnees multi-table,
+	//  que les donnees soit stockee et lue depuis des fichier ou crees en memoire
+	//  via des regles de derivation de creation d'instance
+	// Utilisation des CreationIndex: cf. KWObject::GetCreationIndex()
+	//   - objets stockes: CreationIndex unique et reproductible, base sur un numero de ligne dans un fichier
+	//   - objets crees: CreationIndex unique, base sur un compteur de creation d'instance local au data path
+	// Les objets crees peuvent alors etre identifie de facon unique par le CreationIndex de leur instance
+	// principale (main ou Root), et leur CreationIndex localement a cette instance stockee.
+
+	// Reinitialisation d'un compteur de creation d'instance, a appeler a chaque changement
+	// d'objet Main (racine de l'objet principale d'un schema multi-table)ou Root (racine dans le cas d'une table externe)
+	void ResetCreationNumber();
+
+	// Obtention d'un nouvel index de creation
+	longint GetNewCreationIndex();
+
+	// Acces au nombre d'objet crees
+	longint GetCreationNumber() const;
+
+	////////////////////////////////////////////////////////////////////////
+	// Services de creation de paire (Seed, Leap) pseudo-aleatoire par hashage du data path,
+	// pour le parametrage des generateur de nombre aleatoire, avec garantie de reproductibilite
+	// en calcul distribue, et d'independance entre les series aleatoire generes par differents
+	// appels a la regle de derivation Random
+
+	// Calcul de parametre de fonction Random par hashage du data path
+	void ComputeRandomParameters();
+
+	// Graine de generateur aleatoire
+	int GetRandomSeed() const;
+
+	// Saut de type leap frog d'un generateur aleatoire
+	int GetRandomLeap() const;
+
+	////////////////////////////////////////////////////////
+	// Divers
+
+	// Memoire utilisee par le mapping
+	longint GetUsedMemory() const override;
+
+	////////////////////////////////////////////////////////
+	//// Implementation
+protected:
+	friend class KWObjectDataPathManager;
+
+	// Gestionnaire de DataPath
+	const KWObjectDataPathManager* GetDataPathManager() const;
+	void SetDataPathManager(const KWObjectDataPathManager* manager);
+
+	// Tableau des sous-data path du data path courant
+	ObjectArray oaSubDataPaths;
+
+	// Nombre d'index de creation generes
+	longint lCreationNumber;
+
+	// Dictionnaire des objets a l'extremite du data path
+	const KWClass* kwcClass;
+
+	// Gestionnaire de data path
+	const KWObjectDataPathManager* dataPathManager;
+};
+
+////////////////////////////////////////////////////////////
+// Classe KWObjectDataPathManager
+// Gestion de l'ensemble des data path pour une base de donnees
+class KWObjectDataPathManager : public Object
+{
+public:
+	// Constructeur
+	KWObjectDataPathManager();
+	~KWObjectDataPathManager();
+
+	// Calcul de tous les data path a partir du dictionnaire principal
+	// d'une base multi-table
+	void ComputeAllDataPaths(const KWClass* mainClass);
+
+	// Reinitialisation
+	void Reset();
+
+	////////////////////////////////////////////////////////
+	// Acces aux results d'analyse
+
+	// Classe principale analysee
+	const KWClass* GetMainClass();
+
+	// Acces a tous les data paths
+	int GetDataPathNumber() const;
+	const KWObjectDataPath* GetDataPathAt(int nIndex) const;
+
+	// Data path principal
+	const KWObjectDataPath* GetMainDataPath() const;
+
+	// Acces au data path Root des tables externes
+	int GetExternalRootDataPathNumber() const;
+	const KWObjectDataPath* GetExternalRootDataPathAt(int nIndex) const;
+
+	// Acces a un maping par son chemin
+	KWObjectDataPath* LookupDataPath(const ALString& sDataPath) const;
+
+	////////////////////////////////////////////////////////
+	// Divers
+
+	// Ecriture
+	void Write(ostream& ost) const override;
+
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override;
+	const ALString GetObjectLabel() const override;
+
+	// Memoire utilisee par le mapping
+	longint GetUsedMemory() const override;
+
+	////////////////////////////////////////////////////////
+	//// Implementation
+protected:
+	// Calcul recursif des data paths
+	// Le data path est une chaine avec ses data paths composants.
+	// Le tableau exhaustif des data paths est egalement egalement mis a jour
+	// Les classes referencees sont memorisees dans un dictionnaire et un tableau,
+	// pour gerer les data paths externes a creer ulterieurement
+	// Les data paths crees recursivement sont memorises dans un tableau
+	// Les classes creees analysees sont egalement memorisees dans un dictionnaire, pour eviter des analyses multiples
+	KWObjectDataPath* CreateDataPath(ObjectDictionary* odReferenceClasses, ObjectArray* oaRankedReferenceClasses,
+					 ObjectDictionary* odAnalysedCreatedClasses, const KWClass* mappedClass,
+					 boolean bIsExternalTable, const ALString& sOriginClassName,
+					 StringVector* svAttributeNames, ObjectArray* oaCreatedDataPaths);
+
+	// Dictionnaire principal
+	const KWClass* kwcMainClass;
+
+	// Tableau de tous les data paths
+	ObjectArray oaDataPaths;
+
+	// Data path principal
+	KWObjectDataPath* mainDataPath;
+
+	// Tableau des data paths Root des tables externes
+	ObjectArray oaExternalRootDataPaths;
 };
 
 ////////////////////////////////////////////////////////////

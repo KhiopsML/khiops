@@ -1189,6 +1189,9 @@ boolean KWMTDatabase::PhysicalOpenForRead()
 		// Initialisation recursive du mapping a partir de la table principale
 		DMTMPhysicalInitializeMapping(mainMultiTableMapping, kwcPhysicalClass, true);
 
+		// Initialisation de tous les data paths a destination des objets lus ou cree
+		objectDataPathManager.ComputeAllDataPaths(kwcClass);
+
 		// Ouverture recursive des tables a partir de la table principale
 		if (bOk)
 			bOk = DMTMPhysicalOpenForRead(mainMultiTableMapping, kwcClass);
@@ -1419,6 +1422,9 @@ boolean KWMTDatabase::PhysicalClose()
 
 	// Destruction des objets references
 	PhysicalDeleteAllReferenceObjects();
+
+	// Destruction des data path de gestion des objet
+	objectDataPathManager.Reset();
 	return bOk;
 }
 
@@ -1600,7 +1606,7 @@ boolean KWMTDatabase::IsPhysicalObjectSelected(KWObject* kwoPhysicalObject)
 
 KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceClasses,
 						 ObjectArray* oaRankedReferenceClasses,
-						 ObjectDictionary* odAnalysedCreatedClasses, KWClass* mappedClass,
+						 ObjectDictionary* odAnalysedCreatedClasses, const KWClass* mappedClass,
 						 boolean bIsExternalTable, const ALString& sOriginClassName,
 						 StringVector* svAttributeNames, ObjectArray* oaCreatedMappings)
 {
@@ -1675,7 +1681,7 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 					// Memorisation de la classe cible
 					odAnalysedCreatedClasses->SetAt(kwcTargetClass->GetName(), kwcTargetClass);
 
-					// Recherche de toutes les classe utilisee recursivement
+					// Recherche de toutes les classes utilisees recursivement
 					kwcTargetClass->BuildAllUsedClasses(&oaUsedClass);
 
 					// Recherches des classes externes
