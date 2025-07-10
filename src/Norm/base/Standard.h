@@ -161,7 +161,6 @@ int HashValue(const char* sString);
 
 // Mise a jour d'une valeur de hash existante
 // Permet par exemple de hash un vecteur iterativement
-int UpdateHashValue(int nCurrentHashValue, int nHashValue);
 longint LongintUpdateHashValue(longint lCurrentHashValue, longint lHashValue);
 
 ////////////////////////////////////////////////////////////////////////////
@@ -322,11 +321,6 @@ inline int HashValue(const char* sString)
 	nHash ^= (nHash >> 11);
 	nHash += (nHash << 15);
 	return nHash;
-}
-
-inline int UpdateHashValue(int nCurrentHashValue, int nHashValue)
-{
-	return nCurrentHashValue * 31 + nHashValue;
 }
 
 inline longint LongintUpdateHashValue(longint lCurrentHashValue, longint lHashValue)

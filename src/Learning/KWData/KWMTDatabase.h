@@ -57,7 +57,7 @@ public:
 	int GetMainTableNumber() const;
 	int GetReferencedTableNumber() const;
 
-	// Acces a un maping par son chemin (nom d'attribut)
+	// Acces a un maping par son chemin
 	KWMTDatabaseMapping* LookupMultiTableMapping(const ALString& sDataPath) const;
 
 	// Indique si un mapping correspond a une classe referencee
@@ -160,14 +160,14 @@ protected:
 	boolean IsPhysicalObjectSelected(KWObject* kwoPhysicalObject) override;
 
 	// Creation recursive d'un mapping
-	// Le mapping est chaine avec ses mappings composant.
-	// Le tableaux mapping exhaustifs est egalement egalement mis a jour
+	// Le mapping est une chaine avec ses mappings composants.
+	// Le tableau exhaustif des mappings est egalement egalement mis a jour
 	// Les classes referencees sont memorisees dans un dictionnaire et un tableau,
 	// pour gerer les mappings externes a creer ulterieurement
 	// Les mappings crees recursivement sont memorises dans un tableau
 	// Les classes creees analysees sont egalement memorisees dans un dictionnaire, pour eviter des analyses multiples
 	KWMTDatabaseMapping* CreateMapping(ObjectDictionary* odReferenceClasses, ObjectArray* oaRankedReferenceClasses,
-					   ObjectDictionary* odAnalysedCreatedClasses, KWClass* mappedClass,
+					   ObjectDictionary* odAnalysedCreatedClasses, const KWClass* mappedClass,
 					   boolean bIsExternalTable, const ALString& sOriginClassName,
 					   StringVector* svAttributeNames, ObjectArray* oaCreatedMappings);
 
@@ -257,6 +257,14 @@ protected:
 	// Attention, le mapping de la classe principale est toujours integree comme premier element du tableau,
 	// et ne doit toujours etre synchronise
 	mutable ObjectArray oaMultiTableMappings;
+
+	// Gestion de tous les data paths des objets charges en memoire, qu'il soient issu de lecture de fichier via un mapping
+	// ou crees en memoire par des regles de derivation d'instances
+	// Il s'agit d'un sur-ensemble du maping multi-table, qui est lui dediee aux objet lus depuis des fichiers.
+	// Ces data path sont crees lors de l'ouverture de la base en lecture, et detruit avec sa fermeture.
+	// Chaque KWObject lu depuis un fichier ou cree depuis une regle reference son data path, ce qui lui permet
+	// d'etre identifier de facon unique.
+	KWObjectDataPathManager objectDataPathManager;
 
 	// Warnings pour le cas des tables externes non utilisees, gardees pour generer des warnings lors du Check
 	//

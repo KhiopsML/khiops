@@ -69,6 +69,7 @@ longint KWMTDatabaseMapping::GetUsedMemory() const
 
 	// Methode ancetre
 	lUsedMemory = KWDataPath::GetUsedMemory();
+	lUsedMemory += sizeof(KWMTDatabaseMapping) - sizeof(KWDataPath);
 
 	// Specialisation
 	lUsedMemory += sDataTableName.GetLength();
