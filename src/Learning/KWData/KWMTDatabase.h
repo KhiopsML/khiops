@@ -57,7 +57,7 @@ public:
 	int GetMainTableNumber() const;
 	int GetReferencedTableNumber() const;
 
-	// Acces a un maping par son chemin (nom d'attribut)
+	// Acces a un maping par son chemin
 	KWMTDatabaseMapping* LookupMultiTableMapping(const ALString& sDataPath) const;
 
 	// Indique si un mapping correspond a une classe referencee
@@ -160,14 +160,14 @@ protected:
 	boolean IsPhysicalObjectSelected(KWObject* kwoPhysicalObject) override;
 
 	// Creation recursive d'un mapping
-	// Le mapping est chaine avec ses mappings composant.
-	// Le tableaux mapping exhaustifs est egalement egalement mis a jour
+	// Le mapping est une chaine avec ses mappings composants.
+	// Le tableau exhaustif des mappings est egalement egalement mis a jour
 	// Les classes referencees sont memorisees dans un dictionnaire et un tableau,
 	// pour gerer les mappings externes a creer ulterieurement
 	// Les mappings crees recursivement sont memorises dans un tableau
 	// Les classes creees analysees sont egalement memorisees dans un dictionnaire, pour eviter des analyses multiples
 	KWMTDatabaseMapping* CreateMapping(ObjectDictionary* odReferenceClasses, ObjectArray* oaRankedReferenceClasses,
-					   ObjectDictionary* odAnalysedCreatedClasses, KWClass* mappedClass,
+					   ObjectDictionary* odAnalysedCreatedClasses, const KWClass* mappedClass,
 					   boolean bIsExternalTable, const ALString& sOriginClassName,
 					   StringVector* svAttributeNames, ObjectArray* oaCreatedMappings);
 

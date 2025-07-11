@@ -207,6 +207,12 @@ public:
 	int GetRandomLeap() const;
 
 	////////////////////////////////////////////////////////
+	// Divers
+
+	// Memoire utilisee par le mapping
+	longint GetUsedMemory() const override;
+
+	////////////////////////////////////////////////////////
 	//// Implementation
 protected:
 	friend class KWObjectDataPathManager;
@@ -221,7 +227,7 @@ protected:
 	// Nombre d'index de creation generes
 	longint lCreationNumber;
 
-	// Dictionnaire des objet a l'extremite du data path
+	// Dictionnaire des objets a l'extremite du data path
 	const KWClass* kwcClass;
 
 	// Gestionnaire de data path
@@ -240,7 +246,10 @@ public:
 
 	// Calcul de tous les data path a partir du dictionnaire principal
 	// d'une base multi-table
-	void ComputeAllDataPath(const KWClass* mainClass);
+	void ComputeAllDataPaths(const KWClass* mainClass);
+
+	// Reinitialisation
+	void Reset();
 
 	////////////////////////////////////////////////////////
 	// Acces aux results d'analyse
@@ -259,9 +268,37 @@ public:
 	int GetExternalRootDataPathNumber() const;
 	const KWObjectDataPath* GetExternalRootDataPathAt(int nIndex) const;
 
+	// Acces a un maping par son chemin
+	KWObjectDataPath* LookupDataPath(const ALString& sDataPath) const;
+
+	////////////////////////////////////////////////////////
+	// Divers
+
+	// Ecriture
+	void Write(ostream& ost) const override;
+
+	// Libelles utilisateur
+	const ALString GetClassLabel() const override;
+	const ALString GetObjectLabel() const override;
+
+	// Memoire utilisee par le mapping
+	longint GetUsedMemory() const override;
+
 	////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Calcul recursif des data paths
+	// Le data path est une chaine avec ses data paths composants.
+	// Le tableau exhaustif des data paths est egalement egalement mis a jour
+	// Les classes referencees sont memorisees dans un dictionnaire et un tableau,
+	// pour gerer les data paths externes a creer ulterieurement
+	// Les data paths crees recursivement sont memorises dans un tableau
+	// Les classes creees analysees sont egalement memorisees dans un dictionnaire, pour eviter des analyses multiples
+	KWObjectDataPath* CreateDataPath(ObjectDictionary* odReferenceClasses, ObjectArray* oaRankedReferenceClasses,
+					 ObjectDictionary* odAnalysedCreatedClasses, const KWClass* mappedClass,
+					 boolean bIsExternalTable, const ALString& sOriginClassName,
+					 StringVector* svAttributeNames, ObjectArray* oaCreatedDataPaths);
+
 	// Dictionnaire principal
 	const KWClass* kwcMainClass;
 
@@ -269,7 +306,7 @@ protected:
 	ObjectArray oaDataPaths;
 
 	// Data path principal
-	const KWObjectDataPath* mainDataPath;
+	KWObjectDataPath* mainDataPath;
 
 	// Tableau des data paths Root des tables externes
 	ObjectArray oaExternalRootDataPaths;

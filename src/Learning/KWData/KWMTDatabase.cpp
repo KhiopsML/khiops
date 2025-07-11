@@ -1196,6 +1196,22 @@ boolean KWMTDatabase::PhysicalOpenForRead()
 		// Ouverture des tables referencees
 		if (bOk)
 			bOk = PhysicalReadAllReferenceObjects(1);
+
+		//DDD
+		{
+			KWObjectDataPathManager objectDataPathManager;
+			static boolean bDisplayed = false;
+
+			if (kwcClass != NULL)
+			{
+				if (not bDisplayed)
+				{
+					objectDataPathManager.ComputeAllDataPaths(kwcClass);
+					//DDD cout << objectDataPathManager << endl;
+					bDisplayed = true;
+				}
+			}
+		}
 	}
 	return bOk;
 }
@@ -1600,7 +1616,7 @@ boolean KWMTDatabase::IsPhysicalObjectSelected(KWObject* kwoPhysicalObject)
 
 KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceClasses,
 						 ObjectArray* oaRankedReferenceClasses,
-						 ObjectDictionary* odAnalysedCreatedClasses, KWClass* mappedClass,
+						 ObjectDictionary* odAnalysedCreatedClasses, const KWClass* mappedClass,
 						 boolean bIsExternalTable, const ALString& sOriginClassName,
 						 StringVector* svAttributeNames, ObjectArray* oaCreatedMappings)
 {
