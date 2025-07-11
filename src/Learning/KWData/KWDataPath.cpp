@@ -4,6 +4,9 @@
 
 #include "KWDataPath.h"
 
+////////////////////////////////////////////////////////////
+// Classe KWDataPath
+
 KWDataPath::KWDataPath()
 {
 	bExternalTable = false;
@@ -260,4 +263,140 @@ longint KWDataPath::GetUsedMemory() const
 	lUsedMemory += svAttributeNames.GetUsedMemory();
 	lUsedMemory += sClassName.GetLength();
 	return lUsedMemory;
+}
+
+////////////////////////////////////////////////////////////
+// Classe KWObjectDataPath
+
+KWObjectDataPath::KWObjectDataPath()
+{
+	lCreationNumber = 0;
+	kwcClass = NULL;
+	dataPathManager = NULL;
+}
+
+KWObjectDataPath::~KWObjectDataPath() {}
+
+void KWObjectDataPath::CopyFrom(const KWDataPath* aSource)
+{
+	const KWObjectDataPath* sourceObjectDataPath;
+
+	require(aSource != NULL);
+
+	// Methode ancetre
+	KWDataPath::CopyFrom(aSource);
+
+	// Specialisation
+	sourceObjectDataPath = cast(const KWObjectDataPath*, aSource);
+	lCreationNumber = sourceObjectDataPath->lCreationNumber;
+	kwcClass = sourceObjectDataPath->kwcClass;
+	oaSubDataPaths.CopyFrom(&sourceObjectDataPath->oaSubDataPaths);
+	dataPathManager = sourceObjectDataPath->dataPathManager;
+}
+
+KWDataPath* KWObjectDataPath::Create() const
+{
+	return new KWObjectDataPath;
+}
+
+const KWClass* KWObjectDataPath::GetClass() const
+{
+	return kwcClass;
+}
+
+const KWObjectDataPath* KWObjectDataPath::GetSubDataPath(const KWLoadIndex liAttributeLoadIndex) const
+{
+	//DDD
+	return NULL;
+}
+
+void KWObjectDataPath::ResetCreationNumber()
+{
+	lCreationNumber = 0;
+}
+
+longint KWObjectDataPath::GetNewCreationIndex()
+{
+	lCreationNumber++;
+	return lCreationNumber;
+}
+
+longint KWObjectDataPath::GetCreationNumber() const
+{
+	return lCreationNumber;
+}
+
+void KWObjectDataPath::ComputeRandomParameters()
+{
+	//DDD
+}
+
+int KWObjectDataPath::GetRandomSeed() const
+{
+	//DDD
+	return 0;
+}
+
+int KWObjectDataPath::GetRandomLeap() const
+{
+	//DDD
+	return 0;
+}
+
+const KWObjectDataPathManager* KWObjectDataPath::GetDataPathManager() const
+{
+	return dataPathManager;
+}
+
+void KWObjectDataPath::SetDataPathManager(const KWObjectDataPathManager* manager)
+{
+	dataPathManager = manager;
+}
+
+////////////////////////////////////////////////////////////
+
+KWObjectDataPathManager::KWObjectDataPathManager()
+{
+	kwcMainClass = NULL;
+	mainDataPath = NULL;
+}
+
+KWObjectDataPathManager::~KWObjectDataPathManager()
+{
+	oaDataPaths.DeleteAll();
+}
+
+void KWObjectDataPathManager::ComputeAllDataPath(const KWClass* mainClass)
+{
+	//DDD TODO
+}
+
+const KWClass* KWObjectDataPathManager::GetMainClass()
+{
+	return kwcMainClass;
+}
+
+int KWObjectDataPathManager::GetDataPathNumber() const
+{
+	return oaDataPaths.GetSize();
+}
+
+const KWObjectDataPath* KWObjectDataPathManager::GetDataPathAt(int nIndex) const
+{
+	return cast(const KWObjectDataPath*, oaDataPaths.GetAt(nIndex));
+}
+
+const KWObjectDataPath* KWObjectDataPathManager::GetMainDataPath() const
+{
+	return mainDataPath;
+}
+
+int KWObjectDataPathManager::GetExternalRootDataPathNumber() const
+{
+	return oaExternalRootDataPaths.GetSize();
+}
+
+const KWObjectDataPath* KWObjectDataPathManager::GetExternalRootDataPathAt(int nIndex) const
+{
+	return cast(const KWObjectDataPath*, oaExternalRootDataPaths.GetAt(nIndex));
 }

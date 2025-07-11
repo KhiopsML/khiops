@@ -160,9 +160,6 @@ public:
 	// Doit etre reimplemente dans les sous-classes
 	virtual KWDataPath* Create() const;
 
-	// Comparaison des attributs de definition
-	virtual int Compare(const KWDataPath* aSource) const;
-
 	////////////////////////////////////////////////////////////////////////
 	// Service de navigation dans les data path
 
@@ -189,7 +186,7 @@ public:
 	void ResetCreationNumber();
 
 	// Obtention d'un nouvel index de creation
-	longint GetNewCreationIndex() const;
+	longint GetNewCreationIndex();
 
 	// Acces au nombre d'objet crees
 	longint GetCreationNumber() const;
@@ -216,19 +213,19 @@ protected:
 
 	// Gestionnaire de DataPath
 	const KWObjectDataPathManager* GetDataPathManager() const;
-	void SetDataPathManager(const KWObjectDataPathManager* manager) const;
+	void SetDataPathManager(const KWObjectDataPathManager* manager);
 
 	// Tableau des sous-data path du data path courant
 	ObjectArray oaSubDataPaths;
 
 	// Nombre d'index de creation generes
-	longint lCreationCount;
-
-	// Gestionnaire de data path
-	const KWObjectDataPathManager* dataPathManager;
+	longint lCreationNumber;
 
 	// Dictionnaire des objet a l'extremite du data path
 	const KWClass* kwcClass;
+
+	// Gestionnaire de data path
+	const KWObjectDataPathManager* dataPathManager;
 };
 
 ////////////////////////////////////////////////////////////
@@ -241,9 +238,41 @@ public:
 	KWObjectDataPathManager();
 	~KWObjectDataPathManager();
 
+	// Calcul de tous les data path a partir du dictionnaire principal
+	// d'une base multi-table
+	void ComputeAllDataPath(const KWClass* mainClass);
+
+	////////////////////////////////////////////////////////
+	// Acces aux results d'analyse
+
+	// Classe principale analysee
+	const KWClass* GetMainClass();
+
+	// Acces a tous les data paths
+	int GetDataPathNumber() const;
+	const KWObjectDataPath* GetDataPathAt(int nIndex) const;
+
+	// Data path principal
+	const KWObjectDataPath* GetMainDataPath() const;
+
+	// Acces au data path Root des tables externes
+	int GetExternalRootDataPathNumber() const;
+	const KWObjectDataPath* GetExternalRootDataPathAt(int nIndex) const;
+
 	////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Dictionnaire principal
+	const KWClass* kwcMainClass;
+
+	// Tableau de tous les data paths
+	ObjectArray oaDataPaths;
+
+	// Data path principal
+	const KWObjectDataPath* mainDataPath;
+
+	// Tableau des data paths Root des tables externes
+	ObjectArray oaExternalRootDataPaths;
 };
 
 ////////////////////////////////////////////////////////////
