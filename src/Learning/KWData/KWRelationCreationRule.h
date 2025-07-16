@@ -226,7 +226,8 @@ protected:
 
 	// Creation d'un objet de la vue avec le dictionnaire en sortie
 	// On passe egalement le nom de l'attribut contenant le resultat en parametre pour gere les data paths
-	KWObject* NewTargetObject(longint lCreationIndex, const KWLoadIndex liAttributeLoadIndex) const;
+	KWObject* NewTargetObject(const KWObject* kwoOwnerObject, longint lCreationIndex,
+				  const KWLoadIndex liAttributeLoadIndex) const;
 
 	// Alimentation de type vue des attributs cibles
 	void FillViewModeTargetAttributes(const KWObject* kwoSourceObject, KWObject* kwoTargetObject) const;
@@ -315,15 +316,21 @@ inline boolean KWDRRelationCreationRule::IsValidOutputOperandType(int nType) con
 	return KWType::IsStored(nType) or KWType::IsRelation(nType);
 }
 
-inline KWObject* KWDRRelationCreationRule::NewTargetObject(longint lCreationIndex,
+inline KWObject* KWDRRelationCreationRule::NewTargetObject(const KWObject* kwoOwnerObject, longint lCreationIndex,
 							   const KWLoadIndex liAttributeLoadIndex) const
 {
 	KWObject* kwoTargetObject;
 
+	require(kwoOwnerObject != NULL);
+	require(kwoOwnerObject->GetDataPath() != NULL);
 	require(IsCompiled());
 	require(lCreationIndex >= 1);
 
+	// Creation d'un objet en mode vue
 	kwoTargetObject = new KWObject(kwcCompiledTargetClass, lCreationIndex);
 	kwoTargetObject->SetViewTypeUse(true);
+
+	// Parametrage de son data path
+	kwoTargetObject->SetDataPath(kwoOwnerObject->GetDataPath()->GetSubDataPath(liAttributeLoadIndex));
 	return kwoTargetObject;
 }

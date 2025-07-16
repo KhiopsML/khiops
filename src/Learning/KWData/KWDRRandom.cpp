@@ -40,6 +40,18 @@ Continuous KWDRRandom::ComputeContinuousResult(const KWObject* kwoObject) const
 	if (lIndex < 0)
 		lIndex += LLONG_MAX;
 	dResult = IthRandomDouble(lIndex);
+
+	//DDD
+	/*DDD
+	cout << kwoObject->GetClass()->GetName() << "\t";
+	cout << kwoObject->GetDataPath()->GetDataPath() << "\t";
+	cout << kwoObject->GetCreationIndex() << "\t";
+	cout << "(" << kwoObject->GetDataPath()->GetRandomSeed() << "," << kwoObject->GetDataPath()->GetRandomLeap()
+	     << ")\t";
+	cout << "(" << lSeed << "," << lLeap << ")\t";
+	cout << lIndex << "\t";
+	cout << dResult << endl;
+	*/
 	return (Continuous)dResult;
 }
 

@@ -166,6 +166,9 @@ public:
 	// Dictionaire des objets a l'extremite du data path
 	const KWClass* GetClass() const;
 
+	// Index de chargement de la derniere variable du data path, aboutissant a son extremite
+	const KWLoadIndex GetLoadIndex() const;
+
 	// Acces au data path fils pour un index d'attribut relationnel du dictionnaire extremite
 	const KWObjectDataPath* GetSubDataPath(const KWLoadIndex liAttributeLoadIndex) const;
 
@@ -218,6 +221,7 @@ protected:
 	friend class KWObjectDataPathManager;
 
 	// Gestionnaire de DataPath
+	//DDD utile???
 	const KWObjectDataPathManager* GetDataPathManager() const;
 	void SetDataPathManager(const KWObjectDataPathManager* manager);
 
@@ -229,6 +233,9 @@ protected:
 
 	// Dictionnaire des objets a l'extremite du data path
 	const KWClass* kwcClass;
+
+	// Index de chargement de la derniere variable du data path, aboutissant a son extremite
+	KWLoadIndex liLastAttributeLoadIndex;
 
 	// Gestionnaire de data path
 	const KWObjectDataPathManager* dataPathManager;
@@ -269,7 +276,7 @@ public:
 	const KWObjectDataPath* GetExternalRootDataPathAt(int nIndex) const;
 
 	// Acces a un maping par son chemin
-	KWObjectDataPath* LookupDataPath(const ALString& sDataPath) const;
+	const KWObjectDataPath* LookupDataPath(const ALString& sDataPath) const;
 
 	////////////////////////////////////////////////////////
 	// Divers
@@ -302,14 +309,17 @@ protected:
 	// Dictionnaire principal
 	const KWClass* kwcMainClass;
 
-	// Tableau de tous les data paths
-	ObjectArray oaDataPaths;
-
 	// Data path principal
 	KWObjectDataPath* mainDataPath;
 
+	// Tableau de tous les data paths
+	ObjectArray oaDataPaths;
+
 	// Tableau des data paths Root des tables externes
 	ObjectArray oaExternalRootDataPaths;
+
+	// Dictionnaire des data paths
+	ObjectDictionary odDataPaths;
 };
 
 ////////////////////////////////////////////////////////////
@@ -369,4 +379,14 @@ inline char KWDataPath::GetDataPathSeparator()
 inline char KWDataPath::GetDataPathEscapeChar()
 {
 	return '`';
+}
+
+inline const KWClass* KWObjectDataPath::GetClass() const
+{
+	return kwcClass;
+}
+
+inline const KWLoadIndex KWObjectDataPath::GetLoadIndex() const
+{
+	return liLastAttributeLoadIndex;
 }
