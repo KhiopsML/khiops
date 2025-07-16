@@ -54,7 +54,7 @@ public:
 	//    . le parametrage des effectifs des cellules de la grille
 	//      au moyen d'une Structure(Frequencies)
 	// Optionnellement, la Structure(DataGrid) comporte un parametrage supplementaire
-	// utile pour l'evalution des cout de grille, notament dans le cas du deploiement
+	// utile pour l'evalution des cout de grille, notamment dans le cas du deploiement
 	// de coclustering:
 	//    . la granularite de la grille (entier stocke avec un Continuous)
 	//    . les effectifs initiaux par attributs, stockes avec une Structure(Frequencies)

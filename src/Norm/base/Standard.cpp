@@ -564,8 +564,7 @@ int IthRandomInt(longint lIndex, int nMax)
 //
 // Attention: on utilise ici l'instruction printf(plutot que cout)
 // En effet, en cas d'erreur fatale, il eviter l'utilisation d'objet
-// qui peuvent entrainer d'autres erreurs(notament si
-// probleme memoire)
+// qui peuvent entrainer d'autres erreurs(notamment si probleme memoire)
 
 //:: _AssertionFailure()
 void _AssertionFailure(const char* __cond, const char* __file, const unsigned __line)
