@@ -81,7 +81,7 @@ public:
 	// Indexation de la base de donnes multi-tables selon les parametres specifies
 
 	// Methode d'indexation principale
-	// Cette methode peut etre appelee plusieurs fois, notament si une meme base est exploitee avec des
+	// Cette methode peut etre appelee plusieurs fois, notamment si une meme base est exploitee avec des
 	// des variantes de dictionnaire. Les resultats de cette methode sont bufferises pour les operations
 	// sur les sous-tables non encore prises en compte dans les appel precedents.
 	// Cela permet de minimiser les operations d'entrees-sorties sur les fichiers.

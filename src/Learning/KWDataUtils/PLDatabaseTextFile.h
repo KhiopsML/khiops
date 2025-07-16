@@ -63,7 +63,7 @@ public:
 
 	// Calcul d'informations necessaires a l'ouverture de la base en lecture ou ecriture
 	//
-	// Cette methode peut etre appelee plusieurs fois, notament si une meme base est exploitee avec des
+	// Cette methode peut etre appelee plusieurs fois, notamment si une meme base est exploitee avec des
 	// des variantes de dictionnaire. Les resultats de cette methode sont bufferises dans la mesure du possible,
 	// notamment en ce qui concerne la taille des fichiers, tous pris en compte des le premier appel,
 	// ainsi que les lignes d'entete. Dans le cas multi-table, les operations sont effectuees sur les sous-tables

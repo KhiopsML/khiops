@@ -188,7 +188,7 @@ protected:
 ////////////////////////////////////////////////////////////////////////
 // Classe FileReaderCard
 // Test d'une fiche permettant la lecture d'un fichier
-// Permet notament de tester la prise en compte des caracteres accentues
+// Permet notamment de tester la prise en compte des caracteres accentues
 // dans les echanges entre Java et C++
 class FileReaderCard : public UICard
 {

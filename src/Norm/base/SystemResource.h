@@ -48,7 +48,7 @@ longint MemGetCurrentProcessVirtualMemory();
 const char* GetMACAddress();
 
 // Acces au numero de serie
-// Utile notament sur un telephone portable, sans effet sur un PC ("")
+// Utile notamment sur un telephone portable, sans effet sur un PC ("")
 // Renvoie toujours une chaine de caractere valide (pas NULL)
 // eventuellement vide si non trouve
 const char* GetSerialNumber();

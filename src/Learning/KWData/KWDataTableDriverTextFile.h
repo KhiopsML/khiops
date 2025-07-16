@@ -98,7 +98,7 @@ public:
 	// Ecriture de la ligne d'entete
 	virtual void WriteHeaderLine();
 
-	// Verification du format, notament le separateur de champ
+	// Verification du format, notamment le separateur de champ
 	boolean CheckFormat() const override;
 
 	///////////////////////////////////////////////////////////

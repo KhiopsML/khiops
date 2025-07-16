@@ -13,6 +13,7 @@ class KWDerivationRule;
 class KWContinuousValueBlock;
 class KWSymbolValueBlock;
 class KWObjectArrayValueBlock;
+class KWObjectDataPath;
 
 #include "Standard.h"
 #include "ALString.h"
@@ -65,7 +66,7 @@ class KWObject : public Object
 {
 public:
 	// Construction et initialisation de l'objet avec des valeurs par defaut
-	// L'index (>0) permet de memoriser un numero de ligne lors de la lecture d'un fichier
+	// L'index (> 0) permet de memoriser un numero de ligne lors de la lecture d'un fichier
 	KWObject(const KWClass* kwcNew, longint lIndex);
 
 	// Destructeur
@@ -199,6 +200,20 @@ public:
 	/////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Declaration en friend des seules classe explotant un data path
+	friend class KWMTDatabase;
+	friend class KWDRRelationCreationRule;
+	friend class KWDRRandom;
+
+	// Parametrage d'un data path
+	void SetDataPath(const KWObjectDataPath* objectDataPath);
+
+	// Acces au data path
+	const KWObjectDataPath* GetDataPath(const KWObjectDataPath* objectDataPath) const;
+
+	//////////////////////////////////////////////////////////////////////////////////////////////
+	// Services de calul des valeurs et de destruction des attributs
+
 	// Verification de la concordance entre la classe d'un objet (s'il est non NULL)
 	// et celle d'un attribut, pour les attributs de type Objet ou ObjectArray
 	// La correspondance doit etre exacte dans le cas des objets inclus, et peut etre
@@ -217,7 +232,7 @@ protected:
 	void DeleteAttributes();
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
-	// Services de nettoyage ou destruction total ou partiel des attributs,
+	// Services de nettoyage ou destruction totale ou partielle des attributs,
 	// partage par les methodes de destruction et de mutation
 
 	// Reinitialisation des valeurs de type Symbol dans la liste LoadedDenseSymbolAttribute
@@ -331,6 +346,19 @@ protected:
 	//     - utilisation standard: valeur 0
 	longint lCreationIndex;
 
+	// Datapath associe a l'objet en multi-table
+	// Un data path est un chemin d'acces a l'objet dans un schema multi-table, que l'objet soit
+	// lu depuis un fichier ou cree par une regle de creation d'instance
+	// Cela permet d'identifier de facon unique chaque objet par la paire (dataPath, CreationIndex),
+	// avec le CreationIndex correspondant a un numero de ligne dans un fichier dans le cas d'une
+	// le cas de donnees mappees sur des fichiers, ou d'un numero de creation local a l'instance principale
+	// Cet identification est necessaire pour la regle Random, pour generer des suites de valeurs aleatoire
+	// reproductibles, car dependant de l'identifiant unique d'un objet lu ou cree, et independant entre elles,
+	// chacune exploitant un couple (Seed, Leap) deuit par hashage de son data path et du contexte
+	// d'utilisation de la fonction random
+	// Un data path peut etre NULL, notamment dans le cas mon,o-table ou il n'est pas necessaire.
+	const KWObjectDataPath* dataPath;
+
 	//////////////////////////////////////////////////////////////////////////////
 	// Pour gerer les objet avec un nombre potentiel d'attributs tres important,
 	// les valeur ne sont pas accessible directment par un tableau (KWValue*),
@@ -406,6 +434,7 @@ int KWObjectCompareCreationIndex(const void* elem1, const void* elem2);
 #include "KWClass.h"
 #include "KWAttributeBlock.h"
 #include "KWDerivationRule.h"
+#include "KWDataPath.h"
 
 /////////////////////////////////////////////////////////////////
 // Methodes en inline
@@ -422,6 +451,17 @@ inline longint KWObject::GetCreationIndex() const
 		return lCreationIndex / 2;
 	else
 		return -lCreationIndex / 2;
+}
+
+inline void KWObject::SetDataPath(const KWObjectDataPath* objectDataPath)
+{
+	require(dataPath == NULL or objectDataPath == NULL);
+	dataPath = objectDataPath;
+}
+
+inline const KWObjectDataPath* KWObject::GetDataPath(const KWObjectDataPath* objectDataPath) const
+{
+	return dataPath;
 }
 
 inline boolean KWObject::GetSmallSize() const

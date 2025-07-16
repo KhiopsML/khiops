@@ -438,7 +438,7 @@ protected:
 	// Les methodes sont implementees avec des vecteurs pleins (KWDenseFrequencyVector),
 	// mais sont redefinissable pour s'adapter a des vecteur creux par exemple
 
-	// Initialisation des variables de travail (notament, parametrage de la structure des couts)
+	// Initialisation des variables de travail (notamment, parametrage de la structure des couts)
 	virtual void InitializeWorkingData(const KWFrequencyTable* kwftSource) const;
 	virtual void CleanWorkingData() const;
 

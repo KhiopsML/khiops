@@ -16,6 +16,7 @@ KWObject::KWObject(const KWClass* kwcNew, longint lIndex)
 	kwcClass = kwcNew;
 	lCreationIndex = 2 * lIndex;
 	assert(GetCreationIndex() == lIndex);
+	dataPath = NULL;
 	values.attributeValues = NULL;
 	debug(nObjectLoadedDataItemNumber = 0);
 	debug(nFreshness = 0);

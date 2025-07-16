@@ -177,7 +177,7 @@ protected:
 // Analogue a une partition en intervalles elementaires centres
 // sur les valeurs, ce qui permet de memoriser les valeurs
 // elles-memes (au lieu des bornes des intervalles).
-// Cela est notament utile dans les calculs d'esperance utilise
+// Cela est notamment utile dans les calculs d'esperance utilise
 // dans les prediction des regresseurs
 class KWDRContinuousValueSet : public KWDRUnivariatePartition
 {
@@ -417,7 +417,7 @@ protected:
 // Analogue a une partition en groupes elementaires singletons
 // sur les valeurs, ce qui permet de memoriser les valeurs
 // elles-memes (au lieu des groupes).
-// Cela est notament utile dans les calculs lies aux classifieurs
+// Cela est notamment utile dans les calculs lies aux classifieurs
 class KWDRSymbolValueSet : public KWDRUnivariatePartition
 {
 public:

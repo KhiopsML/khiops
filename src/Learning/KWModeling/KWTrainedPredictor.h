@@ -42,7 +42,7 @@ public:
 	// Reinitialisation du parametrage des attributs de prediction et initialisation des meta-donnees
 	// relatives a la classe de prediction
 	// Prerequis: doit appartenir a domaine de classe valide (KWClassDomain) non gere parmi les domaines
-	//   (l'appartenance a un domaine est utile notament dans le cas multi-classe)
+	//   (l'appartenance a un domaine est utile notamment dans le cas multi-classe)
 	// Memoire: appartient a l'appele (provoque la supression de la classe precedente et de son domaine)
 	virtual void SetPredictorClass(KWClass* aClass, int nPredictorType, const ALString sPredictorLabel);
 	KWClass* GetPredictorClass() const;
