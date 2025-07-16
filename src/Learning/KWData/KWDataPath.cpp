@@ -290,6 +290,7 @@ void KWObjectDataPath::CopyFrom(const KWDataPath* aSource)
 	sourceObjectDataPath = cast(const KWObjectDataPath*, aSource);
 	lCreationNumber = sourceObjectDataPath->lCreationNumber;
 	kwcClass = sourceObjectDataPath->kwcClass;
+	liLastAttributeLoadIndex.lFullIndex = sourceObjectDataPath->liLastAttributeLoadIndex.lFullIndex;
 	oaSubDataPaths.CopyFrom(&sourceObjectDataPath->oaSubDataPaths);
 	dataPathManager = sourceObjectDataPath->dataPathManager;
 }
@@ -299,15 +300,67 @@ KWDataPath* KWObjectDataPath::Create() const
 	return new KWObjectDataPath;
 }
 
-const KWClass* KWObjectDataPath::GetClass() const
-{
-	return kwcClass;
-}
-
 const KWObjectDataPath* KWObjectDataPath::GetSubDataPath(const KWLoadIndex liAttributeLoadIndex) const
 {
-	//DDD
-	return NULL;
+	KWObjectDataPath* subDataPath;
+	KWObjectDataPath* foundSubDataPath;
+	int nLowerIndex;
+	int nUpperIndex;
+	int nIndex;
+
+	require(kwcClass != NULL);
+	require(liAttributeLoadIndex.IsValid());
+	require(liAttributeLoadIndex.IsDense());
+
+	// Recherche lineaire s'il y a peu de sous data path
+	foundSubDataPath = NULL;
+	if (oaSubDataPaths.GetSize() < 10)
+	{
+		for (nIndex = 0; nIndex < oaSubDataPaths.GetSize(); nIndex++)
+		{
+			subDataPath = cast(KWObjectDataPath*, oaSubDataPaths.GetAt(nIndex));
+			if (subDataPath->GetLoadIndex() == liAttributeLoadIndex)
+			{
+				foundSubDataPath = subDataPath;
+				break;
+			}
+		}
+	}
+	// Recherche dichotomique sinon
+	else
+	{
+		// Initialisation des index extremites
+		nLowerIndex = 0;
+		nUpperIndex = oaSubDataPaths.GetSize() - 1;
+
+		// Recherche dichotomique du data path
+		nIndex = (nLowerIndex + nUpperIndex + 1) / 2;
+		while (nLowerIndex + 1 < nUpperIndex)
+		{
+			// Deplacement des bornes de recherche en fonction
+			// de la comparaison avec le loadIndex courant
+			subDataPath = cast(KWObjectDataPath*, oaSubDataPaths.GetAt(nIndex));
+			if (liAttributeLoadIndex.GetDenseIndex() <= subDataPath->GetLoadIndex().GetDenseIndex())
+				nUpperIndex = nIndex;
+			else
+				nLowerIndex = nIndex;
+
+			// Modification du prochain intervalle teste
+			nIndex = (nLowerIndex + nUpperIndex + 1) / 2;
+		}
+		assert(nLowerIndex <= nUpperIndex);
+		assert(nUpperIndex <= nLowerIndex + 1);
+
+		// On compare par rapport aux deux index restant
+		subDataPath = cast(KWObjectDataPath*, oaSubDataPaths.GetAt(nLowerIndex));
+		if (liAttributeLoadIndex.GetDenseIndex() == subDataPath->GetLoadIndex().GetDenseIndex())
+			foundSubDataPath = subDataPath;
+		else
+			foundSubDataPath = cast(KWObjectDataPath*, oaSubDataPaths.GetAt(nUpperIndex));
+	}
+	assert(foundSubDataPath != NULL);
+	ensure(liAttributeLoadIndex.GetDenseIndex() == foundSubDataPath->GetLoadIndex().GetDenseIndex());
+	return foundSubDataPath;
 }
 
 void KWObjectDataPath::ResetCreationNumber()
@@ -399,7 +452,7 @@ int KWObjectDataPathManagerCompareDataPathMainClass(const void* first, const voi
 
 void KWObjectDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	KWObjectDataPath* dataPath;
 	StringVector svAttributeName;
 	ObjectDictionary odReferenceClasses;
@@ -532,6 +585,14 @@ void KWObjectDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 	}
 	oaAllRootCreatedDataPaths.DeleteAll();
 
+	//DDD
+	// Memorisation de tous les data path dans un dictionnaire
+	for (i = 0; i < oaDataPaths.GetSize(); i++)
+	{
+		dataPath = cast(KWObjectDataPath*, oaDataPaths.GetAt(i));
+		odDataPaths.SetAt(dataPath->GetDataPath(), dataPath);
+	}
+
 	// Trace
 	if (bTrace)
 		cout << *this << endl;
@@ -543,6 +604,7 @@ void KWObjectDataPathManager::Reset()
 	mainDataPath = NULL;
 	oaDataPaths.DeleteAll();
 	oaExternalRootDataPaths.RemoveAll();
+	odDataPaths.RemoveAll();
 }
 
 const KWClass* KWObjectDataPathManager::GetMainClass()
@@ -575,19 +637,9 @@ const KWObjectDataPath* KWObjectDataPathManager::GetExternalRootDataPathAt(int n
 	return cast(const KWObjectDataPath*, oaExternalRootDataPaths.GetAt(nIndex));
 }
 
-KWObjectDataPath* KWObjectDataPathManager::LookupDataPath(const ALString& sDataPath) const
+const KWObjectDataPath* KWObjectDataPathManager::LookupDataPath(const ALString& sDataPath) const
 {
-	KWObjectDataPath* dataPath;
-	int i;
-
-	// Parcours de la table de mapping
-	for (i = 0; i < oaDataPaths.GetSize(); i++)
-	{
-		dataPath = cast(KWObjectDataPath*, oaDataPaths.GetAt(i));
-		if (dataPath->GetDataPath() == sDataPath)
-			return dataPath;
-	}
-	return NULL;
+	return cast(KWObjectDataPath*, odDataPaths.Lookup(sDataPath));
 }
 
 void KWObjectDataPathManager::Write(ostream& ost) const
@@ -656,6 +708,10 @@ KWObjectDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClasses, Ob
 	dataPath->GetAttributeNames()->CopyFrom(svAttributeNames);
 	assert(LookupDataPath(dataPath->GetDataPath()) == NULL);
 
+	//DDD
+	// Memorisation de la classe
+	dataPath->kwcClass = mappedClass;
+
 	// Memorisation de ce dataPath dans le tableau exhaustif de tous les dataPath
 	oaCreatedDataPaths->Add(dataPath);
 
@@ -679,6 +735,10 @@ KWObjectDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClasses, Ob
 				    CreateDataPath(odReferenceClasses, oaRankedReferenceClasses,
 						   odAnalysedCreatedClasses, attribute->GetClass(), bIsExternalTable,
 						   sOriginClassName, svAttributeNames, oaCreatedDataPaths);
+
+				//DDD
+				// Memorisation de l'index de chargement de l'attribut
+				subDataPath->liLastAttributeLoadIndex.lFullIndex = attribute->GetLoadIndex().lFullIndex;
 
 				// Supression de l'attribut ajoute temporairement
 				svAttributeNames->SetSize(svAttributeNames->GetSize() - 1);

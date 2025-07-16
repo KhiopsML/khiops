@@ -201,6 +201,7 @@ public:
 	//// Implementation
 protected:
 	// Declaration en friend des seules classe explotant un data path
+	friend class KWSTDatabase;
 	friend class KWMTDatabase;
 	friend class KWDRRelationCreationRule;
 	friend class KWDRRandom;
@@ -209,7 +210,7 @@ protected:
 	void SetDataPath(const KWObjectDataPath* objectDataPath);
 
 	// Acces au data path
-	const KWObjectDataPath* GetDataPath(const KWObjectDataPath* objectDataPath) const;
+	const KWObjectDataPath* GetDataPath() const;
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	// Services de calul des valeurs et de destruction des attributs
@@ -459,7 +460,7 @@ inline void KWObject::SetDataPath(const KWObjectDataPath* objectDataPath)
 	dataPath = objectDataPath;
 }
 
-inline const KWObjectDataPath* KWObject::GetDataPath(const KWObjectDataPath* objectDataPath) const
+inline const KWObjectDataPath* KWObject::GetDataPath() const
 {
 	return dataPath;
 }

@@ -1189,9 +1189,6 @@ boolean KWMTDatabase::PhysicalOpenForRead()
 		// Initialisation recursive du mapping a partir de la table principale
 		DMTMPhysicalInitializeMapping(mainMultiTableMapping, kwcPhysicalClass, true);
 
-		// Initialisation de tous les data paths a destination des objets lus ou cree
-		objectDataPathManager.ComputeAllDataPaths(kwcClass);
-
 		// Ouverture recursive des tables a partir de la table principale
 		if (bOk)
 			bOk = DMTMPhysicalOpenForRead(mainMultiTableMapping, kwcClass);
@@ -1315,6 +1312,12 @@ void KWMTDatabase::PhysicalReadAfterEndOfDatabase()
 				// immediatement detruits
 				kwoSubObject = componentMapping->GetDataTableDriver()->Read();
 
+				//DDD
+				// Parametrage du data path de l'objet
+				if (kwoSubObject != NULL)
+					kwoSubObject->SetDataPath(
+					    objectDataPathManager->LookupDataPath(componentMapping->GetDataPath()));
+
 				// Positionnement du flag d'erreur
 				bIsError = bIsError or componentMapping->GetDataTableDriver()->IsError();
 
@@ -1422,9 +1425,6 @@ boolean KWMTDatabase::PhysicalClose()
 
 	// Destruction des objets references
 	PhysicalDeleteAllReferenceObjects();
-
-	// Destruction des data path de gestion des objet
-	objectDataPathManager.Reset();
 	return bOk;
 }
 
@@ -2016,6 +2016,10 @@ longint KWMTDatabase::ComputeSamplingBasedNecessaryMemoryForReferenceObjects()
 	if (bDisplay)
 		cout << "\tSampling rate\t" << DoubleToString(dSamplePercentage) << endl;
 
+	// Initialisation de tous les data paths a destination des objets lus ou cree
+	// le temps de la lecture des objet externes
+	objectDataPathManager->ComputeAllDataPaths(kwcPhysicalClass);
+
 	// Ouverture et lecture des tables referencees, sans emission d'erreur
 	// ce qui permet de calculer la memoire necessaire a leur lecture
 	lHeapMemory = MemGetHeapMemory();
@@ -2030,6 +2034,9 @@ longint KWMTDatabase::ComputeSamplingBasedNecessaryMemoryForReferenceObjects()
 	lHeapMemory = MemGetHeapMemory();
 	PhysicalDeleteAllReferenceObjects();
 	lDeleteBasedNecessaryMemory = lHeapMemory - MemGetHeapMemory();
+
+	// Destruction des data paths de gestion des objets
+	objectDataPathManager->Reset();
 
 	// Memoire dediee aux objets references
 	// On prend le max des deux, car il peut y avoir des effet de bord dans l'allocateur, avec la gestion des
@@ -2518,6 +2525,11 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 
 	// Lecture d'un enregistrement de la table principale
 	kwoObject = mapping->GetDataTableDriver()->Read();
+
+	//DDD
+	// Parametrage du data path de l'objet
+	if (kwoObject != NULL)
+		kwoObject->SetDataPath(objectDataPathManager->LookupDataPath(mapping->GetDataPath()));
 
 	// Positionnement du flag d'erreur
 	bIsError = bIsError or mapping->GetDataTableDriver()->IsError();

@@ -2258,7 +2258,7 @@ void KWObject::MutateUnloadedOwnedRelationValues(const NumericKeyDictionary* nkd
 
 KWObject::ObjectValues KWObject::NewValueVector(int nSize)
 {
-	ObjectValues newValues;
+	ObjectValues newValues{};
 	int nBlockNumber;
 	int i;
 

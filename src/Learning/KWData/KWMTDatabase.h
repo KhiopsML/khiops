@@ -258,14 +258,6 @@ protected:
 	// et ne doit toujours etre synchronise
 	mutable ObjectArray oaMultiTableMappings;
 
-	// Gestion de tous les data paths des objets charges en memoire, qu'il soient issu de lecture de fichier via un mapping
-	// ou crees en memoire par des regles de derivation d'instances
-	// Il s'agit d'un sur-ensemble du maping multi-table, qui est lui dediee aux objet lus depuis des fichiers.
-	// Ces data path sont crees lors de l'ouverture de la base en lecture, et detruit avec sa fermeture.
-	// Chaque KWObject lu depuis un fichier ou cree depuis une regle reference son data path, ce qui lui permet
-	// d'etre identifier de facon unique.
-	KWObjectDataPathManager objectDataPathManager;
-
 	// Warnings pour le cas des tables externes non utilisees, gardees pour generer des warnings lors du Check
 	//
 	// Ce cas arrive si la table principale est une table secondaire d'une table externe qu'elle reference.

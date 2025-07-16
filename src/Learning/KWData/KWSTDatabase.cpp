@@ -186,6 +186,11 @@ KWObject* KWSTDatabase::PhysicalRead()
 	// Lecture avec le driver
 	kwoObject = dataTableDriverCreator->Read();
 
+	//DDD
+	// Parametrage du data path de l'objet
+	if (kwoObject != NULL)
+		kwoObject->SetDataPath(objectDataPathManager->GetMainDataPath());
+
 	// Positionnement du flag d'erreur
 	bIsError = bIsError or dataTableDriverCreator->IsError();
 

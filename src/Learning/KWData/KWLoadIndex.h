@@ -34,6 +34,8 @@ public:
 	boolean operator==(const KWLoadIndex& liLoadIndex) const;
 	boolean operator!=(const KWLoadIndex& liLoadIndex) const;
 
+	//DDD TODO operateur de copie
+
 	// Affichage dans un stream
 	friend ostream& operator<<(ostream& ost, const KWLoadIndex& value);
 
@@ -58,6 +60,8 @@ private:
 	// Classes amies, ayant acces aux services internes
 	friend class KWLoadIndexVector;
 	friend class KWClass;
+	friend class KWObjectDataPath;
+	friend class KWObjectDataPathManager;
 	friend class KWAttribute;
 	friend class KWAttributeBlock;
 	friend class KWDerivationRuleOperand;

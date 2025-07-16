@@ -26,6 +26,9 @@ KWDatabase::KWDatabase()
 	timeDefaultConverter.SetFormatString(KWTimeFormat::GetDefaultFormatString());
 	timestampDefaultConverter.SetFormatString(KWTimestampFormat::GetDefaultFormatString());
 	timestampTZDefaultConverter.SetFormatString(KWTimestampTZFormat::GetDefaultFormatString());
+
+	// Creation du gestionnaire de data path, qui est ici un pointeur pour un probleme de cyle de include dans les header
+	objectDataPathManager = new KWObjectDataPathManager;
 }
 
 KWDatabase::~KWDatabase()
@@ -33,6 +36,7 @@ KWDatabase::~KWDatabase()
 	assert(not IsOpenedForRead() and not IsOpenedForWrite());
 	assert(kwcPhysicalClass == NULL);
 	oaAllObjects.DeleteAll();
+	delete objectDataPathManager;
 }
 
 KWDatabase* KWDatabase::Clone() const
@@ -511,6 +515,9 @@ boolean KWDatabase::OpenForRead()
 	// Compilation des informations de selection
 	CompilePhysicalSelection();
 
+	// Initialisation de tous les data paths a destination des objets lus ou cree
+	objectDataPathManager->ComputeAllDataPaths(kwcPhysicalClass);
+
 	// Ouverture physique de la base
 	bIsError = false;
 	lEncodingErrorNumber = 0;
@@ -708,6 +715,9 @@ boolean KWDatabase::Close()
 	bOpenedForWrite = false;
 	bIsError = false;
 	nClassFreshness = 0;
+
+	// Destruction des data paths de gestion des objets
+	objectDataPathManager->Reset();
 
 	// Destruction de la classe physique
 	DeletePhysicalClass();
