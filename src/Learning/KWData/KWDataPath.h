@@ -161,13 +161,7 @@ public:
 	virtual KWDataPath* Create() const;
 
 	////////////////////////////////////////////////////////////////////////
-	// Service de navigation dans les data path
-
-	// Dictionaire des objets a l'extremite du data path
-	const KWClass* GetClass() const;
-
-	// Index de chargement de la derniere variable du data path, aboutissant a son extremite
-	const KWLoadIndex GetLoadIndex() const;
+	// Service de navigation dans les data paths
 
 	// Acces au data path fils pour un index d'attribut relationnel du dictionnaire extremite
 	const KWObjectDataPath* GetSubDataPath(const KWLoadIndex liAttributeLoadIndex) const;
@@ -195,13 +189,10 @@ public:
 	longint GetCreationNumber() const;
 
 	////////////////////////////////////////////////////////////////////////
-	// Services de creation de paire (Seed, Leap) pseudo-aleatoire par hashage du data path,
+	// Services de parametrage (Seed, Leap) de generateur pseudo-aleatoire par hashage du data path,
 	// pour le parametrage des generateur de nombre aleatoire, avec garantie de reproductibilite
 	// en calcul distribue, et d'independance entre les series aleatoire generes par differents
 	// appels a la regle de derivation Random
-
-	// Calcul de parametre de fonction Random par hashage du data path
-	void ComputeRandomParameters();
 
 	// Graine de generateur aleatoire
 	int GetRandomSeed() const;
@@ -220,8 +211,14 @@ public:
 protected:
 	friend class KWObjectDataPathManager;
 
+	// Compilation pour avoir acces efficacement aux services avances
+	void Compile(const KWClass* mainClass);
+	boolean IsCompiled() const;
+
+	// Index de chargement de la derniere variable du data path, aboutissant a son extremite
+	const KWLoadIndex GetTerminalLoadIndex() const;
+
 	// Gestionnaire de DataPath
-	//DDD utile???
 	const KWObjectDataPathManager* GetDataPathManager() const;
 	void SetDataPathManager(const KWObjectDataPathManager* manager);
 
@@ -231,14 +228,25 @@ protected:
 	// Nombre d'index de creation generes
 	longint lCreationNumber;
 
-	// Dictionnaire des objets a l'extremite du data path
-	const KWClass* kwcClass;
-
-	// Index de chargement de la derniere variable du data path, aboutissant a son extremite
-	KWLoadIndex liLastAttributeLoadIndex;
-
 	// Gestionnaire de data path
 	const KWObjectDataPathManager* dataPathManager;
+
+	/////////////////////////////////////////////////////////////////////
+	// Attributs de gestion de la compilation du data path
+
+	// Index de chargement de la derniere variable du data path, aboutissant a son extremite
+	KWLoadIndex liCompiledTerminalAttributeLoadIndex;
+
+	// Tableau des data path indexes par leur index de chargement
+	// On utilise la partie dense de l'index de chargement pour avoir un acces direct a un data path
+	ObjectArray oaCompiledSubDataPathsByLoadIndex;
+
+	// Parametres pour le generateur de nombre aleatoire
+	int nCompiledRandomSeed;
+	int nCompiledRandomLeap;
+
+	// Valeur de hash du data path au moment de compilation, permettant de verifier sa validite
+	int nCompileHash;
 };
 
 ////////////////////////////////////////////////////////////
@@ -381,12 +389,49 @@ inline char KWDataPath::GetDataPathEscapeChar()
 	return '`';
 }
 
-inline const KWClass* KWObjectDataPath::GetClass() const
+inline const KWObjectDataPath* KWObjectDataPath::GetSubDataPath(const KWLoadIndex liAttributeLoadIndex) const
 {
-	return kwcClass;
+	const KWObjectDataPath* foundSubDataPath;
+
+	require(IsCompiled());
+	require(liAttributeLoadIndex.IsValid());
+	require(liAttributeLoadIndex.IsDense());
+	require(liAttributeLoadIndex.GetDenseIndex() < oaCompiledSubDataPathsByLoadIndex.GetSize());
+
+	foundSubDataPath = cast(const KWObjectDataPath*,
+				oaCompiledSubDataPathsByLoadIndex.GetAt(liAttributeLoadIndex.GetDenseIndex()));
+	ensure(foundSubDataPath->GetTerminalLoadIndex().GetDenseIndex() == liAttributeLoadIndex.GetDenseIndex());
+	return foundSubDataPath;
 }
 
-inline const KWLoadIndex KWObjectDataPath::GetLoadIndex() const
+inline void KWObjectDataPath::ResetCreationNumber()
 {
-	return liLastAttributeLoadIndex;
+	lCreationNumber = 0;
+}
+
+inline longint KWObjectDataPath::GetNewCreationIndex()
+{
+	lCreationNumber++;
+	return lCreationNumber;
+}
+
+inline longint KWObjectDataPath::GetCreationNumber() const
+{
+	return lCreationNumber;
+}
+
+inline const KWLoadIndex KWObjectDataPath::GetTerminalLoadIndex() const
+{
+	require(IsCompiled());
+	return liCompiledTerminalAttributeLoadIndex;
+}
+
+inline int KWObjectDataPath::GetRandomSeed() const
+{
+	return nCompiledRandomSeed;
+}
+
+inline int KWObjectDataPath::GetRandomLeap() const
+{
+	return nCompiledRandomLeap;
 }

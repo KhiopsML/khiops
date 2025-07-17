@@ -1278,6 +1278,9 @@ longint KWDatabase::GetUsedMemory() const
 	if (kwcPhysicalClass != NULL)
 		lUsedMemory += kwcPhysicalClass->GetDomain()->GetUsedMemory();
 
+	// Memoire du gestionnaire de data apth
+	lUsedMemory += objectDataPathManager->GetUsedMemory();
+
 	// Objets charges en memoire
 	for (nObject = 0; nObject < oaAllObjects.GetSize(); nObject++)
 	{

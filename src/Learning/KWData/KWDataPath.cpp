@@ -185,7 +185,9 @@ boolean KWDataPath::CheckDataPath() const
 				bOk = false;
 			}
 			// Erreur si attribut calcule
-			else if (currentAttribute->GetDerivationRule() != NULL)
+			//DDD else if (currentAttribute->GetDerivationRule() != NULL)
+			else if (currentAttribute->GetDerivationRule() != NULL and
+				 currentAttribute->GetDerivationRule()->GetReference())
 			{
 				AddError(sTmp + "Variable " + GetDataPathAttributeNameAt(n) + " at index " +
 					 IntToString(n + 1) + " in data path should be native");
@@ -271,8 +273,10 @@ longint KWDataPath::GetUsedMemory() const
 KWObjectDataPath::KWObjectDataPath()
 {
 	lCreationNumber = 0;
-	kwcClass = NULL;
 	dataPathManager = NULL;
+	nCompiledRandomSeed = 0;
+	nCompiledRandomLeap = 0;
+	nCompileHash = 0;
 }
 
 KWObjectDataPath::~KWObjectDataPath() {}
@@ -289,111 +293,19 @@ void KWObjectDataPath::CopyFrom(const KWDataPath* aSource)
 	// Specialisation
 	sourceObjectDataPath = cast(const KWObjectDataPath*, aSource);
 	lCreationNumber = sourceObjectDataPath->lCreationNumber;
-	kwcClass = sourceObjectDataPath->kwcClass;
-	liLastAttributeLoadIndex.lFullIndex = sourceObjectDataPath->liLastAttributeLoadIndex.lFullIndex;
 	oaSubDataPaths.CopyFrom(&sourceObjectDataPath->oaSubDataPaths);
 	dataPathManager = sourceObjectDataPath->dataPathManager;
+	liCompiledTerminalAttributeLoadIndex.lFullIndex =
+	    sourceObjectDataPath->liCompiledTerminalAttributeLoadIndex.lFullIndex;
+	nCompiledRandomSeed = sourceObjectDataPath->nCompiledRandomSeed;
+	nCompiledRandomLeap = sourceObjectDataPath->nCompiledRandomLeap;
+	oaCompiledSubDataPathsByLoadIndex.CopyFrom(&sourceObjectDataPath->oaCompiledSubDataPathsByLoadIndex);
+	nCompileHash = sourceObjectDataPath->nCompileHash;
 }
 
 KWDataPath* KWObjectDataPath::Create() const
 {
 	return new KWObjectDataPath;
-}
-
-const KWObjectDataPath* KWObjectDataPath::GetSubDataPath(const KWLoadIndex liAttributeLoadIndex) const
-{
-	KWObjectDataPath* subDataPath;
-	KWObjectDataPath* foundSubDataPath;
-	int nLowerIndex;
-	int nUpperIndex;
-	int nIndex;
-
-	require(kwcClass != NULL);
-	require(liAttributeLoadIndex.IsValid());
-	require(liAttributeLoadIndex.IsDense());
-
-	// Recherche lineaire s'il y a peu de sous data path
-	foundSubDataPath = NULL;
-	if (oaSubDataPaths.GetSize() < 10)
-	{
-		for (nIndex = 0; nIndex < oaSubDataPaths.GetSize(); nIndex++)
-		{
-			subDataPath = cast(KWObjectDataPath*, oaSubDataPaths.GetAt(nIndex));
-			if (subDataPath->GetLoadIndex() == liAttributeLoadIndex)
-			{
-				foundSubDataPath = subDataPath;
-				break;
-			}
-		}
-	}
-	// Recherche dichotomique sinon
-	else
-	{
-		// Initialisation des index extremites
-		nLowerIndex = 0;
-		nUpperIndex = oaSubDataPaths.GetSize() - 1;
-
-		// Recherche dichotomique du data path
-		nIndex = (nLowerIndex + nUpperIndex + 1) / 2;
-		while (nLowerIndex + 1 < nUpperIndex)
-		{
-			// Deplacement des bornes de recherche en fonction
-			// de la comparaison avec le loadIndex courant
-			subDataPath = cast(KWObjectDataPath*, oaSubDataPaths.GetAt(nIndex));
-			if (liAttributeLoadIndex.GetDenseIndex() <= subDataPath->GetLoadIndex().GetDenseIndex())
-				nUpperIndex = nIndex;
-			else
-				nLowerIndex = nIndex;
-
-			// Modification du prochain intervalle teste
-			nIndex = (nLowerIndex + nUpperIndex + 1) / 2;
-		}
-		assert(nLowerIndex <= nUpperIndex);
-		assert(nUpperIndex <= nLowerIndex + 1);
-
-		// On compare par rapport aux deux index restant
-		subDataPath = cast(KWObjectDataPath*, oaSubDataPaths.GetAt(nLowerIndex));
-		if (liAttributeLoadIndex.GetDenseIndex() == subDataPath->GetLoadIndex().GetDenseIndex())
-			foundSubDataPath = subDataPath;
-		else
-			foundSubDataPath = cast(KWObjectDataPath*, oaSubDataPaths.GetAt(nUpperIndex));
-	}
-	assert(foundSubDataPath != NULL);
-	ensure(liAttributeLoadIndex.GetDenseIndex() == foundSubDataPath->GetLoadIndex().GetDenseIndex());
-	return foundSubDataPath;
-}
-
-void KWObjectDataPath::ResetCreationNumber()
-{
-	lCreationNumber = 0;
-}
-
-longint KWObjectDataPath::GetNewCreationIndex()
-{
-	lCreationNumber++;
-	return lCreationNumber;
-}
-
-longint KWObjectDataPath::GetCreationNumber() const
-{
-	return lCreationNumber;
-}
-
-void KWObjectDataPath::ComputeRandomParameters()
-{
-	//DDD
-}
-
-int KWObjectDataPath::GetRandomSeed() const
-{
-	//DDD
-	return 0;
-}
-
-int KWObjectDataPath::GetRandomLeap() const
-{
-	//DDD
-	return 0;
 }
 
 longint KWObjectDataPath::GetUsedMemory() const
@@ -406,7 +318,109 @@ longint KWObjectDataPath::GetUsedMemory() const
 
 	// Specialisation
 	lUsedMemory += oaSubDataPaths.GetUsedMemory();
+	lUsedMemory += oaCompiledSubDataPathsByLoadIndex.GetUsedMemory();
 	return lUsedMemory;
+}
+
+void KWObjectDataPath::Compile(const KWClass* mainClass)
+{
+	KWClass* kwcOriginClass;
+	KWClass* currentClass;
+	KWAttribute* currentAttribute;
+	int n;
+	KWObjectDataPath* subDataPath;
+	ALString sSeedEncoding;
+	ALString sLeapEncoding;
+	ALString sTmp;
+
+	require(mainClass != NULL);
+	require(mainClass->IsCompiled());
+	require(CheckDataPath());
+
+	// Arret si deja compile
+	if (IsCompiled())
+		return;
+
+	// Recherche de la classe origine
+	kwcOriginClass = mainClass->GetDomain()->LookupClass(sOriginClassName);
+	assert(kwcOriginClass != NULL);
+	assert(kwcOriginClass == mainClass or kwcOriginClass->GetName() != mainClass->GetName());
+
+	// Recherche de l'index de chargement du dernier attribut du data path et de sa class extremite
+	liCompiledTerminalAttributeLoadIndex.Reset();
+	currentClass = kwcOriginClass;
+	for (n = 0; n < GetDataPathAttributeNumber(); n++)
+	{
+		// Recherche de l'attribut
+		currentAttribute = currentClass->LookupAttribute(GetDataPathAttributeNameAt(n));
+		assert(currentAttribute != NULL);
+		assert(currentAttribute->GetLoaded());
+		assert(currentAttribute->GetLoadIndex().IsDense());
+		assert(KWType::IsRelation(currentAttribute->GetType()));
+		assert(currentAttribute->GetDerivationRule() == NULL or
+		       not currentAttribute->GetDerivationRule()->GetReference());
+
+		// Memorisation de son index de chargement
+		liCompiledTerminalAttributeLoadIndex.lFullIndex = currentAttribute->GetLoadIndex().lFullIndex;
+
+		// Changement de classe courante
+		currentClass = currentAttribute->GetClass();
+	}
+
+	// Compilation des sous data paths, por acceder a leurs services
+	for (n = 0; n < oaSubDataPaths.GetSize(); n++)
+	{
+		subDataPath = cast(KWObjectDataPath*, oaSubDataPaths.GetAt(n));
+		subDataPath->Compile(mainClass);
+	}
+
+	// Utilisation de la partie dense des index de chargement des attributs pour un acces direct aux sous data path
+	// Cet index ne peut depasser le nombre d'attributs charges en memoire de la classe terminale du data path
+	oaCompiledSubDataPathsByLoadIndex.RemoveAll();
+	if (oaSubDataPaths.GetSize() > 0)
+	{
+		// Acces au dernier sous data path, pour avoir la valeur max d'index
+		subDataPath = cast(KWObjectDataPath*, oaSubDataPaths.GetAt(oaSubDataPaths.GetSize() - 1));
+
+		// Retaillage du tableau compile
+		oaCompiledSubDataPathsByLoadIndex.SetSize(subDataPath->GetTerminalLoadIndex().GetDenseIndex() + 1);
+
+		// Memorisation de chaque sous data path selon son index dense
+		for (n = 0; n < oaSubDataPaths.GetSize(); n++)
+		{
+			subDataPath = cast(KWObjectDataPath*, oaSubDataPaths.GetAt(n));
+			oaCompiledSubDataPathsByLoadIndex.SetAt(subDataPath->GetTerminalLoadIndex().GetDenseIndex(),
+								subDataPath);
+		}
+	}
+
+	// Initialisation des parametres de generateur aleatoire par hashage de chaines de caractere
+	// dependant du nom de la classe origine et du data path
+	sSeedEncoding = sTmp + "Seed" + kwcOriginClass->GetName() + "///" + GetDataPath() + "Seed";
+	sLeapEncoding = sTmp + "Leap" + kwcOriginClass->GetName() + "///" + GetDataPath() + "Leap";
+	sLeapEncoding.MakeReverse();
+	nCompiledRandomSeed = HashValue(sSeedEncoding);
+	nCompiledRandomLeap = HashValue(sLeapEncoding);
+
+	// On interdit un Leap de 0
+	n = 0;
+	while (nCompiledRandomLeap == 0)
+	{
+		sLeapEncoding += "Leap";
+		sLeapEncoding += +IntToString(n);
+		nCompiledRandomLeap = HashValue(sLeapEncoding);
+		n++;
+	}
+
+	// Calcul de hash de compilation
+	nCompileHash = HashValue(GetDataPath());
+
+	ensure(IsCompiled());
+}
+
+boolean KWObjectDataPath::IsCompiled() const
+{
+	return nCompiledRandomLeap != 0 and nCompileHash == HashValue(GetDataPath());
 }
 
 const KWObjectDataPathManager* KWObjectDataPath::GetDataPathManager() const
@@ -586,10 +600,15 @@ void KWObjectDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 	oaAllRootCreatedDataPaths.DeleteAll();
 
 	//DDD
-	// Memorisation de tous les data path dans un dictionnaire
+	// Optimisation des data paths
 	for (i = 0; i < oaDataPaths.GetSize(); i++)
 	{
 		dataPath = cast(KWObjectDataPath*, oaDataPaths.GetAt(i));
+
+		// Compilation
+		dataPath->Compile(mainClass);
+
+		// Memorisation dans un dictionnaire
 		odDataPaths.SetAt(dataPath->GetDataPath(), dataPath);
 	}
 
@@ -708,10 +727,6 @@ KWObjectDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClasses, Ob
 	dataPath->GetAttributeNames()->CopyFrom(svAttributeNames);
 	assert(LookupDataPath(dataPath->GetDataPath()) == NULL);
 
-	//DDD
-	// Memorisation de la classe
-	dataPath->kwcClass = mappedClass;
-
 	// Memorisation de ce dataPath dans le tableau exhaustif de tous les dataPath
 	oaCreatedDataPaths->Add(dataPath);
 
@@ -735,10 +750,6 @@ KWObjectDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClasses, Ob
 				    CreateDataPath(odReferenceClasses, oaRankedReferenceClasses,
 						   odAnalysedCreatedClasses, attribute->GetClass(), bIsExternalTable,
 						   sOriginClassName, svAttributeNames, oaCreatedDataPaths);
-
-				//DDD
-				// Memorisation de l'index de chargement de l'attribut
-				subDataPath->liLastAttributeLoadIndex.lFullIndex = attribute->GetLoadIndex().lFullIndex;
 
 				// Supression de l'attribut ajoute temporairement
 				svAttributeNames->SetSize(svAttributeNames->GetSize() - 1);
