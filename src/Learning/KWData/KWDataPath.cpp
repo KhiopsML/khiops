@@ -272,6 +272,7 @@ longint KWDataPath::GetUsedMemory() const
 
 KWObjectDataPath::KWObjectDataPath()
 {
+	bCreatedObjects = false;
 	lCreationNumber = 0;
 	dataPathManager = NULL;
 	nCompiledRandomSeed = 0;
@@ -292,6 +293,7 @@ void KWObjectDataPath::CopyFrom(const KWDataPath* aSource)
 
 	// Specialisation
 	sourceObjectDataPath = cast(const KWObjectDataPath*, aSource);
+	bCreatedObjects = sourceObjectDataPath->bCreatedObjects;
 	lCreationNumber = sourceObjectDataPath->lCreationNumber;
 	oaSubDataPaths.CopyFrom(&sourceObjectDataPath->oaSubDataPaths);
 	dataPathManager = sourceObjectDataPath->dataPathManager;
@@ -466,7 +468,7 @@ int KWObjectDataPathManagerCompareDataPathMainClass(const void* first, const voi
 
 void KWObjectDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 {
-	const boolean bTrace = false;
+	const boolean bTrace = true;
 	KWObjectDataPath* dataPath;
 	StringVector svAttributeName;
 	ObjectDictionary odReferenceClasses;
@@ -492,8 +494,9 @@ void KWObjectDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 	// Creation du data path principal
 	kwcMainClass = mainClass;
 	assert(svAttributeName.GetSize() == 0);
-	mainDataPath = CreateDataPath(&odReferenceClasses, &oaRankedReferenceClasses, &odAnalysedCreatedClasses,
-				      mainClass, false, mainClass->GetName(), &svAttributeName, &oaDataPaths);
+	mainDataPath =
+	    CreateDataPath(&odReferenceClasses, &oaRankedReferenceClasses, &odAnalysedCreatedClasses, mainClass, false,
+			   false, mainClass->GetName(), &svAttributeName, &oaDataPaths); //DDD
 	assert(svAttributeName.GetSize() == 0);
 
 	// Parcours des classes referencees pour creer leur mapping
@@ -517,7 +520,7 @@ void KWObjectDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 			assert(svAttributeName.GetSize() == 0);
 			dataPath =
 			    CreateDataPath(&odWorkingReferenceClasses, &oaWorkingRankedReferenceClasses,
-					   &odWorkingAnalysedCreatedClasses, referenceClass, true,
+					   &odWorkingAnalysedCreatedClasses, referenceClass, true, false, //DDD
 					   referenceClass->GetName(), &svAttributeName, &oaWorkingCreatedDataPaths);
 			assert(svAttributeName.GetSize() == 0);
 
@@ -552,7 +555,7 @@ void KWObjectDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 				assert(svAttributeName.GetSize() == 0);
 				dataPath =
 				    CreateDataPath(&odReferenceClasses, &oaRankedReferenceClasses,
-						   &odAnalysedCreatedClasses, referenceClass, true,
+						   &odAnalysedCreatedClasses, referenceClass, true, false, //DDD
 						   referenceClass->GetName(), &svAttributeName, oaCreatedDataPaths);
 				assert(svAttributeName.GetSize() == 0);
 				/*DDD
@@ -668,7 +671,11 @@ void KWObjectDataPathManager::Write(ostream& ost) const
 	cout << GetClassLabel() << "\t" << GetObjectLabel() << "\n";
 	for (i = 0; i < GetDataPathNumber(); i++)
 	{
-		cout << "- " << GetDataPathAt(i)->GetDataPath() << "\n";
+		if (GetDataPathAt(i)->GetCreatedObjects())
+			cout << ". ";
+		else
+			cout << "- ";
+		cout << GetDataPathAt(i)->GetDataPath() << "\n";
 	}
 }
 
@@ -695,11 +702,13 @@ longint KWObjectDataPathManager::GetUsedMemory() const
 	return lUsedMemory;
 }
 
-KWObjectDataPath*
-KWObjectDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClasses, ObjectArray* oaRankedReferenceClasses,
-					ObjectDictionary* odAnalysedCreatedClasses, const KWClass* mappedClass,
-					boolean bIsExternalTable, const ALString& sOriginClassName,
-					StringVector* svAttributeNames, ObjectArray* oaCreatedDataPaths)
+KWObjectDataPath* KWObjectDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClasses,
+							  ObjectArray* oaRankedReferenceClasses,
+							  ObjectDictionary* odAnalysedCreatedClasses,
+							  const KWClass* mappedClass, boolean bIsExternalTable,
+							  boolean bCreatedObjects, const ALString& sOriginClassName,
+							  StringVector* svAttributeNames,
+							  ObjectArray* oaCreatedDataPaths)
 {
 	KWObjectDataPath* dataPath;
 	KWObjectDataPath* subDataPath;
@@ -722,6 +731,7 @@ KWObjectDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClasses, Ob
 	// Creation et initialisation d'un dataPath
 	dataPath = new KWObjectDataPath;
 	dataPath->SetExternalTable(bIsExternalTable);
+	dataPath->SetCreatedObject(bCreatedObjects); //DDD
 	dataPath->SetClassName(mappedClass->GetName());
 	dataPath->SetOriginClassName(sOriginClassName);
 	dataPath->GetAttributeNames()->CopyFrom(svAttributeNames);
@@ -739,29 +749,43 @@ KWObjectDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClasses, Ob
 		{
 			// Cas d'un attribut natif de la composition (sans regle de derivation)
 			//DDD if (attribute->GetAnyDerivationRule() == NULL)
-			if (attribute->GetAnyDerivationRule() == NULL or
-			    not attribute->GetAnyDerivationRule()->GetReference())
+			if (attribute->GetAnyDerivationRule() == NULL)
 			{
-				// Ajout temporaire d'un attribut au dataPath
-				svAttributeNames->Add(attribute->GetName());
+				// L'objet ne doit pas non plus etre cree par une regle de creation d'instances, puisque
+				// dans ce cas, les attributs sans regle s'ils existent sont des references a d'autre objets
+				// ayant servi a parametrer la creation de l'objet
+				if (not bCreatedObjects)
+				{
+					// Creation du dataPath dans une nouvelle table de dataPath temporaire
+					svAttributeNames->Add(attribute->GetName());
+					subDataPath = CreateDataPath(
+					    odReferenceClasses, oaRankedReferenceClasses, odAnalysedCreatedClasses,
+					    attribute->GetClass(), bIsExternalTable,
+					    bCreatedObjects, //DDD
+					    sOriginClassName, svAttributeNames, oaCreatedDataPaths);
+					svAttributeNames->SetSize(svAttributeNames->GetSize() - 1);
 
-				// Creation du dataPath dans une nouvelle table de dataPath temporaire
-				subDataPath =
-				    CreateDataPath(odReferenceClasses, oaRankedReferenceClasses,
-						   odAnalysedCreatedClasses, attribute->GetClass(), bIsExternalTable,
-						   sOriginClassName, svAttributeNames, oaCreatedDataPaths);
-
-				// Supression de l'attribut ajoute temporairement
-				svAttributeNames->SetSize(svAttributeNames->GetSize() - 1);
-
-				// Chainage du sous-dataPath
-				dataPath->oaSubDataPaths.Add(subDataPath);
+					// Chainage du sous-dataPath
+					dataPath->oaSubDataPaths.Add(subDataPath);
+				}
 			}
 			// Cas d'un attribut issue d'une regle de creation de table, pour rechercher
 			// les classes referencees depuis les tables creees par des regles
 			else if (not attribute->GetReference())
 			{
 				assert(attribute->GetAnyDerivationRule() != NULL);
+
+				// Creation du dataPath dans une nouvelle table de dataPath temporaire
+				svAttributeNames->Add(attribute->GetName());
+				subDataPath =
+				    CreateDataPath(odReferenceClasses, oaRankedReferenceClasses,
+						   odAnalysedCreatedClasses, attribute->GetClass(), bIsExternalTable,
+						   true, //DDD
+						   sOriginClassName, svAttributeNames, oaCreatedDataPaths);
+				svAttributeNames->SetSize(svAttributeNames->GetSize() - 1);
+
+				// Chainage du sous-dataPath
+				dataPath->oaSubDataPaths.Add(subDataPath);
 
 				// Recherche de la classe cible
 				kwcTargetClass = mappedClass->GetDomain()->LookupClass(

@@ -153,6 +153,11 @@ public:
 	KWObjectDataPath();
 	~KWObjectDataPath();
 
+	// Indique si le data path correspond a des objets crees par des regles de creation d'instances
+	// (defaut: false, correspondant a des objet stockes dans des fichiers)
+	boolean GetCreatedObjects() const;
+	void SetCreatedObject(boolean bValue);
+
 	// Copie (sans les attributs de gestion)
 	virtual void CopyFrom(const KWDataPath* aSource);
 
@@ -221,6 +226,12 @@ protected:
 	// Gestionnaire de DataPath
 	const KWObjectDataPathManager* GetDataPathManager() const;
 	void SetDataPathManager(const KWObjectDataPathManager* manager);
+
+	/////////////////////////////////////////////////////////////////////
+	// Attributs de base
+
+	// Indicateur de data path dedie a des objets crees par des regles de creation d'instances
+	boolean bCreatedObjects;
 
 	// Tableau des sous-data path du data path courant
 	ObjectArray oaSubDataPaths;
@@ -311,8 +322,9 @@ protected:
 	// Les classes creees analysees sont egalement memorisees dans un dictionnaire, pour eviter des analyses multiples
 	KWObjectDataPath* CreateDataPath(ObjectDictionary* odReferenceClasses, ObjectArray* oaRankedReferenceClasses,
 					 ObjectDictionary* odAnalysedCreatedClasses, const KWClass* mappedClass,
-					 boolean bIsExternalTable, const ALString& sOriginClassName,
-					 StringVector* svAttributeNames, ObjectArray* oaCreatedDataPaths);
+					 boolean bIsExternalTable, boolean bCreatedObjects, //DDD
+					 const ALString& sOriginClassName, StringVector* svAttributeNames,
+					 ObjectArray* oaCreatedDataPaths);
 
 	// Dictionnaire principal
 	const KWClass* kwcMainClass;
@@ -387,6 +399,16 @@ inline char KWDataPath::GetDataPathSeparator()
 inline char KWDataPath::GetDataPathEscapeChar()
 {
 	return '`';
+}
+
+inline boolean KWObjectDataPath::GetCreatedObjects() const
+{
+	return bCreatedObjects;
+}
+
+inline void KWObjectDataPath::SetCreatedObject(boolean bValue)
+{
+	bCreatedObjects = bValue;
 }
 
 inline const KWObjectDataPath* KWObjectDataPath::GetSubDataPath(const KWLoadIndex liAttributeLoadIndex) const
