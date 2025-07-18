@@ -292,9 +292,9 @@ extern const Object* objectCastControlBuffer;
 // Reference: Numerical recipes: the art of scientific computing THIRD EDITION
 // Chapter 7: Random numbers, p 352
 // Generateur sans etat et sans graine
-inline unsigned long long int IthRandomUnsignedLongint(unsigned long long int n)
+inline ulongint IthRandomUnsignedLongint(ulongint n)
 {
-	unsigned long long int v = n * 3935559000370003845LL + 2691343689449507681LL;
+	ulongint v = n * 3935559000370003845LL + 2691343689449507681LL;
 	v ^= v >> 21;
 	v ^= v << 37;
 	v ^= v >> 4;

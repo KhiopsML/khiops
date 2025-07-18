@@ -1315,8 +1315,11 @@ void KWMTDatabase::PhysicalReadAfterEndOfDatabase()
 				//DDD
 				// Parametrage du data path de l'objet
 				if (kwoSubObject != NULL)
+				{
+					assert(kwoSubObject->GetClass() != kwcPhysicalClass);
 					kwoSubObject->SetDataPath(
 					    objectDataPathManager->LookupDataPath(componentMapping->GetDataPath()));
+				}
 
 				// Positionnement du flag d'erreur
 				bIsError = bIsError or componentMapping->GetDataTableDriver()->IsError();
@@ -1731,7 +1734,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 	KWClass* kwcReferencePhysicalClass;
 	KWObject* kwoObject;
 	KWObjectKey objectKey;
-	ObjectArray oaReferenceObjects;
+	ObjectArray oaAllReferenceObjects;
 	longint lRecordNumber;
 	longint lObjectNumber;
 	int nObject;
@@ -1767,6 +1770,36 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 
 	// Reinitialisation du nombre d'erreurs d'encodage liees aux tables externes
 	lExternalTablesEncodingErrorNumber = 0;
+
+	// Reinitialisation des index de creation d'instances pour les objets des tables externes
+	//
+	// Pour les objets de la table principale, ces compteurs sont reinitialises pour chaque instance
+	// principale, en utilisant son index de creation comme reference pour les index de
+	// creation d'instance, de facon locale a chaque instance principale
+	//
+	// Pour les instances racines de tables externes, on procede differemment en prenant 0 comme index unique
+	// de reference pour l'ensemble de toutes les instances racine de chaque table externe:
+	// - l'identification unique de chaque objet issu d'une regle de derivation de creation d'instance est
+	//   garantie, car chaque process lit en memoire toutes les instances externes, contrairement aux cas des
+	//   instances de la table principale, qui ont besoin de leur numero de ligne pour garantir un identifiant unique
+	// - cette fois, les index de creation des instances crees sont globaux a toutes les instances de chaque
+	//   table secondaire, et non locaux a leur instance racine de rattachement
+	// - on est oblige techniquement de proceder ainsi, en raison du traitement particulier des instances
+	//   des tables externes
+	//  - phase 1: on lit toutes les instances de toutes les tables externes, en ne traitant que la partie
+	//   stockee du flocon
+	//    - et on memorise dans un objectReferenceResolver un pointeur sur chaque objet externe
+	//  - phase 2: on calcule la valeur de toutes les regles de derivation des instances externes, recursivement
+	//    a partir de chaque instance principale
+	//    - le objectReferenceResolver permet de resoudre les references aux objets externes, entre les tables externes
+	//      - deux tables externes peuvent ainsi avoir des objets se referencant mutuellement
+	//    - un calcul sur un objet racine externe peut ainsi se propager sur d'autres objets racines externes
+	//      d'autres tables, voir de la meme table
+	//    - dans ce cas, il n'est plus possible de reinitialiser les compteurs de creation d'instance sequentiellement
+	//      par instance racine, et on utilise donc ici une initialisation unique, une fois pour toute, par data path
+	//      de racine de table externe
+	for (nReference = 0; nReference < objectDataPathManager->GetExternalRootDataPathNumber(); nReference++)
+		objectDataPathManager->GetExternalRootDataPathAt(nReference)->ResetCreationNumber(0);
 
 	// Ouverture de chaque table secondaire
 	for (nReference = 0; nReference < oaRootReferenceTableMappings.GetSize(); nReference++)
@@ -1826,6 +1859,9 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 						objectReferenceResolver.AddObject(kwcReferencePhysicalClass, &objectKey,
 										  kwoObject);
 						lObjectNumber++;
+
+						// Enregistrement dans l'ensemble de tous les objets de reference
+						oaAllReferenceObjects.Add(kwoObject);
 					}
 
 					// Arret si erreur
@@ -1907,52 +1943,48 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 		assert(KWDRReference::GetObjectReferenceResolver() == NULL);
 		KWDRReference::SetObjectReferenceResolver(&objectReferenceResolver);
 
-		// Parcours des mapping des classes referencees
-		lRecordNumber = 0;
-		for (nReference = 0; nReference < oaRootReferenceTableMappings.GetSize(); nReference++)
+		// Debut de suivi de tache
+		if (bIsInTask)
 		{
-			referenceMapping = cast(KWMTDatabaseMapping*, oaRootReferenceTableMappings.GetAt(nReference));
-			assert(referenceMapping->GetDataTableDriver() == NULL or
-			       not referenceMapping->GetDataTableDriver()->IsOpenedForRead());
+			TaskProgression::BeginTask();
+			sMessage = "Compute external table record values";
+			TaskProgression::DisplayLabel(sMessage);
+		}
 
-			// Acces aux classes physique et logique referencees, en passant par le domaine de la classe
-			// principale
-			kwcReferenceClass = kwcClass->GetDomain()->LookupClass(referenceMapping->GetClassName());
-			kwcReferencePhysicalClass =
-			    kwcPhysicalClass->GetDomain()->LookupClass(referenceMapping->GetClassName());
+		// Parcours de tous les objet racine des tables externe dans l'ordre de leur lecture
+		// Attention, cet ordre est necessaire pour garantir la reproductibilite de resultats,
+		// notamment en ce qui concernes les objets issu d'une regle de derivation de creation d'instance
+		// dont l'index de creation est locl a l'ensemble de toutes les instances
+		for (nObject = 0; nObject < oaAllReferenceObjects.GetSize(); nObject++)
+		{
+			kwoObject = cast(KWObject*, oaAllReferenceObjects.GetAt(nObject));
+			assert(kwoObject->GetClass()->GetDomain() == kwcPhysicalClass->GetDomain());
 
-			// Traitement si la classe existe dans le resolveur de reference
-			if (objectReferenceResolver.LookupClass(kwcReferencePhysicalClass->GetName()) != NULL)
+			// Calcul recursif de toutes les valeurs des objets
+			kwoObject->ComputeAllValues(&memoryGuard);
+
+			// Suivi de la tache
+			if (bIsInTask and TaskProgression::IsRefreshNecessary())
 			{
-				// Recherche des objets correspondant a la classe physique
-				objectReferenceResolver.ExportObjects(kwcReferencePhysicalClass, &oaReferenceObjects);
-
-				// Parcours des objets a traiter
-				for (nObject = 0; nObject < oaReferenceObjects.GetSize(); nObject++)
+				if (TaskProgression::IsInterruptionRequested())
 				{
-					kwoObject = cast(KWObject*, oaReferenceObjects.GetAt(nObject));
-					assert(kwoObject->GetClass() == kwcReferencePhysicalClass);
-
-					// Calcul recursif de toutes les valeurs des objets
-					kwoObject->ComputeAllValues(&memoryGuard);
-
-					// Suivi de la tache
-					lRecordNumber++;
-					if (bIsInTask and TaskProgression::IsRefreshNecessary())
-					{
-						if (TaskProgression::IsInterruptionRequested())
-						{
-							bOk = false;
-							AddWarning("Read database interrupted by user");
-							break;
-						}
-					}
+					TaskProgression::DisplayLabel(
+					    sMessage + LongintToReadableString((longint)nObject) + " records");
+					TaskProgression::DisplayProgression(
+					    int(100 * double(nObject) / oaAllReferenceObjects.GetSize()));
+					bOk = false;
+					AddWarning(sMessage + " interrupted by user");
+					break;
 				}
 			}
+		}
 
-			// Arret si erreur
-			if (not bOk)
-				break;
+		// Fin de suivi de tache
+		if (bIsInTask)
+		{
+			TaskProgression::DisplayLabel("");
+			TaskProgression::DisplayProgression(0);
+			TaskProgression::EndTask();
 		}
 
 		// Remise a NULL du resolveur de reference dans la regle de derivation gerant les references
@@ -2507,6 +2539,7 @@ void KWMTDatabase::DMTMPhysicalDeleteDatabase(KWMTDatabaseMapping* mapping)
 
 KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 {
+	const KWObjectDataPath* objectDataPath;
 	KWObject* kwoObject;
 	KWMTDatabaseMapping* componentMapping;
 	int i;
@@ -2529,7 +2562,21 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 	//DDD
 	// Parametrage du data path de l'objet
 	if (kwoObject != NULL)
-		kwoObject->SetDataPath(objectDataPathManager->LookupDataPath(mapping->GetDataPath()));
+	{
+		// Recherche du data path a associe a l'objet
+		objectDataPath = objectDataPathManager->LookupDataPath(mapping->GetDataPath());
+
+		// Memorisation du data path dans l'objet
+		kwoObject->SetDataPath(objectDataPath);
+
+		// Reinitialisation des informations de gestion de creation d'instance pour tous les
+		// sous data path dans le cas d'un objet princial
+		if (mapping->GetDataTableDriver()->GetClass() == kwcPhysicalClass)
+		{
+			assert(objectDataPath == objectDataPathManager->GetMainDataPath());
+			objectDataPathManager->GetMainDataPath()->ResetCreationNumber(kwoObject->GetCreationIndex());
+		}
+	}
 
 	// Positionnement du flag d'erreur
 	bIsError = bIsError or mapping->GetDataTableDriver()->IsError();

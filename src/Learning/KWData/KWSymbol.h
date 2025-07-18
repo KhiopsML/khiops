@@ -369,7 +369,7 @@ protected:
 	// processeur)
 
 	// Compteur de reference, de grande taille pour ne pas etre limite a la taille des int
-	unsigned long long int lRefCount;
+	ulongint lRefCount;
 
 	// Pointeur vers le symbole suivant, en cas de collision
 	KWSymbolData* pNext;

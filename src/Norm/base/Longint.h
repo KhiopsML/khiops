@@ -7,7 +7,11 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // Type longint, pour les tailles des ressources systemes (RAM, taille de fichier...)
 
+// Entier long
 typedef long long int longint;
+
+// Entier long non signe, pour quelques usages avances
+typedef unsigned long long int ulongint;
 
 // Conversion en chaine de caracteres lisible par un humain pour une quantite de bytes
 const char* const LongintToHumanReadableString(longint lValue);

@@ -114,9 +114,6 @@ protected:
 	LongintVector lvStorage;
 };
 
-// Type unsigned longint pour l'imlementation de la classe
-typedef unsigned long long int ulongint;
-
 /////////////////////////////////////////////////////////////////
 // Implementations en inline
 

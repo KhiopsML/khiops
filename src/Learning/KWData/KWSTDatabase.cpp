@@ -189,7 +189,14 @@ KWObject* KWSTDatabase::PhysicalRead()
 	//DDD
 	// Parametrage du data path de l'objet
 	if (kwoObject != NULL)
+	{
 		kwoObject->SetDataPath(objectDataPathManager->GetMainDataPath());
+
+		// Reinitialisation des informations de gestion de creation d'instance pour tous les
+		// sous data path potentiels en cas de regles de derivation de creation d'instance
+		assert(kwoObject->GetClass() == kwcPhysicalClass);
+		objectDataPathManager->GetMainDataPath()->ResetCreationNumber(kwoObject->GetCreationIndex());
+	}
 
 	// Positionnement du flag d'erreur
 	bIsError = bIsError or dataTableDriverCreator->IsError();
