@@ -41,6 +41,6 @@ protected:
 					int nRuleRankInAttribute);
 
 	// Parametrage du generateur aleatoire
-	longint lSeed;
-	longint lLeap;
+	int nSeed;
+	int nLeap;
 };

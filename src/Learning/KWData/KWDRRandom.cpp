@@ -17,8 +17,8 @@ KWDRRandom::KWDRRandom()
 	SetLabel("Random number betwen 0 and 1");
 	SetType(KWType::Continuous);
 	SetOperandNumber(0);
-	lSeed = 0;
-	lLeap = 0;
+	nSeed = 0;
+	nLeap = 0;
 }
 
 KWDRRandom::~KWDRRandom() {}
@@ -30,37 +30,80 @@ KWDerivationRule* KWDRRandom::Create() const
 
 Continuous KWDRRandom::ComputeContinuousResult(const KWObject* kwoObject) const
 {
+	const boolean bTrace = false;
+	const KWObjectDataPath* objectDataPath;
+	longint lSeed;
+	longint lLeap;
+	longint lGlobalCreationIndex;
+	longint lRandomIndex;
 	double dResult;
-	longint lIndex;
 
 	require(kwoObject != NULL);
 
-	// Calcul du ieme nombre aleatoire a partir de la graine et par sauts selon l'index de l'objet
-	lIndex = lSeed + lLeap * kwoObject->GetCreationIndex();
-	if (lIndex < 0)
-		lIndex += LLONG_MAX;
-	dResult = IthRandomDouble(lIndex);
+	// Acces au data path de l'objet
+	objectDataPath = kwoObject->GetDataPath();
 
-	//DDD
-	/*DDD
-	cout << kwoObject->GetClass()->GetName() << "\t";
-	cout << kwoObject->GetDataPath()->GetDataPath() << "\t";
-	cout << kwoObject->GetCreationIndex() << "\t";
-	cout << "(" << kwoObject->GetDataPath()->GetRandomSeed() << "," << kwoObject->GetDataPath()->GetRandomLeap()
-	     << ")\t";
-	cout << "(" << lSeed << "," << lLeap << ")\t";
-	cout << lIndex << "\t";
-	cout << dResult << endl;
-	*/
+	// Calcul d'index de creation d'index global pour les objets crees par des regles de creation d'instance
+	if (objectDataPath->GetCreatedObjects())
+	{
+		// On calcul un index unique localement a chaque instance principale, en multipliant son index
+		// par 2^27, ce qui comme 2^64 = 2^37 * 2^27 permet d'assure un identifiant unique jusqu'a
+		// 2^37 ~ 128 milliards d'instances principales lues depuis des fichier, et jusqu'a
+		// 2^27 ~ 128 millions d'instances creees par instance principale
+		lGlobalCreationIndex = objectDataPath->GetMainCreationIndex();
+		lGlobalCreationIndex = lGlobalCreationIndex << 27;
+
+		// On ajoute l'index local a l'objet cree
+		lGlobalCreationIndex += kwoObject->GetCreationIndex();
+	}
+	// Utilisation direct de l'index de creation (numero de ligne) pour les instances lue depuis un fichier
+	else
+		lGlobalCreationIndex = kwoObject->GetCreationIndex();
+
+	// Parametrage du generateur aleatoire, a partir des parametre globaux du data path (bits de poids fort)
+	// et des parametres locaux de la fonction (bits de poid faible)
+	lSeed = objectDataPath->GetRandomSeed();
+	lSeed = lSeed << 32;
+	lSeed += nSeed;
+	lLeap = objectDataPath->GetRandomLeap();
+	lLeap = lLeap << 32;
+	lLeap += nLeap;
+
+	// Calcul du ieme nombre aleatoire a partir de la graine et par sauts selon l'index de l'objet
+	lRandomIndex = lSeed + lLeap * lGlobalCreationIndex;
+	if (lRandomIndex < 0)
+		lRandomIndex += LLONG_MAX;
+	dResult = IthRandomDouble(lRandomIndex);
+
+	// Trace
+	if (bTrace)
+	{
+		cout << GetName() << "\t";
+		cout << kwoObject->GetClass()->GetName() << "\t";
+		cout << kwoObject->GetDataPath()->GetDataPath();
+		if (kwoObject->GetDataPath()->GetCreatedObjects())
+			cout << "(C)";
+		cout << "\t";
+		cout << "(" << kwoObject->GetDataPath()->GetMainCreationIndex() << "," << kwoObject->GetCreationIndex()
+		     << ")\t";
+		cout << lGlobalCreationIndex << "\t";
+		cout << "(" << kwoObject->GetDataPath()->GetRandomSeed() << ","
+		     << kwoObject->GetDataPath()->GetRandomLeap() << ")\t";
+		cout << "(" << nSeed << "," << nLeap << ")\t";
+		cout << "(" << lSeed << "," << lLeap << ")\t";
+		cout << lRandomIndex << "\t";
+		cout << dResult << "\n";
+	}
 	return (Continuous)dResult;
 }
 
 void KWDRRandom::InitializeRandomParameters(const ALString& sCompiledClassName, const ALString& sAttributeName,
 					    int nRuleRankInAttribute)
 {
-	ALString sTmp;
 	ALString sSeedEncoding;
 	ALString sLeapEncoding;
+	int n;
+	ALString sTmp;
 
 	require(sCompiledClassName != "");
 	require(sAttributeName != "");
@@ -71,19 +114,21 @@ void KWDRRandom::InitializeRandomParameters(const ALString& sCompiledClassName, 
 	sSeedEncoding = sTmp + "Seed" + IntToString(sCompiledClassName.GetLength()) + sCompiledClassName +
 			IntToString(sAttributeName.GetLength()) + sAttributeName + IntToString(nRuleRankInAttribute) +
 			"Seed";
-	lSeed = HashValue("MSB" + sSeedEncoding + "MSB");
-	lSeed *= INT_MAX;
-	sSeedEncoding.MakeReverse();
-	lSeed += HashValue("LSB" + sSeedEncoding + "LSB");
+	nSeed = HashValue(sSeedEncoding);
 
 	// Initialisation du saut du generateur aleatoire
 	sLeapEncoding = sTmp + "Leap" + IntToString(sAttributeName.GetLength()) + sAttributeName +
 			IntToString(sCompiledClassName.GetLength()) + sCompiledClassName +
 			IntToString(nRuleRankInAttribute) + "Leap";
-	lLeap = HashValue("MSB" + sLeapEncoding + "MSB");
-	lLeap *= INT_MAX;
-	sLeapEncoding.MakeReverse();
-	lLeap += HashValue("LSB" + sLeapEncoding + "LSB");
-	if (lLeap == 0)
-		lLeap = 1;
+	nLeap = HashValue(sLeapEncoding);
+
+	// On interdit un Leap de 0
+	n = 0;
+	while (nLeap == 0)
+	{
+		sLeapEncoding += "_";
+		sLeapEncoding += IntToString(n);
+		nLeap = HashValue(sLeapEncoding);
+		n++;
+	}
 }

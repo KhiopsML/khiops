@@ -273,6 +273,7 @@ longint KWDataPath::GetUsedMemory() const
 KWObjectDataPath::KWObjectDataPath()
 {
 	bCreatedObjects = false;
+	lMainCreationIndex = 0;
 	lCreationNumber = 0;
 	dataPathManager = NULL;
 	nCompiledRandomSeed = 0;
@@ -308,6 +309,26 @@ void KWObjectDataPath::CopyFrom(const KWDataPath* aSource)
 KWDataPath* KWObjectDataPath::Create() const
 {
 	return new KWObjectDataPath;
+}
+
+void KWObjectDataPath::ResetCreationNumber(longint lNewMainCreationIndex) const
+{
+	int n;
+	KWObjectDataPath* subDataPath;
+
+	require(IsCompiled());
+	require(lNewMainCreationIndex >= 0);
+
+	// Reinitialisation des index
+	lMainCreationIndex = lNewMainCreationIndex;
+	lCreationNumber = 0;
+
+	// Propagation aux sous data paths
+	for (n = 0; n < oaSubDataPaths.GetSize(); n++)
+	{
+		subDataPath = cast(KWObjectDataPath*, oaSubDataPaths.GetAt(n));
+		subDataPath->ResetCreationNumber(lMainCreationIndex);
+	}
 }
 
 longint KWObjectDataPath::GetUsedMemory() const
@@ -398,8 +419,8 @@ void KWObjectDataPath::Compile(const KWClass* mainClass)
 
 	// Initialisation des parametres de generateur aleatoire par hashage de chaines de caractere
 	// dependant du nom de la classe origine et du data path
-	sSeedEncoding = sTmp + "Seed" + kwcOriginClass->GetName() + "///" + GetDataPath() + "Seed";
-	sLeapEncoding = sTmp + "Leap" + kwcOriginClass->GetName() + "///" + GetDataPath() + "Leap";
+	sSeedEncoding = sTmp + "DataPathSeed" + kwcOriginClass->GetName() + "///" + GetDataPath() + "DataPathSeed";
+	sLeapEncoding = sTmp + "DataPathLeap" + kwcOriginClass->GetName() + "///" + GetDataPath() + "DataPathLeap";
 	sLeapEncoding.MakeReverse();
 	nCompiledRandomSeed = HashValue(sSeedEncoding);
 	nCompiledRandomLeap = HashValue(sLeapEncoding);
@@ -408,8 +429,8 @@ void KWObjectDataPath::Compile(const KWClass* mainClass)
 	n = 0;
 	while (nCompiledRandomLeap == 0)
 	{
-		sLeapEncoding += "Leap";
-		sLeapEncoding += +IntToString(n);
+		sLeapEncoding += "_";
+		sLeapEncoding += IntToString(n);
 		nCompiledRandomLeap = HashValue(sLeapEncoding);
 		n++;
 	}
@@ -468,7 +489,7 @@ int KWObjectDataPathManagerCompareDataPathMainClass(const void* first, const voi
 
 void KWObjectDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 {
-	const boolean bTrace = true;
+	const boolean bTrace = false;
 	KWObjectDataPath* dataPath;
 	StringVector svAttributeName;
 	ObjectDictionary odReferenceClasses;

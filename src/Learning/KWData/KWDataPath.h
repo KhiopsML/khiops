@@ -158,12 +158,11 @@ public:
 	boolean GetCreatedObjects() const;
 	void SetCreatedObject(boolean bValue);
 
-	// Copie (sans les attributs de gestion)
-	virtual void CopyFrom(const KWDataPath* aSource);
+	// Copie
+	void CopyFrom(const KWDataPath* aSource) override;
 
 	// Creation pour renvoyer une instance du meme type dynamique
-	// Doit etre reimplemente dans les sous-classes
-	virtual KWDataPath* Create() const;
+	KWDataPath* Create() const override;
 
 	////////////////////////////////////////////////////////////////////////
 	// Service de navigation dans les data paths
@@ -183,12 +182,16 @@ public:
 	// Les objets crees peuvent alors etre identifie de facon unique par le CreationIndex de leur instance
 	// principale (main ou Root), et leur CreationIndex localement a cette instance stockee.
 
-	// Reinitialisation d'un compteur de creation d'instance, a appeler a chaque changement
-	// d'objet Main (racine de l'objet principale d'un schema multi-table)ou Root (racine dans le cas d'une table externe)
-	void ResetCreationNumber();
+	// Reinitialisation du compteur de creation d'instance, a appeler a chaque changement
+	// d'objet principal (racine de l'objet principal d'un schema multi-table), ou Root (racine dans le cas d'une table externe)
+	// Cette reinitialisation est propagee a tous
+	void ResetCreationNumber(longint lNewMainCreationIndex) const;
 
-	// Obtention d'un nouvel index de creation
-	longint GetNewCreationIndex();
+	// Index de creation principal, servant de reference aux instances crees dans son contexte
+	longint GetMainCreationIndex() const;
+
+	// Obtention d'un nouvel index de creation, a memoirser our chaque nouvel objet cree
+	longint NewCreationIndex() const;
 
 	// Acces au nombre d'objet crees
 	longint GetCreationNumber() const;
@@ -236,8 +239,11 @@ protected:
 	// Tableau des sous-data path du data path courant
 	ObjectArray oaSubDataPaths;
 
+	// Index de creation principal, servant de reference aux instances crees dans son contexte
+	mutable longint lMainCreationIndex;
+
 	// Nombre d'index de creation generes
-	longint lCreationNumber;
+	mutable longint lCreationNumber;
 
 	// Gestionnaire de data path
 	const KWObjectDataPathManager* dataPathManager;
@@ -426,19 +432,22 @@ inline const KWObjectDataPath* KWObjectDataPath::GetSubDataPath(const KWLoadInde
 	return foundSubDataPath;
 }
 
-inline void KWObjectDataPath::ResetCreationNumber()
+inline longint KWObjectDataPath::GetMainCreationIndex() const
 {
-	lCreationNumber = 0;
+	require(IsCompiled());
+	return lMainCreationIndex;
 }
 
-inline longint KWObjectDataPath::GetNewCreationIndex()
+inline longint KWObjectDataPath::NewCreationIndex() const
 {
+	require(IsCompiled());
 	lCreationNumber++;
 	return lCreationNumber;
 }
 
 inline longint KWObjectDataPath::GetCreationNumber() const
 {
+	require(IsCompiled());
 	return lCreationNumber;
 }
 
@@ -450,10 +459,12 @@ inline const KWLoadIndex KWObjectDataPath::GetTerminalLoadIndex() const
 
 inline int KWObjectDataPath::GetRandomSeed() const
 {
+	require(IsCompiled());
 	return nCompiledRandomSeed;
 }
 
 inline int KWObjectDataPath::GetRandomLeap() const
 {
+	require(IsCompiled());
 	return nCompiledRandomLeap;
 }
