@@ -44,6 +44,8 @@ Download the package according to the code name of your OS and install it with `
 
 # Application examples
 
+Application examples are available in this repository. The main branch corresponds to the latest version of KNI. To explore older versions, switch between branches, which are named after their respective versions.
+
 Both examples in C and Java produce a sample binary `KNIRecodeFile`. It recodes an input file to an output file, using a Khiops dictionary from a dictionary file.
 
 ```bash
