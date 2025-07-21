@@ -40,7 +40,10 @@ jobs:
           cd tutorial
           git config --global user.email "khiops.bot@no-mail.com"
           git config --global user.name "khiops bot"
+          git config --global --add --bool push.autoSetupRemote true
           git commit -am"update to v${{ env.KHIOPS_VERSION }}"
           git push
           git tag ${{ env.KHIOPS_VERSION }}
           git push --tags
+          git checkout -b ${{ env.KHIOPS_VERSION }} tags/${{ env.KHIOPS_VERSION }}
+          git push
