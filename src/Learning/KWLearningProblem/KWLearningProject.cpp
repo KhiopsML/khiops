@@ -147,6 +147,15 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 
 	require(PLParallelTask::IsMasterProcess());
 
+	// Parametrage du repertoire temporaire via les variables d'environnement
+	// (la valeur du repertoire temporaire peut etre modifiee par l'IHM)
+	sTmpDirFromEnv = p_getenv("KHIOPS_TMP_DIR");
+	if (sTmpDirFromEnv != "")
+		FileService::SetUserTmpDir(sTmpDirFromEnv);
+
+	// Evaluation des ressources disponibles
+	PLParallelTask::GetDriver()->MasterInitializeResourceSystem();
+
 	// Verification que le packing des structures est correct pour KWValueBlock
 	// Cette verification technique permet d'automatiser la detection de problemes
 	// lies a la compilation croisee, pour le portage vers les plate-formes linux
@@ -187,15 +196,6 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 
 	// Parametrage du mode fast exist
 	UIObject::SetFastExitMode(GetLearningFastExitMode());
-
-	// Parametrage du repertoire temporaire via les variables d'environnement
-	// (la valeur du repertoire temporaire peut etre modifiee par l'IHM)
-	sTmpDirFromEnv = p_getenv("KHIOPS_TMP_DIR");
-	if (sTmpDirFromEnv != "")
-		FileService::SetUserTmpDir(sTmpDirFromEnv);
-
-	// Evaluation des ressources disponibles
-	PLParallelTask::GetDriver()->MasterInitializeResourceSystem();
 
 	// Acces au projet et a sa vue
 	learningProblem = CreateGenericLearningProblem();
@@ -408,6 +408,22 @@ boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
 	// Version
 	ShowVersion(sTmp);
 	cout << endl;
+
+	// Verification que le repertoire temporaire est licite
+	// On verifie que c'est un un disque local
+	if (not FileService::IsLocalURI(FileService::GetUserTmpDir()))
+	{
+		cout << "Error: Invalid temporary directory (Temp file directory must be located on the local file "
+			"system)"
+		     << endl
+		     << endl;
+	}
+	// On verifie ensuite que le chemin est absolu
+	else if (not FileService::IsAbsoluteFilePathName(FileService::GetUserTmpDir()))
+	{
+		cout << "Error: Invalid temporary directory (Temp file directory must be an absolute path)" << endl
+		     << endl;
+	}
 
 	// Drivers
 	if (SystemFileDriverCreator::GetDriverNumber() > 0)
