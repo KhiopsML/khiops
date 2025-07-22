@@ -16,8 +16,7 @@ concurrency:
     }}
   cancel-in-progress: true
 env:
-  KEYPAIR_TEST: KP_Khiops_Test
-  KEYPAIR_PROD: KP_Khiops_HSM
+  KEYPAIR: KP_Khiops_HSM
 jobs:
   build:
     outputs:
@@ -62,12 +61,6 @@ jobs:
           targets: MODL MODL_Coclustering norm_jar khiops_jar KhiopsNativeInterface
             KNITransfer _khiopsgetprocnumber
           override-flags: -DTESTING=OFF -DBUILD_JARS=ON
-      - name: Install DigiCert Client tools from Github Custom Actions marketplace
-        uses: digicert/ssm-code-signing@v1.0.1
-      - name: Set up certificate
-        run: |
-          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12 
-        shell: bash
       - name: Set variables for signature
         id: variables-used-by-smctl
         run: |
@@ -76,17 +69,26 @@ jobs:
           echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
           echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
 
-          # The production key is only used for releases from tags that are not release candidates or alpha
-          # Note: We use the production key for the beta releases because they are distributed to external users 
+          # The packages are signed only for releases from tags that are not release candidates or alpha
+          # Note: We sign  for the beta releases because they are distributed to external users 
           if [[ "${{ github.ref_type }}" == "tag" ]] && [[ "${{ github.ref_name  }}" != *"-rc."* ]] && [[ "${{ github.ref_name  }}" != *"-a."* ]]; then
-             echo "KEYPAIR=$KEYPAIR_PROD" >> "$GITHUB_ENV"
-             echo "::notice::Using Production key for signature"
+            echo "SIGN=ON" >> "$GITHUB_ENV"
+            echo "::notice::The signing process is ON"
           else
-            echo "KEYPAIR=$KEYPAIR_TEST" >> "$GITHUB_ENV"
-            echo "::notice::Using Test key for signature"
+            echo "SIGN=OFF" >> "$GITHUB_ENV"
+            echo "::notice::The signing process is OFF"
           fi
         shell: bash
+      - name: Install DigiCert Client tools from Github Custom Actions marketplace
+        if: env.SIGN == 'ON'
+        uses: digicert/ssm-code-signing@v1.0.1
+      - name: Set up certificate
+        if: env.SIGN == 'ON'
+        run: |
+          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12 
+        shell: bash
       - name: Signing using keypair alias
+        if: env.SIGN == 'ON'
         run: |
           OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/MODL.exe)
           echo $OUTPUT
@@ -101,7 +103,8 @@ jobs:
           echo $OUTPUT
           echo $OUTPUT | grep -q SUCCESSFUL
         shell: bash
-      - name: Build NSIS package
+      - name: Build NSIS package (signature is ON)
+        if: env.SIGN == 'ON'
         shell: pwsh
         run: |-
           cd ./packaging/windows/nsis
@@ -120,7 +123,25 @@ jobs:
             /DKEYPAIR_ALIAS=$Env:KEYPAIR `
             /DPATH_TO_CONFIG_FILE=C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg `
             khiops.nsi
+      - name: Build NSIS package (signature is OFF)
+        if: env.SIGN == 'OFF'
+        shell: pwsh
+        run: |-
+          cd ./packaging/windows/nsis
+          makensis `
+            /DKHIOPS_VERSION=${{ env.KHIOPS_VERSION }} `
+            /DKHIOPS_REDUCED_VERSION=${{ env.KHIOPS_REDUCED_VERSION }} `
+            /DKHIOPS_WINDOWS_BUILD_DIR=..\..\..\build\windows-msvc-release `
+            /DJRE_PATH=..\..\..\assets\jre `
+            /DMSMPI_INSTALLER_PATH=..\..\..\assets\${{ env.MSMPI_FILENAME }} `
+            /DMSMPI_VERSION=${{ env.MSMPI_VERSION }} `
+            /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\assets\${{ env.KHIOPS_VIZ_FILENAME }} `
+            /DKHIOPS_COVIZ_INSTALLER_PATH=..\..\..\assets\${{ env.KHIOPS_COVIZ_FILENAME }} `
+            /DKHIOPS_SAMPLES_DIR=..\..\..\assets\samples `
+            /DKHIOPS_DOC_DIR=..\..\..\assets\doc `
+            khiops.nsi
       - name: Signing installer
+        if: env.SIGN == 'ON'
         run: |
           OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input packaging/windows/nsis/khiops-${{ env.KHIOPS_VERSION }}-setup.exe)
           echo $OUTPUT
