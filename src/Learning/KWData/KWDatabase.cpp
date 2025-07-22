@@ -373,7 +373,7 @@ KWClass* KWDatabase::ComputeClass()
 				}
 
 				// Suivi de la tache
-				if (TaskProgression::IsRefreshNecessary())
+				if (TaskProgression::IsRefreshNecessary(lRecordNumber))
 				{
 					TaskProgression::DisplayProgression((int)(100 * GetReadPercentage()));
 					if (TaskProgression::IsInterruptionRequested())
@@ -795,7 +795,7 @@ boolean KWDatabase::ReadAll()
 			}
 
 			// Suivi de la tache
-			if (TaskProgression::IsRefreshNecessary())
+			if (TaskProgression::IsRefreshNecessary(lRecordNumber))
 			{
 				TaskProgression::DisplayProgression((int)(100 * GetReadPercentage()));
 				DisplayReadTaskProgressionLabel(lRecordNumber, lObjectNumber);
@@ -871,7 +871,7 @@ void KWDatabase::DeleteAll()
 			delete oaAllObjects.GetAt(nObject);
 
 			// Suivi de la tache (sans test d'interruption: il faut detruire tous les objets)
-			if (TaskProgression::IsRefreshNecessary())
+			if (TaskProgression::IsRefreshNecessary(nObject))
 				TaskProgression::DisplayProgression((int)(nObject * 100.0 / oaAllObjects.GetSize()));
 			if (bDisplay)
 			{
@@ -938,7 +938,7 @@ boolean KWDatabase::WriteAll(KWDatabase* sourceObjects)
 			}
 
 			// Suivi de la tache
-			if (TaskProgression::IsRefreshNecessary())
+			if (TaskProgression::IsRefreshNecessary(lObjectNumber))
 			{
 				TaskProgression::DisplayProgression(
 				    (int)(nObject * 100.0 / sourceObjects->GetObjects()->GetSize()));

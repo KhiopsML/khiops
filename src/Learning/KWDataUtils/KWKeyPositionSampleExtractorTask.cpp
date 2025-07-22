@@ -579,6 +579,7 @@ boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 	ObjectArray* oaKeyPositionSample;
 	KWKeyPosition* previousRecordKeyPosition;
 	KWKeyPosition* recordKeyPosition;
+	longint lDisplayFreshness;
 	double dProgression;
 	int nCompareKey;
 	longint lBeginPos;
@@ -590,6 +591,9 @@ boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 	ALString sTmp;
 	ALString sObjectLabel;
 	ALString sOtherObjectLabel;
+
+	// Fraicheur d'affichage pour la gestion de la barre de progression
+	lDisplayFreshness = 0;
 
 	// Specification de la portion du fichier a traiter
 	lBeginPos = input_lFilePos;
@@ -644,7 +648,8 @@ boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 		while (bOk and not inputFile.IsBufferEnd())
 		{
 			// Gestion de la progresssion
-			if (TaskProgression::IsRefreshNecessary())
+			lDisplayFreshness++;
+			if (TaskProgression::IsRefreshNecessary(lDisplayFreshness))
 			{
 				// Calcul de la progression par rapport a la proportion de la portion du fichier traitee
 				// parce que l'on ne sait pas le nombre total de ligne que l'on va traiter

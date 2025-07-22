@@ -355,7 +355,7 @@ boolean KDTextTokenSampleCollectionTask::AnalyseDatabase(KWDatabase* database, O
 			}
 
 			// Suivi de la tache
-			if (TaskProgression::IsRefreshNecessary())
+			if (TaskProgression::IsRefreshNecessary(lRecordNumber))
 				TaskProgression::DisplayProgression((int)(100 * database->GetReadPercentage()));
 		}
 		Global::DesactivateErrorFlowControl();

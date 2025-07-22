@@ -12,7 +12,6 @@ int TaskProgression::nMaxDisplayedLevelNumber = 20;
 int TaskProgression::nCurrentLevel = -1;
 ALString TaskProgression::sTitle = "";
 clock_t TaskProgression::tLastDisplayTime = 0;
-longint TaskProgression::lDisplayFreshness = 0;
 StringVector TaskProgression::svLastDisplayedMainLabels;
 IntVector TaskProgression::ivLastDisplayedProgressions;
 StringVector TaskProgression::svLastDisplayedLabels;

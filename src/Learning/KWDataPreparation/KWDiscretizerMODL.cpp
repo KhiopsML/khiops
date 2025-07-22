@@ -1534,6 +1534,7 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 						     KWMODLLineDeepOptimization*& headInterval) const
 {
 	boolean bPrintOptimisationDetails = false;
+	longint lDisplayFreshness;
 	SortedList splitList(KWMODLLineDeepOptimizationCompareSplitDeltaCost);
 	SortedList mergeSplitList(KWMODLLineDeepOptimizationCompareMergeSplitDeltaCost);
 	SortedList mergeMergeSplitList(KWMODLLineDeepOptimizationCompareMergeMergeSplitDeltaCost);
@@ -1551,6 +1552,9 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 
 	require(kwftSource != NULL);
 	require(headInterval != NULL);
+
+	// Fraicheur d'affichage pour la gestion de la barre de progression
+	lDisplayFreshness = 0;
 
 	// Initialisation des listes d'ameliorations
 	InitializeSplitList(kwftSource, headInterval);
@@ -1590,7 +1594,9 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 		nStepNumber++;
 
 		// Test si arret de tache demandee
-		if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
+		lDisplayFreshness++;
+		if (TaskProgression::IsRefreshNecessary(lDisplayFreshness) and
+		    TaskProgression::IsInterruptionRequested())
 			break;
 
 		// Calcul du nombre d'inetrvalles surnumeraires pour la prise en compte de
@@ -1757,6 +1763,7 @@ void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTa
 							     KWMODLLineDeepOptimization*& headInterval) const
 {
 	boolean bPrintOptimisationDetails = false;
+	longint lDisplayFreshness;
 	SortedList mergeSplitList(KWMODLLineDeepOptimizationCompareMergeSplitDeltaCost);
 	boolean bContinue;
 	KWMODLLineDeepOptimization* mergeSplitInterval;
@@ -1766,6 +1773,9 @@ void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTa
 
 	require(kwftSource != NULL);
 	require(headInterval != NULL);
+
+	// Fraicheur d'affichage pour la gestion de la barre de progression
+	lDisplayFreshness = 0;
 
 	// Initialisation de la liste d'ameliorations
 	InitializeMergeSplitList(kwftSource, headInterval);
@@ -1800,7 +1810,9 @@ void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTa
 		nStepNumber++;
 
 		// Test si arret de tache demandee
-		if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
+		lDisplayFreshness++;
+		if (TaskProgression::IsRefreshNecessary(lDisplayFreshness) and
+		    TaskProgression::IsInterruptionRequested())
 			break;
 
 		// Recherche du meilleur MergeSplit et de son cout

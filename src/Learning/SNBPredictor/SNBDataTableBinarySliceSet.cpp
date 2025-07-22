@@ -1783,7 +1783,7 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeBlockFromSliceSetAt(
 			// Moralement, l'ecriture du fichier devrait etre aussi suivi mais cela entrainarait utiliser
 			// des etats en plus, des calculs plus tordus et une perte de localite de cette partie du code.
 			// La lecture du bloc depuis le fichier binaire est tres rapide et n'a pas besoin de suivi.
-			if (TaskProgression::IsInTask() and TaskProgression::IsRefreshNecessary())
+			if (TaskProgression::IsInTask() and TaskProgression::IsRefreshNecessary(nChunkInstance))
 			{
 				// Mise-a-jour de la barre d'avancement
 				dProgressPercentSlice = 100.0 * (nChunkInstance + 1) / nChunkInstanceNumber;

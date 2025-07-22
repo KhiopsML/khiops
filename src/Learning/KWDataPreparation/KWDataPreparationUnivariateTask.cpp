@@ -1238,7 +1238,7 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 					}
 
 					// Suivi de la tache
-					if (TaskProgression::IsRefreshNecessary())
+					if (TaskProgression::IsRefreshNecessary(lRecordNumber))
 						TaskProgression::DisplayProgression(
 						    (int)(100 * slice->GetReadPercentage()));
 				}

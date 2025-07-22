@@ -174,6 +174,7 @@ boolean PEFileSearchTask::SlaveProcess()
 	ALString sBuffer;
 	int i;
 	InputBufferedFile inputBuffer;
+	longint lDisplayFreshness;
 	double dProgression;
 	ALString sTmp;
 	boolean bIsOpen;
@@ -184,6 +185,9 @@ boolean PEFileSearchTask::SlaveProcess()
 	longint lNextLinePos;
 	boolean bLineTooLong;
 	int nCumulatedLineNumber;
+
+	// Fraicheur d'affichage pour la gestion de la barre de progression
+	lDisplayFreshness = 0;
 
 	// Initialisation des resultats de la tache
 	output_nFoundLineNumber = 0;
@@ -257,7 +261,8 @@ boolean PEFileSearchTask::SlaveProcess()
 			lLinePosition = inputBuffer.GetPositionInFile();
 
 			// Gestion de la progresssion
-			if (TaskProgression::IsRefreshNecessary())
+			lDisplayFreshness++;
+			if (TaskProgression::IsRefreshNecessary(lDisplayFreshness))
 			{
 				// Calcul de la progression par rapport a la proportion de la portion du fichier traitee
 				// parce que l'on ne sait pas le nombre total de ligne que l'on va traiter

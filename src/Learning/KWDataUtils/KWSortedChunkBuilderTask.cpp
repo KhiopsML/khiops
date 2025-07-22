@@ -564,6 +564,7 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 	PLParallelTask* errorSender;
 	KWKey key;
 	int i;
+	longint lDisplayFreshness;
 	double dProgression;
 	KWSortBucket* bucket;
 	int nLineBeginPos;
@@ -580,6 +581,9 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 	boolean bLineTooLong;
 	int nCumulatedLineNumber;
 	boolean bIsLineOk;
+
+	// Fraicheur d'affichage pour la gestion de la barre de progression
+	lDisplayFreshness = 0;
 
 	// On n'emet pas les messages en mode silencieux
 	if (shared_bSilentMode)
@@ -660,7 +664,8 @@ boolean KWSortedChunkBuilderTask::SlaveProcess()
 				while (bOk and not inputFile.IsBufferEnd())
 				{
 					// Gestion de la progresssion
-					if (TaskProgression::IsRefreshNecessary())
+					lDisplayFreshness++;
+					if (TaskProgression::IsRefreshNecessary(lDisplayFreshness))
 					{
 						// Calcul de la progression par rapport a la proportion de la portion du
 						// fichier traitee parce que l'on ne sait pas le nombre total de ligne

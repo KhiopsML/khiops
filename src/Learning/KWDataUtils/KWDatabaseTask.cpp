@@ -992,7 +992,7 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 		while (not sourceDatabase->IsEnd())
 		{
 			// Suivi de la tache
-			if (TaskProgression::IsRefreshNecessary())
+			if (TaskProgression::IsRefreshNecessary(lRecordNumber))
 			{
 				// Avancement
 				dProgression = mainDriver->GetReadPercentage();

@@ -1331,7 +1331,7 @@ boolean KWDataTableSliceSet::ReadAllObjectsWithClass(const KWClass* kwcInputClas
 			}
 
 			// Suivi de la tache
-			if (TaskProgression::IsRefreshNecessary())
+			if (TaskProgression::IsRefreshNecessary(lRecordNumber))
 				TaskProgression::DisplayProgression((int)(100 * GetReadPercentage()));
 		}
 		Global::DesactivateErrorFlowControl();
@@ -3185,7 +3185,7 @@ boolean KWDataTableSlice::ReadAll()
 			}
 
 			// Suivi de la tache
-			if (TaskProgression::IsRefreshNecessary())
+			if (TaskProgression::IsRefreshNecessary(lRecordNumber))
 				TaskProgression::DisplayProgression((int)(100 * GetReadPercentage()));
 		}
 		Global::DesactivateErrorFlowControl();
@@ -3928,7 +3928,7 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 	require(kwoObject->GetClass() == GetClass());
 
 	// On retourne NULL, sans message, si interruption utilisateur
-	if (TaskProgression::IsRefreshNecessary())
+	if (TaskProgression::IsRefreshNecessary(lRecordIndex))
 	{
 		if (TaskProgression::IsInterruptionRequested())
 			return false;

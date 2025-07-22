@@ -1323,6 +1323,7 @@ void KWGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 	boolean bPrintFinalTable = false;
 	boolean bSearchBestOptim = false;
 	boolean bContinue;
+	longint lDisplayFreshness;
 	int nStepNumber;
 	int nModalityNumber;
 	int nGroupNumber;
@@ -1354,6 +1355,9 @@ void KWGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 	// Arret si un seul groupe
 	if (kwftTarget->GetFrequencyVectorNumber() <= 1)
 		return;
+
+	// Fraicheur d'affichage pour la gestion de la barre de progression
+	lDisplayFreshness = 0;
 
 	// Affichage des tables initiales
 	if (bPrintInitialTables)
@@ -1387,7 +1391,9 @@ void KWGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 		nStepNumber++;
 
 		// Test si arret de tache demandee
-		if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
+		lDisplayFreshness++;
+		if (TaskProgression::IsRefreshNecessary(lDisplayFreshness) and
+		    TaskProgression::IsInterruptionRequested())
 			break;
 
 		// Perturbation aleatoire des index de modalites et de groupes
@@ -1419,7 +1425,8 @@ void KWGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 				nInGroup = ivGroupIndexes.GetAt((nStart + n2) % nGroupNumber);
 
 				// Test si arret de tache demandee
-				if (TaskProgression::IsRefreshNecessary() and
+				lDisplayFreshness++;
+				if (TaskProgression::IsRefreshNecessary(lDisplayFreshness) and
 				    TaskProgression::IsInterruptionRequested())
 					break;
 
@@ -1453,7 +1460,9 @@ void KWGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 			}
 
 			// Test si arret de tache demandee
-			if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
+			lDisplayFreshness++;
+			if (TaskProgression::IsRefreshNecessary(lDisplayFreshness) and
+			    TaskProgression::IsInterruptionRequested())
 				break;
 
 			// On effectue si necessaire le meilleur transfert de groupe
@@ -1508,6 +1517,7 @@ void KWGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 	boolean bSearchBestOptim = false;
 	boolean bPrintDeltaCosts = false;
 	boolean bContinue;
+	longint lDisplayFreshness;
 	int nStepNumber;
 	int nModalityNumber;
 	int nGroupNumber;
@@ -1550,6 +1560,9 @@ void KWGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 	// Arret si un seul groupe
 	if (kwftTarget->GetFrequencyVectorNumber() <= 1)
 		return;
+
+	// Fraicheur d'affichage pour la gestion de la barre de progression
+	lDisplayFreshness = 0;
 
 	// Affichage des tables initiales
 	if (bPrintInitialTables)
@@ -1600,7 +1613,9 @@ void KWGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 		nStepNumber++;
 
 		// Test si arret de tache demandee
-		if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
+		lDisplayFreshness++;
+		if (TaskProgression::IsRefreshNecessary(lDisplayFreshness) and
+		    TaskProgression::IsInterruptionRequested())
 			break;
 
 		// Perturbation aleatoire des index de modalites et de groupes
@@ -1638,7 +1653,8 @@ void KWGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 				nInGroup = ivGroupIndexes.GetAt((nStart + n2) % nGroupNumber);
 
 				// Test si arret de tache demandee
-				if (TaskProgression::IsRefreshNecessary() and
+				lDisplayFreshness++;
+				if (TaskProgression::IsRefreshNecessary(lDisplayFreshness) and
 				    TaskProgression::IsInterruptionRequested())
 					break;
 
@@ -1803,7 +1819,9 @@ void KWGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 			}
 
 			// Test si arret de tache demandee
-			if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
+			lDisplayFreshness++;
+			if (TaskProgression::IsRefreshNecessary(lDisplayFreshness) and
+			    TaskProgression::IsInterruptionRequested())
 				break;
 
 			// On effectue si necessaire le meilleur transfert de groupe
@@ -1895,6 +1913,7 @@ void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource
 	boolean bPrintFinalTable = false;
 	boolean bPrintDeltaCosts = false;
 	boolean bContinue;
+	longint lDisplayFreshness;
 	int nStepNumber;
 	int nModalityNumber;
 	int nGroupNumber;
@@ -1938,6 +1957,9 @@ void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource
 	// Arret si un seul groupe
 	if (kwftTarget->GetFrequencyVectorNumber() <= 1)
 		return;
+
+	// Fraicheur d'affichage pour la gestion de la barre de progression
+	lDisplayFreshness = 0;
 
 	// Affichage des tables initiales
 	if (bPrintInitialTables)
@@ -1989,7 +2011,9 @@ void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource
 		nStepNumber++;
 
 		// Test si arret de tache demandee
-		if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
+		lDisplayFreshness++;
+		if (TaskProgression::IsRefreshNecessary(lDisplayFreshness) and
+		    TaskProgression::IsInterruptionRequested())
 			break;
 
 		// Parcours de toutes les modalites
@@ -2022,7 +2046,8 @@ void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource
 			for (nInGroup = 0; nInGroup < nGroupNumber; nInGroup++)
 			{
 				// Test si arret de tache demandee
-				if (TaskProgression::IsRefreshNecessary() and
+				lDisplayFreshness++;
+				if (TaskProgression::IsRefreshNecessary(lDisplayFreshness) and
 				    TaskProgression::IsInterruptionRequested())
 					break;
 
@@ -2175,7 +2200,9 @@ void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource
 			}
 
 			// Test si arret de tache demandee
-			if (TaskProgression::IsRefreshNecessary() and TaskProgression::IsInterruptionRequested())
+			lDisplayFreshness++;
+			if (TaskProgression::IsRefreshNecessary(lDisplayFreshness) and
+			    TaskProgression::IsInterruptionRequested())
 				break;
 
 			// On memorise le meilleur transfert de la modalite courante vers un nouveau groupe s'il existe

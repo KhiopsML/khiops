@@ -1888,7 +1888,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 						break;
 
 					// Suivi de la tache
-					if (bIsInTask and TaskProgression::IsRefreshNecessary())
+					if (bIsInTask and TaskProgression::IsRefreshNecessary(lRecordNumber))
 					{
 						TaskProgression::DisplayLabel(sMessage + ": " +
 									      LongintToReadableString(lObjectNumber) +
@@ -1964,7 +1964,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 			kwoObject->ComputeAllValues(&memoryGuard);
 
 			// Suivi de la tache
-			if (bIsInTask and TaskProgression::IsRefreshNecessary())
+			if (bIsInTask and TaskProgression::IsRefreshNecessary(nObject))
 			{
 				if (TaskProgression::IsInterruptionRequested())
 				{
