@@ -13,8 +13,13 @@ on:
   pull_request:
     paths:
       - '**CMakeLists.txt'
+      - '!test/**CMakeLists.txt'
+      - '!test/UniTests/**'
+      - '!test/LearningTestTool/**'
+      - '!test/MemoryStatsVisualizer/**'
       - '**.cmake'
       - .github/workflows/pack-debian.yml
+
   push:
     tags: ['*']
 # Cancel any ongoing run of this workflow on the same PR or ref
