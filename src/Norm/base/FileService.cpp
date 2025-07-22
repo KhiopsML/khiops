@@ -1248,8 +1248,15 @@ boolean FileService::CreateApplicationTmpDir()
 	// Creation du repertoire temporaire utilisateur si different de la valeur par defaut (vide)
 	if (bOk and sUserTmpDir != "")
 	{
-		// On verifie d'abord que le chemin est absolu
-		if (not IsAbsoluteFilePathName(sUserTmpDir))
+		// On verifie que c'est un un disque local
+		if (not IsLocalURI(sUserTmpDir))
+		{
+			bOk = false;
+			Global::AddError("Temp file directory", sUserTmpDir,
+					 "Temp file directory must be located on the local file system");
+		}
+		// On verifie ensuite que le chemin est absolu
+		else if (not IsAbsoluteFilePathName(sUserTmpDir))
 		{
 			bOk = false;
 			Global::AddError("Temp file directory", sUserTmpDir,
