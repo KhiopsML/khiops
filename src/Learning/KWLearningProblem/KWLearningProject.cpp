@@ -408,6 +408,22 @@ boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
 	ShowVersion(sTmp);
 	cout << endl;
 
+	// Verification que le repertoire temporaire est licite
+	// On verifie que c'est un un disque local
+	if (not FileService::IsLocalURI(FileService::GetUserTmpDir()))
+	{
+		cout << "Error: Invalid temporary directory (Temp file directory must be located on the local file "
+			"system)"
+		     << endl
+		     << endl;
+	}
+	// On verifie ensuite que le chemin est absolu
+	else if (not FileService::IsAbsoluteFilePathName(FileService::GetUserTmpDir()))
+	{
+		cout << "Error: Invalid temporary directory (Temp file directory must be an absolute path)" << endl
+		     << endl;
+	}
+
 	// Drivers
 	if (SystemFileDriverCreator::GetDriverNumber() > 0)
 	{
