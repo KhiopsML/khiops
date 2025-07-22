@@ -17,7 +17,6 @@ It also installs:
 - The JRE from [Eclipse Temurin](https://adoptium.net/fr/temurin/releases/)
 - The [sample datasets](https://github.com/KhiopsML/khiops-samples/releases/latest).
 - Documentation files:
-  - PDF Guides .
   - README.txt and WHATSNEW.txt (obtained from the sources at (../../common/khiops))
 
 ## How to obtain the package assets
@@ -51,7 +50,6 @@ makensis ^
    /DKHIOPS_VIZ_INSTALLER_PATH=.\assets\khiops-visualization-Setup-11.0.2.exe ^
    /DKHIOPS_COVIZ_INSTALLER_PATH=.\assets\khiops-covisualization-Setup-10.2.4.exe ^
    /DKHIOPS_SAMPLES_DIR=.\assets\samples ^
-   /DKHIOPS_DOC_DIR=.\assets\doc ^
    khiops.nsi
 ```
 The resulting installer will be at `packaging/windows/nsis/khiops-10.2.0-rc.1-setup.exe`.
@@ -92,4 +90,3 @@ All the arguments are mandatory except for `DEBUG` and `SIGN`, they must be pref
 - `KHIOPS_VIZ_INSTALLER_PATH`: Path to the Khiops Visualization installer.
 - `KHIOPS_COVIZ_INSTALLER_PATH`: Path to the Khiops Covisualization installer.
 - `KHIOPS_SAMPLES_DIR`: Path to the sample datasets directory.
-- `KHIOPS_DOC_DIR`: Path to the directory containing the documentation.

@@ -118,7 +118,6 @@ jobs:
             /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\assets\${{ env.KHIOPS_VIZ_FILENAME }} `
             /DKHIOPS_COVIZ_INSTALLER_PATH=..\..\..\assets\${{ env.KHIOPS_COVIZ_FILENAME }} `
             /DKHIOPS_SAMPLES_DIR=..\..\..\assets\samples `
-            /DKHIOPS_DOC_DIR=..\..\..\assets\doc `
             /DSIGN `
             /DKEYPAIR_ALIAS=$Env:KEYPAIR `
             /DPATH_TO_CONFIG_FILE=C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg `
@@ -138,7 +137,6 @@ jobs:
             /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\assets\${{ env.KHIOPS_VIZ_FILENAME }} `
             /DKHIOPS_COVIZ_INSTALLER_PATH=..\..\..\assets\${{ env.KHIOPS_COVIZ_FILENAME }} `
             /DKHIOPS_SAMPLES_DIR=..\..\..\assets\samples `
-            /DKHIOPS_DOC_DIR=..\..\..\assets\doc `
             khiops.nsi
       - name: Signing installer
         if: env.SIGN == 'ON'
