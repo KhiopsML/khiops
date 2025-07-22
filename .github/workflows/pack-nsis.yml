@@ -47,13 +47,27 @@ jobs:
         uses: robinraju/release-downloader@v1.9
         with:
           repository: khiopsml/khiops-win-install-assets
-          tag: 11.0.0
+          tag: 11.0.1
       - name: Extract Windows installer assets and load assets-info.env
         shell: bash
         run: |
           assets_tar_gz=$(ls khiops-win-install-assets*.tar.gz)
           tar -zxvf "$assets_tar_gz"
           cat assets/assets-info.env >> "$GITHUB_ENV"
+      # We download the latest version of visualization tools: 
+      # - They are backward compatible.
+      # - The process is made easier by getting automatically the latest version
+      - name: Download latest releases of khiops-*visualization
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh --repo https://github.com/KhiopsML/kc-electron release download --pattern *.exe -D visualizations 
+          gh --repo https://github.com/KhiopsML/kv-electron release download --pattern *.exe -D visualizations
+          cd visualizations
+          ls *
+          echo "KHIOPS_VIZ_FILENAME=$(ls khiops-covisualization-Setup*)" >> "$GITHUB_ENV" 
+          echo "KHIOPS_COVIZ_FILENAME=$(ls khiops-visualization-Setup*)" >> "$GITHUB_ENV" 
       - name: Build the Khiops Binaries
         uses: ./.github/actions/build-khiops
         with:
@@ -115,8 +129,8 @@ jobs:
             /DJRE_PATH=..\..\..\assets\jre `
             /DMSMPI_INSTALLER_PATH=..\..\..\assets\${{ env.MSMPI_FILENAME }} `
             /DMSMPI_VERSION=${{ env.MSMPI_VERSION }} `
-            /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\assets\${{ env.KHIOPS_VIZ_FILENAME }} `
-            /DKHIOPS_COVIZ_INSTALLER_PATH=..\..\..\assets\${{ env.KHIOPS_COVIZ_FILENAME }} `
+            /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\visualizations\${{ env.KHIOPS_VIZ_FILENAME }} `
+            /DKHIOPS_COVIZ_INSTALLER_PATH=..\..\..\visualizations\${{ env.KHIOPS_COVIZ_FILENAME }} `
             /DKHIOPS_SAMPLES_DIR=..\..\..\assets\samples `
             /DSIGN `
             /DKEYPAIR_ALIAS=$Env:KEYPAIR `
@@ -134,8 +148,8 @@ jobs:
             /DJRE_PATH=..\..\..\assets\jre `
             /DMSMPI_INSTALLER_PATH=..\..\..\assets\${{ env.MSMPI_FILENAME }} `
             /DMSMPI_VERSION=${{ env.MSMPI_VERSION }} `
-            /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\assets\${{ env.KHIOPS_VIZ_FILENAME }} `
-            /DKHIOPS_COVIZ_INSTALLER_PATH=..\..\..\assets\${{ env.KHIOPS_COVIZ_FILENAME }} `
+            /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\visualizations\${{ env.KHIOPS_VIZ_FILENAME }} `
+            /DKHIOPS_COVIZ_INSTALLER_PATH=..\..\..\visualizations\${{ env.KHIOPS_COVIZ_FILENAME }} `
             /DKHIOPS_SAMPLES_DIR=..\..\..\assets\samples `
             khiops.nsi
       - name: Signing installer
