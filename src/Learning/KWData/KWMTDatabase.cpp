@@ -102,16 +102,14 @@ void KWMTDatabase::CopyFrom(const KWDatabase* kwdSource)
 		mappingCopy = LookupMultiTableMapping(mapping->GetDataPath());
 
 		// Reconstitution du tableau des mapping des classes de la composition
-		for (j = 0; j < mapping->GetComponentTableMappings()->GetSize(); j++)
+		for (j = 0; j < mapping->GetComponents()->GetSize(); j++)
 		{
-			mappingComponent = cast(KWMTDatabaseMapping*, mapping->GetComponentTableMappings()->GetAt(j));
+			mappingComponent = cast(KWMTDatabaseMapping*, mapping->GetComponents()->GetAt(j));
 
 			// Insertion de la copie du mapping composant correspondant
-			mappingCopy->GetComponentTableMappings()->Add(
-			    LookupMultiTableMapping(mappingComponent->GetDataPath()));
+			mappingCopy->GetComponents()->Add(LookupMultiTableMapping(mappingComponent->GetDataPath()));
 		}
-		assert(mappingCopy->GetComponentTableMappings()->GetSize() ==
-		       mapping->GetComponentTableMappings()->GetSize());
+		assert(mappingCopy->GetComponents()->GetSize() == mapping->GetComponents()->GetSize());
 	}
 
 	// Memorisation des warnings pour les dictionnaires racines non utilises
@@ -132,6 +130,8 @@ int KWMTDatabase::Compare(const KWDatabase* kwdSource) const
 	KWMTDatabaseMapping* mapping;
 	KWMTDatabaseMapping* sourceMapping;
 	int i;
+
+	require(kwdSource != NULL);
 
 	// Comparaison de base
 	nCompare = KWDatabase::Compare(kwdSource);
@@ -1253,6 +1253,7 @@ void KWMTDatabase::PhysicalReadAfterEndOfDatabase()
 	KWMTDatabaseMapping* componentMapping;
 	int i;
 	KWDataTableDriver* mappedDataTableDriver;
+	const KWObjectDataPath* objectDataPath;
 	KWObject* kwoLastSubObject;
 	KWObject* kwoSubObject;
 	KWObjectKey lastSubObjectKey;
@@ -1299,6 +1300,9 @@ void KWMTDatabase::PhysicalReadAfterEndOfDatabase()
 				}
 			}
 
+			// Recherche du data path correspondant au mapping
+			objectDataPath = objectDataPathManager->LookupObjectDataPath(componentMapping->GetDataPath());
+
 			// Lecture des sous-objets
 			kwoSubObject = NULL;
 			while (not mappedDataTableDriver->IsEnd() and not bIsError)
@@ -1312,13 +1316,11 @@ void KWMTDatabase::PhysicalReadAfterEndOfDatabase()
 				// immediatement detruits
 				kwoSubObject = componentMapping->GetDataTableDriver()->Read();
 
-				//DDD
 				// Parametrage du data path de l'objet
 				if (kwoSubObject != NULL)
 				{
 					assert(kwoSubObject->GetClass() != kwcPhysicalClass);
-					kwoSubObject->SetDataPath(
-					    objectDataPathManager->LookupDataPath(componentMapping->GetDataPath()));
+					kwoSubObject->SetObjectDataPath(objectDataPath);
 				}
 
 				// Positionnement du flag d'erreur
@@ -1665,7 +1667,7 @@ KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceCl
 				svAttributeNames->SetSize(svAttributeNames->GetSize() - 1);
 
 				// Chainage du sous-mapping
-				mapping->GetComponentTableMappings()->Add(subMapping);
+				mapping->GetComponents()->Add(subMapping);
 			}
 			// Cas d'un attribut issue d'une regle de creation de table, pour rechercher
 			// les classes referencees depuis les tables creees par des regles
@@ -1770,36 +1772,6 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 
 	// Reinitialisation du nombre d'erreurs d'encodage liees aux tables externes
 	lExternalTablesEncodingErrorNumber = 0;
-
-	// Reinitialisation des index de creation d'instances pour les objets des tables externes
-	//
-	// Pour les objets de la table principale, ces compteurs sont reinitialises pour chaque instance
-	// principale, en utilisant son index de creation comme reference pour les index de
-	// creation d'instance, de facon locale a chaque instance principale
-	//
-	// Pour les instances racines de tables externes, on procede differemment en prenant 0 comme index unique
-	// de reference pour l'ensemble de toutes les instances racine de chaque table externe:
-	// - l'identification unique de chaque objet issu d'une regle de derivation de creation d'instance est
-	//   garantie, car chaque process lit en memoire toutes les instances externes, contrairement aux cas des
-	//   instances de la table principale, qui ont besoin de leur numero de ligne pour garantir un identifiant unique
-	// - cette fois, les index de creation des instances crees sont globaux a toutes les instances de chaque
-	//   table secondaire, et non locaux a leur instance racine de rattachement
-	// - on est oblige techniquement de proceder ainsi, en raison du traitement particulier des instances
-	//   des tables externes
-	//  - phase 1: on lit toutes les instances de toutes les tables externes, en ne traitant que la partie
-	//   stockee du flocon
-	//    - et on memorise dans un objectReferenceResolver un pointeur sur chaque objet externe
-	//  - phase 2: on calcule la valeur de toutes les regles de derivation des instances externes, recursivement
-	//    a partir de chaque instance principale
-	//    - le objectReferenceResolver permet de resoudre les references aux objets externes, entre les tables externes
-	//      - deux tables externes peuvent ainsi avoir des objets se referencant mutuellement
-	//    - un calcul sur un objet racine externe peut ainsi se propager sur d'autres objets racines externes
-	//      d'autres tables, voir de la meme table
-	//    - dans ce cas, il n'est plus possible de reinitialiser les compteurs de creation d'instance sequentiellement
-	//      par instance racine, et on utilise donc ici une initialisation unique, une fois pour toute, par data path
-	//      de racine de table externe
-	for (nReference = 0; nReference < objectDataPathManager->GetExternalRootDataPathNumber(); nReference++)
-		objectDataPathManager->GetExternalRootDataPathAt(nReference)->ResetCreationNumber(0);
 
 	// Ouverture de chaque table secondaire
 	for (nReference = 0; nReference < oaRootReferenceTableMappings.GetSize(); nReference++)
@@ -1929,6 +1901,46 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 			break;
 	}
 
+	// Reinitialisation des index de creation d'instances pour les objets des tables externes
+	//
+	// Pour les objets de la table principale, ces compteurs sont reinitialises pour chaque instance
+	// principale, en utilisant son index de creation comme reference pour les index de
+	// creation d'instance, de facon locale a chaque instance principale
+	//
+	// Pour les instances racines de tables externes, on procede differemment en prenant 0 comme index unique
+	// de reference pour l'ensemble de toutes les instances racine de chaque table externe:
+	// - l'identification unique de chaque objet issu d'une regle de derivation de creation d'instance est
+	//   garantie, car chaque process lit en memoire toutes les instances externes, contrairement aux cas des
+	//   instances de la table principale, qui ont besoin de leur numero de ligne pour garantir un identifiant unique
+	// - cette fois, les index de creation des instances crees sont globaux a toutes les instances de chaque
+	//   table secondaire, et non locaux a leur instance racine de rattachement
+	// - on est oblige techniquement de proceder ainsi, en raison du traitement particulier des instances
+	//   des tables externes
+	//  - phase 1: on lit toutes les instances de toutes les tables externes, en ne traitant que la partie
+	//   stockee du flocon
+	//    - et on memorise dans un objectReferenceResolver un pointeur sur chaque objet externe
+	//  - phase 2: on calcule la valeur de toutes les regles de derivation des instances externes, recursivement
+	//    a partir de chaque instance principale
+	//    - le objectReferenceResolver permet de resoudre les references aux objets externes, entre les tables externes
+	//      - deux tables externes peuvent ainsi avoir des objets se referencant mutuellement
+	//    - un calcul sur un objet racine externe peut ainsi se propager sur d'autres objets racines externes
+	//      d'autres tables, voir de la meme table
+	//    - dans ce cas, il n'est plus possible de reinitialiser les compteurs de creation d'instance sequentiellement
+	//      par instance racine, et on utilise donc ici une initialisation unique, une fois pour toute, par data path
+	//      de racine de table externe
+	//
+	// Attention : apres l'analyse du graphe de calcul complet, seules les variables utiles des tables externes
+	// sont calculees si elles sont exploitees dans la classe physique. Si ces variables utilisent la regle Random,
+	// cela peut forcer un ordre de calcul qui varie selon qu'elles soient exploitees directement via le
+	// flocon principal ou indirectement via des variables de tables externes. Cela peut entrainer la creation
+	// d'instances dans un ordre different (par exemple, en commencant a creer des instances dans la deuxieme table externe
+	// pour le calcul des valeurs de la premiere table externe). Cela entraine des index de creation d'instances
+	// differents, et par consequent, des suites de valeurs aleatoires differentes (puisqu'elles exploitent l'index
+	// de creation d'instance).
+	// Il vaut mieux donc eviter d'utiliser la regle Random dans les tables externes
+	for (nReference = 0; nReference < objectDataPathManager->GetExternalRootDataPathNumber(); nReference++)
+		objectDataPathManager->GetExternalRootObjectDataPathAt(nReference)->ResetCreationNumber(0);
+
 	// Calcul de tous les attributs derives pour les objets de chaque table secondaire
 	// Comme les regles peuvent se faire entre objets de tables differentes, ce calcul
 	// ne peut etre effectue qu'une fois tous les objets charges en memoire
@@ -1953,8 +1965,8 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 
 		// Parcours de tous les objet racine des tables externe dans l'ordre de leur lecture
 		// Attention, cet ordre est necessaire pour garantir la reproductibilite de resultats,
-		// notamment en ce qui concernes les objets issu d'une regle de derivation de creation d'instance
-		// dont l'index de creation est locl a l'ensemble de toutes les instances
+		// notamment en ce qui concernes les objets issus d'une regle de derivation de creation d'instance
+		// dont l'index de creation est local a l'ensemble de toutes les instances
 		for (nObject = 0; nObject < oaAllReferenceObjects.GetSize(); nObject++)
 		{
 			kwoObject = cast(KWObject*, oaAllReferenceObjects.GetAt(nObject));
@@ -2129,7 +2141,7 @@ longint KWMTDatabase::ComputeNecessaryMemoryForReferenceObjects()
 
 		// Collecte de tous les mapping de la hierarchie de composition
 		oaFullHierarchyComponentTableMappings.SetSize(0);
-		referenceMapping->CollectFullHierarchyComponentTableMappings(&oaFullHierarchyComponentTableMappings);
+		referenceMapping->CollectFullHierarchyComponents(&oaFullHierarchyComponentTableMappings);
 
 		// Parcours des mapping de la hierarchie
 		for (i = 0; i < oaFullHierarchyComponentTableMappings.GetSize(); i++)
@@ -2200,9 +2212,9 @@ void KWMTDatabase::DMTMPhysicalInitializeMapping(KWMTDatabaseMapping* mapping, K
 	if (mappedClass->IsKeyLoaded() or not bRead)
 	{
 		assert(mapping->GetDataTableDriver() != NULL);
-		for (i = 0; i < mapping->GetComponentTableMappings()->GetSize(); i++)
+		for (i = 0; i < mapping->GetComponents()->GetSize(); i++)
 		{
-			componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponentTableMappings()->GetAt(i));
+			componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponents()->GetAt(i));
 			assert(componentMapping->GetDataPathAttributeNumber() == nDataPathAttributeNumber + 1);
 			assert(componentMapping->GetDataTableDriver() == NULL);
 
@@ -2266,9 +2278,9 @@ void KWMTDatabase::DMTMPhysicalTerminateMapping(KWMTDatabaseMapping* mapping)
 	mapping->CleanLastReadKey();
 
 	// Propagation aux mappings de la composition
-	for (i = 0; i < mapping->GetComponentTableMappings()->GetSize(); i++)
+	for (i = 0; i < mapping->GetComponents()->GetSize(); i++)
 	{
-		componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponentTableMappings()->GetAt(i));
+		componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponents()->GetAt(i));
 		DMTMPhysicalTerminateMapping(componentMapping);
 	}
 }
@@ -2317,10 +2329,9 @@ boolean KWMTDatabase::DMTMPhysicalOpenForRead(KWMTDatabaseMapping* mapping, cons
 		if (mapping->GetDataTableDriver()->GetClass()->IsKeyLoaded())
 		{
 			// Propagation aux mappings de la composition
-			for (i = 0; i < mapping->GetComponentTableMappings()->GetSize(); i++)
+			for (i = 0; i < mapping->GetComponents()->GetSize(); i++)
 			{
-				componentMapping =
-				    cast(KWMTDatabaseMapping*, mapping->GetComponentTableMappings()->GetAt(i));
+				componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponents()->GetAt(i));
 
 				// Ouverture de la table du mapping composant
 				if (componentMapping->GetDataTableDriver() != NULL and
@@ -2403,9 +2414,9 @@ boolean KWMTDatabase::DMTMPhysicalOpenForWrite(KWMTDatabaseMapping* mapping)
 		// Ouverture de chaque sous-table, meme si les cle ne sont pas chargee en memoire
 		// La semantique de l'ecriture et d'ecrire tout ce qui en Used
 		// Propagation aux mappings de la composition
-		for (i = 0; i < mapping->GetComponentTableMappings()->GetSize(); i++)
+		for (i = 0; i < mapping->GetComponents()->GetSize(); i++)
 		{
-			componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponentTableMappings()->GetAt(i));
+			componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponents()->GetAt(i));
 
 			// Ouverture de la table du mapping composant
 			if (componentMapping->GetDataTableDriver() != NULL and
@@ -2476,9 +2487,9 @@ boolean KWMTDatabase::DMTMPhysicalClose(KWMTDatabaseMapping* mapping)
 	mapping->CleanLastReadKey();
 
 	// Propagation aux mappings de la composition
-	for (i = 0; i < mapping->GetComponentTableMappings()->GetSize(); i++)
+	for (i = 0; i < mapping->GetComponents()->GetSize(); i++)
 	{
-		componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponentTableMappings()->GetAt(i));
+		componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponents()->GetAt(i));
 		bOk = DMTMPhysicalClose(componentMapping) and bOk;
 	}
 	return bOk;
@@ -2503,9 +2514,9 @@ longint KWMTDatabase::DMTMPhysicalComputeEncodingErrorNumber(KWMTDatabaseMapping
 	}
 
 	// Propagation aux mappings de la composition
-	for (i = 0; i < mapping->GetComponentTableMappings()->GetSize(); i++)
+	for (i = 0; i < mapping->GetComponents()->GetSize(); i++)
 	{
-		componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponentTableMappings()->GetAt(i));
+		componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponents()->GetAt(i));
 		lNumber += DMTMPhysicalComputeEncodingErrorNumber(componentMapping);
 	}
 	return lNumber;
@@ -2530,9 +2541,9 @@ void KWMTDatabase::DMTMPhysicalDeleteDatabase(KWMTDatabaseMapping* mapping)
 	delete mappedDataTableDriver;
 
 	// Propagation aux mappings de la composition
-	for (i = 0; i < mapping->GetComponentTableMappings()->GetSize(); i++)
+	for (i = 0; i < mapping->GetComponents()->GetSize(); i++)
 	{
-		componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponentTableMappings()->GetAt(i));
+		componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponents()->GetAt(i));
 		DMTMPhysicalDeleteDatabase(componentMapping);
 	}
 }
@@ -2559,22 +2570,22 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 	// Lecture d'un enregistrement de la table principale
 	kwoObject = mapping->GetDataTableDriver()->Read();
 
-	//DDD
 	// Parametrage du data path de l'objet
 	if (kwoObject != NULL)
 	{
 		// Recherche du data path a associe a l'objet
-		objectDataPath = objectDataPathManager->LookupDataPath(mapping->GetDataPath());
+		objectDataPath = objectDataPathManager->LookupObjectDataPath(mapping->GetDataPath());
 
 		// Memorisation du data path dans l'objet
-		kwoObject->SetDataPath(objectDataPath);
+		kwoObject->SetObjectDataPath(objectDataPath);
 
 		// Reinitialisation des informations de gestion de creation d'instance pour tous les
 		// sous data path dans le cas d'un objet princial
 		if (mapping->GetDataTableDriver()->GetClass() == kwcPhysicalClass)
 		{
 			assert(objectDataPath == objectDataPathManager->GetMainDataPath());
-			objectDataPathManager->GetMainDataPath()->ResetCreationNumber(kwoObject->GetCreationIndex());
+			objectDataPathManager->GetMainObjectDataPath()->ResetCreationNumber(
+			    kwoObject->GetCreationIndex());
 		}
 	}
 
@@ -2662,9 +2673,9 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 		}
 
 		// Parcours des mappings de la composition  pour completer la lecture de l'objet
-		for (i = 0; i < mapping->GetComponentTableMappings()->GetSize(); i++)
+		for (i = 0; i < mapping->GetComponents()->GetSize(); i++)
 		{
-			componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponentTableMappings()->GetAt(i));
+			componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponents()->GetAt(i));
 
 			// Lecture dans la sous base
 			mappedDataTableDriver = componentMapping->GetDataTableDriver();
@@ -2895,9 +2906,9 @@ void KWMTDatabase::DMTMPhysicalWrite(KWMTDatabaseMapping* mapping, const KWObjec
 
 	// Parcours des mappings de la composition  pour completer l'ecriture de l'objet, meme si les cle
 	// ne sont pas chargee en memoire
-	for (i = 0; i < mapping->GetComponentTableMappings()->GetSize(); i++)
+	for (i = 0; i < mapping->GetComponents()->GetSize(); i++)
 	{
-		componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponentTableMappings()->GetAt(i));
+		componentMapping = cast(KWMTDatabaseMapping*, mapping->GetComponents()->GetAt(i));
 
 		// Ecriture si necessaire
 		mappedDataTableDriver = componentMapping->GetDataTableDriver();
@@ -2934,8 +2945,34 @@ void KWMTDatabase::DMTMPhysicalWrite(KWMTDatabaseMapping* mapping, const KWObjec
 	}
 }
 
-void KWMTDatabase::WriteMapingArray(ostream& ost, const ALString& sTitle, const ObjectArray* oaMappings) const
+void KWMTDatabase::WriteMapingArray(ostream& ost, const ALString& sTitle, const ObjectArray* oaDataPaths) const
 {
+	int n;
+	KWDataPath* dataPath;
+
+	require(sTitle != "");
+	require(oaDataPaths != NULL);
+
+	// Affichage
+	ost << sTitle << "\n";
+	for (n = 0; n < oaDataPaths->GetSize(); n++)
+	{
+		dataPath = cast(KWDataPath*, oaDataPaths->GetAt(n));
+
+		// Entete
+		if (n == 0)
+		{
+			ost << "Index\t";
+			dataPath->WriteHeaderLineReport(ost);
+			ost << "\n";
+		}
+
+		// Ligne courante
+		ost << n + 1 << "\t";
+		dataPath->WriteLineReport(ost);
+		ost << "\n";
+	}
+	/*DDD
 	int n;
 	KWMTDatabaseMapping* mapping;
 
@@ -2950,4 +2987,5 @@ void KWMTDatabase::WriteMapingArray(ostream& ost, const ALString& sTitle, const 
 		ost << "\t" << n + 1 << "\t" << mapping->GetDataPath() << "\t" << mapping->GetClassName() << "\t"
 		    << mapping->GetDataTableName() << "\n";
 	}
+	*/
 }

@@ -236,6 +236,7 @@ protected:
 	void DMTMPhysicalWrite(KWMTDatabaseMapping* mapping, const KWObject* kwoObject);
 
 	// Affichage d'un tableau de mapping
+	//DDD
 	void WriteMapingArray(ostream& ost, const ALString& sTitle, const ObjectArray* oaMappings) const;
 
 	/////////////////////////////////////////////////
@@ -266,6 +267,7 @@ protected:
 	// liaison referencant ses atomes extremites et chaque atome referencant ses liaisons adjacentes.
 	// Si on choisit les atomes en table d'analyse principale, on doit couper le lien avec la table des molecules
 	// pour eviter les cycles dans les donnees
+	//DDD
 	mutable StringVector svUnusedRootDictionaryWarnings;
 
 	// Fraicheur des specifications et de leur verification, pour bufferiser la methode Check

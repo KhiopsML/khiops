@@ -207,10 +207,10 @@ protected:
 	friend class KWDRRandom;
 
 	// Parametrage d'un data path
-	void SetDataPath(const KWObjectDataPath* objectDataPath);
+	void SetObjectDataPath(const KWObjectDataPath* dataPath);
 
 	// Acces au data path
-	const KWObjectDataPath* GetDataPath() const;
+	const KWObjectDataPath* GetObjectDataPath() const;
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	// Services de calul des valeurs et de destruction des attributs
@@ -358,7 +358,7 @@ protected:
 	// chacune exploitant un couple (Seed, Leap) deuit par hashage de son data path et du contexte
 	// d'utilisation de la fonction random
 	// Un data path peut etre NULL, notamment dans le cas mon,o-table ou il n'est pas necessaire.
-	const KWObjectDataPath* dataPath;
+	const KWObjectDataPath* objectDataPath;
 
 	//////////////////////////////////////////////////////////////////////////////
 	// Pour gerer les objet avec un nombre potentiel d'attributs tres important,
@@ -454,15 +454,15 @@ inline longint KWObject::GetCreationIndex() const
 		return -lCreationIndex / 2;
 }
 
-inline void KWObject::SetDataPath(const KWObjectDataPath* objectDataPath)
+inline void KWObject::SetObjectDataPath(const KWObjectDataPath* dataPath)
 {
 	require(dataPath == NULL or objectDataPath == NULL);
-	dataPath = objectDataPath;
+	objectDataPath = dataPath;
 }
 
-inline const KWObjectDataPath* KWObject::GetDataPath() const
+inline const KWObjectDataPath* KWObject::GetObjectDataPath() const
 {
-	return dataPath;
+	return objectDataPath;
 }
 
 inline boolean KWObject::GetSmallSize() const

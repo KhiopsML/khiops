@@ -58,6 +58,18 @@ void KWMTDatabaseMapping::Write(ostream& ost) const
 	ost << "Data table file\t" << GetDataTableName() << "\n";
 }
 
+void KWMTDatabaseMapping::WriteHeaderLineReport(ostream& ost) const
+{
+	KWDataPath::WriteHeaderLineReport(ost);
+	ost << "\tData table file";
+}
+
+void KWMTDatabaseMapping::WriteLineReport(ostream& ost) const
+{
+	KWDataPath::WriteLineReport(ost);
+	ost << "\t" << GetDataTableName();
+}
+
 const ALString KWMTDatabaseMapping::GetClassLabel() const
 {
 	return "Multi-table mapping";
@@ -73,26 +85,7 @@ longint KWMTDatabaseMapping::GetUsedMemory() const
 
 	// Specialisation
 	lUsedMemory += sDataTableName.GetLength();
-	lUsedMemory += oaComponentTableMappings.GetUsedMemory();
 	if (mappedDataTableDriver != NULL)
 		lUsedMemory += mappedDataTableDriver->GetUsedMemory();
 	return lUsedMemory;
-}
-
-void KWMTDatabaseMapping::CollectFullHierarchyComponentTableMappings(ObjectArray* oaResults)
-{
-	int i;
-	KWMTDatabaseMapping* mapping;
-
-	require(oaResults != NULL);
-
-	// Ajout du mapping
-	oaResults->Add(this);
-
-	// Ajout des mapping de la composition
-	for (i = 0; i < oaComponentTableMappings.GetSize(); i++)
-	{
-		mapping = cast(KWMTDatabaseMapping*, oaComponentTableMappings.GetAt(i));
-		mapping->CollectFullHierarchyComponentTableMappings(oaResults);
-	}
 }

@@ -40,6 +40,8 @@ public:
 
 	// Ecriture
 	void Write(ostream& ost) const override;
+	void WriteHeaderLineReport(ostream& ost) const override;
+	void WriteLineReport(ostream& ost) const override;
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
@@ -61,14 +63,6 @@ protected:
 	///////////////////////////////////////////////////////////////////////
 	// Parametrage technique permettant la lecture des enregistrements
 	// A parametrer et exploiter dans la classe utilisante
-
-	// Tableau des mappings de la composition en sous-objects ou tableaux de sous-objets (pas les references)
-	// Memoire: le tableau appartient a l'appele, son contenu est a gerer par l'appelant
-	ObjectArray* GetComponentTableMappings();
-
-	// Collecte de tous les mapping de la hierarchie de composition,
-	// y compris le mapping courant (mapping principal de la hierarchie)
-	void CollectFullHierarchyComponentTableMappings(ObjectArray* oaResults);
 
 	// Base de donnees associee au mapping
 	// Appartient a l'appelant
@@ -98,7 +92,6 @@ protected:
 	void CleanLastReadKey();
 
 	// Parametres de lecture des enregistrements
-	ObjectArray oaComponentTableMappings;
 	KWDataTableDriver* mappedDataTableDriver;
 	KWLoadIndex liMappedAttributeLoadIndex;
 	int nMappedAttributeType;
@@ -117,11 +110,6 @@ inline const ALString& KWMTDatabaseMapping::GetDataTableName() const
 inline void KWMTDatabaseMapping::SetDataTableName(const ALString& sValue)
 {
 	sDataTableName = sValue;
-}
-
-inline ObjectArray* KWMTDatabaseMapping::GetComponentTableMappings()
-{
-	return &oaComponentTableMappings;
 }
 
 inline void KWMTDatabaseMapping::SetDataTableDriver(KWDataTableDriver* dataTableDriver)

@@ -323,27 +323,27 @@ inline KWObject* KWDRRelationCreationRule::NewTargetObject(const KWObject* kwoOw
 	const KWObjectDataPath* objectDataPath;
 
 	require(kwoOwnerObject != NULL);
-	require(kwoOwnerObject->GetDataPath() != NULL);
+	require(kwoOwnerObject->GetObjectDataPath() != NULL);
 	require(IsCompiled());
 
 	// Rechertche du data path de l'objet a creer
-	objectDataPath = kwoOwnerObject->GetDataPath()->GetSubDataPath(liAttributeLoadIndex);
+	objectDataPath = kwoOwnerObject->GetObjectDataPath()->GetComponentDataPath(liAttributeLoadIndex);
 
 	// Creation d'un objet en mode vue, avec un index de creation fourni par le data path
 	kwoTargetObject = new KWObject(kwcCompiledTargetClass, objectDataPath->NewCreationIndex());
 	kwoTargetObject->SetViewTypeUse(true);
-	kwoTargetObject->SetDataPath(objectDataPath);
+	kwoTargetObject->SetObjectDataPath(objectDataPath);
 
 	// Trace
 	if (bTrace)
 	{
 		cout << "NewTargetObject\t" << GetName() << "\t";
-		cout << kwoOwnerObject->GetDataPath()->GetDataPath() << "\t" << kwoOwnerObject->GetClass()->GetName()
-		     << "\t" << kwoOwnerObject->GetCreationIndex() << "\t";
+		cout << kwoOwnerObject->GetObjectDataPath()->GetDataPath() << "\t"
+		     << kwoOwnerObject->GetClass()->GetName() << "\t" << kwoOwnerObject->GetCreationIndex() << "\t";
 		if (kwoOwnerObject->GetClass()->GetKeyAttributeNumber() > 0)
 			cout << kwoOwnerObject->GetObjectLabel() << "\t";
-		cout << kwoTargetObject->GetDataPath()->GetDataPath() << "\t" << kwoTargetObject->GetClass()->GetName()
-		     << "\t" << kwoTargetObject->GetCreationIndex() << "\n";
+		cout << kwoTargetObject->GetObjectDataPath()->GetDataPath() << "\t"
+		     << kwoTargetObject->GetClass()->GetName() << "\t" << kwoTargetObject->GetCreationIndex() << "\n";
 	}
 	return kwoTargetObject;
 }

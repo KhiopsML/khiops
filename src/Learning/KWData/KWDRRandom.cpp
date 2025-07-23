@@ -49,7 +49,7 @@ Continuous KWDRRandom::ComputeContinuousResult(const KWObject* kwoObject) const
 	// ont un comportement indetermine, potentiellement differents selon le compilateur
 
 	// Acces au data path de l'objet
-	objectDataPath = kwoObject->GetDataPath();
+	objectDataPath = kwoObject->GetObjectDataPath();
 
 	// Calcul d'index de creation d'index global pour les objets crees par des regles de creation d'instance
 	assert(kwoObject->GetCreationIndex() >= 0);
@@ -97,15 +97,15 @@ Continuous KWDRRandom::ComputeContinuousResult(const KWObject* kwoObject) const
 	{
 		cout << GetName() << "\t";
 		cout << kwoObject->GetClass()->GetName() << "\t";
-		cout << kwoObject->GetDataPath()->GetDataPath();
-		if (kwoObject->GetDataPath()->GetCreatedObjects())
+		cout << kwoObject->GetObjectDataPath()->GetDataPath();
+		if (kwoObject->GetObjectDataPath()->GetCreatedObjects())
 			cout << "(C)";
 		cout << "\t";
-		cout << "(" << kwoObject->GetDataPath()->GetMainCreationIndex() << "," << kwoObject->GetCreationIndex()
-		     << ")\t";
+		cout << "(" << kwoObject->GetObjectDataPath()->GetMainCreationIndex() << ","
+		     << kwoObject->GetCreationIndex() << ")\t";
 		cout << ulGlobalCreationIndex << "\t";
-		cout << "(" << (unsigned int)kwoObject->GetDataPath()->GetRandomSeed() << ","
-		     << (unsigned int)kwoObject->GetDataPath()->GetRandomLeap() << ")\t";
+		cout << "(" << (unsigned int)kwoObject->GetObjectDataPath()->GetRandomSeed() << ","
+		     << (unsigned int)kwoObject->GetObjectDataPath()->GetRandomLeap() << ")\t";
 		cout << "(" << (unsigned int)nSeed << "," << (unsigned int)nLeap << ")\t";
 		cout << "(" << ulSeed << "," << ulLeap << ")\t";
 		cout << ulRandomIndex << "\t";

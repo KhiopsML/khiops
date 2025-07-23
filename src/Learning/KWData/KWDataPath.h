@@ -6,6 +6,7 @@
 
 class KWDataPath;
 class KWObjectDataPath;
+class KWDataPathManager;
 class KWObjectDataPathManager;
 
 #include "KWClass.h"
@@ -47,18 +48,19 @@ public:
 	KWDataPath();
 	~KWDataPath();
 
-	// Copie (sans les attributs de gestion)
-	virtual void CopyFrom(const KWDataPath* aSource);
+	////////////////////////////////////////////////////////////////
+	// Gestion des objet cree par des regles de creation d'instances
+	// Methode virtuelles definie pour des raison de genericite
 
-	// Creation pour renvoyer une instance du meme type dynamique
-	// Doit etre reimplemente dans les sous-classes
-	virtual KWDataPath* Create() const;
+	// Indique si la classe gere les data paths correspondant a des instances crees par des regle de creation d'instance
+	// Defaut: false, signifie que les data path ne correspondent qu'a des instances stockes dans des fichier
+	virtual boolean IsRuleCreationManaged() const;
 
-	// Duplication
-	KWDataPath* Clone() const;
-
-	// Comparaison des attributs de definition
-	virtual int Compare(const KWDataPath* aSource) const;
+	// Indique si le data path correspond a des objets crees par des regles de creation d'instances
+	// Defaut: false, correspondant a des objet stockes dans des fichiers
+	// Le setter est defini, mais son utilisation est interdite dans cette classe
+	virtual boolean GetCreatedObjects() const;
+	virtual void SetCreatedObjects(boolean bValue);
 
 	////////////////////////////////////////////////////////////////
 	// Data path, identifiant calcule a partir de la specification
@@ -119,10 +121,43 @@ public:
 	static char GetDataPathEscapeChar();
 
 	////////////////////////////////////////////////////////
+	// Acces aux data paths fils du data path
+
+	// Tableau des data paths fils decrivant les sous-objects (Entity) ou tableaux de sous-objets (Table)
+	// decrivant la sous structure (pas les references aux tables externes)
+	// Memoire: le tableau appartient a l'appele, son contenu est a gerer par l'appelant
+	ObjectArray* GetComponents();
+	const ObjectArray* GetConstComponents() const;
+
+	// Collecte de tous les data path de la hierarchie de composition,
+	// y compris le data path courant (data path de la hierarchie)
+	void CollectFullHierarchyComponents(ObjectArray* oaResults);
+
+	////////////////////////////////////////////////////////
 	// Divers
+
+	// Copie, uniquement des attributs de base de la specification
+	// Les attributs de composition ou de gestion interne sont reinitialises
+	virtual void CopyFrom(const KWDataPath* aSource);
+
+	// Creation pour renvoyer une instance du meme type dynamique
+	// Doit etre reimplemente dans les sous-classes
+	virtual KWDataPath* Create() const;
+
+	// Duplication
+	KWDataPath* Clone() const;
+
+	// Comparaison des attributs de definition
+	virtual int Compare(const KWDataPath* aSource) const;
 
 	// Ecriture
 	void Write(ostream& ost) const override;
+
+	// Rapport synthetique destine a rentrer dans un tableau
+	// Ces methodes ne doivent pas creer de retour charriot ('\n') en fin de ligne, de facon a permettre
+	// leur reimplementation. Ces retours charriot sont a generer par les methodes qui les utilisent.
+	virtual void WriteHeaderLineReport(ostream& ost) const;
+	virtual void WriteLineReport(ostream& ost) const;
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
@@ -139,6 +174,7 @@ protected:
 	ALString sOriginClassName;
 	StringVector svAttributeNames;
 	ALString sClassName;
+	ObjectArray oaComponents;
 };
 
 ////////////////////////////////////////////////////////////
@@ -153,22 +189,19 @@ public:
 	KWObjectDataPath();
 	~KWObjectDataPath();
 
+	// Indique que la classe gere les data paths correspondant a des instances crees par des regle de creation d'instance
+	boolean IsRuleCreationManaged() const override;
+
 	// Indique si le data path correspond a des objets crees par des regles de creation d'instances
 	// (defaut: false, correspondant a des objet stockes dans des fichiers)
-	boolean GetCreatedObjects() const;
-	void SetCreatedObject(boolean bValue);
-
-	// Copie
-	void CopyFrom(const KWDataPath* aSource) override;
-
-	// Creation pour renvoyer une instance du meme type dynamique
-	KWDataPath* Create() const override;
+	boolean GetCreatedObjects() const override;
+	void SetCreatedObjects(boolean bValue) override;
 
 	////////////////////////////////////////////////////////////////////////
 	// Service de navigation dans les data paths
 
 	// Acces au data path fils pour un index d'attribut relationnel du dictionnaire extremite
-	const KWObjectDataPath* GetSubDataPath(const KWLoadIndex liAttributeLoadIndex) const;
+	const KWObjectDataPath* GetComponentDataPath(const KWLoadIndex liAttributeLoadIndex) const;
 
 	////////////////////////////////////////////////////////////////////////
 	// Service d'identification des objets d'un schema multi-table
@@ -211,6 +244,20 @@ public:
 	////////////////////////////////////////////////////////
 	// Divers
 
+	// Copie
+	void CopyFrom(const KWDataPath* aSource) override;
+
+	// Creation pour renvoyer une instance du meme type dynamique
+	KWDataPath* Create() const override;
+
+	// Comparaison
+	int Compare(const KWDataPath* aSource) const override;
+
+	// Ecriture
+	void Write(ostream& ost) const override;
+	void WriteHeaderLineReport(ostream& ost) const override;
+	void WriteLineReport(ostream& ost) const override;
+
 	// Memoire utilisee par le mapping
 	longint GetUsedMemory() const override;
 
@@ -236,9 +283,6 @@ protected:
 	// Indicateur de data path dedie a des objets crees par des regles de creation d'instances
 	boolean bCreatedObjects;
 
-	// Tableau des sous-data path du data path courant
-	ObjectArray oaSubDataPaths;
-
 	// Index de creation principal, servant de reference aux instances crees dans son contexte
 	mutable longint lMainCreationIndex;
 
@@ -256,7 +300,7 @@ protected:
 
 	// Tableau des data path indexes par leur index de chargement
 	// On utilise la partie dense de l'index de chargement pour avoir un acces direct a un data path
-	ObjectArray oaCompiledSubDataPathsByLoadIndex;
+	ObjectArray oaCompiledComponentDataPathsByLoadIndex;
 
 	// Parametres pour le generateur de nombre aleatoire
 	int nCompiledRandomSeed;
@@ -267,44 +311,70 @@ protected:
 };
 
 ////////////////////////////////////////////////////////////
-// Classe KWObjectDataPathManager
-// Gestion de l'ensemble des data path pour une base de donnees
-class KWObjectDataPathManager : public Object
+// Classe KWDataPathManager
+// Gestion generique de l'ensemble des data path pour une base de donnees
+class KWDataPathManager : public Object
 {
 public:
 	// Constructeur
-	KWObjectDataPathManager();
-	~KWObjectDataPathManager();
+	KWDataPathManager();
+	~KWDataPathManager();
+
+	// Indique que la classe gere les data paths correspondant a des instances crees par des regle de creation d'instance
+	boolean IsRuleCreationManaged() const;
 
 	// Calcul de tous les data path a partir du dictionnaire principal
 	// d'une base multi-table
-	void ComputeAllDataPaths(const KWClass* mainClass);
+	virtual void ComputeAllDataPaths(const KWClass* mainClass);
 
 	// Reinitialisation
 	void Reset();
 
 	////////////////////////////////////////////////////////
-	// Acces aux results d'analyse
+	// Acces aux resultats d'analyse
 
 	// Classe principale analysee
 	const KWClass* GetMainClass();
 
 	// Acces a tous les data paths
 	int GetDataPathNumber() const;
-	const KWObjectDataPath* GetDataPathAt(int nIndex) const;
+	const KWDataPath* GetDataPathAt(int nIndex) const;
 
 	// Data path principal
-	const KWObjectDataPath* GetMainDataPath() const;
+	const KWDataPath* GetMainDataPath() const;
 
 	// Acces au data path Root des tables externes
 	int GetExternalRootDataPathNumber() const;
-	const KWObjectDataPath* GetExternalRootDataPathAt(int nIndex) const;
+	const KWDataPath* GetExternalRootDataPathAt(int nIndex) const;
 
 	// Acces a un maping par son chemin
-	const KWObjectDataPath* LookupDataPath(const ALString& sDataPath) const;
+	const KWDataPath* LookupDataPath(const ALString& sDataPath) const;
+
+	// Warnings pour le cas des tables externes non utilisees, gardees pour generer des warnings lors du Check
+	//
+	// Ce cas arrive si la table principale est une table secondaire d'une table externe qu'elle reference.
+	// Par exemple, dans le cas d'un schema de molecules avec des atomes et des liaisons, les atomes et les liaisons
+	// referencent leur molecule pour pouvoir recreer dynamiquement le graphe de la structure de la molecule, avec chaque
+	// liaison referencant ses atomes extremites et chaque atome referencant ses liaisons adjacentes.
+	// Si on choisit les atomes en table d'analyse principale, on doit couper le lien avec la table des molecules
+	// pour eviter les cycles dans les donnees
+	const StringVector* GetUnusedRootDictionaryWarnings() const;
 
 	////////////////////////////////////////////////////////
 	// Divers
+
+	// Copie
+	virtual void CopyFrom(const KWDataPathManager* aSource);
+
+	// Creation pour renvoyer une instance du meme type dynamique
+	// Doit etre reimplemente dans les sous-classes
+	virtual KWDataPathManager* Create() const;
+
+	// Duplication
+	KWDataPathManager* Clone() const;
+
+	// Comparaison
+	virtual int Compare(const KWDataPathManager* aSource) const;
 
 	// Ecriture
 	void Write(ostream& ost) const override;
@@ -326,17 +396,19 @@ protected:
 	// pour gerer les data paths externes a creer ulterieurement
 	// Les data paths crees recursivement sont memorises dans un tableau
 	// Les classes creees analysees sont egalement memorisees dans un dictionnaire, pour eviter des analyses multiples
-	KWObjectDataPath* CreateDataPath(ObjectDictionary* odReferenceClasses, ObjectArray* oaRankedReferenceClasses,
-					 ObjectDictionary* odAnalysedCreatedClasses, const KWClass* mappedClass,
-					 boolean bIsExternalTable, boolean bCreatedObjects, //DDD
-					 const ALString& sOriginClassName, StringVector* svAttributeNames,
-					 ObjectArray* oaCreatedDataPaths);
+	KWDataPath* CreateDataPath(ObjectDictionary* odReferenceClasses, ObjectArray* oaRankedReferenceClasses,
+				   ObjectDictionary* odAnalysedCreatedClasses, const KWClass* mappedClass,
+				   boolean bIsExternalTable, boolean bCreatedObjects, const ALString& sOriginClassName,
+				   StringVector* svAttributeNames, ObjectArray* oaCreatedDataPaths);
+
+	// Affichage d'un tableau de data paths
+	void WriteDataPathArray(ostream& ost, const ALString& sTitle, const ObjectArray* oaDataPathArray) const;
 
 	// Dictionnaire principal
 	const KWClass* kwcMainClass;
 
 	// Data path principal
-	KWObjectDataPath* mainDataPath;
+	KWDataPath* mainDataPath;
 
 	// Tableau de tous les data paths
 	ObjectArray oaDataPaths;
@@ -346,6 +418,44 @@ protected:
 
 	// Dictionnaire des data paths
 	ObjectDictionary odDataPaths;
+
+	// Warning lie aux cycle d'utilisation dans les data paths
+	StringVector svUnusedRootDictionaryWarnings;
+
+	// Objet de type KWDataPath permettant de parametrer la creation des data path
+	// Cet objet, cree dans le constructeur, peut tere redefini dans une sous-classe
+	// pour specialiser la creation des data path
+	KWDataPath* dataPathCreator;
+};
+
+////////////////////////////////////////////////////////////
+// Classe KWObjectDataPathManager
+// Specialisation dans le cas de KWObjectDataPath
+class KWObjectDataPathManager : public KWDataPathManager
+{
+public:
+	// Constructeur
+	KWObjectDataPathManager();
+	~KWObjectDataPathManager();
+
+	// Calcul de tous les data path a partir du dictionnaire principal
+	// d'une base multi-table
+	void ComputeAllDataPaths(const KWClass* mainClass) override;
+
+	// Acces aux data path avec le type specialise
+	const KWObjectDataPath* GetExternalRootObjectDataPathAt(int nIndex) const;
+	const KWObjectDataPath* GetMainObjectDataPath() const;
+	const KWObjectDataPath* LookupObjectDataPath(const ALString& sDataPath) const;
+
+	////////////////////////////////////////////////////////
+	// Divers
+
+	// Copie
+	void CopyFrom(const KWDataPathManager* aSource) override;
+
+	// Creation pour renvoyer une instance du meme type dynamique
+	// Doit etre reimplemente dans les sous-classes
+	KWDataPathManager* Create() const override;
 };
 
 ////////////////////////////////////////////////////////////
@@ -407,29 +517,40 @@ inline char KWDataPath::GetDataPathEscapeChar()
 	return '`';
 }
 
+inline ObjectArray* KWDataPath::GetComponents()
+{
+	return &oaComponents;
+}
+
+inline const ObjectArray* KWDataPath::GetConstComponents() const
+{
+	return &oaComponents;
+}
+
 inline boolean KWObjectDataPath::GetCreatedObjects() const
 {
 	return bCreatedObjects;
 }
 
-inline void KWObjectDataPath::SetCreatedObject(boolean bValue)
+inline void KWObjectDataPath::SetCreatedObjects(boolean bValue)
 {
 	bCreatedObjects = bValue;
 }
 
-inline const KWObjectDataPath* KWObjectDataPath::GetSubDataPath(const KWLoadIndex liAttributeLoadIndex) const
+inline const KWObjectDataPath* KWObjectDataPath::GetComponentDataPath(const KWLoadIndex liAttributeLoadIndex) const
 {
-	const KWObjectDataPath* foundSubDataPath;
+	const KWObjectDataPath* foundComponentDataPath;
 
 	require(IsCompiled());
 	require(liAttributeLoadIndex.IsValid());
 	require(liAttributeLoadIndex.IsDense());
-	require(liAttributeLoadIndex.GetDenseIndex() < oaCompiledSubDataPathsByLoadIndex.GetSize());
+	require(liAttributeLoadIndex.GetDenseIndex() < oaCompiledComponentDataPathsByLoadIndex.GetSize());
 
-	foundSubDataPath = cast(const KWObjectDataPath*,
-				oaCompiledSubDataPathsByLoadIndex.GetAt(liAttributeLoadIndex.GetDenseIndex()));
-	ensure(foundSubDataPath->GetTerminalLoadIndex().GetDenseIndex() == liAttributeLoadIndex.GetDenseIndex());
-	return foundSubDataPath;
+	foundComponentDataPath =
+	    cast(const KWObjectDataPath*,
+		 oaCompiledComponentDataPathsByLoadIndex.GetAt(liAttributeLoadIndex.GetDenseIndex()));
+	ensure(foundComponentDataPath->GetTerminalLoadIndex().GetDenseIndex() == liAttributeLoadIndex.GetDenseIndex());
+	return foundComponentDataPath;
 }
 
 inline longint KWObjectDataPath::GetMainCreationIndex() const
@@ -467,4 +588,59 @@ inline int KWObjectDataPath::GetRandomLeap() const
 {
 	require(IsCompiled());
 	return nCompiledRandomLeap;
+}
+
+inline const KWClass* KWDataPathManager::GetMainClass()
+{
+	return kwcMainClass;
+}
+
+inline int KWDataPathManager::GetDataPathNumber() const
+{
+	return oaDataPaths.GetSize();
+}
+
+inline const KWDataPath* KWDataPathManager::GetDataPathAt(int nIndex) const
+{
+	return cast(const KWDataPath*, oaDataPaths.GetAt(nIndex));
+}
+
+inline const KWDataPath* KWDataPathManager::GetMainDataPath() const
+{
+	return mainDataPath;
+}
+
+inline int KWDataPathManager::GetExternalRootDataPathNumber() const
+{
+	return oaExternalRootDataPaths.GetSize();
+}
+
+inline const KWDataPath* KWDataPathManager::GetExternalRootDataPathAt(int nIndex) const
+{
+	return cast(const KWDataPath*, oaExternalRootDataPaths.GetAt(nIndex));
+}
+
+inline const KWDataPath* KWDataPathManager::LookupDataPath(const ALString& sDataPath) const
+{
+	return cast(KWDataPath*, odDataPaths.Lookup(sDataPath));
+}
+
+inline const StringVector* KWDataPathManager::GetUnusedRootDictionaryWarnings() const
+{
+	return &svUnusedRootDictionaryWarnings;
+}
+
+inline const KWObjectDataPath* KWObjectDataPathManager::GetMainObjectDataPath() const
+{
+	return cast(const KWObjectDataPath*, GetMainDataPath());
+}
+
+inline const KWObjectDataPath* KWObjectDataPathManager::GetExternalRootObjectDataPathAt(int nIndex) const
+{
+	return cast(const KWObjectDataPath*, GetExternalRootDataPathAt(nIndex));
+}
+
+inline const KWObjectDataPath* KWObjectDataPathManager::LookupObjectDataPath(const ALString& sDataPath) const
+{
+	return cast(const KWObjectDataPath*, LookupDataPath(sDataPath));
 }

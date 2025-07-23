@@ -64,7 +64,7 @@
 typedef bool boolean;
 
 // Comparaison par type, pour implementation dans les methodes de comparaison
-// Pour les entiers: une difference suffit? Pour les chaines de caracteres, utilise la methode Compare de ALString.
+// Pour les entiers: une difference suffit. Pour les chaines de caracteres, utilise la methode Compare de ALString.
 inline int CompareBoolean(boolean b1, boolean b2)
 {
 	return (b1 != false) - (b2 != false);

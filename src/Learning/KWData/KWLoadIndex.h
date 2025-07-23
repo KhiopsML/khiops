@@ -34,8 +34,6 @@ public:
 	boolean operator==(const KWLoadIndex& liLoadIndex) const;
 	boolean operator!=(const KWLoadIndex& liLoadIndex) const;
 
-	//DDD TODO operateur de copie
-
 	// Affichage dans un stream
 	friend ostream& operator<<(ostream& ost, const KWLoadIndex& value);
 

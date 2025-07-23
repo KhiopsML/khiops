@@ -584,7 +584,7 @@ void KWAttributeStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) c
 				if (modlHistogramResults != NULL)
 				{
 					assert(GetTargetAttributeType() == KWType::None);
-					assert(GetPreprocessingSpec()
+					assert(learningSpec->GetPreprocessingSpec()
 						   ->GetDiscretizerSpec()
 						   ->GetDiscretizer(GetTargetAttributeType())
 						   ->IsMODLFamily());
