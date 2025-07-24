@@ -129,6 +129,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 	Timer timerSort;
 	Timer timerSplit;
 	Timer timerConcat;
+	KWSortBucket* bucket;
 	KWSortBuckets sortedBuckets;    // Ensemble des buckets
 	KWSortBucket* overweightBucket; // Bucket trop gros
 	KWSortBucket*
@@ -148,6 +149,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 	ALString sOutputPah;
 	longint lRemainingDisk;
 	PLFileConcatenater concatenater;
+	int i, j;
 
 	require(sInputFileName != "");
 
@@ -463,9 +465,26 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 	// Fin du timer
 	timerSort.Stop();
 
-	// Suppression du fichier resultat si erreur
-	if (not bOk)
+	// Nettoyage en cas d'erreur
+	if (not bOk or bIsInterruptedByUser)
+	{
+		// Suppression du fichier resultat
 		PLRemoteFileService::RemoveFile(sOutputFileName);
+
+		// Nettoyage des chunks construits
+		// (Si il n'y a qu'un chunk, c'est le fichier initial, on ne le supprime pas)
+		if (sortedBuckets.GetBucketNumber() > 1)
+		{
+			for (i = 0; i < sortedBuckets.GetBucketNumber(); i++)
+			{
+				bucket = sortedBuckets.GetBucketAt(i);
+				for (j = 0; j < bucket->GetChunkFileNames()->GetSize(); j++)
+				{
+					PLRemoteFileService::RemoveFile(bucket->GetChunkFileNames()->GetAt(j));
+				}
+			}
+		}
+	}
 
 	// Messages utilisateur
 	if (bDisplayUserMessage)
