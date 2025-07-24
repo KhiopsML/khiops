@@ -261,25 +261,25 @@ public:
 	// de l'appel des methodes d'ecriture JSON
 
 	// Vecteur des bornes inf et sup de domaine numerique par attribut
-	void SetJSONAttributeDomainLowerBounds(const ContinuousVector* cvValues);
+	void SetJSONAttributeDomainLowerBounds(const ContinuousVector* cvValues) const;
 	const ContinuousVector* GetJSONAttributeDomainLowerBounds() const;
 
 	// Vecteur des valeurs max par attribut
-	void SetJSONAttributeDomainUpperBounds(const ContinuousVector* cvValues);
+	void SetJSONAttributeDomainUpperBounds(const ContinuousVector* cvValues) const;
 	const ContinuousVector* GetJSONAttributeDomainUpperBounds() const;
 
 	// Ecriture du contenu d'un rapport JSON
-	virtual void WriteJSONFields(JSONFile* fJSON);
+	virtual void WriteJSONFields(JSONFile* fJSON) const;
 
 	// Ecriture d'un rapport JSON
 	// Avec une cle s'il est dans un objet, sans cle s'il est dans un tableau
-	virtual void WriteJSONReport(JSONFile* fJSON);
-	virtual void WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey);
+	virtual void WriteJSONReport(JSONFile* fJSON) const;
+	virtual void WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) const;
 
 	// Ecriture des effectifs des valeurs, dans le cas particulier d'une grille reduite
 	// a un attribut de valeurs categorielles
 	// On ecrit un objet, puis une suite de paire (valeur: effectif)
-	virtual void WriteJSONKeyValueFrequencies(JSONFile* fJSON, const ALString& sKey);
+	virtual void WriteJSONKeyValueFrequencies(JSONFile* fJSON, const ALString& sKey) const;
 
 	///////////////////////////////
 	// Services divers
@@ -405,8 +405,8 @@ protected:
 	int nGranularity;
 
 	// Vecteur des valeurs min et max par intervalle, pour l'ecriture des discretisation JSON
-	const ContinuousVector* cvJSONAttributeDomainLowerBounds;
-	const ContinuousVector* cvJSONAttributeDomainUpperBounds;
+	mutable const ContinuousVector* cvJSONAttributeDomainLowerBounds;
+	mutable const ContinuousVector* cvJSONAttributeDomainUpperBounds;
 
 	friend class PLShared_DataGridStats;
 };
@@ -486,16 +486,16 @@ public:
 	virtual void WritePartDetailsAt(ostream& ost, int nPartIndex) const;
 
 	// Ecriture du contenu d'un rapport JSON
-	virtual void WriteJSONFields(JSONFile* fJSON);
+	virtual void WriteJSONFields(JSONFile* fJSON) const;
 
 	// Ecriture du contenu d'une partie JSON
 	// Soit une seule valeur, soit la description d'une partie
-	virtual void WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex);
+	virtual void WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex) const;
 
 	// Ecriture d'un rapport JSON
 	// Avec une cle s'il est dans un objet, sans cle s'il est dans un tableau
-	virtual void WriteJSONReport(JSONFile* fJSON);
-	virtual void WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey);
+	virtual void WriteJSONReport(JSONFile* fJSON) const;
+	virtual void WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) const;
 
 	// Creation generique
 	virtual KWDGSAttributePartition* Create() const = 0;
@@ -553,8 +553,8 @@ public:
 	const ALString GetClassLabel() const override;
 
 	// Methode d'ecriture JSON specifique, avec les valeurs min et max de l'attribut
-	void WriteJSONFieldsWithBounds(JSONFile* fJSON, Continuous cMin, Continuous cMax);
-	void WriteJSONPartFieldsAtWithBounds(JSONFile* fJSON, int nPartIndex, Continuous cMin, Continuous cMax);
+	void WriteJSONFieldsWithBounds(JSONFile* fJSON, Continuous cMin, Continuous cMax) const;
+	void WriteJSONPartFieldsAtWithBounds(JSONFile* fJSON, int nPartIndex, Continuous cMin, Continuous cMax) const;
 
 	// Mise a jour des bornes des intervalles
 	// Attention: le nombre de bornes est egal au nombre d'intervalles moins un
@@ -606,8 +606,8 @@ public:
 	boolean IsPartDetailsReported() const override;
 	void WritePartDetailsHeader(ostream& ost) const override;
 	void WritePartDetailsAt(ostream& ost, int nPartIndex) const override;
-	void WriteJSONFields(JSONFile* fJSON) override;
-	void WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex) override;
+	void WriteJSONFields(JSONFile* fJSON) const override;
+	void WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex) const override;
 	KWDGSAttributePartition* Create() const override;
 	void CopyFrom(const KWDGSAttributePartition* kwdgsapSource) override;
 	int Compare(const KWDGSAttributePartition* kwdgsapSource) const override;
@@ -707,7 +707,7 @@ public:
 	longint GetUsedMemory() const override;
 	void WritePartHeader(ostream& ost) const override;
 	void WritePartAt(ostream& ost, int nPartIndex) const override;
-	void WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex) override;
+	void WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex) const override;
 	KWDGSAttributePartition* Create() const override;
 	void CopyFrom(const KWDGSAttributePartition* kwdgsapSource) override;
 	int Compare(const KWDGSAttributePartition* kwdgsapSource) const override;
@@ -761,7 +761,7 @@ public:
 	longint GetUsedMemory() const override;
 	void WritePartHeader(ostream& ost) const override;
 	void WritePartAt(ostream& ost, int nPartIndex) const override;
-	void WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex) override;
+	void WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex) const override;
 	KWDGSAttributePartition* Create() const override;
 	void CopyFrom(const KWDGSAttributePartition* kwdgsapSource) override;
 	int Compare(const KWDGSAttributePartition* kwdgsapSource) const override;
@@ -812,7 +812,7 @@ public:
 	void SetPartNumber(int nValue) override;
 	int GetPartNumber() const override;
 	longint GetUsedMemory() const override;
-	void WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex) override;
+	void WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex) const override;
 	KWDGSAttributePartition* Create() const override;
 	void CopyFrom(const KWDGSAttributePartition* kwdgsapSource) override;
 

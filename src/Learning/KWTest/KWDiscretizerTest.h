@@ -240,12 +240,12 @@ public:
 	// Ecriture de rapport
 
 	// Ecriture d'un rapport detaille
-	void WriteReportFile(const ALString& sFileName);
-	void WriteReport(ostream& ost);
+	void WriteReportFile(const ALString& sFileName) const;
+	void WriteReport(ostream& ost) const;
 
 	// Rapport synthetique destine a rentrer dans un tableau
-	void WriteHeaderLineReport(ostream& ost);
-	void WriteLineReport(ostream& ost);
+	void WriteHeaderLineReport(ostream& ost) const;
+	void WriteLineReport(ostream& ost) const;
 
 	/////////////////////////////////////////////////////////////////////
 	// Implementation

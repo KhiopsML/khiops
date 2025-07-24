@@ -76,7 +76,7 @@ public:
 
 	// Ecriture d'un rapport
 	// Accessible uniquement si statistiques calculees
-	virtual void WriteReport(ostream& ost);
+	virtual void WriteReport(ostream& ost) const;
 
 	static const ALString DRAWING_TYPE_NO_REPLACEMENT_LABEL;
 	static const ALString DRAWING_TYPE_USE_OUT_OF_BAG_LABEL;

@@ -491,12 +491,12 @@ public:
 	// Gestion d'un rapport JSON
 
 	// Ecriture du contenu d'un rapport JSON
-	virtual void WriteJSONFields(JSONFile* fJSON);
+	virtual void WriteJSONFields(JSONFile* fJSON) const;
 
 	// Ecriture d'un rapport JSON
 	// Avec une cle s'il est dans un objet, sans cle s'il est dans un tableau
-	virtual void WriteJSONReport(JSONFile* fJSON);
-	virtual void WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey);
+	virtual void WriteJSONReport(JSONFile* fJSON) const;
+	virtual void WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) const;
 
 	////////////////////////////////////////////////////////////////
 	// Gestion du format externe des Name

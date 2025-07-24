@@ -857,7 +857,7 @@ void KWAttributeBlock::Write(ostream& ost) const
 		ost << "// " << GetLabel();
 }
 
-void KWAttributeBlock::WriteJSONFields(JSONFile* fJSON)
+void KWAttributeBlock::WriteJSONFields(JSONFile* fJSON) const
 {
 	KWClass* parentClass;
 	KWAttribute* attribute;

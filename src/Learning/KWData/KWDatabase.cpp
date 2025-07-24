@@ -1336,7 +1336,7 @@ longint KWDatabase::ComputeOpenNecessaryMemory(boolean bRead, boolean bIncluding
 	return lNecessaryMemory;
 }
 
-void KWDatabase::WriteJSONFields(JSONFile* fJSON)
+void KWDatabase::WriteJSONFields(JSONFile* fJSON) const
 {
 	fJSON->WriteKeyString("database", GetDatabaseName());
 

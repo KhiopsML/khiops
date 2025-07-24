@@ -1874,7 +1874,7 @@ DoubleVector* KWSampleDataGridTest::GetPartNumbersAt(int nAttribute)
 	return cast(DoubleVector*, oaUnivariatePartitionSizes.GetAt(nAttribute));
 }
 
-void KWSampleDataGridTest::WriteReportFile(const ALString& sFileName)
+void KWSampleDataGridTest::WriteReportFile(const ALString& sFileName) const
 {
 	fstream ost;
 	boolean bOk;
@@ -1889,7 +1889,7 @@ void KWSampleDataGridTest::WriteReportFile(const ALString& sFileName)
 	}
 }
 
-void KWSampleDataGridTest::WriteReport(ostream& ost)
+void KWSampleDataGridTest::WriteReport(ostream& ost) const
 {
 	int nRun;
 	int nAttribute;
@@ -1907,7 +1907,7 @@ void KWSampleDataGridTest::WriteReport(ostream& ost)
 
 	// Statistiques par echantillon
 	ost << "Run\tInterval Number\tError\tDKL\tMSE\tCost\tTime\tCells\tNo inf. att.\tInf. att.";
-	for (nAttribute = 0; nAttribute < GetGenerator()->GetAttributeTypes()->GetSize(); nAttribute++)
+	for (nAttribute = 0; nAttribute < sampleGenerator->GetAttributeTypes()->GetSize(); nAttribute++)
 		ost << "\t" << sAttributeName << nAttribute + 1;
 	ost << "\n";
 	for (nRun = 0; nRun < nSampleNumber; nRun++)
@@ -1917,7 +1917,7 @@ void KWSampleDataGridTest::WriteReport(ostream& ost)
 		    << dvCellNumbers.GetAt(nRun) << "\t" << dvNoInformativeAttributeNumbers.GetAt(nRun) << "\t"
 		    << dvInformativeAttributeNumbers.GetAt(nRun) << "\t" << dvGMErrors.GetAt(nRun) << "\t"
 		    << dvGMDKLs.GetAt(nRun) << "\t" << dvGMMSEs.GetAt(nRun);
-		for (nAttribute = 0; nAttribute < GetGenerator()->GetAttributeTypes()->GetSize(); nAttribute++)
+		for (nAttribute = 0; nAttribute < sampleGenerator->GetAttributeTypes()->GetSize(); nAttribute++)
 		{
 			dvUnivariatePartitionSizes = cast(DoubleVector*, oaUnivariatePartitionSizes.GetAt(nAttribute));
 			ost << "\t" << dvUnivariatePartitionSizes->GetAt(nRun);
@@ -1927,7 +1927,7 @@ void KWSampleDataGridTest::WriteReport(ostream& ost)
 	ost << endl;
 }
 
-void KWSampleDataGridTest::WriteHeaderLineReport(ostream& ost)
+void KWSampleDataGridTest::WriteHeaderLineReport(ostream& ost) const
 {
 	int nAttribute;
 	const ALString sAttributeName = "X";
@@ -1950,7 +1950,7 @@ void KWSampleDataGridTest::WriteHeaderLineReport(ostream& ost)
 	ost << "GMError\t";
 	ost << "GMDKL\t";
 	ost << "GMMSE";
-	for (nAttribute = 0; nAttribute < GetGenerator()->GetAttributeTypes()->GetSize(); nAttribute++)
+	for (nAttribute = 0; nAttribute < sampleGenerator->GetAttributeTypes()->GetSize(); nAttribute++)
 		ost << "\t" << sAttributeName << nAttribute + 1;
 	ost << "\t";
 
@@ -1966,12 +1966,12 @@ void KWSampleDataGridTest::WriteHeaderLineReport(ostream& ost)
 	ost << "GMError SD\t";
 	ost << "GMDKL SD\t";
 	ost << "GMMSE SD";
-	for (nAttribute = 0; nAttribute < GetGenerator()->GetAttributeTypes()->GetSize(); nAttribute++)
+	for (nAttribute = 0; nAttribute < sampleGenerator->GetAttributeTypes()->GetSize(); nAttribute++)
 		ost << "\t" << sAttributeName << nAttribute + 1 << " SD";
 	ost << flush;
 }
 
-void KWSampleDataGridTest::WriteLineReport(ostream& ost)
+void KWSampleDataGridTest::WriteLineReport(ostream& ost) const
 {
 	int nAttribute;
 	DoubleVector* dvUnivariatePartitionSizes;
@@ -1994,7 +1994,7 @@ void KWSampleDataGridTest::WriteLineReport(ostream& ost)
 	ost << KWStat::Mean(&dvGMErrors) << "\t";
 	ost << KWStat::Mean(&dvGMDKLs) << "\t";
 	ost << KWStat::Mean(&dvGMMSEs);
-	for (nAttribute = 0; nAttribute < GetGenerator()->GetAttributeTypes()->GetSize(); nAttribute++)
+	for (nAttribute = 0; nAttribute < sampleGenerator->GetAttributeTypes()->GetSize(); nAttribute++)
 	{
 		dvUnivariatePartitionSizes = cast(DoubleVector*, oaUnivariatePartitionSizes.GetAt(nAttribute));
 		ost << "\t" << KWStat::Mean(dvUnivariatePartitionSizes);
@@ -2013,7 +2013,7 @@ void KWSampleDataGridTest::WriteLineReport(ostream& ost)
 	ost << KWStat::StandardDeviation(&dvGMErrors) << "\t";
 	ost << KWStat::StandardDeviation(&dvGMDKLs) << "\t";
 	ost << KWStat::StandardDeviation(&dvGMMSEs);
-	for (nAttribute = 0; nAttribute < GetGenerator()->GetAttributeTypes()->GetSize(); nAttribute++)
+	for (nAttribute = 0; nAttribute < sampleGenerator->GetAttributeTypes()->GetSize(); nAttribute++)
 	{
 		dvUnivariatePartitionSizes = cast(DoubleVector*, oaUnivariatePartitionSizes.GetAt(nAttribute));
 		ost << "\t" << KWStat::StandardDeviation(dvUnivariatePartitionSizes);

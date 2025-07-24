@@ -102,14 +102,14 @@ public:
 	Continuous GetStandardDeviation() const;
 
 	// Ecriture d'un rapport destine a rentrer dans un rapport englobant
-	void WriteReport(ostream& ost) override;
+	void WriteReport(ostream& ost) const override;
 
 	// Rapport synthetique destine a rentrer dans un tableau englobant
-	void WriteHeaderLineReport(ostream& ost) override;
-	void WriteLineReport(ostream& ost) override;
+	void WriteHeaderLineReport(ostream& ost) const override;
+	void WriteLineReport(ostream& ost) const override;
 
 	// Ecriture d'un rapport JSON
-	void WriteJSONFields(JSONFile* fJSON) override;
+	void WriteJSONFields(JSONFile* fJSON) const override;
 
 	////////////////////////////////////////////////
 	// Services divers
@@ -168,14 +168,14 @@ public:
 	int GetTotalFrequency() const;
 
 	// Ecriture d'un rapport destine a rentrer dans un rapport englobant
-	void WriteReport(ostream& ost) override;
+	void WriteReport(ostream& ost) const override;
 
 	// Rapport synthetique destine a rentrer dans un tableau englobant
-	void WriteHeaderLineReport(ostream& ost) override;
-	void WriteLineReport(ostream& ost) override;
+	void WriteHeaderLineReport(ostream& ost) const override;
+	void WriteLineReport(ostream& ost) const override;
 
 	// Ecriture d'un rapport JSON
-	void WriteJSONFields(JSONFile* fJSON) override;
+	void WriteJSONFields(JSONFile* fJSON) const override;
 
 	///////////////////////////////////////////
 	// Services Divers

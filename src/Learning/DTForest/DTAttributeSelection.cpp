@@ -575,7 +575,7 @@ void DTAttributeSelection::SetUsableAttributesNumber(int nmax)
 	nUsableAttributesNumber = nmax;
 }
 
-void DTAttributeSelection::WriteReport(ostream& ost)
+void DTAttributeSelection::WriteReport(ostream& ost) const
 {
 	int nAttribute;
 	DTTreeAttribute* taAttribute;

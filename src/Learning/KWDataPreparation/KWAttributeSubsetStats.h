@@ -69,14 +69,14 @@ public:
 
 	// Ecriture d'un rapport sur la grille de donnees
 	// Precede d'un tableau synthetique sur les grilles evaluees en cas de grilles multiples
-	void WriteReport(ostream& ost) override;
+	void WriteReport(ostream& ost) const override;
 
 	// Rapport synthetique destine a rentrer dans un tableau
-	void WriteHeaderLineReport(ostream& ost) override;
-	void WriteLineReport(ostream& ost) override;
+	void WriteHeaderLineReport(ostream& ost) const override;
+	void WriteLineReport(ostream& ost) const override;
 
 	// Ecriture d'un rapport JSON
-	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) override;
+	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const override;
 
 	/////////////////////////////////////////////////////////
 	// Services avances, utilisable dans d'autres contextes
@@ -214,15 +214,15 @@ public:
 
 	// Ecriture d'un rapport sur la grille de donnees
 	// Precede d'un tableau synthetique sur les grilles evaluees en cas de grilles multiples
-	void WriteReport(ostream& ost) override;
+	void WriteReport(ostream& ost) const override;
 	boolean IsReported() const override;
 
 	// Rapport synthetique destine a rentrer dans un tableau
-	void WriteHeaderLineReport(ostream& ost) override;
-	void WriteLineReport(ostream& ost) override;
+	void WriteHeaderLineReport(ostream& ost) const override;
+	void WriteLineReport(ostream& ost) const override;
 
 	// Ecriture d'un rapport JSON
-	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) override;
+	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const override;
 };
 
 ////////////////////////////////////////////////////////////

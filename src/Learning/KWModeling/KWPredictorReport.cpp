@@ -115,23 +115,23 @@ void KWPredictorReport::WriteFullReport(ostream& ost, ObjectArray* oaTrainReport
 	WriteArrayReport(ost, "Trained predictors details", oaTrainReports);
 }
 
-void KWPredictorReport::WriteHeaderLineReport(ostream& ost)
+void KWPredictorReport::WriteHeaderLineReport(ostream& ost) const
 {
 	ost << "Predictor\tVariables";
 }
 
-void KWPredictorReport::WriteLineReport(ostream& ost)
+void KWPredictorReport::WriteLineReport(ostream& ost) const
 {
 	ost << TSV::Export(GetPredictorName()) << "\t";
 	ost << GetUsedAttributeNumber();
 }
 
-void KWPredictorReport::WriteReport(ostream& ost)
+void KWPredictorReport::WriteReport(ostream& ost) const
 {
 	ost << "Predictor\t" << TSV::Export(GetPredictorName()) << "\n";
 }
 
-void KWPredictorReport::WriteJSONFullReportFields(JSONFile* fJSON, ObjectArray* oaTrainReports)
+void KWPredictorReport::WriteJSONFullReportFields(JSONFile* fJSON, const ObjectArray* oaTrainReports) const
 {
 	KWPredictorReport* firstReport;
 
@@ -192,7 +192,7 @@ void KWPredictorReport::WriteJSONFullReportFields(JSONFile* fJSON, ObjectArray* 
 	WriteJSONDictionaryReport(fJSON, "trainedPredictorsDetails", oaTrainReports, false);
 }
 
-void KWPredictorReport::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
+void KWPredictorReport::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const
 {
 	const ALString sUnivariateFamily = "Univariate";
 	require(fJSON != NULL);
@@ -218,7 +218,7 @@ boolean KWPredictorReport::IsJSONReported(boolean bSummary) const
 	return bSummary;
 }
 
-boolean KWPredictorReport::CheckTrainReports(ObjectArray* oaTrainReports) const
+boolean KWPredictorReport::CheckTrainReports(const ObjectArray* oaTrainReports) const
 {
 	boolean bOk = true;
 	KWPredictorReport* firstTrainReport;
@@ -273,7 +273,7 @@ ObjectArray* KWPredictorSelectionReport::GetSelectedAttributes()
 	return &oaSelectedAttributes;
 }
 
-void KWPredictorSelectionReport::WriteReport(ostream& ost)
+void KWPredictorSelectionReport::WriteReport(ostream& ost) const
 {
 	KWSelectedAttributeReport* firstAttributeReport;
 
@@ -288,7 +288,7 @@ void KWPredictorSelectionReport::WriteReport(ostream& ost)
 	}
 }
 
-void KWPredictorSelectionReport::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
+void KWPredictorSelectionReport::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const
 {
 	ObjectArray oaSortedReports;
 	KWSelectedAttributeReport* attributeReport;
@@ -476,7 +476,7 @@ int KWSelectedAttributeReport::CompareValue(const KWLearningReport* otherReport)
 }
 
 void KWSelectedAttributeReport::WriteArrayLineReport(ostream& ost, const ALString& sTitle,
-						     ObjectArray* oaLearningReports) const
+						     const ObjectArray* oaLearningReports) const
 {
 	boolean bWriteUnivariateEvaluation;
 	boolean bWriteWeight;
@@ -568,7 +568,7 @@ void KWSelectedAttributeReport::WriteLineReport(ostream& ost) const
 	}
 }
 
-void KWSelectedAttributeReport::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
+void KWSelectedAttributeReport::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const
 {
 	if (not bSummary)
 	{

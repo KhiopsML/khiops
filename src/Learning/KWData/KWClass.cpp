@@ -2270,7 +2270,7 @@ const ALString KWClass::GetObjectLabel() const
 	return GetName();
 }
 
-void KWClass::WriteJSONFields(JSONFile* fJSON)
+void KWClass::WriteJSONFields(JSONFile* fJSON) const
 {
 	KWAttribute* attribute;
 	int i;
@@ -2325,14 +2325,14 @@ void KWClass::WriteJSONFields(JSONFile* fJSON)
 	}
 }
 
-void KWClass::WriteJSONReport(JSONFile* fJSON)
+void KWClass::WriteJSONReport(JSONFile* fJSON) const
 {
 	fJSON->BeginObject();
 	WriteJSONFields(fJSON);
 	fJSON->EndObject();
 }
 
-void KWClass::WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey)
+void KWClass::WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) const
 {
 	fJSON->BeginKeyObject(sKey);
 	WriteJSONFields(fJSON);

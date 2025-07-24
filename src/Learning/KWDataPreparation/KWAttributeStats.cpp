@@ -178,7 +178,7 @@ KWDataGridStats* KWAttributeStats::GetSymbolValueStats()
 	return symbolValueStats;
 }
 
-void KWAttributeStats::WriteReport(ostream& ost)
+void KWAttributeStats::WriteReport(ostream& ost) const
 {
 	boolean bWriteTarget;
 	KWDGSAttributeSymbolValues* symbolValues;
@@ -246,7 +246,7 @@ boolean KWAttributeStats::IsReported() const
 		kwDescriptiveStats->GetValueNumber() > 1);
 }
 
-void KWAttributeStats::WriteHeaderLineReport(ostream& ost)
+void KWAttributeStats::WriteHeaderLineReport(ostream& ost) const
 {
 	int i;
 	KWAttribute* attribute;
@@ -315,7 +315,7 @@ void KWAttributeStats::WriteHeaderLineReport(ostream& ost)
 		ost << "\tDerivation rule";
 }
 
-void KWAttributeStats::WriteLineReport(ostream& ost)
+void KWAttributeStats::WriteLineReport(ostream& ost) const
 {
 	KWAttribute* attribute;
 	int nSource;
@@ -433,7 +433,7 @@ void KWAttributeStats::WriteLineReport(ostream& ost)
 	}
 }
 
-void KWAttributeStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
+void KWAttributeStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const
 {
 	KWAttribute* attribute;
 	int nSource;
@@ -441,7 +441,7 @@ void KWAttributeStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
 	ALString sUsedRule;
 	ContinuousVector cvAttributeDomainLowerBounds;
 	ContinuousVector cvAttributeDomainUpperBounds;
-	KWDescriptiveContinuousStats* descriptiveContinuousStats;
+	const KWDescriptiveContinuousStats* descriptiveContinuousStats;
 
 	require(IsStatsComputed());
 
@@ -576,7 +576,8 @@ void KWAttributeStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
 			cvAttributeDomainUpperBounds.SetSize(preparedDataGridStats->GetAttributeNumber());
 			if (GetAttributeType() == KWType::Continuous)
 			{
-				descriptiveContinuousStats = cast(KWDescriptiveContinuousStats*, GetDescriptiveStats());
+				descriptiveContinuousStats =
+				    cast(const KWDescriptiveContinuousStats*, kwDescriptiveStats);
 
 				// On prend les bornes issues de l'histogramme dans le cas d'une discretisation non
 				// supervisee MODL

@@ -41,14 +41,14 @@ public:
 	// Gestion du rapport general
 
 	// Ecriture d'un rapport
-	void WriteReportFile(const ALString& sFileName);
-	virtual void WriteReport(ostream& ost);
+	void WriteReportFile(const ALString& sFileName) const;
+	virtual void WriteReport(ostream& ost) const;
 
 	// Rapport synthetique destine a rentrer dans un tableau
 	// Ces methodes ne doivent pas creer de retour charriot ('\n') en fin de ligne, de facon a permettre
 	// leur reimplementation. Ces retours charriot sont a generer par les methodes qui les utilisent.
-	virtual void WriteHeaderLineReport(ostream& ost);
-	virtual void WriteLineReport(ostream& ost);
+	virtual void WriteHeaderLineReport(ostream& ost) const;
+	virtual void WriteLineReport(ostream& ost) const;
 
 	// Parametrage de la prise en compte dans les rapports (par defaut: true)
 	virtual boolean IsReported() const;
@@ -69,41 +69,42 @@ public:
 	const ALString& GetIdentifier() const;
 
 	// Calcul d'identifiants base sur les rangs suite a un tri de tableau de rapport par SortValue
-	void ComputeRankIdentifiers(ObjectArray* oaLearningReports);
+	void ComputeRankIdentifiers(const ObjectArray* oaLearningReports) const;
 
 	// Rapport synthetique pour un tableau de stats
-	virtual void WriteArrayLineReport(ostream& ost, const ALString& sTitle, ObjectArray* oaLearningReports);
+	virtual void WriteArrayLineReport(ostream& ost, const ALString& sTitle,
+					  const ObjectArray* oaLearningReports) const;
 
 	// Rapport detaille pour un tableau de stats
-	virtual void WriteArrayReport(ostream& ost, const ALString& sTitle, ObjectArray* oaLearningReports);
+	virtual void WriteArrayReport(ostream& ost, const ALString& sTitle, const ObjectArray* oaLearningReports) const;
 
 	////////////////////////////////////////////////////////
 	// Gestion d'un rapport JSON
 
 	// Ecriture du contenu d'un rapport JSON
-	virtual void WriteJSONFields(JSONFile* fJSON);
+	virtual void WriteJSONFields(JSONFile* fJSON) const;
 
 	// Ecriture d'un rapport JSON
 	// Avec une cle s'il est dans un objet, sans cle s'il est dans un tableau
-	virtual void WriteJSONReport(JSONFile* fJSON);
-	virtual void WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey);
+	virtual void WriteJSONReport(JSONFile* fJSON) const;
+	virtual void WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) const;
 
 	// Ecriture du contenu d'un rapport JSON pour un tableau ou un dictionnaire
 	// On distingue les champs de resume, synthetique,
 	// des champs de detail, pour avoir l'information complete
-	virtual void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary);
+	virtual void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const;
 
 	// Parametrage de la prise en compte dans les rapports
 	// (par defaut: true si Summary=true, IsReported sinon)
 	virtual boolean IsJSONReported(boolean bSummary) const;
 
 	// Ecriture d'un tableau de rapport JSON
-	virtual void WriteJSONArrayReport(JSONFile* fJSON, const ALString& sArrayKey, ObjectArray* oaLearningReports,
-					  boolean bSummary);
+	virtual void WriteJSONArrayReport(JSONFile* fJSON, const ALString& sArrayKey,
+					  const ObjectArray* oaLearningReports, boolean bSummary) const;
 
 	// Ecriture d'un dictionnaire de rapport JSON, chacun identifie par son Identifier
 	virtual void WriteJSONDictionaryReport(JSONFile* fJSON, const ALString& sDictionaryKey,
-					       ObjectArray* oaLearningReports, boolean bSummary);
+					       const ObjectArray* oaLearningReports, boolean bSummary) const;
 
 	/////////////////////////////////////////////////
 	///// Implementation

@@ -260,7 +260,7 @@ public:
 	// Accessible pour un rapport complet uniquement si statistiques calculees
 	// Sinon, seul un rapport minimaliste est produit, avec les specifications d'apprentissage
 	// plus eventuellement les statistiques descriptives cibles si elles sont disponibles, et les erreurs
-	void WriteReport(ostream& ost) override;
+	void WriteReport(ostream& ost) const override;
 
 	// Parametrage de l'ecriture des rapports des attribut natif ou construits (defaut: false)
 	void SetWriteOptionStatsNativeOrConstructed(boolean bValue);
@@ -298,7 +298,7 @@ public:
 	// Accessible pour un rapport complet uniquement si statistiques calculees
 	// Sinon, seul un rapport minimaliste est produit, avec les specifications d'apprentissage
 	// plus eventuellement les statistiques descriptives cibles si elles sont disponibles, et les erreurs
-	void WriteJSONFields(JSONFile* fJSON) override;
+	void WriteJSONFields(JSONFile* fJSON) const override;
 
 	// Verification de la validite des specifications
 	boolean Check() const override;
@@ -334,7 +334,7 @@ protected:
 	virtual KWAttributePairStats* CreateAttributePairStats() const;
 
 	// Nombre de valeurs cibles dans le cas categoriel, considere comme important
-	virtual int GetTargetValueLargeNumber(int nDatabaseSize);
+	virtual int GetTargetValueLargeNumber(int nDatabaseSize) const;
 
 	// Taille de base consideree comme important
 	int GetLargeDatabaseSize();

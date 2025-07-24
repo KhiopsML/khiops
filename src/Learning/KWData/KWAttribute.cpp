@@ -579,7 +579,7 @@ void KWAttribute::Write(ostream& ost) const
 		ost << "// " << GetLabel();
 }
 
-void KWAttribute::WriteJSONFields(JSONFile* fJSON)
+void KWAttribute::WriteJSONFields(JSONFile* fJSON) const
 {
 	ALString sOutputString;
 	int i;

@@ -196,7 +196,7 @@ void DTForestParameter::SetDrawingType(const ALString drawingTypeLabel)
 		drawingType = DTDecisionTree::DrawingType::NoReplacement;
 }
 
-void DTForestParameter::WriteReport(ostream& ost)
+void DTForestParameter::WriteReport(ostream& ost) const
 {
 	// Contraintes utilisees lors de la recherche de l'arbre optimal
 	ost << "\n"

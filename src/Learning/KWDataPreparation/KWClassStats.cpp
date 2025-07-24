@@ -798,9 +798,9 @@ int KWClassStats::GetSelectedAttributePairNumber() const
 	return ComputeSelectedDataPreparationStats(&oaAttributePairStats);
 }
 
-void KWClassStats::WriteReport(ostream& ost)
+void KWClassStats::WriteReport(ostream& ost) const
 {
-	ObjectArray* oaInputDataPreparationStats;
+	const ObjectArray* oaInputDataPreparationStats;
 	ObjectArray oaFilteredDataPreparationStats;
 	ObjectArray oaFilteredSymbolAttributeStats;
 	ObjectArray oaFilteredContinuousAttributeStats;
@@ -1002,19 +1002,21 @@ void KWClassStats::WriteReport(ostream& ost)
 			GetAttributeTreeConstructionReport()->WriteReport(ost);
 
 		// Parametrage des pretraitements
-		ost << GetPreprocessingSpec()->GetDiscretizerSpec()->GetClassLabel() << "\t";
+		ost << learningSpec->GetPreprocessingSpec()->GetDiscretizerSpec()->GetClassLabel() << "\t";
 		if (IsTargetGrouped())
 			ost << "MODL"
 			    << "\n";
 		else
-			ost << GetPreprocessingSpec()->GetDiscretizerSpec()->GetMethodLabel(GetTargetAttributeType())
+			ost << learningSpec->GetPreprocessingSpec()->GetDiscretizerSpec()->GetMethodLabel(
+				   GetTargetAttributeType())
 			    << "\n";
-		ost << GetPreprocessingSpec()->GetGrouperSpec()->GetClassLabel() << "\t";
+		ost << learningSpec->GetPreprocessingSpec()->GetGrouperSpec()->GetClassLabel() << "\t";
 		if (IsTargetGrouped())
 			ost << "MODL"
 			    << "\n";
 		else
-			ost << GetPreprocessingSpec()->GetGrouperSpec()->GetMethodLabel(GetTargetAttributeType())
+			ost << learningSpec->GetPreprocessingSpec()->GetGrouperSpec()->GetMethodLabel(
+				   GetTargetAttributeType())
 			    << "\n";
 	}
 
@@ -1125,12 +1127,12 @@ boolean KWClassStats::GetWriteDetailedStats() const
 	return bWriteDetailedStats;
 }
 
-void KWClassStats::WriteJSONFields(JSONFile* fJSON)
+void KWClassStats::WriteJSONFields(JSONFile* fJSON) const
 {
 	int nType;
 	int nAttributeNumber;
 	KWLearningReport* attributeCreationReport;
-	ObjectArray* oaInputDataPreparationStats;
+	const ObjectArray* oaInputDataPreparationStats;
 	ObjectArray oaFilteredDataPreparationStats;
 	ALString sDataLabel;
 	ALString sDataStartLabel;
@@ -1304,14 +1306,16 @@ void KWClassStats::WriteJSONFields(JSONFile* fJSON)
 		else
 			fJSON->WriteKeyString(
 			    "discretization",
-			    GetPreprocessingSpec()->GetDiscretizerSpec()->GetMethodLabel(GetTargetAttributeType()));
+			    learningSpec->GetPreprocessingSpec()->GetDiscretizerSpec()->GetMethodLabel(
+				GetTargetAttributeType()));
 
 		// Groupement de valeur
 		if (IsTargetGrouped())
 			fJSON->WriteKeyString("valueGrouping", "MODL");
 		else
-			fJSON->WriteKeyString("valueGrouping", GetPreprocessingSpec()->GetGrouperSpec()->GetMethodLabel(
-								   GetTargetAttributeType()));
+			fJSON->WriteKeyString("valueGrouping",
+					      learningSpec->GetPreprocessingSpec()->GetGrouperSpec()->GetMethodLabel(
+						  GetTargetAttributeType()));
 	}
 
 	// Cout du model null
@@ -1511,7 +1515,7 @@ KWAttributePairStats* KWClassStats::CreateAttributePairStats() const
 	return new KWAttributePairStats;
 }
 
-int KWClassStats::GetTargetValueLargeNumber(int nDatabaseSize)
+int KWClassStats::GetTargetValueLargeNumber(int nDatabaseSize) const
 {
 	require(nDatabaseSize >= 0);
 	return 10 + (int)sqrt(1.0 * nDatabaseSize);

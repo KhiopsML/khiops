@@ -66,7 +66,7 @@ public:
 	virtual Continuous GetDomainUpperBound() const = 0;
 
 	// Ecriture d'un rapport JSON
-	virtual void WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) = 0;
+	virtual void WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) const = 0;
 
 	// Nom du discretiseur a l'origine des results
 	virtual const ALString GetDiscretizerName() const = 0;

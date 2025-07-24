@@ -953,7 +953,7 @@ void KWDataGridStats::WriteMainTargetModality(ostream& ost) const
 	GetAttributeAt(GetFirstTargetAttributeIndex())->WritePartAt(ost, GetMainTargetModalityIndex());
 }
 
-void KWDataGridStats::SetJSONAttributeDomainLowerBounds(const ContinuousVector* cvValues)
+void KWDataGridStats::SetJSONAttributeDomainLowerBounds(const ContinuousVector* cvValues) const
 {
 	cvJSONAttributeDomainLowerBounds = cvValues;
 }
@@ -963,7 +963,7 @@ const ContinuousVector* KWDataGridStats::GetJSONAttributeDomainLowerBounds() con
 	return cvJSONAttributeDomainLowerBounds;
 }
 
-void KWDataGridStats::SetJSONAttributeDomainUpperBounds(const ContinuousVector* cvValues)
+void KWDataGridStats::SetJSONAttributeDomainUpperBounds(const ContinuousVector* cvValues) const
 {
 	cvJSONAttributeDomainUpperBounds = cvValues;
 }
@@ -973,7 +973,7 @@ const ContinuousVector* KWDataGridStats::GetJSONAttributeDomainUpperBounds() con
 	return cvJSONAttributeDomainUpperBounds;
 }
 
-void KWDataGridStats::WriteJSONFields(JSONFile* fJSON)
+void KWDataGridStats::WriteJSONFields(JSONFile* fJSON) const
 {
 	int nAttribute;
 	const KWDGSAttributeDiscretization attributeDiscretization;
@@ -1175,21 +1175,21 @@ void KWDataGridStats::WriteJSONFields(JSONFile* fJSON)
 	}
 }
 
-void KWDataGridStats::WriteJSONReport(JSONFile* fJSON)
+void KWDataGridStats::WriteJSONReport(JSONFile* fJSON) const
 {
 	fJSON->BeginObject();
 	WriteJSONFields(fJSON);
 	fJSON->EndObject();
 }
 
-void KWDataGridStats::WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey)
+void KWDataGridStats::WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) const
 {
 	fJSON->BeginKeyObject(sKey);
 	WriteJSONFields(fJSON);
 	fJSON->EndObject();
 }
 
-void KWDataGridStats::WriteJSONKeyValueFrequencies(JSONFile* fJSON, const ALString& sKey)
+void KWDataGridStats::WriteJSONKeyValueFrequencies(JSONFile* fJSON, const ALString& sKey) const
 {
 	KWDGSAttributeSymbolValues* kwdgaSymbolValues;
 	int nValue;
@@ -2423,7 +2423,7 @@ void KWDGSAttributePartition::WritePartDetailsHeader(ostream& ost) const {}
 
 void KWDGSAttributePartition::WritePartDetailsAt(ostream& ost, int nPartIndex) const {}
 
-void KWDGSAttributePartition::WriteJSONFields(JSONFile* fJSON)
+void KWDGSAttributePartition::WriteJSONFields(JSONFile* fJSON) const
 {
 	int nPart;
 
@@ -2449,16 +2449,16 @@ void KWDGSAttributePartition::WriteJSONFields(JSONFile* fJSON)
 	}
 }
 
-void KWDGSAttributePartition::WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex) {}
+void KWDGSAttributePartition::WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex) const {}
 
-void KWDGSAttributePartition::WriteJSONReport(JSONFile* fJSON)
+void KWDGSAttributePartition::WriteJSONReport(JSONFile* fJSON) const
 {
 	fJSON->BeginObject();
 	WriteJSONFields(fJSON);
 	fJSON->EndObject();
 }
 
-void KWDGSAttributePartition::WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey)
+void KWDGSAttributePartition::WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) const
 {
 	fJSON->BeginKeyObject(sKey);
 	WriteJSONFields(fJSON);
@@ -2681,7 +2681,7 @@ const ALString KWDGSAttributeDiscretization::GetClassLabel() const
 	return "Intervals";
 }
 
-void KWDGSAttributeDiscretization::WriteJSONFieldsWithBounds(JSONFile* fJSON, Continuous cMin, Continuous cMax)
+void KWDGSAttributeDiscretization::WriteJSONFieldsWithBounds(JSONFile* fJSON, Continuous cMin, Continuous cMax) const
 {
 	require(cMin <= cMax);
 
@@ -2700,7 +2700,7 @@ void KWDGSAttributeDiscretization::WriteJSONFieldsWithBounds(JSONFile* fJSON, Co
 }
 
 void KWDGSAttributeDiscretization::WriteJSONPartFieldsAtWithBounds(JSONFile* fJSON, int nPartIndex, Continuous cMin,
-								   Continuous cMax)
+								   Continuous cMax) const
 {
 	boolean bMissingValue;
 
@@ -3087,7 +3087,7 @@ void KWDGSAttributeGrouping::WritePartDetailsAt(ostream& ost, int nPartIndex) co
 	}
 }
 
-void KWDGSAttributeGrouping::WriteJSONFields(JSONFile* fJSON)
+void KWDGSAttributeGrouping::WriteJSONFields(JSONFile* fJSON) const
 {
 	int nDefaultPartIndex;
 	int nPart;
@@ -3120,7 +3120,7 @@ void KWDGSAttributeGrouping::WriteJSONFields(JSONFile* fJSON)
 	fJSON->WriteKeyInt("defaultGroupIndex", nDefaultPartIndex);
 }
 
-void KWDGSAttributeGrouping::WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex)
+void KWDGSAttributeGrouping::WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex) const
 {
 	ALString sPartLabel;
 	int nValue;
@@ -3414,7 +3414,7 @@ void KWDGSAttributeContinuousValues::WritePartAt(ostream& ost, int nPartIndex) c
 		ost << cvValues.GetAt(nPartIndex);
 }
 
-void KWDGSAttributeContinuousValues::WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex)
+void KWDGSAttributeContinuousValues::WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex) const
 {
 	require(0 <= nPartIndex and nPartIndex < GetPartNumber());
 
@@ -3627,7 +3627,7 @@ void KWDGSAttributeSymbolValues::WritePartAt(ostream& ost, int nPartIndex) const
 	ost << TSV::Export(svValues.GetAt(nPartIndex).GetValue());
 }
 
-void KWDGSAttributeSymbolValues::WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex)
+void KWDGSAttributeSymbolValues::WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex) const
 {
 	require(0 <= nPartIndex and nPartIndex < GetPartNumber());
 
@@ -3777,7 +3777,7 @@ longint KWDGSAttributeVirtualValues::GetUsedMemory() const
 	return lUsedMemory;
 }
 
-void KWDGSAttributeVirtualValues::WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex)
+void KWDGSAttributeVirtualValues::WriteJSONPartFieldsAt(JSONFile* fJSON, int nPartIndex) const
 {
 	ALString sTmp;
 	require(0 <= nPartIndex and nPartIndex < GetPartNumber());

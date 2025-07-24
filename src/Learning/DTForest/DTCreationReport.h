@@ -53,17 +53,17 @@ public:
 
 	// Ecriture du contenu d'un rapport JSON
 	// On doit avoir une description par arbres, avec pour cle le nom de l'arbre
-	void WriteJSONFields(JSONFile* fJSON) override;
+	void WriteJSONFields(JSONFile* fJSON) const override;
 
 	// Ecriture d'un tableau de rapport JSON des arbres
 	// Le parametrage de ClassStats pour savoir s'il ne faut ecrire que les variables selectionnees
-	void WriteJSONTreeReport(JSONFile* fJSON, boolean bSummary);
+	void WriteJSONTreeReport(JSONFile* fJSON, boolean bSummary) const;
 
 	/////////////////////////////////////////////////
 	// Implementation
 protected:
 	// Calcul des rangs des arbres (DTDecisionTreeSpec) suite a un tri de tableau de rapport par Level
-	void ComputeRankIdentifiers(ObjectArray* oaReports);
+	void ComputeRankIdentifiers(ObjectArray* oaReports) const;
 
 	// Attribut des statistiques de prepararation
 	KWClassStats* classStats;

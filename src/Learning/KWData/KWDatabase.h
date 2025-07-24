@@ -372,7 +372,7 @@ public:
 	virtual longint ComputeOpenNecessaryMemory(boolean bRead, boolean bIncludingClassMemory);
 
 	// Ecriture du contenu d'un rapport JSON
-	void WriteJSONFields(JSONFile* fJSON);
+	void WriteJSONFields(JSONFile* fJSON) const;
 
 	// Libelles utilisateurs
 	// Le libelle de l'objet contient le nom de la base et le numero de record s'il y en a un

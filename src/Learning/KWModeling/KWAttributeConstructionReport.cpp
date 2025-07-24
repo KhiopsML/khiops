@@ -21,7 +21,7 @@ const KWAttributeConstructionSpec* KWAttributeConstructionReport::GetAttributeCo
 	return attributeConstructionSpec;
 }
 
-void KWAttributeConstructionReport::WriteReport(ostream& ost)
+void KWAttributeConstructionReport::WriteReport(ostream& ost) const
 {
 	if (attributeConstructionSpec != NULL)
 	{
@@ -34,7 +34,7 @@ void KWAttributeConstructionReport::WriteReport(ostream& ost)
 	}
 }
 
-void KWAttributeConstructionReport::WriteJSONReport(JSONFile* fJSON)
+void KWAttributeConstructionReport::WriteJSONReport(JSONFile* fJSON) const
 {
 	if (attributeConstructionSpec != NULL)
 	{

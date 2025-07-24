@@ -182,9 +182,9 @@ protected:
 
 	// Ecriture du rapport JSON
 	// Seuls les rapports ecrits sont inclus dans le rapport JSON
-	virtual void WriteJSONAnalysisReport(KWClassStats* classStats, ObjectArray* oaTrainedPredictorReports,
-					     ObjectArray* oaTrainPredictorEvaluations,
-					     ObjectArray* oaTestPredictorEvaluations);
+	virtual void WriteJSONAnalysisReport(KWClassStats* classStats, const ObjectArray* oaTrainedPredictorReports,
+					     const ObjectArray* oaTrainPredictorEvaluations,
+					     const ObjectArray* oaTestPredictorEvaluations) const;
 
 	// Creation d'une classe de recodage dans le domaine en sortie
 	// Le domaine initial permet apres apprentissage de nettoyer la classe du predicteur de ses attributs

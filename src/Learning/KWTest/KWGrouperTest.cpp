@@ -923,7 +923,7 @@ DoubleVector* KWSymbolSampleGrouperTest::GetDistances()
 	return &dvDistances;
 }
 
-void KWSymbolSampleGrouperTest::WriteReportFile(const ALString& sFileName)
+void KWSymbolSampleGrouperTest::WriteReportFile(const ALString& sFileName) const
 {
 	fstream ost;
 	boolean bOk;
@@ -938,7 +938,7 @@ void KWSymbolSampleGrouperTest::WriteReportFile(const ALString& sFileName)
 	}
 }
 
-void KWSymbolSampleGrouperTest::WriteReport(ostream& ost)
+void KWSymbolSampleGrouperTest::WriteReport(ostream& ost) const
 {
 	int nRun;
 
@@ -961,7 +961,7 @@ void KWSymbolSampleGrouperTest::WriteReport(ostream& ost)
 	ost << endl;
 }
 
-void KWSymbolSampleGrouperTest::WriteHeaderLineReport(ostream& ost)
+void KWSymbolSampleGrouperTest::WriteHeaderLineReport(ostream& ost) const
 {
 	// Specifications des tests
 	ost << "Generator\t";
@@ -982,7 +982,7 @@ void KWSymbolSampleGrouperTest::WriteHeaderLineReport(ostream& ost)
 	ost << "D Std. Dev.";
 }
 
-void KWSymbolSampleGrouperTest::WriteLineReport(ostream& ost)
+void KWSymbolSampleGrouperTest::WriteLineReport(ostream& ost) const
 {
 	// Specifications des tests
 	ost << sampleGenerator->GetObjectLabel() << "\t";

@@ -288,7 +288,7 @@ longint KWAttributeSubsetStats::GetUsedMemory() const
 	return lUsedMemory;
 }
 
-void KWAttributeSubsetStats::WriteReport(ostream& ost)
+void KWAttributeSubsetStats::WriteReport(ostream& ost) const
 {
 	require(Check());
 	require(IsStatsComputed());
@@ -302,7 +302,7 @@ void KWAttributeSubsetStats::WriteReport(ostream& ost)
 	GetPreparedDataGridStats()->WritePartial(ost, true, GetTargetAttributeName() == "");
 }
 
-void KWAttributeSubsetStats::WriteHeaderLineReport(ostream& ost)
+void KWAttributeSubsetStats::WriteHeaderLineReport(ostream& ost) const
 {
 	require(IsStatsComputed());
 
@@ -322,7 +322,7 @@ void KWAttributeSubsetStats::WriteHeaderLineReport(ostream& ost)
 		ost << "\tConstr. cost\tPrep. cost\tData cost";
 }
 
-void KWAttributeSubsetStats::WriteLineReport(ostream& ost)
+void KWAttributeSubsetStats::WriteLineReport(ostream& ost) const
 {
 	int i;
 
@@ -361,7 +361,7 @@ void KWAttributeSubsetStats::WriteLineReport(ostream& ost)
 	}
 }
 
-void KWAttributeSubsetStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
+void KWAttributeSubsetStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const
 {
 	ContinuousVector cvAttributeDomainLowerBounds;
 	ContinuousVector cvAttributeDomainUpperBounds;
@@ -1198,7 +1198,7 @@ double KWAttributePairStats::GetSortValue() const
 	return GetDeltaLevel();
 }
 
-void KWAttributePairStats::WriteReport(ostream& ost)
+void KWAttributePairStats::WriteReport(ostream& ost) const
 {
 	require(GetAttributeNumber() == 2);
 	require(IsStatsComputed());
@@ -1225,7 +1225,7 @@ boolean KWAttributePairStats::IsReported() const
 		return false;
 }
 
-void KWAttributePairStats::WriteHeaderLineReport(ostream& ost)
+void KWAttributePairStats::WriteHeaderLineReport(ostream& ost) const
 {
 	int i;
 
@@ -1269,7 +1269,7 @@ void KWAttributePairStats::WriteHeaderLineReport(ostream& ost)
 		ost << "\tConstr. cost\tPrep. cost\tData cost";
 }
 
-void KWAttributePairStats::WriteLineReport(ostream& ost)
+void KWAttributePairStats::WriteLineReport(ostream& ost) const
 {
 	int i;
 	const KWDGSAttributePartition* dgsAttributePartition;
@@ -1344,7 +1344,7 @@ void KWAttributePairStats::WriteLineReport(ostream& ost)
 	}
 }
 
-void KWAttributePairStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
+void KWAttributePairStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const
 {
 	ContinuousVector cvAttributeMinValues;
 	ContinuousVector cvAttributeMaxValues;

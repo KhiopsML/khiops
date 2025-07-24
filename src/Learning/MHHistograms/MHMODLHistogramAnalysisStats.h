@@ -77,7 +77,7 @@ public:
 	// Services divers
 
 	// Ecriture d'un rapport JSON
-	void WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) override;
+	void WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) const override;
 
 	// Verification de la validite
 	boolean Check() const override;

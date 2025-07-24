@@ -125,7 +125,7 @@ public:
 	void InitializeEvaluation(const KWPredictor* predictor);
 
 	// Ecriture du contenu d'un rapport JSON
-	void WriteJSONFields(JSONFile* fJSON) override;
+	void WriteJSONFields(JSONFile* fJSON) const override;
 
 	/////////////////////////////////////////////////////////
 	//// Implementation
@@ -166,10 +166,10 @@ public:
 	KWDataGridStats* GetEvaluatedDataGridStats();
 
 	// Ecriture d'un rapport abrege
-	void WriteReport(ostream& ost) override;
+	void WriteReport(ostream& ost) const override;
 
 	// Ecriture du contenu d'un rapport JSON pour un tableau ou un dictionnaire
-	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) override;
+	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const override;
 
 	// Parametrage de la prise en compte dans les rapports
 	boolean IsJSONReported(boolean bSummary) const override;
@@ -207,10 +207,10 @@ public:
 	KWDataGridStats* GetEvaluatedDataGridStats();
 
 	// Ecriture d'un rapport abrege
-	void WriteReport(ostream& ost) override;
+	void WriteReport(ostream& ost) const override;
 
 	// Ecriture du contenu d'un rapport JSON pour un tableau ou un dictionnaire
-	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) override;
+	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const override;
 
 	// Parametrage de la prise en compte dans les rapports
 	boolean IsJSONReported(boolean bSummary) const override;

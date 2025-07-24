@@ -124,10 +124,10 @@ public:
 	ObjectArray* GetSelectedDataGridReports();
 
 	// Ecriture d'un rapport detaille du predicteur, avec ses grilles selectionnees
-	void WriteReport(ostream& ost) override;
+	void WriteReport(ostream& ost) const override;
 
 	// Ecriture du contenu d'un rapport JSON pour un tableau ou un dictionnaire
-	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) override;
+	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const override;
 
 	// Parametrage de la prise en compte dans les rapports
 	boolean IsJSONReported(boolean bSummary) const override;
@@ -168,11 +168,11 @@ public:
 
 	// Rapport synthetique destine a rentrer dans un tableau
 	// Tous les champs sont affiches: noms des attributs, Level, Weight, caracteristiques de la grille
-	void WriteHeaderLineReport(ostream& ost) override;
-	void WriteLineReport(ostream& ost) override;
+	void WriteHeaderLineReport(ostream& ost) const override;
+	void WriteLineReport(ostream& ost) const override;
 
 	// Ecriture d'un rapport
-	void WriteReport(ostream& ost) override;
+	void WriteReport(ostream& ost) const override;
 
 	// Redefinition des criteres de tri pour trier les grilles d'un classifieur
 	const ALString GetSortName() const override;
