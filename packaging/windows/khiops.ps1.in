@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Manage @TOOL_NAME@ execution.
+    Manage @TOOL_NAME@  execution.
 
 .DESCRIPTION
     This script initializes environment variables by sourcing 'khiops_env.ps1',
@@ -47,7 +47,7 @@ try {
 }
 
 # Verify that the main executable exists
-if (-not (Test-Path @MODL_PATH@)) {
+if (-not (Test-Path $env:@MODL_PATH@))) {
     Show-ErrorAndExit -Title "@TOOL_NAME@ CONFIGURATION PROBLEM" -Message "Incorrect installation directory for @TOOL_NAME@ (File @MODL_PATH@ not found)"
 }
 
@@ -94,7 +94,7 @@ function Start-Tool {
         New-Item -ItemType Directory -Path $env:KHIOPS_LAST_RUN_DIR -Force | Out-Null
     }
 
-    $exePath = @MODL_PATH@
+    $exePath = $env:@MODL_PATH@
     $mpiCommand = $env:KHIOPS_MPI_COMMAND
 
     if ([string]::IsNullOrWhiteSpace($mpiCommand)) {
@@ -116,7 +116,7 @@ function Start-Tool {
         $logFile = Join-Path $env:KHIOPS_LAST_RUN_DIR "log.txt"
         $message = @"
 ERROR @TOOL_NAME@ ended with return code $exitCode
-Contents of the log file at $logFile:
+Contents of the log file at $logFile
 "@
 
         if (Test-Path $logFile) {
@@ -125,11 +125,11 @@ Contents of the log file at $logFile:
             $message += "Log file not found."
         }
 
-        Show-ErrorAndExit -Title "@TOOL_NAME@ EXECUTION PROBLEM" -Message $message -KeepWindowOpen
+        Show-ErrorAndExit -Title "@TOOL_NAME@  EXECUTION PROBLEM" -Message $message -KeepWindowOpen
     }
 }
 
-# Launch @TOOL_NAME@ with or without parameters
+# Launch @TOOL_NAME@  with or without parameters
 if ($Args.Count -eq 0) {
     # No parameters: launch with default scenario and log files
     $scenarioFile = Join-Path $env:KHIOPS_LAST_RUN_DIR "scenario._kh"
