@@ -91,6 +91,15 @@ jobs:
       - name: Signing using keypair alias
         if: env.SIGN == 'ON'
         run: |
+          OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/tmp/khiops_env.ps1)
+          echo $OUTPUT
+          echo $OUTPUT | grep -q SUCCESSFUL
+          OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/tmp/khiops.ps1)
+          echo $OUTPUT
+          echo $OUTPUT | grep -q SUCCESSFUL
+          OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/tmp/khiops_coclustering.ps1)
+          echo $OUTPUT
+          echo $OUTPUT | grep -q SUCCESSFUL
           OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/MODL.exe)
           echo $OUTPUT
           echo $OUTPUT | grep -q SUCCESSFUL
