@@ -333,7 +333,7 @@ Section "Install" SecInstall
   #############################
 
   # Create the Khiops shell
-  FileOpen $0 "$INSTDIR\bin\shell_khiops.ps1" w
+  FileOpen $0 "$INSTDIR\bin\shell_khiops.cmd" w
   FileWrite $0 '@echo off$\r$\n'
   FileWrite $0 'REM Open a shell session with access to Khiops$\r$\n'
   FileWrite $0 `if "%KHIOPS_HOME%".=="". set KHIOPS_HOME=$INSTDIR$\r$\n`
@@ -371,8 +371,8 @@ Section "Install" SecInstall
 
   # Create application shortcuts in the installation directory
   DetailPrint "Installing Start menu Shortcut..."
-  CreateShortCut "$INSTDIR\Khiops.lnk" "powershell.exe" '-command "& $\'C:\Program Files\khiops\bin\khiops.ps1$\'"' "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWMINIMIZED
   CreateShortCut "$INSTDIR\Khiops Coclustering.lnk" "powershell.exe" '-command "& $\'C:\Program Files\khiops\bin\khiops_coclustering.ps1$\'"' "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWMINIMIZED
+  CreateShortCut "$INSTDIR\Khiops.lnk" "powershell.exe" '-command "& $\'C:\Program Files\khiops\bin\khiops.ps1$\'"' "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWMINIMIZED
   ExpandEnvStrings $R0 "%COMSPEC%"
   CreateShortCut "$INSTDIR\Shell Khiops.lnk" "$INSTDIR\bin\shell_khiops.cmd" "" "$R0"
 
