@@ -136,14 +136,14 @@ KWObject* KWMTDatabaseStream::ReadFromBuffer(const char* sBuffer)
 	int i;
 
 	require(sBuffer != NULL);
-	require(mainMultiTableMapping->GetDataTableDriver() != NULL);
+	require(GetMainMapping()->GetDataTableDriver() != NULL);
 
 	// On repositionne le flag d'erreur a false, pour permettre des lectures sucessives
 	bIsError = false;
 	bSecondaryRecordError = false;
 
 	// Alimentation du buffer en entree
-	cast(KWDataTableDriverStream*, mainMultiTableMapping->GetDataTableDriver())->FillBufferWithRecord(sBuffer);
+	cast(KWDataTableDriverStream*, GetMainMapping()->GetDataTableDriver())->FillBufferWithRecord(sBuffer);
 
 	// Lecture de l'objet
 	kwoObject = Read();
@@ -173,13 +173,13 @@ boolean KWMTDatabaseStream::WriteToBuffer(KWObject* kwoObject, char* sBuffer, in
 {
 	boolean bOk;
 
-	require(mainMultiTableMapping->GetDataTableDriver() != NULL);
+	require(GetMainMapping()->GetDataTableDriver() != NULL);
 
 	// On repositionne le flag d'erreur a false, pour permettre des ecritures sucessives
 	bIsError = false;
 
 	// Vidage du buffer en sortie
-	cast(KWDataTableDriverStream*, mainMultiTableMapping->GetDataTableDriver())->ResetOutputBuffer();
+	cast(KWDataTableDriverStream*, GetMainMapping()->GetDataTableDriver())->ResetOutputBuffer();
 
 	// Ecriture de l'objet dans le buffer du stream
 	Write(kwoObject);
@@ -187,7 +187,7 @@ boolean KWMTDatabaseStream::WriteToBuffer(KWObject* kwoObject, char* sBuffer, in
 	// On recupere le resultat
 	bOk = not IsError();
 	if (bOk)
-		bOk = cast(KWDataTableDriverStream*, mainMultiTableMapping->GetDataTableDriver())
+		bOk = cast(KWDataTableDriverStream*, GetMainMapping()->GetDataTableDriver())
 			  ->FillRecordWithBuffer(sBuffer, nMaxBufferLength);
 	return bOk;
 }
@@ -218,9 +218,9 @@ longint KWMTDatabaseStream::GetUsedMemory() const
 	lUsedMemory += odHeaderLines.GetUsedMemory();
 
 	// Taille occupee par les lignes d'entete
-	for (i = 0; i < oaMultiTableMappings.GetSize(); i++)
+	for (i = 0; i < mappingManager.GetMappingNumber(); i++)
 	{
-		mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(i));
+		mapping = mappingManager.GetMappingAt(i);
 		if (not IsReferencedClassMapping(mapping))
 		{
 			soHeaderLine = cast(StringObject*, odHeaderLines.Lookup(mapping->GetDataPath()));

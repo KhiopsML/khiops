@@ -106,16 +106,16 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 	lMaxOpenNecessaryMemory = lEmptyOpenNecessaryMemory * 5;
 
 	// Initialisation recursive du mapping a partir de la table principale pour avoir des driver initialises
-	DMTMPhysicalTerminateMapping(mainMultiTableMapping);
+	DMTMPhysicalTerminateMapping(GetMainMapping());
 	if (bRead)
 	{
 		// En lecture, on utilise la classe physique
-		DMTMPhysicalInitializeMapping(mainMultiTableMapping, kwcPhysicalClass, true);
+		DMTMPhysicalInitializeMapping(GetMainMapping(), kwcPhysicalClass, true);
 	}
 	else
 	{
 		// En ecriture, on utile la classe logique
-		DMTMPhysicalInitializeMapping(mainMultiTableMapping, kwcClass, false);
+		DMTMPhysicalInitializeMapping(GetMainMapping(), kwcClass, false);
 	}
 
 	// Nettoyage prealable
@@ -350,7 +350,7 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 	}
 
 	// Nettoyage
-	DMTMPhysicalTerminateMapping(mainMultiTableMapping);
+	DMTMPhysicalTerminateMapping(GetMainMapping());
 	if (bRead)
 		DeletePhysicalClass();
 	kwcClass = NULL;
@@ -394,7 +394,7 @@ KWMTDatabaseMapping* PLMTDatabaseTextFile::GetUsedMappingAt(int nTableIndex) con
 	if (ivUsedMappingFlags.GetAt(nTableIndex) == 0)
 		return NULL;
 	else
-		return cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(nTableIndex));
+		return mappingManager.GetMappingAt(nTableIndex);
 }
 
 int PLMTDatabaseTextFile::ComputeUsedMappingNumber() const
@@ -1045,7 +1045,7 @@ void PLMTDatabaseTextFile::ComputeMemoryGuardOpenInformation()
 	for (i = 0; i < GetMainTableNumber(); i++)
 	{
 		mapping = GetUsedMappingAt(i);
-		assert(mapping == NULL or mapping == oaMultiTableMappings.GetAt(i));
+		assert(mapping == NULL or mapping == mappingManager.GetMappingAt(i));
 
 		// Prise en compte si si mapping utilise
 		if (mapping != NULL)
@@ -1179,7 +1179,7 @@ longint PLMTDatabaseTextFile::ComputeBufferNecessaryMemory(boolean bRead, int nB
 	for (i = 0; i < GetTableNumber(); i++)
 	{
 		mapping = GetUsedMappingAt(i);
-		assert(mapping == NULL or mapping == oaMultiTableMappings.GetAt(i));
+		assert(mapping == NULL or mapping == mappingManager.GetMappingAt(i));
 
 		// Test si mapping utilise
 		if (mapping != NULL)
@@ -1218,10 +1218,10 @@ KWDataTableDriver* PLMTDatabaseTextFile::CreateDataTableDriver(KWMTDatabaseMappi
 		livDataItemLoadIndexes = NULL;
 		ivMainKeyIndexes = NULL;
 		assert(oaIndexedMappingsDataItemLoadIndexes.GetSize() == 0 or
-		       oaIndexedMappingsDataItemLoadIndexes.GetSize() == oaMultiTableMappings.GetSize());
+		       oaIndexedMappingsDataItemLoadIndexes.GetSize() == mappingManager.GetMappingNumber());
 		for (i = 0; i < oaIndexedMappingsDataItemLoadIndexes.GetSize(); i++)
 		{
-			usedMapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(i));
+			usedMapping = mappingManager.GetMappingAt(i);
 			if (usedMapping == mapping)
 			{
 				livDataItemLoadIndexes =
@@ -1308,7 +1308,7 @@ void PLShared_MTDatabaseTextFile::SerializeObject(PLSerializer* serializer, cons
 	debug(database->SetSilentMode(true));
 	debug(assert(database->CheckPartially(false) or database->CheckPartially(true)));
 	debug(database->SetSilentMode(bInitialSilentMode));
-	assert(database->oaMultiTableMappings.GetSize() == database->ivUsedMappingFlags.GetSize());
+	assert(database->mappingManager.GetMappingNumber() == database->ivUsedMappingFlags.GetSize());
 
 	// Ecriture des parametres de specification de la base
 	serializer->PutString(database->GetDatabaseName());
@@ -1337,6 +1337,7 @@ void PLShared_MTDatabaseTextFile::SerializeObject(PLSerializer* serializer, cons
 		// Serialisation des informations de mapping
 		serializer->PutBoolean(mapping->GetExternalTable());
 		serializer->PutString(mapping->GetOriginClassName());
+		serializer->PutString(mapping->GetClassName());
 		serializer->PutStringVector(mapping->GetAttributeNames());
 		serializer->PutString(mapping->GetDataTableName());
 	}
@@ -1415,29 +1416,30 @@ void PLShared_MTDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 
 	// Lecture des mappings serialises
 	nMappingNumber = serializer->GetInt();
-	assert(database->oaMultiTableMappings.GetSize() == 1);
+	assert(database->mappingManager.GetMappingNumber() == 1);
 	for (i = 0; i < nMappingNumber; i++)
 	{
 		// Le premier mapping est pre-existant (table principale)
 		if (i == 0)
-			mapping = database->mainMultiTableMapping;
+			mapping = database->GetMainMapping();
 		// Les autre sont a creer
 		else
 		{
 			mapping = new KWMTDatabaseMapping;
-			database->oaMultiTableMappings.Add(mapping);
+			database->mappingManager.GetMappings()->Add(mapping);
 		}
 
 		// Deserialisation du mapping
 		mapping->SetExternalTable(serializer->GetBoolean());
 		mapping->SetOriginClassName(serializer->GetString());
+		mapping->SetClassName(serializer->GetString());
 		serializer->GetStringVector(&mapping->svAttributeNames);
 		mapping->SetDataTableName(serializer->GetString());
 	}
 
 	// Lecture du vecteur d'indicateur des mappings utilises
 	serializer->GetIntVector(&database->ivUsedMappingFlags);
-	assert(database->oaMultiTableMappings.GetSize() == database->ivUsedMappingFlags.GetSize());
+	assert(database->mappingManager.GetMappingNumber() == database->ivUsedMappingFlags.GetSize());
 
 	// Lecture des informations d'ouverture de la base
 	serializer->GetLongintVector(&database->lvFileSizes);

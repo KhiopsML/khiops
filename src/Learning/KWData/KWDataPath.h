@@ -39,8 +39,15 @@ class KWObjectDataPathManager;
 // - objets crees par des regles de creation d'instances
 // En effet, qu'il soient lus ou crees en memoire, la base reste hierarchique,
 // et chaque objet est rattache a sa racine via un chemin unique, ayant pour racine soit
-// le dictionnaire principale de la base de donnees en cours de traitement, soit
+// le dictionnaire principal de la base de donnees en cours de traitement, soit
 // un dictionnaire racine d'une table externe.
+//
+// La classe KWDataPath reunit les fonctionnalite communes aux deux type d'usages, pour
+// specialisation dans deux-sous-classes
+// - KWMTDatabaseMapping: mapping des data paths sur des fichiers de donnees, pour gerer
+//   les objets lus dans une base de donneee
+// - KWObjectDataPath: gestion en memoire de tous types d'objets, qu'il soit issus d'une lecture
+//   depuis un fichier ou crees par une regle de derivation de creation d'instance
 class KWDataPath : public Object
 {
 public:
@@ -50,7 +57,7 @@ public:
 
 	////////////////////////////////////////////////////////////////
 	// Gestion des objet cree par des regles de creation d'instances
-	// Methode virtuelles definie pour des raison de genericite
+	// Methode virtuelles definie pour des raisons de genericite
 
 	// Indique si la classe gere les data paths correspondant a des instances crees par des regle de creation d'instance
 	// Defaut: false, signifie que les data path ne correspondent qu'a des instances stockes dans des fichier
@@ -105,9 +112,6 @@ public:
 	// Utile notamment en ecriture, pour savoir si l'objet sera ecrit
 	boolean IsTerminalAttributeUsed() const;
 
-	// Validite du DataPath complet
-	boolean CheckDataPath() const;
-
 	// Conversion d'un element de data path vers le format externe
 	// Cela concerne les noms de dictionnaire ou de variable
 	// S'il contiennent le caractere '`' ou le separateur '/', il doivent
@@ -150,6 +154,9 @@ public:
 	// Comparaison des attributs de definition
 	virtual int Compare(const KWDataPath* aSource) const;
 
+	// Validite de la specification du data path
+	boolean Check() const override;
+
 	// Ecriture
 	void Write(ostream& ost) const override;
 
@@ -180,8 +187,17 @@ protected:
 ////////////////////////////////////////////////////////////
 // Classe KWObjectDataPath
 //
-// Specialisation de KWDataPath a destination des KWObject pour gerer
-// un identifiant unique,que les objet soient stockes ou crees par des regles de derivation
+// Specialisation de KWDataPath a destination des KWObject pour identifier de facon unique
+// chaque objet, qu'il soient stocke ou cree par une regle de derivation
+// Cet identifiant unique des KWObject exploite
+// - le data path de l'objet, qu'il soit lu ou cree par une regle
+// - le CreationIndex de l'object
+//   - s'il s'agit d'un objet lu: numero de ligne
+//   - s'il s'agit d'un objet cree par une regle
+//     - numero de creation local a son instance principale, plus CreationIndex de l'instance principal
+//     - dans le cas des table externe, le numero est local a l'ensemble de toutes les instances
+// Cette identication permet a la regle de derivation Random de generer des suites de valeurs aleatoires
+// de facon reproductible, et independantes entre elles si la regle Random est utilisee plusieurs fois.
 class KWObjectDataPath : public KWDataPath
 {
 public:
@@ -333,8 +349,8 @@ public:
 	////////////////////////////////////////////////////////
 	// Acces aux resultats d'analyse
 
-	// Classe principale analysee
-	const KWClass* GetMainClass();
+	// Nom de la classe principale analysee, celle du data path principal
+	const ALString GetMainClassName() const;
 
 	// Acces a tous les data paths
 	int GetDataPathNumber() const;
@@ -347,10 +363,11 @@ public:
 	int GetExternalRootDataPathNumber() const;
 	const KWDataPath* GetExternalRootDataPathAt(int nIndex) const;
 
-	// Acces a un maping par son chemin
+	// Acces a un mapping par son chemin
 	const KWDataPath* LookupDataPath(const ALString& sDataPath) const;
 
-	// Warnings pour le cas des tables externes non utilisees, gardees pour generer des warnings lors du Check
+	// Warnings pour le cas des tables externes non utilisees, gardees pour generer des warnings
+	// lors du Check d'un base
 	//
 	// Ce cas arrive si la table principale est une table secondaire d'une table externe qu'elle reference.
 	// Par exemple, dans le cas d'un schema de molecules avec des atomes et des liaisons, les atomes et les liaisons
@@ -375,6 +392,9 @@ public:
 
 	// Comparaison
 	virtual int Compare(const KWDataPathManager* aSource) const;
+
+	// Verification d'une specification complete
+	boolean Check() const override;
 
 	// Ecriture
 	void Write(ostream& ost) const override;
@@ -403,9 +423,6 @@ protected:
 
 	// Affichage d'un tableau de data paths
 	void WriteDataPathArray(ostream& ost, const ALString& sTitle, const ObjectArray* oaDataPathArray) const;
-
-	// Dictionnaire principal
-	const KWClass* kwcMainClass;
 
 	// Data path principal
 	KWDataPath* mainDataPath;
@@ -442,7 +459,8 @@ public:
 	// d'une base multi-table
 	void ComputeAllDataPaths(const KWClass* mainClass) override;
 
-	// Acces aux data path avec le type specialise
+	// Acces aux data paths avec le type specialise
+	const KWObjectDataPath* GetObjectDataPathAt(int nIndex) const;
 	const KWObjectDataPath* GetExternalRootObjectDataPathAt(int nIndex) const;
 	const KWObjectDataPath* GetMainObjectDataPath() const;
 	const KWObjectDataPath* LookupObjectDataPath(const ALString& sDataPath) const;
@@ -590,9 +608,12 @@ inline int KWObjectDataPath::GetRandomLeap() const
 	return nCompiledRandomLeap;
 }
 
-inline const KWClass* KWDataPathManager::GetMainClass()
+inline const ALString KWDataPathManager::GetMainClassName() const
 {
-	return kwcMainClass;
+	if (mainDataPath == NULL)
+		return "";
+	else
+		return mainDataPath->GetClassName();
 }
 
 inline int KWDataPathManager::GetDataPathNumber() const
@@ -622,12 +643,17 @@ inline const KWDataPath* KWDataPathManager::GetExternalRootDataPathAt(int nIndex
 
 inline const KWDataPath* KWDataPathManager::LookupDataPath(const ALString& sDataPath) const
 {
-	return cast(KWDataPath*, odDataPaths.Lookup(sDataPath));
+	return cast(const KWDataPath*, odDataPaths.Lookup(sDataPath));
 }
 
 inline const StringVector* KWDataPathManager::GetUnusedRootDictionaryWarnings() const
 {
 	return &svUnusedRootDictionaryWarnings;
+}
+
+inline const KWObjectDataPath* KWObjectDataPathManager::GetObjectDataPathAt(int nIndex) const
+{
+	return cast(const KWObjectDataPath*, GetDataPathAt(nIndex));
 }
 
 inline const KWObjectDataPath* KWObjectDataPathManager::GetMainObjectDataPath() const

@@ -7,9 +7,7 @@
 KWMTDatabase::KWMTDatabase()
 {
 	nSkippedRecordNumber = 0;
-	mainMultiTableMapping = new KWMTDatabaseMapping;
-	oaMultiTableMappings.SetSize(1);
-	oaMultiTableMappings.SetAt(0, mainMultiTableMapping);
+	mappingManager.InitializeMainMapping(new KWMTDatabaseMapping);
 	dataTableDriverCreator = new KWDataTableDriver;
 	lExternalTablesEncodingErrorNumber = 0;
 	nFreshness = 0;
@@ -25,17 +23,14 @@ KWMTDatabase::~KWMTDatabase()
 	KWMTDatabaseMapping* referenceMapping;
 
 	// Nettoyage prealable du mapping physique
-	assert(mainMultiTableMapping == oaMultiTableMappings.GetAt(0));
-	DMTMPhysicalTerminateMapping(mainMultiTableMapping);
-	for (nReference = 0; nReference < oaRootReferenceTableMappings.GetSize(); nReference++)
+	assert(mappingManager.IsMainMappingInitialized());
+	DMTMPhysicalTerminateMapping(GetMainMapping());
+	for (nReference = 0; nReference < mappingManager.GetExternalRootMappingNumber(); nReference++)
 	{
-		referenceMapping = cast(KWMTDatabaseMapping*, oaRootReferenceTableMappings.GetAt(nReference));
+		referenceMapping = mappingManager.GetExternalRootMappingAt(nReference);
 		DMTMPhysicalTerminateMapping(referenceMapping);
 	}
 	assert(objectReferenceResolver.GetClassNumber() == 0);
-
-	// Destruction des mappings, y compris du mapping principal
-	oaMultiTableMappings.DeleteAll();
 
 	// Destruction du driver
 	delete dataTableDriverCreator;
@@ -49,11 +44,6 @@ KWDatabase* KWMTDatabase::Create() const
 void KWMTDatabase::CopyFrom(const KWDatabase* kwdSource)
 {
 	const KWMTDatabase* kwmtdSource = cast(KWMTDatabase*, kwdSource);
-	KWMTDatabaseMapping* mapping;
-	KWMTDatabaseMapping* mappingComponent;
-	KWMTDatabaseMapping* mappingCopy;
-	int i;
-	int j;
 
 	// Copie standard
 	KWDatabase::CopyFrom(kwdSource);
@@ -63,57 +53,9 @@ void KWMTDatabase::CopyFrom(const KWDatabase* kwdSource)
 	// Copie des parametres du driver
 	dataTableDriverCreator->CopyFrom(kwmtdSource->dataTableDriverCreator);
 
-	// Copie du mapping, apres avoir reinitialise la table de mapping
-	assert(oaMultiTableMappings.GetSize() >= 1);
-	assert(kwmtdSource->oaMultiTableMappings.GetSize() >= 1);
-	oaMultiTableMappings.DeleteAll();
-	for (i = 0; i < kwmtdSource->oaMultiTableMappings.GetSize(); i++)
-	{
-		mapping = cast(KWMTDatabaseMapping*, kwmtdSource->oaMultiTableMappings.GetAt(i));
-		oaMultiTableMappings.Add(mapping->Clone());
-	}
-
-	// Memorisation du mapping principal
-	mainMultiTableMapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(0));
-
-	// Memorisation des mappings principaux des classes referencees
-	oaRootReferenceTableMappings.SetSize(0);
-	for (i = 0; i < kwmtdSource->oaRootReferenceTableMappings.GetSize(); i++)
-	{
-		mapping = cast(KWMTDatabaseMapping*, kwmtdSource->oaRootReferenceTableMappings.GetAt(i));
-		assert(mapping != kwmtdSource->mainMultiTableMapping);
-		assert(mapping->GetDataPathAttributeNames() == "");
-
-		// Recherche de la copie du mapping source
-		mappingCopy = LookupMultiTableMapping(mapping->GetDataPath());
-		assert(mappingCopy->GetDataPathAttributeNames() == "");
-		assert(mappingCopy->GetDataPath() == mapping->GetDataPath());
-
-		// Insertion dans le tableau des mappings principaux des classes referencees
-		oaRootReferenceTableMappings.Add(mappingCopy);
-	}
-
-	// Reconstruction de la structure des mapping, qui connaissent chacun les mapping de leur composition
-	for (i = 0; i < kwmtdSource->oaMultiTableMappings.GetSize(); i++)
-	{
-		mapping = cast(KWMTDatabaseMapping*, kwmtdSource->oaMultiTableMappings.GetAt(i));
-
-		// Recherche de la copie du mapping source
-		mappingCopy = LookupMultiTableMapping(mapping->GetDataPath());
-
-		// Reconstitution du tableau des mapping des classes de la composition
-		for (j = 0; j < mapping->GetComponents()->GetSize(); j++)
-		{
-			mappingComponent = cast(KWMTDatabaseMapping*, mapping->GetComponents()->GetAt(j));
-
-			// Insertion de la copie du mapping composant correspondant
-			mappingCopy->GetComponents()->Add(LookupMultiTableMapping(mappingComponent->GetDataPath()));
-		}
-		assert(mappingCopy->GetComponents()->GetSize() == mapping->GetComponents()->GetSize());
-	}
-
-	// Memorisation des warnings pour les dictionnaires racines non utilises
-	svUnusedRootDictionaryWarnings.CopyFrom(&kwmtdSource->svUnusedRootDictionaryWarnings);
+	// Copie du mapping
+	mappingManager.CopyFrom(&kwmtdSource->mappingManager);
+	assert(mappingManager.IsMainMappingInitialized());
 
 	// Memorisation des indicateurs de fraicheur
 	nFreshness = kwmtdSource->nFreshness;
@@ -127,9 +69,6 @@ int KWMTDatabase::Compare(const KWDatabase* kwdSource) const
 {
 	int nCompare;
 	const KWMTDatabase* kwmtdSource = cast(KWMTDatabase*, kwdSource);
-	KWMTDatabaseMapping* mapping;
-	KWMTDatabaseMapping* sourceMapping;
-	int i;
 
 	require(kwdSource != NULL);
 
@@ -142,63 +81,50 @@ int KWMTDatabase::Compare(const KWDatabase* kwdSource) const
 
 	// Comparaison du mapping
 	if (nCompare == 0)
-		nCompare = oaMultiTableMappings.GetSize() - kwmtdSource->oaMultiTableMappings.GetSize();
-	if (nCompare == 0)
-	{
-		for (i = 0; i < kwmtdSource->oaMultiTableMappings.GetSize(); i++)
-		{
-			mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(i));
-			sourceMapping = cast(KWMTDatabaseMapping*, kwmtdSource->oaMultiTableMappings.GetAt(i));
-
-			// Comparaison et arret si difference
-			nCompare = mapping->Compare(sourceMapping);
-			if (nCompare != 0)
-				break;
-		}
-	}
+		nCompare = mappingManager.Compare(&kwmtdSource->mappingManager);
 	return nCompare;
 }
 
 void KWMTDatabase::SetDatabaseName(const ALString& sValue)
 {
-	assert(oaMultiTableMappings.GetAt(0) == mainMultiTableMapping);
+	assert(mappingManager.IsMainMappingInitialized());
 	KWDatabase::SetDatabaseName(sValue);
-	mainMultiTableMapping->SetDataTableName(sValue);
+	GetMainMapping()->SetDataTableName(sValue);
 	nFreshness++;
 }
 
 const ALString& KWMTDatabase::GetDatabaseName() const
 {
-	assert(oaMultiTableMappings.GetAt(0) == mainMultiTableMapping);
-	return mainMultiTableMapping->GetDataTableName();
+	assert(mappingManager.IsMainMappingInitialized());
+	return GetMainMapping()->GetDataTableName();
 }
 
 void KWMTDatabase::SetClassName(const ALString& sValue)
 {
-	assert(oaMultiTableMappings.GetAt(0) == mainMultiTableMapping);
+	assert(mappingManager.IsMainMappingInitialized());
 
 	KWDatabase::SetClassName(sValue);
-	mainMultiTableMapping->SetClassName(sValue);
-	mainMultiTableMapping->SetOriginClassName(sValue);
+	GetMainMapping()->SetClassName(sValue);
+	GetMainMapping()->SetOriginClassName(sValue);
 	nFreshness++;
 	ensure(GetClassName() == sValue);
 }
 
 const ALString& KWMTDatabase::GetClassName() const
 {
-	assert(oaMultiTableMappings.GetAt(0) == mainMultiTableMapping);
-	return mainMultiTableMapping->GetClassName();
+	assert(mappingManager.IsMainMappingInitialized());
+	return GetMainMapping()->GetClassName();
 }
 
 ObjectArray* KWMTDatabase::GetMultiTableMappings()
 {
-	assert(oaMultiTableMappings.GetAt(0) == mainMultiTableMapping);
-	return &oaMultiTableMappings;
+	assert(mappingManager.IsMainMappingInitialized());
+	return mappingManager.GetMappings();
 }
 
 int KWMTDatabase::GetTableNumber() const
 {
-	return oaMultiTableMappings.GetSize();
+	return mappingManager.GetMappingNumber();
 }
 
 int KWMTDatabase::GetMainTableNumber() const
@@ -209,9 +135,9 @@ int KWMTDatabase::GetMainTableNumber() const
 
 	// Parcours de la table de mapping
 	nMainTableNumber = 0;
-	for (i = 0; i < oaMultiTableMappings.GetSize(); i++)
+	for (i = 0; i < mappingManager.GetMappingNumber(); i++)
 	{
-		mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(i));
+		mapping = mappingManager.GetMappingAt(i);
 
 		// On s'arrete a la premiere table referencee
 		if (IsReferencedClassMapping(mapping))
@@ -230,42 +156,14 @@ int KWMTDatabase::GetReferencedTableNumber() const
 
 KWMTDatabaseMapping* KWMTDatabase::LookupMultiTableMapping(const ALString& sDataPath) const
 {
-	KWMTDatabaseMapping* mapping;
-	int i;
-
-	// Parcours de la table de mapping
-	for (i = 0; i < oaMultiTableMappings.GetSize(); i++)
-	{
-		mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(i));
-		if (mapping->GetDataPath() == sDataPath)
-			return mapping;
-	}
-	return NULL;
+	return mappingManager.LookupMapping(sDataPath);
 }
 
 boolean KWMTDatabase::IsReferencedClassMapping(const KWMTDatabaseMapping* mapping) const
 {
 	require(mapping != NULL);
 	require(LookupMultiTableMapping(mapping->GetDataPath()) == mapping or not Check());
-	return (mapping->GetOriginClassName() != GetClassName());
-}
-
-// Fonction de comparaison sur le nom de la premiere classe (principale) d'un table de mapping
-// Permet d'avoir les mappings tries selon leur classe principale
-int KWMTDatabaseCompareMappingMainClass(const void* first, const void* second)
-{
-	ObjectArray* aFirst;
-	ObjectArray* aSecond;
-	KWMTDatabaseMapping* firstMapping;
-	KWMTDatabaseMapping* secondMapping;
-	int nResult;
-
-	aFirst = cast(ObjectArray*, *(Object**)first);
-	aSecond = cast(ObjectArray*, *(Object**)second);
-	firstMapping = cast(KWMTDatabaseMapping*, aFirst->GetAt(0));
-	secondMapping = cast(KWMTDatabaseMapping*, aSecond->GetAt(0));
-	nResult = firstMapping->GetClassName().Compare(secondMapping->GetClassName());
-	return nResult;
+	return (mapping->GetExternalTable());
 }
 
 void KWMTDatabase::UpdateMultiTableMappings()
@@ -273,6 +171,8 @@ void KWMTDatabase::UpdateMultiTableMappings()
 	const boolean bTrace = false;
 	static ALString sLastUpdatedClassName;
 	KWClass* mainClass;
+	KWMTDatabaseMappingManager previousMappingManager;
+	KWMTDatabaseMapping* previousMainMultiTableMapping;
 	ObjectArray oaPreviousMultiTableMappings;
 	ObjectDictionary odReferenceClasses;
 	ObjectArray oaRankedReferenceClasses;
@@ -281,23 +181,20 @@ void KWMTDatabase::UpdateMultiTableMappings()
 	ObjectArray oaWorkingRankedReferenceClasses;
 	ObjectDictionary odWorkingAnalysedCreatedClasses;
 	ObjectArray oaWorkingCreatedMappings;
-	KWClass* referenceClass;
 	StringVector svAttributeName;
 	KWMTDatabaseMapping* mapping;
 	KWMTDatabaseMapping* previousMapping;
 	ObjectArray oaAllRootCreatedMappings;
-	ObjectArray* oaCreatedMappings;
 	int i;
 	int j;
-	boolean bIsRootDictionaryUsable;
 	ALString sWarning;
 
-	require(oaMultiTableMappings.GetAt(0) == mainMultiTableMapping);
+	require(mappingManager.IsMainMappingInitialized());
 	require(not IsOpenedForRead());
 	require(not IsOpenedForWrite());
 
 	// Nettoyage prealable du mapping physique
-	DMTMPhysicalTerminateMapping(mainMultiTableMapping);
+	DMTMPhysicalTerminateMapping(GetMainMapping());
 
 	// Recherche du dictionnaire associe a la base
 	mainClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
@@ -320,137 +217,19 @@ void KWMTDatabase::UpdateMultiTableMappings()
 	if (mainClass == NULL)
 	{
 		// Duplication prealable du mapping principal (sans les attributs de gestion)
-		mainMultiTableMapping = cast(KWMTDatabaseMapping*, mainMultiTableMapping->Clone());
+		previousMainMultiTableMapping = cast(KWMTDatabaseMapping*, GetMainMapping()->Clone());
 
-		// Nettoyage
-		oaMultiTableMappings.DeleteAll();
-		oaRootReferenceTableMappings.SetSize(0);
-		svUnusedRootDictionaryWarnings.SetSize(0);
-
-		// On rajoute le mapping principal
-		oaMultiTableMappings.Add(mainMultiTableMapping);
+		// Reinitialisation du mapping, en ne conservant que le mapping principal
+		mappingManager.Reset();
+		mappingManager.InitializeMainMapping(previousMainMultiTableMapping);
 	}
-	// Sinon, parcours des champs du dictionnaire pour rechercher les mappings a specifier
 	else
 	{
-		// Memorisation des anciens mappings
-		oaPreviousMultiTableMappings.CopyFrom(&oaMultiTableMappings);
+		// Memorisation des mapping precedents
+		previousMappingManager.CopyFrom(&mappingManager);
 
-		// Dereferencement des mappings en cours
-		mainMultiTableMapping = NULL;
-		oaMultiTableMappings.SetSize(0);
-		oaRootReferenceTableMappings.SetSize(0);
-		svUnusedRootDictionaryWarnings.SetSize(0);
-
-		// Creation du mapping de la table principale
-		assert(svAttributeName.GetSize() == 0);
-		mainMultiTableMapping =
-		    CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses, &odAnalysedCreatedClasses, mainClass,
-				  false, mainClass->GetName(), &svAttributeName, &oaMultiTableMappings);
-		assert(svAttributeName.GetSize() == 0);
-		if (bTrace)
-			WriteMapingArray(cout, "- main mappings " + mainClass->GetName(), &oaMultiTableMappings);
-
-		// Parcours des classes referencees pour creer leur mapping
-		// Ce mapping des classes referencees n'est pas effectue dans le cas d'une base en ecriture
-		i = 0;
-		while (i < oaRankedReferenceClasses.GetSize())
-		{
-			referenceClass = cast(KWClass*, oaRankedReferenceClasses.GetAt(i));
-
-			// Creation du mapping sauf si classe principale
-			if (referenceClass != mainClass)
-			{
-				// Premiere passe de creation du mapping de la table racine externe, avec des containers de travail
-				// Cela permet d'analyser la structure des mappings, sans impacter directement le contenu des containers globaux
-				// On part de containers vides pour analyser le dictionnaire de reference dans un espace de travail independant,
-				// avant de decider s'il est utilisable et de le prendre en compte dans les mappings
-				odWorkingReferenceClasses.RemoveAll();
-				oaWorkingRankedReferenceClasses.RemoveAll();
-				odWorkingAnalysedCreatedClasses.RemoveAll();
-				oaWorkingCreatedMappings.RemoveAll();
-				assert(svAttributeName.GetSize() == 0);
-				mapping = CreateMapping(&odWorkingReferenceClasses, &oaWorkingRankedReferenceClasses,
-							&odWorkingAnalysedCreatedClasses, referenceClass, true,
-							referenceClass->GetName(), &svAttributeName,
-							&oaWorkingCreatedMappings);
-				assert(svAttributeName.GetSize() == 0);
-
-				// On determine si le dictionnaire de reference est utilisable, c'est a dire s'il n'utilise
-				// pas la classe principale dans ses mappings
-				bIsRootDictionaryUsable = true;
-				for (j = 0; j < oaWorkingCreatedMappings.GetSize(); j++)
-				{
-					mapping = cast(KWMTDatabaseMapping*, oaWorkingCreatedMappings.GetAt(j));
-
-					// Transfert des specifications de la table mappee si comparaison positive
-					if (mapping->GetClassName() == mainClass->GetName())
-					{
-						bIsRootDictionaryUsable = false;
-						break;
-					}
-				}
-				oaWorkingCreatedMappings.DeleteAll();
-
-				// Prise en compte de la classe referencee si elle est utilisable
-				if (bIsRootDictionaryUsable)
-				{
-					// Creation et memorisation d'un tableau de mapping, pour accueillir les mappings
-					// pour la classe externe en cours de traitement
-					oaCreatedMappings = new ObjectArray;
-					oaAllRootCreatedMappings.Add(oaCreatedMappings);
-
-					// Creation du mapping et memorisation de tous les mappings des sous-classes
-					// Il est plus simple de rappeler la meme methode avec les container globaux
-					// que de fusionner les containers de travail
-					// Et il n'y a aucun enjeu d'optimisation
-					assert(svAttributeName.GetSize() == 0);
-					mapping = CreateMapping(&odReferenceClasses, &oaRankedReferenceClasses,
-								&odAnalysedCreatedClasses, referenceClass, true,
-								referenceClass->GetName(), &svAttributeName,
-								oaCreatedMappings);
-					assert(svAttributeName.GetSize() == 0);
-					if (bTrace)
-						WriteMapingArray(cout,
-								 "- external mappings " + referenceClass->GetName(),
-								 oaCreatedMappings);
-				}
-				// Sinon, memorisation d'un warning expliquant pourquoi on ne garde le dictionnaire racine en reference
-				else
-				{
-					sWarning =
-					    "Root dictionary " + referenceClass->GetName() +
-					    " referenced from the main dictionary " + mainClass->GetName() +
-					    " is not kept to specify database files in order to avoid circular "
-					    "references in the schema, as it itself uses the main dictionary in its "
-					    "secondary tables";
-					svUnusedRootDictionaryWarnings.Add(sWarning);
-					if (bTrace)
-						cout << "- " << sWarning << "\n";
-				}
-			}
-
-			// Passage a la classe suivante
-			i++;
-		}
-
-		// Tri des tableau de mappings de classes references selon leur classe principal
-		oaAllRootCreatedMappings.SetCompareFunction(KWMTDatabaseCompareMappingMainClass);
-		oaAllRootCreatedMappings.Sort();
-
-		// Memorisation des mapping des classes externes dans l'ordre du tri
-		for (i = 0; i < oaAllRootCreatedMappings.GetSize(); i++)
-		{
-			// Memorisation des mappings
-			oaCreatedMappings = cast(ObjectArray*, oaAllRootCreatedMappings.GetAt(i));
-			assert(oaCreatedMappings->GetSize() > 0);
-			oaMultiTableMappings.InsertObjectArrayAt(oaMultiTableMappings.GetSize(), oaCreatedMappings);
-
-			// Memorisation de la classe referencee principale
-			mapping = cast(KWMTDatabaseMapping*, oaCreatedMappings->GetAt(0));
-			oaRootReferenceTableMappings.Add(mapping);
-		}
-		oaAllRootCreatedMappings.DeleteAll();
+		// Calcul des nouveaux mappings
+		mappingManager.ComputeAllDataPaths(mainClass);
 
 		// On recupere si possible les specifications de base a utiliser a partir des mapping precedents
 		//
@@ -465,21 +244,21 @@ void KWMTDatabase::UpdateMultiTableMappings()
 		// Par contre, quand on passe du dictionnaire d'analyse a celui d'une des ses sous-tables, tous les
 		// mappings changent, et on ne garde que la table principale, qui est erronees. Ce probleme n'est pas vraiment
 		// un enjeu important, et il n'aurait pas de solution simple de toute facon
-		for (i = 0; i < oaPreviousMultiTableMappings.GetSize(); i++)
+		for (i = 0; i < previousMappingManager.GetMappingNumber(); i++)
 		{
-			previousMapping = cast(KWMTDatabaseMapping*, oaPreviousMultiTableMappings.GetAt(i));
+			previousMapping = cast(KWMTDatabaseMapping*, previousMappingManager.GetDataPathAt(i));
 
 			// Recherche du nouveau mapping correspondant
 			// Attention, les data paths qui servent d'identifiants aux mappings peuvent etres contextuels
 			// dans le cas de tables externes
-			// Par exemple, le dictionnaire principal es systematique identifie par un data path vide,
+			// Par exemple, le dictionnaire principal est systematique identifie par un data path vide,
 			// et si on en change, comme par exemple en passant a une table externe, c'est ce
 			// dictionnaire Root associe a la table externe qui sera identifie par un data path vide.
 			// Il faut donc parcourir se base sur la comparaison du dictionnaire et des attribut du mapping
 			// pour faire l'appariement correct
-			for (j = 0; j < oaMultiTableMappings.GetSize(); j++)
+			for (j = 0; j < mappingManager.GetMappingNumber(); j++)
 			{
-				mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(j));
+				mapping = mappingManager.GetMappingAt(j);
 
 				// Transfert des specifications de la table mappee si comparaison positive
 				if (mapping->GetOriginClassName() == previousMapping->GetOriginClassName() and
@@ -491,9 +270,6 @@ void KWMTDatabase::UpdateMultiTableMappings()
 				}
 			}
 		}
-
-		// Destruction des anciens mappings
-		oaPreviousMultiTableMappings.DeleteAll();
 	}
 
 	// Mise a jour de la fraicheur
@@ -501,12 +277,11 @@ void KWMTDatabase::UpdateMultiTableMappings()
 
 	// Affichage des mappings finaux
 	if (bTrace)
-		WriteMapingArray(cout, "Database " + GetDatabaseName() + " " + GetClassName() + " mappings",
-				 &oaMultiTableMappings);
-	ensure(mainClass == NULL or
-	       mainClass->ComputeOverallNativeRelationAttributeNumber(true) == oaMultiTableMappings.GetSize() - 1 or
-	       svUnusedRootDictionaryWarnings.GetSize() > 0);
-	ensure(oaMultiTableMappings.GetAt(0) == mainMultiTableMapping);
+		mappingManager.Write(cout);
+	ensure(mappingManager.GetMainClassName() == "" or mainClass == NULL or
+	       mainClass->ComputeOverallNativeRelationAttributeNumber(true) == mappingManager.GetMappingNumber() - 1 or
+	       mappingManager.GetUnusedRootDictionaryWarnings()->GetSize() > 0);
+	ensure(mappingManager.IsMainMappingInitialized());
 }
 
 const KWObjectReferenceResolver* KWMTDatabase::GetObjectReferenceSolver() const
@@ -533,15 +308,10 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 	KWMTDatabaseMapping* mapping;
 	int nMapping;
 	KWClass* mainClass;
-	KWClass* originClass;
 	ALString sOriginLabel;
 	ALString sAttributeName;
-	KWAttribute* attribute;
-	int nAttributeNumber;
-	int nAttribute;
-	KWClass* pathClass;
 	KWMTDatabaseMapping parentMapping;
-	KWMTDatabase checkDatabase;
+	KWMTDatabaseMappingManager checkMappingManager;
 	KWMTDatabaseMapping* checkMapping;
 
 	// Test pour la base ancetre
@@ -589,184 +359,31 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 	if (bOk)
 	{
 		// Verification de structure
-		assert(oaMultiTableMappings.GetSize() >= 1);
-		assert(oaMultiTableMappings.GetAt(0) == mainMultiTableMapping);
-		assert(mainMultiTableMapping->GetClassName() == GetClassName());
+		assert(mappingManager.IsMainMappingInitialized());
+		assert(mappingManager.GetMainClassName() != "");
+		assert(mappingManager.GetMainClassName() == GetClassName());
 
-		// On part de la classe principale
-		originClass = mainClass;
-
-		// Verification de la table de mapping
-		for (nMapping = 0; nMapping < oaMultiTableMappings.GetSize(); nMapping++)
-		{
-			mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(nMapping));
-
-			// Verification de l'unicite des noms de tables utilises
-			if (mapping->GetDataTableName() != "")
-			{
-				if (odDataTableNames.Lookup(mapping->GetDataTableName()) != NULL)
-				{
-					bOk = false;
-					AddError("Data path " + mapping->GetObjectLabel() + " : Data table " +
-						 mapping->GetDataTableName() + " already used");
-				}
-				odDataTableNames.SetAt(mapping->GetDataTableName(), mapping);
-			}
-
-			// En mode ecriture, les tables externes ne doivent pas etre renseignees
-			if (bWriteOnly and mapping->GetDataTableName() != "" and IsReferencedClassMapping(mapping))
-			{
-				bOk = false;
-				AddError("Data path " + mapping->GetObjectLabel() + " : External data table " +
-					 mapping->GetDataTableName() + " should not be specified for output database");
-			}
-
-			// En mode ecriture, si une table secondaire non externe est renseignee, sa table parente doit l'etre egalement
-			// En theorie, on pourrait developper du code pour autoriser ce type de specification, mais le rapport cout/benefice
-			// est tres peu favorable pour cas cas d'usage marginal
-			if (bWriteOnly and mapping->GetDataTableName() != "" and
-			    not IsReferencedClassMapping(mapping) and mapping->GetAttributeNames()->GetSize() > 0)
-			{
-				// Recherche du mapping parent
-				parentMapping.CopyFrom(mapping);
-				parentMapping.GetAttributeNames()->SetSize(mapping->GetAttributeNames()->GetSize() - 1);
-				checkMapping = LookupMultiTableMapping(parentMapping.GetDataPath());
-
-				// Verification dans le cas valide que ce mapping a egalement un nom de table specifie
-				if (checkMapping != NULL and checkMapping->GetDataTableName() == "")
-				{
-					bOk = false;
-					AddError("Data path " + mapping->GetObjectLabel() + " : data table " +
-						 mapping->GetDataTableName() +
-						 " cannot be specified without a data table being specified for its "
-						 "owner table (data path " +
-						 parentMapping.GetDataPath() + ")");
-				}
-			}
-
-			// Recherche de la classe principale du chemin de mapping
-			originClass = KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetOriginClassName());
-			assert(originClass == NULL or originClass->GetName() == GetClassName() or
-			       originClass->GetRoot());
-
-			// Existence de cette classe
-			if (originClass == NULL)
-			{
-				bOk = false;
-				if (mapping->GetOriginClassName() == GetClassName())
-					sOriginLabel = "Main";
-				else
-					sOriginLabel = "Root";
-				AddError("Data path " + mapping->GetObjectLabel() + " : " + sOriginLabel +
-					 " dictionary " + mapping->GetOriginClassName() + " does not exist");
-			}
-
-			// Validite du chemin de donnee
-			if (bOk)
-			{
-				// Parcours des attributs du chemin de donnees du mapping
-				nAttributeNumber = mapping->GetDataPathAttributeNumber();
-				pathClass = originClass;
-				for (nAttribute = 0; nAttribute < nAttributeNumber; nAttribute++)
-				{
-					check(pathClass);
-
-					// Recherche de l'attribut correspondant au mapping
-					sAttributeName = mapping->GetDataPathAttributeNameAt(nAttribute);
-					attribute = pathClass->LookupAttribute(sAttributeName);
-
-					// Existence de l'attribut mappe
-					if (attribute == NULL)
-					{
-						bOk = false;
-						AddError("Data path " + mapping->GetObjectLabel() + " : Variable " +
-							 sAttributeName + " not found in dictionary " +
-							 pathClass->GetName());
-					}
-					// Son type doit etre Object ou ObjectArray
-					else if (not KWType::IsRelation(attribute->GetType()))
-					{
-						bOk = false;
-						AddError("Data path " + mapping->GetObjectLabel() +
-							 " : Type of variable " + sAttributeName + " should be " +
-							 KWType::ToString(KWType::Object) + " or " +
-							 KWType::ToString(KWType::ObjectArray));
-					}
-					// Sa classe doit etre coherente avec celle du mapping,
-					// pour le dernier attribut du chemin
-					else if (mapping->GetClassName() != attribute->GetClass()->GetName())
-					{
-						if (nAttribute == nAttributeNumber - 1)
-						{
-							bOk = false;
-							AddError("Data path " + mapping->GetObjectLabel() +
-								 " : Dictionary of variable " + sAttributeName + " (" +
-								 mapping->GetClassName() + ") should be " +
-								 attribute->GetClass()->GetName());
-						}
-					}
-					// La classe utilisante doit avoir une cle
-					else if (pathClass->GetKeyAttributeNumber() == 0)
-					{
-						bOk = false;
-						AddError("Dictionary (" + pathClass->GetName() +
-							 ") should have a key to use variable " + sAttributeName);
-					}
-					// Sa classe doit avoir une cle
-					else if (attribute->GetClass()->GetKeyAttributeNumber() == 0)
-					{
-						bOk = false;
-						AddError("Data path " + mapping->GetObjectLabel() +
-							 " : Dictionary of variable " + sAttributeName + " (" +
-							 mapping->GetClassName() + ") should have a key");
-					}
-					// La cle de la classe utilisee doit etre au moins aussi longue que
-					// celle de la classe utilisante dans le cas d'un lien de composition
-					else if (not attribute->GetReference() and
-						 attribute->GetDerivationRule() == NULL and
-						 attribute->GetClass()->GetKeyAttributeNumber() <
-						     pathClass->GetKeyAttributeNumber())
-					{
-						bOk = false;
-						AddError("Data path " + mapping->GetObjectLabel() +
-							 " : In dictionary " + mapping->GetClassName() +
-							 " of variable " + sAttributeName + ", the key length (" +
-							 IntToString(attribute->GetClass()->GetKeyAttributeNumber()) +
-							 ") must not be less than that of its parent "
-							 "dictionary " +
-							 pathClass->GetName() + "(" +
-							 IntToString(pathClass->GetKeyAttributeNumber()) + ")");
-					}
-
-					// Passage a la classe suivante dans le path
-					if (bOk)
-						pathClass = attribute->GetClass();
-
-					// Arret si erreur
-					if (not bOk)
-						break;
-				}
-			}
-		}
+		// Verification du mapping
+		bOk = mappingManager.CheckPartially(bWriteOnly);
 	}
 
 	// Erreur si mapping en trop, warning en cas d'absence de specifications de mapping,
 	if (bOk)
 	{
-		// Parametrage d'une copie de la base et creation de sa structure de mapping
-		checkDatabase.SetClassName(GetClassName());
-		checkDatabase.UpdateMultiTableMappings();
+		// Calcul de mappings de verification
+		checkMappingManager.ComputeAllDataPaths(
+		    KWClassDomain::GetCurrentDomain()->LookupClass(mappingManager.GetMainClassName()));
 
 		// Verification qu'il n'y a pas de mapping en trop
-		for (nMapping = 0; nMapping < oaMultiTableMappings.GetSize(); nMapping++)
+		for (nMapping = 0; nMapping < mappingManager.GetMappingNumber(); nMapping++)
 		{
-			mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(nMapping));
+			mapping = mappingManager.GetMappingAt(nMapping);
 
 			// Recherche du mapping correspondant, puis verification
-			checkMapping = checkDatabase.LookupMultiTableMapping(mapping->GetDataPath());
+			checkMapping = checkMappingManager.LookupMapping(mapping->GetDataPath());
 			if (checkMapping == NULL)
 			{
-				AddError("No data table file specified for data path " + mapping->GetObjectLabel());
+				AddError("Unexpected data path " + mapping->GetObjectLabel());
 				bOk = false;
 				break;
 			}
@@ -776,17 +393,16 @@ boolean KWMTDatabase::CheckPartially(boolean bWriteOnly) const
 		// Uniquement en lecture: en ecriture, tout ou partie des mappings peut ne pas etre renseigne
 		if (bOk and not bWriteOnly)
 		{
-			for (nMapping = 0; nMapping < checkDatabase.GetMultiTableMappings()->GetSize(); nMapping++)
+			for (nMapping = 0; nMapping < checkMappingManager.GetMappingNumber(); nMapping++)
 			{
-				checkMapping =
-				    cast(KWMTDatabaseMapping*, checkDatabase.GetMultiTableMappings()->GetAt(nMapping));
+				checkMapping = checkMappingManager.GetMappingAt(nMapping);
 
 				// Recherche du mapping correspondant, puis verification
-				mapping = LookupMultiTableMapping(checkMapping->GetDataPath());
+				mapping = mappingManager.LookupMapping(checkMapping->GetDataPath());
 				if (mapping == NULL)
 				{
 					AddError("Data path " + checkMapping->GetObjectLabel() +
-						 " : No data path specification");
+						 " : Missing data path specification");
 					bOk = false;
 				}
 				else if (mapping->GetDataTableName() == "")
@@ -857,8 +473,8 @@ void KWMTDatabase::DisplayMultiTableMappingWarnings() const
 
 	// Emission des eventuels warnings en cas de table externe non utilisable
 	Global::ActivateErrorFlowControl();
-	for (n = 0; n < svUnusedRootDictionaryWarnings.GetSize(); n++)
-		AddWarning(svUnusedRootDictionaryWarnings.GetAt(n));
+	for (n = 0; n < mappingManager.GetUnusedRootDictionaryWarnings()->GetSize(); n++)
+		AddWarning(mappingManager.GetUnusedRootDictionaryWarnings()->GetAt(n));
 	Global::DesactivateErrorFlowControl();
 }
 
@@ -874,9 +490,9 @@ void KWMTDatabase::SetVerboseMode(boolean bValue)
 	dataTableDriverCreator->SetVerboseMode(bValue);
 
 	// Propagation du mode verbeux a toutes les tables principales et secondaires
-	for (i = 0; i < oaMultiTableMappings.GetSize(); i++)
+	for (i = 0; i < mappingManager.GetMappingNumber(); i++)
 	{
-		mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(i));
+		mapping = mappingManager.GetMappingAt(i);
 		if (mapping->GetDataTableDriver() != NULL)
 			mapping->GetDataTableDriver()->SetVerboseMode(bValue);
 	}
@@ -894,9 +510,9 @@ void KWMTDatabase::SetSilentMode(boolean bValue)
 	dataTableDriverCreator->SetSilentMode(bValue);
 
 	// Propagation du mode verbeux a toutes les tables principales et secondaires
-	for (i = 0; i < oaMultiTableMappings.GetSize(); i++)
+	for (i = 0; i < mappingManager.GetMappingNumber(); i++)
 	{
-		mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(i));
+		mapping = mappingManager.GetMappingAt(i);
 		if (mapping->GetDataTableDriver() != NULL)
 			mapping->GetDataTableDriver()->SetSilentMode(bValue);
 	}
@@ -906,8 +522,6 @@ longint KWMTDatabase::GetUsedMemory() const
 {
 	boolean bShowMemory = false;
 	longint lUsedMemory;
-	KWMTDatabaseMapping* mapping;
-	int i;
 
 	// Methode ancetre
 	lUsedMemory = KWDatabase::GetUsedMemory();
@@ -916,24 +530,17 @@ longint KWMTDatabase::GetUsedMemory() const
 	lUsedMemory += sizeof(KWDataTableDriver*);
 	if (dataTableDriverCreator != NULL)
 		lUsedMemory += dataTableDriverCreator->GetUsedMemory();
-	lUsedMemory += oaRootReferenceTableMappings.GetUsedMemory();
-	lUsedMemory += oaMultiTableMappings.GetUsedMemory();
-	lUsedMemory += svUnusedRootDictionaryWarnings.GetUsedMemory();
-
-	// Memoire utilise par les mappings
-	for (i = 0; i < oaMultiTableMappings.GetSize(); i++)
-	{
-		mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(i));
-		lUsedMemory += mapping->GetUsedMemory();
-	}
+	lUsedMemory += mappingManager.GetUsedMemory() - sizeof(KWMTDatabaseMappingManager);
 
 	// Memoire utilisee par les objets references
-	lUsedMemory += objectReferenceResolver.GetUsedMemory();
+	lUsedMemory += objectReferenceResolver.GetUsedMemory() - sizeof(KWObjectReferenceResolver);
 
 	// Affichage des stats memoire
 	if (bShowMemory)
 	{
 		cout << "KWMTDatabase::GetUsedMemory, base memory: " << KWDatabase::GetUsedMemory() << endl;
+		cout << "KWMTDatabase::GetUsedMemory, mapping manager memory: " << mappingManager.GetUsedMemory()
+		     << endl;
 		cout << "KWMTDatabase::GetUsedMemory, reference memory: " << objectReferenceResolver.GetUsedMemory()
 		     << endl;
 		cout << "KWMTDatabase::GetUsedMemory, total memory: " << lUsedMemory << endl;
@@ -955,20 +562,20 @@ longint KWMTDatabase::ComputeOpenNecessaryMemory(boolean bRead, boolean bIncludi
 	lNecessaryMemory = KWDatabase::ComputeOpenNecessaryMemory(bRead, bIncludingClassMemory);
 
 	// Nettoyage prealable
-	DMTMPhysicalTerminateMapping(mainMultiTableMapping);
+	DMTMPhysicalTerminateMapping(GetMainMapping());
 
 	// Initialisation recursive du mapping a partir de la table principale pour avoir des driver initialises
 	if (bRead)
 	{
 		// En lecture, on utilise la classe physique
 		check(kwcPhysicalClass);
-		DMTMPhysicalInitializeMapping(mainMultiTableMapping, kwcPhysicalClass, true);
+		DMTMPhysicalInitializeMapping(GetMainMapping(), kwcPhysicalClass, true);
 	}
 	else
 	{
 		// En ecriture, on utile la classe logique
 		check(kwcClass);
-		DMTMPhysicalInitializeMapping(mainMultiTableMapping, kwcClass, false);
+		DMTMPhysicalInitializeMapping(GetMainMapping(), kwcClass, false);
 	}
 
 	// On complete par la taille demandee par le driver pour chaque table a ouvrir
@@ -982,8 +589,8 @@ longint KWMTDatabase::ComputeOpenNecessaryMemory(boolean bRead, boolean bIncludi
 			lNecessaryMemory += driver->ComputeOpenNecessaryMemory(bRead);
 	}
 
-	// Nettoyage prealable
-	DMTMPhysicalTerminateMapping(mainMultiTableMapping);
+	// Nettoyage final
+	DMTMPhysicalTerminateMapping(GetMainMapping());
 
 	// En lecture, ajout de la place necessaire pour le chargement des tables externes
 	if (bRead)
@@ -1149,7 +756,7 @@ longint KWMTDatabase::GetEncodingErrorNumber() const
 	if (IsOpenedForRead())
 	{
 		// Collecte des erreurs d'encodage a artir de la table principale
-		lEncodingErrorNumber = DMTMPhysicalComputeEncodingErrorNumber(mainMultiTableMapping);
+		lEncodingErrorNumber = DMTMPhysicalComputeEncodingErrorNumber(GetMainMapping());
 
 		// Ajout des erreur d'encodage liees au tables externes
 		lEncodingErrorNumber += lExternalTablesEncodingErrorNumber;
@@ -1180,18 +787,18 @@ boolean KWMTDatabase::PhysicalOpenForRead()
 	require(CheckObjectConsistency());
 
 	// Nettoyage prealable
-	DMTMPhysicalTerminateMapping(mainMultiTableMapping);
+	DMTMPhysicalTerminateMapping(GetMainMapping());
 	nSkippedRecordNumber = 0;
 
 	// Ouverture si Ok
 	if (bOk)
 	{
 		// Initialisation recursive du mapping a partir de la table principale
-		DMTMPhysicalInitializeMapping(mainMultiTableMapping, kwcPhysicalClass, true);
+		DMTMPhysicalInitializeMapping(GetMainMapping(), kwcPhysicalClass, true);
 
 		// Ouverture recursive des tables a partir de la table principale
 		if (bOk)
-			bOk = DMTMPhysicalOpenForRead(mainMultiTableMapping, kwcClass);
+			bOk = DMTMPhysicalOpenForRead(GetMainMapping(), kwcClass);
 
 		// Ouverture des tables referencees
 		if (bOk)
@@ -1210,21 +817,21 @@ boolean KWMTDatabase::PhysicalOpenForWrite()
 	dataTableDriverCreator->SetDenseOutputFormat(GetDenseOutputFormat());
 
 	// Nettoyage prealable
-	DMTMPhysicalTerminateMapping(mainMultiTableMapping);
+	DMTMPhysicalTerminateMapping(GetMainMapping());
 	nSkippedRecordNumber = 0;
 
 	// Initialisation recursive du mapping a partir de la table principale
-	DMTMPhysicalInitializeMapping(mainMultiTableMapping, kwcClass, false);
+	DMTMPhysicalInitializeMapping(GetMainMapping(), kwcClass, false);
 
 	// Ouverture recursive des tables a partir de la table principale
-	bOk = DMTMPhysicalOpenForWrite(mainMultiTableMapping);
+	bOk = DMTMPhysicalOpenForWrite(GetMainMapping());
 	return bOk;
 }
 
 boolean KWMTDatabase::IsPhysicalEnd() const
 {
 	// Test de fin de la table principale
-	return mainMultiTableMapping->GetDataTableDriver()->IsEnd();
+	return GetMainMapping()->GetDataTableDriver()->IsEnd();
 }
 
 KWObject* KWMTDatabase::PhysicalRead()
@@ -1232,7 +839,7 @@ KWObject* KWMTDatabase::PhysicalRead()
 	KWObject* kwoObject;
 
 	// Lecture d'un enregistrement de la table principale
-	kwoObject = DMTMPhysicalRead(mainMultiTableMapping);
+	kwoObject = DMTMPhysicalRead(GetMainMapping());
 
 	// Prise en compte dans le memory guard
 	if (kwoObject != NULL)
@@ -1243,7 +850,7 @@ KWObject* KWMTDatabase::PhysicalRead()
 	}
 
 	// Lecture apres la fin de la base pour effectuer des controles
-	if (mainMultiTableMapping->GetDataTableDriver()->IsEnd())
+	if (GetMainMapping()->GetDataTableDriver()->IsEnd())
 		PhysicalReadAfterEndOfDatabase();
 	return kwoObject;
 }
@@ -1266,12 +873,12 @@ void KWMTDatabase::PhysicalReadAfterEndOfDatabase()
 	require(IsOpenedForRead());
 
 	// Positionnement du flag d'erreur
-	bIsError = bIsError or mainMultiTableMapping->GetDataTableDriver()->IsError();
+	bIsError = bIsError or GetMainMapping()->GetDataTableDriver()->IsError();
 
 	// Lecture de chaque sous-base jusqu'a la fin pour detecter les erreurs
-	for (i = 1; i < oaMultiTableMappings.GetSize(); i++)
+	for (i = 1; i < mappingManager.GetMappingNumber(); i++)
 	{
-		componentMapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(i));
+		componentMapping = mappingManager.GetMappingAt(i);
 
 		// Lecture dans la sous base
 		mappedDataTableDriver = componentMapping->GetDataTableDriver();
@@ -1387,20 +994,19 @@ void KWMTDatabase::PhysicalReadAfterEndOfDatabase()
 void KWMTDatabase::PhysicalSkip()
 {
 	// Saut d'un enregistrement sur la table principale
-	mainMultiTableMapping->GetDataTableDriver()->Skip();
-	bIsError = bIsError or mainMultiTableMapping->GetDataTableDriver()->IsError();
+	GetMainMapping()->GetDataTableDriver()->Skip();
+	bIsError = bIsError or GetMainMapping()->GetDataTableDriver()->IsError();
 
 	// Memorisation inconditionnelle de la cle du dernier enregistremnt lu, dans le cas d'une classe principale,
 	// meme si l'objet n'a pas pu etre lu
 	// Cela permet de gere les lignes dupliquees, que l'objet soit lu ou non (a cause d'une erreur de parsing)
-	assert(mainMultiTableMapping->GetDataTableDriver()->GetClass()->GetName() == kwcClass->GetName());
-	assert(mainMultiTableMapping->GetDataTableDriver()->GetClass()->GetRoot() == kwcClass->GetRoot());
+	assert(GetMainMapping()->GetDataTableDriver()->GetClass()->GetName() == kwcClass->GetName());
+	assert(GetMainMapping()->GetDataTableDriver()->GetClass()->GetRoot() == kwcClass->GetRoot());
 	if (kwcClass->IsUnique())
 	{
-		assert(mainMultiTableMapping->GetDataTableDriver()->GetLastReadMainKey()->GetSize() ==
-		       mainMultiTableMapping->GetDataTableDriver()->GetClass()->GetKeyAttributeNumber());
-		mainMultiTableMapping->SetLastReadKey(
-		    mainMultiTableMapping->GetDataTableDriver()->GetLastReadMainKey());
+		assert(GetMainMapping()->GetDataTableDriver()->GetLastReadMainKey()->GetSize() ==
+		       GetMainMapping()->GetDataTableDriver()->GetClass()->GetKeyAttributeNumber());
+		GetMainMapping()->SetLastReadKey(GetMainMapping()->GetDataTableDriver()->GetLastReadMainKey());
 	}
 
 	// Attention, il n'est pas possible de propager les skip sur les sous-tables
@@ -1410,14 +1016,14 @@ void KWMTDatabase::PhysicalSkip()
 	nSkippedRecordNumber++;
 
 	// Lecture apres la fin de la base pour effectuer des controles
-	if (not bIsError and mainMultiTableMapping->GetDataTableDriver()->IsEnd())
+	if (not bIsError and GetMainMapping()->GetDataTableDriver()->IsEnd())
 		PhysicalReadAfterEndOfDatabase();
 }
 
 void KWMTDatabase::PhysicalWrite(const KWObject* kwoObject)
 {
 	// Ecriture d'un enregistrement de la table principale
-	DMTMPhysicalWrite(mainMultiTableMapping, kwoObject);
+	DMTMPhysicalWrite(GetMainMapping(), kwoObject);
 }
 
 boolean KWMTDatabase::PhysicalClose()
@@ -1425,7 +1031,7 @@ boolean KWMTDatabase::PhysicalClose()
 	boolean bOk;
 
 	// Fermeture de la base et de toutes ses sous-bases
-	bOk = DMTMPhysicalClose(mainMultiTableMapping);
+	bOk = DMTMPhysicalClose(GetMainMapping());
 	nSkippedRecordNumber = 0;
 
 	// Destruction des objets references
@@ -1436,42 +1042,42 @@ boolean KWMTDatabase::PhysicalClose()
 void KWMTDatabase::PhysicalDeleteDatabase()
 {
 	// Destruction des tables de la hierarchie principale, hors classe referencees
-	DMTMPhysicalDeleteDatabase(mainMultiTableMapping);
+	DMTMPhysicalDeleteDatabase(GetMainMapping());
 }
 
 longint KWMTDatabase::GetPhysicalEstimatedObjectNumber()
 {
 	longint lPhysicalEstimatedObjectNumber;
 
-	require(mainMultiTableMapping->GetDataTableDriver() == NULL);
+	require(GetMainMapping()->GetDataTableDriver() == NULL);
 
 	// Parametrage du mapping principal
-	mainMultiTableMapping->SetDataTableDriver(CreateDataTableDriver(mainMultiTableMapping));
-	mainMultiTableMapping->GetDataTableDriver()->SetDataTableName(mainMultiTableMapping->GetDataTableName());
-	mainMultiTableMapping->GetDataTableDriver()->SetClass(
+	GetMainMapping()->SetDataTableDriver(CreateDataTableDriver(GetMainMapping()));
+	GetMainMapping()->GetDataTableDriver()->SetDataTableName(GetMainMapping()->GetDataTableName());
+	GetMainMapping()->GetDataTableDriver()->SetClass(
 	    KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName()));
 
 	// Appel de la methode du driver
-	lPhysicalEstimatedObjectNumber = mainMultiTableMapping->GetDataTableDriver()->GetEstimatedObjectNumber();
+	lPhysicalEstimatedObjectNumber = GetMainMapping()->GetDataTableDriver()->GetEstimatedObjectNumber();
 
 	// Nettoyage (attention a nettoyer le driver avant de le detruire)
-	mainMultiTableMapping->GetDataTableDriver()->SetDataTableName("");
-	mainMultiTableMapping->GetDataTableDriver()->SetClass(NULL);
-	delete mainMultiTableMapping->GetDataTableDriver();
-	mainMultiTableMapping->SetDataTableDriver(NULL);
+	GetMainMapping()->GetDataTableDriver()->SetDataTableName("");
+	GetMainMapping()->GetDataTableDriver()->SetClass(NULL);
+	delete GetMainMapping()->GetDataTableDriver();
+	GetMainMapping()->SetDataTableDriver(NULL);
 	return lPhysicalEstimatedObjectNumber;
 }
 
 double KWMTDatabase::GetPhysicalReadPercentage() const
 {
-	require(mainMultiTableMapping->GetDataTableDriver() != NULL);
-	return mainMultiTableMapping->GetDataTableDriver()->GetReadPercentage();
+	require(GetMainMapping()->GetDataTableDriver() != NULL);
+	return GetMainMapping()->GetDataTableDriver()->GetReadPercentage();
 }
 
 longint KWMTDatabase::GetPhysicalRecordIndex() const
 {
-	if (mainMultiTableMapping->GetDataTableDriver() != NULL)
-		return mainMultiTableMapping->GetDataTableDriver()->GetRecordIndex();
+	if (GetMainMapping()->GetDataTableDriver() != NULL)
+		return GetMainMapping()->GetDataTableDriver()->GetRecordIndex();
 	else
 		return 0;
 }
@@ -1488,9 +1094,9 @@ void KWMTDatabase::CollectPhysicalStatsMessages(ObjectArray* oaPhysicalMessages)
 	require(oaPhysicalMessages->GetSize() == 0);
 
 	// Propagation des messages aux databases secondaires
-	for (i = 1; i < oaMultiTableMappings.GetSize(); i++)
+	for (i = 1; i < mappingManager.GetMappingNumber(); i++)
 	{
-		mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(i));
+		mapping = mappingManager.GetMappingAt(i);
 
 		// Nombre d'enregistrements lus par mapping
 		mappedDataTableDriver = mapping->GetDataTableDriver();
@@ -1519,9 +1125,9 @@ void KWMTDatabase::DeletePhysicalClass()
 	KWDatabase::DeletePhysicalClass();
 
 	// Dereferencement des classes physique dans tous les tables principales et secondaires
-	for (i = 0; i < oaMultiTableMappings.GetSize(); i++)
+	for (i = 1; i < mappingManager.GetMappingNumber(); i++)
 	{
-		mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(i));
+		mapping = mappingManager.GetMappingAt(i);
 
 		// Dereferencement des classes dans les drivers de tables mappes
 		if (mapping->GetDataTableDriver() != NULL)
@@ -1543,8 +1149,8 @@ void KWMTDatabase::MutatePhysicalObject(KWObject* kwoPhysicalObject) const
 	KWDRReference::SetObjectReferenceResolver(&objectReferenceResolver);
 
 	// Referencement du nouvel objet principal lu depuis le resolveur de reference, s'il est Root
-	if (kwcPhysicalClass->GetRoot() and not mainMultiTableMapping->GetLastReadKey()->IsEmpty())
-		objectReferenceResolver.AddObject(kwcPhysicalClass, mainMultiTableMapping->GetLastReadKey(),
+	if (kwcPhysicalClass->GetRoot() and not GetMainMapping()->GetLastReadKey()->IsEmpty())
+		objectReferenceResolver.AddObject(kwcPhysicalClass, GetMainMapping()->GetLastReadKey(),
 						  kwoPhysicalObject);
 
 	// Appel de la methode ancetre
@@ -1553,8 +1159,8 @@ void KWMTDatabase::MutatePhysicalObject(KWObject* kwoPhysicalObject) const
 	// Dereferencement du precedent objet principal lu depuis le resolveur de reference
 	// En effet, l'objet precedement lu est potentiellement detruit et inutilisable pour
 	// la resolution des references (intra-objet dans le cas de l'objet principal)
-	if (kwcPhysicalClass->GetRoot() and not mainMultiTableMapping->GetLastReadKey()->IsEmpty())
-		objectReferenceResolver.RemoveObject(kwcPhysicalClass, mainMultiTableMapping->GetLastReadKey());
+	if (kwcPhysicalClass->GetRoot() and not GetMainMapping()->GetLastReadKey()->IsEmpty())
+		objectReferenceResolver.RemoveObject(kwcPhysicalClass, GetMainMapping()->GetLastReadKey());
 
 	// Remise a NULL du resolveur de reference dans la regle de derivation gerant les references
 	KWDRReference::SetObjectReferenceResolver(NULL);
@@ -1583,8 +1189,8 @@ boolean KWMTDatabase::IsPhysicalObjectSelected(KWObject* kwoPhysicalObject)
 		KWDRReference::SetObjectReferenceResolver(&objectReferenceResolver);
 
 		// Referencement du nouvel objet principal lu depuis le resolveur de reference
-		if (kwcPhysicalClass->GetRoot() and not mainMultiTableMapping->GetLastReadKey()->IsEmpty())
-			objectReferenceResolver.AddObject(kwcPhysicalClass, mainMultiTableMapping->GetLastReadKey(),
+		if (kwcPhysicalClass->GetRoot() and not GetMainMapping()->GetLastReadKey()->IsEmpty())
+			objectReferenceResolver.AddObject(kwcPhysicalClass, GetMainMapping()->GetLastReadKey(),
 							  kwoPhysicalObject);
 
 		// Calcul du critere de selection
@@ -1600,131 +1206,13 @@ boolean KWMTDatabase::IsPhysicalObjectSelected(KWObject* kwoPhysicalObject)
 		// Dereferencement du precedent objet principal lu depuis le resolveur de reference
 		// En effet, l'objet precedement lu est potentiellement detruit et inutilisable pour
 		// la resolution des references (intra-objet dans le cas de l'objet principal)
-		if (kwcPhysicalClass->GetRoot() and not mainMultiTableMapping->GetLastReadKey()->IsEmpty())
-			objectReferenceResolver.RemoveObject(kwcPhysicalClass, mainMultiTableMapping->GetLastReadKey());
+		if (kwcPhysicalClass->GetRoot() and not GetMainMapping()->GetLastReadKey()->IsEmpty())
+			objectReferenceResolver.RemoveObject(kwcPhysicalClass, GetMainMapping()->GetLastReadKey());
 
 		// Remise a NULL du resolveur de reference dans la regle de derivation gerant les references
 		KWDRReference::SetObjectReferenceResolver(NULL);
 	}
 	return bSelected;
-}
-
-KWMTDatabaseMapping* KWMTDatabase::CreateMapping(ObjectDictionary* odReferenceClasses,
-						 ObjectArray* oaRankedReferenceClasses,
-						 ObjectDictionary* odAnalysedCreatedClasses, const KWClass* mappedClass,
-						 boolean bIsExternalTable, const ALString& sOriginClassName,
-						 StringVector* svAttributeNames, ObjectArray* oaCreatedMappings)
-{
-	KWMTDatabaseMapping* mapping;
-	KWMTDatabaseMapping* subMapping;
-	KWAttribute* attribute;
-	KWClass* kwcTargetClass;
-	ObjectArray oaUsedClass;
-	KWClass* kwcUsedClass;
-	int nUsedClass;
-
-	require(odReferenceClasses != NULL);
-	require(oaRankedReferenceClasses != NULL);
-	require(odAnalysedCreatedClasses != NULL);
-	require(odReferenceClasses->GetCount() == oaRankedReferenceClasses->GetSize());
-	require(mappedClass != NULL);
-	require(sOriginClassName != "");
-	require(not mappedClass->GetRoot() or mappedClass->GetName() == sOriginClassName);
-	require(not mappedClass->GetRoot() or svAttributeNames->GetSize() == 0);
-	require(oaCreatedMappings != NULL);
-
-	// Creation et initialisation d'un mapping
-	mapping = new KWMTDatabaseMapping;
-	mapping->SetExternalTable(bIsExternalTable);
-	mapping->SetClassName(mappedClass->GetName());
-	mapping->SetOriginClassName(sOriginClassName);
-	mapping->GetAttributeNames()->CopyFrom(svAttributeNames);
-	assert(LookupMultiTableMapping(mapping->GetDataPath()) == NULL);
-
-	// Memorisation de ce mapping dans le tableau exhaustif de tous les mapping
-	oaCreatedMappings->Add(mapping);
-
-	// Ajout des mapping pour la composition de la classe ainsi que les classe referencees
-	attribute = mappedClass->GetHeadAttribute();
-	while (attribute != NULL)
-	{
-		// Test si attribut natif est de type Object ou ObjectArray
-		if (KWType::IsRelation(attribute->GetType()) and attribute->GetClass() != NULL)
-		{
-			// Cas d'un attribut natif de la composition (sans regle de derivation)
-			if (attribute->GetAnyDerivationRule() == NULL)
-			{
-				// Ajout temporaire d'un attribut au mapping
-				svAttributeNames->Add(attribute->GetName());
-
-				// Creation du mapping dans une nouvelle table de mapping temporaire
-				subMapping =
-				    CreateMapping(odReferenceClasses, oaRankedReferenceClasses,
-						  odAnalysedCreatedClasses, attribute->GetClass(), bIsExternalTable,
-						  sOriginClassName, svAttributeNames, oaCreatedMappings);
-
-				// Supression de l'attribut ajoute temporairement
-				svAttributeNames->SetSize(svAttributeNames->GetSize() - 1);
-
-				// Chainage du sous-mapping
-				mapping->GetComponents()->Add(subMapping);
-			}
-			// Cas d'un attribut issue d'une regle de creation de table, pour rechercher
-			// les classes referencees depuis les tables creees par des regles
-			else if (not attribute->GetReference())
-			{
-				assert(attribute->GetAnyDerivationRule() != NULL);
-
-				// Recherche de la classe cible
-				kwcTargetClass = mappedClass->GetDomain()->LookupClass(
-				    attribute->GetDerivationRule()->GetObjectClassName());
-				assert(kwcTargetClass != NULL);
-
-				// Analyse uniquement si la classe cible na pas deja ete analysees
-				if (odAnalysedCreatedClasses->Lookup(kwcTargetClass->GetName()) == NULL)
-				{
-					// Memorisation de la classe cible
-					odAnalysedCreatedClasses->SetAt(kwcTargetClass->GetName(), kwcTargetClass);
-
-					// Recherche de toutes les classes utilisees recursivement
-					kwcTargetClass->BuildAllUsedClasses(&oaUsedClass);
-
-					// Recherches des classes externes
-					for (nUsedClass = 0; nUsedClass < oaUsedClass.GetSize(); nUsedClass++)
-					{
-						kwcUsedClass = cast(KWClass*, oaUsedClass.GetAt(nUsedClass));
-
-						// Memorisation des mappings a traiter dans le cas de classe externes
-						if (kwcUsedClass->GetRoot())
-						{
-							if (odReferenceClasses->Lookup(kwcUsedClass->GetName()) == NULL)
-							{
-								odReferenceClasses->SetAt(kwcUsedClass->GetName(),
-											  kwcUsedClass);
-								oaRankedReferenceClasses->Add(kwcUsedClass);
-							}
-						}
-					}
-				}
-			}
-			// Cas d'un attribut natif reference (avec regle de derivation predefinie)
-			else if (attribute->GetAnyDerivationRule()->GetName() ==
-				 KWDerivationRule::GetReferenceRuleName())
-			{
-				// Memorisation du mapping a traiter
-				if (odReferenceClasses->Lookup(attribute->GetClass()->GetName()) == NULL)
-				{
-					odReferenceClasses->SetAt(attribute->GetClass()->GetName(),
-								  attribute->GetClass());
-					oaRankedReferenceClasses->Add(attribute->GetClass());
-				}
-			}
-		}
-
-		// Attribut suivant
-		mappedClass->GetNextAttribute(attribute);
-	}
-	return mapping;
 }
 
 boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
@@ -1774,9 +1262,9 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 	lExternalTablesEncodingErrorNumber = 0;
 
 	// Ouverture de chaque table secondaire
-	for (nReference = 0; nReference < oaRootReferenceTableMappings.GetSize(); nReference++)
+	for (nReference = 0; nReference < mappingManager.GetExternalRootMappingNumber(); nReference++)
 	{
-		referenceMapping = cast(KWMTDatabaseMapping*, oaRootReferenceTableMappings.GetAt(nReference));
+		referenceMapping = mappingManager.GetExternalRootMappingAt(nReference);
 
 		// Acces aux classes physique et logique referencees, en passant par le domaine de la classe principale
 		kwcReferenceClass = kwcClass->GetDomain()->LookupClass(referenceMapping->GetClassName());
@@ -2122,9 +1610,9 @@ longint KWMTDatabase::ComputeNecessaryMemoryForReferenceObjects()
 	// Ouverture de chaque table secondaire pour une premiere estimation basique de la memoire necessaire, sans
 	// acces aux donnees
 	lTotalNecessaryMemory = 0;
-	for (nReference = 0; nReference < oaRootReferenceTableMappings.GetSize(); nReference++)
+	for (nReference = 0; nReference < mappingManager.GetExternalRootMappingNumber(); nReference++)
 	{
-		referenceMapping = cast(KWMTDatabaseMapping*, oaRootReferenceTableMappings.GetAt(nReference));
+		referenceMapping = mappingManager.GetExternalRootMappingAt(nReference);
 
 		// Acces aux classes physique et logique referencees, en passant par le domaine de la classe principale
 		kwcReferenceClass = kwcClass->GetDomain()->LookupClass(referenceMapping->GetClassName());
@@ -2622,7 +2110,7 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 
 		// Gestion de la coherence pour toute classe principale ayant une cle
 		// Le cas des classes composant est traite plus loin
-		if (mapping == mainMultiTableMapping or kwoObject->GetClass()->IsUnique())
+		if (mapping == GetMainMapping() or kwoObject->GetClass()->IsUnique())
 		{
 			// Test a partir du deuxieme enregistrement effectivement lu, pour lequel le LastReadKey est
 			// initialise)
@@ -2719,7 +2207,7 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 					{
 						// Verification de la coherence entre la classe du sous-objet, et sa
 						// classe attendue depuis son objet englobant
-						assert(componentMapping != mainMultiTableMapping and
+						assert(componentMapping != GetMainMapping() and
 						       not kwoSubObject->GetClass()->GetRoot());
 						assert(kwoSubObject->GetClass() ==
 						       kwoObject->GetClass()
@@ -2943,49 +2431,4 @@ void KWMTDatabase::DMTMPhysicalWrite(KWMTDatabaseMapping* mapping, const KWObjec
 			}
 		}
 	}
-}
-
-void KWMTDatabase::WriteMapingArray(ostream& ost, const ALString& sTitle, const ObjectArray* oaDataPaths) const
-{
-	int n;
-	KWDataPath* dataPath;
-
-	require(sTitle != "");
-	require(oaDataPaths != NULL);
-
-	// Affichage
-	ost << sTitle << "\n";
-	for (n = 0; n < oaDataPaths->GetSize(); n++)
-	{
-		dataPath = cast(KWDataPath*, oaDataPaths->GetAt(n));
-
-		// Entete
-		if (n == 0)
-		{
-			ost << "Index\t";
-			dataPath->WriteHeaderLineReport(ost);
-			ost << "\n";
-		}
-
-		// Ligne courante
-		ost << n + 1 << "\t";
-		dataPath->WriteLineReport(ost);
-		ost << "\n";
-	}
-	/*DDD
-	int n;
-	KWMTDatabaseMapping* mapping;
-
-	require(sTitle != "");
-	require(oaMappings != NULL);
-
-	// Affichage
-	ost << sTitle << "\n";
-	for (n = 0; n < oaMappings->GetSize(); n++)
-	{
-		mapping = cast(KWMTDatabaseMapping*, oaMappings->GetAt(n));
-		ost << "\t" << n + 1 << "\t" << mapping->GetDataPath() << "\t" << mapping->GetClassName() << "\t"
-		    << mapping->GetDataTableName() << "\n";
-	}
-	*/
 }

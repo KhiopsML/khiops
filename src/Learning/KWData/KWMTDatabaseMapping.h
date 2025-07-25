@@ -4,6 +4,9 @@
 
 #pragma once
 
+class KWMTDatabaseMapping;
+class KWMTDatabaseMappingManager;
+
 #include "Object.h"
 #include "KWDataPath.h"
 #include "KWDataTableDriver.h"
@@ -22,6 +25,13 @@ public:
 	KWMTDatabaseMapping();
 	~KWMTDatabaseMapping();
 
+	// Nom du fichier de donnees pour la table
+	const ALString& GetDataTableName() const;
+	void SetDataTableName(const ALString& sValue);
+
+	////////////////////////////////////////////////////////
+	// Divers
+
 	// Copie (sans les attributs de gestion)
 	void CopyFrom(const KWDataPath* aSource) override;
 
@@ -30,13 +40,6 @@ public:
 
 	// Comparaison des attributs de definition
 	int Compare(const KWDataPath* aSource) const override;
-
-	// Nom du fichier de donnees pour la table
-	const ALString& GetDataTableName() const;
-	void SetDataTableName(const ALString& sValue);
-
-	////////////////////////////////////////////////////////
-	// Divers
 
 	// Ecriture
 	void Write(ostream& ost) const override;
@@ -97,6 +100,52 @@ protected:
 	int nMappedAttributeType;
 	KWObject* kwoLastReadObject;
 	KWObjectKey lastReadObjectKey;
+};
+
+////////////////////////////////////////////////////////////
+// Classe KWMTDatabaseMappingManager
+// Specialisation dans le cas de KWMTDatabaseMapping
+class KWMTDatabaseMappingManager : public KWDataPathManager
+{
+public:
+	// Constructeur
+	KWMTDatabaseMappingManager();
+	~KWMTDatabaseMappingManager();
+
+	// Initialisation du mapping principal
+	// Memoire: le mapping en parametre appartient a l'appele apres l'execution de la methode
+	void InitializeMainMapping(KWMTDatabaseMapping* mapping);
+	boolean IsMainMappingInitialized() const;
+
+	////////////////////////////////////////////////////////////////////////
+	// Redefinition des methodes ancetre pour avoir la terminologie mapping
+
+	// Acces aux nombres de mapping
+	int GetMappingNumber() const;
+	int GetExternalRootMappingNumber() const;
+
+	// Acces aux mapping
+	KWMTDatabaseMapping* GetMappingAt(int nIndex) const;
+	KWMTDatabaseMapping* GetExternalRootMappingAt(int nIndex) const;
+	KWMTDatabaseMapping* GetMainMapping() const;
+	KWMTDatabaseMapping* LookupMapping(const ALString& sDataPath) const;
+
+	// Acces direct au tableau de l'ensemble des mappings
+	ObjectArray* GetMappings();
+
+	////////////////////////////////////////////////////////
+	// Divers
+
+	// Creation pour renvoyer une instance du meme type dynamique
+	// Doit etre reimplemente dans les sous-classes
+	KWDataPathManager* Create() const override;
+
+	// Verification de la validite des specifications des tables par data path
+	boolean CheckPartially(boolean bWriteOnly) const;
+
+	// Libelles utilisateur redefinis pour etre ceux de la base de donnee
+	const ALString GetClassLabel() const override;
+	const ALString GetObjectLabel() const override;
 };
 
 ////////////////////////////////////////////////////////////
@@ -171,4 +220,55 @@ inline const KWObjectKey* KWMTDatabaseMapping::GetLastReadKey() const
 inline void KWMTDatabaseMapping::CleanLastReadKey()
 {
 	lastReadObjectKey.SetSize(0);
+}
+
+inline void KWMTDatabaseMappingManager::InitializeMainMapping(KWMTDatabaseMapping* mapping)
+{
+	require(mainDataPath == NULL);
+	require(GetMappingNumber() == 0);
+	require(mapping != NULL);
+
+	mainDataPath = mapping;
+	oaDataPaths.Add(mainDataPath);
+	odDataPaths.SetAt(mapping->GetDataPath(), mapping);
+}
+
+inline boolean KWMTDatabaseMappingManager::IsMainMappingInitialized() const
+{
+	return mainDataPath != NULL and oaDataPaths.GetSize() > 0 and oaDataPaths.GetAt(0) == mainDataPath;
+}
+
+inline int KWMTDatabaseMappingManager::GetMappingNumber() const
+{
+	return oaDataPaths.GetSize();
+}
+
+inline int KWMTDatabaseMappingManager::GetExternalRootMappingNumber() const
+{
+	return oaExternalRootDataPaths.GetSize();
+}
+
+inline KWMTDatabaseMapping* KWMTDatabaseMappingManager::GetMappingAt(int nIndex) const
+{
+	return cast(KWMTDatabaseMapping*, oaDataPaths.GetAt(nIndex));
+}
+
+inline KWMTDatabaseMapping* KWMTDatabaseMappingManager::GetMainMapping() const
+{
+	return cast(KWMTDatabaseMapping*, mainDataPath);
+}
+
+inline KWMTDatabaseMapping* KWMTDatabaseMappingManager::GetExternalRootMappingAt(int nIndex) const
+{
+	return cast(KWMTDatabaseMapping*, oaExternalRootDataPaths.GetAt(nIndex));
+}
+
+inline KWMTDatabaseMapping* KWMTDatabaseMappingManager::LookupMapping(const ALString& sDataPath) const
+{
+	return cast(KWMTDatabaseMapping*, odDataPaths.Lookup(sDataPath));
+}
+
+inline ObjectArray* KWMTDatabaseMappingManager::GetMappings()
+{
+	return &oaDataPaths;
 }

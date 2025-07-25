@@ -51,7 +51,7 @@ public:
 	// Nettoyage des informations d'ouverture
 	void CleanOpenInformation();
 
-	// Acces aux mappings effectivement utilises, avec un index de table parmi toute les tables possibles
+	// Acces aux mappings effectivement utilises, avec un index de table parmi toutes les tables possibles
 	// Les mappings renvoyes sont a NULL s'il ne sont pas utilises
 	KWMTDatabaseMapping* GetUsedMappingAt(int nTableIndex) const;
 

@@ -68,7 +68,7 @@ boolean KWDataPath::IsTerminalAttributeUsed() const
 	KWAttribute* currentAttribute;
 	int n;
 
-	require(CheckDataPath());
+	require(Check());
 
 	// Recherche de la classe de depart
 	kwcCurrentClass = KWClassDomain::GetCurrentDomain()->LookupClass(sOriginClassName);
@@ -93,87 +93,6 @@ boolean KWDataPath::IsTerminalAttributeUsed() const
 		kwcCurrentClass = currentAttribute->GetClass();
 	}
 	return bIsTerminalAttributeUsed;
-}
-
-boolean KWDataPath::CheckDataPath() const
-{
-	boolean bOk = true;
-	KWClass* kwcCurrentClass;
-	KWAttribute* currentAttribute;
-	int n;
-	ALString sTmp;
-
-	// Le DataPathClassName doit etre non vide
-	if (sOriginClassName.GetLength() == 0)
-	{
-		AddError("Empty origin dictionary in data path");
-		bOk = false;
-	}
-
-	// Recherche de la classe de depart
-	kwcCurrentClass = NULL;
-	if (bOk)
-	{
-		kwcCurrentClass = KWClassDomain::GetCurrentDomain()->LookupClass(sOriginClassName);
-		if (kwcCurrentClass == NULL)
-		{
-			AddError("Unknown origin dictionary " + sOriginClassName + " in data path");
-			bOk = false;
-		}
-	}
-
-	// Parcours des attributs du data path
-	if (bOk)
-	{
-		for (n = 0; n < GetDataPathAttributeNumber(); n++)
-		{
-			// Recherche de l'attribut
-			currentAttribute = kwcCurrentClass->LookupAttribute(GetDataPathAttributeNameAt(n));
-
-			// Erreur si attribut inexistant
-			if (currentAttribute == NULL)
-			{
-				AddError(sTmp + "Unknown variable " + GetDataPathAttributeNameAt(n) + " at index " +
-					 IntToString(n + 1) + " in data path");
-				bOk = false;
-			}
-			// Erreur si attribut n'est pas de type relation
-			else if (not KWType::IsRelation(currentAttribute->GetType()))
-			{
-				AddError(sTmp + "Variable " + GetDataPathAttributeNameAt(n) + " at index " +
-					 IntToString(n + 1) + " in data path should of relational data type");
-				bOk = false;
-			}
-			// Erreur eventuelle si attribut calcule
-			else if (currentAttribute->GetDerivationRule() != NULL)
-			{
-				// Erreur si les regles de creation d'instances ne sont pas autorisees
-				if (not IsRuleCreationManaged())
-				{
-					AddError(sTmp + "Variable " + GetDataPathAttributeNameAt(n) + " at index " +
-						 IntToString(n + 1) + " in data path should be native");
-					bOk = false;
-				}
-				// Sinon, erreur si la regle est une regle de reference, qui ne cree pas d'instances
-				else if (currentAttribute->GetDerivationRule()->GetReference())
-				{
-					AddError(sTmp + "Variable " + GetDataPathAttributeNameAt(n) + " at index " +
-						 IntToString(n + 1) + " in data path exploits derivation rule " +
-						 currentAttribute->GetDerivationRule()->GetName() +
-						 " that does not create isntances");
-					bOk = false;
-				}
-			}
-
-			// Arret si erreur
-			if (not bOk)
-				break;
-
-			// Changement de classe courante
-			kwcCurrentClass = currentAttribute->GetClass();
-		}
-	}
-	return bOk;
 }
 
 ALString KWDataPath::GetFormattedName(const ALString& sValue)
@@ -275,6 +194,107 @@ int KWDataPath::Compare(const KWDataPath* aSource) const
 		}
 	}
 	return nCompare;
+}
+
+boolean KWDataPath::Check() const
+{
+	boolean bOk = true;
+	KWClass* kwcCurrentClass;
+	KWAttribute* currentAttribute;
+	int nAttribute;
+	ALString sTmp;
+
+	// Le DataPathClassName doit etre non vide
+	if (sOriginClassName.GetLength() == 0)
+	{
+		AddError("Empty origin dictionary in data path");
+		bOk = false;
+	}
+
+	// Recherche de la classe de depart
+	kwcCurrentClass = NULL;
+	if (bOk)
+	{
+		kwcCurrentClass = KWClassDomain::GetCurrentDomain()->LookupClass(sOriginClassName);
+		if (kwcCurrentClass == NULL)
+		{
+			if (GetExternalTable())
+				AddError("Root dictionary " + sOriginClassName + " does not exist");
+			else
+				AddError("Main dictionary " + sOriginClassName + " does not exist");
+			bOk = false;
+		}
+	}
+
+	// Parcours des attributs du data path pour les verification de coherence du chemin
+	// On ne verifie pas la validite des cles, qui est verifiee par ailleurs avec les dictionnaires
+	if (bOk)
+	{
+		for (nAttribute = 0; nAttribute < GetDataPathAttributeNumber(); nAttribute++)
+		{
+			// Recherche de l'attribut
+			currentAttribute = kwcCurrentClass->LookupAttribute(GetDataPathAttributeNameAt(nAttribute));
+
+			// Erreur si attribut inexistant
+			if (currentAttribute == NULL)
+			{
+				AddError(sTmp + "Unknown variable " + GetDataPathAttributeNameAt(nAttribute) +
+					 " at index " + IntToString(nAttribute + 1) +
+					 " in data path, not found in dictionary " + kwcCurrentClass->GetName());
+				bOk = false;
+			}
+			// Erreur si attribut n'est pas de type relation
+			else if (not KWType::IsRelation(currentAttribute->GetType()))
+			{
+				AddError(sTmp + "Variable " + GetDataPathAttributeNameAt(nAttribute) + " at index " +
+					 IntToString(nAttribute + 1) + " in data path should of relational data type");
+				bOk = false;
+			}
+			// Sa classe doit etre coherente avec celle du mapping,
+			// pour le dernier attribut du chemin
+			else if (GetClassName() != currentAttribute->GetClass()->GetName())
+			{
+				if (nAttribute == GetDataPathAttributeNumber() - 1)
+				{
+					bOk = false;
+					AddError("Dictionary of variable " + GetDataPathAttributeNameAt(nAttribute) +
+						 " at index " + IntToString(nAttribute + 1) + " in data path (" +
+						 GetClassName() + ") should be " +
+						 currentAttribute->GetClass()->GetName());
+				}
+			}
+			// Erreur eventuelle si attribut calcule
+			else if (currentAttribute->GetDerivationRule() != NULL)
+			{
+				// Erreur si les regles de creation d'instances ne sont pas autorisees
+				if (not IsRuleCreationManaged())
+				{
+					AddError(sTmp + "Variable " + GetDataPathAttributeNameAt(nAttribute) +
+						 " at index " + IntToString(nAttribute + 1) +
+						 " in data path should be native");
+					bOk = false;
+				}
+				// Sinon, erreur si la regle est une regle de reference, qui ne cree pas d'instances
+				else if (currentAttribute->GetDerivationRule()->GetReference())
+				{
+					AddError(sTmp + "Variable " + GetDataPathAttributeNameAt(nAttribute) +
+						 " at index " + IntToString(nAttribute + 1) +
+						 " in data path exploits derivation rule " +
+						 currentAttribute->GetDerivationRule()->GetName() +
+						 " that does not create isntances");
+					bOk = false;
+				}
+			}
+
+			// Arret si erreur
+			if (not bOk)
+				break;
+
+			// Changement de classe courante
+			kwcCurrentClass = currentAttribute->GetClass();
+		}
+	}
+	return bOk;
 }
 
 void KWDataPath::Write(ostream& ost) const
@@ -455,7 +475,7 @@ void KWObjectDataPath::Compile(const KWClass* mainClass)
 
 	require(mainClass != NULL);
 	require(mainClass->IsCompiled());
-	require(CheckDataPath());
+	require(Check());
 
 	// Arret si deja compile
 	if (IsCompiled())
@@ -558,7 +578,6 @@ void KWObjectDataPath::SetDataPathManager(const KWObjectDataPathManager* manager
 
 KWDataPathManager::KWDataPathManager()
 {
-	kwcMainClass = NULL;
 	mainDataPath = NULL;
 	dataPathCreator = new KWDataPath;
 }
@@ -620,7 +639,6 @@ void KWDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 
 	// Creation du data path principal
 	// Contexte: table principale, non cree par une regle de derivation
-	kwcMainClass = mainClass;
 	assert(svAttributeName.GetSize() == 0);
 	mainDataPath = CreateDataPath(&odReferenceClasses, &oaRankedReferenceClasses, &odAnalysedCreatedClasses,
 				      mainClass, false, false, mainClass->GetName(), &svAttributeName, &oaDataPaths);
@@ -730,18 +748,18 @@ void KWDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 	// Memorisation des data paths dans un dictionnaire
 	for (i = 0; i < oaDataPaths.GetSize(); i++)
 	{
-		dataPath = cast(KWObjectDataPath*, oaDataPaths.GetAt(i));
+		dataPath = cast(KWDataPath*, oaDataPaths.GetAt(i));
 		odDataPaths.SetAt(dataPath->GetDataPath(), dataPath);
 	}
 
 	// Trace
 	if (bTrace)
 		cout << *this << endl;
+	ensure(Check());
 }
 
 void KWDataPathManager::Reset()
 {
-	kwcMainClass = NULL;
 	mainDataPath = NULL;
 	oaDataPaths.DeleteAll();
 	oaExternalRootDataPaths.RemoveAll();
@@ -758,9 +776,6 @@ void KWDataPathManager::CopyFrom(const KWDataPathManager* aSource)
 	int j;
 
 	require(aSource != NULL);
-
-	// Recopie du dictionnaire principale
-	kwcMainClass = aSource->kwcMainClass;
 
 	// Copie du mapping, apres avoir reinitialise la table de mapping
 	oaDataPaths.DeleteAll();
@@ -842,8 +857,11 @@ int KWDataPathManager::Compare(const KWDataPathManager* aSource) const
 
 	require(aSource != NULL);
 
-	// Comparaison de base
-	nCompare = CompareBoolean(IsRuleCreationManaged(), aSource->IsRuleCreationManaged());
+	// Comparaisons de base
+	if (nCompare == 0)
+		nCompare = GetMainClassName() == aSource->GetMainClassName();
+	if (nCompare == 0)
+		nCompare = CompareBoolean(IsRuleCreationManaged(), aSource->IsRuleCreationManaged());
 
 	// Comparaison du mapping
 	if (nCompare == 0)
@@ -863,7 +881,6 @@ int KWDataPathManager::Compare(const KWDataPathManager* aSource) const
 	}
 
 	// Verification de coherence en cas d'egalite
-	assert(nCompare != 0 or kwcMainClass == aSource->kwcMainClass);
 	assert(nCompare != 0 or (mainDataPath == NULL and aSource->mainDataPath == NULL) or
 	       (mainDataPath->Compare(aSource->mainDataPath) == 0));
 	assert(nCompare != 0 or oaExternalRootDataPaths.GetSize() == aSource->oaExternalRootDataPaths.GetSize());
@@ -871,6 +888,50 @@ int KWDataPathManager::Compare(const KWDataPathManager* aSource) const
 	assert(nCompare != 0 or
 	       svUnusedRootDictionaryWarnings.GetSize() == aSource->svUnusedRootDictionaryWarnings.GetSize());
 	return nCompare;
+}
+
+boolean KWDataPathManager::Check() const
+{
+	boolean bOk = true;
+	const KWDataPath* dataPath;
+	const KWDataPath* componentDataPath;
+	int i;
+	int j;
+
+	// Existence de la classe princiale
+	bOk = bOk and GetMainClassName() != "";
+	bOk = bOk and KWClassDomain::GetCurrentDomain()->LookupClass(GetMainClassName()) != NULL;
+
+	// Existence du mapping principal
+	bOk = bOk and GetMainDataPath() != NULL;
+	bOk = bOk and GetDataPathNumber() > 0;
+	bOk = bOk and mainDataPath == GetDataPathAt(0);
+
+	// Validite des data paths
+	bOk = bOk and GetDataPathNumber() == odDataPaths.GetCount();
+	for (i = 0; i < GetDataPathNumber(); i++)
+	{
+		dataPath = GetDataPathAt(i);
+
+		// Test de validite
+		bOk = bOk and dataPath->Check();
+		bOk = bOk and dataPath == LookupDataPath(dataPath->GetDataPath());
+
+		// Test d'existence des data path de la composition
+		for (j = 0; j < dataPath->GetConstComponents()->GetSize(); j++)
+		{
+			componentDataPath = cast(const KWDataPath*, dataPath->GetConstComponents()->GetAt(j));
+			bOk = bOk and componentDataPath == LookupDataPath(componentDataPath->GetDataPath());
+		}
+	}
+
+	// Validite des data paths des tables externes
+	for (i = 0; i < GetExternalRootDataPathNumber(); i++)
+	{
+		dataPath = GetExternalRootDataPathAt(i);
+		bOk = bOk and dataPath == LookupDataPath(dataPath->GetDataPath());
+	}
+	return bOk;
 }
 
 void KWDataPathManager::Write(ostream& ost) const
@@ -885,10 +946,7 @@ const ALString KWDataPathManager::GetClassLabel() const
 
 const ALString KWDataPathManager::GetObjectLabel() const
 {
-	if (kwcMainClass == NULL)
-		return "";
-	else
-		return kwcMainClass->GetName();
+	return GetMainClassName();
 }
 
 longint KWDataPathManager::GetUsedMemory() const
@@ -930,7 +988,8 @@ KWDataPath* KWDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClass
 	// Creation et initialisation d'un dataPath
 	dataPath = dataPathCreator->Create();
 	dataPath->SetExternalTable(bIsExternalTable);
-	dataPath->SetCreatedObjects(bCreatedObjects);
+	if (IsRuleCreationManaged())
+		dataPath->SetCreatedObjects(bCreatedObjects);
 	dataPath->SetClassName(mappedClass->GetName());
 	dataPath->SetOriginClassName(sOriginClassName);
 	dataPath->GetAttributeNames()->CopyFrom(svAttributeNames);
@@ -1105,17 +1164,22 @@ void KWObjectDataPathManager::CopyFrom(const KWDataPathManager* aSource)
 {
 	int i;
 	KWObjectDataPath* objectDataPath;
+	KWClass* kwcMainClass;
 
 	// Methode ancetre
 	KWDataPathManager::CopyFrom(aSource);
 
 	// Specialisation par optimisation des data paths
-	for (i = 0; i < oaDataPaths.GetSize(); i++)
+	kwcMainClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetMainClassName());
+	if (kwcMainClass != NULL)
 	{
-		objectDataPath = cast(KWObjectDataPath*, oaDataPaths.GetAt(i));
+		for (i = 0; i < oaDataPaths.GetSize(); i++)
+		{
+			objectDataPath = cast(KWObjectDataPath*, oaDataPaths.GetAt(i));
 
-		// Compilation
-		objectDataPath->Compile(kwcMainClass);
+			// Compilation
+			objectDataPath->Compile(kwcMainClass);
+		}
 	}
 }
 
