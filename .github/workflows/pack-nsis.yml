@@ -76,7 +76,7 @@ jobs:
             echo "SIGN=ON" >> "$GITHUB_ENV"
             echo "::notice::The signing process is ON"
           else
-            echo "SIGN=OFF" >> "$GITHUB_ENV"
+            echo "SIGN=ON" >> "$GITHUB_ENV"
             echo "::notice::The signing process is OFF"
           fi
         shell: bash
