@@ -98,6 +98,7 @@ $env:KHIOPS_COCLUSTERING_PATH = Join-Path $KHIOPS_HOME "bin\MODL_Coclustering.ex
 # KHIOPS_LAST_RUN_DIR
 if (-not $env:KHIOPS_LAST_RUN_DIR -or $env:KHIOPS_LAST_RUN_DIR -eq "") {
     $env:KHIOPS_LAST_RUN_DIR = Join-Path $env:USERPROFILE "khiops_data\lastrun"
+}
 
 # KHIOPS_PROC_NUMBER
 if (-not $env:KHIOPS_PROC_NUMBER -or $env:KHIOPS_PROC_NUMBER -eq "") {
@@ -180,7 +181,7 @@ if ($env:KHIOPS_PROC_NUMBER > 2) {
 }
 
 
-$KHIOPS_GUI = @GUI_STATUS@ 
+$KHIOPS_GUI = $@GUI_STATUS@ 
 if ($KHIOPS_GUI) {
 
     # Set Java environment
@@ -204,15 +205,12 @@ if ($KHIOPS_GUI) {
 }
 
  
-# Placeholders for @IS_CONDA_VAR@ and @SET_KHIOPS_DRIVERS_PATH@
-# You need to implement these parts based on your environment or requirements
- 
 # Unset local variables
 Remove-Variable KHIOPS_GUI -ErrorAction SilentlyContinue
 Remove-Variable JAVA_ERROR -ErrorAction SilentlyContinue
 Remove-Variable KHIOPS_HOME -ErrorAction SilentlyContinue
  
-if ($mode = "DISPLAY_ENV") {
+if ($mode -aq "DISPLAY_ENV") {
     # Print environment variables
     Write-Output "KHIOPS_PATH $env:KHIOPS_PATH"
     Write-Output "KHIOPS_COCLUSTERING_PATH $env:KHIOPS_COCLUSTERING_PATH"
