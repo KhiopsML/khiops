@@ -23,9 +23,11 @@ function Show-ErrorAndExit {
     )
     if ($KeepWindowOpen) {
         # Open a new PowerShell window to display the error and keep it open
-        Start-Process powershell -ArgumentList "-NoExit", "-Command", "Write-Host '$Title - ERROR: $Message'; pause"
+        $wshell = New-Object -ComObject Wscript.Shell
+	    $wshell.Popup("ERROR: $Message",0,"$Title",0x10)
     } else {
-        Write-Error "$Title - ERROR: $Message"
+        $wshell = New-Object -ComObject Wscript.Shell
+	    $wshell.Popup("ERROR: $Message",0,"$Title",0x10)
     }
     exit $ExitCode
 }
