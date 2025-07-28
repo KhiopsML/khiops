@@ -371,16 +371,16 @@ Section "Install" SecInstall
 
   # Create application shortcuts in the installation directory
   DetailPrint "Installing Start menu Shortcut..."
-  CreateShortCut "$INSTDIR\Khiops Coclustering.lnk" "powershell.exe" '-command "& $\'C:\Program Files\khiops\bin\khiops_coclustering.ps1$\'"' "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWMINIMIZED
-  CreateShortCut "$INSTDIR\Khiops.lnk" "powershell.exe" '-command "& $\'C:\Program Files\khiops\bin\khiops.ps1$\'"' "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWMINIMIZED
+  CreateShortCut "$INSTDIR\Khiops Coclustering.lnk" "powershell.exe" '-command "& $\'"$INSTDIR\bin\khiops_coclustering.ps1$\'"' "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWMINIMIZED
+  CreateShortCut "$INSTDIR\Khiops.lnk" "powershell.exe" '-command "& $\'"$INSTDIR\bin\khiops.ps1$\'"' "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWMINIMIZED
   ExpandEnvStrings $R0 "%COMSPEC%"
   CreateShortCut "$INSTDIR\Shell Khiops.lnk" "$INSTDIR\bin\shell_khiops.cmd" "" "$R0"
 
   # Create start menu shortcuts for the executables and documentation
   DetailPrint "Installing Start menu Shortcut..."
   CreateDirectory "$SMPROGRAMS\Khiops"
-  CreateShortCut "$SMPROGRAMS\Khiops\Khiops.lnk" "powershell.exe" '-command "& $\'C:\Program Files\khiops\bin\khiops.ps1$\'"' "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWMINIMIZED
-  CreateShortCut "$SMPROGRAMS\Khiops\Khiops Coclustering.lnk" "powershell.exe" '-command "& $\'C:\Program Files\khiops\bin\khiops_coclustering.ps1$\'"' "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWMINIMIZED
+  CreateShortCut "$SMPROGRAMS\Khiops\Khiops.lnk" "powershell.exe" '-command "& $\'"$INSTDIR\bin\khiops.ps1$\'"' "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWMINIMIZED
+  CreateShortCut "$SMPROGRAMS\Khiops\Khiops Coclustering.lnk" "powershell.exe" '-command "& $\'"$INSTDIR\bin\khiops_coclustering.ps1$\'"' "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWMINIMIZED
   ExpandEnvStrings $R0 "%COMSPEC%"
   CreateShortCut "$SMPROGRAMS\Khiops\Shell Khiops.lnk" "$INSTDIR\bin\shell_khiops.cmd" "" "$R0"
   CreateShortCut "$SMPROGRAMS\Khiops\Uninstall.lnk" "$INSTDIR\uninstall-khiops.exe"
@@ -660,8 +660,8 @@ Function "CreateDesktopShortcuts"
 
   # Create the shortcuts
   DetailPrint "Installing Desktop Shortcut..."
-  CreateShortCut "$DESKTOP\Khiops.lnk" "powershell.exe" '-command "& $\'C:\Program Files\khiops\bin\khiops.ps1$\'"' "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWMINIMIZED
-  CreateShortCut "$DESKTOP\Khiops Coclustering.lnk" "powershell.exe" '-command "& $\'C:\Program Files\khiops\bin\khiops_coclustering.ps1$\'"' "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWMINIMIZED
+  CreateShortCut "$DESKTOP\Khiops.lnk" "powershell.exe" '-command "& $\'"$INSTDIR\bin\khiops.ps1$\'"' "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWMINIMIZED
+  CreateShortCut "$DESKTOP\Khiops Coclustering.lnk" "powershell.exe" '-command "& $\'"$INSTDIR\bin\khiops_coclustering.ps1$\'"' "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWMINIMIZED
 FunctionEnd
 
 # Predefined initialization install function
