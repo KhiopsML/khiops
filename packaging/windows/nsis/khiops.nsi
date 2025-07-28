@@ -661,7 +661,7 @@ Function "CreateDesktopShortcuts"
   # Create the shortcuts
   DetailPrint "Installing Desktop Shortcut..."
   CreateShortCut "$DESKTOP\Khiops.lnk" "powershell.exe" '-command "& $\'"$INSTDIR\bin\khiops.ps1"$\'"' "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWMINIMIZED
-  CreateShortCut "$DESKTOP\Khiops.lnk" "powershell.exe" '-command "& $\'"$INSTDIR\bin\khiops_coclustering.ps1"$\'"' "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWMINIMIZED
+  CreateShortCut "$DESKTOP\khiops_coclustering.lnk" "powershell.exe" '-command "& $\'"$INSTDIR\bin\khiops_coclustering.ps1"$\'"' "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWMINIMIZED
 FunctionEnd
 
 # Predefined initialization install function
