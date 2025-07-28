@@ -47,7 +47,7 @@ try {
 }
 
 # Verify that the main executable exists
-if (-not (Test-Path $env:@MODL_PATH@))) {
+if (-not (Test-Path $env:@MODL_PATH@)) {
     Show-ErrorAndExit -Title "@TOOL_NAME@ CONFIGURATION PROBLEM" -Message "Incorrect installation directory for @TOOL_NAME@ (File @MODL_PATH@ not found)"
 }
 

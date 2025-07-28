@@ -210,7 +210,7 @@ Remove-Variable KHIOPS_GUI -ErrorAction SilentlyContinue
 Remove-Variable JAVA_ERROR -ErrorAction SilentlyContinue
 Remove-Variable KHIOPS_HOME -ErrorAction SilentlyContinue
  
-if ($mode -aq "DISPLAY_ENV") {
+if ($mode -eq "DISPLAY_ENV") {
     # Print environment variables
     Write-Output "KHIOPS_PATH $env:KHIOPS_PATH"
     Write-Output "KHIOPS_COCLUSTERING_PATH $env:KHIOPS_COCLUSTERING_PATH"
