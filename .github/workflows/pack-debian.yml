@@ -23,16 +23,23 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
-    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
     strategy:
       fail-fast: false
       matrix:
-        os: [debian11, debian12, ubuntu20.04, ubuntu22.04, ubuntu24.04]
+        setup:
+        - {os: ubuntu-latest, image: debian11}
+        - {os: ubuntu-latest, image: debian12}
+        - {os: ubuntu-latest, image: ubuntu20.04}
+        - {os: ubuntu-latest, image: ubuntu22.04}
+        - {os: ubuntu-latest, image: ubuntu24.04}
+        - {os: ubuntu-24.04-arm, image: ubuntu22.04-arm}
+        - {os: ubuntu-24.04-arm, image: ubuntu24.04-arm}
+    runs-on: ${{ matrix.setup.os }}
     container:
-      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
+      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.setup.image }}:latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -45,6 +52,7 @@ jobs:
           echo "ID=$ID" >> "$GITHUB_ENV"
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
           echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
+          echo "ARCH=$(arch)" >> "$GITHUB_ENV"
 
       - name: Configure CMake
         run: |
@@ -70,7 +78,7 @@ jobs:
         with:
           # We add a `deb-` prefix so we can later recover all artifacts with the pattern `deb-*`
           # Note: The more natural pattern `*-deb` or `*` does not work
-          name: deb-${{ env.ID }}-${{ env.VERSION_CODENAME }}
+          name: deb-${{ env.ID }}-${{ env.VERSION_CODENAME }}-${{ env.ARCH }}
           path: build/linux-gcc-release/packages/*.deb
           if-no-files-found: error
   # Test packages on a brand new runner to check:
@@ -79,7 +87,6 @@ jobs:
   # - that it executes a small test
   test:
     needs: build
-    runs-on: ubuntu-latest
     env:
       DEBIAN_FRONTEND: noninteractive
     defaults:
@@ -88,9 +95,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['debian:11', 'debian:12',  'ubuntu:20.04', 'ubuntu:22.04', 'ubuntu:24.04']
+        setup:
+        - {os: ubuntu-latest, image: debian11}
+        - {os: ubuntu-latest, image: debian12}
+        - {os: ubuntu-latest, image: ubuntu20.04}
+        - {os: ubuntu-latest, image: ubuntu22.04}
+        - {os: ubuntu-latest, image: ubuntu24.04}
+        - {os: ubuntu-24.04-arm, image: ubuntu22.04-arm}
+        - {os: ubuntu-24.04-arm, image: ubuntu24.04-arm}
+    runs-on: ${{ matrix.setup.os }}
     container:
-      image: ${{ matrix.os }}
+      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.setup.image }}:latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -100,11 +115,12 @@ jobs:
           echo "ID=$ID" >> "$GITHUB_ENV"
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
           echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
+          echo "ARCH=$(arch)" >> "$GITHUB_ENV"
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: deb-${{ env.ID }}-${{ env.VERSION_CODENAME }}
+          name: deb-${{ env.ID }}-${{ env.VERSION_CODENAME }}-${{ env.ARCH }}
           path: artifacts
       - name: Install Khiops core
         run: |
@@ -122,10 +138,9 @@ jobs:
       - name: Test Khiops on Iris dataset
         uses: ./.github/actions/test-khiops-on-iris
         with:
-          os-decription: ${{ env.ID }}-${{ env.VERSION_CODENAME }}
+          os-decription: ${{ env.ID }}-${{ env.VERSION_CODENAME }}-${{ env.ARCH }}
   test-kni:
     needs: build
-    runs-on: ubuntu-latest
     env:
       DEBIAN_FRONTEND: noninteractive
     defaults:
@@ -134,19 +149,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [debian11, debian12, ubuntu20.04, ubuntu22.04, ubuntu24.04]
+        setup:
+        - {os: ubuntu-latest, image: debian11}
+        - {os: ubuntu-latest, image: debian12}
+        - {os: ubuntu-latest, image: ubuntu20.04}
+        - {os: ubuntu-latest, image: ubuntu22.04}
+        - {os: ubuntu-latest, image: ubuntu24.04}
+        - {os: ubuntu-24.04-arm, image: ubuntu22.04-arm}
+        - {os: ubuntu-24.04-arm, image: ubuntu24.04-arm}
+    runs-on: ${{ matrix.setup.os }}
     container:
-      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
+      image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.setup.image }}:latest
     steps:
       - name: Put OS info on the environment
         run: |
           source /etc/os-release
           echo "ID=$ID" >> "$GITHUB_ENV"
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
+          echo "ARCH=$(arch)" >> "$GITHUB_ENV"
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: deb-${{ env.ID }}-${{ env.VERSION_CODENAME }}
+          name: deb-${{ env.ID }}-${{ env.VERSION_CODENAME }}-${{ env.ARCH }}
           path: artifacts
       - name: Install KNI Package
         run: |
