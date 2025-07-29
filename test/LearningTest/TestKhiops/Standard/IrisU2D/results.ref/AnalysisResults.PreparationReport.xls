@@ -45,7 +45,7 @@ Numerical variables statistics
 
 Rank	Name	Intervals	Values	Min	Max	Mean	Std dev	Missing number	Sparse missing number	Constr. cost	Derivation rule
 R04	Dummy1	1	1	0	0	0	0	0	0	3.17805	Copy(0)
-R05	Dummy2	1	105	0.005121241265	0.9859650261	0.5173966838	0.2650019122	0	0	3.17805	Random()
+R05	Dummy2	1	105	0.009523321924	0.9894570375	0.5652304821	0.2921393514	0	0	3.17805	Random()
 R06	LowerPetalLength	4	10	1	3	2.446666667	0.7433600251	0	0	3.17805	If(LE(PetalLength, 3), PetalLength, 3)
 R07	PetalLength	5	36	1	6.9	3.686666667	1.80132579	0	0	3.17805
 R08	PetalWidth	5	21	0.1	2.5	1.175238095	0.7880996979	0	0	3.17805
