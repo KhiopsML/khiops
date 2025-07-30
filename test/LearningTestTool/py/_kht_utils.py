@@ -455,7 +455,7 @@ def read_file_lines(file_path, log_file=None, show=False):
     """
     # lecture des lignes du fichier
     try:
-        with open(file_path, "r", errors="ignore") as file:
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as file:
             file_lines = file.readlines()
     except BaseException as exception:
         write_message(
@@ -476,7 +476,7 @@ def write_file_lines(
     """
     # lecture des lignes du fichier
     try:
-        with open(file_path, "w", errors="ignore") as file:
+        with open(file_path, "w", encoding="utf-8", errors="ignore") as file:
             for line in file_lines:
                 file.write(line)
                 if len(line) == 0 or line[-1] != "\n":
