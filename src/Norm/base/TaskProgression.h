@@ -131,10 +131,9 @@ public:
 	static void CleanLabels();
 
 	// Test si un rafraichissement est necessaire
-	// A chaque appel, un compteur est incremente, et on ne repond true qu'environ une fois sur 100
 	// Permet de conditionner la fabrication des libelle a afficher et les test d'interruption
 	// dans les boucle de traitement intensifs, pour limiter la charge de traitement d'avancement des taches
-	static boolean IsRefreshNecessary();
+	static boolean IsRefreshNecessary(longint lLoopIndex);
 
 	///////////////////////////////////////////////////////////
 	// Parametrage avance de la gestion des taches
@@ -191,7 +190,7 @@ public:
 	// Nombre total de demandes d'interruptions depuis le debut du programme
 	static longint GetInterruptionRequestNumber();
 
-	// Methode permetant de provoquer une interruption a un index donne
+	// Methode permettant de provoquer une interruption a un index donne
 	// Par defaut, 0 signifie pas d'arret
 	static void SetInterruptionRequestIndex(longint lIndex);
 	static longint GetInterruptionRequestIndex();
@@ -246,9 +245,6 @@ protected:
 	// Date du dernier affichage global
 	static clock_t tLastDisplayTime;
 
-	// Fraicheur de l'affichage, permettant de controler la methode IsRefreshNecessary
-	static longint lDisplayFreshness;
-
 	// Memorisation des derniers affichages effectue par niveau, pour bufferisation
 	static StringVector svLastDisplayedMainLabels;
 	static IntVector ivLastDisplayedProgressions;
@@ -293,10 +289,9 @@ inline boolean TaskProgression::IsInTask()
 	return (nCurrentLevel >= 0);
 }
 
-inline boolean TaskProgression::IsRefreshNecessary()
+inline boolean TaskProgression::IsRefreshNecessary(longint lLoopIndex)
 {
-	lDisplayFreshness++;
-	return (lDisplayFreshness % 128) == 0;
+	return (lLoopIndex % 1024) == 0;
 }
 
 inline void TaskProgression::SetInterruptible(boolean bValue)

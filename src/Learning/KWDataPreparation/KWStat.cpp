@@ -11,7 +11,7 @@ DoubleVector KWStat::dvLnBell;
 DoubleVector KWStat::dvLnStar;
 DoubleVector KWStat::dvC0Max;
 
-double KWStat::Min(DoubleVector* dvValues)
+double KWStat::Min(const DoubleVector* dvValues)
 {
 	int i;
 	double dMin;
@@ -33,7 +33,7 @@ double KWStat::Min(DoubleVector* dvValues)
 	return dMin;
 }
 
-double KWStat::Max(DoubleVector* dvValues)
+double KWStat::Max(const DoubleVector* dvValues)
 {
 	int i;
 	double dMax;
@@ -55,7 +55,7 @@ double KWStat::Max(DoubleVector* dvValues)
 	return dMax;
 }
 
-double KWStat::Mean(DoubleVector* dvValues)
+double KWStat::Mean(const DoubleVector* dvValues)
 {
 	int i;
 	double dValueSum;
@@ -71,7 +71,7 @@ double KWStat::Mean(DoubleVector* dvValues)
 		return 0;
 }
 
-double KWStat::GeometricMean(DoubleVector* dvValues)
+double KWStat::GeometricMean(const DoubleVector* dvValues)
 {
 	int i;
 	double dLogValueSum;
@@ -99,7 +99,7 @@ double KWStat::GeometricMean(DoubleVector* dvValues)
 		return 0;
 }
 
-double KWStat::StandardDeviation(DoubleVector* dvValues)
+double KWStat::StandardDeviation(const DoubleVector* dvValues)
 {
 	int i;
 	double dValue;
@@ -125,7 +125,7 @@ double KWStat::StandardDeviation(DoubleVector* dvValues)
 		return 0;
 }
 
-double KWStat::TValue(DoubleVector* dvValues1, DoubleVector* dvValues2)
+double KWStat::TValue(const DoubleVector* dvValues1, const DoubleVector* dvValues2)
 {
 	int i;
 	double dMean;

@@ -6,7 +6,6 @@
 
 KWMTDatabaseMapping::KWMTDatabaseMapping()
 {
-	bExternalTable = false;
 	mappedDataTableDriver = NULL;
 	nMappedAttributeType = KWType::Unknown;
 	kwoLastReadObject = NULL;
@@ -17,235 +16,56 @@ KWMTDatabaseMapping::~KWMTDatabaseMapping()
 	assert(mappedDataTableDriver == NULL);
 }
 
-void KWMTDatabaseMapping::CopyFrom(const KWMTDatabaseMapping* aSource)
+void KWMTDatabaseMapping::CopyFrom(const KWDataPath* aSource)
 {
 	require(aSource != NULL);
 
+	// Methode ancetre
+	KWDataPath::CopyFrom(aSource);
+
+	// Specialisation
 	// Pas de recopie des attributs de gestion, qui ne peuvent etre partages entre deux mapping
 	// Seules les spec sont recopiees
-	bExternalTable = aSource->bExternalTable;
-	sOriginClassName = aSource->sOriginClassName;
-	svAttributeNames.CopyFrom(&aSource->svAttributeNames);
-	sClassName = aSource->sClassName;
-	sDataTableName = aSource->sDataTableName;
+	sDataTableName = cast(const KWMTDatabaseMapping*, aSource)->sDataTableName;
 }
 
-KWMTDatabaseMapping* KWMTDatabaseMapping::Clone() const
+KWDataPath* KWMTDatabaseMapping::Create() const
 {
-	KWMTDatabaseMapping* aClone;
-
-	aClone = new KWMTDatabaseMapping;
-	aClone->CopyFrom(this);
-	return aClone;
+	return new KWMTDatabaseMapping;
 }
 
-int KWMTDatabaseMapping::Compare(const KWMTDatabaseMapping* aSource) const
+int KWMTDatabaseMapping::Compare(const KWDataPath* aSource) const
 {
-	int nCompare = 0;
-	int i;
+	int nCompare;
 
-	// Comparaison terme a terme
+	// Methode ancetre
+	nCompare = KWDataPath::Compare(aSource);
+
+	// Specialisation
 	if (nCompare == 0)
-		nCompare = GetExternalTable() == aSource->GetExternalTable();
-	if (nCompare == 0)
-		nCompare = GetOriginClassName().Compare(aSource->GetOriginClassName());
-	if (nCompare == 0)
-	{
-		// Comparaison des attributs du data path
-		nCompare = GetDataPathAttributeNumber() == aSource->GetDataPathAttributeNumber();
-		if (nCompare == 0)
-		{
-			for (i = 0; i < GetDataPathAttributeNumber(); i++)
-			{
-				nCompare = GetDataPathAttributeNameAt(i) == aSource->GetDataPathAttributeNameAt(i);
-				if (nCompare != 0)
-					break;
-			}
-		}
-	}
-	if (nCompare == 0)
-		nCompare = GetClassName().Compare(aSource->GetClassName());
-	if (nCompare == 0)
-		nCompare = GetDataTableName().Compare(aSource->GetDataTableName());
+		nCompare = GetDataTableName().Compare(cast(const KWMTDatabaseMapping*, aSource)->GetDataTableName());
 	return nCompare;
-}
-
-////////////////////////////////////////////////////////////
-
-ALString KWMTDatabaseMapping::GetDataPath() const
-{
-	// Cas d'un table externe
-	if (GetExternalTable())
-	{
-		if (GetDataPathAttributeNumber() == 0)
-			return GetDataPathSeparator() + GetFormattedName(GetOriginClassName());
-		else
-			return GetDataPathSeparator() + GetFormattedName(GetOriginClassName()) +
-			       GetDataPathSeparator() + GetDataPathAttributeNames();
-	}
-	// Cas standard
-	else
-		return GetDataPathAttributeNames();
-}
-
-ALString KWMTDatabaseMapping::GetDataPathAttributeNames() const
-{
-	ALString sDataPathAttributeNames;
-	int i;
-
-	// Partie du data path lie au attributs
-	for (i = 0; i < GetDataPathAttributeNumber(); i++)
-	{
-		if (i > 0)
-			sDataPathAttributeNames += GetDataPathSeparator();
-		sDataPathAttributeNames += GetFormattedName(GetDataPathAttributeNameAt(i));
-	}
-	return sDataPathAttributeNames;
-}
-
-boolean KWMTDatabaseMapping::IsTerminalAttributeUsed() const
-{
-
-	boolean bIsTerminalAttributeUsed = true;
-	KWClass* kwcCurrentClass;
-	KWAttribute* currentAttribute;
-	int n;
-
-	require(CheckDataPath());
-
-	// Recherche de la classe de depart
-	kwcCurrentClass = KWClassDomain::GetCurrentDomain()->LookupClass(sOriginClassName);
-	check(kwcCurrentClass);
-
-	// Parcours des attributs du data path
-	for (n = 0; n < GetDataPathAttributeNumber(); n++)
-	{
-		// Recherche de l'attribut
-		currentAttribute = kwcCurrentClass->LookupAttribute(GetDataPathAttributeNameAt(n));
-		check(currentAttribute);
-		assert(KWType::IsRelation(currentAttribute->GetType()));
-
-		// Arret si l'attribut n'est pas en Used
-		if (not currentAttribute->GetUsed())
-		{
-			bIsTerminalAttributeUsed = false;
-			break;
-		}
-
-		// Changement de classe courante
-		kwcCurrentClass = currentAttribute->GetClass();
-	}
-	return bIsTerminalAttributeUsed;
-}
-
-boolean KWMTDatabaseMapping::CheckDataPath() const
-{
-	boolean bOk = true;
-	KWClass* kwcCurrentClass;
-	KWAttribute* currentAttribute;
-	int n;
-	ALString sTmp;
-
-	// Le DataPathClassName doit etre non vide
-	if (sOriginClassName.GetLength() == 0)
-	{
-		AddError("Empty origin dictionary in data path");
-		bOk = false;
-	}
-
-	// Recherche de la classe de depart
-	kwcCurrentClass = NULL;
-	if (bOk)
-	{
-		kwcCurrentClass = KWClassDomain::GetCurrentDomain()->LookupClass(sOriginClassName);
-		if (kwcCurrentClass == NULL)
-		{
-			AddError("Unknown origin dictionary " + sOriginClassName + " in data path");
-			bOk = false;
-		}
-	}
-
-	// Parcours des attributs du data path
-	if (bOk)
-	{
-		for (n = 0; n < GetDataPathAttributeNumber(); n++)
-		{
-			// Recherche de l'attribut
-			currentAttribute = kwcCurrentClass->LookupAttribute(GetDataPathAttributeNameAt(n));
-
-			// Erreur si attribut inexistant
-			if (currentAttribute == NULL)
-			{
-				AddError(sTmp + "Unknown variable " + GetDataPathAttributeNameAt(n) + " at index " +
-					 IntToString(n + 1) + " in data path");
-				bOk = false;
-			}
-			// Erreur si attribut n'est pas de type relation
-			else if (not KWType::IsRelation(currentAttribute->GetType()))
-			{
-				AddError(sTmp + "Variable " + GetDataPathAttributeNameAt(n) + " at index " +
-					 IntToString(n + 1) + " in data path should of relational data type");
-				bOk = false;
-			}
-			// Erreur si attribut calcule
-			else if (currentAttribute->GetDerivationRule() != NULL)
-			{
-				AddError(sTmp + "Variable " + GetDataPathAttributeNameAt(n) + " at index " +
-					 IntToString(n + 1) + " in data path should be native");
-				bOk = false;
-			}
-
-			// Arret si erreur
-			if (not bOk)
-				break;
-
-			// Changement de classe courante
-			kwcCurrentClass = currentAttribute->GetClass();
-		}
-	}
-	return bOk;
-}
-
-ALString KWMTDatabaseMapping::GetFormattedName(const ALString& sValue)
-{
-	ALString sResult;
-	int nLength;
-	char c;
-	int i;
-
-	// Les valeurs comportant les caracteres speciaux sont entoure de back-quotes,
-	// en doublant les eventuels back-quotes internes
-	if (sValue.Find(GetDataPathSeparator()) != -1 or sValue.Find(GetDataPathEscapeChar()) != -1)
-	{
-		sResult = '`';
-		nLength = sValue.GetLength();
-		for (i = 0; i < nLength; i++)
-		{
-			c = sValue.GetAt(i);
-			if (c == '`')
-				sResult += '`';
-			sResult += c;
-		}
-		sResult += '`';
-		return sResult;
-	}
-	// Sinon, on garde le nom tel quel
-	else
-		return sValue;
 }
 
 void KWMTDatabaseMapping::Write(ostream& ost) const
 {
-	int n;
+	// Methode ancetre
+	KWDataPath::Write(ost);
 
-	ost << "Data path\t" << GetDataPath() << "\n";
-	ost << "External table\t" << BooleanToString(GetExternalTable()) << "\n";
-	ost << "Data path origin dictionary\t" << GetOriginClassName() << "\n";
-	ost << "Data path variables\t" << GetDataPathAttributeNumber() << "\n";
-	for (n = 0; n < GetDataPathAttributeNumber(); n++)
-		ost << "\t" << GetDataPathAttributeNameAt(n) << "\n";
-	ost << "Dictionary\t" << GetClassName() << "\n";
+	// Specialisation
 	ost << "Data table file\t" << GetDataTableName() << "\n";
+}
+
+void KWMTDatabaseMapping::WriteHeaderLineReport(ostream& ost) const
+{
+	KWDataPath::WriteHeaderLineReport(ost);
+	ost << "\tData table file";
+}
+
+void KWMTDatabaseMapping::WriteLineReport(ostream& ost) const
+{
+	KWDataPath::WriteLineReport(ost);
+	ost << "\t" << GetDataTableName();
 }
 
 const ALString KWMTDatabaseMapping::GetClassLabel() const
@@ -253,40 +73,116 @@ const ALString KWMTDatabaseMapping::GetClassLabel() const
 	return "Multi-table mapping";
 }
 
-const ALString KWMTDatabaseMapping::GetObjectLabel() const
-{
-	return GetDataPath();
-}
-
 longint KWMTDatabaseMapping::GetUsedMemory() const
 {
 	longint lUsedMemory;
 
-	lUsedMemory = sizeof(KWMTDatabaseMapping);
-	lUsedMemory += sOriginClassName.GetLength();
-	lUsedMemory += svAttributeNames.GetUsedMemory();
-	lUsedMemory += sClassName.GetLength();
+	// Methode ancetre
+	lUsedMemory = KWDataPath::GetUsedMemory();
+	lUsedMemory += sizeof(KWMTDatabaseMapping) - sizeof(KWDataPath);
+
+	// Specialisation
 	lUsedMemory += sDataTableName.GetLength();
-	lUsedMemory += oaComponentTableMappings.GetUsedMemory();
 	if (mappedDataTableDriver != NULL)
 		lUsedMemory += mappedDataTableDriver->GetUsedMemory();
 	return lUsedMemory;
 }
 
-void KWMTDatabaseMapping::CollectFullHierarchyComponentTableMappings(ObjectArray* oaResults)
+////////////////////////////////////////////////////////////
+// Classe KWMTDatabaseMappingManager
+
+KWMTDatabaseMappingManager::KWMTDatabaseMappingManager()
 {
-	int i;
+	// Specifialisation des objet data path crees par la classe
+	delete dataPathCreator;
+	dataPathCreator = new KWMTDatabaseMapping;
+}
+
+KWMTDatabaseMappingManager::~KWMTDatabaseMappingManager() {}
+
+KWDataPathManager* KWMTDatabaseMappingManager::Create() const
+{
+	return new KWMTDatabaseMappingManager;
+}
+
+boolean KWMTDatabaseMappingManager::CheckPartially(boolean bWriteOnly) const
+{
+	boolean bOk;
+	ObjectDictionary odDataTableNames;
 	KWMTDatabaseMapping* mapping;
+	int nMapping;
+	ALString sAttributeName;
+	KWMTDatabaseMapping parentMapping;
+	const KWMTDatabaseMapping* checkMapping;
 
-	require(oaResults != NULL);
+	// Methode ancetre
+	bOk = Check();
 
-	// Ajout du mapping
-	oaResults->Add(this);
-
-	// Ajout des mapping de la composition
-	for (i = 0; i < oaComponentTableMappings.GetSize(); i++)
+	// Specialisation en verifiant la validite des specification des tables
+	if (bOk)
 	{
-		mapping = cast(KWMTDatabaseMapping*, oaComponentTableMappings.GetAt(i));
-		mapping->CollectFullHierarchyComponentTableMappings(oaResults);
+		// Verification de la table de mapping
+		for (nMapping = 0; nMapping < GetMappingNumber(); nMapping++)
+		{
+			mapping = GetMappingAt(nMapping);
+			assert(mapping->Check());
+
+			// Verification de l'unicite des noms de tables utilises
+			if (mapping->GetDataTableName() != "")
+			{
+				if (odDataTableNames.Lookup(mapping->GetDataTableName()) != NULL)
+				{
+					bOk = false;
+					AddError("Data path " + mapping->GetObjectLabel() + " : Data table " +
+						 mapping->GetDataTableName() + " already used");
+				}
+				odDataTableNames.SetAt(mapping->GetDataTableName(), mapping);
+			}
+
+			// En mode ecriture, les tables externes ne doivent pas etre renseignees
+			if (bWriteOnly and mapping->GetDataTableName() != "" and mapping->GetExternalTable())
+			{
+				bOk = false;
+				AddError("Data path " + mapping->GetObjectLabel() + " : External data table " +
+					 mapping->GetDataTableName() + " should not be specified for output database");
+			}
+
+			// En mode ecriture, si une table secondaire non externe est renseignee, sa table parente doit l'etre egalement
+			// En theorie, on pourrait developper du code pour autoriser ce type de specification, mais le rapport cout/benefice
+			// est tres peu favorable pour cas cas d'usage marginal
+			if (bWriteOnly and mapping->GetDataTableName() != "" and not mapping->GetExternalTable() and
+			    mapping->GetAttributeNames()->GetSize() > 0)
+			{
+				// Recherche du mapping parent
+				parentMapping.CopyFrom(mapping);
+				parentMapping.GetAttributeNames()->SetSize(mapping->GetAttributeNames()->GetSize() - 1);
+				checkMapping = LookupMapping(parentMapping.GetDataPath());
+
+				// Verification dans le cas valide que ce mapping a egalement un nom de table specifie
+				if (checkMapping != NULL and checkMapping->GetDataTableName() == "")
+				{
+					bOk = false;
+					AddError("Data path " + mapping->GetObjectLabel() + " : data table " +
+						 mapping->GetDataTableName() +
+						 " cannot be specified without a data table being specified for its "
+						 "owner table (data path " +
+						 parentMapping.GetDataPath() + ")");
+				}
+			}
+		}
 	}
+	return bOk;
+}
+
+const ALString KWMTDatabaseMappingManager::GetClassLabel() const
+{
+	return "Database";
+}
+
+const ALString KWMTDatabaseMappingManager::GetObjectLabel() const
+{
+	if (mainDataPath == NULL)
+		return "";
+	else
+		return cast(KWMTDatabaseMapping*, mainDataPath)->GetDataTableName();
 }

@@ -543,20 +543,20 @@ double IthRandomDouble(longint lIndex)
 {
 	require(lIndex >= 0);
 	// Version de Numerical Recipes
-	return 5.42101086242752217E-20 * IthRandomUnsignedLongint((unsigned long long int)lIndex);
+	return 5.42101086242752217E-20 * IthRandomUnsignedLongint((ulongint)lIndex);
 }
 
 longint IthRandomLongint(longint lIndex)
 {
 	require(lIndex >= 0);
-	return (longint)(IthRandomUnsignedLongint((unsigned long long int)lIndex));
+	return (longint)(IthRandomUnsignedLongint((ulongint)lIndex));
 }
 
 int IthRandomInt(longint lIndex, int nMax)
 {
 	require(lIndex >= 0);
 	require(nMax >= 0);
-	return (int)(IthRandomUnsignedLongint((unsigned long long int)lIndex) % ((unsigned long long int)nMax + 1));
+	return (int)(IthRandomUnsignedLongint((ulongint)lIndex) % ((ulongint)nMax + 1));
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -564,8 +564,7 @@ int IthRandomInt(longint lIndex, int nMax)
 //
 // Attention: on utilise ici l'instruction printf(plutot que cout)
 // En effet, en cas d'erreur fatale, il eviter l'utilisation d'objet
-// qui peuvent entrainer d'autres erreurs(notament si
-// probleme memoire)
+// qui peuvent entrainer d'autres erreurs(notamment si probleme memoire)
 
 //:: _AssertionFailure()
 void _AssertionFailure(const char* __cond, const char* __file, const unsigned __line)

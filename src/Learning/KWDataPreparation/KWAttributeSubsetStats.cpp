@@ -288,7 +288,7 @@ longint KWAttributeSubsetStats::GetUsedMemory() const
 	return lUsedMemory;
 }
 
-void KWAttributeSubsetStats::WriteReport(ostream& ost)
+void KWAttributeSubsetStats::WriteReport(ostream& ost) const
 {
 	require(Check());
 	require(IsStatsComputed());
@@ -302,7 +302,7 @@ void KWAttributeSubsetStats::WriteReport(ostream& ost)
 	GetPreparedDataGridStats()->WritePartial(ost, true, GetTargetAttributeName() == "");
 }
 
-void KWAttributeSubsetStats::WriteHeaderLineReport(ostream& ost)
+void KWAttributeSubsetStats::WriteHeaderLineReport(ostream& ost) const
 {
 	require(IsStatsComputed());
 
@@ -322,7 +322,7 @@ void KWAttributeSubsetStats::WriteHeaderLineReport(ostream& ost)
 		ost << "\tConstr. cost\tPrep. cost\tData cost";
 }
 
-void KWAttributeSubsetStats::WriteLineReport(ostream& ost)
+void KWAttributeSubsetStats::WriteLineReport(ostream& ost) const
 {
 	int i;
 
@@ -361,7 +361,7 @@ void KWAttributeSubsetStats::WriteLineReport(ostream& ost)
 	}
 }
 
-void KWAttributeSubsetStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
+void KWAttributeSubsetStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const
 {
 	ContinuousVector cvAttributeDomainLowerBounds;
 	ContinuousVector cvAttributeDomainUpperBounds;
@@ -690,7 +690,7 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 			tuple = attributeTupleTable.GetAt(nTuple);
 
 			// Progression
-			if (TaskProgression::IsRefreshNecessary())
+			if (TaskProgression::IsRefreshNecessary(nTuple))
 			{
 				// Cas d'un attribut de grille, qui n'est pas un attribut interne d'un attribut VarPart
 				if (not dgAttribute->IsInnerAttribute())
@@ -784,7 +784,7 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 		       attributeTupleTable.GetAt(nTuple - 1)->GetSymbolAt(0).CompareValue(tuple->GetSymbolAt(0)) < 0);
 
 		// Progression
-		if (TaskProgression::IsRefreshNecessary())
+		if (TaskProgression::IsRefreshNecessary(nTuple))
 		{
 			// Cas d'un attribut de grille, qui n'est pas un attribut interne d'un attribut VarPart
 			if (not dgAttribute->IsInnerAttribute())
@@ -961,7 +961,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 		tuple = tupleTable->GetAt(nTuple);
 
 		// Progression
-		if (TaskProgression::IsRefreshNecessary())
+		if (TaskProgression::IsRefreshNecessary(nTuple))
 		{
 			TaskProgression::DisplayProgression((int)(50 + nTuple * 50.0 / tupleTable->GetSize()));
 			if (TaskProgression::IsInterruptionRequested())
@@ -1198,7 +1198,7 @@ double KWAttributePairStats::GetSortValue() const
 	return GetDeltaLevel();
 }
 
-void KWAttributePairStats::WriteReport(ostream& ost)
+void KWAttributePairStats::WriteReport(ostream& ost) const
 {
 	require(GetAttributeNumber() == 2);
 	require(IsStatsComputed());
@@ -1225,7 +1225,7 @@ boolean KWAttributePairStats::IsReported() const
 		return false;
 }
 
-void KWAttributePairStats::WriteHeaderLineReport(ostream& ost)
+void KWAttributePairStats::WriteHeaderLineReport(ostream& ost) const
 {
 	int i;
 
@@ -1269,7 +1269,7 @@ void KWAttributePairStats::WriteHeaderLineReport(ostream& ost)
 		ost << "\tConstr. cost\tPrep. cost\tData cost";
 }
 
-void KWAttributePairStats::WriteLineReport(ostream& ost)
+void KWAttributePairStats::WriteLineReport(ostream& ost) const
 {
 	int i;
 	const KWDGSAttributePartition* dgsAttributePartition;
@@ -1344,7 +1344,7 @@ void KWAttributePairStats::WriteLineReport(ostream& ost)
 	}
 }
 
-void KWAttributePairStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
+void KWAttributePairStats::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const
 {
 	ContinuousVector cvAttributeMinValues;
 	ContinuousVector cvAttributeMaxValues;

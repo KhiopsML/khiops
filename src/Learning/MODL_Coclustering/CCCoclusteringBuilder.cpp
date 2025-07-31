@@ -1622,7 +1622,7 @@ boolean CCCoclusteringBuilder::CreateVarPartDataGridCells(const KWTupleTable* tu
 		tuple = tupleTable->GetAt(nTuple);
 
 		// Progression
-		if (TaskProgression::IsRefreshNecessary())
+		if (TaskProgression::IsRefreshNecessary(nTuple))
 		{
 			TaskProgression::DisplayProgression((int)(50 + nTuple * 50.0 / tupleTable->GetSize()));
 			if (TaskProgression::IsInterruptionRequested())
@@ -2249,7 +2249,7 @@ boolean CCCoclusteringBuilder::FillTupleTableFromDatabase(KWDatabase* database, 
 			}
 
 			// Suivi de la tache
-			if (TaskProgression::IsRefreshNecessary())
+			if (TaskProgression::IsRefreshNecessary(lRecordNumber))
 			{
 				TaskProgression::DisplayProgression((int)(100 * database->GetReadPercentage()));
 				database->DisplayReadTaskProgressionLabel(lRecordNumber, lObjectNumber);
@@ -2505,7 +2505,7 @@ boolean CCCoclusteringBuilder::FillVarPartTupleTableFromDatabase(KWDatabase* dat
 			}
 
 			// Suivi de la tache
-			if (TaskProgression::IsRefreshNecessary())
+			if (TaskProgression::IsRefreshNecessary(lRecordNumber))
 			{
 				TaskProgression::DisplayProgression((int)(100 * database->GetReadPercentage()));
 				database->DisplayReadTaskProgressionLabel(lRecordNumber, lObjectNumber);
@@ -2629,7 +2629,7 @@ boolean CCCoclusteringBuilder::CreateIdentifierAttributeIntervals(const KWTupleT
 			tuple = attributeTupleTable.GetAt(nTuple);
 
 			// Progression
-			if (TaskProgression::IsRefreshNecessary())
+			if (TaskProgression::IsRefreshNecessary(nTuple))
 			{
 				// Cas d'un attribut de grille standard, non interne dans un attribut VarPart
 				if (not dgAttribute->IsInnerAttribute())
@@ -2752,7 +2752,7 @@ boolean CCCoclusteringBuilder::CreateIdentifierAttributeValueSets(const KWTupleT
 		       attributeTupleTable.GetAt(nTuple - 1)->GetSymbolAt(0).CompareValue(tuple->GetSymbolAt(0)) < 0);
 
 		// Progression
-		if (TaskProgression::IsRefreshNecessary())
+		if (TaskProgression::IsRefreshNecessary(nTuple))
 		{
 			// Cas d'un attribut de grille standard, non interne dans un attribut VarPart
 			// Sinon GetDataGrid() n'est pas defini

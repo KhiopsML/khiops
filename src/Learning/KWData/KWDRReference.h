@@ -33,7 +33,7 @@ public:
 	KWDerivationRule* Create() const override;
 
 	// Calcul de l'attribut derive
-	KWObject* ComputeObjectResult(const KWObject* kwoObject) const override;
+	KWObject* ComputeObjectResult(const KWObject* kwoObject, const KWLoadIndex liAttributeLoadIndex) const override;
 
 	// Parametrage par un resolveur de reference, qui permet de retrouver un objet par sa cle
 	// pour toute classe referencee

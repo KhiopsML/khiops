@@ -131,9 +131,9 @@ void KWMTDatabaseTextFile::ExportUsedFileSpecs(ObjectArray* oaUsedFileSpecs) con
 	KWMTDatabase::ExportUsedFileSpecs(oaUsedFileSpecs);
 
 	// Personnalisation des noms de table du mapping (hors table principale, deja traitee)
-	for (nMapping = 1; nMapping < oaMultiTableMappings.GetSize(); nMapping++)
+	for (nMapping = 1; nMapping < mappingManager.GetMappingNumber(); nMapping++)
 	{
-		mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(nMapping));
+		mapping = mappingManager.GetMappingAt(nMapping);
 
 		// Ajout d'une spec de fichier utilise par table de mapping
 		fsDataTable = new FileSpec;
@@ -155,9 +155,9 @@ void KWMTDatabaseTextFile::ExportUsedWriteFileSpecs(ObjectArray* oaUsedFileSpecs
 	KWMTDatabase::ExportUsedFileSpecs(oaUsedFileSpecs);
 
 	// Personnalisation des noms de table du mapping (hors table principale, deja traitee)
-	for (nMapping = 1; nMapping < oaMultiTableMappings.GetSize(); nMapping++)
+	for (nMapping = 1; nMapping < mappingManager.GetMappingNumber(); nMapping++)
 	{
-		mapping = cast(KWMTDatabaseMapping*, oaMultiTableMappings.GetAt(nMapping));
+		mapping = mappingManager.GetMappingAt(nMapping);
 
 		// Export uniquement hors classes referencees
 		if (not IsReferencedClassMapping(mapping))

@@ -28,9 +28,11 @@ for file_path in file_paths:
             file.read()
     # On failure show the lines that contain characters out of range
     except UnicodeDecodeError:
-        with open(file_path, encoding="utf8", errors="replace") as file:
+        with open(file_path, encoding="utf-8", errors="replace") as file:
             lines = file.readlines()
             for line_number, line in enumerate(lines, 1):
                 if any(ord(char) > 127 for char in line):
-                    print(f"{file_path}:{line_number}: {line}", end="")
+                    # Encoding the line to avoid another exception in the print
+                    cleaned_line = line.encode("utf-8", errors="replace")
+                    print(f"{file_path}:{line_number}: {cleaned_line}", end="")
         sys.exit(1)

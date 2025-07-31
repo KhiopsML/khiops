@@ -318,7 +318,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 	require(not inputBuffer->IsBufferEnd());
 
 	// On retourne NULL, sans message, si interruption utilisateur
-	if (TaskProgression::IsRefreshNecessary())
+	if (TaskProgression::IsRefreshNecessary(lRecordIndex))
 	{
 		if (TaskProgression::IsInterruptionRequested())
 			return NULL;

@@ -570,8 +570,8 @@ union GenericKey
 	GenericKey(const char* s) : sKey((char*)s){};
 	GenericKey(longint l) : genericKey(l){};
 	char* sKey;
-	unsigned long long int unsignedKey; // Type le plus long a la fois en 32 et 64 bits
-	longint genericKey;                 // Type le plus long a la fois en 32 et 64 bits
+	ulongint unsignedKey; // Type le plus long a la fois en 32 et 64 bits
+	longint genericKey;   // Type le plus long a la fois en 32 et 64 bits
 };
 
 // Definition d'un valeur generique
@@ -687,7 +687,7 @@ protected:
 	GenericDictionary();
 
 	///////////////////////////////////////////////////////////////////////////////////////
-	// Implementation generique permetant une redefinition simple avec
+	// Implementation generique permettant une redefinition simple avec
 	// le bon type de cle et de valeur
 
 	// Recherche par cle
@@ -1397,7 +1397,7 @@ inline int operator!=(const NUMERIC num1, const NUMERIC num2)
 
 inline ostream& operator<<(ostream& ost, const NUMERIC value)
 {
-	ost << '[' << (unsigned long long int)value.lValue << ']';
+	ost << '[' << (ulongint)value.lValue << ']';
 	return ost;
 }
 

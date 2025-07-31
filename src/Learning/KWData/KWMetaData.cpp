@@ -327,7 +327,7 @@ void KWMetaData::Write(ostream& ost) const
 	}
 }
 
-void KWMetaData::WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey)
+void KWMetaData::WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) const
 {
 	int nIndex;
 	KWKeyValuePair* keyValuePair;

@@ -17,22 +17,22 @@ public:
 	// Statistiques sur des vecteurs
 
 	// Minimum
-	static double Min(DoubleVector* dvValues);
+	static double Min(const DoubleVector* dvValues);
 
 	// Maximum
-	static double Max(DoubleVector* dvValues);
+	static double Max(const DoubleVector* dvValues);
 
 	// Moyenne
-	static double Mean(DoubleVector* dvValues);
+	static double Mean(const DoubleVector* dvValues);
 
 	// Moyenne geometrique (les valeurs doivent etre positives)
-	static double GeometricMean(DoubleVector* dvValues);
+	static double GeometricMean(const DoubleVector* dvValues);
 
 	// Ecart type
-	static double StandardDeviation(DoubleVector* dvValues);
+	static double StandardDeviation(const DoubleVector* dvValues);
 
 	// T-Value de Student pour la comparaison par paires de deux vecteurs
-	static double TValue(DoubleVector* dvValues1, DoubleVector* dvValues2);
+	static double TValue(const DoubleVector* dvValues1, const DoubleVector* dvValues2);
 
 	/////////////////////////////////////////////////////////////
 	// Fonction statistique standard

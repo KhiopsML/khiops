@@ -167,12 +167,16 @@ public:
 	void WriteNodes(ostream&, const ObjectDictionary*);
 
 	// Ecriture d'un rapport (accessible uniquement si statistiques calculees)
-	void WriteReport(ostream& ost) override;
+	void WriteReport(ostream& ost) const override;
 
-	void WriteDTArrayLineReport(ostream& ost, const ALString& sTitle, ObjectArray* oaLearningReports,
-				    DTDecisionTree* tree);
+	void WriteDTArrayLineReport(ostream& ost, const ALString& sTitle, const ObjectArray* oaLearningReports,
+				    DTDecisionTree* tree) const;
 
-	void WriteDatabaseObjects(ostream& ost, int maxObjects = 0);
+	void WriteReportLeaveStatistics(ostream& ost, const DTDecisionTreeNode* ndRoot) const;
+	void WriteReportInternalNodesStatistics(ostream& ost, const DTDecisionTreeNode* ndRoot) const;
+	void WriteReportDetailedInternalNode(ostream& ost, const DTDecisionTreeNode* ndRoot) const;
+
+	void WriteDatabaseObjects(ostream& ost, int maxObjects = 0) const;
 
 	NumericKeyDictionary* GetDatabaseObjects() const;
 

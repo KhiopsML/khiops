@@ -125,7 +125,7 @@ longint KWPredictorEvaluation::GetEvaluationInstanceNumber() const
 }
 
 void KWPredictorEvaluation::WriteFullReportFile(const ALString& sFileName, const ALString& sEvaluationLabel,
-						ObjectArray* oaPredictorEvaluations)
+						const ObjectArray* oaPredictorEvaluations) const
 {
 	fstream ost;
 	boolean bOk;
@@ -156,7 +156,7 @@ void KWPredictorEvaluation::WriteFullReportFile(const ALString& sFileName, const
 }
 
 void KWPredictorEvaluation::WriteFullReport(ostream& ost, const ALString& sEvaluationLabel,
-					    ObjectArray* oaPredictorEvaluations)
+					    const ObjectArray* oaPredictorEvaluations) const
 {
 	ObjectArray oaSortedPredictorEvaluations;
 
@@ -207,7 +207,7 @@ void KWPredictorEvaluation::WriteFullReport(ostream& ost, const ALString& sEvalu
 }
 
 void KWPredictorEvaluation::SelectPerformanceCurvesReport(const ObjectArray* oaPredictorEvaluations,
-							  ObjectArray* oaSortedPredictorEvaluations)
+							  ObjectArray* oaSortedPredictorEvaluations) const
 {
 	KWPredictorEvaluation* predictorEvaluation;
 	int i;
@@ -229,14 +229,17 @@ void KWPredictorEvaluation::SelectPerformanceCurvesReport(const ObjectArray* oaP
 	oaSortedPredictorEvaluations->Sort();
 }
 
-void KWPredictorEvaluation::WritePerformanceCurveReportArray(ostream& ost, ObjectArray* oaPredictorEvaluations) {}
+void KWPredictorEvaluation::WritePerformanceCurveReportArray(ostream& ost,
+							     const ObjectArray* oaPredictorEvaluations) const
+{
+}
 
 boolean KWPredictorEvaluation::IsPerformanceCurveReported() const
 {
 	return true;
 }
 
-boolean KWPredictorEvaluation::CheckPredictorEvaluations(ObjectArray* oaPredictorEvaluations) const
+boolean KWPredictorEvaluation::CheckPredictorEvaluations(const ObjectArray* oaPredictorEvaluations) const
 {
 	boolean bOk = true;
 	KWPredictorEvaluation* firstPredictorEvaluation;
@@ -277,7 +280,7 @@ const ALString KWPredictorEvaluation::GetSortName() const
 }
 
 void KWPredictorEvaluation::WriteJSONFullReportFields(JSONFile* fJSON, const ALString& sEvaluationLabel,
-						      ObjectArray* oaPredictorEvaluations)
+						      const ObjectArray* oaPredictorEvaluations) const
 {
 	ObjectArray oaSortedPredictorEvaluations;
 
@@ -339,7 +342,8 @@ void KWPredictorEvaluation::WriteJSONFullReportFields(JSONFile* fJSON, const ALS
 		WriteJSONPerformanceCurveReportArray(fJSON, &oaSortedPredictorEvaluations);
 }
 
-void KWPredictorEvaluation::WriteJSONPerformanceCurveReportArray(JSONFile* fJSON, ObjectArray* oaPredictorEvaluations)
+void KWPredictorEvaluation::WriteJSONPerformanceCurveReportArray(JSONFile* fJSON,
+								 const ObjectArray* oaPredictorEvaluations) const
 {
 }
 
@@ -613,7 +617,7 @@ double KWClassifierEvaluation::GetClassifierLiftAt(int nPredictorTarget, int nIn
 	return dvLiftCurveValues->GetAt(nIndex);
 }
 
-void KWClassifierEvaluation::WriteConfusionMatrixReport(ostream& ost)
+void KWClassifierEvaluation::WriteConfusionMatrixReport(ostream& ost) const
 {
 	int i;
 	int iMax;
@@ -656,7 +660,7 @@ void KWClassifierEvaluation::WriteConfusionMatrixReport(ostream& ost)
 	}
 }
 
-void KWClassifierEvaluation::WriteLiftCurveReport(ostream& ost)
+void KWClassifierEvaluation::WriteLiftCurveReport(ostream& ost) const
 {
 	ObjectArray oaClassifierEvaluations;
 
@@ -664,11 +668,11 @@ void KWClassifierEvaluation::WriteLiftCurveReport(ostream& ost)
 	require(IsPerformanceCurveReported());
 
 	// Reutilisation de la methode avec un tableau d'evaluation en parametres
-	oaClassifierEvaluations.Add(this);
+	oaClassifierEvaluations.Add(cast(Object*, this));
 	WriteLiftCurveReportArray(ost, &oaClassifierEvaluations);
 }
 
-void KWClassifierEvaluation::WriteLiftCurveReportArray(ostream& ost, ObjectArray* oaClassifierEvaluations)
+void KWClassifierEvaluation::WriteLiftCurveReportArray(ostream& ost, const ObjectArray* oaClassifierEvaluations) const
 {
 	int nIndex;
 	KWClassifierEvaluation* classifierEvaluation;
@@ -736,7 +740,8 @@ void KWClassifierEvaluation::WriteLiftCurveReportArray(ostream& ost, ObjectArray
 	}
 }
 
-void KWClassifierEvaluation::WritePerformanceCurveReportArray(ostream& ost, ObjectArray* oaPredictorEvaluations)
+void KWClassifierEvaluation::WritePerformanceCurveReportArray(ostream& ost,
+							      const ObjectArray* oaPredictorEvaluations) const
 {
 	require(oaPredictorEvaluations != NULL);
 
@@ -750,7 +755,7 @@ boolean KWClassifierEvaluation::IsPerformanceCurveReported() const
 	return GetPartileNumber() > 0;
 }
 
-void KWClassifierEvaluation::WriteReport(ostream& ost)
+void KWClassifierEvaluation::WriteReport(ostream& ost) const
 {
 	require(Check());
 
@@ -765,7 +770,7 @@ void KWClassifierEvaluation::WriteReport(ostream& ost)
 	WriteConfusionMatrixReport(ost);
 }
 
-void KWClassifierEvaluation::WriteHeaderLineReport(ostream& ost)
+void KWClassifierEvaluation::WriteHeaderLineReport(ostream& ost) const
 {
 	require(Check());
 	ost << "Classifier\t";
@@ -774,7 +779,7 @@ void KWClassifierEvaluation::WriteHeaderLineReport(ostream& ost)
 	ost << "AUC";
 }
 
-void KWClassifierEvaluation::WriteLineReport(ostream& ost)
+void KWClassifierEvaluation::WriteLineReport(ostream& ost) const
 {
 	require(Check());
 	ost << TSV::Export(GetPredictorName()) << "\t";
@@ -783,7 +788,7 @@ void KWClassifierEvaluation::WriteLineReport(ostream& ost)
 	ost << GetAUC();
 }
 
-void KWClassifierEvaluation::WriteJSONConfusionMatrixReport(JSONFile* fJSON)
+void KWClassifierEvaluation::WriteJSONConfusionMatrixReport(JSONFile* fJSON) const
 {
 	int i;
 	int iMax;
@@ -831,7 +836,8 @@ void KWClassifierEvaluation::WriteJSONConfusionMatrixReport(JSONFile* fJSON)
 	fJSON->EndObject();
 }
 
-void KWClassifierEvaluation::WriteJSONLiftCurveReportArray(JSONFile* fJSON, ObjectArray* oaClassifierEvaluations)
+void KWClassifierEvaluation::WriteJSONLiftCurveReportArray(JSONFile* fJSON,
+							   const ObjectArray* oaClassifierEvaluations) const
 {
 	int nIndex;
 	KWClassifierEvaluation* classifierEvaluation;
@@ -888,7 +894,8 @@ void KWClassifierEvaluation::WriteJSONLiftCurveReportArray(JSONFile* fJSON, Obje
 	fJSON->EndArray();
 }
 
-void KWClassifierEvaluation::WriteJSONPerformanceCurveReportArray(JSONFile* fJSON, ObjectArray* oaPredictorEvaluations)
+void KWClassifierEvaluation::WriteJSONPerformanceCurveReportArray(JSONFile* fJSON,
+								  const ObjectArray* oaPredictorEvaluations) const
 {
 	require(fJSON != NULL);
 	require(oaPredictorEvaluations != NULL);
@@ -896,7 +903,7 @@ void KWClassifierEvaluation::WriteJSONPerformanceCurveReportArray(JSONFile* fJSO
 	WriteJSONLiftCurveReportArray(fJSON, oaPredictorEvaluations);
 }
 
-void KWClassifierEvaluation::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
+void KWClassifierEvaluation::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const
 {
 	const ALString sUnivariateFamily = "Univariate";
 	require(fJSON != NULL);
@@ -1093,7 +1100,7 @@ double KWRegressorEvaluation::GetRankRECAt(int nIndex) const
 	return dvRankRECCurveValues.GetAt(nIndex);
 }
 
-void KWRegressorEvaluation::WriteRankRECCurveReport(ostream& ost)
+void KWRegressorEvaluation::WriteRankRECCurveReport(ostream& ost) const
 {
 	int nIndex;
 
@@ -1110,7 +1117,7 @@ void KWRegressorEvaluation::WriteRankRECCurveReport(ostream& ost)
 	}
 }
 
-void KWRegressorEvaluation::WriteRankRECCurveReportArray(ostream& ost, ObjectArray* oaRegressorEvaluations)
+void KWRegressorEvaluation::WriteRankRECCurveReportArray(ostream& ost, const ObjectArray* oaRegressorEvaluations) const
 {
 	int nIndex;
 	KWRegressorEvaluation* regressorEvaluation;
@@ -1158,7 +1165,8 @@ void KWRegressorEvaluation::WriteRankRECCurveReportArray(ostream& ost, ObjectArr
 	}
 }
 
-void KWRegressorEvaluation::WritePerformanceCurveReportArray(ostream& ost, ObjectArray* oaPredictorEvaluations)
+void KWRegressorEvaluation::WritePerformanceCurveReportArray(ostream& ost,
+							     const ObjectArray* oaPredictorEvaluations) const
 {
 	require(oaPredictorEvaluations != NULL);
 
@@ -1173,7 +1181,7 @@ boolean KWRegressorEvaluation::IsPerformanceCurveReported() const
 	return GetPartileNumber() > 0;
 }
 
-void KWRegressorEvaluation::WriteReport(ostream& ost)
+void KWRegressorEvaluation::WriteReport(ostream& ost) const
 {
 	require(Check());
 
@@ -1190,13 +1198,13 @@ void KWRegressorEvaluation::WriteReport(ostream& ost)
 	}
 }
 
-void KWRegressorEvaluation::WriteHeaderLineReport(ostream& ost)
+void KWRegressorEvaluation::WriteHeaderLineReport(ostream& ost) const
 {
 	require(Check());
 	ost << "Regressor\tRMSE\tMAE\tNLPD\tRankRMSE\tRankMAE\tRankNLPD";
 }
 
-void KWRegressorEvaluation::WriteLineReport(ostream& ost)
+void KWRegressorEvaluation::WriteLineReport(ostream& ost) const
 {
 	require(Check());
 	ost << TSV::Export(GetPredictorName()) << "\t";
@@ -1209,7 +1217,8 @@ void KWRegressorEvaluation::WriteLineReport(ostream& ost)
 		ost << "\t\t\t\t\t";
 }
 
-void KWRegressorEvaluation::WriteJSONRankRECCurveReportArray(JSONFile* fJSON, ObjectArray* oaRegressorEvaluations)
+void KWRegressorEvaluation::WriteJSONRankRECCurveReportArray(JSONFile* fJSON,
+							     const ObjectArray* oaRegressorEvaluations) const
 {
 	int nIndex;
 	KWRegressorEvaluation* regressorEvaluation;
@@ -1246,7 +1255,8 @@ void KWRegressorEvaluation::WriteJSONRankRECCurveReportArray(JSONFile* fJSON, Ob
 	fJSON->EndArray();
 }
 
-void KWRegressorEvaluation::WriteJSONPerformanceCurveReportArray(JSONFile* fJSON, ObjectArray* oaPredictorEvaluations)
+void KWRegressorEvaluation::WriteJSONPerformanceCurveReportArray(JSONFile* fJSON,
+								 const ObjectArray* oaPredictorEvaluations) const
 {
 	require(fJSON != NULL);
 	require(oaPredictorEvaluations != NULL);
@@ -1254,7 +1264,7 @@ void KWRegressorEvaluation::WriteJSONPerformanceCurveReportArray(JSONFile* fJSON
 	WriteJSONRankRECCurveReportArray(fJSON, oaPredictorEvaluations);
 }
 
-void KWRegressorEvaluation::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
+void KWRegressorEvaluation::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const
 {
 	const ALString sUnivariateFamily = "Univariate";
 

@@ -250,7 +250,7 @@ Continuous KWDescriptiveContinuousStats::GetStandardDeviation() const
 	return cStandardDeviation;
 }
 
-void KWDescriptiveContinuousStats::WriteReport(ostream& ost)
+void KWDescriptiveContinuousStats::WriteReport(ostream& ost) const
 {
 	require(IsStatsComputed());
 
@@ -264,7 +264,7 @@ void KWDescriptiveContinuousStats::WriteReport(ostream& ost)
 	ost << "Sparse missing number\t" << GetSparseMissingValueNumber() << "\n";
 }
 
-void KWDescriptiveContinuousStats::WriteHeaderLineReport(ostream& ost)
+void KWDescriptiveContinuousStats::WriteHeaderLineReport(ostream& ost) const
 {
 	require(IsStatsComputed());
 
@@ -277,7 +277,7 @@ void KWDescriptiveContinuousStats::WriteHeaderLineReport(ostream& ost)
 	ost << "Sparse missing number";
 }
 
-void KWDescriptiveContinuousStats::WriteLineReport(ostream& ost)
+void KWDescriptiveContinuousStats::WriteLineReport(ostream& ost) const
 {
 	require(IsStatsComputed());
 
@@ -291,7 +291,7 @@ void KWDescriptiveContinuousStats::WriteLineReport(ostream& ost)
 	ost << GetSparseMissingValueNumber();
 }
 
-void KWDescriptiveContinuousStats::WriteJSONFields(JSONFile* fJSON)
+void KWDescriptiveContinuousStats::WriteJSONFields(JSONFile* fJSON) const
 {
 	require(IsStatsComputed());
 
@@ -524,7 +524,7 @@ int KWDescriptiveSymbolStats::GetTotalFrequency() const
 	return nTotalFrequency;
 }
 
-void KWDescriptiveSymbolStats::WriteReport(ostream& ost)
+void KWDescriptiveSymbolStats::WriteReport(ostream& ost) const
 {
 	require(IsStatsComputed());
 
@@ -537,7 +537,7 @@ void KWDescriptiveSymbolStats::WriteReport(ostream& ost)
 	ost << "Sparse missing number\t" << GetSparseMissingValueNumber() << "\n";
 }
 
-void KWDescriptiveSymbolStats::WriteHeaderLineReport(ostream& ost)
+void KWDescriptiveSymbolStats::WriteHeaderLineReport(ostream& ost) const
 {
 	require(IsStatsComputed());
 
@@ -549,7 +549,7 @@ void KWDescriptiveSymbolStats::WriteHeaderLineReport(ostream& ost)
 	ost << "Sparse missing number";
 }
 
-void KWDescriptiveSymbolStats::WriteLineReport(ostream& ost)
+void KWDescriptiveSymbolStats::WriteLineReport(ostream& ost) const
 {
 	require(IsStatsComputed());
 
@@ -564,7 +564,7 @@ void KWDescriptiveSymbolStats::WriteLineReport(ostream& ost)
 	ost << GetSparseMissingValueNumber();
 }
 
-void KWDescriptiveSymbolStats::WriteJSONFields(JSONFile* fJSON)
+void KWDescriptiveSymbolStats::WriteJSONFields(JSONFile* fJSON) const
 {
 	require(IsStatsComputed());
 

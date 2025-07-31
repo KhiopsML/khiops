@@ -573,7 +573,7 @@ ObjectArray* KWPredictorDataGridReport::GetSelectedDataGridReports()
 	return &oaSelectedDataGridReports;
 }
 
-void KWPredictorDataGridReport::WriteReport(ostream& ost)
+void KWPredictorDataGridReport::WriteReport(ostream& ost) const
 {
 	ObjectArray oaSortedReports;
 	KWSelectedDataGridReport* dataGridReport;
@@ -605,7 +605,7 @@ void KWPredictorDataGridReport::WriteReport(ostream& ost)
 	}
 }
 
-void KWPredictorDataGridReport::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
+void KWPredictorDataGridReport::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const
 {
 	KWSelectedDataGridReport* dataGridReport;
 	KWDataGridStats* dataGridStats;
@@ -755,7 +755,7 @@ double KWSelectedDataGridReport::GetWeight() const
 	return dWeight;
 }
 
-void KWSelectedDataGridReport::WriteHeaderLineReport(ostream& ost)
+void KWSelectedDataGridReport::WriteHeaderLineReport(ostream& ost) const
 {
 	require(preparedDataGridStats != NULL);
 
@@ -777,7 +777,7 @@ void KWSelectedDataGridReport::WriteHeaderLineReport(ostream& ost)
 	ost << "Grid size";
 }
 
-void KWSelectedDataGridReport::WriteLineReport(ostream& ost)
+void KWSelectedDataGridReport::WriteLineReport(ostream& ost) const
 {
 	require(preparedDataGridStats != NULL);
 
@@ -800,7 +800,7 @@ void KWSelectedDataGridReport::WriteLineReport(ostream& ost)
 	ost << preparedDataGridStats->ComputeGridSize();
 }
 
-void KWSelectedDataGridReport::WriteReport(ostream& ost)
+void KWSelectedDataGridReport::WriteReport(ostream& ost) const
 {
 	require(preparedDataGridStats != NULL);
 

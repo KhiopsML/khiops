@@ -647,7 +647,7 @@ bool DTDecisionTreeNodeSpec::InitFromAttributeStats(KWAttributeStats* splitAttri
 	return false;
 }
 
-void DTDecisionTreeNodeSpec::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
+void DTDecisionTreeNodeSpec::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const
 {
 	fJSON->WriteKeyString("nodeId", GetNodeIdentifier());
 	// fJSON->WriteKeyBoolean("isLeaf", bIsLeaf);

@@ -62,7 +62,7 @@ public:
 	StringVector* GetSelectedAttributesAt(int npos);
 	ObjectArray* GetAttributeSelections();
 
-	void WriteReport(ostream& ost);
+	void WriteReport(ostream& ost) const;
 
 	///////////////////////////////////////////////////////
 	// Implementation

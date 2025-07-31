@@ -26,6 +26,9 @@ KWDatabase::KWDatabase()
 	timeDefaultConverter.SetFormatString(KWTimeFormat::GetDefaultFormatString());
 	timestampDefaultConverter.SetFormatString(KWTimestampFormat::GetDefaultFormatString());
 	timestampTZDefaultConverter.SetFormatString(KWTimestampTZFormat::GetDefaultFormatString());
+
+	// Creation du gestionnaire de data path, qui est ici un pointeur pour un probleme de cyle de include dans les header
+	objectDataPathManager = new KWObjectDataPathManager;
 }
 
 KWDatabase::~KWDatabase()
@@ -33,6 +36,7 @@ KWDatabase::~KWDatabase()
 	assert(not IsOpenedForRead() and not IsOpenedForWrite());
 	assert(kwcPhysicalClass == NULL);
 	oaAllObjects.DeleteAll();
+	delete objectDataPathManager;
 }
 
 KWDatabase* KWDatabase::Clone() const
@@ -369,7 +373,7 @@ KWClass* KWDatabase::ComputeClass()
 				}
 
 				// Suivi de la tache
-				if (TaskProgression::IsRefreshNecessary())
+				if (TaskProgression::IsRefreshNecessary(lRecordNumber))
 				{
 					TaskProgression::DisplayProgression((int)(100 * GetReadPercentage()));
 					if (TaskProgression::IsInterruptionRequested())
@@ -510,6 +514,9 @@ boolean KWDatabase::OpenForRead()
 
 	// Compilation des informations de selection
 	CompilePhysicalSelection();
+
+	// Initialisation de tous les data paths a destination des objets lus ou cree
+	objectDataPathManager->ComputeAllDataPaths(kwcPhysicalClass);
 
 	// Ouverture physique de la base
 	bIsError = false;
@@ -709,6 +716,9 @@ boolean KWDatabase::Close()
 	bIsError = false;
 	nClassFreshness = 0;
 
+	// Destruction des data paths de gestion des objets
+	objectDataPathManager->Reset();
+
 	// Destruction de la classe physique
 	DeletePhysicalClass();
 	kwcClass = NULL;
@@ -785,7 +795,7 @@ boolean KWDatabase::ReadAll()
 			}
 
 			// Suivi de la tache
-			if (TaskProgression::IsRefreshNecessary())
+			if (TaskProgression::IsRefreshNecessary(lRecordNumber))
 			{
 				TaskProgression::DisplayProgression((int)(100 * GetReadPercentage()));
 				DisplayReadTaskProgressionLabel(lRecordNumber, lObjectNumber);
@@ -861,7 +871,7 @@ void KWDatabase::DeleteAll()
 			delete oaAllObjects.GetAt(nObject);
 
 			// Suivi de la tache (sans test d'interruption: il faut detruire tous les objets)
-			if (TaskProgression::IsRefreshNecessary())
+			if (TaskProgression::IsRefreshNecessary(nObject))
 				TaskProgression::DisplayProgression((int)(nObject * 100.0 / oaAllObjects.GetSize()));
 			if (bDisplay)
 			{
@@ -928,7 +938,7 @@ boolean KWDatabase::WriteAll(KWDatabase* sourceObjects)
 			}
 
 			// Suivi de la tache
-			if (TaskProgression::IsRefreshNecessary())
+			if (TaskProgression::IsRefreshNecessary(lObjectNumber))
 			{
 				TaskProgression::DisplayProgression(
 				    (int)(nObject * 100.0 / sourceObjects->GetObjects()->GetSize()));
@@ -1268,6 +1278,9 @@ longint KWDatabase::GetUsedMemory() const
 	if (kwcPhysicalClass != NULL)
 		lUsedMemory += kwcPhysicalClass->GetDomain()->GetUsedMemory();
 
+	// Memoire du gestionnaire de data apth
+	lUsedMemory += objectDataPathManager->GetUsedMemory();
+
 	// Objets charges en memoire
 	for (nObject = 0; nObject < oaAllObjects.GetSize(); nObject++)
 	{
@@ -1323,7 +1336,7 @@ longint KWDatabase::ComputeOpenNecessaryMemory(boolean bRead, boolean bIncluding
 	return lNecessaryMemory;
 }
 
-void KWDatabase::WriteJSONFields(JSONFile* fJSON)
+void KWDatabase::WriteJSONFields(JSONFile* fJSON) const
 {
 	fJSON->WriteKeyString("database", GetDatabaseName());
 

@@ -86,13 +86,14 @@ FAMILY_TEST_SUITES[FULL, kht.COCLUSTERING] = [
 ]
 FAMILY_TEST_SUITES[FULL, kht.KNI] = ["Standard", "MultiTables", "SmallInstability"]
 
-# Nouvelle suites specifique a la version 11
+# Nouvelles suites specifique a la version 11
 if KHIOPS_V11:
     FAMILY_TEST_SUITES[FULL, kht.KHIOPS] = FAMILY_TEST_SUITES[FULL, kht.KHIOPS] + [
         "KIInterpretation",
         "Histograms",
         "HistogramsLimits",
         "TextVariables",
+        "TableCreationRules",
     ]
 
 # Famille full sans KNI

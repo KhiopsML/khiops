@@ -920,7 +920,7 @@ DoubleVector* KWContinuousSampleDiscretizerTest::GetDistances()
 	return &dvDistances;
 }
 
-void KWContinuousSampleDiscretizerTest::WriteReportFile(const ALString& sFileName)
+void KWContinuousSampleDiscretizerTest::WriteReportFile(const ALString& sFileName) const
 {
 	fstream ost;
 	boolean bOk;
@@ -935,7 +935,7 @@ void KWContinuousSampleDiscretizerTest::WriteReportFile(const ALString& sFileNam
 	}
 }
 
-void KWContinuousSampleDiscretizerTest::WriteReport(ostream& ost)
+void KWContinuousSampleDiscretizerTest::WriteReport(ostream& ost) const
 {
 	int nRun;
 
@@ -959,7 +959,7 @@ void KWContinuousSampleDiscretizerTest::WriteReport(ostream& ost)
 	ost << endl;
 }
 
-void KWContinuousSampleDiscretizerTest::WriteHeaderLineReport(ostream& ost)
+void KWContinuousSampleDiscretizerTest::WriteHeaderLineReport(ostream& ost) const
 {
 	// Specifications des tests
 	ost << "Generator\t";
@@ -982,7 +982,7 @@ void KWContinuousSampleDiscretizerTest::WriteHeaderLineReport(ostream& ost)
 	ost << "D Std. Dev.";
 }
 
-void KWContinuousSampleDiscretizerTest::WriteLineReport(ostream& ost)
+void KWContinuousSampleDiscretizerTest::WriteLineReport(ostream& ost) const
 {
 	// Specifications des tests
 	ost << sampleGenerator->GetName() << "\t";

@@ -356,7 +356,7 @@ void KWEvaluatedDataGridStats::InitializeEvaluation(const KWPredictor* predictor
 	}
 }
 
-void KWEvaluatedDataGridStats::WriteJSONFields(JSONFile* fJSON)
+void KWEvaluatedDataGridStats::WriteJSONFields(JSONFile* fJSON) const
 {
 	// Parametrage de la grille
 	SetJSONAttributeDomainLowerBounds(&cvJSONEvaluatedAttributeDomainLowerBounds);
@@ -459,24 +459,24 @@ KWDataGridStats* KWClassifierUnivariateEvaluation::GetEvaluatedDataGridStats()
 	return &dgsEvaluationResults;
 }
 
-void KWClassifierUnivariateEvaluation::WriteReport(ostream& ost)
+void KWClassifierUnivariateEvaluation::WriteReport(ostream& ost) const
 {
 	// Appel de la methode ancetre
 	KWClassifierEvaluation::WriteReport(ost);
 
 	// Affichage de la grille d'evaluation
 	ost << "\n";
-	GetEvaluatedDataGridStats()->WriteCellArrayLineReport(ost);
+	dgsEvaluationResults.WriteCellArrayLineReport(ost);
 }
 
-void KWClassifierUnivariateEvaluation::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
+void KWClassifierUnivariateEvaluation::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const
 {
 	// Appel de la methode ancetre
 	KWClassifierEvaluation::WriteJSONArrayFields(fJSON, bSummary);
 
 	// Ecriture de la grille
 	if (not bSummary)
-		GetEvaluatedDataGridStats()->WriteJSONKeyReport(fJSON, "dataGrid");
+		dgsEvaluationResults.WriteJSONKeyReport(fJSON, "dataGrid");
 }
 
 boolean KWClassifierUnivariateEvaluation::IsJSONReported(boolean bSummary) const
@@ -525,24 +525,24 @@ KWDataGridStats* KWRegressorUnivariateEvaluation::GetEvaluatedDataGridStats()
 	return &dgsEvaluationResults;
 }
 
-void KWRegressorUnivariateEvaluation::WriteReport(ostream& ost)
+void KWRegressorUnivariateEvaluation::WriteReport(ostream& ost) const
 {
 	// Appel de la methode ancetre
 	KWRegressorEvaluation::WriteReport(ost);
 
 	// Affichage de la grille d'evaluation
 	ost << "\n";
-	GetEvaluatedDataGridStats()->WriteCellArrayLineReport(ost);
+	dgsEvaluationResults.WriteCellArrayLineReport(ost);
 }
 
-void KWRegressorUnivariateEvaluation::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary)
+void KWRegressorUnivariateEvaluation::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const
 {
 	// Appel de la methode ancetre
 	KWRegressorEvaluation::WriteJSONArrayFields(fJSON, bSummary);
 
 	// Ecriture de la grille
 	if (not bSummary)
-		GetEvaluatedDataGridStats()->WriteJSONKeyReport(fJSON, "dataGrid");
+		dgsEvaluationResults.WriteJSONKeyReport(fJSON, "dataGrid");
 }
 
 boolean KWRegressorUnivariateEvaluation::IsJSONReported(boolean bSummary) const

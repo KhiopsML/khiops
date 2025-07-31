@@ -39,25 +39,25 @@ public:
 	virtual void WriteFullReport(ostream& ost, ObjectArray* oaTrainReports);
 
 	// Redefinition des methodes d'ecriture des rapports
-	void WriteHeaderLineReport(ostream& ost) override;
-	void WriteLineReport(ostream& ost) override;
-	void WriteReport(ostream& ost) override;
+	void WriteHeaderLineReport(ostream& ost) const override;
+	void WriteLineReport(ostream& ost) const override;
+	void WriteReport(ostream& ost) const override;
 
 	////////////////////////////////////////////////////////
 	// Gestion d'un rapport JSON
 
 	// Ecriture JSON du contenu d'un rapport global
-	virtual void WriteJSONFullReportFields(JSONFile* fJSON, ObjectArray* oaTrainReports);
+	virtual void WriteJSONFullReportFields(JSONFile* fJSON, const ObjectArray* oaTrainReports) const;
 
 	// Ecriture du contenu d'un rapport JSON pour un tableau ou un dictionnaire
-	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) override;
+	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const override;
 
 	// Parametrage de la prise en compte dans les rapports
 	boolean IsJSONReported(boolean bSummary) const override;
 
 	// Verification de la coherence d'un ensemble d'evaluation
 	//  (meme probleme d'apprentissage)
-	boolean CheckTrainReports(ObjectArray* oaTrainReports) const;
+	boolean CheckTrainReports(const ObjectArray* oaTrainReports) const;
 
 	// Criteres de tri suivant le nom du predicteur
 	const ALString GetSortName() const override;
@@ -89,10 +89,10 @@ public:
 	ObjectArray* GetSelectedAttributes();
 
 	// Ecriture d'un rapport detaille du predicteur, avec ses attributs selectionnes
-	void WriteReport(ostream& ost) override;
+	void WriteReport(ostream& ost) const override;
 
 	// Ecriture du contenu d'un rapport JSON pour un tableau ou un dictionnaire
-	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) override;
+	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const override;
 
 	// Parametrage de la prise en compte dans les rapports
 	boolean IsJSONReported(boolean bSummary) const override;
@@ -167,7 +167,7 @@ public:
 	// On determine d'apres le contenu quels sont les champs a afficher
 	// (au minimum: RecodingAttributeName et NativeAttributeName, les autres
 	// champs n'etant affiches que s'ils sont utilises (au moins deux valeurs distinctes))
-	void WriteArrayLineReport(ostream& ost, const ALString& sTitle, ObjectArray* oaLearningReports) const;
+	void WriteArrayLineReport(ostream& ost, const ALString& sTitle, const ObjectArray* oaLearningReports) const;
 
 	// Rapport synthetique destine a rentrer dans un tableau
 	// Tous les champs sont affiches
@@ -175,7 +175,7 @@ public:
 	void WriteLineReport(ostream& ost) const;
 
 	// Ecriture du contenu d'un rapport JSON pour un tableau ou un dictionnaire
-	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) override;
+	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const override;
 
 	// Verification de l'integrite
 	boolean Check() const override;

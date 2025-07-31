@@ -95,10 +95,10 @@
 				"type": "Numerical",
 				"parts": 1,
 				"values": 105,
-				"min": 0.005121241265,
-				"max": 0.9859650261,
-				"mean": 0.5173966838,
-				"stdDev": 0.2650019122,
+				"min": 0.009523321924,
+				"max": 0.9894570375,
+				"mean": 0.5652304821,
+				"stdDev": 0.2921393514,
 				"missingNumber": 0,
 				"sparseMissingNumber": 0,
 				"constructionCost": 3.17805,
@@ -281,7 +281,7 @@
 							"type": "Numerical",
 							"partitionType": "Intervals",
 							"partition": [
-								[0.00390625,1]
+								[0.0078125,1]
 							]
 						}
 					],
@@ -301,7 +301,7 @@
 					"informationRates": [0],
 					"histograms": [
 						{
-							"bounds": [0.00390625,1],
+							"bounds": [0.0078125,1],
 							"frequencies": [105]
 						}
 					]

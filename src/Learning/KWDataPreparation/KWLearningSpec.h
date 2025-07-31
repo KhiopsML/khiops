@@ -277,7 +277,7 @@ public:
 	static boolean GetTextConstructionUsedByTrees();
 
 	// Nombre max de valeurs prise en comptes dans les rapports (defaut: 1000000)
-	// notament pour les dimensions des grilles de preparation des donnees
+	// notamment pour les dimensions des grilles de preparation des donnees
 	// Indique s'il faut grouper la cible, c'est a dire si cela est demande en pretraitement et
 	// que l'on est dans le cas de la classification supervisee avec des pretraitements MODL
 	boolean IsTargetGrouped() const;
@@ -398,7 +398,7 @@ public:
 	// Attention, seules les caracteristiques propres aux specification d'apprentissage
 	// sont serialisees (y compris les statistiques sur l'attribut cible si elle sont presentes)
 	// Les complements de specification (Classe et Database) sont des objets externes
-	// references, devant etre rataches explicitement par appel des methode concernees
+	// references, devant etre rattaches explicitement par appel des methode concernees
 	// de KWLearningSpec
 
 	// Methode a appeler apres la deserialisation pour finaliser les specifications

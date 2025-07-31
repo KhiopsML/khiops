@@ -92,7 +92,7 @@ KWClassStats* DTCreationReport::GetClassStats() const
 	return classStats;
 }
 
-void DTCreationReport::WriteJSONFields(JSONFile* fJSON)
+void DTCreationReport::WriteJSONFields(JSONFile* fJSON) const
 {
 	require(fJSON != NULL);
 
@@ -100,7 +100,7 @@ void DTCreationReport::WriteJSONFields(JSONFile* fJSON)
 	WriteJSONTreeReport(fJSON, false);
 }
 
-void DTCreationReport::WriteJSONTreeReport(JSONFile* fJSON, boolean bSummary)
+void DTCreationReport::WriteJSONTreeReport(JSONFile* fJSON, boolean bSummary) const
 {
 	ObjectArray oaSortedReports;
 	int i, j, nIndex;
@@ -352,7 +352,7 @@ KWAttributeStats* DTCreationReport::GetAttributeStats(const ALString sVariableNa
 	return NULL;
 }
 
-void DTCreationReport::ComputeRankIdentifiers(ObjectArray* oaReports)
+void DTCreationReport::ComputeRankIdentifiers(ObjectArray* oaReports) const
 {
 	const double dEpsilon = 1e-10;
 	DTDecisionTreeSpec* treeSpec;

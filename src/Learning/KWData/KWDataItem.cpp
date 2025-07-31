@@ -4,16 +4,16 @@
 
 #include "KWDataItem.h"
 
-void KWDataItem::WriteJSONFields(JSONFile* fJSON) {}
+void KWDataItem::WriteJSONFields(JSONFile* fJSON) const {}
 
-void KWDataItem::WriteJSONReport(JSONFile* fJSON)
+void KWDataItem::WriteJSONReport(JSONFile* fJSON) const
 {
 	fJSON->BeginObject();
 	WriteJSONFields(fJSON);
 	fJSON->EndObject();
 }
 
-void KWDataItem::WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey)
+void KWDataItem::WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) const
 {
 	fJSON->BeginKeyObject(sKey);
 	WriteJSONFields(fJSON);

@@ -16,6 +16,7 @@ KWObject::KWObject(const KWClass* kwcNew, longint lIndex)
 	kwcClass = kwcNew;
 	lCreationIndex = 2 * lIndex;
 	assert(GetCreationIndex() == lIndex);
+	objectDataPath = NULL;
 	values.attributeValues = NULL;
 	debug(nObjectLoadedDataItemNumber = 0);
 	debug(nFreshness = 0);
@@ -2257,7 +2258,7 @@ void KWObject::MutateUnloadedOwnedRelationValues(const NumericKeyDictionary* nkd
 
 KWObject::ObjectValues KWObject::NewValueVector(int nSize)
 {
-	ObjectValues newValues;
+	ObjectValues newValues{};
 	int nBlockNumber;
 	int i;
 

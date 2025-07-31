@@ -50,6 +50,9 @@ public:
 	// (la structure du tableau est a actualiser par la methode UpdateMultiTableMappings)
 	ObjectArray* GetMultiTableMappings();
 
+	// Acces au mapping pincipal
+	KWMTDatabaseMapping* GetMainMapping() const;
+
 	// Nombre de tables utilises
 	int GetTableNumber() const override;
 
@@ -57,7 +60,7 @@ public:
 	int GetMainTableNumber() const;
 	int GetReferencedTableNumber() const;
 
-	// Acces a un maping par son chemin (nom d'attribut)
+	// Acces a un mapping par son chemin
 	KWMTDatabaseMapping* LookupMultiTableMapping(const ALString& sDataPath) const;
 
 	// Indique si un mapping correspond a une classe referencee
@@ -159,18 +162,6 @@ protected:
 	// Gestion du referencement des objets des classes externes
 	boolean IsPhysicalObjectSelected(KWObject* kwoPhysicalObject) override;
 
-	// Creation recursive d'un mapping
-	// Le mapping est chaine avec ses mappings composant.
-	// Le tableaux mapping exhaustifs est egalement egalement mis a jour
-	// Les classes referencees sont memorisees dans un dictionnaire et un tableau,
-	// pour gerer les mappings externes a creer ulterieurement
-	// Les mappings crees recursivement sont memorises dans un tableau
-	// Les classes creees analysees sont egalement memorisees dans un dictionnaire, pour eviter des analyses multiples
-	KWMTDatabaseMapping* CreateMapping(ObjectDictionary* odReferenceClasses, ObjectArray* oaRankedReferenceClasses,
-					   ObjectDictionary* odAnalysedCreatedClasses, KWClass* mappedClass,
-					   boolean bIsExternalTable, const ALString& sOriginClassName,
-					   StringVector* svAttributeNames, ObjectArray* oaCreatedMappings);
-
 	/////////////////////////////////////////////////////////////////////////////////
 	// Gestion des objets natifs references
 	// Les objets natifs references sont les objets (principaux, et non composants)
@@ -235,38 +226,14 @@ protected:
 	KWObject* DMTMPhysicalRead(KWMTDatabaseMapping* mapping);
 	void DMTMPhysicalWrite(KWMTDatabaseMapping* mapping, const KWObject* kwoObject);
 
-	// Affichage d'un tableau de mapping
-	void WriteMapingArray(ostream& ost, const ALString& sTitle, const ObjectArray* oaMappings) const;
-
 	/////////////////////////////////////////////////
 	// Attributs de l'implementation
 
 	// Nombre total d'erreurs d'encodage lies aux tables externes, detectees impliquant des double quotes manquants
 	mutable longint lExternalTablesEncodingErrorNumber;
 
-	// Mapping pour la table principale
-	// Ce mapping doit toujours etre present et contient le parametrage (nom de base, nom de classe) principal
-	// L'utilisation d'un mapping pour la classe principale permet d'unifier les traitements entre tables principales
-	// et tables secondaires
-	mutable KWMTDatabaseMapping* mainMultiTableMapping;
-
-	// Mapping racine des tables externes (sous-ensemble des mappings du tableau oaMultiTableMappings)
-	mutable ObjectArray oaRootReferenceTableMappings;
-
-	// Mapping multi-tables: tableau exhaustif de tous les mappings (permet une interface d'edition "a plat")
-	// Attention, le mapping de la classe principale est toujours integree comme premier element du tableau,
-	// et ne doit toujours etre synchronise
-	mutable ObjectArray oaMultiTableMappings;
-
-	// Warnings pour le cas des tables externes non utilisees, gardees pour generer des warnings lors du Check
-	//
-	// Ce cas arrive si la table principale est une table secondaire d'une table externe qu'elle reference.
-	// Par exemple, dans le cas d'un schema de molecules avec des atomes et des liaisons, les atomes et les liaisons
-	// referencent leur molecule pour pouvoir recreer dynamiquement le graphe de la structure de la molecule, avec chaque
-	// liaison referencant ses atomes extremites et chaque atome referencant ses liaisons adjacentes.
-	// Si on choisit les atomes en table d'analyse principale, on doit couper le lien avec la table des molecules
-	// pour eviter les cycles dans les donnees
-	mutable StringVector svUnusedRootDictionaryWarnings;
+	// Gestionnaire des mappings de la base
+	mutable KWMTDatabaseMappingManager mappingManager;
 
 	// Fraicheur des specifications et de leur verification, pour bufferiser la methode Check
 	// En theorie, la fraicheur ne capture pas de facon exhaustive toutes les modifications possibles
@@ -293,3 +260,12 @@ protected:
 	// Template pour la creation de driver du bon type
 	KWDataTableDriver* dataTableDriverCreator;
 };
+
+///////////////////////////
+// Methodes en inline
+
+inline KWMTDatabaseMapping* KWMTDatabase::GetMainMapping() const
+{
+	assert(mappingManager.IsMainMappingInitialized());
+	return mappingManager.GetMainMapping();
+}

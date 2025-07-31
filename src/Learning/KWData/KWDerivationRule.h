@@ -346,8 +346,8 @@ public:
 	// doit etre reimplementee
 	// Gestion memoire (cf classe KWObject)
 	//  - type simple (Continuous et Symbol): ce sont des valeurs, et cela ne pose pas de probleme
-	//  - type complex (Date, Time, Timestamp, TimestampTZ): ce sont egalement des valeurs, et cela ne pose pas de
-	//  probleme
+	//  - type complex (Date, Time, Timestamp, TimestampTZ): ce sont egalement des valeurs,
+	//    et cela ne pose pas de probleme
 	//  - type Text: ce sont egalement des valeurs (comme les Symbol), et cela ne pose pas de probleme
 	//  - type TextList: vecteur de valeurs, detruit avec les KWObjet le contenant
 	//    Une regle de calcul produisant un result TextList doit en garder la copie.
@@ -359,6 +359,9 @@ public:
 	//    Une regle de calcul produisant un ObjectArray doit en garder la copie et est responsable
 	//    de sa destruction. S'ils sont utilises comme attributs d'objets, ceux-ci doivent en garder
 	//    une copie par duplication.
+	//    Les methodes ComputeObjectResult et ComputeObjectArrayResult prennent le load index de l'eventuel
+	//    attribut contenant le resultat de la regle, pour etre capable de reconstituer le data path
+	//    d'acces a l'objet dans le cas de regles de creation d'instances.
 	//  - type structure: le type Structure est cense appartenir a la KWClass, pas au KWObject
 	//    Il est donc detruit uniquement avec la KWClass, jamais par le KWObject
 	//    En pratique, une facon simple de respecter cette contrainte est de faire en sorte de la methode
@@ -383,8 +386,9 @@ public:
 	virtual TimestampTZ ComputeTimestampTZResult(const KWObject* kwoObject) const;
 	virtual Symbol ComputeTextResult(const KWObject* kwoObject) const;
 	virtual SymbolVector* ComputeTextListResult(const KWObject* kwoObject) const;
-	virtual KWObject* ComputeObjectResult(const KWObject* kwoObject) const;
-	virtual ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject) const;
+	virtual KWObject* ComputeObjectResult(const KWObject* kwoObject, const KWLoadIndex liAttributeLoadIndex) const;
+	virtual ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject,
+						      const KWLoadIndex liAttributeLoadIndex) const;
 	virtual Object* ComputeStructureResult(const KWObject* kwoObject) const;
 	virtual KWContinuousValueBlock*
 	ComputeContinuousValueBlockResult(const KWObject* kwoObject, const KWIndexedKeyBlock* indexedKeyBlock) const;
@@ -1403,8 +1407,9 @@ inline KWObject* KWDerivationRuleOperand::GetObjectValue(const KWObject* kwoObje
 
 	return (cCompiledOrigin == CompiledOriginAttribute
 		    ? kwoObject->ComputeObjectValueAt(liDataItemLoadIndex)
-		    : (cCompiledOrigin == CompiledOriginRule ? GetDerivationRule()->ComputeObjectResult(kwoObject)
-							     : kwvConstant.GetObject()));
+		    : (cCompiledOrigin == CompiledOriginRule
+			   ? GetDerivationRule()->ComputeObjectResult(kwoObject, liDataItemLoadIndex)
+			   : kwvConstant.GetObject()));
 }
 
 inline ObjectArray* KWDerivationRuleOperand::GetObjectArrayValue(const KWObject* kwoObject) const
@@ -1416,8 +1421,9 @@ inline ObjectArray* KWDerivationRuleOperand::GetObjectArrayValue(const KWObject*
 
 	return (cCompiledOrigin == CompiledOriginAttribute
 		    ? kwoObject->ComputeObjectArrayValueAt(liDataItemLoadIndex)
-		    : (cCompiledOrigin == CompiledOriginRule ? GetDerivationRule()->ComputeObjectArrayResult(kwoObject)
-							     : kwvConstant.GetObjectArray()));
+		    : (cCompiledOrigin == CompiledOriginRule
+			   ? GetDerivationRule()->ComputeObjectArrayResult(kwoObject, liDataItemLoadIndex)
+			   : kwvConstant.GetObjectArray()));
 }
 
 inline Object* KWDerivationRuleOperand::GetStructureValue(const KWObject* kwoObject) const

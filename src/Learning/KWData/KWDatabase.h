@@ -6,6 +6,7 @@
 
 class KWDatabase;
 
+#include "KWDataPath.h"
 #include "KWClass.h"
 #include "KWObject.h"
 #include "KWTypeAutomaticRecognition.h"
@@ -371,7 +372,7 @@ public:
 	virtual longint ComputeOpenNecessaryMemory(boolean bRead, boolean bIncludingClassMemory);
 
 	// Ecriture du contenu d'un rapport JSON
-	void WriteJSONFields(JSONFile* fJSON);
+	void WriteJSONFields(JSONFile* fJSON) const;
 
 	// Libelles utilisateurs
 	// Le libelle de l'objet contient le nom de la base et le numero de record s'il y en a un
@@ -575,6 +576,15 @@ protected:
 	// Classe physique
 	// Meme remarque que pour kwcClass, mais uniquement en lecture.
 	KWClass* kwcPhysicalClass;
+
+	// Gestion de tous les data paths des objets charges en memoire, qu'il soient issu de lecture de fichier via un mapping
+	// ou crees en memoire par des regles de derivation d'instances
+	// Il s'agit d'un sur-ensemble du mapping multi-table, qui est lui dediee aux objet lus depuis des fichiers.
+	// Ces data path sont crees lors de l'ouverture de la base en lecture, et detruit avec sa fermeture.
+	// Chaque KWObject lu depuis un fichier ou cree depuis une regle reference son data path, ce qui lui permet
+	// d'etre identifier de facon unique.
+	// Meme en mono-table, les data path sont utiles pour identifier les eventuelles instances crees pard es regles de derivation
+	KWObjectDataPathManager* objectDataPathManager;
 
 	// Dictionnaire des classes de mutation, avec en cle la classe physique des objets a muter
 	// et en valeur la classe suite a la mutation

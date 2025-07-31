@@ -55,7 +55,7 @@ public:
 	//   . colliding_utf8_chars: tableau des caracteres utf8 initiaux utilises dans windows1252/iso8859-1.
 	boolean Close();
 
-	// Variante de la fermeture, permetant d'ignorer la gestion de l'encodage
+	// Variante de la fermeture, permettant d'ignorer la gestion de l'encodage
 	boolean CloseWithoutEncodingStats();
 
 	////////////////////////////////////////////////////

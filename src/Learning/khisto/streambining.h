@@ -20,7 +20,7 @@
 //  MHStreamBiningCommandLine
 //  streambining
 // Aterme, il pourrait soit faire partie d'un executable a part, soit etre integre dans l'executable
-// khisto pour une option partiellement stream, permetant de controler la memoire totale necessaire
+// khisto pour une option partiellement stream, permettant de controler la memoire totale necessaire
 // au calcul d'histogramme en limitant le nombre de micro-bins a garder en stream, automatiquement
 // (par exemple: pas plus de un million) ou selon une option utilisateur
 int mainStreamBining(int argc, char** argv);

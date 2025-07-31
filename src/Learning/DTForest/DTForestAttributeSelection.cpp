@@ -327,7 +327,7 @@ void DTForestAttributeSelection::BuildForestSelections(int nmaxselectionnumber, 
 	}
 }
 
-void DTForestAttributeSelection::WriteReport(ostream& ost)
+void DTForestAttributeSelection::WriteReport(ostream& ost) const
 {
 	int nSelection, nAttribute;
 	ObjectArray oaVariablesNull;

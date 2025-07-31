@@ -28,8 +28,8 @@ public:
 
 	// Redefinition des methode d'ecriture d'une partie de rapport
 	// Sans effet si les parametres de construction d'attributs ne sont pas specifies
-	void WriteReport(ostream& ost) override;
-	void WriteJSONReport(JSONFile* fJSON) override;
+	void WriteReport(ostream& ost) const override;
+	void WriteJSONReport(JSONFile* fJSON) const override;
 
 	////////////////////////////////////////////////////////
 	//// Implementation

@@ -188,7 +188,7 @@ public:
 	void Write(ostream& ost) const override;
 
 	// Ecriture du contenu d'un rapport JSON
-	void WriteJSONFields(JSONFile* fJSON) override;
+	void WriteJSONFields(JSONFile* fJSON) const override;
 
 	// Libelles utilisateurs
 	const ALString GetClassLabel() const override;

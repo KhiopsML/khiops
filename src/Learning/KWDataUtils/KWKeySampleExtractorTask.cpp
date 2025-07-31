@@ -756,7 +756,7 @@ boolean KWKeySampleExtractorTask::SlaveProcess()
 		{
 			// Gestion de la progesssion
 			nCount++;
-			if (TaskProgression::IsRefreshNecessary())
+			if (TaskProgression::IsRefreshNecessary(nCount))
 			{
 				dProgression = inputFile.GetCurrentLineIndex() * 1.0 / inputFile.GetBufferLineNumber();
 				TaskProgression::DisplayProgression((int)floor(dProgression * 100));

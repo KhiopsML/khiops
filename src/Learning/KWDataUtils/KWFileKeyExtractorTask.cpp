@@ -536,6 +536,7 @@ boolean KWFileKeyExtractorTask::SlaveProcess()
 	OutputBufferedFile outputFile;
 	ALString sChunkFileName;
 	int i;
+	longint lDisplayFreshness;
 	double dProgression;
 	boolean bCloseOk;
 	longint lBeginPos;
@@ -547,6 +548,9 @@ boolean KWFileKeyExtractorTask::SlaveProcess()
 	ALString sTmp;
 	ALString sObjectLabel;
 	ALString sOtherObjectLabel;
+
+	// Fraicheur d'affichage pour la gestion de la barre de progression
+	lDisplayFreshness = 0;
 
 	// Memorisation du nombre d'erreurs d'encodage initiales
 	lSlaveEncodingErrorNumber = inputFile.GetEncodingErrorNumber();
@@ -640,7 +644,8 @@ boolean KWFileKeyExtractorTask::SlaveProcess()
 			while (bOk and not inputFile.IsBufferEnd())
 			{
 				// Gestion de la progresssion
-				if (TaskProgression::IsRefreshNecessary())
+				lDisplayFreshness++;
+				if (TaskProgression::IsRefreshNecessary(lDisplayFreshness))
 				{
 					// Calcul de la progression par rapport a la proportion de la portion du fichier
 					// traitee parce que l'on ne sait pas le nombre total de ligne que l'on va

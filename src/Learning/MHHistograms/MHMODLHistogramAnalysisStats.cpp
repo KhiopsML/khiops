@@ -120,7 +120,7 @@ double MHMODLHistogramAnalysisStats::GetTruncationEpsilon() const
 	return dTruncationEpsilon;
 }
 
-void MHMODLHistogramAnalysisStats::WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey)
+void MHMODLHistogramAnalysisStats::WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) const
 {
 	int i;
 	const MHMODLHistogramStats* histogram;

@@ -1704,13 +1704,13 @@ void DTDecisionTree::CopyFrom(const DTDecisionTree* sourceTree)
 	nUsableAttributesNumber = sourceTree->nUsableAttributesNumber;
 }
 
-void WriteReportDetailedInternalNode(ostream& ost, DTDecisionTreeNode* ndRoot)
+void DTDecisionTree::WriteReportDetailedInternalNode(ostream& ost, const DTDecisionTreeNode* ndRoot) const
 {
 	ost << "\n\nDetailed internal nodes statistics\n";
 
 	int icurent = 0;
 	int icurentdeth = 0;
-	DTDecisionTreeNode* ndCurrent;
+	const DTDecisionTreeNode* ndCurrent;
 	ObjectList olPoplist;
 	ObjectArray oaPopList;
 
@@ -1763,20 +1763,20 @@ void WriteReportDetailedInternalNode(ostream& ost, DTDecisionTreeNode* ndRoot)
 	}
 }
 
-void WriteReportLeaveStatistics(ostream& ost, DTDecisionTreeNode* ndRoot, DTDecisionTree* dtTree)
+void DTDecisionTree::WriteReportLeaveStatistics(ostream& ost, const DTDecisionTreeNode* ndRoot) const
 {
 	ost << "\n\nLeave statistics\n";
 
 	int icurent = 0;
 	int icurentdeth = 0;
-	DTDecisionTreeNode* ndCurrent;
+	const DTDecisionTreeNode* ndCurrent;
 	ObjectList olPoplist;
 	ObjectArray oaPopList;
 
 	ndCurrent = ndRoot;
 
 	// Ligne d'entete
-	ndCurrent->WriteHeaderLineReport(ost, dtTree, true);
+	ndCurrent->WriteHeaderLineReport(ost, this, true);
 
 	// Parcour en largeur de l'arbre
 	while (ndCurrent != NULL)
@@ -1790,7 +1790,7 @@ void WriteReportLeaveStatistics(ostream& ost, DTDecisionTreeNode* ndRoot, DTDeci
 			// largeur , avec list fifo )
 			if (ndCurrent->IsLeaf())
 				// Ligne de de stats
-				ndCurrent->WriteLineReport(ost, dtTree);
+				ndCurrent->WriteLineReport(ost, this);
 			else
 			{
 				for (int i = 0; i < ndCurrent->GetSons()->GetSize(); i++)
@@ -1818,20 +1818,20 @@ void WriteReportLeaveStatistics(ostream& ost, DTDecisionTreeNode* ndRoot, DTDeci
 	}
 }
 
-void WriteReportInternalNodesStatistics(ostream& ost, DTDecisionTreeNode* ndRoot, DTDecisionTree* dtTree)
+void DTDecisionTree::WriteReportInternalNodesStatistics(ostream& ost, const DTDecisionTreeNode* ndRoot) const
 {
 	ost << "\n\nInternal Nodes statistics\n";
 
 	int icurent = 0;
 	int icurentdeth = 0;
-	DTDecisionTreeNode* ndCurrent;
+	const DTDecisionTreeNode* ndCurrent;
 	ObjectList olPoplist;
 	ObjectArray oaPopList;
 
 	ndCurrent = ndRoot;
 
 	// Ligne d'entete
-	ndCurrent->WriteHeaderLineReport(ost, dtTree, false);
+	ndCurrent->WriteHeaderLineReport(ost, this, false);
 
 	// Parcour en largeur de l'arbre
 	while (ndCurrent != NULL)
@@ -1857,7 +1857,7 @@ void WriteReportInternalNodesStatistics(ostream& ost, DTDecisionTreeNode* ndRoot
 					}
 				}
 				// Ligne de de stats
-				ndCurrent->WriteLineReport(ost, dtTree);
+				ndCurrent->WriteLineReport(ost, this);
 			}
 		}
 
@@ -2329,7 +2329,7 @@ void DTDecisionTree::WriteNodes(ostream& ost, const ObjectDictionary* nodes)
 	delete sortedNodes;
 }
 
-void DTDecisionTree::WriteReport(ostream& ost)
+void DTDecisionTree::WriteReport(ostream& ost) const
 {
 	ObjectArray oaReport;
 	KWDGSAttributeSymbolValues* valueStats;
@@ -2464,13 +2464,13 @@ void DTDecisionTree::WriteReport(ostream& ost)
 
 	ost << "==============================================\n";
 
-	WriteReportLeaveStatistics(ost, GetRootNode(), this);
-	WriteReportInternalNodesStatistics(ost, GetRootNode(), this);
+	WriteReportLeaveStatistics(ost, GetRootNode());
+	WriteReportInternalNodesStatistics(ost, GetRootNode());
 	WriteReportDetailedInternalNode(ost, GetRootNode());
 	// WriteDatabaseObjects(ost);
 }
 
-void DTDecisionTree::WriteDatabaseObjects(ostream& ost, int maxObjects)
+void DTDecisionTree::WriteDatabaseObjects(ostream& ost, int maxObjects) const
 {
 	// affichage du contenu du dico des instances
 
@@ -2503,8 +2503,8 @@ void DTDecisionTree::WriteDatabaseObjects(ostream& ost, int maxObjects)
 	ost << endl << endl;
 }
 
-void DTDecisionTree::WriteDTArrayLineReport(ostream& ost, const ALString& sTitle, ObjectArray* oaLearningReports,
-					    DTDecisionTree* tree)
+void DTDecisionTree::WriteDTArrayLineReport(ostream& ost, const ALString& sTitle, const ObjectArray* oaLearningReports,
+					    DTDecisionTree* tree) const
 {
 	ObjectArray oaSortedReports;
 	int i;

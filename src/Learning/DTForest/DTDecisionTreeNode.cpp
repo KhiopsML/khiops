@@ -585,7 +585,7 @@ void DTDecisionTreeNode::CopyWithPruningSons(DTDecisionTreeNode* node)
 	// }
 }
 
-void DTDecisionTreeNode::WriteReport(ostream& ost)
+void DTDecisionTreeNode::WriteReport(ostream& ost) const
 {
 	if (!bIsLeaf)
 		splitAttributeStats->GetPreparedDataGridStats()->Write(ost);
@@ -598,7 +598,7 @@ boolean DTDecisionTreeNode::IsReported() const
 	return GetSortValue() > 0;
 }
 
-void DTDecisionTreeNode::WriteHeaderLineReport(ostream& ost, DTDecisionTree* tree, bool forleave)
+void DTDecisionTreeNode::WriteHeaderLineReport(ostream& ost, const DTDecisionTree* tree, bool forleave) const
 {
 	KWDGSAttributeSymbolValues* attributeSymbolValues;
 	int nTarget;
@@ -683,7 +683,7 @@ void DTDecisionTreeNode::Write(ostream& ost) const
 	ost << endl << "\t Node Cost " << dNodeCost << endl << endl;
 }
 
-void DTDecisionTreeNode::WriteLineReport(ostream& ost, DTDecisionTree* tree)
+void DTDecisionTreeNode::WriteLineReport(ostream& ost, const DTDecisionTree* tree) const
 {
 	KWDGSAttributeSymbolValues* attributeSymbolValues;
 	int nIndex;
@@ -728,7 +728,7 @@ void DTDecisionTreeNode::WriteLineReport(ostream& ost, DTDecisionTree* tree)
 	if (IsLeaf())
 	{
 		DTDecisionTreeNode* currentFatherNode;
-		DTDecisionTreeNode* sonNode;
+		const DTDecisionTreeNode* sonNode;
 		POSITION position;
 		Object* obj;
 		ALString sVariableName;

@@ -273,7 +273,7 @@ public:
 
 	// Insertion d'un bloc d'attributs, a partir d'un nom,
 	// du premier et du dernier attribut du bloc
-	// Les attributs doivent etre consecutifs, et sans bloc de ratachement
+	// Les attributs doivent etre consecutifs, et sans bloc de rattachement
 	// Le nom doit etre correct et unique parmi les noms de bloc et d'attribut
 	// Renvoie le block cree, appartenant a l'appele
 	KWAttributeBlock* CreateAttributeBlock(const ALString& sBlockName, KWAttribute* firstAttribute,
@@ -491,12 +491,12 @@ public:
 	// Gestion d'un rapport JSON
 
 	// Ecriture du contenu d'un rapport JSON
-	virtual void WriteJSONFields(JSONFile* fJSON);
+	virtual void WriteJSONFields(JSONFile* fJSON) const;
 
 	// Ecriture d'un rapport JSON
 	// Avec une cle s'il est dans un objet, sans cle s'il est dans un tableau
-	virtual void WriteJSONReport(JSONFile* fJSON);
-	virtual void WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey);
+	virtual void WriteJSONReport(JSONFile* fJSON) const;
+	virtual void WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) const;
 
 	////////////////////////////////////////////////////////////////
 	// Gestion du format externe des Name

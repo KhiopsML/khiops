@@ -60,26 +60,26 @@ public:
 	// Rapport global: tabulaire, sur les courbes de performance, puis detaille
 	// Le libelle d'evaluation vaut typiquement "Train" ou "Test"
 	void WriteFullReportFile(const ALString& sFileName, const ALString& sEvaluationLabel,
-				 ObjectArray* oaPredictorEvaluations);
+				 const ObjectArray* oaPredictorEvaluations) const;
 
 	virtual void WriteFullReport(ostream& ost, const ALString& sEvaluationLabel,
-				     ObjectArray* oaPredictorEvaluations);
+				     const ObjectArray* oaPredictorEvaluations) const;
 
 	// Selection et tri des rapports ayant des courbes de performance
 	// Memoire: le tableau en entree et son contenu appartiennent a l'appelant,
 	// le tableau en sortie egalement, son contenu etant une partie du tableau en entree
 	void SelectPerformanceCurvesReport(const ObjectArray* oaPredictorEvaluations,
-					   ObjectArray* oaSortedPredictorEvaluations);
+					   ObjectArray* oaSortedPredictorEvaluations) const;
 
 	// Rapport sur les courbes de performance
-	virtual void WritePerformanceCurveReportArray(ostream& ost, ObjectArray* oaPredictorEvaluations);
+	virtual void WritePerformanceCurveReportArray(ostream& ost, const ObjectArray* oaPredictorEvaluations) const;
 
 	// Flag de prise en compte de courbes de performance (defaut: false)
 	virtual boolean IsPerformanceCurveReported() const;
 
 	// Verification de la coherence d'un ensemble d'evaluation
 	//  (meme base d'evaluation, meme type de prediction...)
-	boolean CheckPredictorEvaluations(ObjectArray* oaPredictorEvaluations) const;
+	boolean CheckPredictorEvaluations(const ObjectArray* oaPredictorEvaluations) const;
 
 	// Criteres de tri permettant de trier differents objets d'un rapport
 	const ALString GetSortName() const override;
@@ -89,10 +89,11 @@ public:
 
 	// Ecriture JSON du contenu d'un rapport global
 	virtual void WriteJSONFullReportFields(JSONFile* fJSON, const ALString& sEvaluationLabel,
-					       ObjectArray* oaPredictorEvaluations);
+					       const ObjectArray* oaPredictorEvaluations) const;
 
 	// Rapport JSON sur les courbes de performance
-	virtual void WriteJSONPerformanceCurveReportArray(JSONFile* fJSON, ObjectArray* oaPredictorEvaluations);
+	virtual void WriteJSONPerformanceCurveReportArray(JSONFile* fJSON,
+							  const ObjectArray* oaPredictorEvaluations) const;
 
 	// Libelles
 	const ALString GetClassLabel() const override;
@@ -216,45 +217,46 @@ public:
 	double GetClassifierLiftAt(int nPredictorTarget, int nIndex) const;
 
 	// Ecriture de la matrice de confusion et des courbes de lift (sans entete)
-	void WriteConfusionMatrixReport(ostream& ost);
-	void WriteLiftCurveReport(ostream& ost);
+	void WriteConfusionMatrixReport(ostream& ost) const;
+	void WriteLiftCurveReport(ostream& ost) const;
 
 	// Ecriture d'une serie de courbes de lift sur un meme tableau de resultats
 	// Les evaluations doivent etre compatibles (meme probleme evalue sur la
 	// meme base de test, controle par rapport a l'objet evaluation en cours)
 	// Toutes les courbes des predicteurs du tableau sont presentees
 	// sur des colonnes successives, apres le lift aleatoire et le lift optimal
-	void WriteLiftCurveReportArray(ostream& ost, ObjectArray* oaClassifierEvaluations);
+	void WriteLiftCurveReportArray(ostream& ost, const ObjectArray* oaClassifierEvaluations) const;
 
 	//////////////////////////////////////////////////////////////////////////////
 	// Gestion du rapport general
 
 	// Rapport sur les courbes de performance: redefinition des methodes generiques
-	void WritePerformanceCurveReportArray(ostream& ost, ObjectArray* oaPredictorEvaluations) override;
+	void WritePerformanceCurveReportArray(ostream& ost, const ObjectArray* oaPredictorEvaluations) const override;
 	boolean IsPerformanceCurveReported() const override;
 
 	// Ecriture d'un rapport abrege
-	void WriteReport(ostream& ost) override;
+	void WriteReport(ostream& ost) const override;
 
 	// Rapport synthetique destine a rentrer dans un tableau
-	void WriteHeaderLineReport(ostream& ost) override;
-	void WriteLineReport(ostream& ost) override;
+	void WriteHeaderLineReport(ostream& ost) const override;
+	void WriteLineReport(ostream& ost) const override;
 
 	////////////////////////////////////////////////////////
 	// Gestion d'un rapport JSON
 
 	// Ecriture de la matrice de confusion
-	void WriteJSONConfusionMatrixReport(JSONFile* fJSON);
+	void WriteJSONConfusionMatrixReport(JSONFile* fJSON) const;
 
 	// Ecriture d'une serie de courbe de lift sur un meme tableau de resultats
 	// Le lift aleatoire n'est pas ecrit
-	void WriteJSONLiftCurveReportArray(JSONFile* fJSON, ObjectArray* oaClassifierEvaluations);
+	void WriteJSONLiftCurveReportArray(JSONFile* fJSON, const ObjectArray* oaClassifierEvaluations) const;
 
 	// Rapport sur les courbes de performance: redefinition des methodes generiques
-	void WriteJSONPerformanceCurveReportArray(JSONFile* fJSON, ObjectArray* oaPredictorEvaluations) override;
+	void WriteJSONPerformanceCurveReportArray(JSONFile* fJSON,
+						  const ObjectArray* oaPredictorEvaluations) const override;
 
 	// Ecriture du contenu d'un rapport JSON pour un tableau ou un dictionnaire
-	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) override;
+	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const override;
 
 	// Test d'integrite
 	boolean CheckEvaluation() const;
@@ -366,41 +368,42 @@ public:
 	double GetRankRECAt(int nIndex) const;
 
 	// Ecriture de la courbe de REC
-	void WriteRankRECCurveReport(ostream& ost);
+	void WriteRankRECCurveReport(ostream& ost) const;
 
 	// Ecriture d'une serie de courbes de REC sur un meme tableau de resultats
 	// Les evaluations doivent etre compatibles (meme probleme evalue sur la
 	// meme base de test, controle par rapport a l'objet evaluation en cours))
 	// Toutes les courbes de REC des predicteurs du tableau sont presentees
 	// sur des colonnes successives
-	void WriteRankRECCurveReportArray(ostream& ost, ObjectArray* oaRegressorEvaluations);
+	void WriteRankRECCurveReportArray(ostream& ost, const ObjectArray* oaRegressorEvaluations) const;
 
 	//////////////////////////////////////////////////////////////////////////////
 	// Gestion du rapport general
 
 	// Rapport sur les courbes de performance: redefinition des methodes generiques
-	void WritePerformanceCurveReportArray(ostream& ost, ObjectArray* oaPredictorEvaluations) override;
+	void WritePerformanceCurveReportArray(ostream& ost, const ObjectArray* oaPredictorEvaluations) const override;
 	boolean IsPerformanceCurveReported() const override;
 
 	// Ecriture d'un rapport abrege
-	void WriteReport(ostream& ost) override;
+	void WriteReport(ostream& ost) const override;
 
 	// Rapport synthetique destine a rentrer dans un tableau
-	void WriteHeaderLineReport(ostream& ost) override;
-	void WriteLineReport(ostream& ost) override;
+	void WriteHeaderLineReport(ostream& ost) const override;
+	void WriteLineReport(ostream& ost) const override;
 
 	////////////////////////////////////////////////////////
 	// Gestion d'un rapport JSON
 
 	// Ecriture d'une serie de courbe de lift sur un meme tableau de resultats
 	// Le lift aleatoire n'est pas ecrit
-	void WriteJSONRankRECCurveReportArray(JSONFile* fJSON, ObjectArray* oaRegressorEvaluations);
+	void WriteJSONRankRECCurveReportArray(JSONFile* fJSON, const ObjectArray* oaRegressorEvaluations) const;
 
 	// Rapport sur les courbes de performance: redefinition des methodes generiques
-	void WriteJSONPerformanceCurveReportArray(JSONFile* fJSON, ObjectArray* oaPredictorEvaluations) override;
+	void WriteJSONPerformanceCurveReportArray(JSONFile* fJSON,
+						  const ObjectArray* oaPredictorEvaluations) const override;
 
 	// Ecriture du contenu d'un rapport JSON pour un tableau ou un dictionnaire
-	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) override;
+	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const override;
 
 	// Parametrage de la prise en compte dans les rapports
 	boolean IsJSONReported(boolean bSummary) const override;

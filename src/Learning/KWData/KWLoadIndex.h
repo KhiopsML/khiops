@@ -58,6 +58,8 @@ private:
 	// Classes amies, ayant acces aux services internes
 	friend class KWLoadIndexVector;
 	friend class KWClass;
+	friend class KWObjectDataPath;
+	friend class KWObjectDataPathManager;
 	friend class KWAttribute;
 	friend class KWAttributeBlock;
 	friend class KWDerivationRuleOperand;

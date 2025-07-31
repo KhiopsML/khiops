@@ -994,6 +994,7 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 	KWKey* inputKey;
 	int nInputKeyIndex;
 	longint lLinePosition;
+	longint lDisplayFreshness;
 	double dProgression;
 	longint lBeginPos;
 	longint lMaxEndPos;
@@ -1007,6 +1008,9 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 
 	require(inputFile.IsOpened());
 	require(output_lLineNumber == (longint)0);
+
+	// Fraicheur d'affichage pour la gestion de la barre de progression
+	lDisplayFreshness = 0;
 
 	// Specification de la portion du fichier a traiter
 	// On la termine sur la derniere ligne commencant dans le chunk, donc le '\n' se trouve potentiellement
@@ -1086,7 +1090,8 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 				lLinePosition = inputFile.GetPositionInFile();
 
 				// Gestion de la progresssion
-				if (TaskProgression::IsRefreshNecessary())
+				lDisplayFreshness++;
+				if (TaskProgression::IsRefreshNecessary(lDisplayFreshness))
 				{
 					// Calcul de la progression par rapport a la proportion de la portion du fichier
 					// traitee parce que l'on ne sait pas le nombre total de ligne que l'on va

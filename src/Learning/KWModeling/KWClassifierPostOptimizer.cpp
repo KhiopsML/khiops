@@ -651,7 +651,7 @@ boolean KWClassifierPostOptimizer::LoadWorkingData(KWPredictor* predictor, KWTra
 			}
 
 			// Suivi de la tache
-			if (TaskProgression::IsRefreshNecessary())
+			if (TaskProgression::IsRefreshNecessary(lRecordNumber))
 			{
 				TaskProgression::DisplayProgression(
 				    (int)(100 * evaluationDatabase->GetReadPercentage()));

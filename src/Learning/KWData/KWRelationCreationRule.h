@@ -225,7 +225,8 @@ protected:
 	virtual boolean IsViewModeActivated() const;
 
 	// Creation d'un objet de la vue avec le dictionnaire en sortie
-	KWObject* NewTargetObject(longint lCreationIndex) const;
+	// On passe egalement l'lidenx de chargement de l'attribut contenant le resultat en parametre pour gere les data paths
+	KWObject* NewTargetObject(const KWObject* kwoOwnerObject, const KWLoadIndex liAttributeLoadIndex) const;
 
 	// Alimentation de type vue des attributs cibles
 	void FillViewModeTargetAttributes(const KWObject* kwoSourceObject, KWObject* kwoTargetObject) const;
@@ -314,14 +315,35 @@ inline boolean KWDRRelationCreationRule::IsValidOutputOperandType(int nType) con
 	return KWType::IsStored(nType) or KWType::IsRelation(nType);
 }
 
-inline KWObject* KWDRRelationCreationRule::NewTargetObject(longint lCreationIndex) const
+inline KWObject* KWDRRelationCreationRule::NewTargetObject(const KWObject* kwoOwnerObject,
+							   const KWLoadIndex liAttributeLoadIndex) const
 {
+	const boolean bTrace = false;
 	KWObject* kwoTargetObject;
+	const KWObjectDataPath* objectDataPath;
 
+	require(kwoOwnerObject != NULL);
+	require(kwoOwnerObject->GetObjectDataPath() != NULL);
 	require(IsCompiled());
-	require(lCreationIndex >= 1);
 
-	kwoTargetObject = new KWObject(kwcCompiledTargetClass, 1);
+	// Rechertche du data path de l'objet a creer
+	objectDataPath = kwoOwnerObject->GetObjectDataPath()->GetComponentDataPath(liAttributeLoadIndex);
+
+	// Creation d'un objet en mode vue, avec un index de creation fourni par le data path
+	kwoTargetObject = new KWObject(kwcCompiledTargetClass, objectDataPath->NewCreationIndex());
 	kwoTargetObject->SetViewTypeUse(true);
+	kwoTargetObject->SetObjectDataPath(objectDataPath);
+
+	// Trace
+	if (bTrace)
+	{
+		cout << "NewTargetObject\t" << GetName() << "\t";
+		cout << kwoOwnerObject->GetObjectDataPath()->GetDataPath() << "\t"
+		     << kwoOwnerObject->GetClass()->GetName() << "\t" << kwoOwnerObject->GetCreationIndex() << "\t";
+		if (kwoOwnerObject->GetClass()->GetKeyAttributeNumber() > 0)
+			cout << kwoOwnerObject->GetObjectLabel() << "\t";
+		cout << kwoTargetObject->GetObjectDataPath()->GetDataPath() << "\t"
+		     << kwoTargetObject->GetClass()->GetName() << "\t" << kwoTargetObject->GetCreationIndex() << "\n";
+	}
 	return kwoTargetObject;
 }

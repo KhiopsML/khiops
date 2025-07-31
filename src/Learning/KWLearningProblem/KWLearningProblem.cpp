@@ -983,9 +983,9 @@ void KWLearningProblem::WritePreparationReports(KWClassStats* classStats)
 	}
 }
 
-void KWLearningProblem::WriteJSONAnalysisReport(KWClassStats* classStats, ObjectArray* oaTrainedPredictorReports,
-						ObjectArray* oaTrainPredictorEvaluations,
-						ObjectArray* oaTestPredictorEvaluations)
+void KWLearningProblem::WriteJSONAnalysisReport(KWClassStats* classStats, const ObjectArray* oaTrainedPredictorReports,
+						const ObjectArray* oaTrainPredictorEvaluations,
+						const ObjectArray* oaTestPredictorEvaluations) const
 {
 	ALString sJSONReportName;
 	JSONFile fJSON;

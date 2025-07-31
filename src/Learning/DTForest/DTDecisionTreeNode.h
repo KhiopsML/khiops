@@ -183,18 +183,18 @@ public:
 	// Accessible uniquement si statistiques calculees
 
 	// Ecriture d'un rapport sur le noeud
-	void WriteReport(ostream& ost);
+	void WriteReport(ostream& ost) const override;
 	boolean IsReported() const;
 
 	// Rapport synthetique destine a rentrer dans un tableau
-	void WriteHeaderLineReport(ostream& ost, DTDecisionTree* tree, bool forleave);
-	void WriteLineReport(ostream& ost, DTDecisionTree* tree);
+	void WriteHeaderLineReport(ostream& ost, const DTDecisionTree* tree, bool forleave) const;
+	void WriteLineReport(ostream& ost, const DTDecisionTree* tree) const;
 
 	// Redefinition des criteres de tri des rapports
 	// const ALString GetSortName() const;
 	double GetSortValue() const;
 
-	void Write(ostream&) const;
+	void Write(ostream&) const override;
 
 	// Verification de la presence et de la validite des specifications
 	boolean CheckNode() const;

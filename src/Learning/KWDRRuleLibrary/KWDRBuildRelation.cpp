@@ -31,7 +31,8 @@ KWDerivationRule* KWDRBuildTableView::Create() const
 	return new KWDRBuildTableView;
 }
 
-ObjectArray* KWDRBuildTableView::ComputeObjectArrayResult(const KWObject* kwoObject) const
+ObjectArray* KWDRBuildTableView::ComputeObjectArrayResult(const KWObject* kwoObject,
+							  const KWLoadIndex liAttributeLoadIndex) const
 {
 	ObjectArray* oaObjectArrayOperand;
 	KWObject* kwoSourceContainedObject;
@@ -51,7 +52,7 @@ ObjectArray* KWDRBuildTableView::ComputeObjectArrayResult(const KWObject* kwoObj
 		for (nObject = 0; nObject < oaObjectArrayOperand->GetSize(); nObject++)
 		{
 			kwoSourceContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
-			kwoTargetContainedObject = NewTargetObject((longint)nObject + 1);
+			kwoTargetContainedObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
 
 			// Alimentation de type vue
 			FillViewModeTargetAttributes(kwoSourceContainedObject, kwoTargetContainedObject);
@@ -89,7 +90,8 @@ KWDerivationRule* KWDRBuildTableAdvancedView::Create() const
 	return new KWDRBuildTableAdvancedView;
 }
 
-ObjectArray* KWDRBuildTableAdvancedView::ComputeObjectArrayResult(const KWObject* kwoObject) const
+ObjectArray* KWDRBuildTableAdvancedView::ComputeObjectArrayResult(const KWObject* kwoObject,
+								  const KWLoadIndex liAttributeLoadIndex) const
 {
 	ObjectArray* oaObjectArrayOperand;
 	KWObject* kwoSourceContainedObject;
@@ -111,7 +113,7 @@ ObjectArray* KWDRBuildTableAdvancedView::ComputeObjectArrayResult(const KWObject
 			kwoSourceContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
 
 			// Alimentation de type vue
-			kwoTargetContainedObject = NewTargetObject((longint)nObject + 1);
+			kwoTargetContainedObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
 			FillViewModeTargetAttributes(kwoSourceContainedObject, kwoTargetContainedObject);
 			oaResult.SetAt(nObject, kwoTargetContainedObject);
 
@@ -143,7 +145,8 @@ KWDerivationRule* KWDRBuildEntityView::Create() const
 	return new KWDRBuildEntityView;
 }
 
-KWObject* KWDRBuildEntityView::ComputeObjectResult(const KWObject* kwoObject) const
+KWObject* KWDRBuildEntityView::ComputeObjectResult(const KWObject* kwoObject,
+						   const KWLoadIndex liAttributeLoadIndex) const
 {
 	KWObject* kwoSourceObject;
 	KWObject* kwoTargetObject;
@@ -155,7 +158,7 @@ KWObject* KWDRBuildEntityView::ComputeObjectResult(const KWObject* kwoObject) co
 	kwoTargetObject = NULL;
 	if (kwoSourceObject != NULL)
 	{
-		kwoTargetObject = NewTargetObject((longint)1);
+		kwoTargetObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
 
 		// Alimentation de type vue
 		FillViewModeTargetAttributes(kwoSourceObject, kwoTargetObject);
@@ -181,7 +184,8 @@ KWDerivationRule* KWDRBuildEntityAdvancedView::Create() const
 	return new KWDRBuildEntityAdvancedView;
 }
 
-KWObject* KWDRBuildEntityAdvancedView::ComputeObjectResult(const KWObject* kwoObject) const
+KWObject* KWDRBuildEntityAdvancedView::ComputeObjectResult(const KWObject* kwoObject,
+							   const KWLoadIndex liAttributeLoadIndex) const
 {
 	KWObject* kwoSourceObject;
 	KWObject* kwoTargetObject;
@@ -193,7 +197,7 @@ KWObject* KWDRBuildEntityAdvancedView::ComputeObjectResult(const KWObject* kwoOb
 	kwoTargetObject = NULL;
 	if (kwoSourceObject != NULL)
 	{
-		kwoTargetObject = NewTargetObject((longint)1);
+		kwoTargetObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
 
 		// Alimentation de type vue
 		FillViewModeTargetAttributes(kwoSourceObject, kwoTargetObject);
@@ -232,7 +236,7 @@ KWDerivationRule* KWDRBuildEntity::Create() const
 	return new KWDRBuildEntity;
 }
 
-KWObject* KWDRBuildEntity::ComputeObjectResult(const KWObject* kwoObject) const
+KWObject* KWDRBuildEntity::ComputeObjectResult(const KWObject* kwoObject, const KWLoadIndex liAttributeLoadIndex) const
 {
 	KWObject* kwoTargetObject;
 
@@ -241,7 +245,7 @@ KWObject* KWDRBuildEntity::ComputeObjectResult(const KWObject* kwoObject) const
 	assert(GetOperandNumber() == ivComputeModeTargetAttributeTypes.GetSize());
 
 	// Creation de l'objet en sortie
-	kwoTargetObject = NewTargetObject((longint)1);
+	kwoTargetObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
 
 	// Alimentation de type calcul pour les operandes en entree correspondant
 	FillComputeModeTargetAttributesForVariableOperandNumber(kwoObject, kwoTargetObject);

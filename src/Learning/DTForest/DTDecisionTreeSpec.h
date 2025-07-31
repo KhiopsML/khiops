@@ -214,7 +214,7 @@ public:
 	longint ComputeHashValue() const;
 
 	// ecriture du rapport json
-	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary);
+	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const;
 
 protected:
 	friend class DTDecisionTreeSpec;

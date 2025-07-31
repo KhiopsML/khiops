@@ -24,7 +24,7 @@ boolean KWLearningReport::IsStatsComputed() const
 	return bIsStatsComputed;
 }
 
-void KWLearningReport::WriteReportFile(const ALString& sFileName)
+void KWLearningReport::WriteReportFile(const ALString& sFileName) const
 {
 	fstream ost;
 	boolean bOk;
@@ -59,17 +59,17 @@ void KWLearningReport::WriteReportFile(const ALString& sFileName)
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + GetObjectLabel() + " Write report End");
 }
 
-void KWLearningReport::WriteReport(ostream& ost)
+void KWLearningReport::WriteReport(ostream& ost) const
 {
 	ost << flush;
 }
 
-void KWLearningReport::WriteHeaderLineReport(ostream& ost)
+void KWLearningReport::WriteHeaderLineReport(ostream& ost) const
 {
 	ost << flush;
 }
 
-void KWLearningReport::WriteLineReport(ostream& ost)
+void KWLearningReport::WriteLineReport(ostream& ost) const
 {
 	ost << flush;
 }
@@ -122,7 +122,7 @@ const ALString& KWLearningReport::GetIdentifier() const
 	return sIdentifier;
 }
 
-void KWLearningReport::ComputeRankIdentifiers(ObjectArray* oaLearningReports)
+void KWLearningReport::ComputeRankIdentifiers(const ObjectArray* oaLearningReports) const
 {
 	const double dEpsilon = 1e-10;
 	ObjectArray oaSortedReports;
@@ -167,7 +167,8 @@ void KWLearningReport::ComputeRankIdentifiers(ObjectArray* oaLearningReports)
 	}
 }
 
-void KWLearningReport::WriteArrayLineReport(ostream& ost, const ALString& sTitle, ObjectArray* oaLearningReports)
+void KWLearningReport::WriteArrayLineReport(ostream& ost, const ALString& sTitle,
+					    const ObjectArray* oaLearningReports) const
 {
 	ObjectArray oaSortedReports;
 	int i;
@@ -211,7 +212,8 @@ void KWLearningReport::WriteArrayLineReport(ostream& ost, const ALString& sTitle
 	}
 }
 
-void KWLearningReport::WriteArrayReport(ostream& ost, const ALString& sTitle, ObjectArray* oaLearningReports)
+void KWLearningReport::WriteArrayReport(ostream& ost, const ALString& sTitle,
+					const ObjectArray* oaLearningReports) const
 {
 	ObjectArray oaSortedReports;
 	int i;
@@ -254,31 +256,31 @@ void KWLearningReport::WriteArrayReport(ostream& ost, const ALString& sTitle, Ob
 	}
 }
 
-void KWLearningReport::WriteJSONFields(JSONFile* fJSON) {}
+void KWLearningReport::WriteJSONFields(JSONFile* fJSON) const {}
 
-void KWLearningReport::WriteJSONReport(JSONFile* fJSON)
+void KWLearningReport::WriteJSONReport(JSONFile* fJSON) const
 {
 	fJSON->BeginObject();
 	WriteJSONFields(fJSON);
 	fJSON->EndObject();
 }
 
-void KWLearningReport::WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey)
+void KWLearningReport::WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) const
 {
 	fJSON->BeginKeyObject(sKey);
 	WriteJSONFields(fJSON);
 	fJSON->EndObject();
 }
 
-void KWLearningReport::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) {}
+void KWLearningReport::WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const {}
 
 boolean KWLearningReport::IsJSONReported(boolean bSummary) const
 {
 	return bSummary or IsReported();
 }
 
-void KWLearningReport::WriteJSONArrayReport(JSONFile* fJSON, const ALString& sArrayKey, ObjectArray* oaLearningReports,
-					    boolean bSummary)
+void KWLearningReport::WriteJSONArrayReport(JSONFile* fJSON, const ALString& sArrayKey,
+					    const ObjectArray* oaLearningReports, boolean bSummary) const
 {
 	ObjectArray oaSortedReports;
 	int i;
@@ -315,7 +317,7 @@ void KWLearningReport::WriteJSONArrayReport(JSONFile* fJSON, const ALString& sAr
 }
 
 void KWLearningReport::WriteJSONDictionaryReport(JSONFile* fJSON, const ALString& sDictionaryKey,
-						 ObjectArray* oaLearningReports, boolean bSummary)
+						 const ObjectArray* oaLearningReports, boolean bSummary) const
 {
 	ObjectArray oaSortedReports;
 	int i;

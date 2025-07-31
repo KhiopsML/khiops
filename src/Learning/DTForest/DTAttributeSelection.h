@@ -107,7 +107,7 @@ public:
 	boolean Check() const override;
 	boolean AreTreeAttributesSortedByBlock(const ObjectArray* oaAttributes) const;
 
-	void WriteReport(ostream& ost);
+	void WriteReport(ostream& ost) const;
 
 	virtual longint GetUsedMemory() const override;
 

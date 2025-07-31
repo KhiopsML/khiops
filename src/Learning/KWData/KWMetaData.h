@@ -83,7 +83,7 @@ public:
 	void Write(ostream& ost) const override;
 
 	// Ecriture d'un rapport JSON
-	void WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey);
+	void WriteJSONKeyReport(JSONFile* fJSON, const ALString& sKey) const;
 
 	// Test des fonctionnalites
 	static void Test();
