@@ -8,15 +8,13 @@ jobs:
       fail-fast: false
       matrix:
         setup:
-          # - {os: ubuntu-22.04, image: debian10}
-          # - {os: ubuntu-22.04, image: debian11}
-          # - {os: ubuntu-22.04, image: debian12}
-          # - {os: ubuntu-22.04, image: rocky8}
-          # - {os: ubuntu-22.04, image: rocky9}
-          # - {os: ubuntu-22.04, image: ubuntu18.04}
-          # - {os: ubuntu-22.04, image: ubuntu20.04}
-          # - {os: ubuntu-22.04, image: ubuntu22.04}
-          # - {os: ubuntu-22.04, image: ubuntu24.04}
+          - {os: ubuntu-24.04, image: debian11}
+          - {os: ubuntu-24.04, image: debian12}
+          - {os: ubuntu-24.04, image: rocky8}
+          - {os: ubuntu-24.04, image: rocky9}
+          - {os: ubuntu-24.04, image: ubuntu20.04}
+          - {os: ubuntu-24.04, image: ubuntu22.04}
+          - {os: ubuntu-24.04, image: ubuntu24.04}
           - {os: ubuntu-24.04-arm, image: ubuntu22.04-arm}
           - {os: ubuntu-24.04-arm, image: ubuntu24.04-arm}
     runs-on: ${{ matrix.setup.os }}
