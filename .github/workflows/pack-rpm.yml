@@ -9,7 +9,11 @@ on:
         default: openmpi
         options: [mpich, openmpi]
   pull_request:
-    paths: ['**CMakeLists.txt', '**.cmake', .github/workflows/pack-rpm.yml]
+    paths:
+      - '**CMakeLists.txt'
+      - '!test/**CMakeLists.txt'
+      - '**.cmake'
+      - .github/workflows/pack-rpm.yml]
   push:
     tags: ['*']
 # Cancel any ongoing run of this workflow on the same PR or ref

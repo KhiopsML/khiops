@@ -5,6 +5,10 @@ on:
   pull_request:
     paths:
       - '**CMakeLists.txt'
+      - '!test/**CMakeLists.txt'
+      - '!test/UniTests/**'
+      - '!test/LearningTestTool/**'
+      - '!test/MemoryStatsVisualizer/**'
       - packaging/windows/nsis/*.nsh
       - packaging/windows/nsis/*.nsi
       - .github/workflows/pack-nsis.yml
