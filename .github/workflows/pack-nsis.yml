@@ -2,6 +2,12 @@
 name: Windows Installer
 on:
   workflow_dispatch:
+    inputs:
+      signature-activation:
+        type: boolean
+        required: true
+        default: false
+        description: Sign installer and binaries
   pull_request:
     paths:
       - '**CMakeLists.txt'
@@ -19,8 +25,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref
     }}
   cancel-in-progress: true
+# Environment variables:
+# - SAMPLES_VERSION: tag of the sample repository packed in the installer
+# - ASSETS_VERSION: tag of the khiops-win-install-assets repository packed in the installer
+# - KEYPAIR is used by smctl 
+# - CERTIFICATE is used by jsign
 env:
   KEYPAIR: KP_Khiops_HSM
+  CERTIFICATE: Cert_Khiops
   SAMPLES_VERSION: 11.0.0
   ASSETS_VERSION: 11.0.1
 jobs:
@@ -96,27 +108,17 @@ jobs:
           echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV" 
           echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
           echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
-
-          # The packages are signed only for releases from tags that are not release candidates or alpha
-          # Note: We sign  for the beta releases because they are distributed to external users 
-          if [[ "${{ github.ref_type }}" == "tag" ]] && [[ "${{ github.ref_name  }}" != *"-rc."* ]] && [[ "${{ github.ref_name  }}" != *"-a."* ]]; then
-            echo "SIGN=ON" >> "$GITHUB_ENV"
-            echo "::notice::The signing process is ON"
-          else
-            echo "SIGN=OFF" >> "$GITHUB_ENV"
-            echo "::notice::The signing process is OFF"
-          fi
         shell: bash
       - name: Install DigiCert Client tools from Github Custom Actions marketplace
-        if: env.SIGN == 'ON'
+        if: ${{ inputs.signature-activation }}
         uses: digicert/ssm-code-signing@v1.0.1
       - name: Set up certificate
-        if: env.SIGN == 'ON'
+        if: ${{ inputs.signature-activation }}
         run: |
-          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12 
+          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
         shell: bash
-      - name: Signing using keypair alias
-        if: env.SIGN == 'ON'
+      - name: Signing binaries using keypair alias
+        if: ${{ inputs.signature-activation }}
         run: |
           OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/MODL.exe)
           echo $OUTPUT
@@ -131,8 +133,13 @@ jobs:
           echo $OUTPUT
           echo $OUTPUT | grep -q SUCCESSFUL
         shell: bash
+      - name: Install jsign
+        if: ${{ inputs.signature-activation }}
+        run: |
+          curl -L https://github.com/ebourg/jsign/releases/download/7.1/jsign-7.1.jar --output jsign.jar --output-dir /d
+        shell: bash
       - name: Build NSIS package (signature is ON)
-        if: env.SIGN == 'ON'
+        if: ${{ inputs.signature-activation }}
         shell: pwsh
         run: |-
           cd ./packaging/windows/nsis
@@ -147,11 +154,14 @@ jobs:
             /DKHIOPS_COVIZ_INSTALLER_PATH=..\..\..\visualizations\${{ env.KHIOPS_COVIZ_FILENAME }} `
             /DKHIOPS_SAMPLES_DIR=..\..\..\samples `
             /DSIGN `
-            /DKEYPAIR_ALIAS=$Env:KEYPAIR `
-            /DPATH_TO_CONFIG_FILE=C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg `
+            /DPATH_TO_JSIGN=D:\\jsign.jar `
+            /DSM_CERT_ALIAS=$Env:CERTIFICATE  `
+            /DSM_CLIENT_CERT_FILE=${{ env.SM_CLIENT_CERT_FILE }} `
+            /DSM_CLIENT_CERT_PASSWORD=${{ env.SM_CLIENT_CERT_PASSWORD }} `
+            /DSM_API_KEY=${{ env.SM_API_KEY }} `
             khiops.nsi
       - name: Build NSIS package (signature is OFF)
-        if: env.SIGN == 'OFF'
+        if: ${{ ! inputs.signature-activation }}
         shell: pwsh
         run: |-
           cd ./packaging/windows/nsis
@@ -167,7 +177,7 @@ jobs:
             /DKHIOPS_SAMPLES_DIR=..\..\..\samples `
             khiops.nsi
       - name: Signing installer
-        if: env.SIGN == 'ON'
+        if: ${{ inputs.signature-activation }}
         run: |
           OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input packaging/windows/nsis/khiops-${{ env.KHIOPS_VERSION }}-setup.exe)
           echo $OUTPUT

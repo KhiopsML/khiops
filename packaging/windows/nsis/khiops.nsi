@@ -52,9 +52,12 @@ ManifestDPIAware true
 
 # Sign uninstaller if requested
 !ifdef SIGN
-  !insertmacro CheckInputParameter KEYPAIR_ALIAS
-  !insertmacro CheckInputParameter PATH_TO_CONFIG_FILE
-  !uninstfinalize "smctl sign --keypair-alias ${KEYPAIR_ALIAS} --config-file ${PATH_TO_CONFIG_FILE} --input %1"
+  !insertmacro CheckInputParameter PATH_TO_JSIGN
+  !insertmacro CheckInputParameter SM_CERT_ALIAS
+  !insertmacro CheckInputParameter SM_CLIENT_CERT_FILE
+  !insertmacro CheckInputParameter SM_CLIENT_CERT_PASSWORD
+  !insertmacro CheckInputParameter SM_API_KEY
+  !uninstfinalize 'java -jar ${PATH_TO_JSIGN} --storetype DIGICERTONE --storepass "${SM_API_KEY}|${SM_CLIENT_CERT_FILE}|${SM_CLIENT_CERT_PASSWORD}" --alias ${SM_CERT_ALIAS} --keystore https://clientauth.one.nl.digicert.com %1'
 !endif
 
 # Application name and installer file name
