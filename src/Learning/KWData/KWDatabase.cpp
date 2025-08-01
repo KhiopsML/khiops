@@ -662,7 +662,7 @@ KWObject* KWDatabase::Read()
 
 	// Warning selon l'etat du memory guard
 	// On emet que des warning, car on est toujours capable de "rattaper" l'erreur
-	// Par controle, on passe par handler des gestion des flow d'erreur pour emmetre ces warning meme
+	// Pour ce controle, on passe par handler de gestion des flow d'erreur pour emmetre ces warnings meme
 	// en cas de depassement du flow. Ce handler est parametre lors des ouverture-fermeture de base
 	if (kwoObject != NULL)
 	{

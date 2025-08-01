@@ -13,14 +13,14 @@ class KWDatabaseMemoryGuard;
 //////////////////////////////////////////////////////////////////////////////////////////////
 // Class KWDatabaseMemoryGuard;
 // Service de protection memoire pour la lecture des instances d'une base, notamment multi-table
-// En effet, la lecture d'un enregistrement da la table principale peut impliquer potentiellement
-// un tres grande nombre d'enregistrement de tables secondaires, pouvant potentiellement de pas
+// En effet, la lecture d'un enregistrement de la table principale peut impliquer potentiellement
+// un tres grand nombre d'enregistrements de tables secondaires, pouvant potentiellement de pas
 // tenir en memoire, et un graphe de calcul exploitant des variables de travail pouvant
-// egalement poser un probleme sur sur-utilisation de la memoire.
+// egalement poser un probleme de sur-utilisation de la memoire.
 // On parle dans ce cas d'instances "elephant".
 // Le service de protection des acces memoire permet de monitorer la memoire lors de la lecture
 // des enregistrements et du calcul des variables derivees de facon a eviter preventivement
-// les depassements memoires et a les disgnostiquer le plus precisement possible
+// les depassements memoires et a les diagnostiquer le plus precisement possible
 class KWDatabaseMemoryGuard : public Object
 {
 public:
@@ -42,9 +42,11 @@ public:
 	longint GetMaxSecondaryRecordNumber() const;
 
 	// Limite de la memoire utilisable pour une instance pour gerer l'ensemble de la lecture et du calcul des
-	// attributs derivee Attention: il s'agit ici d'une limite memoire physique dans la RAM, avec prise en compte de
-	// l'overhead d'allocation Cela concerne toutes les methdoes liees a la memoire de cette classe Parametrage
-	// inactif si 0
+	// attributs derivee
+	// Attention: il s'agit ici d'une limite memoire physique dans la RAM, avec prise en compte de
+	// l'overhead d'allocation
+	// Cela concerne toutes les methodes liees a la memoire de cette classe
+	// Parametrage inactif si 0
 	void SetSingleInstanceMemoryLimit(longint lValue);
 	longint GetSingleInstanceMemoryLimit() const;
 
@@ -67,8 +69,8 @@ public:
 	// A appeler apres la lecture de chaque nouvel enregistrement
 	void AddComputedAttribute();
 
-	// Mise a jour apres un nettoyage memoire, permettant potentiellement d'annuler le depassement de la limite
-	// memoire
+	// Mise a jour apres un nettoyage memoire, permettant potentiellement d'annuler
+	// le depassement de la limite memoire
 	void UpdateAfterMemoryCleaning();
 
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -88,8 +90,8 @@ public:
 	const ALString GetSingleInstanceVeryLargeLabel();
 
 	// Indique si la limite memoire est atteinte, si le parametrage est actif
-	// Cet indicateur est declenchee des que la limite a ete depasse une seule fois, et n'est reinitialise qu'avec
-	// Init
+	// Cet indicateur est declenchee des que la limite a ete depasse une seule fois,
+	// et n'est reinitialise qu'avec Init
 	boolean IsSingleInstanceMemoryLimitReached() const;
 
 	// Indique si la cause du depassement memoire est liee a la lecture des enregistrements
@@ -100,10 +102,10 @@ public:
 	// remplaces par des valeur manquantes
 	const ALString GetSingleInstanceMemoryLimitLabel();
 
-	// Afin de permettre aux utilisateur d'obtenir ces warning, meme en cas de controle de flow des erreurs,
-	// il faut installer un handler specifique pour ignorer le controle de flow des erreurs (cf.
-	// Global::SetErrorFlowIgnoreFunction) Ces methodes sont a appeler a l'ouverture et la fermeture d'une
-	// datatebase
+	// Afin de permettre aux utilisateur d'obtenir ces warnings, meme en cas de controle de flow des erreurs,
+	// il faut installer un handler specifique pour ignorer le controle de flow des erreurs
+	// (cf. Global::SetErrorFlowIgnoreFunction)
+	// Ces methodes sont a appeler a l'ouverture et la fermeture d'une database
 	static void InstallMemoryGuardErrorFlowIgnoreFunction();
 	static void UninstallMemoryGuardErrorFlowIgnoreFunction();
 
@@ -179,7 +181,7 @@ protected:
 	// que l'instance ne peut pas etre traitee entierement en memoire.
 	//
 	// L'objet DatabaseMemoryGuard est un objet porte par une Database permettant de
-	// controler en permanence l'ocuppation memoire, apres chaque lecture de record
+	// controler en permanence l'occupation memoire, apres chaque lecture de record
 	// et apres chaque calcul d'attribut des KWObject.
 	// En effet, les calculs d'attribut impliquent une utilisation memoire potentiellement
 	// importante en presence de nombreux records secondaire. Par exemple, une seule selection
@@ -191,7 +193,7 @@ protected:
 	//   . erreur si pas assez de memoire pour calculer tous les attributs derives, apres
 	//     avoir lus correctement tous les records secondaires
 	// En cas d'erreur, on garde neanmoins les valeurs des variables natives de l'instance principale,
-	// et on met toutes les autre valeurs a missing. Il s'agit d'un erreur pour forcer l'utilisateur a
+	// et on met toutes les autre valeurs a missing. Il s'agit d'une erreur pour forcer l'utilisateur a
 	// analyser le probleme, mais cette erreur n'est pas bloquante dans le sens ou l'instance elephant
 	// est neanmoins traitee, meme si c'est en mode degrade.
 	//
@@ -207,12 +209,12 @@ protected:
 	// qui ne sont plus necessaires. Ce type de probleme est une variante de "graph topological ordering"
 	// proche du probleme de "one-shot (black) pebbling".
 	//  cf. https://cs.stackexchange.com/questions/60772/finding-an-optimal-topological-ordering
-	// Il s'agit d'un probleme dont meme l'aproximation est NP-complet.
+	// Il s'agit d'un probleme dont meme l'approximation est NP-complet.
 	// La solution optimale n'est donc pas atteignable, et les heuristiques de resolution du probleme
 	// sont non triviales a mettre au point. De plus, pour assurer une empreinte memoire minimale, on devra
 	// se ramener potentiellement a la solution pragmatique, qui periodiquement peut etre amenee a tout nettoyer.
 	// Le rapport cout-benefice de cette solution etendue est alors extrement defavorable, avec un cout
-	// exorbitant pour potentiellement ameliorer le temps de calcul dans des cas rares pour gerer le cas
+	// exorbitant pour potentiellement ameliorer le temps de calcul dans des cas rares, pour gerer le cas
 	// deja tres rare des instances elephants. Cette solution est abandonnee.
 	//
 	// Le dimensionnement des limites en nombre de records secondaires et en memoire est a la charge des taches.
@@ -239,7 +241,7 @@ protected:
 	int nMemoryCleaningNumber;
 	boolean bIsSingleInstanceMemoryLimitReached;
 
-	// Variable d'instances a prendre en compte, selon la valeur des parametres de crash test
+	// Variables d'instance a prendre en compte, selon la valeur des parametres de crash test
 	longint lActualMaxSecondaryRecordNumber;
 	longint lActualSingleInstanceMemoryLimit;
 
@@ -261,7 +263,7 @@ protected:
 	// Implementation de la methode specifique pour ignorer le controle de flow des erreurs
 	static boolean MemoryGuardErrorFlowIgnoreFunction(const Error* e, boolean bDisplay);
 
-	// Compteur d'installation de la methode specifiques, pour permettre plusieurs utilisation simultannees
+	// Compteur d'installation de la methode specifique, pour permettre plusieurs utilisation simultannees
 	// On ne desisnatelle que si ce compteur repasse a 0
 	static int nMemoryGuardFunctionUseCount;
 
@@ -269,7 +271,7 @@ protected:
 	static int nMemoryGuardInformationWarningNumber;
 	static int nMemoryGuardRecoveryWarningNumber;
 
-	// Partie des libelle permettant d'identifier  les message emius par le memory guard
+	// Partie des libelles permettant d'identifier les messages emis par le memory guard
 	static const ALString sMemoryGuardLabelPrefix;
 	static const ALString sMemoryGuardRecoveryLabelSuffix;
 };
