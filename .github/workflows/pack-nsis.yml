@@ -119,19 +119,12 @@ jobs:
         shell: bash
       - name: Signing binaries using keypair alias
         if: ${{ inputs.signature-activation }}
+        # The bin directory is not used as input because KNItransfer doesn't need to be signed
         run: |
-          OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/MODL.exe)
-          echo $OUTPUT
-          echo $OUTPUT | grep -q SUCCESSFUL
-          OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/MODL_Coclustering.exe)
-          echo $OUTPUT
-          echo $OUTPUT | grep -q SUCCESSFUL
-          OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/_khiopsgetprocnumber.exe)
-          echo $OUTPUT
-          echo $OUTPUT | grep -q SUCCESSFUL
-          OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/KhiopsNativeInterface.dll)
-          echo $OUTPUT
-          echo $OUTPUT | grep -q SUCCESSFUL
+          smctl sign --exit-non-zero-on-fail --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/MODL.exe
+          smctl sign --exit-non-zero-on-fail --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/MODL_Coclustering.exe
+          smctl sign --exit-non-zero-on-fail --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/_khiopsgetprocnumber.exe
+          smctl sign --exit-non-zero-on-fail --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/KhiopsNativeInterface.dll
         shell: bash
       - name: Install jsign
         if: ${{ inputs.signature-activation }}
@@ -179,9 +172,7 @@ jobs:
       - name: Signing installer
         if: ${{ inputs.signature-activation }}
         run: |
-          OUTPUT=$(smctl sign --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input packaging/windows/nsis/khiops-${{ env.KHIOPS_VERSION }}-setup.exe)
-          echo $OUTPUT
-          echo $OUTPUT | grep -q SUCCESSFUL
+          smctl sign --exit-non-zero-on-fail --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input packaging/windows/nsis/khiops-${{ env.KHIOPS_VERSION }}-setup.exe
         shell: bash
       - name: Build ZIP packages
         shell: bash
