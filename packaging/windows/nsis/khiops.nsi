@@ -49,7 +49,6 @@ ManifestDPIAware true
 !insertmacro CheckInputParameter MSMPI_INSTALLER_PATH
 !insertmacro CheckInputParameter MSMPI_VERSION
 !insertmacro CheckInputParameter KHIOPS_SAMPLES_DIR
-!insertmacro CheckInputParameter KHIOPS_DOC_DIR
 
 # Sign uninstaller if requested
 !ifdef SIGN
@@ -180,8 +179,6 @@ Section "Install" SecInstall
   File "/oname=LICENSE.txt" "..\..\..\LICENSE"
   File "..\..\common\khiops\README.txt"
   File "..\..\common\khiops\WHATSNEW.txt"
-  SetOutPath "$INSTDIR\doc"
-  File /nonfatal /a /r "${KHIOPS_DOC_DIR}\"
 
   # Install icons
   SetOutPath "$INSTDIR\bin\icons"
@@ -376,7 +373,7 @@ Section "Install" SecInstall
   ExpandEnvStrings $R0 "%COMSPEC%"
   CreateShortCut "$INSTDIR\Shell Khiops.lnk" "$INSTDIR\bin\shell_khiops.cmd" "" "$R0"
 
-  # Create start menu shortcuts for the executables and documentation
+  # Create start menu shortcuts for the executables
   DetailPrint "Installing Start menu Shortcut..."
   CreateDirectory "$SMPROGRAMS\Khiops"
   CreateShortCut "$SMPROGRAMS\Khiops\Khiops.lnk" "$INSTDIR\bin\khiops.cmd" "" "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWMINIMIZED
@@ -384,12 +381,6 @@ Section "Install" SecInstall
   ExpandEnvStrings $R0 "%COMSPEC%"
   CreateShortCut "$SMPROGRAMS\Khiops\Shell Khiops.lnk" "$INSTDIR\bin\shell_khiops.cmd" "" "$R0"
   CreateShortCut "$SMPROGRAMS\Khiops\Uninstall.lnk" "$INSTDIR\uninstall-khiops.exe"
-  CreateDirectory "$SMPROGRAMS\Khiops\doc"
-  CreateShortCut "$SMPROGRAMS\Khiops\doc\Tutorial.lnk" "$INSTDIR\doc\KhiopsTutorial.pdf"
-  CreateShortCut "$SMPROGRAMS\Khiops\doc\Khiops.lnk" "$INSTDIR\doc\KhiopsGuide.pdf"
-  CreateShortCut "$SMPROGRAMS\Khiops\doc\Khiops Coclustering.lnk" "$INSTDIR\doc\KhiopsCoclusteringGuide.pdf"
-  CreateShortCut "$SMPROGRAMS\Khiops\doc\Khiops Visualization.lnk" "$INSTDIR\doc\KhiopsVisualizationGuide.pdf"
-  CreateShortCut "$SMPROGRAMS\Khiops\doc\Khiops Covisualization.lnk" "$INSTDIR\doc\KhiopsCovisualizationGuide.pdf"
   SetOutPath "$INSTDIR"
 
   # Define aliases for the following registry keys (also used in the uninstaller section)
@@ -521,7 +512,6 @@ Section "Uninstall"
   Delete "$INSTDIR\LICENSE.txt"
   Delete "$INSTDIR\README.txt"
   Delete "$INSTDIR\WHATSNEW.txt"
-  RMDir /r "$INSTDIR\doc"
 
   # Delete jre
   RMDir /r "$INSTDIR\jre"
