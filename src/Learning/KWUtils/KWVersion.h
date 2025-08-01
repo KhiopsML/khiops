@@ -135,15 +135,6 @@ boolean GetIOTraceMode();
 // Ce mode expert est controlable par la variable d'environnement KhiopsForestExpertMode a true ou false
 boolean GetForestExpertMode();
 
-// Indicateur du mode expert de l'outil de coclustering (permet d'activer certains services additionnels)
-// Ce mode expert est controlable par la variable d'environnement KhiopsCoclusteringExpertMode a true ou false
-boolean GetLearningCoclusteringExpertMode();
-
-// Indicateur du mode expert de l'outil de coclustering (permet d'activer la fonctionnalite de coclustering instances *
-// variables) Ce mode expert est controlable par la variable d'environnement KhiopsCoclusteringIVExpertMode a true ou
-// false
-boolean GetLearningCoclusteringIVExpertMode();
-
 // Indicateur du mode parallelisation expert de l'outil (en mode expert uniquement)
 // Permet d'activer certains services additionnels du mode parallele
 // Ce mode est controlable par la variable d'environnement KhiopsExpertParallelMode a true ou false

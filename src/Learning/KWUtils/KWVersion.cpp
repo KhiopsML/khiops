@@ -443,63 +443,6 @@ boolean GetForestExpertMode()
 	return bForestExpertMode;
 }
 
-boolean GetLearningCoclusteringExpertMode()
-{
-	static boolean bIsInitialized = false;
-	static boolean bLearningCoclusteringExpertMode = false;
-	ALString sLearningCoclusteringExpertMode;
-
-	// Determination du mode expert au premier appel
-	if (not bIsInitialized)
-	{
-		// Recherche des variables d'environnement
-		sLearningCoclusteringExpertMode = p_getenv("KhiopsCoclusteringExpertMode");
-		sLearningCoclusteringExpertMode.MakeLower();
-
-		// Determination du mode expert
-		if (sLearningCoclusteringExpertMode == "true")
-			bLearningCoclusteringExpertMode = true;
-		else if (sLearningCoclusteringExpertMode == "false")
-			bLearningCoclusteringExpertMode = false;
-
-		// Memorisation du flag d'initialisation
-		bIsInitialized = true;
-	}
-	return bLearningCoclusteringExpertMode;
-}
-
-boolean GetLearningCoclusteringIVExpertMode()
-{
-	static boolean bIsInitialized = false;
-	static boolean bLearningCoclusteringIVExpertMode = false;
-	ALString sUserName;
-	ALString sLearningCoclusteringIVExpertMode;
-
-	// Determination du mode expert au premier appel
-	if (not bIsInitialized)
-	{
-		// Recherche des variables d'environnement
-		sUserName = p_getenv("USERNAME");
-		sUserName.MakeLower();
-		sLearningCoclusteringIVExpertMode = p_getenv("KhiopsCoclusteringIVExpertMode");
-		sLearningCoclusteringIVExpertMode.MakeLower();
-
-		// Determination du mode (en debug)
-		debug(bLearningCoclusteringIVExpertMode = (sUserName == "mgtt5712"));
-		// Determination du mode expert
-		if (sLearningCoclusteringIVExpertMode == "true")
-			bLearningCoclusteringIVExpertMode = true;
-		else if (sLearningCoclusteringIVExpertMode == "false")
-			bLearningCoclusteringIVExpertMode = false;
-
-		// Memorisation du flag d'initialisation
-		bIsInitialized = true;
-	}
-	// DDD
-	bLearningCoclusteringIVExpertMode = true;
-	return bLearningCoclusteringIVExpertMode;
-}
-
 boolean GetParallelExpertMode()
 {
 	static boolean bIsInitialized = false;

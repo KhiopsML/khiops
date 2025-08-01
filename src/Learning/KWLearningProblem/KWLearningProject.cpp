@@ -470,8 +470,6 @@ boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
 	svEnvironmentVariables.Add("KhiopsPreparationTraceMode");
 	svEnvironmentVariables.Add("KhiopsIOTraceMode");
 	svEnvironmentVariables.Add("KhiopsForestExpertMode");
-	svEnvironmentVariables.Add("KhiopsCoclusteringExpertMode");
-	svEnvironmentVariables.Add("KhiopsCoclusteringIVExpertMode");
 	svEnvironmentVariables.Add("KhiopsExpertParallelMode");
 	svEnvironmentVariables.Add("KhiopsParallelTrace");
 	svEnvironmentVariables.Add("KhiopsFileServerActivated");
