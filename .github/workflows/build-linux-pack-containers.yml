@@ -4,20 +4,20 @@ on:
   workflow_dispatch:
 jobs:
   build:
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - debian10
-          - debian11
-          - debian12
-          - rocky8
-          - rocky9
-          - ubuntu18.04
-          - ubuntu20.04
-          - ubuntu22.04
-          - ubuntu24.04
+        setup:
+          - {os: ubuntu-24.04, image: debian11}
+          - {os: ubuntu-24.04, image: debian12}
+          - {os: ubuntu-24.04, image: rocky8}
+          - {os: ubuntu-24.04, image: rocky9}
+          - {os: ubuntu-24.04, image: ubuntu20.04}
+          - {os: ubuntu-24.04, image: ubuntu22.04}
+          - {os: ubuntu-24.04, image: ubuntu24.04}
+          - {os: ubuntu-24.04-arm, image: ubuntu22.04-arm}
+          - {os: ubuntu-24.04-arm, image: ubuntu24.04-arm}
+    runs-on: ${{ matrix.setup.os }}
     permissions:
       packages: write  # Allows writing in the container registry
     steps:
@@ -38,8 +38,9 @@ jobs:
         id: docker-build
         uses: docker/build-push-action@v2
         with:
-          file: ./packaging/dockerfiles/Dockerfile.${{ matrix.os }}
-          tags: ghcr.io/${{ env.GH_REPOSITORY }}/khiopsdev-${{ matrix.os }}:latest
+          file: ./packaging/dockerfiles/Dockerfile.${{ matrix.setup.image }}
+          tags: ghcr.io/${{ env.GH_REPOSITORY }}/khiopsdev-${{ matrix.setup.image
+            }}:latest
           push: true
       - name: Display the image digest
         run: echo ${{ steps.docker-build.outputs.digest }}
