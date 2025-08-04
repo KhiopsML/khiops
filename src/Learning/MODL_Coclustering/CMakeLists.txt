@@ -4,7 +4,7 @@ generate_gui_add_view_get_log_list(ddlogfiles)
 # on fedora, binaries built with mpi must ended by _mpich suffix
 add_executable(MODL_Coclustering ${cppfiles} ${ddlogfiles} MODL_Coclustering.rc)
 set_khiops_options(MODL_Coclustering)
-target_link_libraries(MODL_Coclustering PUBLIC KMDRRuleLibrary KWLearningProblem)
+target_link_libraries(MODL_Coclustering PUBLIC KWLearningProblem)
 
 # on fedora, binaries built with mpi must ended by _mpich or _openmpi suffix
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -16,7 +16,7 @@ if(MPI)
 endif()
 
 add_library(MODL_Coclustering_DLL SHARED ${cppfiles} ${ddlogfiles})
-target_link_libraries(MODL_Coclustering_DLL PUBLIC KMDRRuleLibrary KWLearningProblem)
+target_link_libraries(MODL_Coclustering_DLL PUBLIC KWLearningProblem)
 
 if(MPI)
   target_link_libraries(MODL_Coclustering_DLL PUBLIC PLMPI)

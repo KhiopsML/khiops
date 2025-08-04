@@ -1,7 +1,7 @@
 file(GLOB cppfiles ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
 add_executable(MODL ${cppfiles} MODL.rc)
-target_link_libraries(MODL PUBLIC DTForest KMDRRuleLibrary KWLearningProblem)
+target_link_libraries(MODL PUBLIC DTForest KWLearningProblem)
 set_khiops_options(MODL)
 
 # on fedora, binaries built with mpi must ended by _mpich or _openmpi suffix
@@ -14,7 +14,7 @@ if(MPI)
 endif()
 
 add_library(MODL_DLL SHARED ${cppfiles})
-target_link_libraries(MODL_DLL PUBLIC DTForest KMDRRuleLibrary KWLearningProblem)
+target_link_libraries(MODL_DLL PUBLIC DTForest KWLearningProblem)
 if(MPI)
   target_link_libraries(MODL_DLL PUBLIC PLMPI)
 endif()
