@@ -411,7 +411,7 @@ boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
 
 	// Verification que le repertoire temporaire est licite
 	// On verifie que c'est un un disque local
-	if (not FileService::IsLocalURI(FileService::GetUserTmpDir()))
+	if (not FileService::IsLocalURI(FileService::GetTmpDir()))
 	{
 		cout << "Error: Invalid temporary directory (Temp file directory must be located on the local file "
 			"system)"
@@ -419,7 +419,7 @@ boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
 		     << endl;
 	}
 	// On verifie ensuite que le chemin est absolu
-	else if (not FileService::IsAbsoluteFilePathName(FileService::GetUserTmpDir()))
+	else if (not FileService::IsAbsoluteFilePathName(FileService::GetTmpDir()))
 	{
 		cout << "Error: Invalid temporary directory (Temp file directory must be an absolute path)" << endl
 		     << endl;
