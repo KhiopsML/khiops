@@ -186,6 +186,13 @@ set(CPACK_RPM_KHIOPS_CORE_PACKAGE_PROVIDES "khiops-core = ${KHIOPS_VERSION}")
 set(CPACK_RPM_KNI_POST_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/packaging/linux/redhat/kni.post")
 set(CPACK_RPM_KNI_POSTUN_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/packaging/linux/redhat/kni.postun")
 
+
+# ########### DMG Generator #############################
+set(CPACK_DMG_VOLUME_NAME Khiops)
+set(CPACK_DMG_BACKGROUND_IMAGE packaging/common/images/khiops.tiff)
+
+
+
 get_cmake_property(CPACK_COMPONENTS_ALL COMPONENTS)
 list(REMOVE_ITEM CPACK_COMPONENTS_ALL "Unspecified")
 
@@ -196,3 +203,4 @@ include(CPack)
 # ${CMAKE_INSTALL_DEFAULT_COMPONENT_NAME} _test) if (${_test} GREATER "-1") message(AUTHOR_WARNING "Installing files
 # without component. These files won't be in any package. See file
 # install_manifest_${CMAKE_INSTALL_DEFAULT_COMPONENT_NAME}.txt.") endif()
+

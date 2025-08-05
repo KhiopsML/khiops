@@ -8,6 +8,7 @@ set(KHIOPS_VERSION ${CMAKE_MATCH_1})
 string(REGEX REPLACE "-.*" "" VERSION ${KHIOPS_VERSION})
 message(STATUS "Building Khiops Version: ${KHIOPS_VERSION} (CMake version : ${VERSION})")
 
+
 # Specify the project's language to C++
 project(
   Khiops
@@ -80,6 +81,13 @@ if(DEFINED ENV{CONDA_PREFIX})
   set(IS_CONDA true)
   message(STATUS "Auto-detected conda environment")
 endif()
+
+set(IS_VCPKG false)
+if(DEFINED VCPKG_INSTALLED_DIR)
+  set(IS_VCPKG true)
+  message(STATUS "Auto-detected vcpkg environment")
+endif()
+
 
 if(IS_CONDA AND MPI)
   if(NOT DEFINED ENV{mpi})
@@ -204,6 +212,12 @@ if(MSVC)
   string(REGEX REPLACE "/EH[a-z]+" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
   string(REGEX REPLACE "/GR" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
   string(REGEX REPLACE "/Zi" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+endif()
+
+if(APPLE)
+  set(CMAKE_SKIP_BUILD_RPATH FALSE)
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 endif()
 
 # Sets the compiling options for Khiops
@@ -390,3 +404,5 @@ set(INSTALL_GTEST OFF)
 
 # Add packaging directory for CPack scripts
 include(packaging)
+
+#display_variables()
