@@ -17,7 +17,11 @@ function(get_mpi_implementation)
         COMMAND grep mpi
         OUTPUT_VARIABLE VAR_MPI_INFO)
     endif()
-  else(IS_CONDA)
+  elseif(IS_VCPKG)
+   # Outside conda, we use the path given by find_mpi
+    set(DETECTION_MESSAGE "from vcpkg environment")
+    set(VAR_MPI_INFO "${MPI_COMPILER}")
+  else()
     # Outside conda, we use the path given by find_mpi
     set(DETECTION_MESSAGE "from standard environment")
     set(VAR_MPI_INFO "${MPI_LIBRARIES}")

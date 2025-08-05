@@ -145,47 +145,62 @@ if(UNIX)
   set(KHIOPS_BINARY_PATH "$KHIOPS_COCLUSTERING_PATH")
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops.in ${TMP_DIR}/khiops_coclustering @ONLY
                  NEWLINE_STYLE UNIX)
+  if(APPLE)
+    if(MPI)
+      cmake_path(GET MPI_LIBRARY PARENT_PATH MPI_LIB_DIRECTORY)
+      cmake_path(GET MPIEXEC_EXECUTABLE PARENT_PATH MPI_PATH_DIRECTORY)
+      install(DIRECTORY ${MPI_LIB_DIRECTORY}  DESTINATION khiops/bin/mpi  COMPONENT KHIOPS_CORE USE_SOURCE_PERMISSIONS)
+      install(DIRECTORY ${MPI_PATH_DIRECTORY} DESTINATION khiops/bin/mpi  COMPONENT KHIOPS_CORE USE_SOURCE_PERMISSIONS)
+    endif(MPI)
 
-  install(TARGETS MODL MODL_Coclustering RUNTIME DESTINATION ${MODL_PATH} COMPONENT KHIOPS_CORE)
+    install(TARGETS MODL MODL_Coclustering DESTINATION khiops/bin COMPONENT KHIOPS_CORE)
+    install(
+      FILES ${PROJECT_SOURCE_DIR}/LICENSE 
+            ${PROJECT_SOURCE_DIR}/packaging/common/khiops/WHATSNEW.txt
+            ${PROJECT_SOURCE_DIR}/packaging/common/khiops/README.txt DESTINATION khiops COMPONENT KHIOPS_CORE)
+  else(APPLE)
+    install(TARGETS MODL MODL_Coclustering RUNTIME DESTINATION ${MODL_PATH} COMPONENT KHIOPS_CORE)
 
-  install(
-    PROGRAMS ${TMP_DIR}/khiops ${TMP_DIR}/khiops_coclustering ${TMP_DIR}/khiops_env
-    DESTINATION usr/bin
-    COMPONENT KHIOPS_CORE)
+    install(
+      PROGRAMS ${TMP_DIR}/khiops ${TMP_DIR}/khiops_coclustering ${TMP_DIR}/khiops_env
+      DESTINATION usr/bin
+      COMPONENT KHIOPS_CORE)
 
-  install(
-    FILES ${PROJECT_SOURCE_DIR}/LICENSE
-    DESTINATION usr/share/doc/khiops
-    COMPONENT KHIOPS_CORE)
+    install(
+      FILES ${PROJECT_SOURCE_DIR}/LICENSE
+      DESTINATION usr/share/doc/khiops
+      COMPONENT KHIOPS_CORE)
 
-  install(
-    FILES ${PROJECT_SOURCE_DIR}/packaging/common/khiops/WHATSNEW.txt
-          ${PROJECT_SOURCE_DIR}/packaging/common/khiops/README.txt
-    DESTINATION usr/share/doc/khiops
-    COMPONENT KHIOPS)
-
-  install(
-    FILES ${PROJECT_SOURCE_DIR}/packaging/common/images/khiops.png
-          ${PROJECT_SOURCE_DIR}/packaging/common/images/khiops_coclustering.png
-    DESTINATION usr/share/pixmaps
-    COMPONENT KHIOPS)
-
-  install(
-    FILES ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops.desktop
-          ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops-coclustering.desktop
-    DESTINATION usr/share/applications
-    COMPONENT KHIOPS)
-
-  if(BUILD_JARS)
-    install_jar(
-      khiops_jar
-      DESTINATION usr/share/khiops
+    install(
+      FILES ${PROJECT_SOURCE_DIR}/packaging/common/khiops/WHATSNEW.txt
+            ${PROJECT_SOURCE_DIR}/packaging/common/khiops/README.txt
+      DESTINATION usr/share/doc/khiops
       COMPONENT KHIOPS)
-    install_jar(
-      norm_jar
-      DESTINATION usr/share/khiops
+
+    install(
+      FILES ${PROJECT_SOURCE_DIR}/packaging/common/images/khiops.png
+            ${PROJECT_SOURCE_DIR}/packaging/common/images/khiops_coclustering.png
+      DESTINATION usr/share/pixmaps
       COMPONENT KHIOPS)
-  endif()
+
+    install(
+      FILES ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops.desktop
+            ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops-coclustering.desktop
+      DESTINATION usr/share/applications
+      COMPONENT KHIOPS)
+
+    if(BUILD_JARS)
+      install_jar(
+        khiops_jar
+        DESTINATION usr/share/khiops
+        COMPONENT KHIOPS)
+      install_jar(
+        norm_jar
+        DESTINATION usr/share/khiops
+        COMPONENT KHIOPS)
+endif()
+endif(APPLE)
+ 
 
 else(UNIX)
 
