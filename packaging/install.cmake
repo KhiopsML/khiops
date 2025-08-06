@@ -246,3 +246,6 @@ else(UNIX)
   endif()
 
 endif(UNIX)
+
+# Add a LICENSE.txt file needed by productbuild generator (macos)
+configure_file(${PROJECT_SOURCE_DIR}/LICENSE ${TMP_DIR}/LICENSE.txt COPYONLY)

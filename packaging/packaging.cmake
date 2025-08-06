@@ -1,7 +1,7 @@
 set(CPACK_PACKAGE_VENDOR Orange)
 set(CPACK_PACKAGE_HOMEPAGE_URL https://khiops.org)
 set(CPACK_PACKAGE_ICON "${PROJECT_SOURCE_DIR}/packaging/common/images/khiops.png")
-set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/LICENSE")
+set(CPACK_RESOURCE_FILE_LICENSE "${TMP_DIR}/LICENSE.txt")
 set(CPACK_PACKAGE_VENDOR "Orange")
 set(CPACK_PACKAGE_CONTACT "Khiops Team <khiops.team@orange.com>")
 set(CPACK_SOURCE_IGNORE_FILES .git)
@@ -192,6 +192,7 @@ set(CPACK_DMG_VOLUME_NAME Khiops)
 set(CPACK_DMG_BACKGROUND_IMAGE packaging/common/images/khiops.tiff)
 
 
+set(CPACK_BUNDLE_NAME test)
 
 get_cmake_property(CPACK_COMPONENTS_ALL COMPONENTS)
 list(REMOVE_ITEM CPACK_COMPONENTS_ALL "Unspecified")
