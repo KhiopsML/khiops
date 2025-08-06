@@ -1,0 +1,34 @@
+Pas de deadlock sans MPI
+Deadlock avec MPICH 4.3.1 via homebrew
+bug avec OpenMPI 5.0.8 via homebrew 
+Bug référencé ici https://github.com/open-mpi/ompi/issues/13129
+ompi_mpi_init: ompi_mpi_instance_init failed
+  --> Returned "Not found" (-13) instead of "Success" (0)
+
+Il faut compiler notre propre MPI et le packager avec Khiops
+1. git clone du repo
+c'est compliqué à mettre en place car CMake n'est pas utilisé
+2. Utilisation de vcpkg
+Il n'y a que OpenMPI
+```bash
+brew install vcpkg
+git clone https://github.com/microsoft/vcpkg "$HOME/vcpkg"
+export VCPKG_ROOT="$HOME/vcpkg"
+cd khiops
+vcpkg new --application
+vcpkg add --help
+vcpkg add port openmpi
+cmake --fresh --preset macos-clang-release -DMPI=ON -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake
+```
+
+
+Packaging
+- DMG OK mais on a tous les composants dans l'installeur (Khiops-core khiops kni kni-transfer). Et pour bien faire il faut installer un fichier *.application
+- la bonne façon de faire semble d'utiliser ProductBuild qui génère des pkg (https://stackoverflow.com/questions/46011440/cmake-cpack-preferred-package-generators-for-different-platforms).
+Mais il y a un problème à la fin : "Ce paquet n’est pas compatible avec cette version de macOS."
+Problème de signature ?
+note: il faut avoir une fichier de licence avec une extension txt
+
+Reste à faire:
+- khiops_env
+- signature
