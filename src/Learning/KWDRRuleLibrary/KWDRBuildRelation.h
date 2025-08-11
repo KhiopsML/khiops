@@ -12,6 +12,7 @@ class KWDRBuildTableAdvancedView;
 class KWDRBuildEntityView;
 class KWDRBuildEntityAdvancedView;
 class KWDRBuildEntity;
+class KWDRBuildDummyTable;
 
 #include "KWDerivationRule.h"
 #include "KWRelationCreationRule.h"
@@ -118,6 +119,31 @@ public:
 	///////////////////////////////////////////////////////
 	///// Implementation
 protected:
-	// Pas d'alimenattionde type vue
+	// Pas d'alimentation de type vue
+	boolean IsViewModeActivated() const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildDummyTable
+// Creation d'une table factice avec autant d'instances que specifie en parametre
+// Regle interne, uniquement pour des raison de test de volumetrie
+class KWDRBuildDummyTable : public KWDRTableCreationRule
+{
+public:
+	// Constructeur
+	KWDRBuildDummyTable();
+	~KWDRBuildDummyTable();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject,
+					      const KWLoadIndex liAttributeLoadIndex) const override;
+
+	///////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	// Pas d'alimentation de type vue
 	boolean IsViewModeActivated() const override;
 };
