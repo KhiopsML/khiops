@@ -25,9 +25,6 @@ CCAnalysisSpecView::CCAnalysisSpecView()
 	AddCardField("SystemParameters", "System parameters", new KWSystemParametersView);
 	AddCardField("CrashTestParameters", "Crash test parameters", new KWCrashTestParametersView);
 
-	// Parametrage de la visibilite du coclustering instances*variables
-	GetFieldAt("CoclusteringType")->SetVisible(GetLearningCoclusteringIVExpertMode());
-
 	// Parametrage de la visibilite de l'onglet des parametres d'optimisation
 	GetFieldAt("DataGridOptimizerParameters")->SetVisible(GetLearningExpertMode());
 

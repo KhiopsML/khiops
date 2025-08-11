@@ -177,7 +177,7 @@ void CCLearningProblem::BuildCoclustering()
 	kwcClass->SetAllAttributesLoaded(false);
 
 	// Cas d'un coclustering variable * variable : mode non expert ou type de coclustering demande a l'interface
-	if (not GetLearningCoclusteringIVExpertMode() or not analysisSpec->GetVarPartCoclustering())
+	if (not analysisSpec->GetVarPartCoclustering())
 	{
 		// Preparation des attribut a charger dans la classe
 		for (nAttribute = 0; nAttribute < analysisSpec->GetCoclusteringSpec()->GetAttributeNames()->GetSize();
@@ -330,7 +330,7 @@ void CCLearningProblem::BuildCoclustering()
 
 		// Warning si moins d'attributs dans le coclustering que d'attributs ou de dimensions specifiees
 		// Cas du coclustering de variables
-		if (not GetLearningCoclusteringIVExpertMode() or not analysisSpec->GetVarPartCoclustering())
+		if (not analysisSpec->GetVarPartCoclustering())
 		{
 			if (coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber() <
 			    coclusteringBuilder.GetAttributeNumber())

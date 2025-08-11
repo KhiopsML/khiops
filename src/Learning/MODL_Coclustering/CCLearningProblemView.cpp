@@ -112,21 +112,13 @@ CCLearningProblemView::CCLearningProblemView()
 
 	// Info-bulles
 	GetActionAt("BuildCoclustering")
-	    ->SetHelpText("Train a coclustering model given the coclustering parameters."
+	    ->SetHelpText("Build a coclustering model given the coclustering parameters."
+			  "\n A variables coclustering or an instances * variables coclustering is computed given the "
+			  "parameters."
 			  "\n This action is anytime: coclustering models are computed and continuously improved,"
 			  "\n with new solutions saved as soon as improvements are reached."
 			  "\n The intermediate solutions can be used without waiting for the final solution,"
 			  "\n and the process can be stopped at any time to keep the last best solution.");
-	if (GetLearningCoclusteringIVExpertMode())
-		GetActionAt("BuildCoclustering")
-		    ->SetHelpText(
-			"Build a coclustering model given the coclustering parameters."
-			"\n A variables coclustering or an instances * variables coclustering is computed given the "
-			"parameters."
-			"\n This action is anytime: coclustering models are computed and continuously improved,"
-			"\n with new solutions saved as soon as improvements are reached."
-			"\n The intermediate solutions can be used without waiting for the final solution,"
-			"\n and the process can be stopped at any time to keep the last best solution.");
 	GetActionAt("Exit")->SetHelpText("Quit the tool.");
 
 	// Short cuts
@@ -359,11 +351,8 @@ void CCLearningProblemView::RefreshHelpLists()
 	// Rafraichissement de la liste d'aide pour l'attribut de frequency
 	continuousAttributeHelpList.FillAttributeNames(GetLearningProblem()->GetClassName(), true, false, false, true,
 						       cast(UIList*, GetFieldAt("ContinuousAttributes")), "Name");
-	if (GetLearningCoclusteringIVExpertMode())
-	{
-		// Rafraichissement de la liste d'aide pour l'attribut identifiant
-		categoricalAttributeHelpList.FillAttributeNames(
-		    GetLearningProblem()->GetClassName(), false, true, false, true,
-		    cast(UIList*, GetFieldAt("CategoricalAttributes")), "Name");
-	}
+
+	// Rafraichissement de la liste d'aide pour l'attribut identifiant
+	categoricalAttributeHelpList.FillAttributeNames(GetLearningProblem()->GetClassName(), false, true, false, true,
+							cast(UIList*, GetFieldAt("CategoricalAttributes")), "Name");
 }
