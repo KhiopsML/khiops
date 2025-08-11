@@ -39,6 +39,7 @@ class KWDRSymbolValueIndex;
 #include "KWContinuous.h"
 #include "KWSymbol.h"
 #include "KWDataGridStats.h"
+#include "KWDataGrid.h"
 
 // Enregistrement de ces regles
 void KWDRRegisterPreprocessingRules();
@@ -335,6 +336,10 @@ public:
 	// Nombre total des valeurs contenues dans les parties
 	int ComputeTotalPartValueNumber() const;
 
+	// Nature des parties (VarPart ou non)
+	boolean AreValuesVarParts() const;
+	void SetValuesVarParts(boolean bValue);
+
 	/////////////////////////////////////////////////////
 	// Services specifiques, disponibles une fois compile
 
@@ -408,6 +413,9 @@ protected:
 
 	// Fraicheur de compilation dynamique
 	mutable int nDynamicCompileFreshness;
+
+	int nAttributeType;
+	boolean bAreValuesVarParts;
 };
 
 ///////////////////////////////////////////////////////////////

@@ -17,6 +17,7 @@ class CCCoclusteringBuilder;
 #include "CCAnalysisSpec.h"
 #include "CCCoclusteringReport.h"
 #include "CCCoclusteringSpec.h"
+#include "KWDRDataGridDeployment.h" // CH 529
 
 /////////////////////////////////////////////////////////////////////////////////
 // Construction et services autour du coclustering
@@ -65,6 +66,16 @@ public:
 	// Vecteur des noms de variables internes, exploitee par la variable de type VarPart
 	// dans le cas d'un coclustering instances * variables
 	StringVector* GetInnerAttributesNames();
+
+	// Preparation ou non d'un dictionnaire de deploiement du coclustering lors de son apprentissage
+	// A true par defaut
+	boolean GetBuildPredictedIdentifierClusterAttribute() const;
+	void SetBuildPredictedIdentifierClusterAttribute(boolean bValue);
+
+	// Preparation d'un dictionnaire de deploiement de coclustering
+	// Renvoie le domaine de dictionnaire correctement cree et initialise en cas de succes
+	// Messages d'erreur en cas de probleme
+	boolean PrepareIVCoclusteringDeployment(KWClassDomain*& deploymentDomain);
 
 	/////////////////////////////////////////////////////////////////////////////
 	// Exploitation des specifications du coclustering, principalement le calcul du modele
@@ -286,6 +297,48 @@ protected:
 	// parties feuilles
 	void SortAttributePartsAndValues(CCHierarchicalDataGrid* optimizedDataGrid) const;
 
+	// Methodes associees a la construction du didctionnaire de deploiement dans le cas VarPart
+	// Creation des attributs associes aux innerVariables dans le cas d'un coclustering individus * variables
+	KWAttribute* AddInnerVariablePartitionAttribute(KWClass* kwcDeploymentClass, KWDGAttribute* innerAttribute);
+
+	KWAttribute* AddInnerVariablePartitionIndexAttribute(KWClass* kwcDeploymentClass,
+							     KWAttribute* ivPartitionAttribute,
+							     KWDGAttribute* innerAttribute);
+
+	KWAttribute* AddInnerVariableVarPartLabelsAttribute(KWClass* kwcDeploymentClass, KWDGAttribute* innerAttribute);
+
+	KWAttribute* AddVarPartLabelInnerVariableAttribute(KWClass* kwcDeploymentClass,
+							   KWAttribute* ivVarPartLabelsAttribute,
+							   KWAttribute* ivIndexAttribute);
+
+	// Creation d'un attribut de type grille dans une classe de deploiement
+	KWAttribute* AddIVDataGridAttribute(KWClass* kwcDeploymentClass) const;
+
+	// Creation d'un attribut de deploiement de grille
+	KWAttribute* AddIVDataGridDeploymentAttribute(KWClass* kwcDeploymentClass, KWAttribute* kwaDataGridAttribute,
+						      ObjectArray* oaValueVectorAttributes,
+						      const CCHDGAttribute* hdgDeploymentAttribute) const;
+
+	// Creation d'un attribut de prediction d'index de la partie de deploiement
+	KWAttribute* AddIVPredictedPartIndexAttribute(KWClass* kwcDeploymentClass,
+						      KWAttribute* kwaDataGridDeploymentAttribute,
+						      const CCHDGAttribute* hdgDeploymentAttribute) const;
+
+	// Creation d'un attribut de libelle de partie, a partir d'un attribut d'index, d'un attribut de deploiement et
+	// d'un prefix additionnel
+	KWAttribute* AddIVPartLabelAttribute(KWClass* kwcDeploymentClass, KWAttribute* kwaIndexAttribute,
+					     KWAttribute* kwaLabelVectorAttribute,
+					     const CCHDGAttribute* hdgDeploymentAttribute,
+					     const ALString& sPrefix) const;
+
+	// Creation d'un attribut de libelles pour un attribut de grille
+	KWAttribute* AddIVLabelVectorAttributeAt(KWClass* kwcDeploymentClass, const CCHDGAttribute* hdgAttribute) const;
+
+	// Output variables prefix
+	const ALString& GetOutputAttributesPrefix() const;
+	void SetOutputAttributesPrefix(const ALString& sValue);
+	// ##
+
 	// Type de coclustering
 	boolean bVarPartCoclustering;
 
@@ -300,6 +353,11 @@ protected:
 
 	// Nom des variables internes
 	StringVector svInnerAttributeNames;
+
+	// CH 529
+	// Calcul de l'attribut de prediction du cluster d'identifiant
+	boolean bBuildPredictedIdentifierClusterAttribute;
+	ALString sOutputAttributesPrefix;
 
 	// Structure de cout de la grille
 	KWDataGridCosts* coclusteringDataGridCosts;

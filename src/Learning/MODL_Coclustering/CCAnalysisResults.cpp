@@ -13,6 +13,7 @@ CCAnalysisResults::CCAnalysisResults()
 	// ## Custom constructor
 
 	sCoclusteringFileName = "Coclustering.khcj";
+	sDeploymentDictionaryFileName = "DeploymentInstancesVariablesDictionary.kdic";
 	sClusterFileName = "Clusters.txt";
 	sPostProcessedCoclusteringFileName = "SimplifiedCoclustering.khcj";
 	sCoclusteringDictionaryFileName = "Coclustering.kdic";
@@ -60,6 +61,7 @@ void CCAnalysisResults::Write(ostream& ost) const
 {
 	ost << "Coclustering report\t" << GetCoclusteringFileName() << "\n";
 	ost << "Short description\t" << GetShortDescription() << "\n";
+	ost << "Deployment dictionary file\t" << GetDeploymentDictionaryFileName() << "\n";
 }
 
 const ALString CCAnalysisResults::GetClassLabel() const

@@ -144,6 +144,7 @@ void CCLearningProblem::BuildCoclustering()
 	boolean bWriteOk;
 	KWClassDomain* currentDomain = NULL;
 	KWClassDomain* constructedDomain = NULL;
+	KWClassDomain* deploymentDomain = NULL;
 
 	require(CheckClass());
 	require(CheckDatabaseName());
@@ -307,7 +308,6 @@ void CCLearningProblem::BuildCoclustering()
 	// Parametrage du nom du rapport de coclustering
 	sReportFileName = BuildOutputFilePathName(TaskBuildCoclustering);
 	coclusteringBuilder.SetReportFileName(sReportFileName);
-	//coclusteringBuilder.SetExportAsKhc(GetAnalysisResults()->GetExportAsKhc());
 
 	// Calcul du coclustering
 	if (not TaskProgression::IsInterruptionRequested())
@@ -351,6 +351,34 @@ void CCLearningProblem::BuildCoclustering()
 				    " out of the " +
 				    IntToString(coclusteringBuilder.GetVarPartCoclusteringAttributeNumber()) +
 				    " dimensions");
+
+			// CH 529
+			if (coclusteringBuilder.GetBuildPredictedIdentifierClusterAttribute())
+			{
+				boolean bOk;
+				ALString sCoclusteringDictionaryFileName;
+				ALString sPathName;
+
+				bOk = coclusteringBuilder.PrepareIVCoclusteringDeployment(deploymentDomain);
+
+				// Ecriture du fichier de dictionnaire de deploiement
+				if (bOk)
+				{
+					//GetSpecifiedOutputFileName() remplace GetAnalysisResults()->GetDeploymentDictionaryFileName();
+					// On construit le nom complet du fichier
+					sPathName =
+					    FileService::GetPathName(GetAnalysisResults()->GetCoclusteringFileName());
+					sCoclusteringDictionaryFileName = FileService::BuildFilePathName(
+					    sPathName, GetAnalysisResults()->GetDeploymentDictionaryFileName());
+					AddSimpleMessage("Write deployment dictionary file " +
+							 sCoclusteringDictionaryFileName);
+					deploymentDomain->WriteFile(sCoclusteringDictionaryFileName);
+				}
+
+				// Nettoyage
+				if (bOk)
+					delete deploymentDomain;
+			}
 		}
 	}
 
@@ -551,7 +579,8 @@ void CCLearningProblem::PrepareDeployment()
 	if (coclusteringDataGrid.IsVarPartDataGrid())
 	{
 		bOk = false;
-		AddWarning("Deployment preparation is not yet implemented for instances * variables coclustering");
+		AddWarning("Deployment dictionary is automatically produced during instances * variables coclustering "
+			   "training.");
 	}
 
 	// Post-traitement

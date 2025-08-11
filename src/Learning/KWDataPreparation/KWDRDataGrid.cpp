@@ -140,6 +140,21 @@ void KWDRDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats, boo
 			symbolValueSetRule->ImportAttributeSymbolValues(
 			    cast(const KWDGSAttributeSymbolValues*, attributePartition));
 		}
+		// Cas d'un ensemble de valeurs de type VarPart
+		else if (attributePartition->GetAttributeType() == KWType::VarPart)
+		{
+			KWDRValueGroups* valueGroupsRule;
+
+			// Creation d'une regle de type groupes
+			valueGroupsRule = new KWDRValueGroups;
+			operand->SetDerivationRule(valueGroupsRule);
+			operand->SetStructureName(valueGroupsRule->GetStructureName());
+
+			// Parametrage des groupes de valeurs
+			valueGroupsRule->ImportAttributeGrouping(
+			    cast(const KWDGSAttributeGrouping*, attributePartition));
+		}
+
 		assert(operand == GetOperandAt(nAttribute));
 		assert(operand->GetDerivationRule() != NULL);
 	}
@@ -352,13 +367,13 @@ void KWDRDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 			attributePartition->SetInitialValueNumber(nTotalFrequency);
 			attributePartition->SetGranularizedValueNumber(nTotalFrequency);
 		}
-		// Cas d'un groupement de valeurs
+		// Cas d'un groupement de valeurs : Sympol ou VarPart
 		else if (operand->GetStructureName() == valueGroupsRefRule.GetStructureName())
 		{
 			KWDRValueGroups* valueGroupsRule;
 			KWDGSAttributeGrouping* attributeGrouping;
 
-			// Creation d'une partition de type ensemble de valeurs continues
+			// Creation d'une partition de type groupement de valeurs
 			attributeGrouping = new KWDGSAttributeGrouping;
 			attributePartition = attributeGrouping;
 

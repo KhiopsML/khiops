@@ -188,6 +188,7 @@ public:
 	// par valeur pour les attributs cibles (avec les probabilites conditionnelles)
 	// Dans le cas non supervise, les details sont donnes par attribut, avec des effectifs
 	// (les probabilites jointes sont trop "creuses" pour etre intelligibles).
+	// CH 529 Cas individus variables a preciser
 	//
 	// Les rapports s'adaptent aux caracteristiques des grilles
 	//    . distinction des cas univarie, bivarie et multivarie
@@ -210,7 +211,7 @@ public:
 	// Les attributs cibles sont distingues des attribuuts source par l'utilisation d'un libelle "Target"
 	// uniquement s'il existe au moins un attribut source (sinon, dans le cas non supervise, tous
 	// les attributs sont cible et "Target" est sous-entendu).
-	// On peut neamoins forcer l'utilisation de "Target" meme en non supervise en utilisant
+	// On peut neanmoins forcer l'utilisation de "Target" meme en non supervise en utilisant
 	// la combinaison (bSource and bTarget) meme s'il n'y a pas d'attributs sources
 	void WritePartial(ostream& ost, boolean bSource, boolean bTarget) const;
 
@@ -581,7 +582,7 @@ protected:
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGSAttributeGrouping
-// Attribut d'un DataGridStats, groupement des valeurs d'un attribut Symbol
+// Attribut d'un DataGridStats, groupement des valeurs d'un attribut Symbol ou d'un attribut VarPart
 class KWDGSAttributeGrouping : public KWDGSAttributePartition
 {
 public:
@@ -595,6 +596,7 @@ public:
 
 	// Redefinition des methodes virtuelles
 	int GetAttributeType() const override;
+	void SetAttributeType(int nType);
 	boolean ArePartsSingletons() const override;
 	void SetPartNumber(int nValue) override;
 	int GetPartNumber() const override;
@@ -662,6 +664,10 @@ public:
 	void SetCatchAllValueNumber(int nValue);
 	int GetCatchAllValueNumber() const;
 
+	// Nature des parties (VarPart ou non)
+	boolean AreValuesVarParts() const;
+	void SetValuesVarParts(boolean bValue);
+
 	///////////////////////////////////////
 	// Methodes de test de la classe
 
@@ -681,6 +687,8 @@ protected:
 	int nGarbageModalityNumber;
 	int nCatchAllValueNumber;
 	friend class PLShared_DGSAttributeGrouping;
+	int nAttributeType;
+	boolean bAreValuesVarParts;
 };
 
 //////////////////////////////////////////////////////////////////////////////

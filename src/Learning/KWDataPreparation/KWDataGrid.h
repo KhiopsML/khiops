@@ -134,7 +134,7 @@ public:
 	// Chaque partie est definie principalement par:
 	//   - sa liste de valeurs
 	//   - sa liste de cellules
-	// Chaque cellule est defini principalement par:
+	// Chaque cellule est definie principalement par:
 	//   - le vecteur des effectifs des classes cibles
 	//   - le tableau (par attribut) des parties dont il est le produit cartesien
 	//
@@ -429,7 +429,7 @@ protected:
 	int nSortValue;
 
 	// Attribut de la grille de type VarPart
-	// Positionne par l'attribut lors de l'initialsaition de son type s'il est de type VarPart
+	// Positionne par l'attribut lors de l'initialisation de son type s'il est de type VarPart
 	// Permet egalement de savoir si la grille est de type VarPart
 	KWDGAttribute* varPartAttribute;
 };

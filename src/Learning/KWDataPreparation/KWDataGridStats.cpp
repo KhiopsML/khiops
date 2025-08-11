@@ -2791,6 +2791,8 @@ KWDGSAttributeGrouping::KWDGSAttributeGrouping()
 	nGarbageGroupIndex = -1;
 	nGarbageModalityNumber = 0;
 	nCatchAllValueNumber = 0;
+	nAttributeType = KWType::Symbol;
+	bAreValuesVarParts = false;
 }
 
 KWDGSAttributeGrouping::~KWDGSAttributeGrouping() {}
@@ -2831,9 +2833,24 @@ int KWDGSAttributeGrouping::GetCatchAllValueNumber() const
 	return nCatchAllValueNumber;
 }
 
+boolean KWDGSAttributeGrouping::AreValuesVarParts() const
+{
+	return bAreValuesVarParts;
+}
+
+void KWDGSAttributeGrouping::SetValuesVarParts(boolean bValue)
+{
+	bAreValuesVarParts = bValue;
+}
+
 int KWDGSAttributeGrouping::GetAttributeType() const
 {
-	return KWType::Symbol;
+	return nAttributeType;
+}
+
+void KWDGSAttributeGrouping::SetAttributeType(int nType)
+{
+	nAttributeType = nType;
 }
 
 boolean KWDGSAttributeGrouping::ArePartsSingletons() const
@@ -2916,7 +2933,7 @@ boolean KWDGSAttributeGrouping::Check() const
 	}
 
 	// Verification de la presence de la StarValue
-	if (bOk)
+	if (bOk and GetAttributeType() == KWType::Symbol and not AreValuesVarParts())
 	{
 		bStarValueFound = false;
 		for (nValue = 0; nValue < svValues.GetSize(); nValue++)

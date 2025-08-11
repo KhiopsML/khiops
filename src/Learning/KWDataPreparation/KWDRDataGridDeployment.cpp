@@ -320,9 +320,9 @@ boolean KWDRDataGridDeployment::CheckOperandsCompleteness(const KWClass* kwcOwne
 					assert(referencedDataGrid->CheckReferencedDerivationRuleAt(1 - nAttributeIndex,
 												   kwcOwnerClass, ""));
 					nDataGridAttributeType = referencedDataGrid->GetUncheckedAttributeTypeAt(i);
-					if (not KWType::IsSimple(nDataGridAttributeType))
+					if (not KWType::IsSimple(nDataGridAttributeType) and not KWType::VarPart)
 					{
-						// L'erreur sur la grille doit etre diagniostique par ailleurs
+						// L'erreur sur la grille doit etre diagnostiquee par ailleurs
 						bOk = false;
 						break;
 					}
@@ -330,7 +330,8 @@ boolean KWDRDataGridDeployment::CheckOperandsCompleteness(const KWClass* kwcOwne
 					// Test de compatibilite du type de l'operande avec celui de l'attribut sur la
 					// distribution de valeur
 					operand = GetOperandAt(nDistributionOperandIndex);
-					if (nDataGridAttributeType == KWType::Symbol)
+					if (nDataGridAttributeType == KWType::Symbol or
+					    nDataGridAttributeType == KWType::VarPart)
 						refVectorRule = &refSymbolVector;
 					else
 						refVectorRule = &refContinuousVector;

@@ -1073,7 +1073,7 @@ void KWDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats)
 					    attributeContinuousValues->GetValueAt(nPart + 1)));
 			}
 		}
-		// Cas d'un groupement de valeurs
+		// Cas d'un groupement de valeurs Symbol
 		else if (attributePartition->GetAttributeType() == KWType::Symbol and
 			 not attributePartition->ArePartsSingletons())
 		{
@@ -1095,6 +1095,13 @@ void KWDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats)
 				// Cas du groupe poubelle : memorisation de la partie au niveau de l'attribut
 				if (nPart == attributeGrouping->GetGarbageGroupIndex())
 					attribute->SetGarbagePart(part);
+			}
+			// Cas de groupes de VarParts
+			if (attributeGrouping->AreValuesVarParts())
+			{
+				// Ajout de la valeur speciale
+				symbolValueSet = attribute->GetTailPart()->GetSymbolValueSet();
+				symbolValueSet->AddSymbolValue(Symbol::GetStarValue());
 			}
 		}
 		// Cas d'un groupement de valeurs construit a partir d'une liste de valeurs
@@ -1205,6 +1212,8 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 	NumericKeyDictionary nkdPartIndexes;
 	KWSortableIndex* partIndex;
 	KWDGSymbolValueSet* cleanedSymbolValueSet;
+	KWDGVarPartSet* varPartSet;
+	KWDGVarPartValue* varPartValue;
 
 	require(Check());
 	require(dataGridStats != NULL);
@@ -1350,6 +1359,71 @@ void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 				nPart++;
 			}
 			assert(nValue == nValueNumber);
+		}
+		// Creation d'un attribut dans le cas VarPart
+		else if (attribute->GetAttributeType() == KWType::VarPart)
+		{
+			// Memorisation de la taille du fourre-tout de l'attribut avant nettoyage eventuel
+			attribute->SetCatchAllValueNumber(attribute->GetCatchAllValueNumber());
+
+			// Creation
+			attributeGrouping = new KWDGSAttributeGrouping;
+			attributePartition = attributeGrouping;
+			attributePartition->SetAttributeName(attribute->GetAttributeName());
+			attributePartition->SetInitialValueNumber(attribute->GetInitialValueNumber());
+			attributePartition->SetGranularizedValueNumber(attribute->GetInitialValueNumber());
+			attributeGrouping->SetCatchAllValueNumber(attribute->GetCatchAllValueNumber());
+			attributeGrouping->SetGarbageModalityNumber(attribute->GetGarbageModalityNumber());
+			attributeGrouping->SetAttributeType(KWType::Symbol);
+			attributeGrouping->SetValuesVarParts(true);
+
+			// Comptage du nombre total de valeurs
+			nValueNumber = 0;
+			part = attribute->GetHeadPart();
+			while (part != NULL)
+			{
+				varPartSet = part->GetVarPartSet();
+				nValueNumber += varPartSet->GetValueNumber();
+
+				attribute->GetNextPart(part);
+			}
+			attributeGrouping->SetKeptValueNumber(nValueNumber + 1);
+
+			// Initialisation des groupes de valeurs
+			attributeGrouping->SetPartNumber(attribute->GetPartNumber());
+			part = attribute->GetHeadPart();
+			nPart = 0;
+			nValue = 0;
+			while (part != NULL)
+			{
+				varPartSet = part->GetVarPartSet();
+
+				// Memorisation de l'index de la partie dans un dictionnaire
+				partIndex = new KWSortableIndex;
+				partIndex->SetIndex(nPart);
+				nkdPartIndexes.SetAt(part, partIndex);
+
+				// Parametrage des valeurs de la partie
+				attributeGrouping->SetGroupFirstValueIndexAt(nPart, nValue);
+
+				value = varPartSet->GetHeadValue();
+				while (value != NULL)
+				{
+					varPartValue = cast(KWDGVarPartValue*, value);
+					attributeGrouping->SetValueAt(
+					    nValue, Symbol(varPartValue->GetVarPart()->GetVarPartLabel()));
+					nValue++;
+					varPartSet->GetNextValue(value);
+				}
+
+				// Partie suivante
+				attribute->GetNextPart(part);
+				nPart++;
+			}
+			assert(nValue == nValueNumber);
+
+			// Cas de la derniere partie : ajout de la StarValue
+			attributeGrouping->SetValueAt(nValue, Symbol(" * "));
 		}
 		// Creation d'un attribut dans le cas Continuous
 		else if (attribute->GetAttributeType() == KWType::Continuous)
