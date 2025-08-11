@@ -16,9 +16,6 @@ void MDKhiopsLearningProject::OpenLearningEnvironnement()
 	// Appel de la methode ancetre
 	KWLearningProject::OpenLearningEnvironnement();
 
-	// Enregistrement des regles pour les outils de l'eco-systeme Khiops: Enneade
-	KMDRRegisterAllRules();
-
 	// Enregistrement de methodes de pretraitement specifiques aux arbres de decision
 	KWDiscretizer::RegisterDiscretizer(KWType::Symbol, new DTDiscretizerMODL);
 	KWGrouper::RegisterGrouper(KWType::Symbol, new DTGrouperMODL);
