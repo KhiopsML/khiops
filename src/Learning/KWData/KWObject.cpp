@@ -1672,6 +1672,7 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 	int i;
 	int nLoadedDataItemNumber;
 	int nTotalInternallyLoadedDataItemNumber;
+	KWValue previousValue;
 	KWAttribute* attribute;
 	KWObject* kwoUsedObject;
 	ObjectArray* oaUsedObjectArray;
@@ -1798,6 +1799,7 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 				liInternalLoadIndex = attribute->GetInternalLoadIndex();
 				assert(liInternalLoadIndex.IsDense());
 				assert(not GetAt(liInternalLoadIndex.GetDenseIndex()).IsObjectForbidenValue());
+				assert(not GetAt(liInternalLoadIndex.GetDenseIndex()).IsObjectArrayForbidenValue());
 
 				// Traitement si attribut precedent present dans la classe d'origine
 				previousAttribute = previousClass->LookupAttribute(attribute->GetName());
@@ -1806,13 +1808,20 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 					liLoadIndex = previousAttribute->GetLoadIndex();
 					assert(liLoadIndex.IsDense());
 
+					// Acces a la valeur
+					previousValue =
+					    GetValueAt(previousValues, bPreviousSmallSize, liLoadIndex.GetDenseIndex());
+
 					// Cas des Object
 					if (attribute->GetType() == KWType::Object)
 					{
 						// Acces a l'objet precedent
-						kwoUsedObject = GetValueAt(previousValues, bPreviousSmallSize,
-									   liLoadIndex.GetDenseIndex())
-								    .GetObject();
+						if (previousValue.IsObjectForbidenValue())
+							kwoUsedObject = NULL;
+						else
+							kwoUsedObject = GetValueAt(previousValues, bPreviousSmallSize,
+										   liLoadIndex.GetDenseIndex())
+									    .GetObject();
 
 						// Transfert de l'objet si necessaire, destruction sinon
 						if (kwoUsedObject != NULL)
@@ -1858,9 +1867,13 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 						assert(attribute->GetType() == KWType::ObjectArray);
 
 						// Acces au tableau precedent
-						oaUsedObjectArray = GetValueAt(previousValues, bPreviousSmallSize,
-									       liLoadIndex.GetDenseIndex())
-									.GetObjectArray();
+						if (previousValue.IsObjectArrayForbidenValue())
+							oaUsedObjectArray = NULL;
+						else
+							oaUsedObjectArray =
+							    GetValueAt(previousValues, bPreviousSmallSize,
+								       liLoadIndex.GetDenseIndex())
+								.GetObjectArray();
 
 						// Transfert des objets si necessaire, destruction sinon
 						if (oaUsedObjectArray != NULL)
