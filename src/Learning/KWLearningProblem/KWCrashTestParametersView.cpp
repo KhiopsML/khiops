@@ -16,6 +16,8 @@ KWCrashTestParametersView::KWCrashTestParametersView()
 	AddIntField("CrashTestMaxSecondaryRecordNumber",
 		    "Crash test - max secondary record number per multi-table instance",
 		    int(KWDatabaseMemoryGuard::GetCrashTestMaxSecondaryRecordNumber()));
+	AddIntField("CrashTestMaxCreatedRecordNumber", "Crash test - max created record number per instance",
+		    int(KWDatabaseMemoryGuard::GetCrashTestMaxCreatedRecordNumber()));
 	AddIntField("CrashTestSingleInstanceMemoryLimit", "Crash test - memory limit per multi-table instance in MB",
 		    int(KWDatabaseMemoryGuard::GetCrashTestSingleInstanceMemoryLimit()));
 
@@ -29,6 +31,7 @@ KWCrashTestParametersView::KWCrashTestParametersView()
 	cast(UIIntElement*, GetFieldAt("CrashTestMaxLineLength"))
 	    ->SetDefaultValue(InputBufferedFile::GetMaxLineLength());
 	cast(UIIntElement*, GetFieldAt("CrashTestMaxSecondaryRecordNumber"))->SetMinValue(0);
+	cast(UIIntElement*, GetFieldAt("CrashTestMaxCreatedRecordNumber"))->SetMinValue(0);
 	cast(UIIntElement*, GetFieldAt("CrashTestSingleInstanceMemoryLimit"))->SetMinValue(0);
 
 	// Initialisation des valeurs des parametres de crash concernant les taches
@@ -46,6 +49,10 @@ KWCrashTestParametersView::KWCrashTestParametersView()
 	GetFieldAt("CrashTestMaxLineLength")->SetHelpText("Max line length in input data files (expert).");
 	GetFieldAt("CrashTestMaxSecondaryRecordNumber")
 	    ->SetHelpText("Max record number per multi-table instance."
+			  "\n By default, this parameter is set to 0, meaning that the limit is not active."
+			  "\n If the limit is exceeded, a warning is issued.");
+	GetFieldAt("CrashTestMaxCreatedRecordNumber")
+	    ->SetHelpText("Max created record number per instance."
 			  "\n By default, this parameter is set to 0, meaning that the limit is not active."
 			  "\n If the limit is exceeded, a warning is issued.");
 	GetFieldAt("CrashTestSingleInstanceMemoryLimit")
@@ -66,6 +73,7 @@ void KWCrashTestParametersView::EventUpdate(Object* object)
 	PLParallelTask::nCrashTestCallIndex = GetIntValueAt("CrashTestCallIndex");
 	InputBufferedFile::SetMaxLineLength(GetIntValueAt("CrashTestMaxLineLength"));
 	KWDatabaseMemoryGuard::SetCrashTestMaxSecondaryRecordNumber(GetIntValueAt("CrashTestMaxSecondaryRecordNumber"));
+	KWDatabaseMemoryGuard::SetCrashTestMaxCreatedRecordNumber(GetIntValueAt("CrashTestMaxCreatedRecordNumber"));
 	KWDatabaseMemoryGuard::SetCrashTestSingleInstanceMemoryLimit(
 	    GetIntValueAt("CrashTestSingleInstanceMemoryLimit") * lMB);
 }
@@ -79,6 +87,8 @@ void KWCrashTestParametersView::EventRefresh(Object* object)
 	SetIntValueAt("CrashTestMaxLineLength", InputBufferedFile::GetMaxLineLength());
 	SetIntValueAt("CrashTestMaxSecondaryRecordNumber",
 		      int(KWDatabaseMemoryGuard::GetCrashTestMaxSecondaryRecordNumber()));
+	SetIntValueAt("CrashTestMaxCreatedRecordNumber",
+		      int(KWDatabaseMemoryGuard::GetCrashTestMaxCreatedRecordNumber()));
 	SetIntValueAt("CrashTestSingleInstanceMemoryLimit",
 		      int(KWDatabaseMemoryGuard::GetCrashTestSingleInstanceMemoryLimit() / lMB));
 }
@@ -91,6 +101,7 @@ void KWCrashTestParametersView::ResetParameters()
 	PLParallelTask::nCrashTestCallIndex = 1;
 	InputBufferedFile::SetMaxLineLength(8 * lMB);
 	KWDatabaseMemoryGuard::SetCrashTestMaxSecondaryRecordNumber(0);
+	KWDatabaseMemoryGuard::SetCrashTestMaxCreatedRecordNumber(0);
 	KWDatabaseMemoryGuard::SetCrashTestSingleInstanceMemoryLimit(0);
 }
 

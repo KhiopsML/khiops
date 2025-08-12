@@ -8,6 +8,7 @@ class KWObjectDataPath;
 class KWObjectDataPathManager;
 
 #include "KWDataPath.h"
+#include "KWDatabaseMemoryGuard.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWObjectDataPath
@@ -84,6 +85,10 @@ public:
 
 	////////////////////////////////////////////////////////
 	// Divers
+
+	// Service de protection memoire pour gerer les enregistrements trop volumineux,
+	// notamment la creation d'instances en grand nombre
+	KWDatabaseMemoryGuard* GetMemoryGuard() const;
 
 	// Copie
 	void CopyFrom(const KWDataPath* aSource) override;
@@ -167,6 +172,11 @@ public:
 	const KWObjectDataPath* GetMainObjectDataPath() const;
 	const KWObjectDataPath* LookupObjectDataPath(const ALString& sDataPath) const;
 
+	// Service de protection memoire pour gerer les enregistrements trop volumineux,
+	// notamment la creation d'instances en grand nombre
+	void SetMemoryGuard(KWDatabaseMemoryGuard* memoryGuard);
+	KWDatabaseMemoryGuard* GetMemoryGuard() const;
+
 	////////////////////////////////////////////////////////
 	// Divers
 
@@ -175,6 +185,11 @@ public:
 
 	// Creation pour renvoyer une instance du meme type dynamique
 	KWDataPathManager* Create() const override;
+
+	////////////////////////////////////////////////////////
+	//// Implementation
+protected:
+	KWDatabaseMemoryGuard* databaseMemoryGuard;
 };
 
 ////////////////////////////////////////////////////////////
@@ -243,6 +258,18 @@ inline int KWObjectDataPath::GetRandomLeap() const
 	return nCompiledRandomLeap;
 }
 
+inline KWDatabaseMemoryGuard* KWObjectDataPath::GetMemoryGuard() const
+{
+	require(GetObjectDataPathManager() != NULL);
+	require(GetObjectDataPathManager()->GetMemoryGuard() != NULL);
+	return GetObjectDataPathManager()->GetMemoryGuard();
+}
+
+inline const KWObjectDataPathManager* KWObjectDataPath::GetObjectDataPathManager() const
+{
+	return cast(const KWObjectDataPathManager*, dataPathManager);
+}
+
 inline const KWObjectDataPath* KWObjectDataPathManager::GetObjectDataPathAt(int nIndex) const
 {
 	return cast(const KWObjectDataPath*, GetDataPathAt(nIndex));
@@ -263,7 +290,12 @@ inline const KWObjectDataPath* KWObjectDataPathManager::LookupObjectDataPath(con
 	return cast(const KWObjectDataPath*, LookupDataPath(sDataPath));
 }
 
-inline const KWObjectDataPathManager* KWObjectDataPath::GetObjectDataPathManager() const
+inline void KWObjectDataPathManager::SetMemoryGuard(KWDatabaseMemoryGuard* memoryGuard)
 {
-	return cast(const KWObjectDataPathManager*, dataPathManager);
+	databaseMemoryGuard = memoryGuard;
+}
+
+inline KWDatabaseMemoryGuard* KWObjectDataPathManager::GetMemoryGuard() const
+{
+	return databaseMemoryGuard;
 }

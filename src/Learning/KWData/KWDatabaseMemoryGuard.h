@@ -41,6 +41,12 @@ public:
 	void SetMaxSecondaryRecordNumber(longint lValue);
 	longint GetMaxSecondaryRecordNumber() const;
 
+	// Nombre d'instances crees au dela duquel une alerte est declenchee
+	// Cela ne declenche qu'un warning informatif en cas de depassement
+	// Parametrage inactif si 0
+	void SetMaxCreatedRecordNumber(longint lValue);
+	longint GetMaxCreatedRecordNumber() const;
+
 	// Limite de la memoire utilisable pour une instance pour gerer l'ensemble de la lecture et du calcul des
 	// attributs derivee
 	// Attention: il s'agit ici d'une limite memoire physique dans la RAM, avec prise en compte de
@@ -65,6 +71,10 @@ public:
 	// A appeler apres la lecture des enregistrements
 	void AddReadSecondaryRecord();
 
+	// Prise en compte de la creation d'une nouvelle instance
+	// A appeler apres la creation d'une instance par une regle de creation d'instance
+	void AddCreatedRecord();
+
 	// Prise en compte du calcul d'un nouvel attribut
 	// A appeler apres la lecture de chaque nouvel enregistrement
 	void AddComputedAttribute();
@@ -77,8 +87,11 @@ public:
 	// Exploitation des limites
 	// On peut ici emettre des warning specialises en fonction du type de limite atteinte ou depassee
 
-	// Indique si le nombre max d'enregistrement est atteint, si le parametrage est actif
+	// Indique si le nombre max d'enregistrements secondaires est atteint, si le parametrage est actif
 	boolean IsMaxSecondaryRecordNumberReached() const;
+
+	// Indique si le nombre max d'enregistrements crees est atteint, si le parametrage est actif
+	boolean IsMaxCreatedRecordNumberReached() const;
 
 	// Nombre de fois ou on a du nettoyer la memoire pour continuer le calcul des attributs
 	int GetMemoryCleaningNumber() const;
@@ -96,6 +109,9 @@ public:
 
 	// Indique si la cause du depassement memoire est liee a la lecture des enregistrements
 	boolean IsSingleInstanceMemoryLimitReachedDuringRead() const;
+
+	// Indique si la cause du depassement memoire est liee a la creation d'instances
+	boolean IsSingleInstanceMemoryLimitReachedDuringCreation() const;
 
 	// Libelle personnalise associe au depassement de la limite memoire, dans le cas de la lecture des
 	// renregistrements ou dans le cas du calcul des attributs, avec perte du calcul des attributs derives,
@@ -117,6 +133,12 @@ public:
 
 	// Nombre total d'enregistrements secondaires lus
 	longint GetTotalReadSecondaryRecordNumber() const;
+
+	// Nombre d'instances creees avant atteinte de la limite
+	longint GetCreatedRecordNumberBeforeLimit() const;
+
+	// Nombre d'instance crees
+	longint GetTotalCreatedRecordNumber() const;
 
 	// Nombre d'attributs calcules avant atteinte de la limite
 	int GetComputedAttributeNumberBeforeLimit() const;
@@ -146,6 +168,12 @@ public:
 	// Parametrage inactif si 0
 	static void SetCrashTestMaxSecondaryRecordNumber(longint lValue);
 	static longint GetCrashTestMaxSecondaryRecordNumber();
+
+	// Nombre d'enregistrements crees au dela duquel une alerte est declenchee
+	// Cela ne declenche qu'un warning informatif en cas de depassement
+	// Parametrage inactif si 0
+	static void SetCrashTestMaxCreatedRecordNumber(longint lValue);
+	static longint GetCrashTestMaxCreatedRecordNumber();
 
 	// Limite a ne pas depasser de la memoire utilisable dans la heap pour gerer l'ensemble de la lecture et du
 	// calcul des attributs derivee Parametrage inactif si 0
@@ -234,8 +262,11 @@ protected:
 	longint lMaxHeapMemory;
 	longint lCurrentHeapMemory;
 	longint lMaxSecondaryRecordNumber;
+	longint lMaxCreatedRecordNumber;
 	longint lReadSecondaryRecordNumberBeforeLimit;
 	longint lTotalReadSecondaryRecordNumber;
+	longint lCreatedRecordNumberBeforeLimit;
+	longint lTotalCreatedRecordNumber;
 	int nComputedAttributeNumberBeforeLimit;
 	int nTotalComputedAttributeNumber;
 	int nMemoryCleaningNumber;
@@ -243,10 +274,12 @@ protected:
 
 	// Variables d'instance a prendre en compte, selon la valeur des parametres de crash test
 	longint lActualMaxSecondaryRecordNumber;
+	longint lActualMaxCreatedRecordNumber;
 	longint lActualSingleInstanceMemoryLimit;
 
 	// Parametres des crash tests
 	static longint lCrashTestMaxSecondaryRecordNumber;
+	static longint lCrashTestMaxCreatedRecordNumber;
 	static longint lCrashTestSingleInstanceMemoryLimit;
 
 	// Bornes inf et sup des nombres max de records secondaires
@@ -283,6 +316,11 @@ inline boolean KWDatabaseMemoryGuard::IsMaxSecondaryRecordNumberReached() const
 {
 	return lActualMaxSecondaryRecordNumber > 0 and
 	       GetTotalReadSecondaryRecordNumber() > lActualMaxSecondaryRecordNumber;
+}
+
+inline boolean KWDatabaseMemoryGuard::IsMaxCreatedRecordNumberReached() const
+{
+	return lActualMaxCreatedRecordNumber > 0 and GetTotalCreatedRecordNumber() > lActualMaxCreatedRecordNumber;
 }
 
 inline boolean KWDatabaseMemoryGuard::IsSingleInstanceMemoryLimitReached() const

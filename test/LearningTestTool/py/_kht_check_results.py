@@ -1441,6 +1441,14 @@ RESILIENCE_USER_MESSAGE_PATTERNS = [
         " after reading ",
         " secondary records ",
     ],
+    [
+        "warning : Database ",
+        ": Record ",
+        " : Single instance ",
+        "uses too much memory (more than ",
+        " after creating ",
+        " records ",
+    ],
     ["error : ", " : Not enough memory "],
 ]
 

@@ -1076,11 +1076,11 @@ void PLMTDatabaseTextFile::ComputeMemoryGuardOpenInformation()
 				    longint(dAverageSecondaryRecordNumber *
 					    KWDatabaseMemoryGuard::GetDefautMaxSecondaryRecordNumberFactor());
 
-				// On prend egalement en compte des nombres absolus de records, repartis par table
-				// secondaire Pour le min, on prend le minimum, pour eviter de surestimer la memoire
-				// minimum necessaire En effet, on peut avoir une table principale petite, avec des
-				// tables secondaire comportement une majorite d'enregistrements orphelins, ce qui
-				// fausse les estimation et peut empecher a tort l'execution des taches
+				// On prend egalement en compte des nombres absolus de records, repartis par table secondaire.
+				// Pour le min, on prend le minimum, pour eviter de surestimer la memoire minimum necessaire.
+				// En effet, on peut avoir une table principale petite, avec des tables secondaires
+				// comportement une majorite d'enregistrements orphelins, ce qui fausse les estimations
+				// et peut empecher a tort l'execution des taches
 				dTableRatio = lSecondaryRecordNumber / (1.0 + lTotalSecondaryRecordNumber);
 				lMinSecondaryRecordNumber =
 				    min(lMinSecondaryRecordNumber,
@@ -1095,8 +1095,7 @@ void PLMTDatabaseTextFile::ComputeMemoryGuardOpenInformation()
 				lMinSecondaryRecordNumber = min(lMinSecondaryRecordNumber, lSecondaryRecordNumber);
 				lMaxSecondaryRecordNumber = min(lMaxSecondaryRecordNumber, lSecondaryRecordNumber);
 
-				// Dans le cas ou on sature sur le nombre total d'enregistrement, on differencie le min
-				// du max
+				// Dans le cas ou on sature sur le nombre total d'enregistrement, on differencie le min du max
 				if (lMinSecondaryRecordNumber == lMaxSecondaryRecordNumber)
 				{
 					// Correction pour avoir un ratio "standard" entre les nombre min et max
@@ -1377,8 +1376,10 @@ void PLShared_MTDatabaseTextFile::SerializeObject(PLSerializer* serializer, cons
 
 	// Ecriture des parametres du memory guard
 	serializer->PutLongint(database->GetMemoryGuardMaxSecondaryRecordNumber());
+	serializer->PutLongint(database->GetMemoryGuardMaxCreatedRecordNumber());
 	serializer->PutLongint(database->GetMemoryGuardSingleInstanceMemoryLimit());
 	serializer->PutLongint(KWDatabaseMemoryGuard::GetCrashTestMaxSecondaryRecordNumber());
+	serializer->PutLongint(KWDatabaseMemoryGuard::GetCrashTestMaxCreatedRecordNumber());
 	serializer->PutLongint(KWDatabaseMemoryGuard::GetCrashTestSingleInstanceMemoryLimit());
 }
 
@@ -1469,8 +1470,10 @@ void PLShared_MTDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 
 	// Lecture des parametres du memory guard
 	database->SetMemoryGuardMaxSecondaryRecordNumber(serializer->GetLongint());
+	database->SetMemoryGuardMaxCreatedRecordNumber(serializer->GetLongint());
 	database->SetMemoryGuardSingleInstanceMemoryLimit(serializer->GetLongint());
 	KWDatabaseMemoryGuard::SetCrashTestMaxSecondaryRecordNumber(serializer->GetLongint());
+	KWDatabaseMemoryGuard::SetCrashTestMaxCreatedRecordNumber(serializer->GetLongint());
 	KWDatabaseMemoryGuard::SetCrashTestSingleInstanceMemoryLimit(serializer->GetLongint());
 }
 

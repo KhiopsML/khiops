@@ -177,11 +177,18 @@ void KWObject::ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard)
 		// Tentative de nettoyage si memoire limite depasse
 		if (memoryGuard->IsSingleInstanceMemoryLimitReached())
 		{
-			// Nettoyage des donnees de travail temporaire, pouvant etre recalculees
-			CleanTemporayDataItemsToComputeAndClean();
+			// On ne le fait pas dans le cas ou il y a eu un probleme de creation d'instances
+			// En effet, dans ce cas, les creations d'instances ont du etre interrompues dans les
+			// regles de creation d'instances, et les resultats de calcul (de type TableCount)
+			// exploitant ces instances creees sont faux et fluctuants selon la memoire disponible
+			if (not memoryGuard->IsSingleInstanceMemoryLimitReachedDuringCreation())
+			{
+				// Nettoyage des donnees de travail temporaire, pouvant etre recalculees
+				CleanTemporayDataItemsToComputeAndClean();
 
-			// Actualisation de la detetcion de depassement memoire
-			memoryGuard->UpdateAfterMemoryCleaning();
+				// Actualisation de la detetcion de depassement memoire
+				memoryGuard->UpdateAfterMemoryCleaning();
+			}
 		}
 	}
 
@@ -798,7 +805,7 @@ void KWObject::CleanNativeRelationAttributes()
 
 	require(kwcClass->IsCompiled());
 	require(kwcClass->GetUnloadedOwnedRelationAttributeNumber() == 0);
-	require(values.attributeValues != NULL);
+	require(values.attributeValues != NULL or kwcClass->GetLoadedDataItemNumber() == 0);
 
 	// Recherche si usage de type view
 	bIsViewTypeUse = GetViewTypeUse();

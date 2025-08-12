@@ -304,6 +304,12 @@ public:
 	void SetMemoryGuardMaxSecondaryRecordNumber(longint lValue);
 	longint GetMemoryGuardMaxSecondaryRecordNumber() const;
 
+	// Nombre d'instances crees au dela duquel une alerte est declenchee
+	// Cela ne declenche qu'un warning informatif en cas de depassement
+	// Parametrage inactif si 0
+	void SetMemoryGuardMaxCreatedRecordNumber(longint lValue);
+	longint GetMemoryGuardMaxCreatedRecordNumber() const;
+
 	// Limite a ne pas depasser de la memoire utilisable dans la heap pour gerer l'ensemble de la lecture et du
 	// calcul des attributs derivee Parametrage inactif si 0
 	void SetMemoryGuardSingleInstanceMemoryLimit(longint lValue);
@@ -646,7 +652,7 @@ protected:
 	KWTimestampFormat timestampDefaultConverter;
 	KWTimestampTZFormat timestampTZDefaultConverter;
 
-	// Service de protection memoire pour gerer les enregistrement trop volumineux, notamment dans le cas
+	// Service de protection memoire pour gerer les enregistrements trop volumineux, notamment dans le cas
 	// multi-tables ou le nombre d'enregistrements secondaires peut etre tres important
 	mutable KWDatabaseMemoryGuard memoryGuard;
 

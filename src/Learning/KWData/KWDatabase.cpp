@@ -26,6 +26,11 @@ KWDatabase::KWDatabase()
 	timeDefaultConverter.SetFormatString(KWTimeFormat::GetDefaultFormatString());
 	timestampDefaultConverter.SetFormatString(KWTimestampFormat::GetDefaultFormatString());
 	timestampTZDefaultConverter.SetFormatString(KWTimestampTZFormat::GetDefaultFormatString());
+
+	// Parametrage du gestionnaire de data path par le service de protection memoire
+	// pour permettre aux regles de creation d'instances de controler les trop grands
+	// nombres d'instances creees
+	objectDataPathManager.SetMemoryGuard(&memoryGuard);
 }
 
 KWDatabase::~KWDatabase()
@@ -2347,7 +2352,8 @@ void KWDatabase::MutatePhysicalObject(KWObject* kwoPhysicalObject) const
 	// Il faut le faire sur l'objet physique avant sa mutation, car il contient
 	// necessairement les champs de la cle en multi-table, alors qu'ils sont potentiellement
 	// absent de l'objet logique si les champs de la cle sont en unused
-	if (memoryGuard.IsSingleInstanceMemoryLimitReached() or memoryGuard.IsMaxSecondaryRecordNumberReached())
+	if (memoryGuard.IsSingleInstanceMemoryLimitReached() or memoryGuard.IsMaxSecondaryRecordNumberReached() or
+	    memoryGuard.IsMaxCreatedRecordNumberReached())
 	{
 		// On se base sur la cle de l'objet s'il y en a une
 		if (kwoPhysicalObject->GetClass()->IsKeyLoaded())
@@ -2458,6 +2464,20 @@ longint KWDatabase::GetMemoryGuardMaxSecondaryRecordNumber() const
 	require(not IsOpenedForRead());
 	require(not IsOpenedForWrite());
 	return memoryGuard.GetMaxSecondaryRecordNumber();
+}
+
+void KWDatabase::SetMemoryGuardMaxCreatedRecordNumber(longint lValue)
+{
+	require(not IsOpenedForRead());
+	require(not IsOpenedForWrite());
+	memoryGuard.SetMaxCreatedRecordNumber(lValue);
+}
+
+longint KWDatabase::GetMemoryGuardMaxCreatedRecordNumber() const
+{
+	require(not IsOpenedForRead());
+	require(not IsOpenedForWrite());
+	return memoryGuard.GetMaxCreatedRecordNumber();
 }
 
 void KWDatabase::SetMemoryGuardSingleInstanceMemoryLimit(longint lValue)

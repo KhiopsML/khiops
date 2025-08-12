@@ -462,8 +462,10 @@ void PLShared_STDatabaseTextFile::SerializeObject(PLSerializer* serializer, cons
 
 	// Ecriture des parametres du memory guard
 	serializer->PutLongint(database->GetMemoryGuardMaxSecondaryRecordNumber());
+	serializer->PutLongint(database->GetMemoryGuardMaxCreatedRecordNumber());
 	serializer->PutLongint(database->GetMemoryGuardSingleInstanceMemoryLimit());
 	serializer->PutLongint(KWDatabaseMemoryGuard::GetCrashTestMaxSecondaryRecordNumber());
+	serializer->PutLongint(KWDatabaseMemoryGuard::GetCrashTestMaxCreatedRecordNumber());
 	serializer->PutLongint(KWDatabaseMemoryGuard::GetCrashTestSingleInstanceMemoryLimit());
 }
 
@@ -509,8 +511,10 @@ void PLShared_STDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 
 	// Lecture des parametres du memory guard
 	database->SetMemoryGuardMaxSecondaryRecordNumber(serializer->GetLongint());
+	database->SetMemoryGuardMaxCreatedRecordNumber(serializer->GetLongint());
 	database->SetMemoryGuardSingleInstanceMemoryLimit(serializer->GetLongint());
 	KWDatabaseMemoryGuard::SetCrashTestMaxSecondaryRecordNumber(serializer->GetLongint());
+	KWDatabaseMemoryGuard::SetCrashTestMaxCreatedRecordNumber(serializer->GetLongint());
 	KWDatabaseMemoryGuard::SetCrashTestSingleInstanceMemoryLimit(serializer->GetLongint());
 }
 

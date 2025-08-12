@@ -1232,6 +1232,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 	ALString sMessage;
 	boolean bIsInTask;
 	longint lCurrentMemoryGuardMaxSecondaryRecordNumber;
+	longint lCurrentMemoryGuardMaxCreatedRecordNumber;
 	longint lCurrentMemoryGuardSingleInstanceMemoryLimit;
 
 	require(objectReferenceResolver.GetClassNumber() == 0);
@@ -1241,8 +1242,9 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 
 	// On desactive temporairement le memory guard, le temps de la lecture des objets references
 	// En effet, le dimensionnement est calcule pour pouvoir charger en memoire l'ensemble de toutes
-	// les tables extertnes, et il n'y a pas a se soucier de la gestion des instances "elephants"
+	// les tables externes, et il n'y a pas a se soucier de la gestion des instances "elephants"
 	lCurrentMemoryGuardMaxSecondaryRecordNumber = memoryGuard.GetMaxSecondaryRecordNumber();
+	lCurrentMemoryGuardMaxCreatedRecordNumber = memoryGuard.GetMaxCreatedRecordNumber();
 	lCurrentMemoryGuardSingleInstanceMemoryLimit = memoryGuard.GetSingleInstanceMemoryLimit();
 	memoryGuard.Reset();
 
@@ -1496,6 +1498,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 
 	// On reactive le memory guard
 	memoryGuard.SetMaxSecondaryRecordNumber(lCurrentMemoryGuardMaxSecondaryRecordNumber);
+	memoryGuard.SetMaxCreatedRecordNumber(lCurrentMemoryGuardMaxCreatedRecordNumber);
 	memoryGuard.SetSingleInstanceMemoryLimit(lCurrentMemoryGuardSingleInstanceMemoryLimit);
 	return bOk;
 }

@@ -234,7 +234,9 @@ boolean KWObjectDataPath::IsCompiled() const
 
 KWObjectDataPathManager::KWObjectDataPathManager()
 {
-	// Specifialisation des objet data path crees par la classe
+	databaseMemoryGuard = NULL;
+
+	// Specifialisation des objets data path crees par la classe
 	delete dataPathCreator;
 	dataPathCreator = new KWObjectDataPath;
 }
@@ -280,6 +282,7 @@ void KWObjectDataPathManager::CopyFrom(const KWDataPathManager* aSource)
 			objectDataPath->Compile(kwcMainClass);
 		}
 	}
+	databaseMemoryGuard = cast(KWObjectDataPathManager*, aSource)->databaseMemoryGuard;
 }
 
 KWDataPathManager* KWObjectDataPathManager::Create() const

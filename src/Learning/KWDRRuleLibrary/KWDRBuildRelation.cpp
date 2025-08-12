@@ -319,10 +319,14 @@ ObjectArray* KWDRBuildDummyTable::ComputeObjectArrayResult(const KWObject* kwoOb
 	}
 
 	// Creation des instances
+	oaResult.SetSize(nTableSize);
 	for (nObject = 0; nObject < nTableSize; nObject++)
 	{
 		kwoTargetContainedObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
-		oaResult.Add(kwoTargetContainedObject);
+
+		// Alimentation de type calcul pour les operandes en entree correspondant
+		FillComputeModeTargetAttributesForVariableOperandNumber(kwoObject, kwoTargetContainedObject);
+		oaResult.SetAt(nObject, kwoTargetContainedObject);
 	}
 	return &oaResult;
 }
