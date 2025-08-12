@@ -189,12 +189,12 @@ KWObject* KWSTDatabase::PhysicalRead()
 	// Parametrage du data path de l'objet
 	if (kwoObject != NULL)
 	{
-		kwoObject->SetObjectDataPath(objectDataPathManager->GetMainObjectDataPath());
+		kwoObject->SetObjectDataPath(objectDataPathManager.GetMainObjectDataPath());
 
 		// Reinitialisation des informations de gestion de creation d'instance pour tous les
 		// sous data path potentiels en cas de regles de derivation de creation d'instance
 		assert(kwoObject->GetClass() == kwcPhysicalClass);
-		objectDataPathManager->GetMainObjectDataPath()->ResetCreationNumber(kwoObject->GetCreationIndex());
+		objectDataPathManager.GetMainObjectDataPath()->ResetCreationNumber(kwoObject->GetCreationIndex());
 	}
 
 	// Positionnement du flag d'erreur

@@ -6,7 +6,7 @@
 
 class KWDatabase;
 
-#include "KWDataPath.h"
+#include "KWObjectDataPath.h"
 #include "KWClass.h"
 #include "KWObject.h"
 #include "KWTypeAutomaticRecognition.h"
@@ -584,7 +584,7 @@ protected:
 	// Chaque KWObject lu depuis un fichier ou cree depuis une regle reference son data path, ce qui lui permet
 	// d'etre identifier de facon unique.
 	// Meme en mono-table, les data path sont utiles pour identifier les eventuelles instances crees pard es regles de derivation
-	KWObjectDataPathManager* objectDataPathManager;
+	KWObjectDataPathManager objectDataPathManager;
 
 	// Dictionnaire des classes de mutation, avec en cle la classe physique des objets a muter
 	// et en valeur la classe suite a la mutation

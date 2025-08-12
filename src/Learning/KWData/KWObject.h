@@ -435,7 +435,7 @@ int KWObjectCompareCreationIndex(const void* elem1, const void* elem2);
 #include "KWClass.h"
 #include "KWAttributeBlock.h"
 #include "KWDerivationRule.h"
-#include "KWDataPath.h"
+#include "KWObjectDataPath.h"
 
 /////////////////////////////////////////////////////////////////
 // Methodes en inline

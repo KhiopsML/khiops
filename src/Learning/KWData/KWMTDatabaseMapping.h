@@ -137,7 +137,6 @@ public:
 	// Divers
 
 	// Creation pour renvoyer une instance du meme type dynamique
-	// Doit etre reimplemente dans les sous-classes
 	KWDataPathManager* Create() const override;
 
 	// Verification de la validite des specifications des tables par data path
