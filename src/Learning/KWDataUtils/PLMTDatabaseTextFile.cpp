@@ -1047,7 +1047,7 @@ void PLMTDatabaseTextFile::ComputeMemoryGuardOpenInformation()
 		mapping = GetUsedMappingAt(i);
 		assert(mapping == NULL or mapping == mappingManager.GetMappingAt(i));
 
-		// Prise en compte si si mapping utilise
+		// Prise en compte si mapping utilise
 		if (mapping != NULL)
 		{
 			// Stats sur les records de la table secondaires

@@ -626,10 +626,25 @@ KWObject* KWDatabase::Read()
 		// Test si objet selectionne
 		if (kwoObject != NULL)
 		{
+			// Destruction si objet non selectionne
 			if (not IsPhysicalObjectSelected(kwoObject))
 			{
 				delete kwoObject;
 				kwoObject = NULL;
+
+				// Warning : Si le calcul de la selection entraine un depassement de capacite memoire,
+				// cela peut potentiellement conduire a une valeur de critere de selection incorrecte,
+				// et donc a une non-selection a tort.
+				// Ce warning sera emis en fin de methode si necessaire pour les instances selectionnees.
+				// Il est important d'informer l'utilisateur de ce probleme potentiel, car selon la passe de
+				// traitement des donnees (statistiques basiques, preparation, etc.), les instances selectionnees
+				// pourraient varier, entrainant une incoherence dans le nombre d'instances issues de chaque passe.
+				// Cette incoherence est detectee, mais elle peut avoir plusieurs causes:
+				// fichier modifie entre deux passes, critere de selection mal calcule (comme ici), ...
+				if (memoryGuard.IsSingleInstanceMemoryLimitReached())
+					AddWarning("Record not selected due to selection variable with possible "
+						   "incorrect value. " +
+						   memoryGuard.GetSingleInstanceMemoryLimitLabel());
 			}
 		}
 	}

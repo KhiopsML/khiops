@@ -1449,6 +1449,22 @@ RESILIENCE_USER_MESSAGE_PATTERNS = [
         " after creating ",
         " records ",
     ],
+    [
+        "warning : Database ",
+        ": Record ",
+        " : Record not selected due to selection variable with possible incorrect value. Single instance ",
+        "uses too much memory (more than ",
+        " after reading ",
+        " secondary records ",
+    ],
+    [
+        "warning : Database ",
+        ": Record ",
+        " : Record not selected due to selection variable with possible incorrect value. Single instance ",
+        "uses too much memory (more than ",
+        " after creating ",
+        " records ",
+    ],
     ["error : ", " : Not enough memory "],
 ]
 

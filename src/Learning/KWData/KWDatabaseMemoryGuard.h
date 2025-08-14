@@ -114,7 +114,7 @@ public:
 	boolean IsSingleInstanceMemoryLimitReachedDuringCreation() const;
 
 	// Libelle personnalise associe au depassement de la limite memoire, dans le cas de la lecture des
-	// renregistrements ou dans le cas du calcul des attributs, avec perte du calcul des attributs derives,
+	// enregistrements ou dans le cas du calcul des attributs, avec perte du calcul des attributs derives,
 	// remplaces par des valeur manquantes
 	const ALString GetSingleInstanceMemoryLimitLabel();
 
