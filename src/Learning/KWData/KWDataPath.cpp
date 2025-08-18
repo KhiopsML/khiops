@@ -5,7 +5,7 @@
 #include "KWDataPath.h"
 
 // Inclusion de ce header dans le source pour eviter une dependance cyclique
-#include "KWClass.h"
+#include "KWClassDomain.h"
 
 ////////////////////////////////////////////////////////////
 // Classe KWDataPath
@@ -47,6 +47,40 @@ ALString KWDataPath::GetDataPath() const
 	// Cas standard
 	else
 		return GetDataPathAttributeNames();
+}
+
+ALString KWDataPath::GetParentDataPathAt(int nDepth) const
+{
+	int i;
+	int nParentDataPathAttributeNumber;
+	ALString sParentDataPathAttributeNames;
+
+	require(0 <= nDepth and nDepth <= GetDataPathAttributeNumber());
+
+	// Nombre d'attribut du data path parent
+	nParentDataPathAttributeNumber = GetDataPathAttributeNumber() - nDepth;
+
+	// Calcul du chemin du parent a la profondeur donnee
+	// Partie du data path lie au attributs
+	for (i = 0; i < nParentDataPathAttributeNumber; i++)
+	{
+		if (i > 0)
+			sParentDataPathAttributeNames += GetDataPathSeparator();
+		sParentDataPathAttributeNames += GetFormattedName(GetDataPathAttributeNameAt(i));
+	}
+
+	// Cas d'un table externe
+	if (GetExternalTable())
+	{
+		if (nParentDataPathAttributeNumber == 0)
+			return GetDataPathSeparator() + GetFormattedName(GetOriginClassName());
+		else
+			return GetDataPathSeparator() + GetFormattedName(GetOriginClassName()) +
+			       GetDataPathSeparator() + sParentDataPathAttributeNames;
+	}
+	// Cas standard
+	else
+		return sParentDataPathAttributeNames;
 }
 
 ALString KWDataPath::GetDataPathAttributeNames() const
@@ -145,6 +179,129 @@ void KWDataPath::CollectFullHierarchyComponents(ObjectArray* oaResults)
 	}
 }
 
+void KWDataPath::ComputeEstimatedMemoryForObjectCreation(KWClassDomain* classDomain,
+							 longint& lEstimatedMemoryForSingleObjectCreation,
+							 longint& lEstimatedMemoryForMultipleObjectCreation,
+							 longint& lEstimatedTotalCreatedSingleObjectNumber,
+							 longint& lEstimatedTotalCreatedMultipleObjectNumber) const
+
+{
+	const boolean bTrace = false;
+	static const int nBaseCreatedObjectNumberPerTable = 10;
+	ObjectArray oaRemainingComponents;
+	ObjectArray oaNewRemainingComponents;
+	KWDataPath* dataPath;
+	KWClass* kwcTerminalClass;
+	int nDataPathCreatingTableNumber;
+	longint lCreatedObjectNumber;
+	longint lEstimatedCreatedObjectMemory;
+	int nDepth;
+	int i;
+	int j;
+
+	require(not GetCreatedObjects());
+
+	// Trace
+	if (bTrace)
+		cout << "GetEstimatedMemoryForObjectCreation\t" << GetDataPath() << "\n";
+
+	// Initialisation
+	lEstimatedMemoryForSingleObjectCreation = 0;
+	lEstimatedMemoryForMultipleObjectCreation = 0;
+	lEstimatedTotalCreatedSingleObjectNumber = 0;
+	lEstimatedTotalCreatedMultipleObjectNumber = 0;
+
+	// Analyse en largeur d'abord de la composition
+	nDepth = 0;
+	oaRemainingComponents.CopyFrom(&oaComponents);
+	while (oaRemainingComponents.GetSize() > 0)
+	{
+		// Initialisation de la nouvelle profondeur
+		nDepth++;
+		oaNewRemainingComponents.SetSize(0);
+
+		// Parcours des composants a la profondeur courante
+		for (i = 0; i < oaRemainingComponents.GetSize(); i++)
+		{
+			dataPath = cast(KWDataPath*, oaRemainingComponents.GetAt(i));
+
+			// Traitement unique des data path de creation d'objet
+			if (dataPath->GetCreatedObjects())
+			{
+				// Calcul du nombre de data path intermediaire avec creation de tables
+				nDataPathCreatingTableNumber = 0;
+				for (j = 0; j < nDepth; j++)
+				{
+					if (dataPath->GetDataPathAttributeTypeAt(
+						dataPath->GetDataPathAttributeNumber() - 1 - j) == KWType::ObjectArray)
+						nDataPathCreatingTableNumber++;
+				}
+
+				// Dimensionnement heuristique, avec un nombre d'instances cree en augmentant de facon quadratique avec
+				// le nombre de tables impliquees dans les parents du data path
+				// On compte 1 dans le cas des entites en relation 0-1.
+				// On n'utilise pas une augmentation exponentielle, plus naturelle, avoir avoir des exigences minimalistes
+				if (nDataPathCreatingTableNumber > 0)
+					lCreatedObjectNumber = nBaseCreatedObjectNumberPerTable *
+							       nDataPathCreatingTableNumber *
+							       nDataPathCreatingTableNumber;
+				else
+				{
+					assert(dataPath->GetDataPathAttributeTypeAt(
+						   dataPath->GetDataPathAttributeNumber() - 1) == KWType::Object);
+					lCreatedObjectNumber = 1;
+				}
+
+				// Recherche de la memoire necessaire par objet
+				kwcTerminalClass = classDomain->LookupClass(dataPath->GetClassName());
+				assert(kwcTerminalClass != NULL);
+				lEstimatedCreatedObjectMemory = kwcTerminalClass->GetEstimatedUsedMemoryPerObject();
+
+				// Memorisation du nombre d'objet crees et de la memoire necessaire
+				if (nDataPathCreatingTableNumber > 0)
+				{
+					lEstimatedTotalCreatedMultipleObjectNumber += lCreatedObjectNumber;
+					lEstimatedMemoryForMultipleObjectCreation +=
+					    lCreatedObjectNumber * lEstimatedCreatedObjectMemory;
+				}
+				else
+				{
+					lEstimatedTotalCreatedSingleObjectNumber += 1;
+					lEstimatedMemoryForSingleObjectCreation += lEstimatedCreatedObjectMemory;
+				}
+
+				// Memorisation des data path pour la profondeur suivante
+				oaNewRemainingComponents.InsertObjectArrayAt(oaNewRemainingComponents.GetSize(),
+									     dataPath->GetComponents());
+
+				// Trace
+				if (bTrace)
+				{
+					if (nDepth == 1 and i == 0)
+						cout << "\tData path\tCreated object\tObject memory\tTotal memory\n";
+					cout << "\t" << dataPath->GetDataPath() << "\t";
+					cout << lCreatedObjectNumber << "\t";
+					cout << lEstimatedCreatedObjectMemory << "\t";
+					cout << lCreatedObjectNumber * lEstimatedCreatedObjectMemory << "\n";
+				}
+			}
+		}
+
+		// Preparation pour la profondeur suivante
+		oaRemainingComponents.CopyFrom(&oaNewRemainingComponents);
+	}
+
+	// Trace
+	if (bTrace)
+	{
+		cout << "\tSynthesis\n";
+		cout << "\t\tMemoryForSingleObjectCreation\t" << lEstimatedMemoryForSingleObjectCreation << "\n";
+		cout << "\t\tMemoryForMultipleObjectCreation\t" << lEstimatedMemoryForMultipleObjectCreation << "\n";
+		cout << "\t\tTotalCreatedSingleObjectNumber\t" << lEstimatedTotalCreatedSingleObjectNumber << "\n";
+		cout << "\t\tTotalCreatedMultipleObjectNumber\t" << lEstimatedTotalCreatedMultipleObjectNumber << "\n";
+	}
+}
+
 void KWDataPath::CopyFrom(const KWDataPath* aSource)
 {
 	require(aSource != NULL);
@@ -152,6 +309,7 @@ void KWDataPath::CopyFrom(const KWDataPath* aSource)
 	bExternalTable = aSource->bExternalTable;
 	sOriginClassName = aSource->sOriginClassName;
 	svAttributeNames.CopyFrom(&aSource->svAttributeNames);
+	ivAttributeTypes.CopyFrom(&aSource->ivAttributeTypes);
 	sClassName = aSource->sClassName;
 	dataPathManager = aSource->dataPathManager;
 }
@@ -231,10 +389,24 @@ boolean KWDataPath::Check() const
 		}
 	}
 
+	// Le data path ne peut contenir des objet cree dans le cas racine
+	if (bOk)
+	{
+		if (svAttributeNames.GetSize() == 0 and GetCreatedObjects())
+		{
+			if (GetExternalTable())
+				AddError("Root data path should be not be related to created instances");
+			else
+				AddError("Main data path should be not be related to created instances");
+			bOk = false;
+		}
+	}
+
 	// Parcours des attributs du data path pour les verification de coherence du chemin
 	// On ne verifie pas la validite des cles, qui est verifiee par ailleurs avec les dictionnaires
 	if (bOk)
 	{
+		assert(svAttributeNames.GetSize() == ivAttributeTypes.GetSize());
 		for (nAttribute = 0; nAttribute < GetDataPathAttributeNumber(); nAttribute++)
 		{
 			// Recherche de l'attribut
@@ -252,7 +424,17 @@ boolean KWDataPath::Check() const
 			else if (not KWType::IsRelation(currentAttribute->GetType()))
 			{
 				AddError(sTmp + "Variable " + GetDataPathAttributeNameAt(nAttribute) + " at index " +
-					 IntToString(nAttribute + 1) + " in data path should of relational data type");
+					 IntToString(nAttribute + 1) +
+					 " in data path should be of relational data type");
+				bOk = false;
+			}
+			// Erreur si type memorise de l'attribut incorrect
+			else if (GetDataPathAttributeTypeAt(nAttribute) != currentAttribute->GetType())
+			{
+				AddError(sTmp + "Type " + KWType::ToString(GetDataPathAttributeTypeAt(nAttribute)) +
+					 " of variable " + GetDataPathAttributeNameAt(nAttribute) + " at index " +
+					 IntToString(nAttribute + 1) + " in data path should be " +
+					 KWType::ToString(currentAttribute->GetType()));
 				bOk = false;
 			}
 			// Sa classe doit etre coherente avec celle du mapping,
@@ -317,12 +499,22 @@ void KWDataPath::Write(ostream& ost) const
 
 void KWDataPath::WriteHeaderLineReport(ostream& ost) const
 {
-	ost << "Data path\tDictionary";
+	ost << "Data path\tType\tDictionary";
 }
 
 void KWDataPath::WriteLineReport(ostream& ost) const
 {
-	ost << GetDataPath() << "\t" << GetClassName();
+	int i;
+
+	// Data path
+	ost << GetDataPath() << "\t";
+
+	// Type abrege des elements du chemin en prennt les initiales des types
+	for (i = 0; i < ivAttributeTypes.GetSize(); i++)
+		cout << KWType::ToString(ivAttributeTypes.GetAt(i)).GetAt(0);
+
+	// Dictionnaire extremite
+	cout << "\t" << GetClassName();
 }
 
 const ALString KWDataPath::GetClassLabel() const
@@ -342,6 +534,7 @@ longint KWDataPath::GetUsedMemory() const
 	lUsedMemory = sizeof(KWDataPath);
 	lUsedMemory += sOriginClassName.GetLength();
 	lUsedMemory += svAttributeNames.GetUsedMemory();
+	lUsedMemory += ivAttributeTypes.GetUsedMemory();
 	lUsedMemory += sClassName.GetLength();
 	lUsedMemory += oaComponents.GetUsedMemory();
 	return lUsedMemory;
@@ -390,6 +583,7 @@ void KWDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 	const boolean bTrace = false;
 	KWDataPath* dataPath;
 	StringVector svAttributeName;
+	IntVector ivAttributeTypes;
 	ObjectDictionary odReferenceClasses;
 	ObjectArray oaRankedReferenceClasses;
 	ObjectDictionary odAnalysedCreatedClasses;
@@ -414,8 +608,9 @@ void KWDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 	// Creation du data path principal
 	// Contexte: table principale, non cree par une regle de derivation
 	assert(svAttributeName.GetSize() == 0);
-	mainDataPath = CreateDataPath(&odReferenceClasses, &oaRankedReferenceClasses, &odAnalysedCreatedClasses,
-				      mainClass, false, false, mainClass->GetName(), &svAttributeName, &oaDataPaths);
+	mainDataPath =
+	    CreateDataPath(&odReferenceClasses, &oaRankedReferenceClasses, &odAnalysedCreatedClasses, mainClass, false,
+			   false, mainClass->GetName(), &svAttributeName, &ivAttributeTypes, &oaDataPaths);
 	assert(svAttributeName.GetSize() == 0);
 
 	// Parcours des classes referencees pour creer leur mapping
@@ -438,10 +633,10 @@ void KWDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 			odWorkingAnalysedCreatedClasses.RemoveAll();
 			oaWorkingCreatedDataPaths.RemoveAll();
 			assert(svAttributeName.GetSize() == 0);
-			dataPath =
-			    CreateDataPath(&odWorkingReferenceClasses, &oaWorkingRankedReferenceClasses,
-					   &odWorkingAnalysedCreatedClasses, referenceClass, true, false,
-					   referenceClass->GetName(), &svAttributeName, &oaWorkingCreatedDataPaths);
+			dataPath = CreateDataPath(&odWorkingReferenceClasses, &oaWorkingRankedReferenceClasses,
+						  &odWorkingAnalysedCreatedClasses, referenceClass, true, false,
+						  referenceClass->GetName(), &svAttributeName, &ivAttributeTypes,
+						  &oaWorkingCreatedDataPaths);
 			assert(svAttributeName.GetSize() == 0);
 
 			// On determine si le dictionnaire de reference est utilisable, c'est a dire s'il n'utilise
@@ -474,10 +669,10 @@ void KWDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 				// Et il n'y a aucun enjeu d'optimisation
 				// Contexte: table externe, non cree par une regle de derivation
 				assert(svAttributeName.GetSize() == 0);
-				dataPath =
-				    CreateDataPath(&odReferenceClasses, &oaRankedReferenceClasses,
-						   &odAnalysedCreatedClasses, referenceClass, true, false,
-						   referenceClass->GetName(), &svAttributeName, oaCreatedDataPaths);
+				dataPath = CreateDataPath(&odReferenceClasses, &oaRankedReferenceClasses,
+							  &odAnalysedCreatedClasses, referenceClass, true, false,
+							  referenceClass->GetName(), &svAttributeName,
+							  &ivAttributeTypes, oaCreatedDataPaths);
 				assert(svAttributeName.GetSize() == 0);
 				if (bTrace)
 					WriteDataPathArray(cout, "- external mappings " + referenceClass->GetName(),
@@ -739,7 +934,7 @@ KWDataPath* KWDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClass
 					      ObjectDictionary* odAnalysedCreatedClasses, const KWClass* mappedClass,
 					      boolean bIsExternalTable, boolean bCreatedObjects,
 					      const ALString& sOriginClassName, StringVector* svAttributeNames,
-					      ObjectArray* oaCreatedDataPaths)
+					      IntVector* ivAttributeTypes, ObjectArray* oaCreatedDataPaths)
 {
 	KWDataPath* dataPath;
 	KWDataPath* componentDataPath;
@@ -755,6 +950,9 @@ KWDataPath* KWDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClass
 	require(odReferenceClasses->GetCount() == oaRankedReferenceClasses->GetSize());
 	require(mappedClass != NULL);
 	require(sOriginClassName != "");
+	require(svAttributeNames != NULL);
+	require(ivAttributeTypes != NULL);
+	require(svAttributeNames->GetSize() == ivAttributeTypes->GetSize());
 	require(not mappedClass->GetRoot() or mappedClass->GetName() == sOriginClassName);
 	require(not mappedClass->GetRoot() or svAttributeNames->GetSize() == 0);
 	require(oaCreatedDataPaths != NULL);
@@ -766,7 +964,8 @@ KWDataPath* KWDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClass
 		dataPath->SetCreatedObjects(bCreatedObjects);
 	dataPath->SetClassName(mappedClass->GetName());
 	dataPath->SetOriginClassName(sOriginClassName);
-	dataPath->GetAttributeNames()->CopyFrom(svAttributeNames);
+	dataPath->svAttributeNames.CopyFrom(svAttributeNames);
+	dataPath->ivAttributeTypes.CopyFrom(ivAttributeTypes);
 	dataPath->SetDataPathManager(this);
 	assert(LookupDataPath(dataPath->GetDataPath()) == NULL);
 
@@ -791,11 +990,13 @@ KWDataPath* KWDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClass
 					// Creation du dataPath dans une nouvelle table de dataPath temporaire
 					// Contexte: celui de l'appelant
 					svAttributeNames->Add(attribute->GetName());
+					ivAttributeTypes->Add(attribute->GetType());
 					componentDataPath = CreateDataPath(
 					    odReferenceClasses, oaRankedReferenceClasses, odAnalysedCreatedClasses,
 					    attribute->GetClass(), bIsExternalTable, bCreatedObjects, sOriginClassName,
-					    svAttributeNames, oaCreatedDataPaths);
+					    svAttributeNames, ivAttributeTypes, oaCreatedDataPaths);
 					svAttributeNames->SetSize(svAttributeNames->GetSize() - 1);
+					ivAttributeTypes->SetSize(ivAttributeTypes->GetSize() - 1);
 
 					// Chainage du sous-dataPath
 					dataPath->GetComponents()->Add(componentDataPath);
@@ -813,11 +1014,13 @@ KWDataPath* KWDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClass
 					// Creation du dataPath dans une nouvelle table de dataPath temporaire
 					// Contexte: celui de l'appelant, mais avec creation par une rege de derivation
 					svAttributeNames->Add(attribute->GetName());
+					ivAttributeTypes->Add(attribute->GetType());
 					componentDataPath = CreateDataPath(
 					    odReferenceClasses, oaRankedReferenceClasses, odAnalysedCreatedClasses,
 					    attribute->GetClass(), bIsExternalTable, true, sOriginClassName,
-					    svAttributeNames, oaCreatedDataPaths);
+					    svAttributeNames, ivAttributeTypes, oaCreatedDataPaths);
 					svAttributeNames->SetSize(svAttributeNames->GetSize() - 1);
+					ivAttributeTypes->SetSize(ivAttributeTypes->GetSize() - 1);
 
 					// Chainage du sous-dataPath
 					dataPath->GetComponents()->Add(componentDataPath);

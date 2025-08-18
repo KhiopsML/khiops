@@ -291,29 +291,14 @@ public:
 	longint GetLastReadMarkIndex() const;
 
 	////////////////////////////////////////////////////////////////////////////////
-	// Pametrage de la protection memoire des acces en lecture
-	// Permet d'eviter de depasser la memoire en cas d'instance volumineuse a lire et traiter
+	// Acces au service de protection memoire des acces en lecture pour en parametrer
+	// son dimensionnement
+	// Ce service permet d'eviter de depasser la memoire en cas d'instance volumineuse a lire et traiter
 	// Ce parametrage est a effectuer avant ouverture de la base
 
-	// Reinitialisation des parametres la protection memoire
-	void ResetMemoryGuard();
-
-	// Nombre d'enregistrements secondaires au dela duquel une alerte est declenchee
-	// Cela ne declenche qu'un warning informatif en cas de depassement
-	// Parametrage inactif si 0
-	void SetMemoryGuardMaxSecondaryRecordNumber(longint lValue);
-	longint GetMemoryGuardMaxSecondaryRecordNumber() const;
-
-	// Nombre d'instances crees au dela duquel une alerte est declenchee
-	// Cela ne declenche qu'un warning informatif en cas de depassement
-	// Parametrage inactif si 0
-	void SetMemoryGuardMaxCreatedRecordNumber(longint lValue);
-	longint GetMemoryGuardMaxCreatedRecordNumber() const;
-
-	// Limite a ne pas depasser de la memoire utilisable dans la heap pour gerer l'ensemble de la lecture et du
-	// calcul des attributs derivee Parametrage inactif si 0
-	void SetMemoryGuardSingleInstanceMemoryLimit(longint lValue);
-	longint GetMemoryGuardSingleInstanceMemoryLimit() const;
+	// Service de protection memoire
+	KWDatabaseMemoryGuard* GetMemoryGuard();
+	const KWDatabaseMemoryGuard* GetConstMemoryGuard() const;
 
 	////////////////////////////////////////////////////////////////////////////////
 	// Fonctionnalites de base
@@ -827,6 +812,20 @@ inline IntVector* KWDatabase::GetMarkedInstances()
 inline longint KWDatabase::GetLastReadMarkIndex() const
 {
 	return GetPhysicalRecordIndex();
+}
+
+inline KWDatabaseMemoryGuard* KWDatabase::GetMemoryGuard()
+{
+	require(not IsOpenedForRead());
+	require(not IsOpenedForWrite());
+	return &memoryGuard;
+}
+
+inline const KWDatabaseMemoryGuard* KWDatabase::GetConstMemoryGuard() const
+{
+	require(not IsOpenedForRead());
+	require(not IsOpenedForWrite());
+	return &memoryGuard;
 }
 
 inline void KWDatabase::SetVerboseMode(boolean bValue)

@@ -82,6 +82,7 @@ void KWDatabase::CopyFrom(const KWDatabase* kwdSource)
 	sSelectionValue = "";
 	sSelectionSymbol = "";
 	ivMarkedInstances.SetSize(0);
+	memoryGuard.Reset();
 
 	// Recopie des parametres de specification de la base
 	SetDatabaseName(kwdSource->GetDatabaseName());
@@ -517,6 +518,7 @@ boolean KWDatabase::OpenForRead()
 	CompilePhysicalSelection();
 
 	// Initialisation de tous les data paths a destination des objets lus ou cree
+	assert(objectDataPathManager.GetDataPathNumber() == 0);
 	objectDataPathManager.ComputeAllDataPaths(kwcPhysicalClass);
 
 	// Ouverture physique de la base
@@ -2458,55 +2460,6 @@ boolean KWDatabase::CheckSelectionValue(const ALString& sValue) const
 		}
 	}
 	return bOk;
-}
-
-void KWDatabase::ResetMemoryGuard()
-{
-	require(not IsOpenedForRead());
-	require(not IsOpenedForWrite());
-	memoryGuard.Reset();
-}
-
-void KWDatabase::SetMemoryGuardMaxSecondaryRecordNumber(longint lValue)
-{
-	require(not IsOpenedForRead());
-	require(not IsOpenedForWrite());
-	memoryGuard.SetMaxSecondaryRecordNumber(lValue);
-}
-
-longint KWDatabase::GetMemoryGuardMaxSecondaryRecordNumber() const
-{
-	require(not IsOpenedForRead());
-	require(not IsOpenedForWrite());
-	return memoryGuard.GetMaxSecondaryRecordNumber();
-}
-
-void KWDatabase::SetMemoryGuardMaxCreatedRecordNumber(longint lValue)
-{
-	require(not IsOpenedForRead());
-	require(not IsOpenedForWrite());
-	memoryGuard.SetMaxCreatedRecordNumber(lValue);
-}
-
-longint KWDatabase::GetMemoryGuardMaxCreatedRecordNumber() const
-{
-	require(not IsOpenedForRead());
-	require(not IsOpenedForWrite());
-	return memoryGuard.GetMaxCreatedRecordNumber();
-}
-
-void KWDatabase::SetMemoryGuardSingleInstanceMemoryLimit(longint lValue)
-{
-	require(not IsOpenedForRead());
-	require(not IsOpenedForWrite());
-	memoryGuard.SetSingleInstanceMemoryLimit(lValue);
-}
-
-longint KWDatabase::GetMemoryGuardSingleInstanceMemoryLimit() const
-{
-	require(not IsOpenedForRead());
-	require(not IsOpenedForWrite());
-	return memoryGuard.GetSingleInstanceMemoryLimit();
 }
 
 boolean KWDatabase::Check() const

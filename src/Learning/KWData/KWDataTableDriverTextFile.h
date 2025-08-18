@@ -84,10 +84,6 @@ public:
 	// du dictionnaire
 	longint GetEstimatedUsedInputDiskSpacePerObject() const;
 
-	// Estimation heuristique de la memoire utilise par KWObject en se basant sur les variables utilisee du
-	// dictionnaire, natives ou calculees
-	longint GetEstimatedUsedMemoryPerObject() const;
-
 	// Estimation heuristique de la place disque par record d'un fichier a ecrire en se basant sur les variables
 	// utilisees du dictionnaire logique
 	longint GetEstimatedUsedOutputDiskSpacePerObject(const KWClass* kwcLogicalClass) const;
@@ -199,10 +195,8 @@ protected:
 
 	// Constantes pour l'estimation heuristique conservatrice de la taille des champs sur fichier
 	static const int nMinRecordSize = 5;
-	static const int nDenseValueSize = 2;
-	static const int nSparseValueSize = 7;
-	static const int nTextValueSize = 200;
-	static const int nKeyFieldSize = 5;
+	static const int nDiskDenseValueSize = 2;
+	static const int nDiskSparseValueSize = 7;
 };
 
 ////////////////////////////////////////

@@ -64,9 +64,6 @@ public:
 	// Nombre d'objets dans le fichier, estime de facon heuristique
 	longint GetInMemoryEstimatedFileObjectNumber() const;
 
-	// Memoire utilisee par KWObject physique pour le fichier
-	longint GetEstimatedUsedMemoryPerObject() const;
-
 	// Memoire minimum necessaire pour ouvrir la base sans tenir compte des buffers
 	longint GetEmptyOpenNecessaryMemory() const;
 
@@ -82,6 +79,9 @@ public:
 
 	// Calcul de la memoire par buffer pour une memoire allouee pour l'ouverture et un nombre de process
 	int ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory, int nProcessNumber) const;
+
+	// Calcul de la memoire a reserver pour le DatabaseMemoryGuard
+	longint ComputeEstimatedSingleInstanceMemoryLimit(longint lOpenGrantedMemory) const;
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Parametrage des buffers
@@ -111,12 +111,14 @@ public:
 protected:
 	friend class PLShared_STDatabaseTextFile;
 
+	// Calcul des informations necessaires pour la DatabaseMemoryGuard lors de l'ouverture de la base en lecture
+	void ComputeMemoryGuardOpenInformation();
+
 	// Resultat de l'appel de la methode ComputeOpenInformation
 	KWClass kwcHeaderLineClass;
 	longint lTotalFileSize;
 	int nDatabasePreferredBufferSize;
 	longint lInMemoryEstimatedFileObjectNumber;
-	longint lEstimatedUsedMemoryPerObject;
 	longint lOutputNecessaryDiskSpace;
 	longint lEmptyOpenNecessaryMemory;
 	longint lMinOpenNecessaryMemory;

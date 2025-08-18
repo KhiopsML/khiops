@@ -1176,111 +1176,28 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedInputDiskSpacePerObject() con
 	// Estimation de la taille d'un objet natif
 	lNativeObjectSize = nMinRecordSize; // Fin de ligne plus un minimum
 	lNativeObjectSize +=
-	    (longint)nDenseNativeValueNumber * nDenseValueSize; // Valeurs dense de l'objet (valeur + separateur)
+	    (longint)nDenseNativeValueNumber * nDiskDenseValueSize; // Valeurs dense de l'objet (valeur + separateur)
 	lNativeObjectSize +=
 	    (longint)nTextNativeValueNumber *
-	    nTextValueSize; // Longueur moyenne d'un champ texte (entre un ancien et un nouveau tweet...)
-	lNativeObjectSize += (longint)nSparseNativeValueNumber *
-			     nSparseValueSize; // Valeurs sparse de l'objet (cle + ':' + valeur + blanc + separateur)
+	    KWClass::nTextValueSize; // Longueur moyenne d'un champ texte (entre un ancien et un nouveau tweet...)
 	lNativeObjectSize +=
-	    (longint)GetClass()->GetKeyAttributeNumber() * nKeyFieldSize; // Taille des champs de la cle (heuristique)
+	    (longint)nSparseNativeValueNumber *
+	    nDiskSparseValueSize; // Valeurs sparse de l'objet (cle + ':' + valeur + blanc + separateur)
+	lNativeObjectSize += (longint)GetClass()->GetKeyAttributeNumber() *
+			     KWClass::nKeyFieldSize; // Taille des champs de la cle (heuristique)
 
 	// Affichage
 	if (bDisplay)
 	{
-		cout << "\tDictionary\t" << GetClass()->GetName() << endl;
-		cout << "\tDenseNativeValueNumber\t" << nDenseNativeValueNumber << endl;
-		cout << "\tTextNativeValueNumber\t" << nTextNativeValueNumber << endl;
-		cout << "\tSparseNativeValueNumber\t" << nSparseNativeValueNumber << endl;
-		cout << "\tEstimatedNativeObjectSize\t" << lNativeObjectSize << endl;
+		cout << "GetEstimatedUsedInputDiskSpacePerObject"
+		     << "\n";
+		cout << "\tDictionary\t" << GetClass()->GetName() << "\n";
+		cout << "\tDenseNativeValueNumber\t" << nDenseNativeValueNumber << "\n";
+		cout << "\tTextNativeValueNumber\t" << nTextNativeValueNumber << "\n";
+		cout << "\tSparseNativeValueNumber\t" << nSparseNativeValueNumber << "\n";
+		cout << "\tEstimatedNativeObjectSize\t" << lNativeObjectSize << "\n";
 	}
 	return lNativeObjectSize;
-}
-
-longint KWDataTableDriverTextFile::GetEstimatedUsedMemoryPerObject() const
-{
-	boolean bDisplay = false;
-	int nPhysicalTextLoadedValueNumber;
-	int nPhysicalDenseLoadedValueNumber;
-	int nPhysicalSparseLoadedValueNumber;
-	int nPhysicalSparseLoadedValueBlockNumber;
-	int nEstimatedValueNumber;
-	longint lObjectSize;
-	KWAttribute* attribute;
-	KWAttributeBlock* attributeBlock;
-	ObjectDictionary odEmpty;
-
-	require(GetClass() != NULL);
-
-	// Initialisation des statistiques par type d'attribut
-	nPhysicalTextLoadedValueNumber = 0;
-	nPhysicalDenseLoadedValueNumber = 0;
-	nPhysicalSparseLoadedValueNumber = 0;
-	nPhysicalSparseLoadedValueBlockNumber = 0;
-
-	// Calcul des nombres d'attributs charges en memoire dans la classe physique
-	// qui ne memorise que les attributs charges en memoire (natifs ou calcules)
-	// Dans le cas des blocs, on fait une estimation
-	attribute = GetClass()->GetHeadAttribute();
-	while (attribute != NULL)
-	{
-		// Cas des attributs denses
-		if (not attribute->IsInBlock())
-		{
-			if (attribute->GetLoaded())
-			{
-				if (attribute->GetType() == KWType::Text)
-					nPhysicalTextLoadedValueNumber++;
-				nPhysicalDenseLoadedValueNumber++;
-			}
-		}
-		// Cas des attributs dans les blocs
-		else
-		{
-			// Dans ce cas, on se base sur une estimation heuristique du nombre de valeurs presentes
-			// en fonction de la taille globale du bloc (au plus une fois par bloc)
-			if (attribute->IsFirstInBlock())
-			{
-				attributeBlock = attribute->GetAttributeBlock();
-				if (attributeBlock->GetLoaded())
-				{
-					nEstimatedValueNumber =
-					    (int)ceil(KWAttributeBlock::GetEstimatedMeanValueNumber(
-							  attributeBlock->GetAttributeNumber()) *
-						      1.0 * attributeBlock->GetLoadedAttributeNumber() /
-						      attributeBlock->GetAttributeNumber());
-					nPhysicalSparseLoadedValueNumber += nEstimatedValueNumber;
-					nPhysicalSparseLoadedValueBlockNumber++;
-				}
-			}
-		}
-		GetClass()->GetNextAttribute(attribute);
-	}
-
-	// Estimation de la memoire necessaire pour stocker un objet
-	lObjectSize = sizeof(KWObject) + 2 * sizeof(void*); // KWObject a vide
-	lObjectSize +=
-	    nPhysicalDenseLoadedValueNumber * (sizeof(KWValue) + nDenseValueSize); // Valeurs dense de l'objet
-	lObjectSize += (longint)nPhysicalTextLoadedValueNumber * nTextValueSize;   // Valeurs Text de l'objet
-	lObjectSize +=
-	    (longint)nPhysicalSparseLoadedValueNumber * (sizeof(int) + sizeof(KWValue)); // Valeurs sparse de l'objet
-	lObjectSize += (longint)nPhysicalSparseLoadedValueBlockNumber * sizeof(KWSymbolValueBlock);
-	lObjectSize +=
-	    (longint)GetClass()->GetKeyAttributeNumber() *
-	    (Symbol::GetUsedMemoryPerSymbol() + nKeyFieldSize); // Taille des Symbol de la cle (sans leur contenu)
-
-	// Affichage
-	if (bDisplay)
-	{
-		cout << "ComputeNecessaryMemoryForFullExternalRead " << GetDataTableName() << endl;
-		cout << "\tDictionary\t" << GetClass()->GetName() << endl;
-		cout << "\tPhysicalTextLoadedValueNumber\t" << nPhysicalTextLoadedValueNumber << endl;
-		cout << "\tPhysicalDenseLoadedValueNumber\t" << nPhysicalDenseLoadedValueNumber << endl;
-		cout << "\tPhysicalSparseLoadedValueNumber\t" << nPhysicalSparseLoadedValueNumber << endl;
-		cout << "\tPhysicalSparseLoadedValueBlockNumber\t" << nPhysicalSparseLoadedValueBlockNumber << endl;
-		cout << "\tObjectSize\t" << lObjectSize << endl;
-	}
-	return lObjectSize;
 }
 
 longint KWDataTableDriverTextFile::GetEstimatedUsedOutputDiskSpacePerObject(const KWClass* kwcLogicalClass) const
@@ -1372,10 +1289,10 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedOutputDiskSpacePerObject(cons
 	// Estimation de la memoire necessaire pour stocker un objet a ecrire
 	// (generalisation de l'objet natif)
 	lWrittenObjectSize = nMinRecordSize;
-	lWrittenObjectSize += (longint)nDenseLoadedValueNumber * nDenseValueSize;
-	lWrittenObjectSize += (longint)nTextLoadedValueNumber * nTextValueSize;
-	lWrittenObjectSize += (longint)nBlockEstimatedLoadedValueNumber * nSparseValueSize;
-	lWrittenObjectSize += (longint)kwcLogicalClass->GetKeyAttributeNumber() * nKeyFieldSize;
+	lWrittenObjectSize += (longint)nDenseLoadedValueNumber * nDiskDenseValueSize;
+	lWrittenObjectSize += (longint)nTextLoadedValueNumber * KWClass::nTextValueSize;
+	lWrittenObjectSize += (longint)nBlockEstimatedLoadedValueNumber * nDiskSparseValueSize;
+	lWrittenObjectSize += (longint)kwcLogicalClass->GetKeyAttributeNumber() * KWClass::nKeyFieldSize;
 
 	// Correction en cas de format de sortie dense, en comptant un octet de separateur par attribut sparse non prise en compte
 	if (GetDenseOutputFormat())

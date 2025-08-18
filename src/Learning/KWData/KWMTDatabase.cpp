@@ -1231,9 +1231,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 	ALString sTmp;
 	ALString sMessage;
 	boolean bIsInTask;
-	longint lCurrentMemoryGuardMaxSecondaryRecordNumber;
-	longint lCurrentMemoryGuardMaxCreatedRecordNumber;
-	longint lCurrentMemoryGuardSingleInstanceMemoryLimit;
+	KWDatabaseMemoryGuard initialMemoryGuard;
 
 	require(objectReferenceResolver.GetClassNumber() == 0);
 	require(kwcPhysicalClass != NULL);
@@ -1243,9 +1241,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 	// On desactive temporairement le memory guard, le temps de la lecture des objets references
 	// En effet, le dimensionnement est calcule pour pouvoir charger en memoire l'ensemble de toutes
 	// les tables externes, et il n'y a pas a se soucier de la gestion des instances "elephants"
-	lCurrentMemoryGuardMaxSecondaryRecordNumber = memoryGuard.GetMaxSecondaryRecordNumber();
-	lCurrentMemoryGuardMaxCreatedRecordNumber = memoryGuard.GetMaxCreatedRecordNumber();
-	lCurrentMemoryGuardSingleInstanceMemoryLimit = memoryGuard.GetSingleInstanceMemoryLimit();
+	initialMemoryGuard.CopyFrom(&memoryGuard);
 	memoryGuard.Reset();
 
 	// On teste si on en en cours de suivi de tache
@@ -1497,9 +1493,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 	Global::DesactivateErrorFlowControl();
 
 	// On reactive le memory guard
-	memoryGuard.SetMaxSecondaryRecordNumber(lCurrentMemoryGuardMaxSecondaryRecordNumber);
-	memoryGuard.SetMaxCreatedRecordNumber(lCurrentMemoryGuardMaxCreatedRecordNumber);
-	memoryGuard.SetSingleInstanceMemoryLimit(lCurrentMemoryGuardSingleInstanceMemoryLimit);
+	memoryGuard.CopyFrom(&initialMemoryGuard);
 	return bOk;
 }
 
@@ -1580,7 +1574,7 @@ longint KWMTDatabase::ComputeSamplingBasedNecessaryMemoryForReferenceObjects()
 	assert(lSamplingBasedNecessaryMemory >= 0);
 	lSamplingBasedNecessaryMemory = (longint)(lSamplingBasedNecessaryMemory / dSamplePercentage);
 
-	// On passe de la memoire physique a la memoire logique en tenant compte de l'ovehead d'(allocation
+	// On passe de la memoire physique a la memoire logique en tenant compte de l'ovehead d'allocation
 	lSamplingBasedNecessaryMemory = longint(lSamplingBasedNecessaryMemory / (1 + MemGetAllocatorOverhead()));
 	if (bDisplay)
 		cout << "\tSampling based estimation\t" << LongintToHumanReadableString(lSamplingBasedNecessaryMemory)

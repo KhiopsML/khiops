@@ -6,6 +6,7 @@
 
 class KWDataPath;
 class KWDataPathManager;
+class KWClassDomain;
 class KWClass;
 
 #include "Object.h"
@@ -78,6 +79,9 @@ public:
 	// Data path, calcule d'apres les specifications
 	ALString GetDataPath() const;
 
+	// Data path parent a la profondeur donne, entre 0 (courant) et le nombre d'attribut du data path (origine)
+	ALString GetParentDataPathAt(int nDepth) const;
+
 	// Partie du data path relative aux attributs, calculee d'apres les specifications
 	ALString GetDataPathAttributeNames() const;
 
@@ -108,6 +112,9 @@ public:
 	int GetDataPathAttributeNumber() const;
 	const ALString& GetDataPathAttributeNameAt(int nIndex) const;
 
+	// Type des attributs du DataPath
+	int GetDataPathAttributeTypeAt(int nIndex) const;
+
 	// Recherche si l'attribut terminal du DataPath est Used, c'est a dire
 	// si tous les attributs intermediaires sont Used
 	// Utile notamment en ecriture, pour savoir si l'objet sera ecrit
@@ -137,6 +144,31 @@ public:
 	// Collecte de tous les data path de la hierarchie de composition,
 	// y compris le data path courant (data path de la hierarchie)
 	void CollectFullHierarchyComponents(ObjectArray* oaResults);
+
+	////////////////////////////////////////////////////////
+	// Services de dimensionnement pour des data path de creation d'instances
+	// Ne s'applique qu'aux data path correspondant a des objects stockes, en
+	// explorant dans les data paths de leur hierarchie correspondant a des
+	// objects crees par des regles de derivation
+
+	// Estimation heuristique de la memoire necessaire pour creer les sous objets
+	// de la hierarchie par des regles de creation d'instances
+	// Entree :
+	// - un data path correspondant a un objet stocke
+	// Sortie :
+	// - estimation de la memoire pour les objets a creer, en exemplaire unique, ou via des tables
+	// - estimation indicative du nombre total d'instances creees, en exemplaire unique
+	// Les objets uniques sont issus des debut de branches ne comportant que des variable de type Entity
+	// Des que l'on passe par une variable de type Tablle, la sous-branche est systematiquement
+	// en mode exemplaire multiple.
+	// L'estimation est effectuee dans la hierarchie des data paths dediee a la creation
+	// d'instances, en n'explorant pas les sous-branches commencant par un data path
+	// dedie a des instances stockees
+	void ComputeEstimatedMemoryForObjectCreation(KWClassDomain* classDomain,
+						     longint& lEstimatedMemoryForSingleObjectCreation,
+						     longint& lEstimatedMemoryForMultipleObjectCreation,
+						     longint& lEstimatedTotalCreatedSingleObjectNumber,
+						     longint& lEstimatedTotalCreatedMultipleObjectNumber) const;
 
 	////////////////////////////////////////////////////////
 	// Divers
@@ -187,6 +219,7 @@ protected:
 	boolean bExternalTable;
 	ALString sOriginClassName;
 	StringVector svAttributeNames;
+	IntVector ivAttributeTypes;
 	ALString sClassName;
 	ObjectArray oaComponents;
 
@@ -235,7 +268,7 @@ public:
 	const KWDataPath* LookupDataPath(const ALString& sDataPath) const;
 
 	// Warnings pour le cas des tables externes non utilisees, gardees pour generer des warnings
-	// lors du Check d'un base
+	// lors du Check d'une base
 	//
 	// Ce cas arrive si la table principale est une table secondaire d'une table externe qu'elle reference.
 	// Par exemple, dans le cas d'un schema de molecules avec des atomes et des liaisons, les atomes et les liaisons
@@ -287,7 +320,8 @@ protected:
 	KWDataPath* CreateDataPath(ObjectDictionary* odReferenceClasses, ObjectArray* oaRankedReferenceClasses,
 				   ObjectDictionary* odAnalysedCreatedClasses, const KWClass* mappedClass,
 				   boolean bIsExternalTable, boolean bCreatedObjects, const ALString& sOriginClassName,
-				   StringVector* svAttributeNames, ObjectArray* oaCreatedDataPaths);
+				   StringVector* svAttributeNames, IntVector* ivAttributeTypes,
+				   ObjectArray* oaCreatedDataPaths);
 
 	// Affichage d'un tableau de data paths
 	void WriteDataPathArray(ostream& ost, const ALString& sTitle, const ObjectArray* oaDataPathArray) const;
@@ -350,6 +384,12 @@ inline const ALString& KWDataPath::GetDataPathAttributeNameAt(int nIndex) const
 {
 	require(0 <= nIndex and nIndex < GetDataPathAttributeNumber());
 	return svAttributeNames.GetAt(nIndex);
+}
+
+inline int KWDataPath::GetDataPathAttributeTypeAt(int nIndex) const
+{
+	require(0 <= nIndex and nIndex < GetDataPathAttributeNumber());
+	return ivAttributeTypes.GetAt(nIndex);
 }
 
 inline const ALString& KWDataPath::GetClassName() const

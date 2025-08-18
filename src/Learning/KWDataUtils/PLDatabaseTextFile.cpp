@@ -279,15 +279,6 @@ longint PLDatabaseTextFile::GetInMemoryEstimatedFileObjectNumber() const
 		return plstDatabaseTextFile->GetInMemoryEstimatedFileObjectNumber();
 }
 
-longint PLDatabaseTextFile::GetEstimatedUsedMemoryPerObject() const
-{
-	require(IsInitialized());
-	if (IsMultiTableTechnology())
-		return plmtDatabaseTextFile->GetEstimatedUsedMemoryPerObject()->GetAt(0);
-	else
-		return plstDatabaseTextFile->GetEstimatedUsedMemoryPerObject();
-}
-
 longint PLDatabaseTextFile::GetEmptyOpenNecessaryMemory() const
 {
 	require(IsInitialized());
@@ -358,6 +349,15 @@ int PLDatabaseTextFile::GetBufferSize() const
 		return plmtDatabaseTextFile->GetBufferSize();
 	else
 		return plstDatabaseTextFile->GetBufferSize();
+}
+
+longint PLDatabaseTextFile::ComputeEstimatedSingleInstanceMemoryLimit(longint lOpenGrantedMemory) const
+{
+	require(IsInitialized());
+	if (IsMultiTableTechnology())
+		return plmtDatabaseTextFile->ComputeEstimatedSingleInstanceMemoryLimit(lOpenGrantedMemory);
+	else
+		return plstDatabaseTextFile->ComputeEstimatedSingleInstanceMemoryLimit(lOpenGrantedMemory);
 }
 
 void PLDatabaseTextFile::PhysicalDeleteDatabase()

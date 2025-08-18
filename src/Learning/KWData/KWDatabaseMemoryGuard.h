@@ -47,14 +47,25 @@ public:
 	void SetMaxCreatedRecordNumber(longint lValue);
 	longint GetMaxCreatedRecordNumber() const;
 
-	// Limite de la memoire utilisable pour une instance pour gerer l'ensemble de la lecture et du calcul des
-	// attributs derivee
+	// Limite de la memoire utilisable pour une instance pour gerer l'ensemble
+	// de la lecture et du calcul des attributs derivee
 	// Attention: il s'agit ici d'une limite memoire physique dans la RAM, avec prise en compte de
 	// l'overhead d'allocation
 	// Cela concerne toutes les methodes liees a la memoire de cette classe
 	// Parametrage inactif si 0
 	void SetSingleInstanceMemoryLimit(longint lValue);
 	longint GetSingleInstanceMemoryLimit() const;
+
+	// Estimation du minimum de la memoire utilisable pour une instance
+	void SetEstimatedMinSingleInstanceMemoryLimit(longint lValue);
+	longint GetEstimatedMinSingleInstanceMemoryLimit() const;
+
+	// Estimation du maximum de la memoire utilisable pour une instance
+	void SetEstimatedMaxSingleInstanceMemoryLimit(longint lValue);
+	longint GetEstimatedMaxSingleInstanceMemoryLimit() const;
+
+	// Copie, uniquement des attributs de base de la specification
+	void CopyFrom(const KWDatabaseMemoryGuard* aSource);
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Gestion des lectures et des calculs d'attributs d'un enregistrement
@@ -183,7 +194,10 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Services standards
 
-	// Affichage detaille des
+	// Affichage detaille du parametrage uniquement
+	void WriteParameters(ostream& ost) const;
+
+	// Affichage detaille des caracteristiques completes
 	void Write(ostream& ost) const override;
 
 	// Libelles utilisateurs
@@ -258,6 +272,8 @@ protected:
 	// Variables d'instance
 	ALString sMainObjectKey;
 	longint lSingleInstanceMemoryLimit;
+	longint lEstimatedMinSingleInstanceMemoryLimit;
+	longint lEstimatedMaxSingleInstanceMemoryLimit;
 	longint lInitialHeapMemory;
 	longint lMaxHeapMemory;
 	longint lCurrentHeapMemory;

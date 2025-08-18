@@ -9,7 +9,6 @@ PLSTDatabaseTextFile::PLSTDatabaseTextFile()
 	lTotalFileSize = 0;
 	nDatabasePreferredBufferSize = 0;
 	lInMemoryEstimatedFileObjectNumber = 0;
-	lEstimatedUsedMemoryPerObject = 0;
 	lOutputNecessaryDiskSpace = 0;
 	lEmptyOpenNecessaryMemory = 0;
 	lMinOpenNecessaryMemory = 0;
@@ -38,7 +37,7 @@ boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 						     PLSTDatabaseTextFile* outputDatabaseTextFile)
 {
 	boolean bOk = true;
-	boolean bDisplay = GetPreparationTraceMode();
+	const boolean bTrace = GetPreparationTraceMode();
 	PLDataTableDriverTextFile* driver;
 	boolean bCurrentVerboseMode;
 	KWClass* kwcUsedHeaderLineClass;
@@ -105,15 +104,15 @@ boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 		// Memorisation de l'estimation du nombre d'objet du fichier
 		lInMemoryEstimatedFileObjectNumber = driver->GetInMemoryEstimatedObjectNumber(lTotalFileSize);
 
-		// Memorisation de la memoire utilisee par KWObject
-		lEstimatedUsedMemoryPerObject = driver->GetEstimatedUsedMemoryPerObject();
-
 		// Calcul de la taille memoire en sortie
 		if (outputDatabaseTextFile != NULL)
 		{
 			lOutputNecessaryDiskSpace =
 			    driver->ComputeNecessaryDiskSpaceForFullWrite(kwcClass, lTotalFileSize);
 		}
+
+		// Calcul des informations necessaires pour la DatabaseMemoryGuard
+		ComputeMemoryGuardOpenInformation();
 
 		// Nettoyage
 		driver->SetClass(NULL);
@@ -186,18 +185,26 @@ boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 		lMaxOpenNecessaryMemory += lEmptyOpenNecessaryMemory * 2;
 	}
 
-	// Affichage
-	if (bDisplay)
+	// Mise a jour des min et max de memoire necessaire, en tenant compte du DatabaseMemoryGuard
+	if (bOk)
 	{
-		cout << "PLSTDatabaseTextFile::ComputeOpenInformation " << bRead << endl;
+		lMinOpenNecessaryMemory += GetMemoryGuard()->GetEstimatedMinSingleInstanceMemoryLimit();
+		lMaxOpenNecessaryMemory += GetMemoryGuard()->GetEstimatedMaxSingleInstanceMemoryLimit();
+	}
+
+	// Affichage
+	if (bTrace)
+	{
+		cout << "PLSTDatabaseTextFile::ComputeOpenInformation " << bRead << "\n";
 		cout << "\tDatabaseClassNecessaryMemory\t"
-		     << LongintToHumanReadableString(lDatabaseClassNecessaryMemory) << endl;
+		     << LongintToHumanReadableString(lDatabaseClassNecessaryMemory) << "\n";
 		cout << "\tEmptyOpenNecessaryMemory\t" << LongintToHumanReadableString(lEmptyOpenNecessaryMemory)
-		     << endl;
-		cout << "\tMinOpenBufferSize\t" << LongintToHumanReadableString(nReadSizeMin) << endl;
-		cout << "\tMinOpenNecessaryMemory\t" << LongintToHumanReadableString(lMinOpenNecessaryMemory) << endl;
-		cout << "\tMaxOpenBufferSize\t" << LongintToHumanReadableString(nReadSizeMax) << endl;
-		cout << "\tMaxOpenNecessaryMemory\t" << LongintToHumanReadableString(lMaxOpenNecessaryMemory) << endl;
+		     << "\n";
+		cout << "\tMinOpenBufferSize\t" << LongintToHumanReadableString(nReadSizeMin) << "\n";
+		cout << "\tMinOpenNecessaryMemory\t" << LongintToHumanReadableString(lMinOpenNecessaryMemory) << "\n";
+		cout << "\tMaxOpenBufferSize\t" << LongintToHumanReadableString(nReadSizeMax) << "\n";
+		cout << "\tMaxOpenNecessaryMemory\t" << LongintToHumanReadableString(lMaxOpenNecessaryMemory) << "\n";
+		GetMemoryGuard()->WriteParameters(cout);
 	}
 
 	// Nettoyage
@@ -215,13 +222,13 @@ void PLSTDatabaseTextFile::CleanOpenInformation()
 {
 	nDatabasePreferredBufferSize = 0;
 	lInMemoryEstimatedFileObjectNumber = 0;
-	lEstimatedUsedMemoryPerObject = 0;
 	lOutputNecessaryDiskSpace = 0;
 	lEmptyOpenNecessaryMemory = 0;
 	lMinOpenNecessaryMemory = 0;
 	lMaxOpenNecessaryMemory = 0;
 	nReadSizeMin = 0;
 	nReadSizeMax = 0;
+	GetMemoryGuard()->Reset();
 }
 
 boolean PLSTDatabaseTextFile::IsOpenInformationComputed() const
@@ -265,12 +272,6 @@ longint PLSTDatabaseTextFile::GetInMemoryEstimatedFileObjectNumber() const
 	return lInMemoryEstimatedFileObjectNumber;
 }
 
-longint PLSTDatabaseTextFile::GetEstimatedUsedMemoryPerObject() const
-{
-	require(IsOpenInformationComputed());
-	return lEstimatedUsedMemoryPerObject;
-}
-
 longint PLSTDatabaseTextFile::GetEmptyOpenNecessaryMemory() const
 {
 	require(IsOpenInformationComputed());
@@ -304,6 +305,7 @@ int PLSTDatabaseTextFile::GetMaxSlaveProcessNumber() const
 int PLSTDatabaseTextFile::ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory, int nProcessNumber) const
 {
 	boolean bDisplay = false;
+	longint lOpenGrantedMemoryForBuffers;
 	int nBufferSize;
 
 	require(IsOpenInformationComputed());
@@ -320,11 +322,15 @@ int PLSTDatabaseTextFile::ComputeOpenBufferSize(boolean bRead, longint lOpenGran
 	// Cas d'un dimensionnement intermediaire
 	else
 	{
+		// Calcul de la partie de la memoire pour les buffers
+		lOpenGrantedMemoryForBuffers =
+		    lOpenGrantedMemory - ComputeEstimatedSingleInstanceMemoryLimit(lOpenGrantedMemory);
+		assert(nReadSizeMin <= lOpenGrantedMemoryForBuffers and lOpenGrantedMemoryForBuffers <= nReadSizeMax);
+
 		// Calcul de la taille au prorata de la memoire disponible
-		nBufferSize =
-		    nReadSizeMin +
-		    (int)floor(((nReadSizeMax - nReadSizeMin) * 1.0 * (lOpenGrantedMemory - lMinOpenNecessaryMemory)) /
-			       (lMaxOpenNecessaryMemory - lMinOpenNecessaryMemory));
+		nBufferSize = nReadSizeMin + (int)floor(((nReadSizeMax - nReadSizeMin) * 1.0 *
+							 (lOpenGrantedMemoryForBuffers - lMinOpenNecessaryMemory)) /
+							(lMaxOpenNecessaryMemory - lMinOpenNecessaryMemory));
 	}
 
 	// En lecture, chaque esclave doit lire au moins 5 buffer (pour que le travail soit bien reparti entre les
@@ -360,6 +366,39 @@ int PLSTDatabaseTextFile::ComputeOpenBufferSize(boolean bRead, longint lOpenGran
 	       lTotalFileSize < SystemFile::nMinPreferredBufferSize);
 	ensure(nBufferSize > 0 or lTotalFileSize == 0);
 	return nBufferSize;
+}
+
+longint PLSTDatabaseTextFile::ComputeEstimatedSingleInstanceMemoryLimit(longint lOpenGrantedMemory) const
+{
+	longint lEstimatedSingleInstanceMemoryLimit;
+	double dPercentage;
+
+	require(IsOpenInformationComputed());
+	require(lMinOpenNecessaryMemory <= lOpenGrantedMemory);
+	require(lOpenGrantedMemory <= lMaxOpenNecessaryMemory);
+
+	// Cas ou on a alloue le min
+	if (lOpenGrantedMemory == lMinOpenNecessaryMemory)
+		lEstimatedSingleInstanceMemoryLimit = GetConstMemoryGuard()->GetEstimatedMinSingleInstanceMemoryLimit();
+	// Cas ou on a alloue le min
+	else if (lOpenGrantedMemory == lMaxOpenNecessaryMemory)
+		lEstimatedSingleInstanceMemoryLimit = GetConstMemoryGuard()->GetEstimatedMaxSingleInstanceMemoryLimit();
+	// Cas intermediaire
+	else
+	{
+		// Calcul selon une regle de 3
+		dPercentage = (lOpenGrantedMemory - lMinOpenNecessaryMemory) * 1.0 /
+			      (lMaxOpenNecessaryMemory - lMinOpenNecessaryMemory);
+		lEstimatedSingleInstanceMemoryLimit =
+		    GetConstMemoryGuard()->GetEstimatedMinSingleInstanceMemoryLimit() +
+		    longint(dPercentage * (GetConstMemoryGuard()->GetEstimatedMaxSingleInstanceMemoryLimit() -
+					   GetConstMemoryGuard()->GetEstimatedMinSingleInstanceMemoryLimit()));
+	}
+	ensure(
+	    GetConstMemoryGuard()->GetEstimatedMinSingleInstanceMemoryLimit() <= lEstimatedSingleInstanceMemoryLimit and
+	    lEstimatedSingleInstanceMemoryLimit <= GetConstMemoryGuard()->GetEstimatedMaxSingleInstanceMemoryLimit());
+	ensure(lEstimatedSingleInstanceMemoryLimit <= lOpenGrantedMemory);
+	return lEstimatedSingleInstanceMemoryLimit;
 }
 
 void PLSTDatabaseTextFile::SetBufferSize(int nSize)
@@ -400,6 +439,99 @@ PLDataTableDriverTextFile* PLSTDatabaseTextFile::GetDriver()
 void PLSTDatabaseTextFile::PhysicalDeleteDatabase()
 {
 	KWSTDatabaseTextFile::PhysicalDeleteDatabase();
+}
+
+void PLSTDatabaseTextFile::ComputeMemoryGuardOpenInformation()
+{
+	const boolean bTrace = false;
+	PLDataTableDriverTextFile* driver;
+	longint lUsedMemoryPerObject;
+	longint lEstimatedMemoryForSingleObjectCreation;
+	longint lEstimatedMemoryForMultipleObjectCreation;
+	longint lEstimatedTotalCreatedSingleObjectNumber;
+	longint lEstimatedTotalCreatedMultipleObjectNumber;
+	longint lUsedMemoryForTableSelection;
+	longint lTotalMaxCreatedRecordNumber;
+	longint lEstimatedMinSingleInstanceMemoryLimit;
+	longint lEstimatedMaxSingleInstanceMemoryLimit;
+	const KWDataPath* dataPath;
+
+	// Initialisation des resultats
+	GetMemoryGuard()->Reset();
+	lTotalMaxCreatedRecordNumber = 0;
+	lEstimatedMinSingleInstanceMemoryLimit = 0;
+	lEstimatedMaxSingleInstanceMemoryLimit = 0;
+
+	// Initialisation de tous les data paths a destination des objets lus ou cree
+	// pour le dimensionnement des objets cree
+	assert(objectDataPathManager.GetDataPathNumber() == 0);
+	objectDataPathManager.ComputeAllDataPaths(kwcPhysicalClass);
+
+	// Acces au driver
+	driver = cast(PLDataTableDriverTextFile*, GetDataTableDriver());
+	assert(driver != NULL);
+
+	// Stats sur les records
+	lUsedMemoryPerObject = driver->GetClass()->GetEstimatedUsedMemoryPerObject();
+
+	// Cas de la table principale
+	lEstimatedMinSingleInstanceMemoryLimit = lUsedMemoryPerObject;
+	lEstimatedMaxSingleInstanceMemoryLimit = lUsedMemoryPerObject;
+
+	// Estimation des stats sur les objets crees dans la hierarchie
+	dataPath = objectDataPathManager.GetMainDataPath();
+	dataPath->ComputeEstimatedMemoryForObjectCreation(
+	    driver->GetClass()->GetDomain(), lEstimatedMemoryForSingleObjectCreation,
+	    lEstimatedMemoryForMultipleObjectCreation, lEstimatedTotalCreatedSingleObjectNumber,
+	    lEstimatedTotalCreatedMultipleObjectNumber);
+
+	// Prise en compte de la memoire pour les objets crees
+	lTotalMaxCreatedRecordNumber += lEstimatedTotalCreatedSingleObjectNumber +
+					lEstimatedTotalCreatedMultipleObjectNumber *
+					    KWDatabaseMemoryGuard::GetDefautMaxSecondaryRecordNumberFactor();
+	lEstimatedMinSingleInstanceMemoryLimit += lEstimatedMemoryForSingleObjectCreation +
+						  lEstimatedMemoryForMultipleObjectCreation *
+						      KWDatabaseMemoryGuard::GetDefautMinSecondaryRecordNumberFactor();
+	lEstimatedMaxSingleInstanceMemoryLimit += lEstimatedMemoryForSingleObjectCreation +
+						  lEstimatedMemoryForMultipleObjectCreation *
+						      KWDatabaseMemoryGuard::GetDefautMaxSecondaryRecordNumberFactor();
+
+	// Prise en compte pour le dimensionnement, en prenant un peu de marge pour les variables
+	// secondaires memorisant des selections
+	lUsedMemoryForTableSelection =
+	    sizeof(KWObject*) + sizeof(KWValueIndexPair) + sizeof(ObjectArray*) + sizeof(ObjectArray);
+	lEstimatedMinSingleInstanceMemoryLimit += (lUsedMemoryPerObject + lUsedMemoryForTableSelection);
+	lEstimatedMaxSingleInstanceMemoryLimit += (lUsedMemoryPerObject + lUsedMemoryForTableSelection);
+
+	// On utilise une limite minimale au nombre max de records secondaires ou crees,
+	// pour de pas declencher de warning utilisateurs excessifs
+	lTotalMaxCreatedRecordNumber =
+	    max(lTotalMaxCreatedRecordNumber, KWDatabaseMemoryGuard::GetDefautMinSecondaryRecordNumberLowerBound());
+
+	// On utilise une limite minimale a la memoire RAM, pour de pas declencher de warning utilisateurs excessifs
+	lEstimatedMinSingleInstanceMemoryLimit += BufferedFile::nDefaultBufferSize / 8;
+	lEstimatedMaxSingleInstanceMemoryLimit += 2 * BufferedFile::nDefaultBufferSize;
+
+	// Destruction des data paths de gestion des objets
+	objectDataPathManager.Reset();
+
+	// Memorisation dans le memory guard
+	GetMemoryGuard()->SetMaxSecondaryRecordNumber(0);
+	GetMemoryGuard()->SetMaxCreatedRecordNumber(lTotalMaxCreatedRecordNumber);
+	GetMemoryGuard()->SetEstimatedMinSingleInstanceMemoryLimit(lEstimatedMinSingleInstanceMemoryLimit);
+	GetMemoryGuard()->SetEstimatedMaxSingleInstanceMemoryLimit(lEstimatedMaxSingleInstanceMemoryLimit);
+
+	// Affichage
+	if (bTrace)
+	{
+		cout << "ComputeMemoryGuardOpenInformation\t" << GetDatabaseName() << "\n";
+		cout << "\tUsedMemoryPerObject\t" << lUsedMemoryPerObject << "\n";
+		cout << "\tMemoryForSingleObjectCreation\t" << lEstimatedMemoryForSingleObjectCreation << "\n";
+		cout << "\tMemoryForMultipleObjectCreation\t" << lEstimatedMemoryForMultipleObjectCreation << "\n";
+		cout << "\tTotalCreatedSingleObjectNumber\t" << lEstimatedTotalCreatedSingleObjectNumber << "\n";
+		cout << "\tTotalCreatedMultipleObjectNumber\t" << lEstimatedTotalCreatedMultipleObjectNumber << "\n";
+		GetMemoryGuard()->WriteParameters(cout);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -448,7 +580,6 @@ void PLShared_STDatabaseTextFile::SerializeObject(PLSerializer* serializer, cons
 	serializer->PutLongint(database->lTotalFileSize);
 	serializer->PutInt(database->nDatabasePreferredBufferSize);
 	serializer->PutLongint(database->lInMemoryEstimatedFileObjectNumber);
-	serializer->PutLongint(database->lEstimatedUsedMemoryPerObject);
 	serializer->PutLongint(database->lOutputNecessaryDiskSpace);
 	serializer->PutLongint(database->lEmptyOpenNecessaryMemory);
 	serializer->PutLongint(database->lMinOpenNecessaryMemory);
@@ -461,9 +592,11 @@ void PLShared_STDatabaseTextFile::SerializeObject(PLSerializer* serializer, cons
 	serializer->PutInt(database->GetBufferSize());
 
 	// Ecriture des parametres du memory guard
-	serializer->PutLongint(database->GetMemoryGuardMaxSecondaryRecordNumber());
-	serializer->PutLongint(database->GetMemoryGuardMaxCreatedRecordNumber());
-	serializer->PutLongint(database->GetMemoryGuardSingleInstanceMemoryLimit());
+	serializer->PutLongint(database->GetConstMemoryGuard()->GetMaxSecondaryRecordNumber());
+	serializer->PutLongint(database->GetConstMemoryGuard()->GetMaxCreatedRecordNumber());
+	serializer->PutLongint(database->GetConstMemoryGuard()->GetEstimatedMinSingleInstanceMemoryLimit());
+	serializer->PutLongint(database->GetConstMemoryGuard()->GetEstimatedMaxSingleInstanceMemoryLimit());
+	serializer->PutLongint(database->GetConstMemoryGuard()->GetSingleInstanceMemoryLimit());
 	serializer->PutLongint(KWDatabaseMemoryGuard::GetCrashTestMaxSecondaryRecordNumber());
 	serializer->PutLongint(KWDatabaseMemoryGuard::GetCrashTestMaxCreatedRecordNumber());
 	serializer->PutLongint(KWDatabaseMemoryGuard::GetCrashTestSingleInstanceMemoryLimit());
@@ -497,7 +630,6 @@ void PLShared_STDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 	database->lTotalFileSize = serializer->GetLongint();
 	database->nDatabasePreferredBufferSize = serializer->GetInt();
 	database->lInMemoryEstimatedFileObjectNumber = serializer->GetLongint();
-	database->lEstimatedUsedMemoryPerObject = serializer->GetLongint();
 	database->lOutputNecessaryDiskSpace = serializer->GetLongint();
 	database->lEmptyOpenNecessaryMemory = serializer->GetLongint();
 	database->lMinOpenNecessaryMemory = serializer->GetLongint();
@@ -510,9 +642,11 @@ void PLShared_STDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 	database->SetBufferSize(serializer->GetInt());
 
 	// Lecture des parametres du memory guard
-	database->SetMemoryGuardMaxSecondaryRecordNumber(serializer->GetLongint());
-	database->SetMemoryGuardMaxCreatedRecordNumber(serializer->GetLongint());
-	database->SetMemoryGuardSingleInstanceMemoryLimit(serializer->GetLongint());
+	database->GetMemoryGuard()->SetMaxSecondaryRecordNumber(serializer->GetLongint());
+	database->GetMemoryGuard()->SetMaxCreatedRecordNumber(serializer->GetLongint());
+	database->GetMemoryGuard()->SetEstimatedMinSingleInstanceMemoryLimit(serializer->GetLongint());
+	database->GetMemoryGuard()->SetEstimatedMaxSingleInstanceMemoryLimit(serializer->GetLongint());
+	database->GetMemoryGuard()->SetSingleInstanceMemoryLimit(serializer->GetLongint());
 	KWDatabaseMemoryGuard::SetCrashTestMaxSecondaryRecordNumber(serializer->GetLongint());
 	KWDatabaseMemoryGuard::SetCrashTestMaxCreatedRecordNumber(serializer->GetLongint());
 	KWDatabaseMemoryGuard::SetCrashTestSingleInstanceMemoryLimit(serializer->GetLongint());

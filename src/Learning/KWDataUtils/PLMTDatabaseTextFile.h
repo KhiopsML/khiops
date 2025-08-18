@@ -79,10 +79,6 @@ public:
 	// Renvoie 0 pour les fichiers des tables non encore utilisees
 	const LongintVector* GetInMemoryEstimatedFileObjectNumbers() const;
 
-	// Memoire utilisee par KWObject physique pour chaque fichier
-	// Renvoie 0 pour les fichiers des tables non concernees
-	const LongintVector* GetEstimatedUsedMemoryPerObject() const;
-
 	// Nombre de tables principales, hors tables externes, avec des fichiers locaux (sans URI)
 	int GetMainLocalTableNumber() const;
 
@@ -96,15 +92,6 @@ public:
 
 	// Memoire necessaire pour stocker le fichier d'une base en sortie a partir d'une base en lecture (0 sinon)
 	longint GetOutputNecessaryDiskSpace() const;
-
-	// Nombre max de records secondaires pour la parametrage du DatabaseMemoryGuard
-	// On renvoie 0 s'il n'est pas necessaire d'activer le DatabaseMemoryGuard, meme si
-	// on reserve de la memoire pour sa gestion
-	longint GetEstimatedMaxSecondaryRecordNumber() const;
-
-	// Memoire minimum et maximum necessaire pour le parametrage du DatabaseMemoryGuard
-	longint GetEstimatedMinSingleInstanceMemoryLimit() const;
-	longint GetEstimatedMaxSingleInstanceMemoryLimit() const;
 
 	// Nombre maximum de taches elementaires qui devront etre traitees par les esclaves
 	int GetMaxSlaveProcessNumber() const;
@@ -197,15 +184,11 @@ protected:
 	longint lTotalUsedFileSize;
 	int nDatabasePreferredBufferSize;
 	LongintVector lvInMemoryEstimatedFileObjectNumbers;
-	LongintVector lvEstimatedUsedMemoryPerObject;
 	int nMainLocalTableNumber;
 	longint lOutputNecessaryDiskSpace;
 	longint lEmptyOpenNecessaryMemory;
 	longint lMinOpenNecessaryMemory;
 	longint lMaxOpenNecessaryMemory;
-	longint lEstimatedMaxSecondaryRecordNumber;
-	longint lEstimatedMinSingleInstanceMemoryLimit;
-	longint lEstimatedMaxSingleInstanceMemoryLimit;
 
 	// Definition des exigences pour la taille du buffer
 	// La taille de buffer est porte par le driver

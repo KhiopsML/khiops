@@ -65,7 +65,7 @@ public:
 	// Index de creation principal, servant de reference aux instances crees dans son contexte
 	longint GetMainCreationIndex() const;
 
-	// Obtention d'un nouvel index de creation, a memoirser our chaque nouvel objet cree
+	// Obtention d'un nouvel index de creation, a memoriser pour chaque nouvel objet cree
 	longint NewCreationIndex() const;
 
 	// Acces au nombre d'objet crees

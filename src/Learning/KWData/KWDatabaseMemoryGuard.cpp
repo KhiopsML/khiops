@@ -20,6 +20,8 @@ void KWDatabaseMemoryGuard::Reset()
 	lMaxSecondaryRecordNumber = 0;
 	lMaxCreatedRecordNumber = 0;
 	lSingleInstanceMemoryLimit = 0;
+	lEstimatedMinSingleInstanceMemoryLimit = 0;
+	lEstimatedMaxSingleInstanceMemoryLimit = 0;
 	Init();
 }
 
@@ -48,12 +50,48 @@ longint KWDatabaseMemoryGuard::GetMaxCreatedRecordNumber() const
 void KWDatabaseMemoryGuard::SetSingleInstanceMemoryLimit(longint lValue)
 {
 	require(lValue >= 0);
+	require(GetEstimatedMinSingleInstanceMemoryLimit() <= lValue);
+	require(lValue <= GetEstimatedMaxSingleInstanceMemoryLimit());
 	lSingleInstanceMemoryLimit = lValue;
 }
 
 longint KWDatabaseMemoryGuard::GetSingleInstanceMemoryLimit() const
 {
+	ensure(GetEstimatedMinSingleInstanceMemoryLimit() <= lSingleInstanceMemoryLimit);
+	ensure(lSingleInstanceMemoryLimit <= GetEstimatedMaxSingleInstanceMemoryLimit());
 	return lSingleInstanceMemoryLimit;
+}
+
+void KWDatabaseMemoryGuard::SetEstimatedMinSingleInstanceMemoryLimit(longint lValue)
+{
+	require(lValue >= 0);
+	lEstimatedMinSingleInstanceMemoryLimit = lValue;
+}
+
+longint KWDatabaseMemoryGuard::GetEstimatedMinSingleInstanceMemoryLimit() const
+{
+	return lEstimatedMinSingleInstanceMemoryLimit;
+}
+
+void KWDatabaseMemoryGuard::SetEstimatedMaxSingleInstanceMemoryLimit(longint lValue)
+{
+	require(lValue >= 0);
+	lEstimatedMaxSingleInstanceMemoryLimit = lValue;
+}
+
+longint KWDatabaseMemoryGuard::GetEstimatedMaxSingleInstanceMemoryLimit() const
+{
+	return lEstimatedMaxSingleInstanceMemoryLimit;
+}
+
+void KWDatabaseMemoryGuard::CopyFrom(const KWDatabaseMemoryGuard* aSource)
+{
+	Reset();
+	lMaxSecondaryRecordNumber = aSource->lMaxSecondaryRecordNumber;
+	lMaxCreatedRecordNumber = aSource->lMaxCreatedRecordNumber;
+	lSingleInstanceMemoryLimit = aSource->lSingleInstanceMemoryLimit;
+	lEstimatedMinSingleInstanceMemoryLimit = aSource->lEstimatedMinSingleInstanceMemoryLimit;
+	lEstimatedMaxSingleInstanceMemoryLimit = aSource->lEstimatedMaxSingleInstanceMemoryLimit;
 }
 
 void KWDatabaseMemoryGuard::Init()
@@ -402,23 +440,43 @@ longint KWDatabaseMemoryGuard::GetCrashTestSingleInstanceMemoryLimit()
 	return lCrashTestSingleInstanceMemoryLimit;
 }
 
+void KWDatabaseMemoryGuard::WriteParameters(ostream& ost) const
+{
+	ost << GetClassLabel() << "\n";
+	cout << "\tMaxSecondaryRecordNumber\t" << LongintToReadableString(lMaxSecondaryRecordNumber) << "\n";
+	cout << "\tMaxCreatedRecordNumber\t" << LongintToReadableString(lMaxCreatedRecordNumber) << "\n";
+	cout << "\tSingleInstanceMemoryLimit\t" << LongintToHumanReadableString(lSingleInstanceMemoryLimit) << "\n";
+	cout << "\tEstimatedMinSingleInstanceMemoryLimit\t"
+	     << LongintToHumanReadableString(lEstimatedMinSingleInstanceMemoryLimit) << "\n";
+	cout << "\tEstimatedMaxSingleInstanceMemoryLimit\t"
+	     << LongintToHumanReadableString(lEstimatedMaxSingleInstanceMemoryLimit) << "\n";
+}
+
 void KWDatabaseMemoryGuard::Write(ostream& ost) const
 {
 	ost << GetClassLabel() << "\n";
 	cout << "\tMainObjectKey\t" << sMainObjectKey << "\n";
-	cout << "\tMaxSecondaryRecordNumber\t" << lMaxSecondaryRecordNumber << "\n";
-	cout << "\tMaxCreatedRecordNumber\t" << lMaxCreatedRecordNumber << "\n";
-	cout << "\tSingleInstanceMemoryLimit\t" << lSingleInstanceMemoryLimit << "\n";
+	cout << "\tMaxSecondaryRecordNumber\t" << LongintToReadableString(lMaxSecondaryRecordNumber) << "\n";
+	cout << "\tMaxCreatedRecordNumber\t" << LongintToReadableString(lMaxCreatedRecordNumber) << "\n";
+	cout << "\tSingleInstanceMemoryLimit\t" << LongintToHumanReadableString(lSingleInstanceMemoryLimit) << "\n";
+	cout << "\tEstimatedMinSingleInstanceMemoryLimit\t"
+	     << LongintToHumanReadableString(lEstimatedMinSingleInstanceMemoryLimit) << "\n";
+	cout << "\tEstimatedMaxSingleInstanceMemoryLimit\t"
+	     << LongintToHumanReadableString(lEstimatedMaxSingleInstanceMemoryLimit) << "\n";
 	cout << "\tIsSingleInstanceMemoryLimitReached\t" << bIsSingleInstanceMemoryLimitReached << "\n";
-	cout << "\tInitialHeapMemory\t" << lInitialHeapMemory << "\n";
-	cout << "\tMaxHeapMemory\t" << lMaxHeapMemory << "\n";
-	cout << "\tCurrentHeapMemory\t" << lCurrentHeapMemory << "\n";
-	cout << "\tReadSecondaryRecordNumberBeforeLimit\t" << lReadSecondaryRecordNumberBeforeLimit << "\n";
-	cout << "\tTotalReadSecondaryRecordNumber\t" << lTotalReadSecondaryRecordNumber << "\n";
-	cout << "\tCreatedRecordNumberBeforeLimit\t" << lCreatedRecordNumberBeforeLimit << "\n";
-	cout << "\tTotalCreatedRecordNumber\t" << lTotalCreatedRecordNumber << "\n";
-	cout << "\tComputedAttributeNumberBeforeLimit\t" << nComputedAttributeNumberBeforeLimit << "\n";
-	cout << "\tTotalComputedAttributeNumber\t" << nTotalComputedAttributeNumber << "\n";
+	cout << "\tInitialHeapMemory\t" << LongintToHumanReadableString(lInitialHeapMemory) << "\n";
+	cout << "\tMaxHeapMemory\t" << LongintToHumanReadableString(lMaxHeapMemory) << "\n";
+	cout << "\tCurrentHeapMemory\t" << LongintToHumanReadableString(lCurrentHeapMemory) << "\n";
+	cout << "\tReadSecondaryRecordNumberBeforeLimit\t"
+	     << LongintToReadableString(lReadSecondaryRecordNumberBeforeLimit) << "\n";
+	cout << "\tTotalReadSecondaryRecordNumber\t" << LongintToReadableString(lTotalReadSecondaryRecordNumber)
+	     << "\n";
+	cout << "\tCreatedRecordNumberBeforeLimit\t" << LongintToReadableString(lCreatedRecordNumberBeforeLimit)
+	     << "\n";
+	cout << "\tTotalCreatedRecordNumber\t" << LongintToHumanReadableString(lTotalCreatedRecordNumber) << "\n";
+	cout << "\tComputedAttributeNumberBeforeLimit\t" << LongintToReadableString(nComputedAttributeNumberBeforeLimit)
+	     << "\n";
+	cout << "\tTotalComputedAttributeNumber\t" << LongintToReadableString(nTotalComputedAttributeNumber) << "\n";
 }
 
 const ALString KWDatabaseMemoryGuard::GetClassLabel() const
