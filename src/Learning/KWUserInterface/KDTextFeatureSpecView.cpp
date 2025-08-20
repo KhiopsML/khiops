@@ -28,12 +28,12 @@ KDTextFeatureSpecView::KDTextFeatureSpecView()
 		"\n - tokens : text tokens whose interpretability and interest depend on the quality of the input text "
 		"preprocessing."
 		"\n"
-		"\n The \"words\" automatic tokenization process uses separator or control characters as delimiters."
+		"\n The \"words\" automatic tokenization process uses space or control characters as delimiters."
 		"\n The obtained words are either sequences of punctuation characters or sequences of any other "
 		"character."
 		"\n"
 		"\n The \"tokens\" tokenization process simply uses the blank character as delimiter."
-		"\n This method assumes  that the text has been already preprocessed (eg. lemmatization).");
+		"\n This method assumes that the text has been already preprocessed (eg. lemmatization).");
 
 	// ##
 }
