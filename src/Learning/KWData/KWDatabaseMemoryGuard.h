@@ -215,6 +215,9 @@ public:
 	static const int GetDefautMinSecondaryRecordNumberFactor();
 	static const int GetDefautMaxSecondaryRecordNumberFactor();
 
+	// Nombre max de passes de nettoyage de la memoire utilisees pour continuer le calcul des attributs
+	static const int GetMaxMemoryCleaningNumber();
+
 	//////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
@@ -306,6 +309,9 @@ protected:
 	static const int nDefautMinSecondaryRecordNumberFactor = 100;
 	static const int nDefautMaxSecondaryRecordNumberFactor = 10000;
 
+	// Nombre max de passes de nettoyage de la memoire utilisees pour continuer le calcul des attributs
+	static const int nMaxMemoryCleaningNumber = 100;
+
 	///////////////////////////////////////////////////////////////////////////////////////////
 	// Gestion de la methode specifique pour ignorer le controle de flow des erreurs
 
@@ -362,4 +368,9 @@ inline const int KWDatabaseMemoryGuard::GetDefautMinSecondaryRecordNumberFactor(
 inline const int KWDatabaseMemoryGuard::GetDefautMaxSecondaryRecordNumberFactor()
 {
 	return nDefautMaxSecondaryRecordNumberFactor;
+}
+
+inline const int KWDatabaseMemoryGuard::GetMaxMemoryCleaningNumber()
+{
+	return nMaxMemoryCleaningNumber;
 }

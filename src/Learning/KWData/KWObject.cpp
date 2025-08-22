@@ -183,11 +183,16 @@ void KWObject::ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard)
 			// exploitant ces instances creees sont faux et fluctuants selon la memoire disponible
 			if (not memoryGuard->IsSingleInstanceMemoryLimitReachedDuringCreation())
 			{
-				// Nettoyage des donnees de travail temporaire, pouvant etre recalculees
-				CleanTemporayDataItemsToComputeAndClean();
+				// On ne le fait pas s'il y a eu trop de passe de nettoyage, pour eviter
+				// de passer un temps potentiellement enorme
+				if (memoryGuard->GetMemoryCleaningNumber() < memoryGuard->GetMaxMemoryCleaningNumber())
+				{
+					// Nettoyage des donnees de travail temporaire, pouvant etre recalculees
+					CleanTemporayDataItemsToComputeAndClean();
 
-				// Actualisation de la detetcion de depassement memoire
-				memoryGuard->UpdateAfterMemoryCleaning();
+					// Actualisation de la detection de depassement memoire
+					memoryGuard->UpdateAfterMemoryCleaning();
+				}
 			}
 		}
 	}

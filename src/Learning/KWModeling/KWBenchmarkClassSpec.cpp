@@ -66,6 +66,10 @@ void KWBenchmarkClassSpec::ReadClasses()
 			temporaryClassDomain->ReadFile(GetClassFileName());
 		}
 	}
+
+	// Compilation
+	if (temporaryClassDomain->Check())
+		temporaryClassDomain->Compile();
 	Global::SetSilentMode(false);
 	sLastReadClassFileName = GetClassFileName();
 }

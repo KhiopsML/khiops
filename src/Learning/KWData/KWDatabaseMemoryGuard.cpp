@@ -241,8 +241,15 @@ const ALString KWDatabaseMemoryGuard::GetSingleInstanceVeryLargeLabel()
 
 	// Et dans le cas ou la memoire a du etre nettoyee
 	if (GetMemoryCleaningNumber() > 0)
+	{
 		sLabel += " : all derived variables have been computed using RAM sparingly at the expense of "
-			  "computation time";
+			  "computation time (";
+		sLabel += IntToString(GetMemoryCleaningNumber());
+		if (GetMemoryCleaningNumber() == 1)
+			sLabel += " additional pass)";
+		else
+			sLabel += " additional passes)";
+	}
 	ensure(sLabel.Find(sMemoryGuardLabelPrefix) == 0);
 	return sLabel;
 }
