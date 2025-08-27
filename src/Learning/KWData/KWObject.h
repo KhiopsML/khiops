@@ -435,7 +435,7 @@ int KWObjectCompareCreationIndex(const void* elem1, const void* elem2);
 #include "KWClass.h"
 #include "KWAttributeBlock.h"
 #include "KWDerivationRule.h"
-#include "KWDataPath.h"
+#include "KWObjectDataPath.h"
 
 /////////////////////////////////////////////////////////////////
 // Methodes en inline
@@ -1012,6 +1012,8 @@ inline void KWObject::SetObjectValueAt(KWLoadIndex liLoadIndex, KWObject* kwoVal
 inline ObjectArray* KWObject::ComputeObjectArrayValueAt(KWLoadIndex liLoadIndex) const
 {
 	ObjectArray* oaSubObjects;
+	KWDerivationRule* rule;
+	KWDatabaseMemoryGuard* memoryGuard;
 
 	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
 	debug(require(nFreshness == kwcClass->GetFreshness()));
@@ -1023,16 +1025,32 @@ inline ObjectArray* KWObject::ComputeObjectArrayValueAt(KWLoadIndex liLoadIndex)
 		if (GetAt(liLoadIndex.GetDenseIndex()).IsObjectArrayForbidenValue())
 		{
 			// Verification que l'attribut est derive
-			assert(kwcClass->GetAttributeAtLoadIndex(liLoadIndex)->GetDerivationRule() != NULL);
+			rule = kwcClass->GetAttributeAtLoadIndex(liLoadIndex)->GetDerivationRule();
+			assert(rule != NULL);
 
 			// Derivation
 			// Le tableau d'objet rendu par la regle est duplique, et appartient desormais a l'objet
-			oaSubObjects = kwcClass->GetAttributeAtLoadIndex(liLoadIndex)
-					   ->GetDerivationRule()
-					   ->ComputeObjectArrayResult(this, liLoadIndex);
+			oaSubObjects = rule->ComputeObjectArrayResult(this, liLoadIndex);
 			if (oaSubObjects != NULL)
 				oaSubObjects = oaSubObjects->Clone();
 			GetAt(liLoadIndex.GetDenseIndex()).SetObjectArray(oaSubObjects);
+
+			// Cas d'une regle de creation d'instances
+			// Il faut s'assurer qu'il n'y a pas d'objet a NULL dans le tableau, ce qui peut arriver
+			// en cas de depassement des limite memoire lors de la creation d'instance
+			// Les regles de creation d'instance s'assurent juste de ne pas appeler de methodes
+			// sur les instances NULL, mais elle peuvent en integrer dans leur tableau
+			// Ici, de facon centralisee, on nettoie les tableaux en cas de probleme memoire
+			if (not rule->GetReference())
+			{
+				// Acces au service de protection memoire
+				memoryGuard = GetObjectDataPath()->GetMemoryGuard();
+
+				// Nettoyage du tableau en cas de depassement memoire, pour eviter les instances NULL
+				if (memoryGuard->IsSingleInstanceMemoryLimitReached())
+					oaSubObjects->DeleteAll();
+			}
+			assert(oaSubObjects->NoNulls());
 
 			// Verification de la valeur de l'attribut derive
 			assert(not GetAt(liLoadIndex.GetDenseIndex()).IsObjectArrayForbidenValue());

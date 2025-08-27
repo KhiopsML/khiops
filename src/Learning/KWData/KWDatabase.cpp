@@ -27,8 +27,10 @@ KWDatabase::KWDatabase()
 	timestampDefaultConverter.SetFormatString(KWTimestampFormat::GetDefaultFormatString());
 	timestampTZDefaultConverter.SetFormatString(KWTimestampTZFormat::GetDefaultFormatString());
 
-	// Creation du gestionnaire de data path, qui est ici un pointeur pour un probleme de cyle de include dans les header
-	objectDataPathManager = new KWObjectDataPathManager;
+	// Parametrage du gestionnaire de data path par le service de protection memoire
+	// pour permettre aux regles de creation d'instances de controler les trop grands
+	// nombres d'instances creees
+	objectDataPathManager.SetMemoryGuard(&memoryGuard);
 }
 
 KWDatabase::~KWDatabase()
@@ -36,7 +38,6 @@ KWDatabase::~KWDatabase()
 	assert(not IsOpenedForRead() and not IsOpenedForWrite());
 	assert(kwcPhysicalClass == NULL);
 	oaAllObjects.DeleteAll();
-	delete objectDataPathManager;
 }
 
 KWDatabase* KWDatabase::Clone() const
@@ -81,6 +82,7 @@ void KWDatabase::CopyFrom(const KWDatabase* kwdSource)
 	sSelectionValue = "";
 	sSelectionSymbol = "";
 	ivMarkedInstances.SetSize(0);
+	memoryGuard.Reset();
 
 	// Recopie des parametres de specification de la base
 	SetDatabaseName(kwdSource->GetDatabaseName());
@@ -516,7 +518,8 @@ boolean KWDatabase::OpenForRead()
 	CompilePhysicalSelection();
 
 	// Initialisation de tous les data paths a destination des objets lus ou cree
-	objectDataPathManager->ComputeAllDataPaths(kwcPhysicalClass);
+	assert(objectDataPathManager.GetDataPathNumber() == 0);
+	objectDataPathManager.ComputeAllDataPaths(kwcPhysicalClass);
 
 	// Ouverture physique de la base
 	bIsError = false;
@@ -625,10 +628,25 @@ KWObject* KWDatabase::Read()
 		// Test si objet selectionne
 		if (kwoObject != NULL)
 		{
+			// Destruction si objet non selectionne
 			if (not IsPhysicalObjectSelected(kwoObject))
 			{
 				delete kwoObject;
 				kwoObject = NULL;
+
+				// Warning : Si le calcul de la selection entraine un depassement de capacite memoire,
+				// cela peut potentiellement conduire a une valeur de critere de selection incorrecte,
+				// et donc a une non-selection a tort.
+				// Ce warning sera emis en fin de methode si necessaire pour les instances selectionnees.
+				// Il est important d'informer l'utilisateur de ce probleme potentiel, car selon la passe de
+				// traitement des donnees (statistiques basiques, preparation, etc.), les instances selectionnees
+				// pourraient varier, entrainant une incoherence dans le nombre d'instances issues de chaque passe.
+				// Cette incoherence est detectee, mais elle peut avoir plusieurs causes:
+				// fichier modifie entre deux passes, critere de selection mal calcule (comme ici), ...
+				if (memoryGuard.IsSingleInstanceMemoryLimitReached())
+					AddWarning("Record not selected due to selection variable with possible "
+						   "incorrect value. " +
+						   memoryGuard.GetSingleInstanceMemoryLimitLabel());
 			}
 		}
 	}
@@ -662,7 +680,7 @@ KWObject* KWDatabase::Read()
 
 	// Warning selon l'etat du memory guard
 	// On emet que des warning, car on est toujours capable de "rattaper" l'erreur
-	// Par controle, on passe par handler des gestion des flow d'erreur pour emmetre ces warning meme
+	// Pour ce controle, on passe par handler de gestion des flow d'erreur pour emmetre ces warnings meme
 	// en cas de depassement du flow. Ce handler est parametre lors des ouverture-fermeture de base
 	if (kwoObject != NULL)
 	{
@@ -717,7 +735,7 @@ boolean KWDatabase::Close()
 	nClassFreshness = 0;
 
 	// Destruction des data paths de gestion des objets
-	objectDataPathManager->Reset();
+	objectDataPathManager.Reset();
 
 	// Destruction de la classe physique
 	DeletePhysicalClass();
@@ -1279,7 +1297,7 @@ longint KWDatabase::GetUsedMemory() const
 		lUsedMemory += kwcPhysicalClass->GetDomain()->GetUsedMemory();
 
 	// Memoire du gestionnaire de data apth
-	lUsedMemory += objectDataPathManager->GetUsedMemory();
+	lUsedMemory += objectDataPathManager.GetUsedMemory();
 
 	// Objets charges en memoire
 	for (nObject = 0; nObject < oaAllObjects.GetSize(); nObject++)
@@ -2351,7 +2369,8 @@ void KWDatabase::MutatePhysicalObject(KWObject* kwoPhysicalObject) const
 	// Il faut le faire sur l'objet physique avant sa mutation, car il contient
 	// necessairement les champs de la cle en multi-table, alors qu'ils sont potentiellement
 	// absent de l'objet logique si les champs de la cle sont en unused
-	if (memoryGuard.IsSingleInstanceMemoryLimitReached() or memoryGuard.IsMaxSecondaryRecordNumberReached())
+	if (memoryGuard.IsSingleInstanceMemoryLimitReached() or memoryGuard.IsMaxSecondaryRecordNumberReached() or
+	    memoryGuard.IsMaxCreatedRecordNumberReached())
 	{
 		// On se base sur la cle de l'objet s'il y en a une
 		if (kwoPhysicalObject->GetClass()->IsKeyLoaded())
@@ -2441,41 +2460,6 @@ boolean KWDatabase::CheckSelectionValue(const ALString& sValue) const
 		}
 	}
 	return bOk;
-}
-
-void KWDatabase::ResetMemoryGuard()
-{
-	require(not IsOpenedForRead());
-	require(not IsOpenedForWrite());
-	memoryGuard.Reset();
-}
-
-void KWDatabase::SetMemoryGuardMaxSecondaryRecordNumber(longint lValue)
-{
-	require(not IsOpenedForRead());
-	require(not IsOpenedForWrite());
-	memoryGuard.SetMaxSecondaryRecordNumber(lValue);
-}
-
-longint KWDatabase::GetMemoryGuardMaxSecondaryRecordNumber() const
-{
-	require(not IsOpenedForRead());
-	require(not IsOpenedForWrite());
-	return memoryGuard.GetMaxSecondaryRecordNumber();
-}
-
-void KWDatabase::SetMemoryGuardSingleInstanceMemoryLimit(longint lValue)
-{
-	require(not IsOpenedForRead());
-	require(not IsOpenedForWrite());
-	memoryGuard.SetSingleInstanceMemoryLimit(lValue);
-}
-
-longint KWDatabase::GetMemoryGuardSingleInstanceMemoryLimit() const
-{
-	require(not IsOpenedForRead());
-	require(not IsOpenedForWrite());
-	return memoryGuard.GetSingleInstanceMemoryLimit();
 }
 
 boolean KWDatabase::Check() const

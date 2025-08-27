@@ -504,14 +504,8 @@ boolean KWDatabaseTask::MasterInitializeDatabase()
 			nSourceBufferSize = nForcedBufferSize;
 
 		// Parametrage du MemoryGuard dans le cas multi-tables
-		if (shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology())
-		{
-			shared_sourceDatabase.GetMTDatabase()->SetMemoryGuardMaxSecondaryRecordNumber(
-			    shared_sourceDatabase.GetMTDatabase()->GetEstimatedMaxSecondaryRecordNumber());
-			shared_sourceDatabase.GetMTDatabase()->SetMemoryGuardSingleInstanceMemoryLimit(
-			    shared_sourceDatabase.GetMTDatabase()->ComputeEstimatedSingleInstanceMemoryLimit(
-				lSourceDatabaseGrantedMemory));
-		}
+		sourceDatabase->GetDatabase()->GetMemoryGuard()->SetSingleInstanceMemoryLimit(
+		    sourceDatabase->ComputeEstimatedSingleInstanceMemoryLimit(lSourceDatabaseGrantedMemory));
 	}
 
 	// Parametrage des tailles de buffer

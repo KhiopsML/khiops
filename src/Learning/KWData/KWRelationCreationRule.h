@@ -225,15 +225,24 @@ protected:
 	virtual boolean IsViewModeActivated() const;
 
 	// Creation d'un objet de la vue avec le dictionnaire en sortie
-	// On passe egalement l'lidenx de chargement de l'attribut contenant le resultat en parametre pour gere les data paths
+	// On passe egalement l'index de chargement de l'attribut contenant le resultat en parametre pour gere les data paths
+	// ATTENTION:
+	// - l'objet retourne peut etre NULL en cas de probleme memoire detecte par le memory guard
+	// - il faut bien faire attention a tester si l'objet est NULL avant de faire des traitements dessus
+	// - par contre, en cas de creation dans un tableau, il faut continuer a cree des objets, pour enregistrer des statistiques
+	//   sur les demandes de creation d'ojbjets
+	//   - cela permet d'ameliorer les messages utilisateur
+	//   - cela ne coute rien en temps de calcul, puisque qu'on ne cree plus d'objet des qu'il y a saturation memoire
 	KWObject* NewTargetObject(const KWObject* kwoOwnerObject, const KWLoadIndex liAttributeLoadIndex) const;
 
 	// Alimentation de type vue des attributs cibles
+	// Sans effet si l'objet cible est NULL
 	void FillViewModeTargetAttributes(const KWObject* kwoSourceObject, KWObject* kwoTargetObject) const;
 
 	// Alimentation de type calcul des attributs cibles dans le cas d'un nombre variable d'operandes en entree
 	// Dans ce cas, on doit avoir egalement un nombre variable d'operandes en sortie, qui doivent
 	// correspondre aux operandes en entree
+	// Sans effet si l'objet cible est NULL
 	void FillComputeModeTargetAttributesForVariableOperandNumber(const KWObject* kwoSourceObject,
 								     KWObject* kwoTargetObject) const;
 
@@ -313,37 +322,4 @@ inline KWDerivationRuleOperand* KWDRRelationCreationRule::GetOutputOperandAt(int
 inline boolean KWDRRelationCreationRule::IsValidOutputOperandType(int nType) const
 {
 	return KWType::IsStored(nType) or KWType::IsRelation(nType);
-}
-
-inline KWObject* KWDRRelationCreationRule::NewTargetObject(const KWObject* kwoOwnerObject,
-							   const KWLoadIndex liAttributeLoadIndex) const
-{
-	const boolean bTrace = false;
-	KWObject* kwoTargetObject;
-	const KWObjectDataPath* objectDataPath;
-
-	require(kwoOwnerObject != NULL);
-	require(kwoOwnerObject->GetObjectDataPath() != NULL);
-	require(IsCompiled());
-
-	// Rechertche du data path de l'objet a creer
-	objectDataPath = kwoOwnerObject->GetObjectDataPath()->GetComponentDataPath(liAttributeLoadIndex);
-
-	// Creation d'un objet en mode vue, avec un index de creation fourni par le data path
-	kwoTargetObject = new KWObject(kwcCompiledTargetClass, objectDataPath->NewCreationIndex());
-	kwoTargetObject->SetViewTypeUse(true);
-	kwoTargetObject->SetObjectDataPath(objectDataPath);
-
-	// Trace
-	if (bTrace)
-	{
-		cout << "NewTargetObject\t" << GetName() << "\t";
-		cout << kwoOwnerObject->GetObjectDataPath()->GetDataPath() << "\t"
-		     << kwoOwnerObject->GetClass()->GetName() << "\t" << kwoOwnerObject->GetCreationIndex() << "\t";
-		if (kwoOwnerObject->GetClass()->GetKeyAttributeNumber() > 0)
-			cout << kwoOwnerObject->GetObjectLabel() << "\t";
-		cout << kwoTargetObject->GetObjectDataPath()->GetDataPath() << "\t"
-		     << kwoTargetObject->GetClass()->GetName() << "\t" << kwoTargetObject->GetCreationIndex() << "\n";
-	}
-	return kwoTargetObject;
 }

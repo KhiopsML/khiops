@@ -46,8 +46,8 @@ class KWDerivationRule;
 //    false: objet interne
 //    true: objet reference
 //
-// MEMORY
-// Une KWClass contient et gere sa description(a savoir ses variables,
+// Memoire
+// Une KWClass contient et gere sa description (a savoir ses variables,
 // ses containers, et le contenu de ses containers)
 // Les KWClass referencees sont par contre independantes.
 class KWClass : public Object
@@ -455,6 +455,18 @@ public:
 
 	// Export des noms des attributs cles dans l'ordre des cles
 	void ExportKeyAttributeNames(StringVector* svAttributedNames) const;
+
+	////////////////////////////////////////////////////////
+	// Services de dimensionnement
+
+	// Estimation heuristique de la memoire utilise par KWObject en se basant sur les
+	// variables utilisees, natives ou calculees
+	// La memoire utilisee par les sous-objet de la composition n'est pas prise en compte
+	longint GetEstimatedUsedMemoryPerObject() const;
+
+	// Constantes pour l'estimation heuristique de la taille des champs en memoire
+	static const int nTextValueSize = 200;
+	static const int nKeyFieldSize = 5;
 
 	////////////////////////////////////////////////////////
 	// Services standard

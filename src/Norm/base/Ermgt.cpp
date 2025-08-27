@@ -95,6 +95,7 @@ void Global::AddErrorObjectValued(int nGravityValue, const ALString& sCategoryVa
 				  const ALString& sLabelValue)
 {
 	Error e;
+	boolean bIgnoreErrorFlowForDisplay;
 	longint lErrorFlowNumber;
 	ALString sAdditionalInfo;
 
@@ -110,6 +111,9 @@ void Global::AddErrorObjectValued(int nGravityValue, const ALString& sCategoryVa
 	// Cas des autres types de message
 	else
 	{
+		// Test s'il faut ignorer le controle de flux des erreurs
+		bIgnoreErrorFlowForDisplay = IgnoreErrorFlowForDisplay(&e);
+
 		// Nombre de messages selon le type
 		lErrorFlowNumber = 0;
 		if (nGravityValue == Error::GravityMessage)
@@ -130,14 +134,14 @@ void Global::AddErrorObjectValued(int nGravityValue, const ALString& sCategoryVa
 
 		// Affichage si autorise
 		if (nErrorFlowControlLevel == 0 or lErrorFlowNumber <= nMaxErrorFlowNumber or
-		    IgnoreErrorFlowForDisplay(&e))
+		    bIgnoreErrorFlowForDisplay)
 			ShowError(&e);
 
 		// Affichage special si depassement du nombre max autorise
 		if (nErrorFlowControlLevel > 0 and lErrorFlowNumber > nMaxErrorFlowNumber)
 		{
 			// Cas ou on vient juste de depasser le nombre de messages
-			if (lErrorFlowNumber == nMaxErrorFlowNumber + 1)
+			if (lErrorFlowNumber == (longint)nMaxErrorFlowNumber + 1)
 			{
 				e.Initialize(nGravityValue, sCategoryValue, "", "...");
 				ShowError(&e);

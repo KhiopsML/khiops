@@ -13,14 +13,14 @@ class KWDatabaseMemoryGuard;
 //////////////////////////////////////////////////////////////////////////////////////////////
 // Class KWDatabaseMemoryGuard;
 // Service de protection memoire pour la lecture des instances d'une base, notamment multi-table
-// En effet, la lecture d'un enregistrement da la table principale peut impliquer potentiellement
-// un tres grande nombre d'enregistrement de tables secondaires, pouvant potentiellement de pas
+// En effet, la lecture d'un enregistrement de la table principale peut impliquer potentiellement
+// un tres grand nombre d'enregistrements de tables secondaires, pouvant potentiellement de pas
 // tenir en memoire, et un graphe de calcul exploitant des variables de travail pouvant
-// egalement poser un probleme sur sur-utilisation de la memoire.
+// egalement poser un probleme de sur-utilisation de la memoire.
 // On parle dans ce cas d'instances "elephant".
 // Le service de protection des acces memoire permet de monitorer la memoire lors de la lecture
 // des enregistrements et du calcul des variables derivees de facon a eviter preventivement
-// les depassements memoires et a les disgnostiquer le plus precisement possible
+// les depassements memoires et a les diagnostiquer le plus precisement possible
 class KWDatabaseMemoryGuard : public Object
 {
 public:
@@ -41,12 +41,31 @@ public:
 	void SetMaxSecondaryRecordNumber(longint lValue);
 	longint GetMaxSecondaryRecordNumber() const;
 
-	// Limite de la memoire utilisable pour une instance pour gerer l'ensemble de la lecture et du calcul des
-	// attributs derivee Attention: il s'agit ici d'une limite memoire physique dans la RAM, avec prise en compte de
-	// l'overhead d'allocation Cela concerne toutes les methdoes liees a la memoire de cette classe Parametrage
-	// inactif si 0
+	// Nombre d'instances crees au dela duquel une alerte est declenchee
+	// Cela ne declenche qu'un warning informatif en cas de depassement
+	// Parametrage inactif si 0
+	void SetMaxCreatedRecordNumber(longint lValue);
+	longint GetMaxCreatedRecordNumber() const;
+
+	// Limite de la memoire utilisable pour une instance pour gerer l'ensemble
+	// de la lecture et du calcul des attributs derivee
+	// Attention: il s'agit ici d'une limite memoire physique dans la RAM, avec prise en compte de
+	// l'overhead d'allocation
+	// Cela concerne toutes les methodes liees a la memoire de cette classe
+	// Parametrage inactif si 0
 	void SetSingleInstanceMemoryLimit(longint lValue);
 	longint GetSingleInstanceMemoryLimit() const;
+
+	// Estimation du minimum de la memoire utilisable pour une instance
+	void SetEstimatedMinSingleInstanceMemoryLimit(longint lValue);
+	longint GetEstimatedMinSingleInstanceMemoryLimit() const;
+
+	// Estimation du maximum de la memoire utilisable pour une instance
+	void SetEstimatedMaxSingleInstanceMemoryLimit(longint lValue);
+	longint GetEstimatedMaxSingleInstanceMemoryLimit() const;
+
+	// Copie, uniquement des attributs de base de la specification
+	void CopyFrom(const KWDatabaseMemoryGuard* aSource);
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Gestion des lectures et des calculs d'attributs d'un enregistrement
@@ -63,20 +82,27 @@ public:
 	// A appeler apres la lecture des enregistrements
 	void AddReadSecondaryRecord();
 
+	// Prise en compte de la creation d'une nouvelle instance
+	// A appeler apres la creation d'une instance par une regle de creation d'instance
+	void AddCreatedRecord();
+
 	// Prise en compte du calcul d'un nouvel attribut
 	// A appeler apres la lecture de chaque nouvel enregistrement
 	void AddComputedAttribute();
 
-	// Mise a jour apres un nettoyage memoire, permettant potentiellement d'annuler le depassement de la limite
-	// memoire
+	// Mise a jour apres un nettoyage memoire, permettant potentiellement d'annuler
+	// le depassement de la limite memoire
 	void UpdateAfterMemoryCleaning();
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Exploitation des limites
 	// On peut ici emettre des warning specialises en fonction du type de limite atteinte ou depassee
 
-	// Indique si le nombre max d'enregistrement est atteint, si le parametrage est actif
+	// Indique si le nombre max d'enregistrements secondaires est atteint, si le parametrage est actif
 	boolean IsMaxSecondaryRecordNumberReached() const;
+
+	// Indique si le nombre max d'enregistrements crees est atteint, si le parametrage est actif
+	boolean IsMaxCreatedRecordNumberReached() const;
 
 	// Nombre de fois ou on a du nettoyer la memoire pour continuer le calcul des attributs
 	int GetMemoryCleaningNumber() const;
@@ -88,22 +114,25 @@ public:
 	const ALString GetSingleInstanceVeryLargeLabel();
 
 	// Indique si la limite memoire est atteinte, si le parametrage est actif
-	// Cet indicateur est declenchee des que la limite a ete depasse une seule fois, et n'est reinitialise qu'avec
-	// Init
+	// Cet indicateur est declenchee des que la limite a ete depasse une seule fois,
+	// et n'est reinitialise qu'avec Init
 	boolean IsSingleInstanceMemoryLimitReached() const;
 
 	// Indique si la cause du depassement memoire est liee a la lecture des enregistrements
 	boolean IsSingleInstanceMemoryLimitReachedDuringRead() const;
 
+	// Indique si la cause du depassement memoire est liee a la creation d'instances
+	boolean IsSingleInstanceMemoryLimitReachedDuringCreation() const;
+
 	// Libelle personnalise associe au depassement de la limite memoire, dans le cas de la lecture des
-	// renregistrements ou dans le cas du calcul des attributs, avec perte du calcul des attributs derives,
+	// enregistrements ou dans le cas du calcul des attributs, avec perte du calcul des attributs derives,
 	// remplaces par des valeur manquantes
 	const ALString GetSingleInstanceMemoryLimitLabel();
 
-	// Afin de permettre aux utilisateur d'obtenir ces warning, meme en cas de controle de flow des erreurs,
-	// il faut installer un handler specifique pour ignorer le controle de flow des erreurs (cf.
-	// Global::SetErrorFlowIgnoreFunction) Ces methodes sont a appeler a l'ouverture et la fermeture d'une
-	// datatebase
+	// Afin de permettre aux utilisateur d'obtenir ces warnings, meme en cas de controle de flow des erreurs,
+	// il faut installer un handler specifique pour ignorer le controle de flow des erreurs
+	// (cf. Global::SetErrorFlowIgnoreFunction)
+	// Ces methodes sont a appeler a l'ouverture et la fermeture d'une database
 	static void InstallMemoryGuardErrorFlowIgnoreFunction();
 	static void UninstallMemoryGuardErrorFlowIgnoreFunction();
 
@@ -115,6 +144,12 @@ public:
 
 	// Nombre total d'enregistrements secondaires lus
 	longint GetTotalReadSecondaryRecordNumber() const;
+
+	// Nombre d'instances creees avant atteinte de la limite
+	longint GetCreatedRecordNumberBeforeLimit() const;
+
+	// Nombre d'instance crees
+	longint GetTotalCreatedRecordNumber() const;
 
 	// Nombre d'attributs calcules avant atteinte de la limite
 	int GetComputedAttributeNumberBeforeLimit() const;
@@ -145,6 +180,12 @@ public:
 	static void SetCrashTestMaxSecondaryRecordNumber(longint lValue);
 	static longint GetCrashTestMaxSecondaryRecordNumber();
 
+	// Nombre d'enregistrements crees au dela duquel une alerte est declenchee
+	// Cela ne declenche qu'un warning informatif en cas de depassement
+	// Parametrage inactif si 0
+	static void SetCrashTestMaxCreatedRecordNumber(longint lValue);
+	static longint GetCrashTestMaxCreatedRecordNumber();
+
 	// Limite a ne pas depasser de la memoire utilisable dans la heap pour gerer l'ensemble de la lecture et du
 	// calcul des attributs derivee Parametrage inactif si 0
 	static void SetCrashTestSingleInstanceMemoryLimit(longint lValue);
@@ -153,7 +194,10 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Services standards
 
-	// Affichage detaille des
+	// Affichage detaille du parametrage uniquement
+	void WriteParameters(ostream& ost) const;
+
+	// Affichage detaille des caracteristiques completes
 	void Write(ostream& ost) const override;
 
 	// Libelles utilisateurs
@@ -171,6 +215,9 @@ public:
 	static const int GetDefautMinSecondaryRecordNumberFactor();
 	static const int GetDefautMaxSecondaryRecordNumberFactor();
 
+	// Nombre max de passes de nettoyage de la memoire utilisees pour continuer le calcul des attributs
+	static const int GetMaxMemoryCleaningNumber();
+
 	//////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
@@ -179,7 +226,7 @@ protected:
 	// que l'instance ne peut pas etre traitee entierement en memoire.
 	//
 	// L'objet DatabaseMemoryGuard est un objet porte par une Database permettant de
-	// controler en permanence l'ocuppation memoire, apres chaque lecture de record
+	// controler en permanence l'occupation memoire, apres chaque lecture de record
 	// et apres chaque calcul d'attribut des KWObject.
 	// En effet, les calculs d'attribut impliquent une utilisation memoire potentiellement
 	// importante en presence de nombreux records secondaire. Par exemple, une seule selection
@@ -191,7 +238,7 @@ protected:
 	//   . erreur si pas assez de memoire pour calculer tous les attributs derives, apres
 	//     avoir lus correctement tous les records secondaires
 	// En cas d'erreur, on garde neanmoins les valeurs des variables natives de l'instance principale,
-	// et on met toutes les autre valeurs a missing. Il s'agit d'un erreur pour forcer l'utilisateur a
+	// et on met toutes les autre valeurs a missing. Il s'agit d'une erreur pour forcer l'utilisateur a
 	// analyser le probleme, mais cette erreur n'est pas bloquante dans le sens ou l'instance elephant
 	// est neanmoins traitee, meme si c'est en mode degrade.
 	//
@@ -207,12 +254,12 @@ protected:
 	// qui ne sont plus necessaires. Ce type de probleme est une variante de "graph topological ordering"
 	// proche du probleme de "one-shot (black) pebbling".
 	//  cf. https://cs.stackexchange.com/questions/60772/finding-an-optimal-topological-ordering
-	// Il s'agit d'un probleme dont meme l'aproximation est NP-complet.
+	// Il s'agit d'un probleme dont meme l'approximation est NP-complet.
 	// La solution optimale n'est donc pas atteignable, et les heuristiques de resolution du probleme
 	// sont non triviales a mettre au point. De plus, pour assurer une empreinte memoire minimale, on devra
 	// se ramener potentiellement a la solution pragmatique, qui periodiquement peut etre amenee a tout nettoyer.
 	// Le rapport cout-benefice de cette solution etendue est alors extrement defavorable, avec un cout
-	// exorbitant pour potentiellement ameliorer le temps de calcul dans des cas rares pour gerer le cas
+	// exorbitant pour potentiellement ameliorer le temps de calcul dans des cas rares, pour gerer le cas
 	// deja tres rare des instances elephants. Cette solution est abandonnee.
 	//
 	// Le dimensionnement des limites en nombre de records secondaires et en memoire est a la charge des taches.
@@ -228,23 +275,30 @@ protected:
 	// Variables d'instance
 	ALString sMainObjectKey;
 	longint lSingleInstanceMemoryLimit;
+	longint lEstimatedMinSingleInstanceMemoryLimit;
+	longint lEstimatedMaxSingleInstanceMemoryLimit;
 	longint lInitialHeapMemory;
 	longint lMaxHeapMemory;
 	longint lCurrentHeapMemory;
 	longint lMaxSecondaryRecordNumber;
+	longint lMaxCreatedRecordNumber;
 	longint lReadSecondaryRecordNumberBeforeLimit;
 	longint lTotalReadSecondaryRecordNumber;
+	longint lCreatedRecordNumberBeforeLimit;
+	longint lTotalCreatedRecordNumber;
 	int nComputedAttributeNumberBeforeLimit;
 	int nTotalComputedAttributeNumber;
 	int nMemoryCleaningNumber;
 	boolean bIsSingleInstanceMemoryLimitReached;
 
-	// Variable d'instances a prendre en compte, selon la valeur des parametres de crash test
+	// Variables d'instance a prendre en compte, selon la valeur des parametres de crash test
 	longint lActualMaxSecondaryRecordNumber;
+	longint lActualMaxCreatedRecordNumber;
 	longint lActualSingleInstanceMemoryLimit;
 
 	// Parametres des crash tests
 	static longint lCrashTestMaxSecondaryRecordNumber;
+	static longint lCrashTestMaxCreatedRecordNumber;
 	static longint lCrashTestSingleInstanceMemoryLimit;
 
 	// Bornes inf et sup des nombres max de records secondaires
@@ -255,13 +309,16 @@ protected:
 	static const int nDefautMinSecondaryRecordNumberFactor = 100;
 	static const int nDefautMaxSecondaryRecordNumberFactor = 10000;
 
+	// Nombre max de passes de nettoyage de la memoire utilisees pour continuer le calcul des attributs
+	static const int nMaxMemoryCleaningNumber = 100;
+
 	///////////////////////////////////////////////////////////////////////////////////////////
 	// Gestion de la methode specifique pour ignorer le controle de flow des erreurs
 
 	// Implementation de la methode specifique pour ignorer le controle de flow des erreurs
 	static boolean MemoryGuardErrorFlowIgnoreFunction(const Error* e, boolean bDisplay);
 
-	// Compteur d'installation de la methode specifiques, pour permettre plusieurs utilisation simultannees
+	// Compteur d'installation de la methode specifique, pour permettre plusieurs utilisation simultannees
 	// On ne desisnatelle que si ce compteur repasse a 0
 	static int nMemoryGuardFunctionUseCount;
 
@@ -269,7 +326,7 @@ protected:
 	static int nMemoryGuardInformationWarningNumber;
 	static int nMemoryGuardRecoveryWarningNumber;
 
-	// Partie des libelle permettant d'identifier  les message emius par le memory guard
+	// Partie des libelles permettant d'identifier les messages emis par le memory guard
 	static const ALString sMemoryGuardLabelPrefix;
 	static const ALString sMemoryGuardRecoveryLabelSuffix;
 };
@@ -281,6 +338,11 @@ inline boolean KWDatabaseMemoryGuard::IsMaxSecondaryRecordNumberReached() const
 {
 	return lActualMaxSecondaryRecordNumber > 0 and
 	       GetTotalReadSecondaryRecordNumber() > lActualMaxSecondaryRecordNumber;
+}
+
+inline boolean KWDatabaseMemoryGuard::IsMaxCreatedRecordNumberReached() const
+{
+	return lActualMaxCreatedRecordNumber > 0 and GetTotalCreatedRecordNumber() > lActualMaxCreatedRecordNumber;
 }
 
 inline boolean KWDatabaseMemoryGuard::IsSingleInstanceMemoryLimitReached() const
@@ -306,4 +368,9 @@ inline const int KWDatabaseMemoryGuard::GetDefautMinSecondaryRecordNumberFactor(
 inline const int KWDatabaseMemoryGuard::GetDefautMaxSecondaryRecordNumberFactor()
 {
 	return nDefautMaxSecondaryRecordNumberFactor;
+}
+
+inline const int KWDatabaseMemoryGuard::GetMaxMemoryCleaningNumber()
+{
+	return nMaxMemoryCleaningNumber;
 }

@@ -908,7 +908,7 @@ void KWMTDatabase::PhysicalReadAfterEndOfDatabase()
 			}
 
 			// Recherche du data path correspondant au mapping
-			objectDataPath = objectDataPathManager->LookupObjectDataPath(componentMapping->GetDataPath());
+			objectDataPath = objectDataPathManager.LookupObjectDataPath(componentMapping->GetDataPath());
 
 			// Lecture des sous-objets
 			kwoSubObject = NULL;
@@ -1231,8 +1231,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 	ALString sTmp;
 	ALString sMessage;
 	boolean bIsInTask;
-	longint lCurrentMemoryGuardMaxSecondaryRecordNumber;
-	longint lCurrentMemoryGuardSingleInstanceMemoryLimit;
+	KWDatabaseMemoryGuard initialMemoryGuard;
 
 	require(objectReferenceResolver.GetClassNumber() == 0);
 	require(kwcPhysicalClass != NULL);
@@ -1241,9 +1240,8 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 
 	// On desactive temporairement le memory guard, le temps de la lecture des objets references
 	// En effet, le dimensionnement est calcule pour pouvoir charger en memoire l'ensemble de toutes
-	// les tables extertnes, et il n'y a pas a se soucier de la gestion des instances "elephants"
-	lCurrentMemoryGuardMaxSecondaryRecordNumber = memoryGuard.GetMaxSecondaryRecordNumber();
-	lCurrentMemoryGuardSingleInstanceMemoryLimit = memoryGuard.GetSingleInstanceMemoryLimit();
+	// les tables externes, et il n'y a pas a se soucier de la gestion des instances "elephants"
+	initialMemoryGuard.CopyFrom(&memoryGuard);
 	memoryGuard.Reset();
 
 	// On teste si on en en cours de suivi de tache
@@ -1426,8 +1424,8 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 	// differents, et par consequent, des suites de valeurs aleatoires differentes (puisqu'elles exploitent l'index
 	// de creation d'instance).
 	// Il vaut mieux donc eviter d'utiliser la regle Random dans les tables externes
-	for (nReference = 0; nReference < objectDataPathManager->GetExternalRootDataPathNumber(); nReference++)
-		objectDataPathManager->GetExternalRootObjectDataPathAt(nReference)->ResetCreationNumber(0);
+	for (nReference = 0; nReference < objectDataPathManager.GetExternalRootDataPathNumber(); nReference++)
+		objectDataPathManager.GetExternalRootObjectDataPathAt(nReference)->ResetCreationNumber(0);
 
 	// Calcul de tous les attributs derives pour les objets de chaque table secondaire
 	// Comme les regles peuvent se faire entre objets de tables differentes, ce calcul
@@ -1495,8 +1493,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 	Global::DesactivateErrorFlowControl();
 
 	// On reactive le memory guard
-	memoryGuard.SetMaxSecondaryRecordNumber(lCurrentMemoryGuardMaxSecondaryRecordNumber);
-	memoryGuard.SetSingleInstanceMemoryLimit(lCurrentMemoryGuardSingleInstanceMemoryLimit);
+	memoryGuard.CopyFrom(&initialMemoryGuard);
 	return bOk;
 }
 
@@ -1550,7 +1547,7 @@ longint KWMTDatabase::ComputeSamplingBasedNecessaryMemoryForReferenceObjects()
 
 	// Initialisation de tous les data paths a destination des objets lus ou cree
 	// le temps de la lecture des objet externes
-	objectDataPathManager->ComputeAllDataPaths(kwcPhysicalClass);
+	objectDataPathManager.ComputeAllDataPaths(kwcPhysicalClass);
 
 	// Ouverture et lecture des tables referencees, sans emission d'erreur
 	// ce qui permet de calculer la memoire necessaire a leur lecture
@@ -1568,7 +1565,7 @@ longint KWMTDatabase::ComputeSamplingBasedNecessaryMemoryForReferenceObjects()
 	lDeleteBasedNecessaryMemory = lHeapMemory - MemGetHeapMemory();
 
 	// Destruction des data paths de gestion des objets
-	objectDataPathManager->Reset();
+	objectDataPathManager.Reset();
 
 	// Memoire dediee aux objets references
 	// On prend le max des deux, car il peut y avoir des effet de bord dans l'allocateur, avec la gestion des
@@ -1577,7 +1574,7 @@ longint KWMTDatabase::ComputeSamplingBasedNecessaryMemoryForReferenceObjects()
 	assert(lSamplingBasedNecessaryMemory >= 0);
 	lSamplingBasedNecessaryMemory = (longint)(lSamplingBasedNecessaryMemory / dSamplePercentage);
 
-	// On passe de la memoire physique a la memoire logique en tenant compte de l'ovehead d'(allocation
+	// On passe de la memoire physique a la memoire logique en tenant compte de l'ovehead d'allocation
 	lSamplingBasedNecessaryMemory = longint(lSamplingBasedNecessaryMemory / (1 + MemGetAllocatorOverhead()));
 	if (bDisplay)
 		cout << "\tSampling based estimation\t" << LongintToHumanReadableString(lSamplingBasedNecessaryMemory)
@@ -2062,7 +2059,7 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 	if (kwoObject != NULL)
 	{
 		// Recherche du data path a associe a l'objet
-		objectDataPath = objectDataPathManager->LookupObjectDataPath(mapping->GetDataPath());
+		objectDataPath = objectDataPathManager.LookupObjectDataPath(mapping->GetDataPath());
 
 		// Memorisation du data path dans l'objet
 		kwoObject->SetObjectDataPath(objectDataPath);
@@ -2071,8 +2068,8 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 		// sous data path dans le cas d'un objet princial
 		if (mapping->GetDataTableDriver()->GetClass() == kwcPhysicalClass)
 		{
-			assert(objectDataPath == objectDataPathManager->GetMainDataPath());
-			objectDataPathManager->GetMainObjectDataPath()->ResetCreationNumber(
+			assert(objectDataPath == objectDataPathManager.GetMainDataPath());
+			objectDataPathManager.GetMainObjectDataPath()->ResetCreationNumber(
 			    kwoObject->GetCreationIndex());
 		}
 	}

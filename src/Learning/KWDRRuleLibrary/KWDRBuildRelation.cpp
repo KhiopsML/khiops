@@ -11,6 +11,7 @@ void KWDRRegisterBuildRelationRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntityView);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntityAdvancedView);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntity);
+	KWDerivationRule::RegisterDerivationRule(new KWDRBuildDummyTable);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -253,6 +254,84 @@ KWObject* KWDRBuildEntity::ComputeObjectResult(const KWObject* kwoObject, const 
 }
 
 boolean KWDRBuildEntity::IsViewModeActivated() const
+{
+	return false;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildDummyTable
+
+KWDRBuildDummyTable::KWDRBuildDummyTable()
+{
+	SetName("BuildDummyTable");
+	SetLabel("Build dummy table");
+	SetType(KWType::ObjectArray);
+
+	// Un operande, pour specifier le nombre d'instance a cree
+	SetOperandNumber(1);
+	GetFirstOperand()->SetType(KWType::Continuous);
+
+	// Variables en entree: une pour le nombre d'instance a cree,
+	// et un nombre variable d'operande pour alimenter les variables en sortie
+	SetOperandNumber(2);
+	GetFirstOperand()->SetType(KWType::Continuous);
+	GetSecondOperand()->SetType(KWType::Unknown);
+	SetVariableOperandNumber(true);
+
+	// Variables en sortie: nombre variable d'operandes pour alimenter la table en sortie
+	SetOutputOperandNumber(1);
+	GetOutputOperandAt(0)->SetType(KWType::Unknown);
+	SetVariableOutputOperandNumber(true);
+}
+
+KWDRBuildDummyTable::~KWDRBuildDummyTable() {}
+
+KWDerivationRule* KWDRBuildDummyTable::Create() const
+{
+	return new KWDRBuildDummyTable;
+}
+
+ObjectArray* KWDRBuildDummyTable::ComputeObjectArrayResult(const KWObject* kwoObject,
+							   const KWLoadIndex liAttributeLoadIndex) const
+{
+	const int nMaxTableSize = 1000000;
+	Continuous cTableSize;
+	int nTableSize;
+	KWObject* kwoTargetContainedObject;
+	int nObject;
+
+	require(IsCompiled());
+
+	// Calcul du resultat
+	oaResult.SetSize(0);
+
+	// Taille de la table a cree
+	cTableSize = GetFirstOperand()->GetContinuousValue(kwoObject);
+	nTableSize = 0;
+	if (cTableSize != KWContinuous::GetMissingValue())
+	{
+		if (cTableSize < 0)
+			nTableSize = 0;
+		else if (cTableSize > nMaxTableSize)
+			nTableSize = nMaxTableSize;
+		else
+			nTableSize = int(floor(cTableSize + 0.5));
+	}
+
+	// Creation des instances
+	oaResult.SetSize(nTableSize);
+	for (nObject = 0; nObject < nTableSize; nObject++)
+	{
+		kwoTargetContainedObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
+
+		// Alimentation de type calcul pour les operandes en entree correspondant
+		FillComputeModeTargetAttributesForVariableOperandNumber(kwoObject, kwoTargetContainedObject);
+		oaResult.SetAt(nObject, kwoTargetContainedObject);
+	}
+	return &oaResult;
+}
+
+boolean KWDRBuildDummyTable::IsViewModeActivated() const
 {
 	return false;
 }

@@ -177,11 +177,23 @@ void KWObject::ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard)
 		// Tentative de nettoyage si memoire limite depasse
 		if (memoryGuard->IsSingleInstanceMemoryLimitReached())
 		{
-			// Nettoyage des donnees de travail temporaire, pouvant etre recalculees
-			CleanTemporayDataItemsToComputeAndClean();
+			// On ne le fait pas dans le cas ou il y a eu un probleme de creation d'instances
+			// En effet, dans ce cas, les creations d'instances ont du etre interrompues dans les
+			// regles de creation d'instances, et les resultats de calcul (de type TableCount)
+			// exploitant ces instances creees sont faux et fluctuants selon la memoire disponible
+			if (not memoryGuard->IsSingleInstanceMemoryLimitReachedDuringCreation())
+			{
+				// On ne le fait pas s'il y a eu trop de passe de nettoyage, pour eviter
+				// de passer un temps potentiellement enorme
+				if (memoryGuard->GetMemoryCleaningNumber() < memoryGuard->GetMaxMemoryCleaningNumber())
+				{
+					// Nettoyage des donnees de travail temporaire, pouvant etre recalculees
+					CleanTemporayDataItemsToComputeAndClean();
 
-			// Actualisation de la detetcion de depassement memoire
-			memoryGuard->UpdateAfterMemoryCleaning();
+					// Actualisation de la detection de depassement memoire
+					memoryGuard->UpdateAfterMemoryCleaning();
+				}
+			}
 		}
 	}
 
@@ -798,7 +810,7 @@ void KWObject::CleanNativeRelationAttributes()
 
 	require(kwcClass->IsCompiled());
 	require(kwcClass->GetUnloadedOwnedRelationAttributeNumber() == 0);
-	require(values.attributeValues != NULL);
+	require(values.attributeValues != NULL or kwcClass->GetLoadedDataItemNumber() == 0);
 
 	// Recherche si usage de type view
 	bIsViewTypeUse = GetViewTypeUse();
@@ -1672,6 +1684,7 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 	int i;
 	int nLoadedDataItemNumber;
 	int nTotalInternallyLoadedDataItemNumber;
+	KWValue previousValue;
 	KWAttribute* attribute;
 	KWObject* kwoUsedObject;
 	ObjectArray* oaUsedObjectArray;
@@ -1798,6 +1811,7 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 				liInternalLoadIndex = attribute->GetInternalLoadIndex();
 				assert(liInternalLoadIndex.IsDense());
 				assert(not GetAt(liInternalLoadIndex.GetDenseIndex()).IsObjectForbidenValue());
+				assert(not GetAt(liInternalLoadIndex.GetDenseIndex()).IsObjectArrayForbidenValue());
 
 				// Traitement si attribut precedent present dans la classe d'origine
 				previousAttribute = previousClass->LookupAttribute(attribute->GetName());
@@ -1806,13 +1820,20 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 					liLoadIndex = previousAttribute->GetLoadIndex();
 					assert(liLoadIndex.IsDense());
 
+					// Acces a la valeur
+					previousValue =
+					    GetValueAt(previousValues, bPreviousSmallSize, liLoadIndex.GetDenseIndex());
+
 					// Cas des Object
 					if (attribute->GetType() == KWType::Object)
 					{
 						// Acces a l'objet precedent
-						kwoUsedObject = GetValueAt(previousValues, bPreviousSmallSize,
-									   liLoadIndex.GetDenseIndex())
-								    .GetObject();
+						if (previousValue.IsObjectForbidenValue())
+							kwoUsedObject = NULL;
+						else
+							kwoUsedObject = GetValueAt(previousValues, bPreviousSmallSize,
+										   liLoadIndex.GetDenseIndex())
+									    .GetObject();
 
 						// Transfert de l'objet si necessaire, destruction sinon
 						if (kwoUsedObject != NULL)
@@ -1858,9 +1879,13 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 						assert(attribute->GetType() == KWType::ObjectArray);
 
 						// Acces au tableau precedent
-						oaUsedObjectArray = GetValueAt(previousValues, bPreviousSmallSize,
-									       liLoadIndex.GetDenseIndex())
-									.GetObjectArray();
+						if (previousValue.IsObjectArrayForbidenValue())
+							oaUsedObjectArray = NULL;
+						else
+							oaUsedObjectArray =
+							    GetValueAt(previousValues, bPreviousSmallSize,
+								       liLoadIndex.GetDenseIndex())
+								.GetObjectArray();
 
 						// Transfert des objets si necessaire, destruction sinon
 						if (oaUsedObjectArray != NULL)

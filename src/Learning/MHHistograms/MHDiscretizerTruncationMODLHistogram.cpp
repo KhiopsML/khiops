@@ -123,7 +123,7 @@ void MHDiscretizerTruncationMODLHistogram::TruncationDiscretizeBins(const Contin
 		else if (optimizedHistogram->GetDistinctValueNumber() == 3 and
 			 optimizedHistogram->GetIntervalNumber() > 1)
 		{
-			// Recherche de la troiseme valeur diferrente du min et du max
+			// Recherche de la troisieme valeur differente du min et du max
 			cMeadianValue = optimizedHistogram->GetMinValue();
 			for (n = cvSourceBinUpperValues->GetSize() - 2; n > 0; n--)
 			{
@@ -149,7 +149,7 @@ void MHDiscretizerTruncationMODLHistogram::TruncationDiscretizeBins(const Contin
 			// Recherche de l'epsilon de troncature sur la base des variations de valeurs
 			if (bIsTruncationNecessary)
 			{
-				// Calcul de l'histogrammes des variations de valeurs
+				// Calcul de l'histogramme des variations de valeurs
 				DiscretizeDeltaValues(cvSourceBinLowerValues, cvSourceBinUpperValues,
 						      ivSourceBinFrequencies, cvSourceDeltaBinLowerValues,
 						      cvSourceDeltaBinUpperValues, ivSourceDeltaBinFrequencies,

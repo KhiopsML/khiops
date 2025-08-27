@@ -1497,6 +1497,69 @@ void KWDRRelationCreationRule::InternalCompleteTypeInfo(const KWClass* kwcOwnerC
 	}
 }
 
+KWObject* KWDRRelationCreationRule::NewTargetObject(const KWObject* kwoOwnerObject,
+						    const KWLoadIndex liAttributeLoadIndex) const
+{
+	const boolean bTrace = false;
+	KWObject* kwoTargetObject;
+	const KWObjectDataPath* objectDataPath;
+	KWDatabaseMemoryGuard* memoryGuard;
+
+	require(kwoOwnerObject != NULL);
+	require(kwoOwnerObject->GetObjectDataPath() != NULL);
+	require(IsCompiled());
+
+	// Recherhe du data path de l'objet a creer
+	objectDataPath = kwoOwnerObject->GetObjectDataPath()->GetComponentDataPath(liAttributeLoadIndex);
+
+	// Acces au service de protection memoire
+	memoryGuard = objectDataPath->GetMemoryGuard();
+
+	// Prise en compte de la tentative dans le memory guard
+	memoryGuard->AddCreatedRecord();
+
+	// Pas de tentative de creation si la limite est deja ateinte
+	if (memoryGuard->IsSingleInstanceMemoryLimitReached())
+		kwoTargetObject = NULL;
+	// Sinon, on tente de cree l'objet
+	else
+	{
+
+		// Creation d'un objet en mode vue, avec un index de creation fourni par le data path
+		kwoTargetObject = new KWObject(kwcCompiledTargetClass, objectDataPath->NewCreationIndex());
+		kwoTargetObject->SetViewTypeUse(true);
+		kwoTargetObject->SetObjectDataPath(objectDataPath);
+
+		// Nettoyage si le memory guard a detecte un depassement de limite memoire
+		if (memoryGuard->IsSingleInstanceMemoryLimitReached())
+		{
+			delete kwoTargetObject;
+			kwoTargetObject = NULL;
+		}
+	}
+
+	// Trace
+	if (bTrace)
+	{
+		cout << "NewTargetObject\t" << GetName() << "\t";
+		cout << memoryGuard->GetTotalCreatedRecordNumber() << "\t";
+		cout << kwoOwnerObject->GetObjectDataPath()->GetDataPath() << "\t"
+		     << kwoOwnerObject->GetClass()->GetName() << "\t" << kwoOwnerObject->GetCreationIndex() << "\t";
+		if (kwoOwnerObject->GetClass()->GetKeyAttributeNumber() > 0)
+			cout << kwoOwnerObject->GetObjectLabel() << "\t";
+		if (kwoTargetObject != NULL)
+		{
+			cout << kwoTargetObject->GetObjectDataPath()->GetDataPath() << "\t"
+			     << kwoTargetObject->GetClass()->GetName() << "\t" << kwoTargetObject->GetCreationIndex();
+		}
+		if (memoryGuard->IsSingleInstanceMemoryLimitReached())
+			cout << "\tMEMORY LIMIT";
+		cout << "\n";
+	}
+	ensure(kwoTargetObject != NULL or memoryGuard->IsSingleInstanceMemoryLimitReached());
+	return kwoTargetObject;
+}
+
 void KWDRRelationCreationRule::AddViewModeError(const KWClass* kwcSourceClass, const KWClass* kwcTargetClass,
 						const KWAttribute* targetAttribute, const ALString& sLabel) const
 {
@@ -1534,7 +1597,10 @@ void KWDRRelationCreationRule::FillViewModeTargetAttributes(const KWObject* kwoS
 
 	require(IsCompiled());
 	require(kwoSourceObject != NULL);
-	require(kwoTargetObject != NULL);
+
+	// Retour si objet cible NULL
+	if (kwoTargetObject == NULL)
+		return;
 
 	// Alimentation des attributs de l'objet cible avec les valeurs provenant de l'objet source
 	for (nAttribute = 0; nAttribute < ivViewModeTargetAttributeTypes.GetSize(); nAttribute++)
@@ -1634,11 +1700,14 @@ void KWDRRelationCreationRule::FillComputeModeTargetAttributesForVariableOperand
 
 	require(IsCompiled());
 	require(kwoSourceObject != NULL);
-	require(kwoTargetObject != NULL);
 	require(GetOperandNumber() >= GetOutputOperandNumber());
 	require(GetOutputOperandNumber() == ivComputeModeTargetAttributeTypes.GetSize());
 	require(GetVariableOperandNumber());
 	require(GetVariableOutputOperandNumber());
+
+	// Retour si objet cible NULL
+	if (kwoTargetObject == NULL)
+		return;
 
 	// Recherche de l'index du premier operande en entree correspondant
 	// aux valeurs servant a alimenter les attributs en sortie

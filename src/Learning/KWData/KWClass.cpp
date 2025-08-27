@@ -1897,6 +1897,98 @@ void KWClass::ExportKeyAttributeNames(StringVector* svAttributeNames) const
 	}
 }
 
+longint KWClass::GetEstimatedUsedMemoryPerObject() const
+{
+	const boolean bTrace = false;
+	int nObjectArrayLoadedValueNumber;
+	int nTextLoadedValueNumber;
+	int nDenseLoadedValueNumber;
+	int nSparseLoadedValueNumber;
+	int nSparseLoadedValueBlockNumber;
+	int nEstimatedValueNumber;
+	longint lObjectSize;
+	KWAttribute* attribute;
+	KWAttributeBlock* attributeBlock;
+	ObjectDictionary odEmpty;
+
+	// Initialisation des statistiques par type d'attribut
+	nTextLoadedValueNumber = 0;
+	nObjectArrayLoadedValueNumber = 0;
+	nDenseLoadedValueNumber = 0;
+	nSparseLoadedValueNumber = 0;
+	nSparseLoadedValueBlockNumber = 0;
+
+	// Calcul des nombres d'attributs charges en memoire dans la classe physique
+	// qui ne memorise que les attributs charges en memoire (natifs ou calcules)
+	// Dans le cas des blocs, on fait une estimation
+	attribute = GetHeadAttribute();
+	while (attribute != NULL)
+	{
+		// Cas des attributs denses
+		if (not attribute->IsInBlock())
+		{
+			if (attribute->GetLoaded())
+			{
+				if (attribute->GetType() == KWType::Text)
+					nTextLoadedValueNumber++;
+				else if (attribute->GetType() == KWType::ObjectArray)
+					nObjectArrayLoadedValueNumber++;
+				nDenseLoadedValueNumber++;
+			}
+		}
+		// Cas des attributs dans les blocs
+		else
+		{
+			// Dans ce cas, on se base sur une estimation heuristique du nombre de valeurs presentes
+			// en fonction de la taille globale du bloc (au plus une fois par bloc)
+			if (attribute->IsFirstInBlock())
+			{
+				attributeBlock = attribute->GetAttributeBlock();
+				if (attributeBlock->GetLoaded())
+				{
+					nEstimatedValueNumber =
+					    (int)ceil(KWAttributeBlock::GetEstimatedMeanValueNumber(
+							  attributeBlock->GetAttributeNumber()) *
+						      1.0 * attributeBlock->GetLoadedAttributeNumber() /
+						      attributeBlock->GetAttributeNumber());
+					nSparseLoadedValueNumber += nEstimatedValueNumber;
+					nSparseLoadedValueBlockNumber++;
+				}
+			}
+		}
+		GetNextAttribute(attribute);
+	}
+
+	// Estimation de la memoire necessaire pour stocker un objet
+	lObjectSize = sizeof(KWObject) + 2 * sizeof(void*);              // KWObject a vide
+	lObjectSize += nDenseLoadedValueNumber * sizeof(KWValue);        // Valeurs dense de l'objet
+	lObjectSize += (longint)nTextLoadedValueNumber * nTextValueSize; // Valeurs Text de l'objet
+	lObjectSize +=
+	    (longint)nObjectArrayLoadedValueNumber *
+	    (sizeof(ObjectArray) + sizeof(void*)); // Valeur ObjectArray de l'objet, avec un seul objet contenu
+	lObjectSize += (longint)nSparseLoadedValueNumber * (sizeof(int) + sizeof(KWValue)); // Valeurs sparse de l'objet
+	lObjectSize += (longint)nSparseLoadedValueBlockNumber * sizeof(KWSymbolValueBlock);
+	if (IsKeyLoaded())
+		lObjectSize += (longint)GetKeyAttributeNumber() *
+			       (Symbol::GetUsedMemoryPerSymbol() + nKeyFieldSize); // Taille des Symbol de la cle
+
+	// Affichage
+	if (bTrace)
+	{
+		cout << "GetEstimatedUsedMemoryPerObject"
+		     << "\n";
+		cout << "\tDictionary\t" << GetName() << "\n";
+		cout << "\tTextLoadedValueNumber\t" << nTextLoadedValueNumber << "\n";
+		cout << "\tObjectArrayLoadedValueNumber\t" << nObjectArrayLoadedValueNumber << "\n";
+		cout << "\tDenseLoadedValueNumber\t" << nDenseLoadedValueNumber << "\n";
+		cout << "\tSparseLoadedValueNumber\t" << nSparseLoadedValueNumber << "\n";
+		cout << "\tSparseLoadedValueBlockNumber\t" << nSparseLoadedValueBlockNumber << "\n";
+		cout << "\tsizeof(KWObject)\t" << sizeof(KWObject) << "\n";
+		cout << "\tObjectSize\t" << lObjectSize << "\n";
+	}
+	return lObjectSize;
+}
+
 void KWClass::CopyFrom(const KWClass* aSource)
 {
 	KWAttribute* attribute;
