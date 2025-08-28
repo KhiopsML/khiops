@@ -24,7 +24,7 @@ int PEProgressionTask::GetMethodToTest() const
 	return nMethodToTest;
 }
 
-void PEProgressionTask::SetBoosteMode(boolean bValue)
+void PEProgressionTask::SetBoostMode(boolean bValue)
 {
 	bBoostMode = bValue;
 }
@@ -64,7 +64,7 @@ boolean PEProgressionTask::Test(int nMethod, boolean bValue)
 		cout << " with boost mode";
 	cout << endl;
 	TaskProgression::Start();
-	task.SetBoosteMode(bValue);
+	task.SetBoostMode(bValue);
 	task.SetMethodToTest(nMethod);
 	bOk = task.Run();
 	cout << "Task done and returned " << BooleanToString(bOk) << endl;

@@ -67,7 +67,7 @@ void KWObject::ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard)
 		dataItem = cast(KWDataItem*, kwcClass->GetConstDatabaseDataItemsToCompute()->GetAt(nAttribute));
 
 		// Arret du calcul si la limite memoire est depasseee
-		if (memoryGuard->IsSingleInstanceMemoryLimitReached())
+		if (memoryGuard->IsMemoryLimitReached())
 		{
 			// On continue a enregistrer les attributs a calculer pour affiner les message d'erreur
 			// utilisateurs
@@ -175,7 +175,7 @@ void KWObject::ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard)
 		memoryGuard->AddComputedAttribute();
 
 		// Tentative de nettoyage si memoire limite depasse
-		if (memoryGuard->IsSingleInstanceMemoryLimitReached())
+		if (memoryGuard->IsMemoryLimitReached())
 		{
 			// On ne le fait pas dans le cas ou il y a eu un probleme de creation d'instances
 			// En effet, dans ce cas, les creations d'instances ont du etre interrompues dans les
@@ -198,7 +198,7 @@ void KWObject::ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard)
 	}
 
 	// Nettoyage si limite memoire depassee
-	if (memoryGuard->IsSingleInstanceMemoryLimitReached())
+	if (memoryGuard->IsMemoryLimitReached())
 	{
 		CleanAllNonNativeAttributes();
 		CleanNativeRelationAttributes();

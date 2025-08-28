@@ -845,7 +845,7 @@ KWObject* KWMTDatabase::PhysicalRead()
 	if (kwoObject != NULL)
 	{
 		// Nettoyage des objets natifs inclus si le memory guard a detecte un depassement de limite memoire
-		if (memoryGuard.IsSingleInstanceMemoryLimitReached())
+		if (memoryGuard.IsMemoryLimitReached())
 			kwoObject->CleanNativeRelationAttributes();
 	}
 
@@ -1218,6 +1218,7 @@ boolean KWMTDatabase::IsPhysicalObjectSelected(KWObject* kwoPhysicalObject)
 boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 {
 	boolean bOk = true;
+	const int lMaxSkippedExternalRecordNumber = 1000000;
 	int nReference;
 	KWMTDatabaseMapping* referenceMapping;
 	KWClass* kwcReferenceClass;
@@ -1243,6 +1244,14 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 	// les tables externes, et il n'y a pas a se soucier de la gestion des instances "elephants"
 	initialMemoryGuard.CopyFrom(&memoryGuard);
 	memoryGuard.Reset();
+
+	//DDD
+	/*DDD
+	cout << "Initial memory guard\n" << initialMemoryGuard << endl;
+	memoryGuard.CopyFrom(&initialMemoryGuard);
+	memoryGuard.Init();
+	cout << "External memory guard\n" << memoryGuard << endl;
+	*/
 
 	// On teste si on en en cours de suivi de tache
 	bIsInTask = TaskProgression::IsInTask();
@@ -1305,9 +1314,41 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 				lObjectNumber = 0;
 				while (not referenceMapping->GetDataTableDriver()->IsEnd())
 				{
-					// Lecture d'un enregistrement de la table principale
-					kwoObject = DMTMPhysicalRead(referenceMapping);
+					//DDD TODO
+					// Faire des Skip  au lieu des read en cas de probleme memoire, pour collecter les stats sur les donnees externes
+					// Dans une limite raisonnable, pour evitre les fichier enormes
+					// Message global si probleme de lecture (par rapport a "at least" external instances...)
+					// Message particulier si problmeme dans la second passe des ComputeAllValues
+
+					// Lecture d'un enregistrement de la table principale si on n'a pas atteint la limite memoire
+					if (not memoryGuard.IsMemoryLimitReached())
+						kwoObject = DMTMPhysicalRead(referenceMapping);
+					// Sinon, on saute l'enregistrement pour colelcter des stats sur le nombre total de record
+					else
+					{
+						kwoObject = NULL;
+
+						// On arrete la collecte de stats si top de skip, pour eviter de lire un fichier trop gros
+						if (memoryGuard.GetTotalReadExternalRecordNumber() -
+							memoryGuard.GetReadExternalRecordNumberBeforeLimit() >=
+						    lMaxSkippedExternalRecordNumber)
+							break;
+						// Sinon, on saute l'enregistrement
+						else
+							referenceMapping->GetDataTableDriver()->Skip();
+					}
 					lRecordNumber++;
+
+					// Prise en compte dans le memory guard
+					memoryGuard.AddReadExternalRecord();
+
+					// Nettoyage si limite memoire atteinte
+					if (kwoObject != NULL and memoryGuard.IsMemoryLimitReached())
+					{
+						// Destruction si on a atteint la limite memoire
+						delete kwoObject;
+						kwoObject = NULL;
+					}
 
 					// Enregistrement dans le resolveur de reference
 					if (kwoObject != NULL)
@@ -1377,6 +1418,10 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 
 			// Fermeture de toutes les sous-bases referencees (qu'il y ait echec ou non de l'ouverture)
 			bOk = DMTMPhysicalClose(referenceMapping) and bOk;
+
+			// Erreur si probleme memoire
+			if (memoryGuard.IsMemoryLimitReached())
+				bOk = false;
 		}
 
 		// Nettoyage final
@@ -1461,6 +1506,13 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 			// Calcul recursif de toutes les valeurs des objets
 			kwoObject->ComputeAllValues(&memoryGuard);
 
+			// Arret si probleme memoire
+			if (memoryGuard.IsMemoryLimitReached())
+			{
+				bOk = false;
+				break;
+			}
+
 			// Suivi de la tache
 			if (bIsInTask and TaskProgression::IsRefreshNecessary(nObject))
 			{
@@ -1491,6 +1543,10 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 
 	// Desactivation du controle d'erreur
 	Global::DesactivateErrorFlowControl();
+
+	// Message utilisateur en cas de depassement memoire
+	if (memoryGuard.IsMemoryLimitReached())
+		AddWarning(memoryGuard.GetExternalTableMemoryLimitLabel());
 
 	// On reactive le memory guard
 	memoryGuard.CopyFrom(&initialMemoryGuard);
@@ -2227,7 +2283,7 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 
 							// Nettoyage si le memory guard a detecte un depassement de
 							// limite memoire
-							if (memoryGuard.IsSingleInstanceMemoryLimitReached())
+							if (memoryGuard.IsMemoryLimitReached())
 							{
 								// Destruction du sous-objet non utilisable
 								delete kwoSubObject;

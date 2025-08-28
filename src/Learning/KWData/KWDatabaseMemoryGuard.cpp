@@ -98,7 +98,7 @@ void KWDatabaseMemoryGuard::Init()
 {
 	// Reinitialisation des donnees de travail
 	sMainObjectKey = "";
-	bIsSingleInstanceMemoryLimitReached = false;
+	bIsMemoryLimitReached = false;
 	lInitialHeapMemory = 0;
 	lMaxHeapMemory = 0;
 	lCurrentHeapMemory = 0;
@@ -106,6 +106,8 @@ void KWDatabaseMemoryGuard::Init()
 	lTotalReadSecondaryRecordNumber = 0;
 	lCreatedRecordNumberBeforeLimit = 0;
 	lTotalCreatedRecordNumber = 0;
+	lReadExternalRecordNumberBeforeLimit = 0;
+	lTotalReadExternalRecordNumber = 0;
 	nComputedAttributeNumberBeforeLimit = 0;
 	nTotalComputedAttributeNumber = 0;
 	nMemoryCleaningNumber = 0;
@@ -146,13 +148,30 @@ void KWDatabaseMemoryGuard::AddReadSecondaryRecord()
 	lCurrentHeapMemory = MemGetHeapMemory();
 
 	// Detection du depassement de la limite si la contrainte est active
-	if (not bIsSingleInstanceMemoryLimitReached and lActualSingleInstanceMemoryLimit > 0)
+	if (not bIsMemoryLimitReached and lActualSingleInstanceMemoryLimit > 0)
 	{
-		bIsSingleInstanceMemoryLimitReached = lCurrentHeapMemory > lMaxHeapMemory;
+		bIsMemoryLimitReached = lCurrentHeapMemory > lMaxHeapMemory;
 
 		// Memorisation du nombre d'enregistrement traites avant atteinte de la limite
-		if (not bIsSingleInstanceMemoryLimitReached)
+		if (not bIsMemoryLimitReached)
 			lReadSecondaryRecordNumberBeforeLimit++;
+	}
+}
+
+void KWDatabaseMemoryGuard::AddReadExternalRecord()
+{
+	// Memorisation des stats apres ajout de l'enregistrement
+	lTotalReadExternalRecordNumber++;
+	lCurrentHeapMemory = MemGetHeapMemory();
+
+	// Detection du depassement de la limite si la contrainte est active
+	if (not bIsMemoryLimitReached and lActualSingleInstanceMemoryLimit > 0)
+	{
+		bIsMemoryLimitReached = lCurrentHeapMemory > lMaxHeapMemory;
+
+		// Memorisation du nombre d'enregistrement traites avant atteinte de la limite
+		if (not bIsMemoryLimitReached)
+			lReadExternalRecordNumberBeforeLimit++;
 	}
 }
 
@@ -163,12 +182,12 @@ void KWDatabaseMemoryGuard::AddCreatedRecord()
 	lCurrentHeapMemory = MemGetHeapMemory();
 
 	// Detection du depassement de la limite si la contrainte est active
-	if (not bIsSingleInstanceMemoryLimitReached and lActualSingleInstanceMemoryLimit > 0)
+	if (not bIsMemoryLimitReached and lActualSingleInstanceMemoryLimit > 0)
 	{
-		bIsSingleInstanceMemoryLimitReached = lCurrentHeapMemory > lMaxHeapMemory;
+		bIsMemoryLimitReached = lCurrentHeapMemory > lMaxHeapMemory;
 
 		// Memorisation du nombre d'enregistrement traites avant atteinte de la limite
-		if (not bIsSingleInstanceMemoryLimitReached)
+		if (not bIsMemoryLimitReached)
 			lCreatedRecordNumberBeforeLimit++;
 	}
 }
@@ -180,12 +199,12 @@ void KWDatabaseMemoryGuard::AddComputedAttribute()
 	lCurrentHeapMemory = MemGetHeapMemory();
 
 	// Detection du depassement de la limite si la contrainte est active
-	if (not bIsSingleInstanceMemoryLimitReached and lActualSingleInstanceMemoryLimit > 0)
+	if (not bIsMemoryLimitReached and lActualSingleInstanceMemoryLimit > 0)
 	{
-		bIsSingleInstanceMemoryLimitReached = lCurrentHeapMemory > lMaxHeapMemory;
+		bIsMemoryLimitReached = lCurrentHeapMemory > lMaxHeapMemory;
 
 		// Memorisation du nombre d'enregistrement traites avant atteinte de la limitre
-		if (not bIsSingleInstanceMemoryLimitReached)
+		if (not bIsMemoryLimitReached)
 			nComputedAttributeNumberBeforeLimit++;
 	}
 }
@@ -200,7 +219,7 @@ void KWDatabaseMemoryGuard::UpdateAfterMemoryCleaning()
 
 	// Reactualisation de la detection du depassement de la limite si la contrainte est active
 	if (lActualSingleInstanceMemoryLimit > 0)
-		bIsSingleInstanceMemoryLimitReached = lCurrentHeapMemory > lMaxHeapMemory;
+		bIsMemoryLimitReached = lCurrentHeapMemory > lMaxHeapMemory;
 }
 
 int KWDatabaseMemoryGuard::GetMemoryCleaningNumber() const
@@ -210,18 +229,32 @@ int KWDatabaseMemoryGuard::GetMemoryCleaningNumber() const
 
 boolean KWDatabaseMemoryGuard::IsSingleInstanceVeryLarge() const
 {
-	return IsMaxSecondaryRecordNumberReached() or IsMaxCreatedRecordNumberReached() or nMemoryCleaningNumber > 0;
+	return not IsMemoryLimitReached() and
+	       (IsMaxSecondaryRecordNumberReached() or IsMaxCreatedRecordNumberReached() or nMemoryCleaningNumber > 0);
 }
 
-const ALString KWDatabaseMemoryGuard::GetSingleInstanceVeryLargeLabel()
+boolean KWDatabaseMemoryGuard::IsSingleInstanceMemoryLimitReachedDuringRead() const
+{
+	require(IsMemoryLimitReached());
+	return GetReadSecondaryRecordNumberBeforeLimit() < GetTotalReadSecondaryRecordNumber();
+}
+
+boolean KWDatabaseMemoryGuard::IsSingleInstanceMemoryLimitReachedDuringCreation() const
+{
+	require(IsMemoryLimitReached());
+	return GetCreatedRecordNumberBeforeLimit() < GetTotalCreatedRecordNumber();
+}
+
+const ALString KWDatabaseMemoryGuard::GetSingleInstanceVeryLargeLabel() const
 {
 	ALString sLabel;
 
 	require(IsSingleInstanceVeryLarge());
-	require(not IsSingleInstanceMemoryLimitReached());
+	require(not IsMemoryLimitReached());
+	require(GetTotalReadExternalRecordNumber() == 0);
 
 	// Information sur les enregistrements lus ou cree
-	sLabel = sMemoryGuardLabelPrefix;
+	sLabel = sLabelPrefixSingleInstance;
 	if (sMainObjectKey != "")
 		sLabel += sMainObjectKey + " ";
 	if (GetTotalReadSecondaryRecordNumber() > 0)
@@ -250,30 +283,19 @@ const ALString KWDatabaseMemoryGuard::GetSingleInstanceVeryLargeLabel()
 		else
 			sLabel += " additional passes)";
 	}
-	ensure(sLabel.Find(sMemoryGuardLabelPrefix) == 0);
+	ensure(sLabel.Find(sLabelPrefixSingleInstance) == 0);
 	return sLabel;
 }
 
-boolean KWDatabaseMemoryGuard::IsSingleInstanceMemoryLimitReachedDuringRead() const
-{
-	require(IsSingleInstanceMemoryLimitReached());
-	return GetReadSecondaryRecordNumberBeforeLimit() < GetTotalReadSecondaryRecordNumber();
-}
-
-boolean KWDatabaseMemoryGuard::IsSingleInstanceMemoryLimitReachedDuringCreation() const
-{
-	require(IsSingleInstanceMemoryLimitReached());
-	return GetCreatedRecordNumberBeforeLimit() < GetTotalCreatedRecordNumber();
-}
-
-const ALString KWDatabaseMemoryGuard::GetSingleInstanceMemoryLimitLabel()
+const ALString KWDatabaseMemoryGuard::GetSingleInstanceMemoryLimitLabel() const
 {
 	ALString sLabel;
 
-	require(IsSingleInstanceMemoryLimitReached());
+	require(IsMemoryLimitReached());
+	require(GetTotalReadExternalRecordNumber() == 0);
 
 	// Entete du message
-	sLabel = sMemoryGuardLabelPrefix;
+	sLabel = sLabelPrefixSingleInstance;
 	if (sMainObjectKey != "")
 		sLabel += sMainObjectKey + " ";
 	sLabel += "uses too much memory (more than ";
@@ -325,8 +347,57 @@ const ALString KWDatabaseMemoryGuard::GetSingleInstanceMemoryLimitLabel()
 	}
 
 	// Ajout d'une information sur la gestion de l'enregistrement en cas de probleme
-	sLabel += sMemoryGuardRecoveryLabelSuffix;
-	ensure(sLabel.Find(sMemoryGuardLabelPrefix) == 0 and sLabel.Find(sMemoryGuardRecoveryLabelSuffix) > 0);
+	sLabel += sLabelPrefixSingleInstance;
+	ensure(sLabel.Find(sLabelPrefixSingleInstance) == 0 and sLabel.Find(sLabelSuffixSingleInstanceRecovery) > 0);
+	return sLabel;
+}
+
+const ALString KWDatabaseMemoryGuard::GetExternalTableMemoryLimitLabel() const
+{
+	ALString sLabel;
+
+	require(IsMemoryLimitReached());
+	require(GetTotalReadExternalRecordNumber() > 0);
+
+	// Entete du message
+	sLabel = sLabelPrefixExternalTable;
+	sLabel += "uses too much memory (more than ";
+	sLabel += LongintToHumanReadableString(lActualSingleInstanceMemoryLimit);
+	sLabel += " of RAM) ";
+
+	// Information sur les enregistrements principaux des tables externes lus
+	sLabel += "after reading ";
+	sLabel += LongintToReadableString(GetReadExternalRecordNumberBeforeLimit());
+	sLabel += " external instances";
+
+	// Cas ou on n'a pas pu lire tous les enregistrements
+	if (GetReadExternalRecordNumberBeforeLimit() < GetTotalReadExternalRecordNumber())
+	{
+		sLabel += " out of at least ";
+		sLabel += LongintToReadableString(GetTotalReadExternalRecordNumber());
+	}
+
+	// Information sur les enregistrements lus
+	if (GetTotalReadSecondaryRecordNumber() > 0)
+	{
+		sLabel += ", including at least ";
+		sLabel += LongintToReadableString(GetReadSecondaryRecordNumberBeforeLimit());
+		sLabel += " secondary records";
+	}
+
+	// Information sur les instances creees
+	if (GetTotalCreatedRecordNumber() > 0)
+	{
+		if (GetTotalReadSecondaryRecordNumber() > 0)
+			sLabel += " and creating ";
+		else
+			sLabel += " including creating ";
+		sLabel += LongintToReadableString(GetCreatedRecordNumberBeforeLimit());
+		sLabel += " records";
+	}
+
+	// Ajout d'une information sur la gestion de l'enregistrement en cas de probleme
+	ensure(sLabel.Find(sLabelPrefixExternalTable) == 0);
 	return sLabel;
 }
 
@@ -377,6 +448,16 @@ longint KWDatabaseMemoryGuard::GetReadSecondaryRecordNumberBeforeLimit() const
 longint KWDatabaseMemoryGuard::GetTotalReadSecondaryRecordNumber() const
 {
 	return lTotalReadSecondaryRecordNumber;
+}
+
+longint KWDatabaseMemoryGuard::GetReadExternalRecordNumberBeforeLimit() const
+{
+	return lReadExternalRecordNumberBeforeLimit;
+}
+
+longint KWDatabaseMemoryGuard::GetTotalReadExternalRecordNumber() const
+{
+	return lTotalReadExternalRecordNumber;
 }
 
 longint KWDatabaseMemoryGuard::GetCreatedRecordNumberBeforeLimit() const
@@ -470,7 +551,7 @@ void KWDatabaseMemoryGuard::Write(ostream& ost) const
 	     << LongintToHumanReadableString(lEstimatedMinSingleInstanceMemoryLimit) << "\n";
 	cout << "\tEstimatedMaxSingleInstanceMemoryLimit\t"
 	     << LongintToHumanReadableString(lEstimatedMaxSingleInstanceMemoryLimit) << "\n";
-	cout << "\tIsSingleInstanceMemoryLimitReached\t" << bIsSingleInstanceMemoryLimitReached << "\n";
+	cout << "\tIsMemoryLimitReached\t" << bIsMemoryLimitReached << "\n";
 	cout << "\tInitialHeapMemory\t" << LongintToHumanReadableString(lInitialHeapMemory) << "\n";
 	cout << "\tMaxHeapMemory\t" << LongintToHumanReadableString(lMaxHeapMemory) << "\n";
 	cout << "\tCurrentHeapMemory\t" << LongintToHumanReadableString(lCurrentHeapMemory) << "\n";
@@ -478,9 +559,12 @@ void KWDatabaseMemoryGuard::Write(ostream& ost) const
 	     << LongintToReadableString(lReadSecondaryRecordNumberBeforeLimit) << "\n";
 	cout << "\tTotalReadSecondaryRecordNumber\t" << LongintToReadableString(lTotalReadSecondaryRecordNumber)
 	     << "\n";
+	cout << "\tReadExternalRecordNumberBeforeLimit\t"
+	     << LongintToReadableString(lReadExternalRecordNumberBeforeLimit) << "\n";
+	cout << "\tTotalReadExternalRecordNumber\t" << LongintToReadableString(lTotalReadExternalRecordNumber) << "\n";
 	cout << "\tCreatedRecordNumberBeforeLimit\t" << LongintToReadableString(lCreatedRecordNumberBeforeLimit)
 	     << "\n";
-	cout << "\tTotalCreatedRecordNumber\t" << LongintToHumanReadableString(lTotalCreatedRecordNumber) << "\n";
+	cout << "\tTotalCreatedRecordNumber\t" << LongintToReadableString(lTotalCreatedRecordNumber) << "\n";
 	cout << "\tComputedAttributeNumberBeforeLimit\t" << LongintToReadableString(nComputedAttributeNumberBeforeLimit)
 	     << "\n";
 	cout << "\tTotalComputedAttributeNumber\t" << LongintToReadableString(nTotalComputedAttributeNumber) << "\n";
@@ -501,13 +585,13 @@ boolean KWDatabaseMemoryGuard::MemoryGuardErrorFlowIgnoreFunction(const Error* e
 	require(e != NULL);
 
 	// Cas d'une erreur de type memory guard
-	if (e->GetLabel().Find(sMemoryGuardLabelPrefix) == 0)
+	if (e->GetLabel().Find(sLabelPrefixSingleInstance) == 0 or e->GetLabel().Find(sLabelPrefixExternalTable))
 	{
 		// On controle un flow d'erreur specifique aux warnings de type memory guard, uniquement en mode
 		// affichage
 		if (bDisplay)
 		{
-			if (e->GetLabel().Find(sMemoryGuardRecoveryLabelSuffix) > 0)
+			if (e->GetLabel().Find(sLabelSuffixSingleInstanceRecovery) > 0)
 			{
 				nMemoryGuardRecoveryWarningNumber++;
 				if (Global::GetMaxErrorFlowNumber() > 0 and
@@ -538,6 +622,7 @@ boolean KWDatabaseMemoryGuard::MemoryGuardErrorFlowIgnoreFunction(const Error* e
 int KWDatabaseMemoryGuard::nMemoryGuardFunctionUseCount = 0;
 int KWDatabaseMemoryGuard::nMemoryGuardInformationWarningNumber = 0;
 int KWDatabaseMemoryGuard::nMemoryGuardRecoveryWarningNumber = 0;
-const ALString KWDatabaseMemoryGuard::sMemoryGuardLabelPrefix = "Single instance ";
-const ALString KWDatabaseMemoryGuard::sMemoryGuardRecoveryLabelSuffix =
+const ALString KWDatabaseMemoryGuard::sLabelPrefixSingleInstance = "Single instance ";
+const ALString KWDatabaseMemoryGuard::sLabelSuffixSingleInstanceRecovery =
     " : only the native variables are kept, the others are defined as missing values";
+const ALString KWDatabaseMemoryGuard::sLabelPrefixExternalTable = "Loading external tables ";

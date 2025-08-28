@@ -643,7 +643,7 @@ KWObject* KWDatabase::Read()
 				// pourraient varier, entrainant une incoherence dans le nombre d'instances issues de chaque passe.
 				// Cette incoherence est detectee, mais elle peut avoir plusieurs causes:
 				// fichier modifie entre deux passes, critere de selection mal calcule (comme ici), ...
-				if (memoryGuard.IsSingleInstanceMemoryLimitReached())
+				if (memoryGuard.IsMemoryLimitReached())
 					AddWarning("Record not selected due to selection variable with possible "
 						   "incorrect value. " +
 						   memoryGuard.GetSingleInstanceMemoryLimitLabel());
@@ -685,7 +685,7 @@ KWObject* KWDatabase::Read()
 	if (kwoObject != NULL)
 	{
 		// Cas du depassement memoire, avec fonctionnement degrade (variables calculees mises a missing)
-		if (memoryGuard.IsSingleInstanceMemoryLimitReached())
+		if (memoryGuard.IsMemoryLimitReached())
 			AddWarning(memoryGuard.GetSingleInstanceMemoryLimitLabel());
 		// Cas  du seuil de nombre d'enregistrements secondaires depasse, ou d'un temps de calcul
 		// potentiellement allonge
@@ -2369,7 +2369,7 @@ void KWDatabase::MutatePhysicalObject(KWObject* kwoPhysicalObject) const
 	// Il faut le faire sur l'objet physique avant sa mutation, car il contient
 	// necessairement les champs de la cle en multi-table, alors qu'ils sont potentiellement
 	// absent de l'objet logique si les champs de la cle sont en unused
-	if (memoryGuard.IsSingleInstanceMemoryLimitReached() or memoryGuard.IsMaxSecondaryRecordNumberReached() or
+	if (memoryGuard.IsMemoryLimitReached() or memoryGuard.IsMaxSecondaryRecordNumberReached() or
 	    memoryGuard.IsMaxCreatedRecordNumberReached())
 	{
 		// On se base sur la cle de l'objet s'il y en a une
