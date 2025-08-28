@@ -11,16 +11,31 @@ class KWDatabaseMemoryGuard;
 #include "Ermgt.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-// Class KWDatabaseMemoryGuard;
+// Classe KWDatabaseMemoryGuard
 // Service de protection memoire pour la lecture des instances d'une base, notamment multi-table
+//
 // En effet, la lecture d'un enregistrement de la table principale peut impliquer potentiellement
-// un tres grand nombre d'enregistrements de tables secondaires, pouvant potentiellement de pas
+// un tres grand nombre d'enregistrements de tables secondaires, pouvant potentiellement ne pas
 // tenir en memoire, et un graphe de calcul exploitant des variables de travail pouvant
 // egalement poser un probleme de sur-utilisation de la memoire.
 // On parle dans ce cas d'instances "elephant".
 // Le service de protection des acces memoire permet de monitorer la memoire lors de la lecture
 // des enregistrements et du calcul des variables derivees de facon a eviter preventivement
 // les depassements memoires et a les diagnostiquer le plus precisement possible
+//
+// Ce probleme se pose egalement pour la gestion des tables externes, dont l'integralite des
+// instances doit etre chargee en memoire. Dans ce cas, on traite l'ensemble des instances externes
+// comme une seule entite qui globalement doit etre chargee en memoire.
+//
+// Le service de protection memoire doit donc etre parametre specifique pour chaque etape successive :
+// - lecture des tables externes :
+//   - pour charger l'ensemble des tables externes
+//   - echec au premier probleme memoire detecte.
+// - lecture des instances de la table principale
+//   - pour charger les instances une a une, avec reinitialisation du service de protection apres chaque instance
+//   - jamais d'echec, pour assurer que le nombre d'instances traite est le meme a chaque passe
+//   - detection des instances "elephant"
+//   - fonctionnement degrade si necessaire
 class KWDatabaseMemoryGuard : public Object
 {
 public:
@@ -47,22 +62,23 @@ public:
 	void SetMaxCreatedRecordNumber(longint lValue);
 	longint GetMaxCreatedRecordNumber() const;
 
-	// Limite de la memoire utilisable pour une instance pour gerer l'ensemble
-	// de la lecture et du calcul des attributs derivee
+	// Limite de la memoire utilisable pour pour gerer l'ensemble de la lecture
+	// et du calcul des attributs derivee, soit pour l'ensemblke des tables externes, soit par
+	// instance de la table principale
 	// Attention: il s'agit ici d'une limite memoire physique dans la RAM, avec prise en compte de
 	// l'overhead d'allocation
 	// Cela concerne toutes les methodes liees a la memoire de cette classe
 	// Parametrage inactif si 0
-	void SetSingleInstanceMemoryLimit(longint lValue);
-	longint GetSingleInstanceMemoryLimit() const;
+	void SetMemoryLimit(longint lValue);
+	longint GetMemoryLimit() const;
 
 	// Estimation du minimum de la memoire utilisable pour une instance
-	void SetEstimatedMinSingleInstanceMemoryLimit(longint lValue);
-	longint GetEstimatedMinSingleInstanceMemoryLimit() const;
+	void SetEstimatedMinMemoryLimit(longint lValue);
+	longint GetEstimatedMinMemoryLimit() const;
 
 	// Estimation du maximum de la memoire utilisable pour une instance
-	void SetEstimatedMaxSingleInstanceMemoryLimit(longint lValue);
-	longint GetEstimatedMaxSingleInstanceMemoryLimit() const;
+	void SetEstimatedMaxMemoryLimit(longint lValue);
+	longint GetEstimatedMaxMemoryLimit() const;
 
 	// Copie, uniquement des attributs de base de la specification
 	void CopyFrom(const KWDatabaseMemoryGuard* aSource);
@@ -117,6 +133,9 @@ public:
 
 	// Nombre de fois ou on a du nettoyer la memoire pour continuer le calcul des attributs
 	int GetMemoryCleaningNumber() const;
+
+	/////////////////////////////////////////////////////////////////////////////////
+	// Indicateurs dans le la cas des instances de la table principales
 
 	// Indique si l'instance est tres large, mais a pu etre traitee
 	boolean IsSingleInstanceVeryLarge() const;
@@ -207,8 +226,8 @@ public:
 	// Limite a ne pas depasser de la memoire utilisable dans la heap pour gerer l'ensemble de la lecture et du
 	// calcul des attributs derivee
 	// Parametrage inactif si 0
-	static void SetCrashTestSingleInstanceMemoryLimit(longint lValue);
-	static longint GetCrashTestSingleInstanceMemoryLimit();
+	static void SetCrashTestMemoryLimit(longint lValue);
+	static longint GetCrashTestMemoryLimit();
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Services standards
@@ -293,9 +312,9 @@ protected:
 
 	// Variables d'instance
 	ALString sMainObjectKey;
-	longint lSingleInstanceMemoryLimit;
-	longint lEstimatedMinSingleInstanceMemoryLimit;
-	longint lEstimatedMaxSingleInstanceMemoryLimit;
+	longint lMemoryLimit;
+	longint lEstimatedMinMemoryLimit;
+	longint lEstimatedMaxMemoryLimit;
 	longint lInitialHeapMemory;
 	longint lMaxHeapMemory;
 	longint lCurrentHeapMemory;
@@ -315,12 +334,12 @@ protected:
 	// Variables d'instance a prendre en compte, selon la valeur des parametres de crash test
 	longint lActualMaxSecondaryRecordNumber;
 	longint lActualMaxCreatedRecordNumber;
-	longint lActualSingleInstanceMemoryLimit;
+	longint lActualMemoryLimit;
 
 	// Parametres des crash tests
 	static longint lCrashTestMaxSecondaryRecordNumber;
 	static longint lCrashTestMaxCreatedRecordNumber;
-	static longint lCrashTestSingleInstanceMemoryLimit;
+	static longint lCrashTestMemoryLimit;
 
 	// Bornes inf et sup des nombres max de records secondaires
 	static const longint lDefautMinSecondaryRecordNumberLowerBound = 100000;

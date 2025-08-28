@@ -1544,9 +1544,9 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(double dSamplePercentage)
 	// Desactivation du controle d'erreur
 	Global::DesactivateErrorFlowControl();
 
-	// Message utilisateur en cas de depassement memoire
+	// Erreur utilisateur en cas de depassement memoire
 	if (memoryGuard.IsMemoryLimitReached())
-		AddWarning(memoryGuard.GetExternalTableMemoryLimitLabel());
+		AddError(memoryGuard.GetExternalTableMemoryLimitLabel());
 
 	// On reactive le memory guard
 	memoryGuard.CopyFrom(&initialMemoryGuard);

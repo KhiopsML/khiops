@@ -315,12 +315,12 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 	if (bOk and bRead)
 	{
 		ComputeMemoryGuardOpenInformation();
-		assert(GetMemoryGuard()->GetEstimatedMinSingleInstanceMemoryLimit() <=
-		       GetMemoryGuard()->GetEstimatedMaxSingleInstanceMemoryLimit());
+		assert(GetMemoryGuard()->GetEstimatedMinMemoryLimit() <=
+		       GetMemoryGuard()->GetEstimatedMaxMemoryLimit());
 
 		// Mise a jour des min et max de memoire necessaire, en tenant compte du DatabaseMemoryGuard
-		lMinOpenNecessaryMemory += GetMemoryGuard()->GetEstimatedMinSingleInstanceMemoryLimit();
-		lMaxOpenNecessaryMemory += GetMemoryGuard()->GetEstimatedMaxSingleInstanceMemoryLimit();
+		lMinOpenNecessaryMemory += GetMemoryGuard()->GetEstimatedMinMemoryLimit();
+		lMaxOpenNecessaryMemory += GetMemoryGuard()->GetEstimatedMaxMemoryLimit();
 	}
 
 	// Affichage
@@ -554,10 +554,10 @@ longint PLMTDatabaseTextFile::ComputeEstimatedSingleInstanceMemoryLimit(longint 
 
 	// Cas ou on a alloue le min
 	if (lOpenGrantedMemory == lMinOpenNecessaryMemory)
-		lEstimatedSingleInstanceMemoryLimit = GetConstMemoryGuard()->GetEstimatedMinSingleInstanceMemoryLimit();
+		lEstimatedSingleInstanceMemoryLimit = GetConstMemoryGuard()->GetEstimatedMinMemoryLimit();
 	// Cas ou on a alloue le min
 	else if (lOpenGrantedMemory == lMaxOpenNecessaryMemory)
-		lEstimatedSingleInstanceMemoryLimit = GetConstMemoryGuard()->GetEstimatedMaxSingleInstanceMemoryLimit();
+		lEstimatedSingleInstanceMemoryLimit = GetConstMemoryGuard()->GetEstimatedMaxMemoryLimit();
 	// Cas intermediaire
 	else
 	{
@@ -565,13 +565,12 @@ longint PLMTDatabaseTextFile::ComputeEstimatedSingleInstanceMemoryLimit(longint 
 		dPercentage = (lOpenGrantedMemory - lMinOpenNecessaryMemory) * 1.0 /
 			      (lMaxOpenNecessaryMemory - lMinOpenNecessaryMemory);
 		lEstimatedSingleInstanceMemoryLimit =
-		    GetConstMemoryGuard()->GetEstimatedMinSingleInstanceMemoryLimit() +
-		    longint(dPercentage * (GetConstMemoryGuard()->GetEstimatedMaxSingleInstanceMemoryLimit() -
-					   GetConstMemoryGuard()->GetEstimatedMinSingleInstanceMemoryLimit()));
+		    GetConstMemoryGuard()->GetEstimatedMinMemoryLimit() +
+		    longint(dPercentage * (GetConstMemoryGuard()->GetEstimatedMaxMemoryLimit() -
+					   GetConstMemoryGuard()->GetEstimatedMinMemoryLimit()));
 	}
-	ensure(
-	    GetConstMemoryGuard()->GetEstimatedMinSingleInstanceMemoryLimit() <= lEstimatedSingleInstanceMemoryLimit and
-	    lEstimatedSingleInstanceMemoryLimit <= GetConstMemoryGuard()->GetEstimatedMaxSingleInstanceMemoryLimit());
+	ensure(GetConstMemoryGuard()->GetEstimatedMinMemoryLimit() <= lEstimatedSingleInstanceMemoryLimit and
+	       lEstimatedSingleInstanceMemoryLimit <= GetConstMemoryGuard()->GetEstimatedMaxMemoryLimit());
 	ensure(lEstimatedSingleInstanceMemoryLimit <= lOpenGrantedMemory);
 	return lEstimatedSingleInstanceMemoryLimit;
 }
@@ -1176,8 +1175,8 @@ void PLMTDatabaseTextFile::ComputeMemoryGuardOpenInformation()
 	// Memorisation dans le memory guard
 	GetMemoryGuard()->SetMaxSecondaryRecordNumber(lTotalMaxSecondaryRecordNumber);
 	GetMemoryGuard()->SetMaxCreatedRecordNumber(lTotalMaxCreatedRecordNumber);
-	GetMemoryGuard()->SetEstimatedMinSingleInstanceMemoryLimit(lEstimatedMinSingleInstanceMemoryLimit);
-	GetMemoryGuard()->SetEstimatedMaxSingleInstanceMemoryLimit(lEstimatedMaxSingleInstanceMemoryLimit);
+	GetMemoryGuard()->SetEstimatedMinMemoryLimit(lEstimatedMinSingleInstanceMemoryLimit);
+	GetMemoryGuard()->SetEstimatedMaxMemoryLimit(lEstimatedMaxSingleInstanceMemoryLimit);
 
 	// Affichage
 	if (bTrace)
@@ -1392,12 +1391,12 @@ void PLShared_MTDatabaseTextFile::SerializeObject(PLSerializer* serializer, cons
 	// Ecriture des parametres du memory guard
 	serializer->PutLongint(database->GetConstMemoryGuard()->GetMaxSecondaryRecordNumber());
 	serializer->PutLongint(database->GetConstMemoryGuard()->GetMaxCreatedRecordNumber());
-	serializer->PutLongint(database->GetConstMemoryGuard()->GetEstimatedMinSingleInstanceMemoryLimit());
-	serializer->PutLongint(database->GetConstMemoryGuard()->GetEstimatedMaxSingleInstanceMemoryLimit());
-	serializer->PutLongint(database->GetConstMemoryGuard()->GetSingleInstanceMemoryLimit());
+	serializer->PutLongint(database->GetConstMemoryGuard()->GetEstimatedMinMemoryLimit());
+	serializer->PutLongint(database->GetConstMemoryGuard()->GetEstimatedMaxMemoryLimit());
+	serializer->PutLongint(database->GetConstMemoryGuard()->GetMemoryLimit());
 	serializer->PutLongint(KWDatabaseMemoryGuard::GetCrashTestMaxSecondaryRecordNumber());
 	serializer->PutLongint(KWDatabaseMemoryGuard::GetCrashTestMaxCreatedRecordNumber());
-	serializer->PutLongint(KWDatabaseMemoryGuard::GetCrashTestSingleInstanceMemoryLimit());
+	serializer->PutLongint(KWDatabaseMemoryGuard::GetCrashTestMemoryLimit());
 }
 
 void PLShared_MTDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Object* o) const
@@ -1484,12 +1483,12 @@ void PLShared_MTDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 	// Lecture des parametres du memory guard
 	database->GetMemoryGuard()->SetMaxSecondaryRecordNumber(serializer->GetLongint());
 	database->GetMemoryGuard()->SetMaxCreatedRecordNumber(serializer->GetLongint());
-	database->GetMemoryGuard()->SetEstimatedMinSingleInstanceMemoryLimit(serializer->GetLongint());
-	database->GetMemoryGuard()->SetEstimatedMaxSingleInstanceMemoryLimit(serializer->GetLongint());
-	database->GetMemoryGuard()->SetSingleInstanceMemoryLimit(serializer->GetLongint());
+	database->GetMemoryGuard()->SetEstimatedMinMemoryLimit(serializer->GetLongint());
+	database->GetMemoryGuard()->SetEstimatedMaxMemoryLimit(serializer->GetLongint());
+	database->GetMemoryGuard()->SetMemoryLimit(serializer->GetLongint());
 	KWDatabaseMemoryGuard::SetCrashTestMaxSecondaryRecordNumber(serializer->GetLongint());
 	KWDatabaseMemoryGuard::SetCrashTestMaxCreatedRecordNumber(serializer->GetLongint());
-	KWDatabaseMemoryGuard::SetCrashTestSingleInstanceMemoryLimit(serializer->GetLongint());
+	KWDatabaseMemoryGuard::SetCrashTestMemoryLimit(serializer->GetLongint());
 }
 
 inline Object* PLShared_MTDatabaseTextFile::Create() const

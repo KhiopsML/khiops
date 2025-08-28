@@ -504,7 +504,7 @@ boolean KWDatabaseTask::MasterInitializeDatabase()
 			nSourceBufferSize = nForcedBufferSize;
 
 		// Parametrage du MemoryGuard dans le cas multi-tables
-		sourceDatabase->GetDatabase()->GetMemoryGuard()->SetSingleInstanceMemoryLimit(
+		sourceDatabase->GetDatabase()->GetMemoryGuard()->SetMemoryLimit(
 		    sourceDatabase->ComputeEstimatedSingleInstanceMemoryLimit(lSourceDatabaseGrantedMemory));
 	}
 
