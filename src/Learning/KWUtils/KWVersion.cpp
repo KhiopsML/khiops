@@ -284,7 +284,7 @@ int GetLearningDefaultMemoryLimit()
 			nLearningDefaultMemoryLimit = 0;
 
 		// Utilisable uniquement en mode expert
-		if (GetLearningExpertMode())
+		if (not GetLearningExpertMode())
 			nLearningDefaultMemoryLimit = 0;
 
 		// Memorisation du flag d'initialisation

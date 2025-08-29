@@ -351,17 +351,6 @@ public:
 	// Memoire de base, buffers de lecture, objets references potentiels...
 	longint GetUsedMemory() const override;
 
-	// Estimation de la taille memoire minimum necessaire pour ouvrir la base, en lecture ou en ecriture
-	// Methode avancee uniquement (non en prerequis de l'ouverture effective des bases)
-	// Prend en compte la taille des dictionnaires, en lecture (classe et classe physique) ou
-	// ecriture (classe uniquement).
-	// Le bIncludingClassMemory indique s'il faut prendre en compte la classe courante, qui
-	// est deja chargee dans dans le domaine courant (mais utile pour estimation des resource d'un
-	// esclave en mode parallele)
-	// La base ne doit pas etre ouverte en lecture ou ecriture, mais les classes doivent etre disponibles
-	// A completer dans les sous-classes
-	virtual longint ComputeOpenNecessaryMemory(boolean bRead, boolean bIncludingClassMemory);
-
 	// Ecriture du contenu d'un rapport JSON
 	void WriteJSONFields(JSONFile* fJSON) const;
 
@@ -422,6 +411,17 @@ protected:
 	// Warning eventuels si probleme de coherences entre differents types reconnus
 	void AddFormatMetaData(KWAttribute* sourceAttribute,
 			       const KWTypeAutomaticRecognition* typeAutomaticRecognition) const;
+
+	// Estimation de la taille memoire minimum necessaire pour ouvrir la base, en lecture ou en ecriture
+	// Methode avancee uniquement (non en prerequis de l'ouverture effective des bases)
+	// Prend en compte la taille des dictionnaires, en lecture (classe et classe physique) ou
+	// ecriture (classe uniquement).
+	// Le bIncludingClassMemory indique s'il faut prendre en compte la classe courante, qui
+	// est deja chargee dans dans le domaine courant (mais utile pour estimation des resource d'un
+	// esclave en mode parallele)
+	// La base ne doit pas etre ouverte en lecture ou ecriture, mais les classes doivent etre disponibles
+	// A completer dans les sous-classes
+	virtual longint ComputeOpenNecessaryMemory(boolean bRead, boolean bIncludingClassMemory);
 
 	////////////////////////////////////////////////////////////////////////////
 	// Gestion des attributs Loaded derives, utilisant des attributs non Loaded

@@ -110,12 +110,13 @@ public:
 	// Memoire utilisee par la database pour son fonctionnement
 	longint GetUsedMemory() const override;
 
-	// Memoire necessaire pour ouvrir la base
-	longint ComputeOpenNecessaryMemory(boolean bRead, boolean bIncludingClassMemory) override;
-
 	////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Memoire necessaire pour ouvrir la base, sans prendre en compte les tables externes
+	// Cf. ComputeExactNecessaryMemoryForReferenceObjects
+	longint ComputeOpenNecessaryMemory(boolean bRead, boolean bIncludingClassMemory) override;
+
 	// Methode avancee, utilisee uniquement en mode debug avant ouverture en lecture d'une base
 	// Verification de la coherence des dictionnaires en mode lecture, pour les attributs calcules de type Object et
 	// ObjectArray Ces attribut ne peuvent etre calcules qu'a partir d'attribut natifs devant toujours etre presents
@@ -175,21 +176,22 @@ protected:
 	// de derivation pour resoudre les references aux object racines des autres classes
 
 	// Lecture et chargement en memoire des tables des objets references
-	// En mode ouverture de la base, on doit lire tous les objets (dSamplePercentage=1).
-	// En mode dimensionnement des ressources, on charge un echantillon des objets references pour
-	// estimer de facon realiste la place memoire occupee par les objets references
-	boolean PhysicalReadAllReferenceObjects(double dSamplePercentage);
+	// On passe en entree la memoire max utilisable, et on recupere en sortie la memoire
+	// effectivement utilisee pour le chargement de tous les objet references et leur traitement.
+	// Attention, en entree comme en sortie, il s'agit de la memoire logique, et non physique (cf. RMResourceManager)
+	// On renvoie false avec un message d'erreur en cas de depassement memoire ou de tout autre erreur
+	boolean PhysicalReadAllReferenceObjects(longint lMaxAvailableMemory, longint& lNecessaryMemory);
 
 	// Destruction des objets references
 	void PhysicalDeleteAllReferenceObjects();
 
-	// Calcul de la memoire necessaire pour le chargement des objets references
-	// Calcul realiste en chargeant un echantillon des objet references
-	longint ComputeSamplingBasedNecessaryMemoryForReferenceObjects();
+	// Calcul de la memoire necessaire pour le chargement des objets references,
+	// en chargeant l'ensemble des table externe temporairement
+	boolean ComputeExactNecessaryMemoryForReferenceObjects(longint& lNecessaryMemory);
 
 	// Calcul de la memoire necessaire pour le chargement des objets references
 	// Calcul heuristique sans acces aux donnees, donnant uniquement un ordre de grandeur
-	longint ComputeNecessaryMemoryForReferenceObjects();
+	longint ComputeEstimatedNecessaryMemoryForReferenceObjects();
 
 	/////////////////////////////////////////////////////////////////////////////////
 	// Bibliotheques de services associees aux mappings

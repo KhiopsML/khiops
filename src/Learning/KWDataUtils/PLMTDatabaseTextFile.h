@@ -85,8 +85,7 @@ public:
 	// Memoire minimum necessaire pour ouvrir la base sans tenir compte des buffers
 	longint GetEmptyOpenNecessaryMemory() const;
 
-	// Memoire minimum et maximum necessaire pour ouvrir la base, en tenant compte des buffers
-	// et de la la memoire dediee au DatabaseMemoryGuard pour gerer les instances "elephants"
+	// Memoire minimum et maximum necessaire pour ouvrir la base
 	longint GetMinOpenNecessaryMemory() const;
 	longint GetMaxOpenNecessaryMemory() const;
 
@@ -100,7 +99,10 @@ public:
 	int ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory, int nProcessNumber) const;
 
 	// Calcul de la memoire a reserver pour le DatabaseMemoryGuard
-	longint ComputeEstimatedSingleInstanceMemoryLimit(longint lOpenGrantedMemory) const;
+	longint ComputeMemoryGuardMemoryLimit(longint lOpenGrantedMemory) const;
+
+	// Calcul de la memoire a reserver pour les tables externes
+	longint ComputeExternalTablesMemoryLimit(longint lOpenGrantedMemory) const;
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Parametrage des buffers
@@ -171,13 +173,13 @@ protected:
 	longint ComputeBufferNecessaryMemory(boolean bRead, int nBufferSize) const;
 
 	// Creation de driver, a l'usage des mappings des tables principales et secondaires
-	// Parametrage a la volee des headerlines des driver de type stream
 	KWDataTableDriver* CreateDataTableDriver(KWMTDatabaseMapping* mapping) const override;
 
 	// Calcul du nombre de tables principales, hors tables externes, avec des fichiers locaux (sans URI)
 	int ComputeMainLocalTableNumber();
 
 	// Resultat de l'appel de la methode ComputeOpenInformation
+	// Note: le memoryGuard gere lui meme ses informations de memoire min et max necessaire
 	mutable IntVector ivUsedMappingFlags;
 	LongintVector lvFileSizes;
 	longint lTotalFileSize;
@@ -189,6 +191,10 @@ protected:
 	longint lEmptyOpenNecessaryMemory;
 	longint lMinOpenNecessaryMemory;
 	longint lMaxOpenNecessaryMemory;
+	longint lMinOpenBufferNecessaryMemory;
+	longint lMaxOpenBufferNecessaryMemory;
+	longint lMinOpenExternalTablesNecessaryMemory;
+	longint lMaxOpenExternalTablesNecessaryMemory;
 
 	// Definition des exigences pour la taille du buffer
 	// La taille de buffer est porte par le driver

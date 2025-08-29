@@ -67,7 +67,7 @@ public:
 	// Memoire minimum necessaire pour ouvrir la base sans tenir compte des buffers
 	longint GetEmptyOpenNecessaryMemory() const;
 
-	// Memoire minimum et maximum necessaire pour ouvrir la base, en tenant compte des buffers
+	// Memoire minimum et maximum necessaire pour ouvrir la base
 	longint GetMinOpenNecessaryMemory() const;
 	longint GetMaxOpenNecessaryMemory() const;
 
@@ -81,7 +81,7 @@ public:
 	int ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory, int nProcessNumber) const;
 
 	// Calcul de la memoire a reserver pour le DatabaseMemoryGuard
-	longint ComputeEstimatedSingleInstanceMemoryLimit(longint lOpenGrantedMemory) const;
+	longint ComputeMemoryGuardMemoryLimit(longint lOpenGrantedMemory) const;
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Parametrage des buffers
@@ -123,6 +123,9 @@ protected:
 	longint lEmptyOpenNecessaryMemory;
 	longint lMinOpenNecessaryMemory;
 	longint lMaxOpenNecessaryMemory;
+
+	//DDD TODO: ajouter la part min et max des besoins pour les buffers et pour le memory guard,
+	// pour dispatcher correctement le memory grant
 
 	// Definition des exigences pour la taille du buffer
 	// La taille de buffer est porte par le driver

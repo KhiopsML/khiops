@@ -245,6 +245,8 @@ KWDataTableDriver* KWMTDatabaseStream::CreateDataTableDriver(KWMTDatabaseMapping
 	if (IsReferencedClassMapping(mapping))
 	{
 		dataTableDriverTextFileCreator.SetFieldSeparator(GetFieldSeparator());
+		dataTableDriverTextFileCreator.SetVerboseMode(GetVerboseMode());
+		dataTableDriverTextFileCreator.SetSilentMode(GetSilentMode());
 		return dataTableDriverTextFileCreator.Clone();
 	}
 	// Cas d'une table interne, geree en memoire

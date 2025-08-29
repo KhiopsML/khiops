@@ -351,13 +351,13 @@ int PLDatabaseTextFile::GetBufferSize() const
 		return plstDatabaseTextFile->GetBufferSize();
 }
 
-longint PLDatabaseTextFile::ComputeEstimatedSingleInstanceMemoryLimit(longint lOpenGrantedMemory) const
+longint PLDatabaseTextFile::ComputeMemoryGuardMemoryLimit(longint lOpenGrantedMemory) const
 {
 	require(IsInitialized());
 	if (IsMultiTableTechnology())
-		return plmtDatabaseTextFile->ComputeEstimatedSingleInstanceMemoryLimit(lOpenGrantedMemory);
+		return plmtDatabaseTextFile->ComputeMemoryGuardMemoryLimit(lOpenGrantedMemory);
 	else
-		return plstDatabaseTextFile->ComputeEstimatedSingleInstanceMemoryLimit(lOpenGrantedMemory);
+		return plstDatabaseTextFile->ComputeMemoryGuardMemoryLimit(lOpenGrantedMemory);
 }
 
 void PLDatabaseTextFile::PhysicalDeleteDatabase()

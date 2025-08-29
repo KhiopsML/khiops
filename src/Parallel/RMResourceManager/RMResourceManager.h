@@ -39,7 +39,7 @@ public:
 
 	///////////////////////////////////////////
 	// Il y a d'une part la memoire physique, correspondant a ce qui est disponible sur les machines,
-	// qui concerne l'utilisateur de facon externe (RAM installee, limite RAM utulisateur, RAM consommee...).
+	// qui concerne l'utilisateur de facon externe (RAM installee, limite RAM utilisateur, RAM consommee...).
 	// D'autre part, la memoire "logique" correspond a ce qui est theoriquement necessaire pour les algorithmes
 	// (a base de sizeof, de taille de tableaux, structures...), et qui permet de dimnessionner les besoins en
 	// ressources pour le developpeur (Ressource requirements et Grants...).
@@ -47,13 +47,14 @@ public:
 	// systemes, alors que la memoire logique est l'objet de la gestion des ressources pour les taches. Un overhead
 	// de gestion memoire est utilise pour passer de la memoire theorique a la memoire physique.
 
-	// Memoire logique restante effectivement utilisable en octet sur la machine courante (memoire disponible -
-	// memoire de la Heap) Note : en parallele c'est la memoire utilisable pour le processus courant
+	// Memoire logique restante effectivement utilisable en octet sur la machine courante
+	// (memoire disponible - memoire de la Heap)
+	// Note : en parallele c'est la memoire utilisable pour le processus courant
 	static longint GetRemainingAvailableMemory();
 
 	// Memoire logique totale effectivement utilisable en octet sur la machine courante (en tenant compte d'un
-	// overhead d'allocation et des contraintes utilisateur) Note : en parallele c'est la memoire totale allouee au
-	// processus
+	// overhead d'allocation et des contraintes utilisateur)
+	// Note : en parallele c'est la memoire totale allouee au processus
 	static longint GetTotalAvailableMemory();
 
 	// Memoire logique utilisee en octet (en tenant compte d'un overhead d'allocation)
@@ -78,8 +79,8 @@ public:
 	static ALString BuildMissingMemoryMessage(longint lNecessaryMemory);
 
 	// Conversion d'une quantite de memoire logique en chaine de caractere, arrondi, avec l'unite la plus adaptee
-	// (MB ou GB), en tenant compte de l'overhead de l'allocateur, pour avoir un message utilisateur portant sur la
-	// memoire physique
+	// (MB ou GB), en tenant compte de l'overhead de l'allocateur, pour avoir un message utilisateur portant sur
+	// la memoire physique
 	static ALString ActualMemoryToString(longint lMemory);
 
 	// Message utilisateur pour suggerer de changer le parametre de limite memoire physique

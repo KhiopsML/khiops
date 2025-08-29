@@ -39,12 +39,12 @@ public:
 	// Memoire utilisee par la database pour son fonctionnement
 	longint GetUsedMemory() const override;
 
-	// Memoire necessaire pour ouvrir la base
-	longint ComputeOpenNecessaryMemory(boolean bRead, boolean bIncludingClassMemory) override;
-
 	////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Memoire necessaire pour ouvrir la base
+	longint ComputeOpenNecessaryMemory(boolean bRead, boolean bIncludingClassMemory) override;
+
 	// Creation de driver, a l'usage des mappings des tables principales et secondaires
 	virtual KWDataTableDriver* CreateDataTableDriver() const;
 

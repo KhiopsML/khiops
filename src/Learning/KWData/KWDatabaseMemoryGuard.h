@@ -65,8 +65,8 @@ public:
 	// Limite de la memoire utilisable pour pour gerer l'ensemble de la lecture
 	// et du calcul des attributs derivee, soit pour l'ensemblke des tables externes, soit par
 	// instance de la table principale
-	// Attention: il s'agit ici d'une limite memoire physique dans la RAM, avec prise en compte de
-	// l'overhead d'allocation
+	// Attention: il s'agit ici d'une limite memoire logique, avec prise en compte de
+	// l'overhead d'allocation, comme dans toutes methodes de dimensionnement.
 	// Cela concerne toutes les methodes liees a la memoire de cette classe
 	// Parametrage inactif si 0
 	void SetMemoryLimit(longint lValue);
@@ -196,6 +196,7 @@ public:
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Informations sur l'utilisation de la memoire dans la heap
+	// Il s'agit de memoire physique, donc de la RAM elle meme
 
 	// Memoire initiale au moment de l'initialisation
 	longint GetInitialHeapMemory() const;
@@ -223,8 +224,8 @@ public:
 	static void SetCrashTestMaxCreatedRecordNumber(longint lValue);
 	static longint GetCrashTestMaxCreatedRecordNumber();
 
-	// Limite a ne pas depasser de la memoire utilisable dans la heap pour gerer l'ensemble de la lecture et du
-	// calcul des attributs derivee
+	// Limite a ne pas depasser de la memoire physique utilisable dans la heap pour gerer
+	// l'ensemble de la lecture et du calcul des attributs derivee
 	// Parametrage inactif si 0
 	static void SetCrashTestMemoryLimit(longint lValue);
 	static longint GetCrashTestMemoryLimit();
@@ -335,6 +336,7 @@ protected:
 	longint lActualMaxSecondaryRecordNumber;
 	longint lActualMaxCreatedRecordNumber;
 	longint lActualMemoryLimit;
+	longint lActualPhysicalMemoryLimit;
 
 	// Parametres des crash tests
 	static longint lCrashTestMaxSecondaryRecordNumber;

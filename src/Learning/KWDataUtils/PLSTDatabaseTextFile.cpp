@@ -188,6 +188,8 @@ boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 	// Mise a jour des min et max de memoire necessaire, en tenant compte du DatabaseMemoryGuard
 	if (bOk)
 	{
+		// Mise a jour des min et max de memoire necessaire, en tenant compte du DatabaseMemoryGuard
+		// calcule precedemment
 		lMinOpenNecessaryMemory += GetMemoryGuard()->GetEstimatedMinMemoryLimit();
 		lMaxOpenNecessaryMemory += GetMemoryGuard()->GetEstimatedMaxMemoryLimit();
 	}
@@ -323,8 +325,8 @@ int PLSTDatabaseTextFile::ComputeOpenBufferSize(boolean bRead, longint lOpenGran
 	else
 	{
 		// Calcul de la partie de la memoire pour les buffers
-		lOpenGrantedMemoryForBuffers =
-		    lOpenGrantedMemory - ComputeEstimatedSingleInstanceMemoryLimit(lOpenGrantedMemory);
+		lOpenGrantedMemoryForBuffers = lOpenGrantedMemory - ComputeMemoryGuardMemoryLimit(lOpenGrantedMemory);
+		lOpenGrantedMemoryForBuffers = min(lOpenGrantedMemoryForBuffers, longint(nReadSizeMax));
 		assert(nReadSizeMin <= lOpenGrantedMemoryForBuffers and lOpenGrantedMemoryForBuffers <= nReadSizeMax);
 
 		// Calcul de la taille au prorata de la memoire disponible
@@ -368,9 +370,9 @@ int PLSTDatabaseTextFile::ComputeOpenBufferSize(boolean bRead, longint lOpenGran
 	return nBufferSize;
 }
 
-longint PLSTDatabaseTextFile::ComputeEstimatedSingleInstanceMemoryLimit(longint lOpenGrantedMemory) const
+longint PLSTDatabaseTextFile::ComputeMemoryGuardMemoryLimit(longint lOpenGrantedMemory) const
 {
-	longint lEstimatedSingleInstanceMemoryLimit;
+	longint lMemoryGuardMemoryLimit;
 	double dPercentage;
 
 	require(IsOpenInformationComputed());
@@ -379,25 +381,24 @@ longint PLSTDatabaseTextFile::ComputeEstimatedSingleInstanceMemoryLimit(longint 
 
 	// Cas ou on a alloue le min
 	if (lOpenGrantedMemory == lMinOpenNecessaryMemory)
-		lEstimatedSingleInstanceMemoryLimit = GetConstMemoryGuard()->GetEstimatedMinMemoryLimit();
+		lMemoryGuardMemoryLimit = GetConstMemoryGuard()->GetEstimatedMinMemoryLimit();
 	// Cas ou on a alloue le min
 	else if (lOpenGrantedMemory == lMaxOpenNecessaryMemory)
-		lEstimatedSingleInstanceMemoryLimit = GetConstMemoryGuard()->GetEstimatedMaxMemoryLimit();
+		lMemoryGuardMemoryLimit = GetConstMemoryGuard()->GetEstimatedMaxMemoryLimit();
 	// Cas intermediaire
 	else
 	{
 		// Calcul selon une regle de 3
 		dPercentage = (lOpenGrantedMemory - lMinOpenNecessaryMemory) * 1.0 /
 			      (lMaxOpenNecessaryMemory - lMinOpenNecessaryMemory);
-		lEstimatedSingleInstanceMemoryLimit =
-		    GetConstMemoryGuard()->GetEstimatedMinMemoryLimit() +
-		    longint(dPercentage * (GetConstMemoryGuard()->GetEstimatedMaxMemoryLimit() -
-					   GetConstMemoryGuard()->GetEstimatedMinMemoryLimit()));
+		lMemoryGuardMemoryLimit = GetConstMemoryGuard()->GetEstimatedMinMemoryLimit() +
+					  longint(dPercentage * (GetConstMemoryGuard()->GetEstimatedMaxMemoryLimit() -
+								 GetConstMemoryGuard()->GetEstimatedMinMemoryLimit()));
 	}
-	ensure(GetConstMemoryGuard()->GetEstimatedMinMemoryLimit() <= lEstimatedSingleInstanceMemoryLimit and
-	       lEstimatedSingleInstanceMemoryLimit <= GetConstMemoryGuard()->GetEstimatedMaxMemoryLimit());
-	ensure(lEstimatedSingleInstanceMemoryLimit <= lOpenGrantedMemory);
-	return lEstimatedSingleInstanceMemoryLimit;
+	ensure(GetConstMemoryGuard()->GetEstimatedMinMemoryLimit() <= lMemoryGuardMemoryLimit and
+	       lMemoryGuardMemoryLimit <= GetConstMemoryGuard()->GetEstimatedMaxMemoryLimit());
+	ensure(lMemoryGuardMemoryLimit <= lOpenGrantedMemory);
+	return lMemoryGuardMemoryLimit;
 }
 
 void PLSTDatabaseTextFile::SetBufferSize(int nSize)
@@ -508,8 +509,8 @@ void PLSTDatabaseTextFile::ComputeMemoryGuardOpenInformation()
 	    max(lTotalMaxCreatedRecordNumber, KWDatabaseMemoryGuard::GetDefautMinSecondaryRecordNumberLowerBound());
 
 	// On utilise une limite minimale a la memoire RAM, pour de pas declencher de warning utilisateurs excessifs
-	lEstimatedMinSingleInstanceMemoryLimit += BufferedFile::nDefaultBufferSize / 8;
-	lEstimatedMaxSingleInstanceMemoryLimit += 2 * BufferedFile::nDefaultBufferSize;
+	lEstimatedMinSingleInstanceMemoryLimit += (longint)BufferedFile::nDefaultBufferSize / 8;
+	lEstimatedMaxSingleInstanceMemoryLimit += 2 * (longint)BufferedFile::nDefaultBufferSize;
 
 	// Destruction des data paths de gestion des objets
 	objectDataPathManager.Reset();

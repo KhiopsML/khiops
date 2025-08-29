@@ -124,11 +124,16 @@ void KWDatabaseMemoryGuard::Init()
 	if (lCrashTestMaxCreatedRecordNumber > 0)
 		lActualMaxCreatedRecordNumber = lCrashTestMaxCreatedRecordNumber;
 	lActualMemoryLimit = lMemoryLimit;
+
+	// On passe de la memoire physique a la memoire logique
+	lActualPhysicalMemoryLimit = longint(lActualMemoryLimit * (1 + MemGetAllocatorOverhead()));
+
+	// Prise en compte du parametrage specifique au crash test, deja exprime en memoire physique
 	if (lCrashTestMemoryLimit > 0)
-		lActualMemoryLimit = lCrashTestMemoryLimit;
+		lActualPhysicalMemoryLimit = lCrashTestMemoryLimit;
 
 	// Initialisation de la limite memoire dure
-	lMaxHeapMemory = lInitialHeapMemory + lActualMemoryLimit;
+	lMaxHeapMemory = lInitialHeapMemory + lActualPhysicalMemoryLimit;
 }
 
 void KWDatabaseMemoryGuard::SetMainObjectKey(const ALString& sValue)
@@ -243,7 +248,6 @@ boolean KWDatabaseMemoryGuard::IsSingleInstanceMemoryLimitReachedDuringRead() co
 
 boolean KWDatabaseMemoryGuard::IsSingleInstanceMemoryLimitReachedDuringCreation() const
 {
-	require(GetTotalReadExternalRecordNumber() == 0);
 	require(IsMemoryLimitReached());
 	return GetCreatedRecordNumberBeforeLimit() < GetTotalCreatedRecordNumber();
 }
@@ -296,13 +300,14 @@ const ALString KWDatabaseMemoryGuard::GetSingleInstanceMemoryLimitLabel() const
 
 	require(IsMemoryLimitReached());
 	require(GetTotalReadExternalRecordNumber() == 0);
+	assert(lActualPhysicalMemoryLimit == longint(lActualMemoryLimit * (1 + MemGetAllocatorOverhead())));
 
 	// Entete du message
 	sLabel = sLabelPrefixSingleInstance;
 	if (sMainObjectKey != "")
 		sLabel += sMainObjectKey + " ";
-	sLabel += "uses too much memory (more than ";
-	sLabel += LongintToHumanReadableString(lActualMemoryLimit);
+	sLabel += "requires too much memory (more than ";
+	sLabel += LongintToHumanReadableString(lActualPhysicalMemoryLimit);
 	sLabel += " of RAM) ";
 
 	// Information sur les enregistrements lus
@@ -361,11 +366,13 @@ const ALString KWDatabaseMemoryGuard::GetExternalTableMemoryLimitLabel() const
 
 	require(IsMemoryLimitReached());
 	require(GetTotalReadExternalRecordNumber() > 0);
+	assert(lActualPhysicalMemoryLimit == longint(lActualMemoryLimit * (1 + MemGetAllocatorOverhead())) or
+	       lActualPhysicalMemoryLimit == lCrashTestMemoryLimit);
 
 	// Entete du message
 	sLabel = sLabelPrefixExternalTable;
-	sLabel += "uses too much memory (more than ";
-	sLabel += LongintToHumanReadableString(lActualMemoryLimit);
+	sLabel += "requires too much memory (more than ";
+	sLabel += LongintToHumanReadableString(lActualPhysicalMemoryLimit);
 	sLabel += " of RAM) ";
 
 	// Information sur les enregistrements principaux des tables externes lus
@@ -392,9 +399,8 @@ const ALString KWDatabaseMemoryGuard::GetExternalTableMemoryLimitLabel() const
 	if (GetTotalCreatedRecordNumber() > 0)
 	{
 		if (GetTotalReadSecondaryRecordNumber() > 0)
-			sLabel += " and creating ";
-		else
-			sLabel += " including creating ";
+			sLabel += ",";
+		sLabel += " and creating ";
 		sLabel += LongintToReadableString(GetCreatedRecordNumberBeforeLimit());
 		sLabel += " records";
 	}
