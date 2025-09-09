@@ -102,7 +102,7 @@ boolean PLSTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 			lTotalFileSize = PLRemoteFileService::GetFileSize(sDatabaseName);
 
 		// Memorisation de l'estimation du nombre d'objet du fichier
-		lInMemoryEstimatedFileObjectNumber = driver->GetInMemoryEstimatedObjectNumber(lTotalFileSize);
+		lInMemoryEstimatedFileObjectNumber = driver->GetInMemoryEstimatedObjectNumber(kwcClass, lTotalFileSize);
 
 		// Calcul de la taille memoire en sortie
 		if (outputDatabaseTextFile != NULL)

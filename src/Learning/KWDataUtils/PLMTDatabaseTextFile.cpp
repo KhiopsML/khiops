@@ -142,10 +142,16 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 		driver = cast(PLDataTableDriverTextFile*, mapping->GetDataTableDriver());
 
 		// Memorisation du mapping si driver utilise
+		kwcDriverLogicalClass = NULL;
 		if (driver != NULL)
 		{
 			assert(mapping->GetClassName() != "");
 			ivUsedMappingFlags.SetAt(i, 1);
+
+			// Recherche de la classe logique correspondant a la classe du driver
+			kwcDriverLogicalClass =
+			    KWClassDomain::GetCurrentDomain()->LookupClass(driver->GetClass()->GetName());
+			check(kwcDriverLogicalClass);
 		}
 
 		// Memorisation de la taille du fichier d'entree
@@ -161,16 +167,11 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 		// Memorisation de l'estimation du nombre d'objets par fichier
 		if (lvInMemoryEstimatedFileObjectNumbers.GetAt(i) == 0 and driver != NULL)
 			lvInMemoryEstimatedFileObjectNumbers.SetAt(
-			    i, driver->GetInMemoryEstimatedObjectNumber(lvFileSizes.GetAt(i)));
+			    i, driver->GetInMemoryEstimatedObjectNumber(kwcDriverLogicalClass, lvFileSizes.GetAt(i)));
 
 		// Si driver present, on calcule et memorise le vecteur d'index des champs de la table en entree
 		if (bRead and driver != NULL)
 		{
-			// Recherche de la classe logique correspondant a la classe du driver
-			kwcDriverLogicalClass =
-			    KWClassDomain::GetCurrentDomain()->LookupClass(driver->GetClass()->GetName());
-			check(kwcDriverLogicalClass);
-
 			// Creation d'une classe fictive basee sur l'analyse de la premiere ligne du fichier, dans le
 			// cas d'une ligne d'entete
 			kwcUsedHeaderLineClass = NULL;
