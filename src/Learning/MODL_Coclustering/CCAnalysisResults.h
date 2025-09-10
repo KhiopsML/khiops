@@ -43,11 +43,6 @@ public:
 	const ALString& GetShortDescription() const;
 	void SetShortDescription(const ALString& sValue);
 
-	// CH 529
-	// Deployment dictionary file
-	const ALString& GetDeploymentDictionaryFileName() const;
-	void SetDeploymentDictionaryFileName(const ALString& sValue);
-
 	// Input coclustering report
 	const ALString& GetInputCoclusteringFileName() const;
 	void SetInputCoclusteringFileName(const ALString& sValue);
@@ -88,14 +83,12 @@ protected:
 	// Attributs de la classe
 	ALString sCoclusteringFileName;
 	ALString sShortDescription;
-	ALString sDeploymentDictionaryFileName;
 	ALString sInputCoclusteringFileName;
 	ALString sClusterFileName;
 	ALString sPostProcessedCoclusteringFileName;
 	ALString sCoclusteringDictionaryFileName;
 
 	// ## Custom implementation
-
 	// Base de donnees servant a obtenir le chemin des fichier en entree
 	const KWDatabase* trainDatabase;
 
@@ -123,17 +116,6 @@ inline const ALString& CCAnalysisResults::GetShortDescription() const
 inline void CCAnalysisResults::SetShortDescription(const ALString& sValue)
 {
 	sShortDescription = sValue;
-}
-
-// CH 529
-inline const ALString& CCAnalysisResults::GetDeploymentDictionaryFileName() const
-{
-	return sDeploymentDictionaryFileName;
-}
-
-inline void CCAnalysisResults::SetDeploymentDictionaryFileName(const ALString& sValue)
-{
-	sDeploymentDictionaryFileName = sValue;
 }
 
 inline const ALString& CCAnalysisResults::GetInputCoclusteringFileName() const

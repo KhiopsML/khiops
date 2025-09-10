@@ -160,3 +160,6 @@ boolean GetDistanceStudyMode();
 
 // Indicateur du mode ou le SNB force l'utilisation des variables denses pour les block sparse
 boolean GetSNBForceDenseMode();
+
+// Indicateur du mode ou le dictionnaire associee au coclustering individus * variables est construit (en fin d'apprentissage du coclustering)
+boolean GetVarPartDeploymentMode();

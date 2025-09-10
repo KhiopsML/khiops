@@ -789,8 +789,6 @@ KWDRValueGroups::KWDRValueGroups()
 	// Gestion de la compilation dynamique
 	nStarValueTargetIndex = 0;
 	nDynamicCompileFreshness = 0;
-	nAttributeType = KWType::Symbol;
-	bAreValuesVarParts = false;
 }
 
 KWDRValueGroups::~KWDRValueGroups() {}
@@ -838,7 +836,7 @@ int KWDRValueGroups::GetPartNumber() const
 
 int KWDRValueGroups::GetAttributeType() const
 {
-	return nAttributeType;
+	return KWType::Symbol;
 }
 
 int KWDRValueGroups::ComputeTotalPartValueNumber() const
@@ -860,16 +858,6 @@ int KWDRValueGroups::ComputeTotalPartValueNumber() const
 	if (nTotalPartValueNumber > 0)
 		nTotalPartValueNumber--;
 	return nTotalPartValueNumber;
-}
-
-boolean KWDRValueGroups::AreValuesVarParts() const
-{
-	return bAreValuesVarParts;
-}
-
-void KWDRValueGroups::SetValuesVarParts(boolean bValue)
-{
-	bAreValuesVarParts = bValue;
 }
 
 int KWDRValueGroups::GetSymbolPartIndex(const Symbol& sValue) const
@@ -1020,8 +1008,6 @@ void KWDRValueGroups::ImportAttributeGrouping(const KWDGSAttributeGrouping* attr
 	// Reinitialisation
 	DeleteAllOperands();
 
-	SetValuesVarParts(attributeGrouping->AreValuesVarParts());
-
 	// Parametrage des groupes de valeurs
 	for (nGroup = 0; nGroup < attributeGrouping->GetPartNumber(); nGroup++)
 	{
@@ -1070,7 +1056,6 @@ void KWDRValueGroups::ExportAttributeGrouping(KWDGSAttributeGrouping* attributeG
 	// Parametrage des groupes et des valeurs
 	attributeGrouping->SetPartNumber(GetValueGroupNumber());
 	attributeGrouping->SetKeptValueNumber(nValueNumber);
-	attributeGrouping->SetAttributeType(GetAttributeType());
 	nValue = 0;
 	for (nGroup = 0; nGroup < GetValueGroupNumber(); nGroup++)
 	{
@@ -1170,8 +1155,7 @@ boolean KWDRValueGroups::CheckDefinition() const
 		Global::DesactivateErrorFlowControl();
 
 		// Test de la presence de la modalite speciale StarValue
-		if (GetAttributeType() == KWType::Symbol and
-		    nkdValues.Lookup(Symbol::GetStarValue().GetNumericKey()) == NULL and not AreValuesVarParts())
+		if (nkdValues.Lookup(Symbol::GetStarValue().GetNumericKey()) == NULL)
 		{
 			bOk = false;
 			AddError(sTmp + "Special value " + Symbol::GetStarValue() +

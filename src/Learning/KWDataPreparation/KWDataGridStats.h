@@ -188,7 +188,6 @@ public:
 	// par valeur pour les attributs cibles (avec les probabilites conditionnelles)
 	// Dans le cas non supervise, les details sont donnes par attribut, avec des effectifs
 	// (les probabilites jointes sont trop "creuses" pour etre intelligibles).
-	// CH 529 Cas individus variables a preciser
 	//
 	// Les rapports s'adaptent aux caracteristiques des grilles
 	//    . distinction des cas univarie, bivarie et multivarie
@@ -596,7 +595,6 @@ public:
 
 	// Redefinition des methodes virtuelles
 	int GetAttributeType() const override;
-	void SetAttributeType(int nType);
 	boolean ArePartsSingletons() const override;
 	void SetPartNumber(int nValue) override;
 	int GetPartNumber() const override;
@@ -664,10 +662,6 @@ public:
 	void SetCatchAllValueNumber(int nValue);
 	int GetCatchAllValueNumber() const;
 
-	// Nature des parties (VarPart ou non)
-	boolean AreValuesVarParts() const;
-	void SetValuesVarParts(boolean bValue);
-
 	///////////////////////////////////////
 	// Methodes de test de la classe
 
@@ -687,8 +681,6 @@ protected:
 	int nGarbageModalityNumber;
 	int nCatchAllValueNumber;
 	friend class PLShared_DGSAttributeGrouping;
-	int nAttributeType;
-	boolean bAreValuesVarParts;
 };
 
 //////////////////////////////////////////////////////////////////////////////

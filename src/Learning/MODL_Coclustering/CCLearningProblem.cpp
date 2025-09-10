@@ -145,6 +145,9 @@ void CCLearningProblem::BuildCoclustering()
 	KWClassDomain* currentDomain = NULL;
 	KWClassDomain* constructedDomain = NULL;
 	KWClassDomain* deploymentDomain = NULL;
+	boolean bDeploymentOk;
+	CCDeploymentSpec ccVarPartDeploymentSpec;
+	ALString sCoclusteringDictionaryFileName;
 
 	require(CheckClass());
 	require(CheckDatabaseName());
@@ -352,31 +355,30 @@ void CCLearningProblem::BuildCoclustering()
 				    IntToString(coclusteringBuilder.GetVarPartCoclusteringAttributeNumber()) +
 				    " dimensions");
 
-			// CH 529
-			if (coclusteringBuilder.GetBuildPredictedIdentifierClusterAttribute())
+			if (GetVarPartDeploymentMode())
 			{
-				boolean bOk;
-				ALString sCoclusteringDictionaryFileName;
-				ALString sPathName;
+				// Initialisation du varPartDeploymentSpec
+				ccVarPartDeploymentSpec.SetDeployedAttributeName(
+				    coclusteringBuilder.GetIdentifierAttributeName());
+				ccVarPartDeploymentSpec.SetInputClassName(GetClassName());
 
-				bOk = coclusteringBuilder.PrepareIVCoclusteringDeployment(deploymentDomain);
+				// Creation du dictionnaire de deploiement
+				bDeploymentOk = ccVarPartDeploymentSpec.PrepareVarPartCoclusteringDeployment(
+				    coclusteringBuilder.GetCoclusteringDataGrid(), deploymentDomain);
 
 				// Ecriture du fichier de dictionnaire de deploiement
-				if (bOk)
+				if (bDeploymentOk)
 				{
-					//GetSpecifiedOutputFileName() remplace GetAnalysisResults()->GetDeploymentDictionaryFileName();
-					// On construit le nom complet du fichier
-					sPathName =
-					    FileService::GetPathName(GetAnalysisResults()->GetCoclusteringFileName());
-					sCoclusteringDictionaryFileName = FileService::BuildFilePathName(
-					    sPathName, GetAnalysisResults()->GetDeploymentDictionaryFileName());
+					sCoclusteringDictionaryFileName =
+					    GetResultFilePathBuilder(TaskBuildCoclustering)
+						->BuildOtherResultFilePathName("model.kdic");
 					AddSimpleMessage("Write deployment dictionary file " +
 							 sCoclusteringDictionaryFileName);
 					deploymentDomain->WriteFile(sCoclusteringDictionaryFileName);
 				}
 
 				// Nettoyage
-				if (bOk)
+				if (bDeploymentOk)
 					delete deploymentDomain;
 			}
 		}
@@ -579,8 +581,13 @@ void CCLearningProblem::PrepareDeployment()
 	if (coclusteringDataGrid.IsVarPartDataGrid())
 	{
 		bOk = false;
-		AddWarning("Deployment dictionary is automatically produced during instances * variables coclustering "
-			   "training.");
+		if (not GetVarPartDeploymentMode())
+			AddWarning(
+			    "Deployment preparation is not yet implemented for instances * variables coclustering");
+		else
+			AddWarning(
+			    "Deployment dictionary is automatically produced during instances * variables coclustering "
+			    "training.");
 	}
 
 	// Post-traitement

@@ -87,6 +87,12 @@ public:
 	boolean PrepareCoclusteringDeployment(const CCHierarchicalDataGrid* coclusteringDataGrid,
 					      KWClassDomain*& deploymentDomain);
 
+	// Preparation d'un dictionnaire de deploiement de coclustering dans le cas individus * variables
+	// Renvoie le domaine de dictionnaire correctement cree et initialise en cas de succes
+	// Messages d'erreur en cas de probleme
+	boolean PrepareVarPartCoclusteringDeployment(const CCHierarchicalDataGrid* coclusteringDataGrid,
+						     KWClassDomain*& deploymentDomain);
+
 	// Test d'integrite pour le deploiement, en fonction des specification et de la grille de coclustering,
 	// du dictionnaire de deploiement et des methodes de deploiement demandees
 	boolean CheckDeploymentSpec(const CCHierarchicalDataGrid* coclusteringDataGrid) const;
@@ -173,6 +179,20 @@ protected:
 	// Creation d'un attribut de libelles pour un attribut de grille
 	KWAttribute* AddLabelVectorAttributeAt(KWClass* kwcDeploymentClass, const CCHDGAttribute* hdgAttribute) const;
 
+	// Methodes associees a la construction du didctionnaire de deploiement dans le cas VarPart
+	// Creation des attributs associes aux innerVariables dans le cas d'un coclustering individus * variables
+	KWAttribute* AddInnerAttributePartitionAttribute(KWClass* kwcDeploymentClass, KWDGAttribute* innerAttribute);
+
+	KWAttribute* AddInnerAttributePartitionIndexAttribute(KWClass* kwcDeploymentClass,
+							      KWAttribute* ivPartitionAttribute,
+							      KWDGAttribute* innerAttribute);
+
+	KWAttribute* AddInnerAttributeVarPartLabelsAttribute(KWClass* kwcDeploymentClass,
+							     KWDGAttribute* innerAttribute);
+
+	KWAttribute* AddInnerAttributePartitionLabelAttribute(KWClass* kwcDeploymentClass,
+							      KWAttribute* ivVarPartLabelsAttribute,
+							      KWAttribute* ivIndexAttribute);
 	// ##
 };
 

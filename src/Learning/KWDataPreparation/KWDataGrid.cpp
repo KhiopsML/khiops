@@ -1096,13 +1096,6 @@ void KWDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats)
 				if (nPart == attributeGrouping->GetGarbageGroupIndex())
 					attribute->SetGarbagePart(part);
 			}
-			// Cas de groupes de VarParts
-			if (attributeGrouping->AreValuesVarParts())
-			{
-				// Ajout de la valeur speciale
-				symbolValueSet = attribute->GetTailPart()->GetSymbolValueSet();
-				symbolValueSet->AddSymbolValue(Symbol::GetStarValue());
-			}
 		}
 		// Cas d'un groupement de valeurs construit a partir d'une liste de valeurs
 		else if (attributePartition->GetAttributeType() == KWType::Symbol and
@@ -1188,362 +1181,14 @@ void KWDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats)
 
 void KWDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 {
-	int nTarget;
-	int nAttribute;
-	KWDGSAttributePartition* attributePartition;
-	KWDGSAttributeDiscretization* attributeDiscretization;
-	KWDGSAttributeGrouping* attributeGrouping;
-	KWDGSAttributeSymbolValues* targetAttributeSymbolValues;
-	ObjectDictionary odAttributeNames;
-	const ALString sTargetPrefix = "Target";
-	ALString sTargetAttributeName;
-	int nIndex;
-	KWDGAttribute* attribute;
-	int nPart;
-	KWDGPart* part;
-	KWDGInterval* interval;
-	KWDGSymbolValueSet* symbolValueSet;
-	int nValue;
-	int nValueNumber;
-	int nSuppressedValueNumber;
-	KWDGValue* value;
-	KWDGCell* cell;
-	IntVector ivPartIndexes;
-	NumericKeyDictionary nkdPartIndexes;
-	KWSortableIndex* partIndex;
-	KWDGSymbolValueSet* cleanedSymbolValueSet;
-	KWDGVarPartSet* varPartSet;
-	KWDGVarPartValue* varPartValue;
+	// Appel de la methode pour une grille qui n'est pas de type VarPart
+	InternalExportDataGridStats(dataGridStats, false);
+}
 
-	require(Check());
-	require(dataGridStats != NULL);
-	require(dataGridStats->GetAttributeNumber() == 0);
-
-	dataGridStats->SetGranularity(nGranularity);
-
-	cleanedSymbolValueSet = NULL;
-
-	// Creation des attributs sources de la grille
-	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
-	{
-		attribute = GetAttributeAt(nAttribute);
-		assert(attribute != GetTargetAttribute() or nAttribute == GetAttributeNumber() - 1);
-
-		// Creation d'un attribut dans le cas Symbol
-		attributePartition = NULL;
-		if (attribute->GetAttributeType() == KWType::Symbol)
-		{
-			// Memorisation de la taille du fourre-tout de l'attribut avant nettoyage eventuel
-			attribute->SetCatchAllValueNumber(attribute->GetCatchAllValueNumber());
-
-			// Creation
-			attributeGrouping = new KWDGSAttributeGrouping;
-			attributePartition = attributeGrouping;
-			attributePartition->SetAttributeName(attribute->GetAttributeName());
-			attributePartition->SetInitialValueNumber(attribute->GetInitialValueNumber());
-			attributePartition->SetGranularizedValueNumber(attribute->GetGranularizedValueNumber());
-			attributeGrouping->SetCatchAllValueNumber(attribute->GetCatchAllValueNumber());
-			attributeGrouping->SetGarbageModalityNumber(attribute->GetGarbageModalityNumber());
-
-			// Comptage du nombre total de valeurs, en partant de 1 pour compter la StarValue
-			nSuppressedValueNumber = 0;
-			nValueNumber = 1;
-			part = attribute->GetHeadPart();
-			while (part != NULL)
-			{
-				symbolValueSet = part->GetSymbolValueSet();
-				nValueNumber += symbolValueSet->GetValueNumber();
-
-				// Calcul du nombre eventuel de modalites qui seront nettoyees (non memorisees pour
-				// l'affichage) En presence d'un fourre-tout, les modalites du fourre-tout autres que
-				// celle d'effectif le plus eleve sont remplacees par la StarValue (cela est fait au
-				// moment de la granularisation) Si le fourre-tout est dans un groupe de modalites, les
-				// autres modalites sont conservees En l'absence de fourre-tout et en presence d'un
-				// groupe poubelle, ce groupe poubelle est represente par la modalite la plus frequente
-				// + StarValue Cas de la partie poubelle en l'absence de fourre-tout
-				if (attribute->GetGarbagePart() == part and attribute->GetCatchAllValueNumber() == 0)
-					nSuppressedValueNumber = symbolValueSet->GetValueNumber() - 1;
-				attribute->GetNextPart(part);
-			}
-
-			nValueNumber -= nSuppressedValueNumber;
-			attributeGrouping->SetKeptValueNumber(nValueNumber);
-
-			// Initialisation des groupes de valeurs
-			attributeGrouping->SetPartNumber(attribute->GetPartNumber());
-			part = attribute->GetHeadPart();
-			nPart = 0;
-			nValue = 0;
-			while (part != NULL)
-			{
-				symbolValueSet = part->GetSymbolValueSet();
-
-				// Regles d'affectation de la StarValue
-				// - dans le fourre-tout en presence d'un fourre-tout et en l'absence d'un groupe
-				// poubelle
-				// - dans le groupe poubelle en la presence d'un groupe poubelle (qu'un groupe
-				// fourre-tout soit present ou pas)
-				// - dans le groupe contenant la modalite de plus faible effectif en l'absence de
-				// fourre-tout et de groupe poubelle
-
-				// Cas de la partie par defaut differente du groupe poubelle en l'absence de fourre-tout
-				// et en presence d'un groupe poubelle
-				if (part->GetValueSet()->IsDefaultPart() and part != attribute->GetGarbagePart() and
-				    attribute->GetCatchAllValueNumber() == 0 and
-				    attribute->GetGarbageModalityNumber() > 0)
-				{
-					// Creation d'un valueSet nettoye sans la StarValue
-					cleanedSymbolValueSet = cast(KWDGSymbolValueSet*, symbolValueSet->Create());
-					value = symbolValueSet->GetHeadValue();
-					while (value != NULL)
-					{
-						// Cas d'une modalite differente de la StarValue
-						if (value->GetSymbolValue() != Symbol::GetStarValue())
-							cleanedSymbolValueSet->AddSymbolValue(value->GetSymbolValue());
-						symbolValueSet->GetNextValue(value);
-					}
-				}
-
-				// Cas de la partie groupe poubelle
-				else if (part == attribute->GetGarbagePart())
-				{
-					attributeGrouping->SetGarbageGroupIndex(nPart);
-
-					// Cas de la presence d'un groupe poubelle sans presence de fourre-tout
-					if (attribute->GetCatchAllValueNumber() == 0)
-					{
-						// Creation d'un ValueSet nettoye pour un affichage reduit a la modalite
-						// la plus frequente
-						cleanedSymbolValueSet =
-						    cast(KWDGSymbolValueSet*, symbolValueSet->ComputeCleanedValueSet());
-					}
-				}
-
-				// Memorisation de l'index de la partie dans un dictionnaire
-				partIndex = new KWSortableIndex;
-				partIndex->SetIndex(nPart);
-				nkdPartIndexes.SetAt(part, partIndex);
-
-				// Parametrage des valeurs de la partie
-				attributeGrouping->SetGroupFirstValueIndexAt(nPart, nValue);
-
-				// Cas ou une version nettoyee du valueSet de la partie a ete cree
-				if (cleanedSymbolValueSet != NULL)
-				{
-					value = cleanedSymbolValueSet->GetHeadValue();
-					while (value != NULL)
-					{
-						attributeGrouping->SetValueAt(nValue, value->GetSymbolValue());
-						nValue++;
-						cleanedSymbolValueSet->GetNextValue(value);
-					}
-
-					// Nettoyage
-					delete cleanedSymbolValueSet;
-					cleanedSymbolValueSet = NULL;
-				}
-				// Sinon
-				else
-				{
-					value = symbolValueSet->GetHeadValue();
-					while (value != NULL)
-					{
-						attributeGrouping->SetValueAt(nValue, value->GetSymbolValue());
-						nValue++;
-						symbolValueSet->GetNextValue(value);
-					}
-				}
-
-				// Partie suivante
-				attribute->GetNextPart(part);
-				nPart++;
-			}
-			assert(nValue == nValueNumber);
-		}
-		// Creation d'un attribut dans le cas VarPart
-		else if (attribute->GetAttributeType() == KWType::VarPart)
-		{
-			// Memorisation de la taille du fourre-tout de l'attribut avant nettoyage eventuel
-			attribute->SetCatchAllValueNumber(attribute->GetCatchAllValueNumber());
-
-			// Creation
-			attributeGrouping = new KWDGSAttributeGrouping;
-			attributePartition = attributeGrouping;
-			attributePartition->SetAttributeName(attribute->GetAttributeName());
-			attributePartition->SetInitialValueNumber(attribute->GetInitialValueNumber());
-			attributePartition->SetGranularizedValueNumber(attribute->GetInitialValueNumber());
-			attributeGrouping->SetCatchAllValueNumber(attribute->GetCatchAllValueNumber());
-			attributeGrouping->SetGarbageModalityNumber(attribute->GetGarbageModalityNumber());
-			attributeGrouping->SetAttributeType(KWType::Symbol);
-			attributeGrouping->SetValuesVarParts(true);
-
-			// Comptage du nombre total de valeurs
-			nValueNumber = 0;
-			part = attribute->GetHeadPart();
-			while (part != NULL)
-			{
-				varPartSet = part->GetVarPartSet();
-				nValueNumber += varPartSet->GetValueNumber();
-
-				attribute->GetNextPart(part);
-			}
-			attributeGrouping->SetKeptValueNumber(nValueNumber + 1);
-
-			// Initialisation des groupes de valeurs
-			attributeGrouping->SetPartNumber(attribute->GetPartNumber());
-			part = attribute->GetHeadPart();
-			nPart = 0;
-			nValue = 0;
-			while (part != NULL)
-			{
-				varPartSet = part->GetVarPartSet();
-
-				// Memorisation de l'index de la partie dans un dictionnaire
-				partIndex = new KWSortableIndex;
-				partIndex->SetIndex(nPart);
-				nkdPartIndexes.SetAt(part, partIndex);
-
-				// Parametrage des valeurs de la partie
-				attributeGrouping->SetGroupFirstValueIndexAt(nPart, nValue);
-
-				value = varPartSet->GetHeadValue();
-				while (value != NULL)
-				{
-					varPartValue = cast(KWDGVarPartValue*, value);
-					attributeGrouping->SetValueAt(
-					    nValue, Symbol(varPartValue->GetVarPart()->GetVarPartLabel()));
-					nValue++;
-					varPartSet->GetNextValue(value);
-				}
-
-				// Partie suivante
-				attribute->GetNextPart(part);
-				nPart++;
-			}
-			assert(nValue == nValueNumber);
-
-			// Cas de la derniere partie : ajout de la StarValue
-			attributeGrouping->SetValueAt(nValue, Symbol(" * "));
-		}
-		// Creation d'un attribut dans le cas Continuous
-		else if (attribute->GetAttributeType() == KWType::Continuous)
-		{
-			// Creation
-			attributeDiscretization = new KWDGSAttributeDiscretization;
-			attributePartition = attributeDiscretization;
-			attributePartition->SetAttributeName(attribute->GetAttributeName());
-			attributePartition->SetInitialValueNumber(attribute->GetInitialValueNumber());
-			attributePartition->SetGranularizedValueNumber(attribute->GetGranularizedValueNumber());
-
-			// Initialisation des bornes des intervalles
-			attributeDiscretization->SetPartNumber(attribute->GetPartNumber());
-			part = attribute->GetHeadPart();
-			nPart = 0;
-			while (part != NULL)
-			{
-				interval = part->GetInterval();
-
-				// Memorisation de l'index de la partie dans un dictionnaire
-				partIndex = new KWSortableIndex;
-				partIndex->SetIndex(nPart);
-				nkdPartIndexes.SetAt(part, partIndex);
-
-				// On memorise la borne inf a partir du deusiemme intervalle
-				if (nPart > 0)
-					attributeDiscretization->SetIntervalBoundAt(nPart - 1,
-										    interval->GetLowerBound());
-
-				// Partie suivante
-				attribute->GetNextPart(part);
-				nPart++;
-			}
-		}
-		check(attributePartition);
-
-		// Ajout de l'attribut
-		dataGridStats->AddAttribute(attributePartition);
-	}
-
-	// Gestion du cas particulier de l'attribut cible symbol implicite
-	if (GetTargetValueNumber() > 0)
-	{
-		targetAttributeSymbolValues = new KWDGSAttributeSymbolValues;
-		attributePartition = targetAttributeSymbolValues;
-
-		// Calcul d'un nom unique pour l'attribut cible, en exploitant un dictionnaire des noms d'attribut
-		for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
-			odAttributeNames.SetAt(GetAttributeAt(nAttribute)->GetAttributeName(),
-					       GetAttributeAt(nAttribute));
-		sTargetAttributeName = sTargetPrefix;
-		nIndex = 1;
-		while (odAttributeNames.Lookup(sTargetAttributeName) != NULL)
-		{
-			sTargetAttributeName = sTargetPrefix + IntToString(nIndex);
-			nIndex++;
-		}
-		attributePartition->SetAttributeName(sTargetAttributeName);
-
-		// Initialisation des valeurs cibles
-		targetAttributeSymbolValues->SetPartNumber(GetTargetValueNumber());
-		for (nTarget = 0; nTarget < targetAttributeSymbolValues->GetValueNumber(); nTarget++)
-			targetAttributeSymbolValues->SetValueAt(nTarget, GetTargetValueAt(nTarget));
-
-		// Initialisation du nombre de valeurs initiales et granularisees
-		attributePartition->SetInitialValueNumber(GetTargetValueNumber());
-		attributePartition->SetGranularizedValueNumber(GetTargetValueNumber());
-
-		// Ajout de l'attribut
-		dataGridStats->AddAttribute(attributePartition);
-	}
-
-	// Parametrage du nombre d'attribut sources
-	if (GetTargetAttribute() != NULL or GetTargetValueNumber() > 0)
-		dataGridStats->SetSourceAttributeNumber(dataGridStats->GetAttributeNumber() - 1);
-
-	// Creation des cellules
-	dataGridStats->CreateAllCells();
-	ivPartIndexes.SetSize(dataGridStats->GetAttributeNumber());
-	cell = GetHeadCell();
-	while (cell != NULL)
-	{
-		// Specification des index de parties de la cellule
-		for (nAttribute = 0; nAttribute < cell->GetAttributeNumber(); nAttribute++)
-		{
-			// Recherche de l'index associe a la partie
-			part = cell->GetPartAt(nAttribute);
-			partIndex = cast(KWSortableIndex*, nkdPartIndexes.Lookup(part));
-			check(partIndex);
-			ivPartIndexes.SetAt(nAttribute, partIndex->GetIndex());
-		}
-
-		// Dans le cas il n'y a pas d'attribut cible implicite, creation directe de la cellule
-		if (GetTargetValueNumber() == 0)
-			dataGridStats->SetCellFrequencyAt(&ivPartIndexes, cell->GetCellFrequency());
-		// Sinon, il faut transferer les cellules pour chaque classe cible
-		else
-		{
-			assert(nAttribute == dataGridStats->GetFirstTargetAttributeIndex());
-			for (nTarget = 0; nTarget < GetTargetValueNumber(); nTarget++)
-			{
-				ivPartIndexes.SetAt(nAttribute, nTarget);
-				dataGridStats->SetCellFrequencyAt(&ivPartIndexes, cell->GetTargetFrequencyAt(nTarget));
-			}
-		}
-
-		// Cellule suivante
-		GetNextCell(cell);
-	}
-
-	// Nettoyage
-	nkdPartIndexes.DeleteAll();
-
-	ensure(dataGridStats->Check());
-	ensure(GetGridFrequency() == dataGridStats->ComputeGridFrequency());
-	ensure(GetTargetValueNumber() > 0 or dataGridStats->GetAttributeNumber() == GetAttributeNumber());
-	ensure(GetTargetValueNumber() == 0 or dataGridStats->GetAttributeNumber() == GetAttributeNumber() + 1);
-	ensure(dataGridStats->GetSourceAttributeNumber() == 0 or dataGridStats->GetTargetAttributeNumber() <= 1);
-	ensure(dataGridStats->GetSourceAttributeNumber() == 0 or GetTargetValueNumber() > 0 or
-	       GetTargetAttribute() != NULL);
+void KWDataGrid::ExportVarPartDataGridStats(KWDataGridStats* dataGridStats) const
+{
+	// Appel de la methode pour une grille de type VarPart
+	InternalExportDataGridStats(dataGridStats, true);
 }
 
 void KWDataGrid::Write(ostream& ost) const
@@ -2272,6 +1917,365 @@ int KWDataGrid::ComputeTotalPartNumber() const
 		nResult += attribute->GetPartNumber();
 	}
 	return nResult;
+}
+
+void KWDataGrid::InternalExportDataGridStats(KWDataGridStats* dataGridStats, boolean bVarPartMode) const
+{
+	int nTarget;
+	int nAttribute;
+	KWDGSAttributePartition* attributePartition;
+	KWDGSAttributeDiscretization* attributeDiscretization;
+	KWDGSAttributeGrouping* attributeGrouping;
+	KWDGSAttributeSymbolValues* targetAttributeSymbolValues;
+	ObjectDictionary odAttributeNames;
+	const ALString sTargetPrefix = "Target";
+	ALString sTargetAttributeName;
+	int nIndex;
+	KWDGAttribute* attribute;
+	int nPart;
+	KWDGPart* part;
+	KWDGInterval* interval;
+	KWDGSymbolValueSet* symbolValueSet;
+	int nValue;
+	int nValueNumber;
+	int nSuppressedValueNumber;
+	KWDGValue* value;
+	KWDGCell* cell;
+	IntVector ivPartIndexes;
+	NumericKeyDictionary nkdPartIndexes;
+	KWSortableIndex* partIndex;
+	KWDGSymbolValueSet* cleanedSymbolValueSet;
+	KWDGVarPartSet* varPartSet;
+	KWDGVarPartValue* varPartValue;
+
+	require(Check());
+	require(dataGridStats != NULL);
+	require(dataGridStats->GetAttributeNumber() == 0);
+	require(bVarPartMode == IsVarPartDataGrid());
+
+	dataGridStats->SetGranularity(nGranularity);
+
+	cleanedSymbolValueSet = NULL;
+
+	// Creation des attributs sources de la grille
+	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
+	{
+		attribute = GetAttributeAt(nAttribute);
+		assert(attribute != GetTargetAttribute() or nAttribute == GetAttributeNumber() - 1);
+
+		// Creation d'un attribut dans le cas Symbol
+		attributePartition = NULL;
+		if (attribute->GetAttributeType() == KWType::Symbol)
+		{
+			// Memorisation de la taille du fourre-tout de l'attribut avant nettoyage eventuel
+			attribute->SetCatchAllValueNumber(attribute->GetCatchAllValueNumber());
+
+			// Creation
+			attributeGrouping = new KWDGSAttributeGrouping;
+			attributePartition = attributeGrouping;
+			attributePartition->SetAttributeName(attribute->GetAttributeName());
+			attributePartition->SetInitialValueNumber(attribute->GetInitialValueNumber());
+			attributePartition->SetGranularizedValueNumber(attribute->GetGranularizedValueNumber());
+			attributeGrouping->SetCatchAllValueNumber(attribute->GetCatchAllValueNumber());
+			attributeGrouping->SetGarbageModalityNumber(attribute->GetGarbageModalityNumber());
+
+			// Comptage du nombre total de valeurs, en partant de 1 pour compter la StarValue
+			nSuppressedValueNumber = 0;
+			nValueNumber = 1;
+			part = attribute->GetHeadPart();
+			while (part != NULL)
+			{
+				symbolValueSet = part->GetSymbolValueSet();
+				nValueNumber += symbolValueSet->GetValueNumber();
+
+				// Calcul du nombre eventuel de modalites qui seront nettoyees (non memorisees pour
+				// l'affichage) En presence d'un fourre-tout, les modalites du fourre-tout autres que
+				// celle d'effectif le plus eleve sont remplacees par la StarValue (cela est fait au
+				// moment de la granularisation) Si le fourre-tout est dans un groupe de modalites, les
+				// autres modalites sont conservees En l'absence de fourre-tout et en presence d'un
+				// groupe poubelle, ce groupe poubelle est represente par la modalite la plus frequente
+				// + StarValue Cas de la partie poubelle en l'absence de fourre-tout
+				if (attribute->GetGarbagePart() == part and attribute->GetCatchAllValueNumber() == 0)
+					nSuppressedValueNumber = symbolValueSet->GetValueNumber() - 1;
+				attribute->GetNextPart(part);
+			}
+
+			nValueNumber -= nSuppressedValueNumber;
+			attributeGrouping->SetKeptValueNumber(nValueNumber);
+
+			// Initialisation des groupes de valeurs
+			attributeGrouping->SetPartNumber(attribute->GetPartNumber());
+			part = attribute->GetHeadPart();
+			nPart = 0;
+			nValue = 0;
+			while (part != NULL)
+			{
+				symbolValueSet = part->GetSymbolValueSet();
+
+				// Regles d'affectation de la StarValue
+				// - dans le fourre-tout en presence d'un fourre-tout et en l'absence d'un groupe
+				// poubelle
+				// - dans le groupe poubelle en la presence d'un groupe poubelle (qu'un groupe
+				// fourre-tout soit present ou pas)
+				// - dans le groupe contenant la modalite de plus faible effectif en l'absence de
+				// fourre-tout et de groupe poubelle
+
+				// Cas de la partie par defaut differente du groupe poubelle en l'absence de fourre-tout
+				// et en presence d'un groupe poubelle
+				if (part->GetValueSet()->IsDefaultPart() and part != attribute->GetGarbagePart() and
+				    attribute->GetCatchAllValueNumber() == 0 and
+				    attribute->GetGarbageModalityNumber() > 0)
+				{
+					// Creation d'un valueSet nettoye sans la StarValue
+					cleanedSymbolValueSet = cast(KWDGSymbolValueSet*, symbolValueSet->Create());
+					value = symbolValueSet->GetHeadValue();
+					while (value != NULL)
+					{
+						// Cas d'une modalite differente de la StarValue
+						if (value->GetSymbolValue() != Symbol::GetStarValue())
+							cleanedSymbolValueSet->AddSymbolValue(value->GetSymbolValue());
+						symbolValueSet->GetNextValue(value);
+					}
+				}
+
+				// Cas de la partie groupe poubelle
+				else if (part == attribute->GetGarbagePart())
+				{
+					attributeGrouping->SetGarbageGroupIndex(nPart);
+
+					// Cas de la presence d'un groupe poubelle sans presence de fourre-tout
+					if (attribute->GetCatchAllValueNumber() == 0)
+					{
+						// Creation d'un ValueSet nettoye pour un affichage reduit a la modalite
+						// la plus frequente
+						cleanedSymbolValueSet =
+						    cast(KWDGSymbolValueSet*, symbolValueSet->ComputeCleanedValueSet());
+					}
+				}
+
+				// Memorisation de l'index de la partie dans un dictionnaire
+				partIndex = new KWSortableIndex;
+				partIndex->SetIndex(nPart);
+				nkdPartIndexes.SetAt(part, partIndex);
+
+				// Parametrage des valeurs de la partie
+				attributeGrouping->SetGroupFirstValueIndexAt(nPart, nValue);
+
+				// Cas ou une version nettoyee du valueSet de la partie a ete cree
+				if (cleanedSymbolValueSet != NULL)
+				{
+					value = cleanedSymbolValueSet->GetHeadValue();
+					while (value != NULL)
+					{
+						attributeGrouping->SetValueAt(nValue, value->GetSymbolValue());
+						nValue++;
+						cleanedSymbolValueSet->GetNextValue(value);
+					}
+
+					// Nettoyage
+					delete cleanedSymbolValueSet;
+					cleanedSymbolValueSet = NULL;
+				}
+				// Sinon
+				else
+				{
+					value = symbolValueSet->GetHeadValue();
+					while (value != NULL)
+					{
+						attributeGrouping->SetValueAt(nValue, value->GetSymbolValue());
+						nValue++;
+						symbolValueSet->GetNextValue(value);
+					}
+				}
+
+				// Partie suivante
+				attribute->GetNextPart(part);
+				nPart++;
+			}
+			assert(nValue == nValueNumber);
+		}
+		// Creation d'un attribut dans le cas VarPart
+		else if (attribute->GetAttributeType() == KWType::VarPart)
+		{
+			// Memorisation de la taille du fourre-tout de l'attribut avant nettoyage eventuel
+			attribute->SetCatchAllValueNumber(attribute->GetCatchAllValueNumber());
+
+			// Creation
+			attributeGrouping = new KWDGSAttributeGrouping;
+			attributePartition = attributeGrouping;
+			attributePartition->SetAttributeName(attribute->GetAttributeName());
+			attributePartition->SetInitialValueNumber(attribute->GetInitialValueNumber());
+			attributePartition->SetGranularizedValueNumber(attribute->GetInitialValueNumber());
+			attributeGrouping->SetCatchAllValueNumber(attribute->GetCatchAllValueNumber());
+			attributeGrouping->SetGarbageModalityNumber(attribute->GetGarbageModalityNumber());
+
+			// Comptage du nombre total de valeurs
+			nValueNumber = 0;
+			part = attribute->GetHeadPart();
+			while (part != NULL)
+			{
+				varPartSet = part->GetVarPartSet();
+				nValueNumber += varPartSet->GetValueNumber();
+
+				attribute->GetNextPart(part);
+			}
+			attributeGrouping->SetKeptValueNumber(nValueNumber + 1);
+
+			// Initialisation des groupes de valeurs
+			attributeGrouping->SetPartNumber(attribute->GetPartNumber());
+			part = attribute->GetHeadPart();
+			nPart = 0;
+			nValue = 0;
+			while (part != NULL)
+			{
+				varPartSet = part->GetVarPartSet();
+
+				// Memorisation de l'index de la partie dans un dictionnaire
+				partIndex = new KWSortableIndex;
+				partIndex->SetIndex(nPart);
+				nkdPartIndexes.SetAt(part, partIndex);
+
+				// Parametrage des valeurs de la partie
+				attributeGrouping->SetGroupFirstValueIndexAt(nPart, nValue);
+
+				value = varPartSet->GetHeadValue();
+				while (value != NULL)
+				{
+					varPartValue = cast(KWDGVarPartValue*, value);
+					attributeGrouping->SetValueAt(
+					    nValue, Symbol(varPartValue->GetVarPart()->GetVarPartLabel()));
+					nValue++;
+					varPartSet->GetNextValue(value);
+				}
+
+				// Partie suivante
+				attribute->GetNextPart(part);
+				nPart++;
+			}
+			assert(nValue == nValueNumber);
+
+			// Cas de la derniere partie : ajout de la StarValue
+			attributeGrouping->SetValueAt(nValue, Symbol::GetStarValue());
+		}
+		// Creation d'un attribut dans le cas Continuous
+		else if (attribute->GetAttributeType() == KWType::Continuous)
+		{
+			// Creation
+			attributeDiscretization = new KWDGSAttributeDiscretization;
+			attributePartition = attributeDiscretization;
+			attributePartition->SetAttributeName(attribute->GetAttributeName());
+			attributePartition->SetInitialValueNumber(attribute->GetInitialValueNumber());
+			attributePartition->SetGranularizedValueNumber(attribute->GetGranularizedValueNumber());
+
+			// Initialisation des bornes des intervalles
+			attributeDiscretization->SetPartNumber(attribute->GetPartNumber());
+			part = attribute->GetHeadPart();
+			nPart = 0;
+			while (part != NULL)
+			{
+				interval = part->GetInterval();
+
+				// Memorisation de l'index de la partie dans un dictionnaire
+				partIndex = new KWSortableIndex;
+				partIndex->SetIndex(nPart);
+				nkdPartIndexes.SetAt(part, partIndex);
+
+				// On memorise la borne inf a partir du deusiemme intervalle
+				if (nPart > 0)
+					attributeDiscretization->SetIntervalBoundAt(nPart - 1,
+										    interval->GetLowerBound());
+
+				// Partie suivante
+				attribute->GetNextPart(part);
+				nPart++;
+			}
+		}
+		check(attributePartition);
+
+		// Ajout de l'attribut
+		dataGridStats->AddAttribute(attributePartition);
+	}
+
+	// Gestion du cas particulier de l'attribut cible symbol implicite
+	if (GetTargetValueNumber() > 0)
+	{
+		targetAttributeSymbolValues = new KWDGSAttributeSymbolValues;
+		attributePartition = targetAttributeSymbolValues;
+
+		// Calcul d'un nom unique pour l'attribut cible, en exploitant un dictionnaire des noms d'attribut
+		for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
+			odAttributeNames.SetAt(GetAttributeAt(nAttribute)->GetAttributeName(),
+					       GetAttributeAt(nAttribute));
+		sTargetAttributeName = sTargetPrefix;
+		nIndex = 1;
+		while (odAttributeNames.Lookup(sTargetAttributeName) != NULL)
+		{
+			sTargetAttributeName = sTargetPrefix + IntToString(nIndex);
+			nIndex++;
+		}
+		attributePartition->SetAttributeName(sTargetAttributeName);
+
+		// Initialisation des valeurs cibles
+		targetAttributeSymbolValues->SetPartNumber(GetTargetValueNumber());
+		for (nTarget = 0; nTarget < targetAttributeSymbolValues->GetValueNumber(); nTarget++)
+			targetAttributeSymbolValues->SetValueAt(nTarget, GetTargetValueAt(nTarget));
+
+		// Initialisation du nombre de valeurs initiales et granularisees
+		attributePartition->SetInitialValueNumber(GetTargetValueNumber());
+		attributePartition->SetGranularizedValueNumber(GetTargetValueNumber());
+
+		// Ajout de l'attribut
+		dataGridStats->AddAttribute(attributePartition);
+	}
+
+	// Parametrage du nombre d'attribut sources
+	if (GetTargetAttribute() != NULL or GetTargetValueNumber() > 0)
+		dataGridStats->SetSourceAttributeNumber(dataGridStats->GetAttributeNumber() - 1);
+
+	// Creation des cellules
+	dataGridStats->CreateAllCells();
+	ivPartIndexes.SetSize(dataGridStats->GetAttributeNumber());
+	cell = GetHeadCell();
+	while (cell != NULL)
+	{
+		// Specification des index de parties de la cellule
+		for (nAttribute = 0; nAttribute < cell->GetAttributeNumber(); nAttribute++)
+		{
+			// Recherche de l'index associe a la partie
+			part = cell->GetPartAt(nAttribute);
+			partIndex = cast(KWSortableIndex*, nkdPartIndexes.Lookup(part));
+			check(partIndex);
+			ivPartIndexes.SetAt(nAttribute, partIndex->GetIndex());
+		}
+
+		// Dans le cas il n'y a pas d'attribut cible implicite, creation directe de la cellule
+		if (GetTargetValueNumber() == 0)
+			dataGridStats->SetCellFrequencyAt(&ivPartIndexes, cell->GetCellFrequency());
+		// Sinon, il faut transferer les cellules pour chaque classe cible
+		else
+		{
+			assert(nAttribute == dataGridStats->GetFirstTargetAttributeIndex());
+			for (nTarget = 0; nTarget < GetTargetValueNumber(); nTarget++)
+			{
+				ivPartIndexes.SetAt(nAttribute, nTarget);
+				dataGridStats->SetCellFrequencyAt(&ivPartIndexes, cell->GetTargetFrequencyAt(nTarget));
+			}
+		}
+
+		// Cellule suivante
+		GetNextCell(cell);
+	}
+
+	// Nettoyage
+	nkdPartIndexes.DeleteAll();
+
+	ensure(dataGridStats->Check());
+	ensure(GetGridFrequency() == dataGridStats->ComputeGridFrequency());
+	ensure(GetTargetValueNumber() > 0 or dataGridStats->GetAttributeNumber() == GetAttributeNumber());
+	ensure(GetTargetValueNumber() == 0 or dataGridStats->GetAttributeNumber() == GetAttributeNumber() + 1);
+	ensure(dataGridStats->GetSourceAttributeNumber() == 0 or dataGridStats->GetTargetAttributeNumber() <= 1);
+	ensure(dataGridStats->GetSourceAttributeNumber() == 0 or GetTargetValueNumber() > 0 or
+	       GetTargetAttribute() != NULL);
 }
 
 KWDGCell* KWDataGrid::NewCell() const

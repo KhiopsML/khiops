@@ -14,7 +14,6 @@ CCAnalysisResultsView::CCAnalysisResultsView()
 	SetLabel("Results");
 	AddStringField("CoclusteringFileName", "Coclustering report", "");
 	AddStringField("ShortDescription", "Short description", "");
-	AddStringField("DeploymentDictionaryFilename", "Deployment dictionary", "");
 
 	// Parametrage des styles;
 	GetFieldAt("CoclusteringFileName")->SetStyle("FileChooser");
@@ -34,13 +33,6 @@ CCAnalysisResultsView::CCAnalysisResultsView()
 	GetFieldAt("ShortDescription")
 	    ->SetHelpText(
 		"Brief description to summarize the current analysis, which will be included in the reports.");
-	// CH 529
-	GetFieldAt("DeploymentDictionaryFilename")
-	    ->SetHelpText(
-		"Name of the dictionary that enables to deploy an instance * variables coclustering."
-		"\n By default, the report is stored in the database directory, unless an absolute path is specified."
-		"\n The deployment dictionary predicts the closest cluster of instances for a new instance unseen"
-		"during to coclustering step from its variable values.");
 	GetActionAt("VisualizeReport")
 	    ->SetHelpText("Visualize coclustering report if available, using Khiops covisualization tool.");
 
@@ -69,7 +61,6 @@ void CCAnalysisResultsView::EventUpdate(Object* object)
 	editedObject = cast(CCAnalysisResults*, object);
 	editedObject->SetCoclusteringFileName(GetStringValueAt("CoclusteringFileName"));
 	editedObject->SetShortDescription(GetStringValueAt("ShortDescription"));
-	editedObject->SetDeploymentDictionaryFileName(GetStringValueAt("DeploymentDictionaryFilename"));
 
 	// ## Custom update
 
@@ -85,7 +76,6 @@ void CCAnalysisResultsView::EventRefresh(Object* object)
 	editedObject = cast(CCAnalysisResults*, object);
 	SetStringValueAt("CoclusteringFileName", editedObject->GetCoclusteringFileName());
 	SetStringValueAt("ShortDescription", editedObject->GetShortDescription());
-	SetStringValueAt("DeploymentDictionaryFilename", editedObject->GetDeploymentDictionaryFileName());
 
 	// ## Custom refresh
 

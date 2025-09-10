@@ -140,21 +140,6 @@ void KWDRDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats, boo
 			symbolValueSetRule->ImportAttributeSymbolValues(
 			    cast(const KWDGSAttributeSymbolValues*, attributePartition));
 		}
-		// Cas d'un ensemble de valeurs de type VarPart
-		else if (attributePartition->GetAttributeType() == KWType::VarPart)
-		{
-			KWDRValueGroups* valueGroupsRule;
-
-			// Creation d'une regle de type groupes
-			valueGroupsRule = new KWDRValueGroups;
-			operand->SetDerivationRule(valueGroupsRule);
-			operand->SetStructureName(valueGroupsRule->GetStructureName());
-
-			// Parametrage des groupes de valeurs
-			valueGroupsRule->ImportAttributeGrouping(
-			    cast(const KWDGSAttributeGrouping*, attributePartition));
-		}
-
 		assert(operand == GetOperandAt(nAttribute));
 		assert(operand->GetDerivationRule() != NULL);
 	}
@@ -2128,7 +2113,7 @@ void KWDRDataGridStats::Optimize(KWClass* kwcOwnerClass)
 	// ce qui permettra de construire une table de probabilites conditionnelles
 	dataGridRule->ExportDataGridStats(&dataGridStats);
 
-	// Presence d'attributs sources si moins de de parametres attributs que de dimensions dans la grille
+	// Presence d'attributs sources si moins de parametres attributs que de dimensions dans la grille
 	if (GetOperandNumber() - 1 < dataGridRule->GetAttributeNumber())
 		dataGridStats.SetSourceAttributeNumber(GetOperandNumber() - 1);
 
@@ -2146,7 +2131,7 @@ void KWDRDataGridStats::Optimize(KWClass* kwcOwnerClass)
 	// Calcul y compris dans le cas non supervise, pour eviter les effets de bord
 	ptSourceConditionalLogProbs.ImportDataGridStats(&dataGridStats, false, true);
 
-	// Calcul des effectifs cumule dans le cas d'une cible continue
+	// Calcul des effectifs cumules dans le cas d'une cible continue
 	nCell = 0;
 	cCumulativeFrequency = 0;
 	cvTargetCumulativeFrequencies.SetSize(0);
