@@ -780,6 +780,7 @@ boolean KWMTDatabase::PhysicalOpenForRead()
 	boolean bOk = true;
 	longint lRemainingMemory;
 	longint lExternalTableUsedMemory;
+	longint lTotalExternalObjectNumber;
 
 	require(Check());
 	require(CheckObjectConsistency());
@@ -806,7 +807,8 @@ boolean KWMTDatabase::PhysicalOpenForRead()
 			lRemainingMemory = RMResourceManager::GetRemainingAvailableMemory();
 
 			// La lecture peut echouer pour des raisons de dimensionnement ou autres
-			bOk = PhysicalReadAllReferenceObjects(lRemainingMemory, lExternalTableUsedMemory);
+			bOk = PhysicalReadAllReferenceObjects(lRemainingMemory, lExternalTableUsedMemory,
+							      lTotalExternalObjectNumber);
 		}
 	}
 	return bOk;
@@ -1220,7 +1222,8 @@ boolean KWMTDatabase::IsPhysicalObjectSelected(KWObject* kwoPhysicalObject)
 	return bSelected;
 }
 
-boolean KWMTDatabase::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemory, longint& lNecessaryMemory)
+boolean KWMTDatabase::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemory, longint& lNecessaryMemory,
+						      longint& lTotalExternalObjectNumber)
 {
 	const boolean bTrace = false;
 	boolean bOk = true;
@@ -1249,7 +1252,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemor
 	// Trace initiale
 	if (bTrace)
 	{
-		cout << "PhysicalReadAllReferenceObjects\t" << LongintToHumanReadableString(lMaxAvailableMemory)
+		cout << "\t  PhysicalReadAllReferenceObjects\t" << LongintToHumanReadableString(lMaxAvailableMemory)
 		     << endl;
 		timer.Start();
 	}
@@ -1405,7 +1408,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemor
 
 				// Trace pour la premiere passe
 				if (bTrace)
-					cout << "\t" << referenceMapping->GetDataTableName() << "\t"
+					cout << "\t\t" << referenceMapping->GetDataTableName() << "\t"
 					     << BooleanToString(bOk) << "\t" << lObjectNumber << "\t"
 					     << LongintToHumanReadableString(memoryGuard.GetCurrentUsedHeapMemory())
 					     << "\n";
@@ -1527,6 +1530,9 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemor
 				break;
 			}
 
+			// Prise en compte dans le memory guard pour les stats
+			memoryGuard.AddComputedExternalRecord();
+
 			// Suivi de la tache
 			if (bIsInTask and TaskProgression::IsRefreshNecessary(nObject))
 			{
@@ -1564,18 +1570,31 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemor
 
 	// Erreur utilisateur en cas de depassement memoire
 	if (memoryGuard.IsMemoryLimitReached())
+	{
+		bOk = false;
 		AddError(memoryGuard.GetExternalTableMemoryLimitLabel());
+	}
 
-	// On reactive le memory guard initial
-	memoryGuard.CopyFrom(&initialMemoryGuard);
+	// Nombre total d'enregistrement lus ou crees
+	lTotalExternalObjectNumber = memoryGuard.GetTotalReadExternalRecordNumber() +
+				     memoryGuard.GetTotalReadSecondaryRecordNumber() +
+				     memoryGuard.GetTotalCreatedRecordNumber();
 
 	// Trace finale
 	if (bTrace)
 	{
 		timer.Stop();
-		cout << "\tNecessary time\t" << timer.GetElapsedTime() << endl;
-		cout << "\tNecessary memory\t" << LongintToHumanReadableString(lNecessaryMemory) << endl;
+		cout << "\t\tRoot record number\t" << memoryGuard.GetTotalReadExternalRecordNumber() << "\n";
+		cout << "\t\tSecondary record number\t" << memoryGuard.GetTotalReadSecondaryRecordNumber() << "\n";
+		cout << "\t\tCreated record number\t" << memoryGuard.GetTotalCreatedRecordNumber() << "\n";
+		cout << "\t\tTotal record number\t" << lTotalExternalObjectNumber << "\n";
+		cout << "\t\tNecessary time\t" << timer.GetElapsedTime() << "\n";
+		cout << "\t\tNecessary memory\t" << LongintToHumanReadableString(lNecessaryMemory) << "\n";
+		cout << "\t\tOk\t" << BooleanToString(bOk) << "\n";
 	}
+
+	// On reactive le memory guard initial
+	memoryGuard.CopyFrom(&initialMemoryGuard);
 
 	ensure(lNecessaryMemory >= 0);
 	ensure(not bOk or lNecessaryMemory <= lMaxAvailableMemory);
@@ -1587,9 +1606,10 @@ void KWMTDatabase::PhysicalDeleteAllReferenceObjects()
 	objectReferenceResolver.DeleteAll();
 }
 
-boolean KWMTDatabase::ComputeExactNecessaryMemoryForReferenceObjects(longint& lNecessaryMemory)
+boolean KWMTDatabase::ComputeExactNecessaryMemoryForReferenceObjects(longint& lNecessaryMemory,
+								     longint& lTotalExternalObjectNumber)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = GetPreparationTraceMode();
 	boolean bOk = true;
 	longint lHeapMemory;
 	longint lReadBasedNecessaryMemory;
@@ -1606,7 +1626,7 @@ boolean KWMTDatabase::ComputeExactNecessaryMemoryForReferenceObjects(longint& lN
 
 	// Premiere passe basique d'estimation de la memoire necessaire, sans acces aux donnees
 	lEstimatedNecessaryMemory = ComputeEstimatedNecessaryMemoryForReferenceObjects();
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Necessary memory for reference objects for database " << GetDatabaseName() << endl;
 		cout << "\tIn memory estimation\t" << LongintToHumanReadableString(lEstimatedNecessaryMemory) << endl;
@@ -1614,7 +1634,7 @@ boolean KWMTDatabase::ComputeExactNecessaryMemoryForReferenceObjects(longint& lN
 
 	// Estimation de la memoire totale restante
 	lRemainingMemory = RMResourceManager::GetRemainingAvailableMemory();
-	if (bDisplay)
+	if (bTrace)
 		cout << "\tRemaining memory: " << LongintToHumanReadableString(lRemainingMemory) << endl;
 
 	// Erreur s'il manque le double de la memoire, pour etre conservateur vis a vis de l'estimation heuristique
@@ -1627,7 +1647,7 @@ boolean KWMTDatabase::ComputeExactNecessaryMemoryForReferenceObjects(longint& lN
 	// Calcul exact par chargement de la base sinon
 	else
 	{
-		// Initialisation de tous les data paths a destination des objets lus ou cree
+		// Initialisation de tous les data paths a destination des objets lus ou crees
 		// le temps de la lecture des objet externes
 		objectDataPathManager.ComputeAllDataPaths(kwcPhysicalClass);
 
@@ -1637,8 +1657,16 @@ boolean KWMTDatabase::ComputeExactNecessaryMemoryForReferenceObjects(longint& lN
 		// de la lecture effective des tables externes a l'ouverture de la base
 		bCurrentVerboseMode = GetVerboseMode();
 		SetVerboseMode(false);
-		bOk = PhysicalReadAllReferenceObjects(lRemainingMemory, lReadBasedNecessaryMemory);
+		bOk = PhysicalReadAllReferenceObjects(lRemainingMemory, lReadBasedNecessaryMemory,
+						      lTotalExternalObjectNumber);
 		SetVerboseMode(bCurrentVerboseMode);
+		if (bTrace)
+		{
+			cout << "\tUsed memory for read\t" << LongintToHumanReadableString(lReadBasedNecessaryMemory)
+			     << "\n";
+			cout << "\tTotal external object number\t"
+			     << LongintToReadableString(lTotalExternalObjectNumber) << "\n";
+		}
 
 		// Destruction des objets references
 		// ce qui permet de calculer la memoire necessaire a leur destruction
@@ -1646,17 +1674,20 @@ boolean KWMTDatabase::ComputeExactNecessaryMemoryForReferenceObjects(longint& lN
 		PhysicalDeleteAllReferenceObjects();
 		lDeleteBasedNecessaryMemory = lHeapMemory - MemGetHeapMemory();
 		lDeleteBasedNecessaryMemory = longint(lDeleteBasedNecessaryMemory / (1 + MemGetAllocatorOverhead()));
-
-		// Destruction des data paths de gestion des objets
-		objectDataPathManager.Reset();
+		if (bTrace)
+			cout << "\tUsed memory for delete\t"
+			     << LongintToHumanReadableString(lDeleteBasedNecessaryMemory) << "\n";
 
 		// Memoire dediee aux objets references
 		// On prend le max des deux, car il peut y avoir des effet de bord dans l'allocateur,
 		// avec la gestion des segments memoire
 		lNecessaryMemory = max(lReadBasedNecessaryMemory, lDeleteBasedNecessaryMemory);
 		assert(lNecessaryMemory >= 0);
-		if (bDisplay)
+		if (bTrace)
 			cout << "\tExact based estimation\t" << LongintToHumanReadableString(lNecessaryMemory) << endl;
+
+		// Destruction des data paths de gestion des objets
+		objectDataPathManager.Reset();
 	}
 	ensure(lNecessaryMemory >= 0);
 	return bOk;
@@ -1664,7 +1695,7 @@ boolean KWMTDatabase::ComputeExactNecessaryMemoryForReferenceObjects(longint& lN
 
 longint KWMTDatabase::ComputeEstimatedNecessaryMemoryForReferenceObjects()
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	longint lTotalNecessaryMemory;
 	longint lNecessaryMemory;
 	int nReference;
@@ -1683,8 +1714,10 @@ longint KWMTDatabase::ComputeEstimatedNecessaryMemoryForReferenceObjects()
 	require(not IsOpenedForRead());
 	require(not IsOpenedForWrite());
 
-	// Ouverture de chaque table secondaire pour une premiere estimation basique de la memoire necessaire, sans
-	// acces aux donnees
+	// Ouverture de chaque table secondaire pour une premiere estimation basique de la memoire necessaire,
+	// sans acces aux donnees
+	if (bTrace)
+		cout << "ComputeEstimatedNecessaryMemoryForReferenceObjects\n";
 	lTotalNecessaryMemory = 0;
 	for (nReference = 0; nReference < mappingManager.GetExternalRootMappingNumber(); nReference++)
 	{
@@ -1726,16 +1759,16 @@ longint KWMTDatabase::ComputeEstimatedNecessaryMemoryForReferenceObjects()
 					kwcMappingLogicalClass);
 			}
 			lTotalNecessaryMemory += lNecessaryMemory;
-			if (bDisplay)
-				cout << "Necessary memory for " << mapping->GetObjectLabel() << ": "
+			if (bTrace)
+				cout << "\tNecessary memory for " << mapping->GetObjectLabel() << ": "
 				     << LongintToHumanReadableString(lNecessaryMemory) << endl;
 		}
 
 		// Nettoyage final
 		DMTMPhysicalTerminateMapping(referenceMapping);
 	}
-	if (bDisplay)
-		cout << "Necessary memory for reference objects for database " << GetDatabaseName() << ": "
+	if (bTrace)
+		cout << "\tNecessary memory for reference objects for database " << GetDatabaseName() << ": "
 		     << LongintToHumanReadableString(lTotalNecessaryMemory) << endl;
 	return lTotalNecessaryMemory;
 }

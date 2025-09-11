@@ -1467,8 +1467,8 @@ RESILIENCE_USER_MESSAGE_PATTERNS = [
     ],
     [
         "error : Database ",
-        ": Loading external tables requires too much memory (more than ",
-        " of RAM) after reading ",
+        ": Loading external tables requires too much memory; more than ",
+        " of RAM used after reading ",
         " external instances",
     ],
     ["error : ", " : Not enough memory "],

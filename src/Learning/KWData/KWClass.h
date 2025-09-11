@@ -462,7 +462,9 @@ public:
 	// Estimation heuristique de la memoire utilise par KWObject en se basant sur les
 	// variables utilisees, natives ou calculees
 	// La memoire utilisee par les sous-objet de la composition n'est pas prise en compte
-	longint GetEstimatedUsedMemoryPerObject() const;
+	// Dans le cas FullSparse a true, on suppose que les blocs sparses sont pleins, pour une
+	// estimation dans le pire des cas
+	longint GetEstimatedUsedMemoryPerObject(boolean bFullSparse) const;
 
 	// Constantes pour l'estimation heuristique de la taille des champs en memoire
 	static const int nTextValueSize = 200;

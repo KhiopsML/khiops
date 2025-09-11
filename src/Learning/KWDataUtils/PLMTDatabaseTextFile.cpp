@@ -18,6 +18,7 @@ PLMTDatabaseTextFile::PLMTDatabaseTextFile()
 	lMaxOpenBufferNecessaryMemory = 0;
 	lMinOpenExternalTablesNecessaryMemory = 0;
 	lMaxOpenExternalTablesNecessaryMemory = 0;
+	lTotalExternalObjectNumber = 0;
 	nReadSizeMin = 0;
 	nReadSizeMax = 0;
 	bOpenOnDemandMode = false;
@@ -335,7 +336,8 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 	{
 		// Attention, cette estimation peut echouer
 		// Il est important que cette methode couteuse soit appelee uniquement ici
-		bOk = ComputeExactNecessaryMemoryForReferenceObjects(lMinOpenExternalTablesNecessaryMemory);
+		bOk = ComputeExactNecessaryMemoryForReferenceObjects(lMinOpenExternalTablesNecessaryMemory,
+								     lTotalExternalObjectNumber);
 		lMaxOpenExternalTablesNecessaryMemory = lMinOpenExternalTablesNecessaryMemory;
 
 		// Mise a jour des min et max de memoire necessaire, en tenant compte des tables externes
@@ -370,6 +372,8 @@ boolean PLMTDatabaseTextFile::ComputeOpenInformation(boolean bRead, boolean bInc
 		     << LongintToHumanReadableString(lMinOpenExternalTablesNecessaryMemory) << "\n";
 		cout << "\tMaxOpenExternalTablesNecessaryMemory\t"
 		     << LongintToHumanReadableString(lMaxOpenExternalTablesNecessaryMemory) << "\n";
+		cout << "\tTotalExternalObjectNumber\t" << LongintToReadableString(lTotalExternalObjectNumber) << "\n";
+		cout << "\tOk\t" << BooleanToString(bOk) << "\n";
 	}
 
 	// Nettoyage
@@ -407,6 +411,7 @@ void PLMTDatabaseTextFile::CleanOpenInformation()
 	lMaxOpenBufferNecessaryMemory = 0;
 	lMinOpenExternalTablesNecessaryMemory = 0;
 	lMaxOpenExternalTablesNecessaryMemory = 0;
+	lTotalExternalObjectNumber = 0;
 	nReadSizeMin = 0;
 	nReadSizeMax = 0;
 	oaIndexedMappingsDataItemLoadIndexes.DeleteAll();
@@ -477,6 +482,11 @@ const LongintVector* PLMTDatabaseTextFile::GetInMemoryEstimatedFileObjectNumbers
 {
 	require(IsOpenInformationComputed());
 	return &lvInMemoryEstimatedFileObjectNumbers;
+}
+
+longint PLMTDatabaseTextFile::GetTotalExternalObjectNumber() const
+{
+	return lTotalExternalObjectNumber;
 }
 
 int PLMTDatabaseTextFile::GetMainLocalTableNumber() const
@@ -1109,11 +1119,13 @@ void PLMTDatabaseTextFile::ComputeMemoryGuardOpenInformation()
 			driver = cast(PLDataTableDriverTextFile*, mapping->GetDataTableDriver());
 			assert(driver != NULL);
 
-			// Stats sur les records de la table secondaires
+			// Stats sur le nombre de records par table secondaire
 			lSecondaryRecordNumber = GetInMemoryEstimatedFileObjectNumbers()->GetAt(i);
-			lUsedMemoryPerObject = driver->GetClass()->GetEstimatedUsedMemoryPerObject();
 
-			// Cas de la table principale
+			// Estimation de la memoire par record, en se basant sur le pire cas pour la table principale
+			lUsedMemoryPerObject = driver->GetClass()->GetEstimatedUsedMemoryPerObject(i == 0);
+
+			// Cas de la table principale, ou on prend une estimation dans le pire cas
 			if (i == 0)
 			{
 				lAverageSecondaryRecordNumber = 1;
@@ -1238,9 +1250,10 @@ void PLMTDatabaseTextFile::ComputeMemoryGuardOpenInformation()
 	lTotalMaxCreatedRecordNumber =
 	    max(lTotalMaxCreatedRecordNumber, KWDatabaseMemoryGuard::GetDefautMinSecondaryRecordNumberLowerBound());
 
-	// On utilise une limite minimale a la memoire RAM, pour de pas declencher de warning utilisateurs excessifs
-	lEstimatedMinSingleInstanceMemoryLimit += (longint)BufferedFile::nDefaultBufferSize / 8;
-	lEstimatedMaxSingleInstanceMemoryLimit += 2 * (longint)BufferedFile::nDefaultBufferSize;
+	// On utilise une limite minimale a la memoire RAM en prenant un ligne entiere dans le pire des cas,
+	// pour de pas declencher de warning utilisateurs excessifs
+	lEstimatedMinSingleInstanceMemoryLimit += InputBufferedFile::GetMaxLineLength();
+	lEstimatedMaxSingleInstanceMemoryLimit += 4 * InputBufferedFile::GetMaxLineLength();
 
 	// Destruction des data paths de gestion des objets
 	objectDataPathManager.Reset();
@@ -1452,6 +1465,7 @@ void PLShared_MTDatabaseTextFile::SerializeObject(PLSerializer* serializer, cons
 	serializer->PutLongint(database->lMaxOpenBufferNecessaryMemory);
 	serializer->PutLongint(database->lMinOpenExternalTablesNecessaryMemory);
 	serializer->PutLongint(database->lMaxOpenExternalTablesNecessaryMemory);
+	serializer->PutLongint(database->lTotalExternalObjectNumber);
 	serializer->PutInt(database->nReadSizeMin);
 	serializer->PutInt(database->nReadSizeMax);
 
@@ -1552,6 +1566,7 @@ void PLShared_MTDatabaseTextFile::DeserializeObject(PLSerializer* serializer, Ob
 	database->lMaxOpenBufferNecessaryMemory = serializer->GetLongint();
 	database->lMinOpenExternalTablesNecessaryMemory = serializer->GetLongint();
 	database->lMaxOpenExternalTablesNecessaryMemory = serializer->GetLongint();
+	database->lTotalExternalObjectNumber = serializer->GetLongint();
 	database->nReadSizeMin = serializer->GetInt();
 	database->nReadSizeMax = serializer->GetInt();
 

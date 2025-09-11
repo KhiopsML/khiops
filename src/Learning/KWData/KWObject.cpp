@@ -616,9 +616,7 @@ void KWObject::CleanTemporayDataItemsToComputeAndClean()
 					oaUsedObjects = GetAt(liLoadIndex.GetDenseIndex()).GetObjectArray();
 					if (oaUsedObjects != NULL)
 					{
-						// Destruction du contenu si multi-inclu, sauf si reference
-						if (not attribute->GetDerivationRule()->GetReference())
-							oaUsedObjects->DeleteAll();
+						assert(attribute->GetDerivationRule()->GetReference());
 
 						// Destruction du container
 						// Les containers appartiennent a l'objet, qu'ils soient natifs ou

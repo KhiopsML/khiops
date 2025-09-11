@@ -99,8 +99,12 @@ public:
 	void AddReadSecondaryRecord();
 
 	// Prise en compte de la lecture d'un nouvel enregistrement externe racine
-	// A appeler apres la lecture des enregistrements
+	// A appeler apres la lecture des enregistrements externes
 	void AddReadExternalRecord();
+
+	// Prise en compte du calcul de tous les attribut d'un nouvel enregistrement externe racine
+	// A appeler apres le calcul des attribut des enregistrements externes
+	void AddComputedExternalRecord();
 
 	// Prise en compte de la creation d'une nouvelle instance
 	// A appeler apres la creation d'une instance par une regle de creation d'instance
@@ -181,6 +185,9 @@ public:
 
 	// Nombre total d'enregistrements externes lus
 	longint GetTotalReadExternalRecordNumber() const;
+
+	// Nombre total d'enregistrements externes calcules
+	longint GetTotalComputedExternalRecordNumber() const;
 
 	// Nombre d'instances creees avant atteinte de la limite
 	longint GetCreatedRecordNumberBeforeLimit() const;
@@ -319,12 +326,14 @@ protected:
 	longint lInitialHeapMemory;
 	longint lMaxHeapMemory;
 	longint lCurrentHeapMemory;
+	longint lCurrentHeapMemoryAfterExternalReadCompletion;
 	longint lMaxSecondaryRecordNumber;
 	longint lMaxCreatedRecordNumber;
 	longint lReadSecondaryRecordNumberBeforeLimit;
 	longint lTotalReadSecondaryRecordNumber;
 	longint lReadExternalRecordNumberBeforeLimit;
 	longint lTotalReadExternalRecordNumber;
+	longint lTotalComputedExternalRecordNumber;
 	longint lCreatedRecordNumberBeforeLimit;
 	longint lTotalCreatedRecordNumber;
 	int nComputedAttributeNumberBeforeLimit;

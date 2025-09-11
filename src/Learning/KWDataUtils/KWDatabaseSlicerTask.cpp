@@ -97,7 +97,8 @@ boolean KWDatabaseSlicerTask::SliceDatabase(const KWDatabase* sourceDatabase, co
 	// Affichage
 	if (bDisplay)
 	{
-		cout << "KWDatabaseSlicerTask::SliceDatabase\t" << GetJobElapsedTime() << endl;
+		if (bOk)
+			cout << "KWDatabaseSlicerTask::SliceDatabase\t" << GetJobElapsedTime() << endl;
 		outputDataTableSliceSet->Write(cout);
 	}
 	if (bDisplaySliceDictionaries)

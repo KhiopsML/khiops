@@ -2077,25 +2077,31 @@ void KWDatabase::BuildPhysicalClass()
 
 					// Ajout dans les attributs temporaires nettoyable si absent de la classe
 					// logique et dont le nettoyage peut liberer significativement de la memoire
+					// Dans le cas d'un type ObjectArray, on ne peut nettoyer que les attributs de type reference
+					// Sinon, on detruirait des objets utilises pour d'autre regles, et cela deviendrait incoherent
 					initialAttribute = kwcInitialClass->LookupAttribute(attribute->GetName());
 					check(initialAttribute);
 					if (not initialAttribute->GetLoaded() and
 					    (attribute->GetType() == KWType::Symbol or
 					     attribute->GetType() == KWType::Text or
 					     attribute->GetType() == KWType::TextList or
-					     attribute->GetType() == KWType::ObjectArray))
+					     (attribute->GetType() == KWType::ObjectArray and
+					      attribute->GetDerivationRule()->GetReference())))
+					{
 						kwcCurrentPhysicalClass->GetDatabaseTemporayDataItemsToComputeAndClean()
 						    ->Add(dataItem);
 
-					// Affichage
-					if (bTrace)
-					{
-						cout << "\t", cout << KWType::ToString(attribute->GetType()) << "\t";
-						cout << attribute->GetName() << "\t";
-						cout << initialAttribute->GetLoaded() << "\n";
+						// Affichage
+						if (bTrace)
+						{
+							cout << "\t";
+							cout << KWType::ToString(attribute->GetType()) << "\t";
+							cout << attribute->GetName() << "\t";
+							cout << initialAttribute->GetLoaded() << "\n";
+						}
 					}
 				}
-				// Prise en compte des attribut de type relation natif, pour propagation des calcul
+				// Prise en compte des attribut de type relation natif, pour propagation des calculs
 				else if (KWType::IsRelation(attribute->GetType()))
 				{
 					// Ajout dans les attributs a calculer

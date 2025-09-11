@@ -1897,7 +1897,7 @@ void KWClass::ExportKeyAttributeNames(StringVector* svAttributeNames) const
 	}
 }
 
-longint KWClass::GetEstimatedUsedMemoryPerObject() const
+longint KWClass::GetEstimatedUsedMemoryPerObject(boolean bFullSparse) const
 {
 	const boolean bTrace = false;
 	int nObjectArrayLoadedValueNumber;
@@ -1946,11 +1946,16 @@ longint KWClass::GetEstimatedUsedMemoryPerObject() const
 				attributeBlock = attribute->GetAttributeBlock();
 				if (attributeBlock->GetLoaded())
 				{
-					nEstimatedValueNumber =
-					    (int)ceil(KWAttributeBlock::GetEstimatedMeanValueNumber(
-							  attributeBlock->GetAttributeNumber()) *
-						      1.0 * attributeBlock->GetLoadedAttributeNumber() /
-						      attributeBlock->GetAttributeNumber());
+					// Cas le pire
+					if (bFullSparse)
+						nEstimatedValueNumber = attributeBlock->GetLoadedAttributeNumber();
+					// Cas estime de facon heuristique
+					else
+						nEstimatedValueNumber =
+						    (int)ceil(KWAttributeBlock::GetEstimatedMeanValueNumber(
+								  attributeBlock->GetAttributeNumber()) *
+							      1.0 * attributeBlock->GetLoadedAttributeNumber() /
+							      attributeBlock->GetAttributeNumber());
 					nSparseLoadedValueNumber += nEstimatedValueNumber;
 					nSparseLoadedValueBlockNumber++;
 				}

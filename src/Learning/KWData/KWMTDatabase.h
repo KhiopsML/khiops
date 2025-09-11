@@ -178,16 +178,20 @@ protected:
 	// Lecture et chargement en memoire des tables des objets references
 	// On passe en entree la memoire max utilisable, et on recupere en sortie la memoire
 	// effectivement utilisee pour le chargement de tous les objet references et leur traitement.
+	// On renvoie egalement en sortie le nombre total d'objets lus ou crees dans l'ensemble des tables externes.
 	// Attention, en entree comme en sortie, il s'agit de la memoire logique, et non physique (cf. RMResourceManager)
 	// On renvoie false avec un message d'erreur en cas de depassement memoire ou de tout autre erreur
-	boolean PhysicalReadAllReferenceObjects(longint lMaxAvailableMemory, longint& lNecessaryMemory);
+	boolean PhysicalReadAllReferenceObjects(longint lMaxAvailableMemory, longint& lNecessaryMemory,
+						longint& lTotalExternalObjectNumber);
 
 	// Destruction des objets references
 	void PhysicalDeleteAllReferenceObjects();
 
 	// Calcul de la memoire necessaire pour le chargement des objets references,
 	// en chargeant l'ensemble des table externe temporairement
-	boolean ComputeExactNecessaryMemoryForReferenceObjects(longint& lNecessaryMemory);
+	// On renvoie egalement en sortie le nombre total d'objets lus ou crees dans l'ensemble des tables externes.
+	boolean ComputeExactNecessaryMemoryForReferenceObjects(longint& lNecessaryMemory,
+							       longint& lTotalExternalObjectNumber);
 
 	// Calcul de la memoire necessaire pour le chargement des objets references
 	// Calcul heuristique sans acces aux donnees, donnant uniquement un ordre de grandeur

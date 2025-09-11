@@ -111,7 +111,7 @@ public:
 protected:
 	friend class PLShared_STDatabaseTextFile;
 
-	// Calcul des informations necessaires pour la DatabaseMemoryGuard lors de l'ouverture de la base en lecture
+	// Calcul des informations necessaires pour le DatabaseMemoryGuard lors de l'ouverture de la base en lecture
 	void ComputeMemoryGuardOpenInformation();
 
 	// Resultat de l'appel de la methode ComputeOpenInformation
@@ -123,9 +123,6 @@ protected:
 	longint lEmptyOpenNecessaryMemory;
 	longint lMinOpenNecessaryMemory;
 	longint lMaxOpenNecessaryMemory;
-
-	//DDD TODO: ajouter la part min et max des besoins pour les buffers et pour le memory guard,
-	// pour dispatcher correctement le memory grant
 
 	// Definition des exigences pour la taille du buffer
 	// La taille de buffer est porte par le driver

@@ -472,7 +472,7 @@ void PLSTDatabaseTextFile::ComputeMemoryGuardOpenInformation()
 	assert(driver != NULL);
 
 	// Stats sur les records
-	lUsedMemoryPerObject = driver->GetClass()->GetEstimatedUsedMemoryPerObject();
+	lUsedMemoryPerObject = driver->GetClass()->GetEstimatedUsedMemoryPerObject(true);
 
 	// Cas de la table principale
 	lEstimatedMinSingleInstanceMemoryLimit = lUsedMemoryPerObject;
@@ -508,9 +508,10 @@ void PLSTDatabaseTextFile::ComputeMemoryGuardOpenInformation()
 	lTotalMaxCreatedRecordNumber =
 	    max(lTotalMaxCreatedRecordNumber, KWDatabaseMemoryGuard::GetDefautMinSecondaryRecordNumberLowerBound());
 
-	// On utilise une limite minimale a la memoire RAM, pour de pas declencher de warning utilisateurs excessifs
-	lEstimatedMinSingleInstanceMemoryLimit += (longint)BufferedFile::nDefaultBufferSize / 8;
-	lEstimatedMaxSingleInstanceMemoryLimit += 2 * (longint)BufferedFile::nDefaultBufferSize;
+	// On utilise une limite minimale a la memoire RAM en prenant un ligne entiere dans le pire des cas,
+	// pour de pas declencher de warning utilisateurs excessifs
+	lEstimatedMinSingleInstanceMemoryLimit += InputBufferedFile::GetMaxLineLength();
+	lEstimatedMaxSingleInstanceMemoryLimit += InputBufferedFile::GetMaxLineLength();
 
 	// Destruction des data paths de gestion des objets
 	objectDataPathManager.Reset();

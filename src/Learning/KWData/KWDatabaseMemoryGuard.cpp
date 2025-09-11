@@ -102,12 +102,14 @@ void KWDatabaseMemoryGuard::Init()
 	lInitialHeapMemory = 0;
 	lMaxHeapMemory = 0;
 	lCurrentHeapMemory = 0;
+	lCurrentHeapMemoryAfterExternalReadCompletion = 0;
 	lReadSecondaryRecordNumberBeforeLimit = 0;
 	lTotalReadSecondaryRecordNumber = 0;
 	lCreatedRecordNumberBeforeLimit = 0;
 	lTotalCreatedRecordNumber = 0;
 	lReadExternalRecordNumberBeforeLimit = 0;
 	lTotalReadExternalRecordNumber = 0;
+	lTotalComputedExternalRecordNumber = 0;
 	nComputedAttributeNumberBeforeLimit = 0;
 	nTotalComputedAttributeNumber = 0;
 	nMemoryCleaningNumber = 0;
@@ -178,6 +180,24 @@ void KWDatabaseMemoryGuard::AddReadExternalRecord()
 		if (not bIsMemoryLimitReached)
 			lReadExternalRecordNumberBeforeLimit++;
 	}
+}
+
+void KWDatabaseMemoryGuard::AddComputedExternalRecord()
+{
+	require(lTotalReadExternalRecordNumber > 0);
+	require(not IsMemoryLimitReached());
+	require(lCurrentHeapMemory >= lCurrentHeapMemoryAfterExternalReadCompletion);
+
+	// On memorise la valeur de la heap au moment du calcul du premier enregistrement externe,
+	// pour determiner la partie necessaire a la lecture des objets, et la distinger
+	// de la partie necessaire au calcul des valeurs des objets externes
+	if (lTotalComputedExternalRecordNumber == 0)
+		lCurrentHeapMemoryAfterExternalReadCompletion = lCurrentHeapMemory;
+
+	// Memorisation des stats apres ajout de l'enregistrement
+	// Il n'est pas necessaire de tester si la memoire a ete depasse, car cela a ete fait
+	// lors du calcul des attributs
+	lTotalComputedExternalRecordNumber++;
 }
 
 void KWDatabaseMemoryGuard::AddCreatedRecord()
@@ -263,18 +283,18 @@ const ALString KWDatabaseMemoryGuard::GetSingleInstanceVeryLargeLabel() const
 	// Information sur les enregistrements lus ou cree
 	sLabel = sLabelPrefixSingleInstance;
 	if (sMainObjectKey != "")
-		sLabel += sMainObjectKey + " ";
+		sLabel += " " + sMainObjectKey;
 	if (GetTotalReadSecondaryRecordNumber() > 0)
 	{
-		sLabel += "containing ";
+		sLabel += " containing ";
 		sLabel += LongintToReadableString(GetTotalReadSecondaryRecordNumber());
 		sLabel += " secondary records";
 	}
 	if (GetTotalCreatedRecordNumber() > 0)
 	{
 		if (GetTotalReadSecondaryRecordNumber() > 0)
-			sLabel += ", ";
-		sLabel += "with ";
+			sLabel += ",";
+		sLabel += " with ";
 		sLabel += LongintToReadableString(GetTotalCreatedRecordNumber());
 		sLabel += " records created by derivation rules";
 	}
@@ -305,15 +325,15 @@ const ALString KWDatabaseMemoryGuard::GetSingleInstanceMemoryLimitLabel() const
 	// Entete du message
 	sLabel = sLabelPrefixSingleInstance;
 	if (sMainObjectKey != "")
-		sLabel += sMainObjectKey + " ";
-	sLabel += "requires too much memory (more than ";
+		sLabel += " " + sMainObjectKey;
+	sLabel += " requires too much memory (more than ";
 	sLabel += LongintToHumanReadableString(lActualPhysicalMemoryLimit);
-	sLabel += " of RAM) ";
+	sLabel += " of RAM)";
 
 	// Information sur les enregistrements lus
 	if (GetTotalReadSecondaryRecordNumber() > 0)
 	{
-		sLabel += "after reading ";
+		sLabel += " after reading ";
 		sLabel += LongintToReadableString(GetReadSecondaryRecordNumberBeforeLimit());
 		sLabel += " secondary records";
 
@@ -331,7 +351,7 @@ const ALString KWDatabaseMemoryGuard::GetSingleInstanceMemoryLimitLabel() const
 		if (GetTotalReadSecondaryRecordNumber() > 0)
 			sLabel += " and creating ";
 		else
-			sLabel += "after creating ";
+			sLabel += " after creating ";
 		sLabel += LongintToReadableString(GetCreatedRecordNumberBeforeLimit());
 		sLabel += " records";
 
@@ -369,14 +389,14 @@ const ALString KWDatabaseMemoryGuard::GetExternalTableMemoryLimitLabel() const
 	assert(lActualPhysicalMemoryLimit == longint(lActualMemoryLimit * (1 + MemGetAllocatorOverhead())) or
 	       lActualPhysicalMemoryLimit == lCrashTestMemoryLimit);
 
-	// Entete du message
+	// Message d'information sur la memoire manquante
 	sLabel = sLabelPrefixExternalTable;
-	sLabel += "requires too much memory (more than ";
-	sLabel += LongintToHumanReadableString(lActualPhysicalMemoryLimit);
-	sLabel += " of RAM) ";
+	sLabel += " requires too much memory; more than ",
+	    sLabel += LongintToHumanReadableString(lActualPhysicalMemoryLimit);
+	sLabel += " of RAM used";
 
 	// Information sur les enregistrements principaux des tables externes lus
-	sLabel += "after reading ";
+	sLabel += " after reading ";
 	sLabel += LongintToReadableString(GetReadExternalRecordNumberBeforeLimit());
 	sLabel += " external instances";
 
@@ -390,19 +410,36 @@ const ALString KWDatabaseMemoryGuard::GetExternalTableMemoryLimitLabel() const
 	// Information sur les enregistrements lus
 	if (GetTotalReadSecondaryRecordNumber() > 0)
 	{
-		sLabel += ", including at least ";
+		sLabel += ", including ";
+		if (GetReadExternalRecordNumberBeforeLimit() < GetTotalReadExternalRecordNumber())
+			sLabel += "at least ";
 		sLabel += LongintToReadableString(GetReadSecondaryRecordNumberBeforeLimit());
 		sLabel += " secondary records";
 	}
 
-	// Information sur les instances creees
-	if (GetTotalCreatedRecordNumber() > 0)
+	// Informations complementaires si la passe de lecture est complete
+	if (GetReadExternalRecordNumberBeforeLimit() == GetTotalReadExternalRecordNumber())
 	{
-		if (GetTotalReadSecondaryRecordNumber() > 0)
-			sLabel += ",";
-		sLabel += " and creating ";
-		sLabel += LongintToReadableString(GetCreatedRecordNumberBeforeLimit());
-		sLabel += " records";
+		// Information sur les instances calculees
+		if (GetTotalComputedExternalRecordNumber() < GetTotalReadExternalRecordNumber())
+		{
+			if (GetTotalReadSecondaryRecordNumber() > 0)
+				sLabel += ",";
+
+			// Information sur les enregistrements principaux des tables externes calcules
+			sLabel += " and calculating the values of ";
+			sLabel += LongintToReadableString(GetTotalComputedExternalRecordNumber());
+			sLabel += " external instances out of ";
+			sLabel += LongintToReadableString(GetTotalReadExternalRecordNumber());
+		}
+
+		// Information sur les instances creees
+		if (GetTotalCreatedRecordNumber() > 0)
+		{
+			sLabel += ", and creating overall ";
+			sLabel += LongintToReadableString(GetCreatedRecordNumberBeforeLimit());
+			sLabel += " records";
+		}
 	}
 
 	// Ajout d'une information sur la gestion de l'enregistrement en cas de probleme
@@ -467,6 +504,11 @@ longint KWDatabaseMemoryGuard::GetReadExternalRecordNumberBeforeLimit() const
 longint KWDatabaseMemoryGuard::GetTotalReadExternalRecordNumber() const
 {
 	return lTotalReadExternalRecordNumber;
+}
+
+longint KWDatabaseMemoryGuard::GetTotalComputedExternalRecordNumber() const
+{
+	return lTotalComputedExternalRecordNumber;
 }
 
 longint KWDatabaseMemoryGuard::GetCreatedRecordNumberBeforeLimit() const
@@ -560,6 +602,8 @@ void KWDatabaseMemoryGuard::Write(ostream& ost) const
 	cout << "\tInitialHeapMemory\t" << LongintToHumanReadableString(lInitialHeapMemory) << "\n";
 	cout << "\tMaxHeapMemory\t" << LongintToHumanReadableString(lMaxHeapMemory) << "\n";
 	cout << "\tCurrentHeapMemory\t" << LongintToHumanReadableString(lCurrentHeapMemory) << "\n";
+	cout << "\tCurrentHeapMemoryAfterExternalReadCompletion\t"
+	     << LongintToHumanReadableString(lCurrentHeapMemoryAfterExternalReadCompletion) << "\n";
 	cout << "\tReadSecondaryRecordNumberBeforeLimit\t"
 	     << LongintToReadableString(lReadSecondaryRecordNumberBeforeLimit) << "\n";
 	cout << "\tTotalReadSecondaryRecordNumber\t" << LongintToReadableString(lTotalReadSecondaryRecordNumber)
@@ -567,6 +611,8 @@ void KWDatabaseMemoryGuard::Write(ostream& ost) const
 	cout << "\tReadExternalRecordNumberBeforeLimit\t"
 	     << LongintToReadableString(lReadExternalRecordNumberBeforeLimit) << "\n";
 	cout << "\tTotalReadExternalRecordNumber\t" << LongintToReadableString(lTotalReadExternalRecordNumber) << "\n";
+	cout << "\tTotalComputedExternalRecordNumber\t" << LongintToReadableString(lTotalComputedExternalRecordNumber)
+	     << "\n";
 	cout << "\tCreatedRecordNumberBeforeLimit\t" << LongintToReadableString(lCreatedRecordNumberBeforeLimit)
 	     << "\n";
 	cout << "\tTotalCreatedRecordNumber\t" << LongintToReadableString(lTotalCreatedRecordNumber) << "\n";
@@ -627,7 +673,7 @@ boolean KWDatabaseMemoryGuard::MemoryGuardErrorFlowIgnoreFunction(const Error* e
 int KWDatabaseMemoryGuard::nMemoryGuardFunctionUseCount = 0;
 int KWDatabaseMemoryGuard::nMemoryGuardInformationWarningNumber = 0;
 int KWDatabaseMemoryGuard::nMemoryGuardRecoveryWarningNumber = 0;
-const ALString KWDatabaseMemoryGuard::sLabelPrefixSingleInstance = "Single instance ";
+const ALString KWDatabaseMemoryGuard::sLabelPrefixSingleInstance = "Single instance";
 const ALString KWDatabaseMemoryGuard::sLabelSuffixSingleInstanceRecovery =
     " : only the native variables are kept, the others are defined as missing values";
-const ALString KWDatabaseMemoryGuard::sLabelPrefixExternalTable = "Loading external tables ";
+const ALString KWDatabaseMemoryGuard::sLabelPrefixExternalTable = "Loading external tables";

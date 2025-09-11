@@ -79,6 +79,9 @@ public:
 	// Renvoie 0 pour les fichiers des tables non encore utilisees
 	const LongintVector* GetInMemoryEstimatedFileObjectNumbers() const;
 
+	// Nombre total d'objet lu ou cree des tables externes
+	longint GetTotalExternalObjectNumber() const;
+
 	// Nombre de tables principales, hors tables externes, avec des fichiers locaux (sans URI)
 	int GetMainLocalTableNumber() const;
 
@@ -195,6 +198,7 @@ protected:
 	longint lMaxOpenBufferNecessaryMemory;
 	longint lMinOpenExternalTablesNecessaryMemory;
 	longint lMaxOpenExternalTablesNecessaryMemory;
+	longint lTotalExternalObjectNumber;
 
 	// Definition des exigences pour la taille du buffer
 	// La taille de buffer est porte par le driver
