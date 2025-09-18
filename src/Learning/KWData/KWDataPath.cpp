@@ -255,7 +255,8 @@ void KWDataPath::ComputeEstimatedMemoryForObjectCreation(KWClassDomain* classDom
 				// Recherche de la memoire necessaire par objet
 				kwcTerminalClass = classDomain->LookupClass(dataPath->GetClassName());
 				assert(kwcTerminalClass != NULL);
-				lEstimatedCreatedObjectMemory = kwcTerminalClass->GetEstimatedUsedMemoryPerObject();
+				lEstimatedCreatedObjectMemory =
+				    kwcTerminalClass->GetEstimatedUsedMemoryPerObject(false);
 
 				// Memorisation du nombre d'objet crees et de la memoire necessaire
 				if (nDataPathCreatingTableNumber > 0)

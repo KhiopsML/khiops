@@ -643,7 +643,7 @@ KWObject* KWDatabase::Read()
 				// pourraient varier, entrainant une incoherence dans le nombre d'instances issues de chaque passe.
 				// Cette incoherence est detectee, mais elle peut avoir plusieurs causes:
 				// fichier modifie entre deux passes, critere de selection mal calcule (comme ici), ...
-				if (memoryGuard.IsSingleInstanceMemoryLimitReached())
+				if (memoryGuard.IsMemoryLimitReached())
 					AddWarning("Record not selected due to selection variable with possible "
 						   "incorrect value. " +
 						   memoryGuard.GetSingleInstanceMemoryLimitLabel());
@@ -685,7 +685,7 @@ KWObject* KWDatabase::Read()
 	if (kwoObject != NULL)
 	{
 		// Cas du depassement memoire, avec fonctionnement degrade (variables calculees mises a missing)
-		if (memoryGuard.IsSingleInstanceMemoryLimitReached())
+		if (memoryGuard.IsMemoryLimitReached())
 			AddWarning(memoryGuard.GetSingleInstanceMemoryLimitLabel());
 		// Cas  du seuil de nombre d'enregistrements secondaires depasse, ou d'un temps de calcul
 		// potentiellement allonge
@@ -1025,6 +1025,224 @@ longint KWDatabase::GetExactObjectNumber()
 	return lNumber;
 }
 
+void KWDatabase::AddSimpleMessage(const ALString& sLabel) const
+{
+	if (not bSilentMode and bVerboseMode)
+		Object::AddSimpleMessage(sLabel);
+}
+
+void KWDatabase::AddMessage(const ALString& sLabel) const
+{
+	if (not bSilentMode and bVerboseMode)
+		Object::AddMessage(sLabel);
+}
+
+void KWDatabase::AddWarning(const ALString& sLabel) const
+{
+	if (not bSilentMode and bVerboseMode)
+		Object::AddWarning(sLabel);
+}
+
+void KWDatabase::AddError(const ALString& sLabel) const
+{
+	if (not bSilentMode)
+		Object::AddError(sLabel);
+}
+
+void KWDatabase::AddEncodingErrorMessage() const
+{
+	ALString sMessage;
+
+	require(lEncodingErrorNumber >= 0);
+
+	// Rafraichissement des eventuelles erreurs d'encodage
+	GetEncodingErrorNumber();
+
+	// Utilisation du service de InputBufferedFile pour formatter le message
+	InputBufferedFile::AddEncodingErrorMessage(lEncodingErrorNumber, this);
+}
+
+longint KWDatabase::GetEncodingErrorNumber() const
+{
+	require(not IsOpenedForWrite());
+	require(GetClassName() != "");
+
+	return lEncodingErrorNumber;
+}
+
+void KWDatabase::SetEncodingErrorNumber(longint lValue) const
+{
+	require(not IsOpenedForRead());
+	require(not IsOpenedForWrite());
+	require(GetClassName() != "");
+	require(lValue >= 0);
+
+	lEncodingErrorNumber = lValue;
+}
+
+void KWDatabase::DisplayReadTaskProgressionLabel(longint lRecordNumber, longint lObjectNumber)
+
+{
+	ALString sTmp;
+
+	require(0 <= lObjectNumber);
+	require(lObjectNumber <= lRecordNumber);
+	require(TaskProgression::IsInTask());
+
+	// Libelle
+	if (lRecordNumber == lObjectNumber)
+		TaskProgression::DisplayLabel(sTmp + LongintToReadableString(lObjectNumber) + " instances");
+	else
+		TaskProgression::DisplayLabel(sTmp + LongintToReadableString(lObjectNumber) + " instances  (" +
+					      LongintToReadableString(lRecordNumber) + " records)");
+}
+
+longint KWDatabase::GetUsedMemory() const
+{
+	longint lUsedMemory;
+	KWObject* kwoObject;
+	int nObject;
+
+	// Memoire de base
+	lUsedMemory = sizeof(KWDatabase);
+
+	// Memoire par attribut non elementaire
+	lUsedMemory += nkdMutationClasses.GetUsedMemory();
+	lUsedMemory += nkdUnusedNativeAttributesToKeep.GetUsedMemory();
+	lUsedMemory += oaAllObjects.GetUsedMemory();
+	lUsedMemory += sClassName.GetLength();
+	lUsedMemory += sDatabaseName.GetLength();
+	lUsedMemory += sSelectionAttribute.GetLength();
+	lUsedMemory += sSelectionValue.GetLength();
+	lUsedMemory += ivMarkedInstances.GetUsedMemory();
+
+	// Memoire de la classe physique si presente
+	if (kwcPhysicalClass != NULL)
+		lUsedMemory += kwcPhysicalClass->GetDomain()->GetUsedMemory();
+
+	// Memoire du gestionnaire de data apth
+	lUsedMemory += objectDataPathManager.GetUsedMemory();
+
+	// Objets charges en memoire
+	for (nObject = 0; nObject < oaAllObjects.GetSize(); nObject++)
+	{
+		kwoObject = cast(KWObject*, oaAllObjects.GetAt(nObject));
+		lUsedMemory += kwoObject->GetUsedMemory();
+	}
+	return lUsedMemory;
+}
+
+void KWDatabase::WriteJSONFields(JSONFile* fJSON) const
+{
+	fJSON->WriteKeyString("database", GetDatabaseName());
+
+	// Taux d'echantillonnage
+	fJSON->WriteKeyDouble("samplePercentage", GetSampleNumberPercentage());
+	fJSON->WriteKeyString("samplingMode", GetSamplingMode());
+
+	// Variable de selection
+	fJSON->WriteKeyString("selectionVariable", GetSelectionAttribute());
+	fJSON->WriteKeyString("selectionValue", GetSelectionValue());
+}
+
+const ALString KWDatabase::GetClassLabel() const
+{
+	return "Database";
+}
+
+const ALString KWDatabase::GetObjectLabel() const
+{
+	ALString sLabel;
+	longint lPhysicalRecordIndex;
+
+	// On ne met l'index de record que si la base est ouverte
+	sLabel = GetDatabaseName();
+	lPhysicalRecordIndex = GetPhysicalRecordIndex();
+	if (lPhysicalRecordIndex > 0 and (IsOpenedForRead() or IsOpenedForWrite()))
+	{
+		sLabel += " : Record ";
+		sLabel += LongintToString(lPhysicalRecordIndex);
+	}
+	return sLabel;
+}
+
+void KWDatabase::TestCreateObjects(int nNumber)
+{
+	KWClass* kwcCreationClass;
+	int i;
+
+	require(kwcClass == NULL);
+	require(nNumber >= 0);
+
+	// Creation d'un nom de classe si necessaire
+	if (GetClassName() == "")
+		SetClassName("TestClass");
+
+	// Creation d'une classe si necessaire
+	kwcCreationClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
+	if (kwcCreationClass == NULL)
+	{
+		cout << "Create dictionary " << GetClassName() << endl;
+		kwcCreationClass = KWClass::CreateClass(GetClassName(), 0, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, true, NULL);
+		KWClassDomain::GetCurrentDomain()->InsertClass(kwcCreationClass);
+		kwcCreationClass->Compile();
+	}
+
+	// Creation d'objets
+	DeleteAll();
+	for (i = 0; i < nNumber; i++)
+		GetObjects()->Add(KWObject::CreateObject(kwcCreationClass, (longint)i + 1));
+}
+
+void KWDatabase::TestRead()
+{
+	KWClass* kwcTestClass;
+	boolean bOk;
+	KWObject* kwoObject;
+	int nNumber;
+
+	require(GetClassName() != "");
+	require(kwcClass == NULL);
+
+	// Construction si necessaire de la classe a partir de la base
+	kwcTestClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
+	if (kwcTestClass == NULL or kwcTestClass->GetAttributeNumber() == 0)
+	{
+		cout << "Build dictionary " << GetClassName() << " from database " << GetDatabaseName() << endl;
+		ComputeClass();
+	}
+
+	// Evaluation du nombre d'instances
+	cout << "Evaluation of the number of instances" << endl;
+	cout << "\t" << GetEstimatedObjectNumber() << " instances" << endl;
+
+	// Lecture instance par instance
+	cout << "Read instance by instance" << endl;
+	bOk = OpenForRead();
+	nNumber = 0;
+	if (bOk)
+	{
+		while (not IsEnd())
+		{
+			kwoObject = Read();
+			if (kwoObject != NULL)
+			{
+				nNumber++;
+				delete kwoObject;
+			}
+		}
+		Close();
+	}
+	cout << "\t" << nNumber << " instances" << endl;
+
+	// Lecture globale
+	cout << "Read globally" << endl;
+	ReadAll();
+	cout << "\t" << GetObjects()->GetSize() << " instances" << endl;
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+
 void KWDatabase::AddFormatMetaData(KWAttribute* sourceAttribute,
 				   const KWTypeAutomaticRecognition* typeAutomaticRecognition) const
 {
@@ -1201,113 +1419,6 @@ void KWDatabase::AddFormatMetaData(KWAttribute* sourceAttribute,
 	}
 }
 
-void KWDatabase::AddSimpleMessage(const ALString& sLabel) const
-{
-	if (not bSilentMode and bVerboseMode)
-		Object::AddSimpleMessage(sLabel);
-}
-
-void KWDatabase::AddMessage(const ALString& sLabel) const
-{
-	if (not bSilentMode and bVerboseMode)
-		Object::AddMessage(sLabel);
-}
-
-void KWDatabase::AddWarning(const ALString& sLabel) const
-{
-	if (not bSilentMode and bVerboseMode)
-		Object::AddWarning(sLabel);
-}
-
-void KWDatabase::AddError(const ALString& sLabel) const
-{
-	if (not bSilentMode)
-		Object::AddError(sLabel);
-}
-
-void KWDatabase::AddEncodingErrorMessage() const
-{
-	ALString sMessage;
-
-	require(lEncodingErrorNumber >= 0);
-
-	// Rafraichissement des eventuelles erreurs d'encodage
-	GetEncodingErrorNumber();
-
-	// Utilisation du service de InputBufferedFile pour formatter le message
-	InputBufferedFile::AddEncodingErrorMessage(lEncodingErrorNumber, this);
-}
-
-longint KWDatabase::GetEncodingErrorNumber() const
-{
-	require(not IsOpenedForWrite());
-	require(GetClassName() != "");
-
-	return lEncodingErrorNumber;
-}
-
-void KWDatabase::SetEncodingErrorNumber(longint lValue) const
-{
-	require(not IsOpenedForRead());
-	require(not IsOpenedForWrite());
-	require(GetClassName() != "");
-	require(lValue >= 0);
-
-	lEncodingErrorNumber = lValue;
-}
-
-void KWDatabase::DisplayReadTaskProgressionLabel(longint lRecordNumber, longint lObjectNumber)
-
-{
-	ALString sTmp;
-
-	require(0 <= lObjectNumber);
-	require(lObjectNumber <= lRecordNumber);
-	require(TaskProgression::IsInTask());
-
-	// Libelle
-	if (lRecordNumber == lObjectNumber)
-		TaskProgression::DisplayLabel(sTmp + LongintToReadableString(lObjectNumber) + " instances");
-	else
-		TaskProgression::DisplayLabel(sTmp + LongintToReadableString(lObjectNumber) + " instances  (" +
-					      LongintToReadableString(lRecordNumber) + " records)");
-}
-
-longint KWDatabase::GetUsedMemory() const
-{
-	longint lUsedMemory;
-	KWObject* kwoObject;
-	int nObject;
-
-	// Memoire de base
-	lUsedMemory = sizeof(KWDatabase);
-
-	// Memoire par attribut non elementaire
-	lUsedMemory += nkdMutationClasses.GetUsedMemory();
-	lUsedMemory += nkdUnusedNativeAttributesToKeep.GetUsedMemory();
-	lUsedMemory += oaAllObjects.GetUsedMemory();
-	lUsedMemory += sClassName.GetLength();
-	lUsedMemory += sDatabaseName.GetLength();
-	lUsedMemory += sSelectionAttribute.GetLength();
-	lUsedMemory += sSelectionValue.GetLength();
-	lUsedMemory += ivMarkedInstances.GetUsedMemory();
-
-	// Memoire de la classe physique si presente
-	if (kwcPhysicalClass != NULL)
-		lUsedMemory += kwcPhysicalClass->GetDomain()->GetUsedMemory();
-
-	// Memoire du gestionnaire de data apth
-	lUsedMemory += objectDataPathManager.GetUsedMemory();
-
-	// Objets charges en memoire
-	for (nObject = 0; nObject < oaAllObjects.GetSize(); nObject++)
-	{
-		kwoObject = cast(KWObject*, oaAllObjects.GetAt(nObject));
-		lUsedMemory += kwoObject->GetUsedMemory();
-	}
-	return lUsedMemory;
-}
-
 longint KWDatabase::ComputeOpenNecessaryMemory(boolean bRead, boolean bIncludingClassMemory)
 {
 	longint lNecessaryMemory;
@@ -1353,117 +1464,6 @@ longint KWDatabase::ComputeOpenNecessaryMemory(boolean bRead, boolean bIncluding
 	ensure(lNecessaryMemory >= 0);
 	return lNecessaryMemory;
 }
-
-void KWDatabase::WriteJSONFields(JSONFile* fJSON) const
-{
-	fJSON->WriteKeyString("database", GetDatabaseName());
-
-	// Taux d'echantillonnage
-	fJSON->WriteKeyDouble("samplePercentage", GetSampleNumberPercentage());
-	fJSON->WriteKeyString("samplingMode", GetSamplingMode());
-
-	// Variable de selection
-	fJSON->WriteKeyString("selectionVariable", GetSelectionAttribute());
-	fJSON->WriteKeyString("selectionValue", GetSelectionValue());
-}
-
-const ALString KWDatabase::GetClassLabel() const
-{
-	return "Database";
-}
-
-const ALString KWDatabase::GetObjectLabel() const
-{
-	ALString sLabel;
-	longint lPhysicalRecordIndex;
-
-	// On ne met l'index de record que si la base est ouverte
-	sLabel = GetDatabaseName();
-	lPhysicalRecordIndex = GetPhysicalRecordIndex();
-	if (lPhysicalRecordIndex > 0 and (IsOpenedForRead() or IsOpenedForWrite()))
-	{
-		sLabel += " : Record ";
-		sLabel += LongintToString(lPhysicalRecordIndex);
-	}
-	return sLabel;
-}
-
-void KWDatabase::TestCreateObjects(int nNumber)
-{
-	KWClass* kwcCreationClass;
-	int i;
-
-	require(kwcClass == NULL);
-	require(nNumber >= 0);
-
-	// Creation d'un nom de classe si necessaire
-	if (GetClassName() == "")
-		SetClassName("TestClass");
-
-	// Creation d'une classe si necessaire
-	kwcCreationClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
-	if (kwcCreationClass == NULL)
-	{
-		cout << "Create dictionary " << GetClassName() << endl;
-		kwcCreationClass = KWClass::CreateClass(GetClassName(), 0, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, true, NULL);
-		KWClassDomain::GetCurrentDomain()->InsertClass(kwcCreationClass);
-		kwcCreationClass->Compile();
-	}
-
-	// Creation d'objets
-	DeleteAll();
-	for (i = 0; i < nNumber; i++)
-		GetObjects()->Add(KWObject::CreateObject(kwcCreationClass, (longint)i + 1));
-}
-
-void KWDatabase::TestRead()
-{
-	KWClass* kwcTestClass;
-	boolean bOk;
-	KWObject* kwoObject;
-	int nNumber;
-
-	require(GetClassName() != "");
-	require(kwcClass == NULL);
-
-	// Construction si necessaire de la classe a partir de la base
-	kwcTestClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
-	if (kwcTestClass == NULL or kwcTestClass->GetAttributeNumber() == 0)
-	{
-		cout << "Build dictionary " << GetClassName() << " from database " << GetDatabaseName() << endl;
-		ComputeClass();
-	}
-
-	// Evaluation du nombre d'instances
-	cout << "Evaluation of the number of instances" << endl;
-	cout << "\t" << GetEstimatedObjectNumber() << " instances" << endl;
-
-	// Lecture instance par instance
-	cout << "Read instance by instance" << endl;
-	bOk = OpenForRead();
-	nNumber = 0;
-	if (bOk)
-	{
-		while (not IsEnd())
-		{
-			kwoObject = Read();
-			if (kwoObject != NULL)
-			{
-				nNumber++;
-				delete kwoObject;
-			}
-		}
-		Close();
-	}
-	cout << "\t" << nNumber << " instances" << endl;
-
-	// Lecture globale
-	cout << "Read globally" << endl;
-	ReadAll();
-	cout << "\t" << GetObjects()->GetSize() << " instances" << endl;
-}
-
-//////////////////////////////////////////////////////////////////////////////////
 
 void KWDatabase::BuildPhysicalClass()
 {
@@ -2077,25 +2077,31 @@ void KWDatabase::BuildPhysicalClass()
 
 					// Ajout dans les attributs temporaires nettoyable si absent de la classe
 					// logique et dont le nettoyage peut liberer significativement de la memoire
+					// Dans le cas d'un type ObjectArray, on ne peut nettoyer que les attributs de type reference
+					// Sinon, on detruirait des objets utilises pour d'autre regles, et cela deviendrait incoherent
 					initialAttribute = kwcInitialClass->LookupAttribute(attribute->GetName());
 					check(initialAttribute);
 					if (not initialAttribute->GetLoaded() and
 					    (attribute->GetType() == KWType::Symbol or
 					     attribute->GetType() == KWType::Text or
 					     attribute->GetType() == KWType::TextList or
-					     attribute->GetType() == KWType::ObjectArray))
+					     (attribute->GetType() == KWType::ObjectArray and
+					      attribute->GetDerivationRule()->GetReference())))
+					{
 						kwcCurrentPhysicalClass->GetDatabaseTemporayDataItemsToComputeAndClean()
 						    ->Add(dataItem);
 
-					// Affichage
-					if (bTrace)
-					{
-						cout << "\t", cout << KWType::ToString(attribute->GetType()) << "\t";
-						cout << attribute->GetName() << "\t";
-						cout << initialAttribute->GetLoaded() << "\n";
+						// Affichage
+						if (bTrace)
+						{
+							cout << "\t";
+							cout << KWType::ToString(attribute->GetType()) << "\t";
+							cout << attribute->GetName() << "\t";
+							cout << initialAttribute->GetLoaded() << "\n";
+						}
 					}
 				}
-				// Prise en compte des attribut de type relation natif, pour propagation des calcul
+				// Prise en compte des attribut de type relation natif, pour propagation des calculs
 				else if (KWType::IsRelation(attribute->GetType()))
 				{
 					// Ajout dans les attributs a calculer
@@ -2369,7 +2375,7 @@ void KWDatabase::MutatePhysicalObject(KWObject* kwoPhysicalObject) const
 	// Il faut le faire sur l'objet physique avant sa mutation, car il contient
 	// necessairement les champs de la cle en multi-table, alors qu'ils sont potentiellement
 	// absent de l'objet logique si les champs de la cle sont en unused
-	if (memoryGuard.IsSingleInstanceMemoryLimitReached() or memoryGuard.IsMaxSecondaryRecordNumberReached() or
+	if (memoryGuard.IsMemoryLimitReached() or memoryGuard.IsMaxSecondaryRecordNumberReached() or
 	    memoryGuard.IsMaxCreatedRecordNumberReached())
 	{
 		// On se base sur la cle de l'objet s'il y en a une

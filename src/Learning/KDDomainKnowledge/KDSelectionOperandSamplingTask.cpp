@@ -99,8 +99,10 @@ boolean KDSelectionOperandSamplingTask::ComputeResourceRequirements()
 	boolean bOk;
 	boolean bDisplay = false;
 	const SortedList slSample;
+	const NumericKeyDictionary nkdSample;
 	longint lSelectionOperandDataSamplerSpecUsedMemory;
 	longint lAllSamplesNecessaryMemory;
+	longint lExternalObjectsManagementNecessaryMemory;
 	longint lMaxSampleSize;
 	longint lTotalValueNumber;
 	PLDatabaseTextFile* sourcePLDatabase;
@@ -194,13 +196,25 @@ boolean KDSelectionOperandSamplingTask::ComputeResourceRequirements()
 		lTotalValueNumber = min(lMaxSampleSize, lMaxClassEstimatedObjectNumber) *
 				    masterSelectionOperandDataSampler->GetTotalSelectionOperandNumber();
 
-		// Taille memoire necessaire pour collecter l'ensemble des references aux objet, plus les echantillons
-		// de valeurs On ignore le probleme des variables Symbol qui potentiellement exigent de la memoire
-		// supplementaire
+		// Taille memoire necessaire pour collecter l'ensemble des references aux objet, plus les echantillons de valeurs
+		// On ignore le probleme des variables Symbol qui potentiellement exigent de la memoire supplementaire
 		lAllSamplesNecessaryMemory = masterSelectionOperandDataSampler->GetClassSelectionData()->GetSize() *
 					     lMaxSampleSize *
 					     (slSample.GetUsedMemoryPerElement() + sizeof(KDClassSelectionObjectRef));
 		lAllSamplesNecessaryMemory += lTotalValueNumber * sizeof(KWValue);
+
+		// Taille memoire necessaire pour la gestion specifique des objet des tables externes lors de l'echantilonnage.
+		// - premiere passe de collecte des objets externes de l'echantillon
+		//   - memorisation globale des objets externes dans un dictionnaire
+		//   - memorisation des objets externes deja utilises, via un dictionnaire
+		// -deuxieme passe d'exploitation des objets externes de l'echantillon pour echantillonner les valeurs
+		//   - memorisation des objets externes deja utilises, via un dictionnaire
+		//   - dictionnaire utilise pour marquer les objets deja traites lors de la deuxieme passe
+		lExternalObjectsManagementNecessaryMemory = 0;
+		if (sourcePLDatabase->IsMultiTableTechnology())
+			lExternalObjectsManagementNecessaryMemory =
+			    2 * sourcePLDatabase->GetMTDatabase()->GetTotalExternalObjectNumber() *
+			    nkdSample.GetUsedMemoryPerElement();
 
 		// En variable partagee: specification de l'echantillonneur
 		GetResourceRequirements()->GetSharedRequirement()->GetMemory()->UpgradeMin(
@@ -208,17 +222,17 @@ boolean KDSelectionOperandSamplingTask::ComputeResourceRequirements()
 		GetResourceRequirements()->GetSharedRequirement()->GetMemory()->UpgradeMax(
 		    lSelectionOperandDataSamplerSpecUsedMemory);
 
-		// En variable par esclave: specification de l'echantillonneur, plus un echantillon
-		// On ignore la place prise pour referencer les objets des tables externes dans des dictionnaires, on
-		// considerant que c'est petit devant les objets externes eux meme ainsi que leur references par cle
-		// memorise par le ObjectReferenceSolver de la base multi-tables
+		// En variable par esclave: specification de l'echantillonneur, plus un echantillon, plus
+		// la place prise pour referencer les objets des tables externes dans des dictionnaires
 		GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->UpgradeMin(
-		    lSelectionOperandDataSamplerSpecUsedMemory + lAllSamplesNecessaryMemory);
+		    lSelectionOperandDataSamplerSpecUsedMemory + lAllSamplesNecessaryMemory +
+		    lExternalObjectsManagementNecessaryMemory);
 		GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->UpgradeMax(
-		    lSelectionOperandDataSamplerSpecUsedMemory + lAllSamplesNecessaryMemory);
+		    lSelectionOperandDataSamplerSpecUsedMemory + lAllSamplesNecessaryMemory +
+		    lExternalObjectsManagementNecessaryMemory);
 
 		// En variable du maitre: deux fois l'echantillon, celui du maitre est celui local de l'esclave en cours
-		// d'agregation Apres la fin de la tache, il n'y en aura plus qu'un, mais on estime qu'il y a aura assez
+		// d'agregation. Apres la fin de la tache, il n'y en aura plus qu'un, mais on estime qu'il y a aura assez
 		// de memoire pour construire les partiles a partir des echantillons, puis les variables construites
 		GetResourceRequirements()->GetMasterRequirement()->GetMemory()->UpgradeMin(
 		    lSelectionOperandDataSamplerSpecUsedMemory + lAllSamplesNecessaryMemory);
@@ -241,10 +255,11 @@ boolean KDSelectionOperandSamplingTask::ComputeResourceRequirements()
 			cout << "\tMemoryPerElement\t"
 			     << (slSample.GetUsedMemoryPerElement() + sizeof(KDClassSelectionObjectRef)) << "\n";
 			cout << "\tAllSamplesNecessaryMemory\t" << lAllSamplesNecessaryMemory << "\n";
+			cout << "\tExternalObjectsManagementNecessaryMemory\t"
+			     << lExternalObjectsManagementNecessaryMemory << "\n";
 			cout << *GetResourceRequirements() << "\n";
 		}
 	}
-
 	return bOk;
 }
 

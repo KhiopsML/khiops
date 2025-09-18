@@ -111,27 +111,35 @@ protected:
 	// et avec une valeur 0 pour les objets des tables externes
 	//
 	// Le dictionnaire nkdAllSubObjects permet de gerer les objets comportant des cycles, possible via
-	// des utilisation d'objet references se referencant entre eux ou via des regles de derivation
+	// des utilisations d'objets references se referencant entre eux ou via des regles de derivation
 	// On assure ainsi l'unicite de la visite de chaque sous objet
 	// Pour les tables externes, c'est l'ensemble exhaustif de tous les objets de toutes les tables externes
-	// qui est concerne. Les tables externes etant triee par classe, puis par CreationIndex des objet racine,
-	// l'unicite de l'index des objet externe est assure.
+	// qui est concerne. Les tables externes etant triees par classe, puis par CreationIndex des objets racines,
+	// l'unicite de l'index des objets externes est assure.
 	//
 	// Lors de l'analyse des objets de la table principale, on pousse l'analyse des objets internes completement
 	// jusqu'a avoir decouvert tous les objets des tables externes utilises
 	// Lors de l'analyse des objets des tables externes, tous les objets externes seront parcourus exhaustivement,
 	// mais seuls ceux identifies lors de la passe d'analyse des objets principaux sont pris en compte.
 
-	// Analyse d'objet pour enregistrer les sous-objets a garder dans les echantillons par classes de selection
+	// Analyse d'un objet et de sa composition pour enregistrer les sous-objets a garder dans
+	// les echantillons par classes de selection
 	void ExtractSelectionObjects(const KWObject* kwoObject, longint lMainObjectIndex, longint& lSubObjectIndex,
 				     NumericKeyDictionary* nkdAllSubObjects);
+
+	// Analyse d'un objet unique pour enregistrer l'echantillon de sa par classe de selection
+	// Renvoie true si l'objet a ete effectivement analyse, et il faut propager l'analyse aux sous-objets
+	// Renvoie false etait deja analyse auparavent et enregistre dans le dictionnaire local d'analyse en parametre
+	// ou dans le dictionnaire des objets externes analyses
+	boolean ExtractSelectionOneObject(const KWObject* kwoObject, longint lMainObjectIndex, longint& lSubObjectIndex,
+					  NumericKeyDictionary* nkdAllSubObjects,
+					  KDClassSelectionData* classSelectionData);
 
 	// Extraction des valeurs de selection d'un objet
 	void ExtractSelectionObjectValues(KDClassSelectionData* classSelectionData, const KWObject* kwoObject,
 					  longint lMainObjectIndex, longint lSubObjectIndex);
 
-	// Extraction des valeurs de selection de tous les objets references globaux ayant ete utilises au moins une
-	// fois
+	// Extraction des valeurs de selection de tous les objets references globaux ayant ete utilises au moins une fois
 	void ExtractAllSelectionReferencedObjects(KWMTDatabase* inputDatabase);
 
 	//////////////////////////////////////////////////////////////////////////////////////

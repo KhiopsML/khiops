@@ -1519,7 +1519,7 @@ KWObject* KWDRRelationCreationRule::NewTargetObject(const KWObject* kwoOwnerObje
 	memoryGuard->AddCreatedRecord();
 
 	// Pas de tentative de creation si la limite est deja ateinte
-	if (memoryGuard->IsSingleInstanceMemoryLimitReached())
+	if (memoryGuard->IsMemoryLimitReached())
 		kwoTargetObject = NULL;
 	// Sinon, on tente de cree l'objet
 	else
@@ -1531,7 +1531,7 @@ KWObject* KWDRRelationCreationRule::NewTargetObject(const KWObject* kwoOwnerObje
 		kwoTargetObject->SetObjectDataPath(objectDataPath);
 
 		// Nettoyage si le memory guard a detecte un depassement de limite memoire
-		if (memoryGuard->IsSingleInstanceMemoryLimitReached())
+		if (memoryGuard->IsMemoryLimitReached())
 		{
 			delete kwoTargetObject;
 			kwoTargetObject = NULL;
@@ -1552,11 +1552,11 @@ KWObject* KWDRRelationCreationRule::NewTargetObject(const KWObject* kwoOwnerObje
 			cout << kwoTargetObject->GetObjectDataPath()->GetDataPath() << "\t"
 			     << kwoTargetObject->GetClass()->GetName() << "\t" << kwoTargetObject->GetCreationIndex();
 		}
-		if (memoryGuard->IsSingleInstanceMemoryLimitReached())
+		if (memoryGuard->IsMemoryLimitReached())
 			cout << "\tMEMORY LIMIT";
 		cout << "\n";
 	}
-	ensure(kwoTargetObject != NULL or memoryGuard->IsSingleInstanceMemoryLimitReached());
+	ensure(kwoTargetObject != NULL or memoryGuard->IsMemoryLimitReached());
 	return kwoTargetObject;
 }
 

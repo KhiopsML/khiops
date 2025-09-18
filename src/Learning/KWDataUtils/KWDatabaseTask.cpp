@@ -488,6 +488,7 @@ boolean KWDatabaseTask::MasterInitializeDatabase()
 	}
 
 	// Calcul des tailles de buffer et gestion du MemoryGuard
+	// Dans le cas multi-table, les tables externes ont ete prises en compte dans le dimensionnement
 	nSourceBufferSize = 0;
 	if (bOk)
 	{
@@ -503,14 +504,14 @@ boolean KWDatabaseTask::MasterInitializeDatabase()
 		if (nForcedBufferSize > 0)
 			nSourceBufferSize = nForcedBufferSize;
 
-		// Parametrage du MemoryGuard dans le cas multi-tables
-		sourceDatabase->GetDatabase()->GetMemoryGuard()->SetSingleInstanceMemoryLimit(
-		    sourceDatabase->ComputeEstimatedSingleInstanceMemoryLimit(lSourceDatabaseGrantedMemory));
+		// Parametrage des tailles de buffer
+		sourceDatabase->SetBufferSize(nSourceBufferSize);
+
+		// Parametrage du MemoryGuard
+		sourceDatabase->GetDatabase()->GetMemoryGuard()->SetMemoryLimit(
+		    sourceDatabase->ComputeMemoryGuardMemoryLimit(lSourceDatabaseGrantedMemory));
 	}
 
-	// Parametrage des tailles de buffer
-	if (bOk)
-		sourceDatabase->SetBufferSize(nSourceBufferSize);
 	return bOk;
 }
 

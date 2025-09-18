@@ -96,7 +96,7 @@ public:
 	// Memoire minimum necessaire pour ouvrir la base sans tenir compte des buffers
 	longint GetEmptyOpenNecessaryMemory() const;
 
-	// Memoire minimum et maximum necessaire pour ouvrir la base, en tenant compte des buffers
+	// Memoire minimum et maximum necessaire pour ouvrir la base
 	longint GetMinOpenNecessaryMemory() const;
 	longint GetMaxOpenNecessaryMemory() const;
 
@@ -114,7 +114,7 @@ public:
 	int GetBufferSize() const;
 
 	// Calcul de la memoire a reserver pour le DatabaseMemoryGuard
-	longint ComputeEstimatedSingleInstanceMemoryLimit(longint lOpenGrantedMemory) const;
+	longint ComputeMemoryGuardMemoryLimit(longint lOpenGrantedMemory) const;
 
 	// Affichage des messages de bilan d'un traitement de base
 	//   . le libelle de la base permet de qualifier le type d'utilisation de la base ("Input database", "Output

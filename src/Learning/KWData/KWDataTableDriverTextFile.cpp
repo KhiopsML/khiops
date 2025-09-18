@@ -959,7 +959,7 @@ longint KWDataTableDriverTextFile::ComputeNecessaryMemoryForFullExternalRead(con
 		lFileTotalSize = PLRemoteFileService::GetFileSize(GetDataTableName());
 
 		// Estimation heuristique du nombre d'enregistrements du fichier
-		lEstimatedRecordNumber = GetInMemoryEstimatedObjectNumber(lFileTotalSize);
+		lEstimatedRecordNumber = GetInMemoryEstimatedObjectNumber(kwcLogicalClass, lFileTotalSize);
 
 		// Estimation de la memoire necessaire pour stocker un objet
 		lObjectSize = sizeof(KWObject) + 2 * sizeof(void*);               // KWObject a vide
@@ -1023,7 +1023,7 @@ longint KWDataTableDriverTextFile::ComputeNecessaryDiskSpaceForFullWrite(const K
 	{
 		// Estimation du nombre d'enregistrements du fichier
 		// L'estimation est fait en memoire avec le meme type d'heuristique que pour les donnees a ecrire
-		lEstimatedRecordNumber = GetInMemoryEstimatedObjectNumber(lInputFileSize);
+		lEstimatedRecordNumber = GetInMemoryEstimatedObjectNumber(kwcLogicalClass, lInputFileSize);
 
 		// Estimation de la memoire necessaire pour stocker un objet a ecrire
 		// (generalisation de l'objet natif)
@@ -1089,18 +1089,19 @@ longint KWDataTableDriverTextFile::GetUsedMemory() const
 	return lUsedMemory;
 }
 
-longint KWDataTableDriverTextFile::GetInMemoryEstimatedObjectNumber(longint lInputFileSize) const
+longint KWDataTableDriverTextFile::GetInMemoryEstimatedObjectNumber(const KWClass* kwcLogicalClass,
+								    longint lInputFileSize) const
 {
 	boolean bDisplay = false;
 	longint lEstimatedObjectNumber;
 	longint lNativeObjectDiskSpace;
 
-	require(GetClass() != NULL);
+	require(kwcLogicalClass != NULL);
 	require(GetDataTableName() != "");
 	require(lInputFileSize >= 0);
 
 	// Estimation de la taille d'un objet natif
-	lNativeObjectDiskSpace = GetEstimatedUsedInputDiskSpacePerObject();
+	lNativeObjectDiskSpace = GetEstimatedUsedInputDiskSpacePerObject(kwcLogicalClass);
 
 	// Estimation d'une borne sup du nombre d'enregistrement du fichier
 	// Tres rustique, mais tres rapide (pas de scan du fichier)
@@ -1118,7 +1119,7 @@ longint KWDataTableDriverTextFile::GetInMemoryEstimatedObjectNumber(longint lInp
 	return lEstimatedObjectNumber;
 }
 
-longint KWDataTableDriverTextFile::GetEstimatedUsedInputDiskSpacePerObject() const
+longint KWDataTableDriverTextFile::GetEstimatedUsedInputDiskSpacePerObject(const KWClass* kwcLogicalClass) const
 {
 	boolean bDisplay = false;
 	int nDenseNativeValueNumber;
@@ -1128,7 +1129,7 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedInputDiskSpacePerObject() con
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
 
-	require(GetClass() != NULL);
+	require(kwcLogicalClass != NULL);
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	// L'estimation est heuristique, sans lecture du fichier, en se basant uniquement sur une
@@ -1141,7 +1142,7 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedInputDiskSpacePerObject() con
 
 	// Calcul des nombres d'attributs natifs dense et sparse dans la classe
 	// Dans le cas des blocs, on fait une estimation
-	attribute = GetClass()->GetHeadAttribute();
+	attribute = kwcLogicalClass->GetHeadAttribute();
 	while (attribute != NULL)
 	{
 		// Cas des attributs denses
@@ -1170,7 +1171,7 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedInputDiskSpacePerObject() con
 				}
 			}
 		}
-		GetClass()->GetNextAttribute(attribute);
+		kwcLogicalClass->GetNextAttribute(attribute);
 	}
 
 	// Estimation de la taille d'un objet natif
@@ -1183,7 +1184,7 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedInputDiskSpacePerObject() con
 	lNativeObjectSize +=
 	    (longint)nSparseNativeValueNumber *
 	    nDiskSparseValueSize; // Valeurs sparse de l'objet (cle + ':' + valeur + blanc + separateur)
-	lNativeObjectSize += (longint)GetClass()->GetKeyAttributeNumber() *
+	lNativeObjectSize += (longint)kwcLogicalClass->GetKeyAttributeNumber() *
 			     KWClass::nKeyFieldSize; // Taille des champs de la cle (heuristique)
 
 	// Affichage
@@ -1191,7 +1192,7 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedInputDiskSpacePerObject() con
 	{
 		cout << "GetEstimatedUsedInputDiskSpacePerObject"
 		     << "\n";
-		cout << "\tDictionary\t" << GetClass()->GetName() << "\n";
+		cout << "\tDictionary\t" << kwcLogicalClass->GetName() << "\n";
 		cout << "\tDenseNativeValueNumber\t" << nDenseNativeValueNumber << "\n";
 		cout << "\tTextNativeValueNumber\t" << nTextNativeValueNumber << "\n";
 		cout << "\tSparseNativeValueNumber\t" << nSparseNativeValueNumber << "\n";

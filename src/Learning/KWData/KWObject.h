@@ -1047,7 +1047,7 @@ inline ObjectArray* KWObject::ComputeObjectArrayValueAt(KWLoadIndex liLoadIndex)
 				memoryGuard = GetObjectDataPath()->GetMemoryGuard();
 
 				// Nettoyage du tableau en cas de depassement memoire, pour eviter les instances NULL
-				if (memoryGuard->IsSingleInstanceMemoryLimitReached())
+				if (memoryGuard->IsMemoryLimitReached())
 					oaSubObjects->DeleteAll();
 			}
 			assert(oaSubObjects->NoNulls());

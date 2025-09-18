@@ -11,16 +11,31 @@ class KWDatabaseMemoryGuard;
 #include "Ermgt.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-// Class KWDatabaseMemoryGuard;
+// Classe KWDatabaseMemoryGuard
 // Service de protection memoire pour la lecture des instances d'une base, notamment multi-table
+//
 // En effet, la lecture d'un enregistrement de la table principale peut impliquer potentiellement
-// un tres grand nombre d'enregistrements de tables secondaires, pouvant potentiellement de pas
+// un tres grand nombre d'enregistrements de tables secondaires, pouvant potentiellement ne pas
 // tenir en memoire, et un graphe de calcul exploitant des variables de travail pouvant
 // egalement poser un probleme de sur-utilisation de la memoire.
 // On parle dans ce cas d'instances "elephant".
 // Le service de protection des acces memoire permet de monitorer la memoire lors de la lecture
 // des enregistrements et du calcul des variables derivees de facon a eviter preventivement
 // les depassements memoires et a les diagnostiquer le plus precisement possible
+//
+// Ce probleme se pose egalement pour la gestion des tables externes, dont l'integralite des
+// instances doit etre chargee en memoire. Dans ce cas, on traite l'ensemble des instances externes
+// comme une seule entite qui globalement doit etre chargee en memoire.
+//
+// Le service de protection memoire doit donc etre parametre specifique pour chaque etape successive :
+// - lecture des tables externes :
+//   - pour charger l'ensemble des tables externes
+//   - echec au premier probleme memoire detecte.
+// - lecture des instances de la table principale
+//   - pour charger les instances une a une, avec reinitialisation du service de protection apres chaque instance
+//   - jamais d'echec, pour assurer que le nombre d'instances traite est le meme a chaque passe
+//   - detection des instances "elephant"
+//   - fonctionnement degrade si necessaire
 class KWDatabaseMemoryGuard : public Object
 {
 public:
@@ -47,22 +62,23 @@ public:
 	void SetMaxCreatedRecordNumber(longint lValue);
 	longint GetMaxCreatedRecordNumber() const;
 
-	// Limite de la memoire utilisable pour une instance pour gerer l'ensemble
-	// de la lecture et du calcul des attributs derivee
-	// Attention: il s'agit ici d'une limite memoire physique dans la RAM, avec prise en compte de
-	// l'overhead d'allocation
+	// Limite de la memoire utilisable pour pour gerer l'ensemble de la lecture
+	// et du calcul des attributs derivee, soit pour l'ensemblke des tables externes, soit par
+	// instance de la table principale
+	// Attention: il s'agit ici d'une limite memoire logique, avec prise en compte de
+	// l'overhead d'allocation, comme dans toutes methodes de dimensionnement.
 	// Cela concerne toutes les methodes liees a la memoire de cette classe
 	// Parametrage inactif si 0
-	void SetSingleInstanceMemoryLimit(longint lValue);
-	longint GetSingleInstanceMemoryLimit() const;
+	void SetMemoryLimit(longint lValue);
+	longint GetMemoryLimit() const;
 
 	// Estimation du minimum de la memoire utilisable pour une instance
-	void SetEstimatedMinSingleInstanceMemoryLimit(longint lValue);
-	longint GetEstimatedMinSingleInstanceMemoryLimit() const;
+	void SetEstimatedMinMemoryLimit(longint lValue);
+	longint GetEstimatedMinMemoryLimit() const;
 
 	// Estimation du maximum de la memoire utilisable pour une instance
-	void SetEstimatedMaxSingleInstanceMemoryLimit(longint lValue);
-	longint GetEstimatedMaxSingleInstanceMemoryLimit() const;
+	void SetEstimatedMaxMemoryLimit(longint lValue);
+	longint GetEstimatedMaxMemoryLimit() const;
 
 	// Copie, uniquement des attributs de base de la specification
 	void CopyFrom(const KWDatabaseMemoryGuard* aSource);
@@ -82,6 +98,14 @@ public:
 	// A appeler apres la lecture des enregistrements
 	void AddReadSecondaryRecord();
 
+	// Prise en compte de la lecture d'un nouvel enregistrement externe racine
+	// A appeler apres la lecture des enregistrements externes
+	void AddReadExternalRecord();
+
+	// Prise en compte du calcul de tous les attribut d'un nouvel enregistrement externe racine
+	// A appeler apres le calcul des attribut des enregistrements externes
+	void AddComputedExternalRecord();
+
 	// Prise en compte de la creation d'une nouvelle instance
 	// A appeler apres la creation d'une instance par une regle de creation d'instance
 	void AddCreatedRecord();
@@ -98,6 +122,13 @@ public:
 	// Exploitation des limites
 	// On peut ici emettre des warning specialises en fonction du type de limite atteinte ou depassee
 
+	// Indique si la limite memoire est atteinte, si le parametrage est actif
+	// Cet indicateur est declenchee des que la limite a ete depasse une seule fois,
+	// et n'est reinitialise qu'avec Init
+	// Cette methode principale concerne a la fois la lecture des instances principales, lues une a une,
+	// ou la lecture de l'ensemble de toutes les tables externes
+	boolean IsMemoryLimitReached() const;
+
 	// Indique si le nombre max d'enregistrements secondaires est atteint, si le parametrage est actif
 	boolean IsMaxSecondaryRecordNumberReached() const;
 
@@ -107,16 +138,11 @@ public:
 	// Nombre de fois ou on a du nettoyer la memoire pour continuer le calcul des attributs
 	int GetMemoryCleaningNumber() const;
 
+	/////////////////////////////////////////////////////////////////////////////////
+	// Indicateurs dans le la cas des instances de la table principales
+
 	// Indique si l'instance est tres large, mais a pu etre traitee
 	boolean IsSingleInstanceVeryLarge() const;
-
-	// Libelle personnalise associe a une instance de tres grande taille, mais ayant pu etre calculee correctement
-	const ALString GetSingleInstanceVeryLargeLabel();
-
-	// Indique si la limite memoire est atteinte, si le parametrage est actif
-	// Cet indicateur est declenchee des que la limite a ete depasse une seule fois,
-	// et n'est reinitialise qu'avec Init
-	boolean IsSingleInstanceMemoryLimitReached() const;
 
 	// Indique si la cause du depassement memoire est liee a la lecture des enregistrements
 	boolean IsSingleInstanceMemoryLimitReachedDuringRead() const;
@@ -124,10 +150,19 @@ public:
 	// Indique si la cause du depassement memoire est liee a la creation d'instances
 	boolean IsSingleInstanceMemoryLimitReachedDuringCreation() const;
 
+	/////////////////////////////////////////////////////////////////////////////////
+	// Gestion des libelles en cas d'instances tres volumineuse ou de probleme memoire
+
+	// Libelle personnalise associe a une instance de tres grande taille, mais ayant pu etre calculee correctement
+	const ALString GetSingleInstanceVeryLargeLabel() const;
+
 	// Libelle personnalise associe au depassement de la limite memoire, dans le cas de la lecture des
 	// enregistrements ou dans le cas du calcul des attributs, avec perte du calcul des attributs derives,
 	// remplaces par des valeur manquantes
-	const ALString GetSingleInstanceMemoryLimitLabel();
+	const ALString GetSingleInstanceMemoryLimitLabel() const;
+
+	// Libelle personnalise associe au depassement de la limite memoire, dans le cas de la lecture des tables externes
+	const ALString GetExternalTableMemoryLimitLabel() const;
 
 	// Afin de permettre aux utilisateur d'obtenir ces warnings, meme en cas de controle de flow des erreurs,
 	// il faut installer un handler specifique pour ignorer le controle de flow des erreurs
@@ -145,6 +180,15 @@ public:
 	// Nombre total d'enregistrements secondaires lus
 	longint GetTotalReadSecondaryRecordNumber() const;
 
+	// Nombre d'enregistrements externes lus avant atteinte de la limite
+	longint GetReadExternalRecordNumberBeforeLimit() const;
+
+	// Nombre total d'enregistrements externes lus
+	longint GetTotalReadExternalRecordNumber() const;
+
+	// Nombre total d'enregistrements externes calcules
+	longint GetTotalComputedExternalRecordNumber() const;
+
 	// Nombre d'instances creees avant atteinte de la limite
 	longint GetCreatedRecordNumberBeforeLimit() const;
 
@@ -159,6 +203,7 @@ public:
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Informations sur l'utilisation de la memoire dans la heap
+	// Il s'agit de memoire physique, donc de la RAM elle meme
 
 	// Memoire initiale au moment de l'initialisation
 	longint GetInitialHeapMemory() const;
@@ -186,10 +231,11 @@ public:
 	static void SetCrashTestMaxCreatedRecordNumber(longint lValue);
 	static longint GetCrashTestMaxCreatedRecordNumber();
 
-	// Limite a ne pas depasser de la memoire utilisable dans la heap pour gerer l'ensemble de la lecture et du
-	// calcul des attributs derivee Parametrage inactif si 0
-	static void SetCrashTestSingleInstanceMemoryLimit(longint lValue);
-	static longint GetCrashTestSingleInstanceMemoryLimit();
+	// Limite a ne pas depasser de la memoire physique utilisable dans la heap pour gerer
+	// l'ensemble de la lecture et du calcul des attributs derivee
+	// Parametrage inactif si 0
+	static void SetCrashTestMemoryLimit(longint lValue);
+	static longint GetCrashTestMemoryLimit();
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Services standards
@@ -274,32 +320,37 @@ protected:
 
 	// Variables d'instance
 	ALString sMainObjectKey;
-	longint lSingleInstanceMemoryLimit;
-	longint lEstimatedMinSingleInstanceMemoryLimit;
-	longint lEstimatedMaxSingleInstanceMemoryLimit;
+	longint lMemoryLimit;
+	longint lEstimatedMinMemoryLimit;
+	longint lEstimatedMaxMemoryLimit;
 	longint lInitialHeapMemory;
 	longint lMaxHeapMemory;
 	longint lCurrentHeapMemory;
+	longint lCurrentHeapMemoryAfterExternalReadCompletion;
 	longint lMaxSecondaryRecordNumber;
 	longint lMaxCreatedRecordNumber;
 	longint lReadSecondaryRecordNumberBeforeLimit;
 	longint lTotalReadSecondaryRecordNumber;
+	longint lReadExternalRecordNumberBeforeLimit;
+	longint lTotalReadExternalRecordNumber;
+	longint lTotalComputedExternalRecordNumber;
 	longint lCreatedRecordNumberBeforeLimit;
 	longint lTotalCreatedRecordNumber;
 	int nComputedAttributeNumberBeforeLimit;
 	int nTotalComputedAttributeNumber;
 	int nMemoryCleaningNumber;
-	boolean bIsSingleInstanceMemoryLimitReached;
+	boolean bIsMemoryLimitReached;
 
 	// Variables d'instance a prendre en compte, selon la valeur des parametres de crash test
 	longint lActualMaxSecondaryRecordNumber;
 	longint lActualMaxCreatedRecordNumber;
-	longint lActualSingleInstanceMemoryLimit;
+	longint lActualMemoryLimit;
+	longint lActualPhysicalMemoryLimit;
 
 	// Parametres des crash tests
 	static longint lCrashTestMaxSecondaryRecordNumber;
 	static longint lCrashTestMaxCreatedRecordNumber;
-	static longint lCrashTestSingleInstanceMemoryLimit;
+	static longint lCrashTestMemoryLimit;
 
 	// Bornes inf et sup des nombres max de records secondaires
 	static const longint lDefautMinSecondaryRecordNumberLowerBound = 100000;
@@ -327,12 +378,18 @@ protected:
 	static int nMemoryGuardRecoveryWarningNumber;
 
 	// Partie des libelles permettant d'identifier les messages emis par le memory guard
-	static const ALString sMemoryGuardLabelPrefix;
-	static const ALString sMemoryGuardRecoveryLabelSuffix;
+	static const ALString sLabelPrefixSingleInstance;
+	static const ALString sLabelSuffixSingleInstanceRecovery;
+	static const ALString sLabelPrefixExternalTable;
 };
 
 ///////////////////////
 // Methodes en inline
+
+inline boolean KWDatabaseMemoryGuard::IsMemoryLimitReached() const
+{
+	return bIsMemoryLimitReached;
+}
 
 inline boolean KWDatabaseMemoryGuard::IsMaxSecondaryRecordNumberReached() const
 {
@@ -343,11 +400,6 @@ inline boolean KWDatabaseMemoryGuard::IsMaxSecondaryRecordNumberReached() const
 inline boolean KWDatabaseMemoryGuard::IsMaxCreatedRecordNumberReached() const
 {
 	return lActualMaxCreatedRecordNumber > 0 and GetTotalCreatedRecordNumber() > lActualMaxCreatedRecordNumber;
-}
-
-inline boolean KWDatabaseMemoryGuard::IsSingleInstanceMemoryLimitReached() const
-{
-	return bIsSingleInstanceMemoryLimitReached;
 }
 
 inline const longint KWDatabaseMemoryGuard::GetDefautMinSecondaryRecordNumberLowerBound()

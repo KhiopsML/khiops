@@ -20,7 +20,7 @@ public:
 	void SetMethodToTest(int nmethod);
 	int GetMethodToTest() const;
 
-	void SetBoosteMode(boolean bValue);
+	void SetBoostMode(boolean bValue);
 	boolean GetBoostMode() const;
 
 	// Test l'arret utilisateur dans le methode choisie avec ou sans le mode boost

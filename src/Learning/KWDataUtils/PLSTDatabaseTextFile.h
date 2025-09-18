@@ -67,7 +67,7 @@ public:
 	// Memoire minimum necessaire pour ouvrir la base sans tenir compte des buffers
 	longint GetEmptyOpenNecessaryMemory() const;
 
-	// Memoire minimum et maximum necessaire pour ouvrir la base, en tenant compte des buffers
+	// Memoire minimum et maximum necessaire pour ouvrir la base
 	longint GetMinOpenNecessaryMemory() const;
 	longint GetMaxOpenNecessaryMemory() const;
 
@@ -81,7 +81,7 @@ public:
 	int ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory, int nProcessNumber) const;
 
 	// Calcul de la memoire a reserver pour le DatabaseMemoryGuard
-	longint ComputeEstimatedSingleInstanceMemoryLimit(longint lOpenGrantedMemory) const;
+	longint ComputeMemoryGuardMemoryLimit(longint lOpenGrantedMemory) const;
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Parametrage des buffers
@@ -111,7 +111,7 @@ public:
 protected:
 	friend class PLShared_STDatabaseTextFile;
 
-	// Calcul des informations necessaires pour la DatabaseMemoryGuard lors de l'ouverture de la base en lecture
+	// Calcul des informations necessaires pour le DatabaseMemoryGuard lors de l'ouverture de la base en lecture
 	void ComputeMemoryGuardOpenInformation();
 
 	// Resultat de l'appel de la methode ComputeOpenInformation

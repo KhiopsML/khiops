@@ -18,8 +18,8 @@ KWCrashTestParametersView::KWCrashTestParametersView()
 		    int(KWDatabaseMemoryGuard::GetCrashTestMaxSecondaryRecordNumber()));
 	AddIntField("CrashTestMaxCreatedRecordNumber", "Crash test - max created record number per instance",
 		    int(KWDatabaseMemoryGuard::GetCrashTestMaxCreatedRecordNumber()));
-	AddIntField("CrashTestSingleInstanceMemoryLimit", "Crash test - memory limit per multi-table instance in MB",
-		    int(KWDatabaseMemoryGuard::GetCrashTestSingleInstanceMemoryLimit()));
+	AddIntField("CrashTestMemoryGuardMemoryLimit", "Crash test - memory guard limit in MB",
+		    int(KWDatabaseMemoryGuard::GetCrashTestMemoryLimit()));
 
 	// Gestion des parametre des crash test
 	GetFieldAt("CrashTestTask")->SetStyle("ComboBox");
@@ -32,7 +32,7 @@ KWCrashTestParametersView::KWCrashTestParametersView()
 	    ->SetDefaultValue(InputBufferedFile::GetMaxLineLength());
 	cast(UIIntElement*, GetFieldAt("CrashTestMaxSecondaryRecordNumber"))->SetMinValue(0);
 	cast(UIIntElement*, GetFieldAt("CrashTestMaxCreatedRecordNumber"))->SetMinValue(0);
-	cast(UIIntElement*, GetFieldAt("CrashTestSingleInstanceMemoryLimit"))->SetMinValue(0);
+	cast(UIIntElement*, GetFieldAt("CrashTestMemoryGuardMemoryLimit"))->SetMinValue(0);
 
 	// Initialisation des valeurs des parametres de crash concernant les taches
 	InitializeTaskCrashTestFields();
@@ -55,11 +55,12 @@ KWCrashTestParametersView::KWCrashTestParametersView()
 	    ->SetHelpText("Max created record number per instance."
 			  "\n By default, this parameter is set to 0, meaning that the limit is not active."
 			  "\n If the limit is exceeded, a warning is issued.");
-	GetFieldAt("CrashTestSingleInstanceMemoryLimit")
-	    ->SetHelpText("Memory limit per multi-table instance in MB."
+	GetFieldAt("CrashTestMemoryGuardMemoryLimit")
+	    ->SetHelpText("Memory guard limit in MB."
 			  "\n By default, this parameter is set to 0, meaning that the limit is not active."
-			  "\n If the limit is exceeded, an error is issued and the derived variables of the instance "
-			  "are missing.");
+			  "\n If the limit is exceeded, a warning is issued and the derived variables of the instance "
+			  "are missing."
+			  "\t In the case of missing memory for external tables, this results in an error.");
 	GetActionAt("ResetParameters")->SetHelpText("Reset all crash parametres to their defaut value.");
 }
 
@@ -74,8 +75,7 @@ void KWCrashTestParametersView::EventUpdate(Object* object)
 	InputBufferedFile::SetMaxLineLength(GetIntValueAt("CrashTestMaxLineLength"));
 	KWDatabaseMemoryGuard::SetCrashTestMaxSecondaryRecordNumber(GetIntValueAt("CrashTestMaxSecondaryRecordNumber"));
 	KWDatabaseMemoryGuard::SetCrashTestMaxCreatedRecordNumber(GetIntValueAt("CrashTestMaxCreatedRecordNumber"));
-	KWDatabaseMemoryGuard::SetCrashTestSingleInstanceMemoryLimit(
-	    GetIntValueAt("CrashTestSingleInstanceMemoryLimit") * lMB);
+	KWDatabaseMemoryGuard::SetCrashTestMemoryLimit(GetIntValueAt("CrashTestMemoryGuardMemoryLimit") * lMB);
 }
 
 void KWCrashTestParametersView::EventRefresh(Object* object)
@@ -89,8 +89,7 @@ void KWCrashTestParametersView::EventRefresh(Object* object)
 		      int(KWDatabaseMemoryGuard::GetCrashTestMaxSecondaryRecordNumber()));
 	SetIntValueAt("CrashTestMaxCreatedRecordNumber",
 		      int(KWDatabaseMemoryGuard::GetCrashTestMaxCreatedRecordNumber()));
-	SetIntValueAt("CrashTestSingleInstanceMemoryLimit",
-		      int(KWDatabaseMemoryGuard::GetCrashTestSingleInstanceMemoryLimit() / lMB));
+	SetIntValueAt("CrashTestMemoryGuardMemoryLimit", int(KWDatabaseMemoryGuard::GetCrashTestMemoryLimit() / lMB));
 }
 
 void KWCrashTestParametersView::ResetParameters()
@@ -102,7 +101,7 @@ void KWCrashTestParametersView::ResetParameters()
 	InputBufferedFile::SetMaxLineLength(8 * lMB);
 	KWDatabaseMemoryGuard::SetCrashTestMaxSecondaryRecordNumber(0);
 	KWDatabaseMemoryGuard::SetCrashTestMaxCreatedRecordNumber(0);
-	KWDatabaseMemoryGuard::SetCrashTestSingleInstanceMemoryLimit(0);
+	KWDatabaseMemoryGuard::SetCrashTestMemoryLimit(0);
 }
 
 const ALString KWCrashTestParametersView::GetClassLabel() const

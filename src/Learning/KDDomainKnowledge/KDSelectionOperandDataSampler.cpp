@@ -514,7 +514,13 @@ void KDSelectionOperandDataSampler::ExtractSelectionObjects(const KWObject* kwoO
 	KWObjectArrayValueBlock* valueBlock;
 	int nValue;
 	KDClassSelectionData* classSelectionData;
-	boolean bExtractObjectValues;
+	ObjectArray oaObjects1;
+	ObjectArray oaObjects2;
+	ObjectArray* oaCurrentObjects;
+	ObjectArray* oaNextObjects;
+	int nCurrent;
+	KWObject* kwoCurrentObject;
+	boolean bAnalyzed;
 
 	require(kwoObject != NULL);
 	require(lMainObjectIndex >= 0);
@@ -522,125 +528,222 @@ void KDSelectionOperandDataSampler::ExtractSelectionObjects(const KWObject* kwoO
 	require(nkdAllSubObjects != NULL);
 	require(nkdAllSubObjects->Lookup(kwoObject) == NULL);
 
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Parcours de composition de l'objet
+	// Le parcours est effectue de facon iterative, en profondeur d'abord et non recursive,
+	// pour eviter une profondeur de recursion potentiellement egal au nombre total de sous-objets,
+	// pouvant potentiellement provoquer un depassement de la capacite de la stack
+	//
+	// Le choix en profondeur d'abord permet de minimiser le nombre d'etapes, car la profondeur
+	// sera naturellement bornee par la profondeur du schema hierachique de l'objet, meme
+	// dans le cas de references internes recursives
+	// Par exemple, dans le cas d'un graphe de molecule, les atomes et liaison sont au niveau 1 de la hierarchie,
+	// alors qu'un parcours en profondeur d'abord peut degenerer en un chemin parcourant tous les noeud du graphes.
+
+	// On initialise la liste des objets a analyser et la prochaine avec les deux tableaux vides initiaux
+	oaCurrentObjects = &oaObjects1;
+	oaNextObjects = &oaObjects2;
+
+	// On part de l'objet initial a analyser
+	oaCurrentObjects->Add(cast(KWObject*, kwoObject));
+
+	// Analyse de ce premier objet
+	classSelectionData = cast(KDClassSelectionData*, odClassSelectionData.Lookup(kwoObject->GetClass()->GetName()));
+	ExtractSelectionOneObject(kwoObject, lMainObjectIndex, lSubObjectIndex, nkdAllSubObjects, classSelectionData);
+
+	// On repete l'analyse avec autant de passes que necessaire
+	while (oaCurrentObjects->GetSize() > 0)
+	{
+		assert(oaNextObjects->GetSize() == 0);
+
+		// Parcours des objets a analyser dans la passe
+		for (nCurrent = 0; nCurrent < oaCurrentObjects->GetSize(); nCurrent++)
+		{
+			kwoCurrentObject = cast(KWObject*, oaCurrentObjects->GetAt(nCurrent));
+
+			// Acces a sa classe
+			kwcClass = kwoCurrentObject->GetClass();
+			check(kwcClass);
+
+			// Parcours de la structure Object et ObjectArray de l'objet
+			for (nAttribute = 0; nAttribute < kwcClass->GetLoadedRelationAttributeNumber(); nAttribute++)
+			{
+				attribute = kwcClass->GetLoadedRelationAttributeAt(nAttribute);
+
+				// On determine s'il s'agit d'une classe de selection
+				classSelectionData =
+				    cast(KDClassSelectionData*,
+					 odClassSelectionData.Lookup(attribute->GetClass()->GetName()));
+
+				// Cas Object
+				if (attribute->GetType() == KWType::Object)
+				{
+					kwoSubObject = kwoCurrentObject->GetObjectValueAt(attribute->GetLoadIndex());
+
+					// Propagation au sous-objet
+					if (kwoSubObject != NULL)
+					{
+						bAnalyzed = ExtractSelectionOneObject(kwoSubObject, lMainObjectIndex,
+										      lSubObjectIndex, nkdAllSubObjects,
+										      classSelectionData);
+						if (bAnalyzed)
+							oaNextObjects->Add(kwoSubObject);
+					}
+				}
+				// Cas ObjectArray
+				else
+				{
+					assert(attribute->GetType() == KWType::ObjectArray);
+
+					// Propagation au sous-objet
+					oaSubObjects =
+					    kwoCurrentObject->GetObjectArrayValueAt(attribute->GetLoadIndex());
+					if (oaSubObjects != NULL)
+					{
+						// Propagation aux sous-objets
+						for (i = 0; i < oaSubObjects->GetSize(); i++)
+						{
+							kwoSubObject = cast(KWObject*, oaSubObjects->GetAt(i));
+
+							// Propagation au sous-objet
+							if (kwoSubObject != NULL)
+							{
+								bAnalyzed = ExtractSelectionOneObject(
+								    kwoSubObject, lMainObjectIndex, lSubObjectIndex,
+								    nkdAllSubObjects, classSelectionData);
+								if (bAnalyzed)
+									oaNextObjects->Add(kwoSubObject);
+							}
+						}
+					}
+				}
+			}
+
+			// Parcours des blocs de type ObjectArray
+			for (nAttributeBlock = 0; nAttributeBlock < kwcClass->GetLoadedAttributeBlockNumber();
+			     nAttributeBlock++)
+			{
+				attributeBlock = kwcClass->GetLoadedAttributeBlockAt(nAttributeBlock);
+
+				// Traitement des blocs de de type ObjectArray
+				if (attributeBlock->GetType() == KWType::ObjectArray)
+				{
+					valueBlock = kwoCurrentObject->GetObjectArrayValueBlockAt(
+					    attributeBlock->GetLoadIndex());
+
+					// On determine s'il s'agit d'une classe de selection
+					classSelectionData =
+					    cast(KDClassSelectionData*,
+						 odClassSelectionData.Lookup(attributeBlock->GetClass()->GetName()));
+
+					// Parcours des valeurs du bloc
+					for (nValue = 0; nValue < valueBlock->GetValueNumber(); nValue++)
+					{
+						// Propagation au sous-objet
+						oaSubObjects = valueBlock->GetValueAt(nValue);
+						check(oaSubObjects);
+
+						// Propagation aux sous-objets
+						for (i = 0; i < oaSubObjects->GetSize(); i++)
+						{
+							kwoSubObject = cast(KWObject*, oaSubObjects->GetAt(i));
+
+							// Propagation au sous-objet
+							if (kwoSubObject != NULL)
+							{
+								bAnalyzed = ExtractSelectionOneObject(
+								    kwoSubObject, lMainObjectIndex, lSubObjectIndex,
+								    nkdAllSubObjects, classSelectionData);
+								if (bAnalyzed)
+									oaNextObjects->Add(kwoSubObject);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// On vide le tableau des objets courants
+		oaCurrentObjects->SetSize(0);
+
+		// Les objets suivants deviennent les objets courants, en inversant les deux tableaux de stockage
+		if (oaCurrentObjects == &oaObjects1)
+		{
+			oaCurrentObjects = &oaObjects2;
+			oaNextObjects = &oaObjects1;
+		}
+		else
+		{
+			oaCurrentObjects = &oaObjects1;
+			oaNextObjects = &oaObjects2;
+		}
+	}
+}
+
+boolean KDSelectionOperandDataSampler::ExtractSelectionOneObject(const KWObject* kwoObject, longint lMainObjectIndex,
+								 longint& lSubObjectIndex,
+								 NumericKeyDictionary* nkdAllSubObjects,
+								 KDClassSelectionData* classSelectionData)
+{
+	boolean bExtractObjectValues;
+
+	require(kwoObject != NULL);
+	require(lMainObjectIndex >= 0);
+	require(lSubObjectIndex >= 0);
+	require(nkdAllSubObjects != NULL);
+	require(nkdAllSubObjects->Lookup(kwoObject) == NULL);
+	require(classSelectionData == NULL or
+		classSelectionData == odClassSelectionData.Lookup(kwoObject->GetClass()->GetName()));
+
+	// Renvoie false si l'objet a deja ete analyse localement
+	if (nkdAllSubObjects->Lookup(kwoObject) != NULL)
+		return false;
+	// Renvoie false si l'objet externe a deja ete analyse localement dans la premiere passe d'analyse
+	else if (lMainObjectIndex > 0 and nkdAllAnalyzedReferencedObjects.Lookup(kwoObject) != NULL)
+		return false;
+
 	// Si objet principal, memorisation des objets des tables externes analyses
 	bExtractObjectValues = true;
 	if (lMainObjectIndex > 0)
 	{
-		// Si objet reference, memorisation de l'objet dans liste des objet references analyses
+		// Si objet reference, memorisation de l'objet dans liste des objets externes analyses
 		if (nkdAllReferencedObjects.Lookup(kwoObject) != NULL)
 		{
-			// Arret si objet enregistre dans les objets references deja analyses
-			if (nkdAllAnalyzedReferencedObjects.Lookup(kwoObject) != NULL)
-				return;
+			assert(nkdAllAnalyzedReferencedObjects.Lookup(kwoObject) == NULL);
 
-			// Enregistrement sinon
+			// Enregistrement
 			nkdAllAnalyzedReferencedObjects.SetAt(kwoObject, cast(Object*, kwoObject));
 
 			// On n'extrait pas les valeurs de l'objet: ce sera fait specifiquement pour les tables externes
 			// apres l'analyse de tous les objets principaux
 			bExtractObjectValues = false;
 		}
-		// Sinon, memorisation de l'objet dans la liste des sous-objets explores
+		// Sinon, memorisation dans la liste locale des objets analyses
 		else
 		{
 			lSubObjectIndex++;
 			nkdAllSubObjects->SetAt(kwoObject, cast(Object*, kwoObject));
 		}
 	}
-	// Si objet d'un table externe
+	// Si objet d'une table externe, repere par lMainObjectIndex == 0
 	else
 	{
-		// Memorisation dans la liste des objets explores pour n'explorer les objets externes qu'une seule fois
+		assert(lMainObjectIndex == 0);
+
+		// Memorisation dans la liste des objets analyses, puisque m'on est dans la deuxieme passe
+		// d'analyse des objet externes
 		lSubObjectIndex++;
 		nkdAllSubObjects->SetAt(kwoObject, cast(Object*, kwoObject));
-
-		// On extrait les valeurs de l'objet que s'il a ete reference depuis les objets principaux
-		bExtractObjectValues = (nkdAllAnalyzedReferencedObjects.Lookup(kwoObject) != NULL);
 	}
-
-	// Acces a la classe
-	kwcClass = kwoObject->GetClass();
-	check(kwcClass);
 
 	// Extraction des valeurs de l'objet
 	if (bExtractObjectValues)
 	{
-		// On determine s'il s'agit d'une classe de selection
-		classSelectionData = cast(KDClassSelectionData*, odClassSelectionData.Lookup(kwcClass->GetName()));
-
 		// Extraction des valeurs de selection du sous-objets
 		if (classSelectionData != NULL)
 			ExtractSelectionObjectValues(classSelectionData, kwoObject, lMainObjectIndex, lSubObjectIndex);
 	}
-
-	// Parcours de la structure Object et ObjectArray de l'objet
-	for (nAttribute = 0; nAttribute < kwcClass->GetLoadedRelationAttributeNumber(); nAttribute++)
-	{
-		attribute = kwcClass->GetLoadedRelationAttributeAt(nAttribute);
-
-		// Cas Object
-		if (attribute->GetType() == KWType::Object)
-		{
-			kwoSubObject = kwoObject->GetObjectValueAt(attribute->GetLoadIndex());
-
-			// Propagation au sous-objet
-			if (kwoSubObject != NULL and nkdAllSubObjects->Lookup(kwoSubObject) == NULL)
-				ExtractSelectionObjects(kwoSubObject, lMainObjectIndex, lSubObjectIndex,
-							nkdAllSubObjects);
-		}
-		// Cas ObjectArray
-		else
-		{
-			assert(attribute->GetType() == KWType::ObjectArray);
-
-			// Propagation au sous-objet
-			oaSubObjects = kwoObject->GetObjectArrayValueAt(attribute->GetLoadIndex());
-			if (oaSubObjects != NULL)
-			{
-				// Propagation aux sous-objets
-				for (i = 0; i < oaSubObjects->GetSize(); i++)
-				{
-					kwoSubObject = cast(KWObject*, oaSubObjects->GetAt(i));
-
-					// Propagation au sous-objet
-					if (kwoSubObject != NULL and nkdAllSubObjects->Lookup(kwoSubObject) == NULL)
-						ExtractSelectionObjects(kwoSubObject, lMainObjectIndex, lSubObjectIndex,
-									nkdAllSubObjects);
-				}
-			}
-		}
-	}
-
-	// Parcours des blocs de type ObjectArray
-	for (nAttributeBlock = 0; nAttributeBlock < kwcClass->GetLoadedAttributeBlockNumber(); nAttributeBlock++)
-	{
-		attributeBlock = kwcClass->GetLoadedAttributeBlockAt(nAttributeBlock);
-
-		// Traitement des blocs de de type ObjectArray
-		if (attributeBlock->GetType() == KWType::ObjectArray)
-		{
-			valueBlock = kwoObject->GetObjectArrayValueBlockAt(attributeBlock->GetLoadIndex());
-
-			// Parcours des valeurs du bloc
-			for (nValue = 0; nValue < valueBlock->GetValueNumber(); nValue++)
-			{
-				// Propagation au sous-objet
-				oaSubObjects = valueBlock->GetValueAt(nValue);
-				check(oaSubObjects);
-
-				// Propagation aux sous-objets
-				for (i = 0; i < oaSubObjects->GetSize(); i++)
-				{
-					kwoSubObject = cast(KWObject*, oaSubObjects->GetAt(i));
-
-					// Propagation au sous-objet
-					if (kwoSubObject != NULL and nkdAllSubObjects->Lookup(kwoSubObject) == NULL)
-						ExtractSelectionObjects(kwoSubObject, lMainObjectIndex, lSubObjectIndex,
-									nkdAllSubObjects);
-				}
-			}
-		}
-	}
+	return true;
 }
 
 void KDSelectionOperandDataSampler::ExtractSelectionObjectValues(KDClassSelectionData* classSelectionData,
@@ -774,7 +877,7 @@ void KDSelectionOperandDataSampler::ExtractSelectionObjectValues(KDClassSelectio
 
 void KDSelectionOperandDataSampler::ExtractAllSelectionReferencedObjects(KWMTDatabase* inputDatabase)
 {
-	boolean bDisplay = false;
+	boolean bTrace = false;
 	const KWObjectReferenceResolver* objectReferenceSolver;
 	ObjectArray oaRootClasses;
 	int nClass;
@@ -794,11 +897,16 @@ void KDSelectionOperandDataSampler::ExtractAllSelectionReferencedObjects(KWMTDat
 		return;
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
-		cout << "All referenced entities\t" << nkdAllReferencedObjects.GetCount() << endl;
-		cout << "All analyzed entities\t" << nkdAllAnalyzedReferencedObjects.GetCount() << endl;
+		cout << "ExtractAllSelectionReferencedObjects\t" << inputDatabase->GetDatabaseName() << "\n";
+		cout << "\tAll referenced entities\t" << nkdAllReferencedObjects.GetCount() << endl;
+		cout << "\tAll analyzed entities\t" << nkdAllAnalyzedReferencedObjects.GetCount() << endl;
 	}
+
+	// On peut nettoyer le dictionnaire de gestion des objet externes, puisqu'a ce moment de l'algorithme,
+	// tous ceux utilises ont deja tous ete traites
+	nkdAllReferencedObjects.RemoveAll();
 
 	// Acces au container des objet references
 	objectReferenceSolver = inputDatabase->GetObjectReferenceSolver();
@@ -811,14 +919,14 @@ void KDSelectionOperandDataSampler::ExtractAllSelectionReferencedObjects(KWMTDat
 		rootClass = cast(KWClass*, oaRootClasses.GetAt(nClass));
 
 		// Affichage
-		if (bDisplay)
-			cout << "\t" << rootClass->GetName() << "\t"
+		if (bTrace)
+			cout << "\t\t" << rootClass->GetName() << "\t"
 			     << objectReferenceSolver->GetObjectNumber(rootClass) << endl;
 
 		// Acces aux objets references pour cette classe
 		objectReferenceSolver->ExportObjects(rootClass, &oaRootObjects);
 
-		// Tri pour granatir l'ordre de parcours
+		// Tri pour garantir l'ordre de parcours
 		oaRootObjects.SetCompareFunction(KWObjectCompareCreationIndex);
 		oaRootObjects.Sort();
 
@@ -826,20 +934,27 @@ void KDSelectionOperandDataSampler::ExtractAllSelectionReferencedObjects(KWMTDat
 		// Le tri des classes externes, puis le tri des objets par classe garantit que l'index attribue a chaque
 		// objet racine externe est unique et reproductible
 		// Note sur l'optimisation:
-		//   . on pourrait eviter le tri des objets en utilisant directement leur CraetionIndex, mais ce serait
-		//   plus
-		//     complique a gerer dans le cas de plusieurs tables externes. Et le temps de tri est de toutes
-		//     facon negligeable devant le temps de destruction de tous les objest externes lors de la fermeture
-		//     de la base
-		//  .
+		//   . On pourrait eviter le tri des objets en utilisant directement leur CreationIndex, mais ce serait
+		//     plus complique a gerer dans le cas de plusieurs tables externes.
+		//   . Et le temps de tri est de toute facon negligeable devant le temps de destruction de tous
+		//     les objetw externes lors de la fermeture de la base
 		for (nObject = 0; nObject < oaRootObjects.GetSize(); nObject++)
 		{
 			rootObject = cast(KWObject*, oaRootObjects.GetAt(nObject));
 
-			// Analyse de l'objet pour enregistrer les objets des classes de selection
+			// Analyse de l'objet si pas deja analyse
+			// En effet, les objets externes peuvent potentiellement se referencer entre eux
+			// Remarque: un objet racine peut ne avoir ete analyse lors de la passe prealable, mais
+			// ses sous-objet peuvent eux etre references directement
 			if (nkdAllSubObjects.Lookup(rootObject) == NULL)
 				ExtractSelectionObjects(rootObject, 0, lSubObjectIndex, &nkdAllSubObjects);
 		}
+	}
+
+	// Trace finale
+	if (bTrace)
+	{
+		cout << "\tAll sub-objects\t" << nkdAllSubObjects.GetCount() << endl;
 	}
 }
 
@@ -902,80 +1017,143 @@ void KDSelectionOperandDataSampler::RegisterReferencedObject(KWObject* kwoObject
 	KWAttributeBlock* attributeBlock;
 	KWObjectArrayValueBlock* valueBlock;
 	int nValue;
+	ObjectArray oaObjects1;
+	ObjectArray oaObjects2;
+	ObjectArray* oaCurrentObjects;
+	ObjectArray* oaNextObjects;
+	int nCurrent;
+	KWObject* kwoCurrentObject;
 
 	require(kwoObject != NULL);
 
-	// Arret si objet null ou deja enregistre
-	if (kwoObject == NULL or nkdAllReferencedObjects.Lookup(kwoObject) != NULL)
+	// Arret si deja enregistre, ce qui peut arriver si un object externe reference un autre objet externe
+	if (nkdAllReferencedObjects.Lookup(kwoObject) != NULL)
 		return;
 
-	// Memorisation de l'objet
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Parcours de composition de l'objet
+	// Le parcours est effectue de facon iterative, en profondeur d'abord et non recursive,
+	// pour eviter une profondeur de recursion potentiellement egal au nombre total de sous-objets,
+	// pouvant potentiellement provoquer un depassement de la capacite de la stack
+
+	// On initialise la liste des objets a analyser et la prochaine avec les deux tableaux vides initiaux
+	oaCurrentObjects = &oaObjects1;
+	oaNextObjects = &oaObjects2;
+
+	// On part de l'objet initial a analyser
+	oaCurrentObjects->Add(kwoObject);
+
+	// Enregistrement de cet objet initial
 	nkdAllReferencedObjects.SetAt(kwoObject, kwoObject);
 
-	// Acces a la classe
-	kwcClass = kwoObject->GetClass();
-	check(kwcClass);
-
-	// Parcours de la structure Object et ObjectArray de l'objet
-	for (nAttribute = 0; nAttribute < kwcClass->GetLoadedRelationAttributeNumber(); nAttribute++)
+	// On repete l'analyse avec autant de passes que necessaire
+	while (oaCurrentObjects->GetSize() > 0)
 	{
-		attribute = kwcClass->GetLoadedRelationAttributeAt(nAttribute);
+		assert(oaNextObjects->GetSize() == 0);
 
-		// Cas Object
-		if (attribute->GetType() == KWType::Object)
+		// Parcours des objet a analyser dans la passe
+		for (nCurrent = 0; nCurrent < oaCurrentObjects->GetSize(); nCurrent++)
 		{
-			kwoSubObject = kwoObject->GetObjectValueAt(attribute->GetLoadIndex());
+			kwoCurrentObject = cast(KWObject*, oaCurrentObjects->GetAt(nCurrent));
 
-			// Propagation au sous-objet
-			RegisterReferencedObject(kwoSubObject);
+			// Acces a sa classe
+			kwcClass = kwoCurrentObject->GetClass();
+			check(kwcClass);
+
+			// Parcours de la structure Object et ObjectArray de l'objet
+			for (nAttribute = 0; nAttribute < kwcClass->GetLoadedRelationAttributeNumber(); nAttribute++)
+			{
+				attribute = kwcClass->GetLoadedRelationAttributeAt(nAttribute);
+
+				// Cas Object
+				if (attribute->GetType() == KWType::Object)
+				{
+					kwoSubObject = kwoCurrentObject->GetObjectValueAt(attribute->GetLoadIndex());
+
+					// Enregistrement si necessaire, avec propagation de l'analyse
+					if (nkdAllReferencedObjects.Lookup(kwoSubObject) == NULL)
+					{
+						nkdAllReferencedObjects.SetAt(kwoSubObject, kwoSubObject);
+						oaNextObjects->Add(kwoSubObject);
+					}
+				}
+				// Cas ObjectArray
+				else
+				{
+					assert(attribute->GetType() == KWType::ObjectArray);
+
+					// Propagation aux sous-objets
+					oaSubObjects =
+					    kwoCurrentObject->GetObjectArrayValueAt(attribute->GetLoadIndex());
+					if (oaSubObjects != NULL)
+					{
+						// Propagation aux sous-objets
+						for (i = 0; i < oaSubObjects->GetSize(); i++)
+						{
+							kwoSubObject = cast(KWObject*, oaSubObjects->GetAt(i));
+
+							// Enregistrement si necessaire, avec propagation de l'analyse
+							if (nkdAllReferencedObjects.Lookup(kwoSubObject) == NULL)
+							{
+								nkdAllReferencedObjects.SetAt(kwoSubObject,
+											      kwoSubObject);
+								oaNextObjects->Add(kwoSubObject);
+							}
+						}
+					}
+				}
+			}
+
+			// Parcours des blocs de type ObjectArray
+			for (nAttributeBlock = 0; nAttributeBlock < kwcClass->GetLoadedAttributeBlockNumber();
+			     nAttributeBlock++)
+			{
+				attributeBlock = kwcClass->GetLoadedAttributeBlockAt(nAttributeBlock);
+
+				// Traitement des blocs de de type ObjectArray
+				if (attributeBlock->GetType() == KWType::ObjectArray)
+				{
+					valueBlock = kwoCurrentObject->GetObjectArrayValueBlockAt(
+					    attributeBlock->GetLoadIndex());
+
+					// Parcours des valeurs du bloc
+					for (nValue = 0; nValue < valueBlock->GetValueNumber(); nValue++)
+					{
+						// Propagation au sous-objet
+						oaSubObjects = valueBlock->GetValueAt(nValue);
+						check(oaSubObjects);
+
+						// Propagation aux sous-objets
+						for (i = 0; i < oaSubObjects->GetSize(); i++)
+						{
+							kwoSubObject = cast(KWObject*, oaSubObjects->GetAt(i));
+
+							// Enregistrement si necessaire, avec propagation de l'analyse
+							if (nkdAllReferencedObjects.Lookup(kwoSubObject) == NULL)
+							{
+								nkdAllReferencedObjects.SetAt(kwoSubObject,
+											      kwoSubObject);
+								oaNextObjects->Add(kwoSubObject);
+							}
+						}
+					}
+				}
+			}
 		}
-		// Cas ObjectArray
+
+		// On vide le tableau des objets courants
+		oaCurrentObjects->SetSize(0);
+
+		// Les objets suivants deviennent les objets courants, en inversant les deux tableaux de stockage
+		if (oaCurrentObjects == &oaObjects1)
+		{
+			oaCurrentObjects = &oaObjects2;
+			oaNextObjects = &oaObjects1;
+		}
 		else
 		{
-			assert(attribute->GetType() == KWType::ObjectArray);
-
-			// Propagation aux sous-objets
-			oaSubObjects = kwoObject->GetObjectArrayValueAt(attribute->GetLoadIndex());
-			if (oaSubObjects != NULL)
-			{
-				// Propagation aux sous-objets
-				for (i = 0; i < oaSubObjects->GetSize(); i++)
-				{
-					kwoSubObject = cast(KWObject*, oaSubObjects->GetAt(i));
-
-					// Propagation au sous-objet
-					RegisterReferencedObject(kwoSubObject);
-				}
-			}
-		}
-	}
-
-	// Parcours des blocs de type ObjectArray
-	for (nAttributeBlock = 0; nAttributeBlock < kwcClass->GetLoadedAttributeBlockNumber(); nAttributeBlock++)
-	{
-		attributeBlock = kwcClass->GetLoadedAttributeBlockAt(nAttributeBlock);
-
-		// Traitement des blocs de de type ObjectArray
-		if (attributeBlock->GetType() == KWType::ObjectArray)
-		{
-			valueBlock = kwoObject->GetObjectArrayValueBlockAt(attributeBlock->GetLoadIndex());
-
-			// Parcours des valeurs du bloc
-			for (nValue = 0; nValue < valueBlock->GetValueNumber(); nValue++)
-			{
-				// Propagation au sous-objet
-				oaSubObjects = valueBlock->GetValueAt(nValue);
-				check(oaSubObjects);
-
-				// Propagation aux sous-objets
-				for (i = 0; i < oaSubObjects->GetSize(); i++)
-				{
-					kwoSubObject = cast(KWObject*, oaSubObjects->GetAt(i));
-
-					// Propagation au sous-objet
-					RegisterReferencedObject(kwoSubObject);
-				}
-			}
+			oaCurrentObjects = &oaObjects1;
+			oaNextObjects = &oaObjects2;
 		}
 	}
 }
