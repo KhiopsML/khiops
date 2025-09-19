@@ -210,7 +210,7 @@ public:
 	// Les attributs cibles sont distingues des attribuuts source par l'utilisation d'un libelle "Target"
 	// uniquement s'il existe au moins un attribut source (sinon, dans le cas non supervise, tous
 	// les attributs sont cible et "Target" est sous-entendu).
-	// On peut neamoins forcer l'utilisation de "Target" meme en non supervise en utilisant
+	// On peut neanmoins forcer l'utilisation de "Target" meme en non supervise en utilisant
 	// la combinaison (bSource and bTarget) meme s'il n'y a pas d'attributs sources
 	void WritePartial(ostream& ost, boolean bSource, boolean bTarget) const;
 
@@ -581,7 +581,7 @@ protected:
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGSAttributeGrouping
-// Attribut d'un DataGridStats, groupement des valeurs d'un attribut Symbol
+// Attribut d'un DataGridStats, groupement des valeurs d'un attribut Symbol ou d'un attribut VarPart
 class KWDGSAttributeGrouping : public KWDGSAttributePartition
 {
 public:

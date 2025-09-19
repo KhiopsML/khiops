@@ -89,7 +89,6 @@ protected:
 	ALString sCoclusteringDictionaryFileName;
 
 	// ## Custom implementation
-
 	// Base de donnees servant a obtenir le chemin des fichier en entree
 	const KWDatabase* trainDatabase;
 

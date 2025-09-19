@@ -7,9 +7,12 @@
 //////////////////////////////////////////////////////////////////////////////
 // Regles de derivation pour la gestion des vecteurs de valeur
 
-// Vecteurs de valeurs
+// Vecteurs de valeurs constantes
 class KWDRSymbolVector;
 class KWDRContinuousVector;
+
+// Vecteurs de valeurs categorielles non necessairement constantes
+class KWDRDynamicSymbolVector;
 
 // Acces a une valeur d'un vecteur par son index
 class KWDRSymbolValueAt;
@@ -244,6 +247,33 @@ public:
 protected:
 	// Resultat utilise pour le code retour de la regle
 	mutable KWDRContinuousVector continuousVector;
+};
+
+///////////////////////////////////////////////////////////////
+// Classe KWDRDynamicSymbolVector
+// Regle de derivation de type Structure(VectorC), memorisant les valeurs
+// d'un vecteur de symboles issus de constantes ou de variables ou de regles de derivation
+class KWDRDynamicSymbolVector : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRDynamicSymbolVector();
+	~KWDRDynamicSymbolVector();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
+
+	// Memoire utilisee
+	longint GetUsedMemory() const override;
+
+	//////////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	// Resultat utilise pour le code retour de la regle
+	mutable KWDRSymbolVector symbolVector;
 };
 
 ///////////////////////////////////////////////////////////

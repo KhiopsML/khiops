@@ -28,7 +28,7 @@ class KWDGInnerAttributes;
 //////////////////////////////////////////////////////////////////////////////////
 // Classe KWDataGrid
 //
-// Deux famille de grille de donnees
+// Deux familles de grille de donnees
 //   - coclustering de variables "standard"
 //      - estimateur de densite jointe ou conditionnelle entre variables
 //      - multivarie, avec variable numeriques ou categorielles
@@ -134,7 +134,7 @@ public:
 	// Chaque partie est definie principalement par:
 	//   - sa liste de valeurs
 	//   - sa liste de cellules
-	// Chaque cellule est defini principalement par:
+	// Chaque cellule est definie principalement par:
 	//   - le vecteur des effectifs des classes cibles
 	//   - le tableau (par attribut) des parties dont il est le produit cartesien
 	//
@@ -324,14 +324,25 @@ public:
 	boolean AreAttributePartsSorted() const;
 
 	// Import/export avec les objets KWDataGridStats, qui permettent un stockage compact (mais fige)
-	// de tout type de grilles de donnees
-	// Les possibilites d'echange sont limitee par celles de la classe KWDataGrid, a savoir:
+	// de tout type de grilles de donnees excepte les grilles issues de coclustering individus * variables
+	// qui sont traites par une methode specifique (cf ExportVarPartDataGridStats)
+	// Les possibilites d'echange sont limitees par celles de la classe KWDataGrid, a savoir:
 	//   - soit entierement non supervise
 	//   - soit supervise avec un attribut cible symbolique implicite (GetTargetValueNumber() > 0)
 	//   - soit supervise avec un attribut cible explicite (GetTargetAttribute() != NULL)
 	// L'objet source doit etre valide, et l'objet cible doit etre vide
 	void ImportDataGridStats(const KWDataGridStats* dataGridStats);
 	void ExportDataGridStats(KWDataGridStats* dataGridStats) const;
+
+	// Methode d'export d'une grille de coclustering instances x variables
+	// Cet export considere exporte l'attribut VarPart en un attribut de type KWDGSGrouping
+	// pour lequel les valeurs des groupes de valeurs sont les libelles des parties de variables
+	// Cet export est partiel dans le sens ou les InnerAttributes ne sont pas exportes
+	// Le dataGridStats obtenu peut etre utilise pour construire la RDD de type KWDRDataGrid dans le dictionnaire de deploiement
+	// Seul la methode d'Export est specifique dans le cas VarPart.
+	// La methode d'Import est commune a celle des autres grilles : l'import du KWDGSGrouping se fait de la meme facon,
+	// qu'il provienne d'un attribut de type Symbol ou VarPart
+	void ExportVarPartDataGridStats(KWDataGridStats* dataGridStats) const;
 
 	// Affichage
 	void Write(ostream& ost) const override;
@@ -379,6 +390,9 @@ protected:
 	double ComputeLnGridSize() const;
 	int ComputeInformativeAttributeNumber() const;
 	int ComputeTotalPartNumber() const;
+
+	// Methode interne d'export d'une KWDataGrid en KWDataGridStats en fonction du type de grille : VarPart ou non
+	void InternalExportDataGridStats(KWDataGridStats* dataGridStats, boolean bVarPartMode) const;
 
 	////////////////////////////////////////////////////////////////////////////
 	// Methodes de creations virtuelles, permettant de specialiser les entites
@@ -429,7 +443,7 @@ protected:
 	int nSortValue;
 
 	// Attribut de la grille de type VarPart
-	// Positionne par l'attribut lors de l'initialsaition de son type s'il est de type VarPart
+	// Positionne par l'attribut lors de l'initialisation de son type s'il est de type VarPart
 	// Permet egalement de savoir si la grille est de type VarPart
 	KWDGAttribute* varPartAttribute;
 };

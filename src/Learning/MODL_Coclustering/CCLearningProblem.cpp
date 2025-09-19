@@ -144,6 +144,10 @@ void CCLearningProblem::BuildCoclustering()
 	boolean bWriteOk;
 	KWClassDomain* currentDomain = NULL;
 	KWClassDomain* constructedDomain = NULL;
+	KWClassDomain* deploymentDomain = NULL;
+	boolean bDeploymentOk;
+	CCDeploymentSpec ccVarPartDeploymentSpec;
+	ALString sCoclusteringDictionaryFileName;
 
 	require(CheckClass());
 	require(CheckDatabaseName());
@@ -307,7 +311,6 @@ void CCLearningProblem::BuildCoclustering()
 	// Parametrage du nom du rapport de coclustering
 	sReportFileName = BuildOutputFilePathName(TaskBuildCoclustering);
 	coclusteringBuilder.SetReportFileName(sReportFileName);
-	//coclusteringBuilder.SetExportAsKhc(GetAnalysisResults()->GetExportAsKhc());
 
 	// Calcul du coclustering
 	if (not TaskProgression::IsInterruptionRequested())
@@ -351,6 +354,33 @@ void CCLearningProblem::BuildCoclustering()
 				    " out of the " +
 				    IntToString(coclusteringBuilder.GetVarPartCoclusteringAttributeNumber()) +
 				    " dimensions");
+
+			if (GetVarPartDeploymentMode())
+			{
+				// Initialisation du varPartDeploymentSpec
+				ccVarPartDeploymentSpec.SetDeployedAttributeName(
+				    coclusteringBuilder.GetIdentifierAttributeName());
+				ccVarPartDeploymentSpec.SetInputClassName(GetClassName());
+
+				// Creation du dictionnaire de deploiement
+				bDeploymentOk = ccVarPartDeploymentSpec.PrepareVarPartCoclusteringDeployment(
+				    coclusteringBuilder.GetCoclusteringDataGrid(), deploymentDomain);
+
+				// Ecriture du fichier de dictionnaire de deploiement
+				if (bDeploymentOk)
+				{
+					sCoclusteringDictionaryFileName =
+					    GetResultFilePathBuilder(TaskBuildCoclustering)
+						->BuildOtherResultFilePathName("model.kdic");
+					AddSimpleMessage("Write deployment dictionary file " +
+							 sCoclusteringDictionaryFileName);
+					deploymentDomain->WriteFile(sCoclusteringDictionaryFileName);
+				}
+
+				// Nettoyage
+				if (bDeploymentOk)
+					delete deploymentDomain;
+			}
 		}
 	}
 
@@ -551,7 +581,13 @@ void CCLearningProblem::PrepareDeployment()
 	if (coclusteringDataGrid.IsVarPartDataGrid())
 	{
 		bOk = false;
-		AddWarning("Deployment preparation is not yet implemented for instances * variables coclustering");
+		if (not GetVarPartDeploymentMode())
+			AddWarning(
+			    "Deployment preparation is not yet implemented for instances * variables coclustering");
+		else
+			AddWarning(
+			    "Deployment dictionary is automatically produced during instances * variables coclustering "
+			    "training.");
 	}
 
 	// Post-traitement

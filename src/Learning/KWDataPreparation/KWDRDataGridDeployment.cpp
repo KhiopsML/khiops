@@ -61,7 +61,7 @@ boolean KWDRDataGridAtRule::CheckOperandsFamily(const KWDerivationRule* ruleFami
 		bOk = false;
 	}
 	// Verification des premiers operandes
-	// Les derniers operandes, dont le type depend de la grille, ne sont pas verifie a ce niveau
+	// Les derniers operandes, dont le type depend de la grille, ne sont pas verifies a ce niveau
 	else
 	{
 		for (i = 0; i < 2; i++)
@@ -105,7 +105,7 @@ boolean KWDRDataGridAtRule::CheckOperandsCompleteness(const KWClass* kwcOwnerCla
 	{
 		referencedDataGrid = cast(KWDRDataGrid*, GetOperandAt(0)->GetReferencedDerivationRule(kwcOwnerClass));
 
-		// Calcul du nombre d'attribut de la grille
+		// Calcul du nombre d'attributs de la grille
 		// La methode GetAttributeNumber n'est pas encore disponible (il faut une compilation)
 		nDataGridAttributeNumber = referencedDataGrid->GetUncheckedAttributeNumber();
 		assert(nDataGridAttributeNumber >= 1);
@@ -261,8 +261,8 @@ boolean KWDRDataGridDeployment::CheckOperandsCompleteness(const KWClass* kwcOwne
 		nDataGridAttributeNumber = referencedDataGrid->GetUncheckedAttributeNumber();
 		assert(nDataGridAttributeNumber >= 1);
 
-		// Contrainte specifique sur la taille de la grille dans le cas de deploiement de distribution de
-		// distribution La grille doit avoir au moins deux attributs
+		// Contrainte specifique sur la taille de la grille dans le cas de deploiement de distribution
+		// La grille doit avoir au moins deux attributs
 		if (nDataGridAttributeNumber < 2)
 		{
 			AddError(sTmp + "The data grid in the first operand must contain at least two variables");
@@ -282,9 +282,9 @@ boolean KWDRDataGridDeployment::CheckOperandsCompleteness(const KWClass* kwcOwne
 			assert(nDataGridAttributeNumber >= 2);
 			assert(0 <= nAttributeIndex and nAttributeIndex < nDataGridAttributeNumber);
 
-			// Le nombre d'operandes supplementaire doit etre egal a la dimension de la grille diminuee de
-			// un, plus optionnelement un si un vecteur de frequence est utilise Soit 1 + 1 +
-			// nDataGridAttributeNumber-1 (+1)
+			// Le nombre d'operandes supplementaires doit etre egal a la dimension de la grille diminuee de
+			// un, plus optionnellement un si un vecteur de frequence est utilise
+			// Soit 1 + 1 + nDataGridAttributeNumber - 1 (+1)
 			if (GetOperandNumber() < nDataGridAttributeNumber + 1)
 			{
 				AddError(sTmp + "The number of operands (" + IntToString(GetOperandNumber()) +
@@ -322,13 +322,13 @@ boolean KWDRDataGridDeployment::CheckOperandsCompleteness(const KWClass* kwcOwne
 					nDataGridAttributeType = referencedDataGrid->GetUncheckedAttributeTypeAt(i);
 					if (not KWType::IsSimple(nDataGridAttributeType))
 					{
-						// L'erreur sur la grille doit etre diagniostique par ailleurs
+						// L'erreur sur la grille doit etre diagnostiquee par ailleurs
 						bOk = false;
 						break;
 					}
 
 					// Test de compatibilite du type de l'operande avec celui de l'attribut sur la
-					// distribution de valeur
+					// distribution de valeurs
 					operand = GetOperandAt(nDistributionOperandIndex);
 					if (nDataGridAttributeType == KWType::Symbol)
 						refVectorRule = &refSymbolVector;
@@ -349,7 +349,7 @@ boolean KWDRDataGridDeployment::CheckOperandsCompleteness(const KWClass* kwcOwne
 					nDistributionOperandIndex++;
 				}
 
-				// Test du vecteur de frequence, dernier operande optionnel
+				// Test du vecteur de frequences, dernier operande optionnel
 				if (bOk and GetOperandNumber() == nDataGridAttributeNumber + 2)
 				{
 					// Test de compatibilite du type de l'operande avec un vecteur de frequences
@@ -404,7 +404,7 @@ void KWDRDataGridDeployment::Optimize(KWClass* kwcOwnerClass)
 	// Memorisation de l'effectif total de la grille
 	nTotalDataGridFrequency = dataGridStats.ComputeGridFrequency();
 
-	// Memorisation de l'operande portant sur le vecteur de frequence
+	// Memorisation de l'operande portant sur le vecteur de frequences
 	if (GetOperandNumber() == dataGridStats.GetAttributeNumber() + 2)
 		operandeFrequencyVector = GetOperandAt(GetOperandNumber() - 1);
 }
@@ -449,7 +449,7 @@ void KWDRDataGridDeployment::ComputeDeploymentStats(const KWObject* kwoObject) c
 					->GetValues();
 				oaDistributionValueVectors.SetAt(nAttribute, (Object*)svValueDistribution);
 
-				// On teste si toutes les distribution ont la meme taille
+				// On teste si toutes les distributions ont la meme taille
 				if (nDistributionSize == -1)
 					nDistributionSize = svValueDistribution->GetSize();
 				else
@@ -465,7 +465,7 @@ void KWDRDataGridDeployment::ComputeDeploymentStats(const KWObject* kwoObject) c
 					->GetValues();
 				oaDistributionValueVectors.SetAt(nAttribute, (Object*)cvValueDistribution);
 
-				// On teste si toutes les distribution ont la meme taille
+				// On teste si toutes les distributions ont la meme taille
 				if (nDistributionSize == -1)
 					nDistributionSize = cvValueDistribution->GetSize();
 				else
@@ -476,7 +476,7 @@ void KWDRDataGridDeployment::ComputeDeploymentStats(const KWObject* kwoObject) c
 	}
 	assert(nDistributionSize >= 0);
 
-	// Calcul du vecteur de frequence optionnel
+	// Calcul du vecteur de frequences optionnel
 	ivOptionalFrequencyVector = NULL;
 	if (bOk and operandeFrequencyVector != NULL)
 	{
@@ -484,7 +484,7 @@ void KWDRDataGridDeployment::ComputeDeploymentStats(const KWObject* kwoObject) c
 		    cast(KWDRContinuousVector*, operandeFrequencyVector->GetStructureValue(kwoObject))->GetValues();
 		bOk = bOk and nDistributionSize == cvFrequencyVector->GetSize();
 
-		// Initialisation d'un vecteur de frequence
+		// Initialisation d'un vecteur de frequences
 		if (bOk)
 		{
 			cTotalFrequency = 0, ivFrequencyVector.SetSize(nDistributionSize);
@@ -505,11 +505,11 @@ void KWDRDataGridDeployment::ComputeDeploymentStats(const KWObject* kwoObject) c
 				}
 			}
 
-			// On verifie egalement que la frequence cumulee est valdie
+			// On verifie egalement que la frequence cumulee est valide
 			if (bOk)
 				bOk = (cTotalFrequency < INT_MAX);
 
-			// On verifie egalement que la frequence cumulee plus celle de la grille est valdie
+			// On verifie egalement que la frequence cumulee plus celle de la grille est valide
 			if (bOk)
 				bOk = (cTotalFrequency + nTotalDataGridFrequency < INT_MAX);
 		}
@@ -817,7 +817,7 @@ boolean KWDRPredictedPartFrequenciesAt::CheckOperandsCompleteness(const KWClass*
 		    cast(KWDRDataGrid*,
 			 dataGridDeploymentRule->GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
 
-		// Calcul du nombre d'attribut de la grille
+		// Calcul du nombre d'attributs de la grille
 		// La methode GetAttributeNumber n'est pas encore disponible (il faut une compilation)
 		nDataGridAttributeNumber = referencedDataGrid->GetUncheckedAttributeNumber();
 		assert(nDataGridAttributeNumber >= 1);
@@ -919,13 +919,13 @@ boolean KWDRDataGridDeploymentDistributionRule::CheckOperandsCompleteness(const 
 	{
 		referencedDataGrid = cast(KWDRDataGrid*, GetOperandAt(0)->GetReferencedDerivationRule(kwcOwnerClass));
 
-		// Calcul du nombre d'attribut de la grille
+		// Calcul du nombre d'attributs de la grille
 		// La methode GetAttributeNumber n'est pas encore disponible (il faut une compilation)
 		nDataGridAttributeNumber = referencedDataGrid->GetUncheckedAttributeNumber();
 		assert(nDataGridAttributeNumber >= 1);
 
-		// Contrainte specifique sur la taille de la grille dans le cas de deploiement de distribution de
-		// distribution La grille doit avoir au moins deux attributs
+		// Contrainte specifique sur la taille de la grille dans le cas de deploiement de distribution
+		// La grille doit avoir au moins deux attributs
 		if (nDataGridAttributeNumber < 2)
 		{
 			AddError(sTmp + "The data grid in the first operand must contain at least two variables");
@@ -939,14 +939,14 @@ boolean KWDRDataGridDeploymentDistributionRule::CheckOperandsCompleteness(const 
 		nAttributeIndex--;
 
 		// Tests sur les derniers operandes, qui doivent etre des vecteurs de valeurs
-		// pour les dimension de la grille complementaire a la dimension de deploiement
+		// pour les dimensions de la grille complementaires a la dimension de deploiement
 		if (bOk)
 		{
 			assert(nDataGridAttributeNumber >= 2);
 			assert(0 <= nAttributeIndex and nAttributeIndex < nDataGridAttributeNumber);
 
-			// Le nombre d'operandes supplementaire doit etre egal a la dimension de la grille diminuee de
-			// un Soit 1 + 1 + nDataGridAttributeNumber-1
+			// Le nombre d'operandes supplementaires doit etre egal a la dimension de la grille diminuee de un
+			// Soit 1 + 1 + nDataGridAttributeNumber-1
 			if (GetOperandNumber() != nDataGridAttributeNumber + 1)
 			{
 				AddError(sTmp + "The number of operands (" + IntToString(GetOperandNumber()) +
@@ -967,7 +967,7 @@ boolean KWDRDataGridDeploymentDistributionRule::CheckOperandsCompleteness(const 
 					if (i == nAttributeIndex)
 						continue;
 
-					// Recherche du type de l'attribut de l'attribut indexe de la grille,
+					// Recherche du type de l'attribut indexe de la grille,
 					// qui correspond a l'attribut portant sur la distribution de valeurs
 					// La methode GetAttributeType n'est pas encore disponible (il faut une
 					// compilation)
@@ -976,7 +976,7 @@ boolean KWDRDataGridDeploymentDistributionRule::CheckOperandsCompleteness(const 
 					nDataGridAttributeType = referencedDataGrid->GetUncheckedAttributeTypeAt(i);
 					if (not KWType::IsSimple(nDataGridAttributeType))
 					{
-						// L'erreur sur la grille doit etre diagniostique par ailleurs
+						// L'erreur sur la grille doit etre diagnostiquee par ailleurs
 						bOk = false;
 						break;
 					}
@@ -1086,7 +1086,7 @@ boolean KWDRPartIndexAt::CheckOperandsCompleteness(const KWClass* kwcOwnerClass)
 	{
 		referencedDataGrid = cast(KWDRDataGrid*, GetOperandAt(0)->GetReferencedDerivationRule(kwcOwnerClass));
 
-		// Calcul du nombre d'attribut de la grille
+		// Calcul du nombre d'attributs de la grille
 		// La methode GetAttributeNumber n'est pas encore disponible (il faut une compilation)
 		nDataGridAttributeNumber = referencedDataGrid->GetUncheckedAttributeNumber();
 		assert(nDataGridAttributeNumber >= 1);
@@ -1104,7 +1104,7 @@ boolean KWDRPartIndexAt::CheckOperandsCompleteness(const KWClass* kwcOwnerClass)
 		nDataGridAttributeType = referencedDataGrid->GetUncheckedAttributeTypeAt(nAttributeIndex);
 		if (not KWType::IsSimple(nDataGridAttributeType))
 		{
-			// L'erreur sur la grille doit etre diagniostique par ailleurs
+			// L'erreur sur la grille doit etre diagniostiquee par ailleurs
 			bOk = false;
 		}
 

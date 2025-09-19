@@ -66,7 +66,8 @@ CCDeploymentSpec* CCDeploymentSpec::Clone() const
 void CCDeploymentSpec::Write(ostream& ost) const
 {
 	ost << "Input dictionary\t" << GetInputClassName() << "\n";
-	ost << "Input table variable\t" << GetInputObjectArrayAttributeName() << "\n";
+	if (GetInputObjectArrayAttributeName() != "")
+		ost << "Input table variable\t" << GetInputObjectArrayAttributeName() << "\n";
 	ost << "Coclustering deployed variable\t" << GetDeployedAttributeName() << "\n";
 	ost << "Build predicted cluster variable\t" << BooleanToString(GetBuildPredictedClusterAttribute()) << "\n";
 	ost << "Build inter-cluster distance variables\t" << BooleanToString(GetBuildClusterDistanceAttributes())
@@ -117,6 +118,7 @@ boolean CCDeploymentSpec::PrepareCoclusteringDeployment(const CCHierarchicalData
 	ObjectArray oaDistributionValueAttributes;
 
 	require(coclusteringDataGrid != NULL);
+	require(not coclusteringDataGrid->IsVarPartDataGrid());
 	require(deploymentDomain == NULL);
 
 	// Test d'integrite pour le deploiement, en fonction des specifications et de la grille de coclustering
@@ -233,6 +235,134 @@ boolean CCDeploymentSpec::PrepareCoclusteringDeployment(const CCHierarchicalData
 	return bOk;
 }
 
+boolean CCDeploymentSpec::PrepareVarPartCoclusteringDeployment(const CCHierarchicalDataGrid* coclusteringDataGrid,
+							       KWClassDomain*& deploymentDomain)
+{
+	boolean bOk = true;
+	int nAttribute;
+	CCHDGAttribute* hdgDeploymentAttribute;
+	KWClass* kwcInputClass;
+	KWClass* kwcDeploymentClass;
+	ALString sDistributionAttributeName;
+	KWDataGridStats coclusteringDataGridStats;
+	KWAttribute* coclusteringAttribute;
+	KWAttribute* labelVectorAttribute;
+	KWAttribute* distributionValueAttribute;
+	KWAttribute* dataGridDeploymentAttribute;
+	KWAttribute* predictedPartIndexAttribute;
+	KWAttribute* predictedPartLabelAttribute;
+	ObjectArray oaDistributionValueAttributes;
+	KWAttribute* innerVariablePartitionAttribute;
+	KWAttribute* innerVariablePartitionIndexAttribute;
+	KWAttribute* innerVariableVarPartLabelsAttribute;
+	KWAttribute* varPartLabelInnerAttribute;
+	KWDRDynamicSymbolVector* varPartVariableRule;
+	ObjectArray oaVarPartLabelAttributes;
+	KWDGAttribute* innerAttribute;
+	KWDGAttribute* varPartAttribute;
+	KWDerivationRuleOperand* innerVariableOperand;
+
+	require(GetVarPartDeploymentMode());
+	require(coclusteringDataGrid != NULL);
+	require(coclusteringDataGrid->IsVarPartDataGrid());
+	require(deploymentDomain == NULL);
+
+	// Test d'integrite pour le deploiement, en fonction des specifications et de la grille de coclustering : a adapter
+	if (bOk)
+		bOk = CheckDeploymentSpec(coclusteringDataGrid);
+
+	// Deploiement effectif
+	if (bOk)
+	{
+		// Recherche de l'attribut de deploiement dans la grille
+		hdgDeploymentAttribute =
+		    cast(CCHDGAttribute*, coclusteringDataGrid->SearchAttribute(GetDeployedAttributeName()));
+
+		//////////////////////////////////////////////////////////////////////////////////////
+		// Creation du domaine de dploiement et identification des classe et attributs utiles
+
+		// Creation du domaine de deploiement a partir de la classe de deploiement
+		kwcInputClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetInputClassName());
+		check(kwcInputClass);
+		deploymentDomain = KWClassDomain::GetCurrentDomain()->CloneFromClass(kwcInputClass);
+
+		// Recherche de la classe racine de deploiement
+		kwcDeploymentClass = deploymentDomain->LookupClass(GetInputClassName());
+		check(kwcDeploymentClass);
+
+		/////////////////////////////////////////////////////////////////////
+		// Ajout d'attribut pour le deploiement de coclustering
+
+		// Ajout d'un attribut de type grille dans une classe de deploiement
+		coclusteringAttribute = AddDataGridAttribute(kwcDeploymentClass, coclusteringDataGrid);
+
+		// Ajout d'un attribut pour les libelles associes a l'attribut
+		labelVectorAttribute = AddLabelVectorAttributeAt(kwcDeploymentClass, hdgDeploymentAttribute);
+
+		// Creation d'attributs exploitant l'attribut de distribution
+		varPartAttribute = coclusteringDataGrid->GetVarPartAttribute();
+		distributionValueAttribute = new KWAttribute;
+		distributionValueAttribute->SetName(
+		    kwcDeploymentClass->BuildAttributeName(GetOutputAttributesPrefix() + "VariablesSet"));
+		oaDistributionValueAttributes.Add(distributionValueAttribute);
+		varPartVariableRule = new KWDRDynamicSymbolVector;
+		varPartVariableRule->DeleteAllOperands();
+		distributionValueAttribute->SetDerivationRule(varPartVariableRule);
+
+		// Parcours des innerVariables
+		for (nAttribute = 0; nAttribute < varPartAttribute->GetInnerAttributeNumber(); nAttribute++)
+		{
+			innerAttribute = varPartAttribute->GetInnerAttributeAt(nAttribute);
+
+			// Creation d'un attribute des labels des VarPart de l'innerVariable
+			innerVariableVarPartLabelsAttribute =
+			    AddInnerAttributeVarPartLabelsAttribute(kwcDeploymentClass, innerAttribute);
+
+			// Creation d'un attribut de partition pour l'innerVariable
+			innerVariablePartitionAttribute =
+			    AddInnerAttributePartitionAttribute(kwcDeploymentClass, innerAttribute);
+
+			// Creation d'un attribut d'index de la partition de l'innerVariable
+			innerVariablePartitionIndexAttribute = AddInnerAttributePartitionIndexAttribute(
+			    kwcDeploymentClass, innerVariablePartitionAttribute, innerAttribute);
+
+			// Creation d'un attribut donnant le label de la VarPart de l'innerVariable
+			varPartLabelInnerAttribute = AddInnerAttributePartitionLabelAttribute(
+			    kwcDeploymentClass, innerVariableVarPartLabelsAttribute,
+			    innerVariablePartitionIndexAttribute);
+
+			// Insertion de cet attribut dans la regle de la variable VarPart
+			innerVariableOperand = new KWDerivationRuleOperand;
+			innerVariableOperand->SetType(KWType::Symbol);
+			innerVariableOperand->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+			innerVariableOperand->SetAttributeName(varPartLabelInnerAttribute->GetName());
+			varPartVariableRule->AddOperand(innerVariableOperand);
+		}
+		kwcDeploymentClass->InsertAttribute(distributionValueAttribute);
+
+		// Creation d'un attribut de deploiement de grille
+		dataGridDeploymentAttribute =
+		    AddDataGridDeploymentAttribute(kwcDeploymentClass, coclusteringAttribute,
+						   &oaDistributionValueAttributes, NULL, hdgDeploymentAttribute);
+
+		// Creation d'un attribut de prediction de la partie de deploiement
+		predictedPartIndexAttribute = AddPredictedPartIndexAttribute(
+		    kwcDeploymentClass, dataGridDeploymentAttribute, hdgDeploymentAttribute);
+		predictedPartLabelAttribute =
+		    AddPartLabelAttribute(kwcDeploymentClass, predictedPartIndexAttribute, labelVectorAttribute,
+					  hdgDeploymentAttribute, "Predicted");
+		assert(predictedPartLabelAttribute != NULL); // Pour eviter un warning
+
+		// Completion des infos
+		deploymentDomain->CompleteTypeInfo();
+
+		// Test de validite du domaine de classe
+		deploymentDomain->Check();
+	}
+
+	return bOk;
+}
+
 boolean CCDeploymentSpec::CheckDeploymentSpec(const CCHierarchicalDataGrid* coclusteringDataGrid) const
 {
 	boolean bOk = true;
@@ -285,36 +415,41 @@ boolean CCDeploymentSpec::CheckDeploymentSpec(const CCHierarchicalDataGrid* cocl
 		AddError("No deployment variable must be built");
 	}
 
-	// L'attribut de deploiement doit exister s'il est specifie
-	kwaDistributionAttribute = NULL;
-	if (bOk and GetInputObjectArrayAttributeName() != "")
-		kwaDistributionAttribute = kwcDeploymentClass->LookupAttribute(GetInputObjectArrayAttributeName());
-	if (bOk and GetInputObjectArrayAttributeName() != "" and kwaDistributionAttribute == NULL)
+	if (not coclusteringDataGrid->IsVarPartDataGrid())
 	{
-		bOk = false;
-		AddError("Input table variable " + GetInputObjectArrayAttributeName() + " not found in dictionary " +
-			 kwcDeploymentClass->GetName());
-	}
-
-	// Dans le cas de construction d'attributs exploitant la distribution, l'attribut de distribution doit exister
-	// et etre valide dans la classe de deploiement
-	if (bOk and GetBuildDistributionBasedAttributes())
-	{
-		// Existence de l'attribut de distribution
-		if (bOk and GetInputObjectArrayAttributeName() == "")
+		// L'attribut de deploiement doit exister s'il est specifie
+		kwaDistributionAttribute = NULL;
+		if (bOk and GetInputObjectArrayAttributeName() != "")
+			kwaDistributionAttribute =
+			    kwcDeploymentClass->LookupAttribute(GetInputObjectArrayAttributeName());
+		if (bOk and GetInputObjectArrayAttributeName() != "" and kwaDistributionAttribute == NULL)
 		{
 			bOk = false;
-			AddError("Missing input table variable name");
+			AddError("Input table variable " + GetInputObjectArrayAttributeName() +
+				 " not found in dictionary " + kwcDeploymentClass->GetName());
 		}
-		assert(not bOk or kwaDistributionAttribute != NULL);
 
-		// Validite de l'attribut de distribution
-		if (bOk and not CheckAttributeConsistencyWithCoclusteringDataGrid(kwaDistributionAttribute,
-										  coclusteringDataGrid))
+		// Dans le cas de construction d'attributs exploitant la distribution, l'attribut de distribution doit exister
+		// et etre valide dans la classe de deploiement
+		if (bOk and GetBuildDistributionBasedAttributes())
 		{
-			bOk = false;
-			AddError("Input table variable " + GetInputObjectArrayAttributeName() + " in dictionary " +
-				 kwcDeploymentClass->GetName() + " is not consistent with the coclustering variables");
+			// Existence de l'attribut de distribution
+			if (bOk and GetInputObjectArrayAttributeName() == "")
+			{
+				bOk = false;
+				AddError("Missing input table variable name");
+			}
+			assert(not bOk or kwaDistributionAttribute != NULL);
+
+			// Validite de l'attribut de distribution
+			if (bOk and not CheckAttributeConsistencyWithCoclusteringDataGrid(kwaDistributionAttribute,
+											  coclusteringDataGrid))
+			{
+				bOk = false;
+				AddError("Input table variable " + GetInputObjectArrayAttributeName() +
+					 " in dictionary " + kwcDeploymentClass->GetName() +
+					 " is not consistent with the coclustering variables");
+			}
 		}
 	}
 	return bOk;
@@ -403,6 +538,7 @@ boolean CCDeploymentSpec::CheckAttributeConsistencyWithCoclusteringDataGrid(
 	require(kwaAttribute != NULL);
 	require(kwaAttribute->Check());
 	require(coclusteringDataGrid != NULL);
+	require(not coclusteringDataGrid->IsVarPartDataGrid());
 
 	// L'attribut doit etre de type ObjectArray
 	if (kwaAttribute->GetType() != KWType::ObjectArray)
@@ -563,7 +699,11 @@ KWAttribute* CCDeploymentSpec::AddDataGridAttribute(KWClass* kwcDeploymentClass,
 	require(coclusteringDataGrid != NULL);
 
 	// Export de la grille de coclustering vers un objet intermediaire de stats de grilles
-	coclusteringDataGrid->ExportDataGridStats(&coclusteringDataGridStats);
+	// Cas d'une grille variable * variable
+	if (not coclusteringDataGrid->IsVarPartDataGrid())
+		coclusteringDataGrid->ExportDataGridStats(&coclusteringDataGridStats);
+	else
+		coclusteringDataGrid->ExportVarPartDataGridStats(&coclusteringDataGridStats);
 
 	// Creation d'un attribut de grille
 	dgRule = new KWDRDataGrid;
@@ -953,4 +1093,237 @@ KWAttribute* CCDeploymentSpec::AddLabelVectorAttributeAt(KWClass* kwcDeploymentC
 	return labelVectorAttribute;
 }
 
+KWAttribute* CCDeploymentSpec::AddInnerAttributePartitionAttribute(KWClass* kwcDeploymentClass,
+								   KWDGAttribute* innerAttribute)
+{
+	KWAttribute* dgAttribute;
+	KWDRIntervalBounds* intervalBoundsRule;
+	KWDRValueGroups* valueGroupsRule;
+	KWDerivationRuleOperand* intervalBoundsOperand;
+	KWDerivationRuleOperand* valueGroupOperand;
+	KWDRValueGroup* valueGroupRule;
+	ObjectArray* oaParts;
+	ObjectArray* oaValues;
+	int nPart;
+	int nValue;
+
+	require(GetVarPartDeploymentMode());
+	require(kwcDeploymentClass != NULL);
+	require(innerAttribute != NULL);
+	require(innerAttribute->IsInnerAttribute());
+
+	dgAttribute = new KWAttribute;
+	dgAttribute->SetName(kwcDeploymentClass->BuildAttributeName(GetOutputAttributesPrefix() +
+								    innerAttribute->GetAttributeName() + "Partition"));
+
+	oaParts = new ObjectArray;
+	innerAttribute->ExportParts(oaParts);
+
+	if (innerAttribute->GetAttributeType() == KWType::Continuous)
+	{
+		intervalBoundsRule = new KWDRIntervalBounds;
+		intervalBoundsRule->DeleteAllOperands();
+
+		dgAttribute->SetDerivationRule(intervalBoundsRule);
+
+		for (nPart = 0; nPart < oaParts->GetSize() - 1; nPart++)
+		{
+			intervalBoundsOperand = new KWDerivationRuleOperand;
+			intervalBoundsOperand->SetType(KWType::Continuous);
+			intervalBoundsOperand->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+			intervalBoundsOperand->SetContinuousConstant(
+			    cast(KWDGPart*, oaParts->GetAt(nPart))->GetInterval()->GetUpperBound());
+			intervalBoundsRule->AddOperand(intervalBoundsOperand);
+		}
+	}
+	else
+	{
+		valueGroupsRule = new KWDRValueGroups;
+		valueGroupsRule->DeleteAllOperands();
+
+		dgAttribute->SetDerivationRule(valueGroupsRule);
+
+		for (nPart = 0; nPart < oaParts->GetSize(); nPart++)
+		{
+			// Creation d'un operande pour le groupe
+			valueGroupOperand = new KWDerivationRuleOperand;
+			valueGroupOperand->SetOrigin(KWDerivationRuleOperand::OriginRule);
+			valueGroupOperand->SetType(KWType::Structure);
+
+			// Creation d'un nouveau groupe
+			valueGroupRule = new KWDRValueGroup;
+			valueGroupOperand->SetDerivationRule(valueGroupRule);
+			valueGroupOperand->SetStructureName(valueGroupRule->GetStructureName());
+			valueGroupOperand->SetOrigin(KWDerivationRuleOperand::OriginRule);
+			valueGroupOperand->SetType(KWType::Structure);
+
+			// Ajout des valeurs du groupe
+			valueGroupRule->DeleteAllOperands();
+
+			oaValues = new ObjectArray;
+			cast(KWDGPart*, oaParts->GetAt(nPart))->GetSymbolValueSet()->ExportValues(oaValues);
+
+			valueGroupRule->SetValueNumber(oaValues->GetSize());
+			for (nValue = 0; nValue < oaValues->GetSize(); nValue++)
+			{
+				valueGroupRule->SetValueAt(nValue,
+							   cast(KWDGValue*, oaValues->GetAt(nValue))->GetSymbolValue());
+			}
+			delete oaValues;
+			valueGroupsRule->AddOperand(valueGroupOperand);
+		}
+	}
+	delete oaParts;
+	dgAttribute->SetUsed(false);
+	//dgAttribute->SetLabel(coclusteringDataGridStats.ExportVariableNames());
+	kwcDeploymentClass->InsertAttribute(dgAttribute);
+	return dgAttribute;
+}
+
+KWAttribute* CCDeploymentSpec::AddInnerAttributePartitionIndexAttribute(KWClass* kwcDeploymentClass,
+									KWAttribute* ivPartitionAttribute,
+									KWDGAttribute* innerAttribute)
+{
+	KWDRGroupIndex* groupIndexRule;
+	KWDRIntervalIndex* intervalIndexRule;
+	KWAttribute* dgAttribute;
+	KWDerivationRuleOperand* partIndexOperand1;
+	KWDerivationRuleOperand* partIndexOperand2;
+
+	require(GetVarPartDeploymentMode());
+	require(kwcDeploymentClass != NULL);
+	require(ivPartitionAttribute != NULL);
+	require(innerAttribute != NULL);
+	require(innerAttribute->IsInnerAttribute());
+
+	dgAttribute = new KWAttribute;
+	dgAttribute->SetName(kwcDeploymentClass->BuildAttributeName(
+	    GetOutputAttributesPrefix() + innerAttribute->GetAttributeName() + "PartitionIndex"));
+
+	if (innerAttribute->GetAttributeType() == KWType::Continuous)
+	{
+		intervalIndexRule = new KWDRIntervalIndex;
+		intervalIndexRule->DeleteAllOperands();
+
+		dgAttribute->SetDerivationRule(intervalIndexRule);
+
+		partIndexOperand1 = new KWDerivationRuleOperand;
+		partIndexOperand1->SetType(KWType::Structure);
+		partIndexOperand1->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+		partIndexOperand1->SetAttributeName(ivPartitionAttribute->GetName());
+		intervalIndexRule->AddOperand(partIndexOperand1);
+
+		partIndexOperand2 = new KWDerivationRuleOperand;
+		partIndexOperand2->SetType(KWType::Continuous);
+		partIndexOperand2->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+		partIndexOperand2->SetAttributeName(innerAttribute->GetAttributeName());
+		intervalIndexRule->AddOperand(partIndexOperand2);
+	}
+	else
+	{
+		groupIndexRule = new KWDRGroupIndex;
+		groupIndexRule->DeleteAllOperands();
+
+		dgAttribute->SetDerivationRule(groupIndexRule);
+
+		partIndexOperand1 = new KWDerivationRuleOperand;
+		partIndexOperand1->SetType(KWType::Structure);
+		partIndexOperand1->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+		partIndexOperand1->SetAttributeName(ivPartitionAttribute->GetName());
+		groupIndexRule->AddOperand(partIndexOperand1);
+
+		partIndexOperand2 = new KWDerivationRuleOperand;
+		partIndexOperand2->SetType(KWType::Symbol);
+		partIndexOperand2->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+		partIndexOperand2->SetAttributeName(innerAttribute->GetAttributeName());
+		groupIndexRule->AddOperand(partIndexOperand2);
+	}
+	dgAttribute->SetUsed(false);
+	//dgAttribute->SetLabel(coclusteringDataGridStats.ExportVariableNames());
+	kwcDeploymentClass->InsertAttribute(dgAttribute);
+	return dgAttribute;
+}
+
+KWAttribute* CCDeploymentSpec::AddInnerAttributeVarPartLabelsAttribute(KWClass* kwcDeploymentClass,
+								       KWDGAttribute* innerAttribute)
+{
+	KWAttribute* dgAttribute;
+	KWDRSymbolVector* vectorRule;
+	KWDerivationRuleOperand* varPartLabelOperand;
+	ObjectArray* oaParts;
+	int nPart;
+
+	require(GetVarPartDeploymentMode());
+	require(kwcDeploymentClass != NULL);
+	require(innerAttribute != NULL);
+	require(innerAttribute->IsInnerAttribute());
+
+	dgAttribute = new KWAttribute;
+	dgAttribute->SetName(kwcDeploymentClass->BuildAttributeName(
+	    GetOutputAttributesPrefix() + innerAttribute->GetAttributeName() + "VarPartLabels"));
+
+	vectorRule = new KWDRSymbolVector;
+	vectorRule->DeleteAllOperands();
+	dgAttribute->SetDerivationRule(vectorRule);
+
+	oaParts = new ObjectArray;
+	innerAttribute->ExportParts(oaParts);
+
+	for (nPart = 0; nPart < oaParts->GetSize(); nPart++)
+	{
+		varPartLabelOperand = new KWDerivationRuleOperand;
+		varPartLabelOperand->SetType(KWType::Symbol);
+		varPartLabelOperand->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+		varPartLabelOperand->SetSymbolConstant(
+		    Symbol(cast(KWDGPart*, oaParts->GetAt(nPart))->GetVarPartLabel()));
+		vectorRule->AddOperand(varPartLabelOperand);
+	}
+	delete oaParts;
+
+	dgAttribute->SetUsed(false);
+	//dgAttribute->SetLabel(coclusteringDataGridStats.ExportVariableNames());
+	kwcDeploymentClass->InsertAttribute(dgAttribute);
+	return dgAttribute;
+}
+
+KWAttribute* CCDeploymentSpec::AddInnerAttributePartitionLabelAttribute(KWClass* kwcDeploymentClass,
+									KWAttribute* ivVarPartLabelsAttribute,
+									KWAttribute* ivIndexAttribute)
+{
+	KWDRSymbolValueAt* varPartRule;
+	KWAttribute* dgAttribute;
+	KWDerivationRuleOperand* partIndexOperand1;
+	KWDerivationRuleOperand* partIndexOperand2;
+
+	require(GetVarPartDeploymentMode());
+	require(kwcDeploymentClass != NULL);
+	require(ivVarPartLabelsAttribute != NULL);
+	require(ivIndexAttribute != NULL);
+
+	dgAttribute = new KWAttribute;
+	dgAttribute->SetName(kwcDeploymentClass->BuildAttributeName(GetOutputAttributesPrefix() + "VarPartLabel" +
+								    ivIndexAttribute->GetName()));
+
+	varPartRule = new KWDRSymbolValueAt;
+	varPartRule->DeleteAllOperands();
+
+	dgAttribute->SetDerivationRule(varPartRule);
+
+	partIndexOperand1 = new KWDerivationRuleOperand;
+	partIndexOperand1->SetType(KWType::Structure);
+	partIndexOperand1->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+	partIndexOperand1->SetAttributeName(ivVarPartLabelsAttribute->GetName());
+	varPartRule->AddOperand(partIndexOperand1);
+
+	partIndexOperand2 = new KWDerivationRuleOperand;
+	partIndexOperand2->SetType(KWType::Continuous);
+	partIndexOperand2->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
+	partIndexOperand2->SetAttributeName(ivIndexAttribute->GetName());
+	varPartRule->AddOperand(partIndexOperand2);
+
+	dgAttribute->SetUsed(false);
+	//dgAttribute->SetLabel(coclusteringDataGridStats.ExportVariableNames());
+	kwcDeploymentClass->InsertAttribute(dgAttribute);
+	return dgAttribute;
+}
 // ##

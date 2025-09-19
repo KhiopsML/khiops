@@ -352,13 +352,13 @@ void KWDRDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 			attributePartition->SetInitialValueNumber(nTotalFrequency);
 			attributePartition->SetGranularizedValueNumber(nTotalFrequency);
 		}
-		// Cas d'un groupement de valeurs
+		// Cas d'un groupement de valeurs : Sympol ou VarPart
 		else if (operand->GetStructureName() == valueGroupsRefRule.GetStructureName())
 		{
 			KWDRValueGroups* valueGroupsRule;
 			KWDGSAttributeGrouping* attributeGrouping;
 
-			// Creation d'une partition de type ensemble de valeurs continues
+			// Creation d'une partition de type groupement de valeurs
 			attributeGrouping = new KWDGSAttributeGrouping;
 			attributePartition = attributeGrouping;
 
@@ -2113,7 +2113,7 @@ void KWDRDataGridStats::Optimize(KWClass* kwcOwnerClass)
 	// ce qui permettra de construire une table de probabilites conditionnelles
 	dataGridRule->ExportDataGridStats(&dataGridStats);
 
-	// Presence d'attributs sources si moins de de parametres attributs que de dimensions dans la grille
+	// Presence d'attributs sources si moins de parametres attributs que de dimensions dans la grille
 	if (GetOperandNumber() - 1 < dataGridRule->GetAttributeNumber())
 		dataGridStats.SetSourceAttributeNumber(GetOperandNumber() - 1);
 
@@ -2131,7 +2131,7 @@ void KWDRDataGridStats::Optimize(KWClass* kwcOwnerClass)
 	// Calcul y compris dans le cas non supervise, pour eviter les effets de bord
 	ptSourceConditionalLogProbs.ImportDataGridStats(&dataGridStats, false, true);
 
-	// Calcul des effectifs cumule dans le cas d'une cible continue
+	// Calcul des effectifs cumules dans le cas d'une cible continue
 	nCell = 0;
 	cCumulativeFrequency = 0;
 	cvTargetCumulativeFrequencies.SetSize(0);

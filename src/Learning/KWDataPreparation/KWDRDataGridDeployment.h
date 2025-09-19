@@ -87,7 +87,7 @@ protected:
 //         pour pour ponderer les valeur par un effectif
 //
 // En cas d'erreurs dans les argument, non detectees a la compilation de la regle (vecteurs
-// de valeur de tailles differentes, effectifs negatifs...), tous le deploiement est
+// de valeur de tailles differentes, effectifs negatifs...), tout le deploiement est
 // effectue avec des vecteurs tous de taille vide.
 // Cette regle construit une Structure(DataGridDeployment), parametre principale des
 // des regle de deploiement de distribution basees sur les grilles

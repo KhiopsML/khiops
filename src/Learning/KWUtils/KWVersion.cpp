@@ -24,6 +24,9 @@ static boolean bVarPartAttributeGarbage = false;
 // pour les attributs internes categoriels
 static boolean bInnerAttributeGarbage = false;
 
+// Booleen de calcul du dictionnaire de deploiement associe au coclustering instances * variables
+static boolean bVarPartDeploymentMode = false;
+
 const ALString GetLearningApplicationName()
 {
 	return sKWLearningApplicationName;
@@ -599,4 +602,9 @@ boolean GetSNBForceDenseMode()
 		bIsInitialized = true;
 	}
 	return bSNBForceDenseMode;
+}
+
+boolean GetVarPartDeploymentMode()
+{
+	return bVarPartDeploymentMode;
 }
