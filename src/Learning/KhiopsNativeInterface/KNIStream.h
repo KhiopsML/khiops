@@ -18,41 +18,54 @@ public:
 
 	// Classe de gestion du stream
 	// Memoire: appartient a l'appele
-	inline void SetClass(KWClass* kwcClass)
-	{
-		streamClass = kwcClass;
-	}
-	inline KWClass* GetClass() const
-	{
-		return streamClass;
-	}
+	void SetClass(KWClass* kwcClass);
+	KWClass* GetClass() const;
 
 	// Acces a la base stream d'entree
-	inline KWMTDatabaseStream* GetInputStream()
-	{
-		return &inputStream;
-	}
+	KWMTDatabaseStream* GetInputStream();
 
 	// Acces a la base stream de sortie
-	inline KWMTDatabaseStream* GetOutputStream()
-	{
-		return &outputStream;
-	}
+	KWMTDatabaseStream* GetOutputStream();
 
 	////////////////////////////////////////////////////////////////////////////////////
-	// Gestion de la limite memoire
+	// Gestion de la limite memoire utilisateur
+	// Il s'agit de la memoire physique RAM, et non de la memoire logique
+	// Pour estimer cette memoire de facon la plus precise possible, on doit enregistrer les
+	// variation de memoire de la heap suite a chaque operation de gestion du stream, et emettre
+	// des messages d'erreur en cas de depassement de la limite
 
-	// Memoire utilisee par le stream pour son fonctionnement
-	// (dictionnaire, et stream en input et output)
-	// Cette methode est potentiellement couteuse en temps de calcul
-	longint GetUsedMemory() const override;
+	// Memoire physique utilisee pour l'ouverture du stream, a mettre a jour apres chaque etape de l'ouverture
+	// - parametrage du stream (lignes d'entete...)
+	// - lecture du dictionnaire
+	// - compilation du dictionnaire
+	// - ouverture de la base (qui comprend la creation des dictionnaire physique, et le chargement
+	//   des tables externes
+	void SetStreamOpeningUsedMemory(longint lValue);
+	longint GetStreamOpeningUsedMemory() const;
 
-	// Gestion utilisateur de la memoire en MB utilisee par le stream
-	void SetStreamUsedMemory(longint lValue);
-	longint GetStreamUsedMemory() const;
+	// Memoire physique utilise pour l'exploitation du stream, a mettre ajour apres chaque etape d'une recodage
+	// - gestion des buffers d'enregistrement des record de l'objet en cours
+	// - lecture effective pour recodage, avec potentiellement instance elephant
+	void SetStreamRecodingUsedMemory(longint lValue);
+	longint GetStreamRecodingUsedMemory() const;
 
-	// Memoire totale effectivement utilisable pour le stream en octet (en tenant compte d'un overhead d'allocation)
-	longint GetStreamAvailableMemory() const;
+	// Memoire disponible pour l'exploitation du stream apres son ouverture
+	// Il s'agit de la moitie limite du stream diminue de la memoire necessaire a son ouverture
+	longint GetStreamRecodingAvailableMemory() const;
+
+	// Memoire disponible pour le stockage des records dans des buffers en vue du recodage
+	// Il s'agit de la moitie de la memoire disponible pour le recodage
+	longint GetStreamRecodingAvailableBufferMemory() const;
+
+	// Memoire disponible pour la creation du KWObject a partir des buffers en vue du recodage
+	// Il s'agit de la moitie de la memoire disponible pour le recodage
+	longint GetStreamRecodingAvailableComputationMemory() const;
+
+	// Memoire physique minimale reservee pour le recodage
+	longint GetStreamMinimumRecodingMemoryLimit() const;
+
+	// Memoire disponible totale en octets, issu d'une simple conversion de GetStreamMemoryLimit
+	longint GetStreamActualMemoryLimit() const;
 
 	// Parametrage de la memoire disponible totale en MB pour la gestion du stream
 	// (dictionnaire, tables externes, buffer des fichiers)
@@ -65,6 +78,11 @@ public:
 	static void SetAllStreamsMemoryLimit(int nValue);
 	static int GetAllStreamsMemoryLimit();
 
+	// Memoire utilisee par le stream pour son fonctionnement, hors dictionnaire
+	// Cette methode est potentiellement couteuse en temps de calcul
+	// Il s'agit ici de la reimplementation de la method standard, pour la memoire logique
+	longint GetUsedMemory() const override;
+
 	/////////////////////////////////////////////////
 	///// Implementation
 protected:
@@ -73,12 +91,38 @@ protected:
 	KWMTDatabaseStream inputStream;
 	KWMTDatabaseStream outputStream;
 
+	// Memoire physique utilisee pour l'ouverture du stream
+	longint lStreamOpeningUsedMemory;
+
+	// Memoire physique utilisee pour le recordage d'une instance
+	longint lStreamRecodingUsedMemory;
+
 	// Limite memoire du stream
 	int nStreamMemoryLimit;
-
-	// Memoire actuellement utilisee par le stream, en MB
-	longint lStreamUsedMemory;
 
 	// Limite memoire pour l'ensemble des stream
 	static int nAllStreamsMemoryLimit;
 };
+
+///////////////////////////////////
+// Methodes en inline
+
+inline void KNIStream::SetClass(KWClass* kwcClass)
+{
+	streamClass = kwcClass;
+}
+
+inline KWClass* KNIStream::GetClass() const
+{
+	return streamClass;
+}
+
+inline KWMTDatabaseStream* KNIStream::GetInputStream()
+{
+	return &inputStream;
+}
+
+inline KWMTDatabaseStream* KNIStream::GetOutputStream()
+{
+	return &outputStream;
+}

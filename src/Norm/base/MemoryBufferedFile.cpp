@@ -238,3 +238,10 @@ boolean MemoryOutputBufferedFile::Close()
 	bIsOpened = false;
 	return true;
 }
+
+boolean MemoryOutputBufferedFile::FlushCache()
+{
+	require(IsOpened());
+	bIsError = true;
+	return false;
+}

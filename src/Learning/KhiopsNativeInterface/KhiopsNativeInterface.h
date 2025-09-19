@@ -49,23 +49,23 @@ extern "C"
 	 **********************************************************************************************************/
 
 	/*
-	 * Max number of streams
+	 * Max number of streams.
 	 */
 #define KNI_MaxStreamNumber 512
 
 	/*
-	 * Default max memory per stream in MB
+	 * Default max memory per stream in MB.
 	 */
 #define KNI_DefaultMaxStreamMemory 100
 
 	/*
-	 * Max length of characters strings
-	 * Each string must contain a null-termination  character ('\0')
-	 * An error is raised if this null character  is not found before the max length limit
+	 * Max length of characters strings.
+	 * Each string must contain a null-termination  character ('\0').
+	 * An error is raised if this null character is not found before the max length limit.
 	 */
 #define KNI_MaxPathNameLength 1024
 #define KNI_MaxDictionaryNameLength 128
-#define KNI_MaxRecordLength 1048576
+#define KNI_MaxRecordLength (8 * 1024 * 1024) /* 8 MB */
 
 	/*
 	 * Possible return values for KNI functions.
@@ -86,7 +86,7 @@ extern "C"
 #define KNI_ErrorStreamNotOpened (-12) /* Stream not opened */
 #define KNI_ErrorStreamInputRecord                                                                                     \
 	(-13) /* Bad input record: null-termination character not found before maximum string length */
-#define KNI_ErrorStreamInputRead (-14) /* Problem in reading input record */
+#define KNI_ErrorStreamInputRead (-14) /* Problem in reading input record(s) */
 #define KNI_ErrorStreamOutputRecord                                                                                    \
 	(-15) /* Bad output record: output fields require more space than maximum string length */
 #define KNI_ErrorMissingSecondaryHeader (-16)   /* Missing specification of secondary table header */
@@ -101,14 +101,14 @@ extern "C"
 #define KNI_ErrorLogFile (-25)                  /* Bad error file */
 
 	/*
-	 * Get version of KNI
+	 * Get version of KNI.
 	 *
 	 * Enable to check the major and minor version of the DLL, which is the same as that of the Khiops tool
-	 * The version is given as an integer (10*major + minor) to ease comparisons
+	 * The version is given as an integer (10*major + minor) to ease comparisons.
 	 * Exemple:
-	 *   75 for Khiops 7.5
 	 *   100 for Khiops 10.0
 	 *   101 for Khiops 10.1
+	 *   110 for Khiops 11.0
 	 *
 	 * Return code:
 	 *    version number, an integer constant
@@ -116,11 +116,11 @@ extern "C"
 	KNI_API int KNIGetVersion(void);
 
 	/*
-	 * Get full version of KNI
-	 * Enable to check the full version of the DLL
+	 * Get full version of KNI.
+	 * Enable to check the full version of the DLL.
 	 *
 	 * Return code:
-	 *    full version as a sequence-based identifier (ex: "9.0.1")
+	 *    full version as a sequence-based identifier (ex: "10.2.3")
 	 */
 	KNI_API const char* KNIGetFullVersion(void);
 
@@ -136,7 +136,7 @@ extern "C"
 	 **********************************************************************************************/
 
 	/*
-	 * Open a stream
+	 * Open a stream.
 	 * Parameters:
 	 *    Name of the dictionary file
 	 *    Name of the dictionary
@@ -167,7 +167,7 @@ extern "C"
 				  const char* sStreamHeaderLine, char cFieldSeparator);
 
 	/*
-	 * Close a stream
+	 * Close a stream.
 	 * Parameters:
 	 *    Handle of stream
 	 * All the memory related to the stream (dictionary, external tables, current secondary records)
@@ -182,10 +182,10 @@ extern "C"
 	KNI_API int KNICloseStream(int hStream);
 
 	/*
-	 * Recode an input stream record, using a dictionary to compute output fields
-	 * The licence is checked every one or two minutes: it can be valid when
-	 * the stream was opened, and become invalid after few minutes if the licence
-	 * new check failed.
+     * Recode an input stream record using a dictionary to compute output fields.
+     * In the case of a multi-table schema, all secondary records must be specified
+     * before calling this function with the main input record.
+     * Each call to this function resets the recoding context for the next record.
 	 *
 	 * Parameters:
 	 *    Handle of stream
@@ -204,17 +204,19 @@ extern "C"
 	 *    KNI_ErrorStreamOpeningNotFinished
 	 *    KNI_ErrorStreamInputRecord
 	 *    KNI_ErrorStreamInputRecordFormat
+	 *    KNI_ErrorMemoryOverflow
 	 *    KNI_ErrorStreamOutputRecord
 	 */
 	KNI_API int KNIRecodeStreamRecord(int hStream, const char* sStreamInputRecord, char* sStreamOutputRecord,
 					  int nOutputMaxLength);
 
 	/**********************************************************************************************
-	 * Management of streams in the multi-table case
+	 * Management of streams in the multi-table case.
+	 *
 	 * The extension to the multi-table case requires two kind of specification, after the stream
 	 * is created and before it is opened:
-	 *  . specify the header line of each secondary table
-	 *  . declare each external tables
+	 * - specify the header line of each secondary table
+	 * - declare each external tables
 	 * Secondary tables are identified by a data path (name of the Entity or Table variable of the
 	 * stream main dictionary).
 	 * External tables are identified by a data root (root dictionary of the external table) plus
@@ -265,7 +267,7 @@ extern "C"
 					const char* sDataTableFileName);
 
 	/*
-	 * Finish opening a stream
+	 * Finish opening a stream.
 	 * Parameters:
 	 *    Handle of stream
 	 * The stream must be opened and fully specified in case of multi-table schema.
@@ -311,16 +313,28 @@ extern "C"
 	 **********************************************************************************************/
 
 	/*
-	 * Get the maximum amount of memory (in MB) available for the next opened stream.
-	 * Default: KNI_DefaultMaxStreamMemory
-	 * This accounts for the memory necessary to store the stream dictionaries, external tables
-	 * as well as the secondary records under preparation for recoding.
-	 */
+ 	 * Get the maximum amount of memory (in MB) available for the next stream opening.
+ 	 * This value includes memory for:
+ 	 * - Stream opening:
+ 	 *   - Stream specifications, loading and compiling dictionaries,
+ 	 *   - External tables loaded during initialization, with minimum buffer size per table
+ 	 *   - Impacted functions: KNIOpenStream, KNIFinishOpeningStream (multi-table)
+ 	 * - Record recoding:
+ 	 *   - Storing multi-table instances with many secondary records in large buffers,
+ 	 *   - Calculating derived variables for recoded records
+ 	 *   - Impacted functions: KNIRecodeStreamRecord, KNISetSecondaryInputRecord (multi-table)
+ 	 *
+ 	 * Functions return KNI_ErrorMemoryOverflow if memory limits are exceeded.
+ 	 * Detailed messages are available in the log file (see KNISetLogFileName) if needed.
+ 	 *
+ 	 * Ensures proper memory management during stream setup to prevent overflow.
+ 	 * Default: KNI_DefaultMaxStreamMemory.
+ 	 */
 	KNI_API int KNIGetStreamMaxMemory(void);
 
 	/*
-	 * Set the maximum amount of memory (in MB) available for the next opened stream.
-	 * Return the accepted parameter (bounded between KNI_DefaultMaxStreamMemory and the available RAM).
+	 * Set the maximum amount of memory (in MB) available for the next stream opening.
+	 * Return the accepted value, bounded between KNI_DefaultMaxStreamMemory and the system's available RAM
 	 */
 	KNI_API int KNISetStreamMaxMemory(int nMaxMB);
 

@@ -823,8 +823,6 @@ inline KWDatabaseMemoryGuard* KWDatabase::GetMemoryGuard()
 
 inline const KWDatabaseMemoryGuard* KWDatabase::GetConstMemoryGuard() const
 {
-	require(not IsOpenedForRead());
-	require(not IsOpenedForWrite());
 	return &memoryGuard;
 }
 

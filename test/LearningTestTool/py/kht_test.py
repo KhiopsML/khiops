@@ -489,13 +489,19 @@ def evaluate_tool_on_test_dir(
             )  # Suppression eventuelle des lignes de copyright
             lines = utils.filter_empty_lines(lines)  # Suppression des lignes vides
 
-            # Pour les test KNI, le stdout contient une ligne avec le nombre de records
+            # Pour les tests KNI, le stdout contient une ligne avec le nombre de records ou une erreur d'ouverture ou de recoddage
             if is_kni:
                 lines = utils.filter_lines_with_pattern(
                     lines, ["Recoded record number:"]
                 )
                 lines = utils.filter_lines_with_pattern(
                     lines, ["Error : Finish opening stream error:"]
+                )
+                lines = utils.filter_lines_with_pattern(
+                    lines, ["Error : Open stream error:"]
+                )
+                lines = utils.filter_lines_with_pattern(
+                    lines, ["Error : Recode failure ", " in record "]
                 )
             # Cas particulier du coclustering en mode debug
             if is_coclustering:

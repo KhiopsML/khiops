@@ -9,8 +9,12 @@ int KNIStream::nAllStreamsMemoryLimit = 0;
 KNIStream::KNIStream()
 {
 	streamClass = NULL;
-	lStreamUsedMemory = 0;
+	lStreamOpeningUsedMemory = 0;
+	lStreamRecodingUsedMemory = 0;
 	nStreamMemoryLimit = KNI_DefaultMaxStreamMemory;
+
+	// Le format de sortie dans KNI est le format tabulaire
+	outputStream.SetDenseOutputFormat(true);
 }
 
 KNIStream::~KNIStream() {}
@@ -22,27 +26,60 @@ longint KNIStream::GetUsedMemory() const
 	lUsedMemory = sizeof(KNIStream);
 	if (streamClass != NULL)
 	{
-		lUsedMemory += streamClass->GetDomain()->GetUsedMemory();
 		lUsedMemory += inputStream.GetUsedMemory() - sizeof(KWMTDatabaseStream);
 		lUsedMemory += outputStream.GetUsedMemory() - sizeof(KWMTDatabaseStream);
 	}
 	return lUsedMemory;
 }
 
-void KNIStream::SetStreamUsedMemory(longint lValue)
+void KNIStream::SetStreamOpeningUsedMemory(longint lValue)
 {
-	require(lValue > 0);
-	lStreamUsedMemory = lValue;
+	require(lValue >= 0);
+	lStreamOpeningUsedMemory = lValue;
 }
 
-longint KNIStream::GetStreamUsedMemory() const
+longint KNIStream::GetStreamOpeningUsedMemory() const
 {
-	return lStreamUsedMemory;
+	return lStreamOpeningUsedMemory;
 }
 
-longint KNIStream::GetStreamAvailableMemory() const
+void KNIStream::SetStreamRecodingUsedMemory(longint lValue)
 {
-	return (longint)ceil(nStreamMemoryLimit * lMB / (1 + MemGetAllocatorOverhead()));
+	lStreamRecodingUsedMemory = lValue;
+}
+
+longint KNIStream::GetStreamRecodingUsedMemory() const
+{
+	return lStreamRecodingUsedMemory;
+}
+
+longint KNIStream::GetStreamRecodingAvailableMemory() const
+{
+	longint lAvailableMemory;
+
+	lAvailableMemory = GetStreamActualMemoryLimit() - GetStreamOpeningUsedMemory();
+	ensure(lAvailableMemory >= GetStreamMinimumRecodingMemoryLimit());
+	return lAvailableMemory;
+}
+
+longint KNIStream::GetStreamRecodingAvailableBufferMemory() const
+{
+	return GetStreamRecodingAvailableMemory() / 2;
+}
+
+longint KNIStream::GetStreamRecodingAvailableComputationMemory() const
+{
+	return GetStreamRecodingAvailableMemory() - GetStreamRecodingAvailableMemory() / 2;
+}
+
+longint KNIStream::GetStreamMinimumRecodingMemoryLimit() const
+{
+	return 2 * InputBufferedFile::GetMaxLineLength();
+}
+
+longint KNIStream::GetStreamActualMemoryLimit() const
+{
+	return nStreamMemoryLimit * lMB;
 }
 
 void KNIStream::SetStreamMemoryLimit(int nValue)

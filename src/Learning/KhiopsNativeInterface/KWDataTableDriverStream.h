@@ -48,7 +48,7 @@ public:
 	void ResetInputBuffer();
 
 	// Remplissage du buffer avec un enregistrement ajoute en fin de position courante du buffer
-	// Retaillage potentiel du buffer su le BufferSize a ete agrandi
+	// Retaillage potentiel du buffer si le BufferSize a ete agrandi
 	// Si depassement du buffer, renvoie false sans remplir le buffer
 	boolean FillBufferWithRecord(const char* sInputRecord);
 
@@ -59,6 +59,10 @@ public:
 	// Remplissage d'un enregistrement avec le buffer (sans retour a la ligne)
 	// Renvoie false en cas de depassement de capacite (avec un '\0' en fin), true sinon
 	boolean FillRecordWithBuffer(char* sOutputRecord, int nOutputMaxLength);
+
+	// Nettoyage de la memoire du buffer de entree
+	// Usage avance en cas de probleme memoire avec une instance ayant sature les buffers
+	void FreeInputBuffer();
 
 	///////////////////////////////////////////////////////////
 	// Reimplementation de methodes virtuelles de KWDataTableDriver
@@ -103,6 +107,10 @@ public:
 	// Reinitialisation du buffer
 	void ResetBuffer();
 
+	// Liberation de la memoire du buffer
+	// Usage avance
+	void FreeBuffer();
+
 	// Reimplementation de methodes virtuelles
 	longint GetFileSize() const;
 	boolean Open();
@@ -127,7 +135,12 @@ public:
 	void ResetBuffer();
 
 	// Reimplementation de methodes virtuelles
-	boolean Open();
-	boolean IsOpened() const;
-	boolean Close();
+	boolean Open() override;
+	boolean IsOpened() const override;
+	boolean Close() override;
+
+	////////////////////////////////////////////////////////
+	//// Implementation
+protected:
+	boolean FlushCache() override;
 };

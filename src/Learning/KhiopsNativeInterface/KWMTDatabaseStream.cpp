@@ -6,7 +6,9 @@
 
 KWMTDatabaseStream::KWMTDatabaseStream()
 {
-	bSecondaryRecordError = false;
+	lSecondaryRecordNumber = 0;
+	lSecondaryRecordErrorNumber = 0;
+	bIsMemoryLimitReachedDuringLastReadAllReferenceObjects = false;
 
 	// Parametrage du driver de table en remplacant celui de la classe ancetre
 	assert(dataTableDriverCreator != NULL);
@@ -88,14 +90,26 @@ boolean KWMTDatabaseStream::SetSecondaryRecordAt(KWMTDatabaseMapping* mapping, c
 		return true;
 }
 
-void KWMTDatabaseStream::SetSecondaryRecordError(boolean bValue)
+void KWMTDatabaseStream::SetSecondaryRecordNumber(longint lValue)
 {
-	bSecondaryRecordError = bValue;
+	lSecondaryRecordNumber = lValue;
 }
 
-boolean KWMTDatabaseStream::GetSecondaryRecordError() const
+longint KWMTDatabaseStream::GetSecondaryRecordNumber() const
 {
-	return bSecondaryRecordError;
+	return lSecondaryRecordNumber;
+}
+
+void KWMTDatabaseStream::SetSecondaryRecordErrorNumber(longint lValue)
+{
+	require(lValue <= GetSecondaryRecordNumber());
+	lSecondaryRecordErrorNumber = lValue;
+}
+
+longint KWMTDatabaseStream::GetSecondaryRecordErrorNumber() const
+{
+	ensure(lSecondaryRecordErrorNumber <= GetSecondaryRecordNumber());
+	return lSecondaryRecordErrorNumber;
 }
 
 void KWMTDatabaseStream::SetMappingMaxBufferSize(KWMTDatabaseMapping* mapping, int nSize)
@@ -140,7 +154,8 @@ KWObject* KWMTDatabaseStream::ReadFromBuffer(const char* sBuffer)
 
 	// On repositionne le flag d'erreur a false, pour permettre des lectures sucessives
 	bIsError = false;
-	bSecondaryRecordError = false;
+	lSecondaryRecordNumber = 0;
+	lSecondaryRecordErrorNumber = 0;
 
 	// Alimentation du buffer en entree
 	cast(KWDataTableDriverStream*, GetMainMapping()->GetDataTableDriver())->FillBufferWithRecord(sBuffer);
@@ -203,6 +218,27 @@ int KWMTDatabaseStream::GetMaxBufferSize() const
 	return cast(KWDataTableDriverStream*, dataTableDriverCreator)->GetBufferSize();
 }
 
+void KWMTDatabaseStream::FreeSecondaryTableBuffers()
+{
+	KWMTDatabaseMapping* mapping;
+	int i;
+
+	require(GetMainMapping()->GetDataTableDriver() != NULL);
+
+	// Reinitialisation de tous les mappings des tables secondaires
+	for (i = 1; i < GetMultiTableMappings()->GetSize(); i++)
+	{
+		mapping = cast(KWMTDatabaseMapping*, GetMultiTableMappings()->GetAt(i));
+		if (not IsReferencedClassMapping(mapping) and mapping->GetDataTableDriver() != NULL)
+		{
+			// Liberation de la memoire du buffer, en remettant la taille d'une ligne en taille de buffer pour la prochaine allocation
+			cast(KWDataTableDriverStream*, mapping->GetDataTableDriver())->FreeInputBuffer();
+			cast(KWDataTableDriverStream*, mapping->GetDataTableDriver())
+			    ->SetBufferSize(InputBufferedFile::GetMaxLineLength());
+		}
+	}
+}
+
 longint KWMTDatabaseStream::GetUsedMemory() const
 {
 	longint lUsedMemory;
@@ -232,6 +268,33 @@ longint KWMTDatabaseStream::GetUsedMemory() const
 		}
 	}
 	return lUsedMemory;
+}
+
+boolean KWMTDatabaseStream::PhysicalOpenForRead()
+{
+	// Par defaut, pas de table externe, donc pas de depassement
+	bIsMemoryLimitReachedDuringLastReadAllReferenceObjects = false;
+
+	// Appel de la methode ancetre
+	return KWMTDatabase::PhysicalOpenForRead();
+}
+
+boolean KWMTDatabaseStream::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemory, longint& lNecessaryMemory,
+							    longint& lTotalExternalObjectNumber,
+							    boolean& bMemoryLimitReached)
+{
+	boolean bOk;
+
+	// Appel de la methode ancetre
+	bOk = KWMTDatabase::PhysicalReadAllReferenceObjects(lMaxAvailableMemory, lNecessaryMemory,
+							    lTotalExternalObjectNumber, bMemoryLimitReached);
+	bIsMemoryLimitReachedDuringLastReadAllReferenceObjects = bMemoryLimitReached;
+	return bOk;
+}
+
+boolean KWMTDatabaseStream::IsMemoryLimitReachedDuringLastReadAllReferenceObjects() const
+{
+	return bIsMemoryLimitReachedDuringLastReadAllReferenceObjects;
 }
 
 KWDataTableDriver* KWMTDatabaseStream::CreateDataTableDriver(KWMTDatabaseMapping* mapping) const

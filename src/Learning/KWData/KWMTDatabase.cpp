@@ -781,6 +781,7 @@ boolean KWMTDatabase::PhysicalOpenForRead()
 	longint lRemainingMemory;
 	longint lExternalTableUsedMemory;
 	longint lTotalExternalObjectNumber;
+	boolean bMemoryLimitReached;
 
 	require(Check());
 	require(CheckObjectConsistency());
@@ -808,7 +809,7 @@ boolean KWMTDatabase::PhysicalOpenForRead()
 
 			// La lecture peut echouer pour des raisons de dimensionnement ou autres
 			bOk = PhysicalReadAllReferenceObjects(lRemainingMemory, lExternalTableUsedMemory,
-							      lTotalExternalObjectNumber);
+							      lTotalExternalObjectNumber, bMemoryLimitReached);
 		}
 	}
 	return bOk;
@@ -1223,7 +1224,7 @@ boolean KWMTDatabase::IsPhysicalObjectSelected(KWObject* kwoPhysicalObject)
 }
 
 boolean KWMTDatabase::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemory, longint& lNecessaryMemory,
-						      longint& lTotalExternalObjectNumber)
+						      longint& lTotalExternalObjectNumber, boolean& bMemoryLimitReached)
 {
 	const boolean bTrace = false;
 	boolean bOk = true;
@@ -1577,6 +1578,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemor
 	lNecessaryMemory = longint(lNecessaryMemory / (1 + MemGetAllocatorOverhead()));
 
 	// Erreur utilisateur en cas de depassement memoire
+	bMemoryLimitReached = memoryGuard.IsMemoryLimitReached();
 	if (memoryGuard.IsMemoryLimitReached())
 	{
 		bOk = false;
@@ -1625,6 +1627,7 @@ boolean KWMTDatabase::ComputeExactNecessaryMemoryForReferenceObjects(longint& lN
 	longint lDeleteBasedNecessaryMemory;
 	longint lEstimatedNecessaryMemory;
 	longint lRemainingMemory;
+	boolean bMemoryLimitReached;
 	boolean bCurrentVerboseMode;
 
 	require(Check());
@@ -1667,7 +1670,7 @@ boolean KWMTDatabase::ComputeExactNecessaryMemoryForReferenceObjects(longint& lN
 		bCurrentVerboseMode = GetVerboseMode();
 		SetVerboseMode(false);
 		bOk = PhysicalReadAllReferenceObjects(lRemainingMemory, lReadBasedNecessaryMemory,
-						      lTotalExternalObjectNumber);
+						      lTotalExternalObjectNumber, bMemoryLimitReached);
 		SetVerboseMode(bCurrentVerboseMode);
 		if (bTrace)
 		{
