@@ -136,6 +136,8 @@ void KWDatabaseMemoryGuard::Init()
 
 	// Initialisation de la limite memoire dure
 	lMaxHeapMemory = lInitialHeapMemory + lActualPhysicalMemoryLimit;
+	ensure(lActualPhysicalMemoryLimit == longint(lActualMemoryLimit * (1 + MemGetAllocatorOverhead())) or
+	       lActualPhysicalMemoryLimit == lCrashTestMemoryLimit);
 }
 
 void KWDatabaseMemoryGuard::SetMainObjectKey(const ALString& sValue)
@@ -320,7 +322,8 @@ const ALString KWDatabaseMemoryGuard::GetSingleInstanceMemoryLimitLabel() const
 
 	require(IsMemoryLimitReached());
 	require(GetTotalReadExternalRecordNumber() == 0);
-	assert(lActualPhysicalMemoryLimit == longint(lActualMemoryLimit * (1 + MemGetAllocatorOverhead())));
+	assert(lActualPhysicalMemoryLimit == longint(lActualMemoryLimit * (1 + MemGetAllocatorOverhead())) or
+	       lActualPhysicalMemoryLimit == lCrashTestMemoryLimit);
 
 	// Entete du message
 	sLabel = sLabelPrefixSingleInstance;

@@ -1253,7 +1253,8 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemor
 	if (bTrace)
 	{
 		cout << "\t  PhysicalReadAllReferenceObjects\t" << LongintToHumanReadableString(lMaxAvailableMemory)
-		     << endl;
+		     << "\n";
+		cout << "\t\tInitial heap memory\t" << LongintToHumanReadableString(MemGetHeapMemory()) << "\n";
 		timer.Start();
 	}
 
@@ -1448,6 +1449,13 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemor
 			break;
 	}
 
+	// Trace intermediaire apres la phase de lecture
+	if (bTrace)
+	{
+		cout << "\t\tNecessary time for read\t" << timer.GetElapsedTime() << "\n";
+		cout << "\t\tHeap memory after read\t" << LongintToHumanReadableString(MemGetHeapMemory()) << "\n";
+	}
+
 	// Reinitialisation des index de creation d'instances pour les objets des tables externes
 	//
 	//
@@ -1584,6 +1592,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemor
 	if (bTrace)
 	{
 		timer.Stop();
+		cout << "\t\tFinal heap memory\t" << LongintToHumanReadableString(MemGetHeapMemory()) << "\n";
 		cout << "\t\tRoot record number\t" << memoryGuard.GetTotalReadExternalRecordNumber() << "\n";
 		cout << "\t\tSecondary record number\t" << memoryGuard.GetTotalReadSecondaryRecordNumber() << "\n";
 		cout << "\t\tCreated record number\t" << memoryGuard.GetTotalCreatedRecordNumber() << "\n";

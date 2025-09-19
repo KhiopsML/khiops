@@ -691,7 +691,6 @@ boolean KDSelectionOperandDataSampler::ExtractSelectionOneObject(const KWObject*
 	require(lMainObjectIndex >= 0);
 	require(lSubObjectIndex >= 0);
 	require(nkdAllSubObjects != NULL);
-	require(nkdAllSubObjects->Lookup(kwoObject) == NULL);
 	require(classSelectionData == NULL or
 		classSelectionData == odClassSelectionData.Lookup(kwoObject->GetClass()->GetName()));
 
