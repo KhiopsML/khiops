@@ -81,19 +81,19 @@ fi
 KHIOPS_PATH=@MODL_PATH@@MODL_NAME@
 KHIOPS_COCLUSTERING_PATH=@MODL_PATH@@MODL_COCLUSTERING_NAME@
 
-if command -v mpiexec &>/dev/null; then
+# Most of the time the mpiexec executable is in the same directory as the MODL
+# executable; this applies to:
+# - Debian and Ubuntu native installations
+# - installations in Conda and Conda-based environments
+_MPIEXEC=@MODL_PATH@mpiexec
+if command -v $_MPIEXEC &>/dev/null; then
+    KHIOPS_MPI_ERROR=""
+# Fallback for Rocky Linux, where native OpenMPI is in a different directory
+elif command -v mpiexec &>/dev/null; then
     KHIOPS_MPI_ERROR=""
     _MPIEXEC=$(readlink -f "$(type -P mpiexec)")
 else
-    # Fallback for Conda-based environments where `mpiexec` is not in PATH,
-    # because $CONDA_PREFIX/bin is not in PATH
-    _MPIEXEC=@MODL_PATH@mpiexec
-    if command -v $_MPIEXEC &>/dev/null; then
-        KHIOPS_MPI_ERROR=""
-    else
-        KHIOPS_MPI_ERROR="We didn't find mpiexec in the expected paths. Parallel computation is unavailable: Khiops is launched in serial"
-    fi
-
+    KHIOPS_MPI_ERROR="We didn't find mpiexec in the expected paths. Parallel computation is unavailable: Khiops is launched in serial"
 fi
 
 if [[ -z $KHIOPS_MPI_ERROR ]]; then
