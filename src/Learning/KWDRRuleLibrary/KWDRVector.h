@@ -7,12 +7,9 @@
 //////////////////////////////////////////////////////////////////////////////
 // Regles de derivation pour la gestion des vecteurs de valeur
 
-// Vecteurs de valeurs constantes
+// Vecteurs de valeurs
 class KWDRSymbolVector;
 class KWDRContinuousVector;
-
-// Vecteurs de valeurs categorielles non necessairement constantes
-class KWDRDynamicSymbolVector;
 
 // Acces a une valeur d'un vecteur par son index
 class KWDRSymbolValueAt;
@@ -31,6 +28,8 @@ void KWDRRegisterVectorRules();
 // Classe KWDRSymbolVector
 // Regle de derivation de type Structure(VectorC), memorisant les valeurs
 // d'un vecteur de symboles
+// Cette classe est adaptee pour pouvoir traiter soit des valeurs constantes de maniere optimisee
+// soit des valeurs non constantes
 class KWDRSymbolVector : public KWDRStructureRule
 {
 public:
@@ -38,12 +37,15 @@ public:
 	KWDRSymbolVector();
 	~KWDRSymbolVector();
 
+	// Redefinition a false, pour permettre qu'un vecteur contienne des valeurs non constantes
+	boolean AreConstantOperandsMandatory() const override;
+
 	//////////////////////////////////////////////////////////////
 	// La specification de la regle se fait en specifiant les
 	// valeurs dans le vecteur prevu a cet effet
 
 	// Nombre de valeurs
-	// Le setter fait basculer en interface de structure,
+	// Le setter fait basculer en interface de structure, avec destruction des operandes,
 	// et le getter est accessible en interface de structure et de base
 	void SetValueNumber(int nValue);
 	int GetValueNumber() const;
@@ -67,6 +69,9 @@ public:
 	//////////////////////////////////////////////////////
 	// Redefinition des methodes de structure
 
+	// Calcul de l'objet Structure, reimplemente pour le cas non constant
+	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
+
 	// Recopie de la partie structure de la regle
 	void CopyStructureFrom(const KWDerivationRule* kwdrSource) override;
 
@@ -78,7 +83,7 @@ public:
 	void WriteStructureUsedRule(ostream& ost) const override;
 
 	// Methode de comparaison entre deux regles
-	int FullCompare(const KWDerivationRule* rule) const override;
+	int FullCompareStructure(const KWDerivationRule* rule) const override;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -87,7 +92,7 @@ public:
 	///// Implementation
 protected:
 	// Valeurs
-	SymbolVector svValues;
+	mutable SymbolVector svValues;
 };
 
 ///////////////////////////////////////////////////////////////
@@ -106,7 +111,7 @@ public:
 	// valeurs dans le vecteur prevu a cet effet
 
 	// Nombre de valeurs
-	// Le setter fait basculer en interface de structure,
+	// Le setter fait basculer en interface de structure, avec destruction des operandes,
 	// et le getter est accessible en interface de structure et de base
 	void SetValueNumber(int nValue);
 	int GetValueNumber() const;
@@ -141,7 +146,7 @@ public:
 	void WriteStructureUsedRule(ostream& ost) const override;
 
 	// Methode de comparaison entre deux regles
-	int FullCompare(const KWDerivationRule* rule) const override;
+	int FullCompareStructure(const KWDerivationRule* rule) const override;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -249,33 +254,6 @@ protected:
 	mutable KWDRContinuousVector continuousVector;
 };
 
-///////////////////////////////////////////////////////////////
-// Classe KWDRDynamicSymbolVector
-// Regle de derivation de type Structure(VectorC), memorisant les valeurs
-// d'un vecteur de symboles issus de constantes ou de variables ou de regles de derivation
-class KWDRDynamicSymbolVector : public KWDerivationRule
-{
-public:
-	// Constructeur
-	KWDRDynamicSymbolVector();
-	~KWDRDynamicSymbolVector();
-
-	// Creation
-	KWDerivationRule* Create() const override;
-
-	// Calcul de l'attribut derive
-	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
-
-	// Memoire utilisee
-	longint GetUsedMemory() const override;
-
-	//////////////////////////////////////////////////////////
-	///// Implementation
-protected:
-	// Resultat utilise pour le code retour de la regle
-	mutable KWDRSymbolVector symbolVector;
-};
-
 ///////////////////////////////////////////////////////////
 // Methodes en inline
 
@@ -283,6 +261,7 @@ inline void KWDRSymbolVector::SetValueNumber(int nValue)
 {
 	require(nValue >= 0);
 
+	DeleteAllOperands();
 	svValues.SetSize(nValue);
 	bStructureInterface = true;
 	nFreshness++;
@@ -323,6 +302,7 @@ inline void KWDRContinuousVector::SetValueNumber(int nValue)
 {
 	require(nValue >= 0);
 
+	DeleteAllOperands();
 	cvValues.SetSize(nValue);
 	bStructureInterface = true;
 	nFreshness++;

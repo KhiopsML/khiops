@@ -171,7 +171,7 @@ int MHGenumHistogramSpec::ComputeMaxPartileNumber(int nTotalFrequency, Continuou
 	// Correction si l'on atteint pas le nombre minimal de valeur distincts par bin
 	if (dExpectedNumberDistinctValues / nMaxPartileNumber < nMinimumDistinctValueNumberPerBin)
 	{
-		// Dans ce cas, on limite le nombre max de bin de telle facon a avoir suffisament de possibilites
+		// Dans ce cas, on limite le nombre max de bin de telle facon a avoir suffisamment de possibilites
 		// de valeurs numerique distinctes
 		nMaxPartileNumber = int(floor(dExpectedNumberDistinctValues / nMinimumDistinctValueNumberPerBin));
 		nMaxPartileNumber = min(nMaxPartileNumber, nTotalBinNumber);

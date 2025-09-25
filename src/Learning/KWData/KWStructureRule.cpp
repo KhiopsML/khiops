@@ -18,6 +18,11 @@ KWDRStructureRule::KWDRStructureRule()
 
 KWDRStructureRule::~KWDRStructureRule() {}
 
+boolean KWDRStructureRule::AreConstantOperandsMandatory() const
+{
+	return true;
+}
+
 boolean KWDRStructureRule::GetStructureInterface() const
 {
 	return bStructureInterface;
@@ -32,6 +37,8 @@ Object* KWDRStructureRule::ComputeStructureResult(const KWObject* kwoObject) con
 {
 	require(Check());
 	require(IsCompiled());
+	require(AreConstantOperandsMandatory());
+
 	return (Object*)this;
 }
 
@@ -57,40 +64,52 @@ void KWDRStructureRule::WriteStructureUsedRule(ostream& ost) const
 	KWDerivationRule::WriteUsedRule(ost);
 }
 
+int KWDRStructureRule::FullCompareStructure(const KWDerivationRule* rule) const
+{
+	return true;
+}
+
 void KWDRStructureRule::Compile(KWClass* kwcOwnerClass)
 {
 	require(kwcOwnerClass != NULL);
 	require(CheckCompleteness(kwcOwnerClass));
 	require(kwcOwnerClass->IsIndexed());
 
-	// Compilation uniquement si necessaire
-	if (kwcOwnerClass != kwcClass or not IsCompiled())
+	// Passage a une interface de type structure dans le cas constant
+	if (AreConstantOperandsMandatory() or CheckConstantOperands(false))
 	{
-		// Gestion de la classe
-		kwcClass = kwcOwnerClass;
-		nClassFreshness = kwcClass->GetFreshness();
-
-		// Transfert si neccessaire des bornes de l'interface de base vers un vecteur
-		if (not bStructureInterface)
+		// Compilation uniquement si necessaire
+		if (kwcOwnerClass != kwcClass or not IsCompiled())
 		{
-			// Transfert de la specification de base de la regle source
-			// vers la specification de structure de la regle en cours
-			BuildStructureFromBase(this);
+			// Gestion de la classe
+			kwcClass = kwcOwnerClass;
+			nClassFreshness = kwcClass->GetFreshness();
 
-			// Passage en mode interface de structure
-			bStructureInterface = true;
+			// Transfert si neccessaire des operandes vers une interface de type structure
+			if (not bStructureInterface)
+			{
+				// Transfert de la specification de base de la regle source
+				// vers la specification de structure de la regle en cours
+				BuildStructureFromBase(this);
+
+				// Passage en mode interface de structure
+				bStructureInterface = true;
+			}
+
+			// Compilation de l'interface de structure de la regle de derivation
+			CompileStructure(kwcOwnerClass);
+
+			// Nettoyage de l'interface de base une fois la regle compilee
+			CleanCompiledBaseInterface();
+
+			// Enregistrement de la fraicheur de compilation
+			nCompileFreshness = nFreshness;
 		}
-
-		// Compilation de l'interface de structure de la regle de derivation
-		CompileStructure(kwcOwnerClass);
-
-		// Nettoyage de l'interface de base une fois la regle compilee
-		CleanCompiledBaseInterface();
-
-		// Enregistrement de la fraicheur de compilation
-		nCompileFreshness = nFreshness;
 	}
-	ensure(bStructureInterface);
+	// Sinon, compilation standard
+	else
+		KWDerivationRule::Compile(kwcOwnerClass);
+	ensure(bStructureInterface or oaOperands.GetSize() > 0);
 	ensure(IsCompiled());
 }
 
@@ -107,6 +126,10 @@ void KWDRStructureRule::CopyFrom(const KWDerivationRule* kwdrSource)
 boolean KWDRStructureRule::CheckDefinition() const
 {
 	boolean bOk = true;
+
+	// On ne peut avoir a la fois des operandes et une interface de type structure,
+	// sauf dans le cas ou les operandes ne sont pas obligatoirement constants
+	require(not(GetOperandNumber() > 0 and GetStructureInterface()) or not AreConstantOperandsMandatory());
 
 	// Verification de base
 	bOk = KWDerivationRule::CheckDefinition();
@@ -129,7 +152,8 @@ boolean KWDRStructureRule::CheckDefinition() const
 		}
 
 		// On verifie que l'operande est constant
-		if (bOk and GetFirstOperand()->GetOrigin() != KWDerivationRuleOperand::OriginConstant)
+		if (bOk and AreConstantOperandsMandatory() and
+		    GetFirstOperand()->GetOrigin() != KWDerivationRuleOperand::OriginConstant)
 		{
 			AddError("Structure rule must an operand with constant value");
 			bOk = false;
@@ -137,7 +161,7 @@ boolean KWDRStructureRule::CheckDefinition() const
 	}
 
 	// Verification de structure
-	if (bOk)
+	if (bOk and CheckConstantOperands(false))
 	{
 		KWDRStructureRule* temporaryRule = NULL;
 		const KWDRStructureRule* checkedRule;
@@ -164,21 +188,59 @@ boolean KWDRStructureRule::CheckDefinition() const
 	return bOk;
 }
 
+boolean KWDRStructureRule::CheckOperandsFamily(const KWDerivationRule* ruleFamily) const
+{
+	boolean bOk;
+
+	// Appel de la methode ancetre
+	bOk = KWDerivationRule::CheckOperandsFamily(ruleFamily);
+
+	// Verification que les operandes sont constantes
+	if (bOk and AreConstantOperandsMandatory())
+		bOk = CheckConstantOperands(true);
+	return bOk;
+}
+
+boolean KWDRStructureRule::CheckConstantOperands(boolean bVerbose) const
+{
+	boolean bOk = true;
+	KWDerivationRuleOperand* operand;
+	int i;
+	ALString sTmp;
+
+	// Verification des operandes
+	for (i = 0; i < oaOperands.GetSize(); i++)
+	{
+		operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
+
+		// Verification de l'origine constante uniquement dans cas des type simples
+		if (KWType::IsSimple(operand->GetType()) and
+		    operand->GetOrigin() != KWDerivationRuleOperand::OriginConstant)
+		{
+			if (bVerbose)
+				AddError(sTmp + "Operand " + IntToString(i + 1) + " (" + operand->GetObjectLabel() +
+					 ") with origin " +
+					 operand->OriginToString(operand->GetOrigin(), operand->GetType()) +
+					 " should be constant");
+			bOk = false;
+			break;
+		}
+	}
+	return bOk;
+}
+
 int KWDRStructureRule::FullCompare(const KWDerivationRule* rule) const
 {
 	int nDiff;
 
 	require(rule != NULL);
 
-	// Comparaison sur la classe sur laquelle la regle est applicable
-	nDiff = GetClassName().Compare(rule->GetClassName());
-
-	// Comparaison sur le nom de la regle
-	if (nDiff == 0)
-		nDiff = GetName().Compare(rule->GetName());
-
-	// En cas d'egalite, la comparaison doit etre reimplementee si on est en interface de structure
-	assert(nDiff != 0 or not GetStructureInterface());
+	// Redirection vers l'interface de structure si les operandes ont ete detruits
+	if (GetOperandNumber() == 0 and rule->GetOperandNumber() == 0)
+		nDiff = FullCompareStructure(rule);
+	// Sinon, on appelle la methode standard
+	else
+		nDiff = KWDerivationRule::FullCompare(rule);
 	return nDiff;
 }
 
@@ -192,18 +254,20 @@ longint KWDRStructureRule::GetUsedMemory() const
 
 void KWDRStructureRule::Write(ostream& ost) const
 {
-	if (not bStructureInterface)
-		KWDerivationRule::Write(ost);
+	// Redirection vers l'interface de structure si les operande ont ete detruits
+	if (GetOperandNumber() == 0)
+		WriteStructureUsedRule(ost);
 	else
-		WriteUsedRule(ost);
+		KWDerivationRule::Write(ost);
 }
 
 void KWDRStructureRule::WriteUsedRule(ostream& ost) const
 {
-	if (not bStructureInterface)
-		KWDerivationRule::WriteUsedRule(ost);
-	else
+	// Redirection vers l'interface de structure si les operandes ont ete detruits
+	if (GetOperandNumber() == 0)
 		WriteStructureUsedRule(ost);
+	else
+		KWDerivationRule::WriteUsedRule(ost);
 }
 
 boolean KWDRStructureRule::IsStructureRule() const

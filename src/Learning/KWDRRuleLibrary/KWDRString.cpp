@@ -714,21 +714,40 @@ boolean KWDRTranslate::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
 	ALString sTmp;
+	KWDRSymbolVector* searchValues;
+	KWDRSymbolVector* replaceValues;
 	int nSearchValueNumber;
 	int nReplaceValueNumber;
 
 	// Methode ancetre
 	bOk = KWDerivationRule::CheckCompleteness(kwcOwnerClass);
 
-	// Verification de la longueur des listes
+	// Verification des operandes de search et replace
 	if (bOk)
 	{
-		nSearchValueNumber = cast(KWDRSymbolVector*, GetOperandAt(1)->GetDerivationRule())->GetValueNumber();
-		nReplaceValueNumber = cast(KWDRSymbolVector*, GetOperandAt(2)->GetDerivationRule())->GetValueNumber();
-		if (nSearchValueNumber != nReplaceValueNumber)
+		// Acces aux vecteurs de search et replace
+		searchValues = cast(KWDRSymbolVector*, GetOperandAt(1)->GetDerivationRule());
+		replaceValues = cast(KWDRSymbolVector*, GetOperandAt(2)->GetDerivationRule());
+
+		// Les vecteurs de parametres doivent etre constant
+		if (not searchValues->CheckConstantOperands(true))
 		{
 			bOk = false;
-			AddError(sTmp + " number of search values (" + IntToString(nSearchValueNumber) +
+			AddError(sTmp + "Search values in operand 2 should be constants");
+		}
+		if (not replaceValues->CheckConstantOperands(true))
+		{
+			bOk = false;
+			AddError(sTmp + "Replace values in operand 3 should be constants");
+		}
+
+		// Les vecteur doivent etre de meme taille
+		nSearchValueNumber = searchValues->GetValueNumber();
+		nReplaceValueNumber = replaceValues->GetValueNumber();
+		if (bOk and nSearchValueNumber != nReplaceValueNumber)
+		{
+			bOk = false;
+			AddError(sTmp + "Number of search values (" + IntToString(nSearchValueNumber) +
 				 ") should be equal to number of replace values (" + IntToString(nReplaceValueNumber) +
 				 ")");
 		}

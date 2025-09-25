@@ -66,6 +66,7 @@ void KWDRIntervalBounds::SetIntervalBoundNumber(int nValue)
 {
 	require(nValue >= 0);
 
+	DeleteAllOperands();
 	cvIntervalBounds.SetSize(nValue);
 	bStructureInterface = true;
 	nFreshness++;
@@ -218,9 +219,6 @@ void KWDRIntervalBounds::ImportAttributeDiscretization(const KWDGSAttributeDiscr
 
 	require(attributeDiscretization != NULL);
 
-	// Reinitialisation
-	DeleteAllOperands();
-
 	// Parametrage des intervalles
 	nBoundNumber = attributeDiscretization->GetIntervalBoundNumber();
 	SetIntervalBoundNumber(nBoundNumber);
@@ -314,7 +312,7 @@ void KWDRIntervalBounds::WriteStructureUsedRule(ostream& ost) const
 	ost << ")";
 }
 
-int KWDRIntervalBounds::FullCompare(const KWDerivationRule* rule) const
+int KWDRIntervalBounds::FullCompareStructure(const KWDerivationRule* rule) const
 {
 	int nDiff;
 	KWDRIntervalBounds* ruleIntervalBounds;
@@ -384,6 +382,7 @@ void KWDRContinuousValueSet::SetValueNumber(int nValue)
 {
 	require(nValue >= 0);
 
+	DeleteAllOperands();
 	cvContinuousValueSet.SetSize(nValue);
 	bStructureInterface = true;
 	nFreshness++;
@@ -526,9 +525,6 @@ void KWDRContinuousValueSet::ImportAttributeContinuousValues(
 
 	require(attributeContinuousValues != NULL);
 
-	// Reinitialisation
-	DeleteAllOperands();
-
 	// Parametrage des valeurs
 	SetValueNumber(attributeContinuousValues->GetValueNumber());
 	for (nValue = 0; nValue < GetValueNumber(); nValue++)
@@ -635,7 +631,7 @@ void KWDRContinuousValueSet::WriteStructureUsedRule(ostream& ost) const
 	ost << ")";
 }
 
-int KWDRContinuousValueSet::FullCompare(const KWDerivationRule* rule) const
+int KWDRContinuousValueSet::FullCompareStructure(const KWDerivationRule* rule) const
 {
 	int nDiff;
 	KWDRContinuousValueSet* ruleContinuousValueSet;
@@ -694,13 +690,28 @@ KWDRValueGroup::KWDRValueGroup()
 	SetLabel("Value group");
 	SetStructureName("ValueGroup");
 	GetFirstOperand()->SetSymbolConstant(Symbol::GetStarValue());
+	GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginConstant);
 }
 
 KWDRValueGroup::~KWDRValueGroup() {}
 
+boolean KWDRValueGroup::AreConstantOperandsMandatory() const
+{
+	return true;
+}
+
 KWDerivationRule* KWDRValueGroup::Create() const
 {
 	return new KWDRValueGroup;
+}
+
+Object* KWDRValueGroup::ComputeStructureResult(const KWObject* kwoObject) const
+{
+	require(Check());
+	require(IsCompiled());
+	require(AreConstantOperandsMandatory());
+
+	return (Object*)this;
 }
 
 void KWDRValueGroup::BuildStructureFromBase(const KWDerivationRule* kwdrSource)
@@ -1023,7 +1034,6 @@ void KWDRValueGroups::ImportAttributeGrouping(const KWDGSAttributeGrouping* attr
 		valueGroupOperand->SetStructureName(valueGroupRule->GetStructureName());
 
 		// Ajout des valeurs du groupe
-		valueGroupRule->DeleteAllOperands();
 		valueGroupRule->SetValueNumber(attributeGrouping->GetGroupValueNumberAt(nGroup));
 		for (nValue = 0; nValue < attributeGrouping->GetGroupValueNumberAt(nGroup); nValue++)
 		{
@@ -1165,7 +1175,7 @@ boolean KWDRValueGroups::CheckDefinition() const
 	return bOk;
 }
 
-int KWDRValueGroups::FullCompare(const KWDerivationRule* rule) const
+int KWDRValueGroups::FullCompareStructure(const KWDerivationRule* rule) const
 {
 	int nDiff;
 
@@ -1290,6 +1300,7 @@ void KWDRSymbolValueSet::SetValueNumber(int nValue)
 {
 	require(nValue >= 0);
 
+	DeleteAllOperands();
 	svSymbolValueSet.SetSize(nValue);
 	bStructureInterface = true;
 	nFreshness++;
@@ -1429,9 +1440,6 @@ void KWDRSymbolValueSet::ImportAttributeSymbolValues(const KWDGSAttributeSymbolV
 
 	require(attributeSymbolValues != NULL);
 
-	// Reinitialisation
-	DeleteAllOperands();
-
 	// Parametrage des valeurs
 	SetValueNumber(attributeSymbolValues->GetValueNumber());
 	for (nValue = 0; nValue < GetValueNumber(); nValue++)
@@ -1558,7 +1566,7 @@ void KWDRSymbolValueSet::WriteStructureUsedRule(ostream& ost) const
 	ost << ")";
 }
 
-int KWDRSymbolValueSet::FullCompare(const KWDerivationRule* rule) const
+int KWDRSymbolValueSet::FullCompareStructure(const KWDerivationRule* rule) const
 {
 	int nDiff;
 	KWDRSymbolValueSet* ruleSymbolValueSet;

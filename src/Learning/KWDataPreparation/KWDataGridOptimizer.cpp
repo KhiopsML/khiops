@@ -174,7 +174,7 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 
 			//////////////////////////////////////////////////////////////////////////////////////////////
 			// On determine si la granularite courante doit etre traitee
-			// - bIsGranularitySelected: parce qu'elle differe suffisament de la granularite precedente
+			// - bIsGranularitySelected: parce qu'elle differe suffisamment de la granularite precedente
 			//   et de la granularite max
 			// - bIsLastGranularity: par ce que c'est la derniere
 
@@ -221,7 +221,7 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 				// Pour un nombre d'observations egal au nombre de variables pour toutes les instances,
 				// il faut atteindre G tel que G > Gmax - log(K) / log(2)
 				//
-				// On ne traite cette granularite que si elle est differe suffisament de la precedente et de la
+				// On ne traite cette granularite que si elle est differe suffisamment de la precedente et de la
 				for (nAttribute = 0; nAttribute < granularizedDataGrid.GetAttributeNumber();
 				     nAttribute++)
 				{

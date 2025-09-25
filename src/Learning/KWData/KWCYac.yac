@@ -1239,12 +1239,15 @@ derivationRule: derivationRuleBody closeparenthesis
 					// Acces a la regle de structure, transformation au format structure et nettoyage memoire
 					// Cette optimisation memoire des regles structure est critique dans le cas de dictionnaires
 					// de tres grande taille. Sinon, des millions d'operandes de regles sont potentiellement crees,
-					// puis lors de la compilation des dictionnaire, l'essentiel de la memoire liberee laisse des trous
+					// puis lors de la compilation des dictionnaires, l'essentiel de la memoire liberee laisse des trous
 					// dans les segments de la heap, qui ne peuvent etre rendus au systeme
 					assert(rule->CheckDefinition());
 					structureRule = cast(KWDRStructureRule*, rule);
-					structureRule->BuildStructureFromBase(rule);
-					structureRule->CleanCompiledBaseInterface();
+					if (structureRule->CheckConstantOperands(false))
+					{
+						structureRule->BuildStructureFromBase(rule);
+						structureRule->CleanCompiledBaseInterface();
+					}
 				}
 			}
 

@@ -94,7 +94,7 @@ public:
 	// bornes des intervalles dans le vecteur prevu a cet effet
 
 	// Nombre d'intervalles
-	// Le setter fait basculer en interface de structure,
+	// Le setter fait basculer en interface de structure, avec destruction des operandes,
 	// et le getter est accessible en interface de structure et de base
 	// La methode peut etre appelee plusieurs fois pour retailler le vecteur
 	void SetIntervalBoundNumber(int nValue);
@@ -158,7 +158,7 @@ public:
 	void WriteStructureUsedRule(ostream& ost) const override;
 
 	// Methode de comparaison entre deux regles
-	int FullCompare(const KWDerivationRule* rule) const override;
+	int FullCompareStructure(const KWDerivationRule* rule) const override;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -191,7 +191,7 @@ public:
 	// valeurs (ordonnees) dans le vecteur prevu a cet effet
 
 	// Nombre de valeurs
-	// Le setter fait basculer en interface de structure,
+	// Le setter fait basculer en interface de structure, avec destruction des operandes,
 	// et le getter est accessible en interface de structure et de base
 	// La methode peut etre appelee plusieurs fois pour retailler le vecteur
 	void SetValueNumber(int nValue);
@@ -256,7 +256,7 @@ public:
 	void WriteStructureUsedRule(ostream& ost) const override;
 
 	// Methode de comparaison entre deux regles
-	int FullCompare(const KWDerivationRule* rule) const override;
+	int FullCompareStructure(const KWDerivationRule* rule) const override;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -279,11 +279,18 @@ public:
 	KWDRValueGroup();
 	~KWDRValueGroup();
 
+	// Redefinition a true
+	// Car on est dans une sous-classe de KWDRSymbolVector qui accepte es operandes non constants
+	boolean AreConstantOperandsMandatory() const override;
+
 	//////////////////////////////////////////////////////
 	// Redefinition des methodes standard
 
 	// Creation
 	KWDerivationRule* Create() const override;
+
+	// Calcul de l'objet Structure, ici constant systematiquement
+	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
 
 	//////////////////////////////////////////////////////
 	// Redefinition des methodes de structure
@@ -384,7 +391,7 @@ public:
 
 	// Methode de comparaison entre deux regles
 	// A redefinir pour utiliser la methode standard
-	int FullCompare(const KWDerivationRule* rule) const override;
+	int FullCompareStructure(const KWDerivationRule* rule) const override;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -430,7 +437,7 @@ public:
 	// valeurs (ordonnees) dans le vecteur prevu a cet effet
 
 	// Nombre de valeurs
-	// Le setter fait basculer en interface de structure,
+	// Le setter fait basculer en interface de structure, avec destruction des operandes,
 	// et le getter est accessible en interface de structure et de base
 	// La methode peut etre appelee plusieurs fois pour retailler le vecteur
 	void SetValueNumber(int nValue);
@@ -496,7 +503,7 @@ public:
 	void WriteStructureUsedRule(ostream& ost) const override;
 
 	// Methode de comparaison entre deux regles
-	int FullCompare(const KWDerivationRule* rule) const override;
+	int FullCompareStructure(const KWDerivationRule* rule) const override;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;

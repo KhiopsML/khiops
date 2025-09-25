@@ -1341,6 +1341,8 @@ KWDRSNBClassifier::KWDRSNBClassifier()
 	// Le premier operande est un vecteurs de poids
 	GetFirstOperand()->SetType(KWType::Structure);
 	GetFirstOperand()->SetStructureName("Vector");
+	GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
+	GetFirstOperand()->SetDerivationRule(new KWDRContinuousVector);
 
 	// Les operandes principaux contiennent des regles de type Structure
 	nFirstDataGridOperand = 1;
@@ -2138,6 +2140,8 @@ KWDRSNBRankRegressor::KWDRSNBRankRegressor()
 	// Le premier operande est un vecteurs de poids
 	GetFirstOperand()->SetType(KWType::Structure);
 	GetFirstOperand()->SetStructureName("Vector");
+	GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
+	GetFirstOperand()->SetDerivationRule(new KWDRContinuousVector);
 
 	// Les operandes principaux contiennent des regles de type Structure
 	nFirstDataGridOperand = 1;

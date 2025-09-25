@@ -186,7 +186,7 @@ public:
 	// valeurs dans le vecteur prevu a cet effet
 
 	// Nombre de d'effectifs (de cellules)
-	// Le setter fait basculer en interface de structure,
+	// Le setter fait basculer en interface de structure, avec destruction des operandes,
 	// et le getter est accessible en interface de structure et de base
 	void SetFrequencyNumber(int nFrequency);
 	int GetFrequencyNumber() const;
@@ -226,7 +226,7 @@ public:
 	void WriteStructureUsedRule(ostream& ost) const override;
 
 	// Methode de comparaison entre deux regles
-	int FullCompare(const KWDerivationRule* rule) const override;
+	int FullCompareStructure(const KWDerivationRule* rule) const override;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;

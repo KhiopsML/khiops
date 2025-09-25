@@ -162,6 +162,8 @@ KWDRBiasedTargetValue::KWDRBiasedTargetValue()
 	GetFirstOperand()->SetStructureName("Classifier");
 	GetSecondOperand()->SetType(KWType::Structure);
 	GetSecondOperand()->SetStructureName("Vector");
+	GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
+	GetSecondOperand()->SetDerivationRule(new KWDRContinuousVector);
 }
 
 KWDRBiasedTargetValue::~KWDRBiasedTargetValue() {}

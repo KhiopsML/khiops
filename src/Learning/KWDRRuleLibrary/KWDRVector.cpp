@@ -9,8 +9,6 @@ void KWDRRegisterVectorRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRSymbolVector);
 	KWDerivationRule::RegisterDerivationRule(new KWDRContinuousVector);
 	//
-	KWDerivationRule::RegisterDerivationRule(new KWDRDynamicSymbolVector);
-	//
 	KWDerivationRule::RegisterDerivationRule(new KWDRSymbolValueAt);
 	KWDerivationRule::RegisterDerivationRule(new KWDRContinuousValueAt);
 	//
@@ -28,11 +26,17 @@ KWDRSymbolVector::KWDRSymbolVector()
 	SetStructureName("VectorC");
 	SetOperandNumber(1);
 	SetVariableOperandNumber(true);
+
+	// On n'impose pas l'origine de l'operande a etre constant, car ce n'est pas obligatoire
 	GetFirstOperand()->SetType(KWType::Symbol);
-	GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginConstant);
 }
 
 KWDRSymbolVector::~KWDRSymbolVector() {}
+
+boolean KWDRSymbolVector::AreConstantOperandsMandatory() const
+{
+	return false;
+}
 
 KWDerivationRule* KWDRSymbolVector::Create() const
 {
@@ -46,7 +50,7 @@ void KWDRSymbolVector::CleanCompiledBaseInterface()
 
 void KWDRSymbolVector::CopyStructureFrom(const KWDerivationRule* kwdrSource)
 {
-	const KWDRSymbolVector* kwdrsvSource = cast(KWDRSymbolVector*, kwdrSource);
+	const KWDRSymbolVector* kwdrsvSource = cast(const KWDRSymbolVector*, kwdrSource);
 
 	// Copie de la version optimisee du parametrage des valeurs
 	svValues.CopyFrom(&kwdrsvSource->svValues);
@@ -54,11 +58,13 @@ void KWDRSymbolVector::CopyStructureFrom(const KWDerivationRule* kwdrSource)
 
 void KWDRSymbolVector::BuildStructureFromBase(const KWDerivationRule* kwdrSource)
 {
+	const KWDRSymbolVector* kwdrsvSource = cast(const KWDRSymbolVector*, kwdrSource);
 	int i;
 	KWDerivationRuleOperand* operand;
 	Symbol sValue;
 
 	require(kwdrSource->KWDerivationRule::CheckDefinition());
+	require(kwdrsvSource->CheckConstantOperands(false));
 
 	// Recopie des operandes
 	svValues.SetSize(kwdrSource->GetOperandNumber());
@@ -75,6 +81,8 @@ void KWDRSymbolVector::WriteStructureUsedRule(ostream& ost) const
 {
 	int i;
 
+	require(CheckConstantOperands(false));
+
 	// Nom de la regle utilisee
 	ost << KWClass::GetExternalName(GetName());
 
@@ -89,7 +97,7 @@ void KWDRSymbolVector::WriteStructureUsedRule(ostream& ost) const
 	ost << ")";
 }
 
-int KWDRSymbolVector::FullCompare(const KWDerivationRule* rule) const
+int KWDRSymbolVector::FullCompareStructure(const KWDerivationRule* rule) const
 {
 	int nDiff;
 	KWDRSymbolVector* ruleSymbolVector;
@@ -125,16 +133,41 @@ int KWDRSymbolVector::FullCompare(const KWDerivationRule* rule) const
 			}
 		}
 	}
-
 	return nDiff;
+}
+
+Object* KWDRSymbolVector::ComputeStructureResult(const KWObject* kwoObject) const
+{
+	KWDerivationRuleOperand* valueOperand;
+	Symbol sValue;
+	int i;
+
+	require(IsCompiled());
+
+	// Cas du mode non constant : initialisation du vecteur de valeurs a partir des operandes
+	if (oaOperands.GetSize() > 0)
+	{
+		assert(not CheckConstantOperands(false));
+		svValues.SetSize(GetOperandNumber());
+		for (i = 0; i < GetOperandNumber(); i++)
+		{
+			valueOperand = GetOperandAt(i);
+			sValue = valueOperand->GetSymbolValue(kwoObject);
+			svValues.SetAt(i, sValue);
+		}
+		bStructureInterface = true;
+	}
+	return (Object*)this;
 }
 
 longint KWDRSymbolVector::GetUsedMemory() const
 {
 	longint lUsedMemory;
+
 	lUsedMemory = KWDRStructureRule::GetUsedMemory();
 	lUsedMemory += sizeof(KWDRSymbolVector) - sizeof(KWDRStructureRule);
 	lUsedMemory += svValues.GetUsedMemory();
+
 	return lUsedMemory;
 }
 
@@ -209,7 +242,7 @@ void KWDRContinuousVector::WriteStructureUsedRule(ostream& ost) const
 	ost << ")";
 }
 
-int KWDRContinuousVector::FullCompare(const KWDerivationRule* rule) const
+int KWDRContinuousVector::FullCompareStructure(const KWDerivationRule* rule) const
 {
 	int nDiff;
 	KWDRContinuousVector* ruleContinuousVector;
@@ -288,6 +321,9 @@ Symbol KWDRSymbolValueAt::ComputeSymbolResult(const KWObject* kwoObject) const
 	require(Check());
 	require(IsCompiled());
 	require(KWType::IsSimple(GetSecondOperand()->GetType()));
+
+	KWDerivationRuleOperand* firstOperand;
+	firstOperand = GetFirstOperand();
 
 	// Recherche de la partition
 	symbolVector = cast(KWDRSymbolVector*, GetFirstOperand()->GetStructureValue(kwoObject));
@@ -588,54 +624,5 @@ longint KWDRAsContinuousVector::GetUsedMemory() const
 	lUsedMemory = KWDerivationRule::GetUsedMemory();
 	lUsedMemory += sizeof(KWDRAsContinuousVector) - sizeof(KWDerivationRule);
 	lUsedMemory += continuousVector.GetUsedMemory();
-	return lUsedMemory;
-}
-
-///////////////////////////////////////////////////////////////
-// Classe KWDRDynamicSymbolVector
-
-KWDRDynamicSymbolVector::KWDRDynamicSymbolVector()
-{
-	SetName("DynamicVectorC");
-	SetLabel("Dynamic categorical vector");
-	SetType(KWType::Structure);
-	SetStructureName("VectorC");
-	SetOperandNumber(1);
-	SetVariableOperandNumber(true);
-	GetFirstOperand()->SetType(KWType::Symbol);
-}
-
-KWDRDynamicSymbolVector::~KWDRDynamicSymbolVector() {}
-
-KWDerivationRule* KWDRDynamicSymbolVector::Create() const
-{
-	return new KWDRDynamicSymbolVector;
-}
-
-Object* KWDRDynamicSymbolVector::ComputeStructureResult(const KWObject* kwoObject) const
-{
-	KWDerivationRuleOperand* valueOperand;
-	Symbol sValue;
-	int i;
-
-	require(IsCompiled());
-
-	// Parcours des operands pour alimenter le vecteur de valeur
-	symbolVector.SetValueNumber(GetOperandNumber());
-	for (i = 0; i < GetOperandNumber(); i++)
-	{
-		valueOperand = GetOperandAt(i);
-		sValue = valueOperand->GetSymbolValue(kwoObject);
-		symbolVector.SetValueAt(i, sValue);
-	}
-	return &symbolVector;
-}
-
-longint KWDRDynamicSymbolVector::GetUsedMemory() const
-{
-	longint lUsedMemory;
-	lUsedMemory = KWDerivationRule::GetUsedMemory();
-	lUsedMemory += sizeof(KWDRDynamicSymbolVector) - sizeof(KWDerivationRule);
-	lUsedMemory += symbolVector.GetUsedMemory();
 	return lUsedMemory;
 }

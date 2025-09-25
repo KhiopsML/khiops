@@ -568,8 +568,8 @@ static const yytype_int16 yyrline[] = {
     205,  209,  215,  233,  234,  235,  240,  260,  265,  307,  391,  412,  422,  466,  514,  656,  659,
     666,  676,  690,  693,  713,  735,  753,  774,  923,  926,  941,  944,  951,  954,  971,  974,  984,
     1001, 1004, 1012, 1015, 1023, 1027, 1031, 1035, 1039, 1043, 1047, 1051, 1055, 1059, 1063, 1071, 1074,
-    1082, 1085, 1089, 1093, 1098, 1110, 1116, 1135, 1150, 1258, 1262, 1305, 1312, 1323, 1336, 1350, 1361,
-    1375, 1386, 1397, 1409, 1421, 1432, 1444, 1451, 1454, 1455, 1459, 1466, 1472, 1473, 1477, 1485, 1491};
+    1082, 1085, 1089, 1093, 1098, 1110, 1116, 1135, 1150, 1261, 1265, 1308, 1315, 1326, 1339, 1353, 1364,
+    1378, 1389, 1400, 1412, 1424, 1435, 1447, 1454, 1457, 1458, 1462, 1469, 1475, 1476, 1480, 1488, 1494};
 #endif
 
 /** Accessing symbol of state STATE.  */
@@ -2809,12 +2809,15 @@ yyreduce:
 				// Acces a la regle de structure, transformation au format structure et nettoyage memoire
 				// Cette optimisation memoire des regles structure est critique dans le cas de dictionnaires
 				// de tres grande taille. Sinon, des millions d'operandes de regles sont potentiellement crees,
-				// puis lors de la compilation des dictionnaire, l'essentiel de la memoire liberee laisse des trous
+				// puis lors de la compilation des dictionnaires, l'essentiel de la memoire liberee laisse des trous
 				// dans les segments de la heap, qui ne peuvent etre rendus au systeme
 				assert(rule->CheckDefinition());
 				structureRule = cast(KWDRStructureRule*, rule);
-				structureRule->BuildStructureFromBase(rule);
-				structureRule->CleanCompiledBaseInterface();
+				if (structureRule->CheckConstantOperands(false))
+				{
+					structureRule->BuildStructureFromBase(rule);
+					structureRule->CleanCompiledBaseInterface();
+				}
 			}
 		}
 
@@ -2822,19 +2825,19 @@ yyreduce:
 		delete ruleBody;
 		(yyval.kwdrValue) = rule;
 	}
-#line 2804 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2807 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 77: /* derivationRuleBody: derivationRuleBegin  */
-#line 1259 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1262 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.kwdrValue) = (yyvsp[0].kwdrValue);
 	}
-#line 2812 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2815 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 78: /* derivationRuleBody: derivationRuleBegin ':' operandList  */
-#line 1263 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1266 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRule* ruleBody = (yyvsp[-2].kwdrValue);
 		ObjectArray* oaOutputOperands = (yyvsp[0].oaOperands);
@@ -2877,19 +2880,19 @@ yyreduce:
 
 		(yyval.kwdrValue) = ruleRelationCreationBody;
 	}
-#line 2859 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2862 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 79: /* derivationRuleBody: derivationRuleHeader  */
-#line 1306 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1309 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.kwdrValue) = (yyvsp[0].kwdrValue);
 	}
-#line 2867 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2870 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 80: /* operandList: operandList ',' derivationRuleOperand  */
-#line 1313 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1316 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		ObjectArray* oaOperandList = (yyvsp[-2].oaOperands);
 		KWDerivationRuleOperand* operand = (yyvsp[0].kwdroValue);
@@ -2900,11 +2903,11 @@ yyreduce:
 		oaOperandList->Add(operand);
 		(yyval.oaOperands) = oaOperandList;
 	}
-#line 2882 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2885 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 81: /* operandList: derivationRuleOperand  */
-#line 1324 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1327 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRuleOperand* operand = (yyvsp[0].kwdroValue);
 		ObjectArray* oaOperandList;
@@ -2915,11 +2918,11 @@ yyreduce:
 		oaOperandList->Add(operand);
 		(yyval.oaOperands) = oaOperandList;
 	}
-#line 2897 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2900 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 82: /* derivationRuleHeader: IDENTIFIER openparenthesis  */
-#line 1337 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1340 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		ALString* sIdentifier = (yyvsp[-1].sValue);
 		KWDerivationRule* rule;
@@ -2930,11 +2933,11 @@ yyreduce:
 		delete sIdentifier;
 		(yyval.kwdrValue) = rule;
 	}
-#line 2912 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2915 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 83: /* derivationRuleBegin: derivationRuleHeader derivationRuleOperand  */
-#line 1351 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1354 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRule* rule = (yyvsp[-1].kwdrValue);
 		KWDerivationRuleOperand* operand = (yyvsp[0].kwdroValue);
@@ -2945,11 +2948,11 @@ yyreduce:
 		rule->AddOperand(operand);
 		(yyval.kwdrValue) = rule;
 	}
-#line 2927 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2930 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 84: /* derivationRuleBegin: derivationRuleBegin ',' derivationRuleOperand  */
-#line 1362 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1365 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRule* rule = (yyvsp[-2].kwdrValue);
 		KWDerivationRuleOperand* operand = (yyvsp[0].kwdroValue);
@@ -2960,11 +2963,11 @@ yyreduce:
 		rule->AddOperand(operand);
 		(yyval.kwdrValue) = rule;
 	}
-#line 2942 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2945 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 85: /* derivationRuleOperand: IDENTIFIER  */
-#line 1376 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1379 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		ALString* sIdentifier = (yyvsp[0].sValue);
 		KWDerivationRuleOperand* operand;
@@ -2975,11 +2978,11 @@ yyreduce:
 		delete sIdentifier;
 		(yyval.kwdroValue) = operand;
 	}
-#line 2957 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2960 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 86: /* derivationRuleOperand: CONTINUOUSLITTERAL  */
-#line 1387 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1390 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		Continuous cValue = (yyvsp[0].cValue);
 		KWDerivationRuleOperand* operand;
@@ -2990,11 +2993,11 @@ yyreduce:
 		operand->SetContinuousConstant(cValue);
 		(yyval.kwdroValue) = operand;
 	}
-#line 2972 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2975 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 87: /* derivationRuleOperand: bigstring  */
-#line 1398 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1401 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		ALString* sValue = (yyvsp[0].sValue);
 		KWDerivationRuleOperand* operand;
@@ -3006,11 +3009,11 @@ yyreduce:
 		delete sValue;
 		(yyval.kwdroValue) = operand;
 	}
-#line 2988 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 2991 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 88: /* derivationRuleOperand: derivationRule  */
-#line 1410 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1413 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRule* rule = (yyvsp[0].kwdrValue);
 		KWDerivationRuleOperand* operand;
@@ -3022,22 +3025,22 @@ yyreduce:
 			operand->SetType(operand->GetDerivationRule()->GetType());
 		(yyval.kwdroValue) = operand;
 	}
-#line 3004 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 3007 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 89: /* derivationRuleOperand: '.' derivationRuleOperand  */
-#line 1422 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1425 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		KWDerivationRuleOperand* operand = (yyvsp[0].kwdroValue);
 
 		operand->SetScopeLevel(operand->GetScopeLevel() + 1);
 		(yyval.kwdroValue) = operand;
 	}
-#line 3015 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 3018 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 90: /* bigstring: bigstring '+' STRINGLITTERAL  */
-#line 1433 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1436 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		ALString* sValue1 = (yyvsp[-2].sValue);
 		ALString* sValue2 = (yyvsp[0].sValue);
@@ -3049,80 +3052,80 @@ yyreduce:
 		delete sValue1;
 		delete sValue2;
 	}
-#line 3031 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 3034 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 91: /* bigstring: STRINGLITTERAL  */
-#line 1445 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1448 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		(yyval.sValue) = (yyvsp[0].sValue);
 	}
-#line 3039 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 3042 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 92: /* semicolon: %empty  */
-#line 1451 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1454 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		yyerror("Missing ';'");
 	}
-#line 3047 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 3050 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 94: /* semicolon: ';' ';'  */
-#line 1456 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1459 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		yyerror("There is one superfluous ';'");
 	}
-#line 3055 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 3058 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 95: /* semicolon: ';' ';' ';'  */
-#line 1460 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1463 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		yyerror("Too many ';'");
 	}
-#line 3063 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 3066 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 96: /* openparenthesis: %empty  */
-#line 1466 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1469 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		// Cette instruction est la pour aider au diagnostic des erreurs
 		// de parenthesage: elle est utile dans ce cas, mais genere (avec
 		// sa consoeur de nombreux shift/reduce et reduce conflicts
 		yyerror("Missing '('");
 	}
-#line 3074 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 3077 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 98: /* openparenthesis: '(' '('  */
-#line 1474 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1477 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		yyerror("There is one superfluous '('");
 	}
-#line 3082 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 3085 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 99: /* openparenthesis: '(' '(' '('  */
-#line 1478 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1481 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		yyerror("Too many '('");
 	}
-#line 3090 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 3093 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
 	case 100: /* closeparenthesis: %empty  */
-#line 1485 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1488 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 	{
 		// Cette instruction est la pour aider au diagnostic des erreurs
 		// de parenthesage: elle est utile dans ce cas, mais genere (avec
 		// sa consoeur de nombreux shift/reduce et reduce conflicts
 		yyerror("Missing ')'");
 	}
-#line 3101 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 3104 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 	break;
 
-#line 3105 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
+#line 3108 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.cpp"
 
 	default:
 		break;
@@ -3301,7 +3304,7 @@ yyreturnlab:
 	return yyresult;
 }
 
-#line 1495 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 1498 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
 
 #include "KWCLex.inc"
 
