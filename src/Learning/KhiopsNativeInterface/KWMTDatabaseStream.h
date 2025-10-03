@@ -43,10 +43,14 @@ public:
 	// Renvoie false en cas de depassement du buffer interne du mapping
 	boolean SetSecondaryRecordAt(KWMTDatabaseMapping* mapping, const char* sRecord);
 
-	// Erreur sur les records secondaires, a gerer explicitement par l'appelant
+	// Nombre de records secondaires rencontres
+	void SetSecondaryRecordNumber(longint lValue);
+	longint GetSecondaryRecordNumber() const;
+
+	// Nombre d'erreurs sur les records secondaires, a gerer explicitement par l'appelant
 	// On peut memoriser une telle erreur, tenter une reprise sur erreur si possible
-	void SetSecondaryRecordError(boolean bValue);
-	boolean GetSecondaryRecordError() const;
+	void SetSecondaryRecordErrorNumber(longint lValue);
+	longint GetSecondaryRecordErrorNumber() const;
 
 	// Taille courante du buffer d'un mapping
 	// Permet de controler la taille du buffer par mapping dynamiquement,
@@ -68,14 +72,38 @@ public:
 	void SetMaxBufferSize(int nValue);
 	int GetMaxBufferSize() const;
 
+	// Liberation de la memoire des buffers des tables secondaires
+	// Utile notament si on a consomme trop de memoire pour une instance, et que l'on veut repartir
+	// de l'etat initial et reallouant les buffers au fur et a mesure
+	void FreeSecondaryTableBuffers();
+
 	// Memoire utilisee par la database pour son fonctionnement (reimplementation)
 	longint GetUsedMemory() const override;
+
+	////////////////////////////////////////////////////////////////////////////////////////////
+	// Redefinition minimal de quelque methode pour intercepter un eventuel depassement memoire
+	// lors de la lecture des tables externes, afin de specialiser les messages d'erreurs
+
+	// Redefinition de l'ouverture
+	boolean PhysicalOpenForRead() override;
+
+	// Lecture et chargement en memoire des tables des objets references
+	// Redefinition uniquement pour memorise l'information de depassement de limite
+	boolean PhysicalReadAllReferenceObjects(longint lMaxAvailableMemory, longint& lNecessaryMemory,
+						longint& lTotalExternalObjectNumber,
+						boolean& bMemoryLimitReached) override;
+
+	// Indique si la derniere lecture des tables externes a declenche un depassement memoire
+	boolean IsMemoryLimitReachedDuringLastReadAllReferenceObjects() const;
 
 	////////////////////////////////////////////////////////
 	//// Implementation
 protected:
-	// Erreur sur les records secondaires
-	boolean bSecondaryRecordError;
+	// Nombre total de records secondaires
+	longint lSecondaryRecordNumber;
+
+	// Nombre d'erreurs sur les records secondaires
+	longint lSecondaryRecordErrorNumber;
 
 	// Creation de driver, a l'usage des mappings des tables principales et secondaires
 	// Parametrage a la volee des headerlines des driver de type stream
@@ -83,4 +111,7 @@ protected:
 
 	// Memorisation des headerlines par DataPath (dans des StringObject)
 	ObjectDictionary odHeaderLines;
+
+	// Indiqcateur de depassement memoire durant la derniere lecture des tables externes
+	boolean bIsMemoryLimitReachedDuringLastReadAllReferenceObjects;
 };

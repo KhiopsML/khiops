@@ -290,7 +290,7 @@ public:
 	// Si une ligne ne tient pas dans le buffer, la taille du buffer sera automatiquement
 	// et temporairement etendue jusqu'a cette taille pour recevoir la ligne en entier.
 	// N'est pris en compte que si la taille du buffer est plus petite que la taille max des lignes
-	// Les lignes depassant la taille max sont ignoree lors de la lecture (avec warning)
+	// Les lignes depassant la taille max sont ignorees lors de la lecture (avec warning)
 	static int GetMaxLineLength();
 	static void SetMaxLineLength(int nValue);
 

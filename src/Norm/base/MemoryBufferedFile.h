@@ -58,4 +58,9 @@ public:
 	boolean Open() override;
 	boolean IsOpened() const override;
 	boolean Close() override;
+
+	////////////////////////////////////////////////////////
+	//// Implementation
+protected:
+	boolean FlushCache() override;
 };

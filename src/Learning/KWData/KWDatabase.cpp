@@ -527,7 +527,7 @@ boolean KWDatabase::OpenForRead()
 	assert(not bOpenedForRead);
 	bOpenedForRead = PhysicalOpenForRead();
 
-	// Installation du handler specifique pour ignorer le flow des erreur dans le cas du memory guard
+	// Installation du handler specifique pour ignorer le flow des erreurs dans le cas du memory guard
 	KWDatabaseMemoryGuard::InstallMemoryGuardErrorFlowIgnoreFunction();
 
 	// Fermeture si echec

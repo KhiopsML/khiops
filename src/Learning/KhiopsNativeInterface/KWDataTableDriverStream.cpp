@@ -85,6 +85,15 @@ boolean KWDataTableDriverStream::FillRecordWithBuffer(char* sOutputRecord, int n
 	return streamOutputBuffer->FillRecordWithBuffer(sOutputRecord, nOutputMaxLength);
 }
 
+void KWDataTableDriverStream::FreeInputBuffer()
+{
+	StreamInputBufferedFile* streamInputBuffer;
+
+	require(IsOpenedForRead());
+	streamInputBuffer = cast(StreamInputBufferedFile*, inputBuffer);
+	streamInputBuffer->FreeBuffer();
+}
+
 boolean KWDataTableDriverStream::OpenForRead(const KWClass* kwcLogicalClass)
 {
 	boolean bOk;
@@ -92,7 +101,7 @@ boolean KWDataTableDriverStream::OpenForRead(const KWClass* kwcLogicalClass)
 	// Appel de la methode ancetre
 	bOk = KWDataTableDriverTextFile::OpenForRead(kwcLogicalClass);
 
-	// On reinitialise le buffer en entree, qui a etet utilise pour prepositionne la header-line
+	// On reinitialise le buffer en entree, qui a ete utilise pour prepositionne la header-line
 	if (bOk)
 		ResetInputBuffer();
 	return bOk;
@@ -164,10 +173,11 @@ boolean KWDataTableDriverStream::OpenInputDatabaseFile()
 	// Initialisation des caracteristiques du fichier
 	bWriteMode = false;
 
-	// Initialisation du buffer
+	// Initialisation du buffer, systematiquement avec une ligne d'ente en lecture
+	SetHeaderLineUsed(true);
 	inputBuffer = new StreamInputBufferedFile;
-	inputBuffer->SetFieldSeparator(cFieldSeparator);
-	inputBuffer->SetHeaderLineUsed(bHeaderLineUsed);
+	inputBuffer->SetFieldSeparator(GetFieldSeparator());
+	inputBuffer->SetHeaderLineUsed(true);
 	inputBuffer->SetFileName(GetDataTableName());
 	inputBuffer->SetBufferSize(nBufferSize);
 
@@ -201,10 +211,11 @@ boolean KWDataTableDriverStream::OpenOutputDatabaseFile()
 	// Initialisation des caracteristiques du fichier
 	bWriteMode = false;
 
-	// Initialisation du buffer
+	// Initialisation du buffer, systematiquement sans ligne d'ente en ecriture
+	SetHeaderLineUsed(false);
 	outputBuffer = new StreamOutputBufferedFile;
-	outputBuffer->SetFieldSeparator(cFieldSeparator);
-	outputBuffer->SetHeaderLineUsed(bHeaderLineUsed);
+	outputBuffer->SetFieldSeparator(GetFieldSeparator());
+	outputBuffer->SetHeaderLineUsed(GetHeaderLineUsed());
 	outputBuffer->SetFileName(GetDataTableName());
 	outputBuffer->SetBufferSize(nBufferSize);
 
@@ -290,6 +301,12 @@ void StreamInputBufferedFile::ResetBuffer()
 	bLastFieldReachEol = false;
 	nLastBolPositionInCache = 0;
 	nBufferLineNumber = 0;
+}
+
+void StreamInputBufferedFile::FreeBuffer()
+{
+	BufferedFile::ResetBuffer();
+	BufferedFile::SetAllocatedBufferSize(0);
 }
 
 boolean StreamInputBufferedFile::FillBufferWithRecord(const char* sInputRecord)
@@ -467,4 +484,11 @@ boolean StreamOutputBufferedFile::Close()
 {
 	bIsOpened = false;
 	return true;
+}
+
+boolean StreamOutputBufferedFile::FlushCache()
+{
+	require(IsOpened());
+	bIsError = true;
+	return false;
 }

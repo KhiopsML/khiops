@@ -80,7 +80,7 @@ protected:
 	// Ecriture du contenu du buffer dans le fichier
 	// Peut provoquer une erreur
 	// Lorsque la taille du cache est plus grande que GetPreferredBufferSize,
-	// seule un multiple de GetPreferredBufferSize est ecrit, le reste a ecrire est recopier
+	// seule un multiple de GetPreferredBufferSize est ecrit, le reste a ecrire est recopie
 	// au debut du cache
 	virtual boolean FlushCache();
 

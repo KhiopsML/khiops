@@ -38,7 +38,7 @@ static int nKNIOpenedStreamCurrentIndex = 0;
 static int nKNIStreamMaxMemory = KNI_DefaultMaxStreamMemory;
 
 // Recherche d'un stream
-inline KNIStream* KNIGetOpenedStreamAt(int hStream)
+static inline KNIStream* KNIGetOpenedStreamAt(int hStream)
 {
 	require(1 <= hStream and hStream <= KNI_MaxStreamNumber);
 	require(oaKNIOpenedStreams != NULL);
@@ -46,7 +46,7 @@ inline KNIStream* KNIGetOpenedStreamAt(int hStream)
 }
 
 // Verification de la longueur du chaine de caractere (y compris le caractere null de terminaison)
-boolean KNICheckString(const char* sString, int nMaxLength)
+static boolean KNICheckString(const char* sString, int nMaxLength)
 {
 	int i;
 
@@ -69,7 +69,7 @@ boolean KNICheckString(const char* sString, int nMaxLength)
 }
 
 // Creation de l'environnement d'apprentissage pour l'interface KNI
-void KNICreateEnv()
+static void KNICreateEnv()
 {
 	// MemSetAllocIndexExit(70099);
 
@@ -79,6 +79,7 @@ void KNICreateEnv()
 	UIObject::SetUIMode(UIObject::Textual);
 	Global::SetSilentMode(Global::GetErrorLogFileName() == "");
 	Error::SetDisplayErrorFunction(NULL);
+	assert(KNI_MaxRecordLength == InputBufferedFile::GetMaxLineLength());
 
 	// Creation de l'environnement si necessaire
 	if (nKNIOpenedStreamNumber == 0)
@@ -107,7 +108,7 @@ void KNICreateEnv()
 }
 
 // Destruction de l'environnement d'apprentissage
-void KNIDestroyEnv()
+static void KNIDestroyEnv()
 {
 	// Destruction de l'environnement si necessaire
 	if (kniEnvLearningProject != NULL and nKNIOpenedStreamNumber == 0)
@@ -201,7 +202,7 @@ static const ALString KNIErrorLabel(int nErrorCode)
 	case KNI_ErrorStreamInputRecord:
 		return "Bad input record: null-termination character not found before maximum string length";
 	case KNI_ErrorStreamInputRead:
-		return "Problem in reading input record";
+		return "Problem in reading input record(s)";
 	case KNI_ErrorStreamOutputRecord:
 		return "Bad output record: output fields require more space than maximum string length";
 	case KNI_ErrorMissingSecondaryHeader:
@@ -237,10 +238,40 @@ static void KNIAddError(int nErrorCode, const ALString& sMethodName, const ALStr
 }
 
 // Ajout d'une erreur interne a une methode
-static void KNIAddInternalError(const ALString& sLabel)
+static void KNIAddInternalError(const ALString& sDictionaryName, const ALString& sLabel)
 {
 	if (not Global::GetSilentMode())
-		Global::AddError("KNI", "", sLabel);
+		Global::AddError("KNI", sDictionaryName, sLabel);
+}
+
+// Ajout d'une erreur interne de type memoire excessive utilisee
+// Le parametre sMemoryContext sert a preciser l'etape d'ouverture du fichier (ex: "loading the dictionary")
+static void KNIAddMemoryOpenError(const ALString& sDictionaryName, const ALString& sOpenContext,
+				  longint lStreamUsedMemory, longint lStreamMemoryLimit)
+{
+	ALString sTmp;
+	KNIAddInternalError(sDictionaryName,
+			    sTmp + "Memory requested to open stream (" +
+				LongintToHumanReadableString(lStreamUsedMemory) + ") exceeds stream memory limit (" +
+				LongintToHumanReadableString(lStreamMemoryLimit) + "), after " + sOpenContext);
+}
+
+// Trace memoire
+// Le parametre peut etre null si le stream n'a pas encore ete cree
+static void KNITraceMemory(KNIStream* kniStream, const ALString sLabel)
+{
+	cout << "KNI";
+	if (kniStream != NULL)
+		cout << " " << kniStream->GetClass()->GetName();
+	cout << "\t" << sLabel;
+	cout << "\t" << LongintToHumanReadableString(MemGetHeapMemory());
+	cout << "\t" << LongintToHumanReadableString(RMResourceManager::GetRemainingAvailableMemory());
+	if (kniStream != NULL)
+	{
+		cout << "\t" << LongintToHumanReadableString(kniStream->GetStreamOpeningUsedMemory());
+		cout << "\t" << LongintToHumanReadableString(kniStream->GetStreamActualMemoryLimit());
+	}
+	cout << endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -261,23 +292,22 @@ KNI_API const char* KNIGetFullVersion()
 	return sFullVersion;
 }
 
-/* Methode interne d'ouverture d'un stream, reutilisee dans le cas mono-tables et multi-tables
- * Parameters:
- * Handle of stream valide
- * Success return codes :
- *    KNI_OK
- * Failure return codes :
- *    KNI_ErrorStreamOpening
- */
-int KNIInternalOpenStream(int hStream)
+// Methode interne d'ouverture d'un stream, reutilisee dans le cas mono-tables et multi-tables
+// Parameters:
+// Handle of stream valide
+// Success return codes :
+//    KNI_OK
+// Failure return codes :
+//    KNI_ErrorStreamOpening
+static int KNIInternalOpenStream(int hStream)
 {
-	boolean bShowMemory = false;
+	const boolean bTrace = false;
 	int nRetCode = KNI_OK;
 	KWClass* kwcClass;
 	KNIStream* kniStream;
+	KWDatabaseMemoryGuard* memoryGuard;
+	longint lInitialHeapMemory;
 	longint lStreamUsedMemory;
-	longint lInitialSymbolUsedMemory;
-	longint lDeltaSymbolUsedMemory;
 	ALString sTmp;
 
 	require(1 <= hStream and hStream <= KNI_MaxStreamNumber);
@@ -288,59 +318,108 @@ int KNIInternalOpenStream(int hStream)
 	check(kniStream);
 	assert(not kniStream->GetInputStream()->IsOpenedForRead());
 	assert(not kniStream->GetOutputStream()->IsOpenedForRead());
+	if (bTrace)
+	{
+		cout << "KNIInternalOpenStream\tBegin\t" << hStream << "\n";
+		KNITraceMemory(kniStream, "Internal open initial memory");
+	}
+
+	// Acces au memory guard, protege par assertion avant l'ouverture en lecture
+	memoryGuard = kniStream->GetInputStream()->GetMemoryGuard();
+
+	// Recherche de sa memoire deja utilisee pour l'ouverture
+	lStreamUsedMemory = kniStream->GetStreamOpeningUsedMemory();
+	assert(0 <= lStreamUsedMemory and lStreamUsedMemory <= kniStream->GetStreamActualMemoryLimit());
 
 	// On positionne le domaine de classe pour gerer l'ouverture
 	kwcClass = kniStream->GetClass();
 	KWClassDomain::SetCurrentDomain(kwcClass->GetDomain());
 
-	// Memorisation de l'occupation memoire des symbol avant ouverture du stream
-	lInitialSymbolUsedMemory = Symbol::GetAllSymbolsUsedMemory();
-
-	// Affichage de stats memoire
-	if (bShowMemory)
+	// Ouverture du stream en lecture
+	lInitialHeapMemory = MemGetHeapMemory();
+	kniStream->GetInputStream()->OpenForRead();
+	lStreamUsedMemory += MemGetHeapMemory() - lInitialHeapMemory;
+	if (not kniStream->GetInputStream()->IsOpenedForRead())
 	{
-		cout << "Symbol memory: " << lInitialSymbolUsedMemory << endl;
-		cout << "Domain memory: " << kwcClass->GetDomain()->GetUsedMemory() << endl;
-		cout << "Stream memory (before open): " << kniStream->GetUsedMemory() << endl;
+		// Code retour specialise au probleme memoire dans le cas d'un probleme de lecture des tables externes
+		if (kniStream->GetInputStream()->IsMemoryLimitReachedDuringLastReadAllReferenceObjects())
+			nRetCode = KNI_ErrorMemoryOverflow;
+		// Erreur generique sinon
+		else
+			nRetCode = KNI_ErrorStreamOpening;
+	}
+	else
+	{
+		if (lStreamUsedMemory > kniStream->GetStreamActualMemoryLimit())
+		{
+			KNIAddMemoryOpenError(
+			    kniStream->GetClass()->GetName(),
+			    "loading and compiling the dictionary, creating the stream and opening it for read",
+			    lStreamUsedMemory, kniStream->GetStreamActualMemoryLimit());
+			nRetCode = KNI_ErrorMemoryOverflow;
+		}
+	}
+	if (bTrace)
+		KNITraceMemory(kniStream, "Open for read");
+
+	// Ouverture du stream en ecriture
+	if (nRetCode == KNI_OK)
+	{
+		assert(kniStream->GetInputStream()->IsOpenedForRead());
+		lInitialHeapMemory = MemGetHeapMemory();
+		kniStream->GetOutputStream()->OpenForWrite();
+		lStreamUsedMemory += MemGetHeapMemory() - lInitialHeapMemory;
+		if (not kniStream->GetOutputStream()->IsOpenedForWrite())
+		{
+			nRetCode = KNI_ErrorStreamOpening;
+		}
+		else
+		{
+			if (lStreamUsedMemory > kniStream->GetStreamActualMemoryLimit())
+			{
+				KNIAddMemoryOpenError(kniStream->GetClass()->GetName(),
+						      "loading and compiling the dictionary, creating the stream and "
+						      "opening it for read/write",
+						      lStreamUsedMemory, kniStream->GetStreamActualMemoryLimit());
+				nRetCode = KNI_ErrorMemoryOverflow;
+			}
+		}
+		if (bTrace)
+			KNITraceMemory(kniStream, "Open for write");
 	}
 
-	// Ouverture du stream en lecture
-	kniStream->GetInputStream()->OpenForRead();
-	if (kniStream->GetInputStream()->IsOpenedForRead())
-		kniStream->GetOutputStream()->OpenForWrite();
-	if (not kniStream->GetInputStream()->IsOpenedForRead() or not kniStream->GetOutputStream()->IsOpenedForWrite())
-		nRetCode = KNI_ErrorStreamOpening;
-
-	// Calcul de l'occupation memoire supplementaire due aux symbols
-	lDeltaSymbolUsedMemory = Symbol::GetAllSymbolsUsedMemory() - lInitialSymbolUsedMemory;
+	// On verifie la memoire minimale necessaire au recodage
+	if (nRetCode == KNI_OK)
+	{
+		assert(kniStream->GetInputStream()->IsOpenedForRead());
+		assert(kniStream->GetOutputStream()->IsOpenedForWrite());
+		if (lStreamUsedMemory + kniStream->GetStreamMinimumRecodingMemoryLimit() >
+		    kniStream->GetStreamActualMemoryLimit())
+		{
+			KNIAddMemoryOpenError(kniStream->GetClass()->GetName(),
+					      "loading and compiling the dictionary, creating the stream, "
+					      "opening it for read/write, and preparing buffers for recoding",
+					      lStreamUsedMemory + kniStream->GetStreamMinimumRecodingMemoryLimit(),
+					      kniStream->GetStreamActualMemoryLimit());
+			nRetCode = KNI_ErrorMemoryOverflow;
+		}
+	}
 
 	// On remet le domaine de classe courant a NULL
 	KWClassDomain::SetCurrentDomain(NULL);
 
-	// Test si probleme memoire
+	// Parametrage de la gestion de la memoire du memory stream
 	if (nRetCode == KNI_OK)
 	{
-		lStreamUsedMemory = kniStream->GetUsedMemory() + lDeltaSymbolUsedMemory;
-		if (lStreamUsedMemory > kniStream->GetStreamAvailableMemory())
-		{
-			KNIAddInternalError(
-			    sTmp + "Memory requested to open stream exceeds by " +
-			    IntToString(int((lStreamUsedMemory - kniStream->GetStreamAvailableMemory()) * 100.0 /
-					    kniStream->GetStreamAvailableMemory())) +
-			    "% stream memory limit (" + IntToString(kniStream->GetStreamMemoryLimit()) + " MB)");
-			nRetCode = KNI_ErrorMemoryOverflow;
-		}
-		else
-			kniStream->SetStreamUsedMemory(lStreamUsedMemory);
-	}
+		// Memorisation de la memoire utilisee pour l'ouverture du stream
+		kniStream->SetStreamOpeningUsedMemory(lStreamUsedMemory);
 
-	// Affichage de stats memoire
-	if (bShowMemory)
-	{
-		cout << "Delta symbol memory (after open): " << Symbol::GetAllSymbolsUsedMemory() << " -> "
-		     << lDeltaSymbolUsedMemory << endl;
-		cout << "Stream memory (after open): " << kniStream->GetUsedMemory() << "\t"
-		     << kniStream->GetStreamUsedMemory() << endl;
+		// Parametrage du memory guard pour la creation et le calcul des objet
+		// En principe, on ne peux plus le parametrer une fois ouvert
+		// Mais c'est ok ici, puisqu'on vient d'ouvir le flux, avant la premiere utilisation
+		memoryGuard->SetEstimatedMinMemoryLimit(kniStream->GetStreamRecodingAvailableComputationMemory());
+		memoryGuard->SetEstimatedMaxMemoryLimit(kniStream->GetStreamRecodingAvailableComputationMemory());
+		memoryGuard->SetMemoryLimit(kniStream->GetStreamRecodingAvailableComputationMemory());
 	}
 
 	// Nettoyage si echec
@@ -352,17 +431,21 @@ int KNIInternalOpenStream(int hStream)
 		if (kniStream->GetOutputStream()->IsOpenedForWrite())
 			kniStream->GetOutputStream()->Close();
 	}
+	if (bTrace)
+	{
+		KNITraceMemory(kniStream, "Internal open final memory");
+		cout << "KNIInternalOpenStream\tEnd\t" << nRetCode << "\n";
+	}
 
 	// Sortie de la fonction, avec son code retour
 	ensure(nRetCode < 0 or KNIGetOpenedStreamAt(hStream) != NULL);
 	return nRetCode;
 }
 
-/* Methode interne de destruction d'un stream
- * Parameters:
- * Handle of stream valide
- */
-void KNIInternalDeleteStream(int hStream)
+// Methode interne de destruction d'un stream
+// Parameters:
+// Handle of stream valide
+static void KNIInternalDeleteStream(int hStream)
 {
 	KWClassDomain* kwcdLoadedDomain;
 	KWClass* kwcClass;
@@ -395,6 +478,7 @@ void KNIInternalDeleteStream(int hStream)
 KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictionaryName, const char* sStreamHeaderLine,
 			  char cFieldSeparator)
 {
+	const boolean bTrace = false;
 	int nRetCode;
 	int hStream;
 	KWClassDomain* kwcdLoadedDomain;
@@ -404,15 +488,19 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 	KWClass* kwcUnusedClass;
 	KWAttribute* attribute;
 	boolean bReadOk;
+	boolean bCompileOk;
 	KNIStream* kniStream;
 	KWMTDatabaseMapping* mapping;
 	int i;
+	longint lInitialHeapMemory;
+	longint lStreamUsedMemory;
+	longint lKNIStreamMaxActualMemory;
 	int nPhysicalMemoryReserve;
 	int nPhysicalMemoryLimit;
 	int nInitialMemoryLimit;
 	int nInitialAllStreamsMemoryLimit;
 	int nNewAllStreamsMemoryLimit;
-	int nFileSize;
+	longint lFileSize;
 	ALString sTmp;
 
 	// Sortie directe si fonction en cours d'execution
@@ -420,9 +508,17 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 		return KNI_ErrorRunningFunction;
 	bKNIRunningFunction = true;
 	nRetCode = KNI_OK;
+	lStreamUsedMemory = 0;
+	if (bTrace)
+	{
+		cout << "KNIOpenStream\tBegin\t" << sDictionaryName << "\t" << KNIGetStreamMaxMemory() << "\n";
+		KNITraceMemory(NULL, "Open initial memory");
+	}
 
 	// Creation de l'environnement d'apprentissage si necessaire
 	KNICreateEnv();
+	if (bTrace)
+		KNITraceMemory(NULL, "Create env");
 
 	// Test si assez de memoire pour gerer un nouveau stream
 	// On utilise la contrainte de limite memoire sur la base de la memoire necessaire
@@ -451,13 +547,16 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 		// Ko si l'on ne peut plus augmenter la limite memoire
 		else
 		{
-			KNIAddInternalError(sTmp + "Total memory necessary to manage all streams (" +
-					    IntToString(nNewAllStreamsMemoryLimit + nPhysicalMemoryReserve) +
-					    " MB) greater than available RAM (" + IntToString(nPhysicalMemoryLimit) +
-					    " MB)");
+			KNIAddInternalError("", sTmp + "Total memory necessary to manage all streams (" +
+						    LongintToHumanReadableString(
+							(nNewAllStreamsMemoryLimit + nPhysicalMemoryReserve) * lMB) +
+						    ") greater than available RAM (" +
+						    LongintToHumanReadableString(nPhysicalMemoryLimit + lMB) + ")");
 			nRetCode = KNI_ErrorMemoryOverflow;
 		}
 	}
+	if (bTrace)
+		KNITraceMemory(NULL, "Memory setup");
 
 	// On continue si OK
 	kwcClass = NULL;
@@ -484,14 +583,17 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 	}
 
 	// Test de la taille du fichier dictionnaire
+	lKNIStreamMaxActualMemory = nKNIStreamMaxMemory * lMB;
 	if (nRetCode == KNI_OK)
 	{
-		nFileSize = (int)(FileService::GetFileSize(sDictionaryFileName) / lMB);
-		if (nFileSize > nKNIStreamMaxMemory)
+		lFileSize = FileService::GetFileSize(sDictionaryFileName);
+		if (lFileSize > lKNIStreamMaxActualMemory)
 		{
-			KNIAddInternalError(sTmp + "Size of dictionary file " + sDictionaryFileName + " (" +
-					    IntToString(nFileSize) + " MB) greater that stream max memory (" +
-					    IntToString(nKNIStreamMaxMemory) + " MB)");
+			KNIAddInternalError(sDictionaryName,
+					    sTmp + "Size of dictionary file " + sDictionaryFileName + " (" +
+						LongintToHumanReadableString(lFileSize) +
+						") greater that stream max memory (" +
+						LongintToHumanReadableString(lKNIStreamMaxActualMemory) + ")");
 			nRetCode = KNI_ErrorMemoryOverflow;
 		}
 	}
@@ -503,7 +605,11 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 		kwcdLoadedDomain = new KWClassDomain;
 
 		// Lecture du fichier de dictionnaire
+		lInitialHeapMemory = MemGetHeapMemory();
 		bReadOk = kwcdLoadedDomain->ReadFile(sDictionaryFileName);
+		lStreamUsedMemory += MemGetHeapMemory() - lInitialHeapMemory;
+		if (bTrace)
+			KNITraceMemory(NULL, "Read dictionary");
 
 		// Erreur si probleme de lecture du fichier de dictionnaire
 		if (not bReadOk)
@@ -514,22 +620,16 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 		// Erreur si dictionnaire non trouve
 		else if (kwcdLoadedDomain->LookupClass(sDictionaryName) == NULL)
 			nRetCode = KNI_ErrorMissingDictionary;
-
-		// Compilation du dictionnaire, qui peut echouer en cas de cycle de regles de derivation
-		if (nRetCode != KNI_OK)
+		// Erreur si trop de memoire utilisee apres la lecture
+		else if (lStreamUsedMemory > lKNIStreamMaxActualMemory)
 		{
-			if (not kwcdLoadedDomain->Compile())
-				nRetCode = KNI_ErrorDictionaryFileFormat;
+			KNIAddMemoryOpenError(sDictionaryName, "loading the dictionary", lStreamUsedMemory,
+					      lKNIStreamMaxActualMemory);
+			nRetCode = KNI_ErrorMemoryOverflow;
 		}
 
-		// Nettoyage si erreur
-		if (nRetCode != KNI_OK)
-		{
-			delete kwcdLoadedDomain;
-			kwcClass = NULL;
-		}
-		// Sinon, compilation et memorisation du dictionnaire
-		else
+		// Si OK, compilation et memorisation du dictionnaire
+		if (nRetCode == KNI_OK)
 		{
 			// Recherche du dictionnaire
 			kwcClass = kwcdLoadedDomain->LookupClass(sDictionaryName);
@@ -544,7 +644,8 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 				kwcClass->GetNextAttribute(attribute);
 			}
 
-			// Nettoyage des classes non utiles
+			// Nettoyage des classes non utiles, ce qui va potentiellement economiser de la memoire
+			lInitialHeapMemory = MemGetHeapMemory();
 			kwcdLoadedDomain->ExportClassArray(&oaAllClasses);
 			kwcdLoadedDomain->ComputeClassDependence(kwcClass, &odDependentClasses);
 			for (i = 0; i < oaAllClasses.GetSize(); i++)
@@ -553,9 +654,34 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 				if (odDependentClasses.Lookup(kwcUnusedClass->GetName()) == NULL)
 					kwcdLoadedDomain->DeleteClass(kwcUnusedClass->GetName());
 			}
+			lStreamUsedMemory += MemGetHeapMemory() - lInitialHeapMemory;
 
-			// Compilation
-			kwcdLoadedDomain->Compile();
+			// Compilation du dictionnaire
+			lInitialHeapMemory = MemGetHeapMemory();
+			bCompileOk = kwcdLoadedDomain->Compile();
+			lStreamUsedMemory += MemGetHeapMemory() - lInitialHeapMemory;
+
+			// Erreur de compilation, potentiellement en cas de cycle dans les regles de derivation
+			if (not bCompileOk)
+				nRetCode = KNI_ErrorDictionaryFileFormat;
+			// Erreur si trop de memoire utilisee apres la compilation
+			else if (lStreamUsedMemory > lKNIStreamMaxActualMemory)
+			{
+				KNIAddMemoryOpenError(sDictionaryName, "loading and compiling the dictionary",
+						      lStreamUsedMemory, lKNIStreamMaxActualMemory);
+				nRetCode = KNI_ErrorMemoryOverflow;
+			}
+
+			if (bTrace)
+				KNITraceMemory(NULL, "Compile dictionary");
+		}
+
+		// Nettoyage du dictionnaire si erreur
+		if (nRetCode != KNI_OK and kwcdLoadedDomain != NULL)
+		{
+			delete kwcdLoadedDomain;
+			kwcdLoadedDomain = NULL;
+			kwcClass = NULL;
 		}
 	}
 
@@ -564,6 +690,9 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 	{
 		assert(kwcClass != NULL);
 		assert(kwcClass->IsCompiled());
+
+		// Memorisation de l'eta initla de la heap, avant initialisation du stream
+		lInitialHeapMemory = MemGetHeapMemory();
 
 		// Creation et initialisation du stream KNI
 		kniStream = new KNIStream;
@@ -618,7 +747,7 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 		kniStream->GetInputStream()->SetHeaderLineAt("", sStreamHeaderLine);
 		kniStream->GetOutputStream()->SetHeaderLineAt("", sStreamHeaderLine);
 
-		// On remet le domaine de classe courant a NULL
+		// On remet le domaine de classe courante a NULL
 		KWClassDomain::SetCurrentDomain(NULL);
 
 		// Recherche du premier emplacement de libre dans le tableau des streams
@@ -652,29 +781,54 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 		// En multi-tables, il faudra attendre l'appel de KNIFinishOpeningStream
 		nRetCode = hStream;
 
+		// Memorisation de la memoire deja utilisee pour creer le stream, et lire et compiler le directionnaire
+		lStreamUsedMemory += MemGetHeapMemory() - lInitialHeapMemory;
+		kniStream->SetStreamOpeningUsedMemory(lStreamUsedMemory);
+
+		// Erreur si trop de memoire utilisee apres la creation du stream
+		if (lStreamUsedMemory > lKNIStreamMaxActualMemory)
+		{
+			KNIAddMemoryOpenError(sDictionaryName,
+					      "loading and compiling the dictionary, and creating the stream",
+					      lStreamUsedMemory, lKNIStreamMaxActualMemory);
+			nRetCode = KNI_ErrorMemoryOverflow;
+		}
+
 		// Ouverture du stream uniquement dans le cas mono-tables
 		// L'ouverture est en effet differee dans le cas multi-tables (cf. KNIFinishOpeningStream)
-		if (kniStream->GetInputStream()->GetTableNumber() == 1)
+		if (nRetCode >= 0)
 		{
-			nRetCode = KNIInternalOpenStream(hStream);
+			if (kniStream->GetInputStream()->GetTableNumber() == 1)
+			{
+				nRetCode = KNIInternalOpenStream(hStream);
+				assert(nRetCode != KNI_OK or kniStream->GetStreamRecodingUsedMemory() == 0);
 
-			// Si OK, le code retour est le handle du stream
-			if (nRetCode == KNI_OK)
-				nRetCode = hStream;
-			// Destruction du stream sinon
-			else
-				KNIInternalDeleteStream(hStream);
+				// Si OK, le code retour est le handle du stream
+				if (nRetCode == KNI_OK)
+					nRetCode = hStream;
+			}
 		}
+
+		// Destruction du stream en cas d'erreur
+		if (nRetCode < 0)
+			KNIInternalDeleteStream(hStream);
 	}
 
 	// Destruction de l'environnement d'apprentissage si necessaire
 	KNIDestroyEnv();
+	if (bTrace)
+		KNITraceMemory(NULL, "End stream management");
 
 	// On remet la memoire initiale en cas de probleme
 	if (nRetCode < 0)
 	{
 		RMResourceConstraints::SetMemoryLimit(nInitialMemoryLimit);
 		KNIStream::SetAllStreamsMemoryLimit(nInitialAllStreamsMemoryLimit);
+	}
+	if (bTrace)
+	{
+		KNITraceMemory(NULL, "Open final memory");
+		cout << "KNIOpenStream\tEnd\t" << nRetCode << "\n";
 	}
 
 	// Emission si neccesaire d'un message d'erreur
@@ -753,9 +907,13 @@ KNI_API int KNIRecodeStreamRecord(int hStream, const char* sStreamInputRecord, c
 {
 	int nRetCode;
 	KNIStream* kniStream;
-	boolean bSecondaryRecordError;
+	longint lSecondaryRecordNumber;
+	longint lSecondaryRecordErrorNumber;
 	KWObject* kwoObject;
 	boolean bWriteOK;
+	longint lInitialHeapMemory;
+	longint lBufferExtraMemory;
+	ALString sTmp;
 
 	// Sortie directe si fonction en cours d'execution
 	if (bKNIRunningFunction)
@@ -799,46 +957,86 @@ KNI_API int KNIRecodeStreamRecord(int hStream, const char* sStreamInputRecord, c
 		}
 
 		// Recodage si licence OK
+		kwoObject = NULL;
 		if (nRetCode == KNI_OK)
 		{
-			// On memorise le cas ou il y a eu des erreurs sur les records secondaires
-			bSecondaryRecordError = kniStream->GetInputStream()->GetSecondaryRecordError();
+			// On memorise les informations sur les records secondaires
+			// Ces indicateurs seront repositionnes a 0 apres lecture de l'objet
+			lSecondaryRecordNumber = kniStream->GetInputStream()->GetSecondaryRecordNumber();
+			lSecondaryRecordErrorNumber = kniStream->GetInputStream()->GetSecondaryRecordErrorNumber();
 
-			// Lecture par analyse du record d'entree
-			// On la fait meme en cas d'erreur, pour "nettoyer" les buffers
-			kwoObject = kniStream->GetInputStream()->ReadFromBuffer(sStreamInputRecord);
-
-			// Erreur si probleme de lecture
-			sStreamOutputRecord[0] = '\0';
-			if (kwoObject == NULL)
-				nRetCode = KNI_ErrorStreamInputRead;
-			// Erreur de lecture
-			else if (kniStream->GetInputStream()->IsError() or bSecondaryRecordError)
+			// En cas de manque memoire, reinitialisation des buffers
+			if (kniStream->GetStreamRecodingUsedMemory() >
+			    kniStream->GetStreamRecodingAvailableBufferMemory())
 			{
-				nRetCode = KNI_ErrorStreamInputRead;
+				nRetCode = KNI_ErrorMemoryOverflow;
 
-				// Destruction de l'objet lu
-				delete kwoObject;
+				// Message d'erreur expliquant qu'il y avait trop de records
+				KNIAddError(
+				    nRetCode, "KNIRecodeStreamRecord",
+				    sTmp + IntToString(hStream) + ", too many secondary records encountered (" +
+					LongintToReadableString(lSecondaryRecordNumber) +
+					") that could not be stored in available buffers (" +
+					LongintToHumanReadableString(
+					    kniStream->GetStreamRecodingAvailableBufferMemory()) +
+					") beyond " +
+					LongintToReadableString(lSecondaryRecordNumber - lSecondaryRecordErrorNumber) +
+					" records");
+
+				// On memorise la memoire recuperee
+				// A noter que l'on va potentiellement recuperer de la memoire issue de la phase d'ouverture
+				// du stream, avec les buffers initiaux, et se trouver temporairement avec une memoire negative
+				// pour StreamRecodingUsedMemory, le temps que les buffers des tables seondaires soient realloues
+				lInitialHeapMemory = MemGetHeapMemory();
+				kniStream->GetInputStream()->FreeSecondaryTableBuffers();
+				lBufferExtraMemory = MemGetHeapMemory() - lInitialHeapMemory;
+				kniStream->SetStreamRecodingUsedMemory(kniStream->GetStreamRecodingUsedMemory() +
+								       lBufferExtraMemory);
+				assert(kniStream->GetStreamRecodingUsedMemory() <=
+				       kniStream->GetStreamRecodingAvailableBufferMemory());
+
+				// Lecture de l'objet sans buffers, uniquement pour reinitialiser le contexte pour la fois suivante
+				kwoObject = kniStream->GetInputStream()->ReadFromBuffer(sStreamInputRecord);
 			}
-			// Sinon, ecriture dans le record de de sortie
+			// Tentative de construction de l'objet sinon
 			else
 			{
-				// Ecriture
-				bWriteOK = kniStream->GetOutputStream()->WriteToBuffer(kwoObject, sStreamOutputRecord,
-										       nOutputMaxLength);
-				if (not bWriteOK)
-					nRetCode = KNI_ErrorStreamOutputRecord;
+				// Lecture par analyse du record d'entree
+				kwoObject = kniStream->GetInputStream()->ReadFromBuffer(sStreamInputRecord);
 
-				// Destruction de l'objet lu
-				delete kwoObject;
+				// Erreur si probleme de lecture
+				sStreamOutputRecord[0] = '\0';
+				if (kwoObject == NULL)
+					nRetCode = KNI_ErrorStreamInputRead;
+				// Erreur si probleme de lecture de records secondaires, hors probleme memoire deja traites
+				else if (lSecondaryRecordErrorNumber > 0)
+					nRetCode = KNI_ErrorStreamInputRead;
+				// Erreur de trop de memoire necessaire pour le calcul de l'objet
+				else if (kniStream->GetInputStream()->GetConstMemoryGuard()->IsMemoryLimitReached())
+					nRetCode = KNI_ErrorMemoryOverflow;
+				// Erreur de lecture
+				else if (kniStream->GetInputStream()->IsError())
+					nRetCode = KNI_ErrorStreamInputRead;
+				// Sinon, ecriture dans le record de sortie
+				else
+				{
+					// Ecriture
+					bWriteOK = kniStream->GetOutputStream()->WriteToBuffer(
+					    kwoObject, sStreamOutputRecord, nOutputMaxLength);
+					if (not bWriteOK)
+						nRetCode = KNI_ErrorStreamOutputRecord;
+				}
 			}
+
+			// Destruction de l'objet lu
+			if (kwoObject != NULL)
+				delete kwoObject;
 		}
 	}
 
 	// Emission si neccesaire d'un message d'erreur
 	if (nRetCode < 0 and not Global::GetSilentMode())
 	{
-		ALString sTmp;
 		KNIAddError(nRetCode, "KNIRecodeStreamRecord",
 			    sTmp + IntToString(hStream) + ", " + KNIPrintableRecord(sStreamInputRecord) + ", " +
 				KNIPrintableRecord(sStreamOutputRecord) + ", " + IntToString(nOutputMaxLength));
@@ -858,6 +1056,7 @@ KNI_API int KNISetSecondaryHeaderLine(int hStream, const char* sDataPath, const 
 	KNIStream* kniStream;
 	KWMTDatabaseMapping* mapping;
 	ALString sFullDataPath;
+	longint lInitialHeapMemory;
 
 	// Sortie directe si fonction en cours d'execution
 	if (bKNIRunningFunction)
@@ -904,8 +1103,13 @@ KNI_API int KNISetSecondaryHeaderLine(int hStream, const char* sDataPath, const 
 		// Memorisation de la ligne de header
 		if (nRetCode == KNI_OK)
 		{
+			// On actualise la memoire necessaire pour stocker les specifications du stream
+			// Pas de message d'erreur a ce niveau, car l'impact est negligeable
+			lInitialHeapMemory = MemGetHeapMemory();
 			kniStream->GetInputStream()->SetHeaderLineAt(sFullDataPath, sStreamSecondaryHeaderLine);
 			kniStream->GetOutputStream()->SetHeaderLineAt(sFullDataPath, sStreamSecondaryHeaderLine);
+			kniStream->SetStreamOpeningUsedMemory(kniStream->GetStreamOpeningUsedMemory() +
+							      MemGetHeapMemory() - lInitialHeapMemory);
 		}
 	}
 
@@ -931,6 +1135,7 @@ KNI_API int KNISetExternalTable(int hStream, const char* sDataRoot, const char* 
 	KWMTDatabaseMapping* mapping;
 	ALString sFullDataPath;
 	ALString sRootDataPath;
+	longint lInitialHeapMemory;
 
 	// Sortie directe si fonction en cours d'execution
 	if (bKNIRunningFunction)
@@ -993,7 +1198,13 @@ KNI_API int KNISetExternalTable(int hStream, const char* sDataRoot, const char* 
 		if (nRetCode == KNI_OK)
 		{
 			assert(mapping->GetExternalTable() == true);
+
+			// On actualise la memoire necessaire pour stocker les specifications du stream
+			// Pas de message d'erreur a ce niveau, car l'impact est negligeable
+			lInitialHeapMemory = MemGetHeapMemory();
 			mapping->SetDataTableName(sDataTableFileName);
+			kniStream->SetStreamOpeningUsedMemory(kniStream->GetStreamOpeningUsedMemory() +
+							      MemGetHeapMemory() - lInitialHeapMemory);
 		}
 	}
 
@@ -1081,8 +1292,8 @@ KNI_API int KNIFinishOpeningStream(int hStream)
 				}
 			}
 
-			// Verification de la specification complete des mapping en sortie
-			// En principe, ne devrait pas poser de probleme si c'est correct pour les mapping en entree
+			// Verification de la specification complete des mappings en sortie
+			// En principe, cela ne devrait pas poser de probleme si c'est correct pour les mapping en entree
 			if (nRetCode == KNI_OK)
 			{
 				for (i = 1; i < kniStream->GetOutputStream()->GetTableNumber(); i++)
@@ -1143,7 +1354,10 @@ KNI_API int KNISetSecondaryInputRecord(int hStream, const char* sDataPath, const
 	KWMTDatabaseMapping* mapping;
 	int nMappingMaxBufferSize;
 	int nNewMappingMaxBufferSize;
+	longint lInitialHeapMemory;
+	longint lBufferExtraMemory;
 	boolean bOk;
+	ALString sTmp;
 
 	// Sortie directe si fonction en cours d'execution
 	if (bKNIRunningFunction)
@@ -1152,6 +1366,7 @@ KNI_API int KNISetSecondaryInputRecord(int hStream, const char* sDataPath, const
 	nRetCode = KNI_OK;
 
 	// Erreur si le handle est hors limites
+	kniStream = NULL;
 	if (hStream < 1 or hStream > KNI_MaxStreamNumber)
 		nRetCode = KNI_ErrorStreamHandle;
 	// Erreur si le handle est invalide
@@ -1187,75 +1402,96 @@ KNI_API int KNISetSecondaryInputRecord(int hStream, const char* sDataPath, const
 		// Recherche si l'on est deja en erreur sur la gestion des enregistrements secondaires
 		if (nRetCode == KNI_OK)
 		{
-			if (kniStream->GetInputStream()->GetSecondaryRecordError())
+			if (kniStream->GetInputStream()->GetSecondaryRecordErrorNumber() > 0)
 				nRetCode = KNI_ErrorMemoryOverflow;
 		}
 
 		// Memorisation du record secondaire, en tenant compte des contraintes de memoire
 		if (nRetCode == KNI_OK)
 		{
+			// Memorisation du record en enregistrant le record dans la memoire des buffers
+			// On memorise la memoire additionnelle potentiellement allouee
+			lInitialHeapMemory = MemGetHeapMemory();
 			bOk = kniStream->GetInputStream()->SetSecondaryRecordAt(mapping, sStreamSecondaryInputRecord);
+			lBufferExtraMemory = MemGetHeapMemory() - lInitialHeapMemory;
+			kniStream->SetStreamRecodingUsedMemory(kniStream->GetStreamRecodingUsedMemory() +
+							       lBufferExtraMemory);
 
 			// Deuxieme tentative si erreur (du a manque de memoire du buffer du mapping)
-			if (not bOk)
+			if (not bOk and kniStream->GetStreamRecodingUsedMemory() <
+					    kniStream->GetStreamRecodingAvailableBufferMemory())
 			{
-				if (kniStream->GetStreamUsedMemory() < kniStream->GetStreamAvailableMemory())
+				// Determination de la nouvelle taille du buffer du mapping, si on n'est pas aux limites
+				nMappingMaxBufferSize = kniStream->GetInputStream()->GetMappingMaxBufferSize(mapping);
+				nNewMappingMaxBufferSize = nMappingMaxBufferSize;
+				if (nMappingMaxBufferSize <= INT_MAX - KNI_MaxRecordLength)
 				{
-					// Determination de la nouvelle taille du buffer du mapping
-					nMappingMaxBufferSize =
-					    kniStream->GetInputStream()->GetMappingMaxBufferSize(mapping);
-					nNewMappingMaxBufferSize = nMappingMaxBufferSize;
-					if (nMappingMaxBufferSize <=
-					    INT_MAX / 3) // Au dela de 1 Go, on n'agrandit plus les buffers
-					{
-						// Doublement de la taille si possible
-						if (nMappingMaxBufferSize < kniStream->GetStreamAvailableMemory() -
-										kniStream->GetStreamUsedMemory())
-							nNewMappingMaxBufferSize = nMappingMaxBufferSize * 2;
-						// Sinon, agrandissement dans la limite de la memoire disponible pour le
-						// stream
-						else
-						{
-							assert(nMappingMaxBufferSize +
-								   kniStream->GetStreamAvailableMemory() -
-								   kniStream->GetStreamUsedMemory() <
-							       INT_MAX);
-							nNewMappingMaxBufferSize =
-							    nMappingMaxBufferSize +
-							    int(kniStream->GetStreamAvailableMemory() -
-								kniStream->GetStreamUsedMemory());
-						}
-						assert(nNewMappingMaxBufferSize >= nMappingMaxBufferSize);
-					}
+					// Ajout de la taille d'une ligne de taille max si possible, qui en pratique
+					// doit permettre de prendre en compte de nombreux nouveaux records
+					// On ajoute par petit pas, pour s'adapter au cas des schemas multi-tables, car on ne
+					// sait pas a l'avance pour quelle table secondaire il faudra agrandir la taille des buffers
+					if (KNI_MaxRecordLength <= kniStream->GetStreamRecodingAvailableBufferMemory() -
+								       kniStream->GetStreamRecodingUsedMemory())
+						nNewMappingMaxBufferSize += KNI_MaxRecordLength;
+					// Sinon, on ajoute tout ce qui reste
+					else
+						nNewMappingMaxBufferSize +=
+						    (int)(kniStream->GetStreamRecodingAvailableBufferMemory() -
+							  kniStream->GetStreamRecodingUsedMemory());
+					assert(nNewMappingMaxBufferSize > nMappingMaxBufferSize);
+				}
 
-					// Nouvelle tentative de recodage si agrandissement possible
-					if (nNewMappingMaxBufferSize > nMappingMaxBufferSize)
-					{
-						kniStream->GetInputStream()->SetMappingMaxBufferSize(
-						    mapping, nNewMappingMaxBufferSize);
-						kniStream->SetStreamUsedMemory(
-						    kniStream->GetStreamUsedMemory() +
-						    (nNewMappingMaxBufferSize - nMappingMaxBufferSize));
-						bOk = kniStream->GetInputStream()->SetSecondaryRecordAt(
-						    mapping, sStreamSecondaryInputRecord);
-					}
+				// Nouvelle tentative de recodage si agrandissement possible
+				if (nNewMappingMaxBufferSize > nMappingMaxBufferSize)
+				{
+					// Agrandissement du buffer
+					kniStream->GetInputStream()->SetMappingMaxBufferSize(mapping,
+											     nNewMappingMaxBufferSize);
+
+					// Memorisation du record en enregistrant le record dans la memoire des buffers
+					// On memorise la memoire additionnelle potentiellement allouee
+					lInitialHeapMemory = MemGetHeapMemory();
+					bOk = kniStream->GetInputStream()->SetSecondaryRecordAt(
+					    mapping, sStreamSecondaryInputRecord);
+					lBufferExtraMemory = MemGetHeapMemory() - lInitialHeapMemory;
+					kniStream->SetStreamRecodingUsedMemory(
+					    kniStream->GetStreamRecodingUsedMemory() + lBufferExtraMemory);
 				}
 			}
-			if (not bOk)
+
+			// Erreur memoire
+			// Dans le cas des buffer de grandes tailles, la difference entre memoire logique et physique
+			// (avec ovehead de l'allocateur) est plutot faible. Neanmoins, apres allocation effective,
+			// la memoire utilise sera legerement superieure a celle escomptee, ce qui provoquera un depassement
+			// de la memoire utilisee, permettant de servir d'indicateur objectif de manque de memoire
+			if (not bOk or kniStream->GetStreamRecodingUsedMemory() >
+					   kniStream->GetStreamRecodingAvailableBufferMemory())
 			{
-				kniStream->GetInputStream()->SetSecondaryRecordError(true);
 				nRetCode = KNI_ErrorMemoryOverflow;
 			}
 		}
 	}
 
-	// Emission si neccesaire d'un message d'erreur
+	// Incrementation du nombre de records traites, et d'erreurs
+	if (kniStream != NULL)
+	{
+		kniStream->GetInputStream()->SetSecondaryRecordNumber(
+		    kniStream->GetInputStream()->GetSecondaryRecordNumber() + 1);
+		if (nRetCode < 0)
+			kniStream->GetInputStream()->SetSecondaryRecordErrorNumber(
+			    kniStream->GetInputStream()->GetSecondaryRecordErrorNumber() + 1);
+	}
+
+	// Emission si necesaire d'un message d'erreur
 	if (nRetCode < 0 and not Global::GetSilentMode())
 	{
-		ALString sTmp;
-		KNIAddError(nRetCode, "KNISetSecondaryInputRecord",
-			    sTmp + IntToString(hStream) + ", " + KNIPrintableRecord(sDataPath) + ", " +
-				KNIPrintableRecord(sStreamSecondaryInputRecord));
+		// Affichage des erreurs si erreur standard, ou a la premiere erreurmemoire affichee
+		// On evite d'en afficher d'avantage pour ne pas encombrer les logs
+		// Un synthese sera affichee dans la la methode de recodage finale
+		if (kniStream == NULL or kniStream->GetInputStream()->GetSecondaryRecordErrorNumber() == 1)
+			KNIAddError(nRetCode, "KNISetSecondaryInputRecord",
+				    sTmp + IntToString(hStream) + ", " + KNIPrintableRecord(sDataPath) + ", " +
+					KNIPrintableRecord(sStreamSecondaryInputRecord));
 	}
 
 	// Sortie de la fonction, avec son code retour
@@ -1277,6 +1513,10 @@ KNI_API int KNISetStreamMaxMemory(int nMaxMB)
 	if (nMaxMB < KNI_DefaultMaxStreamMemory)
 		nKNIStreamMaxMemory = KNI_DefaultMaxStreamMemory;
 	else
+		nKNIStreamMaxMemory = nMaxMB;
+
+	// En mode expert, on peut forcer une limite memoire inferieure, pour des tests avances
+	if (GetLearningExpertMode() and nMaxMB)
 		nKNIStreamMaxMemory = nMaxMB;
 
 	// Calcul de la memoire physique disponible en MB

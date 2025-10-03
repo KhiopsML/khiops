@@ -12,17 +12,37 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 #define MAXBUFFERSIZE 1000
+
+/*
+ * Read a record from a file.
+ * Return NULL if error or line too long.
+ */
+static char* ReadRecord(char* sRecord, int nMaxLineLength, FILE* file)
+{
+	if (!fgets(sRecord, nMaxLineLength, file))
+		return NULL;
+	// Discard rest of line if line too long
+	if (strchr(sRecord, '\n') == NULL && !feof(file))
+	{
+		int ch;
+		while ((ch = fgetc(file)) != '\n' && ch != EOF)
+			;
+		return NULL;
+	}
+	return sRecord;
+}
 
 int KNIRecodeFile(const char* sDictionaryFileName, const char* sDictionaryName, const char* sInputFileName,
 		  const char* sOutputFileName, const char* sErrorFileName)
 {
 	int nRetCode;
 	int hStream;
-	char sHeaderLine[MAXBUFFERSIZE];
-	char sInputRecord[MAXBUFFERSIZE];
-	char sOutputRecord[MAXBUFFERSIZE];
+	char* sHeaderLine;
+	char* sInputRecord;
+	char* sOutputRecord;
 	FILE* fInputFile;
 	FILE* fOutputFile;
 	char* sRetCode;
@@ -30,10 +50,14 @@ int KNIRecodeFile(const char* sDictionaryFileName, const char* sDictionaryName, 
 
 	assert(sDictionaryFileName != NULL);
 	assert(sDictionaryName != NULL);
-	assert(sHeaderLine != NULL);
 	assert(sInputFileName != NULL);
 	assert(sOutputFileName != NULL);
 	assert(sErrorFileName != NULL);
+
+	// Allocate buffers
+	sHeaderLine = (char*)malloc(MAXBUFFERSIZE * sizeof(char));
+	sInputRecord = (char*)malloc(MAXBUFFERSIZE * sizeof(char));
+	sOutputRecord = (char*)malloc(MAXBUFFERSIZE * sizeof(char));
 
 	// Set error file (empty for no messages)
 	KNISetLogFileName(sErrorFileName);
@@ -55,7 +79,7 @@ int KNIRecodeFile(const char* sDictionaryFileName, const char* sDictionaryName, 
 	if (fInputFile != NULL && fOutputFile != NULL)
 	{
 		// Read header line
-		sRetCode = fgets(sHeaderLine, MAXBUFFERSIZE, fInputFile);
+		sRetCode = ReadRecord(sHeaderLine, MAXBUFFERSIZE, fInputFile);
 
 		// Open stream
 		if (sRetCode != NULL)
@@ -67,13 +91,13 @@ int KNIRecodeFile(const char* sDictionaryFileName, const char* sDictionaryName, 
 	}
 
 	// Recode all records of the input file
-	if (hStream >= 0)
+	if (hStream > 0)
 	{
 		// Loop on input records
 		while (!feof(fInputFile))
 		{
 			// Read input record
-			sRetCode = fgets(sInputRecord, MAXBUFFERSIZE, fInputFile);
+			sRetCode = ReadRecord(sInputRecord, MAXBUFFERSIZE, fInputFile);
 
 			// Recode record
 			if (sRetCode != NULL)
@@ -97,8 +121,13 @@ int KNIRecodeFile(const char* sDictionaryFileName, const char* sDictionaryName, 
 		fclose(fOutputFile);
 
 	// Close stream
-	if (hStream >= 0)
+	if (hStream > 0)
 		nRetCode = KNICloseStream(hStream);
+
+	// Free buffers
+	free(sHeaderLine);
+	free(sInputRecord);
+	free(sOutputRecord);
 
 	// End message
 	printf("Recoded record number: %d\n", nRecordNumber);

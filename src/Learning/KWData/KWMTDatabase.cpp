@@ -781,6 +781,7 @@ boolean KWMTDatabase::PhysicalOpenForRead()
 	longint lRemainingMemory;
 	longint lExternalTableUsedMemory;
 	longint lTotalExternalObjectNumber;
+	boolean bMemoryLimitReached;
 
 	require(Check());
 	require(CheckObjectConsistency());
@@ -808,7 +809,7 @@ boolean KWMTDatabase::PhysicalOpenForRead()
 
 			// La lecture peut echouer pour des raisons de dimensionnement ou autres
 			bOk = PhysicalReadAllReferenceObjects(lRemainingMemory, lExternalTableUsedMemory,
-							      lTotalExternalObjectNumber);
+							      lTotalExternalObjectNumber, bMemoryLimitReached);
 		}
 	}
 	return bOk;
@@ -1223,7 +1224,7 @@ boolean KWMTDatabase::IsPhysicalObjectSelected(KWObject* kwoPhysicalObject)
 }
 
 boolean KWMTDatabase::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemory, longint& lNecessaryMemory,
-						      longint& lTotalExternalObjectNumber)
+						      longint& lTotalExternalObjectNumber, boolean& bMemoryLimitReached)
 {
 	const boolean bTrace = false;
 	boolean bOk = true;
@@ -1253,7 +1254,8 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemor
 	if (bTrace)
 	{
 		cout << "\t  PhysicalReadAllReferenceObjects\t" << LongintToHumanReadableString(lMaxAvailableMemory)
-		     << endl;
+		     << "\n";
+		cout << "\t\tInitial heap memory\t" << LongintToHumanReadableString(MemGetHeapMemory()) << "\n";
 		timer.Start();
 	}
 
@@ -1448,6 +1450,13 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemor
 			break;
 	}
 
+	// Trace intermediaire apres la phase de lecture
+	if (bTrace)
+	{
+		cout << "\t\tNecessary time for read\t" << timer.GetElapsedTime() << "\n";
+		cout << "\t\tHeap memory after read\t" << LongintToHumanReadableString(MemGetHeapMemory()) << "\n";
+	}
+
 	// Reinitialisation des index de creation d'instances pour les objets des tables externes
 	//
 	//
@@ -1569,6 +1578,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemor
 	lNecessaryMemory = longint(lNecessaryMemory / (1 + MemGetAllocatorOverhead()));
 
 	// Erreur utilisateur en cas de depassement memoire
+	bMemoryLimitReached = memoryGuard.IsMemoryLimitReached();
 	if (memoryGuard.IsMemoryLimitReached())
 	{
 		bOk = false;
@@ -1584,6 +1594,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemor
 	if (bTrace)
 	{
 		timer.Stop();
+		cout << "\t\tFinal heap memory\t" << LongintToHumanReadableString(MemGetHeapMemory()) << "\n";
 		cout << "\t\tRoot record number\t" << memoryGuard.GetTotalReadExternalRecordNumber() << "\n";
 		cout << "\t\tSecondary record number\t" << memoryGuard.GetTotalReadSecondaryRecordNumber() << "\n";
 		cout << "\t\tCreated record number\t" << memoryGuard.GetTotalCreatedRecordNumber() << "\n";
@@ -1616,6 +1627,7 @@ boolean KWMTDatabase::ComputeExactNecessaryMemoryForReferenceObjects(longint& lN
 	longint lDeleteBasedNecessaryMemory;
 	longint lEstimatedNecessaryMemory;
 	longint lRemainingMemory;
+	boolean bMemoryLimitReached;
 	boolean bCurrentVerboseMode;
 
 	require(Check());
@@ -1658,7 +1670,7 @@ boolean KWMTDatabase::ComputeExactNecessaryMemoryForReferenceObjects(longint& lN
 		bCurrentVerboseMode = GetVerboseMode();
 		SetVerboseMode(false);
 		bOk = PhysicalReadAllReferenceObjects(lRemainingMemory, lReadBasedNecessaryMemory,
-						      lTotalExternalObjectNumber);
+						      lTotalExternalObjectNumber, bMemoryLimitReached);
 		SetVerboseMode(bCurrentVerboseMode);
 		if (bTrace)
 		{

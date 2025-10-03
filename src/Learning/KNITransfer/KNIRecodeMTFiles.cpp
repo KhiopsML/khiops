@@ -17,7 +17,7 @@
 /*
  * Initialize recoding operands
  */
-void KNIInitializeRecodingOperands(KNIMTRecodingOperands* recodingOperands)
+static void KNIInitializeRecodingOperands(KNIMTRecodingOperands* recodingOperands)
 {
 	strcpy(recodingOperands->DictionaryFileName, "");
 	strcpy(recodingOperands->DictionaryName, "");
@@ -36,7 +36,7 @@ void KNIInitializeRecodingOperands(KNIMTRecodingOperands* recodingOperands)
  * Set recoding operands from command line parameters
  * Return 1 if OK, 0 otherwise
  */
-int KNIInitializeRecodingOperandsFromCommandLine(KNIMTRecodingOperands* recodingOperands, int argc, char** argv)
+static int KNIInitializeRecodingOperandsFromCommandLine(KNIMTRecodingOperands* recodingOperands, int argc, char** argv)
 {
 	int i;
 	char* option;
@@ -276,18 +276,19 @@ int KNIInitializeRecodingOperandsFromCommandLine(KNIMTRecodingOperands* recoding
  * Compare two records of input files according to their key fields
  * (up to the number of fields in the main input file)
  */
-int KNICompareInputRecords(char cFieldSeparator, KNIInputFile* mainFile, char* sMainRecord, KNIInputFile* secondaryFile,
-			   char* sSecondaryRecord)
+static int KNICompareInputRecords(char cFieldSeparator, KNIInputFile* mainFile, char* sMainRecord,
+				  KNIInputFile* secondaryFile, char* sSecondaryRecord)
 {
 	int nCompare;
 	int i;
 	int nKeyIndex1;
 	int nKeyIndex2;
-	char* sMainField;
-	char* sSecondaryField;
-	char sKey1[MAXRECORDLENGTH];
-	char sKey2[MAXRECORDLENGTH];
+	char* sStartKey1;
+	char* sStartKey2;
 	char* sKey;
+	int nKey1Length;
+	int nKey2Length;
+	int nMinKeyLength;
 	int nIndex;
 
 	// Loop on key fields
@@ -297,62 +298,55 @@ int KNICompareInputRecords(char cFieldSeparator, KNIInputFile* mainFile, char* s
 		nKeyIndex1 = mainFile->KeyFieldIndexes[i];
 		nKeyIndex2 = secondaryFile->KeyFieldIndexes[i];
 
-		// Search start key field of main record
+		// Search start of key field in main record
 		nIndex = 1;
-		sMainField = sMainRecord;
-		while (sMainField[0] != '\0')
+		sStartKey1 = sMainRecord;
+		while (*sStartKey1 != '\0')
 		{
 			if (nIndex == nKeyIndex1)
 				break;
-			sMainField++;
-			if (sMainField[0] == cFieldSeparator)
-			{
+			if (*sStartKey1 == cFieldSeparator)
 				nIndex++;
-				sMainField++;
-			}
+			sStartKey1++;
 		}
 
-		// Search start key field of secondary record
+		// Search start of key field in secondary record
 		nIndex = 1;
-		sSecondaryField = sSecondaryRecord;
-		while (sSecondaryField[0] != '\0')
+		sStartKey2 = sSecondaryRecord;
+		while (*sStartKey2 != '\0')
 		{
 			if (nIndex == nKeyIndex2)
 				break;
-			sSecondaryField++;
-			if (sSecondaryField[0] == cFieldSeparator)
-			{
+			if (*sStartKey2 == cFieldSeparator)
 				nIndex++;
-				sSecondaryField++;
-			}
+			sStartKey2++;
 		}
 
-		// Copy main key field
-		sKey = sKey1;
-		while (sMainField[0] != '\0' && sMainField[0] != cFieldSeparator && sMainField[0] != '\r' &&
-		       sMainField[0] != '\n')
+		// Calculate length of key field i, main record
+		sKey = sStartKey1;
+		nKey1Length = 0;
+		while (*sKey != '\0' && *sKey != cFieldSeparator && *sKey != '\r' && *sKey != '\n')
 		{
-			sKey[0] = sMainField[0];
+			nKey1Length++;
 			sKey++;
-			sMainField++;
 		}
-		sKey[0] = '\0';
 
-		// Copy secondary key field
-		sKey = sKey2;
-		while (sSecondaryField[0] != '\0' && sSecondaryField[0] != cFieldSeparator &&
-		       sSecondaryField[0] != '\r' && sSecondaryField[0] != '\n')
+		// Calculate length of key field in secondary record
+		sKey = sStartKey2;
+		nKey2Length = 0;
+		while (*sKey != '\0' && *sKey != cFieldSeparator && *sKey != '\r' && *sKey != '\n')
 		{
-			sKey[0] = sSecondaryField[0];
+			nKey2Length++;
 			sKey++;
-			sSecondaryField++;
 		}
-		sKey[0] = '\0';
 
-		// Compare fields
-		nCompare = strcmp(sKey1, sKey2);
+		// Compare keys
+		nMinKeyLength = (nKey1Length < nKey2Length) ? nKey1Length : nKey2Length;
+		nCompare = strncmp(sStartKey1, sStartKey2, nMinKeyLength);
+		if (nCompare == 0)
+			nCompare = nKey1Length - nKey2Length;
 
-		// Do not analyze remaining key fields if unncessary
+		// If keys differ, no need to compare further
 		if (nCompare != 0)
 			break;
 	}
@@ -364,12 +358,31 @@ int KNICompareInputRecords(char cFieldSeparator, KNIInputFile* mainFile, char* s
  * This is useful for display purpose, and has no impact on recoding records
  * (input records may be indifferently terminated by '\0' or '\n' then '\0').
  */
-char* CleanRecord(char* sRecord)
+static char* CleanRecord(char* sRecord)
 {
 	int nLength;
 	nLength = (int)strlen(sRecord);
 	if (nLength > 0 && sRecord[nLength - 1] == '\n')
 		sRecord[nLength - 1] = '\0';
+	return sRecord;
+}
+
+/*
+ * Read a record from a file.
+ * Return NULL if error or line too long.
+ */
+static char* ReadRecord(char* sRecord, int nMaxLineLength, FILE* file)
+{
+	if (!fgets(sRecord, nMaxLineLength, file))
+		return NULL;
+	// Discard rest of line if line too long
+	if (strchr(sRecord, '\n') == NULL && !feof(file))
+	{
+		int ch;
+		while ((ch = fgetc(file)) != '\n' && ch != EOF)
+			;
+		return NULL;
+	}
 	return sRecord;
 }
 
@@ -385,9 +398,9 @@ int KNIRecodeMTFiles(KNIMTRecodingOperands* recodingOperands)
 	int nKeyIndex;
 	int nRetCode;
 	int hStream;
-	char sInputRecord[MAXRECORDLENGTH];
-	char sSecondaryRecords[MAXFILENUMBER][MAXRECORDLENGTH];
-	char sOutputRecord[MAXRECORDLENGTH];
+	char* sInputRecord;
+	char* sSecondaryRecords[MAXFILENUMBER];
+	char* sOutputRecord;
 	FILE* fInputFile;
 	FILE* fSecondaryFiles[MAXFILENUMBER];
 	FILE* fSecondaryFile;
@@ -396,6 +409,15 @@ int KNIRecodeMTFiles(KNIMTRecodingOperands* recodingOperands)
 	int nErrorNumber;
 	int nRecordNumber;
 	int nCompare;
+
+	assert(recodingOperands != NULL);
+	assert(recodingOperands->SecondaryFileNumber <= MAXFILENUMBER);
+
+	// Allocate buffers
+	sInputRecord = (char*)malloc(MAXRECORDLENGTH * sizeof(char));
+	sOutputRecord = (char*)malloc(MAXRECORDLENGTH * sizeof(char));
+	for (nFileIndex = 0; nFileIndex < recodingOperands->SecondaryFileNumber; nFileIndex++)
+		sSecondaryRecords[nFileIndex] = (char*)malloc(MAXRECORDLENGTH * sizeof(char));
 
 	// Show recoding parameters
 	if (nVerbose >= 1)
@@ -453,7 +475,7 @@ int KNIRecodeMTFiles(KNIMTRecodingOperands* recodingOperands)
 		KNISetLogFileName(recodingOperands->LogFileName);
 
 	// Set max memory
-	if (recodingOperands->MaxMemory > 0)
+	if (recodingOperands->MaxMemory >= 0)
 	{
 		KNISetStreamMaxMemory(recodingOperands->MaxMemory);
 		if (nVerbose >= 1)
@@ -514,7 +536,7 @@ int KNIRecodeMTFiles(KNIMTRecodingOperands* recodingOperands)
 	if (nErrorNumber == 0)
 	{
 		// Read header line of input file
-		sRetCode = fgets(sInputRecord, MAXRECORDLENGTH, fInputFile);
+		sRetCode = ReadRecord(sInputRecord, MAXRECORDLENGTH, fInputFile);
 
 		// Open stream
 		if (sRetCode != NULL)
@@ -530,18 +552,21 @@ int KNIRecodeMTFiles(KNIMTRecodingOperands* recodingOperands)
 	}
 
 	// Set specific multi-table parameters
-	if (nErrorNumber == 0 &&
+	if (hStream > 0 && nErrorNumber == 0 &&
 	    (recodingOperands->SecondaryFileNumber > 0 || recodingOperands->ExternalFileNumber > 0))
 	{
 		// Read header line of secondary files
 		for (nFileIndex = 0; nFileIndex < recodingOperands->SecondaryFileNumber; nFileIndex++)
 		{
 			fSecondaryFile = fSecondaryFiles[nFileIndex];
-			sRetCode = fgets(sInputRecord, MAXRECORDLENGTH, fSecondaryFile);
-			nRetCode = KNISetSecondaryHeaderLine(
-			    hStream, recodingOperands->SecondaryFiles[nFileIndex].DataPath, sInputRecord);
-			if (nRetCode != KNI_OK)
-				nErrorNumber++;
+			sRetCode = ReadRecord(sInputRecord, MAXRECORDLENGTH, fSecondaryFile);
+			if (sRetCode != NULL)
+			{
+				nRetCode = KNISetSecondaryHeaderLine(
+				    hStream, recodingOperands->SecondaryFiles[nFileIndex].DataPath, sInputRecord);
+				if (nRetCode != KNI_OK)
+					nErrorNumber++;
+			}
 		}
 
 		// Set external tables
@@ -560,11 +585,12 @@ int KNIRecodeMTFiles(KNIMTRecodingOperands* recodingOperands)
 		{
 			printf("Error : Finish opening stream error: %d\n", nRetCode);
 			nErrorNumber++;
+			hStream = -1;
 		}
 	}
 
 	// Recode all records of the input file
-	if (nErrorNumber == 0)
+	if (hStream > 0 && nErrorNumber == 0)
 	{
 		// Initialize empty records for all secondary files
 		for (nFileIndex = 0; nFileIndex < recodingOperands->SecondaryFileNumber; nFileIndex++)
@@ -575,7 +601,7 @@ int KNIRecodeMTFiles(KNIMTRecodingOperands* recodingOperands)
 		while (!feof(fInputFile))
 		{
 			// Read input record
-			sRetCode = fgets(sInputRecord, MAXRECORDLENGTH, fInputFile);
+			sRetCode = ReadRecord(sInputRecord, MAXRECORDLENGTH, fInputFile);
 
 			// Recode record
 			if (sRetCode != NULL)
@@ -603,8 +629,8 @@ int KNIRecodeMTFiles(KNIMTRecodingOperands* recodingOperands)
 					{
 						while (!feof(fSecondaryFile))
 						{
-							sRetCode = fgets(sSecondaryRecords[nFileIndex], MAXRECORDLENGTH,
-									 fSecondaryFile);
+							sRetCode = ReadRecord(sSecondaryRecords[nFileIndex],
+									      MAXRECORDLENGTH, fSecondaryFile);
 							if (sRetCode == NULL)
 								break;
 
@@ -646,7 +672,7 @@ int KNIRecodeMTFiles(KNIMTRecodingOperands* recodingOperands)
 				nRetCode = KNIRecodeStreamRecord(hStream, sInputRecord, sOutputRecord, MAXRECORDLENGTH);
 				if (nRetCode != KNI_OK)
 				{
-					printf("Error : Recode failure (%d) in record %.20s\n", nRetCode,
+					printf("Error : Recode failure (%d) in record \"%.20s...\"\n", nRetCode,
 					       CleanRecord(sInputRecord));
 					nErrorNumber++;
 				}
@@ -681,8 +707,14 @@ int KNIRecodeMTFiles(KNIMTRecodingOperands* recodingOperands)
 		fclose(fOutputFile);
 
 	// Close stream
-	if (hStream >= 0)
+	if (hStream > 0)
 		nRetCode = KNICloseStream(hStream);
+
+	// Free buffers
+	free(sInputRecord);
+	free(sOutputRecord);
+	for (nFileIndex = 0; nFileIndex < recodingOperands->SecondaryFileNumber; nFileIndex++)
+		free(sSecondaryRecords[nFileIndex]);
 
 	// End message
 	printf("Recoded record number: %d\n", nRecordNumber);

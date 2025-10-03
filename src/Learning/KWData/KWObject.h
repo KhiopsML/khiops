@@ -1041,7 +1041,7 @@ inline ObjectArray* KWObject::ComputeObjectArrayValueAt(KWLoadIndex liLoadIndex)
 			// Les regles de creation d'instance s'assurent juste de ne pas appeler de methodes
 			// sur les instances NULL, mais elle peuvent en integrer dans leur tableau
 			// Ici, de facon centralisee, on nettoie les tableaux en cas de probleme memoire
-			if (not rule->GetReference())
+			if (oaSubObjects != NULL and not rule->GetReference())
 			{
 				// Acces au service de protection memoire
 				memoryGuard = GetObjectDataPath()->GetMemoryGuard();
@@ -1050,7 +1050,7 @@ inline ObjectArray* KWObject::ComputeObjectArrayValueAt(KWLoadIndex liLoadIndex)
 				if (memoryGuard->IsMemoryLimitReached())
 					oaSubObjects->DeleteAll();
 			}
-			assert(oaSubObjects->NoNulls());
+			assert(oaSubObjects == NULL or oaSubObjects->NoNulls());
 
 			// Verification de la valeur de l'attribut derive
 			assert(not GetAt(liLoadIndex.GetDenseIndex()).IsObjectArrayForbidenValue());

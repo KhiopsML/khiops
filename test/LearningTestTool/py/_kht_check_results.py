@@ -1415,8 +1415,8 @@ def filter_sequential_messages_lines(lines, log_file=None):
     return result_lines
 
 
-""" Liste de motifs pour lesquels ont admet une variation normale s'il font parti de la comparaison
- dans une paire de lignes. Dans ce cas, on ignore la comparaison
+""" Liste de motifs pour lesquels ont admet une variation normale des messages d'erreurs
+s'ils font parti de la comparaison dans une paire de lignes. Dans ce cas, on ignore la comparaison
 """
 RESILIENCE_USER_MESSAGE_PATTERNS = [
     [
@@ -1472,6 +1472,25 @@ RESILIENCE_USER_MESSAGE_PATTERNS = [
         " external instances",
     ],
     ["error : ", " : Not enough memory "],
+]
+
+""" Liste de motifs pour lesquels ont admet une variation normale des messages d'erreurs de KNI
+"""
+RESILIENCE_KNI_MESSAGE_PATTERNS = [
+    [
+        "error : KNI KNISetSecondaryInputRecord(",
+        ") : Too much memory currently used",
+    ],
+    [
+        "error : KNI KNIRecodeStreamRecord(",
+        ", too many secondary records encountered (",
+        ") that could not be stored in available buffers (",
+        " records) : Too much memory currently used",
+    ],
+    [
+        "error : KNI KNIRecodeStreamRecord(",
+        ") : Too much memory currently used",
+    ],
 ]
 
 
@@ -1600,6 +1619,9 @@ def check_file_lines(
 
     # test si fichier histogramme
     is_histogram_file = "histogram" in file_name and file_extension == ".log"
+
+    # test si fichier de log de KNI
+    is_kni_log_file = file_name.find("KNILog") == 0 and file_extension == ".txt"
 
     # test si fichier d'erreur
     is_error_file = file_name == kht.ERR_TXT
@@ -1750,10 +1772,36 @@ def check_file_lines(
         ):
             continue
 
-        # Traitement des patterns toleres pour la comparaison
-        if is_error_file or is_json_file:
+        # Traitement des patterns toleres pour la comparaison dans les message d'erreur standards
+        if is_error_file or is_json_file or is_kni_log_file:
             resilience_found = False
             for pattern in RESILIENCE_USER_MESSAGE_PATTERNS:
+                if (
+                    utils.find_pattern_in_line(line_ref, pattern) != -1
+                    and utils.find_pattern_in_line(line_test, pattern) != -1
+                ):
+                    # On renvoie un warning, en indiquant qu'il s'agit d'un warning de resilience
+                    warnings += 1
+                    user_message_warnings += 1
+                    # Ecriture d'un warning
+                    utils.write_message(
+                        "warning : line "
+                        + str(line)
+                        + " "
+                        + line_test.strip()
+                        + " -> "
+                        + line_ref.strip(),
+                        log_file=log_file,
+                    )
+                    resilience_found = True
+                    break
+            if resilience_found:
+                continue
+
+        # Traitement des patterns toleres specifiquement pour la comparaison dans les message d'erreur KNI
+        if is_kni_log_file:
+            resilience_found = False
+            for pattern in RESILIENCE_KNI_MESSAGE_PATTERNS:
                 if (
                     utils.find_pattern_in_line(line_ref, pattern) != -1
                     and utils.find_pattern_in_line(line_test, pattern) != -1
