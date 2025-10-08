@@ -16,7 +16,7 @@ int main(int argc, char** argv)
 	return EXIT_FAILURE;
 }
 
-#endif //  __linux_or_apple__
+#endif //  __linux__ or __APPLE__
 
 ////////////////////////////////////////////////////
 // Implementation pour Windows
@@ -66,7 +66,7 @@ static std::wstring ToWide(const std::string& sInput, UINT codePage)
 	return wsOutput;
 }
 
-// Convertit une chaine encodee en UTF-16 (std::wstring) vers un char* (a detruie par l'appelant)
+// Convertit une chaine encodee en UTF-16 (std::wstring) vers un char* (a detruire par l'appelant)
 static char* WStringToChar(const std::wstring& wstr)
 {
 	int nLen;
@@ -84,7 +84,7 @@ static char* WStringToChar(const std::wstring& wstr)
 	// Allocation du buffer
 	sBuffer = new char[nLen];
 
-	// Convertion
+	// Conversion
 	WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, sBuffer, nLen, nullptr, nullptr);
 
 	return sBuffer;
@@ -97,11 +97,13 @@ static char* WStringToChar(const std::wstring& wstr)
 // sa sortie d'erreur via des pipes, puis affiche les resultats ou les erreurs
 // dans une boite de dialogue en cas d'erreur.
 //
-// Cela permet d'intercepter les erreurs de lancement de type
+// Cela permet d'intercepter des erreurs de lancement, par exemple liees aux droits des
+// utilisateurs de lancer des commandes sur la machine cible.
+// L'exemple typique est celui de l'outil AppLocker de Microsoft, qui empeche le lancement
+// fichier de commande .cmd, sauf en mode administrateur, avec un message dans le console de type:
 //  "Ce programme est bloque par une strategie de groupe. Pour plus d'informations,
 //   contactez votre administrateur systeme." provoquee par l'utilisation par une DSI de AppLocker
-// qui empeche le lancement des exe, sauf en mode administrateur.
-// Comme ces messages ne sont intercepte que dans la console, tout lancement depuis un racourci
+// Comme ces messages ne sont interceptes que dans la console, tout lancement depuis un raccourci
 // bureau echoue sans aucun message visible par l'utilisateur.
 // Avec ce "launcher", on peut intercepter les messages d'erreur, et avoir une interaction
 // utilisateur intelligible dans ce cas.
@@ -129,7 +131,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	int argc;
 	LPWSTR* argvW;
 
-	// Pour indiquer que les parametre ne sont par references et eviter les warnings
+	// Pour indiquer que les parametres ne sont pas references et eviter les warnings
 	(void)hInstance;
 	(void)hPrevInstance;
 	(void)lpCmdLine;
@@ -203,7 +205,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	    (char*)sCommandLine, // Command line
 	    NULL,                // Process handle not inheritable
 	    NULL,                // Thread handle not inheritable
-	    TRUE, // Set handle inheritance to TRUE (sinon, la rediction de la sortie vers NUL ne marche pas)
+	    TRUE, // Set handle inheritance to TRUE (sinon, la redirection de la sortie vers NULL ne marche pas)
 	    CREATE_NO_WINDOW, // Creation flags
 	    NULL,             // Use parent's environment block
 	    NULL,             // Use parent's starting directory
@@ -250,17 +252,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		message = L"Error in launching " + swCommandPath + L".\n";
 
 		// Message sur la sortie standards ou d'erreur
-		if (!outputStdOut.empty() || !outputStdErr.empty())
-		{
-			if (!outputStdOut.empty())
-			{
-				message += L"\n" + outputStdOut + L"\n";
-			}
-			if (!outputStdErr.empty())
-			{
-				message += L"\n" + outputStdErr + L"\n";
-			}
-		}
+		if (!outputStdOut.empty())
+			message += L"\n" + outputStdOut + L"\n";
+		if (!outputStdErr.empty())
+			message += L"\n" + outputStdErr + L"\n";
+
+		// Message d'assistance utilisateur
+		message += L"\nThe issue may be caused by Khiops being installed in a location restricted by your "
+			   L"organization's IT security policy. In this case, try installing Khiops in a recommended "
+			   L"directory or run it as an administrator.\n";
 
 		// Message indiquant d'aller sur le site
 		message += L"\nFor help, visit the installation pages at https://khiops.org.";
