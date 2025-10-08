@@ -39,7 +39,7 @@ jobs:
   build:
     outputs:
       khiops-version: ${{ steps.get-version.outputs.khiops-version }}
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
