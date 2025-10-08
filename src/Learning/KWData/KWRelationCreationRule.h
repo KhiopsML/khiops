@@ -20,7 +20,7 @@ class KWDRTableCreationRule;
 //
 // Dans ce type de regle:
 // - les objets crees sont detruits automatiquement
-// - le type des objet produits en sortie (ObjectClassName) provient
+// - le type des objets produits en sortie (ObjectClassName) provient
 //   de la declaration de la regle
 // - la regle peut etre utilise uniquement pour definir une variable d'un dictionnaire,
 //   et ne peut etre utilise en operande d'une autre regle
@@ -50,7 +50,7 @@ class KWDRTableCreationRule;
 //
 // Alimentation de type vue:
 // - par defaut, le premier operande de ce type de regle est de type relation, ce qui permet
-// de definir la source de la vue dans les objets en entree
+//  de definir la source de la vue dans les objets en entree
 // - toute variable native en sortie correspondant a une variable en entree de meme nom
 //   est alimentee par la valeur de cette variable
 //   - cette alimentation de type vue est similaire a l'alimentation des objets en memoire
@@ -60,6 +60,8 @@ class KWDRTableCreationRule;
 //   - les variables en sortie peuvent etre alimentee par des variables calculee en entree
 //   - les variable en sortie peuvent etre de type Stored (Numerical, Categorical, Timestamp, Text...)
 //     comme dans les fichier, ou de type Entity ou Table
+//   - les variables en sortie peuvent etre dans n bloc, si les variables en entree correspondantees
+//     sont de meme type et meme non, et n plus de meme VarKey dans un bloc en entree de meme nom
 //   - on peut avoir des variables calculees en sortie
 //     - les variables calculees en sortie peuvent avoir le meme nom que des variables
 //       en entree, calculees ou non, meme avec des types differents; cela permet de creer
@@ -130,7 +132,7 @@ public:
 	void DeleteAllVariableOutputOperands();
 
 	//////////////////////////////////////////////////////////////////////////////////////
-	// Redefinition des methodes pour tenir compte des alimentation de type vue et calcul
+	// Redefinition des methodes pour tenir compte des alimentations de type vue et calcul
 
 	// Renommage d'une classe
 	void RenameClass(const KWClass* refClass, const ALString& sNewClassName) override;
@@ -194,13 +196,13 @@ protected:
 
 	// Collecte des operandes en entree obligatoire
 	// Par defaut, on traite le cas d'une correspondance de chaque operande en sortie avec un operande
-	// en entree de meme positiion par rapport a la fin de liste
+	// en entree de meme position par rapport a la fin de liste
 	// Les operandes en entree du debut sont tous consideres comme obligatoires et marques comme utilises
 	virtual void CollectMandatoryInputOperands(IntVector* ivUsedInputOperands) const;
 
 	// Collecte des operandes en entree specifique par operande en en sortie
 	// Par defaut, on traite le cas d'une correspondance de chaque operande en sortie avec un operande
-	// en entree de meme positiion par rapport a la fin de liste
+	// en entree de meme position par rapport a la fin de liste
 	virtual void CollectSpecificInputOperandsAt(int nOutputOperand, IntVector* ivUsedInputOperands) const;
 
 	/////////////////////////////////////////////////////////////////////////////////////////
