@@ -4,16 +4,15 @@
 
 /////////////////////////////////////////////////////////////////
 // Implementation standard pour Linux
-#ifdef __linux_or_apple__
-
-using namespace std;
+// Les define sont explicites, car on n'utile pas ici la librairie Norm
+#if defined(__linux__) || defined(__APPLE__)
 
 #include <stdio.h>
 #include <stdlib.h>
 
 int main(int argc, char** argv)
 {
-	cout << "This program is used by Khiops, only on Windows." << endl;
+	printf("This program is used by Khiops, only on Windows.\n");
 	return EXIT_FAILURE;
 }
 

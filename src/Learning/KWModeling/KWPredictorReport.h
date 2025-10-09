@@ -167,12 +167,13 @@ public:
 	// On determine d'apres le contenu quels sont les champs a afficher
 	// (au minimum: RecodingAttributeName et NativeAttributeName, les autres
 	// champs n'etant affiches que s'ils sont utilises (au moins deux valeurs distinctes))
-	void WriteArrayLineReport(ostream& ost, const ALString& sTitle, const ObjectArray* oaLearningReports) const;
+	void WriteArrayLineReport(ostream& ost, const ALString& sTitle,
+				  const ObjectArray* oaLearningReports) const override;
 
 	// Rapport synthetique destine a rentrer dans un tableau
 	// Tous les champs sont affiches
-	void WriteHeaderLineReport(ostream& ost) const;
-	void WriteLineReport(ostream& ost) const;
+	void WriteHeaderLineReport(ostream& ost) const override;
+	void WriteLineReport(ostream& ost) const override;
 
 	// Ecriture du contenu d'un rapport JSON pour un tableau ou un dictionnaire
 	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const override;
