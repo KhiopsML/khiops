@@ -33,6 +33,8 @@ const double KWDiscretizerMODL::dInfiniteCost = 1e20;
 
 const double KWDiscretizerMODL::dEpsilon = 1e-6;
 
+const double KWDiscretizerMODL::dRelativeEpsilon = 1e-9;
+
 KWDiscretizerMODL::KWDiscretizerMODL()
 {
 	nMergeNumber = 0;

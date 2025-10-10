@@ -14,6 +14,8 @@ boolean KWGrouperMODLFamily::IsMODLFamily() const
 
 double KWGrouperMODL::dEpsilon = 1e-6;
 
+double KWGrouperMODL::dRelativeEpsilon = 1e-9;
+
 KWGrouperMODL::KWGrouperMODL()
 {
 	groupingCosts = new KWMODLGroupingCosts;

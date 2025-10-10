@@ -15,6 +15,7 @@ KWDataGridMerger::KWDataGridMerger()
 	dataGridCosts = NULL;
 	dAllPartsTargetDeltaCost = 0;
 	dEpsilon = 1e-6;
+	dRelativeEpsilon = 1e-9;
 }
 
 KWDataGridMerger::~KWDataGridMerger() {}
@@ -39,7 +40,8 @@ double KWDataGridMerger::Merge()
 
 	// Optimisation standard
 	dDataGridCost = OptimizeMerge();
-	assert(fabs(dDataGridCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) < dEpsilon);
+	assert(fabs(dDataGridCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
+	       fabs(dDataGridCost) * dRelativeEpsilon);
 	return dDataGridCost;
 }
 
@@ -304,11 +306,11 @@ double KWDataGridMerger::OptimizeMerge()
 		// Memorisation de la meilleure solution globale si necessaire
 		// (quand le cout remonte juste apres un minimum local,
 		// ou si c'est la derniere grille qui est optimale)
-		if (dBestDeltaCost > dEpsilon and fabs(dBestDataGridTotalCost - dDataGridTotalCost) <= dEpsilon)
+		if (dBestDeltaCost > dEpsilon and fabs(dBestDataGridTotalCost - dDataGridTotalCost) <=
+						      fabs(dBestDataGridTotalCost) * dRelativeEpsilon)
 		{
-			// CH 231 Ajout pour debug
 			ensure(fabs(dDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
-			       dEpsilon);
+			       dRelativeEpsilon * fabs(dDataGridTotalCost));
 			// CH 231 probleme pose ici avec la base Iris : si la grille courante est sans attribut informatif, cet ensure
 			// est verifie a ce niveau mais n'est plus vrai quand on fait un CopyInformativeDataGrid
 
@@ -332,9 +334,8 @@ double KWDataGridMerger::OptimizeMerge()
 			PerformPartMerge(bestPartMerge);
 			dDataGridTotalCost += dBestDeltaCost;
 
-			// CH 231 Debug
 			ensure(fabs(dDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
-			       dEpsilon);
+			       dRelativeEpsilon * fabs(dDataGridTotalCost));
 
 			// Gestion de la contrainte sur le nombre max de partie par attribut
 			if (GetMaxPartNumber() > 0)
@@ -404,7 +405,8 @@ double KWDataGridMerger::OptimizeMerge()
 		cout << endl;
 	}
 	ensure(Check());
-	ensure(fabs(dBestDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) < dEpsilon);
+	ensure(fabs(dBestDataGridTotalCost - GetDataGridCosts()->ComputeDataGridMergerTotalCost(this)) <
+	       fabs(dBestDataGridTotalCost) * dRelativeEpsilon);
 	return dBestDataGridTotalCost;
 }
 
