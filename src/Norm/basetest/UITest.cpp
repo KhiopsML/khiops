@@ -279,7 +279,7 @@ void LabelCard::Test()
 		"<li> Tutorial: KhiopsTutorial.pdf\n"
 		"</ul>\n"
 		"<h3> See doc directory under Khiops installation directory. </h3> <p>\n"
-		"<a href=\"http://khiops.org\">Khiops (c) Orange software for data mining</a> \n";
+		"<a href=\"https://khiops.org\">Khiops (c) Orange software for data mining</a> \n";
 
 	// Parametrage de la boite et ouverture
 	UIObject::SetUIMode(UIObject::Graphic);

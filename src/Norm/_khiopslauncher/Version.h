@@ -10,7 +10,7 @@
 // dans le TaskManager de Windows (par exemple)
 
 // Version de l'utilitaire, independante de celle de Khiops, et qui ne devrait plus evoluer
-#define GPN_VERSION KHIOPS_STR(1.0.0)
+#define GL_VERSION KHIOPS_STR(1.0.0)
 // Les versions release distribuees sont bases sur trois numeros, par exemple KHIOPS_STR(10.2.0)
 // Les versions alpha, beta ou release candidate ont un suffixe supplementaire, par exemple :
 // - KHIOPS_STR(10.5.0-a.1)
@@ -18,4 +18,4 @@
 // - KHIOPS_STR(10.5.0-rc.2)
 
 // Copyright
-#define GPN_COPYRIGHT_LABEL KHIOPS_STR((c) 2023-2025 Orange. All rights reserved.)
+#define GL_COPYRIGHT_LABEL KHIOPS_STR((c) 2023-2025 Orange. All rights reserved.)

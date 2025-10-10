@@ -351,7 +351,7 @@ static int StartProcess(const char* sCommandLine, char* sErrorMessage)
 	    (char*)sCommandLine, // Command line
 	    NULL,                // Process handle not inheritable
 	    NULL,                // Thread handle not inheritable
-	    TRUE, // Set handle inheritance to TRUE (sinon, la rediction de la sortie vers NUL ne marche pas)
+	    TRUE, // Set handle inheritance to TRUE (sinon, la redirection de la sortie vers NULL ne marche pas)
 	    0,    // No creation flags
 	    NULL, // Use parent's environment block
 	    NULL, // Use parent's starting directory

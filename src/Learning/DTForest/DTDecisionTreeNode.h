@@ -184,7 +184,7 @@ public:
 
 	// Ecriture d'un rapport sur le noeud
 	void WriteReport(ostream& ost) const override;
-	boolean IsReported() const;
+	boolean IsReported() const override;
 
 	// Rapport synthetique destine a rentrer dans un tableau
 	void WriteHeaderLineReport(ostream& ost, const DTDecisionTree* tree, bool forleave) const;
@@ -192,7 +192,7 @@ public:
 
 	// Redefinition des criteres de tri des rapports
 	// const ALString GetSortName() const;
-	double GetSortValue() const;
+	double GetSortValue() const override;
 
 	void Write(ostream&) const override;
 

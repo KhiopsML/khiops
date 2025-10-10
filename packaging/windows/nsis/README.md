@@ -56,7 +56,7 @@ The resulting installer will be at `packaging/windows/nsis/khiops-10.2.0-rc.1-se
 
 ## Signature of binaries and installer
 For a release version of the installer, the binaries and the installer need to be signed
-4.bis) Sign the binaries: `MODL.exe, MODL_Coclustering.exe, _khiopsgetprocnumber.exe`
+4.bis) Sign the binaries: `MODL.exe, MODL_Coclustering.exe, _khiopsgetprocnumber.exe, _khiopslauncher.exe`
 5.bis) Sign the installer
 
 
