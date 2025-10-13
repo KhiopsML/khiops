@@ -144,7 +144,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	// Il doit y avoir un seul parametre
 	if (argc != 2)
 	{
-		MessageBoxW(nullptr, L"Khiops launcher failed: one operand expected", L"Error", MB_OK | MB_ICONERROR);
+		MessageBoxW(nullptr, L"Khiops launcher failed: one operand expected", L"Error",
+			    MB_OK | MB_ICONERROR | MB_SETFOREGROUND);
 		return 1;
 	}
 
@@ -168,7 +169,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			    (L"Error in launching " + swCommandPath + L", CreatePipe failed for stdout: " +
 			     FormatLastError(GetLastError()))
 				.c_str(),
-			    L"Error", MB_OK | MB_ICONERROR);
+			    L"Error", MB_OK | MB_ICONERROR | MB_SETFOREGROUND);
 		return 1;
 	}
 	SetHandleInformation(hStdOutRead, HANDLE_FLAG_INHERIT, 0);
@@ -180,7 +181,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			    (L"Error in launching " + swCommandPath + L", CreatePipe failed for stderr: " +
 			     FormatLastError(GetLastError()))
 				.c_str(),
-			    L"Error", MB_OK | MB_ICONERROR);
+			    L"Error", MB_OK | MB_ICONERROR | MB_SETFOREGROUND);
 		return 1;
 	}
 	SetHandleInformation(hStdErrRead, HANDLE_FLAG_INHERIT, 0);
@@ -221,7 +222,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	if (!success)
 	{
 		MessageBox(NULL, (L"Error in launching " + swCommandPath + FormatLastError(GetLastError())).c_str(),
-			   L"Error", MB_OK | MB_ICONERROR);
+			   L"Error", MB_OK | MB_ICONERROR | MB_SETFOREGROUND);
 		return 1;
 	}
 
@@ -266,7 +267,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		message += L"\nFor help, visit the installation pages at https://khiops.org.";
 
 		// Message utilisateur
-		MessageBoxW(NULL, message.c_str(), L"Error", MB_OK | MB_ICONINFORMATION);
+		MessageBoxW(NULL, message.c_str(), L"Error", MB_OK | MB_ICONEXCLAMATION | MB_SETFOREGROUND);
 	}
 
 	// Fermeture des handles
