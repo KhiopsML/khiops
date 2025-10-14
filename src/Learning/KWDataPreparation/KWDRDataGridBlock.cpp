@@ -651,6 +651,8 @@ void KWDRDataGridBlockRule::BuildAllUsedAttributes(const KWAttribute* derivedAtt
 	int nVarKey;
 
 	require(IsCompiled());
+	require(derivedAttribute != NULL);
+	require(nkdAllUsedAttributes != NULL);
 
 	// Memorisation des attributs utilise initiaux
 	if (bTrace)

@@ -311,6 +311,20 @@ void KWDerivationRule::BuildAllUsedAttributesAtOperand(const KWAttribute* derive
 	}
 }
 
+void KWDerivationRule::CollectCreationRuleMandatoryInputOperands(const KWAttribute* derivedAttribute,
+								 const NumericKeyDictionary* nkdAllUsedAttributes,
+								 IntVector* ivMandatoryInputOperands) const
+{
+	require(not GetReference());
+	require(GetOutputOperandNumber() > 0);
+	require(derivedAttribute != NULL);
+	require(nkdAllUsedAttributes != NULL);
+	require(nkdAllUsedAttributes != NULL);
+
+	// Doit etre reimplemente
+	assert(false);
+}
+
 boolean KWDerivationRule::IsSecondaryScopeOperand(int nOperandIndex) const
 {
 	require(0 <= nOperandIndex and nOperandIndex < GetOperandNumber());
@@ -686,6 +700,10 @@ boolean KWDerivationRule::CheckOperandsCompleteness(const KWClass* kwcOwnerClass
 		{
 			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
 
+			// Un operande ne peut avoir de valeur speciale None: cela ne peut concerner
+			// que les regles de creation d'objet
+			assert(not operand->GetNoneValue() or not GetReference());
+
 			// Verification de l'operande
 			if (not operand->CheckCompleteness(kwcOwnerClass))
 			{
@@ -702,6 +720,10 @@ boolean KWDerivationRule::CheckOperandsCompleteness(const KWClass* kwcOwnerClass
 		for (i = 0; i < oaOperands.GetSize(); i++)
 		{
 			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
+
+			// Un operande ne peut avoir de valeur speciale None: cela ne peut concerner
+			// que les regles de creation d'objet
+			assert(not operand->GetNoneValue() or not GetReference());
 
 			// Verification de l'operande
 			if (not operand->CheckCompleteness(scopeClass))

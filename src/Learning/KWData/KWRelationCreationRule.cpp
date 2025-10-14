@@ -343,28 +343,17 @@ boolean KWDRRelationCreationRule::CheckOperandsFamily(const KWDerivationRule* ru
 			{
 				operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
 
-				// Cas du dernier operande pour un nombre variable d'operandes
-				if (not IsValidOutputOperandType(operand->GetType()) and
-				    operand->GetType() != KWType::Unknown)
+				// On ne teste pas le cas d'un operande de type inconnu, qui correspond a une variable
+				// n'existant pas, et qui est diagnostique precisement dans CheckOperandsCompleteness
+				if (operand->GetType() != KWType::Unknown)
 				{
-					AddError(sTmp + "Operand " + IntToString(i + 1) + " with wrong " +
-						 KWType::ToString(operand->GetType()) +
-						 " type (must be a data or relation type)");
-					bOk = false;
-				}
-				// Verification avec le bon type sinon
-				else
-				{
-					// On modifie temporairement le type de l'operande de la famille
-					// pour effectuer les controles additionnels
-					familyVariableOperand->SetType(operand->GetType());
-					if (not operand->CheckFamily(familyVariableOperand))
+					if (not IsValidOutputOperandType(operand->GetType()))
 					{
-						AddError(sTmp + "Operand " + IntToString(i + 1) +
-							 " inconsistent with that of the registered rule");
+						AddError(sTmp + "Operand " + IntToString(i + 1) + " with wrong " +
+							 KWType::ToString(operand->GetType()) +
+							 " type (must be a data or relation type)");
 						bOk = false;
 					}
-					familyVariableOperand->SetType(KWType::Unknown);
 				}
 			}
 		}
@@ -385,33 +374,39 @@ boolean KWDRRelationCreationRule::CheckOperandsFamily(const KWDerivationRule* ru
 				familyVariableOutputOperand =
 				    ruleFamily->GetOutputOperandAt(ruleFamily->GetOutputOperandNumber() - 1);
 
-				// Cas du dernier operande pour un nombre variable d'operandes
-				if (not IsValidOutputOperandType(outputOperand->GetType()) and
-				    outputOperand->GetType() != KWType::Unknown)
+				// On ne teste pas le cas d'un operande de type inconnu, qui correspond a une variable
+				// n'existant pas, et qui est diagnostique precisement dans CheckOperandsCompleteness
+				if (outputOperand->GetType() != KWType::Unknown)
 				{
-					AddError(sTmp + "Output operand " + IntToString(i + 1) + " with wrong " +
-						 KWType::ToString(outputOperand->GetType()) +
-						 " type (must be a data or relation type)");
-					bOk = false;
-				}
-				// Verification avec le bon type sinon
-				else
-				{
-					// On modifie temporairement le type de l'operande de la famille
-					// pour effectuer les controles additionnels
-					familyVariableOutputOperand->SetType(outputOperand->GetType());
-					if (not outputOperand->CheckFamily(familyVariableOutputOperand))
+					// Cas d'un operande de type inconnu dans la famille
+					if (familyVariableOutputOperand->GetType() == KWType::Unknown)
 					{
-						AddError(sTmp + "Output operand " + IntToString(i + 1) +
-							 " inconsistent with that of the registered rule");
-						bOk = false;
+						// Test d'un type valid en sortie
+						if (not IsValidOutputOperandType(outputOperand->GetType()))
+						{
+							AddError(sTmp + "Output operand " + IntToString(i + 1) +
+								 " with wrong " +
+								 KWType::ToString(outputOperand->GetType()) +
+								 " type (must be a data or relation type)");
+							bOk = false;
+						}
 					}
-					familyVariableOutputOperand->SetType(KWType::Unknown);
+					// Verification avec le bon type sinon
+					else
+					{
+						if (not outputOperand->CheckFamily(familyVariableOutputOperand))
+						{
+							AddError(sTmp + "Output operand " + IntToString(i + 1) +
+								 " inconsistent with that of the registered rule");
+							bOk = false;
+						}
+					}
 				}
 			}
 			// Cas des premiers operandes
 			else
 			{
+				assert(ruleFamily->GetOutputOperandAt(i)->GetType() != KWType::Unknown);
 				if (not outputOperand->CheckFamily(ruleFamily->GetOutputOperandAt(i)))
 				{
 					AddError(sTmp + "Output operand " + IntToString(i + 1) +
@@ -444,33 +439,42 @@ boolean KWDRRelationCreationRule::CheckOperandsFamily(const KWDerivationRule* ru
 			outputOperand = cast(KWDerivationRuleOperand*, oaOutputOperands.GetAt(nOutput));
 
 			// On ne verifie la compatibilite que si le type est non defini dans la regle enregistree
-			if (familyVariableOperand->GetType() != KWType::Unknown and
-			    familyVariableOutputOperand->GetType() != KWType::Unknown)
+			if (familyVariableOperand->GetType() == KWType::Unknown and
+			    familyVariableOutputOperand->GetType() == KWType::Unknown)
 			{
-				assert(IsValidOutputOperandType(operand->GetType()));
-				assert(IsValidOutputOperandType(outputOperand->GetType()));
-
-				// Type
-				if (operand->GetType() != outputOperand->GetType())
+				// On ne teste pas le cas d'operandes de type inconnu, disgnostiques dans CheckOperandsCompleteness
+				if (operand->GetType() != KWType::Unknown and
+				    outputOperand->GetType() != KWType::Unknown)
 				{
-					AddError("Type " + KWType::ToString(operand->GetType()) + " of input operand " +
-						 IntToString(nInput + 1) + " inconsistent with type " +
-						 KWType::ToString(outputOperand->GetType()) +
-						 " of corresponding output operand " + IntToString(nOutput + 1));
-					bOk = false;
-				}
+					assert(IsValidOutputOperandType(operand->GetType()));
+					assert(IsValidOutputOperandType(outputOperand->GetType()));
 
-				// Nom de la classe pour un type Object ou ObjectArray si renseigne
-				if (bOk and KWType::IsRelation(operand->GetType()) and
-				    outputOperand->GetObjectClassName() != "" and
-				    operand->GetObjectClassName() != outputOperand->GetObjectClassName())
-				{
-					AddError("Dictionary " + operand->GetObjectClassName() + " used with type " +
-						 KWType::ToString(operand->GetType()) + " of input operand " +
-						 IntToString(nInput + 1) + " inconsistent with the dictionary " +
-						 outputOperand->GetObjectClassName() +
-						 " used with corresponding output operand " + IntToString(nOutput + 1));
-					bOk = false;
+					// Type
+					if (operand->GetType() != outputOperand->GetType())
+					{
+						AddError("Type " + KWType::ToString(operand->GetType()) +
+							 " of input operand " + IntToString(nInput + 1) +
+							 " inconsistent with type " +
+							 KWType::ToString(outputOperand->GetType()) +
+							 " of corresponding output operand " +
+							 IntToString(nOutput + 1));
+						bOk = false;
+					}
+
+					// Nom de la classe pour un type Object ou ObjectArray si renseigne
+					if (bOk and KWType::IsRelation(operand->GetType()) and
+					    outputOperand->GetObjectClassName() != "" and
+					    operand->GetObjectClassName() != outputOperand->GetObjectClassName())
+					{
+						AddError("Dictionary " + operand->GetObjectClassName() +
+							 " used with type " + KWType::ToString(operand->GetType()) +
+							 " of input operand " + IntToString(nInput + 1) +
+							 " inconsistent with the dictionary " +
+							 outputOperand->GetObjectClassName() +
+							 " used with corresponding output operand " +
+							 IntToString(nOutput + 1));
+						bOk = false;
+					}
 				}
 			}
 		}
@@ -1100,6 +1104,7 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 
 	require(IsCompiled());
 	require(derivedAttribute != NULL);
+	require(nkdAllUsedAttributes != NULL);
 	require(KWType::IsRelation(derivedAttribute->GetType()));
 	require(derivedAttribute->GetClass()->GetName() == GetObjectClassName());
 
@@ -1256,8 +1261,80 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 	// Trace de fin
 	if (bTrace)
 	{
+		cout << "Begin KWDRRelationCreationRule::BuildAllUsedAttributes " << GetName() << ", "
+		     << derivedAttribute->GetParentClass()->GetName() << " " << derivedAttribute->GetName() << "\n";
+		cout << "- target class: " << GetObjectClassName() << "\n";
 		cout << "End KWDRRelationCreationRule::BuildAllUsedAttributes " << GetName() << ", "
 		     << derivedAttribute->GetParentClass()->GetName() << " " << derivedAttribute->GetName() << "\n";
+	}
+}
+
+void KWDRRelationCreationRule::CollectCreationRuleMandatoryInputOperands(
+    const KWAttribute* derivedAttribute, const NumericKeyDictionary* nkdAllUsedAttributes,
+    IntVector* ivMandatoryInputOperands) const
+{
+	boolean bTrace = false;
+	IntVector ivUsedOutputOperands;
+	KWClass* kwcTargetClass;
+	KWAttribute* targetAttribute;
+	KWDerivationRuleOperand* operand;
+	int nOperand;
+
+	require(GetOutputOperandNumber() > 0);
+	require(IsCompiled());
+	require(derivedAttribute != NULL);
+	require(nkdAllUsedAttributes != NULL);
+	require(ivMandatoryInputOperands != NULL);
+
+	// Initialisation des vecteurs des operandes utilises en entree et en sortie
+	ivMandatoryInputOperands->SetSize(GetOperandNumber());
+	ivMandatoryInputOperands->Initialize();
+	ivUsedOutputOperands.SetSize(GetOutputOperandNumber());
+
+	// Recherche de la classe cible
+	kwcTargetClass = derivedAttribute->GetClass();
+	assert(kwcTargetClass != NULL);
+
+	// Collecte des attributs en sortie
+	// On optimise les impacts en n'exploitant que les attributs en sortie utilises
+	// - on ne collecte pas les attributs cibles dans methode
+	// - on se base en fait sur leur utilisation par d'autre regles
+	for (nOperand = 0; nOperand < GetOutputOperandNumber(); nOperand++)
+	{
+		operand = GetOutputOperandAt(nOperand);
+		assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute);
+		assert(KWType::IsData(operand->GetType()));
+
+		// Recherche de l'attribut cible correspond a l'operande en sortie
+		targetAttribute = kwcTargetClass->LookupAttribute(operand->GetAttributeName());
+		assert(targetAttribute != NULL);
+
+		// Memorisation de l'utilisation de l'operande
+		if (nkdAllUsedAttributes->Lookup(targetAttribute) != NULL)
+			ivUsedOutputOperands.SetAt(nOperand, 1);
+	}
+
+	// On en en deduit la sous-partie des operandes en entree a utiliser
+	CollectUsedInputOperands(&ivUsedOutputOperands, ivMandatoryInputOperands);
+
+	// Trace
+	if (bTrace)
+	{
+		cout << "Begin KWDRRelationCreationRule::CollectMandatoryInputOperands " << GetName() << ", "
+		     << derivedAttribute->GetParentClass()->GetName() << " " << derivedAttribute->GetName() << "\n";
+		cout << "- target class: " << GetObjectClassName() << "\n";
+		cout << "- used input operands: " << GetOperandNumber() << "\n";
+		for (nOperand = 0; nOperand < GetOperandNumber(); nOperand++)
+		{
+			cout << "  - " << nOperand + 1 << ": "
+			     << BooleanToString(ivMandatoryInputOperands->GetAt(nOperand) == 1) << "\n";
+		}
+		cout << "- used output operands: " << GetOutputOperandNumber() << "\n";
+		for (nOperand = 0; nOperand < GetOutputOperandNumber(); nOperand++)
+		{
+			cout << "  - " << nOperand + 1 << ": "
+			     << BooleanToString(ivUsedOutputOperands.GetAt(nOperand) == 1) << "\n";
+		}
 	}
 }
 
@@ -1466,7 +1543,7 @@ void KWDRRelationCreationRule::CollectMandatoryInputOperands(IntVector* ivUsedIn
 	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
 	require(GetOperandNumber() >= GetOutputOperandNumber());
 
-	// Par defaut, les operandes en entree du debut de liste spont obligatoires
+	// Par defaut, les operandes en entree du debut de liste sont obligatoires
 	for (nInputOperand = 0; nInputOperand < GetOperandNumber() - GetOutputOperandNumber(); nInputOperand++)
 		ivUsedInputOperands->SetAt(nInputOperand, 1);
 }
@@ -1736,24 +1813,24 @@ void KWDRRelationCreationRule::FillComputeModeTargetAttributesForVariableOperand
 	// Alimentation des attributs de l'objet cible avec les valeurs provenant des operandes en sortie
 	for (nAttribute = 0; nAttribute < ivComputeModeTargetAttributeTypes.GetSize(); nAttribute++)
 	{
-		// Index de chargement cible
-		liTarget = livComputeModeTargetAttributeLoadIndexes.GetAt(nAttribute);
-
-		// On ignore les attributs cibles non valides, qui correspondent aux attributs cibles non charges en memoire
-		if (not liTarget.IsValid())
-		{
-			assert(not kwoTargetObject->GetClass()
-				       ->LookupAttribute(GetOutputOperandAt(nAttribute)->GetAttributeName())
-				       ->GetLoaded());
-			continue;
-		}
-
-		// Information sur l'operande source et le type cible
+		// Recherche de l'operande source correspondant a l'operande cible
 		nInputOperandIndex = nStartInputOperandIndex + nAttribute;
 		operand = GetOperandAt(nInputOperandIndex);
-		nType = ivComputeModeTargetAttributeTypes.GetAt(nAttribute);
+
+		// On ignore l'operande en entree s'il a la valeur speciale None
+		if (operand->GetNoneValue())
+			continue;
+
+		// Index de chargement cible
+		liTarget = livComputeModeTargetAttributeLoadIndexes.GetAt(nAttribute);
+		assert(liTarget.IsValid());
+		assert(kwoTargetObject->GetClass()
+			   ->LookupAttribute(GetOutputOperandAt(nAttribute)->GetAttributeName())
+			   ->GetLoaded());
 
 		// Recopie de la valeur selon le type
+		nType = ivComputeModeTargetAttributeTypes.GetAt(nAttribute);
+		assert(ivComputeModeTargetAttributeTypes.GetAt(nAttribute) == operand->GetType());
 		switch (nType)
 		{
 		case KWType::Symbol:

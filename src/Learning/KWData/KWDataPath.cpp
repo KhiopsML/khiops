@@ -603,6 +603,11 @@ void KWDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 	require(mainClass != NULL);
 	require(mainClass->IsCompiled());
 
+	// Trace
+	if (bTrace)
+		cout << "ComputeAllDataPaths\t" << mainClass->GetName() << "\t" << mainClass->GetDomain()->GetName()
+		     << "\n";
+
 	// Nettoyage initial
 	Reset();
 
@@ -978,7 +983,12 @@ KWDataPath* KWDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClass
 	while (attribute != NULL)
 	{
 		// Test si attribut natif est de type Object ou ObjectArray
-		if (KWType::IsRelation(attribute->GetType()) and attribute->GetClass() != NULL)
+		// Dans le cas standard, pour le mapping multi-tables; on prend en compte
+		// tous les attribut de type relation, charges en memoire ou non
+		// Dans le cas des  data path de gestion des creation d'objet, on ne prend
+		// pas en compte que les attributs charges en memoire, pour des raison d'optimisation
+		if (KWType::IsRelation(attribute->GetType()) and attribute->GetClass() != NULL and
+		    (not IsRuleCreationManaged() or attribute->GetLoaded())) //DDD GetLoaded
 		{
 			// Cas d'un attribut natif de la composition (sans regle de derivation)
 			if (attribute->GetAnyDerivationRule() == NULL)

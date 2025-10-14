@@ -217,17 +217,23 @@ public:
 
 	// Construction du dictionnaire de tous les attributs utilises
 	// directement ou recursivement via d'autres regles de derivation
-	//  . derivedAttribute: attribut a l'origine de la regle
-	//     permet, si l'attribut est dans un bloc, de recherche les attributs de
+	// - derivedAttribute: attribut a l'origine de la regle
+	//   permet, si l'attribut est dans un bloc, de recherche les attributs de
 	//     meme VarKey potentiellement impactes dans les bloc en operandes de la regles
-	//  . nkdAllUsedAttributes: le dictionnaire est complete par la methode
-	//     et evitera les eventuels cycles de derivation
+	// - nkdAllUsedAttributes: le dictionnaire est complete par la methode
+	//   et evitera les eventuels cycles de derivation
 	virtual void BuildAllUsedAttributes(const KWAttribute* derivedAttribute,
 					    NumericKeyDictionary* nkdAllUsedAttributes) const;
 
 	// Construction du dictionnaire de tous les attributs utilises pour un operande donne
 	virtual void BuildAllUsedAttributesAtOperand(const KWAttribute* derivedAttribute, int nOperandIndex,
 						     NumericKeyDictionary* nkdAllUsedAttributes) const;
+
+	// Collecte des operandes obligatoires en entree utilises en fonction des attributs utilises
+	// Ne concerne que les regles de creation d'instances ayant des operandes en sortie
+	virtual void CollectCreationRuleMandatoryInputOperands(const KWAttribute* derivedAttribute,
+							       const NumericKeyDictionary* nkdAllUsedAttributes,
+							       IntVector* ivMandatoryInputOperands) const;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Gestion du scope des operandes
@@ -236,19 +242,19 @@ public:
 	// classe utilisant la regle de derivation pour le calcul d'un de ses attributs.
 	//
 	// Dans une regle a scope multiple, on a:
-	//  . un premier operande de type Relation
-	//     . au niveau du scope principal (celui de la regle)
-	//     . definissant le scope secondaire
-	//         (celui de l'Object ou ObjectArray du premier operande)
-	//  . les autre operandes sont au niveau du scope secondaire
-	//  . les operandes de scope inferieur (autre operande, ou operande
-	//    de leurs sous-regles), peuvent avoir un ScopeLevel positif,
-	//    leur permettant de remonter au scope principal
-	//    Exemple:
-	//      TableSelection(Logs, G(DiffTime(LogTime, 10), 0));
-	//         (LogTime est de scope secondaire)
-	//      TableSelection(Logs, G(DiffTime(LogTime, .UserTime), 0));
-	//         (UserTime est de scope principal)
+	// - un premier operande de type Relation
+	//   - au niveau du scope principal (celui de la regle)
+	//   - definissant le scope secondaire
+	//     (celui de l'Object ou ObjectArray du premier operande)
+	// - les autre operandes sont au niveau du scope secondaire
+	// - les operandes de scope inferieur (autre operande, ou operande
+	//   de leurs sous-regles), peuvent avoir un ScopeLevel positif,
+	//   leur permettant de remonter au scope principal
+	//   Exemple:
+	//     TableSelection(Logs, G(DiffTime(LogTime, 10), 0));
+	//        (LogTime est de scope secondaire)
+	//     TableSelection(Logs, G(DiffTime(LogTime, .UserTime), 0));
+	//        (UserTime est de scope principal)
 	// Le ScopeLevel (par defaut 0) permet de remonter le scope de un
 	// a plusieurs niveau
 	//   1 pour remonter un niveau (".")
@@ -818,7 +824,7 @@ public:
 	void InternalCompleteTypeInfo(const KWClass* kwcOwnerClass, NumericKeyDictionary* nkdCompletedAttributes);
 
 	// Calcul de la valeur d'un operande accedant a un scope de niveau superieur et memorisation dans la valeur
-	// constant En effet, seuls les operande d'origine Attribute ou Rule peuvent etre de scope superieur; on peut
+	// constant En effet, seuls les operandes d'origine Attribute ou Rule peuvent etre de scope superieur; on peut
 	// alors utiliser la valeur pour memoriser le resultat du calcul au debut de la regle de derivation au bon
 	// niveau de scope. Ce calcul est alors effectue uen fois pour toute au debut du calcul de valeur de la regle,
 	// puis ces valeurs sont accedees par leur valeur constante par les regle de scope secondaire Les methodes
@@ -828,6 +834,16 @@ public:
 	//  void KWDerivationRule::CleanMainScopeSecondaryOperands();
 	void ComputeUpperScopeValue(const KWObject* kwoObject);
 	void InitUpperScopeValue();
+
+	// Parametrage d'une valeur None de l'operande, indiquant qu'il n'est pas utilise et ne sera jamais evalue.
+	// Cela permet d'optimiser finiement les dictionnaire en specifiant les operandes a ne pas calculer.
+	// Cela ne concerne a priori que les operandes en entree d'une regle de creation de table a l'origine de la valeur
+	// d'une variable de table cible qui n'est jamais utilisee (par exemple, BuildTableAdvancedView)
+	// Suite a ce parametrage, l'origine de la regle devient OriginConstant, et l'eventuel parametrage initial
+	// de regle ou d'attribut est supprime.
+	// Le dictionnaire ainsi optimise pouura toujours etre ecrit, mais pas relu.
+	void SetNoneValue(boolean bValue);
+	boolean GetNoneValue() const;
 
 protected:
 	/////////////////////////////////////////////////////////////////////////
@@ -843,9 +859,9 @@ protected:
 
 	// Type de provenance une fois compile
 	// Les operandes du scope courant proviennent d'un attribut, d'une regle, ou d'une constante
-	// Les operandes de scope supperieur sont precalcules au niveau de leur regle du bon scope (cf.
-	// ComputeUpperScopeValue) et stockes dans la valeur constante L'acces au bon type de calcul est ainsi optimise
-	// avec les CompiledOrigin
+	// Les operandes de scope supperieur sont precalcules au niveau de leur regle du bon scope
+	// (cf. ComputeUpperScopeValue) et stockes dans la valeur constante
+	// L'acces au bon type de calcul est ainsi optimise avec les CompiledOrigin
 	enum
 	{
 		CompiledOriginAttribute, // Valeur d'un attribut dans le scope courant
@@ -872,6 +888,7 @@ protected:
 	char cScopeLevel;     // Niveau de scope
 	char cOrigin;         // Origine de l'operande
 	char cCompiledOrigin; // Origine de l'operande apres compilation
+	char cNoneValue;      // Valeur None des operandes a ignorer, pour les operandes non utilisees
 
 	// Informations disponibles uniquement en mode debug, pour le controle
 	// de la coherence de l'acces aux operandes uniquement en mode compile

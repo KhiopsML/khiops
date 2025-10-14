@@ -1089,7 +1089,7 @@ void PLMTDatabaseTextFile::ComputeMemoryGuardOpenInformation()
 		cout << "ComputeMemoryGuardOpenInformation\n";
 
 	// Initialisation de tous les data paths a destination des objets lus ou cree
-	// pour le dimensionnement des objets cree
+	// pour le dimensionnement des objets crees
 	assert(objectDataPathManager.GetDataPathNumber() == 0);
 	objectDataPathManager.ComputeAllDataPaths(kwcPhysicalClass);
 

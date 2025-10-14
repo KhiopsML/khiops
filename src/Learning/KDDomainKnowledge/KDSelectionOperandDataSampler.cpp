@@ -168,7 +168,7 @@ KDSelectionOperandDataSampler* KDSelectionOperandDataSampler::CloneSpec() const
 			    cast(KDClassSelectionOperandData*,
 				 sourceClassSelectionData->GetClassSelectionOperandData()->GetAt(nOperand));
 
-			// Ajout d'une operande de collecte de donnees
+			// Ajout d'un operande de collecte de donnees
 			selectionOperandData = new KDClassSelectionOperandData;
 			selectionOperandData->sSelectionAttributeName =
 			    sourceSelectionOperandData->sSelectionAttributeName;

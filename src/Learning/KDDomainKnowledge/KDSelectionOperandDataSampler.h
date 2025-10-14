@@ -299,7 +299,7 @@ protected:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KDClassSelectionOperandData
-// Statistiques sur une operande de selection
+// Statistiques sur un operande de selection
 class KDClassSelectionOperandData : public Object
 {
 public:

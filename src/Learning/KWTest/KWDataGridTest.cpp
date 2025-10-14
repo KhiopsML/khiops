@@ -273,7 +273,7 @@ void KWSampleGenerator::InitFromAttributeSubsetStats(KWAttributeSubsetStats* att
 	{
 		attributePartition = preparedDataGridStats->GetAttributeAt(nAttribute);
 
-		// Ajout d'une operande pour lier l'attribut source
+		// Ajout d'un operande pour lier l'attribut source
 		operand = new KWDerivationRuleOperand;
 		cellIndexRule->AddOperand(operand);
 		operand->SetOrigin(KWDerivationRuleOperand::OriginAttribute);

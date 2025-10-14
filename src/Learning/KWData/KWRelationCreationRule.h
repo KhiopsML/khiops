@@ -162,6 +162,11 @@ public:
 	void BuildAllUsedAttributes(const KWAttribute* derivedAttribute,
 				    NumericKeyDictionary* nkdAllUsedAttributes) const override;
 
+	// Collecte des operandes obligatoires en entree utilises en fonction des attributs utilises
+	void CollectCreationRuleMandatoryInputOperands(const KWAttribute* derivedAttribute,
+						       const NumericKeyDictionary* nkdAllUsedAttributes,
+						       IntVector* ivMandatoryInputOperands) const override;
+
 	// Copie
 	void CopyFrom(const KWDerivationRule* kwdrSource) override;
 
@@ -185,6 +190,7 @@ protected:
 	// Collecte des operandes en entree utilises en fonction des operandes en sortie utilises
 	// Cela permet d'optimiser le graphe de calcul, en ne traitant que les operandes en entree
 	// necessaires pour chaque operande en sortie
+	// Ces methodes sont reimplementables dans les sous-classes
 
 	// Collecte globale des operandes utilises en entree
 	// - ivUsedOutputOperands: vecteur des index des operandes en sortie, avec '1' par operande utilise
@@ -197,7 +203,8 @@ protected:
 	// Collecte des operandes en entree obligatoire
 	// Par defaut, on traite le cas d'une correspondance de chaque operande en sortie avec un operande
 	// en entree de meme position par rapport a la fin de liste
-	// Les operandes en entree du debut sont tous consideres comme obligatoires et marques comme utilises
+	// Les operandes en entree du debut sont ceux qui ne sont apparies avec des operandes en sortie,
+	// et sont tous consideres comme obligatoires et marques comme utilises
 	virtual void CollectMandatoryInputOperands(IntVector* ivUsedInputOperands) const;
 
 	// Collecte des operandes en entree specifique par operande en en sortie

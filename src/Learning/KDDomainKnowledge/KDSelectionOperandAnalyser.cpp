@@ -437,7 +437,7 @@ KDSelectionOperandDataSampler* KDSelectionOperandAnalyser::BuildSelectionOperand
 			    cast(KDClassSelectionOperandStats*,
 				 classSelectionStats->GetClassSelectionOperandStats()->GetAt(nOperand));
 
-			// Ajout d'une operande de collecte de donnees si necessaire
+			// Ajout d'un operande de collecte de donnees si necessaire
 			if (classSelectionOperandStats->GetSelectionAttribute() != NULL)
 			{
 				classSelectionOperandData = new KDClassSelectionOperandData;
@@ -449,7 +449,7 @@ KDSelectionOperandDataSampler* KDSelectionOperandAnalyser::BuildSelectionOperand
 			}
 		}
 
-		// Ajout de cette classe s'il a au moins une operande de selection
+		// Ajout de cette classe s'il a au moins un operande de selection
 		if (classSelectionData->GetClassSelectionOperandData()->GetSize() > 0)
 			selectionOperandDataSampler->oaClassSelectionData.Add(classSelectionData);
 		// Nettoyage sinon

@@ -1691,7 +1691,7 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 	boolean bIsViewTypeUse;
 	boolean bIsMutationNeeded;
 
-	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetLoadedDataItemNumber()));
+	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
 	debug(require(nFreshness == kwcClass->GetFreshness()));
 	require(nkdMutationClasses != NULL);
 	require(nkdUnusedNativeAttributesToKeep != NULL);

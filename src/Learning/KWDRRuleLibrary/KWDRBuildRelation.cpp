@@ -393,22 +393,20 @@ void KWDRBuildDiffTable::FillTargetDifferenceAttributes(const KWObject* kwoSourc
 	// Alimentation des attributs de l'objet cible avec les valeurs provenant des operandes en sortie
 	for (nAttribute = 0; nAttribute < ivComputeModeTargetAttributeTypes.GetSize(); nAttribute++)
 	{
-		// Index de chargement cible
-		liTarget = livComputeModeTargetAttributeLoadIndexes.GetAt(nAttribute);
-
-		// On ignore les attributs cibles non valides, qui correspondent aux attributs cibles non charges en memoire
-		if (not liTarget.IsValid())
-		{
-			assert(not kwoTargetObject->GetClass()
-				       ->LookupAttribute(GetOutputOperandAt(nAttribute)->GetAttributeName())
-				       ->GetLoaded());
-			continue;
-		}
-
-		// Information sur l'operande source et le type source
+		// Recherche de l'operande source correspondant a l'operande cible
 		nInputOperandIndex = nStartInputOperandIndex + nAttribute;
 		operand = GetOperandAt(nInputOperandIndex);
-		nType = operand->GetType();
+
+		// On ignore l'operande en entree s'il a la valeur speciale None
+		if (operand->GetNoneValue())
+			continue;
+
+		// Index de chargement cible
+		liTarget = livComputeModeTargetAttributeLoadIndexes.GetAt(nAttribute);
+		assert(liTarget.IsValid());
+		assert(kwoTargetObject->GetClass()
+			   ->LookupAttribute(GetOutputOperandAt(nAttribute)->GetAttributeName())
+			   ->GetLoaded());
 
 		// La valeur est missing dans le cas ou il n'y pas d'objet precedent
 		if (kwoSourcePreviousObject == NULL)
@@ -416,6 +414,8 @@ void KWDRBuildDiffTable::FillTargetDifferenceAttributes(const KWObject* kwoSourc
 		// Calcul de la difference de valeur selon le type
 		else
 		{
+			nType = operand->GetType();
+			assert(ivComputeModeTargetAttributeTypes.GetAt(nAttribute) == KWType::Continuous);
 			switch (nType)
 			{
 			case KWType::Symbol:

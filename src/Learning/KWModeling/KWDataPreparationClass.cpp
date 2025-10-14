@@ -1201,7 +1201,7 @@ void KWDataPreparationAttribute::InitDataGridRule(KWDRDataGridRule* dataGridRule
 	{
 		attributePartition = preparedDataGridStats->GetAttributeAt(nAttribute);
 
-		// Ajout d'une operande pour lier l'attribut source
+		// Ajout d'un operande pour lier l'attribut source
 		if (attributePartition->GetAttributeName() != preparedStats->GetTargetAttributeName())
 		{
 			operand = new KWDerivationRuleOperand;
