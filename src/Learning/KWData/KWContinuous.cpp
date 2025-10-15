@@ -798,7 +798,7 @@ const char* const KWContinuous::ContinuousToString(Continuous cValue)
 		else
 		{
 			// Normalisation de la precision de la mantisse
-			// On normalise par la puissance de l'exposant avant prendre en compte les decimales
+			// On normalise par la puissance de l'exposant avant de prendre en compte les decimales
 			// selon la precision souhaitee
 			if (nExponent >= GetDigitNumber() - 1)
 				dMantissa = cValue * dNegativePower10[nExponent - GetDigitNumber() + 1];
@@ -816,7 +816,7 @@ const char* const KWContinuous::ContinuousToString(Continuous cValue)
 			}
 
 			// Ecriture de la mantisse a l'envers, plus loin dans le buffer
-			// On repasse par des int, plus efficace pour les calcul,
+			// On repasse par des int, plus efficace pour les calculs,
 			// en traitant d'abord la premiere decimale, puis les suivantes
 			i = nStartMantissa;
 			sBuffer[i] = '0' + lLongMantissa % 10;
@@ -840,7 +840,7 @@ const char* const KWContinuous::ContinuousToString(Continuous cValue)
 				sBuffer[nOffset] = '.';
 				nOffset++;
 
-				// Ecriture des zero du debut de la mantisse
+				// Ecriture des zeros du debut de la mantisse
 				for (i = nExponent + 1; i < 0; i++)
 				{
 					sBuffer[nOffset] = '0';
@@ -854,7 +854,7 @@ const char* const KWContinuous::ContinuousToString(Continuous cValue)
 					nOffset++;
 				}
 
-				// Supression des zeros de fin
+				// Suppression des zeros de fin
 				while (sBuffer[nOffset - 1] == '0')
 					nOffset--;
 				assert(sBuffer[nOffset - 1] != '.');
@@ -875,7 +875,7 @@ const char* const KWContinuous::ContinuousToString(Continuous cValue)
 						sBuffer[nOffset] = '.';
 						nOffset++;
 
-						// On passe a -1 pour indiquer qu'un point a etet ecrit
+						// On passe a -1 pour indiquer qu'un point a ete ecrit
 						nPointOffset = -1;
 					}
 
@@ -884,7 +884,7 @@ const char* const KWContinuous::ContinuousToString(Continuous cValue)
 					nOffset++;
 				}
 
-				// Supression des zeros de fin
+				// Suppression des zeros de fin
 				if (nPointOffset == -1)
 				{
 					while (sBuffer[nOffset - 1] == '0')
@@ -912,7 +912,7 @@ const char* const KWContinuous::ContinuousToString(Continuous cValue)
 					nOffset++;
 				}
 
-				// Supression des zeros de fin
+				// Suppression des zeros de fin
 				while (sBuffer[nOffset - 1] == '0')
 					nOffset--;
 				if (sBuffer[nOffset - 1] == '.')

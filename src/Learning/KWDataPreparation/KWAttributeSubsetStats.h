@@ -38,7 +38,7 @@ public:
 	void SetAttributeNameAt(int nIndex, const ALString& sAttributeName);
 	const ALString& GetAttributeNameAt(int nIndex) const override;
 
-	// Indique si on souhaite partitionne la variable cible dans le cas supervise
+	// Indique si on souhaite partitionner la variable cible dans le cas supervise
 	// Utilise uniquement dans le cas supervise
 	void SetTargetAttributePartitioned(boolean bValue);
 	boolean GetTargetAttributePartitioned() const;

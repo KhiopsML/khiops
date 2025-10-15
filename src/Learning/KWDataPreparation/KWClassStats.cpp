@@ -183,7 +183,7 @@ boolean KWClassStats::ComputeStats()
 		// Controles additionnels
 		if (bOk)
 		{
-			// Warning si valeur cible specififie inexistante le cas categoriel
+			// Warning si valeur cible specifiee inexistante le cas categoriel
 			if (GetTargetAttributeType() == KWType::Symbol and GetMainTargetModality() != Symbol() and
 			    GetMainTargetModalityIndex() == -1)
 			{
@@ -322,7 +322,7 @@ boolean KWClassStats::ComputeStats()
 	{
 		AddSimpleMessage("Evaluation of variable pairs");
 
-		// Prise en compte de couts de selection basiques pour les attributs utilisable pour les paires,
+		// Prise en compte de couts de selection basiques pour les attributs utilisables pour les paires,
 		// qui peuvent utiliser les variables de type texte
 		UseUnivariateBasicSelectionCosts(true);
 
@@ -354,7 +354,7 @@ boolean KWClassStats::ComputeStats()
 	{
 		ObjectArray oaOutputAttributeStats;
 
-		// Prise en compte de couts de selection basiques pour les attributs utilisable pour les arbres,
+		// Prise en compte de couts de selection basiques pour les attributs utilisables pour les arbres,
 		// selon ce qui est specifie dans les learningSpec
 		UseUnivariateBasicSelectionCosts(GetLearningSpec()->GetTextConstructionUsedByTrees());
 
@@ -364,7 +364,7 @@ boolean KWClassStats::ComputeStats()
 		assert(attributeTreeConstructionTask == NULL);
 		attributeTreeConstructionTask = KDDataPreparationAttributeCreationTask::CloneGlobalCreationTask();
 
-		// Parametrage du classStas, ce qui permettra au rapports des arbres de filtrer si necessaire
+		// Parametrage du classStats, ce qui permettra aux rapports des arbres de filtrer si necessaire
 		// les arbres selectionnes par les predicteurs
 		attributeTreeConstructionTask->SetClassStats(this);
 

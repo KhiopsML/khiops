@@ -70,7 +70,10 @@ boolean SNBPredictorSelectiveNaiveBayes::InternalTrain()
 	SNBPredictorSelectiveNaiveBayesTrainingTask trainingTask;
 
 	// Delegation de l'entrainement a la tache d'apprentissage
-	trainingTask.InternalTrain(this);
+	if (not GetSNBSelectVariableViaPriorWeight())
+		trainingTask.InternalTrain(this);
+	else
+		trainingTask.InternalTrainUnderPriorSelection(this);
 	bOk = trainingTask.IsTrainingSuccessful();
 
 	return bOk;

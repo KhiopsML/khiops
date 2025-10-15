@@ -163,3 +163,6 @@ boolean GetSNBForceDenseMode();
 
 // Indicateur du mode ou le dictionnaire associee au coclustering individus * variables est construit (en fin d'apprentissage du coclustering)
 boolean GetVarPartDeploymentMode();
+
+// Indicateur du mode ou le nombre de variables au sein du SNB est filtre en augmentant le poids du prior
+boolean GetSNBSelectVariableViaPriorWeight();

@@ -27,6 +27,9 @@ static boolean bInnerAttributeGarbage = false;
 // Booleen de calcul du dictionnaire de deploiement associe au coclustering instances * variables
 static boolean bVarPartDeploymentMode = false;
 
+// Boolean de selection de variables optimisee par le poids du prior
+static boolean bSNBVariableSelectionViaPriorWeight = true;
+
 const ALString GetLearningApplicationName()
 {
 	return sKWLearningApplicationName;
@@ -607,4 +610,9 @@ boolean GetSNBForceDenseMode()
 boolean GetVarPartDeploymentMode()
 {
 	return bVarPartDeploymentMode;
+}
+
+boolean GetSNBSelectVariableViaPriorWeight()
+{
+	return bSNBVariableSelectionViaPriorWeight;
 }

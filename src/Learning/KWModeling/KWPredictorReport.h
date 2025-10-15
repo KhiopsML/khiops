@@ -13,7 +13,7 @@ class KWSelectedAttributeReport;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Rapport d'apprentissage
-// Ces resultat sont alimentes par la methode Train des predicteurs
+// Ces resultats sont alimentes par la methode Train des predicteurs
 class KWPredictorReport : public KWLearningReport
 {
 public:

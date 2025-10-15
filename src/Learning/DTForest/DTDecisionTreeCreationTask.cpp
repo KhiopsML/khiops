@@ -117,23 +117,20 @@ boolean DTDecisionTreeCreationTask::CreatePreparedAttributes(KWLearningSpec* lea
 
 	if (learningSpec->GetTargetAttributeType() == KWType::None)
 	{
-		if (GetForestParameter()->GetDecisionTreeParameter()->GetVerboseMode())
-			AddWarning("No tree building : no target variable");
+		AddWarning("No tree building : no target variable");
 		return true;
 	}
 
 	if (learningSpec->GetTargetAttributeType() == KWType::Symbol and
 	    learningSpec->GetPreprocessingSpec()->GetTargetGrouped())
 	{
-		if (GetForestParameter()->GetDecisionTreeParameter()->GetVerboseMode())
-			AddWarning("No tree building : target variable is grouped");
+		AddWarning("No tree building : target variable is grouped");
 		return true;
 	}
 
 	if (tupleTableLoader->GetInputExtraAttributeTupleTable()->GetSize() == 1)
 	{
-		if (GetForestParameter()->GetDecisionTreeParameter()->GetVerboseMode())
-			AddWarning("No tree building : the target variable contains only one value");
+		AddWarning("No tree building : the target variable contains only one value");
 		return true;
 	}
 

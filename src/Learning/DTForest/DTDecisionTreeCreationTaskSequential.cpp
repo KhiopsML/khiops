@@ -98,16 +98,14 @@ boolean DTDecisionTreeCreationTaskSequential::CreatePreparedAttributes(KWLearnin
 	if (learningSpec->GetTargetAttributeType() != KWType::None and
 	    tupleTableLoader->GetInputExtraAttributeTupleTable()->GetSize() == 1)
 	{
-		if (GetForestParameter()->GetDecisionTreeParameter()->GetVerboseMode())
-			AddWarning("The target variable contains only one value");
+		AddWarning("The target variable contains only one value");
 		return true;
 	}
 
 	if (learningSpec->GetTargetAttributeType() == KWType::Symbol and
 	    learningSpec->GetPreprocessingSpec()->GetTargetGrouped())
 	{
-		if (GetForestParameter()->GetDecisionTreeParameter()->GetVerboseMode())
-			AddWarning("No tree building : target variable is grouped");
+		AddWarning("No tree building : target variable is grouped");
 		return true;
 	}
 #ifdef TREE_BUILD_TIMER

@@ -198,6 +198,63 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::InternalTrain(SNBPredictorSele
 	ensure(masterInitialDatabase == NULL);
 }
 
+void SNBPredictorSelectiveNaiveBayesTrainingTask::InternalTrainUnderPriorSelection(
+    SNBPredictorSelectiveNaiveBayes* snbPredictor)
+{
+	int nSelectedVariableNumber;
+	int nMaxSelectedVariableNumber;
+	double dInitialPriorWeight;
+	double dPriorWeight;
+	double dPriorWeightIncrementFactor = 1.01;
+
+	// Memorisation du nombre max de variables selectionnees souhaite
+	nMaxSelectedVariableNumber = snbPredictor->GetSelectionParameters()->GetMaxSelectedAttributeNumber();
+	dInitialPriorWeight = snbPredictor->GetSelectionParameters()->GetPriorWeight();
+	dPriorWeight = dInitialPriorWeight;
+
+	// Initialisation sans contrainte sur le nombre de variables utilisees
+	snbPredictor->GetSelectionParameters()->SetMaxSelectedAttributeNumber(0);
+	InternalTrain(snbPredictor);
+	nSelectedVariableNumber = snbPredictor->GetPredictorSelectionReport()->GetSelectedAttributes()->GetSize();
+
+	cout << "AllPreparedStats size " << snbPredictor->GetClassStats()->GetAllPreparedStats()->GetSize() << "\n"
+	     << "Selected DataPreparationStats du predicteur initial : taille "
+	     << snbPredictor->GetSelectedDataPreparationStats()->GetCount() << endl;
+
+	if (nMaxSelectedVariableNumber > 0)
+	{
+		// Boucle d'elimination des variables par augmentation du poids du prior
+		while (nSelectedVariableNumber > nMaxSelectedVariableNumber)
+		{
+			// Nettoyage du predicteur precedent
+			snbPredictor->DeleteTrainedResults();
+
+			cout << "Selected DataPreparationStats du predicteur apres nettoyage : taille "
+			     << snbPredictor->GetSelectedDataPreparationStats()->GetCount() << endl;
+
+			// Creation des resultats d'apprentissage
+			snbPredictor->CreatePredictorReport();
+			snbPredictor->CreateTrainedPredictor();
+
+			// Initialisation du poids du prior incremente
+			snbPredictor->GetSelectionParameters()->SetPriorWeight(dPriorWeight *
+									       dPriorWeightIncrementFactor);
+
+			// Apprentissage
+			InternalTrain(snbPredictor);
+
+			// Memorisation
+			nSelectedVariableNumber =
+			    snbPredictor->GetPredictorSelectionReport()->GetSelectedAttributes()->GetSize();
+			dPriorWeight = dPriorWeight * dPriorWeightIncrementFactor;
+		}
+	}
+
+	// Restauration du parametrage initial
+	snbPredictor->GetSelectionParameters()->SetMaxSelectedAttributeNumber(nMaxSelectedVariableNumber);
+	snbPredictor->GetSelectionParameters()->SetPriorWeight(dInitialPriorWeight);
+}
+
 boolean SNBPredictorSelectiveNaiveBayesTrainingTask::IsTrainingSuccessful() const
 {
 	return bMasterIsTrainingSuccessfulWithoutRunningTask or IsJobSuccessful();
@@ -1705,12 +1762,12 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalizeTrainingAndRepor
 		}
 	}
 
-	// Memorisation du nombre d'attributs selectionnees
+	// Memorisation du nombre d'attributs selectionnes
 	selectionReport->SetUsedAttributeNumber(
 	    masterWeightedSelectionScorer->GetAttributeSelection()->GetAttributeNumber());
 	assert(selectionReport->GetSelectedAttributes()->GetSize() == selectionReport->GetUsedAttributeNumber());
 
-	// Npormalisation des importance par leur somme
+	// Normalisation des importances par leur somme
 	for (nAttribute = 0; nAttribute < selectionReport->GetSelectedAttributes()->GetSize(); nAttribute++)
 	{
 		attributeReport =
@@ -1816,7 +1873,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalize(boolean bPro
 	KWClassDomain::SetCurrentDomain(masterInitialDomain);
 	SetRandomSeed(nMasterRandomSeed);
 
-	// Sauvegarde des resultats de l'entrainement si tout c'est bien deroule
+	// Sauvegarde des resultats de l'entrainement si tout s'est bien deroule
 	if (bProcessEndedCorrectly)
 		MasterFinalizeTrainingAndReports();
 

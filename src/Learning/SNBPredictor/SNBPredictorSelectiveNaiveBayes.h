@@ -16,15 +16,15 @@ class SNBPredictorSelectiveNaiveBayes;
 // Predicteur Bayesien naif selectif (SNB)
 //
 // Cette classe implemente l'optimisation de la selection de variables d'un predicteur Bayesien
-// naif. Pour pouvoir executer cet algorithme en parallele l'implemenetation de cette optimisation
-// est deleguee a la classe SNBPredictorSelectiveNaiveBayesTraniningTask.
+// naif. Pour pouvoir executer cet algorithme en parallele l'implementation de cette optimisation
+// est deleguee a la classe SNBPredictorSelectiveNaiveBayesTrainingTask.
 //
-// L'entree principale pour l'optimisation est l'ensemble de variables discretisees ou groupees par
+// L'entree principale pour l'optimisation est l'ensemble des variables discretisees ou groupees par
 // rapport a la cible. Ces entrees sont disponibles via une instance de la classe KWClassStats.
 //
 // Les principales classes utilises pendant l'optimisation sont:
 //
-// - SNBDataTableBinarySliceSet: Donne acces a la base de donnees recodifie sous forme de ints
+// - SNBDataTableBinarySliceSet: Donne acces a la base de donnees recodifiee sous forme de ints
 // (index d'intervalle ou de groupe pour chaque attribut). La base est coupee en blocs definis par
 // des chunks (ensemble contigu d'instances) et des slices (ensemble contigu d'attributs). Chaque
 // chunk est destine a un processus esclave; les slices ne sont utilises que pour faire du
@@ -38,7 +38,7 @@ class SNBPredictorSelectiveNaiveBayes;
 // elle permet de consulter la selection courante et son cout.
 //
 // - SNBPredictorSelectionDataCostCalculator: Utilise par SNBPredictorSelectionScorer, elle calcule
-// la partie du cout par rappport aux donnees (likelihood). Elle est sous-specialise pour chaque
+// la partie du cout par rapport aux donnees (likelihood). Elle est sous-specialisee pour chaque
 // type de predicteur (classifieur, regresseur, et classifieur generalise). Elle utilise le
 // SNBDataTableBinarySliceSet pour acceder aux donnees.
 //
@@ -50,7 +50,7 @@ class SNBPredictorSelectiveNaiveBayes;
 // - Premiere initialisation du SNBDataTableBinarySliceSet par le maitre ce qui permet d'obtenir les
 // informations necessaires pour l'estimation de ressources de la tache.
 //
-// - Recodage de la base de donnees preparee (en ASCII, cf. KWDataTableSliceSet) a une base de
+// - Recodage de la base de donnees preparee (en ASCII, cf. KWDataTableSliceSet) en une base de
 // donnees contenant les index des parties en binaire (cf. SNBDataTableBinarySliceSet). Chaque
 // esclave recodifie un seul chunk de la base de donnees et initialise son propre
 // SNBDataTableBinarySliceSet pour le lire.
@@ -80,13 +80,13 @@ public:
 	// Constructeur generique
 	KWPredictor* Create() const override;
 
-	// Recopie des specifications du predicteurs
+	// Recopie des specifications du predicteur
 	void CopyFrom(const KWPredictor* sourcePredictor) override;
 
-	// Nom du predictor
+	// Nom du predicteur
 	const ALString GetName() const override;
 
-	// Prefixe du predictor
+	// Prefixe du predicteur
 	const ALString GetPrefix() const override;
 
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -101,7 +101,7 @@ public:
 	// Memoire: appartient a l'appele
 	KWPredictorSelectionReport* GetPredictorSelectionReport();
 
-	// Meta-donnees associee au variabels du predicteur
+	// Meta-donnees associees aux variables du predicteur
 	static const ALString& GetWeightMetaDataKey();
 	static const ALString& GetImportanceMetaDataKey();
 
@@ -114,7 +114,7 @@ protected:
 	////////////////////////////
 	// Entrainement
 
-	// Reimplementation des methodes virtuelles prives de KWPredictiorNaiveBayes
+	// Reimplementation des methodes virtuelles privees de KWPredictiorNaiveBayes
 	boolean InternalTrain() override;
 	void CreatePredictorAttributesInClass(KWDataPreparationClass* dataPreparationClass,
 					      ObjectArray* oaUsedDataPreparationAttributes,
@@ -136,7 +136,7 @@ protected:
 	// Nombre d'attributs sparse a utiliser pendant l'apprentissage
 	int ComputeTrainingSparseAttributeNumber();
 
-	// Ratio de la taille moyen par individu maximale (local) et la taille moyen par individu
+	// Ratio de la taille moyenne par individu maximale (local) et la taille moyenne par individu
 	double ComputeSparseMemoryFactor();
 
 	// Nombre de valeurs missing sparse des donnees en entree

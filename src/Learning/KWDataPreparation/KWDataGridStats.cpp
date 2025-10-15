@@ -1012,7 +1012,7 @@ void KWDataGridStats::WriteJSONFields(JSONFile* fJSON) const
 		// Cas specifique de la discretisation
 		if (attribute->GetClassLabel() == attributeDiscretization.GetClassLabel())
 		{
-			// On utilise les bornes pour ecrire les intervalles extremes avec leur vraies bornes
+			// On utilise les bornes pour ecrire les intervalles extremes avec leurs vraies bornes
 			fJSON->BeginObject();
 			cast(KWDGSAttributeDiscretization*, attribute)
 			    ->WriteJSONFieldsWithBounds(fJSON, cvJSONAttributeDomainLowerBounds->GetAt(nAttribute),

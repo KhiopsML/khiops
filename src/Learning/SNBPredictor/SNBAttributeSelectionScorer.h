@@ -26,8 +26,8 @@ public:
 	//////////////////////////////////////////////////
 	// Gestion de la selection d'attributs
 
-	// Increment du poids de un attribut
-	// Retourne le increment effectif si le delta fait depasser 1 le poids de l'attribute
+	// Increment du poids d'un attribut
+	// Retourne l'increment effectif si le delta fait depasser 1 le poids de l'attribute
 	double IncreaseAttributeWeight(SNBDataTableBinarySliceSetAttribute* attribute, double dDeltaWeight);
 
 	// Decrement du poids de un attribut; retourne le decrement effectif
@@ -108,23 +108,23 @@ public:
 	void SetPreparationCostEnabled(boolean bValue);
 	boolean GetPreparationCostEnabled() const;
 
-	// Initialise/reinitialise tous les donnees de travail (pas de liberation memoire)
+	// Initialise/reinitialise toutes les donnees de travail (pas de liberation memoire)
 	virtual void InitializeWorkingData();
 
-	// Nettoyage de tous les donnees de travail (libere la memoire)
+	// Nettoyage de toutes les donnees de travail (libere la memoire)
 	void CleanWorkingData();
 
 	// Cree la calculatrice de cout de donnees; retourne false si erreur de memoire
 	boolean CreateDataCostCalculator();
 
-	// True si la calculatrice de cout de donnees es creee
+	// True si la calculatrice de cout de donnees est creee
 	boolean IsDataCostCalculatorCreated() const;
 
 	// Initialise/reinitialise la calculatrice de cout de donnes
 	// Elle doit etre creee au prealable (IsDataCostCalculatorCreated)
 	void InitializeDataCostCalculator();
 
-	// True si la calculatrice de cout de donnees est cree et pret a utiliser
+	// True si la calculatrice de cout de donnees est cree et prete a utiliser
 	boolean IsDataCostCalculatorInitialized() const;
 
 	// Nettoyage de la calculatrice de cout de donnees (libere memoire)
@@ -140,27 +140,27 @@ public:
 	// Calcul de cout du modele de selection
 	double ComputeSelectionModelCost() const;
 
-	// Calcul du cout de donnees de la selection
+	// Calcul du cout des donnees de la selection
 	// Disponible seulement si IsDataCostCalculatorInitialized
 	double GetSelectionDataCost();
 
 	//////////////////////////////////////
 	// Gestion de la selection
 
-	// Increment du poids de un attribut dans la selection
+	// Increment du poids d'un attribut dans la selection
 	boolean IncreaseAttributeWeight(SNBDataTableBinarySliceSetAttribute* attribute, double dDeltaWeight);
 
-	// Decrement du poids de un attribut dans la selection
+	// Decrement du poids d'un attribut dans la selection
 	boolean DecreaseAttributeWeight(SNBDataTableBinarySliceSetAttribute* attribute, double dDeltaWeight);
 
-	// Annulation du dernier increrement/decrement; ne peux pas etre appele deux fois de suite
+	// Annulation du dernier increment/decrement; ne peut pas etre appele deux fois de suite
 	boolean UndoLastModification();
 
 	// Acces a la selection courante
 	// Memoire: Appelle
 	const SNBWeightedAttributeSelection* GetAttributeSelection() const;
 
-	// Recollection de la selection courante
+	// Recollecte de la selection courante
 	// Memoire: Appelant
 	SNBWeightedAttributeSelection* CollectAttributeSelection() const;
 
@@ -212,16 +212,16 @@ protected:
 	// Calculatrice du cout de selection de donnees
 	SNBPredictorSelectionDataCostCalculator* dataCostCalculator;
 
-	// True si la calculatrice de cout de donnees est cree
+	// True si la calculatrice de cout de donnees est creee
 	boolean bIsDataCostCalculatorCreated;
 
-	// True si les calculatrice de cout de donees est initialisee
+	// True si la calculatrice de cout de donnees est initialisee
 	boolean bIsDataCostCalculatorInitialized;
 
 	// Poids des attributs selectionnes
 	SNBWeightedAttributeSelection weightedAttributeSelection;
 
-	// Informations de la dernier modification des poids
+	// Informations de la derniere modification des poids
 	SNBDataTableBinarySliceSetAttribute* lastModificationAttribute;
 	double dLastModificationDeltaWeight;
 	double dLastModificationSelectionModelAllAttributeCost;

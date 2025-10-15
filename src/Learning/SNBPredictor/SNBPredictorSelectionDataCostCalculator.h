@@ -29,13 +29,13 @@ class SNBGeneralizedClassifierSelectionDataCostCalculator;
 //
 //   Sum_k w_k * log P( X_ik | Y = I_m) (regression)
 //
-//   Sum_k w_k * log P( X_ik | Y = G_jm) (classification generalise : cible groupee)
+//   Sum_k w_k * log P( X_ik | Y = G_jm) (classification generalisee : cible groupee)
 //
 //   C_j  : j-eme partie cible (celle representee par cet objet)
 //   X_ik : Valeur du k-eme attribut pour l'instance i
 //   w_k  : Poids du k-eme attribut
 //
-// Le sous-classes implementent les cas ou la partition de la cible est compose de :
+// Les sous-classes implementent les cas ou la partition de la cible est compose de :
 //   - SNBSingletonTargetPart : Cas de la classification, utilise par SNBClassifierSelectionDataCostCalculator
 //   - SNBIntervalTargetPart : Cas de la regression, utilise par KWRegressionSelectionDataCostCalculator
 //   - SNBGroupTargetPart : Cas de la classification generalisee, utilise par SNBGeneralizedClassifierSelectionDataCostCalculator
@@ -68,7 +68,7 @@ protected:
 //  - precalcul des parties constantes des couts (dans Initialize)
 //  - memorisation dans des variables locales les limites des boucles (pour eviter leur reevaluation)
 //
-// Rationale de l'algorithme pour l'estmation de couts de donnees :
+// Rationalisation de l'algorithme pour l'estmation de couts de donnees :
 // Rappelons que le score non-normalise pour l'instance i et la modalite j est donnee par
 //
 //   score_ij = -log P(Y = C_j) + Sum_k w_k log P( X_ik | Y = C_j ).
@@ -100,7 +100,7 @@ protected:
 //
 //  cout_i = -log P( Y = C_m | X ) = log (1 + Sum_{j != m} exp(score_ij - score_im))        (1)
 //
-// Pour l'estabilite numerique, avant de passer au dernier log, on regularise la quantite
+// Pour la stabilite numerique, avant de passer au dernier log, on regularise la quantite
 // exp(cout_i) par la methode de Laplace
 //
 //    exp(cout_i) -> (exp(cout_i) * N + epsilon) / (N + J * epsilon)                        (2)
@@ -115,7 +115,7 @@ protected:
 //
 // Pour chaque instance i, l'algorithme ci-dessous calcule d'abord l'inverse exp(-cout_i) en
 // parcourant toutes les modalites cibles.
-// Ensuite il applique l'approximation de Laplace pour obtenir S_i pour chaque instance i. Un fois
+// Ensuite il applique l'approximation de Laplace pour obtenir S_i pour chaque instance i. Une fois
 // parcourues toutes les instances on rend
 //
 //   DataCost = - Sum_i log(S_i) + N * log(T)

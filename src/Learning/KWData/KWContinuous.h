@@ -104,7 +104,7 @@ public:
 	static Continuous GetLowerMeanValue(Continuous cValue1, Continuous cValue2);
 	static Continuous GetUpperMeanValue(Continuous cValue1, Continuous cValue2);
 
-	// Valeur moyenne entre deux valeurs lisible pour un humain
+	// Valeur moyenne entre deux valeurs lisibles pour un humain
 	// en minimisant le nombre de chiffre significatifs de facon a rester a
 	// moins de 10% de la valeur moyenne exacte
 	static Continuous GetHumanReadableLowerMeanValue(Continuous cValue1, Continuous cValue2);
@@ -120,7 +120,7 @@ public:
 	static int Compare(Continuous cValue1, Continuous cValue2);
 
 	// Comparaison de deux valeurs de type indicateur, en principe entre 0 et 1
-	// Permet d'avoir une resultat de comparaison robuste, selon la precision des Continuous
+	// Permet d'avoir un resultat de comparaison robuste, selon la precision des Continuous
 	static int CompareIndicatorValue(double dValue1, double dValue2);
 
 	// Test des fonctionnalites
@@ -541,7 +541,7 @@ inline int KWContinuous::Compare(Continuous cValue1, Continuous cValue2)
 
 inline int KWContinuous::CompareIndicatorValue(double dValue1, double dValue2)
 {
-	// On ajoute 1 pour avoir une precision de mantisse limitee de facon absolue par rapprt au 0
+	// On ajoute 1 pour avoir une precision de mantisse limitee de facon absolue par rapport au 0
 	return Compare(DoubleToContinuous(1 + dValue1), DoubleToContinuous(1 + dValue2));
 }
 

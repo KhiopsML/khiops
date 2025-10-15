@@ -27,6 +27,11 @@ public:
 	// Point d'entree de la tache
 	void InternalTrain(SNBPredictorSelectiveNaiveBayes* snbPredictor);
 
+	// Nouvelle methode d'apprentissage sous contrainte d'un nombre maximum de variables
+	// Initialisation avec l'ensemble des variables en sortie de l'InternalTrain
+	// Elimination progressive des variables non retenues quand le poids du prior est augmente
+	void InternalTrainUnderPriorSelection(SNBPredictorSelectiveNaiveBayes* snbPredictor);
+
 	// True si l'entrainement a finie
 	boolean IsTrainingSuccessful() const;
 
