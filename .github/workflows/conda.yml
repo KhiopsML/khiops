@@ -97,8 +97,8 @@ jobs:
           - {os: ubuntu-24.04, json-image: '{"image": null}', os-family: linux-64}
           - {os: ubuntu-22.04, json-image: '{"image": "rockylinux:8"}', os-family: linux-64}
           - {os: ubuntu-22.04, json-image: '{"image": "rockylinux:9"}', os-family: linux-64}
-          - {os: windows-2019, json-image: '{"image": null}', os-family: win-64}
           - {os: windows-2022, json-image: '{"image": null}', os-family: win-64}
+          - {os: windows-2025, json-image: '{"image": null}', os-family: win-64}
           - {os: macos-14, json-image: '{"image": null}', os-family: osx-arm64}
           - {os: macos-15, json-image: '{"image": null}', os-family: osx-arm64}
           - {os: macos-15-intel, json-image: '{"image": null}', os-family: osx-64}
