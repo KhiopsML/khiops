@@ -12,7 +12,6 @@ class KWDRBuildTableAdvancedView;
 class KWDRBuildEntityView;
 class KWDRBuildEntityAdvancedView;
 class KWDRBuildEntity;
-class KWDRBuildEntity;
 class KWDRBuildDiffTable;
 class KWDRBuildDummyTable;
 

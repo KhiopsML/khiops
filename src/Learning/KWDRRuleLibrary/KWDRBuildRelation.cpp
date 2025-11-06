@@ -109,6 +109,10 @@ ObjectArray* KWDRBuildTableAdvancedView::ComputeObjectArrayResult(const KWObject
 	oaObjectArrayOperand = GetFirstOperand()->GetObjectArrayValue(kwoObject);
 	if (oaObjectArrayOperand != NULL and oaObjectArrayOperand->GetSize() > 0)
 	{
+		// Evaluation des operandes secondaires de scope principal
+		EvaluateMainScopeSecondaryOperands(kwoObject);
+
+		// Creation et alimentation des objets cibles
 		oaResult.SetSize(oaObjectArrayOperand->GetSize());
 		for (nObject = 0; nObject < oaObjectArrayOperand->GetSize(); nObject++)
 		{
@@ -124,6 +128,9 @@ ObjectArray* KWDRBuildTableAdvancedView::ComputeObjectArrayResult(const KWObject
 			FillComputeModeTargetAttributesForVariableOperandNumber(kwoSourceContainedObject,
 										kwoTargetContainedObject);
 		}
+
+		// Nettoyage des operandes secondaires de scope principal
+		CleanMainScopeSecondaryOperands();
 	}
 	return &oaResult;
 }
@@ -201,12 +208,18 @@ KWObject* KWDRBuildEntityAdvancedView::ComputeObjectResult(const KWObject* kwoOb
 	{
 		kwoTargetObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
 
+		// Evaluation des operandes secondaires de scope principal
+		EvaluateMainScopeSecondaryOperands(kwoObject);
+
 		// Alimentation de type vue
 		FillViewModeTargetAttributes(kwoSourceObject, kwoTargetObject);
 
 		// Alimentation de type calcul pour les operandes en entree correspondant
 		assert(GetOperandNumber() - 1 == ivComputeModeTargetAttributeTypes.GetSize());
 		FillComputeModeTargetAttributesForVariableOperandNumber(kwoSourceObject, kwoTargetObject);
+
+		// Nettoyage des operandes secondaires de scope principal
+		CleanMainScopeSecondaryOperands();
 	}
 	return kwoTargetObject;
 }
@@ -307,6 +320,10 @@ ObjectArray* KWDRBuildDiffTable::ComputeObjectArrayResult(const KWObject* kwoObj
 	oaObjectArrayOperand = GetFirstOperand()->GetObjectArrayValue(kwoObject);
 	if (oaObjectArrayOperand != NULL and oaObjectArrayOperand->GetSize() > 0)
 	{
+		// Evaluation des operandes secondaires de scope principal
+		EvaluateMainScopeSecondaryOperands(kwoObject);
+
+		// Creation et alimentation des objets cibles
 		oaResult.SetSize(oaObjectArrayOperand->GetSize());
 		kwoSourceContainedPreviousObject = NULL;
 		for (nObject = 0; nObject < oaObjectArrayOperand->GetSize(); nObject++)
@@ -326,6 +343,9 @@ ObjectArray* KWDRBuildDiffTable::ComputeObjectArrayResult(const KWObject* kwoObj
 			// Memorisation du prochain objet precedent
 			kwoSourceContainedPreviousObject = kwoSourceContainedCurrentObject;
 		}
+
+		// Nettoyage des operandes secondaires de scope principal
+		CleanMainScopeSecondaryOperands();
 	}
 	return &oaResult;
 }

@@ -633,9 +633,13 @@ void KWDerivationRuleOperand::InternalCompleteTypeInfo(const KWClass* kwcOwnerCl
 void KWDerivationRuleOperand::ComputeUpperScopeValue(const KWObject* kwoObject)
 {
 	require(GetScopeLevel() > 0);
-	require(GetOrigin() == OriginAttribute or GetOrigin() == OriginRule);
+	require(GetOrigin() == OriginAttribute or GetOrigin() == OriginRule or GetNoneValue());
 	require(kwvConstant.GetContinuous() == 0);
 	debug(require(IsCompiled()));
+
+	// On ne fait rien dans le cas NoneValue, a ignorer
+	if (GetNoneValue())
+		return;
 
 	// Calcul de la valeur de l'operande selon son type
 	switch (GetType())
@@ -725,8 +729,12 @@ void KWDerivationRuleOperand::ComputeUpperScopeValue(const KWObject* kwoObject)
 void KWDerivationRuleOperand::InitUpperScopeValue()
 {
 	require(GetScopeLevel() > 0);
-	require(GetOrigin() == OriginAttribute or GetOrigin() == OriginRule);
+	require(GetOrigin() == OriginAttribute or GetOrigin() == OriginRule or GetNoneValue());
 	debug(require(IsCompiled()));
+
+	// On ne fait rien dans le cas NoneValue, a ignorer
+	if (GetNoneValue())
+		return;
 
 	// Dans le cas Symbol, il faut reinitialiser explicitement avec le bon type pour la gestion
 	// des compteurs de reference
@@ -748,6 +756,11 @@ void KWDerivationRuleOperand::SetNoneValue(boolean bValue)
 	else
 		cNoneValue = 0;
 	cOrigin = OriginConstant;
+
+	// Dans le cas Symbol, il faut reinitialiser explicitement avec le bon type pour la gestion
+	// des compteurs de reference
+	if (GetType() == KWType::Symbol)
+		kwvConstant.ResetSymbol();
 
 	// Nettoyage
 	kwvConstant.Init();
