@@ -8,6 +8,10 @@ on:
         type: choice
         default: openmpi
         options: [mpich, openmpi]
+      show-openmpi-errors:
+        description: Display full OpenMPI error log
+        type: boolean
+        default: true
   pull_request:
     paths:
       - '**CMakeLists.txt'
@@ -121,6 +125,7 @@ jobs:
         uses: ./.github/actions/test-khiops-on-iris
         with:
           os-decription: rockylinux-${{ matrix.rocky_version }}
+          show-openmpi-errors: ${{ inputs.show-openmpi-errors }}
   test-kni:
     needs: build
     runs-on: ubuntu-latest

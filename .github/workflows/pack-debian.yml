@@ -10,6 +10,10 @@ on:
         options:
           - mpich
           - openmpi
+      show-openmpi-errors:
+        description: Display full OpenMPI error log
+        type: boolean
+        default: true
   pull_request:
     paths:
       - '**CMakeLists.txt'
@@ -146,6 +150,7 @@ jobs:
         uses: ./.github/actions/test-khiops-on-iris
         with:
           os-decription: ${{ env.ID }}-${{ env.VERSION_CODENAME }}-${{ env.ARCH }}
+          show-openmpi-errors: ${{ inputs.show-openmpi-errors }}
   test-kni:
     needs: build
     env:
