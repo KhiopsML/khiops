@@ -47,6 +47,8 @@ help() {
     echo "  . set to 'true' to allow file name selection with uri schemas"
     echo "  . set to 'false' to allow local file name selection only with a file selection dialog"
     echo "KHIOPS_MPI_VERBOSE: true (default) or false, print messages from mpi (OpenMPI only)."
+    echo "  It has no effect on OpenMPI 5 versions, where messages from mpi are"
+    echo "  always printed."
     echo "KHIOPS_MPI_EXTRA_FLAGS: extra flags added to the mpi command line"
     echo
     echo "In case of configuration problems, the variables KHIOPS_JAVA_ERROR and KHIOPS_MPI_ERROR contain error messages."
@@ -74,7 +76,8 @@ if [ -z "$KHIOPS_MPI_VERBOSE" ]; then
 fi
 
 if ! [ "$KHIOPS_MPI_VERBOSE" == "true" ]; then
-    # Mute mpi by adding flags (OpenMPI only)
+    # Mute mpi by adding flags when supported (OpenMPI <= 4 only; no extra flag
+    # is added for OpenMPI 5, because there is none supported)
     _MPI_EXTRA_FLAGS="@KHIOPS_MPI_QUIET@"
 fi
 
