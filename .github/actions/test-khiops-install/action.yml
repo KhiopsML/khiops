@@ -12,13 +12,18 @@ runs:
       # - with KHIOPS_PROC_NUMBER=2, khiops should not use MPI, we check that KHIOPS_MPI_COMMAND is empty
       # - with KHIOPS_PROC_NUMBER=8, khiops should use MPI, we check that KHIOPS_MPI_COMMAND is not empty and KHIOPS_MPI_ERROR is empty
       #
-      # The env var OMPI_MCA_rmaps_base_oversubscribe is for openmpi it corresponds to
-      # the flag --oversubscribe (Nodes are allowed to be oversubscribed)
+      # The env var OMPI_MCA_rmaps_base_oversubscribe is for openmpi < 5;
+      # it corresponds to the flag --oversubscribe (Nodes are allowed to be oversubscribed)
+      # The env var PRTE_MCA_rmaps_default_mapping_policy is for openmpi >= 5;
+      # it corresponds to the flag --map-by :OVERSUBSCRIBE (Nodes are allowed to be oversubscribed)
       # KHIOPS_MPI_VERBOSE is set to true to detect errors from MPI
       if: runner.os != 'Windows'
       shell: bash
       env:
+        # Use more processes than available CPUs: OpenMPI < 5
         OMPI_MCA_rmaps_base_oversubscribe: true
+        # Use more processes than available CPUs: OpenMPI >= 5
+        PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
         KHIOPS_MPI_VERBOSE: true
       run: |
         # Compute or get the khiops_env directory
@@ -110,7 +115,10 @@ runs:
       shell: bash
       env:
         KHIOPS_PROC_NUMBER: 4
+        # Use more processes than available CPUs: OpenMPI < 5
         OMPI_MCA_rmaps_base_oversubscribe: true
+        # Use more processes than available CPUs: OpenMPI >= 5
+        PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
         KHIOPS_MPI_VERBOSE: true
       run: |
         # Compute or get the khiops_env directory
@@ -149,7 +157,10 @@ runs:
       shell: bash
       env:
         KHIOPS_PROC_NUMBER: 4
+        # Use more processes than available CPUs: OpenMPI < 5
         OMPI_MCA_rmaps_base_oversubscribe: true
+        # Use more processes than available CPUs: OpenMPI >= 5
+        PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
         KHIOPS_MPI_VERBOSE: true
       run: |-
         # Compute or get the khiops_env directory
@@ -190,7 +201,10 @@ runs:
       shell: bash
       env:
         KHIOPS_PROC_NUMBER: 4
+        # Use more processes than available CPUs: OpenMPI < 5
         OMPI_MCA_rmaps_base_oversubscribe: true
+        # Use more processes than available CPUs: OpenMPI >= 5
+        PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
         KHIOPS_MPI_VERBOSE: true
       run: |-
         # Compute or get the khiops_env directory

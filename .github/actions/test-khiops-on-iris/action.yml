@@ -64,7 +64,10 @@ runs:
       shell: bash
       env:
         KHIOPS_PROC_NUMBER: 4
+        # Use more processes than available CPUs: OpenMPI < 5
         OMPI_MCA_rmaps_base_oversubscribe: true
+        # Use more processes than available CPUs: OpenMPI >= 5
+        PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
         KHIOPS_API_MODE: true
         KHIOPS_MPI_VERBOSE: true
       run: |
@@ -74,8 +77,11 @@ runs:
     - name: Run Khiops Coclustering tests
       shell: bash
       env:
-        HIOPS_PROC_NUMBER: 4
+        KHIOPS_PROC_NUMBER: 4
+        # Use more processes than available CPUs: OpenMPI < 5
         OMPI_MCA_rmaps_base_oversubscribe: true
+        # Use more processes than available CPUs: OpenMPI >= 5
+        PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
         KHIOPS_API_MODE: true
         KHIOPS_MPI_VERBOSE: true
       run: |
