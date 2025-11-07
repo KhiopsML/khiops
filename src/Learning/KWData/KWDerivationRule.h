@@ -207,14 +207,6 @@ public:
 	// Methode sans effet pour les regles a nombre fixe d'operandes
 	void DeleteAllVariableOperands();
 
-	// Construction du dictionnaire de tous les operandes utilises directement
-	// ou recursivement via d'autres regles de derivation
-	// Cela vaut pour des operandes constant, regles, attributs, ou operande
-	// intervenant dans le calcul d'un attribut operande
-	// Le dictionnaire est complete par la methode, et evitera les eventuels
-	// cycle de derivation
-	virtual void BuildAllUsedOperands(NumericKeyDictionary* nkdAllUsedOperands) const;
-
 	// Construction du dictionnaire de tous les attributs utilises
 	// directement ou recursivement via d'autres regles de derivation
 	// - derivedAttribute: attribut a l'origine de la regle

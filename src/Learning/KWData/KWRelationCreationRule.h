@@ -155,9 +155,6 @@ public:
 	// Compilation
 	void Compile(KWClass* kwcOwnerClass) override;
 
-	// Construction du dictionnaire de tous les operandes utilises
-	void BuildAllUsedOperands(NumericKeyDictionary* nkdAllUsedOperands) const override;
-
 	// Construction du dictionnaire de tous les attributs utilises
 	void BuildAllUsedAttributes(const KWAttribute* derivedAttribute,
 				    NumericKeyDictionary* nkdAllUsedAttributes) const override;

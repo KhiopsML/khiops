@@ -988,7 +988,7 @@ KWDataPath* KWDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClass
 		// Dans le cas des  data path de gestion des creation d'objet, on ne prend
 		// pas en compte que les attributs charges en memoire, pour des raison d'optimisation
 		if (KWType::IsRelation(attribute->GetType()) and attribute->GetClass() != NULL and
-		    (not IsRuleCreationManaged() or attribute->GetLoaded())) //DDD GetLoaded
+		    (not IsRuleCreationManaged() or attribute->GetLoaded()))
 		{
 			// Cas d'un attribut natif de la composition (sans regle de derivation)
 			if (attribute->GetAnyDerivationRule() == NULL)
