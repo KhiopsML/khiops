@@ -68,6 +68,22 @@ runs:
           false
         fi
         echo
+        echo --- Khiops environment with the HOME variable unset and KHIOPS_PROC_NUMBER=$KHIOPS_PROC_NUMBER
+        _HOME=$HOME
+        _EXPECTED_HOME=${TMPDIR:-${TEMP:-${TMP:-/tmp}}}
+        unset HOME
+        source $KHIOPS_ENV_DIR/khiops_env --env
+
+        # Fail if KHIOPS_MPI_HOME is not set as expected
+        if [[ "$KHIOPS_MPI_HOME" != "$_EXPECTED_HOME" ]];
+        then
+          echo "::error::KHIOPS_MPI_HOME is not set to $_EXPECTED_HOME"
+          false
+        fi
+        export HOME=$_HOME
+        unset _EXPECTED_HOME
+        unset _HOME
+        echo
         echo --- Khiops status
         $KHIOPS_ENV_DIR/khiops -s
         echo
