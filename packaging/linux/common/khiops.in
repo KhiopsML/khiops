@@ -67,6 +67,11 @@ export CLASSPATH=$CLASSPATH:$KHIOPS_CLASSPATH
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$KHIOPS_JAVA_PATH
 
 launch_khiops() {
+    # Set HOME to $KHIOPS_MPI_HOME if the latter is defined but the former is not
+    _HOME="$HOME"
+    if [[ -n "$KHIOPS_MPI_HOME" && -z "$_HOME" ]]; then
+        export HOME="$KHIOPS_MPI_HOME"
+    fi
     if [[ $# -eq 0 ]]; then
         # run without parameters
         # run and save scenario and log files in directory KHIOPS_LAST_RUN_DIR
@@ -75,6 +80,12 @@ launch_khiops() {
         # run with parameters
         $KHIOPS_MPI_COMMAND "@KHIOPS_BINARY_PATH@" "$@"
     fi
+
+    # Unset HOME if defined via $KHIOPS_MPI_HOME
+    if [[ -n "$KHIOPS_MPI_HOME" && -z "$_HOME" ]]; then
+        unset HOME
+    fi
+    unset _HOME
 }
 
 # Launck Khiops
