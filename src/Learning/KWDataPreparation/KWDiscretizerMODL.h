@@ -525,6 +525,7 @@ protected:
 
 	// Epsilon pour gerer le probleme de precision numerique
 	static const double dEpsilon;
+	static const double dRelativeEpsilon;
 
 	// Couts de partitionnement pour la discretisation
 	KWUnivariatePartitionCosts* discretizationCosts;

@@ -209,6 +209,7 @@ protected:
 
 	// Epsilon de precision numerique
 	double dEpsilon;
+	double dRelativeEpsilon;
 };
 
 //////////////////////////////////////////////////////////////////////////////

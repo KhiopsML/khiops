@@ -408,6 +408,7 @@ protected:
 
 	// Epsilon pour gerer le probleme de precision numerique
 	static double dEpsilon;
+	static double dRelativeEpsilon;
 };
 
 //////////////////////////////////////////////////////////////////////////////////

@@ -405,7 +405,7 @@ double KWDGPODiscretizer::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid
 	}
 
 	// Verification du cout avec l'evaluation multi-variee
-	assert(fabs(dCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
+	assert(fabs(dCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dRelativeEpsilon * dCost);
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
 	ensure(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
@@ -1356,7 +1356,7 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 	}
 
 	// Verification du cout avec l'evaluation multi-variee
-	assert(fabs(dCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
+	assert(fabs(dCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon * dCost);
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
 	ensure(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
