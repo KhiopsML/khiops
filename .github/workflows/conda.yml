@@ -32,8 +32,8 @@ jobs:
           #        It ensures compatibility with glibc >= 2.28 (in particular Rocky 8)
           - {os: ubuntu-22.04, os-family: linux-64, json-image: '{"image": "ghcr.io/khiopsml/khiops/khiopsdev-debian10:latest"}'}
           - {os: windows-2022, os-family: win-64, json-image: '{"image": null}'}
-          - {os: macos-13, os-family: osx-64, json-image: '{"image": null}'}
           - {os: macos-14, os-family: osx-arm64, json-image: '{"image": null}'}
+          - {os: macos-15-intel, os-family: osx-64, json-image: '{"image": null}'}
     container: ${{ fromJSON(matrix.setup.json-image) }}
     runs-on: ${{ matrix.setup.os }}
     steps:
@@ -97,11 +97,11 @@ jobs:
           - {os: ubuntu-24.04, json-image: '{"image": null}', os-family: linux-64}
           - {os: ubuntu-22.04, json-image: '{"image": "rockylinux:8"}', os-family: linux-64}
           - {os: ubuntu-22.04, json-image: '{"image": "rockylinux:9"}', os-family: linux-64}
-          - {os: windows-2019, json-image: '{"image": null}', os-family: win-64}
           - {os: windows-2022, json-image: '{"image": null}', os-family: win-64}
-          - {os: macos-13, json-image: '{"image": null}', os-family: osx-64}
+          - {os: windows-2025, json-image: '{"image": null}', os-family: win-64}
           - {os: macos-14, json-image: '{"image": null}', os-family: osx-arm64}
           - {os: macos-15, json-image: '{"image": null}', os-family: osx-arm64}
+          - {os: macos-15-intel, json-image: '{"image": null}', os-family: osx-64}
     runs-on: ${{ matrix.env.os }}
     container: ${{ fromJSON(matrix.env.json-image) }}
     steps:
