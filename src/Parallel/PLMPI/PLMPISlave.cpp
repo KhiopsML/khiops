@@ -16,6 +16,7 @@ PLMPISlave::PLMPISlave(PLParallelTask* t)
 	PLShared_TaskResourceGrant shared_rg;
 	PLMPIMsgContext context;
 	PLSerializer serializer;
+	boolean bIsGUI;
 
 	bBoostedMode = false;
 	bIsWorking = false;
@@ -43,11 +44,18 @@ PLMPISlave::PLMPISlave(PLParallelTask* t)
 	RMParallelResourceDriver::grantedResources = new RMTaskResourceGrant;
 	shared_rg.DeserializeObject(&serializer, RMParallelResourceDriver::grantedResources);
 
+	// ... et de la presence d'une IHM
+	bIsGUI = serializer.GetBoolean();
+
 	// .. et de la liste des serveurs de fichier
 	PLShared_ObjectDictionary shared_odFileServer(new PLShared_IntObject);
 	shared_odFileServer.DeserializeObject(&serializer,
 					      &cast(PLMPITaskDriver*, PLParallelTask::GetDriver())->odFileServers);
 	serializer.Close();
+
+	// Quand on utilise une IHM, les esclaves peuvent recevoir une notification d'interruption.
+	// L'instance de TaskProgression chez les esclaves est textual, donc par defaut non-interruptible
+	TaskProgression::SetInterruptible(bIsGUI);
 
 	POSITION position = cast(PLMPITaskDriver*, PLParallelTask::GetDriver())->odFileServers.GetStartPosition();
 	ALString sKey;

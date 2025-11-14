@@ -271,6 +271,9 @@ boolean PLMPIMaster::Run()
 	// ...  des resources allouees
 	shared_rg.SerializeObject(&serializer, RMParallelResourceDriver::grantedResources);
 
+	// ... de la presence d'une IHM
+	serializer.PutBoolean(UIObject::GetUIMode() == UIObject::Graphic);
+
 	// .. et de la liste des serveurs de fichier
 	PLShared_ObjectDictionary shared_odFileServer(new PLShared_IntObject);
 	shared_odFileServer.SerializeObject(&serializer, &PLMPITaskDriver::GetDriver()->odFileServers);
