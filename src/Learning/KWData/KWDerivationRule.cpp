@@ -134,63 +134,6 @@ void KWDerivationRule::DeleteAllVariableOperands()
 	}
 }
 
-void KWDerivationRule::BuildAllUsedOperands(NumericKeyDictionary* nkdAllUsedOperands) const
-{
-	int nOperand;
-	KWDerivationRuleOperand* operand;
-	KWAttribute* originAttribute;
-	KWAttributeBlock* originAttributeBlock;
-	KWDerivationRule* originRule;
-
-	require(IsCompiled());
-	require(nkdAllUsedOperands != NULL);
-
-	// Alimentation par parcours des operandes de la regle
-	for (nOperand = 0; nOperand < GetOperandNumber(); nOperand++)
-	{
-		operand = GetOperandAt(nOperand);
-
-		// Ajout de l'operande si non deja traite
-		if (nkdAllUsedOperands->Lookup(operand) == NULL)
-		{
-			nkdAllUsedOperands->SetAt(operand, operand);
-
-			// Recherche recursive si presence effective d'une regle
-			if (operand->GetOrigin() == KWDerivationRuleOperand::OriginRule and
-			    operand->GetDerivationRule() != NULL)
-				operand->GetDerivationRule()->BuildAllUsedOperands(nkdAllUsedOperands);
-			// Recherche recursive si presence effective d'un attribut calcule avec une regle
-			else if (operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute)
-			{
-				// Cas d'un attribut
-				if (KWType::IsValue(operand->GetType()))
-				{
-					originAttribute = operand->GetOriginAttribute();
-					if (originAttribute != NULL)
-					{
-						// Acces a la regle d'attribut ou de bloc
-						originRule = originAttribute->GetAnyDerivationRule();
-						if (originRule != NULL)
-							originRule->BuildAllUsedOperands(nkdAllUsedOperands);
-					}
-				}
-				// Cas d'un bloc d'attributs
-				else
-				{
-					originAttributeBlock = operand->GetOriginAttributeBlock();
-					if (originAttributeBlock != NULL)
-					{
-						// Acces a la regle d'attribut ou de bloc
-						originRule = originAttributeBlock->GetDerivationRule();
-						if (originRule != NULL)
-							originRule->BuildAllUsedOperands(nkdAllUsedOperands);
-					}
-				}
-			}
-		}
-	}
-}
-
 void KWDerivationRule::BuildAllUsedAttributes(const KWAttribute* derivedAttribute,
 					      NumericKeyDictionary* nkdAllUsedAttributes) const
 {
@@ -309,6 +252,20 @@ void KWDerivationRule::BuildAllUsedAttributesAtOperand(const KWAttribute* derive
 			}
 		}
 	}
+}
+
+void KWDerivationRule::CollectCreationRuleMandatoryInputOperands(const KWAttribute* derivedAttribute,
+								 const NumericKeyDictionary* nkdAllUsedAttributes,
+								 IntVector* ivMandatoryInputOperands) const
+{
+	require(not GetReference());
+	require(GetOutputOperandNumber() > 0);
+	require(derivedAttribute != NULL);
+	require(nkdAllUsedAttributes != NULL);
+	require(nkdAllUsedAttributes != NULL);
+
+	// Doit etre reimplemente
+	assert(false);
 }
 
 boolean KWDerivationRule::IsSecondaryScopeOperand(int nOperandIndex) const
@@ -686,6 +643,10 @@ boolean KWDerivationRule::CheckOperandsCompleteness(const KWClass* kwcOwnerClass
 		{
 			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
 
+			// Un operande ne peut avoir de valeur speciale None: cela ne peut concerner
+			// que les regles de creation d'objet
+			assert(not operand->GetNoneValue() or not GetReference());
+
 			// Verification de l'operande
 			if (not operand->CheckCompleteness(kwcOwnerClass))
 			{
@@ -702,6 +663,10 @@ boolean KWDerivationRule::CheckOperandsCompleteness(const KWClass* kwcOwnerClass
 		for (i = 0; i < oaOperands.GetSize(); i++)
 		{
 			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
+
+			// Un operande ne peut avoir de valeur speciale None: cela ne peut concerner
+			// que les regles de creation d'objet
+			assert(not operand->GetNoneValue() or not GetReference());
 
 			// Verification de l'operande
 			if (not operand->CheckCompleteness(scopeClass))

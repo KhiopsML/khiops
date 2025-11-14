@@ -219,7 +219,7 @@ public:
 	SearchRuleClassSelectionOperandStats(const KDConstructedRule* dimensionRule) const;
 
 	// Recherche si des stats d'un operande de selection d'une classe selon une regle ne sont pas deja
-	// presente dans une operande de selection selon un attribut, derive selon la regle en entree
+	// presente dans un operande de selection selon un attribut, derive selon la regle en entree
 	// Dans ce cas, on ne doit pas rajouter l'operande de type regle, redondant avec l'operande de type attribut
 	// correspondant
 	KDClassSelectionOperandStats*
@@ -308,7 +308,7 @@ protected:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KDClassSelectionOperandStats
-// Statistiques sur une operande de selection
+// Statistiques sur un operande de selection
 class KDClassSelectionOperandStats : public Object
 {
 public:
@@ -420,7 +420,7 @@ int KDSparseClassSelectionOperandStatsCompare(const void* elem1, const void* ele
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KDClassContinuousSelectionOperandStats
-// Statistiques sur une operande de selection Continuous
+// Statistiques sur un operande de selection Continuous
 class KDClassContinuousSelectionOperandStats : public KDClassSelectionOperandStats
 {
 public:
@@ -456,7 +456,7 @@ protected:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KDClassSymbolSelectionOperandStats
-// Statistiques sur une operande de selection Symbol
+// Statistiques sur un operande de selection Symbol
 class KDClassSymbolSelectionOperandStats : public KDClassSelectionOperandStats
 {
 public:

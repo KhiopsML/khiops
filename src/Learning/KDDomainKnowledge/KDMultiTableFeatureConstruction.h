@@ -174,7 +174,7 @@ protected:
 	// . KDMultiTableFeatureConstruction::BuildAllConstructedRulesFromLastOperands
 	// 	   pour ne pas generer d'attribut deja existant (intermediaire ou non)
 	// . KDClassBuilder::InternalBuildClassFromSelectionRules
-	//     pour ne pas generer d'attribut deja existant, dans le cadre d'une operande de selection
+	//     pour ne pas generer d'attribut deja existant, dans le cadre d'un operande de selection
 	// . KDClassBuilder::CreateOptimizedUsedRuleAttribute
 	//     pour ne pas generer d'attribut deja existant, dans le cadre general
 

@@ -11,6 +11,7 @@ void KWDRRegisterBuildRelationRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntityView);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntityAdvancedView);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntity);
+	KWDerivationRule::RegisterDerivationRule(new KWDRBuildDiffTable);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildDummyTable);
 }
 
@@ -108,6 +109,10 @@ ObjectArray* KWDRBuildTableAdvancedView::ComputeObjectArrayResult(const KWObject
 	oaObjectArrayOperand = GetFirstOperand()->GetObjectArrayValue(kwoObject);
 	if (oaObjectArrayOperand != NULL and oaObjectArrayOperand->GetSize() > 0)
 	{
+		// Evaluation des operandes secondaires de scope principal
+		EvaluateMainScopeSecondaryOperands(kwoObject);
+
+		// Creation et alimentation des objets cibles
 		oaResult.SetSize(oaObjectArrayOperand->GetSize());
 		for (nObject = 0; nObject < oaObjectArrayOperand->GetSize(); nObject++)
 		{
@@ -123,6 +128,9 @@ ObjectArray* KWDRBuildTableAdvancedView::ComputeObjectArrayResult(const KWObject
 			FillComputeModeTargetAttributesForVariableOperandNumber(kwoSourceContainedObject,
 										kwoTargetContainedObject);
 		}
+
+		// Nettoyage des operandes secondaires de scope principal
+		CleanMainScopeSecondaryOperands();
 	}
 	return &oaResult;
 }
@@ -200,12 +208,18 @@ KWObject* KWDRBuildEntityAdvancedView::ComputeObjectResult(const KWObject* kwoOb
 	{
 		kwoTargetObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
 
+		// Evaluation des operandes secondaires de scope principal
+		EvaluateMainScopeSecondaryOperands(kwoObject);
+
 		// Alimentation de type vue
 		FillViewModeTargetAttributes(kwoSourceObject, kwoTargetObject);
 
 		// Alimentation de type calcul pour les operandes en entree correspondant
 		assert(GetOperandNumber() - 1 == ivComputeModeTargetAttributeTypes.GetSize());
 		FillComputeModeTargetAttributesForVariableOperandNumber(kwoSourceObject, kwoTargetObject);
+
+		// Nettoyage des operandes secondaires de scope principal
+		CleanMainScopeSecondaryOperands();
 	}
 	return kwoTargetObject;
 }
@@ -256,6 +270,210 @@ KWObject* KWDRBuildEntity::ComputeObjectResult(const KWObject* kwoObject, const 
 boolean KWDRBuildEntity::IsViewModeActivated() const
 {
 	return false;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildDiffTable
+
+KWDRBuildDiffTable::KWDRBuildDiffTable()
+{
+	SetName("BuildDiffTable");
+	SetLabel("Build difference table");
+
+	// Variables en entree: une table de base, et un nombre variable d'operande pour specifier
+	// les attributs dont il faut calcvuler la difference
+	SetMultipleScope(true);
+	SetOperandNumber(2);
+	GetFirstOperand()->SetType(KWType::ObjectArray);
+	GetSecondOperand()->SetType(KWType::Unknown);
+	SetVariableOperandNumber(true);
+
+	// Variables en sortie: nombre variable d'operandes pour alimenter la table en sortie
+	// avec les differences de valeur des attributs specifies en entree
+	SetOutputOperandNumber(1);
+	GetOutputOperandAt(0)->SetType(KWType::Continuous);
+	SetVariableOutputOperandNumber(true);
+}
+
+KWDRBuildDiffTable::~KWDRBuildDiffTable() {}
+
+KWDerivationRule* KWDRBuildDiffTable::Create() const
+{
+	return new KWDRBuildDiffTable;
+}
+
+ObjectArray* KWDRBuildDiffTable::ComputeObjectArrayResult(const KWObject* kwoObject,
+							  const KWLoadIndex liAttributeLoadIndex) const
+{
+	ObjectArray* oaObjectArrayOperand;
+	KWObject* kwoSourceContainedPreviousObject;
+	KWObject* kwoSourceContainedCurrentObject;
+	KWObject* kwoTargetContainedObject;
+	int nObject;
+
+	require(IsCompiled());
+
+	// Calcul du resultat
+	oaResult.SetSize(0);
+
+	// Duplication du tableau d'entree
+	oaObjectArrayOperand = GetFirstOperand()->GetObjectArrayValue(kwoObject);
+	if (oaObjectArrayOperand != NULL and oaObjectArrayOperand->GetSize() > 0)
+	{
+		// Evaluation des operandes secondaires de scope principal
+		EvaluateMainScopeSecondaryOperands(kwoObject);
+
+		// Creation et alimentation des objets cibles
+		oaResult.SetSize(oaObjectArrayOperand->GetSize());
+		kwoSourceContainedPreviousObject = NULL;
+		for (nObject = 0; nObject < oaObjectArrayOperand->GetSize(); nObject++)
+		{
+			kwoSourceContainedCurrentObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
+
+			// Alimentation de type vue
+			kwoTargetContainedObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
+			FillViewModeTargetAttributes(kwoSourceContainedCurrentObject, kwoTargetContainedObject);
+			oaResult.SetAt(nObject, kwoTargetContainedObject);
+
+			// Alimentation de type calcul pour les operandes en entree correspondant
+			assert(GetOperandNumber() - 1 == ivComputeModeTargetAttributeTypes.GetSize());
+			FillTargetDifferenceAttributes(kwoSourceContainedPreviousObject,
+						       kwoSourceContainedCurrentObject, kwoTargetContainedObject);
+
+			// Memorisation du prochain objet precedent
+			kwoSourceContainedPreviousObject = kwoSourceContainedCurrentObject;
+		}
+
+		// Nettoyage des operandes secondaires de scope principal
+		CleanMainScopeSecondaryOperands();
+	}
+	return &oaResult;
+}
+
+boolean KWDRBuildDiffTable::CheckOperandsFamily(const KWDerivationRule* ruleFamily) const
+{
+	boolean bOk;
+	KWDerivationRuleOperand* operand;
+	KWDerivationRuleOperand* familyVariableOperand;
+	int i;
+	ALString sTmp;
+
+	require(not ruleFamily->GetReference());
+
+	// Appel de la methode ancetre
+	bOk = KWDRRelationCreationRule::CheckOperandsFamily(ruleFamily);
+
+	// Specialisation dans le cas d'un nombre variable d'operandes en entree
+	if (bOk and ruleFamily->GetVariableOperandNumber())
+	{
+		familyVariableOperand = ruleFamily->GetOperandAt(ruleFamily->GetOperandNumber() - 1);
+		assert(familyVariableOperand->GetType() == KWType::Unknown);
+
+		// Verification des operandes en nombres variables
+		for (i = ruleFamily->GetOperandNumber() - 1; i < oaOperands.GetSize(); i++)
+		{
+			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
+
+			// Le type doit permet un calcul de difference
+			if (not KWType::IsSimple(operand->GetType()) and not KWType::IsComplex(operand->GetType()))
+			{
+				AddError(sTmp + "Operand " + IntToString(i + 1) + " with wrong " +
+					 KWType::ToString(operand->GetType()) +
+					 " type (must be a raw data type for difference calculation)");
+				bOk = false;
+			}
+		}
+	}
+	return bOk;
+}
+
+void KWDRBuildDiffTable::FillTargetDifferenceAttributes(const KWObject* kwoSourcePreviousObject,
+							const KWObject* kwoSourceCurrentObject,
+							KWObject* kwoTargetObject) const
+{
+	int nAttribute;
+	int nType;
+	int nStartInputOperandIndex;
+	int nInputOperandIndex;
+	KWDerivationRuleOperand* operand;
+	KWLoadIndex liTarget;
+
+	require(IsCompiled());
+	require(kwoSourceCurrentObject != NULL);
+	require(GetOperandNumber() >= GetOutputOperandNumber());
+	require(GetOutputOperandNumber() == ivComputeModeTargetAttributeTypes.GetSize());
+	require(GetVariableOperandNumber());
+	require(GetVariableOutputOperandNumber());
+
+	// Recherche de l'index du premier operande en entree correspondant
+	// aux valeurs servant a alimenter les attributs en sortie
+	// En effet, les operande en sortie sont alimentes par les derniers operandes en entree
+	nStartInputOperandIndex = GetOperandNumber() - GetOutputOperandNumber();
+
+	// Alimentation des attributs de l'objet cible avec les valeurs provenant des operandes en sortie
+	for (nAttribute = 0; nAttribute < ivComputeModeTargetAttributeTypes.GetSize(); nAttribute++)
+	{
+		// Recherche de l'operande source correspondant a l'operande cible
+		nInputOperandIndex = nStartInputOperandIndex + nAttribute;
+		operand = GetOperandAt(nInputOperandIndex);
+
+		// On ignore l'operande en entree s'il a la valeur speciale None
+		if (operand->GetNoneValue())
+			continue;
+
+		// Index de chargement cible
+		liTarget = livComputeModeTargetAttributeLoadIndexes.GetAt(nAttribute);
+		assert(liTarget.IsValid());
+		assert(kwoTargetObject->GetClass()
+			   ->LookupAttribute(GetOutputOperandAt(nAttribute)->GetAttributeName())
+			   ->GetLoaded());
+
+		// La valeur est missing dans le cas ou il n'y pas d'objet precedent
+		if (kwoSourcePreviousObject == NULL)
+			kwoTargetObject->SetContinuousValueAt(liTarget, KWContinuous::GetMissingValue());
+		// Calcul de la difference de valeur selon le type
+		else
+		{
+			nType = operand->GetType();
+			assert(ivComputeModeTargetAttributeTypes.GetAt(nAttribute) == KWType::Continuous);
+			switch (nType)
+			{
+			case KWType::Symbol:
+				kwoTargetObject->SetContinuousValueAt(
+				    liTarget, operand->GetSymbolValue(kwoSourceCurrentObject) !=
+						  operand->GetSymbolValue(kwoSourcePreviousObject));
+				break;
+			case KWType::Continuous:
+				kwoTargetObject->SetContinuousValueAt(
+				    liTarget, operand->GetContinuousValue(kwoSourceCurrentObject) -
+						  operand->GetContinuousValue(kwoSourcePreviousObject));
+				break;
+			case KWType::Date:
+				kwoTargetObject->SetContinuousValueAt(
+				    liTarget, operand->GetDateValue(kwoSourceCurrentObject)
+						  .Diff(operand->GetDateValue(kwoSourcePreviousObject)));
+				break;
+			case KWType::Time:
+				kwoTargetObject->SetContinuousValueAt(
+				    liTarget, operand->GetTimeValue(kwoSourceCurrentObject)
+						  .Diff(operand->GetTimeValue(kwoSourcePreviousObject)));
+				break;
+			case KWType::Timestamp:
+				kwoTargetObject->SetContinuousValueAt(
+				    liTarget, operand->GetTimestampValue(kwoSourceCurrentObject)
+						  .Diff(operand->GetTimestampValue(kwoSourcePreviousObject)));
+				break;
+			case KWType::TimestampTZ:
+				kwoTargetObject->SetContinuousValueAt(
+				    liTarget, operand->GetTimestampTZValue(kwoSourceCurrentObject)
+						  .Diff(operand->GetTimestampTZValue(kwoSourcePreviousObject)));
+				break;
+			default:
+				assert(false);
+				break;
+			}
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////

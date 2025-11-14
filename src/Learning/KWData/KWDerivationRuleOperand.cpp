@@ -13,6 +13,7 @@ KWDerivationRuleOperand::KWDerivationRuleOperand()
 	cScopeLevel = 0;
 	cOrigin = OriginAny;
 	cCompiledOrigin = CompiledOriginConstant;
+	cNoneValue = 0;
 	kwvConstant.Init();
 	rule = NULL;
 	kwcClass = NULL;
@@ -82,17 +83,18 @@ ALString KWDerivationRuleOperand::OriginToString(int nOrigin, int nType)
 
 const ALString KWDerivationRuleOperand::GetExternalStringConstant() const
 {
-	require(KWType::IsSimple(GetType()));
+	require(KWType::IsSimple(GetType()) or GetNoneValue());
 
 	// Si litteral Symbol
 	if (cType == KWType::Symbol)
 		return KWClass::GetExternalSymbolConstant(GetSymbolConstant());
 	// Si litteral Continuous
-	else
-	{
-		assert(cType == KWType::Continuous);
+	else if (cType == KWType::Continuous)
 		return KWClass::GetExternalContinuousConstant(GetContinuousConstant());
-	}
+	// Cas particulier de la valeur None utilise uniquement pour des raisons d'optimisation interne
+	// On pourra ecrire le dictionnaire optimise, mais pas le relire
+	else
+		return "#None";
 }
 
 boolean KWDerivationRuleOperand::CheckDefinition() const
@@ -158,15 +160,25 @@ boolean KWDerivationRuleOperand::CheckDefinition() const
 	// Verification eventuelle du type de constante
 	if (GetOrigin() == OriginConstant and not KWType::IsSimple(GetType()))
 	{
-		AddError("Incorrect variable type for a constant value");
-		bResult = false;
+		// Erreur, sauf dans le cas de la valeur speciale None utilise pour des raison d'optimisation interne
+		if (not GetNoneValue())
+		{
+			AddError("Incorrect variable type for a constant value");
+			bResult = false;
+		}
 	}
 
 	// Verification de la compatibilite entre niveau de scope et origine de l'operande
 	if (GetOrigin() == OriginConstant and GetScopeLevel() > 0)
 	{
-		AddError("Constant value cannot be used with scope prefix (" + ALString('.', GetScopeLevel()) + ")");
-		bResult = false;
+		// Ce controle est ignore dans le cas particulier de la NoneValue utilisee pour l'optimisation des regles de creation d'instance
+		// pour lsquels certains operandes en entree peuvent etre ignores
+		if (not GetNoneValue())
+		{
+			AddError("Constant value cannot be used with scope prefix (" + ALString('.', GetScopeLevel()) +
+				 ")");
+			bResult = false;
+		}
 	}
 
 	// Verification eventuelle de l'attribut
@@ -621,9 +633,13 @@ void KWDerivationRuleOperand::InternalCompleteTypeInfo(const KWClass* kwcOwnerCl
 void KWDerivationRuleOperand::ComputeUpperScopeValue(const KWObject* kwoObject)
 {
 	require(GetScopeLevel() > 0);
-	require(GetOrigin() == OriginAttribute or GetOrigin() == OriginRule);
+	require(GetOrigin() == OriginAttribute or GetOrigin() == OriginRule or GetNoneValue());
 	require(kwvConstant.GetContinuous() == 0);
 	debug(require(IsCompiled()));
+
+	// On ne fait rien dans le cas NoneValue, a ignorer
+	if (GetNoneValue())
+		return;
 
 	// Calcul de la valeur de l'operande selon son type
 	switch (GetType())
@@ -713,8 +729,12 @@ void KWDerivationRuleOperand::ComputeUpperScopeValue(const KWObject* kwoObject)
 void KWDerivationRuleOperand::InitUpperScopeValue()
 {
 	require(GetScopeLevel() > 0);
-	require(GetOrigin() == OriginAttribute or GetOrigin() == OriginRule);
+	require(GetOrigin() == OriginAttribute or GetOrigin() == OriginRule or GetNoneValue());
 	debug(require(IsCompiled()));
+
+	// On ne fait rien dans le cas NoneValue, a ignorer
+	if (GetNoneValue())
+		return;
 
 	// Dans le cas Symbol, il faut reinitialiser explicitement avec le bon type pour la gestion
 	// des compteurs de reference
@@ -726,6 +746,35 @@ void KWDerivationRuleOperand::InitUpperScopeValue()
 
 	// On reinitialise dans tous les cas
 	kwvConstant.Init();
+}
+
+void KWDerivationRuleOperand::SetNoneValue(boolean bValue)
+{
+	// Parametrage en tant que constante
+	if (bValue)
+		cNoneValue = 1;
+	else
+		cNoneValue = 0;
+	cOrigin = OriginConstant;
+
+	// Dans le cas Symbol, il faut reinitialiser explicitement avec le bon type pour la gestion
+	// des compteurs de reference
+	if (GetType() == KWType::Symbol)
+		kwvConstant.ResetSymbol();
+
+	// Nettoyage
+	kwvConstant.Init();
+	usDataItemName.SetValue("");
+	if (rule != NULL)
+	{
+		delete rule;
+		rule = NULL;
+	}
+}
+
+boolean KWDerivationRuleOperand::GetNoneValue() const
+{
+	return cNoneValue == 1;
 }
 
 KWDerivationRule* KWDerivationRuleOperand::GetReferencedDerivationRule(const KWClass* kwcOwnerClass) const
@@ -867,6 +916,7 @@ KWDerivationRuleOperand* KWDerivationRuleOperand::Clone() const
 	kwdroClone->cScopeLevel = cScopeLevel;
 	kwdroClone->cOrigin = cOrigin;
 	kwdroClone->cCompiledOrigin = cCompiledOrigin;
+	kwdroClone->cNoneValue = cNoneValue;
 
 	// Attention a la gestion automatique des Symbol
 	switch (cType)

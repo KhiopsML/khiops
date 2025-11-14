@@ -2608,7 +2608,7 @@ void KDMultiTableFeatureConstruction::BuildAllSelectionParts(
 					 oaCompleteSelectionValueIndexedFrequencies.GetAt(nCompleteOperand));
 				assert(completeOperandIndexFrequency->GetIndexSize() == nSelectionSize);
 
-				// Construction d'une operande complet de selection si effectif suffisant
+				// Construction d'un operande complet de selection si effectif suffisant
 				if (completeOperandIndexFrequency->GetFrequency() > 0)
 				{
 					// Creation d'un objet partition correspondant a la selection

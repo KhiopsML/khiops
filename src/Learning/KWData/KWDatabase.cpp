@@ -1501,6 +1501,8 @@ void KWDatabase::BuildPhysicalClass()
 	KWDerivationRuleOperand* operand;
 	int nOperand;
 	KWAttribute* targetAttribute;
+	IntVector ivMandatoryInputOperands;
+	int nNoneValueOperandNumber;
 
 	require(kwcClass != NULL);
 	require(kwcClass->GetName() == GetClassName());
@@ -1594,9 +1596,11 @@ void KWDatabase::BuildPhysicalClass()
 			nkdMutationClasses.SetAt(kwcCurrentPhysicalClass, kwcCurrentPhysicalClass);
 	}
 
-	// Collecte de tous les attributs obligatoires a ne pas detruire, meme s'il ne sont pas utilises
+	// Collecte de tous les attributs obligatoires a ne pas detruire, meme s'ils ne sont pas utilises
 	// Il faudra les garder, potentiellement en unused, car ils sont necessaires pour preserver
 	// l'integrite des  classes et des regles
+	// Parametrage egalement des operandes en entree des regles de creation d'instances qui ne sont pas a evaluer
+	nNoneValueOperandNumber = 0;
 	for (nClass = 0; nClass < oaAllUsedClasses.GetSize(); nClass++)
 	{
 		kwcCurrentPhysicalClass = cast(KWClass*, oaAllUsedClasses.GetAt(nClass));
@@ -1608,35 +1612,50 @@ void KWDatabase::BuildPhysicalClass()
 			nkdAllNondeletableAttributes.SetAt(attribute, attribute);
 		}
 
-		// Champs  des classes en sortie des regles de creation de tables
+		// Champs des classes en sortie des regles de creation de tables
 		attribute = kwcCurrentPhysicalClass->GetHeadAttribute();
 		while (attribute != NULL)
 		{
 			// Cas d'un attribut qui n'est pas a detruire
 			if (nkdAllUsedAttributes.Lookup(attribute) != NULL)
 			{
-				// Cas d'une regle de derivation de type creation de table
+				// Cas d'une regle de derivation de type creation de table avec operandes en sortie
 				rule = attribute->GetAnyDerivationRule();
 				if (rule != NULL and rule->GetOutputOperandNumber() > 0)
 				{
 					assert(not attribute->IsInBlock());
 					assert(attribute->GetClass() != NULL);
 
-					// On doit conserver tous les operandes en entree de la regle pour garder la regle compilable
+					// Collecte des attributs en entree obligatoire pour le calcul des atributs en sortie utilises
+					rule->CollectCreationRuleMandatoryInputOperands(
+					    attribute, &nkdAllUsedAttributes, &ivMandatoryInputOperands);
+					assert(ivMandatoryInputOperands.GetSize() == rule->GetOperandNumber());
+
+					// Parcours de ses operandes en entree pour nettoyer ceux qui sont inutiles
+					// afin de ne pas les calculer, et de permettre me nettoyage attributs ou regles a ne pas evaluer
+					// On doit cneanmoins conserver tous les operandes en entree de la regle pour garder la regle compilable
 					// En effet, pour des raisons d'optimisation, les regles de creation de table avec operandes en sortie
 					// peuvent declarer ne pas utiliser tout ou partie de leur operandes en entree, s'ils ne sont pas
-					// necessaire pour calculer la valeur des operandes en sortie (ex: s'il correspondent a des variables
+					// necessaires pour calculer la valeur des operandes en sortie (ex: s'il correspondent a des variables
 					// de la table en sortie, jamais utilisees).
-					// Il ne faut pas les detruire: on les gardera ainsi en unused, pour a la fois garder le dictionnaire
-					// compilable, et eviter les calculs inutiles
-					for (nOperand = 0; nOperand < rule->GetOutputOperandNumber(); nOperand++)
+					for (nOperand = 0; nOperand < rule->GetOperandNumber(); nOperand++)
 					{
-						// On indique de garder tous les attributs necessaires recursivement au calcul des operandes
-						rule->BuildAllUsedAttributesAtOperand(attribute, nOperand,
-										      &nkdAllNondeletableAttributes);
+						// On traite les operandes a ignorer par la valeur speciale None, avec nettoyage de l'operande
+						if (ivMandatoryInputOperands.GetAt(nOperand) == 0)
+						{
+							operand = rule->GetOperandAt(nOperand);
+							operand->SetNoneValue(true);
+							nNoneValueOperandNumber++;
+						}
+						// Sinon, on indique de garder tous les attributs necessaires recursivement au calcul des operandes
+						else
+							rule->BuildAllUsedAttributesAtOperand(
+							    attribute, nOperand, &nkdAllNondeletableAttributes);
 					}
 
 					// Parcours de ses operandes en sortie pour rechercher les attributs cibles de la regle a ne pas detruire
+					// Il ne faut pas les detruire: on les gardera ainsi en unused, pour a la fois garder le dictionnaire
+					// compilable, et eviter les calculs inutiles
 					for (nOperand = 0; nOperand < rule->GetOutputOperandNumber(); nOperand++)
 					{
 						operand = rule->GetOutputOperandAt(nOperand);
@@ -1657,8 +1676,10 @@ void KWDatabase::BuildPhysicalClass()
 
 	// On determine si le domaine physique est necessaire, c'est a dire s'il existe au moins
 	// un attribut non loaded (ou d'une classe non necessaire logiquement) qui soit necessaire
-	// pour le calcul des regles de derivations
+	// pour le calcul des regles de derivations, ou si au moins un operande en entree de regle
+	// de creation d'instance ne doit pas etre evaluer
 	bPhysicalDomainNeeded = (kwcdPhysicalDomain->GetClassNumber() != nkdAllUsedClasses.GetCount());
+	bPhysicalDomainNeeded = bPhysicalDomainNeeded or nNoneValueOperandNumber > 0;
 	if (not bPhysicalDomainNeeded)
 	{
 		nkdAllUsedAttributes.ExportObjectArray(&oaAllUsedAttributes);
@@ -1674,7 +1695,10 @@ void KWDatabase::BuildPhysicalClass()
 		}
 	}
 	if (bTrace)
+	{
 		cout << "Need physical domain\t" << bPhysicalDomainNeeded << endl;
+		cout << "None value operand number\t" << nNoneValueOperandNumber << endl;
+	}
 
 	// Si domaine physique non necessaire, destruction et remplacement par
 	// le domain initial
