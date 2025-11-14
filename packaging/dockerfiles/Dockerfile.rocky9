@@ -7,7 +7,8 @@ RUN true \
   && dnf install -y "dnf-command(config-manager)" \
   # We need the crb repository for ninja \
   && dnf config-manager --set-enabled crb \
-  && dnf upgrade -y \
+  # --allowerasing is needed to resolve package conflicts \
+  && dnf upgrade -y --allowerasing \
   && dnf install -y \
   gcc-c++ \
   java-1.8.0-openjdk-devel \
