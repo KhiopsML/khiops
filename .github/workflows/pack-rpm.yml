@@ -106,7 +106,7 @@ jobs:
         with:
           name: rpm-${{ env.ID }}-${{ env.VERSION }}
           path: artifacts
-      - run: yum update -y
+      - run: yum update -y --allowerasing  # resolve package conflicts
       - name: Install Khiops core
         run: |
           yum install -y ./artifacts/khiops-core*
@@ -147,7 +147,7 @@ jobs:
           path: artifacts
       - name: Install KNI Package
         run: |
-          yum update -y
+          yum update -y --allowerasing  # resolve package conflicts
           yum install -y ./artifacts/kni*
       - name: Checkout sources
         uses: actions/checkout@v4

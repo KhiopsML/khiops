@@ -7,7 +7,8 @@ RUN true \
   && dnf install -y "dnf-command(config-manager)" \
   # We need the powertools repository for ninja \
   && dnf config-manager --set-enabled powertools \
-  && dnf upgrade -y \
+  # --allowerasing is needed to resolve package conflicts \
+  && dnf upgrade -y --allowerasing \
   && dnf install -y \
   cmake \
   gcc-c++ \
