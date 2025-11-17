@@ -139,6 +139,8 @@ endif()
 
 # Process dependencies: Find MPI if required
 if(MPI)
+  # Ask `find_mpi` to determine installed version of the MPI library, via `MPI_Get_library_version`
+  set(MPI_DETERMINE_LIBRARY_VERSION true)
   find_package(MPI 2.0 REQUIRED)
   message(
     STATUS

@@ -11,6 +11,9 @@ help() {
     echo
     echo "KHIOPS_PATH: full path of Khiops executable"
     echo "KHIOPS_COCLUSTERING_PATH: full path of Khiops coclustering executable"
+    echo "KHIOPS_MPI_HOME: value to set the HOME variable to if not already"
+    echo "  defined in the environment, as required for OpenMPI >= 5."
+    echo "  Unset if HOME is defined."
     echo "KHIOPS_MPI_COMMAND: MPI command to call the Khiops tool"
     echo "KHIOPS_JAVA_PATH: path of Java tool, to add in path"
     echo "KHIOPS_CLASSPATH: Khiops java libraries, to add in classpath"
@@ -47,6 +50,8 @@ help() {
     echo "  . set to 'true' to allow file name selection with uri schemas"
     echo "  . set to 'false' to allow local file name selection only with a file selection dialog"
     echo "KHIOPS_MPI_VERBOSE: true (default) or false, print messages from mpi (OpenMPI only)."
+    echo "  It has no effect on OpenMPI 5 versions, where messages from mpi are"
+    echo "  always printed."
     echo "KHIOPS_MPI_EXTRA_FLAGS: extra flags added to the mpi command line"
     echo
     echo "In case of configuration problems, the variables KHIOPS_JAVA_ERROR and KHIOPS_MPI_ERROR contain error messages."
@@ -74,7 +79,8 @@ if [ -z "$KHIOPS_MPI_VERBOSE" ]; then
 fi
 
 if ! [ "$KHIOPS_MPI_VERBOSE" == "true" ]; then
-    # Mute mpi by adding flags (OpenMPI only)
+    # Mute mpi by adding flags when supported (OpenMPI <= 4 only; no extra flag
+    # is added for OpenMPI 5, because there is none supported)
     _MPI_EXTRA_FLAGS="@KHIOPS_MPI_QUIET@"
 fi
 
@@ -96,6 +102,16 @@ else
     KHIOPS_MPI_ERROR="We didn't find mpiexec in the expected paths. Parallel computation is unavailable: Khiops is launched in serial"
 fi
 
+# Set the KHIOPS_MPI_HOME variable if HOME is not already set
+# KHIOPS_MPI_HOME is set to the temporary directory of the current user or to
+# /tmp if not defined
+# If HOME is not defined, then it must be set to $KHIOPS_MPI_HOME
+# This is required by OpenMPI >= 5; see
+# https://github.com/open-mpi/ompi/issues/10732
+if [[ -z $HOME ]]; then
+    KHIOPS_MPI_HOME=${TMPDIR:-${TEMP:-${TMP:-/tmp}}}
+fi
+
 if [[ -z $KHIOPS_MPI_ERROR ]]; then
     KHIOPS_MPI_COMMAND="$_MPIEXEC $_MPI_EXTRA_FLAGS @MPI_EXTRA_FLAG@ $KHIOPS_MPI_EXTRA_FLAGS"
     @SET_PROC_NUMBER@
@@ -114,6 +130,7 @@ unset _MPI_EXTRA_FLAGS
 if [ "$1" = "--env" ]; then
     echo KHIOPS_PATH "$KHIOPS_PATH"
     echo KHIOPS_COCLUSTERING_PATH "$KHIOPS_COCLUSTERING_PATH"
+    echo KHIOPS_MPI_HOME "$KHIOPS_MPI_HOME"
     echo KHIOPS_MPI_COMMAND "$KHIOPS_MPI_COMMAND"
     echo KHIOPS_JAVA_PATH "$KHIOPS_JAVA_PATH"
     echo KHIOPS_CLASSPATH "$KHIOPS_CLASSPATH"

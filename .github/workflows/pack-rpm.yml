@@ -8,6 +8,10 @@ on:
         type: choice
         default: openmpi
         options: [mpich, openmpi]
+      show-openmpi-errors:
+        description: Display full OpenMPI error log
+        type: boolean
+        default: true
   pull_request:
     paths:
       - '**CMakeLists.txt'
@@ -106,7 +110,7 @@ jobs:
         with:
           name: rpm-${{ env.ID }}-${{ env.VERSION }}
           path: artifacts
-      - run: yum update -y
+      - run: yum update -y --allowerasing  # resolve package conflicts
       - name: Install Khiops core
         run: |
           yum install -y ./artifacts/khiops-core*
@@ -121,6 +125,7 @@ jobs:
         uses: ./.github/actions/test-khiops-on-iris
         with:
           os-decription: rockylinux-${{ matrix.rocky_version }}
+          show-openmpi-errors: ${{ inputs.show-openmpi-errors }}
   test-kni:
     needs: build
     runs-on: ubuntu-latest
@@ -147,7 +152,7 @@ jobs:
           path: artifacts
       - name: Install KNI Package
         run: |
-          yum update -y
+          yum update -y --allowerasing  # resolve package conflicts
           yum install -y ./artifacts/kni*
       - name: Checkout sources
         uses: actions/checkout@v4

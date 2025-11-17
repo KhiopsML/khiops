@@ -5,6 +5,9 @@ inputs:
   os-decription:
     description: OS description (os +arch) used to name artifacts (error reports)
     required: true
+  show-openmpi-errors:
+    description: Set to 'false' to stop displaying full OpenMPI error log
+    default: 'true'
 runs:
   using: composite
   steps:
@@ -64,24 +67,68 @@ runs:
       shell: bash
       env:
         KHIOPS_PROC_NUMBER: 4
+        # Use more processes than available CPUs: OpenMPI < 5
         OMPI_MCA_rmaps_base_oversubscribe: true
+        # Use more processes than available CPUs: OpenMPI >= 5
+        PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
         KHIOPS_API_MODE: true
-        KHIOPS_MPI_VERBOSE: true
+        KHIOPS_MPI_VERBOSE: ${{ inputs.show-openmpi-errors }}
       run: |
         cd test/LearningTest/TestKhiops/Standard/Iris/
         "$KHIOPS_SCRIPT" -b -i test.prm -e results/err.txt
         cd -
+    - name: Run Khiops tests ($HOME not set)
+      if: runner.os == 'Linux'
+      shell: bash
+      env:
+        KHIOPS_PROC_NUMBER: 4
+        # Use more processes than available CPUs: OpenMPI < 5
+        OMPI_MCA_rmaps_base_oversubscribe: true
+        # Use more processes than available CPUs: OpenMPI >= 5
+        PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
+        KHIOPS_API_MODE: true
+        KHIOPS_MPI_VERBOSE: ${{ inputs.show-openmpi-errors }}
+      run: |
+        _HOME=$HOME
+        unset HOME
+        cd test/LearningTest/TestKhiops/Standard/Iris/
+        "$KHIOPS_SCRIPT" -b -i test.prm -e results/err.txt
+        cd -
+        export HOME=$_HOME
+        unset _HOME
     - name: Run Khiops Coclustering tests
       shell: bash
       env:
-        HIOPS_PROC_NUMBER: 4
+        KHIOPS_PROC_NUMBER: 4
+        # Use more processes than available CPUs: OpenMPI < 5
         OMPI_MCA_rmaps_base_oversubscribe: true
+        # Use more processes than available CPUs: OpenMPI >= 5
+        PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
         KHIOPS_API_MODE: true
-        KHIOPS_MPI_VERBOSE: true
+        KHIOPS_MPI_VERBOSE: ${{ inputs.show-openmpi-errors }}
       run: |
         cd test/LearningTest/TestCoclustering/Standard/Iris/
         "$KHIOPS_CC_SCRIPT" -b -i test.prm -e results/err.txt
         cd -
+    - name: Run Khiops Coclustering tests ($HOME not set)
+      if: runner.os == 'Linux'
+      shell: bash
+      env:
+        KHIOPS_PROC_NUMBER: 4
+        # Use more processes than available CPUs: OpenMPI < 5
+        OMPI_MCA_rmaps_base_oversubscribe: true
+        # Use more processes than available CPUs: OpenMPI >= 5
+        PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
+        KHIOPS_API_MODE: true
+        KHIOPS_MPI_VERBOSE: ${{ inputs.show-openmpi-errors }}
+      run: |
+        _HOME=$HOME
+        unset HOME
+        cd test/LearningTest/TestCoclustering/Standard/Iris/
+        "$KHIOPS_CC_SCRIPT" -b -i test.prm -e results/err.txt
+        cd -
+        export HOME=$_HOME
+        unset _HOME
     - name: Check the test results
       shell: bash
       run: |-

@@ -10,6 +10,10 @@ on:
         options:
           - mpich
           - openmpi
+      show-openmpi-errors:
+        description: Display full OpenMPI error log
+        type: boolean
+        default: true
   pull_request:
     paths:
       - '**CMakeLists.txt'
@@ -37,6 +41,7 @@ jobs:
         setup:
         - {os: ubuntu-latest, image: debian11}
         - {os: ubuntu-latest, image: debian12}
+        - {os: ubuntu-latest, image: debian13}
         - {os: ubuntu-latest, image: ubuntu20.04}
         - {os: ubuntu-latest, image: ubuntu22.04}
         - {os: ubuntu-latest, image: ubuntu24.04}
@@ -103,6 +108,7 @@ jobs:
         setup:
         - {os: ubuntu-latest, image: debian11}
         - {os: ubuntu-latest, image: debian12}
+        - {os: ubuntu-latest, image: debian13}
         - {os: ubuntu-latest, image: ubuntu20.04}
         - {os: ubuntu-latest, image: ubuntu22.04}
         - {os: ubuntu-latest, image: ubuntu24.04}
@@ -144,6 +150,7 @@ jobs:
         uses: ./.github/actions/test-khiops-on-iris
         with:
           os-decription: ${{ env.ID }}-${{ env.VERSION_CODENAME }}-${{ env.ARCH }}
+          show-openmpi-errors: ${{ inputs.show-openmpi-errors }}
   test-kni:
     needs: build
     env:
@@ -157,6 +164,7 @@ jobs:
         setup:
         - {os: ubuntu-latest, image: debian11}
         - {os: ubuntu-latest, image: debian12}
+        - {os: ubuntu-latest, image: debian13}
         - {os: ubuntu-latest, image: ubuntu20.04}
         - {os: ubuntu-latest, image: ubuntu22.04}
         - {os: ubuntu-latest, image: ubuntu24.04}
