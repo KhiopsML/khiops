@@ -80,32 +80,41 @@ launch_khiops() {
         # run with parameters
         $KHIOPS_MPI_COMMAND "@KHIOPS_BINARY_PATH@" "$@"
     fi
+    local _RETCODE=$?
 
     # Unset HOME if defined via $KHIOPS_MPI_HOME
     if [[ -n "$KHIOPS_MPI_HOME" && -z "$_HOME" ]]; then
         unset HOME
     fi
     unset _HOME
+    return $_RETCODE
 }
 
-# Launck Khiops
-if [ "$KHIOPS_BATCH_MODE" = true ]; then
-    launch_khiops "$@"
-else
-    if [ "$_IS_CONDA" = true ] || [ -z "$DISPLAY" ]; then
-        error "GUI is not available, please use the '-b' flag"
+# Launch Khiops
+main () {
+    if [ "$KHIOPS_BATCH_MODE" = true ]; then
+        launch_khiops "$@"
+        local _RETCODE=$?
     else
-        if [ -z "$KHIOPS_JAVA_PATH" ]; then
-            if [ -z "$KHIOPS_JAVA_ERROR" ]; then
-                error "GUI is not available, please either use the '-b' flag, or install the 'khiops' native package for your host operating system."
-            else
-                error "$KHIOPS_JAVA_ERROR"
-            fi
+        if [ "$_IS_CONDA" = true ] || [ -z "$DISPLAY" ]; then
+            error "GUI is not available, please use the '-b' flag"
         else
-            launch_khiops "$@"
+            if [ -z "$KHIOPS_JAVA_PATH" ]; then
+                if [ -z "$KHIOPS_JAVA_ERROR" ]; then
+                    error "GUI is not available, please either use the '-b' flag, or install the 'khiops' native package for your host operating system."
+                else
+                    error "$KHIOPS_JAVA_ERROR"
+                fi
+            else
+                launch_khiops "$@"
+                local _RETCODE=$?
+            fi
         fi
     fi
-fi
 
-unset _IS_CONDA
+    unset _IS_CONDA
+    return $_RETCODE
+}
+
+main "$@"
 exit $?
