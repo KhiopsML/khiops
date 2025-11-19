@@ -142,9 +142,10 @@ void DTDiscretizerMODL::DiscretizeNEW(KWFrequencyTable* kwftSource, KWFrequencyT
 			if (TaskProgression::IsInterruptionRequested())
 			{
 				if (kwftTarget != NULL)
+				{
 					delete kwftTarget;
-				kwftTarget = new KWFrequencyTable;
-				kwftTarget->ComputeNullTable(kwftSource);
+					kwftTarget = NULL;
+				}
 				break;
 			}
 
@@ -320,6 +321,11 @@ void DTDiscretizerMODL::DiscretizeNEW(KWFrequencyTable* kwftSource, KWFrequencyT
 		if (bDisplayResults)
 			cout << "Meilleure granularite discretisation " << kwftTarget->GetGranularity() << " sur  "
 			     << nGranularityMax << endl;
+	}
+	if (kwftTarget == NULL)
+	{
+		kwftTarget = new KWFrequencyTable;
+		kwftTarget->ComputeNullTable(kwftSource);
 	}
 	ensure(kwftTarget != NULL);
 	StopTimer(DTTimerDiscretize);

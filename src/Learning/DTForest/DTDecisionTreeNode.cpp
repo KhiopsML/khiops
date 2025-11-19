@@ -851,7 +851,7 @@ boolean DTDecisionTreeNode::ComputeAttributesStat()
 	KWDataPreparationUnivariateTask dataPreparationUnivariateTask;
 
 	baseloaderTrain->GetTupleLoader()->SetInputDatabaseObjects(baseloaderTrain->GetDatabaseObjects());
-	dataPreparationUnivariateTask.BasicCollectPreparationStats(
+	bOk = dataPreparationUnivariateTask.BasicCollectPreparationStats(
 	    nodeLearningSpec, baseloaderTrain->GetTupleLoader(), GetNodeSelectedAttributes(), false, oaAttributeStats);
 
 	return bOk;

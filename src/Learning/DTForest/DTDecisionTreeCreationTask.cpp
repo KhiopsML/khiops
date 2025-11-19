@@ -182,9 +182,17 @@ boolean DTDecisionTreeCreationTask::CreatePreparedAttributes(KWLearningSpec* lea
 
 	// Lancement de la tache
 	bOk = RunDataPreparationTask(learningSpec, tupleTableLoader, dataTableSliceSet);
-
 	if (not bOk)
 		oaOutputAttributeStats->DeleteAll();
+
+	// Message si erreur
+	if (not bOk)
+	{
+		if (TaskProgression::IsInterruptionRequested())
+			AddWarning("Interrupted by user");
+		else
+			AddError("Interrupted because of errors");
+	}
 
 	// Nettoyage des donnees de pilotage de la tache
 	CleanTaskInputs();
@@ -817,7 +825,15 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 			// - des rapport json
 			// - des specification des arbres
 
-			bOk = not TaskProgression::IsInterruptionRequested();
+			if (TaskProgression::IsInterruptionRequested())
+			{
+				bOk = false;
+				if (oaInputAttributeStats != NULL)
+				{
+					oaInputAttributeStats->DeleteAll();
+					delete oaInputAttributeStats;
+				}
+			}
 
 			if (bOk)
 			{
@@ -1111,6 +1127,9 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 			{
 				createdAttribute = cast(KWAttribute*, oaCreatedAttributes.GetAt(nAttribute));
 				kwcUpdatedClass->DeleteAttribute(createdAttribute->GetName());
+				// en cas d interruption on delete l attribut non ajoute a la class kwcUpdatedClass
+				if (kwcUpdatedClass->LookupAttribute(createdAttribute->GetName()) == NULL)
+					delete createdAttribute;
 			}
 			kwcUpdatedClass->Compile();
 		}
@@ -1118,34 +1137,23 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 		oatupletable.DeleteAll();
 	}
 
-	// Message si erreur
-	if (not bOk)
-	{
-		if (TaskProgression::IsInterruptionRequested())
-			AddWarning("Interrupted by user");
-		else
-			AddError("Interrupted because of errors");
-	}
-	else
-	{
+	// Trace
 #ifdef GENERATE_PYTHON_REPORTING_TRACES
-		if (DTTimer_ComputeDecisionTree.IsStarted())
-			DTTimer_ComputeDecisionTree.Stop();
-		DTTimer_SlaveProcess.Stop();
-		AddSimpleMessage(ALString("Slave\t") + IntToString(GetProcessId()) + ", task index " +
-				 IntToString(GetTaskIndex() + 1) + "\t" + ALString("ComputeTree total time: \t") +
-				 DoubleToString(DTTimer_ComputeDecisionTree.GetElapsedTime()));
-		AddSimpleMessage(ALString("Slave\t") + IntToString(GetProcessId()) + ", task index " +
-				 IntToString(GetTaskIndex() + 1) + "\t" + ALString("SlaveProcess total time: \t") +
-				 DoubleToString(DTTimer_SlaveProcess.GetElapsedTime()));
-		AddSimpleMessage(ALString("Slave\t") + IntToString(GetProcessId()) + ", task index " +
-				 IntToString(GetTaskIndex() + 1) + "\t" + ALString("Trees number : \t") +
-				 IntToString(nBuidTreeNumber));
-		Global::SetMaxErrorFlowNumber(oldMaxErrorFlowNumber);
+	if (DTTimer_ComputeDecisionTree.IsStarted())
+		DTTimer_ComputeDecisionTree.Stop();
+	DTTimer_SlaveProcess.Stop();
+	AddSimpleMessage(ALString("Slave\t") + IntToString(GetProcessId()) + ", task index " +
+			 IntToString(GetTaskIndex() + 1) + "\t" + ALString("ComputeTree total time: \t") +
+			 DoubleToString(DTTimer_ComputeDecisionTree.GetElapsedTime()));
+	AddSimpleMessage(ALString("Slave\t") + IntToString(GetProcessId()) + ", task index " +
+			 IntToString(GetTaskIndex() + 1) + "\t" + ALString("SlaveProcess total time: \t") +
+			 DoubleToString(DTTimer_SlaveProcess.GetElapsedTime()));
+	AddSimpleMessage(ALString("Slave\t") + IntToString(GetProcessId()) + ", task index " +
+			 IntToString(GetTaskIndex() + 1) + "\t" + ALString("Trees number : \t") +
+			 IntToString(nBuidTreeNumber));
+	Global::SetMaxErrorFlowNumber(oldMaxErrorFlowNumber);
 #endif
-
-		ensure(bOk or oaCreatedAttributes.GetSize() == 0);
-	}
+	ensure(bOk or oaCreatedAttributes.GetSize() == 0);
 
 	// Nettoyage
 	dataTableSliceSet.GetSlices()->RemoveAll();
@@ -1888,8 +1896,13 @@ ObjectArray* DTDecisionTreeCreationTask::BuildRootAttributeStats(KWLearningSpec*
 								     &oaInputAttribute);
 
 		blOrigine->GetTupleLoader()->SetInputDatabaseObjects(blOrigine->GetDatabaseObjects());
-		dataPreparationUnivariateTask.BasicCollectPreparationStats(
-		    learningSpec, blOrigine->GetTupleLoader(), &oaInputAttribute, false, oaOutputAttributeStats);
+		if (not TaskProgression::IsInterruptionRequested())
+		{
+
+			dataPreparationUnivariateTask.BasicCollectPreparationStats(
+			    learningSpec, blOrigine->GetTupleLoader(), &oaInputAttribute, false,
+			    oaOutputAttributeStats);
+		}
 	}
 	else
 	{
