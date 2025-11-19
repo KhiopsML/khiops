@@ -83,13 +83,6 @@ private:
 	// Notifie qu'on a fini (apres finalize)
 	void NotifyDone(boolean bOk);
 
-	// Cette methode permet de rendre les MPI_Recv non bloquants pour les demande d'interruption.
-	// Attend tant qu'un message venant du maitre avec le tag passe en parametre n'arrive pas.
-	// Le message n'est pas recu, il convient de recevoir le message via MPI_Recv
-	// Si une demande d'arret est effective pendant l'attente, la fonction retourne (meme si le message attendu n'a
-	// pas ete emis) et bInterruptionRequested est a true Retourne la taille du message
-	int WaitForMessage(int nTag, boolean& bInterruptionRequested) const;
-
 	// Envoi des resultats au Master avec serialisation des resultats
 	void SendResults();
 

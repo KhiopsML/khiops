@@ -18,6 +18,7 @@ enum class State
 	PROCESSING, // En slave Process
 	FINALIZE,   // Finalization en cours
 	DONE,       // Apres le finalize, ou en cas d'ereur
+	ERROR,      // Apres erreur de traitement, on ne peut pas demander de travailler
 	UNKNOW
 };
 

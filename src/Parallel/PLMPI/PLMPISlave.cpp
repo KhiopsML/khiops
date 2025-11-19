@@ -186,7 +186,7 @@ boolean PLMPISlave::Process()
 	GetTask()->SetVerbose(GetTask()->input_bVerbose);
 	nbTasks = 0;
 	tTimeBeforeSleep.Start();
-	while (not bStopOrder and not TaskProgression::IsInterruptionRequested())
+	while (not bStopOrder and not progressionManager->GetInterruptionRequested())
 	{
 		if (bBoostedMode)
 		{
@@ -241,6 +241,7 @@ boolean PLMPISlave::Process()
 					context.Send(MPI_COMM_WORLD, 0, SLAVE_INITIALIZE_DONE);
 					serializer.OpenForWrite(&context);
 					serializer.PutInt(task->input_nTaskProcessedNumber);
+					serializer.PutBoolean(bOk);
 					serializer.Close();
 
 					// En cas d'erreur, envoi d'une demande d'arret
@@ -261,9 +262,8 @@ boolean PLMPISlave::Process()
 					// l'envoie avec les messages de progression
 					progressionManager->SetSlaveState(State::PROCESSING);
 
-					// On force la verification de l'interruption : on l'aura immediatement dans le
-					// SlaveProcess
-					progressionManager->IsInterruptionRequested();
+					// On force la verification de l'interruption : on l'aura immediatement dans le SlaveProcess
+					TaskProgression::IsInterruptionRequested();
 
 					// Traitement : appel de SlaveProcess
 					bOk = task->CallSlaveProcess();
@@ -298,7 +298,7 @@ boolean PLMPISlave::Process()
 
 			case MASTER_STOP_ORDER:
 				if (not bIsWorking and GetTracerProtocol()->GetActiveMode())
-					GetTracerProtocol()->AddTrace("have done nothing ...");
+					GetTracerProtocol()->AddTrace("didn't do anything ...");
 
 				// On recoit le message
 				if (not bBoostedMode)
@@ -311,7 +311,7 @@ boolean PLMPISlave::Process()
 				if (GetTracerMPI()->GetActiveMode())
 					GetTracerMPI()->AddRecv(0, MASTER_STOP_ORDER);
 				if (GetTracerProtocol()->GetActiveMode())
-					GetTracerProtocol()->AddTrace(sTmp + "have processed " + IntToString(nbTasks) +
+					GetTracerProtocol()->AddTrace(sTmp + " processed " + IntToString(nbTasks) +
 								      " sub Tasks");
 
 				bStopOrder = true;
@@ -323,9 +323,11 @@ boolean PLMPISlave::Process()
 					context.Recv(MPI_COMM_WORLD, 0, INTERRUPTION_REQUESTED);
 					serializer.OpenForRead(&context);
 				}
-
 				serializer.Close();
+
+				// On met a jour PLMPISlaveProgressionManager et egalement TaskProgression pour eviter des appels inutiles
 				progressionManager->SetInterruptionRequested(true);
+				TaskProgression::ForceInterruptionRequested();
 				if (GetTracerMPI()->GetActiveMode())
 					GetTracerMPI()->AddRecv(0, INTERRUPTION_REQUESTED);
 				break;
@@ -411,27 +413,6 @@ void PLMPISlave::SlaveAbort(int nExitCode)
 {
 	if (not bPendingFatalError)
 		PLParallelTask::GetDriver()->Abort();
-}
-
-int PLMPISlave::WaitForMessage(int nTag, boolean& bInterruptionRequested) const
-{
-	MPI_Status status;
-	int nThereIsAmsg;
-	int nSize;
-
-	nThereIsAmsg = 0;
-	while (not nThereIsAmsg)
-	{
-		MPI_Iprobe(0, MPI_ANY_TAG, MPI_COMM_WORLD, &nThereIsAmsg, &status);
-		if (TaskProgression::IsInterruptionRequested())
-		{
-			bInterruptionRequested = true;
-			return 0;
-		}
-	}
-	bInterruptionRequested = false;
-	MPI_Get_count(&status, MPI_CHAR, &nSize);
-	return nSize;
 }
 
 void PLMPISlave::DischargePendigCommunication()
