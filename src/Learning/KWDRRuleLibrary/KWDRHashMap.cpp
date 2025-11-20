@@ -95,49 +95,65 @@ boolean KWDRSymbolHashMap::CheckCompleteness(const KWClass* kwcOwnerClass) const
 		keyVector = cast(KWDRSymbolVector*, GetFirstOperand()->GetDerivationRule());
 		valueVector = cast(KWDRSymbolVector*, GetSecondOperand()->GetDerivationRule());
 
-		// Transfert des cles vers la representation structuree
-		check(keyVector);
-		if (keyVector->GetStructureInterface())
-			checkedKeyVector = cast(KWDRSymbolVector*, GetFirstOperand()->GetDerivationRule());
-		else
-		{
-			tmpKeyVector.BuildStructureFromBase(keyVector);
-			checkedKeyVector = &tmpKeyVector;
-		}
-
-		// Transfert des valeurs vers la representation structuree
-		check(valueVector);
-		if (valueVector->GetStructureInterface())
-			checkedValueVector = cast(KWDRSymbolVector*, GetSecondOperand()->GetDerivationRule());
-		else
-		{
-			tmpValueVector.BuildStructureFromBase(valueVector);
-			checkedValueVector = &tmpValueVector;
-		}
-
-		// Verification de la taille des vecteurs
-		if (checkedKeyVector->GetValueNumber() != checkedValueVector->GetValueNumber())
+		// Les vecteurs de parametres doivent etre constant
+		if (not keyVector->CheckConstantOperands(true))
 		{
 			bOk = false;
-			AddError(sTmp + "Number of keys (" + IntToString(checkedKeyVector->GetValueNumber()) +
-				 ") should be the same as the number of values (" +
-				 IntToString(checkedValueVector->GetValueNumber()) + ")");
+			AddError(sTmp + "Keys in operand 1 should be constants");
+		}
+		if (not valueVector->CheckConstantOperands(true))
+		{
+			bOk = false;
+			AddError(sTmp + "Values in operand 2 should be constants");
 		}
 
-		// Verification de l'unicite des cle
-		for (nKey = 0; nKey < checkedKeyVector->GetValueNumber(); nKey++)
+		// Verification des valeurs
+		if (bOk)
 		{
-			sKey = checkedKeyVector->GetValueAt(nKey);
+			// Transfert des cles vers la representation structuree
+			check(keyVector);
+			if (keyVector->GetStructureInterface())
+				checkedKeyVector = keyVector;
+			else
+			{
+				tmpKeyVector.BuildStructureFromBase(keyVector);
+				checkedKeyVector = &tmpKeyVector;
+			}
 
-			// Test si la cle a deja ete vue
-			if (nkdKeys.Lookup(sKey.GetNumericKey()) != NULL)
+			// Transfert des valeurs vers la representation structuree
+			check(valueVector);
+			if (valueVector->GetStructureInterface())
+				checkedValueVector = valueVector;
+			else
+			{
+				tmpValueVector.BuildStructureFromBase(valueVector);
+				checkedValueVector = &tmpValueVector;
+			}
+
+			// Verification de la taille des vecteurs
+			if (checkedKeyVector->GetValueNumber() != checkedValueVector->GetValueNumber())
 			{
 				bOk = false;
-				AddError(sTmp + "Key " + sKey + " is used several times");
-				break;
+				AddError(sTmp + "Number of keys (" + IntToString(checkedKeyVector->GetValueNumber()) +
+					 ") should be the same as the number of values (" +
+					 IntToString(checkedValueVector->GetValueNumber()) + ")");
 			}
-			else
-				nkdKeys.SetAt(sKey.GetNumericKey(), &nkdKeys);
+
+			// Verification de l'unicite des cle
+			for (nKey = 0; nKey < checkedKeyVector->GetValueNumber(); nKey++)
+			{
+				sKey = checkedKeyVector->GetValueAt(nKey);
+
+				// Test si la cle a deja ete vue
+				if (nkdKeys.Lookup(sKey.GetNumericKey()) != NULL)
+				{
+					bOk = false;
+					AddError(sTmp + "Key " + sKey + " is used several times");
+					break;
+				}
+				else
+					nkdKeys.SetAt(sKey.GetNumericKey(), &nkdKeys);
+			}
 		}
 	}
 	return bOk;
@@ -271,49 +287,65 @@ boolean KWDRContinuousHashMap::CheckCompleteness(const KWClass* kwcOwnerClass) c
 		keyVector = cast(KWDRSymbolVector*, GetFirstOperand()->GetDerivationRule());
 		valueVector = cast(KWDRContinuousVector*, GetSecondOperand()->GetDerivationRule());
 
-		// Transfert des cles vers la representation structuree
-		check(keyVector);
-		if (keyVector->GetStructureInterface())
-			checkedKeyVector = keyVector;
-		else
-		{
-			tmpKeyVector.BuildStructureFromBase(keyVector);
-			checkedKeyVector = &tmpKeyVector;
-		}
-
-		// Transfert des valeurs vers la representation structuree
-		check(valueVector);
-		if (valueVector->GetStructureInterface())
-			checkedValueVector = valueVector;
-		else
-		{
-			tmpValueVector.BuildStructureFromBase(valueVector);
-			checkedValueVector = &tmpValueVector;
-		}
-
-		// Verification de la taille des vecteurs
-		if (checkedKeyVector->GetValueNumber() != checkedValueVector->GetValueNumber())
+		// Les vecteurs de parametres doivent etre constant
+		if (not keyVector->CheckConstantOperands(true))
 		{
 			bOk = false;
-			AddError(sTmp + "Number of keys (" + IntToString(checkedKeyVector->GetValueNumber()) +
-				 ") should be the same as the number of values (" +
-				 IntToString(checkedValueVector->GetValueNumber()) + ")");
+			AddError(sTmp + "Keys in operand 1 should be constants");
+		}
+		if (not valueVector->CheckConstantOperands(true))
+		{
+			bOk = false;
+			AddError(sTmp + "Values in operand 2 should be constants");
 		}
 
-		// Verification de l'unicite des cle
-		for (nKey = 0; nKey < checkedKeyVector->GetValueNumber(); nKey++)
+		// Verification des valeurs
+		if (bOk)
 		{
-			sKey = checkedKeyVector->GetValueAt(nKey);
+			// Transfert des cles vers la representation structuree
+			check(keyVector);
+			if (keyVector->GetStructureInterface())
+				checkedKeyVector = keyVector;
+			else
+			{
+				tmpKeyVector.BuildStructureFromBase(keyVector);
+				checkedKeyVector = &tmpKeyVector;
+			}
 
-			// Test si la cle a deja ete vue
-			if (nkdKeys.Lookup(sKey.GetNumericKey()) != NULL)
+			// Transfert des valeurs vers la representation structuree
+			check(valueVector);
+			if (valueVector->GetStructureInterface())
+				checkedValueVector = valueVector;
+			else
+			{
+				tmpValueVector.BuildStructureFromBase(valueVector);
+				checkedValueVector = &tmpValueVector;
+			}
+
+			// Verification de la taille des vecteurs
+			if (checkedKeyVector->GetValueNumber() != checkedValueVector->GetValueNumber())
 			{
 				bOk = false;
-				AddError(sTmp + "Key " + sKey + " is used several times");
-				break;
+				AddError(sTmp + "Number of keys (" + IntToString(checkedKeyVector->GetValueNumber()) +
+					 ") should be the same as the number of values (" +
+					 IntToString(checkedValueVector->GetValueNumber()) + ")");
 			}
-			else
-				nkdKeys.SetAt(sKey.GetNumericKey(), &nkdKeys);
+
+			// Verification de l'unicite des cle
+			for (nKey = 0; nKey < checkedKeyVector->GetValueNumber(); nKey++)
+			{
+				sKey = checkedKeyVector->GetValueAt(nKey);
+
+				// Test si la cle a deja ete vue
+				if (nkdKeys.Lookup(sKey.GetNumericKey()) != NULL)
+				{
+					bOk = false;
+					AddError(sTmp + "Key " + sKey + " is used several times");
+					break;
+				}
+				else
+					nkdKeys.SetAt(sKey.GetNumericKey(), &nkdKeys);
+			}
 		}
 	}
 	return bOk;

@@ -1009,7 +1009,7 @@ boolean KWDiscretizerMODL::UpdateOptimalDiscretizations(const KWFrequencyTable* 
 	interval = headInterval;
 	while (interval != NULL)
 	{
-		// Arret de la recherche s'il ne reste pas suffisament d'intervalles potentiels
+		// Arret de la recherche s'il ne reste pas suffisamment d'intervalles potentiels
 		if (interval->GetIntervalNumber() == interval->GetMaxIntervalNumber() or
 		    interval->GetIntervalNumber() < nInitialIntervalNumber)
 			break;

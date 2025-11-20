@@ -952,21 +952,21 @@ KIInterpretationClassBuilder::CreateReinforcerAttribute(KWClass* kwcReinforcemen
 	require(svReinforcementAttributes != NULL);
 	require(svReinforcementAttributes->GetSize() > 0);
 
-	// Creation d'une regle de derivation pour les noms des attributs de renforcement
-	reinforcementAttributesRule = new KWDRSymbolVector;
-	reinforcementAttributesRule->SetValueNumber(svReinforcementAttributes->GetSize());
-	for (nAttribute = 0; nAttribute < svReinforcementAttributes->GetSize(); nAttribute++)
-		reinforcementAttributesRule->SetValueAt(nAttribute,
-							(Symbol)svReinforcementAttributes->GetAt(nAttribute));
-
 	// Creation de la regle de derivation
 	reinforcerRule = new KIDRClassifierReinforcer;
 	reinforcerRule->SetClassName(kwcReinforcementClass->GetName());
 	reinforcerRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
 	reinforcerRule->GetFirstOperand()->SetAttributeName(predictorRuleAttribute->GetName());
 	reinforcerRule->GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
-	reinforcerRule->GetSecondOperand()->SetDerivationRule(reinforcementAttributesRule);
 	assert(reinforcerRule->Check());
+
+	// Parametrage de la regle de derivation pour les noms des attributs de renforcement, deja disponible
+	reinforcementAttributesRule = cast(KWDRSymbolVector*, reinforcerRule->GetSecondOperand()->GetDerivationRule());
+	assert(reinforcementAttributesRule != NULL);
+	reinforcementAttributesRule->SetValueNumber(svReinforcementAttributes->GetSize());
+	for (nAttribute = 0; nAttribute < svReinforcementAttributes->GetSize(); nAttribute++)
+		reinforcementAttributesRule->SetValueAt(nAttribute,
+							(Symbol)svReinforcementAttributes->GetAt(nAttribute));
 
 	// Ajout d'operandes pour chaque attribut genere par paire utilise par le predicteur
 	reinforcerRule->DeleteAllVariableOperands();

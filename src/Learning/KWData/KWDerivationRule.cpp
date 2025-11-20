@@ -117,7 +117,7 @@ void KWDerivationRule::DeleteAllVariableOperands()
 	// Recherche de la regle de derivation de reference
 	kwdrReference = KWDerivationRule::LookupDerivationRule(GetName());
 
-	// Supression des derniers operandes si la regle est a nombre variables d'operandes
+	// Supression des derniers operandes si la regle est a nombre variable d'operandes
 	if (kwdrReference->GetVariableOperandNumber())
 	{
 		// Supression des derniers operandes
@@ -293,7 +293,7 @@ KWDerivationRuleOperand* KWDerivationRule::GetOutputOperandAt(int nIndex) const
 
 boolean KWDerivationRule::CheckDefinition() const
 {
-	// On test d'abord les operandes, qui peuvent etre a l'origine d'erreur sur la regle elle-meme
+	// On teste d'abord les operandes, qui peuvent etre a l'origine d'erreurs sur la regle elle-meme
 	return CheckOperandsDefinition() and CheckRuleDefinition();
 }
 
@@ -405,7 +405,7 @@ boolean KWDerivationRule::CheckOperandsDefinition() const
 		}
 	}
 
-	// Cas des regle avec scope multiple
+	// Cas des regles avec scope multiple
 	if (bResult and GetMultipleScope())
 	{
 		// Il doit y avoir au moins un operande
@@ -424,7 +424,7 @@ boolean KWDerivationRule::CheckOperandsDefinition() const
 
 boolean KWDerivationRule::CheckFamily(const KWDerivationRule* ruleFamily) const
 {
-	// On test d'abord les operandes, qui peuvent etre a l'origine d'erreur sur la regle elle-meme
+	// On teste d'abord les operandes, qui peuvent etre a l'origine d'erreurs sur la regle elle-meme
 	return CheckOperandsFamily(ruleFamily) and CheckRuleFamily(ruleFamily);
 }
 
@@ -544,7 +544,7 @@ boolean KWDerivationRule::CheckOperandsFamily(const KWDerivationRule* ruleFamily
 
 boolean KWDerivationRule::CheckCompleteness(const KWClass* kwcOwnerClass) const
 {
-	// On test d'abord les operandes, qui peuvent etre a l'origine d'erreur sur la regle elle-meme
+	// On teste d'abord les operandes, qui peuvent etre a l'origine d'erreurs sur la regle elle-meme
 	return CheckOperandsCompleteness(kwcOwnerClass) and CheckRuleCompletness(kwcOwnerClass);
 }
 
@@ -592,10 +592,10 @@ boolean KWDerivationRule::CheckRuleCompletness(const KWClass* kwcOwnerClass) con
 		bResult = false;
 	}
 
-	/// Verification des cle pour les blocs de variables
-	// Verification technique, utile pour la mise au pouint des regles de type bloc
+	// Verification des cle pour les blocs de variables
+	// Verification technique, utile pour la mise au point des regles de type bloc
 	// Cette verification n'est effectuee qu'a la fin pour ne pas perturber si possible les
-	// message d'erreur utilisateur
+	// messages d'erreur utilisateur
 	if (bResult)
 	{
 		// Type de cle pour les variables
@@ -744,7 +744,7 @@ boolean KWDerivationRule::CheckBlockAttributes(const KWClass* kwcOwnerClass,
 			{
 				secondaryScopeClass = LookupSecondaryScopeClass(kwcOwnerClass);
 
-				// Arret si on a pas trouve la classe secondaire
+				// Arret si on n'a pas trouve la classe secondaire
 				if (secondaryScopeClass == NULL)
 					break;
 			}
@@ -986,7 +986,7 @@ boolean KWDerivationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 						    nkdGreyAttributes, nkdBlackAttributes);
 				}
 			}
-			// Cas d'un bloc d'attribut
+			// Cas d'un bloc d'attributs
 			else
 			{
 				calledAttributeBlock = operand->GetOriginAttributeBlock();
@@ -1067,7 +1067,7 @@ void KWDerivationRule::InternalCompleteTypeInfo(const KWClass* kwcOwnerClass,
 			{
 				secondaryScopeClass = LookupSecondaryScopeClass(kwcOwnerClass);
 
-				// Arret si on a pas trouve la classe secondaire
+				// Arret si on n'a pas trouve la classe secondaire
 				if (secondaryScopeClass == NULL)
 					break;
 			}
@@ -1113,7 +1113,7 @@ void KWDerivationRule::Compile(KWClass* kwcOwnerClass)
 		kwcClass = kwcOwnerClass;
 		nClassFreshness = kwcClass->GetFreshness();
 
-		// Nettoyage prealable des operandes secondaires ayant acces aux scope principale de la regle
+		// Nettoyage prealable des operandes secondaires ayant acces au scope principal de la regle
 		if (oaMainScopeSecondaryOperands != NULL)
 			oaMainScopeSecondaryOperands->SetSize(0);
 		else
@@ -1147,7 +1147,7 @@ void KWDerivationRule::Compile(KWClass* kwcOwnerClass)
 				{
 					secondaryScopeClass = LookupSecondaryScopeClass(kwcOwnerClass);
 
-					// Arret si on a pas trouve la classe secondaire
+					// Arret si on n'a pas trouve la classe secondaire
 					if (secondaryScopeClass == NULL)
 						break;
 				}
@@ -1171,7 +1171,7 @@ void KWDerivationRule::Compile(KWClass* kwcOwnerClass)
 			}
 		}
 
-		// Destruction du tableau operandes secondaires ayant acces aux scope principale de la regle
+		// Destruction du tableau d'operandes secondaires ayant acces au scope principal de la regle
 		// dans le cas ou le tableau est vide
 		assert(oaMainScopeSecondaryOperands != NULL);
 		if (oaMainScopeSecondaryOperands->GetSize() == 0)
@@ -1444,7 +1444,7 @@ int KWDerivationRule::FullCompare(const KWDerivationRule* rule) const
 					nDiff = operand1->GetStructureName().Compare(operand2->GetStructureName());
 			}
 
-			// Comparaison sur l'origine des operande si necessaire
+			// Comparaison sur l'origine des operandes si necessaire
 			if (nDiff == 0)
 			{
 				// Comparaison sur l'origine de l'operande dans le cas d'une constante dans les deux cas
@@ -1494,7 +1494,7 @@ int KWDerivationRule::FullCompare(const KWDerivationRule* rule) const
 					{
 						assert(attribute1 != NULL and attribute2 != NULL);
 
-						// Acces aux bloc des attributs
+						// Acces aux blocs des attributs
 						attributeBlock1 = attribute1->GetAttributeBlock();
 						attributeBlock2 = attribute2->GetAttributeBlock();
 
@@ -1502,7 +1502,7 @@ int KWDerivationRule::FullCompare(const KWDerivationRule* rule) const
 						if (attributeBlock1 == NULL and attributeBlock2 == NULL)
 							// On compare sur le nom des attributs
 							nDiff = attribute1->GetName().Compare(attribute2->GetName());
-						// Cas ou un des attribut est dans un bloc
+						// Cas ou un des attributs est dans un bloc
 						else if (attributeBlock1 == NULL)
 							nDiff = -1;
 						else if (attributeBlock2 == NULL)
@@ -1532,7 +1532,7 @@ int KWDerivationRule::FullCompare(const KWDerivationRule* rule) const
 											attribute2));
 							}
 
-							// Comparaison supplementaire si necessaires, selon que les bloc
+							// Comparaison supplementaire si necessaire, selon que les blocs
 							// soient calcules ou non
 							if (nDiff == 0)
 							{
@@ -1542,12 +1542,12 @@ int KWDerivationRule::FullCompare(const KWDerivationRule* rule) const
 									// On compare sur le nom des blocs
 									nDiff = attributeBlock1->GetName().Compare(
 									    attributeBlock2->GetName());
-								// Cas ou un des bloc est calcule
+								// Cas ou un des blocs est calcule
 								else if (attributeBlock1->GetDerivationRule() == NULL)
 									nDiff = -1;
 								else if (attributeBlock2->GetDerivationRule() == NULL)
 									nDiff = 1;
-								// Cas ou les deux bloc sont calcules
+								// Cas ou les deux blocs sont calcules
 								else
 									nDiff = attributeBlock1->GetDerivationRule()
 										    ->FullCompare(
@@ -1561,7 +1561,7 @@ int KWDerivationRule::FullCompare(const KWDerivationRule* rule) const
 						nDiff = -1;
 					else if (operandRule2 == NULL)
 						nDiff = 1;
-					// Si les deux regles sont non nulle, on propage la comparaison
+					// Si les deux regles sont non nulles, on propage la comparaison
 					else
 						nDiff = operandRule1->FullCompare(operandRule2);
 				}
@@ -1605,7 +1605,7 @@ int KWDerivationRule::FullCompare(const KWDerivationRule* rule) const
 						nDiff = 1;
 					// Si les deux regles sont non nulles, on propage la comparaison
 					// On ne compare que la regle produisant les blocs, pas les attributs de chaque
-					// blocs (pourtant disponibles dans le cas d'un bloc d'origine Attribute, avec
+					// bloc (pourtant disponibles dans le cas d'un bloc d'origine Attribute, avec
 					// une regle)
 					else
 						nDiff = operandRule1->FullCompare(operandRule2);
@@ -1620,7 +1620,7 @@ int KWDerivationRule::FullCompare(const KWDerivationRule* rule) const
 				{
 					secondaryScopeClass = LookupSecondaryScopeClass(kwcClass);
 
-					// Arret si on a pas trouve la classe secondaire
+					// Arret si on n'a pas trouve la classe secondaire
 					if (secondaryScopeClass == NULL)
 						break;
 				}
@@ -1655,7 +1655,7 @@ longint KWDerivationRule::GetUsedMemory() const
 	KWDerivationRuleOperand* operand;
 
 	// Prise en compte de la regle elle-meme
-	// On ne prend pas en compte la memoire des UniqueString, car il elle est deja comptee par ailleurs
+	// On ne prend pas en compte la memoire des UniqueString, car elle est deja comptee par ailleurs
 	lUsedMemory = sizeof(KWDerivationRule);
 
 	// Prise en compte des operandes
@@ -1907,7 +1907,7 @@ void KWDerivationRule::WriteUsedObjectArray(const ObjectArray* oaSubObjectArray,
 	int i;
 	KWObjectKey key;
 
-	// Affichage des sous-objets du containers
+	// Affichage des sous-objets du container
 	ost << "\tTable\t" << oaSubObjectArray << endl;
 	if (oaSubObjectArray != NULL)
 	{

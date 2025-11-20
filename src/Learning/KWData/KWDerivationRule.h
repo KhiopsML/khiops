@@ -83,11 +83,11 @@ class KWDatabase;
 
 /////////////////////////////////////////////////////////////////////////////////
 // Classe KWDerivationRule
-// Un regle de derivation sert a modeliser la facon dont une valeur peut
+// Une regle de derivation sert a modeliser la facon dont une valeur peut
 // etre calculee a partir d'autres valeurs provenant de constantes, d'attributs
 // de classe, ou d'autres regles.
 //
-// La specification d'un regles de derivation fait appel a la classe
+// La specification d'une regle de derivation fait appel a la classe
 // KWDerivationRuleOperand.
 //
 // Les attributs suivants permettent de definir une regle de derivation:
@@ -170,7 +170,7 @@ public:
 	// Nombre d'operandes
 	int GetOperandNumber() const;
 
-	// Initialisation/modification du nombre d'operande
+	// Initialisation/modification du nombre d'operandes
 	// Les operandes en trop sont supprimes, ceux en plus sont ajoutes
 	void SetOperandNumber(int nValue);
 
@@ -248,7 +248,7 @@ public:
 	//     TableSelection(Logs, G(DiffTime(LogTime, .UserTime), 0));
 	//        (UserTime est de scope principal)
 	// Le ScopeLevel (par defaut 0) permet de remonter le scope de un
-	// a plusieurs niveau
+	// a plusieurs niveaux
 	//   1 pour remonter un niveau (".")
 	//   2 pour remonter un niveau ("..")
 
@@ -264,7 +264,7 @@ public:
 	// Cela ne concerne que les regles de creation de Table ou Entity,
 	// c'est a dire avec une methode GetReference() renvoyant false
 	// Toute la gestion de ce type de regle est sous-traitee a la classe dediee KWRelationCreationRule
-	// pour des raison de modularite de l'implementation
+	// pour des raisons de modularite de l'implementation
 	// On ne definit ci-dessous en virtuel que les methodes de consultation des specifications
 	// pour simplifier l'implementation dans la classe KWRelationCreationRule et dans le parseur de dictionnaire
 
@@ -282,13 +282,13 @@ public:
 	// Ces methodes se decomposent en deux parties, sur la regle et sur ses operandes
 	// ce qui facilite la reimplementation partielle ou totale
 
-	// Verification qu'une regle est suffisament definie pour etre generalisee
+	// Verification qu'une regle est suffisamment definie pour etre generalisee
 	virtual boolean CheckDefinition() const;
 	virtual boolean CheckRuleDefinition() const;
 	virtual boolean CheckOperandsDefinition() const;
 
 	// Verification qu'une regle est une specialisation d'une regle plus generale
-	// suffisament definie
+	// suffisamment definie
 	virtual boolean CheckFamily(const KWDerivationRule* ruleFamily) const;
 	virtual boolean CheckRuleFamily(const KWDerivationRule* ruleFamily) const;
 	virtual boolean CheckOperandsFamily(const KWDerivationRule* ruleFamily) const;
@@ -300,7 +300,7 @@ public:
 
 	// Verification que les attributs d'un bloc sont tous presents via leur VarKey
 	// dans les blocs en operandes de la regle
-	// Les messages sont emis pour le bloc d'attribut en parametre, associe a la regle a verifier
+	// Les messages sont emis pour le bloc d'attributs en parametre, associe a la regle a verifier
 	virtual boolean CheckBlockAttributes(const KWClass* kwcOwnerClass,
 					     const KWAttributeBlock* attributeBlock) const;
 	virtual boolean CheckBlockAttributesAt(const KWClass* kwcOwnerClass, const KWAttributeBlock* attributeBlock,
@@ -317,7 +317,7 @@ public:
 	// On passe en parametre une liste d'attributs colore en Grey ou en Black
 	// (cf. algo decrit dans l'implementation de KWClassDomain::Compile())
 	// Prerequis: la classe doit etre compilee
-	// Retourne true si pas de cycle, sinon false en emmetant des messages d'erreur
+	// Retourne true si pas de cycle, sinon false en emettant des messages d'erreur
 	virtual boolean ContainsCycle(NumericKeyDictionary* nkdGreyAttributes,
 				      NumericKeyDictionary* nkdBlackAttributes) const;
 
@@ -349,9 +349,9 @@ public:
 	//  - type Text: ce sont egalement des valeurs (comme les Symbol), et cela ne pose pas de probleme
 	//  - type TextList: vecteur de valeurs, detruit avec les KWObjet le contenant
 	//    Une regle de calcul produisant un result TextList doit en garder la copie.
-	//    Le KWObjet memorisant un TextLits fera une copie des TextList renvoyes par les regles
+	//    Le KWObjet memorisant un TextList fera une copie des TextList renvoyes par les regles
 	//  - type object (Object et ObjectArray): selon qu'il soient internes ou references, ils appartiennent
-	//    a leur KWObject englobant et seront detruits par celui ci, ou sont simplement reference et sont
+	//    a leur KWObject englobant et seront detruits par celui ci, ou sont simplement references et sont
 	//    censes appartenir a un autre objet ou etre extrait d'un autre attribut
 	//    Une regle de calcul produisant des objets internes est responsable de leur destruction
 	//    Une regle de calcul produisant un ObjectArray doit en garder la copie et est responsable
@@ -362,7 +362,7 @@ public:
 	//    d'acces a l'objet dans le cas de regles de creation d'instances.
 	//  - type structure: le type Structure est cense appartenir a la KWClass, pas au KWObject
 	//    Il est donc detruit uniquement avec la KWClass, jamais par le KWObject
-	//    En pratique, une facon simple de respecter cette contrainte est de faire en sorte de la methode
+	//    En pratique, une facon simple de respecter cette contrainte est de faire en sorte que la methode
 	//    ComputeStructureResult renvoie directement un pointeur sur la KWDerivationRule.
 	//    Dans le cas de regles de classe (par exemple: specification d'une discretisation), l'objet est
 	//    cree et initialise une seule fois.
@@ -374,7 +374,7 @@ public:
 	//    l'attribut detruira les blocs lors de sa destruction. Si le bloc est utilise en operande de regle de
 	//    derivation, la regle de derivation n'aura pas a detruire le bloc car un bloc est necessairement de type
 	//    OriginAttribute (OriginRule est interdit, car on n'aurait pas acces aux VarKeys). Un bloc de cle indexes
-	//    est egalement passe en parametre, pour specifie les cles d'attributs a calculer et les memoriser selon
+	//    est egalement passe en parametre, pour specifier les cles d'attributs a calculer et les memoriser selon
 	//    leur index dans le bloc de valeurs.
 	virtual Continuous ComputeContinuousResult(const KWObject* kwoObject) const;
 	virtual Symbol ComputeSymbolResult(const KWObject* kwoObject) const;
@@ -425,7 +425,7 @@ public:
 
 	// Methode de comparaison entre deux regles, en remplacant les attributs
 	// references par leur eventuelle formule
-	// Prerequis: les regles doivent etre compilee ou avec des informations de type completes
+	// Prerequis: les regles doivent etre compilees ou avec des informations de type completes
 	virtual int FullCompare(const KWDerivationRule* rule) const;
 
 	// Acces a la fraicheur d'edition de la regle (sans tenir compte de ses operandes)
@@ -492,7 +492,7 @@ public:
 	// Indique si une regle est de type KWStructureRule (pour l'optimisation du parser)
 	virtual boolean IsStructureRule() const;
 
-	// Nom de la regle utilisee pour geree les references a des objets
+	// Nom de la regle utilisee pour gerer les references a des objets
 	static const ALString GetReferenceRuleName();
 
 	// Completion eventuelle de la regle avec les informations de type
@@ -532,19 +532,19 @@ protected:
 
 	// Verification du type du premier operande d'une regle a scope multiple
 	// La redefinition de cette methode permet de specifier des regles
-	// a scope multiple dont lme premier operande n'est pas de type Relation
-	// (par exemple une regle Structure ayant acces acces a un type de table)
+	// a scope multiple dont le premier operande n'est pas de type Relation
+	// (par exemple une regle Structure ayant acces a un type de table)
 	virtual boolean CheckFirstMultiScopeOperand() const;
 
 	// Recherche de la classe de scope secondaire en cas de scope multiple
 	// Cela correspond a la classe du premier operande de la regle
 	// Peut etre redefinie comme pour la methode precedente
 	// Renvoie NULL si la regle n'est pas de scope multiple ou si
-	// l'on a pas trouve cette classe
+	// l'on n'a pas trouve cette classe
 	virtual KWClass* LookupSecondaryScopeClass(const KWClass* kwcOwnerClass) const;
 
 	// Une fois compilee, une regle a scope multiple memorise dans un tableau
-	// tous les operandes secondaire ou des sous-regles a evaluer au niveau
+	// tous les operandes secondaires ou des sous-regles a evaluer au niveau
 	// du scope principal (en raison de leur ScopeLevel positif).
 	// Lors du calcul du resultat de la regle de derivation, ces operandes
 	// doivent etre evalues prealablement a l'evaluation de la regle elle-meme.
@@ -660,7 +660,7 @@ public:
 	// qui doit etre de type Relation).
 	// On peut alors remonter d'un niveau (ScopeLevel=1) pour acceder a la classe
 	// de regle, et generaliser a plusieurs niveaux (ScopeLevel > 1) si necessaire
-	// En externe, dans les dictionnaire, les niveaux de scope au dela du scope courant
+	// En externe, dans les dictionnaires, les niveaux de scope au dela du scope courant
 	// se traduisent par le prefixage des operandes par '.' (ScopeLevel=1),
 	// '..' (ScopeLevel=2), ...
 	// Seuls les oprandes non constants peuvent avoir un niveau de scope au dela du niveau courant
@@ -681,7 +681,7 @@ public:
 	enum
 	{
 		OriginConstant,  // Valeur constante, uniquement pour les type simples
-		OriginAttribute, // Valeur d'un attribut ou d'un bloc d'attribut
+		OriginAttribute, // Valeur d'un attribut ou d'un bloc d'attributs
 		OriginRule,      // Valeur retour d'une regle de derivation
 		OriginAny        // Provenance quelconque
 	};
@@ -689,7 +689,7 @@ public:
 	int GetOrigin() const;
 
 	// Libelle lie a l'origine, avec utilisation potentielle du type
-	// pour distinguer entre attribut et bloc d'attribut
+	// pour distinguer entre attribut et bloc d'attributs
 	static ALString OriginToString(int nOrigin, int nType);
 
 	// Valeur constante
@@ -700,7 +700,7 @@ public:
 	void SetSymbolConstant(const Symbol& sValue);
 	Symbol& GetSymbolConstant() const;
 
-	// Valeur specifiee de facon generique sous forme chaine de caractere dans le cas des types simples
+	// Valeur specifiee de facon generique sous forme chaine de caracteres dans le cas des types simples
 	// Le type pris en compte est celui de l'operande
 	void SetStringConstant(const ALString& sValue);
 	const ALString GetStringConstant() const;
@@ -713,11 +713,11 @@ public:
 	void SetAttributeName(const ALString& sName);
 	const ALString& GetAttributeName() const;
 
-	// Nom du bloc d'attribut, dans le cas d'une origine attribut et d'un type IsValueBlock
+	// Nom du bloc d'attributs, dans le cas d'une origine attribut et d'un type IsValueBlock
 	void SetAttributeBlockName(const ALString& sName);
 	const ALString& GetAttributeBlockName() const;
 
-	// Nom generique d'un attribut ou bloc d'attribut dans le cas d'une origine attribut
+	// Nom generique d'un attribut ou bloc d'attributs dans le cas d'une origine attribut
 	// Il y a ici moins de controle d'assertion
 	void SetDataItemName(const ALString& sName);
 	const ALString& GetDataItemName() const;
@@ -733,11 +733,11 @@ public:
 	//////////////////////////////////////////////////////////////////////////
 	// Methodes de verification
 
-	// Verification qu'une regle est suffisament definie pour etre generalisee
+	// Verification qu'une regle est suffisamment definie pour etre generalisee
 	boolean CheckDefinition() const;
 
 	// Verification qu'une regle est une specialisation d'une regle plus generale
-	// suffisament definie
+	// suffisamment definie
 	boolean CheckFamily(const KWDerivationRuleOperand* operandFamily) const;
 
 	// Verification qu'une regle est completement renseignee et compilable
@@ -818,8 +818,8 @@ public:
 	// Calcul de la valeur d'un operande accedant a un scope de niveau superieur et memorisation dans la valeur
 	// constant En effet, seuls les operandes d'origine Attribute ou Rule peuvent etre de scope superieur; on peut
 	// alors utiliser la valeur pour memoriser le resultat du calcul au debut de la regle de derivation au bon
-	// niveau de scope. Ce calcul est alors effectue uen fois pour toute au debut du calcul de valeur de la regle,
-	// puis ces valeurs sont accedees par leur valeur constante par les regle de scope secondaire Les methodes
+	// niveau de scope. Ce calcul est alors effectue une fois pour toute au debut du calcul de valeur de la regle,
+	// puis ces valeurs sont accedees par leur valeur constante par les regles de scope secondaire Les methodes
 	// suivantes precalculent les operandes de scope superieur (attribut ou regle) et les stockent sous forme de
 	// constante
 	//  void KWDerivationRule::EvaluateMainScopeSecondaryOperands(const KWObject* kwoObject);

@@ -30,6 +30,8 @@ KIDRClassifierReinforcer::KIDRClassifierReinforcer()
 	SetOperandNumber(3);
 	GetSecondOperand()->SetType(KWType::Structure);
 	GetSecondOperand()->SetStructureName("VectorC");
+	GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
+	GetSecondOperand()->SetDerivationRule(new KWDRSymbolVector);
 	GetOperandAt(2)->SetType(KWType::Symbol);
 }
 
@@ -49,8 +51,10 @@ KWDerivationRule* KIDRClassifierReinforcer::Create() const
 boolean KIDRClassifierReinforcer::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
-	KWDRNBClassifier* checkedNBClassifierRule;
+	KWDRNBClassifier* nbClassifierRule;
 	ObjectDictionary odCheckedPredictorPairVariables;
+	KWDRSymbolVector* reinforcementAttributeNames;
+	KWDRSymbolVector tmpReinforcementAttributeNames;
 	KWDRSymbolVector* checkedReinforcementAttributeNames;
 	StringVector svCheckedPredictorAttributeNames;
 	StringVector svCheckedPredictorDataGridAttributeNames;
@@ -82,69 +86,94 @@ boolean KIDRClassifierReinforcer::CheckOperandsCompleteness(const KWClass* kwcOw
 		assert(referenceRule->GetOperandAt(nFirstPairOperandIndex)->GetType() == KWType::Symbol);
 
 		// Acces aux parametres de la regle
-		checkedNBClassifierRule =
+		nbClassifierRule =
 		    cast(KWDRNBClassifier*, GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
-		checkedReinforcementAttributeNames =
+		reinforcementAttributeNames =
 		    cast(KWDRSymbolVector*, GetSecondOperand()->GetReferencedDerivationRule(kwcOwnerClass));
 
-		// Recherche de ses variables
-		checkedNBClassifierRule->ExportAttributeNames(kwcOwnerClass, &svCheckedPredictorAttributeNames,
-							      &svCheckedPredictorDataGridAttributeNames,
-							      &oaCheckedPredictorDenseAttributeDataGridStatsRules);
-
-		// Completion des noms de variables dans le cas des paires
-		nPairIndex = 0;
-		for (nAttribute = 0; nAttribute < svCheckedPredictorAttributeNames.GetSize(); nAttribute++)
+		// Le vecteur de parametres doivent etre constant
+		if (not reinforcementAttributeNames->CheckConstantOperands(true))
 		{
-			// Les paires correspondent aux variables du predicteur, n'ayant pas de nom
-			// Leur validite a ete verifiee precedement, et une variable a ete genere dans les
-			// operandes en fin de regle
-			if (svCheckedPredictorAttributeNames.GetAt(nAttribute) == "")
-			{
-				// Recherche de l'operande pour la paire utilisee par le predicteur
-				assert(nFirstPairOperandIndex + nPairIndex < GetOperandNumber());
-				pairOperand = GetOperandAt(nFirstPairOperandIndex + nPairIndex);
-
-				// Memorisation du nom de l'attribut lie a la paire
-				svCheckedPredictorAttributeNames.SetAt(nAttribute, pairOperand->GetAttributeName());
-
-				// Incrementation de l'index de paire
-				nPairIndex++;
-			}
+			bOk = false;
+			AddError(sTmp + "Variable names in operand 2 should be constants");
 		}
 
-		// On range les variables dans un dictionnaire
-		for (nAttribute = 0; nAttribute < svCheckedPredictorAttributeNames.GetSize(); nAttribute++)
-			ldCheckedPredictorAttributes.SetAt(svCheckedPredictorAttributeNames.GetAt(nAttribute), 1);
-
-		// On verifie que les variables de renforcement sont bien des variables du predicteur
-		for (nAttribute = 0; nAttribute < checkedReinforcementAttributeNames->GetValueNumber(); nAttribute++)
+		// Verifications poussees
+		if (bOk)
 		{
-			// Test si la variable existe pour le predicteur
-			if (ldCheckedPredictorAttributes.Lookup(
-				checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetValue()) == 0)
+			// Transfert des nom d'attributs vers vers la representation structuree
+			check(reinforcementAttributeNames);
+			if (reinforcementAttributeNames->GetStructureInterface())
+				checkedReinforcementAttributeNames = reinforcementAttributeNames;
+			else
 			{
-				AddError(sTmp + "Reinforced variable " +
-					 checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetValue() +
-					 " not found among the classifier variables in the first rule operand");
-				bOk = false;
+				tmpReinforcementAttributeNames.BuildStructureFromBase(reinforcementAttributeNames);
+				checkedReinforcementAttributeNames = &tmpReinforcementAttributeNames;
 			}
 
-			// Test de l'unicite de la variable de renforcement
-			if (lnkdUniqueReinforcedAttributes.Lookup(
-				checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetNumericKey()) == 1)
-			{
-				AddError(sTmp + "Reinforced variable " +
-					 checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetValue() +
-					 " used twice");
-				bOk = false;
-			}
-			lnkdUniqueReinforcedAttributes.SetAt(
-			    checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetNumericKey(), 1);
+			// Recherche de ses variables
+			nbClassifierRule->ExportAttributeNames(kwcOwnerClass, &svCheckedPredictorAttributeNames,
+							       &svCheckedPredictorDataGridAttributeNames,
+							       &oaCheckedPredictorDenseAttributeDataGridStatsRules);
 
-			// Arret si erreurs
-			if (not bOk)
-				break;
+			// Completion des noms de variables dans le cas des paires
+			nPairIndex = 0;
+			for (nAttribute = 0; nAttribute < svCheckedPredictorAttributeNames.GetSize(); nAttribute++)
+			{
+				// Les paires correspondent aux variables du predicteur, n'ayant pas de nom
+				// Leur validite a ete verifiee precedement, et une variable a ete genere dans les
+				// operandes en fin de regle
+				if (svCheckedPredictorAttributeNames.GetAt(nAttribute) == "")
+				{
+					// Recherche de l'operande pour la paire utilisee par le predicteur
+					assert(nFirstPairOperandIndex + nPairIndex < GetOperandNumber());
+					pairOperand = GetOperandAt(nFirstPairOperandIndex + nPairIndex);
+
+					// Memorisation du nom de l'attribut lie a la paire
+					svCheckedPredictorAttributeNames.SetAt(nAttribute,
+									       pairOperand->GetAttributeName());
+
+					// Incrementation de l'index de paire
+					nPairIndex++;
+				}
+			}
+
+			// On range les variables dans un dictionnaire
+			for (nAttribute = 0; nAttribute < svCheckedPredictorAttributeNames.GetSize(); nAttribute++)
+				ldCheckedPredictorAttributes.SetAt(svCheckedPredictorAttributeNames.GetAt(nAttribute),
+								   1);
+
+			// On verifie que les variables de renforcement sont bien des variables du predicteur
+			for (nAttribute = 0; nAttribute < checkedReinforcementAttributeNames->GetValueNumber();
+			     nAttribute++)
+			{
+				// Test si la variable existe pour le predicteur
+				if (ldCheckedPredictorAttributes.Lookup(
+					checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetValue()) == 0)
+				{
+					AddError(sTmp + "Reinforced variable " +
+						 checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetValue() +
+						 " not found among the classifier variables in the first rule operand");
+					bOk = false;
+				}
+
+				// Test de l'unicite de la variable de renforcement
+				if (lnkdUniqueReinforcedAttributes.Lookup(
+					checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetNumericKey()) ==
+				    1)
+				{
+					AddError(sTmp + "Reinforced variable " +
+						 checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetValue() +
+						 " used twice");
+					bOk = false;
+				}
+				lnkdUniqueReinforcedAttributes.SetAt(
+				    checkedReinforcementAttributeNames->GetValueAt(nAttribute).GetNumericKey(), 1);
+
+				// Arret si erreurs
+				if (not bOk)
+					break;
+			}
 		}
 	}
 	return bOk;

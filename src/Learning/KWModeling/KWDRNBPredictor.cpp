@@ -1341,6 +1341,8 @@ KWDRSNBClassifier::KWDRSNBClassifier()
 	// Le premier operande est un vecteurs de poids
 	GetFirstOperand()->SetType(KWType::Structure);
 	GetFirstOperand()->SetStructureName("Vector");
+	GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
+	GetFirstOperand()->SetDerivationRule(new KWDRContinuousVector);
 
 	// Les operandes principaux contiennent des regles de type Structure
 	nFirstDataGridOperand = 1;
@@ -1362,6 +1364,7 @@ boolean KWDRSNBClassifier::CheckOperandsCompleteness(const KWClass* kwcOwnerClas
 	KWDerivationRule* dataGridStatsOrBlockRule;
 	KWDRDataGridStatsBlock* dataGridStatsBlockRule;
 	KWDRDataGridBlock* dataGridBlockRule;
+	KWDRContinuousVector* weightVector;
 	int nTotalDataGridNumber;
 	KWDRContinuousVector* weightsContinuousVectorRule;
 	ALString sTmp;
@@ -1395,11 +1398,23 @@ boolean KWDRSNBClassifier::CheckOperandsCompleteness(const KWClass* kwcOwnerClas
 				nTotalDataGridNumber += dataGridBlockRule->GetUncheckedDataGridNumber();
 			}
 		}
+	}
 
-		// Verfication que le nombre total de grilles est coherent avec le vecteur de poids
+	// Verification du vecteur de poids
+	if (bOk)
+	{
 		weightsContinuousVectorRule =
 		    cast(KWDRContinuousVector*, GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
-		if (nTotalDataGridNumber != weightsContinuousVectorRule->GetValueNumber())
+
+		// Le vecteur de poids doit etre constant
+		if (not weightsContinuousVectorRule->CheckConstantOperands(true))
+		{
+			bOk = false;
+			AddError(sTmp + "Weights in operand 1 should be constants");
+		}
+
+		// Verification que le nombre total de grilles est coherent avec le vecteur de poids
+		if (bOk and nTotalDataGridNumber != weightsContinuousVectorRule->GetValueNumber())
 		{
 			AddError(sTmp + "Total number of data grids (" + IntToString(nTotalDataGridNumber) + ") " +
 				 "incoherent with the number of weights (" +
@@ -2138,6 +2153,8 @@ KWDRSNBRankRegressor::KWDRSNBRankRegressor()
 	// Le premier operande est un vecteurs de poids
 	GetFirstOperand()->SetType(KWType::Structure);
 	GetFirstOperand()->SetStructureName("Vector");
+	GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
+	GetFirstOperand()->SetDerivationRule(new KWDRContinuousVector);
 
 	// Les operandes principaux contiennent des regles de type Structure
 	nFirstDataGridOperand = 1;
@@ -2192,11 +2209,23 @@ boolean KWDRSNBRankRegressor::CheckOperandsCompleteness(const KWClass* kwcOwnerC
 				nTotalDataGridNumber += dataGridBlockRule->GetUncheckedDataGridNumber();
 			}
 		}
+	}
 
-		// Verfication que le nombre total de grilles est coherent avec le vecteur de poids
+	// Verification du vecteur de poids
+	if (bOk)
+	{
 		weightsContinuousVectorRule =
 		    cast(KWDRContinuousVector*, GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
-		if (nTotalDataGridNumber != weightsContinuousVectorRule->GetValueNumber())
+
+		// Le vecteur de poids doit etre constant
+		if (not weightsContinuousVectorRule->CheckConstantOperands(true))
+		{
+			bOk = false;
+			AddError(sTmp + "Weights in operand 1 should be constants");
+		}
+
+		// Verification que le nombre total de grilles est coherent avec le vecteur de poids
+		if (bOk and nTotalDataGridNumber != weightsContinuousVectorRule->GetValueNumber())
 		{
 			AddError(sTmp + "Total number of data grids (" + IntToString(nTotalDataGridNumber) + ") " +
 				 "incoherent with the number of weights (" +
@@ -2206,6 +2235,7 @@ boolean KWDRSNBRankRegressor::CheckOperandsCompleteness(const KWClass* kwcOwnerC
 	}
 	return bOk;
 }
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDRNBRegressor
 

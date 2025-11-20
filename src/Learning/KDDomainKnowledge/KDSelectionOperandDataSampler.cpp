@@ -93,7 +93,7 @@ int KDSelectionOperandDataSampler::ComputeMaxSampleSize()
 		    max(nMaxSelectionOperandGranularity, classSelectionData->GetMaxOperandGranularity());
 	}
 
-	// Nombre minimum d'objets a garder dans les echantillons pour avoir une estimation suffisament fine des
+	// Nombre minimum d'objets a garder dans les echantillons pour avoir une estimation suffisamment fine des
 	// partiles
 	nSampleSize = nMaxSelectionOperandGranularity * nMinObjectNumberPerPartile;
 	nSampleSize = min(nSampleSize, nMaxSize);

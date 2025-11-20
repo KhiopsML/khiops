@@ -256,7 +256,7 @@ boolean CCDeploymentSpec::PrepareVarPartCoclusteringDeployment(const CCHierarchi
 	KWAttribute* innerVariablePartitionIndexAttribute;
 	KWAttribute* innerVariableVarPartLabelsAttribute;
 	KWAttribute* varPartLabelInnerAttribute;
-	KWDRDynamicSymbolVector* varPartVariableRule;
+	KWDRSymbolVector* varPartVariableRule;
 	ObjectArray oaVarPartLabelAttributes;
 	KWDGAttribute* innerAttribute;
 	KWDGAttribute* varPartAttribute;
@@ -305,7 +305,7 @@ boolean CCDeploymentSpec::PrepareVarPartCoclusteringDeployment(const CCHierarchi
 		distributionValueAttribute->SetName(
 		    kwcDeploymentClass->BuildAttributeName(GetOutputAttributesPrefix() + "VariablesSet"));
 		oaDistributionValueAttributes.Add(distributionValueAttribute);
-		varPartVariableRule = new KWDRDynamicSymbolVector;
+		varPartVariableRule = new KWDRSymbolVector;
 		varPartVariableRule->DeleteAllOperands();
 		distributionValueAttribute->SetDerivationRule(varPartVariableRule);
 
@@ -1099,7 +1099,6 @@ KWAttribute* CCDeploymentSpec::AddInnerAttributePartitionAttribute(KWClass* kwcD
 	KWAttribute* dgAttribute;
 	KWDRIntervalBounds* intervalBoundsRule;
 	KWDRValueGroups* valueGroupsRule;
-	KWDerivationRuleOperand* intervalBoundsOperand;
 	KWDerivationRuleOperand* valueGroupOperand;
 	KWDRValueGroup* valueGroupRule;
 	ObjectArray* oaParts;
@@ -1122,18 +1121,13 @@ KWAttribute* CCDeploymentSpec::AddInnerAttributePartitionAttribute(KWClass* kwcD
 	if (innerAttribute->GetAttributeType() == KWType::Continuous)
 	{
 		intervalBoundsRule = new KWDRIntervalBounds;
-		intervalBoundsRule->DeleteAllOperands();
 
 		dgAttribute->SetDerivationRule(intervalBoundsRule);
-
+		intervalBoundsRule->SetIntervalBoundNumber(oaParts->GetSize() - 1);
 		for (nPart = 0; nPart < oaParts->GetSize() - 1; nPart++)
 		{
-			intervalBoundsOperand = new KWDerivationRuleOperand;
-			intervalBoundsOperand->SetType(KWType::Continuous);
-			intervalBoundsOperand->SetOrigin(KWDerivationRuleOperand::OriginConstant);
-			intervalBoundsOperand->SetContinuousConstant(
-			    cast(KWDGPart*, oaParts->GetAt(nPart))->GetInterval()->GetUpperBound());
-			intervalBoundsRule->AddOperand(intervalBoundsOperand);
+			intervalBoundsRule->SetIntervalBoundAt(
+			    nPart, cast(KWDGPart*, oaParts->GetAt(nPart))->GetInterval()->GetUpperBound());
 		}
 	}
 	else
@@ -1158,8 +1152,6 @@ KWAttribute* CCDeploymentSpec::AddInnerAttributePartitionAttribute(KWClass* kwcD
 			valueGroupOperand->SetType(KWType::Structure);
 
 			// Ajout des valeurs du groupe
-			valueGroupRule->DeleteAllOperands();
-
 			oaValues = new ObjectArray;
 			cast(KWDGPart*, oaParts->GetAt(nPart))->GetSymbolValueSet()->ExportValues(oaValues);
 
@@ -1263,20 +1255,14 @@ KWAttribute* CCDeploymentSpec::AddInnerAttributeVarPartLabelsAttribute(KWClass* 
 	    GetOutputAttributesPrefix() + innerAttribute->GetAttributeName() + "VarPartLabels"));
 
 	vectorRule = new KWDRSymbolVector;
-	vectorRule->DeleteAllOperands();
 	dgAttribute->SetDerivationRule(vectorRule);
 
 	oaParts = new ObjectArray;
 	innerAttribute->ExportParts(oaParts);
-
+	vectorRule->SetValueNumber(oaParts->GetSize());
 	for (nPart = 0; nPart < oaParts->GetSize(); nPart++)
 	{
-		varPartLabelOperand = new KWDerivationRuleOperand;
-		varPartLabelOperand->SetType(KWType::Symbol);
-		varPartLabelOperand->SetOrigin(KWDerivationRuleOperand::OriginConstant);
-		varPartLabelOperand->SetSymbolConstant(
-		    Symbol(cast(KWDGPart*, oaParts->GetAt(nPart))->GetVarPartLabel()));
-		vectorRule->AddOperand(varPartLabelOperand);
+		vectorRule->SetValueAt(nPart, Symbol(cast(KWDGPart*, oaParts->GetAt(nPart))->GetVarPartLabel()));
 	}
 	delete oaParts;
 

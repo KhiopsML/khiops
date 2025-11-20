@@ -212,7 +212,11 @@ KWAttribute* KWPredictorNaiveBayes::AddClassifierAttribute(KWDataPreparationClas
 	else
 	{
 		classifierRule = new KWDRSNBClassifier;
-		classifierRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
+
+		// Parametrage apres nettoyage de la regle issue du constructeur
+		assert(classifierRule->GetFirstOperand()->GetOrigin() == KWDerivationRuleOperand::OriginRule);
+		assert(classifierRule->GetFirstOperand()->GetDerivationRule() != NULL);
+		delete classifierRule->GetFirstOperand()->GetDerivationRule();
 		classifierRule->GetFirstOperand()->SetDerivationRule(weightRule);
 	}
 	classifierRule->DeleteAllVariableOperands();
@@ -311,18 +315,18 @@ void KWPredictorNaiveBayes::AddClassifierPredictionAttributes(KWAttribute* class
 	    classifierPostOptimizer.PostOptimize(this, GetTrainedClassifier(), &cvScoreOffsets);
 	if (bAddBiasedPredictionAttribute)
 	{
-		// Creation d'une regle pour memoriser les offsets
-		offsetRule = new KWDRContinuousVector;
-		offsetRule->SetValueNumber(cvScoreOffsets.GetSize());
-		for (nTarget = 0; nTarget < cvScoreOffsets.GetSize(); nTarget++)
-			offsetRule->SetValueAt(nTarget, cvScoreOffsets.GetAt(nTarget));
-
 		// Creation d'une regle de prediction biasee de la valeur cible
 		biasedPredictionRule = new KWDRBiasedTargetValue;
 		biasedPredictionRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
 		biasedPredictionRule->GetFirstOperand()->SetAttributeName(classifierAttribute->GetName());
-		biasedPredictionRule->GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
-		biasedPredictionRule->GetSecondOperand()->SetDerivationRule(offsetRule);
+		assert(biasedPredictionRule->GetSecondOperand()->GetOrigin() == KWDerivationRuleOperand::OriginRule);
+		assert(biasedPredictionRule->GetSecondOperand()->GetDerivationRule() != NULL);
+
+		// Parametrage de la regle de memorisation les offsets (accessible depuis le constructeur)
+		offsetRule = cast(KWDRContinuousVector*, biasedPredictionRule->GetSecondOperand()->GetDerivationRule());
+		offsetRule->SetValueNumber(cvScoreOffsets.GetSize());
+		for (nTarget = 0; nTarget < cvScoreOffsets.GetSize(); nTarget++)
+			offsetRule->SetValueAt(nTarget, cvScoreOffsets.GetAt(nTarget));
 
 		// Ajout de l'attribut dans la classe
 		biasedPredictionAttribute = GetTrainedClassifier()->CreatePredictionAttribute(
@@ -414,7 +418,11 @@ KWAttribute* KWPredictorNaiveBayes::AddRankRegressorAttribute(KWDataPreparationC
 	else
 	{
 		rankRegressorRule = new KWDRSNBRankRegressor;
-		rankRegressorRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
+
+		// Parametrage apres nettoyage de la regle issue du constructeur
+		assert(rankRegressorRule->GetFirstOperand()->GetOrigin() == KWDerivationRuleOperand::OriginRule);
+		assert(rankRegressorRule->GetFirstOperand()->GetDerivationRule() != NULL);
+		delete rankRegressorRule->GetFirstOperand()->GetDerivationRule();
 		rankRegressorRule->GetFirstOperand()->SetDerivationRule(weightRule);
 	}
 	rankRegressorRule->DeleteAllVariableOperands();

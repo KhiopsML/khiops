@@ -162,6 +162,8 @@ KWDRBiasedTargetValue::KWDRBiasedTargetValue()
 	GetFirstOperand()->SetStructureName("Classifier");
 	GetSecondOperand()->SetType(KWType::Structure);
 	GetSecondOperand()->SetStructureName("Vector");
+	GetSecondOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
+	GetSecondOperand()->SetDerivationRule(new KWDRContinuousVector);
 }
 
 KWDRBiasedTargetValue::~KWDRBiasedTargetValue() {}
@@ -179,6 +181,30 @@ Symbol KWDRBiasedTargetValue::ComputeSymbolResult(const KWObject* kwoObject) con
 	classifier = cast(KWDRClassifier*, GetFirstOperand()->GetStructureValue(kwoObject));
 	cvOffsets = cast(KWDRContinuousVector*, GetSecondOperand()->GetStructureValue(kwoObject));
 	return classifier->ComputeBiasedTargetValue(cvOffsets->GetValues());
+}
+
+boolean KWDRBiasedTargetValue::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
+{
+	boolean bOk;
+	KWDRContinuousVector* biasContinuousVectorRule;
+
+	// Appel a la method ancetre
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
+
+	// Verification du vecteur de biais
+	if (bOk)
+	{
+		biasContinuousVectorRule =
+		    cast(KWDRContinuousVector*, GetSecondOperand()->GetReferencedDerivationRule(kwcOwnerClass));
+
+		// Le vecteur de poids doit etre constant
+		if (not biasContinuousVectorRule->CheckConstantOperands(true))
+		{
+			bOk = false;
+			AddError("Bias values in operand 2 should be constants");
+		}
+	}
+	return bOk;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

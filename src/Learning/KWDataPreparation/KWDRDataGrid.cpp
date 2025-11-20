@@ -155,9 +155,6 @@ void KWDRDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats, boo
 	operand->SetDerivationRule(frequenciesRule);
 	operand->SetStructureName(frequenciesRule->GetStructureName());
 
-	// Nettoyage prealable des operandes existants
-	frequenciesRule->DeleteAllOperands();
-
 	// Initialisation des effectifs par cellule
 	nCellNumber = dataGridStats->ComputeTotalGridSize();
 	ivPartIndexes.SetSize(dataGridStats->GetAttributeNumber());
@@ -192,7 +189,6 @@ void KWDRDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats, boo
 		AddOperand(operand);
 
 		// Initialisation des effectifs initiaux par attributs
-		frequenciesRule->DeleteAllOperands();
 		frequenciesRule->SetFrequencyNumber(dataGridStats->GetAttributeNumber());
 		for (nAttribute = 0; nAttribute < dataGridStats->GetAttributeNumber(); nAttribute++)
 		{
@@ -210,7 +206,6 @@ void KWDRDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats, boo
 		AddOperand(operand);
 
 		// Initialisation des effectifs granularises par attributs
-		frequenciesRule->DeleteAllOperands();
 		frequenciesRule->SetFrequencyNumber(dataGridStats->GetAttributeNumber());
 		for (nAttribute = 0; nAttribute < dataGridStats->GetAttributeNumber(); nAttribute++)
 		{
@@ -868,6 +863,7 @@ void KWDRFrequencies::SetFrequencyNumber(int nFrequency)
 {
 	require(nFrequency >= 0);
 
+	DeleteAllOperands();
 	ivFrequencies.SetSize(nFrequency);
 	bStructureInterface = true;
 	nFreshness++;
@@ -1027,7 +1023,7 @@ void KWDRFrequencies::WriteStructureUsedRule(ostream& ost) const
 	ost << ")";
 }
 
-int KWDRFrequencies::FullCompare(const KWDerivationRule* rule) const
+int KWDRFrequencies::FullCompareStructure(const KWDerivationRule* rule) const
 {
 	int nDiff;
 	KWDRFrequencies* ruleFrequencies;
