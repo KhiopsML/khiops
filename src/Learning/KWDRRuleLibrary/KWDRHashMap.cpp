@@ -293,7 +293,11 @@ boolean KWDRContinuousHashMap::CheckCompleteness(const KWClass* kwcOwnerClass) c
 			bOk = false;
 			AddError(sTmp + "Keys in operand 1 should be constants");
 		}
-		assert(valueVector->AreConstantOperandsMandatory());
+		if (not valueVector->CheckConstantOperands(true))
+		{
+			bOk = false;
+			AddError(sTmp + "Values in operand 2 should be constants");
+		}
 
 		// Verification des valeurs
 		if (bOk)

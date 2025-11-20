@@ -97,14 +97,19 @@ protected:
 
 ///////////////////////////////////////////////////////////////
 // Classe KWDRContinuousVector
-// Regle de derivation de type Structure(DoubleVector), memorisant les valeurs
+// Regle de derivation de type Structure(Vector), memorisant les valeurs
 // d'un vecteur de continuous
+// Cette classe est adaptee pour pouvoir traiter soit des valeurs constantes de maniere optimisee
+// soit des valeurs non constantes
 class KWDRContinuousVector : public KWDRStructureRule
 {
 public:
 	// Constructeur
 	KWDRContinuousVector();
 	~KWDRContinuousVector();
+
+	// Redefinition a false, pour permettre qu'un vecteur contienne des valeurs non constantes
+	boolean AreConstantOperandsMandatory() const override;
 
 	//////////////////////////////////////////////////////////////
 	// La specification de la regle se fait en specifiant les
@@ -135,6 +140,9 @@ public:
 	//////////////////////////////////////////////////////
 	// Redefinition des methodes de structure
 
+	// Calcul de l'objet Structure, reimplemente pour le cas non constant
+	Object* ComputeStructureResult(const KWObject* kwoObject) const override;
+
 	// Recopie de la partie structure de la regle
 	void CopyStructureFrom(const KWDerivationRule* kwdrSource) override;
 
@@ -155,7 +163,7 @@ public:
 	///// Implementation
 protected:
 	// Valeurs
-	ContinuousVector cvValues;
+	mutable ContinuousVector cvValues;
 };
 
 ///////////////////////////////////////////////////////////////

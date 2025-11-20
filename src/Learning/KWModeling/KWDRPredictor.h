@@ -151,6 +151,9 @@ public:
 
 	// Calcul de l'attribut derive
 	Symbol ComputeSymbolResult(const KWObject* kwoObject) const override;
+
+	// Verification que la regle est completement renseignee et compilable
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

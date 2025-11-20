@@ -181,11 +181,17 @@ KWDRContinuousVector::KWDRContinuousVector()
 	SetStructureName("Vector");
 	SetOperandNumber(1);
 	SetVariableOperandNumber(true);
+
+	// On n'impose pas l'origine de l'operande a etre constant, car ce n'est pas obligatoire
 	GetFirstOperand()->SetType(KWType::Continuous);
-	GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginConstant);
 }
 
 KWDRContinuousVector::~KWDRContinuousVector() {}
+
+boolean KWDRContinuousVector::AreConstantOperandsMandatory() const
+{
+	return false;
+}
 
 KWDerivationRule* KWDRContinuousVector::Create() const
 {
@@ -199,7 +205,7 @@ void KWDRContinuousVector::CleanCompiledBaseInterface()
 
 void KWDRContinuousVector::CopyStructureFrom(const KWDerivationRule* kwdrSource)
 {
-	const KWDRContinuousVector* kwdrsvSource = cast(KWDRContinuousVector*, kwdrSource);
+	const KWDRContinuousVector* kwdrsvSource = cast(const KWDRContinuousVector*, kwdrSource);
 
 	// Copie de la version optimisee du parametrage des valeurs
 	cvValues.CopyFrom(&kwdrsvSource->cvValues);
@@ -207,11 +213,13 @@ void KWDRContinuousVector::CopyStructureFrom(const KWDerivationRule* kwdrSource)
 
 void KWDRContinuousVector::BuildStructureFromBase(const KWDerivationRule* kwdrSource)
 {
+	const KWDRContinuousVector* kwdrcvSource = cast(const KWDRContinuousVector*, kwdrSource);
 	int i;
 	KWDerivationRuleOperand* operand;
 	Continuous cValue;
 
 	require(kwdrSource->KWDerivationRule::CheckDefinition());
+	require(kwdrcvSource->CheckConstantOperands(false));
 
 	// Recopie des operandes
 	cvValues.SetSize(kwdrSource->GetOperandNumber());
@@ -227,6 +235,8 @@ void KWDRContinuousVector::BuildStructureFromBase(const KWDerivationRule* kwdrSo
 void KWDRContinuousVector::WriteStructureUsedRule(ostream& ost) const
 {
 	int i;
+
+	require(CheckConstantOperands(false));
 
 	// Nom de la regle utilisee
 	ost << KWClass::GetExternalName(GetName());
@@ -279,8 +289,31 @@ int KWDRContinuousVector::FullCompareStructure(const KWDerivationRule* rule) con
 			}
 		}
 	}
-
 	return nDiff;
+}
+
+Object* KWDRContinuousVector::ComputeStructureResult(const KWObject* kwoObject) const
+{
+	KWDerivationRuleOperand* valueOperand;
+	Continuous cValue;
+	int i;
+
+	require(IsCompiled());
+
+	// Cas du mode non constant : initialisation du vecteur de valeurs a partir des operandes
+	if (oaOperands.GetSize() > 0)
+	{
+		assert(not CheckConstantOperands(false));
+		cvValues.SetSize(GetOperandNumber());
+		for (i = 0; i < GetOperandNumber(); i++)
+		{
+			valueOperand = GetOperandAt(i);
+			cValue = valueOperand->GetContinuousValue(kwoObject);
+			cvValues.SetAt(i, cValue);
+		}
+		bStructureInterface = true;
+	}
+	return (Object*)this;
 }
 
 longint KWDRContinuousVector::GetUsedMemory() const
