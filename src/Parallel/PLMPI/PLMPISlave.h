@@ -33,10 +33,6 @@ public:
 	// Methodes techniques privees utilisees pour les arret anormaux
 	// comme les assertion et les erreurs fatales
 
-	// Notifie qu'on souhaite s'arreter car on a rencontrer une erreur
-	// Apres reception de ce message, la PLMPIMaster va donner l'ordre a tout le monde de s'arreter
-	void NotifyAbnormalExit();
-
 	// Notifie qu'on rencontre une erreur fatal
 	static void NotifyFatalError(Error* error);
 
@@ -82,13 +78,6 @@ private:
 
 	// Notifie qu'on a fini (apres finalize)
 	void NotifyDone(boolean bOk);
-
-	// Cette methode permet de rendre les MPI_Recv non bloquants pour les demande d'interruption.
-	// Attend tant qu'un message venant du maitre avec le tag passe en parametre n'arrive pas.
-	// Le message n'est pas recu, il convient de recevoir le message via MPI_Recv
-	// Si une demande d'arret est effective pendant l'attente, la fonction retourne (meme si le message attendu n'a
-	// pas ete emis) et bInterruptionRequested est a true Retourne la taille du message
-	int WaitForMessage(int nTag, boolean& bInterruptionRequested) const;
 
 	// Envoi des resultats au Master avec serialisation des resultats
 	void SendResults();

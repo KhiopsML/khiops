@@ -243,7 +243,7 @@ inline boolean PLMPIMaster::CheckNewMessage(int source, MPI_Comm com, MPI_Status
 	int nNewMessage;
 
 	MPI_Iprobe(source, nTag, com, &nNewMessage, &status);
-	if (nNewMessage == 1)
+	if (nNewMessage > 0)
 		bNewMessage = true;
 	return bNewMessage;
 }

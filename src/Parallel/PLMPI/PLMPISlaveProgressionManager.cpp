@@ -118,6 +118,9 @@ boolean PLMPISlaveProgressionManager::IsInterruptionRequested()
 			if (GetTracerMPI()->GetActiveMode())
 				GetTracerMPI()->AddRecv(0, INTERRUPTION_REQUESTED);
 			bIsInterruptionRequested = true;
+			// On met a jour la classe TaskProgression qui utilise PLMPISlaveProgressionManager
+			// pour etre plus efficace : on evite des appels inutiles au timer et a PLMPISlaveProgressionManager
+			TaskProgression::ForceInterruptionRequested();
 		}
 
 		MPI_Iprobe(0, MAX_ERROR_FLOW, MPI_COMM_WORLD, &nMessage, &status);
