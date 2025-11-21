@@ -599,7 +599,6 @@ int PLMPIMaster::ReceiveAndProcessMessage(int nAnyTag, int nAnySource)
 	boolean bOk;
 	int nSource;
 	int nTag;
-	boolean bIsInitialisationOK;
 
 	context.Recv(MPI_COMM_WORLD, nAnySource, nAnyTag);
 	serializer.OpenForRead(&context);
@@ -613,17 +612,33 @@ int PLMPIMaster::ReceiveAndProcessMessage(int nAnyTag, int nAnySource)
 
 		// L'esclave a termine l'initialisation : il peut travailler
 		nSlaveTaskIndex = serializer.GetInt();
-		bIsInitialisationOK = serializer.GetBoolean();
+		bSlaveError = not serializer.GetBoolean();
 		serializer.Close();
 		aSlave = GetTask()->GetSlaveWithRank(nSource);
 		assert(bSlaveError or bMasterError or bInterruptionRequested or aSlave->GetState() == State::INIT);
-		if (bIsInitialisationOK)
-			aSlave->SetState(State::PROCESSING);
-		else
+		if (bSlaveError)
 			aSlave->SetState(State::ERROR);
+		else
+			aSlave->SetState(State::PROCESSING);
 		aSlave->SetTaskIndex(nSlaveTaskIndex);
 		if (GetTracerMPI()->GetActiveMode())
 			GetTracerMPI()->AddRecv(nSource, nTag);
+
+		// Affiche des messages utilisateur en cas d'erreur
+		if (bSlaveError)
+		{
+			// Stockage de l'index de la tache et du nombre de ligne lues pour cette tache
+			// Sauf si aucun SlaveProcess n'a eu lieu (erreur dans SlaveInitialize)
+			if (bSlaveProcessOnce)
+			{
+				aSlave = GetTask()->GetSlaveWithRank(nSource);
+				messageManager.SetTaskLineNumber(aSlave->GetTaskIndex(), 0);
+			}
+
+			// Affichage des messages si c'est possible
+			// (si les messages des taches precedentes ont ete affiches)
+			messageManager.PrintMessages();
+		}
 
 		if (not bIsProcessing)
 		{
@@ -703,30 +718,6 @@ int PLMPIMaster::ReceiveAndProcessMessage(int nAnyTag, int nAnySource)
 		// Reception de tous les messages de progression issus de l'esclave
 		DischargePendingCommunication(nSource, SLAVE_PROGRESSION);
 		bSlaveProcessOnce = true;
-
-		break;
-
-	case SLAVE_NEED_STOP:
-
-		// l'esclave a besoin de s'arreter : il a probablement rencontre une erreur
-		serializer.Close();
-		if (GetTracerMPI()->GetActiveMode())
-			GetTracerMPI()->AddRecv(nSource, nTag);
-
-		// Notification d'arret a tous les esclaves
-		bSlaveError = true;
-
-		// Stockage de l'index de la tache et du nombre de ligne lues pour cette tache
-		// Sauf si aucun SlaveProcess n'a eu lieu (erreur dans SlaveInitialize)
-		if (bSlaveProcessOnce)
-		{
-			aSlave = GetTask()->GetSlaveWithRank(nSource);
-			messageManager.SetTaskLineNumber(aSlave->GetTaskIndex(), 0);
-		}
-
-		// Affichage des messages si c'est possible
-		// (si les messages des taches precedentes ont ete affiches)
-		messageManager.PrintMessages();
 
 		break;
 

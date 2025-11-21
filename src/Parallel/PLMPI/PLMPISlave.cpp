@@ -243,10 +243,6 @@ boolean PLMPISlave::Process()
 					serializer.PutInt(task->input_nTaskProcessedNumber);
 					serializer.PutBoolean(bOk);
 					serializer.Close();
-
-					// En cas d'erreur, envoi d'une demande d'arret
-					if (not bOk)
-						NotifyAbnormalExit();
 				}
 
 				// On lance le SlaveProcess seulement si le SlaveInitialize s'est bien passe
@@ -371,17 +367,6 @@ boolean PLMPISlave::Process()
 		GetTracerPerformance()->AddTrace("<< Job stop [" + GetTask()->sPerformanceTaskName + "]");
 
 	return bOk;
-}
-
-void PLMPISlave::NotifyAbnormalExit()
-{
-	PLMPIMsgContext context;
-	PLSerializer serializer;
-	if (GetTracerMPI()->GetActiveMode())
-		GetTracerMPI()->AddSend(0, SLAVE_NEED_STOP);
-	context.Send(MPI_COMM_WORLD, 0, SLAVE_NEED_STOP);
-	serializer.OpenForWrite(&context);
-	serializer.Close();
 }
 
 void PLMPISlave::NotifyFatalError(Error* error)

@@ -33,10 +33,6 @@ public:
 	// Methodes techniques privees utilisees pour les arret anormaux
 	// comme les assertion et les erreurs fatales
 
-	// Notifie qu'on souhaite s'arreter car on a rencontrer une erreur
-	// Apres reception de ce message, la PLMPIMaster va donner l'ordre a tout le monde de s'arreter
-	void NotifyAbnormalExit();
-
 	// Notifie qu'on rencontre une erreur fatal
 	static void NotifyFatalError(Error* error);
 
