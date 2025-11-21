@@ -101,6 +101,7 @@ boolean DTDecisionTreeCreationTask::CreatePreparedAttributes(KWLearningSpec* lea
 	int nAttribute;
 	ObjectArray oaAttributeStats;
 	KWAttributeStats* attributeStats;
+	boolean bTargetGrouped;
 	require(learningSpec != NULL);
 	require(oaMasterOutputAttributeStats == NULL);
 	require(shared_odAttributeStats->GetObjectDictionary()->GetCount() == 0);
@@ -110,6 +111,7 @@ boolean DTDecisionTreeCreationTask::CreatePreparedAttributes(KWLearningSpec* lea
 	require(oaOutputAttributeStats != NULL and oaOutputAttributeStats->GetSize() == 0);
 	Timer DTTimer_CreatePreparedAttributes;
 
+	bTargetGrouped = false;
 	if (bMasterTraceOn)
 		cout << "DTDecisionTreeCreationTask::CreatePreparedAttributes" << endl;
 
@@ -125,9 +127,10 @@ boolean DTDecisionTreeCreationTask::CreatePreparedAttributes(KWLearningSpec* lea
 	if (learningSpec->GetTargetAttributeType() == KWType::Symbol and
 	    learningSpec->GetPreprocessingSpec()->GetTargetGrouped())
 	{
-		if (GetForestParameter()->GetDecisionTreeParameter()->GetVerboseMode())
-			AddWarning("No tree building : target variable is grouped");
-		return true;
+		bTargetGrouped = true;
+
+		// On desactive temporairement le groupement de la cible pour calculer les arbres
+		learningSpec->GetPreprocessingSpec()->SetTargetGrouped(false);
 	}
 
 	if (tupleTableLoader->GetInputExtraAttributeTupleTable()->GetSize() == 1)
@@ -219,6 +222,8 @@ boolean DTDecisionTreeCreationTask::CreatePreparedAttributes(KWLearningSpec* lea
 	}
 
 	// restitution de l'etat initial :
+	if (bTargetGrouped)
+		learningSpec->GetPreprocessingSpec()->SetTargetGrouped(true);
 
 	SetRandomSeed(oldseed);
 
@@ -421,7 +426,7 @@ boolean DTDecisionTreeCreationTask::MasterAggregateResults()
 			cout << "No attribute stats have been computed" << endl;
 	}
 
-	// Transfer des preparations d'attribut de l'esclave vers le dictionnaire global du maitre
+	// Transfert des preparations d'attribut de l'esclave vers le dictionnaire global du maitre
 	for (int nPair = 0; nPair < output_oaAttributeStats->GetObjectArray()->GetSize(); nPair++)
 	{
 		attributeStats = cast(KWAttributeStats*, output_oaAttributeStats->GetObjectArray()->GetAt(nPair));
@@ -450,7 +455,7 @@ boolean DTDecisionTreeCreationTask::MasterAggregateResults()
 			cout << endl << "Corresponding tree specs : " << endl;
 	}
 
-	// Transfer des arbres de decision calcules par l'esclave, vers le dictionnaire global du maitre
+	// Transfert des arbres de decision calcules par l'esclave, vers le dictionnaire global du maitre
 	for (nTreeSpec = 0; nTreeSpec < output_oaDecisionTreeSpecs->GetObjectArray()->GetSize(); nTreeSpec++)
 	{
 		decisionTreeSpec =
@@ -1061,7 +1066,7 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 				attributeStats->SetAttributeName(ttattribut->GetAttributeNameAt(0));
 				attributeStats->SetAttributeType(KWType::Symbol);
 
-				// Calcul des statistitique univariee a partir de la table de tuples
+				// Calcul des statistiques univariees a partir de la table de tuples
 				attributeStats->ComputeStats(ttattribut);
 
 				// on ne garde pas les arbres a level nul
