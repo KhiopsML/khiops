@@ -155,6 +155,7 @@ boolean DTDecisionTree::ComputeStats()
 	// construction de l'arbre complet (etape descendante)
 	if (not Build())
 	{
+		Global::SetSilentMode(bCurrentSilentMode);
 		return false;
 	}
 
@@ -293,6 +294,8 @@ boolean DTDecisionTree::Build()
 			{
 				possibleSplits->DeleteAll();
 				delete possibleSplits;
+				TaskProgression::DisplayProgression(100);
+				TaskProgression::EndTask();
 				return false;
 			}
 
@@ -1055,7 +1058,7 @@ boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sF
 		// sonNode->GetNodeLearningSpec()->SetDatabase(databaseSplitter->GetTrainDaughterDatabaseAt(nSonIndex));
 		//  Calcul des statistiques univariees MODL
 		StartTimer(DTTimerTree3);
-		if (not sonNode->ComputeAttributesStat())
+		if (TaskProgression::IsInterruptionRequested() or not sonNode->ComputeAttributesStat())
 		{
 			bOk = false;
 			return bOk;
