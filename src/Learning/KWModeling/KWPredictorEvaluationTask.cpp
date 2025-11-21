@@ -2348,6 +2348,8 @@ void KWReservoirSampler::AddWithProb(Object* object, double dProb)
 
 	if (RandomDouble() <= dProb)
 		Add(object);
+	else
+		delete object;
 }
 
 void KWReservoirSampler::AddArray(const ObjectArray* oaObjects)
