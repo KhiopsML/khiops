@@ -599,6 +599,7 @@ int PLMPIMaster::ReceiveAndProcessMessage(int nAnyTag, int nAnySource)
 	boolean bOk;
 	int nSource;
 	int nTag;
+	boolean bInitializeOk;
 
 	context.Recv(MPI_COMM_WORLD, nAnySource, nAnyTag);
 	serializer.OpenForRead(&context);
@@ -612,8 +613,14 @@ int PLMPIMaster::ReceiveAndProcessMessage(int nAnyTag, int nAnySource)
 
 		// L'esclave a termine l'initialisation : il peut travailler
 		nSlaveTaskIndex = serializer.GetInt();
-		bSlaveError = not serializer.GetBoolean();
+		bInitializeOk = serializer.GetBoolean();
 		serializer.Close();
+		if (GetTracerMPI()->GetActiveMode())
+			GetTracerMPI()->AddRecv(nSource, nTag);
+
+		if (not bInitializeOk)
+			bSlaveError = true;
+
 		aSlave = GetTask()->GetSlaveWithRank(nSource);
 		assert(bSlaveError or bMasterError or bInterruptionRequested or aSlave->GetState() == State::INIT);
 		if (bSlaveError)
@@ -621,8 +628,6 @@ int PLMPIMaster::ReceiveAndProcessMessage(int nAnyTag, int nAnySource)
 		else
 			aSlave->SetState(State::PROCESSING);
 		aSlave->SetTaskIndex(nSlaveTaskIndex);
-		if (GetTracerMPI()->GetActiveMode())
-			GetTracerMPI()->AddRecv(nSource, nTag);
 
 		// Affiche des messages utilisateur en cas d'erreur
 		if (bSlaveError)
