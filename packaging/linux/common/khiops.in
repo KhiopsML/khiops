@@ -75,7 +75,7 @@ launch_khiops() {
     if [[ $# -eq 0 ]]; then
         # run without parameters
         # run and save scenario and log files in directory KHIOPS_LAST_RUN_DIR
-        $KHIOPS_MPI_COMMAND "@KHIOPS_BINARY_PATH@" -o "${KHIOPS_LAST_RUN_DIR}"/scenario._kh -e "${KHIOPS_LAST_RUN_DIR}"/log.txt
+        $KHIOPS_MPI_COMMAND "@KHIOPS_BINARY_PATH@" -o "${KHIOPS_LAST_RUN_DIR}"/scenario.@TOOL_EXT@ -e "${KHIOPS_LAST_RUN_DIR}"/log.txt
     else
         # run with parameters
         $KHIOPS_MPI_COMMAND "@KHIOPS_BINARY_PATH@" "$@"

@@ -151,8 +151,10 @@ if(UNIX)
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/debian/khiops-core/postinst.in ${TMP_DIR}/postinst @ONLY
                  NEWLINE_STYLE UNIX)
   set(KHIOPS_BINARY_PATH "$KHIOPS_PATH")
+  set(TOOL_EXT "_kh")
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops.in ${TMP_DIR}/khiops @ONLY NEWLINE_STYLE UNIX)
   set(KHIOPS_BINARY_PATH "$KHIOPS_COCLUSTERING_PATH")
+  set(TOOL_EXT "_khc")
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops.in ${TMP_DIR}/khiops_coclustering @ONLY
                  NEWLINE_STYLE UNIX)
 
@@ -216,9 +218,11 @@ else(UNIX)
   # They both build from the same file: khiops.cmd.in
   set(MODL_PATH "KHIOPS_PATH")
   set(TOOL_NAME "Khiops")
+  set(TOOL_EXT "_kh")
   configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops.cmd.in ${TMP_DIR}/khiops.cmd @ONLY NEWLINE_STYLE CRLF)
   set(MODL_PATH "KHIOPS_COCLUSTERING_PATH")
   set(TOOL_NAME "Khiops_coclustering")
+  set(TOOL_EXT "_khc")
   configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops.cmd.in ${TMP_DIR}/khiops_coclustering.cmd @ONLY
                  NEWLINE_STYLE CRLF)
 

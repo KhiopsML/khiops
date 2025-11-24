@@ -53,7 +53,7 @@ REM Start without parameters
 if not exist "%KHIOPS_LAST_RUN_DIR%" md "%KHIOPS_LAST_RUN_DIR%"
 if not exist "%KHIOPS_LAST_RUN_DIR%" goto PARAMS
 
-%KHIOPS_MPI_COMMAND% "%@MODL_PATH@%" -o "%KHIOPS_LAST_RUN_DIR%\scenario._kh" -e "%KHIOPS_LAST_RUN_DIR%\log.txt"
+%KHIOPS_MPI_COMMAND% "%@MODL_PATH@%" -o "%KHIOPS_LAST_RUN_DIR%\scenario.@TOOL_EXT@" -e "%KHIOPS_LAST_RUN_DIR%\log.txt"
 if %errorlevel% EQU 0 goto END
 goto ERR_RETURN_CODE
 
