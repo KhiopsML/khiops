@@ -442,6 +442,8 @@ def evaluate_tool_on_test_dir(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
+                encoding="utf-8",
+                errors="ignore",
             ) as khiops_process:
                 try:
                     stdout, stderr = khiops_process.communicate(timeout=timeout)
