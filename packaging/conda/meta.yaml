@@ -53,14 +53,18 @@ outputs:
       run:
         - {{ mpi }}
     files:
-      - bin/MODL*
-      - bin/_khiopsgetprocnumber*
-      - bin/khiops_env # [linux or osx]
-      - bin/khiops # [linux or osx]
-      - bin/khiops_coclustering # [linux or osx]
-      - bin/khiops_env.cmd # [win]
-      - bin/khiops.cmd # [win]
-      - bin/khiops_coclustering.cmd # [win]
+      - bin/MODL*                    # [linux or osx]
+      - bin/MODL_Coclustering*       # [linux or osx]
+      - bin/_khiopsgetprocnumber     # [linux or osx]
+      - bin/khiops_env               # [linux or osx]
+      - bin/khiops                   # [linux or osx]
+      - bin/khiops_coclustering      # [linux or osx]
+      - Library/bin/khiops_env.cmd            # [win]
+      - Library/bin/khiops.cmd                # [win]
+      - Library/bin/khiops_coclustering.cmd   # [win]
+      - Library/bin/MODL.exe                  # [win]
+      - Library/bin/MODL_Coclustering.exe     # [win]
+      - Library/bin/_khiopsgetprocnumber.exe  # [win]
     test:
       commands:
         - khiops_env --env
@@ -71,10 +75,10 @@ outputs:
   - name: kni
     version: {{ version }}
     files:
-      - lib/libKhiopsNativeInterface.so* # [linux]
-      - lib/libKhiopsNativeInterface*.dylib # [osx]
-      - bin/KhiopsNativeInterface.dll # [win]
-      - lib/KhiopsNativeInterface.lib # [win]
+      - lib/libKhiopsNativeInterface.so*                  # [linux]
+      - lib/libKhiopsNativeInterface*.dylib  # [osx]
+      - Library/bin/KhiopsNativeInterface.dll           # [win]
+      - Library/lib/KhiopsNativeInterface.lib           # [win]
     requirements:
       build:
         - cmake
