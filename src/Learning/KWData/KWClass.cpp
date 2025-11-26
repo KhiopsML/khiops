@@ -3225,6 +3225,7 @@ boolean KWClass::InternalCheckNativeComposition(boolean bCheckKeys, boolean bVer
 						NumericKeyDictionary* nkdComponentClasses) const
 {
 	boolean bOk = true;
+	boolean bCycle;
 	boolean bClassKeyCheckedOnce;
 	KWAttribute* attribute;
 	KWClass* parentClass;
@@ -3276,19 +3277,31 @@ boolean KWClass::InternalCheckNativeComposition(boolean bCheckKeys, boolean bVer
 			}
 
 			// Test si classe deja utilisee
+			bCycle = false;
 			if (bOk and nkdComponentClasses->Lookup(attributeClass) == attributeClass)
 			{
-				AddError("Existing composition cycle caused by the recursive use of dictionary " +
-					 attributeClass->GetName() + " by variable " + attribute->GetName());
-				bOk = false;
+				bCycle = true;
+
+				// On tolere cet usage uniquement si le dictionnaire n'a pas de cle
+				// - s'il y a une cle, ce type de dependance cyclique est incompatible avec des donnees
+				//   stockees selon un modele hierarchique (sans cycle)
+				// - s'il n'y a pas de cle, il y a des cas d'usage de table creees par une regle de creation
+				//   d'instance, qui cree des references sur des instances deja presente en memoire,
+				//   sans  que le problme de lecture sur disque se pose
+				//  - exemple: regle BuildList, qui va cree une liste doublement chainee, chaque noeud
+				//    pointant sur le precedent et le suivant, donc avec une cycle detecte dans le dictionnaire
+				if (GetKeyAttributeNumber() > 0)
+				{
+					AddError(
+					    "Existing composition cycle caused by the recursive use of dictionary " +
+					    attributeClass->GetName() + " by variable " + attribute->GetName() +
+					    ". Such cycles are not permitted for dictionaries that have a key intended "
+					    "for reading data from data files.");
+					bOk = false;
+				}
 			}
 
-			// Propagation du test si ok
-			if (bOk)
-				bOk = attributeClass->InternalCheckNativeComposition(bCheckKeys, bVerboseCheckKeys,
-										     attribute, nkdComponentClasses);
-
-			// Verification des cle si demande
+			// Verification des cles si demande
 			if (bOk and bCheckKeys)
 			{
 				// La classe utilisee doit avoir une cle
@@ -3338,6 +3351,11 @@ boolean KWClass::InternalCheckNativeComposition(boolean bCheckKeys, boolean bVer
 					bOk = false;
 				}
 			}
+
+			// Propagation du test si ok, et pas de cycle
+			if (bOk and not bCycle)
+				bOk = attributeClass->InternalCheckNativeComposition(bCheckKeys, bVerboseCheckKeys,
+										     attribute, nkdComponentClasses);
 		}
 
 		// Arret des la premiere erreur

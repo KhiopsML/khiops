@@ -12,6 +12,7 @@ void KWDRRegisterBuildRelationRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntityAdvancedView);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntity);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildDiffTable);
+	KWDerivationRule::RegisterDerivationRule(new KWDRBuildList);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildDummyTable);
 }
 
@@ -474,6 +475,39 @@ void KWDRBuildDiffTable::FillTargetDifferenceAttributes(const KWObject* kwoSourc
 			}
 		}
 	}
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildList
+
+KWDRBuildList::KWDRBuildList()
+{
+	SetName("BuildList");
+	SetLabel("Build list from table");
+
+	// Variables en entree: une table
+	SetOperandNumber(1);
+	GetFirstOperand()->SetType(KWType::ObjectArray);
+
+	// Variables en sortie: nombre variable d'operandes pour alimenter la table en sortie
+	// avec les differences de valeur des attributs specifies en entree
+	SetOutputOperandNumber(3);
+	GetOutputOperandAt(0)->SetType(KWType::Object);
+	GetOutputOperandAt(1)->SetType(KWType::Object);
+	GetOutputOperandAt(2)->SetType(KWType::Object);
+}
+
+KWDRBuildList::~KWDRBuildList() {}
+
+KWDerivationRule* KWDRBuildList::Create() const
+{
+	return new KWDRBuildList;
+}
+
+ObjectArray* KWDRBuildList::ComputeObjectArrayResult(const KWObject* kwoObject,
+						     const KWLoadIndex liAttributeLoadIndex) const
+{
+	return NULL;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////

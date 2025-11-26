@@ -13,6 +13,7 @@ class KWDRBuildEntityView;
 class KWDRBuildEntityAdvancedView;
 class KWDRBuildEntity;
 class KWDRBuildDiffTable;
+class KWDRBuildList;
 class KWDRBuildDummyTable;
 
 #include "KWDerivationRule.h"
@@ -168,6 +169,36 @@ protected:
 	// Si le premier objet est NULL, ces differeces sont missing
 	void FillTargetDifferenceAttributes(const KWObject* kwoSourcePreviousObject,
 					    const KWObject* kwoSourceCurrentObject, KWObject* kwoTargetObject) const;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildList
+// Creer une table cible a partir d'une table source, ou chaque instance cible contient une
+// reference a l'instance source courante et des liens vers les elements precedent et suivant de la liste.
+// - La table source doit etre triee selon les besoins de l'utilisateur.
+// - Le dictionnaire cible doit contenir une variable de type Entity(SourceDir) contenant l'instance source courante,
+//   ainsi que deux variables de type Entity(TargetDic), deseignees dans la regle comme Prev et Next,
+//   destinees a contenir des references aux elements precedent et suivant de la liste.
+// - Cela permet d'ajouter de nouvelles variables derivees dans le dictionnaire cible qui exploitent les valeurs
+//   de l'instance courante et de celles de ses precedentes ou suivantes, voire plusieurs instances precedentes.
+// - La premiere instance cible n'a pas de reference precedente, et la derniere n'a pas de reference suivante.
+class KWDRBuildList : public KWDRTableCreationRule
+{
+public:
+	// Constructeur
+	KWDRBuildList();
+	~KWDRBuildList();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject,
+					      const KWLoadIndex liAttributeLoadIndex) const override;
+
+	///////////////////////////////////////////////////////
+	///// Implementation
+protected:
 };
 
 ////////////////////////////////////////////////////////////////////////////
