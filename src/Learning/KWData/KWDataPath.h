@@ -44,7 +44,7 @@ class KWClass;
 // le dictionnaire principal de la base de donnees en cours de traitement, soit
 // un dictionnaire racine d'une table externe.
 //
-// La classe KWDataPath reunit les fonctionnalite communes aux deux type d'usages, pour
+// La classe KWDataPath reunit les fonctionnalites communes aux deux type d'usages, pour
 // specialisation dans deux-sous-classes
 // - KWMTDatabaseMapping: mapping des data paths sur des fichiers de donnees, pour gerer
 //   les objets lus dans une base de donneee
@@ -237,7 +237,7 @@ public:
 	KWDataPathManager();
 	~KWDataPathManager();
 
-	// Indique que la classe gere les data paths correspondant a des instances crees par des regle de creation d'instance
+	// Indique que la classe gere les data paths correspondant a des instances crees par des regles de creation d'instance
 	boolean IsRuleCreationManaged() const;
 
 	// Calcul de tous les data path a partir du dictionnaire principal

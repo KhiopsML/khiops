@@ -21,7 +21,7 @@ class KWObjectDataPathManager;
 //   - s'il s'agit d'un objet lu: numero de ligne
 //   - s'il s'agit d'un objet cree par une regle
 //     - numero de creation local a son instance principale, plus CreationIndex de l'instance principal
-//     - dans le cas des table externe, le numero est local a l'ensemble de toutes les instances
+//     - dans le cas des tables externes, le numero est local a l'ensemble de toutes les instances
 // Cette identication permet a la regle de derivation Random de generer des suites de valeurs aleatoires
 // de facon reproductible, et independantes entre elles si la regle Random est utilisee plusieurs fois.
 class KWObjectDataPath : public KWDataPath

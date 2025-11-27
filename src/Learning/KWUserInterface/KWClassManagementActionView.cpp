@@ -351,14 +351,11 @@ void KWClassManagementActionView::RefreshHelpLists()
 		}
 	}
 
-	// Parametrage des classes non stockables ensuite, avec ligne blanche de separation
+	// Parametrage des classes non stockables ensuite, avec ligne blanche de separation si necessaire
 	if (svNonStorableClassNames.GetSize() > 0)
 	{
-		// Il doit y avoir au moins une classe stockable, et donc au moins deux items dans
-		// la liste en cours, ce qui fait qu'on n'aura jamais deux items vides de suite
-		assert(svClassNames.GetSize() > 0);
-		assert(classNameHelpList->GetItemNumber() >= 2);
-		classNameHelpList->AddItem();
+		if (svClassNames.GetSize() > 0)
+			classNameHelpList->AddItem();
 		for (i = 0; i < svNonStorableClassNames.GetSize(); i++)
 		{
 			// Ajout du nom de la classe dans la liste d'aide a la saisie

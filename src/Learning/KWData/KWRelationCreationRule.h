@@ -184,6 +184,20 @@ public:
 	///// Implementation
 protected:
 	/////////////////////////////////////////////////////////////////////////////////////////
+	// Redefinition des methodes de calcul de l'attribut derive dans le cas de la creation d'instance
+	// - ComputeObjectResult
+	// - ComputeObjectArrayResult
+	//
+	// Lors de l'optimisation du graphe de calcul en fonction des attributs utilise ou non, il est
+	// possible que certain operande en sortie (atributs cibles) ne soit pas a positionner dans les objet cree.
+	// De meme, dans certain cas, certains operandes en entree ne sont pas a evaluer, notamment
+	// dans le cas ou ils sont destines a alimenter des attributs en sortie:
+	// - operande en entree a ne pas evaluer
+	//   - cf. GetOperandAt(nInputIndex)->GetNoneValue()
+	// - operande en sortie des attributs a ne pas alimenter
+	//   - cf. livComputeModeTargetAttributeLoadIndexes.GetAt(nOutputIndex).IsValid()
+
+	/////////////////////////////////////////////////////////////////////////////////////////
 	// Collecte des operandes en entree utilises en fonction des operandes en sortie utilises
 	// Cela permet d'optimiser le graphe de calcul, en ne traitant que les operandes en entree
 	// necessaires pour chaque operande en sortie
@@ -219,7 +233,7 @@ protected:
 	// Test si le type d'un operande en sortie est valide
 	boolean IsValidOutputOperandType(int nType) const;
 
-	// Ajout d'une erreur de verification en mode vue pur une variable du dictionnaire en sortie
+	// Ajout d'une erreur de verification en mode vue pour une variable du dictionnaire en sortie
 	void AddViewModeError(const KWClass* kwcSourceClass, const KWClass* kwcTargetClass,
 			      const KWAttribute* targetAttribute, const ALString& sLabel) const;
 
@@ -258,9 +272,10 @@ protected:
 	// Indicateur de regle a nombre variable d'operandes en sortie
 	boolean bVariableOutputOperandNumber;
 
-	// Index de chargement des attributs pour une alimentation de type calcul
+	// Index de chargement des attributs cible pour une alimentation de type calcul
 	// On precise pour chaque attribut concerne lie a un operande en sortie son index
-	// dans le dictionnaire cible
+	// dans le dictionnaire cible.
+	// Attention, cet index peut etre invalide si l'attribut cible n'est pas a calculer
 	KWLoadIndexVector livComputeModeTargetAttributeLoadIndexes;
 	IntVector ivComputeModeTargetAttributeTypes;
 

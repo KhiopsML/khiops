@@ -118,15 +118,12 @@ void KWDRRelationCreationRule::RenameClass(const KWClass* refClass, const ALStri
 		for (i = 0; i < oaOutputOperands.GetSize(); i++)
 		{
 			operand = cast(KWDerivationRuleOperand*, oaOutputOperands.GetAt(i));
+			assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute);
 
 			// Type objet de l'operande
 			if (KWType::IsGeneralRelation(operand->GetType()) and
 			    operand->GetObjectClassName() == refClass->GetName())
 				operand->SetObjectClassName(sNewClassName);
-
-			// Propagation aux sous-regles
-			if (operand->GetDerivationRule() != NULL)
-				operand->GetDerivationRule()->RenameClass(refClass, sNewClassName);
 		}
 	}
 }
@@ -783,6 +780,11 @@ boolean KWDRRelationCreationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAtt
 		attribute = kwcTargetClass->GetHeadAttribute();
 		while (attribute != NULL)
 		{
+			// Les regles de bloc de type relation sont forcement de type reference
+			assert(attribute->GetBlockDerivationRule() == NULL or
+			       not KWType::IsGeneralRelation(attribute->GetType()) or
+			       attribute->GetBlockDerivationRule()->GetReference());
+
 			// Test si l'attribut est en White (ni Grey, ni Black)
 			rule = attribute->GetDerivationRule();
 			if (rule != NULL and KWType::IsRelation(rule->GetType()) and not rule->GetReference())
@@ -828,6 +830,7 @@ void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 	int nBlock;
 	KWDerivationRuleOperand* operand;
 	KWDerivationRule* valueBlockRule;
+	KWLoadIndex liInvalid;
 	int i;
 
 	require(kwcOwnerClass != NULL);
@@ -885,16 +888,24 @@ void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 			assert(IsValidOutputOperandType(targetAttribute->GetType()));
 
 			// Memorisation des infos de chargement, que l'attribut cible soit Loaded ou non
-			livComputeModeTargetAttributeLoadIndexes.Add(targetAttribute->GetLoadIndex());
 			ivComputeModeTargetAttributeTypes.Add(targetAttribute->GetType());
+			if (targetAttribute->GetUsed())
+				livComputeModeTargetAttributeLoadIndexes.Add(targetAttribute->GetLoadIndex());
+			// On utilise un index invalide dans le cas d'un attribut non utilise
+			// C'est en particulier le cas pour les attributs de type relation internes,
+			// gardes en memoire uniquement pour des raisons de liberation de la memoire
+			else
+				livComputeModeTargetAttributeLoadIndexes.Add(liInvalid);
 
 			// Trace par attribut gere par une alimentation de type vue
 			if (bTrace)
 			{
 				cout << "\t" << i + 1;
+				cout << "\t" << (targetAttribute->GetUsed() ? "" : "Unused");
 				cout << "\t" << targetAttribute->GetName();
 				cout << "\t" << KWType::ToString(targetAttribute->GetType());
 				cout << "\t" << targetAttribute->GetLoadIndex();
+				cout << "\t" << livComputeModeTargetAttributeLoadIndexes.GetAt(i);
 				cout << "\n";
 			}
 		}
@@ -1139,7 +1150,7 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 		while (targetAttribute != NULL)
 		{
 			// On ne traite que les attributs natifs non deja prise en compte par une alimentation de type calcul
-			if (targetAttribute->GetDerivationRule() == NULL and
+			if (targetAttribute->GetAnyDerivationRule() == NULL and
 			    odOutputAttributeNames.Lookup(targetAttribute->GetName()) == NULL)
 			{
 				assert(IsValidOutputOperandType(targetAttribute->GetType()));
@@ -1544,7 +1555,7 @@ KWObject* KWDRRelationCreationRule::NewTargetObject(const KWObject* kwoOwnerObje
 	// Pas de tentative de creation si la limite est deja ateinte
 	if (memoryGuard->IsMemoryLimitReached())
 		kwoTargetObject = NULL;
-	// Sinon, on tente de cree l'objet
+	// Sinon, on tente de creer l'objet
 	else
 	{
 

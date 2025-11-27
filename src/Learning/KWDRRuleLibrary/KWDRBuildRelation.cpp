@@ -484,6 +484,7 @@ KWDRBuildList::KWDRBuildList()
 {
 	SetName("BuildList");
 	SetLabel("Build list from table");
+	SetType(KWType::ObjectArray);
 
 	// Variables en entree: une table
 	SetOperandNumber(1);
@@ -507,7 +508,141 @@ KWDerivationRule* KWDRBuildList::Create() const
 ObjectArray* KWDRBuildList::ComputeObjectArrayResult(const KWObject* kwoObject,
 						     const KWLoadIndex liAttributeLoadIndex) const
 {
-	return NULL;
+	ObjectArray* oaObjectArrayOperand;
+	KWObject* kwoSourceContainedPreviousObject;
+	KWObject* kwoSourceContainedCurrentObject;
+	KWObject* kwoTargetContainedObject;
+	KWObject* kwoPrevTargetContainedObject;
+	int nObject;
+
+	require(IsCompiled());
+
+	// Calcul du resultat
+	oaResult.SetSize(0);
+
+	// Duplication du tableau d'entree
+	oaObjectArrayOperand = GetFirstOperand()->GetObjectArrayValue(kwoObject);
+	if (oaObjectArrayOperand != NULL and oaObjectArrayOperand->GetSize() > 0)
+	{
+		// Creation et alimentation des objets cibles
+		oaResult.SetSize(oaObjectArrayOperand->GetSize());
+		for (nObject = 0; nObject < oaObjectArrayOperand->GetSize(); nObject++)
+		{
+			kwoSourceContainedCurrentObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
+
+			// Creation d'un noeud de la liste
+			kwoTargetContainedObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
+			oaResult.SetAt(nObject, kwoTargetContainedObject);
+
+			// Memorisation de l'attribut Data du noeud courant
+			if (livComputeModeTargetAttributeLoadIndexes.GetAt(0).IsValid())
+				kwoTargetContainedObject->SetObjectValueAt(
+				    livComputeModeTargetAttributeLoadIndexes.GetAt(0), kwoSourceContainedCurrentObject);
+
+			// Chainage avec le noeud precedent
+			// Memorisation de l'attribut Prev du noeud courant
+			assert(not livComputeModeTargetAttributeLoadIndexes.GetAt(1).IsValid() or
+			       kwoTargetContainedObject->GetObjectValueAt(
+				   livComputeModeTargetAttributeLoadIndexes.GetAt(1)) == NULL);
+			assert(not livComputeModeTargetAttributeLoadIndexes.GetAt(2).IsValid() or
+			       kwoTargetContainedObject->GetObjectValueAt(
+				   livComputeModeTargetAttributeLoadIndexes.GetAt(2)) == NULL);
+			if (nObject > 0)
+			{
+				// Acces au noeud prededent
+				kwoPrevTargetContainedObject = cast(KWObject*, oaResult.GetAt(nObject - 1));
+
+				// Chainage du precedent vers le courant
+				if (livComputeModeTargetAttributeLoadIndexes.GetAt(2).IsValid())
+					kwoPrevTargetContainedObject->SetObjectValueAt(
+					    livComputeModeTargetAttributeLoadIndexes.GetAt(2),
+					    kwoTargetContainedObject);
+
+				// Chainage du courant vers le precedent
+				if (livComputeModeTargetAttributeLoadIndexes.GetAt(1).IsValid())
+					kwoTargetContainedObject->SetObjectValueAt(
+					    livComputeModeTargetAttributeLoadIndexes.GetAt(1),
+					    kwoPrevTargetContainedObject);
+			}
+		}
+	}
+	return &oaResult;
+}
+
+boolean KWDRBuildList::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
+{
+	boolean bOk;
+	int nIndex;
+
+	// Appel de la methode ancetre
+	bOk = KWDRRelationCreationRule::CheckOperandsCompleteness(kwcOwnerClass);
+
+	// Specialisation
+	if (bOk)
+	{
+		assert(GetOperandNumber() == 1);
+		assert(GetOutputOperandNumber() == 3);
+
+		// Verification de chaque opernde en sortie
+		for (nIndex = 0; nIndex < GetOutputOperandNumber(); nIndex++)
+			bOk = CheckOutputOperandCompletenessAt(kwcOwnerClass, nIndex) and bOk;
+	}
+	return bOk;
+}
+
+boolean KWDRBuildList::CheckOutputOperandCompletenessAt(const KWClass* kwcOwnerClass, int nIndex) const
+{
+	boolean bOk;
+	ALString sExpectedObjectClassName;
+
+	require(kwcOwnerClass != NULL);
+	require(0 <= nIndex and nIndex < GetOutputOperandNumber());
+
+	// Le premier operande en sortie (Data) doit etre du meme type que de la table en entree du premier operande
+	assert(GetOutputOperandAt(nIndex)->GetType() == KWType::Object);
+	if (nIndex == 0)
+		sExpectedObjectClassName = GetOperandAt(0)->GetObjectClassName();
+	// Les oeparnde 2 et 3 (Prev et Next) doivent etre du type de la table en sortie
+	else
+		sExpectedObjectClassName = GetObjectClassName();
+
+	// Verification de la compatibilite du type
+	bOk = GetOutputOperandAt(nIndex)->GetObjectClassName() == sExpectedObjectClassName;
+	if (not bOk)
+	{
+		AddError("In the " + GetObjectClassName() + " output dictionary, the " +
+			 KWType::ToString(KWType::Object) + "(" + GetOutputOperandAt(nIndex)->GetObjectClassName() +
+			 ") " + GetOutputOperandAt(nIndex)->GetDataItemName() + " variable related to output operand " +
+			 IntToString(nIndex + 1) + " should be of type " + KWType::ToString(KWType::Object) + "(" +
+			 sExpectedObjectClassName + ")");
+	}
+	return bOk;
+}
+
+boolean KWDRBuildList::IsViewModeActivated() const
+{
+	return false;
+}
+
+void KWDRBuildList::CollectMandatoryInputOperands(IntVector* ivUsedInputOperands) const
+{
+	int nInputOperand;
+
+	require(ivUsedInputOperands != NULL);
+	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
+
+	// Tous les operandes son ici obligatoires
+	for (nInputOperand = 0; nInputOperand < GetOperandNumber(); nInputOperand++)
+		ivUsedInputOperands->SetAt(nInputOperand, 1);
+}
+
+void KWDRBuildList::CollectSpecificInputOperandsAt(int nOutputOperand, IntVector* ivUsedInputOperands) const
+{
+	require(0 <= nOutputOperand and nOutputOperand < GetOutputOperandNumber());
+	require(ivUsedInputOperands != NULL);
+	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
+
+	// Il n'y a ici pas d'operandes en entree associes aux operandes en sortie
 }
 
 //////////////////////////////////////////////////////////////////////////////////////

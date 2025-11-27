@@ -113,7 +113,7 @@ public:
 	boolean IsUnique() const;
 
 	// Capacite a etre stocke sur un systeme de fichiers multi-tables a l'aide de cles
-	// Dans le cas de classes construites via des regles de derivation, on a pas necessairement des cles,
+	// Dans le cas de classes construites via des regles de derivation, on n'a pas necessairement des cles,
 	// et on ne peut charger en memoire les instances correspondante via des fichiers de donnees
 	boolean IsKeyBasedStorable() const;
 
@@ -255,8 +255,16 @@ public:
 	// Nombre de DataItem natifs (non calcules), utilises ou non
 	int GetNativeDataItemNumber() const;
 
-	// Nombre d'attributs natifs de type relation utilises recursivement par la classe
+	// Nombre d'attributs natifs de type relation utilises recursivement par la classe, correspondant
+	// a un calcul de l'ensemble des mappings issus de la classe principale
 	// Le parametre InternalOnly indique que l'on ignore les classe referencees
+	// - Pour une classe stockable selon IsKeyBasedStorable, il n'y a pas de recursion possible
+	//   dans la hierarchie native de la classe principale, et le compte est exactement celui
+	//   deduit d'un mapping multi-table
+	// - Pour une classe non stockable, il peut y a voir des cycles de relations natives
+	//   (ex: noeud de list issu de la regle BuildList, avec variable Prev et Next).
+	//   Dans ce cas, la classe n'est pas utilisable pour un mapping, et le nombre
+	//   de relation native est erronne
 	int ComputeOverallNativeRelationAttributeNumber(boolean bIncludingReferences) const;
 
 	// Nombre d'attribut initiaux d'une classe a analyser
@@ -661,7 +669,7 @@ protected:
 	// dictionnaire est stockable sur disque via un mapping multi-fichier, au moyen de cles coherentes.
 	// - le dictionnaire doit avoir une cle s'il contient des sous-tables
 	// - la taille des cles doit etre croissante avec la profondeur d'utilisation dans la composition
-	// Note que l'on peut avoir des dictionnaires non stockage dans le cas de regles de derivation de creation
+	// Note que l'on peut avoir des dictionnaires non stockables dans le cas de regles de derivation de creation
 	// de table, qui peuvent exploiter des dictionnaire quelconques (non Root), avec ou sans cle
 	boolean CheckNativeComposition(boolean bCheckKeys, boolean bVerboseCheckKeys) const;
 

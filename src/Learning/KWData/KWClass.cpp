@@ -655,6 +655,8 @@ int KWClass::ComputeOverallNativeRelationAttributeNumber(boolean bIncludingRefer
 	KWClass* kwcUsedClass;
 	int nUsedClass;
 
+	require(IsCompiled());
+
 	// On part de la classe de depart
 	kwcImpactedClass = cast(KWClass*, this);
 	oaImpactedClasses.Add(kwcImpactedClass);
@@ -684,8 +686,14 @@ int KWClass::ComputeOverallNativeRelationAttributeNumber(boolean bIncludingRefer
 					{
 						nOverallNativeRelationAttributeNumber++;
 
-						// Ajout de la classe a analyser
-						oaImpactedClasses.Add(kwcRefClass);
+						// Ajout de la classe a analyser, sauf dans le cas d'un dictionnaire sans cle,
+						// potentiellement en sortie d'une regle de construction d'instances, ce qui pourrait
+						// entrainer des probleme de recursion infinie, comme par exemle pour la regle BuildList
+						if (kwcRefClass->GetKeyAttributeNumber() > 0)
+						{
+							// La classe ajoutee sera analysee autant de fois qu'elle est utilisee
+							oaImpactedClasses.Add(kwcRefClass);
+						}
 					}
 					// Cas d'un attribut issue d'une regle de creation de table, pour rechercher
 					// les classes referencees depuis les tables creees par des regles
@@ -694,11 +702,10 @@ int KWClass::ComputeOverallNativeRelationAttributeNumber(boolean bIncludingRefer
 						assert(attribute->GetDerivationRule() != NULL);
 
 						// Recherche de la classe cible
-						kwcTargetClass = GetDomain()->LookupClass(
-						    attribute->GetDerivationRule()->GetObjectClassName());
+						kwcTargetClass = attribute->GetClass();
 						assert(kwcTargetClass != NULL);
 
-						// Analyse uniquement si la classe cible na pas deja ete analysees
+						// Analyse uniquement si la classe cible na pas deja ete analysee
 						if (odAnalysedCreatedClasses.Lookup(kwcTargetClass->GetName()) == NULL)
 						{
 							// Memorisation de la classe cible
@@ -727,6 +734,11 @@ int KWClass::ComputeOverallNativeRelationAttributeNumber(boolean bIncludingRefer
 										odReferenceClasses.SetAt(
 										    kwcUsedClass->GetName(),
 										    kwcUsedClass);
+
+										// Ajout de la classe a analyser
+										assert(kwcUsedClass
+											   ->GetKeyAttributeNumber() >
+										       0);
 										oaImpactedClasses.Add(kwcUsedClass);
 									}
 								}
@@ -746,6 +758,9 @@ int KWClass::ComputeOverallNativeRelationAttributeNumber(boolean bIncludingRefer
 
 							// Memorisation de la classe externe pour ne pas faire l'analyse plusieurs fois
 							odReferenceClasses.SetAt(kwcRefClass->GetName(), kwcRefClass);
+
+							// Ajout de la classe a analyser
+							assert(kwcRefClass->GetKeyAttributeNumber() > 0);
 							oaImpactedClasses.Add(kwcRefClass);
 						}
 					}
@@ -3436,7 +3451,12 @@ void KWClass::WriteAttributes(const ALString& sTitle, const ObjectArray* oaAttri
 	for (i = 0; i < oaAttributes->GetSize(); i++)
 	{
 		attribute = cast(KWAttribute*, oaAttributes->GetAt(i));
-		ost << "\t" << i + 1 << "\t" << attribute->GetName() << "\n";
+		ost << "\t" << i + 1;
+		ost << "\t" << (attribute->GetUsed() ? "" : "Unused");
+		ost << "\t" << attribute->GetTypeLabel();
+		ost << "\t" << attribute->GetName();
+		ost << "\t" << attribute->GetLoadIndex();
+		ost << "\n";
 	}
 }
 

@@ -280,7 +280,7 @@ void KWMTDatabase::UpdateMultiTableMappings()
 		mappingManager.Write(cout);
 	ensure(mappingManager.GetMainClassName() == "" or mainClass == NULL or
 	       mainClass->ComputeOverallNativeRelationAttributeNumber(true) == mappingManager.GetMappingNumber() - 1 or
-	       mappingManager.GetUnusedRootDictionaryWarnings()->GetSize() > 0);
+	       not mainClass->IsKeyBasedStorable() or mappingManager.GetUnusedRootDictionaryWarnings()->GetSize() > 0);
 	ensure(mappingManager.IsMainMappingInitialized());
 }
 
@@ -1521,7 +1521,7 @@ boolean KWMTDatabase::PhysicalReadAllReferenceObjects(longint lMaxAvailableMemor
 		}
 
 		// Parcours de tous les objet racine des tables externe dans l'ordre de leur lecture
-		// Attention, cet ordre est necessaire pour garantir la reproductibilite de resultats,
+		// Attention, cet ordre est necessaire pour garantir la reproductibilite des resultats,
 		// notamment en ce qui concernes les objets issus d'une regle de derivation de creation d'instance
 		// dont l'index de creation est local a l'ensemble de toutes les instances
 		for (nObject = 0; nObject < oaAllReferenceObjects.GetSize(); nObject++)
@@ -2184,6 +2184,7 @@ KWObject* KWMTDatabase::DMTMPhysicalRead(KWMTDatabaseMapping* mapping)
 	{
 		// Recherche du data path a associe a l'objet
 		objectDataPath = objectDataPathManager.LookupObjectDataPath(mapping->GetDataPath());
+		assert(objectDataPath != NULL);
 
 		// Memorisation du data path dans l'objet
 		kwoObject->SetObjectDataPath(objectDataPath);

@@ -196,9 +196,21 @@ public:
 	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject,
 					      const KWLoadIndex liAttributeLoadIndex) const override;
 
+	// Verification du type des operandes en sortie
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
+
 	///////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Verification d'un operande en sortie
+	boolean CheckOutputOperandCompletenessAt(const KWClass* kwcOwnerClass, int nIndex) const;
+
+	// Pas d'alimentation de type vue
+	boolean IsViewModeActivated() const override;
+
+	// Redefinition des methodes virtuelles
+	void CollectMandatoryInputOperands(IntVector* ivUsedInputOperands) const override;
+	void CollectSpecificInputOperandsAt(int nOutputOperand, IntVector* ivUsedInputOperands) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
