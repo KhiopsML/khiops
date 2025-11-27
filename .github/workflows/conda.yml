@@ -123,7 +123,7 @@ jobs:
       - name: Add  CONDA_PREFIX to shared PATH (Windows)
         if: runner.os == 'Windows'
         run: |
-          echo "$CONDA_PREFIX/bin" >> $GITHUB_PATH
+          echo "$CONDA_PREFIX/Library/bin" >> $GITHUB_PATH
       - name: Add Conda environment binary directory to the environment (Linux and
           MacOS)
         if: runner.os != 'Windows'
