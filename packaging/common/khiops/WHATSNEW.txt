@@ -2,7 +2,7 @@
 Release Notes for Khiops
 ========================
 
-Version 11.0.0-b.1
+Version 11.0.0
 ==================
 
 New major version

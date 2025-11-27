@@ -1,4 +1,4 @@
-Khiops 11 Beta
+Khiops 11
 ==============
   (c) 2023-2025 Orange. All rights reserved.
   https://khiops.org
