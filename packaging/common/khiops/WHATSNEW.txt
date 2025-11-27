@@ -2,7 +2,7 @@
 Release Notes for Khiops
 ========================
 
-Version 11.0.0-b.1
+Version 11.0.0
 ==================
 
 New major version
@@ -76,6 +76,9 @@ Optimal histograms
   - numerical variables: optimal histogram are built to for accurate density estimation and usefull exploratory analysis
   - categorical variable: optimal number of frequent value are kept, with the rare values in a default group
 - former unsupervised preprocessing methods can still be used if specified 
+
+Random forest for classification
+- now produced even in case of grouped target value
 
 Preprocessing
 - in supervised learning, MODL is now the only available method
