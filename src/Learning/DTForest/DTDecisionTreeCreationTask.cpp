@@ -188,12 +188,11 @@ boolean DTDecisionTreeCreationTask::CreatePreparedAttributes(KWLearningSpec* lea
 	if (not bOk)
 		oaOutputAttributeStats->DeleteAll();
 
-	// Message si erreur
+	// Message si erreur, permettant d'aider a localiser le probleme
 	if (not bOk)
 	{
-		if (TaskProgression::IsInterruptionRequested())
-			AddWarning("Interrupted by user");
-		else
+		// Pas de message en cas d'interruption utilisateur: celui-ci seront emis par la matehode appelante
+		if (not TaskProgression::IsInterruptionRequested())
 			AddError("Interrupted because of errors");
 	}
 
