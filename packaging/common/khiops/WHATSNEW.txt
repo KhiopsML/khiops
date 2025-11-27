@@ -77,6 +77,9 @@ Optimal histograms
   - categorical variable: optimal number of frequent value are kept, with the rare values in a default group
 - former unsupervised preprocessing methods can still be used if specified 
 
+Random forest for classification
+- now produced even in case of grouped target value
+
 Preprocessing
 - in supervised learning, MODL is now the only available method
   - all other alternative methods are removed
