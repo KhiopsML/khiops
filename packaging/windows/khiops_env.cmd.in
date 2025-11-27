@@ -144,7 +144,7 @@ exit /b 0
 
 REM Set mpiexec path for conda installation
 :SET_MPI_CONDA
-set "KHIOPS_MPI_COMMAND=%_KHIOPS_HOME%\Library\bin\mpiexec.exe"
+set "KHIOPS_MPI_COMMAND=%_KHIOPS_HOME%\bin\mpiexec.exe"
 if not exist "%KHIOPS_MPI_COMMAND%" goto ERR_MPI
 goto MPI_PARAMS
 

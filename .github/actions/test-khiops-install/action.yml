@@ -96,6 +96,10 @@ runs:
         echo.
         echo --- Khiops environment with KHIOPS_PROC_NUMBER not set
         call khiops_env --env
+        echo "%KHIOPS_DRIVERS_PATH%" | findstr /R ".*\\Library\\bin$" > NUL
+        if not %ERRORLEVEL% equ 0 (
+          echo "::error::KHIOPS_DRIVERS_PATH is not in Library\bin"
+        )
         echo.
         set KHIOPS_PROC_NUMBER=2
         echo --- Khiops environment with KHIOPS_PROC_NUMBER=%KHIOPS_PROC_NUMBER%
