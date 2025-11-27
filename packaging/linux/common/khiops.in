@@ -65,6 +65,7 @@ fi
 
 export CLASSPATH=$CLASSPATH:$KHIOPS_CLASSPATH
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$KHIOPS_JAVA_PATH
+@SET_DYLD_LIBRARY_PATH@
 
 launch_khiops() {
     if [[ $# -eq 0 ]]; then

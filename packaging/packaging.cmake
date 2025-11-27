@@ -187,21 +187,22 @@ set(CPACK_RPM_KNI_POST_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/packaging/linu
 set(CPACK_RPM_KNI_POSTUN_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/packaging/linux/redhat/kni.postun")
 
 
-# ########### DMG Generator #############################
-set(CPACK_DMG_VOLUME_NAME Khiops)
-set(CPACK_DMG_BACKGROUND_IMAGE packaging/common/images/khiops.tiff)
-
-
-set(CPACK_BUNDLE_NAME test)
-
 get_cmake_property(CPACK_COMPONENTS_ALL COMPONENTS)
 list(REMOVE_ITEM CPACK_COMPONENTS_ALL "Unspecified")
 
 include(CPack)
 
-# Check if all files are installed within a component. If not, these files will be in the package
-# Unspecified.zip/deb/rpm It doesn't work on vscode: Unspecified component is always here list(FIND CPACK_COMPONENTS_ALL
-# ${CMAKE_INSTALL_DEFAULT_COMPONENT_NAME} _test) if (${_test} GREATER "-1") message(AUTHOR_WARNING "Installing files
-# without component. These files won't be in any package. See file
-# install_manifest_${CMAKE_INSTALL_DEFAULT_COMPONENT_NAME}.txt.") endif()
+list(FIND CPACK_COMPONENTS_ALL ${CMAKE_INSTALL_DEFAULT_COMPONENT_NAME} _test) 
+if (${_test} GREATER "-1") 
+   message(AUTHOR_WARNING "Installing files without component. These files won't be in any package. See file install_manifest_${CMAKE_INSTALL_DEFAULT_COMPONENT_NAME}.txt.") 
+endif()
 
+# clang-format off
+# Check if all files are installed within a component. 
+# If not, these files will be in the package Unspecified.zip/deb/rpm 
+# It doesn't work on vscode: Unspecified component is always here 
+# list(FIND CPACK_COMPONENTS_ALL ${CMAKE_INSTALL_DEFAULT_COMPONENT_NAME} _test) 
+# if (${_test} GREATER "-1") 
+#    message(AUTHOR_WARNING "Installing files without component. These files won't be in any package. See file install_manifest_${CMAKE_INSTALL_DEFAULT_COMPONENT_NAME}.txt.") 
+# endif()
+# clang-format on

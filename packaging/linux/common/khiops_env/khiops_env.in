@@ -81,20 +81,7 @@ fi
 KHIOPS_PATH=@MODL_PATH@@MODL_NAME@
 KHIOPS_COCLUSTERING_PATH=@MODL_PATH@@MODL_COCLUSTERING_NAME@
 
-if command -v mpiexec &>/dev/null; then
-    KHIOPS_MPI_ERROR=""
-    _MPIEXEC=$(readlink -f "$(type -P mpiexec)")
-else
-    # Fallback for Conda-based environments where `mpiexec` is not in PATH,
-    # because $CONDA_PREFIX/bin is not in PATH
-    _MPIEXEC=@MODL_PATH@mpiexec
-    if command -v $_MPIEXEC &>/dev/null; then
-        KHIOPS_MPI_ERROR=""
-    else
-        KHIOPS_MPI_ERROR="We didn't find mpiexec in the expected paths. Parallel computation is unavailable: Khiops is launched in serial"
-    fi
-
-fi
+@SET_MPI_PATH@
 
 if [[ -z $KHIOPS_MPI_ERROR ]]; then
     KHIOPS_MPI_COMMAND="$_MPIEXEC $_MPI_EXTRA_FLAGS @MPI_EXTRA_FLAG@ $KHIOPS_MPI_EXTRA_FLAGS"
