@@ -38,3 +38,6 @@ KhiopsMemoryStats.all_stats.xlsx
 *.pyc
 __pycache__/
 .idea/
+
+# vcpkg
+vcpkg_installed/

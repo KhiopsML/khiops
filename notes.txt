@@ -22,6 +22,17 @@ cmake --fresh --preset macos-clang-release -DMPI=ON -DCMAKE_TOOLCHAIN_FILE=$VCPK
 ```
 
 
+
+
+
+!!                                          !!
+Dans khiops_env:
+export DYLD_LIBRARY_PATH=$(pwd)/mpi/lib
+!!                                          !!
+
+
+
+
 Packaging
 - DMG OK mais on a tous les composants dans l'installeur (Khiops-core khiops kni kni-transfer). Et pour bien faire il faut installer un fichier *.application
 - la bonne façon de faire semble d'utiliser ProductBuild qui génère des pkg (https://stackoverflow.com/questions/46011440/cmake-cpack-preferred-package-generators-for-different-platforms).
@@ -32,3 +43,8 @@ note: il faut avoir une fichier de licence avec une extension txt
 Reste à faire:
 - khiops_env
 - signature
+
+
+ATTENTION openmpi plante avec une segmentation fault (Signal code: Invalid permissions )
+il faut prendre une version spécifique la 4,1,7 fonctionne. Pour l'avoir il faut prendre le hash suivant dans vcpkg.json
+"builtin-baseline": "ada9b58df7928b49218b4b932e37b343a2047273"

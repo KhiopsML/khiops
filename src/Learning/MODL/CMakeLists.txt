@@ -25,3 +25,10 @@ set_target_properties(
              SOVERSION ${PROJECT_VERSION_MAJOR}
              VERSION ${KHIOPS_VERSION})
 set_khiops_options(MODL_DLL)
+
+
+set_target_properties(
+    MODL 
+    PROPERTIES 
+    INSTALL_RPATH 
+    "${CMAKE_INSTALL_RPATH};${CMAKE_INSTALL_PREFIX}/lib;${CMAKE_INSTALL_PREFIX}/khiops/mpi/lib")  

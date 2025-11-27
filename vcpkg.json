@@ -1,5 +1,6 @@
 {
   "dependencies": [
     "openmpi"
-  ]
+  ],
+  "builtin-baseline": "ada9b58df7928b49218b4b932e37b343a2047273"
 }

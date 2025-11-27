@@ -13,56 +13,57 @@ else()
   set(DOC_DIR usr/share/doc/kni)
 endif()
 
-install(
-  TARGETS KhiopsNativeInterface
-  LIBRARY DESTINATION ${LIB_DIR} COMPONENT KNI
-  PUBLIC_HEADER DESTINATION ${INCLUDE_DIR} COMPONENT KNI
-  ARCHIVE COMPONENT KNI # lib on windows
-  RUNTIME COMPONENT KNI # dll on windows
-)
+if(NOT APPLE)
+  install(
+    TARGETS KhiopsNativeInterface
+    LIBRARY DESTINATION ${LIB_DIR} COMPONENT KNI
+    PUBLIC_HEADER DESTINATION ${INCLUDE_DIR} COMPONENT KNI
+    ARCHIVE COMPONENT KNI # lib on windows
+    RUNTIME COMPONENT KNI # dll on windows
+  )
 
-install(
-  FILES ${PROJECT_SOURCE_DIR}/LICENSE
-  DESTINATION ${DOC_DIR}
-  COMPONENT KNI)
+  install(
+    FILES ${PROJECT_SOURCE_DIR}/LICENSE
+    DESTINATION ${DOC_DIR}
+    COMPONENT KNI)
 
-install(
-  FILES ${TMP_DIR}/kni.README.txt
-  DESTINATION ${DOC_DIR}
-  COMPONENT KNI
-  RENAME README.txt)
+  install(
+    FILES ${TMP_DIR}/kni.README.txt
+    DESTINATION ${DOC_DIR}
+    COMPONENT KNI
+    RENAME README.txt)
 
-# Copy KNI c++ files to temporary directory before to add main functions
-configure_file(${PROJECT_SOURCE_DIR}/src/Learning/KNITransfer/KNIRecodeFile.cpp ${TMP_DIR}/KNIRecodeFile.c COPYONLY)
-configure_file(${PROJECT_SOURCE_DIR}/src/Learning/KNITransfer/KNIRecodeMTFiles.cpp ${TMP_DIR}/KNIRecodeMTFiles.c
-               COPYONLY)
+  # Copy KNI c++ files to temporary directory before to add main functions
+  configure_file(${PROJECT_SOURCE_DIR}/src/Learning/KNITransfer/KNIRecodeFile.cpp ${TMP_DIR}/KNIRecodeFile.c COPYONLY)
+  configure_file(${PROJECT_SOURCE_DIR}/src/Learning/KNITransfer/KNIRecodeMTFiles.cpp ${TMP_DIR}/KNIRecodeMTFiles.c
+                COPYONLY)
 
-file(APPEND ${TMP_DIR}/KNIRecodeFile.c
-     "\n\nint main(int argv, char** argc)\n{\n\tmainKNIRecodeFile(argv, argc);\n \treturn 0;\n}\n")
-file(APPEND ${TMP_DIR}/KNIRecodeMTFiles.c
-     "\n\nint main(int argv, char** argc)\n{\n\tmainKNIRecodeMTFiles(argv, argc);\n \treturn 0;\n}\n")
+  file(APPEND ${TMP_DIR}/KNIRecodeFile.c
+      "\n\nint main(int argv, char** argc)\n{\n\tmainKNIRecodeFile(argv, argc);\n \treturn 0;\n}\n")
+  file(APPEND ${TMP_DIR}/KNIRecodeMTFiles.c
+      "\n\nint main(int argv, char** argc)\n{\n\tmainKNIRecodeMTFiles(argv, argc);\n \treturn 0;\n}\n")
 
-# Replace PROJECT_VERSION, KHIOPS_VERSION and scripts
+  # Replace PROJECT_VERSION, KHIOPS_VERSION and scripts
 
-file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/build-c-linux.sh BUILD_C_LINUX)
-file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/build-c-windows.cmd BUILD_C_WINDOWS)
-file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/build-java.sh BUILD_JAVA)
-file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/run-java-linux.sh RUN_JAVA_LINUX)
-file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/run-java-windows.cmd RUN_JAVA_WINDOWS)
+  file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/build-c-linux.sh BUILD_C_LINUX)
+  file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/build-c-windows.cmd BUILD_C_WINDOWS)
+  file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/build-java.sh BUILD_JAVA)
+  file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/run-java-linux.sh RUN_JAVA_LINUX)
+  file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/run-java-windows.cmd RUN_JAVA_WINDOWS)
 
-configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/README.txt.in ${TMP_DIR}/kni.README.txt @ONLY
-               NEWLINE_STYLE UNIX)
-configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/template-README.md ${TMP_DIR}/kni.README.md @ONLY
-               NEWLINE_STYLE UNIX)
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/README.txt.in ${TMP_DIR}/kni.README.txt @ONLY
+                NEWLINE_STYLE UNIX)
+  configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/template-README.md ${TMP_DIR}/kni.README.md @ONLY
+                NEWLINE_STYLE UNIX)
 
-# ######################################## KNITransfer installation
+  # ######################################## KNITransfer installation
 
-if(CMAKE_HOST_SYSTEM_NAME STREQUAL Windows)
-  install(TARGETS KNITransfer RUNTIME DESTINATION "./" COMPONENT KNI_TRANSFER)
-else()
-  install(TARGETS KNITransfer RUNTIME DESTINATION usr/bin COMPONENT KNI_TRANSFER)
-endif()
-
+  if(CMAKE_HOST_SYSTEM_NAME STREQUAL Windows)
+    install(TARGETS KNITransfer RUNTIME DESTINATION "./" COMPONENT KNI_TRANSFER)
+  else()
+    install(TARGETS KNITransfer RUNTIME DESTINATION usr/bin COMPONENT KNI_TRANSFER)
+  endif()
+endif(NOT APPLE)
 # ######################################## Khiops and Khiops Coclustering installation
 
 if(UNIX)
@@ -79,8 +80,11 @@ if(UNIX)
       configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/redhat/khiops_env/use_environment_module.sh.in
                      ${TMP_DIR}/use_environment_module.sh @ONLY NEWLINE_STYLE UNIX)
       file(READ ${TMP_DIR}/use_environment_module.sh USE_ENVIRONMENT_MODULE)
+    elseif(APPLE)
+      set(MODL_PATH "/Library/khiops/bin/")
+      set(USE_ENVIRONMENT_MODULE "")
     else()
-      set(MODL_PATH "/usr/bin/")
+     set(MODL_PATH "/usr/bin/")
       set(USE_ENVIRONMENT_MODULE "")
     endif(IS_FEDORA_LIKE)
     set(GET_PROC_NUMBER_PATH "/usr/bin/")
@@ -136,6 +140,14 @@ if(UNIX)
     install(TARGETS _khiopsgetprocnumber RUNTIME DESTINATION ./${GET_PROC_NUMBER_PATH} COMPONENT KHIOPS_CORE)
   endif()
 
+  if(APPLE)
+    set(SET_MPI_PATH "KHIOPS_MPI_ERROR=\"\"\n_MPIEXEC=${CMAKE_INSTALL_PREFIX}/khiops/mpi/tools/openmpi/bin/mpirun")
+    #set(SET_DYLD_LIBRARY_PATH "export DYLD_LIBRARY_PATH=/Library/khiops/bin/mpi/lib")
+  else()
+    configure_file(packaging/linux/common/khiops_env/set_mpi_path.in ${TMP_DIR}/set_mpi_path.sh @ONLY
+                 NEWLINE_STYLE UNIX)
+    file(READ ${TMP_DIR}/set_mpi_path.sh SET_MPI_PATH)
+  endif()
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/khiops_env.in ${TMP_DIR}/khiops_env @ONLY
                  NEWLINE_STYLE UNIX)
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/debian/khiops-core/postinst.in ${TMP_DIR}/postinst @ONLY
@@ -149,15 +161,24 @@ if(UNIX)
     if(MPI)
       cmake_path(GET MPI_LIBRARY PARENT_PATH MPI_LIB_DIRECTORY)
       cmake_path(GET MPIEXEC_EXECUTABLE PARENT_PATH MPI_PATH_DIRECTORY)
-      install(DIRECTORY ${MPI_LIB_DIRECTORY}  DESTINATION khiops/bin/mpi  COMPONENT KHIOPS_CORE USE_SOURCE_PERMISSIONS)
-      install(DIRECTORY ${MPI_PATH_DIRECTORY} DESTINATION khiops/bin/mpi  COMPONENT KHIOPS_CORE USE_SOURCE_PERMISSIONS)
+      # install(FILES $<TARGET_RUNTIME_DLLS:MODL> COMPONENT "mpi" DESTINATION Library/khiops/bin/mpi)
+      # install(FILES $<TARGET_RUNTIME_DLLS:MPI::MPI_CXX> COMPONENT "mpi" DESTINATION Library/khiops/bin/mpi)
+
+      # install(DIRECTORY ${MPI_LIB_DIRECTORY}  DESTINATION Library/khiops/bin/mpi  COMPONENT KHIOPS_CORE USE_SOURCE_PERMISSIONS)
+      # install(DIRECTORY ${MPI_PATH_DIRECTORY} DESTINATION Library/khiops/bin/mpi  COMPONENT KHIOPS_CORE USE_SOURCE_PERMISSIONS)
+      message(STATUS "copy from${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/")
+      install(DIRECTORY "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/" DESTINATION usr/local/khiops/mpi  COMPONENT KHIOPS_CORE USE_SOURCE_PERMISSIONS)
     endif(MPI)
 
-    install(TARGETS MODL MODL_Coclustering DESTINATION khiops/bin COMPONENT KHIOPS_CORE)
+    install(TARGETS MODL MODL_Coclustering DESTINATION usr/local/khiops/bin COMPONENT KHIOPS_CORE)
     install(
       FILES ${PROJECT_SOURCE_DIR}/LICENSE 
             ${PROJECT_SOURCE_DIR}/packaging/common/khiops/WHATSNEW.txt
-            ${PROJECT_SOURCE_DIR}/packaging/common/khiops/README.txt DESTINATION khiops COMPONENT KHIOPS_CORE)
+            ${PROJECT_SOURCE_DIR}/packaging/common/khiops/README.txt DESTINATION usr/local/khiops COMPONENT KHIOPS_CORE)
+    install(
+      PROGRAMS ${TMP_DIR}/khiops ${TMP_DIR}/khiops_coclustering ${TMP_DIR}/khiops_env
+      DESTINATION usr/local/khiops/bin
+      COMPONENT KHIOPS_CORE)
   else(APPLE)
     install(TARGETS MODL MODL_Coclustering RUNTIME DESTINATION ${MODL_PATH} COMPONENT KHIOPS_CORE)
 

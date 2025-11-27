@@ -8,7 +8,7 @@ set(KHIOPS_VERSION ${CMAKE_MATCH_1})
 string(REGEX REPLACE "-.*" "" VERSION ${KHIOPS_VERSION})
 message(STATUS "Building Khiops Version: ${KHIOPS_VERSION} (CMake version : ${VERSION})")
 
-
+set(VCPKG_FIXUP_MACHO_RPATH true)
 # Specify the project's language to C++
 project(
   Khiops
@@ -214,11 +214,11 @@ if(MSVC)
   string(REGEX REPLACE "/Zi" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 endif()
 
-if(APPLE)
-  set(CMAKE_SKIP_BUILD_RPATH FALSE)
-  set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-endif()
+# if(APPLE)
+#   set(CMAKE_SKIP_BUILD_RPATH FALSE)
+#   set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+#   set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+# endif()
 
 # Sets the compiling options for Khiops
 function(set_khiops_options target)
@@ -253,7 +253,7 @@ function(set_unix_khiops_options target)
   endif()
 
   # Do not include RPATHs in the build tree (Debian policy).
-  set(CMAKE_SKIP_BUILD_RPATH TRUE)
+  #set(CMAKE_SKIP_BUILD_RPATH TRUE)
 
   # Hardening (mandatory by debian policy)
   #
@@ -406,3 +406,5 @@ set(INSTALL_GTEST OFF)
 include(packaging)
 
 #display_variables()
+get_property(target_names DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY BUILDSYSTEM_TARGETS)
+message(STATUS "target_names ${BUILDSYSTEM_TARGETS}")
