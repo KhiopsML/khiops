@@ -78,7 +78,7 @@ Optimal histograms
 - former unsupervised preprocessing methods can still be used if specified 
 
 Random forest for classification
-- now produced even in case of grouped target value
+- now produced even in case of grouped target values
 
 Preprocessing
 - in supervised learning, MODL is now the only available method
