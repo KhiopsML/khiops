@@ -154,7 +154,7 @@ runs:
         fi
         $KHIOPS_ENV_DIR/khiops -s
         $KHIOPS_ENV_DIR/khiops -s &> tee output_s
-        if [ grep -q Error output_s ];
+        if [ grep -q error output_s ];
         then 
           echo "::error::Unexpected output in khiops -s"
           false
@@ -175,7 +175,7 @@ runs:
         KHIOPS_PROC_NUMBER: 4
       run: |
         khiops -s
-        khiops -s 2>&1 | findstr /i "Error" >nul
+        khiops -s 2>&1 | findstr /i "error" >nul
         if %ERRORLEVEL% equ 0 (
           echo "::error::Unexpected output in khiops -s"
           exit 1
@@ -209,7 +209,7 @@ runs:
         fi
         $KHIOPS_ENV_DIR/khiops_coclustering -s
         $KHIOPS_ENV_DIR/khiops_coclustering -s &> output_s
-        if [ grep -q Error output_s ];
+        if [ grep -q error output_s ];
         then 
           echo "::error::Unexpected output in khiops_coclustering -s"
           false
@@ -230,7 +230,7 @@ runs:
         KHIOPS_PROC_NUMBER: 4
       run: |
         khiops_coclustering -s
-        khiops_coclustering -s 2>&1 | findstr /i "Error" >nul
+        khiops_coclustering -s 2>&1 | findstr /i "error" >nul
         if %ERRORLEVEL% equ 0 (
           echo "::error::Unexpected output in khiops_coclustering -s"
           exit 1
