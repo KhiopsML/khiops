@@ -153,14 +153,14 @@ runs:
           false
         fi
         $KHIOPS_ENV_DIR/khiops -s
-        $KHIOPS_ENV_DIR/khiops -s &> tee output_s
+        $KHIOPS_ENV_DIR/khiops -s &> output_s
         if [ grep -q error output_s ];
         then 
           echo "::error::Unexpected output in khiops -s"
           false
         fi
         $KHIOPS_ENV_DIR/khiops -v 
-        $KHIOPS_ENV_DIR/khiops -v &> tee output_v
+        $KHIOPS_ENV_DIR/khiops -v &> output_v
         LINE_NUMBER=$(wc -l < output_v)
         if [ $LINE_NUMBER -gt 1 ];
         then 
@@ -215,7 +215,7 @@ runs:
           false
         fi
         $KHIOPS_ENV_DIR/khiops_coclustering -v 
-        $KHIOPS_ENV_DIR/khiops_coclustering -v &> tee output_v
+        $KHIOPS_ENV_DIR/khiops_coclustering -v &> output_v
         LINE_NUMBER=$(wc -l < output_v)
         if [ $LINE_NUMBER -gt 1 ];
         then 
