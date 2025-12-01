@@ -139,8 +139,13 @@ endif()
 
 # Process dependencies: Find MPI if required
 if(MPI)
-  # Ask `find_mpi` to determine installed version of the MPI library, via `MPI_Get_library_version`
-  set(MPI_DETERMINE_LIBRARY_VERSION true)
+  # Ask `find_mpi` to determine installed version of the MPI library, via `MPI_Get_library_version` Only ask to
+  # determine the MPI library version for Linux setups, where OpenMPI is used and knowing its version at build time is
+  # relevant. Note that testing on CMAKE_CROSSCOMPILING is not recommended for projects that target MacOS systems
+  # (https://cmake.org/cmake/help/latest/variable/CMAKE_CROSSCOMPILING.html#variable:CMAKE_CROSSCOMPILING)
+  if(UNIX AND NOT APPLE)
+    set(MPI_DETERMINE_LIBRARY_VERSION true)
+  endif()
   find_package(MPI 2.0 REQUIRED)
   message(
     STATUS
