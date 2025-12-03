@@ -481,13 +481,12 @@ def evaluate_tool_on_test_dir(
             is_kni = kht.KNI in tool_exe_path
             is_coclustering = kht.COCLUSTERING in tool_exe_path
             lines = stdout.split("\n")
-            lines = utils.filter_process_id_prefix_from_lines(
-                lines
-            )  # Suppression de l'eventuel prefix de type '[0] '
-            lines = utils.filter_copyright_lines(
-                lines
-            )  # Suppression eventuelle des lignes de copyright
-            lines = utils.filter_empty_lines(lines)  # Suppression des lignes vides
+            # Suppression de l'eventuel prefix de type '[0] '
+            lines = utils.filter_process_id_prefix_from_lines(lines)
+            # Suppression eventuelle des lignes de copyright
+            lines = utils.filter_copyright_lines(lines)
+            # Suppression des lignes vides
+            lines = utils.filter_empty_lines(lines)
 
             # Pour les tests KNI, le stdout contient une ligne avec le nombre de records ou une erreur d'ouverture ou de recoddage
             if is_kni:
@@ -558,13 +557,25 @@ def evaluate_tool_on_test_dir(
         # Cas de la sortie d'erreur standard
         if stderr != "":
             print(stderr, file=sys.stderr)
+
+            # Pretraitement des lignes pour supprimer les lignes normales
+            # parfois specifiques a certains outils
+            lines = stderr.split("\n")
+            # Suppression de l'eventuel prefix de type '[0] '
+            lines = utils.filter_process_id_prefix_from_lines(lines)
+            # Suppression eventuelle des lignes emises par Open MPI, qui ne gere pas le mode quiet
+            lines = utils.filter_openmpi5_noquiet_lines(lines)
+            # Suppression des lignes vides
+            lines = utils.filter_empty_lines(lines)
+
             try:
                 with open(
                     os.path.join(results_dir, kht.STDERR_ERROR_LOG),
                     "w",
                     errors="ignore",
                 ) as stderr_file:
-                    stderr_file.write(stderr)
+                    for line in lines:
+                        stderr_file.write(line)
             except Exception as exception:
                 print(
                     "Enable to write file "

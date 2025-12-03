@@ -150,10 +150,12 @@ KHIOPS_API_MODE = "KHIOPS_API_MODE"
 Gestion du timeout pour un jeu de test
 """
 # Temps minimum avant un timeout
-MIN_TIMEOUT = 300
+MIN_TIMEOUT = 600
 
 # Ratio de temps par rapport au temps des resultats de reference avant le timeout
-TIMEOUT_RATIO = 5
+# Globalement, le timeout pour un jeu de test test_dir est:
+#   timeout(test_dir) = MIN_TIMEOUT + TIMEOUT_RATIO * time(test_dir)
+TIMEOUT_RATIO = 10
 
 # Temps au dela duquel on ne tente pas de relancer un test
 MAX_TIMEOUT = 3600

@@ -286,7 +286,10 @@ public:
 	// le buffer en cours Verification egalement d'un eventuel format Mac anterieur a Mac OS 10 (1998)
 	boolean CheckEncoding() const;
 
-	// Taille max des lignes : par defaut 8 MB
+	// Taille max des lignes par defaut: 8 MB
+	static const int GetDefaultMaxLineLength();
+
+	// Taille max des lignes courante
 	// Si une ligne ne tient pas dans le buffer, la taille du buffer sera automatiquement
 	// et temporairement etendue jusqu'a cette taille pour recevoir la ligne en entier.
 	// N'est pris en compte que si la taille du buffer est plus petite que la taille max des lignes
@@ -505,6 +508,7 @@ protected:
 	boolean bLastFieldReachEol;
 
 	// Taille max des lignes
+	static const int nDefaultMaxLineLength;
 	static int nMaxLineLength;
 
 	///////////////////////////////////
@@ -696,6 +700,11 @@ inline void InputBufferedFile::SkipLine(boolean& bLineTooLong)
 	}
 	bLineTooLong = IsLineTooLong();
 	nLastBolPositionInCache = nPositionInCache;
+}
+
+inline const int InputBufferedFile::GetDefaultMaxLineLength()
+{
+	return nDefaultMaxLineLength;
 }
 
 inline int InputBufferedFile::GetMaxLineLength()

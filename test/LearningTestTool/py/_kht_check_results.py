@@ -1471,6 +1471,11 @@ RESILIENCE_USER_MESSAGE_PATTERNS = [
         " of RAM used after reading ",
         " external instances",
     ],
+    [
+        "error : KNI ",
+        " : Size of dictionary file ",
+        ") greater that stream max memory (",
+    ],
     ["error : ", " : Not enough memory "],
 ]
 
@@ -1621,7 +1626,11 @@ def check_file_lines(
     is_histogram_file = "histogram" in file_name and file_extension == ".log"
 
     # test si fichier de log de KNI
-    is_kni_log_file = file_name.find("KNILog") == 0 and file_extension == ".txt"
+    is_kni_log_file = (
+        file_name.find("KNI") == 0
+        and file_name.find("Log") > 0
+        and file_extension == ".txt"
+    )
 
     # test si fichier d'erreur
     is_error_file = file_name == kht.ERR_TXT

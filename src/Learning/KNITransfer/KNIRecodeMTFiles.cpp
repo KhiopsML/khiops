@@ -356,14 +356,18 @@ static int KNICompareInputRecords(char cFieldSeparator, KNIInputFile* mainFile, 
 /*
  * Clean a record by supressing the potential last end of line char.
  * This is useful for display purpose, and has no impact on recoding records
- * (input records may be indifferently terminated by '\0' or '\n' then '\0').
+ * (input records may be indifferently terminated by '\0' or '\n' '\r\n' then '\0').
  */
 static char* CleanRecord(char* sRecord)
 {
 	int nLength;
 	nLength = (int)strlen(sRecord);
-	if (nLength > 0 && sRecord[nLength - 1] == '\n')
-		sRecord[nLength - 1] = '\0';
+	while (nLength > 0)
+	{
+		nLength--;
+		if (sRecord[nLength] == '\n' || sRecord[nLength] == '\r')
+			sRecord[nLength] = '\0';
+	}
 	return sRecord;
 }
 

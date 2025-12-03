@@ -7,7 +7,8 @@
 #include "HugeBuffer.h"
 
 const unsigned char InputBufferedFile::cUTF8Bom[nUTF8BomSize] = {0xEF, 0xBB, 0xBF};
-int InputBufferedFile::nMaxLineLength = 8 * lMB;
+const int InputBufferedFile::nDefaultMaxLineLength = 8 * lMB;
+int InputBufferedFile::nMaxLineLength = nDefaultMaxLineLength;
 
 InputBufferedFile::InputBufferedFile()
 {
