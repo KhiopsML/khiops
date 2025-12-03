@@ -553,6 +553,42 @@ def filter_copyright_lines(lines):
     return output_lines
 
 
+def filter_openmpi5_noquiet_lines(lines):
+    """Retourne les lignes sans les lignes emises par Open MPI 5 en cas d'erreur
+    (absence du mode quiet cette version de MPI"""
+    assert isinstance(lines, list)
+    output_lines = lines
+    separator_line = (
+        "--------------------------------------------------------------------------"
+    )
+    is_notquiet_line = False
+    separator_line_index = -1
+    if len(lines) >= 2:
+        separator_line_index = find_pattern_in_lines(lines, [separator_line])
+        if separator_line_index > 0:
+            is_notquiet_line = (
+                find_pattern_in_lines(
+                    lines,
+                    [
+                        "prterun detected that one or more processes exited with non-zero status"
+                    ],
+                )
+                != -1
+            )
+    if is_notquiet_line:
+        # On filtre tout le bloc de ligne emis apr Open MPI 5
+        output_lines = lines[0:separator_line_index]
+        end_separator_line_index = find_pattern_in_lines(
+            lines[separator_line_index + 1 :], [separator_line]
+        )
+        if end_separator_line_index != -1:
+            output_lines = (
+                output_lines
+                + lines[separator_line_index + 1 + end_separator_line_index + 1 :]
+            )
+    return output_lines
+
+
 def filter_process_id_prefix_from_lines(lines):
     """Retourne les lignes sans l'eventuel prefixe de process id, du type '[0] '
     qui est emis par mpiexce dans les sorties standard"""
