@@ -1252,8 +1252,10 @@ void PLMTDatabaseTextFile::ComputeMemoryGuardOpenInformation()
 
 	// On utilise une limite minimale a la memoire RAM en prenant un ligne entiere dans le pire des cas,
 	// pour de pas declencher de warning utilisateurs excessifs
-	lEstimatedMinSingleInstanceMemoryLimit += InputBufferedFile::GetMaxLineLength();
-	lEstimatedMaxSingleInstanceMemoryLimit += 4 * InputBufferedFile::GetMaxLineLength();
+	lEstimatedMinSingleInstanceMemoryLimit +=
+	    max(InputBufferedFile::GetDefaultMaxLineLength(), InputBufferedFile::GetMaxLineLength());
+	lEstimatedMaxSingleInstanceMemoryLimit +=
+	    4 * max(InputBufferedFile::GetDefaultMaxLineLength(), InputBufferedFile::GetMaxLineLength());
 
 	// Destruction des data paths de gestion des objets
 	objectDataPathManager.Reset();
