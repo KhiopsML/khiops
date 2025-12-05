@@ -181,18 +181,19 @@ protected:
 
 	// Methodes associees a la construction du didctionnaire de deploiement dans le cas VarPart
 	// Creation des attributs associes aux innerVariables dans le cas d'un coclustering individus * variables
-	KWAttribute* AddInnerAttributePartitionAttribute(KWClass* kwcDeploymentClass, KWDGAttribute* innerAttribute);
+	KWAttribute* AddInnerAttributePartitionAttribute(KWClass* kwcDeploymentClass,
+							 KWDGAttribute* innerAttribute) const;
 
 	KWAttribute* AddInnerAttributePartitionIndexAttribute(KWClass* kwcDeploymentClass,
 							      KWAttribute* ivPartitionAttribute,
-							      KWDGAttribute* innerAttribute);
+							      KWDGAttribute* innerAttribute) const;
 
 	KWAttribute* AddInnerAttributeVarPartLabelsAttribute(KWClass* kwcDeploymentClass,
-							     KWDGAttribute* innerAttribute);
+							     KWDGAttribute* innerAttribute) const;
 
 	KWAttribute* AddInnerAttributePartitionLabelAttribute(KWClass* kwcDeploymentClass,
 							      KWAttribute* ivVarPartLabelsAttribute,
-							      KWAttribute* ivIndexAttribute);
+							      KWAttribute* ivIndexAttribute) const;
 	// ##
 };
 

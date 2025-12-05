@@ -3301,10 +3301,10 @@ boolean KWClass::InternalCheckNativeComposition(boolean bCheckKeys, boolean bVer
 				// - s'il y a une cle, ce type de dependance cyclique est incompatible avec des donnees
 				//   stockees selon un modele hierarchique (sans cycle)
 				// - s'il n'y a pas de cle, il y a des cas d'usage de table creees par une regle de creation
-				//   d'instance, qui cree des references sur des instances deja presente en memoire,
-				//   sans  que le problme de lecture sur disque se pose
+				//   d'instance, qui cree des references sur des instances deja presentes en memoire,
+				//   sans que le probleme de lecture sur disque se pose
 				//  - exemple: regle BuildList, qui va cree une liste doublement chainee, chaque noeud
-				//    pointant sur le precedent et le suivant, donc avec une cycle detecte dans le dictionnaire
+				//    pointant sur le precedent et le suivant, donc avec un cycle detecte dans le dictionnaire
 				if (GetKeyAttributeNumber() > 0)
 				{
 					AddError(

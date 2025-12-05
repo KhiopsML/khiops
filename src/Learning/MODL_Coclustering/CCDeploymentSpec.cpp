@@ -1094,7 +1094,7 @@ KWAttribute* CCDeploymentSpec::AddLabelVectorAttributeAt(KWClass* kwcDeploymentC
 }
 
 KWAttribute* CCDeploymentSpec::AddInnerAttributePartitionAttribute(KWClass* kwcDeploymentClass,
-								   KWDGAttribute* innerAttribute)
+								   KWDGAttribute* innerAttribute) const
 {
 	KWAttribute* dgAttribute;
 	KWDRIntervalBounds* intervalBoundsRule;
@@ -1167,14 +1167,13 @@ KWAttribute* CCDeploymentSpec::AddInnerAttributePartitionAttribute(KWClass* kwcD
 	}
 	delete oaParts;
 	dgAttribute->SetUsed(false);
-	//dgAttribute->SetLabel(coclusteringDataGridStats.ExportVariableNames());
 	kwcDeploymentClass->InsertAttribute(dgAttribute);
 	return dgAttribute;
 }
 
 KWAttribute* CCDeploymentSpec::AddInnerAttributePartitionIndexAttribute(KWClass* kwcDeploymentClass,
 									KWAttribute* ivPartitionAttribute,
-									KWDGAttribute* innerAttribute)
+									KWDGAttribute* innerAttribute) const
 {
 	KWDRGroupIndex* groupIndexRule;
 	KWDRIntervalIndex* intervalIndexRule;
@@ -1231,17 +1230,15 @@ KWAttribute* CCDeploymentSpec::AddInnerAttributePartitionIndexAttribute(KWClass*
 		groupIndexRule->AddOperand(partIndexOperand2);
 	}
 	dgAttribute->SetUsed(false);
-	//dgAttribute->SetLabel(coclusteringDataGridStats.ExportVariableNames());
 	kwcDeploymentClass->InsertAttribute(dgAttribute);
 	return dgAttribute;
 }
 
 KWAttribute* CCDeploymentSpec::AddInnerAttributeVarPartLabelsAttribute(KWClass* kwcDeploymentClass,
-								       KWDGAttribute* innerAttribute)
+								       KWDGAttribute* innerAttribute) const
 {
 	KWAttribute* dgAttribute;
 	KWDRSymbolVector* vectorRule;
-	KWDerivationRuleOperand* varPartLabelOperand;
 	ObjectArray* oaParts;
 	int nPart;
 
@@ -1267,14 +1264,13 @@ KWAttribute* CCDeploymentSpec::AddInnerAttributeVarPartLabelsAttribute(KWClass* 
 	delete oaParts;
 
 	dgAttribute->SetUsed(false);
-	//dgAttribute->SetLabel(coclusteringDataGridStats.ExportVariableNames());
 	kwcDeploymentClass->InsertAttribute(dgAttribute);
 	return dgAttribute;
 }
 
 KWAttribute* CCDeploymentSpec::AddInnerAttributePartitionLabelAttribute(KWClass* kwcDeploymentClass,
 									KWAttribute* ivVarPartLabelsAttribute,
-									KWAttribute* ivIndexAttribute)
+									KWAttribute* ivIndexAttribute) const
 {
 	KWDRSymbolValueAt* varPartRule;
 	KWAttribute* dgAttribute;
@@ -1308,7 +1304,6 @@ KWAttribute* CCDeploymentSpec::AddInnerAttributePartitionLabelAttribute(KWClass*
 	varPartRule->AddOperand(partIndexOperand2);
 
 	dgAttribute->SetUsed(false);
-	//dgAttribute->SetLabel(coclusteringDataGridStats.ExportVariableNames());
 	kwcDeploymentClass->InsertAttribute(dgAttribute);
 	return dgAttribute;
 }
