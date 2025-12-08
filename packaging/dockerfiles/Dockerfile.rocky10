@@ -1,0 +1,25 @@
+FROM  rockylinux/rockylinux:10
+LABEL maintainer="khiops.team@orange.com"
+LABEL description="Container with the dependencies to build and package Khiops"
+
+RUN true \
+  && dnf upgrade -y \
+  && dnf install -y "dnf-command(config-manager)" \
+  # We need the crb repository for ninja \
+  && dnf config-manager --set-enabled crb \
+  # --allowerasing is needed to resolve package conflicts \
+  && dnf upgrade -y --allowerasing \
+  && dnf install -y \
+  gcc-c++ \
+  cmake \
+  java-21-openjdk-devel \
+  mpich-devel \
+  openmpi \
+  openmpi-devel \
+  nano \
+  ninja-build \
+  rpm-build \
+  && dnf clean all \
+  && rm -rf /var/cache/dnf/ \
+  && dnf remove -y "dnf-command(config-manager)"\
+  && true
