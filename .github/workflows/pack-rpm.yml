@@ -34,7 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [rocky8, rocky9]
+        os: [rocky8, rocky9, rocky10]
     container:
       image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
@@ -92,9 +92,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rocky_version: [8, 9]
+        rocky_version: [8, 9, 10]
     container:
-      image: rockylinux:${{ matrix.rocky_version }}
+      image: rockylinux/rockylinux:${{ matrix.rocky_version }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -135,7 +135,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [rocky8, rocky9]
+        os: [rocky8, rocky9, rocky10]
     container:
       image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
