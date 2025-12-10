@@ -91,7 +91,7 @@ endif()
 # On Fedora distros, the binaries compiled with mpi must be located under the mpi location furthermore they have to be
 # suffixed by the name of the mpi implementation. These 2 items are given by MPI_BIN and MPI_SUFFIX when the module
 # environment is loaded source /etc/profile.d/modules.sh module load mpi/mpich-x86_64
-if(IS_FEDORA_LIKE AND NOT IS_CONDA)
+if(MPI AND IS_FEDORA_LIKE AND NOT IS_CONDA)
   if(DEFINED ENV{MPI_BIN})
     set(MPI_BIN $ENV{MPI_BIN})
   else()
