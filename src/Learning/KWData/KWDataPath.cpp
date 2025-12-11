@@ -735,6 +735,38 @@ void KWDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 	ensure(Check());
 }
 
+int KWDataPathManager::ComputeAllDataPathNumber(const KWClass* mainClass, boolean bIncludingReferences) const
+{
+	int nAllDataPathsNumber;
+	KWDataPathManager* workingDataPathManager;
+	const KWDataPath* dataPath;
+	int n;
+
+	// Utilisation d'un manager de travail, le temps du calcul
+	workingDataPathManager = Clone();
+
+	// Calcul des data paths
+	workingDataPathManager->ComputeAllDataPaths(mainClass);
+
+	// Comptage, notamment si l'on ne tient pas compte des classes externes
+	nAllDataPathsNumber = workingDataPathManager->GetDataPathNumber();
+	if (not bIncludingReferences)
+	{
+		for (n = 0; n < workingDataPathManager->GetDataPathNumber(); n++)
+		{
+			dataPath = workingDataPathManager->GetDataPathAt(n);
+			if (dataPath->GetOriginClassName() != mainClass->GetName())
+				nAllDataPathsNumber--;
+		}
+		assert(nAllDataPathsNumber <= workingDataPathManager->GetDataPathNumber() -
+						  workingDataPathManager->GetExternalRootDataPathNumber());
+	}
+
+	// Nettoyage
+	delete workingDataPathManager;
+	return nAllDataPathsNumber;
+}
+
 void KWDataPathManager::Reset()
 {
 	mainDataPath = NULL;
@@ -995,31 +1027,34 @@ KWDataPath* KWDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClass
 			// Cas d'un attribut natif de la composition (sans regle de derivation)
 			if (attribute->GetAnyDerivationRule() == NULL)
 			{
-				//DDDDD
-				// A etudier: arreter l'analyse si la classe en cours est deja utilisee dans le data path???
-				// Idem pour KWClass::ComputeOverallNativeRelationAttributeNumber?
-				if (attribute->GetClass()->GetKeyAttributeNumber() > 0)
+				// On l'integre s'il n'y a pas de cycle dans les classes du data path
+				// En cas de schema recursif, on calcule les data paths le plus loin possible
+				// avant apparition du cycle.
+				// - cela permet d'autoriser les cycles natifs dans le cas de certaines regles
+				//   - BuildList: on va jusqu'aux noeuds de la liste, sans les variable Prev et Next
+				//   - BuildGraph:
+				//     - noeuds du graphes, leur liste d'arcs adjacents (sans les noeuds extremites des arcs)
+				//     - arcs du graphs, noeuds extremites (sans leurs arcs adjacents)
+				// - cela va trop loin dans le cas des graphes, mais ce n'est pas grave
+				//   - on a juste quelques data paths crees qui ne seront jamais utilises pour les KWObjectDataPaths)
+				//   - dans le cas d'une tentative de lecture, avec des dictionnaires avec cles, cela permet d'avoir
+				//     des KWMTDatabaseMapping inutiles, mais presents dans la GUI pour aider l'utilisateur a comprendre
+				//     la structure recursive des dictionnaires et interpreter les messages d'erreur
+				if (not IsClassUsedInDataPath(dataPath, attribute->GetClass()))
 				{
-					// L'objet ne doit pas non plus etre cree par une regle de creation d'instances, puisque
-					// dans ce cas, les attributs sans regle de l'objet cree, s'ils existent, sont des references
-					// a d'autre objets source ayant servi a parametrer la creation de l'objet (et non des attributrs natifs)
-					if (not bCreatedObjects)
-					{
-						// Creation du dataPath dans une nouvelle table de dataPath temporaire
-						// Contexte: celui de l'appelant
-						svAttributeNames->Add(attribute->GetName());
-						ivAttributeTypes->Add(attribute->GetType());
-						componentDataPath = CreateDataPath(
-						    odReferenceClasses, oaRankedReferenceClasses,
-						    odAnalysedCreatedClasses, attribute->GetClass(), bIsExternalTable,
-						    bCreatedObjects, sOriginClassName, svAttributeNames,
-						    ivAttributeTypes, oaCreatedDataPaths);
-						svAttributeNames->SetSize(svAttributeNames->GetSize() - 1);
-						ivAttributeTypes->SetSize(ivAttributeTypes->GetSize() - 1);
+					// Creation du dataPath dans une nouvelle table de dataPath temporaire
+					// Contexte: celui de l'appelant
+					svAttributeNames->Add(attribute->GetName());
+					ivAttributeTypes->Add(attribute->GetType());
+					componentDataPath = CreateDataPath(
+					    odReferenceClasses, oaRankedReferenceClasses, odAnalysedCreatedClasses,
+					    attribute->GetClass(), bIsExternalTable, bCreatedObjects, sOriginClassName,
+					    svAttributeNames, ivAttributeTypes, oaCreatedDataPaths);
+					svAttributeNames->SetSize(svAttributeNames->GetSize() - 1);
+					ivAttributeTypes->SetSize(ivAttributeTypes->GetSize() - 1);
 
-						// Chainage du sous-dataPath
-						dataPath->GetComponents()->Add(componentDataPath);
-					}
+					// Chainage du sous-data path
+					dataPath->GetComponents()->Add(componentDataPath);
 				}
 			}
 			// Cas d'un attribut issue d'une regle de creation de table, pour rechercher
@@ -1042,7 +1077,7 @@ KWDataPath* KWDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClass
 					svAttributeNames->SetSize(svAttributeNames->GetSize() - 1);
 					ivAttributeTypes->SetSize(ivAttributeTypes->GetSize() - 1);
 
-					// Chainage du sous-dataPath
+					// Chainage du sous-data path
 					dataPath->GetComponents()->Add(componentDataPath);
 				}
 
@@ -1095,6 +1130,53 @@ KWDataPath* KWDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClass
 		mappedClass->GetNextAttribute(attribute);
 	}
 	return dataPath;
+}
+
+boolean KWDataPathManager::IsClassUsedInDataPath(const KWDataPath* dataPath, const KWClass* kwcClass) const
+{
+	boolean bFound = false;
+	KWClassDomain* classDomain;
+	KWClass* kwcCurrentClass;
+	KWAttribute* currentAttribute;
+	int nAttribute;
+	ALString sTmp;
+
+	require(dataPath != NULL);
+	require(dataPath->Check());
+	require(kwcClass != NULL);
+
+	// Utilisation du domaine de la classe en parametre
+	classDomain = kwcClass->GetDomain();
+
+	// Recherche et test de la classe de depart
+	kwcCurrentClass = classDomain->LookupClass(dataPath->GetOriginClassName());
+	check(kwcCurrentClass);
+
+	// Arret si la classe de depart est celle cherche
+	if (kwcCurrentClass == kwcClass)
+		bFound = true;
+	// Sinon, recherche par parcours des attributs du data path
+	else
+	{
+		for (nAttribute = 0; nAttribute < dataPath->GetDataPathAttributeNumber(); nAttribute++)
+		{
+			// Recherche de l'attribut
+			currentAttribute =
+			    kwcCurrentClass->LookupAttribute(dataPath->GetDataPathAttributeNameAt(nAttribute));
+			check(currentAttribute);
+
+			// Changement de classe courante
+			kwcCurrentClass = currentAttribute->GetClass();
+
+			// Arret si classe trouvee
+			if (kwcCurrentClass == kwcClass)
+			{
+				bFound = true;
+				break;
+			}
+		}
+	}
+	return bFound;
 }
 
 void KWDataPathManager::WriteDataPathArray(ostream& ost, const ALString& sTitle,

@@ -1055,7 +1055,7 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 		cout << "- target class: " << GetObjectClassName() << "\n";
 	}
 
-	// Recherche des attribut cible utilises dans le cas d'une alimentation de type calcul
+	// Recherche des attributs cibles utilises dans le cas d'une alimentation de type calcul
 	if (GetOutputOperandNumber() > 0)
 	{
 		// Initialisation des vecteurs des operandes utilises en entree et en sortie

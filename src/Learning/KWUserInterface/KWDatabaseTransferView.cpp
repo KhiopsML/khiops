@@ -158,6 +158,7 @@ void KWDatabaseTransferView::Open()
 	KWClass* kwcClass;
 	ALString sClassNames;
 	ALString sNonStorableClassNames;
+	KWMTDatabaseMappingManager mappingManager;
 	const int nMaxTotalShownLineNumber = 12;
 	int nMaxInputNativeRelationAttributeNumber;
 	int nMaxOutputNativeRelationAttributeNumber;
@@ -189,15 +190,15 @@ void KWDatabaseTransferView::Open()
 			sNonStorableClassNames += kwcClass->GetName();
 		}
 
-		// Mise a jour des nombre max de mappings
+		// Mise a jour des nombres max de mappings
 		if (targetDatabaseView->IsMultiTableTechnology())
 		{
 			nMaxInputNativeRelationAttributeNumber =
 			    max(nMaxInputNativeRelationAttributeNumber,
-				kwcClass->ComputeOverallNativeRelationAttributeNumber(true));
+				mappingManager.ComputeAllDataPathNumber(kwcClass, true));
 			nMaxOutputNativeRelationAttributeNumber =
 			    max(nMaxOutputNativeRelationAttributeNumber,
-				kwcClass->ComputeOverallNativeRelationAttributeNumber(false));
+				mappingManager.ComputeAllDataPathNumber(kwcClass, false));
 		}
 	}
 

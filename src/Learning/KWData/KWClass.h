@@ -255,18 +255,6 @@ public:
 	// Nombre de DataItem natifs (non calcules), utilises ou non
 	int GetNativeDataItemNumber() const;
 
-	// Nombre d'attributs natifs de type relation utilises recursivement par la classe, correspondant
-	// a un calcul de l'ensemble des mappings issus de la classe principale
-	// Le parametre InternalOnly indique que l'on ignore les classe referencees
-	// - Pour une classe stockable selon IsKeyBasedStorable, il n'y a pas de recursion possible
-	//   dans la hierarchie native de la classe principale, et le compte est exactement celui
-	//   deduit d'un mapping multi-table
-	// - Pour une classe non stockable, il peut y a voir des cycles de relations natives
-	//   (ex: noeud de list issu de la regle BuildList, avec variable Prev et Next).
-	//   Dans ce cas, la classe n'est pas utilisable pour un mapping, et le nombre
-	//   de relation native est erronne
-	int ComputeOverallNativeRelationAttributeNumber(boolean bIncludingReferences) const;
-
 	// Nombre d'attribut initiaux d'une classe a analyser
 	// Il s'agit des attributs utilises de type simple, calcule ou non,
 	// en tenant compte d'un eventuel attribut cible dans le cas supervise

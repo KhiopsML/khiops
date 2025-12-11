@@ -92,6 +92,7 @@ void KWPredictorEvaluatorView::Open(KWPredictorEvaluator* predictorEvaluator)
 	KWClassDomain* kwcdInitialClassesDomain;
 	KWClassDomain* kwcdCurrentDomain;
 	KWClass* kwcClass;
+	KWMTDatabaseMappingManager mappingManager;
 	const int nMaxTotalShownLineNumber = 12;
 	int nMaxInputNativeRelationAttributeNumber;
 	int nEvaluatedPredictorSpecNumber;
@@ -112,18 +113,18 @@ void KWPredictorEvaluatorView::Open(KWPredictorEvaluator* predictorEvaluator)
 	if (kwcdInitialClassesDomain != NULL)
 		KWClassDomain::SetCurrentDomain(kwcdInitialClassesDomain);
 
-	// Collecte de stats sur la taille des mapping des dictionnaires
+	// Collecte de stats sur la taille des mappings des dictionnaires
 	nMaxInputNativeRelationAttributeNumber = 0;
 	for (i = 0; i < KWClassDomain::GetCurrentDomain()->GetClassNumber(); i++)
 	{
 		kwcClass = KWClassDomain::GetCurrentDomain()->GetClassAt(i);
 
-		// Mise a jour des nombre max de mappings
+		// Mise a jour des nombres max de mappings
 		if (evaluationDatabaseView->IsMultiTableTechnology())
 		{
 			nMaxInputNativeRelationAttributeNumber =
 			    max(nMaxInputNativeRelationAttributeNumber,
-				kwcClass->ComputeOverallNativeRelationAttributeNumber(true));
+				mappingManager.ComputeAllDataPathNumber(kwcClass, true));
 		}
 	}
 
