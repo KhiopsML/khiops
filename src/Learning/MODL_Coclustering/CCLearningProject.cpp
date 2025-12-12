@@ -76,14 +76,14 @@ void CCLearningProject::OpenLearningEnvironnement()
 	sDocumentation += "<h4> Reference Guide and Tutorial </h4>"
 			  "<p> On the web site </p>";
 
-	// Sample datasets
+	/// Sample datasets
 	sDocumentation += "<h4> Sample Datasets </h4> "
-			  "<p> See the 'samples' directory "
 #ifdef _WIN32
-			  "in the 'Public' directory, </p>"
-			  "<p> usually C:\\Users\\Public\\khiops_data\\samples </p>";
+			  "<p> See the 'samples' directory "
+			  "in the 'Public' directory, usually C:\\Users\\Public\\khiops_data\\samples </p>";
 #elif defined __linux_or_apple__
-			  "in $HOME/khiops_data/samples </p>";
+			  "<p> On the web site, go to \"Installation\" of the \"Khiops application\" and select a "
+			  "Linux distribution. </p>";
 #endif
 
 	// JSON Files
