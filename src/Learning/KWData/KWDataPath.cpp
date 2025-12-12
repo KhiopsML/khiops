@@ -686,7 +686,7 @@ void KWDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 					WriteDataPathArray(cout, "- external mappings " + referenceClass->GetName(),
 							   oaCreatedDataPaths);
 			}
-			// Sinon, memorisation d'un warning expliquant pourquoi on ne garde le dictionnaire racine en reference
+			// Sinon, memorisation d'un warning expliquant pourquoi on ne garde pas le dictionnaire racine en reference
 			else
 			{
 				sWarning = "Root dictionary " + referenceClass->GetName() +

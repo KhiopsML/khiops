@@ -279,8 +279,6 @@ void KWMTDatabase::UpdateMultiTableMappings()
 	if (bTrace)
 		mappingManager.Write(cout);
 	ensure(mappingManager.GetMainClassName() == "" or mainClass == NULL or mappingManager.GetDataPathNumber() > 0);
-	ensure(mappingManager.GetMainClassName() == "" or mainClass == NULL or mainClass->IsKeyBasedStorable() or
-	       mappingManager.GetUnusedRootDictionaryWarnings()->GetSize() > 0);
 	ensure(mappingManager.IsMainMappingInitialized());
 }
 

@@ -1934,9 +1934,11 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 							// Test de coherence
 							assert(kwoUsedObject->GetClass()->GetName() ==
 							       attribute->GetClass()->GetName());
-							assert(kwoUsedObject->GetClass()->GetDomain() ==
-							       previousClass->GetDomain());
-							assert(kwoUsedObject->GetClass() != attribute->GetClass());
+							assert(bIsViewTypeUse or
+							       kwoUsedObject->GetClass()->GetDomain() ==
+								   previousClass->GetDomain());
+							assert(bIsViewTypeUse or
+							       kwoUsedObject->GetClass() != attribute->GetClass());
 
 							// Transfert si objet a garder
 							if (nkdUnusedNativeAttributesToKeep->Lookup(attribute) ==

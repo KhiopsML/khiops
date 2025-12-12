@@ -227,6 +227,15 @@ public:
 							       const NumericKeyDictionary* nkdAllUsedAttributes,
 							       IntVector* ivMandatoryInputOperands) const;
 
+	// Collecte de tous les attributs en entree et en sortie des regles de creation d'instances
+	// Ces attributs peuvent ne pas etre obligatoires pour le calcul des attributs derives, qui peut etre
+	// optimise en ignorant les attributs en sortie non utilises, et les attribut en entree a l'orinine
+	// de ces attribut en sortie non utilises. Par contre, ces attributs sont necessaires
+	// pour maintenir la structure des dictionnaires valide et compilable
+	// Ne concerne que les regles de creation d'instances auant des operandes en sortie
+	virtual void CollectCreationRuleAllAttributes(const KWAttribute* derivedAttribute,
+						      NumericKeyDictionary* nkdAllNonDeletableAttributes) const;
+
 	//////////////////////////////////////////////////////////////////////////
 	// Gestion du scope des operandes
 	//

@@ -258,11 +258,20 @@ void KWDerivationRule::CollectCreationRuleMandatoryInputOperands(const KWAttribu
 								 const NumericKeyDictionary* nkdAllUsedAttributes,
 								 IntVector* ivMandatoryInputOperands) const
 {
-	require(not GetReference());
 	require(GetOutputOperandNumber() > 0);
 	require(derivedAttribute != NULL);
 	require(nkdAllUsedAttributes != NULL);
-	require(nkdAllUsedAttributes != NULL);
+
+	// Doit etre reimplemente
+	assert(false);
+}
+
+void KWDerivationRule::CollectCreationRuleAllAttributes(const KWAttribute* derivedAttribute,
+							NumericKeyDictionary* nkdAllNonDeletableAttributes) const
+{
+	require(GetOutputOperandNumber() > 0);
+	require(derivedAttribute != NULL);
+	require(nkdAllNonDeletableAttributes != NULL);
 
 	// Doit etre reimplemente
 	assert(false);

@@ -1222,6 +1222,7 @@ void KWDRRelationCreationRule::CollectCreationRuleMandatoryInputOperands(
 	require(GetOutputOperandNumber() > 0);
 	require(IsCompiled());
 	require(derivedAttribute != NULL);
+	require(derivedAttribute->GetDerivationRule() == this);
 	require(nkdAllUsedAttributes != NULL);
 	require(ivMandatoryInputOperands != NULL);
 
@@ -1274,6 +1275,39 @@ void KWDRRelationCreationRule::CollectCreationRuleMandatoryInputOperands(
 			cout << "  - " << nOperand + 1 << ": "
 			     << BooleanToString(ivUsedOutputOperands.GetAt(nOperand) == 1) << "\n";
 		}
+	}
+}
+
+void KWDRRelationCreationRule::CollectCreationRuleAllAttributes(
+    const KWAttribute* derivedAttribute, NumericKeyDictionary* nkdAllNonDeletableAttributes) const
+{
+	KWClass* kwcTargetClass;
+	KWAttribute* targetAttribute;
+	KWDerivationRuleOperand* operand;
+	int nOperand;
+
+	require(GetOutputOperandNumber() > 0);
+	require(derivedAttribute != NULL);
+	require(derivedAttribute->GetDerivationRule() == this);
+	require(nkdAllNonDeletableAttributes != NULL);
+
+	// Il faut exploiter tous les operandes en entree et en sortie, pour garder la coherence des classes,
+	// au dela des optimisations avancees qui ont detecte les attributs effectivement utilises a calculer
+	// Pour cela, on appel la methode ancetre pour les operandes en entree, pour tous les prendre
+	// sans preoccupation d'optimisation
+	// En effet, seules les regles de creation d'instances peuvent exploiter des attributs en sortie non utilises,
+	// et les operandes en entree inutiles, car servant a alimenter ces attributs en sorties inutiles
+	KWDerivationRule::BuildAllUsedAttributes(derivedAttribute, nkdAllNonDeletableAttributes);
+
+	// Memorisation des attributs des operandes en sortie
+	for (nOperand = 0; nOperand < GetOutputOperandNumber(); nOperand++)
+	{
+		operand = GetOutputOperandAt(nOperand);
+
+		// Recherche de l'attribut cible correspond a l'operande en sortie
+		targetAttribute = derivedAttribute->GetClass()->LookupAttribute(operand->GetAttributeName());
+		assert(targetAttribute != NULL);
+		nkdAllNonDeletableAttributes->SetAt(targetAttribute, targetAttribute);
 	}
 }
 
@@ -1458,6 +1492,7 @@ void KWDRRelationCreationRule::CollectUsedInputOperands(const IntVector* ivUsedO
 {
 	int nOutputOperand;
 
+	require(GetOutputOperandNumber() > 0);
 	require(ivUsedOutputOperands != NULL);
 	require(ivUsedOutputOperands->GetSize() == GetOutputOperandNumber());
 	require(ivUsedInputOperands != NULL);
@@ -1478,9 +1513,10 @@ void KWDRRelationCreationRule::CollectMandatoryInputOperands(IntVector* ivUsedIn
 {
 	int nInputOperand;
 
+	require(GetOutputOperandNumber() > 0);
+	require(GetOperandNumber() >= GetOutputOperandNumber());
 	require(ivUsedInputOperands != NULL);
 	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
-	require(GetOperandNumber() >= GetOutputOperandNumber());
 
 	// Par defaut, les operandes en entree du debut de liste sont obligatoires
 	for (nInputOperand = 0; nInputOperand < GetOperandNumber() - GetOutputOperandNumber(); nInputOperand++)
@@ -1491,10 +1527,11 @@ void KWDRRelationCreationRule::CollectSpecificInputOperandsAt(int nOutputOperand
 {
 	int nInputOperand;
 
+	require(GetOutputOperandNumber() > 0);
+	require(GetOperandNumber() >= GetOutputOperandNumber());
 	require(0 <= nOutputOperand and nOutputOperand < GetOutputOperandNumber());
 	require(ivUsedInputOperands != NULL);
 	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
-	require(GetOperandNumber() >= GetOutputOperandNumber());
 
 	// Par defaut, on utilise l'operande en entree correspondant a l'operande en sortie
 	nInputOperand = GetOperandNumber() - GetOutputOperandNumber() + nOutputOperand;

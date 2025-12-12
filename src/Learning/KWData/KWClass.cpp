@@ -1155,7 +1155,10 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 	NumericKeyDictionary nkdAllUsedClasses;
 	NumericKeyDictionary nkdAllLoadedClasses;
 	NumericKeyDictionary nkdAllNativeClasses;
+	NumericKeyDictionary nkdAllNonDeletableAttributes;
 	KWClass* kwcUsedClass;
+	ObjectArray oaAllUsedAttributes;
+	ObjectArray oaAllNonDeletableAttributes;
 	ObjectArray oaUnusedAttributes;
 	ObjectArray oaUnusedClasses;
 	KWAttribute* attribute;
@@ -1200,6 +1203,32 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 
 	// Collecte des attributs utilises recursivement
 	BuildAllUsedAttributes(&nkdAllUsedAttributes, &nkdAllUsedClasses, &nkdAllLoadedClasses, &nkdAllNativeClasses);
+
+	// Collecte additionnelle des attributs en entree et sortie des regles de creation d'instance,
+	// qui ne peuvent etre detruit pour preserver la validite des classes
+	// Ne concerne que les regles ayant des operandes en sortie
+	nkdAllUsedAttributes.ExportObjectArray(&oaAllUsedAttributes);
+	for (nAttribute = 0; nAttribute < oaAllUsedAttributes.GetSize(); nAttribute++)
+	{
+		attribute = cast(KWAttribute*, oaAllUsedAttributes.GetAt(nAttribute));
+		if (attribute->GetDerivationRule() != NULL and
+		    attribute->GetDerivationRule()->GetOutputOperandNumber() > 0)
+		{
+			attribute->GetDerivationRule()->CollectCreationRuleAllAttributes(attribute,
+											 &nkdAllNonDeletableAttributes);
+		}
+	}
+
+	// Memorisation de ces attributs a ne pas detruire, ainsi que leur classe
+	nkdAllNonDeletableAttributes.ExportObjectArray(&oaAllNonDeletableAttributes);
+	for (nAttribute = 0; nAttribute < oaAllNonDeletableAttributes.GetSize(); nAttribute++)
+	{
+		attribute = cast(KWAttribute*, oaAllNonDeletableAttributes.GetAt(nAttribute));
+		nkdAllUsedAttributes.SetAt(attribute, attribute);
+		assert(nkdAllUsedClasses.Lookup(attribute->GetParentClass()) != NULL);
+		if (attribute->GetClass() != NULL)
+			nkdAllUsedClasses.SetAt(attribute->GetClass(), attribute->GetClass());
+	}
 
 	// Parcours de toutes les classes utilisees pour identifier les attributs non utilises
 	for (nClass = 0; nClass < oaAllUsedClasses.GetSize(); nClass++)
@@ -3171,6 +3200,7 @@ boolean KWClass::InternalCheckNativeComposition(boolean bCheckKeys, boolean bVer
 				//   sans que le probleme de lecture sur disque se pose
 				//  - exemple: regle BuildList, qui va cree une liste doublement chainee, chaque noeud
 				//    pointant sur le precedent et le suivant, donc avec un cycle detecte dans le dictionnaire
+				///*DDD
 				if (GetKeyAttributeNumber() > 0)
 				{
 					AddError(
@@ -3180,6 +3210,7 @@ boolean KWClass::InternalCheckNativeComposition(boolean bCheckKeys, boolean bVer
 					    "for reading data from data files.");
 					bOk = false;
 				}
+				//*/
 			}
 
 			// Verification des cles si demande
