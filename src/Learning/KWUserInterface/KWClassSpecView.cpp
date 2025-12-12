@@ -24,10 +24,12 @@ KWClassSpecView::KWClassSpecView()
 
 	int nField;
 
-	// Seul le nom du dictionnaire reste visible
+	// Seul le nom du dictionnaire reste visible, avec les champs Root et Key
 	for (nField = 0; nField < GetFieldNumber(); nField++)
 		GetFieldAtIndex(nField)->SetVisible(false);
 	GetFieldAt("ClassName")->SetVisible(true);
+	GetFieldAt("Root")->SetVisible(true);
+	GetFieldAt("Key")->SetVisible(true);
 
 	// Ajout d'une liste des attributs
 	attributeSpecArrayView = new KWAttributeSpecArrayView;
