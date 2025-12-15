@@ -22,9 +22,6 @@ cmake --fresh --preset macos-clang-release -DMPI=ON -DCMAKE_TOOLCHAIN_FILE=$VCPK
 ```
 
 
-
-
-
 !!                                          !!
 Dans khiops_env:
 export DYLD_LIBRARY_PATH=$(pwd)/mpi/lib
@@ -43,6 +40,12 @@ note: il faut avoir une fichier de licence avec une extension txt
 Reste à faire:
 - khiops_env
 - signature
+
+Installation des dépendances :
+D'après la doc il faut mettre X_VCPKG_APPLOCAL_DEPS_INSTALL=ON dans le preset mais ç an'a aucun impact.
+On est obligé d'installé le contenu de vcpkg à la main.
+Après avoir isolé les parties nécéssaires au lancement de MODL. Il reste 141 binaires MPI à signer !! 
+find /usr/local/khiops/mpi -perm +111 -type f | wc -l
 
 
 ATTENTION openmpi plante avec une segmentation fault (Signal code: Invalid permissions )
