@@ -5,6 +5,7 @@ set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/LICENSE")
 set(CPACK_PACKAGE_VENDOR "Orange")
 set(CPACK_PACKAGE_CONTACT "Khiops Team <khiops.team@orange.com>")
 set(CPACK_SOURCE_IGNORE_FILES .git)
+set(CPACK_RESOURCE_FILE_LICENSE "${TMP_DIR}/LICENSE.txt")
 
 set(CPACK_COMPONENT_KHIOPS_DESCRIPTION
     "software for data mining
@@ -188,6 +189,19 @@ set(CPACK_RPM_KNI_POSTUN_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/packaging/li
 
 get_cmake_property(CPACK_COMPONENTS_ALL COMPONENTS)
 list(REMOVE_ITEM CPACK_COMPONENTS_ALL "Unspecified")
+
+
+# ########### productbuild Generator (macOS) #############################
+
+# All files in the Resources dir wil be copied in the installer
+set(CPACK_PRODUCTBUILD_RESOURCES_DIR ${TMP_DIR}/Resources)
+
+# Add image for background
+file(COPY ${PROJECT_SOURCE_DIR}/packaging/common/images/khiops.png  DESTINATION ${TMP_DIR}/Resources/)
+set(CPACK_PRODUCTBUILD_BACKGROUND khiops.png)
+
+# Add Readme
+set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/packaging/common/khiops/README.txt")
 
 include(CPack)
 
