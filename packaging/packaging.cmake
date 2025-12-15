@@ -141,6 +141,18 @@ set(CPACK_DEBIAN_KNI_PACKAGE_CONTROL_EXTRA "${PROJECT_SOURCE_DIR}/packaging/linu
 # set(CPACK_DEBIAN_PACKAGE_DEBUG ON)
 set(CPACK_DEBIAN_PACKAGE_CONTROL_STRICT_PERMISSION TRUE)
 
+# ########### productbuild Generator (macOS) #############################
+
+# All files in the Resources dir wil be copied in the installer
+set(CPACK_PRODUCTBUILD_RESOURCES_DIR ${TMP_DIR}/Resources)
+
+# Add image for background
+file(COPY ${PROJECT_SOURCE_DIR}/packaging/common/images/khiops.png  DESTINATION ${TMP_DIR}/Resources/)
+set(CPACK_PRODUCTBUILD_BACKGROUND khiops.png)
+
+# Add Readme
+set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/packaging/common/khiops/README.txt")
+
 # ########### RPM Generator #############################
 
 set(CPACK_RPM_COMPONENT_INSTALL ON)
@@ -206,3 +218,4 @@ endif()
 #    message(AUTHOR_WARNING "Installing files without component. These files won't be in any package. See file install_manifest_${CMAKE_INSTALL_DEFAULT_COMPONENT_NAME}.txt.") 
 # endif()
 # clang-format on
+

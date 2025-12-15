@@ -17,7 +17,9 @@
         "BUILD_JARS": "OFF",
         "BUILD_LEX_YACC": "OFF",
         "GENERATE_VIEWS": "OFF",
-        "C11": "ON"
+        "C11": "ON",
+        "X_VCPKG_APPLOCAL_DEPS_INSTALL": "ON",
+        "VCPKG_APPLOCAL_DEPS": "ON"
       },
       "binaryDir": "${sourceDir}/build/${presetName}"
     },
