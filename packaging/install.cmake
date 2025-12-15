@@ -1,5 +1,6 @@
 # ######################################## Installation #########################################
 
+
 # ######################################## KNI installation
 
 # Specification of the paths according to the OS
@@ -81,7 +82,7 @@ if(UNIX)
                      ${TMP_DIR}/use_environment_module.sh @ONLY NEWLINE_STYLE UNIX)
       file(READ ${TMP_DIR}/use_environment_module.sh USE_ENVIRONMENT_MODULE)
     elseif(APPLE)
-      set(MODL_PATH "/Library/khiops/bin/")
+      set(MODL_PATH "/usr/local/khiops/bin/")
       set(USE_ENVIRONMENT_MODULE "")
     else()
      set(MODL_PATH "/usr/bin/")
@@ -127,6 +128,12 @@ if(UNIX)
     set(MODL_COCLUSTERING_NAME "MODL_Coclustering")
   endif()
 
+  if(APPLE)
+    set(LD_LIBRARY_PATH "DYLD_LIBRARY_PATH")
+  else()
+    set(LD_LIBRARY_PATH "LD_LIBRARY_PATH")
+  endif()
+
   # For all mpi implementation except openmpi, we compute the proc number (with openmpi, the -n flag is not mandatory)
   if(NOT "${MPI_IMPL}" STREQUAL "openmpi")
     # Replace the path of _khiopsgetprocnumber in set_proc_number.in (with the variable GET_PROC_NUMBER_PATH)
@@ -141,8 +148,8 @@ if(UNIX)
   endif()
 
   if(APPLE)
-    set(SET_MPI_PATH "KHIOPS_MPI_ERROR=\"\"\n_MPIEXEC=${CMAKE_INSTALL_PREFIX}/khiops/mpi/tools/openmpi/bin/mpirun")
-    #set(SET_DYLD_LIBRARY_PATH "export DYLD_LIBRARY_PATH=/Library/khiops/bin/mpi/lib")
+    set(SET_MPI_PATH "KHIOPS_MPI_ERROR=\"\"\n_MPIEXEC=${CMAKE_INSTALL_PREFIX}/khiops/mpi/tools/openmpi/bin/mpirun\nKHIOPS_MPI_PATH=/usr/local/khiops/mpi/lib")
+    set(SET_DYLD_LIBRARY_PATH "export DYLD_LIBRARY_PATH=/usr/local/khiops/mpi/lib")
   else()
     configure_file(packaging/linux/common/khiops_env/set_mpi_path.in ${TMP_DIR}/set_mpi_path.sh @ONLY
                  NEWLINE_STYLE UNIX)
@@ -166,8 +173,12 @@ if(UNIX)
 
       # install(DIRECTORY ${MPI_LIB_DIRECTORY}  DESTINATION Library/khiops/bin/mpi  COMPONENT KHIOPS_CORE USE_SOURCE_PERMISSIONS)
       # install(DIRECTORY ${MPI_PATH_DIRECTORY} DESTINATION Library/khiops/bin/mpi  COMPONENT KHIOPS_CORE USE_SOURCE_PERMISSIONS)
-      message(STATUS "copy from${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/")
-      install(DIRECTORY "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/" DESTINATION usr/local/khiops/mpi  COMPONENT KHIOPS_CORE USE_SOURCE_PERMISSIONS)
+      message(STATUS "copy from ${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/")
+      install(DIRECTORY "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib" DESTINATION usr/local/khiops/mpi/  COMPONENT KHIOPS_CORE USE_SOURCE_PERMISSIONS)
+      install(DIRECTORY "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share" DESTINATION usr/local/khiops/mpi/  COMPONENT KHIOPS_CORE USE_SOURCE_PERMISSIONS)
+      install(DIRECTORY "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/openmpi/bin" DESTINATION usr/local/khiops/mpi/tools/openmpi  COMPONENT KHIOPS_CORE USE_SOURCE_PERMISSIONS)
+      install(DIRECTORY "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/openmpi/share" DESTINATION usr/local/khiops/mpi/tools/openmpi  COMPONENT KHIOPS_CORE USE_SOURCE_PERMISSIONS)
+
     endif(MPI)
 
     install(TARGETS MODL MODL_Coclustering DESTINATION usr/local/khiops/bin COMPONENT KHIOPS_CORE)
