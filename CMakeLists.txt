@@ -76,7 +76,7 @@ endif()
 
 # Check if it is conda environment
 set(IS_CONDA false)
-if(DEFINED ENV{CONDA_PREFIX})
+if(DEFINED ENV{CONDA_PREFIX} AND NOT $ENV{CONDA_PREFIX} STREQUAL "")
   set(IS_CONDA true)
   message(STATUS "Auto-detected conda environment")
 endif()
@@ -155,6 +155,7 @@ endif()
 
 # Detects the mpi implementation
 if(UNIX AND MPI)
+
   include(get_mpi_implementation)
   get_mpi_implementation()
 
