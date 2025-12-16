@@ -16,11 +16,82 @@ jobs:
           preset-name: ${{env.PRESET_NAME}}
           targets: MODL MODL_Coclustering KhiopsNativeInterface _khiopsgetprocnumber
           override-flags: -DTESTING=OFF
+      - name: Set environment variables
+        run: |
+          echo "KHIOPS_APPLE_CERTIFICATE_COMMON_NAME=${{ secrets.KHIOPS_APPLE_CERTIFICATE_COMMON_NAME }}" >> "$GITHUB_ENV"
+          echo "KHIOPS_APPLE_CERTIFICATE_BASE64=${{ secrets.KHIOPS_APPLE_CERTIFICATE_BASE64 }}" >> "$GITHUB_ENV"
+          echo "KHIOPS_APPLE_CERTIFICATE_PASSWORD=${{ secrets.KHIOPS_APPLE_CERTIFICATE_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD=${{ secrets.KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD }}" >> "$GITHUB_ENV"
+      - name: Sign binaries
+        # see https://github.com/marketplace/actions/xcode-notarization
+        run: |
+
+          echo "Signing binaries with the certificate named '${KHIOPS_APPLE_CERTIFICATE_COMMON_NAME}'"
+
+          # Keychain setup slightly modified from: https://stackoverflow.com/a/68577995
+          # Before importing identity
+          # - Set the default user login keychain
+          # - Create a temporary keychain
+          # - Append temporary keychain to the user domain
+          # - Remove relock timeout
+          # - Unlock the temporary keychain
+          sudo security list-keychains -d user -s login.keychain
+          sudo security create-keychain -p "$KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD" kh-tmp.keychain
+          sudo security list-keychains -d user -s kh-tmp.keychain \
+            "$(security list-keychains -d user | sed s/\"//g)"
+          sudo security set-keychain-settings kh-tmp.keychain
+          sudo security unlock-keychain -p "$KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD" kh-tmp.keychain
+
+          # Add identity (certificate + private key) to the temporary keychain
+          echo "$KHIOPS_APPLE_CERTIFICATE_BASE64" | base64 --decode -i - -o kh-cert.p12
+          sudo security import kh-cert.p12 \
+            -k kh-tmp.keychain \
+            -P "$KHIOPS_APPLE_CERTIFICATE_PASSWORD" \
+            -A -T "/usr/bin/codesign"
+          rm -f kh-cert.p12
+
+          # Enable codesigning from a non user interactive shell
+          sudo security set-key-partition-list -S apple-tool:,apple:, \
+            -s -k "$KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD" \
+            -D "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" \
+            -t private kh-tmp.keychain
+
+          # We make sure to use the default macOS/Xcode codesign tool. This is because the sigtool python
+          # package (installed by conda build as a dependency) makes an alias "codesign" which is prioritary
+          # in the build environment. The alias, however, alias doesn't support signing with a proper
+          # identity and makes the build fail!
+          CODESIGN="/usr/bin/codesign"
+
+          # Obtain the path of the real KNI (not the symlinks)
+          #KNI_PATH=$(readlink -f $PREFIX/lib/libKhiopsNativeInterface* | uniq)
+
+          # Sign the executables and check
+          $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "build/${{env.PRESET_NAME}}/bin/MODL"
+          $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "build/${{env.PRESET_NAME}}/bin/MODL_Coclustering"
+          $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "build/${{env.PRESET_NAME}}/bin/_khiopsgetprocnumber"
+          #$CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "$KNI_PATH"
+          $CODESIGN -d -vvv "build/${{env.PRESET_NAME}}/bin/MODL"
+          $CODESIGN -d -vvv "build/${{env.PRESET_NAME}}/bin/MODL_Coclustering"
+          $CODESIGN -d -vvv "build/${{env.PRESET_NAME}}/bin/_khiopsgetprocnumber"
+          #$CODESIGN -d -vvv "$KNI_PATH"
+
       - name: Build package with CPack
-        run: cd build/${{env.PRESET_NAME}} && cpack -G ZIP
+        run: |
+          cd build/${{env.PRESET_NAME}} && cpack -G productbuild
+          cd -
+          KHIOPS_VERSION="$(./scripts/khiops-version)"
+          productsign --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" build/${{env.PRESET_NAME}}/packages/Khiops-${KHIOPS_VERSION}-Darwin.pkg build/${{env.PRESET_NAME}}/packages/Khiops-${KHIOPS_VERSION}.pkg
+
+      - name: clean
+        run: |
+          # Remove the temporary keychain and restore the login keychain as default if created
+          if [[ -n "${KHIOPS_APPLE_CERTIFICATE_BASE64-}" ]]; then
+            sudo security delete-keychain kh-tmp.keychain
+            sudo security list-keychains -d user -s login.keychain
+          fi
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macos
-          path: build/${{env.PRESET_NAME}}/packages/*.zip
+          path: build/${{env.PRESET_NAME}}/packages/Khiops-${KHIOPS_VERSION}.pkg
           if-no-files-found: error
