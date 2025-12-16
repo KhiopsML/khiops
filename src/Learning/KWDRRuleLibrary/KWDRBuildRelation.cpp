@@ -509,7 +509,6 @@ ObjectArray* KWDRBuildList::ComputeObjectArrayResult(const KWObject* kwoObject,
 						     const KWLoadIndex liAttributeLoadIndex) const
 {
 	ObjectArray* oaObjectArrayOperand;
-	KWObject* kwoSourceContainedPreviousObject;
 	KWObject* kwoSourceContainedCurrentObject;
 	KWObject* kwoTargetContainedObject;
 	KWObject* kwoPrevTargetContainedObject;
@@ -583,7 +582,7 @@ boolean KWDRBuildList::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) c
 		assert(GetOperandNumber() == 1);
 		assert(GetOutputOperandNumber() == 3);
 
-		// Verification de chaque opernde en sortie
+		// Verification de chaque operande en sortie
 		for (nIndex = 0; nIndex < GetOutputOperandNumber(); nIndex++)
 			bOk = CheckOutputOperandCompletenessAt(kwcOwnerClass, nIndex) and bOk;
 	}
@@ -602,7 +601,7 @@ boolean KWDRBuildList::CheckOutputOperandCompletenessAt(const KWClass* kwcOwnerC
 	assert(GetOutputOperandAt(nIndex)->GetType() == KWType::Object);
 	if (nIndex == 0)
 		sExpectedObjectClassName = GetOperandAt(0)->GetObjectClassName();
-	// Les oeparnde 2 et 3 (Prev et Next) doivent etre du type de la table en sortie
+	// Les operandes 2 et 3 (Prev et Next) doivent etre du type de la table en sortie
 	else
 		sExpectedObjectClassName = GetObjectClassName();
 

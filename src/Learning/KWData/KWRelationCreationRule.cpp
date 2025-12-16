@@ -1281,7 +1281,6 @@ void KWDRRelationCreationRule::CollectCreationRuleMandatoryInputOperands(
 void KWDRRelationCreationRule::CollectCreationRuleAllAttributes(
     const KWAttribute* derivedAttribute, NumericKeyDictionary* nkdAllNonDeletableAttributes) const
 {
-	KWClass* kwcTargetClass;
 	KWAttribute* targetAttribute;
 	KWDerivationRuleOperand* operand;
 	int nOperand;

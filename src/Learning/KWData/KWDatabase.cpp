@@ -1500,7 +1500,6 @@ void KWDatabase::BuildPhysicalClass()
 	KWDerivationRule* rule;
 	KWDerivationRuleOperand* operand;
 	int nOperand;
-	KWAttribute* targetAttribute;
 	IntVector ivMandatoryInputOperands;
 	int nNoneValueOperandNumber;
 
