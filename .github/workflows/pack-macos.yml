@@ -71,10 +71,16 @@ jobs:
           $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "build/${{env.PRESET_NAME}}/bin/MODL"
           $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "build/${{env.PRESET_NAME}}/bin/MODL_Coclustering"
           $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "build/${{env.PRESET_NAME}}/bin/_khiopsgetprocnumber"
+          $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "build/${{env.PRESET_NAME}}/tmp/khiops"
+          $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "build/${{env.PRESET_NAME}}/tmp/khiops_coclustering"
+          $CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "build/${{env.PRESET_NAME}}/tmp/khiops_env"
           #$CODESIGN --force --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" "$KNI_PATH"
           $CODESIGN -d -vvv "build/${{env.PRESET_NAME}}/bin/MODL"
           $CODESIGN -d -vvv "build/${{env.PRESET_NAME}}/bin/MODL_Coclustering"
           $CODESIGN -d -vvv "build/${{env.PRESET_NAME}}/bin/_khiopsgetprocnumber"
+          $CODESIGN -d -vvv "build/${{env.PRESET_NAME}}/tmp/khiops"
+          $CODESIGN -d -vvv "build/${{env.PRESET_NAME}}/tmp/khiops_coclustering"
+          $CODESIGN -d -vvv "build/${{env.PRESET_NAME}}/tmp/khiops_env"
           #$CODESIGN -d -vvv "$KNI_PATH"
 
       - name: Build package with CPack
