@@ -89,7 +89,7 @@ jobs:
           cd -
           KHIOPS_VERSION="$(./scripts/khiops-version)"
           sudo security -v find-identity -p codesigning
-          productsign --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" build/${{env.PRESET_NAME}}/packages/Khiops-${KHIOPS_VERSION}-Darwin.pkg build/${{env.PRESET_NAME}}/packages/Khiops-${KHIOPS_VERSION}.pkg
+          # productsign --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" build/${{env.PRESET_NAME}}/packages/Khiops-${KHIOPS_VERSION}-Darwin.pkg build/${{env.PRESET_NAME}}/packages/Khiops-${KHIOPS_VERSION}.pkg
 
       - name: clean
         run: |
@@ -102,5 +102,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos
-          path: build/${{env.PRESET_NAME}}/packages/Khiops-${KHIOPS_VERSION}.pkg
+          path: build/${{env.PRESET_NAME}}/packages/*.pkg
           if-no-files-found: error
