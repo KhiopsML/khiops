@@ -19,8 +19,10 @@ jobs:
       - name: Set environment variables
         run: |
           echo "KHIOPS_APPLE_CERTIFICATE_COMMON_NAME=${{ secrets.KHIOPS_APPLE_CERTIFICATE_COMMON_NAME }}" >> "$GITHUB_ENV"
-          echo "KHIOPS_APPLE_CERTIFICATE_BASE64=${{ secrets.KHIOPS_APPLE_CERTIFICATE_BASE64 }}" >> "$GITHUB_ENV"
-          echo "KHIOPS_APPLE_CERTIFICATE_PASSWORD=${{ secrets.KHIOPS_APPLE_CERTIFICATE_PASSWORD }}" >> "$GITHUB_ENV"
+          # echo "KHIOPS_APPLE_CERTIFICATE_BASE64=${{ secrets.KHIOPS_APPLE_CERTIFICATE_BASE64 }}" >> "$GITHUB_ENV"
+          # echo "KHIOPS_APPLE_CERTIFICATE_PASSWORD=${{ secrets.KHIOPS_APPLE_CERTIFICATE_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "KHIOPS_APPLE_CERTIFICATE_BASE64=${{ secrets.MAC_CERTS }}" >> "$GITHUB_ENV"
+          echo "KHIOPS_APPLE_CERTIFICATE_PASSWORD=${{ secrets.MAC_CERTS_PASSWORD }}" >> "$GITHUB_ENV"
           echo "KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD=${{ secrets.KHIOPS_APPLE_TMP_KEYCHAIN_PASSWORD }}" >> "$GITHUB_ENV"
       - name: Sign binaries
         # see https://github.com/marketplace/actions/xcode-notarization
@@ -80,6 +82,7 @@ jobs:
           cd build/${{env.PRESET_NAME}} && cpack -G productbuild
           cd -
           KHIOPS_VERSION="$(./scripts/khiops-version)"
+          sudo security -v find-identity -p codesigning
           productsign --sign "$KHIOPS_APPLE_CERTIFICATE_COMMON_NAME" build/${{env.PRESET_NAME}}/packages/Khiops-${KHIOPS_VERSION}-Darwin.pkg build/${{env.PRESET_NAME}}/packages/Khiops-${KHIOPS_VERSION}.pkg
 
       - name: clean
