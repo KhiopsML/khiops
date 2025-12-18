@@ -261,7 +261,7 @@ protected:
 	friend class KWDerivationRule;
 	friend class KWDerivationRuleOperand;
 
-	// Acces aux tableau des classe et regles du scope
+	// Acces aux tableau des classes et regles du scope
 	ObjectArray* GetScopeClasses() const;
 	ObjectArray* GetScopeRules() const;
 

@@ -202,8 +202,80 @@ public:
 	///////////////////////////////////////////////////////
 	///// Implementation
 protected:
-	// Verification d'un operande en sortie
-	boolean CheckOutputOperandCompletenessAt(const KWClass* kwcOwnerClass, int nIndex) const;
+	// Pas d'alimentation de type vue
+	boolean IsViewModeActivated() const override;
+
+	// Redefinition des methodes virtuelles
+	void CollectMandatoryInputOperands(IntVector* ivUsedInputOperands) const override;
+	void CollectSpecificInputOperandsAt(int nOutputOperand, IntVector* ivUsedInputOperands) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildGraph
+// Creer un graphe non oriente a partir d'une table d'entree de noeuds et d'une table d'entree d'aretes,
+// ou chaque arete d'entree possede une paire d'identifiants de noeuds.
+//
+// Entrees :
+// - Table(NodeDataDic) inputNodeTable : table des noeuds d'entree
+//   - Categorical nodeId : identifiant des noeuds dans inputNodeTable
+// - Table(EdgeDataDic) inputEdgeTable : table des aretes d'entree
+//   - Categorical node1Id, node2Id : identifiants des paires de noeuds associees a chaque arete dans inputEdgeTable
+// Sorties :
+// - Table(NodeDic) graphNodeTable : table des noeuds du graphe
+//   - Entity(NodeDataDic) nodeData : stocke les donnees de la source du noeud dans chaque noeud
+//   - Table(EdgeDic) nodeAdjacentEdges : liste des aretes adjacentes a chaque noeud
+// - Table(EdgeDic) graphEdgeTable : table des aretes du graphe
+//   - Entity(EdgeDataDic) edgeData : stocke les donnees de la source de l'arete dans chaque arete
+//   - Entity(NodeDic) edgeNode1, edgeNode2 : references aux entites de noeuds connectes par chaque arete
+
+// Details sur les structures de donnees de sortie :
+// - Le dictionnaire de sortie GraphDic doit contenir :
+//   - Une variable de type Table(NodeDic) pour les noeuds du graphe.
+//   - Une variable de type Table(EdgeDic) pour les aretes du graphe.
+// - Le dictionnaire NodeDic doit inclure :
+//   - Une variable de type NodeDataDic referencees aux donnees des noeuds d'entree.
+//   - Une variable de type Table(EdgeDic) referencees a la liste des aretes adjacentes.
+// - Le dictionnaire EdgeDic doit inclure :
+//   - Une variable de type EdgeDataDic referencees aux donnees des aretes d'entree.
+//   - Deux variables de type Entity(NodeDic) referencees aux noeuds connects (edgeNode1 et edgeNode2).
+//
+// Considerations supplementaires :
+// - Les multigraphes sont autorises, ce qui signifie que plusieurs aretes peuvent relier la meme paire de noeuds.
+// - Pour les graphes orientes, les aretes adjacentes peuvent etre separees en aretes entrantes et sortantes
+//   en utilisant la regle TableSelection.
+// - Gestion des incoherences :
+//   - Si plusieurs noeuds d'entree partagent le meme identifiant, seul le premier noeud
+//     est conserve pour construire le noeud du graphe ; les autres sont ignores.
+//   - Si les aretes d'entree font reference a des noeuds manquants, les aretes du graphe correspondantes ne sont pas creees.
+class KWDRBuildGraph : public KWDRRelationCreationRule
+{
+public:
+	// Constructeur
+	KWDRBuildGraph();
+	~KWDRBuildGraph();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	KWObject* ComputeObjectResult(const KWObject* kwoObject, const KWLoadIndex liAttributeLoadIndex) const override;
+
+	// Verification du type des operandes en sortie
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
+
+	// Specialisation des methodes de gestion du scope des operandes en entree
+	boolean IsNewScopeOperand(int nOperandIndex) const override;
+	boolean IsSecondaryScopeOperand(int nOperandIndex) const override;
+
+	// Specialisation des methodes de gestion du scope des operandes en sortie
+	boolean IsNewOutputScopeOperand(int nOutputOperandIndex) const override;
+	boolean IsSecondaryOutputScopeOperand(int nOutputOperandIndex) const override;
+
+	///////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	// Verification d'un operande en entree
+	boolean CheckOperandCompletenessAt(const KWClass* kwcOwnerClass, int nIndex) const;
 
 	// Pas d'alimentation de type vue
 	boolean IsViewModeActivated() const override;

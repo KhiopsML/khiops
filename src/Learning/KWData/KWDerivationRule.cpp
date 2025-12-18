@@ -460,7 +460,7 @@ boolean KWDerivationRule::CheckOperandsDefinition() const
 				bResult = false;
 				AddError("First operand cannot be at the secondary scope");
 			}
-			// Verification de chaque operande denissant un nouveau scope secondaire
+			// Verification de chaque operande definissant un nouveau scope secondaire
 			else
 			{
 				for (i = 0; i < GetOperandNumber(); i++)

@@ -243,11 +243,10 @@ public:
 	// classe utilisant la regle de derivation pour le calcul d'un de ses attributs.
 	//
 	// Dans une regle a scope multiple, on a:
-	// - un premier operande de type Relation
+	// - des operandes de type Relation definissant un nouveau scope secondaire
 	//   - au niveau du scope principal (celui de la regle)
-	//   - definissant le scope secondaire
-	//     (celui de l'Object ou ObjectArray du premier operande)
-	// - les autre operandes sont au niveau du scope secondaire
+	//   - definissant le scope secondaire (celui de l'Object ou ObjectArray de l'operande)
+	// - les operandes suivants sont au niveau du scope secondaire
 	// - les operandes de scope inferieur (autre operande, ou operande
 	//   de leurs sous-regles), peuvent avoir un ScopeLevel positif,
 	//   leur permettant de remonter au scope principal
@@ -261,7 +260,7 @@ public:
 	//   1 pour remonter un niveau (".")
 	//   2 pour remonter un niveau ("..")
 
-	// Indique si la regle est avec gestion de scope multiple ou standard (par defaut)
+	// Indique si la regle est avec gestion de scope multiple ou standard (par defaut: false)
 	boolean GetMultipleScope() const;
 	void SetMultipleScope(boolean bValue);
 

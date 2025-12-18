@@ -13,6 +13,7 @@ void KWDRRegisterBuildRelationRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntity);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildDiffTable);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildList);
+	KWDerivationRule::RegisterDerivationRule(new KWDRBuildGraph);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildDummyTable);
 }
 
@@ -58,8 +59,11 @@ ObjectArray* KWDRBuildTableView::ComputeObjectArrayResult(const KWObject* kwoObj
 			kwoTargetContainedObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
 
 			// Alimentation de type vue
-			FillViewModeTargetAttributes(kwoSourceContainedObject, kwoTargetContainedObject);
-			oaResult.SetAt(nObject, kwoTargetContainedObject);
+			if (kwoTargetContainedObject != NULL)
+			{
+				FillViewModeTargetAttributes(kwoSourceContainedObject, kwoTargetContainedObject);
+				oaResult.SetAt(nObject, kwoTargetContainedObject);
+			}
 		}
 	}
 	return &oaResult;
@@ -119,15 +123,19 @@ ObjectArray* KWDRBuildTableAdvancedView::ComputeObjectArrayResult(const KWObject
 		{
 			kwoSourceContainedObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
 
-			// Alimentation de type vue
+			// Creation et alimentation
 			kwoTargetContainedObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
-			FillViewModeTargetAttributes(kwoSourceContainedObject, kwoTargetContainedObject);
-			oaResult.SetAt(nObject, kwoTargetContainedObject);
+			if (kwoTargetContainedObject != NULL)
+			{
+				// Alimentation de type vue
+				FillViewModeTargetAttributes(kwoSourceContainedObject, kwoTargetContainedObject);
+				oaResult.SetAt(nObject, kwoTargetContainedObject);
 
-			// Alimentation de type calcul pour les operandes en entree correspondant
-			assert(GetOperandNumber() - 1 == ivComputeModeTargetAttributeTypes.GetSize());
-			FillComputeModeTargetAttributesForVariableOperandNumber(kwoSourceContainedObject,
-										kwoTargetContainedObject);
+				// Alimentation de type calcul pour les operandes en entree correspondant
+				assert(GetOperandNumber() - 1 == ivComputeModeTargetAttributeTypes.GetSize());
+				FillComputeModeTargetAttributesForVariableOperandNumber(kwoSourceContainedObject,
+											kwoTargetContainedObject);
+			}
 		}
 
 		// Nettoyage des operandes secondaires de scope principal
@@ -171,7 +179,8 @@ KWObject* KWDRBuildEntityView::ComputeObjectResult(const KWObject* kwoObject,
 		kwoTargetObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
 
 		// Alimentation de type vue
-		FillViewModeTargetAttributes(kwoSourceObject, kwoTargetObject);
+		if (kwoTargetObject != NULL)
+			FillViewModeTargetAttributes(kwoSourceObject, kwoTargetObject);
 	}
 	return kwoTargetObject;
 }
@@ -207,20 +216,23 @@ KWObject* KWDRBuildEntityAdvancedView::ComputeObjectResult(const KWObject* kwoOb
 	kwoTargetObject = NULL;
 	if (kwoSourceObject != NULL)
 	{
+		// Creation et alimentation
 		kwoTargetObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
+		if (kwoTargetObject != NULL)
+		{
+			// Evaluation des operandes secondaires de scope principal
+			EvaluateMainScopeSecondaryOperands(kwoObject);
 
-		// Evaluation des operandes secondaires de scope principal
-		EvaluateMainScopeSecondaryOperands(kwoObject);
+			// Alimentation de type vue
+			FillViewModeTargetAttributes(kwoSourceObject, kwoTargetObject);
 
-		// Alimentation de type vue
-		FillViewModeTargetAttributes(kwoSourceObject, kwoTargetObject);
+			// Alimentation de type calcul pour les operandes en entree correspondant
+			assert(GetOperandNumber() - 1 == ivComputeModeTargetAttributeTypes.GetSize());
+			FillComputeModeTargetAttributesForVariableOperandNumber(kwoSourceObject, kwoTargetObject);
 
-		// Alimentation de type calcul pour les operandes en entree correspondant
-		assert(GetOperandNumber() - 1 == ivComputeModeTargetAttributeTypes.GetSize());
-		FillComputeModeTargetAttributesForVariableOperandNumber(kwoSourceObject, kwoTargetObject);
-
-		// Nettoyage des operandes secondaires de scope principal
-		CleanMainScopeSecondaryOperands();
+			// Nettoyage des operandes secondaires de scope principal
+			CleanMainScopeSecondaryOperands();
+		}
 	}
 	return kwoTargetObject;
 }
@@ -264,7 +276,8 @@ KWObject* KWDRBuildEntity::ComputeObjectResult(const KWObject* kwoObject, const 
 	kwoTargetObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
 
 	// Alimentation de type calcul pour les operandes en entree correspondant
-	FillComputeModeTargetAttributesForVariableOperandNumber(kwoObject, kwoTargetObject);
+	if (kwoTargetObject != NULL)
+		FillComputeModeTargetAttributesForVariableOperandNumber(kwoObject, kwoTargetObject);
 	return kwoTargetObject;
 }
 
@@ -331,18 +344,23 @@ ObjectArray* KWDRBuildDiffTable::ComputeObjectArrayResult(const KWObject* kwoObj
 		{
 			kwoSourceContainedCurrentObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
 
-			// Alimentation de type vue
+			// Creation et alimentation
 			kwoTargetContainedObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
-			FillViewModeTargetAttributes(kwoSourceContainedCurrentObject, kwoTargetContainedObject);
-			oaResult.SetAt(nObject, kwoTargetContainedObject);
+			if (kwoTargetContainedObject != NULL)
+			{
+				// Alimentation de type vue
+				FillViewModeTargetAttributes(kwoSourceContainedCurrentObject, kwoTargetContainedObject);
+				oaResult.SetAt(nObject, kwoTargetContainedObject);
 
-			// Alimentation de type calcul pour les operandes en entree correspondant
-			assert(GetOperandNumber() - 1 == ivComputeModeTargetAttributeTypes.GetSize());
-			FillTargetDifferenceAttributes(kwoSourceContainedPreviousObject,
-						       kwoSourceContainedCurrentObject, kwoTargetContainedObject);
+				// Alimentation de type calcul pour les operandes en entree correspondant
+				assert(GetOperandNumber() - 1 == ivComputeModeTargetAttributeTypes.GetSize());
+				FillTargetDifferenceAttributes(kwoSourceContainedPreviousObject,
+							       kwoSourceContainedCurrentObject,
+							       kwoTargetContainedObject);
 
-			// Memorisation du prochain objet precedent
-			kwoSourceContainedPreviousObject = kwoSourceContainedCurrentObject;
+				// Memorisation du prochain objet precedent
+				kwoSourceContainedPreviousObject = kwoSourceContainedCurrentObject;
+			}
 		}
 
 		// Nettoyage des operandes secondaires de scope principal
@@ -400,11 +418,14 @@ void KWDRBuildDiffTable::FillTargetDifferenceAttributes(const KWObject* kwoSourc
 	KWLoadIndex liTarget;
 
 	require(IsCompiled());
-	require(kwoSourceCurrentObject != NULL);
 	require(GetOperandNumber() >= GetOutputOperandNumber());
 	require(GetOutputOperandNumber() == ivComputeModeTargetAttributeTypes.GetSize());
 	require(GetVariableOperandNumber());
 	require(GetVariableOutputOperandNumber());
+
+	// Retour si objet cible NULL
+	if (kwoTargetObject == NULL)
+		return;
 
 	// Recherche de l'index du premier operande en entree correspondant
 	// aux valeurs servant a alimenter les attributs en sortie
@@ -430,7 +451,7 @@ void KWDRBuildDiffTable::FillTargetDifferenceAttributes(const KWObject* kwoSourc
 			   ->GetLoaded());
 
 		// La valeur est missing dans le cas ou il n'y pas d'objet precedent
-		if (kwoSourcePreviousObject == NULL)
+		if (kwoSourcePreviousObject == NULL or kwoSourceCurrentObject == NULL)
 			kwoTargetObject->SetContinuousValueAt(liTarget, KWContinuous::GetMissingValue());
 		// Calcul de la difference de valeur selon le type
 		else
@@ -529,39 +550,49 @@ ObjectArray* KWDRBuildList::ComputeObjectArrayResult(const KWObject* kwoObject,
 		{
 			kwoSourceContainedCurrentObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
 
-			// Creation d'un noeud de la liste
+			// Creation et alimentation d'un noeud de la liste
 			kwoTargetContainedObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
-			oaResult.SetAt(nObject, kwoTargetContainedObject);
-
-			// Memorisation de l'attribut Data du noeud courant
-			if (livComputeModeTargetAttributeLoadIndexes.GetAt(0).IsValid())
-				kwoTargetContainedObject->SetObjectValueAt(
-				    livComputeModeTargetAttributeLoadIndexes.GetAt(0), kwoSourceContainedCurrentObject);
-
-			// Chainage avec le noeud precedent
-			// Memorisation de l'attribut Prev du noeud courant
-			assert(not livComputeModeTargetAttributeLoadIndexes.GetAt(1).IsValid() or
-			       kwoTargetContainedObject->GetObjectValueAt(
-				   livComputeModeTargetAttributeLoadIndexes.GetAt(1)) == NULL);
-			assert(not livComputeModeTargetAttributeLoadIndexes.GetAt(2).IsValid() or
-			       kwoTargetContainedObject->GetObjectValueAt(
-				   livComputeModeTargetAttributeLoadIndexes.GetAt(2)) == NULL);
-			if (nObject > 0)
+			if (kwoTargetContainedObject != NULL)
 			{
-				// Acces au noeud prededent
-				kwoPrevTargetContainedObject = cast(KWObject*, oaResult.GetAt(nObject - 1));
+				oaResult.SetAt(nObject, kwoTargetContainedObject);
 
-				// Chainage du precedent vers le courant
-				if (livComputeModeTargetAttributeLoadIndexes.GetAt(2).IsValid())
-					kwoPrevTargetContainedObject->SetObjectValueAt(
-					    livComputeModeTargetAttributeLoadIndexes.GetAt(2),
-					    kwoTargetContainedObject);
-
-				// Chainage du courant vers le precedent
-				if (livComputeModeTargetAttributeLoadIndexes.GetAt(1).IsValid())
+				// Memorisation de l'attribut Data du noeud courant
+				if (livComputeModeTargetAttributeLoadIndexes.GetAt(0).IsValid())
 					kwoTargetContainedObject->SetObjectValueAt(
-					    livComputeModeTargetAttributeLoadIndexes.GetAt(1),
-					    kwoPrevTargetContainedObject);
+					    livComputeModeTargetAttributeLoadIndexes.GetAt(0),
+					    kwoSourceContainedCurrentObject);
+
+				// Chainage avec le noeud precedent
+				// Memorisation de l'attribut Prev du noeud courant
+				assert(not livComputeModeTargetAttributeLoadIndexes.GetAt(1).IsValid() or
+				       kwoTargetContainedObject == NULL or
+				       kwoTargetContainedObject->GetObjectValueAt(
+					   livComputeModeTargetAttributeLoadIndexes.GetAt(1)) == NULL);
+				assert(not livComputeModeTargetAttributeLoadIndexes.GetAt(2).IsValid() or
+				       kwoTargetContainedObject == NULL or
+				       kwoTargetContainedObject->GetObjectValueAt(
+					   livComputeModeTargetAttributeLoadIndexes.GetAt(2)) == NULL);
+				if (nObject > 0)
+				{
+					// Acces au noeud prededent
+					kwoPrevTargetContainedObject = cast(KWObject*, oaResult.GetAt(nObject - 1));
+
+					// Chainage si possible
+					if (kwoPrevTargetContainedObject != NULL)
+					{
+						// Chainage du precedent vers le courant
+						if (livComputeModeTargetAttributeLoadIndexes.GetAt(2).IsValid())
+							kwoPrevTargetContainedObject->SetObjectValueAt(
+							    livComputeModeTargetAttributeLoadIndexes.GetAt(2),
+							    kwoTargetContainedObject);
+
+						// Chainage du courant vers le precedent
+						if (livComputeModeTargetAttributeLoadIndexes.GetAt(1).IsValid())
+							kwoTargetContainedObject->SetObjectValueAt(
+							    livComputeModeTargetAttributeLoadIndexes.GetAt(1),
+							    kwoPrevTargetContainedObject);
+					}
+				}
 			}
 		}
 	}
@@ -571,7 +602,6 @@ ObjectArray* KWDRBuildList::ComputeObjectArrayResult(const KWObject* kwoObject,
 boolean KWDRBuildList::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
-	int nIndex;
 
 	// Appel de la methode ancetre
 	bOk = KWDRRelationCreationRule::CheckOperandsCompleteness(kwcOwnerClass);
@@ -582,38 +612,11 @@ boolean KWDRBuildList::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) c
 		assert(GetOperandNumber() == 1);
 		assert(GetOutputOperandNumber() == 3);
 
-		// Verification de chaque operande en sortie
-		for (nIndex = 0; nIndex < GetOutputOperandNumber(); nIndex++)
-			bOk = CheckOutputOperandCompletenessAt(kwcOwnerClass, nIndex) and bOk;
-	}
-	return bOk;
-}
-
-boolean KWDRBuildList::CheckOutputOperandCompletenessAt(const KWClass* kwcOwnerClass, int nIndex) const
-{
-	boolean bOk;
-	ALString sExpectedObjectClassName;
-
-	require(kwcOwnerClass != NULL);
-	require(0 <= nIndex and nIndex < GetOutputOperandNumber());
-
-	// Le premier operande en sortie (Data) doit etre du meme type que de la table en entree du premier operande
-	assert(GetOutputOperandAt(nIndex)->GetType() == KWType::Object);
-	if (nIndex == 0)
-		sExpectedObjectClassName = GetOperandAt(0)->GetObjectClassName();
-	// Les operandes 2 et 3 (Prev et Next) doivent etre du type de la table en sortie
-	else
-		sExpectedObjectClassName = GetObjectClassName();
-
-	// Verification de la compatibilite du type
-	bOk = GetOutputOperandAt(nIndex)->GetObjectClassName() == sExpectedObjectClassName;
-	if (not bOk)
-	{
-		AddError("In the " + GetObjectClassName() + " output dictionary, the " +
-			 KWType::ToString(KWType::Object) + "(" + GetOutputOperandAt(nIndex)->GetObjectClassName() +
-			 ") " + GetOutputOperandAt(nIndex)->GetDataItemName() + " variable related to output operand " +
-			 IntToString(nIndex + 1) + " should be of type " + KWType::ToString(KWType::Object) + "(" +
-			 sExpectedObjectClassName + ")");
+		// Verification du type Object chaque operande en sortie
+		bOk = CheckOutputOperandExpectedObjectType(kwcOwnerClass, 0, GetOperandAt(0)->GetObjectClassName()) and
+		      bOk;
+		bOk = CheckOutputOperandExpectedObjectType(kwcOwnerClass, 1, GetObjectClassName()) and bOk;
+		bOk = CheckOutputOperandExpectedObjectType(kwcOwnerClass, 2, GetObjectClassName()) and bOk;
 	}
 	return bOk;
 }
@@ -630,7 +633,7 @@ void KWDRBuildList::CollectMandatoryInputOperands(IntVector* ivUsedInputOperands
 	require(ivUsedInputOperands != NULL);
 	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
 
-	// Tous les operandes son ici obligatoires
+	// Tous les operandes sont ici obligatoires
 	for (nInputOperand = 0; nInputOperand < GetOperandNumber(); nInputOperand++)
 		ivUsedInputOperands->SetAt(nInputOperand, 1);
 }
@@ -642,6 +645,417 @@ void KWDRBuildList::CollectSpecificInputOperandsAt(int nOutputOperand, IntVector
 	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
 
 	// Il n'y a ici pas d'operandes en entree associes aux operandes en sortie
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildGraph
+
+KWDRBuildGraph::KWDRBuildGraph()
+{
+	SetName("BuildGraph");
+	SetLabel("Build graph from node and edges tables");
+	SetType(KWType::Object);
+
+	// Variables en entree, a scope multiple pour aller chercher les identifiants des neoeuds
+	SetOperandNumber(5);
+	SetMultipleScope(true);
+
+	// Table de noeuds en entree, et leur identifiant
+	GetOperandAt(0)->SetType(KWType::ObjectArray);
+	GetOperandAt(1)->SetType(KWType::Symbol);
+
+	// Table des arcs en entree, et les identifiants des noeuds extremites des arcs
+	GetOperandAt(2)->SetType(KWType::ObjectArray);
+	GetOperandAt(3)->SetType(KWType::Symbol);
+	GetOperandAt(4)->SetType(KWType::Symbol);
+
+	// Variables en sortie
+	SetOutputOperandNumber(7);
+	SetMultipleOutputScope(true);
+
+	// Table des noeuds du graphe, avec les donnees d'entree par noeud et la liste des arcs adjacents
+	GetOutputOperandAt(0)->SetType(KWType::ObjectArray);
+	GetOutputOperandAt(1)->SetType(KWType::Object);
+	GetOutputOperandAt(2)->SetType(KWType::ObjectArray);
+
+	// Table des arcs du graphe, avec les donnees d'entree par arc, les les deux noeuds extremites
+	GetOutputOperandAt(3)->SetType(KWType::ObjectArray);
+	GetOutputOperandAt(4)->SetType(KWType::Object);
+	GetOutputOperandAt(5)->SetType(KWType::Object);
+	GetOutputOperandAt(6)->SetType(KWType::Object);
+}
+
+KWDRBuildGraph::~KWDRBuildGraph() {}
+
+KWDerivationRule* KWDRBuildGraph::Create() const
+{
+	return new KWDRBuildGraph;
+}
+
+KWObject* KWDRBuildGraph::ComputeObjectResult(const KWObject* kwoObject, const KWLoadIndex liAttributeLoadIndex) const
+{
+	const KWClass* kwcTargetNodeClass;
+	const KWClass* kwcTargetEdgeClass;
+	KWLoadIndex liTargetNodes;
+	KWLoadIndex liTargetNodeData;
+	KWLoadIndex liTargetNodeAdjacentEdges;
+	KWLoadIndex liTargetEdges;
+	KWLoadIndex liTargetEdgeData;
+	KWLoadIndex liTargetEdgeNode1;
+	KWLoadIndex liTargetEdgeNode2;
+	ObjectArray* oaSourceNodesObjects;
+	ObjectArray* oaSourceEdgesObjects;
+	KWObject* kwoSourceNodeObject;
+	KWObject* kwoSourceEdgeObject;
+	KWObject* kwoTargetGraph;
+	KWObject* kwoTargetNodeObject;
+	KWObject* kwoTargetEdgeObject;
+	KWObject* kwoTargetNodeObject1;
+	KWObject* kwoTargetNodeObject2;
+	ObjectArray* oaTargetNodesObjects;
+	ObjectArray* oaTargetEdgesObjects;
+	ObjectArray* oaTargetNodeAdjacentEdgesObjects;
+	Symbol sNodeId;
+	Symbol sNodeId1;
+	Symbol sNodeId2;
+	int nNode;
+	int nEdge;
+	NumericKeyDictionary nkdTargetNodes;
+	SymbolVector sNodeIds;
+
+	require(IsCompiled());
+
+	// Evaluation des operandes secondaires de scope principal
+	EvaluateMainScopeSecondaryOperands(kwoObject);
+
+	// Recherche des noeuds et des arcs
+	oaSourceNodesObjects = GetOperandAt(0)->GetObjectArrayValue(kwoObject);
+	oaSourceEdgesObjects = GetOperandAt(2)->GetObjectArrayValue(kwoObject);
+
+	// Creation du graphe en sortie, responsable de la destruction de ses noeuds et arcs natifs
+	kwoTargetGraph = NewTargetOwnerObject(kwoObject, liAttributeLoadIndex);
+
+	// Alimentation du graphe
+	if (kwoTargetGraph != NULL)
+	{
+		// Recherche de la classe de creation des neouds et des arcs
+		kwcTargetNodeClass =
+		    kwcCompiledTargetClass->GetDomain()->LookupClass(GetOutputOperandAt(0)->GetObjectClassName());
+		kwcTargetEdgeClass =
+		    kwcCompiledTargetClass->GetDomain()->LookupClass(GetOutputOperandAt(3)->GetObjectClassName());
+
+		// Recherche des index des attributs cibles
+		liTargetNodes = livComputeModeTargetAttributeLoadIndexes.GetAt(0);
+		liTargetNodeData = livComputeModeTargetAttributeLoadIndexes.GetAt(1);
+		liTargetNodeAdjacentEdges = livComputeModeTargetAttributeLoadIndexes.GetAt(2);
+		liTargetEdges = livComputeModeTargetAttributeLoadIndexes.GetAt(3);
+		liTargetEdgeData = livComputeModeTargetAttributeLoadIndexes.GetAt(4);
+		liTargetEdgeNode1 = livComputeModeTargetAttributeLoadIndexes.GetAt(5);
+		liTargetEdgeNode2 = livComputeModeTargetAttributeLoadIndexes.GetAt(6);
+
+		// Creation des noeuds
+		oaTargetNodesObjects = NULL;
+		if (liTargetNodes.IsValid())
+		{
+			if (oaSourceNodesObjects != NULL and oaSourceNodesObjects->GetSize() > 0)
+			{
+				// Creation et memorisation du tableau de noeuds
+				oaTargetNodesObjects = new ObjectArray;
+				kwoTargetGraph->SetObjectArrayValueAt(liTargetNodes, oaTargetNodesObjects);
+
+				// Creation des noeuds
+				for (nNode = 0; nNode < oaSourceNodesObjects->GetSize(); nNode++)
+				{
+					kwoSourceNodeObject = cast(KWObject*, oaSourceNodesObjects->GetAt(nNode));
+
+					// Ajout dans le tableau si noeud non existant
+					sNodeId = GetOperandAt(1)->GetSymbolValue(kwoSourceNodeObject);
+					if (nkdTargetNodes.Lookup(sNodeId.GetNumericKey()) == NULL)
+					{
+						// Creation du noeud
+						kwoTargetNodeObject =
+						    NewObject(kwoTargetGraph, liTargetNodes, kwcTargetNodeClass, true);
+
+						// Initialisation du noeud
+						if (kwoTargetNodeObject != NULL)
+						{
+							// Memorisation du noeud
+							oaTargetNodesObjects->Add(kwoTargetNodeObject);
+							nkdTargetNodes.SetAt(sNodeId.GetNumericKey(),
+									     kwoTargetNodeObject);
+
+							// On memorise l'identifiant du noeud pour garantir que le meme Symbol
+							// (et son NumericKey) est utilise pour deux noeuds dde meme identifiant,
+							// meme s'il sont calcules de facon temporaire
+							sNodeIds.Add(sNodeId);
+
+							// Memorisation des donnees du noeud
+							if (liTargetNodeData.IsValid())
+								kwoTargetNodeObject->SetObjectValueAt(
+								    liTargetNodeData, kwoSourceNodeObject);
+
+							// Creation du tableau des arcs adjacents
+							if (liTargetNodeAdjacentEdges.IsValid())
+								kwoTargetNodeObject->SetObjectArrayValueAt(
+								    liTargetNodeAdjacentEdges, new ObjectArray);
+						}
+					}
+				}
+			}
+		}
+
+		// Creation des arcs
+		if (liTargetEdges.IsValid() and oaTargetNodesObjects != NULL)
+		{
+			if (oaSourceEdgesObjects != NULL and oaSourceEdgesObjects->GetSize() > 0)
+			{
+				// Creation et memorisation du tableau d'arcs
+				oaTargetEdgesObjects = new ObjectArray;
+				kwoTargetGraph->SetObjectArrayValueAt(liTargetEdges, oaTargetEdgesObjects);
+
+				// Creation des arcs
+				for (nEdge = 0; nEdge < oaSourceEdgesObjects->GetSize(); nEdge++)
+				{
+					kwoSourceEdgeObject = cast(KWObject*, oaSourceEdgesObjects->GetAt(nEdge));
+
+					// Ajout dans le tableau si noeuds extremites existants
+					sNodeId1 = GetOperandAt(3)->GetSymbolValue(kwoSourceEdgeObject);
+					sNodeId2 = GetOperandAt(4)->GetSymbolValue(kwoSourceEdgeObject);
+					kwoTargetNodeObject1 =
+					    cast(KWObject*, nkdTargetNodes.Lookup(sNodeId1.GetNumericKey()));
+					kwoTargetNodeObject2 =
+					    cast(KWObject*, nkdTargetNodes.Lookup(sNodeId2.GetNumericKey()));
+					if (kwoTargetNodeObject1 != NULL and kwoTargetNodeObject2 != NULL)
+					{
+						// Creation et memorisation de l'arc
+						kwoTargetEdgeObject =
+						    NewObject(kwoTargetGraph, liTargetEdges, kwcTargetEdgeClass, true);
+
+						// Initialisation de l'arc
+						if (kwoTargetEdgeObject != NULL)
+						{
+							// Memorisation de l'arc
+							oaTargetEdgesObjects->Add(kwoTargetEdgeObject);
+
+							// Memorisation des donnees de l'arc
+							if (liTargetEdgeData.IsValid())
+								kwoTargetEdgeObject->SetObjectValueAt(
+								    liTargetEdgeData, kwoSourceEdgeObject);
+
+							// Memorisation de ses noeuds extremites
+							if (liTargetEdgeNode1.IsValid())
+								kwoTargetEdgeObject->SetObjectValueAt(
+								    liTargetEdgeNode1, kwoTargetNodeObject1);
+							if (liTargetEdgeNode2.IsValid())
+								kwoTargetEdgeObject->SetObjectValueAt(
+								    liTargetEdgeNode2, kwoTargetNodeObject2);
+
+							// Ajout dans la liste d'adjacents des noeuds extremites
+							if (liTargetNodeAdjacentEdges.IsValid())
+							{
+								// Pour le noeuds source
+								oaTargetNodeAdjacentEdgesObjects =
+								    kwoTargetNodeObject1->GetObjectArrayValueAt(
+									liTargetNodeAdjacentEdges);
+								oaTargetNodeAdjacentEdgesObjects->Add(
+								    kwoTargetEdgeObject);
+
+								// Pour le noeuds cible, s'il est different
+								// On n'enregistre l'arc deux fois en cas de self-loop
+								if (kwoTargetNodeObject2 != kwoTargetNodeObject1)
+								{
+									oaTargetNodeAdjacentEdgesObjects =
+									    kwoTargetNodeObject2->GetObjectArrayValueAt(
+										liTargetNodeAdjacentEdges);
+									oaTargetNodeAdjacentEdgesObjects->Add(
+									    kwoTargetEdgeObject);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Nettoyage des operandes secondaires de scope principal
+	CleanMainScopeSecondaryOperands();
+
+	// On retourne le graphe cree
+	return kwoTargetGraph;
+}
+
+boolean KWDRBuildGraph::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
+{
+	boolean bOk;
+	ALString sNodeType;
+	ALString sEdgeType;
+
+	// Appel de la methode ancetre
+	bOk = KWDRRelationCreationRule::CheckOperandsCompleteness(kwcOwnerClass);
+
+	// On verifie que les type des noeuds et des arcs en sortie sont differents, meme en cas d'erreur,
+	// pour avoir un diganostique intelligible minimaliste
+	if (GetOutputOperandNumber() == 7 and GetOutputOperandAt(0)->GetType() == KWType::ObjectArray and
+	    GetOutputOperandAt(3)->GetType() == KWType::ObjectArray)
+	{
+		// Type des noeuds et des arcs
+		sNodeType = GetOutputOperandAt(0)->GetObjectClassName();
+		sEdgeType = GetOutputOperandAt(3)->GetObjectClassName();
+
+		// Les types des noeuds et des arcs en sortie doivent etre differents
+		if (sNodeType == sEdgeType)
+		{
+			AddError("In the " + GetObjectClassName() + " output dictionary, the " +
+				 KWType::ToString(KWType::Object) + "(" + sNodeType + ") " +
+				 GetOutputOperandAt(0)->GetDataItemName() +
+				 " node variable related to the first output operand and the " +
+				 KWType::ToString(KWType::Object) + "(" + sEdgeType +
+				 ") edge variable related to the third output operand should be of different types");
+			bOk = false;
+		}
+	}
+
+	// Specialisation
+	if (bOk)
+	{
+		assert(GetOperandNumber() == 5);
+		assert(GetOutputOperandNumber() == 7);
+
+		// Verification des type Data des operandes en sortie
+		bOk = CheckOutputOperandExpectedObjectType(kwcOwnerClass, 1, GetOperandAt(0)->GetObjectClassName()) and
+		      bOk;
+		bOk = CheckOutputOperandExpectedObjectType(kwcOwnerClass, 4, GetOperandAt(2)->GetObjectClassName()) and
+		      bOk;
+
+		// Verification de la coherence des liens entre noeuds et arcs
+		bOk = CheckOutputOperandExpectedObjectType(kwcOwnerClass, 2, sEdgeType) and bOk;
+		bOk = CheckOutputOperandExpectedObjectType(kwcOwnerClass, 5, sNodeType) and bOk;
+		bOk = CheckOutputOperandExpectedObjectType(kwcOwnerClass, 6, sNodeType) and bOk;
+	}
+	return bOk;
+}
+
+boolean KWDRBuildGraph::IsNewScopeOperand(int nOperandIndex) const
+{
+	require(0 <= nOperandIndex and nOperandIndex < GetOperandNumber());
+	return nOperandIndex == 0 or nOperandIndex == 2;
+}
+
+boolean KWDRBuildGraph::IsSecondaryScopeOperand(int nOperandIndex) const
+{
+	require(0 <= nOperandIndex and nOperandIndex < GetOperandNumber());
+	return nOperandIndex == 1 or nOperandIndex > 2;
+}
+
+boolean KWDRBuildGraph::IsNewOutputScopeOperand(int nOutputOperandIndex) const
+{
+	require(0 <= nOutputOperandIndex and nOutputOperandIndex < GetOutputOperandNumber());
+	return nOutputOperandIndex == 0 or nOutputOperandIndex == 3;
+}
+
+boolean KWDRBuildGraph::IsSecondaryOutputScopeOperand(int nOutputOperandIndex) const
+{
+	require(0 <= nOutputOperandIndex and nOutputOperandIndex < GetOutputOperandNumber());
+	return nOutputOperandIndex == 1 or nOutputOperandIndex == 2 or nOutputOperandIndex > 3;
+}
+
+boolean KWDRBuildGraph::CheckOperandCompletenessAt(const KWClass* kwcOwnerClass, int nIndex) const
+{
+	boolean bOk = true;
+	ALString sExpectedObjectClassName;
+	KWDerivationRuleOperand* operand;
+	const KWClass* kwcScopeClass;
+	ALString sTmp;
+
+	require(kwcOwnerClass != NULL);
+	require(0 <= nIndex and nIndex < GetOperandNumber());
+
+	// Acces a l'operande
+	operand = GetOperandAt(nIndex);
+
+	// Le premier et le troisieme operande (neoeuds et arcs) sont verifies de facon standard
+	if (nIndex == 0 or nIndex == 2)
+	{
+		if (not operand->CheckCompleteness(kwcOwnerClass))
+		{
+			AddError(sTmp + "Incomplete operand " + IntToString(nIndex + 1));
+			bOk = false;
+		}
+	}
+	// Le deuxieme operande (identifiant) est a verifier au niveau du scope des noeuds
+	else if (nIndex == 1)
+	{
+		// Recherche du dictionnaire des noeuds du premier operande
+		kwcScopeClass = kwcOwnerClass->GetDomain()->LookupClass(GetOperandAt(0)->GetObjectClassName());
+
+		// Verification de l'operande si possible
+		if (kwcScopeClass != NULL)
+		{
+			if (not operand->CheckCompleteness(kwcOwnerClass))
+			{
+				AddError(sTmp + "Incomplete operand " + IntToString(nIndex + 1) +
+					 " for identifier in node dictionary " + kwcScopeClass->GetName());
+				bOk = false;
+			}
+		}
+	}
+	// Les deux derniers operandes (identfiant des extremites des arcs) sont a verifier au niveau du scope des arcs
+	else
+	{
+		// Recherche du dictionnaire des noeuds du premier operande
+		kwcScopeClass = kwcOwnerClass->GetDomain()->LookupClass(GetOperandAt(0)->GetObjectClassName());
+
+		// Verification de l'operande si possible
+		if (kwcScopeClass != NULL)
+		{
+			if (not operand->CheckCompleteness(kwcOwnerClass))
+			{
+				AddError(sTmp + "Incomplete operand " + IntToString(nIndex + 1) +
+					 " for identifier in edge dictionary " + kwcScopeClass->GetName());
+				bOk = false;
+			}
+		}
+	}
+	return bOk;
+}
+
+boolean KWDRBuildGraph::IsViewModeActivated() const
+{
+	return false;
+}
+
+void KWDRBuildGraph::CollectMandatoryInputOperands(IntVector* ivUsedInputOperands) const
+{
+	int nInputOperand;
+
+	require(ivUsedInputOperands != NULL);
+	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
+
+	// Aucun operande en entree n'est a priori obbligatoire
+}
+
+void KWDRBuildGraph::CollectSpecificInputOperandsAt(int nOutputOperand, IntVector* ivUsedInputOperands) const
+{
+	require(0 <= nOutputOperand and nOutputOperand < GetOutputOperandNumber());
+	require(ivUsedInputOperands != NULL);
+	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
+
+	// Cas de noeuds utilises en sortie, directement, pour verifier l'existence des extremites des arcs, ou pour les extremites des arcs
+	if (nOutputOperand == 0 or nOutputOperand == 1 or nOutputOperand == 3 or nOutputOperand == 5 or
+	    nOutputOperand == 6)
+	{
+		ivUsedInputOperands->SetAt(0, 1);
+		ivUsedInputOperands->SetAt(1, 1);
+	}
+
+	// Cas des arcs utilises en sortie, directement, ou pour les arcs adjacents des noeuds
+	if (nOutputOperand == 3 or nOutputOperand == 4 or nOutputOperand == 2)
+	{
+		ivUsedInputOperands->SetAt(2, 1);
+		ivUsedInputOperands->SetAt(3, 1);
+		ivUsedInputOperands->SetAt(4, 1);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -711,8 +1125,11 @@ ObjectArray* KWDRBuildDummyTable::ComputeObjectArrayResult(const KWObject* kwoOb
 		kwoTargetContainedObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
 
 		// Alimentation de type calcul pour les operandes en entree correspondant
-		FillComputeModeTargetAttributesForVariableOperandNumber(kwoObject, kwoTargetContainedObject);
-		oaResult.SetAt(nObject, kwoTargetContainedObject);
+		if (kwoTargetContainedObject != NULL)
+		{
+			FillComputeModeTargetAttributesForVariableOperandNumber(kwoObject, kwoTargetContainedObject);
+			oaResult.SetAt(nObject, kwoTargetContainedObject);
+		}
 	}
 	return &oaResult;
 }

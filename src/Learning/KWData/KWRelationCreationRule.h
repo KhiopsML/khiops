@@ -131,6 +131,39 @@ public:
 	// Methode sans effet pour les regles a nombre fixe d'operandes
 	void DeleteAllVariableOutputOperands();
 
+	//////////////////////////////////////////////////////////////////////////
+	// Gestion du scope des operandes en sortie
+	//
+	// Dans le cas standard, tous les operandes ont le meme scope, celui de la
+	// classe utilise en sortie de la regle de derivation
+	//
+	// Dans une regle a scope multiple en sortie, on a:
+	// - des operandes de type Relation definissant un nouveau scope secondaire
+	//   - au niveau du scope principal (celui de la classe en sortie de regle)
+	//   - definissant le scope secondaire (celui de l'Object ou ObjectArray de l'operande)
+	// - les operandes suivants sont au niveau du scope secondaire
+	// Contrairement aux operande en entree, il n'est pas possible de remonter le niveau de scope par "."
+
+	// Indique si la regle est avec gestion de scope multiple ou standard (par defaut: false)
+	boolean GetMultipleOutputScope() const;
+	void SetMultipleOutputScope(boolean bValue);
+
+	// Indique si un operande definit le scope secondaire, en cas de regle avec gestion de scope multiple
+	// Par defaut, le premier operande est celui qui definit le scope secondaire
+	// On peut specialiser cette methode pour plusieurs operandes definissant le nouveau scope, les operandes
+	// suivants etant du scope secondaire, jusqu'au prochain operande definissant un nouveau scope secondaire
+	// Par exemple:
+	// - les operandes 1 et 3 peuvent definir un nouveau scope secondaire (etant eux meme du scope principal),
+	// - l'operande 2 est de scope celui defini par l'operande 1
+	// - les operande 4 et 5 sont de scope celui defini par l'operande 1
+	virtual boolean IsNewOutputScopeOperand(int nOutputOperandIndex) const;
+
+	// Nombre d'operandes definissant un nouveau scope secondaire
+	int GetNewOutputScopeOperandNumber() const;
+
+	// Indique si un operande est du scope secondaire, en cas de regle avec gestion de scope multiple
+	virtual boolean IsSecondaryOutputScopeOperand(int nOutputOperandIndex) const;
+
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Redefinition des methodes pour tenir compte des alimentations de type vue et calcul
 
@@ -230,12 +263,21 @@ protected:
 	/////////////////////////////////////////////////////////////////////////////////////////
 	// Methodes internes avancees
 
+	// Recherche de la classe de scope secondaire en cas de scope multiple en sortie
+	// Cela correspond a la classe d'un operande definissant un nouveau scope secondaire
+	// Renvoie NULL si la regle si l'on n'a pas trouve cette classe
+	virtual KWClass* LookupSecondaryOutputScopeClass(const KWClass* kwcTargetClass, int nOutputOperandIndex) const;
+
 	// Redefinition de la completion des infos pour les operandes en sortie
 	void InternalCompleteTypeInfo(const KWClass* kwcOwnerClass,
 				      NumericKeyDictionary* nkdCompletedAttributes) override;
 
 	// Test si le type d'un operande en sortie est valide
 	boolean IsValidOutputOperandType(int nType) const;
+
+	// Verification du type d'un operande en sortie de type Object, avec message d'erreur
+	boolean CheckOutputOperandExpectedObjectType(const KWClass* kwcOwnerClass, int nIndex,
+						     const ALString& sExpectedObjectClassName) const;
 
 	// Ajout d'une erreur de verification en mode vue pour une variable du dictionnaire en sortie
 	void AddViewModeError(const KWClass* kwcSourceClass, const KWClass* kwcTargetClass,
@@ -250,23 +292,33 @@ protected:
 
 	// Creation d'un objet de la vue avec le dictionnaire en sortie
 	// On passe egalement l'index de chargement de l'attribut contenant le resultat en parametre pour gere les data paths
+	// L'objet cree est de type vue, c'est a dire qu'il ne detruit pas les sous-objet natifs de sa composition. Il faut
+	// explicitement changer ce type si necessaire.
 	// ATTENTION:
 	// - l'objet retourne peut etre NULL en cas de probleme memoire detecte par le memory guard
 	// - il faut bien faire attention a tester si l'objet est NULL avant de faire des traitements dessus
-	// - par contre, en cas de creation dans un tableau, il faut continuer a cree des objets, pour enregistrer des statistiques
+	// - par contre, en cas de creation dans un tableau, il faut continuer a creer des objets, pour enregistrer des statistiques
 	//   sur les demandes de creation d'ojbjets
 	//   - cela permet d'ameliorer les messages utilisateur
 	//   - cela ne coute rien en temps de calcul, puisque qu'on ne cree plus d'objet des qu'il y a saturation memoire
 	KWObject* NewTargetObject(const KWObject* kwoOwnerObject, const KWLoadIndex liAttributeLoadIndex) const;
 
+	// Variante de creation d'un objet responsable de la destruction de ses sous-objet
+	// L'objet cree n'est donc pas de type vue, contrairement a la methode precedente
+	KWObject* NewTargetOwnerObject(const KWObject* kwoOwnerObject, const KWLoadIndex liAttributeLoadIndex) const;
+
+	// Creation d'un objet quelconque en sortie, potentiellement un sous objet, pourlequel on precise sa classe et son mode view
+	KWObject* NewObject(const KWObject* kwoOwnerObject, const KWLoadIndex liAttributeLoadIndex,
+			    const KWClass* kwcCreationClass, boolean bIsViewMode) const;
+
 	// Alimentation de type vue des attributs cibles
-	// Sans effet si l'objet cible est NULL
+	// L'objet cible ne doit pas etre NULL
 	void FillViewModeTargetAttributes(const KWObject* kwoSourceObject, KWObject* kwoTargetObject) const;
 
 	// Alimentation de type calcul des attributs cibles dans le cas d'un nombre variable d'operandes en entree
 	// Dans ce cas, on doit avoir egalement un nombre variable d'operandes en sortie, qui doivent
-	// correspondre aux operandes en entree
-	// Sans effet si l'objet cible est NULL
+	// correspondre aux operandes en entree, avec la meme position en entree et en sortie
+	// L'objet cible ne doit pas etre NULL
 	void FillComputeModeTargetAttributesForVariableOperandNumber(const KWObject* kwoSourceObject,
 								     KWObject* kwoTargetObject) const;
 
@@ -275,6 +327,9 @@ protected:
 
 	// Indicateur de regle a nombre variable d'operandes en sortie
 	boolean bVariableOutputOperandNumber;
+
+	// Gestion des regles a scope multiple pour les operandes en sortie
+	boolean bMultipleOutputScope;
 
 	// Index de chargement des attributs cible pour une alimentation de type calcul
 	// On precise pour chaque attribut concerne lie a un operande en sortie son index
