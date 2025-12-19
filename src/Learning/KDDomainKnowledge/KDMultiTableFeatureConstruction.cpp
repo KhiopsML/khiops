@@ -913,6 +913,7 @@ void KDMultiTableFeatureConstruction::BuildAllConstructedRulesFromLastOperands(
 	require(templateConstructedRule != NULL);
 	require(templateConstructedRule->GetName() == constructionRule->GetName());
 	require(templateConstructedRule->GetOperandNumber() == constructionRule->GetOperandNumber());
+	require(templateConstructedRule->GetDerivationRule()->GetNewScopeOperandNumber() <= 1);
 	require(dRuleCost >= 0);
 	require(nDepth >= 0);
 	require(dRandomDrawingNumber > 0);
@@ -1815,6 +1816,7 @@ boolean KDMultiTableFeatureConstruction::IsConstructionRuleApplicableFromLastOpe
 	KWAttribute* attribute;
 
 	require(constructionRule != NULL);
+	require(constructionRule->GetDerivationRule()->GetNewScopeOperandNumber() <= 1);
 	require(classCompliantRules != NULL);
 	require(0 <= nStartOperandIndex and
 		nStartOperandIndex < constructionRule->GetDerivationRule()->GetOperandNumber());

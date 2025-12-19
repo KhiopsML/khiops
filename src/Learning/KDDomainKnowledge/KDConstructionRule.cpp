@@ -246,6 +246,7 @@ boolean KDConstructionRule::Check() const
 		bOk = bOk and not rule->GetVariableOperandNumber();
 		bOk = bOk and KWType::IsData(rule->GetType());
 		bOk = bOk and rule->GetOperandNumber() > 0;
+		bOk = bOk and rule->GetNewScopeOperandNumber() <= 1;
 
 		// Les operandes doivent etre de type data
 		for (i = 0; i < GetOperandNumber(); i++)
