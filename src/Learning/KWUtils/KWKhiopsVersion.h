@@ -18,4 +18,4 @@
 // - KHIOPS_STR(10.5.0-rc.2)
 
 // Copyright
-#define KHIOPS_COPYRIGHT_LABEL KHIOPS_STR((c) 2023-2025 Orange. All rights reserved.)
+#define KHIOPS_COPYRIGHT_LABEL KHIOPS_STR((c) 2023-2026 Orange. All rights reserved.)

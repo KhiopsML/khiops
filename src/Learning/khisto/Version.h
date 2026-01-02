@@ -13,4 +13,4 @@
 #define KHISTO_VERSION KHIOPS_STR(1.0)
 
 // Copyright
-#define KHISTO_COPYRIGHT_LABEL KHIOPS_STR((c) 2023-2025 Orange. All rights reserved.)
+#define KHISTO_COPYRIGHT_LABEL KHIOPS_STR((c) 2023-2026 Orange. All rights reserved.)
