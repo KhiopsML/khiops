@@ -1,4 +1,4 @@
-// Copyright (c) 2023-2025 Orange. All rights reserved.
+// Copyright (c) 2023-2026 Orange. All rights reserved.
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
@@ -13,4 +13,4 @@
 #define GENUM_VERSION KHIOPS_STR(1.0)
 
 // Copyright
-#define GENUM_COPYRIGHT_LABEL KHIOPS_STR((c) 2023-2025 Orange. All rights reserved.)
+#define GENUM_COPYRIGHT_LABEL KHIOPS_STR((c) 2023-2026 Orange. All rights reserved.)
