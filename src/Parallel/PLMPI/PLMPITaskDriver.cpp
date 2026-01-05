@@ -387,15 +387,25 @@ void PLMPITaskDriver::InitializeResourceSystem()
 	longint lSlaveHeap;
 	PLMPIMsgContext context;
 	boolean bIsCluster;
+	boolean bIsTmpDirOk;
 	ALString sLastHostName;
 	ALString sKhiopsTmpDirEnv;
 	ALString sTmpDirFromMaster;
 	ALString sApplicationName;
+	ALString sSlaveTmpDir;
 
 	oaSharedResource = new PLShared_ObjectArray(new PLShared_HostResource);
 	oaSharedResource->bIsDeclared = true;
-
 	MPI_Comm_size(MPI_COMM_WORLD, &nProcessNumber);
+
+	// Nettoyage des erreurs precedentes
+	odHostErrors.DeleteAll();
+
+	// Suppression de l'emission des erreurs, notamment pour CreateApplicationTmpDir
+	// A ce niveau on ne sait pas les transmettre a l'utilisateur, on les stocke dans odHostErrors
+	// et on les affiche plus tard via la methode CheckResourceSystem()
+	DisplayErrorFunction errorFunction = Error::GetDisplayErrorFunction();
+	Error::SetDisplayErrorFunction(NULL);
 
 	// Dimensionnement des ressources
 	svHosts.SetSize(nProcessNumber);
@@ -408,10 +418,6 @@ void PLMPITaskDriver::InitializeResourceSystem()
 
 	if (GetProcessId() != 0)
 	{
-		// Suppression de l'emission des erreurs, notamment pour CreateApplicationTmpDir
-		// A ce niveau on ne sait pas les transmettre a l'utilisateur
-		DisplayErrorFunction errorFunction = Error::GetDisplayErrorFunction();
-		Error::SetDisplayErrorFunction(NULL);
 
 		// Envoi du nom de la machine
 		context.Send(MPI_COMM_WORLD, 0, RESOURCE_HOST);
@@ -445,8 +451,7 @@ void PLMPITaskDriver::InitializeResourceSystem()
 			FileService::SetApplicationName(sApplicationName);
 
 		// Creation du repertoire temporaire si necessaire
-		FileService::CreateApplicationTmpDir();
-		require(FileService::CheckApplicationTmpDir());
+		bIsTmpDirOk = FileService::CreateApplicationTmpDir();
 
 		// Initialisation des ressources
 		RMResourceManager::GetResourceSystem()->InitializeFromLocaleHost();
@@ -464,6 +469,8 @@ void PLMPITaskDriver::InitializeResourceSystem()
 		context.Send(MPI_COMM_WORLD, 0, RESOURCE_MEMORY);
 		serializer.OpenForWrite(&context);
 		serializer.PutLongint(lUsedPhysicalMemory);
+		serializer.PutString(FileService::GetTmpDir());
+		serializer.PutBoolean(bIsTmpDirOk);
 		serializer.Close();
 
 		// Reception de la liste des hosts
@@ -473,8 +480,6 @@ void PLMPITaskDriver::InitializeResourceSystem()
 		serializer.Close();
 		RMResourceManager::GetResourceSystem()->oaHostResources.DeleteAll();
 		RMResourceManager::GetResourceSystem()->oaHostResources.CopyFrom(oaSharedResource->GetObjectArray());
-
-		Error::SetDisplayErrorFunction(errorFunction);
 	}
 	else
 	{
@@ -525,10 +530,26 @@ void PLMPITaskDriver::InitializeResourceSystem()
 			context.Recv(MPI_COMM_WORLD, nRank, RESOURCE_MEMORY);
 			serializer.OpenForRead(&context);
 			lUsedPhysicalMemory = serializer.GetLongint();
+			sSlaveTmpDir = serializer.GetString();
+			bIsTmpDirOk = serializer.GetBoolean();
+
 			serializer.Close();
 			assert(lUsedPhysicalMemory != 0LL);
 			if (lSlaveHeap < lUsedPhysicalMemory)
 				lSlaveHeap = lUsedPhysicalMemory;
+
+			// On stocke les erreurs rencontrees lors de l'initialisation des resources.
+			// On ne stocke qu'une seule erreur par host car le repertoire temporaire est forcement le meme pour tous les esclave de ce host.
+			if (not bIsTmpDirOk)
+			{
+				if (odHostErrors.Lookup(shared_hostResource.GetHostResource()->GetHostName()) == NULL)
+				{
+					StringObject* soSlaveTmpDir = new StringObject;
+					soSlaveTmpDir->SetString(sSlaveTmpDir);
+					odHostErrors.SetAt(shared_hostResource.GetHostResource()->GetHostName(),
+							   soSlaveTmpDir);
+				}
+			}
 
 			// Stockage des donnees
 			lvMemory.SetAt(nRank, shared_hostResource.GetHostResource()->GetPhysicalMemory());
@@ -536,6 +557,26 @@ void PLMPITaskDriver::InitializeResourceSystem()
 			ivProcNumberOnHost.SetAt(nRank, shared_hostResource.GetHostResource()->GetPhysicalCoreNumber());
 			svHosts.SetAt(nRank, shared_hostResource.GetHostResource()->GetHostName());
 			nMessageNumber++;
+		}
+
+		// Sur cluster la variable KhiopsTmpDir est prioritaire par rapport a ce qui est renseigne dans le
+		// scenario Ce qui permet d'avoir un repertoire temporaire different sur chaque machine
+		sKhiopsTmpDirEnv = p_getenv("KHIOPS_TMP_DIR");
+		if (bIsCluster and not sKhiopsTmpDirEnv.IsEmpty())
+			FileService::SetUserTmpDir(sKhiopsTmpDirEnv);
+
+		// Creation du repertoire temporaire si necessaire
+		bIsTmpDirOk = FileService::CreateApplicationTmpDir();
+
+		// On stocke l'erreur potentielle lors de l'initialisation des resources pour le master
+		if (not bIsTmpDirOk)
+		{
+			if (odHostErrors.Lookup(shared_hostResource.GetHostResource()->GetHostName()) == NULL)
+			{
+				StringObject* soSlaveTmpDir = new StringObject;
+				soSlaveTmpDir->SetString(FileService::GetTmpDir());
+				odHostErrors.SetAt(shared_hostResource.GetHostResource()->GetHostName(), soSlaveTmpDir);
+			}
 		}
 
 		// Initialisation de la memoire utilisee au lancement du programme pour les esclaves
@@ -595,8 +636,64 @@ void PLMPITaskDriver::InitializeResourceSystem()
 	}
 	oaSharedResource->GetObjectArray()->RemoveAll();
 	delete oaSharedResource;
-
+	Error::SetDisplayErrorFunction(errorFunction);
 	RMResourceManager::GetResourceSystem()->SetInitialized();
+}
+
+void PLMPITaskDriver::CheckResourceSystem()
+{
+
+	POSITION position;
+	ALString sKey;
+	Object* oElement;
+	StringObject* sTmpDirObject;
+	StringVector svHostsName;
+	int i;
+
+	assert(GetProcessId() == 0);
+
+	// Si il y a un erreur
+	if (odHostErrors.GetCount() > 0)
+	{
+		// Si on est sur un cluster
+		if (RMResourceManager::GetResourceSystem()->GetHostNumber() > 1)
+		{
+			// On emet une erreur par host. Pour que les messages soient reproductibles,
+			// on trie d'abord le nom des hosts en passant par un StringVector
+
+			// Construction de la liste triee des hosts
+			position = odHostErrors.GetStartPosition();
+			while (position != NULL)
+			{
+				odHostErrors.GetNextAssoc(position, sKey, oElement);
+				svHostsName.Add(sKey);
+			}
+			svHostsName.Sort();
+
+			// Parcours des erreurs d'initialisation des ressources
+			for (i = 0; i < svHostsName.GetSize(); i++)
+			{
+				sKey = svHostsName.GetAt(i);
+				oElement = odHostErrors.Lookup(sKey);
+				sTmpDirObject = cast(StringObject*, oElement);
+				Global::AddError("Temp file directory", sTmpDirObject->GetString(),
+						 "Could not create temporary file directory on host " + sKey +
+						     ". Check the value of the KHIOPS_TMP_DIR environment variable or "
+						     "the permissions for the default temporary file directory.");
+			}
+		}
+		else
+		{
+			// Message d'erreur general pour mono-machine
+			Global::AddError("Temp file directory", FileService::GetTmpDir(),
+					 "Could not create temporary file directory. Check the value of the "
+					 "KHIOPS_TMP_DIR environment variable or the permissions "
+					 "for the default temporary file directory.");
+		}
+	}
+
+	// Nettoyage des erreurs apres affichage
+	odHostErrors.DeleteAll();
 }
 
 void PLMPITaskDriver::MasterInitializeResourceSystem()

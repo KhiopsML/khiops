@@ -49,8 +49,12 @@ public:
 	virtual void RunSlave(PLParallelTask* task);
 	virtual boolean RunMaster(PLParallelTask* task);
 
+	// Initialisation paralleles des ressources systeme
 	virtual void InitializeResourceSystem();
 	virtual void MasterInitializeResourceSystem();
+
+	// Verification des ressources systeme disponibles : envoi de messages d'erreur si probleme
+	virtual void CheckResourceSystem();
 
 	// Acces au service de trace et creation si ecessaire
 	PLTracer* GetTracerMPI();

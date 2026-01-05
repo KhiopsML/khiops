@@ -106,6 +106,11 @@ void PLTaskDriver::MasterInitializeResourceSystem()
 	InitializeResourceSystem();
 }
 
+void PLTaskDriver::CheckResourceSystem()
+{
+	// Rien a faire dans le driver sequentiel
+}
+
 boolean PLTaskDriver::IsFileServer(int nRank) const
 {
 	int i;

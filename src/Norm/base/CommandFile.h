@@ -189,13 +189,13 @@ public:
 	boolean IsInputCommandEnd() const;
 
 	// Ecriture d'une commande
-	// Cette methode peut etre appelee meme en l'absence de fichier de de commande en sortie
+	// Cette methode peut etre appelee meme en l'absence de fichier de commande en sortie
 	void WriteOutputCommand(const ALString& sIdentifierPath, const ALString& sValue, const ALString& sLabel);
 
 	// Ecriture d'une header de fichier de commande, consistant en lignes de commentaire en expliquant le fonctionnement
 	void WriteOutputCommandHeader();
 
-	// Mode lecture/ecriture d'un fichier de de commande, sans executer les commandes
+	// Mode lecture/ecriture d'un fichier de commande, sans executer les commandes
 	// Cela permet de tester la validite des fichier de commande et de parametres en entree
 	// et d'effectuer les transformations en fichier de commande natif, sans parametres
 	boolean ReadWriteCommandFiles();
