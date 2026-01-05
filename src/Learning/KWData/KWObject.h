@@ -190,6 +190,10 @@ public:
 	const ALString GetClassLabel() const override;
 	const ALString GetObjectLabel() const override;
 
+	// Indique si on a atteint la limite memoire, au dela de laquelle on ne peut plus creer d'objets
+	// Methode avancee
+	boolean IsMemoryLimitReached() const;
+
 	// Creation d'un objet de test, a partir d'une classe et d'une valeur de depart
 	// Des sous-objet inclus sont egalement crees
 	static KWObject* CreateObject(KWClass* refClass, longint lObjectIndex);

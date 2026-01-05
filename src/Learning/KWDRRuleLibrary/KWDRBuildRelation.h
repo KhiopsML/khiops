@@ -274,6 +274,9 @@ public:
 	///////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Libelle potentiellement tronque associe a un identifiant
+	const ALString BuildLabelFromId(const ALString& sId) const;
+
 	// Verification d'un operande en entree
 	boolean CheckOperandCompletenessAt(const KWClass* kwcOwnerClass, int nIndex) const;
 
@@ -281,6 +284,7 @@ protected:
 	boolean IsViewModeActivated() const override;
 
 	// Redefinition des methodes virtuelles
+	void FinalizeCollectUsedOutputOperands(IntVector* ivUsedOutputOperands) const override;
 	void CollectMandatoryInputOperands(IntVector* ivUsedInputOperands) const override;
 	void CollectSpecificInputOperandsAt(int nOutputOperand, IntVector* ivUsedInputOperands) const override;
 };

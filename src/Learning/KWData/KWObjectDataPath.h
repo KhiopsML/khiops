@@ -59,7 +59,7 @@ public:
 
 	// Reinitialisation du compteur de creation d'instance, a appeler a chaque changement
 	// d'objet principal (racine de l'objet principal d'un schema multi-table), ou Root (racine dans le cas d'une table externe)
-	// Cette reinitialisation est propagee a tous
+	// Cette reinitialisation est propagee a tous les element du data path
 	void ResetCreationNumber(longint lNewMainCreationIndex) const;
 
 	// Index de creation principal, servant de reference aux instances crees dans son contexte
@@ -106,6 +106,10 @@ public:
 
 	// Memoire utilisee par le mapping
 	longint GetUsedMemory() const override;
+
+	// Libelles utilisateurs
+	const ALString GetClassLabel() const override;
+	const ALString GetObjectLabel() const override;
 
 	////////////////////////////////////////////////////////
 	//// Implementation

@@ -127,6 +127,39 @@ longint KWObjectDataPath::GetUsedMemory() const
 	return lUsedMemory;
 }
 
+const ALString KWObjectDataPath::GetClassLabel() const
+{
+	return "Data path";
+}
+
+const ALString KWObjectDataPath::GetObjectLabel() const
+{
+	ALString sLabel;
+	int n;
+
+	// Racine du path
+	if (sOriginClassName != "")
+		sLabel = sOriginClassName;
+	else
+		sLabel = '?';
+
+	// Prise en compte du numero de creation de l'instance principale
+	sLabel += '(';
+	sLabel += LongintToString(GetMainCreationIndex());
+	sLabel += ')';
+
+	// Prise en compte des elements du data path
+	for (n = 0; n < GetDataPathAttributeNumber(); n++)
+	{
+		sLabel += '/';
+		if (GetDataPathAttributeNameAt(n) != "")
+			sLabel += GetDataPathAttributeNameAt(n);
+		else
+			sLabel += '?';
+	}
+	return sLabel;
+}
+
 void KWObjectDataPath::Compile(const KWClass* mainClass)
 {
 	KWClass* kwcOriginClass;

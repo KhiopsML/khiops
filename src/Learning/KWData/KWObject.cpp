@@ -1572,7 +1572,19 @@ const ALString KWObject::GetObjectLabel() const
 		sObjectLabel += LongintToString(GetCreationIndex());
 		sObjectLabel += ')';
 	}
+
+	// On complete le libelle si l'instance est cree
+	if (GetObjectDataPath() != NULL and GetObjectDataPath()->GetCreatedObjects())
+		sObjectLabel += ", created at " + GetObjectDataPath()->GetObjectLabel();
 	return GetClass()->GetName() + " " + sObjectLabel;
+}
+
+boolean KWObject::IsMemoryLimitReached() const
+{
+	if (GetObjectDataPath() != NULL)
+		return GetObjectDataPath()->GetMemoryGuard()->IsMemoryLimitReached();
+	else
+		return false;
 }
 
 KWObject* KWObject::CreateObject(KWClass* refClass, longint lObjectIndex)

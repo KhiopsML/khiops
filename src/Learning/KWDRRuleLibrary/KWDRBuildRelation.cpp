@@ -722,6 +722,11 @@ KWObject* KWDRBuildGraph::ComputeObjectResult(const KWObject* kwoObject, const K
 	int nEdge;
 	NumericKeyDictionary nkdTargetNodes;
 	SymbolVector sNodeIds;
+	int nDuplicateNodeNumber;
+	int nIncompleteEdgeNumber;
+	ALString sSampleDuplicateNodeId;
+	ALString sSampleIncompleteEdsgeId;
+	ALString sMessage;
 
 	require(IsCompiled());
 
@@ -736,6 +741,8 @@ KWObject* KWDRBuildGraph::ComputeObjectResult(const KWObject* kwoObject, const K
 	kwoTargetGraph = NewTargetOwnerObject(kwoObject, liAttributeLoadIndex);
 
 	// Alimentation du graphe
+	nDuplicateNodeNumber = 0;
+	nIncompleteEdgeNumber = 0;
 	if (kwoTargetGraph != NULL)
 	{
 		// Recherche de la classe de creation des neouds et des arcs
@@ -800,12 +807,22 @@ KWObject* KWDRBuildGraph::ComputeObjectResult(const KWObject* kwoObject, const K
 								    liTargetNodeAdjacentEdges, new ObjectArray);
 						}
 					}
+					// Erreur si noeud existant
+					else
+					{
+						nDuplicateNodeNumber++;
+						if (sSampleDuplicateNodeId == "")
+						{
+							sSampleDuplicateNodeId =
+							    "Node(" + BuildLabelFromId(sNodeId.GetValue()) + ")";
+						}
+					}
 				}
 			}
 		}
 
 		// Creation des arcs
-		if (liTargetEdges.IsValid() and oaTargetNodesObjects != NULL)
+		if (liTargetEdges.IsValid())
 		{
 			if (oaSourceEdgesObjects != NULL and oaSourceEdgesObjects->GetSize() > 0)
 			{
@@ -873,6 +890,17 @@ KWObject* KWDRBuildGraph::ComputeObjectResult(const KWObject* kwoObject, const K
 							}
 						}
 					}
+					// Erreur si noeud manquant pour une des deux extremites
+					else
+					{
+						nIncompleteEdgeNumber++;
+						if (sSampleIncompleteEdsgeId == "")
+						{
+							sSampleIncompleteEdsgeId =
+							    "Edge(" + BuildLabelFromId(sNodeId1.GetValue()) + ", " +
+							    BuildLabelFromId(sNodeId2.GetValue()) + ")";
+						}
+					}
 				}
 			}
 		}
@@ -880,6 +908,39 @@ KWObject* KWDRBuildGraph::ComputeObjectResult(const KWObject* kwoObject, const K
 
 	// Nettoyage des operandes secondaires de scope principal
 	CleanMainScopeSecondaryOperands();
+
+	// Message d'erreur
+	if (nDuplicateNodeNumber > 0 or nIncompleteEdgeNumber > 0)
+	{
+		// Pas de message en cas de probleme memoire
+		if (not kwoObject->IsMemoryLimitReached())
+		{
+			sMessage = GetName() + " rule encountered inconsistencies, including ";
+			if (nDuplicateNodeNumber > 0)
+			{
+				sMessage += IntToString(nDuplicateNodeNumber);
+				sMessage += " duplicate node";
+				if (nDuplicateNodeNumber > 1)
+					sMessage += "s";
+				sMessage += " (e.g., ";
+				sMessage += sSampleDuplicateNodeId;
+				sMessage += ")";
+			}
+			if (nDuplicateNodeNumber > 0 and nIncompleteEdgeNumber > 0)
+				sMessage += " and ";
+			if (nIncompleteEdgeNumber > 0)
+			{
+				sMessage += IntToString(nIncompleteEdgeNumber);
+				sMessage += " incomplete edge";
+				if (nIncompleteEdgeNumber > 1)
+					sMessage += "s";
+				sMessage += " with missing extremity nodes (e.g., ";
+				sMessage += sSampleIncompleteEdsgeId;
+				sMessage += ")";
+			}
+			kwoObject->AddWarning(sMessage);
+		}
+	}
 
 	// On retourne le graphe cree
 	return kwoTargetGraph;
@@ -960,6 +1021,18 @@ boolean KWDRBuildGraph::IsSecondaryOutputScopeOperand(int nOutputOperandIndex) c
 	return nOutputOperandIndex == 1 or nOutputOperandIndex == 2 or nOutputOperandIndex > 3;
 }
 
+const ALString KWDRBuildGraph::BuildLabelFromId(const ALString& sId) const
+{
+	const int nLabelMaxLength = 20;
+	ALString sLabel;
+
+	if (sId.GetLength() <= nLabelMaxLength)
+		sLabel = sId;
+	else
+		sLabel = sId.Left(nLabelMaxLength) + "...";
+	return sLabel;
+}
+
 boolean KWDRBuildGraph::CheckOperandCompletenessAt(const KWClass* kwcOwnerClass, int nIndex) const
 {
 	boolean bOk = true;
@@ -1025,10 +1098,23 @@ boolean KWDRBuildGraph::IsViewModeActivated() const
 	return false;
 }
 
+void KWDRBuildGraph::FinalizeCollectUsedOutputOperands(IntVector* ivUsedOutputOperands) const
+{
+	require(ivUsedOutputOperands != NULL);
+	require(ivUsedOutputOperands->GetSize() == GetOutputOperandNumber());
+
+	// Les arcs doivent etre calcules si on utilise les arcs adjacents des noeuds, ou les donnees des arcs
+	if (ivUsedOutputOperands->GetAt(2) == 1 or ivUsedOutputOperands->GetAt(4) == 1)
+		ivUsedOutputOperands->SetAt(3, 1);
+
+	// Les noeuds doivent etre calcules les arcs le sont, ou si on utilie les noeuds extremites des arcs, ou les donnees des noeuds
+	if (ivUsedOutputOperands->GetAt(3) == 1 or ivUsedOutputOperands->GetAt(5) == 1 or
+	    ivUsedOutputOperands->GetAt(6) == 1 or ivUsedOutputOperands->GetAt(1) == 1)
+		ivUsedOutputOperands->SetAt(0, 1);
+}
+
 void KWDRBuildGraph::CollectMandatoryInputOperands(IntVector* ivUsedInputOperands) const
 {
-	int nInputOperand;
-
 	require(ivUsedInputOperands != NULL);
 	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
 

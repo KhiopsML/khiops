@@ -1244,6 +1244,7 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 	const KWClass* secondaryOutputScopeClass;
 	const KWClass* outputScopeClass;
 	NumericKeyDictionary nkdOutputAttributes;
+	ObjectArray oaOutputAttributes;
 	IntVector ivUsedInputOperands;
 	IntVector ivUsedOutputOperands;
 	KWClass* kwcSourceClass;
@@ -1289,6 +1290,7 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 		// - on se base en fait sur leur utilisation par d'autre regles
 		outputScopeClass = kwcTargetClass;
 		secondaryOutputScopeClass = NULL;
+		oaOutputAttributes.SetSize(GetOutputOperandNumber());
 		for (nOperand = 0; nOperand < GetOutputOperandNumber(); nOperand++)
 		{
 			operand = GetOutputOperandAt(nOperand);
@@ -1315,6 +1317,7 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 
 			// Memorisation du nom de l'attribut en sortie pour les distinguer des attributs de type view
 			nkdOutputAttributes.SetAt(targetAttribute, targetAttribute);
+			oaOutputAttributes.SetAt(nOperand, targetAttribute);
 
 			// Cas d'un operande definissant la classe de scope secondaire
 			if (IsNewOutputScopeOperand(nOperand))
@@ -1322,11 +1325,20 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 				secondaryOutputScopeClass = LookupSecondaryOutputScopeClass(kwcTargetClass, nOperand);
 				assert(secondaryOutputScopeClass != NULL);
 			}
+		}
 
-			// Trace
-			if (bTrace)
-				cout << "  - " << nOperand + 1 << ": " << operand->GetAttributeName() << "\t"
-				     << BooleanToString(bIsTargetAttributeUsed) << "\n";
+		// Finalisation de la collecte des attributs en sortie
+		FinalizeCollectUsedOutputOperands(&ivUsedOutputOperands);
+
+		// On doit prendre en compte les attributs en sortie potentiellement ajoutes
+		assert(ivUsedOutputOperands.GetSize() == oaOutputAttributes.GetSize());
+		for (nOperand = 0; nOperand < ivUsedOutputOperands.GetSize(); nOperand++)
+		{
+			if (ivUsedOutputOperands.GetAt(nOperand) == 1)
+			{
+				targetAttribute = cast(KWAttribute*, oaOutputAttributes.GetAt(nOperand));
+				nkdAllUsedAttributes->SetAt(targetAttribute, targetAttribute);
+			}
 		}
 
 		// On en en deduit la sous-partie des operandes en entree a utiliser
@@ -1335,11 +1347,21 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 		// Trace
 		if (bTrace)
 		{
+			// Operandes en entree
 			cout << "- used input operands: " << GetOperandNumber() << "\n";
 			for (nOperand = 0; nOperand < GetOperandNumber(); nOperand++)
 			{
 				cout << "  - " << nOperand + 1 << ": "
 				     << BooleanToString(ivUsedInputOperands.GetAt(nOperand) == 1) << "\n";
+			}
+
+			// Operandes en sortie
+			cout << "- used output operands: " << GetOutputOperandNumber() << "\n";
+			for (nOperand = 0; nOperand < GetOutputOperandNumber(); nOperand++)
+			{
+				operand = GetOutputOperandAt(nOperand);
+				cout << "  - " << nOperand + 1 << ": " << operand->GetAttributeName() << "\t"
+				     << BooleanToString(ivUsedOutputOperands.GetAt(nOperand) == 1) << "\n";
 			}
 		}
 	}
@@ -1756,6 +1778,11 @@ void KWDRRelationCreationRule::WriteUsedRuleOperands(ostream& ost) const
 			operand->WriteUsedOperand(ost);
 		}
 	}
+}
+
+void KWDRRelationCreationRule::FinalizeCollectUsedOutputOperands(IntVector* ivUsedOutputOperands) const
+{
+	// Par defaut, les attributq en sortie sont independantq, et il n'y a de finalisation
 }
 
 void KWDRRelationCreationRule::CollectUsedInputOperands(const IntVector* ivUsedOutputOperands,

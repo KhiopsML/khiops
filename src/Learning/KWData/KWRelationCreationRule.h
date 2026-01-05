@@ -240,6 +240,11 @@ protected:
 	// necessaires pour chaque operande en sortie
 	// Ces methodes sont reimplementables dans les sous-classes
 
+	// Finalisation de la collecte des attributs utilises en sortie, dans le cas ou certain attributs en sortie
+	// ont besoin d'autres attributs en sortie pour etre calcules
+	// Par exemple, dans le cas d'un graphe, meme si on n'utilise que les arcs, on a besoin de creer les noeuds prealablement
+	virtual void FinalizeCollectUsedOutputOperands(IntVector* ivUsedOutputOperands) const;
+
 	// Collecte globale des operandes utilises en entree
 	// - ivUsedOutputOperands: vecteur des index des operandes en sortie, avec '1' par operande utilise
 	// - ivUsedOutputOperands: vecteur des index des operandes en entree a mettre a jour
