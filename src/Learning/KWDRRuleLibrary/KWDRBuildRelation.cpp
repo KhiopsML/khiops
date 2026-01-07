@@ -12,6 +12,7 @@ void KWDRRegisterBuildRelationRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntityAdvancedView);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntity);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildDiffTable);
+	KWDerivationRule::RegisterDerivationRule(new KWDRBuildCompositeTable);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildList);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildGraph);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildDummyTable);
@@ -496,6 +497,164 @@ void KWDRBuildDiffTable::FillTargetDifferenceAttributes(const KWObject* kwoSourc
 			}
 		}
 	}
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildCompositeTable
+
+KWDRBuildCompositeTable::KWDRBuildCompositeTable()
+{
+	SetName("BuildCompositeTable");
+	SetLabel("Build composite table");
+	SetType(KWType::ObjectArray);
+
+	// Variables en entree: une table
+	SetOperandNumber(1);
+	GetFirstOperand()->SetType(KWType::ObjectArray);
+	SetVariableOperandNumber(true);
+
+	// Variables en sortie: autant de variables qu'en entree
+	SetOutputOperandNumber(1);
+	GetOutputOperandAt(0)->SetType(KWType::Object);
+	SetVariableOutputOperandNumber(true);
+}
+
+KWDRBuildCompositeTable::~KWDRBuildCompositeTable() {}
+
+KWDerivationRule* KWDRBuildCompositeTable::Create() const
+{
+	return new KWDRBuildCompositeTable;
+}
+
+ObjectArray* KWDRBuildCompositeTable::ComputeObjectArrayResult(const KWObject* kwoObject,
+							       const KWLoadIndex liAttributeLoadIndex) const
+{
+	int nOperand;
+	ObjectArray oaAllObjectArrayOperand;
+	ObjectArray* oaObjectArrayOperand;
+	int nMaxTableSize;
+	int nObject;
+	KWObject* kwoCompositeObject;
+	KWObject* kwoInputObject;
+
+	require(IsCompiled());
+	require(GetOperandNumber() == GetOutputOperandNumber());
+
+	// Initialisation du resultat
+	oaResult.SetSize(0);
+
+	// Collecte des tables en entree, et calcul de la taille max;
+	nMaxTableSize = 0;
+	oaAllObjectArrayOperand.SetSize(GetOperandNumber());
+	for (nOperand = 0; nOperand < GetOperandNumber(); nOperand++)
+	{
+		oaObjectArrayOperand = GetOperandAt(nOperand)->GetObjectArrayValue(kwoObject);
+		oaAllObjectArrayOperand.SetAt(nOperand, oaObjectArrayOperand);
+		if (oaObjectArrayOperand != NULL)
+			nMaxTableSize = max(nMaxTableSize, oaObjectArrayOperand->GetSize());
+	}
+
+	// Dimensionnement de la table composite
+	oaResult.SetSize(nMaxTableSize);
+
+	// Creation des objets composites
+	for (nObject = 0; nObject < nMaxTableSize; nObject++)
+	{
+		// Creation et alimentation de l'objet
+		kwoCompositeObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
+		if (kwoCompositeObject != NULL)
+			oaResult.SetAt(nObject, kwoCompositeObject);
+	}
+
+	// Alimentation des entites des objet composites
+	for (nOperand = 0; nOperand < GetOutputOperandNumber(); nOperand++)
+	{
+		// On n'alimente que les attribut en sortie utilises
+		if (livComputeModeTargetAttributeLoadIndexes.GetAt(nOperand).IsValid())
+		{
+			oaObjectArrayOperand = cast(ObjectArray*, oaAllObjectArrayOperand.GetAt(nOperand));
+			if (oaObjectArrayOperand != NULL)
+			{
+				// Alimentation selon la taille de la table en entree
+				for (nObject = 0; nObject < oaObjectArrayOperand->GetSize(); nObject++)
+				{
+					kwoCompositeObject = cast(KWObject*, oaResult.GetAt(nObject));
+					if (kwoCompositeObject != NULL)
+					{
+						kwoInputObject = cast(KWObject*, oaObjectArrayOperand->GetAt(nObject));
+						kwoCompositeObject->SetObjectValueAt(
+						    livComputeModeTargetAttributeLoadIndexes.GetAt(nOperand),
+						    kwoInputObject);
+					}
+				}
+			}
+		}
+	}
+	return &oaResult;
+}
+
+boolean KWDRBuildCompositeTable::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
+{
+	boolean bOk;
+	int nOperand;
+	ALString sTmp;
+
+	// Appel de la methode ancetre
+	bOk = KWDRRelationCreationRule::CheckOperandsCompleteness(kwcOwnerClass);
+
+	// Specialisation
+	if (bOk)
+	{
+		// Le nombre d'operandes en sortie doit etre egale a celui en entree
+		if (GetOutputOperandNumber() != GetOperandNumber())
+		{
+			AddError(sTmp + "Number of output operands (" + IntToString(GetOutputOperandNumber()) +
+				 ") should be the same as the number of input operands (" +
+				 IntToString(GetOperandNumber()) + ")");
+			bOk = false;
+		}
+
+		// Verification du type Object chaque operande en sortie
+		if (bOk)
+		{
+			for (nOperand = 0; nOperand < GetOperandNumber(); nOperand++)
+			{
+				bOk = CheckOutputOperandExpectedObjectType(
+					  kwcOwnerClass, nOperand, GetOperandAt(nOperand)->GetObjectClassName()) and
+				      bOk;
+			}
+		}
+	}
+	return bOk;
+}
+
+boolean KWDRBuildCompositeTable::IsViewModeActivated() const
+{
+	return false;
+}
+
+void KWDRBuildCompositeTable::CollectMandatoryInputOperands(IntVector* ivUsedInputOperands) const
+{
+	int nOperand;
+
+	require(ivUsedInputOperands != NULL);
+	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
+
+	// Tous les operandes en entree sont obligatoires
+	// Il faut en effet avoir toutes les tables en entree pour determiner la taille de la table en sortie
+	for (nOperand = 0; nOperand < ivUsedInputOperands->GetSize(); nOperand++)
+		ivUsedInputOperands->SetAt(nOperand, 1);
+}
+
+void KWDRBuildCompositeTable::CollectSpecificInputOperandsAt(int nOutputOperand, IntVector* ivUsedInputOperands) const
+{
+	require(0 <= nOutputOperand and nOutputOperand < GetOutputOperandNumber());
+	require(ivUsedInputOperands != NULL);
+	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
+	require(GetOutputOperandNumber() == GetOperandNumber());
+
+	// Chaque table en entree est necessaire si l'entite en sortie correspondante est utilisee
+	ivUsedInputOperands->SetAt(nOutputOperand, 1);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////

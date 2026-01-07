@@ -13,7 +13,9 @@ class KWDRBuildEntityView;
 class KWDRBuildEntityAdvancedView;
 class KWDRBuildEntity;
 class KWDRBuildDiffTable;
+class KWDRBuildCompositeTable;
 class KWDRBuildList;
+class KWDRBuildGraph;
 class KWDRBuildDummyTable;
 
 #include "KWDerivationRule.h"
@@ -169,6 +171,45 @@ protected:
 	// Si le premier objet est NULL, ces differeces sont missing
 	void FillTargetDifferenceAttributes(const KWObject* kwoSourcePreviousObject,
 					    const KWObject* kwoSourceCurrentObject, KWObject* kwoTargetObject) const;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildCompositeTable
+// Creer une table cible composite a partir de plusieurs tables sources.
+// - La fonction prend en entree une liste de tables.
+// - Elle produit une seule table cible ou chaque ligne contient des instances correspondantes de chaque table source.
+// - Si les tables sources ont des tailles differentes, les valeurs manquantes provenant des tables les plus courtes
+//   sont gerees comme des valeurs manquantes.
+// - La table cible peut inclure des variables derivees qui extraient des parties specifique de chaque entite source,
+//   permettant la construction d'une vue complete et sans conflit.
+// - Cette approche permet de combiner plusieurs representations alternatives (par exemple, d'une serie temporelle)
+//   en une seule table coherente.
+class KWDRBuildCompositeTable : public KWDRTableCreationRule
+{
+public:
+	// Constructeur
+	KWDRBuildCompositeTable();
+	~KWDRBuildCompositeTable();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject,
+					      const KWLoadIndex liAttributeLoadIndex) const override;
+
+	// Verification du type des operandes en sortie
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
+
+	///////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	// Pas d'alimentation de type vue
+	boolean IsViewModeActivated() const override;
+
+	// Redefinition des methodes virtuelles
+	void CollectMandatoryInputOperands(IntVector* ivUsedInputOperands) const override;
+	void CollectSpecificInputOperandsAt(int nOutputOperand, IntVector* ivUsedInputOperands) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
