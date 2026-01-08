@@ -73,6 +73,9 @@ boolean RMParallelResourceManager::ComputeGrantedResources(const RMTaskResourceR
 	// Initialisation des ressources systeme
 	PLParallelTask::GetDriver()->MasterInitializeResourceSystem();
 
+	// Affichage des erreurs d'initialisation des ressources systeme
+	PLParallelTask::GetDriver()->CheckResourceSystem();
+
 	// Copie du systeme et suppression d'un esclave par machine sur la copie
 	newSystem = RMResourceManager::GetResourceSystem()->Clone();
 	newSystem->RemoveProcesses(PLTaskDriver::GetDriver()->GetFileServers());

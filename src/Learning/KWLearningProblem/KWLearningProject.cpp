@@ -190,6 +190,9 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	// Analyse de la ligne de commande
 	UIObject::ParseMainParameters(argc, argv);
 
+	// Affichage des erreurs
+	PLParallelTask::GetDriver()->CheckResourceSystem();
+
 	// Baniere de l'application, sauf en mode batch
 	if (not UIObject::IsBatchMode())
 		cout << GetLearningShellBanner() << endl;
@@ -404,6 +407,9 @@ boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
 	ALString sEnv;
 	ALString sEnvValue;
 	boolean bEnvVarDefined;
+
+	// Affichage des erreurs potentielles lors de l'initialisation des resources
+	PLParallelTask::GetDriver()->CheckResourceSystem();
 
 	// Version
 	ShowVersion(sTmp);

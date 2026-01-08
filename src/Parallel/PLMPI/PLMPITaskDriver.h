@@ -45,7 +45,12 @@ public:
 
 	// Initialisation paralleles des ressources systeme
 	// Doit etre appele simultanement par le maitre et chaque esclave
+	// Aucune erreur n'est remontee vers l'utilisateur dans cette methode
+	// Les erreurs sont stockees et affichees par la methode CheckResourceSystem
 	void InitializeResourceSystem() override;
+
+	// Envoi de messages en cas d'erreur lors de l'initialisation des resources systeme
+	void CheckResourceSystem() override;
 
 	// Initialisation a partir du Master :
 	// Le maitre demande aux esclaves d'initialiser les ressources, puis appel de InitializeResourceSystem
@@ -140,6 +145,9 @@ protected:
 
 	// Nombre d'acces disques demandes imbriques
 	static int nIoRequestNumber;
+
+	// Liste des hosts sur lesquels on a eu une erreur lors de l'initialisation des resources
+	ObjectDictionary odHostErrors; // host + repertoire temporaire
 
 	/////////////////////////////////////////////////
 	// Gestion de l'acces aux fichiers distants

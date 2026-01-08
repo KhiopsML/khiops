@@ -28,7 +28,7 @@ inline void UseMPI()
 	if (RMResourceManager::GetResourceSystem()->GetHostNumber() > 1 or GetFileServerActivated())
 		SystemFileDriverCreator::RegisterDriver(new PLMPISystemFileDriverRemote);
 
-	// Activation du serveure de fichier en mono-machine si necessaire
+	// Activation du serveur de fichiers en mono-machine si necessaire
 	if (GetFileServerActivated())
 		PLTaskDriver::SetFileServerOnSingleHost(true);
 

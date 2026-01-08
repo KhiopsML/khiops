@@ -193,9 +193,8 @@ boolean CommandFile::OpenOutputCommandFile()
 
 	// Creation si necessaire des repertoires intermediaires
 	PLRemoteFileService::MakeDirectories(FileService::GetPathName(sOutputCommandFileName));
-	assert(FileService::GetApplicationTmpDir().IsEmpty());
 
-	// PPreparation pour HDFS si necessaire
+	// Preparation pour HDFS si necessaire
 	bOk = PLRemoteFileService::BuildOutputWorkingFile(sOutputCommandFileName, sLocalOutputCommandFileName);
 
 	// Fermeture du fichier si celui-ci est deja ouvert
