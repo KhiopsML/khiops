@@ -13,6 +13,7 @@ void KWDRRegisterBuildRelationRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntity);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildDiffTable);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildCompositeTable);
+	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntityFromJson);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildList);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildGraph);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildDummyTable);
@@ -658,6 +659,896 @@ void KWDRBuildCompositeTable::CollectSpecificInputOperandsAt(int nOutputOperand,
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildEntityFromJson
+
+KWDRBuildEntityFromJson::KWDRBuildEntityFromJson()
+{
+	SetName("BuildEntityFromJson");
+	SetLabel("Build entity from json value");
+	SetType(KWType::Object);
+
+	// Variables en entree: le champ json
+	SetOperandNumber(1);
+	GetFirstOperand()->SetType(KWType::Text);
+}
+
+KWDRBuildEntityFromJson::~KWDRBuildEntityFromJson() {}
+
+KWDerivationRule* KWDRBuildEntityFromJson::Create() const
+{
+	return new KWDRBuildEntityFromJson;
+}
+
+KWObject* KWDRBuildEntityFromJson::ComputeObjectResult(const KWObject* kwoObject,
+						       const KWLoadIndex liAttributeLoadIndex) const
+{
+	KWObject* kwoTargetObject;
+	boolean bOk;
+	Symbol sJsonValue;
+	JSONObject jsonObject;
+	StringVector svParsingErrorMessages;
+	KWAttribute* attribute;
+	ALString sMessage;
+	int n;
+
+	require(IsCompiled());
+	require(svWarnings.GetSize() == 0);
+
+	// Par defaut, aucun objet n'est cree
+	kwoTargetObject = NULL;
+
+	// On va chercher la valeur json
+	sJsonValue = GetFirstOperand()->GetTextValue(kwoObject);
+
+	// Creation d'un objet si valeur non vide
+	if (sJsonValue != Symbol())
+	{
+		// Lecture de l'objet json
+		bOk = jsonObject.ReadString(sJsonValue, sJsonValue.GetLength(), &svParsingErrorMessages);
+
+		// Creation de l'objet en sortie si pas de probleme de parsing json
+		if (bOk)
+		{
+			// Creation et alimentation l'objet en sortie
+			assert(oaJsonPathMembers.GetSize() == 0);
+			kwoTargetObject = CreateObjectFromJsonObject(kwoObject, liAttributeLoadIndex,
+								     kwcCompiledTargetClass, &jsonObject);
+
+			// Emission des warning s'il y en a
+			if (svWarnings.GetSize() > 0)
+			{
+				attribute = kwoObject->GetClass()->GetAttributeAtLoadIndex(liAttributeLoadIndex);
+				for (n = 0; n < svWarnings.GetSize(); n++)
+				{
+					sMessage = "Calculation of the variable " + attribute->GetName() +
+						   " using the rule " + GetName() + " : " + svWarnings.GetAt(n);
+					kwoObject->AddWarning(sMessage);
+				}
+				svWarnings.SetSize(0);
+			}
+		}
+		// Message d'erreur sinon
+		else if (svParsingErrorMessages.GetSize() > 0)
+		{
+			attribute = kwoObject->GetClass()->GetAttributeAtLoadIndex(liAttributeLoadIndex);
+			assert(attribute != NULL);
+
+			// Au plus un seul message
+			sMessage = "Calculation of the variable " + attribute->GetName() + " using the rule " +
+				   GetName() + " failed during json parsing : " + svParsingErrorMessages.GetAt(0);
+			kwoObject->AddWarning(sMessage);
+		}
+	}
+	ensure(svWarnings.GetSize() == 0);
+	return kwoTargetObject;
+}
+
+boolean KWDRBuildEntityFromJson::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
+{
+	boolean bOk;
+	KWClass* kwcMainTargetClass;
+	KWClass* kwcTargetClass;
+	KWAttribute* targetAttribute;
+	ObjectDictionary odTargetClasses;
+	ObjectArray oaTargetClasses;
+	int nClass;
+	ALString sTmp;
+
+	// Appel de la methode de KWDerivationRule, et non de la classe ancetre
+	// On ne veut en effet pas des controles sur l'obligatoire d'avoir chaque attribut cible alimente
+	// par un mecanisme de type vue ou calcul
+	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
+
+	// Specialisation
+	if (bOk)
+	{
+		// Recherche de la classe cible
+		kwcMainTargetClass = kwcOwnerClass->GetDomain()->LookupClass(GetObjectClassName());
+		assert(kwcMainTargetClass != NULL);
+
+		// La classe cible ne doit pas etre Root
+		if (kwcMainTargetClass->GetRoot())
+		{
+			AddError("Invalid output dictionary " + kwcMainTargetClass->GetName() +
+				 " that cannot be a root dictionary, dedicated to managing external tables");
+			bOk = false;
+		}
+
+		// Il ne doit pas y avoir de cycle dans le schema de la classe cible
+		if (not kwcMainTargetClass->CheckNativeAcyclicity())
+		{
+			// Message d'erreur lie a la regle, en complement de l'erreur detectee pour les cycles dans le dictionnaire
+			AddError("Invalid output dictionary " + kwcMainTargetClass->GetName() +
+				 ", as it contains a composition cycle.");
+			bOk = false;
+		}
+
+		// Test de l'absence de blocs de variables natives dans l'ensemble des classes cibles
+		if (bOk)
+		{
+			// On initialise le tableau de toutes les classes cibles avec la classe cible principale
+			oaTargetClasses.Add(kwcMainTargetClass);
+			odTargetClasses.SetAt(kwcMainTargetClass->GetName(), kwcMainTargetClass);
+
+			// Parcours des classes cibles
+			for (nClass = 0; nClass < oaTargetClasses.GetSize(); nClass++)
+			{
+				kwcTargetClass = cast(KWClass*, oaTargetClasses.GetAt(nClass));
+
+				// Parcours des attributs cibles natifs
+				targetAttribute = kwcTargetClass->GetHeadAttribute();
+				while (targetAttribute != NULL)
+				{
+					// On ne traite que les attributs natifs
+					if (targetAttribute->GetAnyDerivationRule() == NULL)
+					{
+						// La variable ne doiut pas etre dans un bloc
+						if (targetAttribute->IsInBlock())
+						{
+							AddError(sTmp + "In output dictionary " +
+								 kwcTargetClass->GetName() + " variable " +
+								 targetAttribute->GetName() + " (type " +
+								 KWType::ToString(targetAttribute->GetType()) +
+								 ") must not be in a sparse variable block (" +
+								 targetAttribute->GetAttributeBlock()->GetName() + ")");
+							bOk = false;
+						};
+
+						// Ajout si necessaire d'une nouvelle classe cible
+						if (KWType::IsRelation(targetAttribute->GetType()))
+						{
+							if (targetAttribute->GetClass() != NULL and
+							    odTargetClasses.Lookup(
+								targetAttribute->GetClass()->GetName()) == NULL)
+							{
+								oaTargetClasses.Add(targetAttribute->GetClass());
+								odTargetClasses.SetAt(
+								    targetAttribute->GetClass()->GetName(),
+								    targetAttribute->GetClass());
+							}
+						}
+					}
+
+					// Attribut suivant
+					kwcTargetClass->GetNextAttribute(targetAttribute);
+				}
+			}
+		}
+	}
+	return bOk;
+}
+
+void KWDRBuildEntityFromJson::Compile(KWClass* kwcOwnerClass)
+{
+	KWClass* kwcMainTargetClass;
+	KWClass* kwcTargetClass;
+	KWAttribute* targetAttribute;
+	ObjectDictionary odTargetClasses;
+	ObjectArray oaTargetClasses;
+	int nClass;
+	int nNativeAttributeNumber;
+	KWAttribute* nativeTargetAttribute;
+
+	// Appel de la methode ancetre
+	KWDRRelationCreationRule::Compile(kwcOwnerClass);
+
+	// Nettoyage prealable
+	odCompiledSingleNativeAttributePerSingletonClass.RemoveAll();
+
+	// Recherche de la classe cible
+	kwcMainTargetClass = kwcOwnerClass->GetDomain()->LookupClass(GetObjectClassName());
+	assert(kwcMainTargetClass != NULL);
+
+	// On initialise le tableau de toutes les classes cibles avec la classe cible principale
+	oaTargetClasses.Add(kwcMainTargetClass);
+	odTargetClasses.SetAt(kwcMainTargetClass->GetName(), kwcMainTargetClass);
+
+	// Parcours des classes cibles
+	for (nClass = 0; nClass < oaTargetClasses.GetSize(); nClass++)
+	{
+		kwcTargetClass = cast(KWClass*, oaTargetClasses.GetAt(nClass));
+
+		// Parcours des attributs cibles natifs
+		nativeTargetAttribute = NULL;
+		nNativeAttributeNumber = 0;
+		targetAttribute = kwcTargetClass->GetHeadAttribute();
+		while (targetAttribute != NULL)
+		{
+			// On ne traite que les attributs natifs hors blocs sparse
+			if (targetAttribute->GetAnyDerivationRule() == NULL and not targetAttribute->IsInBlock())
+			{
+				nNativeAttributeNumber++;
+				nativeTargetAttribute = targetAttribute;
+
+				// Ajout si necessaire d'une nouvelle classe cible
+				if (KWType::IsRelation(targetAttribute->GetType()))
+				{
+					if (targetAttribute->GetClass() != NULL and
+					    odTargetClasses.Lookup(targetAttribute->GetClass()->GetName()) == NULL)
+					{
+						oaTargetClasses.Add(targetAttribute->GetClass());
+						odTargetClasses.SetAt(targetAttribute->GetClass()->GetName(),
+								      targetAttribute->GetClass());
+					}
+				}
+			}
+
+			// Attribut suivant
+			kwcTargetClass->GetNextAttribute(targetAttribute);
+		}
+
+		// Memorisation de la classe dans le cas d'un seul attribut natif
+		if (nNativeAttributeNumber == 1)
+			odCompiledSingleNativeAttributePerSingletonClass.SetAt(kwcTargetClass->GetName(),
+									       nativeTargetAttribute);
+	}
+}
+
+boolean KWDRBuildEntityFromJson::IsViewModeActivated() const
+{
+	return false;
+}
+
+KWObject* KWDRBuildEntityFromJson::CreateObjectFromJsonObject(const KWObject* kwoOwnerObject,
+							      const KWLoadIndex liAttributeLoadIndex,
+							      const KWClass* kwcCreationClass,
+							      const JSONObject* jsonObject) const
+{
+	boolean bTrace = false;
+	KWObject* kwoTargetObject;
+	KWObject* kwoTargetSubObject;
+	KWAttribute* attribute;
+	KWAttribute* singleNativeAttribute;
+	ObjectArray* oaSubObjects;
+	JSONMember* jsonMember;
+	JSONValue* jsonValue;
+	int nMember;
+	int n;
+
+	require(kwoOwnerObject != NULL);
+	require(liAttributeLoadIndex.IsValid());
+	require(kwcCreationClass != NULL);
+	require(jsonObject != NULL);
+
+	// Creation de l'objet en sortie
+	// Il n'est pas de type vue, car il doit detruire son contenu natif
+	kwoTargetObject = NewObject(kwoOwnerObject, liAttributeLoadIndex, kwcCreationClass, false);
+
+	// Initialisation des valeurs numeriques a Missing
+	// Ce n'est pas la peine pour les autres types de valeur
+	if (kwcCreationClass->GetUsedAttributeNumberForType(KWType::Continuous) > 0)
+	{
+		for (n = 0; n < kwcCreationClass->GetLoadedAttributeNumber(); n++)
+		{
+			attribute = kwcCreationClass->GetLoadedAttributeAt(n);
+			if (attribute->GetType() == KWType::Continuous and attribute->GetAnyDerivationRule() == NULL)
+				kwoTargetObject->SetContinuousValueAt(attribute->GetLoadIndex(),
+								      KWContinuous::GetMissingValue());
+		}
+	}
+
+	// Alimentation de l'objet
+	if (kwoTargetObject != NULL)
+	{
+		// Parcours du contenu de l'objet
+		for (nMember = 0; nMember < jsonObject->GetMemberNumber(); nMember++)
+		{
+			jsonMember = jsonObject->GetMemberAt(nMember);
+
+			// Recherche de l'attribut correspondant a la cle
+			attribute = kwcCreationClass->LookupAttribute(jsonMember->GetKey());
+
+			// Warning si attribut non trouve
+			if (attribute == NULL)
+				AddMissingAttributeWarning(jsonMember, kwcCreationClass);
+			// Alimentation si attribut existant
+			else
+			{
+				// Alimentation si atribut charge en memoire
+				if (attribute->GetLoadIndex().IsValid())
+				{
+					// Alimentation selon le type, si le type destination est compatible
+					switch (jsonMember->GetValueType())
+					{
+					case JSONValue::StringValue:
+						FillSymbolAttributeFromJsonString(attribute, jsonMember,
+										  jsonMember->GetStringValue(),
+										  kwoTargetObject);
+						break;
+					case JSONValue::NumberValue:
+						if (attribute->GetType() == KWType::Continuous)
+							kwoTargetObject->SetContinuousValueAt(
+							    attribute->GetLoadIndex(),
+							    jsonMember->GetNumberValue()->GetNumber());
+						else if (attribute->GetType() == KWType::Symbol)
+							kwoTargetObject->SetSymbolValueAt(
+							    attribute->GetLoadIndex(),
+							    KWContinuous::ContinuousToString(
+								jsonMember->GetNumberValue()->GetNumber()));
+						// Warning si type incompatible
+						else
+							AddInconsistentAttributeTypeWarning(
+							    jsonMember, jsonMember->GetValue(), attribute);
+						break;
+					case JSONValue::BooleanValue:
+						if (attribute->GetType() == KWType::Symbol)
+						{
+							if (jsonMember->GetBooleanValue()->GetBoolean())
+								kwoTargetObject->SetSymbolValueAt(
+								    attribute->GetLoadIndex(), Symbol("true"));
+							else
+								kwoTargetObject->SetSymbolValueAt(
+								    attribute->GetLoadIndex(), Symbol("false"));
+						}
+						// Warning si type incompatible
+						else
+							AddInconsistentAttributeTypeWarning(
+							    jsonMember, jsonMember->GetValue(), attribute);
+						break;
+					case JSONValue::NullValue:
+						if (attribute->GetType() == KWType::Symbol)
+							kwoTargetObject->SetSymbolValueAt(attribute->GetLoadIndex(),
+											  Symbol("null"));
+						// Warning si type incompatible
+						else
+							AddInconsistentAttributeTypeWarning(
+							    jsonMember, jsonMember->GetValue(), attribute);
+						break;
+					case JSONValue::ObjectValue:
+						if (attribute->GetType() == KWType::Object)
+						{
+							// Creation et alimentation l'objet en sortie
+							PushJsonPath(jsonMember, 0);
+							kwoTargetSubObject = CreateObjectFromJsonObject(
+							    kwoTargetObject, attribute->GetLoadIndex(),
+							    attribute->GetClass(), jsonMember->GetObjectValue());
+							PopJsonPath();
+
+							// On le memorise meme s'il est NULL: ce n'est pas un probleme
+							kwoTargetObject->SetObjectValueAt(attribute->GetLoadIndex(),
+											  kwoTargetSubObject);
+						}
+						// Warning si type incompatible
+						else
+							AddInconsistentAttributeTypeWarning(
+							    jsonMember, jsonMember->GetValue(), attribute);
+						break;
+					case JSONValue::ArrayValue:
+						if (attribute->GetType() == KWType::ObjectArray)
+						{
+							// Creation et memorisation d'un tableau de sous-objets
+							oaSubObjects = new ObjectArray;
+							kwoTargetObject->SetObjectArrayValueAt(
+							    attribute->GetLoadIndex(), oaSubObjects);
+
+							// Recherche de l'unique attribut natif de la classe, pour les classes concernees
+							singleNativeAttribute = cast(
+							    KWAttribute*,
+							    odCompiledSingleNativeAttributePerSingletonClass.Lookup(
+								attribute->GetClass()->GetName()));
+
+							// Parcours de valeurs de l'objet json pour creer les sous-objets
+							for (n = 0; n < jsonMember->GetArrayValue()->GetValueNumber();
+							     n++)
+							{
+								jsonValue = jsonMember->GetArrayValue()->GetValueAt(n);
+
+								// Ajout dans le path json
+								PushJsonPath(jsonMember, n);
+
+								// Cas standard de valeur de type objet
+								if (jsonValue->GetType() == JSONValue::ObjectValue)
+								{
+									// Creation d'un KWObject a partir d'un objet json
+									kwoTargetSubObject = CreateObjectFromJsonObject(
+									    kwoTargetObject, attribute->GetLoadIndex(),
+									    attribute->GetClass(),
+									    jsonValue->GetObjectValue());
+
+									// On ne le memorise que s'il n'est pas NULL, car les tableaux
+									// ne peuvent pas avoir de valeur NULL
+									// On n'interrompt pas l'alimenattion, pour continuer a collecter
+									// des stats sur les probleme memoire potentiels
+									if (kwoTargetSubObject != NULL)
+										oaSubObjects->Add(kwoTargetSubObject);
+								}
+								// Autre cas
+								else
+								{
+									// Cas particulier d'une classe ayant un seul attribut natif, pouvant potentiellemen
+									// acceuillir des valeur json litterales (number, string...)
+									if (singleNativeAttribute != NULL and
+									    KWType::IsStored(
+										singleNativeAttribute->GetType()))
+									{
+										// Tentative de creation d'un KWObject a partir d'une valeur json
+										kwoTargetSubObject =
+										    CreateObjectFromJsonValue(
+											kwoTargetObject,
+											attribute->GetLoadIndex(),
+											attribute->GetClass(),
+											singleNativeAttribute,
+											jsonMember, jsonValue);
+
+										// On ne le memorise que s'il n'est pas NULL
+										if (kwoTargetSubObject != NULL)
+											oaSubObjects->Add(
+											    kwoTargetSubObject);
+									}
+									// Type incompatible sinon
+									else
+										AddInconsistentAttributeTypeWarning(
+										    NULL, jsonValue,
+										    singleNativeAttribute);
+								}
+
+								// Supression du path json
+								PopJsonPath();
+							}
+						}
+						// Warning si type incompatible
+						else
+							AddInconsistentAttributeTypeWarning(
+							    jsonMember, jsonMember->GetValue(), attribute);
+						break;
+					default:
+						assert(false);
+						break;
+					}
+				}
+			}
+		}
+
+		// Trace
+		if (bTrace)
+		{
+			cout << kwoOwnerObject->GetObjectLabel() << "\t" << kwoTargetObject->GetObjectLabel() << "\t"
+			     << BuildCurrentJsonPath() << endl;
+			kwoTargetObject->PrettyWrite(cout, "  ");
+		}
+	}
+	return kwoTargetObject;
+}
+
+KWObject* KWDRBuildEntityFromJson::CreateObjectFromJsonValue(
+    const KWObject* kwoOwnerObject, const KWLoadIndex liAttributeLoadIndex, const KWClass* kwcCreationClass,
+    const KWAttribute* singleNativeAttribute, const JSONMember* jsonOwnerArray, const JSONValue* jsonValue) const
+{
+	boolean bTrace = false;
+	boolean bInconsistentType;
+	KWObject* kwoTargetObject;
+
+	require(kwoOwnerObject != NULL);
+	require(liAttributeLoadIndex.IsValid());
+	require(kwcCreationClass != NULL);
+	require(singleNativeAttribute != NULL);
+	require(odCompiledSingleNativeAttributePerSingletonClass.Lookup(kwcCreationClass->GetName()) ==
+		singleNativeAttribute);
+	require(KWType::IsStored(singleNativeAttribute->GetType()));
+	require(jsonOwnerArray != NULL);
+	require(jsonOwnerArray->GetValueType() == JSONValue::ArrayValue);
+	require(jsonValue != NULL);
+
+	// Creation de l'objet en sortie
+	kwoTargetObject = NewObject(kwoOwnerObject, liAttributeLoadIndex, kwcCreationClass, false);
+
+	// Creation et alimentation de l'objet si les types sont compatibles
+	if (kwoTargetObject != NULL)
+	{
+		bInconsistentType = false;
+		if (singleNativeAttribute->GetLoadIndex().IsValid())
+		{
+			// Alimentation selon le type, si le type destination est compatible
+			switch (jsonValue->GetType())
+			{
+			case JSONValue::StringValue:
+				FillSymbolAttributeFromJsonString(singleNativeAttribute, jsonOwnerArray,
+								  jsonValue->GetStringValue(), kwoTargetObject);
+				break;
+			case JSONValue::NumberValue:
+				if (singleNativeAttribute->GetType() == KWType::Continuous)
+					kwoTargetObject->SetContinuousValueAt(singleNativeAttribute->GetLoadIndex(),
+									      jsonValue->GetNumberValue()->GetNumber());
+				else if (singleNativeAttribute->GetType() == KWType::Symbol)
+					kwoTargetObject->SetSymbolValueAt(
+					    singleNativeAttribute->GetLoadIndex(),
+					    KWContinuous::ContinuousToString(jsonValue->GetNumberValue()->GetNumber()));
+				// Warning si type incompatible
+				else
+				{
+					bInconsistentType = true;
+					AddInconsistentAttributeTypeWarning(NULL, jsonValue, singleNativeAttribute);
+				}
+				break;
+			case JSONValue::BooleanValue:
+				if (singleNativeAttribute->GetType() == KWType::Symbol)
+				{
+					if (jsonValue->GetBooleanValue()->GetBoolean())
+						kwoTargetObject->SetSymbolValueAt(singleNativeAttribute->GetLoadIndex(),
+										  Symbol("true"));
+					else
+						kwoTargetObject->SetSymbolValueAt(singleNativeAttribute->GetLoadIndex(),
+										  Symbol("false"));
+				}
+				else
+				{
+					bInconsistentType = true;
+					AddInconsistentAttributeTypeWarning(NULL, jsonValue, singleNativeAttribute);
+				}
+				break;
+			case JSONValue::NullValue:
+				if (singleNativeAttribute->GetType() == KWType::Symbol)
+					kwoTargetObject->SetSymbolValueAt(singleNativeAttribute->GetLoadIndex(),
+									  Symbol("null"));
+				else
+				{
+					bInconsistentType = true;
+					AddInconsistentAttributeTypeWarning(NULL, jsonValue, singleNativeAttribute);
+				}
+				break;
+			default:
+				bInconsistentType = true;
+				AddInconsistentAttributeTypeWarning(NULL, jsonValue, singleNativeAttribute);
+				break;
+			}
+		}
+
+		// Si l'initialisation s'est bien passee, la valeur est forcement non manquante dans le cas numerique
+		assert(not bInconsistentType or singleNativeAttribute->GetType() != KWType::Continuous or
+		       kwoTargetObject->GetContinuousValueAt(singleNativeAttribute->GetLoadIndex()) !=
+			   KWContinuous::GetMissingValue());
+
+		// Destruction de l'objet si type incompatible
+		if (bInconsistentType)
+		{
+			delete kwoTargetObject;
+			kwoTargetObject = NULL;
+		}
+	}
+
+	// Trace
+	if (bTrace and kwoTargetObject != NULL)
+	{
+		cout << kwoOwnerObject->GetObjectLabel() << "\t" << kwoTargetObject->GetObjectLabel() << "\t"
+		     << BuildCurrentJsonPath() << endl;
+		kwoTargetObject->PrettyWrite(cout, "  ");
+	}
+	return kwoTargetObject;
+}
+
+void KWDRBuildEntityFromJson::FillSymbolAttributeFromJsonString(const KWAttribute* attribute,
+								const JSONMember* jsonOwnerMember,
+								const JSONString* jsonString,
+								KWObject* kwoTargetObject) const
+{
+	const JSONMember* jsonWarningOwnerMember;
+	Symbol sValue;
+	Date dtValue;
+	Time tmValue;
+	Timestamp tsValue;
+	TimestampTZ tstzValue;
+	int nValueLength;
+
+	require(attribute != NULL);
+	require(jsonString != NULL);
+	require(jsonOwnerMember->GetValue() == jsonString or jsonOwnerMember->GetValueType() == JSONValue::ArrayValue);
+	require(kwoTargetObject != NULL);
+	require(kwoTargetObject->GetClass()->LookupAttribute(attribute->GetName()) == attribute);
+
+	// Parametre pour les warning dans le cas standard
+	if (jsonOwnerMember->GetValue() == jsonString)
+		jsonWarningOwnerMember = jsonOwnerMember;
+	// Et dans le cas d'une valeur dans un tableau
+	else
+		jsonWarningOwnerMember = NULL;
+
+	// On laisse la valeur par defaut si la taille est 0
+	nValueLength = jsonString->GetString().GetLength();
+	if (nValueLength > 0)
+	{
+		// Cas attribut Symbol
+		switch (attribute->GetType())
+		{
+		case KWType::Symbol:
+			// Troncature si necessaire des champs trop longs
+			if (nValueLength > KWValue::nMaxSymbolFieldSize)
+			{
+				sValue = (Symbol)jsonString->GetString().Left(KWValue::nMaxSymbolFieldSize);
+				AddOverlengthySymbolValueWarning(jsonWarningOwnerMember, jsonString, attribute);
+			}
+			else
+				sValue = (Symbol)jsonString->GetString();
+			kwoTargetObject->SetSymbolValueAt(attribute->GetLoadIndex(), sValue);
+			break;
+
+		case KWType::Date:
+			dtValue = attribute->GetDateFormat()->StringToDate(jsonString->GetString());
+			kwoTargetObject->SetDateValueAt(attribute->GetLoadIndex(), dtValue);
+			if (not dtValue.Check())
+				AddInvalidTemporalValueWarning(jsonWarningOwnerMember, jsonString, attribute);
+			break;
+
+		case KWType::Time:
+			tmValue = attribute->GetTimeFormat()->StringToTime(jsonString->GetString());
+			kwoTargetObject->SetTimeValueAt(attribute->GetLoadIndex(), tmValue);
+			if (not tmValue.Check())
+				AddInvalidTemporalValueWarning(jsonWarningOwnerMember, jsonString, attribute);
+			break;
+
+		case KWType::Timestamp:
+			tsValue = attribute->GetTimestampFormat()->StringToTimestamp(jsonString->GetString());
+			kwoTargetObject->SetTimestampValueAt(attribute->GetLoadIndex(), tsValue);
+			if (not tsValue.Check())
+				AddInvalidTemporalValueWarning(jsonWarningOwnerMember, jsonString, attribute);
+			break;
+
+		case KWType::TimestampTZ:
+			tstzValue = attribute->GetTimestampTZFormat()->StringToTimestampTZ(jsonString->GetString());
+			kwoTargetObject->SetTimestampTZValueAt(attribute->GetLoadIndex(), tstzValue);
+			if (not tstzValue.Check())
+				AddInvalidTemporalValueWarning(jsonWarningOwnerMember, jsonString, attribute);
+			break;
+
+		case KWType::Text:
+			// Les champs trop longs sont tronques directement par le inputBuffer
+			kwoTargetObject->SetTextValueAt(attribute->GetLoadIndex(), (Symbol)jsonString->GetString());
+			break;
+
+		default:
+			AddInconsistentAttributeTypeWarning(jsonWarningOwnerMember, jsonString, attribute);
+			break;
+		}
+	}
+}
+
+void KWDRBuildEntityFromJson::AddMissingAttributeWarning(const JSONMember* jsonMember, const KWClass* targetClass) const
+{
+	ALString sMessage;
+	ALString sJsonPath;
+
+	require(jsonMember != NULL);
+	require(targetClass != NULL);
+
+	// Calcul du json path en teant compte du membre en cours
+	PushJsonPath(jsonMember, 0);
+	sJsonPath = BuildCurrentJsonPath();
+	PopJsonPath();
+
+	// Message
+	sMessage = "variable " + jsonMember->GetKey() + " not found in output dictionary " + targetClass->GetName() +
+		   " for value at json path " + sJsonPath;
+	svWarnings.Add(sMessage);
+}
+
+void KWDRBuildEntityFromJson::AddInconsistentAttributeTypeWarning(const JSONMember* jsonMember,
+								  const JSONValue* jsonValue,
+								  const KWAttribute* targetAttribute) const
+{
+	ALString sMessage;
+	ALString sJsonPath;
+	ALString sTmp;
+
+	require(jsonMember == NULL or jsonMember->GetValue() == jsonValue);
+	require(targetAttribute != NULL);
+	require(jsonMember == NULL or jsonMember->GetKey() == targetAttribute->GetName());
+
+	// Calcul du json path en tenant compte du membre en cours
+	if (jsonMember != NULL)
+		PushJsonPath(jsonMember, 0);
+	sJsonPath = BuildCurrentJsonPath();
+	if (jsonMember != NULL)
+		PopJsonPath();
+
+	// Message, en precisant que le dictionnaire en sortie est singleton dans le cas d'une valeur de tableau
+	sMessage = sTmp + KWType::ToString(targetAttribute->GetType()) + " variable " + targetAttribute->GetName() +
+		   " in output ";
+	if (jsonMember == NULL)
+		sMessage += KWType::ToString(KWType::ObjectArray) + " ";
+	sMessage += "dictionary " + targetAttribute->GetParentClass()->GetName() + " of type incompatible with json " +
+		    jsonValue->TypeToString() + " value (" + jsonValue->BuildDisplayedJsonValue() + ") at json path " +
+		    sJsonPath;
+	if (jsonMember == NULL)
+		sMessage += ", the json array value is ignored";
+	svWarnings.Add(sMessage);
+}
+
+void KWDRBuildEntityFromJson::AddInvalidTemporalValueWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
+							     const KWAttribute* targetAttribute) const
+{
+	ALString sMessage;
+	ALString sJsonPath;
+	ALString sTemporalFormatInfo;
+	ALString sTmp;
+
+	require(jsonMember == NULL or jsonMember->GetValue() == jsonValue);
+	require(targetAttribute != NULL);
+	require(KWType::IsComplex(targetAttribute->GetType()));
+	require(jsonMember == NULL or jsonMember->GetKey() == targetAttribute->GetName());
+	require(jsonValue->GetType() == JSONValue::StringValue);
+
+	// Calcul du json path en tenant compte du membre en cours
+	if (jsonMember != NULL)
+		PushJsonPath(jsonMember, 0);
+	sJsonPath = BuildCurrentJsonPath();
+	if (jsonMember != NULL)
+		PopJsonPath();
+
+	// Calcul des informations sur le format
+	sTemporalFormatInfo = targetAttribute->GetFormatMetaDataKey(targetAttribute->GetType());
+	sTemporalFormatInfo += '=';
+	sTemporalFormatInfo += '"';
+	if (targetAttribute->GetType() == KWType::Time)
+		sTemporalFormatInfo += targetAttribute->GetTimeFormat()->GetFormatString();
+	else if (targetAttribute->GetType() == KWType::Date)
+		sTemporalFormatInfo += targetAttribute->GetDateFormat()->GetFormatString();
+	else if (targetAttribute->GetType() == KWType::Timestamp)
+		sTemporalFormatInfo += targetAttribute->GetTimestampFormat()->GetFormatString();
+	else if (targetAttribute->GetType() == KWType::TimestampTZ)
+		sTemporalFormatInfo += targetAttribute->GetTimestampTZFormat()->GetFormatString();
+	sTemporalFormatInfo += '"';
+
+	// Message, en precisant que le dictionnaire en sortie est singleton dans le cas d'une valeur de tableau
+	sMessage = sTmp + KWType::ToString(targetAttribute->GetType()) + " variable " + targetAttribute->GetName() +
+		   " (" + sTemporalFormatInfo + ") in output ";
+	if (jsonMember == NULL)
+		sMessage += KWType::ToString(KWType::ObjectArray) + " ";
+	sMessage += "dictionary " + targetAttribute->GetParentClass()->GetName() +
+		    " with missing value due to invalid temporal format of json " + jsonValue->TypeToString() +
+		    " value (" + jsonValue->BuildDisplayedJsonValue() + ") at json path " + sJsonPath;
+	svWarnings.Add(sMessage);
+}
+
+void KWDRBuildEntityFromJson::AddOverlengthySymbolValueWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
+							       const KWAttribute* targetAttribute) const
+{
+	ALString sMessage;
+	ALString sJsonPath;
+	ALString sTmp;
+
+	require(jsonMember == NULL or jsonMember->GetValue() == jsonValue);
+	require(targetAttribute != NULL);
+	require(jsonMember == NULL or jsonMember->GetKey() == targetAttribute->GetName());
+
+	// Calcul du json path en tenant compte du membre en cours
+	if (jsonMember != NULL)
+		PushJsonPath(jsonMember, 0);
+	sJsonPath = BuildCurrentJsonPath();
+	if (jsonMember != NULL)
+		PopJsonPath();
+
+	// Message, en precisant que le dictionnaire en sortie est singleton dans le cas d'une valeur de tableau
+	sMessage = sTmp + KWType::ToString(targetAttribute->GetType()) + " variable " + targetAttribute->GetName() +
+		   " in output ";
+	if (jsonMember == NULL)
+		sMessage += KWType::ToString(KWType::ObjectArray) + " ";
+	sMessage += "dictionary " + targetAttribute->GetParentClass()->GetName() + " with value truncated to " +
+		    IntToString(KWValue::nMaxSymbolFieldSize) + " characters to due to overlengthy json " +
+		    jsonValue->TypeToString() +
+		    " value (length=" + IntToString(jsonValue->GetStringValue()->GetString().GetLength()) +
+		    ", value=" + jsonValue->BuildDisplayedJsonValue() + ") at json path " + sJsonPath;
+	svWarnings.Add(sMessage);
+}
+
+void KWDRBuildEntityFromJson::PushJsonPath(const JSONMember* jsonMember, int nIndex) const
+{
+	require(oaJsonPathMembers.GetSize() == ivJsonPathArrayIndexes.GetSize());
+	require(jsonMember != NULL);
+	require(nIndex >= 0);
+	require(nIndex == 0 or (jsonMember->GetValueType() == JSONValue::ArrayValue and
+				nIndex < jsonMember->GetArrayValue()->GetValueNumber()));
+
+	oaJsonPathMembers.Add(cast(Object*, jsonMember));
+	ivJsonPathArrayIndexes.Add(nIndex);
+}
+
+void KWDRBuildEntityFromJson::PopJsonPath() const
+{
+	require(oaJsonPathMembers.GetSize() == ivJsonPathArrayIndexes.GetSize());
+	require(oaJsonPathMembers.GetSize() > 0);
+
+	oaJsonPathMembers.SetSize(oaJsonPathMembers.GetSize() - 1);
+	ivJsonPathArrayIndexes.SetSize(ivJsonPathArrayIndexes.GetSize() - 1);
+}
+
+const ALString KWDRBuildEntityFromJson::BuildCurrentJsonPath() const
+{
+	const int nMaxJsonPathLength = 120;
+	boolean bIsOverlengthy;
+	ALString sJsonPath;
+	const JSONMember* jsonMember;
+	int n;
+
+	require(oaJsonPathMembers.GetSize() == ivJsonPathArrayIndexes.GetSize());
+
+	// Construction du json path par analyse de ses composants
+	bIsOverlengthy = false;
+	sJsonPath = '$';
+	for (n = 0; n < oaJsonPathMembers.GetSize(); n++)
+	{
+		// On ne met pas le chemin intermediaire si le path est trop long
+		if (not bIsOverlengthy and sJsonPath.GetLength() > nMaxJsonPathLength and
+		    n < oaJsonPathMembers.GetSize() - 1)
+		{
+			sJsonPath += "...";
+			bIsOverlengthy = true;
+		}
+
+		// Ajout d'un element dans le path, si le path n'est pas trop long
+		// On met la fin du path quoi qu'il arrive
+		if (not bIsOverlengthy or n == oaJsonPathMembers.GetSize() - 1)
+		{
+			jsonMember = cast(const JSONMember*, oaJsonPathMembers.GetAt(n));
+			sJsonPath += '.';
+			sJsonPath += FormatJsonKey(jsonMember->GetKey());
+			if (jsonMember->GetValueType() == JSONValue::ArrayValue)
+			{
+				sJsonPath += '[';
+				sJsonPath += IntToString(ivJsonPathArrayIndexes.GetAt(n));
+				sJsonPath += ']';
+			}
+		}
+	}
+	return sJsonPath;
+}
+
+const ALString KWDRBuildEntityFromJson::FormatJsonKey(const ALString& sJsonKey) const
+{
+	const int nMaxKeyLength = 30;
+	ALString sFormattedKey;
+	boolean bIsAscii;
+	char c;
+	int n;
+
+	require(sJsonKey.GetLength() > 0);
+
+	// Test si la cle est alpha-numerique
+	bIsAscii = true;
+	for (n = 0; n < sJsonKey.GetLength(); n++)
+	{
+		c = sJsonKey.GetAt(n);
+		if (not isalnum(c) and c != '_')
+		{
+			bIsAscii = false;
+			break;
+		}
+	}
+
+	// On renvoie la cle telle quelle si elle est ascii et pas trop longue
+	if (bIsAscii and sJsonKey.GetLength() <= nMaxKeyLength)
+		return sJsonKey;
+	// Sinon, on la transforme en la mettant entre double-quotes
+	else
+	{
+		if (sJsonKey.GetLength() <= nMaxKeyLength)
+			TextService::CToJsonString(sJsonKey, sFormattedKey);
+		else
+			TextService::CToJsonString(sJsonKey.Left(nMaxKeyLength) + "...", sFormattedKey);
+		sFormattedKey = '"' + sFormattedKey + '"';
+		return sFormattedKey;
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDRBuildList
 
 KWDRBuildList::KWDRBuildList()
@@ -885,6 +1776,7 @@ KWObject* KWDRBuildGraph::ComputeObjectResult(const KWObject* kwoObject, const K
 	int nIncompleteEdgeNumber;
 	ALString sSampleDuplicateNodeId;
 	ALString sSampleIncompleteEdsgeId;
+	KWAttribute* attribute;
 	ALString sMessage;
 
 	require(IsCompiled());
@@ -904,7 +1796,7 @@ KWObject* KWDRBuildGraph::ComputeObjectResult(const KWObject* kwoObject, const K
 	nIncompleteEdgeNumber = 0;
 	if (kwoTargetGraph != NULL)
 	{
-		// Recherche de la classe de creation des neouds et des arcs
+		// Recherche de la classe de creation des noeuds et des arcs
 		kwcTargetNodeClass =
 		    kwcCompiledTargetClass->GetDomain()->LookupClass(GetOutputOperandAt(0)->GetObjectClassName());
 		kwcTargetEdgeClass =
@@ -1074,7 +1966,15 @@ KWObject* KWDRBuildGraph::ComputeObjectResult(const KWObject* kwoObject, const K
 		// Pas de message en cas de probleme memoire
 		if (not kwoObject->IsMemoryLimitReached())
 		{
-			sMessage = GetName() + " rule encountered inconsistencies, including ";
+			attribute = kwoObject->GetClass()->GetAttributeAtLoadIndex(liAttributeLoadIndex);
+			assert(attribute != NULL);
+
+			// Message synthetique
+			sMessage = "Calculation of the variable ";
+			sMessage += attribute->GetName();
+			sMessage += " using the rule ";
+			sMessage += GetName();
+			sMessage += " encountered inconsistencies, including ";
 			if (nDuplicateNodeNumber > 0)
 			{
 				sMessage += IntToString(nDuplicateNodeNumber);

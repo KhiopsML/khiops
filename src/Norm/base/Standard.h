@@ -198,7 +198,7 @@ void _CastFailure(const char* __type, const char* __object, const char* __file, 
 // Le GlobalExit ferme tous les fichier, appelle la fonction optionnelle UserExit, puis le exit systeme
 void GlobalExit();
 
-// Idem GlobalExit mais appelle exit(0) (succes)
+// Idem GlobalExit mais appelle exit(0) (success)
 void GlobalExitOnSuccess();
 
 // Prototype d'une fonction de sortie utilisateur, appelee juste avant un exit() systeme

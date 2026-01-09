@@ -69,8 +69,8 @@ public:
 	const KWMetaData* GetConstMetaData() const;
 	KWMetaData* GetMetaData();
 
-	// Cle de meta-donnee predefinie pour stocker le format des types complexes: Date, Time; Timestamp et
-	// TimestampTZ Les attributs de type complexe sont selon les formats par defaut des types correspondant. On peut
+	// Cle de meta-donnee predefinie pour stocker le format des types complexes: Date, Time; Timestamp et TimestampTZ
+	// Les attributs de type complexe sont selon les formats par defaut des types correspondant. On peut
 	// cependant sppecifier un format specifique au moyen d'une meta donnee (par exemple: <DateFormat="DDMMYYYY").
 	// Dans ce cas, les lectures/ecritures dans les bases de donnees se feront au moyen du format specifie
 	// Cette meta-donnee de format ne doit etre utilisee qu'avec un format valide, pour les attributs

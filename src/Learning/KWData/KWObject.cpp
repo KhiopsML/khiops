@@ -1321,7 +1321,8 @@ void KWObject::PrettyWrite(ostream& ost, const ALString& sIndent) const
 	if (bTraceUnloadedRelationAttributes)
 	{
 		// Commentaire pour preciser le type d'attributs
-		ost << sIndent << "// Internal unloaded relation attributes\n";
+		if (GetClass()->GetUnloadedOwnedRelationAttributeNumber() > 0)
+			ost << sIndent << "// Internal unloaded relation attributes\n";
 
 		// Parcours des attributs
 		for (i = 0; i < GetClass()->GetUnloadedOwnedRelationAttributeNumber(); i++)
