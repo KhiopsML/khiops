@@ -17,6 +17,7 @@ KWClass::KWClass()
 	bForceUnique = false;
 	bIsUnique = false;
 	bIsKeyBasedStorable = false;
+	bIsNativeAcyclic = false;
 	lClassHashValue = 0;
 	nHashFreshness = 0;
 	nFreshness = 0;
@@ -349,6 +350,7 @@ void KWClass::IndexClass()
 	Symbol sVarKey;
 	int nVarKey;
 	ObjectArray oaBlockLoadedAttributes;
+	NumericKeyDictionary nkdComponentClasses;
 
 	// Arret si deja indexe
 	if (nFreshness == nIndexFreshness)
@@ -375,8 +377,11 @@ void KWClass::IndexClass()
 	ivUsedDenseAttributeNumbers.Initialize();
 	ivUsedSparseAttributeNumbers.Initialize();
 
-	// Calcul de la capacite a etre stocke, en verifiant la coherence des cle en mode non verbeux
-	bIsKeyBasedStorable = CheckNativeComposition(true, false);
+	// Calcul de la capacite a etre stocke et etre acyclic, en verifiant la composition native en mode non verbeux
+	assert(nkdComponentClasses.GetCount() == 0);
+	bIsKeyBasedStorable = InternalCheckKeyBasedStorability(false, NULL, &nkdComponentClasses);
+	assert(nkdComponentClasses.GetCount() == 0);
+	bIsNativeAcyclic = InternalCheckNativeAcyclicity(false, NULL, &nkdComponentClasses);
 
 	// Il y a unicite dans le cas d'une classe racine, ou si l'unicite est forcee
 	bIsUnique = bRoot or bForceUnique;
@@ -638,125 +643,6 @@ void KWClass::IndexClass()
 		WriteAttributes("  Loaded Relation attributes", &oaLoadedRelationAttributes, cout);
 		WriteAttributes("  Unloaded native Relation attributes", &oaUnloadedOwnedRelationAttributes, cout);
 	}
-}
-
-int KWClass::ComputeOverallNativeRelationAttributeNumber(boolean bIncludingReferences) const
-{
-	int nOverallNativeRelationAttributeNumber;
-	ObjectDictionary odReferenceClasses;
-	ObjectArray oaImpactedClasses;
-	ObjectDictionary odAnalysedCreatedClasses;
-	KWClass* kwcImpactedClass;
-	KWClass* kwcRefClass;
-	int nClass;
-	KWAttribute* attribute;
-	KWClass* kwcTargetClass;
-	ObjectArray oaUsedClass;
-	KWClass* kwcUsedClass;
-	int nUsedClass;
-
-	// On part de la classe de depart
-	kwcImpactedClass = cast(KWClass*, this);
-	oaImpactedClasses.Add(kwcImpactedClass);
-	if (kwcImpactedClass->GetRoot())
-		odReferenceClasses.SetAt(kwcImpactedClass->GetName(), kwcImpactedClass);
-
-	// Duplication des classes referencees en memorisant les classes dupliquees
-	// pour lesquelles il faut propager la duplication
-	nOverallNativeRelationAttributeNumber = 0;
-	for (nClass = 0; nClass < oaImpactedClasses.GetSize(); nClass++)
-	{
-		kwcImpactedClass = cast(KWClass*, oaImpactedClasses.GetAt(nClass));
-
-		// Attributs de type Object ou ObjectArray
-		attribute = kwcImpactedClass->GetHeadAttribute();
-		while (attribute != NULL)
-		{
-			// Si attribut avec classe referencee
-			if (KWType::IsRelation(attribute->GetType()))
-			{
-				// Analyse si classe presente
-				kwcRefClass = attribute->GetClass();
-				if (kwcRefClass != NULL)
-				{
-					// Prise en compte si attribut natif interne
-					if (attribute->GetAnyDerivationRule() == NULL)
-					{
-						nOverallNativeRelationAttributeNumber++;
-
-						// Ajout de la classe a analyser
-						oaImpactedClasses.Add(kwcRefClass);
-					}
-					// Cas d'un attribut issue d'une regle de creation de table, pour rechercher
-					// les classes referencees depuis les tables creees par des regles
-					else if (bIncludingReferences and not attribute->GetReference())
-					{
-						assert(attribute->GetDerivationRule() != NULL);
-
-						// Recherche de la classe cible
-						kwcTargetClass = GetDomain()->LookupClass(
-						    attribute->GetDerivationRule()->GetObjectClassName());
-						assert(kwcTargetClass != NULL);
-
-						// Analyse uniquement si la classe cible na pas deja ete analysees
-						if (odAnalysedCreatedClasses.Lookup(kwcTargetClass->GetName()) == NULL)
-						{
-							// Memorisation de la classe cible
-							odAnalysedCreatedClasses.SetAt(kwcTargetClass->GetName(),
-										       kwcTargetClass);
-
-							// Recherche de toutes les classe utilisees recursivement
-							kwcTargetClass->BuildAllUsedClasses(&oaUsedClass);
-
-							// Recherches des classes externes
-							for (nUsedClass = 0; nUsedClass < oaUsedClass.GetSize();
-							     nUsedClass++)
-							{
-								kwcUsedClass =
-								    cast(KWClass*, oaUsedClass.GetAt(nUsedClass));
-
-								// Ajout de la classe a analyser si elle ne l'a pas deja ete
-								if (kwcUsedClass->GetRoot())
-								{
-									if (odReferenceClasses.Lookup(
-										kwcUsedClass->GetName()) == NULL)
-									{
-										nOverallNativeRelationAttributeNumber++;
-
-										// Memorisation de la classe externe pour ne pas faire l'analyse plusieurs fois
-										odReferenceClasses.SetAt(
-										    kwcUsedClass->GetName(),
-										    kwcUsedClass);
-										oaImpactedClasses.Add(kwcUsedClass);
-									}
-								}
-							}
-						}
-					}
-					// Prise en compte dans le cas d'une classe referencee
-					else if (bIncludingReferences and
-						 attribute->GetAnyDerivationRule()->GetName() ==
-						     KWDerivationRule::GetReferenceRuleName())
-					{
-						// Ajout de la classe a analyser si elle ne l'a pas deja ete
-						if (cast(KWClass*, odReferenceClasses.Lookup(kwcRefClass->GetName())) ==
-						    NULL)
-						{
-							nOverallNativeRelationAttributeNumber++;
-
-							// Memorisation de la classe externe pour ne pas faire l'analyse plusieurs fois
-							odReferenceClasses.SetAt(kwcRefClass->GetName(), kwcRefClass);
-							oaImpactedClasses.Add(kwcRefClass);
-						}
-					}
-				}
-			}
-
-			// Attribut suivant
-			kwcImpactedClass->GetNextAttribute(attribute);
-		}
-	}
-	return nOverallNativeRelationAttributeNumber;
 }
 
 int KWClass::ComputeInitialAttributeNumber(boolean bIsSupervised) const
@@ -1274,7 +1160,10 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 	NumericKeyDictionary nkdAllUsedClasses;
 	NumericKeyDictionary nkdAllLoadedClasses;
 	NumericKeyDictionary nkdAllNativeClasses;
+	NumericKeyDictionary nkdAllNonDeletableAttributes;
 	KWClass* kwcUsedClass;
+	ObjectArray oaAllUsedAttributes;
+	ObjectArray oaAllNonDeletableAttributes;
 	ObjectArray oaUnusedAttributes;
 	ObjectArray oaUnusedClasses;
 	KWAttribute* attribute;
@@ -1319,6 +1208,32 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 
 	// Collecte des attributs utilises recursivement
 	BuildAllUsedAttributes(&nkdAllUsedAttributes, &nkdAllUsedClasses, &nkdAllLoadedClasses, &nkdAllNativeClasses);
+
+	// Collecte additionnelle des attributs en entree et sortie des regles de creation d'instance,
+	// qui ne peuvent etre detruit pour preserver la validite des classes
+	// Ne concerne que les regles ayant des operandes en sortie
+	nkdAllUsedAttributes.ExportObjectArray(&oaAllUsedAttributes);
+	for (nAttribute = 0; nAttribute < oaAllUsedAttributes.GetSize(); nAttribute++)
+	{
+		attribute = cast(KWAttribute*, oaAllUsedAttributes.GetAt(nAttribute));
+		if (attribute->GetDerivationRule() != NULL and
+		    attribute->GetDerivationRule()->GetOutputOperandNumber() > 0)
+		{
+			attribute->GetDerivationRule()->CollectCreationRuleAllAttributes(attribute,
+											 &nkdAllNonDeletableAttributes);
+		}
+	}
+
+	// Memorisation de ces attributs a ne pas detruire, ainsi que leur classe
+	nkdAllNonDeletableAttributes.ExportObjectArray(&oaAllNonDeletableAttributes);
+	for (nAttribute = 0; nAttribute < oaAllNonDeletableAttributes.GetSize(); nAttribute++)
+	{
+		attribute = cast(KWAttribute*, oaAllNonDeletableAttributes.GetAt(nAttribute));
+		nkdAllUsedAttributes.SetAt(attribute, attribute);
+		assert(nkdAllUsedClasses.Lookup(attribute->GetParentClass()) != NULL);
+		if (attribute->GetClass() != NULL)
+			nkdAllUsedClasses.SetAt(attribute->GetClass(), attribute->GetClass());
+	}
 
 	// Parcours de toutes les classes utilisees pour identifier les attributs non utilises
 	for (nClass = 0; nClass < oaAllUsedClasses.GetSize(); nClass++)
@@ -2019,6 +1934,7 @@ void KWClass::CopyFrom(const KWClass* aSource)
 	bForceUnique = aSource->bForceUnique;
 	bIsUnique = aSource->bIsUnique;
 	bIsKeyBasedStorable = aSource->bIsKeyBasedStorable;
+	bIsNativeAcyclic = aSource->bIsNativeAcyclic;
 
 	// Duplication des meta-donnees
 	metaData.CopyFrom(&aSource->metaData);
@@ -2197,11 +2113,10 @@ boolean KWClass::Check() const
 		}
 	}
 
-	// Verification de l'absence de cycle dans la composition, et de la validite des cle
+	// Verification de la validite des cle et de l'absence de cycle dans la composition
 	// dans le cas d'une classe racine
-	if (bOk)
-		bOk = CheckNativeComposition(GetRoot(), true);
-
+	if (bOk and GetRoot())
+		bOk = CheckKeyBasedStorability();
 	return bOk;
 }
 
@@ -3212,17 +3127,8 @@ void KWClass::InitializeRandomRuleParameters(KWDerivationRule* rule, const ALStr
 	}
 }
 
-boolean KWClass::CheckNativeComposition(boolean bCheckKeys, boolean bVerboseCheckKeys) const
-{
-	NumericKeyDictionary nkdComponentClasses;
-
-	// On passe en parametre le dictionnaire nkdComponentClasses de classes traitees, pour detecter les cycles
-	return InternalCheckNativeComposition(bCheckKeys, bVerboseCheckKeys, NULL, &nkdComponentClasses);
-}
-
-boolean KWClass::InternalCheckNativeComposition(boolean bCheckKeys, boolean bVerboseCheckKeys,
-						KWAttribute* parentAttribute,
-						NumericKeyDictionary* nkdComponentClasses) const
+boolean KWClass::InternalCheckKeyBasedStorability(boolean bVerbose, KWAttribute* parentAttribute,
+						  NumericKeyDictionary* nkdComponentClasses) const
 {
 	boolean bOk = true;
 	boolean bClassKeyCheckedOnce;
@@ -3244,10 +3150,10 @@ boolean KWClass::InternalCheckNativeComposition(boolean bCheckKeys, boolean bVer
 
 	// Verification de la coherence entre statut racine/composant et presence de cle
 	bClassKeyCheckedOnce = false;
-	if (bOk and bCheckKeys and GetRoot() and GetKeyAttributeNumber() == 0)
+	if (bOk and GetRoot() and GetKeyAttributeNumber() == 0)
 	{
-		if (bVerboseCheckKeys)
-			AddError(sTmp + "Root dictionary must a key");
+		if (bVerbose)
+			AddError("Root dictionary must a key");
 		bClassKeyCheckedOnce = true;
 		bOk = false;
 	}
@@ -3263,48 +3169,33 @@ boolean KWClass::InternalCheckNativeComposition(boolean bCheckKeys, boolean bVer
 			attributeClass = attribute->GetClass();
 
 			// Test si necessaire de la presence de cle sur la classe courante si c'est la classe principale
-			if (bOk and bCheckKeys and parentClass == NULL and not bClassKeyCheckedOnce and
-			    GetKeyAttributeNumber() == 0)
+			if (bOk and parentClass == NULL and not bClassKeyCheckedOnce and GetKeyAttributeNumber() == 0)
 			{
-				if (bVerboseCheckKeys)
-					AddError(sTmp +
-						 "Dictionary must have a key, as it is composed of relation "
+				if (bVerbose)
+					AddError("Dictionary must have a key, as it is composed of relation "
 						 "variables, for example " +
 						 attribute->GetName() + " of type " + RelationTypeToString(attribute));
 				bClassKeyCheckedOnce = true;
 				bOk = false;
 			}
 
-			// Test si classe deja utilisee
-			if (bOk and nkdComponentClasses->Lookup(attributeClass) == attributeClass)
-			{
-				AddError("Existing composition cycle caused by the recursive use of dictionary " +
-					 attributeClass->GetName() + " by variable " + attribute->GetName());
-				bOk = false;
-			}
-
-			// Propagation du test si ok
+			// Verification des cles
 			if (bOk)
-				bOk = attributeClass->InternalCheckNativeComposition(bCheckKeys, bVerboseCheckKeys,
-										     attribute, nkdComponentClasses);
-
-			// Verification des cle si demande
-			if (bOk and bCheckKeys)
 			{
 				// La classe utilisee doit avoir une cle
 				if (attributeClass->GetKeyAttributeNumber() == 0)
 				{
-					if (bVerboseCheckKeys)
-						AddError(sTmp + "The dictionary related to variable " +
-							 attribute->GetName() + " of type " +
-							 RelationTypeToString(attribute) + " must have a key");
+					if (bVerbose)
+						AddError("The dictionary related to variable " + attribute->GetName() +
+							 " of type " + RelationTypeToString(attribute) +
+							 " must have a key");
 					bOk = false;
 				}
 				// La cle de la classe utilisee doit etre au moins aussi longue que
 				// celle de la classe utilisante dans le cas d'un lien de composition
 				else if (attributeClass->GetKeyAttributeNumber() < GetKeyAttributeNumber())
 				{
-					if (bVerboseCheckKeys)
+					if (bVerbose)
 						AddError(sTmp + "The key length (" +
 							 IntToString(attributeClass->GetKeyAttributeNumber()) +
 							 ") of the dictionary related to variable " +
@@ -3322,22 +3213,101 @@ boolean KWClass::InternalCheckNativeComposition(boolean bCheckKeys, boolean bVer
 					 parentClass->GetKeyAttributeNumber() > 0 and
 					 parentClass->GetKeyAttributeNumber() >= GetKeyAttributeNumber())
 				{
-					if (bVerboseCheckKeys)
-						AddError(sTmp + "As dictionary " + parentClass->GetName() +
-							 " has a variable " + parentAttribute->GetName() + " of type " +
-							 RelationTypeToString(parentAttribute) + " and dictionary " +
-							 parentAttribute->GetClass()->GetName() +
-							 " itself has a variable " + attribute->GetName() +
-							 " of type " + RelationTypeToString(attribute) +
-							 ", the key length (" + IntToString(GetKeyAttributeNumber()) +
-							 ") in dictionary " + GetName() +
-							 " must be strictly greater than that of its parent "
-							 "dictionary " +
-							 parentClass->GetName() + " (" +
-							 IntToString(parentClass->GetKeyAttributeNumber()) + ")");
+					if (bVerbose)
+						AddError(
+						    sTmp + "As dictionary " + parentClass->GetName() +
+						    " has a variable " + parentAttribute->GetName() + " of type " +
+						    RelationTypeToString(parentAttribute) + " and dictionary " +
+						    parentAttribute->GetClass()->GetName() + " itself has a variable " +
+						    attribute->GetName() + " of type " +
+						    RelationTypeToString(attribute) + ", the key length (" +
+						    IntToString(GetKeyAttributeNumber()) + ") in dictionary " +
+						    GetName() +
+						    " must be strictly greater than that of its parent dictionary " +
+						    parentClass->GetName() + " (" +
+						    IntToString(parentClass->GetKeyAttributeNumber()) + ")");
 					bOk = false;
 				}
 			}
+
+			// Test si classe deja utilisee pour kla detection de cycle
+			if (bOk and nkdComponentClasses->Lookup(attributeClass) == attributeClass)
+			{
+				if (bVerbose)
+				{
+					AddError(
+					    "Existing composition cycle caused by the recursive use of dictionary " +
+					    attributeClass->GetName() + " by variable " + attribute->GetName() +
+					    ". Such cycles are not permitted for dictionaries "
+					    "that have a key intended for reading data from data files.");
+				}
+				bOk = false;
+			}
+
+			// Propagation du test
+			if (bOk)
+				bOk = attributeClass->InternalCheckKeyBasedStorability(bVerbose, attribute,
+										       nkdComponentClasses);
+		}
+
+		// Arret des la premiere erreur
+		if (not bOk)
+			break;
+
+		// Attribut suivant
+		GetNextAttribute(attribute);
+	}
+
+	// Supression de la classe courante dans le dictionnaire des classes utilisees
+	nkdComponentClasses->RemoveKey(this);
+	return bOk;
+}
+
+boolean KWClass::InternalCheckNativeAcyclicity(boolean bVerbose, KWAttribute* parentAttribute,
+					       NumericKeyDictionary* nkdComponentClasses) const
+{
+	boolean bOk = true;
+	KWAttribute* attribute;
+	KWClass* parentClass;
+	KWClass* attributeClass;
+
+	require(nkdComponentClasses != NULL);
+
+	// Recherche de la classe parent a partir de l'attribut parent
+	parentClass = NULL;
+	if (parentAttribute != NULL)
+		parentClass = parentAttribute->GetParentClass();
+
+	// Ajout de la classe courante dans le dictionnaire des classes utilisees
+	// pour l'analyse de l'utilisation recursive
+	nkdComponentClasses->SetAt(this, (Object*)this);
+
+	// Parcours des attributs de la classe
+	attribute = GetHeadAttribute();
+	while (attribute != NULL)
+	{
+		// Traitement des attributs de composition native
+		if (KWType::IsRelation(attribute->GetType()) and attribute->GetAnyDerivationRule() == NULL and
+		    attribute->GetClass() != NULL)
+		{
+			attributeClass = attribute->GetClass();
+
+			// Test si classe deja utilisee
+			if (bOk and nkdComponentClasses->Lookup(attributeClass) == attributeClass)
+			{
+				if (bVerbose)
+				{
+					AddError(
+					    "Existing composition cycle caused by the recursive use of dictionary " +
+					    attributeClass->GetName() + " by variable " + attribute->GetName() + ".");
+				}
+				bOk = false;
+			}
+
+			// Propagation du test
+			if (bOk)
+				bOk = attributeClass->InternalCheckNativeAcyclicity(bVerbose, attribute,
+										    nkdComponentClasses);
 		}
 
 		// Arret des la premiere erreur
@@ -3418,7 +3388,12 @@ void KWClass::WriteAttributes(const ALString& sTitle, const ObjectArray* oaAttri
 	for (i = 0; i < oaAttributes->GetSize(); i++)
 	{
 		attribute = cast(KWAttribute*, oaAttributes->GetAt(i));
-		ost << "\t" << i + 1 << "\t" << attribute->GetName() << "\n";
+		ost << "\t" << i + 1;
+		ost << "\t" << (attribute->GetUsed() ? "" : "Unused");
+		ost << "\t" << attribute->GetTypeLabel();
+		ost << "\t" << attribute->GetName();
+		ost << "\t" << attribute->GetLoadIndex();
+		ost << "\n";
 	}
 }
 

@@ -44,7 +44,7 @@ class KWClass;
 // le dictionnaire principal de la base de donnees en cours de traitement, soit
 // un dictionnaire racine d'une table externe.
 //
-// La classe KWDataPath reunit les fonctionnalite communes aux deux type d'usages, pour
+// La classe KWDataPath reunit les fonctionnalites communes aux deux type d'usages, pour
 // specialisation dans deux-sous-classes
 // - KWMTDatabaseMapping: mapping des data paths sur des fichiers de donnees, pour gerer
 //   les objets lus dans une base de donneee
@@ -146,8 +146,8 @@ public:
 	void CollectFullHierarchyComponents(ObjectArray* oaResults);
 
 	////////////////////////////////////////////////////////
-	// Services de dimensionnement pour des data path de creation d'instances
-	// Ne s'applique qu'aux data path correspondant a des objects stockes, en
+	// Services de dimensionnement pour des data paths de creation d'instances
+	// Ne s'applique qu'aux data paths correspondant a des objects stockes, en
 	// explorant dans les data paths de leur hierarchie correspondant a des
 	// objects crees par des regles de derivation
 
@@ -237,12 +237,16 @@ public:
 	KWDataPathManager();
 	~KWDataPathManager();
 
-	// Indique que la classe gere les data paths correspondant a des instances crees par des regle de creation d'instance
+	// Indique que la classe gere les data paths correspondant a des instances crees par des regles de creation d'instance
 	boolean IsRuleCreationManaged() const;
 
-	// Calcul de tous les data path a partir du dictionnaire principal
-	// d'une base multi-table
+	// Calcul de tous les data paths a partir du dictionnaire principal d'une base multi-table
 	virtual void ComputeAllDataPaths(const KWClass* mainClass);
+
+	// Calcul uniquement du nombre de data paths, sans mise a jour des data paths eux meme
+	// Le parametre bIncludingReferences indique que l'on prend en compte les classe externes,
+	// notamment en phase de lecture d'une base, alors que l'on les ignore en ecriture
+	int ComputeAllDataPathNumber(const KWClass* mainClass, boolean bIncludingReferences) const;
 
 	// Reinitialisation
 	void Reset();
@@ -322,6 +326,10 @@ protected:
 				   boolean bIsExternalTable, boolean bCreatedObjects, const ALString& sOriginClassName,
 				   StringVector* svAttributeNames, IntVector* ivAttributeTypes,
 				   ObjectArray* oaCreatedDataPaths);
+
+	// Test si un dictionnaire est utilise dans un data path
+	// Permet d'eviter de creer un data path recursif
+	boolean IsClassUsedInDataPath(const KWDataPath* dataPath, const KWClass* kwcClass) const;
 
 	// Affichage d'un tableau de data paths
 	void WriteDataPathArray(ostream& ost, const ALString& sTitle, const ObjectArray* oaDataPathArray) const;

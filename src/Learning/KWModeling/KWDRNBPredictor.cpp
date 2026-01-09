@@ -1364,7 +1364,6 @@ boolean KWDRSNBClassifier::CheckOperandsCompleteness(const KWClass* kwcOwnerClas
 	KWDerivationRule* dataGridStatsOrBlockRule;
 	KWDRDataGridStatsBlock* dataGridStatsBlockRule;
 	KWDRDataGridBlock* dataGridBlockRule;
-	KWDRContinuousVector* weightVector;
 	int nTotalDataGridNumber;
 	KWDRContinuousVector* weightsContinuousVectorRule;
 	ALString sTmp;
@@ -1375,9 +1374,9 @@ boolean KWDRSNBClassifier::CheckOperandsCompleteness(const KWClass* kwcOwnerClas
 	// Verification que le nombre des poids est egal au nombre total de data grid stats (DGS)
 	// Plus precisement:
 	//    #(total DGS) = #(total operandes du type DGS) + #(total DGS references dans les operandes du type bloc)
+	nTotalDataGridNumber = 0;
 	if (bOk)
 	{
-		nTotalDataGridNumber = 0;
 		for (nOperand = nFirstDataGridOperand; nOperand < GetOperandNumber() - 1; nOperand++)
 		{
 			dataGridStatsOrBlockRule = GetOperandAt(nOperand)->GetReferencedDerivationRule(kwcOwnerClass);
@@ -2187,9 +2186,9 @@ boolean KWDRSNBRankRegressor::CheckOperandsCompleteness(const KWClass* kwcOwnerC
 	// Verification que le nombre des poids est egal au nombre total de data grid stats (DGS)
 	// Plus precisement:
 	//    #(total DGS) = #(total operandes du type DGS) + #(total DGS references dans les operandes du type bloc)
+	nTotalDataGridNumber = 0;
 	if (bOk)
 	{
-		nTotalDataGridNumber = 0;
 		for (nOperand = nFirstDataGridOperand; nOperand < GetOperandNumber(); nOperand++)
 		{
 			dataGridStatsOrBlockRule = GetOperandAt(nOperand)->GetReferencedDerivationRule(kwcOwnerClass);

@@ -44,9 +44,9 @@ void KWDerivationRule::RenameClass(const KWClass* refClass, const ALString& sNew
 			SetObjectClassName(sNewClassName);
 
 		// Parcours des operandes
-		for (i = 0; i < oaOperands.GetSize(); i++)
+		for (i = 0; i < GetOperandNumber(); i++)
 		{
-			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
+			operand = GetOperandAt(i);
 
 			// Type objet de l'operande
 			if (KWType::IsGeneralRelation(operand->GetType()) and
@@ -72,16 +72,16 @@ void KWDerivationRule::SetOperandNumber(int nValue)
 	require(nValue >= 0);
 
 	// Supression des operandes surnumeraires
-	if (nValue < oaOperands.GetSize())
+	if (nValue < GetOperandNumber())
 	{
-		for (i = nValue; i < oaOperands.GetSize(); i++)
+		for (i = nValue; i < GetOperandNumber(); i++)
 			delete oaOperands.GetAt(i);
 		oaOperands.SetSize(nValue);
 	}
 	// Ajout des operandes en plus
-	else if (nValue > oaOperands.GetSize())
+	else if (nValue > GetOperandNumber())
 	{
-		for (i = oaOperands.GetSize(); i < nValue; i++)
+		for (i = GetOperandNumber(); i < nValue; i++)
 			oaOperands.Add(new KWDerivationRuleOperand);
 	}
 	nFreshness++;
@@ -258,14 +258,44 @@ void KWDerivationRule::CollectCreationRuleMandatoryInputOperands(const KWAttribu
 								 const NumericKeyDictionary* nkdAllUsedAttributes,
 								 IntVector* ivMandatoryInputOperands) const
 {
-	require(not GetReference());
 	require(GetOutputOperandNumber() > 0);
 	require(derivedAttribute != NULL);
-	require(nkdAllUsedAttributes != NULL);
 	require(nkdAllUsedAttributes != NULL);
 
 	// Doit etre reimplemente
 	assert(false);
+}
+
+void KWDerivationRule::CollectCreationRuleAllAttributes(const KWAttribute* derivedAttribute,
+							NumericKeyDictionary* nkdAllNonDeletableAttributes) const
+{
+	require(GetOutputOperandNumber() > 0);
+	require(derivedAttribute != NULL);
+	require(nkdAllNonDeletableAttributes != NULL);
+
+	// Doit etre reimplemente
+	assert(false);
+}
+
+boolean KWDerivationRule::IsNewScopeOperand(int nOperandIndex) const
+{
+	require(0 <= nOperandIndex and nOperandIndex < GetOperandNumber());
+	return GetMultipleScope() and nOperandIndex == 0;
+}
+
+int KWDerivationRule::GetNewScopeOperandNumber() const
+{
+	int nNumber;
+	int nOperandIndex;
+
+	// Comptage des operandes definissant un nouveau scope secondaire
+	nNumber = 0;
+	for (nOperandIndex = 0; nOperandIndex < GetOperandNumber(); nOperandIndex++)
+	{
+		if (IsNewScopeOperand(nOperandIndex))
+			nNumber++;
+	}
+	return nNumber;
 }
 
 boolean KWDerivationRule::IsSecondaryScopeOperand(int nOperandIndex) const
@@ -359,7 +389,7 @@ boolean KWDerivationRule::CheckRuleDefinition() const
 	bIsGenericRule = LookupDerivationRule(GetName()) == this;
 	if (bIsGenericRule)
 	{
-		if (GetVariableOperandNumber() and oaOperands.GetSize() == 0)
+		if (GetVariableOperandNumber() and GetOperandNumber() == 0)
 		{
 			AddError("The definition of a registered derivation rule with a variable number of operands "
 				 "must contain at least one operand");
@@ -382,9 +412,9 @@ boolean KWDerivationRule::CheckOperandsDefinition() const
 	bIsGenericRule = LookupDerivationRule(GetName()) == this;
 
 	// Verification des operandes
-	for (i = 0; i < oaOperands.GetSize(); i++)
+	for (i = 0; i < GetOperandNumber(); i++)
 	{
-		operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
+		operand = GetOperandAt(i);
 		if (not operand->CheckDefinition())
 		{
 			AddError(sTmp + "Incorrect operand " + IntToString(i + 1));
@@ -395,7 +425,7 @@ boolean KWDerivationRule::CheckOperandsDefinition() const
 		// a le droit d'etre de type Unknown
 		if (bResult and bIsGenericRule)
 		{
-			if ((i < oaOperands.GetSize() - 1 or not GetVariableOperandNumber()) and
+			if ((i < GetOperandNumber() - 1 or not GetVariableOperandNumber()) and
 			    operand->GetType() == KWType::Unknown)
 			{
 				AddError("In the definition of a registered derivation rule with a variable number of "
@@ -415,9 +445,42 @@ boolean KWDerivationRule::CheckOperandsDefinition() const
 			AddError("At least one operand is mandatory");
 		}
 
-		// Verification du premier operande
+		// Verification des operandes definissant un nouveau scope secondaire
 		if (bResult)
-			bResult = CheckFirstMultiScopeOperand();
+		{
+			// Verification qu'il y en a au moins un
+			if (GetNewScopeOperandNumber() == 0)
+			{
+				bResult = false;
+				AddError("At least one operand should be a multi-scope operand");
+			}
+			// Le premier operande ne peut etre au niveau secondaire
+			else if (IsSecondaryScopeOperand(0))
+			{
+				bResult = false;
+				AddError("First operand cannot be at the secondary scope");
+			}
+			// Verification de chaque operande definissant un nouveau scope secondaire
+			else
+			{
+				for (i = 0; i < GetOperandNumber(); i++)
+				{
+					operand = GetOperandAt(i);
+					if (IsNewScopeOperand(i) and not KWType::IsGeneralRelation(operand->GetType()))
+					{
+						bResult = false;
+						AddError(sTmp + "Multi-scope operand " + IntToString(i) +
+							 " must be of type Entity or Table");
+					}
+					else if (IsNewScopeOperand(i) and IsSecondaryScopeOperand(i))
+					{
+						bResult = false;
+						AddError(sTmp + "Operand " + IntToString(i) +
+							 " cannot be both a multi-scope and a secondary scope operand");
+					}
+				}
+			}
+		}
 	}
 	return bResult;
 }
@@ -508,9 +571,9 @@ boolean KWDerivationRule::CheckOperandsFamily(const KWDerivationRule* ruleFamily
 	require(ruleFamily->CheckDefinition());
 
 	// Verification des operandes
-	for (i = 0; i < oaOperands.GetSize(); i++)
+	for (i = 0; i < GetOperandNumber(); i++)
 	{
-		operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
+		operand = GetOperandAt(i);
 
 		// Cas des derniers operandes pour un nombre variable d'operandes
 		if (ruleFamily->GetVariableOperandNumber() and i >= ruleFamily->GetOperandNumber() - 1)
@@ -639,9 +702,9 @@ boolean KWDerivationRule::CheckOperandsCompleteness(const KWClass* kwcOwnerClass
 	// Verification des operandes dans le cas standard
 	if (not GetMultipleScope())
 	{
-		for (i = 0; i < oaOperands.GetSize(); i++)
+		for (i = 0; i < GetOperandNumber(); i++)
 		{
-			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
+			operand = GetOperandAt(i);
 
 			// Un operande ne peut avoir de valeur speciale None: cela ne peut concerner
 			// que les regles de creation d'objet
@@ -660,13 +723,24 @@ boolean KWDerivationRule::CheckOperandsCompleteness(const KWClass* kwcOwnerClass
 	{
 		scopeClass = kwcOwnerClass;
 		secondaryScopeClass = NULL;
-		for (i = 0; i < oaOperands.GetSize(); i++)
+		for (i = 0; i < GetOperandNumber(); i++)
 		{
-			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
+			operand = GetOperandAt(i);
 
 			// Un operande ne peut avoir de valeur speciale None: cela ne peut concerner
 			// que les regles de creation d'objet
 			assert(not operand->GetNoneValue() or not GetReference());
+
+			// Recherche de la classe de scope pour l'operande
+			if (IsSecondaryScopeOperand(i))
+			{
+				// Empilage du scope si on passe vers le scope secondaire
+				PushScope(kwcOwnerClass, kwcOwnerClass, this);
+				scopeClass = secondaryScopeClass;
+			}
+			else
+				scopeClass = kwcOwnerClass;
+			assert(scopeClass != NULL);
 
 			// Verification de l'operande
 			if (not operand->CheckCompleteness(scopeClass))
@@ -675,31 +749,19 @@ boolean KWDerivationRule::CheckOperandsCompleteness(const KWClass* kwcOwnerClass
 				bResult = false;
 			}
 
-			// Cas du premier operande pour rechercher la classe de scope scondaire
-			if (i == 0)
+			// Depilage du scope si on etait au scope secondaire
+			if (IsSecondaryScopeOperand(i))
+				PopScope(kwcOwnerClass);
+
+			// Cas d'un operande definissant la classe de scope secondaire
+			if (IsNewScopeOperand(i))
 			{
-				secondaryScopeClass = LookupSecondaryScopeClass(kwcOwnerClass);
+				secondaryScopeClass = LookupSecondaryScopeClass(kwcOwnerClass, i);
 
 				// Arret si on a pas trouve la classe secondaire
 				if (secondaryScopeClass == NULL)
 					break;
 			}
-
-			// Recherche de la classe de scope pour le prochain operande
-			if (i < oaOperands.GetSize() - 1 and IsSecondaryScopeOperand(i + 1))
-			{
-				// Empilage du scope si on passe vers le scope secondaire
-				if (scopeClass == kwcOwnerClass)
-					PushScope(kwcOwnerClass, kwcOwnerClass, this);
-				scopeClass = secondaryScopeClass;
-			}
-			else
-				scopeClass = kwcOwnerClass;
-
-			// Depilage du scope si necessaire, si on repasse vers le scope principal au prochain operande
-			if (IsSecondaryScopeOperand(i) and
-			    (i == oaOperands.GetSize() - 1 or not IsSecondaryScopeOperand(i + 1)))
-				PopScope(kwcOwnerClass);
 		}
 	}
 	return bResult;
@@ -723,7 +785,7 @@ boolean KWDerivationRule::CheckBlockAttributes(const KWClass* kwcOwnerClass,
 	// Verification des operandes dans le cas standard
 	if (not GetMultipleScope())
 	{
-		for (i = 0; i < oaOperands.GetSize(); i++)
+		for (i = 0; i < GetOperandNumber(); i++)
 		{
 			// Verification de l'operande
 			bResult = bResult and CheckBlockAttributesAt(kwcOwnerClass, attributeBlock, i);
@@ -734,36 +796,35 @@ boolean KWDerivationRule::CheckBlockAttributes(const KWClass* kwcOwnerClass,
 	{
 		scopeClass = kwcOwnerClass;
 		secondaryScopeClass = NULL;
-		for (i = 0; i < oaOperands.GetSize(); i++)
+		for (i = 0; i < GetOperandNumber(); i++)
 		{
+			// Recherche de la classe de scope pour l'operande
+			if (IsSecondaryScopeOperand(i))
+			{
+				// Empilage du scope si on passe vers le scope secondaire
+				PushScope(kwcOwnerClass, kwcOwnerClass, this);
+				scopeClass = secondaryScopeClass;
+			}
+			else
+				scopeClass = kwcOwnerClass;
+			assert(scopeClass != NULL);
+
 			// Verification de l'operande
 			bResult = bResult and CheckBlockAttributesAt(scopeClass, attributeBlock, i);
 
-			// Cas du premier operande pour rechercher la classe de scope scondaire
-			if (i == 0)
+			// Depilage du scope si on etait au scope secondaire
+			if (IsSecondaryScopeOperand(i))
+				PopScope(kwcOwnerClass);
+
+			// Cas d'un operande definissant la classe de scope secondaire
+			if (IsNewScopeOperand(i))
 			{
-				secondaryScopeClass = LookupSecondaryScopeClass(kwcOwnerClass);
+				secondaryScopeClass = LookupSecondaryScopeClass(kwcOwnerClass, i);
 
 				// Arret si on n'a pas trouve la classe secondaire
 				if (secondaryScopeClass == NULL)
 					break;
 			}
-
-			// Recherche de la classe de scope pour le prochain operande
-			if (i < oaOperands.GetSize() - 1 and IsSecondaryScopeOperand(i + 1))
-			{
-				// Empilage du scope si on passe vers le scope secondaire
-				if (scopeClass == kwcOwnerClass)
-					PushScope(kwcOwnerClass, kwcOwnerClass, this);
-				scopeClass = secondaryScopeClass;
-			}
-			else
-				scopeClass = kwcOwnerClass;
-
-			// Depilage du scope si necessaire, si on repasse vers le scope principal au prochain operande
-			if (IsSecondaryScopeOperand(i) and
-			    (i == oaOperands.GetSize() - 1 or not IsSecondaryScopeOperand(i + 1)))
-				PopScope(kwcOwnerClass);
 		}
 	}
 	return bResult;
@@ -1042,9 +1103,9 @@ void KWDerivationRule::InternalCompleteTypeInfo(const KWClass* kwcOwnerClass,
 	// Completion des operandes dans le cas standard
 	if (not GetMultipleScope())
 	{
-		for (i = 0; i < oaOperands.GetSize(); i++)
+		for (i = 0; i < GetOperandNumber(); i++)
 		{
-			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
+			operand = GetOperandAt(i);
 
 			// Completion de l'operande
 			operand->InternalCompleteTypeInfo(kwcOwnerClass, nkdCompletedAttributes);
@@ -1055,38 +1116,37 @@ void KWDerivationRule::InternalCompleteTypeInfo(const KWClass* kwcOwnerClass,
 	{
 		scopeClass = kwcOwnerClass;
 		secondaryScopeClass = NULL;
-		for (i = 0; i < oaOperands.GetSize(); i++)
+		for (i = 0; i < GetOperandNumber(); i++)
 		{
-			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
+			operand = GetOperandAt(i);
+
+			// Recherche de la classe de scope pour l'operande
+			if (IsSecondaryScopeOperand(i))
+			{
+				// Empilage du scope si on passe vers le scope secondaire
+				PushScope(kwcOwnerClass, kwcOwnerClass, this);
+				scopeClass = secondaryScopeClass;
+			}
+			else
+				scopeClass = kwcOwnerClass;
+			assert(scopeClass != NULL);
 
 			// Completion de l'operande
 			operand->InternalCompleteTypeInfo(scopeClass, nkdCompletedAttributes);
 
-			// Cas du premier operande pour rechercher la classe de scope scondaire
-			if (i == 0)
+			// Depilage du scope si on etait au scope secondaire
+			if (IsSecondaryScopeOperand(i))
+				PopScope(kwcOwnerClass);
+
+			// Cas d'un operande definissant la classe de scope secondaire
+			if (IsNewScopeOperand(i))
 			{
-				secondaryScopeClass = LookupSecondaryScopeClass(kwcOwnerClass);
+				secondaryScopeClass = LookupSecondaryScopeClass(kwcOwnerClass, i);
 
 				// Arret si on n'a pas trouve la classe secondaire
 				if (secondaryScopeClass == NULL)
 					break;
 			}
-
-			// Recherche de la classe de scope pour le prochain operande
-			if (i < oaOperands.GetSize() - 1 and IsSecondaryScopeOperand(i + 1))
-			{
-				// Empilage du scope si on passe vers le scope secondaire
-				if (scopeClass == kwcOwnerClass)
-					PushScope(kwcOwnerClass, kwcOwnerClass, this);
-				scopeClass = secondaryScopeClass;
-			}
-			else
-				scopeClass = kwcOwnerClass;
-
-			// Depilage du scope si necessaire, si on repasse vers le scope principal au prochain operande
-			if (IsSecondaryScopeOperand(i) and
-			    (i == oaOperands.GetSize() - 1 or not IsSecondaryScopeOperand(i + 1)))
-				PopScope(kwcOwnerClass);
 		}
 	}
 }
@@ -1122,9 +1182,9 @@ void KWDerivationRule::Compile(KWClass* kwcOwnerClass)
 		// Compilation des operandes dans le cas standard
 		if (not GetMultipleScope())
 		{
-			for (i = 0; i < oaOperands.GetSize(); i++)
+			for (i = 0; i < GetOperandNumber(); i++)
 			{
-				operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
+				operand = GetOperandAt(i);
 
 				// Compilation de l'operande
 				operand->Compile(kwcOwnerClass);
@@ -1135,39 +1195,34 @@ void KWDerivationRule::Compile(KWClass* kwcOwnerClass)
 		{
 			scopeClass = kwcOwnerClass;
 			secondaryScopeClass = NULL;
-			for (i = 0; i < oaOperands.GetSize(); i++)
+			for (i = 0; i < GetOperandNumber(); i++)
 			{
-				operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
+				operand = GetOperandAt(i);
 
-				// Compilation de l'operande
-				operand->Compile(scopeClass);
-
-				// Cas du premier operande pour rechercher la classe de scope scondaire
-				if (i == 0)
-				{
-					secondaryScopeClass = LookupSecondaryScopeClass(kwcOwnerClass);
-
-					// Arret si on n'a pas trouve la classe secondaire
-					if (secondaryScopeClass == NULL)
-						break;
-				}
-
-				// Recherche de la classe de scope pour le prochain operande
-				if (i < oaOperands.GetSize() - 1 and IsSecondaryScopeOperand(i + 1))
+				// Recherche de la classe de scope pour l'operande
+				if (IsSecondaryScopeOperand(i))
 				{
 					// Empilage du scope si on passe vers le scope secondaire
-					if (scopeClass == kwcOwnerClass)
-						PushScope(kwcOwnerClass, kwcOwnerClass, this);
+					PushScope(kwcOwnerClass, kwcOwnerClass, this);
 					scopeClass = secondaryScopeClass;
 				}
 				else
 					scopeClass = kwcOwnerClass;
+				assert(scopeClass != NULL);
 
-				// Depilage du scope si necessaire, si on repasse vers le scope principal au prochain
-				// operande
-				if (IsSecondaryScopeOperand(i) and
-				    (i == oaOperands.GetSize() - 1 or not IsSecondaryScopeOperand(i + 1)))
+				// Compilation de l'operande
+				operand->Compile(scopeClass);
+
+				// Depilage du scope si on etait au scope secondaire
+				if (IsSecondaryScopeOperand(i))
 					PopScope(kwcOwnerClass);
+
+				// Cas d'un operande definissant la classe de scope secondaire
+				if (IsNewScopeOperand(i))
+				{
+					secondaryScopeClass = LookupSecondaryScopeClass(kwcOwnerClass, i);
+					assert(secondaryScopeClass != NULL);
+				}
 			}
 		}
 
@@ -1431,6 +1486,17 @@ int KWDerivationRule::FullCompare(const KWDerivationRule* rule) const
 			operand1 = GetOperandAt(nOperand);
 			operand2 = rule->GetOperandAt(nOperand);
 
+			// Recherche de la classe de scope pour l'operande
+			if (IsSecondaryScopeOperand(nOperand))
+			{
+				// Empilage du scope si on passe vers le scope secondaire
+				PushScope(kwcClass, kwcClass, this);
+				scopeClass = secondaryScopeClass;
+			}
+			else
+				scopeClass = kwcClass;
+			assert(scopeClass != NULL);
+
 			// Comparaison sur le type de l'operande
 			if (nDiff == 0)
 				nDiff = operand1->GetType() - operand2->GetType();
@@ -1612,35 +1678,18 @@ int KWDerivationRule::FullCompare(const KWDerivationRule* rule) const
 				}
 			}
 
-			// Gestion du cas avec scope multiple
-			if (GetMultipleScope())
+			// Depilage du scope si on etait au scope secondaire
+			if (IsSecondaryScopeOperand(nOperand))
+				PopScope(kwcClass);
+
+			// Cas d'un operande definissant la classe de scope secondaire
+			if (IsNewScopeOperand(nOperand))
 			{
-				// Cas du premier operande pour rechercher la classe de scope scondaire
-				if (nOperand == 0)
-				{
-					secondaryScopeClass = LookupSecondaryScopeClass(kwcClass);
+				secondaryScopeClass = LookupSecondaryScopeClass(kwcClass, nOperand);
 
-					// Arret si on n'a pas trouve la classe secondaire
-					if (secondaryScopeClass == NULL)
-						break;
-				}
-
-				// Recherche de la classe de scope pour le prochain operande
-				if (nOperand < oaOperands.GetSize() - 1 and IsSecondaryScopeOperand(nOperand + 1))
-				{
-					// Empilage du scope si on passe vers le scope secondaire
-					if (scopeClass == kwcClass)
-						PushScope(kwcClass, kwcClass, this);
-					scopeClass = secondaryScopeClass;
-				}
-				else
-					scopeClass = kwcClass;
-
-				// Depilage du scope si necessaire, si on repasse vers le scope principal au prochain
-				// operande
-				if (IsSecondaryScopeOperand(nOperand) and
-				    (nOperand == oaOperands.GetSize() - 1 or not IsSecondaryScopeOperand(nOperand + 1)))
-					PopScope(kwcClass);
+				// Arret si on n'a pas trouve la classe secondaire
+				if (secondaryScopeClass == NULL)
+					break;
 			}
 		}
 	}
@@ -1660,9 +1709,9 @@ longint KWDerivationRule::GetUsedMemory() const
 
 	// Prise en compte des operandes
 	lUsedMemory += oaOperands.GetUsedMemory();
-	for (i = 0; i < oaOperands.GetSize(); i++)
+	for (i = 0; i < GetOperandNumber(); i++)
 	{
-		operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
+		operand = GetOperandAt(i);
 		lOperandUsedMemory = operand->GetUsedMemory();
 		lUsedMemory += lOperandUsedMemory;
 	}
@@ -1843,36 +1892,20 @@ void KWDerivationRule::WriteScope(const KWClass* kwcOwnerClass, ostream& ost) co
 	ost << "\n";
 }
 
-boolean KWDerivationRule::CheckFirstMultiScopeOperand() const
-{
-	boolean bResult = true;
-
-	// Le premier operande doit etre de type Relation
-	if (bResult and not KWType::IsGeneralRelation(GetFirstOperand()->GetType()))
-	{
-		bResult = false;
-		AddError("First operand must be of type Entity or Table");
-	}
-	return bResult;
-}
-
-KWClass* KWDerivationRule::LookupSecondaryScopeClass(const KWClass* kwcOwnerClass) const
+KWClass* KWDerivationRule::LookupSecondaryScopeClass(const KWClass* kwcOwnerClass, int nOperandIndex) const
 {
 	KWClass* secondaryScopeClass;
+	KWDerivationRuleOperand* operand;
 
 	require(kwcOwnerClass != NULL);
 	require(kwcOwnerClass->GetDomain() != NULL);
+	require(IsNewScopeOperand(nOperandIndex));
 
-	// Recherche seulement si necessaire
+	// Recherche si possible
 	secondaryScopeClass = NULL;
-	if (GetMultipleScope() and GetOperandNumber() > 0)
-	{
-		// Recherche si le premier operande est du bon type
-		if (KWType::IsGeneralRelation(GetFirstOperand()->GetType()) and
-		    GetFirstOperand()->GetObjectClassName() != "")
-			secondaryScopeClass =
-			    kwcOwnerClass->GetDomain()->LookupClass(GetFirstOperand()->GetObjectClassName());
-	}
+	operand = GetOperandAt(nOperandIndex);
+	if (KWType::IsGeneralRelation(operand->GetType()) and operand->GetObjectClassName() != "")
+		secondaryScopeClass = kwcOwnerClass->GetDomain()->LookupClass(operand->GetObjectClassName());
 	return secondaryScopeClass;
 }
 

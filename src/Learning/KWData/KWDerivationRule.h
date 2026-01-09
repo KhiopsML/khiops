@@ -227,6 +227,15 @@ public:
 							       const NumericKeyDictionary* nkdAllUsedAttributes,
 							       IntVector* ivMandatoryInputOperands) const;
 
+	// Collecte de tous les attributs en entree et en sortie des regles de creation d'instances
+	// Ces attributs peuvent ne pas etre obligatoires pour le calcul des attributs derives, qui peut etre
+	// optimise en ignorant les attributs en sortie non utilises, et les attribut en entree a l'orinine
+	// de ces attribut en sortie non utilises. Par contre, ces attributs sont necessaires
+	// pour maintenir la structure des dictionnaires valide et compilable
+	// Ne concerne que les regles de creation d'instances auant des operandes en sortie
+	virtual void CollectCreationRuleAllAttributes(const KWAttribute* derivedAttribute,
+						      NumericKeyDictionary* nkdAllNonDeletableAttributes) const;
+
 	//////////////////////////////////////////////////////////////////////////
 	// Gestion du scope des operandes
 	//
@@ -234,11 +243,10 @@ public:
 	// classe utilisant la regle de derivation pour le calcul d'un de ses attributs.
 	//
 	// Dans une regle a scope multiple, on a:
-	// - un premier operande de type Relation
+	// - des operandes de type Relation definissant un nouveau scope secondaire
 	//   - au niveau du scope principal (celui de la regle)
-	//   - definissant le scope secondaire
-	//     (celui de l'Object ou ObjectArray du premier operande)
-	// - les autre operandes sont au niveau du scope secondaire
+	//   - definissant le scope secondaire (celui de l'Object ou ObjectArray de l'operande)
+	// - les operandes suivants sont au niveau du scope secondaire
 	// - les operandes de scope inferieur (autre operande, ou operande
 	//   de leurs sous-regles), peuvent avoir un ScopeLevel positif,
 	//   leur permettant de remonter au scope principal
@@ -252,9 +260,22 @@ public:
 	//   1 pour remonter un niveau (".")
 	//   2 pour remonter un niveau ("..")
 
-	// Indique si la regle est avec gestion de scope multiple ou standard (par defaut)
+	// Indique si la regle est avec gestion de scope multiple ou standard (par defaut: false)
 	boolean GetMultipleScope() const;
 	void SetMultipleScope(boolean bValue);
+
+	// Indique si un operande definit le scope secondaire, en cas de regle avec gestion de scope multiple
+	// Par defaut, le premier operande est celui qui definit le scope secondaire
+	// On peut specialiser cette methode pour plusieurs operandes definissant le nouveau scope, les operandes
+	// suivants etant du scope secondaire, jusqu'au prochain operande definissant un nouveau scope secondaire
+	// Par exemple:
+	// - les operandes 1 et 3 peuvent definir un nouveau scope secondaire (etant eux meme du scope principal),
+	// - l'operande 2 est de scope celui defini par l'operande 1
+	// - les operande 4 et 5 sont de scope celui defini par l'operande 1
+	virtual boolean IsNewScopeOperand(int nOperandIndex) const;
+
+	// Nombre d'operandes definissant un nouveau scope secondaire
+	int GetNewScopeOperandNumber() const;
 
 	// Indique si un operande est du scope secondaire, en cas de regle avec gestion de scope multiple
 	virtual boolean IsSecondaryScopeOperand(int nOperandIndex) const;
@@ -530,18 +551,11 @@ protected:
 	// Affichage du scope empile
 	void WriteScope(const KWClass* kwcOwnerClass, ostream& ost) const;
 
-	// Verification du type du premier operande d'une regle a scope multiple
-	// La redefinition de cette methode permet de specifier des regles
-	// a scope multiple dont le premier operande n'est pas de type Relation
-	// (par exemple une regle Structure ayant acces a un type de table)
-	virtual boolean CheckFirstMultiScopeOperand() const;
-
 	// Recherche de la classe de scope secondaire en cas de scope multiple
-	// Cela correspond a la classe du premier operande de la regle
-	// Peut etre redefinie comme pour la methode precedente
+	// Cela correspond a la classe d'un operande definissant un nouveau scope secondaire
 	// Renvoie NULL si la regle n'est pas de scope multiple ou si
 	// l'on n'a pas trouve cette classe
-	virtual KWClass* LookupSecondaryScopeClass(const KWClass* kwcOwnerClass) const;
+	virtual KWClass* LookupSecondaryScopeClass(const KWClass* kwcOwnerClass, int nOperandIndex) const;
 
 	// Une fois compilee, une regle a scope multiple memorise dans un tableau
 	// tous les operandes secondaires ou des sous-regles a evaluer au niveau

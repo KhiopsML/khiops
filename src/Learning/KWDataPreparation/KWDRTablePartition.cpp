@@ -720,40 +720,34 @@ void KWDRTablePartitionStats::Compile(KWClass* kwcOwnerClass)
 	assert(tableStatsRule->Check());
 }
 
-boolean KWDRTablePartitionStats::CheckFirstMultiScopeOperand() const
-{
-	return true;
-}
-
-KWClass* KWDRTablePartitionStats::LookupSecondaryScopeClass(const KWClass* kwcOwnerClass) const
+KWClass* KWDRTablePartitionStats::LookupSecondaryScopeClass(const KWClass* kwcOwnerClass, int nOperandIndex) const
 {
 	KWClass* secondaryScopeClass;
 	KWDRTablePartition tablePartitionRuleRef;
-	KWDerivationRule* firstOperandRule;
+	KWDerivationRuleOperand* operand;
+	KWDerivationRule* operandRule;
 	KWDerivationRuleOperand* operandObjectArray;
 
 	require(kwcOwnerClass != NULL);
 	require(kwcOwnerClass->GetDomain() != NULL);
 
-	// Recherche seulement si necessaire
+	// Recherche seulement si possible
 	secondaryScopeClass = NULL;
-	if (GetOperandNumber() > 0)
-	{
-		// Acces a la regle du premier operande
-		firstOperandRule = GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass);
 
-		// Recherche de l'operande contenant les informations de la classe de l'ObjectArray
-		operandObjectArray = NULL;
-		if (firstOperandRule != NULL and firstOperandRule->GetName() == tablePartitionRuleRef.GetName() and
-		    firstOperandRule->GetOperandNumber() > 0)
-			operandObjectArray = firstOperandRule->GetFirstOperand();
+	// Acces a la regle de l'operande
+	operand = GetOperandAt(nOperandIndex);
+	operandRule = operand->GetReferencedDerivationRule(kwcOwnerClass);
 
-		// Recherche de la classe
-		if (operandObjectArray != NULL and KWType::IsRelation(operandObjectArray->GetType()) and
-		    operandObjectArray->GetObjectClassName() != "")
-			secondaryScopeClass =
-			    kwcOwnerClass->GetDomain()->LookupClass(operandObjectArray->GetObjectClassName());
-	}
+	// Recherche de l'operande contenant les informations de la classe de l'ObjectArray
+	operandObjectArray = NULL;
+	if (operandRule != NULL and operandRule->GetName() == tablePartitionRuleRef.GetName() and
+	    operandRule->GetOperandNumber() > 0)
+		operandObjectArray = operandRule->GetFirstOperand();
+
+	// Recherche de la classe
+	if (operandObjectArray != NULL and KWType::IsRelation(operandObjectArray->GetType()) and
+	    operandObjectArray->GetObjectClassName() != "")
+		secondaryScopeClass = kwcOwnerClass->GetDomain()->LookupClass(operandObjectArray->GetObjectClassName());
 	return secondaryScopeClass;
 }
 

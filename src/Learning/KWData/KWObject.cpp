@@ -42,9 +42,12 @@ KWObject::~KWObject()
 void KWObject::ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard)
 {
 	const boolean bTrace = false;
+	boolean bIsViewTypeUse;
+	boolean bIsComputeAllValuesNeeded;
 	int nAttribute;
 	KWDataItem* dataItem;
 	KWAttribute* attribute;
+	KWDerivationRule* attributeRule;
 	KWAttributeBlock* attributeBlock;
 	KWObject* kwoUsedObject;
 	ObjectArray* oaUsedObjects;
@@ -59,7 +62,11 @@ void KWObject::ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard)
 	// Trace de debut
 	if (bTrace)
 		cout << "Begin KWObject::ComputeAllValues " << GetClass()->GetDomain()->GetName() << " "
-		     << GetClass()->GetName() << " " << GetCreationIndex() << " #" << this << "\n";
+		     << GetClass()->GetName() << " " << GetCreationIndex() << " V" << GetViewTypeUse() << " #" << this
+		     << "\n";
+
+	// Recherche si usage de type view
+	bIsViewTypeUse = GetViewTypeUse();
 
 	// Calcul de toutes les valeurs a transferer
 	for (nAttribute = 0; nAttribute < kwcClass->GetConstDatabaseDataItemsToCompute()->GetSize(); nAttribute++)
@@ -79,7 +86,8 @@ void KWObject::ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard)
 		if (dataItem->IsAttribute())
 		{
 			attribute = cast(KWAttribute*, dataItem);
-			if (attribute->GetDerivationRule() != NULL)
+			attributeRule = attribute->GetDerivationRule();
+			if (attributeRule != NULL)
 			{
 				// Calcul selon le type
 				switch (attribute->GetType())
@@ -124,7 +132,15 @@ void KWObject::ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard)
 			if (attribute->GetType() == KWType::Object)
 
 			{
-				if (not attribute->GetReference())
+				// Propagation si sous-objet natif, sauf si objet de type vue,
+				// ou si regle de creation d'instance
+				if (attributeRule == NULL)
+					bIsComputeAllValuesNeeded = not bIsViewTypeUse;
+				else
+					bIsComputeAllValuesNeeded = not attributeRule->GetReference();
+
+				// Propagation si necessaire
+				if (bIsComputeAllValuesNeeded)
 				{
 					kwoUsedObject = GetObjectValueAt(attribute->GetLoadIndex());
 					if (kwoUsedObject != NULL)
@@ -134,7 +150,15 @@ void KWObject::ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard)
 			// Propagation aux tableaux de sous-objets de la composition
 			else if (attribute->GetType() == KWType::ObjectArray)
 			{
-				if (not attribute->GetReference())
+				// Propagation si sous-objet natif, sauf si objet de type vue,
+				// ou si regle de creation d'instance
+				if (attributeRule == NULL)
+					bIsComputeAllValuesNeeded = not bIsViewTypeUse;
+				else
+					bIsComputeAllValuesNeeded = not attributeRule->GetReference();
+
+				// Propagation si necessaire
+				if (bIsComputeAllValuesNeeded)
 				{
 					oaUsedObjects = GetObjectArrayValueAt(attribute->GetLoadIndex());
 					if (oaUsedObjects != NULL)
@@ -207,7 +231,8 @@ void KWObject::ComputeAllValues(KWDatabaseMemoryGuard* memoryGuard)
 	// Trace de fin
 	if (bTrace)
 		cout << "End KWObject::ComputeAllValues " << GetClass()->GetDomain()->GetName() << " "
-		     << GetClass()->GetName() << " " << GetCreationIndex() << " #" << this << "\n";
+		     << GetClass()->GetName() << " " << GetCreationIndex() << " V" << GetViewTypeUse() << " #" << this
+		     << "\n";
 }
 
 void KWObject::DeleteAttributes()
@@ -1044,10 +1069,13 @@ void KWObject::Write(ostream& ost) const
 void KWObject::PrettyWrite(ostream& ost, const ALString& sIndent) const
 {
 	const boolean bTraceUnloadedRelationAttributes = true;
+	boolean bIsViewTypeUse;
+	boolean bIsPrettyWriteNeeded;
 	const ALString sBasicIndent = "  ";
 	KWDataItem* dataItem;
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
+	KWDerivationRule* attributeRule;
 	KWObject* kwoUsedObject;
 	ObjectArray* oaUsedObjectArray;
 	Object* oUsedStructure;
@@ -1062,6 +1090,9 @@ void KWObject::PrettyWrite(ostream& ost, const ALString& sIndent) const
 	require(GetClass()->Check());
 	require(sIndent.SpanIncluding(" ") == sIndent);
 
+	// Recherche si usage de type view
+	bIsViewTypeUse = GetViewTypeUse();
+
 	// Impression de l'entete de l'objet
 	ost << sIndent << "{" << GetClass()->GetName() << "[" << GetCreationIndex() << "]\n";
 
@@ -1074,6 +1105,7 @@ void KWObject::PrettyWrite(ostream& ost, const ALString& sIndent) const
 		if (dataItem->IsAttribute())
 		{
 			attribute = cast(KWAttribute*, dataItem);
+			attributeRule = attribute->GetDerivationRule();
 
 			// Indentation
 			ost << sIndent;
@@ -1125,7 +1157,15 @@ void KWObject::PrettyWrite(ostream& ost, const ALString& sIndent) const
 					ost << "[NULL]\n";
 				else
 				{
-					if (not attribute->GetReference())
+					// Propagation si sous-objet natif, sauf si objet de type vue,
+					// ou si regle de creation d'instance
+					if (attributeRule == NULL)
+						bIsPrettyWriteNeeded = not bIsViewTypeUse;
+					else
+						bIsPrettyWriteNeeded = not attributeRule->GetReference();
+
+					// Propagation si necessaire
+					if (bIsPrettyWriteNeeded)
 					{
 						ost << "\n";
 						kwoUsedObject->PrettyWrite(ost, sIndent + sBasicIndent);
@@ -1142,6 +1182,13 @@ void KWObject::PrettyWrite(ostream& ost, const ALString& sIndent) const
 					ost << "[NULL]\n";
 				else
 				{
+					// Propagation si sous-objet natif, sauf si objet de type vue,
+					// ou si regle de creation d'instance
+					if (attributeRule == NULL)
+						bIsPrettyWriteNeeded = not bIsViewTypeUse;
+					else
+						bIsPrettyWriteNeeded = not attributeRule->GetReference();
+
 					// Parcours des elements du tableau
 					ost << "\n" << sIndent + sBasicIndent << "{\n";
 					for (j = 0; j < oaUsedObjectArray->GetSize(); j++)
@@ -1153,7 +1200,8 @@ void KWObject::PrettyWrite(ostream& ost, const ALString& sIndent) const
 							ost << sIndent + sBasicIndent << "[NULL]\n";
 						else
 						{
-							if (not attribute->GetReference())
+							// Propagation si necessaire
+							if (bIsPrettyWriteNeeded)
 								kwoUsedObject->PrettyWrite(ost, sIndent + sBasicIndent +
 												    sBasicIndent);
 							else
@@ -1249,17 +1297,15 @@ void KWObject::PrettyWrite(ostream& ost, const ALString& sIndent) const
 									ost << sIndent + sBasicIndent << "[NULL]\n";
 								else
 								{
-									if (not attribute->GetReference())
-										kwoUsedObject->PrettyWrite(
-										    ost, sIndent + sBasicIndent +
-											     sBasicIndent);
-									else
-										ost << sIndent + sBasicIndent
-										    << kwoUsedObject->GetClass()
-											   ->GetName()
-										    << "["
-										    << kwoUsedObject->GetCreationIndex()
-										    << "]\n";
+									assert(attribute->GetAnyDerivationRule() !=
+									       NULL);
+									assert(attribute->GetReference());
+
+									// On est necessairement dans un cas de reference a des instances existantes
+									ost << sIndent + sBasicIndent
+									    << kwoUsedObject->GetClass()->GetName()
+									    << "[" << kwoUsedObject->GetCreationIndex()
+									    << "]\n";
 								}
 							}
 							ost << sIndent + sBasicIndent << "}\n";
@@ -1281,7 +1327,15 @@ void KWObject::PrettyWrite(ostream& ost, const ALString& sIndent) const
 		for (i = 0; i < GetClass()->GetUnloadedOwnedRelationAttributeNumber(); i++)
 		{
 			attribute = GetClass()->GetUnloadedOwnedRelationAttributeAt(i);
+			attributeRule = attribute->GetDerivationRule();
 			assert(KWType::IsRelation(attribute->GetType()));
+
+			// Propagation si sous-objet natif, sauf si objet de type vue,
+			// ou si regle de creation d'instance
+			if (attributeRule == NULL)
+				bIsPrettyWriteNeeded = not bIsViewTypeUse;
+			else
+				bIsPrettyWriteNeeded = not attributeRule->GetReference();
 
 			// Indentation
 			ost << sIndent;
@@ -1297,7 +1351,8 @@ void KWObject::PrettyWrite(ostream& ost, const ALString& sIndent) const
 					ost << "[NULL]\n";
 				else
 				{
-					if (not attribute->GetReference())
+					// Propagation si necessaire
+					if (bIsPrettyWriteNeeded)
 					{
 						ost << "\n";
 						kwoUsedObject->PrettyWrite(ost, sIndent + sBasicIndent);
@@ -1326,7 +1381,8 @@ void KWObject::PrettyWrite(ostream& ost, const ALString& sIndent) const
 							ost << sIndent + sBasicIndent << "[NULL]\n";
 						else
 						{
-							if (not attribute->GetReference())
+							// Propagation si necessaire
+							if (bIsPrettyWriteNeeded)
 								kwoUsedObject->PrettyWrite(ost, sIndent + sBasicIndent +
 												    sBasicIndent);
 							else
@@ -1347,8 +1403,11 @@ void KWObject::PrettyWrite(ostream& ost, const ALString& sIndent) const
 longint KWObject::GetUsedMemory() const
 {
 	longint lUsedMemory;
+	boolean bIsViewTypeUse;
+	boolean bIsUsedMemoryNeeded;
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
+	KWDerivationRule* attributeRule;
 	KWLoadIndex liLoadIndex;
 	KWLoadIndex liInternalLoadIndex;
 	KWObject* kwoUsedObject;
@@ -1359,6 +1418,9 @@ longint KWObject::GetUsedMemory() const
 	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
 	debug(require(nFreshness == kwcClass->GetFreshness()));
 
+	// Recherche si usage de type view
+	bIsViewTypeUse = GetViewTypeUse();
+
 	// Initialisation avec la taille de l'objet de base
 	lUsedMemory = sizeof(KWObject) + 2 * sizeof(void*);
 	lUsedMemory += GetClass()->GetLoadedDataItemNumber() * sizeof(KWType);
@@ -1367,30 +1429,46 @@ longint KWObject::GetUsedMemory() const
 	for (i = 0; i < kwcClass->GetLoadedRelationAttributeNumber(); i++)
 	{
 		attribute = kwcClass->GetLoadedRelationAttributeAt(i);
+		attributeRule = attribute->GetDerivationRule();
 		liLoadIndex = attribute->GetLoadIndex();
 		assert(liLoadIndex.IsDense());
 
+		// Propagation si sous-objet natif, sauf si objet de type vue,
+		// ou si regle de creation d'instance
+		if (attributeRule == NULL)
+			bIsUsedMemoryNeeded = not bIsViewTypeUse;
+		else
+			bIsUsedMemoryNeeded = not attributeRule->GetReference();
+
 		// Valeur Object de la composition
-		if (attribute->GetType() == KWType::Object and not attribute->GetReference() and
-		    attribute->GetDerivationRule() == NULL)
+		if (attribute->GetType() == KWType::Object)
 		{
-			kwoUsedObject = GetObjectValueAt(liLoadIndex);
-			if (kwoUsedObject != NULL)
-				lUsedMemory += kwoUsedObject->GetUsedMemory();
+			if (bIsUsedMemoryNeeded)
+			{
+				kwoUsedObject = GetObjectValueAt(liLoadIndex);
+				if (kwoUsedObject != NULL)
+					lUsedMemory += kwoUsedObject->GetUsedMemory();
+			}
 		}
 		// Valeur ObjectArray
-		else if (attribute->GetType() == KWType::ObjectArray and not attribute->GetReference() and
-			 attribute->GetDerivationRule() == NULL)
+		else if (attribute->GetType() == KWType::ObjectArray)
 		{
 			oaUsedObjectArray = GetObjectArrayValueAt(liLoadIndex);
 			if (oaUsedObjectArray != NULL)
 			{
-				// Parcours des elements du tableau
-				for (j = 0; j < oaUsedObjectArray->GetSize(); j++)
+				// Tableau lui-meme
+				lUsedMemory += oaUsedObjectArray->GetUsedMemory();
+
+				// Contenu du tableau
+				if (bIsUsedMemoryNeeded)
 				{
-					kwoUsedObject = cast(KWObject*, oaUsedObjectArray->GetAt(j));
-					if (kwoUsedObject != NULL)
-						lUsedMemory += kwoUsedObject->GetUsedMemory();
+					// Parcours des elements du tableau
+					for (j = 0; j < oaUsedObjectArray->GetSize(); j++)
+					{
+						kwoUsedObject = cast(KWObject*, oaUsedObjectArray->GetAt(j));
+						if (kwoUsedObject != NULL)
+							lUsedMemory += kwoUsedObject->GetUsedMemory();
+					}
 				}
 			}
 		}
@@ -1417,36 +1495,53 @@ longint KWObject::GetUsedMemory() const
 	for (i = 0; i < kwcClass->GetUnloadedOwnedRelationAttributeNumber(); i++)
 	{
 		attribute = kwcClass->GetUnloadedOwnedRelationAttributeAt(i);
+		attributeRule = attribute->GetDerivationRule();
 		liInternalLoadIndex = attribute->GetInternalLoadIndex();
 		assert(liInternalLoadIndex.IsDense());
 
 		// Verifications de coherence
 		assert(KWType::IsRelation(attribute->GetType()));
-		assert(attribute->GetDerivationRule() == NULL);
 		assert(attribute->GetLoaded() == false);
 		assert(not attribute->GetReference());
 		assert(not GetAt(liInternalLoadIndex.GetDenseIndex()).IsObjectForbidenValue());
 
+		// Propagation si sous-objet natif, sauf si objet de type vue,
+		// ou si regle de creation d'instance
+		if (attributeRule == NULL)
+			bIsUsedMemoryNeeded = not bIsViewTypeUse;
+		else
+			bIsUsedMemoryNeeded = not attributeRule->GetReference();
+
 		// Cas des Object
 		if (attribute->GetType() == KWType::Object)
 		{
-			kwoUsedObject = GetObjectValueAt(liInternalLoadIndex);
-			if (kwoUsedObject != NULL)
-				lUsedMemory += kwoUsedObject->GetUsedMemory();
+			if (bIsUsedMemoryNeeded)
+			{
+				kwoUsedObject = GetAt(liInternalLoadIndex.GetDenseIndex()).GetObject();
+				if (kwoUsedObject != NULL)
+					lUsedMemory += kwoUsedObject->GetUsedMemory();
+			}
 		}
 		// Cas des ObjectArray
 		else
 		{
 			assert(attribute->GetType() == KWType::ObjectArray);
-			oaUsedObjectArray = GetObjectArrayValueAt(liInternalLoadIndex);
+			oaUsedObjectArray = GetAt(liInternalLoadIndex.GetDenseIndex()).GetObjectArray();
 			if (oaUsedObjectArray != NULL)
 			{
-				// Parcours des elements du tableau
-				for (j = 0; j < oaUsedObjectArray->GetSize(); j++)
+				// Tableau lui-meme
+				lUsedMemory += oaUsedObjectArray->GetUsedMemory();
+
+				// Contenu du tableau
+				if (bIsUsedMemoryNeeded)
 				{
-					kwoUsedObject = cast(KWObject*, oaUsedObjectArray->GetAt(j));
-					if (kwoUsedObject != NULL)
-						lUsedMemory += kwoUsedObject->GetUsedMemory();
+					// Parcours des elements du tableau
+					for (j = 0; j < oaUsedObjectArray->GetSize(); j++)
+					{
+						kwoUsedObject = cast(KWObject*, oaUsedObjectArray->GetAt(j));
+						if (kwoUsedObject != NULL)
+							lUsedMemory += kwoUsedObject->GetUsedMemory();
+					}
 				}
 			}
 		}
@@ -1477,7 +1572,19 @@ const ALString KWObject::GetObjectLabel() const
 		sObjectLabel += LongintToString(GetCreationIndex());
 		sObjectLabel += ')';
 	}
+
+	// On complete le libelle si l'instance est cree
+	if (GetObjectDataPath() != NULL and GetObjectDataPath()->GetCreatedObjects())
+		sObjectLabel += ", created at " + GetObjectDataPath()->GetObjectLabel();
 	return GetClass()->GetName() + " " + sObjectLabel;
+}
+
+boolean KWObject::IsMemoryLimitReached() const
+{
+	if (GetObjectDataPath() != NULL)
+		return GetObjectDataPath()->GetMemoryGuard()->IsMemoryLimitReached();
+	else
+		return false;
 }
 
 KWObject* KWObject::CreateObject(KWClass* refClass, longint lObjectIndex)
@@ -1839,9 +1946,11 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 							// Test de coherence
 							assert(kwoUsedObject->GetClass()->GetName() ==
 							       attribute->GetClass()->GetName());
-							assert(kwoUsedObject->GetClass()->GetDomain() ==
-							       previousClass->GetDomain());
-							assert(kwoUsedObject->GetClass() != attribute->GetClass());
+							assert(bIsViewTypeUse or
+							       kwoUsedObject->GetClass()->GetDomain() ==
+								   previousClass->GetDomain());
+							assert(bIsViewTypeUse or
+							       kwoUsedObject->GetClass() != attribute->GetClass());
 
 							// Transfert si objet a garder
 							if (nkdUnusedNativeAttributesToKeep->Lookup(attribute) ==
@@ -1857,8 +1966,8 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 								GetAt(liInternalLoadIndex.GetDenseIndex())
 								    .SetObject(kwoUsedObject);
 							}
-							// Destruction sinon
-							else
+							// Destruction sinon, sauf sans le cas View
+							else if (not bIsViewTypeUse)
 							{
 								// Trace
 								if (bTrace)
@@ -1903,7 +2012,7 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 								GetAt(liInternalLoadIndex.GetDenseIndex())
 								    .SetObjectArray(oaUsedObjectArray);
 							}
-							// Destruction sinon
+							// Destruction sinon, sauf dans le cas vue
 							else
 							{
 								// Trace
@@ -1913,8 +2022,11 @@ void KWObject::Mutate(const KWClass* kwcNewClass, const NumericKeyDictionary* nk
 									     << "(size=" << oaUsedObjectArray->GetSize()
 									     << ") #" << oaUsedObjectArray << "\n";
 
-								// Destruction
-								oaUsedObjectArray->DeleteAll();
+								// Destruction du contenu
+								if (not bIsViewTypeUse)
+									oaUsedObjectArray->DeleteAll();
+
+								// Destruction du tableau lui-meme
 								delete oaUsedObjectArray;
 							}
 						}
@@ -2093,6 +2205,7 @@ void KWObject::MutateLoadedRelationValues(const NumericKeyDictionary* nkdMutatio
 	KWLoadIndex liLoadIndex;
 	boolean bIsViewTypeUse;
 	KWAttribute* attribute;
+	KWDerivationRule* attributeRule;
 	boolean bIsAttributeMutationNeeded;
 	KWClass* kwcMutationClass;
 	KWObject* kwoUsedObject;
@@ -2109,15 +2222,16 @@ void KWObject::MutateLoadedRelationValues(const NumericKeyDictionary* nkdMutatio
 	for (nIndex = 0; nIndex < kwcClass->GetLoadedRelationAttributeNumber(); nIndex++)
 	{
 		attribute = kwcClass->GetLoadedRelationAttributeAt(nIndex);
+		attributeRule = attribute->GetDerivationRule();
 		liLoadIndex = attribute->GetLoadIndex();
 		assert(liLoadIndex.IsDense());
 
 		// Mutation necessaire si sous-objet natif, sauf dans le cas d'une vue
 		// ou si sous-objet calcule, sauf s'il s'agit d'une reference
-		if (attribute->GetDerivationRule() == NULL)
+		if (attributeRule == NULL)
 			bIsAttributeMutationNeeded = not bIsViewTypeUse;
 		else
-			bIsAttributeMutationNeeded = not attribute->GetDerivationRule()->GetReference();
+			bIsAttributeMutationNeeded = not attributeRule->GetReference();
 
 		// Mutation si necessaire
 		if (bIsAttributeMutationNeeded)
@@ -2188,6 +2302,7 @@ void KWObject::MutateUnloadedOwnedRelationValues(const NumericKeyDictionary* nkd
 	KWLoadIndex liInternalLoadIndex;
 	boolean bIsViewTypeUse;
 	KWAttribute* attribute;
+	KWDerivationRule* attributeRule;
 	boolean bIsAttributeMutationNeeded;
 	KWClass* kwcMutationClass;
 	KWObject* kwoUsedObject;
@@ -2204,6 +2319,7 @@ void KWObject::MutateUnloadedOwnedRelationValues(const NumericKeyDictionary* nkd
 	for (nIndex = 0; nIndex < kwcClass->GetUnloadedOwnedRelationAttributeNumber(); nIndex++)
 	{
 		attribute = kwcClass->GetUnloadedOwnedRelationAttributeAt(nIndex);
+		attributeRule = attribute->GetDerivationRule();
 		liInternalLoadIndex = attribute->GetInternalLoadIndex();
 		assert(liInternalLoadIndex.IsDense());
 		assert(not GetAt(liInternalLoadIndex.GetDenseIndex()).IsObjectForbidenValue());
@@ -2215,11 +2331,11 @@ void KWObject::MutateUnloadedOwnedRelationValues(const NumericKeyDictionary* nkd
 
 		// Mutation necessaire si sous-objet natif, sauf dans le cas d'une vue
 		// ou si sous-objet calcule, sauf s'il s'agit d'une reference
-		if (attribute->GetDerivationRule() == NULL)
+		if (attributeRule == NULL)
 			bIsAttributeMutationNeeded = not bIsViewTypeUse;
 		else
 		{
-			assert(not attribute->GetDerivationRule()->GetReference());
+			assert(not attributeRule->GetReference());
 			bIsAttributeMutationNeeded = true;
 		}
 

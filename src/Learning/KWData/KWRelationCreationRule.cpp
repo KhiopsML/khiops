@@ -11,6 +11,7 @@ KWDRRelationCreationRule::KWDRRelationCreationRule()
 {
 	SetType(KWType::ObjectArray);
 	bVariableOutputOperandNumber = false;
+	bMultipleOutputScope = false;
 	kwcCompiledTargetClass = NULL;
 }
 
@@ -34,16 +35,16 @@ void KWDRRelationCreationRule::SetOutputOperandNumber(int nValue)
 	require(nValue >= 0);
 
 	// Supression des OutputOperandes surnumeraires
-	if (nValue < oaOutputOperands.GetSize())
+	if (nValue < GetOutputOperandNumber())
 	{
-		for (i = nValue; i < oaOutputOperands.GetSize(); i++)
+		for (i = nValue; i < GetOutputOperandNumber(); i++)
 			delete oaOutputOperands.GetAt(i);
 		oaOutputOperands.SetSize(nValue);
 	}
 	// Ajout des OutputOperandes en plus
-	else if (nValue > oaOutputOperands.GetSize())
+	else if (nValue > GetOutputOperandNumber())
 	{
-		for (i = oaOutputOperands.GetSize(); i < nValue; i++)
+		for (i = GetOutputOperandNumber(); i < nValue; i++)
 		{
 			operand = new KWDerivationRuleOperand;
 			operand->SetOrigin(KWDerivationRuleOperand::OriginAttribute);
@@ -101,6 +102,43 @@ void KWDRRelationCreationRule::DeleteAllVariableOutputOperands()
 	}
 }
 
+boolean KWDRRelationCreationRule::GetMultipleOutputScope() const
+{
+	return bMultipleOutputScope;
+}
+
+void KWDRRelationCreationRule::SetMultipleOutputScope(boolean bValue)
+{
+	bMultipleOutputScope = bValue;
+}
+
+boolean KWDRRelationCreationRule::IsNewOutputScopeOperand(int nOutputOperandIndex) const
+{
+	require(0 <= nOutputOperandIndex and nOutputOperandIndex < GetOutputOperandNumber());
+	return false;
+}
+
+int KWDRRelationCreationRule::GetNewOutputScopeOperandNumber() const
+{
+	int nNumber;
+	int nOutputOperandIndex;
+
+	// Comptage des operandes definissant un nouveau scope secondaire
+	nNumber = 0;
+	for (nOutputOperandIndex = 0; nOutputOperandIndex < GetOutputOperandNumber(); nOutputOperandIndex++)
+	{
+		if (IsNewOutputScopeOperand(nOutputOperandIndex))
+			nNumber++;
+	}
+	return nNumber;
+}
+
+boolean KWDRRelationCreationRule::IsSecondaryOutputScopeOperand(int nOutputOperandIndex) const
+{
+	require(0 <= nOutputOperandIndex and nOutputOperandIndex < GetOutputOperandNumber());
+	return false;
+}
+
 void KWDRRelationCreationRule::RenameClass(const KWClass* refClass, const ALString& sNewClassName)
 {
 	int i;
@@ -115,18 +153,15 @@ void KWDRRelationCreationRule::RenameClass(const KWClass* refClass, const ALStri
 	if (sNewClassName != refClass->GetName())
 	{
 		// Parcours des operandes en sortie
-		for (i = 0; i < oaOutputOperands.GetSize(); i++)
+		for (i = 0; i < GetOutputOperandNumber(); i++)
 		{
-			operand = cast(KWDerivationRuleOperand*, oaOutputOperands.GetAt(i));
+			operand = GetOutputOperandAt(i);
+			assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute);
 
 			// Type objet de l'operande
 			if (KWType::IsGeneralRelation(operand->GetType()) and
 			    operand->GetObjectClassName() == refClass->GetName())
 				operand->SetObjectClassName(sNewClassName);
-
-			// Propagation aux sous-regles
-			if (operand->GetDerivationRule() != NULL)
-				operand->GetDerivationRule()->RenameClass(refClass, sNewClassName);
 		}
 	}
 }
@@ -145,7 +180,7 @@ boolean KWDRRelationCreationRule::CheckRuleDefinition() const
 		// uniquement pour la regle "generique"
 		if (LookupDerivationRule(GetName()) == this)
 		{
-			if (GetVariableOutputOperandNumber() and oaOutputOperands.GetSize() == 0)
+			if (GetVariableOutputOperandNumber() and GetOutputOperandNumber() == 0)
 			{
 				AddError("The definition of a registered derivation rule with a variable number of "
 					 "output operands must contain at least one operand");
@@ -196,9 +231,9 @@ boolean KWDRRelationCreationRule::CheckOperandsDefinition() const
 	if (bOk)
 	{
 		// Verification des operandes en sortie
-		for (i = 0; i < oaOutputOperands.GetSize(); i++)
+		for (i = 0; i < GetOutputOperandNumber(); i++)
 		{
-			operand = cast(KWDerivationRuleOperand*, oaOutputOperands.GetAt(i));
+			operand = GetOutputOperandAt(i);
 
 			// Controle de base
 			if (not operand->CheckDefinition())
@@ -227,7 +262,7 @@ boolean KWDRRelationCreationRule::CheckOperandsDefinition() const
 				bOk = false;
 			}
 
-			// On ne peut avoir que des type de donnees dense pour les operandes en sortie
+			// On ne peut avoir que des types de donnees dense pour les operandes en sortie
 			if (bOk and not IsValidOutputOperandType(operand->GetType()) and
 			    operand->GetType() != KWType::Unknown)
 			{
@@ -240,13 +275,64 @@ boolean KWDRRelationCreationRule::CheckOperandsDefinition() const
 			// a le droit d'etre de type Unknown
 			if (bOk and bIsGenericRule)
 			{
-				if ((i < oaOutputOperands.GetSize() - 1 or not GetVariableOutputOperandNumber()) and
+				if ((i < GetOutputOperandNumber() - 1 or not GetVariableOutputOperandNumber()) and
 				    operand->GetType() == KWType::Unknown)
 				{
 					AddError(
 					    "In the definition of a registered derivation rule with a variable "
 					    "number of operands, first output operands must have their type specified");
 					bOk = false;
+				}
+			}
+		}
+
+		// Cas des regles avec scope multiple
+		if (bOk and GetMultipleOutputScope())
+		{
+			// Il doit y avoir au moins un operande
+			if (bOk and GetOutputOperandNumber() == 0)
+			{
+				bOk = false;
+				AddError("At least one output operand is mandatory");
+			}
+
+			// Verification des operandes definissant un nouveau scope secondaire
+			if (bOk)
+			{
+				// Verification qu'il y en a au moins un
+				if (GetNewOutputScopeOperandNumber() == 0)
+				{
+					bOk = false;
+					AddError("At least one output operand should be a multi-scope operand");
+				}
+				// Le premier operande ne peut etre au niveau secondaire
+				else if (IsSecondaryOutputScopeOperand(0))
+				{
+					bOk = false;
+					AddError("First output operand cannot be at the secondary scope");
+				}
+				// Verification de chaque operande definissant un nouveau scope secondaire
+				else
+				{
+					for (i = 0; i < GetOutputOperandNumber(); i++)
+					{
+						operand = GetOutputOperandAt(i);
+						if (IsNewOutputScopeOperand(i) and
+						    not KWType::IsGeneralRelation(operand->GetType()))
+						{
+							bOk = false;
+							AddError(sTmp + "Multi-scope output operand " + IntToString(i) +
+								 " must be of type Entity or Table");
+						}
+						else if (IsNewOutputScopeOperand(i) and
+							 IsSecondaryOutputScopeOperand(i))
+						{
+							bOk = false;
+							AddError(sTmp + "Output operand " + IntToString(i) +
+								 " cannot be both a multi-scope and a secondary scope "
+								 "operand");
+						}
+					}
 				}
 			}
 		}
@@ -339,9 +425,9 @@ boolean KWDRRelationCreationRule::CheckOperandsFamily(const KWDerivationRule* ru
 		if (familyVariableOperand->GetType() == KWType::Unknown)
 		{
 			// Verification des operandes en nombres variables
-			for (i = ruleFamily->GetOperandNumber() - 1; i < oaOperands.GetSize(); i++)
+			for (i = ruleFamily->GetOperandNumber() - 1; i < GetOperandNumber(); i++)
 			{
-				operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(i));
+				operand = GetOperandAt(i);
 
 				// On ne teste pas le cas d'un operande de type inconnu, qui correspond a une variable
 				// n'existant pas, et qui est diagnostique precisement dans CheckOperandsCompleteness
@@ -363,9 +449,9 @@ boolean KWDRRelationCreationRule::CheckOperandsFamily(const KWDerivationRule* ru
 	if (bOk)
 	{
 		// Verification des operandes en sortie
-		for (i = 0; i < oaOutputOperands.GetSize(); i++)
+		for (i = 0; i < GetOutputOperandNumber(); i++)
 		{
-			outputOperand = cast(KWDerivationRuleOperand*, oaOutputOperands.GetAt(i));
+			outputOperand = GetOutputOperandAt(i);
 
 			// Cas du dernier operande pour un nombre variable d'operandes
 			if (ruleFamily->GetVariableOutputOperandNumber() and
@@ -435,8 +521,8 @@ boolean KWDRRelationCreationRule::CheckOperandsFamily(const KWDerivationRule* ru
 		{
 			nInput = ruleFamily->GetOperandNumber() - 1 + i;
 			nOutput = ruleFamily->GetOutputOperandNumber() - 1 + i;
-			operand = cast(KWDerivationRuleOperand*, oaOperands.GetAt(nInput));
-			outputOperand = cast(KWDerivationRuleOperand*, oaOutputOperands.GetAt(nOutput));
+			operand = GetOperandAt(nInput);
+			outputOperand = GetOutputOperandAt(nOutput);
 
 			// On ne verifie la compatibilite que si le type est non defini dans la regle enregistree
 			if (familyVariableOperand->GetType() == KWType::Unknown and
@@ -485,13 +571,17 @@ boolean KWDRRelationCreationRule::CheckOperandsFamily(const KWDerivationRule* ru
 boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
 {
 	boolean bOk;
+	const KWClass* secondaryOutputScopeClass;
+	const KWClass* outputScopeClass;
 	KWClass* kwcSourceClass;
 	KWClass* kwcTargetClass;
 	KWAttribute* sourceAttribute;
 	KWAttribute* targetAttribute;
 	KWAttributeBlock* sourceBlock;
 	KWAttributeBlock* targetBlock;
-	ObjectDictionary odOutputAttributeNames;
+	NumericKeyDictionary nkdOutputAttributes;
+	NumericKeyDictionary nkdOutputScopeClasses;
+	ObjectArray oaOutputScopeClasses;
 	KWDerivationRuleOperand* operand;
 	ALString sLabel;
 	int i;
@@ -500,7 +590,7 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 	// Appel de la methode ancetre
 	bOk = KWDerivationRule::CheckOperandsCompleteness(kwcOwnerClass);
 
-	// Specialisation
+	// Specialisation pour les operandes en sortie
 	if (bOk)
 	{
 		// Recherche de la classe cible
@@ -519,6 +609,8 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 		if (bOk and GetOutputOperandNumber() > 0)
 		{
 			// Collecte des noms des attributs en sortie en verifiant leur unicite
+			outputScopeClass = kwcTargetClass;
+			secondaryOutputScopeClass = NULL;
 			for (i = 0; i < GetOutputOperandNumber(); i++)
 			{
 				operand = GetOutputOperandAt(i);
@@ -526,31 +618,40 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 				assert(IsValidOutputOperandType(operand->GetType()) or
 				       operand->GetType() == KWType::Unknown);
 
+				// Recherche de la classe de scope pour l'operande
+				if (IsSecondaryOutputScopeOperand(i))
+					outputScopeClass = secondaryOutputScopeClass;
+				else
+					outputScopeClass = kwcTargetClass;
+				assert(outputScopeClass != NULL);
+
 				// Message special dans le cas d'un type inconnu, qui correspond a une variable non
 				// trouvee dans le dictionnaire en sortie
+				targetAttribute = NULL;
 				if (operand->GetType() == KWType::Unknown)
 				{
 					assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute);
 					assert(operand->GetDataItemName() != "");
-					assert(kwcTargetClass->LookupAttribute(operand->GetDataItemName()) == NULL);
+					assert(outputScopeClass->LookupAttribute(operand->GetDataItemName()) == NULL);
 
 					// On passe par la methode GetDataItemName, car le type n'est pas valide
 					AddError(sTmp + "Invalid output operand " + IntToString(i + 1) + ", as the " +
 						 operand->GetDataItemName() + " variable is not found in the " +
-						 kwcTargetClass->GetName() + " output dictionary");
+						 outputScopeClass->GetName() + " output dictionary");
 					bOk = false;
 				}
 				// Verification de l'operande en sortie dans le cas general
-				else if (not operand->CheckCompleteness(kwcTargetClass))
+				else if (not operand->CheckCompleteness(outputScopeClass))
 				{
 					AddError(sTmp + "Incomplete output operand " + IntToString(i + 1) +
-						 " related to the " + kwcTargetClass->GetName() + " output dictionary");
+						 " related to the " + outputScopeClass->GetName() +
+						 " output dictionary");
 					bOk = false;
 				}
 				// Verification que l'attribut en sortie n'est pas dans un bloc
 				else
 				{
-					targetAttribute = kwcTargetClass->LookupAttribute(operand->GetDataItemName());
+					targetAttribute = outputScopeClass->LookupAttribute(operand->GetDataItemName());
 					assert(targetAttribute != NULL);
 
 					if (targetAttribute->IsInBlock())
@@ -559,24 +660,39 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 							 ", as the " + operand->GetDataItemName() +
 							 " variable should not be in a variable block (" +
 							 targetAttribute->GetAttributeBlock()->GetName() + ") in the " +
-							 kwcTargetClass->GetName() + " output dictionary");
+							 outputScopeClass->GetName() + " output dictionary");
 						bOk = false;
 					}
 				}
 
-				// Verification de l'unicite des noms d'attributs des operandes en sortie
+				// Verification de l'unicite des attributs des operandes en sortie
 				if (bOk)
 				{
-					if (odOutputAttributeNames.Lookup(operand->GetAttributeName()) == NULL)
-						odOutputAttributeNames.SetAt(operand->GetAttributeName(), operand);
+					assert(targetAttribute != NULL);
+					assert(targetAttribute->GetParentClass() == outputScopeClass);
+					if (nkdOutputAttributes.Lookup(targetAttribute) == NULL)
+						nkdOutputAttributes.SetAt(targetAttribute, targetAttribute);
 					else
 					{
 						AddError(sTmp + "Output operand " + IntToString(i + 1) + " with the " +
-							 operand->GetAttributeName() +
-							 " variable already used in the " + kwcTargetClass->GetName() +
-							 " output dictionary");
+							 targetAttribute->GetName() + " variable already used in the " +
+							 outputScopeClass->GetName() + " output dictionary");
 						bOk = false;
 					}
+				}
+
+				// Cas d'un operande definissant la classe de scope secondaire
+				if (IsNewOutputScopeOperand(i))
+				{
+					secondaryOutputScopeClass = LookupSecondaryOutputScopeClass(kwcTargetClass, i);
+
+					// Arret si on a pas trouve la classe secondaire
+					if (secondaryOutputScopeClass == NULL)
+						break;
+
+					// Memorisation de la classe secondaire
+					nkdOutputScopeClasses.SetAt(secondaryOutputScopeClass,
+								    cast(Object*, secondaryOutputScopeClass));
 				}
 
 				// Arret en cas d'erreur
@@ -610,10 +726,9 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 
 					// On verifie si l'attribut natif n'est pas deja alimente par les operandes en sortie
 					// pour se focaliser ici sur les controle de type vue
-					if (odOutputAttributeNames.Lookup(targetAttribute->GetName()) == NULL)
+					if (nkdOutputAttributes.Lookup(targetAttribute) == NULL)
 					{
-						// Erreur si pas attribut natif source de meme nom
-						sourceAttribute = NULL;
+						// Erreur si attribut cible non trouve
 						if (not IsViewModeActivated())
 						{
 							AddError("In the " + kwcTargetClass->GetName() +
@@ -752,6 +867,44 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 				kwcTargetClass->GetNextAttribute(targetAttribute);
 			}
 		}
+
+		// Verification des attributs de chaque classe de scope secondaire
+		if (bOk)
+		{
+			// Parcours des classes de scope secondaire
+			nkdOutputScopeClasses.ExportObjectArray(&oaOutputScopeClasses);
+			for (i = 0; i < oaOutputScopeClasses.GetSize(); i++)
+			{
+				outputScopeClass = cast(const KWClass*, oaOutputScopeClasses.GetAt(i));
+
+				// Parcours des attributs natif de la classe
+				targetAttribute = outputScopeClass->GetHeadAttribute();
+				while (targetAttribute != NULL)
+				{
+					// On ne traite que les attributs natifs
+					if (targetAttribute->GetAnyDerivationRule() == NULL)
+					{
+						assert(IsValidOutputOperandType(targetAttribute->GetType()));
+
+						// On verifie si l'attribut natif n'est pas deja alimente par les operandes en sortie
+						// Note: il n'y a pas d'alimentation de type vue pour les scopes secondairespour se focaliser ici sur les controle de type vue
+						if (nkdOutputAttributes.Lookup(targetAttribute) == NULL)
+						{
+							// Erreur si attribute cible non trouve
+							sourceAttribute = NULL;
+							AddError("In the " + outputScopeClass->GetName() +
+								 " output dictionary, the " +
+								 targetAttribute->GetName() +
+								 " variable is not set by any output operand");
+							bOk = false;
+						}
+					}
+
+					// Attribut suivant
+					outputScopeClass->GetNextAttribute(targetAttribute);
+				}
+			}
+		}
 	}
 	return bOk;
 }
@@ -760,9 +913,17 @@ boolean KWDRRelationCreationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAtt
 						NumericKeyDictionary* nkdBlackAttributes) const
 {
 	boolean bContainsCycle;
+	const KWClass* secondaryOutputScopeClass;
+	const KWClass* outputScopeClass;
+	NumericKeyDictionary nkdOutputScopeClasses;
+	ObjectArray oaOutputScopeClasses;
 	KWClass* kwcTargetClass;
 	KWAttribute* attribute;
 	KWDerivationRule* rule;
+	int nOperand;
+	int i;
+
+	require(IsCompiled());
 
 	// Appel de la methode ancetre
 	bContainsCycle = KWDerivationRule::ContainsCycle(nkdGreyAttributes, nkdBlackAttributes);
@@ -777,39 +938,72 @@ boolean KWDRRelationCreationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAtt
 	{
 		// Recherche de la classe cible
 		kwcTargetClass = GetOwnerClass()->GetDomain()->LookupClass(GetObjectClassName());
+		nkdOutputScopeClasses.SetAt(kwcTargetClass, cast(Object*, kwcTargetClass));
 
-		// Parcours des attributs de la classe, en ne s'interessant qu'aux attributs ayant une regle de creation d'instance
-		// Les cycles via les regles de derivation standard sont deja detectes par ailleurs
-		attribute = kwcTargetClass->GetHeadAttribute();
-		while (attribute != NULL)
+		// Collecte des classes en sortie
+		if (GetMultipleOutputScope())
 		{
-			// Test si l'attribut est en White (ni Grey, ni Black)
-			rule = attribute->GetDerivationRule();
-			if (rule != NULL and KWType::IsRelation(rule->GetType()) and not rule->GetReference())
-
+			outputScopeClass = kwcTargetClass;
+			secondaryOutputScopeClass = NULL;
+			for (nOperand = 0; nOperand < GetOutputOperandNumber(); nOperand++)
 			{
-				// L'attribut est marque en Grey: presence d'une cycle
-				if (nkdGreyAttributes->Lookup(attribute) != NULL)
+				// Enregistrement des classes pour les operandes definissant la classe de scope secondaire
+				if (IsNewOutputScopeOperand(nOperand))
 				{
-					GetOwnerClass()->AddError(
-					    "Existing derivation cycle caused by the recursive use of "
-					    "variable " +
-					    attribute->GetName() + " in target dictionary " +
-					    kwcTargetClass->GetName() + " built using " + GetName() + " rule");
-					bContainsCycle = true;
+					secondaryOutputScopeClass =
+					    LookupSecondaryOutputScopeClass(kwcTargetClass, nOperand);
+					assert(secondaryOutputScopeClass != NULL);
+					nkdOutputScopeClasses.SetAt(secondaryOutputScopeClass,
+								    cast(Object*, secondaryOutputScopeClass));
 				}
-				// Attribut non marque: il faut continuer l'analyse
-				else if (nkdBlackAttributes->Lookup(attribute) == NULL)
-					bContainsCycle =
-					    attribute->ContainsCycle(nkdGreyAttributes, nkdBlackAttributes);
 			}
+		}
 
-			// Arret en cas de cycle
-			if (bContainsCycle)
-				break;
+		// Parcours des classe en sortie
+		nkdOutputScopeClasses.ExportObjectArray(&oaOutputScopeClasses);
+		for (i = 0; i < oaOutputScopeClasses.GetSize(); i++)
+		{
+			outputScopeClass = cast(const KWClass*, oaOutputScopeClasses.GetAt(i));
 
-			// Attribut suivant
-			kwcTargetClass->GetNextAttribute(attribute);
+			// Parcours des attributs de la classe, en ne s'interessant qu'aux attributs ayant une regle de creation d'instance
+			// Les cycles via les regles de derivation standard sont deja detectes par ailleurs
+			attribute = outputScopeClass->GetHeadAttribute();
+			while (attribute != NULL)
+			{
+				// Les regles de bloc de type relation sont forcement de type reference
+				assert(attribute->GetBlockDerivationRule() == NULL or
+				       not KWType::IsGeneralRelation(attribute->GetType()) or
+				       attribute->GetBlockDerivationRule()->GetReference());
+
+				// Test si l'attribut est en White (ni Grey, ni Black)
+				rule = attribute->GetDerivationRule();
+				if (rule != NULL and KWType::IsRelation(rule->GetType()) and not rule->GetReference())
+
+				{
+					// L'attribut est marque en Grey: presence d'une cycle
+					if (nkdGreyAttributes->Lookup(attribute) != NULL)
+					{
+						GetOwnerClass()->AddError(
+						    "Existing derivation cycle caused by the recursive use of "
+						    "variable " +
+						    attribute->GetName() + " in target dictionary " +
+						    outputScopeClass->GetName() + " built using " + GetName() +
+						    " rule");
+						bContainsCycle = true;
+					}
+					// Attribut non marque: il faut continuer l'analyse
+					else if (nkdBlackAttributes->Lookup(attribute) == NULL)
+						bContainsCycle =
+						    attribute->ContainsCycle(nkdGreyAttributes, nkdBlackAttributes);
+				}
+
+				// Arret en cas de cycle
+				if (bContainsCycle)
+					break;
+
+				// Attribut suivant
+				outputScopeClass->GetNextAttribute(attribute);
+			}
 		}
 	}
 	return bContainsCycle;
@@ -818,7 +1012,9 @@ boolean KWDRRelationCreationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAtt
 void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 {
 	const boolean bTrace = false;
-	ObjectDictionary odOutputAttributeNames;
+	const KWClass* secondaryOutputScopeClass;
+	const KWClass* outputScopeClass;
+	NumericKeyDictionary nkdOutputAttributes;
 	KWClass* kwcSourceClass;
 	KWAttribute* sourceAttribute;
 	KWAttribute* targetAttribute;
@@ -828,6 +1024,7 @@ void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 	int nBlock;
 	KWDerivationRuleOperand* operand;
 	KWDerivationRule* valueBlockRule;
+	KWLoadIndex liInvalid;
 	int i;
 
 	require(kwcOwnerClass != NULL);
@@ -867,34 +1064,59 @@ void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 	{
 		// Trace dediee
 		if (bTrace)
-			cout << "\tOperand index\tVariable\tType\tTarget index\n";
+			cout << "\tOperand index\tDictionary\tVariable\tType\tTarget index\n";
 
-		// Collecte des nom des attribut en sortie en verifiant leur unicite
+		// Collecte des attributs en sortie et calcul de leur index de chargement
+		outputScopeClass = kwcCompiledTargetClass;
+		secondaryOutputScopeClass = NULL;
 		for (i = 0; i < GetOutputOperandNumber(); i++)
 		{
 			operand = GetOutputOperandAt(i);
 			assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute);
 			assert(IsValidOutputOperandType(operand->GetType()));
 
-			// Memorisation du nom de l'attribut en sortie
-			odOutputAttributeNames.SetAt(operand->GetAttributeName(), operand);
+			// Recherche de la classe de scope pour l'operande
+			if (IsSecondaryOutputScopeOperand(i))
+				outputScopeClass = secondaryOutputScopeClass;
+			else
+				outputScopeClass = kwcCompiledTargetClass;
+			assert(outputScopeClass != NULL);
 
 			// Recherche de l'attribut cible
-			targetAttribute = kwcCompiledTargetClass->LookupAttribute(operand->GetAttributeName());
+			targetAttribute = outputScopeClass->LookupAttribute(operand->GetAttributeName());
 			assert(targetAttribute != NULL);
 			assert(IsValidOutputOperandType(targetAttribute->GetType()));
 
+			// Memorisation de l'attribut en sortie
+			nkdOutputAttributes.SetAt(targetAttribute, targetAttribute);
+
 			// Memorisation des infos de chargement, que l'attribut cible soit Loaded ou non
-			livComputeModeTargetAttributeLoadIndexes.Add(targetAttribute->GetLoadIndex());
 			ivComputeModeTargetAttributeTypes.Add(targetAttribute->GetType());
+			if (targetAttribute->GetUsed())
+				livComputeModeTargetAttributeLoadIndexes.Add(targetAttribute->GetLoadIndex());
+			// On utilise un index invalide dans le cas d'un attribut non utilise
+			// C'est en particulier le cas pour les attributs de type relation internes,
+			// gardes en memoire uniquement pour des raisons de liberation de la memoire
+			else
+				livComputeModeTargetAttributeLoadIndexes.Add(liInvalid);
+
+			// Cas d'un operande definissant la classe de scope secondaire
+			if (IsNewOutputScopeOperand(i))
+			{
+				secondaryOutputScopeClass = LookupSecondaryOutputScopeClass(kwcCompiledTargetClass, i);
+				assert(secondaryOutputScopeClass != NULL);
+			}
 
 			// Trace par attribut gere par une alimentation de type vue
 			if (bTrace)
 			{
 				cout << "\t" << i + 1;
+				cout << "\t" << (targetAttribute->GetUsed() ? "" : "Unused");
+				cout << "\t" << targetAttribute->GetParentClass()->GetName();
 				cout << "\t" << targetAttribute->GetName();
 				cout << "\t" << KWType::ToString(targetAttribute->GetType());
 				cout << "\t" << targetAttribute->GetLoadIndex();
+				cout << "\t" << livComputeModeTargetAttributeLoadIndexes.GetAt(i);
 				cout << "\n";
 			}
 		}
@@ -927,7 +1149,7 @@ void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 			// On ne traite que les attributs natifs utilises non deja prise en compte
 			// par une alimentation de type calcul
 			if (targetAttribute->GetDerivationRule() == NULL and
-			    odOutputAttributeNames.Lookup(targetAttribute->GetName()) == NULL)
+			    nkdOutputAttributes.Lookup(targetAttribute) == NULL)
 			{
 				assert(IsValidOutputOperandType(targetAttribute->GetType()));
 
@@ -1019,7 +1241,10 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 						      NumericKeyDictionary* nkdAllUsedAttributes) const
 {
 	boolean bTrace = false;
-	ObjectDictionary odOutputAttributeNames;
+	const KWClass* secondaryOutputScopeClass;
+	const KWClass* outputScopeClass;
+	NumericKeyDictionary nkdOutputAttributes;
+	ObjectArray oaOutputAttributes;
 	IntVector ivUsedInputOperands;
 	IntVector ivUsedOutputOperands;
 	KWClass* kwcSourceClass;
@@ -1044,7 +1269,7 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 		cout << "- target class: " << GetObjectClassName() << "\n";
 	}
 
-	// Recherche des attribut cible utilises dans le cas d'une alimentation de type calcul
+	// Recherche des attributs cibles utilises dans le cas d'une alimentation de type calcul
 	if (GetOutputOperandNumber() > 0)
 	{
 		// Initialisation des vecteurs des operandes utilises en entree et en sortie
@@ -1063,14 +1288,24 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 		// On optimise les impacts en n'exploitant que les attributs en sortie utilises
 		// - on ne collecte pas les attributs cibles dans methode
 		// - on se base en fait sur leur utilisation par d'autre regles
+		outputScopeClass = kwcTargetClass;
+		secondaryOutputScopeClass = NULL;
+		oaOutputAttributes.SetSize(GetOutputOperandNumber());
 		for (nOperand = 0; nOperand < GetOutputOperandNumber(); nOperand++)
 		{
 			operand = GetOutputOperandAt(nOperand);
 			assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute);
 			assert(KWType::IsData(operand->GetType()));
 
+			// Recherche de la classe de scope pour l'operande
+			if (IsSecondaryOutputScopeOperand(nOperand))
+				outputScopeClass = secondaryOutputScopeClass;
+			else
+				outputScopeClass = kwcTargetClass;
+			assert(outputScopeClass != NULL);
+
 			// Recherche de l'attribut cible correspond a l'operande en sortie
-			targetAttribute = kwcTargetClass->LookupAttribute(operand->GetAttributeName());
+			targetAttribute = outputScopeClass->LookupAttribute(operand->GetAttributeName());
 			assert(targetAttribute != NULL);
 
 			// Recherche si l'attribut cible est utilise
@@ -1081,12 +1316,29 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 				ivUsedOutputOperands.SetAt(nOperand, 1);
 
 			// Memorisation du nom de l'attribut en sortie pour les distinguer des attributs de type view
-			odOutputAttributeNames.SetAt(operand->GetAttributeName(), operand);
+			nkdOutputAttributes.SetAt(targetAttribute, targetAttribute);
+			oaOutputAttributes.SetAt(nOperand, targetAttribute);
 
-			// Trace
-			if (bTrace)
-				cout << "  - " << nOperand + 1 << ": " << operand->GetAttributeName() << "\t"
-				     << BooleanToString(bIsTargetAttributeUsed) << "\n";
+			// Cas d'un operande definissant la classe de scope secondaire
+			if (IsNewOutputScopeOperand(nOperand))
+			{
+				secondaryOutputScopeClass = LookupSecondaryOutputScopeClass(kwcTargetClass, nOperand);
+				assert(secondaryOutputScopeClass != NULL);
+			}
+		}
+
+		// Finalisation de la collecte des attributs en sortie
+		FinalizeCollectUsedOutputOperands(&ivUsedOutputOperands);
+
+		// On doit prendre en compte les attributs en sortie potentiellement ajoutes
+		assert(ivUsedOutputOperands.GetSize() == oaOutputAttributes.GetSize());
+		for (nOperand = 0; nOperand < ivUsedOutputOperands.GetSize(); nOperand++)
+		{
+			if (ivUsedOutputOperands.GetAt(nOperand) == 1)
+			{
+				targetAttribute = cast(KWAttribute*, oaOutputAttributes.GetAt(nOperand));
+				nkdAllUsedAttributes->SetAt(targetAttribute, targetAttribute);
+			}
 		}
 
 		// On en en deduit la sous-partie des operandes en entree a utiliser
@@ -1095,11 +1347,21 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 		// Trace
 		if (bTrace)
 		{
+			// Operandes en entree
 			cout << "- used input operands: " << GetOperandNumber() << "\n";
 			for (nOperand = 0; nOperand < GetOperandNumber(); nOperand++)
 			{
 				cout << "  - " << nOperand + 1 << ": "
 				     << BooleanToString(ivUsedInputOperands.GetAt(nOperand) == 1) << "\n";
+			}
+
+			// Operandes en sortie
+			cout << "- used output operands: " << GetOutputOperandNumber() << "\n";
+			for (nOperand = 0; nOperand < GetOutputOperandNumber(); nOperand++)
+			{
+				operand = GetOutputOperandAt(nOperand);
+				cout << "  - " << nOperand + 1 << ": " << operand->GetAttributeName() << "\t"
+				     << BooleanToString(ivUsedOutputOperands.GetAt(nOperand) == 1) << "\n";
 			}
 		}
 	}
@@ -1139,8 +1401,8 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 		while (targetAttribute != NULL)
 		{
 			// On ne traite que les attributs natifs non deja prise en compte par une alimentation de type calcul
-			if (targetAttribute->GetDerivationRule() == NULL and
-			    odOutputAttributeNames.Lookup(targetAttribute->GetName()) == NULL)
+			if (targetAttribute->GetAnyDerivationRule() == NULL and
+			    nkdOutputAttributes.Lookup(targetAttribute) == NULL)
 			{
 				assert(IsValidOutputOperandType(targetAttribute->GetType()));
 
@@ -1202,8 +1464,10 @@ void KWDRRelationCreationRule::CollectCreationRuleMandatoryInputOperands(
     IntVector* ivMandatoryInputOperands) const
 {
 	boolean bTrace = false;
+	const KWClass* secondaryOutputScopeClass;
+	const KWClass* outputScopeClass;
+	const KWClass* kwcTargetClass;
 	IntVector ivUsedOutputOperands;
-	KWClass* kwcTargetClass;
 	KWAttribute* targetAttribute;
 	KWDerivationRuleOperand* operand;
 	int nOperand;
@@ -1211,6 +1475,7 @@ void KWDRRelationCreationRule::CollectCreationRuleMandatoryInputOperands(
 	require(GetOutputOperandNumber() > 0);
 	require(IsCompiled());
 	require(derivedAttribute != NULL);
+	require(derivedAttribute->GetDerivationRule() == this);
 	require(nkdAllUsedAttributes != NULL);
 	require(ivMandatoryInputOperands != NULL);
 
@@ -1227,19 +1492,35 @@ void KWDRRelationCreationRule::CollectCreationRuleMandatoryInputOperands(
 	// On optimise les impacts en n'exploitant que les attributs en sortie utilises
 	// - on ne collecte pas les attributs cibles dans methode
 	// - on se base en fait sur leur utilisation par d'autre regles
+	outputScopeClass = kwcTargetClass;
+	secondaryOutputScopeClass = NULL;
 	for (nOperand = 0; nOperand < GetOutputOperandNumber(); nOperand++)
 	{
 		operand = GetOutputOperandAt(nOperand);
 		assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginAttribute);
 		assert(KWType::IsData(operand->GetType()));
 
+		// Recherche de la classe de scope pour l'operande
+		if (IsSecondaryOutputScopeOperand(nOperand))
+			outputScopeClass = secondaryOutputScopeClass;
+		else
+			outputScopeClass = kwcTargetClass;
+		assert(outputScopeClass != NULL);
+
 		// Recherche de l'attribut cible correspond a l'operande en sortie
-		targetAttribute = kwcTargetClass->LookupAttribute(operand->GetAttributeName());
+		targetAttribute = outputScopeClass->LookupAttribute(operand->GetAttributeName());
 		assert(targetAttribute != NULL);
 
 		// Memorisation de l'utilisation de l'operande
 		if (nkdAllUsedAttributes->Lookup(targetAttribute) != NULL)
 			ivUsedOutputOperands.SetAt(nOperand, 1);
+
+		// Cas d'un operande definissant la classe de scope secondaire
+		if (IsNewOutputScopeOperand(nOperand))
+		{
+			secondaryOutputScopeClass = LookupSecondaryOutputScopeClass(kwcTargetClass, nOperand);
+			assert(secondaryOutputScopeClass != NULL);
+		}
 	}
 
 	// On en en deduit la sous-partie des operandes en entree a utiliser
@@ -1266,6 +1547,61 @@ void KWDRRelationCreationRule::CollectCreationRuleMandatoryInputOperands(
 	}
 }
 
+void KWDRRelationCreationRule::CollectCreationRuleAllAttributes(
+    const KWAttribute* derivedAttribute, NumericKeyDictionary* nkdAllNonDeletableAttributes) const
+{
+	const KWClass* secondaryOutputScopeClass;
+	const KWClass* outputScopeClass;
+	const KWClass* kwcTargetClass;
+	KWAttribute* targetAttribute;
+	KWDerivationRuleOperand* operand;
+	int nOperand;
+
+	require(GetOutputOperandNumber() > 0);
+	require(derivedAttribute != NULL);
+	require(derivedAttribute->GetDerivationRule() == this);
+	require(nkdAllNonDeletableAttributes != NULL);
+
+	// Il faut exploiter tous les operandes en entree et en sortie, pour garder la coherence des classes,
+	// au dela des optimisations avancees qui ont detecte les attributs effectivement utilises a calculer
+	// Pour cela, on appel la methode ancetre pour les operandes en entree, pour tous les prendre
+	// sans preoccupation d'optimisation
+	// En effet, seules les regles de creation d'instances peuvent exploiter des attributs en sortie non utilises,
+	// et les operandes en entree inutiles, car servant a alimenter ces attributs en sorties inutiles
+	KWDerivationRule::BuildAllUsedAttributes(derivedAttribute, nkdAllNonDeletableAttributes);
+
+	// Recherche de la classe cible
+	kwcTargetClass = derivedAttribute->GetClass();
+	assert(kwcTargetClass != NULL);
+
+	// Memorisation des attributs des operandes en sortie
+	outputScopeClass = kwcTargetClass;
+	secondaryOutputScopeClass = NULL;
+	for (nOperand = 0; nOperand < GetOutputOperandNumber(); nOperand++)
+	{
+		operand = GetOutputOperandAt(nOperand);
+
+		// Recherche de la classe de scope pour l'operande
+		if (IsSecondaryOutputScopeOperand(nOperand))
+			outputScopeClass = secondaryOutputScopeClass;
+		else
+			outputScopeClass = kwcTargetClass;
+		assert(outputScopeClass != NULL);
+
+		// Recherche de l'attribut cible correspond a l'operande en sortie
+		targetAttribute = outputScopeClass->LookupAttribute(operand->GetAttributeName());
+		assert(targetAttribute != NULL);
+		nkdAllNonDeletableAttributes->SetAt(targetAttribute, targetAttribute);
+
+		// Cas d'un operande definissant la classe de scope secondaire
+		if (IsNewOutputScopeOperand(nOperand))
+		{
+			secondaryOutputScopeClass = LookupSecondaryOutputScopeClass(kwcTargetClass, nOperand);
+			assert(secondaryOutputScopeClass != NULL);
+		}
+	}
+}
+
 void KWDRRelationCreationRule::CopyFrom(const KWDerivationRule* kwdrSource)
 {
 	KWDerivationRuleOperand* operand;
@@ -1277,10 +1613,12 @@ void KWDRRelationCreationRule::CopyFrom(const KWDerivationRule* kwdrSource)
 	// Gestion si necessaire des operandes en sortie
 	DeleteAllOutputOperands();
 	bVariableOutputOperandNumber = false;
+	bMultipleOutputScope = false;
 	if (not kwdrSource->GetReference())
 	{
 		// Duplication des operandes en sortie
 		bVariableOutputOperandNumber = kwdrSource->GetVariableOutputOperandNumber();
+		bMultipleOutputScope = cast(const KWDRRelationCreationRule*, kwdrSource)->bMultipleOutputScope;
 		for (i = 0; i < kwdrSource->GetOutputOperandNumber(); i++)
 		{
 			operand = kwdrSource->GetOutputOperandAt(i);
@@ -1305,7 +1643,7 @@ int KWDRRelationCreationRule::FullCompare(const KWDerivationRule* rule) const
 		// Cas ou la regle a comparer est de type Reference, et n'a donc pas d'operandes en sortie
 		if (rule->GetReference())
 			nDiff = GetOutputOperandNumber();
-		// Cas ou la regle a comparer  est de type Reference
+		// Cas ou la regle a comparer est de type Reference
 		else
 		{
 			// Comparaison sur le nombre d'operandes en sortie
@@ -1365,9 +1703,9 @@ longint KWDRRelationCreationRule::GetUsedMemory() const
 
 	// Prise en compte des operandes
 	lUsedMemory += oaOutputOperands.GetUsedMemory();
-	for (i = 0; i < oaOutputOperands.GetSize(); i++)
+	for (i = 0; i < GetOutputOperandNumber(); i++)
 	{
-		operand = cast(KWDerivationRuleOperand*, oaOutputOperands.GetAt(i));
+		operand = GetOutputOperandAt(i);
 		lOperandUsedMemory = operand->GetUsedMemory();
 		lUsedMemory += lOperandUsedMemory;
 	}
@@ -1387,16 +1725,16 @@ longint KWDRRelationCreationRule::GetUsedMemory() const
 longint KWDRRelationCreationRule::ComputeHashValue() const
 {
 	longint lHash;
-	int nOperand;
+	int i;
 	KWDerivationRuleOperand* operand;
 
 	// Appel de la methode ancetre
 	lHash = KWDerivationRule::ComputeHashValue();
 
 	// Prise en compte des operandes
-	for (nOperand = 0; nOperand < GetOutputOperandNumber(); nOperand++)
+	for (i = 0; i < GetOutputOperandNumber(); i++)
 	{
-		operand = GetOutputOperandAt(nOperand);
+		operand = GetOutputOperandAt(i);
 		lHash = LongintUpdateHashValue(lHash, operand->ComputeHashValue());
 	}
 	return lHash;
@@ -1442,11 +1780,17 @@ void KWDRRelationCreationRule::WriteUsedRuleOperands(ostream& ost) const
 	}
 }
 
+void KWDRRelationCreationRule::FinalizeCollectUsedOutputOperands(IntVector* ivUsedOutputOperands) const
+{
+	// Par defaut, les attributq en sortie sont independantq, et il n'y a de finalisation
+}
+
 void KWDRRelationCreationRule::CollectUsedInputOperands(const IntVector* ivUsedOutputOperands,
 							IntVector* ivUsedInputOperands) const
 {
 	int nOutputOperand;
 
+	require(GetOutputOperandNumber() > 0);
 	require(ivUsedOutputOperands != NULL);
 	require(ivUsedOutputOperands->GetSize() == GetOutputOperandNumber());
 	require(ivUsedInputOperands != NULL);
@@ -1467,9 +1811,10 @@ void KWDRRelationCreationRule::CollectMandatoryInputOperands(IntVector* ivUsedIn
 {
 	int nInputOperand;
 
+	require(GetOutputOperandNumber() > 0);
+	require(GetOperandNumber() >= GetOutputOperandNumber());
 	require(ivUsedInputOperands != NULL);
 	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
-	require(GetOperandNumber() >= GetOutputOperandNumber());
 
 	// Par defaut, les operandes en entree du debut de liste sont obligatoires
 	for (nInputOperand = 0; nInputOperand < GetOperandNumber() - GetOutputOperandNumber(); nInputOperand++)
@@ -1480,20 +1825,42 @@ void KWDRRelationCreationRule::CollectSpecificInputOperandsAt(int nOutputOperand
 {
 	int nInputOperand;
 
+	require(GetOutputOperandNumber() > 0);
+	require(GetOperandNumber() >= GetOutputOperandNumber());
 	require(0 <= nOutputOperand and nOutputOperand < GetOutputOperandNumber());
 	require(ivUsedInputOperands != NULL);
 	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
-	require(GetOperandNumber() >= GetOutputOperandNumber());
 
 	// Par defaut, on utilise l'operande en entree correspondant a l'operande en sortie
 	nInputOperand = GetOperandNumber() - GetOutputOperandNumber() + nOutputOperand;
 	ivUsedInputOperands->SetAt(nInputOperand, 1);
 }
 
+KWClass* KWDRRelationCreationRule::LookupSecondaryOutputScopeClass(const KWClass* kwcTargetClass,
+								   int nOutputOperandIndex) const
+{
+	KWClass* secondaryOutputScopeClass;
+	KWDerivationRuleOperand* operand;
+
+	require(kwcTargetClass != NULL);
+	require(kwcTargetClass->GetDomain() != NULL);
+	require(GetMultipleOutputScope());
+	require(IsNewOutputScopeOperand(nOutputOperandIndex));
+
+	// Recherche si possible
+	secondaryOutputScopeClass = NULL;
+	operand = GetOutputOperandAt(nOutputOperandIndex);
+	if (KWType::IsGeneralRelation(operand->GetType()) and operand->GetObjectClassName() != "")
+		secondaryOutputScopeClass = kwcTargetClass->GetDomain()->LookupClass(operand->GetObjectClassName());
+	return secondaryOutputScopeClass;
+}
+
 void KWDRRelationCreationRule::InternalCompleteTypeInfo(const KWClass* kwcOwnerClass,
 							NumericKeyDictionary* nkdCompletedAttributes)
 {
 	KWClass* kwcTargetClass;
+	const KWClass* secondaryOutputScopeClass;
+	const KWClass* outputScopeClass;
 	KWDerivationRuleOperand* operand;
 	int i;
 
@@ -1509,12 +1876,47 @@ void KWDRRelationCreationRule::InternalCompleteTypeInfo(const KWClass* kwcOwnerC
 		// Completion des operandes en sortie si classe en sortie trouvee
 		if (kwcTargetClass != NULL)
 		{
-			for (i = 0; i < GetOutputOperandNumber(); i++)
+			// Completion des operandes dans le cas standard
+			if (not GetMultipleOutputScope())
 			{
-				operand = GetOutputOperandAt(i);
+				for (i = 0; i < GetOutputOperandNumber(); i++)
+				{
+					operand = GetOutputOperandAt(i);
 
-				// Completion de l'operande
-				operand->InternalCompleteTypeInfo(kwcTargetClass, nkdCompletedAttributes);
+					// Completion de l'operande
+					operand->InternalCompleteTypeInfo(kwcTargetClass, nkdCompletedAttributes);
+				}
+			}
+			// Completion des operandes dans le cas a scope multiple
+			else
+			{
+				outputScopeClass = kwcTargetClass;
+				secondaryOutputScopeClass = NULL;
+				for (i = 0; i < GetOutputOperandNumber(); i++)
+				{
+					operand = GetOutputOperandAt(i);
+
+					// Recherche de la classe de scope pour l'operande
+					if (IsSecondaryOutputScopeOperand(i))
+						outputScopeClass = secondaryOutputScopeClass;
+					else
+						outputScopeClass = kwcTargetClass;
+					assert(outputScopeClass != NULL);
+
+					// Completion de l'operande
+					operand->InternalCompleteTypeInfo(outputScopeClass, nkdCompletedAttributes);
+
+					// Cas d'un operande definissant la classe de scope secondaire
+					if (IsNewOutputScopeOperand(i))
+					{
+						secondaryOutputScopeClass =
+						    LookupSecondaryOutputScopeClass(kwcTargetClass, i);
+
+						// Arret si on n'a pas trouve la classe secondaire
+						if (secondaryOutputScopeClass == NULL)
+							break;
+					}
+				}
 			}
 		}
 	}
@@ -1523,14 +1925,28 @@ void KWDRRelationCreationRule::InternalCompleteTypeInfo(const KWClass* kwcOwnerC
 KWObject* KWDRRelationCreationRule::NewTargetObject(const KWObject* kwoOwnerObject,
 						    const KWLoadIndex liAttributeLoadIndex) const
 {
+	return NewObject(kwoOwnerObject, liAttributeLoadIndex, kwcCompiledTargetClass, true);
+}
+
+KWObject* KWDRRelationCreationRule::NewTargetOwnerObject(const KWObject* kwoOwnerObject,
+							 const KWLoadIndex liAttributeLoadIndex) const
+{
+	return NewObject(kwoOwnerObject, liAttributeLoadIndex, kwcCompiledTargetClass, false);
+}
+
+KWObject* KWDRRelationCreationRule::NewObject(const KWObject* kwoOwnerObject, const KWLoadIndex liAttributeLoadIndex,
+					      const KWClass* kwcCreationClass, boolean bIsViewMode) const
+{
 	const boolean bTrace = false;
-	KWObject* kwoTargetObject;
+	KWObject* kwoNewObject;
 	const KWObjectDataPath* objectDataPath;
 	KWDatabaseMemoryGuard* memoryGuard;
 
 	require(kwoOwnerObject != NULL);
 	require(kwoOwnerObject->GetObjectDataPath() != NULL);
 	require(IsCompiled());
+	require(kwcCreationClass != NULL);
+	require(kwcCreationClass->IsCompiled());
 
 	// Recherhe du data path de l'objet a creer
 	objectDataPath = kwoOwnerObject->GetObjectDataPath()->GetComponentDataPath(liAttributeLoadIndex);
@@ -1543,44 +1959,90 @@ KWObject* KWDRRelationCreationRule::NewTargetObject(const KWObject* kwoOwnerObje
 
 	// Pas de tentative de creation si la limite est deja ateinte
 	if (memoryGuard->IsMemoryLimitReached())
-		kwoTargetObject = NULL;
-	// Sinon, on tente de cree l'objet
+		kwoNewObject = NULL;
+	// Sinon, on tente de creer l'objet
 	else
 	{
 
-		// Creation d'un objet en mode vue, avec un index de creation fourni par le data path
-		kwoTargetObject = new KWObject(kwcCompiledTargetClass, objectDataPath->NewCreationIndex());
-		kwoTargetObject->SetViewTypeUse(true);
-		kwoTargetObject->SetObjectDataPath(objectDataPath);
+		// Creation d'un objet en mode vue ou non, avec un index de creation fourni par le data path
+		kwoNewObject = new KWObject(kwcCreationClass, objectDataPath->NewCreationIndex());
+		kwoNewObject->SetViewTypeUse(bIsViewMode);
+		kwoNewObject->SetObjectDataPath(objectDataPath);
 
 		// Nettoyage si le memory guard a detecte un depassement de limite memoire
 		if (memoryGuard->IsMemoryLimitReached())
 		{
-			delete kwoTargetObject;
-			kwoTargetObject = NULL;
+			delete kwoNewObject;
+			kwoNewObject = NULL;
 		}
 	}
 
 	// Trace
 	if (bTrace)
 	{
-		cout << "NewTargetObject\t" << GetName() << "\t";
+		cout << "NewObject\t" << GetName() << "\t";
 		cout << memoryGuard->GetTotalCreatedRecordNumber() << "\t";
 		cout << kwoOwnerObject->GetObjectDataPath()->GetDataPath() << "\t"
 		     << kwoOwnerObject->GetClass()->GetName() << "\t" << kwoOwnerObject->GetCreationIndex() << "\t";
 		if (kwoOwnerObject->GetClass()->GetKeyAttributeNumber() > 0)
 			cout << kwoOwnerObject->GetObjectLabel() << "\t";
-		if (kwoTargetObject != NULL)
+		if (kwoNewObject != NULL)
 		{
-			cout << kwoTargetObject->GetObjectDataPath()->GetDataPath() << "\t"
-			     << kwoTargetObject->GetClass()->GetName() << "\t" << kwoTargetObject->GetCreationIndex();
+			cout << kwoNewObject->GetObjectDataPath()->GetDataPath() << "\t"
+			     << kwoNewObject->GetClass()->GetName() << "\t" << kwoNewObject->GetCreationIndex();
 		}
 		if (memoryGuard->IsMemoryLimitReached())
 			cout << "\tMEMORY LIMIT";
 		cout << "\n";
 	}
-	ensure(kwoTargetObject != NULL or memoryGuard->IsMemoryLimitReached());
-	return kwoTargetObject;
+	ensure(kwoNewObject != NULL or memoryGuard->IsMemoryLimitReached());
+	return kwoNewObject;
+}
+
+boolean KWDRRelationCreationRule::CheckOutputOperandExpectedObjectType(const KWClass* kwcOwnerClass, int nIndex,
+								       const ALString& sExpectedObjectClassName) const
+{
+	boolean bOk = true;
+	ALString sOutputClassLabel;
+	int i;
+
+	require(kwcOwnerClass != NULL);
+	require(0 <= nIndex and nIndex < GetOutputOperandNumber());
+	require(KWType::IsRelation(GetOutputOperandAt(nIndex)->GetType()));
+	require(sExpectedObjectClassName != "");
+
+	// Verification de la compatibilite du type
+	if (GetOutputOperandAt(nIndex)->GetObjectClassName() != sExpectedObjectClassName)
+	{
+		// Dictionnaire en sortie de scope secondaire
+		if (IsSecondaryOutputScopeOperand(nIndex))
+		{
+			assert(nIndex > 0);
+			for (i = nIndex - 1; i >= 0; i--)
+			{
+				if (IsNewOutputScopeOperand(i))
+				{
+					sOutputClassLabel = GetOutputOperandAt(i)->GetObjectClassName() +
+							    " dictionary within the " + GetObjectClassName() +
+							    " output dictionary";
+					break;
+				}
+			}
+		}
+		// Dictionnaire en sortie standard
+		else
+			sOutputClassLabel = GetObjectClassName() + " output dictionary";
+		assert(sOutputClassLabel != "");
+
+		// Erreur avec le non dictionnaire en sortie
+		AddError("In the " + sOutputClassLabel + ", the " + KWType::ToString(KWType::Object) + "(" +
+			 GetOutputOperandAt(nIndex)->GetObjectClassName() + ") " +
+			 GetOutputOperandAt(nIndex)->GetDataItemName() + " variable related to output operand " +
+			 IntToString(nIndex + 1) + " should be of type " + KWType::ToString(KWType::Object) + "(" +
+			 sExpectedObjectClassName + ")");
+		bOk = false;
+	}
+	return bOk;
 }
 
 void KWDRRelationCreationRule::AddViewModeError(const KWClass* kwcSourceClass, const KWClass* kwcTargetClass,
@@ -1620,10 +2082,7 @@ void KWDRRelationCreationRule::FillViewModeTargetAttributes(const KWObject* kwoS
 
 	require(IsCompiled());
 	require(kwoSourceObject != NULL);
-
-	// Retour si objet cible NULL
-	if (kwoTargetObject == NULL)
-		return;
+	require(kwoTargetObject != NULL);
 
 	// Alimentation des attributs de l'objet cible avec les valeurs provenant de l'objet source
 	for (nAttribute = 0; nAttribute < ivViewModeTargetAttributeTypes.GetSize(); nAttribute++)
@@ -1724,14 +2183,11 @@ void KWDRRelationCreationRule::FillComputeModeTargetAttributesForVariableOperand
 
 	require(IsCompiled());
 	require(kwoSourceObject != NULL);
+	require(kwoTargetObject != NULL);
 	require(GetOperandNumber() >= GetOutputOperandNumber());
 	require(GetOutputOperandNumber() == ivComputeModeTargetAttributeTypes.GetSize());
 	require(GetVariableOperandNumber());
 	require(GetVariableOutputOperandNumber());
-
-	// Retour si objet cible NULL
-	if (kwoTargetObject == NULL)
-		return;
 
 	// Recherche de l'index du premier operande en entree correspondant
 	// aux valeurs servant a alimenter les attributs en sortie

@@ -58,13 +58,13 @@ void KWDRSymbolVector::CopyStructureFrom(const KWDerivationRule* kwdrSource)
 
 void KWDRSymbolVector::BuildStructureFromBase(const KWDerivationRule* kwdrSource)
 {
-	const KWDRSymbolVector* kwdrsvSource = cast(const KWDRSymbolVector*, kwdrSource);
+	debug(const KWDRSymbolVector* kwdrsvSource = cast(const KWDRSymbolVector*, kwdrSource));
 	int i;
 	KWDerivationRuleOperand* operand;
 	Symbol sValue;
 
 	require(kwdrSource->KWDerivationRule::CheckDefinition());
-	require(kwdrsvSource->CheckConstantOperands(false));
+	debug(require(kwdrsvSource->CheckConstantOperands(false)));
 
 	// Recopie des operandes
 	svValues.SetSize(kwdrSource->GetOperandNumber());
@@ -213,13 +213,13 @@ void KWDRContinuousVector::CopyStructureFrom(const KWDerivationRule* kwdrSource)
 
 void KWDRContinuousVector::BuildStructureFromBase(const KWDerivationRule* kwdrSource)
 {
-	const KWDRContinuousVector* kwdrcvSource = cast(const KWDRContinuousVector*, kwdrSource);
+	debug(const KWDRContinuousVector* kwdrcvSource = cast(const KWDRContinuousVector*, kwdrSource));
 	int i;
 	KWDerivationRuleOperand* operand;
 	Continuous cValue;
 
 	require(kwdrSource->KWDerivationRule::CheckDefinition());
-	require(kwdrcvSource->CheckConstantOperands(false));
+	debug(require(kwdrcvSource->CheckConstantOperands(false)));
 
 	// Recopie des operandes
 	cvValues.SetSize(kwdrSource->GetOperandNumber());

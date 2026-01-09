@@ -228,8 +228,7 @@ public:
 	void Compile(KWClass* kwcOwnerClass) override;
 
 	// Redefinition de methodes virtuelle pour parametrer le premier operande de scope multiple
-	boolean CheckFirstMultiScopeOperand() const override;
-	KWClass* LookupSecondaryScopeClass(const KWClass* kwcOwnerClass) const override;
+	KWClass* LookupSecondaryScopeClass(const KWClass* kwcOwnerClass, int nOperandIndex) const override;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;

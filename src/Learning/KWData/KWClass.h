@@ -113,12 +113,18 @@ public:
 	boolean IsUnique() const;
 
 	// Capacite a etre stocke sur un systeme de fichiers multi-tables a l'aide de cles
-	// Dans le cas de classes construites via des regles de derivation, on a pas necessairement des cles,
+	// Dans le cas de classes construites via des regles de derivation, on n'a pas necessairement des cles,
 	// et on ne peut charger en memoire les instances correspondante via des fichiers de donnees
 	boolean IsKeyBasedStorable() const;
 
 	// Verification de la capacite a etre stocke, pour afficher les erreurs si necessaire
 	boolean CheckKeyBasedStorability() const;
+
+	// Absence de cycle dans la composition native de la classe
+	boolean IsNativeAcyclic() const;
+
+	// Verification de l'absence de cycles natif, pour afficher les erreurs si necessaire
+	boolean CheckNativeAcyclicity() const;
 
 	/////////////////////////////////////////////////////////////
 	// Specification des attributs de la cle de la classe
@@ -254,10 +260,6 @@ public:
 
 	// Nombre de DataItem natifs (non calcules), utilises ou non
 	int GetNativeDataItemNumber() const;
-
-	// Nombre d'attributs natifs de type relation utilises recursivement par la classe
-	// Le parametre InternalOnly indique que l'on ignore les classe referencees
-	int ComputeOverallNativeRelationAttributeNumber(boolean bIncludingReferences) const;
 
 	// Nombre d'attribut initiaux d'une classe a analyser
 	// Il s'agit des attributs utilises de type simple, calcule ou non,
@@ -653,27 +655,21 @@ protected:
 
 	// Verification de l'integrite de la classe en ce qui concerne sa composition native,
 	// c'est a dire de sa hierarchie induite par l'ensemble des attributs relations non calcules,
-	// et si demande la coherence de son utilisation des cles dans la hierarchie pour permettre
-	// de rendre les donnees stockable sur une base multi-table a base de fichiers
+	// et si demande la coherence de son utilisation des cles dans la hierarchie et de l'acyclicite,
+	// pour permettre de rendre les donnees stockable sur une base multi-table a base de fichiers.
+	// Dans le cas d'une classe en sortie d'une regle de construction d'instance, il n'y a pas de contrainte
+	// de cle, mais l'acyclicite peut etre testees et exigee selon les contrainte de chaque regle
 	//
-	// Il ne doit pas y avoir de cycle dans le graphe des utilisations entre classes par composition
-	// Le parametre de verification des cles, avec ou sans message d'erreur, permet de verifier qu'un
-	// dictionnaire est stockable sur disque via un mapping multi-fichier, au moyen de cles coherentes.
-	// - le dictionnaire doit avoir une cle s'il contient des sous-tables
-	// - la taille des cles doit etre croissante avec la profondeur d'utilisation dans la composition
-	// Note que l'on peut avoir des dictionnaires non stockage dans le cas de regles de derivation de creation
-	// de table, qui peuvent exploiter des dictionnaire quelconques (non Root), avec ou sans cle
-	boolean CheckNativeComposition(boolean bCheckKeys, boolean bVerboseCheckKeys) const;
-
-	// Methode interne utilisee par CheckNativeComposition, avec des parametres techniques supplementaire
-	// permettant son implementation de facon recursive
+	// Methodes internes utilisees par CheckNativeComposition et CheckNativeAcyclicity,
+	// avec des parametres techniques supplementaire permettant leur implementation de facon recursive
 	// - parentAttribute: correspond a l'attribut utilisant la classe (NULL pour l'appel initial),
 	//   ce qui fournit des informations sur la profondeur dans l'arbre de composition, et qui
 	//   permet de tester la coherence de longueur des cles
 	// - nkdComponentClasses: dictionnaire de classes traitees permettant de detecter les cycles
-	boolean InternalCheckNativeComposition(boolean bCheckKeys, boolean bVerboseCheckKeys,
-					       KWAttribute* parentAttribute,
-					       NumericKeyDictionary* nkdComponentClasses) const;
+	boolean InternalCheckKeyBasedStorability(boolean bVerbose, KWAttribute* parentAttribute,
+						 NumericKeyDictionary* nkdComponentClasses) const;
+	boolean InternalCheckNativeAcyclicity(boolean bVerbose, KWAttribute* parentAttribute,
+					      NumericKeyDictionary* nkdComponentClasses) const;
 
 	// Type d'une variable relationnelles complet sous forme d'une chaine de caracteres
 	const ALString RelationTypeToString(const KWAttribute* attribute) const;
@@ -809,6 +805,9 @@ protected:
 	// Capacite a etre stocke sur un systeme de fichiers multi-tables a l'aide de cles
 	boolean bIsKeyBasedStorable;
 
+	// Absence de cycles dans la compositiuon native (sans regles) de la classe
+	boolean bIsNativeAcyclic;
+
 	// Valeur de hash de la classe, bufferise avec une fraicheur
 	// Ces variables sont mutable, car modifiee par ComputeHashValue()
 	mutable longint lClassHashValue;
@@ -912,10 +911,29 @@ inline boolean KWClass::IsKeyBasedStorable() const
 inline boolean KWClass::CheckKeyBasedStorability() const
 {
 	boolean bOk;
+	NumericKeyDictionary nkdComponentClasses;
+
+	// Les cles doivent etre valides
+	bOk = InternalCheckKeyBasedStorability(true, NULL, &nkdComponentClasses);
+	ensure(not IsIndexed() or bOk == bIsKeyBasedStorable);
+	return bOk;
+}
+
+inline boolean KWClass::IsNativeAcyclic() const
+{
 	require(IsIndexed());
-	bOk = CheckNativeComposition(true, true);
-	ensure(bOk == bIsKeyBasedStorable);
-	return bIsKeyBasedStorable;
+	return bIsNativeAcyclic;
+}
+
+inline boolean KWClass::CheckNativeAcyclicity() const
+{
+	boolean bOk;
+	NumericKeyDictionary nkdComponentClasses;
+
+	// Il ne doit pas y avoir de cyles, que les cles soient valides ou non
+	bOk = InternalCheckNativeAcyclicity(true, NULL, &nkdComponentClasses);
+	ensure(not IsIndexed() or bOk == bIsNativeAcyclic);
+	return bOk;
 }
 
 inline int KWClass::GetKeyAttributeNumber() const

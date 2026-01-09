@@ -1484,7 +1484,7 @@ void KWDatabase::BuildPhysicalClass()
 	NumericKeyDictionary nkdAllLoadedClasses;
 	NumericKeyDictionary nkdAllNativeClasses;
 	NumericKeyDictionary nkdNeededLogicalClasses;
-	NumericKeyDictionary nkdAllNondeletableAttributes;
+	NumericKeyDictionary nkdAllNonDeletableAttributes;
 	ObjectArray oaAllUsedClasses;
 	ObjectArray oaAllUsedAttributes;
 	int nClassNondeletedAttributeNumber;
@@ -1500,7 +1500,6 @@ void KWDatabase::BuildPhysicalClass()
 	KWDerivationRule* rule;
 	KWDerivationRuleOperand* operand;
 	int nOperand;
-	KWAttribute* targetAttribute;
 	IntVector ivMandatoryInputOperands;
 	int nNoneValueOperandNumber;
 
@@ -1609,7 +1608,7 @@ void KWDatabase::BuildPhysicalClass()
 		for (i = 0; i < kwcCurrentPhysicalClass->GetKeyAttributeNumber(); i++)
 		{
 			attribute = kwcCurrentPhysicalClass->GetKeyAttributeAt(i);
-			nkdAllNondeletableAttributes.SetAt(attribute, attribute);
+			nkdAllNonDeletableAttributes.SetAt(attribute, attribute);
 		}
 
 		// Champs des classes en sortie des regles de creation de tables
@@ -1650,22 +1649,16 @@ void KWDatabase::BuildPhysicalClass()
 						// Sinon, on indique de garder tous les attributs necessaires recursivement au calcul des operandes
 						else
 							rule->BuildAllUsedAttributesAtOperand(
-							    attribute, nOperand, &nkdAllNondeletableAttributes);
+							    attribute, nOperand, &nkdAllNonDeletableAttributes);
 					}
 
-					// Parcours de ses operandes en sortie pour rechercher les attributs cibles de la regle a ne pas detruire
+					// Collecte additionnelle des attributs en entree et  sortie des regles de creation d'instance,
+					// qui ne peuvent etre detruit pour preserver la validite des classes
 					// Il ne faut pas les detruire: on les gardera ainsi en unused, pour a la fois garder le dictionnaire
 					// compilable, et eviter les calculs inutiles
-					for (nOperand = 0; nOperand < rule->GetOutputOperandNumber(); nOperand++)
-					{
-						operand = rule->GetOutputOperandAt(nOperand);
-
-						// Recherche de l'attribut cible correspond a l'operande en sortie
-						targetAttribute =
-						    attribute->GetClass()->LookupAttribute(operand->GetAttributeName());
-						assert(targetAttribute != NULL);
-						nkdAllNondeletableAttributes.SetAt(targetAttribute, targetAttribute);
-					}
+					// A noter: on ne collecte pas les classes correspondantes, car aucune ne sera detruite de toute facon
+					rule->CollectCreationRuleAllAttributes(attribute,
+									       &nkdAllNonDeletableAttributes);
 				}
 			}
 
@@ -1825,7 +1818,7 @@ void KWDatabase::BuildPhysicalClass()
 				// La destruction d'un attribut peut entrainer la destruction de son bloc englobant s'il
 				// en est le dernier
 				// On detruit si possible, sinon on passe en unused
-				if (nkdAllNondeletableAttributes.Lookup(attribute) == NULL)
+				if (nkdAllNonDeletableAttributes.Lookup(attribute) == NULL)
 					kwcCurrentPhysicalClass->DeleteAttribute(attribute->GetName());
 				else
 				{
@@ -1988,7 +1981,7 @@ void KWDatabase::BuildPhysicalClass()
 					// Destruction si necessaire de l'attribut
 					if (attributeToDelete != NULL)
 					{
-						assert(nkdAllNondeletableAttributes.Lookup(attributeToDelete) == NULL);
+						assert(nkdAllNonDeletableAttributes.Lookup(attributeToDelete) == NULL);
 						kwcCurrentPhysicalClass->DeleteAttribute(attributeToDelete->GetName());
 					}
 				}
