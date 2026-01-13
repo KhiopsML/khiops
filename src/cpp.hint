@@ -1,0 +1,10 @@
+// Fichier de hint pour pour Visual C++
+// Un fichier hint contient des macros qui sinon entraineraient l'omission de regions de code
+// par l'Analyseur de base de donnees de navigation C++. 
+// Cf. https://learn.microsoft.com/fr-fr/cpp/build/reference/hint-files
+
+#define assert
+#define require
+#define ensure
+#define check
+#define cast
