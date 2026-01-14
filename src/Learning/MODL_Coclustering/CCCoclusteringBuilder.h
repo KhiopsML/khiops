@@ -95,6 +95,9 @@ public:
 	// L'effectif de la variable identifiant est alimente par le vecteur ivObservationNumbers
 	KWDataGrid* CreateVarPartDataGrid(const KWTupleTable* tupleTable, ObjectDictionary& odObservationNumbers);
 
+	KWDataGrid* CreateSparseVarPartDataGrid(ObjectDictionary& odTupleTables,
+						ObjectDictionary& odObservationIndexes);
+
 	// Nettoyage des eventuelles parties de variables vides du fait d'observations manquantes
 	void CleanVarPartDataGrid(KWDataGrid* dataGrid);
 
@@ -102,6 +105,9 @@ public:
 	// Renvoie true si cellule correctement initialisee, false sinon (sans nettoyage des celulles crees)
 	// Pour la dimension VarPart, on parcourt l'ensemble des attributs internes pour alimenter les cellules associees a chaque observation
 	boolean CreateVarPartDataGridCells(const KWTupleTable* tupleTable, KWDataGrid* dataGrid);
+
+	boolean CreateSparseVarPartDataGridCells(ObjectDictionary& odTupleTables,
+						 ObjectDictionary& odObservationIndexes, KWDataGrid* dataGrid);
 
 	/////////////////////////////////////////////////////////////////////////////
 	// Acces aux resultats de coclustering
@@ -179,6 +185,10 @@ protected:
 	boolean FillVarPartTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable,
 						  ObjectDictionary& odObservationNumbers);
 
+	// DDD CH
+	boolean FillVarPartTupleTableDictionaryFromDatabase(KWDatabase* database, ObjectDictionary& odTupleTables,
+							    ObjectDictionary& odObservationIndexes);
+
 	// Creation de la partition d'un attribut de DataGrid de type Identifiant dans un coclustering Identifiant *
 	// Parties de variables En entree, le dictionnaire odObservationNumbers contient pour chaque modalite de
 	// l'identifiant, le nombre d'observations Ces effectifs permettent d'initialiser les effectifs de l'attribut
@@ -186,9 +196,8 @@ protected:
 	boolean CreateIdentifierAttributeValueSets(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute,
 						   ObjectDictionary& odObservationNumbers);
 
-	// Cas d'un attribut Identifier de type Continuous
-	boolean CreateIdentifierAttributeIntervals(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute,
-						   ObjectDictionary& odObservationNumbers);
+	boolean CreateIdentifierAttributeValueSets(ObjectDictionary* tupleTable, KWDGAttribute* dgAttribute,
+						   ObjectDictionary& odObservationIndexes);
 
 	// Renvoie le nombre d'observations associe a un enregistrement, avec eventuellement affichage de warning
 	// Renvoie 0 si l'enregistrement est non utilisable (valeur manquante pour l'attribut Identifiant ou aucune
@@ -196,6 +205,11 @@ protected:
 	int GetDatabaseObjectObservationNumber(const KWObject* kwoObject, longint lRecordIndex,
 					       const KWAttribute* identifierAttribute,
 					       const ObjectArray* oaInnerAttributes);
+
+	// Renvoie le nombre d'observations associe a un enregistrement ainsi qu'un vecteur des index des innerAttributes observes
+	IntVector* GetDatabaseObjectObservedInnerAttributeIndexes(const KWObject* kwoObject, longint lRecordIndex,
+								  const KWAttribute* identifierAttribute,
+								  const ObjectArray* oaInnerAttributes);
 
 	// Renvoie l'effectif associe a un enregistrement, avec eventuellement affichage de warning
 	// Renvoie 1 si l'attribut d'effectif est NULL
@@ -243,6 +257,9 @@ protected:
 	// contenu, cree par l'appele, appartient a l'appelant
 	void ComputeDescriptiveAttributeStats(const KWTupleTable* tupleTable,
 					      ObjectDictionary* odOutputDescriptiveStats) const;
+
+	void ComputeVarPartDescriptiveAttributeStats(ObjectDictionary& odTupleTables,
+						     ObjectDictionary* odOutputDescriptiveStats) const;
 
 	// Calcul de toutes les infos de hierarchie
 	// Pilotage de toutes les methodes detaillees
