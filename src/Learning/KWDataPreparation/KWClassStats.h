@@ -351,12 +351,12 @@ protected:
 	// Calcul du nombre d'attributs prepares references depuis un dictionnaires
 	int ComputeSelectedDataPreparationStats(const ObjectArray* oaInputDataPreparationStats) const;
 
-	// Filtrage d'un tableau d'attribut prepares pour ne gardant que ceux qui natif ou selectionnes directement ou
+	// Filtrage d'un tableau d'attribut prepares pour ne garder que ceux qui natifs ou selectionnes directement ou
 	// indirectement
 	void FilterSelectedDataPreparationStats(const ObjectArray* oaInputDataPreparationStats,
 						ObjectArray* oaFilteredDataPreparationStats) const;
 
-	// Filtrage d'un tableau d'attribut prepares pour ne garde que ceux qui sont references par un dictionnaire
+	// Filtrage d'un tableau d'attribut prepares pour ne garder que ceux qui sont references par un dictionnaire
 	// Les tableaux en sortie appartiennent a l'appelant, et leur contenu sont une sous partie du tableau en entree
 	void DispatchAttributeStatsByType(const ObjectArray* oaInputAttributeStats, ObjectArray* oaSymbolAttributeStats,
 					  ObjectArray* oaContinuousAttributeStats) const;

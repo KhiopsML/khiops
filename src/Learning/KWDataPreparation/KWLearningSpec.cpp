@@ -156,7 +156,7 @@ boolean KWLearningSpec::ComputeTargetStats(const KWTupleTable* tupleTable)
 	// Memorisation du nombre d'instances
 	nInstanceNumber = tupleTable->GetTotalFrequency();
 
-	// Pas de calcul de la cas non supervise
+	// Pas de calcul dans le cas non supervise
 	if (GetTargetAttributeName() == "")
 	{
 		assert(targetDescriptiveStats == NULL);
