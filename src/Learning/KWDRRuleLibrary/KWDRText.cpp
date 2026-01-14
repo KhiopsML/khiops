@@ -54,9 +54,11 @@ Symbol KWDRTextLoadFile::ComputeTextResult(const KWObject* kwoObject) const
 	ALString sPathFileName;
 	InputBufferedFile inputFile;
 	boolean bOk;
+	boolean bOverlengthyText;
 	longint lBeginPos;
 	const CharVector* cvFileCache;
 	char* sHugeBuffer;
+	longint lFileSize;
 	int nTextLength;
 	int nDoubleQuoteNumber;
 	int nStart;
@@ -81,12 +83,16 @@ Symbol KWDRTextLoadFile::ComputeTextResult(const KWObject* kwoObject) const
 		inputFile.SetBufferSize(InputBufferedFile::nMaxFieldSize);
 
 		// Lecture d'un fichier
+		bOverlengthyText = false;
+		lFileSize = 0;
+		nTextLength = 0;
 		bOk = inputFile.Open();
 		if (bOk)
 		{
 			// Lecture
 			lBeginPos = 0;
 			bOk = inputFile.FillBytes(lBeginPos);
+			lFileSize = inputFile.GetFileSize();
 
 			// Remplissage d'un buffer de grande taille
 			// Permet de stocker tout le contenu du fichier en un seul blob memoire alloue efficacement
@@ -137,7 +143,10 @@ Symbol KWDRTextLoadFile::ComputeTextResult(const KWObject* kwoObject) const
 				// et en inserant la valeur entre 2 doubles-quote (cas ou la valeur contient le separateur
 				// de champ des fichiers tabulaires), on diminue la taille du texte en proportion
 				if (nTextLength + 2 + nDoubleQuoteNumber > InputBufferedFile::nMaxFieldSize)
+				{
 					nTextLength = InputBufferedFile::nMaxFieldSize - (2 + nDoubleQuoteNumber);
+					bOverlengthyText = true;
+				}
 
 				// Supression des blancs en fin
 				nStop = nStart + nTextLength - 1;
@@ -162,8 +171,12 @@ Symbol KWDRTextLoadFile::ComputeTextResult(const KWObject* kwoObject) const
 
 		// Si erreur, emission d'un warning permettant de localiser l'enregistrement
 		if (not bOk)
-			AddWarning(sTmp + "Enable to load text file in record " +
-				   LongintToReadableString(kwoObject->GetCreationIndex()));
+			kwoObject->AddWarning("Enable to load text file from rule " + GetName());
+		// Warning si text tronque
+		else if (bOverlengthyText)
+			kwoObject->AddWarning("Text file loaded from rule " + GetName() + " truncated to " +
+					      IntToString(nTextLength) + " characters due to excessive file length (" +
+					      LongintToReadableString(lFileSize) + ")");
 
 		// Restittion du mode standard de traitement des erreurs
 		Global::SetErrorAsWarningMode(false);
