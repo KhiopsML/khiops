@@ -102,6 +102,7 @@ jobs:
             KNITransfer _khiopsgetprocnumber _khiopslauncher
           override-flags: -DTESTING=OFF -DBUILD_JARS=ON
       - name: Setup SM_CLIENT_CERT_FILE from base64 secret data
+        if: ${{ inputs.signature-activation }}
         run: |
           echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV"
           echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
