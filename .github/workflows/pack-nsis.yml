@@ -103,8 +103,8 @@ jobs:
           override-flags: -DTESTING=OFF -DBUILD_JARS=ON
       - name: Setup SM_CLIENT_CERT_FILE from base64 secret data
         run: |
-          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12_test.p12" >> "$GITHUB_ENV"
-          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12_test.p12
+          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV"
+          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
         shell: bash
       - name: Setup Software Trust Manager and sign
         uses: digicert/code-signing-software-trust-action@v1.0.1
