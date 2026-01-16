@@ -28,7 +28,7 @@ concurrency:
 # Environment variables:
 # - SAMPLES_VERSION: tag of the sample repository packed in the installer
 # - ASSETS_VERSION: tag of the khiops-win-install-assets repository packed in the installer
-# - KEYPAIR is used by smctl 
+# - KEYPAIR is used by smctl
 # - CERTIFICATE is used by jsign
 env:
   KEYPAIR: KP_Khiops_HSM
@@ -72,7 +72,7 @@ jobs:
           assets_tar_gz=$(ls khiops-win-install-assets*.tar.gz)
           tar -zxvf "$assets_tar_gz"
           cat assets/assets-info.env >> "$GITHUB_ENV"
-      # We download the latest version of visualization tools: 
+      # We download the latest version of visualization tools:
       # - They are backward compatible.
       # - The process is made easier by getting automatically the latest version
       - name: Download latest releases of khiops-*visualization
@@ -80,11 +80,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh --repo https://github.com/KhiopsML/kc-electron release download --pattern *.exe -D visualizations 
+          gh --repo https://github.com/KhiopsML/kc-electron release download --pattern *.exe -D visualizations
           gh --repo https://github.com/KhiopsML/kv-electron release download --pattern *.exe -D visualizations
           cd visualizations
           ls *
-          echo "KHIOPS_VIZ_FILENAME=$(ls khiops-covisualization-Setup*)" >> "$GITHUB_ENV" 
+          echo "KHIOPS_VIZ_FILENAME=$(ls khiops-covisualization-Setup*)" >> "$GITHUB_ENV"
           echo "KHIOPS_COVIZ_FILENAME=$(ls khiops-visualization-Setup*)" >> "$GITHUB_ENV"
       - name: Download samples
         shell: bash
@@ -101,32 +101,23 @@ jobs:
           targets: MODL MODL_Coclustering norm_jar khiops_jar KhiopsNativeInterface
             KNITransfer _khiopsgetprocnumber _khiopslauncher
           override-flags: -DTESTING=OFF -DBUILD_JARS=ON
-      - name: Set variables for signature
-        id: variables-used-by-smctl
-        run: |
-          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV" 
-          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV" 
-          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
-          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
-        shell: bash
-      - name: Install DigiCert Client tools from Github Custom Actions marketplace
-        if: ${{ inputs.signature-activation }}
-        uses: digicert/ssm-code-signing@v1.0.1
-      - name: Set up certificate
+      - name: Setup SM_CLIENT_CERT_FILE from base64 secret data
         if: ${{ inputs.signature-activation }}
         run: |
+          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV"
           echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
         shell: bash
-      - name: Signing binaries using keypair alias
+      - name: Setup Software Trust Manager and sign
+        uses: digicert/code-signing-software-trust-action@v1.0.1
         if: ${{ inputs.signature-activation }}
-        # The bin directory is not used as input because KNItransfer doesn't need to be signed
-        run: |
-          smctl sign --exit-non-zero-on-fail --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/MODL.exe
-          smctl sign --exit-non-zero-on-fail --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/MODL_Coclustering.exe
-          smctl sign --exit-non-zero-on-fail --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/_khiopsgetprocnumber.exe
-          smctl sign --exit-non-zero-on-fail --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/_khiopslauncher.exe
-          smctl sign --exit-non-zero-on-fail --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input build/windows-msvc-release/bin/KhiopsNativeInterface.dll
-        shell: bash
+        with:
+          input: build/windows-msvc-release/bin/
+          keypair-alias: KP_Khiops_HSM
+          simple-signing-mode: true
+        env:
+          SM_HOST: ${{ secrets.SM_HOST }}
+          SM_API_KEY: ${{ secrets.SM_API_KEY }}
+          SM_CLIENT_CERT_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
       - name: Install jsign
         if: ${{ inputs.signature-activation }}
         run: |
@@ -151,8 +142,8 @@ jobs:
             /DPATH_TO_JSIGN=D:\\jsign.jar `
             /DSM_CERT_ALIAS=$Env:CERTIFICATE  `
             /DSM_CLIENT_CERT_FILE=${{ env.SM_CLIENT_CERT_FILE }} `
-            /DSM_CLIENT_CERT_PASSWORD=${{ env.SM_CLIENT_CERT_PASSWORD }} `
-            /DSM_API_KEY=${{ env.SM_API_KEY }} `
+            /DSM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }} `
+            /DSM_API_KEY=${{ secrets.SM_API_KEY }} `
             khiops.nsi
       - name: Build NSIS package (signature is OFF)
         if: ${{ ! inputs.signature-activation }}
@@ -170,11 +161,17 @@ jobs:
             /DKHIOPS_COVIZ_INSTALLER_PATH=..\..\..\visualizations\${{ env.KHIOPS_COVIZ_FILENAME }} `
             /DKHIOPS_SAMPLES_DIR=..\..\..\samples `
             khiops.nsi
-      - name: Signing installer
+      - name: Sign installer
+        uses: digicert/code-signing-software-trust-action@v1.0.1
         if: ${{ inputs.signature-activation }}
-        run: |
-          smctl sign --exit-non-zero-on-fail --keypair-alias $KEYPAIR --config-file C/Users/RUNNER~1/AppData/Local/Temp/smtools-windows-x64/pkcs11properties.cfg --input packaging/windows/nsis/khiops-${{ env.KHIOPS_VERSION }}-setup.exe
-        shell: bash
+        with:
+          input: packaging/windows/nsis/khiops-${{ env.KHIOPS_VERSION }}-setup.exe
+          keypair-alias: KP_Khiops_HSM
+          simple-signing-mode: true
+        env:
+          SM_HOST: ${{ secrets.SM_HOST }}
+          SM_API_KEY: ${{ secrets.SM_API_KEY }}
+          SM_CLIENT_CERT_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
       - name: Build ZIP packages
         shell: bash
         run: |-
