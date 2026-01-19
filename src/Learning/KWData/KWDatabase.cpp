@@ -1502,6 +1502,7 @@ void KWDatabase::BuildPhysicalClass()
 	int nOperand;
 	IntVector ivMandatoryInputOperands;
 	int nNoneValueOperandNumber;
+	boolean bDeleteAttribute;
 
 	require(kwcClass != NULL);
 	require(kwcClass->GetName() == GetClassName());
@@ -1817,8 +1818,30 @@ void KWDatabase::BuildPhysicalClass()
 
 				// La destruction d'un attribut peut entrainer la destruction de son bloc englobant s'il
 				// en est le dernier
-				// On detruit si possible, sinon on passe en unused
-				if (nkdAllNonDeletableAttributes.Lookup(attribute) == NULL)
+				// On detruit l'attribut si possible, sinon on passe en unused
+				// Attention, on garde les attributs natifs denses (en les mettant en unused), car ils peuvent
+				// etre utilise par certaines regles  qui verifient leur existance pour emettre des warnings
+				// Ce n'est pas le cas pour les attributs des blocs natifs, car les attributs sparses ne sont
+				// jamais obligatoires actuellement. On se contente de garder le bloc, avec au plus un attribut.
+				bDeleteAttribute = nkdAllNonDeletableAttributes.Lookup(attribute) == NULL;
+				if (bDeleteAttribute and attribute->GetAnyDerivationRule() == NULL)
+				{
+					// On garde au plus un attribut natif de bloc pour ne pas supprimer le bloc
+					if (attribute->IsInBlock())
+					{
+						if (attribute->GetAttributeBlock()->GetFirstAttribute() ==
+						    attribute->GetAttributeBlock()->GetLastAttribute())
+						{
+							assert(attribute ==
+							       attribute->GetAttributeBlock()->GetFirstAttribute());
+							bDeleteAttribute = false;
+						}
+					}
+					// On garde les attributs natifs dense
+					else
+						bDeleteAttribute = false;
+				}
+				if (bDeleteAttribute)
 					kwcCurrentPhysicalClass->DeleteAttribute(attribute->GetName());
 				else
 				{

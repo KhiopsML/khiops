@@ -406,7 +406,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 		{
 			// Destruction de l'objet uniquement si plusieurs champs attendus dans la classe ou dans le
 			// fichier
-			if (kwcClass->GetNativeDataItemNumber() > 1 or livDataItemLoadIndexes.GetSize() > 1)
+			if (kwcClass->GetUsedNativeDataItemNumber() > 1 or livDataItemLoadIndexes.GetSize() > 1)
 			{
 				// Warning si on n'est pas en fin de fichier
 				if (not IsEnd())
@@ -417,7 +417,7 @@ KWObject* KWDataTableDriverTextFile::Read()
 				break;
 			}
 			// Sinon, on sort si on est dans le cas d'un dictionnaire sans attribut natif
-			else if (kwcClass->GetNativeDataItemNumber() == 0)
+			else if (kwcClass->GetUsedNativeDataItemNumber() == 0)
 			{
 				// On comptabilise le champ dans le cas d'un champ dans le fichier pour indiquer que l'on a bien
 				// lu tous les champs de la ligne, dans ce cas particulier d'un ligne vide interpretee comme
@@ -2024,6 +2024,7 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 
 		// Affichage des dictionnaires
 		cout << "Logical class\n" << *kwcLogicalClass << endl;
+		cout << "Physical class\n" << *kwcClass << endl;
 		if (kwcHeaderLineClass != NULL)
 			cout << "Header line class\n" << *kwcHeaderLineClass << endl;
 	}
