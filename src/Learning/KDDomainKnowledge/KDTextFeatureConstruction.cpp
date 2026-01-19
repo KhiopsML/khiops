@@ -41,6 +41,7 @@ boolean KDTextFeatureConstruction::ConstructTextFeatures(KWClass* kwcClass, int 
 	boolean bDisplay = false;
 	ObjectDictionary odTextClasses;
 	KDClassCompliantRules mainClassCompliantRules;
+	int nInitialVariableNumber;
 	int nConstructedVariableNumber;
 	Timer timerConstruction;
 	ALString sTmp;
@@ -81,6 +82,9 @@ boolean KDTextFeatureConstruction::ConstructTextFeatures(KWClass* kwcClass, int 
 	// Collecte des tokens
 	bOk = ExtractTokenSamples(kwcClass, &odTextClasses);
 
+	// Nombre de variables initiales, comprenant potentiellement des variable construire selon une autre methode
+	nInitialVariableNumber = kwcClass->ComputeInitialAttributeNumber(GetTargetAttributeName() != "");
+
 	// Creation des blocks de variables de type texte selon les specifications par chemin d'attributs de la classe
 	// principale
 	if (bOk)
@@ -107,8 +111,8 @@ boolean KDTextFeatureConstruction::ConstructTextFeatures(KWClass* kwcClass, int 
 	}
 	else if (bOk)
 	{
-		nConstructedVariableNumber = kwcClass->ComputeInitialAttributeNumber(GetTargetAttributeName() != "") -
-					     GetLearningSpec()->GetInitialAttributeNumber();
+		nConstructedVariableNumber =
+		    kwcClass->ComputeInitialAttributeNumber(GetTargetAttributeName() != "") - nInitialVariableNumber;
 
 		// Cas ou on construit toutes les variables demandees
 		if (nConstructedVariableNumber == nFeatureNumber)
