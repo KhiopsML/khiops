@@ -253,6 +253,9 @@ public:
 	// Compilation
 	void Compile(KWClass* kwcOwnerClass) override;
 
+	// Memoire utilisee par la regle de derivation
+	longint GetUsedMemory() const override;
+
 	///////////////////////////////////////////////////////
 	///// Implementation
 protected:
@@ -287,12 +290,22 @@ protected:
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Gestion des warning rencontree lors des creation et alimentation des objets cibles
 	// Les warnings sont memorises et seront emis en fin de la methode principale ComputeObjectResult
+	// Le nombre total de warning est memorise par type de warning, mais au plus un warning est memorise
+	// par type: le premier rencontre
 	// Dans le cas d'une valeur dans un tableau, on a a la fois un parametre jsonMember et un parametre jsonValue.
 	// - le parametre jsonMember est NULL, et le json path est deja specifie
 	// - sinon, le json path est augmente temporairement avec le jsonMember
 
 	// Warning si attribut non trouve dans la classe cible pour un objet dans le json path
 	void AddMissingAttributeWarning(const JSONMember* jsonMember, const KWClass* targetClass) const;
+
+	// Warning si la classe cible ne contient pas un seul attribut natif dans le cas
+	// d'un tableau de valeur pour un objet dans le json path
+	void AddMissingSingleAttributeWarning(const JSONMember* jsonMember, const KWClass* targetClass) const;
+
+	// Warning si attribut derive dans la classe cible pour un objet dans le json path
+	void AddDerivedAttributeWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
+					const KWAttribute* targetAttribute) const;
 
 	// Warning si attribut de type incompatible avec la valeur
 	void AddInconsistentAttributeTypeWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
@@ -305,6 +318,12 @@ protected:
 	// Warning si valeur trop longue pour un attribut Symbol
 	void AddOverlengthySymbolValueWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
 					      const KWAttribute* targetAttribute) const;
+
+	// Construction d'un message synthetique sur l'ensemble des warnings emis si necessaire
+	const ALString BuildSyntheticWarningMessage() const;
+
+	// Reinitialisation des warnings
+	void ResetWarnings() const;
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Gestion du json path, permettant de localiser les erreurs d'alimentation
@@ -333,6 +352,22 @@ protected:
 
 	// Warnings rencontre lors de l'analyse du json
 	mutable StringVector svWarnings;
+
+	// Nombre max de warnings sauvegardes par type de warning
+	mutable int nMaxSavedWarningNumberPerType;
+
+	// Nombre total de warning par type de warning
+	enum
+	{
+		MissingAttributeWarning,
+		MissingSingleAttributeWarning,
+		DerivedAttributeWarning,
+		InconsistentAttributeTypeWarning,
+		InvalidTemporalValueWarning,
+		OverlengthySymbolValueWarning,
+		WarningTypeNumber
+	};
+	mutable IntVector ivWarningNumberPerType;
 
 	// Information sur le json path en cours d'analyse
 	mutable ObjectArray oaJsonPathMembers;

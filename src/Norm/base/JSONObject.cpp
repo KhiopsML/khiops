@@ -67,7 +67,7 @@ const ALString JSONValue::BuildCompactJsonValue() const
 
 const ALString JSONValue::BuildDisplayedJsonValue() const
 {
-	const int nMaxLength = 25;
+	const int nMaxLength = 35;
 	ALString sJsonValue;
 
 	// Troncature si longueur depassee

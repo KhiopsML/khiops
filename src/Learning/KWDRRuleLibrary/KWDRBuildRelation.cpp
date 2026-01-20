@@ -670,6 +670,10 @@ KWDRBuildEntityFromJson::KWDRBuildEntityFromJson()
 	// Variables en entree: le champ json
 	SetOperandNumber(1);
 	GetFirstOperand()->SetType(KWType::Text);
+
+	// Initialisation des warnings
+	ivWarningNumberPerType.SetSize(WarningTypeNumber);
+	nMaxSavedWarningNumberPerType = 0;
 }
 
 KWDRBuildEntityFromJson::~KWDRBuildEntityFromJson() {}
@@ -689,6 +693,7 @@ KWObject* KWDRBuildEntityFromJson::ComputeObjectResult(const KWObject* kwoObject
 	StringVector svParsingErrorMessages;
 	KWAttribute* attribute;
 	ALString sMessage;
+	ALString sSyntheticMessage;
 	int n;
 
 	require(IsCompiled());
@@ -709,14 +714,21 @@ KWObject* KWDRBuildEntityFromJson::ComputeObjectResult(const KWObject* kwoObject
 		// Creation de l'objet en sortie si pas de probleme de parsing json
 		if (bOk)
 		{
+			// Calcul d'un nombre max de warnings a sauvegarder par type
+			// On cherche a limiter le nombre total de warnings affiches par instances,
+			// tout en l'augmentant selon le parametrage utilisateur
+			nMaxSavedWarningNumberPerType =
+			    1 + (int)ceil(sqrt(Global::GetMaxErrorFlowNumber()) / WarningTypeNumber);
+
 			// Creation et alimentation l'objet en sortie
 			assert(oaJsonPathMembers.GetSize() == 0);
 			kwoTargetObject = CreateObjectFromJsonObject(kwoObject, liAttributeLoadIndex,
 								     kwcCompiledTargetClass, &jsonObject);
 
-			// Emission des warning s'il y en a
+			// Emission des warnings s'il y en a
 			if (svWarnings.GetSize() > 0)
 			{
+				// Affichage des warnings memorise
 				attribute = kwoObject->GetClass()->GetAttributeAtLoadIndex(liAttributeLoadIndex);
 				for (n = 0; n < svWarnings.GetSize(); n++)
 				{
@@ -724,7 +736,18 @@ KWObject* KWDRBuildEntityFromJson::ComputeObjectResult(const KWObject* kwoObject
 						   " using the rule " + GetName() + " : " + svWarnings.GetAt(n);
 					kwoObject->AddWarning(sMessage);
 				}
-				svWarnings.SetSize(0);
+
+				// Affichage d'un message synthetique
+				sSyntheticMessage = BuildSyntheticWarningMessage();
+				if (sSyntheticMessage != "")
+				{
+					sMessage = "Calculation of the variable " + attribute->GetName() +
+						   " using the rule " + GetName() + " : " + sSyntheticMessage;
+					kwoObject->AddWarning(sMessage);
+				}
+
+				// Reinitialisation
+				ResetWarnings();
 			}
 		}
 		// Message d'erreur sinon
@@ -904,6 +927,24 @@ void KWDRBuildEntityFromJson::Compile(KWClass* kwcOwnerClass)
 	}
 }
 
+longint KWDRBuildEntityFromJson::GetUsedMemory() const
+{
+	longint lUsedMemory;
+	KWDerivationRuleOperand* operand;
+
+	// Appel de la methode ancetre
+	lUsedMemory = KWDRRelationCreationRule::GetUsedMemory();
+
+	// Specialisation de la methode
+	lUsedMemory += sizeof(KWDRBuildEntityFromJson) - sizeof(KWDRRelationCreationRule);
+	lUsedMemory += odCompiledSingleNativeAttributePerSingletonClass.GetUsedMemory() - sizeof(ObjectDictionary);
+	lUsedMemory += svWarnings.GetUsedMemory() - sizeof(StringVector);
+	lUsedMemory += ivWarningNumberPerType.GetUsedMemory() - sizeof(IntVector);
+	lUsedMemory += oaJsonPathMembers.GetUsedMemory() - sizeof(ObjectArray);
+	lUsedMemory += ivJsonPathArrayIndexes.GetUsedMemory() - sizeof(IntVector);
+	return lUsedMemory;
+}
+
 boolean KWDRBuildEntityFromJson::IsViewModeActivated() const
 {
 	return false;
@@ -961,9 +1002,15 @@ KWObject* KWDRBuildEntityFromJson::CreateObjectFromJsonObject(const KWObject* kw
 			// Warning si attribut non trouve
 			if (attribute == NULL)
 				AddMissingAttributeWarning(jsonMember, kwcCreationClass);
-			// Alimentation si attribut existant
+			// Warning si attribut derive
+			else if (attribute->GetAnyDerivationRule() != NULL)
+				AddDerivedAttributeWarning(jsonMember, jsonMember->GetValue(), attribute);
+			// Alimentation si attribut natif existant
 			else
 			{
+				// Verifie lors du CheckCompleteness
+				assert(not attribute->IsInBlock());
+
 				// Alimentation si attribut charge en memoire
 				if (attribute->GetLoadIndex().IsValid())
 				{
@@ -1098,12 +1145,15 @@ KWObject* KWDRBuildEntityFromJson::CreateObjectFromJsonObject(const KWObject* kw
 									// Autre cas
 									else
 									{
+										if (singleNativeAttribute == NULL)
+											AddMissingSingleAttributeWarning(
+											    jsonMember,
+											    kwcCreationClass);
 										// Cas particulier d'une classe ayant un seul attribut natif, pouvant potentiellemen
 										// acceuillir des valeur json litterales (number, string...)
-										if (singleNativeAttribute != NULL and
-										    KWType::IsStored(
-											singleNativeAttribute
-											    ->GetType()))
+										else if (KWType::IsStored(
+											     singleNativeAttribute
+												 ->GetType()))
 										{
 											// Tentative de creation d'un KWObject a partir d'une valeur json
 											kwoTargetSubObject =
@@ -1171,6 +1221,8 @@ KWObject* KWDRBuildEntityFromJson::CreateObjectFromJsonValue(
 	require(odCompiledSingleNativeAttributePerSingletonClass.Lookup(kwcCreationClass->GetName()) ==
 		singleNativeAttribute);
 	require(KWType::IsStored(singleNativeAttribute->GetType()));
+	require(not singleNativeAttribute->IsInBlock());
+	require(singleNativeAttribute->GetAnyDerivationRule() == NULL);
 	require(jsonOwnerArray != NULL);
 	require(jsonOwnerArray->GetValueType() == JSONValue::ArrayValue);
 	require(jsonValue != NULL);
@@ -1376,15 +1428,78 @@ void KWDRBuildEntityFromJson::AddMissingAttributeWarning(const JSONMember* jsonM
 	require(jsonMember != NULL);
 	require(targetClass != NULL);
 
-	// Calcul du json path en teant compte du membre en cours
-	PushJsonPath(jsonMember, 0);
-	sJsonPath = BuildCurrentJsonPath();
-	PopJsonPath();
+	// Memorisation uniquement des premiers warnings
+	ivWarningNumberPerType.UpgradeAt(MissingAttributeWarning, 1);
+	if (ivWarningNumberPerType.GetAt(MissingAttributeWarning) <= nMaxSavedWarningNumberPerType)
+	{
+		// Calcul du json path en tenant compte du membre en cours
+		PushJsonPath(jsonMember, 0);
+		sJsonPath = BuildCurrentJsonPath();
+		PopJsonPath();
 
-	// Message
-	sMessage = "variable " + jsonMember->GetKey() + " not found in output dictionary " + targetClass->GetName() +
-		   " for value at json path " + sJsonPath;
-	svWarnings.Add(sMessage);
+		// Message
+		sMessage = "variable " + jsonMember->GetKey() + " not found in output dictionary " +
+			   targetClass->GetName() + " for value at json path " + sJsonPath;
+		svWarnings.Add(sMessage);
+	}
+}
+
+void KWDRBuildEntityFromJson::AddMissingSingleAttributeWarning(const JSONMember* jsonMember,
+							       const KWClass* targetClass) const
+{
+	ALString sMessage;
+	ALString sJsonPath;
+
+	require(jsonMember != NULL);
+	require(targetClass != NULL);
+	require(odCompiledSingleNativeAttributePerSingletonClass.Lookup(targetClass->GetName()) == NULL);
+
+	// Memorisation uniquement des premiers warnings
+	ivWarningNumberPerType.UpgradeAt(MissingSingleAttributeWarning, 1);
+	if (ivWarningNumberPerType.GetAt(MissingSingleAttributeWarning) <= nMaxSavedWarningNumberPerType)
+	{
+		// Calcul du json path directement, puisque l'on est deja dans une valeur de tableau
+		sJsonPath = BuildCurrentJsonPath();
+
+		// Message
+		sMessage = "output dictionary " + targetClass->GetName() +
+			   " should contain one single native variable for the array value at json path " + sJsonPath;
+		svWarnings.Add(sMessage);
+	}
+}
+
+void KWDRBuildEntityFromJson::AddDerivedAttributeWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
+							 const KWAttribute* targetAttribute) const
+{
+	ALString sMessage;
+	ALString sJsonPath;
+	ALString sTmp;
+
+	require(jsonMember == NULL or jsonMember->GetValue() == jsonValue);
+	require(targetAttribute != NULL);
+	require(jsonMember == NULL or jsonMember->GetKey() == targetAttribute->GetName());
+
+	// Memorisation uniquement des premiers warnings
+	ivWarningNumberPerType.UpgradeAt(DerivedAttributeWarning, 1);
+	if (ivWarningNumberPerType.GetAt(DerivedAttributeWarning) <= nMaxSavedWarningNumberPerType)
+	{
+		// Calcul du json path en tenant compte du membre en cours
+		PushJsonPath(jsonMember, 0);
+		sJsonPath = BuildCurrentJsonPath();
+		PopJsonPath();
+
+		// Message, en precisant que le dictionnaire en sortie est singleton dans le cas d'une valeur de tableau
+		sMessage = sTmp + KWType::ToString(targetAttribute->GetType()) + " variable " +
+			   targetAttribute->GetName() + " in output ";
+		if (jsonMember == NULL)
+			sMessage += KWType::ToString(KWType::ObjectArray) + " ";
+		sMessage += "dictionary " + targetAttribute->GetParentClass()->GetName() +
+			    " is derived and cannot be initialized with json " + jsonValue->TypeToString() +
+			    " value (" + jsonValue->BuildDisplayedJsonValue() + ") at json path " + sJsonPath;
+		if (jsonMember == NULL)
+			sMessage += ", the json array value is ignored";
+		svWarnings.Add(sMessage);
+	}
 }
 
 void KWDRBuildEntityFromJson::AddInconsistentAttributeTypeWarning(const JSONMember* jsonMember,
@@ -1399,24 +1514,29 @@ void KWDRBuildEntityFromJson::AddInconsistentAttributeTypeWarning(const JSONMemb
 	require(targetAttribute != NULL);
 	require(jsonMember == NULL or jsonMember->GetKey() == targetAttribute->GetName());
 
-	// Calcul du json path en tenant compte du membre en cours
-	if (jsonMember != NULL)
-		PushJsonPath(jsonMember, 0);
-	sJsonPath = BuildCurrentJsonPath();
-	if (jsonMember != NULL)
-		PopJsonPath();
+	// Memorisation uniquement des premiers warnings
+	ivWarningNumberPerType.UpgradeAt(InconsistentAttributeTypeWarning, 1);
+	if (ivWarningNumberPerType.GetAt(InconsistentAttributeTypeWarning) <= nMaxSavedWarningNumberPerType)
+	{
+		// Calcul du json path en tenant compte du membre en cours
+		if (jsonMember != NULL)
+			PushJsonPath(jsonMember, 0);
+		sJsonPath = BuildCurrentJsonPath();
+		if (jsonMember != NULL)
+			PopJsonPath();
 
-	// Message, en precisant que le dictionnaire en sortie est singleton dans le cas d'une valeur de tableau
-	sMessage = sTmp + KWType::ToString(targetAttribute->GetType()) + " variable " + targetAttribute->GetName() +
-		   " in output ";
-	if (jsonMember == NULL)
-		sMessage += KWType::ToString(KWType::ObjectArray) + " ";
-	sMessage += "dictionary " + targetAttribute->GetParentClass()->GetName() + " of type incompatible with json " +
-		    jsonValue->TypeToString() + " value (" + jsonValue->BuildDisplayedJsonValue() + ") at json path " +
-		    sJsonPath;
-	if (jsonMember == NULL)
-		sMessage += ", the json array value is ignored";
-	svWarnings.Add(sMessage);
+		// Message, en precisant que le dictionnaire en sortie est singleton dans le cas d'une valeur de tableau
+		sMessage = sTmp + KWType::ToString(targetAttribute->GetType()) + " variable " +
+			   targetAttribute->GetName() + " in output ";
+		if (jsonMember == NULL)
+			sMessage += KWType::ToString(KWType::ObjectArray) + " ";
+		sMessage += "dictionary " + targetAttribute->GetParentClass()->GetName() +
+			    " of type incompatible with json " + jsonValue->TypeToString() + " value (" +
+			    jsonValue->BuildDisplayedJsonValue() + ") at json path " + sJsonPath;
+		if (jsonMember == NULL)
+			sMessage += ", the json array value is ignored";
+		svWarnings.Add(sMessage);
+	}
 }
 
 void KWDRBuildEntityFromJson::AddInvalidTemporalValueWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
@@ -1433,36 +1553,41 @@ void KWDRBuildEntityFromJson::AddInvalidTemporalValueWarning(const JSONMember* j
 	require(jsonMember == NULL or jsonMember->GetKey() == targetAttribute->GetName());
 	require(jsonValue->GetType() == JSONValue::StringValue);
 
-	// Calcul du json path en tenant compte du membre en cours
-	if (jsonMember != NULL)
-		PushJsonPath(jsonMember, 0);
-	sJsonPath = BuildCurrentJsonPath();
-	if (jsonMember != NULL)
-		PopJsonPath();
+	// Memorisation uniquement des premiers warnings
+	ivWarningNumberPerType.UpgradeAt(InvalidTemporalValueWarning, 1);
+	if (ivWarningNumberPerType.GetAt(InvalidTemporalValueWarning) <= nMaxSavedWarningNumberPerType)
+	{
+		// Calcul du json path en tenant compte du membre en cours
+		if (jsonMember != NULL)
+			PushJsonPath(jsonMember, 0);
+		sJsonPath = BuildCurrentJsonPath();
+		if (jsonMember != NULL)
+			PopJsonPath();
 
-	// Calcul des informations sur le format
-	sTemporalFormatInfo = targetAttribute->GetFormatMetaDataKey(targetAttribute->GetType());
-	sTemporalFormatInfo += '=';
-	sTemporalFormatInfo += '"';
-	if (targetAttribute->GetType() == KWType::Time)
-		sTemporalFormatInfo += targetAttribute->GetTimeFormat()->GetFormatString();
-	else if (targetAttribute->GetType() == KWType::Date)
-		sTemporalFormatInfo += targetAttribute->GetDateFormat()->GetFormatString();
-	else if (targetAttribute->GetType() == KWType::Timestamp)
-		sTemporalFormatInfo += targetAttribute->GetTimestampFormat()->GetFormatString();
-	else if (targetAttribute->GetType() == KWType::TimestampTZ)
-		sTemporalFormatInfo += targetAttribute->GetTimestampTZFormat()->GetFormatString();
-	sTemporalFormatInfo += '"';
+		// Calcul des informations sur le format
+		sTemporalFormatInfo = targetAttribute->GetFormatMetaDataKey(targetAttribute->GetType());
+		sTemporalFormatInfo += '=';
+		sTemporalFormatInfo += '"';
+		if (targetAttribute->GetType() == KWType::Time)
+			sTemporalFormatInfo += targetAttribute->GetTimeFormat()->GetFormatString();
+		else if (targetAttribute->GetType() == KWType::Date)
+			sTemporalFormatInfo += targetAttribute->GetDateFormat()->GetFormatString();
+		else if (targetAttribute->GetType() == KWType::Timestamp)
+			sTemporalFormatInfo += targetAttribute->GetTimestampFormat()->GetFormatString();
+		else if (targetAttribute->GetType() == KWType::TimestampTZ)
+			sTemporalFormatInfo += targetAttribute->GetTimestampTZFormat()->GetFormatString();
+		sTemporalFormatInfo += '"';
 
-	// Message, en precisant que le dictionnaire en sortie est singleton dans le cas d'une valeur de tableau
-	sMessage = sTmp + KWType::ToString(targetAttribute->GetType()) + " variable " + targetAttribute->GetName() +
-		   " (" + sTemporalFormatInfo + ") in output ";
-	if (jsonMember == NULL)
-		sMessage += KWType::ToString(KWType::ObjectArray) + " ";
-	sMessage += "dictionary " + targetAttribute->GetParentClass()->GetName() +
-		    " with missing value due to invalid temporal format of json " + jsonValue->TypeToString() +
-		    " value (" + jsonValue->BuildDisplayedJsonValue() + ") at json path " + sJsonPath;
-	svWarnings.Add(sMessage);
+		// Message, en precisant que le dictionnaire en sortie est singleton dans le cas d'une valeur de tableau
+		sMessage = sTmp + KWType::ToString(targetAttribute->GetType()) + " variable " +
+			   targetAttribute->GetName() + " (" + sTemporalFormatInfo + ") in output ";
+		if (jsonMember == NULL)
+			sMessage += KWType::ToString(KWType::ObjectArray) + " ";
+		sMessage += "dictionary " + targetAttribute->GetParentClass()->GetName() +
+			    " with missing value due to invalid temporal format of json " + jsonValue->TypeToString() +
+			    " value (" + jsonValue->BuildDisplayedJsonValue() + ") at json path " + sJsonPath;
+		svWarnings.Add(sMessage);
+	}
 }
 
 void KWDRBuildEntityFromJson::AddOverlengthySymbolValueWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
@@ -1476,24 +1601,119 @@ void KWDRBuildEntityFromJson::AddOverlengthySymbolValueWarning(const JSONMember*
 	require(targetAttribute != NULL);
 	require(jsonMember == NULL or jsonMember->GetKey() == targetAttribute->GetName());
 
-	// Calcul du json path en tenant compte du membre en cours
-	if (jsonMember != NULL)
-		PushJsonPath(jsonMember, 0);
-	sJsonPath = BuildCurrentJsonPath();
-	if (jsonMember != NULL)
-		PopJsonPath();
+	// Memorisation uniquement des premiers warnings
+	ivWarningNumberPerType.UpgradeAt(OverlengthySymbolValueWarning, 1);
+	if (ivWarningNumberPerType.GetAt(OverlengthySymbolValueWarning) <= nMaxSavedWarningNumberPerType)
+	{
+		// Calcul du json path en tenant compte du membre en cours
+		if (jsonMember != NULL)
+			PushJsonPath(jsonMember, 0);
+		sJsonPath = BuildCurrentJsonPath();
+		if (jsonMember != NULL)
+			PopJsonPath();
 
-	// Message, en precisant que le dictionnaire en sortie est singleton dans le cas d'une valeur de tableau
-	sMessage = sTmp + KWType::ToString(targetAttribute->GetType()) + " variable " + targetAttribute->GetName() +
-		   " in output ";
-	if (jsonMember == NULL)
-		sMessage += KWType::ToString(KWType::ObjectArray) + " ";
-	sMessage += "dictionary " + targetAttribute->GetParentClass()->GetName() + " with value truncated to " +
-		    IntToString(KWValue::nMaxSymbolFieldSize) + " characters to due to overlengthy json " +
-		    jsonValue->TypeToString() +
-		    " value (length=" + IntToString(jsonValue->GetStringValue()->GetString().GetLength()) +
-		    ", value=" + jsonValue->BuildDisplayedJsonValue() + ") at json path " + sJsonPath;
-	svWarnings.Add(sMessage);
+		// Message, en precisant que le dictionnaire en sortie est singleton dans le cas d'une valeur de tableau
+		sMessage = sTmp + KWType::ToString(targetAttribute->GetType()) + " variable " +
+			   targetAttribute->GetName() + " in output ";
+		if (jsonMember == NULL)
+			sMessage += KWType::ToString(KWType::ObjectArray) + " ";
+		sMessage += "dictionary " + targetAttribute->GetParentClass()->GetName() + " with value truncated to " +
+			    IntToString(KWValue::nMaxSymbolFieldSize) + " characters to due to overlengthy json " +
+			    jsonValue->TypeToString() +
+			    " value (length=" + IntToString(jsonValue->GetStringValue()->GetString().GetLength()) +
+			    ", value=" + jsonValue->BuildDisplayedJsonValue() + ") at json path " + sJsonPath;
+		svWarnings.Add(sMessage);
+	}
+}
+
+const ALString KWDRBuildEntityFromJson::BuildSyntheticWarningMessage() const
+{
+	ALString sMessage;
+	int nWarningNumber;
+	boolean bSyntheticWarningNecessary;
+	int nTotalWarnings;
+	int nTotalWarningTypes;
+	int nDisplayedTypeNumber;
+	int nWarningType;
+	ALString sTmp;
+
+	// Statistiqtiques sur les types de warnings
+	bSyntheticWarningNecessary = false;
+	nTotalWarnings = 0;
+	nTotalWarningTypes = 0;
+	for (nWarningType = 0; nWarningType < WarningTypeNumber; nWarningType++)
+	{
+		nWarningNumber = ivWarningNumberPerType.GetAt(nWarningType);
+		bSyntheticWarningNecessary =
+		    bSyntheticWarningNecessary or nWarningNumber > nMaxSavedWarningNumberPerType;
+		nTotalWarnings += nWarningNumber;
+		if (nWarningNumber > 0)
+			nTotalWarningTypes++;
+	}
+
+	// Construction d'un message synthetique si necessaire
+	if (bSyntheticWarningNecessary)
+	{
+		// Nombre total de warnings
+		sMessage += sTmp + "overall " + IntToString(nTotalWarnings) + " warnings";
+
+		// Decomposition par type de warning uniquement si necessaire
+		if (nTotalWarningTypes > 1)
+			sMessage += ", including ";
+
+		// Detail par type de warning
+		nDisplayedTypeNumber = 0;
+		for (nWarningType = 0; nWarningType < WarningTypeNumber; nWarningType++)
+		{
+			nWarningNumber = ivWarningNumberPerType.GetAt(nWarningType);
+			if (nWarningNumber > 0)
+			{
+				// Separateur si necessaire
+				if (nDisplayedTypeNumber > 0)
+					sMessage += ", ";
+
+				// On indique le nombre de warnings specifique que s'il y a plusieurs types
+				if (nTotalWarningTypes > 1)
+					sMessage += IntToString(nWarningNumber);
+
+				// Message specifique par type de warning
+				sMessage += " for ";
+				switch (nWarningType)
+				{
+				case MissingAttributeWarning:
+					sMessage += "missing target variable";
+					break;
+				case MissingSingleAttributeWarning:
+					sMessage += "target dictionary without one single native variable";
+					break;
+				case DerivedAttributeWarning:
+					sMessage += "derived target variable";
+					break;
+				case InconsistentAttributeTypeWarning:
+					sMessage += "incompatible type";
+					break;
+				case InvalidTemporalValueWarning:
+					sMessage += "invalid temporal format";
+					break;
+				case OverlengthySymbolValueWarning:
+					sMessage += "overlengthy string value";
+					break;
+				default:
+					assert(false);
+					break;
+				}
+				nDisplayedTypeNumber++;
+			}
+		}
+	}
+	return sMessage;
+}
+
+void KWDRBuildEntityFromJson::ResetWarnings() const
+{
+	require(ivWarningNumberPerType.GetSize() == WarningTypeNumber);
+	ivWarningNumberPerType.Initialize();
+	svWarnings.SetSize(0);
 }
 
 void KWDRBuildEntityFromJson::PushJsonPath(const JSONMember* jsonMember, int nIndex) const
