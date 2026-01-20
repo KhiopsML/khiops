@@ -1,0 +1,130 @@
+---
+name: Run Standard Tests
+# Run minimal end-to-end tests for Khiops, Khiops Coclustering and KNITransfer
+# On release, it runs Standard test for binary. Plus MultiTables/SpliceJunction for KNITransfer
+# On debug, it runs only Standard/Iris for Coclustering and KNITransfer and Standard/IrisLight for Khiops
+# In case of errors, test results are available as artifacts for 7 days
+description: Runs the standard Khiops tests
+inputs:
+  warning_as_error:
+    description: Treat warnings as errors
+    required: false
+    default: 'false'
+  running-mode:
+    description: Running mode (parallel or serial)
+    required: true
+  config:
+    description: Build configuration (debug or release)
+    required: true
+  binary-path:
+    description: Path to the Khiops binaries or khiops_env
+    required: true
+  testing-context-description:
+    description: Description of the testing context (build setup, target platform)
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Python setup for Linux
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        # Install Python 3 if not present (already present in conda environment)
+        if ! command -v python3 &> /dev/null
+        then
+          # Python install: we don't use the setup-python action because of the following error:
+          # python3: /lib64/libc.so.6: version `GLIBC_2.34' not found (required by python3)
+          # Detect Debian based OS
+          if [ -d "/etc/apt" ]
+          then
+            apt-get update
+            apt-get install -y python3 > /dev/null
+          else
+            yum check-update || true
+            yum install -y python3.11
+          fi
+        fi
+        echo "PYTHON=python3" >> "$GITHUB_ENV"
+    - name: Python setup for Windows or macOS
+      if: runner.os == 'Windows' || runner.os == 'macOS'
+      shell: bash
+      run: echo "PYTHON=python" >> "$GITHUB_ENV"
+    - name: Set environment variables
+      shell: bash
+      run: |
+        echo "TEST_PY=test/LearningTestTool/py/kht_test.py" >> "$GITHUB_ENV"
+        echo "APPLY_PY=test/LearningTestTool/py/kht_apply.py" >> "$GITHUB_ENV"
+        echo "COLLECT_PY=test/LearningTestTool/py/kht_collect_results.py" >> "$GITHUB_ENV"
+        echo "BIN_PATH=${{ inputs.binary-path }}" >> "$GITHUB_ENV"
+    - name: Run Tests
+    # Run test on linux and macOS as describe in the top comment:
+    # - In parallel, run only MODL tests
+    # - In debug run only Standard/Iris for KNITRansfer and MODL_Coclustering, Standard/IrisLight for MODL
+    # - In release run all Standard tests
+      shell: bash
+      run: |
+        # Load MPI Module if on Linux and not on Debian-like OS (whence on Rocky Linux)
+        if [[ "${{ runner.os }}" == "Linux" && ! -d "/etc/apt/" ]]; then
+          source /etc/profile.d/modules.sh
+          module unload mpi
+          module load mpi/${MPI_IMPLEMENTATION}-x86_64
+        fi
+        if [[ "${{ inputs.running-mode }}" == "parallel" ]] ; then
+          export PARALLEL_ARG="-p 4"
+        fi
+        if [[ "${{ inputs.config }}" == "release" ]] ; then
+          $PYTHON $TEST_PY test/LearningTest/TestKhiops/Standard "${BIN_PATH}" ${PARALLEL_ARG}
+          $PYTHON $TEST_PY test/LearningTest/TestCoclustering/Standard "${BIN_PATH}" ${PARALLEL_ARG}
+          if [[ "${{ inputs.running-mode }}" != "parallel" ]] ; then 
+            $PYTHON $TEST_PY test/LearningTest/TestKNI/Standard "${BIN_PATH}"
+          fi
+        else
+          $PYTHON $TEST_PY test/LearningTest/TestKhiops/Standard/IrisLight "${BIN_PATH}" ${PARALLEL_ARG}
+          $PYTHON $TEST_PY test/LearningTest/TestCoclustering/Standard/Iris "${BIN_PATH}" ${PARALLEL_ARG}
+          if [[ "${{ inputs.running-mode }}" != "parallel" ]] ; then
+            $PYTHON $TEST_PY test/LearningTest/TestKNI/Standard/Iris "${BIN_PATH}"
+          fi
+        fi
+    - name: Collect results
+      shell: bash
+      if: success() || failure()
+      run: |
+        mkdir -p results
+        if [[ "${{ inputs.config }}" == "release" ]] ; then
+          $PYTHON $APPLY_PY test/LearningTest/TestKhiops/Standard errors | tee -a results/errors.txt
+          $PYTHON $APPLY_PY test/LearningTest/TestCoclustering/Standard errors | tee -a results/errors.txt
+          if [[ "${{ inputs.running-mode }}" != "parallel" ]] ; then
+            $PYTHON $APPLY_PY test/LearningTest/TestKNI/Standard errors | tee -a results/errors.txt
+          fi
+        else
+          $PYTHON $APPLY_PY test/LearningTest/TestKhiops/Standard/IrisLight errors | tee -a results/errors.txt
+          $PYTHON $APPLY_PY test/LearningTest/TestCoclustering/Standard/Iris errors | tee -a results/errors.txt
+          if [[ "${{ inputs.running-mode }}" != "parallel" ]] ; then
+            $PYTHON $APPLY_PY test/LearningTest/TestKNI/Standard/Iris errors | tee -a results/errors.txt
+          fi
+        fi
+        $PYTHON $COLLECT_PY test/LearningTest/ results --collect-type warnings -f basic
+    - name: Check results
+      # We escape eol in the results file to print multilines in the github UI https://github.com/orgs/community/discussions/26288
+      shell: bash
+      run: |-
+        MSG=$(<results/errors.txt)
+        MSG="${MSG//'%'/'%25'}"
+        MSG="${MSG//$'\n'/'%0A'}"
+        MSG="${MSG//$'\r'/'%0D'}"
+        if grep -q -e "error" -e "The test has not been launched" results/errors.txt ; then
+          echo "::error::$MSG"
+          false
+        fi
+        if [ "${{ inputs.warning_as_error }}" == "true" ] && grep -q "warning" results/errors.txt  ; then
+          echo "::error::$MSG"
+          false
+        fi
+    - name: Upload test results
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ inputs.testing-context-description }}
+        retention-days: 7
+        path: |-
+          results/

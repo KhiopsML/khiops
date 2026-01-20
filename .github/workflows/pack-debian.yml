@@ -151,6 +151,23 @@ jobs:
         with:
           os-decription: ${{ env.ID }}-${{ env.VERSION_CODENAME }}-${{ env.ARCH }}
           show-openmpi-errors: ${{ inputs.show-openmpi-errors }}
+      - name: Add Khiops binary path to the environment (for running the standard tests)
+        run: |
+          if type -P khiops_env &> /dev/null; then
+            BIN_DIR=$(dirname $(type -P khiops_env))
+            echo "BIN_DIR=${BIN_DIR}" >> "$GITHUB_ENV"
+          else
+            echo "::error::Cannot find Khiops binary directory"
+            false
+          fi
+      - name: Run standard tests
+        uses: ./.github/actions/run-standard-tests
+        with:
+          warning_as_error: true
+          running-mode: parallel
+          config: release
+          binary-path: ${{ env.BIN_DIR }}
+          testing-context-description: ${{ env.ID }}-${{ env.VERSION_CODENAME }}-${{ env.ARCH }}
   test-kni:
     needs: build
     env:

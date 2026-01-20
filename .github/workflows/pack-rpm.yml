@@ -17,7 +17,7 @@ on:
       - '**CMakeLists.txt'
       - '!test/**CMakeLists.txt'
       - '**.cmake'
-      - .github/workflows/pack-rpm.yml]
+      - .github/workflows/pack-rpm.yml
   push:
     tags: ['*']
 # Cancel any ongoing run of this workflow on the same PR or ref
@@ -126,6 +126,24 @@ jobs:
         with:
           os-decription: rockylinux-${{ matrix.rocky_version }}
           show-openmpi-errors: ${{ inputs.show-openmpi-errors }}
+      - name: Add Khiops binary path to the environment (for running the standard
+          tests)
+        run: |
+          if type -P khiops_env &> /dev/null; then
+            BIN_DIR=$(dirname $(type -P khiops_env))
+            echo "BIN_DIR=${BIN_DIR}" >> "$GITHUB_ENV"
+          else
+            echo "::error::Cannot find Khiops binary directory"
+            false
+          fi
+      - name: Run standard tests
+        uses: ./.github/actions/run-standard-tests
+        with:
+          warning_as_error: true
+          running-mode: parallel
+          config: release
+          binary-path: ${{ env.BIN_DIR }}
+          testing-context-description: rockylinux-${{ matrix.rocky_version }}
   test-kni:
     needs: build
     runs-on: ubuntu-latest

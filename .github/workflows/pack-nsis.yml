@@ -226,6 +226,18 @@ jobs:
         uses: ./.github/actions/test-khiops-on-iris
         with:
           os-decription: windows
+      - name: Add Khiops binary path to the environment
+        shell: pwsh
+        run: |
+          $Env:BIN_DIR = "${Env:ProgramFiles}\khiops\bin"
+          echo "BIN_DIR=${Env:BIN_DIR}" >> ${Env:GITHUB_ENV}
+      - name: Run standard tests
+        uses: ./.github/actions/run-standard-tests
+        with:
+          warning_as_error: true
+          running-mode: parallel
+          config: release
+          binary-path: ${{ env.BIN_DIR }}
   test-kni:
     needs: build
     runs-on: windows-2022
