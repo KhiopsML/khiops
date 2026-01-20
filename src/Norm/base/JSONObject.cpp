@@ -53,19 +53,25 @@ void JSONValue::WriteCompact(ostream& ost) const
 	WriteIndent(ost, 0, false);
 }
 
-const ALString JSONValue::BuildDisplayedJsonValue() const
+const ALString JSONValue::BuildCompactJsonValue() const
 {
-	const int nMaxLength = 25;
 	ALString sJsonValue;
 	ostringstream osString;
-	ALString sStrippedJsonValue;
 
 	// Ecriture basique de la valeur json de facon compacte
 	osString.str("");
 	WriteCompact(osString);
 	sJsonValue = osString.str().c_str();
+	return sJsonValue;
+}
+
+const ALString JSONValue::BuildDisplayedJsonValue() const
+{
+	const int nMaxLength = 25;
+	ALString sJsonValue;
 
 	// Troncature si longueur depassee
+	sJsonValue = BuildCompactJsonValue();
 	if (sJsonValue.GetLength() > nMaxLength)
 		return sJsonValue.Left(nMaxLength) + "...";
 	else

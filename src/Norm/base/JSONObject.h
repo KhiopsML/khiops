@@ -62,6 +62,9 @@ public:
 	// Ecriture avec indentation et sauts de lignes si le mode pretty print est true
 	virtual void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const = 0;
 
+	// Valeur sous forme compact affichable
+	const ALString BuildCompactJsonValue() const;
+
 	// Valeur sous forme compact affichable, et tronquee si trop longue
 	const ALString BuildDisplayedJsonValue() const;
 
