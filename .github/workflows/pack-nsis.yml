@@ -42,7 +42,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Check the tag consistency with the source version
         if: github.ref_type == 'tag'
         uses: ./.github/actions/check-tag-version
@@ -219,7 +219,7 @@ jobs:
           echo ${Env:GITHUB_ENV}
           type ${Env:GITHUB_ENV}
       - name: Checkout the khiops sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Test the installation
         uses: ./.github/actions/test-khiops-install
       - name: Test Khiops on Iris dataset
@@ -231,7 +231,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Download KNI zip
         uses: actions/download-artifact@v4
         with:

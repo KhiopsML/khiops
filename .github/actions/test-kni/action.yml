@@ -14,11 +14,11 @@ runs:
           false
         fi
     - name: Checkout sources
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         path: khiops
     - name: Checkout KhiopsNativeInterface-tutorial
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         repository: KhiopsML/KhiopsNativeInterface-tutorial
         path: tutorial
