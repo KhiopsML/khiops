@@ -61,17 +61,17 @@ jobs:
           echo "KHIOPS_VERSION=$KHIOPS_VERSION" >> "$GITHUB_ENV"
           echo "KHIOPS_REDUCED_VERSION=$KHIOPS_REDUCED_VERSION" >> "$GITHUB_ENV"
           echo "khiops-version=$KHIOPS_VERSION" >> "$GITHUB_OUTPUT"
-      - name: Download Windows install assets
-        uses: robinraju/release-downloader@v1.9
-        with:
-          repository: khiopsml/khiops-win-install-assets
-          tag: ${{ env.ASSETS_VERSION }}
-      - name: Extract Windows installer assets and load assets-info.env
+      - name: Download Windows installer assets and load assets-info.env
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          gh release download $ASSETS_VERSION --repo KhiopsML/khiops-win-install-assets --pattern '*.tar.gz' 
           assets_tar_gz=$(ls khiops-win-install-assets*.tar.gz)
-          tar -zxvf "$assets_tar_gz"
+          echo "Extracting $assets_tar_gz"
+          tar -zxf "$assets_tar_gz"
           cat assets/assets-info.env >> "$GITHUB_ENV"
+          rm "$assets_tar_gz"
       # We download the latest version of visualization tools:
       # - They are backward compatible.
       # - The process is made easier by getting automatically the latest version
