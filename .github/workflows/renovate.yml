@@ -10,7 +10,7 @@ jobs:
     steps:
       # STEP 1: Checkout the latest version of the repository.
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
 
       # STEP 2: Generate the Renovate configuration file.
       # This step creates a 'renovate.json' file with the necessary configuration for Renovate.

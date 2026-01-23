@@ -38,7 +38,7 @@ jobs:
     runs-on: ${{ matrix.setup.os }}
     steps:
       - name: Checkout Sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Check the tag consistency with the source version
         if: github.ref_type == 'tag'
         uses: ./.github/actions/check-tag-version
@@ -129,7 +129,7 @@ jobs:
         if: runner.os != 'Windows'
         run: echo "CONDA_ENV_BIN_DIR=$CONDA_PREFIX/bin" >> $GITHUB_ENV
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Test that the Khiops executables are installed
         uses: ./.github/actions/test-khiops-install
       - name: Test the Khiops executables on the Iris dataset

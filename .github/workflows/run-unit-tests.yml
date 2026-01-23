@@ -38,7 +38,7 @@ jobs:
       checks: write
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Build Khiops test executables
         uses: ./.github/actions/build-khiops
         with:

@@ -39,7 +39,7 @@ jobs:
       image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Check the tag consistency with the source version
         if: github.ref_type == 'tag'
         uses: ./.github/actions/check-tag-version
@@ -97,7 +97,7 @@ jobs:
       image: rockylinux/rockylinux:${{ matrix.rocky_version }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set environment variables
         run: |
           source /etc/os-release
@@ -155,7 +155,7 @@ jobs:
           yum update -y --allowerasing  # resolve package conflicts
           yum install -y ./artifacts/kni*
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           sparse-checkout: .github
       - name: Test KNI package

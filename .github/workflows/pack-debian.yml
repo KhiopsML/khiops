@@ -52,7 +52,7 @@ jobs:
       image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.setup.image }}:latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Check the tag consistency with the source version
         if: github.ref_type == 'tag'
         uses: ./.github/actions/check-tag-version
@@ -119,7 +119,7 @@ jobs:
       image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.setup.image }}:latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set environment variables
         run: |
           source /etc/os-release
@@ -191,7 +191,7 @@ jobs:
           dpkg -i ./artifacts/kni* || true
           apt-get -f install -y
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           sparse-checkout: .github
       - name: Test KNI package
