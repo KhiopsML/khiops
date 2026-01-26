@@ -217,7 +217,7 @@ protected:
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRBuildEntityFromJson
 // Creation d'une entite en alimentant chaque attribut natif de l'entite en sortie
-// via une valeur du champ json associe a un cle correspondsant a un nom d'attribut
+// via une valeur du champ json associe a une cle correspondsant a un nom d'attribut
 // L'entite en sortie peut etre structuree en sous entite et sous-table.
 // Chacune de ses valeurs sera manquante par defaut, et sera alimentee par les valeurs json
 // si les types sont compatibles:
@@ -272,7 +272,7 @@ protected:
 
 	// Creation et alimentation d'un kwoObject a partir d'une valeur json et d'une classe
 	// Ce cas etendu est accepte pour une classe cible mono-variable de type compatible
-	// le type de la valeur json. Cela permet de gerer des tableau de valeurs json, en creant un objet par valeur.
+	// le type de la valeur json. Cela permet de gerer des tableaux de valeurs json, en creant un objet par valeur.
 	// L'objet renvoye peut etre NULL en cas de depassement memoire,
 	// ou en cas d'incompatibilite entre la valeur json et la classe
 	KWObject* CreateObjectFromJsonValue(const KWObject* kwoOwnerObject, const KWLoadIndex liAttributeLoadIndex,
@@ -346,7 +346,7 @@ protected:
 
 	// Dictionnaire des classes cibles n'ayant qu'un seul attribut natif
 	// Pour chaque classe concernee, on memorise l'attribut natif cible concerne avec en cle le nom de la classe
-	// Utilise pour gerer le cas des tableau de valeur litterales json (number, string,...) permettant
+	// Utilise pour gerer le cas des tableaux de valeurs litterales json (number, string,...) permettant
 	// d'alimenter des Table, uniquement dans le cas de dictionnaires mono-valeurs
 	ObjectDictionary odCompiledSingleNativeAttributePerSingletonClass;
 

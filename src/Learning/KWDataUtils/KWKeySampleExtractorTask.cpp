@@ -510,7 +510,7 @@ boolean KWKeySampleExtractorTask::MasterFinalize(boolean bProcessEndedCorrectly)
 		TaskProgression::DisplayLabel("Sort key sample");
 		nKeyNumber = 0;
 
-		// Creation de la liste triee des tableau tries de cles
+		// Creation de la liste triee des tableaux tries de cles
 		slAllSortedKeySamples = new SortedList(KWSortedKeySampleCompareHead);
 		for (i = 0; i < oaAllSortedKeySamples.GetSize(); i++)
 		{

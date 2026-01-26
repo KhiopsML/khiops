@@ -1212,7 +1212,7 @@ ObjectArray* KWDRTableIntersection::ComputeObjectArrayResult(const KWObject* kwo
 			}
 		}
 
-		// Parcours des tableau operandes suivants pour determiner les objets de l'intersection
+		// Parcours des tableaux d'operandes suivants pour determiner les objets de l'intersection
 		for (nOperand = 1; nOperand < GetOperandNumber(); nOperand++)
 		{
 			oaObjectArrayOperand = GetOperandAt(nOperand)->GetObjectArrayValue(kwoObject);

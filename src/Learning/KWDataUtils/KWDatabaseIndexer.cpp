@@ -280,7 +280,7 @@ boolean KWDatabaseIndexer::Check() const
 		bOk = bOk and sourcePLDatabase.IsInitialized();
 		bOk = bOk and sourcePLDatabase.IsOpenInformationComputed();
 
-		// Taille des tableau de resultats
+		// Taille des tableaux de resultats
 		bOk = bOk and oaTableRecordIndexVectors.GetSize() == GetTableNumber();
 		bOk = bOk and oaTableNextRecordPositionVectors.GetSize() == GetTableNumber();
 		assert(bOk);
@@ -647,7 +647,7 @@ boolean KWDatabaseIndexer::ComputeMainTableBasicIndexation()
 
 	require(oaTableRecordIndexVectors.GetSize() == 0);
 
-	// Initialisation des tableau de vecteur d'index et de positions
+	// Initialisation des tableaux de vecteur d'index et de positions
 	assert(oaExtractedKeys.GetSize() == 0);
 	oaTableRecordIndexVectors.SetSize(GetTableNumber());
 	oaTableNextRecordPositionVectors.SetSize(GetTableNumber());

@@ -372,7 +372,7 @@ protected:
 	// La gestion de ces tableaux de grande taille est analogue a celle mise en
 	// place dans la classe MemVector, mais en plus otpimise en tenant compte
 	// des particularite suivantes:
-	//  . la taille des tableau est fixe une fois pour toute par la KWClass
+	//  . la taille des tableaux est fixee une fois pour toute par la KWClass
 	//  . seul l'acces aux valeur est necessaire (pas de fonctionnalite de type
 	//    retaillage, tri, randomisation de l'odre...)
 

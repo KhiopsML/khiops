@@ -950,7 +950,7 @@ void DTAttributeSelectionsSlices::MergeArrayContent(const ObjectArray* oaFirst, 
 	require(oaMergedResult->GetCompareFunction() != NULL);
 	require(oaMergedResult->GetSize() == 0);
 
-	// Cas ou un des tableau est vide
+	// Cas ou un des tableaux est vide
 	if (oaFirst->GetSize() == 0)
 		oaMergedResult->CopyFrom(oaSecond);
 	else if (oaSecond->GetSize() == 0)

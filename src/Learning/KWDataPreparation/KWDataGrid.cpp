@@ -292,7 +292,7 @@ KWDGCell* KWDataGrid::AddCell(ObjectArray* oaParts)
 	// Memorisation des reference aux parties de la cellule
 	cell->oaParts.CopyFrom(oaParts);
 
-	// Ajustement de la taille des tableau de gestion des chainages
+	// Ajustement de la taille des tableaux de gestion des chainages
 	cell->oaPrevCells.SetSize(oaParts->GetSize());
 	cell->oaNextCells.SetSize(oaParts->GetSize());
 

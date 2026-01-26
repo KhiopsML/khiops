@@ -292,7 +292,7 @@ void PLShared_ObjectArrayArray::DeleteAllArrays(ObjectArray* oaaArray) const
 
 	require(oaaArray != NULL);
 
-	// Detruire des tableau et de leur contenu
+	// Detruire des tableaux et de leur contenu
 	for (i = 0; i < oaaArray->GetSize(); i++)
 	{
 		oaArray = cast(ObjectArray*, oaaArray->GetAt(i));

@@ -2399,7 +2399,7 @@ void KWDataTableSliceSet::ComputeReadInformation(const KWClass* kwcInputClass, K
 	// sont gardes en fin de classe, les blocs sont attribut Loaded ou
 	// utiles sont detruits avec leurs attributs
 	// Code quasiment recopie de la fin de la methode KWDatabase::BuildPhysicalClass()
-	// Code neamoins plus simple, car on n'a pas suivi les evolutions suite a la prise
+	// Code neanmoins plus simple, car on n'a pas suivi les evolutions suite a la prise
 	// en compte des regles de creation d'instances: il n'y a pas actuellement d'usage,
 	// puisque seuls les arbres exploitent des DataTableSlicet en ajoutant des regles
 	// standard, sans creation d'instance.

@@ -704,11 +704,11 @@ void KWDataPathManager::ComputeAllDataPaths(const KWClass* mainClass)
 		i++;
 	}
 
-	// Tri des tableau de mappings de classes references selon leur classe principal
+	// Tri des tableaux de mappings de classes references selon leur classe principal
 	oaAllRootCreatedDataPaths.SetCompareFunction(KWDataPathManagerCompareDataPathMainClass);
 	oaAllRootCreatedDataPaths.Sort();
 
-	// Memorisation des mapping des classes externes dans l'ordre du tri
+	// Memorisation des mappings des classes externes dans l'ordre du tri
 	for (i = 0; i < oaAllRootCreatedDataPaths.GetSize(); i++)
 	{
 		// Memorisation des mappings

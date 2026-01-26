@@ -562,7 +562,7 @@ protected:
 	void FreeNode(ListNode* pNode);
 };
 
-// Definition d'un cle generique
+// Definition d'une cle generique
 union GenericKey
 {
 	GenericKey() : genericKey(0){};
