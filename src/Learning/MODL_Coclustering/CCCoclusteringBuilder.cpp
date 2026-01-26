@@ -2055,7 +2055,7 @@ boolean CCCoclusteringBuilder::CheckMemoryForDatabaseRead(KWDatabase* database) 
 		lFileMemory = lEstimatedRecordNumber * lRecordSize;
 		lFileMemory += (longint)(lSourceFileSize *
 					 ((double)GetClass()->GetUsedAttributeNumberForType(KWType::Symbol) /
-					  GetClass()->GetNativeDataItemNumber()) *
+					  GetClass()->GetUsedNativeDataItemNumber()) *
 					 dDatabasePercentage / 100);
 		lNecessaryMemory += lFileMemory;
 

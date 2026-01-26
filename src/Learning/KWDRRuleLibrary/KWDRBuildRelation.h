@@ -14,12 +14,14 @@ class KWDRBuildEntityAdvancedView;
 class KWDRBuildEntity;
 class KWDRBuildDiffTable;
 class KWDRBuildCompositeTable;
+class KWDRBuildEntityFromJson;
 class KWDRBuildList;
 class KWDRBuildGraph;
 class KWDRBuildDummyTable;
 
 #include "KWDerivationRule.h"
 #include "KWRelationCreationRule.h"
+#include "JSONObject.h"
 
 // Enregistrement de ces regles
 void KWDRRegisterBuildRelationRules();
@@ -210,6 +212,166 @@ protected:
 	// Redefinition des methodes virtuelles
 	void CollectMandatoryInputOperands(IntVector* ivUsedInputOperands) const override;
 	void CollectSpecificInputOperandsAt(int nOutputOperand, IntVector* ivUsedInputOperands) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildEntityFromJson
+// Creation d'une entite en alimentant chaque attribut natif de l'entite en sortie
+// via une valeur du champ json associe a une cle correspondsant a un nom d'attribut
+// L'entite en sortie peut etre structuree en sous entite et sous-table.
+// Chacune de ses valeurs sera manquante par defaut, et sera alimentee par les valeurs json
+// si les types sont compatibles:
+// - Numerical: number
+// - Categorical, Text: string, number, "true", "false", "null"
+// - Date, Time, Timestamp, TimestampTZ: string
+// - Entity: object
+// - Table: array de object
+//   - extension toleree: si le dictionnaire cible est mono-valeur (Categorical ou Numerical) et que la
+//     valeur json est compatible, alors on peut cree des entite mono-valeur
+// Des warning sont emis dans les cas suivant:
+// - valeur json invalide
+// - warning synthetique sur les erreurs d'alimentation
+//   - cle json sans attribut correspondant
+//   - cle json avec attribut de type incompatible
+//   - cle json avec probleme de conversion (ex: Date)
+class KWDRBuildEntityFromJson : public KWDRRelationCreationRule
+{
+public:
+	// Constructeur
+	KWDRBuildEntityFromJson();
+	~KWDRBuildEntityFromJson();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	KWObject* ComputeObjectResult(const KWObject* kwoObject, const KWLoadIndex liAttributeLoadIndex) const override;
+
+	// Verification qu'une regle est completement renseignee et compilable
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
+
+	// Compilation
+	void Compile(KWClass* kwcOwnerClass) override;
+
+	// Memoire utilisee par la regle de derivation
+	longint GetUsedMemory() const override;
+
+	///////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	// Pas d'alimentation de type vue
+	boolean IsViewModeActivated() const override;
+
+	////////////////////////////////////////////////////////////////////////////////////////////
+	// Creation et alimenation des KWObject a partir des objets json
+
+	// Creation et alimentation d'un kwoObject a partir d'un objet json et d'une classe
+	// L'objet renvoye peut etre NULL en cas de depassement memoire
+	KWObject* CreateObjectFromJsonObject(const KWObject* kwoOwnerObject, const KWLoadIndex liAttributeLoadIndex,
+					     const KWClass* kwcCreationClass, const JSONObject* jsonObject) const;
+
+	// Creation et alimentation d'un kwoObject a partir d'une valeur json et d'une classe
+	// Ce cas etendu est accepte pour une classe cible mono-variable de type compatible
+	// le type de la valeur json. Cela permet de gerer des tableaux de valeurs json, en creant un objet par valeur.
+	// L'objet renvoye peut etre NULL en cas de depassement memoire,
+	// ou en cas d'incompatibilite entre la valeur json et la classe
+	KWObject* CreateObjectFromJsonValue(const KWObject* kwoOwnerObject, const KWLoadIndex liAttributeLoadIndex,
+					    const KWClass* kwcCreationClass, const KWAttribute* singleNativeAttribute,
+					    const JSONMember* jsonOwnerArray, const JSONValue* jsonValue) const;
+
+	// Prise en compte d'une valeur json string pour alimenter un attribut de categoriel ou temporel
+	// On reproduit le comportement de la lecture d'un fichier csv (cf. KWDataTableDriverTextFile::Read),
+	// mais en adaptant la gestion des warnings
+	// Le parametre jsonOwnerArayMember est soit celui qui contient la valeur, soit celui d'un tableau
+	// dans le cas d'une alimentation du tableau par des objets n'ayant qu'une seule valeur
+	void FillSymbolAttributeFromJsonString(const KWAttribute* attribute, const JSONMember* jsonOwnerMember,
+					       const JSONString* jsonString, KWObject* kwoTargetObject) const;
+
+	////////////////////////////////////////////////////////////////////////////////////////////
+	// Gestion des warning rencontree lors des creation et alimentation des objets cibles
+	// Les warnings sont memorises et seront emis en fin de la methode principale ComputeObjectResult
+	// Le nombre total de warning est memorise par type de warning, mais au plus un warning est memorise
+	// par type: le premier rencontre
+	// Dans le cas d'une valeur dans un tableau, on a a la fois un parametre jsonMember et un parametre jsonValue.
+	// - le parametre jsonMember est NULL, et le json path est deja specifie
+	// - sinon, le json path est augmente temporairement avec le jsonMember
+
+	// Warning si attribut non trouve dans la classe cible pour un objet dans le json path
+	void AddMissingAttributeWarning(const JSONMember* jsonMember, const KWClass* targetClass) const;
+
+	// Warning si la classe cible ne contient pas un seul attribut natif dans le cas
+	// d'un tableau de valeur pour un objet dans le json path
+	void AddMissingSingleAttributeWarning(const JSONMember* jsonMember, const KWClass* targetClass) const;
+
+	// Warning si attribut derive dans la classe cible pour un objet dans le json path
+	void AddDerivedAttributeWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
+					const KWAttribute* targetAttribute) const;
+
+	// Warning si attribut de type incompatible avec la valeur
+	void AddInconsistentAttributeTypeWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
+						 const KWAttribute* targetAttribute) const;
+
+	// Warning si valeur invalid pour un attribut de type temporel
+	void AddInvalidTemporalValueWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
+					    const KWAttribute* targetAttribute) const;
+
+	// Warning si valeur trop longue pour un attribut Symbol
+	void AddOverlengthySymbolValueWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
+					      const KWAttribute* targetAttribute) const;
+
+	// Construction d'un message synthetique sur l'ensemble des warnings emis si necessaire
+	const ALString BuildSyntheticWarningMessage() const;
+
+	// Reinitialisation des warnings
+	void ResetWarnings() const;
+
+	////////////////////////////////////////////////////////////////////////////////////////////
+	// Gestion du json path, permettant de localiser les erreurs d'alimentation
+	// Cf. https://en.wikipedia.org/wiki/JSONPath
+
+	// Empilage d'un niveau dans le json path
+	void PushJsonPath(const JSONMember* jsonMember, int nIndex) const;
+
+	// Depilage d'un niveau dans le json path
+	void PopJsonPath() const;
+
+	// Construction du json path courant
+	const ALString BuildCurrentJsonPath() const;
+
+	// Formatage d'une cle json
+	const ALString FormatJsonKey(const ALString& sJsonKey) const;
+
+	////////////////////////////////////////////////////////////////////////////////////////////
+	// Attributs de la classe
+
+	// Dictionnaire des classes cibles n'ayant qu'un seul attribut natif
+	// Pour chaque classe concernee, on memorise l'attribut natif cible concerne avec en cle le nom de la classe
+	// Utilise pour gerer le cas des tableaux de valeurs litterales json (number, string,...) permettant
+	// d'alimenter des Table, uniquement dans le cas de dictionnaires mono-valeurs
+	ObjectDictionary odCompiledSingleNativeAttributePerSingletonClass;
+
+	// Warnings rencontre lors de l'analyse du json
+	mutable StringVector svWarnings;
+
+	// Nombre max de warnings sauvegardes par type de warning
+	mutable int nMaxSavedWarningNumberPerType;
+
+	// Nombre total de warning par type de warning
+	enum
+	{
+		MissingAttributeWarning,
+		MissingSingleAttributeWarning,
+		DerivedAttributeWarning,
+		InconsistentAttributeTypeWarning,
+		InvalidTemporalValueWarning,
+		OverlengthySymbolValueWarning,
+		WarningTypeNumber
+	};
+	mutable IntVector ivWarningNumberPerType;
+
+	// Information sur le json path en cours d'analyse
+	mutable ObjectArray oaJsonPathMembers;
+	mutable IntVector ivJsonPathArrayIndexes;
 };
 
 ////////////////////////////////////////////////////////////////////////////

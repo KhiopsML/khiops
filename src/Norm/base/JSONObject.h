@@ -53,6 +53,21 @@ public:
 	// Conversion du type en chaine de caracteres
 	virtual const ALString TypeToString() const = 0;
 
+	// Affichage, ecriture dans un fichier
+	void Write(ostream& ost) const override;
+
+	// Affichage de facon compacte en une seule ligne
+	void WriteCompact(ostream& ost) const;
+
+	// Ecriture avec indentation et sauts de lignes si le mode pretty print est true
+	virtual void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const = 0;
+
+	// Valeur sous forme compact affichable
+	const ALString BuildCompactJsonValue() const;
+
+	// Valeur sous forme compact affichable, et tronquee si trop longue
+	const ALString BuildDisplayedJsonValue() const;
+
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
 };
@@ -86,15 +101,18 @@ public:
 	// Acces aux membres par cle
 	JSONMember* LookupMember(const ALString& sKey) const;
 
-	// Lecture d'un fichier
+	// Lecture depuis une chaine de caractere C dont on connait la taille
+	// On emet aucun mesage d'erreur: on les memorise dans le vecteur passe en parametre
+	boolean ReadString(const char* sValue, int nValueLength, StringVector* svParsingErrorMessages);
+
+	// Lecture d'un fichier, avec emission de message d'erreur
 	boolean ReadFile(const ALString& sFileName);
 
 	// Ecriture dans un fichier
 	boolean WriteFile(const ALString& sFileName) const;
 
-	// Affichage, ecriture dans un fichier
-	void Write(ostream& ost) const override;
-	void WriteIndent(ostream& ost, int nIndentLevel) const;
+	// Ecriture avec indentation et sauts de lignes si le mode pretty print est true
+	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const override;
 
 	// Conversion du type en chaine de caracteres
 	const ALString TypeToString() const override;
@@ -147,9 +165,8 @@ public:
 	// Acces aux valeurs par index
 	JSONValue* GetValueAt(int nIndex) const;
 
-	// Affichage, ecriture dans un fichier
-	void Write(ostream& ost) const override;
-	void WriteIndent(ostream& ost, int nIndentLevel) const;
+	// Ecriture avec indentation et sauts de lignes si le mode pretty print est true
+	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const;
 
 	// Conversion du type en chaine de caracteres
 	const ALString TypeToString() const override;
@@ -179,8 +196,8 @@ public:
 	void SetString(const ALString& sValue);
 	const ALString& GetString() const;
 
-	// Affichage, ecriture dans un fichier
-	void Write(ostream& ost) const override;
+	// Affichage avec options de pretty print
+	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const;
 
 	// Conversion du type en chaine de caracteres
 	const ALString TypeToString() const override;
@@ -208,8 +225,8 @@ public:
 	void SetNumber(double dValue);
 	double GetNumber() const;
 
-	// Affichage, ecriture dans un fichier
-	void Write(ostream& ost) const override;
+	// Affichage avec options de pretty print
+	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const;
 
 	// Conversion du type en chaine de caracteres
 	const ALString TypeToString() const override;
@@ -237,8 +254,8 @@ public:
 	void SetBoolean(boolean bValue);
 	boolean GetBoolean() const;
 
-	// Affichage, ecriture dans un fichier
-	void Write(ostream& ost) const override;
+	// Affichage avec options de pretty print
+	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const;
 
 	// Conversion du type en chaine de caracteres
 	const ALString TypeToString() const override;
@@ -262,8 +279,8 @@ public:
 	// Type de valeur
 	int GetType() const override;
 
-	// Affichage, ecriture dans un fichier
-	void Write(ostream& ost) const override;
+	// Affichage avec options de pretty print
+	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const;
 
 	// Conversion du type en chaine de caracteres
 	const ALString TypeToString() const override;
@@ -286,7 +303,7 @@ public:
 	// Cle associe a la valeur
 	// La cle est au format C, et non json
 	void SetKey(const ALString& sValue);
-	const ALString& GetKey();
+	const ALString& GetKey() const;
 
 	// Valeur
 	void SetValue(JSONValue* value);
@@ -303,9 +320,14 @@ public:
 	JSONBoolean* GetBooleanValue() const;
 	JSONNull* GetNullValue() const;
 
-	// Affichage, ecriture dans un fichier
-	void Write(ostream& ost) const override;
-	void WriteIndent(ostream& ost, int nIndentLevel) const;
+	// Affichage avec options de pretty print
+	void Write(ostream& ost) const;
+
+	// Affichage de facon compacte en une seule ligne
+	void WriteCompact(ostream& ost) const;
+
+	// Ecriture avec indentation et sauts de lignes si le mode pretty print est true
+	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const;
 
 	// Libelles utilisateurs
 	const ALString GetClassLabel() const override;

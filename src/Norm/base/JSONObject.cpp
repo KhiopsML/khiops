@@ -43,6 +43,41 @@ JSONNull* JSONValue::GetNullValue() const
 	return cast(JSONNull*, this);
 }
 
+void JSONValue::Write(ostream& ost) const
+{
+	WriteIndent(ost, 0, true);
+}
+
+void JSONValue::WriteCompact(ostream& ost) const
+{
+	WriteIndent(ost, 0, false);
+}
+
+const ALString JSONValue::BuildCompactJsonValue() const
+{
+	ALString sJsonValue;
+	ostringstream osString;
+
+	// Ecriture basique de la valeur json de facon compacte
+	osString.str("");
+	WriteCompact(osString);
+	sJsonValue = osString.str().c_str();
+	return sJsonValue;
+}
+
+const ALString JSONValue::BuildDisplayedJsonValue() const
+{
+	const int nMaxLength = 35;
+	ALString sJsonValue;
+
+	// Troncature si longueur depassee
+	sJsonValue = BuildCompactJsonValue();
+	if (sJsonValue.GetLength() > nMaxLength)
+		return sJsonValue.Left(nMaxLength) + "...";
+	else
+		return sJsonValue;
+}
+
 const ALString JSONValue::GetClassLabel() const
 {
 	return "json " + TypeToString();
@@ -127,15 +162,14 @@ boolean JSONObject::WriteFile(const ALString& sFileName) const
 	return bOk;
 }
 
-void JSONObject::Write(ostream& ost) const
+void JSONObject::WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const
 {
-	return WriteIndent(ost, 0);
-}
-
-void JSONObject::WriteIndent(ostream& ost, int nIndentLevel) const
-{
-	ALString sIndent('\t', nIndentLevel);
+	ALString sIndent;
 	int i;
+
+	// Parametrage de l'indentation si necessaire
+	if (bPrettyPrint)
+		sIndent = ALString('\t', nIndentLevel);
 
 	// Cas particulier d'un objet vide
 	if (GetMemberNumber() == 0)
@@ -144,19 +178,24 @@ void JSONObject::WriteIndent(ostream& ost, int nIndentLevel) const
 	else
 	{
 		// Par d'indentation au depart, pour le cas ou on fait partie d'un membre d'objet ave sa cle
-		ost << '{' << '\n';
+		ost << '{';
+		if (bPrettyPrint)
+			ost << '\n';
 
 		// Chaque membre est indente au niveau superieur
 		for (i = 0; i < GetMemberNumber(); i++)
 		{
-			GetMemberAt(i)->WriteIndent(ost, nIndentLevel + 1);
+			GetMemberAt(i)->WriteIndent(ost, nIndentLevel + 1, bPrettyPrint);
 			if (i < GetMemberNumber() - 1)
 				ost << ',';
-			ost << '\n';
+			if (bPrettyPrint)
+				ost << '\n';
 		}
 
 		// Indentation a la fin
-		ost << sIndent << '}';
+		if (bPrettyPrint)
+			ost << sIndent;
+		ost << '}';
 	}
 }
 
@@ -225,16 +264,15 @@ JSONValue* JSONArray::GetValueAt(int nIndex) const
 	return cast(JSONValue*, oaValues.GetAt(nIndex));
 }
 
-void JSONArray::Write(ostream& ost) const
+void JSONArray::WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const
 {
-	return WriteIndent(ost, 0);
-}
-
-void JSONArray::WriteIndent(ostream& ost, int nIndentLevel) const
-{
-	ALString sIndent('\t', nIndentLevel);
+	ALString sIndent;
 	JSONValue* jsonValue;
 	int i;
+
+	// Parametrage de l'indentation si necessaire
+	if (bPrettyPrint)
+		sIndent = ALString('\t', nIndentLevel);
 
 	// Cas particulier d'un objet vide
 	if (GetValueNumber() == 0)
@@ -243,7 +281,9 @@ void JSONArray::WriteIndent(ostream& ost, int nIndentLevel) const
 	else
 	{
 		// Par d'indentation au depart, pour le cas ou on fait partie d'un membre d'objet avec sa cle
-		ost << '[' << '\n';
+		ost << '[';
+		if (bPrettyPrint)
+			ost << '\n';
 
 		// Chaque membre est indente au niveau superieur
 		for (i = 0; i < GetValueNumber(); i++)
@@ -251,23 +291,27 @@ void JSONArray::WriteIndent(ostream& ost, int nIndentLevel) const
 			jsonValue = GetValueAt(i);
 
 			// Indentation prealable
-			ost << sIndent << "\t";
+			if (bPrettyPrint)
+				ost << sIndent << "\t";
 
 			// Ecriture de la valeur en indente dans les cas des type objet ou tableau
 			if (jsonValue->GetType() == ObjectValue)
-				cast(JSONObject*, jsonValue)->WriteIndent(ost, nIndentLevel + 1);
+				cast(JSONObject*, jsonValue)->WriteIndent(ost, nIndentLevel + 1, bPrettyPrint);
 			else if (jsonValue->GetType() == ArrayValue)
-				cast(JSONArray*, jsonValue)->WriteIndent(ost, nIndentLevel + 1);
+				cast(JSONArray*, jsonValue)->WriteIndent(ost, nIndentLevel + 1, bPrettyPrint);
 			// Sinon, ecriture directe
 			else
 				jsonValue->Write(ost);
 			if (i < GetValueNumber() - 1)
 				ost << ',';
-			ost << '\n';
+			if (bPrettyPrint)
+				ost << '\n';
 		}
 
 		// Indentation a la fin
-		ost << sIndent << ']';
+		if (bPrettyPrint)
+			ost << sIndent;
+		ost << ']';
 	}
 }
 
@@ -298,7 +342,7 @@ const ALString& JSONString::GetString() const
 	return sStringValue;
 }
 
-void JSONString::Write(ostream& ost) const
+void JSONString::WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const
 {
 	ALString sJSONStringValue;
 
@@ -339,7 +383,7 @@ double JSONNumber::GetNumber() const
 	return dNumberValue;
 }
 
-void JSONNumber::Write(ostream& ost) const
+void JSONNumber::WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const
 {
 	ost << std::setprecision(10) << dNumberValue;
 }
@@ -374,7 +418,7 @@ boolean JSONBoolean::GetBoolean() const
 	return bBooleanValue;
 }
 
-void JSONBoolean::Write(ostream& ost) const
+void JSONBoolean::WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const
 {
 	if (bBooleanValue)
 		ost << "true";
@@ -399,7 +443,7 @@ int JSONNull::GetType() const
 	return NullValue;
 }
 
-void JSONNull::Write(ostream& ost) const
+void JSONNull::WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const
 {
 	ost << "null";
 }
@@ -428,7 +472,7 @@ void JSONMember::SetKey(const ALString& sValue)
 	sKey = sValue;
 }
 
-const ALString& JSONMember::GetKey()
+const ALString& JSONMember::GetKey() const
 {
 	return sKey;
 }
@@ -491,29 +535,35 @@ JSONNull* JSONMember::GetNullValue() const
 
 void JSONMember::Write(ostream& ost) const
 {
-	return WriteIndent(ost, 0);
+	WriteIndent(ost, 0, true);
 }
 
-void JSONMember::WriteIndent(ostream& ost, int nIndentLevel) const
+void JSONMember::WriteCompact(ostream& ost) const
 {
-	ALString sIndent('\t', nIndentLevel);
+	WriteIndent(ost, 0, false);
+}
+
+void JSONMember::WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const
+{
+	ALString sIndent;
 	ALString sJsonKey;
+
+	// Parametrage de l'indentation si necessaire
+	if (bPrettyPrint)
+		sIndent = ALString('\t', nIndentLevel);
 
 	// Encodage de la chaine C au format json
 	TextService::CToJsonString(sKey, sJsonKey);
-	ost << sIndent;
+	if (bPrettyPrint)
+		ost << sIndent;
 	ost << '"';
 	ost << sJsonKey;
-	ost << "\": ";
+	ost << "\":";
+	if (bPrettyPrint)
+		ost << ' ';
 
 	// Ecriture de la valeur en indente dans les cas des type objet ou tableau
-	if (GetValueType() == JSONValue::ObjectValue)
-		GetObjectValue()->WriteIndent(ost, nIndentLevel);
-	else if (GetValueType() == JSONValue::ArrayValue)
-		GetArrayValue()->WriteIndent(ost, nIndentLevel);
-	// Sinon, ecriture directe
-	else
-		GetValue()->Write(ost);
+	GetValue()->WriteIndent(ost, nIndentLevel, bPrettyPrint);
 }
 
 const ALString JSONMember::GetClassLabel() const

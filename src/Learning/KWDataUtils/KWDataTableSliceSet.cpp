@@ -2399,6 +2399,10 @@ void KWDataTableSliceSet::ComputeReadInformation(const KWClass* kwcInputClass, K
 	// sont gardes en fin de classe, les blocs sont attribut Loaded ou
 	// utiles sont detruits avec leurs attributs
 	// Code quasiment recopie de la fin de la methode KWDatabase::BuildPhysicalClass()
+	// Code neanmoins plus simple, car on n'a pas suivi les evolutions suite a la prise
+	// en compte des regles de creation d'instances: il n'y a pas actuellement d'usage,
+	// puisque seuls les arbres exploitent des DataTableSlicet en ajoutant des regles
+	// standard, sans creation d'instance.
 
 	// Indexation de la classe physique
 	physicalClass->IndexClass();
@@ -2474,7 +2478,7 @@ void KWDataTableSliceSet::ComputeReadInformation(const KWClass* kwcInputClass, K
 	{
 		attribute = cast(KWAttribute*, oaAttributesToDelete.GetAt(nAttribute));
 
-		// La destruction d'un attribut peut entrainer la destruction des son bloc englobant s'uil en est le
+		// La destruction d'un attribut peut entrainer la destruction de son bloc englobant s'il en est le
 		// dernier
 		physicalClass->DeleteAttribute(attribute->GetName());
 	}
@@ -4148,13 +4152,14 @@ void KWDataTableDriverSlice::ComputeSliceDataItemLoadIndexes(const KWClass* kwcS
 	require(kwcSliceClass != NULL);
 	require(kwcSliceClass->IsCompiled());
 	require(kwcSliceClass->GetUsedAttributeNumber() == kwcSliceClass->GetAttributeNumber());
+	require(kwcSliceClass->GetUsedNativeDataItemNumber() == kwcSliceClass->GetNativeDataItemNumber());
 	require(kwcSliceClass->GetUsedAttributeNumberForType(KWType::Continuous) +
 		    kwcSliceClass->GetUsedAttributeNumberForType(KWType::Symbol) ==
 		kwcSliceClass->GetAttributeNumber());
 	require(livDataItemLoadIndexes.GetSize() == 0);
 
 	// On dimensionne le vecteur d'index a collecter en fonction de la taille de la classe de la tranche
-	livDataItemLoadIndexes.SetSize(kwcSliceClass->GetNativeDataItemNumber());
+	livDataItemLoadIndexes.SetSize(kwcSliceClass->GetUsedNativeDataItemNumber());
 
 	// Collecte des champs natifs de la classe de la tranche
 	nSliceDataItemIndex = 0;

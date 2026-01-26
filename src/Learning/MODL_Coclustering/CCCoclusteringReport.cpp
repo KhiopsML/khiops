@@ -1962,7 +1962,7 @@ boolean CCCoclusteringReport::ReadCells(CCHierarchicalDataGrid* coclusteringData
 
 	require(coclusteringDataGrid != NULL);
 
-	// Initialisation des tableau de parties par partition d'attribut
+	// Initialisation des tableaux de parties par partition d'attribut
 	oaAttributePartArrays.SetSize(coclusteringDataGrid->GetAttributeNumber());
 	for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
 	{

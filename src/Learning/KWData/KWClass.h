@@ -261,6 +261,9 @@ public:
 	// Nombre de DataItem natifs (non calcules), utilises ou non
 	int GetNativeDataItemNumber() const;
 
+	// Nombre de DataItem natifs utilises
+	int GetUsedNativeDataItemNumber() const;
+
 	// Nombre d'attribut initiaux d'une classe a analyser
 	// Il s'agit des attributs utilises de type simple, calcule ou non,
 	// en tenant compte d'un eventuel attribut cible dans le cas supervise
@@ -773,9 +776,11 @@ protected:
 	// collectivement
 	ObjectDictionary odAttributeBlocks;
 
-	// Nombre de blocs, d'attributs natifs denses ou sparses, utilises ou non
-	int nNativeAttributeNumber;
-	int nNativeAttributeBlockNumber;
+	// Nombre de data items natifs (attributs denses ou blocs natifs)
+	int nNativeDataItemNumber;
+
+	// Nombre de data items natifs utilises
+	int nUsedNativeDataItemNumber;
 
 	// Acces indexes aux attributs
 	ObjectArray oaUsedAttributes;
@@ -1067,7 +1072,13 @@ inline int KWClass::GetUsedSparseAttributeNumberForType(int nType) const
 inline int KWClass::GetNativeDataItemNumber() const
 {
 	require(IsIndexed());
-	return nNativeAttributeBlockNumber + nNativeAttributeNumber;
+	return nNativeDataItemNumber;
+}
+
+inline int KWClass::GetUsedNativeDataItemNumber() const
+{
+	require(IsIndexed());
+	return nUsedNativeDataItemNumber;
 }
 
 inline int KWClass::GetLoadedDenseSymbolAttributeNumber() const

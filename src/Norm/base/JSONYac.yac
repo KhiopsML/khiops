@@ -5,6 +5,7 @@
 #include "ALString.h"
 #include "TextService.h"
 #include "JSONObject.h"
+#include "HugeBuffer.h"
 
 // Declaration du lexer utilise
 int jsonlex();
@@ -14,8 +15,12 @@ void jsonerror(char const *fmt);
 const ALString jsonPrintableValue(const ALString& sValue);
 
 // Objet json principal a utiliser pendant la lecture d'un fichier.
-// Ce domaine est positionner par la methode ReadFile de JSONObject
+// Cet objet est a positionner avant le debut du parsing
 static JSONObject* mainReadJSONObject=NULL;
+
+// Vecteur de m'essage d'erreur principal a utiliser quand on parse une chaine de caractere, et non un fichier
+// Cet vecteur est a positionner avant le debut du parsing
+static StringVector* svMainParsingErrorMessages=NULL;
 
 // Work around a bug in the relation between bison and GCC 3.x:
 #if defined (__GNUC__) && 3 <= __GNUC__
@@ -311,11 +316,21 @@ void jsonerror(char const *fmt)
   ALString sLabel;
 
   nJsonFileParsingErrorNumber++;
-  snprintf(sErrorLine, sizeof(sErrorLine), "Line %d", yylineno);
-  sLabel = fmt;
-  Global::AddError("Read json file",
-                    sErrorLine,
-                    sLabel);
+  
+  // Cas du parsing d'une chaine de caracteres
+  if (svMainParsingErrorMessages != NULL)
+  {
+    svMainParsingErrorMessages->Add(fmt);
+  }
+  // Parsing d'un fichier sinon, avec infos de numero de ligne
+  else
+  {
+    snprintf(sErrorLine, sizeof(sErrorLine), "Line %d", yylineno);
+    sLabel = fmt;
+    Global::AddError("Read json file",
+                      sErrorLine,
+                      sLabel);
+  }
 }
 
 const ALString jsonPrintableValue(const ALString& sValue)
@@ -330,7 +345,66 @@ const ALString jsonPrintableValue(const ALString& sValue)
 
 int jsonparse();
 
-// Implementation de la methode de lecture de fichier de KWClassDomain
+// Implementation de la methode de parsing de string
+boolean JSONObject::ReadString(const char* sValue, int nValueLength, StringVector* svParsingErrorMessages)
+{
+	boolean bOk = true;
+	char* sBuffer;
+
+	// Initialisation de l'objet json principal a utiliser pour la lecture
+	assert(mainReadJSONObject == NULL);
+	mainReadJSONObject = this;
+	mainReadJSONObject->DeleteAll();
+
+	// Initialisation du vecteur collectant les messages d'erreur
+	assert(svMainParsingErrorMessages == NULL);
+	svParsingErrorMessages->SetSize(0);
+	svMainParsingErrorMessages = svParsingErrorMessages;
+
+	// Activation du nombre max d'erreurs a afficher
+	nJsonFileParsingErrorNumber = 0;
+	Global::ActivateErrorFlowControl();
+
+	// Positionnement du buffer a parser par la variable yyin de LEX
+	jsonlineno = 1;
+
+	// On passe par un buffer de grande taille deja disponible pour eviter 
+	// de sous-traiter les allocation de buffer a lex
+	// On passe par un buffer dont les deux dernier caracteres sont '\0', selon le protocole lex
+	sBuffer = GetHugeBuffer(nValueLength+2);
+	memcpy(sBuffer, sValue, nValueLength);
+	sBuffer[nValueLength] = '\0';
+	sBuffer[nValueLength+1] = '\0';
+
+	// On passe par un buffer dont les deux dernier caracteres sont '\0', selon le protocole lex
+	// Cela nous permet de gerer la memoire, plutot que confier les allocation a lex via la fonction json_scan_string
+	json_scan_buffer(sBuffer, nValueLength+2);
+
+	// Parsing
+	jsonparse();
+
+	// Cleaning lexer
+	jsonlex_destroy();
+
+	// Nettoyage si erreurs
+	if (nJsonFileParsingErrorNumber > 0)
+	{
+		// Destruction du contenu de l'objet construit
+		mainReadJSONObject->DeleteAll();
+		bOk = false;
+	}
+	nJsonFileParsingErrorNumber = 0;
+
+	// Desactivation du nombre max d'erreurs a afficher
+	Global::DesactivateErrorFlowControl();
+
+	// Nettoyage
+	mainReadJSONObject = NULL;
+	svMainParsingErrorMessages = NULL;
+	return bOk;
+}
+
+// Implementation de la methode de parsing de fichier
 boolean JSONObject::ReadFile(const ALString& sFileName)
 {
   boolean bOk = true;

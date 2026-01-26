@@ -38,7 +38,7 @@ void MemVector::Delete(MemHugeVector& memHugeVector, int& nSize, int& nAllocSize
 // Pour l'instant, ce code n'est pas justifie:
 //  . complexe a mettre en oeuvre et a maintenir, risque de bug
 //  . les vecteur de tres grande taille sont rares
-//  . meme dans ce cas la, ou le retaillage des tableau de blocs a une complexite quadratique
+//  . meme dans ce cas la, ou le retaillage des tableaux de blocs a une complexite quadratique
 //   celle ci O((N/BlockSize)^2) reste quasi-lineaire avec N, d'ou un gain de temps escompte negligeable
 // Globalement, le ratio cout/gain n'est pas interessant
 int MemVectorGetUpperPowerOfTwo(int nSize)

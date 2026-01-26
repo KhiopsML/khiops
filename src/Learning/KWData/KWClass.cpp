@@ -27,8 +27,8 @@ KWClass::KWClass()
 	ivUsedAttributeNumbers.SetSize(KWType::None);
 	ivUsedDenseAttributeNumbers.SetSize(KWType::None);
 	ivUsedSparseAttributeNumbers.SetSize(KWType::None);
-	nNativeAttributeBlockNumber = 0;
-	nNativeAttributeNumber = 0;
+	nNativeDataItemNumber = 0;
+	nUsedNativeDataItemNumber = 0;
 }
 
 KWClass::~KWClass()
@@ -388,8 +388,8 @@ void KWClass::IndexClass()
 
 	// Indexage des tableaux d'attributs par parcours de la liste
 	sAttributeKeyMetaDataKey = KWAttributeBlock::GetAttributeKeyMetaDataKey();
-	nNativeAttributeBlockNumber = 0;
-	nNativeAttributeNumber = 0;
+	nNativeDataItemNumber = 0;
+	nUsedNativeDataItemNumber = 0;
 	attribute = GetHeadAttribute();
 	while (attribute != NULL)
 	{
@@ -405,13 +405,13 @@ void KWClass::IndexClass()
 			if (attribute->GetAttributeBlock()->IsNative())
 			{
 				if (attribute->IsFirstInBlock())
-					nNativeAttributeBlockNumber++;
+					nNativeDataItemNumber++;
 			}
 		}
 		else
 		{
 			if (attribute->IsNative())
-				nNativeAttributeNumber++;
+				nNativeDataItemNumber++;
 		}
 
 		// Reinitialisation de chaque bloc quand on les rencontre pour la premiere fois
@@ -466,20 +466,29 @@ void KWClass::IndexClass()
 			else
 				ivUsedDenseAttributeNumbers.UpgradeAt(attribute->GetType(), 1);
 
-			// Mise ajour de flag Used des blocs
+			// Mise a jour de flag Used des blocs et des statistiques sur les blocs utilises
 			if (attribute->IsInBlock())
 			{
 				attributeBlock = attribute->GetAttributeBlock();
 
-				// On ne prend en compte le bloc que la premiere fois, pour ne le compter qu'une seule
-				// fois
+				// On ne prend en compte le bloc que la premiere fois, pour ne le compter qu'une seule fois
 				if (not attributeBlock->bUsed)
 				{
 					attributeBlock->bUsed = true;
 
+					// Mise a jour du nombre de blocs natifs
+					if (attributeBlock->IsNative())
+						nUsedNativeDataItemNumber++;
+
 					// Calcul des statistiques par type de bloc d'attribut utilise
 					ivUsedAttributeNumbers.UpgradeAt(attributeBlock->GetBlockType(), 1);
 				}
+			}
+			// Cas des attributs denses
+			else
+			{
+				if (attribute->IsNative())
+					nUsedNativeDataItemNumber++;
 			}
 
 			// Gestion des attributs charges en memoire
@@ -634,6 +643,8 @@ void KWClass::IndexClass()
 		cout << " ForceUnique\t" << BooleanToString(GetForceUnique()) << "\n";
 		cout << " IsUnique\t" << BooleanToString(IsUnique()) << "\n";
 		cout << " IsKeyBasedStorable\t" << BooleanToString(IsKeyBasedStorable()) << "\n";
+		cout << " NativeDataItemNumber\t" << IntToString(nNativeDataItemNumber) << "\n";
+		cout << " UsedNativeDataItemNumber\t" << IntToString(nUsedNativeDataItemNumber) << "\n";
 		WriteAttributes("  Used attributes", &oaUsedAttributes, cout);
 		WriteAttributes("  Loaded attributes", &oaLoadedAttributes, cout);
 		WriteAttributes("  Loaded dense attributes", &oaLoadedDenseAttributes, cout);

@@ -66,7 +66,7 @@ void KWLearningBenchmarkUnivariate::Evaluate()
 	// Calculs additionnels si evaluation du critere d'optimisation
 	if (bEvaluateOptimizationCriterion)
 	{
-		// Recherche des tableau d'evaluation concernes
+		// Recherche des tableaux d'evaluation concernes
 		oaOptimizationCriterionEvaluationArray =
 		    GetAllEvaluationsAt(GetCriterionIndexAt("OptimizationCriterion"));
 		oaDiffOptimizationCriterionEvaluationArray =

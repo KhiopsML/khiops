@@ -959,7 +959,7 @@ boolean KWDRRelationCreationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAtt
 			}
 		}
 
-		// Parcours des classe en sortie
+		// Parcours des classes en sortie
 		nkdOutputScopeClasses.ExportObjectArray(&oaOutputScopeClasses);
 		for (i = 0; i < oaOutputScopeClasses.GetSize(); i++)
 		{
@@ -1000,6 +1000,18 @@ boolean KWDRRelationCreationRule::ContainsCycle(NumericKeyDictionary* nkdGreyAtt
 				// Arret en cas de cycle
 				if (bContainsCycle)
 					break;
+
+				// Ajout si necessaire d'une classe a analyser, pour le cas ou une regle
+				// produit un flocon natif de donnees en sortie
+				if (rule == NULL and attribute->GetClass() != NULL)
+				{
+					if (nkdOutputScopeClasses.Lookup(attribute->GetClass()) == NULL)
+					{
+						nkdOutputScopeClasses.SetAt(attribute->GetClass(),
+									    attribute->GetClass());
+						oaOutputScopeClasses.Add(attribute->GetClass());
+					}
+				}
 
 				// Attribut suivant
 				outputScopeClass->GetNextAttribute(attribute);

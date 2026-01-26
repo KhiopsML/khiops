@@ -80,7 +80,7 @@ typedef enum jsontokentype jsontoken_kind_t;
 #if !defined JSONSTYPE && !defined JSONSTYPE_IS_DECLARED
 union JSONSTYPE
 {
-#line 47 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 52 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
 
 	ALString* sValue;
 	double dValue;
