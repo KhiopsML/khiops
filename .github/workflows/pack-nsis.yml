@@ -62,7 +62,7 @@ jobs:
           echo "KHIOPS_REDUCED_VERSION=$KHIOPS_REDUCED_VERSION" >> "$GITHUB_ENV"
           echo "khiops-version=$KHIOPS_VERSION" >> "$GITHUB_OUTPUT"
       - name: Download Windows install assets
-        uses: robinraju/release-downloader@v1.9
+        uses: robinraju/release-downloader@v1.12
         with:
           repository: khiopsml/khiops-win-install-assets
           tag: ${{ env.ASSETS_VERSION }}
