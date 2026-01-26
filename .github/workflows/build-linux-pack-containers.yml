@@ -38,7 +38,7 @@ jobs:
         run: echo "GH_REPOSITORY=${GITHUB_REPOSITORY,,}" >> "${GITHUB_ENV}"
       - name: Build the image and push it to the registry
         id: docker-build
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6
         with:
           file: ./packaging/dockerfiles/Dockerfile.${{ matrix.setup.image }}
           tags: ghcr.io/${{ env.GH_REPOSITORY }}/khiopsdev-${{ matrix.setup.image
