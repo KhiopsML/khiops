@@ -5,6 +5,7 @@
 import os.path
 import sys
 import platform
+import shlex
 import shutil
 import subprocess
 import time
@@ -24,15 +25,18 @@ else:
     mpi_exe_name = "mpirun"
 
 
-def build_tool_exe_path(tool_binaries_dir, tool_name):
+def build_tool_exe_path(tool_binaries_dir, tool_name, use_khiops_env):
     """Construction du chemin de l'executable d'un outil a partir du repertoire des binaire
     Le premier parametre peut contenir plusieurs types de valeurs
     - un repertoire devant contenir les binaire de l'outil a tester
     - 'r' ou 'd', alias pour le repertoire des binaires en release ou debug de l'envbironnement de developpement
     - 'check': pour effectuer seulment une comparaison entre resultats de test et de reference
+    Le parametre use_khiops_env indique l'utilisation des variables
+    d'environnement KHIOPS_PATH et KHIOPS_COCLUSTERING_PATH le cas echeant pour
+    determiner le chemin vers l'executable.
     On renvoie:
     - le path complet d'un binaire d'un outil si un repertoire est specifie, 'check' sinon, None si erreur
-    - le message d'erreur en cas d'error
+    - le message d'erreur en cas d'error.
     """
     assert tool_name in kht.TOOL_NAMES
     tool_exe_path = None
@@ -41,10 +45,22 @@ def build_tool_exe_path(tool_binaries_dir, tool_name):
     if tool_binaries_dir == "check":
         return "check", error_message
 
+    # Determination du chemin vers l'executable a partir des variables
+    # d'environnement positionnees par le script khiops_env
+    if use_khiops_env:
+        if tool_name == kht.KHIOPS:
+            tool_exe_path = os.environ["KHIOPS_PATH"]
+        elif tool_name == kht.COCLUSTERING:
+            tool_exe_path = os.environ["KHIOPS_COCLUSTERING_PATH"]
+        else:
+            error_message = "No exe path can be determined for tool name " + tool_name
+        return tool_exe_path, error_message
+
     # Recherche du repertoire des binaires de l'environnement de developpement
     alias_info = ""
     current_platform = results.get_context_platform_type()
     assert current_platform in kht.RESULTS_REF_TYPE_VALUES[kht.PLATFORM]
+
     # Cas d'un alias pour rechercher le repertoire des binaires dans l'environnement de developpement
     actual_tool_binaries_dir = ""
     if tool_binaries_dir in [kht.ALIAS_D, kht.ALIAS_R]:
@@ -194,6 +210,7 @@ def evaluate_tool_on_test_dir(
     tool_exe_path,
     suite_dir,
     test_dir_name,
+    use_khiops_env,
     min_test_time=None,
     max_test_time=None,
     test_timeout_limit=None,
@@ -352,34 +369,38 @@ def evaluate_tool_on_test_dir(
 
         # Construction des parametres
         khiops_params = []
-        if tool_process_number > 1:
-            khiops_params.append(mpi_exe_name)
+        if use_khiops_env:
+            # On recupere les parametres MPI depuis l'environnement
+            khiops_params.extend(shlex.split(os.environ["KHIOPS_MPI_COMMAND"]))
+        else:
+            if tool_process_number > 1:
+                khiops_params.append(mpi_exe_name)
 
-            # Option -l, specifique a mpich, valide au moins pour Windows:
-            #    "Label standard out and standard error (stdout and stderr) with the rank of the process"
-            if platform.system() == "Windows":
-                khiops_params.append("-l")
-            if platform.system() == "Darwin":
-                khiops_params.append("-host")
-                khiops_params.append("localhost")
+                # Option -l, specifique a mpich, valide au moins pour Windows:
+                #    "Label standard out and standard error (stdout and stderr) with the rank of the process"
+                if platform.system() == "Windows":
+                    khiops_params.append("-l")
+                if platform.system() == "Darwin":
+                    khiops_params.append("-host")
+                    khiops_params.append("localhost")
 
-            # Option --allow-run-as-root, specifique a OpenMPI,
-            # permet de lancer OpenMPI en tant que root de maniere portable sur
-            # tous les OS supportes.
-            # Cette option remplace le positionnement des variables
-            # d'environnement OMPI_ALLOW_RUN_AS_ROOT et
-            # OMPI_ALLOW_RUN_AS_ROOT_CONFIRM à '1'.
-            # Sous Debian 10, OpenMPI ne prend pas en compte ces deux variables
-            # d'environnement.
-            if platform.system() == "Linux":
-                # En iterant sur TOOL_MPI_SUFFIXES, on s'assure que "_openmpi"
-                # fait toujours partie des back-ends MPI supportes
-                for suffix in kht.TOOL_MPI_SUFFIXES:
-                    if tool_exe_path.endswith(suffix) and suffix == "_openmpi":
-                        khiops_params.append("--allow-run-as-root")
-                        break
-            khiops_params.append("-n")
-            khiops_params.append(str(tool_process_number))
+                # Option --allow-run-as-root, specifique a OpenMPI,
+                # permet de lancer OpenMPI en tant que root de maniere portable sur
+                # tous les OS supportes.
+                # Cette option remplace le positionnement des variables
+                # d'environnement OMPI_ALLOW_RUN_AS_ROOT et
+                # OMPI_ALLOW_RUN_AS_ROOT_CONFIRM à '1'.
+                # Sous Debian 10, OpenMPI ne prend pas en compte ces deux variables
+                # d'environnement.
+                if platform.system() == "Linux":
+                    # En iterant sur TOOL_MPI_SUFFIXES, on s'assure que "_openmpi"
+                    # fait toujours partie des back-ends MPI supportes
+                    for suffix in kht.TOOL_MPI_SUFFIXES:
+                        if tool_exe_path.endswith(suffix) and suffix == "_openmpi":
+                            khiops_params.append("--allow-run-as-root")
+                            break
+                khiops_params.append("-n")
+                khiops_params.append(str(tool_process_number))
         khiops_params.append(tool_exe_path)
         if not user_interface:
             khiops_params.append("-b")
@@ -638,11 +659,14 @@ def evaluate_tool_on_test_dir(
     check.check_results(test_dir)
 
 
-def evaluate_tool_on_suite_dir(tool_exe_path, suite_dir, test_dir_name=None, **kwargs):
+def evaluate_tool_on_suite_dir(
+    tool_exe_path, suite_dir, use_khiops_env, test_dir_name=None, **kwargs
+):
     """Evaluation d'un outil sur une suite de test et comparaison des resultats
     Parametres:
     - tool_exe_path: path de l'outil a tester, ou nul si on ne veut faire que la comparaison
     - suite_dir: repertoire de la suite de test
+    - use_khiops_env: indicateur d'utilisation des variables positionnees dans khiops_env
     - test_dir_name: repertoire de test terminal"""
 
     # Erreur si repertoire de suite absent
@@ -661,12 +685,16 @@ def evaluate_tool_on_suite_dir(tool_exe_path, suite_dir, test_dir_name=None, **k
 
     # Cas d'un repertoire de test specifique
     if test_dir_name is not None:
-        evaluate_tool_on_test_dir(tool_exe_path, suite_dir, test_dir_name, **kwargs)
+        evaluate_tool_on_test_dir(
+            tool_exe_path, suite_dir, test_dir_name, use_khiops_env, **kwargs
+        )
 
     # Cas de tous les sous-repertoires
     else:
         for name in test_list:
-            evaluate_tool_on_test_dir(tool_exe_path, suite_dir, name, **kwargs)
+            evaluate_tool_on_test_dir(
+                tool_exe_path, suite_dir, name, use_khiops_env, **kwargs
+            )
         # Message global
         suite_dir_name = utils.dir_name(suite_dir)
         tool_dir_name = utils.parent_dir_name(suite_dir, 1)
@@ -676,7 +704,9 @@ def evaluate_tool_on_suite_dir(tool_exe_path, suite_dir, test_dir_name=None, **k
         print(action_name + " DONE\t" + tool_dir_name + "\t" + suite_dir_name)
 
 
-def evaluate_tool(tool_name, tool_exe_path, home_dir, test_suites, **kwargs):
+def evaluate_tool(
+    tool_name, tool_exe_path, home_dir, test_suites, use_khiops_env, **kwargs
+):
     """Lance les tests d'un outil sur un ensemble de suites de tests"""
     assert tool_name in kht.TOOL_NAMES
     assert utils.check_home_dir(home_dir)
@@ -698,7 +728,9 @@ def evaluate_tool(tool_name, tool_exe_path, home_dir, test_suites, **kwargs):
                 tool_dir_name,
                 suite_dir_name,
             )
-            evaluate_tool_on_suite_dir(tool_exe_path, suite_dir, **kwargs)
+            evaluate_tool_on_suite_dir(
+                tool_exe_path, suite_dir, use_khiops_env, **kwargs
+            )
 
 
 def evaluate_all_tools_on_learning_test_tree(
@@ -707,6 +739,7 @@ def evaluate_all_tools_on_learning_test_tree(
     input_suite_dir_name,
     input_test_dir_name,
     binaries_dir,
+    use_khiops_env,
     family,
     **kwargs
 ):
@@ -717,6 +750,7 @@ def evaluate_all_tools_on_learning_test_tree(
     - tool_dir_name, suite_dir_name, test_dir_name: pour ne prendre en compte qu'une sous-partie
       de l'arborescence source si ces oprande ne sont pas None
     - binaries_dir: repertorie des executables des outils
+    - use_khiops_env: specifie si les parametres MPI sont issus du script khiops_env
     - family: famille utilise pour choisir la sous-partie des suites a exporter
     - kwargs: argument optionnels de la ligne de commande
     """
@@ -732,7 +766,9 @@ def evaluate_all_tools_on_learning_test_tree(
     suite_errors = False
     for tool_name in used_tool_names:
         tool_dir_name = kht.TOOL_DIR_NAMES[tool_name]
-        tool_exe_path, error_message = build_tool_exe_path(binaries_dir, tool_name)
+        tool_exe_path, error_message = build_tool_exe_path(
+            binaries_dir, tool_name, use_khiops_env
+        )
         # Recherche des suites a utiliser
         if input_suite_dir_name is not None:
             assert tool_dir_name is not None
@@ -789,13 +825,16 @@ def evaluate_all_tools_on_learning_test_tree(
     if input_suite_dir_name is not None:
         assert input_tool_dir_name is not None
         tool_name = kht.TOOL_NAMES_PER_DIR_NAME[input_tool_dir_name]
-        tool_exe_path, error_message = build_tool_exe_path(binaries_dir, tool_name)
+        tool_exe_path, error_message = build_tool_exe_path(
+            binaries_dir, tool_name, use_khiops_env
+        )
         if tool_exe_path is None:
             utils.fatal_error(error_message)
         suite_dir = os.path.join(home_dir, input_tool_dir_name, input_suite_dir_name)
         evaluate_tool_on_suite_dir(
             tool_exe_path,
             suite_dir,
+            use_khiops_env,
             input_test_dir_name,
             **kwargs,
         )
@@ -823,7 +862,7 @@ def evaluate_all_tools_on_learning_test_tree(
                 # Cela permet de lancer un test complet sur une famille, meme si l'exe de KNI
                 # (exploite en dernier) n'est pas disponible
                 tool_exe_path, error_message = build_tool_exe_path(
-                    binaries_dir, tool_name
+                    binaries_dir, tool_name, use_khiops_env
                 )
                 if tool_exe_path is None:
                     utils.fatal_error(error_message)
@@ -832,6 +871,7 @@ def evaluate_all_tools_on_learning_test_tree(
                     tool_exe_path,
                     home_dir,
                     test_suites,
+                    use_khiops_env,
                     **kwargs,
                 )
 
@@ -863,6 +903,63 @@ def main():
         if help_options is not None:
             usage_help += " " + help_options
         return usage_help
+
+    def activate_khiops_env(binaries_dir):
+        """Recherche et activation du script khiops_env dans le repertoire binaries_dir"""
+        # On verifie si khiops_env est dans le repertoire binaries_dir
+        # - si c'est le cas, alors:
+        #   - on "source" khiops_env, i.e. on positionne toutes les variables a
+        #     valeurs non-vides dans l'environnement
+        #   - on positionne le booleen use_khiops_env a True
+        # - sinon:
+        #   - on positionne use_khiops_env a False.
+        # On propage use_khiops_env a evaluate_tool_on_test_dir et
+        # build_tool_exe_path via evaluate_all_tools_on_learning_test_tree, ainsi
+        # que toutes les fonctions intermediaires
+        # si use_khiops_env est True, alors:
+        # - dans build_tool_exe_path, on positionne tool_exe_path a
+        #   os.environ["KHIOPS_PATH"] ou a os.environ["KHIOPS_COCLUSTERING_PATH"],
+        #   selon le nom de l'outil attendu (selon tool_name)
+        # - dans evaluate_tool_on_test_dir, on etend khiops_params avec le resultat
+        #   de shlex.split(os.environ["KHIOPS_MPI_COMMAND"])
+        # sinon, on garde le comportement courant inchange
+        khiops_env_file_name = "khiops_env"
+        current_platform = results.get_context_platform_type()
+        if current_platform == "Windows":
+            khiops_env_file_name += ".cmd"
+        khiops_env_path = os.path.join(binaries_dir, khiops_env_file_name)
+        # On verifie que khiops_env est dans le repertoire binaries_dir
+        use_khiops_env = False
+        error_message = ""
+        if os.path.exists(khiops_env_path) and os.path.isfile(khiops_env_path):
+            with subprocess.Popen(
+                [khiops_env_path, "--env"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+            ) as khiops_env_process:
+                stdout, stderr = khiops_env_process.communicate()
+                # Erreur si khiops_env --env n'a pu s'executer correctement
+                if khiops_env_process.returncode != 0:
+                    error_message = (
+                        "Error initializing the environment for Khiops from the '"
+                        + khiops_env_path
+                        + "' script"
+                    )
+                else:
+                    use_khiops_env = True
+                    for line in stdout.split("\n"):
+                        tokens = line.rstrip().split(maxsplit=1)
+                        if len(tokens) == 2:
+                            var_name, var_value = tokens
+                        elif len(tokens) == 1:
+                            var_name = tokens[0]
+                            var_value = ""
+                        else:
+                            continue
+                        # On propage toutes les variables d'environnement
+                        os.environ[var_name] = var_value
+        return use_khiops_env, error_message
 
     # Nom du script
     script_file_name = os.path.basename(__file__)
@@ -899,7 +996,7 @@ def main():
     utils.argument_parser_add_source_argument(parser)
     parser.add_argument(
         "binaries",
-        help="tool binaries dir,"
+        help="tool binaries or khiops_env dir,"
         " or one of the following aliases:\n"
         "  r, d: release or debug binary dir in developpement environnement\n"
         "  check: for comparison of test and reference results only\n",
@@ -1006,6 +1103,9 @@ def main():
     results.process_number = args.n
     results.forced_platform = args.forced_platform
 
+    # Verification et activation de khiops_env le cas echeant
+    use_khiops_env, error_message = activate_khiops_env(args.binaries)
+
     # Lancement de la commande
     evaluate_all_tools_on_learning_test_tree(
         home_dir,
@@ -1013,6 +1113,7 @@ def main():
         suite_dir_name,
         test_dir_name,
         args.binaries,
+        use_khiops_env,
         args.family,
         min_test_time=args.min_test_time,
         max_test_time=args.max_test_time,
