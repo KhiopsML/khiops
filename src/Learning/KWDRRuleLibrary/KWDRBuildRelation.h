@@ -311,7 +311,12 @@ protected:
 	void AddInconsistentAttributeTypeWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
 						 const KWAttribute* targetAttribute) const;
 
-	// Warning si valeur invalid pour un attribut de type temporel
+	// Warning si valeur invalide pour un attribut de type continuous
+	void AddInvalidContinuousValueWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
+					      const KWAttribute* targetAttribute, Continuous cTargetValue,
+					      int nConversionError) const;
+
+	// Warning si valeur invalide pour un attribut de type temporel
 	void AddInvalidTemporalValueWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
 					    const KWAttribute* targetAttribute) const;
 
@@ -356,13 +361,14 @@ protected:
 	// Nombre max de warnings sauvegardes par type de warning
 	mutable int nMaxSavedWarningNumberPerType;
 
-	// Nombre total de warning par type de warning
+	// Nombre total de warnings par type de warning
 	enum
 	{
 		MissingAttributeWarning,
 		MissingSingleAttributeWarning,
 		DerivedAttributeWarning,
 		InconsistentAttributeTypeWarning,
+		InvalidContinuousValueWarning,
 		InvalidTemporalValueWarning,
 		OverlengthySymbolValueWarning,
 		WarningTypeNumber
