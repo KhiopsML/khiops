@@ -10,19 +10,20 @@ on:
         description: Sign installer and binaries
   pull_request:
     paths:
-      - '**CMakeLists.txt'
-      - '!test/**CMakeLists.txt'
-      - '!test/UniTests/**'
-      - '!test/LearningTestTool/**'
-      - '!test/MemoryStatsVisualizer/**'
+      - "**CMakeLists.txt"
+      - "!test/**CMakeLists.txt"
+      - "!test/UniTests/**"
+      - "!test/LearningTestTool/**"
+      - "!test/MemoryStatsVisualizer/**"
       - packaging/windows/nsis/*.nsh
       - packaging/windows/nsis/*.nsi
       - .github/workflows/pack-nsis.yml
   push:
-    tags: ['*']
+    tags: ["*"]
 # Cancel any ongoing run of this workflow on the same PR or ref
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref
+  group:
+    ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref
     }}
   cancel-in-progress: true
 # Environment variables:
@@ -35,6 +36,7 @@ env:
   CERTIFICATE: Cert_Khiops
   SAMPLES_VERSION: 11.0.0
   ASSETS_VERSION: 11.0.1
+  NSIS_VERSION: 3.11
 jobs:
   build:
     outputs:
@@ -47,14 +49,35 @@ jobs:
         if: github.ref_type == 'tag'
         uses: ./.github/actions/check-tag-version
       - name: Install NSIS
-        uses: repolevedavaj/install-nsis@v1.1.0
-        with:
-          nsis-version: '3.10'
+        # Copy code from repolevedavaj/install-nsis
+        run: |
+          Invoke-WebRequest -UserAgent "Wget" https://sourceforge.net/projects/nsis/files/NSIS%203/$env:NSIS_VERSION/nsis-$env:NSIS_VERSION-setup.exe/download -OutFile C:\WINDOWS\Temp\nsis-$env:NSIS_VERSION-setup.exe
+          $process = Start-Process "C:\WINDOWS\Temp\nsis-$env:NSIS_VERSION-setup.exe" -ArgumentList "/S" -Wait -PassThru
+          $exitCode = $process.ExitCode
+            if ($exitCode -eq 0) {
+                Write-Host "Installer ran successfully."
+            } else {
+                Write-Host "Installer failed with exit code $exitCode."
+                exit $exitCode
+            }
+          echo "C:\Program Files (x86)\NSIS\Bin" | Out-File -FilePath "$env:GITHUB_PATH" -Append
+          echo "C:\Program Files (x86)\NSIS" | Out-File -FilePath "$env:GITHUB_PATH" -Append
+        shell: pwsh
+      - name: Ensure makensis is available
+        run: |
+          Get-Command makensis
+          makensis /VERSION
+        shell: pwsh
+      - name: Apply NSIS long string patch
+        run: |
+          Invoke-WebRequest -UserAgent "Wget" https://sourceforge.net/projects/nsis/files/NSIS%203/$env:NSIS_VERSION/nsis-$env:NSIS_VERSION-strlen_8192.zip/download -OutFile C:\WINDOWS\Temp\nsis-$env:NSIS_VERSION-strlen_8192.zip
+          Expand-Archive "C:\WINDOWS\Temp\nsis-$env:NSIS_VERSION-strlen_8192.zip" -DestinationPath "C:\Program Files (x86)\NSIS" -Force
+        shell: pwsh
       - name: Install Java Temurin
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: "21"
       - name: Put the package version on the environment and output
         id: get-version
         shell: bash
@@ -102,7 +125,8 @@ jobs:
         uses: ./.github/actions/build-khiops
         with:
           preset-name: windows-msvc-release
-          targets: MODL MODL_Coclustering norm_jar khiops_jar KhiopsNativeInterface
+          targets:
+            MODL MODL_Coclustering norm_jar khiops_jar KhiopsNativeInterface
             KNITransfer _khiopsgetprocnumber _khiopslauncher
           override-flags: -DTESTING=OFF -DBUILD_JARS=ON
       - name: Setup SM_CLIENT_CERT_FILE from base64 secret data
