@@ -39,7 +39,7 @@ jobs:
   build:
     outputs:
       khiops-version: ${{ steps.get-version.outputs.khiops-version }}
-    runs-on: windows-2022
+    runs-on: windows-2025
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
@@ -197,7 +197,7 @@ jobs:
             ./build/windows-msvc-release/packages/khiops-core-${{ env.KHIOPS_VERSION }}.zip
   test-khiops:
     needs: build
-    runs-on: windows-2022
+    runs-on: windows-2025
     steps:
       - name: Download NSIS installer artifact
         uses: actions/download-artifact@v7
@@ -240,7 +240,7 @@ jobs:
           binary-path: ${{ env.BIN_DIR }}
   test-kni:
     needs: build
-    runs-on: windows-2022
+    runs-on: windows-2025
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
