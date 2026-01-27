@@ -39,13 +39,17 @@ jobs:
   build:
     outputs:
       khiops-version: ${{ steps.get-version.outputs.khiops-version }}
-    runs-on: windows-2022
+    runs-on: windows-2025
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
       - name: Check the tag consistency with the source version
         if: github.ref_type == 'tag'
         uses: ./.github/actions/check-tag-version
+      - name: Install NSIS
+        uses: repolevedavaj/install-nsis@v1.1.0
+        with:
+          nsis-version: '3.10'
       - name: Install Java Temurin
         uses: actions/setup-java@v5
         with:
