@@ -19,7 +19,7 @@ jobs:
       - name: Build package with CPack
         run: cd build/${{env.PRESET_NAME}} && cpack -G ZIP
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: macos
           path: build/${{env.PRESET_NAME}}/packages/*.zip

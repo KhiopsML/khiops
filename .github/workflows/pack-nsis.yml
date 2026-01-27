@@ -177,19 +177,19 @@ jobs:
         run: |-
           cd build/windows-msvc-release && CPACK -G ZIP
       - name: Upload the Installer Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: khiops-setup
           path: ./packaging/windows/nsis/khiops-${{ env.KHIOPS_VERSION }}-setup.exe
       - name: Upload the KNI zip
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: KNI
           path: |
             ./build/windows-msvc-release/packages/KNI-${{ env.KHIOPS_VERSION }}.zip
             ./build/windows-msvc-release/packages/kni-transfer-${{ env.KHIOPS_VERSION }}.zip
       - name: Upload the Khiops zip
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: khiops
           path: |
@@ -200,7 +200,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - name: Download NSIS installer artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: khiops-setup
       - name: Install Khiops
@@ -245,7 +245,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v6
       - name: Download KNI zip
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: KNI
       - name: Install KNI
@@ -263,15 +263,15 @@ jobs:
       contents: write
     steps:
       - name: Download NSIS installer artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: khiops-setup
       - name: Download KNI installer artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: KNI
       - name: Download KNI installer artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: khiops
       - name: Rename packages with tag version
