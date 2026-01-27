@@ -15,6 +15,7 @@ class KWDRBuildEntity;
 class KWDRBuildDiffTable;
 class KWDRBuildCompositeTable;
 class KWDRBuildEntityFromJson;
+class KWDRBuildTableFromJson;
 class KWDRBuildList;
 class KWDRBuildGraph;
 class KWDRBuildDummyTable;
@@ -270,11 +271,19 @@ protected:
 	KWObject* CreateObjectFromJsonObject(const KWObject* kwoOwnerObject, const KWLoadIndex liAttributeLoadIndex,
 					     const KWClass* kwcCreationClass, const JSONObject* jsonObject) const;
 
+	// Creation et alimentation d'un ObjectArray de kwoObject a partir d'un array json et d'une classe
+	// Le tableau peut etre partiellement alimente avec des NULL en cas de depassement memoire
+	void FillObjectArrayFromJsonArray(const KWObject* kwoOwnerObject, const KWLoadIndex liAttributeLoadIndex,
+					  const KWClass* kwcCreationClass, const JSONMember* jsonOwnerMember,
+					  const JSONArray* jsonArray, ObjectArray* oaTargetObjectArray) const;
+
 	// Creation et alimentation d'un kwoObject a partir d'une valeur json et d'une classe
 	// Ce cas etendu est accepte pour une classe cible mono-variable de type compatible
 	// le type de la valeur json. Cela permet de gerer des tableaux de valeurs json, en creant un objet par valeur.
 	// L'objet renvoye peut etre NULL en cas de depassement memoire,
 	// ou en cas d'incompatibilite entre la valeur json et la classe
+	// On tolere un jsonOwnerArray de type None, pour le cas de la creation d'une Table
+	// a partir d'une valeur json array
 	KWObject* CreateObjectFromJsonValue(const KWObject* kwoOwnerObject, const KWLoadIndex liAttributeLoadIndex,
 					    const KWClass* kwcCreationClass, const KWAttribute* singleNativeAttribute,
 					    const JSONMember* jsonOwnerArray, const JSONValue* jsonValue) const;
@@ -284,6 +293,8 @@ protected:
 	// mais en adaptant la gestion des warnings
 	// Le parametre jsonOwnerArayMember est soit celui qui contient la valeur, soit celui d'un tableau
 	// dans le cas d'une alimentation du tableau par des objets n'ayant qu'une seule valeur
+	// On tolere un jsonOwnerMember de type None, pour le cas de la creation d'une Table
+	// a partir d'une valeur json array
 	void FillSymbolAttributeFromJsonString(const KWAttribute* attribute, const JSONMember* jsonOwnerMember,
 					       const JSONString* jsonString, KWObject* kwoTargetObject) const;
 
@@ -335,6 +346,8 @@ protected:
 	// Cf. https://en.wikipedia.org/wiki/JSONPath
 
 	// Empilage d'un niveau dans le json path
+	// On tolere un jsonMember de type None, pour le cas de la creation d'une Table
+	// a partir d'une valeur json array
 	void PushJsonPath(const JSONMember* jsonMember, int nIndex) const;
 
 	// Depilage d'un niveau dans le json path
@@ -378,6 +391,32 @@ protected:
 	// Information sur le json path en cours d'analyse
 	mutable ObjectArray oaJsonPathMembers;
 	mutable IntVector ivJsonPathArrayIndexes;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildTableFromJson
+// Creation d'une table via une valeur du champ json associe
+// Extension de la regle KWDRBuildEntityFromJson en construsisant une Table a partir
+// d'une valeur json array, au lieu d'une Entity a partir d'une valeur json object.
+class KWDRBuildTableFromJson : public KWDRBuildEntityFromJson
+{
+public:
+	// Constructeur
+	KWDRBuildTableFromJson();
+	~KWDRBuildTableFromJson();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject,
+					      const KWLoadIndex liAttributeLoadIndex) const override;
+
+	///////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	// Object Array en retour de la regle
+	mutable ObjectArray oaResult;
 };
 
 ////////////////////////////////////////////////////////////////////////////
