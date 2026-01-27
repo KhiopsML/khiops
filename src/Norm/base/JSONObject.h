@@ -50,6 +50,34 @@ public:
 	JSONBoolean* GetBooleanValue() const;
 	JSONNull* GetNullValue() const;
 
+	/////////////////////////////////////////////////////////////
+	// Lecture/ecriture depuis un objet courant
+
+	// Lecture depuis une chaine de caractere C dont on connait la taille
+	// On emet aucun mesage d'erreur: on les memorise dans le vecteur passe en parametre
+	boolean ReadString(const char* sValue, int nValueLength, StringVector* svParsingErrorMessages);
+
+	// Lecture d'un fichier, avec emission de message d'erreur
+	boolean ReadFile(const ALString& sFileName);
+
+	// Ecriture dans un fichier
+	boolean WriteFile(const ALString& sFileName) const;
+
+	/////////////////////////////////////////////////////////////
+	// Lecture en creant un objet selon le type de valeur json
+	// On renvoie un objet d'une sous-classe de JSONValue,
+	// ou NULL en cas d'erreur
+
+	// Lecture globale depuis une chaine de caractere C dont on connait la taille
+	// On emet aucun mesage d'erreur: on les memorise dans le vecteur passe en parametre
+	static JSONValue* GlobalReadString(const char* sValue, int nValueLength, StringVector* svParsingErrorMessages);
+
+	// Lecture globale d'un fichier, avec emission de message d'erreur
+	static JSONValue* GlobalReadFile(const ALString& sFileName);
+
+	/////////////////////////////////////////////////////////////
+	// Divers
+
 	// Conversion du type en chaine de caracteres
 	virtual const ALString TypeToString() const = 0;
 
@@ -70,6 +98,25 @@ public:
 
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
+
+	///////////////////////////////////////////////////////////////////
+	//// Implementation
+protected:
+	// Reinitialisation
+	virtual void Reset() = 0;
+
+	// Transfert de valeur, avec reinitialisation de l'objet source
+	virtual void TransferFrom(JSONValue* sourceValue) = 0;
+
+	// Tokenizer en classe friend, pour acceder a l'analyse lexicale
+	friend class JSONTokenizer;
+
+	// Acces aux fonctions d'analyse lexicale generees par lex
+	static void SetLineno(int nValue);
+	static int GetLineno();
+	static void Restart(FILE* inputFile);
+	static int Lex(JSONSTYPE* jsonValue);
+	static int LexDestroy();
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -101,16 +148,6 @@ public:
 	// Acces aux membres par cle
 	JSONMember* LookupMember(const ALString& sKey) const;
 
-	// Lecture depuis une chaine de caractere C dont on connait la taille
-	// On emet aucun mesage d'erreur: on les memorise dans le vecteur passe en parametre
-	boolean ReadString(const char* sValue, int nValueLength, StringVector* svParsingErrorMessages);
-
-	// Lecture d'un fichier, avec emission de message d'erreur
-	boolean ReadFile(const ALString& sFileName);
-
-	// Ecriture dans un fichier
-	boolean WriteFile(const ALString& sFileName) const;
-
 	// Ecriture avec indentation et sauts de lignes si le mode pretty print est true
 	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const override;
 
@@ -124,19 +161,13 @@ public:
 	///////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Reimplementation des methodes virtuelles
+	void Reset() override;
+	void TransferFrom(JSONValue* sourceValue) override;
+
 	// Tableau et dictionnaire des membres de l'objet
 	ObjectArray oaMembers;
 	ObjectDictionary odMembers;
-
-	// Tokenizer en classe friend, pour acceder a l'analyse lexicale
-	friend class JSONTokenizer;
-
-	// Acces aux fonctions d'analyse lexicale generees par lex
-	static void SetLineno(int nValue);
-	static int GetLineno();
-	static void Restart(FILE* inputFile);
-	static int Lex(JSONSTYPE* jsonValue);
-	static int LexDestroy();
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -174,6 +205,10 @@ public:
 	///////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Reimplementation des methodes virtuelles
+	void Reset() override;
+	void TransferFrom(JSONValue* sourceValue) override;
+
 	// Tableau des valeurs
 	ObjectArray oaValues;
 };
@@ -205,6 +240,11 @@ public:
 	///////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Reimplementation des methodes virtuelles
+	void Reset() override;
+	void TransferFrom(JSONValue* sourceValue) override;
+
+	// Valeur
 	ALString sStringValue;
 };
 
@@ -234,6 +274,11 @@ public:
 	///////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Reimplementation des methodes virtuelles
+	void Reset() override;
+	void TransferFrom(JSONValue* sourceValue) override;
+
+	// Valeur
 	double dNumberValue;
 };
 
@@ -263,6 +308,11 @@ public:
 	///////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Reimplementation des methodes virtuelles
+	void Reset() override;
+	void TransferFrom(JSONValue* sourceValue) override;
+
+	// Valeur
 	boolean bBooleanValue;
 };
 
@@ -288,6 +338,9 @@ public:
 	///////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Reimplementation des methodes virtuelles
+	void Reset() override;
+	void TransferFrom(JSONValue* sourceValue) override;
 };
 
 //////////////////////////////////////////////////////////////////////////////

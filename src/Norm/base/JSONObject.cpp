@@ -43,6 +43,99 @@ JSONNull* JSONValue::GetNullValue() const
 	return cast(JSONNull*, this);
 }
 
+boolean JSONValue::ReadString(const char* sValue, int nValueLength, StringVector* svParsingErrorMessages)
+{
+	boolean bOk = true;
+	JSONValue* resultJSONValue;
+
+	// Parsing
+	resultJSONValue = GlobalReadString(sValue, nValueLength, svParsingErrorMessages);
+
+	// Erreur si valeur NULL
+	if (resultJSONValue == NULL)
+		bOk = false;
+	// Erreur si mauvais type de valeur
+	else if (resultJSONValue->GetType() != GetType())
+	{
+		svParsingErrorMessages->Add("Type of parsed json value (" + resultJSONValue->TypeToString() +
+					    ") does not match expected type (" + TypeToString() + ")");
+		bOk = false;
+	}
+	// Transfert de la valeur sinon
+	else
+		TransferFrom(resultJSONValue);
+
+	// Nettoyage
+	if (resultJSONValue != NULL)
+		delete resultJSONValue;
+	if (not bOk)
+		Reset();
+	return bOk;
+}
+
+boolean JSONValue::ReadFile(const ALString& sFileName)
+{
+	boolean bOk = true;
+	JSONValue* resultJSONValue;
+
+	// Affichage de stats memoire si log memoire actif
+	MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " ReadFile Begin");
+
+	// Parsing
+	resultJSONValue = GlobalReadFile(sFileName);
+
+	// Erreur si valeur NULL
+	if (resultJSONValue == NULL)
+		bOk = false;
+	// Erreur si mauvais type de valeur
+	else if (resultJSONValue->GetType() != GetType())
+	{
+		AddError("Type of parsed json value (" + resultJSONValue->TypeToString() +
+			 ") does not match expected type (" + TypeToString() + ")");
+		bOk = false;
+	}
+	// Transfert de la valeur sinon
+	else
+		TransferFrom(resultJSONValue);
+
+	// Nettoyage
+	if (resultJSONValue != NULL)
+		delete resultJSONValue;
+	if (not bOk)
+		Reset();
+
+	// Affichage de stats memoire si log memoire actif
+	MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " ReadFile End");
+
+	return bOk;
+}
+
+boolean JSONValue::WriteFile(const ALString& sFileName) const
+{
+	boolean bOk = true;
+	ALString sLocalFileName;
+	fstream fstJson;
+
+	// Preparation de la copie sur HDFS si necessaire
+	bOk = PLRemoteFileService::BuildOutputWorkingFile(sFileName, sLocalFileName);
+
+	// Ouverture du fichier
+	if (bOk)
+		bOk = FileService::OpenOutputFile(sLocalFileName, fstJson);
+
+	// Ecriture
+	if (bOk)
+		Write(fstJson);
+
+	// Fermeture du fichier
+	if (bOk)
+		bOk = FileService::CloseOutputFile(sLocalFileName, fstJson);
+
+	// Copie vers HDFS si necessaire
+	PLRemoteFileService::CleanOutputWorkingFile(sFileName, sLocalFileName);
+	return bOk;
+}
+
 void JSONValue::Write(ostream& ost) const
 {
 	WriteIndent(ost, 0, true);
@@ -136,32 +229,6 @@ JSONMember* JSONObject::LookupMember(const ALString& sKey) const
 	return cast(JSONMember*, odMembers.Lookup(sKey));
 }
 
-boolean JSONObject::WriteFile(const ALString& sFileName) const
-{
-	boolean bOk = true;
-	ALString sLocalFileName;
-	fstream fstJson;
-
-	// Preparation de la copie sur HDFS si necessaire
-	bOk = PLRemoteFileService::BuildOutputWorkingFile(sFileName, sLocalFileName);
-
-	// Ouverture du fichier
-	if (bOk)
-		bOk = FileService::OpenOutputFile(sLocalFileName, fstJson);
-
-	// Ecriture
-	if (bOk)
-		Write(fstJson);
-
-	// Fermeture du fichier
-	if (bOk)
-		bOk = FileService::CloseOutputFile(sLocalFileName, fstJson);
-
-	// Copie vers HDFS si necessaire
-	PLRemoteFileService::CleanOutputWorkingFile(sFileName, sLocalFileName);
-	return bOk;
-}
-
 void JSONObject::WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const
 {
 	ALString sIndent;
@@ -219,6 +286,31 @@ void JSONObject::Test()
 {
 	TestReadWrite("C:\\temp\\Datasets\\Iris\\AnalysisResults.khj",
 		      "C:\\temp\\Datasets\\Iris\\O_AnalysisResults.khj");
+}
+
+void JSONObject::Reset()
+{
+	RemoveAll();
+}
+
+void JSONObject::TransferFrom(JSONValue* sourceValue)
+{
+	JSONObject* sourceObject;
+	JSONMember* member;
+	int i;
+
+	require(sourceValue != NULL);
+	require(sourceValue->GetType() == GetType());
+
+	// Transfert du contenu
+	sourceObject = cast(JSONObject*, sourceValue);
+	Reset();
+	for (i = 0; i < sourceObject->GetMemberNumber(); i++)
+	{
+		member = sourceObject->GetMemberAt(i);
+		AddMember(member);
+	}
+	sourceObject->Reset();
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -320,6 +412,31 @@ const ALString JSONArray::TypeToString() const
 	return "array";
 }
 
+void JSONArray::Reset()
+{
+	RemoveAll();
+}
+
+void JSONArray::TransferFrom(JSONValue* sourceValue)
+{
+	JSONArray* sourceObject;
+	JSONValue* jsonValue;
+	int i;
+
+	require(sourceValue != NULL);
+	require(sourceValue->GetType() == GetType());
+
+	// Transfert du contenu
+	sourceObject = cast(JSONArray*, sourceValue);
+	Reset();
+	for (i = 0; i < sourceObject->GetValueNumber(); i++)
+	{
+		jsonValue = sourceObject->GetValueAt(i);
+		AddValue(jsonValue);
+	}
+	sourceObject->Reset();
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // Classe JSONString
 
@@ -358,6 +475,24 @@ const ALString JSONString::TypeToString() const
 	return "string";
 }
 
+void JSONString::Reset()
+{
+	SetString("");
+}
+
+void JSONString::TransferFrom(JSONValue* sourceValue)
+{
+	JSONString* sourceObject;
+
+	require(sourceValue != NULL);
+	require(sourceValue->GetType() == GetType());
+
+	// Transfert du contenu
+	sourceObject = cast(JSONString*, sourceValue);
+	SetString(sourceObject->GetString());
+	sourceObject->Reset();
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // Classe JSONNumber
 
@@ -391,6 +526,24 @@ void JSONNumber::WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrin
 const ALString JSONNumber::TypeToString() const
 {
 	return "number";
+}
+
+void JSONNumber::Reset()
+{
+	SetNumber(0);
+}
+
+void JSONNumber::TransferFrom(JSONValue* sourceValue)
+{
+	JSONNumber* sourceObject;
+
+	require(sourceValue != NULL);
+	require(sourceValue->GetType() == GetType());
+
+	// Transfert du contenu
+	sourceObject = cast(JSONNumber*, sourceValue);
+	SetNumber(sourceObject->GetNumber());
+	sourceObject->Reset();
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -431,6 +584,24 @@ const ALString JSONBoolean::TypeToString() const
 	return "boolean";
 }
 
+void JSONBoolean::Reset()
+{
+	SetBoolean(false);
+}
+
+void JSONBoolean::TransferFrom(JSONValue* sourceValue)
+{
+	JSONBoolean* sourceObject;
+
+	require(sourceValue != NULL);
+	require(sourceValue->GetType() == GetType());
+
+	// Transfert du contenu
+	sourceObject = cast(JSONBoolean*, sourceValue);
+	SetBoolean(sourceObject->GetBoolean());
+	sourceObject->Reset();
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // Classe JSONNull
 
@@ -451,6 +622,14 @@ void JSONNull::WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint)
 const ALString JSONNull::TypeToString() const
 {
 	return "null";
+}
+
+void JSONNull::Reset() {}
+
+void JSONNull::TransferFrom(JSONValue* sourceValue)
+{
+	require(sourceValue != NULL);
+	require(sourceValue->GetType() == GetType());
 }
 
 //////////////////////////////////////////////////////////////////////////////
