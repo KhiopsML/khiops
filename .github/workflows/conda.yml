@@ -80,7 +80,7 @@ jobs:
         run: |
           conda build --package-format=tar.bz2 --output-folder ./build/conda ./packaging/conda
       - name: Upload conda packages artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: khiops-conda-${{ matrix.setup.os-family }}
           path: ./build/conda
@@ -106,7 +106,7 @@ jobs:
     container: ${{ fromJSON(matrix.env.json-image) }}
     steps:
       - name: Download Conda Package Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: khiops-conda-${{ matrix.env.os-family }}
           path: ./build/conda
@@ -149,7 +149,7 @@ jobs:
       contents: write
     steps:
       - name: Download package artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           # See the upload-artifact step in the build job for the explanation of this pattern
           path: ./build/conda
@@ -197,7 +197,7 @@ jobs:
           path: ./build/conda
           filename: khiops-${{ env.PKG_VERSION }}-conda.zip
       - name: Upload conda package artifacts for all platforms
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: khiops-conda-all
           path: ./khiops-${{ env.PKG_VERSION }}-conda.zip
