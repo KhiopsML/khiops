@@ -1452,6 +1452,13 @@ RESILIENCE_USER_MESSAGE_PATTERNS = [
     [
         "warning : Database ",
         ": Record ",
+        " : Single instance containing ",
+        " secondary records : all derived variables have been computed using RAM sparingly at the expense of computation time (",
+        "additional passes)",
+    ],
+    [
+        "warning : Database ",
+        ": Record ",
         " : Record not selected due to selection variable with possible incorrect value. Single instance ",
         "requires too much memory (more than ",
         " after reading ",
