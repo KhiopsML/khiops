@@ -240,7 +240,7 @@ def export_learning_test_tree(
                                         elif isinstance(json_value, list):
                                             # Parcours des objets de la Liste
                                             for list_value in json_value:
-                                                # On ne traite que les valeur de type dictionnaire
+                                                # On ne traite que les valeurs de type dictionnaire
                                                 if isinstance(list_value, dict):
                                                     # Parcours des cle de l'objet du tableau
                                                     for json_sub_key in list_value:

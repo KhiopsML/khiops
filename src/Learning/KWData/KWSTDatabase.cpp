@@ -125,7 +125,7 @@ KWDataTableDriver* KWSTDatabase::CreateDataTableDriver() const
 
 longint KWSTDatabase::GetEncodingErrorNumber() const
 {
-	// Collecte des erreur d'encodage uniquement si la base est ouverte en lecture
+	// Collecte des erreurs d'encodage uniquement si la base est ouverte en lecture
 	// Sinon, on renvoie les erreurs memorisees au moment de la fermeture
 	if (IsOpenedForRead())
 		lEncodingErrorNumber = dataTableDriverCreator->GetEncodingErrorNumber();

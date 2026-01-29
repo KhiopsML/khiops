@@ -709,7 +709,7 @@ void KWObject::CleanAllNonNativeAttributes()
 	debug(require(nObjectLoadedDataItemNumber == kwcClass->GetTotalInternallyLoadedDataItemNumber()));
 	debug(require(nFreshness == kwcClass->GetFreshness()));
 
-	// Nettoyage des valeur non natives
+	// Nettoyage des valeurs non natives
 	for (nAttribute = 0; nAttribute < kwcClass->GetLoadedDataItemNumber(); nAttribute++)
 	{
 		dataItem = kwcClass->GetLoadedDataItemAt(nAttribute);

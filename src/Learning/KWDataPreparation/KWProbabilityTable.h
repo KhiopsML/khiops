@@ -47,7 +47,7 @@ public:
 
 	////////////////////////////////////////////////////////////////////////////////
 	// Acces aux valeurs de la table
-	// Les valeur sont de type Continuous par coherence avec les calcul effectues
+	// Les valeurs sont de type Continuous par coherence avec les calcul effectues
 	// en deploiement dans les  regles de derivation, et par soucis d'espace memoire
 	// Les methodes sont en quatre version (selon les mode), uniquement afin de
 	// lisibilite et de controle de la coherence avec les modes choisis

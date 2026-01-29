@@ -1037,7 +1037,7 @@ boolean KWRegressorEvaluationTask::MasterAggregateResults()
 			dvRankAbsoluteErrors.SetSize(0);
 			bIsRecCurveCalculated = false;
 		}
-		// Collecte des erreur veannt de l'esclave
+		// Collecte des erreurs venant de l'esclave
 		else
 		{
 			for (nRankAbsoluteError = 0; nRankAbsoluteError < output_dvRankAbsoluteErrors.GetSize();
@@ -1218,7 +1218,7 @@ boolean KWRegressorEvaluationTask::SlaveProcessExploitDatabaseObject(const KWObj
 		if (cTargetPredictedValue == KWContinuous::GetMissingValue())
 			bMissingValue = true;
 
-		// Mise a jour des crieres sur les valeur si possible
+		// Mise a jour des crieres sur les valeurs si possible
 		if (not bMissingValue)
 		{
 			// Calcul de la difference de valeur

@@ -164,7 +164,7 @@ boolean KWKeyExtractor::ParseNextKey(KWKey* key, PLParallelTask* taskErrorSender
 		// Saut rapide des derniers champs de la ligne s'il n'y a pas deporting des erreurs
 		if (taskErrorSender == NULL)
 			iBuffer->SkipLastFields(bLineTooLong);
-		// Sinon, on saute les champs un a un pour detecter les eventuelles erreur utilisateur
+		// Sinon, on saute les champs un a un pour detecter les eventuelles erreurs utilisateur
 		else
 		{
 			while (not bEol)

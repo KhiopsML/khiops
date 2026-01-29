@@ -132,7 +132,7 @@ public:
 	// criteres de tri lexicographique
 
 	// Vecteur de critere pour un tri lexocographique
-	// La gestion de la taille et des valeur de ce vecteur est entierement a la cahrge de l'appelant
+	// La gestion de la taille et des valeurs de ce vecteur est entierement a la cahrge de l'appelant
 	DoubleVector* GetLexicographicSortCriterion();
 
 	// Methode de comparaison de deux tranches selon leur critere lexicographique

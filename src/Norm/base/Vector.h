@@ -43,7 +43,7 @@ public:
 	// Ajout d'un element en fin et retaillage du vecteur
 	void Add(double dValue);
 
-	// Tri des valeur par ordre croissant
+	// Tri des valeurs par ordre croissant
 	void Sort();
 
 	// Perturbation aleatoire de l'ordre des valeurs
@@ -142,7 +142,7 @@ public:
 	// (retaillage si necessaire)
 	void CopyFrom(const IntVector* ivSource);
 
-	// Tri des valeur par ordre croissant
+	// Tri des valeurs par ordre croissant
 	void Sort();
 
 	// Perturbation aleatoire de l'ordre des valeurs
@@ -227,7 +227,7 @@ public:
 	// Ajout d'un element en fin et retaillage du vecteur
 	void Add(longint lValue);
 
-	// Tri des valeur par ordre croissant
+	// Tri des valeurs par ordre croissant
 	void Sort();
 
 	// Perturbation aleatoire de l'ordre des valeurs
@@ -317,7 +317,7 @@ public:
 	// (retaillage si necessaire)
 	void CopyFrom(const StringVector* svSource);
 
-	// Tri des valeur par ordre croissant
+	// Tri des valeurs par ordre croissant
 	void Sort();
 
 	// Perturbation aleatoire de l'ordre des valeurs

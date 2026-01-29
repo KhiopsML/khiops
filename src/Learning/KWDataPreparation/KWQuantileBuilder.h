@@ -117,7 +117,7 @@ public:
 	// Acces aux valeurs (prerequis: initialisation valeur)
 	Continuous GetValueAt(int nIndex) const;
 
-	// Valeur min, en ignorant les valeur manquantes
+	// Valeur min, en ignorant les valeurs manquantes
 	Continuous GetMinValue() const;
 
 	// Valeur max

@@ -751,7 +751,7 @@ void KWTupleTable::DeleteTuple(KWTuple* tuple) const
 	require(tuple != NULL);
 	debug(require(tuple->tupleTable == this));
 
-	// On reintilaise les valeur Symbol, pour maintenir correctement leur compteur de reference
+	// On reintilaise les valeurs Symbol, pour maintenir correctement leur compteur de reference
 	for (i = svAttributeNames.GetSize() - 1; i >= 0; i--)
 	{
 		if (ivAttributeTypes.GetAt(i) == KWType::Symbol)

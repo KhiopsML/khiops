@@ -120,7 +120,7 @@ public:
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Exploitation des limites
-	// On peut ici emettre des warning specialises en fonction du type de limite atteinte ou depassee
+	// On peut ici emettre des warnings specialises en fonction du type de limite atteinte ou depassee
 
 	// Indique si la limite memoire est atteinte, si le parametrage est actif
 	// Cet indicateur est declenchee des que la limite a ete depasse une seule fois,
@@ -158,7 +158,7 @@ public:
 
 	// Libelle personnalise associe au depassement de la limite memoire, dans le cas de la lecture des
 	// enregistrements ou dans le cas du calcul des attributs, avec perte du calcul des attributs derives,
-	// remplaces par des valeur manquantes
+	// remplaces par des valeurs manquantes
 	const ALString GetSingleInstanceMemoryLimitLabel() const;
 
 	// Libelle personnalise associe au depassement de la limite memoire, dans le cas de la lecture des tables externes

@@ -275,7 +275,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRLog
 // Logarithme neperien d'un attribut Continuous
-// Renvoie MissingValue pour les valeur negative ou nulles
+// Renvoie MissingValue pour les valeurs negative ou nulles
 class KWDRLog : public KWDerivationRule
 {
 public:

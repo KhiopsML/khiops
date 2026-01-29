@@ -707,7 +707,7 @@ void JNICALL Java_normGUI_engine_GUIUnit_writeOutputUnitListIndexCommand(JNIEnv*
 }
 
 // Tableau des methodes de GUIUnit
-// Le cast des parametres permettent d'eviter les warning sur certains compilateurs
+// Le cast des parametres permettent d'eviter les warnings sur certains compilateurs
 JNINativeMethod jniGUIUnitMethodArray[] = {
     {(char*)"setBooleanValueAt", (char*)"(Ljava/lang/String;Z)V", (void*)Java_normGUI_engine_GUIUnit_setBooleanValueAt},
     {(char*)"getBooleanValueAt", (char*)"(Ljava/lang/String;)Z", (void*)Java_normGUI_engine_GUIUnit_getBooleanValueAt},
@@ -895,7 +895,7 @@ jint JNICALL Java_normGUI_engine_GUIList_getFreshness(JNIEnv* env, jobject guiLi
 }
 
 // Tableau des methodes de GUIList
-// Le cast des parametres permettent d'eviter les warning sur certains compilateurs
+// Le cast des parametres permettent d'eviter les warnings sur certains compilateurs
 JNINativeMethod jniGUIListMethodArray[] = {
     {(char*)"getItemNumber", (char*)"()I", (void*)Java_normGUI_engine_GUIList_getItemNumber},
     {(char*)"addItem", (char*)"()V", (void*)Java_normGUI_engine_GUIList_addItem},

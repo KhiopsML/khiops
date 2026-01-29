@@ -1502,7 +1502,7 @@ void CCCoclusteringBuilder::CleanVarPartDataGrid(KWDataGrid* dataGrid)
 	}
 	oaVarParts.SetSize(0);
 
-	// Nettoyage des attributs comportant des valeurs manquantes, pour les valeur numeriques ou categorielles
+	// Nettoyage des attributs comportant des valeurs manquantes, pour les valeurs numeriques ou categorielles
 	for (nInnerAttribute = 0; nInnerAttribute < varPartAttribute->GetInnerAttributeNumber(); nInnerAttribute++)
 	{
 		innerAttribute = varPartAttribute->GetInnerAttributeAt(nInnerAttribute);
@@ -2832,7 +2832,7 @@ int CCCoclusteringBuilder::GetDatabaseObjectObservationNumber(const KWObject* kw
 			    kwoObject->GetContinuousValueAt(innerAttribute->GetLoadIndex()) !=
 				KWContinuous::GetMissingValue())
 				nObjectObservationNumber++;
-			// On ne prend pas en compte non plus les valeur manquantes dans le cas categoriel
+			// On ne prend pas en compte non plus les valeurs manquantes dans le cas categoriel
 			else if (innerAttribute->GetType() == KWType::Symbol and
 				 not kwoObject->GetSymbolValueAt(innerAttribute->GetLoadIndex()).IsEmpty())
 				nObjectObservationNumber++;

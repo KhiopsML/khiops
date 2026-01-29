@@ -101,11 +101,11 @@ double MHContinuousLimits::ComputeNumberDistinctValues(Continuous cMinValue, Con
 		// Nombre de valeurs par plage d'exposant
 		dExpectedNumberDistinctValues = (nMaxExponent - nMinExponent) * dTotalDistinctValuesPerExponent;
 
-		// On rajoute les valeur encodables par la mantisse entre la valeur max et l'exposant superieur
+		// On rajoute les valeurs encodables par la mantisse entre la valeur max et l'exposant superieur
 		dExpectedNumberDistinctValues += ceil((cMaxValue - pow(10, nMaxExponent)) *
 						      pow(10, KWContinuous::GetDigitNumber() - 1 - nMaxExponent));
 
-		// On supprime les valeur encodables par la mantisse entre la valeur min et l'exposant inferieur
+		// On supprime les valeurs encodables par la mantisse entre la valeur min et l'exposant inferieur
 		dExpectedNumberDistinctValues -= floor((cMinValue - pow(10, nMinExponent)) *
 						       pow(10, KWContinuous::GetDigitNumber() - 1 - nMinExponent));
 		assert(dExpectedNumberDistinctValues >=

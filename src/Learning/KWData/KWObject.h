@@ -366,7 +366,7 @@ protected:
 
 	//////////////////////////////////////////////////////////////////////////////
 	// Pour gerer les objet avec un nombre potentiel d'attributs tres important,
-	// les valeur ne sont pas accessible directment par un tableau (KWValue*),
+	// les valeurs ne sont pas accessible directment par un tableau (KWValue*),
 	// mais par un tableau de tableaux de valeurs, chaque tableau de valeur ne
 	// depassant pas la taille d'un segment memoire.
 	// La gestion de ces tableaux de grande taille est analogue a celle mise en

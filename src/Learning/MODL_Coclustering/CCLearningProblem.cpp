@@ -163,7 +163,7 @@ void CCLearningProblem::BuildCoclustering()
 
 	// Affichage de warnings lie aux mappings dans le cas multi-table
 	// Cet affichage est effectue une seule fois, uniquement pour la phase d'apprentissage
-	// Cela n'est pas la peine de le faire pour la base de test, car les warning sont de meme nature
+	// Cela n'est pas la peine de le faire pour la base de test, car les warnings sont de meme nature
 	if (GetDatabase()->IsMultiTableTechnology())
 		cast(KWMTDatabase*, GetDatabase())->DisplayMultiTableMappingWarnings();
 

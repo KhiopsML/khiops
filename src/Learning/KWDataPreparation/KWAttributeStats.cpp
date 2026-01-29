@@ -893,7 +893,7 @@ void KWAttributeStats::Discretize(const KWTupleTable* tupleTable)
 			->GetDiscretizer(GetTargetAttributeType())
 			->IsUsingSourceValues())
 		{
-			// Creation des vecteur de valeurs source et d'index des valeur cibles
+			// Creation des vecteur de valeurs source et d'index des valeurs cibles
 			cvSourceValues = ComputeInitialSourceValues(tupleTable);
 			ivTargetIndexes = ComputeInitialTargetIndexes(tupleTable);
 

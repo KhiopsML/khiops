@@ -49,6 +49,6 @@ protected:
 	// Nombre de taches
 	static int nTaskNumber;
 
-	// Tableau des erreur collectees
+	// Tableau des erreurs collectees
 	static ObjectArray oaCollectedErrors;
 };

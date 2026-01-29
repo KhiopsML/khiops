@@ -228,7 +228,7 @@ protected:
 // - Table: array de object
 //   - extension toleree: si le dictionnaire cible est mono-valeur (Categorical ou Numerical) et que la
 //     valeur json est compatible, alors on peut cree des entite mono-valeur
-// Des warning sont emis dans les cas suivant:
+// Des warnings sont emis dans les cas principaux suivants:
 // - valeur json invalide
 // - warning synthetique sur les erreurs d'alimentation
 //   - cle json sans attribut correspondant
@@ -288,7 +288,7 @@ protected:
 					       const JSONString* jsonString, KWObject* kwoTargetObject) const;
 
 	////////////////////////////////////////////////////////////////////////////////////////////
-	// Gestion des warning rencontree lors des creation et alimentation des objets cibles
+	// Gestion des warnings rencontree lors des creation et alimentation des objets cibles
 	// Les warnings sont memorises et seront emis en fin de la methode principale ComputeObjectResult
 	// Le nombre total de warning est memorise par type de warning, mais au plus un warning est memorise
 	// par type: le premier rencontre

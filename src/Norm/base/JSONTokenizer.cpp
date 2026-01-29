@@ -133,7 +133,7 @@ int JSONTokenizer::ReadNextToken()
 	// Lecture du token
 	nLastToken = JSONObject::Lex(&jsonLastTokenValue);
 
-	// On accepte avec un warning les erreur d'encodage de chaine de caracteres
+	// On accepte avec un warning les erreurs d'encodage de chaine de caracteres
 	if (nLastToken == StringError)
 	{
 		nLastToken = String;

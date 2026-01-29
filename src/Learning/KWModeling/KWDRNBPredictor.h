@@ -230,7 +230,7 @@ protected:
 	// Probabilite conditionnelle par defaut; attribue aux classes inconnues
 	Continuous cUnknownTargetProb;
 
-	// Effectif total des valeur cibles
+	// Effectif total des valeurs cibles
 	int nTargetTotalFrequency;
 
 	// Gestion des epsilon de Laplace

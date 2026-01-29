@@ -334,7 +334,7 @@ protected:
 					    NumericKeyDictionary* nkdAllUsedDerivedAttributes,
 					    ALString& sErrorAttribute) const;
 
-	// Lecture physique d'une instance pour aller chercher les valeur des attributs utilises presents dans les
+	// Lecture physique d'une instance pour aller chercher les valeurs des attributs utilises presents dans les
 	// tranches Renvoie NULL en cas d'erreur
 	KWObject* PhysicalRead();
 
@@ -518,7 +518,7 @@ public:
 	// criteres de tri lexicographique
 
 	// Vecteur de critere pour un tri lexicographique utilisateur
-	// La gestion de la taille et des valeur de ce vecteur est entierement a la charge de l'appelant
+	// La gestion de la taille et des valeurs de ce vecteur est entierement a la charge de l'appelant
 	// Attention, ce tri permet de prioriser les tranche seon un criter utilisateurn quelconque.
 	// Le sliceset complet doit lui toujours etretrie selon son ordre par defaut (selon GetLexicographicIndex)
 	// pour etre utilisable

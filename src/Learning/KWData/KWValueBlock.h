@@ -286,7 +286,7 @@ protected:
 	// En effet, lors de l'allocation, on alloura la taille necessaire pour stocker
 	// un entier (nValueNumber), ainsi que le nombres de paires (value, index)
 	// (KWValueIndexPair) du bloc
-	// Permet un stockage compact, et une recherche des valeur individuelle
+	// Permet un stockage compact, et une recherche des valeurs individuelle
 	// par index de variable selon une dichotomie (O(log(N)), les index
 	// de variables etant tries (le vecteur de valeur est a gerer dans les sous-classes)
 	char cStartBlock;

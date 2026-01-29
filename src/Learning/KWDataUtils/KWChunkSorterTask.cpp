@@ -781,7 +781,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 		}
 	}
 
-	// Fermeture des fichiers ouverts en lecture, avec comptage des erreur d'encodage
+	// Fermeture des fichiers ouverts en lecture, avec comptage des erreurs d'encodage
 	lSlaveEncodingErrorNumber = 0;
 	for (i = 0; i < oaBufferedFiles.GetSize(); i++)
 	{

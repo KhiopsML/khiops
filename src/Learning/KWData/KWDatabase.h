@@ -157,7 +157,7 @@ public:
 	//   - si interruption utilisateur (test par TaskProgression)
 	//   - si fin de base (test par IsEnd())
 	//   - si erreur bloquante (test par IsError())
-	// En cas de probleme de lecture, les problemes sont diagnostiques par des warning ou error
+	// En cas de probleme de lecture, les problemes sont diagnostiques par des warnings ou error
 	// Le suivi des taches (progression, messages d'avancement, message si interruption) est a faire par l'appelant
 	KWObject* Read();
 
@@ -314,7 +314,7 @@ public:
 
 	// Mode d'affichage des messages lors de l'analyse des fichiers (defaut: true)
 	// Les erreurs sont affichees quoi qu'il arrivent.
-	// Les warning et messages sont inhibees en mode non verbeux, en complement avec
+	// Les warnings et messages sont inhibes en mode non verbeux, en complement avec
 	// le suivi des taches gere par la classe TaskManager
 	virtual void SetVerboseMode(boolean bValue);
 	virtual boolean GetVerboseMode() const;

@@ -33,7 +33,7 @@ void MemVector::Delete(MemHugeVector& memHugeVector, int& nSize, int& nAllocSize
 }
 
 // Retourne la puissance de 2 la plus proche au dessus de nSize
-// Pourrais etre utile si l'on essayait d'allore les tableau de blocs par puissance de 2,
+// Pourrais etre utile si l'on essayait d'allore les tableaux de blocs par puissance de 2,
 // en permettant de retourner la taille alouee du tablau de blocs sans avoir a la stocker
 // Pour l'instant, ce code n'est pas justifie:
 //  . complexe a mettre en oeuvre et a maintenir, risque de bug
@@ -822,7 +822,7 @@ void MemVector::CopyFrom(MemHugeVector& memHugeVector, int& nSize, int& nAllocSi
 	// Retaillage
 	// Ce retaillage entraine une potentielle initialisation partielle a zero (si la nouvelle taille
 	// est plus grande que l'ancienne)
-	// Cette initialisation est inutile, car les valeur seront ecrasee par la recopie.
+	// Cette initialisation est inutile, car les valeurs seront ecrasee par la recopie.
 	// Une optimisation serait possible, mais un peu fastidieuse et moins maintenable
 	SetSize(memHugeVector, nSize, nAllocSize, nBlockSize, nElementSize, nSourceSize);
 

@@ -1354,7 +1354,7 @@ void KWDRBuildEntityFromJson::FillSymbolAttributeFromJsonString(const KWAttribut
 	require(kwoTargetObject != NULL);
 	require(kwoTargetObject->GetClass()->LookupAttribute(attribute->GetName()) == attribute);
 
-	// Parametre pour les warning dans le cas standard
+	// Parametre pour les warnings dans le cas standard
 	if (jsonOwnerMember->GetValue() == jsonString)
 		jsonWarningOwnerMember = jsonOwnerMember;
 	// Et dans le cas d'une valeur dans un tableau

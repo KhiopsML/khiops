@@ -143,7 +143,7 @@ void MHTruncationFloatingPointFrequencyTableBuilder::SetCentralBinExponent(int n
 
 	// Correction du niveau max de la hierarchie dans le cas d'un epsilon de troncature
 	// Plutot que de trouver une formule analytique complexe, on recherche empiriquement le max garantissant des
-	// mantissa bin plus grand que le epsilon de troncature On se base ici sur les valeur Min et Max plutot que sur
+	// mantissa bin plus grand que le epsilon de troncature On se base ici sur les valeurs Min et Max plutot que sur
 	// les bornes du domaines, car cela revient ici au meme, sans avoir a gerer l'effet de bord de la borne inf du
 	// domain qui est strictement inferieur a Min
 	nMaxHierarchyLevel = 0;

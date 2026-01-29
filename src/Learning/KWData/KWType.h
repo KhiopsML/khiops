@@ -22,7 +22,7 @@ class KWObjectArrayValueBlock;
 #include "KWTimestampTZ.h"
 
 // Desactivation generale de warnings pour le Visual C++
-// Ce header etant inclu partout, les pragma va annuler les warning globalement
+// Ce header etant inclu partout, les pragma va annuler les warnings globalement
 #ifdef __MSC__
 #pragma warning(disable : 4100) // C4100: unreferenced formal parameter
 #pragma warning(disable : 4702) // C4702: unreachable code (mal gere par Visual C++)

@@ -221,7 +221,7 @@ public:
 	/////////////////////////////////////////////////
 	///// Implementation
 protected:
-	// Seuil pour passer les valeur de cout ou de level a zero, pour ameliorer
+	// Seuil pour passer les valeurs de cout ou de level a zero, pour ameliorer
 	// la lisibilite des rapports
 	const double dEpsilonCost = 1e-10;
 

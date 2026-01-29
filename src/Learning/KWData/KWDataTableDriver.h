@@ -78,7 +78,7 @@ public:
 
 	// Mode d'affichage des messages lors de l'analyse des fichiers (defaut: true)
 	// Les erreurs sont affichees quoi qu'il arrivent.
-	// Les warning et messages sont inhibees en mode non verbeux, en complement avec
+	// Les warnings et messages sont inhibes en mode non verbeux, en complement avec
 	// le suivi des taches gere par la classe TaskManager
 	void SetVerboseMode(boolean bValue);
 	boolean GetVerboseMode() const;

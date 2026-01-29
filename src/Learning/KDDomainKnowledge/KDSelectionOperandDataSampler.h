@@ -335,7 +335,7 @@ protected:
 	/////////////////////////////////////////////////////////////////////////
 	// Methode de travail pour l'analyse des operandes de selection
 
-	// Parametrage de l'attribute de selection permettant de calculer les valeur de l'operande de selection
+	// Parametrage de l'attribute de selection permettant de calculer les valeurs de l'operande de selection
 	// L'attribut de selection est soit directement l'attribut de la dimension de partition, soit un attribut
 	// permettant de calculer la regle de la dimension de partition
 	// Memoire: gere par l'appelant

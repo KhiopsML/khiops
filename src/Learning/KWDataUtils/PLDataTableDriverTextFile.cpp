@@ -107,7 +107,7 @@ boolean PLDataTableDriverTextFile::Close()
 
 longint PLDataTableDriverTextFile::GetEncodingErrorNumber() const
 {
-	// En parallele, la gestion des erreur d'encodage se fait dans les taches
+	// En parallele, la gestion des erreurs d'encodage se fait dans les taches
 	// On rend 0 si le buffer d'entree n'est pas exploitable
 	if (inputBuffer == NULL or not inputBuffer->IsOpened())
 		return 0;

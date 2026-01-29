@@ -5,7 +5,7 @@
 #include "SystemResource.h"
 #include "MemoryManager.h"
 
-// Pour eviter les warning sur strcpy
+// Pour eviter les warnings sur strcpy
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_WARNINGS
 #endif
