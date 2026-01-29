@@ -68,7 +68,13 @@ null            {return NULLVALUE;}
                     char* endptr;
                     double dValue;
 
+                    // Conversion, en projetant sur les valeurs extremes en cas d'oberflow
     		        dValue = strtod((char*)yytext, &endptr);
+                    if (dValue == -HUGE_VAL)
+                        dValue = -DBL_MAX;
+                    else if (dValue == HUGE_VAL)
+                        dValue = DBL_MAX;
+                    assert(not p_isnan(dValue));
                     jsonlval.dValue = dValue; 
                     return NUMBERVALUE;
                 }

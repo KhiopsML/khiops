@@ -487,11 +487,23 @@ KWObject* KWDataTableDriverTextFile::Read()
 
 					// Test de validite du champs
 					if (nError != 0)
-						AddWarning(sTmp + "Numerical variable " + attribute->GetName() +
-							   ": value <" + InputBufferedFile::GetDisplayValue(sField) +
-							   "> converted to <" +
-							   KWContinuous::ContinuousToString(cValue) + "> (" +
-							   KWContinuous::ErrorLabel(nError) + ")");
+					{
+						// Message general en cas dans tous les cas d'erreur de conversion
+						if (cValue == KWContinuous::GetMissingValue())
+							AddWarning(sTmp + "Numerical variable " + attribute->GetName() +
+								   ": value (" +
+								   InputBufferedFile::GetDisplayValue(sField) +
+								   ") converted to missing value due to invalid "
+								   "numerical format");
+						// Message specifique sinon
+						else
+							AddWarning(sTmp + "Numerical variable " + attribute->GetName() +
+								   ": value (" +
+								   InputBufferedFile::GetDisplayValue(sField) +
+								   ") converted to (" +
+								   KWContinuous::ContinuousToString(cValue) + "), " +
+								   KWContinuous::ErrorLabel(nError));
+					}
 				}
 				// Cas attribut Date
 				else if (attribute->GetType() == KWType::Date)

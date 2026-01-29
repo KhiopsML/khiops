@@ -728,11 +728,7 @@ const char* const KWContinuous::ContinuousToString(Continuous cValue)
 		sBuffer[0] = '0';
 		sBuffer[1] = '\0';
 	}
-#ifdef _WIN32
-	else if (_isnan(cValue))
-#else
-	else if (isnan(cValue))
-#endif
+	else if (p_isnan(cValue))
 	{
 		sBuffer[0] = 'N';
 		sBuffer[1] = 'a';
@@ -963,7 +959,7 @@ Continuous KWContinuous::DoubleToContinuous(double dValue)
 	longint lMantissa;
 
 	// Traitement des valeurs manquantes
-	if (dValue == -HUGE_VAL or dValue == HUGE_VAL)
+	if (dValue == -HUGE_VAL or dValue == HUGE_VAL or p_isnan(dValue))
 	{
 		cValue = GetMissingValue();
 	}
@@ -1290,17 +1286,17 @@ const ALString KWContinuous::ErrorLabel(int nError)
 	require(CheckError(nError));
 
 	if (nError == ErrorUnderflow)
-		sErrorLabel = "Underflow";
+		sErrorLabel = "underflow";
 	else if (nError == ErrorNegativeOverflow)
-		sErrorLabel = "Overflow -inf";
+		sErrorLabel = "overflow -inf";
 	else if (nError == ErrorPositiveOverflow)
-		sErrorLabel = "Overflow +inf";
+		sErrorLabel = "overflow +inf";
 	else if (nError == ErrorBadString)
-		sErrorLabel = "Unconverted string";
+		sErrorLabel = "unconverted string";
 	else if (nError == ErrorBadEndString)
-		sErrorLabel = "Unconverted end of string";
+		sErrorLabel = "unconverted end of string";
 	else
-		sErrorLabel = "Conversion OK";
+		sErrorLabel = "conversion OK";
 	return sErrorLabel;
 }
 
@@ -1424,6 +1420,18 @@ void KWContinuous::Test()
 	cout << "DBL_MAX\t" << DBL_MAX << endl;
 	cout << "NaN\t" << atof("NaN") << " -> " << StringToContinuous("NaN") << endl;
 	cout << "1/3\t" << 1.0 / 3 << " -> " << ContinuousToString(1.0 / 3) << endl;
+	cout << endl;
+
+	ContinuousToString(atof("NaN"));
+	// Conversion des valeurs extremes
+	cout << "Conversion of special values\n";
+	cout << "-HUGE_VAL\t" << -HUGE_VAL << "\t" << ContinuousToString(-HUGE_VAL) << "\t"
+	     << ContinuousToString(DoubleToContinuous(-HUGE_VAL)) << endl;
+	cout << "HUGE_VAL\t" << HUGE_VAL << "\t" << ContinuousToString(HUGE_VAL) << "\t"
+	     << ContinuousToString(DoubleToContinuous(HUGE_VAL)) << endl;
+	cout << "NaN\t" << atof("NaN") << "\t" << ContinuousToString(atof("NaN")) << "\t"
+	     << ContinuousToString(DoubleToContinuous(atof("NaN"))) << endl;
+	cout << endl;
 
 	// Tests de conversion dans les deux sens
 	TestConversion();
@@ -1609,11 +1617,7 @@ int KWContinuous::StandardStringToContinuousError(const char* const sValue, Cont
 				return ErrorBadEndString;
 		}
 		// Cas du NaN (not a number): traite comme missing
-#ifdef _WIN32
-		else if (_isnan(dValue))
-#else
-		else if (isnan(dValue))
-#endif
+		else if (p_isnan(dValue))
 		{
 			cValue = GetMissingValue();
 			assert(cValue < GetMinValue());

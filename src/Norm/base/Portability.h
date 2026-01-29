@@ -207,6 +207,7 @@ typedef struct stat struct_stat;
 #endif //  __C11__
 
 // Liste des methodes reimplementees
+int p_isnan(double value);
 const char* p_getenv(const char* varname);
 int p_setenv(char* varname, const char* value);
 struct tm* p_localtime(const time_t* timer);
@@ -304,6 +305,11 @@ int FreeSharedLibrary(void* libraryHandle);
 // Implementation standard pour linux
 #ifdef __linux_or_apple__
 
+inline int p_isnan(double value)
+{
+	return isnan(value);
+}
+
 inline int p_setenv(const char* varname, const char* value)
 {
 	return setenv(varname, value, 1);
@@ -367,6 +373,11 @@ inline char* p_strcat(char* strDestination, const char* strSource)
 ////////////////////////////////////////////////////
 // Reimplementation pour Windows
 #ifdef _WIN32
+
+inline int p_isnan(double value)
+{
+	return _isnan(value);
+}
 
 inline int p_setenv(const char* varname, const char* value)
 {

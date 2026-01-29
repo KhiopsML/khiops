@@ -57,8 +57,9 @@ boolean JSONValue::ReadString(const char* sValue, int nValueLength, StringVector
 	// Erreur si mauvais type de valeur
 	else if (resultJSONValue->GetType() != GetType())
 	{
-		svParsingErrorMessages->Add("Type of parsed json value (" + resultJSONValue->TypeToString() +
-					    ") does not match expected type (" + TypeToString() + ")");
+		svParsingErrorMessages->Add(resultJSONValue->TypeToString() + " type of parsed json value (" +
+					    resultJSONValue->BuildDisplayedJsonValue() + ") does not match expected " +
+					    TypeToString() + " type");
 		bOk = false;
 	}
 	// Transfert de la valeur sinon
@@ -90,8 +91,9 @@ boolean JSONValue::ReadFile(const ALString& sFileName)
 	// Erreur si mauvais type de valeur
 	else if (resultJSONValue->GetType() != GetType())
 	{
-		AddError("Type of parsed json value (" + resultJSONValue->TypeToString() +
-			 ") does not match expected type (" + TypeToString() + ")");
+		AddError(resultJSONValue->TypeToString() + " type of parsed json value (" +
+			 resultJSONValue->BuildDisplayedJsonValue() + ") does not match expected " + TypeToString() +
+			 " type");
 		bOk = false;
 	}
 	// Transfert de la valeur sinon

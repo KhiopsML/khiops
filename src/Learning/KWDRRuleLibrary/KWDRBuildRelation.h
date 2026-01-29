@@ -271,6 +271,9 @@ protected:
 	KWObject* CreateObjectFromJsonObject(const KWObject* kwoOwnerObject, const KWLoadIndex liAttributeLoadIndex,
 					     const KWClass* kwcCreationClass, const JSONObject* jsonObject) const;
 
+	// Initialisation d'un kwoObject venant d'etre cree, notament de ses valeurs numeriques a missing
+	void InitializeObject(KWObject* kwoObject) const;
+
 	// Creation et alimentation d'un ObjectArray de kwoObject a partir d'un array json et d'une classe
 	// Le tableau peut etre partiellement alimente avec des NULL en cas de depassement memoire
 	void FillObjectArrayFromJsonArray(const KWObject* kwoOwnerObject, const KWLoadIndex liAttributeLoadIndex,
@@ -288,15 +291,25 @@ protected:
 					    const KWClass* kwcCreationClass, const KWAttribute* singleNativeAttribute,
 					    const JSONMember* jsonOwnerArray, const JSONValue* jsonValue) const;
 
-	// Prise en compte d'une valeur json string pour alimenter un attribut de categoriel ou temporel
+	// Prise en compte d'une valeur json string pour alimenter un attribut
 	// On reproduit le comportement de la lecture d'un fichier csv (cf. KWDataTableDriverTextFile::Read),
 	// mais en adaptant la gestion des warnings
 	// Le parametre jsonOwnerArayMember est soit celui qui contient la valeur, soit celui d'un tableau
 	// dans le cas d'une alimentation du tableau par des objets n'ayant qu'une seule valeur
 	// On tolere un jsonOwnerMember de type None, pour le cas de la creation d'une Table
 	// a partir d'une valeur json array
-	void FillSymbolAttributeFromJsonString(const KWAttribute* attribute, const JSONMember* jsonOwnerMember,
-					       const JSONString* jsonString, KWObject* kwoTargetObject) const;
+	void FillAttributeFromJsonString(const KWAttribute* attribute, const JSONMember* jsonOwnerMember,
+					 const JSONString* jsonString, KWObject* kwoTargetObject) const;
+
+	// Prise en compte d'une valeur json number pour alimenter un attribut
+	// Similaire a FillAttributeFromJsonString
+	void FillAttributeFromJsonNumber(const KWAttribute* attribute, const JSONMember* jsonOwnerMember,
+					 const JSONNumber* jsonNumber, KWObject* kwoTargetObject) const;
+
+	// Prise en compte d'une valeur json boolean pour alimenter un attribut
+	// Similaire a FillAttributeFromJsonString
+	void FillAttributeFromJsonBoolean(const KWAttribute* attribute, const JSONMember* jsonOwnerMember,
+					  const JSONBoolean* jsonBoolean, KWObject* kwoTargetObject) const;
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Gestion des warnings rencontree lors des creation et alimentation des objets cibles
@@ -312,7 +325,8 @@ protected:
 
 	// Warning si la classe cible ne contient pas un seul attribut natif dans le cas
 	// d'un tableau de valeur pour un objet dans le json path
-	void AddMissingSingleAttributeWarning(const JSONMember* jsonMember, const KWClass* targetClass) const;
+	void AddMissingSingleAttributeWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
+					      const KWClass* targetClass) const;
 
 	// Warning si attribut derive dans la classe cible pour un objet dans le json path
 	void AddDerivedAttributeWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
@@ -322,7 +336,8 @@ protected:
 	void AddInconsistentAttributeTypeWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
 						 const KWAttribute* targetAttribute) const;
 
-	// Warning si valeur invalide pour un attribut de type continuous
+	// Warning si valeur invalide pour un attribut de type continuous ou symbol, a partir
+	// d'une valeur json number, ou string representant un nombre
 	void AddInvalidContinuousValueWarning(const JSONMember* jsonMember, const JSONValue* jsonValue,
 					      const KWAttribute* targetAttribute, Continuous cTargetValue,
 					      int nConversionError) const;
@@ -561,3 +576,29 @@ protected:
 	// Pas d'alimentation de type vue
 	boolean IsViewModeActivated() const override;
 };
+
+////////////////////////////////////////
+// Methodes en inline
+
+inline void KWDRBuildEntityFromJson::PushJsonPath(const JSONMember* jsonMember, int nIndex) const
+{
+	require(oaJsonPathMembers.GetSize() == ivJsonPathArrayIndexes.GetSize());
+	require(jsonMember != NULL);
+	require(nIndex >= 0);
+	require(nIndex == 0 or
+		(jsonMember->GetValueType() == JSONValue::ArrayValue and
+		 nIndex < jsonMember->GetArrayValue()->GetValueNumber()) or
+		(jsonMember->GetKey() == "" and jsonMember->GetValueType() == JSONValue::None));
+
+	oaJsonPathMembers.Add(cast(Object*, jsonMember));
+	ivJsonPathArrayIndexes.Add(nIndex);
+}
+
+inline void KWDRBuildEntityFromJson::PopJsonPath() const
+{
+	require(oaJsonPathMembers.GetSize() == ivJsonPathArrayIndexes.GetSize());
+	require(oaJsonPathMembers.GetSize() > 0);
+
+	oaJsonPathMembers.SetSize(oaJsonPathMembers.GetSize() - 1);
+	ivJsonPathArrayIndexes.SetSize(ivJsonPathArrayIndexes.GetSize() - 1);
+}
