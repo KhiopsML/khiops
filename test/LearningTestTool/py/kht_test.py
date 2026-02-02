@@ -279,6 +279,8 @@ def evaluate_tool_on_test_dir(
         + str(tool_process_number)
         + ", platform: "
         + results.get_context_platform_type()
+        + ", khiops_env: "
+        + str(use_khiops_env)
         + ")"
         + exe_path_info
     )
