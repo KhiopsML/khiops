@@ -19,6 +19,7 @@ class KWDRTimeIf;
 class KWDRDateIf;
 class KWDRTimestampIf;
 class KWDRTimestampTZIf;
+class KWDRTextIf;
 class KWDRSymbolSwitch;
 class KWDRContinuousSwitch;
 
@@ -190,6 +191,25 @@ public:
 
 	// Calcul de l'attribut derive
 	TimestampTZ ComputeTimestampTZResult(const KWObject* kwoObject) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRTextIf
+// Calcul d'une valeur Text en fonction du resultat d'un test
+// Si test positif (premier parametre), le resultat est contenu dans le
+// dexuieme parametre, sinon dans le troisieme
+class KWDRTextIf : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRTextIf();
+	~KWDRTextIf();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	Symbol ComputeTextResult(const KWObject* kwoObject) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
