@@ -10,20 +10,19 @@ on:
         description: Sign installer and binaries
   pull_request:
     paths:
-      - "**CMakeLists.txt"
-      - "!test/**CMakeLists.txt"
-      - "!test/UniTests/**"
-      - "!test/LearningTestTool/**"
-      - "!test/MemoryStatsVisualizer/**"
+      - '**CMakeLists.txt'
+      - '!test/**CMakeLists.txt'
+      - '!test/UniTests/**'
+      - '!test/LearningTestTool/**'
+      - '!test/MemoryStatsVisualizer/**'
       - packaging/windows/nsis/*.nsh
       - packaging/windows/nsis/*.nsi
       - .github/workflows/pack-nsis.yml
   push:
-    tags: ["*"]
+    tags: ['*']
 # Cancel any ongoing run of this workflow on the same PR or ref
 concurrency:
-  group:
-    ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref
     }}
   cancel-in-progress: true
 # Environment variables:
@@ -77,7 +76,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: '21'
       - name: Put the package version on the environment and output
         id: get-version
         shell: bash
@@ -125,8 +124,7 @@ jobs:
         uses: ./.github/actions/build-khiops
         with:
           preset-name: windows-msvc-release
-          targets:
-            MODL MODL_Coclustering norm_jar khiops_jar KhiopsNativeInterface
+          targets: MODL MODL_Coclustering norm_jar khiops_jar KhiopsNativeInterface
             KNITransfer _khiopsgetprocnumber _khiopslauncher
           override-flags: -DTESTING=OFF -DBUILD_JARS=ON
       - name: Setup SM_CLIENT_CERT_FILE from base64 secret data
@@ -140,7 +138,7 @@ jobs:
         if: ${{ inputs.signature-activation }}
         with:
           input: build/windows-msvc-release/bin/
-          keypair-alias: KP_Khiops_HSM
+          keypair-alias: ${{ env.KEYPAIR }}
           simple-signing-mode: true
         env:
           SM_HOST: ${{ secrets.SM_HOST }}
@@ -194,7 +192,7 @@ jobs:
         if: ${{ inputs.signature-activation }}
         with:
           input: packaging/windows/nsis/khiops-${{ env.KHIOPS_VERSION }}-setup.exe
-          keypair-alias: KP_Khiops_HSM
+          keypair-alias: ${{ env.KEYPAIR }}
           simple-signing-mode: true
         env:
           SM_HOST: ${{ secrets.SM_HOST }}
