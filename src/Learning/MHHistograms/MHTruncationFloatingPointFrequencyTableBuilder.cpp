@@ -497,8 +497,7 @@ void MHTruncationFloatingPointFrequencyTableBuilder::TransformValues(const Conti
 		{
 			if (n == 0)
 				cout << "X\tbX\n";
-			if (n == 0 or cvSourceValues->GetAt(n) > cvSourceValues->GetAt(n - 1))
-				cout << cvSourceValues->GetAt(n) << "\t" << cvTransformedValues->GetAt(n) << "\n";
+			cout << cvSourceValues->GetAt(n) << "\t" << cvTransformedValues->GetAt(n) << "\n";
 		}
 	}
 }
