@@ -35,17 +35,43 @@ env:
   CERTIFICATE: Cert_Khiops
   SAMPLES_VERSION: 11.0.0
   ASSETS_VERSION: 11.0.1
+  NSIS_VERSION: 3.11
 jobs:
   build:
     outputs:
       khiops-version: ${{ steps.get-version.outputs.khiops-version }}
-    runs-on: windows-2022
+    runs-on: windows-2025
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
       - name: Check the tag consistency with the source version
         if: github.ref_type == 'tag'
         uses: ./.github/actions/check-tag-version
+      - name: Install NSIS
+        # Copy code from repolevedavaj/install-nsis
+        run: |
+          Invoke-WebRequest -UserAgent "Wget" https://sourceforge.net/projects/nsis/files/NSIS%203/$env:NSIS_VERSION/nsis-$env:NSIS_VERSION-setup.exe/download -OutFile C:\WINDOWS\Temp\nsis-$env:NSIS_VERSION-setup.exe
+          $process = Start-Process "C:\WINDOWS\Temp\nsis-$env:NSIS_VERSION-setup.exe" -ArgumentList "/S" -Wait -PassThru
+          $exitCode = $process.ExitCode
+            if ($exitCode -eq 0) {
+                Write-Host "Installer ran successfully."
+            } else {
+                Write-Host "Installer failed with exit code $exitCode."
+                exit $exitCode
+            }
+          echo "C:\Program Files (x86)\NSIS\Bin" | Out-File -FilePath "$env:GITHUB_PATH" -Append
+          echo "C:\Program Files (x86)\NSIS" | Out-File -FilePath "$env:GITHUB_PATH" -Append
+        shell: pwsh
+      - name: Ensure makensis is available
+        run: |
+          Get-Command makensis
+          makensis /VERSION
+        shell: pwsh
+      - name: Apply NSIS long string patch
+        run: |
+          Invoke-WebRequest -UserAgent "Wget" https://sourceforge.net/projects/nsis/files/NSIS%203/$env:NSIS_VERSION/nsis-$env:NSIS_VERSION-strlen_8192.zip/download -OutFile C:\WINDOWS\Temp\nsis-$env:NSIS_VERSION-strlen_8192.zip
+          Expand-Archive "C:\WINDOWS\Temp\nsis-$env:NSIS_VERSION-strlen_8192.zip" -DestinationPath "C:\Program Files (x86)\NSIS" -Force
+        shell: pwsh
       - name: Install Java Temurin
         uses: actions/setup-java@v5
         with:
@@ -112,7 +138,7 @@ jobs:
         if: ${{ inputs.signature-activation }}
         with:
           input: build/windows-msvc-release/bin/
-          keypair-alias: KP_Khiops_HSM
+          keypair-alias: ${{ env.KEYPAIR }}
           simple-signing-mode: true
         env:
           SM_HOST: ${{ secrets.SM_HOST }}
@@ -166,7 +192,7 @@ jobs:
         if: ${{ inputs.signature-activation }}
         with:
           input: packaging/windows/nsis/khiops-${{ env.KHIOPS_VERSION }}-setup.exe
-          keypair-alias: KP_Khiops_HSM
+          keypair-alias: ${{ env.KEYPAIR }}
           simple-signing-mode: true
         env:
           SM_HOST: ${{ secrets.SM_HOST }}
