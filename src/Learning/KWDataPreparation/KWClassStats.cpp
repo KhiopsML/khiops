@@ -219,7 +219,7 @@ boolean KWClassStats::ComputeStats()
 					 ->GetMissingValueNumber() > 0)
 			{
 				// Cas particulier: on emet ici un warning au lieu d'une erreur, car une autre tentative
-				// peut avoir lieu apres filtrage des valeur manquantes cibles
+				// peut avoir lieu apres filtrage des valeurs manquantes cibles
 				AddWarning("The target variable " + GetTargetAttributeName() + " contains " +
 					   IntToString(cast(KWDescriptiveContinuousStats*, GetTargetDescriptiveStats())
 							   ->GetMissingValueNumber()) +

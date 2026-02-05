@@ -53,7 +53,7 @@ public:
 	////////////////////////////////////////////////////////////////////
 	// Indicateurs associes a l'ensemble des histogrammes
 
-	// Bornes des histogrammes, qui ne sont pas necessairement les valeur min et max du jeux de donnees
+	// Bornes des histogrammes, qui ne sont pas necessairement les valeurs min et max du jeux de donnees
 	Continuous GetDomainLowerBound() const override;
 	Continuous GetDomainUpperBound() const override;
 

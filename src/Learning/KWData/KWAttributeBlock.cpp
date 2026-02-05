@@ -723,7 +723,7 @@ void KWAttributeBlock::Compile()
 	if (kwdrRule != NULL and not kwdrRule->IsCompiled())
 		kwdrRule->Compile(GetParentClass());
 
-	// Calcul des valeur par defaut
+	// Calcul des valeurs par defaut
 	BuildAdvancedTypeSpecification();
 }
 

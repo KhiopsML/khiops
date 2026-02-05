@@ -617,7 +617,7 @@ public:
 	// Indique si les cles sont de type chaine de caracteres (NUMERIC sinon)
 	boolean IsStringKey() const;
 
-	// Indique si les valeur sont de type Object* (longint sinon)
+	// Indique si les valeurs sont de type Object* (longint sinon)
 	boolean IsObjectValue() const;
 
 	// Supression de toutes les cles correspondant a des valeurs NULL (Object*) ou 0 (longint)
@@ -747,7 +747,7 @@ protected:
 	// Indique si les cles sont de type chaine de caracteres
 	boolean bIsStringKey;
 
-	// Indique si les valeur sont de type Object*
+	// Indique si les valeurs sont de type Object*
 	boolean bIsObjectValue;
 };
 

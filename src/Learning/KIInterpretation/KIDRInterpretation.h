@@ -135,7 +135,7 @@ public:
 	//////////////////////////////////////////////////////////
 	// Acces aux caracteristiques specifiques de l'interpreteur apres compilation
 
-	// Tables des valeur de Shapley par variable
+	// Tables des valeurs de Shapley par variable
 	const KIShapleyTable* GetPredictorAttributeShapleyTableAt(int nAttribute) const;
 
 	////////////////////////////////////////////////////////////////////

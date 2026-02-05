@@ -564,9 +564,9 @@ const size_t MemMediumPredefinedSegmentByteSize =
     MemSegmentByteSize; // La taille allouee sera ajustee de facon inferieure de facon a contenir un nombre exacte de
 			// blocs
 
-// 		Definition de la structure d'une heap
-// Les FixedSizeHeap sont dans un tableaux.
-// Les tableau de stockage permettent d'alouer la structure d'une Heap
+// Definition de la structure d'une heap
+// Les FixedSizeHeap sont dans un tableau.
+// Les tableaux de stockage permettent d'alouer la structure d'une Heap
 // en une seule fois, et de garantir ainsi que cette struture tient en
 // un minimum de pages memoires.
 // Chaque FixedSizeHeap est une liste chainee de segments dediee a une certaine taille d'allocation

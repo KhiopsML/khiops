@@ -165,9 +165,9 @@ protected:
 	// Initialisation des objets de calculs des statistiques
 	virtual void InitializeClassStats(KWClassStats* classStats, KWLearningSpec* learningSpec);
 
-	// Gestion du cas particulier de la regression dans le cas ou la classe cible contient des valeur manquantes
+	// Gestion du cas particulier de la regression dans le cas ou la classe cible contient des valeurs manquantes
 	// Dans ce cas, pour pouvoir apprendre un modle sur les valeurs presente, il faut passer temporairement
-	// par un learningSpec intermediaire ou les valeur mnanquante sont filtrees le temps de l'apprentissage
+	// par un learningSpec intermediaire ou les valeurs mnanquante sont filtrees le temps de l'apprentissage
 	// au moyen d'une variable de selection specifique
 	boolean IsSpecificRegressionLearningSpecNecessary(const KWLearningSpec* learningSpec) const;
 	void PrepareLearningSpecForRegression(KWLearningSpec* learningSpec) const;

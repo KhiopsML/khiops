@@ -2,7 +2,7 @@
 // This software is distributed under the BSD 3-Clause-clear License, the text of which is available
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
-// Pour eviter les warning sur strerror
+// Pour eviter les warnings sur strerror
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_WARNINGS
 #endif

@@ -29,7 +29,7 @@ const KWTupleTable* KWTupleTable::GetSortTupleTable() const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
-// Fonctions de comparaison sur les valeurs, les valeur utilisateur ou par effectif decroissant
+// Fonctions de comparaison sur les valeurs, les valeurs utilisateur ou par effectif decroissant
 // L'utilisation de fonctions de comparaison specifiques peut faire gagner de 10% a 20%
 // de temps dans les tris
 // Ce n'est pas lourd a maintenir: le copier-coller a ete effectue une fois pour toutes

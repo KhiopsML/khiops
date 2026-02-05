@@ -32,7 +32,7 @@ La comparaison se fait en etant tolerant aux variations 'normales' selon le cont
   - prefix de type '[0] ' lie au process, genere par mpiexec en parallele
   - statistique sur la memoire ne mode debug
   ...
-- il y a une tolerance sur les valeur numeriques, ce qui entraine alors des warning et non des erreurs
+- il y a une tolerance sur les valeurs numeriques, ce qui entraine alors des warnings et non des erreurs
 - ...
 
 En cas d'erreurs residuelles, plusieurs strategies de recouvrement des erreurs sont utilises,
@@ -797,7 +797,7 @@ def check_results(test_dir, forced_context=None):
     # plusieurs problemes de recuperation
 
     # Tentative de recuperation des erreurs si la seule difference provient du fichier de log de Khiops
-    # et est du a des warning en nombre variable en mode parallele, sans ecriture de rapport
+    # et est du a des warnings en nombre variable en mode parallele, sans ecriture de rapport
     if error_number > 0:
         varying_warning_messages_in_err_txt_recovery = True
 
@@ -854,7 +854,7 @@ def check_results(test_dir, forced_context=None):
                 "\t" + str(error_number) + " errors converted to warnings",
                 log_file=log_file,
             )
-            # On transforme les erreur en warning
+            # On transforme les erreurs en warnings
             warning_number += error_number
             error_number = 0
             # On reinitialise egalement les stats d'erreur pour les extensions concernees
@@ -963,7 +963,7 @@ def check_results(test_dir, forced_context=None):
                 "\t" + str(error_number) + " errors converted to warnings",
                 log_file=log_file,
             )
-            # On transforme les erreur en warning
+            # On transforme les erreurs en warnings
             warning_number += error_number
             error_number = 0
             # On reinitialise egalement les stats d'erreur pour les extensions concernees
@@ -1081,7 +1081,7 @@ def check_results(test_dir, forced_context=None):
                 + " errors in evaluation xls files ignored and converted to warnings",
                 log_file=log_file,
             )
-            # On transforme les erreur en warning
+            # On transforme les erreurs en warnings
             warning_number += error_number
             error_number = 0
             # On reinitialise egalement les stats d'erreur pour les extensions concernees
@@ -1160,7 +1160,7 @@ def check_results(test_dir, forced_context=None):
                 "\t" + str(error_number) + " errors  converted to warnings",
                 log_file=log_file,
             )
-            # On transforme les erreur en warning
+            # On transforme les erreurs en warnings
             warning_number += error_number
             error_number = 0
             # On reinitialise egalement les stats d'erreur
@@ -1448,6 +1448,13 @@ RESILIENCE_USER_MESSAGE_PATTERNS = [
         "requires too much memory (more than ",
         " after creating ",
         " records ",
+    ],
+    [
+        "warning : Database ",
+        ": Record ",
+        " : Single instance containing ",
+        " secondary records : all derived variables have been computed using RAM sparingly at the expense of computation time (",
+        "additional passes)",
     ],
     [
         "warning : Database ",

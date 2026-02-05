@@ -46,7 +46,7 @@ public:
 
 	////////////////////////////////////////////////////////////////////////////////
 	// Acces aux valeurs de la table des valeurs de Shapley
-	// Les valeur sont de type Continuous par coherence avec les calcul effectues
+	// Les valeurs sont de type Continuous par coherence avec les calcul effectues
 	// en deploiement dans les  regles de derivation, et par soucis d'espace memoire
 	// Reference:
 	// V. Lemaire, F. Clerot, M. Boulle. An Efficient Shapley Value Computation for the Naive Bayes Classifier.
@@ -105,7 +105,7 @@ protected:
 	//   grille cible avec toutes les valeurs, dont une sur deux est un singleton representatif d'un intervalle
 	//
 	// Cela permet de calculer la valeur Shapley pour chaque rang de chaque intervalle, en
-	// sur basant les valeur singletons, qui representent le rang typique par intervalles
+	// sur basant les valeurs singletons, qui representent le rang typique par intervalles
 	// On peut alors calculer la moyenne des valeurs de Shapley sur toute la base en ponderant
 	// les valeurs de Shapley de type singleton par les effectifs des intervalles
 	// Memoire: la grille en sortie appartient a l'appelant, mais est alimentee par l'appele

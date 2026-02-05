@@ -1339,7 +1339,7 @@ import javax.swing.SwingUtilities;
 
         /**
          * Fermeture de la fenetre principal Gestion de la perte de focus et mise a jour
-         * des valeur cote C++ par celles de l'interface
+         * des valeurs cote C++ par celles de l'interface
          *
          * @param guiAction: action declenchant la fermeture, d'identifiant ou de
          *                   parametre Exit, ou null s'il s'agit d'une fermeture par le

@@ -254,7 +254,7 @@ void KWDiscretizerUsingSourceValues::ComputeTargetDiscretization(KWQuantileInter
 	assert(kwftTarget->GetTotalFrequency() == quantileBuilder->GetInstanceNumber());
 
 	// Dans le cas EqualWidth, il peut ne pas y avoir assez de place avoir des bornes d'intervalle distinctes
-	// si les valeur min et et max sont trop proches, en limite de la precision numerique
+	// si les valeurs min et et max sont trop proches, en limite de la precision numerique
 	if (quantileBuilder->IsEqualWidth() and cvBounds->GetSize() > 0)
 	{
 		// On part du premier intervalle et de sa borne sup

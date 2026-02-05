@@ -64,7 +64,7 @@ int KWGrouperUnsupervisedMODL::ComputePreprocessedMaxLineNumber(KWFrequencyTable
 	}
 
 	// Dans le cas ou on a deux groupes non vides, on rajoute une ligne au nombre de valeurs du premier groupe,
-	// cette derniere ligne correspondant au groupe poubelle qui contient toutes les valeur du deuxieme groupe
+	// cette derniere ligne correspondant au groupe poubelle qui contient toutes les valeurs du deuxieme groupe
 	if (nBestValueNumber < table->GetInitialValueNumber())
 		nBestValueNumber++;
 

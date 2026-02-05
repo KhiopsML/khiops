@@ -107,7 +107,7 @@ void KIModelReinforcerView::EventRefresh(Object* object)
 	boolean bValueFound;
 	ALString sNewTargetValue;
 
-	// Rafraichissement de la liste d'aide sur les valeur cibles
+	// Rafraichissement de la liste d'aide sur les valeurs cibles
 	RefreshHelpLists();
 
 	// Choix de la premiere valeur cible si la valeur cible actuelle n'est pas dans la liste

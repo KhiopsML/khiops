@@ -62,7 +62,7 @@ void KWLearningProblem::ComputeStats()
 
 	// Affichage de warnings lie aux mappings dans le cas multi-table
 	// Cet affichage est effectue une seule fois, uniquement pour la phase d'apprentissage
-	// Cela n'est pas la peine de le faire pour la base de test, car les warning sont de meme nature
+	// Cela n'est pas la peine de le faire pour la base de test, car les warnings sont de meme nature
 	if (GetTrainDatabase()->IsMultiTableTechnology())
 		cast(KWMTDatabase*, GetTrainDatabase())->DisplayMultiTableMappingWarnings();
 
@@ -96,7 +96,7 @@ void KWLearningProblem::ComputeStats()
 	else
 	{
 		// On se place en mode non verbeux, car les erreurs seront de toute facon detectees lors des passes suivantes
-		// Idem pour les erreur d'encodage
+		// Idem pour les erreurs d'encodage
 		GetTrainDatabase()->SetVerboseMode(false);
 		bPreparationOk =
 		    BuildConstructedClass(&learningSpec, constructedClass, classStats->GetMultiTableConstructionSpec(),
@@ -152,7 +152,7 @@ void KWLearningProblem::ComputeStats()
 
 	// Test du cas particulier de la regression, si la classe cible contient des valeurs Missing
 	// Dans ce cas, la variable cible est disponible, mais on a pas pu calcule les stats, et
-	// on va le faire cette fois en filtrant les valeur cible manquantes
+	// on va le faire cette fois en filtrant les valeurs cible manquantes
 	bIsSpecificRegressionLearningSpecNecessary = false;
 	bPreparationOk = bPreparationOk and not TaskProgression::IsInterruptionRequested();
 	if (bPreparationOk and not classStats->IsStatsComputed())

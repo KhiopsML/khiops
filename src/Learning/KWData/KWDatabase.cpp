@@ -718,12 +718,12 @@ boolean KWDatabase::Close()
 	require(kwcClass != NULL);
 	require(kwcClass->GetFreshness() == nClassFreshness);
 
-	// Desinstallation du handler specifique pour ignorer le flow des erreur dans le cas du memory guard
+	// Desinstallation du handler specifique pour ignorer le flow des erreurs dans le cas du memory guard
 	// Uniquement dans le cas des bases ouvertes en lecture
 	if (IsOpenedForRead())
 		KWDatabaseMemoryGuard::UninstallMemoryGuardErrorFlowIgnoreFunction();
 
-	// Memorisation des erreur d'encodage en lecture pour les rendre disponibles apres la fermeture de la base
+	// Memorisation des erreurs d'encodage en lecture pour les rendre disponibles apres la fermeture de la base
 	if (IsOpenedForRead())
 		GetEncodingErrorNumber();
 

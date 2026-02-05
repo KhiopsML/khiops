@@ -66,7 +66,7 @@ public:
 	void SetInterruptionByUser(int nSeconds);
 	boolean GetInterruptionByUser() const;
 
-	// Les erreurs sont traitees comme des erreur Fatal
+	// Les erreurs sont traitees comme des erreurs Fatal
 	// AddFatalError est appele au lieu de renvoyer false
 	void SetIssueAsFatalError(boolean bIsFatal);
 	boolean GetIssueAsFatalError() const;

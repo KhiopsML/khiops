@@ -385,7 +385,7 @@ protected:
 	/////////////////////////////////////////////////////////////////////////
 	// Methode de travail pour l'analyse des operandes de selection
 
-	// Parametrage de l'attribute de selection permettant de calculer les valeur de l'operande de selection
+	// Parametrage de l'attribute de selection permettant de calculer les valeurs de l'operande de selection
 	// L'attribut de selection est soit directement l'attribut de la dimension de partition, soit un attribut
 	// permettant de calculer la regle de la dimension de partition
 	// Memoire: gere par l'appelant
@@ -561,7 +561,7 @@ int KDSparseSelectionIntervalCompare(const void* elem1, const void* elem2);
 // Une valeur de selection vient en exemplaire unique, si son effectif est
 // suffisant pour constituer un partile a elle toute seule.
 // Dans le cas contraire, on garde la premiere valeur du partile, a titre documentaire,
-// et on definit le partile par la liste des valeur hors du partile
+// et on definit le partile par la liste des valeurs hors du partile
 class KDSelectionValue : public KDSelectionPart
 {
 public:

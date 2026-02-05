@@ -1386,7 +1386,7 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 			   dataTableSliceSet.GetTotalDataFileSize() or
 		       slice->GetClass()->GetUsedAttributeNumberForType(KWType::Symbol) > 0);
 
-		// Verification sur les valeur dans les blocs d'attributs
+		// Verification sur les valeurs dans les blocs d'attributs
 		assert(slice->GetTotalAttributeBlockValueNumber() ==
 			   dataTableSliceSet.GetTotalAttributeBlockValueNumber() or
 		       (slice->GetClass()->GetUsedAttributeNumberForType(KWType::Symbol) > 0 and

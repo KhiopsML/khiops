@@ -36,7 +36,7 @@ public:
 	// Ajout d'un element en fin et retaillage du vecteur
 	void Add(char cValue);
 
-	// Tri des valeur par ordre croissant
+	// Tri des valeurs par ordre croissant
 	void Sort();
 
 	// Perturbation aleatoire de l'ordre des valeurs

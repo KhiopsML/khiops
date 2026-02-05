@@ -101,11 +101,11 @@ double KIShapleyTable::ComputeMeanAbsoluteShapleyValues(const KWDataGridStats* a
 		nTargetPartNumber = ivTargetPartFrequencies.GetSize();
 		nTotalFrequency = targetDataGridStats->ComputeGridFrequency();
 
-		// Calcul pondere sur l'ensemble des valeur cibles
+		// Calcul pondere sur l'ensemble des valeurs cibles
 		dMeanAbsoluteShapleyValues = 0;
 		for (nTarget = 0; nTarget < nTargetPartNumber; nTarget++)
 		{
-			// Calcul de la moyennne des valeur absolue de Shapley pour une valeur cible donnees
+			// Calcul de la moyennne des valeurs absolue de Shapley pour une valeur cible donnees
 			dMeanAbsoluteShapleyValuesPerTarget = 0;
 			for (nSourcePart = 0; nSourcePart < shapleyTable.GetSourceSize(); nSourcePart++)
 			{
@@ -154,7 +154,7 @@ double KIShapleyTable::ComputeMeanAbsoluteShapleyValues(const KWDataGridStats* a
 		dMeanAbsoluteShapleyValues = 0;
 		for (nTarget = 0; nTarget < nTargetPartNumber; nTarget++)
 		{
-			// Calcul de la moyennne des valeur absolue de Shapley pour un rang d'un interval donne
+			// Calcul de la moyennne des valeurs absolue de Shapley pour un rang d'un interval donne
 			dMeanAbsoluteShapleyValuesPerTarget = 0;
 			for (nSourcePart = 0; nSourcePart < shapleyTable.GetSourceSize(); nSourcePart++)
 			{
@@ -571,7 +571,7 @@ void KIShapleyTable::BuildRegressionAnalysisDataGridStats(const KWDataGridStats*
 	assert(univariateDataGridStats->ComputeCellNumber() == regressionDataGridStats->ComputeCellNumber());
 	assert(univariateDataGridStats->ComputeGridFrequency() == regressionDataGridStats->ComputeGridFrequency());
 
-	// Creation de l'attribut contenant les valeur de la grille cible, sans la StarValue
+	// Creation de l'attribut contenant les valeurs de la grille cible, sans la StarValue
 	nTrueTargetValueNumber = nTargetValueNumber - 1;
 	targetValueDataGridAttribute = new KWDGSAttributeSymbolValues;
 	targetValueDataGridAttribute->SetAttributeName(regressionDataGridStats->GetAttributeAt(1)->GetAttributeName());

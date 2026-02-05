@@ -1128,7 +1128,13 @@ YY_RULE_SETUP
                     char* endptr;
                     double dValue;
 
+                    // Conversion, en projetant sur les valeurs extremes en cas d'oberflow
     		        dValue = strtod((char*)yytext, &endptr);
+                    if (dValue == -HUGE_VAL)
+                        dValue = -DBL_MAX;
+                    else if (dValue == HUGE_VAL)
+                        dValue = DBL_MAX;
+                    assert(not p_isnan(dValue));
                     jsonlval.dValue = dValue; 
                     return NUMBERVALUE;
                 }
@@ -1136,14 +1142,14 @@ YY_RULE_SETUP
 case 12:
 /* rule 12 can match eol */
 YY_RULE_SETUP
-#line 76 "JSONLex.lex"
+#line 82 "JSONLex.lex"
 {
                   // On ignore les caracteres d'espacement
                 }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 80 "JSONLex.lex"
+#line 86 "JSONLex.lex"
 {
                     ALString *sValue;
 
@@ -1154,10 +1160,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 88 "JSONLex.lex"
+#line 94 "JSONLex.lex"
 ECHO;
 	YY_BREAK
-#line 1160 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONLex.inc"
+#line 1166 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONLex.inc"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2174,5 +2180,5 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 88 "JSONLex.lex"
+#line 94 "JSONLex.lex"
 

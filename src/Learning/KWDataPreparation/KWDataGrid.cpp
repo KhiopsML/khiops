@@ -4427,7 +4427,7 @@ boolean KWDGValueSet::Check() const
 	{
 		// On ne verifie les effectifs que si au moins un est specifie et si on n'est pas le groupe par defaut
 		// En effet, le groupe par defaut pouvant etre compresse, il peut y a voir quelques incoherences
-		// sur les effectifs des valeurs des valeur du groupe
+		// sur les effectifs des valeurs des valeurs du groupe
 		bCheckFrequencies = not bIsDefaultPart and ComputeTotalFrequency() > 0;
 
 		// Parcours des valeurs de la partie

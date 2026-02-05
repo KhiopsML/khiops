@@ -2932,7 +2932,7 @@ void MHDiscretizerGenumHistogram::BuildGranularizedFrequencyTable(
 	nCurrentPartileEndLength = int(floor(dPartileBinLength + 0.5));
 
 	// Parcours des vecteurs de la table initiale
-	// Les valeur de TotalFrequency et TotalLength indique la posiiton courante dans
+	// Les valeurs de TotalFrequency et TotalLength indique la posiiton courante dans
 	// le parcours des bin elementaires
 	nTotalFrequency = 0;
 	nTotalLength = 0;

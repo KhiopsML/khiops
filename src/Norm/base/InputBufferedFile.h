@@ -305,7 +305,7 @@ public:
 
 	// Extraction des champs de la premiere ligne d'un fichier passe en parametre
 	// Les controles de validite sont effectue avec emission de messages d'erreur selon le mode silent
-	// Les warning ne sont emise qu'en mode verbeux si on on est pas en mode silent
+	// Les warnings ne sont emise qu'en mode verbeux si on on est pas en mode silent
 	static boolean GetFirstLineFields(const ALString& sInputFileName, char cInputFieldSeparator, boolean bSilent,
 					  boolean bVerbose, StringVector* svFirstLineFields);
 

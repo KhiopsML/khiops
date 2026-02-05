@@ -195,7 +195,7 @@ boolean KWDatabaseTask::RunDatabaseTask(const KWDatabase* sourceDatabase)
 	// Calcul du plan d'indexation des tables
 	bOk = bOk and ComputeAllDataTableIndexation();
 
-	// Installation du handler specifique pour ignorer le flow des erreur dans le cas du memory guard
+	// Installation du handler specifique pour ignorer le flow des erreurs dans le cas du memory guard
 	KWDatabaseMemoryGuard::InstallMemoryGuardErrorFlowIgnoreFunction();
 
 	// Lancement de la tache
@@ -212,7 +212,7 @@ boolean KWDatabaseTask::RunDatabaseTask(const KWDatabase* sourceDatabase)
 			    ->SetExternalTablesEncodingErrorNumber(lExternalTablesEncodingErrorNumber);
 	}
 
-	// Desinstallation du handler specifique pour ignorer le flow des erreur dans le cas du memory guard
+	// Desinstallation du handler specifique pour ignorer le flow des erreurs dans le cas du memory guard
 	KWDatabaseMemoryGuard::UninstallMemoryGuardErrorFlowIgnoreFunction();
 
 	// Affichage des messages de la tache
@@ -962,7 +962,7 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabase()
 	// Acces a la base source
 	sourceDatabase = shared_sourceDatabase.GetDatabase();
 
-	// Collecte des erreur d'encodage initiales au debut du slave process
+	// Collecte des erreurs d'encodage initiales au debut du slave process
 	lOutputEncodingErrorNumber = sourceDatabase->GetEncodingErrorNumber();
 
 	// Parcours des objets de la base

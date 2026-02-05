@@ -23,7 +23,7 @@ public:
 	// Calcul exact du terme COMP pour un modele multinomial
 	// Formule de (Kontkanen et al, 2007)
 	// Mononen et al("Computing the Multinomial Stochastic Complexity in Sub-Lineart Time"))
-	// Normalisation pour eviter des erreur de math overflow
+	// Normalisation pour eviter des erreurs de math overflow
 	static double MultinomialCOMP(int L, int n);
 
 	// Calcul exact du terme COMP pour un modele multinomial

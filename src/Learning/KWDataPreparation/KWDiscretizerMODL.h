@@ -61,7 +61,7 @@ public:
 class KWMODLHistogramResults : public Object
 {
 public:
-	// Bornes des histogrammes, qui ne sont pas necessairement les valeur min et max du jeux de donnees
+	// Bornes des histogrammes, qui ne sont pas necessairement les valeurs min et max du jeux de donnees
 	virtual Continuous GetDomainLowerBound() const = 0;
 	virtual Continuous GetDomainUpperBound() const = 0;
 

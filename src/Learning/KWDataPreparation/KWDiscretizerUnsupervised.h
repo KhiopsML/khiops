@@ -41,7 +41,7 @@ protected:
 
 	// Calcul des vecteurs de frequences cumulees par modalite cible
 	// Ces vecteurs sont indexes par les index des valeurs sources, et correspondent
-	// aux cumuls des valeur cible pour la derniere instance de chaque valeur source unique.
+	// aux cumuls des valeurs cible pour la derniere instance de chaque valeur source unique.
 	// L'interet de memoriser les cumuls est de pouvoir calculer les frequences cibles
 	// d'un intervalle simplement par difference des cumuls entre ses bornes.
 	// L'interet d'utiliser les index de valeurs plutot que d'instance est qu'il y a

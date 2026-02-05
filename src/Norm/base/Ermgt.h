@@ -121,7 +121,7 @@ public:
 	static void SetSilentMode(boolean bValue);
 	static boolean GetSilentMode();
 
-	// Traitement des erreur comme des warning
+	// Traitement des erreurs comme des warning
 	//     Par defaut: false
 	// Dans ce mode, les erreurs ne sont emises sous sorme de warning
 	static void SetErrorAsWarningMode(boolean bValue);

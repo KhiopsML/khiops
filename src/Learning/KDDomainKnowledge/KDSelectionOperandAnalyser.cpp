@@ -1571,7 +1571,7 @@ void KDClassContinuousSelectionOperandStats::Write(ostream& ost) const
 		cvSortedValues.CopyFrom(&cvInputData);
 		cvSortedValues.Sort();
 
-		// Initialisation d'un quantile builder pour trier les valeur par frequence decroissante
+		// Initialisation d'un quantile builder pour trier les valeurs par frequence decroissante
 		quantileBuilder.InitializeValues(&cvSortedValues);
 		nValueNumber = quantileBuilder.GetValueNumber();
 
@@ -1756,7 +1756,7 @@ void KDClassSymbolSelectionOperandStats::Write(ostream& ost) const
 		svSortedValues.CopyFrom(&svInputData);
 		svSortedValues.SortKeys();
 
-		// Initialisation d'un quantile builder pour trier les valeur par frequence decroissante
+		// Initialisation d'un quantile builder pour trier les valeurs par frequence decroissante
 		quantileBuilder.InitializeValues(&svSortedValues);
 		nValueNumber = quantileBuilder.GetValueNumber();
 

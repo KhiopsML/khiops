@@ -2189,7 +2189,7 @@ Continuous KWDRTableCountDistinct::ComputeContinuousStatsFromSymbolVector(int nR
 		sValue = svValues->GetAt(nValue);
 
 		// Ajout dans le dictionnaire a cle numerique
-		// (ici, les valeur sont deja memorisees dans un vecteur)
+		// (ici, les valeurs sont deja memorisees dans un vecteur)
 		nkdDistinctValues.SetAt(sValue.GetNumericKey(), &nkdDistinctValues);
 	}
 	cResult = (Continuous)nkdDistinctValues.GetCount();
@@ -2957,7 +2957,7 @@ Continuous KWDRTableMedian::ComputeContinuousStatsFromContinuousVector(int nReco
 				}
 				// Cas general
 				{
-					// On insere prealablement la valeur manquante dans les valeur presente, autant
+					// On insere prealablement la valeur manquante dans les valeurs presente, autant
 					// de fois que necessaire Ce n'est pas efficace, mais c'est trop penible a coder
 					// sinon
 					for (nValue = 0; nValue < nDefaultValueNumber; nValue++)
@@ -3453,7 +3453,7 @@ Symbol KWDRTableConcat::ComputeSymbolStatsFromSymbolVector(int nRecordNumber, Sy
 	require(svValues != NULL);
 
 	// Attention, il est necessaire que la valeur par defaut soit "", sinon on ne peut calculer la concatenation
-	// qui serait basee sur des valeur par defaut pouvant s'inserer entre n'importe quelle valeur du
+	// qui serait basee sur des valeurs par defaut pouvant s'inserer entre n'importe quelle valeur du
 	// vecteur de valeurs presentes
 	require(sDefaultValue == Symbol());
 

@@ -137,7 +137,7 @@ public:
 
 	// Nombre total de bin selon le niveau de la hierarchie, entre 1 a la racine et au plus 2^HierarchyLevel
 	// Le nombre de bins effectif peut etre plus petit que 2^HierarchyLevel, si le nombre de main bin
-	// n'est pas une puissance de deux ou si les valeur min et max ne sont pas sur des frontieres de main bins
+	// n'est pas une puissance de deux ou si les valeurs min et max ne sont pas sur des frontieres de main bins
 	// Les bins ayant une frontiere avec la singuarite ]-EpsilonValue,EpsilonValue[ autour de 0 sont traites
 	// de facon speciale
 	virtual int GetTotalBinNumberAt(int nHierarchyLevel) const;

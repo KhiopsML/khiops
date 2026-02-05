@@ -15,6 +15,7 @@ void KWDRRegisterLogicalRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRTimeIf);
 	KWDerivationRule::RegisterDerivationRule(new KWDRTimestampIf);
 	KWDerivationRule::RegisterDerivationRule(new KWDRTimestampTZIf);
+	KWDerivationRule::RegisterDerivationRule(new KWDRTextIf);
 	KWDerivationRule::RegisterDerivationRule(new KWDRSymbolSwitch);
 	KWDerivationRule::RegisterDerivationRule(new KWDRContinuousSwitch);
 }
@@ -284,6 +285,35 @@ TimestampTZ KWDRTimestampTZIf::ComputeTimestampTZResult(const KWObject* kwoObjec
 
 	return (GetOperandAt(0)->GetContinuousValue(kwoObject) ? GetOperandAt(1)->GetTimestampTZValue(kwoObject)
 							       : GetOperandAt(2)->GetTimestampTZValue(kwoObject));
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+KWDRTextIf::KWDRTextIf()
+{
+	SetName("IfText");
+	SetLabel("Ternary operator returning second operand (true) or third operand (false) according to the condition "
+		 "in first operand");
+	SetType(KWType::Text);
+	SetOperandNumber(3);
+	GetOperandAt(0)->SetType(KWType::Continuous);
+	GetOperandAt(1)->SetType(KWType::Text);
+	GetOperandAt(2)->SetType(KWType::Text);
+}
+
+KWDRTextIf::~KWDRTextIf() {}
+
+KWDerivationRule* KWDRTextIf::Create() const
+{
+	return new KWDRTextIf;
+}
+
+Symbol KWDRTextIf::ComputeTextResult(const KWObject* kwoObject) const
+{
+	require(IsCompiled());
+
+	return (GetOperandAt(0)->GetContinuousValue(kwoObject) ? GetOperandAt(1)->GetTextValue(kwoObject)
+							       : GetOperandAt(2)->GetTextValue(kwoObject));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////

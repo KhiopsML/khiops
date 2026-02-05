@@ -84,7 +84,7 @@ protected:
 //       . vecteur de valeurs sur les autres dimensions pour un deploiement de distribution
 //       . il y en a donc K-1, un par dimension de la grille, hors dimension de deploiement
 //       . optionnelement, un Kieme vecteur de frequence peut etre utilise en dernier parametre
-//         pour pour ponderer les valeur par un effectif
+//         pour pour ponderer les valeurs par un effectif
 //
 // En cas d'erreurs dans les argument, non detectees a la compilation de la regle (vecteurs
 // de valeur de tailles differentes, effectifs negatifs...), tout le deploiement est

@@ -12,7 +12,7 @@ void KWDRRegisterStandardRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRCopyTime);
 	KWDerivationRule::RegisterDerivationRule(new KWDRCopyTimestamp);
 	KWDerivationRule::RegisterDerivationRule(new KWDRCopyTimestampTZ);
-	KWDerivationRule::RegisterDerivationRule(new KWDRTextCopy);
+	KWDerivationRule::RegisterDerivationRule(new KWDRCopyText);
 	KWDerivationRule::RegisterDerivationRule(new KWDRCopySymbolValueBlock);
 	KWDerivationRule::RegisterDerivationRule(new KWDRCopyContinuousValueBlock);
 	KWDerivationRule::RegisterDerivationRule(new KWDRAsContinuous);
@@ -50,7 +50,7 @@ const Object* KWDRConversionRule::oErrorSender = NULL;
 KWDRCopySymbol::KWDRCopySymbol()
 {
 	SetName("CopyC");
-	SetLabel("Copy of a categorical value");
+	SetLabel("Copy of a Categorical value");
 	SetType(KWType::Symbol);
 	SetOperandNumber(1);
 	GetFirstOperand()->SetType(KWType::Symbol);
@@ -75,7 +75,7 @@ Symbol KWDRCopySymbol::ComputeSymbolResult(const KWObject* kwoObject) const
 KWDRCopyContinuous::KWDRCopyContinuous()
 {
 	SetName("Copy");
-	SetLabel("Copy of a numerical value");
+	SetLabel("Copy of a Numerical value");
 	SetType(KWType::Continuous);
 	SetOperandNumber(1);
 	GetFirstOperand()->SetType(KWType::Continuous);
@@ -100,7 +100,7 @@ Continuous KWDRCopyContinuous::ComputeContinuousResult(const KWObject* kwoObject
 KWDRCopyDate::KWDRCopyDate()
 {
 	SetName("CopyD");
-	SetLabel("Copy of a date value");
+	SetLabel("Copy of a Date value");
 	SetType(KWType::Date);
 	SetOperandNumber(1);
 	GetFirstOperand()->SetType(KWType::Date);
@@ -125,7 +125,7 @@ Date KWDRCopyDate::ComputeDateResult(const KWObject* kwoObject) const
 KWDRCopyTime::KWDRCopyTime()
 {
 	SetName("CopyT");
-	SetLabel("Copy of a time value");
+	SetLabel("Copy of a Time value");
 	SetType(KWType::Time);
 	SetOperandNumber(1);
 	GetFirstOperand()->SetType(KWType::Time);
@@ -150,7 +150,7 @@ Time KWDRCopyTime::ComputeTimeResult(const KWObject* kwoObject) const
 KWDRCopyTimestamp::KWDRCopyTimestamp()
 {
 	SetName("CopyTS");
-	SetLabel("Copy of a timestamp value");
+	SetLabel("Copy of a Timestamp value");
 	SetType(KWType::Timestamp);
 	SetOperandNumber(1);
 	GetFirstOperand()->SetType(KWType::Timestamp);
@@ -175,7 +175,7 @@ Timestamp KWDRCopyTimestamp::ComputeTimestampResult(const KWObject* kwoObject) c
 KWDRCopyTimestampTZ::KWDRCopyTimestampTZ()
 {
 	SetName("CopyTSTZ");
-	SetLabel("Copy of a timestampTZ value");
+	SetLabel("Copy of a TimestampTZ value");
 	SetType(KWType::TimestampTZ);
 	SetOperandNumber(1);
 	GetFirstOperand()->SetType(KWType::TimestampTZ);
@@ -197,23 +197,23 @@ TimestampTZ KWDRCopyTimestampTZ::ComputeTimestampTZResult(const KWObject* kwoObj
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-KWDRTextCopy::KWDRTextCopy()
+KWDRCopyText::KWDRCopyText()
 {
-	SetName("TextCopy");
+	SetName("CopyText");
 	SetLabel("Copy of a text value");
 	SetType(KWType::Text);
 	SetOperandNumber(1);
 	GetFirstOperand()->SetType(KWType::Text);
 }
 
-KWDRTextCopy::~KWDRTextCopy() {}
+KWDRCopyText::~KWDRCopyText() {}
 
-KWDerivationRule* KWDRTextCopy::Create() const
+KWDerivationRule* KWDRCopyText::Create() const
 {
-	return new KWDRTextCopy;
+	return new KWDRCopyText;
 }
 
-Symbol KWDRTextCopy::ComputeTextResult(const KWObject* kwoObject) const
+Symbol KWDRCopyText::ComputeTextResult(const KWObject* kwoObject) const
 {
 	require(IsCompiled());
 

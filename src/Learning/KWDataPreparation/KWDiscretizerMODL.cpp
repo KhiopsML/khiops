@@ -1648,7 +1648,7 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 			dMergeMergeSplitDeltaCost = dInfiniteCost;
 		}
 
-		// Gestion des problemes numeriques pour les valeur proches de zero
+		// Gestion des problemes numeriques pour les valeurs proches de zero
 		if (fabs(dSplitDeltaCost) < dEpsilon)
 			dSplitDeltaCost = 0;
 		if (fabs(dMergeSplitDeltaCost) < dEpsilon)
@@ -1829,7 +1829,7 @@ void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTa
 			dBestDeltaCost = dInfiniteCost;
 		}
 
-		// Gestion des problemes numeriques pour les valeur proches de zero
+		// Gestion des problemes numeriques pour les valeurs proches de zero
 		if (fabs(dBestDeltaCost) < dEpsilon)
 			dBestDeltaCost = 0;
 

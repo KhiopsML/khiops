@@ -30,7 +30,7 @@ public:
 	// Ajout d'un element en fin et retaillage du vecteur
 	void AddPair(int nValue1, int nValue2);
 
-	// Tri des valeur par ordre croissant, pour chaque entier de la pair
+	// Tri des valeurs par ordre croissant, pour chaque entier de la pair
 	void SortByValue1();
 	void SortByValue2();
 
@@ -73,7 +73,7 @@ public:
 	// Acces aux valeur triees
 	int GetSortedValueAt(int nIndex) const;
 
-	// Acces aux index initiaux des valeur triees
+	// Acces aux index initiaux des valeurs triees
 	int GetInitialIndexAt(int nIndex) const;
 
 	// Recherche de l'index initial correspondant a une valeur

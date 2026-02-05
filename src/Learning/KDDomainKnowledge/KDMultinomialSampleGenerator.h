@@ -148,7 +148,7 @@ protected:
 	// Recherche recursive des probas a retenir pour le calcul du meilleur echantillon de la loi de selection
 	// Similaire a la methode precedente, en prenant la meme loi de probabilite pour toutes les
 	// dimensions et en evitant les permutation d'index entre dimensions
-	// Les vecteur d'index en sortie sont ordonnes selon les valeur d'index, pour avoir un representant unique
+	// Les vecteur d'index en sortie sont ordonnes selon les valeurs d'index, pour avoir un representant unique
 	void ComputeBestSelectionProbsAt(double dTotalFrequency, int nSelectionSize, ObjectArray* oaSortedProbs,
 					 int nCurrentDim, int nStartIndex, double dLargestProb,
 					 KDIndexedFrequency* currentIndexedFrequency,

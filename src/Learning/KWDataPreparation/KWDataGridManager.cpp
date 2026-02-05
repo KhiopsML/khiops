@@ -232,7 +232,7 @@ void KWDataGridManager::ExportNullDataGrid(const KWDataGrid* sourceDataGrid, KWD
 			// Partage des partitions de la grille source
 			targetAttribute->SetInnerAttributes(nullInnerAttributes);
 
-			// Creation de l'ensemble des valeur cible
+			// Creation de l'ensemble des valeurs cible
 			targetPart = targetAttribute->AddPart();
 
 			// Parcours des attributs internes
@@ -2247,7 +2247,7 @@ void KWDataGridManager::BuildDataGridAttributeFromGranularizedPartition(const KW
 		}
 		else
 		{
-			// Creation de l'ensemble des valeur cible
+			// Creation de l'ensemble des valeurs cible
 			targetPart = targetAttribute->AddPart();
 
 			// Transfert des valeurs des parties de l'attribut source
@@ -3252,7 +3252,7 @@ void KWDataGridManager::InitialiseAttributeNullPart(const KWDGAttribute* sourceA
 	{
 		assert(KWType::IsCoclusteringGroupableType(sourceAttribute->GetAttributeType()));
 
-		// Creation de l'ensemble des valeur cible
+		// Creation de l'ensemble des valeurs cible
 		targetPart = targetAttribute->AddPart();
 
 		// Transfert des valeurs des parties de l'attribut source

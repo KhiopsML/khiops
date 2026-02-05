@@ -13,7 +13,7 @@ class KWDRCopyDate;
 class KWDRCopyTime;
 class KWDRCopyTimestamp;
 class KWDRCopyTimestampTZ;
-class KWDRTextCopy;
+class KWDRCopyText;
 class KWDRCopySymbolValueBlock;
 class KWDRCopyContinuousValueBlock;
 class KWDRAsContinuous;
@@ -156,14 +156,14 @@ public:
 };
 
 ////////////////////////////////////////////////////////////////////////////
-// Classe KWDRTextCopy
+// Classe KWDRCopyText
 // Copie d'un attribut Text. Permet son renommage
-class KWDRTextCopy : public KWDerivationRule
+class KWDRCopyText : public KWDerivationRule
 {
 public:
 	// Constructeur
-	KWDRTextCopy();
-	~KWDRTextCopy();
+	KWDRCopyText();
+	~KWDRCopyText();
 
 	// Creation
 	KWDerivationRule* Create() const override;

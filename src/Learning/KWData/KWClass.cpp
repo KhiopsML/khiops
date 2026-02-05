@@ -3348,10 +3348,22 @@ boolean KWClass::CheckTypeAtLoadIndex(KWLoadIndex liIndex, int nType) const
 	KWDataItem* dataItem;
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
+	ALString sTmp;
 
+	require(IsIndexed());
+	require(IsCompiled());
+
+	// Test de validite de base
 	bOk = liIndex.IsValid();
 	if (bOk)
+	{
 		bOk = 0 <= liIndex.GetDenseIndex() and liIndex.GetDenseIndex() < oaLoadedDataItems.GetSize();
+		if (not bOk)
+			AddError(sTmp + "LoadIndex " + IntToString(liIndex.GetDenseIndex()) + " out of range (" +
+				 IntToString(oaLoadedDataItems.GetSize()) + ")");
+	}
+
+	// Test de coherence des types
 	if (bOk)
 	{
 		dataItem = cast(KWDataItem*, oaLoadedDataItems.GetAt(liIndex.GetDenseIndex()));
@@ -3364,6 +3376,13 @@ boolean KWClass::CheckTypeAtLoadIndex(KWLoadIndex liIndex, int nType) const
 			{
 				attribute = cast(KWAttribute*, dataItem);
 				bOk = attribute->GetType() == nType;
+				if (not bOk)
+					AddError(sTmp + "At LoadIndex " + IntToString(liIndex.GetDenseIndex()) +
+						 ", expected type " + KWType::ToString(nType) + " for " +
+						 KWType::ToString(attribute->GetType()) + " variable " +
+						 attribute->GetName() + KWType::ToString(attribute->GetType()) +
+						 " variable " + " (LI: " +
+						 IntToString(attribute->GetLoadIndex().GetDenseIndex()) + ")");
 			}
 			// Cas d'un bloc d'attributs
 			else

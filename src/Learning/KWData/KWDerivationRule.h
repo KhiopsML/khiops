@@ -387,7 +387,7 @@ public:
 	//    ComputeStructureResult renvoie directement un pointeur sur la KWDerivationRule.
 	//    Dans le cas de regles de classe (par exemple: specification d'une discretisation), l'objet est
 	//    cree et initialise une seule fois.
-	//    Dans le cas de regles d'instance (par exemple: un classifieur dependant des valeur du KWObject),
+	//    Dans le cas de regles d'instance (par exemple: un classifieur dependant des valeurs du KWObject),
 	//    l'objet est cree une seule fois, mais mis a jour pour chaque KWObject.
 	//  - type bloc de valeurs (ContinuousValueBlock, SymbolValueBlock, ObjectArrayValueBlock): un bloc doit etre
 	//    cree a chaque calcul effectue par la regle.

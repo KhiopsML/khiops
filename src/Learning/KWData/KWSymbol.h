@@ -239,7 +239,7 @@ public:
 	// Renvoie false si echec de retaillage (et le vecteur garde sa taille initiale)
 	boolean SetLargeSize(int nValue);
 
-	// Tri des valeur par ordre croissant, soit par valeur alphabetique,
+	// Tri des valeurs par ordre croissant, soit par valeur alphabetique,
 	// soit par cle numerique (rapide, mais non intelligible)
 	void SortValues();
 	void SortKeys();

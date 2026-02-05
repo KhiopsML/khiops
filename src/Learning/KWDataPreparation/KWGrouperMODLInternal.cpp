@@ -1421,7 +1421,7 @@ void KWGrouperMODLTwoClasses::IntervalListPostOptimizationWithGarbage(const KWFr
 			dMergeMergeSplitDeltaCost = dInfiniteCost;
 		}
 
-		// Gestion des problemes numeriques pour les valeur proches de zero
+		// Gestion des problemes numeriques pour les valeurs proches de zero
 		if (fabs(dSplitDeltaCost) < dEpsilon)
 			dSplitDeltaCost = 0;
 		if (fabs(dMergeSplitDeltaCost) < dEpsilon)
@@ -1744,7 +1744,7 @@ void KWGrouperMODLTwoClasses::IntervalListMergeOptimizationWithGarbagePartitionC
 		dCumulatedDeltaCostWithGarbage < dCumulatedDeltaCostWithoutGarbage ? bGarbageProfitable = 1
 										   : bGarbageProfitable = 0;
 
-		// Gestion des problemes numeriques pour les valeur proches de zero
+		// Gestion des problemes numeriques pour les valeurs proches de zero
 		if (fabs(dDiscretizationDeltaCost) < dEpsilon)
 			dDiscretizationDeltaCost = 0;
 		if (fabs(dDiscretizationWithGarbageDeltaCost) < dEpsilon)

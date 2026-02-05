@@ -584,7 +584,7 @@ void MHDiscretizerTruncationMODLHistogram::FinalizeHistogram(MHHistogram* output
 		// Memorisation de l'espilon de troncature
 		outputHistogram->SetTruncationEpsilon(GetTruncationFrequencyTableBuilder()->GetTruncationEpsilon());
 
-		// Appel de la methode ancetre avec le discretizer exploitant les valeur initiales et les bornes des
+		// Appel de la methode ancetre avec le discretizer exploitant les valeurs initiales et les bornes des
 		// intervalles transformees inverses
 		AdjustHistogramIntervalBounds(GetTruncationFrequencyTableBuilder()->GetInitialBinsTableBuilder(),
 					      outputHistogram);

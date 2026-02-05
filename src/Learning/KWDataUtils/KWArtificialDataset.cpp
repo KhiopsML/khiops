@@ -272,7 +272,7 @@ void KWArtificialDataset::CreateDataset() const
 			if (dSamplingRate < 1 and IthRandomDouble(nLine) > dSamplingRate)
 				continue;
 
-			// Creation des valeur des champs
+			// Creation des valeurs des champs
 			for (nField = 0; nField < nFieldNumber; nField++)
 				svFieldValues.SetAt(nField, sTmp + "v" + IntToString(nLine + 1) + "_" +
 								IntToString(nField + 1));

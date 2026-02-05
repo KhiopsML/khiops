@@ -48,7 +48,7 @@ void KWDiscretizerMODL::IntervalListMergeOptimization(KWMODLLineOptimization*& h
 		if (bTrace)
 			cout << "\tDiscretizationDeltaCost\t" << dDiscretizationDeltaCost << endl;
 
-		// Gestion des problemes numeriques pour les valeur proches de zero
+		// Gestion des problemes numeriques pour les valeurs proches de zero
 		if (fabs(dDiscretizationDeltaCost) < dEpsilon)
 			dDiscretizationDeltaCost = 0;
 
@@ -248,7 +248,7 @@ void KWDiscretizerMODL::IntervalListSplitOptimization(const KWFrequencyTable* kw
 			dDiscretizationDeltaCost = 1;
 		}
 
-		// Gestion des problemes numeriques pour les valeur proches de zero
+		// Gestion des problemes numeriques pour les valeurs proches de zero
 		if (fabs(dDiscretizationDeltaCost) < dEpsilon)
 			dDiscretizationDeltaCost = 0;
 
@@ -419,7 +419,7 @@ void KWDiscretizerMODL::IntervalListMergeSplitOptimization(const KWFrequencyTabl
 		// Variation du cout du au changement du point de coupure
 		dDiscretizationDeltaCost = interval->GetMergeSplit()->GetDeltaCost();
 
-		// Gestion des problemes numeriques pour les valeur proches de zero
+		// Gestion des problemes numeriques pour les valeurs proches de zero
 		if (fabs(dDiscretizationDeltaCost) < dEpsilon)
 			dDiscretizationDeltaCost = 0;
 
@@ -624,7 +624,7 @@ void KWDiscretizerMODL::IntervalListMergeMergeSplitOptimization(const KWFrequenc
 		// Prise en compte de la variation de cout de codage des exceptions
 		dDiscretizationDeltaCost += interval->GetMergeMergeSplit()->GetDeltaCost();
 
-		// Gestion des problemes numeriques pour les valeur proches de zero
+		// Gestion des problemes numeriques pour les valeurs proches de zero
 		if (fabs(dDiscretizationDeltaCost) < dEpsilon)
 			dDiscretizationDeltaCost = 0;
 

@@ -745,14 +745,14 @@ KWDataTableDriver* KWMTDatabase::CreateDataTableDriver(KWMTDatabaseMapping* mapp
 
 longint KWMTDatabase::GetEncodingErrorNumber() const
 {
-	// Collecte des erreur d'encodage uniquement si la base est ouverte en lecture
+	// Collecte des erreurs d'encodage uniquement si la base est ouverte en lecture
 	// Sinon, on renvoie les erreurs memorisees au moment de la fermeture
 	if (IsOpenedForRead())
 	{
 		// Collecte des erreurs d'encodage a artir de la table principale
 		lEncodingErrorNumber = DMTMPhysicalComputeEncodingErrorNumber(GetMainMapping());
 
-		// Ajout des erreur d'encodage liees au tables externes
+		// Ajout des erreurs d'encodage liees au tables externes
 		lEncodingErrorNumber += lExternalTablesEncodingErrorNumber;
 	}
 	return lEncodingErrorNumber;

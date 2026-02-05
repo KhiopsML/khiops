@@ -66,7 +66,7 @@ protected:
 	// Renvoie true si ok
 	boolean ReadBins(ContinuousVector*& cvLowerValues, ContinuousVector*& cvUpperValues, IntVector*& ivFrequencies);
 
-	// Lecture des valeur sous la forme de vecteur
+	// Lecture des valeurs sous la forme de vecteur
 	// Renvoie true si ok
 	boolean ReadValues(ContinuousVector*& cvValues);
 
