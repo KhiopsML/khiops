@@ -203,6 +203,7 @@ boolean KWDerivationRuleOperand::CheckFamily(const KWDerivationRuleOperand* oper
 {
 	boolean bResult = true;
 	KWDerivationRule* kwdrReference;
+	boolean bIsTextConstant;
 	ALString sTmp;
 
 	require(operandFamily != NULL);
@@ -212,9 +213,15 @@ boolean KWDerivationRuleOperand::CheckFamily(const KWDerivationRuleOperand* oper
 	// Type
 	if (GetType() != operandFamily->GetType())
 	{
-		AddError("Type " + KWType::ToString(GetType()) + " inconsistent with that of the operand (" +
-			 KWType::ToString(operandFamily->GetType()) + ")");
-		bResult = false;
+		// Tolerance dans le cas d'un type Text attendu, avec un constante de type Symbol
+		bIsTextConstant = operandFamily->GetType() == KWType::Text and GetType() == KWType::Symbol and
+				  GetOrigin() == OriginConstant;
+		if (not bIsTextConstant)
+		{
+			AddError("Type " + KWType::ToString(GetType()) + " inconsistent with that of the operand (" +
+				 KWType::ToString(operandFamily->GetType()) + ")");
+			bResult = false;
+		}
 	}
 
 	// Nom de la classe pour un type Object ou ObjectArray si renseigne
