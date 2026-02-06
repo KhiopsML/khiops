@@ -1663,7 +1663,7 @@ int MHFloatingPointFrequencyTableBuilder::GetMaxMantissaBinBitNumber()
 {
 	// On prend un digit de moins pour que deux valeurs successives de mantissa bin soient discernables
 	// une fois arrondies au nombre max de digits
-	return (int)floor((KWContinuous::GetDigitNumber() - 1) * log(10) / log(2));
+	return (int)ceil((KWContinuous::GetDigitNumber() - 1) * log(10) / log(2));
 }
 
 int MHFloatingPointFrequencyTableBuilder::GetMinBinExponent()
