@@ -313,7 +313,7 @@ jobs:
             mv $PKG_FILE $NEW_PKG_FILE
           fi
       - name: Upload NSIS installer and KNI to the release
-        uses: ncipollo/release-action@v1.14.0
+        uses: ncipollo/release-action@v1.20.0
         with:
           allowUpdates: true
           artifacts: khiops-*-setup.exe,KNI-*.zip,kni-transfer-*.zip,khiops-*.zip
