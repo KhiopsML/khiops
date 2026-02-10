@@ -279,6 +279,7 @@ void CCLearningProblem::BuildCoclustering()
 					// Ajout de l'attribut interne
 					coclusteringBuilder.GetInnerAttributesNames()->Add(kwAttribute->GetName());
 				}
+				kwAttribute->IsAttributeBlock();
 			}
 			kwcClass->GetNextAttribute(kwAttribute);
 		}

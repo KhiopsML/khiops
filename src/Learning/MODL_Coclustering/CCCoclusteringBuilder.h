@@ -80,6 +80,7 @@ public:
 
 	// Calcul du coclustering, renvoie false en cas d'erreur ou d'interruption utilisateur
 	boolean ComputeCoclustering();
+	boolean OLD_ComputeCoclustering();
 	boolean IsCoclusteringComputed() const;
 
 	// Test si le coclustering est calcule et informatif (au moins deux dimensions)
@@ -188,6 +189,21 @@ protected:
 	// DDD CH
 	boolean FillVarPartTupleTableDictionaryFromDatabase(KWDatabase* database, ObjectDictionary& odTupleTables,
 							    ObjectDictionary& odObservationIndexes);
+
+	// DDD CH
+	boolean FillVarPartTupleTableDictionaryFromSparseDatabase(KWDatabase* database, ObjectDictionary& odTupleTables,
+								  ObjectDictionary& odObservationIndexes);
+
+	// Initialisation des attributs de la grille
+	// Calcul de statistiques descriptives par attribut (KWDescriptiveStats)
+	// stockees par nom d'attribut dans le dictionnaire en sortie
+	// Memoire: le dictionnaire en sortie est passe par l'appelant et son
+	// contenu, cree par l'appele, appartient a l'appelant
+	KWDataGrid* InitializeDataGridAttributesFromDatabase(KWDatabase* database,
+							     ObjectDictionary* odOutputDescriptiveStats);
+
+	// Finalisation de l'alimentation de la grille : alimentaiton des effectifs de ses cellules
+	void FinalizeDataGridWithCells(KWDatabase* database, KWDataGrid* initialDataGrid);
 
 	// Creation de la partition d'un attribut de DataGrid de type Identifiant dans un coclustering Identifiant *
 	// Parties de variables En entree, le dictionnaire odObservationNumbers contient pour chaque modalite de
