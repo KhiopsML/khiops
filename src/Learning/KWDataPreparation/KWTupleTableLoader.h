@@ -131,7 +131,7 @@ public:
 	// En sortie, le dictionnaire contient une table du tuple par attribut specifie
 	//
 	// L'utilisation de deux phases, Initialize et Finalize, permet d'optimiser la memoire.
-	// Lors de l'initialization, toutes les phase sont en mode Update, plus consommateur en
+	// Lors de l'initialization, toutes les phases sont en mode Update, plus consommateur en
 	// memoire, mais elles ne contiennent que les valeurs effectivement presentes dans la base.
 	// Lors de la finalisation, il faut integrer les tuples associes a la valeur manquante,
 	// potentiellement nombreux dans le cas de la classification avec de nombreuses valeurs
@@ -143,8 +143,8 @@ public:
 	// Alimentation univariee, plus eventuellement l'attribut supplementaire,
 	// pour tous les attributs specifies du bloc en entree
 	// Les tables de tuples sont creees et memorisees dans le dictionnaire en sortie
-	// Seules les valeurs de ont ete lue: les tables de tuples sont donc toujous en ete Update
-	// et doivent etre finalisee pour etre utilisables
+	// Seules les valeurs presentes ont ete lues : les tables de tuples sont donc toujours en etat Update
+	// et doivent etre finalisees pour etre utilisables
 	void BlockLoadUnivariateInitialize(const ALString& sInputAttributeBlockName,
 					   ObjectDictionary* odInputAttributes,
 					   ObjectDictionary* odOutputTupleTables) const;

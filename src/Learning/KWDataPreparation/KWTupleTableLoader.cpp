@@ -555,7 +555,7 @@ void KWTupleTableLoader::BlockLoadUnivariateInitialize(const ALString& sInputAtt
 	require(odOutputTupleTables != NULL);
 	require(odOutputTupleTables->GetCount() == 0);
 
-	// Acces aux caracteristique de l'attribut
+	// Acces aux caracteristiques de l'attribut
 	attributeBlock = kwcInputClass->LookupAttributeBlock(sInputAttributeBlockName);
 	check(attributeBlock);
 	assert(KWType::IsSimple(attributeBlock->GetType()));
@@ -605,7 +605,7 @@ void KWTupleTableLoader::BlockLoadUnivariateInitialize(const ALString& sInputAtt
 			// Prise en compte des caracteristiques de l'objet
 			kwoObject = cast(KWObject*, oaInputDatabaseObjects->GetAt(nObject));
 
-			// Acces au bloc d'attribut
+			// Acces au bloc de valeurs
 			svbSymbolValues = kwoObject->GetSymbolValueBlockAt(liAttributeBlockLoadIndex);
 
 			// Parcours des valeurs du block
