@@ -746,6 +746,135 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 	return true;
 }
 
+boolean KWAttributeSubsetStats::CreateSparseAttributeIntervals(const KWTupleTable* tupleTable,
+							       KWDGAttribute* dgAttribute, Continuous cDefaultValue)
+{
+	int nTuple;
+	const KWTuple* tuple;
+	KWTupleTable attributeTupleTable;
+	Continuous cSourceValue;
+	Continuous cSourceRef;
+	KWDGPart* part;
+	Continuous cIntervalBound;
+	double dProgression;
+	int nMaxValueNumber;
+	int nMinValueNumber = 500;
+	boolean bFirstTuple = true;
+
+	require(Check());
+	require(CheckSpecifications());
+	require(tupleTable != NULL);
+	require(tupleTable->GetSize() > 0);
+	require(tupleTable->LookupAttributeIndex(dgAttribute->GetAttributeName()) != -1);
+	require(tupleTable->GetAttributeTypeAt(tupleTable->LookupAttributeIndex(dgAttribute->GetAttributeName())) ==
+		KWType::Continuous);
+	require(dgAttribute != NULL);
+	require(dgAttribute->GetPartNumber() == 0);
+
+	// Construction d'une table de tuples univariee dediee a l'attribut
+	tupleTable->BuildUnivariateTupleTable(dgAttribute->GetAttributeName(), &attributeTupleTable);
+	if (TaskProgression::IsInterruptionRequested())
+		return false;
+
+	// Pre-granularisation des attributs numeriques cible (regression) et des attributs numeriques explicatifs en
+	// analyse non supervisee (co-clustering) Cette pre-granularisation permet :
+	// - en regression, de limiter le nombre de valeurs cible au seuil sqrt(N log N), superieur a l'ecart type
+	// theorique de la precision de prediction en sqrt(N)
+	// - en coclustering
+
+	// Calcul du nombre maximal de valeurs tolere en fonction du nombre d'instances
+	if (attributeTupleTable.GetTotalFrequency() < nMinValueNumber)
+		nMaxValueNumber = attributeTupleTable.GetTotalFrequency();
+	else
+		nMaxValueNumber =
+		    nMinValueNumber +
+		    (int)ceil(sqrt((attributeTupleTable.GetTotalFrequency() - nMinValueNumber) *
+				   log((attributeTupleTable.GetTotalFrequency() - nMinValueNumber)) / log(2.0)));
+
+	// Cas de la pre-granularisation de l'attribut
+	if (GetPregranularizedNumericalAttributes() and attributeTupleTable.GetSize() > nMaxValueNumber and
+	    (dgAttribute->GetAttributeTargetFunction() or GetTargetAttributeName() == ""))
+		CreateAttributePreGranularizedIntervals(&attributeTupleTable, dgAttribute, nMaxValueNumber);
+	// Sinon
+	else
+	{
+		// Creation d'une premiere partie, avec sa borne inf (contenant la valeur manquante)
+		part = dgAttribute->AddPart();
+		part->GetInterval()->SetLowerBound(KWDGInterval::GetMinLowerBound());
+		part->GetInterval()->SetUpperBound(KWDGInterval::GetMaxUpperBound());
+
+		// Creation des parties de l'attribut pour chaque tuple
+		cSourceRef = KWDGInterval::GetMinLowerBound();
+
+		for (nTuple = 0; nTuple < attributeTupleTable.GetSize(); nTuple++)
+		{
+			tuple = attributeTupleTable.GetAt(nTuple);
+
+			// Progression
+			if (TaskProgression::IsRefreshNecessary(nTuple))
+			{
+				// Cas d'un attribut de grille, qui n'est pas un attribut interne d'un attribut VarPart
+				if (not dgAttribute->IsInnerAttribute())
+				{
+					// Avancement: au prorata de la base pour l'attribut en cours, en reservant 50
+					// pour la creation des cellules
+					dProgression = dgAttribute->GetAttributeIndex() * 50.0 /
+						       dgAttribute->GetDataGrid()->GetAttributeNumber();
+					dProgression += (nTuple * 50.0 / attributeTupleTable.GetSize()) /
+							dgAttribute->GetDataGrid()->GetAttributeNumber();
+					TaskProgression::DisplayProgression((int)dProgression);
+					if (TaskProgression::IsInterruptionRequested())
+						return false;
+				}
+			}
+
+			// Valeur du tuple
+			cSourceValue = tuple->GetContinuousAt(0);
+
+			if (cSourceValue != cDefaultValue)
+			{
+				// Memorisation de la valeur de reference initiale pour le premier tuple
+				if (bFirstTuple)
+				{
+					cSourceRef = cSourceValue;
+					bFirstTuple = false;
+				}
+
+				// Creation d'un nouvel intervalle sinon
+				else
+				{
+					assert(cSourceValue > cSourceRef);
+
+					// Calcul de la borne sup de l'intervalle courant, comme moyenne de la valeur
+					// des deux objets de part et d'autre de l'intervalle
+					cIntervalBound =
+					    KWContinuous::GetHumanReadableLowerMeanValue(cSourceRef, cSourceValue);
+
+					// Memorisation de la borne sup de l'intervalle en court
+					part->GetInterval()->SetUpperBound(cIntervalBound);
+
+					// Creation d'une nouvelle partie avec sa borne inf
+					part = dgAttribute->AddPart();
+					part->GetInterval()->SetLowerBound(cIntervalBound);
+					part->GetInterval()->SetUpperBound(KWDGInterval::GetMaxUpperBound());
+
+					// Nouvelle valeur de reference
+					cSourceRef = cSourceValue;
+				}
+			}
+		}
+		// Parametrage du nombre total de valeurs (= nombre d'instances)
+		dgAttribute->SetInitialValueNumber(attributeTupleTable.GetTotalFrequency());
+		dgAttribute->SetGranularizedValueNumber(attributeTupleTable.GetTotalFrequency());
+		assert(dgAttribute->GetPartNumber() == attributeTupleTable.GetSize() or
+		       GetPregranularizedNumericalAttributes());
+		assert(dgAttribute->GetInitialValueNumber() + 1 >= dgAttribute->GetPartNumber());
+		ensure(dgAttribute->Check());
+	}
+
+	return true;
+}
+
 boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute)
 {
 	int nTuple;

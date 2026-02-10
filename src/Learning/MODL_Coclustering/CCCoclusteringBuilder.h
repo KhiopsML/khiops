@@ -80,6 +80,7 @@ public:
 
 	// Calcul du coclustering, renvoie false en cas d'erreur ou d'interruption utilisateur
 	boolean ComputeCoclustering();
+	boolean OLD_ComputeCoclustering();
 	boolean IsCoclusteringComputed() const;
 
 	// Test si le coclustering est calcule et informatif (au moins deux dimensions)
@@ -189,6 +190,21 @@ protected:
 	boolean FillVarPartTupleTableDictionaryFromDatabase(KWDatabase* database, ObjectDictionary& odTupleTables,
 							    ObjectDictionary& odObservationIndexes);
 
+	// DDD CH
+	boolean FillVarPartTupleTableDictionaryFromSparseDatabase(KWDatabase* database, ObjectDictionary& odTupleTables,
+								  ObjectDictionary& odObservationIndexes);
+
+	// Initialisation des variables internes de la grille individus * variables
+	// Calcul de statistiques descriptives par attribut (KWDescriptiveStats)
+	// stockees par nom d'attribut dans le dictionnaire en sortie
+	// Memoire: le dictionnaire en sortie est passe par l'appelant et son
+	// contenu, cree par l'appele, appartient a l'appelant
+	KWDataGrid* InitializeInnerAttributesFromDatabase(KWDatabase* database,
+							  ObjectDictionary* odOutputDescriptiveStats);
+
+	// Finalisation de l'alimentation de la grille : alimentaiton des effectifs de ses cellules
+	void FinalizeDataGridWithCells(KWDatabase* database, KWDataGrid* initialDataGrid);
+
 	// Creation de la partition d'un attribut de DataGrid de type Identifiant dans un coclustering Identifiant *
 	// Parties de variables En entree, le dictionnaire odObservationNumbers contient pour chaque modalite de
 	// l'identifiant, le nombre d'observations Ces effectifs permettent d'initialiser les effectifs de l'attribut
@@ -203,8 +219,11 @@ protected:
 	// Renvoie 0 si l'enregistrement est non utilisable (valeur manquante pour l'attribut Identifiant ou aucune
 	// observation) L'attribut Identifiant est exclu du calcul du nombre d'observations
 	int GetDatabaseObjectObservationNumber(const KWObject* kwoObject, longint lRecordIndex,
-					       const KWAttribute* identifierAttribute,
-					       const ObjectArray* oaInnerAttributes);
+					       const KWAttribute* identifierAttribute);
+
+	int GetDatabaseObjectObservationNumberAndUpdateObjectCells(const KWObject* kwoObject, longint lRecordIndex,
+								   const KWAttribute* identifierAttribute,
+								   ObjectArray& oaParts);
 
 	// Renvoie le nombre d'observations associe a un enregistrement ainsi qu'un vecteur des index des innerAttributes observes
 	IntVector* GetDatabaseObjectObservedInnerAttributeIndexes(const KWObject* kwoObject, longint lRecordIndex,
