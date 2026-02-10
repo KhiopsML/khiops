@@ -315,6 +315,7 @@ void CCLearningProblem::BuildCoclustering()
 	// Calcul du coclustering
 	if (not TaskProgression::IsInterruptionRequested())
 		coclusteringBuilder.ComputeCoclustering();
+	//coclusteringBuilder.OLD_ComputeCoclustering();
 
 	// Message si pas de coclustering informatif trouve en depit du temp imparti
 	if (coclusteringBuilder.IsCoclusteringComputed() and not coclusteringBuilder.IsCoclusteringInformative())

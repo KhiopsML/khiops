@@ -122,6 +122,8 @@ protected:
 	// Creation des partitions (en intervalles ou valeurs) d'un attribut de DataGrid
 	// Renvoie true si correctement initialisee, false sinon
 	virtual boolean CreateAttributeIntervals(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute);
+	virtual boolean CreateSparseAttributeIntervals(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute,
+						       Continuous cDefaultValue);
 	virtual boolean CreateAttributeValueSets(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute);
 
 	// Creation d'une partition pre-granularise d'un attribut numerique de DataGrid

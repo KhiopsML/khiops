@@ -181,10 +181,10 @@ public:
 	// Lecture/ecriture globale pour gestion de tous les objets en memoire
 
 	// Lecture de tous les objets
-	// Le resultat de la lecture est accessible par la methode GetObjets
+	// Le resultat de la lecture est accessible par la methode GetObjects
 	// Methode avec suivi de tache
 	// En cas d'interruption, d'erreur ou de memoire insuffisante, on renvoie
-	// false en emettant un warning et on detruits les objets ayant deja ete lus
+	// false en emettant un warning et on detruit les objets ayant deja ete lus
 	boolean ReadAll();
 
 	// Acces aux objets

@@ -80,6 +80,7 @@ public:
 
 	// Calcul du coclustering, renvoie false en cas d'erreur ou d'interruption utilisateur
 	boolean ComputeCoclustering();
+	boolean OLD_ComputeCoclustering();
 	boolean IsCoclusteringComputed() const;
 
 	// Test si le coclustering est calcule et informatif (au moins deux dimensions)
@@ -95,8 +96,9 @@ public:
 	// L'effectif de la variable identifiant est alimente par le vecteur ivObservationNumbers
 	KWDataGrid* CreateVarPartDataGrid(const KWTupleTable* tupleTable, ObjectDictionary& odObservationNumbers);
 
-	KWDataGrid* CreateSparseVarPartDataGrid(ObjectDictionary& odTupleTables,
-						ObjectDictionary& odObservationIndexes);
+	// A supprimer avec OLD_ComputeCoclustering
+	//KWDataGrid* CreateSparseVarPartDataGrid(ObjectDictionary& odTupleTables,
+	//				ObjectDictionary& odObservationIndexes);
 
 	// Nettoyage des eventuelles parties de variables vides du fait d'observations manquantes
 	void CleanVarPartDataGrid(KWDataGrid* dataGrid);
@@ -106,8 +108,9 @@ public:
 	// Pour la dimension VarPart, on parcourt l'ensemble des attributs internes pour alimenter les cellules associees a chaque observation
 	boolean CreateVarPartDataGridCells(const KWTupleTable* tupleTable, KWDataGrid* dataGrid);
 
-	boolean CreateSparseVarPartDataGridCells(ObjectDictionary& odTupleTables,
-						 ObjectDictionary& odObservationIndexes, KWDataGrid* dataGrid);
+	// A supprimer avec OLD_ComputeCoclustering
+	//boolean CreateSparseVarPartDataGridCells(ObjectDictionary& odTupleTables,
+	//				 ObjectDictionary& odObservationIndexes, KWDataGrid* dataGrid);
 
 	/////////////////////////////////////////////////////////////////////////////
 	// Acces aux resultats de coclustering
@@ -189,6 +192,23 @@ protected:
 	boolean FillVarPartTupleTableDictionaryFromDatabase(KWDatabase* database, ObjectDictionary& odTupleTables,
 							    ObjectDictionary& odObservationIndexes);
 
+	// DDD CH
+	boolean FillVarPartTupleTableDictionaryFromSparseDatabase(KWDatabase* database, ObjectDictionary& odTupleTables,
+								  ObjectDictionary& odObservationIndexes);
+
+	// Initialisation des variables internes de la grille individus * variables et de l'attribut VarPart
+	// Calcul de statistiques descriptives par attribut (KWDescriptiveStats)
+	// stockees par nom d'attribut dans le dictionnaire en sortie
+	// Memoire: le dictionnaire en sortie est passe par l'appelant et son
+	// contenu, cree par l'appele, appartient a l'appelant
+	KWDataGrid* InitializeInnerAttributesFromDatabase(KWDatabase* database,
+							  ObjectDictionary* odOutputDescriptiveStats);
+
+	// Finalisation de l'alimentation de la grille initiale :
+	// - alimentation des effectifs de ses cellules par relecture de la base
+	// - alimentation de l'attribut Identifiant
+	void FinalizeDataGridWithCells(KWDatabase* database, KWDataGrid* initialDataGrid);
+
 	// Creation de la partition d'un attribut de DataGrid de type Identifiant dans un coclustering Identifiant *
 	// Parties de variables En entree, le dictionnaire odObservationNumbers contient pour chaque modalite de
 	// l'identifiant, le nombre d'observations Ces effectifs permettent d'initialiser les effectifs de l'attribut
@@ -203,8 +223,11 @@ protected:
 	// Renvoie 0 si l'enregistrement est non utilisable (valeur manquante pour l'attribut Identifiant ou aucune
 	// observation) L'attribut Identifiant est exclu du calcul du nombre d'observations
 	int GetDatabaseObjectObservationNumber(const KWObject* kwoObject, longint lRecordIndex,
-					       const KWAttribute* identifierAttribute,
-					       const ObjectArray* oaInnerAttributes);
+					       const KWAttribute* identifierAttribute);
+
+	int GetDatabaseObjectObservationNumberAndUpdateObjectCells(const KWObject* kwoObject, longint lRecordIndex,
+								   const KWAttribute* identifierAttribute,
+								   ObjectArray& oaParts);
 
 	// Renvoie le nombre d'observations associe a un enregistrement ainsi qu'un vecteur des index des innerAttributes observes
 	IntVector* GetDatabaseObjectObservedInnerAttributeIndexes(const KWObject* kwoObject, longint lRecordIndex,
@@ -219,10 +242,10 @@ protected:
 
 	// Verification de la memoire necessaire pour construire une grille initiale a partir d'un nombre de tuples
 	// La base en entree peut etre entierement traitee:
-	//   . dans ce cas, on dispose des statistique descriptives et donc du nombre de valeurs par attribut
-	// ou en cours de lecture, pour une alimnettaion partielle de la table de tuples
+	//   . dans ce cas, on dispose des statistiques descriptives et donc du nombre de valeurs par attribut
+	// ou en cours de lecture, pour une alimentation partielle de la table de tuples
 	//   . dans ce cas, les nombres de valeurs par attribut sont estimes
-	//   . cela permet d'avoir un estimation "anytime" de la memoire necessaire pour le coclustering
+	//   . cela permet d'avoir une estimation "anytime" de la memoire necessaire pour le coclustering
 	// On renvoie en sortie le nombre max de cellules de la grille initiale
 	boolean CheckMemoryForDataGridInitialization(KWDatabase* database, int nTupleNumber, int& nMaxCellNumber) const;
 
@@ -230,6 +253,12 @@ protected:
 	// On renvoie en sortie le nombre max de cellules de la grille initiale
 	boolean CheckMemoryForVarPartDataGridInitialization(KWDatabase* database, int nTupleNumber,
 							    int& nMaxCellNumber) const;
+
+	// Verification de la memoire necessaire pour construire une grille initiale de type VarPart a partir d'un nombre de tuples
+	// On renvoie en sortie le nombre max de cellules de la grille initiale
+	boolean CheckMemoryForSparseVarPartDataGridInitialization(KWDatabase* database, int nTupleNumber,
+								  int nInnerAttributesNumber,
+								  int& nMaxCellNumber) const;
 
 	// Verification de la memoire necessaire pour optimiser le coclustering, la grille initiale etant construite
 	boolean CheckMemoryForDataGridOptimization(KWDataGrid* inputInitialDataGrid) const;
