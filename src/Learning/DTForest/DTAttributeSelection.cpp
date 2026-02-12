@@ -52,12 +52,12 @@ boolean DTAttributeSelection::Check() const
 	return false;
 }
 
-void DTAttributeSelection::SetSeed(int nSeed)
+void DTAttributeSelection::SetRandomSeed(int nSeed)
 {
 	nRandomSeed = nSeed;
 }
 
-int DTAttributeSelection::GetSeed()
+int DTAttributeSelection::GetRandomSeed()
 {
 	return nRandomSeed;
 }

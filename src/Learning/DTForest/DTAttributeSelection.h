@@ -97,8 +97,8 @@ public:
 
 	// Graine initiale de la suite pseudo-aleatoire
 	//(permet de reproduire la meme suite)
-	void SetSeed(int nSeed);
-	int GetSeed();
+	void SetRandomSeed(int nSeed);
+	int GetRandomSeed();
 
 	// Verification de l'integrite
 	// Les attributs doivent etre unique

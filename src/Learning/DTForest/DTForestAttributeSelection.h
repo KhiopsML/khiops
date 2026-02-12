@@ -64,6 +64,10 @@ public:
 
 	void WriteReport(ostream& ost) const;
 
+	// fonction get et set pour nRandomSeed
+	int GetRandomSeed() const;
+	void SetRandomSeed(int nSeed);
+
 	///////////////////////////////////////////////////////
 	// Implementation
 protected:
@@ -73,6 +77,9 @@ protected:
 	// tirage des variables selon leur valeur de level, en fonction des levels passes en parametre
 	static ObjectArray* GetAttributesFromLevels(const int nMaxAttributesNumber, DoubleVector& vLevels,
 						    ObjectArray& oaListAttributes);
+
+	// seed de generation des selections de variable
+	int nRandomSeed;
 
 	int nMaxSelectionNumber;
 	int nOriginalAttributesNumber;
