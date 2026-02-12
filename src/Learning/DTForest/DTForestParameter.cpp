@@ -22,6 +22,7 @@ DTForestParameter::DTForestParameter()
 	bWriteDetailedStatistics = false;
 	//	sHeuristicCreation = DTForestParameter::HEURISTIC_NODRAW_LABEL;
 	nVariableNumberMin = MIN_VARIABLE_2_BUILTREE;
+	nRandomSeed = 0;
 	sDiscretizationTargetMethod = DISCRETIZATION_MODL; // DISCRETIZATION_EQUAL_FREQUENCY
 	nMaxIntervalsNumberForTarget = 4;
 }
@@ -46,6 +47,16 @@ int DTForestParameter::GetVariableNumberMin() const
 void DTForestParameter::SetVariableNumberMin(int nNumber)
 {
 	nVariableNumberMin = nNumber;
+}
+
+int DTForestParameter::GetRandomSeed() const
+{
+	return nRandomSeed;
+}
+
+void DTForestParameter::SetRandomSeed(int nNumber)
+{
+	nRandomSeed = nNumber;
 }
 
 boolean DTForestParameter::IsWriteDetailedStatistics() const
@@ -157,6 +168,7 @@ void DTForestParameter::CopyFrom(const DTForestParameter* dtParam)
 	pDecisionTreeParameter.CopyFrom(&dtParam->pDecisionTreeParameter);
 	sDiscretizationTargetMethod = dtParam->sDiscretizationTargetMethod;
 	nMaxIntervalsNumberForTarget = dtParam->nMaxIntervalsNumberForTarget;
+	nRandomSeed = dtParam->nRandomSeed;
 }
 
 void DTForestParameter::SetTreesVariablesSelection(ALString sValue)
@@ -284,6 +296,7 @@ void PLShared_ForestParameter::DeserializeObject(PLSerializer* serializer, Objec
 	shared_DecisionTreeParameter->DeserializeObject(serializer, &param->pDecisionTreeParameter);
 	param->sDiscretizationTargetMethod = serializer->GetString();
 	param->nMaxIntervalsNumberForTarget = serializer->GetInt();
+	param->nRandomSeed = serializer->GetInt();
 }
 
 void PLShared_ForestParameter::SerializeObject(PLSerializer* serializer, const Object* object) const
@@ -307,6 +320,7 @@ void PLShared_ForestParameter::SerializeObject(PLSerializer* serializer, const O
 	shared_DecisionTreeParameter->SerializeObject(serializer, &param->pDecisionTreeParameter);
 	serializer->PutString(param->sDiscretizationTargetMethod);
 	serializer->PutInt(param->nMaxIntervalsNumberForTarget);
+	serializer->PutInt(param->nRandomSeed);
 }
 
 Object* PLShared_ForestParameter::Create() const

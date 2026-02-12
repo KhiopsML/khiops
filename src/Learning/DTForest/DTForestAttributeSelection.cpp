@@ -15,6 +15,7 @@ DTForestAttributeSelection::DTForestAttributeSelection()
 	sDrawingType = DTGlobalTag::UNIFORM_SAMPLING_WITH_REPLACEMENT_LABEL;
 	nMaxSelectionNumber = 0;
 	nOriginalAttributesNumber = 0;
+	nRandomSeed = 1968;
 }
 
 DTForestAttributeSelection::~DTForestAttributeSelection()
@@ -105,7 +106,7 @@ void DTForestAttributeSelection::BuildForestUniformSelections(int nmaxselectionn
 		int nTinf, nTnull;
 		int nKinf, nKnull;
 		int nAttributesNumber;
-		int nSeed = 1968;
+		int nSeed = nRandomSeed;
 		ObjectArray oaVariablesNull;
 		ObjectArray oaVariablesInf;
 		ObjectArray oaVariablesInfRand;
@@ -177,7 +178,7 @@ void DTForestAttributeSelection::BuildForestUniformSelections(int nmaxselectionn
 			// cretation nouvelle liste de variables
 			svRandattibuteselection = new DTAttributeSelection;
 
-			svRandattibuteselection->SetSeed(nSeed);
+			svRandattibuteselection->SetRandomSeed(nSeed);
 			nSeed = nSeed + 5555;
 
 			nTinf = 0;
@@ -208,7 +209,7 @@ void DTForestAttributeSelection::BuildForestSelections(int nmaxselectionnumber, 
 		int nrand, nT, nTmax;
 		int nTinf, nTnull;
 		int nKinf, nKnull;
-		int nSeed = 1968;
+		int nSeed = nRandomSeed;
 		ObjectArray oaVariablesNull;
 		ObjectArray oaVariablesInf;
 		ObjectArray oaVariablesInfRand;
@@ -293,7 +294,7 @@ void DTForestAttributeSelection::BuildForestSelections(int nmaxselectionnumber, 
 			// cretation nouvelle liste de variables
 			svRandattibuteselection = new DTAttributeSelection;
 
-			svRandattibuteselection->SetSeed(nSeed);
+			svRandattibuteselection->SetRandomSeed(nSeed);
 			nSeed = nSeed + 5555;
 
 			oaVariablesInfRand.RemoveAll();
@@ -403,6 +404,16 @@ StringVector* DTForestAttributeSelection::GetSelectedAttributesAt(int npos)
 {
 	require(npos >= 0 && npos < oaSelectionAttributes.GetSize());
 	return cast(StringVector*, oaSelectionAttributes.GetAt(npos));
+}
+
+void DTForestAttributeSelection::SetRandomSeed(int nSeed)
+{
+	nRandomSeed = nSeed;
+}
+
+int DTForestAttributeSelection::GetRandomSeed() const
+{
+	return nRandomSeed;
 }
 
 int DTForestAttributeSelection::GetMaxAttributesNumber()

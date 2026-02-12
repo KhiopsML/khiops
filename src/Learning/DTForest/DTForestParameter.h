@@ -47,6 +47,10 @@ public:
 	void SetVariableNumberMin(int nNumber);
 	int GetVariableNumberMin() const;
 
+	// Acces a la graine aléatoire
+	void SetRandomSeed(int nNumber);
+	int GetRandomSeed() const;
+
 	// Acces a l'indicateur de ponderation du classifieur
 	void SetWeightedClassifier(ALString sValue);
 	ALString GetWeightedClassifier() const;
@@ -92,7 +96,6 @@ protected:
 	friend class PLShared_ForestParameter;
 
 	ALString sTreesVariablesSelection;
-	// ALString sHeuristicCreation;
 
 	// Pourcentage d'indivus utilises pour l'apprentissage
 	// de chaque arbre
@@ -104,6 +107,9 @@ protected:
 	boolean bRecodeRFDictionary;
 
 	DTDecisionTree::DrawingType drawingType;
+
+	// graine aléatoire pour generer des arbres differents
+	int nRandomSeed;
 
 	// Pourcentage de variables minimun a prendre
 	int nVariableNumberMin;
