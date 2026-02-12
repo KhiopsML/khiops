@@ -68,6 +68,7 @@ jobs:
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KNITransfer.exe
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KhiopsNativeInterface.dll
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/KhiopsNativeInterface.lib
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/khisto.exe
           key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ env.PRESET_NAME
             }}
           fail-on-cache-miss: false
@@ -77,7 +78,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: |
-            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/*          
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/*
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/libKhiopsNativeInterface.*
           key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ env.PRESET_NAME
             }}
@@ -110,6 +111,7 @@ jobs:
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KNITransfer.exe
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/KhiopsNativeInterface.dll
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/lib/KhiopsNativeInterface.lib
+            ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/khisto.exe
           key: ${{ github.run_id }}-${{ matrix.build-setup.os }}-${{ env.PRESET_NAME
             }}
           fail-on-cache-miss: true
@@ -140,7 +142,7 @@ jobs:
           sudo apt-get install openmpi-bin
           sudo update-alternatives --set mpi /usr/bin/mpicc.openmpi
           sudo update-alternatives --set mpirun /usr/bin/mpirun.openmpi
-      - name: Run tests
+      - name: Run standard tests
         uses: ./.github/actions/run-standard-tests
         with:
           warning_as_error: ${{ inputs.warning_as_error }}
@@ -149,6 +151,18 @@ jobs:
           binary-path: ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin
           testing-context-description: ${{ env.PRESET_NAME }}-${{ matrix.running-mode
             }}
+      - name: Test khisto
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then EXT=".exe"; fi
+          '${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/'khisto${EXT} -e -j test/khisto/gaussian.txt test.gaussian_histogram.series.json
+          if diff -q test.gaussian_histogram.series.json test/khisto/gaussian_histogram_exploratory_analysis.json > /dev/null ; 
+          then
+            echo "khisto is OK"
+          else
+            echo "::error::Error in khisto output"
+            false
+          fi
   cleanup-cache:
     # Clean up all caches belonging to the current run
     if: always()
