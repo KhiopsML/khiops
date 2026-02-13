@@ -8,5 +8,8 @@
   ],
   "ignorePaths": [
     "packaging/dockerfiles/**"
-  ]
+  ],
+  "pre-commit": {
+    "enabled": true
+  }
 }
