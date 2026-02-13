@@ -33,10 +33,6 @@ runs:
       if: runner.os == 'Linux'
       shell: bash
       run: sudo apt-get install ninja-build
-    - name: Setup Ninja (macOS)
-      if: runner.os == 'macOS'
-      shell: bash
-      run: brew install ninja
     # This step is required to have ninja and cmake in the path for windows
     - name: Load Visual C++ Environment Variables (Windows)
       if: runner.os == 'Windows'

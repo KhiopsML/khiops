@@ -61,6 +61,12 @@ See KhiopsNativeInterface.h for a detailed description of KNI functions")
 
 set(CPACK_COMPONENT_KNI_DOC_DESCRIPTION "Documentation and examples for Khiops Native Interface (kni)")
 
+set(CPACK_COMPONENT_KHISTO_DESCRIPTION
+    "Khisto creates histograms using the Khiops optimal binning algorithm.
+Unlike standard histograms that use fixed-width bins or simple heuristics,
+Khisto automatically determines the optimal number of bins and their variable
+widths to best represent the underlying data distribution.")
+
 set(CPACK_VERBATIM_VARIABLES YES)
 set(CPACK_PACKAGE_INSTALL_DIRECTORY ${CPACK_PACKAGE_NAME})
 set(CPACK_OUTPUT_FILE_PREFIX "${CMAKE_BINARY_DIR}/packages")
@@ -76,6 +82,7 @@ set(CPACK_ARCHIVE_KNI_FILE_NAME kni-${KHIOPS_VERSION})
 set(CPACK_ARCHIVE_KNI_TRANSFER_FILE_NAME kni-transfer-${KHIOPS_VERSION})
 set(CPACK_ARCHIVE_KHIOPS_FILE_NAME khiops-${KHIOPS_VERSION})
 set(CPACK_ARCHIVE_KHIOPS_CORE_FILE_NAME khiops-core-${KHIOPS_VERSION})
+set(CPACK_ARCHIVE_KHISTO_FILE_NAME khisto-${KHIOPS_VERSION})
 
 # ########### DEB Generator #############################
 
@@ -111,6 +118,7 @@ set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_NAME khiops-core${PACKAGE_SUFFIX})
 set(CPACK_DEBIAN_KNI_PACKAGE_NAME kni)
 set(CPACK_DEBIAN_KNI_DOC_PACKAGE_NAME kni-doc)
 set(CPACK_DEBIAN_KNI_TRANSFER_PACKAGE_NAME kni-transfer)
+set(CPACK_DEBIAN_KHISTO_PACKAGE_NAME khisto)
 
 # manage package renaming
 set(CPACK_DEBIAN_KHIOPS_CORE_PACKAGE_REPLACES "khiops-core (<< 10.2.2~ )")
@@ -159,6 +167,7 @@ set(CPACK_RPM_KHIOPS_CORE_PACKAGE_NAME khiops-core${PACKAGE_SUFFIX})
 set(CPACK_RPM_KNI_PACKAGE_NAME kni)
 set(CPACK_RPM_KNI_TRANSFER_PACKAGE_NAME kni-transfer)
 set(CPACK_RPM_KNI_DOC_PACKAGE_NAME kni-doc)
+set(CPACK_RPM_KHISTO_PACKAGE_NAME khisto)
 
 # default file name e.g. khiops-10.0.0-1.x86_64.rpm
 set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
@@ -169,6 +178,7 @@ set(CPACK_RPM_KHIOPS_CORE_PACKAGE_SUMMARY "Khiops tools (core)")
 set(CPACK_RPM_KNI_PACKAGE_SUMMARY "Khiops Native Interface")
 set(CPACK_RPM_KNI_TRANSFER_PACKAGE_SUMMARY "KNI test (technical package)")
 set(CPACK_RPM_KNI_DOC_PACKAGE_SUMMARY "Khiops Native Interface documentation")
+set(CPACK_RPM_KHISTO_PACKAGE_SUMMARY "Khisto: Khiops optimal binning histograms")
 
 # manage package renaming
 set(CPACK_RPM_KHIOPS_CORE_PACKAGE_OBSOLETES "khiops-core <= 10.2.1-2")

@@ -125,7 +125,7 @@ jobs:
         with:
           preset-name: windows-msvc-release
           targets: MODL MODL_Coclustering norm_jar khiops_jar KhiopsNativeInterface
-            KNITransfer _khiopsgetprocnumber _khiopslauncher
+            KNITransfer _khiopsgetprocnumber _khiopslauncher khisto
           override-flags: -DTESTING=OFF -DBUILD_JARS=ON
       - name: Setup SM_CLIENT_CERT_FILE from base64 secret data
         if: ${{ inputs.signature-activation }}
@@ -214,6 +214,11 @@ jobs:
           path: |
             ./build/windows-msvc-release/packages/KNI-${{ env.KHIOPS_VERSION }}.zip
             ./build/windows-msvc-release/packages/kni-transfer-${{ env.KHIOPS_VERSION }}.zip
+      - name: Upload the Khisto zip
+        uses: actions/upload-artifact@v6
+        with:
+          name: khisto
+          path: ./build/windows-msvc-release/packages/khisto-${{ env.KHIOPS_VERSION }}.zip
       - name: Upload the Khiops zip
         uses: actions/upload-artifact@v6
         with:
@@ -296,10 +301,14 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           name: KNI
-      - name: Download KNI installer artifact
+      - name: Download khiops zip installer artifact
         uses: actions/download-artifact@v7
         with:
           name: khiops
+      - name: Download khisto zip installer artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: khisto
       - name: Rename packages with tag version
         run: |
           # Build the package file names
@@ -312,11 +321,11 @@ jobs:
           then
             mv $PKG_FILE $NEW_PKG_FILE
           fi
-      - name: Upload NSIS installer and KNI to the release
+      - name: Upload packages to the release
         uses: ncipollo/release-action@v1.20.0
         with:
           allowUpdates: true
-          artifacts: khiops-*-setup.exe,KNI-*.zip,kni-transfer-*.zip,khiops-*.zip
+          artifacts: khiops-*-setup.exe,KNI-*.zip,kni-transfer-*.zip,khiops-*.zip,khisto-*.zip
           body: |
             **This release is for testing purposes only and there is no support for it.**
             **Go to https://khiops.org to install the latest supported version.**

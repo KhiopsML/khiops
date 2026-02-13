@@ -250,3 +250,10 @@ else(UNIX)
   endif()
 
 endif(UNIX)
+
+# ######################################## khisto installation
+install(TARGETS khisto RUNTIME DESTINATION bin COMPONENT KHISTO)
+install(
+  FILES ${PROJECT_SOURCE_DIR}/LICENSE
+  DESTINATION doc
+  COMPONENT KHISTO)
