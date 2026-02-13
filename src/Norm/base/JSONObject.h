@@ -197,7 +197,7 @@ public:
 	JSONValue* GetValueAt(int nIndex) const;
 
 	// Ecriture avec indentation et sauts de lignes si le mode pretty print est true
-	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const;
+	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const override;
 
 	// Conversion du type en chaine de caracteres
 	const ALString TypeToString() const override;
@@ -232,7 +232,7 @@ public:
 	const ALString& GetString() const;
 
 	// Affichage avec options de pretty print
-	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const;
+	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const override;
 
 	// Conversion du type en chaine de caracteres
 	const ALString TypeToString() const override;
@@ -266,7 +266,7 @@ public:
 	double GetNumber() const;
 
 	// Affichage avec options de pretty print
-	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const;
+	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const override;
 
 	// Conversion du type en chaine de caracteres
 	const ALString TypeToString() const override;
@@ -300,7 +300,7 @@ public:
 	boolean GetBoolean() const;
 
 	// Affichage avec options de pretty print
-	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const;
+	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const override;
 
 	// Conversion du type en chaine de caracteres
 	const ALString TypeToString() const override;
@@ -330,7 +330,7 @@ public:
 	int GetType() const override;
 
 	// Affichage avec options de pretty print
-	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const;
+	void WriteIndent(ostream& ost, int nIndentLevel, boolean bPrettyPrint) const override;
 
 	// Conversion du type en chaine de caracteres
 	const ALString TypeToString() const override;
@@ -374,7 +374,7 @@ public:
 	JSONNull* GetNullValue() const;
 
 	// Affichage avec options de pretty print
-	void Write(ostream& ost) const;
+	void Write(ostream& ost) const override;
 
 	// Affichage de facon compacte en une seule ligne
 	void WriteCompact(ostream& ost) const;
