@@ -7,9 +7,7 @@ on:
         description: mpi implementation
         type: choice
         default: openmpi
-        options:
-          - mpich
-          - openmpi
+        options: [mpich, openmpi]
       show-openmpi-errors:
         description: Display full OpenMPI error log
         type: boolean
@@ -23,12 +21,12 @@ on:
       - '!test/MemoryStatsVisualizer/**'
       - '**.cmake'
       - .github/workflows/pack-debian.yml
-
   push:
     tags: ['*']
 # Cancel any ongoing run of this workflow on the same PR or ref
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref
+    }}
   cancel-in-progress: true
 jobs:
   build:
@@ -39,14 +37,14 @@ jobs:
       fail-fast: false
       matrix:
         setup:
-        - {os: ubuntu-latest, image: debian11}
-        - {os: ubuntu-latest, image: debian12}
-        - {os: ubuntu-latest, image: debian13}
-        - {os: ubuntu-latest, image: ubuntu20.04}
-        - {os: ubuntu-latest, image: ubuntu22.04}
-        - {os: ubuntu-latest, image: ubuntu24.04}
-        - {os: ubuntu-24.04-arm, image: ubuntu22.04-arm}
-        - {os: ubuntu-24.04-arm, image: ubuntu24.04-arm}
+          - {os: ubuntu-latest, image: debian11}
+          - {os: ubuntu-latest, image: debian12}
+          - {os: ubuntu-latest, image: debian13}
+          - {os: ubuntu-latest, image: ubuntu20.04}
+          - {os: ubuntu-latest, image: ubuntu22.04}
+          - {os: ubuntu-latest, image: ubuntu24.04}
+          - {os: ubuntu-24.04-arm, image: ubuntu22.04-arm}
+          - {os: ubuntu-24.04-arm, image: ubuntu24.04-arm}
     runs-on: ${{ matrix.setup.os }}
     container:
       image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.setup.image }}:latest
@@ -63,7 +61,6 @@ jobs:
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
           echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
           echo "ARCH=$(arch)" >> "$GITHUB_ENV"
-
       - name: Configure CMake
         run: |
           update-alternatives --set mpi /usr/bin/mpicc.$MPI_IMPLEMENTATION
@@ -106,14 +103,14 @@ jobs:
       fail-fast: false
       matrix:
         setup:
-        - {os: ubuntu-latest, image: debian11}
-        - {os: ubuntu-latest, image: debian12}
-        - {os: ubuntu-latest, image: debian13}
-        - {os: ubuntu-latest, image: ubuntu20.04}
-        - {os: ubuntu-latest, image: ubuntu22.04}
-        - {os: ubuntu-latest, image: ubuntu24.04}
-        - {os: ubuntu-24.04-arm, image: ubuntu22.04-arm}
-        - {os: ubuntu-24.04-arm, image: ubuntu24.04-arm}
+          - {os: ubuntu-latest, image: debian11}
+          - {os: ubuntu-latest, image: debian12}
+          - {os: ubuntu-latest, image: debian13}
+          - {os: ubuntu-latest, image: ubuntu20.04}
+          - {os: ubuntu-latest, image: ubuntu22.04}
+          - {os: ubuntu-latest, image: ubuntu24.04}
+          - {os: ubuntu-24.04-arm, image: ubuntu22.04-arm}
+          - {os: ubuntu-24.04-arm, image: ubuntu24.04-arm}
     runs-on: ${{ matrix.setup.os }}
     container:
       image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.setup.image }}:latest
@@ -127,7 +124,6 @@ jobs:
           echo "VERSION_CODENAME=$VERSION_CODENAME" >> "$GITHUB_ENV"
           echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
           echo "ARCH=$(arch)" >> "$GITHUB_ENV"
-
       - name: Download artifacts
         uses: actions/download-artifact@v7
         with:
@@ -151,7 +147,8 @@ jobs:
         with:
           os-decription: ${{ env.ID }}-${{ env.VERSION_CODENAME }}-${{ env.ARCH }}
           show-openmpi-errors: ${{ inputs.show-openmpi-errors }}
-      - name: Add Khiops binary path to the environment (for running the standard tests)
+      - name: Add Khiops binary path to the environment (for running the standard
+          tests)
         run: |
           if type -P khiops_env &> /dev/null; then
             BIN_DIR=$(dirname $(type -P khiops_env))
@@ -167,7 +164,8 @@ jobs:
           running-mode: parallel
           config: release
           binary-path: ${{ env.BIN_DIR }}
-          testing-context-description: ${{ env.ID }}-${{ env.VERSION_CODENAME }}-${{ env.ARCH }}
+          testing-context-description: ${{ env.ID }}-${{ env.VERSION_CODENAME }}-${{
+            env.ARCH }}
   test-kni:
     needs: build
     env:
@@ -179,14 +177,14 @@ jobs:
       fail-fast: false
       matrix:
         setup:
-        - {os: ubuntu-latest, image: debian11}
-        - {os: ubuntu-latest, image: debian12}
-        - {os: ubuntu-latest, image: debian13}
-        - {os: ubuntu-latest, image: ubuntu20.04}
-        - {os: ubuntu-latest, image: ubuntu22.04}
-        - {os: ubuntu-latest, image: ubuntu24.04}
-        - {os: ubuntu-24.04-arm, image: ubuntu22.04-arm}
-        - {os: ubuntu-24.04-arm, image: ubuntu24.04-arm}
+          - {os: ubuntu-latest, image: debian11}
+          - {os: ubuntu-latest, image: debian12}
+          - {os: ubuntu-latest, image: debian13}
+          - {os: ubuntu-latest, image: ubuntu20.04}
+          - {os: ubuntu-latest, image: ubuntu22.04}
+          - {os: ubuntu-latest, image: ubuntu24.04}
+          - {os: ubuntu-24.04-arm, image: ubuntu22.04-arm}
+          - {os: ubuntu-24.04-arm, image: ubuntu24.04-arm}
     runs-on: ${{ matrix.setup.os }}
     container:
       image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.setup.image }}:latest
@@ -230,18 +228,18 @@ jobs:
           merge-multiple: true
       - name: Rename packages with tag version
         run: |
-         # Renames the packge only if the source version differs from the tag
-         SOURCE_VERSION=$(./scripts/khiops-version | sed 's/-/_/')
-         TAG_VERSION=$(echo "${{ github.ref_name }}" | sed 's/-/_/')
-         for PKG_FILE in *.deb
-         do
-           NEW_PKG_FILE=$(echo $PKG_FILE | sed "s/_${SOURCE_VERSION}-/_${TAG_VERSION}-/")
-           if [[ "$PKG_FILE" != "$NEW_PKG_FILE" ]]
-           then
-             echo "Renaming '$PKG_FILE' to '$NEW_PKG_FILE'"
-             mv $PKG_FILE $NEW_PKG_FILE
-           fi
-         done
+          # Renames the packge only if the source version differs from the tag
+          SOURCE_VERSION=$(./scripts/khiops-version | sed 's/-/_/')
+          TAG_VERSION=$(echo "${{ github.ref_name }}" | sed 's/-/_/')
+          for PKG_FILE in *.deb
+          do
+            NEW_PKG_FILE=$(echo $PKG_FILE | sed "s/_${SOURCE_VERSION}-/_${TAG_VERSION}-/")
+            if [[ "$PKG_FILE" != "$NEW_PKG_FILE" ]]
+            then
+              echo "Renaming '$PKG_FILE' to '$NEW_PKG_FILE'"
+              mv $PKG_FILE $NEW_PKG_FILE
+            fi
+          done
       - name: Upload packages to the release
         uses: ncipollo/release-action@v1.20.0
         with:
