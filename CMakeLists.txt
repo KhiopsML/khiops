@@ -33,6 +33,13 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
       "Do not build in-source. Please remove CMakeCache.txt and the CMakeFiles/ directory. Then build out-of-source.")
 endif()
 
+# Detect pip packaging with scikit-build-core
+if(DEFINED SKBUILD AND SKBUILD EQUAL 2)
+  set(IS_PIP TRUE)
+else()
+  set(IS_PIP FALSE)
+endif()
+
 # Set the build type to Debug if not set
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug")
@@ -88,12 +95,17 @@ if(IS_CONDA AND MPI)
   endif()
 endif()
 
+if(IS_PIP AND IS_CONDA)
+  message(FATAL_ERROR "Building in a conda environment and using scikit-build-core")
+endif()
+
 # On Fedora distros, the binaries compiled with mpi must be located under the mpi location furthermore they have to be
 # suffixed by the name of the mpi implementation. These 2 items are given by MPI_BIN and MPI_SUFFIX when the module
 # environment is loaded source /etc/profile.d/modules.sh module load mpi/mpich-x86_64
 if(MPI
    AND IS_FEDORA_LIKE
-   AND NOT IS_CONDA)
+   AND NOT IS_CONDA
+   AND NOT IS_PIP)
   if(DEFINED ENV{MPI_BIN})
     set(MPI_BIN $ENV{MPI_BIN})
   else()
@@ -113,7 +125,8 @@ if(MPI
 endif(
   MPI
   AND IS_FEDORA_LIKE
-  AND NOT IS_CONDA)
+  AND NOT IS_CONDA
+  AND NOT IS_PIP)
 
 # Set the location of the built artifacts:
 #

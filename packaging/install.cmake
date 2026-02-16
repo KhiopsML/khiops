@@ -252,8 +252,18 @@ else(UNIX)
 endif(UNIX)
 
 # ######################################## khisto installation
-install(TARGETS khisto RUNTIME DESTINATION bin COMPONENT KHISTO)
-install(
-  FILES ${PROJECT_SOURCE_DIR}/LICENSE
-  DESTINATION doc
-  COMPONENT KHISTO)
+if(IS_PIP)
+  install(TARGETS khisto RUNTIME DESTINATION ${SKBUILD_SCRIPTS_DIR} COMPONENT KHISTO)
+elseif(UNIX)
+  install(TARGETS khisto RUNTIME DESTINATION usr/bin COMPONENT KHISTO)
+  install(
+    FILES ${PROJECT_SOURCE_DIR}/LICENSE
+    DESTINATION usr/share/doc/khisto
+    COMPONENT KHISTO)
+else()
+  install(TARGETS khisto RUNTIME DESTINATION bin COMPONENT KHISTO)
+  install(
+    FILES ${PROJECT_SOURCE_DIR}/LICENSE
+    DESTINATION doc
+    COMPONENT KHISTO)
+endif()
