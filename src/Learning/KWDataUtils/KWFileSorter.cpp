@@ -460,7 +460,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 				}
 			}
 		} // Fin du if (IsFileTooSmall(sInputFileName) or lFileSize < nChunkSize)
-	}         // Fin du if (bOk and not bIsInterruptedByUser)
+	} // Fin du if (bOk and not bIsInterruptedByUser)
 
 	// Fin du timer
 	timerSort.Stop();

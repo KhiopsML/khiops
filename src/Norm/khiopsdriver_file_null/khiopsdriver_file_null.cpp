@@ -352,7 +352,7 @@ long long int driver_diskFreeSpace(const char* filename)
 	else
 		sPathName = getFilePath(filename);
 
-		// Implementation windows
+	// Implementation windows
 #if defined _MSC_VER || defined __MSVCRT_VERSION__
 	{
 		long long int lFreeDiskSpace = 0;

@@ -12,7 +12,6 @@ import argparse
 import _kht_constants as kht
 import _kht_families as test_families
 
-
 """
 Fonction utilitaires, notamment pour la gestion des fichiers et des messages
 """

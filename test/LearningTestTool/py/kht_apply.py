@@ -209,7 +209,7 @@ def main():
     for instruction_id in all_instructions:
         max_id_len = max(max_id_len, len(instruction_id))
     for index, instruction_id in enumerate(all_instructions):
-        (instruction_function, instruction_label) = all_instructions[instruction_id]
+        instruction_function, instruction_label = all_instructions[instruction_id]
         if index == standard_instruction_number:
             instructions_help += "\none-shot instructions"
         instructions_help += (
@@ -267,7 +267,7 @@ def main():
     results.forced_platform = args.forced_platform
 
     # Acces a l'instruction a executer
-    (instruction_function, instruction_label) = all_instructions[args.instruction]
+    instruction_function, instruction_label = all_instructions[args.instruction]
 
     # Lancement de la commande
     apply_instruction_on_learning_test_tree(

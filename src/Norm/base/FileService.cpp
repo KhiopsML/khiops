@@ -78,7 +78,7 @@ boolean FileService::SetFileMode(const ALString& sFilePathName, boolean bReadOnl
 	else
 		// idem + ecriture owner S_IWUSR
 		bOk = chmod(sFilePathName, S_IRUSR | S_IRGRP | S_IWUSR) == 0;
-		// Pour Visual C++
+	// Pour Visual C++
 #endif
 	p_SetApplicationLocale();
 	return bOk;
