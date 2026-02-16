@@ -198,8 +198,9 @@ public:
 						       IntVector* ivMandatoryInputOperands) const override;
 
 	// Collecte de tous les attribut en entree et sortie des regles de creation d'instances
-	virtual void CollectCreationRuleAllAttributes(const KWAttribute* derivedAttribute,
-						      NumericKeyDictionary* nkdAllNonDeletableAttributes) const;
+	virtual void
+	CollectCreationRuleAllAttributes(const KWAttribute* derivedAttribute,
+					 NumericKeyDictionary* nkdAllNonDeletableAttributes) const override;
 
 	// Copie
 	void CopyFrom(const KWDerivationRule* kwdrSource) override;
