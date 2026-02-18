@@ -90,7 +90,7 @@ if(IS_LINUX OR IS_MACOS)
   endif(IS_CONDA)
 
   # replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL MPI_EXTRA_FLAG ADDITIONAL_ENV_VAR
-  if("${MPI_IMPL}" STREQUAL "openmpi")
+  if(IS_OPEN_MPI)
     set(MPI_EXTRA_FLAG "--allow-run-as-root")
     # Only decide on applying / not applying the --quiet flag for OpenMPI, i.e. for Linux setups. Note that testing on
     # CMAKE_CROSSCOMPILING is not recommended for projects that target MacOS systems
@@ -115,7 +115,7 @@ if(IS_LINUX OR IS_MACOS)
       set(ADDITIONAL_ENV_VAR "${ADDITIONAL_ENV_VAR}\nexport PSM3_DEVICES=self # issue on rocky linux")
       set(ADDITIONAL_ENV_VAR_DISPLAY "${ADDITIONAL_ENV_VAR_DISPLAY}\n    echo PSM3_DEVICES \"$PSM3_DEVICES\"")
     endif()
-  elseif("${MPI_IMPL}" STREQUAL "mpich")
+  elseif(IS_MPICH)
     # Set localhost on MacOS (see issue # https://github.com/pmodels/mpich/issues/4710)
     if(IS_MACOS)
       set(MPI_EXTRA_FLAG "-host localhost")
@@ -133,7 +133,7 @@ if(IS_LINUX OR IS_MACOS)
   get_target_property(MODL_COCLUSTERING_NAME MODL_Coclustering OUTPUT_NAME)
 
   # For all mpi implementation except openmpi, we compute the proc number (with openmpi, the -n flag is not mandatory)
-  if(NOT "${MPI_IMPL}" STREQUAL "openmpi")
+  if(IS_OPEN_MPI)
     # Replace the path of _khiopsgetprocnumber in set_proc_number.in (with the variable GET_PROC_NUMBER_PATH)
     configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/set_proc_number.in
                    ${TMP_DIR}/set_proc_number.sh @ONLY NEWLINE_STYLE UNIX)
@@ -248,6 +248,7 @@ endif(IS_LINUX OR IS_MACOS)
 # ######################################## khisto installation
 if(IS_PIP)
   install(TARGETS khisto RUNTIME DESTINATION ${SKBUILD_SCRIPTS_DIR} COMPONENT KHISTO)
+  # With pip, license is already copied to pkg metadata
 elseif(IS_LINUX)
   install(TARGETS khisto RUNTIME DESTINATION usr/bin COMPONENT KHISTO)
   install(
