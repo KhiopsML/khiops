@@ -49,13 +49,6 @@ if(NOT IS_LINUX
   message(WARNING "Unsupported operating system: ${CMAKE_SYSTEM_NAME}")
 endif()
 
-# Detect pip packaging with scikit-build-core
-if(DEFINED SKBUILD AND SKBUILD EQUAL 2)
-  set(IS_PIP TRUE)
-else()
-  set(IS_PIP FALSE)
-endif()
-
 # Set the build type to Debug if not set
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug")
@@ -95,6 +88,14 @@ if(EXISTS "/etc/os-release")
   if(FEDORA_FOUND GREATER -1)
     set(IS_FEDORA_LIKE true)
   endif()
+endif()
+
+# Detect pip packaging with scikit-build-core
+if(DEFINED SKBUILD AND SKBUILD EQUAL 2)
+  set(IS_PIP TRUE)
+  message(STATUS "Auto-detected pip environment")
+else()
+  set(IS_PIP FALSE)
 endif()
 
 # Check if it is conda environment
