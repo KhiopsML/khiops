@@ -5,7 +5,7 @@ target_link_libraries(MODL PUBLIC DTForest KWLearningProblem)
 set_khiops_options(MODL)
 
 # on fedora, binaries built with mpi must ended by _mpich or _openmpi suffix
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(IS_LINUX AND MPI)
   set_target_properties(MODL PROPERTIES OUTPUT_NAME "MODL${MPI_SUFFIX}")
 endif()
 

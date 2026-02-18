@@ -7,7 +7,7 @@ set_khiops_options(MODL_Coclustering)
 target_link_libraries(MODL_Coclustering PUBLIC KWLearningProblem)
 
 # on fedora, binaries built with mpi must ended by _mpich or _openmpi suffix
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(IS_LINUX AND MPI)
   set_target_properties(MODL_Coclustering PROPERTIES OUTPUT_NAME "MODL_Coclustering${MPI_SUFFIX}")
 endif()
 

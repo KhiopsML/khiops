@@ -33,6 +33,22 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
       "Do not build in-source. Please remove CMakeCache.txt and the CMakeFiles/ directory. Then build out-of-source.")
 endif()
 
+# Detect the OS and define easy-to-use variables
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(IS_LINUX TRUE)
+endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  set(IS_MACOS TRUE)
+endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  set(IS_WINDOWS TRUE)
+endif()
+if(NOT IS_LINUX
+   AND NOT IS_MACOS
+   AND NOT IS_WINDOWS)
+  message(WARNING "Unsupported operating system: ${CMAKE_SYSTEM_NAME}")
+endif()
+
 # Detect pip packaging with scikit-build-core
 if(DEFINED SKBUILD AND SKBUILD EQUAL 2)
   set(IS_PIP TRUE)

@@ -3,7 +3,7 @@
 # ######################################## KNI installation
 
 # Specification of the paths according to the OS
-if(CMAKE_HOST_SYSTEM_NAME STREQUAL Windows)
+if(IS_WINDOWS)
   set(INCLUDE_DIR include)
   set(LIB_DIR lib)
   set(DOC_DIR "./")
@@ -65,7 +65,7 @@ endif()
 
 # ######################################## Khiops and Khiops Coclustering installation
 
-if(UNIX)
+if(IS_LINUX OR IS_MACOS)
 
   # Set khiops and khiops_coclustering paths according to the environment (conda, fedora, etc)
   if(IS_CONDA)
@@ -95,7 +95,7 @@ if(UNIX)
     # Only decide on applying / not applying the --quiet flag for OpenMPI, i.e. for Linux setups. Note that testing on
     # CMAKE_CROSSCOMPILING is not recommended for projects that target MacOS systems
     # (https://cmake.org/cmake/help/latest/variable/CMAKE_CROSSCOMPILING.html#variable:CMAKE_CROSSCOMPILING)
-    if(UNIX AND NOT APPLE)
+    if(NOT IS_MACOS)
       string(REPLACE " " ";" MPI_LIBRARY_VERSION_LIST "${MPI_CXX_LIBRARY_VERSION_STRING}")
       list(FIND MPI_LIBRARY_VERSION_LIST "ident:" MPI_LIBRARY_VERSION_PRE_INDEX)
       if(MPI_LIBRARY_VERSION_PRE_INDEX GREATER -1)
@@ -107,7 +107,7 @@ if(UNIX)
           set(KHIOPS_MPI_QUIET "--quiet")
         endif()
       endif()
-    endif()
+    endif(NOT IS_MACOS)
     set(ADDITIONAL_ENV_VAR "export OMPI_MCA_btl_vader_single_copy_mechanism=none # issue on docker")
     set(ADDITIONAL_ENV_VAR_DISPLAY
         "    echo OMPI_MCA_btl_vader_single_copy_mechanism \"$OMPI_MCA_btl_vader_single_copy_mechanism\"")
@@ -117,9 +117,9 @@ if(UNIX)
     endif()
   elseif("${MPI_IMPL}" STREQUAL "mpich")
     # Set localhost on MacOS (see issue # https://github.com/pmodels/mpich/issues/4710)
-    if(APPLE)
+    if(IS_MACOS)
       set(MPI_EXTRA_FLAG "-host localhost")
-    endif(APPLE)
+    endif(IS_MACOS)
   endif()
 
   # Add header comment to the variable definition (if any variable is defined)
@@ -129,14 +129,14 @@ if(UNIX)
   endif()
 
   # Get the real file name of MODL e.g MODL_openmpi
-  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  if(IS_LINUX)
     get_target_property(MODL_NAME MODL OUTPUT_NAME)
     get_target_property(MODL_COCLUSTERING_NAME MODL_Coclustering OUTPUT_NAME)
   else()
     # the above line fails on macOS. But prefix is added to the binary name only on linux...
     set(MODL_NAME "MODL")
     set(MODL_COCLUSTERING_NAME "MODL_Coclustering")
-  endif()
+  endif(IS_LINUX)
 
   # For all mpi implementation except openmpi, we compute the proc number (with openmpi, the -n flag is not mandatory)
   if(NOT "${MPI_IMPL}" STREQUAL "openmpi")
@@ -204,7 +204,7 @@ if(UNIX)
       COMPONENT KHIOPS)
   endif()
 
-else(UNIX)
+else(IS_LINUX OR IS_MACOS)
 
   if(IS_CONDA)
     set(GUI_STATUS "false")
@@ -249,18 +249,18 @@ else(UNIX)
       COMPONENT KHIOPS)
   endif()
 
-endif(UNIX)
+endif(IS_LINUX OR IS_MACOS)
 
 # ######################################## khisto installation
 if(IS_PIP)
   install(TARGETS khisto RUNTIME DESTINATION ${SKBUILD_SCRIPTS_DIR} COMPONENT KHISTO)
-elseif(UNIX)
+elseif(IS_LINUX)
   install(TARGETS khisto RUNTIME DESTINATION usr/bin COMPONENT KHISTO)
   install(
     FILES ${PROJECT_SOURCE_DIR}/LICENSE
     DESTINATION usr/share/doc/khisto
     COMPONENT KHISTO)
-else()
+elseif(IS_WINDOWS)
   install(TARGETS khisto RUNTIME DESTINATION bin COMPONENT KHISTO)
   install(
     FILES ${PROJECT_SOURCE_DIR}/LICENSE
