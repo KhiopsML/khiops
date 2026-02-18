@@ -129,14 +129,8 @@ if(IS_LINUX OR IS_MACOS)
   endif()
 
   # Get the real file name of MODL e.g MODL_openmpi
-  if(IS_LINUX)
-    get_target_property(MODL_NAME MODL OUTPUT_NAME)
-    get_target_property(MODL_COCLUSTERING_NAME MODL_Coclustering OUTPUT_NAME)
-  else()
-    # the above line fails on macOS. But prefix is added to the binary name only on linux...
-    set(MODL_NAME "MODL")
-    set(MODL_COCLUSTERING_NAME "MODL_Coclustering")
-  endif(IS_LINUX)
+  get_target_property(MODL_NAME MODL OUTPUT_NAME)
+  get_target_property(MODL_COCLUSTERING_NAME MODL_Coclustering OUTPUT_NAME)
 
   # For all mpi implementation except openmpi, we compute the proc number (with openmpi, the -n flag is not mandatory)
   if(NOT "${MPI_IMPL}" STREQUAL "openmpi")
