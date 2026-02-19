@@ -25,7 +25,7 @@ repos:
         # Exclude pack-debian.yml because it doesn't support quoted strings in arrays
         exclude: (packaging/conda/meta.yaml|workflows/pack-debian.yml)
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
       - id: pretty-format-json
         args: [--autofix, --no-ensure-ascii, --no-sort-keys]
