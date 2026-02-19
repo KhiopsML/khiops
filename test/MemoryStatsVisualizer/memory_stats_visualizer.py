@@ -443,7 +443,7 @@ def memory_stats_visualizer(
             )
 
     # Initialize annotation parameters, defines by tuples of three vectors for X, Y and TEXT
-    (X, Y, TEXT) = (0, 1, 2)  # Keys for tuple fields in annotation parameters
+    X, Y, TEXT = (0, 1, 2)  # Keys for tuple fields in annotation parameters
     # Dictionary of annotation parameters, per (processId, family)
     annotation_parameters = {}
 

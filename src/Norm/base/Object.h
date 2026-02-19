@@ -565,10 +565,10 @@ protected:
 // Definition d'une cle generique
 union GenericKey
 {
-	GenericKey() : genericKey(0){};
-	GenericKey(char* s) : sKey(s){};
-	GenericKey(const char* s) : sKey((char*)s){};
-	GenericKey(longint l) : genericKey(l){};
+	GenericKey() : genericKey(0) {};
+	GenericKey(char* s) : sKey(s) {};
+	GenericKey(const char* s) : sKey((char*)s) {};
+	GenericKey(longint l) : genericKey(l) {};
 	char* sKey;
 	ulongint unsignedKey; // Type le plus long a la fois en 32 et 64 bits
 	longint genericKey;   // Type le plus long a la fois en 32 et 64 bits
@@ -577,9 +577,9 @@ union GenericKey
 // Definition d'un valeur generique
 union GenericValue
 {
-	GenericValue() : lValue(0){};
-	GenericValue(Object* o) : oValue(o){};
-	GenericValue(longint l) : lValue(l){};
+	GenericValue() : lValue(0) {};
+	GenericValue(Object* o) : oValue(o) {};
+	GenericValue(longint l) : lValue(l) {};
 	Object* oValue;
 	longint lValue;
 	longint genericValue; // Type le plus long a la fois en 32 et 64 bits

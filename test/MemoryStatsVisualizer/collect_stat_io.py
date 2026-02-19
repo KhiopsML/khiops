@@ -8,7 +8,6 @@ import pandas as pd
 import plotly.io as pio
 import utils
 
-
 """
 Aggregation  of the memory stats log produced by the Khiops tool
 
