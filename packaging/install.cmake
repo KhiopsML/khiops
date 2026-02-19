@@ -3,7 +3,7 @@
 # ######################################## KNI installation
 
 # Specification of the paths according to the OS
-if(CMAKE_HOST_SYSTEM_NAME STREQUAL Windows)
+if(IS_WINDOWS)
   set(INCLUDE_DIR include)
   set(LIB_DIR lib)
   set(DOC_DIR "./")
@@ -65,7 +65,7 @@ endif()
 
 # ######################################## Khiops and Khiops Coclustering installation
 
-if(UNIX)
+if(IS_LINUX OR IS_MACOS)
 
   # Set khiops and khiops_coclustering paths according to the environment (conda, fedora, etc)
   if(IS_CONDA)
@@ -90,12 +90,12 @@ if(UNIX)
   endif(IS_CONDA)
 
   # replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL MPI_EXTRA_FLAG ADDITIONAL_ENV_VAR
-  if("${MPI_IMPL}" STREQUAL "openmpi")
+  if(IS_OPEN_MPI)
     set(MPI_EXTRA_FLAG "--allow-run-as-root")
     # Only decide on applying / not applying the --quiet flag for OpenMPI, i.e. for Linux setups. Note that testing on
     # CMAKE_CROSSCOMPILING is not recommended for projects that target MacOS systems
     # (https://cmake.org/cmake/help/latest/variable/CMAKE_CROSSCOMPILING.html#variable:CMAKE_CROSSCOMPILING)
-    if(UNIX AND NOT APPLE)
+    if(NOT IS_MACOS)
       string(REPLACE " " ";" MPI_LIBRARY_VERSION_LIST "${MPI_CXX_LIBRARY_VERSION_STRING}")
       list(FIND MPI_LIBRARY_VERSION_LIST "ident:" MPI_LIBRARY_VERSION_PRE_INDEX)
       if(MPI_LIBRARY_VERSION_PRE_INDEX GREATER -1)
@@ -107,7 +107,7 @@ if(UNIX)
           set(KHIOPS_MPI_QUIET "--quiet")
         endif()
       endif()
-    endif()
+    endif(NOT IS_MACOS)
     set(ADDITIONAL_ENV_VAR "export OMPI_MCA_btl_vader_single_copy_mechanism=none # issue on docker")
     set(ADDITIONAL_ENV_VAR_DISPLAY
         "    echo OMPI_MCA_btl_vader_single_copy_mechanism \"$OMPI_MCA_btl_vader_single_copy_mechanism\"")
@@ -115,11 +115,11 @@ if(UNIX)
       set(ADDITIONAL_ENV_VAR "${ADDITIONAL_ENV_VAR}\nexport PSM3_DEVICES=self # issue on rocky linux")
       set(ADDITIONAL_ENV_VAR_DISPLAY "${ADDITIONAL_ENV_VAR_DISPLAY}\n    echo PSM3_DEVICES \"$PSM3_DEVICES\"")
     endif()
-  elseif("${MPI_IMPL}" STREQUAL "mpich")
+  elseif(IS_MPICH)
     # Set localhost on MacOS (see issue # https://github.com/pmodels/mpich/issues/4710)
-    if(APPLE)
+    if(IS_MACOS)
       set(MPI_EXTRA_FLAG "-host localhost")
-    endif(APPLE)
+    endif(IS_MACOS)
   endif()
 
   # Add header comment to the variable definition (if any variable is defined)
@@ -129,17 +129,11 @@ if(UNIX)
   endif()
 
   # Get the real file name of MODL e.g MODL_openmpi
-  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    get_target_property(MODL_NAME MODL OUTPUT_NAME)
-    get_target_property(MODL_COCLUSTERING_NAME MODL_Coclustering OUTPUT_NAME)
-  else()
-    # the above line fails on macOS. But prefix is added to the binary name only on linux...
-    set(MODL_NAME "MODL")
-    set(MODL_COCLUSTERING_NAME "MODL_Coclustering")
-  endif()
+  get_target_property(MODL_NAME MODL OUTPUT_NAME)
+  get_target_property(MODL_COCLUSTERING_NAME MODL_Coclustering OUTPUT_NAME)
 
   # For all mpi implementation except openmpi, we compute the proc number (with openmpi, the -n flag is not mandatory)
-  if(NOT "${MPI_IMPL}" STREQUAL "openmpi")
+  if(IS_OPEN_MPI)
     # Replace the path of _khiopsgetprocnumber in set_proc_number.in (with the variable GET_PROC_NUMBER_PATH)
     configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/set_proc_number.in
                    ${TMP_DIR}/set_proc_number.sh @ONLY NEWLINE_STYLE UNIX)
@@ -204,7 +198,7 @@ if(UNIX)
       COMPONENT KHIOPS)
   endif()
 
-else(UNIX)
+else(IS_LINUX OR IS_MACOS)
 
   if(IS_CONDA)
     set(GUI_STATUS "false")
@@ -249,11 +243,22 @@ else(UNIX)
       COMPONENT KHIOPS)
   endif()
 
-endif(UNIX)
+endif(IS_LINUX OR IS_MACOS)
 
 # ######################################## khisto installation
-install(TARGETS khisto RUNTIME DESTINATION bin COMPONENT KHISTO)
-install(
-  FILES ${PROJECT_SOURCE_DIR}/LICENSE
-  DESTINATION doc
-  COMPONENT KHISTO)
+if(IS_PIP)
+  install(TARGETS khisto RUNTIME DESTINATION ${SKBUILD_SCRIPTS_DIR} COMPONENT KHISTO)
+  # With pip, license is already copied to pkg metadata
+elseif(IS_LINUX)
+  install(TARGETS khisto RUNTIME DESTINATION usr/bin COMPONENT KHISTO)
+  install(
+    FILES ${PROJECT_SOURCE_DIR}/LICENSE
+    DESTINATION usr/share/doc/khisto
+    COMPONENT KHISTO)
+elseif(IS_WINDOWS)
+  install(TARGETS khisto RUNTIME DESTINATION bin COMPONENT KHISTO)
+  install(
+    FILES ${PROJECT_SOURCE_DIR}/LICENSE
+    DESTINATION doc
+    COMPONENT KHISTO)
+endif()

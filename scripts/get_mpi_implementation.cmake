@@ -1,5 +1,6 @@
-# Detect MPI implementation. If an implementation is detected, MPI_IMPL is set with "openmpi", "mpich" or "intel". Use
-# the global variable IS_CONDA
+# Detect MPI implementation. If an implementation is detected, MPI_IMPL is set with "openmpi", "mpich" or "intel". And
+# set the appropriate variable to TRUE among IS_OPEN_MPI, IS_MPICH and IS_INTEL_MPI. If no implementation is detected,
+# MPI_IMPL is empty and no variable is set to TRUE. Use the global variable IS_CONDA
 function(get_mpi_implementation)
   # On standard environment, we search implementation names in the MPI_LIBRARIES variable provided by find_mpi. Inside
   # conda environment, the library path is the same for all libraries. So we use the 'mpi' variable that is defined
@@ -32,19 +33,29 @@ function(get_mpi_implementation)
   endif()
 
   # Find "openmpi", "mpich" or "intel" in the variable VAR_MPI_INFO
+  message(STATUS "Detecting MPI implementation ${VAR_MPI_INFO}...")
   string(FIND "${VAR_MPI_INFO}" openmpi POS)
   if(POS GREATER -1)
     set(MPI_IMPL "openmpi")
+    set(IS_OPEN_MPI TRUE)
+  endif()
+
+  string(FIND "${VAR_MPI_INFO}" open-mpi POS)
+  if(POS GREATER -1)
+    set(MPI_IMPL "openmpi")
+    set(IS_OPEN_MPI TRUE)
   endif()
 
   string(FIND "${VAR_MPI_INFO}" mpich POS)
   if(POS GREATER -1)
     set(MPI_IMPL "mpich")
+    set(IS_MPICH TRUE)
   endif()
 
   string(FIND "${VAR_MPI_INFO}" intel POS)
   if(POS GREATER -1)
     set(MPI_IMPL "intel")
+    set(IS_INTEL_MPI TRUE)
   endif()
 
   if(MPI_IMPL)
@@ -53,8 +64,17 @@ function(get_mpi_implementation)
     message(STATUS "Unable to detect the MPI implementation: no suffix will be added to binaries name")
   endif()
 
-  # Transmits MPI_IMPL to parent scope
+  # Transmits variables to parent scope
   set(MPI_IMPL
       ${MPI_IMPL}
+      PARENT_SCOPE)
+  set(IS_OPEN_MPI
+      ${IS_OPEN_MPI}
+      PARENT_SCOPE)
+  set(IS_MPICH
+      ${IS_MPICH}
+      PARENT_SCOPE)
+  set(IS_INTEL_MPI
+      ${IS_INTEL_MPI}
       PARENT_SCOPE)
 endfunction()
