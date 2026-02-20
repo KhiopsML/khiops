@@ -1,4 +1,4 @@
-<img src=https://github.com/khiopsML/khiops/blob/dev/packaging/common/images/khiops.png width=60 />
+<img src=https://github.com/khiopsML/khiops/blob/main/packaging/common/images/khiops.png width=60 />
 
 # Khiops
 Khiops is an AutoML suite for supervised and unsupervised learning
