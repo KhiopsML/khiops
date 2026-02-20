@@ -25,6 +25,8 @@ on:
       - src/**.lex
       - src/**.yac
       - test/LearningTest/**
+      - .github/workflows/run-standard-tests.yml
+      - .github/actions/run-standard-tests/action.yml
 # Cancel any ongoing run of this workflow on the same PR or ref
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref
@@ -42,6 +44,7 @@ jobs:
         build-setup:
           - {os: windows-2022, cmake-preset: windows-msvc}
           - {os: ubuntu-latest, cmake-preset: linux-gcc}
+          - {os: ubuntu-24.04-arm, cmake-preset: linux-gcc}
           - {os: macos-14, cmake-preset: macos-clang}
         config: [debug, release]
     runs-on: ${{ matrix.build-setup.os }}
@@ -91,6 +94,7 @@ jobs:
         build-setup:
           - {os: windows-2022, cmake-preset: windows-msvc}
           - {os: ubuntu-latest, cmake-preset: linux-gcc}
+          - {os: ubuntu-24.04-arm, cmake-preset: linux-gcc}
           - {os: macos-14, cmake-preset: macos-clang}
         running-mode: [parallel, serial]
         config: [debug, release]
