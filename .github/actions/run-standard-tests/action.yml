@@ -22,6 +22,14 @@ inputs:
   testing-context-description:
     description: Description of the testing context (build setup, target platform)
     required: true
+  learning-test-tool:
+    description: directory of LearningTestTool
+    required: false
+    default: test/LearningTestTool
+  learning-test:
+    description: directory of LearningTest
+    required: false
+    default: test/LearningTest
 runs:
   using: composite
   steps:
@@ -52,9 +60,9 @@ runs:
     - name: Set environment variables
       shell: bash
       run: |
-        echo "TEST_PY=test/LearningTestTool/py/kht_test.py" >> "$GITHUB_ENV"
-        echo "APPLY_PY=test/LearningTestTool/py/kht_apply.py" >> "$GITHUB_ENV"
-        echo "COLLECT_PY=test/LearningTestTool/py/kht_collect_results.py" >> "$GITHUB_ENV"
+        echo "TEST_PY=${{ inputs.learning-test-tool }}/py/kht_test.py" >> "$GITHUB_ENV"
+        echo "APPLY_PY=${{ inputs.learning-test-tool }}/py/kht_apply.py" >> "$GITHUB_ENV"
+        echo "COLLECT_PY=${{ inputs.learning-test-tool }}/py/kht_collect_results.py" >> "$GITHUB_ENV"
         echo "BIN_PATH=${{ inputs.binary-path }}" >> "$GITHUB_ENV"
     - name: Run Tests
     # Run test on linux and macOS as describe in the top comment:
@@ -73,16 +81,16 @@ runs:
           export PARALLEL_ARG="-p 4"
         fi
         if [[ "${{ inputs.config }}" == "release" ]] ; then
-          $PYTHON $TEST_PY test/LearningTest/TestKhiops/Standard "${BIN_PATH}" ${PARALLEL_ARG}
-          $PYTHON $TEST_PY test/LearningTest/TestCoclustering/Standard "${BIN_PATH}" ${PARALLEL_ARG}
+          $PYTHON $TEST_PY ${{ inputs.learning-test }}/TestKhiops/Standard "${BIN_PATH}" ${PARALLEL_ARG}
+          $PYTHON $TEST_PY ${{ inputs.learning-test }}/TestCoclustering/Standard "${BIN_PATH}" ${PARALLEL_ARG}
           if [[ "${{ inputs.running-mode }}" != "parallel" ]] ; then 
-            $PYTHON $TEST_PY test/LearningTest/TestKNI/Standard "${BIN_PATH}"
+            $PYTHON $TEST_PY ${{ inputs.learning-test }}/TestKNI/Standard "${BIN_PATH}"
           fi
         else
-          $PYTHON $TEST_PY test/LearningTest/TestKhiops/Standard/IrisLight "${BIN_PATH}" ${PARALLEL_ARG}
-          $PYTHON $TEST_PY test/LearningTest/TestCoclustering/Standard/Iris "${BIN_PATH}" ${PARALLEL_ARG}
+          $PYTHON $TEST_PY ${{ inputs.learning-test }}/TestKhiops/Standard/IrisLight "${BIN_PATH}" ${PARALLEL_ARG}
+          $PYTHON $TEST_PY ${{ inputs.learning-test }}/TestCoclustering/Standard/Iris "${BIN_PATH}" ${PARALLEL_ARG}
           if [[ "${{ inputs.running-mode }}" != "parallel" ]] ; then
-            $PYTHON $TEST_PY test/LearningTest/TestKNI/Standard/Iris "${BIN_PATH}"
+            $PYTHON $TEST_PY ${{ inputs.learning-test }}/TestKNI/Standard/Iris "${BIN_PATH}"
           fi
         fi
     - name: Collect results
@@ -91,19 +99,19 @@ runs:
       run: |
         mkdir -p results
         if [[ "${{ inputs.config }}" == "release" ]] ; then
-          $PYTHON $APPLY_PY test/LearningTest/TestKhiops/Standard errors | tee -a results/errors.txt
-          $PYTHON $APPLY_PY test/LearningTest/TestCoclustering/Standard errors | tee -a results/errors.txt
+          $PYTHON $APPLY_PY ${{ inputs.learning-test }}/TestKhiops/Standard errors | tee -a results/errors.txt
+          $PYTHON $APPLY_PY ${{ inputs.learning-test }}/TestCoclustering/Standard errors | tee -a results/errors.txt
           if [[ "${{ inputs.running-mode }}" != "parallel" ]] ; then
-            $PYTHON $APPLY_PY test/LearningTest/TestKNI/Standard errors | tee -a results/errors.txt
+            $PYTHON $APPLY_PY ${{ inputs.learning-test }}/TestKNI/Standard errors | tee -a results/errors.txt
           fi
         else
-          $PYTHON $APPLY_PY test/LearningTest/TestKhiops/Standard/IrisLight errors | tee -a results/errors.txt
-          $PYTHON $APPLY_PY test/LearningTest/TestCoclustering/Standard/Iris errors | tee -a results/errors.txt
+          $PYTHON $APPLY_PY ${{ inputs.learning-test }}/TestKhiops/Standard/IrisLight errors | tee -a results/errors.txt
+          $PYTHON $APPLY_PY ${{ inputs.learning-test }}/TestCoclustering/Standard/Iris errors | tee -a results/errors.txt
           if [[ "${{ inputs.running-mode }}" != "parallel" ]] ; then
-            $PYTHON $APPLY_PY test/LearningTest/TestKNI/Standard/Iris errors | tee -a results/errors.txt
+            $PYTHON $APPLY_PY ${{ inputs.learning-test }}/TestKNI/Standard/Iris errors | tee -a results/errors.txt
           fi
         fi
-        $PYTHON $COLLECT_PY test/LearningTest/ results --collect-type warnings -f basic
+        $PYTHON $COLLECT_PY ${{ inputs.learning-test }} results --collect-type warnings -f basic
     - name: Check results
       # We escape eol in the results file to print multilines in the github UI https://github.com/orgs/community/discussions/26288
       shell: bash
