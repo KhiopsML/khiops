@@ -122,7 +122,7 @@ runs:
         fi
     - name: Upload test results
       if: failure()
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: test-results-${{ inputs.testing-context-description }}
         retention-days: 7

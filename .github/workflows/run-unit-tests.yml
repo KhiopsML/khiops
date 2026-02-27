@@ -50,7 +50,7 @@ jobs:
           ctest --preset ${{ matrix.build-setup.cmake-preset }}
       - name: Upload test results
         if: failure()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: unit-test-results-${{ matrix.build-setup.cmake-preset }}
           retention-days: 7
