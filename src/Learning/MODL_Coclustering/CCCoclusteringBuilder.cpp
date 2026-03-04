@@ -347,7 +347,7 @@ boolean CCCoclusteringBuilder::CheckVarPartSpecifications() const
 boolean CCCoclusteringBuilder::ComputeCoclustering()
 {
 	boolean bOk = true;
-	boolean bProfileOptimisation = false;
+	boolean bProfileOptimisation = true;
 	KWTupleTable tupleTable;
 	KWTupleTable tupleFrequencyTable;
 	KWDataGridOptimizer dataGridOptimizer;
@@ -482,23 +482,19 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("Compute coclustering");
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Dictionary", GetDatabase()->GetClassName());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Database", GetDatabase()->GetDatabaseName());
-		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Instances",
-								   IntToString(initialDataGrid->GetGridFrequency()));
-		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Variables",
-								   IntToString(initialDataGrid->GetAttributeNumber()));
-		KWDataGridOptimizer::GetProfiler()->WriteKeyString(
-		    "Is VarPart", BooleanToString(initialDataGrid->IsVarPartDataGrid()));
+		KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Instances", initialDataGrid->GetGridFrequency());
+		KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Variables", initialDataGrid->GetAttributeNumber());
+		KWDataGridOptimizer::GetProfiler()->WriteKeyBoolean("Is VarPart", initialDataGrid->IsVarPartDataGrid());
 		if (initialDataGrid->IsVarPartDataGrid())
 		{
-			KWDataGridOptimizer::GetProfiler()->WriteKeyString(
+			KWDataGridOptimizer::GetProfiler()->WriteKeyInt(
 			    initialDataGrid->GetAttributeAt(0)->GetAttributeName() + " values",
-			    IntToString(initialDataGrid->GetAttributeAt(0)->GetInitialValueNumber()));
-			KWDataGridOptimizer::GetProfiler()->WriteKeyString(
+			    initialDataGrid->GetAttributeAt(0)->GetInitialValueNumber());
+			KWDataGridOptimizer::GetProfiler()->WriteKeyInt(
 			    initialDataGrid->GetAttributeAt(1)->GetAttributeName() + " values",
-			    IntToString(initialDataGrid->GetAttributeAt(1)->GetInitialValueNumber()));
-			KWDataGridOptimizer::GetProfiler()->WriteKeyString(
-			    "Inner variables",
-			    IntToString(initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber()));
+			    initialDataGrid->GetAttributeAt(1)->GetInitialValueNumber());
+			KWDataGridOptimizer::GetProfiler()->WriteKeyInt(
+			    "Inner variables", initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber());
 		}
 	}
 
@@ -799,8 +795,7 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 			// grille post-fusionnee (fusion des parties de variables consecutives dans un meme
 			// cluster)
 			KWDataGridOptimizer::GetProfiler()->BeginMethod("Optimize VarPart prepartition");
-			KWDataGridOptimizer::GetProfiler()->WriteKeyString("Pre-partition index",
-									   IntToString(nPrePartitionIndex));
+			KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Pre-partition index", nPrePartitionIndex);
 			dPartitionBestCost =
 			    dataGridOptimizer.OptimizeDataGrid(&partitionedDataGrid, &partitionedOptimizedDataGrid);
 			KWDataGridOptimizer::GetProfiler()->EndMethod("Optimize VarPart prepartition");
@@ -1115,8 +1110,7 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 		// grille post-fusionnee (fusion des parties de variables consecutives dans un meme
 		// cluster)
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("Optimize VarPart prepartition");
-		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Pre-partition index",
-								   IntToString(nInitialPrePartitionIndex));
+		KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Pre-partition index", nInitialPrePartitionIndex);
 		dPartitionBestCost =
 		    dataGridOptimizer.OptimizeDataGrid(&partitionedDataGrid, &partitionedOptimizedDataGrid);
 		KWDataGridOptimizer::GetProfiler()->EndMethod("Optimize VarPart prepartition");
@@ -1981,7 +1975,7 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 			sLastActualAnyTimeReportFileName = sReportFileName;
 
 		// Ajout de trace lie au profiling
-		KWDataGridOptimizer::GetProfiler()->WriteKeyString("New best level", DoubleToString(dLevel));
+		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("New best level", dLevel);
 		KWDataGridOptimizer::GetProfiler()->EndMethod("Save best solution");
 	}
 	else
