@@ -285,13 +285,11 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 				if (bIsLastGranularity)
 					sSuffix = " (last)";
 				KWDataGridOptimizer::GetProfiler()->BeginMethod("Optimize granularity" + sSuffix);
-				KWDataGridOptimizer::GetProfiler()->WriteKeyString("Granularity index",
-										   IntToString(nGranularityIndex));
+				KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Granularity index", nGranularityIndex);
 				if (optimizedDataGrid->IsVarPartDataGrid())
-					KWDataGridOptimizer::GetProfiler()->WriteKeyString(
+					KWDataGridOptimizer::GetProfiler()->WriteKeyInt(
 					    "VarPart granularity",
-					    IntToString(
-						optimizedDataGrid->GetInnerAttributes()->GetVarPartGranularity()));
+					    optimizedDataGrid->GetInnerAttributes()->GetVarPartGranularity());
 
 				if (bDisplayGranularities)
 				{
@@ -666,7 +664,7 @@ double KWDataGridOptimizer::SlightOptimizeGranularizedDataGrid(const KWDataGrid*
 
 	// Generation d'une solution dans un voisinage de la meilleure solution
 	KWDataGridOptimizer::GetProfiler()->BeginMethod("Generate neighbour solution");
-	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Neighbourhood size", "1");
+	KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Neighbourhood size", 1);
 	GenerateNeighbourSolution(initialDataGrid, optimizedDataGrid, 1, &neighbourDataGrid);
 	KWDataGridOptimizer::GetProfiler()->EndMethod("Generate neighbour solution");
 
@@ -1197,11 +1195,10 @@ double KWDataGridOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* initi
 
 		// Parametrage du profiling
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("VNS optimize");
-		KWDataGridOptimizer::GetProfiler()->WriteKeyString(
-		    "Is VarPart", BooleanToString(currentDataGrid.IsVarPartDataGrid()));
-		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Level", IntToString(nLevel));
-		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Neighbourhood level number",
-								   IntToString(nNeighbourhoodLevelNumber));
+		KWDataGridOptimizer::GetProfiler()->WriteKeyBoolean("Is VarPart", currentDataGrid.IsVarPartDataGrid());
+		KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Level", nLevel);
+		KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Neighbourhood level number",
+								nNeighbourhoodLevelNumber);
 
 		// Optimisation a partir de la nouvelle solution
 		// Cas d'un coclustering de variables
@@ -1293,8 +1290,7 @@ double KWDataGridOptimizer::VNSOptimizeDataGrid(const KWDataGrid* initialDataGri
 
 		// Generation d'une solution dans un voisinnage de la meilleure solution
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("Generate neighbour solution");
-		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Neighbourhood size",
-								   DoubleToString(dNeighbourhoodSize));
+		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Neighbourhood size", dNeighbourhoodSize);
 		GenerateNeighbourSolution(initialDataGrid, optimizedDataGrid, dNeighbourhoodSize, &neighbourDataGrid);
 		KWDataGridOptimizer::GetProfiler()->EndMethod("Generate neighbour solution");
 
@@ -1303,8 +1299,7 @@ double KWDataGridOptimizer::VNSOptimizeDataGrid(const KWDataGrid* initialDataGri
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("VNS level",
 								   sTmp + IntToString(nVNSNeighbourhoodLevelIndex) +
 								       "/" + IntToString(nVNSNeighbourhoodLevelNumber));
-		KWDataGridOptimizer::GetProfiler()->WriteKeyString("VNS neighbourhood size",
-								   DoubleToString(dVNSNeighbourhoodSize));
+		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("VNS neighbourhood size", dVNSNeighbourhoodSize);
 
 		// Optimisation de cette solution
 		dCost = OptimizeSolution(initialDataGrid, &neighbourDataGrid, true);
@@ -1458,8 +1453,8 @@ double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* ini
 
 				// Parametrage du profiling
 				KWDataGridOptimizer::GetProfiler()->BeginMethod("Post-optimization IV");
-				KWDataGridOptimizer::GetProfiler()->WriteKeyString("Improvement number",
-										   IntToString(nImprovementNumber));
+				KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Improvement number",
+										nImprovementNumber);
 
 				// Exploration des deplacements pour tous les attributs
 				bImprovement = varPartDataGridPostOptimizer.PostOptimizeLightVarPartDataGrid(
@@ -1552,6 +1547,7 @@ double KWDataGridOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* initial
 						       KWDataGrid* optimizedDataGrid, double& dBestMergedDataGridCost,
 						       boolean bWithoutAntecedent) const
 {
+	boolean bDisplayMainSteps = false;
 	double dBestCost;
 	double dCost;
 	double dMergedCost;
@@ -1566,7 +1562,6 @@ double KWDataGridOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* initial
 	double dDecreaseFactor;
 	double dNeighbourhoodSize;
 	ALString sTmp;
-	boolean bDisplayMainSteps = false;
 
 	// On ne reverifie pas les precondition de la methode publique
 	require(nNeighbourhoodLevelNumber >= 0);
@@ -1597,8 +1592,7 @@ double KWDataGridOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* initial
 
 		// Generation d'une solution dans un voisinnage de la meilleure solution
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("Generate neighbour solution");
-		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Neighbourhood size",
-								   DoubleToString(dNeighbourhoodSize));
+		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Neighbourhood size", dNeighbourhoodSize);
 
 		// Test du nouvel algorithme avec exploration de la tokenisation dans le VNS
 		if (not GetSurtokenisationProto())
@@ -1708,8 +1702,7 @@ double KWDataGridOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* initial
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("VNS level",
 								   sTmp + IntToString(nVNSNeighbourhoodLevelIndex) +
 								       "/" + IntToString(nVNSNeighbourhoodLevelNumber));
-		KWDataGridOptimizer::GetProfiler()->WriteKeyString("VNS neighbourhood size",
-								   DoubleToString(dVNSNeighbourhoodSize));
+		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("VNS neighbourhood size", dVNSNeighbourhoodSize);
 
 		// Optimisation de cette solution
 		// Cas sans surtokenisation des innerAttributes

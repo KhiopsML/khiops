@@ -46,6 +46,10 @@ public:
 
 	// Ajout d'une information de type cle-valeur dans la trace, si elle est active
 	void WriteKeyString(const ALString& sKey, const ALString& sValue);
+	void WriteKeyInt(const ALString& sKey, int nValue);
+	void WriteKeyLongint(const ALString& sKey, longint lValue);
+	void WriteKeyDouble(const ALString& sKey, double dValue);
+	void WriteKeyBoolean(const ALString& sKey, boolean bValue);
 
 	// Parametrage avance pour exporter toute la trace de profiling (defaut: false)
 	// Dans ce cas, un fichier de trace complet est ecrit au format json, de nom

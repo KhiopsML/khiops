@@ -198,6 +198,58 @@ void Profiler::WriteKeyString(const ALString& sKey, const ALString& sValue)
 	}
 }
 
+void Profiler::WriteKeyInt(const ALString& sKey, int nValue)
+{
+	require(sKey != "");
+
+	// Methode active uniquement si le profiling est demarre
+	if (bIsStarted)
+	{
+		// Ecriture de la trace
+		if (bIsTrace)
+			fJsonTraceFile->WriteKeyInt(sKey, nValue);
+	}
+}
+
+void Profiler::WriteKeyLongint(const ALString& sKey, longint lValue)
+{
+	require(sKey != "");
+
+	// Methode active uniquement si le profiling est demarre
+	if (bIsStarted)
+	{
+		// Ecriture de la trace
+		if (bIsTrace)
+			fJsonTraceFile->WriteKeyLongint(sKey, lValue);
+	}
+}
+
+void Profiler::WriteKeyDouble(const ALString& sKey, double dValue)
+{
+	require(sKey != "");
+
+	// Methode active uniquement si le profiling est demarre
+	if (bIsStarted)
+	{
+		// Ecriture de la trace
+		if (bIsTrace)
+			fJsonTraceFile->WriteKeyDouble(sKey, dValue);
+	}
+}
+
+void Profiler::WriteKeyBoolean(const ALString& sKey, boolean bValue)
+{
+	require(sKey != "");
+
+	// Methode active uniquement si le profiling est demarre
+	if (bIsStarted)
+	{
+		// Ecriture de la trace
+		if (bIsTrace)
+			fJsonTraceFile->WriteKeyBoolean(sKey, bValue);
+	}
+}
+
 void Profiler::SetTrace(boolean bTrace)
 {
 	require(not bIsStarted);
