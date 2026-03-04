@@ -606,6 +606,7 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 {
 	boolean bDisplayResults = false;
 	boolean bDisplayPartitionLevel = false;
+	boolean bDisplayPrePartitioning = false;
 	KWDataGridOptimizer dataGridOptimizer;
 	ObjectDictionary odInnerAttributesQuantileBuilders;
 	KWDataGrid nullDataGrid;
@@ -634,7 +635,6 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 	double dBestMergedCost;
 	double dFusionDeltaCost;
 	IntVector ivUsedPrePartitioning;
-	boolean bDisplayPrePartitioning = false;
 	double dEpsilon = 1e-6;
 	double dTotalComputeTime;
 	ALString sTmp;
@@ -707,7 +707,6 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 		// Pre-partitionnement des attributs internes de la grille initiale
 		dataGridManager.ExportGranularizedDataGridForVarPartAttributes(
 		    initialDataGrid, &partitionedDataGrid, nPrePartitionIndex, &odInnerAttributesQuantileBuilders);
-
 		if (bDisplayResults)
 		{
 			cout << "CCOptimize :partitionedDataGrid pour le pre-partitionnement " << nPrePartitionIndex
@@ -809,11 +808,11 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 			// Calcul du temps d'optimisation (depuis le debut)
 			tAnyTimeTimer.Stop();
 			dTotalComputeTime = tAnyTimeTimer.GetElapsedTime(), tAnyTimeTimer.Start();
-
+			if (bDisplayPartitionLevel or bDisplayResults)
+				cout << "Apres OptimizeGranularizedDataGrid pour Granularite " << nPrePartitionIndex
+				     << "\t" << dPartitionBestCost << endl;
 			if (bDisplayResults)
 			{
-				cout << "Apres OptimizeGranularizedDataGrid pour Granularite " << nPrePartitionIndex
-				     << "\t Cout " << dPartitionBestCost << endl;
 				partitionedOptimizedDataGrid.WriteAttributes(cout);
 				partitionedOptimizedDataGrid.WriteAttributeParts(cout);
 			}
@@ -841,7 +840,11 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 					   &partitionedPostMergedOptimizedDataGrid));
 				assert(coclusteringDataGridCosts->ComputeDataGridTotalCost(
 					   &partitionedPostMergedOptimizedDataGrid) < dMergedCost * (1 + dEpsilon));
-
+				if (bDisplayResults or bDisplayPartitionLevel)
+				{
+					cout << "CCOptimize : Grille avant fusion\t" << dPartitionBestCost << "\n";
+					cout << "CCOptimize : Grille fusionnee \t" << dMergedCost << "\n";
+				}
 				if (bDisplayResults)
 				{
 					cout << "CCOptimize : Grille avant fusion \t" << dPartitionBestCost << "\n";
@@ -857,7 +860,6 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 			{
 				dBestMergedCost = dMergedCost;
 				dBestCost = dPartitionBestCost;
-
 				if (bDisplayResults)
 					cout << "CCCoclusteringBuilder : amelioration du cout et memorisation "
 						"de la grille sans post-optimisation VarPart"
@@ -881,7 +883,7 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 			if (bIsLastPrePartitioning)
 			{
 				if (bDisplayResults)
-					cout << "CCOptimize :Mise a jour de la memorisation du coclustering "
+					cout << "CCOptimize : Mise a jour de la memorisation du coclustering "
 						"pour la derniere granularite "
 					     << endl;
 
@@ -899,7 +901,6 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 					dataGridManager.ExportDataGridWithSingletonVarParts(
 					    initialDataGrid, optimizedDataGrid, &partitionedReferencePostMergedDataGrid,
 					    true);
-
 					if (bDisplayResults)
 						cout << "CCCoclusteringBuilder : memorisation d'une grille "
 							"potentiellement sans post-optimisation VarPart"
@@ -907,14 +908,16 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 
 					HandleOptimizationStep(optimizedDataGrid,
 							       &partitionedReferencePostMergedDataGrid, true);
-
+					if (bDisplayResults or bDisplayPartitionLevel)
+					{
+						cout << "CCOptimize :Derniere grille apres "
+							"HandleOptimizationStep de cout\t"
+						     << dBestMergedCost << endl;
+					}
 					if (bDisplayResults)
 					{
 						cout << "CCOptimize :partitionedReferencePostMergedDataGrid" << endl;
 						partitionedReferencePostMergedDataGrid.Write(cout);
-						cout << "CCOptimize :Derniere grille apres "
-							"HandleOptimizationStep de cout \t"
-						     << dBestMergedCost << endl;
 						optimizedDataGrid->Write(cout);
 					}
 				}
@@ -951,7 +954,7 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 						   "optimization time.");
 					if (bDisplayResults)
 						cout << "Totalite du temps alloue ecoule apres la granularite "
-							"de pre-partitionnement de l'attribut VarPart \t"
+							"de pre-partitionnement de l'attribut VarPart "
 						     << nPrePartitionIndex << endl;
 					break;
 				}
@@ -1121,10 +1124,13 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 		// Calcul du temps d'optimisation (depuis le debut)
 		tAnyTimeTimer.Stop();
 		dTotalComputeTime = tAnyTimeTimer.GetElapsedTime(), tAnyTimeTimer.Start();
-		if (bDisplayResults)
+		if (bDisplayResults or bDisplayTokenization)
 		{
 			cout << "Apres OptimizeGranularizedDataGrid pour Granularite " << nInitialPrePartitionIndex
-			     << "\t Cout " << dPartitionBestCost << endl;
+			     << "\t" << dPartitionBestCost << endl;
+		}
+		if (bDisplayResults)
+		{
 			partitionedOptimizedDataGrid.WriteAttributes(cout);
 			partitionedOptimizedDataGrid.WriteAttributeParts(cout);
 		}
@@ -1151,11 +1157,13 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 								  &partitionedPostMergedOptimizedDataGrid));
 			assert(coclusteringDataGridCosts->ComputeDataGridTotalCost(
 				   &partitionedPostMergedOptimizedDataGrid) < dMergedCost * (1 + dEpsilon));
-
+			if (bDisplayResults or bDisplayTokenization)
+			{
+				cout << "CCOptimize : Grille avant fusion\t" << dPartitionBestCost << "\n";
+				cout << "CCOptimize : Grille fusionnee\t" << dMergedCost << "\n";
+			}
 			if (bDisplayResults)
 			{
-				cout << "CCOptimize : Grille avant fusion \t" << dPartitionBestCost << "\n";
-				cout << "CCOptimize : Grille fusionnee  \t" << dMergedCost << "\n";
 				partitionedPostMergedOptimizedDataGrid.Write(cout);
 				cout << flush;
 			}
@@ -1167,7 +1175,6 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 		{
 			dBestMergedCost = dMergedCost;
 			dBestCost = dPartitionBestCost;
-
 			if (bDisplayResults)
 				cout << "CCCoclusteringBuilder : amelioration du cout et memorisation "
 					"de la grille sans post-optimisation VarPart"
@@ -1210,14 +1217,16 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 				     << endl;
 
 			HandleOptimizationStep(optimizedDataGrid, &partitionedReferencePostMergedDataGrid, true);
-
+			if (bDisplayResults or bDisplayTokenization)
+			{
+				cout << "CCOptimize :Derniere grille apres "
+					"HandleOptimizationStep de cout\t"
+				     << dBestMergedCost << endl;
+			}
 			if (bDisplayResults)
 			{
 				cout << "CCOptimize :partitionedReferencePostMergedDataGrid" << endl;
 				partitionedReferencePostMergedDataGrid.Write(cout);
-				cout << "CCOptimize :Derniere grille apres "
-					"HandleOptimizationStep de cout \t"
-				     << dBestMergedCost << endl;
 				optimizedDataGrid->Write(cout);
 			}
 		}
