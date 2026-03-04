@@ -237,7 +237,7 @@ protected:
 	void GenerateNeighbourSolution(const KWDataGrid* initialDataGrid, const KWDataGrid* optimizedDataGrid,
 				       double dNoiseRate, KWDataGridMerger* neighbourDataGridMerger) const;
 
-	// Creation d'une solution voisine d'une solution optimisee avec perturbation de la tokenisation des innerAttributes dans le car VarPart
+	// Creation d'une solution voisine d'une solution optimisee avec perturbation de la tokenisation des innerAttributes dans le cas VarPart
 	// On passe en parametre un pourcentage de perturbation compris
 	// entre 0 (pas de perturbation) et 1 (solution aleatoire)
 	void PROTOGenerateNeighbourSolution(const KWDataGrid* initialDataGrid, const KWDataGrid* optimizedDataGrid,
