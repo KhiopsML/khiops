@@ -347,7 +347,7 @@ boolean CCCoclusteringBuilder::CheckVarPartSpecifications() const
 boolean CCCoclusteringBuilder::ComputeCoclustering()
 {
 	boolean bOk = true;
-	boolean bProfileOptimisation = true;
+	boolean bProfileOptimisation = false;
 	KWTupleTable tupleTable;
 	KWTupleTable tupleFrequencyTable;
 	KWDataGridOptimizer dataGridOptimizer;
@@ -1975,6 +1975,7 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 			sLastActualAnyTimeReportFileName = sReportFileName;
 
 		// Ajout de trace lie au profiling
+		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dCost);
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("New best level", dLevel);
 		KWDataGridOptimizer::GetProfiler()->EndMethod("Save best solution");
 	}
