@@ -568,6 +568,7 @@ double KWDataGridManager::ExportDataGridWithVarPartMergeOptimization(const KWDat
 	}
 
 	// Parametrage du profiler
+	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Delta cost", dFusionDeltaCost);
 	KWDataGridOptimizer::GetProfiler()->EndMethod("Post VarPart merge");
 
 	ensure(CheckDataGrid(sourceDataGrid, targetDataGrid));
