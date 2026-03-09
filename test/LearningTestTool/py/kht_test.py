@@ -45,9 +45,10 @@ def build_tool_exe_path(tool_binaries_dir, tool_name, use_khiops_env):
     if tool_binaries_dir == "check":
         return "check", error_message
 
-    # Determination du chemin vers l'executable a partir des variables
-    # d'environnement positionnees par le script khiops_env
+    # Determination du chemin vers l'executable et du nombre de processus
+    # a partir des variables d'environnement positionnees par le script khiops_env
     if use_khiops_env:
+        results.process_number = int(os.environ["KHIOPS_PROC_NUMBER"])
         if tool_name == kht.KHIOPS:
             tool_exe_path = os.environ["KHIOPS_PATH"]
         elif tool_name == kht.COCLUSTERING:
@@ -906,8 +907,10 @@ def main():
             usage_help += " " + help_options
         return usage_help
 
-    def activate_khiops_env(binaries_dir):
-        """Recherche et activation du script khiops_env dans le repertoire binaries_dir"""
+    def activate_khiops_env(binaries_dir, process_number):
+        """Recherche et activation du script khiops_env dans le repertoire binaries_dir.
+        Utilisation du nombre de processeur selon de khiops_env, sauf si on passe un
+        process_number superieur a 1"""
         # On verifie si khiops_env est dans le repertoire binaries_dir
         # - si c'est le cas, alors:
         #   - on "source" khiops_env, i.e. on positionne toutes les variables a
@@ -934,6 +937,10 @@ def main():
         use_khiops_env = False
         error_message = ""
         if os.path.exists(khiops_env_path) and os.path.isfile(khiops_env_path):
+            # On modifie KHIOPS_PROC_NUMBER dans l'environnement pour que khiops_env positionne les
+            # variables d'environnement avec le nombre de processus saisi en argument (flag -p)
+            if process_number > 1:
+                os.environ["KHIOPS_PROC_NUMBER"] = str(process_number)
             with subprocess.Popen(
                 [khiops_env_path, "--env"],
                 stdout=subprocess.PIPE,
@@ -1106,7 +1113,7 @@ def main():
     results.forced_platform = args.forced_platform
 
     # Verification et activation de khiops_env le cas echeant
-    use_khiops_env, error_message = activate_khiops_env(args.binaries)
+    use_khiops_env, error_message = activate_khiops_env(args.binaries, args.n)
 
     # Lancement de la commande
     evaluate_all_tools_on_learning_test_tree(

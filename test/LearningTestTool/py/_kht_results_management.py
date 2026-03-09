@@ -49,7 +49,7 @@ Examples d'ensemble correct de noms de repertoire
 - [results.ref, results.ref-Parallel, results.ref-Parallel-Darwin_Linux]
 """
 
-"""Variable globale de gestion du contexte des resultsta de reference"""
+"""Variable globale de gestion du contexte des resultats de reference"""
 
 # Nombre de process utilisex
 process_number = 1
