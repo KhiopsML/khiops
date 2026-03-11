@@ -33,7 +33,6 @@ function(get_mpi_implementation)
   endif()
 
   # Find "openmpi", "mpich" or "intel" in the variable VAR_MPI_INFO
-  message(STATUS "Detecting MPI implementation ${VAR_MPI_INFO}...")
   string(FIND "${VAR_MPI_INFO}" openmpi POS)
   if(POS GREATER -1)
     set(MPI_IMPL "openmpi")
