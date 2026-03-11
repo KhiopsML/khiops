@@ -238,7 +238,7 @@ boolean KDTextTokenSampleCollectionTask::SequentialCollectTokenSamples(const KWD
 	// methodes de la tache
 	database = cast(KWDatabase*, sourceDatabase);
 
-	// Analyse de la base pour collmecter les tokens les plus frequents
+	// Analyse de la base pour collecter les tokens les plus frequents
 	AnalyseDatabase(database, &oaTextTokenizers);
 	DisplayPerformanceIndicators("First database pass", &oaTextTokenizers);
 
@@ -457,14 +457,14 @@ boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDat
 	// On ne le fait que si c'est necessaire et demande
 	if (bOk and shared_bComputeExactTokenFrequencies)
 	{
-		// Initialisation des parametres, en prenant en prenant en entree les tokens produits par la tache
+		// Initialisation des parametres, en prenant en entree les tokens produits par la tache
 		shared_bIsFirstPass = false;
 		shared_ivFirstPassTokenNumbers.GetIntVector()->SetSize(0);
 		shared_oaSecondPassSpecificTokens->SetObjectArray(oaMasterCollectedTokenSamples);
 		oaMasterCollectedTokenSamples->SetSize(0);
 		assert(CheckPassParameters());
 
-		// Declenchement de tache pour la premiere passe
+		// Declenchement de tache pour la deuxieme passe
 		bOk = RunDatabaseTask(sourceDatabase);
 
 		// On derefence le tableau de la variable partagee pour ne pas qu'il soit detruit avec cette variable
@@ -700,7 +700,7 @@ boolean KDTextTokenSampleCollectionTask::SlaveInitialize()
 				// NOT YET IMPLEMENTED
 			}
 
-			// Memorisation du tokenizer associer a l'attribut
+			// Memorisation du tokenizer associe a l'attribut
 			oaSlaveTextTokenizers.SetAt(nAttribute, textTokenizer);
 		}
 	}
