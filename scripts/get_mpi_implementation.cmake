@@ -18,8 +18,23 @@ function(get_mpi_implementation)
         COMMAND grep mpi
         OUTPUT_VARIABLE VAR_MPI_INFO)
     endif()
-  else(IS_CONDA)
-    # Outside conda, we use the path given by find_mpi
+  elseif(IS_PIP)
+    set(DETECTION_MESSAGE "from pip environment")
+
+    # Get the list of installed packages via importlib.metadata. We use it instead of pip list because pip may not be
+    # available in the environment, and because pip list output is not stable across versions. The command outputs the
+    # list of installed packages names in lower case, separated by space.
+    find_package(Python 3.8 REQUIRED) # We need Python >3.8 to get the list of installed packages via
+                                      # importlib.metadata.
+    execute_process(
+      COMMAND
+        python -c
+        "import importlib.metadata as m; names=[]; [names.append((d.metadata.get('Name') or '').strip().lower()) for d in m.distributions() if (d.metadata.get('Name') or '').strip()]; print(' '.join(sorted(set(names))))"
+      OUTPUT_VARIABLE PIP_DISTRIBUTIONS_INFO
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+    set(VAR_MPI_INFO "${PIP_DISTRIBUTIONS_INFO}")
+  else()
+    # Outside conda and pip, we use the path given by find_mpi
     set(DETECTION_MESSAGE "from standard environment")
     set(VAR_MPI_INFO "${MPI_LIBRARIES}")
   endif(IS_CONDA)
@@ -32,27 +47,35 @@ function(get_mpi_implementation)
     message(FATAL_ERROR "Missing information to discover the MPI implementation")
   endif()
 
+  # Match implementation names case-insensitively because command outputs often use mixed case.
+  string(TOLOWER "${VAR_MPI_INFO}" VAR_MPI_INFO_LOWER)
+
   # Find "openmpi", "mpich" or "intel" in the variable VAR_MPI_INFO
-  message(STATUS "Detecting MPI implementation ${VAR_MPI_INFO}...")
-  string(FIND "${VAR_MPI_INFO}" openmpi POS)
+  string(FIND "${VAR_MPI_INFO_LOWER}" openmpi POS)
   if(POS GREATER -1)
     set(MPI_IMPL "openmpi")
     set(IS_OPEN_MPI TRUE)
   endif()
 
-  string(FIND "${VAR_MPI_INFO}" open-mpi POS)
+  string(FIND "${VAR_MPI_INFO_LOWER}" open-mpi POS)
   if(POS GREATER -1)
     set(MPI_IMPL "openmpi")
     set(IS_OPEN_MPI TRUE)
   endif()
 
-  string(FIND "${VAR_MPI_INFO}" mpich POS)
+  string(FIND "${VAR_MPI_INFO_LOWER}" mpich POS)
   if(POS GREATER -1)
     set(MPI_IMPL "mpich")
     set(IS_MPICH TRUE)
   endif()
 
-  string(FIND "${VAR_MPI_INFO}" intel POS)
+  string(FIND "${VAR_MPI_INFO_LOWER}" intel POS)
+  if(POS GREATER -1)
+    set(MPI_IMPL "intel")
+    set(IS_INTEL_MPI TRUE)
+  endif()
+
+  string(FIND "${VAR_MPI_INFO_LOWER}" impi POS)
   if(POS GREATER -1)
     set(MPI_IMPL "intel")
     set(IS_INTEL_MPI TRUE)
