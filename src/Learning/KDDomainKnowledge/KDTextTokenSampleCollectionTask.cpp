@@ -16,7 +16,6 @@ KDTextTokenSampleCollectionTask::KDTextTokenSampleCollectionTask()
 	// Variables partagees
 	DeclareSharedParameter(&shared_sTextFeatures);
 	DeclareSharedParameter(&shared_bIsFirstPass);
-	DeclareSharedParameter(&shared_bComputeExactTokenFrequencies);
 	DeclareSharedParameter(&shared_ivFirstPassTokenNumbers);
 	shared_oaSecondPassSpecificTokens = new PLShared_ObjectArrayArray(new PLShared_TokenFrequency);
 	DeclareSharedParameter(shared_oaSecondPassSpecificTokens);
@@ -28,7 +27,6 @@ KDTextTokenSampleCollectionTask::KDTextTokenSampleCollectionTask()
 	// Initialisation des variables partagees
 	shared_sTextFeatures.SetValue("ngrams");
 	shared_bIsFirstPass = true;
-	shared_bComputeExactTokenFrequencies = true;
 }
 
 KDTextTokenSampleCollectionTask::~KDTextTokenSampleCollectionTask()
@@ -42,7 +40,7 @@ boolean KDTextTokenSampleCollectionTask::CollectTokenSamples(const KWDatabase* s
 							     ObjectArray* oaCollectedTokenSamples)
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	boolean bDisplay = true;
 	const int nMaxDisplayedTokenNumber = 10000;
 	KWClass* kwcMainClass;
 	int nAttribute;
@@ -79,10 +77,10 @@ boolean KDTextTokenSampleCollectionTask::CollectTokenSamples(const KWDatabase* s
 	SetDisplayEndTaskMessage(true);
 
 	// Implementation prototype en attendant l'implementation des methodes de la tache
-	bOk = SequentialCollectTokenSamples(sourceDatabase);
+	// bOk = SequentialCollectTokenSamples(sourceDatabase);
 
 	// Lancement de la tache
-	// bOk = InternalCollectTokenSamples(sourceDatabase);
+	bOk = InternalCollectTokenSamples(sourceDatabase);
 
 	// Reinitialisation des parametres principaux
 	ivMasterTokenNumbers = NULL;
@@ -227,7 +225,7 @@ boolean KDTextTokenSampleCollectionTask::SequentialCollectTokenSamples(const KWD
 			textTokenizer->SetMaxCollectedTokenNumber(
 			    GetMaxStreamCollectedTokenNumber(ivMasterTokenNumbers->GetAt(nAttribute)));
 
-		// Memorisation du tokenizer associer a l'attribut
+		// Memorisation du tokenizer associe a l'attribut
 		oaTextTokenizers.SetAt(nAttribute, textTokenizer);
 	}
 
@@ -238,7 +236,7 @@ boolean KDTextTokenSampleCollectionTask::SequentialCollectTokenSamples(const KWD
 	// methodes de la tache
 	database = cast(KWDatabase*, sourceDatabase);
 
-	// Analyse de la base pour collmecter les tokens les plus frequents
+	// Analyse de la base pour collecter les tokens les plus frequents
 	AnalyseDatabase(database, &oaTextTokenizers);
 	DisplayPerformanceIndicators("First database pass", &oaTextTokenizers);
 
@@ -423,8 +421,11 @@ int KDTextTokenSampleCollectionTask::GetMaxStreamCollectedTokenNumber(int nReque
 boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDatabase* sourceDatabase)
 {
 	boolean bOk = true;
+	KWTextTokenizer* textTokenizer;
 	int nAttribute;
 	ALString sTmp;
+	ObjectArray* oaCollectedTokens;
+	ObjectArray* oaTokens;
 
 	require(sourceDatabase != NULL);
 	require(not sourceDatabase->IsOpenedForRead());
@@ -438,12 +439,21 @@ boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDat
 	// Initialisation des parametres
 	shared_bIsFirstPass = true;
 	shared_ivFirstPassTokenNumbers.GetIntVector()->SetSize(ivMasterTokenNumbers->GetSize());
+	assert(oaMasterCollectedTokenSamples->GetSize() == ivMasterTokenNumbers->GetSize());
+	oaMasterTextTokenizers.SetSize(oaMasterCollectedTokenSamples->GetSize());
 	for (nAttribute = 0; nAttribute < ivMasterTokenNumbers->GetSize(); nAttribute++)
 	{
 		// Parametrage de la collection en mode flux en specifiant nombre max de tokens a conserver pour assurer
 		// la stabilite des resultats
 		shared_ivFirstPassTokenNumbers.SetAt(
 		    nAttribute, GetMaxStreamCollectedTokenNumber(ivMasterTokenNumbers->GetAt(nAttribute)));
+
+		// Creation d'un tokenizer selon le type de features de texte
+		textTokenizer = KWTextTokenizer::CreateTextTokenizer(GetTextFeatures());
+		textTokenizer->SetMaxCollectedTokenNumber(shared_ivFirstPassTokenNumbers.GetAt(nAttribute));
+
+		// Memorisation du tokenizer associe a l'attribut
+		oaMasterTextTokenizers.SetAt(nAttribute, textTokenizer);
 	}
 	shared_oaSecondPassSpecificTokens->Clean();
 	assert(CheckPassParameters());
@@ -451,28 +461,72 @@ boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDat
 	// Declenchement de tache pour la premiere passe
 	bOk = RunDatabaseTask(sourceDatabase);
 
+	// Parametrage des tokens specifiques pour les tokenizers des esclaves, avec les tokens collectes lors de la premiere passe
+	if (bOk)
+	{
+		shared_oaSecondPassSpecificTokens->GetObjectArray()->SetSize(oaMasterTextTokenizers.GetSize());
+		for (nAttribute = 0; nAttribute < oaMasterTextTokenizers.GetSize(); nAttribute++)
+		{
+			textTokenizer = cast(KWTextTokenizer*, oaMasterTextTokenizers.GetAt(nAttribute));
+
+			// Export des tokens collectes lors de la premiere passe
+			oaCollectedTokens = new ObjectArray;
+			textTokenizer->ExportTokens(oaCollectedTokens);
+
+			// Parametrage des tokens specifiques pour les tokenizers des esclaves
+			shared_oaSecondPassSpecificTokens->GetObjectArray()->SetAt(nAttribute, oaCollectedTokens);
+		}
+	}
+
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	// Deuxieme passe de collecte des effectifs exact par tokens
 
-	// On ne le fait que si c'est necessaire et demande
-	if (bOk and shared_bComputeExactTokenFrequencies)
+	// Collecte uniquement si necessaire
+	if (bOk)
 	{
-		// Initialisation des parametres, en prenant en prenant en entree les tokens produits par la tache
+		// Initialisation des parametres, en prenant en entree les tokens produits par la tache
+		assert(shared_oaSecondPassSpecificTokens->GetObjectArray()->GetSize() > 0);
 		shared_bIsFirstPass = false;
 		shared_ivFirstPassTokenNumbers.GetIntVector()->SetSize(0);
-		shared_oaSecondPassSpecificTokens->SetObjectArray(oaMasterCollectedTokenSamples);
-		oaMasterCollectedTokenSamples->SetSize(0);
 		assert(CheckPassParameters());
 
-		// Declenchement de tache pour la premiere passe
-		bOk = RunDatabaseTask(sourceDatabase);
+		// Nettoyage des tokens collectes lors de la premiere passe, afin de ne
+		// pas compter les memes tokens deux fois
+		// Parametrage des tokens specifiques selon les tokens collectes lors de
+		// la premiere passe
+		for (nAttribute = 0; nAttribute < oaMasterTextTokenizers.GetSize(); nAttribute++)
+		{
+			textTokenizer = cast(KWTextTokenizer*, oaMasterTextTokenizers.GetAt(nAttribute));
+			textTokenizer->CleanCollectedTokens();
+			textTokenizer->SetMaxCollectedTokenNumber(0);
+			textTokenizer->SetSpecificTokens(
+			    cast(ObjectArray*, shared_oaSecondPassSpecificTokens->GetObjectArray()->GetAt(nAttribute)));
+		}
 
-		// On derefence le tableau de la variable partagee pour ne pas qu'il soit detruit avec cette variable
-		shared_oaSecondPassSpecificTokens->RemoveObject();
+		// Declenchement de tache pour la deuxieme passe
+		bOk = RunDatabaseTask(sourceDatabase);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	// Finalisation
+
+	// Collecte des resultats des dictionnaires de tokens dans les tableaux de tokens en sortie
+	if (bOk)
+	{
+		for (nAttribute = 0; nAttribute < oaMasterCollectedTokenSamples->GetSize(); nAttribute++)
+		{
+			textTokenizer = cast(KWTextTokenizer*, oaMasterTextTokenizers.GetAt(nAttribute));
+			oaTokens = cast(ObjectArray*, oaMasterCollectedTokenSamples->GetAt(nAttribute));
+			assert(oaTokens->GetSize() == 0);
+
+			// Export des tokens vers le tableau
+			textTokenizer->ExportFrequentTokens(oaTokens, ivMasterTokenNumbers->GetAt(nAttribute));
+
+			// Nettoyage
+			delete textTokenizer;
+			oaMasterTextTokenizers.SetAt(nAttribute, NULL);
+		}
+	}
 
 	// Nettoyage si echec
 	if (not bOk)
@@ -577,7 +631,7 @@ boolean KDTextTokenSampleCollectionTask::ComputeResourceRequirements()
 {
 	boolean bOk;
 
-	// Appele de la methode ancetre
+	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::ComputeResourceRequirements();
 	return bOk;
 }
@@ -586,7 +640,7 @@ boolean KDTextTokenSampleCollectionTask::MasterInitialize()
 {
 	boolean bOk;
 
-	// Appele de la methode ancetre
+	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::MasterInitialize();
 	return bOk;
 }
@@ -595,7 +649,7 @@ boolean KDTextTokenSampleCollectionTask::MasterPrepareTaskInput(double& dTaskPer
 {
 	boolean bOk;
 
-	// Appele de la methode ancetre
+	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::MasterPrepareTaskInput(dTaskPercent, bIsTaskFinished);
 	return bOk;
 }
@@ -603,7 +657,8 @@ boolean KDTextTokenSampleCollectionTask::MasterPrepareTaskInput(double& dTaskPer
 boolean KDTextTokenSampleCollectionTask::MasterAggregateResults()
 {
 	boolean bOk;
-	boolean bDisplay = true;
+	boolean bDisplay = false;
+	KWTextTokenizer* textTokenizer;
 	ObjectArray* oaCollectedTokens;
 	KWClass* kwcClass;
 	int nAttribute;
@@ -619,24 +674,27 @@ boolean KDTextTokenSampleCollectionTask::MasterAggregateResults()
 		cout << "MasterAggregateResults\t" << GetTaskIndex() << "\n";
 	}
 
-	// Appele de la methode ancetre
+	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::MasterAggregateResults();
 
 	// Traitement des resultats
 	if (bOk)
 	{
+		assert(output_oaTokens->GetObjectArray()->GetSize() == oaMasterTextTokenizers.GetSize());
+
 		// Recherche du dictionnaire de la base
 		kwcClass =
 		    KWClassDomain::GetCurrentDomain()->LookupClass(shared_sourceDatabase.GetDatabase()->GetClassName());
 
-		// Collecte des tokens en sortie de l'esclave
+		// Agregation des tokens collectes dans l'esclave dans les container de token globaux du maitre
 		assert(kwcClass->GetUsedAttributeNumber() == output_oaTokens->GetObjectArray()->GetSize());
-		for (nAttribute = 0; nAttribute < output_oaTokens->GetObjectArray()->GetSize(); nAttribute++)
-		{
-			oaCollectedTokens = cast(ObjectArray*, output_oaTokens->GetObjectArray()->GetAt(nAttribute));
 
-			// Prise en compte des tokens de l'esclave
-			// NOT YET IMPLEMENTED
+		for (nAttribute = 0; nAttribute < kwcClass->GetUsedAttributeNumber(); nAttribute++)
+		{
+			// Cumul des frequences des tokens collectes par les esclaves
+			oaCollectedTokens = cast(ObjectArray*, output_oaTokens->GetObjectArray()->GetAt(nAttribute));
+			textTokenizer = cast(KWTextTokenizer*, oaMasterTextTokenizers.GetAt(nAttribute));
+			textTokenizer->CumulateTokenFrequencies(oaCollectedTokens);
 
 			// Affichage
 			if (bDisplay)
@@ -658,7 +716,7 @@ boolean KDTextTokenSampleCollectionTask::MasterFinalize(boolean bProcessEndedCor
 {
 	boolean bOk;
 
-	// Appele de la methode ancetre
+	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::MasterFinalize(bProcessEndedCorrectly);
 	return bOk;
 }
@@ -669,10 +727,11 @@ boolean KDTextTokenSampleCollectionTask::SlaveInitialize()
 	KWTextTokenizer* textTokenizer;
 	KWClass* kwcClass;
 	int nAttribute;
+	ObjectArray* oaSpecificTokens;
 
 	require(CheckPassParameters());
 
-	// Appele de la methode ancetre
+	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::SlaveInitialize();
 
 	// Initialisation des tokenizers utilises en variables de travail
@@ -694,13 +753,18 @@ boolean KDTextTokenSampleCollectionTask::SlaveInitialize()
 			if (shared_bIsFirstPass)
 				textTokenizer->SetMaxCollectedTokenNumber(
 				    shared_ivFirstPassTokenNumbers.GetAt(nAttribute));
-			// Parametrage des tokens specifique dont il faut calculer l'effectif
+			// Parametrage des tokens specifiques dont il faut calculer l'effectif
 			else
 			{
-				// NOT YET IMPLEMENTED
+				oaSpecificTokens =
+				    cast(ObjectArray*,
+					 shared_oaSecondPassSpecificTokens->GetObjectArray()->GetAt(nAttribute));
+				textTokenizer->CleanCollectedTokens();
+				textTokenizer->SetMaxCollectedTokenNumber(0);
+				textTokenizer->SetSpecificTokens(oaSpecificTokens);
 			}
 
-			// Memorisation du tokenizer associer a l'attribut
+			// Memorisation du tokenizer associe a l'attribut
 			oaSlaveTextTokenizers.SetAt(nAttribute, textTokenizer);
 		}
 	}
@@ -714,7 +778,7 @@ boolean KDTextTokenSampleCollectionTask::SlaveProcess()
 	ObjectArray* oaCollectedTokens;
 	int nAttribute;
 
-	// Appele de la methode ancetre
+	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::SlaveProcess();
 
 	// Collecte des tokens a renvoyer par l'esclave
@@ -728,9 +792,8 @@ boolean KDTextTokenSampleCollectionTask::SlaveProcess()
 
 			// Export des tokens collectes
 			oaCollectedTokens = new ObjectArray;
-			output_oaTokens->GetObjectArray()->SetAt(nAttribute, oaCollectedTokens);
 			textTokenizer->ExportTokens(oaCollectedTokens);
-			textTokenizer->CleanCollectedTokens();
+			output_oaTokens->GetObjectArray()->SetAt(nAttribute, oaCollectedTokens);
 		}
 	}
 	return bOk;
@@ -770,7 +833,7 @@ boolean KDTextTokenSampleCollectionTask::SlaveFinalize(boolean bProcessEndedCorr
 {
 	boolean bOk;
 
-	// Appele de la methode ancetre
+	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::SlaveFinalize(bProcessEndedCorrectly);
 
 	// Nettoyage
