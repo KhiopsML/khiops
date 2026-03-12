@@ -1,0 +1,78 @@
+---
+name: Test Conda Packages
+on:
+  workflow_dispatch:
+    inputs:
+      khiops_version:
+        type: string
+        default: ''
+        description: version of the package to test (e.g. 11.0.0-rc1). If null, the
+          latest version will be tested.
+      label:
+        type: choice
+        default: rc
+        options: [main, rc]
+        description: label of the package
+defaults:
+  run:
+    shell: bash -el {0}
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        setup:
+          - {os: ubuntu-22.04, image: ubuntu:20.04}
+          - {os: ubuntu-22.04, image: ''}
+          - {os: ubuntu-24.04, image: ''}
+          - {os: ubuntu-22.04, image: rockylinux:8}
+          - {os: ubuntu-22.04, image: rockylinux:9}
+          - {os: windows-2022, image: ''}
+          - {os: windows-2025, image: ''}
+          - {os: macos-14, image: ''}
+          - {os: macos-15, image: ''}
+          - {os: macos-26, image: ''}
+          - {os: macos-15-intel, image: ''}
+    runs-on: ${{ matrix.setup.os }}
+    container: ${{ matrix.setup.image }}
+    steps:
+      - name: Install Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          python-version: '3.12'
+          channels: conda-forge
+          conda-remove-defaults: true
+      - name: Install the Khiops executables in the Conda environment
+        run: |
+          if [ -z "${{ github.event.inputs.khiops_version }}" ]; then
+            echo "No version specified, installing the latest version of khiops-core"
+            conda install -c khiops-core/label/${{ github.event.inputs.label }}  khiops-core
+          else
+            echo "Installing khiops-core version ${{ github.event.inputs.khiops_version }}"
+            conda install -c khiops-core/label/${{ github.event.inputs.label }}  khiops-core=${{ github.event.inputs.khiops_version }}
+          fi
+      - name: Add  CONDA_PREFIX to shared PATH (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          echo "$CONDA_PREFIX/Library/bin" >> $GITHUB_PATH
+          echo "PATH_TO_BIN=$CONDA_PREFIX/Library/bin" >> $GITHUB_ENV
+      - name: Add Conda environment binary directory to the environment (Linux and
+          MacOS)
+        if: runner.os != 'Windows'
+        run: |
+          echo "CONDA_ENV_BIN_DIR=$CONDA_PREFIX/bin" >> $GITHUB_ENV
+          echo "PATH_TO_BIN=$CONDA_PREFIX/bin" >> $GITHUB_ENV
+      - name: Checkout sources
+        uses: actions/checkout@v6
+      - name: Test that the Khiops executables are installed
+        uses: ./.github/actions/test-khiops-install
+      - name: Test that the Khiops executables are functional
+        uses: ./.github/actions/run-standard-tests
+        with:
+          warning_as_error: true
+          running-mode: parallel
+          config: release
+          binary-path: ${{ env.PATH_TO_BIN }}
+          testing-context-description: ${{ matrix.setup.os }}-${{ matrix.setup.image
+            }}
