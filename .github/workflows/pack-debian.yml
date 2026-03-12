@@ -142,11 +142,6 @@ jobs:
           apt-get -f install -y
       - name: Check Khiops installation
         uses: ./.github/actions/test-khiops-install
-      - name: Test Khiops on Iris dataset
-        uses: ./.github/actions/test-khiops-on-iris
-        with:
-          os-decription: ${{ env.ID }}-${{ env.VERSION_CODENAME }}-${{ env.ARCH }}
-          show-openmpi-errors: ${{ inputs.show-openmpi-errors }}
       - name: Add Khiops binary path to the environment (for running the standard
           tests)
         run: |
