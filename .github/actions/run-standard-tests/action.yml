@@ -62,6 +62,11 @@ runs:
     # - In debug run only Standard/Iris for KNITRansfer and MODL_Coclustering, Standard/IrisLight for MODL
     # - In release run all Standard tests
       shell: bash
+      env:
+        # Use more processes than available CPUs: OpenMPI < 5
+        OMPI_MCA_rmaps_base_oversubscribe: true
+        # Use more processes than available CPUs: OpenMPI >= 5
+        PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
       run: |
         # Load MPI Module if on Linux and not on Debian-like OS (whence on Rocky Linux)
         if [[ "${{ runner.os }}" == "Linux" && ! -d "/etc/apt/" ]]; then
