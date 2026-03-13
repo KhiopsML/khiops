@@ -95,7 +95,7 @@ REM Add the MPI parameters
 if not "%KHIOPS_MPI_COMMAND%." == "." set "KHIOPS_MPI_COMMAND="%KHIOPS_MPI_COMMAND%" -n %KHIOPS_PROC_NUMBER%"
 :MPI_DONE
 
-set _KHIOPS_GUI=@GUI_STATUS@
+set _KHIOPS_GUI=@GUI_SUPPORTED@
 if "%_KHIOPS_GUI%" == "false" GOTO SKIP_GUI
 
 REM Set Java environment
@@ -113,12 +113,13 @@ set "KHIOPS_CLASSPATH=%_KHIOPS_HOME%\bin\khiops.jar;%KHIOPS_CLASSPATH%"
 
 :SKIP_GUI
 
-@IS_CONDA_VAR@
+REM Inside conda environment
+set _IS_CONDA=@IS_CONDA@
 
-@SET_KHIOPS_DRIVERS_PATH@
+REM Drivers search path
+set KHIOPS_DRIVERS_PATH=@KHIOPS_DRIVERS_PATH@
 
 REM unset local variables
-set "_KHIOPS_GUI="
 set "_JAVA_ERROR="
 set "_KHIOPS_HOME="
 

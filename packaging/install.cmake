@@ -69,6 +69,12 @@ endif()
 
 # ######################################## Khiops and Khiops Coclustering installation
 
+if(IS_CONDA OR IS_PIP)
+  set(GUI_SUPPORTED false)
+else()
+  set(GUI_SUPPORTED true)
+endif()
+
 if(IS_LINUX OR IS_MACOS)
   # Set khiops and khiops_coclustering paths according to the environment (conda, fedora, etc)
   if(IS_CONDA)
@@ -77,18 +83,15 @@ if(IS_LINUX OR IS_MACOS)
     set(KHIOPS_SCRIPTS_DIR "bin")
     set(GET_PROC_NUMBER_PATH "$(get_script_dir)")
     set(GET_PROC_NUMBER_DIR "bin")
-    set(IS_CONDA_VAR "\n# Inside conda environment\nexport _IS_CONDA=true")
-    set(SET_KHIOPS_DRIVERS_PATH "\n# Drivers search path\nexport KHIOPS_DRIVERS_PATH=$(dirname $(get_script_dir))/lib")
-    set(LICENSE_PATH "usr/share/doc/khiops")
+    set(KHIOPS_DRIVERS_PATH "$(dirname $(get_script_dir))/lib")
+    set(LICENSE_PATH "doc")
   else()
     if(IS_PIP)
       set(MODL_PATH "$(get_script_dir)")
       set(MODL_INSTALL_DIR ${SKBUILD_SCRIPTS_DIR})
       set(GET_PROC_NUMBER_PATH "$(get_script_dir)")
       set(GET_PROC_NUMBER_DIR ${SKBUILD_SCRIPTS_DIR})
-      set(IS_CONDA_VAR "")
-      set(SET_KHIOPS_DRIVERS_PATH "\n# Drivers search path\nexport KHIOPS_DRIVERS_PATH=$(get_script_dir)")
-      set(USE_ENVIRONMENT_MODULE "")
+      set(KHIOPS_DRIVERS_PATH "$(dirname $(get_script_dir))/lib")
       set(LICENSE_PATH ${SKBUILD_NULL_DIR})
       set(KHIOPS_SCRIPTS_DIR ${SKBUILD_SCRIPTS_DIR})
     else()
@@ -168,6 +171,18 @@ if(IS_LINUX OR IS_MACOS)
     install(TARGETS _khiopsgetprocnumber RUNTIME DESTINATION ${GET_PROC_NUMBER_DIR} COMPONENT KHIOPS_CORE)
   endif()
 
+  if(APPLE)
+    set(LD_LIBRARY_PATH "DYLD_LIBRARY_PATH")
+  else()
+    set(LD_LIBRARY_PATH "LD_LIBRARY_PATH")
+  endif()
+
+  if(APPLE AND IS_PIP)
+    set(KHIOPS_MPI_PATH "$(dirname $(get_script_dir))/lib")
+  else()
+    set(KHIOPS_MPI_PATH "")
+  endif()
+
   # replace MODL_PATH MODL_NAME in khiops_env.in replace KHIOPS_BINARY_PATH TOOL_EXT in khiops.in replace
   # GET_PROC_NUMBER_PATH in set_proc_number.in
 
@@ -227,13 +242,10 @@ if(IS_LINUX OR IS_MACOS)
 else(IS_LINUX OR IS_MACOS)
 
   if(IS_CONDA)
-    set(GUI_STATUS "false")
     set(SET_MPI "SET_MPI_CONDA")
-    set(IS_CONDA_VAR "REM Inside conda environment\r\nset \"_IS_CONDA=true\"")
-    set(SET_KHIOPS_DRIVERS_PATH "REM Drivers search path\r\nset \"KHIOPS_DRIVERS_PATH=%_KHIOPS_HOME%\\bin\"")
+    set(SET_KHIOPS_DRIVERS_PATH "%_KHIOPS_HOME%\\bin\\")
   else()
     set(SET_MPI "SET_MPI_SYSTEM_WIDE")
-    set(GUI_STATUS "true")
   endif()
 
   configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops_env.cmd.in ${TMP_DIR}/khiops_env.cmd @ONLY
