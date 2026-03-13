@@ -134,7 +134,7 @@ jobs:
           echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
         shell: bash
       - name: Setup Software Trust Manager and sign
-        uses: digicert/code-signing-software-trust-action@v1.0.1
+        uses: digicert/code-signing-software-trust-action@v1.1.0
         if: ${{ inputs.signature-activation }}
         with:
           input: build/windows-msvc-release/bin/
@@ -188,7 +188,7 @@ jobs:
             /DKHIOPS_SAMPLES_DIR=..\..\..\samples `
             khiops.nsi
       - name: Sign installer
-        uses: digicert/code-signing-software-trust-action@v1.0.1
+        uses: digicert/code-signing-software-trust-action@v1.1.0
         if: ${{ inputs.signature-activation }}
         with:
           input: packaging/windows/nsis/khiops-${{ env.KHIOPS_VERSION }}-setup.exe
