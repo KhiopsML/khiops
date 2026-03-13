@@ -284,7 +284,7 @@ boolean CCCoclusteringBuilder::CheckVarPartSpecifications() const
 				 " for Instances x Variables coclustering, beyong the identifier variable, apart from "
 				 "the identifier variable.");
 		}
-		// Elles doivent etre utilisable dans le dictionnaire
+		// Elles doivent etre utilisables dans le dictionnaire
 		else
 		{
 			// Parcours des variables internes

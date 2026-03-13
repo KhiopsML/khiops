@@ -834,6 +834,17 @@ boolean CCLearningProblem::CheckCoclusteringSpecifications() const
 				    GetClassName() +
 				    " for Instances x Variables coclustering, apart from the identifier variable.");
 			}
+			// Warning s'il y a uniquement une variable interne
+			else if (nInternalAttributeNumber == 1)
+			{
+				AddWarning("Only one used variable is available in dictionary " + GetClassName());
+			}
+			// Warning s'il y a uniquement deux variables internes
+			else if (nInternalAttributeNumber == 2)
+			{
+				AddWarning("In case of two variables only, it is recommanded to use variables "
+					   "coclustering instead of instances x variables coclustering.");
+			}
 		}
 	}
 	return bOk;
