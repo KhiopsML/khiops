@@ -6,6 +6,7 @@
 
 KhistoCommandLine::KhistoCommandLine()
 {
+	bBinaryInput = false;
 	bExploratoryAnalysis = false;
 	bJsonFormat = false;
 }
@@ -1051,10 +1052,12 @@ boolean KhistoCommandLine::InitializeParameters(int argc, char** argv)
 	int i;
 	ALString sArgument;
 	ALString sOption;
+	ALString sOptionUsedTwice;
 
 	// Reinitialisation des options
 	sDataFileName = "";
 	sHistogramFileName = "";
+	bBinaryInput = false;
 	bExploratoryAnalysis = false;
 	bJsonFormat = false;
 
@@ -1084,7 +1087,7 @@ boolean KhistoCommandLine::InitializeParameters(int argc, char** argv)
 	// Test du bon nombre d'options
 	if (bOk)
 	{
-		if (argc < 3 or argc > 5)
+		if (argc < 3 or argc > 6)
 		{
 			cout << GetClassLabel() << ": invalid number of parameters\n";
 			cout << "Try '" << GetClassLabel() << "' -h' for more information.\n";
@@ -1095,18 +1098,43 @@ boolean KhistoCommandLine::InitializeParameters(int argc, char** argv)
 	// Test des options presentes
 	if (bOk and argc >= 3)
 	{
+		// Analyse des options
 		for (i = 1; i < argc - 2; i++)
 		{
 			sArgument = argv[i];
 
 			// Analyse de l'option
-			if (sArgument == "-e")
+			if (sArgument == "-b")
+			{
+				if (bBinaryInput)
+					sOptionUsedTwice = sArgument;
+				bBinaryInput = true;
+			}
+			else if (sArgument == "-e")
+			{
+				if (bExploratoryAnalysis)
+					sOptionUsedTwice = sArgument;
 				bExploratoryAnalysis = true;
+			}
 			else if (sArgument == "-j")
+			{
+				if (bJsonFormat)
+					sOptionUsedTwice = sArgument;
 				bJsonFormat = true;
+			}
+			// Erreur si option inconnue
 			else
 			{
 				cout << GetClassLabel() << ": invalid option " + sArgument + "\n ";
+				cout << "Try '" << GetClassLabel() << "' -h' for more information.\n";
+				bOk = false;
+				break;
+			}
+
+			// Erreur si option utilisee deux fois
+			if (sOptionUsedTwice != "")
+			{
+				cout << GetClassLabel() << ": option " + sArgument + " used twice\n ";
 				cout << "Try '" << GetClassLabel() << "' -h' for more information.\n";
 				bOk = false;
 				break;
@@ -1117,7 +1145,7 @@ boolean KhistoCommandLine::InitializeParameters(int argc, char** argv)
 	// On recopie le parametrage
 	if (bOk)
 	{
-		assert(argc >= 3 and argc <= 5);
+		assert(argc >= 3 and argc <= 6);
 		sDataFileName = argv[argc - 2];
 		sHistogramFileName = argv[argc - 1];
 		if (sDataFileName == sHistogramFileName)
@@ -1132,24 +1160,28 @@ boolean KhistoCommandLine::InitializeParameters(int argc, char** argv)
 
 void KhistoCommandLine::ShowHelp()
 {
-	cout << "Usage: " << GetClassLabel() << " [VALUES] [HISTOGRAM]\n ";
-	cout << "Compute histogram from the data in FILE.\n";
-	cout << " The resulting histogram is output in HISTOGRAM file, with the lower bound, upper bound,\n";
-	cout << "  length, frequency, probability and density per bin.\n ";
+	cout << "Usage: " << GetClassLabel() << " [OPTIONS] INPUT_FILE HISTOGRAM\n";
+	cout << "\n";
+	cout << "Calculates a histogram from the data in INPUT_FILE.\n";
+	cout << "The output HISTOGRAM contains bin details: lower bound, upper bound, bin width, frequency, "
+		"probability, and density.\n";
 
-	// Option specialisee
-	cout << "\t-e\toutput a series of histograms by increasing accuracy for exploratory analysis purposes\n";
-	cout << "\t-j\toutputs are produced in one json file\n";
+	// Options specialisees
+	cout << "\n";
+	cout << "Options:\n";
+	cout << "    -b: Read input as binary (8-byte doubles) instead of text\n";
+	cout << "    -e: Generate a series of histograms with increasing accuracy for exploratory analysis\n";
+	cout << "    -j: Save all outputs in a single JSON file\n";
 
 	// Options generales
-	cout << "\t-h\tdisplay this help and exit\n";
-	cout << "\t-v\tdisplay version information and exit\n";
+	cout << "    -h: Display help message and exit\n";
+	cout << "    -v: Show version information and exit\n";
 
 	// Aide additionnelle
 	cout << "\n";
-	cout << "The output histogram is as accurate and interpretable as possible.\n";
-	cout << "Using the -e option, all histograms internally computed are output by  increasing accuracy.\n";
-	cout << " Each histogram of the series uses an index in its suffix(e.g. \".1\"), and an additional file\n";
-	cout << " with the suffix \".series\" is produced, with indicators per histogram.\n";
-	cout << "The -j option can be combined with the -e option to get all outputs in one file.\n";
+	cout << "The histogram aims to be as accurate and interpretable as possible.\n";
+	cout << "Using -e, all histograms are exported in order of increasing precision.\n";
+	cout << "Each histogram in the series has an index suffix (e.g., \".1\"), and a .series file provides "
+		"indicators for each.\n";
+	cout << "Combining -j with -e consolidates all outputs into one file.\n";
 }

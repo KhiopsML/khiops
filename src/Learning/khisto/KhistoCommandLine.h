@@ -96,6 +96,9 @@ protected:
 	// Nom du fichier contenant l'histogramme resultat
 	ALString sHistogramFileName;
 
+	// Indicateur de l'option de format d'entree bibaire
+	boolean bBinaryInput;
+
 	// Indicateur de l'option d'analyse exploratoire
 	boolean bExploratoryAnalysis;
 
