@@ -554,7 +554,7 @@ boolean KhistoCommandLine::ReadBins(ContinuousVector*& cvLowerValues, Continuous
 					// Erreur si trop de champs
 					if (nField >= nFileFormat)
 					{
-						AddInputFileError(&inputFile, lRecordIndex, "too many fields in line");
+						AddInputFileError(&inputFile, lRecordIndex, "Too many fields in line");
 						bOk = false;
 					}
 
@@ -600,7 +600,7 @@ boolean KhistoCommandLine::ReadBins(ContinuousVector*& cvLowerValues, Continuous
 						if (lCumulatedFrequency > INT_MAX)
 						{
 							AddInputFileError(&inputFile, lRecordIndex,
-									  sTmp + "cumulated frequency too large (" +
+									  sTmp + "Cumulated frequency too large (" +
 									      LongintToString(lCumulatedFrequency) +
 									      ")");
 							bOk = false;
@@ -609,7 +609,7 @@ boolean KhistoCommandLine::ReadBins(ContinuousVector*& cvLowerValues, Continuous
 						else if (bEndOfLine and nField < nFileFormat - 1)
 						{
 							AddInputFileError(&inputFile, lRecordIndex,
-									  "not enough fields in line");
+									  "Not enough fields in line");
 							bOk = false;
 						}
 						// Memorisation si fin de ligne
@@ -635,7 +635,7 @@ boolean KhistoCommandLine::ReadBins(ContinuousVector*& cvLowerValues, Continuous
 								{
 									AddInputFileError(
 									    &inputFile, lRecordIndex,
-									    sTmp + "lower value (" +
+									    sTmp + "Lower value (" +
 										KWContinuous::ContinuousToString(
 										    cLowerValue) +
 										") greater than upper value (" +
@@ -651,7 +651,7 @@ boolean KhistoCommandLine::ReadBins(ContinuousVector*& cvLowerValues, Continuous
 								{
 									AddInputFileError(
 									    &inputFile, lRecordIndex,
-									    sTmp + "lower value (" +
+									    sTmp + "Lower value (" +
 										KWContinuous::ContinuousToString(
 										    cLowerValue) +
 										") smaller or equal than preceding "
@@ -688,7 +688,7 @@ boolean KhistoCommandLine::ReadBins(ContinuousVector*& cvLowerValues, Continuous
 	// Erreur si pas de valeur
 	if (bOk and lCumulatedFrequency == 0)
 	{
-		AddError(sTmp + "empty dataset");
+		AddError(sTmp + "Empty dataset");
 		bOk = false;
 	}
 
@@ -738,6 +738,7 @@ boolean KhistoCommandLine::ReadBinaryValues(ContinuousVector*& cvValues)
 	int nRequestedBufferSize;
 	FILE* fChunkDataFile;
 	double* buffer;
+	double dValue;
 	int nDoubleBufferSize;
 	int nRemainingValueNumber;
 	int nToReadValueNumber;
@@ -758,20 +759,21 @@ boolean KhistoCommandLine::ReadBinaryValues(ContinuousVector*& cvValues)
 	lFileSize = FileService::GetFileSize(sDataFileName);
 	if (lFileSize == 0)
 	{
-		AddError("empty dataset");
+		AddInputFileError(&inputFile, 0, "Empty dataset");
 		bOk = false;
 	}
 	else if (lFileSize % sizeof(double) != 0)
 	{
-		AddError(sTmp + "size of binary dataset (" + LongintToReadableString(lFileSize) +
-			 ") should be a multiple of " + LongintToString(sizeof(double)));
+		AddInputFileError(&inputFile, 0,
+				  sTmp + "Size of binary dataset (" + LongintToReadableString(lFileSize) +
+				      " bytes) must be a multiple of " + LongintToString(sizeof(double)));
 		bOk = false;
 	}
 	else if (lFileSize / sizeof(double) > INT_MAX)
 	{
-		AddInputFileError(&inputFile, -1,
-				  sTmp + "too many values (" + LongintToReadableString(lFileSize / sizeof(double)) +
-				      ")");
+		AddInputFileError(&inputFile, 0,
+				  sTmp + "Too many values (" + LongintToReadableString(lFileSize / sizeof(double)) +
+				      ") to process");
 		bOk = false;
 	}
 
@@ -785,8 +787,11 @@ boolean KhistoCommandLine::ReadBinaryValues(ContinuousVector*& cvValues)
 		// Initialisation du vecteur de valeur
 		bOk = cvValues->SetLargeSize(nTotalValueNumber);
 		if (not bOk)
-			AddError(sTmp + "not enought memory to load the values (number=" +
-				 LongintToReadableString(nTotalValueNumber) + ") in the binary dataset");
+		{
+			AddInputFileError(&inputFile, 0,
+					  sTmp + "Not enought memory to load the values (number of values = " +
+					      LongintToReadableString(nTotalValueNumber) + ") in the binary dataset");
+		}
 	}
 
 	// Lecture du fichier si OK
@@ -827,7 +832,7 @@ boolean KhistoCommandLine::ReadBinaryValues(ContinuousVector*& cvValues)
 				// Gestion des erreurs
 				if (ferror(fChunkDataFile) or lReadValueNumber < nToReadValueNumber)
 				{
-					AddInputFileError(&inputFile, -1, "IO error when reading binary data file");
+					AddInputFileError(&inputFile, 0, "IO error when reading binary data file");
 					bOk = false;
 					break;
 				}
@@ -836,7 +841,21 @@ boolean KhistoCommandLine::ReadBinaryValues(ContinuousVector*& cvValues)
 				// Alimentation du vecteur de valeur
 				for (nBufferIndex = 0; nBufferIndex < lReadValueNumber; nBufferIndex++)
 				{
-					cvValues->SetAt(nValueIndex, buffer[nBufferIndex]);
+					dValue = buffer[nBufferIndex];
+
+					// Erreur si valeur manquante
+					if (p_isnan(dValue))
+					{
+						AddInputFileError(&inputFile, 0,
+								  sTmp + "Forbidden NaN value detected " +
+								      IntToString(nBufferIndex) +
+								      " in the binary dataset");
+						bOk = false;
+						break;
+					}
+
+					// Memorisation de la valeur
+					cvValues->SetAt(nValueIndex, dValue);
 					nValueIndex++;
 				}
 			}
@@ -850,7 +869,7 @@ boolean KhistoCommandLine::ReadBinaryValues(ContinuousVector*& cvValues)
 		}
 	}
 
-	// Finalisation Ok
+	// Finalisation si Ok
 	if (bOk)
 	{
 		// Tri des valeurs
@@ -933,7 +952,7 @@ boolean KhistoCommandLine::ReadValues(ContinuousVector*& cvValues)
 					// Erreur si trop de champs
 					if (nField >= 1)
 					{
-						AddInputFileError(&inputFile, lRecordIndex, "too many fields in line");
+						AddInputFileError(&inputFile, lRecordIndex, "Too many fields in line");
 						bOk = false;
 					}
 
@@ -952,7 +971,7 @@ boolean KhistoCommandLine::ReadValues(ContinuousVector*& cvValues)
 						if (lCumulatedFrequency > INT_MAX)
 						{
 							AddInputFileError(&inputFile, lRecordIndex,
-									  sTmp + "too many values (" +
+									  sTmp + "Too many values (" +
 									      LongintToString(lCumulatedFrequency) +
 									      ")");
 							bOk = false;
@@ -979,11 +998,11 @@ boolean KhistoCommandLine::ReadValues(ContinuousVector*& cvValues)
 	// Erreur si pas de valeur
 	if (bOk and lCumulatedFrequency == 0)
 	{
-		AddError(sTmp + "empty dataset");
+		AddError(sTmp + "Empty dataset");
 		bOk = false;
 	}
 
-	// Finalisation Ok
+	// Finalisation si Ok
 	if (bOk)
 	{
 		// Tri des valeurs
@@ -1019,7 +1038,7 @@ boolean KhistoCommandLine::ReadValue(InputBufferedFile* inputFile, longint lReco
 	// Test si champ vide
 	if (sField[0] == '\0')
 	{
-		AddInputFileError(inputFile, lRecordIndex, "empty field instead of value");
+		AddInputFileError(inputFile, lRecordIndex, "Empty field instead of value");
 		bOk = false;
 	}
 
@@ -1027,7 +1046,7 @@ boolean KhistoCommandLine::ReadValue(InputBufferedFile* inputFile, longint lReco
 	if (bOk and nError != InputBufferedFile::FieldNoError)
 	{
 		AddInputFileError(inputFile, lRecordIndex,
-				  "invalid value <" + InputBufferedFile::GetDisplayValue(sField) +
+				  "Invalid value <" + InputBufferedFile::GetDisplayValue(sField) +
 				      "> : " + inputFile->GetFieldErrorLabel(nError));
 		bOk = false;
 	}
@@ -1052,7 +1071,7 @@ boolean KhistoCommandLine::ReadValue(InputBufferedFile* inputFile, longint lReco
 		if (bOk and nError != 0)
 		{
 			AddInputFileError(inputFile, lRecordIndex,
-					  "invalid value <" + InputBufferedFile::GetDisplayValue(sField) + "> (" +
+					  "Invalid value <" + InputBufferedFile::GetDisplayValue(sField) + "> (" +
 					      KWContinuous::ErrorLabel(nError) + ")");
 			bOk = false;
 		}
@@ -1083,7 +1102,7 @@ boolean KhistoCommandLine::ReadFrequency(InputBufferedFile* inputFile, longint l
 	// Test si champ vide
 	if (sField[0] == '\0')
 	{
-		AddInputFileError(inputFile, lRecordIndex, "empty field instead of frequency");
+		AddInputFileError(inputFile, lRecordIndex, "Empty field instead of frequency");
 		bOk = false;
 	}
 
@@ -1091,7 +1110,7 @@ boolean KhistoCommandLine::ReadFrequency(InputBufferedFile* inputFile, longint l
 	if (bOk and nError != InputBufferedFile::FieldNoError)
 	{
 		AddInputFileError(inputFile, lRecordIndex,
-				  "invalid frequency <" + InputBufferedFile::GetDisplayValue(sField) +
+				  "Invalid frequency <" + InputBufferedFile::GetDisplayValue(sField) +
 				      "> : " + inputFile->GetFieldErrorLabel(nError));
 		bOk = false;
 	}
@@ -1114,7 +1133,7 @@ boolean KhistoCommandLine::ReadFrequency(InputBufferedFile* inputFile, longint l
 		if (bOk and nError != 0)
 		{
 			AddInputFileError(inputFile, lRecordIndex,
-					  "invalid frequency <" + InputBufferedFile::GetDisplayValue(sField) + "> (" +
+					  "Invalid frequency <" + InputBufferedFile::GetDisplayValue(sField) + "> (" +
 					      KWContinuous::ErrorLabel(nError) + ")");
 			bOk = false;
 		}
@@ -1130,7 +1149,7 @@ boolean KhistoCommandLine::ReadFrequency(InputBufferedFile* inputFile, longint l
 		if (cFrequency < 0)
 		{
 			AddInputFileError(inputFile, lRecordIndex,
-					  sTmp + "negative frequency (" + KWContinuous::ContinuousToString(cFrequency) +
+					  sTmp + "Negative frequency (" + KWContinuous::ContinuousToString(cFrequency) +
 					      ")");
 			bOk = false;
 		}
@@ -1138,7 +1157,7 @@ boolean KhistoCommandLine::ReadFrequency(InputBufferedFile* inputFile, longint l
 		else if (cFrequency > INT_MAX)
 		{
 			AddInputFileError(inputFile, lRecordIndex,
-					  sTmp + "frequency too large (" +
+					  sTmp + "Frequency too large (" +
 					      KWContinuous::ContinuousToString(cFrequency) + ")");
 			bOk = false;
 		}
@@ -1146,7 +1165,7 @@ boolean KhistoCommandLine::ReadFrequency(InputBufferedFile* inputFile, longint l
 		else if (fabs(cFrequency - nFrequency) > nFrequency * 1e-12)
 		{
 			AddInputFileError(inputFile, lRecordIndex,
-					  sTmp + "frequency should be an integer (" +
+					  sTmp + "Frequency should be an integer (" +
 					      KWContinuous::ContinuousToString(cFrequency) + ")");
 			bOk = false;
 		}
@@ -1154,7 +1173,7 @@ boolean KhistoCommandLine::ReadFrequency(InputBufferedFile* inputFile, longint l
 		else if (lCumulatedFrequency + nFrequency > INT_MAX)
 		{
 			AddInputFileError(inputFile, lRecordIndex,
-					  sTmp + "cumulated frequency too large (" +
+					  sTmp + "Cumulated frequency too large (" +
 					      LongintToReadableString(lCumulatedFrequency + nFrequency) + ")");
 			bOk = false;
 		}

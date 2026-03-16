@@ -159,7 +159,7 @@ boolean GenumCommandLine::ReadValues(ContinuousVector*& cvValues)
 					// Erreur si trop de champs
 					if (nField >= 1)
 					{
-						AddInputFileError(&inputFile, lRecordIndex, "too many fields in line");
+						AddInputFileError(&inputFile, lRecordIndex, "Too many fields in line");
 						bOk = false;
 					}
 
@@ -178,7 +178,7 @@ boolean GenumCommandLine::ReadValues(ContinuousVector*& cvValues)
 						if (lCumulatedFrequency > INT_MAX)
 						{
 							AddInputFileError(&inputFile, lRecordIndex,
-									  sTmp + "cumulated frequency too large (" +
+									  sTmp + "Cumulated frequency too large (" +
 									      LongintToString(lCumulatedFrequency) +
 									      ")");
 							bOk = false;
@@ -245,7 +245,7 @@ boolean GenumCommandLine::ReadValue(InputBufferedFile* inputFile, longint lRecor
 	// Test si champ vide
 	if (sField[0] == '\0')
 	{
-		AddInputFileError(inputFile, lRecordIndex, "empty field instead of value");
+		AddInputFileError(inputFile, lRecordIndex, "Empty field instead of value");
 		bOk = false;
 	}
 
@@ -253,7 +253,7 @@ boolean GenumCommandLine::ReadValue(InputBufferedFile* inputFile, longint lRecor
 	if (bOk and nError != InputBufferedFile::FieldNoError)
 	{
 		AddInputFileError(inputFile, lRecordIndex,
-				  "invalid value <" + InputBufferedFile::GetDisplayValue(sField) +
+				  "Invalid value <" + InputBufferedFile::GetDisplayValue(sField) +
 				      "> : " + inputFile->GetFieldErrorLabel(nError));
 		bOk = false;
 	}
@@ -278,7 +278,7 @@ boolean GenumCommandLine::ReadValue(InputBufferedFile* inputFile, longint lRecor
 		if (bOk and nError != 0)
 		{
 			AddInputFileError(inputFile, lRecordIndex,
-					  "invalid value <" + InputBufferedFile::GetDisplayValue(sField) + "> (" +
+					  "Invalid value <" + InputBufferedFile::GetDisplayValue(sField) + "> (" +
 					      KWContinuous::ErrorLabel(nError) + ")");
 			bOk = false;
 		}

@@ -540,7 +540,7 @@ boolean MHStreamBining::ComputeBins(const ALString& sInputDataFileName, const AL
 				// Erreur si trop de champs
 				if (not bEndOfLine)
 				{
-					AddInputFileError(&inputFile, lRecordIndex, "too many fields in line");
+					AddInputFileError(&inputFile, lRecordIndex, "Too many fields in line");
 					bOk = false;
 				}
 
@@ -889,7 +889,7 @@ boolean MHStreamBining::ReadValue(InputBufferedFile* inputFile, longint lRecordI
 	// Test si champ vide
 	if (sField[0] == '\0')
 	{
-		AddInputFileError(inputFile, lRecordIndex, "empty field instead of value");
+		AddInputFileError(inputFile, lRecordIndex, "Empty field instead of value");
 		bOk = false;
 	}
 
@@ -897,7 +897,7 @@ boolean MHStreamBining::ReadValue(InputBufferedFile* inputFile, longint lRecordI
 	if (bOk and nError != InputBufferedFile::FieldNoError)
 	{
 		AddInputFileError(inputFile, lRecordIndex,
-				  "invalid value <" + InputBufferedFile::GetDisplayValue(sField) +
+				  "Invalid value <" + InputBufferedFile::GetDisplayValue(sField) +
 				      "> : " + inputFile->GetFieldErrorLabel(nError));
 		bOk = false;
 	}
@@ -922,7 +922,7 @@ boolean MHStreamBining::ReadValue(InputBufferedFile* inputFile, longint lRecordI
 		if (bOk and nError != 0)
 		{
 			AddInputFileError(inputFile, lRecordIndex,
-					  "invalid value <" + InputBufferedFile::GetDisplayValue(sField) + "> (" +
+					  "Invalid value <" + InputBufferedFile::GetDisplayValue(sField) + "> (" +
 					      KWContinuous::ErrorLabel(nError) + ")");
 			bOk = false;
 		}
