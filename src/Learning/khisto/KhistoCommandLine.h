@@ -9,6 +9,7 @@
 #include "MHDiscretizerTruncationMODLHistogram.h"
 #include "MHBin.h"
 #include "JSONFile.h"
+#include "HugeBuffer.h"
 #include "Version.h"
 
 ////////////////////////////////////////////////////////////////
@@ -66,7 +67,11 @@ protected:
 	// Renvoie true si ok
 	boolean ReadBins(ContinuousVector*& cvLowerValues, ContinuousVector*& cvUpperValues, IntVector*& ivFrequencies);
 
-	// Lecture des valeurs sous la forme de vecteur
+	// Lecture des valeurs au format binaire sous la forme de vecteur
+	// Renvoie true si ok
+	boolean ReadBinaryValues(ContinuousVector*& cvValues);
+
+	// Lecture des valeurs au format texte sous la forme de vecteur
 	// Renvoie true si ok
 	boolean ReadValues(ContinuousVector*& cvValues);
 
@@ -77,8 +82,7 @@ protected:
 	boolean ReadFrequency(InputBufferedFile* inputFile, longint lRecordIndex, longint& lCumulatedFrequency,
 			      int& nFrequency, boolean& bEndOfLine);
 
-	// Emission d'un warning ou d'un erreur de lecture de fichier pour un numero de ligne donne
-	void AddInputFileWarning(InputBufferedFile* inputFile, longint lRecordIndex, const ALString& sLabel);
+	// Emission d'une erreur de lecture de fichier pour un numero de ligne donne
 	void AddInputFileError(InputBufferedFile* inputFile, longint lRecordIndex, const ALString& sLabel);
 
 	// Initialisation des parametres

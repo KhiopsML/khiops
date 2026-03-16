@@ -42,12 +42,19 @@ boolean KhistoCommandLine::ComputeHistogram(int argc, char** argv)
 		// potentielles
 		if (histogramSpec.GetFileFormat() == 1)
 		{
-			bOk = ReadValues(cvUpperValues);
+			if (bBinaryInput)
+				bOk = ReadBinaryValues(cvUpperValues);
+			else
+				bOk = ReadValues(cvUpperValues);
 			cvLowerValues = NULL;
 			ivFrequencies = NULL;
 		}
 		else
+		{
+			// Option non implementee dans le cas de fichiers binaires en entree
+			assert(not bBinaryInput);
 			bOk = ReadBins(cvLowerValues, cvUpperValues, ivFrequencies);
+		}
 
 		// Construction de l'histogramme si ok
 		if (bOk)
@@ -722,6 +729,144 @@ boolean KhistoCommandLine::ReadBins(ContinuousVector*& cvLowerValues, Continuous
 	return bOk;
 }
 
+boolean KhistoCommandLine::ReadBinaryValues(ContinuousVector*& cvValues)
+{
+	boolean bOk = true;
+	InputBufferedFile inputFile;
+	longint lFileSize;
+	int nTotalValueNumber;
+	int nRequestedBufferSize;
+	FILE* fChunkDataFile;
+	double* buffer;
+	int nDoubleBufferSize;
+	int nRemainingValueNumber;
+	int nToReadValueNumber;
+	longint lReadValueNumber;
+	int nValueIndex;
+	int nBufferIndex;
+	ALString sTmp;
+
+	// Initialisation des resultats
+	lFileSize = 0;
+	nTotalValueNumber = 0;
+	cvValues = new ContinuousVector;
+
+	// Initialisation du fichier a lire, uniquement pour pouvoir emettre des message d'erreur
+	inputFile.SetFileName(sDataFileName);
+
+	// Test de la validite de la taille du fichier
+	lFileSize = FileService::GetFileSize(sDataFileName);
+	if (lFileSize == 0)
+	{
+		AddError("empty dataset");
+		bOk = false;
+	}
+	else if (lFileSize % sizeof(double) != 0)
+	{
+		AddError(sTmp + "size of binary dataset (" + LongintToReadableString(lFileSize) +
+			 ") should be a multiple of " + LongintToString(sizeof(double)));
+		bOk = false;
+	}
+	else if (lFileSize / sizeof(double) > INT_MAX)
+	{
+		AddInputFileError(&inputFile, -1,
+				  sTmp + "too many values (" + LongintToReadableString(lFileSize / sizeof(double)) +
+				      ")");
+		bOk = false;
+	}
+
+	// Initialisation du vecteur de valeur resultat
+	cvValues->SetSize(0);
+	if (bOk)
+	{
+		nTotalValueNumber = (int)(lFileSize / sizeof(double));
+		assert(nTotalValueNumber > 0);
+
+		// Initialisation du vecteur de valeur
+		bOk = cvValues->SetLargeSize(nTotalValueNumber);
+		if (not bOk)
+			AddError(sTmp + "not enought memory to load the values (number=" +
+				 LongintToReadableString(nTotalValueNumber) + ") in the binary dataset");
+	}
+
+	// Lecture du fichier si OK
+	if (bOk)
+	{
+		bOk = FileService::OpenInputBinaryFile(sDataFileName, fChunkDataFile);
+		if (not bOk)
+			fChunkDataFile = NULL;
+
+		// Lecture du contenu
+		if (bOk)
+		{
+			// Calcul de la taille du buffer de lecture
+			nRequestedBufferSize = max((int)(sizeof(double) * lMB), GetHugeBufferSize());
+
+			// Demande d'un buffer de lecture de grande taille
+			buffer = (double*)GetHugeBuffer(nRequestedBufferSize);
+			nDoubleBufferSize = nRequestedBufferSize / sizeof(double);
+
+			// Lecture depuis le fichier
+			nValueIndex = 0;
+			nRemainingValueNumber = nTotalValueNumber;
+			while (nRemainingValueNumber > 0 and not ferror(fChunkDataFile) and not feof(fChunkDataFile))
+			{
+				// Cas a l'interieur de la slice : Nombre d'indexes a lire dans la limite de la taille du buffer
+				if (nRemainingValueNumber >= nDoubleBufferSize)
+					nToReadValueNumber = nDoubleBufferSize;
+				// Cas a la fin de la slice : Nombre d'indexes restant dans la slice
+				else
+					nToReadValueNumber = nRemainingValueNumber;
+
+				// Lecture depuis le fichier
+				lReadValueNumber =
+				    (longint)fread(buffer, sizeof(double), nToReadValueNumber, fChunkDataFile);
+				assert(0 <= lReadValueNumber and lReadValueNumber <= nToReadValueNumber);
+				nRemainingValueNumber -= (int)lReadValueNumber;
+
+				// Gestion des erreurs
+				if (ferror(fChunkDataFile) or lReadValueNumber < nToReadValueNumber)
+				{
+					AddInputFileError(&inputFile, -1, "IO error when reading binary data file");
+					bOk = false;
+					break;
+				}
+				assert(lReadValueNumber == nToReadValueNumber);
+
+				// Alimentation du vecteur de valeur
+				for (nBufferIndex = 0; nBufferIndex < lReadValueNumber; nBufferIndex++)
+				{
+					cvValues->SetAt(nValueIndex, buffer[nBufferIndex]);
+					nValueIndex++;
+				}
+			}
+			assert(not bOk or nValueIndex == nTotalValueNumber);
+
+			// Destruction du buffer
+			DeleteHugeBuffer();
+
+			// Fermeture du fichier
+			bOk = FileService::CloseInputBinaryFile(sDataFileName, fChunkDataFile) and bOk;
+		}
+	}
+
+	// Finalisation Ok
+	if (bOk)
+	{
+		// Tri des valeurs
+		cvValues->Sort();
+	}
+	// Nettoyage sinon
+	else
+	{
+		if (cvValues != NULL)
+			delete cvValues;
+		cvValues = NULL;
+	}
+	ensure(not bOk or cvValues->GetSize() > 0);
+	return bOk;
+}
+
 boolean KhistoCommandLine::ReadValues(ContinuousVector*& cvValues)
 {
 	boolean bOk = true;
@@ -807,7 +952,7 @@ boolean KhistoCommandLine::ReadValues(ContinuousVector*& cvValues)
 						if (lCumulatedFrequency > INT_MAX)
 						{
 							AddInputFileError(&inputFile, lRecordIndex,
-									  sTmp + "cumulated frequency too large (" +
+									  sTmp + "too many values (" +
 									      LongintToString(lCumulatedFrequency) +
 									      ")");
 							bOk = false;
@@ -1020,18 +1165,6 @@ boolean KhistoCommandLine::ReadFrequency(InputBufferedFile* inputFile, longint l
 	if (not bOk)
 		nFrequency = 0;
 	return bOk;
-}
-
-void KhistoCommandLine::AddInputFileWarning(InputBufferedFile* inputFile, longint lRecordIndex, const ALString& sLabel)
-{
-	ALString sTmp;
-
-	require(inputFile != NULL);
-	require(lRecordIndex >= 0);
-	if (lRecordIndex > 0)
-		inputFile->AddWarning(sTmp + "line " + LongintToReadableString(lRecordIndex) + " : " + sLabel);
-	else
-		inputFile->AddWarning(sLabel);
 }
 
 void KhistoCommandLine::AddInputFileError(InputBufferedFile* inputFile, longint lRecordIndex, const ALString& sLabel)

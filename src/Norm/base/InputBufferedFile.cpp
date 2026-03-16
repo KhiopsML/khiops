@@ -574,6 +574,7 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& n
 	boolean bEndOfLine;
 	int i;
 	int iStart;
+	debug(boolean bNullCharInField = false);
 
 	// Acces au buffer
 	sField = GetHugeBuffer(nMaxFieldSize + 1);
@@ -627,6 +628,7 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& n
 				{
 					sField[i] = c;
 					i++;
+					debug(bNullCharInField = bNullCharInField or c == '\0');
 				}
 
 				// Caractere suivant
@@ -682,7 +684,7 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& n
 
 	// Memorisation de la longueur du champ
 	nFieldLength = i;
-	assert((int)strlen(sField) == nFieldLength);
+	assert((int)strlen(sField) == nFieldLength or bNullCharInField);
 
 	// Memorisation des erreurs d'encodage
 	if (nFieldError == FieldMissingBeginDoubleQuote or nFieldError == FieldMissingMiddleDoubleQuote or
