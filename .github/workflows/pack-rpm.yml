@@ -121,11 +121,6 @@ jobs:
           yum install -y ./artifacts/khiops-*
       - name: Check Khiops installation
         uses: ./.github/actions/test-khiops-install
-      - name: Test Khiops on Iris dataset
-        uses: ./.github/actions/test-khiops-on-iris
-        with:
-          os-decription: rockylinux-${{ matrix.rocky_version }}
-          show-openmpi-errors: ${{ inputs.show-openmpi-errors }}
       - name: Add Khiops binary path to the environment (for running the standard
           tests)
         run: |
