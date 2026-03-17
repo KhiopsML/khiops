@@ -86,7 +86,7 @@ def apply_instruction_on_learning_test_tree(
     input_test_dir_name,
     instruction_function,
     family,
-    **kwargs
+    **kwargs,
 ):
     """Applique une instruction un ensemble de suites de tests
     Toute ou partie de l'arborescence est prise en compte selon la specification

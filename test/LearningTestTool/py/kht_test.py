@@ -744,7 +744,7 @@ def evaluate_all_tools_on_learning_test_tree(
     binaries_dir,
     use_khiops_env,
     family,
-    **kwargs
+    **kwargs,
 ):
     """Lance les tests des outils un ensemble de suites de tests
     Tout ou partie de l'arborescence est prise en compte selon la specification
