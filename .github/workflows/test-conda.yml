@@ -52,27 +52,25 @@ jobs:
             echo "Installing khiops-core version ${{ inputs.khiops_version }}"
             conda install -c conda-forge/label/${{ inputs.label }}  khiops-core=${{ inputs.khiops_version }}
           fi
-      - name: Add  CONDA_PREFIX to shared PATH (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          echo "$CONDA_PREFIX/Library/bin" >> $GITHUB_PATH
-          echo "PATH_TO_BIN=$CONDA_PREFIX/Library/bin" >> $GITHUB_ENV
-      - name: Add Conda environment binary directory to the environment (Linux and
-          MacOS)
-        if: runner.os != 'Windows'
-        run: |
-          echo "CONDA_ENV_BIN_DIR=$CONDA_PREFIX/bin" >> $GITHUB_ENV
-          echo "PATH_TO_BIN=$CONDA_PREFIX/bin" >> $GITHUB_ENV
       - name: Checkout sources
         uses: actions/checkout@v6
+      - name: Export BIN_DIR
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "BIN_DIR=$CONDA_PREFIX/Library/bin" >> "$GITHUB_ENV"
+          else
+            echo "BIN_DIR=$CONDA_PREFIX/bin" >> "$GITHUB_ENV"
+          fi
       - name: Test that the Khiops executables are installed
         uses: ./.github/actions/test-khiops-install
+        with:
+          bin-dir: ${{ env.BIN_DIR }}
       - name: Test that the Khiops executables are functional
         uses: ./.github/actions/run-standard-tests
         with:
           warning_as_error: true
           running-mode: parallel
           config: release
-          binary-path: ${{ env.PATH_TO_BIN }}
+          binary-path: ${{ env.BIN_DIR }}
           testing-context-description: ${{ matrix.setup.os }}-${{ matrix.setup.image
             }}

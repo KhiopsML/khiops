@@ -1,6 +1,12 @@
 ---
 name: Test Khiops Installation
 description: Test khiops' scripts (khiops_env, khiops and khiops_coclustering)
+inputs:
+  bin-dir:
+    description: Directory containing khiops_env/khiops/khiops_coclustering when not
+      in PATH
+    required: false
+    default: ''
 runs:
   using: composite
   steps:
@@ -20,6 +26,7 @@ runs:
       if: runner.os != 'Windows'
       shell: bash
       env:
+        KHIOPS_BIN_DIR: ${{ inputs.bin-dir }}
         # Use more processes than available CPUs: OpenMPI < 5
         OMPI_MCA_rmaps_base_oversubscribe: true
         # Use more processes than available CPUs: OpenMPI >= 5
@@ -30,11 +37,11 @@ runs:
         if type -P khiops_env &> /dev/null
         then
           KHIOPS_ENV_DIR=$(dirname $(type -P khiops_env))
-        elif [[ -n "$CONDA_ENV_BIN_DIR" ]]
+        elif [[ -n "$KHIOPS_BIN_DIR" ]]
         then
-          KHIOPS_ENV_DIR=$CONDA_ENV_BIN_DIR
+          KHIOPS_ENV_DIR=$KHIOPS_BIN_DIR
         else
-          echo "::error::This action expects CONDA_ENV_BIN_DIR to be defined"
+          echo "::error::This action expects input 'bin-dir' to be defined when khiops_env is not in PATH"
           false
         fi
         echo
@@ -134,6 +141,7 @@ runs:
       if: runner.os != 'Windows'
       shell: bash
       env:
+        KHIOPS_BIN_DIR: ${{ inputs.bin-dir }}
         KHIOPS_PROC_NUMBER: 4
         # Use more processes than available CPUs: OpenMPI < 5
         OMPI_MCA_rmaps_base_oversubscribe: true
@@ -145,16 +153,16 @@ runs:
         if type -P khiops_env &> /dev/null
         then
           KHIOPS_ENV_DIR=$(dirname $(type -P khiops_env))
-        elif [[ -n "$CONDA_ENV_BIN_DIR" ]]
+        elif [[ -n "$KHIOPS_BIN_DIR" ]]
         then
-          KHIOPS_ENV_DIR=$CONDA_ENV_BIN_DIR
+          KHIOPS_ENV_DIR=$KHIOPS_BIN_DIR
         else
-          echo "::error::This action expects CONDA_ENV_BIN_DIR to be defined"
+          echo "::error::This action expects input 'bin-dir' to be defined when khiops_env is not in PATH"
           false
         fi
         $KHIOPS_ENV_DIR/khiops -s
         $KHIOPS_ENV_DIR/khiops -s &> output_s
-        if [ grep -q error output_s ];
+        if grep -q error output_s;
         then 
           echo "::error::Unexpected output in khiops -s"
           false
@@ -189,6 +197,7 @@ runs:
       if: runner.os != 'Windows'
       shell: bash
       env:
+        KHIOPS_BIN_DIR: ${{ inputs.bin-dir }}
         KHIOPS_PROC_NUMBER: 4
         # Use more processes than available CPUs: OpenMPI < 5
         OMPI_MCA_rmaps_base_oversubscribe: true
@@ -200,16 +209,16 @@ runs:
         if type -P khiops_env &> /dev/null
         then
           KHIOPS_ENV_DIR=$(dirname $(type -P khiops_env))
-        elif [[ -n "$CONDA_ENV_BIN_DIR" ]]
+        elif [[ -n "$KHIOPS_BIN_DIR" ]]
         then
-          KHIOPS_ENV_DIR=$CONDA_ENV_BIN_DIR
+          KHIOPS_ENV_DIR=$KHIOPS_BIN_DIR
         else
-          echo "::error::This action expects CONDA_ENV_BIN_DIR to be defined"
+          echo "::error::This action expects input 'bin-dir' to be defined when khiops_env is not in PATH"
           false
         fi
         $KHIOPS_ENV_DIR/khiops_coclustering -s
         $KHIOPS_ENV_DIR/khiops_coclustering -s &> output_s
-        if [ grep -q error output_s ];
+        if grep -q error output_s;
         then 
           echo "::error::Unexpected output in khiops_coclustering -s"
           false
@@ -246,6 +255,7 @@ runs:
       if: runner.os != 'Windows'
       shell: bash
       env:
+        KHIOPS_BIN_DIR: ${{ inputs.bin-dir }}
         KHIOPS_PROC_NUMBER: 4
         # Use more processes than available CPUs: OpenMPI < 5
         OMPI_MCA_rmaps_base_oversubscribe: true
@@ -257,11 +267,11 @@ runs:
         if type -P khiops_env &> /dev/null
         then
           KHIOPS_ENV_DIR=$(dirname $(type -P khiops_env))
-        elif [[ -n "$CONDA_ENV_BIN_DIR" ]]
+        elif [[ -n "$KHIOPS_BIN_DIR" ]]
         then
-          KHIOPS_ENV_DIR=$CONDA_ENV_BIN_DIR
+          KHIOPS_ENV_DIR=$KHIOPS_BIN_DIR
         else
-          echo "::error::This action expects CONDA_ENV_BIN_DIR to be defined"
+          echo "::error::This action expects input 'bin-dir' to be defined when khiops_env is not in PATH"
           false
         fi
         PROC_NUMBER=$($KHIOPS_ENV_DIR/khiops -s | grep "Logical processes" | awk '{print $NF}')

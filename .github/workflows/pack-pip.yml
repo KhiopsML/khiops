@@ -49,9 +49,16 @@ jobs:
           python-version: '3.13'
       - name: Install built wheel in a custom directory
         run: |
-          KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-core"
+          KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
           echo "KHIOPS_INSTALL_DIR=$KHIOPS_INSTALL_DIR" >> "$GITHUB_ENV"
-          python -m pip install --prefix "$KHIOPS_INSTALL_DIR" --find-links=wheelhouse khiops-core
+          python -m venv "$KHIOPS_INSTALL_DIR"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            source "$KHIOPS_INSTALL_DIR/Scripts/activate"
+          else
+            source "$KHIOPS_INSTALL_DIR/bin/activate"
+          fi
+          python -m pip install --find-links=wheelhouse khiops-core
+          pip show -f khiops-core
       - name: Export BIN_DIR
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
@@ -61,6 +68,8 @@ jobs:
           fi
       - name: Check Khiops core installation
         uses: ./.github/actions/test-khiops-install
+        with:
+          bin-dir: ${{ env.BIN_DIR }}
       - name: Run standard tests
         uses: ./.github/actions/run-standard-tests
         with:
@@ -69,7 +78,7 @@ jobs:
           config: release
           binary-path: ${{ env.BIN_DIR }}
           testing-context-description: pip-test-${{ matrix.os }}
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: pkg-wheel-${{ matrix.os }}
           path: wheelhouse/*.whl
@@ -86,7 +95,7 @@ jobs:
     environment:
       name: testpypi
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           pattern: pkg-*
           path: dist

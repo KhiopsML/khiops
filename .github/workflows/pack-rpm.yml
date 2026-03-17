@@ -131,6 +131,12 @@ jobs:
             echo "::error::Cannot find Khiops binary directory"
             false
           fi
+      - name: Setup MPI
+        shell: bash
+        run: |
+          source /etc/profile.d/modules.sh
+          module unload mpi
+          module load mpi/${MPI_IMPLEMENTATION}-x86_64
       - name: Run standard tests
         uses: ./.github/actions/run-standard-tests
         with:

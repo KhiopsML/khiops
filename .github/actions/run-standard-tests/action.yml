@@ -55,7 +55,6 @@ runs:
         echo "TEST_PY=test/LearningTestTool/py/kht_test.py" >> "$GITHUB_ENV"
         echo "APPLY_PY=test/LearningTestTool/py/kht_apply.py" >> "$GITHUB_ENV"
         echo "COLLECT_PY=test/LearningTestTool/py/kht_collect_results.py" >> "$GITHUB_ENV"
-        echo "BIN_PATH=${{ inputs.binary-path }}" >> "$GITHUB_ENV"
     - name: Run Tests
     # Run test on linux and macOS as describe in the top comment:
     # - In parallel, run only MODL tests
@@ -68,26 +67,20 @@ runs:
         # Use more processes than available CPUs: OpenMPI >= 5
         PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
       run: |
-        # Load MPI Module if on Linux and not on Debian-like OS (whence on Rocky Linux)
-        if [[ "${{ runner.os }}" == "Linux" && ! -d "/etc/apt/" ]]; then
-          source /etc/profile.d/modules.sh
-          module unload mpi
-          module load mpi/${MPI_IMPLEMENTATION}-x86_64
-        fi
         if [[ "${{ inputs.running-mode }}" == "parallel" ]] ; then
           export PARALLEL_ARG="-p 4"
         fi
         if [[ "${{ inputs.config }}" == "release" ]] ; then
-          $PYTHON $TEST_PY test/LearningTest/TestKhiops/Standard "${BIN_PATH}" ${PARALLEL_ARG}
-          $PYTHON $TEST_PY test/LearningTest/TestCoclustering/Standard "${BIN_PATH}" ${PARALLEL_ARG}
+          $PYTHON $TEST_PY test/LearningTest/TestKhiops/Standard "${{ inputs.binary-path }}" ${PARALLEL_ARG}
+          $PYTHON $TEST_PY test/LearningTest/TestCoclustering/Standard "${{ inputs.binary-path }}" ${PARALLEL_ARG}
           if [[ "${{ inputs.running-mode }}" != "parallel" ]] ; then 
-            $PYTHON $TEST_PY test/LearningTest/TestKNI/Standard "${BIN_PATH}"
+            $PYTHON $TEST_PY test/LearningTest/TestKNI/Standard "${{ inputs.binary-path }}"
           fi
         else
-          $PYTHON $TEST_PY test/LearningTest/TestKhiops/Standard/IrisLight "${BIN_PATH}" ${PARALLEL_ARG}
-          $PYTHON $TEST_PY test/LearningTest/TestCoclustering/Standard/Iris "${BIN_PATH}" ${PARALLEL_ARG}
+          $PYTHON $TEST_PY test/LearningTest/TestKhiops/Standard/IrisLight "${{ inputs.binary-path }}" ${PARALLEL_ARG}
+          $PYTHON $TEST_PY test/LearningTest/TestCoclustering/Standard/Iris "${{ inputs.binary-path }}" ${PARALLEL_ARG}
           if [[ "${{ inputs.running-mode }}" != "parallel" ]] ; then
-            $PYTHON $TEST_PY test/LearningTest/TestKNI/Standard/Iris "${BIN_PATH}"
+            $PYTHON $TEST_PY test/LearningTest/TestKNI/Standard/Iris "${{ inputs.binary-path }}"
           fi
         fi
     - name: Collect results
