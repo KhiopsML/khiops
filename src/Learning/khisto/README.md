@@ -47,7 +47,7 @@ Basic use:
 `khisto gaussian.txt gaussian_histogram.csv`
 
 Using the `-b` option with a binary input data file:
-`khisto gaussian.bin gaussian_histogram.csv`
+`khisto -b gaussian.bin gaussian_histogram.csv`
 
 Using the `-e` option:
 `khisto -e gaussian.txt gaussian_histogram.csv`

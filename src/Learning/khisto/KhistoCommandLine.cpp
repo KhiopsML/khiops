@@ -688,7 +688,7 @@ boolean KhistoCommandLine::ReadBins(ContinuousVector*& cvLowerValues, Continuous
 	// Erreur si pas de valeur
 	if (bOk and lCumulatedFrequency == 0)
 	{
-		AddError(sTmp + "Empty dataset");
+		AddInputFileError(&inputFile, 0, "Empty dataset");
 		bOk = false;
 	}
 
@@ -998,7 +998,7 @@ boolean KhistoCommandLine::ReadValues(ContinuousVector*& cvValues)
 	// Erreur si pas de valeur
 	if (bOk and lCumulatedFrequency == 0)
 	{
-		AddError(sTmp + "Empty dataset");
+		AddInputFileError(&inputFile, 0, "Empty dataset");
 		bOk = false;
 	}
 
