@@ -3,16 +3,20 @@ khisto: Khiops Histograms Tool
 
 ## How to use
 
-Usage: `khisto [VALUES] [HISTOGRAM]`
-Compute histogram from the data in FILE. The resulting histogram is output in HISTOGRAM file, with the lower bound, upper bound, length, frequency, probability and density per bin.
+Usage: `khisto [OPTIONS] INPUT_FILE HISTOGRAM`
+The output HISTOGRAM contains bin details: lower bound, upper bound, bin width, frequency, probability, and density.
 
-Available options are:
-- -e	output a series of histograms by increasing accuracy for exploratory analysis purposes
-- -j	outputs are produced in one json file
-- -h	display this help and exit
-- -v	display version information and exit
+Options:
+- -b: Read input as binary (8-byte doubles) instead of text
+- -e: Generate a series of histograms with increasing accuracy for exploratory analysis
+- -j: Save all outputs in a single JSON file
+- -h: Display help message and exit
+- -v: Show version information and exit
 
-The output histogram is as accurate and interpretable as possible. Using the -e option, all histograms internally computed are output by increasing accuracy. Each histogram of the series uses an index in its suffix(e.g. ".1"), and an additional file with the suffix ".series" is produced, with indicators per histogram. The -j option can be combined with the -e option to get all outputs in one file.
+The histogram aims to be as accurate and interpretable as possible.
+Using -e, all histograms are exported in order of increasing precision.
+Each histogram in the series has an index suffix (e.g., ".1"), and a .series file provides indicators for each.
+Combining -j with -e consolidates all outputs into one file.
 
 The indicators produced for the series of histograms are detailed in [(Boulle, 2024)](#Reference):
 - File name: histogram file name,
@@ -41,6 +45,9 @@ concerns at most the last histograms of the series, can be deduced from the "his
 
 Basic use:
 `khisto gaussian.txt gaussian_histogram.csv`
+
+Using the `-b` option with a binary input data file:
+`khisto -b gaussian.bin gaussian_histogram.csv`
 
 Using the `-e` option:
 `khisto -e gaussian.txt gaussian_histogram.csv`

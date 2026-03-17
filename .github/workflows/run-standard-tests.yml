@@ -167,6 +167,18 @@ jobs:
             echo "::error::Error in khisto output"
             false
           fi
+      - name: Test khisto binary format
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then EXT=".exe"; fi
+          '${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/'khisto${EXT} -b -e -j test/khisto/gaussian.bin test.gaussian_histogram.series.bin.json
+          if diff -q test.gaussian_histogram.series.bin.json test/khisto/gaussian_histogram_exploratory_analysis.json > /dev/null ; 
+          then
+            echo "khisto is OK with binary input"
+          else
+            echo "::error::Error in khisto output with binary input"
+            false
+          fi
   cleanup-cache:
     # Clean up all caches belonging to the current run
     if: always()
