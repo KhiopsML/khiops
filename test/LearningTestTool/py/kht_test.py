@@ -1081,14 +1081,6 @@ def main():
     if args.test_timeout_limit is not None and args.test_timeout_limit < 0:
         parser.error("argument --test-timeout-limit must be positive")
 
-    # Echec si le nombre de processus est parametre et mpiexec n'est pas dans le path
-    if args.n > 1 and shutil.which(mpi_exe_name) is None:
-        parser.error(
-            "argument -p/--processes: process number "
-            + str(args.n)
-            + " is greater than 1 but mpiexec not found in path."
-        )
-
     # Echec si on est en mode interactif des elements de configuration minimaux sont absents
     if args.user_interface:
         # Pour l'instant, verification uniquement sous Windows
@@ -1114,6 +1106,15 @@ def main():
 
     # Verification et activation de khiops_env le cas echeant
     use_khiops_env, error_message = activate_khiops_env(args.binaries, args.n)
+
+    # Echec si le nombre de processus est parametre et mpiexec n'est pas dans le path
+    # Si on passe par khiops_env, c'est lui qui s'occupe du PATH de mpiexec
+    if not use_khiops_env and args.n > 1 and shutil.which(mpi_exe_name) is None:
+        parser.error(
+            "argument -p/--processes: process number "
+            + str(args.n)
+            + " is greater than 1 but mpiexec not found in path."
+        )
 
     # Lancement de la commande
     evaluate_all_tools_on_learning_test_tree(
