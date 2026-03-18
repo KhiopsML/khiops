@@ -73,3 +73,13 @@ version.remove = "(None){,2}$"  # prereltype and prereln groups are None if not 
 build = "cp39*"
 # Khiops does not compile when using musl as the C standard library
 skip = "*musllinux*"
+
+[tool.cibuildwheel.linux]
+# All dependencies are provided by the mpi Pip packages, we can't manage to add them to the repair command, so we disable it.
+# repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} --exclude libmpi.so.12"
+repair-wheel-command = ""
+
+[tool.cibuildwheel.macos]
+# All dependencies are provided by the mpi Pip packages, we can't manage to add them to the repair command, so we disable it.
+# repair-wheel-command = """delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} --ignore-missing-dependencies"""
+repair-wheel-command = ""
