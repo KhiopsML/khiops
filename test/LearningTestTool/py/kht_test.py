@@ -371,18 +371,22 @@ def evaluate_tool_on_test_dir(
             os.environ["OMPI_MCA_rmaps_base_oversubscribe"] = "true"
 
         # Ajout du path des bibliotheques MPI defini dans khiops_env
-        if os.environ.get("KHIOPS_MPI_PATH"):
+        if os.environ.get("KHIOPS_MPI_DLL_PATH"):
             if platform.system() == "Linux":
                 os.environ["LD_LIBRARY_PATH"] = (
-                    os.environ["KHIOPS_MPI_PATH"]
+                    os.environ["KHIOPS_MPI_DLL_PATH"]
                     + ":"
                     + os.getenv("LD_LIBRARY_PATH", "")
                 )
             if platform.system() == "Darwin":
                 os.environ["DYLD_LIBRARY_PATH"] = (
-                    os.environ["KHIOPS_MPI_PATH"]
+                    os.environ["KHIOPS_MPI_DLL_PATH"]
                     + ":"
                     + os.getenv("DYLD_LIBRARY_PATH", "")
+                )
+            if platform.system() == "Windows":
+                os.environ["path"] = (
+                    os.environ["KHIOPS_MPI_DLL_PATH"] + ";" + os.getenv("path", "")
                 )
 
         # Construction des parametres
@@ -942,7 +946,7 @@ def main():
         #   selon le nom de l'outil attendu (selon tool_name)
         # - dans evaluate_tool_on_test_dir, on etend khiops_params avec le resultat
         #   de shlex.split(os.environ["KHIOPS_MPI_COMMAND"]) et on ajoute
-        #   KHIOPS_MPI_PATH a LD_LIBRARY_PATH ou DYLD_LIBRARY_PATH
+        #   KHIOPS_MPI_DLL_PATH a LD_LIBRARY_PATH ou DYLD_LIBRARY_PATH ou PATH
         # sinon, on garde le comportement courant inchange
         khiops_env_file_name = "khiops_env"
         current_platform = results.get_context_platform_type()

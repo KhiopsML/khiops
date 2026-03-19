@@ -35,8 +35,9 @@ if "%KHIOPS_BATCH_MODE%" == "true" if not "%KHIOPS_JAVA_ERROR%". == "". goto ERR
 if "%_KHIOPS_GUI%" == "false" if not "%KHIOPS_BATCH_MODE%" == "true" goto ERR_NO_GUI
 
 REM Set path
-set path=%~dp0;%KHIOPS_JAVA_PATH%;%path%
+set path=%~dp0;%KHIOPS_JAVA_PATH%;%KHIOPS_MPI_DLL_PATH%;%path%
 set classpath=%KHIOPS_CLASSPATH%;%classpath%
+echo "path set to %path%"
 
 REM unset local variables
 set "KHIOPS_BATCH_MODE="

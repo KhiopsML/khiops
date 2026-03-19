@@ -69,12 +69,15 @@ endif()
 
 # ######################################## Khiops and Khiops Coclustering installation
 
+# GUI is not supported in conda and pip environments, and on MacOS
 if(IS_CONDA
    OR IS_PIP
    OR IS_MACOS)
-  set(GUI_SUPPORTED false)
+  set(GUI_SUPPORTED OFF)
+  set(GUI_STATUS "false")
 else()
-  set(GUI_SUPPORTED true)
+  set(GUI_SUPPORTED ON)
+  set(GUI_STATUS "true")
 endif()
 
 if(IS_LINUX OR IS_MACOS)
@@ -245,12 +248,21 @@ if(IS_LINUX OR IS_MACOS)
   endif()
 
 else(IS_LINUX OR IS_MACOS)
-
+  # Windows packaging for Khiops
   if(IS_CONDA)
     set(SET_MPI "SET_MPI_CONDA")
     set(SET_KHIOPS_DRIVERS_PATH "%_KHIOPS_HOME%\\bin\\")
+    set(BIN_PATH "bin")
+    set(BIN_INSTALL_DIR "bin")
+  elseif(IS_PIP)
+    set(SET_MPI "SET_MPI_PIP")
+    set(SET_KHIOPS_DRIVERS_PATH "%_KHIOPS_HOME%\\lib\\")
+    set(BIN_PATH "Scripts")
+    set(BIN_INSTALL_DIR ${SKBUILD_SCRIPTS_DIR})
   else()
     set(SET_MPI "SET_MPI_SYSTEM_WIDE")
+    set(BIN_PATH "bin")
+    set(BIN_INSTALL_DIR "bin")
   endif()
 
   configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops_env.cmd.in ${TMP_DIR}/khiops_env.cmd @ONLY
@@ -268,14 +280,14 @@ else(IS_LINUX OR IS_MACOS)
   configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops.cmd.in ${TMP_DIR}/khiops_coclustering.cmd @ONLY
                  NEWLINE_STYLE CRLF)
 
-  install(TARGETS MODL MODL_Coclustering _khiopsgetprocnumber RUNTIME DESTINATION bin COMPONENT KHIOPS_CORE)
-
+  install(TARGETS MODL MODL_Coclustering _khiopsgetprocnumber RUNTIME DESTINATION ${BIN_INSTALL_DIR}
+                                                                      COMPONENT KHIOPS_CORE)
   install(
     PROGRAMS ${TMP_DIR}/khiops.cmd ${TMP_DIR}/khiops_coclustering.cmd ${TMP_DIR}/khiops_env.cmd
-    DESTINATION bin
+    DESTINATION ${BIN_INSTALL_DIR}
     COMPONENT KHIOPS_CORE)
 
-  if(BUILD_JARS)
+  if(BUILD_JARS AND GUI_SUPPORTED)
     install_jar(
       khiops_jar
       DESTINATION jars

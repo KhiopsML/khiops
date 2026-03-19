@@ -99,14 +99,18 @@ runs:
     - name: Test that the executables are installed (windows)
       if: runner.os == 'Windows'
       shell: cmd /C call {0}
+      env:
+        KHIOPS_BIN_DIR: ${{ inputs.bin-dir }}
       run: |
-        echo.
-        echo --- Khiops environment with KHIOPS_PROC_NUMBER not set
-        call khiops_env --env
-        echo "%KHIOPS_DRIVERS_PATH%" | findstr /R ".*\\Library\\bin$" > NUL
-        if not %ERRORLEVEL% equ 0 (
-          echo "::error::KHIOPS_DRIVERS_PATH is not in Library\bin"
-        )
+        set "PATH=%KHIOPS_BIN_DIR%;%PATH%"
+        REM TODO : we should remove the driver path checks because it is not the same on all platforms
+        REM echo.
+        REM echo --- Khiops environment with KHIOPS_PROC_NUMBER not set
+        REM call khiops_env --env
+        REM echo "%KHIOPS_DRIVERS_PATH%" | findstr /R ".*\\Library\\bin$" > NUL
+        REM if not %ERRORLEVEL% equ 0 (
+        REM   echo "::error::KHIOPS_DRIVERS_PATH is not in Library\bin"
+        REM )
         echo.
         set KHIOPS_PROC_NUMBER=2
         echo --- Khiops environment with KHIOPS_PROC_NUMBER=%KHIOPS_PROC_NUMBER%
@@ -181,7 +185,9 @@ runs:
       shell: cmd /C call {0}
       env:
         KHIOPS_PROC_NUMBER: 4
+        KHIOPS_BIN_DIR: ${{ inputs.bin-dir }}
       run: |
+        set "PATH=%KHIOPS_BIN_DIR%;%PATH%"
         khiops -s
         khiops -s 2>&1 | findstr /i "error" >nul
         if %ERRORLEVEL% equ 0 (
@@ -237,7 +243,9 @@ runs:
       shell: cmd /C call {0}
       env:
         KHIOPS_PROC_NUMBER: 4
+        KHIOPS_BIN_DIR: ${{ inputs.bin-dir }}
       run: |
+        set "PATH=%KHIOPS_BIN_DIR%;%PATH%"
         khiops_coclustering -s
         khiops_coclustering -s 2>&1 | findstr /i "error" >nul
         if %ERRORLEVEL% equ 0 (

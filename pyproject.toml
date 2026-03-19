@@ -71,8 +71,8 @@ version.remove = "(None){,2}$"  # prereltype and prereln groups are None if not 
 [tool.cibuildwheel]
 # Build wheel with CPython 3.9 only since other versions would give similar wheels
 build = "cp39*"
-# Khiops does not compile when using musl as the C standard library
-skip = "*musllinux*"
+# Khiops does not compile when using musl as the C standard library, and impi-devel is not available for 32-bit Windows
+skip = ["*musllinux*", "*win32"]
 
 [tool.cibuildwheel.linux]
 # All dependencies are provided by the mpi Pip packages, we can't manage to add them to the repair command, so we disable it.
@@ -82,4 +82,7 @@ repair-wheel-command = ""
 [tool.cibuildwheel.macos]
 # All dependencies are provided by the mpi Pip packages, we can't manage to add them to the repair command, so we disable it.
 # repair-wheel-command = """delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} --ignore-missing-dependencies"""
+repair-wheel-command = ""
+
+[tool.cibuildwheel.windows]
 repair-wheel-command = ""
