@@ -35,6 +35,7 @@ cmake.define.C11 = true
 # Force the use of Ninja for fast builds
 ninja.make-fallback = false
 # Only install KNI component in wheel
+build.targets = ["KhiopsNativeInterface"]
 install.components = ["KNI"]
 
 [tool.scikit-build.metadata]

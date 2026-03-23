@@ -1,13 +1,18 @@
 # ######################################## Installation #########################################
 
 if(IS_CONDA)
-  install(CODE "MESSAGE(FATAL_ERROR \"Installation is not supported in conda environment\")")
+  install(CODE "MESSAGE(FATAL_ERROR \"Installation is not supported in conda environment (not tested)\")")
 endif()
 
 # ######################################## KNI installation
 
 # Specification of the paths according to the OS
-if(IS_WINDOWS)
+if(IS_PIP)
+  set(INCLUDE_DIR ${SKBUILD_HEADERS_DIR}) # pip installs to {prefix}/include/khiops_kni/KhiopsNativeInterface.h
+  set(LIB_DIR ${SKBUILD_DATA_DIR}/lib) # pip installs to {prefix}/lib/
+  set(DOC_DIR ${SKBUILD_NULL_DIR}) # With pip, license and README are already copied to pkg metadata, so we set DOC_DIR
+                                   # to SKBUILD_NULL_DIR to avoid installing them again
+elseif(IS_WINDOWS)
   set(INCLUDE_DIR include)
   set(LIB_DIR lib)
   set(DOC_DIR "./")
