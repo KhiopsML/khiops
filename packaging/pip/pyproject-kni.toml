@@ -1,37 +1,32 @@
 [build-system]
 requires = [
     "ninja",
-    "scikit-build-core>=0.11.6",
-    "mpich ; platform_system in '[Linux, Darwin]'",
-    "impi-devel ; platform_system == 'Windows'"
+    "scikit-build-core>=0.11.6"
 ]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "khiops-core"
-description = "Khiops is a data preparation and scoring tool for supervised learning and unsupervised learning."
+name = "khiops-kni"
+description = "Khiops Native Interface (KNI) - C library for model deployment and scoring."
 readme = "README.md"
 license = "BSD-3-Clause-Clear"
 license-files = ["LICENSE"]
 authors = [{name = "The Khiops Team", email = "khiops.team@orange.com"}]
 requires-python = ">=3.9"
-dependencies = [
-    "mpich ; platform_system in '[Linux, Darwin]'",
-    "impi-rt ; platform_system == 'Windows'"
-]
+dependencies = []
 dynamic = ["version"]
 
 [tool.scikit-build]
 # Neither Python code nor CPython library usage in this package so we specify full compatibility with all Python 3 releases
 wheel.py-api = "py3"
 # Read CMake minimal version from file
-cmake.version = "CMakeLists.txt" 
+cmake.version = "CMakeLists.txt"
 # Generator specification and build configuration
 cmake.args = ["-G", "Ninja"]
 # CMake variables
 cmake.define.CMAKE_BUILD_TYPE = "Release"
 # Options
-cmake.define.MPI = true
+cmake.define.MPI = false
 cmake.define.TESTING = false
 cmake.define.BUILD_LEX_YACC = false
 cmake.define.BUILD_JARS = false
@@ -39,8 +34,8 @@ cmake.define.GENERATE_VIEWS = false
 cmake.define.C11 = true
 # Force the use of Ninja for fast builds
 ninja.make-fallback = false
-# Only install KHIOPS_CORE component in wheel
-install.components = ["KHIOPS_CORE"]
+# Only install KNI component in wheel
+install.components = ["KNI"]
 
 [tool.scikit-build.metadata]
 # Read package version from file, adapt it for Python version specification
@@ -69,19 +64,18 @@ version.result = "{major}.{minor}.{patch}{prereltype}{prereln}"
 version.remove = "(None){,2}$"  # prereltype and prereln groups are None if not found
 
 [tool.cibuildwheel]
-# Build wheel with CPython 3.9 only since other versions would give similar wheels
+# Restrict builds to CPython 3.9 only: KNI is a pure C library with stable ABI, so wheels for other Python 3.x versions would be identical.
+# This avoids redundant builds and simplifies distribution; update if future ABI changes or Python-specific bindings are introduced.
 build = "cp39*"
-# Khiops does not compile when using musl as the C standard library, and impi-devel is not available for 32-bit Windows
-skip = ["*musllinux*", "*win32"]
+# KNI does not compile when using musl as the C standard library, and 32-bit is not supported
+skip = ["*musllinux*", "*win32*"]
 
 [tool.cibuildwheel.linux]
-# All dependencies are provided by the mpi Pip packages, we can't manage to add them to the repair command, so we disable it.
-# repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} --exclude libmpi.so.12"
+# No dependency
 repair-wheel-command = ""
 
 [tool.cibuildwheel.macos]
-# All dependencies are provided by the mpi Pip packages, we can't manage to add them to the repair command, so we disable it.
-# repair-wheel-command = """delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} --ignore-missing-dependencies"""
+# No dependency
 repair-wheel-command = ""
 
 [tool.cibuildwheel.windows]

@@ -35,6 +35,9 @@ jobs:
           - macos-15
     steps:
       - uses: actions/checkout@v6
+      - name: Move pyproject file to the root of the repository
+        run: |
+          mv packaging/pip//pyproject-khiops.toml pyproject.toml
       - name: Load Visual C++ Environment Variables (Windows)
         if: runner.os == 'Windows'
         shell: cmd
