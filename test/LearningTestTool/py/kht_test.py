@@ -219,6 +219,7 @@ def evaluate_tool_on_test_dir(
     output_scenario=False,
     nop_output_scenario=False,
     user_interface=False,
+    cloud_data_path=None,
 ):
     """Evaluation d'un outil sur un repertoire de test terminal et comparaison des resultats
     Parametres:
@@ -423,6 +424,17 @@ def evaluate_tool_on_test_dir(
         if task_file:
             khiops_params.append("-p")
             khiops_params.append(os.path.join(results_dir, "task_progression.log"))
+
+        if cloud_data_path is not None:
+            khiops_params.append("-r")
+            khiops_params.append("../../:" + cloud_data_path)
+            khiops_params.append("-r")
+            khiops_params.append(
+                "./:"
+                + os.path.join(
+                    cloud_data_path, tool_dir_name, suite_dir_name, test_dir_name
+                )
+            )
 
         # Calcul d'un time_out en fonction du temps de reference, uniquement si celui est disponible
         timeout = None
@@ -1055,6 +1067,15 @@ def main():
         action="store_true",
     )
 
+    # LearningTest sur le cloud
+    parser.add_argument(
+        "--cloud-data-path",
+        help="LearningTest path on a cloud file system (for example, on Azure blob storage or AWS S3)",
+        type=str,
+        metavar="path",
+        action="store",
+    )
+
     # Analyse de la ligne de commande
     args = parser.parse_args()
 
@@ -1131,6 +1152,7 @@ def main():
         output_scenario=args.output_scenario,
         nop_output_scenario=args.nop_output_scenario,
         user_interface=args.user_interface,
+        cloud_data_path=args.cloud_data_path,
     )
 
 

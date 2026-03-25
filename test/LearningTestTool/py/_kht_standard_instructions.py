@@ -519,31 +519,32 @@ def instruction_check_hdfs(test_dir):
         line_index = 1
         for s in prm_file:
             # Commentaires dans le scenario
-            if "//" in s:
-                comment_pos = s.find("//")
-                if (
-                    comment_pos > 0
-                    and s[comment_pos - 1] != " "
-                    and s[comment_pos - 1] != "\t"
-                ):
-                    if s[comment_pos + 2 :].find("//") >= 0:
-                        print(
-                            str(line_index)
-                            + ": \tWARNING: Multiple '//' in line -> "
-                            + s[:-1]
-                        )
-                    else:
-                        print(
-                            str(line_index)
-                            + ": \tComment without blank ' //' -> "
-                            + s[:-1]
-                        )
+            # if "//" in s:
+            #     comment_pos = s.find("//")
+            #     if (
+            #         comment_pos > 0
+            #         and s[comment_pos - 1] != " "
+            #         and s[comment_pos - 1] != "\t"
+            #     ):
+            #         if s[comment_pos + 2 :].find("//") >= 0:
+            #             print(
+            #                 str(line_index)
+            #                 + ": \tWARNING: Multiple '//' in line -> "
+            #                 + s[:-1]
+            #             )
+            #         else:
+            #             print(
+            #                 str(line_index)
+            #                 + ": \tComment without blank ' //' -> "
+            #                 + s[:-1]
+            #             )
             # Test de chaque mot cle
             for keyword in keywords:
                 if (
                     s.find(keyword) >= 0
                     and s.find(" ../../../datasets") <= 0
                     and s.find(" ../../../MTdatasets") <= 0
+                    and s.find(" ../../../TextDatasets") <= 0
                     and s.find(" ./") <= 0
                 ):
                     if parameter_exist(s, keyword):
