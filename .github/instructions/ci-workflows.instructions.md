@@ -1,14 +1,14 @@
 ---
 name: ci-workflows
-description: "Use when modifying GitHub Actions workflows, CI triggers, matrices, packaging pipelines, or release automation under .github/workflows/."
-applyTo: [".github/workflows/**"]
+description: "Use when modifying GitHub Actions workflows, composite actions, CI triggers, matrices, packaging pipelines, or release automation under .github/workflows/ or .github/actions/."
+applyTo: ".github/workflows/**, .github/actions/**"
 ---
 
-# GitHub Actions Workflow Instructions for Khiops
+# GitHub Actions Workflow & Action Instructions for Khiops
 
 ## Scope
 
-This file applies to workflow changes in `.github/workflows/`.
+This file applies to workflow changes in `.github/workflows/` and composite actions in `.github/actions/`.
 
 Current workflows (11):
 - `run-unit-tests.yml`
@@ -22,6 +22,41 @@ Current workflows (11):
 - `test-conda.yml`
 - `build-linux-pack-containers.yml`
 - `update-kni-tutorial.yml`
+
+## Composite Actions (`.github/actions/`)
+
+Reusable composite actions called by workflows:
+
+| Action | Purpose | Key Inputs |
+|--------|---------|------------|
+| **build-khiops** | CMake configure + build via presets | `preset-name` (required), `override-flags`, `targets` |
+| **check-tag-version** | Verify Git tag matches `KHIOPS_VERSION` in source | None (reads `github.ref_name`) |
+| **run-standard-tests** | Run LearningTest suite (Khiops, Coclustering, KNI) | `running-mode`, `config`, `binary-path`, `testing-context-description`, `warning_as_error` |
+| **test-khiops-install** | Validate `khiops_env`, `khiops -s`, MPI config | `bin-dir` |
+| **test-khiops-on-iris** | Functional Iris test for Khiops + Coclustering | `os-decription`, `show-openmpi-errors` |
+| **test-kni** | Test KNI C and Java examples (mono/multi-table) | None |
+
+### Action Usage Map
+
+| Workflow | Actions Used |
+|----------|-------------|
+| `run-unit-tests.yml` | `build-khiops` |
+| `run-standard-tests.yml` | `build-khiops`, `run-standard-tests` |
+| `pack-pip.yml` | `test-khiops-install`, `run-standard-tests` |
+| `pack-debian.yml` | `check-tag-version`, `run-standard-tests`, `test-khiops-install`, `test-kni` |
+| `pack-rpm.yml` | `check-tag-version`, `run-standard-tests`, `test-khiops-install`, `test-kni` |
+| `pack-nsis.yml` | `build-khiops`, `check-tag-version`, `run-standard-tests`, `test-khiops-install`, `test-kni` |
+| `pack-macos.yml` | `build-khiops` |
+| `test-conda.yml` | `run-standard-tests`, `test-khiops-install` |
+
+### Action Guidelines
+
+- **Prefer extending existing actions** over duplicating steps across workflows
+- Actions handle **platform-specific logic** (MPI setup, vcvars, Python detection) — keep this in the action, not in workflows
+- **`build-khiops`** manages MPI installation per OS: `brew install mpich` (macOS), `apt-get openmpi` (Linux), `mpi4py`/`setup-mpi` (Windows)
+- **`run-standard-tests`** runs different scopes: debug mode → Iris/IrisLight only; release mode → full Standard tests
+- **`check-tag-version`** must be called early in release packaging workflows before building artifacts
+- Keep action inputs minimal and well-documented; avoid adding inputs that duplicate workflow-level logic
 
 ## Trigger Strategy
 
