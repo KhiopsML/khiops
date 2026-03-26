@@ -64,7 +64,7 @@ jobs:
       - name: Test that the Khiops executables are installed
         uses: ./.github/actions/test-khiops-install
         with:
-          bin-dir: ${{ env.BIN_DIR }}
+          binary-path: ${{ env.BIN_DIR }}
       - name: Test that the Khiops executables are functional
         uses: ./.github/actions/run-standard-tests
         with:

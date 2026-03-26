@@ -2,7 +2,7 @@
 name: Test Khiops Installation
 description: Test khiops' scripts (khiops_env, khiops and khiops_coclustering)
 inputs:
-  bin-dir:
+  binary-path:
     description: Directory containing khiops_env/khiops/khiops_coclustering when not
       in PATH
     required: false
@@ -26,7 +26,7 @@ runs:
       if: runner.os != 'Windows'
       shell: bash
       env:
-        KHIOPS_BIN_DIR: ${{ inputs.bin-dir }}
+        KHIOPS_BIN_DIR: ${{ inputs.binary-path }}
         # Use more processes than available CPUs: OpenMPI < 5
         OMPI_MCA_rmaps_base_oversubscribe: true
         # Use more processes than available CPUs: OpenMPI >= 5
@@ -41,7 +41,7 @@ runs:
         then
           KHIOPS_ENV_DIR=$KHIOPS_BIN_DIR
         else
-          echo "::error::This action expects input 'bin-dir' to be defined when khiops_env is not in PATH"
+          echo "::error::This action expects input 'binary-path' to be defined when khiops_env is not in PATH"
           false
         fi
         echo
@@ -100,7 +100,7 @@ runs:
       if: runner.os == 'Windows'
       shell: cmd /C call {0}
       env:
-        KHIOPS_BIN_DIR: ${{ inputs.bin-dir }}
+        KHIOPS_BIN_DIR: ${{ inputs.binary-path }}
       run: |
         set "PATH=%KHIOPS_BIN_DIR%;%PATH%"
         REM TODO : we should remove the driver path checks because it is not the same on all platforms
@@ -145,7 +145,7 @@ runs:
       if: runner.os != 'Windows'
       shell: bash
       env:
-        KHIOPS_BIN_DIR: ${{ inputs.bin-dir }}
+        KHIOPS_BIN_DIR: ${{ inputs.binary-path }}
         KHIOPS_PROC_NUMBER: 4
         # Use more processes than available CPUs: OpenMPI < 5
         OMPI_MCA_rmaps_base_oversubscribe: true
@@ -161,7 +161,7 @@ runs:
         then
           KHIOPS_ENV_DIR=$KHIOPS_BIN_DIR
         else
-          echo "::error::This action expects input 'bin-dir' to be defined when khiops_env is not in PATH"
+          echo "::error::This action expects input 'binary-path' to be defined when khiops_env is not in PATH"
           false
         fi
         $KHIOPS_ENV_DIR/khiops -s
@@ -185,7 +185,7 @@ runs:
       shell: cmd /C call {0}
       env:
         KHIOPS_PROC_NUMBER: 4
-        KHIOPS_BIN_DIR: ${{ inputs.bin-dir }}
+        KHIOPS_BIN_DIR: ${{ inputs.binary-path }}
       run: |
         set "PATH=%KHIOPS_BIN_DIR%;%PATH%"
         khiops -s
@@ -203,7 +203,7 @@ runs:
       if: runner.os != 'Windows'
       shell: bash
       env:
-        KHIOPS_BIN_DIR: ${{ inputs.bin-dir }}
+        KHIOPS_BIN_DIR: ${{ inputs.binary-path }}
         KHIOPS_PROC_NUMBER: 4
         # Use more processes than available CPUs: OpenMPI < 5
         OMPI_MCA_rmaps_base_oversubscribe: true
@@ -219,7 +219,7 @@ runs:
         then
           KHIOPS_ENV_DIR=$KHIOPS_BIN_DIR
         else
-          echo "::error::This action expects input 'bin-dir' to be defined when khiops_env is not in PATH"
+          echo "::error::This action expects input 'binary-path' to be defined when khiops_env is not in PATH"
           false
         fi
         $KHIOPS_ENV_DIR/khiops_coclustering -s
@@ -243,7 +243,7 @@ runs:
       shell: cmd /C call {0}
       env:
         KHIOPS_PROC_NUMBER: 4
-        KHIOPS_BIN_DIR: ${{ inputs.bin-dir }}
+        KHIOPS_BIN_DIR: ${{ inputs.binary-path }}
       run: |
         set "PATH=%KHIOPS_BIN_DIR%;%PATH%"
         khiops_coclustering -s
@@ -263,7 +263,7 @@ runs:
       if: runner.os != 'Windows'
       shell: bash
       env:
-        KHIOPS_BIN_DIR: ${{ inputs.bin-dir }}
+        KHIOPS_BIN_DIR: ${{ inputs.binary-path }}
         KHIOPS_PROC_NUMBER: 4
         # Use more processes than available CPUs: OpenMPI < 5
         OMPI_MCA_rmaps_base_oversubscribe: true
@@ -279,7 +279,7 @@ runs:
         then
           KHIOPS_ENV_DIR=$KHIOPS_BIN_DIR
         else
-          echo "::error::This action expects input 'bin-dir' to be defined when khiops_env is not in PATH"
+          echo "::error::This action expects input 'binary-path' to be defined when khiops_env is not in PATH"
           false
         fi
         PROC_NUMBER=$($KHIOPS_ENV_DIR/khiops -s | grep "Logical processes" | awk '{print $NF}')

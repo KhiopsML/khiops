@@ -372,22 +372,24 @@ def evaluate_tool_on_test_dir(
 
         # Ajout du path des bibliotheques MPI defini dans khiops_env
         if os.environ.get("KHIOPS_MPI_DLL_PATH"):
-            if platform.system() == "Linux":
-                os.environ["LD_LIBRARY_PATH"] = (
-                    os.environ["KHIOPS_MPI_DLL_PATH"]
-                    + ":"
-                    + os.getenv("LD_LIBRARY_PATH", "")
-                )
-            if platform.system() == "Darwin":
-                os.environ["DYLD_LIBRARY_PATH"] = (
-                    os.environ["KHIOPS_MPI_DLL_PATH"]
-                    + ":"
-                    + os.getenv("DYLD_LIBRARY_PATH", "")
-                )
-            if platform.system() == "Windows":
-                os.environ["path"] = (
-                    os.environ["KHIOPS_MPI_DLL_PATH"] + ";" + os.getenv("path", "")
-                )
+            # Nom de la variable d'environnement specifiant les chemins vers
+            # les bibliotheques dynamiques, en fonction du systeme d'exploitation
+            lib_path_variable_for_os = {
+                "Windows": "path",
+                "Linux": "LD_LIBRARY_PATH",
+                "Darwin": "DYLD_LIBRARY_PATH",
+            }
+
+            # Nom de la variable d'environnement specifiant les chemins vers les bibliotheques dynamiques pour le systeme d'exploitation courant
+            lib_path_variable = lib_path_variable_for_os[platform.system()]
+
+            # Ajout du chemin vers MPI aux chemins vers les bibliotheques dynamiques
+            os.environ[lib_path_variable] = os.path.pathsep.join(
+                [
+                    os.environ["KHIOPS_MPI_DLL_PATH"],
+                    os.environ.get(lib_path_variable, ""),
+                ]
+            )
 
         # Construction des parametres
         khiops_params = []

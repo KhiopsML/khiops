@@ -16,7 +16,8 @@ on:
       - '!test/**CMakeLists.txt'
       - '**.cmake'
       - .github/workflows/pack-pip.yml
-      - pyproject.toml
+      - packaging/pip/pyproject-khiops.toml
+      - packaging/pip/pyproject-kni.toml
 defaults:
   run:
     shell: bash
@@ -37,7 +38,7 @@ jobs:
       - uses: actions/checkout@v6
       - name: Move pyproject-khiops file to the root of the repository
         run: |
-          mv packaging/pip//pyproject-khiops.toml pyproject.toml
+          mv packaging/pip/pyproject-khiops.toml pyproject.toml
       - name: Load Visual C++ Environment Variables (Windows)
         if: runner.os == 'Windows'
         shell: cmd
@@ -72,7 +73,7 @@ jobs:
       - name: Check Khiops core installation
         uses: ./.github/actions/test-khiops-install
         with:
-          bin-dir: ${{ env.BIN_DIR }}
+          binary-path: ${{ env.BIN_DIR }}
       - name: Run standard tests
         uses: ./.github/actions/run-standard-tests
         with:
@@ -83,7 +84,7 @@ jobs:
           testing-context-description: pip-test-${{ matrix.os }}
       - name: Move pyproject-kni file to the root of the repository
         run: |
-          mv packaging/pip//pyproject-kni.toml pyproject.toml
+          mv packaging/pip/pyproject-kni.toml pyproject.toml
       - name: Build kni wheels
         uses: pypa/cibuildwheel@v3.4.0
       - uses: actions/upload-artifact@v7

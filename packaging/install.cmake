@@ -66,11 +66,16 @@ configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/template-README.md ${T
 
 # ######################################## KNITransfer installation
 
-if(CMAKE_HOST_SYSTEM_NAME STREQUAL Windows)
-  install(TARGETS KNITransfer RUNTIME DESTINATION "./" COMPONENT KNI_TRANSFER)
+# Specification of the paths according to the OS
+if(IS_PIP)
+  set(BIN_DIR ${SKBUILD_SCRIPTS_DIR})
+elseif(IS_WINDOWS)
+  set(BIN_DIR "./")
 else()
-  install(TARGETS KNITransfer RUNTIME DESTINATION usr/bin COMPONENT KNI_TRANSFER)
+  set(BIN_DIR usr/bin)
 endif()
+
+install(TARGETS KNITransfer RUNTIME DESTINATION "${BIN_DIR}" COMPONENT KNI_TRANSFER)
 
 # ######################################## Khiops and Khiops Coclustering installation
 
