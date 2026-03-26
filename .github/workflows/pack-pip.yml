@@ -87,6 +87,11 @@ jobs:
           mv packaging/pip/pyproject-kni.toml pyproject.toml
       - name: Build kni wheels
         uses: pypa/cibuildwheel@v3.4.0
+      - name: Move pyproject-knitransfer file to the root of the repository
+        run: |
+          mv packaging/pip/pyproject-knitransfer.toml pyproject.toml
+      - name: Build knitransfer wheels
+        uses: pypa/cibuildwheel@v3.4.0
       - uses: actions/upload-artifact@v7
         with:
           name: pkg-wheel-${{ matrix.os }}
@@ -130,6 +135,10 @@ jobs:
           pattern: pkg-*
           path: dist
           merge-multiple: true
+      - name: Remove knitransfer wheel from the distribution directory (we do not
+          want to publish it on PyPI)
+        run: |
+          rm dist/*knitransfer*.whl
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           verbose: true
