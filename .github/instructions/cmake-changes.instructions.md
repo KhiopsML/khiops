@@ -217,9 +217,9 @@ Each installed file belongs to a named component. Components map to distributed 
 
 | Component | Contents | Distributed in |
 |-----------|----------|-----------------|
-| `KHIOPS_CORE` | Core Khiops binaries (no GUI, no docs) | pip wheel, khiops-core Native installers (DEB, RPM) |
-| `KHIOPS` | Full GUI distribution | khiops Native installers (DEB, RPM) |
-| `KNI` | KhiopsNativeInterface shared lib + header | `khiops-kni` pip wheel, KNI Native installers (DEB, RPM) |
+| `KHIOPS_CORE` | Core Khiops binaries (no GUI, no docs) | pip wheel, khiops-core Native installers (DEB, RPM), conda |
+| `KHIOPS` | Full GUI distribution | khiops Native installers (DEB, RPM)|
+| `KNI` | KhiopsNativeInterface shared lib + header | `khiops-kni` pip wheel, KNI Native installers (DEB, RPM), conda |
 | `KNI_TRANSFER` | KNITransfer test binary | Separate tech package |
 | `KHISTO` | Khisto histogram tool | Separate package |
 

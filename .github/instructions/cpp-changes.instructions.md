@@ -35,25 +35,33 @@ void MyClass::DoSomething() {
 - **Class-to-file mapping**: Use one main class per file; filename matches class name
 - **Module prefix**:
   - **Learning module**: `KW*` (e.g., `KWData.h`, `KWDataPreparation.cpp`)
+  - **Learning sub-modules**:
+    - `KD*`: Domain knowledge / feature construction (`KDDomainKnowledge/`)
+    - `KNI*`: Khiops Native Interface (`KhiopsNativeInterface/`, `KNITransfer/`)
+    - `MH*`: Histogram models (`MHHistograms/`, `genum/`, `khisto/`)
+    - `SNB*`: Selective Naive Bayes predictor (`SNBPredictor/`)
+    - `DT*`: Decision trees and random forests (`DTForest/`)
+    - `CC*`: Coclustering (`MODL_Coclustering/`)
+    - `KI*`: Model interpretation / Shapley values (`KIInterpretation/`)
   - **Parallel module**: `PL*` (e.g., `PLParallelTask.h`, `PLTaskInput.cpp`)
   - **Norm module**: Core utilities (e.g., `ALString.h`, `Object.h`)
 
 ### Comments
 
-- **Language**: French (company convention)
+- **Language**: French (with the accented characters replaced with their ASCII counterparts, company convention)
 - **Style**: `//` only (never `/* */`)
 - **Placement**: Preceded by a blank line
 - **Group comments**: Use banner `///////////` before group descriptions
 
 ```cpp
-// Compute the optimal discretization boundaries
+// Calcul des bornes de discretisation optimales
 int DiscretizeVariable()
 {
 	// ...
 }
 
 ///////////
-// Helper methods for data validation
+// Methodes utilitaires de validation des donnees
 void CheckDataIntegrity()
 {
 	// ...
@@ -153,19 +161,19 @@ Every `Object` subclass should implement:
 class MyClass : public Object
 {
 public:
-	// Data operations
+	// Operations sur les donnees
 	Object* Clone() const override;
 	void CopyFrom(const Object* oSource) override;
 	int Compare(const Object* oOther) const override;
 
-	// Integrity checking
+	// Controle d'integrite
 	boolean Check() const override;
 	const ALString GetObjectLabel() const override;
 
-	// Memory tracking
+	// Suivi de la memoire
 	longint GetUsedMemory() const override;
 
-	// Error management
+	// Gestion des erreurs
 	void AddError(const ALString& sLabel, const ALString& sMessage);
 	void AddWarning(const ALString& sLabel, const ALString& sMessage);
 };
@@ -272,11 +280,11 @@ If allocation is not freed:
 ```cpp
 int main()
 {
-	MemSetAllocIndexExit(42);  // Debug specific allocation ID
+	MemSetAllocIndexExit(42);  // Debuggage d'un identifiant d'allocation specifique
 
-	// ... your code ...
+	// ... votre code ...
 
-	return 0;  // Breakpoint in GlobalExit() on memory leak
+	return 0;  // Point d'arret dans GlobalExit() en cas de fuite memoire
 }
 ```
 
@@ -349,11 +357,29 @@ void MyClass::Function()
 - **Data structures**: Use `ObjectArray`, `ObjectDictionary` from Norm
 - **Error handling**: `AddError()`, `AddWarning()`, `Check()` methods
 - **Parallel tasks**: Inherit from `PLParallelTask` if parallelizable
+- **Sub-module prefixes**:
+  - `KD*`: Domain knowledge / feature construction (`KDDomainKnowledge/`)
+  - `KNI*`: Khiops Native Interface (`KhiopsNativeInterface/`, `KNITransfer/`)
+  - `MH*`: Histogram models (`MHHistograms/`, `genum/`, `khisto/`)
+  - `SNB*`: Selective Naive Bayes predictor (`SNBPredictor/`)
+  - `DT*`: Decision trees and random forests (`DTForest/`)
+  - `CC*`: Coclustering (`MODL_Coclustering/`)
+  - `KI*`: Model interpretation / Shapley values (`KIInterpretation/`)
 
 ### Parallel Module (`PL*` prefix)
 
 - **Shared variables**: `DeclareSharedParameter()`, `DeclareTaskInput()`, `DeclareTaskOutput()`
-- **Master/slave pattern**: Implement `MasterInitialize()`, `SlaveProcess()`, `MasterAggregateResults()`
+- **Master/slave pattern**: Subclass `PLParallelTask` and implement all pure virtual methods:
+  - `GetTaskName() const` — unique task name
+  - `Create() const` — returns a new instance of the task
+  - `MasterInitialize()` — master initialization
+  - `MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished)` — prepare input for next slave
+  - `MasterAggregateResults()` — aggregate results from a slave
+  - `MasterFinalize(boolean bProcessEndedCorrectly)` — master cleanup
+  - `SlaveInitialize()` — slave initialization
+  - `SlaveProcess()` — main slave processing (reads `taskInput`, writes `taskOutput`)
+  - `SlaveFinalize(boolean bProcessEndedCorrectly)` — slave cleanup
+- **Optional override**: `ComputeResourceRequirements()` — declare memory/disk needs before launch
 - **No multi-threading**: All parallelization via MPI
 
 ### Norm Module (Core)
@@ -443,7 +469,7 @@ Allocated resources are accessible via `GetSlaveResourceGrant()` and `GetMasterR
 
 ### Task Registration
 
-All parallel tasks must be registered at program startup (in `MODL.cpp`):
+All parallel tasks must be registered at program startup (in `KWLearningProject.cpp` for MODL):
 ```cpp
 PLParallelTask::RegisterTask(new MyTask);
 ```
@@ -557,7 +583,7 @@ Build with `-DTESTING=ON`, run with `ctest`.
 
 ### Integration Tests
 
-Integration tests use the python library KhiopsTestTool (`test/LearningTestTool/`). `LearningTest` automates non-regression scenarios and handles platform variations.
+Integration tests use the python library LearningTestTool (`test/LearningTestTool/`). `LearningTest` automates non-regression scenarios and handles platform variations.
 
 ### Tracing
 

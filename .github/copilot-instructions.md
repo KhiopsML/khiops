@@ -22,6 +22,7 @@ src/
 test/
   ├─ UnitTests/       # CTest unit tests (norm_test, parallel_test, etc.)
   ├─ LearningTest/    # Integration/standard tests
+  ├─ LearningTestTool/ # Python test infrastructure for non-regression tests
   └─ MemoryStatsVisualizer/
 scripts/              # Python and CMake helpers, copyright/encoding checks
 packaging/            # Conda, Linux RPM/Debian, Windows NSIS configs
@@ -46,6 +47,13 @@ All commits must pass `.pre-commit-config.yaml`:
 ### Naming Conventions
 
 - **Learning module**: `KW*` prefix (e.g., `KWData`, `KWUtils`, `KWKhiopsVersion`)
+  - `KD*`: Domain knowledge / feature construction (`KDDomainKnowledge/`)
+  - `KNI*`: Khiops Native Interface (`KhiopsNativeInterface/`, `KNITransfer/`)
+  - `MH*`: Histogram models (`MHHistograms/`, `genum/`, `khisto/`)
+  - `SNB*`: Selective Naive Bayes predictor (`SNBPredictor/`)
+  - `DT*`: Decision trees and random forests (`DTForest/`)
+  - `CC*`: Coclustering (`MODL_Coclustering/`)
+  - `KI*`: Model interpretation / Shapley values (`KIInterpretation/`)
 - **Parallel module**: `PL*` prefix (e.g., `PLParallelTask`)
 - **Norm module**: Core/base prefixes
 - **Tests**: Separate implementation per module (`UnitTests/`, `StandardTests/`)
@@ -125,7 +133,8 @@ Quick trigger conventions:
 | **src/Norm** | C++ | Numerical algorithms, base data structures, memory allocator, assertions (`require`/`ensure`/`assert`), error management, GUI launcher |
 | **src/Parallel** | C++ | MPI task distribution, resource management |
 | **test/UnitTests** | C++ | Isolated component tests (norm_test, parallel_test) |
-| **test/LearningTest** | C++ | 800+ non-regression scenarios (Khiops, Coclustering, KNITransfer). Managed by `test/LearningTestTool/` |
+| **test/LearningTest** | JSON and other textual formats| 800+ non-regression scenarios (Khiops, Coclustering, KNITransfer). Managed by `test/LearningTestTool/` |
+| **test/LearningTestTool** | Python | Test infrastructure for non-regression tests (comparison engine, result context management, timeout handling) |
 | **packaging/** | CMake, YAML, Python | Distribution configs, Conda, Docker, installers |
 
 
@@ -137,7 +146,7 @@ See the [development environment setup page](https://github.com/KhiopsML/khiops/
 
 - **CMake** ≥ 3.22
 - **Ninja** (default generator, required)
-- **MPI**: MPICH (Linux/macOS) or MS-MPI (Windows standalone) / Intel MPI `impi-rt` (Windows pip)
+- **MPI**: OpenMPI/MPICH (Linux/macOS) or MS-MPI (Windows standalone) / Intel MPI `impi-rt` (Windows pip)
 - **Python** ≥ 3.9 (for wheel builds)
 
 ### Build System

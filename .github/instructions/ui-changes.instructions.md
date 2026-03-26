@@ -28,7 +28,7 @@ Each `UIUnit` subclass implements two handlers:
 - `EventUpdate()`: called after closing and before each action (sub-units -> interface), saves view changes to the model
 
 Rule of thumb:
-- Keep `EventRefresh()` side-effect free except for UI state updates
+- Keep `EventRefresh()` side-effect-free except for UI state updates
 - Validate and persist changes in `EventUpdate()`
 
 ## `genere` Tool
