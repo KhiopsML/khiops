@@ -314,15 +314,16 @@ function(set_unix_khiops_options target)
   # Do not include RPATHs in the build tree (Debian policy).
   set(CMAKE_SKIP_BUILD_RPATH TRUE)
 
-  # Make relative RPATHs for the pip environment (avoiding the use of LD_LIBRARY_PATH)
-  if(IS_PIP AND MPI)
+  # Make relative RPATHs for the pip environment (avoiding the use of LD_LIBRARY_PATH) This is necessary to load mpi
+  # libraries and kni (for KNItransfer)
+  if(IS_PIP)
     if(APPLE)
       set(origin_token "@loader_path")
     else()
       set(origin_token "$ORIGIN")
     endif()
     set_property(TARGET ${target} PROPERTY INSTALL_RPATH "${origin_token}/../lib/")
-  endif(IS_PIP AND MPI)
+  endif(IS_PIP)
 
   # Hardening (mandatory by debian policy)
   #
