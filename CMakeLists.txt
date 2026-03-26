@@ -100,7 +100,7 @@ endif()
 
 # Check if it is conda environment
 set(IS_CONDA false)
-if(DEFINED ENV{CONDA_PREFIX})
+if(DEFINED ENV{CONDA_PREFIX} AND NOT "$ENV{CONDA_PREFIX}" STREQUAL "")
   set(IS_CONDA true)
   message(STATUS "Auto-detected conda environment")
 endif()
@@ -181,6 +181,37 @@ if(MPI)
   if(UNIX AND NOT APPLE)
     set(MPI_DETERMINE_LIBRARY_VERSION true)
   endif()
+  # On Windows pip builds, impi-devel installs Intel MPI under <build-venv>/Library/ FindMPI cannot auto-detect Intel
+  # MPI from pip so we set the MPI variables explicitly The issue of incorrect directories is observed in the version
+  # 2021.17.2 of impi-devel and impi-rt
+  if(IS_PIP AND IS_WINDOWS)
+    execute_process(
+      COMMAND "${Python3_EXECUTABLE}" -c "import sys; print(sys.prefix)"
+      OUTPUT_VARIABLE _pip_build_prefix
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+    set(_mpi_prefix "${_pip_build_prefix}/Library")
+    set(MPI_CXX_LIB_NAMES
+        "impi;impicxx"
+        CACHE STRING "")
+    set(MPI_impi_LIBRARY
+        "${_mpi_prefix}/lib/impi.lib"
+        CACHE FILEPATH "")
+    set(MPI_impicxx_LIBRARY
+        "${_mpi_prefix}/lib/impicxx.lib"
+        CACHE FILEPATH "")
+    set(MPI_CXX_HEADER_DIR
+        "${_mpi_prefix}/include"
+        CACHE PATH "")
+    set(MPI_CXX_ADDITIONAL_INCLUDE_DIRS
+        ""
+        CACHE STRING "")
+    set(MPI_CXX_COMPILE_OPTIONS
+        ""
+        CACHE STRING "")
+    message(STATUS "Configured Intel MPI from pip: ${_mpi_prefix}")
+  endif()
+
+  # Load MPI
   find_package(MPI 2.0 REQUIRED)
   message(
     STATUS
@@ -282,6 +313,17 @@ function(set_unix_khiops_options target)
 
   # Do not include RPATHs in the build tree (Debian policy).
   set(CMAKE_SKIP_BUILD_RPATH TRUE)
+
+  # Make relative RPATHs for the pip environment (avoiding the use of LD_LIBRARY_PATH) This is necessary to load mpi
+  # libraries and kni (for KNItransfer)
+  if(IS_PIP)
+    if(APPLE)
+      set(origin_token "@loader_path")
+    else()
+      set(origin_token "$ORIGIN")
+    endif()
+    set_property(TARGET ${target} PROPERTY INSTALL_RPATH "${origin_token}/../lib/")
+  endif(IS_PIP)
 
   # Hardening (mandatory by debian policy)
   #

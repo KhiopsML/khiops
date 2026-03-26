@@ -370,6 +370,27 @@ def evaluate_tool_on_test_dir(
             # permet de lancer plus de processus qu'il n'y a de coeurs. Option --oversubscribe
             os.environ["OMPI_MCA_rmaps_base_oversubscribe"] = "true"
 
+        # Ajout du path des bibliotheques MPI defini dans khiops_env
+        if os.environ.get("KHIOPS_MPI_DLL_PATH"):
+            # Nom de la variable d'environnement specifiant les chemins vers
+            # les bibliotheques dynamiques, en fonction du systeme d'exploitation
+            lib_path_variable_for_os = {
+                "Windows": "path",
+                "Linux": "LD_LIBRARY_PATH",
+                "Darwin": "DYLD_LIBRARY_PATH",
+            }
+
+            # Nom de la variable d'environnement specifiant les chemins vers les bibliotheques dynamiques pour le systeme d'exploitation courant
+            lib_path_variable = lib_path_variable_for_os[platform.system()]
+
+            # Ajout du chemin vers MPI aux chemins vers les bibliotheques dynamiques
+            os.environ[lib_path_variable] = os.path.pathsep.join(
+                [
+                    os.environ["KHIOPS_MPI_DLL_PATH"],
+                    os.environ.get(lib_path_variable, ""),
+                ]
+            )
+
         # Construction des parametres
         khiops_params = []
         if use_khiops_env:
@@ -744,7 +765,7 @@ def evaluate_all_tools_on_learning_test_tree(
     binaries_dir,
     use_khiops_env,
     family,
-    **kwargs
+    **kwargs,
 ):
     """Lance les tests des outils un ensemble de suites de tests
     Tout ou partie de l'arborescence est prise en compte selon la specification
@@ -926,7 +947,8 @@ def main():
         #   os.environ["KHIOPS_PATH"] ou a os.environ["KHIOPS_COCLUSTERING_PATH"],
         #   selon le nom de l'outil attendu (selon tool_name)
         # - dans evaluate_tool_on_test_dir, on etend khiops_params avec le resultat
-        #   de shlex.split(os.environ["KHIOPS_MPI_COMMAND"])
+        #   de shlex.split(os.environ["KHIOPS_MPI_COMMAND"]) et on ajoute
+        #   KHIOPS_MPI_DLL_PATH a LD_LIBRARY_PATH ou DYLD_LIBRARY_PATH ou PATH
         # sinon, on garde le comportement courant inchange
         khiops_env_file_name = "khiops_env"
         current_platform = results.get_context_platform_type()
@@ -1081,14 +1103,6 @@ def main():
     if args.test_timeout_limit is not None and args.test_timeout_limit < 0:
         parser.error("argument --test-timeout-limit must be positive")
 
-    # Echec si le nombre de processus est parametre et mpiexec n'est pas dans le path
-    if args.n > 1 and shutil.which(mpi_exe_name) is None:
-        parser.error(
-            "argument -p/--processes: process number "
-            + str(args.n)
-            + " is greater than 1 but mpiexec not found in path."
-        )
-
     # Echec si on est en mode interactif des elements de configuration minimaux sont absents
     if args.user_interface:
         # Pour l'instant, verification uniquement sous Windows
@@ -1114,6 +1128,15 @@ def main():
 
     # Verification et activation de khiops_env le cas echeant
     use_khiops_env, error_message = activate_khiops_env(args.binaries, args.n)
+
+    # Echec si le nombre de processus est parametre et mpiexec n'est pas dans le path
+    # Si on passe par khiops_env, c'est lui qui s'occupe du PATH de mpiexec
+    if not use_khiops_env and args.n > 1 and shutil.which(mpi_exe_name) is None:
+        parser.error(
+            "argument -p/--processes: process number "
+            + str(args.n)
+            + " is greater than 1 but mpiexec not found in path."
+        )
 
     # Lancement de la commande
     evaluate_all_tools_on_learning_test_tree(

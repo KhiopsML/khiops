@@ -71,8 +71,15 @@ get_script_dir() {
     echo "$SCRIPT_DIR/"
 }
 @ADDITIONAL_ENV_VAR@
-@IS_CONDA_VAR@
-@SET_KHIOPS_DRIVERS_PATH@
+
+# Set to true is a GUI is availble on the current environment
+_GUI_SUPPORTED=@GUI_SUPPORTED@
+
+# Drivers search path
+KHIOPS_DRIVERS_PATH="@KHIOPS_DRIVERS_PATH@"
+
+# Path of the mpi libraries, to add in path
+KHIOPS_MPI_PATH="@KHIOPS_MPI_PATH@"
 
 if [ -z "$KHIOPS_MPI_VERBOSE" ]; then
     KHIOPS_MPI_VERBOSE="true"
@@ -145,5 +152,6 @@ if [ "$1" = "--env" ]; then
     echo KHIOPS_MPI_ERROR "$KHIOPS_MPI_ERROR"
     echo KHIOPS_MPI_VERBOSE "$KHIOPS_MPI_VERBOSE"
     echo KHIOPS_MPI_EXTRA_FLAGS "$KHIOPS_MPI_EXTRA_FLAGS"
+    echo KHIOPS_MPI_PATH "$KHIOPS_MPI_PATH"
     @ADDITIONAL_ENV_VAR_DISPLAY@
 fi

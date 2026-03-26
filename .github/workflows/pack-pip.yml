@@ -1,0 +1,144 @@
+---
+name: pip packaging
+on:
+  workflow_dispatch:
+    inputs:
+      python_repository:
+        description: python repository
+        type: choice
+        default: None  # no publishing to any Package Index by default
+        options: [None, testpypi, pypi]
+  push:
+    tags: ['*']
+  pull_request:
+    paths:
+      - '**CMakeLists.txt'
+      - '!test/**CMakeLists.txt'
+      - '**.cmake'
+      - .github/workflows/pack-pip.yml
+      - packaging/pip/pyproject-khiops.toml
+      - packaging/pip/pyproject-kni.toml
+defaults:
+  run:
+    shell: bash
+jobs:
+  build-wheel:
+    name: Build wheel
+    runs-on: ${{ matrix.os }}
+    # intel-mpi is not available for arm64, so we can not build the wheel for windows-11-arm
+    strategy:
+      matrix:
+        os:
+          - ubuntu-24.04
+          - ubuntu-24.04-arm
+          - windows-2025
+          - macos-15-intel
+          - macos-15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Move pyproject-khiops file to the root of the repository
+        run: |
+          mv packaging/pip/pyproject-khiops.toml pyproject.toml
+      - name: Load Visual C++ Environment Variables (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
+          set >> %GITHUB_ENV%
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v3.4.0
+      - name: install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install built wheel in a custom directory
+        run: |
+          KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
+          echo "KHIOPS_INSTALL_DIR=$KHIOPS_INSTALL_DIR" >> "$GITHUB_ENV"
+          python -m venv "$KHIOPS_INSTALL_DIR"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            source "$KHIOPS_INSTALL_DIR/Scripts/activate"
+          else
+            source "$KHIOPS_INSTALL_DIR/bin/activate"
+          fi
+          python -m pip install --find-links=wheelhouse khiops-core
+          pip show -f khiops-core
+      - name: Export BIN_DIR
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/Scripts" >> "$GITHUB_ENV"
+          else
+            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_ENV"
+          fi
+      - name: Check Khiops core installation
+        uses: ./.github/actions/test-khiops-install
+        with:
+          binary-path: ${{ env.BIN_DIR }}
+      - name: Run standard tests
+        uses: ./.github/actions/run-standard-tests
+        with:
+          warning_as_error: true
+          running-mode: parallel
+          config: release
+          binary-path: ${{ env.BIN_DIR }}
+          testing-context-description: pip-test-${{ matrix.os }}
+      - name: Move pyproject-kni file to the root of the repository
+        run: |
+          mv packaging/pip/pyproject-kni.toml pyproject.toml
+      - name: Build kni wheels
+        uses: pypa/cibuildwheel@v3.4.0
+      - name: Move pyproject-knitransfer file to the root of the repository
+        run: |
+          mv packaging/pip/pyproject-knitransfer.toml pyproject.toml
+      - name: Build knitransfer wheels
+        uses: pypa/cibuildwheel@v3.4.0
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pkg-wheel-${{ matrix.os }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+  release-testpypi:
+    # Publish only on tag pushes in the KhiopsML repository
+    if: github.ref_type == 'tag' && github.repository_owner == 'KhiopsML' && inputs.python_repository
+      == 'testpypi'
+    name: Publish to Test.PyPI.org
+    needs: [build-wheel]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    environment:
+      name: testpypi
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: pkg-*
+          path: dist
+          merge-multiple: true
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true
+          repository-url: https://test.pypi.org/legacy/
+  release-pypi:
+     # Publish only on tag pushes in the KhiopsML repository
+    name: Publish to PyPI.org
+    if: github.ref_type == 'tag' && github.repository_owner == 'KhiopsML' && inputs.python_repository
+      == 'pypi'
+    needs: [build-wheel]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    environment:
+      name: pypi
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: pkg-*
+          path: dist
+          merge-multiple: true
+      - name: Remove knitransfer wheel from the distribution directory (we do not
+          want to publish it on PyPI)
+        run: |
+          rm dist/*knitransfer*.whl
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true

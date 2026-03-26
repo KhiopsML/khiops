@@ -12,7 +12,7 @@ error() {
     if [ -n "$DISPLAY" ] && command -v notify-send >/dev/null 2>&1; then
         notify-send "Khiops" "$*" -i /usr/share/pixmaps/khiops.png -u normal
     fi
-    unset _IS_CONDA
+    unset _GUI_SUPPORTED
     exit 1
 }
 
@@ -64,7 +64,7 @@ if [ -n "$KHIOPS_MPI_ERROR" ]; then
 fi
 
 export CLASSPATH=$CLASSPATH:$KHIOPS_CLASSPATH
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$KHIOPS_JAVA_PATH
+export @LD_LIBRARY_PATH@=$@LD_LIBRARY_PATH@:$KHIOPS_JAVA_PATH:$KHIOPS_MPI_PATH
 
 launch_khiops() {
     # Set HOME to $KHIOPS_MPI_HOME if the latter is defined but the former is not
@@ -96,7 +96,7 @@ main () {
         launch_khiops "$@"
         local _RETCODE=$?
     else
-        if [ "$_IS_CONDA" = true ] || [ -z "$DISPLAY" ]; then
+        if [ "$_GUI_SUPPORTED" = true ] || [ -z "$DISPLAY" ]; then
             error "GUI is not available, please use the '-b' flag"
         else
             if [ -z "$KHIOPS_JAVA_PATH" ]; then
@@ -112,7 +112,7 @@ main () {
         fi
     fi
 
-    unset _IS_CONDA
+    unset _GUI_SUPPORTED
     return $_RETCODE
 }
 

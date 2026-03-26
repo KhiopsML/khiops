@@ -85,7 +85,7 @@ Guidelines:
 ## Packaging Workflows
 
 Packaging responsibilities:
-- `pack-pip.yml`: Python wheels (`khiops-core`, `khiops-kni`)
+- `pack-pip.yml`: Python wheels (`khiops-core`, `khiops-kni`, `khiops-knitransfer`)
 - `pack-debian.yml`: DEB packages
 - `pack-rpm.yml`: RPM packages
 - `pack-nsis.yml`: Windows NSIS installer

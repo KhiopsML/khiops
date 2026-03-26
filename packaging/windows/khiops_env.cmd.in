@@ -19,6 +19,7 @@ echo KHIOPS_MPI_COMMAND: MPI command to call the Khiops tool
 echo KHIOPS_JAVA_PATH: path of Java tool, to add in path
 echo KHIOPS_CLASSPATH: Khiops java libraries, to add in classpath
 echo KHIOPS_DRIVERS_PATH: search path of the drivers (by default Khiops bin directory if not defined)
+echo KHIOPS_MPI_DLL_PATH: path of MPI dlls, to add in path (only for pip installation)
 echo.
 echo If they are not already defined, the following variables used by Khiops are set:
 echo.
@@ -71,13 +72,14 @@ set "KHIOPS_JAVA_PATH="
 set "KHIOPS_CLASSPATH="
 set "KHIOPS_JAVA_ERROR="
 set "KHIOPS_MPI_ERROR="
+set "KHIOPS_MPI_DLL_PATH="
 
 REM Set Khiops home to parent directory
 for %%a in ("%~dp0..") do set "_KHIOPS_HOME=%%~fa"
 
 REM KHIOPS_PATH
-set "KHIOPS_PATH=%_KHIOPS_HOME%\bin\MODL.exe"
-set "KHIOPS_COCLUSTERING_PATH=%_KHIOPS_HOME%\bin\MODL_Coclustering.exe"
+set "KHIOPS_PATH=%_KHIOPS_HOME%\@BIN_PATH@\MODL.exe"
+set "KHIOPS_COCLUSTERING_PATH=%_KHIOPS_HOME%\@BIN_PATH@\MODL_Coclustering.exe"
 
 REM KHIOPS_LAST_RUN_DIR
 if "%KHIOPS_LAST_RUN_DIR%". == "". set "KHIOPS_LAST_RUN_DIR=%USERPROFILE%\khiops_data\lastrun"
@@ -113,12 +115,13 @@ set "KHIOPS_CLASSPATH=%_KHIOPS_HOME%\bin\khiops.jar;%KHIOPS_CLASSPATH%"
 
 :SKIP_GUI
 
-@IS_CONDA_VAR@
+REM Inside conda environment
+set _IS_CONDA=@IS_CONDA@
 
-@SET_KHIOPS_DRIVERS_PATH@
+REM Drivers search path
+set KHIOPS_DRIVERS_PATH=@KHIOPS_DRIVERS_PATH@
 
 REM unset local variables
-set "_KHIOPS_GUI="
 set "_JAVA_ERROR="
 set "_KHIOPS_HOME="
 
@@ -139,12 +142,20 @@ echo KHIOPS_RAW_GUI %KHIOPS_RAW_GUI%
 echo KHIOPS_DRIVERS_PATH %KHIOPS_DRIVERS_PATH%
 echo KHIOPS_JAVA_ERROR %KHIOPS_JAVA_ERROR%
 echo KHIOPS_MPI_ERROR %KHIOPS_MPI_ERROR%
+echo KHIOPS_MPI_DLL_PATH %KHIOPS_MPI_DLL_PATH%
 endlocal
 exit /b 0
 
 REM Set mpiexec path for conda installation
 :SET_MPI_CONDA
 set "KHIOPS_MPI_COMMAND=%_KHIOPS_HOME%\bin\mpiexec.exe"
+if not exist "%KHIOPS_MPI_COMMAND%" goto ERR_MPI
+goto MPI_PARAMS
+
+REM Set mpiexec path for pip installation
+:SET_MPI_PIP
+set "KHIOPS_MPI_COMMAND=%_KHIOPS_HOME%\Library\bin\mpiexec.exe"
+set "KHIOPS_MPI_DLL_PATH=%_KHIOPS_HOME%\Library\bin\"
 if not exist "%KHIOPS_MPI_COMMAND%" goto ERR_MPI
 goto MPI_PARAMS
 
