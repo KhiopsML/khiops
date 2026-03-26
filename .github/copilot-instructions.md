@@ -176,7 +176,8 @@ cmake --build --preset macos-clang-release
 
 ```bash
 cd khiops
-cmake --fresh -S . -B build -D TESTING=OFF -D BUILD_JARS=ON -D CMAKE_BUILD_TYPE=Release
+# Configure project and override default CMake options if needed (e.g., -DTESTING=OFF, -DMPI=OFF)
+cmake --fresh -S . -B build -D TESTING=OFF -D CMAKE_BUILD_TYPE=Release
 cmake --build build/ --parallel
 ```
 
