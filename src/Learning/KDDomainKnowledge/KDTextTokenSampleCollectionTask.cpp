@@ -40,7 +40,7 @@ boolean KDTextTokenSampleCollectionTask::CollectTokenSamples(const KWDatabase* s
 							     ObjectArray* oaCollectedTokenSamples)
 {
 	boolean bOk = true;
-	boolean bDisplay = true;
+	const boolean bTrace = false;
 	const int nMaxDisplayedTokenNumber = 10000;
 	KWClass* kwcMainClass;
 	int nAttribute;
@@ -87,7 +87,7 @@ boolean KDTextTokenSampleCollectionTask::CollectTokenSamples(const KWDatabase* s
 	oaMasterCollectedTokenSamples = NULL;
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "CollectTokenSamples\t" << kwcMainClass->GetName() << "\t" << GetTextFeatures() << "\t"
 		     << BooleanToString(bOk) << "\n";
@@ -189,7 +189,7 @@ boolean KDTextTokenSampleCollectionTask::DummyCollectTokenSamples(const KWDataba
 boolean KDTextTokenSampleCollectionTask::SequentialCollectTokenSamples(const KWDatabase* sourceDatabase)
 {
 	boolean bOk = true;
-	boolean bDisplayPerformanceStats = false;
+	const boolean bTracePerformanceStats = false;
 	boolean bActivateStreamTokenCollection = true;
 	boolean bCollectExactTokenFrequencies = true;
 	ObjectArray oaTextTokenizers;
@@ -210,7 +210,7 @@ boolean KDTextTokenSampleCollectionTask::SequentialCollectTokenSamples(const KWD
 	// Initialisation
 
 	// Debut de la collecte des indicateurs de performance
-	StartCollectPerformanceIndicators(bDisplayPerformanceStats);
+	StartCollectPerformanceIndicators(bTracePerformanceStats);
 
 	// Initialisation des tokenizers utilises en variables de travail
 	oaTextTokenizers.SetSize(oaMasterCollectedTokenSamples->GetSize());
@@ -557,14 +557,14 @@ boolean KDTextTokenSampleCollectionTask::CheckPassParameters() const
 	return bOk;
 }
 
-void KDTextTokenSampleCollectionTask::StartCollectPerformanceIndicators(boolean bDisplay)
+void KDTextTokenSampleCollectionTask::StartCollectPerformanceIndicators(const boolean bTrace)
 {
 	require(not performanceTimer.IsStarted());
 	require(performanceTimer.GetElapsedTime() == 0);
 	require(lPerformanceInitialHeapMemory == 0);
 
 	// Une valeur strictement positive de la memoire sert d'indicateur pur l'affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		performanceTimer.Start();
 		lPerformanceInitialHeapMemory = MemGetHeapMemory();
@@ -657,14 +657,14 @@ boolean KDTextTokenSampleCollectionTask::MasterPrepareTaskInput(double& dTaskPer
 boolean KDTextTokenSampleCollectionTask::MasterAggregateResults()
 {
 	boolean bOk;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWTextTokenizer* textTokenizer;
 	ObjectArray* oaCollectedTokens;
 	KWClass* kwcClass;
 	int nAttribute;
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << GetTaskLabel() << "\t";
 		if (shared_bIsFirstPass)
@@ -697,7 +697,7 @@ boolean KDTextTokenSampleCollectionTask::MasterAggregateResults()
 			textTokenizer->CumulateTokenFrequencies(oaCollectedTokens);
 
 			// Affichage
-			if (bDisplay)
+			if (bTrace)
 			{
 				cout << kwcClass->GetUsedAttributeAt(nAttribute)->GetName() << "\t"
 				     << oaCollectedTokens->GetSize() << "\n";

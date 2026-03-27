@@ -543,7 +543,7 @@ void KWTextTokenizer::Test()
 
 void KWTextTokenizer::TokenizeText(const char* sText, int nTextLength)
 {
-	debug(boolean bDisplay = false);
+	debug(const boolean bTrace = false);
 	LongintDictionary* ldCollectedTokens;
 	LongintDictionary* ldSpecificTokens;
 	const char* sStringValue;
@@ -557,7 +557,7 @@ void KWTextTokenizer::TokenizeText(const char* sText, int nTextLength)
 	debug(int nCheckedTotalIgnoredCharNumber = 0);
 
 	// Affichage de la chaine de caractere a analyser
-	debug(if (bDisplay) cout << sText << "\n");
+	debug(if (bTrace) cout << sText << "\n");
 
 	// Acces aux tokens du bon type
 	ldCollectedTokens = cast(LongintDictionary*, gdCollectedTokens);
@@ -635,9 +635,9 @@ void KWTextTokenizer::TokenizeText(const char* sText, int nTextLength)
 						    nCheckedTotalIgnoredCharNumber));
 
 				// Affichage
-				debug(if (bDisplay) cout << "\t" << sToken.GetLength() << "\t"
-							 << ldCollectedTokens->Lookup(sToken) << "\t("
-							 << ByteStringToWord(sToken) << ")\n");
+				debug(if (bTrace) cout << "\t" << sToken.GetLength() << "\t"
+						       << ldCollectedTokens->Lookup(sToken) << "\t("
+						       << ByteStringToWord(sToken) << ")\n");
 
 				// Reinitialisation du token, sans desallouer sa memoire
 				sToken.GetBufferSetLength(0);
@@ -1152,7 +1152,7 @@ void KWTextNgramTokenizer::Test()
 
 void KWTextNgramTokenizer::TokenizeText(const char* sText, int nTextLength)
 {
-	debug(boolean bDisplay = false);
+	debug(const boolean bTrace = false);
 	const char* sCurrentStringValue;
 	int nMaxUsableNgramLength;
 	longint lEncodedNgram;
@@ -1171,7 +1171,7 @@ void KWTextNgramTokenizer::TokenizeText(const char* sText, int nTextLength)
 	require((int)strlen(sText) == nTextLength);
 
 	// Affichage de la chaine de caractere a analyser
-	debug(if (bDisplay) cout << sText << "\n");
+	debug(if (bTrace) cout << sText << "\n");
 
 	// Effectif cumule initial des tokens
 	// On ne le fait que de temps en temps, car c'est tres couteux
@@ -1211,7 +1211,7 @@ void KWTextNgramTokenizer::TokenizeText(const char* sText, int nTextLength)
 			UpgradeNgramTokenFrequency(lEncodedNgram, 1);
 
 			// Affichage
-			debug(if (bDisplay) cout
+			debug(if (bTrace) cout
 			      << "\t" << n << "\t" << nNgramLength << "\t"
 			      << (lnkdSpecificTokens != NULL ? lnkdSpecificTokens->Lookup(lEncodedNgram)
 							     : lnkdCollectedTokens->Lookup(lEncodedNgram))
@@ -1334,7 +1334,7 @@ void KWTextWordTokenizer::Test()
 
 void KWTextWordTokenizer::TokenizeText(const char* sText, int nTextLength)
 {
-	debug(boolean bDisplay = false);
+	debug(const boolean bTrace = false);
 	LongintDictionary* ldCollectedTokens;
 	LongintDictionary* ldSpecificTokens;
 	const char* sStringValue;
@@ -1350,7 +1350,7 @@ void KWTextWordTokenizer::TokenizeText(const char* sText, int nTextLength)
 	debug(int nCheckedTotalIgnoredCharNumber = 0);
 
 	// Affichage de la chaine de caractere a analyser
-	debug(if (bDisplay) cout << sText << "\n");
+	debug(if (bTrace) cout << sText << "\n");
 
 	// Acces aux tokens du bon type
 	ldCollectedTokens = cast(LongintDictionary*, gdCollectedTokens);
@@ -1439,9 +1439,9 @@ void KWTextWordTokenizer::TokenizeText(const char* sText, int nTextLength)
 						    nCheckedTotalIgnoredCharNumber));
 
 				// Affichage
-				debug(if (bDisplay) cout << "\t" << sToken.GetLength() << "\t"
-							 << ldCollectedTokens->Lookup(sToken) << "\t("
-							 << ByteStringToWord(sToken) << ")\n");
+				debug(if (bTrace) cout << "\t" << sToken.GetLength() << "\t"
+						       << ldCollectedTokens->Lookup(sToken) << "\t("
+						       << ByteStringToWord(sToken) << ")\n");
 
 				// Reinitialisation du token, sans desallouer sa memoire
 				sToken.GetBufferSetLength(0);

@@ -103,7 +103,7 @@ protected:
 
 	// Debut de la collecte des indicateurs de performance
 	// On indique si on souhaite les afficher effectivement par la suite
-	void StartCollectPerformanceIndicators(boolean bDisplay);
+	void StartCollectPerformanceIndicators(const boolean bTracePerformanceStats);
 
 	// Fin de la collecte des indicateurs
 	void StopCollectPerformanceIndicators();
