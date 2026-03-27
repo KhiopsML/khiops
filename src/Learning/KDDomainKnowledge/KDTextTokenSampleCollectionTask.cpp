@@ -450,7 +450,7 @@ boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDat
 		// Creation d'un tokenizer selon le type de features de texte
 		textTokenizer = KWTextTokenizer::CreateTextTokenizer(GetTextFeatures());
 
-		textTokenizer->SetMaxCollectedTokenNumber(100 * shared_ivFirstPassTokenNumbers.GetAt(nAttribute));
+		textTokenizer->SetMaxCollectedTokenNumber(shared_ivFirstPassTokenNumbers.GetAt(nAttribute));
 
 		// Memorisation du tokenizer associe a l'attribut
 		oaMasterTextTokenizers.SetAt(nAttribute, textTokenizer);
@@ -742,7 +742,7 @@ boolean KDTextTokenSampleCollectionTask::SlaveInitialize()
 			// assurer la stabilite des resultats
 			if (shared_bIsFirstPass)
 				textTokenizer->SetMaxCollectedTokenNumber(
-				    10 * shared_ivFirstPassTokenNumbers.GetAt(nAttribute));
+				    shared_ivFirstPassTokenNumbers.GetAt(nAttribute));
 			// Parametrage des tokens specifiques dont il faut calculer l'effectif
 			else
 			{
