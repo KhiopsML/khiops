@@ -730,7 +730,7 @@ void KWTextTokenizer::StreamCleanTokenDictionary(GenericDictionary* gdTokenDicti
 				   nMaxTokenNumber);
 
 			// Decrementation de tous les comptes de tokens de l'effectif minimum -1, et troncature a zero
-			gdTokenDictionary->BoundedUpgradeAll(-(nMinFrequency - 1), 0, LLONG_MAX);
+			gdTokenDictionary->BoundedUpgradeAll(-((longint)nMinFrequency - 1), 0, LLONG_MAX);
 
 			// Suppression de cle pour le compte a 0
 			gdTokenDictionary->RemoveAllNullValues();
@@ -1183,6 +1183,7 @@ void KWTextNgramTokenizer::TokenizeText(const char* sText, int nTextLength)
 	debug(lnkdSpecificTokens = cast(LongintNumericKeyDictionary*, gdSpecificTokens));
 
 	// Acces a la memoire du longint lEncodedNgram sous forme d'un tableau de bytes
+	lEncodedNgram = 0;
 	sEncodedNgramBytes = (char*)&lEncodedNgram;
 
 	// Analyse de la chaine pour en extraire tous les ngrams
