@@ -60,7 +60,7 @@ void KWTextTokenizer::SetSpecificTokens(const ObjectArray* oaTokens)
 
 			// Memorisation de l'index du token en demarant a 1 pour indiquer sa presence
 			assert(ldSpecificTokens->Lookup(token->GetToken()) == 0);
-			ldSpecificTokens->SetAt(token->GetToken(), nToken + 1);
+			ldSpecificTokens->SetAt(token->GetToken(), (longint)nToken + 1);
 		}
 		assert(ldSpecificTokens->GetCount() == oaTokens->GetSize());
 
@@ -730,7 +730,7 @@ void KWTextTokenizer::StreamCleanTokenDictionary(GenericDictionary* gdTokenDicti
 				   nMaxTokenNumber);
 
 			// Decrementation de tous les comptes de tokens de l'effectif minimum -1, et troncature a zero
-			gdTokenDictionary->BoundedUpgradeAll(-(nMinFrequency - 1), 0, LLONG_MAX);
+			gdTokenDictionary->BoundedUpgradeAll(-((longint)nMinFrequency - 1), 0, LLONG_MAX);
 
 			// Suppression de cle pour le compte a 0
 			gdTokenDictionary->RemoveAllNullValues();
@@ -891,7 +891,7 @@ void KWTextNgramTokenizer::SetSpecificTokens(const ObjectArray* oaTokens)
 			// Memorisation de l'index du token en demarant a 1 pour indiquer sa presence
 			lEncodedNgram = NgramToLongint(token->GetToken());
 			assert(lnkdSpecificTokens->Lookup(lEncodedNgram) == 0);
-			lnkdSpecificTokens->SetAt(lEncodedNgram, nToken + 1);
+			lnkdSpecificTokens->SetAt(lEncodedNgram, (longint)nToken + 1);
 
 			// Dimensionnement du vecteur d'effectifs
 			lvSpecificTokenFrequencies.SetSize(oaTokens->GetSize() + 1);
@@ -1183,6 +1183,7 @@ void KWTextNgramTokenizer::TokenizeText(const char* sText, int nTextLength)
 	debug(lnkdSpecificTokens = cast(LongintNumericKeyDictionary*, gdSpecificTokens));
 
 	// Acces a la memoire du longint lEncodedNgram sous forme d'un tableau de bytes
+	lEncodedNgram = 0;
 	sEncodedNgramBytes = (char*)&lEncodedNgram;
 
 	// Analyse de la chaine pour en extraire tous les ngrams
