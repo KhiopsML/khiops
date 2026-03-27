@@ -658,7 +658,7 @@ void KWTextTokenizer::UpgradeTokenFrequency(const ALString& sToken, longint lFre
 
 	// Incrementation de son effectif dans le cas sans token specifique
 	if (gdSpecificTokens == NULL)
-		cast(LongintDictionary*, gdCollectedTokens)->UpgradeAt(sToken, 1);
+		cast(LongintDictionary*, gdCollectedTokens)->UpgradeAt(sToken, lFrequency);
 	// Et dans le cas avec token specifique
 	else
 	{
@@ -673,7 +673,7 @@ void KWTextTokenizer::UpgradeTokenFrequency(const ALString& sToken, longint lFre
 				ivUsedSpecificTokenIndexes.Add(nSpecificTokenIndex);
 
 			// Incrementation de l'effectif
-			lvSpecificTokenFrequencies.UpgradeAt(nSpecificTokenIndex, 1);
+			lvSpecificTokenFrequencies.UpgradeAt(nSpecificTokenIndex, lFrequency);
 		}
 	}
 }
@@ -1241,7 +1241,7 @@ void KWTextNgramTokenizer::UpgradeNgramTokenFrequency(longint lEncodedNgram, lon
 
 	// Incrementation de son effectif dans le cas sans token specifique
 	if (gdSpecificTokens == NULL)
-		cast(LongintNumericKeyDictionary*, gdCollectedTokens)->UpgradeAt(lEncodedNgram, 1);
+		cast(LongintNumericKeyDictionary*, gdCollectedTokens)->UpgradeAt(lEncodedNgram, lFrequency);
 	// Et dans le cas avec token specifique
 	else
 	{
@@ -1256,7 +1256,7 @@ void KWTextNgramTokenizer::UpgradeNgramTokenFrequency(longint lEncodedNgram, lon
 				ivUsedSpecificTokenIndexes.Add(nSpecificTokenIndex);
 
 			// Incrementation de l'effectif
-			lvSpecificTokenFrequencies.UpgradeAt(nSpecificTokenIndex, 1);
+			lvSpecificTokenFrequencies.UpgradeAt(nSpecificTokenIndex, lFrequency);
 		}
 	}
 }
