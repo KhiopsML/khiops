@@ -103,14 +103,6 @@ runs:
         KHIOPS_BIN_DIR: ${{ inputs.binary-path }}
       run: |
         set "PATH=%KHIOPS_BIN_DIR%;%PATH%"
-        REM TODO : we should remove the driver path checks because it is not the same on all platforms
-        REM echo.
-        REM echo --- Khiops environment with KHIOPS_PROC_NUMBER not set
-        REM call khiops_env --env
-        REM echo "%KHIOPS_DRIVERS_PATH%" | findstr /R ".*\\Library\\bin$" > NUL
-        REM if not %ERRORLEVEL% equ 0 (
-        REM   echo "::error::KHIOPS_DRIVERS_PATH is not in Library\bin"
-        REM )
         echo.
         set KHIOPS_PROC_NUMBER=2
         echo --- Khiops environment with KHIOPS_PROC_NUMBER=%KHIOPS_PROC_NUMBER%
