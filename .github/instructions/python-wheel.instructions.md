@@ -16,7 +16,7 @@ Khiops distributes **three C++ wheels** (no Python code) via [scikit-build-core]
 | `khiops-kni` | KNI shared library + C header (`KhiopsNativeInterface`) | No |
 | `khiops-knitransfer` | KNITransfer command-line tool (test of `khiops-kni`) | No |
 
-Both packages:
+All 3 packages:
 - Use `scikit_build_core.build` as build backend
 - Extract version from `src/Learning/KWUtils/KWKhiopsVersion.h`
 - Build for CPython 3.9 only (stable ABI — one wheel works for all Python 3.x)
@@ -58,11 +58,11 @@ install.components = ["KHIOPS_CORE"]
 ```toml
 # Build
 requires = ["ninja", "scikit-build-core>=0.11.6",
-    "mpich ; platform_system in '[Linux, Darwin]'",
+    "openmpi ; platform_system in '[Linux, Darwin]'",
     "impi-devel ; platform_system == 'Windows'"]
 # Runtime
 dependencies = [
-    "mpich ; platform_system in '[Linux, Darwin]'",
+    "openmpi ; platform_system in '[Linux, Darwin]'",
     "impi-rt ; platform_system == 'Windows'"]
 ```
 
@@ -104,7 +104,7 @@ install.components = ["KNI_TRANSFER"]
 
 ### Version Extraction (all packages)
 
-Both configs use `scikit-build-core.metadata.regex` to extract the version:
+All three configs use `scikit-build-core.metadata.regex` to extract the version:
 
 ```toml
 [tool.scikit-build.metadata]
@@ -137,7 +137,7 @@ cp packaging/pip/pyproject-knitransfer.toml pyproject.toml
 pip wheel . -w wheelhouse
 ```
 
-Prerequisites: CMake ≥ 3.22, Ninja, Python ≥ 3.9. For `khiops-core` only: mpich (Linux/macOS) or impi-devel (Windows).
+Prerequisites: CMake ≥ 3.22, Ninja, Python ≥ 3.9. For `khiops-core` only: openmpi (Linux/macOS) or impi-devel (Windows).
 
 ### Modifying CMake Arguments
 
@@ -151,7 +151,7 @@ cmake.define.MY_NEW_FLAG = true            # Add new variable
 
 ### Adding Python Dependencies
 
-⚠️ **Both wheels are C++-only**. `khiops-kni` has zero dependencies. `khiops-core` only depends on MPI packages.
+⚠️ **All wheels are C++-only**. `khiops-kni` has zero dependencies. `khiops-core` only depends on MPI packages.
 
 If you must add a dependency:
 1. **Justify it**: Why can't this be done in C++?
@@ -175,11 +175,12 @@ khiops -s
 
 ## CI/CD (`pack-pip.yml`)
 
-The workflow builds both packages sequentially in the same job per platform:
+The workflow builds all three packages sequentially in the same job per platform:
 1. Copies `pyproject-khiops.toml` → root, builds `khiops-core` wheels with cibuildwheel
 2. Runs standard tests with the installed `khiops-core` wheel
 3. Copies `pyproject-kni.toml` → root, builds `khiops-kni` wheels
-4. Uploads all wheels as artifacts
+4. Copies `pyproject-knitransfer.toml` → root, builds `khiops-knitransfer` wheels
+5. Uploads all wheels as artifacts
 
 **Matrix**: Ubuntu x64 + ARM64, Windows (x64 only — impi-rt unavailable on ARM), macOS Intel + ARM.
 
@@ -218,11 +219,11 @@ version = "11.0.1"
 
 ```toml
 # ❌ Bad: Assumes MPI everywhere
-dependencies = ["mpich"]
+dependencies = ["openmpi"]
 
 # ✅ Good: Platform-specific (khiops-core only)
 dependencies = [
-    "mpich ; platform_system in '[Linux, Darwin]'",
+    "openmpi ; platform_system in '[Linux, Darwin]'",
     "impi-rt ; platform_system == 'Windows'"
 ]
 ```
