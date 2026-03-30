@@ -2,7 +2,7 @@
 requires = [
     "ninja",
     "scikit-build-core>=0.11.6",
-    "mpich ; platform_system in '[Linux, Darwin]'",
+    "openmpi ; platform_system in '[Linux, Darwin]'",
     "impi-devel ; platform_system == 'Windows'"
 ]
 build-backend = "scikit_build_core.build"
@@ -16,7 +16,7 @@ license-files = ["LICENSE"]
 authors = [{name = "The Khiops Team", email = "khiops.team@orange.com"}]
 requires-python = ">=3.9"
 dependencies = [
-    "mpich ; platform_system in '[Linux, Darwin]'",
+    "openmpi ; platform_system in '[Linux, Darwin]'",
     "impi-rt ; platform_system == 'Windows'"
 ]
 dynamic = ["version"]
