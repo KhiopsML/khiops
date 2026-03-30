@@ -422,6 +422,7 @@ int KDTextTokenSampleCollectionTask::GetMaxStreamCollectedTokenNumber(int nReque
 boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDatabase* sourceDatabase)
 {
 	boolean bOk = true;
+	const boolean bTracePerformanceStats = false;
 	KWTextTokenizer* textTokenizer;
 	int nAttribute;
 	ALString sTmp;
@@ -438,6 +439,9 @@ boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDat
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Premiere passe de collecte d'un echantillon de tokens
+
+	// Debut de la collecte des indicateurs de performance
+	StartCollectPerformanceIndicators(bTracePerformanceStats);
 
 	// Initialisation des parametres
 	shared_bIsFirstPass = true;
@@ -462,6 +466,7 @@ boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDat
 
 	// Declenchement de tache pour la premiere passe
 	bOk = RunDatabaseTask(sourceDatabase);
+	DisplayPerformanceIndicators("First database pass", &oaMasterTextTokenizers);
 
 	// Parametrage des tokens specifiques pour les tokenizers des esclaves, avec les tokens collectes lors de la premiere passe
 	if (bOk)
@@ -507,6 +512,7 @@ boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDat
 
 		// Declenchement de tache pour la deuxieme passe
 		bOk = RunDatabaseTask(sourceDatabase);
+		DisplayPerformanceIndicators("Second database pass", &oaMasterTextTokenizers);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
@@ -523,6 +529,9 @@ boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDat
 
 			// Export des tokens vers le tableau
 			textTokenizer->ExportFrequentTokens(oaTokens, ivMasterTokenNumbers->GetAt(nAttribute));
+			DisplayPerformanceIndicators(sTmp + "Token extraction and sort (var " +
+							 IntToString(nAttribute + 1) + ")",
+						     &oaMasterTextTokenizers);
 
 			// Nettoyage
 			delete textTokenizer;
@@ -544,6 +553,9 @@ boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDat
 	shared_bIsFirstPass = true;
 	shared_ivFirstPassTokenNumbers.GetIntVector()->SetSize(0);
 	shared_oaSecondPassSpecificTokens->Clean();
+
+	// Fin de la collecte des indicateurs de performance
+	StopCollectPerformanceIndicators();
 	return bOk;
 }
 
@@ -602,7 +614,7 @@ void KDTextTokenSampleCollectionTask::DisplayPerformanceIndicators(const ALStrin
 	// Affichage des performance si elles sont collectees
 	if (lPerformanceInitialHeapMemory > 0)
 	{
-		// Calcul du nombre total de token connectes
+		// Calcul du nombre total de token collectes
 		nTotalTokenNumber = 0;
 		for (i = 0; i < oaTokenizers->GetSize(); i++)
 		{
@@ -614,7 +626,7 @@ void KDTextTokenSampleCollectionTask::DisplayPerformanceIndicators(const ALStrin
 		// Affichage des indicateurs de performance
 		cout << performanceTimer.GetElapsedTime() << "\t";
 		cout << LongintToHumanReadableString(MemGetHeapMemory() - lPerformanceInitialHeapMemory) << "\t";
-		cout << nTotalTokenNumber << "\t";
+		cout << LongintToReadableString(nTotalTokenNumber) << "\t";
 		cout << sLabel << endl;
 	}
 }
