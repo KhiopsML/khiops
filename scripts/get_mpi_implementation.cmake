@@ -24,7 +24,7 @@ function(get_mpi_implementation)
     # Get the list of installed packages via importlib.metadata. We use it instead of pip list because pip may not be
     # available in the environment, and because pip list output is not stable across versions. The command outputs the
     # list of installed packages names in lower case, separated by space.
-    find_package(Python 3.8 REQUIRED) # We need Python >3.8 to get the list of installed packages via
+    find_package(Python 3.8 REQUIRED) # We need Python >=3.8 to get the list of installed packages via
                                       # importlib.metadata.
     execute_process(
       COMMAND
@@ -50,33 +50,21 @@ function(get_mpi_implementation)
   # Match implementation names case-insensitively because command outputs often use mixed case.
   string(TOLOWER "${VAR_MPI_INFO}" VAR_MPI_INFO_LOWER)
 
-  # Find "openmpi", "mpich" or "intel" in the variable VAR_MPI_INFO
-  string(FIND "${VAR_MPI_INFO_LOWER}" openmpi POS)
-  if(POS GREATER -1)
+  # Find "openmpi", "mpich" or "intel" in the variable VAR_MPI_INFO_LOWER
+  string(REGEX MATCH "openmpi|open-mpi" VAR_MATCH "${VAR_MPI_INFO_LOWER}")
+  if(VAR_MATCH)
     set(MPI_IMPL "openmpi")
     set(IS_OPEN_MPI TRUE)
   endif()
 
-  string(FIND "${VAR_MPI_INFO_LOWER}" open-mpi POS)
-  if(POS GREATER -1)
-    set(MPI_IMPL "openmpi")
-    set(IS_OPEN_MPI TRUE)
-  endif()
-
-  string(FIND "${VAR_MPI_INFO_LOWER}" mpich POS)
-  if(POS GREATER -1)
+  string(REGEX MATCH "mpich" VAR_MATCH "${VAR_MPI_INFO_LOWER}")
+  if(VAR_MATCH)
     set(MPI_IMPL "mpich")
     set(IS_MPICH TRUE)
   endif()
 
-  string(FIND "${VAR_MPI_INFO_LOWER}" intel POS)
-  if(POS GREATER -1)
-    set(MPI_IMPL "intel")
-    set(IS_INTEL_MPI TRUE)
-  endif()
-
-  string(FIND "${VAR_MPI_INFO_LOWER}" impi POS)
-  if(POS GREATER -1)
+  string(REGEX MATCH "intel|impi" VAR_MATCH "${VAR_MPI_INFO_LOWER}")
+  if(VAR_MATCH)
     set(MPI_IMPL "intel")
     set(IS_INTEL_MPI TRUE)
   endif()
