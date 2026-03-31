@@ -64,7 +64,7 @@ if [ -n "$KHIOPS_MPI_ERROR" ]; then
 fi
 
 export CLASSPATH=$CLASSPATH:$KHIOPS_CLASSPATH
-export @LD_LIBRARY_PATH@=$@LD_LIBRARY_PATH@:$KHIOPS_JAVA_PATH:$KHIOPS_MPI_PATH
+export @LD_LIBRARY_PATH@=$@LD_LIBRARY_PATH@:$KHIOPS_JAVA_PATH
 
 launch_khiops() {
     # Set HOME to $KHIOPS_MPI_HOME if the latter is defined but the former is not
