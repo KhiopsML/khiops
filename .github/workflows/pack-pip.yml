@@ -131,7 +131,7 @@ jobs:
     environment:
       name: pypi
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           pattern: pkg-*
           path: dist
