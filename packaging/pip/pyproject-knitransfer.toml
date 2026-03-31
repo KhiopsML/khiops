@@ -1,0 +1,83 @@
+[build-system]
+requires = [
+    "ninja",
+    "scikit-build-core>=0.11.6"
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "khiops-knitransfer"
+description = "Khiops KNI Transfer - Command-line tool for model deployment and scoring using the Khiops Native Interface."
+readme = "README.md"
+license = "BSD-3-Clause-Clear"
+license-files = ["LICENSE"]
+authors = [{name = "The Khiops Team", email = "khiops.team@orange.com"}]
+requires-python = ">=3.9"
+dependencies = []
+dynamic = ["version"]
+
+[tool.scikit-build]
+# Neither Python code nor CPython library usage in this package so we specify full compatibility with all Python 3 releases
+wheel.py-api = "py3"
+# Read CMake minimal version from file
+cmake.version = "CMakeLists.txt"
+# Generator specification and build configuration
+cmake.args = ["-G", "Ninja"]
+# CMake variables
+cmake.define.CMAKE_BUILD_TYPE = "Release"
+# Options
+cmake.define.MPI = false
+cmake.define.TESTING = false
+cmake.define.BUILD_LEX_YACC = false
+cmake.define.BUILD_JARS = false
+cmake.define.GENERATE_VIEWS = false
+cmake.define.C11 = true
+# Force the use of Ninja for fast builds
+ninja.make-fallback = false
+# Only install KNI_TRANSFER component in wheel
+build.targets = ["KNITransfer"]
+install.components = ["KNI_TRANSFER"]
+
+[tool.scikit-build.metadata]
+# Read package version from file, adapt it for Python version specification
+version.provider = "scikit_build_core.metadata.regex"
+version.input = "src/Learning/KWUtils/KWKhiopsVersion.h"
+# Example #define PP-instruction: #define KHIOPS_VERSION KHIOPS_STR(10.5.0-a.1)
+# Example version string: 10.5.0-a.1
+# Python equivalent: 10.5.0a1
+version.regex = '''(?x)
+    \# \s* define \s+ KHIOPS_VERSION \s+ KHIOPS_STR
+    \(
+    (?P<major> \d+)
+    \.
+    (?P<minor> \d+)
+    \.
+    (?P<patch> \d+)
+    (?:
+        -
+        (?P<prereltype> a | b | rc)
+        \.
+        (?P<prereln> \d+)
+    )?
+    \)
+'''
+version.result = "{major}.{minor}.{patch}{prereltype}{prereln}"
+version.remove = "(None){,2}$"  # prereltype and prereln groups are None if not found
+
+[tool.cibuildwheel]
+# Restrict builds to CPython 3.9 only: KNITransfer is a pure C++ binary with stable ABI, so wheels for other Python 3.x versions would be identical.
+# This avoids redundant builds and simplifies distribution; update if future ABI changes or Python-specific bindings are introduced.
+build = "cp39*"
+# KNITransfer does not compile when using musl as the C standard library, and 32-bit is not supported
+skip = ["*musllinux*", "*win32*"]
+
+[tool.cibuildwheel.linux]
+# No dependency
+repair-wheel-command = ""
+
+[tool.cibuildwheel.macos]
+# No dependency
+repair-wheel-command = ""
+
+[tool.cibuildwheel.windows]
+repair-wheel-command = ""

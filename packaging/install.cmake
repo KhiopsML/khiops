@@ -1,9 +1,18 @@
 # ######################################## Installation #########################################
 
+if(IS_CONDA)
+  install(CODE "MESSAGE(FATAL_ERROR \"Installation is not supported in conda environment (not tested)\")")
+endif()
+
 # ######################################## KNI installation
 
 # Specification of the paths according to the OS
-if(IS_WINDOWS)
+if(IS_PIP)
+  set(INCLUDE_DIR ${SKBUILD_HEADERS_DIR}) # pip installs to {prefix}/include/khiops_kni/KhiopsNativeInterface.h
+  set(LIB_DIR ${SKBUILD_DATA_DIR}/lib) # pip installs to {prefix}/lib/
+  set(DOC_DIR ${SKBUILD_NULL_DIR}) # With pip, license and README are already copied to pkg metadata, so we set DOC_DIR
+                                   # to SKBUILD_NULL_DIR to avoid installing them again
+elseif(IS_WINDOWS)
   set(INCLUDE_DIR include)
   set(LIB_DIR lib)
   set(DOC_DIR "./")
@@ -57,36 +66,80 @@ configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/template-README.md ${T
 
 # ######################################## KNITransfer installation
 
-if(CMAKE_HOST_SYSTEM_NAME STREQUAL Windows)
-  install(TARGETS KNITransfer RUNTIME DESTINATION "./" COMPONENT KNI_TRANSFER)
+# Specification of the paths according to the OS
+if(IS_PIP)
+  set(BIN_DIR ${SKBUILD_SCRIPTS_DIR})
+elseif(IS_WINDOWS)
+  set(BIN_DIR "./")
 else()
-  install(TARGETS KNITransfer RUNTIME DESTINATION usr/bin COMPONENT KNI_TRANSFER)
+  set(BIN_DIR usr/bin)
 endif()
+
+install(TARGETS KNITransfer RUNTIME DESTINATION "${BIN_DIR}" COMPONENT KNI_TRANSFER)
 
 # ######################################## Khiops and Khiops Coclustering installation
 
-if(IS_LINUX OR IS_MACOS)
+# GUI is not supported in conda and pip environments, and on MacOS
+if(IS_CONDA
+   OR IS_PIP
+   OR IS_MACOS)
+  set(GUI_SUPPORTED OFF)
+  set(GUI_STATUS "false")
+else()
+  set(GUI_SUPPORTED ON)
+  set(GUI_STATUS "true")
+endif()
 
+if(IS_LINUX OR IS_MACOS)
   # Set khiops and khiops_coclustering paths according to the environment (conda, fedora, etc)
+  #
+  # cmake-format: off
+  # The variables are used for installation directories and for the content of the scripts (khiops_env, khiops, and
+  # khiops_coclustering). But we cannot use the same variable for the installation destination and script generation. 
+  # By convention, the variables with the _INSTALL_DIR suffix are used for the installation destination, and the variables
+  # with the _PATH suffix are used in scripts. 
+  # For example, MODL_INSTALL_DIR is used for the installation destination of MODL and MODL_PATH is used in the scripts.
+  # 
+  # replace MODL_PATH MODL_NAME in khiops_env.in 
+  # replace KHIOPS_BINARY_PATH TOOL_EXT in khiops.in 
+  # replace GET_PROC_NUMBER_PATH in set_proc_number.in
+  # cmake-format: on
   if(IS_CONDA)
     set(MODL_PATH "$(get_script_dir)")
+    set(MODL_INSTALL_DIR "bin")
+    set(KHIOPS_SCRIPTS_DIR "bin")
     set(GET_PROC_NUMBER_PATH "$(get_script_dir)")
-    set(IS_CONDA_VAR "\n# Inside conda environment\nexport _IS_CONDA=true")
-    set(SET_KHIOPS_DRIVERS_PATH "\n# Drivers search path\nexport KHIOPS_DRIVERS_PATH=$(dirname $(get_script_dir))/lib")
+    set(GET_PROC_NUMBER_DIR "bin")
+    set(KHIOPS_DRIVERS_PATH "$(dirname $(get_script_dir))/lib")
+    set(LICENSE_PATH "doc")
   else()
-    if(IS_FEDORA_LIKE)
-      set(MODL_PATH "${MPI_BIN}/khiops/")
-      configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/redhat/khiops_env/use_environment_module.sh.in
-                     ${TMP_DIR}/use_environment_module.sh @ONLY NEWLINE_STYLE UNIX)
-      file(READ ${TMP_DIR}/use_environment_module.sh USE_ENVIRONMENT_MODULE)
+    if(IS_PIP)
+      set(MODL_PATH "$(get_script_dir)")
+      set(MODL_INSTALL_DIR ${SKBUILD_SCRIPTS_DIR})
+      set(GET_PROC_NUMBER_PATH "$(get_script_dir)")
+      set(GET_PROC_NUMBER_DIR ${SKBUILD_SCRIPTS_DIR})
+      set(KHIOPS_DRIVERS_PATH "$(dirname $(get_script_dir))/lib")
+      set(LICENSE_PATH ${SKBUILD_NULL_DIR})
+      set(KHIOPS_SCRIPTS_DIR ${SKBUILD_SCRIPTS_DIR})
     else()
-      set(MODL_PATH "/usr/bin/")
-      set(USE_ENVIRONMENT_MODULE "")
-    endif(IS_FEDORA_LIKE)
-    set(GET_PROC_NUMBER_PATH "/usr/bin/")
+      set(LICENSE_PATH "usr/share/doc/khiops")
+      if(IS_FEDORA_LIKE)
+        set(MODL_PATH "${MPI_BIN}/khiops/")
+        set(MODL_INSTALL_DIR "${MPI_BIN}/khiops/")
+        configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/redhat/khiops_env/use_environment_module.sh.in
+                       ${TMP_DIR}/use_environment_module.sh @ONLY NEWLINE_STYLE UNIX)
+        file(READ ${TMP_DIR}/use_environment_module.sh USE_ENVIRONMENT_MODULE)
+      else()
+        set(MODL_PATH "/usr/bin/")
+        set(MODL_INSTALL_DIR "usr/bin")
+        set(USE_ENVIRONMENT_MODULE "")
+      endif(IS_FEDORA_LIKE)
+      set(GET_PROC_NUMBER_PATH "/usr/bin/")
+      set(GET_PROC_NUMBER_DIR "usr/bin/")
+      set(KHIOPS_SCRIPTS_DIR "usr/bin")
 
-    file(READ ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/java_settings.sh KHIOPS_JAVA_SETTINGS)
-
+      file(READ ${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/java_settings.sh KHIOPS_JAVA_SETTINGS)
+    endif(IS_PIP)
   endif(IS_CONDA)
 
   # replace MPIEXEC MPIEXEC_NUMPROC_FLAG and MPI_IMPL MPI_EXTRA_FLAG ADDITIONAL_ENV_VAR
@@ -133,7 +186,7 @@ if(IS_LINUX OR IS_MACOS)
   get_target_property(MODL_COCLUSTERING_NAME MODL_Coclustering OUTPUT_NAME)
 
   # For all mpi implementation except openmpi, we compute the proc number (with openmpi, the -n flag is not mandatory)
-  if(IS_OPEN_MPI)
+  if(NOT IS_OPEN_MPI)
     # Replace the path of _khiopsgetprocnumber in set_proc_number.in (with the variable GET_PROC_NUMBER_PATH)
     configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/set_proc_number.in
                    ${TMP_DIR}/set_proc_number.sh @ONLY NEWLINE_STYLE UNIX)
@@ -142,7 +195,13 @@ if(IS_LINUX OR IS_MACOS)
     file(READ ${TMP_DIR}/set_proc_number.sh SET_PROC_NUMBER)
 
     # Add _khiopsgetprocnumber to the khiops_core package except for openmpi
-    install(TARGETS _khiopsgetprocnumber RUNTIME DESTINATION ./${GET_PROC_NUMBER_PATH} COMPONENT KHIOPS_CORE)
+    install(TARGETS _khiopsgetprocnumber RUNTIME DESTINATION ${GET_PROC_NUMBER_DIR} COMPONENT KHIOPS_CORE)
+  endif()
+
+  if(APPLE)
+    set(LD_LIBRARY_PATH "DYLD_LIBRARY_PATH")
+  else()
+    set(LD_LIBRARY_PATH "LD_LIBRARY_PATH")
   endif()
 
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/khiops_env.in ${TMP_DIR}/khiops_env @ONLY
@@ -157,16 +216,16 @@ if(IS_LINUX OR IS_MACOS)
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops.in ${TMP_DIR}/khiops_coclustering @ONLY
                  NEWLINE_STYLE UNIX)
 
-  install(TARGETS MODL MODL_Coclustering RUNTIME DESTINATION ${MODL_PATH} COMPONENT KHIOPS_CORE)
+  install(TARGETS MODL MODL_Coclustering RUNTIME DESTINATION ${MODL_INSTALL_DIR} COMPONENT KHIOPS_CORE)
 
   install(
     PROGRAMS ${TMP_DIR}/khiops ${TMP_DIR}/khiops_coclustering ${TMP_DIR}/khiops_env
-    DESTINATION usr/bin
+    DESTINATION ${KHIOPS_SCRIPTS_DIR}
     COMPONENT KHIOPS_CORE)
 
   install(
     FILES ${PROJECT_SOURCE_DIR}/LICENSE
-    DESTINATION usr/share/doc/khiops
+    DESTINATION ${LICENSE_PATH}
     COMPONENT KHIOPS_CORE)
 
   install(
@@ -199,21 +258,27 @@ if(IS_LINUX OR IS_MACOS)
   endif()
 
 else(IS_LINUX OR IS_MACOS)
-
+  # Windows packaging for Khiops
   if(IS_CONDA)
-    set(GUI_STATUS "false")
     set(SET_MPI "SET_MPI_CONDA")
-    set(IS_CONDA_VAR "REM Inside conda environment\r\nset \"_IS_CONDA=true\"")
-    set(SET_KHIOPS_DRIVERS_PATH "REM Drivers search path\r\nset \"KHIOPS_DRIVERS_PATH=%_KHIOPS_HOME%\\bin\"")
+    set(SET_KHIOPS_DRIVERS_PATH "%_KHIOPS_HOME%\\bin\\")
+    set(BIN_PATH "bin")
+    set(BIN_INSTALL_DIR "bin")
+  elseif(IS_PIP)
+    set(SET_MPI "SET_MPI_PIP")
+    set(SET_KHIOPS_DRIVERS_PATH "%_KHIOPS_HOME%\\lib\\")
+    set(BIN_PATH "Scripts")
+    set(BIN_INSTALL_DIR ${SKBUILD_SCRIPTS_DIR})
   else()
     set(SET_MPI "SET_MPI_SYSTEM_WIDE")
-    set(GUI_STATUS "true")
+    set(BIN_PATH "bin")
+    set(BIN_INSTALL_DIR "bin")
   endif()
 
   configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops_env.cmd.in ${TMP_DIR}/khiops_env.cmd @ONLY
                  NEWLINE_STYLE CRLF)
 
-  # khiops.cmd and khiops_coclustering.cmd differ only with the binary path: KHIOPS_PATH or KHIOPS_COCLUSTRING_PATH.
+  # khiops.cmd and khiops_coclustering.cmd differ only with the binary path: KHIOPS_PATH or KHIOPS_COCLUSTERING_PATH.
   # They both build from the same file: khiops.cmd.in
   set(MODL_PATH "KHIOPS_PATH")
   set(TOOL_NAME "Khiops")
@@ -225,14 +290,14 @@ else(IS_LINUX OR IS_MACOS)
   configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops.cmd.in ${TMP_DIR}/khiops_coclustering.cmd @ONLY
                  NEWLINE_STYLE CRLF)
 
-  install(TARGETS MODL MODL_Coclustering _khiopsgetprocnumber RUNTIME DESTINATION bin COMPONENT KHIOPS_CORE)
-
+  install(TARGETS MODL MODL_Coclustering _khiopsgetprocnumber RUNTIME DESTINATION ${BIN_INSTALL_DIR}
+                                                                      COMPONENT KHIOPS_CORE)
   install(
     PROGRAMS ${TMP_DIR}/khiops.cmd ${TMP_DIR}/khiops_coclustering.cmd ${TMP_DIR}/khiops_env.cmd
-    DESTINATION bin
+    DESTINATION ${BIN_INSTALL_DIR}
     COMPONENT KHIOPS_CORE)
 
-  if(BUILD_JARS)
+  if(BUILD_JARS AND GUI_SUPPORTED)
     install_jar(
       khiops_jar
       DESTINATION jars
