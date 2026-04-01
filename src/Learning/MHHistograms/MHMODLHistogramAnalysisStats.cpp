@@ -253,10 +253,10 @@ boolean MHMODLHistogramAnalysisStats::Check() const
 			if (i > 0)
 			{
 				bOk = bOk and GetHistogramAt(i - 1)->GetGranularity() <= histogram->GetGranularity();
-				bOk = bOk and GetHistogramAt(i - 1)->GetGranularity() < histogram->GetGranularity() or
+				bOk = (bOk and GetHistogramAt(i - 1)->GetGranularity() < histogram->GetGranularity()) or
 				      i == GetHistogramNumber() - 1;
-				bOk = bOk and GetHistogramAt(i - 1)->GetNormalizedLevel() <
-						  histogram->GetNormalizedLevel() or
+				bOk = (bOk and
+				       GetHistogramAt(i - 1)->GetNormalizedLevel() < histogram->GetNormalizedLevel()) or
 				      i == GetHistogramNumber() - 1;
 				bOk = bOk and histogram->ComputeTotalFrequency() == nTotalFrequency;
 				assert(bOk);
