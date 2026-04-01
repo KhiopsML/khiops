@@ -350,6 +350,20 @@ function(set_unix_khiops_options target)
   # arm64
   target_compile_options(${target} PRIVATE -ffp-contract=off)
 
+  # Show most warnings (roughly equivalent to MSVC /W4)
+  target_compile_options(${target} PRIVATE -Wall -Wextra -Wno-ignored-qualifiers -Wno-unused-function
+                                           -Wno-overloaded-virtual)
+
+  # -Wno-stringop-overflow is not known to Clang
+  if(NOT APPLE)
+    target_compile_options(${target} PRIVATE -Wno-stringop-overflow)
+  endif()
+
+  # Only warn about unused but set variables and function parameters in Debug
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(${target} PRIVATE -Wno-unused-but-set-variable -Wno-unused-but-set-parameter)
+  endif()
+
 endfunction(set_unix_khiops_options)
 
 # Sets the compiling options for MSVC
