@@ -308,6 +308,10 @@ function(set_unix_khiops_options target)
   # arm64
   target_compile_options(${target} PRIVATE -ffp-contract=off)
 
+  # Show most warnings (roughly equivalent to MSVC /W4)
+  target_compile_options(${target} PRIVATE -Wall -Wextra -Wno-stringop-overflow -Wno-ignored-qualifiers
+                                           -Wno-unused-function -Wno-unused-but-set-parameter)
+
 endfunction(set_unix_khiops_options)
 
 # Sets the compiling options for MSVC
