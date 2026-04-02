@@ -47,6 +47,9 @@ public:
 	// Acces aux drivers pour consultation
 	static const SystemFileDriver* GetRegisteredDriverAt(int nIndex);
 
+	// Acces au driver ANSI unique
+	static SystemFileDriver* GetDriverANSI();
+
 protected:
 	// Renvoie true si le nom du fichier en parametre correspond aux nom des drivers
 	// libkhiopsdriver_file_SCHEME.so/dll ou SCHEME est une suite alphanumerique sans symboles
@@ -56,9 +59,6 @@ protected:
 	// La liste des types d'URI gerees correspond a celle definies par FileService::IsURITypeManaged
 	// On la gere "en dur" plutot que de facon generique, car leur nombre ne va pas augmenter
 	static ObjectArray* oaSystemFileDriver;
-
-	// Driver pour les fichiers locaux, toujours disponible
-	static SystemFileDriverANSI driverANSI;
 
 	// Nombre de drivers externes, different de la taille de oaSystemFileDriver car ce tableau
 	// contient egalement le drivers objets
