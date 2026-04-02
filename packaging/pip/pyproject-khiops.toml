@@ -76,9 +76,9 @@ build = "cp39*"
 skip = ["*musllinux*", "*win32"]
 
 [tool.cibuildwheel.linux]
-# All dependencies are provided by the mpi Pip packages, we can't manage to add them to the repair command, so we disable it.
-# repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} --exclude libmpi.so.12"
-repair-wheel-command = ""
+# Repair wheel to convert linux_* tags to manylinux_* (required by PyPI).
+# libmpi is excluded from bundling because it is provided at runtime by the openmpi pip package.
+repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} --exclude libmpi.so.40"
 
 [tool.cibuildwheel.macos]
 # All dependencies are provided by the mpi Pip packages, we can't manage to add them to the repair command, so we disable it.
