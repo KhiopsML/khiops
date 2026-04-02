@@ -117,6 +117,11 @@ boolean PLRemoteFileService::MakeDirectories(const ALString& sPathName)
 	return SystemFile::MakeDirectories(sPathName);
 }
 
+boolean PLRemoteFileService::RemoveDirectory(const ALString& sPathName)
+{
+	return SystemFile::RemoveDirectory(sPathName);
+}
+
 longint PLRemoteFileService::GetDiskFreeSpace(const ALString& sPathName)
 {
 	return SystemFile::GetDiskFreeSpace(sPathName);

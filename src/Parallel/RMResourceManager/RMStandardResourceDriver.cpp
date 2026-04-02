@@ -18,7 +18,7 @@ longint RMStandardResourceDriver::GetRemainingAvailableMemory() const
 longint RMStandardResourceDriver::GetTmpDirFreeSpace() const
 {
 	longint lFreeMemory;
-	lFreeMemory = FileService::GetDiskFreeSpace(FileService::GetTmpDir());
+	lFreeMemory = PLRemoteFileService::GetDiskFreeSpace(FileService::GetTmpDir());
 
 	// Bornee par la limite par proc et la limite sur le systeme (en mono-machine mono-proc c'est la meme chose)
 	lFreeMemory = min(lFreeMemory, lMB * RMResourceConstraints::GetDiskLimit());

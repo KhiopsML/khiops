@@ -3,6 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "KWLearningProject.h"
+#include "FileService.h"
 
 KWLearningProject::KWLearningProject() {}
 
@@ -416,7 +417,7 @@ boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
 
 	// Verification que le repertoire temporaire est licite
 	// On verifie que c'est un un disque local
-	if (not FileService::IsLocalURI(FileService::GetTmpDir()))
+	if (not FileService::IsLocalURI(FileService::GetTmpDir()) and not GetTemporaryFileCloudifiedMode())
 	{
 		cout << "error: Invalid temporary directory (Temp file directory must be located on the local file "
 			"system)"

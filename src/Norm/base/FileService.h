@@ -254,29 +254,29 @@ public:
 	static const ALString CreateUniqueTmpDirectory(const ALString& sBaseName, const Object* errorSender);
 
 	// Pametrage de la destruction automatique du repertoire des fichiers temporaires (par defaut: true)
-	// Methode avancee, essentiellement pour le debug des fichiers temporaires, popur garder ceux-ci
+	// Methode avancee, essentiellement pour le debug des fichiers temporaires, pour garder ceux-ci
 	// disponibles apres la fin du programme
 	static void SetApplicationTmpDirAutoDeletion(boolean bValue);
 	static boolean GetApplicationTmpDirAutoDeletion();
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 	// Nettoyage des repertoires temporaires applicatifs
-	// Le repertoire temporaire applicatif est detruit automatiquement en fin de programme.
+	// Le repertoire temporaire applicatif doit etre detruit avec la methode DeleteApplicationTmpDir en fin de programme.
 	// Neanmoins, en cas de plantage, les repertoires applicatifs non detruits peuvent s'accumuler
 	// au point d'encombrer les machines.
 	// Il est alors possible de specifier une date de peremption pour un repertoire temporaire
 	// (stockee dans un fichier anchor, a la racine du repertoire temporaire applicatif).
 	// A chaque creation de repertoire temporaire en debut de programme, l'ensemble des repertoires utilisateur
-	// passes non detruits est inspecte, et ceux dont la date de prremption a expire sont detruits.
+	// passes non detruits est inspecte, et ceux dont la date de peremption a expire sont detruits.
 
 	// Specification d'une date de peremption pour le repertoire temporaire en secondes
 	// ecoulees a partir de la (date,heure) courante.
-	// Par defaut, les repertoires temporaires sont crese sans date de peremption. Il faut alors appeler
+	// Par defaut, les repertoires temporaires sont crees sans date de peremption. Il faut alors appeler
 	// cette methode explicitement, potentiellement plusieurs fois si on veut modifier cette date
 	// Sans effet si le repertoire temporaire n'existe pas
 	static void TouchApplicationTmpDir(int nRemainingSeconds);
 
-	// Annulation de la date de peromption du repertoire temporaire applicatif, qui ne peut plus etre
+	// Annulation de la date de peremption du repertoire temporaire applicatif, qui ne peut plus etre
 	// detruit par un autre programme
 	static void UntouchApplicationTmpDir();
 
@@ -317,7 +317,7 @@ public:
 	// (si elle contient au moins deux caracteres pour ne pas prendre en compte les nom de drive sous windows)
 	static ALString GetURIScheme(const ALString& sURI);
 
-	// Renvoie true, si l'URI est de la forme standard scheme://[hostname]/filePath
+	// Renvoie true, si l'URI est de la forme standard scheme://path
 	// ou si c'est un chemin standard
 	static boolean IsURIWellFormed(const ALString& sURI);
 
@@ -392,7 +392,7 @@ protected:
 
 	// Supression d'un repertoire temporaire et de son contenu a la racine
 	// Seul les fichiers et repertoires ayant le caractere prefixe temporaire sont detruits,
-	// ce qui evite les catastrophse (cette methode est potentiellement dangereuse)
+	// ce qui evite les catastrophes (cette methode est potentiellement dangereuse)
 	// Indique en sortie si le repertoire est supprime, sans message d'erreur
 	static boolean DeleteTmpDirectory(const ALString& sTmpPathName);
 
@@ -453,6 +453,13 @@ protected:
 
 	// Est-ce que les acces IO sont enregistres par MemoryStatsManager
 	static boolean bIOStats;
+
+	// Timer de touche du repertoire temporaire applicatif, pour eviter de le toucher trop souvent
+	static Timer tTimerTouch;
+
+	// Timer de verification distante du fichier anchor, pour eviter de la refaire a chaque appel
+	// (verification couteuse en latence sur un systeme de fichier distant type cloud)
+	static Timer tTimerAnchorCheck;
 
 	friend class SystemFileDriverANSI; // Acces a SystemSeekPositionInBinaryFile
 };

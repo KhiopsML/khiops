@@ -770,7 +770,7 @@ boolean KWDataTableDriverTextFile::IsClosed() const
 void KWDataTableDriverTextFile::DeleteDataTable()
 {
 	if (GetDataTableName() != "")
-		FileService::RemoveFile(GetDataTableName());
+		PLRemoteFileService::RemoveFile(GetDataTableName());
 }
 
 longint KWDataTableDriverTextFile::GetEstimatedObjectNumber()
