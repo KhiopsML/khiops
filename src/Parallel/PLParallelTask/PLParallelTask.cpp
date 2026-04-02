@@ -1008,8 +1008,6 @@ void PLParallelTask::SlaveRegisterUniqueTmpFile(const ALString& sFileName)
 	require(IsSlaveProcess());
 
 	sScheme = FileService::GetURIScheme(sFileName);
-	require(sScheme == "" or GetTemporaryFileCloudifiedMode() or
-		(sScheme == "file" and FileService::GetURIHostName(sFileName) == GetLocalHostName()));
 
 	if (sFileName != "")
 		svSlaveRegisteredUniqueTmpFiles.Add(FileService::GetURIFilePathName(sFileName));
@@ -1026,8 +1024,6 @@ void PLParallelTask::SlaveRegisterUniqueTmpFiles(const StringVector* svFileNames
 	for (i = 0; i < svFileNames->GetSize(); i++)
 	{
 		sScheme = FileService::GetURIScheme(svFileNames->GetAt(i));
-		require(sScheme == "" or (sScheme == "file" and
-					  FileService::GetURIHostName(svFileNames->GetAt(i)) == GetLocalHostName()));
 		if (svFileNames->GetAt(i) != "")
 			svSlaveRegisteredUniqueTmpFiles.Add(FileService::GetURIFilePathName(svFileNames->GetAt(i)));
 	}
@@ -2303,12 +2299,7 @@ void PLParallelTask::Exit(int nExitCode)
 
 void PLParallelTask::TouchTmpDir()
 {
-	if (not tTempTouch.IsStarted() or tTempTouch.GetElapsedTime() > 3600)
-	{
-		FileService::TouchApplicationTmpDir(86400);
-		tTempTouch.Reset();
-		tTempTouch.Start();
-	}
+	FileService::TouchApplicationTmpDir(3600);
 }
 
 void PLParallelTask::PrintSlavesStates() const

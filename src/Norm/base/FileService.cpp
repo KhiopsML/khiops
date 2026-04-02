@@ -4,9 +4,12 @@
 
 #include "FileService.h"
 #include "OutputBufferedFile.h"
+#include "PLRemoteFileService.h"
 
 const ALString FileService::sRemoteScheme = "file";
 boolean FileService::bIOStats = false;
+Timer FileService::tTimerTouch;
+Timer FileService::tTimerAnchorCheck;
 
 ////////////////////////////////////////////
 // Implementation de la classe FileService
@@ -114,13 +117,14 @@ longint FileService::GetFileSize(const ALString& sFilePathName)
 
 boolean FileService::CreateEmptyFile(const ALString& sFilePathName)
 {
-	FILE* fFile;
+	OutputBufferedFile outputFile;
+	boolean bOk;
 
-	// La fonction p_fopen gere deja les locale correctement
-	fFile = p_fopen(sFilePathName, "wb");
-	if (fFile != NULL)
-		fclose(fFile);
-	return (fFile != NULL);
+	outputFile.SetFileName(sFilePathName);
+	bOk = outputFile.Open();
+	if (bOk)
+		outputFile.Close();
+	return bOk;
 }
 
 boolean FileService::RemoveFile(const ALString& sFilePathName)
@@ -1010,7 +1014,7 @@ const ALString FileService::CreateNewFile(const ALString& sBaseFilePathName)
 
 	// Test d'existence avec le fichier de base
 	sNewFileName = sBaseFilePathName;
-	bNewFile = not FileExists(sNewFileName);
+	bNewFile = not PLRemoteFileService::FileExists(sNewFileName);
 
 	// Tentative de creation si possible
 	if (bNewFile)
@@ -1034,7 +1038,7 @@ const ALString FileService::CreateNewFile(const ALString& sBaseFilePathName)
 		    BuildFilePathName(sPathName, BuildFileName(sFilePrefix + "_" + IntToString(nId), sFileSuffix));
 
 		// Test d'existence avec le nouveau nom
-		bNewFile = not FileExists(sNewFileName);
+		bNewFile = not PLRemoteFileService::FileExists(sNewFileName);
 
 		// Si nouveau nom de fichier, on tente de creer le fichier
 		if (bNewFile)
@@ -1060,11 +1064,11 @@ const ALString FileService::CreateNewDirectory(const ALString& sBasePathName)
 
 	// Test d'existence avec le repertoire de base
 	sNewDirectoryName = sBasePathName;
-	bNewDirectory = not DirExists(sNewDirectoryName);
+	bNewDirectory = not PLRemoteFileService::DirExists(sNewDirectoryName);
 
 	// Tentative de creation si possible
 	if (bNewDirectory)
-		bNewDirectory = MakeDirectory(sNewDirectoryName);
+		bNewDirectory = PLRemoteFileService::MakeDirectory(sNewDirectoryName);
 
 	// Boucle de recherche d'un nom de repertoire inexistant
 	nId = 0;
@@ -1084,11 +1088,11 @@ const ALString FileService::CreateNewDirectory(const ALString& sBasePathName)
 		    sPathName, BuildFileName(sDirectoryPrefix + "_" + IntToString(nId), sDirectorySuffix));
 
 		// Test d'existence avec le nouveau nom
-		bNewDirectory = not DirExists(sNewDirectoryName);
+		bNewDirectory = not PLRemoteFileService::DirExists(sNewDirectoryName);
 
 		// Si nouveau nom de fichier, on tente de creer le repertoire
 		if (bNewDirectory)
-			bNewDirectory = MakeDirectory(sNewDirectoryName);
+			bNewDirectory = PLRemoteFileService::MakeDirectory(sNewDirectoryName);
 	}
 	return sNewDirectoryName;
 }
@@ -1212,17 +1216,29 @@ boolean FileService::CreateApplicationTmpDir()
 {
 	boolean bOk = true;
 	ALString sFullApplicationName;
-	FILE* fApplicationTmpDirAnchorFile;
+	OutputBufferedFile obApplicationTmpDirAnchorFile;
 	ALString sSystemTmpDir;
+	const int nAnchorCheckCacheSeconds = 5;
 
 	require(sApplicationName != "");
 	require(GetFileName(sApplicationName) == sApplicationName);
 
 	// Si deja cree, on sort
-	if (nApplicationTmpDirCreationFreshness == nApplicationTmpDirFreshness and sApplicationTmpDir != "" and
-	    FileService::DirExists(sApplicationTmpDir) and
-	    FileService::FileExists(BuildFilePathName(sApplicationTmpDir, GetAnchorFileName())))
-		return true;
+	// Le test d'existence distant de l'ancre est couteux en latence sur un systeme de fichier cloud : on met
+	// en cache son resultat pendant quelques secondes plutot que de le refaire a chaque appel de la methode
+	// (appelee tres frequemment, par exemple a chaque debut de tache parallele)
+	if (nApplicationTmpDirCreationFreshness == nApplicationTmpDirFreshness and sApplicationTmpDir != "")
+	{
+		if (tTimerAnchorCheck.IsStarted() and tTimerAnchorCheck.GetElapsedTime() < nAnchorCheckCacheSeconds)
+			return true;
+
+		if (PLRemoteFileService::FileExists(BuildFilePathName(sApplicationTmpDir, GetAnchorFileName())))
+		{
+			tTimerAnchorCheck.Reset();
+			tTimerAnchorCheck.Start();
+			return true;
+		}
+	}
 
 	// Enregistrement de la fonction de destruction des fichiers temporaires
 	// Ce n'est fait qu'une seule fois grace a la variable booleenne
@@ -1251,7 +1267,7 @@ boolean FileService::CreateApplicationTmpDir()
 	if (bOk and sUserTmpDir != "")
 	{
 		// On verifie que c'est un un disque local
-		if (not IsLocalURI(sUserTmpDir))
+		if (not IsLocalURI(sUserTmpDir) and not GetTemporaryFileCloudifiedMode())
 		{
 			bOk = false;
 			Global::AddError("Temp file directory", sUserTmpDir,
@@ -1265,11 +1281,11 @@ boolean FileService::CreateApplicationTmpDir()
 					 "Temp file directory must be an absolute path");
 		}
 		// Tentative de creation si necessaire
-		else if (not DirExists(sUserTmpDir))
+		else if (not PLRemoteFileService::DirExists(sUserTmpDir))
 		{
-			bOk = MakeDirectories(sUserTmpDir);
+			bOk = PLRemoteFileService::MakeDirectories(sUserTmpDir);
 			if (bOk)
-				bOk = DirExists(sUserTmpDir);
+				bOk = PLRemoteFileService::DirExists(sUserTmpDir);
 			if (not bOk)
 				Global::AddError("Temp file directory", sUserTmpDir,
 						 "Unable to create temp file directory");
@@ -1299,7 +1315,7 @@ boolean FileService::CreateApplicationTmpDir()
 	}
 
 	// Test l'existence du repertoire temporaire (le repertoire systeme peut avoir disparu)
-	if (bOk and not DirExists(GetTmpDir()))
+	if (bOk and not PLRemoteFileService::DirExists(GetTmpDir()))
 	{
 		// Emission du message d'erreur
 		// (emis uniquement pour cette cause)
@@ -1318,27 +1334,28 @@ boolean FileService::CreateApplicationTmpDir()
 		}
 	}
 
-	// Creation et ouverture du fichier anchor, pour rendre le repertoire actif
+	// (Creation et) ouverture du fichier anchor, pour rendre le repertoire actif
 	if (bOk)
 	{
 		assert(sApplicationTmpDir != "");
 
 		// Ouverture du fichier en ecriture
 		// La fonction p_fopen gere deja les locale correctement
-		fApplicationTmpDirAnchorFile = p_fopen(BuildFilePathName(sApplicationTmpDir, GetAnchorFileName()), "w");
+		obApplicationTmpDirAnchorFile.SetFileName(BuildFilePathName(sApplicationTmpDir, GetAnchorFileName()));
+		bOk = obApplicationTmpDirAnchorFile.Open();
 
 		// Nettoyage si echec
-		if (fApplicationTmpDirAnchorFile == NULL)
+		if (not bOk)
 		{
 			Global::AddError("Application temp directory", sApplicationTmpDir,
 					 "Unable to create file " + GetAnchorFileName() + " in temp directory");
-			RemoveDirectory(sApplicationTmpDir);
+			PLRemoteFileService::RemoveDirectory(sApplicationTmpDir);
 			sApplicationTmpDir = "";
 			bOk = false;
 		}
 		// Fermeture sinon
 		else
-			fclose(fApplicationTmpDirAnchorFile);
+			obApplicationTmpDirAnchorFile.Close();
 	}
 
 	// Memorisation de la fraicheur de creation
@@ -1348,7 +1365,14 @@ boolean FileService::CreateApplicationTmpDir()
 	// On initialise la date d'expiration avec une heure de delai
 	// Cela ne peut etre fait que si tout s'est passe avec succes
 	if (bOk)
+	{
+		tTimerTouch.Reset(); // Re-initialisation du timer pour s'assurer qu'on va le toucher
 		TouchApplicationTmpDir(3600);
+
+		// L'ancre vient d'etre (re)creee : on demarre le cache de son test d'existence
+		tTimerAnchorCheck.Reset();
+		tTimerAnchorCheck.Start();
+	}
 	return bOk;
 }
 
@@ -1376,7 +1400,7 @@ boolean FileService::CheckApplicationTmpDir()
 	// Test d'existence du repertoire utilisateur
 	if (bOk)
 	{
-		bOk = FileService::DirExists(sTmpDir);
+		bOk = PLRemoteFileService::DirExists(sTmpDir); // OK sur le cloud car renvoie toujours true
 		if (not bOk)
 			Global::AddError(sCategoryLabel, sTmpDir, "Directory does not exist");
 	}
@@ -1384,7 +1408,7 @@ boolean FileService::CheckApplicationTmpDir()
 	// Test s'il y a de la place
 	if (bOk)
 	{
-		bOk = FileService::GetDiskFreeSpace(sTmpDir) >= lMB;
+		bOk = PLRemoteFileService::GetDiskFreeSpace(sTmpDir) >= lMB;
 		if (not bOk)
 			Global::AddError(sCategoryLabel, sTmpDir, "Less than one MB available");
 	}
@@ -1395,7 +1419,8 @@ boolean FileService::CheckApplicationTmpDir()
 		Global::AddError("Application temp directory", "", "Directory not created");
 		bOk = false;
 	}
-	if (bOk and not FileService::DirExists(sApplicationTmpDir))
+
+	if (bOk and not PLRemoteFileService::DirExists(sApplicationTmpDir)) // OK sur le cloud car renvoie toujours true
 	{
 		Global::AddError("Application temp directory", sApplicationTmpDir, "Directory does not exist");
 		bOk = false;
@@ -1468,6 +1493,7 @@ const ALString FileService::CreateUniqueTmpFile(const ALString& sBaseName, const
 {
 	ALString sFilePathName;
 	boolean bOk;
+	const boolean bTest = true;
 
 	require(sBaseName != "");
 	require(GetFileName(sBaseName) == sBaseName);
@@ -1483,7 +1509,7 @@ const ALString FileService::CreateUniqueTmpFile(const ALString& sBaseName, const
 		sFilePathName = BuildFilePathName(GetApplicationTmpDir(), GetTmpPrefix() + sBaseName);
 
 		// Erreur si fichier deja existant
-		if (FileExists(sFilePathName))
+		if (not bTest and PLRemoteFileService::FileExists(sFilePathName))
 		{
 			sFilePathName = "";
 			if (errorSender != NULL)
@@ -1566,45 +1592,51 @@ boolean FileService::GetApplicationTmpDirAutoDeletion()
 
 void FileService::TouchApplicationTmpDir(int nRemainingSeconds)
 {
-	OutputBufferedFile obfApplicationTmpDirAnchorFile;
-	time_t tCurrentTimestamp;
-	boolean bOk;
-	const int nMaxRemainingSeconds = 366 * 24 * 3600;
-	struct tm* pGMTExpirationDate;
-	require(nRemainingSeconds >= 0);
-
-	// On n'effectue le traitement que si le repertoire temporaire existe
-	if (GetApplicationTmpDir() != "")
+	if (not tTimerTouch.IsStarted() or tTimerTouch.GetElapsedTime() > 3600)
 	{
-		// Recherche de la date courante
-		time(&tCurrentTimestamp);
+		OutputBufferedFile obApplicationTmpDirAnchorFile;
+		time_t tCurrentTimestamp;
+		boolean bOk;
+		const int nMaxRemainingSeconds = 366 * 24 * 3600;
+		struct tm* pGMTExpirationDate;
+		require(nRemainingSeconds >= 0);
 
-		// Ajout du delai
-		tCurrentTimestamp += min(nRemainingSeconds, nMaxRemainingSeconds);
-
-		// Conversion en timestamps GMT
-		pGMTExpirationDate = p_gmtime(&tCurrentTimestamp);
-
-		// Ecriture dans le fichier anchor du libelle associe a la date d'expiration
-		obfApplicationTmpDirAnchorFile.SetFileName(
-		    BuildFilePathName(GetApplicationTmpDir(), GetAnchorFileName()));
-		bOk = obfApplicationTmpDirAnchorFile.Open();
-		if (bOk)
+		// On n'effectue le traitement que si le repertoire temporaire existe
+		if (GetApplicationTmpDir() != "")
 		{
-			obfApplicationTmpDirAnchorFile.Write("GMT expiration date ");
-			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_year + 1900));
-			obfApplicationTmpDirAnchorFile.Write("-");
-			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_mon + 1));
-			obfApplicationTmpDirAnchorFile.Write("-");
-			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_mday));
-			obfApplicationTmpDirAnchorFile.Write(" ");
-			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_hour));
-			obfApplicationTmpDirAnchorFile.Write(":");
-			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_min));
-			obfApplicationTmpDirAnchorFile.Write(":");
-			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_sec));
-			obfApplicationTmpDirAnchorFile.Close();
+			// Recherche de la date courante
+			time(&tCurrentTimestamp);
+
+			// Ajout du delai
+			tCurrentTimestamp += min(nRemainingSeconds, nMaxRemainingSeconds);
+
+			// Conversion en timestamps GMT
+			pGMTExpirationDate = p_gmtime(&tCurrentTimestamp);
+
+			// Ecriture dans le fichier anchor du libelle associe a la date d'expiration
+			// La fonction p_fopen gere deja les locale correctement
+			obApplicationTmpDirAnchorFile.SetFileName(
+			    BuildFilePathName(GetApplicationTmpDir(), GetAnchorFileName()));
+			bOk = obApplicationTmpDirAnchorFile.Open();
+			if (bOk)
+			{
+				obApplicationTmpDirAnchorFile.Write("GMT expiration date ");
+				obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_year + 1900));
+				obApplicationTmpDirAnchorFile.Write("-");
+				obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_mon + 1));
+				obApplicationTmpDirAnchorFile.Write("-");
+				obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_mday));
+				obApplicationTmpDirAnchorFile.Write(" ");
+				obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_hour));
+				obApplicationTmpDirAnchorFile.Write(":");
+				obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_min));
+				obApplicationTmpDirAnchorFile.Write(":");
+				obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_sec));
+				obApplicationTmpDirAnchorFile.Close();
+			}
 		}
+		tTimerTouch.Reset();
+		tTimerTouch.Start();
 	}
 }
 
@@ -1643,8 +1675,7 @@ ALString FileService::GetURIScheme(const ALString& sURI)
 boolean FileService::IsURIWellFormed(const ALString& sURI)
 {
 	ALString sScheme;
-	int nNextSlashPos;
-	int i;
+	boolean bOk = false;
 
 	// On accepte les chemins standards
 	sScheme = GetURIScheme(sURI);
@@ -1655,26 +1686,12 @@ boolean FileService::IsURIWellFormed(const ALString& sURI)
 	{
 		// Verification de base
 		assert(sURI.GetLength() > sScheme.GetLength() + 2);
-		assert(sURI.GetAt(sScheme.GetLength()) == ':');
-		assert(sURI.GetAt(sScheme.GetLength() + 1) == '/');
-		assert(sURI.GetAt(sScheme.GetLength() + 2) == '/');
-
-		// Recherche de la position du prochain '/' suivant, en interdisant les ':'
-		nNextSlashPos = -1;
-		for (i = sScheme.GetLength() + 3; i < sURI.GetLength(); i++)
-		{
-			if (sURI.GetAt(i) == ':')
-				break;
-			if (sURI.GetAt(i) == '/')
-			{
-				nNextSlashPos = i;
-				break;
-			}
-		}
-
-		// Ok si un slash a ete trouve
-		return (nNextSlashPos != -1);
+		bOk = sURI.GetAt(sScheme.GetLength()) == ':';
+		bOk = bOk and sURI.GetAt(sScheme.GetLength() + 1) == '/';
+		bOk = bOk and sURI.GetAt(sScheme.GetLength() + 2) == '/';
+		bOk = bOk and sURI.GetLength() > sScheme.GetLength() + 3;
 	}
+	return bOk;
 }
 
 const ALString FileService::BuildURI(const ALString& sScheme, const ALString& sHostName, const ALString& sFileName)
@@ -2430,12 +2447,28 @@ boolean FileService::DeleteApplicationTmpDir()
 	boolean bOk = true;
 
 	// Destruction uniquement si necessaire
-	if (sApplicationTmpDir != "" and DirExists(sApplicationTmpDir))
+	if (sApplicationTmpDir != "" and bApplicationTmpDirAutoDeletion)
 	{
-		// Nettoyage prealable, en gardant le fichier anchor ouvert pour laisser
-		// le repertoire actif vis a vis des autres applications le temps de sa destruction
-		if (bApplicationTmpDirAutoDeletion)
-			DeleteTmpDirectory(sApplicationTmpDir);
+		// Si fichier local
+		if (FileService::IsLocalURI(sApplicationTmpDir))
+		{
+			if (DirExists(sApplicationTmpDir))
+			{
+				// Nettoyage prealable, en gardant le fichier anchor ouvert pour laisser
+				// le repertoire actif vis a vis des autres applications le temps de sa destruction
+				bOk = DeleteTmpDirectory(sApplicationTmpDir) and bOk;
+			}
+		}
+		// Si fichier sur le cloud
+		else
+		{
+			if (PLRemoteFileService::FileExists(BuildFilePathName(sApplicationTmpDir, GetAnchorFileName())))
+			{
+				// Destruction directe du repertoire temporaire distant
+				// TODO la methode de suppression est recursive dans les drivers
+				bOk = PLRemoteFileService::RemoveDirectory(sApplicationTmpDir) and bOk;
+			}
+		}
 	}
 	sApplicationTmpDir = "";
 	return bOk;
@@ -2466,7 +2499,7 @@ boolean FileService::DeleteTmpDirectory(const ALString& sTmpPathName)
 		// Destruction de l'eventuel fichier anchor en premier pour indiquer
 		// aux autre applications que le directory n'a plus un statut de
 		// directory temporaire, et qu'il faut donc l'ignorer
-		RemoveFile(BuildFilePathName(sTmpPathName, GetAnchorFileName()));
+		PLRemoteFileService::RemoveFile(BuildFilePathName(sTmpPathName, GetAnchorFileName()));
 
 		// Destruction recursive des sous-repertoires
 		for (i = 0; i < svDirectoryNames.GetSize(); i++)
@@ -2481,11 +2514,11 @@ boolean FileService::DeleteTmpDirectory(const ALString& sTmpPathName)
 		{
 			sName = svFileNames.GetAt(i);
 			if (sName.GetAt(0) == GetTmpPrefix())
-				RemoveFile(BuildFilePathName(sTmpPathName, sName));
+				PLRemoteFileService::RemoveFile(BuildFilePathName(sTmpPathName, sName));
 		}
 
 		// Destruction du repertoire lui-meme
-		bOk = RemoveDirectory(sTmpPathName) and bOk;
+		bOk = PLRemoteFileService::RemoveDirectory(sTmpPathName) and bOk;
 	}
 	return bOk;
 }
@@ -2498,10 +2531,9 @@ void FileService::CleanExpiredApplicationTmpDirs(const ALString& sExpiredApplica
 	ALString sTestedDirectoryName;
 	boolean bIsExpiredDirectory;
 	ALString sAnchorPathName;
-	FILE* fAnchor;
+	SystemFile* sfAnchor;
 	const int nBufferSize = 100;
 	char sBuffer[nBufferSize];
-	char* sReturn;
 	const ALString sFormat = "GMT expiration date 0000-00-00 00:00:00";
 	int i;
 	char c;
@@ -2512,6 +2544,8 @@ void FileService::CleanExpiredApplicationTmpDirs(const ALString& sExpiredApplica
 	int nId;
 	int nOtherTrial;
 	const int nMaxOtherTrials = 100;
+	boolean bOk;
+	longint lBytesRead;
 
 	// Decomposition du nom du repertoire
 	sPathName = GetPathName(sExpiredApplicationTmpDir);
@@ -2530,27 +2564,27 @@ void FileService::CleanExpiredApplicationTmpDirs(const ALString& sExpiredApplica
 		// Test si le repertoire correspond a un repertoire temporaire applicatif inactif
 		// C'est le cas s'il contient un fichier anchor contenant une date d'exprimeation valide
 		// et si cette date est expiree
-		bIsExpiredDirectory = DirExists(sTestedDirectoryName);
-		fAnchor = NULL;
+		bIsExpiredDirectory = PLRemoteFileService::DirExists(sTestedDirectoryName);
+		sfAnchor = NULL;
 		sAnchorPathName = BuildFilePathName(sTestedDirectoryName, GetAnchorFileName());
 		if (bIsExpiredDirectory)
 			bIsExpiredDirectory = FileExists(sAnchorPathName);
 		if (bIsExpiredDirectory)
 		{
 			// La fonction p_fopen gere deja les locale correctement
-			fAnchor = p_fopen(sAnchorPathName, "r");
-			if (fAnchor == NULL)
+			bOk = PLRemoteFileService::OpenInputBinaryFile(sAnchorPathName, sfAnchor);
+			if (not bOk)
 				bIsExpiredDirectory = false;
 			else
 			{
 				// Lecture du contenu du fichier
 				assert(sFormat.GetLength() < nBufferSize);
-				sReturn = fgets(sBuffer, nBufferSize,
-						fAnchor); // warning : ignoring return value of 'char* fgets
-				fclose(fAnchor);
+				lBytesRead = sfAnchor->Read(sBuffer, sizeof(char), nBufferSize);
+				bOk = lBytesRead != 0;
+				bOk = PLRemoteFileService::CloseInputBinaryFile(sAnchorPathName, sfAnchor) and bOk;
 
 				// Test si lecture correcte
-				if (sReturn == NULL)
+				if (not bOk)
 					bIsExpiredDirectory = false;
 
 				// Test de longueur

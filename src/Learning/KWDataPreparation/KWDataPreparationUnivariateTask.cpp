@@ -1273,14 +1273,14 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 			for (nSubSlice = 0; nSubSlice < dataTableSliceSet.GetSliceNumber(); nSubSlice++)
 			{
 				subSlice = dataTableSliceSet.GetSliceAt(nSubSlice);
+				sSliceFileName = allSliceOutputBuffer.GetSliceFileNames()->GetAt(nSubSlice);
 
-				// Recopie du nom deu fichier et de sa taille
-				if (allSliceOutputBuffer.GetSliceFileNames()->GetAt(nSubSlice) != "")
+				// Recopie du nom du fichier et de sa taille
+				if (sSliceFileName != "")
 				{
-					subSlice->GetDataFileNames()->Add(
-					    allSliceOutputBuffer.GetSliceFileNames()->GetAt(nSubSlice));
-					subSlice->GetDataFileSizes()->Add(FileService::GetFileSize(
-					    allSliceOutputBuffer.GetSliceFileNames()->GetAt(nSubSlice)));
+					subSlice->GetDataFileNames()->Add(sSliceFileName);
+					subSlice->GetDataFileSizes()->Add(
+					    PLRemoteFileService::GetFileSize(sSliceFileName));
 				}
 			}
 			allSliceOutputBuffer.GetSliceFileNames()->Initialize();
@@ -1417,7 +1417,7 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 			for (nChunk = 0; nChunk < subSlice->GetDataFileNames()->GetSize(); nChunk++)
 			{
 				assert(FileService::GetURIScheme(subSlice->GetDataFileNames()->GetAt(nChunk)) == "");
-				FileService::RemoveFile(subSlice->GetDataFileNames()->GetAt(nChunk));
+				PLRemoteFileService::RemoveFile(subSlice->GetDataFileNames()->GetAt(nChunk));
 			}
 		}
 
