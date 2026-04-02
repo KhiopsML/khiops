@@ -5,7 +5,6 @@
 #include "SystemFileDriverCreator.h"
 
 ObjectArray* SystemFileDriverCreator::oaSystemFileDriver = NULL;
-SystemFileDriverANSI SystemFileDriverCreator::driverANSI;
 int SystemFileDriverCreator::nExternalDriverNumber = 0;
 boolean SystemFileDriverCreator::bIsRegistered = false;
 
@@ -216,7 +215,8 @@ SystemFileDriver* SystemFileDriverCreator::LookupDriver(const ALString& sURIFile
 	// Si le scheme est vide: c'est le driver ANSI
 	driver = NULL;
 	if (sScheme.IsEmpty())
-		driver = &driverANSI;
+		driver = SystemFileDriverCreator::GetDriverANSI();
+
 	// Sinon, on recherche parmi les driver qui ont ete enregistres
 	else
 	{
@@ -279,7 +279,7 @@ longint SystemFileDriverCreator::GetMaxPreferredBufferSize()
 	longint lMaxPrefferedSize;
 	int i;
 
-	lMaxPrefferedSize = driverANSI.GetSystemPreferredBufferSize();
+	lMaxPrefferedSize = GetDriverANSI()->GetSystemPreferredBufferSize();
 	if (oaSystemFileDriver != NULL)
 	{
 		// Parcours des drivers externes
@@ -301,6 +301,12 @@ const SystemFileDriver* SystemFileDriverCreator::GetRegisteredDriverAt(int nInde
 		return NULL;
 
 	return cast(SystemFileDriver*, oaSystemFileDriver->GetAt(nIndex));
+}
+
+SystemFileDriver* SystemFileDriverCreator::GetDriverANSI()
+{
+	static SystemFileDriverANSI driverANSI;
+	return &driverANSI;
 }
 
 boolean SystemFileDriverCreator::IsKhiopsDriverName(const ALString& sFileName)
