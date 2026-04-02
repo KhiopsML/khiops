@@ -123,7 +123,7 @@ void KWAnalysisResultsView::VisualizeReport()
 	// Recherche du nom du rapport d'analyse
 	sAnalysisReportFileName = analysisResults->BuildOutputFilePathName(analysisResults->GetReportFileName());
 
-	// Warning si pas de fichier de rapprot
+	// Warning si pas de fichier de rapport
 	if (not FileService::FileExists(sAnalysisReportFileName))
 		AddWarning("No report found for file name " + sAnalysisReportFileName);
 	// Ouverture sinon

@@ -927,7 +927,7 @@ boolean PLMTDatabaseTextFile::OpenOutputBuffers(const PLParallelTask* task, int 
 		{
 			sChunkFileName = svOutputBufferFileNames->GetAt(i);
 			if (sChunkFileName != "")
-				FileService::RemoveFile(FileService::GetURIFilePathName(sChunkFileName));
+				PLRemoteFileService::RemoveFile(FileService::GetURIFilePathName(sChunkFileName));
 		}
 		svOutputBufferFileNames->Initialize();
 	}

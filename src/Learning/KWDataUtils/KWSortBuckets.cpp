@@ -223,7 +223,7 @@ void KWSortBuckets::DeleteBucketFiles()
 		bucket = GetBucketAt(i);
 		for (j = 0; j < bucket->GetChunkFileNames()->GetSize(); j++)
 		{
-			FileService::RemoveFile(bucket->GetChunkFileNames()->GetAt(j));
+			PLRemoteFileService::RemoveFile(bucket->GetChunkFileNames()->GetAt(j));
 		}
 	}
 	ensure(CheckFileNames());
