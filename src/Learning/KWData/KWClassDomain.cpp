@@ -96,15 +96,14 @@ boolean KWClassDomain::WriteFile(const ALString& sFileName) const
 
 boolean KWClassDomain::WriteFileFromClass(const KWClass* mainClass, const ALString& sFileName) const
 {
-	fstream fst;
+	OutputBufferedFile bufferedFile;
 	boolean bOk;
 	ObjectDictionary odDependentClasses;
 	ObjectArray oaDependentClasses;
 	int nClass;
 	KWClass* kwcElement;
+	ALString sTmp;
 
-	// Pas de gestion des fichiers cloud, car utilise actuellement uniquement en local
-	require(FileService::GetURIScheme(sFileName) == "");
 	require(mainClass != NULL);
 	require(mainClass->GetDomain() == this);
 
@@ -112,7 +111,8 @@ boolean KWClassDomain::WriteFileFromClass(const KWClass* mainClass, const ALStri
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " WriteFileFromClass Begin");
 
 	// Ouverture du fichier en ecriture
-	bOk = FileService::OpenOutputFile(sFileName, fst);
+	bufferedFile.SetFileName(sFileName);
+	bOk = bufferedFile.Open();
 
 	// Si OK: ecriture des classe
 	if (bOk)
@@ -127,21 +127,23 @@ boolean KWClassDomain::WriteFileFromClass(const KWClass* mainClass, const ALStri
 
 		// Ligne d'entete du fichier dictionnaire
 		if (GetLearningReportHeaderLine() != "")
-			fst << GetLearningReportHeaderLine() << "\n";
+		{
+			bufferedFile.Write(GetLearningReportHeaderLine() + "\n");
+		}
 
 		// Parcours des classes dependantes pour n'ecrire que ces classes
 		for (nClass = 0; nClass < oaDependentClasses.GetSize(); nClass++)
 		{
 			kwcElement = cast(KWClass*, oaDependentClasses.GetAt(nClass));
-			fst << *kwcElement;
+			bufferedFile.Write(kwcElement->WriteString());
 		}
 
 		// Fermeture du fichier
-		bOk = FileService::CloseOutputFile(sFileName, fst);
+		bOk = bufferedFile.Close();
 
 		// Destruction du fichier si erreur
 		if (not bOk)
-			FileService::RemoveFile(sFileName);
+			PLRemoteFileService::RemoveFile(sFileName);
 	}
 
 	// Affichage de stats memoire
