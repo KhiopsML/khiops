@@ -678,8 +678,9 @@ protected:
 	// Indice de la slice charge en memoire
 	int nLoadedBlockSliceIndex;
 
-	// File pointer pour la lecture/ecriture de fichiers
-	FILE* fChunkDataFile;
+	// SystemFile pointer pour la lecture/ecriture de fichiers
+	// (permet d'ecrire sur le cloud via les drivers)
+	SystemFile* sfChunkDataFile;
 
 	// Acces privee a la tache d'apprentissage pour faire des initialisation partielles
 	friend class SNBPredictorSelectiveNaiveBayesTrainingTask;
