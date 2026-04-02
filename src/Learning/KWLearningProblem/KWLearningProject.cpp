@@ -3,6 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "KWLearningProject.h"
+#include "FileService.h"
 
 KWLearningProject::KWLearningProject() {}
 
@@ -414,17 +415,8 @@ boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
 	ShowVersion(sTmp);
 	cout << endl;
 
-	// Verification que le repertoire temporaire est licite
-	// On verifie que c'est un un disque local
-	if (not FileService::IsLocalURI(FileService::GetTmpDir()))
-	{
-		cout << "error: Invalid temporary directory (Temp file directory must be located on the local file "
-			"system)"
-		     << endl
-		     << endl;
-	}
 	// On verifie ensuite que le chemin est absolu
-	else if (not FileService::IsAbsoluteFilePathName(FileService::GetTmpDir()))
+	if (not FileService::IsAbsoluteFilePathName(FileService::GetTmpDir()))
 	{
 		cout << "error: Invalid temporary directory (Temp file directory must be an absolute path)" << endl
 		     << endl;
