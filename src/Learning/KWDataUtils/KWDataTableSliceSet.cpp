@@ -3828,7 +3828,6 @@ boolean KWDataTableDriverSlice::OpenChunkForRead(const ALString& sDataFileName, 
 	// Parametrage du nom du fichier
 	SetDataTableName(sDataFileName);
 	inputBuffer->SetFileName(GetDataTableName());
-	assert(FileService::IsLocalURI(GetDataTableName()) or FileService::GetURIScheme(GetDataTableName()) == "file");
 
 	// Ajustement de la taille du buffer en fonction de la taille du fichier
 	// Inspire de l'implementation disponible dans KWDataTableDriverTextFile::OpenInputDatabaseFile

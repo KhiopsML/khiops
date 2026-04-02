@@ -435,7 +435,7 @@ boolean KWDatabaseTask::MasterInitialize()
 	if (not bOk)
 	{
 		if (IsParallel())
-			FileService::RemoveFile(sClassTmpFile);
+			PLRemoteFileService::RemoveFile(sClassTmpFile);
 	}
 
 	// Initialisation de la base via sa variable partagee, notamment pour le dimensionnement de ses ressources
@@ -596,6 +596,7 @@ boolean KWDatabaseTask::MasterAggregateResults()
 boolean KWDatabaseTask::MasterFinalize(boolean bProcessEndedCorrectly)
 {
 	boolean bOk = true;
+	ALString sClassTmpFile;
 
 	// Initialisation du code retour
 	bOk = bProcessEndedCorrectly;
@@ -612,7 +613,13 @@ boolean KWDatabaseTask::MasterFinalize(boolean bProcessEndedCorrectly)
 
 	// Suppression du fichier dictionnaire
 	if (IsParallel())
-		FileService::RemoveFile(FileService::GetURIFilePathName(shared_sClassTmpFile.GetValue()));
+	{
+		if (FileService::GetURIScheme(shared_sClassTmpFile.GetValue()) == FileService::sRemoteScheme)
+			sClassTmpFile = FileService::GetURIFilePathName(shared_sClassTmpFile.GetValue());
+		else
+			sClassTmpFile = shared_sClassTmpFile.GetValue();
+		PLRemoteFileService::RemoveFile(sClassTmpFile);
+	}
 	return bOk;
 }
 
@@ -631,6 +638,8 @@ boolean KWDatabaseTask::SlaveInitializePrepareDictionary()
 	boolean bDisplayMemoryStats = false;
 	ALString sClassName;
 	ALString sClassTmpFile;
+	boolean bCopied = false;
+	ALString sScheme;
 
 	// Memoire initiale
 	if (bDisplayMemoryStats)
@@ -645,19 +654,30 @@ boolean KWDatabaseTask::SlaveInitializePrepareDictionary()
 	{
 		assert(KWClassDomain::GetCurrentDomain()->GetClassNumber() == 0);
 		sClassName = shared_sourceDatabase.GetDatabase()->GetClassName();
+		sScheme = FileService::GetURIScheme(shared_sClassTmpFile.GetValue());
+		assert(sScheme != "");
 
-		// Copie du fichier dictionnaire chez l'esclave
-		// sauf si on est sur la meme machine
-		if (FileService::GetURIHostName(shared_sClassTmpFile.GetValue()) != GetLocalHostName())
+		// Copie du fichier dictionnaire dans le cas d'une URI distante, sauf si on est sur la meme machine
+		if (sScheme == FileService::sRemoteScheme)
 		{
-			sClassTmpFile =
-			    FileService::BuildFilePathName(FileService::GetApplicationTmpDir(), sClassName + ".kdic");
-			bOk = PLRemoteFileService::CopyFile(shared_sClassTmpFile.GetValue(), sClassTmpFile);
+			if (FileService::GetURIHostName(shared_sClassTmpFile.GetValue()) != GetLocalHostName())
+			{
+				sClassTmpFile = FileService::BuildFilePathName(FileService::GetApplicationTmpDir(),
+									       sClassName + ".kdic");
+				bOk = PLRemoteFileService::CopyFile(shared_sClassTmpFile.GetValue(), sClassTmpFile);
+				bCopied = bOk;
+			}
+			else
+			{
+				sClassTmpFile = FileService::GetURIFilePathName(shared_sClassTmpFile.GetValue());
+			}
 		}
 		else
 		{
-			sClassTmpFile = FileService::GetURIFilePathName(shared_sClassTmpFile.GetValue());
+			// Si le fichier est sur le cloud on le lit directement
+			sClassTmpFile = shared_sClassTmpFile.GetValue();
 		}
+
 		if (bOk)
 		{
 			bOk = KWClassDomain::GetCurrentDomain()->ReadFile(sClassTmpFile);
@@ -683,10 +703,10 @@ boolean KWDatabaseTask::SlaveInitializePrepareDictionary()
 			}
 		}
 
-		// Destruction du fichier dictionnaire chez l'esclave,
-		// desormais inutile si on a du le recopier
-		if (FileService::GetURIHostName(shared_sClassTmpFile.GetValue()) != GetLocalHostName())
-			FileService::RemoveFile(sClassTmpFile);
+		// Destruction de la copie locale du fichier dictionnaire chez l'esclave,
+		// desormais inutile maintenant qu'il est charge en memoire
+		if (bCopied)
+			PLRemoteFileService::RemoveFile(sClassTmpFile);
 	}
 
 	// Memoire finale
