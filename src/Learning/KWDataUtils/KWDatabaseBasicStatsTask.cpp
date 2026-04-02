@@ -224,7 +224,7 @@ boolean KWDatabaseBasicStatsTask::MasterInitialize()
 			    &databaseTaskSlaveMemoryRequirement);
 		}
 		// Dans le cas sequentiel, on donne a l'esclave toute la memoire reservee au maitre
-		// En effet, dans ce cas, il n'y a pas d'indexation prealabe de la base et l'unique esclave doit traiter
+		// En effet, dans ce cas, il n'y a pas d'indexation prealable de la base et l'unique esclave doit traiter
 		// l'integralite des valeurs de la base avant qu'elles soit recopiee dans le maitre
 		else
 			shared_lSlaveValuesMaxMemory = lMasterAllValuesGrantedMemory;
@@ -242,7 +242,7 @@ boolean KWDatabaseBasicStatsTask::MasterPrepareTaskInput(double& dTaskPercent, b
 	// Cas de la collecte des valeurs cibles
 	if (bOk and not bIsTaskFinished and bMasterCollectValues)
 	{
-		// On alloue le vecteur de resultat de l'esclave, a une position selon son rang
+		// On alloue le vecteur de resultat de l'esclave, a une position selon l'index de la tache qui va etre lancee
 		if (masterTargetAttribute->GetType() == KWType::Symbol)
 			oaAllSlaveResults.Add(new SymbolVector);
 		else if (masterTargetAttribute->GetType() == KWType::Continuous)
@@ -303,7 +303,7 @@ boolean KWDatabaseBasicStatsTask::MasterAggregateResults()
 		// Cas categoriel
 		if (masterTargetAttribute->GetType() == KWType::Symbol)
 		{
-			// Recherche des resultats selon le rang de l'esclave
+			// Recherche des resultats selon l'index de la tache
 			svSlaveValues = cast(SymbolVector*, oaAllSlaveResults.GetAt(GetTaskIndex()));
 			assert(svSlaveValues->GetSize() == 0);
 
@@ -379,7 +379,7 @@ boolean KWDatabaseBasicStatsTask::MasterAggregateResults()
 		// Cas numerique
 		else if (masterTargetAttribute->GetType() == KWType::Continuous)
 		{
-			// Recherche des resultats selon le rang de l'esclave
+			// Recherche des resultats selon l'index de la tache
 			cvSlaveValues = cast(ContinuousVector*, oaAllSlaveResults.GetAt(GetTaskIndex()));
 			assert(cvSlaveValues->GetSize() == 0);
 
@@ -499,18 +499,22 @@ boolean KWDatabaseBasicStatsTask::SlaveInitialize()
 	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::SlaveInitialize();
 
-	// Recherche du dictionnaire de la base
-	kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(shared_sourceDatabase.GetDatabase()->GetClassName());
-	check(kwcClass);
-
-	// Recherche de l'attribut cible
-	slaveTargetAttribute = NULL;
-	if (shared_sTargetAttributeName.GetValue() != "")
+	if (bOk)
 	{
+		// Recherche du dictionnaire de la base
+		kwcClass =
+		    KWClassDomain::GetCurrentDomain()->LookupClass(shared_sourceDatabase.GetDatabase()->GetClassName());
+		check(kwcClass);
+
 		// Recherche de l'attribut cible
-		slaveTargetAttribute = kwcClass->LookupAttribute(shared_sTargetAttributeName.GetValue());
-		check(slaveTargetAttribute);
-		assert(KWType::IsSimple(slaveTargetAttribute->GetType()));
+		slaveTargetAttribute = NULL;
+		if (shared_sTargetAttributeName.GetValue() != "")
+		{
+			// Recherche de l'attribut cible
+			slaveTargetAttribute = kwcClass->LookupAttribute(shared_sTargetAttributeName.GetValue());
+			check(slaveTargetAttribute);
+			assert(KWType::IsSimple(slaveTargetAttribute->GetType()));
+		}
 	}
 	return bOk;
 }
