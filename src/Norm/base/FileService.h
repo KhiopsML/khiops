@@ -381,7 +381,6 @@ public:
 
 	static boolean New_CreateApplicationTmpDir();
 	static boolean Old_CheckApplicationTmpDir();
-	static void Old_TouchApplicationTmpDir(int nRemainingSeconds);
 	static ALString New_CreateNewDirectory(const ALString& sBasePathName);
 
 protected:

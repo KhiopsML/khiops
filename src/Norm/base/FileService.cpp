@@ -1604,10 +1604,11 @@ boolean FileService::GetApplicationTmpDirAutoDeletion()
 	return bApplicationTmpDirAutoDeletion;
 }
 
-void FileService::Old_TouchApplicationTmpDir(int nRemainingSeconds)
+void FileService::TouchApplicationTmpDir(int nRemainingSeconds)
 {
-	OutputBufferedFile obfApplicationTmpDirAnchorFile;
+	OutputBufferedFile obApplicationTmpDirAnchorFile;
 	time_t tCurrentTimestamp;
+	boolean bOk;
 	boolean bOk;
 	const int nMaxRemainingSeconds = 366 * 24 * 3600;
 	struct tm* pGMTExpirationDate;
@@ -1626,24 +1627,25 @@ void FileService::Old_TouchApplicationTmpDir(int nRemainingSeconds)
 		pGMTExpirationDate = p_gmtime(&tCurrentTimestamp);
 
 		// Ecriture dans le fichier anchor du libelle associe a la date d'expiration
-		obfApplicationTmpDirAnchorFile.SetFileName(
+		// La fonction p_fopen gere deja les locale correctement
+		obApplicationTmpDirAnchorFile.SetFileName(
 		    BuildFilePathName(GetApplicationTmpDir(), GetAnchorFileName()));
-		bOk = obfApplicationTmpDirAnchorFile.Open();
+		bOk = obApplicationTmpDirAnchorFile.Open();
 		if (bOk)
 		{
-			obfApplicationTmpDirAnchorFile.Write("GMT expiration date ");
-			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_year + 1900));
-			obfApplicationTmpDirAnchorFile.Write("-");
-			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_mon + 1));
-			obfApplicationTmpDirAnchorFile.Write("-");
-			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_mday));
-			obfApplicationTmpDirAnchorFile.Write(" ");
-			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_hour));
-			obfApplicationTmpDirAnchorFile.Write(":");
-			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_min));
-			obfApplicationTmpDirAnchorFile.Write(":");
-			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_sec));
-			obfApplicationTmpDirAnchorFile.Close();
+			obApplicationTmpDirAnchorFile.Write("GMT expiration date ");
+			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_year + 1900));
+			obApplicationTmpDirAnchorFile.Write("-");
+			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_mon + 1));
+			obApplicationTmpDirAnchorFile.Write("-");
+			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_mday));
+			obApplicationTmpDirAnchorFile.Write(" ");
+			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_hour));
+			obApplicationTmpDirAnchorFile.Write(":");
+			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_min));
+			obApplicationTmpDirAnchorFile.Write(":");
+			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_sec));
+			obApplicationTmpDirAnchorFile.Close();
 		}
 	}
 }
@@ -2488,6 +2490,9 @@ boolean FileService::DeleteApplicationTmpDir()
 			if (PLRemoteFileService::FileExists(BuildFilePathName(sApplicationTmpDir, GetAnchorFileName())))
 			{
 				// Destruction directe du repertoire temporaire distant
+				bOk = PLRemoteFileService::RemoveFile(BuildFilePathName(
+				    sApplicationTmpDir,
+				    GetAnchorFileName())); // TODO : on supprime le fichier anchor tant qu'on n'a pas la methode de suppression recursive sur le cloud (comme DeleteTmpDirectory)
 				bOk = PLRemoteFileService::RemoveDirectory(sApplicationTmpDir) and bOk;
 			}
 		}
@@ -3070,51 +3075,6 @@ boolean FileService::New_CreateApplicationTmpDir()
 	if (bOk)
 		TouchApplicationTmpDir(3600);
 	return bOk;
-}
-
-void FileService::TouchApplicationTmpDir(int nRemainingSeconds)
-{
-	OutputBufferedFile obApplicationTmpDirAnchorFile;
-	time_t tCurrentTimestamp;
-	boolean bOk;
-	const int nMaxRemainingSeconds = 366 * 24 * 3600;
-	struct tm* pGMTExpirationDate;
-	require(nRemainingSeconds >= 0);
-
-	// On n'effectue le traitement que si le repertoire temporaire existe
-	if (GetApplicationTmpDir() != "")
-	{
-		// Recherche de la date courante
-		time(&tCurrentTimestamp);
-
-		// Ajout du delai
-		tCurrentTimestamp += min(nRemainingSeconds, nMaxRemainingSeconds);
-
-		// Conversion en timestamps GMT
-		pGMTExpirationDate = p_gmtime(&tCurrentTimestamp);
-
-		// Ecriture dans le fichier anchor du libelle associe a la date d'expiration
-		// La fonction p_fopen gere deja les locale correctement
-		obApplicationTmpDirAnchorFile.SetFileName(
-		    BuildFilePathName(GetApplicationTmpDir(), GetAnchorFileName()));
-		bOk = obApplicationTmpDirAnchorFile.Open();
-		if (bOk)
-		{
-			obApplicationTmpDirAnchorFile.Write("GMT expiration date ");
-			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_year + 1900));
-			obApplicationTmpDirAnchorFile.Write("-");
-			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_mon + 1));
-			obApplicationTmpDirAnchorFile.Write("-");
-			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_mday));
-			obApplicationTmpDirAnchorFile.Write(" ");
-			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_hour));
-			obApplicationTmpDirAnchorFile.Write(":");
-			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_min));
-			obApplicationTmpDirAnchorFile.Write(":");
-			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_sec));
-			obApplicationTmpDirAnchorFile.Close();
-		}
-	}
 }
 
 ALString FileService::New_CreateNewDirectory(const ALString& sBasePathName)
