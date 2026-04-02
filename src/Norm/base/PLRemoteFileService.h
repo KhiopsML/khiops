@@ -46,6 +46,9 @@ public:
 	// Creation d'un repertoire et si necessaire de tous les repertoire intermediaires
 	static boolean MakeDirectories(const ALString& sPathName);
 
+	// Suppression d'un repertoire et de tous les fichiers et repertoires qu'il contient
+	static boolean RemoveDirectory(const ALString& sPathName);
+
 	// Recherche de la memoire disque disponible sur un repertoire
 	// (se base sur le repertoire courant "." si le repertoire en parametre est "")
 	// Renvoie 0 si erreur ou pas de place disponible
