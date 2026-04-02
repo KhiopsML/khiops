@@ -999,8 +999,6 @@ void PLParallelTask::SlaveRegisterUniqueTmpFiles(const StringVector* svFileNames
 	for (i = 0; i < svFileNames->GetSize(); i++)
 	{
 		sScheme = FileService::GetURIScheme(svFileNames->GetAt(i));
-		require(sScheme == "" or (sScheme == "file" and
-					  FileService::GetURIHostName(svFileNames->GetAt(i)) == GetLocalHostName()));
 		if (svFileNames->GetAt(i) != "")
 			svSlaveRegisteredUniqueTmpFiles.Add(FileService::GetURIFilePathName(svFileNames->GetAt(i)));
 	}

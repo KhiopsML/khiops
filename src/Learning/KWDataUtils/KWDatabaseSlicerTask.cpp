@@ -711,10 +711,9 @@ boolean KWDatabaseSlicerTask::SlaveProcessStopDatabase(boolean bProcessEndedCorr
 		for (nSlice = 0; nSlice < output_svSliceFileNames.GetSize(); nSlice++)
 		{
 			sSliceFileName = allSliceOutputBuffer->GetSliceFileNames()->GetAt(nSlice);
-			assert(FileService::GetURIScheme(sSliceFileName) == "");
 
 			// Memorisation de la taille du fichier, cree localement
-			output_lvSliceFileSizes.SetAt(nSlice, FileService::GetFileSize(sSliceFileName));
+			output_lvSliceFileSizes.SetAt(nSlice, PLRemoteFileService::GetFileSize(sSliceFileName));
 
 			// Memorisation du nom complet avec URI, car le fichier pourra ensuite etre accede a distance
 			output_svSliceFileNames.SetAt(nSlice, FileService::BuildLocalURI(sSliceFileName));
@@ -1034,7 +1033,6 @@ boolean KWDatabaseSlicerOutputBufferedFile::FlushCache()
 		outputSliceFile->SetBufferSize(nOutputBufferSize);
 
 		// Ouverture du fichier a ecrire (pas d'URI ici)
-		assert(FileService::GetURIScheme(svSliceFileNames.GetAt(nSlice)) == "");
 		outputSliceFile->SetFileName(svSliceFileNames.GetAt(nSlice));
 		bOk = outputSliceFile->OpenForAppend();
 		bIsError = not bOk;
@@ -1094,7 +1092,6 @@ boolean KWDatabaseSlicerOutputBufferedFile::FlushCache()
 			nSlice = (nNextSliceIndex + i) % nSliceNumber;
 
 			// Ouverture du fichier a ecrire  (pas d'URI ici)
-			assert(FileService::GetURIScheme(svSliceFileNames.GetAt(nSlice)) == "");
 			outputSliceFile->SetFileName(svSliceFileNames.GetAt(nSlice));
 			bOk = outputSliceFile->OpenForAppend();
 			bIsError = not bOk;

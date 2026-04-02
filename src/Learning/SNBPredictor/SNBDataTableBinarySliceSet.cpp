@@ -1410,7 +1410,7 @@ SNBDataTableBinarySliceSetChunkBuffer::SNBDataTableBinarySliceSetChunkBuffer()
 {
 	nChunkIndex = -1;
 	layout = NULL;
-	fChunkDataFile = NULL;
+	sfChunkDataFile = NULL;
 	nLoadedBlockSliceIndex = -1;
 }
 
@@ -1856,14 +1856,14 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::OpenOutputDataFile()
 {
 	boolean bOk;
 
-	require(fChunkDataFile == NULL);
+	require(sfChunkDataFile == NULL);
 	require(sChunkFilePath != "");
 
-	bOk = FileService::OpenOutputBinaryFile(sChunkFilePath, fChunkDataFile);
+	bOk = PLRemoteFileService::OpenOutputBinaryFile(sChunkFilePath, sfChunkDataFile);
 	if (not bOk)
-		fChunkDataFile = NULL;
+		sfChunkDataFile = NULL;
 
-	ensure(not bOk or fChunkDataFile != NULL);
+	ensure(not bOk or sfChunkDataFile != NULL);
 	return bOk;
 }
 
@@ -1874,11 +1874,10 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::WriteToDataFile(int* writeBuffer,
 
 	require(writeBuffer != NULL);
 	require(nIntNumber >= 0);
-	require(fChunkDataFile != NULL);
+	require(sfChunkDataFile != NULL);
 
-	nWrittenIntNumber = (int)fwrite(writeBuffer, sizeof(int), nIntNumber, fChunkDataFile);
+	nWrittenIntNumber = sfChunkDataFile->Write(writeBuffer, sizeof(int), nIntNumber);
 	bOk = (nWrittenIntNumber == nIntNumber);
-
 	return bOk;
 }
 
@@ -1886,12 +1885,10 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::CloseOutputDataFile()
 {
 	boolean bOk;
 
-	require(fChunkDataFile != NULL);
+	require(sfChunkDataFile != NULL);
 	require(sChunkFilePath != "");
 
-	bOk = FileService::CloseOutputBinaryFile(sChunkFilePath, fChunkDataFile);
-	fChunkDataFile = NULL;
-
+	bOk = PLRemoteFileService::CloseOutputBinaryFile(sChunkFilePath, sfChunkDataFile);
 	return bOk;
 }
 
@@ -1978,7 +1975,7 @@ void SNBDataTableBinarySliceSetChunkBuffer::CleanWorkingData()
 	// Elimination du fichier de chunk s'il existe
 	if (sChunkFilePath != "")
 	{
-		FileService::RemoveFile(sChunkFilePath);
+		PLRemoteFileService::RemoveFile(sChunkFilePath);
 		sChunkFilePath = "";
 	}
 
@@ -2041,7 +2038,7 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::LoadBlockAt(int nSlice)
 	int nBufferIndex;
 
 	require(IsInitialized());
-	require(fChunkDataFile == NULL);
+	require(sfChunkDataFile == NULL);
 	require(physicalLayout.IsInitialized());
 	require(0 <= nSlice and nSlice < layout->GetSliceNumber());
 
@@ -2049,9 +2046,9 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::LoadBlockAt(int nSlice)
 	bOk = bOk and CheckChunkFile();
 
 	// Ouverture du fichier et positionement au debut du bloc
-	bOk = bOk and FileService::OpenInputBinaryFile(sChunkFilePath, fChunkDataFile);
-	bOk = bOk and FileService::SeekPositionInBinaryFile(fChunkDataFile,
-							    physicalLayout.GetBlockOffsetAt(nSlice) * sizeof(int));
+	bOk = bOk and PLRemoteFileService::OpenInputBinaryFile(sChunkFilePath, sfChunkDataFile);
+	bOk = bOk and PLRemoteFileService::SeekPositionInBinaryFile(
+			  sfChunkDataFile, physicalLayout.GetBlockOffsetAt(nSlice) * sizeof(int));
 
 	// Reinitialisation des colonnes du bloc
 	if (bOk)
@@ -2091,7 +2088,7 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::LoadBlockAt(int nSlice)
 		    physicalLayout.GetAttributeDataSizeAt(layout->GetAttributeOffsetAtSlice(nSlice));
 		column = cast(SNBDataTableBinarySliceSetColumn*, oaLoadedBlock.GetAt(0));
 		lRemainingIndexNumber = physicalLayout.GetBlockSizeAt(nSlice);
-		while (lRemainingIndexNumber > 0 and not ferror(fChunkDataFile) and not feof(fChunkDataFile))
+		while (bOk and lRemainingIndexNumber > 0)
 		{
 			// Cas a l'interieur de la slice : Nombre d'indexes a lire dans la limite de la taille du buffer
 			if (lRemainingIndexNumber >= nIntBufferSize)
@@ -2101,7 +2098,14 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::LoadBlockAt(int nSlice)
 				nToReadIndexNumber = (int)lRemainingIndexNumber;
 
 			// Lecture depuis le fichier
-			lReadIndexNumber = (longint)fread(buffer, sizeof(int), nToReadIndexNumber, fChunkDataFile);
+			lReadIndexNumber = (longint)sfChunkDataFile->Read(buffer, sizeof(int), nToReadIndexNumber);
+			bOk = (lReadIndexNumber == (longint)nToReadIndexNumber);
+			if (not bOk)
+			{
+				AddError("IO Error when reading from binary data file " + sChunkFilePath + " " +
+					 sfChunkDataFile->GetLastErrorMessage());
+				break;
+			}
 			lRemainingIndexNumber -= lReadIndexNumber;
 			assert(lReadIndexNumber == (longint)nToReadIndexNumber);
 
@@ -2133,15 +2137,11 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::LoadBlockAt(int nSlice)
 		// Verification que on a lu le nombre exacte d'indices & qu'il n'y pas eu d'erreur de lecture
 		bOk = bOk and lRemainingAttributeIntNumber == 0;
 		bOk = bOk and lRemainingIndexNumber == 0;
-		bOk = bOk and not ferror(fChunkDataFile);
-		if (not bOk and not ferror(fChunkDataFile))
+		if (not bOk and lRemainingAttributeIntNumber != 0 and lRemainingIndexNumber != 0)
 			AddError("Corrupted binary data file " + sChunkFilePath);
-		else if (ferror(fChunkDataFile))
-			AddError("IO error when reading binary data file " + sChunkFilePath);
 
 		// Cloture du fichier quoiqu'il arrive
-		bOk = FileService::CloseInputBinaryFile(sChunkFilePath, fChunkDataFile) and bOk;
-		fChunkDataFile = NULL;
+		bOk = PLRemoteFileService::CloseInputBinaryFile(sChunkFilePath, sfChunkDataFile) and bOk;
 	}
 
 	// Si lecture OK : Mise a jour de l'index de la slice du bloc en memoire
@@ -2151,7 +2151,7 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::LoadBlockAt(int nSlice)
 	else
 		nLoadedBlockSliceIndex = -1;
 
-	ensure(fChunkDataFile == NULL);
+	ensure(sfChunkDataFile == NULL);
 	ensure(Check());
 	return bOk;
 }
@@ -2217,7 +2217,7 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::CheckChunkFile() const
 
 	if (bOk)
 	{
-		lDataFileSize = FileService::GetFileSize(sChunkFilePath);
+		lDataFileSize = PLRemoteFileService::GetFileSize(sChunkFilePath);
 		lExpectedDataFileSize = 0;
 		for (nSlice = 0; nSlice < layout->GetSliceNumber(); nSlice++)
 			lExpectedDataFileSize += sizeof(int) * physicalLayout.GetBlockSizeAt(nSlice);

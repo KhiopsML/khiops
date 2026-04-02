@@ -911,6 +911,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 	KWClass* recoderClass;
 	ALString sTmp;
 	longint lGlobalSharedMemoryPerSlave;
+	const boolean bForceSlicing = false; // Force le slicing pour le debuggage
 
 	require(masterBinarySliceSet == NULL);
 
@@ -926,7 +927,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 
 	// Recherche d'un nombre de slices qui permet d'executer la tache
 	// avec le minimum pour les buffers du KWDataTableSliceSet
-	for (nSliceNumber = 1; nSliceNumber <= nMaxSliceNumber; nSliceNumber++)
+	for (nSliceNumber = 1; nSliceNumber < nMaxSliceNumber; nSliceNumber++)
 	{
 		// Calcul de la memoire necessaire pour l'esclave pour ce nombre de slices
 		// NB: La memoire globale diminue avec la taille du buffer du slice set d'entree (2eme param).
@@ -951,6 +952,13 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 		else if (nSliceNumber == 1)
 			lOneSliceExecutionExtraNecessaryMemory =
 			    (lSlaveNecessaryMemory - lSlaveGrantedMemory) * nSlaveProcessNumber;
+	}
+
+	// Pour la mise au point et le debuggage, on peut forcer le slicing a 2 slices
+	if (bForceSlicing)
+	{
+		nSliceNumber = 2;
+		lOneSliceExecutionExtraNecessaryMemory = 1;
 	}
 
 	// Si une configuration de memoire a ete trouve :
@@ -1186,7 +1194,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeRecoderClas
 					 shared_sRecoderClassName.GetValue());
 
 				// Destruction du fichier
-				FileService::RemoveFile(sRecoderClassTmpFilePath);
+				PLRemoteFileService::RemoveFile(sRecoderClassTmpFilePath);
 			}
 		}
 
@@ -1800,6 +1808,8 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalizeTrainingAndRepor
 
 boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalize(boolean bProcessEndedCorrectly)
 {
+	ALString sClassTmpFile;
+
 	require(masterSnbPredictor != NULL);
 	require(masterInitialDatabase != NULL);
 	require(masterInitialDatabase->Check());
@@ -1834,10 +1844,16 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterFinalize(boolean bPro
 		masterWeightedSelectionScorer = NULL;
 	}
 
-	// En parallele : Nettoyage du fichier dictionnaire auxilier
+	// En parallele : Nettoyage du fichier dictionnaire auxiliaire
 	if (IsParallel())
-		FileService::RemoveFile(FileService::GetURIFilePathName(shared_sRecoderClassDomainFileURI.GetValue()));
-
+	{
+		if (FileService::GetURIScheme(shared_sRecoderClassDomainFileURI.GetValue()) ==
+		    FileService::sRemoteScheme)
+			sClassTmpFile = FileService::GetURIFilePathName(shared_sRecoderClassDomainFileURI.GetValue());
+		else
+			sClassTmpFile = shared_sRecoderClassDomainFileURI.GetValue();
+		PLRemoteFileService::RemoveFile(sClassTmpFile);
+	}
 	ensure(shared_learningSpec.GetLearningSpec()->Check());
 	ensure(masterSnbPredictor->GetClassStats() != NULL);
 	ensure(masterSnbPredictor->GetClassStats()->Check());
@@ -1948,7 +1964,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::SlaveInitializeLearningSpec
 
 		// Nettoyage du fichier dictionnaire temporaire
 		if (not bIsRecoderClassFileLocal)
-			FileService::RemoveFile(sRecoderClassTmpFilePath);
+			PLRemoteFileService::RemoveFile(sRecoderClassTmpFilePath);
 	}
 	// En sequentiel : Recherche de la classe dans le domaine courant et compilation
 	else
