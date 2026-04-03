@@ -83,6 +83,21 @@ public:
 	// Renvoie true si les deux fichiers sont strictement identiques
 	static boolean FileCompare(const ALString& sFileName1, const ALString& sFileName2);
 
+	// Ouverture d'un fichier binaire en lecture
+	static boolean OpenInputBinaryFile(const ALString& sURI, SystemFile*& fFile);
+
+	// Position de l'endroit de lecture dans un fichier ouvert en lecture
+	// Renvoie true si pas d'erreur, false sinon (avec message d'erreur technique)
+	static boolean SeekPositionInBinaryFile(SystemFile* fFile, longint lStartPosition);
+
+	// Fermeture d'un fichier binaire en lecture ou ecriture, avec test de validite
+	static boolean CloseInputBinaryFile(const ALString& sURI, SystemFile*& fFile);
+	static boolean CloseOutputBinaryFile(const ALString& sURI, SystemFile*& fFile);
+
+	// Ouverture d'un fichier binaire en ecriture
+	static boolean OpenOutputBinaryFile(const ALString& sURI, SystemFile*& fFile);
+	static boolean OpenOutputBinaryFileForAppend(const ALString& sURI, SystemFile*& fFile);
+
 protected:
 	// Copie de fichier en utilisant les drivers de fichiers
 	static boolean CopyFileGeneric(const ALString& sSourceURI, const ALString& sDestPath);
