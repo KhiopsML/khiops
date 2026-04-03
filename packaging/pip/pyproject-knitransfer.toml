@@ -72,8 +72,11 @@ build = "cp39*"
 skip = ["*musllinux*", "*win32*"]
 
 [tool.cibuildwheel.linux]
-# No dependency
-repair-wheel-command = ""
+# Repair wheel to convert linux_* tags to manylinux_* (required by PyPI)
+# Exclude KNI library from bundling since it is provided at runtime by the kni pip package
+# Note: the .so suffix (11) must match the project major version; cibuildwheel only expands
+# {wheel} and {dest_dir} here, so the version number cannot be derived automatically
+repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} --exclude libKhiopsNativeInterface.so.11"
 
 [tool.cibuildwheel.macos]
 # No dependency

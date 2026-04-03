@@ -72,8 +72,8 @@ build = "cp39*"
 skip = ["*musllinux*", "*win32*"]
 
 [tool.cibuildwheel.linux]
-# No dependency
-repair-wheel-command = ""
+# Repair wheel to convert linux_* tags to manylinux_* (required by PyPI)
+repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
 
 [tool.cibuildwheel.macos]
 # No dependency
