@@ -372,6 +372,159 @@ boolean PLRemoteFileService::FileCompare(const ALString& sFileName1, const ALStr
 	return bSame;
 }
 
+boolean PLRemoteFileService::OpenInputBinaryFile(const ALString& sURI, SystemFile*& fFile)
+{
+	boolean bOk;
+
+	fFile = new SystemFile();
+
+	// Test si nom de fichier renseigne
+	bOk = (sURI != "");
+	if (not bOk)
+		Global::AddError("File", sURI, "Unable to open input file (missing file name)");
+	// Tentative d'ouverture du fichier
+	else
+	{
+		bOk = fFile->OpenInputFile(sURI);
+		if (not bOk)
+			Global::AddError("File", sURI, "Unable to open input file " + fFile->GetLastErrorMessage());
+	}
+
+	if (not bOk)
+	{
+		delete fFile;
+		fFile = NULL;
+	}
+
+	return bOk;
+}
+
+boolean PLRemoteFileService::SeekPositionInBinaryFile(SystemFile* fFile, longint lStartPosition)
+{
+	boolean bOk;
+
+	require(fFile != NULL);
+	if (fFile == NULL)
+	{
+		Global::AddFatalError("File", "", "Unable to seek position in file (null file handle)");
+		return false;
+	}
+
+	// Tentative de positionnement dans le fichier
+	bOk = fFile->SeekPositionInFile(lStartPosition);
+	if (not bOk)
+		Global::AddError("File", "", "Unable to seek position in file " + fFile->GetLastErrorMessage());
+	return bOk;
+}
+
+boolean PLRemoteFileService::CloseInputBinaryFile(const ALString& sURI, SystemFile*& fFile)
+{
+	boolean bOk;
+
+	require(fFile != NULL);
+	if (fFile == NULL)
+	{
+		Global::AddFatalError("File", sURI, "Unable to close input file (null file handle)");
+		return false;
+	}
+
+	// Test si nom de fichier renseigne
+	bOk = (sURI != "");
+	if (not bOk)
+		Global::AddError("File", sURI, "Unable to close input file (missing file name)");
+	// Tentative de fermeture du fichier
+	else
+	{
+		bOk = fFile->CloseInputFile(sURI);
+		if (not bOk)
+			Global::AddError("File", sURI, "Unable to close input file " + fFile->GetLastErrorMessage());
+	}
+
+	delete fFile;
+	fFile = NULL;
+	return bOk;
+}
+
+boolean PLRemoteFileService::CloseOutputBinaryFile(const ALString& sURI, SystemFile*& fFile)
+{
+	boolean bOk;
+
+	require(fFile != NULL);
+	if (fFile == NULL)
+	{
+		Global::AddFatalError("File", sURI, "Unable to close output file (null file handle)");
+		return false;
+	}
+	// Test si nom de fichier renseigne
+	bOk = (sURI != "");
+	if (not bOk)
+		Global::AddError("File", sURI, "Unable to close output file (missing file name)");
+	// Tentative de fermeture du fichier
+	else
+	{
+		bOk = fFile->CloseOutputFile(sURI);
+		if (not bOk)
+			Global::AddError("File", sURI, "Unable to close output file " + fFile->GetLastErrorMessage());
+	}
+	delete fFile;
+	fFile = NULL;
+	return bOk;
+}
+
+boolean PLRemoteFileService::OpenOutputBinaryFile(const ALString& sURI, SystemFile*& fFile)
+{
+	boolean bOk;
+
+	fFile = new SystemFile();
+
+	// Test si nom de fichier renseigne
+	bOk = (sURI != "");
+	if (not bOk)
+		Global::AddError("File", sURI, "Unable to open output file (missing file name)");
+	// Tentative d'ouverture du fichier
+	else
+	{
+		bOk = fFile->OpenOutputFile(sURI);
+		if (not bOk)
+			Global::AddError("File", sURI, "Unable to open output file " + fFile->GetLastErrorMessage());
+	}
+	if (not bOk)
+	{
+		delete fFile;
+		fFile = NULL;
+	}
+	return bOk;
+}
+
+boolean PLRemoteFileService::OpenOutputBinaryFileForAppend(const ALString& sURI, SystemFile*& fFile)
+{
+	boolean bOk;
+
+	fFile = new SystemFile();
+
+	// Test si nom de fichier renseigne
+	bOk = (sURI != "");
+	if (not bOk)
+		Global::AddError("File", sURI, "Unable to open output file for append (missing file name)");
+	// Tentative d'ouverture du fichier
+	else
+	{
+		bOk = fFile->OpenOutputFileForAppend(sURI);
+		if (not bOk)
+		{
+			Global::AddError("File", sURI,
+					 "Unable to open output file for append " + fFile->GetLastErrorMessage());
+		}
+	}
+
+	if (not bOk)
+	{
+		delete fFile;
+		fFile = NULL;
+	}
+	return bOk;
+}
+
 boolean PLRemoteFileService::CopyFileGeneric(const ALString& sSourceURI, const ALString& sDestURI)
 {
 	SystemFile fileInput;
