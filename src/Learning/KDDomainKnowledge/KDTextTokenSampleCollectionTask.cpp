@@ -739,7 +739,6 @@ boolean KDTextTokenSampleCollectionTask::SlaveInitialize()
 	KWTextTokenizer* textTokenizer;
 	KWClass* kwcClass;
 	int nAttribute;
-	ObjectArray* oaSpecificTokens;
 
 	require(CheckPassParameters());
 
@@ -765,16 +764,6 @@ boolean KDTextTokenSampleCollectionTask::SlaveInitialize()
 			if (shared_bIsFirstPass)
 				textTokenizer->SetMaxCollectedTokenNumber(
 				    shared_ivFirstPassTokenNumbers.GetAt(nAttribute));
-			// Parametrage des tokens specifiques dont il faut calculer l'effectif
-			else
-			{
-				oaSpecificTokens =
-				    cast(ObjectArray*,
-					 shared_oaSecondPassSpecificTokens->GetObjectArray()->GetAt(nAttribute));
-				textTokenizer->CleanCollectedTokens();
-				textTokenizer->SetMaxCollectedTokenNumber(0);
-				textTokenizer->SetSpecificTokens(oaSpecificTokens);
-			}
 
 			// Memorisation du tokenizer associe a l'attribut
 			oaSlaveTextTokenizers.SetAt(nAttribute, textTokenizer);
@@ -788,7 +777,31 @@ boolean KDTextTokenSampleCollectionTask::SlaveProcess()
 	boolean bOk;
 	KWTextTokenizer* textTokenizer;
 	ObjectArray* oaCollectedTokens;
+	ObjectArray* oaSpecificTokens;
 	int nAttribute;
+
+	// Nettoyage des tokenizers : si l'esclave est appele plus d'une fois, alors
+	// il ne cumulera pas les tokens des appels precedents
+	// Le nettoyage est fait avant l'appel de la methode ancetre, car c'est
+	// celle-la qui traite les lots de donnes et realise la tokenisation
+	for (nAttribute = 0; nAttribute < oaSlaveTextTokenizers.GetSize(); nAttribute++)
+	{
+		textTokenizer = cast(KWTextTokenizer*, oaSlaveTextTokenizers.GetAt(nAttribute));
+		textTokenizer->CleanCollectedTokens();
+
+		// Positionnement des tokens specifiques
+		// On doit le faire ici car CleanCollectedTokens ecrase le vecteur des indexes des
+		// tokens specifiques effectivement utilises (ivUsedSpecificTokenIndexes) qui permet
+		// de retrouver le nombre des tokens collectes dans le cas des tokens specifiques, lors
+		// de l'export des tokens via ExportFrequentTokens
+		if (!shared_bIsFirstPass)
+		{
+			oaSpecificTokens =
+			    cast(ObjectArray*, shared_oaSecondPassSpecificTokens->GetObjectArray()->GetAt(nAttribute));
+			textTokenizer->SetMaxCollectedTokenNumber(0);
+			textTokenizer->SetSpecificTokens(oaSpecificTokens);
+		}
+	}
 
 	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::SlaveProcess();
