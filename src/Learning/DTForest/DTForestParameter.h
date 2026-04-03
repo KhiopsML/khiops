@@ -47,7 +47,7 @@ public:
 	void SetVariableNumberMin(int nNumber);
 	int GetVariableNumberMin() const;
 
-	// Acces a la graine aléatoire
+	// Acces a la graine aleatoire
 	void SetRandomSeed(int nNumber);
 	int GetRandomSeed() const;
 
@@ -108,7 +108,7 @@ protected:
 
 	DTDecisionTree::DrawingType drawingType;
 
-	// graine aléatoire pour generer des arbres differents
+	// graine aleatoire pour generer des arbres differents
 	int nRandomSeed;
 
 	// Pourcentage de variables minimun a prendre
