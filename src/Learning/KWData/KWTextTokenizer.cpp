@@ -27,6 +27,7 @@ void KWTextTokenizer::Reset()
 	gdSpecificTokens = NULL;
 	nMaxCollectedTokenNumber = 0;
 	bIsDeploymentMode = false;
+	lvSpecificTokenFrequencies.SetSize(0);
 	CleanCollectedTokens();
 }
 
@@ -256,6 +257,7 @@ void KWTextTokenizer::CleanCollectedTokens()
 
 	gdCollectedTokens->RemoveAll();
 	ivUsedSpecificTokenIndexes.SetSize(0);
+	lvSpecificTokenFrequencies.Initialize();
 	ensure(GetCollectedTokenNumber() == 0);
 }
 
@@ -868,13 +870,14 @@ void KWTextNgramTokenizer::SetSpecificTokens(const ObjectArray* oaTokens)
 
 	require(GetCollectedTokenNumber() == 0);
 	require(not gdCollectedTokens->IsStringKey());
-	require(lvSpecificTokenFrequencies.GetSize() == 0);
 	require(ivUsedSpecificTokenIndexes.GetSize() == 0);
 
 	// Nettoyage prealable
 	if (gdSpecificTokens != NULL)
 		delete gdSpecificTokens;
 	gdSpecificTokens = NULL;
+	lvSpecificTokenFrequencies.SetSize(0);
+	bIsDeploymentMode = false;
 
 	// Prise en compte de la specification
 	if (oaTokens != NULL)
