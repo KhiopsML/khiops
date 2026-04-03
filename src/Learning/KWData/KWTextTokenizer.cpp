@@ -868,13 +868,13 @@ void KWTextNgramTokenizer::SetSpecificTokens(const ObjectArray* oaTokens)
 
 	require(GetCollectedTokenNumber() == 0);
 	require(not gdCollectedTokens->IsStringKey());
-	require(lvSpecificTokenFrequencies.GetSize() == 0);
 	require(ivUsedSpecificTokenIndexes.GetSize() == 0);
 
 	// Nettoyage prealable
 	if (gdSpecificTokens != NULL)
 		delete gdSpecificTokens;
 	gdSpecificTokens = NULL;
+	lvSpecificTokenFrequencies.SetSize(0);
 
 	// Prise en compte de la specification
 	if (oaTokens != NULL)
