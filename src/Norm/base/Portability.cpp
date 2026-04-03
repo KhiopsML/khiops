@@ -456,11 +456,7 @@ int OpenApplication(const char* sApplicationExeName, const char* sApplicationLab
 		    char* sErrorMessage)
 {
 	int ok;
-	const char* sFileExtension;
-	const char* sSearch;
-	const char* sFileAssociation;
 	char* sCommandLine;
-	char* sSystemErrorMessage;
 
 	assert(sApplicationExeName != NULL);
 	assert(strlen(sApplicationExeName) < SYSTEM_MESSAGE_LENGTH / 2);
