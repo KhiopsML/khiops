@@ -550,15 +550,21 @@ void InputBufferedFile::AddEncodingErrorMessage(longint lErrorNumber, const Obje
 
 		// Specialisation dans le cs d'une seule erreur
 		if (lErrorNumber == 1)
-			sMessage = "As one encoding error related to missing double quotes has been identified";
+			sMessage = "One field with unescaped double quotes has been detected. ";
 		// Cas avec plusieurs erreur
 		else
-			sMessage = sMessage + "As " + LongintToString(lErrorNumber) +
-				   " encoding errors related to missing double quotes have been identified";
+			sMessage = sMessage + LongintToString(lErrorNumber) +
+				   " fields with unescaped double quotes have been detected. ";
 
 		// Fin du message
-		sMessage += ", your database may include multi-line fields.";
-		sMessage += " It is recommended to recode it using single-line encoding.";
+		sMessage +=
+		    "According to the CSV standard (RFC 4180), a double quote inside a field "
+		    "must be escaped by doubling it. "
+		    "The affected fields may have been incorrectly parsed, leading to potentially incorrect results. "
+		    "The processing was performed despite these errors. However, it is strongly recommended to "
+		    "re-encode your file to comply with the CSV standard and reprocess it. "
+		    "Note that Khiops does not support multi-line fields; "
+		    "if your file contains such fields, the corresponding records will be corrupted.";
 
 		// Affichage en isolant la ligne d'erreur entre deux lignes blanches
 		errorSender->AddSimpleMessage("");
