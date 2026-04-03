@@ -41,6 +41,8 @@ DTForestParameterView::DTForestParameterView()
 	AddIntField("MaxIntervalsNumberForTarget", "Max intervals number for target ", 2);
 
 	AddIntField("OptimizationLoopNumber", "Optimization loop number", 10);
+
+	AddIntField("RandomSeed", "Random Seed", 0);
 	AddStringField("Weigth", "Weighting", "UNIFORM");
 	GetFieldAt("Weigth")->SetParameters("UNIFORM\nCOMPRESSION RATE");
 	AddBooleanField("RecodeRFDictionary", "Recode RF Dictionnary", true);
@@ -66,6 +68,7 @@ DTForestParameterView::DTForestParameterView()
 	cast(UIIntElement*, GetFieldAt("VariableNumberMin"))->SetMaxValue(20);
 	cast(UIIntElement*, GetFieldAt("MaxIntervalsNumberForTarget"))->SetMinValue(2);
 	cast(UIIntElement*, GetFieldAt("MaxIntervalsNumberForTarget"))->SetMaxValue(64);
+	cast(UIIntElement*, GetFieldAt("RandomSeed"))->SetMinValue(0);
 
 	// rendre visibles ou invisibles les champs du mode expert :
 	GetFieldAt("InstancePercentage")->SetVisible(GetLearningExpertMode());
@@ -104,6 +107,7 @@ void DTForestParameterView::EventUpdate(Object* object)
 	editedObject->SetVariableNumberMin(GetIntValueAt("VariableNumberMin"));
 	editedObject->SetDiscretizationTargetMethod(GetStringValueAt("DiscretizationTargetMethod"));
 	editedObject->SetMaxIntervalsNumberForTarget(GetIntValueAt("MaxIntervalsNumberForTarget"));
+	editedObject->SetRandomSeed(GetIntValueAt("RandomSeed"));
 
 	// mise a jour automatique du NodeVariablesSelection en fonction du TreesVariablesSelection
 
@@ -141,4 +145,5 @@ void DTForestParameterView::EventRefresh(Object* object)
 	SetIntValueAt("VariableNumberMin", editedObject->GetVariableNumberMin());
 	SetStringValueAt("DiscretizationTargetMethod", editedObject->GetDiscretizationTargetMethod());
 	SetIntValueAt("MaxIntervalsNumberForTarget", editedObject->GetMaxIntervalsNumberForTarget());
+	SetIntValueAt("RandomSeed", editedObject->GetRandomSeed());
 }
