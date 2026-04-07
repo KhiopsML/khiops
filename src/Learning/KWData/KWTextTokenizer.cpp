@@ -505,9 +505,39 @@ longint KWTextTokenizer::GetUsedMemory() const
 	lUsedMemory = sizeof(KWTextTokenizer);
 	if (gdSpecificTokens != NULL)
 		lUsedMemory += gdSpecificTokens->GetUsedMemory();
-	lUsedMemory += gdCollectedTokens->GetUsedMemory();
+	if (gdCollectedTokens != NULL)
+		lUsedMemory += gdCollectedTokens->GetUsedMemory();
 	lUsedMemory += lvSpecificTokenFrequencies.GetUsedMemory() - sizeof(LongintVector);
 	lUsedMemory += ivUsedSpecificTokenIndexes.GetUsedMemory() - sizeof(IntVector);
+	return lUsedMemory;
+}
+
+longint KWTextTokenizer::GetUsedMemoryPerToken(int nTokenLength) const
+{
+	longint lUsedMemory;
+	LongintDictionary ldForMemoryEstimation;
+
+	// Initialisations
+	lUsedMemory = 0;
+
+	// Memorisation d'un token specifique dans gdSpecificTokens
+	// - un token occupe sa longueur fois la taille d'un caractere
+	// - sa presence dans le dictionnaire generique occupe une taille a priori
+	// donee par la methode LongintDictionary::GetUsedMemoryPerElement
+	lUsedMemory += nTokenLength * sizeof(char) + ldForMemoryEstimation.GetUsedMemoryPerElement();
+
+	// Memorisation de l'effectif d'un token specifique dans lvSpecificTokenFrequencies
+	lUsedMemory += sizeof(longint);
+
+	// Memorisation de l'index d'un token specifique effectivement utilise dans ivUsedSpecificTokenIndexes
+	lUsedMemory += sizeof(int);
+
+	// Memorisation d'un token collecte dans gdCollectedTokens
+	// - un token occupe sa longueur fois la taille d'un caractere
+	// - sa presence dans le dictionnaire generique occupe une taille a priori
+	// donee par la methode LongintDictionary::GetUsedMemoryPerElement
+	lUsedMemory += nTokenLength * sizeof(char) + ldForMemoryEstimation.GetUsedMemoryPerElement();
+
 	return lUsedMemory;
 }
 
