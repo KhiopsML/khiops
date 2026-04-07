@@ -174,7 +174,7 @@ boolean DTDecisionTreeCreationTask::CreatePreparedAttributes(KWLearningSpec* lea
 	forestattributeselection = new DTForestAttributeSelection;
 
 	oldseed = GetRandomSeed();
-	SetRandomSeed(1972);
+	SetRandomSeed(1972 + randomForestParameter.GetRandomSeed());
 
 	kwcUpdatedClass = learningSpec->GetClass();
 	kwcUpdatedClass->LookupAttribute(learningSpec->GetTargetAttributeName())->SetLoaded(false);
@@ -908,7 +908,7 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 					nBuidTreeNumber++;
 
 					oldseedtree = GetRandomSeed();
-					SetRandomSeed(attributegenerator->GetSeed());
+					SetRandomSeed(attributegenerator->GetRandomSeed());
 
 					if (TaskProgression::IsInterruptionRequested())
 					{
@@ -1274,7 +1274,9 @@ void DTDecisionTreeCreationTask::BuildForestAttributeSelections(DTForestAttribut
 								int nmaxCreatedAttributeNumber)
 {
 	// calcul du nbre d'attributs potentiellement utilisables dans l'arbre (on retire 1 pour l'attribut cible)
-
+	forestAttributeSelection.SetRandomSeed(
+	    1968 + this->input_forestParameter->GetForestParameter()
+		       ->GetRandomSeed()); // pour rendre les resultats modifiables selon la seed
 	if (randomForestParameter.GetTreesVariablesSelection() == DTGlobalTag::RANK_WITH_REPLACEMENT_LABEL)
 		forestAttributeSelection.BuildForestSelections(nmaxCreatedAttributeNumber,
 							       randomForestParameter.GetVariableNumberMin());
