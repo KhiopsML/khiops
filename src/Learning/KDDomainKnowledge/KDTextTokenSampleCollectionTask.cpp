@@ -411,11 +411,11 @@ int KDTextTokenSampleCollectionTask::GetMaxStreamCollectedTokenNumber(int nReque
 	require(nRequestedTokenNumber > 0);
 
 	// Parametrage de la collection en mode flux en specifiant nombre max de tokens a conserver, en gardant une
-	// marge Les experiences montrenent qu'un facteur de 2 est largement insuffisant, et qu'un facteur de 10 semble
+	// marge Les experiences montrenent qu'un facteur de 2 est largement insuffisant, et qu'un facteur de 20 semble
 	// raisonnable. On ajoute egalement un nombre minimal de 1000 tokens, pour stabiliser les resultats dans le cas
 	// de petits nombres de tokens. De toutes facon, cela ne coute pas tres cher ni en temps ni en memoire, car le
 	// temps est domine par le parsing exhaustif de tous les tokens des textes, qui est effectue de toutes facons
-	nMaxStreamCollectedTokenNumber = 1000 + nRequestedTokenNumber * 10;
+	nMaxStreamCollectedTokenNumber = 1000 + nRequestedTokenNumber * 20;
 	return nMaxStreamCollectedTokenNumber;
 }
 
