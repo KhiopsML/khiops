@@ -73,7 +73,8 @@ void DTBaseLoader::BuildTrainOutOfBagBaseLoader(DTBaseLoader* blTrain, DTBaseLoa
 	require(blOutOfBag != NULL);
 	require(tupleTableLoader->GetInputExtraAttributeSymbolValues()->GetSize() == database->GetSize());
 	Object* kwo;
-	int i, newInstanceId;
+	int i;
+	int nNewInstanceId;
 
 	Object* obj;
 
@@ -85,21 +86,21 @@ void DTBaseLoader::BuildTrainOutOfBagBaseLoader(DTBaseLoader* blTrain, DTBaseLoa
 	SymbolVector* svOutOfBag = new SymbolVector;
 	KWTupleTable* targetTupleTableTrain = new KWTupleTable;
 	KWTupleTable* targetTupleTableOutOfBag = new KWTupleTable;
-	int instancesNumber = database->GetSize();
+	int nInstancesNumber = database->GetSize();
 	NumericKeyDictionary nkdDatabaseObjects;
 
 	// creation train
 
 	for (i = 0; i < database->GetSize(); i++)
 	{
-		newInstanceId = RandomInt(instancesNumber - 1);
-		kwo = database->GetAt(newInstanceId);
+		nNewInstanceId = RandomInt(nInstancesNumber - 1);
+		kwo = database->GetAt(nNewInstanceId);
 
 		assert(kwo != NULL);
 
 		oaTrain->Add(kwo);
 		nkdDatabaseObjects.SetAt(kwo, kwo);
-		svTrain->Add(tupleTableLoader->GetInputExtraAttributeSymbolValues()->GetAt(newInstanceId));
+		svTrain->Add(tupleTableLoader->GetInputExtraAttributeSymbolValues()->GetAt(nNewInstanceId));
 	}
 
 	// creation de out of bag
@@ -157,12 +158,6 @@ void DTBaseLoader::BuildTrainOutOfBagBaseLoader(DTBaseLoader* blTrain, DTBaseLoa
 	}
 
 	blOutOfBag->Initialize(learningSpec, tlOutOfBag, oaOutOfBag);
-
-	// Alimentation d'une table de tuples univariee a partir d'un vecteur de valeur
-	// void LoadTupleTableFromContinuousValues(const ALString& sAttributeName, const ContinuousVector*
-	// cvInputValues, KWTupleTable* outputTupleTable); void LoadTupleTableFromSymbolValues(const ALString&
-	// sAttributeName, const SymbolVector* svInputValues, KWTupleTable* outputTupleTable); blTrain->Write(cout);
-	// blOutOfBag->Write(cout);
 }
 
 void DTBaseLoader::LoadTupleTableFromSymbolValues(KWClass* kwcInputClass, const ALString& sAttributeName,
@@ -199,22 +194,16 @@ void DTBaseLoader::Write(ostream& ost)
 	assert(tupleTableLoader != NULL);
 	assert(tupleTableLoader->GetInputExtraAttributeTupleTable() != NULL);
 
-	// assert(targetAttributeLoadIndex.IsValid());//MB
-
 	KWTupleTable* targettupletable = cast(KWTupleTable*, tupleTableLoader->GetInputExtraAttributeTupleTable());
 	KWTuple* tuple;
-
-	// NumericKeyDictionary * targetModalitiesCount = new NumericKeyDictionary;
 
 	for (int i = 0; i < targettupletable->GetSize(); i++)
 	{
 		tuple = cast(KWTuple*, targettupletable->GetAt(i));
-		// svReferenceTargetModalities->Add(tuple->GetSymbolAt(0));
 
 		const Symbol sInstanceModality = tuple->GetSymbolAt(0);
 
 		ost << "class : " << TSV::Export(sInstanceModality.GetValue()) << "Freq : " << tuple->GetFrequency()
 		    << endl;
-		// targetModalitiesCount->SetAt(sInstanceModality.GetNumericKey(), modalityCount);
 	}
 }

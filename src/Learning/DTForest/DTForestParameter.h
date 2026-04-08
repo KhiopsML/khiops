@@ -8,7 +8,60 @@
 #include "KWLearningReport.h"
 #include "DTDecisionTreeParameter.h"
 
-// Classe des parametres d'un classifieur en arbre de decision
+///////////////////////////////////////////////////////////////////////////
+// Classe des parametres d'un classifieur Random Forest
+//
+// Cette classe encapsule les parametres de construction et d'optimisation
+// d'une foret d'arbres de decision (Random Forest).
+//
+// Parametres principaux :
+//   - TreesVariablesSelection : mode de selection des variables pour les arbres
+//     Valeurs possibles :
+//       * "Rank with replacement" : selection par rang avec remplacement (defaut)
+//       * "Uniform sampling with replacement" : echantillonnage uniforme avec remplacement
+//       * "Level sampling with replacement" : echantillonnage par niveau avec remplacement
+//       * "Node uniform sampling with replacement" : echantillonnage uniforme par noeud avec remplacement
+//       * "Node level sampling with replacement" : echantillonnage par niveau et par noeud avec remplacement
+//
+//   - InstancePercentage : pourcentage d'instances retenues par arbre (0.0 a 1.0, defaut: 1.0, mode expert)
+//
+//   - AttributePercentage : pourcentage de variables retenues par arbre (0.0 a 1.0, defaut: 0.0)
+//
+//   - VariableNumberMin : nombre minimum de variables a considerer (0 a 20, defaut: 2)
+//
+//   - RecodeRFDictionary : recodage du dictionnaire Random Forest (true/false, defaut: true, mode expert)
+//
+//   - DrawingType : type de tirage des instances
+//     Valeurs possibles :
+//       * "No replacement" : tirage sans remise (defaut)
+//       * "Use out of bag" : utilisation des echantillons Out-Of-Bag
+//
+//   - RandomSeed : graine aleatoire pour la reproductibilite (>= 0, defaut: 0)
+//
+//   - InitRFOptimisation : methode d'initialisation de l'optimisation des poids
+//     Valeurs possibles :
+//       * "BESTTREE" : initialisation avec l'arbre au meilleur taux de compression
+//       * "ALLTREE" : initialisation avec la moyenne ponderee de tous les arbres
+//
+//   - OptimizationLoopNumber : nombre de boucles d'optimisation (0 a 500, defaut: 10, mode expert)
+//
+//   - WeightedClassifier : ponderation du predicteur moyen
+//     Valeurs possibles :
+//       * "UNIFORM" : ponderation uniforme (defaut)
+//       * "COMPRESSION RATE" : ponderation par taux de compression
+//
+//   - DiscretizationTargetMethod : methode de discretisation de la cible continue
+//     Valeurs possibles :
+//       * "MODL" : discretisation MODL (defaut)
+//       * "BinaryEqualFrequency" : discretisation binaire par frequences egales
+//       * "EqualFrequency" : discretisation par frequences egales
+//
+//   - MaxIntervalsNumberForTarget : nombre maximum d'intervalles pour la discretisation (2 a 64, defaut: 2)
+//
+//   - WriteDetailedStatistics : ecriture de statistiques detaillees (true/false, defaut: false, mode expert)
+//
+//   - DecisionTreeParameter : parametres individuels des arbres de decision
+//     (voir DTDecisionTreeParameter pour details)
 class DTForestParameter : public Object // public DTDecisionTreeParameter
 {
 public:

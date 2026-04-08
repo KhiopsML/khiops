@@ -30,7 +30,7 @@ public:
 	bool InitFromDecisionTree(DTDecisionTree* dtTree);
 
 	// Creation de l'attribut a partir de la specification
-	KWAttribute* BuildAttribute(const ALString& svariablename);
+	KWAttribute* BuildAttribute(const ALString& sVariableName);
 
 	// Acces au cout de construction de l'arbre
 	void SetConstructionCost(double);
@@ -72,7 +72,7 @@ public:
 	KWDataGridStats* GetTargetStats() const;
 	void SetTargetStats(KWDataGridStats* a);
 
-	const ObjectArray& GetTreeNodes() const;
+	const ObjectArray* GetTreeNodes() const;
 
 	// ecriture du rapport json
 	void WriteJSONArrayFields(JSONFile* fJSON, boolean bSummary) const;
@@ -114,9 +114,9 @@ protected:
 	KWDataGridStats* dgsTargetStats;
 };
 
-inline const ObjectArray& DTDecisionTreeSpec::GetTreeNodes() const
+inline const ObjectArray* DTDecisionTreeSpec::GetTreeNodes() const
 {
-	return oaTreeNodes;
+	return &oaTreeNodes;
 }
 
 inline KWDataGridStats* DTDecisionTreeSpec::GetTargetStats() const
@@ -149,7 +149,7 @@ public:
 	void SerializeObject(PLSerializer* serializer, const Object* object) const override;
 
 protected:
-	void AddNode(ObjectArray& oaTreeNodes, DTDecisionTreeNodeSpec*) const;
+	void AddNode(ObjectArray* oaTreeNodes, DTDecisionTreeNodeSpec*) const;
 
 	// noeud racine
 	PLShared_DecisionTreeNodeSpec* shared_nsRootNode;
@@ -191,7 +191,7 @@ public:
 	void AddNode(DTDecisionTreeNodeSpec* nsValue);
 
 	// acces aux fils
-	const ObjectArray& GetChildNodes() const;
+	const ObjectArray* GetChildNodes() const;
 
 	// isLeaf
 	boolean IsLeaf() const;
@@ -301,9 +301,9 @@ inline void DTDecisionTreeNodeSpec::SetNodeIdentifier(const ALString& sidtemp)
 	sIdentifier = sidtemp;
 }
 
-inline const ObjectArray& DTDecisionTreeNodeSpec::GetChildNodes() const
+inline const ObjectArray* DTDecisionTreeNodeSpec::GetChildNodes() const
 {
-	return oaChildNode;
+	return &oaChildNode;
 }
 
 inline void DTDecisionTreeSpec::SetConstructionCost(double d)

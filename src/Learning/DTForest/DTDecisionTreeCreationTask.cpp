@@ -96,7 +96,7 @@ boolean DTDecisionTreeCreationTask::CreatePreparedAttributes(KWLearningSpec* lea
 	boolean bOk = true;
 	KWClass* kwcUpdatedClass;
 	ALString sMessage;
-	int oldseed;
+	int nOldSeed;
 	int nInputInformativeVariable;
 	int nAttribute;
 	ObjectArray oaAttributeStats;
@@ -173,7 +173,7 @@ boolean DTDecisionTreeCreationTask::CreatePreparedAttributes(KWLearningSpec* lea
 
 	forestattributeselection = new DTForestAttributeSelection;
 
-	oldseed = GetRandomSeed();
+	nOldSeed = GetRandomSeed();
 	SetRandomSeed(1972 + randomForestParameter.GetRandomSeed());
 
 	kwcUpdatedClass = learningSpec->GetClass();
@@ -224,7 +224,7 @@ boolean DTDecisionTreeCreationTask::CreatePreparedAttributes(KWLearningSpec* lea
 	if (bTargetGrouped)
 		learningSpec->GetPreprocessingSpec()->SetTargetGrouped(true);
 
-	SetRandomSeed(oldseed);
+	SetRandomSeed(nOldSeed);
 
 	kwcUpdatedClass->LookupAttribute(learningSpec->GetTargetAttributeName())->SetLoaded(true);
 	kwcUpdatedClass->Compile();
@@ -650,16 +650,16 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 	KWLearningSpec* learningSpecTree = NULL;
 	KWLearningSpec* slaveLearningSpec = NULL;
 	int nNativeVariableNumber;
-	ALString svariablename;
+	ALString sVariableName;
 	ALString sTmp;
 	ALString sMessage;
 	KWAttribute* attribute = NULL;
 	KWAttributeStats* attributeStats = NULL;
 	KWDataGridStats targetStats;
 	ObjectArray oaObjects;
-	ObjectArray oatupletable;
-	ObjectArray oaOrigineAttributs;
-	ObjectArray oaZeroLevelAttributs;
+	ObjectArray oaTupleTable;
+	ObjectArray oaOrigineAttributes;
+	ObjectArray oaZeroLevelAttributes;
 	KWTupleTable* ttattribut = NULL;
 	NumericKeyDictionary ndTreeSingleton;
 	NUMERIC key;
@@ -667,7 +667,7 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 	boolean bRegressionWithEqualFreqDiscretization = false;
 	boolean bRegressionWithMODLDiscretization = false;
 	int nBuidTreeNumber;
-	int oldseedtree;
+	int nOldSeedTree;
 
 	if (randomForestParameter.GetDecisionTreeParameter()->GetVerboseMode())
 	{
@@ -907,7 +907,7 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 
 					nBuidTreeNumber++;
 
-					oldseedtree = GetRandomSeed();
+					nOldSeedTree = GetRandomSeed();
 					SetRandomSeed(attributegenerator->GetRandomSeed());
 
 					if (TaskProgression::IsInterruptionRequested())
@@ -981,10 +981,10 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 						if (ndTreeSingleton.Lookup(key) == NULL and dttree->GetTreeDepth() > 2)
 						{
 							// choix du nom de la variables
-							svariablename = kwcUpdatedClass->BuildAttributeName(
+							sVariableName = kwcUpdatedClass->BuildAttributeName(
 							    "Tree_" +
 							    ALString(IntToString(attributegenerator->GetIndex() + 1)));
-							attribute = reportTreeSpec->BuildAttribute(svariablename);
+							attribute = reportTreeSpec->BuildAttribute(sVariableName);
 							ndTreeSingleton.SetAt(key, attribute);
 							SetConstructedAttributeCost(
 							    attribute, reportTreeSpec->GetConstructionCost() +
@@ -993,15 +993,15 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 							oaCreatedAttributes.Add(attribute);
 							if (shared_learningSpec.GetLearningSpec()
 								->GetTargetAttributeType() == KWType::Symbol)
-								oatupletable.Add(BuildTupleTableForClassification(
-								    dttree, svariablename));
+								oaTupleTable.Add(BuildTupleTableForClassification(
+								    dttree, sVariableName));
 							else
-								oatupletable.Add(BuildTupleTableForRegression(
+								oaTupleTable.Add(BuildTupleTableForRegression(
 								    shared_learningSpec.GetLearningSpec(), dttree,
-								    svariablename));
+								    sVariableName));
 
 							// Insertion dans le rapport de creation
-							reportTreeSpec->SetTreeVariableName(svariablename);
+							reportTreeSpec->SetTreeVariableName(sVariableName);
 
 							output_oaDecisionTreeSpecs->GetObjectArray()->Add(
 							    reportTreeSpec);
@@ -1015,7 +1015,7 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 					// netoyage de l'arbre courant
 					delete dttree;
 					dttree = NULL;
-					SetRandomSeed(oldseedtree);
+					SetRandomSeed(nOldSeedTree);
 				}
 				oaInputAttributeStats->DeleteAll();
 				delete oaInputAttributeStats;
@@ -1057,7 +1057,7 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 				TaskProgression::DisplayProgression(50 + ((nAttribute + 1) * 50) /
 									     oaCreatedAttributes.GetSize());
 
-				ttattribut = cast(KWTupleTable*, oatupletable.GetAt(nAttribute));
+				ttattribut = cast(KWTupleTable*, oaTupleTable.GetAt(nAttribute));
 
 				// Creation et initialisation d'un objet de stats pour l'attribut
 				attributeStats = new KWAttributeStats();
@@ -1089,7 +1089,7 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 						}
 					}
 					// ajout des attributs de level zero a nettoyer
-					oaZeroLevelAttributs.Add(oaCreatedAttributes.GetAt(nAttribute));
+					oaZeroLevelAttributes.Add(oaCreatedAttributes.GetAt(nAttribute));
 					// supression de attributeStats de la variable de level zero
 					delete attributeStats;
 				}
@@ -1098,17 +1098,17 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 			}
 
 			// netoyage des attributs de level zero
-			if (oaZeroLevelAttributs.GetSize() > 0)
+			if (oaZeroLevelAttributes.GetSize() > 0)
 			{
-				for (nAttribute = 0; nAttribute < oaZeroLevelAttributs.GetSize(); nAttribute++)
+				for (nAttribute = 0; nAttribute < oaZeroLevelAttributes.GetSize(); nAttribute++)
 				{
-					createdAttribute = cast(KWAttribute*, oaZeroLevelAttributs.GetAt(nAttribute));
+					createdAttribute = cast(KWAttribute*, oaZeroLevelAttributes.GetAt(nAttribute));
 					kwcUpdatedClass->DeleteAttribute(createdAttribute->GetName());
 				}
 				kwcUpdatedClass->Compile();
 			}
 
-			oatupletable.DeleteAll();
+			oaTupleTable.DeleteAll();
 
 			// On repasse tous les attributs de la classe en loaded
 			kwcUpdatedClass->SetAllAttributesLoaded(true);
@@ -1138,7 +1138,7 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 			kwcUpdatedClass->Compile();
 		}
 		oaCreatedAttributes.SetSize(0);
-		oatupletable.DeleteAll();
+		oaTupleTable.DeleteAll();
 	}
 
 	// Trace
@@ -1266,23 +1266,23 @@ void DTDecisionTreeCreationTask::ComputeTaskInputs()
 	    masterDataTableSliceSet->GetChunkInstanceNumbers());
 
 	forestattributeselection->Initialization(odMasterInputAttributeStats);
-	BuildForestAttributeSelections(*forestattributeselection, nMaxCreatedAttributeNumber);
+	BuildForestAttributeSelections(forestattributeselection, nMaxCreatedAttributeNumber);
 	oaInputAttributeSelectionStats.CopyFrom(forestattributeselection->GetAttributeSelections());
 }
 
-void DTDecisionTreeCreationTask::BuildForestAttributeSelections(DTForestAttributeSelection& forestAttributeSelection,
-								int nmaxCreatedAttributeNumber)
+void DTDecisionTreeCreationTask::BuildForestAttributeSelections(DTForestAttributeSelection* forestAttributeSelection,
+								int nMaxAttributeNumber)
 {
 	// calcul du nbre d'attributs potentiellement utilisables dans l'arbre (on retire 1 pour l'attribut cible)
-	forestAttributeSelection.SetRandomSeed(
+	forestAttributeSelection->SetRandomSeed(
 	    1968 + this->input_forestParameter->GetForestParameter()
 		       ->GetRandomSeed()); // pour rendre les resultats modifiables selon la seed
 	if (randomForestParameter.GetTreesVariablesSelection() == DTGlobalTag::RANK_WITH_REPLACEMENT_LABEL)
-		forestAttributeSelection.BuildForestSelections(nmaxCreatedAttributeNumber,
-							       randomForestParameter.GetVariableNumberMin());
+		forestAttributeSelection->BuildForestSelections(nMaxAttributeNumber,
+								randomForestParameter.GetVariableNumberMin());
 	else
-		forestAttributeSelection.BuildForestUniformSelections(
-		    nmaxCreatedAttributeNumber, randomForestParameter.GetTreesVariablesSelection(),
+		forestAttributeSelection->BuildForestUniformSelections(
+		    nMaxAttributeNumber, randomForestParameter.GetTreesVariablesSelection(),
 		    randomForestParameter.GetAttributePercentage());
 
 	nMasterForestMaxAttributesSelectionNumber = forestattributeselection->GetMaxAttributesNumber();
@@ -1454,7 +1454,7 @@ void DTDecisionTreeCreationTask::InitializeMemoryEstimations()
 	}
 }
 
-int DTDecisionTreeCreationTask::ComputeOneSlaveMaxLoadableAttributeNumber(const int lGrantedlavesNumber,
+int DTDecisionTreeCreationTask::ComputeOneSlaveMaxLoadableAttributeNumber(const int nGrantedSlavesNumber,
 									  const longint lGrantedMinSlaveMemory)
 {
 	// Calcul du nombre max d'attributs pour 1 esclave, compte tenu de ce qui a ete alloue par la librairie
@@ -1468,7 +1468,7 @@ int DTDecisionTreeCreationTask::ComputeOneSlaveMaxLoadableAttributeNumber(const 
 	assert(lMasterTreeWorkingMemory > 0);
 	assert(lMasterOneAttributeValueMemory > 0);
 	assert(nMasterForestMaxAttributesSelectionNumber > 0);
-	assert(lGrantedlavesNumber > 0);
+	assert(nGrantedSlavesNumber > 0);
 
 	//  en termes de taille memoire, 1 attribut chargeable sur 1 esclave correspond a l'addition de :
 	// 	- la taille memoire mediane d'un KWAttributeStats (lMasterMedianStatMemory)
@@ -1495,7 +1495,7 @@ int DTDecisionTreeCreationTask::ComputeOneSlaveMaxLoadableAttributeNumber(const 
 		sMessage +=
 		    "\t\tlGranted Min Slave mem = " + ALString(LongintToHumanReadableString(lGrantedMinSlaveMemory)) +
 		    "\n";
-		sMessage += "\t\tlGranted Slaves number = " + ALString(LongintToString(lGrantedlavesNumber)) + "\n";
+		sMessage += "\t\tlGranted Slaves number = " + ALString(LongintToString(nGrantedSlavesNumber)) + "\n";
 		sMessage +=
 		    "\t\tMedian stats mem = " + ALString(LongintToHumanReadableString(lMasterMedianStatMemory)) + "\n";
 		sMessage +=
@@ -1630,15 +1630,15 @@ void DTDecisionTreeCreationTask::BuildAttributeSelectionsSlices(const ObjectArra
 	oaRemainingAttributesSelections.SetCompareFunction(DTAttributeSelectionCompareAttributesNumber);
 	oaRemainingAttributesSelections.Sort();
 
-	int nbSlavesToFill = 0;
+	int nSlavesToFill = 0;
 
-	while ((nbSlavesToFill = ComputeSlavesNumberToFill(&oaRemainingAttributesSelections, nGrantedSlaveNumber)) > 0)
+	while ((nSlavesToFill = ComputeSlavesNumberToFill(&oaRemainingAttributesSelections, nGrantedSlaveNumber)) > 0)
 	{
 		// on cree autant de groupes de selections d'attributs, qu'il y a d'esclaves a remplir lors de cette
 		// iteration
 		ObjectArray oaIterationaAttributeSelectionsSlices;
 
-		for (int i = 0; i < nbSlavesToFill; i++)
+		for (int i = 0; i < nSlavesToFill; i++)
 		{
 			attributeSelectionSlices = new DTAttributeSelectionsSlices;
 			oaIterationaAttributeSelectionsSlices.Add(attributeSelectionSlices);
@@ -1716,12 +1716,12 @@ int DTDecisionTreeCreationTask::ComputeSlavesNumberToFill(const ObjectArray* oaR
 	if (oaRemainingAttributesSelections->GetSize() < 2)
 		return oaRemainingAttributesSelections->GetSize();
 
-	int maxSelectionsNumber = oaRemainingAttributesSelections->GetSize() / 2;
+	int nMaxSelectionsNumber = oaRemainingAttributesSelections->GetSize() / 2;
 
-	if (maxSelectionsNumber > nGrantedSlaveNumber)
+	if (nMaxSelectionsNumber > nGrantedSlaveNumber)
 		return nGrantedSlaveNumber;
 	else
-		return maxSelectionsNumber;
+		return nMaxSelectionsNumber;
 }
 
 // *************************************************************************************************************************
@@ -1954,7 +1954,7 @@ boolean DTDecisionTreeCreationTask::ComputeTree(KWLearningSpec* learningSpec, DT
 }
 
 KWTupleTable* DTDecisionTreeCreationTask::BuildTupleTableForClassification(DTDecisionTree* dttree,
-									   const ALString& svariablename) const
+									   const ALString& sVariableName) const
 {
 	// KWAttributeStats * attributeStats;
 	KWTupleTable* univariateTupleTable;
@@ -1969,7 +1969,7 @@ KWTupleTable* DTDecisionTreeCreationTask::BuildTupleTableForClassification(DTDec
 	univariateTupleTable = new KWTupleTable;
 
 	// Initialisation de la structure de la table de tuples
-	univariateTupleTable->AddAttribute(svariablename, KWType::Symbol);
+	univariateTupleTable->AddAttribute(sVariableName, KWType::Symbol);
 	univariateTupleTable->AddAttribute(dttree->GetTargetAttributeName(), KWType::Symbol);
 
 	// Preparation de la table au mode edition
@@ -1998,9 +1998,8 @@ KWTupleTable* DTDecisionTreeCreationTask::BuildTupleTableForClassification(DTDec
 			{
 				DTDecisionTree::TargetModalityCount* tmcEvent =
 				    cast(DTDecisionTree::TargetModalityCount*, o);
-				nEvent = tmcEvent->iCount;
-				// cout << "noeud : " << dtnode->GetNodeIdentifier() << " , class : " <<
-				// dttree->GetReferenceTargetModalities()->GetAt(i) << " , Freq : " << nEvent << endl;
+				nEvent = tmcEvent->nCount;
+
 				inputTuple = univariateTupleTable->GetInputTuple();
 				inputTuple->SetSymbolAt(0, Symbol(dtnode->GetNodeIdentifier()));
 				inputTuple->SetSymbolAt(1, dttree->GetReferenceTargetModalities()->GetAt(i));
@@ -2020,7 +2019,7 @@ KWTupleTable* DTDecisionTreeCreationTask::BuildTupleTableForClassification(DTDec
 
 KWTupleTable* DTDecisionTreeCreationTask::BuildTupleTableForRegression(const KWLearningSpec* learningSpec,
 								       DTDecisionTree* dttree,
-								       const ALString& svariablename) const
+								       const ALString& sVariableName) const
 {
 	// KWAttributeStats * attributeStats;
 	KWTupleTable* tupleTable;
@@ -2035,7 +2034,7 @@ KWTupleTable* DTDecisionTreeCreationTask::BuildTupleTableForRegression(const KWL
 	tupleTable = new KWTupleTable;
 
 	// Initialisation de la structure de la table de tuples
-	tupleTable->AddAttribute(svariablename, KWType::Symbol); // ajout de l'attribut Tree_xxx
+	tupleTable->AddAttribute(sVariableName, KWType::Symbol); // ajout de l'attribut Tree_xxx
 	tupleTable->AddAttribute(learningSpec->GetTargetAttributeName(), KWType::Continuous);
 
 	// Preparation de la table au mode edition
@@ -2088,28 +2087,28 @@ void DTDecisionTreeCreationTask::UnloadNonInformativeAttributes(KWClass* kwclass
 
 void DTDecisionTreeCreationTask::UnloadLessInformativeAttribute(KWClass* kwclass,
 								ObjectDictionary* odInputAttributeStats,
-								int nloadattribut)
+								int nLoadedAttributeNumber)
 {
 	KWAttribute* attribute;
 	KWAttributeStats* attributeStats;
-	int nattribute;
-	ObjectArray oasorstat;
+	int nAttribute;
+	ObjectArray oaSortedStat;
 	require(odInputAttributeStats != NULL);
 	require(odInputAttributeStats->GetCount() > 0);
-	require(nloadattribut >= 0);
+	require(nLoadedAttributeNumber >= 0);
 
-	if (nloadattribut < odInputAttributeStats->GetCount())
+	if (nLoadedAttributeNumber < odInputAttributeStats->GetCount())
 	{
-		odInputAttributeStats->ExportObjectArray(&oasorstat);
+		odInputAttributeStats->ExportObjectArray(&oaSortedStat);
 
 		// trie pour garantir les memes resultas en parallele
 
-		oasorstat.SetCompareFunction(DTDecisionTreeNodeCompare);
-		oasorstat.Sort();
+		oaSortedStat.SetCompareFunction(DTDecisionTreeNodeCompare);
+		oaSortedStat.Sort();
 
-		for (nattribute = nloadattribut; nattribute < oasorstat.GetSize(); nattribute++)
+		for (nAttribute = nLoadedAttributeNumber; nAttribute < oaSortedStat.GetSize(); nAttribute++)
 		{
-			attributeStats = cast(KWAttributeStats*, oasorstat.GetAt(nattribute));
+			attributeStats = cast(KWAttributeStats*, oaSortedStat.GetAt(nAttribute));
 
 			attribute = kwclass->LookupAttribute(attributeStats->GetAttributeName());
 			attribute->SetLoaded(false);
@@ -2158,7 +2157,7 @@ void DTDecisionTreeCreationTask::LoadOnlyMostInformativeAttributes(KWClass* kwcC
 	KWAttributeStats* attributeStats;
 	int nAttribute;
 	ObjectArray oaSortedAttributeStats;
-	int nLoadedAttibuteNumber;
+	int nLoadedAttributeNumber;
 
 	require(kwcClass != NULL);
 	require(odInputAttributeStats != NULL);
@@ -2179,8 +2178,8 @@ void DTDecisionTreeCreationTask::LoadOnlyMostInformativeAttributes(KWClass* kwcC
 	}
 
 	// Parametrage des attributs a charger
-	nLoadedAttibuteNumber = min(nMaxAttributeNumber, oaSortedAttributeStats.GetSize());
-	for (nAttribute = 0; nAttribute < nLoadedAttibuteNumber; nAttribute++)
+	nLoadedAttributeNumber = min(nMaxAttributeNumber, oaSortedAttributeStats.GetSize());
+	for (nAttribute = 0; nAttribute < nLoadedAttributeNumber; nAttribute++)
 	{
 		attributeStats = cast(KWAttributeStats*, oaSortedAttributeStats.GetAt(nAttribute));
 
@@ -2479,13 +2478,13 @@ SymbolVector* DTDecisionTreeCreationTask::MODLDiscretizeContinuousTarget(KWTuple
 	Continuous cValue;
 	ALString s;
 	KWDGSAttributeDiscretization* attribute;
-	int oldseed;
+	int nOldSeed;
 
 	require(cvInput.GetSize() > 0);
 	require(targetStat != NULL);
 
 	//initialisation de random seed 2001 + index de l'arbre
-	oldseed = GetRandomSeed();
+	nOldSeed = GetRandomSeed();
 	SetRandomSeed(2001 + nSplitIndex);
 
 	require(nMaxIntervalsNumber >= 2);
@@ -2605,7 +2604,7 @@ SymbolVector* DTDecisionTreeCreationTask::MODLDiscretizeContinuousTarget(KWTuple
 		targetStat->SetUnivariateCellFrequencyAt(nInterval, ivFrequencyIntervals.GetAt(nInterval));
 
 	// restitution de l'etat initial :
-	SetRandomSeed(oldseed);
+	SetRandomSeed(nOldSeed);
 
 	return svTargetValues;
 }

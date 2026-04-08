@@ -14,6 +14,9 @@ class PLShared_AttributeSelectionsSlices;
 
 /////////////////////////////////////////////////////////////////////
 // Classe DTForestAttributeSelection
+// Gere l'ensemble des selections de variables pour les arbres d'une foret.
+// Chaque arbre utilise une selection differente, tiree aleatoirement soit
+// de facon uniforme soit proportionnellement aux levels des variables.
 class DTForestAttributeSelection : public Object
 {
 public:
@@ -21,42 +24,31 @@ public:
 	DTForestAttributeSelection();
 	~DTForestAttributeSelection();
 
-	// entree : tableau de KWAttributeStats
-	// Ensemble des attributs pour faire les selections
-
+	// Initialisation a partir d'un dictionnaire de KWAttributeStats
 	virtual void Initialization(const ObjectDictionary* odInputAttributeStats);
 
+	// Construit nMaxSelectionNumber selections, chacune avec au moins nvariableNumberMin variables
 	void BuildForestSelections(int nMaxSelectionNumber, int nvariableNumberMin);
 
-	// selection de variable des arbres selon leur type et le pct de varible a selectionner
-	//  type 0 : Uniforme et racine
-	//  type 1 : Uniforme et DTGlobalTag::RF_OPTIMIZATION_RANDOM_VARIABLES
-	//  type 2 : level et racine
-	//  type 3 : node tous
-
+	// Construit des selections uniformes selon le type de selection et le pourcentage de variables a retenir
+	// Type de selection disponibles :
+	//   type 0 : Uniforme et racine
+	//   type 1 : Uniforme et selection aleatoire par noeud
+	//   type 2 : Pondere par level et racine
+	//   type 3 : Tous les noeuds
 	void BuildForestUniformSelections(int nmaxselectionnumber, const ALString& sSelectionType, double dPct);
 
+	// Nombre maximum d'attributs selectionnables
 	int GetMaxAttributesNumber();
 
-	// virtual ObjectArray* NextSelection();
-
+	// Type de tirage effectue (uniforme, par level, etc.)
 	const ALString& GetDrawingType() const;
 	void SetDrawingType(const ALString& sdrawingtype);
-	// Test l'informativite des variables, et set unload, et unused les attributs non informatif de la BDD
-	// void UnSelectNonInformativeAttributes();
 
-	// Charge la bdd en memoire , avec le maximum d'attributs possible
-	// int	ComputeMaxLoadableAttributesNumber (const PredictorType &);
+	// Nombre d'attributs utilisables pour la selection a la position npos
 	int GetUsableAttributesNumber(int npos);
-	// Retourne un vecteur de taille nloadedAttribute, contenant les attributs ordonnes de maniere aleatoire
-	// ObjectArray* CreateAttributesShuffled(const int nloadedAttributes, bool renew);
 
-	// tirage des variables selon leur valeur de level, en fonction des levels du classStats de l'instance
-	// ObjectArray* GetAttributesFromLevels(const int maxAttributesNumber);
-
-	// ObjectArray* GetAttributesShuffled(const int nMaxAttributesNumber, bool renew);
-
-	// envovie la liste des varariables selectionnees dans toutes les listes
+	// Acces aux selections generees
 	StringVector* GetAllSelectedAttributes();
 	int GetSelectionNumber();
 	StringVector* GetSelectedAttributesAt(int npos);
@@ -75,8 +67,16 @@ protected:
 	void CleanAll();
 
 	// tirage des variables selon leur valeur de level, en fonction des levels passes en parametre
-	static ObjectArray* GetAttributesFromLevels(const int nMaxAttributesNumber, DoubleVector& vLevels,
-						    ObjectArray& oaListAttributes);
+	// Repris de l'algo de Weighted Random Sampling with a reservoir Information Processing Letters 97(2006) 181-185
+	// Pavlos S. Efraimidis, Paul G. Spirakis Interet : en une passe, directement parallelisable, utilise les poids
+	// non normalises, Complexite en O(K*log(Ks)) on pourrait potentiellement avoir une infinite de variables car on
+	// maintient uniquement les Ks meilleures cles Dans l'article une version avec "reservoir sampling" est presente
+	// egalement qui permet de selectionner dans un flux de variables Implementation :
+	// - pour chaque variable, on tire u_k aleatoirement dans [0,1] et on calcule la cle c_k=u_k^(1/poids_k)
+	// - on stocke les Ks meilleures cles dans une Sorted List
+	// - a la fin on selectionne les indices de ces Ks meilleurs cles
+	static ObjectArray* GetAttributesFromLevels(const int nMaxAttributesNumber, const DoubleVector* dvLevels,
+						    const ObjectArray* oaListAttributes);
 
 	// seed de generation des selections de variable
 	int nRandomSeed;

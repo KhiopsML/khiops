@@ -52,8 +52,8 @@ public:
 	// en sortie : cree des DTAttributeSelections, qui seront stockes dans le forestAttributeSelection passe en
 	// parametre
 
-	void BuildForestAttributeSelections(DTForestAttributeSelection& forestAttributeSelection,
-					    int nMaxCreatedAttributeNumber);
+	void BuildForestAttributeSelections(DTForestAttributeSelection* forestAttributeSelection,
+					    int nMaxAttributeNumber);
 
 	// Renvoie un rapport de creation dediee aux arbres construits
 	KWLearningReport* GetCreationReport() override;
@@ -66,12 +66,12 @@ public:
 	ObjectArray* BuildRootAttributeStats(KWLearningSpec* learningSpec, DTBaseLoader* blOrigine,
 					     ObjectDictionary* odInputAttributeStats);
 
-	KWTupleTable* BuildTupleTableForClassification(DTDecisionTree* dttree, const ALString& svariablename) const;
+	KWTupleTable* BuildTupleTableForClassification(DTDecisionTree* dttree, const ALString& sVariableName) const;
 	KWTupleTable* BuildTupleTableForRegression(const KWLearningSpec* learningSpec, DTDecisionTree* dttree,
-						   const ALString& svariablename) const;
+						   const ALString& sVariableName) const;
 
 	// Calcul du nombre max d'attributs DecisionTree que l'on peut construire dans la memoire allouee a 1 esclave
-	int ComputeOneSlaveMaxLoadableAttributeNumber(const int lGrantedlavesNumber,
+	int ComputeOneSlaveMaxLoadableAttributeNumber(const int nGrantedSlavesNumber,
 						      const longint lGrantedMinSlaveMemory);
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -82,12 +82,12 @@ protected:
 					   ObjectArray* oaObjects, ObjectArray* oaInputAttributeStats,
 					   DTAttributeSelection* attgenerator);
 
-	// filtre pour un KWCLASS les attributs ayant un level=0
+	// Filtrage pour un KWClass les attributs ayant un level=0
 	void UnloadNonInformativeAttributes(KWClass* kwclass, ObjectDictionary* odInputAttributeStats);
 
-	// filtre pour un KWCLASS les attributs les moins informatif
+	// Filtrage pour un KWClass les attributs les moins informatifs
 	void UnloadLessInformativeAttribute(KWClass* kwclass, ObjectDictionary* odInputAttributeStats,
-					    int nloadattribut);
+					    int nLoadedAttributeNumber);
 
 	// Filtre pour ne charger que les attributs les plus informatifs, tous les autres passant en unload
 	// Necessaire pour utiliser correctment un slice set

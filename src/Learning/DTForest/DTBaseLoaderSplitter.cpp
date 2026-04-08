@@ -85,8 +85,6 @@ boolean DTBaseLoaderSplitter::CreateDaughterBaseloaderFromSplitAttribute(KWAttri
 	{
 		// a partir de learningEnv v8, les attributs a level nul ne sont plus prepares. Le seul attribut prepare
 		// correspond ici a l'attribut cible
-		// NVDELL AddWarning("CreateDaughterDatabasesFromSplitAttribute :
-		// GetPreparedDataGridStats()->GetAttributeNumber() == 1");
 		return true;
 	}
 

@@ -74,5 +74,5 @@ protected:
 
 	KWAttributeStats* GetAttributeStats(const ALString sVariableName, const ObjectArray* oaAttributesStats) const;
 	void WriteJSONSonNodes(JSONFile* fJSON, DTDecisionTreeNodeSpec* treeNodeSpec,
-			       const ObjectArray& leavesNodes) const;
+			       const ObjectArray* oaLeavesNodes) const;
 };

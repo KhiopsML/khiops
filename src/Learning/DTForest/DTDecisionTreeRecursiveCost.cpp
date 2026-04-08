@@ -178,7 +178,6 @@ double DTDecisionTreeRecursiveCost::ComputeInternalNodeCost(DTDecisionTreeNode* 
 	{
 		// a partir de learningEnv v8, les attributs a level nul ne sont plus prepares. Le seul attribut prepare
 		// correspond ici a l'attribut cible
-		// NVDELL AddWarning("ComputeInternalNodeCost : GetPreparedDataGridStats()->GetAttributeNumber() == 1");
 		return dInternalCost;
 	}
 
@@ -253,7 +252,7 @@ double DTDecisionTreeRecursiveCost::ComputeLeafCost(DTDecisionTreeNode* node)
 	{
 		node->GetTargetModalitiesCountTrain()->GetNextAssoc(position, key, obj);
 		DTDecisionTree::TargetModalityCount* tmc = cast(DTDecisionTree::TargetModalityCount*, obj);
-		nEvent = tmc->iCount;
+		nEvent = tmc->nCount;
 		dLeafCost -= KWStat::LnFactorial(nEvent);
 		nIntervalEventNumber += nEvent;
 	}

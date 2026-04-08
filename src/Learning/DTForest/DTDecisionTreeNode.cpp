@@ -274,8 +274,6 @@ void DTDecisionTreeNode::SetUpAttributeAndHypotheticalSons(KWAttributeStats* att
 	{
 		// a partir de learningEnv v8, les attributs a level nul ne sont plus prepares. Le seul attribut prepare
 		// correspond ici a l'attribut cible
-		// NVDELL AddWarning("SetUpAttributeAndHypotheticalSons :
-		// GetPreparedDataGridStats()->GetAttributeNumber() == 1");
 		return;
 	}
 
@@ -325,11 +323,11 @@ void DTDecisionTreeNode::SetUpAttributeAndHypotheticalSons(KWAttributeStats* att
 
 			DTDecisionTree::TargetModalityCount* tmc = cast(DTDecisionTree::TargetModalityCount*, obj);
 
-			nTotalSize += tmc->iCount;
+			nTotalSize += tmc->nCount;
 
 			// Mise a jour de l'effectif max
-			if (tmc->iCount > nMajoritarySize)
-				nMajoritarySize = tmc->iCount;
+			if (tmc->nCount > nMajoritarySize)
+				nMajoritarySize = tmc->nCount;
 		}
 		// Initialisation de la purete du noeud
 		// definie comme le ratio nombre d'individus de la classe majoritaire / nbre d'individus du noeud
@@ -370,10 +368,8 @@ DTDecisionTreeNode::ComputeSonNodeTargetModalitiesCount(int nSonIndex,
 
 		if (splitAttributeStats->GetPreparedDataGridStats()->GetAttributeNumber() == 1)
 		{
-			// a partir de learningEnv v8, les attributs a level nul ne sont plus prepares. Le seul attribut
-			// prepare correspond ici a l'attribut cible
-			// NVDELL AddWarning("ComputeSonNodeTargetModalitiesCountOutOfBag :
-			// GetPreparedDataGridStats()->GetAttributeNumber() == 1");
+			// a partir de learningEnv v8, les attributs a level nul ne sont plus prepares. Le seul attribut prepare
+			// correspond ici a l'attribut cible
 			continue;
 		}
 		// Extraction de l'indice de la modalite courante de l'assertion de reference de l'arbre dans
@@ -393,7 +389,7 @@ DTDecisionTreeNode::ComputeSonNodeTargetModalitiesCount(int nSonIndex,
 		// Affectation de l'effectif de la modalite cible
 		DTDecisionTree::TargetModalityCount* sonTmc = new DTDecisionTree::TargetModalityCount;
 		sonTmc->sModality = tmc->sModality;
-		sonTmc->iCount = nSize;
+		sonTmc->nCount = nSize;
 		sonTargetModalitiesCount->SetAt(sonTmc->sModality.GetNumericKey(), sonTmc);
 	}
 
@@ -566,23 +562,6 @@ void DTDecisionTreeNode::CopyWithPruningSons(DTDecisionTreeNode* node)
 		target->CopyFrom(source);
 		nkdTargetModalitiesCountTrain->SetAt(target->sModality.GetNumericKey(), target);
 	}
-
-	// copier les objets TargetModalitiesCountOutOfBag
-	// if (nkdTargetModalitiesCountOutOfBag != NULL)
-	//	nkdTargetModalitiesCountOutOfBag->DeleteAll();
-	// else
-	//	nkdTargetModalitiesCountOutOfBag = new NumericKeyDictionary;
-
-	// position = node->nkdTargetModalitiesCountOutOfBag->GetStartPosition();
-
-	// while (position != NULL)
-	//{
-	//	node->nkdTargetModalitiesCountOutOfBag->GetNextAssoc(position, key, obj);
-	//	DTDecisionTree::TargetModalityCount* source = cast(DTDecisionTree::TargetModalityCount*, obj);
-	//	DTDecisionTree::TargetModalityCount* target = new DTDecisionTree::TargetModalityCount;
-	//	target->CopyFrom(source);
-	//	nkdTargetModalitiesCountOutOfBag->SetAt(target->sModality.GetNumericKey(), target);
-	// }
 }
 
 void DTDecisionTreeNode::WriteReport(ostream& ost) const
@@ -692,13 +671,10 @@ void DTDecisionTreeNode::WriteLineReport(ostream& ost, const DTDecisionTree* tre
 	ost << KWContinuous::ContinuousToString(GetSortValue()) << "\t"
 	    << KWContinuous::ContinuousToString(1.0 - GetCostValue() / tree->GetRootNode()->GetCostValue()) << "\t"
 	    << IntToString(GetDepth())
-	    // NV V9		<< "\t" << cast(KWDescriptiveSymbolStats*,
-	    // GetNodeClassStats()->GetTargetDescriptiveStats())->GetMode()
+
 	    << "\t" << IntToString(GetObjectNumber()) << "\t"
 	    << KWContinuous::ContinuousToString(GetObjectNumber() * 1.0 /
 						(1.0 * tree->GetRootNode()->GetObjectNumber()));
-	// NV V9		<< "\t" << KWContinuous::ContinuousToString((Continuous)cast(KWDescriptiveSymbolStats*,
-	// GetNodeClassStats()->GetTargetDescriptiveStats())->GetModeFrequency() / (Continuous)GetObjectNumber());
 
 	// Extraction de la partition cible
 
@@ -715,7 +691,7 @@ void DTDecisionTreeNode::WriteLineReport(ostream& ost, const DTDecisionTree* tre
 			{
 				DTDecisionTree::TargetModalityCount* tmc =
 				    cast(DTDecisionTree::TargetModalityCount*, obj);
-				ost << "\t" << tmc->iCount * 1.0 / (1.0 * GetObjectNumber());
+				ost << "\t" << tmc->nCount * 1.0 / (1.0 * GetObjectNumber());
 			}
 			else
 				ost << "\t" << 0;

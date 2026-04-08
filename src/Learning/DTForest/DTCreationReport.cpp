@@ -160,19 +160,19 @@ void DTCreationReport::WriteJSONTreeReport(JSONFile* fJSON, boolean bSummary) co
 			treeSpec = cast(const DTDecisionTreeSpec*, oaSortedReports.GetAt(i));
 
 			ObjectArray oaLeavesNodes;
-			for (j = 0; j < treeSpec->GetTreeNodes().GetSize(); j++)
+			for (j = 0; j < treeSpec->GetTreeNodes()->GetSize(); j++)
 			{
-				treeNodeSpec = cast(DTDecisionTreeNodeSpec*, treeSpec->GetTreeNodes().GetAt(j));
+				treeNodeSpec = cast(DTDecisionTreeNodeSpec*, treeSpec->GetTreeNodes()->GetAt(j));
 				if (treeNodeSpec->IsLeaf())
 					oaLeavesNodes.Add(treeNodeSpec);
 			}
 
-			treeNodeSpec = cast(DTDecisionTreeNodeSpec*, treeSpec->GetTreeNodes().GetAt(0));
+			treeNodeSpec = cast(DTDecisionTreeNodeSpec*, treeSpec->GetTreeNodes()->GetAt(0));
 			assert(treeNodeSpec->GetFatherNode() == NULL);
 			fJSON->BeginKeyObject(treeSpec->GetRank());
 			treeSpec->WriteJSONArrayFields(fJSON, bSummary);
 			fJSON->BeginKeyObject("treeNodes");
-			WriteJSONSonNodes(fJSON, treeNodeSpec, oaLeavesNodes);
+			WriteJSONSonNodes(fJSON, treeNodeSpec, &oaLeavesNodes);
 			fJSON->EndObject();
 			fJSON->EndObject();
 		}
@@ -181,7 +181,7 @@ void DTCreationReport::WriteJSONTreeReport(JSONFile* fJSON, boolean bSummary) co
 }
 
 void DTCreationReport::WriteJSONSonNodes(JSONFile* fJSON, DTDecisionTreeNodeSpec* treeNodeSpec,
-					 const ObjectArray& oaLeavesNodes) const
+					 const ObjectArray* oaLeavesNodes) const
 {
 	// methode appelee recursivement
 	int nPart;
@@ -223,7 +223,7 @@ void DTCreationReport::WriteJSONSonNodes(JSONFile* fJSON, DTDecisionTreeNodeSpec
 				DTDecisionTree::TargetModalityCount* tmc =
 				    cast(DTDecisionTree::TargetModalityCount*,
 					 treeNodeSpec->GetTargetModalitiesCountTrain()->GetAt(nValue));
-				fJSON->WriteLongint(tmc->iCount);
+				fJSON->WriteLongint(tmc->nCount);
 			}
 			fJSON->EndList();
 			fJSON->EndObject();
@@ -313,13 +313,13 @@ void DTCreationReport::WriteJSONSonNodes(JSONFile* fJSON, DTDecisionTreeNodeSpec
 	{
 		fJSON->BeginKeyArray("childNodes");
 
-		if (treeNodeSpec->GetChildNodes().GetSize())
+		if (treeNodeSpec->GetChildNodes()->GetSize())
 		{
-			for (int iNodeIndex = 0; iNodeIndex < treeNodeSpec->GetChildNodes().GetSize(); iNodeIndex++)
+			for (int iNodeIndex = 0; iNodeIndex < treeNodeSpec->GetChildNodes()->GetSize(); iNodeIndex++)
 			{
 				// Extraction du noeud fils courant
 				DTDecisionTreeNodeSpec* sonNode =
-				    cast(DTDecisionTreeNodeSpec*, treeNodeSpec->GetChildNodes().GetAt(iNodeIndex));
+				    cast(DTDecisionTreeNodeSpec*, treeNodeSpec->GetChildNodes()->GetAt(iNodeIndex));
 				// if (sonNode->GetVariableName() == "")
 				//	continue;
 

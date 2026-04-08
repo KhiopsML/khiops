@@ -9,7 +9,6 @@ class DTMODLGroupingCosts;
 
 #include "KWStat.h"
 #include "KWFrequencyVector.h"
-#include "KWVersion.h"
 #include "KWUnivariatePartitionCost.h"
 
 ////////////////////////////////////////////////////////////////////////////

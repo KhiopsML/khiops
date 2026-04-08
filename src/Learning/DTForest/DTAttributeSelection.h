@@ -5,8 +5,6 @@
 #pragma once
 
 #include "KWDataPreparationClass.h"
-#include "DTGlobalTag.h"
-#include "DTConfig.h"
 
 class DTAttributeSelection;
 class DTTreeAttribute;
@@ -41,6 +39,8 @@ public:
 
 	// Premier attribut de la paire
 	void AddAttribute(DTTreeAttribute* attribute);
+
+	// Acces aux attributs de la selection par position
 	DTTreeAttribute* GetAttributeAt(int npos) const;
 	const ALString& GetAttributeNameAt(int npos) const;
 	int GetSize() const;
@@ -54,19 +54,31 @@ public:
 	DTTreeAttribute* GetFirstBlockAttribute() const;
 	DTTreeAttribute* GetSecondBlockAttribute() const;
 
-	// revoie une liste d attribut aleatoire de taille nMaxAttributesNumber
+	// Renvoie une selection aleatoire de taille <= nMaxAttributesNumber (tirage uniforme)
 	ObjectArray* GetTreeAttributesShuffled(const int nMaxAttributesNumber);
 	ObjectArray* GetAttributesShuffled(const int nMaxAttributesNumber);
-	// revoie la selection des attribut
+
+	// Renvoie le tableau complet de la selection courante
 	const ObjectArray* GetTreeAttributeSelection() const;
 	ObjectArray* GetAttributeSelection() const;
-	// parcourt une liste d'attributs, effectue un tirage aleatoire en fonction du level de ces attributs, et
-	// renvoie les 'nSelectedAttributesNumber' index de chargements des attributs de plus fort level
-	// se base sur les levels des attributs repertories dans le classStats
+
+	// Tirage aleatoire pondere par le level : renvoie au maximum nMaxAttributesNumber attributs
+	// parmi ceux ayant le level le plus eleve, selon l'algorithme de Weighted Random Sampling
+	//
+	// l'algo de Weighted Random Sampling with a reservoir Information Processing Letters 97(2006) 181-185
+	// Pavlos S. Efraimidis, Paul G. Spirakis Interet : en une passe, directement parallelisable, utilise les poids
+	// non normalises, Complexite en O(K*log(Ks)) on pourrait potentiellement avoir une infinite de variables car on
+	// maintient uniquement les Ks meilleures cles Dans l'article une version avec "reservoir sampling" est presente
+	// egalement qui permet de selectionner dans un flux de variables Implementation :
+	// - pour chaque variable, on tire u_k aleatoirement dans [0,1] et on calcule la cle c_k=u_k^(1/poids_k)
+	// - on stocke les Ks meilleures cles dans une Sorted List
+	// - a la fin on selectionne les indices de ces Ks meilleurs cles
 	ObjectArray* GetTreeAttributesFromLevels(const int maxAttributesNumber);
 	ObjectArray* GetAttributesFromLevels(const int maxAttributesNumber);
 
-	static ObjectArray* SortObjectArrayFromContinuous(const int nMaxAttributesNumber, const DoubleVector& vLevels,
+	// Trie un tableau d'attributs par tirage pondere sur les levels fournis et renvoie les nMaxAttributesNumber
+	// meilleurs elements. Algorithme de reservoir pondere (Efraimidis & Spirakis, 2006).
+	static ObjectArray* SortObjectArrayFromContinuous(const int nMaxAttributesNumber, const DoubleVector& dvLevels,
 							  const ObjectArray& oaListAttributes);
 
 	// Comparaison avec une autre selection, vis a vis de leurs blocs

@@ -10,34 +10,46 @@
 #include "Vector.h"
 #include "KWContinuous.h"
 
+// Instance de base de donnees associee a un noeud d'arbre de decision.
+// Encapsule un objet KWObject pour le calcul des effectifs par noeud, le suivi
+// de tirage avec remise (AdaBoost, Out-of-Bag) et la prediction de la cible.
 class DTDecisionTreeDatabaseObject : public Object
 {
 public:
 	DTDecisionTreeDatabaseObject(int id);
 	~DTDecisionTreeDatabaseObject();
 
+	// Identifiant numerique unique de l'instance dans la base
 	int GetId() const;
 
+	// Identifiant du noeud feuille auquel l'instance est actuellement affectee
 	const Symbol& GetNodeIdentifier() const;
 	void SetNodeIdentifier(const Symbol&);
 
+	// Incrementation du compteur de passages de cet objet (tirage avec remise)
 	void IncrementFrequency();
 
+	// Nombre de fois ou cet objet a ete tire (1 en tirage sans remise)
 	int GetFrequency() const;
 	void SetFrequency(int);
 
+	// Poids de l'instance pour le calcul du score de prediction
 	Continuous GetScoreWeight() const;
 	void SetScoreWeight(Continuous);
 
+	// Poids de l'instance pour le tirage pondere (algorithme de boosting)
 	Continuous GetBoostingTreeWeight() const;
 	void SetBoostingTreeWeight(Continuous);
 
+	// Taux d'erreur de l'instance pour l'algorithme AdaBoostBG
 	Continuous GetAdaBoostBGErrorRate() const;
 	void SetAdaBoostBGErrorRate(Continuous);
 
+	// Index de la modalite cible associee a cette instance
 	int GetTargetModalityIndex() const;
 	void SetTargetModalityIndex(int);
 
+	// Indique si la cible a ete correctement predite pour cette instance
 	boolean IsTargetCorrectlyPredicted() const;
 	void SetTargetCorrectlyPredicted(boolean);
 
@@ -54,12 +66,13 @@ public:
 
 protected:
 	// no d'ordre de l'instance en base de donnees
-	int iId;
+	int nId;
 
 	// identifiant du noeud de l'arbre associe a cette instance de base
 	Symbol sNodeIdentifier;
 
-	int iFrequency; // nbre de fois ou le meme KWObject est reference (si tirage avec remise)
+	// nbre de fois ou le meme KWObject est reference (si tirage avec remise)
+	int nFrequency;
 
 	// poids de l'instance dans le calcul du score
 	Continuous cScoreWeight;
@@ -68,10 +81,10 @@ protected:
 	Continuous cBoostingTreeWeight;
 
 	// proba max trouvee, correspondant a une modalite autre que la modalite reelle de l'instance (algo AdaBoostBG)
-
 	Continuous cAdaBoostBGErrorRate;
 
-	int iTargetModalityIndex; // index de la modalite cible
+	// index de la modalite cible
+	int nTargetModalityIndex;
 
 	// la cible a t elle ete correctement predite pour cette instance ?
 	boolean bIsTargetCorrectlyPredicted;
@@ -86,12 +99,12 @@ inline const ContinuousVector* DTDecisionTreeDatabaseObject::GetTrainNodeProbs()
 
 inline int DTDecisionTreeDatabaseObject::GetId() const
 {
-	return iId;
+	return nId;
 }
 
 inline void DTDecisionTreeDatabaseObject::IncrementFrequency()
 {
-	iFrequency++;
+	nFrequency++;
 }
 
 inline void DTDecisionTreeDatabaseObject::SetTargetCorrectlyPredicted(boolean b)
@@ -106,22 +119,22 @@ inline boolean DTDecisionTreeDatabaseObject::IsTargetCorrectlyPredicted() const
 
 inline void DTDecisionTreeDatabaseObject::SetFrequency(int i)
 {
-	iFrequency = i;
+	nFrequency = i;
 }
 
 inline int DTDecisionTreeDatabaseObject::GetFrequency() const
 {
-	return iFrequency;
+	return nFrequency;
 }
 
 inline void DTDecisionTreeDatabaseObject::SetTargetModalityIndex(int i)
 {
-	iTargetModalityIndex = i;
+	nTargetModalityIndex = i;
 }
 
 inline int DTDecisionTreeDatabaseObject::GetTargetModalityIndex() const
 {
-	return iTargetModalityIndex;
+	return nTargetModalityIndex;
 }
 
 inline Continuous DTDecisionTreeDatabaseObject::GetScoreWeight() const
