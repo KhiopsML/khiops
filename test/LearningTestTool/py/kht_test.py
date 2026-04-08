@@ -48,11 +48,24 @@ def build_tool_exe_path(tool_binaries_dir, tool_name, use_khiops_env):
     # Determination du chemin vers l'executable et du nombre de processus
     # a partir des variables d'environnement positionnees par le script khiops_env
     if use_khiops_env:
-        results.process_number = int(os.environ["KHIOPS_PROC_NUMBER"])
+        try:
+            results.process_number = int(os.environ["KHIOPS_PROC_NUMBER"])
+        except (KeyError, ValueError) as exception:
+            # valeur par defaut indiquant que le nombre de processus n'est pas defini, il est calcule automatiquement par openmpi
+            results.process_number = kht.NO_PROCESS_NUMBER
         if tool_name == kht.KHIOPS:
             tool_exe_path = os.environ["KHIOPS_PATH"]
         elif tool_name == kht.COCLUSTERING:
             tool_exe_path = os.environ["KHIOPS_COCLUSTERING_PATH"]
+        elif tool_name == kht.KNI:
+            # cas particulier de KNITransfer, qui n'est pas positionne dans une variable d'environnement dans khiops_env,
+            # mais dont le chemin est deduit du chemin de KHIOPS_PATH
+            tool_exe_path = os.path.join(
+                os.path.dirname(os.environ["KHIOPS_PATH"]), kht.TOOL_EXE_NAMES[kht.KNI]
+            )
+            if not os.path.isfile(tool_exe_path):
+                tool_exe_path = None
+                error_message = "Executable for tool name " + tool_name + " not found"
         else:
             error_message = "No exe path can be determined for tool name " + tool_name
         return tool_exe_path, error_message
@@ -258,6 +271,8 @@ def evaluate_tool_on_test_dir(
 
     # Recherche du contexte parallele
     tool_process_number = results.process_number
+    if tool_process_number == kht.NO_PROCESS_NUMBER:
+        tool_process_number = "auto"  # valeur par defaut indiquant que le nombre de processus n'est pas defini, il est calcule automatiquement par openmpi
     if tool_name not in kht.PARALLEL_TOOL_NAMES:
         tool_process_number = 1
 
