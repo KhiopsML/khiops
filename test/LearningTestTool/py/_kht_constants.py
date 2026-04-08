@@ -65,7 +65,7 @@ Liste des suffixes MPI pour les outils pouvant tourner en parallele
 Le binaire parallelisable est pris en priorité sans suffixe, si il n'existe pas on prend
 le binaire avec un suffixe mpi
 """
-TOOL_MPI_SUFFIXES = {"_openmpi", "_mpich"}
+TOOL_MPI_SUFFIXES = {"_openmpi", "_mpich", "_intel"}
 
 """ Dictionnaire des noms des sous-repertoires de LearningTest avec le nom d'outil en cle """
 TOOL_DIR_NAMES = {
@@ -162,3 +162,11 @@ MAX_TIMEOUT = 3600
 
 # Nombre maximum de lancement de test dans le cas d'un depassement du timeout
 MAX_RUN_NUMBER = 3
+
+"""
+Constantes internes
+"""
+# Nombre de processus par defaut quand le nombre de processus n'est pas defini dans les variables d'environnement
+# C'est le cas par exemple avec openmpi, qui calcule automatiquement le nombre de processus a utiliser en fonction du nombre de coeurs disponibles
+# Cetet valeur permet de savoir que le nombre de processus n'est pas defini
+NO_PROCESS_NUMBER = -1
