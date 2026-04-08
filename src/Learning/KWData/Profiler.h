@@ -37,7 +37,7 @@ public:
 	void Stop();
 
 	// Indique si le profiling est en cours
-	boolean IsStarted();
+	boolean IsStarted() const;
 
 	// Collecte des debut et fin de methode, pour actualiser les stats de profiling
 	// Methode sans effet si le profiling n'est pas demarre
@@ -46,12 +46,25 @@ public:
 
 	// Ajout d'une information de type cle-valeur dans la trace, si elle est active
 	void WriteKeyString(const ALString& sKey, const ALString& sValue);
+	void WriteKeyInt(const ALString& sKey, int nValue);
+	void WriteKeyLongint(const ALString& sKey, longint lValue);
+	void WriteKeyDouble(const ALString& sKey, double dValue);
+	void WriteKeyBoolean(const ALString& sKey, boolean bValue);
+
+	// Recherche du nombre de lancement d'une methode donnee pour un profiling en cours
+	int GetMethodStartNumber(const ALString& sMethodName) const;
 
 	// Parametrage avance pour exporter toute la trace de profiling (defaut: false)
 	// Dans ce cas, un fichier de trace complet est ecrit au format json, de nom
 	// egal au fichier de stats profiling, avec un suffix ".json" additionnel
-	void SetTrace(boolean bTrace);
+	void SetTrace(boolean bValue);
 	boolean GetTrace() const;
+
+	// Parametrage avance pour exporter les informations de temps dans la trace de profiling (defaut: true)
+	// Permet de comparer des fichiers de traces en se focalisant uniquement sur la trajectoire
+	// d'optimisation, sans tenir compte des temps d'optimisation, variables d'une execution a l'autre
+	void SetTraceTime(boolean bValue);
+	boolean GetTraceTime() const;
 
 	//////////////////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -77,5 +90,8 @@ protected:
 	JSONFile* fJsonTraceFile;
 
 	// Indique si l'on exporte les traces
-	boolean bIsTrace;
+	boolean bTrace;
+
+	// Indique si l'on exporte le temps dans les trace
+	boolean bTraceTime;
 };

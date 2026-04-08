@@ -6,7 +6,8 @@
 
 Profiler::Profiler()
 {
-	bIsTrace = false;
+	bTrace = false;
+	bTraceTime = true;
 	bIsStarted = false;
 	fJsonTraceFile = NULL;
 }
@@ -30,7 +31,7 @@ void Profiler::Start(const ALString& sFileName)
 	sProfilingStatsFileName = sFileName;
 
 	// Ouverture du fichier de trace
-	if (bIsTrace)
+	if (bTrace)
 	{
 		fJsonTraceFile = new JSONFile;
 		fJsonTraceFile->SetFileName(sFileName + ".json");
@@ -55,7 +56,7 @@ void Profiler::Stop()
 	require(odMethodTimers.GetCount() == svMethodNames.GetSize());
 
 	// Fermeture du fichier de trace
-	if (bIsTrace)
+	if (bTrace)
 	{
 		assert(fJsonTraceFile != NULL);
 		fJsonTraceFile->Close();
@@ -93,7 +94,7 @@ void Profiler::Stop()
 	bIsStarted = false;
 }
 
-boolean Profiler::IsStarted()
+boolean Profiler::IsStarted() const
 {
 	return bIsStarted;
 }
@@ -122,7 +123,7 @@ void Profiler::BeginMethod(const ALString& sMethodName)
 		methodTimer->Start();
 
 		// Ecriture de la trace
-		if (bIsTrace)
+		if (bTrace)
 		{
 			// On suffixe le nom de la methode par le nombre d'appel, d'une part a titre informatif,
 			// d'autre part pour genere un fichier json valide en evitant les cles identiques
@@ -156,7 +157,7 @@ void Profiler::EndMethod(const ALString& sMethodName)
 		methodTimer->Stop();
 
 		// Ecriture de la trace
-		if (bIsTrace)
+		if (bTrace)
 		{
 			// Recherche de l'index de la methode
 			// Une recherche sequentielle est ici suffisante
@@ -178,7 +179,8 @@ void Profiler::EndMethod(const ALString& sMethodName)
 			assert(dMethodLastElapsedTime >= 0);
 
 			// Fermeture de l'objet, en memorisant le temps passe dans la methode
-			fJsonTraceFile->WriteKeyString("time", DoubleToString(dMethodLastElapsedTime));
+			if (bTraceTime)
+				fJsonTraceFile->WriteKeyString("time", DoubleToString(dMethodLastElapsedTime));
 			fJsonTraceFile->EndObject();
 		}
 	}
@@ -193,18 +195,93 @@ void Profiler::WriteKeyString(const ALString& sKey, const ALString& sValue)
 	if (bIsStarted)
 	{
 		// Ecriture de la trace
-		if (bIsTrace)
+		if (bTrace)
 			fJsonTraceFile->WriteKeyString(sKey, sValue);
 	}
 }
 
-void Profiler::SetTrace(boolean bTrace)
+void Profiler::WriteKeyInt(const ALString& sKey, int nValue)
+{
+	require(sKey != "");
+
+	// Methode active uniquement si le profiling est demarre
+	if (bIsStarted)
+	{
+		// Ecriture de la trace
+		if (bTrace)
+			fJsonTraceFile->WriteKeyInt(sKey, nValue);
+	}
+}
+
+void Profiler::WriteKeyLongint(const ALString& sKey, longint lValue)
+{
+	require(sKey != "");
+
+	// Methode active uniquement si le profiling est demarre
+	if (bIsStarted)
+	{
+		// Ecriture de la trace
+		if (bTrace)
+			fJsonTraceFile->WriteKeyLongint(sKey, lValue);
+	}
+}
+
+void Profiler::WriteKeyDouble(const ALString& sKey, double dValue)
+{
+	require(sKey != "");
+
+	// Methode active uniquement si le profiling est demarre
+	if (bIsStarted)
+	{
+		// Ecriture de la trace
+		if (bTrace)
+			fJsonTraceFile->WriteKeyDouble(sKey, dValue);
+	}
+}
+
+void Profiler::WriteKeyBoolean(const ALString& sKey, boolean bValue)
+{
+	require(sKey != "");
+
+	// Methode active uniquement si le profiling est demarre
+	if (bIsStarted)
+	{
+		// Ecriture de la trace
+		if (bTrace)
+			fJsonTraceFile->WriteKeyBoolean(sKey, bValue);
+	}
+}
+
+int Profiler::GetMethodStartNumber(const ALString& sMethodName) const
+{
+	Timer* methodTimer;
+
+	require(bIsStarted);
+	require(sMethodName != "");
+	require(odMethodTimers.Lookup(sMethodName) != NULL);
+
+	methodTimer = cast(Timer*, odMethodTimers.Lookup(sMethodName));
+	return methodTimer->GetStartNumber();
+}
+
+void Profiler::SetTrace(boolean bValue)
 {
 	require(not bIsStarted);
-	bIsTrace = bTrace;
+	bTrace = bValue;
 }
 
 boolean Profiler::GetTrace() const
 {
-	return bIsTrace;
+	return bTrace;
+}
+
+void Profiler::SetTraceTime(boolean bValue)
+{
+	require(not bIsStarted);
+	bTraceTime = bValue;
+}
+
+boolean Profiler::GetTraceTime() const
+{
+	return bTraceTime;
 }
