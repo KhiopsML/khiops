@@ -100,7 +100,6 @@ double DTDecisionTreeCost::ComputeNodeCost(DTDecisionTreeNode* node, DTDecisionT
 
 	require(nClassValueNumber > 0);
 	require(node->GetNodeAttributeStats()->GetSize() > 0);
-	// require(RootNode->GetClassStats()->IsStatsComputed());
 
 	// Initialisation du cout
 	dCost = 0.0;
@@ -133,10 +132,6 @@ double DTDecisionTreeCost::ComputeNodeCost(DTDecisionTreeNode* node, DTDecisionT
 					cout << "treedepth = " << tree->GetTreeDepth() << endl;
 					cout << "treeIN = " << tree->GetInternalNodes()->GetCount() << endl;
 					cout << "treeleaves = " << tree->GetLeaves()->GetCount() << endl;
-					// NVDELL AddWarning("DTDecisionTreeCost::ComputeNodeCost() : found only one
-					// prepared variable (" +
-					// attributeStats->GetPreparedDataGridStats()->GetAttributeAt(0)->GetAttributeName()
-					// + ")");
 					continue;
 				}
 				ivRootStat = new IntVector;
@@ -209,40 +204,20 @@ double DTDecisionTreeCost::ComputeNodeCost(DTDecisionTreeNode* node, DTDecisionT
 						dCost += log((double)(rootNode->GetObjectNumber() + 2.)) +
 							 log(rootNode->GetObjectNumber() + 1.);
 					}
-
-					// Nettoyage du vecteur de bornes
-					// delete cvBounds;
 				}
 
 				// Cas d'un attribut de type Symbol
 				else
 				{
-					// Extraction (par recopie, attention gestion memeoire) du tableau de groupes
-					// oaGroups =
-					// cast(KWDRGrouper*,rootNode->GetAssertion()->GetDerivationRule())->GetGroups();
-
-					// Extraction du nombre d'intervalles de la regle de discretisation Is
-					// nPartNumber = oaGroups->GetSize();
 					attributeStats = NULL;
-					// NV9 cast(KWAttributeStats*,
-					// node->GetNodeAttributeStats()->Lookup(->LookupAttributeStats(sAttributeName));
-
-					// cout << "sAttributeName = " << sAttributeName << endl;
-
-					// assert(attributeStats != NULL);
 
 					ivRootStat = cast(IntVector*, odRootStat.Lookup(sAttributeName));
 
 					if (ivRootStat == NULL)
 					{
-						// AddWarning("attribut " + sAttributeName + " non trouve dans les stats
-						// racine");
 						continue;
 					}
 					dCost += KWStat::LnBell(ivRootStat->GetAt(0), 2);
-
-					// oaGroups->DeleteAll();
-					// delete oaGroups;
 				}
 			}
 			sonNode = fatherNode;
@@ -278,7 +253,7 @@ double DTDecisionTreeCost::ComputeNodeCost(DTDecisionTreeNode* node, DTDecisionT
 		rootNode->GetTargetModalitiesCountTrain()->GetNextAssoc(position, key, obj);
 		DTDecisionTree::TargetModalityCount* tmcRoot = cast(DTDecisionTree::TargetModalityCount*, obj);
 
-		nRootEvent = tmcRoot->iCount;
+		nRootEvent = tmcRoot->nCount;
 		nEvent = 0;
 
 		Object* o = node->GetTargetModalitiesCountTrain()->Lookup(tmcRoot->sModality.GetNumericKey());
@@ -286,7 +261,7 @@ double DTDecisionTreeCost::ComputeNodeCost(DTDecisionTreeNode* node, DTDecisionT
 		if (o != NULL)
 		{
 			DTDecisionTree::TargetModalityCount* tmcEvent = cast(DTDecisionTree::TargetModalityCount*, o);
-			nEvent = tmcEvent->iCount;
+			nEvent = tmcEvent->nCount;
 		}
 
 		dCost -= KWStat::LnFactorial(nEvent);

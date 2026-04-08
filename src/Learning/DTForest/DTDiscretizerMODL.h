@@ -12,7 +12,6 @@ class DTDiscretizerMODL;
 #include "KWUnivariatePartitionCost.h"
 #include "SortedList.h"
 #include "TaskProgression.h"
-#include "DTConfig.h"
 #include "KWQuantileBuilder.h"
 
 //////////////////////////////////////////////////////////////////////////////////

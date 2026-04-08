@@ -112,23 +112,15 @@ DTDecisionTree::~DTDecisionTree()
 	}
 
 	if (rootNodeTrainBaseLoader != NULL)
-	{
-		// NV9 rootNodeTrainDatabase->RemoveAll();
 		delete rootNodeTrainBaseLoader;
-	}
 
 	if (rootNodeOutOfBagBaseLoader != NULL)
-	{
-		// NV9 rootNodeOutOfBagDatabase->RemoveAll();
 		delete rootNodeOutOfBagBaseLoader;
-	}
 
 	if (svReferenceTargetModalities != NULL)
 		delete svReferenceTargetModalities;
 
-	// odCurrentInternalNodes->DeleteAll();
 	delete odCurrentInternalNodes;
-	// odCurrentLeaveNodes->DeleteAll();
 	delete odCurrentLeaveNodes;
 
 	delete odOptimalInternalNodes;
@@ -370,10 +362,6 @@ void DTDecisionTree::Prune()
 {
 	// elaguage des feuilles, lorsque l'elaguage ameliore le cout de l'arbre
 
-	// TaskProgression::BeginTask();
-
-	// TaskProgression::DisplayMainLabel(" Pruning step");
-
 	if (dtPredictorParameter->GetVerboseMode())
 	{
 		AddSimpleMessage("");
@@ -427,8 +415,6 @@ void DTDecisionTree::Prune()
 			{
 				dOptimalCost = dBestDecreasedCost;
 				MemorizeCurrentTreeInOptimalTree();
-				// cout << "optimal cost post pruning " << dOptimalCost << " : leave " <<
-				// odOptimalLeaveNodes->GetCount() << endl;
 			}
 
 			// Le cout de cette etape devient le cout precedent de l'etape suivante
@@ -443,8 +429,6 @@ void DTDecisionTree::Prune()
 				    "\t" + GetDisplayString(dBestDecreasedCost) + GetDisplayString(dOptimalCost) +
 				    GetDisplayString(dTrainingAccuracy) + GetDisplayString(dOutOfBagTrainingAccuracy) +
 				    GetDisplayString(odUsedVariables.GetCount()));
-
-			// TaskProgression::DisplayProgression(99 * nUpStepNumber / nDownStepNumber);
 		}
 	}
 
@@ -452,8 +436,6 @@ void DTDecisionTree::Prune()
 		AddSimpleMessage("");
 
 	assert(Check());
-
-	// TaskProgression::EndTask();
 }
 
 DTDecisionTreeNode* DTDecisionTree::FindBestPrunableInternalNode()
@@ -490,7 +472,7 @@ DTDecisionTreeNode* DTDecisionTree::FindBestPrunableInternalNode()
 	}
 	if (bVerbatim)
 	{
-		if (bestPrunableNode == NULL) // NVDELL
+		if (bestPrunableNode == NULL)
 			cout << "node ID : NULL " << endl;
 		else
 			cout << "node ID : " << bestPrunableNode->GetNodeIdentifier() << endl;
@@ -684,7 +666,7 @@ DTDecisionTreeNodeSplit* DTDecisionTree::ChooseSplitRandomLevel(NumericKeyDictio
 	oaSplitsForStep->SetCompareFunction(DTSplitCompareSortValue);
 	oaSplitsForStep->Sort();
 
-	DoubleVector vLevels;
+	DoubleVector dvLevels;
 	ObjectArray oaListAttributes;
 
 	// repertorier tous les levels et les index de chargement des attributs des coupures selectionnees
@@ -696,19 +678,19 @@ DTDecisionTreeNodeSplit* DTDecisionTree::ChooseSplitRandomLevel(NumericKeyDictio
 
 		if (attribute->GetUsed() and attribute->GetLoaded() and stats->GetLevel() > 0)
 		{
-			vLevels.Add(stats->GetLevel());
+			dvLevels.Add(stats->GetLevel());
 			oaListAttributes.Add(attribute);
 		}
 	}
 
-	if (vLevels.GetSize() == 0)
+	if (dvLevels.GetSize() == 0)
 	{
 		delete oaSplitsForStep;
 		return nodeSplitRandomLevel;
 	}
 
 	ObjectArray* oalistatt = DTAttributeSelection::SortObjectArrayFromContinuous(
-	    1, vLevels, oaListAttributes); // choisir aleatoirement 1 attribut
+	    1, dvLevels, oaListAttributes); // choisir aleatoirement 1 attribut
 
 	if (oalistatt != NULL)
 	{
@@ -820,7 +802,6 @@ boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sF
 	DTDecisionTreeNode* fatherNode;
 	DTDecisionTreeNode* sonNode;
 	DTBaseLoader* blsonNode;
-	// KWAttribute* attribute;
 	KWTupleTable targetTupleTable;
 	ALString sAttributeName;
 	int nSonIndex;
@@ -834,8 +815,6 @@ boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sF
 	if (not fatherNode->CanBecomeInternal())
 		return bOk;
 
-	// NV9
-	// fatherNodeBestAttributeStats->GetTargetDescriptiveStats()->SetLearningSpec(fatherNode->GetNodeLearningSpec());
 	require(fatherNodeBestAttributeStats->GetTargetDescriptiveStats()->GetLearningSpec() != NULL);
 
 	fatherNode->SetSplitAttributeStats(fatherNodeBestAttributeStats);
@@ -984,17 +963,6 @@ boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sF
 			    false); // ce noeud a atteint la profondeur max autorisee pour un arbre, il ne pourra donc
 				    // jamais devenir un noeud interne
 
-		// Attribution du learningSpec identique au learningSpec de travail de son pere
-		// NV9 sonNode->SetLearningSpecCopy(fatherNode->GetNodeLearningSpec());
-		// NV9			sonNode->SetLearningSpec(fatherNode->GetNodeLearningSpec());
-		// NV9 sonNode->GetNodeClassStats()->SetLearningSpec(sonNode->GetNodeLearningSpec());
-		// NV9
-		// sonNode->GetNodeLearningSpec()->GetTargetDescriptiveStats()->SetLearningSpec(sonNode->GetNodeLearningSpec());
-
-		// Affectation de la base partitionnee adequate
-		// NV9
-		// sonNode->GetNodeLearningSpec()->SetDatabase(databaseSplitter->GetTrainDaughterDatabaseAt(nSonIndex));
-
 		// memorisation de la base Train
 		blsonNode = databaseSplitterTrain->GetDaughterBaseloaderAt(nSonIndex);
 		sonNode->SetTrainBaseLoader(blsonNode);
@@ -1013,20 +981,8 @@ boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sF
 		if (dtPredictorParameter->GetNodeVariablesSelection() == DTGlobalTag::RANDOM_LEVEL_LABEL or
 		    dtPredictorParameter->GetNodeVariablesSelection() == DTGlobalTag::RANDOM_UNIFORM_LABEL)
 		{
-			//  Selectionner aleatoirement les variables qui seront utilisees par ce nouveau noeud feuille,
-			//  soit de facon uniforme, soit en fonction du level
-			// ObjectArray	* oalistAttributes = dtPredictorParameter->GetNodeVariablesSelection() ==
-			// DTGlobalTag::RANDOM_LEVEL_LABEL ?
-			//	rootNodeDatabaseLoader.GetAttributesLoadIndexesFromLevels(nUsableAttributesNumber) :
-			//	rootNodeDatabaseLoader.GetAttributesShuffledLoadIndexes(nUsableAttributesNumber, true);
-
+			// Selectionner aleatoirement les variables pour ce noeud, soit de facon uniforme soit en fonction du level
 			sonNode->SetSelectedAttributes(oaSelectedAttributes);
-
-			// cout << endl << endl;
-			// sonNode->Write(cout);
-
-			// if (oalistAttributes != NULL)
-			//	delete oalistAttributes;
 		}
 		else
 			// sinon, on reprend les attributs selectionnes au depart, et valables pour l'arbre entier, quel
@@ -1036,26 +992,15 @@ boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sF
 		// initilisation de
 		sonNode->SetLearningSpec(learningSpec);
 		sonNode->SetNodeLearningSpec(learningSpec);
-		// sonNode->GetTrainBaseLoader()->GetTupleLoader()->SetInputClass(learningSpec);
 		sonNode->GetTrainBaseLoader()->GetTupleLoader()->SetInputDatabaseObjects(
 		    sonNode->GetTrainBaseLoader()->GetDatabaseObjects());
-		// attribute = kwclass->LookupAttribute(attributeStats->GetAttributeName());
-		// attribute->SetLoaded(false);
-		// attribute->SetLoaded(true);
 		sonNode->GetNodeLearningSpec()->GetClass()->Compile();
-		// sonNode->GetTrainBaseLoader()->GetTupleLoader()->LoadUnivariate(learningSpec->GetTargetAttributeName(),
-		// &targetTupleTable);
 		sonNode->GetNodeLearningSpec()->SetCheckTargetAttribute(false);
 		sonNode->GetNodeLearningSpec()->ComputeTargetStats(
 		    sonNode->GetTrainBaseLoader()->GetTupleLoader()->GetInputExtraAttributeTupleTable());
-		// attribute->SetLoaded(false);
 		sonNode->GetNodeLearningSpec()->GetClass()->Compile();
 		targetTupleTable.CleanAll();
 
-		// blsonNode->GetDatabaseObjects()
-		// blsonNode->GetTupleLoader()
-		// sonNode->GetNodeLearningSpec(learningSpec)->ComputeTargetStats(const KWTupleTable* tupleTable)
-		// sonNode->GetNodeLearningSpec()->SetDatabase(databaseSplitter->GetTrainDaughterDatabaseAt(nSonIndex));
 		//  Calcul des statistiques univariees MODL
 		StartTimer(DTTimerTree3);
 		if (TaskProgression::IsInterruptionRequested() or not sonNode->ComputeAttributesStat())
@@ -1093,8 +1038,8 @@ boolean DTDecisionTree::SetUpInternalNode(const double dNewCost, const Symbol sF
 
 			DTDecisionTree::TargetModalityCount* tmc = cast(DTDecisionTree::TargetModalityCount*, obj);
 
-			if (tmc->iCount > nMajoritarySize)
-				nMajoritarySize = tmc->iCount;
+			if (tmc->nCount > nMajoritarySize)
+				nMajoritarySize = tmc->nCount;
 		}
 
 		// Initialisation de la purete du noeud
@@ -1142,12 +1087,9 @@ NumericKeyDictionary* DTDecisionTree::ComputeTargetModalitiesCount(DTBaseLoader*
 
 		const Symbol sInstanceModality = tuple->GetSymbolAt(0);
 
-		// for (int j = 0; j < svReferenceTargetModalities->GetSize(); j++){
-		//	const Symbol sModalityValue = svReferenceTargetModalities->GetAt(j);
-
 		DTDecisionTree::TargetModalityCount* modalityCount = new DTDecisionTree::TargetModalityCount;
 		modalityCount->sModality = sInstanceModality;
-		modalityCount->iCount = tuple->GetFrequency();
+		modalityCount->nCount = tuple->GetFrequency();
 
 		targetModalitiesCount->SetAt(sInstanceModality.GetNumericKey(), modalityCount);
 	}
@@ -1609,25 +1551,6 @@ void DTDecisionTree::InitializeRootNode(const NumericKeyDictionary* randomForest
 		GetRootNode()->SetOutOfBagObjectNumber(0);
 	}
 	// Initialisation du learningSpec de la racine
-	// NV V9 GetRootNode()->SetLearningSpecCopy(GetLearningSpec());
-	// NV V9 GetRootNode()->GetNodeClassStats()->SetLearningSpec(GetRootNode()->GetNodeLearningSpec());
-
-	// NV V9 GetRootNode()->GetNodeLearningSpec()->SetDatabase(GetRootNode()->GetTrainDatabase());
-
-	// Calcul des statistiques univariees MODL pour la racine
-	// NV V9 if (!GetRootNode()->GetNodeClassStats()->IsStatsComputed())
-	{
-		// NV V9 	GetRootNode()->GetNodeClassStats()->SetSelectedAttributes(oaSelectedAttributes);
-		// NV V9 	GetRootNode()->GetNodeClassStats()->ComputeStats();
-		// GetRootNode()->SetLearningSpecCopy(GetRootNode()->GetClassStats()->GetLearningSpec());
-	}
-
-	// NV V9
-	// GetRootNode()->GetNodeLearningSpec()->GetTargetDescriptiveStats()->SetLearningSpec(GetRootNode()->GetLearningSpec());
-
-	// Memorisation de l'attribut de reference des valeurs cibles
-	// KWDGSAttributeSymbolValues * kwdgTargetAttribute = NULL; //NV V9  cast(KWDGSAttributeSymbolValues*,
-	// GetRootNode()->GetNodeClassStats()->GetTargetValueStats()->GetAttributeAt(0));
 	KWTupleTable* targettupletable =
 	    cast(KWTupleTable*, origineBaseLoader->GetTupleLoader()->GetInputExtraAttributeTupleTable());
 	KWTuple* tuple;
@@ -1643,9 +1566,6 @@ void DTDecisionTree::InitializeRootNode(const NumericKeyDictionary* randomForest
 	// database de train
 	UpdateDatabaseObjectsTargetModalities();
 
-	// assert(GetRootNode()->GetClass()->LookupAttribute(GetRootNode()->GetLearningSpec()->GetTargetAttributeName())
-	// != NULL);
-
 	NumericKeyDictionary* targetModalitiesCountTrain =
 	    ComputeTargetModalitiesCount(GetRootNode()->GetTrainBaseLoader());
 	GetRootNode()->SetTargetModalitiesCountTrain(targetModalitiesCountTrain);
@@ -1655,9 +1575,6 @@ void DTDecisionTree::InitializeRootNode(const NumericKeyDictionary* randomForest
 		    ComputeTargetModalitiesCount(GetRootNode()->GetOutOfBagBaseLoader());
 		GetRootNode()->SetTargetModalitiesCountOutOfBag(targetModalitiesCountOutOfBag);
 	}
-
-	// Extraction de la repartition de la cible
-	// NV V9 dataGridStats = GetRootNode()->GetNodeClassStats()->GetTargetValueStats();
 
 	// Initialisation de l'effectif de la classe majoritaire
 	nMajoritarySize = 0;
@@ -1670,8 +1587,8 @@ void DTDecisionTree::InitializeRootNode(const NumericKeyDictionary* randomForest
 		DTDecisionTree::TargetModalityCount* tmc = cast(DTDecisionTree::TargetModalityCount*, obj);
 
 		// Mise a jour de l'effectif max
-		if (tmc->iCount > nMajoritarySize)
-			nMajoritarySize = tmc->iCount;
+		if (tmc->nCount > nMajoritarySize)
+			nMajoritarySize = tmc->nCount;
 	}
 
 	// Initialisation de la purete du noeud racine
@@ -1989,13 +1906,6 @@ boolean DTDecisionTree::CheckOptimalInternalNodes() const
 				 " should not be also referenced as an optimal leaf node");
 		}
 
-		// if (node->IsLeaf())
-		//{
-		//	bOk = false;
-		//	AddError(sTmp + "Optimal internal node " + node->GetNodeIdentifier() + " has leave node
-		// characteristics");
-		// }
-
 		for (int i = 0; i < node->GetSons()->GetSize(); i++)
 		{
 			DTDecisionTreeNode* son = cast(DTDecisionTreeNode*, node->GetSons()->GetAt(i));
@@ -2235,12 +2145,6 @@ boolean DTDecisionTree::CheckOptimalTree() const
 	Object* object;
 	ALString sLeafKey;
 
-	// if (odOptimalLeaveNodes->GetCount() == 0)
-	//{
-	//	bOk = false;
-	//	AddError(sTmp + "The tree has no leave nodes");
-	// }
-
 	POSITION position = odOptimalLeaveNodes->GetStartPosition();
 
 	while (position != NULL)
@@ -2338,9 +2242,6 @@ void DTDecisionTree::WriteReport(ostream& ost) const
 	KWDGSAttributeSymbolValues* valueStats;
 	int i;
 
-	// require(IsStatsComputed());
-	// require(GetClass()->GetUsedAttributeNumber() == GetClass()->GetLoadedAttributeNumber());
-
 	// Titre
 	ost << "Descriptive statistics"
 	    << "\n";
@@ -2419,8 +2320,6 @@ void DTDecisionTree::WriteReport(ostream& ost) const
 	}
 
 	// Type de tache d'apprentissage effectue
-	// ost << "\nLearning task";
-
 	ost << "Number of variables used in the tree"
 	    << "\t" << odUsedVariables.GetCount() << "\n";
 
@@ -2651,14 +2550,14 @@ void DTDecisionTree::BuildDatabaseObjectsDictionary(const NumericKeyDictionary* 
 	{
 		// effectuer un tirage aleatoire avec remise (ne peut etre demande que dans le cadre d'un RF)
 
-		const int instancesNumber = oaTreeDatabaseObjects->GetSize();
+		const int nInstancesNumber = oaTreeDatabaseObjects->GetSize();
 
 		assert(randomForestDatabaseObjects != NULL);
-		assert(randomForestDatabaseObjects->GetCount() == instancesNumber);
+		assert(randomForestDatabaseObjects->GetCount() == nInstancesNumber);
 
 		for (int i = 0; i < oaTreeDatabaseObjects->GetSize(); i++)
 		{
-			const int newInstanceId = RandomInt(instancesNumber - 1);
+			const int newInstanceId = RandomInt(nInstancesNumber - 1);
 			KWObject* kwo = cast(KWObject*, oaTreeDatabaseObjects->GetAt(newInstanceId));
 
 			Object* obj = nkdDatabaseObjects->Lookup(kwo);
@@ -2737,17 +2636,17 @@ void DTDecisionTree::BuildDatabaseObjectsDictionary(const NumericKeyDictionary* 
 	ensure(nObjectsNumber == oaTreeDatabaseObjects->GetSize());
 }
 
-IntVector* DTDecisionTree::SelectRandomWeightedIndexes(const ContinuousVector* cumulatedWeights, const int nbDraws)
+IntVector* DTDecisionTree::SelectRandomWeightedIndexes(const ContinuousVector* cumulatedWeights, const int nDraws)
 {
 	assert(cumulatedWeights != NULL);
 	assert(cumulatedWeights->GetSize() > 0);
 
 	ContinuousVector* randomValues = new ContinuousVector;
 
-	// effectuer 'nbDraws' tirages de valeurs aleatoires comprises entre 0 et la valeur max cumulee
+	// effectuer 'nDraws' tirages de valeurs aleatoires comprises entre 0 et la valeur max cumulee
 	const Continuous maxCumulatedValue = cumulatedWeights->GetAt(cumulatedWeights->GetSize() - 1);
 
-	for (int i = 0; i < nbDraws; i++)
+	for (int i = 0; i < nDraws; i++)
 		randomValues->Add(maxCumulatedValue * RandomDouble());
 
 	// trier les valeurs aleatoires par ordre croissant
@@ -3060,10 +2959,7 @@ void DTDecisionTree::DeleteNode(DTDecisionTreeNode* node)
 
 	if (not bFound)
 		AddWarning("deleting unreferenced node " + key);
-
-	// delete node; NVDELL
 }
-
 DTDecisionTreeNodeSplit::DTDecisionTreeNodeSplit()
 {
 	attributeStats = NULL;
@@ -3092,7 +2988,7 @@ void DTDecisionTree::TargetModalityCount::CopyFrom(const DTDecisionTree::TargetM
 	require(source != NULL);
 
 	sModality = source->sModality;
-	iCount = source->iCount;
+	nCount = source->nCount;
 }
 DTDecisionTree::TargetModalityCount* DTDecisionTree::TargetModalityCount::Clone() const
 {
@@ -3107,7 +3003,7 @@ DTDecisionTree::TargetModalityCount* DTDecisionTree::TargetModalityCount::Clone(
 DTDecisionTree::TargetModalityCount::TargetModalityCount()
 {
 	sModality = "";
-	iCount = 0;
+	nCount = 0;
 }
 
 // fonctions de comparaison pour tri de tableau
@@ -3125,9 +3021,9 @@ int DTTargetCountCompare(const void* elem1, const void* elem2)
 	DTDecisionTree::TargetModalityCount* i1 = (DTDecisionTree::TargetModalityCount*)*(Object**)elem1;
 	DTDecisionTree::TargetModalityCount* i2 = (DTDecisionTree::TargetModalityCount*)*(Object**)elem2;
 
-	if (i1->iCount < i2->iCount)
+	if (i1->nCount < i2->nCount)
 		return 1;
-	else if (i1->iCount > i2->iCount)
+	else if (i1->nCount > i2->nCount)
 		return -1;
 	else
 		return 0;

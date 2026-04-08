@@ -80,9 +80,7 @@ void DTForestAttributeSelection::Initialization(const ObjectDictionary* odInputA
 			taAttribute->aAttribute = attribute;
 			taAttribute->sAttributeName = attributeStats->GetAttributeName();
 			taAttribute->dLevel = attributeStats->GetLevel(); //  + 1.0 / nNbInstence);
-			oaOriginalAttributesUsed.Add(
-			    taAttribute); //			cout << "les attibut " << attribute->GetName() << " : "
-					  //<< vLevels.GetAt(nAttribute) << endl;
+			oaOriginalAttributesUsed.Add(taAttribute);
 			odOriginalAttributesUsed.SetAt(attribute->GetName(), taAttribute);
 		}
 	}
@@ -455,25 +453,18 @@ void DTForestAttributeSelection::SetDrawingType(const ALString& s)
 
 // parcourt une liste d'attributs, effectue un tirage aleatoire en fonction du level de ces attributs, et
 // renvoie (au maximum) les 'maxAttributesNumber' index de chargements des attributs de plus fort level
-ObjectArray* DTForestAttributeSelection::GetAttributesFromLevels(const int maxAttributesNumber, DoubleVector& vLevels,
-								 ObjectArray& oaListAttributes)
+ObjectArray* DTForestAttributeSelection::GetAttributesFromLevels(const int maxAttributesNumber,
+								 const DoubleVector* dvLevels,
+								 const ObjectArray* oaListAttributes)
 {
-	// Repris de l'algo de Weighted Random Sampling with a reservoir Information Processing Letters 97(2006) 181-185
-	// Pavlos S. Efraimidis, Paul G. Spirakis Interet : en une passe, directement parallelisable, utilise les poids
-	// non normalises, Complexite en O(K*log(Ks)) on pourrait potentiellement avoir une infinite de variables car on
-	// maintient uniquement les Ks meilleures cles Dans l'article une version avec "reservoir sampling" est presente
-	// egalement qui permet de selectionner dans un flux de variables Implementation :
-	// - pour chaque variable, on tire u_k aleatoirement dans [0,1] et on calcule la cle c_k=u_k^(1/poids_k)
-	// - on stocke les Ks meilleures cles dans une Sorted List
-	// - a la fin on selectionne les indices de ces Ks meilleurs cles
 
-	// cout << "GetAttributesLoadIndexesFromLevels : maxAttributesNumber = " << maxAttributesNumber << " , vLevels
-	// size = " << vLevels.GetSize() << ", oaListAttributes size = " << oaListAttributes.GetSize() << endl;
+	require(dvLevels != NULL);
+	require(oaListAttributes != NULL);
 
-	if (maxAttributesNumber == 0 or vLevels.GetSize() == 0 or oaListAttributes.GetSize() == 0)
+	if (maxAttributesNumber == 0 or dvLevels->GetSize() == 0 or oaListAttributes->GetSize() == 0)
 		return NULL;
 
-	assert(vLevels.GetSize() == oaListAttributes.GetSize());
+	assert(dvLevels->GetSize() == oaListAttributes->GetSize());
 
 	ObjectArray* result = new ObjectArray;
 
@@ -488,13 +479,13 @@ ObjectArray* DTForestAttributeSelection::GetAttributesFromLevels(const int maxAt
 	ivSortedListIndexes.SetSize(0);
 
 	// Parcours de toutes les variables
-	for (i = 0; i < vLevels.GetSize(); i++)
+	for (i = 0; i < dvLevels->GetSize(); i++)
 	{
 		// Tirage uniforme sur [0,1]
 		dRandom = RandomDouble();
 
 		// Calcul de la cle
-		dKey = pow(dRandom, 1 / vLevels.GetAt(i));
+		dKey = pow(dRandom, 1 / dvLevels->GetAt(i));
 
 		// Insertion dans la liste triee par cle
 		svKey = new KWSortableValue;
@@ -514,7 +505,7 @@ ObjectArray* DTForestAttributeSelection::GetAttributesFromLevels(const int maxAt
 	// Memorisation des nSelectedAttributesNumber meilleures cles
 	for (nIndexesNumber = 0; nIndexesNumber < maxAttributesNumber; nIndexesNumber++)
 	{
-		if (nIndexesNumber == vLevels.GetSize())
+		if (nIndexesNumber == dvLevels->GetSize())
 			break; // le max a ete atteint
 
 		// Extraction de la tete de liste
@@ -533,7 +524,7 @@ ObjectArray* DTForestAttributeSelection::GetAttributesFromLevels(const int maxAt
 	slKeys.DeleteAll();
 
 	for (i = 0; i < ivSortedListIndexes.GetSize(); i++)
-		result->Add(oaListAttributes.GetAt(ivSortedListIndexes.GetAt(i)));
+		result->Add(oaListAttributes->GetAt(ivSortedListIndexes.GetAt(i)));
 
 	return result;
 }

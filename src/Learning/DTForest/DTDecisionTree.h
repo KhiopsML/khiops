@@ -4,20 +4,14 @@
 
 #pragma once
 
-// #include "DTGlobalTag.h"
 #include "DTDecisionTreeNode.h"
 #include "DTDecisionTreeCost.h"
 #include "DTDecisionTreeParameter.h"
 #include "DTForestAttributeSelection.h"
 #include "DTDecisionTreeDatabaseObject.h"
 #include "KWLearningReport.h"
-
-#include "KWDRMath.h"
-#include "KWDRCompare.h"
-#include "KWDRLogical.h"
 #include "KWFrequencyVector.h"
 #include "DTAttributeSelection.h"
-#include "DTConfig.h"
 
 class DTDecisionTreeCost;
 class DTDecisionTreeNodeSplit;
@@ -198,15 +192,11 @@ public:
 		Symbol sModality;
 
 		// comptage total, tous echantillons compris
-		int iCount;
+		int nCount;
 	};
 
 	DTBaseLoader* GetOrigineBaseLoader();
 	void SetOrigineBaseLoader(DTBaseLoader* TableLoader);
-
-	// Acces a la database
-	// ObjectArray* GetObjectsDataBase() const;
-	// void SetObjectsDataBase(ObjectArray* cost);
 
 	// Acces a la selection des attributs
 	DTAttributeSelection* GetAttributeSelection();
@@ -276,7 +266,7 @@ protected:
 
 	ContinuousVector* ComputeAdaBoostCumulatedWeights(const NumericKeyDictionary* randomForestDatabaseObjects,
 							  ObjectArray* kwoObjectsList) const;
-	IntVector* SelectRandomWeightedIndexes(const ContinuousVector* cumulatedWeights, const int nbDraws);
+	IntVector* SelectRandomWeightedIndexes(const ContinuousVector* cumulatedWeights, const int nDraws);
 
 	// Recopie l'arbre courant memorise dans l'arbre courant
 	// Effectue le nettoyage des noeuds inutilises

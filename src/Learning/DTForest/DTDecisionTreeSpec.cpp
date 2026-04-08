@@ -141,17 +141,14 @@ bool DTDecisionTreeSpec::InitFromDecisionTree(DTDecisionTree* dtTree)
 	return true;
 }
 
-KWAttribute* DTDecisionTreeSpec::BuildAttribute(const ALString& svariablename)
+KWAttribute* DTDecisionTreeSpec::BuildAttribute(const ALString& sVariableName)
 {
 	const ALString sTreeDataKey = "Tree";
 	KWAttribute* attribute = new KWAttribute;
 	// creatation de l attribut et de la regle
 	KWDerivationRule* switchRule = CreateSwitchRuleC(nsRootNode);
 
-	// TODO MB: la ligne suivante n'est plus valide, et remplacee par le parametrage direct des couts de l'attribut
-	// switchRule->SetCost(dConstructionCost + log(1.0 + nNativeVariableNumber));
-
-	attribute->SetName(svariablename);
+	attribute->SetName(sVariableName);
 	attribute->GetMetaData()->SetNoValueAt(sTreeDataKey);
 
 	// Initialisation
@@ -173,7 +170,6 @@ KWDerivationRule* DTDecisionTreeSpec::CreateSwitchRuleC(const DTDecisionTreeNode
 	{
 		// Creation d'une regle somme a un seul terme
 		KWDRCopySymbol* nodeRule = new KWDRCopySymbol;
-		// NV V9 nodeRule->SetClassName(trainedClassifier->GetPredictorClass()->GetName());
 
 		nodeRule->DeleteAllOperands();
 
@@ -197,7 +193,7 @@ KWDerivationRule* DTDecisionTreeSpec::CreateSwitchRuleC(const DTDecisionTreeNode
 		       node->apAttributePartitionSpec->GetAttributeType() == KWType::Symbol);
 
 		KWDerivationRule* switchRule = new KWDRSymbolSwitch;
-		// NV V9 switchRule->SetClassName(trainedClassifier->GetPredictorClass()->GetName());
+
 		switchRule->DeleteAllOperands();
 
 		// creation de l'IntervalIndex ou du GroupIndex, selon le type de l'attribut de partition
@@ -266,14 +262,9 @@ KWDerivationRule* DTDecisionTreeSpec::CreateIntervalIndexRule(const DTDecisionTr
 	// Creation nouvel attribut associe au partitionnement du noeud courant
 	// KWDataPreparationAttribute nodePreparationAttribute;
 
-	// NV V9 nodePreparationAttribute.InitFromDataPreparationStats(trainedClassifier->GetPredictorClass(),
-	// node->GetSplitAttributeStats());
-
 	if (node->apAttributePartitionSpec == NULL)
 		cout << "node->GetSplitAttributeStats() == NULL" << endl;
 
-	// NV V9 const KWDGSAttributePartition* partition =
-	// nodePreparationAttribute.GetPreparedStats()->GetPreparedDataGridStats()->SearchAttribute(nodePreparationAttribute.GetNativeAttribute()->GetName());
 	assert(node->apAttributePartitionSpec != NULL);
 
 	// creation de l'operande IntervalBounds, par exemple IntervalBounds(5.55),SepalLength)
@@ -323,12 +314,7 @@ KWDerivationRule* DTDecisionTreeSpec::CreateGroupIndexRule(const DTDecisionTreeN
 	//
 
 	// Creation nouvel attribut associe au partitionnement du noeud courant
-	// NV V9 KWDataPreparationAttribute nodePreparationAttribute;
-	// NV V9 nodePreparationAttribute.InitFromDataPreparationStats(trainedClassifier->GetPredictorClass(),
-	// node->GetSplitAttributeStats());
 
-	// NV V9 const KWDGSAttributePartition* partition =
-	// nodePreparationAttribute.GetPreparedStats()->GetPreparedDataGridStats()->SearchAttribute(nodePreparationAttribute.GetNativeAttribute()->GetName());
 	assert(node->apAttributePartitionSpec != NULL);
 
 	KWDRValueGroups* valueGroupsRule = new KWDRValueGroups;
@@ -768,12 +754,6 @@ longint DTDecisionTreeNodeSpec::ComputeHashOfGroupIndexRule() const
 	//
 
 	// Creation nouvel attribut associe au partitionnement du noeud courant
-	// NV V9 KWDataPreparationAttribute nodePreparationAttribute;
-	// NV V9 nodePreparationAttribute.InitFromDataPreparationStats(trainedClassifier->GetPredictorClass(),
-	// node->GetSplitAttributeStats());
-
-	// NV V9 const KWDGSAttributePartition* partition =
-	// nodePreparationAttribute.GetPreparedStats()->GetPreparedDataGridStats()->SearchAttribute(nodePreparationAttribute.GetNativeAttribute()->GetName());
 	assert(apAttributePartitionSpec != NULL);
 	longint lHash = 0;
 
@@ -848,7 +828,7 @@ void PLShared_DecisionTreeSpec::DeserializeObject(PLSerializer* serializer, Obje
 
 	// renseigner recursivement le tableau des noeuds tree->oaTreeNodes,  a partir de l'ensemble des noeuds
 	// deserialises
-	AddNode(tree->oaTreeNodes, tree->nsRootNode);
+	AddNode(&tree->oaTreeNodes, tree->nsRootNode);
 }
 
 void PLShared_DecisionTreeSpec::SerializeObject(PLSerializer* serializer, const Object* object) const
@@ -899,13 +879,13 @@ DTDecisionTreeSpec* PLShared_DecisionTreeSpec::GetDecisionTreeSpec() const
 	return cast(DTDecisionTreeSpec*, GetObject());
 }
 
-void PLShared_DecisionTreeSpec::AddNode(ObjectArray& oaTreeNodes, DTDecisionTreeNodeSpec* node) const
+void PLShared_DecisionTreeSpec::AddNode(ObjectArray* oaTreeNodes, DTDecisionTreeNodeSpec* node) const
 {
-	oaTreeNodes.Add(node);
+	oaTreeNodes->Add(node);
 
-	for (int i = 0; i < node->GetChildNodes().GetSize(); i++)
+	for (int i = 0; i < node->GetChildNodes()->GetSize(); i++)
 	{
-		DTDecisionTreeNodeSpec* child = cast(DTDecisionTreeNodeSpec*, node->GetChildNodes().GetAt(i));
+		DTDecisionTreeNodeSpec* child = cast(DTDecisionTreeNodeSpec*, node->GetChildNodes()->GetAt(i));
 		child->SetFatherNode(node);
 		AddNode(oaTreeNodes, child);
 	}
@@ -1039,7 +1019,7 @@ void PLShared_TargetModalityCount::DeserializeObject(PLSerializer* serializer, O
 
 	tmc = cast(DTDecisionTree::TargetModalityCount*, object);
 	tmc->sModality = serializer->GetString();
-	tmc->iCount = serializer->GetInt();
+	tmc->nCount = serializer->GetInt();
 }
 
 void PLShared_TargetModalityCount::SerializeObject(PLSerializer* serializer, const Object* object) const
@@ -1051,7 +1031,7 @@ void PLShared_TargetModalityCount::SerializeObject(PLSerializer* serializer, con
 
 	tmc = cast(DTDecisionTree::TargetModalityCount*, object);
 	serializer->PutString(tmc->sModality.GetValue());
-	serializer->PutInt(tmc->iCount);
+	serializer->PutInt(tmc->nCount);
 }
 
 Object* PLShared_TargetModalityCount::Create() const

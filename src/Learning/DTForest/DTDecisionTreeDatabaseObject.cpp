@@ -4,10 +4,10 @@
 
 #include "DTDecisionTreeDatabaseObject.h"
 
-DTDecisionTreeDatabaseObject::DTDecisionTreeDatabaseObject(int id) : iId(id)
+DTDecisionTreeDatabaseObject::DTDecisionTreeDatabaseObject(int id) : nId(id)
 {
-	iFrequency = 0;
-	iTargetModalityIndex = -1;
+	nFrequency = 0;
+	nTargetModalityIndex = -1;
 	cScoreWeight = 1;
 	cBoostingTreeWeight = -1;
 	cAdaBoostBGErrorRate = -1;
@@ -39,7 +39,7 @@ void DTDecisionTreeDatabaseObject::SetTrainNodeProbs(const ContinuousVector* cv)
 
 DTDecisionTreeDatabaseObject* DTDecisionTreeDatabaseObject::Clone() const
 {
-	DTDecisionTreeDatabaseObject* newDbo = new DTDecisionTreeDatabaseObject(iId);
+	DTDecisionTreeDatabaseObject* newDbo = new DTDecisionTreeDatabaseObject(nId);
 	newDbo->CopyFrom(this);
 	return newDbo;
 }
@@ -48,11 +48,11 @@ void DTDecisionTreeDatabaseObject::CopyFrom(const DTDecisionTreeDatabaseObject* 
 {
 	require(aSource != NULL);
 
-	iFrequency = aSource->iFrequency;
+	nFrequency = aSource->nFrequency;
 	cScoreWeight = aSource->cScoreWeight;
 	cBoostingTreeWeight = aSource->cBoostingTreeWeight;
 	cAdaBoostBGErrorRate = aSource->cAdaBoostBGErrorRate;
-	iTargetModalityIndex = aSource->iTargetModalityIndex;
+	nTargetModalityIndex = aSource->nTargetModalityIndex;
 	bIsTargetCorrectlyPredicted = aSource->bIsTargetCorrectlyPredicted;
 
 	if (trainNodeProbs != NULL)
@@ -70,6 +70,6 @@ void DTDecisionTreeDatabaseObject::CopyFrom(const DTDecisionTreeDatabaseObject* 
 
 void DTDecisionTreeDatabaseObject::Write(ostream& ost) const
 {
-	ost << iId << "\t" << iFrequency << "\t" << iTargetModalityIndex << "\t" << cScoreWeight << "\t"
+	ost << nId << "\t" << nFrequency << "\t" << nTargetModalityIndex << "\t" << cScoreWeight << "\t"
 	    << bIsTargetCorrectlyPredicted << "\t" << cBoostingTreeWeight << "\t" << cAdaBoostBGErrorRate << endl;
 }

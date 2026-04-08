@@ -22,7 +22,6 @@ DTAttributeSelection::~DTAttributeSelection()
 void DTAttributeSelection::Write(ostream& ost) const
 {
 	DTTreeAttribute* taAttribute;
-	// KWAttributeStats* attributeStats;
 	int nAttribute;
 	// Affichages des attributs
 	ost << "  DTAttributeSelection \n";
@@ -37,7 +36,6 @@ void DTAttributeSelection::Write(ostream& ost) const
 boolean DTAttributeSelection::Check() const
 {
 	DTTreeAttribute* taAttribute;
-	// KWAttributeStats* attributeStats;
 	ObjectDictionary odlistattribute;
 	int nAttribute;
 
@@ -234,10 +232,10 @@ ObjectArray* DTAttributeSelection::GetAttributesShuffled(const int nMaxAttribute
 }
 
 ObjectArray* DTAttributeSelection::SortObjectArrayFromContinuous(const int nMaxAttributesNumber,
-								 const DoubleVector& vLevels,
+								 const DoubleVector& dvLevels,
 								 const ObjectArray& oaListAttributes)
 {
-	// KWAttribute* aAttribute;
+
 	int nMax;
 	ObjectArray* oaAttributesShuffledSelection = new ObjectArray;
 
@@ -257,14 +255,14 @@ ObjectArray* DTAttributeSelection::SortObjectArrayFromContinuous(const int nMaxA
 	nMax = (nMaxAttributesNumber > oaListAttributes.GetSize()) ? oaListAttributes.GetSize() : nMaxAttributesNumber;
 
 	// Parcours de toutes les variables
-	for (i = 0; i < vLevels.GetSize(); i++)
+	for (i = 0; i < dvLevels.GetSize(); i++)
 	{
 		// Tirage uniforme sur [0,1]
 		dRandom = RandomDouble();
 
 		// Calcul de la cle
-		require(vLevels.GetAt(i) != 0);
-		dKey = pow(dRandom, 1 / vLevels.GetAt(i));
+		assert(dvLevels.GetAt(i) != 0);
+		dKey = pow(dRandom, 1 / dvLevels.GetAt(i));
 
 		// Insertion dans la liste triee par cle
 		svKey = new KWSortableValue;
@@ -284,7 +282,7 @@ ObjectArray* DTAttributeSelection::SortObjectArrayFromContinuous(const int nMaxA
 	// Memorisation des nSelectedAttributesNumber meilleures cles
 	for (nIndexesNumber = 0; nIndexesNumber < nMax; nIndexesNumber++)
 	{
-		if (nIndexesNumber == vLevels.GetSize())
+		if (nIndexesNumber == dvLevels.GetSize())
 			break; // le max a ete atteint
 
 		// Extraction de la tete de liste
@@ -303,10 +301,7 @@ ObjectArray* DTAttributeSelection::SortObjectArrayFromContinuous(const int nMaxA
 	slKeys.DeleteAll();
 
 	for (i = 0; i < ivSortedListIndexes.GetSize(); i++)
-	{
-		// KWAttribute* a = cast(KWAttribute*, oaListAttributes.GetAt(ivSortedListIndexes.GetAt(i)));
 		oaAttributesShuffledSelection->Add(oaListAttributes.GetAt(ivSortedListIndexes.GetAt(i)));
-	}
 
 	return oaAttributesShuffledSelection;
 }
@@ -316,16 +311,6 @@ ObjectArray* DTAttributeSelection::SortObjectArrayFromContinuous(const int nMaxA
 ObjectArray* DTAttributeSelection::GetTreeAttributesFromLevels(const int nMaxAttributesNumber)
 {
 	// Repris de l'algo de Weighted Random Sampling with a reservoir Information Processing Letters 97(2006) 181-185
-	// Pavlos S. Efraimidis, Paul G. Spirakis Interet : en une passe, directement parallelisable, utilise les poids
-	// non normalises, Complexite en O(K*log(Ks)) on pourrait potentiellement avoir une infinite de variables car on
-	// maintient uniquement les Ks meilleures cles Dans l'article une version avec "reservoir sampling" est presente
-	// egalement qui permet de selectionner dans un flux de variables Implementation :
-	// - pour chaque variable, on tire u_k aleatoirement dans [0,1] et on calcule la cle c_k=u_k^(1/poids_k)
-	// - on stocke les Ks meilleures cles dans une Sorted List
-	// - a la fin on selectionne les indices de ces Ks meilleurs cles
-
-	// cout << "GetAttributesLoadIndexesFromLevels : maxAttributesNumber = " << maxAttributesNumber << " , vLevels
-	// size = " << vLevels.GetSize() << ", oaListAttributes size = " << oaListAttributes.GetSize() << endl;
 
 	DTTreeAttribute* dtAttribute;
 	int nAttribute, nMax;
@@ -335,7 +320,7 @@ ObjectArray* DTAttributeSelection::GetTreeAttributesFromLevels(const int nMaxAtt
 
 	SortedList slKeys(KWSortableValueCompare);
 	IntVector ivSortedListIndexes;
-	DoubleVector vLevels;
+	DoubleVector dvLevels;
 	ObjectArray oaListAttributes;
 
 	ivSortedListIndexes.SetSize(0);
@@ -346,10 +331,10 @@ ObjectArray* DTAttributeSelection::GetTreeAttributesFromLevels(const int nMaxAtt
 	for (nAttribute = 0; nAttribute < nMaxAttributesNumber; nAttribute++)
 	{
 		dtAttribute = cast(DTTreeAttribute*, oaTreeAttributeSelection.GetAt(nAttribute));
-		vLevels.Add(dtAttribute->dLevel);
+		dvLevels.Add(dtAttribute->dLevel);
 		oaListAttributes.Add(dtAttribute->aAttribute);
 	}
-	return SortObjectArrayFromContinuous(nMaxAttributesNumber, vLevels, oaListAttributes);
+	return SortObjectArrayFromContinuous(nMaxAttributesNumber, dvLevels, oaListAttributes);
 }
 
 // parcourt une liste d'attributs, effectue un tirage aleatoire en fonction du level de ces attributs, et
@@ -357,16 +342,6 @@ ObjectArray* DTAttributeSelection::GetTreeAttributesFromLevels(const int nMaxAtt
 ObjectArray* DTAttributeSelection::GetAttributesFromLevels(const int nMaxAttributesNumber)
 {
 	// Repris de l'algo de Weighted Random Sampling with a reservoir Information Processing Letters 97(2006) 181-185
-	// Pavlos S. Efraimidis, Paul G. Spirakis Interet : en une passe, directement parallelisable, utilise les poids
-	// non normalises, Complexite en O(K*log(Ks)) on pourrait potentiellement avoir une infinite de variables car on
-	// maintient uniquement les Ks meilleures cles Dans l'article une version avec "reservoir sampling" est presente
-	// egalement qui permet de selectionner dans un flux de variables Implementation :
-	// - pour chaque variable, on tire u_k aleatoirement dans [0,1] et on calcule la cle c_k=u_k^(1/poids_k)
-	// - on stocke les Ks meilleures cles dans une Sorted List
-	// - a la fin on selectionne les indices de ces Ks meilleurs cles
-
-	// cout << "GetAttributesLoadIndexesFromLevels : maxAttributesNumber = " << maxAttributesNumber << " , vLevels
-	// size = " << vLevels.GetSize() << ", oaListAttributes size = " << oaListAttributes.GetSize() << endl;
 
 	DTTreeAttribute* dtAttribute;
 	int nAttribute, nMax;
@@ -376,7 +351,7 @@ ObjectArray* DTAttributeSelection::GetAttributesFromLevels(const int nMaxAttribu
 
 	SortedList slKeys(KWSortableValueCompare);
 	IntVector ivSortedListIndexes;
-	DoubleVector vLevels;
+	DoubleVector dvLevels;
 	ObjectArray oaListAttributes;
 
 	ivSortedListIndexes.SetSize(0);
@@ -387,10 +362,10 @@ ObjectArray* DTAttributeSelection::GetAttributesFromLevels(const int nMaxAttribu
 	for (nAttribute = 0; nAttribute < nMax; nAttribute++)
 	{
 		dtAttribute = cast(DTTreeAttribute*, oaTreeAttributeSelection.GetAt(nAttribute));
-		vLevels.Add(dtAttribute->dLevel);
+		dvLevels.Add(dtAttribute->dLevel);
 		oaListAttributes.Add(dtAttribute->aAttribute);
 	}
-	return SortObjectArrayFromContinuous(nMaxAttributesNumber, vLevels, oaListAttributes);
+	return SortObjectArrayFromContinuous(nMaxAttributesNumber, dvLevels, oaListAttributes);
 }
 
 int DTAttributeSelection::CompareBlocks(const DTAttributeSelection* otherAttributePair) const
@@ -511,10 +486,6 @@ int DTTreeAttributeCompareName(const void* elem1, const void* elem2)
 	attribute1 = cast(DTTreeAttribute*, *(Object**)elem1);
 	attribute2 = cast(DTTreeAttribute*, *(Object**)elem2);
 
-	// nCompare = DTTreeAttributeCompareBlocks(elem1, elem2);
-	//  Difference
-	// if (nCompare != 0)
-	//	return nCompare;
 	nDiff = attribute1->GetName().Compare(attribute2->GetName());
 	return nDiff;
 }

@@ -7,27 +7,46 @@
 #include "KWLearningSpec.h"
 #include "KWTupleTableLoader.h"
 
+////////////////////////////////////////////////////////////////////
+// Classe DTBaseLoader
+// Encapsule les donnees necessaires a un noeud de l'arbre pour calculer
+// ses statistiques : les specifications d'apprentissage, le chargeur de tuples
+// et le tableau des instances de la partition de base de donnees associee.
 class DTBaseLoader : public Object
 {
 public:
 	DTBaseLoader();
 	~DTBaseLoader();
+
+	// Initialisation a partir des specifications d'apprentissage, du chargeur de tuples et du tableau d'instances
 	void Initialize(KWLearningSpec* lSpec, KWTupleTableLoader* maintupleTableLoader, ObjectArray* oadb);
 	boolean Check();
 
+	// Acces au chargeur de tuples associe
 	KWTupleTableLoader* GetTupleLoader() const;
-	// void	SetTupleLoader(KWTupleTableLoader* tuple);
+
+	// Acces au tableau des instances de la base
 	ObjectArray* GetDatabaseObjects() const;
-	// void	SetObjectArray(ObjectArray* oadb);
+
+	// Acces aux specifications d'apprentissage
 	KWLearningSpec* GetLearningSpec() const;
-	// void	SetLearningSpec(KWLearningSpec* lSpec);
 
 	// Ecriture d'un rapport abrege
 	void Write(ostream& ost);
 
 	void DeleteAll();
 
+	// Construction des loaders train et out-of-bag a partir du loader courant
 	void BuildTrainOutOfBagBaseLoader(DTBaseLoader* blTrain, DTBaseLoader* blOutOfBag);
+
+	// Alimentation d'une table de tuples univariee a partir d'un vecteur de valeurs symboliques
+	// Parametres en entree :
+	//   - kwcInputClass : classe d'entree contenant l'attribut cible
+	//   - sAttributeName : nom de l'attribut cible a charger dans la table de tuples
+	//   - svInputValues : vecteur de valeurs symboliques a charger (une valeur par instance)
+	// Parametre en sortie :
+	//   - outputTupleTable : table de tuples alimentee avec les valeurs du vecteur
+	//                        (table nettoyee puis remplie en mode edition)
 	void LoadTupleTableFromSymbolValues(KWClass* kwcInputClass, const ALString& sAttributeName,
 					    const SymbolVector* svInputValues, KWTupleTable* outputTupleTable);
 

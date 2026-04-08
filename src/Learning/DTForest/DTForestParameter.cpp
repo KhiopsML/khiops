@@ -153,7 +153,6 @@ void DTForestParameter::CopyFrom(const DTForestParameter* dtParam)
 {
 	assert(dtParam != NULL);
 
-	//	nTreeNumber = dtParam->nTreeNumber ;
 	sTreesVariablesSelection = dtParam->sTreesVariablesSelection;
 	cInstancePercentage = dtParam->cInstancePercentage;
 	cKeptAttributePercentage = dtParam->cKeptAttributePercentage;
@@ -164,7 +163,7 @@ void DTForestParameter::CopyFrom(const DTForestParameter* dtParam)
 	sWeightedClassifier = dtParam->sWeightedClassifier;
 	bWriteDetailedStatistics = dtParam->bWriteDetailedStatistics;
 	nVariableNumberMin = dtParam->nVariableNumberMin;
-	// sHeuristicCreation = dtParam->sHeuristicCreation;
+
 	pDecisionTreeParameter.CopyFrom(&dtParam->pDecisionTreeParameter);
 	sDiscretizationTargetMethod = dtParam->sDiscretizationTargetMethod;
 	nMaxIntervalsNumberForTarget = dtParam->nMaxIntervalsNumberForTarget;

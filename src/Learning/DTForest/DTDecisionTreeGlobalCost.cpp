@@ -217,43 +217,16 @@ double DTDecisionTreeGlobalCost::ComputeInternalNodeCost(DTDecisionTreeNode* nod
 	// if(sDerivationRuleName == "Discretization")
 	if (node->GetSplitAttributeStats()->GetAttributeType())
 	{
-		// Extraction (par recopie, attention gestion memoire) de l'intervalle de bornes
-		// cvBounds = cast(KWDRDiscretizer*,node->GetAssertion()->GetDerivationRule())->GetIntervalBounds();
-
-		// Extraction du nombre d'intervalles de la regle de discretisation Is
-		// nPartNumber = cvBounds->GetSize()+1;
-
-		// Ajout des termes dans le cout
-		// if (nDTCriterion==0)
-		// dInternalCost += log((double)node->GetSplitVariableValueNumber());
-		// if (nDTCriterion==1)
-		// dInternalCost += 2*log((double)nPartNumber-1)+1;
 		dInternalCost += KWStat::LnFactorial(node->GetSplitVariableValueNumber() + nPartNumber - 1);
 		dInternalCost -= KWStat::LnFactorial(nPartNumber - 1);
 		dInternalCost -= KWStat::LnFactorial(node->GetSplitVariableValueNumber());
-
-		// Nettoyage du vecteur de bornes
-		// delete cvBounds;
 	}
 
 	// Cas d'un attribut de type Symbol
 	else
 	{
-		// Extraction (par recopie, attention gestion memeoire) du tableau de groupes
-		// oaGroups = cast(KWDRGrouper*,node->GetAssertion()->GetDerivationRule())->GetGroups();
-
-		// Extraction du nombre d'intervalles de la regle de discretisation Is
-		// nPartNumber = oaGroups->GetSize();
-
-		// Ajout des termes dans le cout
-		// if (nDTCriterion==1)
-		// dInternalCost += 2*log((double)nPartNumber-1)+1;
-		// if (nDTCriterion==0)
 		dInternalCost += log((double)node->GetSplitVariableValueNumber());
 		dInternalCost += KWStat::LnBell(node->GetSplitVariableValueNumber(), nPartNumber);
-
-		// oaGroups->DeleteAll();
-		// delete oaGroups;
 	}
 
 	return (dInternalCost);
@@ -282,7 +255,7 @@ double DTDecisionTreeGlobalCost::ComputeLeafCost(DTDecisionTreeNode* node)
 		node->GetTargetModalitiesCountTrain()->GetNextAssoc(position, key, obj);
 
 		DTDecisionTree::TargetModalityCount* tmc = cast(DTDecisionTree::TargetModalityCount*, obj);
-		nEvent = tmc->iCount;
+		nEvent = tmc->nCount;
 		dLeafCost -= KWStat::LnFactorial(nEvent);
 		nIntervalEventNumber += nEvent;
 	}
@@ -295,7 +268,6 @@ double DTDecisionTreeGlobalCost::ComputeLeafCost(DTDecisionTreeNode* node)
 double DTDecisionTreeGlobalCost::ComputeHypotheticalPrunedTreeCost(DTDecisionTree* tree, double dPreviousCost,
 								   ALString sInternalNodeKey)
 {
-	// KWAssertion* nodeAssertion;
 	DTDecisionTreeNode* node;
 	DTDecisionTreeNode* sourceNode;
 	DTDecisionTreeNode* sonNode;
@@ -313,8 +285,6 @@ double DTDecisionTreeGlobalCost::ComputeHypotheticalPrunedTreeCost(DTDecisionTre
 
 	// Extraction du noeud dont on va elaguer les feuilles
 	sourceNode = cast(DTDecisionTreeNode*, tree->GetInternalNodes()->Lookup(sInternalNodeKey));
-
-	// nodeAssertion = sourceNode->GetAssertion();
 
 	// Extraction du nom de la variable de partitionnement de ce noeud
 	sAttributeName = sourceNode->GetSplitAttributeStats()->GetAttributeName();
@@ -418,8 +388,6 @@ void DTDecisionTreeGlobalCost::ComputeHypotheticalAugmentedTreeCost(DTDecisionTr
 	{
 		// Nombre de valeurs distinctes pour l'attribut
 		nVariableValueNumber = 0;
-		// NV9  cast(KWAttributeStats*, sourceNode->GetNodeClassStats()->LookupAttributeStats(sAttributeName))
-		// ->GetDescriptiveStats()->GetValueNumber();
 	}
 	assert(nVariableValueNumber > 0);
 
@@ -462,8 +430,7 @@ void DTDecisionTreeGlobalCost::ComputeHypotheticalAugmentedTreeCost(DTDecisionTr
 	{
 		// a partir de learningEnv v8, les attributs a level nul ne sont plus prepares. Le seul attribut prepare
 		// correspond ici a l'attribut cible
-		// NVDELL AddWarning("ComputeHypotheticalAugmentedTreeCost :
-		// GetPreparedDataGridStats()->GetAttributeNumber() == 1");
+
 		return;
 	}
 
