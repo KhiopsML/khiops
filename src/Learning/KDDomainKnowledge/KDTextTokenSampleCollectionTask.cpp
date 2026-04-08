@@ -644,9 +644,142 @@ PLParallelTask* KDTextTokenSampleCollectionTask::Create() const
 boolean KDTextTokenSampleCollectionTask::ComputeResourceRequirements()
 {
 	boolean bOk;
+	const boolean bTrace = false;
+	int nAttribute;
+	int nTokenNumber;
+	int nStreamTokenNumber;
+	int nAverageTokenLength;
+	int nMaxTokenLength;
+	KWTokenFrequency token;
+	longint lMinRequiredMemory;
+	longint lMaxRequiredMemory;
+	longint lFrequentTokenExportRequiredMemory;
+	KWTextTokenizer textTokenizer;
+
+	// Cette methode peut etre appelee uniquement au niveau du maitre
+	require(IsMasterProcess());
+
+	// Les nombres maximaux des tokens par attribut de type texte doivent etre
+	// positionnes
+	require(ivMasterTokenNumbers != NULL);
 
 	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::ComputeResourceRequirements();
+
+	// Memoires minimale et maximale pour le master et chacun des esclaves
+	lMinRequiredMemory = 0;
+	lMaxRequiredMemory = 0;
+
+	// Memoire maximale requise pour l'export des tokens ; uniquement pour le master
+	lFrequentTokenExportRequiredMemory = 0;
+
+	// Positionnement des longueurs moyennes et maximales des tokens, en fonction du type des
+	// attributs texte
+	if (GetTextFeatures() == "ngrams")
+	{
+		nAverageTokenLength = KWTextNgramTokenizer::GetMaxNgramLength();
+		nMaxTokenLength = KWTextNgramTokenizer::GetMaxNgramLength();
+	}
+	else
+	{
+		nAverageTokenLength = 10;
+		nMaxTokenLength = KWTextTokenizer::GetMaxWordLength();
+	}
+
+	// On additionne l'empreinte memoire pour chacun des attributs de type texte
+	if (bOk)
+	{
+		for (nAttribute = 0; nAttribute < ivMasterTokenNumbers->GetSize(); nAttribute++)
+		{
+			// On ajoute l'empreinte memoire des tokens
+			// Le nombre maximal des tokens est positionne en mode streaming
+			nTokenNumber = ivMasterTokenNumbers->GetAt(nAttribute);
+			nStreamTokenNumber = GetMaxStreamCollectedTokenNumber(nTokenNumber);
+			assert(nTokenNumber <= nStreamTokenNumber);
+
+			// Pour les n-grammes, on utilise systematiquement une longueur de
+			// 0, car un n-gramme est utilise en tant que cle directement, ayant
+			// la meme taille et le meme format que celle-ci (8 octets maximum)
+			if (GetTextFeatures() == "ngrams")
+			{
+				lMaxRequiredMemory += nStreamTokenNumber * textTokenizer.GetUsedMemoryPerToken(0);
+				lMinRequiredMemory += nStreamTokenNumber * textTokenizer.GetUsedMemoryPerToken(0);
+			}
+
+			// Pour les mots et les tokens, on utilise la longueur maximale des mots
+			else
+			{
+				lMaxRequiredMemory +=
+				    nStreamTokenNumber * textTokenizer.GetUsedMemoryPerToken(nMaxTokenLength);
+
+				// L'empreinte memoire minimale moyenne est idependante de la longueur
+				// maximale des tokens pour eviter des effets "lentille"
+				lMinRequiredMemory +=
+				    nStreamTokenNumber * textTokenizer.GetUsedMemoryPerToken(nAverageTokenLength);
+			}
+
+			// On ajoute l'empreinte memoire du tokenizer, un tokenizer par attribut
+			lMinRequiredMemory += textTokenizer.GetUsedMemory();
+			lMaxRequiredMemory += textTokenizer.GetUsedMemory();
+
+			// Empreinte memoire des tokens exportes par chaque esclave et exploites par le master a chaque agregation
+			lMinRequiredMemory +=
+			    nStreamTokenNumber * (token.GetUsedMemory() + nAverageTokenLength * sizeof(char));
+			lMaxRequiredMemory +=
+			    nStreamTokenNumber * (token.GetUsedMemory() + nMaxTokenLength * sizeof(char));
+
+			// Empreinte memoire des tokens exportes en fin de tache par le maitre
+			// Sous-ensemble de taille tres inferieure a celle des tokens collectes en mode streaming
+			lFrequentTokenExportRequiredMemory +=
+			    nTokenNumber * (token.GetUsedMemory() + nAverageTokenLength * sizeof(char));
+		}
+	}
+
+	// Tracage de l'empreinte memoire totale de la tache et du delta par rapport a la methode ancetre
+	if (bTrace)
+	{
+		cout << "Minimum master memory task estimate: "
+		     << LongintToHumanReadableString(
+			    GetResourceRequirements()->GetMasterRequirement()->GetMemory()->GetMin() +
+			    lMinRequiredMemory + lFrequentTokenExportRequiredMemory)
+		     << " (" << LongintToHumanReadableString(lMinRequiredMemory + lFrequentTokenExportRequiredMemory)
+		     << " more than the baseline)" << endl;
+		cout << "Maximum master memory task estimate: "
+		     << LongintToHumanReadableString(
+			    GetResourceRequirements()->GetMasterRequirement()->GetMemory()->GetMax() +
+			    lMaxRequiredMemory + lFrequentTokenExportRequiredMemory)
+		     << " (" << LongintToHumanReadableString(lMaxRequiredMemory + lFrequentTokenExportRequiredMemory)
+		     << " more than the baseline)" << endl;
+		cout << "Minimum slave memory task estimate: "
+		     << LongintToHumanReadableString(
+			    GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->GetMin() +
+			    lMinRequiredMemory)
+		     << " (" << LongintToHumanReadableString(lMinRequiredMemory) << " more than the baseline)" << endl;
+		cout << "Maximum slave memory task estimate: "
+		     << LongintToHumanReadableString(
+			    GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->GetMax() +
+			    lMaxRequiredMemory)
+		     << " (" << LongintToHumanReadableString(lMaxRequiredMemory) << " more than the baseline)" << endl;
+	}
+
+	// Mise a jour des empreinte memoires requises, minimales et maximales, pour le maitre et les esclaves
+	// La taille de la memoire estimee est necessairement superieure a zero,
+	// car elle rend compte au moins des tailles des objets tokenizer
+	if (bOk)
+	{
+		GetResourceRequirements()->GetMasterRequirement()->GetMemory()->UpgradeMin(lMinRequiredMemory);
+		GetResourceRequirements()->GetMasterRequirement()->GetMemory()->UpgradeMax(lMaxRequiredMemory);
+		GetResourceRequirements()->GetMasterRequirement()->GetMemory()->UpgradeMin(
+		    lFrequentTokenExportRequiredMemory);
+		GetResourceRequirements()->GetMasterRequirement()->GetMemory()->UpgradeMax(
+		    lFrequentTokenExportRequiredMemory);
+		GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->UpgradeMin(lMinRequiredMemory);
+		GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->UpgradeMax(lMaxRequiredMemory);
+	}
+
+	// On choisit une politique d'allocation des ressourcs equilibree entre le
+	// maitre et les esclaves
+	GetResourceRequirements()->SetMemoryAllocationPolicy(RMTaskResourceRequirement::balanced);
 	return bOk;
 }
 
