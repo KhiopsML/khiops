@@ -44,6 +44,9 @@ public:
 	// Comparaison sur la longueur croissante, puis sur l'effectif decroissant, puis sur le token croissant
 	int CompareLengthFrequency(const KWTokenFrequency* otherTokenFrequency) const;
 
+	// Memoire utilisee
+	longint GetUsedMemory() const;
+
 	// Affichage
 	void Write(ostream& ost) const override;
 
