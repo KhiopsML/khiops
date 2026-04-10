@@ -732,11 +732,13 @@ def check_results(test_dir, forced_context=None):
                         fatal_error_pattern = (
                             "fatal error : Command file : Batch mode failure"
                         )
+                        # Dans la suite, on vérifie la presence du message de fatal error sans se soucier de ce qui suit,
+                        # pour etre tolerant aux ajouts possibles de mpi qui peut emmettre lui-meme des messages d'erreur
+                        # si le processus sort avec un code de retour different de 0
                         if file_name == kht.STDERR_ERROR_LOG:
-                            if (
-                                len(test_file_lines) == 0
-                                or test_file_lines[0].strip() != fatal_error_pattern
-                            ):
+                            if len(test_file_lines) == 0 or not test_file_lines[
+                                0
+                            ].strip().startswith(fatal_error_pattern):
                                 fatal_error_recovery = False
                         # Pattern dans le cas du code retour
                         return_code_error_pattern = "Wrong return code: 1 (should be 0)"
