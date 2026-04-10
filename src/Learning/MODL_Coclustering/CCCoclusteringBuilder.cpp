@@ -1444,16 +1444,14 @@ KWDataGrid* CCCoclusteringBuilder::CreateVarPartDataGrid(const KWTupleTable* tup
 	assert(dataGrid->IsVarPartDataGrid());
 
 	// On force le calcul des statistiques sur les attributs informatifs
+	// Pas de supression des attributs non informatifs, sinon
+	// - cela fausse le nombre d'attributs initiaux
+	// - cela pose de gros problemes pour gerer les grilles sans attributs
 	if (not TaskProgression::IsInterruptionRequested())
 	{
 		dataGrid->SetCellUpdateMode(true);
 		dataGrid->SetCellUpdateMode(false);
 	}
-
-	// Supression des attributs non informatifs
-	// DDDDD cela fausse le nombre d'attributs initiaux
-	// Cela pose de gros probleme pour gerer les grilles sans attributs
-	// dataGrid->DeleteNonInformativeAttributes();
 
 	// Creation des cellules
 	bCellCreationOk = true;
