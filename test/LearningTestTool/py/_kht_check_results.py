@@ -165,7 +165,7 @@ def analyse_comparison_log(test_dir):
                     files_infos[file_name] = file_info
                     continue
 
-                # Analyse du resume jsuq'u la fin du fichier si debut de resume trouve
+                # Analyse du resume jusqu'a la fin du fichier si debut de resume trouve
                 if line == SUMMARY_TITLE:
                     while index < len(lines):
                         line = lines[index]
@@ -693,11 +693,12 @@ def check_results(test_dir, forced_context=None):
             )
 
         # Recherche des erreurs fatales, avec tentative de recuperation
-        # On accepte les erreurs fatales que si on ales meme en test et reference,
+        # On accepte les erreurs fatales que si on a les meme en test et reference,
         # et uniquement dans le cas du pattern particulier du "Batch mode failure" qui est du
         # a des scenario n'ayant pas pu s'excuter entierement pour des raison de portabilite
-        fatal_error_recovery = True
         for file_name in test_file_names:
+            fatal_error_recovery = True
+            _, file_extension = os.path.splitext(file_name)
             # Cas d'une erreur fatale
             if file_name in kht.SPECIAL_ERROR_FILES:
                 special_error_file_error_numbers[file_name] = (
@@ -715,31 +716,38 @@ def check_results(test_dir, forced_context=None):
                 if file_name not in [kht.STDERR_ERROR_LOG, kht.RETURN_CODE_ERROR_LOG]:
                     fatal_error_recovery = False
                 else:
-                    # Les fichiers doivent etre les memes
+                    # Si le fichier n'est pas dans la reference, il y a une erreur donc rien a recuperer
+                    # Si il n'est pas errone, il n'y a pas d'erreur donc rien a recuperer
                     if (
-                        file_name in erroneous_file_names
+                        file_name not in erroneous_file_names
                         or file_name not in ref_file_names
                     ):
                         fatal_error_recovery = False
                     # Test que le fichier est reduit au pattern accepte
-                    if not fatal_error_recovery:
+                    if fatal_error_recovery:
                         # Lecture des lignes du fichier
                         test_file_path = os.path.join(results_dir, file_name)
                         test_file_lines = utils.read_file_lines(
                             test_file_path, log_file=log_file
                         )
-                        # Pattern dans le cas de sdterr
+                        # Pattern dans le cas de stderr
                         fatal_error_pattern = (
                             "fatal error : Command file : Batch mode failure"
                         )
-                        # Dans la suite, on vérifie la presence du message de fatal error sans se soucier de ce qui suit,
+                        # Dans la suite, on verifie la presence du message de fatal error sans se soucier de ce qui suit,
                         # pour etre tolerant aux ajouts possibles de mpi qui peut emmettre lui-meme des messages d'erreur
                         # si le processus sort avec un code de retour different de 0
                         if file_name == kht.STDERR_ERROR_LOG:
-                            if len(test_file_lines) == 0 or not test_file_lines[
-                                0
-                            ].strip().startswith(fatal_error_pattern):
+                            if (
+                                len(test_file_lines) == 0
+                                or test_file_lines[0].strip().find(fatal_error_pattern)
+                                == -1
+                            ):
                                 fatal_error_recovery = False
+                            else:
+                                error_number -= error_number_per_file[file_name]
+                                error_number_per_file[file_name] = 0
+
                         # Pattern dans le cas du code retour
                         return_code_error_pattern = "Wrong return code: 1 (should be 0)"
                         if file_name == kht.RETURN_CODE_ERROR_LOG:
