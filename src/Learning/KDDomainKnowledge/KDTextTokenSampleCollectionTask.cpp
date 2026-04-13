@@ -532,21 +532,21 @@ boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDat
 			DisplayPerformanceIndicators(sTmp + "Token extraction and sort (var " +
 							 IntToString(nAttribute + 1) + ")",
 						     &oaMasterTextTokenizers);
-
-			// Nettoyage
-			delete textTokenizer;
-			oaMasterTextTokenizers.SetAt(nAttribute, NULL);
 		}
 	}
 
-	// Nettoyage si echec
+	// Nettoyage
+	oaMasterTextTokenizers.DeleteAll();
+	assert(oaSlaveTextTokenizers.GetSize() == 0);
+
+	// Nettoyage des tokens collectes en cas d'echec
 	if (not bOk)
 	{
 		for (nAttribute = 0; nAttribute < oaMasterCollectedTokenSamples->GetSize(); nAttribute++)
 		{
+			// On supprime le contenu des tableaux, mais pas les tableaux eux-memes (geres par l'appelant de la tache)
 			cast(ObjectArray*, oaMasterCollectedTokenSamples->GetAt(nAttribute))->DeleteAll();
 		}
-		oaMasterCollectedTokenSamples->DeleteAll();
 	}
 
 	// Nettoyage des variables partagees
