@@ -1185,6 +1185,9 @@ double KWDataGridOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* initi
 	require(initialDataGrid != NULL);
 	require(optimizedDataGrid != NULL);
 
+	if (NEW())
+		bWithoutAntecedent = true;
+
 	// On prend au minimum un niveau max de 1
 	nMaxLevel = optimizationParameters.GetOptimizationLevel();
 	if (nMaxLevel <= 0)
