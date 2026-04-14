@@ -365,12 +365,25 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 
 					if (dMergedCost < dBestMergedCost - dEpsilon)
 					{
-						dBestMergedCost = dMergedCost;
-						dBestCost = dGranularityBestCost;
+						if (NEW())
+						{
+							dBestMergedCost = dMergedCost;
+							dBestCost = dMergedCost;
 
-						// Memorisation de l'antecedent du nouvel optimum avant post-fusion
-						dataGridManager.CopyDataGrid(granularizedOptimizedDataGrid,
-									     optimizedDataGrid);
+							// Memorisation de l'antecedent du nouvel optimum avant post-fusion
+							dataGridManager.CopyDataGrid(
+							    &granularizedPostMergedOptimizedDataGrid,
+							    optimizedDataGrid);
+						}
+						else
+						{
+							dBestMergedCost = dMergedCost;
+							dBestCost = dGranularityBestCost;
+
+							// Memorisation de l'antecedent du nouvel optimum avant post-fusion
+							dataGridManager.CopyDataGrid(granularizedOptimizedDataGrid,
+										     optimizedDataGrid);
+						}
 					}
 
 					// Cas ou il s'agit de la derniere granularite : on met a jour les infos du
