@@ -331,58 +331,65 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 				// de la grille post-fusionnee de granularizedOptimizedDataGrid
 				if (granularizedOptimizedDataGrid->IsVarPartDataGrid())
 				{
-					if (granularizedOptimizedDataGrid->GetInformativeAttributeNumber() > 0 and
-					    optimizationParameters.GetVarPartPostMerge())
+					if (not NEW())
 					{
-						// Creation d'une nouvelle grille avec nouvelle description des PV
-						// Calcul de la grille de reference post fusionnee a partir de granularizedDataGrid
-						dFusionDeltaCost =
-						    dataGridManager.ExportDataGridWithVarPartMergeOptimization(
-							granularizedOptimizedDataGrid,
-							&granularizedPostMergedOptimizedDataGrid, dataGridCosts);
 
-						// Calcul et verification du cout
-						dMergedCost = dGranularityBestCost + dFusionDeltaCost;
-						// Le cout precedent devra etre correct
-						assert(dMergedCost * (1 - dEpsilon) <
-						       dataGridCosts->ComputeDataGridTotalCost(
-							   &granularizedPostMergedOptimizedDataGrid));
-						assert(dataGridCosts->ComputeDataGridTotalCost(
-							   &granularizedPostMergedOptimizedDataGrid) <
-						       dMergedCost * (1 + dEpsilon));
-						if (bDisplayResults)
+						if (granularizedOptimizedDataGrid->GetInformativeAttributeNumber() >
+							0 and
+						    optimizationParameters.GetVarPartPostMerge())
 						{
-							cout << "OptimizeDataGrid: Niveau prepartitionnement \t"
-							     << granularizedOptimizedDataGrid->GetInnerAttributes()
-								    ->GetVarPartGranularity()
-							     << "\t Grille avant fusion \t" << dGranularityBestCost
-							     << "\n";
-							granularizedOptimizedDataGrid->Write(cout);
-						}
-					}
-					else
-						dMergedCost = dGranularityBestCost;
+							// Creation d'une nouvelle grille avec nouvelle description des PV
+							// Calcul de la grille de reference post fusionnee a partir de granularizedDataGrid
+							dFusionDeltaCost =
+							    dataGridManager.ExportDataGridWithVarPartMergeOptimization(
+								granularizedOptimizedDataGrid,
+								&granularizedPostMergedOptimizedDataGrid,
+								dataGridCosts);
 
-					if (dMergedCost < dBestMergedCost - dEpsilon)
-					{
-						if (NEW())
-						{
-							dBestMergedCost = dMergedCost;
-							dBestCost = dMergedCost;
-
-							// Memorisation de l'antecedent du nouvel optimum avant post-fusion
-							dataGridManager.CopyDataGrid(
-							    &granularizedPostMergedOptimizedDataGrid,
-							    optimizedDataGrid);
+							// Calcul et verification du cout
+							dMergedCost = dGranularityBestCost + dFusionDeltaCost;
+							// Le cout precedent devra etre correct
+							assert(dMergedCost * (1 - dEpsilon) <
+							       dataGridCosts->ComputeDataGridTotalCost(
+								   &granularizedPostMergedOptimizedDataGrid));
+							assert(dataGridCosts->ComputeDataGridTotalCost(
+								   &granularizedPostMergedOptimizedDataGrid) <
+							       dMergedCost * (1 + dEpsilon));
+							if (bDisplayResults)
+							{
+								cout << "OptimizeDataGrid: Niveau prepartitionnement \t"
+								     << granularizedOptimizedDataGrid
+									    ->GetInnerAttributes()
+									    ->GetVarPartGranularity()
+								     << "\t Grille avant fusion \t"
+								     << dGranularityBestCost << "\n";
+								granularizedOptimizedDataGrid->Write(cout);
+							}
 						}
 						else
-						{
-							dBestMergedCost = dMergedCost;
-							dBestCost = dGranularityBestCost;
+							dMergedCost = dGranularityBestCost;
 
-							// Memorisation de l'antecedent du nouvel optimum avant post-fusion
-							dataGridManager.CopyDataGrid(granularizedOptimizedDataGrid,
-										     optimizedDataGrid);
+						if (dMergedCost < dBestMergedCost - dEpsilon)
+						{
+							if (NEW())
+							{
+								dBestMergedCost = dMergedCost;
+								dBestCost = dMergedCost;
+
+								// Memorisation de l'antecedent du nouvel optimum avant post-fusion
+								dataGridManager.CopyDataGrid(
+								    &granularizedPostMergedOptimizedDataGrid,
+								    optimizedDataGrid);
+							}
+							else
+							{
+								dBestMergedCost = dMergedCost;
+								dBestCost = dGranularityBestCost;
+
+								// Memorisation de l'antecedent du nouvel optimum avant post-fusion
+								dataGridManager.CopyDataGrid(
+								    granularizedOptimizedDataGrid, optimizedDataGrid);
+							}
 						}
 					}
 
