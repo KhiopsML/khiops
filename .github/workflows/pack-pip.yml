@@ -47,7 +47,7 @@ jobs:
           call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
           set >> %GITHUB_ENV%
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.4.0
+        uses: pypa/cibuildwheel@v3.4.1
       - name: install Python
         uses: actions/setup-python@v6
         with:
@@ -87,12 +87,12 @@ jobs:
         run: |
           mv packaging/pip/pyproject-kni.toml pyproject.toml
       - name: Build kni wheels
-        uses: pypa/cibuildwheel@v3.4.0
+        uses: pypa/cibuildwheel@v3.4.1
       - name: Move pyproject-knitransfer file to the root of the repository
         run: |
           mv packaging/pip/pyproject-knitransfer.toml pyproject.toml
       - name: Build knitransfer wheels
-        uses: pypa/cibuildwheel@v3.4.0
+        uses: pypa/cibuildwheel@v3.4.1
       - uses: actions/upload-artifact@v7
         with:
           name: pkg-wheel-${{ matrix.os }}
