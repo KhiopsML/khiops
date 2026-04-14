@@ -20,6 +20,11 @@ KWDataGridOptimizer::KWDataGridOptimizer()
 
 KWDataGridOptimizer::~KWDataGridOptimizer() {}
 
+boolean KWDataGridOptimizer::NEW()
+{
+	return true;
+}
+
 void KWDataGridOptimizer::Reset()
 {
 	classStats = NULL;
@@ -465,8 +470,8 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 			nGranularityIndex++;
 		}
 
-		// Post-optimisation de la grnularite dans le le cas d'unze grille supervisee pour laquelle
-		// la granularite fait partie des parametre du modele
+		// Post-optimisation de la granularite dans le le cas d'une grille supervisee pour laquelle
+		// la granularite fait partie des parametres du modele
 		if (IsSupervisedDataGrid(initialDataGrid))
 		{
 			// Post-optimisation de la granularite : on attribue a la grille optimale la plus petite

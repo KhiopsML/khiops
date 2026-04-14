@@ -27,6 +27,9 @@ public:
 	KWDataGridOptimizer();
 	~KWDataGridOptimizer();
 
+	//DDD Indicateur des nouveau algorithme
+	static boolean NEW();
+
 	// Reinitialisation
 	virtual void Reset();
 
@@ -301,6 +304,7 @@ protected:
 	mutable int nVNSNeighbourhoodLevelNumber;
 	mutable double dVNSNeighbourhoodSize;
 	boolean bProtoSurtokenisation;
+
 	// Contexte de gestion de la partie anytime de l'optimisation
 	const KWAttributeSubsetStats* attributeSubsetStatsHandler;
 

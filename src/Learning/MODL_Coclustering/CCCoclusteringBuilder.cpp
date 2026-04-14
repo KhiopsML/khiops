@@ -347,7 +347,7 @@ boolean CCCoclusteringBuilder::CheckVarPartSpecifications() const
 boolean CCCoclusteringBuilder::ComputeCoclustering()
 {
 	boolean bOk = true;
-	boolean bProfileOptimisation = false;
+	boolean bProfileOptimisation = true;
 	KWTupleTable tupleTable;
 	KWTupleTable tupleFrequencyTable;
 	KWDataGridOptimizer dataGridOptimizer;
@@ -569,7 +569,7 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 		// CH IV Refactoring : DDDDD
 		// Test du remplacement de la methode actuelle, par son proto
 		boolean bNewPROTO = false;
-		if (bNewPROTO)
+		if (bNewPROTO or KWDataGridOptimizer::NEW())
 			PROTO_OptimizeVarPartDataGrid(inputInitialDataGrid, optimizedDataGrid);
 		else
 			OptimizeVarPartDataGrid(inputInitialDataGrid, optimizedDataGrid);
