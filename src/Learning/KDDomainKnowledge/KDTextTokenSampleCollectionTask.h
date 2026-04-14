@@ -48,19 +48,6 @@ public:
 	///// Implementation
 protected:
 	//////////////////////////////////////////////////////////////////////////////////////////
-	// Implementation basique non parallelise, sans dimensionnement, et avec probleme de scalabilite
-	// A terme, cette implementation sera supprimee
-
-	// Implementation en sequentiel, sans dimensionnement et sans passer par les methode de la tache
-	boolean SequentialCollectTokenSamples(const KWDatabase* sourceDatabase);
-
-	// Analyse de la base de donnees pour en extraire les tokens a l'aide de tokenizer par attribut de type texte
-	// La base en parametre est ouverte et ses objets analyses, puis la base est fermee
-	boolean AnalyseDatabase(KWDatabase* database, ObjectArray* oaTextTokenizers);
-
-	// Analyse d'un objet pour en extraire les tokens a l'aide de tokenizer par attribut de type texte
-	boolean AnalyseDatabaseObject(const KWObject* kwoObject, ObjectArray* oaTextTokenizers);
-
 	// Calcul du nombre de tokens a collecter en mode flux pour assurer la stabilite des resultats
 	// En mode flux, on fait une premiere passe avec ce nombre de tokens pour avoir les tokens les
 	// plus frequents, mais avec une incertitude sur les comptes
