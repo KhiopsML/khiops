@@ -698,7 +698,6 @@ def check_results(test_dir, forced_context=None):
         # a des scenario n'ayant pas pu s'excuter entierement pour des raison de portabilite
         for file_name in test_file_names:
             fatal_error_recovery = True
-            _, file_extension = os.path.splitext(file_name)
             # Cas d'une erreur fatale
             if file_name in kht.SPECIAL_ERROR_FILES:
                 special_error_file_error_numbers[file_name] = (
