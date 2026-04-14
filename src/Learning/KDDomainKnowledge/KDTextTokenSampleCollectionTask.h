@@ -48,16 +48,8 @@ public:
 	///// Implementation
 protected:
 	//////////////////////////////////////////////////////////////////////////////////////////
-	// Implementation prototype permettant de tester les entree-sortie de la tache et son
-	// integration dans le frawework de construction de variables de type texte
-	//
 	// Implementation basique non parallelise, sans dimensionnement, et avec probleme de scalabilite
 	// A terme, cette implementation sera supprimee
-
-	// Prototype basique de la methode principale
-	// Construit un resultat conforme aux specifications avec des tokens "synthetiques", sans aucune analyse de la base
-	// Permet de tester l'integration basique de la classe
-	boolean DummyCollectTokenSamples(const KWDatabase* sourceDatabase);
 
 	// Implementation en sequentiel, sans dimensionnement et sans passer par les methode de la tache
 	boolean SequentialCollectTokenSamples(const KWDatabase* sourceDatabase);

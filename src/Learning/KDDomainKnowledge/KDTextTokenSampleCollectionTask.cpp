@@ -137,56 +137,6 @@ const ALString& KDTextTokenSampleCollectionTask::GetTextFeatures() const
 	return shared_sTextFeatures.GetValue();
 }
 
-boolean KDTextTokenSampleCollectionTask::DummyCollectTokenSamples(const KWDatabase* sourceDatabase)
-{
-	boolean bOk = true;
-	KWClass* kwcMainClass;
-	int nAttribute;
-	KWAttribute* attribute;
-	int nTokenNumber;
-	int nToken;
-	ObjectArray* oaTokens;
-	KWTokenFrequency* token;
-	ALString sTmp;
-
-	require(sourceDatabase != NULL);
-	require(ivMasterTokenNumbers != NULL);
-	require(oaMasterCollectedTokenSamples != NULL);
-
-	// Recherche de la classe principale
-	kwcMainClass = KWClassDomain::GetCurrentDomain()->LookupClass(sourceDatabase->GetClassName());
-	check(kwcMainClass);
-
-	// Collecte des tokens pour chaque chemin d'acces aux attributs de type Text
-	for (nAttribute = 0; nAttribute < kwcMainClass->GetUsedAttributeNumber(); nAttribute++)
-	{
-		attribute = kwcMainClass->GetUsedAttributeAt(nAttribute);
-		assert(KWType::IsTextBased(attribute->GetType()));
-
-		// Recherche du nombre de tokens a extraire
-		nTokenNumber = ivMasterTokenNumbers->GetAt(nAttribute);
-		assert(nTokenNumber >= 0);
-
-		// Recherche du tableau de token a alimenter
-		oaTokens = cast(ObjectArray*, oaMasterCollectedTokenSamples->GetAt(nAttribute));
-		assert(oaTokens != NULL);
-		assert(oaTokens->GetSize() == 0);
-
-		// Generation des tokens
-		for (nToken = 0; nToken < nTokenNumber; nToken++)
-		{
-			token = new KWTokenFrequency;
-			if (nToken < 26)
-				token->SetToken(char('A' + nToken));
-			else
-				token->SetToken(sTmp + "W" + IntToString(nToken + 1));
-			token->SetFrequency((longint)nTokenNumber + 1 - nToken);
-			oaTokens->Add(token);
-		}
-	}
-	return bOk;
-}
-
 boolean KDTextTokenSampleCollectionTask::SequentialCollectTokenSamples(const KWDatabase* sourceDatabase)
 {
 	boolean bOk = true;
