@@ -331,7 +331,40 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 				// de la grille post-fusionnee de granularizedOptimizedDataGrid
 				if (granularizedOptimizedDataGrid->IsVarPartDataGrid())
 				{
-					if (not NEW())
+					if (NEW())
+					{
+						// Cas d'amelioration du cout
+						if (dGranularityBestCost < dBestCost - dEpsilon)
+						{
+							dBestCost = dGranularityBestCost;
+
+							// Memorisation du nouvel optimum
+							dataGridManager.CopyDataGrid(granularizedOptimizedDataGrid,
+										     optimizedDataGrid);
+							if (bDisplayResults)
+							{
+								cout << "OptimizeDataGrid: Grille "
+									"granularizedOptimizedDataGrid"
+								     << endl;
+								granularizedOptimizedDataGrid->Write(cout);
+							}
+						}
+
+						// Cas ou il s'agit de la derniere granularite : on met a jour les infos dans le
+						// cas d'un coclustering
+						if (bIsLastGranularity)
+						{
+							if (bDisplayResults)
+								cout << "OptimizeDataGrid: Mise a jour de la "
+									"memorisation du "
+									"coclustering pour la derniere granularite "
+								     << endl;
+
+							HandleOptimizationStep(optimizedDataGrid, &granularizedDataGrid,
+									       true);
+						}
+					}
+					else // if (not NEW())
 					{
 
 						if (granularizedOptimizedDataGrid->GetInformativeAttributeNumber() >
@@ -982,8 +1015,13 @@ double KWDataGridOptimizer::InitializeWithTerminalDataGrid(const KWDataGrid* ini
 	DisplayOptimizationDetails(optimizedDataGrid, true);
 
 	// Retour du cout
-	ensure(fabs(dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) - dBestCost) < dEpsilon);
-	return dBestCost;
+	if (NEW())
+		return dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
+	else // if (not NEW())
+	{
+		ensure(fabs(dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) - dBestCost) < dEpsilon);
+		return dBestCost;
+	}
 }
 
 double
@@ -1246,11 +1284,22 @@ double KWDataGridOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* initi
 			// la meilleure grille sans fusion des PV adjacentes dans un meme cluster
 			dCost = VNSOptimizeVarPartDataGrid(initialDataGrid, nNeighbourhoodLevelNumber, &currentDataGrid,
 							   dMergedCost, bWithoutAntecedent);
-			if (dMergedCost < dBestMergedCost - dEpsilon)
+			if (NEW())
 			{
-				dBestCost = dCost;
-				dBestMergedCost = dMergedCost;
-				SaveDataGrid(&currentDataGrid, optimizedDataGrid);
+				if (dCost < dBestCost - dEpsilon)
+				{
+					dBestCost = dCost;
+					SaveDataGrid(&currentDataGrid, optimizedDataGrid);
+				}
+			}
+			if (not NEW())
+			{
+				if (dMergedCost < dBestMergedCost - dEpsilon)
+				{
+					dBestCost = dCost;
+					dBestMergedCost = dMergedCost;
+					SaveDataGrid(&currentDataGrid, optimizedDataGrid);
+				}
 			}
 		}
 		KWDataGridOptimizer::GetProfiler()->EndMethod("VNS optimize");
@@ -1265,15 +1314,24 @@ double KWDataGridOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* initi
 	}
 	assert(dBestCost < DBL_MAX);
 
-	if (optimizedDataGrid->IsVarPartDataGrid() and bWithoutAntecedent)
-	{
-		ensure(fabs(dBestMergedCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
-		return dBestMergedCost;
-	}
-	else
+	if (NEW())
 	{
 		ensure(fabs(dBestCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
 		return dBestCost;
+	}
+	else // if (not NEW())
+	{
+		if (optimizedDataGrid->IsVarPartDataGrid() and bWithoutAntecedent)
+		{
+			ensure(fabs(dBestMergedCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) <
+			       dEpsilon);
+			return dBestMergedCost;
+		}
+		else
+		{
+			ensure(fabs(dBestCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
+			return dBestCost;
+		}
 	}
 }
 
@@ -1866,6 +1924,8 @@ double KWDataGridOptimizer::VNSOptimizeVarPartDataGrid(const KWDataGrid* initial
 		       dEpsilon);
 	else
 		ensure(fabs(dBestCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
+	if (NEW())
+		dBestCost = dBestMergedDataGridCost;
 	return dBestCost;
 }
 

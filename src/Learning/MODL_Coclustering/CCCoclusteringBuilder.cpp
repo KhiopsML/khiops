@@ -1109,7 +1109,8 @@ void CCCoclusteringBuilder::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inpu
 
 			// Initialisation du modele par defaut : ce modele depend du partitionnement des
 			// attributs internes
-			coclusteringDataGridCosts->InitializeDefaultCosts(&partitionedDataGrid);
+			if (not KWDataGridOptimizer::NEW())
+				coclusteringDataGridCosts->InitializeDefaultCosts(&partitionedDataGrid);
 
 			// Optimisation de la grille pre-partitionnee
 			// Le cout dPartitionBestCost est le cout de la grille antecedente de la meilleure
