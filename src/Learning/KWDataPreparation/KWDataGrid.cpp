@@ -2783,6 +2783,7 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 	KWDGPart* otherPart;
 	KWDGValue* value;
 	NumericKeyDictionary nkdOtherPartsPerValue;
+	ALString sTmp;
 
 	require(otherAttribute != NULL);
 	require(GetAttributeName() == otherAttribute->GetAttributeName());
@@ -2791,6 +2792,10 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 
 	// On doit avoir un nombre superieur de partie
 	bOk = GetPartNumber() >= otherAttribute->GetPartNumber();
+	if (not bOk)
+		AddError(sTmp + "The number of source parts (" + IntToString(GetPartNumber()) +
+			 ") should be greater than or equal to the number of target parts (" +
+			 IntToString(otherAttribute->GetPartNumber()) + ")");
 
 	// Test d'inclusion des parties
 	if (bOk)
@@ -2799,32 +2804,58 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 		if (otherAttribute->GetAttributeType() == KWType::Continuous)
 		{
 			// Test des borne extremes
-			bOk = bOk and GetHeadPart()->GetInterval()->GetLowerBound() ==
-					  otherAttribute->GetHeadPart()->GetInterval()->GetLowerBound();
-			bOk = bOk and GetTailPart()->GetInterval()->GetUpperBound() ==
-					  otherAttribute->GetTailPart()->GetInterval()->GetUpperBound();
+			if (bOk and GetHeadPart()->GetInterval()->GetLowerBound() !=
+					otherAttribute->GetHeadPart()->GetInterval()->GetLowerBound())
+			{
+				bOk = false;
+				AddError(
+				    sTmp + "The lower bound of the first source interval (" +
+				    KWContinuous::ContinuousToString(GetHeadPart()->GetInterval()->GetLowerBound()) +
+				    ") should be equal to the lower bound of the first target interval (" +
+				    KWContinuous::ContinuousToString(
+					otherAttribute->GetHeadPart()->GetInterval()->GetLowerBound()) +
+				    ")");
+			}
+
+			if (bOk and GetTailPart()->GetInterval()->GetUpperBound() !=
+					otherAttribute->GetTailPart()->GetInterval()->GetUpperBound())
+			{
+				bOk = false;
+				AddError(
+				    sTmp + "The upper bound of the last source interval (" +
+				    KWContinuous::ContinuousToString(GetTailPart()->GetInterval()->GetUpperBound()) +
+				    ") should be equal to the upper bound of the last target interval (" +
+				    KWContinuous::ContinuousToString(
+					otherAttribute->GetTailPart()->GetInterval()->GetUpperBound()) +
+				    ")");
+			}
 
 			// Parcours des intervalles pour verifier leur inclusion
-			part = GetHeadPart();
-			otherPart = otherAttribute->GetHeadPart();
-			while (part != NULL)
+			if (bOk)
 			{
-				// Test si l'intervalle est dans l'autre intervalle
-				if (part->IsSubPart(otherPart))
-					GetNextPart(part);
-				// Sinon, on teste dans l'autre intervalle suivant
-				else
+				part = GetHeadPart();
+				otherPart = otherAttribute->GetHeadPart();
+				while (part != NULL)
 				{
-					otherAttribute->GetNextPart(otherPart);
-
-					// Ok si on existence d'un intervalle suivant le contenant
-					if (otherPart != NULL and part->IsSubPart(otherPart))
+					// Test si l'intervalle est dans l'autre intervalle
+					if (part->IsSubPart(otherPart))
 						GetNextPart(part);
-					// Ko sinon
+					// Sinon, on teste dans l'autre intervalle suivant
 					else
 					{
-						bOk = false;
-						break;
+						otherAttribute->GetNextPart(otherPart);
+
+						// Ok si on existence d'un intervalle suivant le contenant
+						if (otherPart != NULL and part->IsSubPart(otherPart))
+							GetNextPart(part);
+						// Ko sinon
+						else
+						{
+							bOk = false;
+							AddError(sTmp + "Source interval " + part->GetObjectLabel() +
+								 " is not included in any target interval");
+							break;
+						}
 					}
 				}
 			}
@@ -2860,9 +2891,19 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 							part->GetValueSet()->GetHeadValue()->GetNumericKeyValue()));
 
 				// Pas d'inclusion si partie non trouvee ou non inclusante
-				if (otherPart == NULL or not part->IsSubPart(otherPart))
+				if (otherPart == NULL)
 				{
 					bOk = false;
+					AddError(sTmp + "Source part " + part->GetObjectLabel() + " contains value " +
+						 part->GetValueSet()->GetHeadValue()->GetObjectLabel() +
+						 " that does not exist in any target part");
+					break;
+				}
+				else if (not part->IsSubPart(otherPart))
+				{
+					bOk = false;
+					AddError(sTmp + "Source part " + part->GetObjectLabel() +
+						 " is not included in target part " + otherPart->GetObjectLabel());
 					break;
 				}
 
@@ -5122,6 +5163,7 @@ boolean KWDGInnerAttributes::ContainsSubVarParts(const KWDGInnerAttributes* othe
 	int nInnerAttribute;
 	KWDGAttribute* innerAttribute;
 	KWDGAttribute* otherInnerAttribute;
+	ALString sTmp;
 
 	require(otherInnerAttributes != NULL);
 
@@ -5131,6 +5173,10 @@ boolean KWDGInnerAttributes::ContainsSubVarParts(const KWDGInnerAttributes* othe
 
 	// On doit avoir le meme nombre d'attributs internes
 	bOk = GetInnerAttributeNumber() == otherInnerAttributes->GetInnerAttributeNumber();
+	if (not bOk)
+		AddError(sTmp + "The number of source inner variables (" + IntToString(GetInnerAttributeNumber()) +
+			 ") should be the same as the number of target inner variables (" +
+			 IntToString(otherInnerAttributes->GetInnerAttributeNumber()) + ")");
 
 	// Comparaison pour chaque attribut interne
 	if (bOk)
@@ -5140,14 +5186,48 @@ boolean KWDGInnerAttributes::ContainsSubVarParts(const KWDGInnerAttributes* othe
 			innerAttribute = GetInnerAttributeAt(nInnerAttribute);
 			otherInnerAttribute = otherInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
 
-			// On doit avoir la meme variable, avec un nombre inferieur de partie
-			bOk = bOk and innerAttribute->GetAttributeName() == otherInnerAttribute->GetAttributeName();
-			bOk = bOk and innerAttribute->GetAttributeType() == otherInnerAttribute->GetAttributeType();
-			bOk = bOk and
-			      innerAttribute->GetOwnerAttributeName() == otherInnerAttribute->GetOwnerAttributeName();
+			// Meme nom de variable
+			if (innerAttribute->GetAttributeName() != otherInnerAttribute->GetAttributeName())
+			{
+				bOk = false;
+				AddError(sTmp + "The source inner variable at rank " +
+					 IntToString(nInnerAttribute + 1) + " should have the same name (" +
+					 innerAttribute->GetAttributeName() + ") as the target inner variable (" +
+					 otherInnerAttribute->GetAttributeName() + ")");
+			}
+
+			// Meme type de variable
+			if (innerAttribute->GetAttributeType() != otherInnerAttribute->GetAttributeType())
+			{
+				bOk = false;
+				AddError(sTmp + "The source inner variable " + innerAttribute->GetAttributeName() +
+					 " should have the same type (" +
+					 KWType::ToString(innerAttribute->GetAttributeType()) +
+					 ") as the related target inner variable (" +
+					 KWType::ToString(otherInnerAttribute->GetAttributeType()) + ")");
+			}
+
+			// Meme nom de variable proprietaire
+			if (innerAttribute->GetOwnerAttributeName() != otherInnerAttribute->GetOwnerAttributeName())
+			{
+				bOk = false;
+				AddError(sTmp + "The source inner variable " + innerAttribute->GetAttributeName() +
+					 " should have the owner variable name (" +
+					 innerAttribute->GetOwnerAttributeName() +
+					 ") as the related target inner variable (" +
+					 otherInnerAttribute->GetOwnerAttributeName() + ")");
+			}
 
 			// Test d'inclusion des parties
-			bOk = bOk and innerAttribute->ContainsSubParts(otherInnerAttribute);
+			if (not innerAttribute->ContainsSubParts(otherInnerAttribute))
+			{
+				bOk = false;
+				AddError(sTmp + "The " + IntToString(innerAttribute->GetPartNumber()) +
+					 " parts of the source inner variable " + innerAttribute->GetAttributeName() +
+					 " should be included in the " +
+					 IntToString(otherInnerAttribute->GetPartNumber()) +
+					 " parts of the related target inner variable");
+			}
 			if (not bOk)
 				break;
 		}
