@@ -4254,8 +4254,9 @@ double KWDataGridManager::MergePartsForVarPartAttributes(const KWDataGrid* sourc
 				innerAttribute = targetDataGrid->GetInnerAttributes()->LookupInnerAttribute(
 				    currentValue->GetVarPart()->GetAttribute()->GetAttributeName());
 				innerAttribute->DeletePart(nextValue->GetVarPart());
-				innerAttribute->SetGranularizedValueNumber(
-				    innerAttribute->GetGranularizedValueNumber() - 1);
+				if (innerAttribute->GetPartNumber() > innerAttribute->GetGranularizedValueNumber())
+					innerAttribute->SetGranularizedValueNumber(
+					    innerAttribute->GetGranularizedValueNumber() - 1);
 
 				// Evaluation de la variation de cout du cluster du fait de la diminution du nombre de
 				// parties
