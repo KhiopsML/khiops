@@ -1423,6 +1423,7 @@ double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* ini
 							   KWDataGrid* partitionedReferencePostMergedDataGrid) const
 {
 	boolean bDisplayResults = false;
+	boolean bDisplayDetails = false;
 	double dMergedCost;
 	double dFusionDeltaCost;
 	KWDataGridManager dataGridManager;
@@ -1437,6 +1438,12 @@ double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* ini
 
 	// Initialisation du cout
 	dMergedCost = dNeighbourDataGridCost;
+	if (bDisplayResults)
+	{
+		cout << "VNSDataGridPostOptimizeVarPart: grille a post-optimiser\t" << dNeighbourDataGridCost << "\n";
+		if (bDisplayDetails)
+			cout << *neighbourDataGrid;
+	}
 
 	// CH AB AF a voir avec Marc
 	// Cas ou l'on peut fusionner les parties de variable des cluster
@@ -1452,12 +1459,20 @@ double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* ini
 		// Creation d'une nouvelle grille avec nouvelle description des PV fusionnees
 		dFusionDeltaCost = dataGridManager.ExportDataGridWithVarPartMergeOptimization(
 		    neighbourDataGrid, mergedDataGrid, dataGridCosts);
+		assert(dFusionDeltaCost <= dNeighbourDataGridCost * dEpsilon);
 
 		// Calcul et verification du cout
 		dMergedCost = dNeighbourDataGridCost + dFusionDeltaCost;
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dMergedCost);
+		if (bDisplayResults)
+		{
+			cout << "\tCout apres fusion des var parts\t" << dMergedCost << "\n";
+			if (bDisplayDetails)
+				cout << *mergedDataGrid;
+		}
 
 		// Cas ou le cout de la grille avec PV voisines fusionnees est plus eleve que le cout avant fusion
+		//DDD DEPRECATED???
 		if (dMergedCost > dNeighbourDataGridCost * (1 + dEpsilon) and bDisplayResults)
 		{
 			sLabel = "PROBLEME: degradation du cout lors de la fusion des parties de variables "
@@ -1494,14 +1509,14 @@ double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* ini
 			    mergedDataGrid->GetVarPartAttribute()->GetAttributeName());
 			if (bDisplayResults)
 			{
-				cout << "VNSDataGridPostOptimizeVarPart: grille a post-optimiser" << endl;
-				mergedDataGrid->Write(cout);
-				cout << "Debut PostOptimisation VarPart" << endl;
-				cout << "VNSDataGridPostOptimizeVarPart: grille initiale du DataGridOptimizer" << endl;
-				GetInitialVarPartDataGrid()->Write(cout);
-				cout << "VNSDataGridPostOptimizeVarPart: grille initiale utilisee pour l'export"
-				     << endl;
-				initialDataGrid->Write(cout);
+				cout << "\tDebut PostOptimisation VarPart\n";
+				if (bDisplayDetails)
+				{
+					cout << "\tGrille initiale du DataGridOptimizer\n";
+					cout << *GetInitialVarPartDataGrid();
+					cout << "Grille initiale utilisee pour l'export\n";
+					cout << *initialDataGrid;
+				}
 				cout << flush;
 			}
 
@@ -1534,13 +1549,15 @@ double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* ini
 				// Affichage de la grille courante
 				if (bDisplayResults)
 				{
-					cout << "nImprovementNumber\t" << nImprovementNumber << endl;
-					cout << "VNSDataGridPostOptimizeVarPart: grille post-fusionnee cout\t"
-					     << dMergedCost << endl;
-					mergedDataGrid->Write(cout);
-					cout << "VNSDataGridPostOptimizeVarPart : grille de reference" << endl;
-					partitionedReferencePostMergedDataGrid->Write(cout);
-					cout << flush;
+					cout << "\tImprovementNumber\t" << nImprovementNumber << endl;
+					cout << "\tGrille post-fusionnee\t" << dMergedCost << endl;
+					if (bDisplayDetails)
+						cout << *mergedDataGrid;
+					if (bDisplayDetails)
+					{
+						cout << "VNSDataGridPostOptimizeVarPart : grille de reference" << endl;
+						cout << *partitionedReferencePostMergedDataGrid;
+					}
 				}
 
 				// Exploration des deplacements pour tous les attributs
@@ -1557,10 +1574,10 @@ double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* ini
 					{
 						dNewMergedCost =
 						    dataGridCosts->ComputeDataGridTotalCost(mergedDataGrid);
-						cout << "VNSDataGridPostOptimizeVarPart: grille mise a jour best "
-							"deplacement\tCout\t"
-						     << dNewMergedCost << endl;
-						mergedDataGrid->Write(cout);
+						cout << "\tGrille mise a jour best deplacement\t" << dNewMergedCost
+						     << "\n";
+						if (bDisplayDetails)
+							cout << *mergedDataGrid;
 						assert(mergedDataGrid->Check());
 					}
 
@@ -1574,10 +1591,10 @@ double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* ini
 					    dataGridCosts->ComputeDataGridTotalCost(&mergedMergedDataGrid);
 					if (bDisplayResults)
 					{
-						cout << "VNSDataGridPostOptimizeVarPart: grille best deplacement "
-							"et fusionnee\tCout\t"
-						     << dMergedMergedCost << endl;
-						mergedMergedDataGrid.Write(cout);
+						cout << "\tGrille best deplacement et fusionnee\t" << dMergedMergedCost
+						     << "\n";
+						if (bDisplayDetails)
+							cout << mergedMergedDataGrid;
 					}
 
 					// Cas ou la post-optimisation permet d'ameliorer le cout
@@ -1596,10 +1613,12 @@ double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* ini
 						    initialDataGrid, mergedDataGrid, neighbourDataGrid);
 						if (bDisplayResults)
 						{
-							cout << "VNSDataGridPostOptimizeVarPart: grille best "
-								"deplacement et initiale"
-							     << endl;
-							neighbourDataGrid->Write(cout);
+							cout << "\tGrille best deplacement et initiale\t"
+							     << dataGridCosts->ComputeDataGridTotalCost(
+								    neighbourDataGrid)
+							     << "\n";
+							if (bDisplayDetails)
+								cout << *neighbourDataGrid;
 						}
 						dNeighbourDataGridCost =
 						    dataGridCosts->ComputeDataGridTotalCost(neighbourDataGrid);
@@ -1623,12 +1642,13 @@ double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* ini
 				KWDataGridOptimizer::GetProfiler()->EndMethod("Post-optimization IV");
 			}
 			if (bDisplayResults)
-				cout << "Fin PostOptimisation VarPart" << endl;
+				cout << "\tFin PostOptimisation VarPart" << endl;
 		}
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dMergedCost);
 	}
 
 	ensure(fabs(dNeighbourDataGridCost - dataGridCosts->ComputeDataGridTotalCost(neighbourDataGrid)) < dEpsilon);
+	//DDD ensure(fabs(dMergedCost - dataGridCosts->ComputeDataGridTotalCost(mergedDataGrid)) < dEpsilon);
 	return dMergedCost;
 }
 
