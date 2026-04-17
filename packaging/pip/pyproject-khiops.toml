@@ -14,7 +14,6 @@ readme = "README.md"
 license = "BSD-3-Clause-Clear"
 license-files = ["LICENSE"]
 authors = [{name = "The Khiops Team", email = "khiops.team@orange.com"}]
-requires-python = ">=3.9"
 dependencies = [
     "openmpi ; platform_system in '[Linux, Darwin]'",
     "impi-rt ; platform_system == 'Windows'"
@@ -22,8 +21,9 @@ dependencies = [
 dynamic = ["version"]
 
 [tool.scikit-build]
-# Neither Python code nor CPython library usage in this package so we specify full compatibility with all Python 3 releases
-wheel.py-api = "py3"
+# CPython 3.9 stable ABI: use cp39 tag to ensure compatibility only with Python 3.9+
+# (py3 is for pure Python packages only)
+wheel.py-api = "cp39"
 # Read CMake minimal version from file
 cmake.version = "CMakeLists.txt" 
 # Generator specification and build configuration
