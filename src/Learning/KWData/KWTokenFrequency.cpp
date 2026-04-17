@@ -4,6 +4,15 @@
 
 #include "KWTokenFrequency.h"
 
+longint KWTokenFrequency::GetUsedMemory() const
+{
+	longint lUsedMemory;
+
+	lUsedMemory = sizeof(KWTokenFrequency);
+
+	return lUsedMemory;
+}
+
 void KWTokenFrequency::Write(ostream& ost) const
 {
 	ost << "(" << TextService::ByteStringToWord(sToken) << ", " << lFrequency << ")";

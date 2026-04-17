@@ -163,6 +163,10 @@ public:
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
 
+	// Estimation de la memoire  utilisee par token, pour le dimensionnement
+	// a priori des tokenizers
+	longint GetUsedMemoryPerToken(int nTokenLength) const;
+
 	// Affichage, ecriture dans un fichier
 	void Write(ostream& ost) const override;
 

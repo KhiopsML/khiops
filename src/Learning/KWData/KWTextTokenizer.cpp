@@ -27,6 +27,7 @@ void KWTextTokenizer::Reset()
 	gdSpecificTokens = NULL;
 	nMaxCollectedTokenNumber = 0;
 	bIsDeploymentMode = false;
+	lvSpecificTokenFrequencies.SetSize(0);
 	CleanCollectedTokens();
 }
 
@@ -60,7 +61,7 @@ void KWTextTokenizer::SetSpecificTokens(const ObjectArray* oaTokens)
 
 			// Memorisation de l'index du token en demarant a 1 pour indiquer sa presence
 			assert(ldSpecificTokens->Lookup(token->GetToken()) == 0);
-			ldSpecificTokens->SetAt(token->GetToken(), nToken + 1);
+			ldSpecificTokens->SetAt(token->GetToken(), (longint)nToken + 1);
 		}
 		assert(ldSpecificTokens->GetCount() == oaTokens->GetSize());
 
@@ -256,6 +257,7 @@ void KWTextTokenizer::CleanCollectedTokens()
 
 	gdCollectedTokens->RemoveAll();
 	ivUsedSpecificTokenIndexes.SetSize(0);
+	lvSpecificTokenFrequencies.Initialize();
 	ensure(GetCollectedTokenNumber() == 0);
 }
 
@@ -503,9 +505,39 @@ longint KWTextTokenizer::GetUsedMemory() const
 	lUsedMemory = sizeof(KWTextTokenizer);
 	if (gdSpecificTokens != NULL)
 		lUsedMemory += gdSpecificTokens->GetUsedMemory();
-	lUsedMemory += gdCollectedTokens->GetUsedMemory();
+	if (gdCollectedTokens != NULL)
+		lUsedMemory += gdCollectedTokens->GetUsedMemory();
 	lUsedMemory += lvSpecificTokenFrequencies.GetUsedMemory() - sizeof(LongintVector);
 	lUsedMemory += ivUsedSpecificTokenIndexes.GetUsedMemory() - sizeof(IntVector);
+	return lUsedMemory;
+}
+
+longint KWTextTokenizer::GetUsedMemoryPerToken(int nTokenLength) const
+{
+	longint lUsedMemory;
+	LongintDictionary ldForMemoryEstimation;
+
+	// Initialisations
+	lUsedMemory = 0;
+
+	// Memorisation d'un token specifique dans gdSpecificTokens
+	// - un token occupe sa longueur fois la taille d'un caractere
+	// - sa presence dans le dictionnaire generique occupe une taille a priori
+	// donee par la methode LongintDictionary::GetUsedMemoryPerElement
+	lUsedMemory += nTokenLength * sizeof(char) + ldForMemoryEstimation.GetUsedMemoryPerElement();
+
+	// Memorisation de l'effectif d'un token specifique dans lvSpecificTokenFrequencies
+	lUsedMemory += sizeof(longint);
+
+	// Memorisation de l'index d'un token specifique effectivement utilise dans ivUsedSpecificTokenIndexes
+	lUsedMemory += sizeof(int);
+
+	// Memorisation d'un token collecte dans gdCollectedTokens
+	// - un token occupe sa longueur fois la taille d'un caractere
+	// - sa presence dans le dictionnaire generique occupe une taille a priori
+	// donee par la methode LongintDictionary::GetUsedMemoryPerElement
+	lUsedMemory += nTokenLength * sizeof(char) + ldForMemoryEstimation.GetUsedMemoryPerElement();
+
 	return lUsedMemory;
 }
 
@@ -543,7 +575,7 @@ void KWTextTokenizer::Test()
 
 void KWTextTokenizer::TokenizeText(const char* sText, int nTextLength)
 {
-	debug(boolean bDisplay = false);
+	debug(const boolean bTrace = false);
 	LongintDictionary* ldCollectedTokens;
 	LongintDictionary* ldSpecificTokens;
 	const char* sStringValue;
@@ -557,7 +589,7 @@ void KWTextTokenizer::TokenizeText(const char* sText, int nTextLength)
 	debug(int nCheckedTotalIgnoredCharNumber = 0);
 
 	// Affichage de la chaine de caractere a analyser
-	debug(if (bDisplay) cout << sText << "\n");
+	debug(if (bTrace) cout << sText << "\n");
 
 	// Acces aux tokens du bon type
 	ldCollectedTokens = cast(LongintDictionary*, gdCollectedTokens);
@@ -635,9 +667,9 @@ void KWTextTokenizer::TokenizeText(const char* sText, int nTextLength)
 						    nCheckedTotalIgnoredCharNumber));
 
 				// Affichage
-				debug(if (bDisplay) cout << "\t" << sToken.GetLength() << "\t"
-							 << ldCollectedTokens->Lookup(sToken) << "\t("
-							 << ByteStringToWord(sToken) << ")\n");
+				debug(if (bTrace) cout << "\t" << sToken.GetLength() << "\t"
+						       << ldCollectedTokens->Lookup(sToken) << "\t("
+						       << ByteStringToWord(sToken) << ")\n");
 
 				// Reinitialisation du token, sans desallouer sa memoire
 				sToken.GetBufferSetLength(0);
@@ -658,7 +690,7 @@ void KWTextTokenizer::UpgradeTokenFrequency(const ALString& sToken, longint lFre
 
 	// Incrementation de son effectif dans le cas sans token specifique
 	if (gdSpecificTokens == NULL)
-		cast(LongintDictionary*, gdCollectedTokens)->UpgradeAt(sToken, 1);
+		cast(LongintDictionary*, gdCollectedTokens)->UpgradeAt(sToken, lFrequency);
 	// Et dans le cas avec token specifique
 	else
 	{
@@ -673,7 +705,7 @@ void KWTextTokenizer::UpgradeTokenFrequency(const ALString& sToken, longint lFre
 				ivUsedSpecificTokenIndexes.Add(nSpecificTokenIndex);
 
 			// Incrementation de l'effectif
-			lvSpecificTokenFrequencies.UpgradeAt(nSpecificTokenIndex, 1);
+			lvSpecificTokenFrequencies.UpgradeAt(nSpecificTokenIndex, lFrequency);
 		}
 	}
 }
@@ -730,7 +762,7 @@ void KWTextTokenizer::StreamCleanTokenDictionary(GenericDictionary* gdTokenDicti
 				   nMaxTokenNumber);
 
 			// Decrementation de tous les comptes de tokens de l'effectif minimum -1, et troncature a zero
-			gdTokenDictionary->BoundedUpgradeAll(-(nMinFrequency - 1), 0, LLONG_MAX);
+			gdTokenDictionary->BoundedUpgradeAll(-((longint)nMinFrequency - 1), 0, LLONG_MAX);
 
 			// Suppression de cle pour le compte a 0
 			gdTokenDictionary->RemoveAllNullValues();
@@ -868,13 +900,14 @@ void KWTextNgramTokenizer::SetSpecificTokens(const ObjectArray* oaTokens)
 
 	require(GetCollectedTokenNumber() == 0);
 	require(not gdCollectedTokens->IsStringKey());
-	require(lvSpecificTokenFrequencies.GetSize() == 0);
 	require(ivUsedSpecificTokenIndexes.GetSize() == 0);
 
 	// Nettoyage prealable
 	if (gdSpecificTokens != NULL)
 		delete gdSpecificTokens;
 	gdSpecificTokens = NULL;
+	lvSpecificTokenFrequencies.SetSize(0);
+	bIsDeploymentMode = false;
 
 	// Prise en compte de la specification
 	if (oaTokens != NULL)
@@ -891,7 +924,7 @@ void KWTextNgramTokenizer::SetSpecificTokens(const ObjectArray* oaTokens)
 			// Memorisation de l'index du token en demarant a 1 pour indiquer sa presence
 			lEncodedNgram = NgramToLongint(token->GetToken());
 			assert(lnkdSpecificTokens->Lookup(lEncodedNgram) == 0);
-			lnkdSpecificTokens->SetAt(lEncodedNgram, nToken + 1);
+			lnkdSpecificTokens->SetAt(lEncodedNgram, (longint)nToken + 1);
 
 			// Dimensionnement du vecteur d'effectifs
 			lvSpecificTokenFrequencies.SetSize(oaTokens->GetSize() + 1);
@@ -1152,7 +1185,7 @@ void KWTextNgramTokenizer::Test()
 
 void KWTextNgramTokenizer::TokenizeText(const char* sText, int nTextLength)
 {
-	debug(boolean bDisplay = false);
+	debug(const boolean bTrace = false);
 	const char* sCurrentStringValue;
 	int nMaxUsableNgramLength;
 	longint lEncodedNgram;
@@ -1171,7 +1204,7 @@ void KWTextNgramTokenizer::TokenizeText(const char* sText, int nTextLength)
 	require((int)strlen(sText) == nTextLength);
 
 	// Affichage de la chaine de caractere a analyser
-	debug(if (bDisplay) cout << sText << "\n");
+	debug(if (bTrace) cout << sText << "\n");
 
 	// Effectif cumule initial des tokens
 	// On ne le fait que de temps en temps, car c'est tres couteux
@@ -1183,6 +1216,7 @@ void KWTextNgramTokenizer::TokenizeText(const char* sText, int nTextLength)
 	debug(lnkdSpecificTokens = cast(LongintNumericKeyDictionary*, gdSpecificTokens));
 
 	// Acces a la memoire du longint lEncodedNgram sous forme d'un tableau de bytes
+	lEncodedNgram = 0;
 	sEncodedNgramBytes = (char*)&lEncodedNgram;
 
 	// Analyse de la chaine pour en extraire tous les ngrams
@@ -1210,7 +1244,7 @@ void KWTextNgramTokenizer::TokenizeText(const char* sText, int nTextLength)
 			UpgradeNgramTokenFrequency(lEncodedNgram, 1);
 
 			// Affichage
-			debug(if (bDisplay) cout
+			debug(if (bTrace) cout
 			      << "\t" << n << "\t" << nNgramLength << "\t"
 			      << (lnkdSpecificTokens != NULL ? lnkdSpecificTokens->Lookup(lEncodedNgram)
 							     : lnkdCollectedTokens->Lookup(lEncodedNgram))
@@ -1240,7 +1274,7 @@ void KWTextNgramTokenizer::UpgradeNgramTokenFrequency(longint lEncodedNgram, lon
 
 	// Incrementation de son effectif dans le cas sans token specifique
 	if (gdSpecificTokens == NULL)
-		cast(LongintNumericKeyDictionary*, gdCollectedTokens)->UpgradeAt(lEncodedNgram, 1);
+		cast(LongintNumericKeyDictionary*, gdCollectedTokens)->UpgradeAt(lEncodedNgram, lFrequency);
 	// Et dans le cas avec token specifique
 	else
 	{
@@ -1255,7 +1289,7 @@ void KWTextNgramTokenizer::UpgradeNgramTokenFrequency(longint lEncodedNgram, lon
 				ivUsedSpecificTokenIndexes.Add(nSpecificTokenIndex);
 
 			// Incrementation de l'effectif
-			lvSpecificTokenFrequencies.UpgradeAt(nSpecificTokenIndex, 1);
+			lvSpecificTokenFrequencies.UpgradeAt(nSpecificTokenIndex, lFrequency);
 		}
 	}
 }
@@ -1333,7 +1367,7 @@ void KWTextWordTokenizer::Test()
 
 void KWTextWordTokenizer::TokenizeText(const char* sText, int nTextLength)
 {
-	debug(boolean bDisplay = false);
+	debug(const boolean bTrace = false);
 	LongintDictionary* ldCollectedTokens;
 	LongintDictionary* ldSpecificTokens;
 	const char* sStringValue;
@@ -1349,7 +1383,7 @@ void KWTextWordTokenizer::TokenizeText(const char* sText, int nTextLength)
 	debug(int nCheckedTotalIgnoredCharNumber = 0);
 
 	// Affichage de la chaine de caractere a analyser
-	debug(if (bDisplay) cout << sText << "\n");
+	debug(if (bTrace) cout << sText << "\n");
 
 	// Acces aux tokens du bon type
 	ldCollectedTokens = cast(LongintDictionary*, gdCollectedTokens);
@@ -1438,9 +1472,9 @@ void KWTextWordTokenizer::TokenizeText(const char* sText, int nTextLength)
 						    nCheckedTotalIgnoredCharNumber));
 
 				// Affichage
-				debug(if (bDisplay) cout << "\t" << sToken.GetLength() << "\t"
-							 << ldCollectedTokens->Lookup(sToken) << "\t("
-							 << ByteStringToWord(sToken) << ")\n");
+				debug(if (bTrace) cout << "\t" << sToken.GetLength() << "\t"
+						       << ldCollectedTokens->Lookup(sToken) << "\t("
+						       << ByteStringToWord(sToken) << ")\n");
 
 				// Reinitialisation du token, sans desallouer sa memoire
 				sToken.GetBufferSetLength(0);
