@@ -41,6 +41,9 @@ def build_tool_exe_path(tool_binaries_dir, tool_name, use_khiops_env):
     assert tool_name in kht.TOOL_NAMES
     tool_exe_path = None
     error_message = ""
+    current_platform = results.get_context_platform_type()
+    assert current_platform in kht.RESULTS_REF_TYPE_VALUES[kht.PLATFORM]
+
     # Cas particulier de la comparaison seulement
     if tool_binaries_dir == "check":
         return "check", error_message
@@ -60,8 +63,10 @@ def build_tool_exe_path(tool_binaries_dir, tool_name, use_khiops_env):
         elif tool_name == kht.KNI:
             # cas particulier de KNITransfer, qui n'est pas positionne dans une variable d'environnement dans khiops_env,
             # mais dont le chemin est deduit du chemin de KHIOPS_PATH
+            suffix = ".exe" if current_platform == "Windows" else ""
             tool_exe_path = os.path.join(
-                os.path.dirname(os.environ["KHIOPS_PATH"]), kht.TOOL_EXE_NAMES[kht.KNI]
+                os.path.dirname(os.environ["KHIOPS_PATH"]),
+                kht.TOOL_EXE_NAMES[kht.KNI] + suffix,
             )
             if not os.path.isfile(tool_exe_path):
                 tool_exe_path = None
@@ -72,8 +77,6 @@ def build_tool_exe_path(tool_binaries_dir, tool_name, use_khiops_env):
 
     # Recherche du repertoire des binaires de l'environnement de developpement
     alias_info = ""
-    current_platform = results.get_context_platform_type()
-    assert current_platform in kht.RESULTS_REF_TYPE_VALUES[kht.PLATFORM]
 
     # Cas d'un alias pour rechercher le repertoire des binaires dans l'environnement de developpement
     actual_tool_binaries_dir = ""
@@ -376,15 +379,6 @@ def evaluate_tool_on_test_dir(
         # khiops par defaut en mode en mode API via une variable d'environnement
         os.environ[kht.KHIOPS_API_MODE] = "true"
 
-        # Ajout de variables d'environements propres a OpenMPI, elles remplacent les parametres
-        # on peut ainsi lancer indiferemment mpich ou openmpi
-        if platform.system() == "Linux":
-            # Supprime les traces en cas d'erreur fatale de khiops. Option --quiet
-            os.environ["OMPI_MCA_orte_execute_quiet"] = "true"
-
-            # permet de lancer plus de processus qu'il n'y a de coeurs. Option --oversubscribe
-            os.environ["OMPI_MCA_rmaps_base_oversubscribe"] = "true"
-
         # Ajout du path des bibliotheques MPI defini dans khiops_env
         if os.environ.get("KHIOPS_MPI_DLL_PATH"):
             # Nom de la variable d'environnement specifiant les chemins vers
@@ -408,35 +402,31 @@ def evaluate_tool_on_test_dir(
 
         # Construction des parametres
         khiops_params = []
-        if use_khiops_env:
-            # On recupere les parametres MPI depuis l'environnement
-            khiops_params.extend(shlex.split(os.environ["KHIOPS_MPI_COMMAND"]))
-        else:
-            if tool_process_number > 1:
+
+        if tool_process_number > 1:
+            if use_khiops_env:
+                # On recupere les parametres MPI depuis l'environnement
+                khiops_params.extend(shlex.split(os.environ["KHIOPS_MPI_COMMAND"]))
+            else:
                 khiops_params.append(mpi_exe_name)
 
                 # Option -l, specifique a mpich, valide au moins pour Windows:
                 #    "Label standard out and standard error (stdout and stderr) with the rank of the process"
                 if platform.system() == "Windows":
                     khiops_params.append("-l")
-                if platform.system() == "Darwin":
-                    khiops_params.append("-host")
-                    khiops_params.append("localhost")
 
-                # Option --allow-run-as-root, specifique a OpenMPI,
-                # permet de lancer OpenMPI en tant que root de maniere portable sur
-                # tous les OS supportes.
-                # Cette option remplace le positionnement des variables
-                # d'environnement OMPI_ALLOW_RUN_AS_ROOT et
-                # OMPI_ALLOW_RUN_AS_ROOT_CONFIRM à '1'.
-                # Sous Debian 10, OpenMPI ne prend pas en compte ces deux variables
-                # d'environnement.
-                if platform.system() == "Linux":
+                if platform.system() in ["Linux", "Darwin"]:
                     # En iterant sur TOOL_MPI_SUFFIXES, on s'assure que "_openmpi"
                     # fait toujours partie des back-ends MPI supportes
                     for suffix in kht.TOOL_MPI_SUFFIXES:
                         if tool_exe_path.endswith(suffix) and suffix == "_openmpi":
-                            khiops_params.append("--allow-run-as-root")
+                            khiops_params.append(
+                                "--allow-run-as-root"
+                            )  # permet de lancer OpenMPI en tant que root (pas pris en compte sur debian 10)
+                            khiops_params.append(
+                                "--map-by"
+                            )  # --map-by core:oversubscribe permet de lancer plus de processus qu'il n'y a de coeurs
+                            khiops_params.append("core:oversubscribe")
                             break
                 khiops_params.append("-n")
                 khiops_params.append(str(tool_process_number))
@@ -978,19 +968,22 @@ def main():
             # variables d'environnement avec le nombre de processus saisi en argument (flag -p)
             if process_number > 1:
                 os.environ["KHIOPS_PROC_NUMBER"] = str(process_number)
-            with subprocess.Popen(
-                [khiops_env_path, "--env"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
-            ) as khiops_env_process:
-                stdout, stderr = khiops_env_process.communicate()
+            try:
+                with subprocess.Popen(
+                    [khiops_env_path, "--env"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True,
+                ) as khiops_env_popen:
+                    stdout, stderr = khiops_env_popen.communicate()
                 # Erreur si khiops_env --env n'a pu s'executer correctement
-                if khiops_env_process.returncode != 0:
+                if khiops_env_popen.returncode != 0:
                     error_message = (
                         "Error initializing the environment for Khiops from the '"
                         + khiops_env_path
-                        + "' script"
+                        + "' script (return code: "
+                        + str(khiops_env_popen.returncode)
+                        + ")"
                     )
                 else:
                     use_khiops_env = True
@@ -1005,6 +998,15 @@ def main():
                             continue
                         # On propage toutes les variables d'environnement
                         os.environ[var_name] = var_value
+            # erreur si impossible d'executer khiops_env
+            except OSError as e:
+                error_message = (
+                    "Could not execute khiops_env script '"
+                    + khiops_env_path
+                    + "': "
+                    + str(e)
+                )
+                return use_khiops_env, error_message
         return use_khiops_env, error_message
 
     # Nom du script
@@ -1143,15 +1145,20 @@ def main():
 
     # Verification et activation de khiops_env le cas echeant
     use_khiops_env, error_message = activate_khiops_env(args.binaries, args.n)
+    if not use_khiops_env and error_message != "":
+        print("Unable to activate khiops_env: " + error_message)
 
     # Echec si le nombre de processus est parametre et mpiexec n'est pas dans le path
     # Si on passe par khiops_env, c'est lui qui s'occupe du PATH de mpiexec
-    if not use_khiops_env and args.n > 1 and shutil.which(mpi_exe_name) is None:
-        parser.error(
-            "argument -p/--processes: process number "
-            + str(args.n)
-            + " is greater than 1 but mpiexec not found in path."
-        )
+    if not use_khiops_env:
+        if error_message:
+            parser.error("argument -p/--processes: " + error_message)
+        elif args.n > 1 and shutil.which(mpi_exe_name) is None:
+            parser.error(
+                "argument -p/--processes: process number "
+                + str(args.n)
+                + " is greater than 1 but mpiexec not found in path."
+            )
 
     # Lancement de la commande
     evaluate_all_tools_on_learning_test_tree(
