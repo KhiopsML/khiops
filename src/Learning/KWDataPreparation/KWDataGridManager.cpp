@@ -263,23 +263,29 @@ void KWDataGridManager::ExportDataGridWithRandomizedInnerAttributes(const KWData
 								    const KWDGInnerAttributes* referenceInnerAttributes,
 								    KWDataGrid* targetDataGrid, int nTargetTokenNumber)
 {
+	const boolean bTrace = false;
 	int nCurrentTokenNumber;
 	int nReferenceTokenNumber;
 	int nAttribute;
-	KWDGAttribute* targetAttribute;
 	KWDGAttribute* sourceAttribute;
+	KWDGAttribute* inputAttribute;
+	KWDGAttribute* targetAttribute;
 	KWDGInnerAttributes* surtokenizedInnerAttributes;
-	const boolean bTrace = false;
 
 	require(Check());
-	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
+	require(sourceDataGrid != NULL);
 	require(sourceDataGrid->IsVarPartDataGrid());
+	require(inputDataGrid != NULL);
+	require(inputDataGrid->IsVarPartDataGrid());
+	require(referenceInnerAttributes != NULL);
+	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 
+	// Trace initiale
 	if (bTrace)
 	{
-		cout << "ExportDataGridWithRandomizedInnerAttributes\n";
-		cout << "Grille source " << *sourceDataGrid << endl;
-		cout << "Grille input " << *inputDataGrid << endl;
+		cout << "ExportDataGridWithRandomizedInnerAttributes\t" << nTargetTokenNumber << "\n";
+		cout << "\tsourceDataGrid\t" << sourceDataGrid->GetObjectLabel() << endl;
+		cout << "\tinputDataGrid\t" << inputDataGrid->GetObjectLabel() << endl;
 	}
 
 	// Nombre de tokens de la grille en entree
@@ -299,7 +305,7 @@ void KWDataGridManager::ExportDataGridWithRandomizedInnerAttributes(const KWData
 	else
 	{
 		// Export des attributs (avec innerAtributes non surtokenises a ce stade)
-		ExportAttributes(sourceDataGrid, targetDataGrid);
+		ExportAttributes(inputDataGrid, targetDataGrid);
 		// CH DDD 461 revient au meme si la grille source etait inputDataGrid ?
 		// les innerAttributes sont de toute facon changes par la suite
 
@@ -315,12 +321,14 @@ void KWDataGridManager::ExportDataGridWithRandomizedInnerAttributes(const KWData
 			targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
 
 			// Recherche de l'attribut source correspondant
+			inputAttribute = inputDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
 			sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
-			check(sourceAttribute);
+			assert(CheckAttributesConsistency(inputAttribute, targetAttribute));
+			assert(CheckAttributesConsistency(sourceAttribute, targetAttribute));
 
 			// Pour un attribut simple, export des parties
 			if (KWType::IsSimple(sourceAttribute->GetAttributeType()))
-				InitialiseAttributeParts(sourceAttribute, targetAttribute);
+				InitialiseAttributeParts(inputAttribute, targetAttribute);
 			// Pour l'attribut VarPart, export des parties apres surtokenisation des attributs internes
 			else
 			{
@@ -336,6 +344,15 @@ void KWDataGridManager::ExportDataGridWithRandomizedInnerAttributes(const KWData
 		}
 		ExportCells(sourceDataGrid, targetDataGrid);
 	}
+
+	// Trace finale
+	if (bTrace)
+	{
+		cout << "\ttargetDataGrid\t" << targetDataGrid->GetObjectLabel() << endl;
+	}
+	ensure(targetDataGrid->IsVarPartDataGrid());
+	ensure(targetDataGrid->GetAttributeAt(0)->GetPartNumber() == inputDataGrid->GetAttributeAt(0)->GetPartNumber());
+	ensure(targetDataGrid->GetAttributeAt(1)->GetPartNumber() == inputDataGrid->GetAttributeAt(1)->GetPartNumber());
 }
 
 void KWDataGridManager::ExportDataGridWithMergedInnerAttributes(const KWDataGrid* sourceDataGrid,
@@ -4097,66 +4114,105 @@ KWDataGridManager::CreateGranularizedInnerAttributes(const KWDGInnerAttributes* 
 
 KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes,
 								    const KWDGInnerAttributes* referenceInnerAttributes,
-								    int nTargetTokenNumber) const
+								    int nTotalOutputTokenNumber) const
 {
-	KWDGInnerAttributes* resultInnerAttributes;
+	boolean bDisplayResults = false;
+	KWDGInnerAttributes* outputInnerAttributes;
 	int nInnerAttribute;
 	KWDGAttribute* sourceInnerAttribute;
-	KWDGAttribute* targetInnerAttribute;
 	KWDGAttribute* referenceInnerAttribute;
-	int nRequestedTotalPartNumber;
-	int nRequestedPartNumber;
-	int nAddedPartNumber;
-	int nMeanRequestedPartNumber;
-	boolean bDisplayResults = false;
+	KWDGAttribute* outputInnerAttribute;
+	IntVector ivInnerAttributesIndexes;
+	int n;
+	int nSourcePartNumber;
+	int nReferencePartNumber;
+	int nTotalReferencePartNumber;
+	int nTotalRemainingReferencePartNumber;
+	int nTotalRemainingPartNumberToAdd;
+	int nOutputPartNumber;
+	double dPercentagePartNumberToAdd;
+	int nInitialRandomSeed;
+
+	require(sourceInnerAttributes != NULL);
+	require(referenceInnerAttributes != NULL);
+	require(referenceInnerAttributes->ContainsSubVarParts(sourceInnerAttributes));
+	require(0 < nTotalOutputTokenNumber and
+		nTotalOutputTokenNumber <= referenceInnerAttributes->ComputeTotalInnerAttributeVarParts());
+	require(nTotalOutputTokenNumber > sourceInnerAttributes->ComputeTotalInnerAttributeVarParts());
 
 	// Creation du nouvel innerAttributes
-	resultInnerAttributes = new KWDGInnerAttributes;
-	resultInnerAttributes->SetVarPartGranularity(sourceInnerAttributes->GetVarPartGranularity());
+	outputInnerAttributes = new KWDGInnerAttributes;
+	outputInnerAttributes->SetVarPartGranularity(sourceInnerAttributes->GetVarPartGranularity());
 
-	// Nombre de tokens que l'on doit ajouter sur l'ensemble des attributs
-	nRequestedTotalPartNumber = nTargetTokenNumber - sourceInnerAttributes->ComputeTotalInnerAttributeVarParts();
-
-	// Nombre de tokens que l'on devrait ajouter en moyenne a chaque innerAttribute
-	nMeanRequestedPartNumber =
-	    (int)ceil(nRequestedTotalPartNumber / sourceInnerAttributes->GetInnerAttributeNumber());
-
-	// Initialisation du nombre de tokens effectivement ajoute
-	nAddedPartNumber = 0;
-	nInnerAttribute = 0;
-
-	// Ajout de tokens aux innerAttributes
-	// Boucle sur les innerAttributes
+	// Creation des inner attributs en sortie
 	for (nInnerAttribute = 0; nInnerAttribute < sourceInnerAttributes->GetInnerAttributeNumber(); nInnerAttribute++)
 	{
 		sourceInnerAttribute = sourceInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
+
+		// Creation d'un attribut interne en sortie
+		outputInnerAttribute = new KWDGAttribute;
+		InitialiseAttribute(sourceInnerAttribute, outputInnerAttribute);
+		outputInnerAttributes->AddInnerAttribute(outputInnerAttribute);
+	}
+
+	// Permutation aleatoire des index des attributs internes
+	ivInnerAttributesIndexes.SetSize(sourceInnerAttributes->GetInnerAttributeNumber());
+	for (n = 0; n < ivInnerAttributesIndexes.GetSize(); n++)
+		ivInnerAttributesIndexes.SetAt(n, n);
+	nInitialRandomSeed = GetRandomSeed();
+	ivInnerAttributesIndexes.Shuffle();
+	SetRandomSeed(nInitialRandomSeed);
+
+	// Creation des parties des inner attributs en sortie, en les parecourant en ordre aleatoire
+	// pour repartir de facon equilibree les tokens a ajouter
+	nTotalReferencePartNumber = referenceInnerAttributes->ComputeTotalInnerAttributeVarParts();
+	nTotalRemainingReferencePartNumber = nTotalReferencePartNumber;
+	nTotalRemainingPartNumberToAdd =
+	    nTotalOutputTokenNumber - sourceInnerAttributes->ComputeTotalInnerAttributeVarParts();
+	for (n = 0; n < ivInnerAttributesIndexes.GetSize(); n++)
+	{
+		nInnerAttribute = ivInnerAttributesIndexes.GetAt(n);
+
+		// Acces aux attributs
+		sourceInnerAttribute = sourceInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
 		referenceInnerAttribute = referenceInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
+		outputInnerAttribute = outputInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
 
-		// Creation d'un attribut interne
-		targetInnerAttribute = new KWDGAttribute;
-
-		// Parametrage
-		InitialiseAttribute(sourceInnerAttribute, targetInnerAttribute);
-		resultInnerAttributes->AddInnerAttribute(targetInnerAttribute);
-
-		// Calcul du nombre de tokens a ajoute pour cet attribut en fonctionn des tokens deja attribues et du nombre cible a ne pas depasser
-		nRequestedPartNumber = min(nMeanRequestedPartNumber, nTargetTokenNumber - nAddedPartNumber);
-
-		if (nAddedPartNumber < nTargetTokenNumber)
-		{
-			if (nRequestedPartNumber == 0)
-				nRequestedPartNumber++;
-			// Ajout de parties aleatoires
-			AddAttributeRandomParts(referenceInnerAttribute, sourceInnerAttribute, targetInnerAttribute,
-						nRequestedPartNumber);
-		}
+		// Calcul du poucentage de parties a ajouter pour cet attribut en fonction du nombre de parties restantes a ajouter
+		if (nTotalOutputTokenNumber == nTotalReferencePartNumber)
+			dPercentagePartNumberToAdd = 1;
 		else
-			// Recopie de l'attribut
-			InitialiseAttributeParts(sourceInnerAttribute, targetInnerAttribute);
+			dPercentagePartNumberToAdd =
+			    nTotalRemainingPartNumberToAdd / (double)nTotalRemainingReferencePartNumber;
+
+		// Calcul du nombre de tokens a ajouter pour cet attribut en fonction des tokens deja attribues
+		// et du nombre cible a ne pas depasser
+		nSourcePartNumber = sourceInnerAttribute->GetPartNumber();
+		nReferencePartNumber = referenceInnerAttribute->GetPartNumber();
+		nOutputPartNumber = nSourcePartNumber +
+				    int(ceil(dPercentagePartNumberToAdd * (nReferencePartNumber - nSourcePartNumber)));
+		nOutputPartNumber = min(nOutputPartNumber, nReferencePartNumber);
+		assert(nOutputPartNumber <= nReferencePartNumber);
+
+		// Ajout des parties aleatoires ou recopie de l'attribut source
+		if (nOutputPartNumber == nSourcePartNumber)
+			InitialiseAttributeParts(sourceInnerAttribute, outputInnerAttribute);
+		else if (nOutputPartNumber == nReferencePartNumber)
+			InitialiseAttributeParts(referenceInnerAttribute, outputInnerAttribute);
+		else
+			AddAttributeRandomParts(referenceInnerAttribute, sourceInnerAttribute, outputInnerAttribute,
+						nOutputPartNumber - nSourcePartNumber);
+
+		// On peut echouer a ajouter toutes les partie demandees
+		//DDD TODO a corriger, ou justifier (on se base sur des effectifs a atteindre, et non sur des index d'intervalles)
+		assert(outputInnerAttribute->GetPartNumber() <= nOutputPartNumber);
 
 		// Mise a jour du nombre de parties ajoutees
-		nAddedPartNumber += targetInnerAttribute->GetPartNumber() - sourceInnerAttribute->GetPartNumber();
+		nTotalRemainingReferencePartNumber -= nReferencePartNumber;
+		nTotalRemainingPartNumberToAdd -= (nOutputPartNumber - nSourcePartNumber);
 	}
+	assert(nTotalRemainingReferencePartNumber == 0);
+	assert(nTotalRemainingPartNumberToAdd >= 0);
 
 	// Affichage des innerAttributes
 	if (bDisplayResults)
@@ -4166,11 +4222,11 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 		sourceInnerAttributes->Write(cout);
 		cout << "Inner attributes reference" << endl;
 		referenceInnerAttributes->Write(cout);
-		cout << "Inner attributes surtokenise\t" << nTargetTokenNumber << endl;
-		resultInnerAttributes->Write(cout);
+		cout << "Inner attributes surtokenise\t" << nTotalOutputTokenNumber << endl;
+		outputInnerAttributes->Write(cout);
 	}
 
-	return resultInnerAttributes;
+	return outputInnerAttributes;
 }
 
 double KWDataGridManager::MergePartsForVarPartAttributes(const KWDataGrid* sourceDataGrid,
