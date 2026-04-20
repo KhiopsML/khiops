@@ -412,7 +412,8 @@ protected:
 	void InitialiseAttributeRandomParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute,
 					    int nPartNumber) const;
 
-	// Ajout aleatoire de partie dans une partition pour un attribut donne
+	// Ajout aleatoire de parties dans une partition pour un attribut donne
+	// Les nouvelles parties sont obtenues en sur-partitionnant les partitions existantes de l'attribut obligatoire,
 	void AddAttributeRandomParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* mandatoryAttribute,
 				     KWDGAttribute* targetAttribute, int nRequestedPartNumber) const;
 
@@ -453,11 +454,7 @@ protected:
 	// parmi les partitions de reference les plus fines pour ces innerAttributes
 	KWDGInnerAttributes* CreateRandomInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes,
 							 const KWDGInnerAttributes* referenceInnerAttributes,
-							 int nTargetTokenNumber) const;
-	/*Contenu
-	Boucle sur les innerAttributes et appel des methodes AddContinuousAttributeRandomParts et
-	    AddSymbolAttributeRandomParts en garantissant que la somme des nRequestedPartNumber par innerAttribut
-		ne depasse pas les nTargetTokenNumber*/
+							 int nTotalOutputTokenNumber) const;
 
 	//////////////////////////////////////////////////////////////////////////////////
 	// Services divers
