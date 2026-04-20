@@ -1515,15 +1515,40 @@ const ALString KWDataGrid::GetClassLabel() const
 
 const ALString KWDataGrid::GetObjectLabel() const
 {
+	ALString sLabel;
+	KWDGAttribute* dgAttribute;
+	int i;
 	ALString sTmp;
 
-	// Libelle base sur le nombre de valeurs, d'attributs, de parties et de cellules
+	// Initialisation  a partir du nombre d'attribute
+	sLabel = "(";
+	sLabel += IntToString(GetAttributeNumber());
+	sLabel += ", ";
+
+	// Information sur les dimension de la grille
+	for (i = 0; i < GetAttributeNumber(); i++)
+	{
+		dgAttribute = GetAttributeAt(i);
+		if (i > 0)
+			sLabel += "x";
+		sLabel += IntToString(dgAttribute->GetPartNumber());
+	}
+
+	// Informations specifiques aux grilles de type VarPart
+	if (IsVarPartDataGrid())
+	{
+		sLabel += ", (";
+		sLabel += IntToString(GetInnerAttributes()->GetInnerAttributeNumber());
+		sLabel += ", ";
+		sLabel += IntToString(GetInnerAttributes()->ComputeTotalInnerAttributeVarParts());
+		sLabel += ")";
+	}
+
+	// Information sur les valeurs cibles
 	if (GetTargetValueNumber() > 0)
-		return sTmp + "(" + IntToString(GetTargetValueNumber()) + ", " + IntToString(GetAttributeNumber()) +
-		       ", " + IntToString(GetTotalPartNumber()) + ", " + IntToString(GetCellNumber()) + ")";
-	else
-		return sTmp + "(" + IntToString(GetAttributeNumber()) + ", " + IntToString(GetTotalPartNumber()) +
-		       ", " + IntToString(GetCellNumber()) + ")";
+		sLabel += sTmp + ": " + IntToString(GetTargetValueNumber());
+	sLabel += ")";
+	return sLabel;
 }
 
 KWDataGrid* KWDataGrid::CreateTestDataGrid(int nSymbolAttributeNumber, int nContinuousAttributeNumber,
