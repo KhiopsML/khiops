@@ -1948,6 +1948,8 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 						    const KWDataGrid* optimizedDataGrid, double dNoiseRate,
 						    KWDataGridMerger* neighbourDataGridMerger) const
 {
+	boolean bDisplayResults = false;
+	boolean bDisplayDetails = false;
 	KWDataGridManager dataGridManager;
 	KWDataGrid mandatoryDataGrid;
 	int nMandatoryAttributeNumber;
@@ -1967,6 +1969,18 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	require(0 <= dNoiseRate and dNoiseRate <= 1);
 	require(not initialDataGrid->IsVarPartDataGrid() or
 		initialDataGrid->GetInnerAttributes() == optimizedDataGrid->GetInnerAttributes());
+
+	// Affichage initial
+	if (bDisplayResults)
+	{
+		cout << "GenerateNeighbourSolution\t" << dNoiseRate << "\n";
+		cout << "\tinitialDataGrid\t" << dataGridCosts->ComputeDataGridTotalCost(initialDataGrid) << "\t"
+		     << initialDataGrid->GetObjectLabel() << "\n";
+		cout << "\toptimizedDataGrid\t" << dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) << "\t"
+		     << optimizedDataGrid->GetObjectLabel() << "\n";
+		if (bDisplayDetails)
+			cout << *optimizedDataGrid << "\n";
+	}
 
 	// CH IV Refactoring : DDDDD
 	// Test du remplacement de la methode actuelle, par son proto
@@ -2104,6 +2118,16 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 
 	// Export des cellules
 	dataGridManager.ExportCells(initialDataGrid, neighbourDataGridMerger);
+
+	// Affichage final
+	if (bDisplayResults)
+	{
+		cout << "\tneighbourDataGridMerger\t"
+		     << dataGridCosts->ComputeDataGridTotalCost(neighbourDataGridMerger) << "\t"
+		     << neighbourDataGridMerger->GetObjectLabel() << "\n";
+		if (bDisplayDetails)
+			cout << *neighbourDataGridMerger << "\n";
+	}
 
 	// Fin de tache
 	TaskProgression::EndTask();
