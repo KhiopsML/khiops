@@ -496,6 +496,7 @@ public:
 	void SetOwnerAttributeName(ALString sName);
 
 	// Parametrage des attributs internes dans le cas d'un attribut de grille de type VarPart
+	// On met a jour egalement le InitialValueNumber, qui doit correspondre au nombre tota de parties des attributs internes
 	// Note sur la gestion memoire des attributs internes
 	// - les attributs internes peuvent etre partagee entre plusieurs grilles
 	// - grace a un comptage de reference propre aux attributs internes, ceux-ci sont automatiquement
@@ -1808,6 +1809,12 @@ inline void KWDGAttribute::SetInnerAttributes(const KWDGInnerAttributes* attribu
 	if (attributes != NULL)
 		attributes->nRefCount++;
 	innerAttributes = attributes;
+
+	// Mise a jour du nombre initial de parties de variable sur l'ensemble des attributs internes
+	if (attributes == NULL)
+		nInitialValueNumber = 0;
+	else
+		nInitialValueNumber = attributes->ComputeTotalInnerAttributeVarParts();
 }
 
 inline const KWDGInnerAttributes* KWDGAttribute::GetInnerAttributes() const
