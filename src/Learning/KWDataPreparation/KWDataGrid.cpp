@@ -2428,6 +2428,7 @@ void KWDGAttribute::CreateVarPartsSet()
 
 	require(nAttributeType == KWType::VarPart);
 	require(GetInnerAttributeNumber() > 0);
+	require(nInitialValueNumber == GetInnerAttributes()->ComputeTotalInnerAttributeVarParts());
 
 	for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
 	{
@@ -3024,6 +3025,14 @@ boolean KWDGAttribute::Check() const
 		if (bOk and not innerAttributes->Check())
 		{
 			AddError("Wrong specification of inner variables for a variable of type VarPart");
+			bOk = false;
+		}
+
+		// Test de compatibilite entre du nombre initial de valeurs et du nombre total de partie des attribut internes
+		if (bOk and nInitialValueNumber != innerAttributes->ComputeTotalInnerAttributeVarParts())
+		{
+			AddError(
+			    "Initial value number must be equal to the total number of part of the inner variablkes");
 			bOk = false;
 		}
 	}

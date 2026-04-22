@@ -1950,6 +1950,7 @@ double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, 
 	DisplayOptimizationDetails(dataGridMerger, true);
 
 	// Retour du cout
+	ensure(dataGridMerger->Check());
 	ensure(fabs(dataGridCosts->ComputeDataGridTotalCost(dataGridMerger) - dCost) < dEpsilon);
 	return dCost;
 }
@@ -2141,6 +2142,7 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 
 	// Fin de tache
 	TaskProgression::EndTask();
+	ensure(neighbourDataGridMerger->Check());
 }
 
 void KWDataGridOptimizer::PROTOGenerateNeighbourSolution(const KWDataGrid* initialDataGrid,
