@@ -1763,6 +1763,9 @@ double KWVarPartDataGridClusteringCosts::ComputeAttributeCost(const KWDGAttribut
 
 	require(attribute != NULL);
 	require(attribute->GetInitialValueNumber() > 0);
+	require(attribute->GetAttributeType() != KWType::VarPart or
+		attribute->GetInitialValueNumber() ==
+		    attribute->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts());
 	require(KWType::IsCoclusteringType(attribute->GetAttributeType()));
 
 	nPartileNumber = attribute->GetInitialValueNumber();

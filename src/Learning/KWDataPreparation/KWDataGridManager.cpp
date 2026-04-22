@@ -251,6 +251,7 @@ void KWDataGridManager::ExportNullDataGrid(const KWDataGrid* sourceDataGrid, KWD
 	// Export des cellules
 	ExportCells(sourceDataGrid, targetDataGrid);
 
+	ensure(targetDataGrid->Check());
 	ensure(CheckDataGrid(sourceDataGrid, targetDataGrid));
 	ensure(not sourceDataGrid->IsVarPartDataGrid() or
 	       targetDataGrid->GetVarPartAttribute()->GetInnerAttributes() !=
@@ -571,6 +572,7 @@ double KWDataGridManager::ExportDataGridWithVarPartMergeOptimization(const KWDat
 	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Delta cost", dFusionDeltaCost);
 	KWDataGridOptimizer::GetProfiler()->EndMethod("Post VarPart merge");
 
+	ensure(targetDataGrid->Check());
 	ensure(CheckDataGrid(sourceDataGrid, targetDataGrid));
 	ensure(not sourceDataGrid->IsVarPartDataGrid() or
 	       targetDataGrid->GetVarPartAttribute()->GetInnerAttributes() !=
@@ -674,6 +676,7 @@ void KWDataGridManager::UpdateVarPartDataGridFromVarPartGroups(const KWDataGrid*
 	}
 
 	// Verification de la grille preparee
+	ensure(targetDataGrid->Check());
 	ensure(targetAttribute->GetPartNumber() == nTargetGroupNumber);
 	ensure(sourceDataGrid->GetGridFrequency() == targetDataGrid->GetGridFrequency());
 	ensure(sourceDataGrid->GetCellNumber() >= targetDataGrid->GetCellNumber());
@@ -720,6 +723,7 @@ void KWDataGridManager::ExportGranularizedDataGrid(const KWDataGrid* sourceDataG
 
 	// Memorisation de la granularite
 	targetDataGrid->SetGranularity(nGranularity);
+	ensure(targetDataGrid->Check());
 	ensure(not sourceDataGrid->IsVarPartDataGrid() or
 	       targetDataGrid->GetVarPartAttribute()->GetInnerAttributes() ==
 		   sourceDataGrid->GetVarPartAttribute()->GetInnerAttributes());
@@ -824,6 +828,7 @@ void KWDataGridManager::ExportGranularizedDataGridForVarPartAttributes(
 	// Tri des parties des attributs
 	// Ce tri ne peut etre fait qu'apres l'export des cellules qui donnent les effectifs
 	targetDataGrid->SortAttributeParts();
+	ensure(targetDataGrid->Check());
 	ensure(CheckDataGrid(sourceDataGrid, targetDataGrid));
 	ensure(not sourceDataGrid->IsVarPartDataGrid() or
 	       targetDataGrid->GetVarPartAttribute()->GetInnerAttributes() !=
@@ -1621,6 +1626,7 @@ void KWDataGridManager::BuildUnivariateDataGridFromAttributeStats(const KWDataGr
 
 	// Export des cellules
 	ExportCells(sourceDataGrid, targetDataGrid);
+	ensure(targetDataGrid->Check());
 	ensure(CheckDataGrid(sourceDataGrid, targetDataGrid));
 }
 
@@ -1725,6 +1731,7 @@ boolean KWDataGridManager::BuildDataGridFromClassStats(const KWDataGrid* sourceD
 		ExportCells(sourceDataGrid, targetDataGrid);
 	}
 
+	ensure(not bOk or targetDataGrid->Check());
 	ensure(not bOk or CheckDataGrid(sourceDataGrid, targetDataGrid));
 	return bOk;
 }
@@ -1843,6 +1850,7 @@ boolean KWDataGridManager::BuildDataGridFromUnivariateProduct(const KWDataGrid* 
 	}
 	if (bDisplayResults)
 		cout << " OptimizeWithMultipleUnivariatePartitions : construction grille initiale achevee" << endl;
+	ensure(not bOk or targetDataGrid->Check());
 	ensure(not bOk or CheckDataGrid(sourceDataGrid, targetDataGrid));
 	return bOk;
 }
@@ -2138,6 +2146,7 @@ void KWDataGridManager::BuildUnivariateDataGridFromGranularizedPartition(const K
 	// Export des cellules selon la nouvelle partition
 	univariateTargetDataGrid->DeleteAllCells();
 	ExportCells(sourceDataGrid, univariateTargetDataGrid);
+	ensure(univariateTargetDataGrid->Check());
 }
 
 void KWDataGridManager::BuildDataGridAttributeFromGranularizedPartition(const KWDataGrid* sourceDataGrid,
