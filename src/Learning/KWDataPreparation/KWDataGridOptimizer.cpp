@@ -1377,6 +1377,9 @@ double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* ini
 
 		// Calcul et verification du cout
 		dMergedCost = dNeighbourDataGridCost + dFusionDeltaCost;
+		assert(fabs(dMergedCost - dataGridCosts->ComputeDataGridTotalCost(mergedDataGrid)) <=
+		       dNeighbourDataGridCost * dEpsilon);
+		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", mergedDataGrid->GetObjectLabel());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dMergedCost);
 		if (bDisplayResults)
 		{
@@ -1515,6 +1518,8 @@ double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* ini
 					if (dMergedMergedCost < dMergedCost)
 					{
 						dMergedCost = dMergedMergedCost;
+						KWDataGridOptimizer::GetProfiler()->WriteKeyString(
+						    "Coclustering", mergedMergedDataGrid.GetObjectLabel());
 						KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dMergedCost);
 
 						// Export de la grille avec les clusters post-optimises et les
@@ -1558,6 +1563,7 @@ double KWDataGridOptimizer::VNSDataGridPostOptimizeVarPart(const KWDataGrid* ini
 			if (bDisplayResults)
 				cout << "\tFin PostOptimisation VarPart" << endl;
 		}
+		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", neighbourDataGrid->GetObjectLabel());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dMergedCost);
 	}
 
@@ -1892,6 +1898,7 @@ double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, 
 		dCost = dataGridCosts->ComputeDataGridTotalCost(dataGridMerger);
 	if (bDisplay)
 		cout << "Affichage de l'evolution des couts" << dCost << "\n";
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", dataGridMerger->GetObjectLabel());
 	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dCost);
 
 	// Pre-optimisation de la grille
@@ -1902,6 +1909,7 @@ double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, 
 		dCost = dataGridPostOptimizer.PostOptimizeDataGrid(initialDataGrid, dataGridMerger, false);
 		if (bDisplay)
 			cout << dCost << "\n";
+		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", dataGridMerger->GetObjectLabel());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dCost);
 		KWDataGridOptimizer::GetProfiler()->EndMethod("Pre-optimization");
 	}
@@ -1915,6 +1923,7 @@ double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, 
 		dCost = dataGridMerger->Merge();
 		if (bDisplay)
 			cout << dCost << "\n";
+		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", dataGridMerger->GetObjectLabel());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dCost);
 		KWDataGridOptimizer::GetProfiler()->EndMethod("Greedy merge optimization" + sSuffix);
 	}
@@ -1928,6 +1937,7 @@ double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, 
 		    dataGridPostOptimizer.PostOptimizeDataGrid(initialDataGrid, dataGridMerger, bDeepPostOptimization);
 		if (bDisplay)
 			cout << dCost << "\n\n";
+		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", dataGridMerger->GetObjectLabel());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dCost);
 		KWDataGridOptimizer::GetProfiler()->EndMethod("Post-optimization");
 	}
