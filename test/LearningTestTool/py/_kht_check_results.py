@@ -739,8 +739,7 @@ def check_results(test_dir, forced_context=None):
                         if file_name == kht.STDERR_ERROR_LOG:
                             if (
                                 len(test_file_lines) == 0
-                                or test_file_lines[0].strip().find(fatal_error_pattern)
-                                == -1
+                                or fatal_error_pattern not in test_file_lines[0]
                             ):
                                 fatal_error_recovery = False
                             else:

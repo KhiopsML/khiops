@@ -1006,7 +1006,6 @@ def main():
                     + "': "
                     + str(e)
                 )
-                return use_khiops_env, error_message
         return use_khiops_env, error_message
 
     # Nom du script
@@ -1145,14 +1144,12 @@ def main():
 
     # Verification et activation de khiops_env le cas echeant
     use_khiops_env, error_message = activate_khiops_env(args.binaries, args.n)
-    if not use_khiops_env and error_message != "":
-        print("Unable to activate khiops_env: " + error_message)
 
     # Echec si le nombre de processus est parametre et mpiexec n'est pas dans le path
     # Si on passe par khiops_env, c'est lui qui s'occupe du PATH de mpiexec
     if not use_khiops_env:
         if error_message:
-            parser.error("argument -p/--processes: " + error_message)
+            print("Unable to activate khiops_env: " + error_message)
         elif args.n > 1 and shutil.which(mpi_exe_name) is None:
             parser.error(
                 "argument -p/--processes: process number "
