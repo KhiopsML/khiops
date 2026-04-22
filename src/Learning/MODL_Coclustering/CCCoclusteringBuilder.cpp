@@ -1969,6 +1969,7 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 			sLastActualAnyTimeReportFileName = sReportFileName;
 
 		// Ajout de trace lie au profiling
+		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", optimizedDataGrid->GetObjectLabel());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dCost);
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("New best level", dLevel);
 		KWDataGridOptimizer::GetProfiler()->EndMethod("Save best solution");
