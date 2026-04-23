@@ -4131,7 +4131,6 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 	int nTotalRemainingPartNumberToAdd;
 	int nOutputPartNumber;
 	double dPercentagePartNumberToAdd;
-	int nInitialRandomSeed;
 
 	require(sourceInnerAttributes != NULL);
 	require(referenceInnerAttributes != NULL);
@@ -4159,9 +4158,7 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 	ivInnerAttributesIndexes.SetSize(sourceInnerAttributes->GetInnerAttributeNumber());
 	for (n = 0; n < ivInnerAttributesIndexes.GetSize(); n++)
 		ivInnerAttributesIndexes.SetAt(n, n);
-	nInitialRandomSeed = GetRandomSeed();
 	ivInnerAttributesIndexes.Shuffle();
-	SetRandomSeed(nInitialRandomSeed);
 
 	// Creation des parties des inner attributs en sortie, en les parecourant en ordre aleatoire
 	// pour repartir de facon equilibree les tokens a ajouter
