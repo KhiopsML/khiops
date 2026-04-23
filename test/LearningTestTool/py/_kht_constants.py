@@ -168,5 +168,5 @@ Constantes internes
 """
 # Nombre de processus par defaut quand le nombre de processus n'est pas defini dans les variables d'environnement
 # C'est le cas par exemple avec openmpi, qui calcule automatiquement le nombre de processus a utiliser en fonction du nombre de coeurs disponibles
-# Cetet valeur permet de savoir que le nombre de processus n'est pas defini
+# Cette valeur permet de savoir que le nombre de processus n'est pas defini
 NO_PROCESS_NUMBER = -1
