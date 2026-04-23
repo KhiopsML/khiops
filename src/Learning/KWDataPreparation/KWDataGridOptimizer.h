@@ -27,9 +27,6 @@ public:
 	KWDataGridOptimizer();
 	~KWDataGridOptimizer();
 
-	//DDD Indicateur des nouveau algorithme
-	static boolean NEW();
-
 	// Reinitialisation
 	virtual void Reset();
 
@@ -41,10 +38,6 @@ public:
 	// Parametres d'optimisation
 	// Memoire: l'objet rendu appartient a l'appele
 	KWDataGridOptimizerParameters* GetParameters();
-
-	// Optimisation integrant une surtokenisation des VarPart lors du VNS
-	boolean GetSurtokenisationProto() const;
-	void SetSurtokenisationProto(boolean bValue);
 
 	// Parametrage (facultatif) par des statistiques sur le probleme d'apprentissage
 	// Permet l'utilisation des statistiques univariees pour optimiser les grilles de donnees
@@ -227,8 +220,7 @@ protected:
 	// dBestMergedDataGridCost contient le cout de la meilleure grille apres post-fusion (meilleur cout)
 	// CH IV Refactoring: proto en vue de fusionner la methode avec VNSOptimizeDataGrid
 	double VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, int nNeighbourhoodLevelNumber,
-					  KWDataGrid* optimizedDataGrid, double& dBestMergedDataGridCost,
-					  boolean bWithoutAntecedent) const;
+					  KWDataGrid* optimizedDataGrid, double& dBestMergedDataGridCost) const;
 
 	// Optimisation d'une solution, selon le parametre de post-optimisation des solutions
 	double OptimizeSolution(const KWDataGrid* initialDataGrid, KWDataGridMerger* dataGridMerger,
@@ -239,12 +231,6 @@ protected:
 	// entre 0 (pas de perturbation) et 1 (solution aleatoire)
 	void GenerateNeighbourSolution(const KWDataGrid* initialDataGrid, const KWDataGrid* optimizedDataGrid,
 				       double dNoiseRate, KWDataGridMerger* neighbourDataGridMerger) const;
-
-	// Creation d'une solution voisine d'une solution optimisee avec perturbation de la tokenisation des innerAttributes dans le cas VarPart
-	// On passe en parametre un pourcentage de perturbation compris
-	// entre 0 (pas de perturbation) et 1 (solution aleatoire)
-	void PROTOGenerateNeighbourSolution(const KWDataGrid* initialDataGrid, const KWDataGrid* optimizedDataGrid,
-					    double dNoiseRate, KWDataGridMerger* neighbourDataGridMerger) const;
 
 	//////////////////////////////////////////////////////////////////////////////////
 	// Methodes utilitaires
@@ -303,7 +289,6 @@ protected:
 	mutable int nVNSNeighbourhoodLevelIndex;
 	mutable int nVNSNeighbourhoodLevelNumber;
 	mutable double dVNSNeighbourhoodSize;
-	boolean bProtoSurtokenisation;
 
 	// Contexte de gestion de la partie anytime de l'optimisation
 	const KWAttributeSubsetStats* attributeSubsetStatsHandler;
