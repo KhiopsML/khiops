@@ -127,7 +127,7 @@ const ALString& CommandFile::GetInputParameterFileName() const
 
 boolean CommandFile::Check() const
 {
-	boolean bOk;
+	boolean bOk = true;
 
 	// Le parametrage des search/replace ne peut pas etre utilise s'il n'y a pas de fichier de commande en entree
 	if (GetInputSearchReplaceValueNumber() > 0 and GetInputCommandFileName() == "")
@@ -141,7 +141,7 @@ boolean CommandFile::Check() const
 	if (GetInputParameterFileName() != "" and GetInputSearchReplaceValueNumber() > 0)
 		bOk = false;
 
-	return true;
+	return bOk;
 }
 
 boolean CommandFile::OpenInputCommandFile()

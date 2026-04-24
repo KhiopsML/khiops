@@ -898,7 +898,6 @@ static size_t get(const char* name)
 	size_t len = sizeof(nValue);
 	if (sysctlbyname(name, &nValue, &len, NULL, 0) < 0)
 	{
-	std:
 		cerr << "error when acces " << name << std::endl;
 		nValue = -1;
 	}
@@ -910,21 +909,13 @@ longint MemGetFreePhysicalMemory()
 {
 #ifdef __APPLE__
 	size_t pagesize = get("vm.pagesize");
-	size_t pages = get("vm.pages");
 
 	// Memoire disponible
 	size_t pagefree = get("vm.page_free_count");
 
 	// Memoire disponible apres purge
 	size_t pagepurge = get("vm.page_pageable_external_count");
-	// size_t pagepurge2=get("vm.page_pageable_internal_count");
 
-	// std::cout << "free: " << pagesize * pagefree / 10000000 << " Mo" << endl;
-	// std::cout << "purge: " << pagesize * pagepurge / 10000000 << " Mo" << endl;
-	// std::cout << "purge2: " << pagesize * pagepurge2 / 10000000 << " Mo" << endl;
-	// std::cout << "mem: " << pagesize * pages / 10000000 << " Mo" << endl;
-	// std::cout << "available? : " << pagesize * (pagepurge+pagefree) / 10000000 << " Mo" << endl;
-	// std::cout << "used? : " << pagesize * (pages -pagepurge - pagefree) / 10000000 << " Mo" << endl;
 	if (pagesize == -1 or pagepurge == -1 or pagefree == -1)
 		return 0;
 	return pagesize * (pagepurge + pagefree);
@@ -1357,20 +1348,34 @@ int GetMaxOpenedFileNumber()
 	return lim.rlim_cur;
 }
 
+#ifdef __APPLE__
 const char* GetSystemInfos()
 {
-	FILE* file = NULL;
-	int i = 0;
-	int nLineCount;
 	char* sInfo = StandardGetBuffer();
 	int nPos;
-	char c;
 	struct utsname buffer;
-	bool bOk;
 
 	sInfo[0] = '\0';
 
-#ifndef __APPLE__
+	// Ajout de l'architecture (fonctionne sur Linux et macOS)
+	if (uname(&buffer) >= 0)
+	{
+		nPos = (int)strlen(sInfo);
+		snprintf(&sInfo[nPos], BUFFER_LENGTH - nPos, "system=%s\nrelease=%s\nversion=%s\n", buffer.sysname,
+			 buffer.release, buffer.version);
+	}
+	return sInfo;
+}
+#else // __APPLE__
+
+const char* GetSystemInfos()
+{
+	char* sInfo = StandardGetBuffer();
+	FILE* file = NULL;
+	char c;
+	int i = 0;
+	int nLineCount;
+
 	// Parcours du fichier os-release
 	file = p_fopen("/etc/os-release", "rb");
 	if (file == NULL)
@@ -1393,19 +1398,10 @@ const char* GetSystemInfos()
 		sInfo[i] = '\0';
 		fclose(file);
 	}
-#endif // __APPLE__
-
-	// Ajout de l'architecture (fonctionne sur Linux et macOS)
-	if (uname(&buffer) >= 0)
-	{
-		bOk = true;
-		nPos = (int)strlen(sInfo);
-		snprintf(&sInfo[nPos], BUFFER_LENGTH - nPos, "system=%s\nrelease=%s\nversion=%s\n", buffer.sysname,
-			 buffer.release, buffer.version);
-	}
 	return sInfo;
 }
 
+#endif // __APPLE__
 #endif // __linux_or_apple__
 
 void TestSystemResource()

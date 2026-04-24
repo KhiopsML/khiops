@@ -182,7 +182,6 @@ KWAttribute* KWPredictorNaiveBayes::AddClassifierAttribute(KWDataPreparationClas
 							   ObjectArray* oaUsedDataPreparationAttributes,
 							   ContinuousVector* cvAttributeWeights)
 {
-	KWClass* classifierClass;
 	KWDRContinuousVector* weightRule;
 	KWDerivationRuleOperand* operand;
 	KWDRNBClassifier* classifierRule;
@@ -194,9 +193,6 @@ KWAttribute* KWPredictorNaiveBayes::AddClassifierAttribute(KWDataPreparationClas
 	require(oaUsedDataPreparationAttributes != NULL);
 	require(cvAttributeWeights == NULL or
 		cvAttributeWeights->GetSize() >= oaUsedDataPreparationAttributes->GetSize());
-
-	// Acces a la classe du classifieur (pour la lisibilite)
-	classifierClass = dataPreparationClass->GetDataPreparationClass();
 
 	// Creation d'une regle de ponderation des grilles
 	weightRule = NULL;
@@ -684,7 +680,6 @@ void KWPredictorNaiveBayes::AddPredictorDataGridStatsAndBlockOperands(KWDerivati
 	Object* oElement;
 	KWDerivationRuleOperand* operand;
 	KWAttribute* dataGridBlockAttribute;
-	KWAttributeBlock* nativeAttributeBlock;
 	KWDRDataGridStatsBlock* dataGridStatsBlockRule;
 	int nCurrentWeightIndex;
 
@@ -751,8 +746,6 @@ void KWPredictorNaiveBayes::AddPredictorDataGridStatsAndBlockOperands(KWDerivati
 	while (position != NULL)
 	{
 		odDataPreparationAttributesByBlock.GetNextAssoc(position, sAttributeBlockName, oElement);
-		nativeAttributeBlock =
-		    dataPreparationClass->GetDataPreparationClass()->LookupAttributeBlock(sAttributeBlockName);
 		oaDataGridStatsBlockDataPreparationAttributes = cast(ObjectArray*, oElement);
 
 		dataGridBlockAttribute =

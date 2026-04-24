@@ -51,7 +51,6 @@ void DTForestAttributeSelection::Initialization(const ObjectDictionary* odInputA
 {
 	require(odInputAttributeStats != NULL);
 
-	longint nNbInstence = 0;
 	DTTreeAttribute* taAttribute;
 	KWAttributeStats* attributeStats;
 	KWAttribute* attribute;
@@ -63,10 +62,9 @@ void DTForestAttributeSelection::Initialization(const ObjectDictionary* odInputA
 	odInputAttributeStats->ExportObjectArray(&oaAttributeStats);
 	nOriginalAttributesNumber = oaAttributeStats.GetSize();
 
-	// nombre d'objet dasn la base
+	// nombre d'objet dans la base
 	attributeStats = cast(KWAttributeStats*, oaAttributeStats.GetAt(0));
-	nNbInstence = attributeStats->GetInstanceNumber();
-	//	cout << "les attibut : " << nOriginalAttributesNumber << endl;
+
 	for (nAttribute = 0; nAttribute < nOriginalAttributesNumber; nAttribute++)
 	{
 		attributeStats = cast(KWAttributeStats*, oaAttributeStats.GetAt(nAttribute));
@@ -102,7 +100,6 @@ void DTForestAttributeSelection::BuildForestUniformSelections(int nmaxselectionn
 		nMaxSelectionNumber = nmaxselectionnumber;
 		int nSelection, nAttribute;
 		int nTinf, nTnull;
-		int nKinf, nKnull;
 		int nAttributesNumber;
 		int nSeed = nRandomSeed;
 		ObjectArray oaVariablesNull;
@@ -116,20 +113,16 @@ void DTForestAttributeSelection::BuildForestUniformSelections(int nmaxselectionn
 
 		Clean();
 
-		nKinf = 0;
-		nKnull = 0;
 		// calcul des ensemble de variable inf et null
 		for (nAttribute = 0; nAttribute < nOrigineAttributesNumber; nAttribute++)
 		{
 			taAttribute = cast(DTTreeAttribute*, oaOriginalAttributesUsed.GetAt(nAttribute));
 			if (taAttribute->dLevel == 0.0)
 			{
-				nKnull++;
 				oaVariablesNull.Add(taAttribute);
 			}
 			else
 			{
-				nKinf++;
 				oaVariablesInf.Add(taAttribute);
 			}
 		}
@@ -140,7 +133,6 @@ void DTForestAttributeSelection::BuildForestUniformSelections(int nmaxselectionn
 			// le dictionnaire de lecture de la base (i.e : flaggues avec SetUsed(false) et SetLoaded(false)
 			// ) D'autre part, on  a deja verifie que les attributs restants peuvent etre traites en memoire
 			// (et le cas echeant, on a deja decharge les attributs les moins informatifs)
-
 			if (dPct == 0.0)
 				nAttributesNumber =
 				    (int)(sqrtl(nOrigineAttributesNumber) + log2l(nOrigineAttributesNumber)); // MB
@@ -173,7 +165,7 @@ void DTForestAttributeSelection::BuildForestUniformSelections(int nmaxselectionn
 			else
 				oaOriginalAttributesUsed.Shuffle();
 
-			// cretation nouvelle liste de variables
+			// creation nouvelle liste de variables
 			svRandattibuteselection = new DTAttributeSelection;
 
 			svRandattibuteselection->SetRandomSeed(nSeed);
@@ -739,12 +731,12 @@ boolean DTAttributeSelectionsSlices::Check() const
 	int nSlice;
 	int i;
 	KWAttribute* previousAttribute;
-	KWDataTableSlice* previousSlice;
 	KWAttribute* attribute;
 	DTTreeAttribute* treeattribute;
 	KWDataTableSlice* slice;
 	ALString sTmp;
 	ObjectArray oaSlices;
+
 	nkdSlices.ExportObjectArray(&oaSlices);
 
 	// Il doit y avoir au moins une paire
@@ -752,7 +744,6 @@ boolean DTAttributeSelectionsSlices::Check() const
 	// Collecte dans un dictionnaire des tranches et de leurs attributs
 	if (bOk)
 	{
-		previousSlice = NULL;
 		for (nSlice = 0; nSlice < oaSlices.GetSize(); nSlice++)
 		{
 			slice = cast(KWDataTableSlice*, oaSlices.GetAt(nSlice));
@@ -765,7 +756,6 @@ boolean DTAttributeSelectionsSlices::Check() const
 			//	bOk = false;
 			//	break;
 			//}
-			previousSlice = slice;
 
 			// Erreur si tranche deja utilisee
 			if (odSlices.Lookup(slice->GetClass()->GetName()) != NULL)

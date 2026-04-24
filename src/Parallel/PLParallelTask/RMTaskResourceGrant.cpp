@@ -230,13 +230,11 @@ ALString RMTaskResourceGrant::GetMissingResourceMessage()
 	ALString sTmp;
 	ALString sMissingResource;
 	boolean bMissingMemory;
-	boolean bMissingDisk;
 
 	require(GetMissingMemory() > 0 or GetMissingDisk() > 0);
 	require(IsEmpty());
 
 	bMissingMemory = GetMissingMemory() > 0;
-	bMissingDisk = GetMissingDisk() > 0;
 
 	if (bMissingMemory)
 	{

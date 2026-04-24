@@ -707,7 +707,6 @@ boolean KWKeySampleExtractorTask::SlaveProcess()
 	longint lMaxEndPos;
 	longint lNextLinePos;
 	boolean bLineTooLong;
-	boolean bIsLineOk;
 
 	inputFile.SetBufferSize(shared_nBufferSize);
 
@@ -772,7 +771,7 @@ boolean KWKeySampleExtractorTask::SlaveProcess()
 			{
 				// Extraction de la cle, que la ligne soti valdie ou non
 				recordKey = new KWKey;
-				bIsLineOk = keyExtractor.ParseNextKey(recordKey, NULL);
+				keyExtractor.ParseNextKey(recordKey, NULL);
 
 				// Memorisation de la cle et de sa memoire utilisee
 				output_oaSampledKeys->GetObjectArray()->Add(recordKey);

@@ -367,6 +367,7 @@ boolean CharVector::TestCopyAt(int nSizeDest, int nSizeSource, int nIndexDest, i
 	int nErrorNumber;
 	int i;
 	boolean bOk;
+	boolean bVerbose = false;
 
 	assert(nIndexDest + nCopySize < nSizeDest);
 	assert(nIndexSource + nCopySize <= nSizeSource);
@@ -404,6 +405,14 @@ boolean CharVector::TestCopyAt(int nSizeDest, int nSizeSource, int nIndexDest, i
 		default:
 			nErrorNumber++;
 		}
+	}
+	if (bVerbose)
+	{
+		cout << "TestCopyAt: nSizeDest=" << nSizeDest << ", nSizeSource=" << nSizeSource
+		     << ", nIndexDest=" << nIndexDest << ", nIndexSource=" << nIndexSource
+		     << ", nCopySize=" << nCopySize << endl;
+		cout << "nCharSourceNumber=" << nCharSourceNumber << ", nCharDestNumber=" << nCharDestNumber
+		     << ", nErrorNumber=" << nErrorNumber << endl;
 	}
 
 	// Test si les resultats sont OK

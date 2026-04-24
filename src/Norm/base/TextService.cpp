@@ -390,7 +390,6 @@ boolean TextService::JsonToCString(const char* sJsonString, ALString& sCString)
 	boolean bOk = true;
 	const unsigned char* sInputString;
 	int nAnsiCode;
-	boolean bContainsAnsiChars;
 	unsigned int nCode;
 	unsigned int nPotentialCode;
 	int nBegin;
@@ -418,7 +417,6 @@ boolean TextService::JsonToCString(const char* sJsonString, ALString& sCString)
 	nBegin = 0;
 	nEnd = 0;
 	sCharsToAdd = "?";
-	bContainsAnsiChars = false;
 	while (nEnd < nLength)
 	{
 		if (sInputString[nEnd] == '\\')
@@ -484,7 +482,6 @@ boolean TextService::JsonToCString(const char* sJsonString, ALString& sCString)
 					nAnsiCode = UnicodeHexToWindows1252(sUnicodeChars);
 					if (nAnsiCode != -1)
 					{
-						bContainsAnsiChars = true;
 						nEnd += 3;
 						nCharNumber = 1;
 						sUtf8Chars[0] = (char)nAnsiCode;

@@ -425,7 +425,6 @@ void KWDatabaseTransferView::BuildTransferredClass()
 	FileSpec specTransferredDictionaryFile;
 	ALString sTransferredClassFileName;
 	KWClassDomain transferredClassDomain;
-	KWClass* transferredClass;
 	KWResultFilePathBuilder resultFilePathBuilder;
 
 	// Memorisation des donnees modifies (non geres par les View)
@@ -525,7 +524,7 @@ void KWDatabaseTransferView::BuildTransferredClass()
 		if (bOk and sTransferredClassFileName != "")
 		{
 			AddSimpleMessage("Write deployed dictionary file " + sTransferredClassFileName);
-			transferredClass = InternalBuildTransferredClass(&transferredClassDomain, transferClass);
+			InternalBuildTransferredClass(&transferredClassDomain, transferClass);
 
 			// Ecriture du dictionnaire
 			transferredClassDomain.WriteFile(sTransferredClassFileName);
