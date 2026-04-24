@@ -14,7 +14,6 @@ readme = "README.md"
 license = "BSD-3-Clause-Clear"
 license-files = ["LICENSE"]
 authors = [{name = "The Khiops Team", email = "khiops.team@orange.com"}]
-requires-python = ">=3.9"
 dependencies = [
     "openmpi ; platform_system in '[Linux, Darwin]'",
     "impi-rt ; platform_system == 'Windows'"

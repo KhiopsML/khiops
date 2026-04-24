@@ -9,12 +9,14 @@ endif()
 # Specification of the paths according to the OS
 if(IS_PIP)
   set(INCLUDE_DIR ${SKBUILD_HEADERS_DIR}) # pip installs to {prefix}/include/khiops_kni/KhiopsNativeInterface.h
-  set(LIB_DIR ${SKBUILD_DATA_DIR}/lib) # pip installs to {prefix}/lib/
+  set(DLL_DIR ${SKBUILD_SCRIPTS_DIR}) # pip installs dll to Scripts/ on Windows, bin/ on Unix
+  set(LIB_DIR ${SKBUILD_SCRIPTS_DIR}) # we installs the static lib alongside the dll
   set(DOC_DIR ${SKBUILD_NULL_DIR}) # With pip, license and README are already copied to pkg metadata, so we set DOC_DIR
                                    # to SKBUILD_NULL_DIR to avoid installing them again
 elseif(IS_WINDOWS)
   set(INCLUDE_DIR include)
   set(LIB_DIR lib)
+  set(DLL_DIR bin)
   set(DOC_DIR "./")
 else()
   set(INCLUDE_DIR usr/include)
@@ -25,10 +27,9 @@ endif()
 install(
   TARGETS KhiopsNativeInterface
   LIBRARY DESTINATION ${LIB_DIR} COMPONENT KNI
-  PUBLIC_HEADER DESTINATION ${INCLUDE_DIR} COMPONENT KNI
-  ARCHIVE COMPONENT KNI # lib on windows
-  RUNTIME COMPONENT KNI # dll on windows
-)
+  RUNTIME DESTINATION ${DLL_DIR} COMPONENT KNI # dll on windows
+  ARCHIVE DESTINATION ${LIB_DIR} COMPONENT KNI # import lib on windows
+  PUBLIC_HEADER DESTINATION ${INCLUDE_DIR} COMPONENT KNI)
 
 install(
   FILES ${PROJECT_SOURCE_DIR}/LICENSE
