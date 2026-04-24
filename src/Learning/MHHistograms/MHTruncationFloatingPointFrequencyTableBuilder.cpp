@@ -312,13 +312,13 @@ void MHTruncationFloatingPointFrequencyTableBuilder::ExtractFloatingPointBinBoun
 	assert(cIntervalLength < dTruncationBinaryEpsilon or
 	       (longint)(cIntervalLength / dTruncationBinaryEpsilon) == cIntervalLength / dTruncationBinaryEpsilon or
 	       nHierarchyBitNumber < GetMainBinHierarchyRootLevel() or
-	       cIntervalLength / dTruncationBinaryEpsilon >= LONG_MAX or
+	       cIntervalLength / dTruncationBinaryEpsilon >= (double)LONG_MAX or
 	       cIntervalLength == KWContinuous::GetEpsilonValue());
 	if (cIntervalLength < dTruncationBinaryEpsilon)
 	{
 		assert((longint)(dTruncationBinaryEpsilon / cIntervalLength) ==
 			   dTruncationBinaryEpsilon / cIntervalLength or
-		       dTruncationBinaryEpsilon / cIntervalLength >= LLONG_MAX or
+		       dTruncationBinaryEpsilon / cIntervalLength >= (double)LLONG_MAX or
 		       cIntervalLength <= KWContinuous::GetEpsilonValue());
 
 		// On ne traite que le cas d'un intervalle plus grand que le epsilon de la singularite en 0
