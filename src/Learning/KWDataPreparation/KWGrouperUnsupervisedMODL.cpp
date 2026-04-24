@@ -38,7 +38,6 @@ int KWGrouperUnsupervisedMODL::ComputePreprocessedMaxLineNumber(KWFrequencyTable
 	require(table->GetFrequencyVectorNumber() == table->GetInitialValueNumber());
 
 	// Calcul de la coupure suite au meilleur encodage
-	nBestValueNumber = 0;
 	ComputeBestPriorCost(table, 0, table->GetInitialValueNumber(), nBestValueNumber);
 
 	// Si on a un vraie coupure, on recoupe la deuxieme partie en deux

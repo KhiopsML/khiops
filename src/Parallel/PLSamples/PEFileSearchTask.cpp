@@ -179,7 +179,6 @@ boolean PEFileSearchTask::SlaveProcess()
 	ALString sTmp;
 	boolean bIsOpen;
 	boolean bTrace = false;
-	longint lLinePosition;
 	longint lBeginPos;
 	longint lMaxEndPos;
 	longint lNextLinePos;
@@ -231,7 +230,6 @@ boolean PEFileSearchTask::SlaveProcess()
 
 	// Remplissage du buffer avec des lignes entieres dans la limite de la taille du buffer
 	// On reitere tant que l'on a pas atteint la derniere position pour lire toutes les ligne, y compris la derniere
-	lLinePosition = -1;
 	while (bOk and lBeginPos < lMaxEndPos)
 	{
 		bOk = inputBuffer.FillOuterLinesUntil(lBeginPos, lMaxEndPos, bLineTooLong);
@@ -258,8 +256,6 @@ boolean PEFileSearchTask::SlaveProcess()
 		// Parcours du buffer d'entree
 		while (bOk and not inputBuffer.IsBufferEnd())
 		{
-			lLinePosition = inputBuffer.GetPositionInFile();
-
 			// Gestion de la progresssion
 			lDisplayFreshness++;
 			if (TaskProgression::IsRefreshNecessary(lDisplayFreshness))
