@@ -577,7 +577,6 @@ void KWTextTokenizer::TokenizeText(const char* sText, int nTextLength)
 {
 	debug(const boolean bTrace = false);
 	LongintDictionary* ldCollectedTokens;
-	LongintDictionary* ldSpecificTokens;
 	const char* sStringValue;
 	unsigned char cChar;
 	boolean bIsSpace;
@@ -593,7 +592,6 @@ void KWTextTokenizer::TokenizeText(const char* sText, int nTextLength)
 
 	// Acces aux tokens du bon type
 	ldCollectedTokens = cast(LongintDictionary*, gdCollectedTokens);
-	ldSpecificTokens = cast(LongintDictionary*, gdSpecificTokens);
 
 	// Parcours des caracteres de la chaines pour extraire les tokens
 	sStringValue = sText;
@@ -1369,7 +1367,6 @@ void KWTextWordTokenizer::TokenizeText(const char* sText, int nTextLength)
 {
 	debug(const boolean bTrace = false);
 	LongintDictionary* ldCollectedTokens;
-	LongintDictionary* ldSpecificTokens;
 	const char* sStringValue;
 	char cChar;
 	boolean bIsTokenPunctuation;
@@ -1387,7 +1384,6 @@ void KWTextWordTokenizer::TokenizeText(const char* sText, int nTextLength)
 
 	// Acces aux tokens du bon type
 	ldCollectedTokens = cast(LongintDictionary*, gdCollectedTokens);
-	ldSpecificTokens = cast(LongintDictionary*, gdSpecificTokens);
 
 	// Parcours des caracteres de la chaines pour extraire les tokens
 	sStringValue = sText;

@@ -42,11 +42,13 @@ Object* KWBenchmarkSpecArrayView::EventNew()
 
 void KWBenchmarkSpecArrayView::EventUpdate(Object* object)
 {
+
 	KWBenchmarkSpec* editedObject;
 
 	require(object != NULL);
 
 	editedObject = cast(KWBenchmarkSpec*, object);
+	(void)editedObject; // Evite un warning si on n'utilise pas l'objet dans cette methode
 
 	// ## Custom update
 

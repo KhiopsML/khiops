@@ -286,7 +286,6 @@ boolean KWKeySizeEvaluatorTask::SlaveProcess()
 	longint lBeginPos;
 	longint lBeginLinePos;
 	longint lMaxEndPos;
-	boolean bIsLineOk;
 
 	require(inputFile.IsOpened());
 
@@ -319,7 +318,7 @@ boolean KWKeySizeEvaluatorTask::SlaveProcess()
 		// Extraction des clefs du fichier, que les lignes soit valides ou non
 		while (not inputFile.IsBufferEnd())
 		{
-			bIsLineOk = keyExtractor.ParseNextKey(&recordKey, NULL);
+			keyExtractor.ParseNextKey(&recordKey, NULL);
 			output_nTotalKeySize += (int)(sizeof(KWKey*) + recordKey.GetUsedMemory());
 		}
 	}

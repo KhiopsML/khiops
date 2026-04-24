@@ -1271,7 +1271,6 @@ void SNBDataTableBinarySliceSetChunkPhysicalLayout::FinishInitialization()
 	longint lBlockOffset;
 	int nSlice;
 	longint lBlockSize;
-	longint lAttributeDataRelativeOffset;
 	int nSliceAttribute;
 	int nAttribute;
 
@@ -1286,13 +1285,11 @@ void SNBDataTableBinarySliceSetChunkPhysicalLayout::FinishInitialization()
 	for (nSlice = 0; nSlice < layout->GetSliceNumber(); nSlice++)
 	{
 		lBlockSize = 0;
-		lAttributeDataRelativeOffset = 0;
 		for (nSliceAttribute = 0; nSliceAttribute < layout->GetAttributeNumberAtSlice(nSlice);
 		     nSliceAttribute++)
 		{
 			nAttribute = layout->GetAttributeOffsetAtSlice(nSlice) + nSliceAttribute;
 			lBlockSize += (longint)ivAttributeDataSizes.GetAt(nAttribute);
-			lAttributeDataRelativeOffset += (longint)ivAttributeDataSizes.GetAt(nAttribute);
 		}
 		lvBlockSizes.SetAt(nSlice, lBlockSize);
 		lvBlockOffsets.SetAt(nSlice, lBlockOffset);
@@ -1517,7 +1514,6 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeDataFileFromSliceSetAt(
 	int nRequestedBufferSize;
 	int* buffer;
 	int nIntBufferSize;
-	int nChunkInstanceNumber;
 	int nSlice;
 	int nSliceAttributeNumber;
 	int nBuffer;
@@ -1544,7 +1540,6 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeDataFileFromSliceSetAt(
 
 		// Boucle sur les slices pour ecriture du fichier de chunk
 		Global::ActivateErrorFlowControl();
-		nChunkInstanceNumber = layout->GetInstanceNumberAtChunk(nChunkIndex);
 		for (nSlice = 0; nSlice < layout->GetSliceNumber(); nSlice++)
 		{
 			// Chargmement en memoire de la slice du binary slice set depuis le slice set
@@ -2781,7 +2776,6 @@ void SNBDataTableBinarySliceSet::WriteContentsAsTSV(ostream& ost)
 {
 	const int nMaxInstanceNumber = 200;
 	int nDisplayedInstanceNumber;
-	boolean bOk = true;
 	int nSlice;
 	int nInstance;
 	int nAttribute;
@@ -2832,7 +2826,7 @@ void SNBDataTableBinarySliceSet::WriteContentsAsTSV(ostream& ost)
 						      layout.GetAttributeNumberAtSlice(nSlice);
 				     nAttribute++)
 				{
-					bOk = GetAttributeColumnView(GetAttributeAt(nAttribute), column);
+					GetAttributeColumnView(GetAttributeAt(nAttribute), column);
 					if (column->GetSparseMode())
 					{
 						ost << "\t";

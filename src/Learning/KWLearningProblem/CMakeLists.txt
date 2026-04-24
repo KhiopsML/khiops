@@ -16,7 +16,6 @@ target_link_libraries(
          DTForest
          KIInterpretation
          KWDRRuleLibrary
-         KWDataPreparation
          KWUserInterface
          SNBPredictor
          MHHistograms)

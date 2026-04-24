@@ -46,11 +46,11 @@ void KWObjectKey::SetSize(int nValue)
 			// Une recopie directe des valeurs ne pose pas de probleme, puisque le compteur de reference
 			// des symbol est inchange entre avant et apres le retaillage
 			if (nValue < nSize)
-				memcpy(sNewKeyFields, sKeyFields, nValue * sizeof(Symbol));
+				memcpy((void*)sNewKeyFields, sKeyFields, nValue * sizeof(Symbol));
 			else
 			{
-				memcpy(sNewKeyFields, sKeyFields, nSize * sizeof(Symbol));
-				memset(&sNewKeyFields[nSize], 0, (nValue - nSize) * sizeof(Symbol));
+				memcpy((void*)sNewKeyFields, sKeyFields, nSize * sizeof(Symbol));
+				memset((void*)&sNewKeyFields[nSize], 0, (nValue - nSize) * sizeof(Symbol));
 			}
 			DISABLE_WARNING_POP
 
@@ -315,7 +315,7 @@ void KWObjectKey::NewKeyFields(int nInitialisationSize)
 	// Suppression du warning class-memaccess
 	DISABLE_WARNING_PUSH
 	DISABLE_WARNING_CLASS_MEMACCESS
-	memset(sKeyFields, 0, nInitialisationSize * sizeof(Symbol));
+	memset((void*)sKeyFields, 0, nInitialisationSize * sizeof(Symbol));
 	DISABLE_WARNING_POP
 	nSize = nInitialisationSize;
 }

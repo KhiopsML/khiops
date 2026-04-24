@@ -63,8 +63,6 @@ boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& s
 {
 	FILE* fileRef;
 	FILE* fileTest;
-	boolean bOk1;
-	boolean bOk2;
 	boolean bSame = true;
 	boolean bDifferentLineNumber = false;
 	const char sSys[] = "SYS";
@@ -80,8 +78,6 @@ boolean FileCompareForTest(const ALString& sFileNameReference, const ALString& s
 	int nPos;
 
 	// Initialisations
-	bOk1 = false;
-	bOk2 = false;
 	fileRef = NULL;
 	fileTest = NULL;
 

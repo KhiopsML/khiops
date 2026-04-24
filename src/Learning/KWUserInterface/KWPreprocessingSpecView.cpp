@@ -177,12 +177,7 @@ void KWPreprocessingSpecView::InspectDataGridOptimizerParameters()
 
 void KWPreprocessingSpecView::SetObject(Object* object)
 {
-	KWPreprocessingSpec* preprocessingSpec;
-
 	require(object != NULL);
-
-	// Acces a l'objet edite
-	preprocessingSpec = cast(KWPreprocessingSpec*, object);
 
 	// Memorisation de l'objet pour la fiche courante
 	UIObjectView::SetObject(object);

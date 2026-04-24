@@ -27,7 +27,6 @@ boolean MemoryInputBufferedFile::FillBuffer(const CharVector* cvInputRecord)
 {
 	boolean bOk;
 	int nInitialCurrentBufferSize;
-	int nInitialBufferLineNumber;
 	char c;
 	int i;
 
@@ -35,7 +34,6 @@ boolean MemoryInputBufferedFile::FillBuffer(const CharVector* cvInputRecord)
 
 	// Retaillage si necessaire du buffer
 	nInitialCurrentBufferSize = nCurrentBufferSize;
-	nInitialBufferLineNumber = nBufferLineNumber;
 	bOk = AllocateBuffer();
 
 	// Recopie de la chaine de caracteres dans le buffer

@@ -2117,7 +2117,6 @@ void KDMultiTableFeatureConstruction::BuildAllSelectionRulesFromSelectionOperand
 	double dSelectionOperandProb;
 	KDClassSelectionStats* classSelectionStats;
 	KDClassSelectionOperandStats* classSelectionOperandStats;
-	boolean bRuleFiltered;
 	int nInitialRuleNumber;
 
 	require(selectionRule != NULL);
@@ -2437,7 +2436,6 @@ void KDMultiTableFeatureConstruction::BuildAllSelectionRulesFromSelectionOperand
 		}
 	}
 	// Parcours des tailles de selection
-	bRuleFiltered = false;
 	for (nSize = 1; nSize <= dvSelectionSizeRandomDrawingNumbers.GetSize(); nSize++)
 	{
 		dSelectionRandomDrawingNumber = dvSelectionSizeRandomDrawingNumbers.GetAt(nSize - 1);
@@ -2477,8 +2475,7 @@ void KDMultiTableFeatureConstruction::BuildAllSelectionRulesFromSelectionOperand
 			oaAllSelectionParts.SetSize(0);
 
 			// Filtrage des regles pour ne garder que les regles de probabilite suffisantes pour etre tirees
-			bRuleFiltered =
-			    FilterConstructedRulesForRandomDrawing(dRandomDrawingNumber, oaAllConstructedRules);
+			FilterConstructedRulesForRandomDrawing(dRandomDrawingNumber, oaAllConstructedRules);
 
 			// Nettoyage des selections d'operandes
 			oaSelectionOperandIndexedFrequencies.DeleteAll();

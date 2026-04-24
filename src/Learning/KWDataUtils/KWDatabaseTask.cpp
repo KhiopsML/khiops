@@ -268,7 +268,6 @@ boolean KWDatabaseTask::ComputeAllDataTableIndexation()
 {
 	boolean bOk = true;
 	boolean bDisplay = false;
-	PLDatabaseTextFile* sourceDatabase;
 	RMTaskResourceGrant grantedResources;
 	KWFileIndexerTask fileIndexerTask;
 	int nSlaveNumber;
@@ -281,12 +280,9 @@ boolean KWDatabaseTask::ComputeAllDataTableIndexation()
 	/////////////////////////////////////////////////////////////////////////////////////////
 	// Collectes d'informations prealables sur les tables a traiter en lecture ou en ecriture
 
-	// Acces a la base source
-	sourceDatabase = shared_sourceDatabase.GetPLDatabase();
-	timer.Start();
-
 	// Calcul d'informations lie a l'ouverture des bases
 	bOk = bOk and ComputeDatabaseOpenInformation();
+	timer.Start();
 
 	// Appel prealable pour evaluer les ressources allouees, de facon a piloter les taches d'indexation
 	if (bOk)

@@ -422,7 +422,6 @@ void MHDiscretizerGenumHistogram::GranularizedDiscretizeValues(
 	double dCost;
 	int nIntervalNumber;
 	double dPartitionCost;
-	int nHierarchyLevel;
 	int nPartileNumber;
 	int nTotalBinNumber;
 	int nMaxPartileNumber;
@@ -465,7 +464,6 @@ void MHDiscretizerGenumHistogram::GranularizedDiscretizeValues(
 	// Optimisation de la granularite
 	// On s'arrete quand on depasse un nombre max d'essais consecutifs sans amelioration
 	dBestCost = DBL_MAX;
-	nHierarchyLevel = 0;
 	nPartileNumber = 1;
 	nLastActualPartileNumber = 1;
 	optimizedHistogramFrequencyTable = NULL;
@@ -476,8 +474,6 @@ void MHDiscretizerGenumHistogram::GranularizedDiscretizeValues(
 	dPreviousCost = DBL_MAX;
 	while (nPartileNumber <= nMaxPartileNumber)
 	{
-		nHierarchyLevel++;
-
 		// Construction d'une version granularisee de la table, apres avoir parametree correctement le nombre de
 		// partiles
 		BuildGranularizedFrequencyTable(initialHistogramFrequencyTable, nPartileNumber,

@@ -3279,15 +3279,9 @@ boolean KWClass::InternalCheckNativeAcyclicity(boolean bVerbose, KWAttribute* pa
 {
 	boolean bOk = true;
 	KWAttribute* attribute;
-	KWClass* parentClass;
 	KWClass* attributeClass;
 
 	require(nkdComponentClasses != NULL);
-
-	// Recherche de la classe parent a partir de l'attribut parent
-	parentClass = NULL;
-	if (parentAttribute != NULL)
-		parentClass = parentAttribute->GetParentClass();
 
 	// Ajout de la classe courante dans le dictionnaire des classes utilisees
 	// pour l'analyse de l'utilisation recursive

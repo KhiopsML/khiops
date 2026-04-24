@@ -597,13 +597,9 @@ boolean KWDatabaseTransferTask::SlaveInitializePrepareDatabase()
 {
 	boolean bOk = true;
 	ALString sClassName;
-	PLDatabaseTextFile* targetDatabase;
 
 	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::SlaveInitializePrepareDatabase();
-
-	// Acces aux bases
-	targetDatabase = shared_targetDatabase.GetPLDatabase();
 
 	// Cas specifique au multi-tables
 	if (bOk and shared_targetDatabase.GetDatabase()->IsMultiTableTechnology())

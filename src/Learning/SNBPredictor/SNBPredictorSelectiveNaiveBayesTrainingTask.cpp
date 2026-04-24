@@ -548,7 +548,6 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveBinarySli
 	int nInstanceNumber;
 	int nAttributeNumber;
 	int nSparseAttributeNumber;
-	longint lSparseMissingValueNumber;
 	double dSparseMemoryFactor;
 	longint lNecessaryMemory;
 	IntVector* ivTrainingSparseMissingValueNumberPerAttribute;
@@ -557,7 +556,6 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveBinarySli
 	nInstanceNumber = masterSnbPredictor->GetInstanceNumber();
 	nAttributeNumber = masterSnbPredictor->ComputeTrainingAttributeNumber();
 	nSparseAttributeNumber = masterSnbPredictor->ComputeTrainingSparseAttributeNumber();
-	lSparseMissingValueNumber = masterSnbPredictor->ComputeTrainingAttributesSparseMissingValueNumber();
 
 	dSparseMemoryFactor = masterSnbPredictor->ComputeSparseMemoryFactor();
 	ivTrainingSparseMissingValueNumberPerAttribute =
@@ -603,7 +601,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSlaveNecessaryMemory
 	lSelectionScorerMemory = ComputeSlaveScorerNecessaryMemory();
 
 	// La memoire de l'esclave est celle des
-	lSlaveMemory = lLayoutMemory + lTargetValuesMemory + lBinarySliceSetSelfMemory;
+	lSlaveMemory = lLayoutMemory + lTargetValuesMemory + lBinarySliceSetSelfMemory + lSelectionScorerMemory;
 
 	// Trace de deboggage
 	if (bDisplay)
@@ -903,11 +901,9 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 	int nMaxSliceNumber;
 	longint lSlaveGrantedMemory;
 	longint lSlaveNecessaryMemory;
-	longint lSlaveShareOfGlobalNecessaryMemory;
 	longint lSlaveExtraMemory;
 	longint lDataTableSliceSetTotalReadBufferMemory;
 	longint lOneSliceExecutionExtraNecessaryMemory;
-	int nDataTableSliceSetSliceNumber;
 	int nDenseAttributeNumber;
 	longint lNonBufferSlaveGlobalMemory;
 	longint lSlaveDenseValuesMemoryPerBlock;
@@ -923,11 +919,9 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 	lSlaveGrantedMemory = GetTaskResourceGrant()->GetSlaveMemory();
 	nMaxSliceNumber = ComputeMaxSliceNumber();
 	lSlaveNecessaryMemory = 0;
-	lSlaveShareOfGlobalNecessaryMemory = 0;
 	lSlaveExtraMemory = -1;
 	lDataTableSliceSetTotalReadBufferMemory = 0;
 	lOneSliceExecutionExtraNecessaryMemory = 0;
-	nDataTableSliceSetSliceNumber = 0;
 	recoderClass = NULL;
 
 	// Recherche d'un nombre de slices qui permet d'executer la tache
@@ -982,7 +976,6 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 		//   - l'excedant entre la memoire necessaire avec un buffer de taille par defaut et celle avec un de taille minimale
 		//   - l'excedant entre la memoire attribuee et la memoire necessaire avec un buffer de taille minimale
 		//
-		nDataTableSliceSetSliceNumber = shared_dataTableSliceSet.GetDataTableSliceSet()->GetSliceNumber();
 		lDataTableSliceSetTotalReadBufferMemory =
 		    ComputeSliceSetTotalReadBufferNecessaryMemory(MemSegmentByteSize) +
 		    min(lSlaveExtraMemory,

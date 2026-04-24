@@ -1070,7 +1070,6 @@ void KWGrouperMODL::PostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequency
 	boolean bContinue;
 	int nModalityNumber;
 	int nGroupNumber;
-	int nTargetNumber;
 	DoubleVector dvGroupCosts;
 	DoubleVector dvGroupOutDeltaCosts;
 	DoubleVector dvGroupInDeltaCosts;
@@ -1100,10 +1099,9 @@ void KWGrouperMODL::PostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequency
 	if (bPrintInitialTables)
 		cout << *kwftSource << endl << *kwftTarget << endl;
 
-	// Memorisation des nombre de modalites, groupes et classes cibles
+	// Memorisation des nombre de modalites et groupes
 	nModalityNumber = kwftSource->GetFrequencyVectorNumber();
 	nGroupNumber = kwftTarget->GetFrequencyVectorNumber();
-	nTargetNumber = kwftSource->GetFrequencyVectorSize();
 
 	// Initialisation des valeurs de groupes
 	dvGroupCosts.SetSize(nGroupNumber);
@@ -3510,7 +3508,6 @@ void KWGrouperMODL::ExhaustiveMergeGroupingWithGarbageSearch(int nMinGroupNumber
 	IntVector* ivOptimumNumbers;
 	IntVector* ivGroups;
 	IntVector* ivSecondGroups;
-	int nInitialGroupNumber;
 
 	require(oaInitialGroups != NULL);
 	require(1 <= nMinGroupNumber and nMinGroupNumber <= oaInitialGroups->GetSize());
@@ -3522,9 +3519,6 @@ void KWGrouperMODL::ExhaustiveMergeGroupingWithGarbageSearch(int nMinGroupNumber
 
 	// Initialisation des merges
 	oaInitialGroupMerges = BuildGroupMerges(oaInitialGroups);
-
-	// Nombre initial de groupes
-	nInitialGroupNumber = oaInitialGroups->GetSize();
 
 	// Recherche du nombre optimal de groupes sans et avec poubelle
 	ivOptimumNumbers = OptimizeGroupsWithGarbageSearch(nMinGroupNumber, oaInitialGroups, oaInitialGroupMerges,

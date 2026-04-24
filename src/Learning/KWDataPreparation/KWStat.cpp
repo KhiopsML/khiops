@@ -218,8 +218,6 @@ double KWStat::InvStandardNormal(double dProb)
 	const double dMax = 1e20;
 	double dLowerX;
 	double dUpperX;
-	double dLowerXVal;
-	double dUpperXVal;
 	double dNewX;
 	double dNewXVal;
 
@@ -227,9 +225,7 @@ double KWStat::InvStandardNormal(double dProb)
 
 	// Initialisation des bornes de l'intervalle de recherche
 	dLowerX = -dMax;
-	dLowerXVal = 0;
 	dUpperX = dMax;
-	dUpperXVal = 1;
 
 	// Recherche par dichotomie de la valeur la plus proche
 	while ((dUpperX - dLowerX) > dTolerance * (fabs(dLowerX) + fabs(dUpperX)))
@@ -242,12 +238,10 @@ double KWStat::InvStandardNormal(double dProb)
 		if (dNewXVal < dProb)
 		{
 			dLowerX = dNewX;
-			dLowerXVal = dNewXVal;
 		}
 		else
 		{
 			dUpperX = dNewX;
-			dUpperXVal = dNewXVal;
 		}
 	}
 	return dLowerX;
@@ -337,8 +331,6 @@ double KWStat::InvStudent(double dProb, int ndf)
 	const double dMax = 1e20;
 	double dLowerX;
 	double dUpperX;
-	double dLowerXVal;
-	double dUpperXVal;
 	double dNewX;
 	double dNewXVal;
 
@@ -353,9 +345,7 @@ double KWStat::InvStudent(double dProb, int ndf)
 
 	// Initialisation des bornes de l'intervalle de recherche
 	dLowerX = 0;
-	dLowerXVal = 0;
 	dUpperX = dMax;
-	dUpperXVal = 1;
 
 	// Recherche par dichotomie de la valeur la plus proche
 	while ((dUpperX - dLowerX) > dTolerance * (fabs(dLowerX) + fabs(dUpperX)))
@@ -368,12 +358,10 @@ double KWStat::InvStudent(double dProb, int ndf)
 		if (dNewXVal > dProb)
 		{
 			dLowerX = dNewX;
-			dLowerXVal = dNewXVal;
 		}
 		else
 		{
 			dUpperX = dNewX;
-			dUpperXVal = dNewXVal;
 		}
 	}
 	return dLowerX;
@@ -850,8 +838,6 @@ double KWStat::InvChi2(double dProb, int ndf)
 	const double dMax = 1e20;
 	double dLowerX;
 	double dUpperX;
-	double dLowerXVal;
-	double dUpperXVal;
 	double dNewX;
 	double dNewXVal;
 	double dLnProb;
@@ -865,9 +851,7 @@ double KWStat::InvChi2(double dProb, int ndf)
 
 	// Initialisation des bornes de l'intervalle de recherche
 	dLowerX = 0;
-	dLowerXVal = 0;
 	dUpperX = dMax;
-	dUpperXVal = 1;
 
 	// Recherche par dichotomie de la valeur la plus proche
 	dLnProb = log(dProb);
@@ -881,12 +865,10 @@ double KWStat::InvChi2(double dProb, int ndf)
 		if (dNewXVal > dLnProb)
 		{
 			dLowerX = dNewX;
-			dLowerXVal = dNewXVal;
 		}
 		else
 		{
 			dUpperX = dNewX;
-			dUpperXVal = dNewXVal;
 		}
 	}
 	return dLowerX;

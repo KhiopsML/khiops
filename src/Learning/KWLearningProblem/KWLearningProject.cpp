@@ -20,7 +20,7 @@ void KWLearningProject::Start(int argc, char** argv)
 	SystemFileDriverCreator::RegisterExternalDrivers();
 
 	// Parametrage du mode d'interface graphique en fonction des drivers de fichiers enregistres
-	SetLearningDefaultRawGuiModeMode(SystemFileDriverCreator::GetExternalDriverNumber());
+	SetLearningDefaultRawGuiModeMode(SystemFileDriverCreator::GetExternalDriverNumber() > 0);
 
 	// Parametrage si necessaire d'un mode de fonctionnement basique des boites de dialogue de type FileChooser
 	if (GetLearningRawGuiModeMode())

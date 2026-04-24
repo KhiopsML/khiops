@@ -117,7 +117,6 @@ boolean KWDRPartition::CheckOperandsFamily(const KWDerivationRule* ruleFamily) c
 	int nOperand;
 	KWDerivationRuleOperand* operand;
 	int nPartNumber;
-	int nTotalCellNumber;
 	double dTotalCellNumber;
 	ALString sTmp;
 
@@ -182,13 +181,11 @@ boolean KWDRPartition::CheckOperandsFamily(const KWDerivationRule* ruleFamily) c
 	// Calcul du nombre total de cellules a partir des partitions univariees
 	if (bOk)
 	{
-		nTotalCellNumber = 1;
 		dTotalCellNumber = 1;
 		for (nOperand = 0; nOperand < GetOperandNumber() - 1; nOperand++)
 		{
 			nPartNumber = cast(KWDRUnivariatePartition*, GetOperandAt(nOperand)->GetDerivationRule())
 					  ->GetPartNumber();
-			nTotalCellNumber *= nPartNumber;
 			dTotalCellNumber *= nPartNumber;
 		}
 

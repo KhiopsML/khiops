@@ -435,7 +435,6 @@ Timestamp KWTimestampFormat::StringToTimestamp(const char* const sValue) const
 {
 	boolean bCheck = true;
 	char sDateValue[12];
-	int nTotalMainCharNumber;
 	Timestamp tsConvertedString;
 	Date dtValue;
 	Time tmValue;
@@ -448,11 +447,6 @@ Timestamp KWTimestampFormat::StringToTimestamp(const char* const sValue) const
 	dtValue.Reset();
 	tmValue.Reset();
 	tsConvertedString.Reset();
-
-	// Longueur du format sans la partie decimale optionnelle des secondes
-	nTotalMainCharNumber = nTotalCharNumber;
-	if (timeFormat.GetDecimalPointOffset() != -1)
-		nTotalMainCharNumber--;
 
 	// Acces a la longueur de la valeur a convertir
 	nLength = (int)strlen(sValue);

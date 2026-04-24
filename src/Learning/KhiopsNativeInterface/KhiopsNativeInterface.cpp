@@ -466,7 +466,7 @@ static void KNIInternalDeleteStream(int hStream)
 
 	// Destruction de la classe
 	kwcClass = kniStream->GetClass();
-	kwcdLoadedDomain = kniStream->GetClass()->GetDomain();
+	kwcdLoadedDomain = kwcClass->GetDomain();
 	delete kwcdLoadedDomain;
 
 	// Destruction du stream
@@ -1225,7 +1225,6 @@ KNI_API int KNISetExternalTable(int hStream, const char* sDataRoot, const char* 
 KNI_API int KNIFinishOpeningStream(int hStream)
 {
 	int nRetCode;
-	KWClass* kwcClass;
 	KNIStream* kniStream;
 	KWMTDatabaseMapping* mapping;
 	int i;
@@ -1244,7 +1243,6 @@ KNI_API int KNIFinishOpeningStream(int hStream)
 		nRetCode = KNI_ErrorStreamHandle;
 
 	// Test si stream non deja ouvert
-	kwcClass = NULL;
 	kniStream = NULL;
 	if (nRetCode == KNI_OK)
 	{
@@ -1252,7 +1250,6 @@ KNI_API int KNIFinishOpeningStream(int hStream)
 
 		// Recherche du stream et de sa classe
 		kniStream = KNIGetOpenedStreamAt(hStream);
-		kwcClass = kniStream->GetClass();
 
 		// Erreur si stream deja ouvert
 		if (kniStream->GetInputStream()->IsOpenedForRead())

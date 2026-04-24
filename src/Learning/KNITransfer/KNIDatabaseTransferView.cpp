@@ -35,7 +35,6 @@ void KNIDatabaseTransferView::KNITransferDatabase()
 {
 	KNIMTRecodingOperands recodingOperands;
 	KWMTDatabaseTextFile* sourceMTDatabase;
-	KWMTDatabaseTextFile* targetMTDatabase;
 	KWDatabase* workingTargetDatabase;
 	Timer timerTransfer;
 	int nMapping;
@@ -43,9 +42,8 @@ void KNIDatabaseTransferView::KNITransferDatabase()
 	int nRecordNumber;
 	ALString sTmp;
 
-	// Acces aux bases source et cible
+	// Acces aux bases source
 	sourceMTDatabase = cast(KWMTDatabaseTextFile*, sourceDatabase);
-	targetMTDatabase = cast(KWMTDatabaseTextFile*, targetDatabase);
 
 	// On passe par une autre table en sortie, pour pouvoir specifier son chemin si elle n'en a pas
 	workingTargetDatabase = targetDatabase->Clone();

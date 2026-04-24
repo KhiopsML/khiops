@@ -41,6 +41,7 @@ void KWModelingSpecView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWModelingSpec*, object);
+	(void)editedObject; // Evite un warning si on n'utilise pas l'objet dans cette methode
 }
 
 void KWModelingSpecView::EventRefresh(Object* object)
@@ -50,6 +51,7 @@ void KWModelingSpecView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(KWModelingSpec*, object);
+	(void)editedObject; // Evite un warning si on n'utilise pas l'objet dans cette methode
 }
 
 const ALString KWModelingSpecView::GetClassLabel() const
