@@ -194,13 +194,13 @@ public:
 	// Lecture du prochain champ d'une ligne, qui est rendu nettoye des blancs de debut et de fin
 	// La chaine en parametre contient en retour le contenu du champ, termine par le caractere '\0'.
 	// Le parametre sField est a declarer en variable locale dans la methode appelante.
-	// Ce pointeur est positionne en retour vers un buffer gere par InputBufferFile, ce buffer pouvant
+	// Ce pointeur est positionne en retour vers un buffer gere par InputBufferedFile, ce buffer pouvant
 	// etre potentiellement de tres grande taille (cf. nMaxFieldSize).
 	// ATTENTION a exploiter ce buffer localement a la methode, si necessaire a en recopier le contenu,
 	// mais a ne pas memoriser son pointeur, dont le contenu change apres chaque appel.
 	// Le flag nFieldError est positionne en cas d'erreur de parsing du champ
 	// Code retour a true si le token est le dernier de la ligne, du buffer ou du fichier.
-	// Dans ce cas uniquement, on peut avoir un potentiellement une erreur de type LineTooLong
+	// Dans ce cas uniquement, on peut avoir potentiellement une erreur de type LineTooLong
 	boolean GetNextField(char*& sField, int& nFieldLength, int& nFieldError, boolean& bLineTooLong);
 
 	// Saut d'un champ
