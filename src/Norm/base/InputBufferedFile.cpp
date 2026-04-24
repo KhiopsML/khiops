@@ -575,7 +575,7 @@ void InputBufferedFile::AddEncodingErrorMessage(longint lErrorNumber, const Obje
 
 boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& nFieldError, boolean& bLineTooLong)
 {
-	boolean bUnconditionalLoop = true; // Pour eviter un warning dans la boucle
+	const boolean bUnconditionalLoop = true; // Pour eviter un warning dans la boucle
 	char c;
 	boolean bEndOfLine;
 	int i;
@@ -713,7 +713,7 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& n
 
 boolean InputBufferedFile::SkipField(int& nFieldError, boolean& bLineTooLong)
 {
-	boolean bUnconditionalLoop = true; // Pour eviter un warning dans la boucle
+	const boolean bUnconditionalLoop = true; // Pour eviter un warning dans la boucle
 	char c;
 	boolean bEndOfLine;
 	int nStartPositionInCache;
@@ -858,11 +858,12 @@ boolean InputBufferedFile::GetUTF8BomManagement() const
 
 boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nFieldError)
 {
-	boolean bUnconditionalLoop = true; // Pour eviter un warning dans la boucle
+	const boolean bUnconditionalLoop = true; // Pour eviter un warning dans la boucle
 	char c;
 	boolean bEndOfLine;
 	int iNew;
 	int iLast;
+	int iBeforeDoubleQuote;
 
 	require(sField != NULL);
 	require(i == 0);
@@ -948,6 +949,8 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 					nFieldError = FieldMissingMiddleDoubleQuote;
 
 					// On memorise le caractere double quote isole
+					// On sauvegarde la position avant pour pouvoir annuler si necessaire
+					iBeforeDoubleQuote = i;
 					if (i < (int)nMaxFieldSize)
 					{
 						sField[i] = '"';
@@ -957,9 +960,8 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 					// Si carriage return suivi de fin de fichier ou de ligne, c'est OK
 					if (c == '\r')
 					{
-						// On annule temporairement la prise du double quote
-						if (i < (int)nMaxFieldSize)
-							i--;
+						// On annule la prise du double quote
+						i = iBeforeDoubleQuote;
 
 						// OK si fin du buffer
 						if (IsBufferEnd())
@@ -988,10 +990,14 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 							break;
 						}
 
-						// On memorise le caractere carriage return, apres avoir restitue le
-						// double quote
+						// On restitue le double quote et on memorise le
+						// caractere carriage return
+						i = iBeforeDoubleQuote;
 						if (i < (int)nMaxFieldSize)
+						{
+							sField[i] = '"';
 							i++;
+						}
 						if (i < (int)nMaxFieldSize)
 						{
 							sField[i] = '\r';
@@ -1086,7 +1092,7 @@ boolean InputBufferedFile::GetNextDoubleQuoteField(char* sField, int& i, int& nF
 
 boolean InputBufferedFile::SkipDoubleQuoteField(int& nFieldError)
 {
-	boolean bUnconditionalLoop = true; // Pour eviter un warning dans la boucle
+	const boolean bUnconditionalLoop = true; // Pour eviter un warning dans la boucle
 	char c;
 	boolean bEndOfLine;
 
