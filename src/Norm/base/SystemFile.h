@@ -104,6 +104,9 @@ protected:
 	boolean bIsOpenForRead;
 	boolean bIsOpenForWrite;
 
+	// Message d'erreur qu'on garde apres fermeture
+	ALString sPostMortemMessage;
+
 	// Reserve physique disponible
 	longint lReservedExtraSize;
 
