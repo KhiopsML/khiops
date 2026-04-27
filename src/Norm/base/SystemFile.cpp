@@ -47,6 +47,9 @@ boolean SystemFile::OpenInputFile(const ALString& sFilePathName)
 		return false;
 	}
 
+	// (Re)-Initialisation du message d'erreur post-mortem
+	sPostMortemMessage = "";
+
 	// Ouverture du fichier
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open Begin");
@@ -84,6 +87,9 @@ boolean SystemFile::OpenOutputFile(const ALString& sFilePathName)
 		errno = ECANCELED;
 		return false;
 	}
+
+	// (Re)-Initialisation du message d'erreur post-mortem
+	sPostMortemMessage = "";
 
 	// Ouverture du fichier
 	if (FileService::LogIOStats())
@@ -123,6 +129,9 @@ boolean SystemFile::OpenOutputFileForAppend(const ALString& sFilePathName)
 		return false;
 	}
 
+	// (Re)-Initialisation du message d'erreur post-mortem
+	sPostMortemMessage = "";
+
 	// Ouverture du fichier
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] Open Begin");
@@ -153,6 +162,11 @@ boolean SystemFile::CloseInputFile(const ALString& sFilePathName)
 	bOk = fileDriver->Close(fileHandle);
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] close read End");
+
+	// Stockage de l'erreur dans le message post-mortem, avant le nettoyage du driver
+	assert(sPostMortemMessage == "");
+	if (not bOk)
+		sPostMortemMessage = fileDriver->GetLastErrorMessage();
 
 	// Nettoyage
 	fileDriver = NULL;
@@ -186,6 +200,11 @@ boolean SystemFile::CloseOutputFile(const ALString& sFilePathName)
 	bOk = fileDriver->Close(fileHandle) and bOk;
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] close write End");
+
+	// Stockage de l'erreur dans le message post-mortem, avant le nettoyage du driver
+	assert(sPostMortemMessage == "");
+	if (not bOk)
+		sPostMortemMessage = fileDriver->GetLastErrorMessage();
 
 	// Nettoyage
 	fileDriver = NULL;
@@ -298,12 +317,16 @@ boolean SystemFile::Flush()
 
 ALString SystemFile::GetLastErrorMessage()
 {
-	// Le driver peut etre null dans le cas ou on ne peut pas ouvrir le fichier
-	if (fileDriver == NULL)
-	{
-		return "file driver is missing";
-	}
-	return fileDriver->GetLastErrorMessage();
+	ALString sMessage;
+
+	// Si le message post-mortem est non vide, le driver est forcement non null
+	assert(sPostMortemMessage == "" or fileDriver == NULL);
+
+	if (fileDriver != NULL)
+		sMessage = fileDriver->GetLastErrorMessage();
+	else
+		sMessage = sPostMortemMessage;
+	return sMessage;
 }
 
 longint SystemFile::GetFileSize(const ALString& sFilePathName)
