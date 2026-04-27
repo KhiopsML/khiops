@@ -587,7 +587,6 @@ boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 	longint lNextLinePos;
 	boolean bLineTooLong;
 	int nCumulatedLineNumber;
-	boolean bIsLineOK;
 	ALString sTmp;
 	ALString sObjectLabel;
 	ALString sOtherObjectLabel;
@@ -668,7 +667,7 @@ boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 			{
 				// Extraction de la cle, que la ligne soit valide ou non
 				recordKeyPosition = new KWKeyPosition;
-				bIsLineOK = keyExtractor.ParseNextKey(recordKeyPosition->GetKey(), NULL);
+				keyExtractor.ParseNextKey(recordKeyPosition->GetKey(), NULL);
 
 				// Memorisation du numero de ligne pour la cle
 				recordKeyPosition->SetLineIndex((longint)nCumulatedLineNumber +

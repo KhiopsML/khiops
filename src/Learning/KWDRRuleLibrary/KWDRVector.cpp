@@ -355,9 +355,6 @@ Symbol KWDRSymbolValueAt::ComputeSymbolResult(const KWObject* kwoObject) const
 	require(IsCompiled());
 	require(KWType::IsSimple(GetSecondOperand()->GetType()));
 
-	KWDerivationRuleOperand* firstOperand;
-	firstOperand = GetFirstOperand();
-
 	// Recherche de la partition
 	symbolVector = cast(KWDRSymbolVector*, GetFirstOperand()->GetStructureValue(kwoObject));
 

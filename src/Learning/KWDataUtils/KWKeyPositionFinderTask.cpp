@@ -1001,7 +1001,6 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 	longint lNextLinePos;
 	boolean bLineTooLong;
 	int nCumulatedLineNumber;
-	boolean bIsLineOK;
 	ALString sTmp;
 	ALString sObjectLabel;
 	ALString sOtherObjectLabel;
@@ -1107,7 +1106,7 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 				}
 
 				// Extraction de la cle
-				bIsLineOK = keyExtractor.ParseNextKey(key, NULL);
+				keyExtractor.ParseNextKey(key, NULL);
 
 				// Memorisation de la premiere cle de l'esclave, que la la ligne soit valide ou non
 				if (output_SlaveFirstKeyPosition.GetKeyPosition()->GetLineIndex() == 0)

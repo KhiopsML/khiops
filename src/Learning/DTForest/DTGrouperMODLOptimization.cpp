@@ -1325,7 +1325,6 @@ void DTGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 	int nStepNumber;
 	int nModalityNumber;
 	int nGroupNumber;
-	int nTargetNumber;
 	IntVector ivModalityIndexes;
 	IntVector ivGroupIndexes;
 	DoubleVector dvGroupCosts;
@@ -1365,7 +1364,6 @@ void DTGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 	// Memorisation des nombre de modalites, groupes et classes cibles
 	nModalityNumber = kwftSource->GetFrequencyVectorNumber();
 	nGroupNumber = kwftTarget->GetFrequencyVectorNumber();
-	nTargetNumber = kwftSource->GetFrequencyVectorSize();
 
 	// Initialisation des vecteurs d'index des modalites et des groupes
 	ivModalityIndexes.SetSize(nModalityNumber);
@@ -1521,7 +1519,6 @@ void DTGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 	int nStepNumber;
 	int nModalityNumber;
 	int nGroupNumber;
-	int nTargetNumber;
 	IntVector ivModalityIndexes;
 	IntVector ivGroupIndexes;
 	DoubleVector dvGroupCosts;
@@ -1572,7 +1569,7 @@ void DTGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 	// Memorisation des nombre de modalites, groupes et classes cibles
 	nModalityNumber = kwftSource->GetFrequencyVectorNumber();
 	nGroupNumber = kwftTarget->GetFrequencyVectorNumber();
-	nTargetNumber = kwftSource->GetFrequencyVectorSize();
+
 	// Initialisation du nombre de modalites du groupe poubelle
 	nGarbageModalityNumber = cast(KWFrequencyVector*, frequencyList->GetHead())->GetModalityNumber();
 	nNewGarbageModalityNumber = 0;
@@ -2035,7 +2032,6 @@ void DTGrouperMODL::PostOptimizeGroupsWithGarbageSearch(ObjectArray* oaInitialGr
 	boolean bContinue;
 	int nModalityNumber;
 	int nGroupNumber;
-	int nTargetNumber;
 	DoubleVector dvGroupCosts;
 	DoubleVector dvGroupOutDeltaCosts;
 	DoubleVector dvGroupInDeltaCosts;
@@ -2080,7 +2076,6 @@ void DTGrouperMODL::PostOptimizeGroupsWithGarbageSearch(ObjectArray* oaInitialGr
 	// Memorisation des nombre de modalites, groupes et classes cibles
 	nModalityNumber = oaInitialGroups->GetSize();
 	nGroupNumber = oaNewGroups->GetSize();
-	nTargetNumber = cast(KWMODLGroup*, oaInitialGroups->GetAt(0))->GetFrequencyVector()->GetSize();
 	nTrueGroupNumber = nGroupNumber;
 
 	// Initialisation du nombre de modalites du groupe poubelle

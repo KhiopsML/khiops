@@ -1768,7 +1768,6 @@ boolean MHFloatingPointFrequencyTableBuilder::Check() const
 	boolean bOk = true;
 	Continuous cLowerBound;
 	Continuous cUpperBound;
-	Continuous cPreviousLowerBound;
 	Continuous cPreviousUpperBound;
 	int nMainBinIndex;
 	int nIndex;
@@ -1793,7 +1792,6 @@ boolean MHFloatingPointFrequencyTableBuilder::Check() const
 		assert(bOk);
 
 		// Verification des main bins
-		cPreviousLowerBound = 0;
 		cPreviousUpperBound = 0;
 		for (nMainBinIndex = 0; nMainBinIndex < GetMainBinNumber(); nMainBinIndex++)
 		{
@@ -1864,7 +1862,6 @@ boolean MHFloatingPointFrequencyTableBuilder::Check() const
 			assert(bOk);
 
 			// Memorisation du bin precedent
-			cPreviousLowerBound = cLowerBound;
 			cPreviousUpperBound = cUpperBound;
 		}
 	}

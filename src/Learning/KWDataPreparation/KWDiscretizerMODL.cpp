@@ -1550,7 +1550,6 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 	double dBestDeltaCost;
 	int nIntervalNumber;
 	int nSurnumerousIntervalNumber;
-	int nStepNumber;
 
 	require(kwftSource != NULL);
 	require(headInterval != NULL);
@@ -1590,11 +1589,8 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 
 	// Recherche iterative de la meilleure amelioration
 	bContinue = true;
-	nStepNumber = 0;
 	while (bContinue)
 	{
-		nStepNumber++;
-
 		// Test si arret de tache demandee
 		lDisplayFreshness++;
 		if (TaskProgression::IsRefreshNecessary(lDisplayFreshness) and
@@ -1771,7 +1767,6 @@ void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTa
 	KWMODLLineDeepOptimization* mergeSplitInterval;
 	double dBestDeltaCost;
 	int nIntervalNumber;
-	int nStepNumber;
 
 	require(kwftSource != NULL);
 	require(headInterval != NULL);
@@ -1806,11 +1801,8 @@ void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTa
 
 	// Recherche iterative de la meilleure amelioration
 	bContinue = true;
-	nStepNumber = 0;
 	while (bContinue)
 	{
-		nStepNumber++;
-
 		// Test si arret de tache demandee
 		lDisplayFreshness++;
 		if (TaskProgression::IsRefreshNecessary(lDisplayFreshness) and
@@ -2369,7 +2361,6 @@ void KWDiscretizerMODL::UpdateBoundaryPostOptimizationSortedListWithMergeSplit(
 	KWMODLLineDeepOptimization* prevInterval;
 	KWMODLLineDeepOptimization* prevPrevInterval;
 	KWMODLLineDeepOptimization* nextInterval;
-	KWMODLLineDeepOptimization* nextNextInterval;
 
 	require(kwftSource != NULL);
 	require(mergeSplitList != NULL);
@@ -2384,9 +2375,6 @@ void KWDiscretizerMODL::UpdateBoundaryPostOptimizationSortedListWithMergeSplit(
 	prevInterval = cast(KWMODLLineDeepOptimization*, interval->GetPrev());
 	prevPrevInterval = cast(KWMODLLineDeepOptimization*, prevInterval->GetPrev());
 	nextInterval = cast(KWMODLLineDeepOptimization*, interval->GetNext());
-	nextNextInterval = NULL;
-	if (nextInterval != NULL)
-		nextNextInterval = cast(KWMODLLineDeepOptimization*, nextInterval->GetNext());
 
 	////////////////////////////////////////////////////////////////////////////////
 	// On supprime les intervalles necessaires des listes

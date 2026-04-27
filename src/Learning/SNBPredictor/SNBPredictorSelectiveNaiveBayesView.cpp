@@ -32,20 +32,12 @@ KWPredictorView* SNBPredictorSelectiveNaiveBayesView::Create() const
 
 void SNBPredictorSelectiveNaiveBayesView::EventUpdate(Object* object)
 {
-	SNBPredictorSelectiveNaiveBayes* editedObject;
-
 	require(object != NULL);
-
-	editedObject = cast(SNBPredictorSelectiveNaiveBayes*, object);
 }
 
 void SNBPredictorSelectiveNaiveBayesView::EventRefresh(Object* object)
 {
-	SNBPredictorSelectiveNaiveBayes* editedObject;
-
 	require(object != NULL);
-
-	editedObject = cast(SNBPredictorSelectiveNaiveBayes*, object);
 }
 
 void SNBPredictorSelectiveNaiveBayesView::SetObject(Object* object)

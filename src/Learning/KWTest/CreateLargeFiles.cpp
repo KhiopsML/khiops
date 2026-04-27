@@ -229,7 +229,6 @@ void CopyFileTwiceThenConcatenate(const ALString& sPathName, boolean bFast)
 	longint lPosition;
 	const int nBufferLength = MemSegmentByteSize;
 	char sBuffer[nBufferLength];
-	int nByteReadNumber;
 	FILE* fFile;
 	FILE* fCopy1;
 	FILE* fCopy2;
@@ -285,14 +284,14 @@ void CopyFileTwiceThenConcatenate(const ALString& sPathName, boolean bFast)
 	{
 		if (lPosition + nBufferLength < lFileSize)
 		{
-			nByteReadNumber = (int)fread(sBuffer, sizeof(char), nBufferLength, fFile);
+			fread(sBuffer, sizeof(char), nBufferLength, fFile);
 			fwrite(sBuffer, sizeof(char), nBufferLength, fCopy1);
 			fwrite(sBuffer, sizeof(char), nBufferLength, fCopy2);
 			lPosition += nBufferLength;
 		}
 		else
 		{
-			nByteReadNumber = (int)fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fFile);
+			fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fFile);
 			fwrite(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy1);
 			fwrite(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy2);
 			lPosition = lFileSize;
@@ -338,13 +337,13 @@ void CopyFileTwiceThenConcatenate(const ALString& sPathName, boolean bFast)
 	{
 		if (lPosition + nBufferLength < lFileSize)
 		{
-			nByteReadNumber = (int)fread(sBuffer, sizeof(char), nBufferLength, fCopy1);
+			fread(sBuffer, sizeof(char), nBufferLength, fCopy1);
 			fwrite(sBuffer, sizeof(char), nBufferLength, fConcat);
 			lPosition += nBufferLength;
 		}
 		else
 		{
-			nByteReadNumber = (int)fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy1);
+			fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy1);
 			fwrite(sBuffer, sizeof(char), int(lFileSize - lPosition), fConcat);
 			lPosition = lFileSize;
 		}
@@ -358,13 +357,13 @@ void CopyFileTwiceThenConcatenate(const ALString& sPathName, boolean bFast)
 	{
 		if (lPosition + nBufferLength < lFileSize)
 		{
-			nByteReadNumber = (int)fread(sBuffer, sizeof(char), nBufferLength, fCopy2);
+			fread(sBuffer, sizeof(char), nBufferLength, fCopy2);
 			fwrite(sBuffer, sizeof(char), nBufferLength, fConcat);
 			lPosition += nBufferLength;
 		}
 		else
 		{
-			nByteReadNumber = (int)fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy2);
+			fread(sBuffer, sizeof(char), int(lFileSize - lPosition), fCopy2);
 			fwrite(sBuffer, sizeof(char), int(lFileSize - lPosition), fConcat);
 			lPosition = lFileSize;
 		}

@@ -58,7 +58,6 @@ double KIShapleyTable::ComputeMeanAbsoluteShapleyValues(const KWDataGridStats* a
 	IntVector ivSourcePartFrequencies;
 	IntVector ivTargetPartFrequencies;
 	int nTotalFrequency;
-	int nSourcePartNumber;
 	int nTargetPartNumber;
 	int nSourcePart;
 	int nTarget;
@@ -97,7 +96,6 @@ double KIShapleyTable::ComputeMeanAbsoluteShapleyValues(const KWDataGridStats* a
 		// Calcul des effectifs par partie pour l'attribut source et cible de la grille de travail
 		currentAttributeDataGridStats->ExportAttributePartFrequenciesAt(0, &ivSourcePartFrequencies);
 		currentAttributeDataGridStats->ExportAttributePartFrequenciesAt(1, &ivTargetPartFrequencies);
-		nSourcePartNumber = ivSourcePartFrequencies.GetSize();
 		nTargetPartNumber = ivTargetPartFrequencies.GetSize();
 		nTotalFrequency = targetDataGridStats->ComputeGridFrequency();
 
@@ -146,7 +144,6 @@ double KIShapleyTable::ComputeMeanAbsoluteShapleyValues(const KWDataGridStats* a
 		// Calcul des effectifs par partie pour l'attribut source et cible de la grille de travail
 		currentAttributeDataGridStats->ExportAttributePartFrequenciesAt(0, &ivSourcePartFrequencies);
 		currentAttributeDataGridStats->ExportAttributePartFrequenciesAt(1, &ivTargetPartFrequencies);
-		nSourcePartNumber = ivSourcePartFrequencies.GetSize();
 		nTargetPartNumber = ivTargetPartFrequencies.GetSize();
 		nTotalFrequency = targetDataGridStats->ComputeGridFrequency();
 

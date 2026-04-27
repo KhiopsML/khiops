@@ -699,7 +699,6 @@ void RMParallelResourceManager::GreedySolve(PLSolution* solution)
 	int nProcNumber;
 	int i;
 	int nProcMax;
-	int nProcCount;
 	const boolean bSequential = false;
 
 	if (PLParallelTask::GetTracerResources() == 3)
@@ -724,7 +723,6 @@ void RMParallelResourceManager::GreedySolve(PLSolution* solution)
 	// Algorithme glouton : a chaque iteration, on ajoute un processus.
 	solution->Evaluate(bSequential);
 	currentSolution = solution->Clone();
-	nProcCount = 0;
 
 	while (currentSolution->GetUsedProcessNumber() < nProcMax)
 	{
@@ -1510,8 +1508,6 @@ PLSolutionResources* PLHostClass::SaturateResource(const RMTaskResourceRequireme
 	longint lHostResource;       // Ressources physiques disponibles sur cette machine
 	longint lHostUsableResource; // Ressources Physiques disponibles en prenant en compte les exigences max
 	longint lHostExtraResource;  // Ressources a distribuer apres avoir alloue le min
-	longint lResourceFull; // Ressources maximales qu'on peut allouer en prenant en compte les resources diponibles
-	longint lResourceBounded; // Ressources maximales qu'on peut allouer en prenant en compte les exigences max
 	int nSlaveNumberOnCluster;
 	int nSlaveNumberOnHost;
 	int nMasterNumberOnHost;
@@ -1623,8 +1619,6 @@ PLSolutionResources* PLHostClass::SaturateResource(const RMTaskResourceRequireme
 			{
 				lHostExtraResource = lHostUsableResource - lHostOverallMin;
 				assert(lHostExtraResource >= 0);
-				lResourceFull = (lGlobalMin + lHostExtraResource) / nSlaveNumberOnHost;
-				lResourceBounded = lGlobalMax / nSlaveNumberOnCluster;
 
 				resources->SetGlobalResource(nRT,
 							     min((lGlobalMin + lHostExtraResource) / nSlaveNumberOnHost,
@@ -2333,7 +2327,6 @@ boolean PLSolution::FitMinimalRequirements(int nRT, longint& lMissingResource, b
 	int nProcNumber;
 	IntVector ivResourcesMissingForProcNumber;
 	LongintVector lvResourceMissing;
-	boolean bResourceOkForMaster;
 	longint lLocalMissingResource;
 	longint lUsedResource;
 	longint lHostUsableResource;
@@ -2352,7 +2345,6 @@ boolean PLSolution::FitMinimalRequirements(int nRT, longint& lMissingResource, b
 	// ressources manquantes (peut etre le nom de la machine)
 	lMissingResource = LLONG_MAX;
 	bResourceIsMissing = false;
-	bResourceOkForMaster = false;
 	lvResourceMissing.SetSize(0);
 
 	// Cas sequentiel : il n'y a qu'une classe de machines

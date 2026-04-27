@@ -36,20 +36,12 @@ KWModelingSpec* KWModelingSpecView::GetKWModelingSpec()
 
 void KWModelingSpecView::EventUpdate(Object* object)
 {
-	KWModelingSpec* editedObject;
-
 	require(object != NULL);
-
-	editedObject = cast(KWModelingSpec*, object);
 }
 
 void KWModelingSpecView::EventRefresh(Object* object)
 {
-	KWModelingSpec* editedObject;
-
 	require(object != NULL);
-
-	editedObject = cast(KWModelingSpec*, object);
 }
 
 const ALString KWModelingSpecView::GetClassLabel() const

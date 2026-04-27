@@ -472,10 +472,8 @@ boolean KhistoCommandLine::ReadBins(ContinuousVector*& cvLowerValues, Continuous
 	longint lFilePos;
 	boolean bLineTooLong;
 	longint lRecordIndex;
-	longint lLineNumber;
 	boolean bEndOfLine;
 	int nField;
-	int nFieldError;
 	longint lCumulatedFrequency;
 	int nFrequency;
 	Continuous cLowerValue;
@@ -519,7 +517,6 @@ boolean KhistoCommandLine::ReadBins(ContinuousVector*& cvLowerValues, Continuous
 	if (bOk)
 	{
 		lFilePos = 0;
-		lLineNumber = 0;
 		lRecordIndex = 0;
 		nFrequency = 0;
 		cLowerValue = KWContinuous::GetMissingValue();
@@ -547,7 +544,6 @@ boolean KhistoCommandLine::ReadBins(ContinuousVector*& cvLowerValues, Continuous
 				// Lecture des champs de la ligne
 				bEndOfLine = false;
 				nField = 0;
-				nFieldError = inputFile.FieldNoError;
 				lRecordIndex++;
 				while (bOk and not bEndOfLine)
 				{
@@ -893,10 +889,8 @@ boolean KhistoCommandLine::ReadValues(ContinuousVector*& cvValues)
 	longint lFilePos;
 	boolean bLineTooLong;
 	longint lRecordIndex;
-	longint lLineNumber;
 	boolean bEndOfLine;
 	int nField;
-	int nFieldError;
 	longint lCumulatedFrequency;
 	Continuous cValue;
 	ObjectArray oaBins;
@@ -919,7 +913,6 @@ boolean KhistoCommandLine::ReadValues(ContinuousVector*& cvValues)
 	if (bOk)
 	{
 		lFilePos = 0;
-		lLineNumber = 0;
 		lRecordIndex = 0;
 		cValue = KWContinuous::GetMissingValue();
 
@@ -945,7 +938,6 @@ boolean KhistoCommandLine::ReadValues(ContinuousVector*& cvValues)
 				// Lecture des champs de la ligne
 				bEndOfLine = false;
 				nField = 0;
-				nFieldError = inputFile.FieldNoError;
 				lRecordIndex++;
 				while (bOk and not bEndOfLine)
 				{

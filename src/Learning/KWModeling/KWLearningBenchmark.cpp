@@ -139,7 +139,6 @@ void KWLearningBenchmark::Evaluate()
 	IntVector ivPhysicalRecordIndexes;
 	int nValidation;
 	int nFold;
-	KWLearningSpec* learningSpec;
 	IntVector ivSelectedInstances;
 	ALString sTmp;
 
@@ -173,8 +172,6 @@ void KWLearningBenchmark::Evaluate()
 		// Exploitation si elles sont valides
 		if (benchmarkSpec->IsLearningSpecValid())
 		{
-			learningSpec = benchmarkSpec->GetLearningSpec();
-
 			// Calcul des statistiques sur le benchmark
 			Global::SetSilentMode(false);
 			benchmarkSpec->ComputeBenchmarkStats();

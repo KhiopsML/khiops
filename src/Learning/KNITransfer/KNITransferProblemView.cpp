@@ -45,15 +45,10 @@ void KNITransferProblemView::KNITransferDatabase()
 
 void KNITransferProblemView::SetObject(Object* object)
 {
-	KNITransferProblem* learningProblem;
-
 	require(object != NULL);
 
 	// Appel de la methode ancetre
 	KWLearningProblemView::SetObject(object);
-
-	// Acces a l'objet edite
-	learningProblem = cast(KNITransferProblem*, object);
 }
 
 KNITransferProblem* KNITransferProblemView::GetTransferProblem()

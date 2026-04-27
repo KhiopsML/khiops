@@ -1741,7 +1741,6 @@ boolean KWDataGridManager::BuildDataGridFromUnivariateProduct(const KWDataGrid* 
 	NumericKeyDictionary nkdBestAttributeStats;
 	int nMaxAttributeNumber;
 	int nAttributeNumber;
-	int nInstanceNumber;
 	int nAttribute;
 	boolean bOk = true;
 	boolean bSmallSourceDataGrid;
@@ -1752,9 +1751,6 @@ boolean KWDataGridManager::BuildDataGridFromUnivariateProduct(const KWDataGrid* 
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 	require(classStats != NULL);
 	require(classStats->GetInformativeAttributeNumber() > 0);
-
-	// Nombre d'instance
-	nInstanceNumber = sourceDataGrid->GetGridFrequency();
 
 	// Calcul du nombre d'attributs a prendre en compte
 	nAttributeNumber = sourceDataGrid->GetAttributeNumber();

@@ -313,7 +313,7 @@ ObjectArray* DTAttributeSelection::GetTreeAttributesFromLevels(const int nMaxAtt
 	// Repris de l'algo de Weighted Random Sampling with a reservoir Information Processing Letters 97(2006) 181-185
 
 	DTTreeAttribute* dtAttribute;
-	int nAttribute, nMax;
+	int nAttribute;
 
 	if (nMaxAttributesNumber <= 0)
 		return NULL;
@@ -324,9 +324,6 @@ ObjectArray* DTAttributeSelection::GetTreeAttributesFromLevels(const int nMaxAtt
 	ObjectArray oaListAttributes;
 
 	ivSortedListIndexes.SetSize(0);
-
-	nMax = (nMaxAttributesNumber > oaTreeAttributeSelection.GetSize()) ? oaTreeAttributeSelection.GetSize()
-									   : nMaxAttributesNumber;
 
 	for (nAttribute = 0; nAttribute < nMaxAttributesNumber; nAttribute++)
 	{

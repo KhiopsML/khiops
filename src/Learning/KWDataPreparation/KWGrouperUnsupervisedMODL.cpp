@@ -31,8 +31,6 @@ int KWGrouperUnsupervisedMODL::ComputePreprocessedMaxLineNumber(KWFrequencyTable
 	boolean bTwoLevelHierarchy = true;
 	const int nMinTwoLevelLineNumber = 100;
 	int nBestValueNumber;
-	double dPriorCost;
-	double dSecondgroupPriorCost;
 	int nSecondGroupBestValueNumber;
 
 	require(table != NULL);
@@ -40,7 +38,7 @@ int KWGrouperUnsupervisedMODL::ComputePreprocessedMaxLineNumber(KWFrequencyTable
 	require(table->GetFrequencyVectorNumber() == table->GetInitialValueNumber());
 
 	// Calcul de la coupure suite au meilleur encodage
-	dPriorCost = ComputeBestPriorCost(table, 0, table->GetInitialValueNumber(), nBestValueNumber);
+	ComputeBestPriorCost(table, 0, table->GetInitialValueNumber(), nBestValueNumber);
 
 	// Si on a un vraie coupure, on recoupe la deuxieme partie en deux
 	// On applique cette heuristique, car souvent, la premiere coupure fait trop peu de groupe meme avec peu de
@@ -56,8 +54,8 @@ int KWGrouperUnsupervisedMODL::ComputePreprocessedMaxLineNumber(KWFrequencyTable
 	if (bTwoLevelHierarchy and nBestValueNumber < nMinTwoLevelLineNumber and
 	    nBestValueNumber < table->GetInitialValueNumber() - 1)
 	{
-		dSecondgroupPriorCost = ComputeBestPriorCost(table, nBestValueNumber, table->GetInitialValueNumber(),
-							     nSecondGroupBestValueNumber);
+		ComputeBestPriorCost(table, nBestValueNumber, table->GetInitialValueNumber(),
+				     nSecondGroupBestValueNumber);
 
 		// On ajoute la premiere partie du second groupe au premier groupe
 		nBestValueNumber += nSecondGroupBestValueNumber;

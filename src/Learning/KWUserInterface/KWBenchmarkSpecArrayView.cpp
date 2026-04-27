@@ -42,11 +42,8 @@ Object* KWBenchmarkSpecArrayView::EventNew()
 
 void KWBenchmarkSpecArrayView::EventUpdate(Object* object)
 {
-	KWBenchmarkSpec* editedObject;
 
 	require(object != NULL);
-
-	editedObject = cast(KWBenchmarkSpec*, object);
 
 	// ## Custom update
 

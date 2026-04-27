@@ -899,20 +899,17 @@ void KDClassBuilder::DisplayUsedConstructedBlockRules(const SortedList* slUsedCo
 {
 	POSITION position;
 	KDSparseUsedConstructedBlockRule* usedConstructedBlockRule;
-	int nRule;
 
 	require(slUsedConstructedBlockRules != NULL);
 	require(slUsedConstructedBlockRules->GetCompareFunction() == KDSparseUsedConstructedBlockRuleCompareCostName);
 
 	// Parcours des regles de la liste
 	ost << "Used constructed block rules\t" << slUsedConstructedBlockRules->GetCount() << endl;
-	nRule = 0;
 	position = slUsedConstructedBlockRules->GetHeadPosition();
 	while (position != NULL)
 	{
 		usedConstructedBlockRule =
 		    cast(KDSparseUsedConstructedBlockRule*, slUsedConstructedBlockRules->GetNext(position));
-		nRule++;
 
 		// Affichage de la regle
 		ost << *usedConstructedBlockRule->GetConstructedBlockRule() << "\t";

@@ -19,6 +19,15 @@ void KWLearningProject::Start(int argc, char** argv)
 	// Et avant l'ouverture du fichier du MemoryStatsManager
 	SystemFileDriverCreator::RegisterExternalDrivers();
 
+	// Parametrage du mode d'interface graphique en fonction des drivers de fichiers enregistres
+	SetLearningDefaultRawGuiModeMode(SystemFileDriverCreator::GetExternalDriverNumber());
+
+	// Parametrage si necessaire d'un mode de fonctionnement basique des boites de dialogue de type FileChooser
+	if (GetLearningRawGuiModeMode())
+	{
+		UIFileChooserCard::SetDefaultStyle("");
+	}
+
 	// Parametrage des logs memoires depuis les variables d'environnement
 	//   KhiopsMemStatsLogFileName, KhiopsMemStatsLogFrequency, KhiopsMemStatsLogToCollect
 	// On ne tente d'ouvrir le fichier que si ces trois variables sont presentes et valides
@@ -28,10 +37,6 @@ void KWLearningProject::Start(int argc, char** argv)
 	if (GetIOTraceMode())
 		FileService::SetIOStatsActive(true);
 	MemoryStatsManager::OpenLogFileFromEnvVars(true);
-
-	// Parametrage si necessaire d'un mode de fonctionnement basique des boites de dialogue de type FileChooser
-	if (GetLearningRawGuiModeMode())
-		UIFileChooserCard::SetDefaultStyle("");
 
 	// Parametrage de la gestion des traces paralleles
 	if (GetParallelTraceMode() >= 1)
@@ -60,9 +65,6 @@ void KWLearningProject::Start(int argc, char** argv)
 	// Parametrage du repertoire applicatif des fichiers temporaires
 	// (le LearningApplicationName peut avoir ete modifie dans une sous classe)
 	FileService::SetApplicationName(GetLearningApplicationName());
-
-	// Parametrage du mode d'interface graphique en fonction des drivers de fichiers enregistres
-	SetLearningDefaultRawGuiModeMode(SystemFileDriverCreator::GetExternalDriverNumber());
 
 	// Seul endroit ou on capture les exceptions, pour le lancement du projet principal
 	try

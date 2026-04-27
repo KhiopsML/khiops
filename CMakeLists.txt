@@ -24,6 +24,12 @@ cmake_policy(SET CMP0058 NEW)
 cmake_policy(SET CMP0063 NEW)
 cmake_policy(SET CMP0083 NEW)
 
+# De-duplicate libraries on link lines (CMake 3.29+); silences Apple ld "ignoring duplicate libraries" warnings that
+# arise from diamond static-lib deps
+if(POLICY CMP0156)
+  cmake_policy(SET CMP0156 NEW)
+endif()
+
 # Do not add warning flags for MSVC cmake_policy(SET CMP0092 NEW)
 
 # Warn about in-source builds
