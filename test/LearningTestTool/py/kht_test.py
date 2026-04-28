@@ -1111,6 +1111,12 @@ def main():
         test_dir_name,
     ) = utils.argument_parser_check_source_argument(parser, args.source)
 
+    # Pre-traitement de l'argument binaries: conversion en chemin absolu si pas d'alias
+    if args.binaries in [kht.ALIAS_D, kht.ALIAS_R]:
+        binaries_dir = args.binaries
+    else:
+        binaries_dir = os.path.abspath(args.binaries)
+
     # Verification des arguments optionnels
     utils.argument_parser_check_processes_argument(parser, args.n)
     utils.argument_parser_check_limit_test_time_arguments(
@@ -1143,7 +1149,7 @@ def main():
     results.forced_platform = args.forced_platform
 
     # Verification et activation de khiops_env le cas echeant
-    use_khiops_env, error_message = activate_khiops_env(args.binaries, args.n)
+    use_khiops_env, error_message = activate_khiops_env(binaries_dir, args.n)
 
     # Echec si le nombre de processus est parametre et mpiexec n'est pas dans le path
     # Si on passe par khiops_env, c'est lui qui s'occupe du PATH de mpiexec
@@ -1163,7 +1169,7 @@ def main():
         tool_dir_name,
         suite_dir_name,
         test_dir_name,
-        args.binaries,
+        binaries_dir,
         use_khiops_env,
         args.family,
         min_test_time=args.min_test_time,
