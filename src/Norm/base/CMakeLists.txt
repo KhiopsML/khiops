@@ -15,6 +15,18 @@ if(BUILD_LEX_YACC)
     flex_target(JSONScanner JSONLex.lex JSONLex.inc)
   endif(MSVC)
   add_flex_bison_dependency(JSONScanner JSONParser)
+
+  # Strip absolute paths from #line directives in generated files to keep them portable
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/JSONYac.cpp
+    COMMAND ${CMAKE_COMMAND} -DFILE=${CMAKE_CURRENT_SOURCE_DIR}/JSONYac.cpp -DSOURCE_DIR=${CMAKE_SOURCE_DIR}/ -P
+            ${CMAKE_SOURCE_DIR}/scripts/strip_line_directives.cmake
+    APPEND)
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/JSONLex.inc
+    COMMAND ${CMAKE_COMMAND} -DFILE=${CMAKE_CURRENT_SOURCE_DIR}/JSONLex.inc -DSOURCE_DIR=${CMAKE_SOURCE_DIR}/ -P
+            ${CMAKE_SOURCE_DIR}/scripts/strip_line_directives.cmake
+    APPEND)
 else()
   # We defined the Bison / Flex generated files with the files already present
   set(BISON_JSONParser_OUTPUTS ${CMAKE_CURRENT_SOURCE_DIR}/JSONYac.cpp)
