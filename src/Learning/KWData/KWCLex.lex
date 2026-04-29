@@ -11,6 +11,24 @@
 #undef YYLMAX
 #define	YYLMAX		100000		// token and pushback buffer size
 
+// Pointeur global vers le SystemFile utilise par le lexer pour la lecture de fichiers sur le cloud
+static SystemFile* yySystemFile = NULL;
+
+// Fonction wrapper (definie dans KWCYac.yac) appelee par YY_INPUT pour lire depuis un SystemFile
+static longint SystemFileRead(SystemFile* sf, void* buffer, size_t size, size_t count);
+
+// Redefinition de YY_INPUT pour lire depuis un SystemFile au lieu de FILE*
+#define YY_INPUT(buf, result, max_size) \
+	{ \
+		if (yySystemFile != NULL) \
+		{ \
+			longint nRead = SystemFileRead(yySystemFile, buf, 1, max_size); \
+			result = (nRead > 0) ? (int)nRead : 0; \
+		} \
+		else \
+			result = 0; \
+	}
+
 %}
 
 %p 5000
