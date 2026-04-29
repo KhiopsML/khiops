@@ -39,8 +39,8 @@
    especially those whose name start with YY_ or yy_.  They are
    private implementation details that can be changed or removed.  */
 
-#ifndef YY_JSON_C_APPLICATIONS_BOULLEMA_DEVGIT_KHIOPS_SRC_NORM_BASE_JSONYAC_HPP_INCLUDED
-#define YY_JSON_C_APPLICATIONS_BOULLEMA_DEVGIT_KHIOPS_SRC_NORM_BASE_JSONYAC_HPP_INCLUDED
+#ifndef YY_JSON_USERS_BRUNO_DVPT_KHIOPS_SRC_NORM_BASE_JSONYAC_HPP_INCLUDED
+#define YY_JSON_USERS_BRUNO_DVPT_KHIOPS_SRC_NORM_BASE_JSONYAC_HPP_INCLUDED
 /* Debug traces.  */
 #ifndef JSONDEBUG
 #if defined YYDEBUG
@@ -80,7 +80,7 @@ typedef enum jsontokentype jsontoken_kind_t;
 #if !defined JSONSTYPE && !defined JSONSTYPE_IS_DECLARED
 union JSONSTYPE
 {
-#line 51 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.yac"
+#line 51 "/Users/bruno/dvpt/khiops/src/Norm/base/JSONYac.yac"
 
 	ALString* sValue;
 	double dValue;
@@ -90,7 +90,7 @@ union JSONSTYPE
 	JSONArray* jsonArray;
 	JSONMember* jsonMember;
 
-#line 90 "C:/Applications/boullema/DevGit/khiops/src/Norm/base/JSONYac.hpp"
+#line 90 "/Users/bruno/dvpt/khiops/src/Norm/base/JSONYac.hpp"
 };
 typedef union JSONSTYPE JSONSTYPE;
 #define JSONSTYPE_IS_TRIVIAL 1
@@ -101,4 +101,4 @@ extern JSONSTYPE jsonlval;
 
 int jsonparse(void);
 
-#endif /* !YY_JSON_C_APPLICATIONS_BOULLEMA_DEVGIT_KHIOPS_SRC_NORM_BASE_JSONYAC_HPP_INCLUDED  */
+#endif /* !YY_JSON_USERS_BRUNO_DVPT_KHIOPS_SRC_NORM_BASE_JSONYAC_HPP_INCLUDED  */

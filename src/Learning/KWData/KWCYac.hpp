@@ -39,8 +39,8 @@
    especially those whose name start with YY_ or yy_.  They are
    private implementation details that can be changed or removed.  */
 
-#ifndef YY_YY_C_APPLICATIONS_BOULLEMA_DEVGIT_KHIOPS_SRC_LEARNING_KWDATA_KWCYAC_HPP_INCLUDED
-#define YY_YY_C_APPLICATIONS_BOULLEMA_DEVGIT_KHIOPS_SRC_LEARNING_KWDATA_KWCYAC_HPP_INCLUDED
+#ifndef YY_YY_USERS_BRUNO_DVPT_KHIOPS_SRC_LEARNING_KWDATA_KWCYAC_HPP_INCLUDED
+#define YY_YY_USERS_BRUNO_DVPT_KHIOPS_SRC_LEARNING_KWDATA_KWCYAC_HPP_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 #define YYDEBUG 0
@@ -87,7 +87,7 @@ typedef enum yytokentype yytoken_kind_t;
 #if !defined YYSTYPE && !defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 60 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.yac"
+#line 62 "/Users/bruno/dvpt/khiops/src/Learning/KWData/KWCYac.yac"
 
 	Continuous cValue;
 	ALString* sValue;
@@ -102,7 +102,7 @@ union YYSTYPE
 	KWMetaData* kwmdMetaData;
 	int nValue;
 
-#line 102 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCYac.hpp"
+#line 102 "/Users/bruno/dvpt/khiops/src/Learning/KWData/KWCYac.hpp"
 };
 typedef union YYSTYPE YYSTYPE;
 #define YYSTYPE_IS_TRIVIAL 1
@@ -113,4 +113,4 @@ extern YYSTYPE yylval;
 
 int yyparse(void);
 
-#endif /* !YY_YY_C_APPLICATIONS_BOULLEMA_DEVGIT_KHIOPS_SRC_LEARNING_KWDATA_KWCYAC_HPP_INCLUDED  */
+#endif /* !YY_YY_USERS_BRUNO_DVPT_KHIOPS_SRC_LEARNING_KWDATA_KWCYAC_HPP_INCLUDED  */
