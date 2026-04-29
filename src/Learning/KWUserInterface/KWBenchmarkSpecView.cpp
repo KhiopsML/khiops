@@ -65,13 +65,12 @@ KWBenchmarkSpec* KWBenchmarkSpecView::GetKWBenchmarkSpec()
 
 void KWBenchmarkSpecView::EventUpdate(Object* object)
 {
-	KWBenchmarkSpec* editedObject;
-
 	require(object != NULL);
 
-	editedObject = cast(KWBenchmarkSpec*, object);
-
 	// ## Custom update
+
+	KWBenchmarkSpec* editedObject;
+	editedObject = cast(KWBenchmarkSpec*, object);
 
 	// Lecture des classes du benchmark si la fenetre est ouverte
 	// Une mise a jour du fichier des classes (depuis KWBenchmarkClassSpec) rend en effet

@@ -8,6 +8,18 @@ void TableGenerator::GenerateAttributeViewC(ostream& ost) const
 {
 	int nCurrent;
 	Attribute* att;
+	int nVisibleFieldNumber = 0;
+
+	// Calcul du nombre de champs visibles (non derives)
+	for (nCurrent = 0; nCurrent < GetFieldNumber(); nCurrent++)
+	{
+		att = GetFieldAt(nCurrent);
+
+		if (att->GetVisible() and not att->GetDerived())
+		{
+			nVisibleFieldNumber++;
+		}
+	}
 
 	GenerateCopyrightHeader(ost);
 	GenerateFileHeader(ost);
@@ -91,28 +103,34 @@ void TableGenerator::GenerateAttributeViewC(ostream& ost) const
 	    << "\n";
 	ost << "{"
 	    << "\n";
-	ost << "\t" << GetModelClassName() << "* editedObject;"
-	    << "\n";
-	ost << ""
-	    << "\n";
+	if (nVisibleFieldNumber > 0)
+	{
+		ost << "\t" << GetModelClassName() << "* editedObject;"
+		    << "\n";
+		ost << ""
+		    << "\n";
+	}
 	ost << "\trequire(object != NULL);"
 	    << "\n";
 	ost << ""
 	    << "\n";
 	if (GetSuperClassName() != "")
 		ost << "\t" << GetViewSuperClassName() << "::EventUpdate(object);\n";
-	ost << "\teditedObject = cast(" << GetModelClassName() << "*, object);"
-	    << "\n";
-	for (nCurrent = 0; nCurrent < GetFieldNumber(); nCurrent++)
+	if (nVisibleFieldNumber > 0)
 	{
-		att = GetFieldAt(nCurrent);
-
-		if (att->GetVisible() and not att->GetDerived())
+		ost << "\teditedObject = cast(" << GetModelClassName() << "*, object);"
+		    << "\n";
+		for (nCurrent = 0; nCurrent < GetFieldNumber(); nCurrent++)
 		{
-			ost << "\teditedObject->Set" << att->GetName() << "("
-			    << "Get" << att->GetFieldType() << "ValueAt(\"" << att->GetName() << "\")"
-			    << ");"
-			    << "\n";
+			att = GetFieldAt(nCurrent);
+
+			if (att->GetVisible() and not att->GetDerived())
+			{
+				ost << "\teditedObject->Set" << att->GetName() << "("
+				    << "Get" << att->GetFieldType() << "ValueAt(\"" << att->GetName() << "\")"
+				    << ");"
+				    << "\n";
+			}
 		}
 	}
 
