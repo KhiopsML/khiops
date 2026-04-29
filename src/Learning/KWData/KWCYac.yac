@@ -12,6 +12,8 @@
 #include "KWRelationCreationRule.h"
 #include "KWStructureRule.h"
 #include "KWMetaData.h"
+#include "PLRemoteFileService.h"
+#include "SystemFile.h"
 
 // Declaration du lexer utilise
 void yyerror(char const *fmt);
@@ -1738,18 +1740,23 @@ boolean ImportParserOperand(const ALString& sRuleName, int nOperandIndex,
 
 int yyparse();
 
+// Fonction wrapper appelee par la macro YY_INPUT du lexer pour lire depuis un SystemFile
+longint SystemFileRead(SystemFile* sf, void* buffer, size_t size, size_t count)
+{
+	return sf->Read(buffer, size, count);
+}
+
 
 // Implementation de la methode de lecture de fichier de KWClassDomain
 boolean KWClassDomain::ReadFile(const ALString& sFileName)
 {
   boolean bOk = true;
-  FILE* fFile;
+  SystemFile* sfFile;
   ObjectDictionary odInitialClasses;
   ObjectArray oaNewClasses;
   ObjectArray oaReferencedUncreatedClasses;
   int i;
   KWClass* kwcClass;
-  ALString sLocalFileName;
 
   // Affichage de stats memoire si log memoire actif
   MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " ReadFile Begin");
@@ -1767,7 +1774,7 @@ boolean KWClassDomain::ReadFile(const ALString& sFileName)
   odReferencedUncreatedClasses = new ObjectDictionary;
 
   // Erreur si pas de nom de fichier
-  fFile = NULL;
+  sfFile = NULL;
   if (sFileName == "")
   {
      AddError("Missing file name");
@@ -1776,16 +1783,13 @@ boolean KWClassDomain::ReadFile(const ALString& sFileName)
   // Sinon, ouverture du fichier
   else
   { 
-		// Copie depuis HDFS si necessaire
-		bOk = PLRemoteFileService::BuildInputWorkingFile(sFileName, sLocalFileName);
-		if (bOk)
-			bOk = FileService::OpenInputBinaryFile(sLocalFileName, fFile);
+		bOk = PLRemoteFileService::OpenInputBinaryFile(sFileName, sfFile);
   }
 
   // On continue si fichier ouvert correctement
   if (bOk)
   {
-    assert(fFile != NULL);
+    assert(sfFile != NULL);
 
     // Memorisation de toutes les classes initiales
     kwcdLoadDomain->ExportClassDictionary(&odInitialClasses);
@@ -1794,21 +1798,20 @@ boolean KWClassDomain::ReadFile(const ALString& sFileName)
 	nFileParsingErrorNumber = 0;
 	Global::ActivateErrorFlowControl();
 
-    // Positionnement du fichier a parser par la variable yyin de LEX
+    // Positionnement du SystemFile a utiliser par le lexer via YY_INPUT
     yylineno = 1;
-    yyrestart(fFile);
+    yySystemFile = sfFile;
+    yyrestart(NULL);
     
 	// Parsing
     yyparse();
 
 	// Cleaning lexer
+	yySystemFile = NULL;
 	yylex_destroy();
 
     // Fermeture du fichier
-	FileService::CloseInputBinaryFile(sLocalFileName, fFile);
-	
-	// Si HDFS on supprime la copie locale
-	PLRemoteFileService::CleanInputWorkingFile(sFileName, sLocalFileName);
+	PLRemoteFileService::CloseInputBinaryFile(sFileName, sfFile);
 
 	// Completion des informations de type au niveau du domaine
 	if (nFileParsingErrorNumber == 0)
