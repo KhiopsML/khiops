@@ -6,6 +6,7 @@
 #include "TextService.h"
 #include "JSONObject.h"
 #include "HugeBuffer.h"
+#include "SystemFile.h"
 
 // Declaration du lexer utilise
 int jsonlex();
@@ -336,6 +337,12 @@ const ALString jsonPrintableValue(const ALString& sValue)
 
 int jsonparse();
 
+// Fonction wrapper appelee par la macro YY_INPUT du lexer pour lire depuis un SystemFile
+static longint SystemFileRead(SystemFile* sf, void* buffer, size_t size, size_t count)
+{
+	return sf->Read(buffer, size, count);
+}
+
 // Implementation de la methode de parsing de string
 JSONValue* JSONValue::GlobalReadString(const char* sValue, int nValueLength, StringVector* svParsingErrorMessages)
 {
@@ -405,13 +412,12 @@ JSONValue* JSONValue::GlobalReadFile(const ALString& sFileName)
 {
 	JSONValue* resultJSONValue;
 	boolean bOk = true;
-	FILE* fFile;
-	ALString sLocalFileName;
+	SystemFile* sfFile;
 
 	require(globalParsedJSONValue == NULL);
 	
 	// Erreur si pas de nom de fichier
-	fFile = NULL;
+	sfFile = NULL;
 	if (sFileName == "")
 	{
 		Global::AddError("Read json file", "", "Missing file name");
@@ -420,36 +426,32 @@ JSONValue* JSONValue::GlobalReadFile(const ALString& sFileName)
 	// Sinon, ouverture du fichier
 	else
 	{ 
-		// Copie depuis un fichier distant si necessaire
-		bOk = PLRemoteFileService::BuildInputWorkingFile(sFileName, sLocalFileName);
-		if (bOk)
-			bOk = FileService::OpenInputBinaryFile(sLocalFileName, fFile);
+		bOk = PLRemoteFileService::OpenInputBinaryFile(sFileName, sfFile);
 	}
 
 	// On continue si fichier ouvert correctement
 	if (bOk)
 	{
-		assert(fFile != NULL);
+		assert(sfFile != NULL);
 
 		// Activation du nombre max d'erreurs a afficher
 		nJsonFileParsingErrorNumber = 0;
 		Global::ActivateErrorFlowControl();
 
-		// Positionnement du fichier a parser par la variable yyin de LEX
+		// Positionnement du SystemFile a utiliser par le lexer via YY_INPUT
 		jsonlineno = 1;
-		jsonrestart(fFile);
+		jsonSystemFile = sfFile;
+		jsonrestart(NULL);
 		
 		// Parsing
 		jsonparse();
 
 		// Cleaning lexer
+		jsonSystemFile = NULL;
 		jsonlex_destroy();
 
 		// Fermeture du fichier
-		FileService::CloseInputBinaryFile(sLocalFileName, fFile);
-	
-		// Si fichier distant, on supprime la copie locale
-		PLRemoteFileService::CleanInputWorkingFile(sFileName, sLocalFileName);
+		PLRemoteFileService::CloseInputBinaryFile(sFileName, sfFile);
 
 		// Desactivation du nombre max d'erreurs a afficher
 		Global::DesactivateErrorFlowControl();
