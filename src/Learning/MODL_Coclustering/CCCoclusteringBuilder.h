@@ -11,6 +11,8 @@ class CCCoclusteringBuilder;
 #include "KWTupleTableLoader.h"
 #include "KWAttributeSubsetStats.h"
 #include "KWDataGridMerger.h"
+#include "KWDataGridOptimizerVxV.h"
+#include "KWDataGridOptimizerIxV.h"
 #include "KWDataGridPostOptimizer.h"
 #include "KWDataPreparationClass.h"
 #include "CCHierarchicalDataGrid.h"
@@ -146,10 +148,6 @@ protected:
 	// Initialisation d'un optimiseur de grille dedie coclustering
 	void InitializeDataGridOptimizer(const KWDataGrid* inputInitialDataGrid,
 					 KWDataGridOptimizer* dataGridOptimizer);
-
-	// Methode d'optimisation d'une grille dediee au cas instances x variables
-	void OptimizeVarPartDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
-	void PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	// Gestion preventive de l'utilisation des ressources memoire, avec message d'erreur
@@ -318,7 +316,5 @@ protected:
 	mutable ALString sLastActualAnyTimeReportFileName;
 	mutable int nAnyTimeOptimizationIndex;
 	mutable Timer tAnyTimeTimer;
-	mutable double dAnyTimeDefaultCost;
 	mutable double dAnyTimeBestCost;
-	mutable boolean bIsDefaultCostComputed;
 };
