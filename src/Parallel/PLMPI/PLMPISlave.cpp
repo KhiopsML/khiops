@@ -11,7 +11,6 @@ DisplayErrorFunction PLMPISlave::currentDisplayErrorFunction = NULL;
 
 PLMPISlave::PLMPISlave(PLParallelTask* t)
 {
-	int color;
 	ALString sNewFileName;
 	PLShared_TaskResourceGrant shared_rg;
 	PLMPIMsgContext context;
@@ -20,7 +19,6 @@ PLMPISlave::PLMPISlave(PLParallelTask* t)
 
 	bBoostedMode = false;
 	bIsWorking = false;
-	color = MPI_UNDEFINED;
 	task = t;
 	assert(task->oaUserMessages == NULL);
 	task->oaUserMessages = new ObjectArray;

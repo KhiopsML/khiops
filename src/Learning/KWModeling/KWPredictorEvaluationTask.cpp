@@ -216,9 +216,7 @@ boolean KWClassifierEvaluationTask::MasterInitialize()
 	boolean bOk;
 	int nTargetValue;
 	longint lMasterGrantedMemory;
-	longint lMasterSelfMemory;
 	longint lSlaveGrantedMemory;
-	longint lSlaveSelfMemory;
 	ALString sTmp;
 
 	require(masterConfMatrixEvaluation == NULL);
@@ -269,9 +267,6 @@ boolean KWClassifierEvaluationTask::MasterInitialize()
 
 	// Dimensionnement de la capacite de l'echantillonneur du maitre et du esclave
 	lMasterGrantedMemory = GetMasterResourceGrant()->GetMemory();
-	lMasterSelfMemory =
-	    ComputeTaskSelfMemory(lMasterGrantedMemory, GetResourceRequirements()->GetMasterRequirement()->GetMemory(),
-				  &databaseTaskMasterMemoryRequirement);
 	masterInstanceEvaluationSampler->SetCapacity(
 	    ComputeSamplerCapacity(lMasterGrantedMemory, shared_nTargetValueNumber));
 
@@ -281,9 +276,6 @@ boolean KWClassifierEvaluationTask::MasterInitialize()
 	if (GetTaskResourceGrant()->GetSlaveNumber() > 1)
 	{
 		lSlaveGrantedMemory = GetTaskResourceGrant()->GetSlaveMemory();
-		lSlaveSelfMemory = ComputeTaskSelfMemory(lSlaveGrantedMemory,
-							 GetResourceRequirements()->GetSlaveRequirement()->GetMemory(),
-							 &databaseTaskSlaveMemoryRequirement);
 		shared_nSlaveInstanceEvaluationCapacity =
 		    ComputeSamplerCapacity(lSlaveGrantedMemory, shared_nTargetValueNumber);
 	}

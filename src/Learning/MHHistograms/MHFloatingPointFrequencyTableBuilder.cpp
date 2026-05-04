@@ -19,7 +19,6 @@ void MHFloatingPointFrequencyTableBuilder::InitializeBins(const ContinuousVector
 	Continuous cBinLowerValue;
 	Continuous cBinUpperValue;
 	int nBinFrequency;
-	Continuous cMantissa;
 
 	require(cvSourceBinUpperValues != NULL);
 	require(cvSourceBinUpperValues->GetSize() > 0);
@@ -119,7 +118,7 @@ void MHFloatingPointFrequencyTableBuilder::InitializeBins(const ContinuousVector
 		// Cas d'une valeur non nulle
 		else
 		{
-			cMantissa = ExtractMantissa(cMaxValue, nMaxValueExponent);
+			ExtractMantissa(cMaxValue, nMaxValueExponent);
 			nMinValueExponent = nMaxValueExponent;
 			nMinCentralBinExponent = nMaxValueExponent;
 		}
@@ -128,16 +127,16 @@ void MHFloatingPointFrequencyTableBuilder::InitializeBins(const ContinuousVector
 	else if (cMinValue >= 0)
 	{
 		// Exposant max
-		cMantissa = ExtractMantissa(cMaxValue, nMaxValueExponent);
+		ExtractMantissa(cMaxValue, nMaxValueExponent);
 
 		// Exposant min si valeurs strictement positives
 		if (cMinValue > 0)
-			cMantissa = ExtractMantissa(cMinValue, nMinValueExponent);
+			ExtractMantissa(cMinValue, nMinValueExponent);
 		// Cas d'un central bin
 		else
 		{
 			assert(cMinPositiveValue > 0);
-			cMantissa = ExtractMantissa(cMinPositiveValue, nMinValueExponent);
+			ExtractMantissa(cMinPositiveValue, nMinValueExponent);
 		}
 
 		// Exposant minimum du central bin
@@ -147,16 +146,16 @@ void MHFloatingPointFrequencyTableBuilder::InitializeBins(const ContinuousVector
 	else if (cMaxValue <= 0)
 	{
 		// Exposant min
-		cMantissa = ExtractMantissa(cMinValue, nMinValueExponent);
+		ExtractMantissa(cMinValue, nMinValueExponent);
 
 		// Exposant max si valeurs strictement negatives
 		if (cMaxValue < 0)
-			cMantissa = ExtractMantissa(cMaxValue, nMaxValueExponent);
+			ExtractMantissa(cMaxValue, nMaxValueExponent);
 		// Cas d'un central bin
 		else
 		{
 			assert(cMaxNegativeValue < 0);
-			cMantissa = ExtractMantissa(cMaxNegativeValue, nMaxValueExponent);
+			ExtractMantissa(cMaxNegativeValue, nMaxValueExponent);
 		}
 
 		// Exposant minimum du central bin
@@ -171,16 +170,16 @@ void MHFloatingPointFrequencyTableBuilder::InitializeBins(const ContinuousVector
 		assert(cMinPositiveValue > 0);
 
 		// Exposant min
-		cMantissa = ExtractMantissa(cMinValue, nMinValueExponent);
+		ExtractMantissa(cMinValue, nMinValueExponent);
 
 		// Exposant max
-		cMantissa = ExtractMantissa(cMaxValue, nMaxValueExponent);
+		ExtractMantissa(cMaxValue, nMaxValueExponent);
 
 		// Exposant du bin central
 		if (-cMaxNegativeValue < cMinPositiveValue)
-			cMantissa = ExtractMantissa(cMaxNegativeValue, nMinCentralBinExponent);
+			ExtractMantissa(cMaxNegativeValue, nMinCentralBinExponent);
 		else
-			cMantissa = ExtractMantissa(cMinPositiveValue, nMinCentralBinExponent);
+			ExtractMantissa(cMinPositiveValue, nMinCentralBinExponent);
 	}
 
 	// Memorisation de la valeur initiale du CentralBinExponent
@@ -1768,7 +1767,6 @@ boolean MHFloatingPointFrequencyTableBuilder::Check() const
 	boolean bOk = true;
 	Continuous cLowerBound;
 	Continuous cUpperBound;
-	Continuous cPreviousLowerBound;
 	Continuous cPreviousUpperBound;
 	int nMainBinIndex;
 	int nIndex;
@@ -1793,7 +1791,6 @@ boolean MHFloatingPointFrequencyTableBuilder::Check() const
 		assert(bOk);
 
 		// Verification des main bins
-		cPreviousLowerBound = 0;
 		cPreviousUpperBound = 0;
 		for (nMainBinIndex = 0; nMainBinIndex < GetMainBinNumber(); nMainBinIndex++)
 		{
@@ -1864,7 +1861,6 @@ boolean MHFloatingPointFrequencyTableBuilder::Check() const
 			assert(bOk);
 
 			// Memorisation du bin precedent
-			cPreviousLowerBound = cLowerBound;
 			cPreviousUpperBound = cUpperBound;
 		}
 	}

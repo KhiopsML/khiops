@@ -649,7 +649,6 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 	DTDecisionTreeSpec* reportTreeSpec = NULL;
 	KWLearningSpec* learningSpecTree = NULL;
 	KWLearningSpec* slaveLearningSpec = NULL;
-	int nNativeVariableNumber;
 	ALString sVariableName;
 	ALString sTmp;
 	ALString sMessage;
@@ -666,7 +665,6 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 	DTAttributeSelection* attributegenerator;
 	boolean bRegressionWithEqualFreqDiscretization = false;
 	boolean bRegressionWithMODLDiscretization = false;
-	int nBuidTreeNumber;
 	int nOldSeedTree;
 
 	if (randomForestParameter.GetDecisionTreeParameter()->GetVerboseMode())
@@ -676,6 +674,7 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 	}
 
 #ifdef GENERATE_PYTHON_REPORTING_TRACES
+	int nBuidTreeNumber;
 	const int oldMaxErrorFlowNumber = Global::GetMaxErrorFlowNumber();
 	Global::ActivateErrorFlowControl();
 	Global::SetMaxErrorFlowNumber(10000);
@@ -760,13 +759,12 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 			 IntToString(GetTaskIndex() + 1) + "\t" + ALString("Grant memory : \t") +
 			 ALString(LongintToHumanReadableString(GetSlaveResourceGrant()->GetMemory())));
 	DTTimer_SlaveProcess.Start();
+	nBuidTreeNumber = 0;
 #endif
 
 	KWClass* kwcUpdatedClass = shared_learningSpec.GetLearningSpec()->GetClass();
 
 	randomForestParameter.CopyFrom(input_forestParameter->GetForestParameter());
-
-	nBuidTreeNumber = 0;
 
 	// Calcul des arbres
 	if (bOk and not TaskProgression::IsInterruptionRequested())
@@ -819,9 +817,6 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 				oaInputAttributeStats = BuildRootAttributeStats(
 				    learningSpecTree, &blOrigine, shared_odAttributeStats->GetObjectDictionary());
 			}
-
-			// Calcul du nombre de variables initiales
-			nNativeVariableNumber = slaveLearningSpec->GetInitialAttributeNumber();
 
 			// creation pour un slice de selection :
 			// - des arbres dttree
@@ -904,9 +899,9 @@ boolean DTDecisionTreeCreationTask::SlaveProcess()
 						    learningSpecTree, &blOrigine,
 						    shared_odAttributeStats->GetObjectDictionary());
 					}
-
+#ifdef GENERATE_PYTHON_REPORTING_TRACES
 					nBuidTreeNumber++;
-
+#endif
 					nOldSeedTree = GetRandomSeed();
 					SetRandomSeed(attributegenerator->GetRandomSeed());
 

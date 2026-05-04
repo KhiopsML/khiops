@@ -3261,14 +3261,12 @@ Continuous KWDRTableCountSum::ComputeContinuousStats(const ObjectArray* oaObject
 	int nObject;
 	KWObject* kwoContainedObject;
 	Continuous cValue;
-	int nObjectNumber;
 	Continuous cCountSum;
 
 	require(oaObjects != NULL);
 
 	// Calcul de la somme parmi les sous-objets avec valeur non manquante
 	cCountSum = 0;
-	nObjectNumber = 0;
 	valueOperand = GetSecondOperand();
 	for (nObject = 0; nObject < oaObjects->GetSize(); nObject++)
 	{
@@ -3277,7 +3275,6 @@ Continuous KWDRTableCountSum::ComputeContinuousStats(const ObjectArray* oaObject
 		if (cValue != KWContinuous::GetMissingValue())
 		{
 			cCountSum += cValue;
-			nObjectNumber++;
 		}
 	}
 	return cCountSum;
@@ -3288,7 +3285,6 @@ Continuous KWDRTableCountSum::ComputeContinuousStatsFromContinuousVector(int nRe
 {
 	int nValue;
 	Continuous cValue;
-	int nValueNumber;
 	Continuous cCountSum;
 	int nDefaultValueNumber;
 
@@ -3297,12 +3293,10 @@ Continuous KWDRTableCountSum::ComputeContinuousStatsFromContinuousVector(int nRe
 
 	// Prise en compte de la valeur par defaut si elle n'est pas manquante
 	cCountSum = 0;
-	nValueNumber = 0;
 	nDefaultValueNumber = nRecordNumber - cvValues->GetSize();
 	if (cDefaultValue != KWContinuous::GetMissingValue() and nRecordNumber > cvValues->GetSize())
 	{
 		cCountSum = nDefaultValueNumber * cDefaultValue;
-		nValueNumber = nDefaultValueNumber;
 	}
 
 	// Calcul de la somme parmi les valeurs non manquantes
@@ -3312,7 +3306,6 @@ Continuous KWDRTableCountSum::ComputeContinuousStatsFromContinuousVector(int nRe
 		if (cValue != KWContinuous::GetMissingValue())
 		{
 			cCountSum += cValue;
-			nValueNumber++;
 		}
 	}
 	return cCountSum;

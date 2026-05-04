@@ -28,7 +28,6 @@ KWDGMPart* KWDGMPartMergeAction::PerformPartMerge(KWDGMPartMerge* partMerge)
 	KWDGMPart* mergedPart;
 	KWDGMAttribute* attribute;
 	int nAttribute;
-	double dMergeCost;
 	ObjectArray oaTransferredCells1;
 	ObjectArray oaMergedCells1;
 	ObjectArray oaMergedCells2;
@@ -214,7 +213,6 @@ KWDGMPart* KWDGMPartMergeAction::PerformPartMerge(KWDGMPartMerge* partMerge)
 	}
 
 	// Fusion des cellules a fusionner
-	dMergeCost = 0;
 	for (nCell = 0; nCell < oaMergedCells1.GetSize(); nCell++)
 	{
 		cellM1 = cast(KWDGMCell*, oaMergedCells1.GetAt(nCell));
@@ -225,7 +223,6 @@ KWDGMPart* KWDGMPartMergeAction::PerformPartMerge(KWDGMPartMerge* partMerge)
 
 		// Mise a jour du cout de la cellule destination
 		dMergeCellCost = dataGridCosts->ComputeCellCost(cellM2);
-		dMergeCost += dMergeCellCost - cellM1->GetCost() - cellM2->GetCost();
 		cellM2->SetCost(dMergeCellCost);
 
 		// Suppression de la cellule origine du dictionnaire des cellules

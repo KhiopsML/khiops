@@ -54,6 +54,7 @@ void KNITransferProblemView::SetObject(Object* object)
 
 	// Acces a l'objet edite
 	learningProblem = cast(KNITransferProblem*, object);
+	(void)learningProblem; // Evite un warning si on n'utilise pas l'objet dans cette methode
 }
 
 KNITransferProblem* KNITransferProblemView::GetTransferProblem()

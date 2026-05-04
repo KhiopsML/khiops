@@ -11,8 +11,4 @@ target_link_libraries(
          KWDRRuleLibrary
          KWModeling
          KWUtils
-         KWDataUtils
-         KWDRRuleLibrary
-         KWModeling
-         KWUserInterface
-         KWUtils)
+         KWUserInterface)

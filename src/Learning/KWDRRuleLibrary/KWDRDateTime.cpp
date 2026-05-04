@@ -1237,13 +1237,11 @@ TimestampTZ KWDRBuildTimestampTZ::ComputeTimestampTZResult(const KWObject* kwoOb
 	TimestampTZ tstzTimestamp;
 	Continuous cMinutes;
 	int nMinutes;
-	boolean bOk;
 
 	require(IsCompiled());
 
 	// Modifie la time zone que si les operandes sont valides
 	tsTimestamp = GetFirstOperand()->GetTimestampValue(kwoObject);
-	bOk = false;
 	tstzTimestamp.Reset();
 	if (tsTimestamp.Check())
 	{
@@ -1251,7 +1249,7 @@ TimestampTZ KWDRBuildTimestampTZ::ComputeTimestampTZResult(const KWObject* kwoOb
 		if (cMinutes != KWContinuous::GetMissingValue())
 		{
 			nMinutes = int(floor(cMinutes + 0.5));
-			bOk = tstzTimestamp.Init(tsTimestamp, nMinutes);
+			tstzTimestamp.Init(tsTimestamp, nMinutes);
 		}
 	}
 	return tstzTimestamp;

@@ -110,20 +110,12 @@ MYLearningProblemExtendedActionView::~MYLearningProblemExtendedActionView() {}
 
 void MYLearningProblemExtendedActionView::EventUpdate(Object* object)
 {
-	MYLearningProblem* editedObject;
-
 	require(object != NULL);
-
-	editedObject = cast(MYLearningProblem*, object);
 }
 
 void MYLearningProblemExtendedActionView::EventRefresh(Object* object)
 {
-	MYLearningProblem* editedObject;
-
 	require(object != NULL);
-
-	editedObject = cast(MYLearningProblem*, object);
 }
 
 void MYLearningProblemExtendedActionView::ClassifierBenchmark()

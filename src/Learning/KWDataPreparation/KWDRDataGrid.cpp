@@ -1151,7 +1151,6 @@ const ALString KWDRDataGridRule::ComputeCellLabel(const KWObject* kwoObject) con
 	int nOperand;
 	int nAttributeIndex;
 	int nPartIndex;
-	int nFactor;
 	Continuous cValue;
 	Symbol sValue;
 
@@ -1161,7 +1160,6 @@ const ALString KWDRDataGridRule::ComputeCellLabel(const KWObject* kwoObject) con
 	// Calcul de l'index de la cellule
 	nCellIndex = 0;
 	bIsMissingValue = false;
-	nFactor = 1;
 	for (nOperand = 1; nOperand < GetOperandNumber(); nOperand++)
 	{
 		nAttributeIndex = nOperand - 1;

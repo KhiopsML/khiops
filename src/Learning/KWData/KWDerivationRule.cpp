@@ -1241,7 +1241,7 @@ void KWDerivationRule::Compile(KWClass* kwcOwnerClass)
 Continuous KWDerivationRule::ComputeContinuousResult(const KWObject* kwoObject) const
 {
 	// Doit etre reimplemente si le type est Continuous
-	kwoObject = NULL; // Pour eviter le warning
+	(void)kwoObject; // Pour eviter le warning
 	assert(false);
 	return 0;
 }
@@ -1249,7 +1249,7 @@ Continuous KWDerivationRule::ComputeContinuousResult(const KWObject* kwoObject) 
 Symbol KWDerivationRule::ComputeSymbolResult(const KWObject* kwoObject) const
 {
 	// Doit etre reimplemente si le type est Symbol
-	kwoObject = NULL; // Pour eviter le warning
+	(void)kwoObject; // Pour eviter le warning
 	assert(false);
 	return Symbol();
 }
@@ -1259,7 +1259,7 @@ Date KWDerivationRule::ComputeDateResult(const KWObject* kwoObject) const
 	Date dtValue;
 
 	// Doit etre reimplemente si le type est Date
-	kwoObject = NULL; // Pour eviter le warning
+	(void)kwoObject; // Pour eviter le warning
 	dtValue.Reset();
 	assert(false);
 	return dtValue;
@@ -1270,7 +1270,7 @@ Time KWDerivationRule::ComputeTimeResult(const KWObject* kwoObject) const
 	Time tmValue;
 
 	// Doit etre reimplemente si le type est Time
-	kwoObject = NULL; // Pour eviter le warning
+	(void)kwoObject; // Pour eviter le warning
 	tmValue.Reset();
 	assert(false);
 	return tmValue;
@@ -1281,7 +1281,7 @@ Timestamp KWDerivationRule::ComputeTimestampResult(const KWObject* kwoObject) co
 	Timestamp tsValue;
 
 	// Doit etre reimplemente si le type est Timestamp
-	kwoObject = NULL; // Pour eviter le warning
+	(void)kwoObject; // Pour eviter le warning
 	tsValue.Reset();
 	assert(false);
 	return tsValue;
@@ -1292,7 +1292,7 @@ TimestampTZ KWDerivationRule::ComputeTimestampTZResult(const KWObject* kwoObject
 	TimestampTZ tstzValue;
 
 	// Doit etre reimplemente si le type est Timestamp
-	kwoObject = NULL; // Pour eviter le warning
+	(void)kwoObject; // Pour eviter le warning
 	tstzValue.Reset();
 	assert(false);
 	return tstzValue;
@@ -1301,7 +1301,7 @@ TimestampTZ KWDerivationRule::ComputeTimestampTZResult(const KWObject* kwoObject
 Symbol KWDerivationRule::ComputeTextResult(const KWObject* kwoObject) const
 {
 	// Doit etre reimplemente si le type est Text
-	kwoObject = NULL; // Pour eviter le warning
+	(void)kwoObject; // Pour eviter le warning
 	assert(false);
 	return Symbol();
 }
@@ -1309,7 +1309,7 @@ Symbol KWDerivationRule::ComputeTextResult(const KWObject* kwoObject) const
 SymbolVector* KWDerivationRule::ComputeTextListResult(const KWObject* kwoObject) const
 {
 	// Doit etre reimplemente si le type est TextList
-	kwoObject = NULL; // Pour eviter le warning
+	(void)kwoObject; // Pour eviter le warning
 	assert(false);
 	return NULL;
 }
@@ -1317,7 +1317,8 @@ SymbolVector* KWDerivationRule::ComputeTextListResult(const KWObject* kwoObject)
 KWObject* KWDerivationRule::ComputeObjectResult(const KWObject* kwoObject, const KWLoadIndex liAttributeLoadIndex) const
 {
 	// Doit etre reimplemente si le type est Object
-	kwoObject = NULL; // Pour eviter le warning
+	(void)kwoObject;            // Pour eviter le warning
+	(void)liAttributeLoadIndex; // Pour eviter le warning
 	assert(false);
 	return NULL;
 }
@@ -1326,7 +1327,8 @@ ObjectArray* KWDerivationRule::ComputeObjectArrayResult(const KWObject* kwoObjec
 							const KWLoadIndex liAttributeLoadIndex) const
 {
 	// Doit etre reimplemente si le type est ObjectArray
-	kwoObject = NULL; // Pour eviter le warning
+	(void)kwoObject;            // Pour eviter le warning
+	(void)liAttributeLoadIndex; // Pour eviter le warning
 	assert(false);
 	return NULL;
 }
@@ -1334,7 +1336,7 @@ ObjectArray* KWDerivationRule::ComputeObjectArrayResult(const KWObject* kwoObjec
 Object* KWDerivationRule::ComputeStructureResult(const KWObject* kwoObject) const
 {
 	// Doit etre reimplemente si le type est Structure
-	kwoObject = NULL; // Pour eviter le warning
+	(void)kwoObject; // Pour eviter le warning
 	assert(false);
 	return NULL;
 }
@@ -1344,8 +1346,8 @@ KWDerivationRule::ComputeContinuousValueBlockResult(const KWObject* kwoObject,
 						    const KWIndexedKeyBlock* indexedKeyBlock) const
 {
 	// Doit etre reimplemente si le type est ContinuousValueBlock
-	kwoObject = NULL; // Pour eviter le warning
-	indexedKeyBlock = NULL;
+	(void)kwoObject;       // Pour eviter le warning
+	(void)indexedKeyBlock; // Pour eviter le warning
 	assert(false);
 	return NULL;
 }
@@ -1354,8 +1356,8 @@ KWSymbolValueBlock* KWDerivationRule::ComputeSymbolValueBlockResult(const KWObje
 								    const KWIndexedKeyBlock* indexedKeyBlock) const
 {
 	// Doit etre reimplemente si le type est SymbolValueBlock
-	kwoObject = NULL; // Pour eviter le warning
-	indexedKeyBlock = NULL;
+	(void)kwoObject;       // Pour eviter le warning
+	(void)indexedKeyBlock; // Pour eviter le warning
 	assert(false);
 	return NULL;
 }
@@ -1365,8 +1367,8 @@ KWDerivationRule::ComputeObjectArrayValueBlockResult(const KWObject* kwoObject,
 						     const KWIndexedKeyBlock* indexedKeyBlock) const
 {
 	// Doit etre reimplemente si le type est ObjectArrayValueBlock
-	kwoObject = NULL; // Pour eviter le warning
-	indexedKeyBlock = NULL;
+	(void)kwoObject;       // Pour eviter le warning
+	(void)indexedKeyBlock; // Pour eviter le warning
 	assert(false);
 	return NULL;
 }

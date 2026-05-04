@@ -12,6 +12,8 @@
 
 int main(int argc, char** argv)
 {
+	(void)argc;
+	(void)argv;
 	printf("This program is used by Khiops, only on Windows.\n");
 	return EXIT_FAILURE;
 }

@@ -45,7 +45,7 @@ public:
 	int CompareLengthFrequency(const KWTokenFrequency* otherTokenFrequency) const;
 
 	// Memoire utilisee
-	longint GetUsedMemory() const;
+	longint GetUsedMemory() const override;
 
 	// Affichage
 	void Write(ostream& ost) const override;

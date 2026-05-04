@@ -2105,15 +2105,11 @@ void SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateTargetPartitionW
 	POSITION position;
 	SNBGroupTargetPart* groupTargetPart;
 	SNBGroupTargetPart* newTargetPartScore;
-	int nRemovedAttributeSignatureIndex;
 	ObjectArray oaPartsToDelete;
 	int nTargetPart;
 
 	require(Check());
 	require(signatureSchema.Contains(attribute));
-
-	// Acces a l'removedAttributeIndex de l'attribut a supprimer dans la signature cible
-	nRemovedAttributeSignatureIndex = signatureSchema.GetSignatureIndexAt(attribute);
 
 	// Retaillage initiale de la partition cible
 	oaTargetParts.SetSize(0);

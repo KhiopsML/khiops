@@ -37,6 +37,7 @@ void SNBPredictorSelectiveNaiveBayesView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(SNBPredictorSelectiveNaiveBayes*, object);
+	(void)editedObject; // Evite un warning si on n'utilise pas l'objet dans cette methode
 }
 
 void SNBPredictorSelectiveNaiveBayesView::EventRefresh(Object* object)
@@ -46,6 +47,7 @@ void SNBPredictorSelectiveNaiveBayesView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(SNBPredictorSelectiveNaiveBayes*, object);
+	(void)editedObject; // Evite un warning si on n'utilise pas l'objet dans cette methode
 }
 
 void SNBPredictorSelectiveNaiveBayesView::SetObject(Object* object)
