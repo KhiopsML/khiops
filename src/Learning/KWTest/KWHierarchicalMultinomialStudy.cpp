@@ -975,7 +975,7 @@ boolean KWAttributePairStatsStudy::ComputeStats(const KWTupleTable* tupleTable)
 	KWDataGrid* dataGrid;
 	KWDataGrid* optimizedDataGrid;
 	KWDataGridCosts* dataGridCosts;
-	KWDataGridOptimizer dataGridOptimizer;
+	KWDataGridOptimizerVxV dataGridOptimizer;
 	double dGridCost;
 
 	require(Check());
