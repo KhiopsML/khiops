@@ -52,7 +52,7 @@ public:
 	void WriteKeyBoolean(const ALString& sKey, boolean bValue);
 
 	// Recherche du nombre de lancement d'une methode donnee pour un profiling en cours
-	int GetMethodStartNumber(const ALString& sMethodName) const;
+	longint GetMethodStartNumber(const ALString& sMethodName) const;
 
 	// Parametrage avance pour exporter toute la trace de profiling (defaut: false)
 	// Dans ce cas, un fichier de trace complet est ecrit au format json, de nom

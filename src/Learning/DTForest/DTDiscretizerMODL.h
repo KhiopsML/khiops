@@ -44,8 +44,6 @@ public:
 	/////////////////////////////////////////////////////////////////
 	// Implementation
 protected:
-	friend class KWDataGridManager;
-
 	void DiscretizeGranularizedFrequencyTableNEW(KWFrequencyTable* kwftSource, KWFrequencyTable*& kwftTarget,
 						     IntVector* ivGranularityValues,
 						     IntVector* ivGranularizedValueNumber) const;

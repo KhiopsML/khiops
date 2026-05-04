@@ -8,6 +8,7 @@
 #include "KWDataGrid.h"
 #include "KWSortableIndex.h"
 #include "KWAttributeStats.h"
+#include "KWDataGridOptimizer.h"
 #include "KWQuantileBuilder.h"
 #include "KWFrequencyVector.h"
 
@@ -65,21 +66,16 @@ public:
 	void ExportDataGridWithReferenceVarPartClusters(const KWDataGrid* sourceDataGrid, KWDataGrid* referenceDataGrid,
 							KWDataGrid* targetDataGrid);
 
-	// Export d'une grille terminale, avec attributs reduits a une seule partie
-	// Ne modifie pas la tokenisation des attributs internes
-	void ExportTerminalDataGrid(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid) const;
-
-	// Export de la grille du modele nul : une seule partie par attribut et, pour les attributs VarPart,
-	// une seule partie de variable
+	// Export de la grille du modele nul : une seule partie par attribut, y compris dans le cas VarPart
 	// Attention: creation de nouveaux attributs internes qui doivent etre detruits par l'appelant
 	void ExportNullDataGrid(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid) const;
 
 	// Export total (attribut, parties et cellules)
 	// Cas d'une grille de type VarPart
 	// En entree :
-	// DD 461 - sourceDataGrid : preciser en quoi elle differe d'inputDataGrid
+	// - sourceDataGrid : grille la plus fine, contenant les innerAttributes avec la partition de reference la plus fine
+	//                    sur laquelle on procede au tirage aleatoire
 	// - inputDataGrid : grille dont on souhaite sur-echantillonner le KWDGInnerAttributes
-	// - referenceInnerAttributes : les innerAttributes avec la partition de reference la plus fine sur laquelle on procede au tirage aleatoire
 	// - nTargetTokenNumber : nombre total de parties de variables souhaite sur l'ensemble des innerAttributes
 	// En sortie :
 	// targetDataGrid : nouvelle grille dont le KWDGInnerAttributes a ete sur-echantillonne
@@ -87,38 +83,21 @@ public:
 	// Les innerAttributes sont sur-tokenises par tirage aleatoire
 	// Le nombre de parties de variables obtenu peut etre inferieur a l'objectif nTargetTokenNumber
 	void ExportDataGridWithRandomizedInnerAttributes(const KWDataGrid* sourceDataGrid,
-							 const KWDataGrid* inputDataGrid,
-							 const KWDGInnerAttributes* referenceInnerAttributes,
-							 KWDataGrid* targetDataGrid, int nTargetTokenNumber);
+							 const KWDataGrid* inputDataGrid, KWDataGrid* targetDataGrid,
+							 int nTargetTokenNumber);
 
 	// Export total (attribut, parties et cellules)
 	// Cas d'une grille de type VarPart
 	// En entree :
-	// DD 461 - sourceDataGrid : preciser en quoi elle differe d'inputDataGrid
 	// - inputDataGrid : grille dont on souhaite fusionner le KWDGInnerAttributes
 	// - otherMergedInnerAttributes : attributes dont les PV sont issues d'une fusion des innerAttributes de l'inputDataGrid.
 	//							Les PV fusionnees doivent appartenir au meme cluster de PV
 	// En sortie :
 	// targetDataGrid : nouvelle grille dont le KWDGInnerAttributes a ete remplace par une version fusionnee
 	// Les partitions des attributs Identifier et VarPart ne sont pas modifiees
-	void ExportDataGridWithMergedInnerAttributes(const KWDataGrid* sourceDataGrid, const KWDataGrid* inputDataGrid,
+	void ExportDataGridWithMergedInnerAttributes(const KWDataGrid* inputDataGrid,
 						     const KWDGInnerAttributes* otherMergedInnerAttributes,
 						     KWDataGrid* targetDataGrid);
-
-	// CH Etape 2 Antecedent
-	// Export total (attribut, parties et cellules)
-	// Cas d'une grille de type VarPart
-	// En entree :
-	// DD 461 sourceDataGrid : en quoi differe-t'elle de inputDataGrid ?
-	// DD 461 C'est tokenizedDataGrid qui joue le role de grille source dans les methodes d'Export ?
-	// - inputDataGrid : grille en entree
-	// En sortie :
-	// targetDataGrid : nouvelle grille dont l'identifierAttribute et le KWDGInnerAttributes ne sont pas modifies
-	// L'attribut VarPart contient un cluster par partie de variable du KWDGInnerAttributes
-	void ExportReferenceDataGridWithGivenInnerAttributes(const KWDataGrid* sourceDataGrid,
-							     const KWDataGrid* inputDataGrid,
-							     const KWDataGrid* tokenizedDataGrid,
-							     KWDataGrid* targetDataGrid);
 
 	/////////////////////////////////////////////////////////////////////////////////////////
 	// Service elementaires de transfert du contenu de la grille source vers la grille cible

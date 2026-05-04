@@ -62,9 +62,6 @@ public:
 	/////////////////////////////////////////////////////////////////
 	// Implementation
 protected:
-	friend class KWDataGridOptimizer;
-	friend class KWDataGridManager;
-
 	/////////////////////////////////////////////////////////////////////
 	// Cout de la partition en groupes
 	// Methodes de cout redirigee sur l'objet GroupingCost
