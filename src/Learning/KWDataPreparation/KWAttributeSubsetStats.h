@@ -14,7 +14,6 @@ class PLShared_AttributePairStats;
 #include "KWClassStats.h"
 #include "KWDRPreprocessing.h"
 #include "KWSortableIndex.h"
-#include "KWDataGridOptimizer.h"
 #include "KWDataGridCosts.h"
 #include "KWDataGridManager.h"
 #include "PLSharedObject.h"

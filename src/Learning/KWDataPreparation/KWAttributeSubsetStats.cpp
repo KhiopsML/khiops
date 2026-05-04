@@ -4,6 +4,9 @@
 
 #include "KWAttributeSubsetStats.h"
 
+// Inclus dans le source pour eviter les dependances circulaires
+#include "KWDataGridOptimizerVxV.h"
+
 ///////////////////////////////////////////////////////
 // Classe KWAttributeSubsetStats
 
@@ -159,7 +162,7 @@ boolean KWAttributeSubsetStats::ComputeStats(const KWTupleTable* tupleTable)
 	KWDataGrid* dataGrid;
 	KWDataGrid* optimizedDataGrid;
 	KWDataGridCosts* dataGridCosts;
-	KWDataGridOptimizer dataGridOptimizer;
+	KWDataGridOptimizerVxV dataGridOptimizer;
 	double dGridCost;
 
 	require(Check());

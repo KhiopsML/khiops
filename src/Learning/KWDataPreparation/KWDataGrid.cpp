@@ -35,6 +35,7 @@ int KWDataGrid::GetGranularity() const
 
 void KWDataGrid::SetGranularity(int nIndex)
 {
+	require(nIndex >= 0);
 	nGranularity = nIndex;
 }
 
@@ -679,6 +680,11 @@ boolean KWDataGrid::Check() const
 	{
 		AddError(sTmp + "Granularity " + IntToString(nGranularity) +
 			 "  must be an integer smaller than log2(N) " + IntToString(GetGridFrequency()));
+		bOk = false;
+	}
+	if (bOk and IsVarPartDataGrid() and nGranularity != 0)
+	{
+		AddError(sTmp + "Granularity must be 0 in a VarPart data grid");
 		bOk = false;
 	}
 

@@ -91,6 +91,8 @@ double KWDataGridCosts::ComputeDataGridCompressionCoefficient(const KWDataGrid* 
 	double dLevel;
 	double dTotalCost;
 
+	require(IsInitialized());
+
 	dLevel = 0;
 	dTotalCost = ComputeDataGridTotalCost(dataGrid);
 	if (dTotalDefaultCost != 0)
@@ -106,6 +108,7 @@ double KWDataGridCosts::ComputeDataGridTotalCost(const KWDataGrid* dataGrid) con
 {
 	double dTotalCost;
 
+	require(IsInitialized());
 	require(CheckDataGrid(dataGrid));
 
 	// Initialisation avec le cout cumulatif du DataGrid
@@ -131,6 +134,7 @@ double KWDataGridCosts::ComputeDataGridMergerTotalCost(const KWDataGridMerger* d
 	KWDGMPart* partM;
 	KWDGMCell* cellM;
 
+	require(IsInitialized());
 	require(CheckDataGrid(dataGridMerger));
 
 	// Initialisation avec le cout du DataGrid
@@ -253,7 +257,7 @@ void KWDataGridCosts::InitializeDefaultCosts(const KWDataGrid* dataGrid)
 	dataGridDefaultCosts->SetDataGridCosts(this);
 
 	// Creation d'une grille par default correspondant a la grille source
-	dataGridManager.ExportTerminalDataGrid(dataGrid, dataGridDefaultCosts);
+	dataGridManager.ExportNullDataGrid(dataGrid, dataGridDefaultCosts);
 
 	// Initialisation des couts par defaut par entite
 	dataGridDefaultCosts->InitializeAllCosts();
