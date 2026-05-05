@@ -609,9 +609,7 @@ private:
 	void AddLocalGenericError(int nGravity, const ALString& sLabel, longint lLineNumber);
 
 	// Mise a jour de la duree de vie du repertoire temporaire
-	// N'est mise a jour que si il s'est ecoule moins d'une heure depuis la derniere mise a jour
 	void TouchTmpDir();
-	Timer tTempTouch;
 
 	// type de la tache : sequentiel (defaut) maitre ou esclave
 	Mode runningMode;
