@@ -381,7 +381,6 @@ public:
 	static char GetURIFileSeparator();
 
 	static boolean New_CreateApplicationTmpDir();
-	static boolean Old_CheckApplicationTmpDir();
 	static ALString New_CreateNewDirectory(const ALString& sBasePathName);
 
 protected:
@@ -455,6 +454,9 @@ protected:
 
 	// Est-ce que les acces IO sont enregistres par MemoryStatsManager
 	static boolean bIOStats;
+
+	// Timer de touche du repertoire temporaire applicatif, pour eviter de le toucher trop souvent
+	static Timer tTimerTouch;
 
 	friend class SystemFileDriverANSI; // Acces a SystemSeekPositionInBinaryFile
 };
