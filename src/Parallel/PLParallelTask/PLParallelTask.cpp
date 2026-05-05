@@ -2274,12 +2274,7 @@ void PLParallelTask::Exit(int nExitCode)
 
 void PLParallelTask::TouchTmpDir()
 {
-	if (not tTempTouch.IsStarted() or tTempTouch.GetElapsedTime() > 3600)
-	{
-		FileService::TouchApplicationTmpDir(86400);
-		tTempTouch.Reset();
-		tTempTouch.Start();
-	}
+	FileService::TouchApplicationTmpDir(3600);
 }
 
 void PLParallelTask::PrintSlavesStates() const

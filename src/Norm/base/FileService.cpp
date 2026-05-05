@@ -7,6 +7,7 @@
 
 const ALString FileService::sRemoteScheme = "file";
 boolean FileService::bIOStats = false;
+Timer FileService::tTimerTouch;
 
 ////////////////////////////////////////////
 // Implementation de la classe FileService
@@ -1336,7 +1337,10 @@ boolean FileService::CreateApplicationTmpDir()
 	// On initialise la date d'expiration avec une heure de delai
 	// Cela ne peut etre fait que si tout s'est passe avec succes
 	if (bOk)
+	{
+		tTimerTouch.Reset(); // Re-initialisation du timer pour s'assurer qu'on va le toucher
 		TouchApplicationTmpDir(3600);
+	}
 	return bOk;
 }
 boolean FileService::CheckApplicationTmpDir()
@@ -1384,56 +1388,6 @@ boolean FileService::CheckApplicationTmpDir()
 	}
 
 	if (bOk and not PLRemoteFileService::DirExists(sApplicationTmpDir)) // OK sur le cloud car renvoie toujours true
-	{
-		Global::AddError("Application temp directory", sApplicationTmpDir, "Directory does not exist");
-		bOk = false;
-	}
-	return bOk;
-}
-boolean FileService::Old_CheckApplicationTmpDir()
-{
-	boolean bOk = true;
-	ALString sCategoryLabel;
-	ALString sTmpDir;
-
-	// Personnalisation des messages d'erreur
-	sTmpDir = GetTmpDir();
-	if (sTmpDir == sUserTmpDir)
-		sCategoryLabel = "Temp file directory";
-	else
-		sCategoryLabel = "Default system temp file directory";
-
-	// Test si repertoire utilisateur specifie
-	if (bOk)
-	{
-		bOk = sTmpDir != "";
-		if (not bOk)
-			Global::AddError(sCategoryLabel, sTmpDir, "Directory not specified");
-	}
-
-	// Test d'existence du repertoire utilisateur
-	if (bOk)
-	{
-		bOk = FileService::DirExists(sTmpDir);
-		if (not bOk)
-			Global::AddError(sCategoryLabel, sTmpDir, "Directory does not exist");
-	}
-
-	// Test s'il y a de la place
-	if (bOk)
-	{
-		bOk = FileService::GetDiskFreeSpace(sTmpDir) >= lMB;
-		if (not bOk)
-			Global::AddError(sCategoryLabel, sTmpDir, "Less than one MB available");
-	}
-
-	// Test d'existence du repertoire applicatif
-	if (bOk and sApplicationTmpDir == "")
-	{
-		Global::AddError("Application temp directory", "", "Directory not created");
-		bOk = false;
-	}
-	if (bOk and not FileService::DirExists(sApplicationTmpDir))
 	{
 		Global::AddError("Application temp directory", sApplicationTmpDir, "Directory does not exist");
 		bOk = false;
@@ -1604,46 +1558,51 @@ boolean FileService::GetApplicationTmpDirAutoDeletion()
 
 void FileService::TouchApplicationTmpDir(int nRemainingSeconds)
 {
-	OutputBufferedFile obApplicationTmpDirAnchorFile;
-	time_t tCurrentTimestamp;
-	boolean bOk;
-	const int nMaxRemainingSeconds = 366 * 24 * 3600;
-	struct tm* pGMTExpirationDate;
-	require(nRemainingSeconds >= 0);
-
-	// On n'effectue le traitement que si le repertoire temporaire existe
-	if (GetApplicationTmpDir() != "")
+	if (not tTimerTouch.IsStarted() or tTimerTouch.GetElapsedTime() > 3600)
 	{
-		// Recherche de la date courante
-		time(&tCurrentTimestamp);
+		OutputBufferedFile obApplicationTmpDirAnchorFile;
+		time_t tCurrentTimestamp;
+		boolean bOk;
+		const int nMaxRemainingSeconds = 366 * 24 * 3600;
+		struct tm* pGMTExpirationDate;
+		require(nRemainingSeconds >= 0);
 
-		// Ajout du delai
-		tCurrentTimestamp += min(nRemainingSeconds, nMaxRemainingSeconds);
-
-		// Conversion en timestamps GMT
-		pGMTExpirationDate = p_gmtime(&tCurrentTimestamp);
-
-		// Ecriture dans le fichier anchor du libelle associe a la date d'expiration
-		// La fonction p_fopen gere deja les locale correctement
-		obApplicationTmpDirAnchorFile.SetFileName(
-		    BuildFilePathName(GetApplicationTmpDir(), GetAnchorFileName()));
-		bOk = obApplicationTmpDirAnchorFile.Open();
-		if (bOk)
+		// On n'effectue le traitement que si le repertoire temporaire existe
+		if (GetApplicationTmpDir() != "")
 		{
-			obApplicationTmpDirAnchorFile.Write("GMT expiration date ");
-			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_year + 1900));
-			obApplicationTmpDirAnchorFile.Write("-");
-			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_mon + 1));
-			obApplicationTmpDirAnchorFile.Write("-");
-			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_mday));
-			obApplicationTmpDirAnchorFile.Write(" ");
-			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_hour));
-			obApplicationTmpDirAnchorFile.Write(":");
-			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_min));
-			obApplicationTmpDirAnchorFile.Write(":");
-			obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_sec));
-			obApplicationTmpDirAnchorFile.Close();
+			// Recherche de la date courante
+			time(&tCurrentTimestamp);
+
+			// Ajout du delai
+			tCurrentTimestamp += min(nRemainingSeconds, nMaxRemainingSeconds);
+
+			// Conversion en timestamps GMT
+			pGMTExpirationDate = p_gmtime(&tCurrentTimestamp);
+
+			// Ecriture dans le fichier anchor du libelle associe a la date d'expiration
+			// La fonction p_fopen gere deja les locale correctement
+			obApplicationTmpDirAnchorFile.SetFileName(
+			    BuildFilePathName(GetApplicationTmpDir(), GetAnchorFileName()));
+			bOk = obApplicationTmpDirAnchorFile.Open();
+			if (bOk)
+			{
+				obApplicationTmpDirAnchorFile.Write("GMT expiration date ");
+				obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_year + 1900));
+				obApplicationTmpDirAnchorFile.Write("-");
+				obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_mon + 1));
+				obApplicationTmpDirAnchorFile.Write("-");
+				obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_mday));
+				obApplicationTmpDirAnchorFile.Write(" ");
+				obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_hour));
+				obApplicationTmpDirAnchorFile.Write(":");
+				obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_min));
+				obApplicationTmpDirAnchorFile.Write(":");
+				obApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_sec));
+				obApplicationTmpDirAnchorFile.Close();
+			}
 		}
+		tTimerTouch.Reset();
+		tTimerTouch.Start();
 	}
 }
 
@@ -3044,7 +3003,10 @@ boolean FileService::New_CreateApplicationTmpDir()
 	// On initialise la date d'expiration avec une heure de delai
 	// Cela ne peut etre fait que si tout s'est passe avec succes
 	if (bOk)
+	{
+		tTimerTouch.Reset(); // Re-initialisation du timer pour s'assurer qu'on va le toucher
 		TouchApplicationTmpDir(3600);
+	}
 	return bOk;
 }
 
