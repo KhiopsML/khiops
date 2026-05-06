@@ -927,7 +927,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 
 	// Recherche d'un nombre de slices qui permet d'executer la tache
 	// avec le minimum pour les buffers du KWDataTableSliceSet
-	for (nSliceNumber = 1; nSliceNumber < nMaxSliceNumber; nSliceNumber++)
+	for (nSliceNumber = 1; nSliceNumber <= nMaxSliceNumber; nSliceNumber++)
 	{
 		// Calcul de la memoire necessaire pour l'esclave pour ce nombre de slices
 		// NB: La memoire globale diminue avec la taille du buffer du slice set d'entree (2eme param).
