@@ -992,15 +992,26 @@ void PLParallelTask::SlaveRegisterUniqueTmpFiles(const StringVector* svFileNames
 {
 	int i;
 	ALString sScheme;
+	ALString sFilePath;
 
 	require(IsSlaveProcess());
 	require(svFileNames != NULL);
 
 	for (i = 0; i < svFileNames->GetSize(); i++)
 	{
-		sScheme = FileService::GetURIScheme(svFileNames->GetAt(i));
 		if (svFileNames->GetAt(i) != "")
-			svSlaveRegisteredUniqueTmpFiles.Add(FileService::GetURIFilePathName(svFileNames->GetAt(i)));
+		{
+			sScheme = FileService::GetURIScheme(svFileNames->GetAt(i));
+			if (sScheme == FileService::sRemoteScheme)
+			{
+				sFilePath = FileService::GetURIFilePathName(svFileNames->GetAt(i));
+			}
+			else
+			{
+				sFilePath = svFileNames->GetAt(i);
+			}
+			svSlaveRegisteredUniqueTmpFiles.Add(sFilePath);
+		}
 	}
 }
 
@@ -1019,8 +1030,7 @@ void PLParallelTask::SlaveDeleteRegisteredUniqueTmpFiles()
 	for (i = 0; i < svSlaveRegisteredUniqueTmpFiles.GetSize(); i++)
 	{
 		assert(svSlaveRegisteredUniqueTmpFiles.GetAt(i) != "");
-		assert(FileService::GetURIScheme(svSlaveRegisteredUniqueTmpFiles.GetAt(i)) == "");
-		FileService::RemoveFile(svSlaveRegisteredUniqueTmpFiles.GetAt(i));
+		PLRemoteFileService::RemoveFile(svSlaveRegisteredUniqueTmpFiles.GetAt(i));
 	}
 }
 
