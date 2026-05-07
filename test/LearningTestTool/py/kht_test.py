@@ -913,6 +913,156 @@ def evaluate_all_tools_on_learning_test_tree(
                 )
 
 
+def scan_failed_tests_in_tree(
+    home_dir,
+    tool_dir_name=None,
+    suite_dir_name=None,
+):
+    """Scan test directory tree for failed tests by checking comparisonResults.log files.
+
+    Returns a list of tuples: (tool_dir_name, suite_dir_name, test_dir_name, error_count)
+    Only tests with error_count > 0 are included.
+    """
+    failed_tests = []
+
+    # Determine which tools to scan
+    if tool_dir_name is not None:
+        tool_names = [kht.TOOL_NAMES_PER_DIR_NAME[tool_dir_name]]
+    else:
+        tool_names = kht.TOOL_NAMES
+
+    # Scan each tool directory
+    for tool_name in tool_names:
+        tool_dir = kht.TOOL_DIR_NAMES[tool_name]
+        tool_path = os.path.join(home_dir, tool_dir)
+
+        if not os.path.isdir(tool_path):
+            continue
+
+        # Determine which suites to scan
+        if suite_dir_name is not None:
+            suite_names = [suite_dir_name]
+        else:
+            suite_names = [
+                name
+                for name in os.listdir(tool_path)
+                if os.path.isdir(os.path.join(tool_path, name))
+            ]
+
+        # Scan each suite directory
+        for suite_name in suite_names:
+            suite_path = os.path.join(tool_path, suite_name)
+
+            if not os.path.isdir(suite_path):
+                continue
+
+            # Scan each test directory in the suite
+            for test_name in os.listdir(suite_path):
+                test_path = os.path.join(suite_path, test_name)
+
+                if not os.path.isdir(test_path):
+                    continue
+
+                # Check for comparisonResults.log
+                log_file = os.path.join(test_path, kht.COMPARISON_RESULTS_LOG)
+
+                if os.path.isfile(log_file):
+                    # Analyze the log file
+                    (
+                        error_number,
+                        warning_number,
+                        summary_infos,
+                        files_infos,
+                    ) = check.analyse_comparison_log(test_path)
+
+                    # Add to failed tests if errors found
+                    if error_number > 0:
+                        failed_tests.append(
+                            (tool_dir, suite_name, test_name, error_number)
+                        )
+
+    return failed_tests
+
+
+def evaluate_failed_tests(
+    home_dir,
+    tool_dir_name,
+    suite_dir_name,
+    binaries_dir,
+    use_khiops_env,
+    **kwargs,
+):
+    """Run tests only for failed tests by scanning comparisonResults.log files.
+
+    Scans the test directory tree for tests with errors in their comparisonResults.log,
+    then re-runs only those failed tests.
+    """
+    print("Scanning test tree for failed tests...")
+    print("")
+
+    # Scan for failed tests
+    failed_tests = scan_failed_tests_in_tree(home_dir, tool_dir_name, suite_dir_name)
+
+    if len(failed_tests) == 0:
+        print("No failed tests found in the test tree")
+        return
+
+    print("Found " + str(len(failed_tests)) + " failed test(s) to re-run")
+    print("")
+
+    # Group tests by tool and suite for efficient execution
+    tests_by_tool_suite = {}
+    for tool_dir, suite_dir, test_dir, error_count in failed_tests:
+        key = (tool_dir, suite_dir)
+        if key not in tests_by_tool_suite:
+            tests_by_tool_suite[key] = []
+        tests_by_tool_suite[key].append(test_dir)
+
+    # Run tests for each tool/suite combination
+    for (tool_dir, suite_dir), test_dirs in tests_by_tool_suite.items():
+        # Get tool name from directory name
+        tool_name = kht.TOOL_NAMES_PER_DIR_NAME.get(tool_dir)
+        if tool_name is None:
+            print("Warning: Unknown tool directory '" + tool_dir + "', skipping")
+            continue
+
+        # Build tool exe path
+        tool_exe_path, error_message = build_tool_exe_path(
+            binaries_dir, tool_name, use_khiops_env
+        )
+        if tool_exe_path is None:
+            utils.fatal_error(error_message)
+
+        # Build suite directory path
+        suite_dir_path = os.path.join(home_dir, tool_dir, suite_dir)
+        if not os.path.isdir(suite_dir_path):
+            print(
+                "Warning: Suite directory not found: " + suite_dir_path + ", skipping"
+            )
+            continue
+
+        print("\n\n--------------------------------------------------------")
+        print("\tRunning " + tool_name + " " + suite_dir + " failed tests")
+        print("--------------------------------------------------------")
+
+        # Run each failed test in this suite
+        for test_dir in test_dirs:
+            evaluate_tool_on_test_dir(
+                tool_exe_path, suite_dir_path, test_dir, use_khiops_env, **kwargs
+            )
+
+        # Print summary for this suite
+        print(
+            "TEST DONE\t"
+            + tool_dir
+            + "\t"
+            + suite_dir
+            + "\t("
+            + str(len(test_dirs))
+            + " failed test(s))"
+        )
+
+
 def main():
     """Fonction principale de lancement d'un test"""
 
@@ -1038,6 +1188,13 @@ def main():
         help_options="--max-test-time 5 --test-timeout-limit 1000",
     )
     epilog += "\n  " + build_usage_help(script_name, "check", help_options="-f basic")
+    epilog += (
+        "\n  "
+        + script_name
+        + " "
+        + os.path.join(".", kht.LEARNING_TEST)
+        + " r --rerun-failed -p 4"
+    )
 
     # Parametrage de l'analyse de la ligne de commande
     parser = argparse.ArgumentParser(
@@ -1098,6 +1255,13 @@ def main():
         "--user-interface",
         help="run in user interface mode"
         " (path to java and classpath with norm.jar must be defined)",
+        action="store_true",
+    )
+
+    # Mode rerun failed tests
+    parser.add_argument(
+        "--rerun-failed",
+        help="scan test tree for failed tests (in comparisonResults.log) and re-run only those",
         action="store_true",
     )
 
@@ -1171,23 +1335,51 @@ def main():
                 + " is greater than 1 but mpiexec not found in path."
             )
 
+    # Verification de la compatibilite des arguments
+    if args.rerun_failed:
+        # En mode rerun failed, source peut pointer vers n'importe quel niveau
+        # (root, tool, ou suite directory)
+        # test_dir_name specifique n'est pas permis
+        if test_dir_name is not None:
+            parser.error(
+                "argument --rerun-failed: cannot specify a specific test directory"
+            )
+
     # Lancement de la commande
-    evaluate_all_tools_on_learning_test_tree(
-        home_dir,
-        tool_dir_name,
-        suite_dir_name,
-        test_dir_name,
-        binaries_dir,
-        use_khiops_env,
-        args.family,
-        min_test_time=args.min_test_time,
-        max_test_time=args.max_test_time,
-        test_timeout_limit=args.test_timeout_limit,
-        task_file=args.task_file,
-        output_scenario=args.output_scenario,
-        nop_output_scenario=args.nop_output_scenario,
-        user_interface=args.user_interface,
-    )
+    if args.rerun_failed:
+        # Mode: scan for and re-run only failed tests
+        evaluate_failed_tests(
+            home_dir,
+            tool_dir_name,
+            suite_dir_name,
+            binaries_dir,
+            use_khiops_env,
+            min_test_time=args.min_test_time,
+            max_test_time=args.max_test_time,
+            test_timeout_limit=args.test_timeout_limit,
+            task_file=args.task_file,
+            output_scenario=args.output_scenario,
+            nop_output_scenario=args.nop_output_scenario,
+            user_interface=args.user_interface,
+        )
+    else:
+        # Mode: run all tests in specified scope
+        evaluate_all_tools_on_learning_test_tree(
+            home_dir,
+            tool_dir_name,
+            suite_dir_name,
+            test_dir_name,
+            binaries_dir,
+            use_khiops_env,
+            args.family,
+            min_test_time=args.min_test_time,
+            max_test_time=args.max_test_time,
+            test_timeout_limit=args.test_timeout_limit,
+            task_file=args.task_file,
+            output_scenario=args.output_scenario,
+            nop_output_scenario=args.nop_output_scenario,
+            user_interface=args.user_interface,
+        )
 
 
 if __name__ == "__main__":
