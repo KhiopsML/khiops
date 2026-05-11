@@ -132,7 +132,7 @@ jobs:
           echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
         shell: bash
       - name: Setup Software Trust Manager and sign
-        uses: digicert/code-signing-software-trust-action@v1.0.1
+        uses: digicert/code-signing-software-trust-action@v1.2.1
         if: ${{ inputs.signature-activation }}
         with:
           input: build/windows-msvc-release/bin/
@@ -145,7 +145,7 @@ jobs:
       - name: Install jsign
         if: ${{ inputs.signature-activation }}
         run: |
-          curl -L https://github.com/ebourg/jsign/releases/download/7.1/jsign-7.1.jar --output jsign.jar --output-dir /d
+          curl -L https://github.com/ebourg/jsign/releases/download/7.4/jsign-7.4.jar --output jsign.jar --output-dir /d
         shell: bash
       - name: Build NSIS package (signature is ON)
         if: ${{ inputs.signature-activation }}
@@ -184,7 +184,7 @@ jobs:
             /DKHIOPS_SAMPLES_DIR=..\..\..\samples `
             khiops.nsi
       - name: Sign installer
-        uses: digicert/code-signing-software-trust-action@v1.0.1
+        uses: digicert/code-signing-software-trust-action@v1.2.1
         if: ${{ inputs.signature-activation }}
         with:
           input: packaging/windows/nsis/khiops-${{ env.KHIOPS_VERSION }}-setup.exe
