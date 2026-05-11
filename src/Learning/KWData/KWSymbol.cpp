@@ -624,21 +624,15 @@ void KWSymbolDictionary::ShowAllocErrorMessage(KWSymbolDataPtr symbolData, int n
 void KWSymbolDictionary::RemoveAll()
 {
 	boolean bShowAllocErrorMessages;
-	ALString sUserName;
 	int nHashPosition;
 	KWSymbolDataPtr pSymbolData;
 	KWSymbolDataPtr pSymbolDataNext;
 	int nMessageIndex;
 
-	// Recherche des variables d'environnement
-	sUserName = p_getenv("USERNAME");
-	sUserName.MakeLower();
-
 	// On ne montre les erreurs de non liberation de Symbol qu'en mode expert
 	// pour le dictionnaire global des Symbol et en release, pour ne pas
 	// avoir de reporting verbeux systematique en debug
-	bShowAllocErrorMessages =
-	    (sUserName == "miib6422") and GetLearningExpertMode() and this == &(Symbol::sdSharedSymbols);
+	bShowAllocErrorMessages = GetLearningExpertMode() and this == &(Symbol::sdSharedSymbols);
 	debug(bShowAllocErrorMessages = false);
 
 	// Desactivation de cette option y compris en mode release, car cela provoque du reporting verbeux en cas

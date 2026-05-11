@@ -238,20 +238,16 @@ boolean GetLearningExpertMode()
 {
 	static boolean bIsInitialized = false;
 	static boolean bLearningExpertMode = false;
-	ALString sUserName;
 	ALString sLearningExpertMode;
 
 	// Determination du mode expert au premier appel
 	if (not bIsInitialized)
 	{
 		// Recherche des variables d'environnement
-		sUserName = p_getenv("USERNAME");
-		sUserName.MakeLower();
 		sLearningExpertMode = p_getenv("KhiopsExpertMode");
 		sLearningExpertMode.MakeLower();
 
-		// Determination du mode expert (en debug pour Marc ou Carine)
-		debug(bLearningExpertMode = (sUserName == "miib6422") or (sUserName == "mgtt5712"));
+		// Determination du mode expert
 		if (sLearningExpertMode == "true")
 			bLearningExpertMode = true;
 		else if (sLearningExpertMode == "false")
