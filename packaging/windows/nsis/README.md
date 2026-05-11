@@ -38,7 +38,6 @@ repository.
 %REM - KHIOPS_REDUCED_VERSION: Khiops version without suffix and only digits and periods.
 %REM                           Thus, the pre-release fields of KHIOPS_VERSION are ignored in KHIOPS_REDUCED_VERSION.
 %REM - KHIOPS_VIZ_INSTALLER_PATH, with last version of the installer available in the assets
-%REM - KHIOPS_COVIZ_INSTALLER_PATH, with last version of the installer available in the assets
 
 makensis ^
    /DKHIOPS_VERSION=10.2.0-rc.1 ^
@@ -48,7 +47,6 @@ makensis ^
    /DMSMPI_INSTALLER_PATH=.\assets\msmpisetup.exe ^
    /DMSMPI_VERSION=10.1.3 ^
    /DKHIOPS_VIZ_INSTALLER_PATH=.\assets\khiops-visualization-Setup-11.0.2.exe ^
-   /DKHIOPS_COVIZ_INSTALLER_PATH=.\assets\khiops-covisualization-Setup-10.2.4.exe ^
    /DKHIOPS_SAMPLES_DIR=.\assets\samples ^
    khiops.nsi
 ```
@@ -88,5 +86,4 @@ All the arguments are mandatory except for `DEBUG` and `SIGN`, they must be pref
 - `MSMPI_INSTALLER_PATH`: Path to the Microsoft MPI (MS-MPI) installer.
 - `MSMPI_MPI_VERSION`: MS-MPI version.
 - `KHIOPS_VIZ_INSTALLER_PATH`: Path to the Khiops Visualization installer.
-- `KHIOPS_COVIZ_INSTALLER_PATH`: Path to the Khiops Covisualization installer.
 - `KHIOPS_SAMPLES_DIR`: Path to the sample datasets directory.

@@ -44,7 +44,6 @@ ManifestDPIAware true
 !insertmacro CheckInputParameter KHIOPS_REDUCED_VERSION
 !insertmacro CheckInputParameter KHIOPS_WINDOWS_BUILD_DIR
 !insertmacro CheckInputParameter KHIOPS_VIZ_INSTALLER_PATH
-!insertmacro CheckInputParameter KHIOPS_COVIZ_INSTALLER_PATH
 !insertmacro CheckInputParameter JRE_PATH
 !insertmacro CheckInputParameter MSMPI_INSTALLER_PATH
 !insertmacro CheckInputParameter MSMPI_VERSION
@@ -316,27 +315,6 @@ Section "Install" SecInstall
 
   # Delete the installer
   Delete "$TEMP\KHIOPS_VIZ_INSTALLER_FILENAME"
-
-
-  # Execute Khiops covisualization installer:
-  # Same rules as above with the visualization
-
-  # Files to install in installer directory
-  File ${KHIOPS_COVIZ_INSTALLER_PATH}
-
-  Var /Global KHIOPS_COVIZ_INSTALLER_FILENAME
-  ${GetFileName} ${KHIOPS_COVIZ_INSTALLER_PATH} $KHIOPS_COVIZ_INSTALLER_FILENAME
-  ${If} ${Silent}
-    nsexec::Exec 'cmd /C "$TEMP\$KHIOPS_COVIZ_INSTALLER_FILENAME /S"'
-  ${Else}
-    nsexec::Exec 'cmd /C "$TEMP\$KHIOPS_COVIZ_INSTALLER_FILENAME"'
-  ${EndIf}
-  Pop $0
-  DetailPrint "Installation of Khiops covisualization: $0"
-
-  # Delete the installer
-  Delete "$TEMP\$KHIOPS_COVIZ_INSTALLER_FILENAME"
-
 
   #############################
   # Finalize the installation #
