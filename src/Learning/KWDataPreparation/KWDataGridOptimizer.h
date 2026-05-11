@@ -141,51 +141,23 @@ protected:
 	double VNSOptimizeDataGrid(const KWDataGrid* initialDataGrid, int nNeighbourhoodLevelNumber,
 				   KWDataGrid* optimizedDataGrid) const;
 
-	// Methode de post-optimisation d'un grille optimisee en redecoupant ses parties de variables
-	// Methode temporaire permettant de reutiliser le code de la methode principale VNSOptimizeDataGrid
-	// en isolant cette partie de post-optimisation specifique VarPart, et de supprimer l'ancienne
-	// methode VNSOptimizeVarPartDataGrid
-	// Parametre (a faire evoluer si necessaire):
-	// - initialDataGrid: grille initiale
-	// - neighbourDataGrid: grille courante en cours d'optimisation
-	// - dNeighbourDataGridCost: cout de la grille courante
-	// - mergedDataGrid: grille optimisee si amelioration
-	// En sortie, la grille courante et son cout sont modifies suite a optimisation.
-	// On rend la grille issue de la post-optimisation VarPart, ainsi que sa grille partitionned de reference
-	// Le code retour est le meilleurs cout optenu apres post-optimisation VarPart
-	// Attention, celui-ci est different de celui de la grille courante optimisee
-	//
-	// A terme, il faudra isoler ce service de post-optimisation pour le deplacer en quatrime sous-methode
-	// en fin de la methode OptimizeSolution
-	// - Pre-optimization
-	// - Greedy merge optimization
-	// - Post-optimization
-	// - Post-optimization IV
-	double VNSDataGridPostOptimizeVarPart(const KWDataGrid* initialDataGrid, KWDataGridMerger* neighbourDataGrid,
-					      double& dNeighbourDataGridCost, KWDataGrid* mergedDataGrid,
-					      KWDataGrid* partitionedReferencePostMergedDataGrid) const;
-
-	// Pilotage de la meta heuristique VNS, avec des voisinages successifs de taille decroissante
-	// selon un facteur geometrique
-	// La grille optimizedDataGrid contient en entree la meilleure solution courante
-	// Cette solution est mise a jour si son cout est ameliore, et on renvoie son cout
-	// Les grilles generiques optimales sont post-fusionnees et les voisinages sont ceux des grilles antecedentes
-	// des grilles de meilleur cout apres post-fusion En sortie : optimizedDataGrid contient la grille antecedent
-	// avant post-fusion de la meilleure grille post-fusionne Le cout renvoye est le cout de cette optimizedDataGrid
-	// dBestMergedDataGridCost contient le cout de la meilleure grille apres post-fusion (meilleur cout)
-	// CH IV Refactoring: proto en vue de fusionner la methode avec VNSOptimizeDataGrid
-	double VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, int nNeighbourhoodLevelNumber,
-					  KWDataGrid* optimizedDataGrid) const;
-
-	// Optimisation d'une solution, selon le parametre de post-optimisation des solutions
-	double OptimizeSolution(const KWDataGrid* initialDataGrid, KWDataGridMerger* dataGridMerger,
-				boolean bDeepPostOptimization) const;
+	// Optimisation d'une solution voisine
+	// Regroupe la generation d'une solution voisine et son optimisation
+	// Retourne le cout de la grille optimisee
+	virtual double OptimizeNeighbourSolution(const KWDataGrid* initialDataGrid,
+						 const KWDataGrid* currentOptimizedDataGrid, double dNoiseRate,
+						 KWDataGridMerger* neighbourOptimizedDataGrid,
+						 boolean bDeepPostOptimization) const;
 
 	// Creation d'une solution voisine d'une solution optimisee
 	// On passe en parametre un pourcentage de perturbation compris
 	// entre 0 (pas de perturbation) et 1 (solution aleatoire)
 	void GenerateNeighbourSolution(const KWDataGrid* initialDataGrid, const KWDataGrid* optimizedDataGrid,
 				       double dNoiseRate, KWDataGridMerger* neighbourDataGridMerger) const;
+
+	// Optimisation d'une solution, selon le parametre de post-optimisation des solutions
+	double OptimizeSolution(const KWDataGrid* initialDataGrid, KWDataGridMerger* dataGridMerger,
+				boolean bDeepPostOptimization) const;
 
 	//////////////////////////////////////////////////////////////////////////////////
 	// Methodes utilitaires

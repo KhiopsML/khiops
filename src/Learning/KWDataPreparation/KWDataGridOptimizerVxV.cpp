@@ -463,19 +463,8 @@ double KWDataGridOptimizerVxV::SlightOptimizeGranularizedDataGrid(const KWDataGr
 		cout << " Cout grille optimale a la granularite courante " << dBestCost << endl;
 	}
 
-	// Parametrage des couts
-	neighbourDataGrid.SetDataGridCosts(GetDataGridCosts());
-
-	// Generation d'une solution dans un voisinage de la meilleure solution
-	KWDataGridOptimizer::GetProfiler()->BeginMethod("Generate neighbour solution");
-	KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Neighbourhood size", 1);
-	GenerateNeighbourSolution(initialDataGrid, optimizedDataGrid, 1, &neighbourDataGrid);
-	KWDataGridOptimizer::GetProfiler()->EndMethod("Generate neighbour solution");
-
-	// Optimisation de cette solution
-	KWDataGridOptimizer::GetProfiler()->BeginMethod("Slight optimize solution");
-	dCost = OptimizeSolution(initialDataGrid, &neighbourDataGrid, false);
-	KWDataGridOptimizer::GetProfiler()->EndMethod("Slight optimize solution");
+	// Optimisation d'une solution dans un voisinnage de la solution courante
+	dCost = OptimizeNeighbourSolution(initialDataGrid, optimizedDataGrid, 1, &neighbourDataGrid, false);
 
 	// Si amelioration: on la memorise
 	if (dCost < dBestCost - dEpsilon)
