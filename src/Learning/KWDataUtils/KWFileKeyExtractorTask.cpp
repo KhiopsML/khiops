@@ -731,7 +731,7 @@ boolean KWFileKeyExtractorTask::SlaveProcess()
 		bOk = false;
 
 	if (sChunkFileName != "" and not bOk)
-		FileService::RemoveFile(sChunkFileName);
+		PLRemoteFileService::RemoveFile(sChunkFileName);
 
 	// Nombre d'erreurs d'encodage detectees dans la methode, par difference avec le nombre d'erreurs initiales
 	lSlaveEncodingErrorNumber = inputFile.GetEncodingErrorNumber() - lSlaveEncodingErrorNumber;
