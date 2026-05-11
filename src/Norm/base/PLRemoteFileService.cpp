@@ -381,13 +381,13 @@ boolean PLRemoteFileService::OpenInputBinaryFile(const ALString& sURI, SystemFil
 	// Test si nom de fichier renseigne
 	bOk = (sURI != "");
 	if (not bOk)
-		Global::AddError("File", sURI, "Unable to open input file (missing file name)");
+		Global::AddError("File", sURI, "Unable to open file (missing file name)");
 	// Tentative d'ouverture du fichier
 	else
 	{
 		bOk = fFile->OpenInputFile(sURI);
 		if (not bOk)
-			Global::AddError("File", sURI, "Unable to open input file " + fFile->GetLastErrorMessage());
+			Global::AddError("File", sURI, "Unable to open file (" + fFile->GetLastErrorMessage() + ")");
 	}
 
 	if (not bOk)
