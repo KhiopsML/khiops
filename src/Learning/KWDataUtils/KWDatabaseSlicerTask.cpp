@@ -752,9 +752,7 @@ void KWDatabaseSlicerTask::DeleteSliceFiles()
 		// Destruction du fichier (pas d'URI)
 		if (allSliceOutputBuffer->GetSliceFileNames()->GetAt(nSlice) != "")
 		{
-			assert(FileService::GetURIScheme(allSliceOutputBuffer->GetSliceFileNames()->GetAt(nSlice)) ==
-			       "");
-			FileService::RemoveFile(allSliceOutputBuffer->GetSliceFileNames()->GetAt(nSlice));
+			PLRemoteFileService::RemoveFile(allSliceOutputBuffer->GetSliceFileNames()->GetAt(nSlice));
 		}
 	}
 
