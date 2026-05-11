@@ -218,9 +218,6 @@ double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initial
 			cast(KWDataGridCosts*, GetDataGridCosts())->InitializeDefaultCosts(&partitionedDataGrid);
 
 			// Optimisation de la grille pre-partitionnee
-			// Le cout dPartitionBestCost est le cout de la grille antecedente de la meilleure
-			// grille post-fusionnee (fusion des parties de variables consecutives dans un meme
-			// cluster)
 			KWDataGridOptimizer::GetProfiler()->BeginMethod("Optimize VarPart prepartition");
 			KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Pre-partition index", nPrePartitionIndex);
 
@@ -533,4 +530,258 @@ double KWDataGridOptimizerIxV::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* i
 	// Nettoyage
 	odInnerAttributesQuantileBuilders.DeleteAll();
 	return dBestCost;
+}
+
+double KWDataGridOptimizerIxV::OptimizeNeighbourSolution(const KWDataGrid* initialDataGrid,
+							 const KWDataGrid* currentOptimizedDataGrid, double dNoiseRate,
+							 KWDataGridMerger* neighbourOptimizedDataGrid,
+							 boolean bDeepPostOptimization) const
+{
+	boolean bDisplayResults = false;
+	boolean bDisplayDetails = false;
+	KWDataGridManager dataGridManager;
+	KWDataGrid mergedDataGrid;
+	KWDataGrid partitionedReferencePostMergedDataGrid;
+	KWDataGrid initialFromSurtokenizedDataGrid;
+	KWDataGrid surtokenizedDataGrid;
+	int nInitialCurrentTokenNumber;
+	int nCurrentTokenNumber;
+	int nTargetTokenNumber;
+	double dCost;
+	ALString sTmp;
+
+	require(initialDataGrid != NULL);
+	require(initialDataGrid->IsVarPartDataGrid());
+
+	///////////////////////////////////////////////////////////
+	// Surtokenisation d'une grille
+
+	// Nombre de tokens de la grille en entree
+	nInitialCurrentTokenNumber =
+	    initialDataGrid->GetVarPartAttribute()->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts();
+	nCurrentTokenNumber =
+	    currentOptimizedDataGrid->GetVarPartAttribute()->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts();
+
+	// Nombre de token cibles
+	nTargetTokenNumber =
+	    nCurrentTokenNumber + (int)(dNoiseRate * (nInitialCurrentTokenNumber - nCurrentTokenNumber));
+
+	// Correction du nombre de tokens
+	nTargetTokenNumber = min(nTargetTokenNumber, initialDataGrid->GetGridFrequency());
+
+	// Generation de la grille surtokenisee
+	dataGridManager.ExportDataGridWithRandomizedInnerAttributes(initialDataGrid, currentOptimizedDataGrid,
+								    &surtokenizedDataGrid, nTargetTokenNumber);
+
+	// Export de la grille antecedent de la grille sur-tokenisee, c'est a dire de la grille avec une
+	// chaque partie de variable dans un groupe singleton
+	dataGridManager.ExportDataGridWithMergedInnerAttributes(
+	    initialDataGrid, surtokenizedDataGrid.GetInnerAttributes(), &initialFromSurtokenizedDataGrid);
+	if (bDisplayResults)
+	{
+		cout << "\tTargetTokenNumber\t" << nTargetTokenNumber << "\n";
+		cout << "\tsurtokenizedDataGrid\t" << dataGridCosts->ComputeDataGridTotalCost(&surtokenizedDataGrid)
+		     << "\t" << surtokenizedDataGrid.GetObjectLabel() << "\n";
+		cout << "\tinitialFromSurtokenizedDataGrid\t"
+		     << dataGridCosts->ComputeDataGridTotalCost(&initialFromSurtokenizedDataGrid) << "\t"
+		     << initialFromSurtokenizedDataGrid.GetObjectLabel() << "\n";
+		if (bDisplayDetails)
+			cout << surtokenizedDataGrid << "\n";
+	}
+
+	//////////////////////////////////////////////////////////////////////
+	// Appel de la methode ancetre avec la grille sur-tokenisee
+
+	dCost = KWDataGridOptimizer::OptimizeNeighbourSolution(&initialFromSurtokenizedDataGrid, &surtokenizedDataGrid,
+							       dNoiseRate, neighbourOptimizedDataGrid,
+							       bDeepPostOptimization);
+
+	//////////////////////////////////////////////////////////////////////
+	// Post-optimisation de la grille resultat
+
+	// On utilise comme grille de reference celle qui a ete construite pour la generation de la grille voisine
+	dCost = PostOptimizeVarPartSolution(&initialFromSurtokenizedDataGrid, neighbourOptimizedDataGrid);
+	return dCost;
+}
+
+double KWDataGridOptimizerIxV::PostOptimizeVarPartSolution(const KWDataGrid* initialDataGrid,
+							   KWDataGridMerger* optimizedDataGrid) const
+{
+	boolean bDisplayResults = false;
+	boolean bDisplayDetails = false;
+	double dInitialBestCost;
+	double dBestCost;
+	double dMergeDeltaCost;
+	KWDataGridManager dataGridManager;
+	KWDataGrid postOptimizedDataGrid;
+	double dPostOptimizedCost;
+	boolean bImprovement;
+	ALString sLabel;
+
+	// On ne reverifie pas les preconditions de la methode publique
+	require(initialDataGrid != NULL);
+	require(optimizedDataGrid != NULL);
+	require(optimizedDataGrid->GetDataGridCosts() == GetDataGridCosts());
+
+	// Calcul du cout initial
+	dInitialBestCost = dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
+	dBestCost = dInitialBestCost;
+	if (bDisplayResults)
+	{
+		cout << "VNSDataGridPostOptimizeVarPart: grille a post-optimiser\t" << dBestCost << "\n";
+		if (bDisplayDetails)
+			cout << *optimizedDataGrid;
+	}
+
+	// Post-optimisation de la grille
+	if (optimizedDataGrid->GetInformativeAttributeNumber() > 1 and optimizationParameters.GetVarPartPostMerge() and
+	    not TaskProgression::IsInterruptionRequested())
+	{
+		// Tri des attributs
+		optimizedDataGrid->SortAttributeParts();
+
+		// Fusion des parties de variable adjacentes
+		dMergeDeltaCost = PostOptimizeVarPartSolutionByMergingVarParts(optimizedDataGrid);
+		dBestCost += dMergeDeltaCost;
+		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", optimizedDataGrid->GetObjectLabel());
+		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dBestCost);
+		if (bDisplayResults)
+		{
+			cout << "\tCout apres fusion des var parts\t" << dBestCost << "\n";
+			if (bDisplayDetails)
+				cout << optimizedDataGrid;
+		}
+
+		// Post-optimisation de l'attribut VarPart avec deplacement des parties de variable
+		if (optimizedDataGrid->GetInformativeAttributeNumber() > 1 and
+		    optimizationParameters.GetVarPartPostOptimize() and not TaskProgression::IsInterruptionRequested())
+		{
+			// Recopie de la grille fusionnee dans une grille de travail pour la post-optimisation
+			dataGridManager.CopyDataGrid(optimizedDataGrid, &postOptimizedDataGrid);
+
+			// Boucle : on continue a post-optimiser tant qu'au moins un deplacement de VarPart
+			// permet d'ameliorer le critere
+			bImprovement = true;
+			int nImprovementNumber = 0;
+			while (bImprovement)
+			{
+				nImprovementNumber++;
+
+				// Parametrage du profiling
+				KWDataGridOptimizer::GetProfiler()->BeginMethod("Post-optimization IV");
+				KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Improvement trial",
+										nImprovementNumber);
+
+				// Deplacement des parties de variable pour ameliorer le critere
+				bImprovement = PostOptimizeVarPartSolutionByMovingVarParts(initialDataGrid,
+											   &postOptimizedDataGrid);
+				if (bImprovement)
+				{
+					// Fusion des parties de variable adjacentes pour la grille obtenue par deplacement des parties de variable
+					dPostOptimizedCost =
+					    dataGridCosts->ComputeDataGridTotalCost(&postOptimizedDataGrid);
+					dMergeDeltaCost =
+					    PostOptimizeVarPartSolutionByMergingVarParts(&postOptimizedDataGrid);
+					dPostOptimizedCost += dMergeDeltaCost;
+
+					// Cas ou la post-optimisation permet d'ameliorer le cout
+					if (dPostOptimizedCost < dBestCost * (1 - dEpsilon))
+					{
+						dBestCost = dPostOptimizedCost;
+						KWDataGridOptimizer::GetProfiler()->WriteKeyString(
+						    "Coclustering", postOptimizedDataGrid.GetObjectLabel());
+						KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dBestCost);
+
+						// Recopie de la grille fusionnee dans la grille optimisee
+						dataGridManager.CopyDataGrid(&postOptimizedDataGrid, optimizedDataGrid);
+						assert(fabs(dBestCost - dataGridCosts->ComputeDataGridTotalCost(
+									    optimizedDataGrid)) <=
+						       dBestCost * dEpsilon);
+						if (bDisplayResults)
+						{
+							cout << "\tGrille best deplacement et initiale\t"
+							     << dataGridCosts->ComputeDataGridTotalCost(
+								    optimizedDataGrid)
+							     << "\n";
+							if (bDisplayDetails)
+								cout << *optimizedDataGrid;
+						}
+					}
+					// Sinon, il n'y a pas amelioration
+					else
+						bImprovement = false;
+				}
+				KWDataGridOptimizer::GetProfiler()->EndMethod("Post-optimization IV");
+			}
+			if (bDisplayResults)
+				cout << "\tFin PostOptimisation VarPart" << endl;
+		}
+		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", optimizedDataGrid->GetObjectLabel());
+		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dBestCost);
+	}
+	ensure(fabs(dBestCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon * dBestCost);
+	ensure(dBestCost <= dInitialBestCost);
+	return dBestCost;
+}
+
+double KWDataGridOptimizerIxV::PostOptimizeVarPartSolutionByMergingVarParts(KWDataGrid* optimizedDataGrid) const
+{
+	double dMergeDeltaCost;
+	KWDataGridManager dataGridManager;
+	KWDataGrid postOptimizedDataGrid;
+
+	// Creation d'une nouvelle grille avec nouvelle description des PV fusionnees
+	dMergeDeltaCost = dataGridManager.ExportDataGridWithVarPartMergeOptimization(
+	    optimizedDataGrid, &postOptimizedDataGrid, GetDataGridCosts());
+	assert(dMergeDeltaCost <= 0);
+
+	// Recopie si necessaire de la grille fusionnee dans la grille optimisee
+	if (dMergeDeltaCost < 0)
+		dataGridManager.CopyDataGrid(&postOptimizedDataGrid, optimizedDataGrid);
+	return dMergeDeltaCost;
+}
+
+boolean KWDataGridOptimizerIxV::PostOptimizeVarPartSolutionByMovingVarParts(const KWDataGrid* initialDataGrid,
+									    KWDataGrid* optimizedDataGrid) const
+{
+	boolean bImprovement;
+	CCVarPartDataGridPostOptimizer varPartDataGridPostOptimizer;
+	KWDataGridManager dataGridManager;
+	KWDataGrid optimizedDataGridWithSingletonVarParts;
+	IntVector ivGroups;
+	int nGroupNumber;
+	ALString sInnerAttributeName;
+
+	require(initialDataGrid != NULL);
+	require(optimizedDataGrid != NULL);
+	require(initialDataGrid->GetInnerAttributes()->ContainsSubVarParts(
+	    optimizedDataGrid->GetVarPartAttribute()->GetInnerAttributes()));
+
+	// Parametrage du post-optimiseur pour l'attribut VarPart
+	varPartDataGridPostOptimizer.SetPostOptimizationAttributeName(
+	    optimizedDataGrid->GetVarPartAttribute()->GetAttributeName());
+
+	// Construction d'une grille de reference avec des clusters contenant une seule
+	// PV a partir des PV de la grille optimisee
+	dataGridManager.ExportDataGridWithSingletonVarParts(initialDataGrid, optimizedDataGrid,
+							    &optimizedDataGridWithSingletonVarParts, false);
+	ivGroups.SetSize(optimizedDataGridWithSingletonVarParts.GetVarPartAttribute()->GetPartNumber());
+	assert(optimizedDataGridWithSingletonVarParts.Check());
+	assert(optimizedDataGridWithSingletonVarParts.GetInnerAttributes() == optimizedDataGrid->GetInnerAttributes());
+
+	// Exploration des deplacements pour tous les attributs
+	bImprovement = varPartDataGridPostOptimizer.PostOptimizeLightVarPartDataGrid(
+	    &optimizedDataGridWithSingletonVarParts, optimizedDataGrid, &ivGroups);
+
+	// Cas ou au moins un deplacement permet d'ameliorer le critere
+	if (bImprovement)
+	{
+		// Mise a jour de la grille pour l'optimisation de cet attribut
+		nGroupNumber = optimizedDataGrid->GetVarPartAttribute()->GetPartNumber();
+		dataGridManager.UpdateVarPartDataGridFromVarPartGroups(&optimizedDataGridWithSingletonVarParts,
+								       optimizedDataGrid, &ivGroups, nGroupNumber);
+	}
+	ensure(initialDataGrid->GetInnerAttributes()->ContainsSubVarParts(
+	    optimizedDataGrid->GetVarPartAttribute()->GetInnerAttributes()));
+	return bImprovement;
 }
