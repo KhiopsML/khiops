@@ -3200,6 +3200,9 @@ void KWDataGridManager::InitialiseAttributeNullPart(const KWDGAttribute* sourceA
 			// Partie suivante
 			sourceAttribute->GetNextPart(sourcePart);
 		}
+
+		// Tri des valeus cible
+		targetPart->GetValueSet()->SortValueByDecreasingFrequencies();
 	}
 }
 

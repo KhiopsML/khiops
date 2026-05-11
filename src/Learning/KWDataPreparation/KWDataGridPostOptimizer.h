@@ -701,8 +701,8 @@ public:
 	//    auquel elle appartient, mis a jour au cours de cette post-optimisation
 	// Renvoie true s'il existe au moins une amelioration
 	// La variation de cout se calcule en partant de la meme grille de reference pour tous les deplacements
-	boolean PostOptimizeLightVarPartDataGrid(const KWDataGrid* referenceDataGrid, KWDataGrid* optimizedDataGrid,
-						 IntVector* ivGroups) const;
+	boolean PostOptimizeLightVarPartDataGrid(const KWDataGrid* referenceDataGrid,
+						 const KWDataGrid* optimizedDataGrid, IntVector* ivGroups) const;
 
 	/////////////////////////////////////////////////////////////////
 	//// Implementation

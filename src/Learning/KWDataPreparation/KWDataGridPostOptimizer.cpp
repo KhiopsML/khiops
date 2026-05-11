@@ -48,6 +48,8 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 	require(initialDataGrid != NULL);
 	require(optimizedDataGrid->Check());
 	require(initialDataGrid->Check());
+	require(not initialDataGrid->IsVarPartDataGrid() or
+		initialDataGrid->GetInnerAttributes() == optimizedDataGrid->GetInnerAttributes());
 
 	// Debut de tache
 	TaskProgression::BeginTask();
@@ -3375,7 +3377,7 @@ const ALString& CCVarPartDataGridPostOptimizer::GetPostOptimizationAttributeName
 }
 
 boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const KWDataGrid* referenceDataGrid,
-									 KWDataGrid* optimizedDataGrid,
+									 const KWDataGrid* optimizedDataGrid,
 									 IntVector* ivGroups) const
 {
 	KWDGAttribute* innerAttribute;
