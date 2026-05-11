@@ -19,6 +19,7 @@ BufferedFile::BufferedFile()
 	nPreferredBufferSize = 0;
 	bOpenOnDemandMode = false;
 	bSilentMode = false;
+	bCloudFile = false;
 }
 
 BufferedFile::~BufferedFile(void)
@@ -39,10 +40,12 @@ void BufferedFile::CopyFrom(const BufferedFile* bufferedFile)
 	fileHandle = NULL;
 	bIsOpened = false;
 	bSilentMode = bufferedFile->bSilentMode;
+	bCloudFile = bufferedFile->bCloudFile;
 }
 
 void BufferedFile::SetFileName(const ALString& sValue)
 {
+	ALString sScheme;
 	require(not IsOpened());
 
 	sFileName = sValue;
@@ -52,6 +55,13 @@ void BufferedFile::SetFileName(const ALString& sValue)
 		nPreferredBufferSize = 0;
 	else
 		nPreferredBufferSize = PLRemoteFileService::GetPreferredBufferSize(sFileName);
+
+	// Indication de fichier cloud (URI avec un scheme different de "" ou "file")
+	sScheme = FileService::GetURIScheme(sFileName);
+	if (sScheme == FileService::sRemoteScheme or sScheme == "")
+		bCloudFile = false;
+	else
+		bCloudFile = true;
 }
 
 const ALString& BufferedFile::GetFileName() const
@@ -192,4 +202,9 @@ void BufferedFile::MoveLastSegmentsToHead(CharVector* cv, int nSegmentIndex)
 		cv->pData.hugeVector.pValueBlocks[i - nSegmentIndex] = cv->pData.hugeVector.pValueBlocks[i];
 		cv->pData.hugeVector.pValueBlocks[i] = pTemp;
 	}
+}
+
+boolean BufferedFile::IsCloudFile() const
+{
+	return bCloudFile;
 }
