@@ -46,6 +46,8 @@ public:
 	// le nombre maximum autorise par le systeme (GetMaxOpenedFileNumber). Dans ce mode, l'ouverture et la fermeture
 	// sont effectuees automatiquement lors des acces disque et non lors de l'appel au methodes Open() et Close().
 	// La methode IsOpened() renverra true meme si le fichier n'est pas physiquement ouvert.
+	// Si le fichier est un fichier cloud (URI avec un scheme different de "" ou "file"), le mode d'ouverture a la
+	// demande est force a false, car il n'est pas compatible avec les fichiers cloud
 	// Par defaut : false
 	void SetOpenOnDemandMode(boolean bValue);
 	boolean GetOpenOnDemandMode();
@@ -115,6 +117,9 @@ protected:
 	// Les segments qui etaient au debut sont copies a la fin pour que toutes les adresses soient valides
 	void MoveLastSegmentsToHead(CharVector* cv, int nSegmentIndex);
 
+	// Le fichier est un fichier cloud (URI avec un scheme different de "" ou "file")
+	boolean IsCloudFile() const;
+
 	///////////////////////////////////////////////////////////////////////////////
 	// Declaration des variables d'instance par taille decroissante pour optimiser
 	// la taille memoire de l'objet (cf. alignement des variables pour l'OS)
@@ -156,6 +161,9 @@ protected:
 	// Separateur de champ
 	char cFieldSeparator;
 
+	// Indicateur de fichier cloud (URI avec un scheme different de "" ou "file")
+	boolean bCloudFile;
+
 	// Methodes privees tres techniques
 	// Mise a disposition des attributs protected aux classes friends
 	int InternalGetAllocSize() const;
@@ -192,7 +200,7 @@ inline void BufferedFile::SetOpenOnDemandMode(boolean bValue)
 
 inline boolean BufferedFile::GetOpenOnDemandMode()
 {
-	return bOpenOnDemandMode;
+	return bOpenOnDemandMode and not IsCloudFile();
 }
 
 inline int BufferedFile::GetBufferSize() const
