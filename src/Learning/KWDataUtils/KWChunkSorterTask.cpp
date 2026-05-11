@@ -809,7 +809,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 	// Il faut detruire le fichier
 	if (TaskProgression::IsInterruptionRequested() or not bOk)
 	{
-		FileService::RemoveFile(sOutputFileName);
+		PLRemoteFileService::RemoveFile(sOutputFileName);
 	}
 	return bOk;
 }
