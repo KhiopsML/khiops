@@ -715,7 +715,7 @@ boolean KWDatabaseTransferTask::SlaveProcessStartDatabase()
 				AddError("Unable to open target database " + targetSTDatabase->GetDatabaseName());
 
 				// Destruction du fichier
-				FileService::RemoveFile(sChunkFileName);
+				PLRemoteFileService::RemoveFile(sChunkFileName);
 			}
 		}
 		// Destruction du buffer sortie en cas d'echec
@@ -834,7 +834,7 @@ boolean KWDatabaseTransferTask::SlaveProcessStopDatabase(boolean bProcessEndedCo
 		{
 			sChunkFileName = output_svOutputChunkFileNames.GetStringVector()->GetAt(i);
 			if (sChunkFileName != "")
-				FileService::RemoveFile(FileService::GetURIFilePathName(sChunkFileName));
+				PLRemoteFileService::RemoveFile(FileService::GetURIFilePathName(sChunkFileName));
 		}
 		output_svOutputChunkFileNames.GetStringVector()->SetSize(0);
 	}
