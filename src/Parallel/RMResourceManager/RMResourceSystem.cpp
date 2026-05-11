@@ -286,7 +286,7 @@ void RMResourceSystem::Write(ostream& ost) const
 	require(bIsInitialize);
 
 	// Ecriture des ressources globales
-	ost << "System resources :" << endl;
+	ost << "System resources:" << endl;
 	ost << "\t"
 	    << "Host number " << GetHostNumber() << endl;
 	ost << "\t"
