@@ -500,11 +500,14 @@ boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
 	if (not bEnvVarDefined)
 		cout << "\tNone" << endl;
 
+	// Repertoire temporaire
+	cout << "Temporary file directory:\t" << FileService::GetTmpDir() << endl;
+
 	// Resources
 	cout << *RMResourceManager::GetResourceSystem();
 
 	// System
-	cout << "System\n";
+	cout << "System:" << endl;
 	cout << GetSystemInfos();
 	return true;
 }
