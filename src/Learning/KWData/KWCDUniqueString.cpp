@@ -178,21 +178,16 @@ void KWCDUniqueStringDictionary::RemoveUniqueString(KWCDUniqueStringDataPtr uniq
 void KWCDUniqueStringDictionary::RemoveAll()
 {
 	boolean bShowAllocErrorMessages = false;
-	ALString sUserName;
 	int nHashPosition;
 	KWCDUniqueStringDataPtr pUniqueStringData;
 	KWCDUniqueStringDataPtr pUniqueStringDataNext;
 	int nMessageIndex;
 
-	// Recherche des variables d'environnement
-	sUserName = p_getenv("USERNAME");
-	sUserName.MakeLower();
-
 	// On ne montre les erreurs de non liberation de UniqueString qu'en mode expert
 	// pour le dictionnaire global des UniqueString et en release, pour ne pas
 	// avoir de reporting verbeux systematique en debug
-	bShowAllocErrorMessages = bShowAllocErrorMessages and this == &(KWCDUniqueString::sdSharedUniqueStrings) and
-				  (sUserName == "miib6422") and GetLearningExpertMode();
+	bShowAllocErrorMessages =
+	    bShowAllocErrorMessages and this == &(KWCDUniqueString::sdSharedUniqueStrings) and GetLearningExpertMode();
 	debug(bShowAllocErrorMessages = false);
 
 	// Nettoyage des cles de la table de hashage
