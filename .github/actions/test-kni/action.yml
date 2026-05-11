@@ -128,3 +128,61 @@ runs:
           echo "::error::Recoding issue with java"
           false
         fi
+    - name: Run python mono-table example (Linux)
+      shell: bash
+      if: runner.os == 'Linux'
+      run: |
+        cd tutorial
+        python3 python/KNIRecodeFile.py data/ModelingIris.kdic SNB_Iris data/Iris.txt R_Iris_python.txt
+    - name: Run python mono-table example (Windows)
+      shell: cmd
+      if: runner.os == 'Windows'
+      run: |
+        cd tutorial
+        set path=%GITHUB_WORKSPACE%/KNI/bin;%path%
+        python python\KNIRecodeFile.py data/ModelingIris.kdic SNB_Iris data/Iris.txt R_Iris_python.txt
+    - name: Check python mono-table results
+      shell: bash
+      run: |-
+        if [ ! -f tutorial/R_Iris_python.txt ] ;
+        then
+          echo "::error::R_Iris_python.txt is missing"
+          false
+        fi
+        if diff -q tutorial/R_Iris_python.txt packaging/common/KNI/results.ref/R_Iris.txt > /dev/null ; 
+        then
+          echo "Python mono table recoding is OK"
+          true
+        else
+          echo "::error::Recoding issue with python"
+          false
+        fi
+    - name: Run python multi-table example (Linux)
+      shell: bash
+      if: runner.os == 'Linux'
+      run: |-
+        cd tutorial
+        bash $GITHUB_WORKSPACE/packaging/common/KNI/run-multitable-python-linux.sh
+    - name: Run python multi-table example (Windows)
+      shell: cmd
+      if: runner.os == 'Windows'
+      run: |-
+        cd tutorial
+        set path=%GITHUB_WORKSPACE%/KNI/bin;%path%
+        call %GITHUB_WORKSPACE%/packaging/common/KNI/run-multitable-python-windows.cmd
+    - name: Check python multi-table results
+      shell: bash
+      run: |-
+        if [ ! -f tutorial/R_SpliceJunction_python.txt ] ;
+        then
+          echo "::error::R_SpliceJunction_python.txt is missing"
+          false
+        fi
+        if diff -q tutorial/R_SpliceJunction_python.txt packaging/common/KNI/results.ref/R_SpliceJunction.txt > /dev/null ; 
+        then
+          echo "Python multi table recoding is OK"
+          true
+        else
+          echo "::error::Recoding issue with python multi-table"
+          false
+        fi
