@@ -7,7 +7,7 @@ The purpose of KNI is to allow a deeper integration of Khiops in information sys
 
 The Khiops deployment API is thus made public through a shared library. Therefore, a Khiops model can be deployed directly from any programming language, such as C, C++, Java, Python, Matlab, etc. This enables real-time model deployment without the overhead of temporary data files or launching executables. This is critical for certain applications, such as marketing or targeted advertising on the web.
 
-All KNI functions are C functions for easy use with other programming languages. They return a positive or zero value in case of success, and a negative error code in case of failure.
+All KNI functions are C functions for easy use with other programming languages. The API is compatible with ANSI C (C89/C90) and later standards. They return a positive or zero value in case of success, and a negative error code in case of failure.
 
 See [KhiopsNativeInterface.h](include/KhiopsNativeInterface.h) for a detailed description of KNI functions.
 
@@ -153,7 +153,7 @@ The files are located in [python directory](python/). They use Python's `ctypes`
 
 ## Requirements
 
-- Python 3.6 or later
+- Python 3.10 or later
 - The KNI shared library must be installed and accessible (via `KNI_HOME` environment variable or standard system paths)
 
 ## Scripts
