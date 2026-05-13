@@ -28,7 +28,7 @@ jobs:
           - {os: ubuntu-22.04, image: rockylinux:8}
           - {os: ubuntu-22.04, image: rockylinux:9}
           - {os: windows-2022, image: ''}
-          - {os: windows-2025, image: ''}
+          - {os: windows-2025-vs2026, image: ''}
           - {os: macos-14, image: ''}
           - {os: macos-15, image: ''}
           - {os: macos-26, image: ''}
