@@ -78,7 +78,11 @@ public:
 	//////////////////////////////////////////////////////////////////
 	// Gestion d'un profiler dedie a l'optimisation des grilles
 	// Ce profiler doit etre demarre depuis le point d'entree de l'optimisation,
-	// et utilise par les methodes d'optimisation a profiler
+	// et utilise par les methodes d'optimisation a profiler,
+	// avec des appels a BeginMethod et EndMethod encadrant les informations utiles
+	// Le profiling permet de generer :
+	// - un fichier json avec toute la trajectoire d'optimisation
+	// - un fichier de stats, avec le nombre d 'appels et le temps passe par methode
 
 	// Acces au profiler global permettant d'enregistrer toute une session de profiling
 	// de l'optimisation d'une grille de coclustering
@@ -87,6 +91,21 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	//////////////////////////////////////////////////////////////////////////
+	// La trace sert essentiellement au debugage locale d'une methode
+	// Elle peut etre activee ou desactivee par une variable locale bTrace,
+	// avec bTraceDetail pour avoir tout le detail d'un coclustering
+
+	// Trace des informations d'optimisation sur une grille dans la sortie standard
+	// - libelle de l'etape d'optimisation
+	// - contexte de l'optimisation
+	// - caracteristiques de la grille
+	// - cout
+	// - temps courant d'optimisation
+	// - si TraceDataGrid, trace complet de la grille
+	void TraceOptimizationDetails(const ALString& sLabel, const KWDataGrid* optimizedDataGrid,
+				      boolean bTraceDataGrid) const;
+
 	// Acces au modele initial, initialise par OptimizeDataGrid
 	const KWDataGrid* GetOptimizedInitialDataGrid() const;
 
@@ -180,10 +199,6 @@ protected:
 
 	// Affichage des informations de progression: messages et niveau d'avancement de la barre de progesssion
 	virtual void DisplayProgression(const KWDataGrid* dataGrid) const;
-
-	// Affichage des caracteristiques d'optimisation si demande dans le parametre d'optimsiation DisplayDetails
-	void DisplayOptimizationHeaderLine() const;
-	void DisplayOptimizationDetails(const KWDataGrid* optimizedDataGrid, boolean bOptimized) const;
 
 	//////////////////////////////////////////////////////////////////////////////
 	// Variable de la classe
