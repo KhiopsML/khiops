@@ -32,6 +32,7 @@ void KWLearningProblem::ComputeStats()
 	POSITION position;
 	NUMERIC rKey;
 	Object* rValue;
+	ALString sDataGridProfileFileName;
 	ALString sTmp;
 
 	require(FileService::CheckApplicationTmpDir());
@@ -132,6 +133,23 @@ void KWLearningProblem::ComputeStats()
 	// On en a besoin car on va creer un rapport d'analyse meme en cas d'erreur (minimaliste dans ce cas)
 	InitializeClassStats(classStats, &learningSpec);
 
+	// Lancement du profiler pour l'optimisation des grilles
+	// Parametrage avance, accessible uniqueent en mode expert
+	if (GetPreprocessingSpec()->GetDataGridOptimizerParameters()->GetOptimizationProfiling())
+	{
+		// Nom du fichier de profiling, avec le nombre d'individus et de variables
+		sDataGridProfileFileName =
+		    analysisResults->BuildOutputFilePathName(analysisResults->GetReportFileName());
+		sDataGridProfileFileName = FileService::SetFileSuffix(sDataGridProfileFileName,
+								      "DataGridOptimizationProfiling_" +
+									  GetTrainDatabase()->GetClassName() + ".txt");
+
+		// Lancement du profiling
+		KWDataGridOptimizer::GetProfiler()->SetTrace(true);
+		KWDataGridOptimizer::GetProfiler()->SetTraceTime(false);
+		KWDataGridOptimizer::GetProfiler()->Start(sDataGridProfileFileName);
+	}
+
 	// Calcul des statistiques
 	bPreparationOk = bPreparationOk and not TaskProgression::IsInterruptionRequested();
 	if (bPreparationOk)
@@ -141,6 +159,10 @@ void KWLearningProblem::ComputeStats()
 		// avec valeurs manquantes dans la cible
 		classStats->ComputeStats();
 	}
+
+	// Arret du profiler
+	if (GetPreprocessingSpec()->GetDataGridOptimizerParameters()->GetOptimizationProfiling())
+		KWDataGridOptimizer::GetProfiler()->Stop();
 
 	// Memorisation de l'eventuelle selection en cours, dont on a besoin potentiellement par la suite
 	bPreparationOk = bPreparationOk and not TaskProgression::IsInterruptionRequested();

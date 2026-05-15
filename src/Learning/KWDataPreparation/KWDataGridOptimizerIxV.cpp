@@ -537,8 +537,8 @@ double KWDataGridOptimizerIxV::OptimizeNeighbourSolution(const KWDataGrid* initi
 							 KWDataGridMerger* neighbourOptimizedDataGrid,
 							 boolean bDeepPostOptimization) const
 {
-	boolean bDisplayResults = false;
-	boolean bDisplayDetails = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
 	KWDataGridManager dataGridManager;
 	KWDataGrid mergedDataGrid;
 	KWDataGrid partitionedReferencePostMergedDataGrid;
@@ -569,6 +569,19 @@ double KWDataGridOptimizerIxV::OptimizeNeighbourSolution(const KWDataGrid* initi
 	// Correction du nombre de tokens
 	nTargetTokenNumber = min(nTargetTokenNumber, initialDataGrid->GetGridFrequency());
 
+	// Debut du profiling de la surtokenisation
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("Surtokenization solution");
+	KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Target token number", nTargetTokenNumber);
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Initial coclustering", initialDataGrid->GetObjectLabel());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Optimized coclustering",
+							   currentOptimizedDataGrid->GetObjectLabel());
+	if (bTrace)
+	{
+		TraceOptimizationDetails(sTmp + "SurtokenizeSolution " + IntToString(nTargetTokenNumber),
+					 currentOptimizedDataGrid, bTraceDetails);
+		TraceOptimizationDetails("- initial solution", initialDataGrid, bTraceDetails);
+	}
+
 	// Generation de la grille surtokenisee
 	dataGridManager.ExportDataGridWithRandomizedInnerAttributes(initialDataGrid, currentOptimizedDataGrid,
 								    &surtokenizedDataGrid, nTargetTokenNumber);
@@ -577,16 +590,18 @@ double KWDataGridOptimizerIxV::OptimizeNeighbourSolution(const KWDataGrid* initi
 	// chaque partie de variable dans un groupe singleton
 	dataGridManager.ExportDataGridWithMergedInnerAttributes(
 	    initialDataGrid, surtokenizedDataGrid.GetInnerAttributes(), &initialFromSurtokenizedDataGrid);
-	if (bDisplayResults)
+
+	// Fin du profiling de la surtokenisation
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Surtokenized coclustering",
+							   surtokenizedDataGrid.GetObjectLabel());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Initial from surtokenized coclustering",
+							   initialFromSurtokenizedDataGrid.GetObjectLabel());
+	KWDataGridOptimizer::GetProfiler()->EndMethod("Surtokenization solution");
+	if (bTrace)
 	{
-		cout << "\tTargetTokenNumber\t" << nTargetTokenNumber << "\n";
-		cout << "\tsurtokenizedDataGrid\t" << dataGridCosts->ComputeDataGridTotalCost(&surtokenizedDataGrid)
-		     << "\t" << surtokenizedDataGrid.GetObjectLabel() << "\n";
-		cout << "\tinitialFromSurtokenizedDataGrid\t"
-		     << dataGridCosts->ComputeDataGridTotalCost(&initialFromSurtokenizedDataGrid) << "\t"
-		     << initialFromSurtokenizedDataGrid.GetObjectLabel() << "\n";
-		if (bDisplayDetails)
-			cout << surtokenizedDataGrid << "\n";
+		TraceOptimizationDetails("- surtokenized datagrid", &surtokenizedDataGrid, bTraceDetails);
+		TraceOptimizationDetails("- initial from surtokenized datagrid", &initialFromSurtokenizedDataGrid,
+					 bTraceDetails);
 	}
 
 	//////////////////////////////////////////////////////////////////////
@@ -607,8 +622,8 @@ double KWDataGridOptimizerIxV::OptimizeNeighbourSolution(const KWDataGrid* initi
 double KWDataGridOptimizerIxV::PostOptimizeVarPartSolution(const KWDataGrid* initialDataGrid,
 							   KWDataGridMerger* optimizedDataGrid) const
 {
-	boolean bDisplayResults = false;
-	boolean bDisplayDetails = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
 	double dInitialBestCost;
 	double dBestCost;
 	double dMergeDeltaCost;
@@ -626,11 +641,13 @@ double KWDataGridOptimizerIxV::PostOptimizeVarPartSolution(const KWDataGrid* ini
 	// Calcul du cout initial
 	dInitialBestCost = dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
 	dBestCost = dInitialBestCost;
-	if (bDisplayResults)
+
+	// Debut du profiling de la surtokenisation
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("PostOptimize VarPart solution");
+	if (bTrace)
 	{
-		cout << "VNSDataGridPostOptimizeVarPart: grille a post-optimiser\t" << dBestCost << "\n";
-		if (bDisplayDetails)
-			cout << *optimizedDataGrid;
+		TraceOptimizationDetails("PostOptimizeVarPartSolution", optimizedDataGrid, bTraceDetails);
+		TraceOptimizationDetails("- initial solution", initialDataGrid, bTraceDetails);
 	}
 
 	// Post-optimisation de la grille
@@ -645,12 +662,8 @@ double KWDataGridOptimizerIxV::PostOptimizeVarPartSolution(const KWDataGrid* ini
 		dBestCost += dMergeDeltaCost;
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", optimizedDataGrid->GetObjectLabel());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dBestCost);
-		if (bDisplayResults)
-		{
-			cout << "\tCout apres fusion des var parts\t" << dBestCost << "\n";
-			if (bDisplayDetails)
-				cout << optimizedDataGrid;
-		}
+		if (bTrace)
+			TraceOptimizationDetails("- after merging var parts", optimizedDataGrid, bTraceDetails);
 
 		// Post-optimisation de l'attribut VarPart avec deplacement des parties de variable
 		if (optimizedDataGrid->GetInformativeAttributeNumber() > 1 and
@@ -691,21 +704,15 @@ double KWDataGridOptimizerIxV::PostOptimizeVarPartSolution(const KWDataGrid* ini
 						KWDataGridOptimizer::GetProfiler()->WriteKeyString(
 						    "Coclustering", postOptimizedDataGrid.GetObjectLabel());
 						KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dBestCost);
+						if (bTrace)
+							TraceOptimizationDetails("- after moving and merging var parts",
+										 &postOptimizedDataGrid, bTraceDetails);
 
 						// Recopie de la grille fusionnee dans la grille optimisee
 						dataGridManager.CopyDataGrid(&postOptimizedDataGrid, optimizedDataGrid);
 						assert(fabs(dBestCost - dataGridCosts->ComputeDataGridTotalCost(
 									    optimizedDataGrid)) <=
 						       dBestCost * dEpsilon);
-						if (bDisplayResults)
-						{
-							cout << "\tGrille best deplacement et initiale\t"
-							     << dataGridCosts->ComputeDataGridTotalCost(
-								    optimizedDataGrid)
-							     << "\n";
-							if (bDisplayDetails)
-								cout << *optimizedDataGrid;
-						}
 					}
 					// Sinon, il n'y a pas amelioration
 					else
@@ -713,12 +720,11 @@ double KWDataGridOptimizerIxV::PostOptimizeVarPartSolution(const KWDataGrid* ini
 				}
 				KWDataGridOptimizer::GetProfiler()->EndMethod("Post-optimization IV");
 			}
-			if (bDisplayResults)
-				cout << "\tFin PostOptimisation VarPart" << endl;
 		}
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", optimizedDataGrid->GetObjectLabel());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dBestCost);
 	}
+	KWDataGridOptimizer::GetProfiler()->EndMethod("PostOptimize VarPart solution");
 	ensure(fabs(dBestCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon * dBestCost);
 	ensure(dBestCost <= dInitialBestCost);
 	return dBestCost;

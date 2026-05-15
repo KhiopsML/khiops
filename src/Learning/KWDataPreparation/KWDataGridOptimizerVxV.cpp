@@ -12,8 +12,9 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 							KWDataGrid* optimizedDataGrid) const
 
 {
-	boolean bDisplayResults = false;
-	boolean bDisplayGranularities = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
+	boolean bTraceGranularities = false;
 	KWDataGrid granularizedDataGrid;
 	KWDataGrid* granularizedOptimizedDataGrid;
 	KWDataGridManager dataGridManager;
@@ -35,7 +36,6 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 	KWDataGrid partitionedReferenceGranularizedPostMergedDataGrid;
 	int nCurrentExploredGranularity;
 	int nLastExploredGranularity;
-	ALString sSuffix;
 	ALString sTmp;
 
 	require(GetDataGridCosts() != NULL);
@@ -52,11 +52,13 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 
 	// La solution initiale en parametere est le modele null
 	dBestCost = GetOptimizedNullDataGridCost();
-	if (bDisplayResults)
+
+	// Trace initiale
+	if (bTrace)
 	{
-		cout << "OptimizeDataGrid: Cout grille terminale independant de la granularite " << dBestCost << endl;
-		cout << "OptimizeDataGrid: Grille initiale avant optimisation" << endl;
-		initialDataGrid->Write(cout);
+		cout << "InternalOptimizeDataGrid" << endl;
+		if (bTraceDetails)
+			cout << " - initialDataGrid\n" << *initialDataGrid << endl;
 	}
 
 	// On determine si on peut potentiellement faire mieux que la grille terminale
@@ -70,8 +72,8 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 
 		// Initialisation des quantiles builders a partir de la grille source
 		dataGridManager.InitializeQuantileBuilders(initialDataGrid, &odQuantileBuilders, &ivMaxPartNumbers);
-		if (bDisplayResults)
-			cout << "ivMaxPartNumbers Granularisation\t" << ivMaxPartNumbers << flush;
+		if (bTrace)
+			cout << " -ivMaxPartNumbers Granularisation\t" << ivMaxPartNumbers;
 
 		// Initialisation des vecteurs de nombre de parties courant et precedent
 		ivPreviousPartNumber.SetSize(ivMaxPartNumbers.GetSize());
@@ -155,9 +157,9 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 			}
 
 			// Affichage de l'info, sur la granularite
-			if (bDisplayGranularities)
+			if (bTraceGranularities)
 			{
-				cout << "OptimizeDataGrid: granularity " << nGranularityIndex << ": "
+				cout << " - granularity " << nGranularityIndex << ": "
 				     << BooleanToString(bIsGranularitySelected);
 				if (bIsLastGranularity)
 					cout << " (last)";
@@ -179,33 +181,17 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 				SaveDataGrid(GetOptimizedNullDataGrid(), granularizedOptimizedDataGrid);
 				granularizedOptimizedDataGrid->SetGranularity(granularizedDataGrid.GetGranularity());
 				dGranularityBestCost = GetOptimizedNullDataGridCost();
-				if (bDisplayResults)
+				if (bTrace)
 				{
-					cout
-					    << "OptimizeDataGrid: Cout Grille initiale granularisee pour granularite = "
-					    << IntToString(nGranularityIndex) << "\t"
-					    << dataGridCosts->ComputeDataGridTotalCost(&granularizedDataGrid) << endl;
-					granularizedDataGrid.Write(cout);
-					granularizedDataGrid.WriteAttributes(cout);
-					granularizedDataGrid.WriteAttributeParts(cout);
-					cout << "OptimizeDataGrid: Cout grille terminale pour cette granularite\t"
-					     << dGranularityBestCost << endl;
+					TraceOptimizationDetails(
+					    sTmp + "- initial granularized datagrid for granularity " +
+						IntToString(nGranularityIndex),
+					    &granularizedDataGrid, bTraceDetails);
 				}
 
 				// Arret si interruption utilisateur
 				if (TaskProgression::IsInterruptionRequested())
 					break;
-
-				// Parametrage du profiling
-				sSuffix = "";
-				if (bIsLastGranularity)
-					sSuffix = " (last)";
-				KWDataGridOptimizer::GetProfiler()->BeginMethod("Optimize granularity" + sSuffix);
-				KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Granularity index", nGranularityIndex);
-				if (bDisplayGranularities)
-				{
-					cout << "OptimizeDataGrid\tGranularite\t" << nGranularityIndex << "\n";
-				}
 
 				// Optimisation de la grille granularisee
 				// Cas non supervise pour les granularites intermediaires: optimisation legere
@@ -216,14 +202,12 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 				else
 					dGranularityBestCost = OptimizeGranularizedDataGrid(
 					    &granularizedDataGrid, granularizedOptimizedDataGrid);
-
-				// Fin du parametrage du profiling
-				KWDataGridOptimizer::GetProfiler()->EndMethod("Optimize granularity" + sSuffix);
-				if (bDisplayResults)
+				if (bTrace)
 				{
-					cout << "OptimizeDataGrid: Apres OptimizeGranularizedDataGrid pour Granularite "
-					     << nGranularityIndex << "\t Cout " << dGranularityBestCost << endl;
-					granularizedOptimizedDataGrid->Write(cout);
+					TraceOptimizationDetails(
+					    sTmp + "- optimized granularized datagrid for granularity\t" +
+						IntToString(nGranularityIndex),
+					    granularizedOptimizedDataGrid, bTraceDetails);
 				}
 
 				// Cas d'amelioration du cout
@@ -233,23 +217,17 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 
 					// Memorisation du nouvel optimum
 					dataGridManager.CopyDataGrid(granularizedOptimizedDataGrid, optimizedDataGrid);
-					if (bDisplayResults)
-					{
-						cout << "OptimizeDataGrid: Grille granularizedOptimizedDataGrid"
-						     << endl;
-						granularizedOptimizedDataGrid->Write(cout);
-					}
+					if (bTrace)
+						cout << "- new best cost\t" << dBestCost << endl;
 				}
 				// Cas ou il s'agit de la derniere granularite : on met a jour les infos dans le
 				// cas d'un coclustering
 				if (bIsLastGranularity)
 				{
-					if (bDisplayResults)
-						cout << "OptimizeDataGrid: Mise a jour de la memorisation du "
-							"coclustering pour la derniere granularite "
-						     << endl;
-
 					HandleOptimizationStep(optimizedDataGrid, &granularizedDataGrid, true);
+					if (bTrace)
+						cout << "- save optimized datagrid for last granularity\t" << dBestCost
+						     << endl;
 				}
 
 				// Nettoyage de la grille optimisee pour cette granularite
@@ -264,9 +242,8 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 						   IntToString(nGranularityIndex) + ", but maximum granularity (" +
 						   IntToString(nGranularityIndex) + ") has not been reached." +
 						   "You could obtain better results with larger optimization time.");
-					if (bDisplayResults)
-						cout << "OptimizeDataGrid :Totalite du temps alloue ecoule apres la "
-							"granularite \t"
+					if (bTrace)
+						cout << "- all allocated optimization time used after granularity\t"
 						     << nGranularityIndex << endl;
 
 					// Arret
@@ -292,8 +269,13 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 			// granularite pour laquelle cette grille est definie
 			if (nLastExploredGranularity != -1 and
 			    optimizedDataGrid->GetGranularity() > nLastExploredGranularity + 1)
+			{
 				dBestCost = PostOptimizeGranularity(initialDataGrid, optimizedDataGrid,
 								    &odQuantileBuilders, nLastExploredGranularity);
+				if (bTrace)
+					TraceOptimizationDetails("- post-optimized datagrid", optimizedDataGrid,
+								 bTraceDetails);
+			}
 		}
 
 		// Nettoyage
@@ -355,7 +337,8 @@ int KWDataGridOptimizerVxV::ComputeMaxExploredGranularity(const KWDataGrid* data
 double KWDataGridOptimizerVxV::OptimizeGranularizedDataGrid(const KWDataGrid* initialDataGrid,
 							    KWDataGrid* optimizedDataGrid) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
 	double dBestCost;
 	ALString sTmp;
 
@@ -366,15 +349,14 @@ double KWDataGridOptimizerVxV::OptimizeGranularizedDataGrid(const KWDataGrid* in
 
 	// Initialisation du meilleur cout
 	dBestCost = dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
-	if (bDisplayResults)
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("OptimizeGranularizedDataGrid");
+	KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Granularity", initialDataGrid->GetGranularity());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", optimizedDataGrid->GetObjectLabel());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dBestCost);
+	if (bTrace)
 	{
-		cout << "Debut OptimizeGranularizedDataGrid " << endl;
-		cout << "Grille initiale" << endl;
-		initialDataGrid->Write(cout);
-		cout << "Grille optimale" << endl;
-		optimizedDataGrid->Write(cout);
-		cout << "Granularite courante \t " << initialDataGrid->GetGranularity() << endl;
-		cout << " Cout grille optimale a la granularite courante " << dBestCost << endl;
+		TraceOptimizationDetails("OptimizeGranularizedDataGrid", optimizedDataGrid, bTraceDetails);
+		TraceOptimizationDetails("- initial datagrid", initialDataGrid, bTraceDetails);
 	}
 
 	// Optimisation univariee
@@ -394,12 +376,9 @@ double KWDataGridOptimizerVxV::OptimizeGranularizedDataGrid(const KWDataGrid* in
 			dBestCost = OptimizeWithMultipleUnivariatePartitions(initialDataGrid, optimizedDataGrid);
 	}
 
-	// Affichage
-	if (bDisplayResults)
-	{
-		cout << "Grille optimisee avant VNS" << endl;
-		optimizedDataGrid->Write(cout);
-	}
+	// Affichage de la grille avant optimisation
+	if (bTrace)
+		TraceOptimizationDetails("- preprocessed datagrid", optimizedDataGrid, bTraceDetails);
 
 	// Optimisation a partir d'une grille initiale complete si algorithme glouton
 	if (not TaskProgression::IsInterruptionRequested())
@@ -410,24 +389,9 @@ double KWDataGridOptimizerVxV::OptimizeGranularizedDataGrid(const KWDataGrid* in
 	optimizedDataGrid->SortAttributeParts();
 
 	// Affichage de la grille finale avec ses couts
-	if (bDisplayResults)
-	{
-		// Grille optimisee
-		cout << "Optimized grid\n";
-		if (optimizedDataGrid->GetAttributeNumber() == 2)
-			optimizedDataGrid->WriteCrossTableStats(cout, 0);
-		dataGridCosts->WriteDataGridAllCosts(optimizedDataGrid, cout);
-		cout << endl;
-
-		// Grille finale
-		cout << *optimizedDataGrid << endl;
-	}
-	// Grille finale
-	if (bDisplayResults)
-	{
-		cout << "Granularite courante \t " << optimizedDataGrid->GetGranularity() << endl;
-		cout << " Cout meilleure grille " << dBestCost << endl;
-	}
+	KWDataGridOptimizer::GetProfiler()->EndMethod("OptimizeGranularizedDataGrid");
+	if (bTrace)
+		TraceOptimizationDetails("- optimized datagrid", optimizedDataGrid, bTraceDetails);
 
 	// Retour du meilleur cout de codage
 	ensure(fabs(dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) - dBestCost) < dEpsilon);
@@ -437,7 +401,8 @@ double KWDataGridOptimizerVxV::OptimizeGranularizedDataGrid(const KWDataGrid* in
 double KWDataGridOptimizerVxV::SlightOptimizeGranularizedDataGrid(const KWDataGrid* initialDataGrid,
 								  KWDataGrid* optimizedDataGrid) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
 	KWDataGridMerger neighbourDataGrid;
 	double dBestCost;
 	double dCost;
@@ -452,15 +417,14 @@ double KWDataGridOptimizerVxV::SlightOptimizeGranularizedDataGrid(const KWDataGr
 
 	// Initialisation du meilleur cout
 	dBestCost = dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
-	if (bDisplayResults)
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("SlightOptimizeGranularizedDataGrid");
+	KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Granularity", initialDataGrid->GetGranularity());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", optimizedDataGrid->GetObjectLabel());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dBestCost);
+	if (bTrace)
 	{
-		cout << "Debut SlightOptimizeGranularizedDataGrid " << endl;
-		cout << "Grille initiale" << endl;
-		initialDataGrid->Write(cout);
-		cout << "Grille optimale" << endl;
-		optimizedDataGrid->Write(cout);
-		cout << "Granularite courante \t " << initialDataGrid->GetGranularity() << endl;
-		cout << " Cout grille optimale a la granularite courante " << dBestCost << endl;
+		TraceOptimizationDetails("SlightOptimizeGranularizedDataGrid", optimizedDataGrid, bTraceDetails);
+		TraceOptimizationDetails("- initial datagrid", initialDataGrid, bTraceDetails);
 	}
 
 	// Optimisation d'une solution dans un voisinnage de la solution courante
@@ -481,24 +445,9 @@ double KWDataGridOptimizerVxV::SlightOptimizeGranularizedDataGrid(const KWDataGr
 	optimizedDataGrid->SortAttributeParts();
 
 	// Affichage de la grille finale avec ses couts
-	if (bDisplayResults)
-	{
-		// Grille optimisee
-		cout << "Optimized grid\n";
-		if (optimizedDataGrid->GetAttributeNumber() == 2)
-			optimizedDataGrid->WriteCrossTableStats(cout, 0);
-		dataGridCosts->WriteDataGridAllCosts(optimizedDataGrid, cout);
-		cout << endl;
-
-		// Grille finale
-		cout << *optimizedDataGrid << endl;
-	}
-	// Grille finale
-	if (bDisplayResults)
-	{
-		cout << "Granularite courante \t " << optimizedDataGrid->GetGranularity() << endl;
-		cout << " Cout meilleure grille " << dBestCost << endl;
-	}
+	KWDataGridOptimizer::GetProfiler()->EndMethod("SlightOptimizeGranularizedDataGrid");
+	if (bTrace)
+		TraceOptimizationDetails("- optimized datagrid", optimizedDataGrid, bTraceDetails);
 
 	// Retour du meilleur cout de codage
 	ensure(fabs(dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) - dBestCost) < dEpsilon);
@@ -545,6 +494,7 @@ double KWDataGridOptimizerVxV::PostOptimizeGranularity(const KWDataGrid* initial
 	nCurrentGranularity = optimizedDataGrid->GetGranularity() - 1;
 	nBestGranularity = optimizedDataGrid->GetGranularity();
 	debug(dInitialOptimizedCost = GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid));
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("PostOptimizeGranularity");
 
 	// Initialisation du nombre de partiles par attribut
 	nAttributeIndex = 0;
@@ -723,6 +673,10 @@ double KWDataGridOptimizerVxV::PostOptimizeGranularity(const KWDataGrid* initial
 
 	// On renvoie le cout le grillle post-optimisee
 	dPostOptimizedCost = GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid);
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Optimized coclustering",
+							   optimizedDataGrid->GetObjectLabel());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dPostOptimizedCost);
+	KWDataGridOptimizer::GetProfiler()->EndMethod("PostOptimizeGranularity");
 	debug(ensure(dPostOptimizedCost <= dInitialOptimizedCost));
 	return dPostOptimizedCost;
 }
@@ -731,7 +685,8 @@ double
 KWDataGridOptimizerVxV::OptimizeWithBestUnivariatePartitionForCurrentGranularity(const KWDataGrid* initialDataGrid,
 										 KWDataGrid* optimizedDataGrid) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
 	KWAttributeStats* attributeStats;
 	KWDataGridManager dataGridManager;
 	KWDataGrid univariateDataGrid;
@@ -749,8 +704,11 @@ KWDataGridOptimizerVxV::OptimizeWithBestUnivariatePartitionForCurrentGranularity
 
 	// Initialisations
 	dBestCost = dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
-	if (bDisplayResults)
-		cout << "OptimizeWithBestUnivariatePartition: cout initial " << dBestCost << endl;
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("OptimizeWithBestUnivariatePartitionForCurrentGranularity");
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", optimizedDataGrid->GetObjectLabel());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dBestCost);
+	if (bTrace)
+		TraceOptimizationDetails("OptimizeWithBestUnivariatePartition", optimizedDataGrid, bTraceDetails);
 
 	// Retour si pas de statistiques univariees disponibles
 	if (classStats == NULL)
@@ -803,12 +761,13 @@ KWDataGridOptimizerVxV::OptimizeWithBestUnivariatePartitionForCurrentGranularity
 		{
 			// Evaluation de la grille
 			dCost = dataGridCosts->ComputeDataGridTotalCost(&univariateDataGrid);
-			if (bDisplayResults)
-				cout << " APRES Cout de la grille univariee " << dCost << endl;
-
-			// Affichage du resulat (ici: grilles initiale et optimisee sont confondues)
-			DisplayOptimizationDetails(&univariateDataGrid, false);
-			DisplayOptimizationDetails(&univariateDataGrid, true);
+			KWDataGridOptimizer::GetProfiler()->WriteKeyString("Variable",
+									   initialAttribute->GetAttributeName());
+			KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Univariate cost", dCost);
+			if (bTrace)
+				TraceOptimizationDetails("- univariate datagrid " +
+							     univariateDataGrid.GetAttributeAt(0)->GetAttributeName(),
+							 &univariateDataGrid, bTraceDetails);
 
 			// Memorisation de la meilleure solution
 			if (dCost < dBestCost - dEpsilon)
@@ -819,6 +778,13 @@ KWDataGridOptimizerVxV::OptimizeWithBestUnivariatePartitionForCurrentGranularity
 			}
 		}
 	}
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", optimizedDataGrid->GetObjectLabel());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Best univariate cost", dBestCost);
+	KWDataGridOptimizer::GetProfiler()->EndMethod("OptimizeWithBestUnivariatePartitionForCurrentGranularity");
+	if (bTrace)
+		TraceOptimizationDetails("- best univariate datagrid " +
+					     optimizedDataGrid->GetAttributeAt(0)->GetAttributeName(),
+					 optimizedDataGrid, bTraceDetails);
 
 	// Retour du cout
 	ensure(fabs(dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) - dBestCost) == 0 or bImproved);
@@ -829,7 +795,8 @@ KWDataGridOptimizerVxV::OptimizeWithBestUnivariatePartitionForCurrentGranularity
 double KWDataGridOptimizerVxV::OptimizeWithMultipleUnivariatePartitions(const KWDataGrid* initialDataGrid,
 									KWDataGrid* optimizedDataGrid) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
 	double dBestCost;
 	double dCost;
 	KWDataGridManager dataGridManager;
@@ -845,69 +812,42 @@ double KWDataGridOptimizerVxV::OptimizeWithMultipleUnivariatePartitions(const KW
 	dBestCost = dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
 	multivariateDataGrid.SetDataGridCosts(dataGridCosts);
 	dataGridPostOptimizer.SetDataGridCosts(dataGridCosts);
-	if (bDisplayResults)
-	{
-		cout << "OptimizeWithMultipleUnivariatePartitions: dBestCost initial " << dBestCost << endl;
-		cout << " Grille initiale " << endl;
-		cout << *optimizedDataGrid;
-	}
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("OptimizeWithMultipleUnivariatePartitions");
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", optimizedDataGrid->GetObjectLabel());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dBestCost);
+	if (bTrace)
+		TraceOptimizationDetails("OptimizeWithMultipleUnivariatePartitions", optimizedDataGrid, bTraceDetails);
 
-	// Retour si pas assez de statistiques univariees disponibles
-	if (classStats == NULL or classStats->GetInformativeAttributeNumber() <= 1)
-		return dBestCost;
+	// Pas de traitement si pas assez de statistiques univariees disponibles
+	bOk = classStats != NULL and classStats->GetInformativeAttributeNumber() > 1;
 
 	// Construction d'une grille par croisement des partition univariee
 	// Traitement avec calcul des partitions univariees pour cette granularite
-	bOk = dataGridManager.BuildDataGridFromUnivariateProduct(initialDataGrid, &multivariateDataGrid, classStats);
-
-	if (not bOk)
-		return dBestCost;
-
-	// Affichage du cout initial
-	DisplayOptimizationDetails(&multivariateDataGrid, false);
-
-	// Cout initial si aucune optimisation
-	dCost = DBL_MAX;
-	if (not optimizationParameters.GetOptimize() and not optimizationParameters.GetPreOptimize() and
-	    not optimizationParameters.GetPostOptimize())
-		dCost = dataGridCosts->ComputeDataGridTotalCost(&multivariateDataGrid);
-
-	if (bDisplayResults)
+	if (bOk)
 	{
-		dCost = dataGridCosts->ComputeDataGridTotalCost(&multivariateDataGrid);
-		cout << "OptimizeWithMultipleUnivariatePartitions: dBestCost multivarie initial " << dCost << endl;
-		cout << " Grille initiale " << endl;
-		cout << multivariateDataGrid;
+		KWDataGridOptimizer::GetProfiler()->BeginMethod("BuildDataGridFromUnivariateProduct");
+		bOk = dataGridManager.BuildDataGridFromUnivariateProduct(initialDataGrid, &multivariateDataGrid,
+									 classStats);
+		KWDataGridOptimizer::GetProfiler()->EndMethod("BuildDataGridFromUnivariateProduct");
+		if (bOk and bTrace)
+			TraceOptimizationDetails("- multivariate initialization", &multivariateDataGrid, bTraceDetails);
 	}
 
-	// Pre-optimisation de la grille
-	if (optimizationParameters.GetPreOptimize())
-		dCost = dataGridPostOptimizer.PostOptimizeDataGrid(initialDataGrid, &multivariateDataGrid, false);
-
-	// Optimisation par fusion des groupes
-	if (optimizationParameters.GetOptimize())
-		dCost = multivariateDataGrid.Merge();
-
-	// Post-optimisation de la grille
-	if (optimizationParameters.GetPostOptimize())
-		dCost = dataGridPostOptimizer.PostOptimizeDataGrid(initialDataGrid, &multivariateDataGrid, true);
-
-	if (bDisplayResults)
+	// Optimisation de la solution multivariee
+	if (bOk)
 	{
-		cout << "OptimizeWithMultipleUnivariatePartitions: dBestCost multivarie optimise " << dCost << endl;
-		cout << " Grille multivariee optimisee " << endl;
-		cout << multivariateDataGrid;
-	}
+		dCost = OptimizeSolution(initialDataGrid, &multivariateDataGrid, true);
 
-	// Affichage du cout final
-	DisplayOptimizationDetails(&multivariateDataGrid, true);
-
-	// Memorisation de la meilleure solution
-	if (dCost < dBestCost - dEpsilon)
-	{
-		dBestCost = dCost;
-		SaveDataGrid(&multivariateDataGrid, optimizedDataGrid);
+		// Memorisation de la meilleure solution
+		if (dCost < dBestCost - dEpsilon)
+		{
+			dBestCost = dCost;
+			SaveDataGrid(&multivariateDataGrid, optimizedDataGrid);
+		}
 	}
+	KWDataGridOptimizer::GetProfiler()->EndMethod("OptimizeWithMultipleUnivariatePartitions");
+	if (bTrace)
+		TraceOptimizationDetails("- multivariate optimized datagrid", optimizedDataGrid, bTraceDetails);
 
 	// Retour du cout
 	ensure(fabs(dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) - dBestCost) < dEpsilon);
