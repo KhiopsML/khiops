@@ -181,8 +181,17 @@ protected:
 	// Affichage des informations de progression: messages et niveau d'avancement de la barre de progesssion
 	virtual void DisplayProgression(const KWDataGrid* dataGrid) const;
 
+	// Trace des informations d'optimisation sur une grille dans la sortie standard
+	// - libelle de l'etape d'optimisation
+	// - contexte de l'optimisation
+	// - caracteristiques de la grille
+	// - cout
+	// - temps courant d'optimisation
+	// - si TraceDataGrid, trace complet de la grille
+	void TraceOptimizationDetails(const ALString& sLabel, const KWDataGrid* optimizedDataGrid,
+				      boolean bTraceDataGrid) const;
+
 	// Affichage des caracteristiques d'optimisation si demande dans le parametre d'optimsiation DisplayDetails
-	void DisplayOptimizationHeaderLine() const;
 	void DisplayOptimizationDetails(const KWDataGrid* optimizedDataGrid, boolean bOptimized) const;
 
 	//////////////////////////////////////////////////////////////////////////////
