@@ -336,19 +336,10 @@ double KWDataGridOptimizer::OptimizeNeighbourSolution(const KWDataGrid* initialD
 	ALString sTmp;
 
 	// Generation d'une solution dans un voisinnage de la meilleure solution
-	KWDataGridOptimizer::GetProfiler()->BeginMethod("Generate neighbour solution");
-	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Neighbourhood size", dNoiseRate);
 	GenerateNeighbourSolution(initialDataGrid, currentOptimizedDataGrid, dNoiseRate, neighbourOptimizedDataGrid);
-	KWDataGridOptimizer::GetProfiler()->EndMethod("Generate neighbour solution");
 
 	// Optimisation de cette solution
-	KWDataGridOptimizer::GetProfiler()->BeginMethod("Optimize solution");
-	KWDataGridOptimizer::GetProfiler()->WriteKeyString("VNS level",
-							   sTmp + IntToString(nVNSNeighbourhoodLevelIndex) + "/" +
-							       IntToString(nVNSNeighbourhoodLevelNumber));
-	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("VNS neighbourhood size", dVNSNeighbourhoodSize);
 	dCost = OptimizeSolution(initialDataGrid, neighbourOptimizedDataGrid, bDeepPostOptimization);
-	KWDataGridOptimizer::GetProfiler()->EndMethod("Optimize solution");
 	return dCost;
 }
 
@@ -356,8 +347,8 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 						    const KWDataGrid* optimizedDataGrid, double dNoiseRate,
 						    KWDataGridMerger* neighbourDataGridMerger) const
 {
-	boolean bDisplayResults = false;
-	boolean bDisplayDetails = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
 	KWDataGridManager dataGridManager;
 	KWDataGrid mandatoryDataGrid;
 	int nMandatoryAttributeNumber;
@@ -381,15 +372,12 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	// Debut de tache
 	TaskProgression::BeginTask();
 	TaskProgression::DisplayMainLabel(sTmp + "New initial solution (" + DoubleToString(dNoiseRate) + ")");
-	if (bDisplayResults)
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("Generate neighbour solution");
+	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Neighbourhood size", dNoiseRate);
+	if (bTrace)
 	{
-		cout << "GenerateNeighbourSolution\t" << dNoiseRate << "\n";
-		cout << "\tinitialDataGrid\t" << dataGridCosts->ComputeDataGridTotalCost(initialDataGrid) << "\t"
-		     << initialDataGrid->GetObjectLabel() << "\n";
-		cout << "\toptimizedDataGrid\t" << dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) << "\t"
-		     << optimizedDataGrid->GetObjectLabel() << "\n";
-		if (bDisplayDetails)
-			cout << *optimizedDataGrid << "\n";
+		TraceOptimizationDetails("GenerateNeighbourSolution", optimizedDataGrid, bTraceDetails);
+		TraceOptimizationDetails("- initial solution", optimizedDataGrid, bTraceDetails);
 	}
 
 	// Initialisation de la taille de la grille prise en compte
@@ -461,17 +449,10 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	// Export des cellules
 	dataGridManager.ExportCells(initialDataGrid, neighbourDataGridMerger);
 
-	// Affichage final
-	if (bDisplayResults)
-	{
-		cout << "\tneighbourDataGridMerger\t"
-		     << dataGridCosts->ComputeDataGridTotalCost(neighbourDataGridMerger) << "\t"
-		     << neighbourDataGridMerger->GetObjectLabel() << "\n";
-		if (bDisplayDetails)
-			cout << *neighbourDataGridMerger << "\n";
-	}
-
 	// Fin de tache
+	KWDataGridOptimizer::GetProfiler()->EndMethod("Generate neighbour solution");
+	if (bTrace)
+		TraceOptimizationDetails("- neighbourhood solution", neighbourDataGridMerger, bTraceDetails);
 	TaskProgression::EndTask();
 	ensure(neighbourDataGridMerger->Check());
 }
@@ -483,7 +464,7 @@ double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, 
 	const boolean bTraceDetails = false;
 	KWDataGridPostOptimizer dataGridPostOptimizer;
 	double dCost;
-	ALString sSuffix;
+	ALString sTmp;
 
 	require(GetDataGridCosts() != NULL);
 	require(GetDataGridCosts()->IsInitialized());
@@ -506,10 +487,13 @@ double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, 
 	     not optimizationParameters.GetPostOptimize()) or
 	    bTrace or KWDataGridOptimizer::GetProfiler()->IsStarted())
 		dCost = dataGridCosts->ComputeDataGridTotalCost(dataGridMerger);
-	if (bTrace)
-		TraceOptimizationDetails("OptimizeSolution start", dataGridMerger, bTraceDetails);
+
+	// Trace initiale
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("Optimize solution");
 	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", dataGridMerger->GetObjectLabel());
 	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dCost);
+	if (bTrace)
+		TraceOptimizationDetails("OptimizeSolution", dataGridMerger, bTraceDetails);
 
 	// Pre-optimisation de la grille
 	if (optimizationParameters.GetPreOptimize() and not TaskProgression::IsInterruptionRequested() and
@@ -517,11 +501,11 @@ double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, 
 	{
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("Pre-optimization");
 		dCost = dataGridPostOptimizer.PostOptimizeDataGrid(initialDataGrid, dataGridMerger, false);
-		if (bTrace)
-			TraceOptimizationDetails("- pre-optimisation", dataGridMerger, bTraceDetails);
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", dataGridMerger->GetObjectLabel());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dCost);
 		KWDataGridOptimizer::GetProfiler()->EndMethod("Pre-optimization");
+		if (bTrace)
+			TraceOptimizationDetails("- pre-optimisation", dataGridMerger, bTraceDetails);
 	}
 
 	// Optimisation par fusion des groupes
@@ -531,11 +515,11 @@ double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, 
 		if (not bDeepPostOptimization)
 			KWDataGridOptimizer::GetProfiler()->WriteKeyBoolean("Slight", not bDeepPostOptimization);
 		dCost = dataGridMerger->Merge();
-		if (bTrace)
-			TraceOptimizationDetails("- optimisation", dataGridMerger, bTraceDetails);
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", dataGridMerger->GetObjectLabel());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dCost);
 		KWDataGridOptimizer::GetProfiler()->EndMethod("Greedy merge optimization");
+		if (bTrace)
+			TraceOptimizationDetails("- optimisation", dataGridMerger, bTraceDetails);
 	}
 
 	// Post-optimisation de la grille selon le niveau de post-optimisation
@@ -545,12 +529,13 @@ double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, 
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("Post-optimization");
 		dCost =
 		    dataGridPostOptimizer.PostOptimizeDataGrid(initialDataGrid, dataGridMerger, bDeepPostOptimization);
-		if (bTrace)
-			TraceOptimizationDetails("- post-optimisation", dataGridMerger, bTraceDetails);
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", dataGridMerger->GetObjectLabel());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dCost);
 		KWDataGridOptimizer::GetProfiler()->EndMethod("Post-optimization");
+		if (bTrace)
+			TraceOptimizationDetails("- post-optimisation", dataGridMerger, bTraceDetails);
 	}
+	KWDataGridOptimizer::GetProfiler()->EndMethod("Optimize solution");
 
 	// Recalcul du cout si la tache est interrompue, pour sortir avec un cout coherent
 	if (TaskProgression::IsInterruptionRequested())
@@ -703,6 +688,7 @@ void KWDataGridOptimizer::TraceOptimizationDetails(const ALString& sLabel, const
 {
 	require(optimizedDataGrid != NULL);
 
+	// Informations formattees sur une ligne
 	cout << "Iter " << nVNSIteration << "\t";
 	cout << "VNS " << nVNSNeighbourhoodLevelIndex << "/" << nVNSNeighbourhoodLevelNumber << "\t";
 	cout << "Ngh " << std::fixed << std::setprecision(6) << dVNSNeighbourhoodSize << "\t";
@@ -710,6 +696,10 @@ void KWDataGridOptimizer::TraceOptimizationDetails(const ALString& sLabel, const
 	cout << dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) << "\t";
 	cout << timerOptimization.GetElapsedTime() << "\t";
 	cout << sLabel << endl;
+
+	// Details sur une grille
+	if (bTraceDataGrid)
+		cout << *optimizedDataGrid << endl;
 }
 
 void KWDataGridOptimizer::DisplayOptimizationDetails(const KWDataGrid* optimizedDataGrid, boolean bOptimized) const

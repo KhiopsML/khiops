@@ -731,7 +731,8 @@ double
 KWDataGridOptimizerVxV::OptimizeWithBestUnivariatePartitionForCurrentGranularity(const KWDataGrid* initialDataGrid,
 										 KWDataGrid* optimizedDataGrid) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
 	KWAttributeStats* attributeStats;
 	KWDataGridManager dataGridManager;
 	KWDataGrid univariateDataGrid;
@@ -749,8 +750,11 @@ KWDataGridOptimizerVxV::OptimizeWithBestUnivariatePartitionForCurrentGranularity
 
 	// Initialisations
 	dBestCost = dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
-	if (bDisplayResults)
-		cout << "OptimizeWithBestUnivariatePartition: cout initial " << dBestCost << endl;
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("OptimizeWithBestUnivariatePartitionForCurrentGranularity");
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", optimizedDataGrid->GetObjectLabel());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dBestCost);
+	if (bTrace)
+		TraceOptimizationDetails("OptimizeWithBestUnivariatePartition", optimizedDataGrid, bTraceDetails);
 
 	// Retour si pas de statistiques univariees disponibles
 	if (classStats == NULL)
@@ -803,12 +807,9 @@ KWDataGridOptimizerVxV::OptimizeWithBestUnivariatePartitionForCurrentGranularity
 		{
 			// Evaluation de la grille
 			dCost = dataGridCosts->ComputeDataGridTotalCost(&univariateDataGrid);
-			if (bDisplayResults)
-				cout << " APRES Cout de la grille univariee " << dCost << endl;
-
-			// Affichage du resulat (ici: grilles initiale et optimisee sont confondues)
-			DisplayOptimizationDetails(&univariateDataGrid, false);
-			DisplayOptimizationDetails(&univariateDataGrid, true);
+			KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Univariate cost", dCost);
+			if (bTrace)
+				TraceOptimizationDetails("- univariate datagrid", &univariateDataGrid, bTraceDetails);
 
 			// Memorisation de la meilleure solution
 			if (dCost < dBestCost - dEpsilon)
@@ -819,6 +820,7 @@ KWDataGridOptimizerVxV::OptimizeWithBestUnivariatePartitionForCurrentGranularity
 			}
 		}
 	}
+	KWDataGridOptimizer::GetProfiler()->EndMethod("OptimizeWithBestUnivariatePartitionForCurrentGranularity");
 
 	// Retour du cout
 	ensure(fabs(dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) - dBestCost) == 0 or bImproved);

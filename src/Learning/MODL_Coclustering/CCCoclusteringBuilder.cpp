@@ -345,7 +345,7 @@ boolean CCCoclusteringBuilder::CheckVarPartSpecifications() const
 boolean CCCoclusteringBuilder::ComputeCoclustering()
 {
 	boolean bOk = true;
-	boolean bProfileOptimisation = false;
+	boolean bProfileOptimisation;
 	KWTupleTable tupleTable;
 	KWTupleTable tupleFrequencyTable;
 	KWDataGrid optimizedDataGrid;
@@ -446,6 +446,7 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 
 	// Lancement du profiler pour l'optimisation des grilles
 	// Choix du fichier de trace a parametrer
+	bProfileOptimisation = GetPreprocessingSpec()->GetDataGridOptimizerParameters()->GetOptimizationProfiling();
 	if (bOk and bProfileOptimisation)
 	{
 		// Nom du fichier de profiling, avec le nombre d'individus et de variables
@@ -478,38 +479,13 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 		KWDataGridOptimizer::GetProfiler()->Start(sProfileFileName);
 	}
 
-	// Trace de debut d'optimisation, avec informations sur la grille initiale
-	if (bOk and bProfileOptimisation)
-	{
-		KWDataGridOptimizer::GetProfiler()->BeginMethod("Compute coclustering");
-		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Dictionary", GetDatabase()->GetClassName());
-		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Database", GetDatabase()->GetDatabaseName());
-		KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Instances", initialDataGrid->GetGridFrequency());
-		KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Variables", initialDataGrid->GetAttributeNumber());
-		KWDataGridOptimizer::GetProfiler()->WriteKeyBoolean("Is VarPart", initialDataGrid->IsVarPartDataGrid());
-		if (initialDataGrid->IsVarPartDataGrid())
-		{
-			KWDataGridOptimizer::GetProfiler()->WriteKeyInt(
-			    initialDataGrid->GetAttributeAt(0)->GetAttributeName() + " values",
-			    initialDataGrid->GetAttributeAt(0)->GetInitialValueNumber());
-			KWDataGridOptimizer::GetProfiler()->WriteKeyInt(
-			    initialDataGrid->GetAttributeAt(1)->GetAttributeName() + " values",
-			    initialDataGrid->GetAttributeAt(1)->GetInitialValueNumber());
-			KWDataGridOptimizer::GetProfiler()->WriteKeyInt(
-			    "Inner variables", initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber());
-		}
-	}
-
 	// Optimisation de la grille, par appel d'une methode virtuelle
 	if (bOk and not TaskProgression::IsInterruptionRequested())
 		OptimizeDataGrid(initialDataGrid, &optimizedDataGrid);
 
 	// Arret du profiler
 	if (bOk and bProfileOptimisation)
-	{
-		KWDataGridOptimizer::GetProfiler()->EndMethod("Compute coclustering");
 		KWDataGridOptimizer::GetProfiler()->Stop();
-	}
 
 	// La solution est sauvegardee periodiquement grace au mode anytime
 	// Nettoyage si aucune solution n'a encore ete trouvee
@@ -564,7 +540,29 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 
 	// Optimisation de la grille
 	InitializeDataGridOptimizer(inputInitialDataGrid, dataGridOptimizer);
+
+	// Trace de debut d'optimisation, avec informations sur la grille initiale
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("Compute coclustering");
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Dictionary", GetDatabase()->GetClassName());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Database", GetDatabase()->GetDatabaseName());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Instances", initialDataGrid->GetGridFrequency());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Variables", initialDataGrid->GetAttributeNumber());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyBoolean("Is VarPart", initialDataGrid->IsVarPartDataGrid());
+	if (initialDataGrid->IsVarPartDataGrid())
+	{
+		KWDataGridOptimizer::GetProfiler()->WriteKeyInt(
+		    initialDataGrid->GetAttributeAt(0)->GetAttributeName() + " values",
+		    initialDataGrid->GetAttributeAt(0)->GetInitialValueNumber());
+		KWDataGridOptimizer::GetProfiler()->WriteKeyInt(
+		    initialDataGrid->GetAttributeAt(1)->GetAttributeName() + " values",
+		    initialDataGrid->GetAttributeAt(1)->GetInitialValueNumber());
+		KWDataGridOptimizer::GetProfiler()->WriteKeyInt(
+		    "Inner variables", initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber());
+	}
+
+	// Optimisation de la grille
 	dataGridOptimizer->OptimizeDataGrid(initialDataGrid, optimizedDataGrid);
+	KWDataGridOptimizer::GetProfiler()->EndMethod("Compute coclustering");
 }
 
 void CCCoclusteringBuilder::InitializeDataGridOptimizer(const KWDataGrid* inputInitialDataGrid,
