@@ -191,9 +191,6 @@ protected:
 	void TraceOptimizationDetails(const ALString& sLabel, const KWDataGrid* optimizedDataGrid,
 				      boolean bTraceDataGrid) const;
 
-	// Affichage des caracteristiques d'optimisation si demande dans le parametre d'optimsiation DisplayDetails
-	void DisplayOptimizationDetails(const KWDataGrid* optimizedDataGrid, boolean bOptimized) const;
-
 	//////////////////////////////////////////////////////////////////////////////
 	// Variable de la classe
 

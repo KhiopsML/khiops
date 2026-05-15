@@ -701,32 +701,4 @@ void KWDataGridOptimizer::TraceOptimizationDetails(const ALString& sLabel, const
 		cout << *optimizedDataGrid << endl;
 }
 
-void KWDataGridOptimizer::DisplayOptimizationDetails(const KWDataGrid* optimizedDataGrid, boolean bOptimized) const
-{
-	ALString sContext;
-	ALString sTmp;
-
-	// Affichage de l'iteration
-	if (not bOptimized)
-	{
-		sContext = sTmp + "G=" + IntToString(optimizedDataGrid->GetGranularity());
-		if (optimizedDataGrid->IsVarPartDataGrid())
-			sContext +=
-			    sTmp + ", T=" +
-			    IntToString(optimizedDataGrid->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts());
-		cout << sContext << "\t" << timerOptimization.GetElapsedTime() << "\t" << nVNSIteration << "\t"
-		     << dVNSNeighbourhoodSize << "\t";
-	}
-
-	// Affichage des caracteristiques de la grille terminale
-	cout << optimizedDataGrid->GetAttributeNumber() << "\t" << optimizedDataGrid->GetTotalPartNumber() << "\t"
-	     << optimizedDataGrid->GetCellNumber() << "\t"
-	     << dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
-	if (not bOptimized)
-		cout << "\t";
-	else
-		cout << "\n";
-	cout << flush;
-}
-
 Profiler KWDataGridOptimizer::profiler;
