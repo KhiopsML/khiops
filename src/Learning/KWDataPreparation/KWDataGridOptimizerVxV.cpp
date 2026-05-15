@@ -809,7 +809,9 @@ KWDataGridOptimizerVxV::OptimizeWithBestUnivariatePartitionForCurrentGranularity
 			dCost = dataGridCosts->ComputeDataGridTotalCost(&univariateDataGrid);
 			KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Univariate cost", dCost);
 			if (bTrace)
-				TraceOptimizationDetails("- univariate datagrid", &univariateDataGrid, bTraceDetails);
+				TraceOptimizationDetails("- univariate datagrid " +
+							     univariateDataGrid.GetAttributeAt(0)->GetAttributeName(),
+							 &univariateDataGrid, bTraceDetails);
 
 			// Memorisation de la meilleure solution
 			if (dCost < dBestCost - dEpsilon)
@@ -820,7 +822,12 @@ KWDataGridOptimizerVxV::OptimizeWithBestUnivariatePartitionForCurrentGranularity
 			}
 		}
 	}
+	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Best univariate cost", dBestCost);
 	KWDataGridOptimizer::GetProfiler()->EndMethod("OptimizeWithBestUnivariatePartitionForCurrentGranularity");
+	if (bTrace)
+		TraceOptimizationDetails("- best univariate datagrid " +
+					     optimizedDataGrid->GetAttributeAt(0)->GetAttributeName(),
+					 optimizedDataGrid, bTraceDetails);
 
 	// Retour du cout
 	ensure(fabs(dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) - dBestCost) == 0 or bImproved);
@@ -831,7 +838,8 @@ KWDataGridOptimizerVxV::OptimizeWithBestUnivariatePartitionForCurrentGranularity
 double KWDataGridOptimizerVxV::OptimizeWithMultipleUnivariatePartitions(const KWDataGrid* initialDataGrid,
 									KWDataGrid* optimizedDataGrid) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
 	double dBestCost;
 	double dCost;
 	KWDataGridManager dataGridManager;
@@ -847,69 +855,42 @@ double KWDataGridOptimizerVxV::OptimizeWithMultipleUnivariatePartitions(const KW
 	dBestCost = dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
 	multivariateDataGrid.SetDataGridCosts(dataGridCosts);
 	dataGridPostOptimizer.SetDataGridCosts(dataGridCosts);
-	if (bDisplayResults)
-	{
-		cout << "OptimizeWithMultipleUnivariatePartitions: dBestCost initial " << dBestCost << endl;
-		cout << " Grille initiale " << endl;
-		cout << *optimizedDataGrid;
-	}
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("OptimizeWithMultipleUnivariatePartitions");
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", optimizedDataGrid->GetObjectLabel());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dBestCost);
+	if (bTrace)
+		TraceOptimizationDetails("OptimizeWithMultipleUnivariatePartitions", optimizedDataGrid, bTraceDetails);
 
-	// Retour si pas assez de statistiques univariees disponibles
-	if (classStats == NULL or classStats->GetInformativeAttributeNumber() <= 1)
-		return dBestCost;
+	// Pas de traitement si pas assez de statistiques univariees disponibles
+	bOk = classStats != NULL and classStats->GetInformativeAttributeNumber() > 1;
 
 	// Construction d'une grille par croisement des partition univariee
 	// Traitement avec calcul des partitions univariees pour cette granularite
-	bOk = dataGridManager.BuildDataGridFromUnivariateProduct(initialDataGrid, &multivariateDataGrid, classStats);
-
-	if (not bOk)
-		return dBestCost;
-
-	// Affichage du cout initial
-	DisplayOptimizationDetails(&multivariateDataGrid, false);
-
-	// Cout initial si aucune optimisation
-	dCost = DBL_MAX;
-	if (not optimizationParameters.GetOptimize() and not optimizationParameters.GetPreOptimize() and
-	    not optimizationParameters.GetPostOptimize())
-		dCost = dataGridCosts->ComputeDataGridTotalCost(&multivariateDataGrid);
-
-	if (bDisplayResults)
+	if (bOk)
 	{
-		dCost = dataGridCosts->ComputeDataGridTotalCost(&multivariateDataGrid);
-		cout << "OptimizeWithMultipleUnivariatePartitions: dBestCost multivarie initial " << dCost << endl;
-		cout << " Grille initiale " << endl;
-		cout << multivariateDataGrid;
+		KWDataGridOptimizer::GetProfiler()->BeginMethod("BuildDataGridFromUnivariateProduct");
+		bOk = dataGridManager.BuildDataGridFromUnivariateProduct(initialDataGrid, &multivariateDataGrid,
+									 classStats);
+		KWDataGridOptimizer::GetProfiler()->EndMethod("BuildDataGridFromUnivariateProduct");
+		if (bTrace and bOk)
+			TraceOptimizationDetails("- multivariate initialization", &multivariateDataGrid, bTraceDetails);
 	}
 
-	// Pre-optimisation de la grille
-	if (optimizationParameters.GetPreOptimize())
-		dCost = dataGridPostOptimizer.PostOptimizeDataGrid(initialDataGrid, &multivariateDataGrid, false);
-
-	// Optimisation par fusion des groupes
-	if (optimizationParameters.GetOptimize())
-		dCost = multivariateDataGrid.Merge();
-
-	// Post-optimisation de la grille
-	if (optimizationParameters.GetPostOptimize())
-		dCost = dataGridPostOptimizer.PostOptimizeDataGrid(initialDataGrid, &multivariateDataGrid, true);
-
-	if (bDisplayResults)
+	// Optimisation de la solution multivariee
+	if (bOk)
 	{
-		cout << "OptimizeWithMultipleUnivariatePartitions: dBestCost multivarie optimise " << dCost << endl;
-		cout << " Grille multivariee optimisee " << endl;
-		cout << multivariateDataGrid;
-	}
+		dCost = OptimizeSolution(initialDataGrid, &multivariateDataGrid, true);
 
-	// Affichage du cout final
-	DisplayOptimizationDetails(&multivariateDataGrid, true);
-
-	// Memorisation de la meilleure solution
-	if (dCost < dBestCost - dEpsilon)
-	{
-		dBestCost = dCost;
-		SaveDataGrid(&multivariateDataGrid, optimizedDataGrid);
+		// Memorisation de la meilleure solution
+		if (dCost < dBestCost - dEpsilon)
+		{
+			dBestCost = dCost;
+			SaveDataGrid(&multivariateDataGrid, optimizedDataGrid);
+		}
 	}
+	KWDataGridOptimizer::GetProfiler()->EndMethod("OptimizeWithMultipleUnivariatePartitions");
+	if (bTrace)
+		TraceOptimizationDetails("- multivariate optimized datagrid", optimizedDataGrid, bTraceDetails);
 
 	// Retour du cout
 	ensure(fabs(dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) - dBestCost) < dEpsilon);

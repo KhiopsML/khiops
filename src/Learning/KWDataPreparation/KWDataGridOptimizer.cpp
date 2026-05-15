@@ -512,8 +512,6 @@ double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, 
 	if (optimizationParameters.GetOptimize() and not TaskProgression::IsInterruptionRequested())
 	{
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("Greedy merge optimization");
-		if (not bDeepPostOptimization)
-			KWDataGridOptimizer::GetProfiler()->WriteKeyBoolean("Slight", not bDeepPostOptimization);
 		dCost = dataGridMerger->Merge();
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", dataGridMerger->GetObjectLabel());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dCost);
@@ -527,6 +525,7 @@ double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, 
 	    initialDataGrid->GetAttributeNumber() > 1)
 	{
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("Post-optimization");
+		KWDataGridOptimizer::GetProfiler()->WriteKeyBoolean("Deep", bDeepPostOptimization);
 		dCost =
 		    dataGridPostOptimizer.PostOptimizeDataGrid(initialDataGrid, dataGridMerger, bDeepPostOptimization);
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", dataGridMerger->GetObjectLabel());
