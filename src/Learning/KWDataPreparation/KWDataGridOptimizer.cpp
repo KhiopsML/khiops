@@ -708,14 +708,11 @@ void KWDataGridOptimizer::DisplayProgression(const KWDataGrid* dataGrid) const
 
 void KWDataGridOptimizer::DisplayOptimizationHeaderLine() const
 {
-	if (optimizationParameters.GetDisplayDetails())
-	{
-		// Lignes d'entete
-		cout << "Context\tTime\tIter\tNeigh. size\t";
-		cout << "Initial\t\t\t\tFinal\t\t\t\t\n";
-		cout << "\t\t\t\tAtt. number\tPart number\tCell number\tCost\t";
-		cout << "Att. number\tPart number\tCell number\tCost\n";
-	}
+	// Lignes d'entete
+	cout << "Context\tTime\tIter\tNeigh. size\t";
+	cout << "Initial\t\t\t\tFinal\t\t\t\t\n";
+	cout << "\t\t\t\tAtt. number\tPart number\tCell number\tCost\t";
+	cout << "Att. number\tPart number\tCell number\tCost\n";
 }
 
 void KWDataGridOptimizer::DisplayOptimizationDetails(const KWDataGrid* optimizedDataGrid, boolean bOptimized) const
@@ -723,32 +720,27 @@ void KWDataGridOptimizer::DisplayOptimizationDetails(const KWDataGrid* optimized
 	ALString sContext;
 	ALString sTmp;
 
-	// Affichage des details d'optimisation
-	if (optimizationParameters.GetDisplayDetails())
+	// Affichage de l'iteration
+	if (not bOptimized)
 	{
-		// Affichage de l'iteration
-		if (not bOptimized)
-		{
-			sContext = sTmp + "G=" + IntToString(optimizedDataGrid->GetGranularity());
-			if (optimizedDataGrid->IsVarPartDataGrid())
-				sContext +=
-				    sTmp + ", T=" +
-				    IntToString(
-					optimizedDataGrid->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts());
-			cout << sContext << "\t" << timerOptimization.GetElapsedTime() << "\t" << nVNSIteration << "\t"
-			     << dVNSNeighbourhoodSize << "\t";
-		}
-
-		// Affichage des caracteristiques de la grille terminale
-		cout << optimizedDataGrid->GetAttributeNumber() << "\t" << optimizedDataGrid->GetTotalPartNumber()
-		     << "\t" << optimizedDataGrid->GetCellNumber() << "\t"
-		     << dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
-		if (not bOptimized)
-			cout << "\t";
-		else
-			cout << "\n";
-		cout << flush;
+		sContext = sTmp + "G=" + IntToString(optimizedDataGrid->GetGranularity());
+		if (optimizedDataGrid->IsVarPartDataGrid())
+			sContext +=
+			    sTmp + ", T=" +
+			    IntToString(optimizedDataGrid->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts());
+		cout << sContext << "\t" << timerOptimization.GetElapsedTime() << "\t" << nVNSIteration << "\t"
+		     << dVNSNeighbourhoodSize << "\t";
 	}
+
+	// Affichage des caracteristiques de la grille terminale
+	cout << optimizedDataGrid->GetAttributeNumber() << "\t" << optimizedDataGrid->GetTotalPartNumber() << "\t"
+	     << optimizedDataGrid->GetCellNumber() << "\t"
+	     << dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
+	if (not bOptimized)
+		cout << "\t";
+	else
+		cout << "\n";
+	cout << flush;
 }
 
 Profiler KWDataGridOptimizer::profiler;

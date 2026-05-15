@@ -21,7 +21,7 @@ KWDataGridOptimizerParametersView::KWDataGridOptimizerParametersView()
 	AddBooleanField("VarPartPostMerge", "VarPart post-merge each solution", false);
 	AddBooleanField("VarPartPostOptimize", "VarPart post-optimize each solution", false);
 	AddStringField("InternalParameter", "Internal parameter", "");
-	AddBooleanField("DisplayDetails", "Display details", false);
+	AddBooleanField("OptimizationProfiling", "Optimization profiling", false);
 
 	// Parametrage des styles;
 	GetFieldAt("OptimizationTime")->SetStyle("Spinner");
@@ -32,7 +32,7 @@ KWDataGridOptimizerParametersView::KWDataGridOptimizerParametersView()
 	GetFieldAt("PostOptimize")->SetStyle("CheckBox");
 	GetFieldAt("VarPartPostMerge")->SetStyle("CheckBox");
 	GetFieldAt("VarPartPostOptimize")->SetStyle("CheckBox");
-	GetFieldAt("DisplayDetails")->SetStyle("CheckBox");
+	GetFieldAt("OptimizationProfiling")->SetStyle("CheckBox");
 
 	// ## Custom constructor
 
@@ -77,7 +77,7 @@ void KWDataGridOptimizerParametersView::EventUpdate(Object* object)
 	editedObject->SetVarPartPostMerge(GetBooleanValueAt("VarPartPostMerge"));
 	editedObject->SetVarPartPostOptimize(GetBooleanValueAt("VarPartPostOptimize"));
 	editedObject->SetInternalParameter(GetStringValueAt("InternalParameter"));
-	editedObject->SetDisplayDetails(GetBooleanValueAt("DisplayDetails"));
+	editedObject->SetOptimizationProfiling(GetBooleanValueAt("OptimizationProfiling"));
 
 	// ## Custom update
 
@@ -100,7 +100,7 @@ void KWDataGridOptimizerParametersView::EventRefresh(Object* object)
 	SetBooleanValueAt("VarPartPostMerge", editedObject->GetVarPartPostMerge());
 	SetBooleanValueAt("VarPartPostOptimize", editedObject->GetVarPartPostOptimize());
 	SetStringValueAt("InternalParameter", editedObject->GetInternalParameter());
-	SetBooleanValueAt("DisplayDetails", editedObject->GetDisplayDetails());
+	SetBooleanValueAt("OptimizationProfiling", editedObject->GetOptimizationProfiling());
 
 	// ## Custom refresh
 

@@ -66,8 +66,7 @@ CCDeploymentSpec* CCDeploymentSpec::Clone() const
 void CCDeploymentSpec::Write(ostream& ost) const
 {
 	ost << "Input dictionary\t" << GetInputClassName() << "\n";
-	if (GetInputObjectArrayAttributeName() != "")
-		ost << "Input table variable\t" << GetInputObjectArrayAttributeName() << "\n";
+	ost << "Input table variable\t" << GetInputObjectArrayAttributeName() << "\n";
 	ost << "Coclustering deployed variable\t" << GetDeployedAttributeName() << "\n";
 	ost << "Build predicted cluster variable\t" << BooleanToString(GetBuildPredictedClusterAttribute()) << "\n";
 	ost << "Build inter-cluster distance variables\t" << BooleanToString(GetBuildClusterDistanceAttributes())

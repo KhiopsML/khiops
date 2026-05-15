@@ -16,7 +16,7 @@ KWDataGridOptimizerParameters::KWDataGridOptimizerParameters()
 	bVarPartPostMerge = true;
 	bVarPartPostOptimize = true;
 	sInternalParameter = "";
-	bDisplayDetails = false;
+	bOptimizationProfiling = false;
 	nFreshness = 0;
 }
 
@@ -133,14 +133,14 @@ void KWDataGridOptimizerParameters::SetInternalParameter(const ALString& sValue)
 	nFreshness++;
 }
 
-boolean KWDataGridOptimizerParameters::GetDisplayDetails() const
+boolean KWDataGridOptimizerParameters::GetOptimizationProfiling() const
 {
-	return bDisplayDetails;
+	return bOptimizationProfiling;
 }
 
-void KWDataGridOptimizerParameters::SetDisplayDetails(boolean bValue)
+void KWDataGridOptimizerParameters::SetOptimizationProfiling(boolean bValue)
 {
-	bDisplayDetails = bValue;
+	bOptimizationProfiling = bValue;
 	nFreshness++;
 }
 
@@ -161,7 +161,7 @@ void KWDataGridOptimizerParameters::CopyFrom(const KWDataGridOptimizerParameters
 	bVarPartPostMerge = kwdgopSource->bVarPartPostMerge;
 	bVarPartPostOptimize = kwdgopSource->bVarPartPostOptimize;
 	sInternalParameter = kwdgopSource->sInternalParameter;
-	bDisplayDetails = kwdgopSource->bDisplayDetails;
+	bOptimizationProfiling = kwdgopSource->bOptimizationProfiling;
 }
 
 KWDataGridOptimizerParameters* KWDataGridOptimizerParameters::Clone() const
@@ -190,7 +190,7 @@ void KWDataGridOptimizerParameters::Write(ostream& ost) const
 	ost << bOptimize << ", ";
 	ost << bPostOptimize << ", ";
 	ost << sInternalParameter << ", ";
-	ost << bDisplayDetails << ")";
+	ost << bOptimizationProfiling << ")";
 }
 
 const ALString KWDataGridOptimizerParameters::GetClassLabel() const
@@ -253,7 +253,7 @@ void PLShared_DataGridOptimizerParameters::SerializeObject(PLSerializer* seriali
 	serializer->PutBoolean(dataGridOptimizerParameters->GetPostOptimize());
 	serializer->PutBoolean(dataGridOptimizerParameters->GetVarPartPostMerge());
 	serializer->PutBoolean(dataGridOptimizerParameters->GetVarPartPostOptimize());
-	serializer->PutBoolean(dataGridOptimizerParameters->GetDisplayDetails());
+	serializer->PutBoolean(dataGridOptimizerParameters->GetOptimizationProfiling());
 }
 
 void PLShared_DataGridOptimizerParameters::DeserializeObject(PLSerializer* serializer, Object* o) const
@@ -272,7 +272,7 @@ void PLShared_DataGridOptimizerParameters::DeserializeObject(PLSerializer* seria
 	dataGridOptimizerParameters->SetPostOptimize(serializer->GetBoolean());
 	dataGridOptimizerParameters->SetVarPartPostMerge(serializer->GetBoolean());
 	dataGridOptimizerParameters->SetVarPartPostOptimize(serializer->GetBoolean());
-	dataGridOptimizerParameters->SetDisplayDetails(serializer->GetBoolean());
+	dataGridOptimizerParameters->SetOptimizationProfiling(serializer->GetBoolean());
 }
 
 Object* PLShared_DataGridOptimizerParameters::Create() const
