@@ -60,7 +60,9 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 
 {
 	KWDataGridManager dataGridManager;
+	int nAttribute;
 	double dBestCost;
+	ALString sTmp;
 
 	require(GetDataGridCosts() != NULL);
 	require(GetDataGridCosts()->IsInitialized());
@@ -70,9 +72,6 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 	// Debut de suivi des taches
 	TaskProgression::BeginTask();
 	TaskProgression::DisplayMainLabel("Data Grid optimization");
-
-	// Ligne d'entete des messages
-	DisplayOptimizationHeaderLine();
 
 	//Initialisations
 	ResetProgressionIndicators();
@@ -91,6 +90,19 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 	SaveDataGrid(GetOptimizedNullDataGrid(), optimizedDataGrid);
 	dBestCost = GetOptimizedNullDataGridCost();
 
+	// Parametrage du profiling de l'optimisation
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("OptimizeDataGrid");
+	for (nAttribute = 0; nAttribute < initialDataGrid->GetAttributeNumber(); nAttribute++)
+	{
+		KWDataGridOptimizer::GetProfiler()->WriteKeyString(
+		    sTmp + "Variable" + IntToString(nAttribute + 1),
+		    initialDataGrid->GetAttributeAt(nAttribute)->GetAttributeName());
+	}
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Initial coclustering", initialDataGrid->GetObjectLabel());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Null coclustering",
+							   GetOptimizedNullDataGrid()->GetObjectLabel());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Null cost", dBestCost);
+
 	// Optimisation a partir d'une grille initiale complete si algorithme glouton
 	if (not TaskProgression::IsInterruptionRequested())
 		dBestCost = InternalOptimizeDataGrid(initialDataGrid, optimizedDataGrid);
@@ -99,143 +111,10 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 	// ainsi que les resultats de preparation des donnees
 	optimizedDataGrid->SortAttributeParts();
 
-						// Memorisation du nouvel optimum
-						dataGridManager.CopyDataGrid(granularizedOptimizedDataGrid,
-									     optimizedDataGrid);
-						if (bDisplayResults)
-						{
-							cout << "OptimizeDataGrid: Grille "
-								"granularizedOptimizedDataGrid"
-							     << endl;
-							granularizedOptimizedDataGrid->Write(cout);
-						}
-					}
-
-					// Cas ou il s'agit de la derniere granularite : on met a jour les infos dans le
-					// cas d'un coclustering
-					if (bIsLastGranularity)
-					{
-						if (bDisplayResults)
-							cout << "OptimizeDataGrid: Mise a jour de la "
-								"memorisation du "
-								"coclustering pour la derniere granularite "
-							     << endl;
-
-						HandleOptimizationStep(optimizedDataGrid, &granularizedDataGrid, true);
-					}
-
-					// Cas ou il s'agit de la derniere granularite : on met a jour les infos du
-					// coclustering
-					if (bIsLastGranularity)
-					{
-						if (bDisplayResults)
-							cout << "OptimizeDataGrid: Mise a jour de la memorisation du "
-								"coclustering pour la derniere granularite "
-							     << endl;
-
-						if (granularizedPostMergedOptimizedDataGrid
-							.GetInformativeAttributeNumber() == 0)
-							HandleOptimizationStep(optimizedDataGrid, &granularizedDataGrid,
-									       true);
-
-						else
-						{
-							// La grille source est la grille de reference qui contient la
-							// partition la plus fine
-							dataGridManager.ExportDataGridWithSingletonVarParts(
-							    GetInitialVarPartDataGrid(),
-							    &granularizedPostMergedOptimizedDataGrid,
-							    &partitionedReferenceGranularizedPostMergedDataGrid, true);
-							HandleOptimizationStep(
-							    &granularizedPostMergedOptimizedDataGrid,
-							    &partitionedReferenceGranularizedPostMergedDataGrid, false);
-							// Nettoyage
-							partitionedReferenceGranularizedPostMergedDataGrid.DeleteAll();
-						}
-					}
-
-					// Nettoyage
-					granularizedPostMergedOptimizedDataGrid.DeleteAll();
-				}
-
-				// Sinon : cas coclustering de variables
-				else
-				{
-					// Cas d'amelioration du cout
-					if (dGranularityBestCost < dBestCost - dEpsilon)
-					{
-						dBestCost = dGranularityBestCost;
-
-						// Memorisation du nouvel optimum
-						dataGridManager.CopyDataGrid(granularizedOptimizedDataGrid,
-									     optimizedDataGrid);
-						if (bDisplayResults)
-						{
-							cout << "OptimizeDataGrid: Grille granularizedOptimizedDataGrid"
-							     << endl;
-							granularizedOptimizedDataGrid->Write(cout);
-						}
-					}
-					// Cas ou il s'agit de la derniere granularite : on met a jour les infos dans le
-					// cas d'un coclustering
-					if (bIsLastGranularity)
-					{
-						if (bDisplayResults)
-							cout << "OptimizeDataGrid: Mise a jour de la memorisation du "
-								"coclustering pour la derniere granularite "
-							     << endl;
-
-						HandleOptimizationStep(optimizedDataGrid, &granularizedDataGrid, true);
-					}
-				}
-
-				// Nettoyage de la grille optimisee pour cette granularite
-				delete granularizedOptimizedDataGrid;
-				granularizedOptimizedDataGrid = NULL;
-
-				// Cas d'un temps limite: warning si arret avant avoir atteint granularite max
-				if (IsOptimizationTimeElapsed() and not bIsLastGranularity)
-				{
-					// Affichage d'un warning pour eventuelle modification de l'optimisation time
-					AddWarning(sTmp + "All the optimization time has been used until granularity " +
-						   IntToString(nGranularityIndex) + ", but maximum granularity (" +
-						   IntToString(nGranularityIndex) + ") has not been reached." +
-						   "You could obtain better results with larger optimization time.");
-					if (bDisplayResults)
-						cout << "OptimizeDataGrid :Totalite du temps alloue ecoule apres la "
-							"granularite \t"
-						     << nGranularityIndex << endl;
-
-					// Arret
-					break;
-				}
-
-				// Memorisation du nombre de parties par attribut pour comparaison a l'etape suivante
-				ivPreviousPartNumber.CopyFrom(&ivCurrentPartNumber);
-			}
-
-			// Nettoyage de la grille granularisee
-			granularizedDataGrid.DeleteAll();
-
-			// Granularite suivante
-			nGranularityIndex++;
-		}
-
-		// Post-optimisation de la granularite dans le le cas d'une grille supervisee pour laquelle
-		// la granularite fait partie des parametres du modele
-		if (IsSupervisedDataGrid(initialDataGrid))
-		{
-			// Post-optimisation de la granularite : on attribue a la grille optimale la plus petite
-			// granularite pour laquelle cette grille est definie
-			if (nLastExploredGranularity != -1 and
-			    optimizedDataGrid->GetGranularity() > nLastExploredGranularity + 1)
-				dBestCost = PostOptimizeGranularity(initialDataGrid, optimizedDataGrid,
-								    &odQuantileBuilders, nLastExploredGranularity);
-		}
-
-		// Nettoyage
-		odQuantileBuilders.DeleteAll();
-	}
+	// Parametrage du profiling de l'optimisation
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Best coclustering", optimizedDataGrid->GetObjectLabel());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Best cost", dBestCost);
+	KWDataGridOptimizer::GetProfiler()->EndMethod("OptimizeDataGrid");
 
 	// Fin de suivi des taches
 	TaskProgression::EndTask();
@@ -307,6 +186,25 @@ void KWDataGridOptimizer::SetOptimizationHandler(const KWAttributeSubsetStats* a
 const KWAttributeSubsetStats* KWDataGridOptimizer::GetOptimizationHandler()
 {
 	return attributeSubsetStatsOptimizationHandler;
+}
+
+void KWDataGridOptimizer::TraceOptimizationDetails(const ALString& sLabel, const KWDataGrid* optimizedDataGrid,
+						   boolean bTraceDataGrid) const
+{
+	require(optimizedDataGrid != NULL);
+
+	// Informations formattees sur une ligne
+	cout << "Iter " << nVNSIteration << "\t";
+	cout << "VNS " << nVNSNeighbourhoodLevelIndex << "/" << nVNSNeighbourhoodLevelNumber << "\t";
+	cout << "Ngh " << std::fixed << std::setprecision(6) << dVNSNeighbourhoodSize << "\t";
+	cout << optimizedDataGrid->GetObjectLabel() << "\t";
+	cout << dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) << "\t";
+	cout << timerOptimization.GetElapsedTime() << "\t";
+	cout << sLabel << endl;
+
+	// Details sur une grille
+	if (bTraceDataGrid)
+		cout << *optimizedDataGrid << endl;
 }
 
 const KWDataGrid* KWDataGridOptimizer::GetOptimizedInitialDataGrid() const
@@ -477,19 +375,10 @@ double KWDataGridOptimizer::OptimizeNeighbourSolution(const KWDataGrid* initialD
 	ALString sTmp;
 
 	// Generation d'une solution dans un voisinnage de la meilleure solution
-	KWDataGridOptimizer::GetProfiler()->BeginMethod("Generate neighbour solution");
-	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Neighbourhood size", dNoiseRate);
 	GenerateNeighbourSolution(initialDataGrid, currentOptimizedDataGrid, dNoiseRate, neighbourOptimizedDataGrid);
-	KWDataGridOptimizer::GetProfiler()->EndMethod("Generate neighbour solution");
 
 	// Optimisation de cette solution
-	KWDataGridOptimizer::GetProfiler()->BeginMethod("Optimize solution");
-	KWDataGridOptimizer::GetProfiler()->WriteKeyString("VNS level",
-							   sTmp + IntToString(nVNSNeighbourhoodLevelIndex) + "/" +
-							       IntToString(nVNSNeighbourhoodLevelNumber));
-	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("VNS neighbourhood size", dVNSNeighbourhoodSize);
 	dCost = OptimizeSolution(initialDataGrid, neighbourOptimizedDataGrid, bDeepPostOptimization);
-	KWDataGridOptimizer::GetProfiler()->EndMethod("Optimize solution");
 	return dCost;
 }
 
@@ -497,8 +386,8 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 						    const KWDataGrid* optimizedDataGrid, double dNoiseRate,
 						    KWDataGridMerger* neighbourDataGridMerger) const
 {
-	boolean bDisplayResults = false;
-	boolean bDisplayDetails = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
 	KWDataGridManager dataGridManager;
 	KWDataGrid mandatoryDataGrid;
 	int nMandatoryAttributeNumber;
@@ -522,15 +411,12 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	// Debut de tache
 	TaskProgression::BeginTask();
 	TaskProgression::DisplayMainLabel(sTmp + "New initial solution (" + DoubleToString(dNoiseRate) + ")");
-	if (bDisplayResults)
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("Generate neighbour solution");
+	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Neighbourhood size", dNoiseRate);
+	if (bTrace)
 	{
-		cout << "GenerateNeighbourSolution\t" << dNoiseRate << "\n";
-		cout << "\tinitialDataGrid\t" << dataGridCosts->ComputeDataGridTotalCost(initialDataGrid) << "\t"
-		     << initialDataGrid->GetObjectLabel() << "\n";
-		cout << "\toptimizedDataGrid\t" << dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) << "\t"
-		     << optimizedDataGrid->GetObjectLabel() << "\n";
-		if (bDisplayDetails)
-			cout << *optimizedDataGrid << "\n";
+		TraceOptimizationDetails("GenerateNeighbourSolution", optimizedDataGrid, bTraceDetails);
+		TraceOptimizationDetails("- initial solution", initialDataGrid, bTraceDetails);
 	}
 
 	// Initialisation de la taille de la grille prise en compte
@@ -602,17 +488,10 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	// Export des cellules
 	dataGridManager.ExportCells(initialDataGrid, neighbourDataGridMerger);
 
-	// Affichage final
-	if (bDisplayResults)
-	{
-		cout << "\tneighbourDataGridMerger\t"
-		     << dataGridCosts->ComputeDataGridTotalCost(neighbourDataGridMerger) << "\t"
-		     << neighbourDataGridMerger->GetObjectLabel() << "\n";
-		if (bDisplayDetails)
-			cout << *neighbourDataGridMerger << "\n";
-	}
-
 	// Fin de tache
+	KWDataGridOptimizer::GetProfiler()->EndMethod("Generate neighbour solution");
+	if (bTrace)
+		TraceOptimizationDetails("- neighbourhood solution", neighbourDataGridMerger, bTraceDetails);
 	TaskProgression::EndTask();
 	ensure(neighbourDataGridMerger->Check());
 }
@@ -620,10 +499,11 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, KWDataGridMerger* dataGridMerger,
 					     boolean bDeepPostOptimization) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
 	KWDataGridPostOptimizer dataGridPostOptimizer;
 	double dCost;
-	ALString sSuffix;
+	ALString sTmp;
 
 	require(GetDataGridCosts() != NULL);
 	require(GetDataGridCosts()->IsInitialized());
@@ -640,19 +520,19 @@ double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, 
 	dataGridMerger->SetDataGridCosts(dataGridCosts);
 	dataGridPostOptimizer.SetDataGridCosts(dataGridCosts);
 
-	// Affichage du cout initial
-	DisplayOptimizationDetails(dataGridMerger, false);
-
 	// Cout initial si aucune optimisation, ou si une trace est demandee
 	dCost = DBL_MAX;
 	if ((not optimizationParameters.GetOptimize() and not optimizationParameters.GetPreOptimize() and
 	     not optimizationParameters.GetPostOptimize()) or
-	    bDisplay or KWDataGridOptimizer::GetProfiler()->IsStarted())
+	    bTrace or KWDataGridOptimizer::GetProfiler()->IsStarted())
 		dCost = dataGridCosts->ComputeDataGridTotalCost(dataGridMerger);
-	if (bDisplay)
-		cout << "Affichage de l'evolution des couts" << dCost << "\n";
+
+	// Trace initiale
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("Optimize solution");
 	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", dataGridMerger->GetObjectLabel());
 	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dCost);
+	if (bTrace)
+		TraceOptimizationDetails("OptimizeSolution", dataGridMerger, bTraceDetails);
 
 	// Pre-optimisation de la grille
 	if (optimizationParameters.GetPreOptimize() and not TaskProgression::IsInterruptionRequested() and
@@ -660,25 +540,23 @@ double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, 
 	{
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("Pre-optimization");
 		dCost = dataGridPostOptimizer.PostOptimizeDataGrid(initialDataGrid, dataGridMerger, false);
-		if (bDisplay)
-			cout << dCost << "\n";
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", dataGridMerger->GetObjectLabel());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dCost);
 		KWDataGridOptimizer::GetProfiler()->EndMethod("Pre-optimization");
+		if (bTrace)
+			TraceOptimizationDetails("- pre-optimisation", dataGridMerger, bTraceDetails);
 	}
 
 	// Optimisation par fusion des groupes
 	if (optimizationParameters.GetOptimize() and not TaskProgression::IsInterruptionRequested())
 	{
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("Greedy merge optimization");
-		if (not bDeepPostOptimization)
-			KWDataGridOptimizer::GetProfiler()->WriteKeyBoolean("Slight", not bDeepPostOptimization);
 		dCost = dataGridMerger->Merge();
-		if (bDisplay)
-			cout << dCost << "\n";
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", dataGridMerger->GetObjectLabel());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dCost);
 		KWDataGridOptimizer::GetProfiler()->EndMethod("Greedy merge optimization");
+		if (bTrace)
+			TraceOptimizationDetails("- optimisation", dataGridMerger, bTraceDetails);
 	}
 
 	// Post-optimisation de la grille selon le niveau de post-optimisation
@@ -686,21 +564,20 @@ double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, 
 	    initialDataGrid->GetAttributeNumber() > 1)
 	{
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("Post-optimization");
+		KWDataGridOptimizer::GetProfiler()->WriteKeyBoolean("Deep", bDeepPostOptimization);
 		dCost =
 		    dataGridPostOptimizer.PostOptimizeDataGrid(initialDataGrid, dataGridMerger, bDeepPostOptimization);
-		if (bDisplay)
-			cout << dCost << "\n\n";
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", dataGridMerger->GetObjectLabel());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dCost);
 		KWDataGridOptimizer::GetProfiler()->EndMethod("Post-optimization");
+		if (bTrace)
+			TraceOptimizationDetails("- post-optimisation", dataGridMerger, bTraceDetails);
 	}
+	KWDataGridOptimizer::GetProfiler()->EndMethod("Optimize solution");
 
 	// Recalcul du cout si la tache est interrompue, pour sortir avec un cout coherent
 	if (TaskProgression::IsInterruptionRequested())
 		dCost = dataGridCosts->ComputeDataGridTotalCost(dataGridMerger);
-
-	// Affichage du cout final
-	DisplayOptimizationDetails(dataGridMerger, true);
 
 	// Retour du cout
 	ensure(dataGridMerger->Check());
@@ -841,51 +718,6 @@ void KWDataGridOptimizer::DisplayProgression(const KWDataGrid* dataGrid) const
 		// - 200% -> 96%
 		dProgression = tanh(nVNSIteration / dTotalIterNumber);
 		TaskProgression::DisplayProgression((int)(dProgression * 100));
-	}
-}
-
-void KWDataGridOptimizer::DisplayOptimizationHeaderLine() const
-{
-	if (optimizationParameters.GetDisplayDetails())
-	{
-		// Lignes d'entete
-		cout << "Context\tTime\tIter\tNeigh. size\t";
-		cout << "Initial\t\t\t\tFinal\t\t\t\t\n";
-		cout << "\t\t\t\tAtt. number\tPart number\tCell number\tCost\t";
-		cout << "Att. number\tPart number\tCell number\tCost\n";
-	}
-}
-
-void KWDataGridOptimizer::DisplayOptimizationDetails(const KWDataGrid* optimizedDataGrid, boolean bOptimized) const
-{
-	ALString sContext;
-	ALString sTmp;
-
-	// Affichage des details d'optimisation
-	if (optimizationParameters.GetDisplayDetails())
-	{
-		// Affichage de l'iteration
-		if (not bOptimized)
-		{
-			sContext = sTmp + "G=" + IntToString(optimizedDataGrid->GetGranularity());
-			if (optimizedDataGrid->IsVarPartDataGrid())
-				sContext +=
-				    sTmp + ", T=" +
-				    IntToString(
-					optimizedDataGrid->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts());
-			cout << sContext << "\t" << timerOptimization.GetElapsedTime() << "\t" << nVNSIteration << "\t"
-			     << dVNSNeighbourhoodSize << "\t";
-		}
-
-		// Affichage des caracteristiques de la grille terminale
-		cout << optimizedDataGrid->GetAttributeNumber() << "\t" << optimizedDataGrid->GetTotalPartNumber()
-		     << "\t" << optimizedDataGrid->GetCellNumber() << "\t"
-		     << dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
-		if (not bOptimized)
-			cout << "\t";
-		else
-			cout << "\n";
-		cout << flush;
 	}
 }
 

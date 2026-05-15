@@ -68,9 +68,11 @@ public:
 	const ALString& GetInternalParameter() const;
 	void SetInternalParameter(const ALString& sValue);
 
-	// Display details
-	boolean GetDisplayDetails() const;
-	void SetDisplayDetails(boolean bValue);
+	// Profiling de l'optimisation, avec memorisation dans des fichier localise au meme endroit que le rapport de coclustering
+	// - details de l'optimisation dans un fichier json
+	// - statistiques de l'optimisation dans un fichier tabulaire
+	boolean GetOptimizationProfiling() const;
+	void SetOptimizationProfiling(boolean bValue);
 
 	////////////////////////////////////////////////////////
 	// Divers
@@ -108,7 +110,7 @@ protected:
 	boolean bVarPartPostMerge;
 	boolean bVarPartPostOptimize;
 	ALString sInternalParameter;
-	boolean bDisplayDetails;
+	boolean bOptimizationProfiling;
 	int nFreshness;
 };
 

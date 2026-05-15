@@ -8,4 +8,4 @@ Rank;Name;Type;Style;Label
 7;VarPartPostMerge        ;boolean ;CheckBox;VarPart post-merge each solution
 8;VarPartPostOptimize     ;boolean ;CheckBox;VarPart post-optimize each solution
 9;InternalParameter       ;ALString;        ;Internal parameter
-10;DisplayDetails         ;boolean ;CheckBox;Display details
+10;OptimizationProfiling  ;boolean ;CheckBox;Optimization profiling
