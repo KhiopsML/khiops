@@ -22,6 +22,7 @@ runs:
       with:
         repository: KhiopsML/KhiopsNativeInterface-tutorial
         path: tutorial
+        ref: add-python-src
     - name: Compile C examples (Linux)
       shell: bash
       if: runner.os == 'Linux'
