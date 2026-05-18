@@ -162,6 +162,8 @@ The files are located in [python directory](python/). They use Python's `ctypes`
 - `KNIRecodeFile.py`: Single-table recoding example
 - `KNIRecodeMTFiles.py`: Multi-table recoding example
 
+**API Documentation**: See [Python API Reference](python/docs/index.html) for detailed documentation of the `kni` module.
+For detailed API documentation, see the [Python API Reference](python/docs/index.html)
 ## Launch
 
 Recode the "Iris" dataset from the data directory using the `SNB_Iris` classifier dictionary.

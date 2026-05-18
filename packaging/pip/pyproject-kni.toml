@@ -7,17 +7,20 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "khiops-kni"
-description = "Khiops Native Interface (KNI) - C library for model deployment and scoring."
-readme = "README.md"
+description = "Khiops Native Interface (KNI) - Python bindings and C library for model deployment and scoring."
+readme = {file = "packaging/pip/README-kni.md", content-type = "text/markdown"}
 license = "BSD-3-Clause-Clear"
 license-files = ["LICENSE"]
 authors = [{name = "The Khiops Team", email = "khiops.team@orange.com"}]
 dependencies = []
+requires-python = ">=3.9"
 dynamic = ["version"]
 
 [tool.scikit-build]
-# Neither Python code nor CPython library usage in this package so we specify full compatibility with all Python 3 releases
+# Python source code and C library are compatible with all Python 3 versions
 wheel.py-api = "py3"
+# Specify Python package location
+wheel.packages = ["packaging/pip/kni"]
 # Read CMake minimal version from file
 cmake.version = "CMakeLists.txt"
 # Generator specification and build configuration
@@ -64,9 +67,8 @@ version.result = "{major}.{minor}.{patch}{prereltype}{prereln}"
 version.remove = "(None){,2}$"  # prereltype and prereln groups are None if not found
 
 [tool.cibuildwheel]
-# Restrict builds to CPython 3.9 only: KNI is a pure C library with stable ABI, so wheels for other Python 3.x versions would be identical.
-# This avoids redundant builds and simplifies distribution; update if future ABI changes or Python-specific bindings are introduced.
-build = "cp39*"
+# Build once per platform for Python 3.10; wheel is compatible with all Python 3 versions
+build = "cp310-*"
 # KNI does not compile when using musl as the C standard library, and 32-bit is not supported
 skip = ["*musllinux*", "*win32*"]
 
