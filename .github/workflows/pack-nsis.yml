@@ -40,7 +40,7 @@ jobs:
   build:
     outputs:
       khiops-version: ${{ steps.get-version.outputs.khiops-version }}
-    runs-on: windows-2025
+    runs-on: windows-2025-vs2026
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
@@ -106,12 +106,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh --repo https://github.com/KhiopsML/kc-electron release download --pattern *.exe -D visualizations
-          gh --repo https://github.com/KhiopsML/kv-electron release download --pattern *.exe -D visualizations
-          cd visualizations
+          gh --repo https://github.com/KhiopsML/khiops-visualization-desktop release download --pattern *.exe -D visualization
+          cd visualization
           ls *
-          echo "KHIOPS_VIZ_FILENAME=$(ls khiops-covisualization-Setup*)" >> "$GITHUB_ENV"
-          echo "KHIOPS_COVIZ_FILENAME=$(ls khiops-visualization-Setup*)" >> "$GITHUB_ENV"
+          echo "KHIOPS_VIZ_FILENAME=$(ls khiops-visualization-desktop-Setup-*)" >> "$GITHUB_ENV"
       - name: Download samples
         shell: bash
         env:
@@ -134,7 +132,7 @@ jobs:
           echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
         shell: bash
       - name: Setup Software Trust Manager and sign
-        uses: digicert/code-signing-software-trust-action@v1.0.1
+        uses: digicert/code-signing-software-trust-action@v1.2.1
         if: ${{ inputs.signature-activation }}
         with:
           input: build/windows-msvc-release/bin/
@@ -147,7 +145,7 @@ jobs:
       - name: Install jsign
         if: ${{ inputs.signature-activation }}
         run: |
-          curl -L https://github.com/ebourg/jsign/releases/download/7.1/jsign-7.1.jar --output jsign.jar --output-dir /d
+          curl -L https://github.com/ebourg/jsign/releases/download/7.4/jsign-7.4.jar --output jsign.jar --output-dir /d
         shell: bash
       - name: Build NSIS package (signature is ON)
         if: ${{ inputs.signature-activation }}
@@ -161,8 +159,7 @@ jobs:
             /DJRE_PATH=..\..\..\assets\jre `
             /DMSMPI_INSTALLER_PATH=..\..\..\assets\${{ env.MSMPI_FILENAME }} `
             /DMSMPI_VERSION=${{ env.MSMPI_VERSION }} `
-            /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\visualizations\${{ env.KHIOPS_VIZ_FILENAME }} `
-            /DKHIOPS_COVIZ_INSTALLER_PATH=..\..\..\visualizations\${{ env.KHIOPS_COVIZ_FILENAME }} `
+            /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\visualization\${{ env.KHIOPS_VIZ_FILENAME }} `
             /DKHIOPS_SAMPLES_DIR=..\..\..\samples `
             /DSIGN `
             /DPATH_TO_JSIGN=D:\\jsign.jar `
@@ -183,12 +180,11 @@ jobs:
             /DJRE_PATH=..\..\..\assets\jre `
             /DMSMPI_INSTALLER_PATH=..\..\..\assets\${{ env.MSMPI_FILENAME }} `
             /DMSMPI_VERSION=${{ env.MSMPI_VERSION }} `
-            /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\visualizations\${{ env.KHIOPS_VIZ_FILENAME }} `
-            /DKHIOPS_COVIZ_INSTALLER_PATH=..\..\..\visualizations\${{ env.KHIOPS_COVIZ_FILENAME }} `
+            /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\visualization\${{ env.KHIOPS_VIZ_FILENAME }} `
             /DKHIOPS_SAMPLES_DIR=..\..\..\samples `
             khiops.nsi
       - name: Sign installer
-        uses: digicert/code-signing-software-trust-action@v1.0.1
+        uses: digicert/code-signing-software-trust-action@v1.2.1
         if: ${{ inputs.signature-activation }}
         with:
           input: packaging/windows/nsis/khiops-${{ env.KHIOPS_VERSION }}-setup.exe
@@ -228,7 +224,7 @@ jobs:
             ./build/windows-msvc-release/packages/khiops-core-${{ env.KHIOPS_VERSION }}.zip
   test-khiops:
     needs: build
-    runs-on: windows-2025
+    runs-on: windows-2025-vs2026
     steps:
       - name: Download NSIS installer artifact
         uses: actions/download-artifact@v8
@@ -267,7 +263,7 @@ jobs:
           binary-path: ${{ env.BIN_DIR }}
   test-kni:
     needs: build
-    runs-on: windows-2025
+    runs-on: windows-2025-vs2026
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
