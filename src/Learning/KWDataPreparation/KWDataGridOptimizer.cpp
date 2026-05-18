@@ -377,7 +377,7 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	if (bTrace)
 	{
 		TraceOptimizationDetails("GenerateNeighbourSolution", optimizedDataGrid, bTraceDetails);
-		TraceOptimizationDetails("- initial solution", optimizedDataGrid, bTraceDetails);
+		TraceOptimizationDetails("- initial solution", initialDataGrid, bTraceDetails);
 	}
 
 	// Initialisation de la taille de la grille prise en compte
