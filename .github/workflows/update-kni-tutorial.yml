@@ -36,6 +36,16 @@ jobs:
           cp khiops/src/Learning/KhiopsNativeInterface/KhiopsNativeInterface.h tutorial/include/
           cp khiops/src/Learning/KNITransfer/KNIRecodeFile.h tutorial/cpp/
           cp khiops/src/Learning/KNITransfer/KNIRecodeMTFiles.h tutorial/cpp/
+      - name: Setup Python for documentation generation
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: Generate Python API documentation
+        run: |
+          python -m pip install pdoc
+          mkdir -p tutorial/python/docs
+          # Generate docs directly from source (no wheel build needed)
+          PYTHONPATH=khiops/packaging/pip pdoc kni -o tutorial/python/docs
       - name: Update remote KNI-tutorial
         run: |-
           cd tutorial
