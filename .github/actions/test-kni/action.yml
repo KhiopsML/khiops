@@ -22,6 +22,7 @@ runs:
       with:
         repository: KhiopsML/KhiopsNativeInterface-tutorial
         path: tutorial
+        ref: add-python-src
     - name: Compile C examples (Linux)
       shell: bash
       if: runner.os == 'Linux'
@@ -126,5 +127,83 @@ runs:
           true
         else
           echo "::error::Recoding issue with java"
+          false
+        fi
+    - name: Install Python 3 (Linux)
+      shell: bash
+      if: runner.os == 'Linux'
+      run: |
+        # Install Python 3 if python3 command not available
+        if ! command -v python3 &> /dev/null
+        then
+          # Detect Debian based OS
+          if [ -d "/etc/apt" ]
+          then
+            apt-get update
+            apt-get install -y python3
+          else
+            # RHEL-based (Rocky, CentOS, etc.)
+            yum check-update || true
+            yum install -y python3.11
+            # Create python3 symlink for consistency
+            sudo alternatives --set python3 /usr/bin/python3.11 || sudo ln -sf /usr/bin/python3.11 /usr/bin/python3
+          fi
+        fi
+    - name: Run python mono-table example (Linux)
+      shell: bash
+      if: runner.os == 'Linux'
+      run: |
+        cd tutorial
+        bash $GITHUB_WORKSPACE/packaging/common/KNI/run-python-linux.sh
+    - name: Run python mono-table example (Windows)
+      shell: cmd
+      if: runner.os == 'Windows'
+      run: |
+        cd tutorial
+        set KNI_HOME=%GITHUB_WORKSPACE%/KNI
+        call %GITHUB_WORKSPACE%/packaging/common/KNI/run-python-windows.cmd
+    - name: Check python mono-table results
+      shell: bash
+      run: |-
+        if [ ! -f tutorial/R_Iris_python.txt ] ;
+        then
+          echo "::error::R_Iris_python.txt is missing"
+          false
+        fi
+        if diff -q tutorial/R_Iris_python.txt packaging/common/KNI/results.ref/R_Iris.txt > /dev/null ; 
+        then
+          echo "Python mono table recoding is OK"
+          true
+        else
+          echo "::error::Recoding issue with python"
+          false
+        fi
+    - name: Run python multi-table example (Linux)
+      shell: bash
+      if: runner.os == 'Linux'
+      run: |-
+        cd tutorial
+        bash $GITHUB_WORKSPACE/packaging/common/KNI/run-multitable-python-linux.sh
+    - name: Run python multi-table example (Windows)
+      shell: cmd
+      if: runner.os == 'Windows'
+      run: |-
+        cd tutorial
+        set KNI_HOME=%GITHUB_WORKSPACE%/KNI
+        call %GITHUB_WORKSPACE%/packaging/common/KNI/run-multitable-python-windows.cmd
+    - name: Check python multi-table results
+      shell: bash
+      run: |-
+        if [ ! -f tutorial/R_SpliceJunction_python.txt ] ;
+        then
+          echo "::error::R_SpliceJunction_python.txt is missing"
+          false
+        fi
+        if diff -q tutorial/R_SpliceJunction_python.txt packaging/common/KNI/results.ref/R_SpliceJunction.txt > /dev/null ; 
+        then
+          echo "Python multi table recoding is OK"
+          true
+        else
+          echo "::error::Recoding issue with python multi-table"
           false
         fi
