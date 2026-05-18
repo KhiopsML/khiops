@@ -104,7 +104,7 @@ kni.close_stream(stream_handle)
 
 ## Requirements
 
-- Python 3.9 or later
+- Python 3.10 or later
 - The KhiopsNativeInterface C library is bundled with this package
 
 ## License
