@@ -32,7 +32,7 @@ jobs:
         os:
           - ubuntu-24.04
           - ubuntu-24.04-arm
-          - windows-2025
+          - windows-2025-vs2026
           - macos-15-intel
           - macos-15
     steps:
@@ -44,7 +44,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: |
-          call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
+          call "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
           set >> %GITHUB_ENV%
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.4.1
@@ -97,7 +97,7 @@ jobs:
           - {os: ubuntu-24.04, image: ''}
           - {os: ubuntu-24.04-arm, image: ''}
           - {os: ubuntu-22.04, image: rockylinux:9}
-          - {os: windows-2025, image: ''}
+          - {os: windows-2025-vs2026, image: ''}
           - {os: macos-15, image: ''}
           - {os: macos-15-intel, image: ''}
     runs-on: ${{ matrix.setup.os }}
