@@ -172,6 +172,9 @@ boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDat
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Premiere passe de collecte d'un echantillon de tokens
 
+	// Personnalisation du libelle de la tache
+	SetTaskUserLabel(GetTaskName() + " (first pass)");
+
 	// Debut de la collecte des indicateurs de performance
 	StartCollectPerformanceIndicators(bTracePerformanceStats);
 
@@ -219,6 +222,9 @@ boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDat
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	// Deuxieme passe de collecte des effectifs exact par tokens
+
+	// Personnalisation du libelle de la tache
+	SetTaskUserLabel(GetTaskName() + " (second pass)");
 
 	// Collecte uniquement si necessaire
 	if (bOk)
@@ -268,6 +274,7 @@ boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDat
 	}
 
 	// Nettoyage
+	SetTaskUserLabel("");
 	oaMasterTextTokenizers.DeleteAll();
 	assert(oaSlaveTextTokenizers.GetSize() == 0);
 
