@@ -496,7 +496,7 @@ public:
 	void SetOwnerAttributeName(ALString sName);
 
 	// Parametrage des attributs internes dans le cas d'un attribut de grille de type VarPart
-	// On met a jour egalement le InitialValueNumber, qui doit correspondre au nombre tota de parties des attributs internes
+	// On met a jour egalement le InitialValueNumber, qui doit correspondre au nombre total de parties des attributs internes
 	// Note sur la gestion memoire des attributs internes
 	// - les attributs internes peuvent etre partagee entre plusieurs grilles
 	// - grace a un comptage de reference propre aux attributs internes, ceux-ci sont automatiquement
@@ -1797,18 +1797,22 @@ inline void KWDGAttribute::SetInnerAttributes(const KWDGInnerAttributes* attribu
 {
 	require(GetAttributeType() == KWType::VarPart);
 
-	// Decrementation des references sur les attributs internes d'origine, et desallocation si necessaire
-	if (innerAttributes != NULL)
+	// Gestion des compteur de reference sauf s'il ny a pas de changement d'attribut interne
+	if (attributes != innerAttributes)
 	{
-		innerAttributes->nRefCount--;
-		if (innerAttributes->nRefCount == 0)
-			delete innerAttributes;
-	}
+		// Decrementation des references sur les attributs internes d'origine, et desallocation si necessaire
+		if (innerAttributes != NULL)
+		{
+			innerAttributes->nRefCount--;
+			if (innerAttributes->nRefCount == 0)
+				delete innerAttributes;
+		}
 
-	// Incrementation des references sur les nouveaux attributs internes
-	if (attributes != NULL)
-		attributes->nRefCount++;
-	innerAttributes = attributes;
+		// Incrementation des references sur les nouveaux attributs internes
+		if (attributes != NULL)
+			attributes->nRefCount++;
+		innerAttributes = attributes;
+	}
 
 	// Mise a jour du nombre initial de parties de variable sur l'ensemble des attributs internes
 	if (attributes == NULL)
