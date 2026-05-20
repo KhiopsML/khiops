@@ -18,7 +18,6 @@ Current workflows (11):
 - `pack-debian.yml`
 - `pack-rpm.yml`
 - `pack-nsis.yml`
-- `pack-macos.yml`
 - `test-conda.yml`
 - `build-linux-pack-containers.yml`
 - `update-kni-tutorial.yml`
@@ -46,7 +45,6 @@ Reusable composite actions called by workflows:
 | `pack-debian.yml` | `check-tag-version`, `run-standard-tests`, `test-khiops-install`, `test-kni` |
 | `pack-rpm.yml` | `check-tag-version`, `run-standard-tests`, `test-khiops-install`, `test-kni` |
 | `pack-nsis.yml` | `build-khiops`, `check-tag-version`, `run-standard-tests`, `test-khiops-install`, `test-kni` |
-| `pack-macos.yml` | `build-khiops` |
 | `test-conda.yml` | `run-standard-tests`, `test-khiops-install` |
 
 ### Action Guidelines
@@ -89,7 +87,6 @@ Packaging responsibilities:
 - `pack-debian.yml`: DEB packages
 - `pack-rpm.yml`: RPM packages
 - `pack-nsis.yml`: Windows NSIS installer
-- `pack-macos.yml`: macOS package/archive
 
 Guidelines:
 - Keep package naming/versioning consistent with `KHIOPS_VERSION`
