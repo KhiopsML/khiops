@@ -3038,7 +3038,7 @@ boolean KWDGAttribute::Check() const
 		if (bOk and nInitialValueNumber != innerAttributes->ComputeTotalInnerAttributeVarParts())
 		{
 			AddError(
-			    "Initial value number must be equal to the total number of part of the inner variablkes");
+			    "Initial value number must be equal to the total number of parts of the inner variables");
 			bOk = false;
 		}
 	}
