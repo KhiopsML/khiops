@@ -131,6 +131,7 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 
 	require(postProcessedCoclusteringDataGrid != NULL);
 	require(postProcessedCoclusteringDataGrid->GetAttributeNumber() > 0);
+	require(postProcessedCoclusteringDataGrid->Check());
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Preparation du post-traitement et des contraintes a verifier
@@ -256,6 +257,7 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 		}
 	}
 	postProcessedCoclusteringDataGrid->SetCellUpdateMode(false);
+	ensure(postProcessedCoclusteringDataGrid->Check());
 	return bOk;
 }
 

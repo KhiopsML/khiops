@@ -385,6 +385,16 @@ boolean CCCoclusteringReport::InternalReadReport(CCHierarchicalDataGrid* coclust
 		bOk = bOk and ReadCells(coclusteringDataGrid);
 	}
 
+	// Verification de la validite du parsing
+	if (bOk and not bHeaderOnly)
+	{
+		if (not coclusteringDataGrid->Check())
+		{
+			bOk = false;
+			AddError("Invalid read coclustering");
+		}
+	}
+
 	// Gestion des erreurs
 	Global::DesactivateErrorFlowControl();
 	return bOk;
@@ -744,10 +754,10 @@ boolean CCCoclusteringReport::ReadInnerAttributesDimensionSummaries(KWDGAttribut
 	KWDGInnerAttributes* innerAttributes;
 
 	require(dgAttribute != NULL);
+	require(dgAttribute->GetAttributeType() == KWType::VarPart);
 
 	// Creation des attributs internes
 	innerAttributes = new KWDGInnerAttributes();
-	dgAttribute->SetInnerAttributes(innerAttributes);
 
 	// Tableau principal
 	bOk = bOk and JSONTokenizer::ReadKeyArray("dimensionSummaries");
@@ -840,6 +850,11 @@ boolean CCCoclusteringReport::ReadInnerAttributesDimensionSummaries(KWDGAttribut
 		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsEnd);
 	}
 
+	// Parametrage des attributs internes, ce qui positionne egalement le initialValueNumber
+	if (bOk)
+		dgAttribute->SetInnerAttributes(innerAttributes);
+	else
+		delete innerAttributes;
 	return bOk;
 }
 
