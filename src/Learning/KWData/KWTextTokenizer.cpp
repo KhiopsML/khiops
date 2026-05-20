@@ -143,6 +143,7 @@ void KWTextTokenizer::ExportTokens(ObjectArray* oaTokenFrequencies) const
 
 void KWTextTokenizer::ExportFrequentTokens(ObjectArray* oaTokenFrequencies, int nMaxTokenNumber) const
 {
+	const boolean bTrace = false;
 	const int nMaxCollectedFrequency = 1000;
 	const LongintDictionary* ldCollectedTokens;
 	const LongintDictionary* ldSpecificTokens;
@@ -155,6 +156,7 @@ void KWTextTokenizer::ExportFrequentTokens(ObjectArray* oaTokenFrequencies, int 
 	int nSpecificTokenIndex;
 	KWTokenFrequency* token;
 	int nIndex;
+	Timer traceTimer;
 
 	require(not IsDeploymentMode());
 	require(gdCollectedTokens != NULL);
@@ -163,6 +165,19 @@ void KWTextTokenizer::ExportFrequentTokens(ObjectArray* oaTokenFrequencies, int 
 	require(nMaxTokenNumber >= 0);
 	require(oaTokenFrequencies != NULL);
 	require(oaTokenFrequencies->GetSize() == 0);
+
+	// Debut de la trace
+	if (bTrace)
+	{
+		cout << "ExportFrequentTokens\n";
+		cout << "- max tokens\t" << nMaxTokenNumber << "\n";
+		cout << "- collected tokens\t" << gdCollectedTokens->GetCount() << "\t"
+		     << LongintToHumanReadableString(gdCollectedTokens->GetOverallUsedMemory()) << "\n";
+		if (gdSpecificTokens != NULL)
+			cout << "- specific tokens\t" << gdSpecificTokens->GetCount() << "\t"
+			     << LongintToHumanReadableString(gdSpecificTokens->GetOverallUsedMemory()) << "\n";
+		traceTimer.Start();
+	}
 
 	// Choix du type de dictionnaire selon le type de cle
 	ldCollectedTokens = cast(const LongintDictionary*, gdCollectedTokens);
@@ -245,9 +260,29 @@ void KWTextTokenizer::ExportFrequentTokens(ObjectArray* oaTokenFrequencies, int 
 			}
 		}
 	}
-	// Filtrage de la fin du tableau apres tri
+	if (bTrace)
+	{
+		traceTimer.Stop();
+		cout << "- exported tokens\t" << oaTokenFrequencies->GetSize() << "\t"
+		     << LongintToHumanReadableString(oaTokenFrequencies->GetOverallUsedMemory()) << "\n";
+		cout << "- export time\t" << traceTimer.GetElapsedTime() << "\n";
+		traceTimer.Reset();
+		traceTimer.Start();
+	}
+
+	// Tri du tableau
 	SortTokenArray(oaTokenFrequencies);
+	if (bTrace)
+	{
+		cout << "- sort time\t" << traceTimer.GetElapsedTime() << "\n";
+		traceTimer.Reset();
+		traceTimer.Start();
+	}
+
+	// Filtrage de la fin du tableau apres le tri
 	FilterTokenArray(oaTokenFrequencies, nMaxTokenNumber);
+	if (bTrace)
+		cout << "- filter time\t" << traceTimer.GetElapsedTime() << "\n";
 }
 
 void KWTextTokenizer::CleanCollectedTokens()
@@ -933,6 +968,7 @@ void KWTextNgramTokenizer::SetSpecificTokens(const ObjectArray* oaTokens)
 
 void KWTextNgramTokenizer::ExportFrequentTokens(ObjectArray* oaTokenFrequencies, int nMaxTokenNumber) const
 {
+	const boolean bTrace = false;
 	const int nMaxCollectedFrequency = 1000;
 	const LongintNumericKeyDictionary* lnkdCollectedTokens;
 	const LongintNumericKeyDictionary* lnkdSpecificTokens;
@@ -945,6 +981,7 @@ void KWTextNgramTokenizer::ExportFrequentTokens(ObjectArray* oaTokenFrequencies,
 	int nSpecificTokenIndex;
 	KWTokenFrequency* token;
 	int nIndex;
+	Timer traceTimer;
 
 	require(gdCollectedTokens != NULL);
 	require(not gdCollectedTokens->IsStringKey());
@@ -952,6 +989,19 @@ void KWTextNgramTokenizer::ExportFrequentTokens(ObjectArray* oaTokenFrequencies,
 	require(nMaxTokenNumber >= 0);
 	require(oaTokenFrequencies != NULL);
 	require(oaTokenFrequencies->GetSize() == 0);
+
+	// Debut de la trace
+	if (bTrace)
+	{
+		cout << "ExportFrequentTokens\n";
+		cout << "- max tokens\t" << nMaxTokenNumber << "\n";
+		cout << "- collected tokens\t" << gdCollectedTokens->GetCount() << "\t"
+		     << LongintToHumanReadableString(gdCollectedTokens->GetOverallUsedMemory()) << "\n";
+		if (gdSpecificTokens != NULL)
+			cout << "- specific tokens\t" << gdSpecificTokens->GetCount() << "\t"
+			     << LongintToHumanReadableString(gdSpecificTokens->GetOverallUsedMemory()) << "\n";
+		traceTimer.Start();
+	}
 
 	// Choix du type de dictionnaire selon le type de cle
 	lnkdCollectedTokens = cast(const LongintNumericKeyDictionary*, gdCollectedTokens);
@@ -1031,10 +1081,29 @@ void KWTextNgramTokenizer::ExportFrequentTokens(ObjectArray* oaTokenFrequencies,
 			}
 		}
 	}
+	if (bTrace)
+	{
+		traceTimer.Stop();
+		cout << "- exported tokens\t" << oaTokenFrequencies->GetSize() << "\t"
+		     << LongintToHumanReadableString(oaTokenFrequencies->GetOverallUsedMemory()) << "\n";
+		cout << "- export time\t" << traceTimer.GetElapsedTime() << "\n";
+		traceTimer.Reset();
+		traceTimer.Start();
+	}
 
-	// Filtrage de la fin du tableau apres tri
+	// Tri du tableau
 	SortTokenArray(oaTokenFrequencies);
+	if (bTrace)
+	{
+		cout << "- sort time\t" << traceTimer.GetElapsedTime() << "\n";
+		traceTimer.Reset();
+		traceTimer.Start();
+	}
+
+	// Filtrage de la fin du tableau apres le tri
 	FilterTokenArray(oaTokenFrequencies, nMaxTokenNumber);
+	if (bTrace)
+		cout << "- filter time\t" << traceTimer.GetElapsedTime() << "\n";
 }
 
 void KWTextNgramTokenizer::CumulateTokenFrequencies(const ObjectArray* oaTokens)
