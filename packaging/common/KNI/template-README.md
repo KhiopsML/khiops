@@ -167,7 +167,7 @@ This installs both the `kni` Python module and the KhiopsNativeInterface shared 
 - `KNIRecodeFile.py`: Single-table recoding example
 - `KNIRecodeMTFiles.py`: Multi-table recoding example
 
-**API Documentation**: See [Python API Reference](python/docs/index.html) for detailed documentation of the `kni` module.
+**API Documentation**: See [Python API Reference](python/docs/kni.md) for detailed documentation of the `kni` module.
 
 ## Launch
 
