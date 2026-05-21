@@ -731,27 +731,19 @@ boolean DTAttributeSelectionsSlices::Check() const
 	int nSlice;
 	int i;
 	KWAttribute* previousAttribute;
-	KWDataTableSlice* previousSlice;
 	KWAttribute* attribute;
 	DTTreeAttribute* treeattribute;
 	KWDataTableSlice* slice;
 	ALString sTmp;
 	ObjectArray oaSlices;
-	nkdSlices.ExportObjectArray(&oaSlices);
-
-	// Il doit y avoir au moins une paire
 
 	// Collecte dans un dictionnaire des tranches et de leurs attributs
 	if (bOk)
 	{
-		previousSlice = NULL;
+		nkdSlices.ExportObjectArray(&oaSlices);
 		for (nSlice = 0; nSlice < oaSlices.GetSize(); nSlice++)
 		{
 			slice = cast(KWDataTableSlice*, oaSlices.GetAt(nSlice));
-
-			// Erreur si probleme d'ordre
-			assert(previousSlice == NULL or previousSlice->CompareLexicographicOrder(slice) < 0);
-			previousSlice = slice;
 
 			// Erreur si tranche deja utilisee
 			if (odSlices.Lookup(slice->GetClass()->GetName()) != NULL)
