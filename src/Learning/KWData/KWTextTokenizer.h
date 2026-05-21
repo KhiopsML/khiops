@@ -98,7 +98,7 @@ public:
 	void ExportTokens(ObjectArray* oaTokenFrequencies) const;
 
 	// Variante de la methode en se limitant aux tokens les plus frequents
-	virtual void ExportFrequentTokens(ObjectArray* oaTokenFrequencies, int nMaxTokenNumber) const;
+	void ExportFrequentTokens(ObjectArray* oaTokenFrequencies, int nMaxTokenNumber) const;
 
 	// Nettoyage des tokens collectes
 	void CleanCollectedTokens();
@@ -298,6 +298,12 @@ protected:
 	// Calcul de l'effectif total cumule des tokens
 	longint ComputeTotalTokenFrequency() const;
 
+	// Parcours de toutes les paires (token, value) d'un dictionnaire de token
+	// Ce parcours est fait de facon generique pour tous les types de dictionnaires de token
+	virtual POSITION GetStartTokenPosition(const GenericDictionary*) const;
+	virtual void GetNextToken(const GenericDictionary*, POSITION& rNextPosition, ALString& sToken,
+				  longint& lValue) const;
+
 	// Dictionnaire generique de longint definissant les tokens specifiques a collecter avec
 	// une paire (token, index) par token a collecter
 	// Les index commencent a 1 pour se distinguer de la valeur 0, qui signifie absent du dictionnaire
@@ -336,7 +342,6 @@ public:
 
 	// Redefinition des methodes virtuelles
 	void SetSpecificTokens(const ObjectArray* oaTokens) override;
-	void ExportFrequentTokens(ObjectArray* oaTokenFrequencies, int nMaxTokenNumber) const override;
 	void CumulateTokenFrequencies(const ObjectArray* oaTokens) override;
 	void SetDeploymentTokens(const StringVector* svDeploymentTokens) override;
 
@@ -357,6 +362,11 @@ protected:
 
 	// Mise a jour de l'effectif d'un token de type ngrams
 	void UpgradeNgramTokenFrequency(longint lEncodedNgram, longint lFrequency);
+
+	// Parcours de toutes les paires (token, frequency) d'un dictionnaire de token
+	POSITION GetStartTokenPosition(const GenericDictionary* gdDictionary) const override;
+	void GetNextToken(const GenericDictionary* gdDictionary, POSITION& rNextPosition, ALString& sToken,
+			  longint& lValue) const override;
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	// Gestion optimisee des ngrams
