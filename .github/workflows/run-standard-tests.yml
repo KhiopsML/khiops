@@ -42,7 +42,7 @@ jobs:
     strategy:
       matrix:
         build-setup:
-          - {os: windows-2022, cmake-preset: windows-msvc}
+          - {os: windows-2025-vs2026, cmake-preset: windows-msvc}
           - {os: ubuntu-latest, cmake-preset: linux-gcc}
           - {os: ubuntu-24.04-arm, cmake-preset: linux-gcc}
           - {os: macos-14, cmake-preset: macos-clang}
@@ -92,7 +92,7 @@ jobs:
       fail-fast: false
       matrix:
         build-setup:
-          - {os: windows-2022, cmake-preset: windows-msvc}
+          - {os: windows-2025-vs2026, cmake-preset: windows-msvc}
           - {os: ubuntu-latest, cmake-preset: linux-gcc}
           - {os: ubuntu-24.04-arm, cmake-preset: linux-gcc}
           - {os: macos-14, cmake-preset: macos-clang}

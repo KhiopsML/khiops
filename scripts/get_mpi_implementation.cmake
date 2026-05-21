@@ -18,6 +18,12 @@ function(get_mpi_implementation)
         COMMAND grep mpi
         OUTPUT_VARIABLE VAR_MPI_INFO)
     endif()
+    if(VAR_MPI_INFO STREQUAL "")
+      message(
+        FATAL_ERROR
+          "No MPI implementation found in conda environment. Please make sure to install an MPI implementation (e.g. `conda install openmpi`)"
+      )
+    endif()
   elseif(IS_PIP)
     set(DETECTION_MESSAGE "from pip environment")
 
@@ -39,10 +45,12 @@ function(get_mpi_implementation)
     set(VAR_MPI_INFO "${MPI_LIBRARIES}")
   endif(IS_CONDA)
 
-  # ERROR if VAR_MPI_INFO is not defined, it means either: - in standard environment find_mpi provides no MPI path (MPI
-  # is not installed) - or in conda build, the 'mpi' variable is missing and find_mpi may find the system wide mpi, this
-  # is not not what we want. - or in conda, outside of the build process, the mpi package is not installed and find_mpi
-  # may find the system wide mpi.
+  # cmake-format: off
+  # ERROR if VAR_MPI_INFO is not defined, it means either: 
+  # - in standard environment find_mpi provides no MPI path (MPI is not installed) 
+  # - or in conda build, the 'mpi' variable is missing and find_mpi may find the system wide mpi, this is not not what we want. 
+  # - or in conda, outside of the build process, the mpi package is not installed and find_mpi may find the system wide mpi.
+  # cmake-format: on
   if(NOT DEFINED VAR_MPI_INFO OR "${VAR_MPI_INFO}" STREQUAL "")
     message(FATAL_ERROR "Missing information to discover the MPI implementation")
   endif()

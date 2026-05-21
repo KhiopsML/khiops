@@ -111,13 +111,6 @@ if(DEFINED ENV{CONDA_PREFIX} AND NOT "$ENV{CONDA_PREFIX}" STREQUAL "")
   message(STATUS "Auto-detected conda environment")
 endif()
 
-if(IS_CONDA AND MPI)
-  if(NOT DEFINED ENV{mpi})
-    message(
-      WARNING "You are building in a conda environment without using `conda build`. find_mpi may not work as expected.")
-  endif()
-endif()
-
 if(IS_PIP AND IS_CONDA)
   message(FATAL_ERROR "Building in a conda environment and using scikit-build-core")
 endif()
