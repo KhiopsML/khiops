@@ -121,6 +121,7 @@ void KWTextTokenizer::CumulateTokenFrequencies(const ObjectArray* oaTokens)
 	require(not IsDeploymentMode());
 	require(CheckParameters());
 	require(oaTokens != NULL);
+	require(gdCollectedTokens->GetCount() <= GetMaxCollectedTokenNumber());
 
 	// Prise en compte des effectifs des tokens
 	for (nToken = 0; nToken < oaTokens->GetSize(); nToken++)
@@ -130,6 +131,12 @@ void KWTextTokenizer::CumulateTokenFrequencies(const ObjectArray* oaTokens)
 		// Ajout de l'effectif du token
 		UpgradeTokenFrequency(token->GetToken(), token->GetFrequency());
 	}
+
+	// Nettoyage du dictionnaire de collecte pour ne garder que les tokens les plus frequents
+	// dans le cas sans tokens specifiques
+	if (gdSpecificTokens == NULL)
+		StreamCleanTokenDictionary(gdCollectedTokens, GetMaxCollectedTokenNumber());
+	ensure(gdCollectedTokens->GetCount() <= GetMaxCollectedTokenNumber());
 }
 
 void KWTextTokenizer::ExportTokens(ObjectArray* oaTokenFrequencies) const
@@ -1114,6 +1121,7 @@ void KWTextNgramTokenizer::CumulateTokenFrequencies(const ObjectArray* oaTokens)
 
 	require(CheckParameters());
 	require(oaTokens != NULL);
+	require(gdCollectedTokens->GetCount() <= GetMaxCollectedTokenNumber());
 
 	// Prise en compte des effectifs des tokens
 	for (nToken = 0; nToken < oaTokens->GetSize(); nToken++)
@@ -1124,6 +1132,12 @@ void KWTextNgramTokenizer::CumulateTokenFrequencies(const ObjectArray* oaTokens)
 		lEncodedNgram = NgramToLongint(token->GetToken());
 		UpgradeNgramTokenFrequency(lEncodedNgram, token->GetFrequency());
 	}
+
+	// Nettoyage du dictionnaire de collecte pour ne garder que les tokens les plus frequents
+	// dans le cas sans tokens specifiques
+	if (gdSpecificTokens == NULL)
+		StreamCleanTokenDictionary(gdCollectedTokens, GetMaxCollectedTokenNumber());
+	ensure(gdCollectedTokens->GetCount() <= GetMaxCollectedTokenNumber());
 }
 
 void KWTextNgramTokenizer::SetDeploymentTokens(const StringVector* svDeploymentTokens)

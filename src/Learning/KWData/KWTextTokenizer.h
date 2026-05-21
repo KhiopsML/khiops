@@ -82,7 +82,7 @@ public:
 	void TokenizeSymbolVector(const SymbolVector* svValues);
 
 	// Prise en compte des effectifs d'un tableau de tokens pour mettre a jour les effectifs globaux des tokens
-	// collectes
+	// collectes, tout en respectant le nombre max de token a collecter
 	virtual void CumulateTokenFrequencies(const ObjectArray* oaTokens);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
@@ -305,8 +305,8 @@ protected:
 	GenericDictionary* gdSpecificTokens;
 
 	// Vecteur des effectifs par token specifique
-	// Ce vecteur sert egalement d'indicateur d'utilisation par token specifique, en testant si l'effectif est non
-	// nul
+	// Ce vecteur sert egalement d'indicateur d'utilisation par token specifique,
+	// en testant si l'effectif est non nul
 	LongintVector lvSpecificTokenFrequencies;
 
 	// Memorisation des index des tokens specifiques effectivement utilises
