@@ -71,7 +71,15 @@ runs:
           export PARALLEL_ARG="-p 4"
         fi
         if [[ "${{ inputs.config }}" == "release" ]] ; then
+          DURATION_MAX_S=2
+          START=$(date +%s)
           $PYTHON $TEST_PY test/LearningTest/TestKhiops/Standard "${{ inputs.binary-path }}" ${PARALLEL_ARG}
+          END=$(date +%s)
+          DURATION=$((END - START))
+          echo "TestKhiops/Standard took ${DURATION} seconds"
+          if [ $DURATION -gt $DURATION_MAX_S ]; then
+            echo "::error::TestKhiops/Standard took ${DURATION} seconds (exceeds ${DURATION_MAX_S} second threshold)"
+          fi
           $PYTHON $TEST_PY test/LearningTest/TestCoclustering/Standard "${{ inputs.binary-path }}" ${PARALLEL_ARG}
           if [[ "${{ inputs.running-mode }}" != "parallel" ]] ; then 
             $PYTHON $TEST_PY test/LearningTest/TestKNI/Standard "${{ inputs.binary-path }}"
