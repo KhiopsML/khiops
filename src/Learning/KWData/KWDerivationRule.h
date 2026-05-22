@@ -1400,7 +1400,10 @@ inline Symbol KWDerivationRuleOperand::GetTextValue(const KWObject* kwoObject) c
 	debug(require(IsCompiled()));
 	require(kwoObject != NULL);
 	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
-	require(GetType() == KWType::Text);
+
+	// Tolerance dans le cas d'un type Text attendu, avec un constante de type Symbol
+	require(GetType() == KWType::Text or
+		(GetType() == KWType::Symbol and cCompiledOrigin == CompiledOriginConstant));
 
 	return (cCompiledOrigin == CompiledOriginAttribute
 		    ? kwoObject->ComputeTextValueAt(liDataItemLoadIndex)
