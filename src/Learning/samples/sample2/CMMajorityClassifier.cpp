@@ -132,7 +132,7 @@ void CMMajorityClassifier::InternalTrainMC2(KWTrainedClassifier* trainedClassifi
 KWAttribute* CMMajorityClassifier::AddClassifierAttribute(KWTrainedClassifier* trainedClassifier,
 							  ObjectArray* oaDataPreparationUsedAttributes)
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	int nAttribute;
 	KWDataPreparationAttribute* dataPreparationAttribute;
 	KWDerivationRuleOperand* operand;

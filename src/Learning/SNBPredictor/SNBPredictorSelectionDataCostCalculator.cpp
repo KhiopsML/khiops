@@ -1737,7 +1737,7 @@ boolean SNBGeneralizedClassifierSelectionDataCostCalculator::Create()
 
 void SNBGeneralizedClassifierSelectionDataCostCalculator::InitializeTargetValueGroupMatchings()
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	int nAttribute;
 	const KWDGSAttributePartition* targetPartition;
 	const KWDGSAttributeGrouping* targetValueGroupsPartition;

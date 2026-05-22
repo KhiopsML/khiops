@@ -436,7 +436,7 @@ boolean KWKeyPositionFinderTask::ComputeResourceRequirements()
 boolean KWKeyPositionFinderTask::MasterInitialize()
 {
 	boolean bOk = true;
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	longint lSlaveGrantedMemory;
 	longint lReadBufferSize;
 	int nPreferredBufferSize;
@@ -564,7 +564,7 @@ boolean KWKeyPositionFinderTask::MasterPrepareTaskInput(double& dTaskPercent, bo
 boolean KWKeyPositionFinderTask::MasterAggregateResults()
 {
 	boolean bOk = true;
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	ObjectArray* oaKeyPositionSample;
 	KWKeyPosition* keyPosition1;
 	KWKeyPosition* keyPosition2;
@@ -689,7 +689,7 @@ boolean KWKeyPositionFinderTask::MasterAggregateResults()
 boolean KWKeyPositionFinderTask::MasterFinalize(boolean bProcessEndedCorrectly)
 {
 	boolean bOk = true;
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	int i;
 	ObjectArray* oaKeyPositionSubset;
 	int j;
@@ -984,7 +984,7 @@ boolean KWKeyPositionFinderTask::SlaveInitialize()
 boolean KWKeyPositionFinderTask::SlaveProcess()
 {
 	boolean bOk = true;
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	KWKey keyStore1;
 	KWKey keyStore2;
 	KWKey* previousKey;

@@ -210,7 +210,7 @@ boolean KWSampleGenerator::CheckAttributeSubsetStats(KWAttributeSubsetStats* att
 
 void KWSampleGenerator::InitFromAttributeSubsetStats(KWAttributeSubsetStats* attributeSubsetStats)
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	KWDRDataGrid* dataGridRule;
 	const KWDGSAttributePartition* attributePartition;
 	KWDataGridStats* targetValueStats;

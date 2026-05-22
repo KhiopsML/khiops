@@ -766,7 +766,7 @@ boolean KWDatabaseTask::SlaveProcess()
 boolean KWDatabaseTask::SlaveProcessStartDatabase()
 {
 	boolean bOk = true;
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	KWDatabase* sourceDatabase;
 	PLSTDatabaseTextFile* sourceSTDatabase;
 	PLMTDatabaseTextFile* sourceMTDatabase;
@@ -1061,7 +1061,7 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabaseObject(const KWObject* kwoObj
 boolean KWDatabaseTask::SlaveProcessStopDatabase(boolean bProcessEndedCorrectly)
 {
 	boolean bOk = true;
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	PLMTDatabaseTextFile* sourceMTDatabase;
 	PLSTDatabaseTextFile* sourceSTDatabase;
 	int i;

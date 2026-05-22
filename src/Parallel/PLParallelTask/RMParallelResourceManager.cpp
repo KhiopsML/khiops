@@ -1858,8 +1858,8 @@ void PLHostClassSolution::SetHostCountPerProcNumber(const IntVector* ivValue)
 boolean PLHostClassSolution::AllowsOnMoreProc(int nProcHost) const
 {
 	int i;
-	const boolean bVerbose = false;
-	if (bVerbose)
+	const boolean bTrace = false;
+	if (bTrace)
 	{
 		cout << "AllowsOnMoreProc ";
 		for (i = 0; i < ivHostCountPerProcNumber.GetSize(); i++)
@@ -1868,11 +1868,11 @@ boolean PLHostClassSolution::AllowsOnMoreProc(int nProcHost) const
 	if (ivHostCountPerProcNumber.GetAt(nProcHost) != 0 and   // Si il y a des machines qui ont nProcHost procs
 	    nProcHost != ivHostCountPerProcNumber.GetSize() - 1) // que nProcHost n'est pas le nombre max de proc
 	{
-		if (bVerbose)
+		if (bTrace)
 			cout << " OK" << endl << endl;
 		return true;
 	}
-	if (bVerbose)
+	if (bTrace)
 	{
 		cout << " FAILED" << endl << endl;
 	}
@@ -1886,7 +1886,7 @@ void PLHostClassSolution::SortHosts()
 
 void PLHostClassSolution::Write(ostream& ost) const
 {
-	const boolean bVerbose = false;
+	const boolean bTrace = false;
 	int i;
 	hostClass->Write(ost);
 	for (i = 0; i < ivHostCountPerProcNumber.GetSize(); i++)
@@ -1896,7 +1896,7 @@ void PLHostClassSolution::Write(ostream& ost) const
 			    << " procs" << endl;
 	}
 	ost << endl;
-	if (bVerbose)
+	if (bTrace)
 	{
 		ost << "\t";
 		for (i = 0; i < ivHostCountPerProcNumber.GetSize(); i++)

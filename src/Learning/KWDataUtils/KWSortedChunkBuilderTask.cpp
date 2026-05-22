@@ -559,7 +559,7 @@ boolean KWSortedChunkBuilderTask::SlaveInitialize()
 boolean KWSortedChunkBuilderTask::SlaveProcess()
 {
 	boolean bOk = true;
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	longint lSlaveEncodingErrorNumber;
 	PLParallelTask* errorSender;
 	KWKey key;

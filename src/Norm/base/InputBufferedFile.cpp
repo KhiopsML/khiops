@@ -2538,7 +2538,7 @@ boolean InputBufferedFile::InternalFillBytes(longint& lBeginPos, int nSizeToFill
 boolean InputBufferedFile::InternalRawFillBytes(longint lBeginPos, int nSizeToFill)
 {
 	boolean bOk = true;
-	boolean bVerbose = false;
+	const boolean bTrace = false;
 	int nYetToRead;
 	int nRemainingInCache; // Quantite de donnee qui est deja contenue dans le cache (en segments entiers)
 	int nDataFromCache;    // Quantite de donnee qui est deja contenue dans le cache
@@ -2558,7 +2558,7 @@ boolean InputBufferedFile::InternalRawFillBytes(longint lBeginPos, int nSizeToFi
 	nDataFromCache = 0;
 	nRemainingInCache = 0;
 
-	if (bVerbose)
+	if (bTrace)
 	{
 		cout << "InternalFillBytes at " << LongintToReadableString(lBeginPos) << " size "
 		     << LongintToReadableString(nSizeToFill) << " file size " << LongintToReadableString(lFileSize)
@@ -2599,7 +2599,7 @@ boolean InputBufferedFile::InternalRawFillBytes(longint lBeginPos, int nSizeToFi
 			nBufferStartInCache = int(lBeginPos - lCacheStartInFile);
 			nPositionInCache = nBufferStartInCache;
 			nLastBolPositionInCache = nPositionInCache;
-			if (bVerbose)
+			if (bTrace)
 				cout << "\tBuffer is contained in cache at "
 				     << LongintToReadableString(nBufferStartInCache) << endl;
 		}
@@ -2621,7 +2621,7 @@ boolean InputBufferedFile::InternalRawFillBytes(longint lBeginPos, int nSizeToFi
 			// Decalage de segments entiers au debut du cache
 			MoveLastSegmentsToHead(&fcCache.cvBuffer, nSizeToRemove / InternalGetBlockSize());
 
-			if (bVerbose)
+			if (bTrace)
 			{
 				cout << "\tThe beginning of the buffer is contained in the cache" << endl;
 				cout << "\tdata size already in cache in cache "
@@ -2681,10 +2681,10 @@ boolean InputBufferedFile::InternalRawFillBytes(longint lBeginPos, int nSizeToFi
 		nCurrentBufferSize = (int)min((longint)nSizeToFill, lFileSize - lBeginPos);
 	}
 
-	if (bVerbose)
+	if (bTrace)
 		cout << "\tbuffer size " << LongintToReadableString(nCurrentBufferSize) << endl;
 
-	if (bVerbose)
+	if (bTrace)
 		cout << "\tFillBytes end: " << bIsError << endl;
 	ensure(bOk == not bIsError);
 	ensure(not bOk or GetPositionInFile() == lBeginPos);
@@ -2697,7 +2697,7 @@ boolean InputBufferedFile::FillCache(longint lFilePos, int nSizeToCopy, int nPos
 {
 	int nLocalRead;
 	boolean bOk = true;
-	boolean bVerbose = false;
+	const boolean bTrace = false;
 	char* sBuffer;
 	int nSizeToRead;
 	int nHugeBufferSize;
@@ -2731,7 +2731,7 @@ boolean InputBufferedFile::FillCache(longint lFilePos, int nSizeToCopy, int nPos
 		// Lecture
 		if (bOk)
 		{
-			if (bVerbose)
+			if (bTrace)
 			{
 				cout << "\tRead " << LongintToReadableString(nSizeToCopy) << " starting from "
 				     << LongintToReadableString(lFilePos) << " to pos "

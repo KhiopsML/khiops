@@ -876,7 +876,7 @@ void KDSelectionOperandDataSampler::ExtractSelectionObjectValues(KDClassSelectio
 
 void KDSelectionOperandDataSampler::ExtractAllSelectionReferencedObjects(KWMTDatabase* inputDatabase)
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	const KWObjectReferenceResolver* objectReferenceSolver;
 	ObjectArray oaRootClasses;
 	int nClass;

@@ -640,7 +640,7 @@ boolean KWDRDataGridBlockRule::CheckPredictorCompleteness(int nPredictorType, co
 void KWDRDataGridBlockRule::BuildAllUsedAttributes(const KWAttribute* derivedAttribute,
 						   NumericKeyDictionary* nkdAllUsedAttributes) const
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	const KWDRDataGridBlock* firstOperandDataGridBlock;
 	KWAttributeBlock* secondOperandAttributeBlock;
 	NumericKeyDictionary nkdInitialAllUsedAttributes;

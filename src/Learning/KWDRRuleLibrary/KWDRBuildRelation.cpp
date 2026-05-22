@@ -955,7 +955,7 @@ KWObject* KWDRBuildEntityFromJson::CreateObjectFromJsonObject(const KWObject* kw
 							      const KWClass* kwcCreationClass,
 							      const JSONObject* jsonObject) const
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	KWObject* kwoTargetObject;
 	KWObject* kwoTargetSubObject;
 	KWAttribute* attribute;
@@ -1224,7 +1224,7 @@ KWObject* KWDRBuildEntityFromJson::CreateObjectFromJsonValue(
     const KWObject* kwoOwnerObject, const KWLoadIndex liAttributeLoadIndex, const KWClass* kwcCreationClass,
     const KWAttribute* singleNativeAttribute, const JSONMember* jsonOwnerArray, const JSONValue* jsonValue) const
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	KWObject* kwoTargetObject;
 	ObjectArray* oaSubObjects;
 

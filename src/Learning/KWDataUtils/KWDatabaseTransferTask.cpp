@@ -758,7 +758,7 @@ boolean KWDatabaseTransferTask::SlaveProcessExploitDatabaseObject(const KWObject
 boolean KWDatabaseTransferTask::SlaveProcessStopDatabase(boolean bProcessEndedCorrectly)
 {
 	boolean bOk = true;
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	PLSTDatabaseTextFile* targetSTDatabase;
 	PLMTDatabaseTextFile* targetMTDatabase;
 	OutputBufferedFile* outputBuffer;

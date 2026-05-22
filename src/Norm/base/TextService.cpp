@@ -571,7 +571,7 @@ boolean TextService::JsonToCString(const char* sJsonString, ALString& sCString)
 
 void TextService::CToJsonString(const ALString& sCString, ALString& sJsonString)
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	int nMaxValidUTF8CharLength;
 	int i;
 	unsigned char c;

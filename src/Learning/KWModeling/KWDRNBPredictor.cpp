@@ -1049,7 +1049,7 @@ void KWDRNBClassifier::ExportAttributeNames(const KWClass* kwcOwnerClass, String
 					    StringVector* svPredictorAttributeDataGridNames,
 					    ObjectArray* oaPredictorDenseAttributeDataGridStatsRules) const
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	const KWDRNBClassifier referenceNBRule;
 	const KWDRSNBClassifier referenceSNBRule;
 	KWAttribute* attribute;
