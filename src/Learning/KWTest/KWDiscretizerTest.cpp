@@ -758,7 +758,7 @@ boolean KWContinuousSampleDiscretizerTest::ComputeStats()
 {
 	boolean bExportSampleFiles = false;
 	boolean bExportStatFiles = false;
-	boolean bDisplayNonNulDiscretizations = false;
+	const boolean bTrace = false;
 	KWSTDatabaseTextFile sampleDatabase;
 	KWTupleTableLoader tupleTableLoader;
 	KWTupleTable tupleTable;
@@ -842,7 +842,7 @@ boolean KWContinuousSampleDiscretizerTest::ComputeStats()
 			nPartNumber = dataGridStats->GetAttributeAt(0)->GetPartNumber();
 
 		// Affichage des discretisations
-		if (bDisplayNonNulDiscretizations and nPartNumber > 1)
+		if (bTrace and nPartNumber > 1)
 		{
 			int j;
 			cout << "Example\t" << nSampleSize << "\t" << nPartNumber << "\t:";

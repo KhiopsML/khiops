@@ -38,7 +38,7 @@ void KWSNBStudy::Test()
 
 void KWSNBStudy::Study()
 {
-	boolean bDisplayCase = false;
+	const boolean bTrace = false;
 	int nP000;
 	int nP001;
 	int nP010;
@@ -107,7 +107,7 @@ void KWSNBStudy::Study()
 								    nProbBinNumber - (nP000 + nP001 + nP010 + nP011 +
 										      nP100 + nP101 + nP110);
 								{
-									if (bDisplayCase)
+									if (bTrace)
 									{
 										cout << nCaseNumber << "\t" << nP000
 										     << "\t" << nP001 << "\t" << nP010
@@ -152,7 +152,7 @@ void KWSNBStudy::Study()
 void KWSNBStudy::StudyOneCase(int nCaseIndex)
 {
 	int nDisplayedCase = 0;
-	boolean bDisplayDKL = false;
+	const boolean bTrace = false;
 
 	// Calcul des probabilites conditionnelles
 	ComputeTrueConditionalProbs();
@@ -180,7 +180,7 @@ void KWSNBStudy::StudyOneCase(int nCaseIndex)
 	}
 
 	// Afficage des divergences
-	if (bDisplayDKL)
+	if (bTrace)
 	{
 		// Entete
 		if (nCaseIndex == 0)
