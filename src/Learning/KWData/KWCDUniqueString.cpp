@@ -177,7 +177,7 @@ void KWCDUniqueStringDictionary::RemoveUniqueString(KWCDUniqueStringDataPtr uniq
 
 void KWCDUniqueStringDictionary::RemoveAll()
 {
-	boolean bShowAllocErrorMessages = false;
+	boolean bTrace = false;
 	int nHashPosition;
 	KWCDUniqueStringDataPtr pUniqueStringData;
 	KWCDUniqueStringDataPtr pUniqueStringDataNext;
@@ -186,9 +186,8 @@ void KWCDUniqueStringDictionary::RemoveAll()
 	// On ne montre les erreurs de non liberation de UniqueString qu'en mode expert
 	// pour le dictionnaire global des UniqueString et en release, pour ne pas
 	// avoir de reporting verbeux systematique en debug
-	bShowAllocErrorMessages =
-	    bShowAllocErrorMessages and this == &(KWCDUniqueString::sdSharedUniqueStrings) and GetLearningExpertMode();
-	debug(bShowAllocErrorMessages = false);
+	bTrace = bTrace and this == &(KWCDUniqueString::sdSharedUniqueStrings) and GetLearningExpertMode();
+	debug(not bTrace);
 
 	// Nettoyage des cles de la table de hashage
 	nMessageIndex = 0;
@@ -201,7 +200,7 @@ void KWCDUniqueStringDictionary::RemoveAll()
 			pUniqueStringDataNext = pUniqueStringData->pNext;
 
 			// Affichage des informations sur le UniqueString non libere
-			if (bShowAllocErrorMessages)
+			if (bTrace)
 			{
 				ShowAllocErrorMessage(pUniqueStringData, nMessageIndex);
 				nMessageIndex++;
@@ -218,7 +217,7 @@ void KWCDUniqueStringDictionary::RemoveAll()
 	}
 
 	// Affichage synthetique sur l'enseble des symboles non liberes
-	if (bShowAllocErrorMessages)
+	if (bTrace)
 	{
 		if (nMessageIndex > 0)
 		{
@@ -421,7 +420,7 @@ void KWCDUniqueStringDictionary::Test()
 
 void KWCDUniqueStringDictionary::ReinitHashTable(int nNewHashSize)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	Timer timer;
 	int i;
 	int nHashPosition;
@@ -430,7 +429,7 @@ void KWCDUniqueStringDictionary::ReinitHashTable(int nNewHashSize)
 	KWCDUniqueStringDataPtr pAllUniqueStringDatas;
 
 	// Affichage du debut de la methode
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "ReinitHashTable (" << GetCount() << "," << GetHashTableSize() << ")";
 		cout << " -> " << nNewHashSize << ": " << flush;
@@ -479,7 +478,7 @@ void KWCDUniqueStringDictionary::ReinitHashTable(int nNewHashSize)
 	}
 
 	// Affichage de la fin de la methode
-	if (bDisplay)
+	if (bTrace)
 	{
 		timer.Stop();
 		cout << timer.GetElapsedTime() << endl;

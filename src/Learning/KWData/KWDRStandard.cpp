@@ -289,7 +289,7 @@ void KWDRValueBlockRule::CopyFrom(const KWDerivationRule* kwdrSource)
 
 void KWDRValueBlockRule::DynamicCompile(const KWIndexedKeyBlock* indexedKeyBlock) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWAttributeBlock* originAttributeBlock;
 	const KWIndexedKeyBlock* sourceIndexedKeyBlock;
 	const KWIndexedNKeyBlock* indexedNKeyBlock;
@@ -374,7 +374,7 @@ void KWDRValueBlockRule::DynamicCompile(const KWIndexedKeyBlock* indexedKeyBlock
 			ivNewValueIndexes.SetSize(0);
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 		{
 			cout << GetClassName() << " " << GetName() << endl;
 			cout << "\tSource block: " << *sourceIndexedKeyBlock;

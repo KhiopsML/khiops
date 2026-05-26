@@ -861,7 +861,7 @@ void KWDatabase::RemoveAll()
 
 void KWDatabase::DeleteAll()
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	Timer timer;
 	boolean bIsInTask;
 	int nObject;
@@ -891,7 +891,7 @@ void KWDatabase::DeleteAll()
 			// Suivi de la tache (sans test d'interruption: il faut detruire tous les objets)
 			if (TaskProgression::IsRefreshNecessary(nObject))
 				TaskProgression::DisplayProgression((int)(nObject * 100.0 / oaAllObjects.GetSize()));
-			if (bDisplay)
+			if (bTrace)
 			{
 				if (nObject == 0)
 					cout << "Database " << GetDatabaseName() << " DeleteAll" << endl;

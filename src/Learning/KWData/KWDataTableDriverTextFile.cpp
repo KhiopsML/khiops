@@ -863,7 +863,7 @@ longint KWDataTableDriverTextFile::ComputeOpenNecessaryMemory(boolean bRead)
 
 longint KWDataTableDriverTextFile::ComputeNecessaryMemoryForFullExternalRead(const KWClass* kwcLogicalClass)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	longint lNecessaryMemory;
 	longint lFileTotalSize;
 	int nDenseNativeValueNumber;
@@ -998,7 +998,7 @@ longint KWDataTableDriverTextFile::ComputeNecessaryMemoryForFullExternalRead(con
 			    (1 + nDenseNativeValueNumber * 2 + nSparseNativeValueNumber * 5));
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 		{
 			cout << "ComputeNecessaryMemoryForFullExternalRead " << GetDataTableName() << endl;
 			cout << "\tNecessaryMemory\t" << lNecessaryMemory << endl;
@@ -1020,7 +1020,7 @@ longint KWDataTableDriverTextFile::ComputeNecessaryMemoryForFullExternalRead(con
 longint KWDataTableDriverTextFile::ComputeNecessaryDiskSpaceForFullWrite(const KWClass* kwcLogicalClass,
 									 longint lInputFileSize)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	longint lNecessaryDiskSpace;
 	longint lEstimatedRecordNumber;
 	longint lWrittenObjectSize;
@@ -1045,7 +1045,7 @@ longint KWDataTableDriverTextFile::ComputeNecessaryDiskSpaceForFullWrite(const K
 		lNecessaryDiskSpace = lEstimatedRecordNumber * lWrittenObjectSize;
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 		{
 			cout << "ComputeNecessaryDiskSpaceForFullWrite " << GetDataTableName() << endl;
 			cout << "\tNecessaryDiskSpace\t" << lNecessaryDiskSpace << endl;
@@ -1104,7 +1104,7 @@ longint KWDataTableDriverTextFile::GetUsedMemory() const
 longint KWDataTableDriverTextFile::GetInMemoryEstimatedObjectNumber(const KWClass* kwcLogicalClass,
 								    longint lInputFileSize) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	longint lEstimatedObjectNumber;
 	longint lNativeObjectDiskSpace;
 
@@ -1120,7 +1120,7 @@ longint KWDataTableDriverTextFile::GetInMemoryEstimatedObjectNumber(const KWClas
 	lEstimatedObjectNumber = 1 + lInputFileSize / lNativeObjectDiskSpace;
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "GetEstimatedObjectNumber " << GetDataTableName() << endl;
 		cout << "\tDictionary\t" << GetClass()->GetName() << endl;
@@ -1133,7 +1133,7 @@ longint KWDataTableDriverTextFile::GetInMemoryEstimatedObjectNumber(const KWClas
 
 longint KWDataTableDriverTextFile::GetEstimatedUsedInputDiskSpacePerObject(const KWClass* kwcLogicalClass) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	int nDenseNativeValueNumber;
 	int nTextNativeValueNumber;
 	int nSparseNativeValueNumber;
@@ -1200,7 +1200,7 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedInputDiskSpacePerObject(const
 			     KWClass::nKeyFieldSize; // Taille des champs de la cle (heuristique)
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "GetEstimatedUsedInputDiskSpacePerObject"
 		     << "\n";
@@ -1215,7 +1215,7 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedInputDiskSpacePerObject(const
 
 longint KWDataTableDriverTextFile::GetEstimatedUsedOutputDiskSpacePerObject(const KWClass* kwcLogicalClass) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	int nDenseLoadedValueNumber;
 	int nTextLoadedValueNumber;
 	int nBlockEstimatedLoadedValueNumber;
@@ -1312,7 +1312,7 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedOutputDiskSpacePerObject(cons
 		lWrittenObjectSize += nBlockEstimatedDenseOverhead;
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "ComputeNecessaryDiskSpaceForFullWrite " << GetDataTableName() << endl;
 		cout << "\tDictionary\t" << GetClass()->GetName() << endl;
@@ -1687,7 +1687,7 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 							      const KWClass* kwcHeaderLineClass)
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	int i;
 	ObjectDictionary odKeyFieldIndexes;
 	IntObject* keyFieldIndex;
@@ -1986,7 +1986,7 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 	odKeyFieldIndexes.DeleteAll();
 
 	// Affichage du resultat d'indexation
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Compute data item indexes of dictionary " << kwcClass->GetName() << " " << GetDataTableName()
 		     << endl;

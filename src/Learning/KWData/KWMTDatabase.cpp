@@ -518,7 +518,7 @@ void KWMTDatabase::SetSilentMode(boolean bValue)
 
 longint KWMTDatabase::GetUsedMemory() const
 {
-	boolean bShowMemory = false;
+	const boolean bTrace = false;
 	longint lUsedMemory;
 
 	// Methode ancetre
@@ -534,7 +534,7 @@ longint KWMTDatabase::GetUsedMemory() const
 	lUsedMemory += objectReferenceResolver.GetUsedMemory() - sizeof(KWObjectReferenceResolver);
 
 	// Affichage des stats memoire
-	if (bShowMemory)
+	if (bTrace)
 	{
 		cout << "KWMTDatabase::GetUsedMemory, base memory: " << KWDatabase::GetUsedMemory() << endl;
 		cout << "KWMTDatabase::GetUsedMemory, mapping manager memory: " << mappingManager.GetUsedMemory()

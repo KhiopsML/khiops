@@ -720,7 +720,7 @@ void KWDateFormat::AddFormat(ObjectArray* oaFormats, const ALString& sFormatStri
 void KWDateFormat::UnitTest(const ALString& sInputValue, KWDateFormat* inputFormat, KWDateFormat* outputFormat)
 {
 	boolean bOk = true;
-	boolean bShow = false;
+	const boolean bTrace = false;
 	Date dtInputValue;
 	Date dtOutputValue;
 	ALString sOutputValue;
@@ -737,7 +737,7 @@ void KWDateFormat::UnitTest(const ALString& sInputValue, KWDateFormat* inputForm
 	if (outputFormat->Check())
 		dtOutputValue = outputFormat->StringToDate(sOutputValue);
 	bOk = (not inputFormat->Check() or not outputFormat->Check() or dtOutputValue == dtInputValue);
-	if (bShow or not bOk)
+	if (bTrace or not bOk)
 	{
 		cout << sInputValue << "\t";
 		cout << inputFormat->GetFormatString() << "\t";

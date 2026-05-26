@@ -538,7 +538,7 @@ void KWSymbolDictionary::InitHashTable(int nHashSize)
 
 void KWSymbolDictionary::ReinitHashTable(int nNewHashSize)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	Timer timer;
 	int i;
 	int nHashPosition;
@@ -547,7 +547,7 @@ void KWSymbolDictionary::ReinitHashTable(int nNewHashSize)
 	KWSymbolDataPtr pAllSymbolDatas;
 
 	// Affichage du debut de la methode
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Symbol ReinitHashTable (" << GetCount() << "," << GetHashTableSize() << ")";
 		cout << " -> " << nNewHashSize << ": " << flush;
@@ -596,7 +596,7 @@ void KWSymbolDictionary::ReinitHashTable(int nNewHashSize)
 	}
 
 	// Affichage de la fin de la methode
-	if (bDisplay)
+	if (bTrace)
 	{
 		timer.Stop();
 		cout << timer.GetElapsedTime() << endl;
