@@ -117,6 +117,17 @@ protected:
 
 	// Fraicheur d'optimisation
 	int nOptimizationFreshness;
+
+	// Valeur standard correspondant a la StarValue
+	// La StarValue designe toute valeur autre qu'une valeur utilisateur provenant
+	// des donnees pour representer toutes les valeurs non vues en apprentissage.
+	// Le premier operande de type ValueSetC du DataGridBlock peut alors comporter
+	// une valeur coincidant avec la StarValue, alors que c'est la valeur utilisateur
+	// correspondante qu'il faut utiliser.
+	// On memorise cette valeur standard pour remplacer la StarValue a la volee
+	// par la valeur standard correspondant dans l'acces aux valeurs du ValueSetC
+	// Cela permet de reutiliser la regle ValueSetC avec une adaptation minimale.
+	Symbol sStandardStarValue;
 };
 
 ///////////////////////////////////////////////////////////////
@@ -392,10 +403,14 @@ inline int KWDRDataGridBlock::GetDataGridVarKeyType() const
 
 inline Symbol KWDRDataGridBlock::GetSymbolVarKeyAt(int nIndex) const
 {
+	Symbol sVarKey;
 	require(IsCompiled());
 	require(nDataGridVarKeyType == KWType::Symbol);
 	require(0 <= nIndex and nIndex < GetDataGridNumber());
-	return cast(KWDRSymbolValueSet*, GetFirstOperand()->GetDerivationRule())->GetValueAt(nIndex);
+	sVarKey = cast(KWDRSymbolValueSet*, GetFirstOperand()->GetDerivationRule())->GetValueAt(nIndex);
+	if (sVarKey == Symbol::GetStarValue())
+		sVarKey = sStandardStarValue;
+	return sVarKey;
 }
 
 inline int KWDRDataGridBlock::GetContinuousVarKeyAt(int nIndex) const
@@ -420,13 +435,19 @@ inline int KWDRDataGridBlock::GetUncheckedDataGridNumber() const
 
 inline Symbol KWDRDataGridBlock::GetUncheckedSymbolVarKeyAt(int nIndex) const
 {
+	Symbol sVarKey;
+
 	require(GetUncheckedDataGridVarKeyType() == KWType::Symbol);
 	require(0 <= nIndex and nIndex < GetUncheckedVarKeyNumber());
-	return cast(KWDRSymbolValueSet*, GetFirstOperand()->GetDerivationRule())->GetValueAt(nIndex);
+	sVarKey = cast(KWDRSymbolValueSet*, GetFirstOperand()->GetDerivationRule())->GetValueAt(nIndex);
+	if (sVarKey == Symbol::GetStarValue())
+		sVarKey = sStandardStarValue;
+	return sVarKey;
 }
 
 inline int KWDRDataGridBlock::GetUncheckedContinuousVarKeyAt(int nIndex) const
 {
+
 	require(GetUncheckedDataGridVarKeyType() == KWType::Continuous);
 	require(0 <= nIndex and nIndex < GetUncheckedVarKeyNumber());
 	return (int)cast(KWDRContinuousValueSet*, GetFirstOperand()->GetDerivationRule())->GetValueAt(nIndex);

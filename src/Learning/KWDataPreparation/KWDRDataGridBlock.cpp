@@ -38,6 +38,12 @@ KWDRDataGridBlock::KWDRDataGridBlock()
 	nOptimizationFreshness = 0;
 	nDataGridAttributeNumber = 0;
 	nDataGridVarKeyType = KWType::Unknown;
+
+	// Initialisation de la valeur standard correspondant a la StarValue
+	// Attention, bien que Symbol::GetStarValue() et sStandardStarValue soient
+	// toutes deux des Symbol ayant la meme valeur, il ne faut pas les confondre.
+	// Voir KWSymbolData::GetStarValue() pour plus de precision
+	sStandardStarValue = Symbol(Symbol::GetStarValue().GetValue());
 }
 
 KWDRDataGridBlock::~KWDRDataGridBlock() {}
@@ -554,8 +560,8 @@ boolean KWDRDataGridBlockRule::CheckOperandsCompleteness(const KWClass* kwcOwner
 						// Erreur si cle absente
 						if (nSourceIndex == -1)
 						{
-							AddError(sTmp + "VarKey " + sKey.GetValue() +
-								 " in data grid block first operand is missing in "
+							AddError(sTmp + "VarKey \"" + sKey.GetValue() +
+								 "\" in data grid block first operand is missing in "
 								 "value block second operand");
 							bOk = false;
 							break;
@@ -1198,10 +1204,9 @@ boolean KWDRCellIndexBlock::CheckBlockAttributesAt(const KWClass* kwcOwnerClass,
 				if (not bVarKeyFound)
 				{
 					sExternalVarKey = attributeBlock->GetStringVarKey(checkedAttribute);
-					attributeBlock->AddError("Variable " + checkedAttribute->GetName() +
-								 +" not found with its VarKey=" + sExternalVarKey +
-								 " in data grid block first operand of rule " +
-								 GetName());
+					attributeBlock->AddError(
+					    "Variable " + checkedAttribute->GetName() + " not found with its VarKey " +
+					    sExternalVarKey + " in data grid block first operand of rule " + GetName());
 					bOk = false;
 					break;
 				}
