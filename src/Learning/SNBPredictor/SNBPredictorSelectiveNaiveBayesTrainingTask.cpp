@@ -205,7 +205,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::IsTrainingSuccessful() cons
 
 boolean SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeResourceRequirements()
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	const int nAbsoluteMaxSlaveProcessNumber = 10000;
 	int nMaxSlaveProcessNumber;
 	int nMaxSliceNumber;
@@ -222,7 +222,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeResourceRequirements
 	longint lGlobalSlaveDisk;
 
 	// Entete trace
-	if (bDisplay)
+	if (bTrace)
 		cout << "Tracing resource estimations\n";
 
 	// Estimation du nombre optimal de processus esclaves pour l'apprentissage
@@ -272,7 +272,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeResourceRequirements
 	GetResourceRequirements()->SetMemoryAllocationPolicy(RMTaskResourceRequirement::globalPreferred);
 
 	// Trace de deboggage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "proc max                   = " << nMaxSlaveProcessNumber << "\n";
 		cout << "slice max                  = " << nMaxSliceNumber << "\n";
@@ -391,7 +391,7 @@ int SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeMaxSliceNumber() const
 
 longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSharedNecessaryMemory(longint lSliceSetBufferMemory)
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	longint lBinarySliceSetSchemaMemory;
 	longint lOverallAttributeStatsMemory;
 	longint lRecodingObjectsMemory;
@@ -411,7 +411,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSharedNecessaryMemor
 	lSharedMemory = lBinarySliceSetSchemaMemory + lOverallAttributeStatsMemory + lRecodingObjectsMemory;
 
 	// Trace de deboggage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Shared memory estimation (s.set buffer size "
 		     << LongintToHumanReadableString(lSliceSetBufferMemory) << ") :\n";
@@ -445,7 +445,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeMasterNecessaryMemor
 longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveNecessaryMemory(int nSliceNumber,
 										       longint lSliceSetBufferMemory)
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	int nInstanceNumber;
 	int nAttributeNumber;
 	int nSparseAttributeNumber;
@@ -498,7 +498,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveNecessary
 	// Le compromis est que on interdit certains solutions avec un moindre nombre de slices.
 
 	// Trace de deboggage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Global slave memory estimation (" << nSliceNumber << " slices, s.set buffer "
 		     << LongintToHumanReadableString(lSliceSetBufferMemory) << "):\n";
@@ -577,7 +577,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveBinarySli
 longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSlaveNecessaryMemory(int nSlaveProcessNumber,
 										 int nSliceNumber)
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	int nInstanceNumber;
 	int nAttributeNumber;
 	longint lLayoutMemory;
@@ -604,7 +604,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeSlaveNecessaryMemory
 	lSlaveMemory = lLayoutMemory + lTargetValuesMemory + lBinarySliceSetSelfMemory + lSelectionScorerMemory;
 
 	// Trace de deboggage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Slave memory estimation (" << nSlaveProcessNumber << " slave processes, " << nSliceNumber
 		     << " slices):\n";
@@ -681,7 +681,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeDataPreparationClass
 longint
 SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeRecodingObjectsNecessaryMemory(longint lSliceSetBufferMemory)
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	const double dCompilationFactor = 1.5;
 	const double dPhysicalClassFactor = 2.0;
 	longint lDataPreparationClassMemory;
@@ -699,7 +699,7 @@ SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeRecodingObjectsNecessaryMemo
 				 lSliceSetTotalReadBufferMemory;
 
 	// Trace de deboggage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Recoding objects memory  (s.set buffer " << LongintToHumanReadableString(lSliceSetBufferMemory)
 		     << "):\n";
@@ -894,7 +894,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitialize()
 
 boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBinarySliceSet()
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	int nSlaveProcessNumber;
 	boolean bOk = false;
 	int nSliceNumber;
@@ -1036,7 +1036,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 			 RMResourceManager::BuildMissingMemoryMessage(lSlaveNecessaryMemory - lSlaveGrantedMemory));
 
 	// Trace de deboggage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "-------------------------------------------------------\n";
 		cout << "status                      = " << (bOk ? "OK" : "KO") << "\n";
@@ -1388,7 +1388,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::AllFastRunStepTasksAreFinis
 
 void SNBPredictorSelectiveNaiveBayesTrainingTask::UpdateSelection()
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 
 	require(IsMasterProcess());
 
@@ -1446,7 +1446,7 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::UpdateSelection()
 	}
 
 	// Trace de deboggage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << masterRandomAttribute->GetNativeAttributeName() << "\t"
 		     << (nMasterTaskState == TaskState::FastForwardRun ? "increase" : "decrease") << "\t"
@@ -1545,7 +1545,7 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::InitializeNextFastRun()
 
 void SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeEmptySelectionScoreAndPrecisionEpsilon()
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 
 	require(nMasterTaskState == TaskState::PrecisionEpsilonComputation);
 	require(dMasterPrecisionEpsilon == 0.0);
@@ -1567,7 +1567,7 @@ void SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeEmptySelectionScoreAndP
 	dMasterMapScore = dMasterEmptySelectionScore;
 
 	// Trace de debbogage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Empty selection model cost = " << dMasterEmptySelectionModelCost << "\n";
 		cout << "Empty selection data cost  = " << dMasterEmptySelectionDataCost << "\n";
