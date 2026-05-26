@@ -54,7 +54,7 @@ KDSelectionOperandAnalyser::AddClassSelectionStats(const KDClassCompliantRules* 
 
 boolean KDSelectionOperandAnalyser::ComputeStats(const ObjectArray* oaAllConstructedRules)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	int nRule;
 	KDConstructedRule* constructedRule;
 
@@ -82,7 +82,7 @@ boolean KDSelectionOperandAnalyser::ComputeStats(const ObjectArray* oaAllConstru
 		bIsStatsComputed = ExtractSelectionOperandPartitions();
 
 	// Affichage des results
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "KDSelectionOperandAnalyser::ComputeStats" << endl;
 		DisplayUsedSelectionOperands(cout);
@@ -277,7 +277,7 @@ const ALString KDSelectionOperandAnalyser::GetObjectLabel() const
 boolean KDSelectionOperandAnalyser::ExtractSelectionOperandPartitions()
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWClassDomain* currentDomain;
 	KWClassDomain* selectionDomain;
 	KWClass* kwcClass;
@@ -293,7 +293,7 @@ boolean KDSelectionOperandAnalyser::ExtractSelectionOperandPartitions()
 	selectionDomain = BuildSelectionDomain();
 
 	// Affichage du domaine construit
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\nKDSelectionOperandAnalyser::ExtractSelectionOperandPartitions\n";
 		cout << "Main class\n";
@@ -359,7 +359,7 @@ boolean KDSelectionOperandAnalyser::ExtractSelectionOperandPartitions()
 		}
 
 		// Affichage des partitions par operande de selection
-		if (bDisplay)
+		if (bTrace)
 			cout << *classSelectionStats << endl;
 	}
 
@@ -1597,7 +1597,7 @@ ContinuousVector* KDClassContinuousSelectionOperandStats::GetInputData()
 
 void KDClassContinuousSelectionOperandStats::AnalysePartStats(int nMaxPartileNumber, int nMinPartileFrequency)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWQuantileIntervalBuilder quantileBuilder;
 	int nInstanceNumber;
 	int nValueNumber;
@@ -1678,7 +1678,7 @@ void KDClassContinuousSelectionOperandStats::AnalysePartStats(int nMaxPartileNum
 	}
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 		Write(cout);
 	ensure(Check());
 }
@@ -1782,7 +1782,7 @@ SymbolVector* KDClassSymbolSelectionOperandStats::GetInputData()
 
 void KDClassSymbolSelectionOperandStats::AnalysePartStats(int nMaxPartileNumber, int nMinPartileFrequency)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWQuantileGroupBuilder quantileBuilder;
 	int nInstanceNumber;
 	int nValueNumber;
@@ -1861,7 +1861,7 @@ void KDClassSymbolSelectionOperandStats::AnalysePartStats(int nMaxPartileNumber,
 	}
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 		Write(cout);
 	ensure(Check());
 }

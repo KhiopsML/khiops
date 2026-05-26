@@ -97,7 +97,7 @@ PLParallelTask* KDSelectionOperandSamplingTask::Create() const
 boolean KDSelectionOperandSamplingTask::ComputeResourceRequirements()
 {
 	boolean bOk;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	const SortedList slSample;
 	const NumericKeyDictionary nkdSample;
 	longint lSelectionOperandDataSamplerSpecUsedMemory;
@@ -240,7 +240,7 @@ boolean KDSelectionOperandSamplingTask::ComputeResourceRequirements()
 		    lSelectionOperandDataSamplerSpecUsedMemory + lAllSamplesNecessaryMemory);
 
 		// Affichage des ressources
-		if (bDisplay)
+		if (bTrace)
 		{
 			cout << "KDSelectionOperandSamplingTask::ComputeResourceRequirements\n";
 			cout << "\tSelectionOperandDataSamplerSpecUsedMemory\t"

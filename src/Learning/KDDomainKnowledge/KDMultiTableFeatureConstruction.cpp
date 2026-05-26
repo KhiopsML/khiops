@@ -325,7 +325,7 @@ const ALString KDMultiTableFeatureConstruction::GetObjectLabel() const
 boolean KDMultiTableFeatureConstruction::ConstructClass(KWClass*& constructedClass)
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	boolean bConstructOnlyForProfiling = false; // Pour les test de profiling
 	KDClassBuilder classBuilder;
 	ALString sVariableName;
@@ -338,7 +338,7 @@ boolean KDMultiTableFeatureConstruction::ConstructClass(KWClass*& constructedCla
 	require(Check());
 
 	// Affichage du nom de la methode
-	if (bDisplay)
+	if (bTrace)
 		cout << "KDMultiTableFeatureConstruction::ConstructClass\t" << GetMaxRuleNumber()
 		     << "\t(seed=" << GetRandomSeed() << ")\n";
 
@@ -391,7 +391,7 @@ boolean KDMultiTableFeatureConstruction::ConstructClass(KWClass*& constructedCla
 		selectionOperandAnalyser->CleanAll();
 
 	// Affichage des regles en premiere passe
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\nFirst pass" << endl;
 		DisplayConstructedRuleArray(&oaAllConstructedRules, cout);
@@ -419,7 +419,7 @@ boolean KDMultiTableFeatureConstruction::ConstructClass(KWClass*& constructedCla
 		assert(selectionOperandAnalyser->IsStatsComputed() or oaAllConstructedRules.GetSize() == 0);
 
 		// Affichage des regles en premiere passe
-		if (bDisplay)
+		if (bTrace)
 		{
 			cout << "\nSecond pass" << endl;
 			DisplayConstructedRuleArray(&oaAllConstructedRules, cout);
@@ -428,7 +428,7 @@ boolean KDMultiTableFeatureConstruction::ConstructClass(KWClass*& constructedCla
 	assert(bOk or oaAllConstructedRules.GetSize() == 0);
 
 	// Affichage des operandes de selection
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\nPartition operands" << endl;
 		cout << *selectionOperandAnalyser << endl;
@@ -540,7 +540,7 @@ boolean KDMultiTableFeatureConstruction::FilterUselessSelectionBasedRules(Object
 void KDMultiTableFeatureConstruction::BuildMainClassRequestedConstructedRules(ObjectArray* oaAllConstructedRules,
 									      int nRuleNumber) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	const int nInitialRandomSeed = 1;
 	const int nMaxTrialNumber = 5;
 	int nTrial;
@@ -559,7 +559,7 @@ void KDMultiTableFeatureConstruction::BuildMainClassRequestedConstructedRules(Ob
 	require(0 <= nRuleNumber and nRuleNumber <= GetMaxRuleNumber());
 
 	// Affichage du nom de la methode
-	if (bDisplay)
+	if (bTrace)
 		cout << "KDMultiTableFeatureConstruction::BuildMainClassRequestedConstructedRules\t" << nRuleNumber
 		     << "\t(seed=" << GetRandomSeed() << ")\n";
 
@@ -614,7 +614,7 @@ void KDMultiTableFeatureConstruction::BuildMainClassRequestedConstructedRules(Ob
 			nTrial++;
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 			cout << "\tRules\t" << dRandomDrawingNumber << "\t" << nConstructedRuleNumber << "\t"
 			     << timerConstruction.GetElapsedTime() << endl;
 
@@ -675,7 +675,7 @@ void KDMultiTableFeatureConstruction::BuildMainClassRequestedConstructedRules(Ob
 		cast(KDConstructedRule*, oaAllConstructedRules->GetAt(i))->SetRandomIndex(0);
 
 	// Affichage des regles
-	if (bDisplay)
+	if (bTrace)
 		DisplayConstructedRuleArray(oaAllConstructedRules, cout);
 
 	// Fin de tache
@@ -1375,7 +1375,7 @@ void KDMultiTableFeatureConstruction::DispatchConstructedRuleRandomDrawingNumber
     double dRandomDrawingNumber, const ObjectArray* oaConstructedRules, DoubleVector* dvRandomDrawingNumbers) const
 {
 	KDMultinomialSampleGenerator sampleGenerator;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	DoubleVector dvRuleProbs;
 	int nRule;
 	KDConstructedRule* rule;
@@ -1415,7 +1415,7 @@ void KDMultiTableFeatureConstruction::DispatchConstructedRuleRandomDrawingNumber
 	}
 
 	// Affichage des resultats
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "DispatchRuleRandomDrawingNumbers\t" << dRandomDrawingNumber << endl;
 		cout << "\tIndex\tNumber\tProb\tRule" << endl;
@@ -1545,7 +1545,7 @@ boolean KDMultiTableFeatureConstruction::IsConstructionBasicallyPossible(KWClass
 void KDMultiTableFeatureConstruction::ComputeAllClassesCompliantRules(
     KWClass* mainClass, KDClassDomainCompliantRules* outputClassDomainCompliantRules) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	int nClass;
 	KDClassCompliantRules* classCompliantRules;
 	const KWClass* kwcClass;
@@ -1634,7 +1634,7 @@ void KDMultiTableFeatureConstruction::ComputeAllClassesCompliantRules(
 	}
 
 	// Affichage des classes concernees
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "All classes" << endl;
 		for (nClass = 0; nClass < outputClassDomainCompliantRules->GetAllClassesCompliantRules()->GetSize();
@@ -1657,7 +1657,7 @@ void KDMultiTableFeatureConstruction::ComputeAllClassesCompliantRules(
 	}
 
 	// Affichage des regles de construction concernees
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "All construction rules" << endl;
 		for (nRule = 0; nRule < oaUsedConstructionRules.GetSize(); nRule++)
@@ -1714,7 +1714,7 @@ void KDMultiTableFeatureConstruction::ComputeAllClassesCompliantRules(
 					compliantConstructionRule->SetClassName(classCompliantRules->GetClassName());
 					compliantConstructionRule->SetRecursionLevel(nRecursionLevel);
 					oaCompliantConstructionRules->Add(compliantConstructionRule);
-					if (bDisplay)
+					if (bTrace)
 					{
 						cout << "Add\t" << compliantConstructionRule->GetRecursionLevel()
 						     << "\t" << classCompliantRules->GetClass()->GetName() << "\t"
@@ -1755,7 +1755,7 @@ void KDMultiTableFeatureConstruction::ComputeAllClassesCompliantRules(
 	}
 
 	// Affichage des regles concernees par classe
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "All compliant rules" << endl;
 		for (nClass = 0; nClass < outputClassDomainCompliantRules->GetAllClassesCompliantRules()->GetSize();

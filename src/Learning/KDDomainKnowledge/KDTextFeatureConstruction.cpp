@@ -38,7 +38,7 @@ boolean KDTextFeatureConstruction::ConstructTextFeatures(KWClass* kwcClass, int 
 							 ObjectDictionary* odConstructedAttributes) const
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	ObjectDictionary odTextClasses;
 	KDClassCompliantRules mainClassCompliantRules;
 	int nInitialVariableNumber;
@@ -60,7 +60,7 @@ boolean KDTextFeatureConstruction::ConstructTextFeatures(KWClass* kwcClass, int 
 	// On utilise l'objet mainClassCompliantRules uniquement pour ses service des gestion des attributs derives
 	// existants
 	InitializeMainClassConstructedAttributesAndBlocks(&mainClassCompliantRules, kwcClass);
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Existing text based attributes\n";
 		mainClassCompliantRules.DisplayConstructedAttributes(cout);
@@ -178,7 +178,7 @@ boolean KDTextFeatureConstruction::InternalContainsTextAttributes(const KWClass*
 void KDTextFeatureConstruction::CollectAllTextClasses(const KWClass* kwcMainClass,
 						      ObjectDictionary* odTextClasses) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KDTextAttributePath emptyTextAttributePath;
 	ObjectArray oaTextClasses;
 	KDTextClass* textClass;
@@ -193,7 +193,7 @@ void KDTextFeatureConstruction::CollectAllTextClasses(const KWClass* kwcMainClas
 	InternalCollectAllTextClasses(kwcMainClass, kwcMainClass, &emptyTextAttributePath, odTextClasses);
 
 	// Affichage des resultats
-	if (bDisplay)
+	if (bTrace)
 	{
 		// Extraction dans un tableau trie
 		odTextClasses->ExportObjectArray(&oaTextClasses);
@@ -214,7 +214,7 @@ boolean KDTextFeatureConstruction::InternalCollectAllTextClasses(const KWClass* 
 								 KDTextAttributePath* baseTextAttributePath,
 								 ObjectDictionary* odTextClasses) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWAttribute* attribute;
 	KDTextClass* mainTextClass;
 	KDTextClass* textClass;
@@ -239,7 +239,7 @@ boolean KDTextFeatureConstruction::InternalCollectAllTextClasses(const KWClass* 
 		textClass->SetClass(kwcClass);
 		odTextClasses->SetAt(kwcClass->GetName(), textClass);
 	}
-	if (bDisplay)
+	if (bTrace)
 		cout << "InternalCollectAllTextClasses\t" << baseTextAttributePath->GetObjectLabel() << "\t"
 		     << kwcClass->GetName() << "\t\tBEGIN\n";
 
@@ -255,7 +255,7 @@ boolean KDTextFeatureConstruction::InternalCollectAllTextClasses(const KWClass* 
 		// On ne prend en compte que les attributs de type relation ou texte
 		if (KWType::IsTextBased(attribute->GetType()) or KWType::IsRelation(attribute->GetType()))
 		{
-			if (bDisplay)
+			if (bTrace)
 				cout << "InternalCollectAllTextClasses\t" << baseTextAttributePath->GetObjectLabel()
 				     << "\t" << kwcClass->GetName() << "\t" << attribute->GetName() << "\t"
 				     << BooleanToString(baseTextAttributePath->ContainsClass(kwcClass)) << "\n";
@@ -285,7 +285,7 @@ boolean KDTextFeatureConstruction::InternalCollectAllTextClasses(const KWClass* 
 					textAttributePath->AddAttributePathEnd(attribute);
 					mainTextClass->GetTextAttributePaths()->Add(textAttributePath);
 					assert(textAttributePath->Check());
-					if (bDisplay)
+					if (bTrace)
 						cout << "InternalCollectAllTextClasses\t"
 						     << baseTextAttributePath->GetObjectLabel() << "\t"
 						     << kwcClass->GetName() << "\t" << attribute->GetName()
@@ -295,7 +295,7 @@ boolean KDTextFeatureConstruction::InternalCollectAllTextClasses(const KWClass* 
 				else
 				{
 					assert(KWType::IsRelation(attribute->GetType()));
-					if (bDisplay)
+					if (bTrace)
 						cout << "InternalCollectAllTextClasses\t"
 						     << baseTextAttributePath->GetObjectLabel() << "\t"
 						     << kwcClass->GetName() << "\t" << attribute->GetName()
@@ -325,7 +325,7 @@ boolean KDTextFeatureConstruction::InternalCollectAllTextClasses(const KWClass* 
 		}
 	}
 
-	if (bDisplay)
+	if (bTrace)
 		cout << "InternalCollectAllTextClasses\t" << baseTextAttributePath->GetObjectLabel() << "\t"
 		     << kwcClass->GetName() << "\t" << textClass->GetTextAttributePaths()->GetSize() << "\tEND\n";
 
@@ -336,7 +336,7 @@ boolean KDTextFeatureConstruction::InternalCollectAllTextClasses(const KWClass* 
 void KDTextFeatureConstruction::ComputeTextClassConstructionCosts(const KWClass* kwcClass,
 								  const ObjectDictionary* odTextClasses) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KDTextClass* mainTextClass;
 	KDTextClass* textClass;
 	KDTextAttributePath* textAttributePath;
@@ -353,7 +353,7 @@ void KDTextFeatureConstruction::ComputeTextClassConstructionCosts(const KWClass*
 	require(odTextClasses->Lookup(kwcClass->GetName()) != NULL);
 
 	// Parcours des chemin d'attributs de la classe principale
-	if (bDisplay)
+	if (bTrace)
 		cout << "ComputeTextClassConstructionCosts\t" << kwcClass->GetName() << "\n";
 	mainTextClass = cast(KDTextClass*, odTextClasses->Lookup(kwcClass->GetName()));
 	check(mainTextClass);
@@ -410,7 +410,7 @@ void KDTextFeatureConstruction::ComputeTextClassConstructionCosts(const KWClass*
 
 		// Mise a jour du cout
 		textAttributePath->SetCost(dCost);
-		if (bDisplay)
+		if (bTrace)
 		{
 			if (nPath == 0)
 				cout << "\tCost\tProb\tFrac\tText variable path\n";
@@ -425,7 +425,7 @@ void KDTextFeatureConstruction::ComputeTextClassConstructedFeatureNumbers(const 
 									  const ObjectDictionary* odTextClasses,
 									  int nFeatureNumber) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KDMultinomialSampleGenerator multinomialSampleGenerator;
 	DoubleVector dvProbs;
 	DoubleVector dvFrequencies;
@@ -443,7 +443,7 @@ void KDTextFeatureConstruction::ComputeTextClassConstructedFeatureNumbers(const 
 
 	// Collecte des probabilite de construction de variables a partir des cout des chemin d'attributs de la classe
 	// principale
-	if (bDisplay)
+	if (bTrace)
 		cout << "ComputeTextClassConstructedFeatureNumbers\t" << kwcClass->GetName() << "\n";
 	mainTextClass = cast(KDTextClass*, odTextClasses->Lookup(kwcClass->GetName()));
 	check(mainTextClass);
@@ -485,7 +485,7 @@ void KDTextFeatureConstruction::ComputeTextClassConstructedFeatureNumbers(const 
 		textAttributePath->SetConstructedFeatureNumber(nFrequency);
 
 		// Affichage des resultats
-		if (bDisplay)
+		if (bTrace)
 		{
 			if (nPath == 0)
 				cout << "\tProb\tFrequency\tText variable path\n";
@@ -595,7 +595,7 @@ boolean KDTextFeatureConstruction::TaskCollectTokenSamples(const KWClass* tokenE
 KWClassDomain* KDTextFeatureConstruction::BuildTokenExtractionDomainWithExistingTokenNumbers(
     const KWClass* kwcClass, const ObjectDictionary* odTextClasses) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KDClassCompliantRules extractionClassCompliantRules;
 	KWClassDomain* tokenExtractionDomain;
 	KWClass* tokenExtractionClass;
@@ -687,7 +687,7 @@ KWClassDomain* KDTextFeatureConstruction::BuildTokenExtractionDomainWithExisting
 			textVariableBlockRule = NULL;
 
 			// Affichage des resultats
-			if (bDisplay)
+			if (bTrace)
 			{
 				if (nPath == 0)
 				{
@@ -744,7 +744,7 @@ void KDTextFeatureConstruction::ConstructAllTextAttributeBlocks(KDClassCompliant
 								KWClass* kwcClass, ObjectDictionary* odTextClasses,
 								ObjectDictionary* odConstructedAttributes) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	ObjectArray oaTextClasses;
 	int i;
 	KDTextClass* mainTextClass;
@@ -763,7 +763,7 @@ void KDTextFeatureConstruction::ConstructAllTextAttributeBlocks(KDClassCompliant
 	require(odConstructedAttributes->GetCount() == 0);
 
 	// Affichage des specifications initiales
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "ConstructTextFeatures " << kwcClass->GetName() << "\n";
 		odTextClasses->ExportObjectArray(&oaTextClasses);
@@ -910,7 +910,7 @@ void KDTextFeatureConstruction::ConstructTextAttributeTokenBlock(KDClassComplian
 								 int nBlockAttributeNumber, const ObjectArray* oaTokens,
 								 ObjectDictionary* odConstructedAttributes) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWDRTokenizationRule* textVariableBlockRule;
 	KWAttributeBlock* attributeBlock;
 	KWAttribute* attribute;
@@ -935,7 +935,7 @@ void KDTextFeatureConstruction::ConstructTextAttributeTokenBlock(KDClassComplian
 	require(odConstructedAttributes != NULL);
 
 	// Affichage: entete
-	if (bDisplay)
+	if (bTrace)
 		cout << "ConstructTextAttributeTokenBlock\t" << GetTextFeatures() << "\t" << kwcClass->GetName() << "\t"
 		     << textAttribute->GetName() << "\t" << oaTokens->GetSize() << "\t" << nBlockAttributeNumber
 		     << "\n";
@@ -1012,7 +1012,7 @@ void KDTextFeatureConstruction::ConstructTextAttributeTokenBlock(KDClassComplian
 		}
 
 		// Affichage pour le token courant
-		if (bDisplay)
+		if (bTrace)
 			cout << "\t" << nToken + 1 << "\t" << nAttribute << "\t(" << token->GetToken() << ")\t"
 			     << token->GetFrequency() << "\n";
 
@@ -1071,7 +1071,7 @@ boolean KDTextFeatureConstruction::CreateConstructedDerivationRuleAttribute(KDCl
 									    const ALString& sConstructedAttributeName,
 									    KWAttribute*& constructedAttribute) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	boolean bNewAttribute;
 	const KWAttribute* foundDerivedAttribute;
 
@@ -1117,7 +1117,7 @@ boolean KDTextFeatureConstruction::CreateConstructedDerivationRuleAttribute(KDCl
 	}
 
 	// Affichage de l'attribut cree
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << kwcClass->GetName() << "\t";
 		cout << bNewAttribute << "\t";
