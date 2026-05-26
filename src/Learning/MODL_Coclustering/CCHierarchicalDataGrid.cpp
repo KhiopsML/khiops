@@ -292,7 +292,7 @@ CCHDGPart* CCHDGAttribute::GetRootPart()
 
 CCHDGPart* CCHDGAttribute::MergePart(CCHDGPart* part)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	CCHDGPart* sourcePart;
 	CCHDGPart* targetPart;
 	KWDGCell* cell1;
@@ -304,7 +304,7 @@ CCHDGPart* CCHDGAttribute::MergePart(CCHDGPart* part)
 	require(IsPartMergeable(part));
 
 	// Donnes en entree
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Merge\n" << *part << endl;
 		cout << "Child1\n" << *part->GetChildPart1() << endl;
@@ -387,7 +387,7 @@ CCHDGPart* CCHDGAttribute::MergePart(CCHDGPart* part)
 	delete part;
 
 	// Resultat du merge
-	if (bDisplay)
+	if (bTrace)
 		cout << "Merged part\n" << *targetPart << endl;
 	return targetPart;
 }
