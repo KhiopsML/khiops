@@ -18,7 +18,7 @@ KWUnivariatePartitionCosts* MHKMHistogramCosts::Create() const
 
 double MHKMHistogramCosts::ComputePartitionCost(int nPartNumber) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	double dCost;
 
 	require(nPartNumber >= 1);
@@ -28,7 +28,7 @@ double MHKMHistogramCosts::ComputePartitionCost(int nPartNumber) const
 	dCost = KWStat::LnFactorial(nTotalBinNumber);
 	dCost -= KWStat::LnFactorial(nTotalBinNumber - nPartNumber + 1);
 	dCost -= KWStat::LnFactorial(nPartNumber - 1);
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "\tCout choix des longueurs des intervalles "
 		     << KWStat::LnFactorial(nTotalBinNumber) - KWStat::LnFactorial(nTotalBinNumber - nPartNumber + 1) -
 			    KWStat::LnFactorial(nPartNumber - 1)
@@ -36,16 +36,16 @@ double MHKMHistogramCosts::ComputePartitionCost(int nPartNumber) const
 
 	// Partition des effectifs des intervalles selon le critere multinomial NML
 	dCost += MHNMLStat::MultinomialCOMP(nPartNumber, nTotalInstanceNumber);
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "\tCout choix des effectifs des intervalles "
 		     << MHNMLStat::MultinomialCOMP(nPartNumber, nTotalInstanceNumber) << endl;
 
 	// Numerateur de la vraissemblance NML des effectifs
 	dCost += nTotalInstanceNumber * log(nTotalInstanceNumber);
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "\tCout du numerateur de la vraissemblance NML des effectifs"
 		     << " \t" << nTotalInstanceNumber * log(nTotalInstanceNumber) << endl;
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "Cout complet"
 		     << " \t" << nPartNumber << "\t " << dCost << endl;
 	return dCost;
@@ -69,7 +69,7 @@ double MHKMHistogramCosts::ComputePartitionDeltaCost(int nPartNumber, int nGarba
 
 double MHKMHistogramCosts::ComputePartCost(const KWFrequencyVector* part) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	double dCost;
 	int nIntervalFrequency;
 	int nIntervalLength;
@@ -91,7 +91,7 @@ double MHKMHistogramCosts::ComputePartCost(const KWFrequencyVector* part) const
 		dCost += nIntervalFrequency * log(nIntervalLength);
 
 	// Affichage des details du cout
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\tPart(" << nIntervalFrequency << ", " << nIntervalLength << ")\t" << dCost << endl;
 	}

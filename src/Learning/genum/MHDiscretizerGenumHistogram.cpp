@@ -241,7 +241,7 @@ void MHDiscretizerGenumHistogram::OutlierDiscretizeValues(const ContinuousVector
 void MHDiscretizerGenumHistogram::TypicalDiscretizeValues(const ContinuousVector* cvSourceValues,
 							  KWFrequencyTable*& optimizedHistogramFrequencyTable) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWFrequencyTable* initialHistogramFrequencyTable;
 	boolean bIsTruncationManagementHeuristicNecessary;
 	KWFrequencyTable* optimizedHistogramFrequencyTableToClean;
@@ -260,7 +260,7 @@ void MHDiscretizerGenumHistogram::TypicalDiscretizeValues(const ContinuousVector
 	// Calcul de la table initiale
 	nTotalBinNumber = GetHistogramSpec()->GetEpsilonBinNumber();
 	ComputeInitialFrequencyTable(cvSourceValues, nTotalBinNumber, initialHistogramFrequencyTable);
-	if (bDisplay)
+	if (bTrace)
 		WriteHistogramFrequencyTable("Initial histogram\n", cvSourceValues, initialHistogramFrequencyTable,
 					     cout);
 
@@ -279,7 +279,7 @@ void MHDiscretizerGenumHistogram::TypicalDiscretizeValues(const ContinuousVector
 					 optimizedHistogramFrequencyTable);
 
 	// Memorisation de l'histogramme dans un fichier si les logs sont demandes
-	if (bDisplay)
+	if (bTrace)
 		WriteHistogramFrequencyTable("Optimized histogram\n", cvSourceValues, optimizedHistogramFrequencyTable,
 					     cout);
 	if (GetHistogramSpec()->GetExportInternalLogFiles())
@@ -377,7 +377,7 @@ void MHDiscretizerGenumHistogram::TypicalDiscretizeValues(const ContinuousVector
 				optimizedHistogramFrequencyTable = optimizedHistogramFrequencyTableToClean;
 			else
 				delete optimizedHistogramFrequencyTableToClean;
-			if (bDisplay)
+			if (bTrace)
 				WriteHistogramFrequencyTable("Post-optimized truncation histogram\n", cvSourceValues,
 							     optimizedHistogramFrequencyTable, cout);
 		}
@@ -406,8 +406,8 @@ void MHDiscretizerGenumHistogram::GranularizedDiscretizeValues(
     const ContinuousVector* cvSourceValues, KWFrequencyTable* initialHistogramFrequencyTable,
     KWFrequencyTable*& optimizedHistogramFrequencyTable) const
 {
-	boolean bDisplayInitialTable = false;
-	boolean bDisplayDetails = false;
+	const boolean bTraceInitialTable = false;
+	const boolean bTrace = false;
 	fstream fLog;
 	boolean bLogOk;
 	KWFrequencyTable* granularizedHistogramFrequencyTable;
@@ -435,7 +435,7 @@ void MHDiscretizerGenumHistogram::GranularizedDiscretizeValues(
 	TraceBeginBlock("G-Enum algorithm");
 
 	// Affichage de la table innitiale
-	if (bDisplayInitialTable)
+	if (bTraceInitialTable)
 		WriteHistogramFrequencyTable("Initial histogram\n", cvSourceValues, initialHistogramFrequencyTable,
 					     cout);
 
@@ -478,7 +478,7 @@ void MHDiscretizerGenumHistogram::GranularizedDiscretizeValues(
 		// partiles
 		BuildGranularizedFrequencyTable(initialHistogramFrequencyTable, nPartileNumber,
 						granularizedHistogramFrequencyTable);
-		if (bDisplayDetails)
+		if (bTrace)
 			WriteHistogramFrequencyTable(sTmp + "Granularized histogram\t" + IntToString(nPartileNumber) +
 							 "\n",
 						     cvSourceValues, granularizedHistogramFrequencyTable, cout);
@@ -672,7 +672,7 @@ void MHDiscretizerGenumHistogram::SimplifyLogTrHistogram(const ContinuousVector*
 							 const KWFrequencyTable* optimizedLogTrHistogramFrequencyTable,
 							 ObjectArray* oaDataSubsets) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	int nOutlierEpsilonBinNumber;
 	MHGenumHistogramVector* histogramVector;
 	MHDataSubset* dataSubset;
@@ -737,7 +737,7 @@ void MHDiscretizerGenumHistogram::SimplifyLogTrHistogram(const ContinuousVector*
 		// Preparation du sous-ensemble suivant
 		nFirstIndex = nLastIndex;
 	}
-	if (bDisplay)
+	if (bTrace)
 		DisplayDataSubsetsArray(sTmp + "Initial data subsets\t" + IntToString(oaDataSubsets->GetSize()) + "\n",
 					oaDataSubsets, cout);
 	Trace(sTmp + "Initial data subsets\t" + IntToString(oaDataSubsets->GetSize()));
@@ -819,7 +819,7 @@ void MHDiscretizerGenumHistogram::SimplifyLogTrHistogram(const ContinuousVector*
 		oaDataSubsets->SetSize(nNewSize);
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 			DisplayDataSubsetsArray(sTmp + "Merged data subsets\t" + IntToString(nMergeStep) + "\t" +
 						    IntToString(oaDataSubsets->GetSize()) + "\n",
 						oaDataSubsets, cout);
@@ -1210,7 +1210,7 @@ void MHDiscretizerGenumHistogram::BuildAggregatedHistogram(const ContinuousVecto
 							   const ObjectArray* oaDataSubsets,
 							   MHHistogram*& aggregatedHistogram) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	MHGenumHistogram* outputSubHistogram;
 	MHGenumHistogram* outputBoundaryHistogram;
 	MHDataSubset* previousDataSubset;
@@ -1312,7 +1312,7 @@ void MHDiscretizerGenumHistogram::BuildAggregatedHistogram(const ContinuousVecto
 		}
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 			cout << "Data subset " << i << "\n" << *outputSubHistogram << endl;
 
 		// Creation d'un sous-histogrammes en sortie pour la frontiere entre sous-ensemble de donnees
@@ -1880,7 +1880,7 @@ boolean MHDiscretizerGenumHistogram::IsDataSubsetPWCH(const ContinuousVector* cv
 boolean MHDiscretizerGenumHistogram::IsDataSubsetPICH(const ContinuousVector* cvSourceValues, int nFirstIndex,
 						      int nLastIndex, int nTotalBinNumber) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	boolean bIsPICH;
 	double dThresholdPICH;
 	Continuous cMin;
@@ -1913,7 +1913,7 @@ boolean MHDiscretizerGenumHistogram::IsDataSubsetPICH(const ContinuousVector* cv
 	dEpsilonBinLength = GetHistogramSpec()->ComputeEpsilonBinLength(nTotalBinNumber, cMin, cMax);
 	dBinStart = GetHistogramSpec()->ComputeHistogramLowerBound(nTotalBinNumber, cMin, cMax);
 	assert(dEpsilon > 0);
-	if (bDisplay)
+	if (bTrace)
 		cout << "IsDataPICH\t" << nLastIndex - nFirstIndex << "\t" << nTotalBinNumber << "\t"
 		     << dEpsilonBinLength << endl;
 
@@ -1943,7 +1943,7 @@ boolean MHDiscretizerGenumHistogram::IsDataSubsetPICH(const ContinuousVector* cv
 		}
 
 		// Affichage des caracteristiques du bin courant
-		if (bDisplay)
+		if (bTrace)
 		{
 			cout << "\t" << n << "\t" << cX << "\t" << nBinIndex << "\t" << nLastBinIndex << "\t"
 			     << nLastBinFrequency << "\t"
@@ -2087,7 +2087,7 @@ Continuous MHDiscretizerGenumHistogram::InvLogTr(Continuous cLogTrX, Continuous 
 void MHDiscretizerGenumHistogram::ComputeLogTrData(const ContinuousVector* cvSourceValues,
 						   ContinuousVector* cvLogTrValues) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	Continuous cMinM;
 	Continuous cMinP;
 	Continuous cMimDeltaLogM;
@@ -2102,7 +2102,7 @@ void MHDiscretizerGenumHistogram::ComputeLogTrData(const ContinuousVector* cvSou
 
 	// Calcul des parametre de log transformation
 	ComputeDataLogTrParameters(cvSourceValues, cMinM, cMinP, cMimDeltaLogM, cMimDeltaLogP);
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "TestLogTransformation\t" << cvSourceValues->GetSize() << "\n";
 		cout << "\tcMinM\t" << cMinM << "\n";
@@ -2284,7 +2284,7 @@ void MHDiscretizerGenumHistogram::DiscretizeDeltaValues(const ContinuousVector* 
 							KWFrequencyTable*& optimizedDeltaValueHistogramFrequencyTable,
 							int& nLargestNonEmptyIntervalBinLength) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	boolean bExportDeltaValues = false;
 	int nTotalBinNumber;
 	KWFrequencyTable* initialHistogramFrequencyTable;
@@ -2311,7 +2311,7 @@ void MHDiscretizerGenumHistogram::DiscretizeDeltaValues(const ContinuousVector* 
 	// Calcul de la table initiale
 	nTotalBinNumber = GetHistogramSpec()->GetEpsilonBinNumber();
 	ComputeInitialFrequencyTable(cvSourceDeltaValues, nTotalBinNumber, initialHistogramFrequencyTable);
-	if (bDisplay)
+	if (bTrace)
 		WriteHistogramFrequencyTable("Initial delta histogram\n", cvSourceDeltaValues,
 					     initialHistogramFrequencyTable, cout);
 
@@ -2334,7 +2334,7 @@ void MHDiscretizerGenumHistogram::DiscretizeDeltaValues(const ContinuousVector* 
 					 optimizedDeltaValueHistogramFrequencyTable);
 
 	// Memorisation de l'histogramme dans un fichier si les logs sont demandes
-	if (bDisplay)
+	if (bTrace)
 		WriteHistogramFrequencyTable("Optimized delta histogram\n", cvSourceDeltaValues,
 					     optimizedDeltaValueHistogramFrequencyTable, cout);
 	if (GetHistogramSpec()->GetExportInternalLogFiles())
@@ -2353,7 +2353,7 @@ void MHDiscretizerGenumHistogram::DiscretizeDeltaValues(const ContinuousVector* 
 Continuous MHDiscretizerGenumHistogram::ComputeTruncationEpsilon(const ContinuousVector* cvSourceValues,
 								 const KWFrequencyTable* histogramFrequencyTable) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	Continuous cTruncationEpsilon;
 	int nSingularIntervalBinLength;
 	boolean bIsZeroVariationSingular;
@@ -2453,7 +2453,7 @@ Continuous MHDiscretizerGenumHistogram::ComputeTruncationEpsilon(const Continuou
 	}
 
 	// Affichage des criteres de decision
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "ComputeTruncationEpsilon\n";
 		cout << "\tDeltaValue interval number\t"
@@ -2732,7 +2732,7 @@ void MHDiscretizerGenumHistogram::ComputeInitialFrequencyTable(const ContinuousV
 							       int nTotalBinNumber,
 							       KWFrequencyTable*& initialHistogramFrequencyTable) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWQuantileIntervalBuilder quantileBuilder;
 	Continuous cMinValue;
 	Continuous cMaxValue;
@@ -2770,7 +2770,7 @@ void MHDiscretizerGenumHistogram::ComputeInitialFrequencyTable(const ContinuousV
 	cEpsilonBinLength = GetHistogramSpec()->ComputeEpsilonBinLength(nCorrectedTotalBinNumber, cMinValue, cMaxValue);
 	cBinStart = GetHistogramSpec()->ComputeHistogramLowerBound(nCorrectedTotalBinNumber, cMinValue, cMaxValue);
 	assert(cEpsilonBinLength > 0);
-	if (bDisplay)
+	if (bTrace)
 		cout << "ComputeInitialFrequencyTable\t" << nTotalBinNumber << "\t" << cEpsilonBinLength << endl;
 
 	// Calcul des effectif et des longueurs des intervalles, en tenant compte que plusieurs
@@ -2811,7 +2811,7 @@ void MHDiscretizerGenumHistogram::ComputeInitialFrequencyTable(const ContinuousV
 				// Initialisation d'un intervalle vide
 				ivIntervalFrequencies.Add(0);
 				ivIntervalLengths.Add(nBinNumber);
-				if (bDisplay)
+				if (bTrace)
 					cout << "\t" << ivIntervalFrequencies.GetSize() << "\t" << nLastBinIndex << "\t"
 					     << nLowerBinIndex << "\t" << nUpperBinIndex << "\t0\t" << cValue << "\t"
 					     << cClosestPreviousValue << "\t" << cClosestNextValue << endl;
@@ -2829,7 +2829,7 @@ void MHDiscretizerGenumHistogram::ComputeInitialFrequencyTable(const ContinuousV
 			// Initialisation d'un intervalle de longueur 1 bin pour chaque valeur
 			ivIntervalFrequencies.Add(quantileBuilder.GetValueFrequencyAt(n));
 			ivIntervalLengths.Add(nBinNumber);
-			if (bDisplay)
+			if (bTrace)
 				cout << "\t" << ivIntervalFrequencies.GetSize() << "\t" << nLastBinIndex << "\t"
 				     << nLowerBinIndex << "\t" << nUpperBinIndex << "\t"
 				     << quantileBuilder.GetValueFrequencyAt(n) << "\t" << cValue << "\t"
@@ -2861,7 +2861,7 @@ void MHDiscretizerGenumHistogram::ComputeInitialFrequencyTable(const ContinuousV
 	}
 
 	// Affichage du resultat
-	if (bDisplay)
+	if (bTrace)
 		WriteHistogramFrequencyTable("Initial table", cvSourceValues, initialHistogramFrequencyTable, cout);
 
 	// Verification de coherence
@@ -2873,7 +2873,7 @@ void MHDiscretizerGenumHistogram::BuildGranularizedFrequencyTable(
     const KWFrequencyTable* initialHistogramFrequencyTable, int nPartileNumber,
     KWFrequencyTable*& granularizedHistogramFrequencyTable) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	int nTotalBinNumber;
 	double dPartileBinLength;
 	MHGenumHistogramVector* histogramVector;
@@ -2949,7 +2949,7 @@ void MHDiscretizerGenumHistogram::BuildGranularizedFrequencyTable(
 		assert(nTotalLength < nCurrentPartileEndLength);
 		if (nTotalLength + nRemainingIntervalLength <= nCurrentPartileEndLength)
 		{
-			if (bDisplay)
+			if (bTrace)
 				cout << "A\t" << n << "\t" << nIntervalLength << "\t" << nRemainingIntervalLength
 				     << "\t" << nTotalLength << "\t" << nCurrentPartileEndLength << endl;
 
@@ -2966,7 +2966,7 @@ void MHDiscretizerGenumHistogram::BuildGranularizedFrequencyTable(
 		// soit au suivant, en fonction de la taille restante
 		else if (nIntervalFrequency > 0)
 		{
-			if (bDisplay)
+			if (bTrace)
 				cout << "B\t" << n << "\t" << nIntervalLength << "\t" << nRemainingIntervalLength
 				     << "\t" << nTotalLength << "\t" << nCurrentPartileEndLength << endl;
 
@@ -3030,7 +3030,7 @@ void MHDiscretizerGenumHistogram::BuildGranularizedFrequencyTable(
 		// Sinon, on remplit completement le partile courant avec des bin elementaires vides
 		else
 		{
-			if (bDisplay)
+			if (bTrace)
 				cout << "C\t" << n << "\t" << nIntervalLength << "\t" << nRemainingIntervalLength
 				     << "\t" << nTotalLength << "\t" << nCurrentPartileEndLength << endl;
 
@@ -3105,7 +3105,7 @@ void MHDiscretizerGenumHistogram::BuildGranularizedFrequencyTable(
 				       nRemainingIntervalLength <= nSkippedLength + dPartileBinLength);
 
 				// On remplit le partile courant avec la longueur a sauter
-				if (bDisplay)
+				if (bTrace)
 					cout << "D\t" << n << "\t" << nIntervalLength << "\t"
 					     << nRemainingIntervalLength << "\t" << nTotalLength << "\t"
 					     << nCurrentPartileEndLength << "\t" << nSkippedLength << endl;
@@ -3146,7 +3146,7 @@ void MHDiscretizerGenumHistogram::BuildGranularizedFrequencyTable(
 				assert(nTotalLength < nTotalBinNumber);
 				assert(nRemainingIntervalLength <
 				       nCurrentPartileEndLength - nCurrentPartileBeginLength);
-				if (bDisplay)
+				if (bTrace)
 					cout << "E\t" << n << "\t" << nIntervalLength << "\t"
 					     << nRemainingIntervalLength << "\t" << nTotalLength << "\t"
 					     << nCurrentPartileEndLength << endl;
@@ -3264,7 +3264,7 @@ void MHDiscretizerGenumHistogram::BuildOutputHistogram(const ContinuousVector* c
 						       int nLastIndex, const KWFrequencyTable* histogramFrequencyTable,
 						       MHHistogram* outputHistogram) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	MHGenumHistogramInterval* outputInterval;
 	int nTotalFrequency;
 	int nTotalLength;
@@ -3497,7 +3497,7 @@ void MHDiscretizerGenumHistogram::BuildOutputHistogram(const ContinuousVector* c
 				       ->GetFrequency() > 0);
 
 			// Affichage
-			if (bDisplay)
+			if (bTrace)
 			{
 				cout << outputHistogram->GetIntervals()->GetSize() << "\t"
 				     << KWContinuous::ContinuousToString(outputInterval->GetLowerBound()) << "\t"
