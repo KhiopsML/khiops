@@ -487,7 +487,7 @@ double MHDiscretizerTruncationMODLHistogram::ComputeTruncationEpsilon(
 
 void MHDiscretizerTruncationMODLHistogram::FinalizeHistogram(MHHistogram* outputHistogram) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	MHHistogramInterval* previousInterval;
 	MHHistogramInterval* outputInterval;
 	boolean bAreIntervalsValid;
@@ -507,7 +507,7 @@ void MHDiscretizerTruncationMODLHistogram::FinalizeHistogram(MHHistogram* output
 	else
 	{
 		// Affichage de l'histogramme de depart
-		if (bDisplay)
+		if (bTrace)
 			cout << "Histogram with truncated data\n" << *outputHistogram << endl;
 
 		// Modification temporaires des bornes de l'histogramme
@@ -590,7 +590,7 @@ void MHDiscretizerTruncationMODLHistogram::FinalizeHistogram(MHHistogram* output
 					      outputHistogram);
 
 		// Affichage de l'histogramme avec les donnees initiales
-		if (bDisplay)
+		if (bTrace)
 			cout << "Histogram with initial data\n" << *outputHistogram << endl;
 	}
 	ensure(outputHistogram->Check());

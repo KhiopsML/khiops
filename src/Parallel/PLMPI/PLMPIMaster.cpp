@@ -948,11 +948,11 @@ int PLMPIMaster::ComputeGlobalProgression(boolean bSlaveProcess)
 	int nProgression;
 	PLSlaveState* slave;
 	double dTaskPart;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 
 	// Progression deja effectuee
 	dCurrentProgression = dGlobalProgression;
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Progression :" << endl;
 		cout << "\told " << nOldProgression << endl;
@@ -969,13 +969,13 @@ int PLMPIMaster::ComputeGlobalProgression(boolean bSlaveProcess)
 			dTaskPart = 1.0 / GetTask()->oaSlaves.GetSize();
 
 		// Ajout de la progression de l'esclave courant
-		if (bDisplay)
+		if (bTrace)
 			cout << "\t" << dCurrentProgression << " += " << slave->GetProgression() << " * " << dTaskPart
 			     << endl;
 		dCurrentProgression += slave->GetProgression() * dTaskPart;
 	}
 	nProgression = (int)floor(dCurrentProgression + 0.5);
-	if (bDisplay)
+	if (bTrace)
 		cout << "=> " << nProgression << endl;
 
 	// On empeche la barre d'avancement de reculer
@@ -1055,7 +1055,7 @@ void PLMPIMaster::AddError(const ALString& sLabel) const
 
 void PLMPIMaster::DischargePendingCommunication(int nRank, int nTag)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	MPI_Status status;
 	int nThereArePendingMessages;
 	ALString sTmp;
@@ -1071,7 +1071,7 @@ void PLMPIMaster::DischargePendingCommunication(int nRank, int nTag)
 			if (PLParallelTask::GetVerbose())
 				TraceWithRank(sTmp + "discharge pending comm from " + IntToString(status.MPI_SOURCE) +
 					      " with tag " + GetTagAsString(status.MPI_TAG));
-			if (bDisplay)
+			if (bTrace)
 				cout << GetProcessId() << " "
 				     << "Discharge pending com" << endl;
 

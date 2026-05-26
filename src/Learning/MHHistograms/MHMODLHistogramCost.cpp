@@ -139,7 +139,7 @@ KWUnivariatePartitionCosts* MHMODLHistogramCosts::Create() const
 
 double MHMODLHistogramCosts::ComputePartitionCost(int nPartNumber) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	double dCost = 0;
 
 	require(nPartNumber >= 1);
@@ -150,12 +150,12 @@ double MHMODLHistogramCosts::ComputePartitionCost(int nPartNumber) const
 
 	// Hyper-parametres
 	dCost += GetHyperParametersCost();
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "\tCout des hyper-parametres\t" << GetHyperParametersCost() << endl;
 
 	// Choix du niveau du central bin exponent par rapport au min central bin exponent
 	dCost += KWStat::NaturalNumbersUniversalCodeLength(1 + GetMaxCentralBinExponent() - GetCentralBinExponent());
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "\tCout du central bin exponent " << GetCentralBinExponent() << "\t"
 		     << KWStat::NaturalNumbersUniversalCodeLength(1 + GetMaxCentralBinExponent() -
 								  GetCentralBinExponent())
@@ -163,13 +163,13 @@ double MHMODLHistogramCosts::ComputePartitionCost(int nPartNumber) const
 
 	// Choix du niveau de hierarchie
 	dCost += KWStat::NaturalNumbersUniversalCodeLength(1 + nHierarchicalLevel);
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "\tCout choix niveau de hierarchie " << nHierarchicalLevel << "\t"
 		     << KWStat::NaturalNumbersUniversalCodeLength(1 + nHierarchicalLevel) << endl;
 
 	// Choix du nombre d'intervalles
 	dCost += KWStat::NaturalNumbersUniversalCodeLength(nPartNumber);
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "\tCout choix nombre de parties " << nPartNumber << "\t"
 		     << KWStat::NaturalNumbersUniversalCodeLength(nPartNumber) << endl;
 
@@ -177,7 +177,7 @@ double MHMODLHistogramCosts::ComputePartitionCost(int nPartNumber) const
 	dCost += KWStat::LnFactorial(GetPartileNumber() + nPartNumber - 1);
 	dCost -= KWStat::LnFactorial(GetPartileNumber());
 	dCost -= KWStat::LnFactorial(nPartNumber - 1);
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "\tCout choix des longueurs des intervalles "
 		     << KWStat::LnFactorial(GetPartileNumber() + nPartNumber - 1) -
 			    KWStat::LnFactorial(GetPartileNumber()) - KWStat::LnFactorial(nPartNumber - 1)
@@ -187,7 +187,7 @@ double MHMODLHistogramCosts::ComputePartitionCost(int nPartNumber) const
 	dCost += KWStat::LnFactorial(nTotalInstanceNumber + nPartNumber - 1);
 	dCost -= KWStat::LnFactorial(nTotalInstanceNumber);
 	dCost -= KWStat::LnFactorial(nPartNumber - 1);
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "\tCout choix des effectifs des intervalles "
 		     << KWStat::LnFactorial(nTotalInstanceNumber + nPartNumber - 1) -
 			    KWStat::LnFactorial(nTotalInstanceNumber) - KWStat::LnFactorial(nPartNumber - 1)
@@ -195,18 +195,18 @@ double MHMODLHistogramCosts::ComputePartitionCost(int nPartNumber) const
 
 	// Numerateur de la multinomiale de vraissemblance des effectifs
 	dCost += KWStat::LnFactorial(nTotalInstanceNumber);
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "\tCout du numerateur de la multinomiale des effectifs"
 		     << " \t" << KWStat::LnFactorial(nTotalInstanceNumber) << endl;
 
 	// Correction de la vraissemblance sur la longueur des intervalles
 	dCost -= nTotalInstanceNumber * log(dMinBinLength);
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "\tCout de correction de la vraissemblance sur la longueur des intervalles"
 		     << " \t" << -nTotalInstanceNumber * log(dMinBinLength) << endl;
 
 	// Cout complet
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "Cout complet"
 		     << " \t" << nPartNumber << "\t " << dCost << endl;
 	return dCost;
@@ -230,7 +230,7 @@ double MHMODLHistogramCosts::ComputePartitionDeltaCost(int nPartNumber, int nGar
 
 double MHMODLHistogramCosts::ComputePartCost(const KWFrequencyVector* part) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	double dCost;
 	int nIntervalFrequency;
 	Continuous cLowerBound;
@@ -252,7 +252,7 @@ double MHMODLHistogramCosts::ComputePartCost(const KWFrequencyVector* part) cons
 		dCost += nIntervalFrequency * log(cUpperBound - cLowerBound);
 
 	// Affichage des details du cout
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\tPart(" << nIntervalFrequency << ", " << cUpperBound - cLowerBound << ")\t" << dCost << endl;
 	}
