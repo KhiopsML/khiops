@@ -297,7 +297,7 @@ PLParallelTask* KWDataPreparationUnivariateTask::Create() const
 boolean KWDataPreparationUnivariateTask::ComputeResourceRequirements()
 {
 	boolean bOk = true;
-	boolean bDisplayMemoryStats = GetPreparationTraceMode();
+	const boolean bTrace = GetPreparationTraceMode();
 	KWLearningSpec* learningSpec;
 	const KWTupleTable* targetTupleTable;
 	int nDatabaseObjectNumber;
@@ -426,7 +426,7 @@ boolean KWDataPreparationUnivariateTask::ComputeResourceRequirements()
 	GetResourceRequirements()->SetMaxSlaveProcessNumber(masterDataTableSliceSet->GetSliceNumber());
 
 	// Affichage des stats
-	if (bDisplayMemoryStats)
+	if (bTrace)
 	{
 		cout << "KWDataPreparationUnivariateTask::ComputeResourceRequirements" << endl;
 		cout << "\tObject number\t" << nDatabaseObjectNumber << endl;
@@ -497,7 +497,7 @@ boolean KWDataPreparationUnivariateTask::MasterInitialize()
 boolean KWDataPreparationUnivariateTask::MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished)
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWDataTableSlice* slice;
 	const double dHeuristicRatio = 0.8;
 	int nRemainingAttributes;
@@ -560,7 +560,7 @@ boolean KWDataPreparationUnivariateTask::MasterPrepareTaskInput(double& dTaskPer
 	}
 
 	// Affichage des caracteristiques de la tranche a traiter
-	if (bDisplay)
+	if (bTrace)
 	{
 		// Entete
 		if (GetTaskIndex() == 0 and slice != NULL)
@@ -583,7 +583,7 @@ boolean KWDataPreparationUnivariateTask::MasterPrepareTaskInput(double& dTaskPer
 boolean KWDataPreparationUnivariateTask::MasterAggregateResults()
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	int nAttribute;
 	KWAttributeStats* attributeStats;
 	int nSubSlice;
@@ -597,7 +597,7 @@ boolean KWDataPreparationUnivariateTask::MasterAggregateResults()
 		output_oaDataTableSubSlices->GetObjectArray()->GetSize() > 0);
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "KWDataPreparationUnivariateTask::MasterAggregateResults \t" << GetTaskIndex() << "\t";
 		cout << "Output slice\t" << output_sSliceClassName << "\t";
@@ -725,7 +725,7 @@ boolean KWDataPreparationUnivariateTask::SlaveProcess()
 	boolean bOk = true;
 	boolean bForceManySubSlices = false;
 	boolean bLocallyPrepareSubSlices = false;
-	boolean bDisplayMemoryStats = GetPreparationTraceMode();
+	const boolean bTrace = GetPreparationTraceMode();
 	int nDatabaseObjectNumber;
 	KWDataTableSlice* slice;
 	KWSTDatabaseTextFile sliceDatabase;
@@ -827,7 +827,7 @@ boolean KWDataPreparationUnivariateTask::SlaveProcess()
 	    (lAvailableWorkingMemory < lSliceWorkingMemory and slice->GetClass()->GetLoadedAttributeNumber() > 1);
 
 	// Affichage des stats memoire
-	if (bDisplayMemoryStats)
+	if (bTrace)
 	{
 		cout << GetTaskLabel() << " Slave\t" << GetTaskIndex() << endl;
 		cout << "Slice\t" << slice->GetClass()->GetName() << endl;
@@ -1092,7 +1092,7 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 						    ObjectArray* oaSubSlices)
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	boolean bCloseOk;
 	KWDatabaseSlicerOutputBufferedFile allSliceOutputBuffer;
 	longint lAllSliceOutputBufferSize;
@@ -1429,7 +1429,7 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 	dataTableSliceSet.CleanSlicesLoadIndexes();
 
 	// Affichage des resultats
-	if (bDisplay)
+	if (bTrace)
 	{
 		// Statistiques globales sur la tranche initiale
 		cout << "SplitSlice\t" << nObjectNumber << "\t" << lAvailableWorkingMemory << "\t"
@@ -1473,7 +1473,7 @@ int KWDataPreparationUnivariateTask::ComputeSlicePartition(KWDataTableSlice* sli
 							   longint lAvailableWorkingMemory,
 							   IntVector* ivUsedAttributePartIndexes)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	longint lSliceDatabaseAllValuesNecessaryMemory;
 	int nPartIndex;
 	KWAttribute* attribute;
@@ -1680,7 +1680,7 @@ int KWDataPreparationUnivariateTask::ComputeSlicePartition(KWDataTableSlice* sli
 	}
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		// En tete
 		cout << "ComputeSlicePartition\t" << slice->GetObjectLabel() << "\n";

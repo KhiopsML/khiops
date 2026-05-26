@@ -291,7 +291,7 @@ void KWGrouperMODLTwoClasses::DiscretizeFrequencyTable(KWFrequencyTable* kwftSou
 	KWMODLLine* headInterval;
 	KWFrequencyTable kwftNullFrequencyTable;
 	KWMODLLineDeepOptimization* headIntervalWithGarbage;
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWFrequencyTable* kwftTargetWithoutGarbage;
 	KWFrequencyTable* kwftTargetWithGarbage;
 	double dCostWithoutGarbage;
@@ -345,7 +345,7 @@ void KWGrouperMODLTwoClasses::DiscretizeFrequencyTable(KWFrequencyTable* kwftSou
 			headInterval = IntervalListOptimizationWithGarbage(kwftSource, headIntervalWithGarbage,
 									   bGarbageImproveBestMerge);
 
-			if (bDisplayResults)
+			if (bTrace)
 			{
 				cout << " Apres IntervalListBestMergeOptimizationWithGarbage " << endl;
 				cout << " Liste SANS poubelle " << endl;
@@ -383,7 +383,7 @@ void KWGrouperMODLTwoClasses::DiscretizeFrequencyTable(KWFrequencyTable* kwftSou
 			nGarbageModalityNumber = ComputeGarbageModalityNumberFromTable(kwftTargetWithGarbage);
 			kwftTargetWithGarbage->SetGarbageModalityNumber(nGarbageModalityNumber);
 
-			if (bDisplayResults)
+			if (bTrace)
 			{
 				cout << " Apres construction des tables finales " << endl;
 				cout << " Table SANS poubelle " << endl;
@@ -396,7 +396,7 @@ void KWGrouperMODLTwoClasses::DiscretizeFrequencyTable(KWFrequencyTable* kwftSou
 			dCostWithoutGarbage = ComputePartitionGlobalCost(kwftTargetWithoutGarbage);
 			dCostWithGarbage = ComputePartitionGlobalCost(kwftTargetWithGarbage);
 
-			if (bDisplayResults)
+			if (bTrace)
 				cout << "Cout sans poubelle\t" << dCostWithoutGarbage << "\tAvec poubelle de taille \t"
 				     << kwftTargetWithGarbage->GetGarbageModalityNumber() << " Cout : \t "
 				     << dCostWithGarbage << endl;
@@ -406,14 +406,14 @@ void KWGrouperMODLTwoClasses::DiscretizeFrequencyTable(KWFrequencyTable* kwftSou
 			if (dCostWithGarbage < dCostWithoutGarbage)
 			{
 				kwftTarget = kwftTargetWithGarbage->Clone();
-				if (bDisplayResults)
+				if (bTrace)
 					cout << "AVEC";
 			}
 			// Sinon SANS groupe poubelle
 			else
 			{
 				kwftTarget = kwftTargetWithoutGarbage->Clone();
-				if (bDisplayResults)
+				if (bTrace)
 					cout << "SANS";
 			}
 
@@ -490,7 +490,7 @@ void KWGrouperMODLTwoClasses::RemoveIntervalFromWorkingFrequencyList(KWMODLLine*
 
 void KWGrouperMODLTwoClasses::InitializeFrequencySortedList(SortedList* frequencyList, KWMODLLine* headInterval) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWMODLLine* interval;
 
 	require(frequencyList != NULL);
@@ -507,7 +507,7 @@ void KWGrouperMODLTwoClasses::InitializeFrequencySortedList(SortedList* frequenc
 		// Passage a l'intervalle suivant
 		interval = cast(KWMODLLine*, interval->GetNext());
 	}
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "InitializeFrequencySortedList::Liste nombre de modalites apres initialisation " << endl;
 		frequencyList->Write(cout);
@@ -558,11 +558,11 @@ int KWGrouperMODLTwoClasses::ComputeGarbageModalityNumberFromTable(KWFrequencyTa
 
 int KWGrouperMODLTwoClasses::GetIntervalListTotalModalityNumber(const KWMODLLine* headLine) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	int nModalityNumber;
 	const KWMODLLine* line;
 
-	if (bDisplayResults)
+	if (bTrace)
 		cout << " nModalityNumber\t";
 
 	// Parcours des elements de la liste pour compter le nombre de modalites par element
@@ -573,11 +573,11 @@ int KWGrouperMODLTwoClasses::GetIntervalListTotalModalityNumber(const KWMODLLine
 		nModalityNumber += line->GetModalityNumber();
 		line = line->GetNext();
 
-		if (bDisplayResults)
+		if (bTrace)
 			cout << nModalityNumber << "\t";
 	}
 
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "\nGetIntervalListTotalModalityNumber\tnModalityNumber\t" << nModalityNumber
 		     << "\tdiscretizationCosts->GetValueNumber()\t" << discretizationCosts->GetValueNumber() << endl;
@@ -592,8 +592,8 @@ KWMODLLine* KWGrouperMODLTwoClasses::IntervalListOptimizationWithGarbage(
     const KWFrequencyTable* kwftSource, KWMODLLineDeepOptimization*& headIntervalDeepOptimizationWithGarbage,
     boolean& bGarbageImproveBestMerge) const
 {
-	boolean bPrintOptimisationStatistics = false;
-	boolean bPrintResults = false;
+	const boolean bTraceOptimisationStatistics = false;
+	const boolean bTraceResults = false;
 	KWMODLLineOptimization lineOptimizationCreator(GetFrequencyVectorCreator());
 	KWMODLLineOptimization* headIntervalOptimization;
 	KWMODLLineDeepOptimization lineDeepOptimizationCreator(GetFrequencyVectorCreator());
@@ -620,7 +620,7 @@ KWMODLLine* KWGrouperMODLTwoClasses::IntervalListOptimizationWithGarbage(
 
 	nGarbageModalityNumber = 0;
 	headIntervalOptimizationWithGarbage = NULL;
-	if (bPrintResults)
+	if (bTraceResults)
 	{
 		cout << "Debut IntervalListOptimizationWithGarbage " << endl;
 	}
@@ -634,7 +634,7 @@ KWMODLLine* KWGrouperMODLTwoClasses::IntervalListOptimizationWithGarbage(
 		headIntervalOptimization = cast(
 		    KWMODLLineOptimization*, BuildIntervalListFromFrequencyTable(&lineOptimizationCreator, kwftSource));
 
-		if (bPrintResults)
+		if (bTraceResults)
 		{
 			cout << "IntervalListOptimizationWithGarbage::BuildIntervalListFromFrequencyTable" << endl;
 			cout << "Table source" << endl;
@@ -678,7 +678,7 @@ KWMODLLine* KWGrouperMODLTwoClasses::IntervalListOptimizationWithGarbage(
 			assert(GetIntervalListTotalModalityNumber(headIntervalOptimizationWithGarbage) ==
 			       discretizationCosts->GetValueNumber());
 
-			if (bPrintResults)
+			if (bTraceResults)
 			{
 				cout << " Apres IntervalListBestMergeOptimizationWithGarbage" << endl;
 				cout << " Liste headIntervalOptimization SANS poubelle " << endl;
@@ -722,7 +722,7 @@ KWMODLLine* KWGrouperMODLTwoClasses::IntervalListOptimizationWithGarbage(
 			IntervalListPostOptimizationWithGarbage(kwftSource, headIntervalDeepOptimizationWithGarbage,
 								nGarbageModalityNumber);
 
-			if (bPrintResults)
+			if (bTraceResults)
 			{
 				cout << " Apres Post-optimisations " << endl;
 				cout << " Liste DeepOptimisation SANS poubelle " << endl;
@@ -773,7 +773,7 @@ KWMODLLine* KWGrouperMODLTwoClasses::IntervalListOptimizationWithGarbage(
 	}
 
 	// Affichage des statistiques d'optimisation
-	if (bPrintOptimisationStatistics)
+	if (bTraceOptimisationStatistics)
 	{
 		cout << kwftSource->GetTotalFrequency() << "\t" << kwftSource->GetFrequencyVectorNumber() << "\t"
 		     << nMergeNumber << "\t" << nExtraMergeNumber << "\t" << nSplitNumber << "\t" << nExtraSplitNumber
@@ -782,7 +782,7 @@ KWMODLLine* KWGrouperMODLTwoClasses::IntervalListOptimizationWithGarbage(
 	}
 
 	// Affichage des resultats
-	if (bPrintResults)
+	if (bTraceResults)
 	{
 		KWFrequencyTable* kwftTarget;
 		int nInterval;
@@ -807,7 +807,7 @@ KWMODLLine* KWGrouperMODLTwoClasses::IntervalListOptimizationWithGarbage(
 		delete kwftTarget;
 	}
 
-	if (bPrintOptimisationStatistics or bPrintResults)
+	if (bTraceOptimisationStatistics or bTraceResults)
 		cout << endl;
 
 	// Nettoyage
@@ -848,12 +848,12 @@ void KWGrouperMODLTwoClasses::IntervalListBestMergeOptimizationWithGarbage(
 	int nMinIntervalNumber;
 	int nHigherModalitySize;
 	int nMergeModalitySize;
-	boolean bDisplayGarbage = false;
-	boolean bDisplayResults = false;
+	const boolean bTraceGarbage = false;
+	const boolean bTraceResults = false;
 
 	require(headInterval != NULL);
 
-	if (bDisplayResults)
+	if (bTraceResults)
 		cout << "Debut d'IntervalListBestMergeOptimizationWithGarbage " << endl;
 
 	// Duplication de la structure de la liste
@@ -968,7 +968,7 @@ void KWGrouperMODLTwoClasses::IntervalListBestMergeOptimizationWithGarbage(
 		// les probleme d'erreur numerique, en favorisant les Merge)
 		dTotalCost += dDiscretizationDeltaCost;
 
-		if (bDisplayGarbage)
+		if (bTraceGarbage)
 			cout << nIntervalNumber << "\t" << dTotalCost << "\t" << dTotalCostWithGarbage << "\t"
 			     << nGarbageModalityNumber << endl;
 
@@ -989,7 +989,7 @@ void KWGrouperMODLTwoClasses::IntervalListBestMergeOptimizationWithGarbage(
 	}
 
 	// Affichage des meilleurs modeles avec et sans poubelle
-	if (bDisplayGarbage)
+	if (bTraceGarbage)
 	{
 		cout << "IntervalListBestMergeOptimizationWithGarbage " << endl;
 		cout << " Sans poubelle meilleur nombre d'intervalles \t" << nBestIntervalNumberWithoutGarbage
@@ -1106,7 +1106,7 @@ void KWGrouperMODLTwoClasses::IntervalListBestMergeOptimizationWithGarbage(
 	ResetWorkingFrequencyList();
 
 	// Bilan
-	if (bDisplayResults)
+	if (bTraceResults)
 	{
 		cout << " Fin d'IntervalListBestMergeOptimizationWithGarbage " << endl;
 		cout << " Liste SANS poubelle " << endl;
@@ -1121,7 +1121,7 @@ void KWGrouperMODLTwoClasses::IntervalListPostOptimizationWithGarbage(const KWFr
 								      KWMODLLineDeepOptimization*& headInterval,
 								      int nGarbageModalityNumber) const
 {
-	boolean bPrintOptimisationDetails = false;
+	const boolean bTrace = false;
 	SortedList splitList(KWMODLLineDeepOptimizationCompareSplitDeltaCost);
 	SortedList mergeSplitList(KWMODLLineDeepOptimizationCompareMergeSplitDeltaCost);
 	SortedList mergeMergeSplitList(KWMODLLineDeepOptimizationCompareMergeMergeSplitDeltaCost);
@@ -1152,7 +1152,7 @@ void KWGrouperMODLTwoClasses::IntervalListPostOptimizationWithGarbage(const KWFr
 	assert(GetIntervalListTotalModalityNumber(headInterval) == discretizationCosts->GetValueNumber());
 	SetWorkingFrequencyList(&frequencyList);
 
-	if (bPrintOptimisationDetails)
+	if (bTrace)
 	{
 		// Affichage de la liste initiale apres initialisation des listes d'amelioration
 		cout << "Liste initiale au debut de IntervalListPostOptimisationWithGarbage AVANT initialisation des "
@@ -1183,7 +1183,7 @@ void KWGrouperMODLTwoClasses::IntervalListPostOptimizationWithGarbage(const KWFr
 
 	assert(CheckPostOptimizationSortedLists(&splitList, &mergeSplitList, &mergeMergeSplitList, headInterval));
 
-	if (bPrintOptimisationDetails)
+	if (bTrace)
 	{
 		// Affichage de la liste initiale apres initialisation des listes d'amelioration
 		cout << "Liste initiale au debut de IntervalListPostOptimisationWithGarbage APRES initialisation des "
@@ -1198,7 +1198,7 @@ void KWGrouperMODLTwoClasses::IntervalListPostOptimizationWithGarbage(const KWFr
 	}
 
 	// Affichage de l'en-tete des messages
-	if (bPrintOptimisationDetails)
+	if (bTrace)
 	{
 		cout << "BestDeltaCost"
 		     << "\t"
@@ -1455,7 +1455,7 @@ void KWGrouperMODLTwoClasses::IntervalListPostOptimizationWithGarbage(const KWFr
 			bContinue = false;
 
 			// Affichage d'un message
-			if (bPrintOptimisationDetails)
+			if (bTrace)
 			{
 				cout << dBestDeltaCost << "\t";
 				if (nIntervalNumber > 3)
@@ -1469,7 +1469,7 @@ void KWGrouperMODLTwoClasses::IntervalListPostOptimizationWithGarbage(const KWFr
 		else if (dBestDeltaCost == dMergeMergeSplitDeltaCost)
 		{
 			// Affichage d'un message
-			if (bPrintOptimisationDetails)
+			if (bTrace)
 			{
 				cout << dBestDeltaCost << "\t" <<
 				    // Transmission parametre taille poubelle
@@ -1492,7 +1492,7 @@ void KWGrouperMODLTwoClasses::IntervalListPostOptimizationWithGarbage(const KWFr
 			bContinue = false;
 
 			// Affichage d'un message
-			if (bPrintOptimisationDetails)
+			if (bTrace)
 			{
 				cout << dBestDeltaCost << "\t" <<
 				    // Transmission parametre taille poubelle
@@ -1504,7 +1504,7 @@ void KWGrouperMODLTwoClasses::IntervalListPostOptimizationWithGarbage(const KWFr
 		else if (dBestDeltaCost == dMergeSplitDeltaCost)
 		{
 			// Affichage d'un message
-			if (bPrintOptimisationDetails)
+			if (bTrace)
 			{
 				cout << dBestDeltaCost << "\t" << 0 << "\t" << nIntervalNumber << "\tMergeSplit\t";
 				mergeSplitInterval->WriteLineReport(cout);
@@ -1520,7 +1520,7 @@ void KWGrouperMODLTwoClasses::IntervalListPostOptimizationWithGarbage(const KWFr
 		else
 		{
 			// Affichage d'un message
-			if (bPrintOptimisationDetails)
+			if (bTrace)
 			{
 				cout << dBestDeltaCost << "\t" <<
 				    // Transmission parametre taille poubelle
@@ -1616,9 +1616,9 @@ void KWGrouperMODLTwoClasses::IntervalListMergeOptimizationWithGarbagePartitionC
 	int nGarbageModalityNumber;
 	int nIntervalNumber;
 	int nMinMergeNumber;
-	boolean bDisplayResults = false;
-	boolean bDisplayFinalResults = false;
-	boolean bDisplayMerges = false;
+	const boolean bTraceResults = false;
+	const boolean bTraceFinalResults = false;
+	const boolean bTraceMerges = false;
 	boolean bGarbageProfitable;
 
 	require(headInterval != NULL);
@@ -1655,7 +1655,7 @@ void KWGrouperMODLTwoClasses::IntervalListMergeOptimizationWithGarbagePartitionC
 	// variations)
 	dDiscretizationWithGarbageDeltaCost = dDiscretizationWithGarbagePartitionDeltaCost;
 
-	if (bDisplayResults)
+	if (bTraceResults)
 		cout << "nIntervalNumber apres fusion \tDeltaCout sans poubelle \t DeltaCout avec poubelle \t Taille "
 			"poubelle"
 		     << endl;
@@ -1675,7 +1675,7 @@ void KWGrouperMODLTwoClasses::IntervalListMergeOptimizationWithGarbagePartitionC
 		// Recherche du meilleur merge (DeltaCost le plus petit)
 		interval = cast(KWMODLLineOptimization*, mergeList.GetHead());
 
-		if (bDisplayMerges)
+		if (bTraceMerges)
 		{
 			cout << "Meilleur merge" << endl;
 			interval->Write(cout);
@@ -1722,7 +1722,7 @@ void KWGrouperMODLTwoClasses::IntervalListMergeOptimizationWithGarbagePartitionC
 			// Mise a jour de la variation de cout cumulee par rapport au cout initial
 			dPrevPartitionWithGarbageCost = dPartitionWithGarbageCost;
 			dCumulatedDeltaCostWithGarbage += dDiscretizationWithGarbageDeltaCost;
-			if (bDisplayResults)
+			if (bTraceResults)
 			{
 				cout << "DeltaCost Sans poubelle :" << dDiscretizationDeltaCost
 				     << "\t Avec poubelle :" << dDiscretizationWithGarbageDeltaCost << endl;
@@ -1735,7 +1735,7 @@ void KWGrouperMODLTwoClasses::IntervalListMergeOptimizationWithGarbagePartitionC
 		}
 		else
 		{
-			if (bDisplayResults)
+			if (bTraceResults)
 				cout << nIntervalNumber - 1 << "\t" << dCumulatedDeltaCostWithoutGarbage << endl;
 			break;
 		}
@@ -1764,7 +1764,7 @@ void KWGrouperMODLTwoClasses::IntervalListMergeOptimizationWithGarbagePartitionC
 		    (GetMaxIntervalNumber() > 0 and nIntervalNumber > GetMaxIntervalNumber()))
 		{
 			// Affichage de la meilleure partition avec poubelle avant mise a jour
-			if (bDisplayResults and dDiscretizationWithGarbageDeltaCost > 0)
+			if (bTraceResults and dDiscretizationWithGarbageDeltaCost > 0)
 			{
 				KWMODLLineOptimization* intervalTemp;
 				cout << "Meilleure table avec poubelle " << endl;
@@ -1785,7 +1785,7 @@ void KWGrouperMODLTwoClasses::IntervalListMergeOptimizationWithGarbagePartitionC
 			nIntervalNumber--;
 			nMergeNumber++;
 
-			if (bDisplayResults and nIntervalNumber == 3)
+			if (bTraceResults and nIntervalNumber == 3)
 			{
 				// Affichage de la partition obtenue pour I=3 i.e. derniere partition avec groupe
 				// poubelle
@@ -1810,7 +1810,7 @@ void KWGrouperMODLTwoClasses::IntervalListMergeOptimizationWithGarbagePartitionC
 	ResetWorkingFrequencyList();
 
 	// Affichage de la partition obtenue en fin de IntervalListMergeOptimizationWithGarbagePartitionCost
-	if (bDisplayFinalResults)
+	if (bTraceFinalResults)
 	{
 		cout << "Table obtenue a la fin d'IntervalListeMergeOptimizationWithGarbagePartitionCost " << endl;
 		interval = headInterval;

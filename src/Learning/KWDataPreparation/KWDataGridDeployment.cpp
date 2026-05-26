@@ -142,8 +142,8 @@ void KWDataGridDeployment::Clean()
 void KWDataGridDeployment::ComputeDeploymentStats(const ObjectArray* oaDistributionValueVectors,
 						  const IntVector* ivFrequencyVector)
 {
-	boolean bDisplayNewPart = false;
-	boolean bDisplayOptimizationDetails = false;
+	const boolean bTraceNewPart = false;
+	const boolean bTraceOptimizationDetails = false;
 	KWDGAttribute* dgDeploymentAttribute;
 	KWDGAttribute* dgDistributionAttribute;
 	KWDGPart* dgDeploymentPart;
@@ -300,7 +300,7 @@ void KWDataGridDeployment::ComputeDeploymentStats(const ObjectArray* oaDistribut
 	}
 
 	// Affichage des caracteristiques de la nouvelle partie a deployer
-	if (bDisplayNewPart)
+	if (bTraceNewPart)
 	{
 		cout << "New part\n";
 		cout << "\tCell\tFrequency\tCost\n";
@@ -333,7 +333,7 @@ void KWDataGridDeployment::ComputeDeploymentStats(const ObjectArray* oaDistribut
 		// Evaluation de la fusion
 		dMergeCost = ComputeMergeCost(&dgpmDeploymentPartMerge);
 		dvDeploymentDistances.SetAt(nPart, dMergeCost);
-		if (bDisplayOptimizationDetails)
+		if (bTraceOptimizationDetails)
 			cout << "\t\tPart " << dgDeploymentPart->GetObjectLabel() << "\t" << dMergeCost;
 
 		// Test si amelioration du meilleurs cout
@@ -341,10 +341,10 @@ void KWDataGridDeployment::ComputeDeploymentStats(const ObjectArray* oaDistribut
 		{
 			dBestMergeCost = dMergeCost;
 			nDeploymentIndex = nPart;
-			if (bDisplayOptimizationDetails)
+			if (bTraceOptimizationDetails)
 				cout << "\tBest";
 		}
-		if (bDisplayOptimizationDetails)
+		if (bTraceOptimizationDetails)
 			cout << endl;
 
 		// Partie suivante

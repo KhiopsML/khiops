@@ -817,7 +817,7 @@ void KWDRDataGridBlockRule::InternalCompleteTypeInfo(const KWClass* kwcOwnerClas
 
 void KWDRDataGridBlockRule::Optimize(KWClass* kwcOwnerClass)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWAttributeBlock* originAttributeBlock;
 	const KWIndexedKeyBlock* sourceIndexedKeyBlock;
 	const KWIndexedNKeyBlock* sourceIndexedNKeyBlock;
@@ -916,7 +916,7 @@ void KWDRDataGridBlockRule::Optimize(KWClass* kwcOwnerClass)
 	nkdVarKeyDataGridIndexes.DeleteAll();
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		// Affichage
 		cout << "Optimize " << GetName() << endl;
@@ -1230,7 +1230,7 @@ longint KWDRCellIndexBlock::GetUsedMemory() const
 
 void KWDRCellIndexBlock::DynamicCompile(const KWIndexedKeyBlock* indexedKeyBlock) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWAttributeBlock* originAttributeBlock;
 	const KWIndexedKeyBlock* sourceIndexedKeyBlock;
 	const KWIndexedNKeyBlock* indexedNKeyBlock;
@@ -1299,7 +1299,7 @@ void KWDRCellIndexBlock::DynamicCompile(const KWIndexedKeyBlock* indexedKeyBlock
 		}
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 		{
 			cout << GetClassName() << " " << GetName() << endl;
 			cout << "\tSource block: " << *sourceIndexedKeyBlock;

@@ -25,9 +25,9 @@ KWGrouper* KWGrouperMODLBasic::Create() const
 
 void KWGrouperMODLBasic::Group(KWFrequencyTable* kwftSource, KWFrequencyTable*& kwftTarget, IntVector*& ivGroups) const
 {
-	boolean bDisplayBestCosts = false;
-	boolean bDisplayAllCosts = false;
-	boolean bDisplayDetails = false;
+	const boolean bTraceBestCosts = false;
+	const boolean bTraceAllCosts = false;
+	const boolean bTraceDetails = false;
 	int nActualMaxGroupNumber;
 	int nActualMinGroupFrequency;
 	int nReducedLineNumber;
@@ -112,7 +112,7 @@ void KWGrouperMODLBasic::Group(KWFrequencyTable* kwftSource, KWFrequencyTable*& 
 	dInitialGarbageGroupCost = ComputeGroupCost(&ivGarbageGroupFrequencyVector);
 
 	// Affichage de la ligne d'entete des details de calculs
-	if (bDisplayAllCosts)
+	if (bTraceAllCosts)
 		cout << "Group Nb"
 		     << "\t"
 		     << "Min fq"
@@ -191,13 +191,13 @@ void KWGrouperMODLBasic::Group(KWFrequencyTable* kwftSource, KWFrequencyTable*& 
 				nBestGroupNumber = nSource + 1;
 
 				// Affichage de l'amelioration
-				if (bDisplayBestCosts)
+				if (bTraceBestCosts)
 					cout << nBestGroupNumber << "\t" << dBestDeltaCost << endl;
 			}
 		}
 
 		// Affichage des details de calculs
-		if (bDisplayAllCosts)
+		if (bTraceAllCosts)
 			cout << nSource + 1 << "\t"
 			     << kwftSource->GetFrequencyVectorAt(nSource)->ComputeTotalFrequency() << "\t" << dLineCost
 			     << "\t" << dTotalLineCost << "\t" << dModelCost << "\t" << dGarbageGroupCost << "\t"
@@ -205,7 +205,7 @@ void KWGrouperMODLBasic::Group(KWFrequencyTable* kwftSource, KWFrequencyTable*& 
 			     << dBestDeltaCost << "\t" << nBestGroupNumber << endl;
 
 		// Affichage des details des lignes
-		if (bDisplayDetails)
+		if (bTraceDetails)
 		{
 			cout << "\tLine";
 			for (nTarget = 0; nTarget < ivLineFrequencyVector.GetSize(); nTarget++)

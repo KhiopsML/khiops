@@ -85,7 +85,7 @@ PLParallelTask* KWDataPreparationBivariateTask::Create() const
 boolean KWDataPreparationBivariateTask::ComputeResourceRequirements()
 {
 	boolean bOk = true;
-	boolean bDisplayRequirements = false;
+	const boolean bTrace = false;
 	KWLearningSpec* learningSpec;
 	const KWTupleTable* targetTupleTable;
 	int nDatabaseObjectNumber;
@@ -213,7 +213,7 @@ boolean KWDataPreparationBivariateTask::ComputeResourceRequirements()
 	GetResourceRequirements()->SetMaxSlaveProcessNumber(oaInputAttributePairsSlices.GetSize());
 
 	// Affichage detaille des demandes de ressource
-	if (bDisplayRequirements)
+	if (bTrace)
 	{
 		cout << "KWDataPreparationBivariateTask::ComputeResourceRequirements" << endl;
 		cout << "\tAttributsPairStatsNumber\t" << nRequestedAttributePairNumber << endl;
@@ -241,7 +241,7 @@ boolean KWDataPreparationBivariateTask::ComputeResourceRequirements()
 boolean KWDataPreparationBivariateTask::MasterPrepareTaskInput(double& dTaskPercent, boolean& bIsTaskFinished)
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWAttributePairsSlices* attributePairsSlices;
 	KWAttributePairStats* attributePairStats;
 	KWAttribute* attribute;
@@ -293,7 +293,7 @@ boolean KWDataPreparationBivariateTask::MasterPrepareTaskInput(double& dTaskPerc
 	}
 
 	// Affichage des caracteristiques de l'ensemble des paires a traiter
-	if (bDisplay)
+	if (bTrace)
 	{
 		// Entete
 		if (GetTaskIndex() == 0 and attributePairsSlices != NULL)
@@ -390,7 +390,7 @@ boolean KWDataPreparationBivariateTask::SlaveInitialize()
 boolean KWDataPreparationBivariateTask::SlaveProcess()
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	boolean bExportTupleTables = false;
 	KWDataTableSliceSet dataTableSliceSet;
 	KWClass* kwcSliceSetClass;
@@ -416,7 +416,7 @@ boolean KWDataPreparationBivariateTask::SlaveProcess()
 	ALString sTmp;
 
 	// Affichage des inputs de la tache
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "SlaveProcess " << GetTaskIndex() << endl;
 		cout << "  Variables pairs\t" << input_svAttributePairNames1.GetSize() << endl;
@@ -538,7 +538,7 @@ boolean KWDataPreparationBivariateTask::SlaveProcess()
 				       (nLast - nFirst) == 1);
 
 				// Message sur le groupe
-				if (bDisplay)
+				if (bTrace)
 					cout << "Pairs without block\t" << nLast - nFirst << "\t"
 					     << firstAttributePair->GetFirstBlockAttribute()->GetName() << "\t"
 					     << firstAttributePair->GetSecondBlockAttribute()->GetName() << "\t"
@@ -607,7 +607,7 @@ boolean KWDataPreparationBivariateTask::SlaveProcess()
 				assert(firstAttributePair->GetFirstBlockAttribute()->GetAttributeBlock() != NULL);
 
 				// Message sur le groupe
-				if (bDisplay)
+				if (bTrace)
 					cout << "Pairs with block\t" << nLast - nFirst << "\t"
 					     << firstAttributePair->GetFirstBlock()->GetName() << "\t"
 					     << firstAttributePair->GetSecondBlockAttribute()->GetName() << endl;
@@ -714,7 +714,7 @@ boolean KWDataPreparationBivariateTask::SlaveProcess()
 
 void KWDataPreparationBivariateTask::ComputeTaskInputs()
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	int n;
 	KWAttributePairStats* attributePairStats;
 	KWAttributePairsSlices* attributePairsSlices;
@@ -764,7 +764,7 @@ void KWDataPreparationBivariateTask::ComputeTaskInputs()
 	oaInputAttributePairsSlices.Sort();
 
 	// Ecriture des ensembles de tranches gerant les paires d'attributs
-	if (bDisplay)
+	if (bTrace)
 		WriteAttributePairsSlices(&oaInputAttributePairsSlices, cout);
 }
 

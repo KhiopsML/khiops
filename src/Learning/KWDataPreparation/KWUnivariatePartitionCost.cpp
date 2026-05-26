@@ -225,7 +225,7 @@ double KWUnivariatePartitionCosts::ComputePartitionGlobalModelCost(const KWFrequ
 {
 	require(partTable->GetFrequencyVectorAt(0)->GetClassLabel() == GetFrequencyVectorCreator()->GetClassLabel());
 
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	double dModelCost;
 	int i;
 
@@ -236,11 +236,11 @@ double KWUnivariatePartitionCosts::ComputePartitionGlobalModelCost(const KWFrequ
 	// Cout de partition plus somme des couts des parties
 	dModelCost =
 	    ComputePartitionModelCost(partTable->GetFrequencyVectorNumber(), partTable->GetGarbageModalityNumber());
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "ComputePartitionGlobalModelCost : partition " << dModelCost << endl;
 	for (i = 0; i < partTable->GetFrequencyVectorNumber(); i++)
 		dModelCost += ComputePartModelCost(partTable->GetFrequencyVectorAt(i));
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "ComputePartitionGlobalModelCost : final " << dModelCost << endl;
 
 	return dModelCost;
@@ -250,7 +250,7 @@ double KWUnivariatePartitionCosts::ComputePartitionGlobalConstructionCost(const 
 {
 	require(partTable->GetFrequencyVectorAt(0)->GetClassLabel() == GetFrequencyVectorCreator()->GetClassLabel());
 
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	double dConstructionCost;
 	int i;
 	int nPartitionPartNumber;
@@ -267,11 +267,11 @@ double KWUnivariatePartitionCosts::ComputePartitionGlobalConstructionCost(const 
 	// Cout de partition plus somme des couts des parties
 	dConstructionCost = ComputePartitionConstructionCost(nPartitionPartNumber);
 
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "ComputePartitionGlobalConstructionCost : partition " << dConstructionCost << endl;
 	for (i = 0; i < partTable->GetFrequencyVectorNumber(); i++)
 		dConstructionCost += ComputePartConstructionCost(partTable->GetFrequencyVectorAt(i));
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "ComputePartitionGlobalConstructionCost : fin " << dConstructionCost << endl;
 
 	return dConstructionCost;
@@ -343,7 +343,7 @@ double KWMODLDiscretizationCosts::ComputePartitionCost(int nPartNumber) const
 {
 	// Cas d'utilisation de la granularite
 	double dCost;
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	int nGranularityMax;
 
 	require(nClassValueNumber > 1);
@@ -356,7 +356,7 @@ double KWMODLDiscretizationCosts::ComputePartitionCost(int nPartNumber) const
 
 	// Cout choix entre modele nul et modele informatif
 	dCost = log(2.0);
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "Choix modele informatif " << log(2.0) << endl;
 
 	// Si modele informatif
@@ -364,19 +364,19 @@ double KWMODLDiscretizationCosts::ComputePartitionCost(int nPartNumber) const
 	{
 		// Cout de selection/construction de l'attribut
 		dCost += dAttributeCost;
-		if (bDisplayResults)
+		if (bTrace)
 			cout << " Cout de selection/construction de l'attribut " << dAttributeCost << endl;
 
 		// Cout du choix de la granularite
 		dCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(nGranularity, nGranularityMax);
 
-		if (bDisplayResults)
+		if (bTrace)
 			cout << "Cout choix granularite " << nGranularity << " = "
 			     << KWStat::BoundedNaturalNumbersUniversalCodeLength(nGranularity, nGranularityMax) << endl;
 
 		// Nombre d'intervalles
 		dCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(nPartNumber - 1, nValueNumber - 1);
-		if (bDisplayResults)
+		if (bTrace)
 			cout << "Cout choix nombre de parties " << nPartNumber << " parmi " << nValueNumber << "\t"
 			     << KWStat::BoundedNaturalNumbersUniversalCodeLength(nPartNumber - 1, nValueNumber - 1)
 			     << endl;
@@ -386,13 +386,13 @@ double KWMODLDiscretizationCosts::ComputePartitionCost(int nPartNumber) const
 		dCost += (nPartNumber - 1) * log((nValueNumber - 1) * 1.0);
 		dCost -= KWStat::LnFactorial(nPartNumber - 1);
 
-		if (bDisplayResults)
+		if (bTrace)
 			cout << "Cout choix intervalles "
 			     << KWStat::LnFactorial(nValueNumber + nPartNumber - 1) -
 				    KWStat::LnFactorial(nValueNumber) - KWStat::LnFactorial(nPartNumber - 1)
 			     << endl;
 	}
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "Cout complet avec granularite " << nGranularity << " = "
 		     << " \tnPartNumber = " << nPartNumber << "\t " << dCost << endl;
 

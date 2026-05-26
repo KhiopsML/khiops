@@ -435,7 +435,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
     ObjectArray* oaMergedCells1, NumericKeyDictionary* nkdMergedCells1, ObjectArray* oaMergedCells2,
     NumericKeyDictionary* nkdMergedCells2)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	int nCell;
 	KWDGMCell* evaluationCell;
 	KWDGMCell* evaluationCell2;
@@ -473,7 +473,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 	require(nkdMergedCells2->GetCount() == oaMergedCells2->GetSize());
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << impactedAttribute->GetAttributeName() << "\t"
 		     << "Impacts sur les fusions externes"
@@ -495,7 +495,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 		assert(nkdTransferredCells1->Lookup(cell) == cell);
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 			cout << "Cellule transferee\t" << cell->GetObjectLabel() << "\n";
 
 		// Recherche de la partie externe
@@ -512,7 +512,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 			oppositePart = partMerge->GetOppositePart(impactedPart);
 
 			// Affichage
-			if (bDisplay)
+			if (bTrace)
 				cout << "\tPartie opposee\t" << oppositePart->GetObjectLabel() << "\n";
 
 			// Recherche d'une cellule entrant en collision avec la cellule initial
@@ -526,13 +526,13 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 				//   Pas de collision: pas d'impact
 				if (oppositeCell == NULL)
 				{
-					if (bDisplay)
+					if (bTrace)
 						cout << "\t" << dMergeDeltaCost << "\tPas de collision\n";
 				}
 				//   Collision avec autre cellule transferee: pas d'impact
 				else if (nkdTransferredCells1->Lookup(oppositeCell) != NULL)
 				{
-					if (bDisplay)
+					if (bTrace)
 						cout << "\t" << dMergeDeltaCost
 						     << "\tCollision avec une autre cellule transfere\n";
 				}
@@ -558,7 +558,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 							    cell->GetCost() - dInitialMergeCost);
 
 					// Affichage
-					if (bDisplay)
+					if (bTrace)
 					{
 						cout << "\t" << dMergeDeltaCost
 						     << "\tCollision avec cellule fusionnee\t"
@@ -582,7 +582,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 							  cell->GetCost() - oppositeCell2->GetCost();
 
 					// Affichage
-					if (bDisplay)
+					if (bTrace)
 					{
 						cout << "\t" << dMergeDeltaCost
 						     << "\tCollision avec cellule destination\t"
@@ -614,7 +614,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 		assert(nkdMergedCells1->Lookup(cell) == cell);
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 			cout << "Cellule fusionnee\t" << cell->GetObjectLabel() << "\n";
 
 		// Recherche de la partie externe
@@ -631,7 +631,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 			oppositePart = partMerge->GetOppositePart(impactedPart);
 
 			// Affichage
-			if (bDisplay)
+			if (bTrace)
 				cout << "\tPartie opposee\t" << oppositePart->GetObjectLabel() << "\n";
 
 			// Recherche d'une cellule entrant en collision avec la cellule initial
@@ -645,7 +645,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 				//   Pas de collision: pas d'impact
 				if (oppositeCell == NULL)
 				{
-					if (bDisplay)
+					if (bTrace)
 						cout << "\t" << dMergeDeltaCost << "\tPas de collision\n";
 				}
 				//   Collision avec cellule transferee: mise a jour necessaire
@@ -670,7 +670,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 							    oppositeCell->GetCost() - dInitialMergeCost);
 
 					// Affichage
-					if (bDisplay)
+					if (bTrace)
 					{
 						cout << "\t" << dMergeDeltaCost
 						     << "\tCollision avec cellule transferee\t"
@@ -713,7 +713,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 							    dInitialMergeCost - dInitialMergeCost2);
 
 					// Affichage
-					if (bDisplay)
+					if (bTrace)
 					{
 						cout << "\t" << dMergeDeltaCost
 						     << "\tCollision avec cellule fusionnee\t"
@@ -754,7 +754,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 							    oppositeCell2->GetCost() - dInitialMergeCost);
 
 					// Affichage
-					if (bDisplay)
+					if (bTrace)
 					{
 						cout << "\t" << dMergeDeltaCost
 						     << "\tCollision avec cellule destination\t"

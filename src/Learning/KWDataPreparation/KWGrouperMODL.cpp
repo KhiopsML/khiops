@@ -188,7 +188,7 @@ void KWGrouperMODL::GranularizeFrequencyTable(KWFrequencyTable* kwftSource, KWFr
 	int nSourceIndex;
 	int nPartileNumber;
 	int nActualPartileNumber;
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWDenseFrequencyVector* kwdfvPartileFrequencyVector;
 	KWDenseFrequencyVector* kwdfvSourceFrequencyVector;
 	IntVector* ivPartileFrequencies;
@@ -218,7 +218,7 @@ void KWGrouperMODL::GranularizeFrequencyTable(KWFrequencyTable* kwftSource, KWFr
 		nTargetValueNumber = kwftSource->GetFrequencyVectorSize();
 		nSourceValueNumber = kwftSource->GetFrequencyVectorNumber();
 
-		if (bDisplayResults)
+		if (bTrace)
 		{
 			cout << " Debut Granularize  avec QuantileGroupBuilder = " << nGranularity
 			     << "\t Nbre de partiles = " << nPartileNumber << "\t nInstanceNumber " << nInstanceNumber
@@ -450,8 +450,8 @@ void KWGrouperMODL::PostOptimizeGranularity(KWFrequencyTable* kwftTarget, IntVec
 void KWGrouperMODL::GroupPreprocessedTable(KWFrequencyTable* kwftSource, KWFrequencyTable*& kwftTarget,
 					   IntVector*& ivGroups) const
 {
-	boolean bDisplayResults = false;
-	boolean bDisplayFinalResults = false;
+	const boolean bTrace = false;
+	const boolean bTraceFinal = false;
 	KWQuantileGroupBuilder quantileBuilder;
 	KWFrequencyTable* kwftGranularizedTable;
 	KWFrequencyTable* kwftOptimizedGranularizedTable;
@@ -490,7 +490,7 @@ void KWGrouperMODL::GroupPreprocessedTable(KWFrequencyTable* kwftSource, KWFrequ
 		nGranularityMax--;
 
 	// Affichage
-	if (bDisplayResults)
+	if (bTrace)
 		cout << " N \t" << kwftSource->GetTotalFrequency() << "\t Gmax \t" << nGranularityMax << endl;
 
 	// Initialisation
@@ -536,7 +536,7 @@ void KWGrouperMODL::GroupPreprocessedTable(KWFrequencyTable* kwftSource, KWFrequ
 
 			break;
 		}
-		if (bDisplayResults)
+		if (bTrace)
 			cout << "Granularite " << nGranularityIndex << endl;
 
 		// Transformation de la table selon la granularite
@@ -572,7 +572,7 @@ void KWGrouperMODL::GroupPreprocessedTable(KWFrequencyTable* kwftSource, KWFrequ
 			nLastExploredGranularity = nCurrentExploredGranularity;
 			nCurrentExploredGranularity = nGranularityIndex;
 
-			if (bDisplayResults)
+			if (bTrace)
 			{
 				// cout << " Table avant groupage " << *kwftSource;
 				cout << "Poubelle potentielle "
@@ -587,7 +587,7 @@ void KWGrouperMODL::GroupPreprocessedTable(KWFrequencyTable* kwftSource, KWFrequ
 			delete kwftGranularizedTable;
 			kwftGranularizedTable = NULL;
 
-			if (bDisplayResults)
+			if (bTrace)
 			{
 				// cout << " Table groupee apres GroupFrequencyTable " << endl;
 				// cout << *kwftOptimizedGranularizedTable;
@@ -614,7 +614,7 @@ void KWGrouperMODL::GroupPreprocessedTable(KWFrequencyTable* kwftSource, KWFrequ
 				ivGroups->CopyFrom(ivGranularizedGroups);
 			}
 
-			if (bDisplayResults)
+			if (bTrace)
 			{
 				cout << "Granularite\tPrep. cost\tConstr. cost\tData cost\tTotal cost\tGroups" << endl;
 				cout << nGranularityIndex << "\t"
@@ -657,7 +657,7 @@ void KWGrouperMODL::GroupPreprocessedTable(KWFrequencyTable* kwftSource, KWFrequ
 	if (nLastExploredGranularity != -1 and kwftTarget->GetGranularity() > nLastExploredGranularity + 1)
 		PostOptimizeGranularity(kwftTarget, ivGroups, &quantileBuilder, nLastExploredGranularity);
 
-	if (bDisplayFinalResults)
+	if (bTraceFinal)
 	{
 		cout << "Meilleure granularite groupage = " << kwftTarget->GetGranularity() << " sur "
 		     << nGranularityMax << endl;
@@ -917,7 +917,7 @@ void KWGrouperMODL::TwoClassesGroup(KWFrequencyTable* kwftSource, KWFrequencyTab
 	IntVector* ivSourceToPreprocessedIndexes;
 	IntVector* ivPreprocessedToGroups;
 	int nSource;
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	boolean bMergePureSourceValues = true;
 
 	require(kwftSource != NULL);
@@ -950,7 +950,7 @@ void KWGrouperMODL::TwoClassesGroup(KWFrequencyTable* kwftSource, KWFrequencyTab
 	// Groupage de la table preprocessee
 	grouperMODLTwoClasses.Group(kwftPreprocessedSource, groupingCosts->GetValueNumber(), kwftTarget,
 				    ivPreprocessedToGroups);
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << " Cout de la table groupee par grouperMODLTwoClasses " << ComputePartitionGlobalCost(kwftTarget)
 		     << "\t Taille partition " << kwftTarget->GetFrequencyVectorNumber() << endl;
@@ -976,8 +976,8 @@ void KWGrouperMODL::TwoClassesGroup(KWFrequencyTable* kwftSource, KWFrequencyTab
 void KWGrouperMODL::MultipleClassesGroup(KWFrequencyTable* kwftSource, KWFrequencyTable*& kwftTarget,
 					 IntVector*& ivGroups) const
 {
-	boolean bPrintResults = false;
-	boolean bPrintGroupNumbers = false;
+	const boolean bTraceResults = false;
+	const boolean bTraceGroupNumbers = false;
 	boolean bPreprocessPureGroups = true;
 	boolean bBuildReliableSubGroups = true;
 	boolean bBuildFewGroups = true;
@@ -1003,11 +1003,11 @@ void KWGrouperMODL::MultipleClassesGroup(KWFrequencyTable* kwftSource, KWFrequen
 		GetMaxGroupNumber() == 2 or GetMaxGroupNumber() == 1);
 
 	// Affichage de la table initiale
-	if (bPrintResults)
+	if (bTraceResults)
 		cout << "Initial table\n" << *kwftSource << endl;
 
 	// Affichage des statistiques initiales et du nombre de groupes
-	if (bPrintGroupNumbers)
+	if (bTraceGroupNumbers)
 		cout << kwftSource->GetTotalFrequency() << "\t" << kwftSource->GetFrequencyVectorNumber() << "\t";
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1036,7 +1036,7 @@ void KWGrouperMODL::MultipleClassesGroup(KWFrequencyTable* kwftSource, KWFrequen
 	assert(bPreprocessPureGroups == (ivSourceToPreprocessedIndexes != NULL));
 
 	// Affichage du nombre de groupes
-	if (bPrintGroupNumbers)
+	if (bTraceGroupNumbers)
 		cout << "Nombre de groupes de la table preprocessee "
 		     << kwftPreprocessedSource->GetFrequencyVectorNumber() << "\t";
 
@@ -1064,7 +1064,7 @@ void KWGrouperMODL::MultipleClassesGroup(KWFrequencyTable* kwftSource, KWFrequen
 	assert(bBuildReliableSubGroups == (ivPreprocessedToSubGroupsIndexes != NULL));
 
 	// Affichage du nombre de groupes
-	if (bPrintGroupNumbers)
+	if (bTraceGroupNumbers)
 		cout << "Nbre de gpes apres preprocessing 2 " << oaInitialGroups->GetSize() << "\t";
 
 	////////////////////////////////////////////////////////////////////////////
@@ -1094,7 +1094,7 @@ void KWGrouperMODL::MultipleClassesGroup(KWFrequencyTable* kwftSource, KWFrequen
 	assert(bFewGroups == (ivFewerInitialIndexes != NULL));
 
 	// Affichage du nombre de groupes
-	if (bPrintGroupNumbers)
+	if (bTraceGroupNumbers)
 		cout << "Nbre de groupes apres Merge " << oaInitialGroups->GetSize() << "\t";
 
 	////////////////////////////////////////////////////////////////////////////
@@ -1169,7 +1169,7 @@ void KWGrouperMODL::MultipleClassesGroup(KWFrequencyTable* kwftSource, KWFrequen
 	delete oaNewGroups;
 
 	// Affichage du nombre de groupes
-	if (bPrintGroupNumbers)
+	if (bTraceGroupNumbers)
 		cout << kwftTarget->GetFrequencyVectorNumber() << "\t";
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1187,7 +1187,7 @@ void KWGrouperMODL::MultipleClassesGroup(KWFrequencyTable* kwftSource, KWFrequen
 	}
 
 	// Affichage du nombre de groupes
-	if (bPrintGroupNumbers)
+	if (bTraceGroupNumbers)
 		cout << kwftTarget->GetFrequencyVectorNumber() << "\t";
 
 	/////////////////////////////////////////////////////////////////////////
@@ -1213,11 +1213,11 @@ void KWGrouperMODL::MultipleClassesGroup(KWFrequencyTable* kwftSource, KWFrequen
 	}
 
 	// Affichage de la table finale
-	if (bPrintResults)
+	if (bTraceResults)
 		cout << "Grouped table\n" << *kwftTarget << endl;
 
 	// Affichage du cout MODL
-	if (bPrintGroupNumbers)
+	if (bTraceGroupNumbers)
 		cout << ComputePartitionGlobalCost(kwftTarget) << endl;
 
 	ensure(ivGroups->GetSize() == kwftSource->GetFrequencyVectorNumber());
@@ -1228,9 +1228,9 @@ int KWGrouperMODL::OptimizeGroups(int nExactGroupNumber, ObjectArray* oaInitialG
 				  ObjectArray* oaInitialGroupMerges, ObjectArray*& oaNewGroups,
 				  IntVector*& ivGroups) const
 {
-	boolean bPrintInitialGroups = false;
-	boolean bPrintMerges = false;
-	boolean bPrintNewGroups = false;
+	const boolean bTraceInitialGroups = false;
+	const boolean bTraceMerges = false;
+	const boolean bTraceNewGroups = false;
 	int nOptimumGroupNumber;
 	SortedList groupMergeList(KWMODLGroupMergeCompare);
 	KWMODLGroup* group1;
@@ -1260,7 +1260,7 @@ int KWGrouperMODL::OptimizeGroups(int nExactGroupNumber, ObjectArray* oaInitialG
 	require(nExactGroupNumber == 0 or (nExactGroupNumber >= 1 and nExactGroupNumber <= oaInitialGroups->GetSize()));
 
 	// Affichage des groupes initiaux
-	if (bPrintInitialGroups)
+	if (bTraceInitialGroups)
 	{
 		cout << "Debut OptimizeGroups : affichage groupes initiaux" << endl;
 		for (i = 0; i < oaInitialGroups->GetSize(); i++)
@@ -1341,7 +1341,7 @@ int KWGrouperMODL::OptimizeGroups(int nExactGroupNumber, ObjectArray* oaInitialG
 			group2 = cast(KWMODLGroup*, oaInitialGroups->GetAt(bestGroupMerge->GetIndex2()));
 
 			// Affichage de la fusion
-			if (bPrintMerges)
+			if (bTraceMerges)
 			{
 				cout << "Merge\t" << dDeltaCost << "\t" << nGroupNumber << "\n"
 				     << "\t" << *bestGroupMerge << "\t" << *group1 << "\t" << *group2;
@@ -1355,7 +1355,7 @@ int KWGrouperMODL::OptimizeGroups(int nExactGroupNumber, ObjectArray* oaInitialG
 			group1->SetCost(ComputeGroupCost(group1->GetFrequencyVector()));
 
 			// Affichage du nouveau groupe
-			if (bPrintMerges)
+			if (bTraceMerges)
 			{
 				cout << "\tN" << *group1 << flush;
 			}
@@ -1464,7 +1464,7 @@ int KWGrouperMODL::OptimizeGroups(int nExactGroupNumber, ObjectArray* oaInitialG
 	}
 
 	// Affichage des nouveaux groupes
-	if (bPrintNewGroups)
+	if (bTraceNewGroups)
 	{
 		for (i = 0; i < oaNewGroups->GetSize(); i++)
 			cout << *cast(KWMODLGroup*, oaNewGroups->GetAt(i));
@@ -1476,7 +1476,7 @@ int KWGrouperMODL::OptimizeGroups(int nExactGroupNumber, ObjectArray* oaInitialG
 
 void KWGrouperMODL::InitializeWorkingData(const KWFrequencyTable* kwftSource, int nInitialValueNumber) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 
 	require(kwftSource != NULL);
 	require(nInitialValueNumber >= 1);
@@ -1492,7 +1492,7 @@ void KWGrouperMODL::InitializeWorkingData(const KWFrequencyTable* kwftSource, in
 						       ->GetSize());
 
 	// Affichage des parametres du grouper
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "KWGrouperMODL::InitializeWorkingData\tGranularity\t" << groupingCosts->GetGranularity()
 		     << "\tValueNumber\t" << groupingCosts->GetValueNumber() << endl;
 }
@@ -1708,9 +1708,9 @@ double KWGrouperMODL::ComputeGroupDiffCost(const KWFrequencyVector* sourceGroup,
 void KWGrouperMODL::MultipleClassesGroupWithGarbageSearch(KWFrequencyTable* kwftSource, KWFrequencyTable*& kwftTarget,
 							  IntVector*& ivGroups) const
 {
-	boolean bPrintResults = false;
-	boolean bPrintGroupNumbers = false;
-	boolean bPrintInitialGroups = false;
+	const boolean bTraceResults = false;
+	const boolean bTraceGroupNumbers = false;
+	const boolean bTraceInitialGroups = false;
 	boolean bPreprocessPureGroups = true;
 	boolean bBuildReliableSubGroups = true;
 	boolean bBuildFewGroups = true;
@@ -1729,7 +1729,7 @@ void KWGrouperMODL::MultipleClassesGroupWithGarbageSearch(KWFrequencyTable* kwft
 	int i;
 	int nMinFrequency;
 	int nTotalFrequency;
-	boolean bDisplayModalityNumber = false;
+	const boolean bTrace = false;
 	IntVector* ivSourceToEndPreprocesses;
 	IntVector* ivOptimumNumbers;
 	KWMODLGroup* group;
@@ -1739,11 +1739,11 @@ void KWGrouperMODL::MultipleClassesGroupWithGarbageSearch(KWFrequencyTable* kwft
 	require(kwftSource->GetFrequencyVectorSize() > 1);
 
 	// Affichage de la table initiale
-	if (bPrintResults)
+	if (bTraceResults)
 		cout << "MultipleClassesGroupWithGarbageSearch : Beginning \tInitial table\n" << *kwftSource << endl;
 
 	// Affichage des statistiques initiales et du nombre de groupes
-	if (bPrintGroupNumbers)
+	if (bTraceGroupNumbers)
 		cout << kwftSource->GetTotalFrequency() << "\t" << kwftSource->GetFrequencyVectorNumber() << "\t";
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1776,7 +1776,7 @@ void KWGrouperMODL::MultipleClassesGroupWithGarbageSearch(KWFrequencyTable* kwft
 	assert(bPreprocessPureGroups == (ivSourceToPreprocessedIndexes != NULL));
 
 	// Affichage du nombre de groupes
-	if (bPrintGroupNumbers)
+	if (bTraceGroupNumbers)
 		cout << "Nombre de groupes de la table preprocessee "
 		     << kwftPreprocessedSource->GetFrequencyVectorNumber() << "\t";
 
@@ -1807,11 +1807,11 @@ void KWGrouperMODL::MultipleClassesGroupWithGarbageSearch(KWFrequencyTable* kwft
 	assert(bBuildReliableSubGroups == (ivPreprocessedToSubGroupsIndexes != NULL));
 
 	// Affichage du nombre de groupes
-	if (bPrintGroupNumbers)
+	if (bTraceGroupNumbers)
 		cout << "Nbre de gpes apres second preprocessing\t " << oaInitialGroups->GetSize() << "\t";
 
 	// Affichage
-	if (bDisplayModalityNumber)
+	if (bTrace)
 	{
 		cout << "Nombre de modalites par groupe apres le second preprocessing : " << endl;
 		for (i = 0; i < oaInitialGroups->GetSize(); i++)
@@ -1854,7 +1854,7 @@ void KWGrouperMODL::MultipleClassesGroupWithGarbageSearch(KWFrequencyTable* kwft
 	assert(bFewGroups == (ivFewerInitialIndexes != NULL));
 
 	// Affichage du nombre de groupes
-	if (bPrintGroupNumbers)
+	if (bTraceGroupNumbers)
 		cout << "Nbre de groupes apres Merge " << oaInitialGroups->GetSize() << "\t";
 
 	////////////////////////////////////////////////////////////////////////////
@@ -1872,7 +1872,7 @@ void KWGrouperMODL::MultipleClassesGroupWithGarbageSearch(KWFrequencyTable* kwft
 	oaInitialGroupMerges = BuildGroupMerges(oaInitialGroups);
 
 	// Affichage
-	if (bDisplayModalityNumber)
+	if (bTrace)
 	{
 		cout << "Nombre de modalites par groupe avant l'optimisation principale : " << endl;
 		for (i = 0; i < oaInitialGroups->GetSize(); i++)
@@ -1889,7 +1889,7 @@ void KWGrouperMODL::MultipleClassesGroupWithGarbageSearch(KWFrequencyTable* kwft
 
 	delete ivOptimumNumbers;
 
-	if (bPrintInitialGroups)
+	if (bTraceInitialGroups)
 	{
 		cout << "Apres OptimizeGroupsWithGarbageSearch : affichage des groupes initiaux " << endl;
 		for (i = 0; i < oaInitialGroups->GetSize(); i++)
@@ -1897,7 +1897,7 @@ void KWGrouperMODL::MultipleClassesGroupWithGarbageSearch(KWFrequencyTable* kwft
 	}
 
 	// Affichage du nombre de groupes apres l'optimisation principale
-	if (bPrintGroupNumbers)
+	if (bTraceGroupNumbers)
 		cout << "Nbre de groupes apres l'optimisation principale\t" << oaNewGroups->GetSize() << "\t";
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1906,7 +1906,7 @@ void KWGrouperMODL::MultipleClassesGroupWithGarbageSearch(KWFrequencyTable* kwft
 	// Post-optimisation du groupage avec recherche de partition avec groupe poubelle
 	if (bPostOptimization)
 	{
-		if (bDisplayModalityNumber)
+		if (bTrace)
 		{
 			cout << "Nombre de modalites par groupe avant la post-optimisation : " << endl;
 			for (i = 0; i < oaNewGroups->GetSize(); i++)
@@ -1953,7 +1953,7 @@ void KWGrouperMODL::MultipleClassesGroupWithGarbageSearch(KWFrequencyTable* kwft
 		delete ivSourceToEndPreprocesses;
 
 	// Affichage du nombre de groupes
-	if (bPrintGroupNumbers)
+	if (bTraceGroupNumbers)
 		cout << "Nbre de groupes apres post-optimisation \t" << kwftTarget->GetFrequencyVectorNumber() << "\t";
 
 	/////////////////////////////////////////////////////////////////////////
@@ -2023,11 +2023,11 @@ void KWGrouperMODL::MultipleClassesGroupWithGarbageSearch(KWFrequencyTable* kwft
 	}
 
 	// Affichage de la table finale
-	if (bPrintResults)
+	if (bTraceResults)
 		cout << "MultipleClassesGroupWithGarbageSearch : End \tGrouped table\n" << *kwftTarget << endl;
 
 	// Affichage du cout MODL
-	if (bPrintGroupNumbers)
+	if (bTraceGroupNumbers)
 		cout << "Cout MODL de la grille optimisee \t" << ComputePartitionGlobalCost(kwftTarget) << endl;
 
 	ensure(ivGroups->GetSize() == kwftSource->GetFrequencyVectorNumber());
@@ -2039,9 +2039,9 @@ IntVector* KWGrouperMODL::OptimizeGroupsWithGarbageSearch(int nExactGroupNumber,
 							  ObjectArray* oaInitialGroupMerges, ObjectArray*& oaNewGroups,
 							  IntVector*& ivGroups) const
 {
-	boolean bPrintInitialGroups = false;
-	boolean bPrintMerges = false;
-	boolean bPrintNewGroups = false;
+	const boolean bTraceInitialGroups = false;
+	const boolean bTraceMerges = false;
+	const boolean bTraceNewGroups = false;
 	int nOptimumGroupNumber;
 	SortedList groupMergeList(KWMODLGroupMergeCompare);
 	KWMODLGroup* group1;
@@ -2078,7 +2078,7 @@ IntVector* KWGrouperMODL::OptimizeGroupsWithGarbageSearch(int nExactGroupNumber,
 	int nMergeSize;
 	int nGarbageModalityNumber;
 	int nOptimumGroupNumberWithGarbage;
-	boolean bDisplayGarbage = false;
+	const boolean bTrace = false;
 
 	require(oaInitialGroups != NULL);
 	require(oaInitialGroups->GetSize() <= GetInitialValueNumber());
@@ -2086,7 +2086,7 @@ IntVector* KWGrouperMODL::OptimizeGroupsWithGarbageSearch(int nExactGroupNumber,
 	require(nExactGroupNumber == 0 or (nExactGroupNumber >= 1 and nExactGroupNumber <= oaInitialGroups->GetSize()));
 
 	// Affichage des groupes initiaux
-	if (bPrintInitialGroups)
+	if (bTraceInitialGroups)
 	{
 		cout << "Debut OptimizeGroupsWithGarbageSearch : groupes initiaux" << endl;
 		for (i = 0; i < oaInitialGroups->GetSize(); i++)
@@ -2153,7 +2153,7 @@ IntVector* KWGrouperMODL::OptimizeGroupsWithGarbageSearch(int nExactGroupNumber,
 	// Variation de cout de la partition initiale sans/avec poubelle selon le plus gros element de frequencyList
 	if (nGroupNumber > 2)
 	{
-		if (bDisplayGarbage)
+		if (bTrace)
 		{
 			cout << " Liste des nombres de modalites " << endl;
 			frequencyList.Write(cout);
@@ -2236,7 +2236,7 @@ IntVector* KWGrouperMODL::OptimizeGroupsWithGarbageSearch(int nExactGroupNumber,
 			nOptimumGroupNumberWithGarbage = nGroupNumber - 1;
 		}
 
-		if (bDisplayGarbage)
+		if (bTrace)
 			cout << nGroupNumber - 1 << "\t" << dTotalDeltaCost << "\t" << dCumulatedDeltaCostWithGarbage
 			     << "\t" << nGarbageModalityNumber << endl;
 
@@ -2259,7 +2259,7 @@ IntVector* KWGrouperMODL::OptimizeGroupsWithGarbageSearch(int nExactGroupNumber,
 			group2 = cast(KWMODLGroup*, oaInitialGroups->GetAt(bestGroupMerge->GetIndex2()));
 
 			// Affichage de la fusion
-			if (bPrintMerges)
+			if (bTraceMerges)
 			{
 				cout << "Merge\t" << dDeltaCost << "\t" << nGroupNumber << "\n"
 				     << "\t" << *bestGroupMerge << "\t" << *group1 << "\t" << *group2;
@@ -2283,7 +2283,7 @@ IntVector* KWGrouperMODL::OptimizeGroupsWithGarbageSearch(int nExactGroupNumber,
 			group1->SetPosition(frequencyList.Add(group1));
 
 			// Affichage du nouveau groupe
-			if (bPrintMerges)
+			if (bTraceMerges)
 			{
 				cout << "\tN" << *group1 << flush;
 			}
@@ -2396,7 +2396,7 @@ IntVector* KWGrouperMODL::OptimizeGroupsWithGarbageSearch(int nExactGroupNumber,
 	}
 
 	// Affichage des nouveaux groupes
-	if (bPrintNewGroups)
+	if (bTraceNewGroups)
 	{
 		cout << "OptimizeGroupsWithGarbageSearch : affichage des groupes finaux " << endl;
 		for (i = 0; i < oaNewGroups->GetSize(); i++)
@@ -2404,14 +2404,14 @@ IntVector* KWGrouperMODL::OptimizeGroupsWithGarbageSearch(int nExactGroupNumber,
 	}
 
 	// Affichage des groupes initiaux
-	if (bPrintInitialGroups)
+	if (bTraceInitialGroups)
 	{
 		cout << "Fin OptimizeGroupsWithGarbageSearch : affichage des groupes initiaux " << endl;
 		for (i = 0; i < oaInitialGroups->GetSize(); i++)
 			cout << *cast(KWMODLGroup*, oaInitialGroups->GetAt(i));
 	}
 
-	if (bDisplayGarbage and nExactGroupNumber == 0)
+	if (bTrace and nExactGroupNumber == 0)
 		cout << "Nbre optimal de groupes avant degradation (avec ou sans poub) \tSANS poubelle\t"
 		     << nOptimumGroupNumber << "\t AVEC poubelle \t" << nOptimumGroupNumberWithGarbage << endl;
 

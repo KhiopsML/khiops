@@ -24,7 +24,7 @@ int KWDataPreparationTask::ComputeMaxLoadableAttributeNumber(const KWLearningSpe
 							     const KWTupleTable* targetTupleTable,
 							     int nAttributePairNumber) const
 {
-	boolean bDisplayMemoryStats = GetPreparationTraceMode();
+	const boolean bTrace = GetPreparationTraceMode();
 	const int nMaxProcessBySlave = 2;
 	RMTaskResourceRequirement resourceRequirement;
 	RMTaskResourceGrant grantedResources;
@@ -191,7 +191,7 @@ int KWDataPreparationTask::ComputeMaxLoadableAttributeNumber(const KWLearningSpe
 	}
 
 	// Affichage des stats
-	if (bDisplayMemoryStats)
+	if (bTrace)
 	{
 		cout << "KWDataPreparationTask::ComputeMaxLoadableAttributeNumber" << endl;
 		cout << "\tObject number\t" << nDatabaseObjectNumber << endl;
@@ -435,7 +435,7 @@ longint KWDataPreparationTask::ComputeNecessaryWorkingMemory(const KWLearningSpe
 							     const KWTupleTable* targetTupleTable,
 							     boolean bComputeAttributePairs) const
 {
-	boolean bDisplayMemoryStats = GetPreparationTraceMode();
+	const boolean bTrace = GetPreparationTraceMode();
 	KWClass* kwcClass;
 	KWClass dummyClass;
 	KWDatabase dummyDatabase;
@@ -618,7 +618,7 @@ longint KWDataPreparationTask::ComputeNecessaryWorkingMemory(const KWLearningSpe
 	}
 
 	// Affichage des estimations memoire
-	if (bDisplayMemoryStats)
+	if (bTrace)
 	{
 		cout << "ComputeNecessaryWorkingMemory" << endl;
 		cout << "\tObject number\t" << nDatabaseObjectNumber << endl;
@@ -911,7 +911,7 @@ longint KWDataPreparationTask::ComputeDatabaseMinimumAllValuesMemory(int nDenseS
 								     longint lTotalBlockValueNumber,
 								     int nObjectNumber) const
 {
-	boolean bDisplayMemoryStats = GetPreparationTraceMode();
+	const boolean bTrace = GetPreparationTraceMode();
 	longint lDatabaseAllValuesMemory;
 
 	require(nDenseSymbolAttributeNumber >= 0);
@@ -936,7 +936,7 @@ longint KWDataPreparationTask::ComputeDatabaseMinimumAllValuesMemory(int nDenseS
 	lDatabaseAllValuesMemory += lTotalBlockValueNumber * GetNecessaryMemoryPerSparseValue();
 
 	// Affichage des details de dimensionnement
-	if (bDisplayMemoryStats)
+	if (bTrace)
 	{
 		cout << "\t  ComputeDatabaseMinimumAllValuesMemory" << endl;
 		cout << "\t\tDense symbol attribute number\t" << nDenseSymbolAttributeNumber << endl;
@@ -1011,7 +1011,7 @@ longint KWDataPreparationTask::ComputeEstimatedMaxBlockWorkingMemory(const KWLea
 								     const KWClass* kwcPartialClass,
 								     int nMaxAttributeNumberPerBlock) const
 {
-	boolean bDisplayMemoryStats = GetPreparationTraceMode();
+	const boolean bTrace = GetPreparationTraceMode();
 	longint lEstimatedMaxBlockWorkingMemory;
 	int nMaxBlockAttributeNumber;
 	longint lEstimatedMaxValueNumberPerBlock;
@@ -1050,7 +1050,7 @@ longint KWDataPreparationTask::ComputeEstimatedMaxBlockWorkingMemory(const KWLea
 	    nMaxBlockAttributeNumber, lEstimatedMaxValueNumberPerBlock, nDatabaseObjectNumber);
 
 	// Affichage des details de dimensionnement
-	if (bDisplayMemoryStats)
+	if (bTrace)
 	{
 		cout << "\t  ComputeEstimatedMaxBlockWorkingMemory" << endl;
 		cout << "\t\tMax attribute number per block\t" << nMaxAttributeNumberPerBlock << endl;
@@ -1117,7 +1117,7 @@ boolean KWDataPreparationTask::RunDataPreparationTask(KWLearningSpec* learningSp
 						      KWDataTableSliceSet* dataTableSliceSet)
 {
 	boolean bOk;
-	boolean bDisplayUserMessage = false;
+	const boolean bTrace = false;
 	ALString sTmp;
 
 	require(tupleTableLoader != NULL);
@@ -1143,7 +1143,7 @@ boolean KWDataPreparationTask::RunDataPreparationTask(KWLearningSpec* learningSp
 	bOk = Run();
 
 	// Message d'erreur si necessaire
-	if (bDisplayUserMessage)
+	if (bTrace)
 	{
 		if (IsJobDone() and IsTaskInterruptedByUser())
 			AddWarning("Interrupted by user");
