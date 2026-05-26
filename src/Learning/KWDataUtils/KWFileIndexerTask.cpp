@@ -37,7 +37,7 @@ boolean KWFileIndexerTask::ComputeIndexation(int nBufferSize, int nPositionNumbe
 					     LongintVector* lvFileBeginRecordIndexes)
 {
 	boolean bOk;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	int i;
 
 	require(nBufferSize > SystemFile::nMinPreferredBufferSize);
@@ -64,7 +64,7 @@ boolean KWFileIndexerTask::ComputeIndexation(int nBufferSize, int nPositionNumbe
 	lvTaskFileBeginRecordIndexes = NULL;
 
 	// Affichage des resultats
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << " KWFileIndexerTask::ComputeIndexation\t" << nBufferSize << "\n";
 		cout << "Position\tRecord index\n";

@@ -18,7 +18,7 @@ KWSortBuckets::~KWSortBuckets()
 
 void KWSortBuckets::Build(KWSortBucket* mainBucket, const ObjectArray* oaSplits)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	int i;
 	KWSortBucket* bucket;
 	const KWKey* lastKey;
@@ -77,7 +77,7 @@ void KWSortBuckets::Build(KWSortBucket* mainBucket, const ObjectArray* oaSplits)
 	oaBuckets.Add(bucket);
 
 	// Affichage des buckets construits
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\t\tBuckets : " << endl;
 		cout << *this << endl;

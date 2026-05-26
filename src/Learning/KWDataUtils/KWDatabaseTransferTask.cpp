@@ -207,7 +207,7 @@ PLParallelTask* KWDatabaseTransferTask::Create() const
 boolean KWDatabaseTransferTask::ComputeResourceRequirements()
 {
 	boolean bOk = true;
-	boolean bDisplayRequirements = false;
+	const boolean bTrace = false;
 	PLDatabaseTextFile* sourceDatabase;
 	PLDatabaseTextFile* targetDatabase;
 	longint lOutputNecessaryDiskSpace;
@@ -268,7 +268,7 @@ boolean KWDatabaseTransferTask::ComputeResourceRequirements()
 	}
 
 	// Affichage detaille des demande de ressource
-	if (bDisplayRequirements)
+	if (bTrace)
 	{
 		cout << "KWDatabaseTransferTask::ComputeResourceRequirements, source memory\t"
 		     << LongintToHumanReadableString(sourceDatabase->GetMinOpenNecessaryMemory()) << "\t"

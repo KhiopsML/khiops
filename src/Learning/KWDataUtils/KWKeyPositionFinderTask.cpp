@@ -91,7 +91,7 @@ const IntVector* KWKeyPositionFinderTask::GetConstKeyFieldIndexes() const
 boolean KWKeyPositionFinderTask::FindKeyPositions(const ObjectArray* oaInputKeys, ObjectArray* oaFoundKeyPositions)
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 
 	require(oaInputKeys != NULL);
 	require(CheckKeys(oaInputKeys));
@@ -126,7 +126,7 @@ boolean KWKeyPositionFinderTask::FindKeyPositions(const ObjectArray* oaInputKeys
 	}
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << GetClassLabel() << "\t" << bOk << "\n";
 		cout << "Input keys\n";

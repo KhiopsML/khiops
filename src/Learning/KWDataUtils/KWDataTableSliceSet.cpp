@@ -354,7 +354,7 @@ void KWDataTableSliceSet::BuildSpecificationFromClassPartition(const KWClass* kw
 							       const IntVector* ivBaseLexicographicIndex,
 							       const IntVector* ivAttributeSliceIndexes)
 {
-	boolean bShowSliceClasses = false;
+	const boolean bTrace = false;
 	int nAttribute;
 	KWAttribute* attribute;
 	KWAttributeBlock* lastAttributeBlock;
@@ -521,7 +521,7 @@ void KWDataTableSliceSet::BuildSpecificationFromClassPartition(const KWClass* kw
 	}
 
 	// Affichage des classes du domaine
-	if (bShowSliceClasses)
+	if (bTrace)
 	{
 		cout << "KWDataTableSliceSet::BuildSpecificationFromClassPartition\n";
 		cout << *KWClassDomain::GetCurrentDomain() << endl;
@@ -2248,8 +2248,8 @@ void KWDataTableSliceSet::ComputeReadInformation(const KWClass* kwcInputClass, K
 						 ObjectArray* oaPhysicalSlices)
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
-	boolean bDisplayDetails = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
 	KWClassDomain* physicalDomain;
 	KWAttribute* attribute;
 	KWAttributeBlock* attributeBlock;
@@ -2278,7 +2278,7 @@ void KWDataTableSliceSet::ComputeReadInformation(const KWClass* kwcInputClass, K
 	require(oaPhysicalSlices->GetSize() == 0);
 
 	// Affichage du debut de methode
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << GetClassLabel() << " " << GetObjectLabel() << "\n";
 		cout << "\nComputeReadInformation(" << kwcInputClass->GetName() << ") (process " << GetProcessId()
@@ -2378,7 +2378,7 @@ void KWDataTableSliceSet::ComputeReadInformation(const KWClass* kwcInputClass, K
 	oaAttributesToClean.SetSize(0);
 
 	// Affichage des attributs necessaires
-	if (bDisplayDetails and bOk)
+	if (bTraceDetails and bOk)
 	{
 		// Affichage des attributs necessaires
 		cout << "Needed attributes\n";
@@ -2566,7 +2566,7 @@ void KWDataTableSliceSet::ComputeReadInformation(const KWClass* kwcInputClass, K
 	}
 
 	// Affichage de la classe physique
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Physical dictionary\n" << *physicalClass << endl;
 
@@ -4134,7 +4134,7 @@ boolean KWDataTableDriverSlice::ReadObject(KWObject* kwoObject)
 
 void KWDataTableDriverSlice::ComputeSliceDataItemLoadIndexes(const KWClass* kwcSliceClass)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	int i;
 	ObjectArray oaNativeLogicalDataItems;
 	int nSliceDataItemIndex;
@@ -4222,7 +4222,7 @@ void KWDataTableDriverSlice::ComputeSliceDataItemLoadIndexes(const KWClass* kwcS
 	assert(nSliceDataItemIndex == livDataItemLoadIndexes.GetSize());
 
 	// Affichage du resultat d'indexation
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Compute data item indexes of dictionary " << kwcClass->GetName() << endl;
 		cout << " Slice dictionary " << kwcSliceClass->GetName() << endl;

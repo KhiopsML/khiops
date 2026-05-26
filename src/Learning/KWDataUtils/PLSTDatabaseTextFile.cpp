@@ -306,7 +306,7 @@ int PLSTDatabaseTextFile::GetMaxSlaveProcessNumber() const
 
 int PLSTDatabaseTextFile::ComputeOpenBufferSize(boolean bRead, longint lOpenGrantedMemory, int nProcessNumber) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	longint lOpenGrantedMemoryForBuffers;
 	int nBufferSize;
 
@@ -354,7 +354,7 @@ int PLSTDatabaseTextFile::ComputeOpenBufferSize(boolean bRead, longint lOpenGran
 	nBufferSize = min(nBufferSize, nReadSizeMax);
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "PLSTDatabaseTextFile::ComputeOpenBufferSize " << bRead << endl;
 		cout << "\tMinOpenNecessaryMemory\t" << lMinOpenNecessaryMemory << endl;

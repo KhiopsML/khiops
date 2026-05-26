@@ -118,7 +118,7 @@ longint KWKeyPositionSampleExtractorTask::GetKeyUsedMemory() const
 boolean KWKeyPositionSampleExtractorTask::ExtractSample(ObjectArray* oaKeyPositions)
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 
 	require(oaKeyPositions != NULL);
 	require(sFileName != ""); // Le fichier d'entree doit etre renseigne
@@ -145,7 +145,7 @@ boolean KWKeyPositionSampleExtractorTask::ExtractSample(ObjectArray* oaKeyPositi
 	}
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << GetClassLabel() << "\t" << bOk << "\n";
 		WriteKeyPositions(oaKeyPositions, cout);
