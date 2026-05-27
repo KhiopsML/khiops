@@ -10,14 +10,13 @@ enabling direct deployment of Khiops models from Python without temporary files.
 """
 
 from .kni import KNI, KNIError
+from importlib.metadata import version, PackageNotFoundError
 
 __all__ = ["KNI", "KNIError"]
 
 # Get version from package metadata (set by scikit-build-core during wheel building)
 try:
-    from importlib.metadata import version
-
     __version__ = version("khiops-kni")
-except Exception:
+except PackageNotFoundError:
     # Fallback for development installations
     __version__ = "0.0.0.dev0"
