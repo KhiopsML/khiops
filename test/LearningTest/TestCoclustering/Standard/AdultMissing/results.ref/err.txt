@@ -1,3 +1,4 @@
+Train variables coclustering model
 Database ./AdultMissing10000.txt : Read records: 10,000
   0:00:00	Write intermediate report Coclustering(1).khcj	Level: 0.00338501	Size: 2*1*2	Granularity: 1
   0:00:00	Write intermediate report Coclustering(2).khcj	Level: 0.0279628	Size: 2*3*2	Granularity: 2
@@ -6,5 +7,5 @@ Database ./AdultMissing10000.txt : Read records: 10,000
   0:00:00	Write intermediate report Coclustering(5).khcj	Level: 0.0338808	Size: 7*4*2
   0:00:00	Write intermediate report Coclustering(6).khcj	Level: 0.0339522	Size: 8*4*2
 Write coclustering report ./results/Coclustering.khcj
-Coclustering analysis time: 0:00:00.09
+Coclustering analysis time: 0:00:00.15
 

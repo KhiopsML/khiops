@@ -148,6 +148,7 @@ void CCLearningProblem::BuildCoclustering()
 	boolean bDeploymentOk;
 	CCDeploymentSpec ccVarPartDeploymentSpec;
 	ALString sCoclusteringDictionaryFileName;
+	ALString sMessage;
 
 	require(CheckClass());
 	require(CheckDatabaseName());
@@ -156,10 +157,24 @@ void CCLearningProblem::BuildCoclustering()
 	require(CheckResultFileNames(TaskBuildCoclustering));
 	require(not TaskProgression::IsStarted());
 
-	// Demarage du suivi de la tache
-	TaskProgression::SetTitle("Train coclustering " + GetClassName());
+	// Demarrage du suivi de la tache
+	// Cas d'un coclustering variable * variable
+	if (not analysisSpec->GetVarPartCoclustering())
+		TaskProgression::SetTitle("Train variables coclustering model" + GetClassName());
+	// Sinon : coclustering instances * variables
+	else
+		TaskProgression::SetTitle("Train instances x variables coclustering model" + GetClassName());
 	TaskProgression::SetDisplayedLevelNumber(2);
 	TaskProgression::Start();
+
+	// Message d'info sur le type de coclustering effectue
+	// Cas d'un coclustering variable x variable
+	if (not analysisSpec->GetVarPartCoclustering())
+		sMessage += "Train variables coclustering model";
+	// Sinon instances x variables
+	else
+		sMessage += "Train instances x variables coclustering model";
+	AddSimpleMessage(sMessage);
 
 	// Affichage de warnings lie aux mappings dans le cas multi-table
 	// Cet affichage est effectue une seule fois, uniquement pour la phase d'apprentissage
@@ -170,7 +185,7 @@ void CCLearningProblem::BuildCoclustering()
 	// Initialisations
 	kwcClass = NULL;
 
-	// Demarage du timer
+	// Demarrage du timer
 	timer.Start();
 
 	// Recherche de la classe
@@ -229,6 +244,15 @@ void CCLearningProblem::BuildCoclustering()
 	// Sinon : cas d'un coclustering instances * variables avec attribut de type de parties de variable
 	else
 	{
+		// Affichage de warnings si des parametres du coclustering modele ont ete specifies (coclustering variables ou frequency variable)
+		if (analysisSpec->GetCoclusteringSpec()->GetAttributeNames()->GetSize() > 0 or
+		    analysisSpec->GetCoclusteringSpec()->GetFrequencyAttributeName() != "")
+			AddWarning(
+			    "For instances x variables coclustering models, all the numerical and categorical "
+			    "variables are used "
+			    "without taking into account the variables coclustering parameters (coclustering variables "
+			    "names or frequency variable name).");
+
 		// Preparation du domaine pour la nouvelle classe
 		constructedDomain = kwcClass->GetDomain()->CloneFromClass(kwcClass);
 
