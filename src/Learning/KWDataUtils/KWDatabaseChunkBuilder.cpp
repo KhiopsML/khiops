@@ -287,7 +287,7 @@ const ALString KWDatabaseChunkBuilder::GetObjectLabel() const
 
 void KWDatabaseChunkBuilder::ComputeAllChunksInformations(int nSlaveNumber, longint lMaxFileSizePerProcess)
 {
-	boolean bDisplayChunkInformation = false;
+	const boolean bTrace = false;
 	longint lTotalUsedFileSize;
 	int nChunk;
 	int nMapping;
@@ -306,7 +306,7 @@ void KWDatabaseChunkBuilder::ComputeAllChunksInformations(int nSlaveNumber, long
 	require(lMaxFileSizePerProcess > 0);
 
 	// Affichage
-	if (bDisplayChunkInformation)
+	if (bTrace)
 	{
 		cout << "ComputeAllChunksInformations\t" << nSlaveNumber << "\t" << lMaxFileSizePerProcess << endl;
 		cout << "\tDatabase\t" << GetDatabaseIndexer()->GetObjectLabel() << endl;
@@ -404,7 +404,7 @@ void KWDatabaseChunkBuilder::ComputeAllChunksInformations(int nSlaveNumber, long
 				lCurrentTotalFileSize += lFileSizePerProcess;
 
 				// Affichage des specifications de decoupage
-				if (bDisplayChunkInformation)
+				if (bTrace)
 				{
 					cout << "\t" << ivChunkBeginIndexes.GetSize() << "\t" << lCurrentTotalFileSize
 					     << "\t" << lFileSizePerProcess << "\t" << lCurrentMaxFileSizePerProcess

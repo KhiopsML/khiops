@@ -457,7 +457,7 @@ Continuous MHTruncationFloatingPointFrequencyTableBuilder::InverseTransformValue
 void MHTruncationFloatingPointFrequencyTableBuilder::TransformValues(const ContinuousVector* cvSourceValues,
 								     ContinuousVector* cvTransformedValues) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	int n;
 	Continuous cValue;
 	Continuous cTransformedValue;
@@ -493,7 +493,7 @@ void MHTruncationFloatingPointFrequencyTableBuilder::TransformValues(const Conti
 		assert(n == 0 or cvTransformedValues->GetAt(n) >= cvTransformedValues->GetAt(n - 1));
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 		{
 			if (n == 0)
 				cout << "X\tbX\n";

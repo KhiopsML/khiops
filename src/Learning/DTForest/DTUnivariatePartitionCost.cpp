@@ -20,7 +20,7 @@ double DTMODLDiscretizationCosts::ComputePartitionCost(int nPartNumber) const
 {
 	// Cas d'utilisation de la granularite
 	double dCost;
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	int nGranularityMax;
 
 	require(nClassValueNumber > 1);
@@ -33,7 +33,7 @@ double DTMODLDiscretizationCosts::ComputePartitionCost(int nPartNumber) const
 
 	// Cout choix entre modele nul et modele informatif
 	dCost = log(2.0);
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "Choix modele informatif " << log(2.0) << endl;
 
 	// Si modele informatif
@@ -41,19 +41,19 @@ double DTMODLDiscretizationCosts::ComputePartitionCost(int nPartNumber) const
 	{
 		// Cout de selection/construction de l'attribut
 		dCost += dAttributeCost;
-		if (bDisplayResults)
+		if (bTrace)
 			cout << " Cout de selection/construction de l'attribut " << dAttributeCost << endl;
 
 		// Cout du choix de la granularite
 		dCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(nGranularity, nGranularityMax);
 
-		if (bDisplayResults)
+		if (bTrace)
 			cout << "Cout choix granularite " << nGranularity << " = "
 			     << KWStat::BoundedNaturalNumbersUniversalCodeLength(nGranularity, nGranularityMax) << endl;
 
 		// Nombre d'intervalles
 		// dCost += KWStat::BoundedNaturalNumbersUniversalCodeLength(nPartNumber - 1, nValueNumber - 1);
-		if (bDisplayResults)
+		if (bTrace)
 			cout << "Cout choix nombre de parties " << nPartNumber << " parmi " << nValueNumber << "\t"
 			     << KWStat::BoundedNaturalNumbersUniversalCodeLength(nPartNumber - 1, nValueNumber - 1)
 			     << endl;
@@ -62,13 +62,13 @@ double DTMODLDiscretizationCosts::ComputePartitionCost(int nPartNumber) const
 		// Nouveau codage avec description du choix des coupures selon une multinomiale
 		dCost += log((nValueNumber - 1) * 1.0);
 
-		if (bDisplayResults)
+		if (bTrace)
 			cout << "Cout choix intervalles "
 			     << KWStat::LnFactorial(nValueNumber + nPartNumber - 1) -
 				    KWStat::LnFactorial(nValueNumber) - KWStat::LnFactorial(nPartNumber - 1)
 			     << endl;
 	}
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "Cout complet avec granularite " << nGranularity << " = "
 		     << " \tnPartNumber = " << nPartNumber << "\t " << dCost << endl;
 

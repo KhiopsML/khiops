@@ -503,7 +503,7 @@ boolean SNBClassifierSelectionDataCostCalculator::UpdateTargetPartScoresWithWeig
 
 boolean SNBClassifierSelectionDataCostCalculator::UpdateDataCost()
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	boolean bOk = true;
 	int nTargetPart;
 	int nChunkInstanceNumber;
@@ -511,7 +511,7 @@ boolean SNBClassifierSelectionDataCostCalculator::UpdateDataCost()
 	double dInstanceNonNormalizedDataCost;
 
 	// Entete de trace de debbogage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\t[D]Instance\tTarget\tTargetPart\tProb\tCost";
 		for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
@@ -536,7 +536,7 @@ boolean SNBClassifierSelectionDataCostCalculator::UpdateDataCost()
 boolean SNBClassifierSelectionDataCostCalculator::UpdateDataCostWithSparseAttribute(
     const SNBDataTableBinarySliceSetAttribute* attribute)
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	boolean bOk = true;
 	int nTargetPart;
 	int nChunkColumnValueNumber;
@@ -551,7 +551,7 @@ boolean SNBClassifierSelectionDataCostCalculator::UpdateDataCostWithSparseAttrib
 	require(GetDataTableBinarySliceSet()->ContainsAttribute(attribute));
 
 	// Entete de trace de debbogage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << attribute->GetNativeAttributeName() << "\t[S]Instance\tTarget\tTargetPart\tProb\tCost";
 		for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
@@ -1187,7 +1187,7 @@ boolean SNBRegressorSelectionDataCostCalculator::UpdateTargetPartScoresWithWeigh
 
 boolean SNBRegressorSelectionDataCostCalculator::UpdateDataCost()
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	boolean bOk = true;
 	int nTargetPart;
 	int nChunkInstanceNumber;
@@ -1195,7 +1195,7 @@ boolean SNBRegressorSelectionDataCostCalculator::UpdateDataCost()
 	double dInstanceNonNormalizedDataCost;
 
 	// Entete de trace de debbogage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\tInstance\tTarget\tTargetPart\tProb\tCost";
 		for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
@@ -1220,7 +1220,7 @@ boolean SNBRegressorSelectionDataCostCalculator::UpdateDataCost()
 boolean SNBRegressorSelectionDataCostCalculator::UpdateDataCostWithSparseAttribute(
     const SNBDataTableBinarySliceSetAttribute* attribute)
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	boolean bOk = true;
 	int nTargetPart;
 	int nChunkColumnValueNumber;
@@ -1235,7 +1235,7 @@ boolean SNBRegressorSelectionDataCostCalculator::UpdateDataCostWithSparseAttribu
 	require(GetDataTableBinarySliceSet()->ContainsAttribute(attribute));
 
 	// Entete de trace de debbogage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\tInstance\tTarget\tTargetPart\tProb\tCost";
 		for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
@@ -1737,7 +1737,7 @@ boolean SNBGeneralizedClassifierSelectionDataCostCalculator::Create()
 
 void SNBGeneralizedClassifierSelectionDataCostCalculator::InitializeTargetValueGroupMatchings()
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	int nAttribute;
 	const KWDGSAttributePartition* targetPartition;
 	const KWDGSAttributeGrouping* targetValueGroupsPartition;
@@ -2267,7 +2267,7 @@ boolean SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateTargetPartSco
 
 boolean SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateDataCost()
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	boolean bOk = true;
 	int nTargetPart;
 	int nChunkInstanceNumber;
@@ -2275,7 +2275,7 @@ boolean SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateDataCost()
 	double dInstanceNonNormalizedDataCost;
 
 	// Entete de trace de debbogage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\tInstance\tTarget\tTargetPart\tProb\tCost";
 		for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)
@@ -2300,7 +2300,7 @@ boolean SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateDataCost()
 boolean SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateDataCostWithSparseAttribute(
     const SNBDataTableBinarySliceSetAttribute* attribute)
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	boolean bOk = true;
 	int nTargetPart;
 	int nChunkColumnValueNumber;
@@ -2315,7 +2315,7 @@ boolean SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateDataCostWithS
 	require(GetDataTableBinarySliceSet()->ContainsAttribute(attribute));
 
 	// Entete de trace de debbogage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\tInstance\tTarget\tTargetPart\tProb\tCost";
 		for (nTargetPart = 0; nTargetPart < oaTargetParts.GetSize(); nTargetPart++)

@@ -782,7 +782,7 @@ void KWTimeFormat::AddFormat(ObjectArray* oaFormats, const ALString& sFormatStri
 void KWTimeFormat::UnitTest(const ALString& sInputValue, KWTimeFormat* inputFormat, KWTimeFormat* outputFormat)
 {
 	boolean bOk = true;
-	boolean bShow = false;
+	const boolean bTrace = false;
 	Time tmInputValue;
 	Time tmOutputValue;
 	ALString sOutputValue;
@@ -802,7 +802,7 @@ void KWTimeFormat::UnitTest(const ALString& sInputValue, KWTimeFormat* inputForm
 	       (not tmInputValue.Check() and not tmOutputValue.Check()) or
 	       (tmOutputValue.GetHour() == tmInputValue.GetHour() and
 		tmOutputValue.GetMinute() == tmInputValue.GetMinute()));
-	if (bShow or not bOk)
+	if (bTrace or not bOk)
 	{
 		cout << sInputValue << "\t";
 		cout << inputFormat->GetFormatString() << "\t";

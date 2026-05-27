@@ -776,7 +776,7 @@ boolean CharVectorCompare(const CharVector* cv1, const CharVector* cv2)
 boolean KWFileKeyExtractorTask::ConcatenateFilesWithoutDuplicateKeys(StringVector* svFileURIs, StringVector* svHeader)
 {
 	boolean bOk;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	int nChunk;
 	InputBufferedFile chunkFile;
 	OutputBufferedFile outputFile;
@@ -824,7 +824,7 @@ boolean KWFileKeyExtractorTask::ConcatenateFilesWithoutDuplicateKeys(StringVecto
 		lOutputBufferSize = lRemainingMemory - lInputBufferSize;
 	}
 
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Available memory on the host " << LongintToHumanReadableString(lRemainingMemory) << endl;
 		cout << "Dispatched for input " << LongintToHumanReadableString(lInputBufferSize) << " and output "
@@ -863,7 +863,7 @@ boolean KWFileKeyExtractorTask::ConcatenateFilesWithoutDuplicateKeys(StringVecto
 			// Concatenation d'un nouveau chunk
 			if (PLRemoteFileService::FileExists(sChunkFileURI))
 			{
-				if (bDisplay)
+				if (bTrace)
 					cout << "Read " << sChunkFileURI << " size "
 					     << LongintToHumanReadableString(
 						    PLRemoteFileService::GetFileSize(sChunkFileURI))

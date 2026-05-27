@@ -343,7 +343,7 @@ void KWTimestampTZFormat::UnitTest(const ALString& sInputValue, KWTimestampTZFor
 				   KWTimestampTZFormat* outputFormat)
 {
 	boolean bOk = true;
-	boolean bShow = false;
+	const boolean bTrace = false;
 	TimestampTZ tstzInputValue;
 	TimestampTZ tstzOutputValue;
 	ALString sOutputValue;
@@ -361,7 +361,7 @@ void KWTimestampTZFormat::UnitTest(const ALString& sInputValue, KWTimestampTZFor
 		tstzOutputValue = outputFormat->StringToTimestampTZ(sOutputValue);
 	bOk = (not inputFormat->Check() or not outputFormat->Check() or
 	       (not tstzOutputValue.Check() and not tstzInputValue.Check()) or tstzOutputValue == tstzInputValue);
-	if (bShow or not bOk)
+	if (bTrace or not bOk)
 	{
 		// Utilisation des ",\t" pour forcer Excel a ne pas transcoder les valeurs
 		cout << sInputValue << " ,\t";

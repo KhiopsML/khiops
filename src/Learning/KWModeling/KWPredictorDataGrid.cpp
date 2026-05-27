@@ -341,7 +341,7 @@ void KWPredictorDataGrid::CollectSelectedPreparationStats(ObjectArray* oaUsedDat
 void KWPredictorDataGrid::InternalTrainUnsupervisedDG(KWDataPreparationClass* dataPreparationClass,
 						      ObjectArray* oaDataPreparationUsedAttributes)
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	int nAttribute;
 	KWDataPreparationAttribute* dataPreparationAttribute;
 	KWAttribute* clustererAttribute;

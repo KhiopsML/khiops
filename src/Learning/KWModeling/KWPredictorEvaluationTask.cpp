@@ -212,7 +212,7 @@ boolean KWClassifierEvaluationTask::ComputeResourceRequirements()
 
 boolean KWClassifierEvaluationTask::MasterInitialize()
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	boolean bOk;
 	int nTargetValue;
 	longint lMasterGrantedMemory;
@@ -284,7 +284,7 @@ boolean KWClassifierEvaluationTask::MasterInitialize()
 		shared_nSlaveInstanceEvaluationCapacity = masterInstanceEvaluationSampler->GetCapacity();
 
 	// Trace de deboggage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Master Initialized\n";
 		cout << "master      mem = " << LongintToHumanReadableString(lMasterGrantedMemory) << "\n";
@@ -1958,7 +1958,7 @@ double KWAucEvaluation::ComputeGlobalAUCValue()
 
 double KWAucEvaluation::ComputeAUCValueAt(int nTargetValueIndex)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWClassifierInstanceEvaluation* instanceEvaluation;
 	double dEvaluation;
 	int nInstance;
@@ -1979,7 +1979,7 @@ double KWAucEvaluation::ComputeAUCValueAt(int nTargetValueIndex)
 	SortInstanceEvaluationsAt(nTargetValueIndex);
 
 	// Entete de la trace
-	if (bDisplay)
+	if (bTrace)
 		cout << "Instance\tScore\tTP\tFP\tROC area\tTotal AUC" << endl;
 
 	// Calcul de la surface de la courbe de ROC observee
@@ -2013,7 +2013,7 @@ double KWAucEvaluation::ComputeAUCValueAt(int nTargetValueIndex)
 			dObservedROCCurveArea += dBlockROCCurveArea;
 
 			// Trace
-			if (bDisplay)
+			if (bTrace)
 			{
 				cout << nInstance << "\t" << cBlockScore << "\t" << nTruePositive << "\t"
 				     << nFalsePositive << "\t" << dBlockROCCurveArea << "\t" << dObservedROCCurveArea
@@ -2039,7 +2039,7 @@ double KWAucEvaluation::ComputeAUCValueAt(int nTargetValueIndex)
 	dObservedROCCurveArea += dBlockROCCurveArea;
 
 	// Trace du dernier bloc
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << nInstance << "\t" << cBlockScore << "\t" << nTruePositive << "\t" << nFalsePositive << "\t"
 		     << dBlockROCCurveArea << "\t" << dObservedROCCurveArea << endl;
@@ -2054,7 +2054,7 @@ double KWAucEvaluation::ComputeAUCValueAt(int nTargetValueIndex)
 	dEvaluation = dObservedROCCurveArea;
 
 	// Trace pour les calculs totaux
-	if (bDisplay)
+	if (bTrace)
 		cout << "EvaluatedAUC\t" << dEvaluation << endl;
 
 	return dEvaluation;

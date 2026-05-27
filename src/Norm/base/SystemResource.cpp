@@ -294,7 +294,7 @@ const int nMACAddressLength = 18;
 // Recherche l'adresse MAC et la remplit
 const char* GetMACAddress()
 {
-	boolean bDisplayDetails = false;
+	const boolean bTrace = false;
 	const int nPriorityBluetooth = 0;
 	const int nPriorityWireless = 1;
 	const int nPriorityOther = 2;
@@ -342,7 +342,7 @@ const char* GetMACAddress()
 		sBuffer = SystemObject::NewCharArray(dwBufLen);
 		pAdapterAddresses = (PIP_ADAPTER_ADDRESSES)sBuffer;
 		dwStatus = GetAdaptersAddresses(uFamily, uFlags, NULL, pAdapterAddresses, &dwBufLen);
-		if (bDisplayDetails)
+		if (bTrace)
 			printf(" GetMACAddress - GetAdaptersAddresses -> %ld (%ld)\n", dwStatus, dwBufLen);
 	}
 
@@ -370,7 +370,7 @@ const char* GetMACAddress()
 				nPriority = nPriorityLocal;
 
 			// Affichage (on utilise le %ls car les chaines sont en double byte character)
-			if (bDisplayDetails)
+			if (bTrace)
 			{
 				printf("\tAdapter (%ld): (priority=%d), %ls \n\t\t(type=%ld, %ls)\n",
 				       pAdapterAddresses->PhysicalAddressLength, nPriority,
@@ -394,7 +394,7 @@ const char* GetMACAddress()
 					 (unsigned char)pAdapterAddresses->PhysicalAddress[5]);
 				if (nPriority > nBestPriority || strcmp(sNewMACAddress, sMACAddress) > 0)
 					strcpy(sMACAddress, sNewMACAddress);
-				if (bDisplayDetails)
+				if (bTrace)
 					printf("\t  MAC %s -> %s\n", sNewMACAddress, sMACAddress);
 
 				// Memorisation de la priorite
@@ -403,7 +403,7 @@ const char* GetMACAddress()
 			pAdapterAddresses = pAdapterAddresses->Next;
 		}
 	}
-	if (bDisplayDetails)
+	if (bTrace)
 		printf(" GetMACAddress -> %s\n", sMACAddress);
 
 	// Nettoyage
@@ -1135,7 +1135,7 @@ const char* GetMACAddress()
 {
 	struct ifaddrs* ifaddr = NULL;
 	struct ifaddrs* ifa = NULL;
-	int bDisplayDetails;
+	int bTrace;
 	int nBestPriority;
 	int nPriority;
 	int i;
@@ -1147,7 +1147,7 @@ const char* GetMACAddress()
 	static char sMACAddress[nMACAddressLength];
 	char sNewMACAddress[nMACAddressLength];
 
-	bDisplayDetails = 0;
+	bTrace = 0;
 	nBestPriority = -1;
 	strcpy(sMACAddress, "00-00-00-00-00-00");
 
@@ -1164,7 +1164,7 @@ const char* GetMACAddress()
 				struct sockaddr_ll* s = (struct sockaddr_ll*)ifa->ifa_addr;
 
 				// Affichage de toutes les informations dont on dispose
-				if (bDisplayDetails)
+				if (bTrace)
 				{
 					printf("MAC Address  of %s is ", ifa->ifa_name);
 					for (i = 0; i < s->sll_halen; i++)
@@ -1202,7 +1202,7 @@ const char* GetMACAddress()
 						else
 							nPriority = nPriorityPhysical;
 					}
-					if (bDisplayDetails)
+					if (bTrace)
 						printf("\tpriority : %d\n", nPriority);
 
 					// Si l'interface est prioritaire
@@ -1221,7 +1221,7 @@ const char* GetMACAddress()
 						    strcmp(sNewMACAddress, sMACAddress) > 0)
 						{
 							strcpy(sMACAddress, sNewMACAddress);
-							if (bDisplayDetails)
+							if (bTrace)
 								printf("\t=> best adress (till now)\n");
 						}
 
@@ -1231,10 +1231,10 @@ const char* GetMACAddress()
 				}
 				else
 				{
-					if (bDisplayDetails)
+					if (bTrace)
 						printf("\twrong size\n");
 				}
-				if (bDisplayDetails)
+				if (bTrace)
 					printf("\n");
 			}
 		}

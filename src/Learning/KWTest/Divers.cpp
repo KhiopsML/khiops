@@ -869,8 +869,8 @@ void AnalyseReutersFile(const ALString& sInputFile, IntVector* ivWordGlobalCount
 void TranscodeReutersFile(const ALString& sInputFile, const ALString& sOutputFile, int nType, int nMinWordFrequency)
 {
 	boolean bOk;
-	boolean bDisplayLabels = false;
-	boolean bDisplayLines = false;
+	const boolean bTraceLabels = false;
+	const boolean bTraceLines = false;
 	const char cSeparatorChar = ';';
 	fstream fstInputFile;
 	fstream fstOutputFile;
@@ -963,7 +963,7 @@ void TranscodeReutersFile(const ALString& sInputFile, const ALString& sOutputFil
 					svWordLabels.Add(Symbol(sWordLabel));
 
 					// Affichage du mot
-					if (bDisplayLabels)
+					if (bTraceLabels)
 						cout << nWordId << "\t" << sWordLabel << endl;
 				}
 				// Cas des lignes d'enregistrement: liste de paires (WordId WordCount), suivi de Class
@@ -981,7 +981,7 @@ void TranscodeReutersFile(const ALString& sInputFile, const ALString& sOutputFil
 						sClass = sField;
 
 						// Affichage de la classe
-						if (bDisplayLines)
+						if (bTraceLines)
 							cout << sClass << endl;
 					}
 					// Sinon: paire (WordId, WordCount)
@@ -997,7 +997,7 @@ void TranscodeReutersFile(const ALString& sInputFile, const ALString& sOutputFil
 						ivWordCounts.Add(nWordCount);
 
 						// Affichage des infos
-						if (bDisplayLines)
+						if (bTraceLines)
 							cout << nWordId << "\t" << svWordLabels.GetAt(nWordId) << "\t"
 							     << nWordCount << "\t";
 					}

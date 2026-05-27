@@ -35,8 +35,8 @@ boolean KWDatabaseSlicerTask::SliceDatabase(const KWDatabase* sourceDatabase, co
 					    KWDataTableSliceSet* outputDataTableSliceSet)
 {
 	boolean bOk = true;
-	boolean bDisplay = GetPreparationTraceMode();
-	boolean bDisplaySliceDictionaries = false;
+	boolean bTrace = GetPreparationTraceMode();
+	const boolean bTraceSliceDictionaries = false;
 	KWClass* kwcClass;
 	KWAttribute* attribute;
 	ALString sTmp;
@@ -95,13 +95,13 @@ boolean KWDatabaseSlicerTask::SliceDatabase(const KWDatabase* sourceDatabase, co
 	ResetClass(kwcClass);
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		if (bOk)
 			cout << "KWDatabaseSlicerTask::SliceDatabase\t" << GetJobElapsedTime() << endl;
 		outputDataTableSliceSet->Write(cout);
 	}
-	if (bDisplaySliceDictionaries)
+	if (bTraceSliceDictionaries)
 		outputDataTableSliceSet->SliceDictionariesWrite(cout);
 
 	// Information additionnel en mode verbeux des taches
@@ -222,7 +222,7 @@ PLParallelTask* KWDatabaseSlicerTask::Create() const
 boolean KWDatabaseSlicerTask::ComputeResourceRequirements()
 {
 	boolean bOk = true;
-	boolean bDisplayRequirements = false;
+	const boolean bTrace = false;
 	longint lDataTableSliceSetUsedMemory;
 	longint lOutputNecessaryDiskSpace;
 	ALString sTmp;
@@ -263,7 +263,7 @@ boolean KWDatabaseSlicerTask::ComputeResourceRequirements()
 	}
 
 	// Affichage detaille des demandes de ressource
-	if (bDisplayRequirements)
+	if (bTrace)
 	{
 		cout << "KWDatabaseSlicerTask::ComputeResourceRequirements, slice number\t"
 		     << shared_DataTableSliceSet.GetDataTableSliceSet()->GetSliceNumber() << endl;

@@ -175,7 +175,7 @@ double KWSymbolSampleGenerator::ComputeGroupingLearningError(KWAttributeStats* k
 
 double KWSymbolSampleGenerator::ComputeGroupingTestError(KWAttributeStats* kwasGrouping)
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	KWDataGridStats* preparedAttributeStats;
 	const KWDGSAttributeGrouping* attributeGrouping;
 	const KWDGSAttributePartition* targetAttributePartition;
@@ -259,7 +259,7 @@ double KWSymbolSampleGenerator::ComputeGroupingTestError(KWAttributeStats* kwasG
 
 double KWSymbolSampleGenerator::ComputeGroupingDistance(KWAttributeStats* kwasGrouping)
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	KWDataGridStats* preparedAttributeStats;
 	const KWDGSAttributeGrouping* attributeGrouping;
 	const KWDGSAttributePartition* targetAttributePartition;

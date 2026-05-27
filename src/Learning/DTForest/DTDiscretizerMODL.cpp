@@ -73,8 +73,8 @@ void DTDiscretizerMODL::DiscretizeNEW(KWFrequencyTable* kwftSource, KWFrequencyT
 	int nGranularityMax;
 	boolean bIsLastGranularity;
 	int nInstanceNumber;
-	boolean bDisplayResults = false;
-	boolean bDisplayResults2 = false;
+	const boolean bTrace = false;
+	const boolean bTrace2 = false;
 	KWQuantileIntervalBuilder quantileBuilder;
 	IntVector ivInputFrequencies;
 	int nSourceIndex;
@@ -109,7 +109,7 @@ void DTDiscretizerMODL::DiscretizeNEW(KWFrequencyTable* kwftSource, KWFrequencyT
 		nPreviousPartileNumber = 0;
 
 		// On analyse toutes les granularite de 1 a Max
-		if (bDisplayResults2)
+		if (bTrace2)
 		{
 			cout << "GranulariteMax = " << nGranularityMax << endl;
 		}
@@ -131,7 +131,7 @@ void DTDiscretizerMODL::DiscretizeNEW(KWFrequencyTable* kwftSource, KWFrequencyT
 		// Nettoyage
 		ivInputFrequencies.SetSize(0);
 
-		if (bDisplayResults2)
+		if (bTrace2)
 		{
 			cout << "kwftSource : " << endl;
 			kwftSource->Write(std::cout);
@@ -169,7 +169,7 @@ void DTDiscretizerMODL::DiscretizeNEW(KWFrequencyTable* kwftSource, KWFrequencyT
 			    (nCurrentPartileNumber * dRequiredIncreasingCoefficient <=
 			     kwftSource->GetFrequencyVectorNumber());
 
-			if (bDisplayResults)
+			if (bTrace)
 			{
 				cout << "Granularite = " << nGranularity << endl;
 				cout << "Nbre valeurs explicatives table source\t"
@@ -183,7 +183,7 @@ void DTDiscretizerMODL::DiscretizeNEW(KWFrequencyTable* kwftSource, KWFrequencyT
 				// Calcul de la table de contingence issue de la fusion des intervalles purs
 				// MergeFrequencyTablePureIntervals(kwftGranularizedTable, kwftMergedTable);
 
-				// if (bDisplayResults)
+				// if (bTrace)
 				//{
 				//	cout << "Granularite = " << nGranularity << endl;
 				//	cout << "Nbre valeurs explicatives table source\t" <<
@@ -215,7 +215,7 @@ void DTDiscretizerMODL::DiscretizeNEW(KWFrequencyTable* kwftSource, KWFrequencyT
 				// delete kwftGranularizedTable;
 				// kwftGranularizedTable = NULL;
 				// TIME NV
-				if (bDisplayResults2)
+				if (bTrace2)
 				{
 					cout << "Granularite = " << nGranularity << endl;
 					cout << "Nbre valeurs explicatives table source\t"
@@ -258,7 +258,7 @@ void DTDiscretizerMODL::DiscretizeNEW(KWFrequencyTable* kwftSource, KWFrequencyT
 		if (not TaskProgression::IsInterruptionRequested())
 		{
 			StartTimer(DTTimerDiscretizeGFT);
-			if (bDisplayResults2)
+			if (bTrace2)
 			{
 				for (nSourceIndex = 0; nSourceIndex < kwftSource->GetFrequencyVectorNumber();
 				     nSourceIndex++)
@@ -300,7 +300,7 @@ void DTDiscretizerMODL::DiscretizeNEW(KWFrequencyTable* kwftSource, KWFrequencyT
 				kwftTarget = new KWFrequencyTable;
 				kwftTarget->CopyFrom(kwftDiscretizedGranularizedTable);
 			}
-			if (bDisplayResults)
+			if (bTrace)
 			{
 				cout << "Granularite\tConstr. cost\tPrep. cost\tData cost\tTotal cost\tGroups" << endl;
 				cout << nGranularity << "\t"
@@ -318,7 +318,7 @@ void DTDiscretizerMODL::DiscretizeNEW(KWFrequencyTable* kwftSource, KWFrequencyT
 			kwftDiscretizedGranularizedTable = NULL;
 		}
 
-		if (bDisplayResults)
+		if (bTrace)
 			cout << "Meilleure granularite discretisation " << kwftTarget->GetGranularity() << " sur  "
 			     << nGranularityMax << endl;
 	}
@@ -352,7 +352,7 @@ void DTDiscretizerMODL::DiscretizeOLD(KWFrequencyTable* kwftSource, KWFrequencyT
 	int nGranularityMax;
 	boolean bIsLastGranularity;
 	int nInstanceNumber;
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWQuantileIntervalBuilder quantileBuilder;
 	IntVector ivInputFrequencies;
 	int nSourceIndex;
@@ -428,7 +428,7 @@ void DTDiscretizerMODL::DiscretizeOLD(KWFrequencyTable* kwftSource, KWFrequencyT
 			    (nCurrentPartileNumber * dRequiredIncreasingCoefficient <=
 			     kwftSource->GetFrequencyVectorNumber());
 
-			if (bDisplayResults)
+			if (bTrace)
 			{
 				cout << "Granularite = " << nGranularity << endl;
 				cout << "Nbre valeurs explicatives table source\t"
@@ -442,7 +442,7 @@ void DTDiscretizerMODL::DiscretizeOLD(KWFrequencyTable* kwftSource, KWFrequencyT
 				// Calcul de la table de contingence issue de la fusion des intervalles purs
 				MergeFrequencyTablePureIntervals(kwftGranularizedTable, kwftMergedTable);
 
-				if (bDisplayResults)
+				if (bTrace)
 				{
 					cout << "Granularite = " << nGranularity << endl;
 					cout << "Nbre valeurs explicatives table source\t"
@@ -484,7 +484,7 @@ void DTDiscretizerMODL::DiscretizeOLD(KWFrequencyTable* kwftSource, KWFrequencyT
 					kwftTarget = new KWFrequencyTable;
 					kwftTarget->CopyFrom(kwftDiscretizedGranularizedTable);
 				}
-				if (bDisplayResults)
+				if (bTrace)
 				{
 					cout << "Granularite\tConstr. cost\tPrep. cost\tData cost\tTotal cost\tGroups"
 					     << endl;
@@ -508,7 +508,7 @@ void DTDiscretizerMODL::DiscretizeOLD(KWFrequencyTable* kwftSource, KWFrequencyT
 				delete kwftGranularizedTable;
 				kwftGranularizedTable = NULL;
 
-				if (bDisplayResults)
+				if (bTrace)
 				{
 					cout << "Granularite\t" << nGranularity
 					     << "\t non traitee car identique a la precedente" << endl;
@@ -520,7 +520,7 @@ void DTDiscretizerMODL::DiscretizeOLD(KWFrequencyTable* kwftSource, KWFrequencyT
 			nGranularity++;
 		}
 
-		if (bDisplayResults)
+		if (bTrace)
 			cout << "Meilleure granularite discretisation " << kwftTarget->GetGranularity() << " sur  "
 			     << nGranularityMax << endl;
 	}

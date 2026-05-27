@@ -349,7 +349,7 @@ KDClassBuilder::BuildOptimizedClassFromConstructedRules(const KWClass* initialCl
 							const ObjectArray* oaConstructedRules,
 							KDSelectionOperandAnalyser* selectionOperandAnalyser) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWClassDomain* constructedDomain;
 	KDClassDomainCompliantRules classDomainCompliantRules;
 	KWClass* constructedClass;
@@ -396,7 +396,7 @@ KDClassBuilder::BuildOptimizedClassFromConstructedRules(const KWClass* initialCl
 						    cast(KDConstructedRule*, oaConstructedRules->GetAt(nRule)));
 
 	// Affichage des regles trouvees
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\nBuildClassFromConstructedRules" << endl;
 		selectionOperandAnalyser->DisplayUsedSelectionOperands(cout);
@@ -450,7 +450,7 @@ KDClassBuilder::BuildOptimizedClassFromConstructedRules(const KWClass* initialCl
 			nConstructedRuleNumber++;
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 			cout << "Build attribute " << constructedAttribute->GetName() << " " << *constructedRule
 			     << endl;
 	}
@@ -494,7 +494,7 @@ KWClass* KDClassBuilder::BuildSparseOptimizedClassFromConstructedRules(
     const KWClass* initialClass, const ObjectArray* oaConstructedRules,
     KDSelectionOperandAnalyser* selectionOperandAnalyser) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWClassDomain* constructedDomain;
 	KDClassDomainCompliantRules classDomainCompliantRules;
 	KWClass* constructedClass;
@@ -551,7 +551,7 @@ KWClass* KDClassBuilder::BuildSparseOptimizedClassFromConstructedRules(
 							 cast(KDConstructedRule*, oaConstructedRules->GetAt(nRule)));
 
 	// Affichage des regles trouvees
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\nBuildClassFromConstructedRules" << endl;
 		selectionOperandAnalyser->DisplayUsedSelectionOperands(cout);
@@ -630,7 +630,7 @@ KWClass* KDClassBuilder::BuildSparseOptimizedClassFromConstructedRules(
 			nConstructedRuleNumber++;
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 			cout << "Build attribute " << constructedAttribute->GetName() << " " << *constructedRule
 			     << endl;
 	}
@@ -667,7 +667,7 @@ KWClass* KDClassBuilder::BuildSparseOptimizedClassFromConstructedRules(
 	slUsedConstructedBlockRules.DeleteAll();
 
 	// Affichage du dictionnaire construit
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "===============================================================" << endl;
 		cout << "BuildSparseOptimizedClassFromConstructedRules" << endl;
@@ -924,7 +924,7 @@ KWClass* KDClassBuilder::InternalBuildClassFromSelectionRules(
     const KWClass* initialClass, KDClassDomainCompliantRules* classDomainCompliantRules,
     SortedList* slUsedConstructedRules, KDSelectionOperandAnalyser* selectionOperandAnalyser) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	boolean bFilterUnusedOperands = true;
 	KWClassDomain* constructedDomain;
 	KWClass* constructedClass;
@@ -990,7 +990,7 @@ KWClass* KDClassBuilder::InternalBuildClassFromSelectionRules(
 		}
 
 		// Affichage des regles trouvees
-		if (bDisplay)
+		if (bTrace)
 		{
 			cout << "\nBuildClassFromSelectionRules" << endl;
 			selectionOperandAnalyser->DisplayUsedSelectionOperands(cout);
@@ -1032,7 +1032,7 @@ KWClass* KDClassBuilder::InternalBuildClassFromSelectionRules(
 					check(selectionAttribute);
 
 					// Affichage
-					if (bDisplay)
+					if (bTrace)
 						cout << "BuildSelectionDomain\tAtt\t" << kwcClass->GetName() << "\t"
 						     << selectionAttribute->GetName() << endl;
 				}
@@ -1078,7 +1078,7 @@ KWClass* KDClassBuilder::InternalBuildClassFromSelectionRules(
 						oaSelectionConstructedAttributes.Add(selectionAttribute);
 
 					// Affichage
-					if (bDisplay)
+					if (bTrace)
 						cout << "BuildSelectionDomain\tCreate\t" << kwcClass->GetName() << "\t"
 						     << *partitionDimension->GetRule() << endl;
 				}
@@ -1107,7 +1107,7 @@ boolean KDClassBuilder::CreateConstructedRuleAttribute(KWClassDomain* classDomai
 						       KWAttribute*& constructedAttribute) const
 {
 	boolean bNewAttribute;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWDerivationRule* usedRuleDerivationRule;
 	KWClass* usedRuleClass;
 	const KWAttribute* foundDerivedAttribute;
@@ -1165,7 +1165,7 @@ boolean KDClassBuilder::CreateConstructedRuleAttribute(KWClassDomain* classDomai
 	}
 
 	// Affichage de l'attribut cree
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << usedRuleClass->GetDomain()->GetName() << "\t";
 		cout << usedRuleClass->GetName() << "\t";
@@ -1181,7 +1181,7 @@ boolean KDClassBuilder::CreateOptimizedUsedRuleAttribute(KWClassDomain* classDom
 							 KDSparseUsedConstructedRule* usedConstructedRule) const
 {
 	boolean bNewAttribute;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	const KDConstructedRule* constructedRule;
 	KWDerivationRule* usedRuleDerivationRule;
 	KWClass* usedRuleClass;
@@ -1335,7 +1335,7 @@ boolean KDClassBuilder::CreateOptimizedUsedRuleAttribute(KWClassDomain* classDom
 		   ->GetAttribute() == constructedAttribute);
 
 	// Affichage de l'attribut cree
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << usedRuleClass->GetDomain()->GetName() << "\t";
 		cout << usedRuleClass->GetName() << "\t";
@@ -1353,7 +1353,7 @@ boolean KDClassBuilder::CreateSparseOptimizedUsedRuleAttribute(KWClassDomain* cl
 							       KDSparseUsedConstructedRule* usedConstructedRule) const
 {
 	boolean bNewAttribute;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	const KDConstructedRule* constructedRule;
 	KWDerivationRule* usedRuleDerivationRule;
 	KWClass* usedRuleClass;
@@ -1392,7 +1392,7 @@ boolean KDClassBuilder::CreateSparseOptimizedUsedRuleAttribute(KWClassDomain* cl
 	check(usedRuleClass);
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 		cout << "CreateSparseOptimizedUsedRuleAttribute " << usedRuleClass->GetName() << " " << *constructedRule
 		     << endl;
 
@@ -1405,7 +1405,7 @@ boolean KDClassBuilder::CreateSparseOptimizedUsedRuleAttribute(KWClassDomain* cl
 			rule = constructedRule->GetRuleOperandAt(i);
 
 			// Affichage
-			if (bDisplay)
+			if (bTrace)
 				cout << "  operand " << i << " " << *rule << endl;
 
 			// On ne traite pas les regles de selection, deja traitees dans les partitions
@@ -1445,7 +1445,7 @@ boolean KDClassBuilder::CreateSparseOptimizedUsedRuleAttribute(KWClassDomain* cl
 		assert(usedConstructedRule->GetAttribute() != NULL);
 
 		// Affichage de l'attribut cree
-		if (bDisplay)
+		if (bTrace)
 		{
 			sAttributeName = BuildConstructedAttributeName(constructedRule);
 			if (constructedRule->IsPartitionBlockRule())
@@ -1561,7 +1561,7 @@ boolean KDClassBuilder::CreateSparseOptimizedUsedRuleAttribute(KWClassDomain* cl
 			   ->GetAttribute() == constructedAttribute);
 
 		// Affichage de l'attribut cree
-		if (bDisplay)
+		if (bTrace)
 		{
 			cout << " Standard attribute\t";
 			cout << usedRuleClass->GetDomain()->GetName() << "\t";
@@ -2153,7 +2153,7 @@ boolean KDClassBuilder::CreateAttributeValueBlock(KWClassDomain* classDomain,
 						  KDSparseUsedConstructedBlockRule* usedConstructedBlockRule) const
 {
 	boolean bNewAttribute;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	const KDConstructedRule* constructedRule;
 	const KDConstructedRule* constructedBlockRule;
 	NumericKeyDictionary nkdMainAttributes;
@@ -2215,7 +2215,7 @@ boolean KDClassBuilder::CreateAttributeValueBlock(KWClassDomain* classDomain,
 	assert(foundUsedConstructedBlockRuleOperand != NULL);
 
 	// AFfichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "CreateAttributeValueBlock " << kwcClass->GetName() << endl;
 		cout << "\tRule " << *constructedRule << endl;

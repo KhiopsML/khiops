@@ -317,7 +317,7 @@ void MHDiscretizerMODLHistogram::MainDiscretizeBins(const ContinuousVector* cvSo
 						    MHHistogram*& postprocessedOptimizedHistogram,
 						    ObjectArray* oaCoarsenedHistograms) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	MHHistogram* coarsenedHistogram;
 	int n;
 	Timer timer;
@@ -346,7 +346,7 @@ void MHDiscretizerMODLHistogram::MainDiscretizeBins(const ContinuousVector* cvSo
 	OptimizeCentralBinExponent(optimizedHistogram, postprocessedOptimizedHistogram, oaCoarsenedHistograms);
 
 	// Memorisation de l'histogramme dans un fichier si les logs sont demandes
-	if (bDisplay)
+	if (bTrace)
 		WriteHistogram("Optimized histogram\n", optimizedHistogram, cout);
 	if (GetHistogramSpec()->GetExportInternalLogFiles())
 	{
@@ -711,7 +711,7 @@ void MHDiscretizerMODLHistogram::OptimizeGranularity(MHHistogram*& optimizedHist
 						     MHHistogram*& postprocessedOptimizedHistogram,
 						     ObjectArray* oaCoarsenedHistograms) const
 {
-	boolean bDisplayDetails = false;
+	const boolean bTrace = false;
 	fstream fLog;
 	boolean bLogOk;
 	ALString sOptimizationPrefix;
@@ -783,7 +783,7 @@ void MHDiscretizerMODLHistogram::OptimizeGranularity(MHHistogram*& optimizedHist
 		// Construction d'une version granularisee de la table, apres avoir parametre correctement le nombre de
 		// partiles
 		frequencyTableBuilder->BuildFrequencyTable(nHierarchyLevel, granularizedHistogramFrequencyTable);
-		if (bDisplayDetails)
+		if (bTrace)
 			WriteHistogramFrequencyTable(sTmp + "Granularized histogram\t" + IntToString(nHierarchyLevel) +
 							 "\t" + IntToString(nPartileNumber) + "\n",
 						     granularizedHistogramFrequencyTable, cout);
@@ -805,7 +805,7 @@ void MHDiscretizerMODLHistogram::OptimizeGranularity(MHHistogram*& optimizedHist
 		// Appel de la methode de discretisation definie dans la classe KWDiscretizerMODL
 		DiscretizeGranularizedFrequencyTable(granularizedHistogramFrequencyTable,
 						     optimizedGranularizedHistogramFrequencyTable);
-		if (bDisplayDetails)
+		if (bTrace)
 			WriteHistogramFrequencyTable(sTmp + "Optimized granularized histogram\t" +
 							 IntToString(nPartileNumber) + "\n",
 						     granularizedHistogramFrequencyTable, cout);
@@ -1193,7 +1193,7 @@ void MHDiscretizerMODLHistogram::WriteHistogramFile(const ALString& sTitle, cons
 void MHDiscretizerMODLHistogram::BuildOutputHistogram(const KWFrequencyTable* histogramFrequencyTable,
 						      MHHistogram* outputHistogram) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	MHHistogramInterval* outputInterval;
 	int nTotalFrequency;
 	KWFrequencyTable* nulFrequencyTable;
@@ -1373,7 +1373,7 @@ void MHDiscretizerMODLHistogram::BuildOutputHistogram(const KWFrequencyTable* hi
 			   0);
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 		{
 			if (outputHistogram->GetIntervals()->GetSize() == 1)
 			{
@@ -1411,7 +1411,7 @@ void MHDiscretizerMODLHistogram::FinalizeHistogram(MHHistogram* outputHistogram)
 void MHDiscretizerMODLHistogram::AdjustHistogramIntervalBounds(const MHFloatingPointFrequencyTableBuilder* tableBuilder,
 							       MHHistogram* outputHistogram) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	MHHistogramInterval* outputInterval;
 	int nTotalFrequency;
 	int n;
@@ -1429,7 +1429,7 @@ void MHDiscretizerMODLHistogram::AdjustHistogramIntervalBounds(const MHFloatingP
 	require(outputHistogram->GetTruncationEpsilon() > 0 or outputHistogram->Check());
 
 	// Affichage de l'histogramme de depart
-	if (bDisplay)
+	if (bTrace)
 		cout << "Initial histogram\n" << *outputHistogram << endl;
 
 	// Mise a jour du nombre de valeurs distinctes
@@ -1576,7 +1576,7 @@ void MHDiscretizerMODLHistogram::AdjustHistogramIntervalBounds(const MHFloatingP
 		KWContinuous::DoubleToContinuous(outputHistogram->GetDomainUpperBound())));
 
 	// Affichage de l'histogramme final
-	if (bDisplay)
+	if (bTrace)
 		cout << "Final histogram\n" << *outputHistogram << endl;
 	ensure(outputHistogram->Check());
 }
@@ -1789,7 +1789,7 @@ void MHDiscretizerMODLHistogram::CleanWorkingData() const
 void MHDiscretizerMODLHistogram::AddFrequencyVector(KWFrequencyVector* kwfvSourceFrequencyVector,
 						    const KWFrequencyVector* kwfvAddedFrequencyVector) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	MHMODLHistogramVector* sourcePartFrequencyVector;
 	const MHMODLHistogramVector* addedPartFrequencyVector;
 
@@ -1801,7 +1801,7 @@ void MHDiscretizerMODLHistogram::AddFrequencyVector(KWFrequencyVector* kwfvSourc
 	       sourcePartFrequencyVector->GetLowerBound() == addedPartFrequencyVector->GetUpperBound());
 
 	// Affichage initial
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "AddFrequencyVector\n";
 		cout << "Source\t" << *sourcePartFrequencyVector << "\n";
@@ -1828,7 +1828,7 @@ void MHDiscretizerMODLHistogram::AddFrequencyVector(KWFrequencyVector* kwfvSourc
 	}
 
 	// Affichage final
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Result\t" << *sourcePartFrequencyVector << "\n";
 	}
@@ -1837,7 +1837,7 @@ void MHDiscretizerMODLHistogram::AddFrequencyVector(KWFrequencyVector* kwfvSourc
 void MHDiscretizerMODLHistogram::RemoveFrequencyVector(KWFrequencyVector* kwfvSourceFrequencyVector,
 						       const KWFrequencyVector* kwfvRemovedFrequencyVector) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	MHMODLHistogramVector* sourcePartFrequencyVector;
 	const MHMODLHistogramVector* removedPartFrequencyVector;
 
@@ -1849,7 +1849,7 @@ void MHDiscretizerMODLHistogram::RemoveFrequencyVector(KWFrequencyVector* kwfvSo
 	       sourcePartFrequencyVector->GetUpperBound() == removedPartFrequencyVector->GetUpperBound());
 
 	// Affichage initial
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "RemoveFrequencyVector\n";
 		cout << "Source\t" << *sourcePartFrequencyVector << "\n";
@@ -1871,7 +1871,7 @@ void MHDiscretizerMODLHistogram::RemoveFrequencyVector(KWFrequencyVector* kwfvSo
 	}
 
 	// Affichage final
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Result\t" << *sourcePartFrequencyVector << "\n";
 	}

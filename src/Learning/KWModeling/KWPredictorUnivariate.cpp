@@ -633,7 +633,7 @@ void KWDataGridEvaluation::Initialize()
 
 void KWDataGridEvaluation::AddInstance(const KWObject* kwoObject)
 {
-	boolean bDisplayInstanceCreation = false;
+	const boolean bTrace = false;
 	ObjectArray oaParts;
 	Continuous cValue;
 	Symbol sValue;
@@ -661,7 +661,7 @@ void KWDataGridEvaluation::AddInstance(const KWObject* kwoObject)
 			cValue = kwoObject->GetContinuousValueAt(livDataGridAttributes->GetAt(nAttribute));
 			part = dgAttribute->LookupContinuousPart(cValue);
 			oaParts.SetAt(nAttribute, part);
-			if (bDisplayInstanceCreation)
+			if (bTrace)
 				cout << cValue << "\t";
 		}
 		else
@@ -669,7 +669,7 @@ void KWDataGridEvaluation::AddInstance(const KWObject* kwoObject)
 			sValue = kwoObject->GetSymbolValueAt(livDataGridAttributes->GetAt(nAttribute));
 			part = dgAttribute->LookupSymbolPart(sValue);
 			oaParts.SetAt(nAttribute, part);
-			if (bDisplayInstanceCreation)
+			if (bTrace)
 				cout << sValue << "\t";
 		}
 	}
@@ -685,7 +685,7 @@ void KWDataGridEvaluation::AddInstance(const KWObject* kwoObject)
 	cell->SetCellFrequency(cell->GetCellFrequency() + 1);
 
 	// Affichage de la cellule
-	if (bDisplayInstanceCreation)
+	if (bTrace)
 		cout << *cell;
 }
 

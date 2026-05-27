@@ -86,7 +86,7 @@ void KWDiscretizerMODL::Discretize(KWFrequencyTable* kwftSource, KWFrequencyTabl
 	int nGranularityMax;
 	boolean bIsLastGranularity;
 	int nInstanceNumber;
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWQuantileIntervalBuilder quantileBuilder;
 	IntVector ivInputFrequencies;
 	int nSourceIndex;
@@ -167,7 +167,7 @@ void KWDiscretizerMODL::Discretize(KWFrequencyTable* kwftSource, KWFrequencyTabl
 			    (nCurrentPartileNumber * dRequiredIncreasingCoefficient <=
 			     kwftSource->GetFrequencyVectorNumber());
 
-			if (bDisplayResults)
+			if (bTrace)
 			{
 				cout << "Granularite = " << nGranularity << endl;
 				cout << "Nbre valeurs explicatives table source\t"
@@ -185,7 +185,7 @@ void KWDiscretizerMODL::Discretize(KWFrequencyTable* kwftSource, KWFrequencyTabl
 				// Calcul de la table de contingence issue de la fusion des intervalles purs
 				MergeFrequencyTablePureIntervals(kwftGranularizedTable, kwftMergedTable);
 
-				if (bDisplayResults)
+				if (bTrace)
 				{
 					cout << "Granularite = " << nGranularity << endl;
 					cout << "Nbre valeurs explicatives table source\t"
@@ -222,7 +222,7 @@ void KWDiscretizerMODL::Discretize(KWFrequencyTable* kwftSource, KWFrequencyTabl
 					kwftTarget = new KWFrequencyTable;
 					kwftTarget->CopyFrom(kwftDiscretizedGranularizedTable);
 				}
-				if (bDisplayResults)
+				if (bTrace)
 				{
 					cout << "Granularite\tConstr. cost\tPrep. cost\tData cost\tTotal cost\tGroups"
 					     << endl;
@@ -246,7 +246,7 @@ void KWDiscretizerMODL::Discretize(KWFrequencyTable* kwftSource, KWFrequencyTabl
 				delete kwftGranularizedTable;
 				kwftGranularizedTable = NULL;
 
-				if (bDisplayResults)
+				if (bTrace)
 				{
 					cout << "Granularite\t" << nGranularity
 					     << "\t non traitee car identique a la precedente" << endl;
@@ -262,13 +262,13 @@ void KWDiscretizerMODL::Discretize(KWFrequencyTable* kwftSource, KWFrequencyTabl
 		// pour laquelle cette partition est definie
 		if (nLastExploredGranularity != -1 and kwftTarget->GetGranularity() > nLastExploredGranularity + 1)
 		{
-			if (bDisplayResults)
+			if (bTrace)
 				cout << " Grille avant optimisation granularite " << *kwftTarget;
 			PostOptimizeGranularity(kwftTarget, &quantileBuilder, nLastExploredGranularity);
-			if (bDisplayResults)
+			if (bTrace)
 				cout << " Grille apres optimisation granularite " << *kwftTarget;
 		}
-		if (bDisplayResults)
+		if (bTrace)
 			cout << "Meilleure granularite discretisation " << kwftTarget->GetGranularity() << " sur "
 			     << nGranularityMax << endl;
 	}
@@ -463,7 +463,7 @@ void KWDiscretizerMODL::GranularizeFrequencyTable(KWFrequencyTable* kwftSource, 
 	int nSourceIndex;
 	int nPartileNumber;
 	int nActualPartileNumber;
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWDenseFrequencyVector* kwdfvPartileFrequencyVector;
 	KWDenseFrequencyVector* kwdfvSourceFrequencyVector;
 	IntVector* ivPartileFrequencies;
@@ -493,7 +493,7 @@ void KWDiscretizerMODL::GranularizeFrequencyTable(KWFrequencyTable* kwftSource, 
 		nTargetValueNumber = kwftSource->GetFrequencyVectorSize();
 		nSourceValueNumber = kwftSource->GetFrequencyVectorNumber();
 
-		if (bDisplayResults)
+		if (bTrace)
 		{
 			cout << " Debut Granularize avec QuantileIntervalBuilder = " << nGranularity
 			     << "\t Nbre de partiles = " << nPartileNumber << "\t nInstanceNumber " << nInstanceNumber
@@ -1083,7 +1083,7 @@ KWMODLLine* KWDiscretizerMODL::CloneIntervalList(KWMODLLine* lineCreator, KWMODL
 double KWDiscretizerMODL::ComputeIntervalListPartitionGlobalCost(KWMODLLine* headLine,
 								 const KWFrequencyTable* kwftTable) const
 {
-	boolean bPrintDetails = false;
+	const boolean bTrace = false;
 	double dGlobalPartitionCost;
 	int nListSize;
 	KWMODLLine* line;
@@ -1093,7 +1093,7 @@ double KWDiscretizerMODL::ComputeIntervalListPartitionGlobalCost(KWMODLLine* hea
 
 	// Initialisation de la structure de cout
 	InitializeWorkingData(kwftTable);
-	if (bPrintDetails)
+	if (bTrace)
 		cout << "\nIntervalListPartitionGlobalCost"
 		     << "\n";
 
@@ -1105,7 +1105,7 @@ double KWDiscretizerMODL::ComputeIntervalListPartitionGlobalCost(KWMODLLine* hea
 	{
 		dGlobalPartitionCost += ComputeIntervalCost(line->GetFrequencyVector());
 		nListSize++;
-		if (bPrintDetails)
+		if (bTrace)
 			cout << "\tLine " << nListSize << "\t" << ComputeIntervalCost(line->GetFrequencyVector())
 			     << "\n";
 		line = line->GetNext();
@@ -1113,7 +1113,7 @@ double KWDiscretizerMODL::ComputeIntervalListPartitionGlobalCost(KWMODLLine* hea
 
 	// On ajoute le cout de partition
 	dGlobalPartitionCost += ComputePartitionCost(nListSize);
-	if (bPrintDetails)
+	if (bTrace)
 	{
 		cout << "\t"
 		     << "Partition"
@@ -1165,8 +1165,8 @@ void KWDiscretizerMODL::DeleteIntervalList(KWMODLLine* headLine) const
 
 KWMODLLine* KWDiscretizerMODL::IntervalListOptimization(const KWFrequencyTable* kwftSource) const
 {
-	boolean bPrintOptimisationStatistics = false;
-	boolean bPrintResults = false;
+	const boolean bTraceOptimisationStatistics = false;
+	const boolean bTraceResults = false;
 	KWMODLLineOptimization lineOptimizationCreator(GetFrequencyVectorCreator());
 	KWMODLLineOptimization* headIntervalOptimization;
 	KWMODLLineDeepOptimization lineDeepOptimizationCreator(GetFrequencyVectorCreator());
@@ -1278,7 +1278,7 @@ KWMODLLine* KWDiscretizerMODL::IntervalListOptimization(const KWFrequencyTable* 
 	}
 
 	// Affichage des statistiques d'optimisation
-	if (bPrintOptimisationStatistics)
+	if (bTraceOptimisationStatistics)
 	{
 		cout << kwftSource->GetTotalFrequency() << "\t" << kwftSource->GetFrequencyVectorNumber() << "\t"
 		     << nMergeNumber << "\t" << nExtraMergeNumber << "\t" << nSplitNumber << "\t" << nExtraSplitNumber
@@ -1287,7 +1287,7 @@ KWMODLLine* KWDiscretizerMODL::IntervalListOptimization(const KWFrequencyTable* 
 	}
 
 	// Affichage des resultats
-	if (bPrintResults)
+	if (bTraceResults)
 	{
 		KWFrequencyTable* kwftTarget;
 		int nInterval;
@@ -1312,7 +1312,7 @@ KWMODLLine* KWDiscretizerMODL::IntervalListOptimization(const KWFrequencyTable* 
 		delete kwftTarget;
 	}
 
-	if (bPrintOptimisationStatistics or bPrintResults)
+	if (bTraceOptimisationStatistics or bTraceResults)
 		cout << endl;
 
 	// Nettoyage
@@ -1535,7 +1535,7 @@ void KWDiscretizerMODL::IntervalListBestSplitOptimization(const KWFrequencyTable
 void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwftSource,
 						     KWMODLLineDeepOptimization*& headInterval) const
 {
-	boolean bPrintOptimisationDetails = false;
+	const boolean bTrace = false;
 	longint lDisplayFreshness;
 	SortedList splitList(KWMODLLineDeepOptimizationCompareSplitDeltaCost);
 	SortedList mergeSplitList(KWMODLLineDeepOptimizationCompareMergeSplitDeltaCost);
@@ -1573,7 +1573,7 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 	assert(nIntervalNumber == GetIntervalListSize(headInterval));
 
 	// Affichage de l'en-tete des messages
-	if (bPrintOptimisationDetails)
+	if (bTrace)
 	{
 		cout << "Best Delta Cost"
 		     << "\t"
@@ -1678,7 +1678,7 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 			bContinue = false;
 
 			// Affichage d'un message
-			if (bPrintOptimisationDetails)
+			if (bTrace)
 			{
 				cout << dBestDeltaCost << "\t";
 				if (nIntervalNumber > 1)
@@ -1691,7 +1691,7 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 		else if (dBestDeltaCost == dMergeMergeSplitDeltaCost)
 		{
 			// Affichage d'un message
-			if (bPrintOptimisationDetails)
+			if (bTrace)
 			{
 				cout << dBestDeltaCost << "\t" << ComputePartitionDeltaCost(nIntervalNumber, 0) << "\t"
 				     << nIntervalNumber << "\tMergeMergeSplit\t";
@@ -1712,7 +1712,7 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 			bContinue = false;
 
 			// Affichage d'un message
-			if (bPrintOptimisationDetails)
+			if (bTrace)
 			{
 				cout << dBestDeltaCost << "\t" << ComputePartitionDeltaCost(nIntervalNumber, 0) << "\t"
 				     << nIntervalNumber << endl;
@@ -1722,7 +1722,7 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 		else if (dBestDeltaCost == dMergeSplitDeltaCost)
 		{
 			// Affichage d'un message
-			if (bPrintOptimisationDetails)
+			if (bTrace)
 			{
 				cout << dBestDeltaCost << "\t" << 0 << "\t" << nIntervalNumber << "\tMergeSplit\t";
 				mergeSplitInterval->WriteLineReport(cout);
@@ -1739,7 +1739,7 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 		else
 		{
 			// Affichage d'un message
-			if (bPrintOptimisationDetails)
+			if (bTrace)
 			{
 				cout << dBestDeltaCost << "\t" << -ComputePartitionDeltaCost(nIntervalNumber + 1, 0)
 				     << "\t" << nIntervalNumber << "\tSplit\t";
@@ -1760,7 +1760,7 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTable* kwftSource,
 							     KWMODLLineDeepOptimization*& headInterval) const
 {
-	boolean bPrintOptimisationDetails = false;
+	const boolean bTrace = false;
 	longint lDisplayFreshness;
 	SortedList mergeSplitList(KWMODLLineDeepOptimizationCompareMergeSplitDeltaCost);
 	boolean bContinue;
@@ -1785,7 +1785,7 @@ void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTa
 	assert(nIntervalNumber == GetIntervalListSize(headInterval));
 
 	// Affichage de l'en-tete des messages
-	if (bPrintOptimisationDetails)
+	if (bTrace)
 	{
 		cout << "Best Delta Cost"
 		     << "\t"
@@ -1831,7 +1831,7 @@ void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTa
 			bContinue = false;
 
 			// Affichage d'un message
-			if (bPrintOptimisationDetails)
+			if (bTrace)
 			{
 				cout << dBestDeltaCost << "\t";
 				if (nIntervalNumber > 1)
@@ -1844,7 +1844,7 @@ void KWDiscretizerMODL::IntervalListBoundaryPostOptimization(const KWFrequencyTa
 		else
 		{
 			// Affichage d'un message
-			if (bPrintOptimisationDetails)
+			if (bTrace)
 			{
 				cout << dBestDeltaCost << "\t" << 0 << "\t" << nIntervalNumber << "\tMergeSplit\t";
 				mergeSplitInterval->WriteLineReport(cout);

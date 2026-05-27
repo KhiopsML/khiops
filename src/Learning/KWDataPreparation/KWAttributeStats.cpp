@@ -1692,7 +1692,7 @@ void KWAttributeStats::BuildPreparedGroupingDataGridStats(SymbolVector* svInitia
 	int nIndex;
 	int nSource;
 	int nTarget;
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	boolean bCatchAllPresence;
 	IntVector ivGroupSizes;
 	int nGroupSizeMax;
@@ -1830,7 +1830,7 @@ void KWAttributeStats::BuildPreparedGroupingDataGridStats(SymbolVector* svInitia
 			nValue++;
 		}
 	}
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "AttributeGrouping " << attributeGrouping->GetAttributeName() << " nKeptValueNumber "
 		     << attributeGrouping->GetKeptValueNumber() << " nGarbageNumber "

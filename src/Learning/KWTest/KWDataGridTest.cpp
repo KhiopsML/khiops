@@ -210,7 +210,7 @@ boolean KWSampleGenerator::CheckAttributeSubsetStats(KWAttributeSubsetStats* att
 
 void KWSampleGenerator::InitFromAttributeSubsetStats(KWAttributeSubsetStats* attributeSubsetStats)
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	KWDRDataGrid* dataGridRule;
 	const KWDGSAttributePartition* attributePartition;
 	KWDataGridStats* targetValueStats;
@@ -324,7 +324,7 @@ double KWSampleGenerator::ComputeObjectError(KWObject* kwoObject)
 
 double KWSampleGenerator::ComputeObjectDKL(KWObject* kwoObject)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	double dDKL;
 	double dProbPlus;
 	double dProbMinus;
@@ -355,7 +355,7 @@ double KWSampleGenerator::ComputeObjectDKL(KWObject* kwoObject)
 		dDKL += dTrueProbMinus * log(dTrueProbMinus / dProbMinus);
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		// Attributs de l'objets
 		if (ivAttributeTypes.GetAt(0) == KWType::Continuous)
@@ -1321,7 +1321,7 @@ double KWSGGaussianMixture::ComputeObjectGMError(KWSGGaussianMixture* gaussianMi
 
 double KWSGGaussianMixture::ComputeObjectGMDKL(KWSGGaussianMixture* gaussianMixture, KWObject* kwoObject)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	double dDKL;
 	double dProbPlus;
 	double dProbMinus;
@@ -1352,7 +1352,7 @@ double KWSGGaussianMixture::ComputeObjectGMDKL(KWSGGaussianMixture* gaussianMixt
 		dDKL += dTrueProbMinus * log(dTrueProbMinus / dProbMinus);
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		// Attributs de l'objets
 		if (ivAttributeTypes.GetAt(0) == KWType::Continuous)

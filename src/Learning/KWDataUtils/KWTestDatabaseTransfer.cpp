@@ -621,7 +621,7 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 							  double dSecondarySamplingRate, int nBufferSize,
 							  int lMaxFileSizePerProcess, const ALString& sTestLabel)
 {
-	boolean bShowTime = false;
+	const boolean bTrace = false;
 	KWDatabaseTransferTask databaseTransfer;
 	boolean bOk;
 	const int nMainIndex = 0;
@@ -704,7 +704,7 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 	artificialDataset->CreateDataset();
 	artificialDataset->DisplayFirstLines(15);
 	timer.Stop();
-	if (bShowTime)
+	if (bTrace)
 		cout << "Creation time: " << timer.GetElapsedTime() << endl;
 
 	// Creation de son dictionnaire
@@ -729,7 +729,7 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 		artificialDataset->CreateDataset();
 		artificialDataset->DisplayFirstLines(15);
 		timer.Stop();
-		if (bShowTime)
+		if (bTrace)
 			cout << "Creation time: " << timer.GetElapsedTime() << endl;
 
 		// Creation de son dictionnaire
@@ -758,7 +758,7 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 		artificialDataset->CreateDataset();
 		artificialDataset->DisplayFirstLines(15);
 		timer.Stop();
-		if (bShowTime)
+		if (bTrace)
 			cout << "Creation time: " << timer.GetElapsedTime() << endl;
 
 		// Creation de son dictionnaire
@@ -782,7 +782,7 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 		artificialDataset->CreateDataset();
 		artificialDataset->DisplayFirstLines(15);
 		timer.Stop();
-		if (bShowTime)
+		if (bTrace)
 			cout << "Creation time: " << timer.GetElapsedTime() << endl;
 
 		// Creation de son dictionnaire
@@ -969,7 +969,7 @@ void KWTestDatabaseTransfer::MTTestWithArtificialDatabase(int nTableNumber, int 
 	databaseTransfer.SetDisplayAllTaskMessages(false);
 	bOk = databaseTransfer.Transfer(&databaseSource, &databaseTarget, lWrittenRecordNumber);
 	timer.Stop();
-	if (bShowTime)
+	if (bTrace)
 		cout << "Deployment time: " << timer.GetElapsedTime() << endl;
 	cout << "Deployed instances: " << LongintToReadableString(lWrittenRecordNumber) << " (" << bOk << ")" << endl;
 	for (nTable = 0; nTable < oaArtificialDatasets.GetSize(); nTable++)

@@ -399,8 +399,8 @@ void KWQuantileIntervalBuilder::Test()
 void KWQuantileIntervalBuilder::TestWithValues(const ALString& sTestLabel, const ContinuousVector* cvInputValues,
 					       int nQuantileNumber)
 {
-	boolean bDisplayValues = false;
-	boolean bDisplayQuantileIndexes = false;
+	const boolean bTraceValues = false;
+	const boolean bTraceQuantileIndexes = false;
 	KWQuantileIntervalBuilder quantileBuilder;
 	KWQuantileIntervalBuilder quantileBuilderFromFrequencies;
 	IntVector ivFrequencies;
@@ -432,7 +432,7 @@ void KWQuantileIntervalBuilder::TestWithValues(const ALString& sTestLabel, const
 	cout << endl;
 
 	// Affichage des valeurs uniques
-	if (bDisplayValues)
+	if (bTraceValues)
 	{
 		cout << "  Unique values (" << quantileBuilder.GetValueNumber() << "): ";
 		for (i = 0; i < quantileBuilder.GetValueNumber(); i++)
@@ -453,7 +453,7 @@ void KWQuantileIntervalBuilder::TestWithValues(const ALString& sTestLabel, const
 
 	// Calcul et affichage des quantiles
 	nIntervalNumber = quantileBuilder.ComputeQuantiles(nQuantileNumber);
-	if (bDisplayQuantileIndexes)
+	if (bTraceQuantileIndexes)
 	{
 		cout << "  Interval quantile indexes: ";
 		for (i = 0; i < nIntervalNumber; i++)
@@ -885,8 +885,8 @@ void KWQuantileGroupBuilder::Test()
 void KWQuantileGroupBuilder::TestWithValues(const ALString& sTestLabel, const SymbolVector* svValues,
 					    int nQuantileNumber)
 {
-	boolean bDisplayValues = false;
-	boolean bDisplayQuantileIndexes = false;
+	const boolean bTraceValues = false;
+	const boolean bTraceQuantileIndexes = false;
 	KWQuantileGroupBuilder quantileBuilder;
 	KWQuantileGroupBuilder quantileBuilderFromFrequencies;
 	IntVector ivFrequencies;
@@ -923,7 +923,7 @@ void KWQuantileGroupBuilder::TestWithValues(const ALString& sTestLabel, const Sy
 	cout << endl;
 
 	// Affichage des valeurs uniques
-	if (bDisplayValues)
+	if (bTraceValues)
 	{
 		cout << "  Unique values (" << quantileBuilder.GetValueNumber() << "): ";
 		for (i = 0; i < quantileBuilder.svValues.GetSize(); i++)
@@ -944,7 +944,7 @@ void KWQuantileGroupBuilder::TestWithValues(const ALString& sTestLabel, const Sy
 
 	// Calcul et affichage des quantiles
 	nGroupNumber = quantileBuilder.ComputeQuantiles(nQuantileNumber);
-	if (bDisplayQuantileIndexes)
+	if (bTraceQuantileIndexes)
 	{
 		cout << "  Group quantile indexes: ";
 		for (i = 0; i < nGroupNumber; i++)

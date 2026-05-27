@@ -583,8 +583,8 @@ void KWStat::ComputeLnStarAndC0MaxTables()
 void KWStat::ComputeLnBellTable()
 {
 	int nMaxSize = nLnBellTableMaxN * nLnBellTableMaxN;
-	boolean bPrintStirling = false;
-	boolean bPrintBell = false;
+	const boolean bTraceStirling = false;
+	const boolean bTraceBell = false;
 	DoubleVector dvStirling;
 	int i;
 	int j;
@@ -625,7 +625,7 @@ void KWStat::ComputeLnBellTable()
 	}
 
 	// Affichage des nombres de Stirling
-	if (bPrintStirling)
+	if (bTraceStirling)
 	{
 		for (i = 1; i <= nLnBellTableMaxN; i++)
 		{
@@ -650,7 +650,7 @@ void KWStat::ComputeLnBellTable()
 	}
 
 	// Affichage des nombres de Bell
-	if (bPrintBell)
+	if (bTraceBell)
 	{
 		for (i = 1; i <= nLnBellTableMaxN; i++)
 		{

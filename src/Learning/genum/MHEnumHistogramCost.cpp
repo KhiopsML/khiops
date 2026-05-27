@@ -18,7 +18,7 @@ KWUnivariatePartitionCosts* MHEnumHistogramCosts::Create() const
 
 double MHEnumHistogramCosts::ComputePartitionCost(int nPartNumber) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	double dCost;
 
 	require(nPartNumber >= 1);
@@ -26,7 +26,7 @@ double MHEnumHistogramCosts::ComputePartitionCost(int nPartNumber) const
 
 	// Cout choix du nombre d'intervalles
 	dCost = KWStat::NaturalNumbersUniversalCodeLength(nPartNumber);
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "\tCout choix nombre de parties " << nPartNumber << "\t"
 		     << KWStat::NaturalNumbersUniversalCodeLength(nPartNumber) << endl;
 
@@ -34,7 +34,7 @@ double MHEnumHistogramCosts::ComputePartitionCost(int nPartNumber) const
 	dCost += KWStat::LnFactorial(nTotalBinNumber + nPartNumber - 1);
 	dCost -= KWStat::LnFactorial(nTotalBinNumber);
 	dCost -= KWStat::LnFactorial(nPartNumber - 1);
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "\tCout choix des longueurs des intervalles "
 		     << KWStat::LnFactorial(nTotalBinNumber + nPartNumber - 1) - KWStat::LnFactorial(nTotalBinNumber) -
 			    KWStat::LnFactorial(nPartNumber - 1)
@@ -44,7 +44,7 @@ double MHEnumHistogramCosts::ComputePartitionCost(int nPartNumber) const
 	dCost += KWStat::LnFactorial(nTotalInstanceNumber + nPartNumber - 1);
 	dCost -= KWStat::LnFactorial(nTotalInstanceNumber);
 	dCost -= KWStat::LnFactorial(nPartNumber - 1);
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "\tCout choix des effectifs des intervalles "
 		     << KWStat::LnFactorial(nTotalInstanceNumber + nPartNumber - 1) -
 			    KWStat::LnFactorial(nTotalInstanceNumber) - KWStat::LnFactorial(nPartNumber - 1)
@@ -52,10 +52,10 @@ double MHEnumHistogramCosts::ComputePartitionCost(int nPartNumber) const
 
 	// Numerateur de la multinomiale de vraissemblance des effectifs
 	dCost += KWStat::LnFactorial(nTotalInstanceNumber);
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "\tCout du numerateur de la multinomiale des effectifs"
 		     << " \t" << KWStat::LnFactorial(nTotalInstanceNumber) << endl;
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "Cout complet"
 		     << " \t" << nPartNumber << "\t " << dCost << endl;
 	return dCost;
@@ -79,7 +79,7 @@ double MHEnumHistogramCosts::ComputePartitionDeltaCost(int nPartNumber, int nGar
 
 double MHEnumHistogramCosts::ComputePartCost(const KWFrequencyVector* part) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	double dCost;
 	int nIntervalFrequency;
 	int nIntervalLength;
@@ -99,7 +99,7 @@ double MHEnumHistogramCosts::ComputePartCost(const KWFrequencyVector* part) cons
 		dCost += nIntervalFrequency * log(nIntervalLength);
 
 	// Affichage des details du cout
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\tPart(" << nIntervalFrequency << ", " << nIntervalLength << ")\t" << dCost << endl;
 	}

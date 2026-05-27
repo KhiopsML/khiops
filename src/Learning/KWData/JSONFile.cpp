@@ -666,7 +666,7 @@ void JSONFile::UpdateEncodingStats(const ALString& sCString)
 
 void JSONFile::ExploitEncodingStats()
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	int nCollisionNumber;
 	int nDistinctWindows1252AnsiCharNumber;
 	int nDistinctWindows1252Utf8CharNumber;
@@ -752,7 +752,7 @@ void JSONFile::ExploitEncodingStats()
 	}
 
 	// Affichage des stats d'encodage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Encoding stats\t" << GetFileName() << "\n";
 		cout << "acsii\t" << lAsciiCharNumber << "\n";

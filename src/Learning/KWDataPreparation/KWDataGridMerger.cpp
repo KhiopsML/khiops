@@ -193,9 +193,9 @@ KWDGCell* KWDataGridMerger::NewCell() const
 
 double KWDataGridMerger::OptimizeMerge()
 {
-	boolean bDisplayAllForDebug = false;
-	boolean bDisplayMergeDetails = false;
-	boolean bDisplayDataGrid = false;
+	const boolean bTraceAllForDebug = false;
+	const boolean bTraceMergeDetails = false;
+	const boolean bTraceDataGrid = false;
 	boolean bRecomputeAllAtEachStep = false;
 	boolean bExhaustiveSearch = true;
 	KWDataGridManager dataGridManager;
@@ -212,7 +212,7 @@ double KWDataGridMerger::OptimizeMerge()
 	ALString sTaskLabel;
 
 	// Messsage de depart
-	if (bDisplayAllForDebug)
+	if (bTraceAllForDebug)
 		cout << "Merge of data grid\t" << GetObjectLabel() << endl;
 
 	// Debut de tache
@@ -242,7 +242,7 @@ double KWDataGridMerger::OptimizeMerge()
 	InitializeAllPartLists();
 
 	// Messsage sur les cout initiaux
-	if (bDisplayAllForDebug)
+	if (bTraceAllForDebug)
 	{
 		cout << "Initial Cost\t" << GetDataGridCosts()->ComputeDataGridMergerTotalCost(this) << endl;
 		GetDataGridCosts()->WriteDataGridAllCosts(this, cout);
@@ -251,7 +251,7 @@ double KWDataGridMerger::OptimizeMerge()
 	}
 
 	// Affichage grille initiale
-	if (bDisplayDataGrid)
+	if (bTraceDataGrid)
 	{
 		cout << "Debut de OptimizeMerge" << endl;
 		Write(cout);
@@ -287,7 +287,7 @@ double KWDataGridMerger::OptimizeMerge()
 		assert(CheckAllPartMerges());
 
 		// Affichage du contenu du merger a chaque etape d'optimisation
-		if (bDisplayAllForDebug)
+		if (bTraceAllForDebug)
 		{
 			cout << "DataGrid costs\n";
 			GetDataGridCosts()->WriteDataGridAllCosts(this, cout);
@@ -324,7 +324,7 @@ double KWDataGridMerger::OptimizeMerge()
 		if (bContinue)
 		{
 			// Affichage des resultats de l'etape d'optimisation
-			if (bDisplayMergeDetails)
+			if (bTraceMergeDetails)
 			{
 				cout << "Best part Merge\t" << nCount << "\t" << dBestDeltaCost << "\t"
 				     << dDataGridTotalCost + dBestDeltaCost << "\t" << *bestPartMerge << endl;
@@ -360,7 +360,7 @@ double KWDataGridMerger::OptimizeMerge()
 			assert(CheckAllPartMerges());
 
 			// Affichage grille apres PerformPartMerge
-			if (bDisplayDataGrid)
+			if (bTraceDataGrid)
 			{
 				cout << "Apres PerformPartMerge " << nCount << "\t dDataGridTotalCost \t"
 				     << dDataGridTotalCost << endl;
@@ -385,7 +385,7 @@ double KWDataGridMerger::OptimizeMerge()
 	}
 
 	// Affichage grille apres PerformPartMerge
-	if (bDisplayDataGrid)
+	if (bTraceDataGrid)
 	{
 		cout << "Apres restauration de la meilleure solution " << nCount << endl;
 		Write(cout);
@@ -395,7 +395,7 @@ double KWDataGridMerger::OptimizeMerge()
 	TaskProgression::EndTask();
 
 	// Messsage de fin
-	if (bDisplayAllForDebug)
+	if (bTraceAllForDebug)
 	{
 		Write(cout);
 		cout << endl;
@@ -416,7 +416,7 @@ void KWDataGridMerger::InitializeAllPartLists()
 	KWDGAttribute* attribute;
 	KWDGMAttribute* attributeM;
 	KWDGPart* part;
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 
 	// Parcours des attributs du DataGrid
 	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
@@ -435,7 +435,7 @@ void KWDataGridMerger::InitializeAllPartLists()
 				attributeM->AddPartToValueNumberList(cast(KWDGMPart*, part));
 				attribute->GetNextPart(part);
 			}
-			if (bDisplayResults)
+			if (bTrace)
 			{
 				cout << " KWDataGridMerger::InitializeAllPartLists() " << endl;
 				cout << " Attribute\t " << attributeM->GetAttributeName() << endl;
@@ -743,7 +743,7 @@ boolean KWDataGridMerger::CheckAllPartMerges() const
 
 double KWDataGridMerger::SearchBestPartMerge(KWDGMPartMerge*& bestPartMerge)
 {
-	boolean bDisplayDetails = false;
+	const boolean bTrace = false;
 	int nAttribute;
 	KWDGAttribute* attribute;
 	KWDGMAttribute* attributeM;
@@ -799,7 +799,7 @@ double KWDataGridMerger::SearchBestPartMerge(KWDGMPartMerge*& bestPartMerge)
 				dDeltaCost += dAllPartsTargetDeltaCost;
 
 			// Affichage des details
-			if (bDisplayDetails)
+			if (bTrace)
 			{
 				cout << endl;
 				cout << "InformativeAttribute\t" << GetInformativeAttributeNumber() << endl;
@@ -837,7 +837,7 @@ double KWDataGridMerger::SearchBestPartMerge(KWDGMPartMerge*& bestPartMerge)
 
 double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& bestPartMerge)
 {
-	boolean bDisplayDetails = false;
+	const boolean bTrace = false;
 	int nAttribute;
 	KWDGAttribute* attribute;
 	KWDGMAttribute* attributeM;
@@ -907,7 +907,7 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 				dDeltaCostWithoutGarbage += dAllPartsTargetDeltaCost;
 
 			// Affichage des details
-			if (bDisplayDetails)
+			if (bTrace)
 			{
 				cout << endl;
 				cout << "InformativeAttribute\t" << GetInformativeAttributeNumber() << endl;
@@ -990,7 +990,7 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 					dDeltaCostWithGarbage += dAllPartsTargetDeltaCost;
 
 				// Affichage des details
-				if (bDisplayDetails)
+				if (bTrace)
 				{
 					cout << endl;
 					cout << "InformativeAttribute\t" << GetInformativeAttributeNumber() << endl;
@@ -1046,7 +1046,7 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 		}
 	}
 
-	if (bDisplayDetails)
+	if (bTrace)
 		if (bestPartMerge != NULL)
 			cout << "Fin de SearchBestPartMergeWithGarbageSearch :" << *bestPartMerge;
 

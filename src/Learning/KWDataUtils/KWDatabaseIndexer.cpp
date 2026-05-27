@@ -674,7 +674,7 @@ boolean KWDatabaseIndexer::ComputeMainTableBasicIndexation()
 boolean KWDatabaseIndexer::ComputeSingleTableIndexation()
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	longint lTotalFileSizePerProcess;
 	longint lPositionMemory;
 	longint lMaxPositionNumber;
@@ -695,7 +695,7 @@ boolean KWDatabaseIndexer::ComputeSingleTableIndexation()
 	lTotalFileSizePerProcess = ComputeTotalFileSizePerProcess();
 
 	// Affichage des entrees
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "ComputeSingleTableIndexation" << endl;
 		cout << "\tDatabase\t" << GetObjectLabel() << endl;
@@ -753,7 +753,7 @@ boolean KWDatabaseIndexer::ComputeSingleTableIndexation()
 		       GetPLDatabase()->GetTotalFileSize() >= 256 * lTB or GetMaxIndexationMemory() < 64 * lMB);
 
 		// Affichage des parametres
-		if (bDisplay)
+		if (bTrace)
 		{
 			cout << "\tTotalFileSize\t" << GetPLDatabase()->GetTotalFileSize() << endl;
 			cout << "\tFileIndexerBufferSize\t" << nFileIndexerBufferSize << endl;
@@ -800,7 +800,7 @@ boolean KWDatabaseIndexer::ComputeSingleTableIndexation()
 	}
 
 	// Affichage des resultats
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\tRaw chunks\t" << GetChunkNumber() << endl;
 	}
@@ -812,7 +812,7 @@ boolean KWDatabaseIndexer::ComputeSingleTableIndexation()
 boolean KWDatabaseIndexer::ComputeMainTableIndexation()
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	longint lTotalFileSizePerProcess;
 	longint lMeanMainKeySize;
 	longint lMainLineNumber;
@@ -876,7 +876,7 @@ boolean KWDatabaseIndexer::ComputeMainTableIndexation()
 				dSamplingRate = 0;
 			if (lTotalFileSizePerProcess >= GetMTDatabase()->GetTotalFileSize())
 				dSamplingRate = 0;
-			if (bDisplay)
+			if (bTrace)
 			{
 				cout << "ComputeMainTableIndexation\n";
 				cout << "\tAll tables size\t" << GetMTDatabase()->GetTotalFileSize() << "\n";
@@ -1113,7 +1113,7 @@ longint KWDatabaseIndexer::ComputeTotalFileSizePerProcess() const
 boolean KWDatabaseIndexer::InitializeKeyFieldIndexer(int nTableIndex, KWKeyFieldsIndexer* keyFieldsIndexer)
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	const KWMTDatabaseMapping* readMapping;
 	KWClass* kwcMainClass;
 	KWClass* kwcMappingClass;
@@ -1176,7 +1176,7 @@ boolean KWDatabaseIndexer::InitializeKeyFieldIndexer(int nTableIndex, KWKeyField
 		AddError("Error while indexing fields of table " + readMapping->GetDataTableName());
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "InitializeKeyFieldIndexer" << endl;
 		cout << "\tClass\t" << kwcMappingClass->GetName() << endl;

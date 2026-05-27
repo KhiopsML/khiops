@@ -11,7 +11,7 @@ void DTGrouperMODL::MergePureSourceValues(KWFrequencyTable* kwftSource, KWFreque
 					  IntVector*& ivGroups) const
 
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWDenseFrequencyVector* kwdfvFrequencyVector;
 	int nSource;
 	int nTarget;
@@ -142,7 +142,7 @@ void DTGrouperMODL::MergePureSourceValues(KWFrequencyTable* kwftSource, KWFreque
 	}
 
 	// Affichage des resultats
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Source Table\n" << *kwftSource << "\n";
 		cout << "Group Indexes:";
@@ -159,8 +159,8 @@ void DTGrouperMODL::MergePureSourceValues(KWFrequencyTable* kwftSource, KWFreque
 
 ObjectArray* DTGrouperMODL::BuildReliableSubGroups(KWFrequencyTable* kwftSource, IntVector*& ivGroups) const
 {
-	boolean bDisplayResults = false;
-	boolean bDisplayBiClassGroupings = false;
+	const boolean bTrace = false;
+	const boolean bTraceBiClassGroupings = false;
 	ObjectArray* oaGroups;
 	KWMODLGroup* group;
 	DTGrouperMODLTwoClasses grouperMODLTwoClasses;
@@ -247,7 +247,7 @@ ObjectArray* DTGrouperMODL::BuildReliableSubGroups(KWFrequencyTable* kwftSource,
 					    ivBiClassGroupIndexes);
 
 		// Affichage des resultats
-		if (bDisplayBiClassGroupings)
+		if (bTraceBiClassGroupings)
 		{
 			cout << "Bi-class source Table for target " << nTarget << "\n" << kwftBiClassSource << "\n";
 			cout << "Group Indexes:";
@@ -321,7 +321,7 @@ ObjectArray* DTGrouperMODL::BuildReliableSubGroups(KWFrequencyTable* kwftSource,
 	oaAllBiClassGroupIndexes.DeleteAll();
 
 	// Affichage des resultats
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Source Table\n" << *kwftSource << endl;
 		cout << "Group Indexes:";
@@ -496,7 +496,7 @@ ObjectArray* DTGrouperMODL::BuildGroupMerges(ObjectArray* oaGroups) const
 void DTGrouperMODL::MergeSmallGroups(ObjectArray* oaInitialGroups, int nMinFrequency, boolean bOneSingleGarbageGroup,
 				     IntVector*& ivGroups) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	ObjectArray oaMergedGroups;
 	IntVector ivMergedGroupIndexes;
 	KWMODLGroup* mergedGroup;
@@ -514,7 +514,7 @@ void DTGrouperMODL::MergeSmallGroups(ObjectArray* oaInitialGroups, int nMinFrequ
 	require(oaInitialGroups != NULL);
 
 	// Affichage de la table initiale
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << endl;
 		for (i = 0; i < oaInitialGroups->GetSize(); i++)
@@ -628,7 +628,7 @@ void DTGrouperMODL::MergeSmallGroups(ObjectArray* oaInitialGroups, int nMinFrequ
 	}
 
 	// Affichage du vecteur d'index et de la table finale
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		for (i = 0; i < ivGroups->GetSize(); i++)
 			cout << "\t" << ivGroups->GetAt(i);
@@ -791,7 +791,7 @@ void DTGrouperMODL::ComputeIndexesFromSourceToEndProcesses(IntVector*& ivSourceT
 void DTGrouperMODL::PostOptimizeGrouping(KWFrequencyTable* kwftSource, KWFrequencyTable* kwftTarget,
 					 IntVector* ivGroups) const
 {
-	boolean bPrintGroupNumbers = false;
+	const boolean bTrace = false;
 	const int nMaxTestedForcedMergeNumber = 3;
 	int nTestedForcedMergeNumber;
 	boolean bSingletonGroupingTested;
@@ -818,7 +818,7 @@ void DTGrouperMODL::PostOptimizeGrouping(KWFrequencyTable* kwftSource, KWFrequen
 		return;
 
 	// Statistiques initiales et nombre de groupes initiaux
-	if (bPrintGroupNumbers)
+	if (bTrace)
 		cout << kwftSource->GetTotalFrequency() << "\t" << kwftSource->GetFrequencyVectorNumber() << "\t"
 		     << kwftTarget->GetFrequencyVectorNumber() << "\t";
 
@@ -851,7 +851,7 @@ void DTGrouperMODL::PostOptimizeGrouping(KWFrequencyTable* kwftSource, KWFrequen
 	bSingletonGroupingTested = nMaxTestedForcedMergeNumber == 1 or kwftTarget->GetFrequencyVectorNumber() == 1;
 
 	// Nombre de groupes apres ExhaustiveMerge
-	if (bPrintGroupNumbers)
+	if (bTrace)
 		cout << kwftTarget->GetFrequencyVectorNumber() << "\t";
 
 	// Initialisation de la meilleure solution, en post-optimisant la solution initiale
@@ -914,7 +914,7 @@ void DTGrouperMODL::PostOptimizeGrouping(KWFrequencyTable* kwftSource, KWFrequen
 	assert(kwftSource->GetTotalFrequency() == kwftTarget->GetTotalFrequency());
 
 	// Nombre de groupes apres les ameliorations par fusions iteratives
-	if (bPrintGroupNumbers)
+	if (bTrace)
 		cout << kwftTarget->GetFrequencyVectorNumber() << "\t";
 
 	// Test final: comparaison avec une solution de groupage en un seul groupe
@@ -944,7 +944,7 @@ void DTGrouperMODL::PostOptimizeGrouping(KWFrequencyTable* kwftSource, KWFrequen
 	}
 
 	// Nombre de groupes final
-	if (bPrintGroupNumbers)
+	if (bTrace)
 		cout << kwftTarget->GetFrequencyVectorNumber() << endl;
 
 	ensure(kwftSource->GetTotalFrequency() == kwftTarget->GetTotalFrequency());
@@ -1064,9 +1064,9 @@ void DTGrouperMODL::ExhaustiveMergeGrouping(int nMinGroupNumber, KWFrequencyTabl
 void DTGrouperMODL::PostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequencyTable* kwftTarget,
 				       IntVector* ivGroups) const
 {
-	boolean bPrintInitialTables = false;
-	boolean bPrintOptimizations = false;
-	boolean bPrintFinalTable = false;
+	const boolean bTraceInitialTables = false;
+	const boolean bTraceOptimizations = false;
+	const boolean bTraceFinalTable = false;
 	boolean bContinue;
 	int nModalityNumber;
 	int nGroupNumber;
@@ -1096,7 +1096,7 @@ void DTGrouperMODL::PostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequency
 		return;
 
 	// Affichage des tables initiales
-	if (bPrintInitialTables)
+	if (bTraceInitialTables)
 		cout << *kwftSource << endl << *kwftTarget << endl;
 
 	// Memorisation des nombre de modalites, groupes et classes cibles
@@ -1195,7 +1195,7 @@ void DTGrouperMODL::PostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequency
 		if (bContinue)
 		{
 			// Affichage du transfert
-			if (bPrintOptimizations)
+			if (bTraceOptimizations)
 			{
 				cout << "Transfert\t" << dBestDeltaCost << "\t" << nBestModality << "\t" << nBestGroup
 				     << "\t";
@@ -1307,7 +1307,7 @@ void DTGrouperMODL::PostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequency
 	}
 
 	// Affichage de la table finale
-	if (bPrintFinalTable)
+	if (bTraceFinalTable)
 		cout << *kwftTarget << endl;
 
 	ensure(kwftSource->GetFrequencyVectorSize() == kwftTarget->GetFrequencyVectorSize());
@@ -1316,9 +1316,9 @@ void DTGrouperMODL::PostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequency
 void DTGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequencyTable* kwftTarget,
 					   IntVector* ivGroups, int nMaxStepNumber) const
 {
-	boolean bPrintInitialTables = false;
-	boolean bPrintOptimizations = false;
-	boolean bPrintFinalTable = false;
+	const boolean bTraceInitialTables = false;
+	const boolean bTraceOptimizations = false;
+	const boolean bTraceFinalTable = false;
 	boolean bSearchBestOptim = false;
 	boolean bContinue;
 	longint lDisplayFreshness;
@@ -1358,7 +1358,7 @@ void DTGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 	lDisplayFreshness = 0;
 
 	// Affichage des tables initiales
-	if (bPrintInitialTables)
+	if (bTraceInitialTables)
 		cout << *kwftSource << endl << *kwftTarget << endl;
 
 	// Memorisation des nombre de modalites et groupes
@@ -1467,7 +1467,7 @@ void DTGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 			if (dBestDeltaCost < -dEpsilon)
 			{
 				// Affichage du transfert
-				if (bPrintOptimizations)
+				if (bTraceOptimizations)
 				{
 					cout << "Transfert\t" << dBestDeltaCost << "\t" << nModality << "\t"
 					     << nBestInGroup << "\t";
@@ -1499,7 +1499,7 @@ void DTGrouperMODL::FastPostOptimizeGroups(KWFrequencyTable* kwftSource, KWFrequ
 	}
 
 	// Affichage de la table finale
-	if (bPrintFinalTable)
+	if (bTraceFinalTable)
 		cout << *kwftTarget << endl;
 
 	ensure(kwftSource->GetFrequencyVectorSize() == kwftTarget->GetFrequencyVectorSize());
@@ -1509,11 +1509,11 @@ void DTGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 						      IntVector* ivGroups, int nMaxStepNumber,
 						      SortedList* frequencyList) const
 {
-	boolean bPrintInitialTables = false;
-	boolean bPrintOptimizations = false;
-	boolean bPrintFinalTable = false;
+	const boolean bTraceInitialTables = false;
+	const boolean bTraceDeltaCosts = false;
+	const boolean bTraceOptimizations = false;
+	const boolean bTraceFinalTable = false;
 	boolean bSearchBestOptim = false;
-	boolean bPrintDeltaCosts = false;
 	boolean bContinue;
 	longint lDisplayFreshness;
 	int nStepNumber;
@@ -1563,7 +1563,7 @@ void DTGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 	lDisplayFreshness = 0;
 
 	// Affichage des tables initiales
-	if (bPrintInitialTables)
+	if (bTraceInitialTables)
 		cout << *kwftSource << endl << *kwftTarget << endl;
 
 	// Memorisation des nombre de modalites et groupes
@@ -1783,7 +1783,7 @@ void DTGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 					// Evaluation de la variation globale du cout
 					dDeltaCost = dOutDeltaCost + dInDeltaCost + dPartitionDeltaCost;
 
-					if (bPrintDeltaCosts and dDeltaCost < dBestDeltaCost - dEpsilon)
+					if (bTraceDeltaCosts and dDeltaCost < dBestDeltaCost - dEpsilon)
 					{
 						cout << "Modality\t" << nModality << "\tOutGroup\t" << nOutGroup
 						     << "\tInGroup\t" << nInGroup << "\tGroupNumber\t" << nGroupNumber
@@ -1826,7 +1826,7 @@ void DTGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 			if (dBestDeltaCost < -dEpsilon)
 			{
 				// Affichage du transfert
-				if (bPrintOptimizations)
+				if (bTraceOptimizations)
 				{
 					cout << "Etape\t" << nStepNumber << "\t" << dBestDeltaCost << "\t" << nModality
 					     << "\t(" << nOutGroup << "," << nBestInGroup << ")\t" << bBestLastModality
@@ -1894,7 +1894,7 @@ void DTGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 	}
 
 	// Affichage de la table finale
-	if (bPrintFinalTable)
+	if (bTraceFinalTable)
 		cout << *kwftTarget << endl;
 
 	ensure(kwftSource->GetFrequencyVectorSize() == kwftTarget->GetFrequencyVectorSize());
@@ -2026,9 +2026,9 @@ void DTGrouperMODL::BuildSingletonGrouping(KWFrequencyTable* kwftSource, KWFrequ
 void DTGrouperMODL::PostOptimizeGroupsWithGarbageSearch(ObjectArray* oaInitialGroups, ObjectArray* oaNewGroups,
 							IntVector* ivGroups, SortedList* frequencyList) const
 {
-	boolean bPrintInitialGroups = false;
-	boolean bPrintOptimizations = false;
-	boolean bPrintFinalTable = false;
+	const boolean bTraceInitialGroups = false;
+	const boolean bTraceOptimizations = false;
+	const boolean bTraceFinalTable = false;
 	boolean bContinue;
 	int nModalityNumber;
 	int nGroupNumber;
@@ -2070,7 +2070,7 @@ void DTGrouperMODL::PostOptimizeGroupsWithGarbageSearch(ObjectArray* oaInitialGr
 		return;
 
 	// Affichage des tables initiales
-	if (bPrintInitialGroups)
+	if (bTraceInitialGroups)
 		cout << *oaInitialGroups << endl << *oaNewGroups << endl;
 
 	// Memorisation des nombre de modalites et groupes
@@ -2279,7 +2279,7 @@ void DTGrouperMODL::PostOptimizeGroupsWithGarbageSearch(ObjectArray* oaInitialGr
 		if (bContinue)
 		{
 			// Affichage du transfert
-			if (bPrintOptimizations)
+			if (bTraceOptimizations)
 			{
 				cout << "Transfert\t" << dBestDeltaCost << "\t" << nBestModality << "\t" << nBestGroup
 				     << "\t";
@@ -2490,7 +2490,7 @@ void DTGrouperMODL::PostOptimizeGroupsWithGarbageSearch(ObjectArray* oaInitialGr
 	}
 
 	// Affichage de la table finale
-	if (bPrintFinalTable)
+	if (bTraceFinalTable)
 		cout << *oaInitialGroups << endl;
 
 	//  Verification que chaque groupe d'oaNewGroups a meme vecteur de frequences que la somme des vecteurs de
@@ -2540,7 +2540,7 @@ void DTGrouperMODL::PostOptimizeGroupingWithGarbageSearch(ObjectArray* oaInitial
 							  IntVector* ivGroups, KWFrequencyTable*& kwftSource,
 							  KWFrequencyTable*& kwftTarget) const
 {
-	boolean bPrintGroupNumbers = false;
+	const boolean bTrace = false;
 	const int nMaxTestedForcedMergeNumber = 3;
 	int nTestedForcedMergeNumber;
 	boolean bSingletonGroupingTested;
@@ -2590,7 +2590,7 @@ void DTGrouperMODL::PostOptimizeGroupingWithGarbageSearch(ObjectArray* oaInitial
 	}
 
 	// Statistiques initiales et nombre de groupes initiaux
-	if (bPrintGroupNumbers)
+	if (bTrace)
 		cout << // kwftSource->ComputeTotalFrequency() << "\t" <<
 		    oaInitialGroups->GetSize() << "\t" << oaNewGroups->GetSize() << "\t";
 
@@ -2694,7 +2694,7 @@ void DTGrouperMODL::PostOptimizeGroupingWithGarbageSearch(ObjectArray* oaInitial
 	bSingletonGroupingTested = nMaxTestedForcedMergeNumber == 1 or kwftTarget->GetFrequencyVectorNumber() == 1;
 
 	// Nombre de groupes apres ExhaustiveMerge
-	if (bPrintGroupNumbers)
+	if (bTrace)
 		cout << kwftTarget->GetFrequencyVectorNumber() << "\t";
 
 	// Initialisation de la meilleure solution, en post-optimisant la solution initiale
@@ -2758,7 +2758,7 @@ void DTGrouperMODL::PostOptimizeGroupingWithGarbageSearch(ObjectArray* oaInitial
 	assert(kwftTableFromInitialGroups->GetTotalFrequency() == kwftTarget->GetTotalFrequency());
 
 	// Nombre de groupes apres les ameliorations par fusions iteratives
-	if (bPrintGroupNumbers)
+	if (bTrace)
 		cout << kwftTarget->GetFrequencyVectorNumber() << "\t";
 
 	// Post optimisation de la partition AVEC poubelle
@@ -2784,7 +2784,7 @@ void DTGrouperMODL::PostOptimizeGroupingWithGarbageSearch(ObjectArray* oaInitial
 			bSingletonGroupingTested = oaNewGroups->GetSize() == 1;
 
 		// Nombre de groupes apres ExhaustiveMerge
-		if (bPrintGroupNumbers)
+		if (bTrace)
 			cout << oaNewGroups->GetSize() << "\t";
 
 		// Initialisation de la liste triee des groupes selon le nombre de modalites
@@ -2944,7 +2944,7 @@ void DTGrouperMODL::PostOptimizeGroupingWithGarbageSearch(ObjectArray* oaInitial
 		assert(kwftTableFromInitialGroups->GetTotalFrequency() == kwftTargetWithGarbage->GetTotalFrequency());
 
 		// Nombre de groupes apres les ameliorations par fusions iteratives
-		if (bPrintGroupNumbers)
+		if (bTrace)
 			cout << kwftTargetWithGarbage->GetFrequencyVectorNumber() << "\t";
 	}
 
@@ -3003,7 +3003,7 @@ void DTGrouperMODL::PostOptimizeGroupingWithGarbageSearch(ObjectArray* oaInitial
 	}
 
 	// Nombre de groupes final
-	if (bPrintGroupNumbers)
+	if (bTrace)
 		cout << kwftTarget->GetFrequencyVectorNumber() << endl;
 
 	delete ivGroupsWithGarbage;
@@ -3169,7 +3169,7 @@ void DTGrouperMODL::ForceBestGroupMergeWithGarbageSearch(ObjectArray* oaSource, 
 	int nGarbageModalityNumber;
 	int nMergeGarbageModalityNumber;
 	POSITION position;
-	boolean bPrintValueNumberList = false;
+	const boolean bTrace = false;
 
 	require(oaSource != NULL);
 	require(oaTarget != NULL);
@@ -3180,7 +3180,7 @@ void DTGrouperMODL::ForceBestGroupMergeWithGarbageSearch(ObjectArray* oaSource, 
 	require(ivGroups->GetSize() == oaSource->GetSize());
 	require(oaTarget->GetSize() >= 2);
 
-	if (bPrintValueNumberList)
+	if (bTrace)
 	{
 		cout << "ForceBestGroupMergeWGI : Affichage liste au debut " << endl;
 		cout << "Taille de la liste " << frequencyList->GetCount() << endl;

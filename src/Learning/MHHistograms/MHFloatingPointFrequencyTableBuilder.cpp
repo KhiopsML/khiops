@@ -875,8 +875,8 @@ int MHFloatingPointFrequencyTableBuilder::GetDefaultTotalHierarchyLevel()
 void MHFloatingPointFrequencyTableBuilder::BuildFrequencyTable(int nHierarchyLevel,
 							       KWFrequencyTable*& histogramFrequencyTable) const
 {
-	boolean bDisplay = false;
-	boolean bDisplayDetails = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
 	Continuous cLowerValue;
 	Continuous cUpperValue;
 	Continuous cLowerBound;
@@ -892,7 +892,7 @@ void MHFloatingPointFrequencyTableBuilder::BuildFrequencyTable(int nHierarchyLev
 	require(0 <= nHierarchyLevel and nHierarchyLevel <= GetMaxHierarchyLevel());
 
 	// Creation des intervalles
-	if (bDisplay)
+	if (bTrace)
 		cout << "Create intervals\t" << nHierarchyLevel << "\t" << GetTotalBinNumberAt(nHierarchyLevel) << "\n";
 
 	// Cas particulier d'un seul intervalle
@@ -942,7 +942,7 @@ void MHFloatingPointFrequencyTableBuilder::BuildFrequencyTable(int nHierarchyLev
 					// bin
 					cvBounds.SetAt(cvBounds.GetSize() - 1, cUpperBound);
 					ivFrequencies.UpgradeAt(ivFrequencies.GetSize() - 1, GetBinFrequencyAt(i));
-					if (bDisplayDetails)
+					if (bTraceDetails)
 						cout << "\tUpdate full\t" << i << "\t"
 						     << KWContinuous::ContinuousToString(cUpperValue) << "\t,"
 						     << KWContinuous::ContinuousToString(cUpperBound) << "\t]" << endl;
@@ -967,7 +967,7 @@ void MHFloatingPointFrequencyTableBuilder::BuildFrequencyTable(int nHierarchyLev
 					{
 						cvBounds.Add(cLowerBound);
 						ivFrequencies.Add(0);
-						if (bDisplayDetails)
+						if (bTraceDetails)
 							cout << "\tAdd empty\t" << i << "\t"
 							     << KWContinuous::ContinuousToString(cUpperValue) << "\t]"
 							     << KWContinuous::ContinuousToString(cLowerBound) << "\t,"
@@ -977,7 +977,7 @@ void MHFloatingPointFrequencyTableBuilder::BuildFrequencyTable(int nHierarchyLev
 					// Ajout de l'intervalle contenant le nouveau bin
 					cvBounds.Add(cUpperBound);
 					ivFrequencies.Add(GetBinFrequencyAt(i));
-					if (bDisplayDetails)
+					if (bTraceDetails)
 						cout << "\tAdd full\t" << i << "\t"
 						     << KWContinuous::ContinuousToString(cUpperValue) << "\t,"
 						     << KWContinuous::ContinuousToString(cUpperBound) << "\t]" << endl;
@@ -1079,7 +1079,7 @@ void MHFloatingPointFrequencyTableBuilder::BuildFrequencyTable(int nHierarchyLev
 	}
 
 	// Affichage de la table
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\tLower bound\tUpper bound\tFrequency\n";
 		for (i = 0; i < ivFrequencies.GetSize(); i++)
@@ -2136,7 +2136,7 @@ Continuous MHFloatingPointFrequencyTableBuilder::GetSystemMaxValue() const
 
 void MHFloatingPointFrequencyTableBuilder::InitializeDomainBounds()
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	const double dEpsilon = 1e-7;
 	int nTotalFrequency;
 	int i;
@@ -2170,7 +2170,7 @@ void MHFloatingPointFrequencyTableBuilder::InitializeDomainBounds()
 		dCost += MHMODLHistogramCosts::ComputeDomainBoundsMantissaCost(i);
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 		{
 			if (i == 0)
 				cout << "i\tmantissa\teps\tlb\tub\tD lb\tD up\tCost\tBestCost\timprove\n";

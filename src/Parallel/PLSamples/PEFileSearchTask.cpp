@@ -178,7 +178,7 @@ boolean PEFileSearchTask::SlaveProcess()
 	double dProgression;
 	ALString sTmp;
 	boolean bIsOpen;
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	longint lBeginPos;
 	longint lMaxEndPos;
 	longint lNextLinePos;

@@ -138,7 +138,7 @@ void KWDensityEstimationTest::TestOneDataset()
 
 int KWDensityEstimationTest::SearchBestInstanceGridSize(ContinuousVector* cvXValues, ContinuousVector* cvYValues)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	const double dEpsilon = 1e-5;
 	int nTotalFrequency;
 	int nAxisCellNumber;
@@ -154,7 +154,7 @@ int KWDensityEstimationTest::SearchBestInstanceGridSize(ContinuousVector* cvXVal
 	require(cvXValues->GetSize() == cvYValues->GetSize());
 
 	// Affichage de l'entete
-	if (bDisplay)
+	if (bTrace)
 		cout << "Size\tCost\n";
 
 	// Parcours de toutes les tailles possibles
@@ -180,7 +180,7 @@ int KWDensityEstimationTest::SearchBestInstanceGridSize(ContinuousVector* cvXVal
 		dCost = ComputeInstanceGridCost(oaInstanceGrid);
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 			cout << nAxisCellNumber << "\t" << dCost << endl;
 
 		// Test si amelioration
@@ -643,7 +643,7 @@ void KWDensityEstimationStudy::Test()
 
 int KWDensityEstimationStudy::ComputeJointDensityMinFrequency(int nI, int nJ)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	const int nNMax = 100000000;
 	int nN;
 	double dCost;
@@ -660,7 +660,7 @@ int KWDensityEstimationStudy::ComputeJointDensityMinFrequency(int nI, int nJ)
 		if (nN >= nI and nN >= nJ)
 		{
 			dCost = JointDensityDeltaCost(nI, nJ, nN);
-			if (bDisplay)
+			if (bTrace)
 				cout << nI << "\t" << nJ << "\t" << nN << "\t" << dCost << "\n";
 			if (dCost < 0 and nResult == -1)
 			{
@@ -690,7 +690,7 @@ double KWDensityEstimationStudy::JointDensityDeltaCost(int nI, int nJ, int nN)
 
 int KWDensityEstimationStudy::ComputeConditionalDensityMinFrequency(int nI, int nJ)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	const int nNMax = 100000000;
 	int nN;
 	double dCost;
@@ -707,7 +707,7 @@ int KWDensityEstimationStudy::ComputeConditionalDensityMinFrequency(int nI, int 
 		if (nN >= nI and nN >= nJ)
 		{
 			dCost = ConditionalDensityDeltaCost(nI, nJ, nN);
-			if (bDisplay)
+			if (bTrace)
 				cout << nI << "\t" << nJ << "\t" << nN << "\t" << dCost << "\n";
 			if (dCost < 0 and nResult == -1)
 			{

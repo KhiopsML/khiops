@@ -71,7 +71,7 @@ void KWClassifierPostOptimizer::ComputeBiasedClassificationOffsets(KWPredictor* 
 								   KWTrainedClassifier* trainedClassifier,
 								   ContinuousVector* cvBestTargetScoreOffsets)
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	boolean bOk;
 	int nTargetValueNumber;
 	int nClassifierCriterionIndex;
@@ -281,7 +281,7 @@ Continuous KWClassifierPostOptimizer::ComputeBiasedClassificationOffsetAt(int nC
 									  const ContinuousVector* cvTargetScoreOffsets,
 									  int nTargetIndex)
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	int nTargetValueNumber;
 	int nInstanceNumber;
 	int nTarget;

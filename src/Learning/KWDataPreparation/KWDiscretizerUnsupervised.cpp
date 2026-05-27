@@ -96,7 +96,7 @@ void KWDiscretizerUsingSourceValues::ComputeCumulativeTargetFrequencies(
     KWQuantileIntervalBuilder* quantileBuilder, IntVector* ivTargetIndexes, int nTargetValueNumber,
     ObjectArray* oaCumulativeTargetFrequencies) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	IntVector* ivCumulativeFrequencies;
 	int nTarget;
 	int i;
@@ -154,7 +154,7 @@ void KWDiscretizerUsingSourceValues::ComputeCumulativeTargetFrequencies(
 	}
 
 	// Affichage des resultats intermediaires
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		// Affichage des resultat pour toutes les valeurs
 		cout << "Value\tCumulated target frequencies\n";
@@ -391,8 +391,8 @@ void KWDiscretizerMODLEqualBins::MODLEqualBinsDiscretizeValues(boolean bIsEqualF
 							       KWFrequencyTable*& kwftTarget,
 							       ContinuousVector*& cvBounds) const
 {
-	boolean bDisplayDiscretizationTables = false;
-	boolean bDisplayDiscretizationCosts = false;
+	const boolean bTraceDiscretizationTables = false;
+	const boolean bTraceDiscretizationCosts = false;
 	const double dEpsilon = 1e-6;
 	IntVector ivContingencyLine;
 	int nIntervalValueIndex;
@@ -487,7 +487,7 @@ void KWDiscretizerMODLEqualBins::MODLEqualBinsDiscretizeValues(boolean bIsEqualF
 		nPreviousIntervalFrequency = nIntervalFrequency;
 
 		// Entete pour l'affichage d'une table de discretization
-		if (bDisplayDiscretizationTables)
+		if (bTraceDiscretizationTables)
 			cout << "\n\nIntervalNumber: " << nIntervalNumber << endl;
 
 		// Calcul du nombre effectifs d'intervalles
@@ -527,7 +527,7 @@ void KWDiscretizerMODLEqualBins::MODLEqualBinsDiscretizeValues(boolean bIsEqualF
 			dDiscretizationCost += dIntervalCost;
 
 			// Affichage d'une ligne de table de discretisation
-			if (bDisplayDiscretizationTables)
+			if (bTraceDiscretizationTables)
 			{
 				for (nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
 					cout << "\t" << ivContingencyLine.GetAt(nTarget);
@@ -539,13 +539,13 @@ void KWDiscretizerMODLEqualBins::MODLEqualBinsDiscretizeValues(boolean bIsEqualF
 			if (bAreCostPositive and dDiscretizationCost >= dBestDiscretizationCost)
 			{
 				// Pas d'optimsaition des calculs si affichage des details
-				if (not bDisplayDiscretizationTables and not bDisplayDiscretizationCosts)
+				if (not bTraceDiscretizationTables and not bTraceDiscretizationCosts)
 					break;
 			}
 		}
 
 		// Affichage du cout de discretisation
-		if (bDisplayDiscretizationCosts)
+		if (bTraceDiscretizationCosts)
 			cout << "Interval number\t" << nIntervalNumber << "\t" << nActualIntervalNumber << "\t"
 			     << nIntervalFrequency << "\t" << ComputePartitionCost(nIntervalNumber, nInstanceNumber)
 			     << "\t" << dDiscretizationCost << endl;
@@ -569,7 +569,7 @@ void KWDiscretizerMODLEqualBins::MODLEqualBinsDiscretizeValues(boolean bIsEqualF
 	}
 
 	// Affichage du cout de la meilleure discretisation
-	if (bDisplayDiscretizationCosts)
+	if (bTraceDiscretizationCosts)
 		cout << "Best interval number\t" << nBestIntervalNumber << "\t" << nBestActualIntervalNumber << "\t"
 		     << nBestIntervalSize << "\t" << ComputePartitionCost(nBestIntervalNumber, nInstanceNumber) << "\t"
 		     << dBestDiscretizationCost << endl;

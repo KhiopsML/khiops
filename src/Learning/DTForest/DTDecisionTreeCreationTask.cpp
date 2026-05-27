@@ -2405,7 +2405,7 @@ SymbolVector* DTDecisionTreeCreationTask::EqualFreqDiscretizeContinuousTarget(KW
 	SymbolVector* svTargetValues = NULL;
 	ContinuousVector* cvTargetValues = NULL;
 	KWQuantileIntervalBuilder quantileBuilder;
-	boolean bDisplayValues = false;
+	const boolean bTrace = false;
 
 	require(nQuantileNumber >= 1);
 
@@ -2440,7 +2440,7 @@ SymbolVector* DTDecisionTreeCreationTask::EqualFreqDiscretizeContinuousTarget(KW
 	assert(svTargetValues != NULL);
 	assert(tupleTableLoader->GetInputExtraAttributeContinuousValues()->GetSize() == svTargetValues->GetSize());
 
-	if (bDisplayValues)
+	if (bTrace)
 	{
 		for (int i = 0; i < svTargetValues->GetSize(); i++)
 		{
@@ -2469,7 +2469,7 @@ SymbolVector* DTDecisionTreeCreationTask::MODLDiscretizeContinuousTarget(KWTuple
 	ObjectDictionary odIntervals;
 	Object o;
 	int nBound, nPartNumber;
-	boolean bDisplayValues = false;
+	const boolean bTrace = false;
 	Continuous cValue;
 	ALString s;
 	KWDGSAttributeDiscretization* attribute;
@@ -2509,7 +2509,7 @@ SymbolVector* DTDecisionTreeCreationTask::MODLDiscretizeContinuousTarget(KWTuple
 		cvChosenIntervals.CopyFrom(&cvInput);
 	}
 
-	if (bDisplayValues)
+	if (bTrace)
 		cvChosenIntervals.Write(cout);
 
 	//initialisation de target Stat d'un arbre

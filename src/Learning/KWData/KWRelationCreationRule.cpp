@@ -1252,7 +1252,7 @@ void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derivedAttribute,
 						      NumericKeyDictionary* nkdAllUsedAttributes) const
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	const KWClass* secondaryOutputScopeClass;
 	const KWClass* outputScopeClass;
 	NumericKeyDictionary nkdOutputAttributes;
@@ -1475,7 +1475,7 @@ void KWDRRelationCreationRule::CollectCreationRuleMandatoryInputOperands(
     const KWAttribute* derivedAttribute, const NumericKeyDictionary* nkdAllUsedAttributes,
     IntVector* ivMandatoryInputOperands) const
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	const KWClass* secondaryOutputScopeClass;
 	const KWClass* outputScopeClass;
 	const KWClass* kwcTargetClass;

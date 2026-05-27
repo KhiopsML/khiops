@@ -243,7 +243,7 @@ void KWDRTextAllNGrams::DynamicCompile(const KWIndexedKeyBlock* indexedKeyBlock)
 
 void KWDRTextAllNGrams::InitializeGlobalVariables()
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	int nGramLength;
 	int nHashTableSize;
 	longint lNGramMask;
@@ -328,7 +328,7 @@ void KWDRTextAllNGrams::InitializeGlobalVariables()
 		}
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 		{
 			cout << "N-Gram\tHash table size\n";
 			for (i = 0; i < ivNGramLengths.GetSize(); i++)
@@ -364,7 +364,7 @@ KWContinuousValueBlock*
 KWDRTextAllNGrams::ComputeAllTablesCharNgramCountsFromTextList(const SymbolVector* svValues,
 							       const KWIndexedKeyBlock* indexedKeyBlock) const
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWContinuousValueBlock* cvbTokenCounts;
 	IntVector ivUsedSparseIndexes;
 	int nValueNumber;
@@ -399,7 +399,7 @@ KWDRTextAllNGrams::ComputeAllTablesCharNgramCountsFromTextList(const SymbolVecto
 		nValueNumber = svValues->GetSize();
 
 	// Affichage de l'entete
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << GetName() << "\t" << nValueNumber << endl;
 		for (i = 0; i < nValueNumber; i++)
@@ -524,7 +524,7 @@ KWDRTextAllNGrams::ComputeAllTablesCharNgramCountsFromTextList(const SymbolVecto
 						}
 
 						// Affichage des resultats intermediaires, pour la mise au point
-						if (bDisplay)
+						if (bTrace)
 						{
 							cout << "\t" << nNGramLength << "\t"
 							     << ivHashTableSizes.GetAt(nHashTableIndex) << "\t" << n
@@ -582,7 +582,7 @@ KWDRTextAllNGrams::ComputeAllTablesCharNgramCountsFromTextList(const SymbolVecto
 	}
 
 	// Affichage du resultat
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Result block:\n";
 		for (n = 0; n < cvbTokenCounts->GetValueNumber(); n++)
@@ -1192,7 +1192,7 @@ longint KWDRNGramCounts::GetUsedMemory() const
 KWContinuousValueBlock* KWDRNGramCounts::ComputeCharNgramCounts(const Symbol& sValue,
 								const KWIndexedKeyBlock* indexedKeyBlock) const
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	static const int nDefaultCount = -INT_MAX;
 	KWContinuousValueBlock* cvbTokenCounts;
 	IntVector ivUsedSparseIndexes;
@@ -1216,7 +1216,7 @@ KWContinuousValueBlock* KWDRNGramCounts::ComputeCharNgramCounts(const Symbol& sV
 
 	// Acces a la chaine de caractere a analyser
 	sStringValue = sValue.GetValue();
-	if (bDisplay)
+	if (bTrace)
 		cout << GetName() << "\t" << sStringValue << endl;
 
 	// Retaillage si necessaire du tableau sparse des parties
@@ -1309,7 +1309,7 @@ KWContinuousValueBlock* KWDRNGramCounts::ComputeCharNgramCounts(const Symbol& sV
 				}
 
 				// Affichage des resultats intermediaires, pour la mise au point
-				if (bDisplay)
+				if (bTrace)
 				{
 					cout << "\t" << n << "\t";
 
@@ -1680,7 +1680,7 @@ boolean KWDRExtractWords::CheckOperandsDefinition() const
 
 void KWDRExtractWords::Compile(KWClass* kwcOwnerClass)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	boolean bToLower;
 	boolean bKeepNumerical;
 	Symbol sAdditionalChars;
@@ -1736,7 +1736,7 @@ void KWDRExtractWords::Compile(KWClass* kwcOwnerClass)
 	}
 
 	// Affichage du resultat
-	if (bDisplay)
+	if (bTrace)
 	{
 		for (i = 0; i < 256; i++)
 			cout << i << "\t" << (char)i << "\t" << sTranslatedChars.GetAt(i) << "\n";

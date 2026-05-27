@@ -307,7 +307,7 @@ boolean KWPredictor::InternalTrain()
 
 void KWPredictor::CollectSelectedPreparationStats(ObjectArray* oaUsedDataPreparationStats)
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWDataPreparationStats* dataPreparationStats;
 	KWAttributeStats* attributeStats;
 	int i;
@@ -328,7 +328,7 @@ void KWPredictor::CollectSelectedPreparationStats(ObjectArray* oaUsedDataPrepara
 
 	// Acces au dictionnaire de la classe preparee
 	kwcPreparedClass = GetClass();
-	if (bDisplay)
+	if (bTrace)
 		cout << GetName() << endl;
 
 	// Parcours des preparations d'attributs utilisees
@@ -340,7 +340,7 @@ void KWPredictor::CollectSelectedPreparationStats(ObjectArray* oaUsedDataPrepara
 		// Memorisation dans le dictionnaire des preparations de donnees selectionnes directement ou non
 		nkdSelectedDataPreparationStats.SetAt(dataPreparationStats, dataPreparationStats);
 		nkdRecursivelySelectedDataPreparationStats.SetAt(dataPreparationStats, dataPreparationStats);
-		if (bDisplay)
+		if (bTrace)
 			cout << "\t" << dataPreparationStats->GetSortName() << endl;
 
 		// Analyse de la preparation pour en extraire les attributs
@@ -357,7 +357,7 @@ void KWPredictor::CollectSelectedPreparationStats(ObjectArray* oaUsedDataPrepara
 				// Memorisation dans le dictionnaire des preparations d'attributs selectionnes
 				// recursivement
 				nkdRecursivelySelectedDataPreparationStats.SetAt(attributeStats, attributeStats);
-				if (bDisplay)
+				if (bTrace)
 				{
 					if (nkdSelectedDataPreparationStats.Lookup(attributeStats) == NULL)
 						cout << "\t\t" << attributeStats->GetSortName() << endl;
@@ -399,7 +399,7 @@ void KWPredictor::CollectSelectedPreparationStats(ObjectArray* oaUsedDataPrepara
 				// Memorisation dans le dictionnaire des preparations d'attributs selectionnes
 				// recursivement
 				nkdRecursivelySelectedDataPreparationStats.SetAt(attributeStats, attributeStats);
-				if (bDisplay)
+				if (bTrace)
 				{
 					if (nkdSelectedDataPreparationStats.Lookup(attributeStats) == NULL)
 						cout << "\t\t" << attributeStats->GetSortName() << endl;

@@ -876,7 +876,7 @@ void KDSelectionOperandDataSampler::ExtractSelectionObjectValues(KDClassSelectio
 
 void KDSelectionOperandDataSampler::ExtractAllSelectionReferencedObjects(KWMTDatabase* inputDatabase)
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	const KWObjectReferenceResolver* objectReferenceSolver;
 	ObjectArray oaRootClasses;
 	int nClass;
@@ -959,7 +959,7 @@ void KDSelectionOperandDataSampler::ExtractAllSelectionReferencedObjects(KWMTDat
 
 void KDSelectionOperandDataSampler::RegisterAllReferencedObjects(KWMTDatabase* inputDatabase)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	const KWObjectReferenceResolver* objectReferenceSolver;
 	ObjectArray oaRootClasses;
 	int nClass;
@@ -984,7 +984,7 @@ void KDSelectionOperandDataSampler::RegisterAllReferencedObjects(KWMTDatabase* i
 		rootClass = cast(KWClass*, oaRootClasses.GetAt(nClass));
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 			cout << "\t" << rootClass->GetName() << "\t"
 			     << objectReferenceSolver->GetObjectNumber(rootClass) << endl;
 
@@ -1000,7 +1000,7 @@ void KDSelectionOperandDataSampler::RegisterAllReferencedObjects(KWMTDatabase* i
 	}
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 		cout << "AllReferencedEntities\t" << nkdAllReferencedObjects.GetCount() << endl;
 }
 

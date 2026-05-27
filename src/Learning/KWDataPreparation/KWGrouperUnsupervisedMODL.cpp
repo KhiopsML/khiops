@@ -75,7 +75,7 @@ int KWGrouperUnsupervisedMODL::ComputePreprocessedMaxLineNumber(KWFrequencyTable
 double KWGrouperUnsupervisedMODL::ComputeBestPriorCost(const KWFrequencyTable* table, int nStartIndex, int nStopIndex,
 						       int& nBestFirstGroupValueNumber) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	const double dEpsilon = 1e-6;
 	int nValueNumber;
 	int nFrequency;
@@ -95,7 +95,7 @@ double KWGrouperUnsupervisedMODL::ComputeBestPriorCost(const KWFrequencyTable* t
 
 	// Calcul du cout du prior selon l'encodage standard des multinomial
 	dStandardPriorCost = ComputeMultinomialPriorCost(nFrequency, nValueNumber);
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Unsupervised MODL\n";
 		cout << "\tStandard cost\t" << nValueNumber << "\t" << nFrequency << "\t0\t0\t" << dStandardPriorCost
@@ -117,7 +117,7 @@ double KWGrouperUnsupervisedMODL::ComputeBestPriorCost(const KWFrequencyTable* t
 	}
 	else
 		nBestFirstGroupValueNumber = nValueNumber;
-	if (bDisplay)
+	if (bTrace)
 		cout << "\t=> Best value number\t" << nBestFirstGroupValueNumber << "\n";
 	return nBestFirstGroupValueNumber;
 }
@@ -126,7 +126,7 @@ double KWGrouperUnsupervisedMODL::ComputeBestHierarchicalMultinomialPriorCost(co
 									      int nStartIndex, int nStopIndex,
 									      int& nBestFirstGroupValueNumber) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	const double dEpsilon = 1e-6;
 	int i;
 	int nFrequency;
@@ -175,7 +175,7 @@ double KWGrouperUnsupervisedMODL::ComputeBestHierarchicalMultinomialPriorCost(co
 			dBestHierarchicalPriorCost = dHierarchicalPriorCost;
 			nBestHierarchicalValueNumber = nFirstGroupValueNumber;
 		}
-		if (bDisplay)
+		if (bTrace)
 		{
 			cout << "\tHierarchical cost\t" << nFirstGroupValueNumber << "\t" << nFirstGroupFrequency
 			     << "\t" << nSecondGroupValueNumber << "\t" << nSecondGroupFrequency << "\t"

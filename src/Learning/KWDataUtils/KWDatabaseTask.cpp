@@ -124,7 +124,7 @@ const ALString KWDatabaseTask::GetObjectLabel() const
 boolean KWDatabaseTask::RunDatabaseTask(const KWDatabase* sourceDatabase)
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWMTDatabaseTextFile refMTDatabaseTextFile;
 	KWSTDatabaseTextFile refSTDatabaseTextFile;
 
@@ -165,7 +165,7 @@ boolean KWDatabaseTask::RunDatabaseTask(const KWDatabase* sourceDatabase)
 	    cast(PLDatabaseTextFile*, databaseChunkBuilder.GetDatabaseIndexer()->GetPLDatabase()));
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Database task\t" << GetTaskName() << endl;
 		cout << "\tDatabase indexer\t" << databaseChunkBuilder.GetDatabaseIndexer() << endl;
@@ -267,7 +267,7 @@ void KWDatabaseTask::DisplaySpecificTaskMessage()
 boolean KWDatabaseTask::ComputeAllDataTableIndexation()
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	RMTaskResourceGrant grantedResources;
 	KWFileIndexerTask fileIndexerTask;
 	int nSlaveNumber;
@@ -321,7 +321,7 @@ boolean KWDatabaseTask::ComputeAllDataTableIndexation()
 						       lForcedMaxFileSizePerProcess);
 
 		// Affichage des resultats d'indexation et des chunks
-		if (bDisplay)
+		if (bTrace)
 		{
 			cout << "=== " << GetTaskName() << " ===\n";
 			cout << *databaseChunkBuilder.GetDatabaseIndexer() << endl;
@@ -628,12 +628,12 @@ boolean KWDatabaseTask::SlaveInitialize()
 boolean KWDatabaseTask::SlaveInitializePrepareDictionary()
 {
 	boolean bOk = true;
-	boolean bDisplayMemoryStats = false;
+	const boolean bTrace = false;
 	ALString sClassName;
 	ALString sClassTmpFile;
 
 	// Memoire initiale
-	if (bDisplayMemoryStats)
+	if (bTrace)
 	{
 		cout << "KWDatabaseTask::SlaveInitializePrepareDictionary, process id\t" << GetProcessId() << endl;
 		cout << "KWDatabaseTask::SlaveInitializePrepareDictionary, available memory begin\t"
@@ -690,7 +690,7 @@ boolean KWDatabaseTask::SlaveInitializePrepareDictionary()
 	}
 
 	// Memoire finale
-	if (bDisplayMemoryStats)
+	if (bTrace)
 	{
 		cout << "KWDatabaseTask::SlaveInitializePrepareDictionary, available memory end\t"
 		     << LongintToHumanReadableString(RMResourceManager::GetRemainingAvailableMemory()) << endl;
@@ -766,7 +766,7 @@ boolean KWDatabaseTask::SlaveProcess()
 boolean KWDatabaseTask::SlaveProcessStartDatabase()
 {
 	boolean bOk = true;
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	KWDatabase* sourceDatabase;
 	PLSTDatabaseTextFile* sourceSTDatabase;
 	PLMTDatabaseTextFile* sourceMTDatabase;
@@ -1061,7 +1061,7 @@ boolean KWDatabaseTask::SlaveProcessExploitDatabaseObject(const KWObject* kwoObj
 boolean KWDatabaseTask::SlaveProcessStopDatabase(boolean bProcessEndedCorrectly)
 {
 	boolean bOk = true;
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	PLMTDatabaseTextFile* sourceMTDatabase;
 	PLSTDatabaseTextFile* sourceSTDatabase;
 	int i;
@@ -1175,7 +1175,7 @@ boolean KWDatabaseTask::SlaveFinalize(boolean bProcessEndedCorrectly)
 longint KWDatabaseTask::ComputeSlaveGrantedMemory(const RMResourceRequirement* slaveRequirement,
 						  longint lSlaveGrantedMemory, boolean bForSourceDatabase)
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	PLDatabaseTextFile* sourceDatabase;
 	longint lMinNecessaryMemory;
 	longint lMaxNecessaryMemory;
@@ -1208,7 +1208,7 @@ longint KWDatabaseTask::ComputeSlaveGrantedMemory(const RMResourceRequirement* s
 	}
 
 	// Affichage detaille
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "KWDatabaseTask::ComputeSlaveGrantedMemory " << GetTaskName() << endl;
 		cout << "\tSlave min necessary memory\t" << lMinNecessaryMemory << endl;
