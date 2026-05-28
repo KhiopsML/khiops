@@ -37,7 +37,7 @@ jobs:
     container: ${{ matrix.setup.image }}
     steps:
       - name: Install Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniforge-version: latest
           python-version: '3.12'
