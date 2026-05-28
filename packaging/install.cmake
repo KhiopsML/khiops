@@ -59,6 +59,8 @@ file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/build-c-windows.cmd BUILD_C
 file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/build-java.sh BUILD_JAVA)
 file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/run-java-linux.sh RUN_JAVA_LINUX)
 file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/run-java-windows.cmd RUN_JAVA_WINDOWS)
+file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/run-python.sh RUN_PYTHON)
+file(READ ${PROJECT_SOURCE_DIR}/packaging/common/KNI/run-multitable-python.sh RUN_MULTITABLE_PYTHON)
 
 configure_file(${PROJECT_SOURCE_DIR}/packaging/common/KNI/README.txt.in ${TMP_DIR}/kni.README.txt @ONLY
                NEWLINE_STYLE UNIX)

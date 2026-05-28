@@ -3,16 +3,33 @@
 
 This project provides all the basics to use the Khiops Native Interface (KNI): installation and examples.
 
-The purpose of KNI is to allow a deeper integration of Khiops in information systems, by mean of the C programming language, using a shared library (`.dll` in Windows, `.so` in Linux). This relates specially to the problem of model deployment, which otherwise requires the use of input and output data files when using directly the Khiops tool in batch mode. See Khiops Guide for an introduction to dictionary files, dictionaries, database files and deployment.
+The purpose of KNI is to allow a deeper integration of Khiops in information systems, by means of the C programming language, using a shared library (`.dll` in Windows, `.so` in Linux). This relates especially to the problem of model deployment, which otherwise requires the use of input and output data files when using directly the Khiops tool in batch mode. See Khiops Guide for an introduction to dictionary files, dictionaries, database files and deployment.
 
-The Khiops deployment API is thus made public through a shared library. Therefore, a Khiops model can be deployed directly from any programming language, such as C, C++, Java, Python, Matlab, etc. This enables real time model deployment without the overhead of temporary data files or launching executables. This is critical for certain applications, such as marketing or targeted advertising on the web..
+The Khiops deployment API is thus made public through a shared library. Therefore, a Khiops model can be deployed directly from any programming language, such as C, C++, Java, Python, Matlab, etc. This enables real-time model deployment without the overhead of temporary data files or launching executables. This is critical for certain applications, such as marketing or targeted advertising on the web.
 
-All KNI functions are C functions for easy use with other programming languages. They return a positive or zero value in case of success, and a negative error code in case of failure.
+All KNI functions are C functions for easy use with other programming languages. The API is compatible with ANSI C (C89/C90) and later standards. They return a positive or zero value in case of success, and a negative error code in case of failure.
 
 See [KhiopsNativeInterface.h](include/KhiopsNativeInterface.h) for a detailed description of KNI functions.
 
 > [!CAUTION]
 > The functions are not reentrant (thread-safe): the library can be used simultaneously by several executables, but not simultaneously by several threads in the same executable.
+
+## Table of Contents
+
+- [KNI installation](#kni-installation)
+  - [Windows](#windows)
+  - [Linux](#linux)
+- [Application examples](#application-examples)
+- [Example with C](#example-with-c)
+  - [Building the examples](#building-the-examples)
+  - [Launch](#launch)
+- [Example with Java](#example-with-java)
+  - [Building the examples](#building-the-examples-1)
+  - [Launch](#launch-1)
+- [Example with Python](#example-with-python)
+  - [Requirements](#requirements)
+  - [Scripts](#scripts)
+  - [Launch](#launch-2)
 
 # KNI installation
 
@@ -46,7 +63,7 @@ Download the package according to the code name of your OS and install it with `
 
 Application examples are available in this repository. The main branch corresponds to the latest version of KNI. To explore older versions, switch between branches, which are named after their respective versions.
 
-Both examples in C and Java produce a sample binary `KNIRecodeFile`. It recodes an input file to an output file, using a Khiops dictionary from a dictionary file.
+Examples in C, Java, and Python demonstrate how to use KNI. The main example, `KNIRecodeFile`, recodes an input file to an output file using a Khiops dictionary from a dictionary file.
 
 ```bash
 KNIRecodeFile <Dictionary file> <Dictionary> <Input File> <Output File> [Error file]
@@ -55,14 +72,14 @@ KNIRecodeFile <Dictionary file> <Dictionary> <Input File> <Output File> [Error f
 # The error file may be useful for debugging purposes. It is optional and may be empty.
 ```
 
-A more complex example (available only in C) is `KNIRecodeMTFiles`, it recodes the input files of multi-table dataset to a single output file.
+A more complex example (available in C and Python) is `KNIRecodeMTFiles`, which recodes the input files of a multi-table dataset to a single output file.
 
 ```bash
 KNIRecodeMTFiles
   -d: <input dictionary file> <input dictionary>
   [-f: <field separator>
   -i: <input file name> [<key index>...]
-  -s: <secondary data path> < file name> <key index>...
+  -s: <secondary data path> <file name> <key index>...
   -x: <external data root> <external data path> <external file name>
   -o: <output file name>
   [-e: <error file name>]
@@ -71,7 +88,7 @@ KNIRecodeMTFiles
 
 # Example with C
 
-The files are located in [cpp directory](cpp/). They allow to build `KNIRecodeFile` and `KNIRecodeMTFiles`.
+The files are located in [cpp directory](cpp/). They allow you to build `KNIRecodeFile` and `KNIRecodeMTFiles`.
 
 ## Building the examples
 
@@ -99,12 +116,12 @@ Recode the "Splice Junction" multi-table dataset using the `SNB_SpliceJunction` 
 
 ```bash
 KNIRecodeMTFiles -d data/ModelingSpliceJunction.kdic SNB_SpliceJunction \
-    -i .data/SpliceJunction.txt 1 -s DNA  data/SpliceJunctionDNA.txt 1 -o R_SpliceJunction.txt
+    -i data/SpliceJunction.txt 1 -s DNA data/SpliceJunctionDNA.txt 1 -o R_SpliceJunction.txt
 ```
 
 # Example with Java
 
-The files are located in [java directory](java/). They allow to build `KNIRecodeFile.jar`. This example use [JNA](https://github.com/twall/jna#readme) to make calls to KhiopsNativeInterface.so/dll from Java.
+The files are located in [java directory](java/). They allow you to build `KNIRecodeFile.jar`. This example uses [JNA](https://github.com/twall/jna#readme) to make calls to KhiopsNativeInterface.so/dll from Java.
 
 ## Building the examples
 
@@ -116,7 +133,7 @@ To compile Java files and create the `kni.jar` file:
 
 ## Launch
 
-Recodes the "Iris" dataset from the data directory using the `SNB_Iris` classifier dictionary.
+Recode the "Iris" dataset from the data directory using the `SNB_Iris` classifier dictionary.
 
 On Linux:
 
@@ -128,4 +145,40 @@ On Windows:
 
 ```cmd
 @RUN_JAVA_WINDOWS@
+```
+
+# Example with Python
+
+The files are located in [python directory](python/). They use the `kni` Python package from the pip package `khiops-kni` to call the KhiopsNativeInterface shared library.
+
+## Requirements
+
+- Python 3.10 or later
+- The `khiops-kni` package:
+
+```bash
+pip install khiops-kni
+```
+
+This installs both the `kni` Python module and the KhiopsNativeInterface shared library. No `KNI_HOME` environment variable is needed.
+
+## Scripts
+
+- `KNIRecodeFile.py`: Single-table recoding example
+- `KNIRecodeMTFiles.py`: Multi-table recoding example
+
+**API Documentation**: See [Python API Reference](python/docs/kni.md) for detailed documentation of the `kni` module.
+
+## Launch
+
+Recode the "Iris" dataset from the data directory using the `SNB_Iris` classifier dictionary.
+
+```bash
+@RUN_PYTHON@
+```
+
+For the multi-table "Splice Junction" example:
+
+```bash
+@RUN_MULTITABLE_PYTHON@
 ```

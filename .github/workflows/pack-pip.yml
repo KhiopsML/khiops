@@ -157,12 +157,80 @@ jobs:
           binary-path: ${{ env.BIN_DIR }}
           testing-context-description: pip-test-${{ matrix.setup.os }}-${{ matrix.setup.image
             }}
+  test-kni:
+    name: Test KNI Python wheel
+    needs: [build-wheel]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-24.04
+          - ubuntu-24.04-arm
+          - windows-2025
+          - macos-15-intel
+          - macos-15
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: pkg-*
+          path: wheelhouse
+          merge-multiple: true
+      - name: Checkout KhiopsNativeInterface-tutorial
+        uses: actions/checkout@v6
+        with:
+          repository: KhiopsML/KhiopsNativeInterface-tutorial
+          path: tutorial
+          ref: main
+      - name: Install Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install khiops-kni wheel
+        run: python -m pip install --find-links=wheelhouse khiops-kni
+      - name: Run python mono-table example
+        shell: bash
+        run: |
+          cd tutorial
+          bash $GITHUB_WORKSPACE/packaging/common/KNI/run-python.sh
+      - name: Check python mono-table results
+        shell: bash
+        run: |
+          if [ ! -f tutorial/R_Iris_python.txt ]; then
+            echo "::error::R_Iris_python.txt is missing"
+            false
+          fi
+          if diff -q tutorial/R_Iris_python.txt packaging/common/KNI/results.ref/R_Iris.txt > /dev/null; then
+            echo "Python mono table recoding is OK"
+          else
+            echo "::error::Recoding issue with python"
+            false
+          fi
+      - name: Run python multi-table example
+        shell: bash
+        run: |
+          cd tutorial
+          bash $GITHUB_WORKSPACE/packaging/common/KNI/run-multitable-python.sh
+      - name: Check python multi-table results
+        shell: bash
+        run: |
+          if [ ! -f tutorial/R_SpliceJunction_python.txt ]; then
+            echo "::error::R_SpliceJunction_python.txt is missing"
+            false
+          fi
+          if diff -q tutorial/R_SpliceJunction_python.txt packaging/common/KNI/results.ref/R_SpliceJunction.txt > /dev/null; then
+            echo "Python multi table recoding is OK"
+          else
+            echo "::error::Recoding issue with python multi-table"
+            false
+          fi
   release-testpypi:
     # Publish only on tag pushes in the KhiopsML repository
     if: github.ref_type == 'tag' && github.repository_owner == 'KhiopsML' && inputs.python_repository
       == 'testpypi'
     name: Publish to Test.PyPI.org
-    needs: [build-wheel, test-khiops-core-wheel]
+    needs: [build-wheel, test-khiops-core-wheel, test-kni]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -183,7 +251,7 @@ jobs:
     name: Publish to PyPI.org
     if: github.ref_type == 'tag' && github.repository_owner == 'KhiopsML' && inputs.python_repository
       == 'pypi'
-    needs: [build-wheel, test-khiops-core-wheel]
+    needs: [build-wheel, test-khiops-core-wheel, test-kni]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
