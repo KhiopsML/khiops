@@ -219,12 +219,15 @@ if(MPI)
 endif()
 
 # Detects the mpi implementation
-if(UNIX AND MPI)
+if(MPI)
   include(get_mpi_implementation)
   get_mpi_implementation()
 
-  # Set MPI suffix if it is not defined with the environment variables (like on Fedora distros)
-  if(NOT MPI_SUFFIX AND MPI_IMPL)
+  # Set MPI suffix if it is not defined with the environment variables (like on Fedora distros) On Windows, the suffix
+  # is always empty
+  if(UNIX
+     AND NOT MPI_SUFFIX
+     AND MPI_IMPL)
     set(MPI_SUFFIX "_${MPI_IMPL}")
   endif()
 endif()
