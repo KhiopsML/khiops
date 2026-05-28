@@ -524,6 +524,10 @@ public:
 	// Methode a destination de KWDerivationRuleOperand::Compile
 	void AddMainScopeSecondaryOperands(const KWClass* kwcOwnerClass, KWDerivationRuleOperand* operand);
 
+	// Indicateur de tolerance pour la verification de la regle
+	void SetCheckTolerance(boolean bValue);
+	boolean GetCheckTolerance() const;
+
 protected:
 	///////////////////////////////////////////////////////////////////////////
 	// Service de gestion des regles a scope multiple
@@ -625,6 +629,11 @@ protected:
 
 	// Gestion des regles a scope multiple
 	boolean bMultipleScope;
+
+	// Indicateur de tolerance pour la verification de la regle
+	// En effet, dans quelques rares cas d'optimisation avancee, on peut simplifier une regle
+	// pour la rendre plus efficace, en acceptant une certaine tolerance dans la verification de la regle
+	boolean bCheckTolerance;
 
 	// Administration des objets regles
 	static ObjectDictionary* odDerivationRules;
@@ -842,7 +851,7 @@ public:
 	void InitUpperScopeValue();
 
 	// Parametrage d'une valeur None de l'operande, indiquant qu'il n'est pas utilise et ne sera jamais evalue.
-	// Cela permet d'optimiser finiement les dictionnaire en specifiant les operandes a ne pas calculer.
+	// Cela permet d'optimiser finement les dictionnaires en specifiant les operandes a ne pas calculer.
 	// Cela ne concerne a priori que les operandes en entree d'une regle de creation de table a l'origine de la valeur
 	// d'une variable de table cible qui n'est jamais utilisee (par exemple, BuildTableAdvancedView)
 	// Suite a ce parametrage, l'origine de la regle devient OriginConstant, et l'eventuel parametrage initial
@@ -1400,7 +1409,10 @@ inline Symbol KWDerivationRuleOperand::GetTextValue(const KWObject* kwoObject) c
 	debug(require(IsCompiled()));
 	require(kwoObject != NULL);
 	require(kwoObject->GetClass() == kwcClass or GetScopeLevel() > 0);
-	require(GetType() == KWType::Text);
+
+	// Tolerance dans le cas d'un type Text attendu, avec un constante de type Symbol
+	require(GetType() == KWType::Text or
+		(GetType() == KWType::Symbol and cCompiledOrigin == CompiledOriginConstant));
 
 	return (cCompiledOrigin == CompiledOriginAttribute
 		    ? kwoObject->ComputeTextValueAt(liDataItemLoadIndex)
