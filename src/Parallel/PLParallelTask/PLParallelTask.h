@@ -819,10 +819,10 @@ private:
 
 	// Titres de la barre de progression pendant les differentes phases de la tache parallele
 	const ALString PROGRESSION_MSG_MASTER_INITIALIZE = "Initialization";
-	const ALString PROGRESSION_MSG_MASTER_FINALIZE = "finalization";
-	const ALString PROGRESSION_MSG_SLAVE_INITIALIZE = "workers initialization";
-	const ALString PROGRESSION_MSG_SLAVE_FINALIZE = "workers finalization";
-	const ALString PROGRESSION_MSG_PROCESSING = "processing";
+	const ALString PROGRESSION_MSG_MASTER_FINALIZE = "Finalization";
+	const ALString PROGRESSION_MSG_SLAVE_INITIALIZE = "Workers initialization";
+	const ALString PROGRESSION_MSG_SLAVE_FINALIZE = "Workers finalization";
+	const ALString PROGRESSION_MSG_PROCESSING = "Processing";
 
 	// Classes et fonctions friend
 	friend class PLMaster;

@@ -121,6 +121,7 @@ void KWTextTokenizer::CumulateTokenFrequencies(const ObjectArray* oaTokens)
 	require(not IsDeploymentMode());
 	require(CheckParameters());
 	require(oaTokens != NULL);
+	require(gdCollectedTokens->GetCount() <= GetMaxCollectedTokenNumber());
 
 	// Prise en compte des effectifs des tokens
 	for (nToken = 0; nToken < oaTokens->GetSize(); nToken++)
@@ -130,24 +131,84 @@ void KWTextTokenizer::CumulateTokenFrequencies(const ObjectArray* oaTokens)
 		// Ajout de l'effectif du token
 		UpgradeTokenFrequency(token->GetToken(), token->GetFrequency());
 	}
+
+	// Nettoyage du dictionnaire de collecte pour ne garder que les tokens les plus frequents
+	// dans le cas sans tokens specifiques
+	if (gdSpecificTokens == NULL)
+		StreamCleanTokenDictionary(gdCollectedTokens, GetMaxCollectedTokenNumber());
+	ensure(gdCollectedTokens->GetCount() <= GetMaxCollectedTokenNumber());
 }
 
 void KWTextTokenizer::ExportTokens(ObjectArray* oaTokenFrequencies) const
 {
+	const boolean bTrace = false;
+	POSITION position;
+	ALString sToken;
+	longint lValue;
+	int nSpecificTokenIndex;
+	KWTokenFrequency* token;
+	int nIndex;
+	Timer traceTimer;
+
 	require(not IsDeploymentMode());
+	require(gdCollectedTokens != NULL);
+	require(not gdCollectedTokens->IsObjectValue());
 	require(oaTokenFrequencies != NULL);
 	require(oaTokenFrequencies->GetSize() == 0);
 
-	ExportFrequentTokens(oaTokenFrequencies, GetCollectedTokenNumber());
+	// Debut de la trace
+	if (bTrace)
+	{
+		cout << "ExportTokens\n";
+		cout << "- MaxCollectedTokenNumber\t" << GetMaxCollectedTokenNumber() << "\n";
+		cout << "- collected tokens\t" << gdCollectedTokens->GetCount() << "\t"
+		     << LongintToHumanReadableString(gdCollectedTokens->GetOverallUsedMemory()) << "\n";
+		if (gdSpecificTokens != NULL)
+			cout << "- specific tokens\t" << gdSpecificTokens->GetCount() << "\t"
+			     << LongintToHumanReadableString(gdSpecificTokens->GetOverallUsedMemory()) << "\n";
+		traceTimer.Start();
+	}
+
+	// Cas sans tokens specifiques
+	if (gdSpecificTokens == NULL)
+	{
+		// Parcours des cles pour creer l'ensemble des tokens
+		oaTokenFrequencies->SetSize(gdCollectedTokens->GetCount());
+		nIndex = 0;
+		position = GetStartTokenPosition(gdCollectedTokens);
+		while (position != NULL)
+		{
+			GetNextToken(gdCollectedTokens, position, sToken, lValue);
+
+			// Creation et memorisation du token
+			token = new KWTokenFrequency;
+			token->SetToken(sToken);
+			token->SetFrequency(lValue);
+			oaTokenFrequencies->SetAt(nIndex, token);
+			nIndex++;
+		}
+		assert(nIndex == gdCollectedTokens->GetCount());
+	}
+	// Cas avec tokens specifiques
+	else
+		ExportSpecificTokens(oaTokenFrequencies);
+	if (bTrace)
+	{
+		traceTimer.Stop();
+		cout << "- exported tokens\t" << oaTokenFrequencies->GetSize() << "\t"
+		     << LongintToHumanReadableString(oaTokenFrequencies->GetOverallUsedMemory()) << "\n";
+		cout << "- export time\t" << traceTimer.GetElapsedTime() << "\n";
+		traceTimer.Reset();
+		traceTimer.Start();
+	}
 }
 
 void KWTextTokenizer::ExportFrequentTokens(ObjectArray* oaTokenFrequencies, int nMaxTokenNumber) const
 {
+	const boolean bTrace = false;
 	const int nMaxCollectedFrequency = 1000;
-	const LongintDictionary* ldCollectedTokens;
-	const LongintDictionary* ldSpecificTokens;
 	POSITION position;
-	ALString sKey;
+	ALString sToken;
 	longint lValue;
 	IntVector ivNumbersOfTokensPerFrequency;
 	int nMinFrequency;
@@ -155,21 +216,31 @@ void KWTextTokenizer::ExportFrequentTokens(ObjectArray* oaTokenFrequencies, int 
 	int nSpecificTokenIndex;
 	KWTokenFrequency* token;
 	int nIndex;
+	Timer traceTimer;
 
 	require(not IsDeploymentMode());
 	require(gdCollectedTokens != NULL);
-	require(gdCollectedTokens->IsStringKey());
 	require(not gdCollectedTokens->IsObjectValue());
 	require(nMaxTokenNumber >= 0);
 	require(oaTokenFrequencies != NULL);
 	require(oaTokenFrequencies->GetSize() == 0);
 
-	// Choix du type de dictionnaire selon le type de cle
-	ldCollectedTokens = cast(const LongintDictionary*, gdCollectedTokens);
-	ldSpecificTokens = cast(const LongintDictionary*, gdSpecificTokens);
+	// Debut de la trace
+	if (bTrace)
+	{
+		cout << "ExportFrequentTokens\n";
+		cout << "- MaxCollectedTokenNumber\t" << GetMaxCollectedTokenNumber() << "\n";
+		cout << "- max tokens\t" << nMaxTokenNumber << "\n";
+		cout << "- collected tokens\t" << gdCollectedTokens->GetCount() << "\t"
+		     << LongintToHumanReadableString(gdCollectedTokens->GetOverallUsedMemory()) << "\n";
+		if (gdSpecificTokens != NULL)
+			cout << "- specific tokens\t" << gdSpecificTokens->GetCount() << "\t"
+			     << LongintToHumanReadableString(gdSpecificTokens->GetOverallUsedMemory()) << "\n";
+		traceTimer.Start();
+	}
 
 	// Cas sans tokens specifiques
-	if (ldSpecificTokens == NULL)
+	if (gdSpecificTokens == NULL)
 	{
 		// Initialisation du nombre de tokens a collecter sans contrainte d'effectif minimum
 		nCollectedTokenNumber = gdCollectedTokens->GetCount();
@@ -195,21 +266,21 @@ void KWTextTokenizer::ExportFrequentTokens(ObjectArray* oaTokenFrequencies, int 
 				   nMaxTokenNumber);
 		}
 
-		// Parcours des cles pour creer l'ensemble des tokens, en ne gardant que ceux ayant un effectif minimum
-		// suffisant
+		// Parcours des cles pour creer l'ensemble des tokens, en ne gardant que ceux
+		// ayant un effectif minimum suffisant
 		assert(nMinFrequency > 0 or nCollectedTokenNumber == gdCollectedTokens->GetCount());
 		oaTokenFrequencies->SetSize(nCollectedTokenNumber);
 		nIndex = 0;
-		position = ldCollectedTokens->GetStartPosition();
+		position = GetStartTokenPosition(gdCollectedTokens);
 		while (position != NULL)
 		{
-			ldCollectedTokens->GetNextAssoc(position, sKey, lValue);
+			GetNextToken(gdCollectedTokens, position, sToken, lValue);
 
 			// Creation et memorisation du token selon la contrainte d'effectif minimum
 			if (lValue >= nMinFrequency)
 			{
 				token = new KWTokenFrequency;
-				token->SetToken(sKey);
+				token->SetToken(sToken);
 				token->SetFrequency(lValue);
 				oaTokenFrequencies->SetAt(nIndex, token);
 				nIndex++;
@@ -219,35 +290,30 @@ void KWTextTokenizer::ExportFrequentTokens(ObjectArray* oaTokenFrequencies, int 
 	}
 	// Cas avec tokens specifiques
 	else
+		ExportSpecificTokens(oaTokenFrequencies);
+	if (bTrace)
 	{
-		assert(gdCollectedTokens->GetCount() == 0);
-
-		// Initialisation du nombre de tokens a collecter sans contrainte d'effectif minimum
-		nCollectedTokenNumber = ivUsedSpecificTokenIndexes.GetSize();
-
-		// Parcours des tokens specifiques pour retrouver leur index et donc leur effectif
-		oaTokenFrequencies->SetSize(nCollectedTokenNumber);
-		nIndex = 0;
-		position = ldSpecificTokens->GetStartPosition();
-		while (position != NULL)
-		{
-			ldSpecificTokens->GetNextAssoc(position, sKey, lValue);
-			nSpecificTokenIndex = (int)lValue;
-
-			// Creation et memorisation du token selon la contrainte d'effectif minimum
-			if (lvSpecificTokenFrequencies.GetAt(nSpecificTokenIndex) > 0)
-			{
-				token = new KWTokenFrequency;
-				token->SetToken(sKey);
-				token->SetFrequency(lvSpecificTokenFrequencies.GetAt(nSpecificTokenIndex));
-				oaTokenFrequencies->SetAt(nIndex, token);
-				nIndex++;
-			}
-		}
+		traceTimer.Stop();
+		cout << "- exported tokens\t" << oaTokenFrequencies->GetSize() << "\t"
+		     << LongintToHumanReadableString(oaTokenFrequencies->GetOverallUsedMemory()) << "\n";
+		cout << "- export time\t" << traceTimer.GetElapsedTime() << "\n";
+		traceTimer.Reset();
+		traceTimer.Start();
 	}
-	// Filtrage de la fin du tableau apres tri
+
+	// Tri du tableau
 	SortTokenArray(oaTokenFrequencies);
+	if (bTrace)
+	{
+		cout << "- sort time\t" << traceTimer.GetElapsedTime() << "\n";
+		traceTimer.Reset();
+		traceTimer.Start();
+	}
+
+	// Filtrage de la fin du tableau apres le tri
 	FilterTokenArray(oaTokenFrequencies, nMaxTokenNumber);
+	if (bTrace)
+		cout << "- filter time\t" << traceTimer.GetElapsedTime() << "\n";
 }
 
 void KWTextTokenizer::CleanCollectedTokens()
@@ -877,6 +943,56 @@ longint KWTextTokenizer::ComputeTotalTokenFrequency() const
 	return lTotalTokenFrequency;
 }
 
+void KWTextTokenizer::ExportSpecificTokens(ObjectArray* oaTokenFrequencies) const
+{
+	int nIndex;
+	POSITION position;
+	ALString sToken;
+	longint lValue;
+	int nSpecificTokenIndex;
+	KWTokenFrequency* token;
+
+	require(gdSpecificTokens != NULL);
+	require(gdCollectedTokens->GetCount() == 0);
+
+	// Parcours des tokens specifiques pour retrouver leur index et donc leur effectif
+	oaTokenFrequencies->SetSize(ivUsedSpecificTokenIndexes.GetSize());
+	nIndex = 0;
+	position = GetStartTokenPosition(gdSpecificTokens);
+	while (position != NULL)
+	{
+		GetNextToken(gdSpecificTokens, position, sToken, lValue);
+		nSpecificTokenIndex = (int)lValue;
+
+		// Creation et memorisation du token selon la contrainte d'effectif minimum
+		if (lvSpecificTokenFrequencies.GetAt(nSpecificTokenIndex) > 0)
+		{
+			token = new KWTokenFrequency;
+			token->SetToken(sToken);
+			token->SetFrequency(lvSpecificTokenFrequencies.GetAt(nSpecificTokenIndex));
+			oaTokenFrequencies->SetAt(nIndex, token);
+			nIndex++;
+		}
+	}
+}
+
+POSITION KWTextTokenizer::GetStartTokenPosition(const GenericDictionary* gdDictionary) const
+{
+	require(gdDictionary != NULL);
+	require(gdDictionary->IsStringKey());
+	require(not gdDictionary->IsObjectValue());
+	return cast(const LongintDictionary*, gdDictionary)->GetStartPosition();
+}
+
+void KWTextTokenizer::GetNextToken(const GenericDictionary* gdDictionary, POSITION& rNextPosition, ALString& sToken,
+				   longint& lValue) const
+{
+	require(gdDictionary != NULL);
+	require(gdDictionary->IsStringKey());
+	require(not gdDictionary->IsObjectValue());
+	cast(const LongintDictionary*, gdDictionary)->GetNextAssoc(rNextPosition, sToken, lValue);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Classe KWTextNgramTokenizer
 
@@ -931,112 +1047,6 @@ void KWTextNgramTokenizer::SetSpecificTokens(const ObjectArray* oaTokens)
 	}
 }
 
-void KWTextNgramTokenizer::ExportFrequentTokens(ObjectArray* oaTokenFrequencies, int nMaxTokenNumber) const
-{
-	const int nMaxCollectedFrequency = 1000;
-	const LongintNumericKeyDictionary* lnkdCollectedTokens;
-	const LongintNumericKeyDictionary* lnkdSpecificTokens;
-	POSITION position;
-	NUMERIC numericKey;
-	longint lValue;
-	IntVector ivNumbersOfTokensPerFrequency;
-	int nMinFrequency;
-	int nCollectedTokenNumber;
-	int nSpecificTokenIndex;
-	KWTokenFrequency* token;
-	int nIndex;
-
-	require(gdCollectedTokens != NULL);
-	require(not gdCollectedTokens->IsStringKey());
-	require(not gdCollectedTokens->IsObjectValue());
-	require(nMaxTokenNumber >= 0);
-	require(oaTokenFrequencies != NULL);
-	require(oaTokenFrequencies->GetSize() == 0);
-
-	// Choix du type de dictionnaire selon le type de cle
-	lnkdCollectedTokens = cast(const LongintNumericKeyDictionary*, gdCollectedTokens);
-	lnkdSpecificTokens = cast(const LongintNumericKeyDictionary*, gdSpecificTokens);
-
-	// Cas sans tokens specifiques
-	if (lnkdSpecificTokens == NULL)
-	{
-		// Initialisation du nombre de tokens a collecter sans contrainte d'effectif minimum
-		nCollectedTokenNumber = gdCollectedTokens->GetCount();
-		nMinFrequency = 0;
-
-		// Si necessaire, passe prealabale de collecte des stats sur les nombres de tokens par effectif
-		if (gdCollectedTokens->GetCount() > 2 * nMaxTokenNumber)
-		{
-			// Calcul des stats par effectif de token
-			ComputeTokenDictionaryFrequencyStats(gdCollectedTokens, nMaxCollectedFrequency,
-							     &ivNumbersOfTokensPerFrequency);
-
-			// On determine l'effectif minimum suffisant pour collecter les tokens les plus frequents
-			for (nMinFrequency = 1; nMinFrequency <= nMaxCollectedFrequency; nMinFrequency++)
-			{
-				if (nCollectedTokenNumber - ivNumbersOfTokensPerFrequency.GetAt(nMinFrequency) >=
-				    nMaxTokenNumber)
-					nCollectedTokenNumber -= ivNumbersOfTokensPerFrequency.GetAt(nMinFrequency);
-				else
-					break;
-			}
-		}
-
-		// Parcours des cles pour creer l'ensemble des tokens, en ne gardant que ceux ayant un effectif minimum
-		// suffisant
-		assert(nMinFrequency > 0 or nCollectedTokenNumber == gdCollectedTokens->GetCount());
-		oaTokenFrequencies->SetSize(nCollectedTokenNumber);
-		nIndex = 0;
-		position = lnkdCollectedTokens->GetStartPosition();
-		while (position != NULL)
-		{
-			lnkdCollectedTokens->GetNextAssoc(position, numericKey, lValue);
-
-			// Creation et memorisation du token de type ngrams selon la contrainte d'effectif minimum
-			if (lValue >= nMinFrequency)
-			{
-				token = new KWTokenFrequency;
-				token->SetToken(LongintToNgram(numericKey.ToLongint()));
-				token->SetFrequency(lValue);
-				oaTokenFrequencies->SetAt(nIndex, token);
-				nIndex++;
-			}
-		}
-	}
-	// Cas avec tokens specifiques
-	else
-	{
-		assert(gdCollectedTokens->GetCount() == 0);
-
-		// Initialisation du nombre de tokens a collecter sans contrainte d'effectif minimum
-		nCollectedTokenNumber = ivUsedSpecificTokenIndexes.GetSize();
-
-		// Parcours des tokens specifiques pour retrouver leur index et donc leur effectif
-		oaTokenFrequencies->SetSize(nCollectedTokenNumber);
-		nIndex = 0;
-		position = lnkdSpecificTokens->GetStartPosition();
-		while (position != NULL)
-		{
-			lnkdSpecificTokens->GetNextAssoc(position, numericKey, lValue);
-			nSpecificTokenIndex = (int)lValue;
-
-			// Creation et memorisation du token de type ngrams selon la contrainte d'effectif minimum
-			if (lvSpecificTokenFrequencies.GetAt(nSpecificTokenIndex) > 0)
-			{
-				token = new KWTokenFrequency;
-				token->SetToken(LongintToNgram(numericKey.ToLongint()));
-				token->SetFrequency(lvSpecificTokenFrequencies.GetAt(nSpecificTokenIndex));
-				oaTokenFrequencies->SetAt(nIndex, token);
-				nIndex++;
-			}
-		}
-	}
-
-	// Filtrage de la fin du tableau apres tri
-	SortTokenArray(oaTokenFrequencies);
-	FilterTokenArray(oaTokenFrequencies, nMaxTokenNumber);
-}
-
 void KWTextNgramTokenizer::CumulateTokenFrequencies(const ObjectArray* oaTokens)
 {
 	int nToken;
@@ -1045,6 +1055,7 @@ void KWTextNgramTokenizer::CumulateTokenFrequencies(const ObjectArray* oaTokens)
 
 	require(CheckParameters());
 	require(oaTokens != NULL);
+	require(gdCollectedTokens->GetCount() <= GetMaxCollectedTokenNumber());
 
 	// Prise en compte des effectifs des tokens
 	for (nToken = 0; nToken < oaTokens->GetSize(); nToken++)
@@ -1055,6 +1066,12 @@ void KWTextNgramTokenizer::CumulateTokenFrequencies(const ObjectArray* oaTokens)
 		lEncodedNgram = NgramToLongint(token->GetToken());
 		UpgradeNgramTokenFrequency(lEncodedNgram, token->GetFrequency());
 	}
+
+	// Nettoyage du dictionnaire de collecte pour ne garder que les tokens les plus frequents
+	// dans le cas sans tokens specifiques
+	if (gdSpecificTokens == NULL)
+		StreamCleanTokenDictionary(gdCollectedTokens, GetMaxCollectedTokenNumber());
+	ensure(gdCollectedTokens->GetCount() <= GetMaxCollectedTokenNumber());
 }
 
 void KWTextNgramTokenizer::SetDeploymentTokens(const StringVector* svDeploymentTokens)
@@ -1290,6 +1307,26 @@ void KWTextNgramTokenizer::UpgradeNgramTokenFrequency(longint lEncodedNgram, lon
 			lvSpecificTokenFrequencies.UpgradeAt(nSpecificTokenIndex, lFrequency);
 		}
 	}
+}
+
+POSITION KWTextNgramTokenizer::GetStartTokenPosition(const GenericDictionary* gdDictionary) const
+{
+	require(gdDictionary != NULL);
+	require(not gdDictionary->IsStringKey());
+	require(not gdDictionary->IsObjectValue());
+	return cast(const LongintNumericKeyDictionary*, gdDictionary)->GetStartPosition();
+}
+
+void KWTextNgramTokenizer::GetNextToken(const GenericDictionary* gdDictionary, POSITION& rNextPosition,
+					ALString& sToken, longint& lValue) const
+{
+	NUMERIC numericKey;
+
+	require(gdDictionary != NULL);
+	require(not gdDictionary->IsStringKey());
+	require(not gdDictionary->IsObjectValue());
+	cast(const LongintNumericKeyDictionary*, gdDictionary)->GetNextAssoc(rNextPosition, numericKey, lValue);
+	sToken = LongintToNgram(numericKey.ToLongint());
 }
 
 longint KWTextNgramTokenizer::NgramToLongint(const ALString& sNgramBytes)

@@ -172,6 +172,9 @@ boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDat
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Premiere passe de collecte d'un echantillon de tokens
 
+	// Personnalisation du libelle de la tache
+	SetTaskUserLabel(GetTaskName() + " (first pass)");
+
 	// Debut de la collecte des indicateurs de performance
 	StartCollectPerformanceIndicators(bTracePerformanceStats);
 
@@ -214,11 +217,18 @@ boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDat
 
 			// Parametrage des tokens specifiques pour les tokenizers des esclaves
 			shared_oaSecondPassSpecificTokens->GetObjectArray()->SetAt(nAttribute, oaCollectedTokens);
+			DisplayPerformanceIndicators(sTmp + "Specify specific tokens (var " +
+							 IntToString(nAttribute + 1) + ")",
+						     &oaMasterTextTokenizers);
 		}
+		DisplayPerformanceIndicators("End of specifying specific tokens", &oaMasterTextTokenizers);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
-	// Deuxieme passe de collecte des effectifs exact par tokens
+	// Deuxieme passe de collecte des effectifs exacts par tokens
+
+	// Personnalisation du libelle de la tache
+	SetTaskUserLabel(GetTaskName() + " (second pass)");
 
 	// Collecte uniquement si necessaire
 	if (bOk)
@@ -265,9 +275,11 @@ boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDat
 							 IntToString(nAttribute + 1) + ")",
 						     &oaMasterTextTokenizers);
 		}
+		DisplayPerformanceIndicators("End of token extraction and sort", &oaMasterTextTokenizers);
 	}
 
 	// Nettoyage
+	SetTaskUserLabel("");
 	oaMasterTextTokenizers.DeleteAll();
 	assert(oaSlaveTextTokenizers.GetSize() == 0);
 
@@ -287,6 +299,7 @@ boolean KDTextTokenSampleCollectionTask::InternalCollectTokenSamples(const KWDat
 	shared_oaSecondPassSpecificTokens->Clean();
 
 	// Fin de la collecte des indicateurs de performance
+	DisplayPerformanceIndicators("Clean and end", &oaMasterTextTokenizers);
 	StopCollectPerformanceIndicators();
 	return bOk;
 }
@@ -343,7 +356,7 @@ void KDTextTokenSampleCollectionTask::DisplayPerformanceIndicators(const ALStrin
 
 	require(oaTokenizers != NULL);
 
-	// Affichage des performance si elles sont collectees
+	// Affichage des performances si elles sont collectees
 	if (lPerformanceInitialHeapMemory > 0)
 	{
 		// Calcul du nombre total de token collectes
@@ -537,20 +550,21 @@ boolean KDTextTokenSampleCollectionTask::MasterAggregateResults()
 {
 	boolean bOk;
 	const boolean bTrace = false;
+	const boolean bTraceTokens = false;
 	KWTextTokenizer* textTokenizer;
 	ObjectArray* oaCollectedTokens;
 	KWClass* kwcClass;
 	int nAttribute;
+	Timer traceTimer;
+	longint lTraceHeapMemory;
 
 	// Affichage
 	if (bTrace)
 	{
-		cout << GetTaskLabel() << "\t";
-		if (shared_bIsFirstPass)
-			cout << "First pass\n";
-		else
-			cout << "Second pass\n";
-		cout << "MasterAggregateResults\t" << GetTaskIndex() << "\n";
+		cout << GetTaskUserLabel() << "\tMasterAggregateResults\t" << GetTaskIndex() << "\t" << GetProcessId()
+		     << "\n";
+		traceTimer.Start();
+		lTraceHeapMemory = MemGetHeapMemory();
 	}
 
 	// Appel de la methode ancetre
@@ -578,15 +592,22 @@ boolean KDTextTokenSampleCollectionTask::MasterAggregateResults()
 			// Affichage
 			if (bTrace)
 			{
-				cout << kwcClass->GetUsedAttributeAt(nAttribute)->GetName() << "\t"
-				     << oaCollectedTokens->GetSize() << "\n";
-				KWTextTokenizer::DisplayHeadTokenArray(oaCollectedTokens, 10, cout);
+				cout << "- " << kwcClass->GetUsedAttributeAt(nAttribute)->GetName() << " tokens\t"
+				     << oaCollectedTokens->GetSize() << "\t" << textTokenizer->GetCollectedTokenNumber()
+				     << "\n";
+				if (bTraceTokens)
+					KWTextTokenizer::DisplayHeadTokenArray(oaCollectedTokens, 10, cout);
 			}
 
 			// Nettoyage
 			oaCollectedTokens->DeleteAll();
 		}
 		output_oaTokens->GetObjectArray()->DeleteAll();
+	}
+	if (bTrace)
+	{
+		cout << "- aggregation\t" << traceTimer.GetElapsedTime() << "\t"
+		     << LongintToHumanReadableString(MemGetHeapMemory() - lTraceHeapMemory) << "\n";
 	}
 	return bOk;
 }
@@ -653,12 +674,28 @@ boolean KDTextTokenSampleCollectionTask::SlaveInitialize()
 boolean KDTextTokenSampleCollectionTask::SlaveProcess()
 {
 	boolean bOk;
+	const boolean bTrace = false;
 	KWTextTokenizer* textTokenizer;
 	ObjectArray* oaCollectedTokens;
 	int nAttribute;
+	Timer traceTimer;
+	longint lTraceHeapMemory;
+
+	// Affichage
+	if (bTrace)
+	{
+		cout << GetTaskUserLabel() << "\tSlaveProcess\t" << GetTaskIndex() << "\t" << GetProcessId() << "\n";
+		traceTimer.Start();
+		lTraceHeapMemory = MemGetHeapMemory();
+	}
 
 	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::SlaveProcess();
+	if (bTrace)
+	{
+		cout << "- tokenization\t" << traceTimer.GetElapsedTime() << "\t"
+		     << LongintToHumanReadableString(MemGetHeapMemory() - lTraceHeapMemory) << "\n";
+	}
 
 	// Collecte des tokens a renvoyer par l'esclave
 	if (bOk)
@@ -673,11 +710,19 @@ boolean KDTextTokenSampleCollectionTask::SlaveProcess()
 			oaCollectedTokens = new ObjectArray;
 			textTokenizer->ExportTokens(oaCollectedTokens);
 			output_oaTokens->GetObjectArray()->SetAt(nAttribute, oaCollectedTokens);
+			if (bTrace)
+				cout << "- variable " << nAttribute + 1 << " tokens\t" << oaCollectedTokens->GetSize()
+				     << "\n";
 
 			// Nettoyage du tokenizer : si l'esclave est appele plus d'une fois, alors
 			// il ne cumulera pas les tokens des appels precedents
 			textTokenizer->CleanCollectedTokens();
 		}
+	}
+	if (bTrace)
+	{
+		cout << "- token collection\t" << traceTimer.GetElapsedTime() << "\t"
+		     << LongintToHumanReadableString(MemGetHeapMemory() - lTraceHeapMemory) << "\n";
 	}
 	return bOk;
 }

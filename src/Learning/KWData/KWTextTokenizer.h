@@ -82,7 +82,7 @@ public:
 	void TokenizeSymbolVector(const SymbolVector* svValues);
 
 	// Prise en compte des effectifs d'un tableau de tokens pour mettre a jour les effectifs globaux des tokens
-	// collectes
+	// collectes, tout en respectant le nombre max de tokens a collecter
 	virtual void CumulateTokenFrequencies(const ObjectArray* oaTokens);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
@@ -92,13 +92,14 @@ public:
 	// Nombre de tokens collectes
 	int GetCollectedTokenNumber() const;
 
-	// Export de l'ensemble des tokens extraits (KWTokenFrequency)
-	// Les tokens sont extraits effectifs decroissants, puis longueur de token croissante, puis token croissant,
-	// Memoire: les tokens du tableau en sortie appartiennent a l'appelant
+	// Export de l'ensemble des tokens extraits (KWTokenFrequency), sans garantie d'ordre des tokens extraits
 	void ExportTokens(ObjectArray* oaTokenFrequencies) const;
 
 	// Variante de la methode en se limitant aux tokens les plus frequents
-	virtual void ExportFrequentTokens(ObjectArray* oaTokenFrequencies, int nMaxTokenNumber) const;
+	// Les tokens sont extraits effectifs decroissants, puis longueur de token croissante, puis valeur
+	// de token croissant selon un ordre lexicographique
+	// Memoire: les tokens du tableau en sortie appartiennent a l'appelant
+	void ExportFrequentTokens(ObjectArray* oaTokenFrequencies, int nMaxTokenNumber) const;
 
 	// Nettoyage des tokens collectes
 	void CleanCollectedTokens();
@@ -298,6 +299,15 @@ protected:
 	// Calcul de l'effectif total cumule des tokens
 	longint ComputeTotalTokenFrequency() const;
 
+	// Export de l'ensemble des tokens specifiques extraits (KWTokenFrequency), sans garantie d'ordre des tokens extraits
+	void ExportSpecificTokens(ObjectArray* oaTokenFrequencies) const;
+
+	// Parcours de toutes les paires (token, value) d'un dictionnaire de token
+	// Ce parcours est fait de facon generique pour tous les types de dictionnaires de token
+	virtual POSITION GetStartTokenPosition(const GenericDictionary*) const;
+	virtual void GetNextToken(const GenericDictionary*, POSITION& rNextPosition, ALString& sToken,
+				  longint& lValue) const;
+
 	// Dictionnaire generique de longint definissant les tokens specifiques a collecter avec
 	// une paire (token, index) par token a collecter
 	// Les index commencent a 1 pour se distinguer de la valeur 0, qui signifie absent du dictionnaire
@@ -305,8 +315,8 @@ protected:
 	GenericDictionary* gdSpecificTokens;
 
 	// Vecteur des effectifs par token specifique
-	// Ce vecteur sert egalement d'indicateur d'utilisation par token specifique, en testant si l'effectif est non
-	// nul
+	// Ce vecteur sert egalement d'indicateur d'utilisation par token specifique,
+	// en testant si l'effectif est non nul
 	LongintVector lvSpecificTokenFrequencies;
 
 	// Memorisation des index des tokens specifiques effectivement utilises
@@ -336,7 +346,6 @@ public:
 
 	// Redefinition des methodes virtuelles
 	void SetSpecificTokens(const ObjectArray* oaTokens) override;
-	void ExportFrequentTokens(ObjectArray* oaTokenFrequencies, int nMaxTokenNumber) const override;
 	void CumulateTokenFrequencies(const ObjectArray* oaTokens) override;
 	void SetDeploymentTokens(const StringVector* svDeploymentTokens) override;
 
@@ -357,6 +366,11 @@ protected:
 
 	// Mise a jour de l'effectif d'un token de type ngrams
 	void UpgradeNgramTokenFrequency(longint lEncodedNgram, longint lFrequency);
+
+	// Parcours de toutes les paires (token, frequency) d'un dictionnaire de token
+	POSITION GetStartTokenPosition(const GenericDictionary* gdDictionary) const override;
+	void GetNextToken(const GenericDictionary* gdDictionary, POSITION& rNextPosition, ALString& sToken,
+			  longint& lValue) const override;
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	// Gestion optimisee des ngrams
