@@ -157,8 +157,7 @@ jobs:
             /DKHIOPS_REDUCED_VERSION=${{ env.KHIOPS_REDUCED_VERSION }} `
             /DKHIOPS_WINDOWS_BUILD_DIR=..\..\..\build\windows-msvc-release `
             /DJRE_PATH=..\..\..\assets\jre `
-            /DMSMPI_INSTALLER_PATH=..\..\..\assets\${{ env.MSMPI_FILENAME }} `
-            /DMSMPI_VERSION=${{ env.MSMPI_VERSION }} `
+            /DINTEL_MPI_DIR="${{ env.I_MPI_ROOT }}\bin" `
             /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\visualization\${{ env.KHIOPS_VIZ_FILENAME }} `
             /DKHIOPS_SAMPLES_DIR=..\..\..\samples `
             /DSIGN `
@@ -178,8 +177,7 @@ jobs:
             /DKHIOPS_REDUCED_VERSION=${{ env.KHIOPS_REDUCED_VERSION }} `
             /DKHIOPS_WINDOWS_BUILD_DIR=..\..\..\build\windows-msvc-release `
             /DJRE_PATH=..\..\..\assets\jre `
-            /DMSMPI_INSTALLER_PATH=..\..\..\assets\${{ env.MSMPI_FILENAME }} `
-            /DMSMPI_VERSION=${{ env.MSMPI_VERSION }} `
+            /DINTEL_MPI_DIR="${{ env.I_MPI_ROOT }}\bin" `
             /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\visualization\${{ env.KHIOPS_VIZ_FILENAME }} `
             /DKHIOPS_SAMPLES_DIR=..\..\..\samples `
             khiops.nsi
