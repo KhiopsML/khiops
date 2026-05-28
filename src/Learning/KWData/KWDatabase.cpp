@@ -1619,8 +1619,9 @@ void KWDatabase::BuildPhysicalClass()
 			// Cas d'un attribut qui n'est pas a detruire
 			if (nkdAllUsedAttributes.Lookup(attribute) != NULL)
 			{
-				// Cas d'une regle de derivation de type creation de table avec operandes en sortie
 				rule = attribute->GetAnyDerivationRule();
+
+				// Cas d'une regle de derivation de type creation de table avec operandes en sortie
 				if (rule != NULL and rule->GetOutputOperandNumber() > 0)
 				{
 					assert(not attribute->IsInBlock());
@@ -1632,8 +1633,8 @@ void KWDatabase::BuildPhysicalClass()
 					assert(ivMandatoryInputOperands.GetSize() == rule->GetOperandNumber());
 
 					// Parcours de ses operandes en entree pour nettoyer ceux qui sont inutiles
-					// afin de ne pas les calculer, et de permettre me nettoyage attributs ou regles a ne pas evaluer
-					// On doit cneanmoins conserver tous les operandes en entree de la regle pour garder la regle compilable
+					// afin de ne pas les calculer, et de permettre le nettoyage des attributs ou regles a ne pas evaluer
+					// On doit neanmoins conserver tous les operandes en entree de la regle pour garder la regle compilable
 					// En effet, pour des raisons d'optimisation, les regles de creation de table avec operandes en sortie
 					// peuvent declarer ne pas utiliser tout ou partie de leur operandes en entree, s'ils ne sont pas
 					// necessaires pour calculer la valeur des operandes en sortie (ex: s'il correspondent a des variables
@@ -1653,13 +1654,21 @@ void KWDatabase::BuildPhysicalClass()
 							    attribute, nOperand, &nkdAllNonDeletableAttributes);
 					}
 
-					// Collecte additionnelle des attributs en entree et  sortie des regles de creation d'instance,
-					// qui ne peuvent etre detruit pour preserver la validite des classes
+					// Collecte additionnelle des attributs en entree et sortie des regles de creation d'instance,
+					// qui ne peuvent etre detruits pour preserver la validite des classes
 					// Il ne faut pas les detruire: on les gardera ainsi en unused, pour a la fois garder le dictionnaire
 					// compilable, et eviter les calculs inutiles
 					// A noter: on ne collecte pas les classes correspondantes, car aucune ne sera detruite de toute facon
 					rule->CollectCreationRuleAllAttributes(attribute,
 									       &nkdAllNonDeletableAttributes);
+				}
+
+				// Cas d'une regle de derivation de type creation de table
+				if (rule != NULL and KWType::IsRelation(rule->GetType()) and not rule->GetReference())
+				{
+					// On specifie une tolerance pour le calcul de la regle de derivation, pour permettre
+					// de nettoyer des attributs tout en gardant la regle valide et utilisable
+					rule->SetCheckTolerance(true);
 				}
 			}
 
@@ -1841,8 +1850,11 @@ void KWDatabase::BuildPhysicalClass()
 					else
 						bDeleteAttribute = false;
 				}
+
+				// Destruction si possible de l'attribut
 				if (bDeleteAttribute)
 					kwcCurrentPhysicalClass->DeleteAttribute(attribute->GetName());
+				// Sinon, on le met en unused
 				else
 				{
 					// Stats, pour verifier les assertions de facon fine
@@ -1978,7 +1990,7 @@ void KWDatabase::BuildPhysicalClass()
 
 		// On nettoie les classes non necessaires en supprimant leur attributs calcules
 		// Cela permet d'eviter de compiler des classes ayant des attributs referencant
-		// potentiellement des attributs detruits dans les clases necessaires
+		// potentiellement des attributs detruits dans les classes necessaires
 		// On ne les detruits pas pour qu'il reste autant de classes physiques que de classes logiques
 		// ce qui simplifie la gestion de la coherence entre domaines logiques et physiques
 		for (nClass = 0; nClass < kwcdPhysicalDomain->GetClassNumber(); nClass++)

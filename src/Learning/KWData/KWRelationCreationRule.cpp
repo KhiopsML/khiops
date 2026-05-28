@@ -750,9 +750,19 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 							// Erreur si pas d'attribut correspondant trouve
 							if (sourceAttribute == NULL)
 							{
-								AddViewModeError(kwcSourceClass, kwcTargetClass,
-										 targetAttribute, "must exist");
-								bOk = false;
+								// Erreur dans le cas standard, notamment pour les utilisateurs standard de dictionaires
+								// Dans le cadre de l'optimisation d'un dictionnaire, on peut supprimer certains
+								// attributs sources inutilises correspondant a des attributs cibles inutilises.
+								// Dans ce cas, on specifie une tolerance aux erreur pour la regle, pour ne pas afficher
+								// de message d'erreur, notamment en mode debug ou on est amene a checker des dictionnaires
+								// optimises avant compilation
+								if (not GetCheckTolerance() or
+								    targetAttribute->GetLoaded())
+								{
+									AddViewModeError(kwcSourceClass, kwcTargetClass,
+											 targetAttribute, "must exist");
+									bOk = false;
+								}
 							}
 							// Erreur si le type trouve est incorrect
 							else if (sourceAttribute->GetType() !=
@@ -766,7 +776,8 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 							}
 
 							// Erreur si le type de relation est incorrect
-							if (bOk and KWType::IsRelation(sourceAttribute->GetType()) and
+							if (bOk and sourceAttribute != NULL and
+							    KWType::IsRelation(sourceAttribute->GetType()) and
 							    sourceAttribute->GetClass()->GetName() !=
 								targetAttribute->GetClass()->GetName())
 							{
@@ -778,7 +789,8 @@ boolean KWDRRelationCreationRule::CheckOperandsCompleteness(const KWClass* kwcOw
 							}
 
 							// Erreur dans le cas d'un bloc cible si bloc source incompatible
-							if (bOk and targetAttribute->IsInBlock())
+							if (bOk and sourceAttribute != NULL and
+							    targetAttribute->IsInBlock())
 							{
 								assert(sourceAttribute->GetType() ==
 								       targetAttribute->GetType());
@@ -1420,8 +1432,10 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 
 				// Recherche d'un attribut natif source de meme nom
 				sourceAttribute = kwcSourceClass->LookupAttribute(targetAttribute->GetName());
-				assert(sourceAttribute != NULL);
-				assert(sourceAttribute->GetType() == targetAttribute->GetType());
+				assert(sourceAttribute != NULL or
+				       nkdAllUsedAttributes->Lookup(targetAttribute) == NULL);
+				assert(sourceAttribute == NULL or
+				       sourceAttribute->GetType() == targetAttribute->GetType());
 
 				// Trace
 				if (bTrace)
@@ -1442,6 +1456,7 @@ void KWDRRelationCreationRule::BuildAllUsedAttributes(const KWAttribute* derived
 				// directement ou via une autre regle de derivation
 				if (nkdAllUsedAttributes->Lookup(targetAttribute) != NULL)
 				{
+					assert(sourceAttribute != NULL);
 					if (nkdAllUsedAttributes->Lookup(sourceAttribute) == NULL)
 					{
 						// Memorisation de l'attribut dans le dictionnaire

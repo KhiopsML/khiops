@@ -12,6 +12,7 @@ KWDerivationRule::KWDerivationRule()
 	cType = KWType::Unknown;
 	bVariableOperandNumber = false;
 	bMultipleScope = false;
+	bCheckTolerance = false;
 	oaMainScopeSecondaryOperands = NULL;
 	kwcClass = NULL;
 	nFreshness = 0;
@@ -1151,6 +1152,16 @@ void KWDerivationRule::InternalCompleteTypeInfo(const KWClass* kwcOwnerClass,
 	}
 }
 
+void KWDerivationRule::SetCheckTolerance(boolean bValue)
+{
+	bCheckTolerance = bValue;
+}
+
+boolean KWDerivationRule::GetCheckTolerance() const
+{
+	return bCheckTolerance;
+}
+
 void KWDerivationRule::Compile(KWClass* kwcOwnerClass)
 {
 	KWDerivationRuleOperand* operand;
@@ -1416,6 +1427,7 @@ void KWDerivationRule::CopyFrom(const KWDerivationRule* kwdrSource)
 	usSupplementTypeName = kwdrSource->usSupplementTypeName;
 	bVariableOperandNumber = kwdrSource->bVariableOperandNumber;
 	bMultipleScope = kwdrSource->bMultipleScope;
+	bCheckTolerance = kwdrSource->bCheckTolerance;
 	if (oaMainScopeSecondaryOperands != NULL)
 	{
 		delete oaMainScopeSecondaryOperands;
