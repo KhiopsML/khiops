@@ -1,11 +1,11 @@
 # Khiops installer builder NSIS script
 
 # Set Unicode to avoid warning 7998: "ANSI targets are deprecated"
-Unicode True
+Unicode true
 
 # Set compresion to LZMA (faster)
 SetCompressor /SOLID lzma
-#SetCompress off
+# SetCompress off
 
 # Include NSIS librairies
 !include "LogicLib.nsh"
@@ -16,8 +16,6 @@ SetCompressor /SOLID lzma
 
 # Include Custom libraries
 !include "KhiopsGlobals.nsh"
-!include "KhiopsPrerequisiteFunc.nsh"
-
 
 # Definitions for registry change notification
 !define SHCNE_ASSOCCHANGED 0x8000000
@@ -34,9 +32,9 @@ ManifestDPIAware true
 
 # Macro to check input parameter definitions
 !macro CheckInputParameter ParameterName
-  !ifndef ${ParameterName}
-    !error "${ParameterName} is not defined. Use the flag '-D${ParameterName}=...' to define it."
-  !endif
+	!ifndef ${ParameterName}
+		!error "${ParameterName} is not defined. Use the flag '-D${ParameterName}=...' to define it."
+	!endif
 !macroend
 
 # Check the mandatory input definitions
@@ -45,33 +43,27 @@ ManifestDPIAware true
 !insertmacro CheckInputParameter KHIOPS_WINDOWS_BUILD_DIR
 !insertmacro CheckInputParameter KHIOPS_VIZ_INSTALLER_PATH
 !insertmacro CheckInputParameter JRE_PATH
-!insertmacro CheckInputParameter MSMPI_INSTALLER_PATH
-!insertmacro CheckInputParameter MSMPI_VERSION
+!insertmacro CheckInputParameter INTEL_MPI_DIR
 !insertmacro CheckInputParameter KHIOPS_SAMPLES_DIR
 
 # Sign uninstaller if requested
 !ifdef SIGN
-  !insertmacro CheckInputParameter PATH_TO_JSIGN
-  !insertmacro CheckInputParameter SM_CERT_ALIAS
-  !insertmacro CheckInputParameter SM_CLIENT_CERT_FILE
-  !insertmacro CheckInputParameter SM_CLIENT_CERT_PASSWORD
-  !insertmacro CheckInputParameter SM_API_KEY
-  !uninstfinalize 'java -jar ${PATH_TO_JSIGN} --storetype DIGICERTONE --storepass "${SM_API_KEY}|${SM_CLIENT_CERT_FILE}|${SM_CLIENT_CERT_PASSWORD}" --alias ${SM_CERT_ALIAS} --keystore https://clientauth.one.nl.digicert.com %1'
+	!insertmacro CheckInputParameter PATH_TO_JSIGN
+	!insertmacro CheckInputParameter SM_CERT_ALIAS
+	!insertmacro CheckInputParameter SM_CLIENT_CERT_FILE
+	!insertmacro CheckInputParameter SM_CLIENT_CERT_PASSWORD
+	!insertmacro CheckInputParameter SM_API_KEY
+	!uninstfinalize \
+		'java -jar ${PATH_TO_JSIGN} --storetype DIGICERTONE --storepass "${SM_API_KEY}|${SM_CLIENT_CERT_FILE}|${SM_CLIENT_CERT_PASSWORD}" --alias ${SM_CERT_ALIAS} --keystore https://clientauth.one.nl.digicert.com %1'
 !endif
 
 # Application name and installer file name
 Name "Khiops ${KHIOPS_VERSION}"
 OutFile "khiops-${KHIOPS_VERSION}-setup.exe"
 
-########################
+# #######################
 # Variable definitions #
-########################
-
-# Requirements installation flags
-Var /GLOBAL MPIInstallationNeeded
-
-# Requirements installation messages
-Var /GLOBAL MPIInstallationMessage
+# #######################
 
 # Previous Uninstaller data
 Var /GLOBAL PreviousUninstaller
@@ -86,9 +78,9 @@ Var /GLOBAL SamplesInstallDir
 # Root key for the uninstaller in the windows registry
 !define UninstallerKey "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
 
-#####################################
+# ####################################
 # Modern UI Interface Configuration #
-#####################################
+# ####################################
 
 # General configuration
 !define MUI_HEADERIMAGE
@@ -103,7 +95,7 @@ BrandingText "Orange"
 # Welcome page
 !define MUI_WELCOMEPAGE_TITLE "Welcome to the Khiops ${KHIOPS_VERSION} Setup Wizard"
 !define MUI_WELCOMEPAGE_TEXT \
-    "Khiops is a data mining tool includes data preparation and scoring, visualization, coclustering and covisualization.$\r$\n$\r$\n$\r$\n$\r$\n$(MUI_${MUI_PAGE_UNINSTALLER_PREFIX}TEXT_WELCOME_INFO_TEXT)"
+	"Khiops is a data mining tool includes data preparation and scoring, visualization, coclustering and covisualization.$\r$\n$\r$\n$\r$\n$\r$\n$(MUI_${MUI_PAGE_UNINSTALLER_PREFIX}TEXT_WELCOME_INFO_TEXT)"
 !insertmacro MUI_PAGE_WELCOME
 
 # Licence page
@@ -134,9 +126,9 @@ Page custom RequirementsPageShow RequirementsPageLeave
 # Language (must be defined after uninstaller)
 !insertmacro MUI_LANGUAGE "English"
 
-#######################
+# ######################
 # Version Information #
-#######################
+# ######################
 
 VIProductVersion "${KHIOPS_REDUCED_VERSION}.0"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "Khiops"
@@ -145,624 +137,613 @@ VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "Copyright (c) 2023-2026 
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "Khiops Installer"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${KHIOPS_VERSION}"
 
-######################
+# #####################
 # Installer Sections #
-######################
+# #####################
 
 Section "Install" SecInstall
-  # In order to have shortcuts and documents for all users
-  SetShellVarContext all
-  
-  # Detect Java
-  Call RequirementsDetection
+	# In order to have shortcuts and documents for all users
+	SetShellVarContext all
 
+	# Detect Java
+	Call RequirementsDetection
 
-  # MPI installation is always required, because Khiops is linked with MPI DLL
-  ${If} $MPIInstallationNeeded == "1"
-      Call InstallMPI
-  ${EndIf}
+	# Activate file overwrite
+	SetOverwrite on
 
-  # Activate file overwrite
-  SetOverwrite on
+	# Install executables and java libraries
+	SetOutPath "$INSTDIR\bin"
+	File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\MODL.exe"
+	File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\MODL_Coclustering.exe"
+	File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\_khiopsgetprocnumber.exe"
+	File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\_khiopslauncher.exe"
+	File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\norm.jar"
+	File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\khiops.jar"
+	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops_env.cmd"
+	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops.cmd"
+	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops_coclustering.cmd"
 
-  # Install executables and java libraries
-  SetOutPath "$INSTDIR\bin"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\MODL.exe"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\MODL_Coclustering.exe"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\_khiopsgetprocnumber.exe"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\_khiopslauncher.exe"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\norm.jar"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\khiops.jar"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops_env.cmd"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops.cmd"
-  File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops_coclustering.cmd"
+	# Install Intel MPI redistributable 
+	File "${INTEL_MPI_DIR}\hydra_bstrap_proxy.exe"
+	File "${INTEL_MPI_DIR}\hydra_pmi_proxy.exe"
+	File "${INTEL_MPI_DIR}\mpiexec.exe"
+	File "${INTEL_MPI_DIR}\impi.dll"
 
-  # Install Docs
-  SetOutPath "$INSTDIR"
-  File "/oname=LICENSE.txt" "..\..\..\LICENSE"
-  File "..\..\common\khiops\README.txt"
-  File "..\..\common\khiops\WHATSNEW.txt"
+	# Install Docs
+	SetOutPath "$INSTDIR"
+	File "/oname=LICENSE.txt" "..\..\..\LICENSE"
+	File "..\..\common\khiops\README.txt"
+	File "..\..\common\khiops\WHATSNEW.txt"
 
-  # Install icons
-  SetOutPath "$INSTDIR\bin\icons"
-  File ".\images\installer.ico"
-  File "..\..\common\images\khiops.ico"
-  File "..\..\common\images\khiops_coclustering.ico"
+	# Install icons
+	SetOutPath "$INSTDIR\bin\icons"
+	File ".\images\installer.ico"
+	File "..\..\common\images\khiops.ico"
+	File "..\..\common\images\khiops_coclustering.ico"
 
-  # Set the samples directory to be located either within %PUBLIC% or %ALLUSERSPROFILE% as fallback
-  ReadEnvStr $WinPublicDir PUBLIC
-  ReadEnvStr $AllUsersProfileDir ALLUSERSPROFILE
-  ${If} $WinPublicDir != ""
-    StrCpy $GlobalKhiopsDataDir "$WinPublicDir\khiops_data"
-  ${ElseIf} $AllUsersProfileDir != ""
-    StrCpy $GlobalKhiopsDataDir "$AllUsersProfileDir\khiops_data"
-  ${Else}
-    StrCpy $GlobalKhiopsDataDir ""
-  ${EndIf}
+	# Set the samples directory to be located either within %PUBLIC% or %ALLUSERSPROFILE% as fallback
+	ReadEnvStr $WinPublicDir PUBLIC
+	ReadEnvStr $AllUsersProfileDir ALLUSERSPROFILE
 
-  # Debug message
-  !ifdef DEBUG
-    ${If} $GlobalKhiopsDataDir == ""
-      Messagebox MB_OK "Could find PUBLIC nor ALLUSERSPROFILE directories. Samples not installed."
-    ${Else}
-      Messagebox MB_OK "Samples will be installed at $GlobalKhiopsDataDir\samples."
-    ${EndIf}
-  !endif
+	${If} $WinPublicDir != ""
+		StrCpy $GlobalKhiopsDataDir "$WinPublicDir\khiops_data"
+	${ElseIf} $AllUsersProfileDir != ""
+		StrCpy $GlobalKhiopsDataDir "$AllUsersProfileDir\khiops_data"
+	${Else}
+		StrCpy $GlobalKhiopsDataDir ""
+	${EndIf}
 
-  # Install samples only if the directory is defined
-  ${If} $GlobalKhiopsDataDir != ""
-    StrCpy $SamplesInstallDir "$GlobalKhiopsDataDir\samples"
-    SetOutPath "$SamplesInstallDir"
-    File "/oname=README.txt" "${KHIOPS_SAMPLES_DIR}\README.md"
-    SetOutPath "$SamplesInstallDir\Adult"
-    File "${KHIOPS_SAMPLES_DIR}\Adult\Adult.kdic"
-    File "${KHIOPS_SAMPLES_DIR}\Adult\Adult.txt"
-    SetOutPath "$SamplesInstallDir\Iris"
-    File "${KHIOPS_SAMPLES_DIR}\Iris\Iris.kdic"
-    File "${KHIOPS_SAMPLES_DIR}\Iris\Iris.txt"
-    SetOutPath "$SamplesInstallDir\Mushroom"
-    File "${KHIOPS_SAMPLES_DIR}\Mushroom\Mushroom.kdic"
-    File "${KHIOPS_SAMPLES_DIR}\Mushroom\Mushroom.txt"
-    SetOutPath "$SamplesInstallDir\Letter"
-    File "${KHIOPS_SAMPLES_DIR}\Letter\Letter.kdic"
-    File "${KHIOPS_SAMPLES_DIR}\Letter\Letter.txt"
-    SetOutPath "$SamplesInstallDir\SpliceJunction"
-    File "${KHIOPS_SAMPLES_DIR}\SpliceJunction\SpliceJunction.kdic"
-    File "${KHIOPS_SAMPLES_DIR}\SpliceJunction\SpliceJunction.txt"
-    File "${KHIOPS_SAMPLES_DIR}\SpliceJunction\SpliceJunctionDNA.txt"
-    SetOutPath "$SamplesInstallDir\Accidents"
-    File "${KHIOPS_SAMPLES_DIR}\Accidents\Accidents.kdic"
-    File "${KHIOPS_SAMPLES_DIR}\Accidents\Accidents.txt"
-    File "${KHIOPS_SAMPLES_DIR}\Accidents\Places.txt"
-    File "${KHIOPS_SAMPLES_DIR}\Accidents\Users.txt"
-    File "${KHIOPS_SAMPLES_DIR}\Accidents\Vehicles.txt"
-    File "${KHIOPS_SAMPLES_DIR}\Accidents\train.py"
-    File "/oname=README.txt" "${KHIOPS_SAMPLES_DIR}\Accidents\README.md"
-    SetOutPath "$SamplesInstallDir\Accidents\raw"
-    File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\AccidentsPreprocess.kdic"
-    File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\AccidentsCreateTarget.kdic"
-    File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\Description_BD_ONISR.pdf"
-    File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\Licence_Ouverte.pdf"
-    File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\caracteristiques-2018.csv"
-    File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\lieux-2018.csv"
-    File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\usagers-2018.csv"
-    File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\vehicules-2018.csv"
-    File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\preprocess.py"
-    File "/oname=README.txt" "${KHIOPS_SAMPLES_DIR}\Accidents\raw\README.md"
-    SetOutPath "$SamplesInstallDir\AccidentsSummary"
-    File "${KHIOPS_SAMPLES_DIR}\AccidentsSummary\Accidents.kdic"
-    File "${KHIOPS_SAMPLES_DIR}\AccidentsSummary\Accidents.txt"
-    File "${KHIOPS_SAMPLES_DIR}\AccidentsSummary\Vehicles.txt"
-    File "/oname=README.txt" "${KHIOPS_SAMPLES_DIR}\AccidentsSummary\README.md"
-    SetOutPath "$SamplesInstallDir\Customer"
-    File "${KHIOPS_SAMPLES_DIR}\Customer\Customer.kdic"
-    File "${KHIOPS_SAMPLES_DIR}\Customer\CustomerRecoded.kdic"
-    File "${KHIOPS_SAMPLES_DIR}\Customer\Customer.txt"
-    File "${KHIOPS_SAMPLES_DIR}\Customer\Address.txt"
-    File "${KHIOPS_SAMPLES_DIR}\Customer\Service.txt"
-    File "${KHIOPS_SAMPLES_DIR}\Customer\Usage.txt"
-    File "${KHIOPS_SAMPLES_DIR}\Customer\sort_and_recode_customer.py"
-    File "/oname=README.txt" "${KHIOPS_SAMPLES_DIR}\Customer\README.md"
-    SetOutPath "$SamplesInstallDir\Customer\unsorted"
-    File "${KHIOPS_SAMPLES_DIR}\Customer\unsorted\Customer-unsorted.txt"
-    File "${KHIOPS_SAMPLES_DIR}\Customer\unsorted\Address-unsorted.txt"
-    File "${KHIOPS_SAMPLES_DIR}\Customer\unsorted\Service-unsorted.txt"
-    File "${KHIOPS_SAMPLES_DIR}\Customer\unsorted\Usage-unsorted.txt"
-    SetOutPath "$SamplesInstallDir\CustomerExtended"
-    File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\Customer.kdic"
-    File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\CustomerRecoded.kdic"
-    File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\Customer.txt"
-    File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\Address.txt"
-    File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\Service.txt"
-    File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\Usage.txt"
-    File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\City.txt"
-    File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\Country.txt"
-    File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\Product.txt"
-    File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\recode_customer.py"
-    File "/oname=README.txt" "${KHIOPS_SAMPLES_DIR}\CustomerExtended\README.md"
-    SetOutPath "$SamplesInstallDir\NegativeAirlineTweets"
-    File "${KHIOPS_SAMPLES_DIR}\NegativeAirlineTweets\NegativeAirlineTweets.kdic"
-    File "${KHIOPS_SAMPLES_DIR}\NegativeAirlineTweets\NegativeAirlineTweets.txt"
-    File "/oname=README.txt" "${KHIOPS_SAMPLES_DIR}\NegativeAirlineTweets\README.md"
-    SetOutPath "$SamplesInstallDir\WineReviews"
-    File "${KHIOPS_SAMPLES_DIR}\WineReviews\WineReviews.kdic"
-    File "${KHIOPS_SAMPLES_DIR}\WineReviews\WineReviews.txt"
-    File "/oname=README.txt" "${KHIOPS_SAMPLES_DIR}\WineReviews\README.md"
-  ${EndIf}
+	# Debug message
+	!ifdef DEBUG
+		${If} $GlobalKhiopsDataDir == ""
+			MessageBox MB_OK "Could find PUBLIC nor ALLUSERSPROFILE directories. Samples not installed."
+		${Else}
+			MessageBox MB_OK "Samples will be installed at $GlobalKhiopsDataDir\samples."
+		${EndIf}
+	!endif
 
-  # Install JRE
-  SetOutPath $INSTDIR\jre
-  File /nonfatal /a /r "${JRE_PATH}\"
+	# Install samples only if the directory is defined
+	${If} $GlobalKhiopsDataDir != ""
+		StrCpy $SamplesInstallDir "$GlobalKhiopsDataDir\samples"
+		SetOutPath "$SamplesInstallDir"
+		File "/oname=README.txt" "${KHIOPS_SAMPLES_DIR}\README.md"
+		SetOutPath "$SamplesInstallDir\Adult"
+		File "${KHIOPS_SAMPLES_DIR}\Adult\Adult.kdic"
+		File "${KHIOPS_SAMPLES_DIR}\Adult\Adult.txt"
+		SetOutPath "$SamplesInstallDir\Iris"
+		File "${KHIOPS_SAMPLES_DIR}\Iris\Iris.kdic"
+		File "${KHIOPS_SAMPLES_DIR}\Iris\Iris.txt"
+		SetOutPath "$SamplesInstallDir\Mushroom"
+		File "${KHIOPS_SAMPLES_DIR}\Mushroom\Mushroom.kdic"
+		File "${KHIOPS_SAMPLES_DIR}\Mushroom\Mushroom.txt"
+		SetOutPath "$SamplesInstallDir\Letter"
+		File "${KHIOPS_SAMPLES_DIR}\Letter\Letter.kdic"
+		File "${KHIOPS_SAMPLES_DIR}\Letter\Letter.txt"
+		SetOutPath "$SamplesInstallDir\SpliceJunction"
+		File "${KHIOPS_SAMPLES_DIR}\SpliceJunction\SpliceJunction.kdic"
+		File "${KHIOPS_SAMPLES_DIR}\SpliceJunction\SpliceJunction.txt"
+		File "${KHIOPS_SAMPLES_DIR}\SpliceJunction\SpliceJunctionDNA.txt"
+		SetOutPath "$SamplesInstallDir\Accidents"
+		File "${KHIOPS_SAMPLES_DIR}\Accidents\Accidents.kdic"
+		File "${KHIOPS_SAMPLES_DIR}\Accidents\Accidents.txt"
+		File "${KHIOPS_SAMPLES_DIR}\Accidents\Places.txt"
+		File "${KHIOPS_SAMPLES_DIR}\Accidents\Users.txt"
+		File "${KHIOPS_SAMPLES_DIR}\Accidents\Vehicles.txt"
+		File "${KHIOPS_SAMPLES_DIR}\Accidents\train.py"
+		File "/oname=README.txt" "${KHIOPS_SAMPLES_DIR}\Accidents\README.md"
+		SetOutPath "$SamplesInstallDir\Accidents\raw"
+		File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\AccidentsPreprocess.kdic"
+		File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\AccidentsCreateTarget.kdic"
+		File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\Description_BD_ONISR.pdf"
+		File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\Licence_Ouverte.pdf"
+		File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\caracteristiques-2018.csv"
+		File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\lieux-2018.csv"
+		File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\usagers-2018.csv"
+		File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\vehicules-2018.csv"
+		File "${KHIOPS_SAMPLES_DIR}\Accidents\raw\preprocess.py"
+		File "/oname=README.txt" "${KHIOPS_SAMPLES_DIR}\Accidents\raw\README.md"
+		SetOutPath "$SamplesInstallDir\AccidentsSummary"
+		File "${KHIOPS_SAMPLES_DIR}\AccidentsSummary\Accidents.kdic"
+		File "${KHIOPS_SAMPLES_DIR}\AccidentsSummary\Accidents.txt"
+		File "${KHIOPS_SAMPLES_DIR}\AccidentsSummary\Vehicles.txt"
+		File "/oname=README.txt" "${KHIOPS_SAMPLES_DIR}\AccidentsSummary\README.md"
+		SetOutPath "$SamplesInstallDir\Customer"
+		File "${KHIOPS_SAMPLES_DIR}\Customer\Customer.kdic"
+		File "${KHIOPS_SAMPLES_DIR}\Customer\CustomerRecoded.kdic"
+		File "${KHIOPS_SAMPLES_DIR}\Customer\Customer.txt"
+		File "${KHIOPS_SAMPLES_DIR}\Customer\Address.txt"
+		File "${KHIOPS_SAMPLES_DIR}\Customer\Service.txt"
+		File "${KHIOPS_SAMPLES_DIR}\Customer\Usage.txt"
+		File "${KHIOPS_SAMPLES_DIR}\Customer\sort_and_recode_customer.py"
+		File "/oname=README.txt" "${KHIOPS_SAMPLES_DIR}\Customer\README.md"
+		SetOutPath "$SamplesInstallDir\Customer\unsorted"
+		File "${KHIOPS_SAMPLES_DIR}\Customer\unsorted\Customer-unsorted.txt"
+		File "${KHIOPS_SAMPLES_DIR}\Customer\unsorted\Address-unsorted.txt"
+		File "${KHIOPS_SAMPLES_DIR}\Customer\unsorted\Service-unsorted.txt"
+		File "${KHIOPS_SAMPLES_DIR}\Customer\unsorted\Usage-unsorted.txt"
+		SetOutPath "$SamplesInstallDir\CustomerExtended"
+		File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\Customer.kdic"
+		File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\CustomerRecoded.kdic"
+		File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\Customer.txt"
+		File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\Address.txt"
+		File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\Service.txt"
+		File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\Usage.txt"
+		File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\City.txt"
+		File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\Country.txt"
+		File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\Product.txt"
+		File "${KHIOPS_SAMPLES_DIR}\CustomerExtended\recode_customer.py"
+		File "/oname=README.txt" "${KHIOPS_SAMPLES_DIR}\CustomerExtended\README.md"
+		SetOutPath "$SamplesInstallDir\NegativeAirlineTweets"
+		File "${KHIOPS_SAMPLES_DIR}\NegativeAirlineTweets\NegativeAirlineTweets.kdic"
+		File "${KHIOPS_SAMPLES_DIR}\NegativeAirlineTweets\NegativeAirlineTweets.txt"
+		File "/oname=README.txt" "${KHIOPS_SAMPLES_DIR}\NegativeAirlineTweets\README.md"
+		SetOutPath "$SamplesInstallDir\WineReviews"
+		File "${KHIOPS_SAMPLES_DIR}\WineReviews\WineReviews.kdic"
+		File "${KHIOPS_SAMPLES_DIR}\WineReviews\WineReviews.txt"
+		File "/oname=README.txt" "${KHIOPS_SAMPLES_DIR}\WineReviews\README.md"
+	${EndIf}
 
-  # Install Khiops Visualization App
+	# Install JRE
+	SetOutPath $INSTDIR\jre
+	File /NONFATAL /a /r "${JRE_PATH}\"
 
-  # Add the installer file
-  SetOutPath $TEMP
-  File ${KHIOPS_VIZ_INSTALLER_PATH}
+	# Install Khiops Visualization App
 
-  # Execute Khiops visualization installer:
-  # - It is not executed with silent mode so the user can customize the install
-  # - It is executed with "cmd /C" so it opens the installer options window
-  Var /Global KHIOPS_VIZ_INSTALLER_FILENAME
-  ${GetFileName} ${KHIOPS_VIZ_INSTALLER_PATH} $KHIOPS_VIZ_INSTALLER_FILENAME
-  ${If} ${Silent}
-    nsexec::Exec 'cmd /C "$KHIOPS_VIZ_INSTALLER_FILENAME /S"'
-  ${Else}
-    nsexec::Exec 'cmd /C "$KHIOPS_VIZ_INSTALLER_FILENAME"'
-  ${EndIf}
-  Pop $0
-  DetailPrint "Installation of Khiops visualization: $0"
+	# Add the installer file
+	SetOutPath $TEMP
+	File ${KHIOPS_VIZ_INSTALLER_PATH}
 
-  # Delete the installer
-  Delete "$TEMP\KHIOPS_VIZ_INSTALLER_FILENAME"
+	# Execute Khiops visualization installer:
+	# - It is not executed with silent mode so the user can customize the install
+	# - It is executed with "cmd /C" so it opens the installer options window
+	Var /GLOBAL KHIOPS_VIZ_INSTALLER_FILENAME
+	${GetFileName} ${KHIOPS_VIZ_INSTALLER_PATH} $KHIOPS_VIZ_INSTALLER_FILENAME
 
-  #############################
-  # Finalize the installation #
-  #############################
+	${If} ${Silent}
+		nsexec::Exec 'cmd /C "$KHIOPS_VIZ_INSTALLER_FILENAME /S"'
+	${Else}
+		nsexec::Exec 'cmd /C "$KHIOPS_VIZ_INSTALLER_FILENAME"'
+	${EndIf}
 
-  # Create the Khiops shell
-  FileOpen $0 "$INSTDIR\bin\shell_khiops.cmd" w
-  FileWrite $0 '@echo off$\r$\n'
-  FileWrite $0 'REM Open a shell session with access to Khiops$\r$\n'
-  FileWrite $0 `if "%KHIOPS_HOME%".=="". set KHIOPS_HOME=$INSTDIR$\r$\n`
-  FileWrite $0 'set path=%KHIOPS_HOME%\bin;%path%$\r$\n'
-  FileWrite $0 'title Shell Khiops$\r$\n'
-  FileWrite $0 'start "Shell Khiops" cmd /k "echo Welcome to Khiops scripting mode & echo Type khiops -h or khiops_coclustering -h to get help'
-  FileClose $0
+	Pop $0
+	DetailPrint "Installation of Khiops visualization: $0"
 
-  # Create the uninstaller
-  WriteUninstaller "$INSTDIR\uninstall-khiops.exe"
+	# Delete the installer
+	Delete "$TEMP\KHIOPS_VIZ_INSTALLER_FILENAME"
 
+	# ############################
+	# Finalize the installation #
+	# ############################
 
-  #####################################
-  # Windows environment customization #
-  # ###################################
+	# Create the Khiops shell
+	FileOpen $0 "$INSTDIR\bin\shell_khiops.cmd" w
+	FileWrite $0 '@echo off$\r$\n'
+	FileWrite $0 'REM Open a shell session with access to Khiops$\r$\n'
+	FileWrite $0 `if "%KHIOPS_HOME%".=="". set KHIOPS_HOME=$INSTDIR$\r$\n`
+	FileWrite $0 'set path=%KHIOPS_HOME%\bin;%path%$\r$\n'
+	FileWrite $0 'title Shell Khiops$\r$\n'
+	FileWrite $0 \
+		'start "Shell Khiops" cmd /k "echo Welcome to Khiops scripting mode & echo Type khiops -h or khiops_coclustering -h to get help'
+	FileClose $0
 
-  # Write registry keys to add Khiops in the Add/Remove Programs pane
-  WriteRegStr HKLM "Software\Khiops" "" $INSTDIR
-  WriteRegStr HKLM "${UninstallerKey}\Khiops" "UninstallString" '"$INSTDIR\uninstall-khiops.exe"'
-  WriteRegStr HKLM "${UninstallerKey}\Khiops" "InstallLocation" "$INSTDIR"
-  WriteRegStr HKLM "${UninstallerKey}\Khiops" "DisplayName" "Khiops"
-  WriteRegStr HKLM "${UninstallerKey}\Khiops" "Publisher" "Orange"
-  WriteRegStr HKLM "${UninstallerKey}\Khiops" "DisplayIcon" "$INSTDIR\bin\icons\installer.ico"
-  WriteRegStr HKLM "${UninstallerKey}\Khiops" "DisplayVersion" "${KHIOPS_VERSION}"
-  WriteRegStr HKLM "${UninstallerKey}\Khiops" "URLInfoAbout" "https://khiops.org"
-  WriteRegDWORD HKLM "${UninstallerKey}\Khiops" "NoModify" "1"
-  WriteRegDWORD HKLM "${UninstallerKey}\Khiops" "NoRepair" "1"
+	# Create the uninstaller
+	WriteUninstaller "$INSTDIR\uninstall-khiops.exe"
 
-  # Set as the startup dir for all executable shortcuts (yes it is done with SetOutPath!)
-  ${If} $GlobalKhiopsDataDir != ""
-    SetOutPath $GlobalKhiopsDataDir
-  ${Else}
-    SetOutPath $INSTDIR
-  ${EndIf}
+	# ####################################
+	# Windows environment customization #
+	# ###################################
 
-  # Create application shortcuts in the installation directory
-  DetailPrint "Installing Start menu Shortcut..."
-  #
-  # Attention, pour la commande dans un shortcut, il faut utiliser des (") autour du fichier de commande en parametre du launcher, ce qui en NSIS se fait par ($\")
-  #   "C:\Program files\khiops\bin\_khiopslauncher.exe" "C:\Program files\khiops\bin\khiops.cmd"
-  # Cf. https://nsis.sourceforge.io/How_can_I_use_quotes_in_a_string%3F
-  #
-  CreateShortCut "$INSTDIR\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\khiops.cmd$\"" "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWNORMAL
-  CreateShortCut "$INSTDIR\Khiops Coclustering.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\khiops_coclustering.cmd$\"" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
-  ExpandEnvStrings $R0 "%COMSPEC%"
-  CreateShortCut "$INSTDIR\Shell Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\shell_khiops.cmd$\"" "$R0"
+	# Write registry keys to add Khiops in the Add/Remove Programs pane
+	WriteRegStr HKLM "Software\Khiops" "" $INSTDIR
+	WriteRegStr HKLM "${UninstallerKey}\Khiops" "UninstallString" '"$INSTDIR\uninstall-khiops.exe"'
+	WriteRegStr HKLM "${UninstallerKey}\Khiops" "InstallLocation" "$INSTDIR"
+	WriteRegStr HKLM "${UninstallerKey}\Khiops" "DisplayName" "Khiops"
+	WriteRegStr HKLM "${UninstallerKey}\Khiops" "Publisher" "Orange"
+	WriteRegStr HKLM "${UninstallerKey}\Khiops" "DisplayIcon" "$INSTDIR\bin\icons\installer.ico"
+	WriteRegStr HKLM "${UninstallerKey}\Khiops" "DisplayVersion" "${KHIOPS_VERSION}"
+	WriteRegStr HKLM "${UninstallerKey}\Khiops" "URLInfoAbout" "https://khiops.org"
+	WriteRegDWORD HKLM "${UninstallerKey}\Khiops" "NoModify" "1"
+	WriteRegDWORD HKLM "${UninstallerKey}\Khiops" "NoRepair" "1"
 
-  # Create start menu shortcuts for the executables
-  DetailPrint "Installing Start menu Shortcut..."
-  CreateDirectory "$SMPROGRAMS\Khiops"
-  CreateShortCut "$SMPROGRAMS\Khiops\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\khiops.cmd$\"" "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWNORMAL
-  CreateShortCut "$SMPROGRAMS\Khiops\Khiops Coclustering.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\khiops_coclustering.cmd$\"" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
-  ExpandEnvStrings $R0 "%COMSPEC%"
-  CreateShortCut "$SMPROGRAMS\Khiops\Shell Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\shell_khiops.cmd$\"" "$R0"
-  CreateShortCut "$SMPROGRAMS\Khiops\Uninstall.lnk" "$INSTDIR\uninstall-khiops.exe"
-  SetOutPath "$INSTDIR"
+	# Set as the startup dir for all executable shortcuts (yes it is done with SetOutPath!)
+	${If} $GlobalKhiopsDataDir != ""
+		SetOutPath $GlobalKhiopsDataDir
+	${Else}
+		SetOutPath $INSTDIR
+	${EndIf}
 
-  # Define aliases for the following registry keys (also used in the uninstaller section)
-  # - HKLM (all users)
-  # - HKCU (current user)
-  !define env_hklm 'HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"'
-  !define env_hkcu 'HKCU "Environment"'
+	# Create application shortcuts in the installation directory
+	DetailPrint "Installing Start menu Shortcut..."
+	# 
+	# Attention, pour la commande dans un shortcut, il faut utiliser des (") autour du fichier de commande en parametre du launcher, ce qui en NSIS se fait par ($\")
+	# "C:\Program files\khiops\bin\_khiopslauncher.exe" "C:\Program files\khiops\bin\khiops.cmd"
+	# Cf. https://nsis.sourceforge.io/How_can_I_use_quotes_in_a_string%3F
+	# 
+	CreateShortcut "$INSTDIR\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\khiops.cmd$\"" \
+		"$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWNORMAL
+	CreateShortcut "$INSTDIR\Khiops Coclustering.lnk" "$INSTDIR\bin\_khiopslauncher.exe" \
+		"$\"$INSTDIR\bin\khiops_coclustering.cmd$\"" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
+	ExpandEnvStrings $R0 "%COMSPEC%"
+	CreateShortcut "$INSTDIR\Shell Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\shell_khiops.cmd$\"" \
+		"$R0"
 
-  # Set KHIOPS_HOME for the local machine and current user
-  WriteRegExpandStr ${env_hklm} "KHIOPS_HOME" "$INSTDIR"
-  WriteRegExpandStr ${env_hkcu} "KHIOPS_HOME" "$INSTDIR"
+	# Create start menu shortcuts for the executables
+	DetailPrint "Installing Start menu Shortcut..."
+	CreateDirectory "$SMPROGRAMS\Khiops"
+	CreateShortcut "$SMPROGRAMS\Khiops\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\khiops.cmd$\"" \
+		"$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWNORMAL
+	CreateShortcut "$SMPROGRAMS\Khiops\Khiops Coclustering.lnk" "$INSTDIR\bin\_khiopslauncher.exe" \
+		"$\"$INSTDIR\bin\khiops_coclustering.cmd$\"" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
+	ExpandEnvStrings $R0 "%COMSPEC%"
+	CreateShortcut "$SMPROGRAMS\Khiops\Shell Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" \
+		"$\"$INSTDIR\bin\shell_khiops.cmd$\"" "$R0"
+	CreateShortcut "$SMPROGRAMS\Khiops\Uninstall.lnk" "$INSTDIR\uninstall-khiops.exe"
+	SetOutPath "$INSTDIR"
 
-  # Make sure windows knows about the change
-  SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
+	# Define aliases for the following registry keys (also used in the uninstaller section)
+	# - HKLM (all users)
+	# - HKCU (current user)
+	!define env_hklm 'HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"'
+	!define env_hkcu 'HKCU "Environment"'
 
-  # Register file association for Khiops visualisation tools
-  # inspired from examples\makensis.nsi
+	# Set KHIOPS_HOME for the local machine and current user
+	WriteRegExpandStr ${env_hklm} "KHIOPS_HOME" "$INSTDIR"
+	WriteRegExpandStr ${env_hkcu} "KHIOPS_HOME" "$INSTDIR"
 
-  # Khiops dictionary file extension
-  ReadRegStr $R0 HKCR ".kdic" ""
-  ${if} $R0 == "Khiops.Dictionary.File"
-    DeleteRegKey HKCR "Khiops.Dictionary.File"
-  ${EndIf}
-  WriteRegStr HKCR ".kdic" "" "Khiops.Dictionary.File"
-  WriteRegStr HKCR "Khiops.Dictionary.File" "" "Khiops Dictionary File"
-  ReadRegStr $R0 HKCR "Khiops.Dictionary.File\shell\open\command" ""
-  ${If} $R0 == ""
-    WriteRegStr HKCR "Khiops.Dictionary.File\shell" "" "open"
-    WriteRegStr HKCR "Khiops.Dictionary.File\shell\open\command" "" 'notepad.exe "%1"'
-  ${EndIf}
+	# Make sure windows knows about the change
+	SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
 
-  # Khiops scenario file
-  ReadRegStr $R0 HKCR "._kh" ""
-  ${if} $R0 == "Khiops.File"
-    DeleteRegKey HKCR "Khiops.File"
-  ${EndIf}
-  WriteRegStr HKCR "._kh" "" "Khiops.File"
-  WriteRegStr HKCR "Khiops.File" "" "Khiops File"
-  WriteRegStr HKCR "Khiops.File\DefaultIcon" "" "$INSTDIR\bin\icons\khiops.ico"
-  ReadRegStr $R0 HKCR "Khiops.File\shell\open\command" ""
-  ${If} $R0 == ""
-    WriteRegStr HKCR "Khiops.File\shell" "" "open"
-    WriteRegStr HKCR "Khiops.File\shell\open\command" "" 'notepad.exe "%1"'
-  ${EndIf}
-  WriteRegStr HKCR "Khiops.File\shell\compile" "" "Execute Khiops Script"
-  #
-  # Attention, pour la commande dans la base de registre, il faut utiliser des (\") autour de chaque element de type path
-  # des parametres du launcher, ce qui en NSIS se fait par (\$\")
-  #   "C:\Program files\khiops\bin\_khiopslauncher.exe" "\"Program files\khiops\bin\khiops.cmd\" -i \"%1\""
-  #
-  WriteRegStr HKCR "Khiops.File\shell\compile\command" "" '"$INSTDIR\bin\_khiopslauncher.exe" "\$\"$INSTDIR\bin\khiops.cmd\$\" -i \$\"%1\$\""'
+	# Register file association for Khiops visualisation tools
+	# inspired from examples\makensis.nsi
 
+	# Khiops dictionary file extension
+	ReadRegStr $R0 HKCR ".kdic" ""
 
-  # Khiops coclustering scenario file
-  ReadRegStr $R0 HKCR "._khc" ""
-  ${if} $R0 == "Khiops.Coclustering.File"
-    DeleteRegKey HKCR "Khiops.Coclustering.File"
-  ${EndIf}
-  WriteRegStr HKCR "._khc" "" "Khiops.Coclustering.File"
-  WriteRegStr HKCR "Khiops.Coclustering.File" "" "Khiops Coclustering File"
-  WriteRegStr HKCR "Khiops.Coclustering.File\DefaultIcon" "" "$INSTDIR\bin\icons\khiops_coclustering.ico"
-  ReadRegStr $R0 HKCR "Khiops.Coclustering.File\shell\open\command" ""
-  ${If} $R0 == ""
-    WriteRegStr HKCR "Khiops.Coclustering.File\shell" "" "open"
-    WriteRegStr HKCR "Khiops.Coclustering.File\shell\open\command" "" 'notepad.exe "%1"'
-  ${EndIf}
-  WriteRegStr HKCR "Khiops.Coclustering.File\shell\compile" "" "Execute Khiops Coclustering Script"
-  WriteRegStr HKCR "Khiops.Coclustering.File\shell\compile\command" "" '"$INSTDIR\bin\_khiopslauncher.exe" "\$\"$INSTDIR\bin\khiops_coclustering.cmd\$\" -i \$\"%1\$\""'
+	${If} $R0 == "Khiops.Dictionary.File"
+		DeleteRegKey HKCR "Khiops.Dictionary.File"
+	${EndIf}
 
+	WriteRegStr HKCR ".kdic" "" "Khiops.Dictionary.File"
+	WriteRegStr HKCR "Khiops.Dictionary.File" "" "Khiops Dictionary File"
+	ReadRegStr $R0 HKCR "Khiops.Dictionary.File\shell\open\command" ""
 
-  # Notify the file extension changes
-  System::Call 'Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)'
+	${If} $R0 == ""
+		WriteRegStr HKCR "Khiops.Dictionary.File\shell" "" "open"
+		WriteRegStr HKCR "Khiops.Dictionary.File\shell\open\command" "" 'notepad.exe "%1"'
+	${EndIf}
 
-  # Debug message
-  !ifdef DEBUG
-    Messagebox MB_OK "Installation finished!"
-  !endif
+	# Khiops scenario file
+	ReadRegStr $R0 HKCR "._kh" ""
+
+	${If} $R0 == "Khiops.File"
+		DeleteRegKey HKCR "Khiops.File"
+	${EndIf}
+
+	WriteRegStr HKCR "._kh" "" "Khiops.File"
+	WriteRegStr HKCR "Khiops.File" "" "Khiops File"
+	WriteRegStr HKCR "Khiops.File\DefaultIcon" "" "$INSTDIR\bin\icons\khiops.ico"
+	ReadRegStr $R0 HKCR "Khiops.File\shell\open\command" ""
+
+	${If} $R0 == ""
+		WriteRegStr HKCR "Khiops.File\shell" "" "open"
+		WriteRegStr HKCR "Khiops.File\shell\open\command" "" 'notepad.exe "%1"'
+	${EndIf}
+
+	WriteRegStr HKCR "Khiops.File\shell\compile" "" "Execute Khiops Script"
+	# 
+	# Attention, pour la commande dans la base de registre, il faut utiliser des (\") autour de chaque element de type path
+	# des parametres du launcher, ce qui en NSIS se fait par (\$\")
+	# "C:\Program files\khiops\bin\_khiopslauncher.exe" "\"Program files\khiops\bin\khiops.cmd\" -i \"%1\""
+	# 
+	WriteRegStr HKCR "Khiops.File\shell\compile\command" "" \
+		'"$INSTDIR\bin\_khiopslauncher.exe" "\$\"$INSTDIR\bin\khiops.cmd\$\" -i \$\"%1\$\""'
+
+	# Khiops coclustering scenario file
+	ReadRegStr $R0 HKCR "._khc" ""
+
+	${If} $R0 == "Khiops.Coclustering.File"
+		DeleteRegKey HKCR "Khiops.Coclustering.File"
+	${EndIf}
+
+	WriteRegStr HKCR "._khc" "" "Khiops.Coclustering.File"
+	WriteRegStr HKCR "Khiops.Coclustering.File" "" "Khiops Coclustering File"
+	WriteRegStr HKCR "Khiops.Coclustering.File\DefaultIcon" "" "$INSTDIR\bin\icons\khiops_coclustering.ico"
+	ReadRegStr $R0 HKCR "Khiops.Coclustering.File\shell\open\command" ""
+
+	${If} $R0 == ""
+		WriteRegStr HKCR "Khiops.Coclustering.File\shell" "" "open"
+		WriteRegStr HKCR "Khiops.Coclustering.File\shell\open\command" "" 'notepad.exe "%1"'
+	${EndIf}
+
+	WriteRegStr HKCR "Khiops.Coclustering.File\shell\compile" "" "Execute Khiops Coclustering Script"
+	WriteRegStr HKCR "Khiops.Coclustering.File\shell\compile\command" "" \
+		'"$INSTDIR\bin\_khiopslauncher.exe" "\$\"$INSTDIR\bin\khiops_coclustering.cmd\$\" -i \$\"%1\$\""'
+
+	# Notify the file extension changes
+	System::Call 'Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)'
+
+	# Debug message
+	!ifdef DEBUG
+		MessageBox MB_OK "Installation finished!"
+	!endif
 
 SectionEnd
 
-
-###############
+# ##############
 # Uninstaller #
-###############
+# ##############
 
 Section "Uninstall"
 
-  # In order to have shortcuts and documents for all users
-  SetShellVarContext all
+	# In order to have shortcuts and documents for all users
+	SetShellVarContext all
 
-  # Restore Registry #
-  # Unregister file associations
-  DetailPrint "Uninstalling Khiops Shell Extensions..."
+	# Restore Registry #
+	# Unregister file associations
+	DetailPrint "Uninstalling Khiops Shell Extensions..."
 
-  # Unregister Khiops dictionary file extension
-  ${If} $R0 == "Khiops.Dictionary.File"
-    DeleteRegKey HKCR ".kdic"
-  ${EndIf}
-  DeleteRegKey HKCR "Khiops.Dictionary.File"
+	# Unregister Khiops dictionary file extension
+	${If} $R0 == "Khiops.Dictionary.File"
+		DeleteRegKey HKCR ".kdic"
+	${EndIf}
 
-  # Unregister Khiops file extension
-  ${If} $R0 == "Khiops.File"
-    DeleteRegKey HKCR "._kh"
-  ${EndIf}
-  DeleteRegKey HKCR "Khiops.File"
+	DeleteRegKey HKCR "Khiops.Dictionary.File"
 
-  # Unregister Khiops coclustering file extension
-  ${If} $R0 == "Khiops.Coclustering.File"
-    DeleteRegKey HKCR "._khc"
-  ${EndIf}
-  DeleteRegKey HKCR "Khiops.Coclustering.File"
+	# Unregister Khiops file extension
+	${If} $R0 == "Khiops.File"
+		DeleteRegKey HKCR "._kh"
+	${EndIf}
 
-  # Notify file extension changes
-  System::Call 'Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)'
+	DeleteRegKey HKCR "Khiops.File"
 
-  # Delete installation folder key
-  DeleteRegKey HKLM "${UninstallerKey}\Khiops"
-  DeleteRegKey HKLM "Software\Khiops"
+	# Unregister Khiops coclustering file extension
+	${If} $R0 == "Khiops.Coclustering.File"
+		DeleteRegKey HKCR "._khc"
+	${EndIf}
 
-  # Delete environement variable KHIOPS_HOME
-  DeleteRegValue ${env_hklm} "KHIOPS_HOME"
-  DeleteRegValue ${env_hkcu} "KHIOPS_HOME"
+	DeleteRegKey HKCR "Khiops.Coclustering.File"
 
-  # Delete deprecated environment variable KhiopsHome
-  DeleteRegValue ${env_hklm} "KhiopsHome"
-  DeleteRegValue ${env_hkcu} "KhiopsHome"
+	# Notify file extension changes
+	System::Call 'Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)'
 
-  # Make sure windows knows about the changes in the environment
-  SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
+	# Delete installation folder key
+	DeleteRegKey HKLM "${UninstallerKey}\Khiops"
+	DeleteRegKey HKLM "Software\Khiops"
 
-  # Delete files #
-  # Note: Some directories are removed only if they are completely empty (no "/r" RMDir flag)
-  DetailPrint "Deleting Files ..."
+	# Delete environement variable KHIOPS_HOME
+	DeleteRegValue ${env_hklm} "KHIOPS_HOME"
+	DeleteRegValue ${env_hkcu} "KHIOPS_HOME"
 
-  # Delete docs
-  Delete "$INSTDIR\LICENSE.txt"
-  Delete "$INSTDIR\README.txt"
-  Delete "$INSTDIR\WHATSNEW.txt"
+	# Delete deprecated environment variable KhiopsHome
+	DeleteRegValue ${env_hklm} "KhiopsHome"
+	DeleteRegValue ${env_hkcu} "KhiopsHome"
 
-  # Delete jre
-  RMDir /r "$INSTDIR\jre"
+	# Make sure windows knows about the changes in the environment
+	SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
 
-  # Delete icons
-  RMDir /r "$INSTDIR\bin\icons"
+	# Delete files #
+	# Note: Some directories are removed only if they are completely empty (no "/r" RMDir flag)
+	DetailPrint "Deleting Files ..."
 
-  # Delete executables and scripts
-  Delete "$INSTDIR\bin\khiops_env.cmd"
-  Delete "$INSTDIR\bin\khiops.cmd"
-  Delete "$INSTDIR\bin\khiops_coclustering.cmd"
-  Delete "$INSTDIR\bin\MODL.exe"
-  Delete "$INSTDIR\bin\MODL_Coclustering.exe"
-  Delete "$INSTDIR\bin\_khiopsgetprocnumber.exe"
-  Delete "$INSTDIR\bin\_khiopslauncher.exe"
-  Delete "$INSTDIR\bin\norm.jar"
-  Delete "$INSTDIR\bin\khiops.jar"
-  Delete "$INSTDIR\bin\shell_khiops.cmd"
-  RMDir "$INSTDIR\bin"
+	# Delete docs
+	Delete "$INSTDIR\LICENSE.txt"
+	Delete "$INSTDIR\README.txt"
+	Delete "$INSTDIR\WHATSNEW.txt"
 
-  # Delete shortcuts from install dir
-  Delete "$INSTDIR\Khiops.lnk"
-  Delete "$INSTDIR\Khiops Coclustering.lnk"
-  Delete "$INSTDIR\Shell Khiops.lnk"
+	# Delete jre
+	RMDir /r "$INSTDIR\jre"
 
-  # Delete the installer
-  Delete "$INSTDIR\uninstall-khiops.exe"
+	# Delete icons
+	RMDir /r "$INSTDIR\bin\icons"
 
-  # Remove install directory
-  RMDir "$INSTDIR"
+	# Delete executables and scripts
+	Delete "$INSTDIR\bin\khiops_env.cmd"
+	Delete "$INSTDIR\bin\khiops.cmd"
+	Delete "$INSTDIR\bin\khiops_coclustering.cmd"
+	Delete "$INSTDIR\bin\MODL.exe"
+	Delete "$INSTDIR\bin\MODL_Coclustering.exe"
+	Delete "$INSTDIR\bin\_khiopsgetprocnumber.exe"
+	Delete "$INSTDIR\bin\_khiopslauncher.exe"
+	Delete "$INSTDIR\bin\norm.jar"
+	Delete "$INSTDIR\bin\khiops.jar"
+	Delete "$INSTDIR\bin\shell_khiops.cmd"
+	RMDir "$INSTDIR\bin"
 
-  # Delete desktop shortcuts
-  Delete "$DESKTOP\Khiops.lnk"
-  Delete "$DESKTOP\Khiops Coclustering.lnk"
-  Delete "$DESKTOP\Shell Khiops.lnk"
+	# Delete shortcuts from install dir
+	Delete "$INSTDIR\Khiops.lnk"
+	Delete "$INSTDIR\Khiops Coclustering.lnk"
+	Delete "$INSTDIR\Shell Khiops.lnk"
 
-  # Delete Start Menu Shortcuts
-  RMDir /r "$SMPROGRAMS\Khiops"
+	# Delete the installer
+	Delete "$INSTDIR\uninstall-khiops.exe"
 
-  # Set the samples directory to be located either within %PUBLIC% or %ALLUSERSPROFILE% as fallback
-  ReadEnvStr $WinPublicDir PUBLIC
-  ReadEnvStr $AllUsersProfileDir ALLUSERSPROFILE
-  ${If} $WinPublicDir != ""
-    StrCpy $GlobalKhiopsDataDir "$WinPublicDir\khiops_data"
-  ${ElseIf} $AllUsersProfileDir != ""
-    StrCpy $GlobalKhiopsDataDir "$AllUsersProfileDir\khiops_data"
-  ${Else}
-    StrCpy $GlobalKhiopsDataDir ""
-  ${EndIf}
+	# Remove install directory
+	RMDir "$INSTDIR"
 
-  # Delete sample datasets
-  # We do not remove the whole directory to save the users results from Khiops' analyses
-  ${If} $GlobalKhiopsDataDir != ""
-    StrCpy $SamplesInstallDir "$GlobalKhiopsDataDir\samples"
-    Delete "$SamplesInstallDir\AccidentsSummary\Accidents.kdic"
-    Delete "$SamplesInstallDir\AccidentsSummary\Accidents.txt"
-    Delete "$SamplesInstallDir\AccidentsSummary\README.txt"
-    Delete "$SamplesInstallDir\AccidentsSummary\Vehicles.txt"
-    Delete "$SamplesInstallDir\Accidents\Accidents.kdic"
-    Delete "$SamplesInstallDir\Accidents\Accidents.txt"
-    Delete "$SamplesInstallDir\Accidents\Places.txt"
-    Delete "$SamplesInstallDir\Accidents\README.txt"
-    Delete "$SamplesInstallDir\Accidents\Users.txt"
-    Delete "$SamplesInstallDir\Accidents\Vehicles.txt"
-    Delete "$SamplesInstallDir\Accidents\raw\AccidentsPreprocess.kdic"
-    Delete "$SamplesInstallDir\Accidents\raw\AccidentsCreateTarget.kdic"
-    Delete "$SamplesInstallDir\Accidents\raw\Description_BD_ONISR.pdf"
-    Delete "$SamplesInstallDir\Accidents\raw\Licence_Ouverte.pdf"
-    Delete "$SamplesInstallDir\Accidents\raw\README.txt"
-    Delete "$SamplesInstallDir\Accidents\raw\caracteristiques-2018.csv"
-    Delete "$SamplesInstallDir\Accidents\raw\lieux-2018.csv"
-    Delete "$SamplesInstallDir\Accidents\raw\preprocess.py"
-    Delete "$SamplesInstallDir\Accidents\raw\usagers-2018.csv"
-    Delete "$SamplesInstallDir\Accidents\raw\vehicules-2018.csv"
-    Delete "$SamplesInstallDir\Accidents\train.py"
-    Delete "$SamplesInstallDir\Adult\Adult.kdic"
-    Delete "$SamplesInstallDir\Adult\Adult.txt"
-    Delete "$SamplesInstallDir\CustomerExtended\Address.txt"
-    Delete "$SamplesInstallDir\CustomerExtended\City.txt"
-    Delete "$SamplesInstallDir\CustomerExtended\Country.txt"
-    Delete "$SamplesInstallDir\CustomerExtended\Customer.kdic"
-    Delete "$SamplesInstallDir\CustomerExtended\Customer.txt"
-    Delete "$SamplesInstallDir\CustomerExtended\CustomerRecoded.kdic"
-    Delete "$SamplesInstallDir\CustomerExtended\Product.txt"
-    Delete "$SamplesInstallDir\CustomerExtended\README.txt"
-    Delete "$SamplesInstallDir\CustomerExtended\Service.txt"
-    Delete "$SamplesInstallDir\CustomerExtended\Usage.txt"
-    Delete "$SamplesInstallDir\CustomerExtended\recode_customer.py"
-    Delete "$SamplesInstallDir\Customer\Address.txt"
-    Delete "$SamplesInstallDir\Customer\Customer.kdic"
-    Delete "$SamplesInstallDir\Customer\Customer.txt"
-    Delete "$SamplesInstallDir\Customer\CustomerRecoded.kdic"
-    Delete "$SamplesInstallDir\Customer\README.txt"
-    Delete "$SamplesInstallDir\Customer\Service.txt"
-    Delete "$SamplesInstallDir\Customer\Usage.txt"
-    Delete "$SamplesInstallDir\Customer\sort_and_recode_customer.py"
-    Delete "$SamplesInstallDir\Customer\unsorted\Address-unsorted.txt"
-    Delete "$SamplesInstallDir\Customer\unsorted\Customer-unsorted.txt"
-    Delete "$SamplesInstallDir\Customer\unsorted\Service-unsorted.txt"
-    Delete "$SamplesInstallDir\Customer\unsorted\Usage-unsorted.txt"
-    Delete "$SamplesInstallDir\Iris\Iris.kdic"
-    Delete "$SamplesInstallDir\Iris\Iris.txt"
-    Delete "$SamplesInstallDir\Letter\Letter.kdic"
-    Delete "$SamplesInstallDir\Letter\Letter.txt"
-    Delete "$SamplesInstallDir\Mushroom\Mushroom.kdic"
-    Delete "$SamplesInstallDir\Mushroom\Mushroom.txt"
-    Delete "$SamplesInstallDir\README.txt"
-    Delete "$SamplesInstallDir\SpliceJunction\SpliceJunction.kdic"
-    Delete "$SamplesInstallDir\SpliceJunction\SpliceJunction.txt"
-    Delete "$SamplesInstallDir\SpliceJunction\SpliceJunctionDNA.txt"
-    Delete "$SamplesInstallDir\NegativeAirlineTweets\NegativeAirlineTweets.kdic"
-    Delete "$SamplesInstallDir\NegativeAirlineTweets\NegativeAirlineTweets.txt"
-    Delete "$SamplesInstallDir\NegativeAirlineTweets\README.txt"
-    Delete "$SamplesInstallDir\WineReviews\WineReviews.kdic"
-    Delete "$SamplesInstallDir\WineReviews\WineReviews.txt"
-    Delete "$SamplesInstallDir\WineReviews\README.txt"
-    RMDir "$SamplesInstallDir\AccidentsSummary\"
-    RMDir "$SamplesInstallDir\Accidents\raw\"
-    RMDir "$SamplesInstallDir\Accidents\"
-    RMDir "$SamplesInstallDir\Adult\"
-    RMDir "$SamplesInstallDir\CustomerExtended\"
-    RMDir "$SamplesInstallDir\Customer\unsorted\"
-    RMDir "$SamplesInstallDir\Customer\"
-    RMDir "$SamplesInstallDir\Iris\"
-    RMDir "$SamplesInstallDir\Letter\"
-    RMDir "$SamplesInstallDir\Mushroom\"
-    RMDir "$SamplesInstallDir\SpliceJunction\"
-    RMDir "$SamplesInstallDir\NegativeAirlineTweets\"
-    RMDir "$SamplesInstallDir\WineReviews\"
-    RMDir "$SamplesInstallDir"
-  ${EndIf}
+	# Delete desktop shortcuts
+	Delete "$DESKTOP\Khiops.lnk"
+	Delete "$DESKTOP\Khiops Coclustering.lnk"
+	Delete "$DESKTOP\Shell Khiops.lnk"
+
+	# Delete Start Menu Shortcuts
+	RMDir /r "$SMPROGRAMS\Khiops"
+
+	# Set the samples directory to be located either within %PUBLIC% or %ALLUSERSPROFILE% as fallback
+	ReadEnvStr $WinPublicDir PUBLIC
+	ReadEnvStr $AllUsersProfileDir ALLUSERSPROFILE
+
+	${If} $WinPublicDir != ""
+		StrCpy $GlobalKhiopsDataDir "$WinPublicDir\khiops_data"
+	${ElseIf} $AllUsersProfileDir != ""
+		StrCpy $GlobalKhiopsDataDir "$AllUsersProfileDir\khiops_data"
+	${Else}
+		StrCpy $GlobalKhiopsDataDir ""
+	${EndIf}
+
+	# Delete sample datasets
+	# We do not remove the whole directory to save the users results from Khiops' analyses
+	${If} $GlobalKhiopsDataDir != ""
+		StrCpy $SamplesInstallDir "$GlobalKhiopsDataDir\samples"
+		Delete "$SamplesInstallDir\AccidentsSummary\Accidents.kdic"
+		Delete "$SamplesInstallDir\AccidentsSummary\Accidents.txt"
+		Delete "$SamplesInstallDir\AccidentsSummary\README.txt"
+		Delete "$SamplesInstallDir\AccidentsSummary\Vehicles.txt"
+		Delete "$SamplesInstallDir\Accidents\Accidents.kdic"
+		Delete "$SamplesInstallDir\Accidents\Accidents.txt"
+		Delete "$SamplesInstallDir\Accidents\Places.txt"
+		Delete "$SamplesInstallDir\Accidents\README.txt"
+		Delete "$SamplesInstallDir\Accidents\Users.txt"
+		Delete "$SamplesInstallDir\Accidents\Vehicles.txt"
+		Delete "$SamplesInstallDir\Accidents\raw\AccidentsPreprocess.kdic"
+		Delete "$SamplesInstallDir\Accidents\raw\AccidentsCreateTarget.kdic"
+		Delete "$SamplesInstallDir\Accidents\raw\Description_BD_ONISR.pdf"
+		Delete "$SamplesInstallDir\Accidents\raw\Licence_Ouverte.pdf"
+		Delete "$SamplesInstallDir\Accidents\raw\README.txt"
+		Delete "$SamplesInstallDir\Accidents\raw\caracteristiques-2018.csv"
+		Delete "$SamplesInstallDir\Accidents\raw\lieux-2018.csv"
+		Delete "$SamplesInstallDir\Accidents\raw\preprocess.py"
+		Delete "$SamplesInstallDir\Accidents\raw\usagers-2018.csv"
+		Delete "$SamplesInstallDir\Accidents\raw\vehicules-2018.csv"
+		Delete "$SamplesInstallDir\Accidents\train.py"
+		Delete "$SamplesInstallDir\Adult\Adult.kdic"
+		Delete "$SamplesInstallDir\Adult\Adult.txt"
+		Delete "$SamplesInstallDir\CustomerExtended\Address.txt"
+		Delete "$SamplesInstallDir\CustomerExtended\City.txt"
+		Delete "$SamplesInstallDir\CustomerExtended\Country.txt"
+		Delete "$SamplesInstallDir\CustomerExtended\Customer.kdic"
+		Delete "$SamplesInstallDir\CustomerExtended\Customer.txt"
+		Delete "$SamplesInstallDir\CustomerExtended\CustomerRecoded.kdic"
+		Delete "$SamplesInstallDir\CustomerExtended\Product.txt"
+		Delete "$SamplesInstallDir\CustomerExtended\README.txt"
+		Delete "$SamplesInstallDir\CustomerExtended\Service.txt"
+		Delete "$SamplesInstallDir\CustomerExtended\Usage.txt"
+		Delete "$SamplesInstallDir\CustomerExtended\recode_customer.py"
+		Delete "$SamplesInstallDir\Customer\Address.txt"
+		Delete "$SamplesInstallDir\Customer\Customer.kdic"
+		Delete "$SamplesInstallDir\Customer\Customer.txt"
+		Delete "$SamplesInstallDir\Customer\CustomerRecoded.kdic"
+		Delete "$SamplesInstallDir\Customer\README.txt"
+		Delete "$SamplesInstallDir\Customer\Service.txt"
+		Delete "$SamplesInstallDir\Customer\Usage.txt"
+		Delete "$SamplesInstallDir\Customer\sort_and_recode_customer.py"
+		Delete "$SamplesInstallDir\Customer\unsorted\Address-unsorted.txt"
+		Delete "$SamplesInstallDir\Customer\unsorted\Customer-unsorted.txt"
+		Delete "$SamplesInstallDir\Customer\unsorted\Service-unsorted.txt"
+		Delete "$SamplesInstallDir\Customer\unsorted\Usage-unsorted.txt"
+		Delete "$SamplesInstallDir\Iris\Iris.kdic"
+		Delete "$SamplesInstallDir\Iris\Iris.txt"
+		Delete "$SamplesInstallDir\Letter\Letter.kdic"
+		Delete "$SamplesInstallDir\Letter\Letter.txt"
+		Delete "$SamplesInstallDir\Mushroom\Mushroom.kdic"
+		Delete "$SamplesInstallDir\Mushroom\Mushroom.txt"
+		Delete "$SamplesInstallDir\README.txt"
+		Delete "$SamplesInstallDir\SpliceJunction\SpliceJunction.kdic"
+		Delete "$SamplesInstallDir\SpliceJunction\SpliceJunction.txt"
+		Delete "$SamplesInstallDir\SpliceJunction\SpliceJunctionDNA.txt"
+		Delete "$SamplesInstallDir\NegativeAirlineTweets\NegativeAirlineTweets.kdic"
+		Delete "$SamplesInstallDir\NegativeAirlineTweets\NegativeAirlineTweets.txt"
+		Delete "$SamplesInstallDir\NegativeAirlineTweets\README.txt"
+		Delete "$SamplesInstallDir\WineReviews\WineReviews.kdic"
+		Delete "$SamplesInstallDir\WineReviews\WineReviews.txt"
+		Delete "$SamplesInstallDir\WineReviews\README.txt"
+		RMDir "$SamplesInstallDir\AccidentsSummary\"
+		RMDir "$SamplesInstallDir\Accidents\raw\"
+		RMDir "$SamplesInstallDir\Accidents\"
+		RMDir "$SamplesInstallDir\Adult\"
+		RMDir "$SamplesInstallDir\CustomerExtended\"
+		RMDir "$SamplesInstallDir\Customer\unsorted\"
+		RMDir "$SamplesInstallDir\Customer\"
+		RMDir "$SamplesInstallDir\Iris\"
+		RMDir "$SamplesInstallDir\Letter\"
+		RMDir "$SamplesInstallDir\Mushroom\"
+		RMDir "$SamplesInstallDir\SpliceJunction\"
+		RMDir "$SamplesInstallDir\NegativeAirlineTweets\"
+		RMDir "$SamplesInstallDir\WineReviews\"
+		RMDir "$SamplesInstallDir"
+	${EndIf}
 SectionEnd
 
-
-#######################
+# ######################
 # Installer Functions #
-#######################
+# ######################
 
 Function "CreateDesktopShortcuts"
-  # Set as the startup dir for all executable shortcuts (yes it is done with SetOutPath!)
-  ${If} $GlobalKhiopsDataDir != ""
-    SetOutPath $GlobalKhiopsDataDir
-  ${Else}
-    SetOutPath $INSTDIR
-  ${EndIf}
+	# Set as the startup dir for all executable shortcuts (yes it is done with SetOutPath!)
+	${If} $GlobalKhiopsDataDir != ""
+		SetOutPath $GlobalKhiopsDataDir
+	${Else}
+		SetOutPath $INSTDIR
+	${EndIf}
 
-  # Create the shortcuts
-  DetailPrint "Installing Desktop Shortcut..."
-  CreateShortCut "$DESKTOP\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\khiops.cmd$\"" "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWNORMAL
-  CreateShortCut "$DESKTOP\Khiops Coclustering.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\khiops_coclustering.cmd$\"" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
+	# Create the shortcuts
+	DetailPrint "Installing Desktop Shortcut..."
+	CreateShortcut "$DESKTOP\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\khiops.cmd$\"" \
+		"$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWNORMAL
+	CreateShortcut "$DESKTOP\Khiops Coclustering.lnk" "$INSTDIR\bin\_khiopslauncher.exe" \
+		"$\"$INSTDIR\bin\khiops_coclustering.cmd$\"" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
 FunctionEnd
 
 # Predefined initialization install function
 Function .onInit
 
-  # Read location of the uninstaller
-  ReadRegStr $PreviousUninstaller HKLM "${UninstallerKey}\Khiops" "UninstallString"
-  ReadRegStr $PreviousVersion HKLM "${UninstallerKey}\Khiops" "DisplayVersion"
+	# Read location of the uninstaller
+	ReadRegStr $PreviousUninstaller HKLM "${UninstallerKey}\Khiops" "UninstallString"
+	ReadRegStr $PreviousVersion HKLM "${UninstallerKey}\Khiops" "DisplayVersion"
 
-  # Ask the user to proceed if there was already a previous Khiops version installed
-  # In silent mode: remove previous version
-  ${If} $PreviousUninstaller != ""
-    MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
-       "Khiops $PreviousVersion is already installed. $\n$\nClick OK to remove the \
-       previous version $\n$\nor Cancel to cancel this upgrade." \
-       /SD IDOK IDOK uninst
-    Abort
+	# Ask the user to proceed if there was already a previous Khiops version installed
+	# In silent mode: remove previous version
+	${If} $PreviousUninstaller != ""
+		MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
+			"Khiops $PreviousVersion is already installed. $\n$\nClick OK to remove the  previous version $\n$\nor Cancel to cancel this upgrade." \
+			/SD IDOK IDOK uninst
+		Abort
 
-    # Run the uninstaller
-    uninst:
-    ClearErrors
-    ExecWait '$PreviousUninstaller /S _?=$INSTDIR'
+		# Run the uninstaller
+		uninst:
+		ClearErrors
+		ExecWait '$PreviousUninstaller /S _?=$INSTDIR'
 
-    # Run again the uninstaller to delete the uninstaller itself and the root dir (without waiting)
-    # Must not be used in silent mode (may delete files from silent following installation)
-    ${IfNot} ${Silent}
-       ExecWait '$PreviousUninstaller /S'
-    ${EndIf}
-  ${EndIf}
+		# Run again the uninstaller to delete the uninstaller itself and the root dir (without waiting)
+		# Must not be used in silent mode (may delete files from silent following installation)
+		${IfNot} ${Silent}
+			ExecWait '$PreviousUninstaller /S'
+		${EndIf}
+	${EndIf}
 
-  # Choice of default installation directory, for windows 32 or 64
-  ${If} $INSTDIR == ""
-    ${If} ${RunningX64}
-      StrCpy $INSTDIR "$PROGRAMFILES64\khiops"
-      # No 32-bit install
-    ${EndIf}
-  ${EndIf}
+	# Choice of default installation directory, for windows 32 or 64
+	${If} $INSTDIR == ""
+		${If} ${RunningX64}
+			StrCpy $INSTDIR "$PROGRAMFILES64\khiops"
+			# No 32-bit install
+		${EndIf}
+	${EndIf}
 
-  # Sets whether install logging to $INSTDIR\install.log will happen (require NSIS_CONFIG_LOG)
-  # LogSet on
+	# Sets whether install logging to $INSTDIR\install.log will happen (require NSIS_CONFIG_LOG)
+	# LogSet on
 FunctionEnd
-
 
 # Function to show the page for requirements
 Function RequirementsPageShow
-  # Detect requirements
-  Call RequirementsDetection
+	# Detect requirements
+	Call RequirementsDetection
 
-  # Creation of page, with title and subtitle
-  nsDialogs::Create 1018
-  !insertmacro MUI_HEADER_TEXT "Check software requirements" "Check Microsoft MPI"
+	# Creation of page, with title and subtitle
+	nsDialogs::Create 1018
+	!insertmacro MUI_HEADER_TEXT "Check software requirements" "64 bits only"
 
-  # Message to show for the Microsoft MPI installation
-  ${NSD_CreateLabel} 0 20u 100% 10u $MPIInstallationMessage
-
-  # Show page
-  nsDialogs::Show
+	# Show page
+	nsDialogs::Show
 FunctionEnd
-
 
 # Requirements detection
 # - Detects if the system architecture is 64-bit
 # - Detects whether Java JRE and MPI are installed and their versions
 Function RequirementsDetection
-  # Abort installation if the machine does not have 64-bit architecture
-  ${IfNot} ${RunningX64}
-    Messagebox MB_OK "Khiops works only on Windows 64 bits: installation will be terminated." /SD IDOK
-    Quit
-  ${EndIf}
-
-  # Decide if MPI is required by detecting the number of cores
-  # Note: This call defines MPIInstalledVersion
-  Call DetectAndLoadMPIEnvironment
-
-  # Try to install MPI
-  StrCpy $MPIInstallationNeeded "0"
-  StrCpy $MPIInstallationMessage ""
- 
-  # If it is not installed install it
-  ${If} $MPIInstalledVersion == "0"
-      StrCpy $MPIInstallationMessage "Microsoft MPI version ${MSMPI_VERSION} will be installed"
-      StrCpy $MPIInstallationNeeded "1"
-  # Otherwise install only if the required version is newer than the installed one
-  ${Else}
-      ${VersionCompare} "${MPIRequiredVersion}" "$MPIInstalledVersion" $0
-      ${If} $0 == 1
-        StrCpy $MPIInstallationMessage "Microsoft MPI will be upgraded to version ${MSMPI_VERSION}"
-        StrCpy $MPIInstallationNeeded "1"
-      ${Else}
-        StrCpy $MPIInstallationMessage "Microsoft MPI version already installed"
-      ${EndIf}
-  ${EndIf}
- 
-
-  # Show debug information
-  !ifdef DEBUG
-    Messagebox MB_OK "MS-MPI: needed=$MPIInstallationNeeded required=${MPIRequiredVersion} installed=$MPIInstalledVersion"
-  !endif
+	# Abort installation if the machine does not have 64-bit architecture
+	${IfNot} ${RunningX64}
+		MessageBox MB_OK "Khiops works only on Windows 64 bits: installation will be terminated." /SD IDOK
+		Quit
+	${EndIf}
 
 FunctionEnd
 
