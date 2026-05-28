@@ -35,14 +35,16 @@ CCCoclusteringSpecView::CCCoclusteringSpecView()
 
 	// Info-bulles
 	attributeNameArrayView->GetFieldAt("Name")->SetHelpText(
-	    "Input variable for the coclustering model."
+	    "Only for variables coclustering type (not for instances x variables coclustering)."
+	    "\n Input variable for the coclustering model."
 	    "\n There must be at least two numerical or categorical input coclustering variables. Up to ten variables "
 	    "are allowed.");
 	attributeNameArrayView->GetActionAt("InsertItemAfter")->SetHelpText("Add a coclustering variable.");
 	attributeNameArrayView->GetActionAt("RemoveItem")->SetHelpText("Remove coclustering variable.");
 	GetFieldAt("FrequencyAttributeName")
 	    ->SetHelpText(
-		"Frequency variable (optional)."
+		"Only for variables coclustering type (not for instances x variables coclustering)."
+		"\n Frequency variable (optional)."
 		"\n Name of a variable that contains the frequency of the records."
 		"\n Using the frequency variable is equivalent to duplicating the records in the input database,"
 		"\n where the number of duplicates per record is equal to the frequency.");

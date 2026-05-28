@@ -20,7 +20,7 @@ CCAnalysisSpecView::CCAnalysisSpecView()
 	    ->SetDefaultValue(CCAnalysisSpec::GetCoclusteringLabelFromType(false));
 
 	// Ajout des sous-fiches
-	AddCardField("CoclusteringParameters", "Variables parameters", new CCCoclusteringSpecView);
+	AddCardField("CoclusteringParameters", "Variables coclustering parameters", new CCCoclusteringSpecView);
 	AddCardField("DataGridOptimizerParameters", "Data grid parameters", new KWDataGridOptimizerParametersView);
 	AddCardField("SystemParameters", "System parameters", new KWSystemParametersView);
 	AddCardField("CrashTestParameters", "Crash test parameters", new KWCrashTestParametersView);
