@@ -2410,16 +2410,17 @@ IntVector* KWGrouperMODL::OptimizeGroupsWithGarbageSearch(int nExactGroupNumber,
 		for (i = 0; i < oaInitialGroups->GetSize(); i++)
 			cout << *cast(KWMODLGroup*, oaInitialGroups->GetAt(i));
 	}
-
-	if (bTrace and nExactGroupNumber == 0)
-		cout << "Nbre optimal de groupes avant degradation (avec ou sans poub) \tSANS poubelle\t"
-		     << nOptimumGroupNumber << "\t AVEC poubelle \t" << nOptimumGroupNumberWithGarbage << endl;
-
-	ensure(nExactGroupNumber == 0 or nExactGroupNumber == nGroupNumber);
+	if (bTrace)
+	{
+		if (nExactGroupNumber == 0)
+			cout << "Nbre optimal de groupes avant degradation (avec ou sans poub) \tSANS poubelle\t"
+			     << nOptimumGroupNumber << "\t AVEC poubelle \t" << nOptimumGroupNumberWithGarbage << endl;
+	}
 
 	// Memorisation du vecteur des tailles optimales des partitions avec et sans poubelle
 	ivOptimumNumbers = new IntVector;
 	ivOptimumNumbers->Add(nOptimumGroupNumber);
 	ivOptimumNumbers->Add(nOptimumGroupNumberWithGarbage);
+	ensure(nExactGroupNumber == 0 or nExactGroupNumber == nGroupNumber);
 	return ivOptimumNumbers;
 }

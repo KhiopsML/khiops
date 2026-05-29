@@ -539,8 +539,11 @@ void KWDiscretizerMODLEqualBins::MODLEqualBinsDiscretizeValues(boolean bIsEqualF
 			if (bAreCostPositive and dDiscretizationCost >= dBestDiscretizationCost)
 			{
 				// Pas d'optimsaition des calculs si affichage des details
-				if (not bTraceDiscretizationTables and not bTraceDiscretizationCosts)
-					break;
+				if (not bTraceDiscretizationTables)
+				{
+					if (not bTraceDiscretizationCosts)
+						break;
+				}
 			}
 		}
 

@@ -1283,7 +1283,7 @@ KWMODLLine* KWDiscretizerMODL::IntervalListOptimization(const KWFrequencyTable* 
 		cout << kwftSource->GetTotalFrequency() << "\t" << kwftSource->GetFrequencyVectorNumber() << "\t"
 		     << nMergeNumber << "\t" << nExtraMergeNumber << "\t" << nSplitNumber << "\t" << nExtraSplitNumber
 		     << "\t" << nMergeSplitNumber << "\t" << nMergeMergeSplitNumber << "\t"
-		     << GetIntervalListSize(headInterval);
+		     << GetIntervalListSize(headInterval) << endl;
 	}
 
 	// Affichage des resultats
@@ -1307,13 +1307,11 @@ KWMODLLine* KWDiscretizerMODL::IntervalListOptimization(const KWFrequencyTable* 
 		// Effectifs des intervalles
 		for (nInterval = 0; nInterval < kwftTarget->GetFrequencyVectorNumber(); nInterval++)
 			cout << "\t" << kwftTarget->GetFrequencyVectorAt(nInterval)->ComputeTotalFrequency();
+		cout << endl;
 
 		// Nettoyage
 		delete kwftTarget;
 	}
-
-	if (bTraceOptimisationStatistics or bTraceResults)
-		cout << endl;
 
 	// Nettoyage
 	CleanWorkingData();

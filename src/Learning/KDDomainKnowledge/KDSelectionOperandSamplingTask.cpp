@@ -97,7 +97,6 @@ PLParallelTask* KDSelectionOperandSamplingTask::Create() const
 boolean KDSelectionOperandSamplingTask::ComputeResourceRequirements()
 {
 	boolean bOk;
-	const boolean bTrace = false;
 	const SortedList slSample;
 	const NumericKeyDictionary nkdSample;
 	longint lSelectionOperandDataSamplerSpecUsedMemory;

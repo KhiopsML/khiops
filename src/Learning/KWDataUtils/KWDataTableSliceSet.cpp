@@ -2378,14 +2378,16 @@ void KWDataTableSliceSet::ComputeReadInformation(const KWClass* kwcInputClass, K
 	oaAttributesToClean.SetSize(0);
 
 	// Affichage des attributs necessaires
-	if (bTraceDetails and bOk)
+	if (bTraceDetails)
 	{
-		// Affichage des attributs necessaires
-		cout << "Needed attributes\n";
-		for (nAttribute = 0; nAttribute < oaClassNeededAttributes.GetSize(); nAttribute++)
+		if (bOk)
 		{
-			attribute = cast(KWAttribute*, oaClassNeededAttributes.GetAt(nAttribute));
-			cout << "\t" << attribute->GetName() << endl;
+			cout << "Needed attributes\n";
+			for (nAttribute = 0; nAttribute < oaClassNeededAttributes.GetSize(); nAttribute++)
+			{
+				attribute = cast(KWAttribute*, oaClassNeededAttributes.GetAt(nAttribute));
+				cout << "\t" << attribute->GetName() << endl;
+			}
 		}
 	}
 
