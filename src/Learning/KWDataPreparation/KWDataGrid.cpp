@@ -251,7 +251,7 @@ boolean KWDataGrid::GetCellUpdateMode() const
 	return slCells != NULL;
 }
 
-void KWDataGrid::BuildIndexingStructure()
+void KWDataGrid::BuildIndexingStructure() const
 {
 	int nAttribute;
 	KWDGAttribute* attribute;
@@ -264,7 +264,7 @@ void KWDataGrid::BuildIndexingStructure()
 	}
 }
 
-void KWDataGrid::DeleteIndexingStructure()
+void KWDataGrid::DeleteIndexingStructure() const
 {
 	int nAttribute;
 	KWDGAttribute* attribute;
@@ -528,7 +528,7 @@ int KWDataGrid::ComputeMaxPartNumber() const
 	return nResult;
 }
 
-double KWDataGrid::ComputeSourceEntropy()
+double KWDataGrid::ComputeSourceEntropy() const
 {
 	double dResult;
 	double dGridFrequency;
@@ -558,7 +558,7 @@ double KWDataGrid::ComputeSourceEntropy()
 	return dResult;
 }
 
-double KWDataGrid::ComputeTargetEntropy()
+double KWDataGrid::ComputeTargetEntropy() const
 {
 	double dResult;
 	double dGridFrequency;
@@ -599,7 +599,7 @@ double KWDataGrid::ComputeTargetEntropy()
 	return dResult;
 }
 
-double KWDataGrid::ComputeMutualEntropy()
+double KWDataGrid::ComputeMutualEntropy() const
 {
 	double dResult;
 	double dGridFrequency;

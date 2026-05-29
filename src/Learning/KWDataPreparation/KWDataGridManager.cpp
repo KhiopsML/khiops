@@ -444,10 +444,6 @@ double KWDataGridManager::ExportDataGridWithVarPartMergeOptimization(const KWDat
 	// Export des cellules
 	ExportCells(sourceDataGrid, targetDataGrid);
 
-	// Tri des parties des attributs
-	// Ce tri ne peut etre fait qu'apres l'export des cellules qui donnent les effectifs
-	targetDataGrid->SortAttributeParts();
-
 	// Mise a jour de cout de fusion pour les attributs internes
 	if (targetDataGrid->IsVarPartDataGrid())
 	{
@@ -750,9 +746,6 @@ void KWDataGridManager::ExportGranularizedDataGridForVarPartAttributes(
 	// Memorisation de la granularite
 	targetDataGrid->SetGranularity(sourceDataGrid->GetGranularity());
 
-	// Tri des parties des attributs
-	// Ce tri ne peut etre fait qu'apres l'export des cellules qui donnent les effectifs
-	targetDataGrid->SortAttributeParts();
 	ensure(targetDataGrid->Check());
 	ensure(CheckDataGrid(sourceDataGrid, targetDataGrid));
 	ensure(not sourceDataGrid->IsVarPartDataGrid() or

@@ -282,7 +282,6 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 		odQuantileBuilders.DeleteAll();
 	}
 
-	ensure(optimizedDataGrid->AreAttributePartsSorted() or TaskProgression::IsInterruptionRequested());
 	ensure(fabs(dBestCost - GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
 	return dBestCost;
 }
@@ -384,10 +383,6 @@ double KWDataGridOptimizerVxV::OptimizeGranularizedDataGrid(const KWDataGrid* in
 	if (not TaskProgression::IsInterruptionRequested())
 		dBestCost = IterativeVNSOptimizeDataGrid(initialDataGrid, optimizedDataGrid);
 
-	// Tri des parties par attribut, pour preparer les affichages de resultats
-	// ainsi que les resultats de preparation des donnees
-	optimizedDataGrid->SortAttributeParts();
-
 	// Affichage de la grille finale avec ses couts
 	KWDataGridOptimizer::GetProfiler()->EndMethod("OptimizeGranularizedDataGrid");
 	if (bTrace)
@@ -439,10 +434,6 @@ double KWDataGridOptimizerVxV::SlightOptimizeGranularizedDataGrid(const KWDataGr
 		// Gestion de la meilleure solution
 		HandleOptimizationStep(optimizedDataGrid, initialDataGrid, false);
 	}
-
-	// Tri des parties par attribut, pour preparer les affichages de resultats
-	// ainsi que les resultats de preparation des donnees
-	optimizedDataGrid->SortAttributeParts();
 
 	// Affichage de la grille finale avec ses couts
 	KWDataGridOptimizer::GetProfiler()->EndMethod("SlightOptimizeGranularizedDataGrid");

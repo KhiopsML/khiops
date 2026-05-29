@@ -828,17 +828,22 @@ void CCCoclusteringBuilder::CleanVarPartDataGrid(KWDataGrid* dataGrid)
 
 	require(dataGrid != NULL);
 	require(dataGrid->IsVarPartDataGrid());
+	require(dataGrid->Check());
 
 	// Acces a l'attribut de type VarPart
 	varPartAttribute = dataGrid->GetVarPartAttribute();
 	assert(varPartAttribute != NULL);
 
-	// Nettoyage des partie de l'attribut de type VarPart
+	// Nettoyage des parties de l'attribut de type VarPart
 	varPartAttribute->ExportParts(&oaVarParts);
 	for (nVarPart = 0; nVarPart < oaVarParts.GetSize(); nVarPart++)
 	{
-		if (cast(KWDGPart*, oaVarParts.GetAt(nVarPart))->GetPartFrequency() == 0)
-			varPartAttribute->DeletePart(cast(KWDGPart*, oaVarParts.GetAt(nVarPart)));
+		part = cast(KWDGPart*, oaVarParts.GetAt(nVarPart));
+		if (part->GetPartFrequency() == 0)
+		{
+			varPartAttribute->DeletePart(part);
+			varPartAttribute->SetInitialValueNumber(varPartAttribute->GetInitialValueNumber() - 1);
+		}
 	}
 	oaVarParts.SetSize(0);
 
@@ -859,7 +864,7 @@ void CCCoclusteringBuilder::CleanVarPartDataGrid(KWDataGrid* dataGrid)
 				if (innerAttribute->GetAttributeType() == KWType::Symbol and
 				    part->GetValueSet()->IsDefaultPart())
 					bIsDefaultPartDeleted = true;
-				innerAttribute->DeletePart(cast(KWDGPart*, oaVarParts.GetAt(nVarPart)));
+				innerAttribute->DeletePart(part);
 			}
 		}
 		oaVarParts.SetSize(0);
@@ -871,6 +876,7 @@ void CCCoclusteringBuilder::CleanVarPartDataGrid(KWDataGrid* dataGrid)
 	}
 	dataGrid->GetEditableInnerAttributes()->CleanEmptyInnerAttributes();
 	dataGrid->UpdateAllStatistics();
+	ensure(dataGrid->Check());
 }
 
 boolean CCCoclusteringBuilder::CreateVarPartDataGridCells(const KWTupleTable* tupleTable, KWDataGrid* dataGrid)
