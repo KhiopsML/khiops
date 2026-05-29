@@ -231,8 +231,8 @@ public:
 
 	// Construction/destruction des structures d'indexation des attributs,
 	// qui permettent de trouver les parties a partir des valeurs dans chaque attribut
-	void BuildIndexingStructure();
-	void DeleteIndexingStructure();
+	void BuildIndexingStructure() const;
+	void DeleteIndexingStructure() const;
 
 	// Creation d'une cellule en specifiant le tableau des parties dont il est le N-uplet
 	// La cellule est ajoutes en fin de liste de chacune des parties d'attribut
@@ -295,9 +295,9 @@ public:
 	// L'entropie permet de mesurer la quantite d'information (en bits)
 	// pour coder une variable
 	// Entropie = somme( -p(x) log(p(x)), avec p(x) = e(x)/e
-	double ComputeSourceEntropy();
-	double ComputeTargetEntropy();
-	double ComputeMutualEntropy();
+	double ComputeSourceEntropy() const;
+	double ComputeTargetEntropy() const;
+	double ComputeMutualEntropy() const;
 
 	///////////////////////////////
 	// Services divers

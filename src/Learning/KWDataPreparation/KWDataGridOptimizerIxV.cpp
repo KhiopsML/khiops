@@ -29,7 +29,6 @@ double KWDataGridOptimizerIxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 	else
 		dBestCost = OptimizeVarPartDataGrid(initialDataGrid, optimizedDataGrid);
 
-	ensure(optimizedDataGrid->AreAttributePartsSorted() or TaskProgression::IsInterruptionRequested());
 	ensure(fabs(dBestCost - GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
 	return dBestCost;
 }
@@ -654,9 +653,6 @@ double KWDataGridOptimizerIxV::PostOptimizeVarPartSolution(const KWDataGrid* ini
 	if (optimizedDataGrid->GetInformativeAttributeNumber() > 1 and optimizationParameters.GetVarPartPostMerge() and
 	    not TaskProgression::IsInterruptionRequested())
 	{
-		// Tri des attributs
-		optimizedDataGrid->SortAttributeParts();
-
 		// Fusion des parties de variable adjacentes
 		dMergeDeltaCost = PostOptimizeVarPartSolutionByMergingVarParts(optimizedDataGrid);
 		dBestCost += dMergeDeltaCost;
