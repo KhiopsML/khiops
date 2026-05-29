@@ -763,7 +763,7 @@ KWMODLLine* DTGrouperMODLTwoClasses::IntervalListOptimizationWithGarbage(
 		cout << kwftSource->GetTotalFrequency() << "\t" << kwftSource->GetFrequencyVectorNumber() << "\t"
 		     << nMergeNumber << "\t" << nExtraMergeNumber << "\t" << nSplitNumber << "\t" << nExtraSplitNumber
 		     << "\t" << nMergeSplitNumber << "\t" << nMergeMergeSplitNumber << "\t"
-		     << GetIntervalListSize(headInterval);
+		     << GetIntervalListSize(headInterval) << endl;
 	}
 
 	// Affichage des resultats
@@ -787,13 +787,11 @@ KWMODLLine* DTGrouperMODLTwoClasses::IntervalListOptimizationWithGarbage(
 		// Effectifs des intervalles
 		for (nInterval = 0; nInterval < kwftTarget->GetFrequencyVectorNumber(); nInterval++)
 			cout << "\t" << kwftTarget->GetFrequencyVectorAt(nInterval)->ComputeTotalFrequency();
+		cout << endl;
 
 		// Nettoyage
 		delete kwftTarget;
 	}
-
-	if (bTraceOptimisationStatistics or bTraceResults)
-		cout << endl;
 
 	// Nettoyage
 	CleanWorkingData();
@@ -1749,18 +1747,21 @@ void DTGrouperMODLTwoClasses::IntervalListMergeOptimizationWithGarbagePartitionC
 		    (GetMaxIntervalNumber() > 0 and nIntervalNumber > GetMaxIntervalNumber()))
 		{
 			// Affichage de la meilleure partition avec poubelle avant mise a jour
-			if (bTraceResults and dDiscretizationWithGarbageDeltaCost > 0)
+			if (bTraceResults)
 			{
-				KWMODLLineOptimization* intervalTemp;
-				cout << "Meilleure table avec poubelle " << endl;
-				intervalTemp = headInterval;
-				while (intervalTemp != NULL)
+				if (dDiscretizationWithGarbageDeltaCost > 0)
 				{
-					// Affichage de la ligne courante
-					cast(KWMODLLineOptimization*, intervalTemp)->Write(cout);
+					KWMODLLineOptimization* intervalTemp;
+					cout << "Meilleure table avec poubelle " << endl;
+					intervalTemp = headInterval;
+					while (intervalTemp != NULL)
+					{
+						// Affichage de la ligne courante
+						cast(KWMODLLineOptimization*, intervalTemp)->Write(cout);
 
-					// Intervalle suivant
-					intervalTemp = cast(KWMODLLineOptimization*, intervalTemp->GetNext());
+						// Intervalle suivant
+						intervalTemp = cast(KWMODLLineOptimization*, intervalTemp->GetNext());
+					}
 				}
 			}
 
@@ -1770,19 +1771,22 @@ void DTGrouperMODLTwoClasses::IntervalListMergeOptimizationWithGarbagePartitionC
 			nIntervalNumber--;
 			nMergeNumber++;
 
-			if (bTraceResults and nIntervalNumber == 3)
+			if (bTraceResults)
 			{
-				// Affichage de la partition obtenue pour I=3 i.e. derniere partition avec groupe
-				// poubelle
-				// cout << "Table courante " << endl;
-				interval = headInterval;
-				while (interval != NULL)
+				if (nIntervalNumber == 3)
 				{
-					// Affichage de la ligne courante
-					cast(KWMODLLineOptimization*, interval)->Write(cout);
+					// Affichage de la partition obtenue pour I=3 i.e. derniere partition avec groupe
+					// poubelle
+					// cout << "Table courante " << endl;
+					interval = headInterval;
+					while (interval != NULL)
+					{
+						// Affichage de la ligne courante
+						cast(KWMODLLineOptimization*, interval)->Write(cout);
 
-					// Intervalle suivant
-					interval = cast(KWMODLLineOptimization*, interval->GetNext());
+						// Intervalle suivant
+						interval = cast(KWMODLLineOptimization*, interval->GetNext());
+					}
 				}
 			}
 		}

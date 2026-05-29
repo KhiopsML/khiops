@@ -2311,11 +2311,12 @@ IntVector* DTGrouperMODL::OptimizeGroupsWithGarbageSearch(int nExactGroupNumber,
 		for (i = 0; i < oaInitialGroups->GetSize(); i++)
 			cout << *cast(KWMODLGroup*, oaInitialGroups->GetAt(i));
 	}
-
-	if (bTraceGarbage and nExactGroupNumber == 0)
-		cout << "Nbre optimal de groupes avant degradation (avec ou sans poub) \tSANS poubelle\t"
-		     << nOptimumGroupNumber << "\t AVEC poubelle \t" << nOptimumGroupNumberWithGarbage << endl;
-
+	if (bTraceGarbage)
+	{
+		if (nExactGroupNumber == 0)
+			cout << "Nbre optimal de groupes avant degradation (avec ou sans poub) \tSANS poubelle\t"
+			     << nOptimumGroupNumber << "\t AVEC poubelle \t" << nOptimumGroupNumberWithGarbage << endl;
+	}
 	ensure(nExactGroupNumber == 0 or nExactGroupNumber == nGroupNumber);
 
 	// Memorisation du vecteur des tailles optimales des partitions avec et sans poubelle

@@ -145,7 +145,6 @@ void KWTextTokenizer::ExportTokens(ObjectArray* oaTokenFrequencies) const
 	POSITION position;
 	ALString sToken;
 	longint lValue;
-	int nSpecificTokenIndex;
 	KWTokenFrequency* token;
 	int nIndex;
 	Timer traceTimer;
@@ -213,7 +212,6 @@ void KWTextTokenizer::ExportFrequentTokens(ObjectArray* oaTokenFrequencies, int 
 	IntVector ivNumbersOfTokensPerFrequency;
 	int nMinFrequency;
 	int nCollectedTokenNumber;
-	int nSpecificTokenIndex;
 	KWTokenFrequency* token;
 	int nIndex;
 	Timer traceTimer;

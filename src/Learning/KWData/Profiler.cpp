@@ -252,7 +252,7 @@ void Profiler::WriteKeyBoolean(const ALString& sKey, boolean bValue)
 	}
 }
 
-int Profiler::GetMethodStartNumber(const ALString& sMethodName) const
+longint Profiler::GetMethodStartNumber(const ALString& sMethodName) const
 {
 	Timer* methodTimer;
 

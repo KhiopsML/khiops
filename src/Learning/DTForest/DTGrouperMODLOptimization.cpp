@@ -1783,20 +1783,25 @@ void DTGrouperMODL::FastPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSour
 					// Evaluation de la variation globale du cout
 					dDeltaCost = dOutDeltaCost + dInDeltaCost + dPartitionDeltaCost;
 
-					if (bTraceDeltaCosts and dDeltaCost < dBestDeltaCost - dEpsilon)
+					if (bTraceDeltaCosts)
 					{
-						cout << "Modality\t" << nModality << "\tOutGroup\t" << nOutGroup
-						     << "\tInGroup\t" << nInGroup << "\tGroupNumber\t" << nGroupNumber
-						     << "\tTrueGroupNumber\t " << nTrueGroupNumber << "\t Garbage \t"
-						     << (kwftTarget->GetGarbageModalityNumber() > 0)
-						     << "\tGarbageNumber\t" << nGarbageModalityNumber
-						     << "\tNewGarbageNumber\t" << nNewGarbageModalityNumber << endl;
-						cout << "BestDeltaCost\t" << dBestDeltaCost << "\t DeltaCost \t"
-						     << dDeltaCost << "\tOutDeltaCost\t" << dOutDeltaCost
-						     << "\tInDeltaCost\t" << dInDeltaCost << "\tPartitionDeltaCost\t"
-						     << dPartitionDeltaCost << endl;
-						cout << "Table avant deplacement " << endl;
-						cout << *kwftTarget << endl;
+						if (dDeltaCost < dBestDeltaCost - dEpsilon)
+						{
+							cout << "Modality\t" << nModality << "\tOutGroup\t" << nOutGroup
+							     << "\tInGroup\t" << nInGroup << "\tGroupNumber\t"
+							     << nGroupNumber << "\tTrueGroupNumber\t "
+							     << nTrueGroupNumber << "\t Garbage \t"
+							     << (kwftTarget->GetGarbageModalityNumber() > 0)
+							     << "\tGarbageNumber\t" << nGarbageModalityNumber
+							     << "\tNewGarbageNumber\t" << nNewGarbageModalityNumber
+							     << endl;
+							cout << "BestDeltaCost\t" << dBestDeltaCost << "\t DeltaCost \t"
+							     << dDeltaCost << "\tOutDeltaCost\t" << dOutDeltaCost
+							     << "\tInDeltaCost\t" << dInDeltaCost
+							     << "\tPartitionDeltaCost\t" << dPartitionDeltaCost << endl;
+							cout << "Table avant deplacement " << endl;
+							cout << *kwftTarget << endl;
+						}
 					}
 
 					// Memorisation si amelioration

@@ -842,21 +842,24 @@ boolean KWContinuousSampleDiscretizerTest::ComputeStats()
 			nPartNumber = dataGridStats->GetAttributeAt(0)->GetPartNumber();
 
 		// Affichage des discretisations
-		if (bTrace and nPartNumber > 1)
+		if (bTrace)
 		{
-			int j;
-			cout << "Example\t" << nSampleSize << "\t" << nPartNumber << "\t:";
-			for (i = 0; i < dataGridStats->GetAttributeAt(0)->GetPartNumber(); i++)
+			if (nPartNumber > 1)
 			{
-				for (j = 0; j < dataGridStats->GetAttributeAt(1)->GetPartNumber(); j++)
+				int j;
+				cout << "Example\t" << nSampleSize << "\t" << nPartNumber << "\t:";
+				for (i = 0; i < dataGridStats->GetAttributeAt(0)->GetPartNumber(); i++)
 				{
-					if (j > 0)
-						cout << ".";
-					cout << dataGridStats->GetBivariateCellFrequencyAt(i, j);
+					for (j = 0; j < dataGridStats->GetAttributeAt(1)->GetPartNumber(); j++)
+					{
+						if (j > 0)
+							cout << ".";
+						cout << dataGridStats->GetBivariateCellFrequencyAt(i, j);
+					}
+					cout << ":";
 				}
-				cout << ":";
+				cout << endl;
 			}
-			cout << endl;
 		}
 
 		// Export du fichier de stats resultats
