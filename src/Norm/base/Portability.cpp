@@ -263,6 +263,10 @@ static void FormatErrorMessage(char* sErrorMessage)
 	DWORD dwErrorCode;
 	DWORD dwResult;
 	WCHAR wErrorMessage[SYSTEM_MESSAGE_LENGTH + 1];
+	int nRequiredBytes;
+	int nCopyLength;
+	int nTempBufferSize;
+	char* sTempBuffer;
 
 	// Capture du code d'erreur
 	dwErrorCode = GetLastError();
@@ -276,9 +280,7 @@ static void FormatErrorMessage(char* sErrorMessage)
 	// Utilise 0 pour la langue (langue systeme par defaut)
 	dwResult = FormatMessageW(FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM, NULL, dwErrorCode,
 				  0, // Langue systeme par defaut
-				  wErrorMessage, SYSTEM_MESSAGE_LENGTH, NULL);
-
-	// Si FormatMessageW a echoue ou retourne vide
+				  wErrorMessage, SYSTEM_MESSAGE_LENGTH + 1, NULL);
 	if (dwResult == 0 || wErrorMessage[0] == L'\0')
 	{
 		snprintf(sErrorMessage, SYSTEM_MESSAGE_LENGTH, "System error %lu", dwErrorCode);
@@ -286,14 +288,32 @@ static void FormatErrorMessage(char* sErrorMessage)
 	}
 
 	// Conversion de UTF-16 (wchar_t) vers UTF-8 (char)
-	int nConvertedBytes =
-	    WideCharToMultiByte(CP_UTF8, 0, wErrorMessage, -1, sErrorMessage, SYSTEM_MESSAGE_LENGTH, NULL, NULL);
-
-	// Si la conversion a echoue
-	if (nConvertedBytes == 0)
+	// Premiere passe pour determiner la taille necessaire: les messages non-ASCII peuvent depasser SYSTEM_MESSAGE_LENGTH octets
+	nRequiredBytes = WideCharToMultiByte(CP_UTF8, 0, wErrorMessage, -1, NULL, 0, NULL, NULL);
+	if (nRequiredBytes == 0)
 	{
 		snprintf(sErrorMessage, SYSTEM_MESSAGE_LENGTH, "System error %lu (encoding error)", dwErrorCode);
 		return;
+	}
+	if (nRequiredBytes <= SYSTEM_MESSAGE_LENGTH)
+	{
+		// La conversion tient dans le buffer de destination: conversion directe
+		WideCharToMultiByte(CP_UTF8, 0, wErrorMessage, -1, sErrorMessage, SYSTEM_MESSAGE_LENGTH, NULL, NULL);
+	}
+	else
+	{
+		// Conversion dans un buffer intermediaire puis troncature en respectant les sequences multi-octets UTF-8
+		// wErrorMessage a SYSTEM_MESSAGE_LENGTH+1 WCHARs; chaque WCHAR produit au plus 4 octets UTF-8
+		nTempBufferSize = 4 * (SYSTEM_MESSAGE_LENGTH + 1);
+		sTempBuffer = new char[nTempBufferSize];
+		WideCharToMultiByte(CP_UTF8, 0, wErrorMessage, -1, sTempBuffer, nTempBufferSize, NULL, NULL);
+		nCopyLength = SYSTEM_MESSAGE_LENGTH - 1;
+		// Recule si l'octet de troncature est un octet de continuation UTF-8 (0x80-0xBF)
+		while (nCopyLength > 0 && ((unsigned char)sTempBuffer[nCopyLength] & 0xC0) == 0x80)
+			nCopyLength--;
+		memcpy(sErrorMessage, sTempBuffer, nCopyLength);
+		sErrorMessage[nCopyLength] = '\0';
+		delete[] sTempBuffer;
 	}
 
 	// Supression du saut de ligne en fin de chaine
@@ -311,19 +331,14 @@ static void FormatErrorMessage(char* sErrorMessage)
 			break;
 	}
 
-	// Ajout d'un conseil specifique pour les erreurs courantes de chargement de DLL
+	// Ajout d'un conseil specifique pour l'erreur courante de chargement de DLL
 	// ERROR_MOD_NOT_FOUND (126) : module non trouve (souvent une dependance manquante)
-	// ERROR_BAD_EXE_FORMAT (193) : mauvais format exe (32/64 bits mismatch)
 	if (dwErrorCode == 126)
 	{
 		// L'erreur 126 signifie generalement qu'une dependance de la DLL est manquante
 		// Le message Windows est generique et ne precise pas quelle dependance manque
-		strncat(sErrorMessage, " This usually means a dependency DLL is missing.",
-			SYSTEM_MESSAGE_LENGTH - strlen(sErrorMessage) - 1);
-	}
-	else if (dwErrorCode == 193)
-	{
-		strncat(sErrorMessage, " Check for 32/64-bit architecture mismatch.",
+		strncat(sErrorMessage,
+			" Dependency error, check for missing DLL dependencies using 'dumpbin /dependents <dll>'",
 			SYSTEM_MESSAGE_LENGTH - strlen(sErrorMessage) - 1);
 	}
 }
@@ -592,20 +607,52 @@ void* LoadSharedLibrary(const char* sLibraryPath, char* sErrorMessage)
 	int nBufferSize;
 
 	// Premier appel pour determiner la taille necessaire pour stocker la chaine au format wide char
-	wString = NULL;
-	nBufferSize = MultiByteToWideChar(CP_ACP, 0, sLibraryPath, -1, wString, 0);
+	nBufferSize = MultiByteToWideChar(CP_UTF8, 0, sLibraryPath, -1, NULL, 0);
+	if (nBufferSize == 0)
+	{
+		snprintf(sErrorMessage, SYSTEM_MESSAGE_LENGTH,
+			 "Failed to convert library path to wide string (error %lu)", GetLastError());
+		return NULL;
+	}
 
 	// Second appel en ayant alloue la bonne taille
 	wString = (wchar_t*)SystemObject::NewMemoryBlock(nBufferSize * sizeof(wchar_t));
-
-	MultiByteToWideChar(CP_ACP, 0, sLibraryPath, -1, wString, nBufferSize);
+	nBufferSize = MultiByteToWideChar(CP_UTF8, 0, sLibraryPath, -1, wString, nBufferSize);
+	if (nBufferSize == 0)
+	{
+		SystemObject::DeleteMemoryBlock(wString);
+		snprintf(sErrorMessage, SYSTEM_MESSAGE_LENGTH,
+			 "Failed to convert library path to wide string (error %lu)", GetLastError());
+		return NULL;
+	}
 
 	// Parametrage du mode de gestion des erreurs pour eviter d'avoir des boite de dialogues systemes bloquantes
 	nCurrentErrorMode = GetErrorMode();
 	SetErrorMode(SEM_FAILCRITICALERRORS);
 
-	// Chargement de la librairie
-	handle = (void*)LoadLibrary(wString);
+	// Chargement de la librairie avec LoadLibraryEx pour chercher les dependances dans le repertoire de la DLL
+	// LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR : cherche les dependances dans le repertoire de la DLL
+	// LOAD_LIBRARY_SEARCH_DEFAULT_DIRS : cherche dans les repertoires systeme et application
+	// Note : ces flags necessitent Windows Vista ou superieur
+	handle =
+	    (void*)LoadLibraryExW(wString, NULL, LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+
+	// Si echec, on sauvegarde l'erreur car elle est plus detaillee (ex: dependances manquantes)
+	DWORD dwFirstError = 0;
+	if (handle == NULL)
+	{
+		dwFirstError = GetLastError();
+
+		// Tentative avec LoadLibrary standard en fallback pour compatibilite
+		// (certains systemes peuvent ne pas supporter les flags de LoadLibraryEx)
+		handle = (void*)LoadLibraryW(wString);
+
+		// Si le fallback reussit, on garde le handle
+		// Si le fallback echoue aussi, on restaure la premiere erreur qui est plus informative
+		if (handle == NULL)
+			SetLastError(dwFirstError);
+	}
+
 	SystemObject::DeleteMemoryBlock(wString);
 
 	// Restitution du mode courant de gestion des erreurs
