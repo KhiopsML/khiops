@@ -259,17 +259,42 @@ void StandardGetInputString(char* sBuffer, FILE* fInput)
 // Fonction utilitaire propre a Windows de formatage d'un message d'erreur
 static void FormatErrorMessage(char* sErrorMessage)
 {
-	TCHAR szMessage[SYSTEM_MESSAGE_LENGTH + 1];
-	size_t nConvertedSize;
 	int nErrorMessageLength;
+	DWORD dwErrorCode;
+	DWORD dwResult;
+	WCHAR wErrorMessage[SYSTEM_MESSAGE_LENGTH + 1];
 
-	// Formatage du message d'erreur
-	FormatMessage(FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(),
-		      MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), szMessage, MAX_PATH, NULL);
+	// Capture du code d'erreur
+	dwErrorCode = GetLastError();
 
-	// Conversion entre differents types de chaines de caracteres
-	// https://docs.microsoft.com/fr-fr/cpp/text/how-to-convert-between-various-string-types?view=msvc-160
-	wcstombs_s(&nConvertedSize, sErrorMessage, SYSTEM_MESSAGE_LENGTH, szMessage, SYSTEM_MESSAGE_LENGTH);
+	// Initialisation complete du buffer a zero pour eviter tout probleme de caracteres residuels
+	memset(sErrorMessage, 0, SYSTEM_MESSAGE_LENGTH + 1);
+	memset(wErrorMessage, 0, sizeof(wErrorMessage));
+
+	// Formatage du message d'erreur en Unicode (UTF-16)
+	// Utilise FormatMessageW au lieu de FormatMessageA pour obtenir directement de l'Unicode
+	// Utilise 0 pour la langue (langue systeme par defaut)
+	dwResult = FormatMessageW(FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM, NULL, dwErrorCode,
+				  0, // Langue systeme par defaut
+				  wErrorMessage, SYSTEM_MESSAGE_LENGTH, NULL);
+
+	// Si FormatMessageW a echoue ou retourne vide
+	if (dwResult == 0 || wErrorMessage[0] == L'\0')
+	{
+		snprintf(sErrorMessage, SYSTEM_MESSAGE_LENGTH, "System error %lu", dwErrorCode);
+		return;
+	}
+
+	// Conversion de UTF-16 (wchar_t) vers UTF-8 (char)
+	int nConvertedBytes =
+	    WideCharToMultiByte(CP_UTF8, 0, wErrorMessage, -1, sErrorMessage, SYSTEM_MESSAGE_LENGTH, NULL, NULL);
+
+	// Si la conversion a echoue
+	if (nConvertedBytes == 0)
+	{
+		snprintf(sErrorMessage, SYSTEM_MESSAGE_LENGTH, "System error %lu (encoding error)", dwErrorCode);
+		return;
+	}
 
 	// Supression du saut de ligne en fin de chaine
 	nErrorMessageLength = (int)strlen(sErrorMessage);
@@ -284,6 +309,22 @@ static void FormatErrorMessage(char* sErrorMessage)
 		// Ok sinon
 		else
 			break;
+	}
+
+	// Ajout d'un conseil specifique pour les erreurs courantes de chargement de DLL
+	// ERROR_MOD_NOT_FOUND (126) : module non trouve (souvent une dependance manquante)
+	// ERROR_BAD_EXE_FORMAT (193) : mauvais format exe (32/64 bits mismatch)
+	if (dwErrorCode == 126)
+	{
+		// L'erreur 126 signifie generalement qu'une dependance de la DLL est manquante
+		// Le message Windows est generique et ne precise pas quelle dependance manque
+		strncat(sErrorMessage, " This usually means a dependency DLL is missing.",
+			SYSTEM_MESSAGE_LENGTH - strlen(sErrorMessage) - 1);
+	}
+	else if (dwErrorCode == 193)
+	{
+		strncat(sErrorMessage, " Check for 32/64-bit architecture mismatch.",
+			SYSTEM_MESSAGE_LENGTH - strlen(sErrorMessage) - 1);
 	}
 }
 
