@@ -78,6 +78,9 @@ _GUI_SUPPORTED=@GUI_SUPPORTED@
 # Drivers search path
 KHIOPS_DRIVERS_PATH="@KHIOPS_DRIVERS_PATH@"
 
+# Export KHIOPS_DRIVERS_PATH so that the MODL_* binaries can use it to find the drivers.
+export KHIOPS_DRIVERS_PATH
+
 if [ -z "$KHIOPS_MPI_VERBOSE" ]; then
     KHIOPS_MPI_VERBOSE="true"
 fi
