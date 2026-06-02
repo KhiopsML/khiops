@@ -2,6 +2,32 @@
 Release Notes for Khiops
 ========================
 
+Version 11.0.1
+==================
+
+New features
+------------
+
+Text analysis performance:
+- Parallelization of token collection for text analysis: significant speedup on large text datasets
+
+Fixes
+-----
+- Fix optimization issue with ngram tokenization on very large text datasets (100,000+ ngrams)
+- Fix trailing quote inconsistency between Windows and UNIX for very long quoted strings
+- Fix DLL loading error messages encoding and improve diagnostics on Windows
+- Improve DLL dependency search using LoadLibraryExW on Windows
+- Fix misconfiguration of KHIOPS_DRIVERS_PATH
+- Activate Raw GUI mode when external drivers are installed
+- Fields containing double-quotes in the middle now raise proper warnings
+- Add warning for instances x variables coclustering with less than two variables
+
+Distribution
+------------
+- New khiops-core pip package published on PyPI
+- New khiops-kni pip package for the Khiops Native Interface, including Python bindings and tutorial examples
+- Ubuntu 26.04 support added
+
 Version 11.0.0
 ==================
 
