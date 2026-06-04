@@ -8,6 +8,11 @@ on:
         type: choice
         default: None  # no publishing to any Package Index by default
         options: [None, testpypi, pypi]
+      signature-activation:
+        type: boolean
+        required: true
+        default: false
+        description: Sign Windows binaries in khiops-core and khiops-kni wheels
   push:
     tags: ['*']
   pull_request:
@@ -22,6 +27,8 @@ on:
 defaults:
   run:
     shell: bash
+env:
+  KEYPAIR: KP_Khiops_HSM
 jobs:
   build-wheel:
     name: Build wheel
@@ -65,16 +72,17 @@ jobs:
           python -m pip install --find-links=wheelhouse khiops-core
           pip show -f khiops-core
       - name: Export BIN_DIR
+        id: export_bin_dir
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/Scripts" >> "$GITHUB_ENV"
+            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/Scripts" >> "$GITHUB_OUTPUT"
           else
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_ENV"
+            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_OUTPUT"
           fi
       - name: Check Khiops core installation
         uses: ./.github/actions/test-khiops-install
         with:
-          binary-path: ${{ env.BIN_DIR }}
+          binary-path: ${{ steps.export_bin_dir.outputs.BIN_DIR }}
       - name: Move pyproject-kni file to the root of the repository
         run: |
           mv packaging/pip/pyproject-kni.toml pyproject.toml
@@ -86,8 +94,69 @@ jobs:
       - name: Build knitransfer wheels
         uses: pypa/cibuildwheel@v3.4.1
       - uses: actions/upload-artifact@v7
+        if: runner.os != 'Windows'
         with:
           name: pkg-wheel-${{ matrix.os }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: runner.os == 'Windows'
+        with:
+          name: wheelhouse-windows-unsigned
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+  sign-wheel-windows:
+    name: Sign Windows wheels
+    needs: [build-wheel]
+    runs-on: windows-2025-vs2026
+    env:
+      SIGN_WINDOWS_WHEELS: ${{ github.event_name == 'workflow_dispatch' && inputs.signature-activation }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: wheelhouse-windows-unsigned
+          path: wheelhouse
+      - name: Install Python
+        if: env.SIGN_WINDOWS_WHEELS == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+      - name: Install wheel package
+        if: env.SIGN_WINDOWS_WHEELS == 'true'
+        run: python -m pip install wheel
+      - name: Unpack khiops-core and khiops-kni wheels
+        if: env.SIGN_WINDOWS_WHEELS == 'true'
+        run: |
+          mkdir -p wheelhouse/unpacked
+          python -m wheel unpack wheelhouse/khiops_core-*.whl --dest wheelhouse/unpacked
+          python -m wheel unpack wheelhouse/khiops_kni-*.whl --dest wheelhouse/unpacked
+      - name: Setup SM_CLIENT_CERT_FILE from base64 secret data
+        if: env.SIGN_WINDOWS_WHEELS == 'true'
+        run: |
+          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV"
+          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
+      - name: Sign unpacked wheel binaries
+        if: env.SIGN_WINDOWS_WHEELS == 'true'
+        uses: digicert/code-signing-software-trust-action@v1.2.1
+        with:
+          input: wheelhouse/unpacked/
+          keypair-alias: ${{ env.KEYPAIR }}
+          simple-signing-mode: true
+        env:
+          SM_HOST: ${{ secrets.SM_HOST }}
+          SM_API_KEY: ${{ secrets.SM_API_KEY }}
+          SM_CLIENT_CERT_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
+      - name: Repack signed wheels
+        if: env.SIGN_WINDOWS_WHEELS == 'true'
+        run: |
+          rm wheelhouse/khiops_core-*.whl
+          rm wheelhouse/khiops_kni-*.whl
+          python -m wheel pack wheelhouse/unpacked/khiops_core-* --dest-dir wheelhouse
+          python -m wheel pack wheelhouse/unpacked/khiops_kni-* --dest-dir wheelhouse
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pkg-wheel-windows-2025-vs2026
           path: wheelhouse/*.whl
           if-no-files-found: error
   test-khiops-core-wheel:
@@ -103,7 +172,7 @@ jobs:
     runs-on: ${{ matrix.setup.os }}
     container: ${{ matrix.setup.image }}
     name: Test wheel
-    needs: [build-wheel]
+    needs: [build-wheel, sign-wheel-windows]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v8
@@ -136,15 +205,16 @@ jobs:
         shell: bash
         run: echo "PYTHON=python" >> "$GITHUB_ENV"
       - name: Install built wheel in a custom directory
+        id: install_khiops_core
         run: |
           KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
           $PYTHON -m venv "$KHIOPS_INSTALL_DIR"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             source "$KHIOPS_INSTALL_DIR/Scripts/activate"
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/Scripts" >> "$GITHUB_ENV"
+            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/Scripts" >> "$GITHUB_OUTPUT"
           else
             source "$KHIOPS_INSTALL_DIR/bin/activate"
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_ENV"
+            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_OUTPUT"
           fi
           $PYTHON -m pip install --find-links=wheelhouse khiops-core
           $PYTHON -m pip show -f khiops-core
@@ -154,12 +224,12 @@ jobs:
           warning_as_error: true
           running-mode: parallel
           config: release
-          binary-path: ${{ env.BIN_DIR }}
+          binary-path: ${{ steps.install_khiops_core.outputs.BIN_DIR }}
           testing-context-description: pip-test-${{ matrix.setup.os }}-${{ matrix.setup.image
             }}
   test-kni:
     name: Test KNI Python wheel
-    needs: [build-wheel]
+    needs: [build-wheel, sign-wheel-windows]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -247,7 +317,7 @@ jobs:
           verbose: true
           repository-url: https://test.pypi.org/legacy/
   release-pypi:
-     # Publish only on tag pushes in the KhiopsML repository
+    # Publish only on tag pushes in the KhiopsML repository
     name: Publish to PyPI.org
     if: github.ref_type == 'tag' && github.repository_owner == 'KhiopsML' && inputs.python_repository
       == 'pypi'
