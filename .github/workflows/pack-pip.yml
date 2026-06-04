@@ -8,6 +8,11 @@ on:
         type: choice
         default: None  # no publishing to any Package Index by default
         options: [None, testpypi, pypi]
+      signature-activation:
+        type: boolean
+        required: true
+        default: false
+        description: Sign Windows binaries in khiops-core and khiops-kni wheels
   push:
     tags: ['*']
   pull_request:
@@ -22,6 +27,8 @@ on:
 defaults:
   run:
     shell: bash
+env:
+  KEYPAIR: KP_Khiops_HSM
 jobs:
   build-wheel:
     name: Build wheel
@@ -86,8 +93,62 @@ jobs:
       - name: Build knitransfer wheels
         uses: pypa/cibuildwheel@v3.4.1
       - uses: actions/upload-artifact@v7
+        if: runner.os != 'Windows'
         with:
           name: pkg-wheel-${{ matrix.os }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: runner.os == 'Windows'
+        with:
+          name: wheelhouse-windows-unsigned
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+  sign-wheel-windows:
+    name: Sign Windows wheels
+    needs: [build-wheel]
+    runs-on: windows-2025-vs2026
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: wheelhouse-windows-unsigned
+          path: wheelhouse
+      - name: Install Python
+        if: github.event_name == 'workflow_dispatch' && inputs.signature-activation
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+      - name: Install wheel package
+        if: github.event_name == 'workflow_dispatch' && inputs.signature-activation
+        run: python -m pip install wheel
+      - name: Unpack khiops-core and khiops-kni wheels
+        if: github.event_name == 'workflow_dispatch' && inputs.signature-activation
+        run: |
+          mkdir -p wheelhouse/unpacked
+          python -m wheel unpack wheelhouse/khiops_core-*.whl --dest wheelhouse/unpacked
+          python -m wheel unpack wheelhouse/khiops_kni-*.whl --dest wheelhouse/unpacked
+      - name: Sign unpacked wheel binaries
+        if: github.event_name == 'workflow_dispatch' && inputs.signature-activation
+        uses: digicert/code-signing-software-trust-action@v1.2.1
+        with:
+          input: wheelhouse/unpacked/
+          keypair-alias: ${{ env.KEYPAIR }}
+          simple-signing-mode: true
+        env:
+          SM_HOST: ${{ secrets.SM_HOST }}
+          SM_API_KEY: ${{ secrets.SM_API_KEY }}
+          SM_CLIENT_CERT_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
+      - name: Repack signed wheels
+        if: github.event_name == 'workflow_dispatch' && inputs.signature-activation
+        run: |
+          rm wheelhouse/khiops_core-*.whl
+          rm wheelhouse/khiops_kni-*.whl
+          python -m wheel pack wheelhouse/unpacked/khiops_core-* --dest-dir wheelhouse
+          python -m wheel pack wheelhouse/unpacked/khiops_kni-* --dest-dir wheelhouse
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pkg-wheel-windows-2025-vs2026
           path: wheelhouse/*.whl
           if-no-files-found: error
   test-khiops-core-wheel:
@@ -103,7 +164,7 @@ jobs:
     runs-on: ${{ matrix.setup.os }}
     container: ${{ matrix.setup.image }}
     name: Test wheel
-    needs: [build-wheel]
+    needs: [build-wheel, sign-wheel-windows]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v8
@@ -159,7 +220,7 @@ jobs:
             }}
   test-kni:
     name: Test KNI Python wheel
-    needs: [build-wheel]
+    needs: [build-wheel, sign-wheel-windows]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
