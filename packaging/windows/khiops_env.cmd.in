@@ -84,18 +84,23 @@ set "KHIOPS_COCLUSTERING_PATH=%_KHIOPS_HOME%\@BIN_PATH@\MODL_Coclustering.exe"
 REM KHIOPS_LAST_RUN_DIR
 if "%KHIOPS_LAST_RUN_DIR%". == "". set "KHIOPS_LAST_RUN_DIR=%USERPROFILE%\khiops_data\lastrun"
 
-REM KHIOPS_PROC_NUMBER
 @SET_PROC_NUMBER@
-if "%KHIOPS_PROC_NUMBER%". == "". set "KHIOPS_PROC_NUMBER=1"
 
-REM Set MPI binary (mpiexec)
-if %KHIOPS_PROC_NUMBER% LEQ 2 goto MPI_DONE
+REM Determine MPI usage based on KHIOPS_PROC_NUMBER
+REM - If KHIOPS_PROC_NUMBER <= 2: sequential mode (no MPI)
+REM - If KHIOPS_PROC_NUMBER is unset or > 2: set MPI command
+
+REM Set MPI command path
 goto @SET_MPI@
 
-:MPI_PARAMS
-REM Add the MPI parameters if needed
-if not "%KHIOPS_MPI_COMMAND%." == "." if not "%KHIOPS_PROC_NUMBER%." == "." set "KHIOPS_MPI_COMMAND="%KHIOPS_MPI_COMMAND%" -n %KHIOPS_PROC_NUMBER%"
 :MPI_DONE
+REM Append proc number to MPI command if defined (only if MPI command is not empty)
+if defined KHIOPS_PROC_NUMBER (
+	if defined KHIOPS_MPI_COMMAND set "KHIOPS_MPI_COMMAND=%KHIOPS_MPI_COMMAND% -n %KHIOPS_PROC_NUMBER%"
+	REM If KHIOPS_PROC_NUMBER <= 2, clear MPI command (use serial mode)
+	if "%KHIOPS_PROC_NUMBER%"=="1" set "KHIOPS_MPI_COMMAND="
+	if "%KHIOPS_PROC_NUMBER%"=="2" set "KHIOPS_MPI_COMMAND="
+)
 
 set _KHIOPS_GUI=@GUI_STATUS@
 if "%_KHIOPS_GUI%" == "false" GOTO SKIP_GUI
@@ -148,32 +153,22 @@ exit /b 0
 
 REM Set mpiexec path for conda installation
 :SET_MPI_CONDA
-set "KHIOPS_MPI_COMMAND=%_KHIOPS_HOME%\bin\mpiexec.exe"
-if not exist "%KHIOPS_MPI_COMMAND%" goto ERR_MPI
-goto MPI_PARAMS
+set "KHIOPS_MPI_COMMAND="%_KHIOPS_HOME%\bin\mpiexec.exe""
+if not exist %KHIOPS_MPI_COMMAND% goto ERR_MPI
+goto MPI_DONE
 
 REM Set mpiexec path for pip installation
 :SET_MPI_PIP
-set "KHIOPS_MPI_COMMAND=%_KHIOPS_HOME%\Library\bin\mpiexec.exe"
+set "KHIOPS_MPI_COMMAND="%_KHIOPS_HOME%\Library\bin\mpiexec.exe""
 set "KHIOPS_MPI_DLL_PATH=%_KHIOPS_HOME%\Library\bin\"
-if not exist "%KHIOPS_MPI_COMMAND%" goto ERR_MPI
-goto MPI_PARAMS
+if not exist %KHIOPS_MPI_COMMAND% goto ERR_MPI
+goto MPI_DONE
 
 REM Set mpiexec path for system wide installation
 :SET_MPI_SYSTEM_WIDE
-REM ... with the standard variable MSMPI_BIN
-set "KHIOPS_MPI_COMMAND=%MSMPI_BIN%mpiexec.exe"
-if  exist "%KHIOPS_MPI_COMMAND%" goto MPI_PARAMS
-REM ... if MSMPI_BIN is not correctly defined 
-REM ... we try to call directly mpiexec (assuming its path is in the 'path' variable)
-set "KHIOPS_MPI_COMMAND=mpiexec"
-where /q "%KHIOPS_MPI_COMMAND%"
-if ERRORLEVEL 1 goto ERR_MPI
-REM ... finally we check if it is the good MPI implementation: "Microsoft MPI"
-"%KHIOPS_MPI_COMMAND%" | findstr /c:"Microsoft MPI" > nul
-if ERRORLEVEL 1 goto ERR_MPI_IMPL
-goto MPI_PARAMS
-
+set "KHIOPS_MPI_COMMAND="%_KHIOPS_HOME%\@BIN_PATH@\mpiexec.exe""
+if not exist %KHIOPS_MPI_COMMAND% goto ERR_MPI
+goto MPI_DONE
 
 :ERR_MPI
 set "KHIOPS_MPI_ERROR=We didn't find mpiexec in the regular path. Parallel computation is unavailable: Khiops is launched in serial"

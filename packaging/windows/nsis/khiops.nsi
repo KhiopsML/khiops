@@ -41,6 +41,7 @@ ManifestDPIAware true
 !insertmacro CheckInputParameter KHIOPS_VIZ_INSTALLER_PATH
 !insertmacro CheckInputParameter JRE_PATH
 !insertmacro CheckInputParameter KHIOPS_SAMPLES_DIR
+!insertmacro CheckInputParameter INTEL_MPI_BIN_DIR
 !insertmacro CheckInputParameter INTEL_MPI_LICENSES_DIR
 
 # Sign uninstaller if requested
@@ -161,10 +162,10 @@ Section "Install" SecInstall
 	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops_coclustering.cmd"
 
 	# Install Intel MPI redistributable
-	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\mpi\bin\hydra_bstrap_proxy.exe"
-	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\mpi\bin\hydra_pmi_proxy.exe"
-	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\mpi\bin\mpiexec.exe"
-	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\mpi\bin\impi.dll"
+	File "${INTEL_MPI_BIN_DIR}\hydra_bstrap_proxy.exe"
+	File "${INTEL_MPI_BIN_DIR}\hydra_pmi_proxy.exe"
+	File "${INTEL_MPI_BIN_DIR}\mpiexec.exe"
+	File "${INTEL_MPI_BIN_DIR}\impi.dll"
 
 	# Install third-party licenses (Intel MPI)
 	SetOutPath "$INSTDIR\licenses"
