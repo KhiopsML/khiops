@@ -37,13 +37,13 @@ void CCDeploymentSpec::CopyFrom(const CCDeploymentSpec* aSource)
 {
 	require(aSource != NULL);
 
-	sInputClassName = aSource->sInputClassName;
-	sInputObjectArrayAttributeName = aSource->sInputObjectArrayAttributeName;
-	sDeployedAttributeName = aSource->sDeployedAttributeName;
 	bBuildPredictedClusterAttribute = aSource->bBuildPredictedClusterAttribute;
 	bBuildClusterDistanceAttributes = aSource->bBuildClusterDistanceAttributes;
 	bBuildFrequencyRecodingAttributes = aSource->bBuildFrequencyRecodingAttributes;
 	sOutputAttributesPrefix = aSource->sOutputAttributesPrefix;
+	sInputClassName = aSource->sInputClassName;
+	sInputObjectArrayAttributeName = aSource->sInputObjectArrayAttributeName;
+	sDeployedAttributeName = aSource->sDeployedAttributeName;
 
 	// ## Custom copyfrom
 
@@ -65,15 +65,14 @@ CCDeploymentSpec* CCDeploymentSpec::Clone() const
 
 void CCDeploymentSpec::Write(ostream& ost) const
 {
-	ost << "Input dictionary\t" << GetInputClassName() << "\n";
-	if (GetInputObjectArrayAttributeName() != "")
-		ost << "Input table variable\t" << GetInputObjectArrayAttributeName() << "\n";
-	ost << "Coclustering deployed variable\t" << GetDeployedAttributeName() << "\n";
 	ost << "Build predicted cluster variable\t" << BooleanToString(GetBuildPredictedClusterAttribute()) << "\n";
 	ost << "Build inter-cluster distance variables\t" << BooleanToString(GetBuildClusterDistanceAttributes())
 	    << "\n";
 	ost << "Build frequency recoding variables\t" << BooleanToString(GetBuildFrequencyRecodingAttributes()) << "\n";
 	ost << "Output variables prefix\t" << GetOutputAttributesPrefix() << "\n";
+	ost << "Input dictionary\t" << GetInputClassName() << "\n";
+	ost << "Input table variable\t" << GetInputObjectArrayAttributeName() << "\n";
+	ost << "Coclustering deployed variable\t" << GetDeployedAttributeName() << "\n";
 }
 
 const ALString CCDeploymentSpec::GetClassLabel() const
@@ -133,7 +132,7 @@ boolean CCDeploymentSpec::PrepareCoclusteringDeployment(const CCHierarchicalData
 		    cast(CCHDGAttribute*, coclusteringDataGrid->SearchAttribute(GetDeployedAttributeName()));
 
 		//////////////////////////////////////////////////////////////////////////////////////
-		// Creation du domaine de dploiement et identification des classe et attributs utiles
+		// Creation du domaine de deploiement et identification des classes et attributs utiles
 
 		// Creation du domaine de deploiement a partir de la classe de deploiement
 		kwcInputClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetInputClassName());
@@ -240,6 +239,7 @@ boolean CCDeploymentSpec::PrepareVarPartCoclusteringDeployment(const CCHierarchi
 {
 	boolean bOk = true;
 	int nAttribute;
+	CCHDGAttribute* hdgAttribute;
 	CCHDGAttribute* hdgDeploymentAttribute;
 	KWClass* kwcInputClass;
 	KWClass* kwcDeploymentClass;
@@ -352,6 +352,29 @@ boolean CCDeploymentSpec::PrepareVarPartCoclusteringDeployment(const CCHierarchi
 		    AddPartLabelAttribute(kwcDeploymentClass, predictedPartIndexAttribute, labelVectorAttribute,
 					  hdgDeploymentAttribute, "Predicted");
 		assert(predictedPartLabelAttribute != NULL); // Pour eviter un warning
+
+		// Creation d'attributs de distance pour l'attribut de deploiement
+		if (GetBuildClusterDistanceAttributes())
+		{
+			AddPredictedPartDistancesAttributes(kwcDeploymentClass, dataGridDeploymentAttribute,
+							    hdgDeploymentAttribute);
+		}
+
+		// Creation d'attributs d'effectif pour les attributs de distribution
+		if (GetBuildFrequencyRecodingAttributes())
+		{
+			for (nAttribute = 0; nAttribute < coclusteringDataGrid->GetAttributeNumber(); nAttribute++)
+			{
+				hdgAttribute = cast(CCHDGAttribute*, coclusteringDataGrid->GetAttributeAt(nAttribute));
+
+				// Si attribut different de l'attribut de deploiement
+				if (hdgAttribute != hdgDeploymentAttribute)
+				{
+					AddPredictedPartFrequenciesAttributesAt(
+					    kwcDeploymentClass, dataGridDeploymentAttribute, hdgAttribute);
+				}
+			}
+		}
 
 		// Completion des infos
 		deploymentDomain->CompleteTypeInfo();
@@ -686,6 +709,12 @@ void CCDeploymentSpec::FillInputClassAndAttributeNames(CCPostProcessingSpec* pos
 			}
 		}
 	}
+}
+
+const ALString& CCDeploymentSpec::GetInnerVariableMetaDataKey()
+{
+	static const ALString sMetaDataKey = "InnerVariable";
+	return sMetaDataKey;
 }
 
 KWAttribute* CCDeploymentSpec::AddDataGridAttribute(KWClass* kwcDeploymentClass,
@@ -1276,6 +1305,7 @@ KWAttribute* CCDeploymentSpec::AddInnerAttributePartitionLabelAttribute(KWClass*
 	KWAttribute* dgAttribute;
 	KWDerivationRuleOperand* partIndexOperand1;
 	KWDerivationRuleOperand* partIndexOperand2;
+	ALString sInnerAttributeName;
 
 	require(GetVarPartDeploymentMode());
 	require(kwcDeploymentClass != NULL);
@@ -1303,7 +1333,18 @@ KWAttribute* CCDeploymentSpec::AddInnerAttributePartitionLabelAttribute(KWClass*
 	partIndexOperand2->SetAttributeName(ivIndexAttribute->GetName());
 	varPartRule->AddOperand(partIndexOperand2);
 
+	// Extraction du nom de l'inner variable pour construire le label
+	sInnerAttributeName = ivIndexAttribute->GetName();
+	sInnerAttributeName = sInnerAttributeName.Left(sInnerAttributeName.Find("PartitionIndex"));
+	sInnerAttributeName =
+	    sInnerAttributeName.Right(sInnerAttributeName.GetLength() - GetOutputAttributesPrefix().GetLength());
+
+	// Creation des meta-donnees permettant de retrouver automatiquement l'attribut
 	dgAttribute->SetUsed(false);
+	dgAttribute->GetMetaData()->SetStringValueAt(GetInnerVariableMetaDataKey(), sInnerAttributeName);
+	dgAttribute->GetMetaData()->SetNoValueAt("PartLabel");
+
+	// Insertion de l'attribut
 	kwcDeploymentClass->InsertAttribute(dgAttribute);
 	return dgAttribute;
 }

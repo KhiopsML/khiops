@@ -38,18 +38,6 @@ public:
 	///////////////////////////////////////////////////////////
 	// Acces aux attributs
 
-	// Input dictionary
-	const ALString& GetInputClassName() const;
-	void SetInputClassName(const ALString& sValue);
-
-	// Input table variable
-	const ALString& GetInputObjectArrayAttributeName() const;
-	void SetInputObjectArrayAttributeName(const ALString& sValue);
-
-	// Coclustering deployed variable
-	const ALString& GetDeployedAttributeName() const;
-	void SetDeployedAttributeName(const ALString& sValue);
-
 	// Build predicted cluster variable
 	boolean GetBuildPredictedClusterAttribute() const;
 	void SetBuildPredictedClusterAttribute(boolean bValue);
@@ -65,6 +53,18 @@ public:
 	// Output variables prefix
 	const ALString& GetOutputAttributesPrefix() const;
 	void SetOutputAttributesPrefix(const ALString& sValue);
+
+	// Input dictionary
+	const ALString& GetInputClassName() const;
+	void SetInputClassName(const ALString& sValue);
+
+	// Input table variable
+	const ALString& GetInputObjectArrayAttributeName() const;
+	void SetInputObjectArrayAttributeName(const ALString& sValue);
+
+	// Coclustering deployed variable
+	const ALString& GetDeployedAttributeName() const;
+	void SetDeployedAttributeName(const ALString& sValue);
 
 	///////////////////////////////////////////////////////////
 	// Divers
@@ -117,18 +117,20 @@ public:
 	void FillInputClassAndAttributeNames(CCPostProcessingSpec* postProcessingSpec);
 
 	// ##
+	// Cles de meta-donnees pour les dictionnaires de deploiement d'un coclustering
+	static const ALString& GetInnerVariableMetaDataKey();
 
 	////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	// Attributs de la classe
-	ALString sInputClassName;
-	ALString sInputObjectArrayAttributeName;
-	ALString sDeployedAttributeName;
 	boolean bBuildPredictedClusterAttribute;
 	boolean bBuildClusterDistanceAttributes;
 	boolean bBuildFrequencyRecodingAttributes;
 	ALString sOutputAttributesPrefix;
+	ALString sInputClassName;
+	ALString sInputObjectArrayAttributeName;
+	ALString sDeployedAttributeName;
 
 	// ## Custom implementation
 
@@ -200,36 +202,6 @@ protected:
 ////////////////////////////////////////////////////////////
 // Implementations inline
 
-inline const ALString& CCDeploymentSpec::GetInputClassName() const
-{
-	return sInputClassName;
-}
-
-inline void CCDeploymentSpec::SetInputClassName(const ALString& sValue)
-{
-	sInputClassName = sValue;
-}
-
-inline const ALString& CCDeploymentSpec::GetInputObjectArrayAttributeName() const
-{
-	return sInputObjectArrayAttributeName;
-}
-
-inline void CCDeploymentSpec::SetInputObjectArrayAttributeName(const ALString& sValue)
-{
-	sInputObjectArrayAttributeName = sValue;
-}
-
-inline const ALString& CCDeploymentSpec::GetDeployedAttributeName() const
-{
-	return sDeployedAttributeName;
-}
-
-inline void CCDeploymentSpec::SetDeployedAttributeName(const ALString& sValue)
-{
-	sDeployedAttributeName = sValue;
-}
-
 inline boolean CCDeploymentSpec::GetBuildPredictedClusterAttribute() const
 {
 	return bBuildPredictedClusterAttribute;
@@ -268,6 +240,36 @@ inline const ALString& CCDeploymentSpec::GetOutputAttributesPrefix() const
 inline void CCDeploymentSpec::SetOutputAttributesPrefix(const ALString& sValue)
 {
 	sOutputAttributesPrefix = sValue;
+}
+
+inline const ALString& CCDeploymentSpec::GetInputClassName() const
+{
+	return sInputClassName;
+}
+
+inline void CCDeploymentSpec::SetInputClassName(const ALString& sValue)
+{
+	sInputClassName = sValue;
+}
+
+inline const ALString& CCDeploymentSpec::GetInputObjectArrayAttributeName() const
+{
+	return sInputObjectArrayAttributeName;
+}
+
+inline void CCDeploymentSpec::SetInputObjectArrayAttributeName(const ALString& sValue)
+{
+	sInputObjectArrayAttributeName = sValue;
+}
+
+inline const ALString& CCDeploymentSpec::GetDeployedAttributeName() const
+{
+	return sDeployedAttributeName;
+}
+
+inline void CCDeploymentSpec::SetDeployedAttributeName(const ALString& sValue)
+{
+	sDeployedAttributeName = sValue;
 }
 
 // ## Custom inlines
