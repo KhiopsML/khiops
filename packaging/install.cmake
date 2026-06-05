@@ -281,6 +281,18 @@ else(IS_LINUX OR IS_MACOS)
   if(IS_MSMPI)
     file(READ packaging/windows/set_proc_number.cmd SET_PROC_NUMBER)
   endif()
+
+  if(IS_INTEL_MPI)
+
+    get_filename_component(INTEL_MPI_BIN_DIR "${MPIEXEC_EXECUTABLE}" DIRECTORY)
+    set(INTEL_MPI_STAGING_BIN_DIR "${TMP_DIR}/mpi/bin")
+    file(MAKE_DIRECTORY ${INTEL_MPI_STAGING_BIN_DIR})
+    set(INTEL_MPI_REDISTRIBUTABLE_FILES hydra_bstrap_proxy.exe hydra_pmi_proxy.exe impi.dll mpiexec.exe)
+    foreach(INTEL_MPI_REDISTRIBUTABLE_FILE IN LISTS INTEL_MPI_REDISTRIBUTABLE_FILES)
+      configure_file(${INTEL_MPI_BIN_DIR}/${INTEL_MPI_REDISTRIBUTABLE_FILE}
+                     ${INTEL_MPI_STAGING_BIN_DIR}/${INTEL_MPI_REDISTRIBUTABLE_FILE} COPYONLY)
+    endforeach()
+  endif()
   configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops_env.cmd.in ${TMP_DIR}/khiops_env.cmd @ONLY
                  NEWLINE_STYLE CRLF)
 
@@ -298,6 +310,13 @@ else(IS_LINUX OR IS_MACOS)
 
   install(TARGETS MODL MODL_Coclustering _khiopsgetprocnumber RUNTIME DESTINATION ${BIN_INSTALL_DIR}
                                                                       COMPONENT KHIOPS_CORE)
+  if(IS_INTEL_MPI)
+    install(
+      FILES ${INTEL_MPI_STAGING_BIN_DIR}/hydra_bstrap_proxy.exe ${INTEL_MPI_STAGING_BIN_DIR}/hydra_pmi_proxy.exe
+            ${INTEL_MPI_STAGING_BIN_DIR}/impi.dll ${INTEL_MPI_STAGING_BIN_DIR}/mpiexec.exe
+      DESTINATION ${BIN_INSTALL_DIR}
+      COMPONENT KHIOPS_CORE)
+  endif()
   install(
     PROGRAMS ${TMP_DIR}/khiops.cmd ${TMP_DIR}/khiops_coclustering.cmd ${TMP_DIR}/khiops_env.cmd
     DESTINATION ${BIN_INSTALL_DIR}
