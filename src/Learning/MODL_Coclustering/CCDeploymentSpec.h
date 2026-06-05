@@ -23,7 +23,7 @@
 
 ////////////////////////////////////////////////////////////
 // Classe CCDeploymentSpec
-//    Deployment parameters
+//    Variable x variable parameters
 class CCDeploymentSpec : public Object
 {
 public:
@@ -117,6 +117,8 @@ public:
 	void FillInputClassAndAttributeNames(CCPostProcessingSpec* postProcessingSpec);
 
 	// ##
+	// Cles de meta-donnees pour les dictionnaires de deploiement d'un coclustering
+	static const ALString& GetInnerVariableMetaDataKey();
 
 	////////////////////////////////////////////////////////
 	///// Implementation

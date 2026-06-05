@@ -75,6 +75,9 @@ public:
 	const ALString& GetFrequencyAttributeName() const;
 	void SetFrequencyAttributeName(const ALString& sValue);
 
+	// Identifier variable (in case of instances * variables coclustering only)
+	const ALString& GetIdentifierAttributeName() const;
+
 	///////////////////////////////////////////////////////////
 	// Divers
 
@@ -121,6 +124,7 @@ protected:
 	int nTotalPartNumber;
 	int nMaxTotalPartNumber;
 	ALString sFrequencyAttributeName;
+	ALString sIdentifierAttributeName;
 
 	// ## Custom implementation
 
@@ -231,6 +235,11 @@ inline const ALString& CCPostProcessingSpec::GetFrequencyAttributeName() const
 inline void CCPostProcessingSpec::SetFrequencyAttributeName(const ALString& sValue)
 {
 	sFrequencyAttributeName = sValue;
+}
+
+inline const ALString& CCPostProcessingSpec::GetIdentifierAttributeName() const
+{
+	return sIdentifierAttributeName;
 }
 
 // ## Custom inlines

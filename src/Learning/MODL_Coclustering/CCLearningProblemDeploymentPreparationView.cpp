@@ -28,7 +28,7 @@ CCLearningProblemDeploymentPreparationView::CCLearningProblemDeploymentPreparati
 
 	// Ajout des sous-fiches
 	AddCardField("PostProcessingSpec", "Simplification parameters", postProcessingSpecView);
-	AddCardField("DeploymentSpec", "Deployment parameters", deploymentSpecView);
+	AddCardField("DeploymentSpec", "Variable x variable parameters", deploymentSpecView);
 
 	// Parametrage de liste d'aide pour le nom de l'attribut de coclustering a deployer
 	deploymentSpecView->GetFieldAt("DeployedAttributeName")->SetStyle("HelpedComboBox");

@@ -11,7 +11,7 @@
 CCDeploymentSpecView::CCDeploymentSpecView()
 {
 	SetIdentifier("CCDeploymentSpec");
-	SetLabel("Deployment parameters");
+	SetLabel("Variable x variable parameters");
 	AddStringField("InputClassName", "Input dictionary", "");
 	AddStringField("InputObjectArrayAttributeName", "Input table variable", "");
 	AddStringField("DeployedAttributeName", "Coclustering deployed variable", "");
@@ -25,13 +25,16 @@ CCDeploymentSpecView::CCDeploymentSpecView()
 	// Info-bulles
 	GetFieldAt("InputClassName")
 	    ->SetHelpText("Name of the dictionary that corresponds to the deployment database"
-			  "\n that contains the instances of interest.");
+			  "\n that contains the instances of interest. For instances * variables coclustering, it is "
+			  "necessary the same as the input dictionary file.");
 	GetFieldAt("InputObjectArrayAttributeName")
 	    ->SetHelpText("Name of the table variable in the input dictionary"
-			  "\n that contains the detailed record for each instance of interest.");
+			  "\n that contains the detailed record for each instance of interest. Only needed for "
+			  "variables coclustering.");
 	GetFieldAt("DeployedAttributeName")
 	    ->SetHelpText("Name of the deployed variable, i.e. one of the coclustering variables,"
-			  "\n which represents the entity of interest.");
+			  "\n which represents the entity of interest. For instances * variables coclustering, it is "
+			  "necessary the instance variable.");
 	GetFieldAt("BuildPredictedClusterAttribute")
 	    ->SetHelpText("Indicate that the deployment model must generate a new variable"
 			  "\n containing the label of the cluster of the entity of interest.");
@@ -102,7 +105,7 @@ void CCDeploymentSpecView::EventRefresh(Object* object)
 
 const ALString CCDeploymentSpecView::GetClassLabel() const
 {
-	return "Deployment parameters";
+	return "Variable x variable parameters";
 }
 
 // ## Method implementation

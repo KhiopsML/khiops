@@ -34,7 +34,7 @@ set_khiops_options(MODL_Coclustering_DLL)
  generate_gui_add_view(CCCoclusteringSpec "Coclustering parameters" CCCoclusteringSpec.dd CCCoclusteringSpec.dd.log -noarrayview)
  generate_gui_add_view(CCPostProcessingSpec "Simplification parameters" CCPostProcessingSpec.dd CCPostProcessingSpec.dd.log -noarrayview)
  generate_gui_add_view(CCPostProcessedAttribute "Coclustering variable" CCPostProcessedAttribute.dd CCPostProcessedAttribute.dd.log)
- generate_gui_add_view(CCDeploymentSpec "Deployment parameters" CCDeploymentSpec.dd CCDeploymentSpec.dd.log -noarrayview)
+ generate_gui_add_view(CCDeploymentSpec "Variable x variable parameters" CCDeploymentSpec.dd CCDeploymentSpec.dd.log -noarrayview)
  generate_gui_add_view(CCAnalysisResults "Results" CCAnalysisResults.dd CCAnalysisResults.dd.log -noarrayview)
 # cmake-format: on
 

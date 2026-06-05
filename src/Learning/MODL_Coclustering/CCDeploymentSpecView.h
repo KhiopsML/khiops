@@ -18,7 +18,7 @@
 
 ////////////////////////////////////////////////////////////
 // Classe CCDeploymentSpecView
-//    Deployment parameters
+//    Variable x variable parameters
 // Editeur de CCDeploymentSpec
 class CCDeploymentSpecView : public UIObjectView
 {

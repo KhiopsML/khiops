@@ -292,7 +292,7 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 		bOk = coclusteringReport.ReadReportHeader(sCoclusteringReportFileName, &coclusteringDataGrid,
 							  nInstanceNumber, nNonEmptyCellNumber);
 
-	// On rappatrie les informations du rapport
+	// On rapatrie les informations du rapport
 	if (bOk)
 	{
 		// Attribute identifiant (coclustering instances * variables)
@@ -304,6 +304,9 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 
 		// Variable de frequence
 		sFrequencyAttributeName = coclusteringDataGrid.GetFrequencyAttributeName();
+
+		// Attribute identifiant dans le cas d'un coclustering Instances * Variables
+		sIdentifierAttributeName = coclusteringDataGrid.GetIdentifierAttributeName();
 
 		// Information sur les attributs de coclustering
 		nCellNumber = 1;
@@ -323,7 +326,7 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 		}
 	}
 
-	// On rappatrie les spec precedentes si coclustering de reference est egal au nouveau coclustering
+	// On rapatrie les spec precedentes si coclustering de reference est egal au nouveau coclustering
 	if (bOk)
 	{
 		// Evaluation si le coclustering est le meme
@@ -358,7 +361,7 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 			}
 		}
 
-		// On rappartie les spec de reference en cas de matching du coclustering de reference
+		// On rapatrie les spec de reference en cas de matching du coclustering de reference
 		if (bSameCoclustering)
 			CopyFrom(&refPostProcessingSpec);
 	}

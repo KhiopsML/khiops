@@ -596,28 +596,3 @@ boolean GetSNBForceDenseMode()
 	}
 	return bSNBForceDenseMode;
 }
-
-boolean GetVarPartDeploymentMode()
-{
-	static boolean bIsInitialized = false;
-	static boolean bVarPartDeploymentModeMode = false;
-	ALString sVarPartDeploymentModeMode;
-
-	// Determination du mode au premier appel
-	if (not bIsInitialized)
-	{
-		// Recherche de la valeur de la variable d'environnement de l'option
-		sVarPartDeploymentModeMode = p_getenv("KhiopsVarPartDeploymentMode");
-		sVarPartDeploymentModeMode.MakeLower();
-
-		// Determination du mode
-		if (sVarPartDeploymentModeMode == "true")
-			bVarPartDeploymentModeMode = true;
-		else if (sVarPartDeploymentModeMode == "false")
-			bVarPartDeploymentModeMode = false;
-
-		// Memorisation du flag d'initialisation
-		bIsInitialized = true;
-	}
-	return bVarPartDeploymentModeMode;
-}
