@@ -278,6 +278,9 @@ else(IS_LINUX OR IS_MACOS)
     set(BIN_INSTALL_DIR "bin")
   endif()
 
+  if(IS_MSMPI)
+    file(READ packaging/windows/set_proc_number.cmd SET_PROC_NUMBER)
+  endif()
   configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops_env.cmd.in ${TMP_DIR}/khiops_env.cmd @ONLY
                  NEWLINE_STYLE CRLF)
 

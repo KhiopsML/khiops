@@ -1,0 +1,1 @@
+if "%KHIOPS_PROC_NUMBER%". == "". for /f %%i in ('"%~dp0_khiopsgetprocnumber"') do set "KHIOPS_PROC_NUMBER=%%i"
