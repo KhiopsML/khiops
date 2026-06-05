@@ -10,10 +10,11 @@ It installs:
   [Khiops Covisualization](https://github.com/khiopsrelease/kc-release/releases/latest) apps by
   executing their corresponding installers.
 - The JRE from [Eclipse Temurin](https://adoptium.net/fr/temurin/releases/)
-- The mpi runtime of Intel MPI
+- The mpi runtime of Intel MPI (4 redistributable files with license in `licenses/` directory)
 - The [sample datasets](https://github.com/KhiopsML/khiops-samples/releases/latest).
 - Documentation files:
   - README.txt and WHATSNEW.txt (obtained from the sources at (../../common/khiops))
+  - Third-party licenses in the `licenses/` directory
 
 
 ## How to obtain the package assets
@@ -43,6 +44,7 @@ makensis ^
    /DJRE_PATH=.\assets\jre\ ^
    /DKHIOPS_VIZ_INSTALLER_PATH=.\assets\khiops-visualization-Setup-11.0.2.exe ^
    /DKHIOPS_SAMPLES_DIR=.\assets\samples ^
+   /DINTEL_MPI_LICENSES_DIR=..\THIRD-PARTY-LICENSES ^
    khiops.nsi
 ```
 The resulting installer will be at `packaging/windows/nsis/khiops-10.2.0-rc.1-setup.exe`.

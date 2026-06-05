@@ -41,6 +41,7 @@ ManifestDPIAware true
 !insertmacro CheckInputParameter KHIOPS_VIZ_INSTALLER_PATH
 !insertmacro CheckInputParameter JRE_PATH
 !insertmacro CheckInputParameter KHIOPS_SAMPLES_DIR
+!insertmacro CheckInputParameter INTEL_MPI_LICENSES_DIR
 
 # Sign uninstaller if requested
 !ifdef SIGN
@@ -164,6 +165,11 @@ Section "Install" SecInstall
 	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\mpi\bin\hydra_pmi_proxy.exe"
 	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\mpi\bin\mpiexec.exe"
 	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\mpi\bin\impi.dll"
+
+	# Install third-party licenses (Intel MPI)
+	SetOutPath "$INSTDIR\licenses"
+	File "${INTEL_MPI_LICENSES_DIR}\README.txt"
+	File "${INTEL_MPI_LICENSES_DIR}\Intel-MPI-LICENSE.txt"
 
 	# Install Docs
 	SetOutPath "$INSTDIR"
@@ -525,6 +531,11 @@ Section "Uninstall"
 	Delete "$INSTDIR\LICENSE.txt"
 	Delete "$INSTDIR\README.txt"
 	Delete "$INSTDIR\WHATSNEW.txt"
+
+	# Delete third-party licenses
+	Delete "$INSTDIR\licenses\README.txt"
+	Delete "$INSTDIR\licenses\Intel-MPI-LICENSE.txt"
+	RMDir "$INSTDIR\licenses"
 
 	# Delete jre
 	RMDir /r "$INSTDIR\jre"
