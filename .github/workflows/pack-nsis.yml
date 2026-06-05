@@ -160,6 +160,7 @@ jobs:
             /DINTEL_MPI_DIR="${{ env.I_MPI_ROOT }}\bin" `
             /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\visualization\${{ env.KHIOPS_VIZ_FILENAME }} `
             /DKHIOPS_SAMPLES_DIR=..\..\..\samples `
+            /DINTEL_MPI_BIN_DIR=..\..\..\build\windows-msvc-release\tmp\mpi\bin `
             /DINTEL_MPI_LICENSES_DIR=..\THIRD-PARTY-LICENSES `
             /DSIGN `
             /DPATH_TO_JSIGN=D:\\jsign.jar `
@@ -181,6 +182,7 @@ jobs:
             /DINTEL_MPI_DIR="${{ env.I_MPI_ROOT }}\bin" `
             /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\visualization\${{ env.KHIOPS_VIZ_FILENAME }} `
             /DKHIOPS_SAMPLES_DIR=..\..\..\samples `
+            /DINTEL_MPI_BIN_DIR=..\..\..\build\windows-msvc-release\tmp\mpi\bin `
             /DINTEL_MPI_LICENSES_DIR=..\THIRD-PARTY-LICENSES `
             khiops.nsi
       - name: Sign installer
