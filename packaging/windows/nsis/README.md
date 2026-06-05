@@ -44,6 +44,7 @@ makensis ^
    /DJRE_PATH=.\assets\jre\ ^
    /DKHIOPS_VIZ_INSTALLER_PATH=.\assets\khiops-visualization-Setup-11.0.2.exe ^
    /DKHIOPS_SAMPLES_DIR=.\assets\samples ^
+   /DINTEL_MPI_BIN_DIR=..\..\..\build\windows-msvc-release\tmp\mpi\bin ^
    /DINTEL_MPI_LICENSES_DIR=..\THIRD-PARTY-LICENSES ^
    khiops.nsi
 ```
@@ -77,8 +78,9 @@ All the arguments are mandatory except for `DEBUG` and `SIGN`, they must be pref
 - `DEBUG`: Enables debug messages in the installer. They are "OK" message boxes.
 - `KHIOPS_VERSION`: Khiops version for the installer.
 - `KHIOPS_REDUCED_VERSION`: Khiops version without suffix and only digits and periods.
-- `KHIOPS_WINDOWS_BUILD_DIR`: Build directory for (usually `build\windows-msvc-release` relative to
-  the project root).
+- `KHIOPS_WINDOWS_BUILD_DIR`: root of the built project (usually `build\windows-msvc-release` relative to the project root). Contains khiops binaries in the `bin/` subdirectory.
 - `JRE_PATH`: Path to the Java Runtime Environment (JRE) directory.
 - `KHIOPS_VIZ_INSTALLER_PATH`: Path to the Khiops Visualization installer.
 - `KHIOPS_SAMPLES_DIR`: Path to the sample datasets directory.
+- `INTEL_MPI_BIN_DIR`: Path to the directory containing Intel MPI redistributable binaries (hydra_bstrap_proxy.exe, hydra_pmi_proxy.exe, mpiexec.exe, impi.dll). Usually `build\windows-msvc-release\tmp\mpi\bin`.
+- `INTEL_MPI_LICENSES_DIR`: Path to the directory containing Intel MPI license files (README.txt and Intel-MPI-LICENSE.txt).
