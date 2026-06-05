@@ -85,7 +85,7 @@ REM KHIOPS_LAST_RUN_DIR
 if "%KHIOPS_LAST_RUN_DIR%". == "". set "KHIOPS_LAST_RUN_DIR=%USERPROFILE%\khiops_data\lastrun"
 
 REM KHIOPS_PROC_NUMBER
-if "%KHIOPS_PROC_NUMBER%". == "". for /f %%i in ('"%~dp0_khiopsgetprocnumber"') do set "KHIOPS_PROC_NUMBER=%%i"
+@SET_PROC_NUMBER@
 if "%KHIOPS_PROC_NUMBER%". == "". set "KHIOPS_PROC_NUMBER=1"
 
 REM Set MPI binary (mpiexec)
@@ -93,8 +93,8 @@ if %KHIOPS_PROC_NUMBER% LEQ 2 goto MPI_DONE
 goto @SET_MPI@
 
 :MPI_PARAMS
-REM Add the MPI parameters
-if not "%KHIOPS_MPI_COMMAND%." == "." set "KHIOPS_MPI_COMMAND="%KHIOPS_MPI_COMMAND%" -n %KHIOPS_PROC_NUMBER%"
+REM Add the MPI parameters if needed
+if not "%KHIOPS_MPI_COMMAND%." == "." if not "%KHIOPS_PROC_NUMBER%." == "." set "KHIOPS_MPI_COMMAND="%KHIOPS_MPI_COMMAND%" -n %KHIOPS_PROC_NUMBER%"
 :MPI_DONE
 
 set _KHIOPS_GUI=@GUI_STATUS@
