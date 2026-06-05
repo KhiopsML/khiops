@@ -14,9 +14,6 @@ SetCompressor /SOLID lzma
 !include "x64.nsh"
 !include "winmessages.nsh"
 
-# Include Custom libraries
-!include "KhiopsGlobals.nsh"
-
 # Definitions for registry change notification
 !define SHCNE_ASSOCCHANGED 0x8000000
 !define SHCNF_IDLIST 0
@@ -43,7 +40,6 @@ ManifestDPIAware true
 !insertmacro CheckInputParameter KHIOPS_WINDOWS_BUILD_DIR
 !insertmacro CheckInputParameter KHIOPS_VIZ_INSTALLER_PATH
 !insertmacro CheckInputParameter JRE_PATH
-!insertmacro CheckInputParameter INTEL_MPI_DIR
 !insertmacro CheckInputParameter KHIOPS_SAMPLES_DIR
 
 # Sign uninstaller if requested
@@ -163,11 +159,11 @@ Section "Install" SecInstall
 	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops.cmd"
 	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops_coclustering.cmd"
 
-	# Install Intel MPI redistributable 
-	File "${INTEL_MPI_DIR}\hydra_bstrap_proxy.exe"
-	File "${INTEL_MPI_DIR}\hydra_pmi_proxy.exe"
-	File "${INTEL_MPI_DIR}\mpiexec.exe"
-	File "${INTEL_MPI_DIR}\impi.dll"
+	# Install Intel MPI redistributable
+	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\mpi\bin\hydra_bstrap_proxy.exe"
+	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\mpi\bin\hydra_pmi_proxy.exe"
+	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\mpi\bin\mpiexec.exe"
+	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\mpi\bin\impi.dll"
 
 	# Install Docs
 	SetOutPath "$INSTDIR"
@@ -544,6 +540,10 @@ Section "Uninstall"
 	Delete "$INSTDIR\bin\MODL_Coclustering.exe"
 	Delete "$INSTDIR\bin\_khiopsgetprocnumber.exe"
 	Delete "$INSTDIR\bin\_khiopslauncher.exe"
+	Delete "$INSTDIR\bin\hydra_bstrap_proxy.exe"
+	Delete "$INSTDIR\bin\hydra_pmi_proxy.exe"
+	Delete "$INSTDIR\bin\impi.dll"
+	Delete "$INSTDIR\bin\mpiexec.exe"
 	Delete "$INSTDIR\bin\norm.jar"
 	Delete "$INSTDIR\bin\khiops.jar"
 	Delete "$INSTDIR\bin\shell_khiops.cmd"
@@ -737,7 +737,6 @@ FunctionEnd
 
 # Requirements detection
 # - Detects if the system architecture is 64-bit
-# - Detects whether Java JRE and MPI are installed and their versions
 Function RequirementsDetection
 	# Abort installation if the machine does not have 64-bit architecture
 	${IfNot} ${RunningX64}
