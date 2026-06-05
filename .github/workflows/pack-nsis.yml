@@ -160,6 +160,7 @@ jobs:
             /DINTEL_MPI_DIR="${{ env.I_MPI_ROOT }}\bin" `
             /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\visualization\${{ env.KHIOPS_VIZ_FILENAME }} `
             /DKHIOPS_SAMPLES_DIR=..\..\..\samples `
+            /DINTEL_MPI_LICENSES_DIR=..\THIRD-PARTY-LICENSES `
             /DSIGN `
             /DPATH_TO_JSIGN=D:\\jsign.jar `
             /DSM_CERT_ALIAS=$Env:CERTIFICATE  `
@@ -180,6 +181,7 @@ jobs:
             /DINTEL_MPI_DIR="${{ env.I_MPI_ROOT }}\bin" `
             /DKHIOPS_VIZ_INSTALLER_PATH=..\..\..\visualization\${{ env.KHIOPS_VIZ_FILENAME }} `
             /DKHIOPS_SAMPLES_DIR=..\..\..\samples `
+            /DINTEL_MPI_LICENSES_DIR=..\THIRD-PARTY-LICENSES `
             khiops.nsi
       - name: Sign installer
         uses: digicert/code-signing-software-trust-action@v1.2.1

@@ -316,6 +316,13 @@ else(IS_LINUX OR IS_MACOS)
             ${INTEL_MPI_STAGING_BIN_DIR}/impi.dll ${INTEL_MPI_STAGING_BIN_DIR}/mpiexec.exe
       DESTINATION ${BIN_INSTALL_DIR}
       COMPONENT KHIOPS_CORE)
+    # Install Intel MPI license files
+    install(
+      DIRECTORY ${PROJECT_SOURCE_DIR}/packaging/windows/THIRD-PARTY-LICENSES/
+      DESTINATION licenses
+      COMPONENT KHIOPS_CORE
+      FILES_MATCHING
+      PATTERN "*.txt")
   endif()
   install(
     PROGRAMS ${TMP_DIR}/khiops.cmd ${TMP_DIR}/khiops_coclustering.cmd ${TMP_DIR}/khiops_env.cmd
