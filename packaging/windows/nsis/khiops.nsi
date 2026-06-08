@@ -99,9 +99,6 @@ BrandingText "Orange"
 # Licence page
 !insertmacro MUI_PAGE_LICENSE "..\..\..\LICENSE"
 
-# Custom page for requirements software
-Page custom RequirementsPageShow RequirementsPageLeave
-
 # Install directory choice page
 !insertmacro MUI_PAGE_DIRECTORY
 
@@ -142,9 +139,6 @@ VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${KHIOPS_VERSION}"
 Section "Install" SecInstall
 	# In order to have shortcuts and documents for all users
 	SetShellVarContext all
-
-	# Detect Java
-	Call RequirementsDetection
 
 	# Activate file overwrite
 	SetOverwrite on
@@ -697,6 +691,8 @@ FunctionEnd
 
 # Predefined initialization install function
 Function .onInit
+	# Check requirements as soon as setup starts
+	Call RequirementsDetection
 
 	# Read location of the uninstaller
 	ReadRegStr $PreviousUninstaller HKLM "${UninstallerKey}\Khiops" "UninstallString"
@@ -734,19 +730,6 @@ Function .onInit
 	# LogSet on
 FunctionEnd
 
-# Function to show the page for requirements
-Function RequirementsPageShow
-	# Detect requirements
-	Call RequirementsDetection
-
-	# Creation of page, with title and subtitle
-	nsDialogs::Create 1018
-	!insertmacro MUI_HEADER_TEXT "Check software requirements" "64 bits only"
-
-	# Show page
-	nsDialogs::Show
-FunctionEnd
-
 # Requirements detection
 # - Detects if the system architecture is 64-bit
 Function RequirementsDetection
@@ -756,8 +739,4 @@ Function RequirementsDetection
 		Quit
 	${EndIf}
 
-FunctionEnd
-
-# No leave page for required software
-Function RequirementsPageLeave
 FunctionEnd
