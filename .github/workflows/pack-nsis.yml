@@ -98,18 +98,18 @@ jobs:
           tar -zxf "$assets_tar_gz"
           cat assets/assets-info.env >> "$GITHUB_ENV"
           rm "$assets_tar_gz"
-      # We download the latest version of visualization tools:
-      # - They are backward compatible.
+      # We download the latest version of khiops-visualization-desktop:
+      # - It is backward compatible.
       # - The process is made easier by getting automatically the latest version
-      - name: Download latest releases of khiops-*visualization
+      - name: Download latest releases of khiops-visualization-desktop
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh --repo https://github.com/KhiopsML/khiops-visualization-desktop release download --pattern *.exe -D visualization
           cd visualization
-          ls *
-          echo "KHIOPS_VIZ_FILENAME=$(ls khiops-visualization-desktop-Setup-*)" >> "$GITHUB_ENV"
+          echo "Downloaded files: $(ls *)"
+          echo "KHIOPS_VIZ_FILENAME=$(ls *)" >> "$GITHUB_ENV"
       - name: Download samples
         shell: bash
         env:
