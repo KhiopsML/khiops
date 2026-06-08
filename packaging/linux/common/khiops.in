@@ -96,7 +96,7 @@ main () {
         launch_khiops "$@"
         local _RETCODE=$?
     else
-        if [ "$_GUI_SUPPORTED" = true ] || [ -z "$DISPLAY" ]; then
+        if [ "$_GUI_SUPPORTED" = false ] || [ -z "$DISPLAY" ]; then
             error "GUI is not available, please use the '-b' flag"
         else
             if [ -z "$KHIOPS_JAVA_PATH" ]; then
