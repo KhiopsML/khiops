@@ -282,8 +282,11 @@ else(IS_LINUX OR IS_MACOS)
     file(READ packaging/windows/set_proc_number.cmd SET_PROC_NUMBER)
   endif()
 
-  if(IS_INTEL_MPI)
-
+  # For Intel MPI, we need to copy the redistributable files to a staging directory and install them from there. We
+  # cannot directly
+  if(IS_INTEL_MPI
+     AND NOT IS_PIP
+     AND NOT IS_CONDA)
     get_filename_component(INTEL_MPI_BIN_DIR "${MPIEXEC_EXECUTABLE}" DIRECTORY)
     set(INTEL_MPI_STAGING_BIN_DIR "${TMP_DIR}/mpi/bin")
     file(MAKE_DIRECTORY ${INTEL_MPI_STAGING_BIN_DIR})
@@ -310,7 +313,9 @@ else(IS_LINUX OR IS_MACOS)
 
   install(TARGETS MODL MODL_Coclustering _khiopsgetprocnumber RUNTIME DESTINATION ${BIN_INSTALL_DIR}
                                                                       COMPONENT KHIOPS_CORE)
-  if(IS_INTEL_MPI)
+  if(IS_INTEL_MPI
+     AND NOT IS_PIP
+     AND NOT IS_CONDA)
     install(
       FILES ${INTEL_MPI_STAGING_BIN_DIR}/hydra_bstrap_proxy.exe ${INTEL_MPI_STAGING_BIN_DIR}/hydra_pmi_proxy.exe
             ${INTEL_MPI_STAGING_BIN_DIR}/impi.dll ${INTEL_MPI_STAGING_BIN_DIR}/mpiexec.exe
