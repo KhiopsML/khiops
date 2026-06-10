@@ -45,8 +45,8 @@ def build_tool_exe_path(tool_binaries_dir, tool_name, use_khiops_env):
     assert current_platform in kht.RESULTS_REF_TYPE_VALUES[kht.PLATFORM]
 
     # Cas particulier de la comparaison seulement
-    if tool_binaries_dir == "check":
-        return "check", error_message
+    if tool_binaries_dir == kht.ALIAS_CHECK:
+        return kht.ALIAS_CHECK, error_message
 
     # Determination du chemin vers l'executable et du nombre de processus
     # a partir des variables d'environnement positionnees par le script khiops_env
@@ -1112,7 +1112,7 @@ def main():
     ) = utils.argument_parser_check_source_argument(parser, args.source)
 
     # Pre-traitement de l'argument binaries: conversion en chemin absolu si pas d'alias
-    if args.binaries in [kht.ALIAS_D, kht.ALIAS_R]:
+    if args.binaries in [kht.ALIAS_D, kht.ALIAS_R, kht.ALIAS_CHECK]:
         binaries_dir = args.binaries
     else:
         binaries_dir = os.path.abspath(args.binaries)
