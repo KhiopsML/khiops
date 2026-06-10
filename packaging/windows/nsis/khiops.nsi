@@ -147,7 +147,6 @@ Section "Install" SecInstall
 	SetOutPath "$INSTDIR\bin"
 	File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\MODL.exe"
 	File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\MODL_Coclustering.exe"
-	File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\_khiopsgetprocnumber.exe"
 	File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\_khiopslauncher.exe"
 	File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\norm.jar"
 	File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\khiops.jar"
@@ -314,11 +313,11 @@ Section "Install" SecInstall
 
 	# Create the Khiops shell
 	FileOpen $0 "$INSTDIR\bin\shell_khiops.cmd" w
-	FileWrite $0 '@echo off$\r$\n'
-	FileWrite $0 'REM Open a shell session with access to Khiops$\r$\n'
-	FileWrite $0 `if "%KHIOPS_HOME%".=="". set KHIOPS_HOME=$INSTDIR$\r$\n`
-	FileWrite $0 'set path=%KHIOPS_HOME%\bin;%path%$\r$\n'
-	FileWrite $0 'title Shell Khiops$\r$\n'
+	FileWrite $0 "@echo off$\r$\n"
+	FileWrite $0 "REM Open a shell session with access to Khiops$\r$\n"
+	FileWrite $0 'if "%KHIOPS_HOME%".==". set KHIOPS_HOME=$INSTDIR$\r$\n'
+	FileWrite $0 "set path=%KHIOPS_HOME%\bin;%path%$\r$\n"
+	FileWrite $0 "title Shell Khiops$\r$\n"
 	FileWrite $0 \
 		'start "Shell Khiops" cmd /k "echo Welcome to Khiops scripting mode & echo Type khiops -h or khiops_coclustering -h to get help'
 	FileClose $0
@@ -356,24 +355,23 @@ Section "Install" SecInstall
 	# "C:\Program files\khiops\bin\_khiopslauncher.exe" "C:\Program files\khiops\bin\khiops.cmd"
 	# Cf. https://nsis.sourceforge.io/How_can_I_use_quotes_in_a_string%3F
 	# 
-	CreateShortcut "$INSTDIR\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\khiops.cmd$\"" \
+	CreateShortcut "$INSTDIR\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" '"$INSTDIR\bin\khiops.cmd"' \
 		"$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWNORMAL
 	CreateShortcut "$INSTDIR\Khiops Coclustering.lnk" "$INSTDIR\bin\_khiopslauncher.exe" \
-		"$\"$INSTDIR\bin\khiops_coclustering.cmd$\"" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
+		'"$INSTDIR\bin\khiops_coclustering.cmd"' "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
 	ExpandEnvStrings $R0 "%COMSPEC%"
-	CreateShortcut "$INSTDIR\Shell Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\shell_khiops.cmd$\"" \
-		"$R0"
+	CreateShortcut "$INSTDIR\Shell Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" '"$INSTDIR\bin\shell_khiops.cmd"' "$R0"
 
 	# Create start menu shortcuts for the executables
 	DetailPrint "Installing Start menu Shortcut..."
 	CreateDirectory "$SMPROGRAMS\Khiops"
-	CreateShortcut "$SMPROGRAMS\Khiops\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\khiops.cmd$\"" \
+	CreateShortcut "$SMPROGRAMS\Khiops\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" '"$INSTDIR\bin\khiops.cmd"' \
 		"$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWNORMAL
 	CreateShortcut "$SMPROGRAMS\Khiops\Khiops Coclustering.lnk" "$INSTDIR\bin\_khiopslauncher.exe" \
-		"$\"$INSTDIR\bin\khiops_coclustering.cmd$\"" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
+		'"$INSTDIR\bin\khiops_coclustering.cmd"' "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
 	ExpandEnvStrings $R0 "%COMSPEC%"
 	CreateShortcut "$SMPROGRAMS\Khiops\Shell Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" \
-		"$\"$INSTDIR\bin\shell_khiops.cmd$\"" "$R0"
+		'"$INSTDIR\bin\shell_khiops.cmd"' "$R0"
 	CreateShortcut "$SMPROGRAMS\Khiops\Uninstall.lnk" "$INSTDIR\uninstall-khiops.exe"
 	SetOutPath "$INSTDIR"
 
@@ -433,7 +431,7 @@ Section "Install" SecInstall
 	# "C:\Program files\khiops\bin\_khiopslauncher.exe" "\"Program files\khiops\bin\khiops.cmd\" -i \"%1\""
 	# 
 	WriteRegStr HKCR "Khiops.File\shell\compile\command" "" \
-		'"$INSTDIR\bin\_khiopslauncher.exe" "\$\"$INSTDIR\bin\khiops.cmd\$\" -i \$\"%1\$\""'
+		'"$INSTDIR\bin\_khiopslauncher.exe" "\"$INSTDIR\bin\khiops.cmd\" -i \"%1\"'
 
 	# Khiops coclustering scenario file
 	ReadRegStr $R0 HKCR "._khc" ""
@@ -454,10 +452,10 @@ Section "Install" SecInstall
 
 	WriteRegStr HKCR "Khiops.Coclustering.File\shell\compile" "" "Execute Khiops Coclustering Script"
 	WriteRegStr HKCR "Khiops.Coclustering.File\shell\compile\command" "" \
-		'"$INSTDIR\bin\_khiopslauncher.exe" "\$\"$INSTDIR\bin\khiops_coclustering.cmd\$\" -i \$\"%1\$\""'
+		'"$INSTDIR\bin\_khiopslauncher.exe" "\"$INSTDIR\bin\khiops_coclustering.cmd\" -i \"%1\"'
 
 	# Notify the file extension changes
-	System::Call 'Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)'
+	System::Call "Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)"
 
 	# Debug message
 	!ifdef DEBUG
@@ -501,7 +499,7 @@ Section "Uninstall"
 	DeleteRegKey HKCR "Khiops.Coclustering.File"
 
 	# Notify file extension changes
-	System::Call 'Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)'
+	System::Call "Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)"
 
 	# Delete installation folder key
 	DeleteRegKey HKLM "${UninstallerKey}\Khiops"
@@ -544,7 +542,6 @@ Section "Uninstall"
 	Delete "$INSTDIR\bin\khiops_coclustering.cmd"
 	Delete "$INSTDIR\bin\MODL.exe"
 	Delete "$INSTDIR\bin\MODL_Coclustering.exe"
-	Delete "$INSTDIR\bin\_khiopsgetprocnumber.exe"
 	Delete "$INSTDIR\bin\_khiopslauncher.exe"
 	Delete "$INSTDIR\bin\hydra_bstrap_proxy.exe"
 	Delete "$INSTDIR\bin\hydra_pmi_proxy.exe"
@@ -683,10 +680,10 @@ Function "CreateDesktopShortcuts"
 
 	# Create the shortcuts
 	DetailPrint "Installing Desktop Shortcut..."
-	CreateShortcut "$DESKTOP\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\khiops.cmd$\"" \
+	CreateShortcut "$DESKTOP\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" '"$INSTDIR\bin\khiops.cmd"' \
 		"$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWNORMAL
 	CreateShortcut "$DESKTOP\Khiops Coclustering.lnk" "$INSTDIR\bin\_khiopslauncher.exe" \
-		"$\"$INSTDIR\bin\khiops_coclustering.cmd$\"" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
+		'"$INSTDIR\bin\khiops_coclustering.cmd"' "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
 FunctionEnd
 
 # Predefined initialization install function
@@ -709,12 +706,12 @@ Function .onInit
 		# Run the uninstaller
 		uninst:
 		ClearErrors
-		ExecWait '$PreviousUninstaller /S _?=$INSTDIR'
+		ExecWait "$PreviousUninstaller /S _?=$INSTDIR"
 
 		# Run again the uninstaller to delete the uninstaller itself and the root dir (without waiting)
 		# Must not be used in silent mode (may delete files from silent following installation)
 		${IfNot} ${Silent}
-			ExecWait '$PreviousUninstaller /S'
+			ExecWait "$PreviousUninstaller /S"
 		${EndIf}
 	${EndIf}
 
