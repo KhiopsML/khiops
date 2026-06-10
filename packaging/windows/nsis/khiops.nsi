@@ -51,8 +51,7 @@ ManifestDPIAware true
 	!insertmacro CheckInputParameter SM_CLIENT_CERT_FILE
 	!insertmacro CheckInputParameter SM_CLIENT_CERT_PASSWORD
 	!insertmacro CheckInputParameter SM_API_KEY
-	!uninstfinalize \
-		'java -jar ${PATH_TO_JSIGN} --storetype DIGICERTONE --storepass "${SM_API_KEY}|${SM_CLIENT_CERT_FILE}|${SM_CLIENT_CERT_PASSWORD}" --alias ${SM_CERT_ALIAS} --keystore https://clientauth.one.nl.digicert.com %1'
+	!uninstfinalize 'java -jar ${PATH_TO_JSIGN} --storetype DIGICERTONE --storepass "${SM_API_KEY}|${SM_CLIENT_CERT_FILE}|${SM_CLIENT_CERT_PASSWORD}" --alias ${SM_CERT_ALIAS} --keystore https://clientauth.one.nl.digicert.com %1'
 !endif
 
 # Application name and installer file name
@@ -92,8 +91,7 @@ BrandingText "Orange"
 
 # Welcome page
 !define MUI_WELCOMEPAGE_TITLE "Welcome to the Khiops ${KHIOPS_VERSION} Setup Wizard"
-!define MUI_WELCOMEPAGE_TEXT \
-	"Khiops is a data mining tool includes data preparation and scoring, visualization, coclustering and covisualization.$\r$\n$\r$\n$\r$\n$\r$\n$(MUI_${MUI_PAGE_UNINSTALLER_PREFIX}TEXT_WELCOME_INFO_TEXT)"
+!define MUI_WELCOMEPAGE_TEXT "Khiops is a data mining tool includes data preparation and scoring, visualization, coclustering and covisualization.$\r$\n$\r$\n$\r$\n$\r$\n$(MUI_${MUI_PAGE_UNINSTALLER_PREFIX}TEXT_WELCOME_INFO_TEXT)"
 !insertmacro MUI_PAGE_WELCOME
 
 # Licence page
@@ -147,7 +145,6 @@ Section "Install" SecInstall
 	SetOutPath "$INSTDIR\bin"
 	File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\MODL.exe"
 	File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\MODL_Coclustering.exe"
-	File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\_khiopsgetprocnumber.exe"
 	File "${KHIOPS_WINDOWS_BUILD_DIR}\bin\_khiopslauncher.exe"
 	File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\norm.jar"
 	File "${KHIOPS_WINDOWS_BUILD_DIR}\jars\khiops.jar"
@@ -314,13 +311,12 @@ Section "Install" SecInstall
 
 	# Create the Khiops shell
 	FileOpen $0 "$INSTDIR\bin\shell_khiops.cmd" w
-	FileWrite $0 '@echo off$\r$\n'
-	FileWrite $0 'REM Open a shell session with access to Khiops$\r$\n'
-	FileWrite $0 `if "%KHIOPS_HOME%".=="". set KHIOPS_HOME=$INSTDIR$\r$\n`
-	FileWrite $0 'set path=%KHIOPS_HOME%\bin;%path%$\r$\n'
-	FileWrite $0 'title Shell Khiops$\r$\n'
-	FileWrite $0 \
-		'start "Shell Khiops" cmd /k "echo Welcome to Khiops scripting mode & echo Type khiops -h or khiops_coclustering -h to get help'
+	FileWrite $0 "@echo off$\r$\n"
+	FileWrite $0 "REM Open a shell session with access to Khiops$\r$\n"
+	FileWrite $0 'if "%KHIOPS_HOME%".==". set KHIOPS_HOME=$INSTDIR$\r$\n'
+	FileWrite $0 "set path=%KHIOPS_HOME%\bin;%path%$\r$\n"
+	FileWrite $0 "title Shell Khiops$\r$\n"
+	FileWrite $0 'start "Shell Khiops" cmd /k "echo Welcome to Khiops scripting mode & echo Type khiops -h or khiops_coclustering -h to get help'
 	FileClose $0
 
 	# Create the uninstaller
@@ -351,29 +347,23 @@ Section "Install" SecInstall
 
 	# Create application shortcuts in the installation directory
 	DetailPrint "Installing Start menu Shortcut..."
-	# 
+	#
 	# Attention, pour la commande dans un shortcut, il faut utiliser des (") autour du fichier de commande en parametre du launcher, ce qui en NSIS se fait par ($\")
 	# "C:\Program files\khiops\bin\_khiopslauncher.exe" "C:\Program files\khiops\bin\khiops.cmd"
 	# Cf. https://nsis.sourceforge.io/How_can_I_use_quotes_in_a_string%3F
-	# 
-	CreateShortcut "$INSTDIR\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\khiops.cmd$\"" \
-		"$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWNORMAL
-	CreateShortcut "$INSTDIR\Khiops Coclustering.lnk" "$INSTDIR\bin\_khiopslauncher.exe" \
-		"$\"$INSTDIR\bin\khiops_coclustering.cmd$\"" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
+	#
+	CreateShortcut "$INSTDIR\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" '"$INSTDIR\bin\khiops.cmd"' "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWNORMAL
+	CreateShortcut "$INSTDIR\Khiops Coclustering.lnk" "$INSTDIR\bin\_khiopslauncher.exe" '"$INSTDIR\bin\khiops_coclustering.cmd"' "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
 	ExpandEnvStrings $R0 "%COMSPEC%"
-	CreateShortcut "$INSTDIR\Shell Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\shell_khiops.cmd$\"" \
-		"$R0"
+	CreateShortcut "$INSTDIR\Shell Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" '"$INSTDIR\bin\shell_khiops.cmd"' "$R0"
 
 	# Create start menu shortcuts for the executables
 	DetailPrint "Installing Start menu Shortcut..."
 	CreateDirectory "$SMPROGRAMS\Khiops"
-	CreateShortcut "$SMPROGRAMS\Khiops\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\khiops.cmd$\"" \
-		"$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWNORMAL
-	CreateShortcut "$SMPROGRAMS\Khiops\Khiops Coclustering.lnk" "$INSTDIR\bin\_khiopslauncher.exe" \
-		"$\"$INSTDIR\bin\khiops_coclustering.cmd$\"" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
+	CreateShortcut "$SMPROGRAMS\Khiops\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" '"$INSTDIR\bin\khiops.cmd"' "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWNORMAL
+	CreateShortcut "$SMPROGRAMS\Khiops\Khiops Coclustering.lnk" "$INSTDIR\bin\_khiopslauncher.exe" '"$INSTDIR\bin\khiops_coclustering.cmd"' "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
 	ExpandEnvStrings $R0 "%COMSPEC%"
-	CreateShortcut "$SMPROGRAMS\Khiops\Shell Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" \
-		"$\"$INSTDIR\bin\shell_khiops.cmd$\"" "$R0"
+	CreateShortcut "$SMPROGRAMS\Khiops\Shell Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" '"$INSTDIR\bin\shell_khiops.cmd"' "$R0"
 	CreateShortcut "$SMPROGRAMS\Khiops\Uninstall.lnk" "$INSTDIR\uninstall-khiops.exe"
 	SetOutPath "$INSTDIR"
 
@@ -427,13 +417,12 @@ Section "Install" SecInstall
 	${EndIf}
 
 	WriteRegStr HKCR "Khiops.File\shell\compile" "" "Execute Khiops Script"
-	# 
+	#
 	# Attention, pour la commande dans la base de registre, il faut utiliser des (\") autour de chaque element de type path
 	# des parametres du launcher, ce qui en NSIS se fait par (\$\")
 	# "C:\Program files\khiops\bin\_khiopslauncher.exe" "\"Program files\khiops\bin\khiops.cmd\" -i \"%1\""
-	# 
-	WriteRegStr HKCR "Khiops.File\shell\compile\command" "" \
-		'"$INSTDIR\bin\_khiopslauncher.exe" "\$\"$INSTDIR\bin\khiops.cmd\$\" -i \$\"%1\$\""'
+	#
+	WriteRegStr HKCR "Khiops.File\shell\compile\command" "" '"$INSTDIR\bin\_khiopslauncher.exe" "\"$INSTDIR\bin\khiops.cmd\" -i \"%1\"'
 
 	# Khiops coclustering scenario file
 	ReadRegStr $R0 HKCR "._khc" ""
@@ -453,11 +442,10 @@ Section "Install" SecInstall
 	${EndIf}
 
 	WriteRegStr HKCR "Khiops.Coclustering.File\shell\compile" "" "Execute Khiops Coclustering Script"
-	WriteRegStr HKCR "Khiops.Coclustering.File\shell\compile\command" "" \
-		'"$INSTDIR\bin\_khiopslauncher.exe" "\$\"$INSTDIR\bin\khiops_coclustering.cmd\$\" -i \$\"%1\$\""'
+	WriteRegStr HKCR "Khiops.Coclustering.File\shell\compile\command" "" '"$INSTDIR\bin\_khiopslauncher.exe" "\"$INSTDIR\bin\khiops_coclustering.cmd\" -i \"%1\"'
 
 	# Notify the file extension changes
-	System::Call 'Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)'
+	System::Call "Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)"
 
 	# Debug message
 	!ifdef DEBUG
@@ -501,7 +489,7 @@ Section "Uninstall"
 	DeleteRegKey HKCR "Khiops.Coclustering.File"
 
 	# Notify file extension changes
-	System::Call 'Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)'
+	System::Call "Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)"
 
 	# Delete installation folder key
 	DeleteRegKey HKLM "${UninstallerKey}\Khiops"
@@ -519,7 +507,8 @@ Section "Uninstall"
 	SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
 
 	# Delete files #
-	# Note: Some directories are removed only if they are completely empty (no "/r" RMDir flag)
+	# Note: Some directories are removed only if they are completely empty and we don't want to
+	# remove files added by users. This is why we avoid using the "/r" RMDir flag.
 	DetailPrint "Deleting Files ..."
 
 	# Delete docs
@@ -528,9 +517,7 @@ Section "Uninstall"
 	Delete "$INSTDIR\WHATSNEW.txt"
 
 	# Delete third-party licenses
-	Delete "$INSTDIR\licenses\README.txt"
-	Delete "$INSTDIR\licenses\Intel-MPI-LICENSE.txt"
-	RMDir "$INSTDIR\licenses"
+	RMDir /r "$INSTDIR\licenses"
 
 	# Delete jre
 	RMDir /r "$INSTDIR\jre"
@@ -544,7 +531,6 @@ Section "Uninstall"
 	Delete "$INSTDIR\bin\khiops_coclustering.cmd"
 	Delete "$INSTDIR\bin\MODL.exe"
 	Delete "$INSTDIR\bin\MODL_Coclustering.exe"
-	Delete "$INSTDIR\bin\_khiopsgetprocnumber.exe"
 	Delete "$INSTDIR\bin\_khiopslauncher.exe"
 	Delete "$INSTDIR\bin\hydra_bstrap_proxy.exe"
 	Delete "$INSTDIR\bin\hydra_pmi_proxy.exe"
@@ -560,7 +546,7 @@ Section "Uninstall"
 	Delete "$INSTDIR\Khiops Coclustering.lnk"
 	Delete "$INSTDIR\Shell Khiops.lnk"
 
-	# Delete the installer
+	# Delete the uninstaller
 	Delete "$INSTDIR\uninstall-khiops.exe"
 
 	# Remove install directory
@@ -683,10 +669,8 @@ Function "CreateDesktopShortcuts"
 
 	# Create the shortcuts
 	DetailPrint "Installing Desktop Shortcut..."
-	CreateShortcut "$DESKTOP\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" "$\"$INSTDIR\bin\khiops.cmd$\"" \
-		"$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWNORMAL
-	CreateShortcut "$DESKTOP\Khiops Coclustering.lnk" "$INSTDIR\bin\_khiopslauncher.exe" \
-		"$\"$INSTDIR\bin\khiops_coclustering.cmd$\"" "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
+	CreateShortcut "$DESKTOP\Khiops.lnk" "$INSTDIR\bin\_khiopslauncher.exe" '"$INSTDIR\bin\khiops.cmd"' "$INSTDIR\bin\icons\khiops.ico" 0 SW_SHOWNORMAL
+	CreateShortcut "$DESKTOP\Khiops Coclustering.lnk" "$INSTDIR\bin\_khiopslauncher.exe" '"$INSTDIR\bin\khiops_coclustering.cmd"' "$INSTDIR\bin\icons\khiops_coclustering.ico" 0 SW_SHOWNORMAL
 FunctionEnd
 
 # Predefined initialization install function
@@ -701,20 +685,18 @@ Function .onInit
 	# Ask the user to proceed if there was already a previous Khiops version installed
 	# In silent mode: remove previous version
 	${If} $PreviousUninstaller != ""
-		MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
-			"Khiops $PreviousVersion is already installed. $\n$\nClick OK to remove the  previous version $\n$\nor Cancel to cancel this upgrade." \
-			/SD IDOK IDOK uninst
+		MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "Khiops $PreviousVersion is already installed. $\n$\nClick OK to remove the  previous version $\n$\nor Cancel to cancel this upgrade." /SD IDOK IDOK uninst
 		Abort
 
 		# Run the uninstaller
 		uninst:
 		ClearErrors
-		ExecWait '$PreviousUninstaller /S _?=$INSTDIR'
+		ExecWait "$PreviousUninstaller /S _?=$INSTDIR"
 
 		# Run again the uninstaller to delete the uninstaller itself and the root dir (without waiting)
 		# Must not be used in silent mode (may delete files from silent following installation)
 		${IfNot} ${Silent}
-			ExecWait '$PreviousUninstaller /S'
+			ExecWait "$PreviousUninstaller /S"
 		${EndIf}
 	${EndIf}
 
