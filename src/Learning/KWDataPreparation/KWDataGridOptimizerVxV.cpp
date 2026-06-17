@@ -14,7 +14,7 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 {
 	const boolean bTrace = false;
 	const boolean bTraceDetails = false;
-	boolean bTraceGranularities = false;
+	const boolean bTraceGranularities = false;
 	KWDataGrid granularizedDataGrid;
 	KWDataGrid* granularizedOptimizedDataGrid;
 	KWDataGridManager dataGridManager;
