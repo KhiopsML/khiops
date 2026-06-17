@@ -36,9 +36,10 @@ double KWDataGridOptimizerIxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid,
 						       KWDataGrid* optimizedDataGrid) const
 {
-	boolean bDisplayResults = false;
-	boolean bDisplayPartitionLevel = false;
-	boolean bDisplayPrePartitioning = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
+	boolean bTracePartitionLevel = false;
+	boolean bTracePrePartitioning = false;
 	ObjectDictionary odInnerAttributesQuantileBuilders;
 	KWDataGrid nullDataGrid;
 	KWDataGrid partitionedDataGrid;
@@ -93,11 +94,8 @@ double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initial
 	// grille de type VarPart
 	dataGridManager.InitializeInnerAttributesQuantileBuilders(initialDataGrid, &odInnerAttributesQuantileBuilders,
 								  &ivMaxPartNumbers);
-	if (bDisplayPrePartitioning)
-	{
+	if (bTracePrePartitioning)
 		cout << "ivMaxPartNumbers\t" << ivMaxPartNumbers;
-		cout << flush;
-	}
 
 	// Initialisation des vecteurs de nombre de parties courant et precedent
 	ivPreviousPartNumber.SetSize(ivMaxPartNumbers.GetSize());
@@ -110,14 +108,6 @@ double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initial
 	dataGridManager.CopyDataGrid(&nullDataGrid, optimizedDataGrid);
 	dBestMergedCost = dBestCost;
 
-	// CH AB n'est plus necessaire c'est le cout du vrai modele nul qui doit etre utilise comme reference
-	// Initialisation du meilleur cout au cout du modele nul conditionnellement au pre-partitionnement
-	// Il ne s'agit donc pas ici du cout du VRAI modele nul (un seul cluster par attribut et une seule
-	// partie de variable par attribut interne)
-	// dBestCost = coclusteringDataGridCosts->GetTotalDefaultCost();
-	// dBestMergedCost = dBestCost;
-	// cout << "Cout du modele nul associe a la grille de reference\t" << dBestCost << "\n";
-
 	// Parcours des tailles de pre-partitionnement en parties de variable
 	timer.Start();
 	while (nPrePartitionIndex <= nPrePartitionMax and not bIsLastPrePartitioning)
@@ -129,11 +119,12 @@ double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initial
 		// Pre-partitionnement des attributs internes de la grille initiale
 		dataGridManager.ExportGranularizedDataGridForVarPartAttributes(
 		    initialDataGrid, &partitionedDataGrid, nPrePartitionIndex, &odInnerAttributesQuantileBuilders);
-		if (bDisplayResults)
+		if (bTrace)
 		{
 			cout << "CCOptimize :partitionedDataGrid pour le pre-partitionnement " << nPrePartitionIndex
 			     << endl;
-			partitionedDataGrid.Write(cout);
+			if (bTraceDetails)
+				partitionedDataGrid.Write(cout);
 		}
 
 		// Etude du nombre de parties des attributs internes pour decider du traitement ou non de ce
@@ -205,7 +196,7 @@ double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initial
 		if (bIsPrePartitioningSelected or bIsLastPrePartitioning)
 		{
 			// Affichage du niveau de pre-partitionnement et du nombre de parties associe
-			if (bDisplayPartitionLevel)
+			if (bTracePartitionLevel)
 				cout << "Niveau de pre-partitionnement\t" << nPrePartitionIndex
 				     << "\tNombre de parties \t" << ivCurrentPartNumber;
 
@@ -230,10 +221,10 @@ double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initial
 			KWDataGridOptimizer::GetProfiler()->EndMethod("Optimize VarPart prepartition");
 
 			// Affichage
-			if (bDisplayPartitionLevel or bDisplayResults)
+			if (bTracePartitionLevel or bTrace)
 				cout << "Apres OptimizeGranularizedDataGrid pour Granularite " << nPrePartitionIndex
-				     << "\t" << dPartitionBestCost << endl;
-			if (bDisplayResults)
+				     << "\t" << dPartitionBestCost << "\n";
+			if (bTraceDetails)
 			{
 				partitionedOptimizedDataGrid.WriteAttributes(cout);
 				partitionedOptimizedDataGrid.WriteAttributeParts(cout);
@@ -261,17 +252,17 @@ double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initial
 									  &partitionedPostMergedOptimizedDataGrid));
 				assert(GetDataGridCosts()->ComputeDataGridTotalCost(
 					   &partitionedPostMergedOptimizedDataGrid) < dMergedCost * (1 + dEpsilon));
-				if (bDisplayResults or bDisplayPartitionLevel)
+				if (bTrace or bTracePartitionLevel)
 				{
 					cout << "CCOptimize : Grille avant fusion\t" << dPartitionBestCost << "\n";
 					cout << "CCOptimize : Grille fusionnee \t" << dMergedCost << "\n";
 				}
-				if (bDisplayResults)
+				if (bTrace)
 				{
 					cout << "CCOptimize : Grille avant fusion \t" << dPartitionBestCost << "\n";
 					cout << "CCOptimize : Grille fusionnee  \t" << dMergedCost << "\n";
-					partitionedPostMergedOptimizedDataGrid.Write(cout);
-					cout << flush;
+					if (bTraceDetails)
+						partitionedPostMergedOptimizedDataGrid.Write(cout);
 				}
 			}
 			else
@@ -281,10 +272,10 @@ double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initial
 			{
 				dBestMergedCost = dMergedCost;
 				dBestCost = dPartitionBestCost;
-				if (bDisplayResults)
+				if (bTrace)
 					cout << "CCCoclusteringBuilder : amelioration du cout et memorisation "
 						"de la grille sans post-optimisation VarPart"
-					     << endl;
+					     << "\n";
 
 				// Memorisation de l'optimum post-fusionne
 				if (partitionedOptimizedDataGrid.GetInformativeAttributeNumber() > 0 and
@@ -302,10 +293,10 @@ double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initial
 			// Cas ou il s'agit de la derniere granularite : on met a jour les infos du coclustering
 			if (bIsLastPrePartitioning)
 			{
-				if (bDisplayResults)
+				if (bTrace)
 					cout << "CCOptimize : Mise a jour de la memorisation du coclustering "
 						"pour la derniere granularite "
-					     << endl;
+					     << "\n";
 
 				if (optimizedDataGrid->GetInformativeAttributeNumber() > 0)
 				{
@@ -321,20 +312,20 @@ double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initial
 					dataGridManager.ExportDataGridWithSingletonVarParts(
 					    initialDataGrid, optimizedDataGrid, &partitionedReferencePostMergedDataGrid,
 					    true);
-					if (bDisplayResults)
+					if (bTrace)
 						cout << "CCCoclusteringBuilder : memorisation d'une grille "
 							"potentiellement sans post-optimisation VarPart"
-						     << endl;
+						     << "\n";
 
 					HandleOptimizationStep(optimizedDataGrid,
 							       &partitionedReferencePostMergedDataGrid, true);
-					if (bDisplayResults or bDisplayPartitionLevel)
+					if (bTrace or bTracePartitionLevel)
 					{
 						cout << "CCOptimize :Derniere grille apres "
 							"HandleOptimizationStep de cout\t"
 						     << dBestMergedCost << endl;
 					}
-					if (bDisplayResults)
+					if (bTraceDetails)
 					{
 						cout << "CCOptimize :partitionedReferencePostMergedDataGrid" << endl;
 						partitionedReferencePostMergedDataGrid.Write(cout);
@@ -372,10 +363,10 @@ double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initial
 						   IntToString(nPrePartitionMax) +
 						   ". You could obtain better results with greater "
 						   "optimization time.");
-					if (bDisplayResults)
+					if (bTrace)
 						cout << "Totalite du temps alloue ecoule apres la granularite "
 							"de pre-partitionnement de l'attribut VarPart "
-						     << nPrePartitionIndex << endl;
+						     << nPrePartitionIndex << "\n";
 					break;
 				}
 			}
@@ -387,9 +378,9 @@ double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initial
 		// Sinon : pas de traitement pour cette granularite
 		else
 		{
-			if (bDisplayResults)
+			if (bTrace)
 				cout << "CCOptimize :Pre-partitionnement des attributs internes " << nPrePartitionIndex
-				     << " non traite car trop proche de la precedente" << endl;
+				     << " non traite car trop proche de la precedente" << "\n";
 		}
 
 		// Nettoyage de la grille granularisee
@@ -397,7 +388,7 @@ double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initial
 
 		nPrePartitionIndex++;
 	}
-	if (bDisplayPrePartitioning)
+	if (bTracePrePartitioning)
 	{
 		cout << "Recapitulatif des pre-partitionnements utilises " << endl;
 		for (nPrePartitionIndex = 0; nPrePartitionIndex < ivUsedPrePartitioning.GetSize(); nPrePartitionIndex++)
@@ -406,23 +397,15 @@ double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initial
 
 	// Nettoyage
 	odInnerAttributesQuantileBuilders.DeleteAll();
-
-	// CH IV probleme est ce que le code qui suit est a conserver
-	//  Cas ou la grille terminale n'est pas ameliorable else
-	//{
-	// Tri des parties par attribut, pour preparer les affichages de resultats
-	// ainsi que les resultats de preparation des donnees
-	// optimizedDataGrid->SortAttributeParts();
-	//}
-	//}
 	return dBestCost;
 }
 
 double KWDataGridOptimizerIxV::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid,
 							     KWDataGrid* optimizedDataGrid) const
 {
-	boolean bDisplayResults = false;
-	boolean bDisplayTokenization = false;
+	boolean bTrace = false;
+	boolean bTraceDetails = false;
+	boolean bTraceTokenization = false;
 	ObjectDictionary odInnerAttributesQuantileBuilders;
 	IntVector ivGranularityTotalPartNumbers;
 	int nMaximumInitialTotalPartNumber;
@@ -433,6 +416,7 @@ double KWDataGridOptimizerIxV::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* i
 	KWDataGridManager dataGridManager;
 	IntVector ivMaxPartNumbers;
 	int i;
+	int nInstanceNumber;
 	int nValueNumber;
 	double dBestCost;
 	KWDataGrid partitionedPostMergedOptimizedDataGrid;
@@ -454,8 +438,11 @@ double KWDataGridOptimizerIxV::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* i
 
 	// Estimation du nombre total de partie maximal a utiliser pour la solution initiale
 	//DDD Heuristique a ajuster
+	assert(not initialDataGrid->GetAttributeAt(0)->IsInnerAttribute());
+	nInstanceNumber = initialDataGrid->GetAttributeAt(0)->GetInitialValueNumber();
 	nValueNumber = initialDataGrid->GetGridFrequency();
-	nMaximumInitialTotalPartNumber = int(ceil(sqrt(nValueNumber * log(nValueNumber * 1.0) / log(2.0))));
+	nMaximumInitialTotalPartNumber = nInstanceNumber;
+	//DDD (ceil(sqrt(nValueNumber * log(nValueNumber * 1.0) / log(2.0))));
 
 	// Recherche du niveau de tokenisation maximal permettant de ne pas depasser ce total
 	nInitialPrePartitionIndex = 0;
@@ -468,8 +455,13 @@ double KWDataGridOptimizerIxV::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* i
 	}
 
 	// Affichage des informations de tokenization
-	if (bDisplayTokenization)
+	if (bTraceTokenization)
 	{
+		cout << "Variables\t" << initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber() << "\n";
+		cout << "Instances\t" << nInstanceNumber << "\n";
+		cout << "Total variable values\t" << initialDataGrid->GetVarPartAttribute()->GetInitialValueNumber()
+		     << "\n";
+		cout << "Grid frequency\t" << nValueNumber << "\n";
 		cout << "MaxTokenNumbers\t" << ivMaxPartNumbers;
 		cout << "GranularityTotalTokenNumbers\t" << ivGranularityTotalPartNumbers;
 		cout << "InitialPrePartitionIndex\t" << nInitialPrePartitionIndex << "\n";
@@ -491,11 +483,12 @@ double KWDataGridOptimizerIxV::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* i
 									       nInitialPrePartitionIndex,
 									       &odInnerAttributesQuantileBuilders);
 		assert(partitionedDataGrid.GetInformativeAttributeNumber() > 1);
-		if (bDisplayResults)
+		if (bTrace)
 		{
 			cout << "CCOptimize :partitionedDataGrid pour le pre-partitionnement "
 			     << nInitialPrePartitionIndex << endl;
-			partitionedDataGrid.Write(cout);
+			if (bTraceDetails)
+				partitionedDataGrid.Write(cout);
 		}
 
 		// Optimisation de la grille pre-partitionnee
@@ -511,12 +504,12 @@ double KWDataGridOptimizerIxV::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* i
 		KWDataGridOptimizer::GetProfiler()->EndMethod("Optimize VarPart prepartition");
 
 		// Affichage
-		if (bDisplayResults or bDisplayTokenization)
+		if (bTrace or bTraceTokenization)
 		{
 			cout << "Apres OptimizeGranularizedDataGrid pour Granularite " << nInitialPrePartitionIndex
 			     << "\t" << dBestCost << endl;
 		}
-		if (bDisplayResults)
+		if (bTraceDetails)
 		{
 			optimizedDataGrid->WriteAttributes(cout);
 			optimizedDataGrid->WriteAttributeParts(cout);
