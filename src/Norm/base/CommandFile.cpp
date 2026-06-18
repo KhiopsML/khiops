@@ -55,6 +55,9 @@ void CommandFile::SetOutputCommandFileName(const ALString& sFileName)
 #ifdef __linux_or_apple__
 	if (sOutputCommandFileName == "/dev/stdout" or sOutputCommandFileName == "/dev/stderr")
 		bPrintOutputInConsole = true;
+#elif defined(_WIN32)
+	if (sOutputCommandFileName == "CON")
+		bPrintOutputInConsole = true;
 #endif
 }
 

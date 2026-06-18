@@ -1764,13 +1764,15 @@ boolean UIObject::CheckCommandLineOptions(const ObjectArray& oaOptions)
 
 // Test de difference
 #ifdef _WIN32
-			bOk = bOk and fsFileToCompare->CheckReferenceFileSpec(fsFile);
+			bOk = bOk and (fsFileToCompare->GetFilePathName() == "CON" and
+				       fsFile->GetFilePathName() == "CON") or
+			      (fsFileToCompare->CheckReferenceFileSpec(fsFile));
 #else
-			bOk = bOk and (fsFileToCompare->CheckReferenceFileSpec(fsFile) or
-				       (fsFileToCompare->GetFilePathName() == "/dev/stdout" and
+			bOk = bOk and ((fsFileToCompare->GetFilePathName() == "/dev/stdout" and
 					fsFile->GetFilePathName() == "/dev/stdout") or
 				       (fsFileToCompare->GetFilePathName() == "/dev/stderr" and
-					fsFile->GetFilePathName() == "/dev/stderr"));
+					fsFile->GetFilePathName() == "/dev/stderr") or
+				       fsFileToCompare->CheckReferenceFileSpec(fsFile));
 #endif // _WIN32
 			if (not bOk)
 				break;
