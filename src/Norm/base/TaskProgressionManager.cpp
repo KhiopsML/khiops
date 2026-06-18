@@ -62,6 +62,9 @@ void FileTaskProgressionManager::SetTaskProgressionFileName(const ALString& sFil
 #ifdef __linux_or_apple__
 		if (sFileName == "/dev/stdout" or sFileName == "/dev/stderr")
 			bPrintProgressionInConsole = true;
+#elif defined(_WIN32)
+		if (sFileName == "CON")
+			bPrintProgressionInConsole = true;
 #endif
 	}
 }

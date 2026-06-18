@@ -335,6 +335,9 @@ boolean Global::SetErrorLogFileName(const ALString& sValue)
 #ifdef __linux_or_apple__
 		if (sValue == "/dev/stdout" or sValue == "/dev/stderr")
 			bPrintMessagesInConsole = true;
+#elif defined(_WIN32)
+		if (sValue == "CON")
+			bPrintMessagesInConsole = true;
 #endif
 	}
 	return bOk;
