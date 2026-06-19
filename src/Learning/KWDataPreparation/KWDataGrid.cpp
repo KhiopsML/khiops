@@ -1270,8 +1270,8 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 	const int nMaxDisplayedValue = 20;
 	int nDisplayedValue;
 	KWDGValue* value;
-	boolean bDisplayAll = false;
 	boolean bDisplayPartDetails = true;
+	boolean bDisplayAll = false;
 
 	// Liste des attributs et de leurs parties
 	ost << "Parts by variable"
@@ -1287,7 +1287,9 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 			part = attribute->GetHeadPart();
 			while (part != NULL)
 			{
-				ost << "\t\t" << part->GetObjectLabel() << "\t" << part->GetPartFrequency();
+				ost << "\t\t" << part->GetObjectLabel() << "\t" << part->GetPartFrequency() << "\t";
+				if (KWType::IsCoclusteringGroupableType(part->GetPartType()))
+					cout << part->GetValueSet()->GetValueNumber();
 
 				// Affichage des premieres valeurs dans le cas d'un attribut groupable
 				if (KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()))

@@ -152,14 +152,13 @@ public:
 
 	// Export d'une partition aleatoire des parties pour chaque attribut cible
 	// en partant de partitions aleatoires pour un sous-ensemble d'attributs.
-	// Les nouvelles parties sont obtenues en sur-partitionnant les partitions existantes,
-	// pour atteindre les nombres de parties a ajouter demandees par type d'attribut.
-	// Le nombre de partie a ajouter demande est aleatoire, avec au moins le pourcentage minimum demande.
-	// Le nombre de parties reellement ajoutees peut etre inferieur a celui demande, s'il n'y
+	// Les nouvelles parties sont obtenues en sur-partitionnant aleatoirement les partitions existantes,
+	// pour atteindre les nombres de parties demandees par type d'attribut.
+	// Le nombre de parties reellement obtenu peut etre inferieur a celui demande, s'il n'y
 	// a pas assez de valeurs disponibles pour scinder des parties existantes
 	void AddRandomParts(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid,
 			    const KWDataGrid* mandatoryDataGrid, int nRequestedContinuousPartNumber,
-			    int nRequestedSymbolPartNumber, double dMinPercentageAddedPart) const;
+			    int nRequestedSymbolPartNumber) const;
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Construction d'une grille de donnees cible en granularisant la grille de donnees source
@@ -200,7 +199,7 @@ public:
 	// En entree, on a un dictionnaire de quantile builders pour un ensemble d'attribut, de grille ou internes.
 	// En sortie, le vecteur contient pour chaque granularite i de 0 a max la somme des nombres de parties
 	// effectivement obtenus par attributs quand on demande 2^i partiles.
-	// Le max est detremine par la methode, en s'arretant a la granularite permettant d'obtenir
+	// Le max est determine par la methode, en s'arretant a la granularite permettant d'obtenir
 	// le total de parties des quantile builders
 	void ComputeGranularizedTotalPartNumbers(const ObjectDictionary* odQuantilesBuilders,
 						 IntVector* ivGranularityTotalPartNumbers) const;

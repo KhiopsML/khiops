@@ -12,7 +12,7 @@ double KWDataGridOptimizerIxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 							KWDataGrid* optimizedDataGrid) const
 
 {
-	boolean bNewPROTO = false;
+	boolean bNewPROTO = true;
 	double dBestCost;
 
 	require(GetDataGridCosts() != NULL);
@@ -25,7 +25,8 @@ double KWDataGridOptimizerIxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 
 	// Test du remplacement de la methode actuelle, par son proto
 	if (bNewPROTO)
-		dBestCost = PROTO_OptimizeVarPartDataGrid(initialDataGrid, optimizedDataGrid);
+		//DDD dBestCost = PROTO_OptimizeVarPartDataGrid(initialDataGrid, optimizedDataGrid);
+		dBestCost = IterativeVNSOptimizeDataGrid(GetOptimizedInitialDataGrid(), optimizedDataGrid);
 	else
 		dBestCost = OptimizeVarPartDataGrid(initialDataGrid, optimizedDataGrid);
 
@@ -405,7 +406,6 @@ double KWDataGridOptimizerIxV::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* i
 {
 	boolean bTrace = false;
 	boolean bTraceDetails = false;
-	boolean bTraceTokenization = false;
 	ObjectDictionary odInnerAttributesQuantileBuilders;
 	IntVector ivGranularityTotalPartNumbers;
 	int nMaximumInitialTotalPartNumber;
@@ -455,17 +455,18 @@ double KWDataGridOptimizerIxV::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* i
 	}
 
 	// Affichage des informations de tokenization
-	if (bTraceTokenization)
+	if (bTrace)
 	{
-		cout << "Variables\t" << initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber() << "\n";
-		cout << "Instances\t" << nInstanceNumber << "\n";
-		cout << "Total variable values\t" << initialDataGrid->GetVarPartAttribute()->GetInitialValueNumber()
+		cout << "OptimizeVarPartDataGrid\n";
+		cout << "- Variables\t" << initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber() << "\n";
+		cout << "- Instances\t" << nInstanceNumber << "\n";
+		cout << "- Total variable values\t" << initialDataGrid->GetVarPartAttribute()->GetInitialValueNumber()
 		     << "\n";
-		cout << "Grid frequency\t" << nValueNumber << "\n";
-		cout << "MaxTokenNumbers\t" << ivMaxPartNumbers;
-		cout << "GranularityTotalTokenNumbers\t" << ivGranularityTotalPartNumbers;
-		cout << "InitialPrePartitionIndex\t" << nInitialPrePartitionIndex << "\n";
-		cout << "InitialTotalTokenNumber\t" << ivGranularityTotalPartNumbers.GetAt(nInitialPrePartitionIndex)
+		cout << "- Grid frequency\t" << nValueNumber << "\n";
+		cout << "- MaxTokenNumbers\t" << ivMaxPartNumbers;
+		cout << "- GranularityTotalTokenNumbers\t" << ivGranularityTotalPartNumbers;
+		cout << "- InitialPrePartitionIndex\t" << nInitialPrePartitionIndex << "\n";
+		cout << "- InitialTotalTokenNumber\t" << ivGranularityTotalPartNumbers.GetAt(nInitialPrePartitionIndex)
 		     << endl;
 	}
 
@@ -484,12 +485,7 @@ double KWDataGridOptimizerIxV::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* i
 									       &odInnerAttributesQuantileBuilders);
 		assert(partitionedDataGrid.GetInformativeAttributeNumber() > 1);
 		if (bTrace)
-		{
-			cout << "CCOptimize :partitionedDataGrid pour le pre-partitionnement "
-			     << nInitialPrePartitionIndex << endl;
-			if (bTraceDetails)
-				partitionedDataGrid.Write(cout);
-		}
+			TraceOptimizationDetails("- initial datagrid", &partitionedDataGrid, bTraceDetails);
 
 		// Optimisation de la grille pre-partitionnee
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("Optimize VarPart prepartition");
@@ -504,16 +500,8 @@ double KWDataGridOptimizerIxV::PROTO_OptimizeVarPartDataGrid(const KWDataGrid* i
 		KWDataGridOptimizer::GetProfiler()->EndMethod("Optimize VarPart prepartition");
 
 		// Affichage
-		if (bTrace or bTraceTokenization)
-		{
-			cout << "Apres OptimizeGranularizedDataGrid pour Granularite " << nInitialPrePartitionIndex
-			     << "\t" << dBestCost << endl;
-		}
-		if (bTraceDetails)
-		{
-			optimizedDataGrid->WriteAttributes(cout);
-			optimizedDataGrid->WriteAttributeParts(cout);
-		}
+		if (bTrace)
+			TraceOptimizationDetails("- optimized datagrid", optimizedDataGrid, bTraceDetails);
 	}
 
 	// Nettoyage de la grille granularisee
@@ -536,6 +524,8 @@ double KWDataGridOptimizerIxV::OptimizeNeighbourSolution(const KWDataGrid* initi
 	KWDataGrid partitionedReferencePostMergedDataGrid;
 	KWDataGrid initialFromSurtokenizedDataGrid;
 	KWDataGrid surtokenizedDataGrid;
+	int nInstanceNumber;
+	int nMaximumInitialTotalPartNumber;
 	int nInitialCurrentTokenNumber;
 	int nCurrentTokenNumber;
 	int nTargetTokenNumber;
@@ -548,18 +538,25 @@ double KWDataGridOptimizerIxV::OptimizeNeighbourSolution(const KWDataGrid* initi
 	///////////////////////////////////////////////////////////
 	// Surtokenisation d'une grille
 
+	//DDD
+	//DDD initialDataGrid = GetOptimizedInitialDataGrid();
+
+	nInstanceNumber = initialDataGrid->GetAttributeAt(0)->GetInitialValueNumber();
+	nMaximumInitialTotalPartNumber = nInstanceNumber;
+
 	// Nombre de tokens de la grille en entree
 	nInitialCurrentTokenNumber =
 	    initialDataGrid->GetVarPartAttribute()->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts();
 	nCurrentTokenNumber =
 	    currentOptimizedDataGrid->GetVarPartAttribute()->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts();
 
-	// Nombre de token cibles
-	nTargetTokenNumber =
-	    nCurrentTokenNumber + (int)(dNoiseRate * (nInitialCurrentTokenNumber - nCurrentTokenNumber));
+	// Nombre de token cibles initial: on prend le nombre de token existant, plus un par variable interne
+	nTargetTokenNumber = nCurrentTokenNumber + initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber();
+	nTargetTokenNumber = min(nTargetTokenNumber, nMaximumInitialTotalPartNumber);
 
-	// Correction du nombre de tokens
-	nTargetTokenNumber = min(nTargetTokenNumber, initialDataGrid->GetGridFrequency());
+	// On ajoute des tokens de facon aleatoire en fonction de la taille du voisinnage
+	nTargetTokenNumber += (int)pow(nMaximumInitialTotalPartNumber - nTargetTokenNumber, dNoiseRate);
+	nTargetTokenNumber = min(nTargetTokenNumber, nMaximumInitialTotalPartNumber);
 
 	// Debut du profiling de la surtokenisation
 	KWDataGridOptimizer::GetProfiler()->BeginMethod("Surtokenization solution");
@@ -578,7 +575,7 @@ double KWDataGridOptimizerIxV::OptimizeNeighbourSolution(const KWDataGrid* initi
 	dataGridManager.ExportDataGridWithRandomizedInnerAttributes(initialDataGrid, currentOptimizedDataGrid,
 								    &surtokenizedDataGrid, nTargetTokenNumber);
 
-	// Export de la grille antecedent de la grille sur-tokenisee, c'est a dire de la grille avec une
+	// Export de la grille antecedent de la grille sur-tokenisee, c'est a dire de la grille avec
 	// chaque partie de variable dans un groupe singleton
 	dataGridManager.ExportDataGridWithMergedInnerAttributes(
 	    initialDataGrid, surtokenizedDataGrid.GetInnerAttributes(), &initialFromSurtokenizedDataGrid);
@@ -607,7 +604,8 @@ double KWDataGridOptimizerIxV::OptimizeNeighbourSolution(const KWDataGrid* initi
 	// Post-optimisation de la grille resultat
 
 	// On utilise comme grille de reference celle qui a ete construite pour la generation de la grille voisine
-	dCost = PostOptimizeVarPartSolution(&initialFromSurtokenizedDataGrid, neighbourOptimizedDataGrid);
+	if (neighbourOptimizedDataGrid->GetInformativeAttributeNumber() > 1)
+		dCost = PostOptimizeVarPartSolution(&initialFromSurtokenizedDataGrid, neighbourOptimizedDataGrid);
 	return dCost;
 }
 
@@ -629,6 +627,9 @@ double KWDataGridOptimizerIxV::PostOptimizeVarPartSolution(const KWDataGrid* ini
 	require(initialDataGrid != NULL);
 	require(optimizedDataGrid != NULL);
 	require(optimizedDataGrid->GetDataGridCosts() == GetDataGridCosts());
+
+	//DDD
+	//DDD initialDataGrid = GetOptimizedInitialDataGrid();
 
 	// Calcul du cout initial
 	dInitialBestCost = dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
