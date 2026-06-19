@@ -360,10 +360,6 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	require(Check());
 	require(CheckSpecifications());
 
-	// Debut de la gestion des erreurs dediees a l'apprentissage
-	KWLearningErrorManager::BeginErrorCollection();
-	KWLearningErrorManager::AddTask("Coclustering");
-
 	// Debut du pilotage anytime
 	AnyTimeStart();
 
@@ -529,10 +525,6 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 
 	// Fin du pilotage anytime
 	AnyTimeStop();
-
-	// Fin de la gestion des erreurs dediees a l'apprentissage
-	KWLearningErrorManager::EndErrorCollection();
-
 	// Nettoyage
 	bIsStatsComputed = bOk;
 	ensure(Check());
@@ -887,7 +879,8 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 						"pour la derniere granularite "
 					     << endl;
 
-				if (optimizedDataGrid->GetInformativeAttributeNumber() > 0)
+				// Cas d'un coclustering informatif
+				if (optimizedDataGrid->GetInformativeAttributeNumber() > 1)
 				{
 					// Construction d'une grille initiale compatible avec les parties
 					// de variables fusionnees au niveau des attributs internes
@@ -921,6 +914,7 @@ void CCCoclusteringBuilder::OptimizeVarPartDataGrid(const KWDataGrid* inputIniti
 						optimizedDataGrid->Write(cout);
 					}
 				}
+				// Sinon memorisation du modele nul
 				else
 				{
 					HandleOptimizationStep(optimizedDataGrid, &partitionedDataGrid, true);
@@ -1854,14 +1848,12 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 	dCost = coclusteringDataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
 
 	// Test si amelioration ou si la mise a jour est commandee par l'atteinte de la granularite maximale
-	// Les grilles avec un seul attribut informatif ne sont pas sauvegardes
+	// Les grilles avec un seul attribut informatif ne sont pas sauvegardees
 	// Cela signifie qu'une grille legerement plus chere avec deux attributs informatifs rencontree au cours
 	// de l'optimisation mais non sauvegardee car non optimale du point de vue du cout peut exister mais
 	// n'aura pas ete sauvegardee (cf resultats sur AdultSmall1var cout de la grille initiale granularisee)
-	if (optimizedDataGrid->GetInformativeAttributeNumber() >= 2 and
-	    (dCost < dAnyTimeBestCost - dEpsilon or
-	     (bIsLastSaving and ((coclusteringDataGrid == NULL) or (coclusteringDataGrid->GetGranularity() <
-								    initialGranularizedDataGrid->GetGranularity())))))
+	if ((optimizedDataGrid->GetInformativeAttributeNumber() >= 2 and (dCost < dAnyTimeBestCost - dEpsilon)) or
+	    (bIsLastSaving and coclusteringDataGrid == NULL))
 	{
 		// Ajout de trace lie au profiling
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("Save best solution");

@@ -104,6 +104,7 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 	int nLastExploredGranularity;
 	ALString sSuffix;
 	ALString sTmp;
+	KWDataGrid nullDataGrid;
 
 	require(initialDataGrid != NULL);
 	require(optimizedDataGrid != NULL);
@@ -378,9 +379,13 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 							     << endl;
 
 						if (granularizedPostMergedOptimizedDataGrid
-							.GetInformativeAttributeNumber() == 0)
-							HandleOptimizationStep(optimizedDataGrid, &granularizedDataGrid,
+							.GetInformativeAttributeNumber() < 2)
+						{
+							dataGridManager.ExportNullDataGrid(initialDataGrid,
+											   &nullDataGrid);
+							HandleOptimizationStep(&nullDataGrid, &granularizedDataGrid,
 									       true);
+						}
 
 						else
 						{
@@ -429,7 +434,16 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 								"coclustering pour la derniere granularite "
 							     << endl;
 
-						HandleOptimizationStep(optimizedDataGrid, &granularizedDataGrid, true);
+						if (optimizedDataGrid->GetInformativeAttributeNumber() < 2)
+						{
+							dataGridManager.ExportNullDataGrid(initialDataGrid,
+											   &nullDataGrid);
+							HandleOptimizationStep(&nullDataGrid, &granularizedDataGrid,
+									       true);
+						}
+						else
+							HandleOptimizationStep(optimizedDataGrid, &granularizedDataGrid,
+									       true);
 					}
 				}
 
