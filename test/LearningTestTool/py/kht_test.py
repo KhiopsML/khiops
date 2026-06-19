@@ -62,15 +62,23 @@ def build_tool_exe_path(tool_binaries_dir, tool_name, use_khiops_env):
             tool_exe_path = os.environ["KHIOPS_COCLUSTERING_PATH"]
         elif tool_name == kht.KNI:
             # cas particulier de KNITransfer, qui n'est pas positionne dans une variable d'environnement dans khiops_env,
-            # mais dont le chemin est deduit du chemin de KHIOPS_PATH
+            # mais dont le chemin est deduit du chemin de khiops_env, i.e. tool_binaries_dir
+            # Note : on n'utilise pas le chemin de KHIOPS_PATH puisque, sous Rocky Linux natif,
+            # khiops_env se trouve sous /usr/bin, alors que KHIOPS_PATH pointe vers un
+            # repertoire sous /usr/lib64 qui depend de l'implementation MPI utilisee
             suffix = ".exe" if current_platform == "Windows" else ""
             tool_exe_path = os.path.join(
-                os.path.dirname(os.environ["KHIOPS_PATH"]),
+                tool_binaries_dir,
                 kht.TOOL_EXE_NAMES[kht.KNI] + suffix,
             )
             if not os.path.isfile(tool_exe_path):
                 tool_exe_path = None
-                error_message = "Executable for tool name " + tool_name + " not found"
+                error_message = (
+                    "Executable for tool name "
+                    + tool_name
+                    + " not found in directory "
+                    + tool_binaries_dir
+                )
         else:
             error_message = "No exe path can be determined for tool name " + tool_name
         return tool_exe_path, error_message
