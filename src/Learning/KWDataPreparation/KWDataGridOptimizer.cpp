@@ -392,6 +392,7 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	KWDataGrid mandatoryDataGrid;
 	int nMandatoryAttributeNumber;
 	int nMaxAttributeNumber;
+	int nMeanOptimizedPartNumber;
 	int nMaxPartNumber;
 	int nMaxContinuousPartNumber;
 	int nMaxSymbolPartNumber;
@@ -433,27 +434,24 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	nGridSize = initialDataGrid->GetCellNumber();
 
 	// Calcul du nombre d'attributs a exporter
-	nMaxAttributeNumber = 1 + (int)(log(nGridSize * 1.0) / log(2.0));
-	nAttributeNumber = (int)(dNoiseRate * nMaxAttributeNumber);
-	if (nAttributeNumber < 2)
-		nAttributeNumber = 2;
-	if (nAttributeNumber > initialDataGrid->GetAttributeNumber())
-		nAttributeNumber = initialDataGrid->GetAttributeNumber();
+	nMaxAttributeNumber = 1 + (int)ceil(log(nGridSize * 1.0) / log(2.0));
+	nAttributeNumber = 1 + (int)ceil((dNoiseRate * nMaxAttributeNumber));
+	nAttributeNumber = min(nAttributeNumber, initialDataGrid->GetAttributeNumber());
 
-	// Calcul des nombres de parties a exporter
-	nMaxContinuousPartNumber = (int)(nGridSize / log(nGridSize + 1.0));
-	nMaxSymbolPartNumber = (int)sqrt(nGridSize * 1.0);
-	nMaxPartNumber = (int)pow(nGridSize * 1.0, 1.0 / nAttributeNumber);
-	if (nMaxPartNumber > nGridSize)
-		nMaxPartNumber = nGridSize;
-	if (nMaxPartNumber < 2)
-		nMaxPartNumber = 2;
-	if (nMaxContinuousPartNumber > nMaxPartNumber)
-		nMaxContinuousPartNumber = nMaxPartNumber;
-	if (nMaxSymbolPartNumber > nMaxPartNumber)
-		nMaxSymbolPartNumber = nMaxPartNumber;
-	nRequestedContinuousPartNumber = 1 + (int)(dNoiseRate * nMaxContinuousPartNumber);
-	nRequestedSymbolPartNumber = 1 + (int)(dNoiseRate * nMaxSymbolPartNumber);
+	// Calcul des nombres maximal de parties a exporter
+	nMaxContinuousPartNumber = 1 + (int)ceil(nGridSize / log(nGridSize + 1.0));
+	nMaxSymbolPartNumber = 1 + (int)ceil(sqrt(nGridSize * 1.0));
+	nMaxPartNumber = 1 + (int)ceil(pow(nGridSize * 1.0, 1.0 / nAttributeNumber));
+	nMaxPartNumber = min(nMaxPartNumber, nGridSize);
+	nMaxContinuousPartNumber = min(nMaxContinuousPartNumber, nMaxPartNumber);
+	nMaxSymbolPartNumber = min(nMaxSymbolPartNumber, nMaxPartNumber);
+
+	// Calcul du nombre de parties a exporter, en fonction du niveau de bruit et du nombre moyen de partie existantes
+	nMeanOptimizedPartNumber =
+	    ceil(optimizedDataGrid->GetTotalPartNumber() / (double)optimizedDataGrid->GetAttributeNumber());
+	nRequestedContinuousPartNumber =
+	    1 + nMeanOptimizedPartNumber + (int)ceil(dNoiseRate * nMaxContinuousPartNumber);
+	nRequestedSymbolPartNumber = 1 + nMeanOptimizedPartNumber + (int)ceil(dNoiseRate * nMaxSymbolPartNumber);
 
 	// Parametrage avance temporaire, pour etude sur les multinomiales hierarchiques (Marc Boulle)
 	// Cf. classe d'etude KWHierarchicalMultinomialStudy
@@ -461,8 +459,8 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	{
 		nMaxContinuousPartNumber = (int)(nGridSize / 2);
 		nMaxSymbolPartNumber = (int)sqrt(nGridSize * 1.0);
-		nRequestedContinuousPartNumber = 1 + (int)(dNoiseRate * nMaxContinuousPartNumber);
-		nRequestedSymbolPartNumber = 1 + (int)(dNoiseRate * nMaxSymbolPartNumber);
+		nRequestedContinuousPartNumber = 1 + (int)ceil(dNoiseRate * nMaxContinuousPartNumber);
+		nRequestedSymbolPartNumber = 1 + (int)ceil(dNoiseRate * nMaxSymbolPartNumber);
 	}
 
 	// Export d'un sous-ensemble d'attributs obligatoires (les attributs informatifs) en fonction du niveau de bruit
@@ -482,7 +480,7 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 
 	// Export des parties
 	dataGridManager.AddRandomParts(initialDataGrid, neighbourDataGridMerger, optimizedDataGrid,
-				       nRequestedContinuousPartNumber, nRequestedSymbolPartNumber, 1.0);
+				       nRequestedContinuousPartNumber, nRequestedSymbolPartNumber);
 	TaskProgression::DisplayProgression(25);
 
 	// Export des cellules
@@ -561,7 +559,7 @@ double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, 
 
 	// Post-optimisation de la grille selon le niveau de post-optimisation
 	if (optimizationParameters.GetPostOptimize() and not TaskProgression::IsInterruptionRequested() and
-	    initialDataGrid->GetAttributeNumber() > 1)
+	    initialDataGrid->GetAttributeNumber() > 1 and dataGridMerger->GetInformativeAttributeNumber() > 1)
 	{
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("Post-optimization");
 		KWDataGridOptimizer::GetProfiler()->WriteKeyBoolean("Deep", bDeepPostOptimization);

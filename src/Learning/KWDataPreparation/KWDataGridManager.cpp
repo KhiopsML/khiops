@@ -1457,7 +1457,7 @@ void KWDataGridManager::AddRandomAttributes(const KWDataGrid* sourceDataGrid, KW
 
 void KWDataGridManager::AddRandomParts(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid,
 				       const KWDataGrid* mandatoryDataGrid, int nRequestedContinuousPartNumber,
-				       int nRequestedSymbolPartNumber, double dMinPercentageAddedPart) const
+				       int nRequestedSymbolPartNumber) const
 {
 	int nAttribute;
 	KWDGAttribute* sourceAttribute;
@@ -1473,7 +1473,6 @@ void KWDataGridManager::AddRandomParts(const KWDataGrid* sourceDataGrid, KWDataG
 	require(1 <= nRequestedContinuousPartNumber and
 		nRequestedContinuousPartNumber <= sourceDataGrid->GetGridFrequency());
 	require(1 <= nRequestedSymbolPartNumber and nRequestedSymbolPartNumber <= sourceDataGrid->GetGridFrequency());
-	require(0 <= dMinPercentageAddedPart and dMinPercentageAddedPart <= 1);
 
 	// Ajout des parties des attributs
 	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
@@ -1494,13 +1493,6 @@ void KWDataGridManager::AddRandomParts(const KWDataGrid* sourceDataGrid, KWDataG
 			nRequestedPartNumber = nRequestedContinuousPartNumber;
 		else
 			nRequestedPartNumber = nRequestedSymbolPartNumber;
-
-		// Prise en compte du minimum obligatoire
-		nRequestedPartNumber =
-		    (int)((dMinPercentageAddedPart + (1 - dMinPercentageAddedPart) * RandomDouble()) *
-			  nRequestedPartNumber);
-		if (nRequestedPartNumber < 1)
-			nRequestedPartNumber = 1;
 
 		// Ajout d'un sous ensemble de parties de l'attribut dans le cas d'un attribut obligatoire
 		if (mandatoryAttribute != NULL)
@@ -2699,7 +2691,7 @@ void KWDataGridManager::Test(const KWDataGrid* dataGrid)
 		dataGridManager.AddRandomAttributes(dataGrid, &targetDataGrid2, &targetDataGrid1,
 						    dataGrid->GetAttributeNumber() -
 							targetDataGrid1.GetAttributeNumber());
-		dataGridManager.AddRandomParts(dataGrid, &targetDataGrid2, &targetDataGrid1, 3, 3, 0.5);
+		dataGridManager.AddRandomParts(dataGrid, &targetDataGrid2, &targetDataGrid1, 3, 3);
 		dataGridManager.ExportCells(dataGrid, &targetDataGrid2);
 		cout << "Random modified exported data grid" << endl;
 		cout << targetDataGrid2 << endl;
@@ -3356,7 +3348,7 @@ void KWDataGridManager::InitialiseAttributeRandomParts(const KWDGAttribute* sour
 				{
 					nTargetPart++;
 
-					// On reinitialise l'indicateur de creation d'intervalle cible
+					// On reinitialise l'indicateur de creation de partie cible
 					targetPart = NULL;
 				}
 			}
@@ -3390,6 +3382,7 @@ void KWDataGridManager::AddAttributeRandomParts(const KWDGAttribute* sourceAttri
 	int nMaxAddedPartNumber;
 
 	require(Check());
+	require(mandatoryAttribute != NULL);
 	require(CheckAttributesConsistency(sourceAttribute, mandatoryAttribute));
 	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
 	require(targetAttribute->GetPartNumber() == 0);
@@ -3411,7 +3404,7 @@ void KWDataGridManager::AddAttributeRandomParts(const KWDGAttribute* sourceAttri
 		InitialiseAttributeRandomParts(sourceAttribute, targetAttribute, nRequestedPartNumber);
 	}
 	// Cas particulier: il y a deja assez de partie dans l'attribut obligatoire
-	else if (nAddedPartNumber == 0)
+	else if (nRequestedPartNumber <= mandatoryAttribute->GetPartNumber())
 	{
 		// Transfert du parametrage des parties de l'attribut
 		InitialiseAttributeParts(mandatoryAttribute, targetAttribute);
@@ -4032,9 +4025,9 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 	int nReferencePartNumber;
 	int nTotalReferencePartNumber;
 	int nTotalRemainingReferencePartNumber;
-	int nTotalRemainingPartNumberToAdd;
+	int nTotalRemainingPartNumberToCreate;
 	int nOutputPartNumber;
-	double dPercentagePartNumberToAdd;
+	double dPercentagePartNumberToCreate;
 
 	require(sourceInnerAttributes != NULL);
 	require(referenceInnerAttributes != NULL);
@@ -4047,7 +4040,7 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 	outputInnerAttributes = new KWDGInnerAttributes;
 	outputInnerAttributes->SetVarPartGranularity(sourceInnerAttributes->GetVarPartGranularity());
 
-	// Creation des inner attributs en sortie
+	// Creation des attributs internes en sortie
 	for (nInnerAttribute = 0; nInnerAttribute < sourceInnerAttributes->GetInnerAttributeNumber(); nInnerAttribute++)
 	{
 		sourceInnerAttribute = sourceInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
@@ -4064,56 +4057,60 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 		ivInnerAttributesIndexes.SetAt(n, n);
 	ivInnerAttributesIndexes.Shuffle();
 
-	// Creation des parties des inner attributs en sortie, en les parecourant en ordre aleatoire
+	// Creation des parties des attributs internes en sortie, en les parcourant en ordre aleatoire
 	// pour repartir de facon equilibree les tokens a ajouter
 	nTotalReferencePartNumber = referenceInnerAttributes->ComputeTotalInnerAttributeVarParts();
 	nTotalRemainingReferencePartNumber = nTotalReferencePartNumber;
-	nTotalRemainingPartNumberToAdd =
+	nTotalRemainingPartNumberToCreate =
 	    nTotalOutputTokenNumber - sourceInnerAttributes->ComputeTotalInnerAttributeVarParts();
-	for (n = 0; n < ivInnerAttributesIndexes.GetSize(); n++)
+	if (nTotalRemainingPartNumberToCreate > 0)
 	{
-		nInnerAttribute = ivInnerAttributesIndexes.GetAt(n);
+		for (n = 0; n < ivInnerAttributesIndexes.GetSize(); n++)
+		{
+			nInnerAttribute = ivInnerAttributesIndexes.GetAt(n);
 
-		// Acces aux attributs
-		sourceInnerAttribute = sourceInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
-		referenceInnerAttribute = referenceInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
-		outputInnerAttribute = outputInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
+			// Acces aux attributs
+			sourceInnerAttribute = sourceInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
+			referenceInnerAttribute = referenceInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
+			outputInnerAttribute = outputInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
 
-		// Calcul du poucentage de parties a ajouter pour cet attribut en fonction du nombre de parties restantes a ajouter
-		if (nTotalOutputTokenNumber == nTotalReferencePartNumber)
-			dPercentagePartNumberToAdd = 1;
-		else
-			dPercentagePartNumberToAdd =
-			    nTotalRemainingPartNumberToAdd / (double)nTotalRemainingReferencePartNumber;
+			// Calcul du poucentage de parties a ajouter pour cet attribut en fonction du nombre de parties restantes a ajouter
+			if (nTotalOutputTokenNumber == nTotalReferencePartNumber)
+				dPercentagePartNumberToCreate = 1;
+			else
+				dPercentagePartNumberToCreate =
+				    nTotalRemainingPartNumberToCreate / (double)nTotalRemainingReferencePartNumber;
 
-		// Calcul du nombre de tokens a ajouter pour cet attribut en fonction des tokens deja attribues
-		// et du nombre cible a ne pas depasser
-		nSourcePartNumber = sourceInnerAttribute->GetPartNumber();
-		nReferencePartNumber = referenceInnerAttribute->GetPartNumber();
-		nOutputPartNumber = nSourcePartNumber +
-				    int(ceil(dPercentagePartNumberToAdd * (nReferencePartNumber - nSourcePartNumber)));
-		nOutputPartNumber = min(nOutputPartNumber, nReferencePartNumber);
-		assert(nOutputPartNumber <= nReferencePartNumber);
+			// Calcul du nombre de tokens a ajouter pour cet attribut en fonction des tokens deja attribues
+			// et du nombre cible a ne pas depasser
+			nSourcePartNumber = sourceInnerAttribute->GetPartNumber();
+			nReferencePartNumber = referenceInnerAttribute->GetPartNumber();
+			nOutputPartNumber =
+			    nSourcePartNumber +
+			    int(ceil(dPercentagePartNumberToCreate * (nReferencePartNumber - nSourcePartNumber)));
+			nOutputPartNumber = min(nOutputPartNumber, nReferencePartNumber);
+			assert(nOutputPartNumber <= nReferencePartNumber);
 
-		// Ajout des parties aleatoires ou recopie de l'attribut source
-		if (nOutputPartNumber == nSourcePartNumber)
-			InitialiseAttributeParts(sourceInnerAttribute, outputInnerAttribute);
-		else if (nOutputPartNumber == nReferencePartNumber)
-			InitialiseAttributeParts(referenceInnerAttribute, outputInnerAttribute);
-		else
-			AddAttributeRandomParts(referenceInnerAttribute, sourceInnerAttribute, outputInnerAttribute,
-						nOutputPartNumber - nSourcePartNumber);
+			// Ajout des parties aleatoires ou recopie de l'attribut source
+			if (nOutputPartNumber == nSourcePartNumber)
+				InitialiseAttributeParts(sourceInnerAttribute, outputInnerAttribute);
+			else if (nOutputPartNumber == nReferencePartNumber)
+				InitialiseAttributeParts(referenceInnerAttribute, outputInnerAttribute);
+			else
+				AddAttributeRandomParts(referenceInnerAttribute, sourceInnerAttribute,
+							outputInnerAttribute, nOutputPartNumber);
 
-		// On peut echouer a ajouter toutes les partie demandees
-		//DDD TODO a corriger, ou justifier (on se base sur des effectifs a atteindre, et non sur des index d'intervalles)
-		assert(outputInnerAttribute->GetPartNumber() <= nOutputPartNumber);
+			// On peut echouer a ajouter toutes les partie demandees
+			//DDD TODO a corriger, ou justifier (on se base sur des effectifs a atteindre, et non sur des index d'intervalles)
+			assert(outputInnerAttribute->GetPartNumber() <= nOutputPartNumber);
 
-		// Mise a jour du nombre de parties ajoutees
-		nTotalRemainingReferencePartNumber -= nReferencePartNumber;
-		nTotalRemainingPartNumberToAdd -= (nOutputPartNumber - nSourcePartNumber);
+			// Mise a jour du nombre de parties ajoutees
+			nTotalRemainingReferencePartNumber -= nReferencePartNumber;
+			nTotalRemainingPartNumberToCreate -= (nOutputPartNumber - nSourcePartNumber);
+		}
 	}
 	assert(nTotalRemainingReferencePartNumber == 0);
-	assert(nTotalRemainingPartNumberToAdd >= 0);
+	assert(nTotalRemainingPartNumberToCreate >= 0);
 
 	// Affichage des innerAttributes
 	if (bDisplayResults)
