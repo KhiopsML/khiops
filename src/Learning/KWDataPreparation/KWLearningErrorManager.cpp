@@ -39,14 +39,14 @@ void KWLearningErrorManager::AddTask(const ALString& sTitle)
 
 	require(sTitle != "");
 
-	// On cree un message d'un format special pour gerer ces titre de section
+	// On cree un message d'un format special pour gerer ces titres de section
 	errorTask = new Error;
 	errorTask->SetGravity(Error::GravityMessage);
 	errorTask->SetCategory("Error section");
 	errorTask->SetLabel(sTitle);
 	assert(IsTask(errorTask));
 
-	// Memorisdation dans le tableau des erreurs collectees
+	// Memorisation dans le tableau des erreurs collectees
 	nTaskNumber++;
 	oaCollectedErrors.Add(errorTask);
 }

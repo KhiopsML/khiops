@@ -1,0 +1,117 @@
+{
+	"tool": "Khiops Coclustering",
+	"version": "VERSION",
+	"shortDescription": "",
+	"logs": [
+		{
+			"taskName": "Coclustering",
+			"messages": [
+				"warning : Coclustering : No informative coclustering found in data"
+			]
+		}
+	],
+	"coclusteringReport": {
+		"summary": {
+			"instances": 1000,
+			"cells": 1,
+			"nullCost": 1236.016618,
+			"cost": 1236.016618,
+			"level": 0,
+			"initialDimensions": 2,
+			"frequencyVariable": "",
+			"dictionary": "Adult",
+			"database": ".\/Adult1000.txt",
+			"samplePercentage": 100,
+			"samplingMode": "Include sample",
+			"selectionVariable": "",
+			"selectionValue": ""
+		},
+		"dimensionSummaries": [
+			{
+				"name": "native_country",
+				"type": "Categorical",
+				"parts": 1,
+				"initialParts": 1,
+				"values": 28,
+				"interest": 1,
+				"description": ""
+			},
+			{
+				"name": "sex",
+				"type": "Categorical",
+				"parts": 1,
+				"initialParts": 1,
+				"values": 2,
+				"interest": 1,
+				"description": ""
+			}
+		],
+		"dimensionPartitions": [
+			{
+				"name": "native_country",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{United-States, Mexico, Cuba, ...}",
+						"values": ["United-States","Mexico","Cuba","Philippines","Portugal","Puerto-Rico","Canada","England","Germany","India","Iran","Poland","South","Dominican-Republic","El-Salvador","Guatemala","Haiti","Honduras","Italy","Jamaica","Taiwan","Cambodia","China","Columbia","Ecuador","France","Laos","Thailand"],
+						"valueFrequencies": [920,20,4,4,4,4,3,3,3,3,3,3,3,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1],
+						"valueTypicalities": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+					}
+				],
+				"defaultGroupIndex": 0
+			},
+			{
+				"name": "sex",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{Male, Female}",
+						"values": ["Male","Female"],
+						"valueFrequencies": [671,329],
+						"valueTypicalities": [0,0]
+					}
+				],
+				"defaultGroupIndex": 0
+			}
+		],
+		"dimensionHierarchies": [
+			{
+				"name": "native_country",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{United-States, Mexico, Cuba, ...}",
+						"parentCluster": "",
+						"frequency": 1000,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 2,
+						"isLeaf": true
+					}
+				]
+			},
+			{
+				"name": "sex",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{Male, Female}",
+						"parentCluster": "",
+						"frequency": 1000,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 2,
+						"isLeaf": true
+					}
+				]
+			}
+		],
+		"cellPartIndexes": [
+			[0,0]
+		],
+		"cellFrequencies": [1000]
+	},
+	"khiops_encoding": "ascii"
+}
