@@ -20,6 +20,15 @@ import _kht_check_results as check
 # mpiexec sous Windows
 if os.name == "nt":
     mpi_exe_name = "mpiexec.exe"
+    # Avec intel MPI mpiexec n'est pas dans le path. On peut le trouver grace a la variable d'environnement I_MPI_ROOT
+    # (qui doit etre positionnee par l'utilisateur, ca n'est pas fait automatiquement lors de l'installation)
+    # En la mettant dans le PATH on trouve mpiexec et les dll associees
+    intel_mpi_path = os.environ.get("I_MPI_ROOT", "")
+    if intel_mpi_path != "":
+        os.environ["PATH"] = (
+            os.path.join(intel_mpi_path, "bin") + ";" + os.environ["PATH"]
+        )
+
 # mpiexec sous Linux
 else:
     mpi_exe_name = "mpirun"
