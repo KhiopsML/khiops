@@ -13,6 +13,18 @@ inputs:
   running-mode:
     description: Running mode (parallel or serial)
     required: true
+  test-khiops:
+    description: Test the MODL binary
+    required: false
+    default: 'true'
+  test-coclustering:
+    description: Test the MODL_Coclustering binary
+    required: false
+    default: 'true'
+  test-kni:
+    description: Test the KhiopsNativeInterface library via KNITransfer
+    required: false
+    default: 'true'
   config:
     description: Build configuration (debug or release)
     required: true
@@ -69,17 +81,27 @@ runs:
       run: |
         if [[ "${{ inputs.running-mode }}" == "parallel" ]] ; then
           export PARALLEL_ARG="-p 4"
+        else
+          export PARALLEL_ARG="-p 1"
         fi
         if [[ "${{ inputs.config }}" == "release" ]] ; then
-          $PYTHON $TEST_PY test/LearningTest/TestKhiops/Standard "${{ inputs.binary-path }}" ${PARALLEL_ARG}
-          $PYTHON $TEST_PY test/LearningTest/TestCoclustering/Standard "${{ inputs.binary-path }}" ${PARALLEL_ARG}
-          if [[ "${{ inputs.running-mode }}" != "parallel" ]] ; then 
+          if [[ "${{ inputs.test-khiops }}" == "true" ]] ; then
+            $PYTHON $TEST_PY test/LearningTest/TestKhiops/Standard "${{ inputs.binary-path }}" ${PARALLEL_ARG}
+          fi
+          if [[ "${{ inputs.test-coclustering }}" == "true" ]] ; then
+            $PYTHON $TEST_PY test/LearningTest/TestCoclustering/Standard "${{ inputs.binary-path }}" ${PARALLEL_ARG}
+          fi
+          if [[ "${{ inputs.test-kni }}" == "true" && "${{ inputs.running-mode }}" != "parallel" ]] ; then
             $PYTHON $TEST_PY test/LearningTest/TestKNI/Standard "${{ inputs.binary-path }}"
           fi
         else
-          $PYTHON $TEST_PY test/LearningTest/TestKhiops/Standard/IrisLight "${{ inputs.binary-path }}" ${PARALLEL_ARG}
-          $PYTHON $TEST_PY test/LearningTest/TestCoclustering/Standard/Iris "${{ inputs.binary-path }}" ${PARALLEL_ARG}
-          if [[ "${{ inputs.running-mode }}" != "parallel" ]] ; then
+          if [[ "${{ inputs.test-khiops }}" == "true" ]] ; then
+            $PYTHON $TEST_PY test/LearningTest/TestKhiops/Standard/IrisLight "${{ inputs.binary-path }}" ${PARALLEL_ARG}
+          fi
+          if [[ "${{ inputs.test-coclustering }}" == "true" ]] ; then
+            $PYTHON $TEST_PY test/LearningTest/TestCoclustering/Standard/Iris "${{ inputs.binary-path }}" ${PARALLEL_ARG}
+          fi
+          if [[ "${{ inputs.test-kni }}" == "true" && "${{ inputs.running-mode }}" != "parallel" ]] ; then
             $PYTHON $TEST_PY test/LearningTest/TestKNI/Standard/Iris "${{ inputs.binary-path }}"
           fi
         fi
@@ -89,15 +111,23 @@ runs:
       run: |
         mkdir -p results
         if [[ "${{ inputs.config }}" == "release" ]] ; then
-          $PYTHON $APPLY_PY test/LearningTest/TestKhiops/Standard errors | tee -a results/errors.txt
-          $PYTHON $APPLY_PY test/LearningTest/TestCoclustering/Standard errors | tee -a results/errors.txt
-          if [[ "${{ inputs.running-mode }}" != "parallel" ]] ; then
+          if [[ "${{ inputs.test-khiops }}" == "true" ]] ; then
+            $PYTHON $APPLY_PY test/LearningTest/TestKhiops/Standard errors | tee -a results/errors.txt
+          fi
+          if [[ "${{ inputs.test-coclustering }}" == "true" ]] ; then
+            $PYTHON $APPLY_PY test/LearningTest/TestCoclustering/Standard errors | tee -a results/errors.txt
+          fi
+          if [[ "${{ inputs.test-kni }}" == "true" && "${{ inputs.running-mode }}" != "parallel" ]] ; then
             $PYTHON $APPLY_PY test/LearningTest/TestKNI/Standard errors | tee -a results/errors.txt
           fi
         else
-          $PYTHON $APPLY_PY test/LearningTest/TestKhiops/Standard/IrisLight errors | tee -a results/errors.txt
-          $PYTHON $APPLY_PY test/LearningTest/TestCoclustering/Standard/Iris errors | tee -a results/errors.txt
-          if [[ "${{ inputs.running-mode }}" != "parallel" ]] ; then
+          if [[ "${{ inputs.test-khiops }}" == "true" ]] ; then
+            $PYTHON $APPLY_PY test/LearningTest/TestKhiops/Standard/IrisLight errors | tee -a results/errors.txt
+          fi
+          if [[ "${{ inputs.test-coclustering }}" == "true" ]] ; then
+            $PYTHON $APPLY_PY test/LearningTest/TestCoclustering/Standard/Iris errors | tee -a results/errors.txt
+          fi
+          if [[ "${{ inputs.test-kni }}" == "true" && "${{ inputs.running-mode }}" != "parallel" ]] ; then
             $PYTHON $APPLY_PY test/LearningTest/TestKNI/Standard/Iris errors | tee -a results/errors.txt
           fi
         fi
