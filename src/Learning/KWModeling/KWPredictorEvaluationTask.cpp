@@ -46,16 +46,16 @@ boolean KWPredictorEvaluationTask::Evaluate(KWPredictor* predictor, KWDatabase* 
 	return bOk;
 }
 
-const ALString KWPredictorEvaluationTask::GetClassLabel() const
-{
-	return "Evaluation";
-}
+// const ALString KWPredictorEvaluationTask::GetClassLabel() const
+// {
+// 	return "Evaluation";
+// }
 
-const ALString KWPredictorEvaluationTask::GetObjectLabel() const
-{
-	require(predictorEvaluation != NULL);
-	return predictorEvaluation->GetPredictorName();
-}
+// const ALString KWPredictorEvaluationTask::GetObjectLabel() const
+// {
+// 	require(predictorEvaluation != NULL);
+// 	return predictorEvaluation->GetPredictorName();
+// }
 
 const ALString KWPredictorEvaluationTask::GetTaskName() const
 {

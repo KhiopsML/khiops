@@ -35,8 +35,8 @@ public:
 				 KWPredictorEvaluation* predictorEvaluation);
 
 	// Libelles
-	const ALString GetClassLabel() const override;
-	const ALString GetObjectLabel() const override;
+	// const ALString GetClassLabel() const override;
+	// const ALString GetObjectLabel() const override;
 
 	//////////////////////////////////////////////////////////////////////////////
 	///// Implementation
