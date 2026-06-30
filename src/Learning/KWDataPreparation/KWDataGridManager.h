@@ -392,8 +392,37 @@ protected:
 
 	// Ajout aleatoire de parties dans une partition pour un attribut donne
 	// Les nouvelles parties sont obtenues en sur-partitionnant les partitions existantes de l'attribut obligatoire,
-	void AddAttributeRandomParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* mandatoryAttribute,
+	void AddAttributeRandomParts(const KWDGAttribute* sourceAttribute, const KWDGAttribute* mandatoryAttribute,
 				     KWDGAttribute* targetAttribute, int nRequestedPartNumber) const;
+
+	// Export aleatoire de parties pour un attribut numerique donne.
+	// La methode construit d'abord une discretisation de reference en M
+	// intervalles quasi equi-effectifs (M = nMinimimEqualFrequencyPartNumber),
+	// puis choisit aleatoirement des bornes dans cette grille pour produire
+	// R parties (R = nRequestedPartNumber).
+	//
+	// Si mandatoryAttribute est present, les nouvelles parties sont obtenues
+	// par sur-partition de ses parties existantes: les bornes candidates
+	// doivent respecter les bornes de mandatoryAttribute.
+	//
+	// Si R = M, la partition est la plus equilibree possible.
+	// Si R < M, la partition peut etre moins equilibree (plus de variabilite).
+	//
+	// Si le nombre de valeurs distinctes est insuffisant, le nombre de parties
+	// obtenu peut etre inferieur a R. Avec bForce=false, on accepte ce resultat.
+	// Avec bForce=true, on tente d atteindre R en relachant progressivement
+	// la contrainte d equilibre, tout en respectant mandatoryAttribute s'il existe.
+	void ExportContinuousAttributeRandomParts(const KWDGAttribute* sourceAttribute,
+						  const KWDGAttribute* mandatoryAttribute,
+						  KWDGAttribute* targetAttribute, int nRequestedPartNumber,
+						  int nMinimimEqualFrequencyPartNumber, boolean bForce) const;
+
+	// Export aleatoire de parties pour un attribut categoriel donne.
+	// Comportement similaire a celui du cas d'un attribut numerique
+	void ExportGroupableAttributeRandomParts(const KWDGAttribute* sourceAttribute,
+						 const KWDGAttribute* mandatoryAttribute,
+						 KWDGAttribute* targetAttribute, int nRequestedPartNumber,
+						 int nMinimimEqualFrequencyPartNumber, boolean bForce) const;
 
 	// Ajout de partie granularisee pour un attribut donne
 	void InitialiseAttributeGranularizedParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute,
@@ -442,7 +471,7 @@ protected:
 	// les clusters impactes par les fusions de PV (ne prend pas en compte la variation du cout de partition)
 	double MergePartsForVarPartAttributes(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid) const;
 
-	// Creation et initialisation d'un quantile builder, et du nombre max de parties a quuantiliser
+	// Creation et initialisation d'un quantile builder, et du nombre max de parties a quantiliser
 	void CreateAttributeQuantileBuilder(const KWDGAttribute* attribute, KWQuantileBuilder*& quantileBuilder,
 					    int& nMaxPartNumber) const;
 
@@ -453,14 +482,148 @@ protected:
 
 	// Tri des parties d'un attribut source Symbol ou VarPart, selon les groupements
 	// de ces parties dans un attribut cible groupe compatible
-	// Les parties sources se trouvent dans le tableau resultat, trie correctement
+	// Les parties sources se trouvent dans le tableau resultat, triees correctement
 	// par groupe, et en ordre aleatoire a l'interieur de chaque groupe
 	//    oaSortedSourceParts: parties sources triees par groupe cible
 	//    oaSortedGroupedParts: parties groupees associees aux parties source
-	void SortAttributePartsByTargetGroups(const KWDGAttribute* sourceAttribute, KWDGAttribute* groupedAttribute,
-					      ObjectArray* oaSortedSourceParts,
+	void SortAttributePartsByTargetGroups(const KWDGAttribute* sourceAttribute,
+					      const KWDGAttribute* groupedAttribute, ObjectArray* oaSortedSourceParts,
 					      ObjectArray* oaSortedGroupedParts) const;
+
+	// Initialisation d'information de partionnement aleatoire d'un attribut categoriel
+	// Le tableau oaSymbolAttributePartInformation en sortie contient un objet KWDGMSymbolAttributePartInformation
+	// par partie de l'attribut source, avec les information sur l'attribut source
+	// et sur l'attribut obligatoire s'il est non NULL
+	// Memoire: le contenu du tableau appartient a l'appelant
+	void InitializeGroupableAttributePartInformations(const KWDGAttribute* sourceAttribute,
+							  const KWDGAttribute* mandatoryAttribute,
+							  ObjectArray* oaGroupableAttributePartInformation) const;
+
+	// Calcul des effectifs cumules des intervalles d'un attribut continu
+	void ComputeContinuousAttributeCumulatedFrequencies(const KWDGAttribute* attribute,
+							    IntVector* ivCumulatedFrequencies) const;
 
 	// Initialisation d'un vecteur de nombres aleatoires compris entre 0 et max exclu, ordonnes et tous differents
 	void InitRandomIndexVector(IntVector* ivRandomIndexes, int nIndexNumber, int nMaxIndex) const;
 };
+
+//////////////////////////////////////////////////////////////////////
+// Classe technique interne utilise par KWDataGridManager pour assurer
+// le partitionnement aleatoire d'un attribut groupable (Symbol ou VarPart)
+class KWDGMGroupableAttributePartInformation : public Object
+{
+public:
+	// Constructeur
+	KWDGMGroupableAttributePartInformation();
+	~KWDGMGroupableAttributePartInformation();
+
+	// Index d'une partie d'un attribut source
+	void SetSourcePartIndex(int nValue);
+	int GetSourcePartIndex() const;
+
+	// Index de la partie correspondant d'un attribut obligatoire dont la
+	// partition est base sur une partition des parties de l'attribut source
+	// Defaut: 0 si pas d'attribut obligatoire
+	void SetMandatoryPartIndex(int nValue);
+	int GetMandatoryPartIndex() const;
+
+	// Effectif de la partie source
+	void SetSourcePartFrequency(int nValue);
+	int GetSourcePartFrequency() const;
+
+	// Index aleatoire permettant de trier aleatoirement les parties
+	void SetRandomIndex(int nValue);
+	int GetRandomIndex() const;
+
+	// Index de la partie cible dans l'attribut cible, apres partitionnement aleatoire
+	void SetTargetPartIndex(int nValue);
+	int GetTargetPartIndex() const;
+
+	// Rapport synthetique destine a rentrer dans un tableau
+	void WriteHeaderLineReport(ostream& ost) const;
+	void WriteLineReport(ostream& ost) const;
+
+	/////////////////////////////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	int nSourcePartIndex;
+	int nMandatoryPartIndex;
+	int nSourcePartFrequency;
+	int nRandomIndex;
+	int nTargetPartIndex;
+};
+
+// Tri de KWDGMGroupableAttributePartInformation selon l'index de la partie source
+int KWDGMGroupableAttributePartInformationCompareSourceIndexes(const void* elem1, const void* elem2);
+
+// Tri de KWDGMGroupableAttributePartInformation selon l'index de la partie obligatoire, puis selon l'index aleatoire
+int KWDGMGroupableAttributePartInformationCompareMandatoryAndRandomIndexes(const void* elem1, const void* elem2);
+
+////////////////////////////////////////////////////////////////////////////////
+// Methodes en inline
+
+inline KWDGMGroupableAttributePartInformation::KWDGMGroupableAttributePartInformation()
+{
+	nSourcePartIndex = 0;
+	nMandatoryPartIndex = 0;
+	nSourcePartFrequency = 0;
+	nRandomIndex = 0;
+	nTargetPartIndex = 0;
+}
+
+inline KWDGMGroupableAttributePartInformation::~KWDGMGroupableAttributePartInformation() {}
+
+inline void KWDGMGroupableAttributePartInformation::SetSourcePartIndex(int nValue)
+{
+	require(nValue >= 0);
+	nSourcePartIndex = nValue;
+}
+
+inline int KWDGMGroupableAttributePartInformation::GetSourcePartIndex() const
+{
+	return nSourcePartIndex;
+}
+
+inline void KWDGMGroupableAttributePartInformation::SetMandatoryPartIndex(int nValue)
+{
+	require(nValue >= 0);
+	nMandatoryPartIndex = nValue;
+}
+
+inline int KWDGMGroupableAttributePartInformation::GetMandatoryPartIndex() const
+{
+	return nMandatoryPartIndex;
+}
+
+inline void KWDGMGroupableAttributePartInformation::SetSourcePartFrequency(int nValue)
+{
+	require(nValue >= 0);
+	nSourcePartFrequency = nValue;
+}
+
+inline int KWDGMGroupableAttributePartInformation::GetSourcePartFrequency() const
+{
+	return nSourcePartFrequency;
+}
+
+inline void KWDGMGroupableAttributePartInformation::SetRandomIndex(int nValue)
+{
+	require(nValue >= 0);
+	nRandomIndex = nValue;
+}
+
+inline int KWDGMGroupableAttributePartInformation::GetRandomIndex() const
+{
+	return nRandomIndex;
+}
+
+inline void KWDGMGroupableAttributePartInformation::SetTargetPartIndex(int nValue)
+{
+	require(nValue >= 0);
+	nTargetPartIndex = nValue;
+}
+
+inline int KWDGMGroupableAttributePartInformation::GetTargetPartIndex() const
+{
+	return nTargetPartIndex;
+}
