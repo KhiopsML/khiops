@@ -132,6 +132,7 @@ int PLRemoteFileService::GetPreferredBufferSize(const ALString& sFileURI)
 	SystemFileDriver* driver;
 	ALString sLocalFileName;
 	longint lPreferredSize;
+	ALString sErrorMessage;
 
 	// Si c'est un fichier remote sur le localhost, on extrait le path pour le traiter en  ficher local
 	if (PLRemoteFileService::RemoteIsLocal(sFileURI))
@@ -139,7 +140,7 @@ int PLRemoteFileService::GetPreferredBufferSize(const ALString& sFileURI)
 	else
 		sLocalFileName = sFileURI;
 
-	driver = SystemFileDriverCreator::LookupDriver(sLocalFileName, NULL);
+	driver = SystemFileDriverCreator::LookupDriver(sLocalFileName, sErrorMessage);
 	if (driver == NULL)
 		return SystemFile::nDefaultPreferredBufferSize;
 	else

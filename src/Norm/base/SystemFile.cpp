@@ -29,6 +29,7 @@ boolean SystemFile::OpenInputFile(const ALString& sFilePathName)
 {
 	boolean bOk;
 	ALString sTmp;
+	ALString sErrorMessage;
 
 	require(fileHandle == NULL);
 	require(not bIsOpenForRead and not bIsOpenForWrite);
@@ -36,9 +37,12 @@ boolean SystemFile::OpenInputFile(const ALString& sFilePathName)
 	assert(lReservedExtraSize == 0);
 
 	// Recherche du driver
-	fileDriver = SystemFileDriverCreator::LookupDriver(sFilePathName, this);
+	fileDriver = SystemFileDriverCreator::LookupDriver(sFilePathName, sErrorMessage);
 	if (fileDriver == NULL)
+	{
+		sPostMortemMessage = sErrorMessage;
 		return false;
+	}
 
 	// Mode de test : toujours en echec
 	if (bAlwaysErrorOnOpen)
@@ -334,8 +338,9 @@ longint SystemFile::GetFileSize(const ALString& sFilePathName)
 	longint lFileSize = 0;
 	SystemFileDriver* driver;
 	ALString sTmp;
+	ALString sErrorMessage;
 
-	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, NULL);
+	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, sErrorMessage);
 	if (driver != NULL)
 	{
 		if (FileService::LogIOStats())
@@ -356,8 +361,9 @@ boolean SystemFile::FileExists(const ALString& sFilePathName)
 	boolean bOk = false;
 	SystemFileDriver* driver;
 	ALString sTmp;
+	ALString sErrorMessage;
 
-	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, NULL);
+	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, sErrorMessage);
 	if (driver != NULL)
 	{
 		if (FileService::LogIOStats())
@@ -376,8 +382,9 @@ boolean SystemFile::DirExists(const ALString& sFilePathName)
 	boolean bOk = false;
 	SystemFileDriver* driver;
 	ALString sTmp;
+	ALString sErrorMessage;
 
-	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, NULL);
+	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, sErrorMessage);
 	if (driver != NULL)
 	{
 		if (FileService::LogIOStats())
@@ -585,9 +592,10 @@ SystemFileDriver* SystemFile::LookupWriteDriver(const ALString& sFilePathName, c
 {
 	SystemFileDriver* driver;
 	ALString sTmp;
+	ALString sErrorMessage;
 
 	// Recherche du driver
-	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, NULL);
+	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, sErrorMessage);
 
 	// On test s'il est read-only
 	if (driver != NULL)
