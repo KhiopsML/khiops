@@ -448,7 +448,7 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 
 	// Calcul du nombre de parties a exporter, en fonction du niveau de bruit et du nombre moyen de partie existantes
 	nMeanOptimizedPartNumber =
-	    ceil(optimizedDataGrid->GetTotalPartNumber() / (double)optimizedDataGrid->GetAttributeNumber());
+	    (int)ceil(optimizedDataGrid->GetTotalPartNumber() / (double)optimizedDataGrid->GetAttributeNumber());
 	nRequestedContinuousPartNumber =
 	    1 + nMeanOptimizedPartNumber + (int)ceil(dNoiseRate * nMaxContinuousPartNumber);
 	nRequestedSymbolPartNumber = 1 + nMeanOptimizedPartNumber + (int)ceil(dNoiseRate * nMaxSymbolPartNumber);

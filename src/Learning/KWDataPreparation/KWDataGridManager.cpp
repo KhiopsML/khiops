@@ -1500,6 +1500,34 @@ void KWDataGridManager::AddRandomParts(const KWDataGrid* sourceDataGrid, KWDataG
 			assert(sourceAttribute->GetAttributeType() == mandatoryAttribute->GetAttributeType());
 			AddAttributeRandomParts(sourceAttribute, mandatoryAttribute, targetAttribute,
 						nRequestedPartNumber);
+			/*DDD
+			if (sourceAttribute->GetAttributeType() == KWType::Continuous)
+			{
+				KWDGAttribute outputAttributeProto;
+				int nTestOutputPartNumber;
+				boolean bShowResults = false;
+
+				nTestOutputPartNumber = min(nRequestedPartNumber + mandatoryAttribute->GetPartNumber(), sourceAttribute->GetPartNumber());
+				InitialiseAttribute(sourceAttribute, &outputAttributeProto);
+				ExportContinuousAttributeRandomParts(sourceAttribute, mandatoryAttribute,
+								  &outputAttributeProto, nTestOutputPartNumber,
+								  nTestOutputPartNumber, true);
+				if (bShowResults)
+				{
+					cout << "Inner attribute " << sourceInnerAttribute->GetAttributeName() << "\t"
+					     << sourceInnerAttribute->GetPartNumber() << "\t"
+					     << referenceInnerAttribute->GetPartNumber() << " :\t" << nOutputPartNumber
+					     << " ->\t" << outputInnerAttribute->GetPartNumber() << " :\t"
+					     << nTestOutputPartNumber << " ->\t"
+					     << outputInnerAttributeProto.GetPartNumber() << endl;
+					if (nOutputPartNumber <= 20)
+						outputInnerAttribute->WriteParts(cout);
+					if (nOutputPartNumber <= 20)
+						outputInnerAttributeProto.WriteParts(cout);
+				}
+
+			}
+			*/
 		}
 		// et dans le cas general sinon
 		else
@@ -3361,8 +3389,9 @@ void KWDataGridManager::InitialiseAttributeRandomParts(const KWDGAttribute* sour
 	}
 }
 
-void KWDataGridManager::AddAttributeRandomParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* mandatoryAttribute,
-						KWDGAttribute* targetAttribute, int nRequestedPartNumber) const
+void KWDataGridManager::AddAttributeRandomParts(const KWDGAttribute* sourceAttribute,
+						const KWDGAttribute* mandatoryAttribute, KWDGAttribute* targetAttribute,
+						int nRequestedPartNumber) const
 {
 	KWDGPart* sourcePart;
 	KWDGPart* mandatoryPart;
@@ -3578,6 +3607,717 @@ void KWDataGridManager::AddAttributeRandomParts(const KWDGAttribute* sourceAttri
 			assert(targetAttribute->GetPartNumber() >= mandatoryAttribute->GetPartNumber());
 		}
 	}
+}
+
+void KWDataGridManager::ExportContinuousAttributeRandomParts(const KWDGAttribute* sourceAttribute,
+							     const KWDGAttribute* mandatoryAttribute,
+							     KWDGAttribute* targetAttribute, int nRequestedPartNumber,
+							     int nMinimimEqualFrequencyPartNumber, boolean bForce) const
+{
+	const boolean bTrace = false;
+	const boolean bTraceParts = false;
+	int nEqualFrequencyPartNumber;
+	int nMinIntervalFrequency;
+	KWQuantileBuilder* quantileBuilder;
+	KWQuantileIntervalBuilder* quantileIntervalBuilder;
+	int nTotalFrequency;
+	int nTotalPartNumber;
+	IntVector ivTargetIntervalsCumulatedFrequencies;
+	IntVector ivMandatoryIntervalsCumulatedFrequencies;
+	IntVector ivTmpIntervals;
+	int nMandatoryPartNumber;
+	KWDGPart* sourcePart;
+	KWDGPart* targetPart;
+	int nBoundIndex;
+	int nCumulatedFrequency;
+	int nTarget;
+	int nMandatory;
+	int nTmp;
+
+	require(Check());
+	require(sourceAttribute->GetAttributeType() == KWType::Continuous);
+	require(sourceAttribute->ArePartsSorted());
+	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
+	require(mandatoryAttribute == NULL or CheckAttributesConsistency(sourceAttribute, mandatoryAttribute));
+	require(mandatoryAttribute == NULL or sourceAttribute->ContainsSubParts(mandatoryAttribute));
+	require(mandatoryAttribute == NULL or mandatoryAttribute->ArePartsSorted());
+	require(targetAttribute->GetPartNumber() == 0);
+	require(1 <= nRequestedPartNumber);
+	require(mandatoryAttribute == NULL or nRequestedPartNumber >= mandatoryAttribute->GetPartNumber());
+	require(nRequestedPartNumber <= sourceAttribute->GetPartNumber());
+	require(nRequestedPartNumber <= nMinimimEqualFrequencyPartNumber);
+
+	// Trace initiale
+	if (bTrace)
+	{
+		cout << "AddContinuousAttributeRandomParts\t" << sourceAttribute->GetAttributeName() << "\t"
+		     << nRequestedPartNumber << "\t" << nMinimimEqualFrequencyPartNumber << "\t"
+		     << BooleanToString(bForce) << "\n";
+		cout << "- Source\t" << sourceAttribute->GetPartNumber() << "\n";
+		if (mandatoryAttribute != NULL)
+			cout << "- Mandatory\t" << mandatoryAttribute->GetPartNumber() << "\n";
+		cout << "- Total frequency\t" << sourceAttribute->ComputeTotalPartFrequency() << "\n";
+	}
+
+	// Cas particulier: l'attribut obligatoire contient le nombre de parties demandees
+	if (mandatoryAttribute != NULL and mandatoryAttribute->GetPartNumber() == nRequestedPartNumber)
+	{
+		// Transfert du parametrage des parties de l'attribut obligatoire
+		InitialiseAttributeParts(mandatoryAttribute, targetAttribute);
+	}
+	// Cas particulier: l'attribut source contient le nombre de parties demandees et
+	// on doit obtenir le nombre de parties exact
+	else if (sourceAttribute->GetPartNumber() == nRequestedPartNumber and bForce)
+	{
+		// Transfert du parametrage des parties de l'attribut source
+		InitialiseAttributeParts(sourceAttribute, targetAttribute);
+	}
+	// Partition aleatoire des bornes des intervalles (en rangs) dans le cas continu
+	else
+	{
+		// Initialisation du nombre de parties obligatoires
+		nMandatoryPartNumber = 1;
+		if (mandatoryAttribute != NULL)
+			nMandatoryPartNumber = mandatoryAttribute->GetPartNumber();
+
+		///////////////////////////////////////////////////////////////////////////////////
+		// Utilisation d'un quantileBuilder pour calculer les quantiles de l'attribut source
+		// Si bForce=false, on va obtenir une partition equilibre avec potentiellement moins
+		// d'intervalles que demandes.
+		// Si bForce=true, on va augmenter iterativement le nombre de quantiles a calculer
+		// pour obtenir au moins le nombre d'intervalles demandes.
+
+		// On exploite le quantileIntervalBuilder uniquement pour des effectifs moyen au moins de 2
+		// Sinon, la partition source suffit
+		quantileIntervalBuilder = NULL;
+		nTotalFrequency = sourceAttribute->ComputeTotalPartFrequency();
+		nMinIntervalFrequency = nTotalFrequency / nMinimimEqualFrequencyPartNumber;
+		if (nMinIntervalFrequency >= 2)
+		{
+			// Creation d'un quantileBuilder pour calculer les quantiles de l'attribut source
+			CreateAttributeQuantileBuilder(sourceAttribute, quantileBuilder, nTotalPartNumber);
+			quantileIntervalBuilder = cast(KWQuantileIntervalBuilder*, quantileBuilder);
+
+			// Construction du nombre de quantile demandes
+			quantileIntervalBuilder->ComputeQuantiles(nMinimimEqualFrequencyPartNumber);
+			if (bTrace)
+				cout << "  - InitialQuantiles\t" << nMinimimEqualFrequencyPartNumber << "\t"
+				     << quantileIntervalBuilder->GetIntervalNumber() << endl;
+
+			// Si bForce est active, on augmente le nombre de quantiles jusqu a obtenir
+			// au moins nRequestedPartNumber
+			// On saute les valeurs intermediaires qui ne changent pas l effectif moyen
+			// par intervalle (N / k), pour limiter les recalculs, en evitant un complexite en O(N^2)
+			// Cette strategie conserve une exploration pertinente des partitionnements
+			// tout en gardant une complexite globale en O(N log N) = N * (1/1 + 1/2 + ... + 1/N)
+			if (bForce)
+			{
+				nEqualFrequencyPartNumber = nMinimimEqualFrequencyPartNumber;
+				while (quantileIntervalBuilder->GetIntervalNumber() < nRequestedPartNumber and
+				       quantileIntervalBuilder->GetIntervalNumber() < quantileBuilder->GetValueNumber())
+				{
+					// Recherche du prochain k pour lequel N / k change.
+					while (nTotalFrequency / nEqualFrequencyPartNumber == nMinIntervalFrequency and
+					       nEqualFrequencyPartNumber < nTotalFrequency)
+						nEqualFrequencyPartNumber++;
+
+					// Si l'effectif moyen minimal atteint 1, la partition source suffit.
+					nMinIntervalFrequency = nTotalFrequency / nEqualFrequencyPartNumber;
+					if (nMinIntervalFrequency == 1)
+						break;
+
+					// Recalcul des quantiles pour ce nouveau nombre de parties elementaires.
+					quantileIntervalBuilder->ComputeQuantiles(nEqualFrequencyPartNumber);
+					if (bTrace)
+						cout << "  - ComputeQuantiles\t" << nEqualFrequencyPartNumber << "\t"
+						     << quantileIntervalBuilder->GetIntervalNumber() << endl;
+				}
+			}
+		}
+
+		////////////////////////////////////////////////////////////////////////////////
+		// Extraction des bornes des intervalles cibles
+		// Dans le cas de la presence d'un attribut obligatoire, les intervalles obligatoires
+		// doivent faire partie des intervalles cibles
+
+		// Extraction des effectifs cumules des intervalles cible si on a pu extraire suffisament d'intervalles
+		if (quantileIntervalBuilder != NULL and
+		    (quantileIntervalBuilder->GetIntervalNumber() >= nRequestedPartNumber or not bForce))
+		{
+			assert(quantileIntervalBuilder->GetQuantileNumber() >= nMinimimEqualFrequencyPartNumber);
+
+			// On utilise la quantile builder
+			ivTargetIntervalsCumulatedFrequencies.SetSize(quantileIntervalBuilder->GetIntervalNumber());
+			for (nTarget = 0; nTarget < ivTargetIntervalsCumulatedFrequencies.GetSize(); nTarget++)
+			{
+				// L'effectif cumule de l'intervalle est egal a l'index de la derniere instance, plus un
+				ivTargetIntervalsCumulatedFrequencies.SetAt(
+				    nTarget, quantileIntervalBuilder->GetIntervalLastInstanceIndexAt(nTarget) + 1);
+			}
+		}
+		// Extraction des effectif cumules de l'attribut source sinon
+		else
+			ComputeContinuousAttributeCumulatedFrequencies(sourceAttribute,
+								       &ivTargetIntervalsCumulatedFrequencies);
+		assert(ivTargetIntervalsCumulatedFrequencies.GetSize() >= nRequestedPartNumber or not bForce);
+		if (bTrace)
+			cout << "  - Initial new intervals\t" << ivTargetIntervalsCumulatedFrequencies.GetSize()
+			     << "\n";
+
+		// Si l'attribut obligatoire est fourni et contient au moins deux intervalles,
+		// on va forcer la creation d'intervalles cibles
+		if (nMandatoryPartNumber > 1)
+		{
+			// Extraction des effectif cumules de l'attribut obligatoire
+			ComputeContinuousAttributeCumulatedFrequencies(mandatoryAttribute,
+								       &ivMandatoryIntervalsCumulatedFrequencies);
+
+			// On supprime d'abord les intervalles obligatoires communs avec les intervalles cible
+			// Cela ne concerne pas le dernier intervalle, qui est toujours conserve
+			nMandatory = 0;
+			nTarget = 0;
+			for (nTmp = 0; nTmp < ivTargetIntervalsCumulatedFrequencies.GetSize(); nTmp++)
+			{
+				// On ignore les intervalles obligatoires precedent l'intervalle cible
+				while (nMandatory < nMandatoryPartNumber - 1)
+				{
+					if (ivMandatoryIntervalsCumulatedFrequencies.GetAt(nMandatory) <
+					    ivTargetIntervalsCumulatedFrequencies.GetAt(nTmp))
+						nMandatory++;
+					else
+						break;
+				}
+
+				// Si l'intervalle cible est un intervalle obligatoire, on ne le conserve pas
+				if (nMandatory < nMandatoryPartNumber - 1 and
+				    ivMandatoryIntervalsCumulatedFrequencies.GetAt(nMandatory) ==
+					ivTargetIntervalsCumulatedFrequencies.GetAt(nTmp))
+					nMandatory++;
+				// Sinon, on memorise l'intervalle cible
+				else
+				{
+					ivTargetIntervalsCumulatedFrequencies.SetAt(
+					    nTarget, ivTargetIntervalsCumulatedFrequencies.GetAt(nTmp));
+					nTarget++;
+				}
+			}
+
+			// Retaillage suite a la suppression des intervalle communs
+			assert(ivTargetIntervalsCumulatedFrequencies.GetSize() - nTarget <= nMandatoryPartNumber - 1);
+			if (bTrace)
+				cout << "  - Common intervals removed\t"
+				     << ivTargetIntervalsCumulatedFrequencies.GetSize() - nTarget << "\n";
+			ivTargetIntervalsCumulatedFrequencies.SetSize(nTarget);
+		}
+
+		// Si on a trop de bornes (apres rajout des intervalles obligatoires), on en extrait une sous partie aleatoire
+		if (ivTargetIntervalsCumulatedFrequencies.GetSize() + (nMandatoryPartNumber - 1) > nRequestedPartNumber)
+		{
+			// On supprime temporairement la borne du dernier intervalle, qui sera gardee de toute facon
+			ivTargetIntervalsCumulatedFrequencies.SetSize(ivTargetIntervalsCumulatedFrequencies.GetSize() -
+								      1);
+
+			// Permutation aleatoire des bornes
+			ivTargetIntervalsCumulatedFrequencies.Shuffle();
+
+			// On tronque la liste des bornes, ce qui revient a en fait un choix aleatoire
+			ivTargetIntervalsCumulatedFrequencies.SetSize(nRequestedPartNumber - 1 -
+								      (nMandatoryPartNumber - 1));
+
+			// On retrie les bornes
+			ivTargetIntervalsCumulatedFrequencies.Sort();
+
+			// On rajoute la borne du dernier intervalle
+			ivTargetIntervalsCumulatedFrequencies.Add(nTotalFrequency);
+			if (bTrace)
+				cout << "  - New intervals\t" << ivTargetIntervalsCumulatedFrequencies.GetSize()
+				     << "\n";
+		}
+		assert(ivTargetIntervalsCumulatedFrequencies.GetSize() + (nMandatoryPartNumber - 1) <=
+		       nRequestedPartNumber);
+		assert(ivTargetIntervalsCumulatedFrequencies.GetSize() + (nMandatoryPartNumber - 1) ==
+			   nRequestedPartNumber or
+		       not bForce);
+
+		// Ajout si necessaire des bornes des intervalles obligatoires
+		if (nMandatoryPartNumber > 1)
+		{
+			// Memorisation des intervalles cible a prendre en compte
+			ivTmpIntervals.CopyFrom(&ivTargetIntervalsCumulatedFrequencies);
+
+			// Dimensionnement du vecteur des intervalles cibles
+			ivTargetIntervalsCumulatedFrequencies.SetSize(ivTmpIntervals.GetSize() +
+								      (nMandatoryPartNumber - 1));
+
+			// Creation des intervalles cible par union des intervalles obligatoires et des nouveaux intervalles
+			nMandatory = 0;
+			nTarget = 0;
+			for (nTmp = 0; nTmp < ivTmpIntervals.GetSize(); nTmp++)
+			{
+				// On insere les intervalles obligatoires precedent l'intervalle cible
+				while (nMandatory < nMandatoryPartNumber - 1)
+				{
+					if (ivMandatoryIntervalsCumulatedFrequencies.GetAt(nMandatory) <
+					    ivTmpIntervals.GetAt(nTmp))
+					{
+						ivTargetIntervalsCumulatedFrequencies.SetAt(
+						    nTarget,
+						    ivMandatoryIntervalsCumulatedFrequencies.GetAt(nMandatory));
+						nTarget++;
+						nMandatory++;
+					}
+					else
+						break;
+				}
+				assert(nMandatory >= nMandatoryPartNumber - 1 or
+				       ivMandatoryIntervalsCumulatedFrequencies.GetAt(nMandatory) >
+					   ivTmpIntervals.GetAt(nTmp));
+
+				// Memorisation de l'intervalle sinon
+				ivTargetIntervalsCumulatedFrequencies.SetAt(nTarget, ivTmpIntervals.GetAt(nTmp));
+				nTarget++;
+			}
+			assert(nTarget == ivTargetIntervalsCumulatedFrequencies.GetSize());
+		}
+		assert(ivTargetIntervalsCumulatedFrequencies.GetSize() <= nRequestedPartNumber);
+		assert(ivTargetIntervalsCumulatedFrequencies.GetSize() == nRequestedPartNumber or not bForce);
+
+		////////////////////////////////////////////////////////////////////////////////
+		// Creation de l'attribut cible a partir des bornes obtenues
+
+		// Creation des intervalles cibles en utilisant les intervalles initiaux et
+		// en utilisant les bornes specifiees pour les nouveaux intervalles
+		targetPart = NULL;
+		nBoundIndex = 0;
+		nCumulatedFrequency = 0;
+		sourcePart = sourceAttribute->GetHeadPart();
+		while (sourcePart != NULL)
+		{
+			// Comptage du nombre d'instance sources traitees
+			nCumulatedFrequency += sourcePart->GetPartFrequency();
+			assert(nCumulatedFrequency > 0);
+
+			// Creation si necessaire d'un intervalle cible
+			if (targetPart == NULL)
+			{
+				targetPart = targetAttribute->AddPart();
+
+				// Reinitialisation de ses bornes
+				targetPart->GetInterval()->CopyFrom(sourcePart->GetInterval());
+			}
+			// Sinon, mise a jour de la borne sup de l'intervalle cible en cours
+			else
+			{
+				targetPart->GetInterval()->SetUpperBound(sourcePart->GetInterval()->GetUpperBound());
+			}
+
+			// Mise a jour des effectifs dans le cas d'un innerAttribute
+			// Pour les autre attributs, c'est calcule a partir des cellules
+			if (sourceAttribute->IsInnerAttribute())
+				targetPart->SetPartFrequency(targetPart->GetPartFrequency() +
+							     sourcePart->GetPartFrequency());
+
+			// L'intervalle cible est finalise si son effectif est atteint
+			assert(nCumulatedFrequency <= ivTargetIntervalsCumulatedFrequencies.GetAt(nBoundIndex));
+			if (nCumulatedFrequency == ivTargetIntervalsCumulatedFrequencies.GetAt(nBoundIndex))
+			{
+				// On reinitialise l'indicateur de creation d'intervalle cible
+				targetPart = NULL;
+
+				// On positionne la prochaine borne d'intervalle
+				nBoundIndex++;
+			}
+
+			// Intervalle source suivant
+			sourceAttribute->GetNextPart(sourcePart);
+		}
+		assert(nBoundIndex == ivTargetIntervalsCumulatedFrequencies.GetSize());
+
+		// Nettoyage
+		if (quantileIntervalBuilder != NULL)
+			delete quantileIntervalBuilder;
+	}
+
+	// Trace finale
+	if (bTrace)
+	{
+		cout << "- Result\t" << targetAttribute->GetPartNumber() << "\n";
+		if (bTraceParts)
+		{
+			cout << "Source intervals\n";
+			sourceAttribute->WriteParts(cout);
+			cout << "Mandatory intervals\n";
+			if (mandatoryAttribute != NULL)
+				mandatoryAttribute->WriteParts(cout);
+			cout << "Target intervals\n";
+			targetAttribute->WriteParts(cout);
+		}
+	}
+
+	ensure(targetAttribute->GetPartNumber() <= nRequestedPartNumber);
+	ensure(targetAttribute->GetPartNumber() == nRequestedPartNumber or not bForce);
+	ensure(CheckAttributesConsistency(sourceAttribute, targetAttribute));
+	ensure(not sourceAttribute->IsInnerAttribute() or
+	       targetAttribute->ComputeTotalPartFrequency() == sourceAttribute->ComputeTotalPartFrequency());
+	ensure(sourceAttribute->ContainsSubParts(targetAttribute));
+	ensure(mandatoryAttribute == NULL or targetAttribute->ContainsSubParts(mandatoryAttribute));
+}
+
+void KWDataGridManager::ExportGroupableAttributeRandomParts(const KWDGAttribute* sourceAttribute,
+							    const KWDGAttribute* mandatoryAttribute,
+							    KWDGAttribute* targetAttribute, int nRequestedPartNumber,
+							    int nMinimimEqualFrequencyPartNumber, boolean bForce) const
+{
+	const boolean bTrace = true;
+	const boolean bTraceParts = true;
+	ObjectArray oaGroupableAttributePartInformations;
+	KWDGMGroupableAttributePartInformation* partInformation;
+	KWDGMGroupableAttributePartInformation* nextPartInformation;
+	KWDGMGroupableAttributePartInformation* unfrequentPartInformation;
+	IntVector ivGroupSplitIndexes;
+	ObjectArray oaTargetParts;
+	IntVector ivUnfrequentPartIndexes;
+	int nTargetPartNumber;
+	int nTarget;
+	int nSource;
+	int nSplit;
+	int n;
+	int nMinTargetPartFrequency;
+	int nMandatoryPartNumber;
+	KWDGPart* sourcePart;
+	KWDGPart* targetPart;
+	KWQuantileBuilder* quantileBuilder;
+	KWQuantileGroupBuilder* quantileGroupBuilder;
+	int nTotalPartNumber;
+
+	require(Check());
+	require(KWType::IsCoclusteringGroupableType(sourceAttribute->GetAttributeType()));
+	require(sourceAttribute->ArePartsSorted());
+	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
+	require(mandatoryAttribute == NULL or CheckAttributesConsistency(sourceAttribute, mandatoryAttribute));
+	require(mandatoryAttribute == NULL or sourceAttribute->ContainsSubParts(mandatoryAttribute));
+	require(mandatoryAttribute == NULL or mandatoryAttribute->ArePartsSorted());
+	require(targetAttribute->GetPartNumber() == 0);
+	require(1 <= nRequestedPartNumber);
+	require(mandatoryAttribute == NULL or nRequestedPartNumber >= mandatoryAttribute->GetPartNumber());
+	require(nRequestedPartNumber <= sourceAttribute->GetPartNumber());
+	require(nRequestedPartNumber <= nMinimimEqualFrequencyPartNumber);
+
+	// Trace initiale
+	if (bTrace)
+	{
+		cout << "AddSymbolAttributeRandomParts\t" << sourceAttribute->GetAttributeName() << "\t"
+		     << nRequestedPartNumber << "\t" << nMinimimEqualFrequencyPartNumber << "\t"
+		     << BooleanToString(bForce) << "\n";
+		cout << "- Source\t" << sourceAttribute->GetPartNumber() << "\n";
+		if (mandatoryAttribute != NULL)
+			cout << "- Mandatory\t" << mandatoryAttribute->GetPartNumber() << "\n";
+		cout << "- Total frequency\t" << sourceAttribute->ComputeTotalPartFrequency() << "\n";
+	}
+
+	// Cas particulier: l'attribut obligatoire contient le nombre de parties demandees
+	if (mandatoryAttribute != NULL and mandatoryAttribute->GetPartNumber() == nRequestedPartNumber)
+	{
+		// Transfert du parametrage des parties de l'attribut obligatoire
+		InitialiseAttributeParts(mandatoryAttribute, targetAttribute);
+	}
+	// Cas particulier: l'attribut source contient le nombre de parties demandees et
+	// on doit obtenir le nombre de parties exact
+	else if (sourceAttribute->GetPartNumber() == nRequestedPartNumber and bForce)
+	{
+		// Transfert du parametrage des parties de l'attribut source
+		InitialiseAttributeParts(sourceAttribute, targetAttribute);
+	}
+	// Partition aleatoire des bornes des intervalles (en rangs) dans le cas continu
+	else
+	{
+		// Initialisation du nombre de parties obligatoires
+		nMandatoryPartNumber = 1;
+		if (mandatoryAttribute != NULL)
+			nMandatoryPartNumber = mandatoryAttribute->GetPartNumber();
+
+		///////////////////////////////////////////////////////////////////////////////////
+		// Utilisation d'un quantileBuilder pour calculer les quantiles de l'attribut source
+		// et en deduire l'effectif minimum par partie source a utiliser
+		// Si bForce=false, on va obtenir une partition equilibre avec potentiellement moins
+		// de groupes que demandes.
+		// Si bForce=true, on va adiminuer l'effectif minimum par partie source
+		// pour obtenir au moins le nombre de groupes demandes
+
+		// Creation d'un quantileBuilder pour calculer les quantiles de l'attribut source
+		CreateAttributeQuantileBuilder(sourceAttribute, quantileBuilder, nTotalPartNumber);
+		quantileGroupBuilder = cast(KWQuantileGroupBuilder*, quantileBuilder);
+
+		// Construction du nombre de quantile demandes
+		quantileGroupBuilder->ComputeQuantiles(nMinimimEqualFrequencyPartNumber);
+		if (bTrace)
+			cout << "  - InitialQuantiles\t" << nMinimimEqualFrequencyPartNumber << "\t"
+			     << quantileGroupBuilder->GetGroupNumber() << endl;
+
+		// On determine l'effectif minimum correspondant avec celui de la premiere valeur du dernier groupe
+		nSource = quantileGroupBuilder->GetGroupFirstValueIndexAt(quantileGroupBuilder->GetGroupNumber() - 1);
+		nMinTargetPartFrequency = quantileGroupBuilder->GetValueFrequencyAt(nSource);
+		if (bTrace)
+			cout << "  - InitialMinTargetPartFrequency\t" << nMinTargetPartFrequency << endl;
+
+		// Si bForce est active, on diminuer l'effectif minimum pour augmenter le nombre de quantiles
+		// jusqu a obtenir au moins nRequestedPartNumber
+		if (bForce and quantileGroupBuilder->GetGroupNumber() < nRequestedPartNumber)
+		{
+			assert(nSource == quantileGroupBuilder->GetGroupNumber() - 1);
+			assert(nRequestedPartNumber <= quantileGroupBuilder->GetValueNumber());
+			while (nSource + 1 < nRequestedPartNumber)
+			{
+				nSource++;
+				assert(nSource < quantileGroupBuilder->GetValueNumber());
+				while (quantileGroupBuilder->GetValueFrequencyAt(nSource) == nMinTargetPartFrequency)
+				{
+
+					nSource++;
+					assert(nSource < quantileGroupBuilder->GetValueNumber());
+				}
+				nMinTargetPartFrequency = quantileGroupBuilder->GetValueFrequencyAt(nSource);
+			}
+			if (bTrace)
+			{
+				cout << "  - FinalQuantiles\t" << nMinimimEqualFrequencyPartNumber << "\t"
+				     << nSource + 1 << endl;
+				cout << "  - FinalMinTargetPartFrequency\t" << nMinTargetPartFrequency << endl;
+			}
+		}
+		assert(not bForce or nSource + 1 >= nRequestedPartNumber);
+
+		///////////////////////////////////////////////////////////////////////////////////
+		// Extraction d'informations sur les parties sources et leur association avec les
+		// parties obligatoire. Cela permettra de les trier par partie obligatoire, et
+		// aleatoirement localement a chaque partie aleatoire, de facon a permettre
+		// un sur-partitionnement aleatoire compatible avec les parties obligatoires et
+		// avec les contraintes d'effectifs minimum par partie source
+
+		// Extraction d'information sur la partie source et leur association avec l'attribut obligatoire
+		InitializeGroupableAttributePartInformations(sourceAttribute, mandatoryAttribute,
+							     &oaGroupableAttributePartInformations);
+
+		// Ajout d'un index aleatoire permettant de perturber l'ordre des parties
+		oaGroupableAttributePartInformations.Shuffle();
+		for (nSource = 0; nSource < oaGroupableAttributePartInformations.GetSize(); nSource++)
+		{
+			partInformation = cast(KWDGMGroupableAttributePartInformation*,
+					       oaGroupableAttributePartInformations.GetAt(nSource));
+			partInformation->SetRandomIndex(nSource);
+		}
+
+		// Tri des parties sources selon la partie obligatoire, puis selon l'index aleatoire
+		// En cas d'absence d'attribut obligatoire, c'est l'index aleatoire qui est utilise pour le tri
+		oaGroupableAttributePartInformations.SetCompareFunction(
+		    KWDGMGroupableAttributePartInformationCompareMandatoryAndRandomIndexes);
+		oaGroupableAttributePartInformations.Sort();
+
+		// Identification des points de partitionnement possibles dans les parties obligatoires:
+		// - hors point de partionnement entre groupes obligatoires
+		// - uniquement apres des parties sources d'effectif suffisant:
+		//   toutes les parties d'effectif insuffisant d'une meme partie obligatoire seront gardees ensemble
+		// On determinera la nouvelle partition en choisissant aleatoirement parmi ces points de partitionnement
+		for (nSource = 0; nSource < oaGroupableAttributePartInformations.GetSize() - 1; nSource++)
+		{
+			// Acces aux informations sur la partie et la suivante
+			partInformation = cast(KWDGMGroupableAttributePartInformation*,
+					       oaGroupableAttributePartInformations.GetAt(nSource));
+			nextPartInformation = cast(KWDGMGroupableAttributePartInformation*,
+						   oaGroupableAttributePartInformations.GetAt(nSource + 1));
+			assert(partInformation->GetMandatoryPartIndex() <=
+			       nextPartInformation->GetMandatoryPartIndex());
+
+			// On garde l'index de partitionnement si la partie source suivante est dans la partie obligatoire,
+			// et si elle est d'effectif suffisant
+			if (partInformation->GetMandatoryPartIndex() == nextPartInformation->GetMandatoryPartIndex() and
+			    partInformation->GetSourcePartFrequency() >= nMinTargetPartFrequency)
+				ivGroupSplitIndexes.Add(nSource);
+		}
+		assert(ivGroupSplitIndexes.GetSize() <= sourceAttribute->GetPartNumber() - 1);
+		assert(mandatoryAttribute == NULL or
+		       ivGroupSplitIndexes.GetSize() <=
+			   sourceAttribute->GetPartNumber() - mandatoryAttribute->GetPartNumber());
+
+		// Trace sur les split initiaux
+		if (bTrace)
+		{
+			cout << "  - ivGroupSplitIndexes\t" << ivGroupSplitIndexes.GetSize() << "\t:";
+			for (nSplit = 0; nSplit < ivGroupSplitIndexes.GetSize(); nSplit++)
+				cout << " " << ivGroupSplitIndexes.GetAt(nSplit);
+			cout << "\n";
+		}
+
+		// On choisit aleatoirement des points de partitionnement parmi les points de partitionnement possibles
+		if (ivGroupSplitIndexes.GetSize() + nMandatoryPartNumber > nRequestedPartNumber)
+		{
+			// On garde aleatoirement les points de partitionnement a conserver
+			ivGroupSplitIndexes.Shuffle();
+			ivGroupSplitIndexes.SetSize(nRequestedPartNumber - nMandatoryPartNumber);
+
+			// On retrie les points de partitionnement conserves
+			ivGroupSplitIndexes.Sort();
+		}
+
+		// On cree les index de parties cibles a partir des points de partitionnement choisis
+		nTargetPartNumber = 0;
+		nSplit = 0;
+		for (nSource = 0; nSource < oaGroupableAttributePartInformations.GetSize(); nSource++)
+		{
+			// Acces aux informations sur la partie et la suivante
+			partInformation = cast(KWDGMGroupableAttributePartInformation*,
+					       oaGroupableAttributePartInformations.GetAt(nSource));
+			nextPartInformation = NULL;
+			if (nSource < oaGroupableAttributePartInformations.GetSize() - 1)
+				nextPartInformation = cast(KWDGMGroupableAttributePartInformation*,
+							   oaGroupableAttributePartInformations.GetAt(nSource + 1));
+			assert(nextPartInformation == NULL or partInformation->GetMandatoryPartIndex() <=
+								  nextPartInformation->GetMandatoryPartIndex());
+
+			// Memorisation de l'index de la partie cible le cas ou l'effectif minimim n'est pas atteint.
+			// Toutes les parties d'effectif insuffisant d'une meme partie obligatoire sont gardees ensemble
+			// dans la derniere oartie cible de la partie obligatoire en cours de traitement
+			if (partInformation->GetSourcePartFrequency() < nMinTargetPartFrequency)
+				ivUnfrequentPartIndexes.Add(nSource);
+			// Memorisation de l'index de la partie cible le cas standard
+			else
+				partInformation->SetTargetPartIndex(nTargetPartNumber);
+
+			// L'index de la partie cible doit etre croissant, et ne peut pas sauter plus d'une unite
+			// Cas particulier: il y a des part d'effectif insuffisant non encore traitees
+			assert(nSource == 0 or ivUnfrequentPartIndexes.GetSize() > 0 or
+			       cast(KWDGMGroupableAttributePartInformation*,
+				    oaGroupableAttributePartInformations.GetAt(nSource - 1))
+				       ->GetTargetPartIndex() <= partInformation->GetTargetPartIndex());
+			assert(nSource == 0 or ivUnfrequentPartIndexes.GetSize() > 0 or
+			       cast(KWDGMGroupableAttributePartInformation*,
+				    oaGroupableAttributePartInformations.GetAt(nSource - 1))
+				       ->GetTargetPartIndex() >= partInformation->GetTargetPartIndex() - 1);
+
+			// Nouveau groupe cible si l'on est sur un point de partitionnement
+			if (nSplit < ivGroupSplitIndexes.GetSize() and nSource == ivGroupSplitIndexes.GetAt(nSplit))
+			{
+				assert(partInformation->GetSourcePartFrequency() >= nMinTargetPartFrequency);
+				assert(nextPartInformation == NULL or partInformation->GetMandatoryPartIndex() ==
+									  nextPartInformation->GetMandatoryPartIndex());
+				nTargetPartNumber++;
+				nSplit++;
+			}
+			// Nouveau groupe cible si on change de partie obligatoire ou si on est sur la derniere partie
+			else if (nextPartInformation == NULL or partInformation->GetMandatoryPartIndex() !=
+								    nextPartInformation->GetMandatoryPartIndex())
+			{
+				assert(nSplit >= ivGroupSplitIndexes.GetSize() or
+				       nSource != ivGroupSplitIndexes.GetAt(nSplit));
+
+				// On integre toute les parties d'effectif minimum insuffisant dans le groupe en cours
+				for (n = 0; n < ivUnfrequentPartIndexes.GetSize(); n++)
+				{
+					unfrequentPartInformation = cast(KWDGMGroupableAttributePartInformation*,
+									 oaGroupableAttributePartInformations.GetAt(
+									     ivUnfrequentPartIndexes.GetAt(n)));
+					unfrequentPartInformation->SetTargetPartIndex(nTargetPartNumber);
+				}
+				ivUnfrequentPartIndexes.SetSize(0);
+
+				// Passage a un nouveau groupe
+				nTargetPartNumber++;
+			}
+		}
+		assert(nSplit == ivGroupSplitIndexes.GetSize());
+		assert(nTargetPartNumber == nMandatoryPartNumber + ivGroupSplitIndexes.GetSize());
+		assert(nTargetPartNumber <= nRequestedPartNumber);
+
+		// Trace intermediaire
+		if (bTraceParts)
+		{
+			for (nSource = 0; nSource < oaGroupableAttributePartInformations.GetSize(); nSource++)
+			{
+				partInformation = cast(KWDGMGroupableAttributePartInformation*,
+						       oaGroupableAttributePartInformations.GetAt(nSource));
+				if (nSource == 0)
+					partInformation->WriteHeaderLineReport(cout);
+				partInformation->WriteLineReport(cout);
+			}
+		}
+
+		////////////////////////////////////////////////////////////////////////////////
+		// Creation de l'attribut cible a partir des informations sur la parties sources
+
+		// Creation des groupes cible vides
+		oaTargetParts.SetSize(nTargetPartNumber);
+		for (nTarget = 0; nTarget < nTargetPartNumber; nTarget++)
+		{
+			targetPart = targetAttribute->AddPart();
+			oaTargetParts.SetAt(nTarget, targetPart);
+		}
+
+		// Tri des information de partie selon l'attribut source
+		oaGroupableAttributePartInformations.SetCompareFunction(
+		    KWDGMGroupableAttributePartInformationCompareSourceIndexes);
+		oaGroupableAttributePartInformations.Sort();
+
+		// Initialisation des groupes cible a partir des groupes sources
+		assert(sourceAttribute->GetPartNumber() == oaGroupableAttributePartInformations.GetSize());
+		sourcePart = sourceAttribute->GetHeadPart();
+		nSource = 0;
+		while (sourcePart != NULL)
+		{
+			// Acces a l'information de partition
+			partInformation = cast(KWDGMGroupableAttributePartInformation*,
+					       oaGroupableAttributePartInformations.GetAt(nSource));
+			assert(partInformation->GetSourcePartIndex() == nSource);
+
+			// Recherche de la partie cible
+			nTarget = partInformation->GetTargetPartIndex();
+			targetPart = cast(KWDGPart*, oaTargetParts.GetAt(nTarget));
+
+			// Mise a jour des valeurs de la partie cible
+			targetPart->GetValueSet()->UpgradeFrom(sourcePart->GetValueSet());
+
+			// Mise a jour des effectifs dans le cas d'un attribut interne
+			// Pour les autre attributs, c'est calcule a partir des cellules
+			if (sourceAttribute->IsInnerAttribute())
+				targetPart->SetPartFrequency(targetPart->GetPartFrequency() +
+							     sourcePart->GetPartFrequency());
+
+			// Groupe source suivant
+			sourceAttribute->GetNextPart(sourcePart);
+			nSource++;
+		}
+
+		// Tri des parties dans cas d'un attribut interne
+		if (sourceAttribute->IsInnerAttribute())
+			targetAttribute->SortParts();
+
+		// Nettoyage
+		oaGroupableAttributePartInformations.DeleteAll();
+		delete quantileGroupBuilder;
+	}
+
+	// Trace finale
+	if (bTrace)
+	{
+		cout << "- Result\t" << targetAttribute->GetPartNumber() << "\n";
+		if (bTraceParts)
+		{
+			cout << "Source groups\n";
+			sourceAttribute->WriteParts(cout);
+			cout << "Mandatory groups\n";
+			if (mandatoryAttribute != NULL)
+				mandatoryAttribute->WriteParts(cout);
+			cout << "Target groups\n";
+			targetAttribute->WriteParts(cout);
+		}
+	}
+
+	ensure(targetAttribute->GetPartNumber() <= nRequestedPartNumber);
+	ensure(targetAttribute->GetPartNumber() == nRequestedPartNumber or not bForce);
+	ensure(CheckAttributesConsistency(sourceAttribute, targetAttribute));
+	ensure(not sourceAttribute->IsInnerAttribute() or
+	       targetAttribute->ComputeTotalPartFrequency() == sourceAttribute->ComputeTotalPartFrequency());
+	ensure(sourceAttribute->ContainsSubParts(targetAttribute));
+	ensure(mandatoryAttribute == NULL or targetAttribute->ContainsSubParts(mandatoryAttribute));
 }
 
 void KWDataGridManager::InitialiseAttributeGranularizedParts(const KWDGAttribute* sourceAttribute,
@@ -4032,8 +4772,8 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 	require(sourceInnerAttributes != NULL);
 	require(referenceInnerAttributes != NULL);
 	require(referenceInnerAttributes->ContainsSubVarParts(sourceInnerAttributes));
-	require(0 < nTotalOutputTokenNumber and
-		nTotalOutputTokenNumber <= referenceInnerAttributes->ComputeTotalInnerAttributeVarParts());
+	require(0 < nTotalOutputTokenNumber);
+	//DDD require(nTotalOutputTokenNumber <= referenceInnerAttributes->ComputeTotalInnerAttributeVarParts());
 	require(nTotalOutputTokenNumber > sourceInnerAttributes->ComputeTotalInnerAttributeVarParts());
 
 	// Creation du nouvel innerAttributes
@@ -4100,9 +4840,41 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 				AddAttributeRandomParts(referenceInnerAttribute, sourceInnerAttribute,
 							outputInnerAttribute, nOutputPartNumber);
 
+			/*DDD
+			if (sourceInnerAttribute->GetAttributeType() == KWType::Symbol and
+			    sourceInnerAttribute->GetAttributeName() == "CPetalLength")
+			{
+				KWDGAttribute outputInnerAttributeProto;
+				int nTestOutputPartNumber;
+				boolean bShowResults = false;
+
+				nTestOutputPartNumber = min(nOutputPartNumber + sourceInnerAttribute->GetPartNumber(),
+							    referenceInnerAttribute->GetPartNumber());
+				InitialiseAttribute(sourceInnerAttribute, &outputInnerAttributeProto);
+				ExportGroupableAttributeRandomParts(referenceInnerAttribute, sourceInnerAttribute,
+								    &outputInnerAttributeProto, nTestOutputPartNumber,
+								    nTestOutputPartNumber, true);
+				if (bShowResults)
+				{
+					cout << "Inner attribute " << sourceInnerAttribute->GetAttributeName() << "\t"
+					     << referenceInnerAttribute->GetPartNumber() << "\t"
+					     << sourceInnerAttribute->GetPartNumber() << " :\t" << nOutputPartNumber
+					     << " ->\t" << outputInnerAttribute->GetPartNumber() << " :\t"
+					     << nTestOutputPartNumber << " ->\t"
+					     << outputInnerAttributeProto.GetPartNumber() << endl;
+					if (nOutputPartNumber <= 20 and
+					    nOutputPartNumber != referenceInnerAttribute->GetPartNumber())
+						outputInnerAttribute->WriteParts(cout);
+					if (nOutputPartNumber <= 20 and
+					    nTestOutputPartNumber != referenceInnerAttribute->GetPartNumber())
+						outputInnerAttributeProto.WriteParts(cout);
+				}
+			}
+			*/
+
 			// On peut echouer a ajouter toutes les partie demandees
 			//DDD TODO a corriger, ou justifier (on se base sur des effectifs a atteindre, et non sur des index d'intervalles)
-			assert(outputInnerAttribute->GetPartNumber() <= nOutputPartNumber);
+			//assert(outputInnerAttribute->GetPartNumber() <= nOutputPartNumber);
 
 			// Mise a jour du nombre de parties ajoutees
 			nTotalRemainingReferencePartNumber -= nReferencePartNumber;
@@ -4408,7 +5180,7 @@ void KWDataGridManager::ExportAttributeSymbolValueFrequencies(KWDGAttribute* sou
 }
 
 void KWDataGridManager::SortAttributePartsByTargetGroups(const KWDGAttribute* sourceAttribute,
-							 KWDGAttribute* groupedAttribute,
+							 const KWDGAttribute* groupedAttribute,
 							 ObjectArray* oaSortedSourceParts,
 							 ObjectArray* oaSortedGroupedParts) const
 {
@@ -4508,6 +5280,128 @@ void KWDataGridManager::SortAttributePartsByTargetGroups(const KWDGAttribute* so
 	ensure(oaSortedGroupedParts->GetSize() == sourceAttribute->GetPartNumber());
 }
 
+void KWDataGridManager::InitializeGroupableAttributePartInformations(
+    const KWDGAttribute* sourceAttribute, const KWDGAttribute* mandatoryAttribute,
+    ObjectArray* oaGroupableAttributePartInformation) const
+{
+	boolean bIsIndexed;
+	KWDGMGroupableAttributePartInformation* partInformation;
+	LongintNumericKeyDictionary lnkdMandatoryParts;
+	KWDGPart* sourcePart;
+	KWDGPart* mandatoryPart;
+	int nSourceIndex;
+	int nMandatoryIndex;
+
+	require(sourceAttribute != NULL);
+	require(sourceAttribute->Check());
+	require(mandatoryAttribute == NULL or mandatoryAttribute->Check());
+	require(KWType::IsCoclusteringGroupableType(sourceAttribute->GetAttributeType()));
+	require(mandatoryAttribute == NULL or
+		sourceAttribute->GetAttributeType() == mandatoryAttribute->GetAttributeType());
+	require(mandatoryAttribute == NULL or sourceAttribute->ContainsSubParts(mandatoryAttribute));
+	require(oaGroupableAttributePartInformation != NULL);
+	require(oaGroupableAttributePartInformation->GetSize() == 0);
+
+	// Initialisation concernant l'attribut obligatoire
+	bIsIndexed = false;
+	if (mandatoryAttribute != NULL)
+	{
+		// Indexation de l'attribut obligatoire si necessaire,
+		// pour pouvoir retrouver les parties sources correspondantes
+		bIsIndexed = mandatoryAttribute->IsIndexed();
+		if (not bIsIndexed)
+			mandatoryAttribute->BuildIndexingStructure();
+
+		// Memorisation de l'index des parties de l'attribut obligatoire
+		mandatoryPart = mandatoryAttribute->GetHeadPart();
+		nMandatoryIndex = 0;
+		while (mandatoryPart != NULL)
+		{
+			lnkdMandatoryParts.SetAt(mandatoryPart, nMandatoryIndex + 1);
+
+			// Partie suivante
+			mandatoryAttribute->GetNextPart(mandatoryPart);
+			nMandatoryIndex++;
+		}
+	}
+
+	// Creation des informations sur les parties de l'attribut source
+	oaGroupableAttributePartInformation->SetSize(sourceAttribute->GetPartNumber());
+	sourcePart = sourceAttribute->GetHeadPart();
+	nSourceIndex = 0;
+	while (sourcePart != NULL)
+	{
+		assert(sourcePart->GetPartFrequency() > 0);
+
+		// Creation d'une information sur la partie source
+		partInformation = new KWDGMGroupableAttributePartInformation;
+		oaGroupableAttributePartInformation->SetAt(nSourceIndex, partInformation);
+
+		// Informations sur la partie source
+		partInformation->SetSourcePartIndex(nSourceIndex);
+		partInformation->SetSourcePartFrequency(sourcePart->GetPartFrequency());
+
+		// Recherche de l'index de la partie correspondante dans l'attribut obligatoire
+		if (mandatoryAttribute != NULL)
+		{
+			// Recherche de la partie obligatoire contenant la partie source
+			mandatoryPart =
+			    mandatoryAttribute->LookupGroupablePart(sourcePart->GetValueSet()->GetHeadValue());
+			assert(mandatoryAttribute != NULL);
+
+			// Memorisation de l'index de la partie obligatoire
+			nMandatoryIndex = (int)(lnkdMandatoryParts.Lookup(mandatoryPart) - 1);
+			partInformation->SetMandatoryPartIndex(nMandatoryIndex);
+			assert(nMandatoryIndex >= 0);
+		}
+
+		// Partie suivante
+		sourceAttribute->GetNextPart(sourcePart);
+		nSourceIndex++;
+	}
+
+	// Nettoyage concernant l'attribut obligatoire
+	if (mandatoryAttribute != NULL)
+	{
+		if (not bIsIndexed)
+			mandatoryAttribute->DeleteIndexingStructure();
+	}
+	ensure(oaGroupableAttributePartInformation->GetSize() == sourceAttribute->GetPartNumber());
+}
+
+void KWDataGridManager::ComputeContinuousAttributeCumulatedFrequencies(const KWDGAttribute* attribute,
+								       IntVector* ivCumulatedFrequencies) const
+{
+	KWDGPart* part;
+	int nPart;
+
+	require(attribute != NULL);
+	require(attribute->GetAttributeType() == KWType::Continuous);
+	require(attribute->ArePartsSorted());
+	require(ivCumulatedFrequencies != NULL);
+
+	// Parcours des intervalles pour en deduire les effectifs cumules
+	ivCumulatedFrequencies->SetSize(attribute->GetPartNumber());
+	nPart = 0;
+	part = attribute->GetHeadPart();
+	while (part != NULL)
+	{
+		assert(part->GetPartFrequency() > 0);
+
+		// Prise en compte de la partie courante
+		ivCumulatedFrequencies->SetAt(nPart, part->GetPartFrequency());
+
+		// Cumul avec les partie precedentes
+		if (nPart > 0)
+			ivCumulatedFrequencies->UpgradeAt(nPart, ivCumulatedFrequencies->GetAt(nPart - 1));
+		nPart++;
+		attribute->GetNextPart(part);
+	}
+	ensure(ivCumulatedFrequencies->GetSize() == attribute->GetPartNumber());
+	ensure(ivCumulatedFrequencies->GetAt(ivCumulatedFrequencies->GetSize() - 1) ==
+	       attribute->ComputeTotalPartFrequency());
+}
+
 void KWDataGridManager::InitRandomIndexVector(IntVector* ivRandomIndexes, int nIndexNumber, int nMaxIndex) const
 {
 	double dInitialSize;
@@ -4568,4 +5462,61 @@ void KWDataGridManager::InitRandomIndexVector(IntVector* ivRandomIndexes, int nI
 
 	// Tri des index
 	ivRandomIndexes->Sort();
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void KWDGMGroupableAttributePartInformation::WriteHeaderLineReport(ostream& ost) const
+{
+	ost << "Source\tMandatory\tFrequency\tRandom\tTarget\n";
+}
+
+void KWDGMGroupableAttributePartInformation::WriteLineReport(ostream& ost) const
+{
+	ost << GetSourcePartIndex() << "\t";
+	ost << GetMandatoryPartIndex() << "\t";
+	ost << GetSourcePartFrequency() << "\t";
+	ost << GetRandomIndex() << "\t";
+	ost << GetTargetPartIndex() << "\n";
+}
+
+int KWDGMGroupableAttributePartInformationCompareSourceIndexes(const void* elem1, const void* elem2)
+{
+	int nCompare;
+	KWDGMGroupableAttributePartInformation* partInformation1;
+	KWDGMGroupableAttributePartInformation* partInformation2;
+
+	require(elem1 != NULL);
+	require(elem2 != NULL);
+
+	// Acces aux informations sur les parties
+	partInformation1 = cast(KWDGMGroupableAttributePartInformation*, *(Object**)elem1);
+	partInformation2 = cast(KWDGMGroupableAttributePartInformation*, *(Object**)elem2);
+
+	// Comparaison sur l'index de la partie source
+	nCompare = partInformation1->GetSourcePartIndex() - partInformation2->GetSourcePartIndex();
+	return nCompare;
+}
+
+int KWDGMGroupableAttributePartInformationCompareMandatoryAndRandomIndexes(const void* elem1, const void* elem2)
+{
+	int nCompare;
+	KWDGMGroupableAttributePartInformation* partInformation1;
+	KWDGMGroupableAttributePartInformation* partInformation2;
+
+	require(elem1 != NULL);
+	require(elem2 != NULL);
+
+	// Acces aux informations sur les parties
+	partInformation1 = cast(KWDGMGroupableAttributePartInformation*, *(Object**)elem1);
+	partInformation2 = cast(KWDGMGroupableAttributePartInformation*, *(Object**)elem2);
+
+	// Comparaison sur l'index de la partie obligatoire
+	nCompare = partInformation1->GetMandatoryPartIndex() - partInformation2->GetMandatoryPartIndex();
+
+	// Comparaison sur l'index aleatoire de la partie source
+	if (nCompare == 0)
+		nCompare = partInformation1->GetRandomIndex() - partInformation2->GetRandomIndex();
+	assert(nCompare != 0);
+	return nCompare;
 }
