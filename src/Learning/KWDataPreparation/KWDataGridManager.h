@@ -392,8 +392,18 @@ protected:
 
 	// Ajout aleatoire de parties dans une partition pour un attribut donne
 	// Les nouvelles parties sont obtenues en sur-partitionnant les partitions existantes de l'attribut obligatoire,
-	void AddAttributeRandomParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* mandatoryAttribute,
+	void AddAttributeRandomParts(const KWDGAttribute* sourceAttribute, const KWDGAttribute* mandatoryAttribute,
 				     KWDGAttribute* targetAttribute, int nRequestedPartNumber) const;
+
+	// Ajout aleatoire de parties dans une partition pour un attribut Continuous donne
+	// Si un attribut obligatoire est present, les nouvelles parties sont obtenues en sur-partitionnant
+	// les partitions existantes de l'attribut obligatoire,
+	// Selon le NoiseRate, les partition obtenu sont plus ou moins proche des parties en frequence egale
+	// - NoiseRate=0: partition au plus proche d'une partition en frequence egale
+	// - NosieRate=1: partition aleatoire
+	void AddContinuousAttributeRandomParts(const KWDGAttribute* sourceAttribute,
+					       const KWDGAttribute* mandatoryAttribute, KWDGAttribute* targetAttribute,
+					       int nRequestedPartNumber, double dNoiseRate) const;
 
 	// Ajout de partie granularisee pour un attribut donne
 	void InitialiseAttributeGranularizedParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute,
@@ -442,7 +452,7 @@ protected:
 	// les clusters impactes par les fusions de PV (ne prend pas en compte la variation du cout de partition)
 	double MergePartsForVarPartAttributes(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid) const;
 
-	// Creation et initialisation d'un quantile builder, et du nombre max de parties a quuantiliser
+	// Creation et initialisation d'un quantile builder, et du nombre max de parties a quantiliser
 	void CreateAttributeQuantileBuilder(const KWDGAttribute* attribute, KWQuantileBuilder*& quantileBuilder,
 					    int& nMaxPartNumber) const;
 
@@ -457,8 +467,8 @@ protected:
 	// par groupe, et en ordre aleatoire a l'interieur de chaque groupe
 	//    oaSortedSourceParts: parties sources triees par groupe cible
 	//    oaSortedGroupedParts: parties groupees associees aux parties source
-	void SortAttributePartsByTargetGroups(const KWDGAttribute* sourceAttribute, KWDGAttribute* groupedAttribute,
-					      ObjectArray* oaSortedSourceParts,
+	void SortAttributePartsByTargetGroups(const KWDGAttribute* sourceAttribute,
+					      const KWDGAttribute* groupedAttribute, ObjectArray* oaSortedSourceParts,
 					      ObjectArray* oaSortedGroupedParts) const;
 
 	// Initialisation d'un vecteur de nombres aleatoires compris entre 0 et max exclu, ordonnes et tous differents

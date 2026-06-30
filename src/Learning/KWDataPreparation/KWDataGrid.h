@@ -607,10 +607,10 @@ public:
 	// plusieurs fois), et enfin detruite
 
 	// Construction des structures d'indexation
-	void BuildIndexingStructure();
+	void BuildIndexingStructure() const;
 
 	// Destruction des structures d'indexation
-	void DeleteIndexingStructure();
+	void DeleteIndexingStructure() const;
 
 	// Indicateur d'indexation
 	boolean IsIndexed() const;
@@ -619,13 +619,13 @@ public:
 	// (doit etre compatible avec le type de l'attribut)
 	// Attention a ne pas modifier les valeurs (intervalles ou ensemble de valeurs)
 	// pendant l'utilisation de l'indexation
-	KWDGPart* LookupContinuousPart(Continuous cValue);
-	KWDGPart* LookupSymbolPart(const Symbol& sValue);
-	KWDGPart* LookupVarPart(KWDGPart* varPart);
+	KWDGPart* LookupContinuousPart(Continuous cValue) const;
+	KWDGPart* LookupSymbolPart(const Symbol& sValue) const;
+	KWDGPart* LookupVarPart(KWDGPart* varPart) const;
 
 	// Recherche generique de la partie contenant une valeur de ValueSet dans le cas
 	// d'un attribut de type groupable, symbolique ou VarPart
-	KWDGPart* LookupGroupablePart(const KWDGValue* value);
+	KWDGPart* LookupGroupablePart(const KWDGValue* value) const;
 
 	///////////////////////////////
 	// Services divers
@@ -730,15 +730,15 @@ protected:
 
 	// Structure d'indexation des parties dans le cas numerique
 	// Tableau des parties (intervalles) tries de facon croissante
-	ObjectArray oaIntervals;
+	mutable ObjectArray oaIntervals;
 
 	// Structure d'indexation des parties dans le cas groupable
 	// Dictionnaire des parties indexe par les valeurs des parties, et partie par defaut
-	NumericKeyDictionary nkdParts;
-	KWDGPart* defaultPart;
+	mutable NumericKeyDictionary nkdParts;
+	mutable KWDGPart* defaultPart;
 
 	// Indicateur d'indexation
-	boolean bIsIndexed;
+	mutable boolean bIsIndexed;
 
 	// Nom de l'attribut de type VarPart dont depend un attribut interne
 	// Par defaut a vide pour un attribut de type Simple (numerique ou categoriel)

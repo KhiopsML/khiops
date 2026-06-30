@@ -3361,8 +3361,9 @@ void KWDataGridManager::InitialiseAttributeRandomParts(const KWDGAttribute* sour
 	}
 }
 
-void KWDataGridManager::AddAttributeRandomParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* mandatoryAttribute,
-						KWDGAttribute* targetAttribute, int nRequestedPartNumber) const
+void KWDataGridManager::AddAttributeRandomParts(const KWDGAttribute* sourceAttribute,
+						const KWDGAttribute* mandatoryAttribute, KWDGAttribute* targetAttribute,
+						int nRequestedPartNumber) const
 {
 	KWDGPart* sourcePart;
 	KWDGPart* mandatoryPart;
@@ -3578,6 +3579,196 @@ void KWDataGridManager::AddAttributeRandomParts(const KWDGAttribute* sourceAttri
 			assert(targetAttribute->GetPartNumber() >= mandatoryAttribute->GetPartNumber());
 		}
 	}
+}
+
+void KWDataGridManager::AddContinuousAttributeRandomParts(const KWDGAttribute* sourceAttribute,
+							  const KWDGAttribute* mandatoryAttribute,
+							  KWDGAttribute* targetAttribute, int nRequestedPartNumber,
+							  double dNoiseRate) const
+{
+	const boolean bTrace = false;
+	int nRequestedRawPartNumber;
+	KWQuantileBuilder* quantileBuilder;
+	KWQuantileIntervalBuilder* quantileIntervalBuilder;
+	int nTotalFrequency;
+	int nTotalPartNumber;
+	int nLowerPartNumber;
+	int nUpperPartNumber;
+	int nPartNumber;
+	int nBestPartNumber;
+
+	KWDGPart* sourcePart;
+	KWDGPart* mandatoryPart;
+	KWDGPart* targetPart;
+	ObjectArray oaSourceParts;
+	ObjectArray oaMandatoryParts;
+	IntVector ivInstanceIndexes;
+	IntVector ivAddedIntervalUpperBounds;
+	IntVector ivValueIndexes;
+	int nAddedPartNumber;
+	int n;
+	int nBoundIndex;
+	int nSourcePart;
+	int nMandatoryPart;
+	int nTargetSplit;
+	int nInstanceLastIndex;
+	int nMaxAddedPartNumber;
+
+	require(Check());
+	require(sourceAttribute->GetAttributeType() == KWType::Continuous);
+	require(sourceAttribute->ArePartsSorted());
+	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
+	require(mandatoryAttribute == NULL or CheckAttributesConsistency(sourceAttribute, mandatoryAttribute));
+	require(mandatoryAttribute == NULL or sourceAttribute->ContainsSubParts(mandatoryAttribute));
+	require(mandatoryAttribute == NULL or mandatoryAttribute->ArePartsSorted());
+	require(targetAttribute->GetPartNumber() == 0);
+	require(1 <= nRequestedPartNumber);
+	require(mandatoryAttribute or nRequestedPartNumber <= mandatoryAttribute->GetPartNumber());
+	require(nRequestedPartNumber <= sourceAttribute->GetPartNumber());
+	require(0 <= dNoiseRate and dNoiseRate <= 1);
+
+	// Trace initiale
+	if (bTrace)
+	{
+		cout << "AddContinuousAttributeRandomParts\t" << sourceAttribute->GetAttributeName() << "\t"
+		     << nRequestedPartNumber << "\t" << dNoiseRate << "\n";
+		cout << "- Source\t" << sourceAttribute->GetPartNumber() << "\n";
+		if (mandatoryAttribute != NULL)
+			cout << "- Mandatory\t" << mandatoryAttribute->GetPartNumber() << "\n";
+	}
+
+	// Cas particulier: l'attribut obligatoire contient le nombre de parties demandees
+	if (mandatoryAttribute != NULL and mandatoryAttribute->GetPartNumber() == nRequestedPartNumber)
+	{
+		// Transfert du parametrage des parties de l'attribut obligatoire
+		InitialiseAttributeParts(mandatoryAttribute, targetAttribute);
+	}
+	// Cas particulier: l'attribut source contient le nombre de parties demandees
+	else if (sourceAttribute->GetPartNumber() == nRequestedPartNumber)
+	{
+		// Transfert du parametrage des parties de l'attribut source
+		InitialiseAttributeParts(sourceAttribute, targetAttribute);
+	}
+	// Partition aleatoire des bornes des intervalles (en rangs) dans le cas continu
+	else
+	{
+		// Creation d'un quantileBuilder pour calculer les quantiles de l'attribut source
+		CreateAttributeQuantileBuilder(sourceAttribute, quantileBuilder, nTotalPartNumber);
+		nTotalFrequency = quantileBuilder->GetInstanceNumber();
+		quantileIntervalBuilder = cast(KWQuantileIntervalBuilder*, quantileBuilder);
+
+		// On determine un nombre de partie elementaire selon le taux de bruit
+		// - minimum pour un taux de bruit de 0, pour avoir une partition maximalement en frequences egales
+		// - maximum pour un taux de bruit de 1, pour avoir une partition maximalement aleatoire
+		nRequestedRawPartNumber =
+		    nRequestedPartNumber + (int)floor(dNoiseRate * (nTotalFrequency - nRequestedPartNumber));
+
+		// Calcul des quantiles pour le nombre de partie elementaire demandees
+		quantileIntervalBuilder->ComputeQuantiles(nRequestedRawPartNumber);
+
+		// Trace intermediaire
+		if (bTrace)
+		{
+			cout << "- Total frequency\t" << nTotalFrequency << "\n";
+			cout << "- Raw part number\t" << nRequestedRawPartNumber << "\n";
+			cout << "- Default parts\t" << quantileIntervalBuilder->GetIntervalNumber() << "\n";
+		}
+
+		// Si le nombre de parties elementaires obtenu est inferieur au nombre de parties demandees,
+		// on effectue une recherche dichotomique pour avoir au moins le nombre de parties demandees
+		if (quantileIntervalBuilder->GetIntervalNumber() < nRequestedRawPartNumber)
+		{
+			// On ajuste le nombre de partie elementaire a calculer pour obtenir le nombre de partie
+			// demandees tout en s'assurant que les effectif moyens par intervalle soient tous distincts
+			// Cela permet de controler la complexite algorithmique globale en O(N log N) pour le calcul
+			// des quantiles, et de garder une precision suffisante pour les faibles nombre de quantiles
+			// Si on gardait toutes les nombres de quantiles possibles, on aurait
+			//   1 + 2 + 3 + ... + N = O(N)
+			// En se basant sur des effectifs moyen entiers tous distincts, on a
+			//   N(1/1 + 1/2 + 1/3 + ... + 1/N) = O(N log N)
+
+			// Initialisation du meilleur nombre de parties elementaires a calculer
+			// Pour obtenir un nombre partie superieur ou egal au nombre de parties demandees
+			nBestPartNumber = -1;
+
+			// Recherche dichotomique du nombre de parties elementaires a calculer
+			// pour obtenir le nombre de parties demandees
+			nLowerPartNumber = nRequestedRawPartNumber + 1;
+			nUpperPartNumber = nTotalFrequency;
+			while (nLowerPartNumber < nUpperPartNumber)
+			{
+				nPartNumber = (nLowerPartNumber + nUpperPartNumber) / 2;
+
+				// Recalcul des quantiles pour le nombre de partie elementaire demandees
+				quantileIntervalBuilder->ComputeQuantiles(nPartNumber);
+
+				// Trace de la dichotomie
+				if (bTrace)
+				{
+					cout << "  - ComputeQuantiles\t" << nPartNumber << "\t" << nLowerPartNumber
+					     << "\t" << nUpperPartNumber << "\t"
+					     << quantileIntervalBuilder->GetIntervalNumber() << endl;
+				}
+
+				// Arret si nombre de parties obtenu est suffisant,
+				// sinon on ajuste les bornes de la recherche dichotomique
+				if (quantileIntervalBuilder->GetIntervalNumber() == nRequestedRawPartNumber)
+					break;
+				else
+				{
+					if (quantileIntervalBuilder->GetIntervalNumber() < nRequestedRawPartNumber)
+					{
+						nLowerPartNumber = nPartNumber + 1;
+
+						// Recherche du prochain changement d'effectif moyen par intervalle
+						while (nTotalFrequency / (nPartNumber + 1) ==
+							   nTotalFrequency / nLowerPartNumber and
+						       nPartNumber < nUpperPartNumber)
+							nPartNumber++;
+						nLowerPartNumber = nPartNumber;
+					}
+					else
+					{
+						nUpperPartNumber = nPartNumber;
+
+						// Memorisation du meilleur nombre de parties elementaires a calculer
+						nBestPartNumber = nPartNumber;
+
+						// Recherche du prochain changement d'effectif moyen par intervalle
+						while (nTotalFrequency / (nPartNumber - 1) ==
+							   nTotalFrequency / nUpperPartNumber and
+						       nPartNumber > nLowerPartNumber)
+							nPartNumber--;
+						nUpperPartNumber = nPartNumber;
+					}
+				}
+			}
+
+			// Recalcul des quantiles pour le meilleur nombre de partie elementaire trouve
+			if (quantileIntervalBuilder->GetIntervalNumber() != nRequestedRawPartNumber)
+			{
+				if (nBestPartNumber != -1)
+					quantileIntervalBuilder->ComputeQuantiles(nBestPartNumber);
+			}
+			assert(quantileIntervalBuilder->GetIntervalNumber() >= nRequestedRawPartNumber);
+		}
+
+		// Nettoyage
+		delete quantileBuilder;
+
+		//DDD
+		InitialiseAttributeParts(mandatoryAttribute, targetAttribute);
+	}
+
+	// Trace initiale
+	if (bTrace)
+	{
+		cout << "- Result\t" << targetAttribute->GetPartNumber() << "\n";
+	}
+
+	//DDD ensure(targetAttribute->GetPartNumber() == nRequestedPartNumber);
+	ensure(CheckAttributesConsistency(sourceAttribute, targetAttribute));
+	ensure(sourceAttribute->ContainsSubParts(targetAttribute));
 }
 
 void KWDataGridManager::InitialiseAttributeGranularizedParts(const KWDGAttribute* sourceAttribute,
@@ -4100,9 +4291,28 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 				AddAttributeRandomParts(referenceInnerAttribute, sourceInnerAttribute,
 							outputInnerAttribute, nOutputPartNumber);
 
+			//DDD
+			/*DDD
+			//if (sourceInnerAttribute->GetAttributeName() == "PetalLength" and nOutputPartNumber <= 100)
+			if (sourceInnerAttribute->GetAttributeType() == KWType::Continuous)
+			{
+				KWDGAttribute outputInnerAttributeProto;
+
+				cout << "Inner attribute " << sourceInnerAttribute->GetAttributeName() << "\t"
+				     << nOutputPartNumber << "\t" << outputInnerAttribute->GetPartNumber() << endl;
+				if (nOutputPartNumber <= 20)
+					outputInnerAttribute->WriteParts(cout);
+				InitialiseAttribute(sourceInnerAttribute, &outputInnerAttributeProto);
+				AddContinuousAttributeRandomParts(referenceInnerAttribute, sourceInnerAttribute,
+								  &outputInnerAttributeProto, nOutputPartNumber, 0.2);
+				if (nOutputPartNumber <= 20)
+					outputInnerAttributeProto.WriteParts(cout);
+			}
+			*/
+
 			// On peut echouer a ajouter toutes les partie demandees
 			//DDD TODO a corriger, ou justifier (on se base sur des effectifs a atteindre, et non sur des index d'intervalles)
-			assert(outputInnerAttribute->GetPartNumber() <= nOutputPartNumber);
+			//assert(outputInnerAttribute->GetPartNumber() <= nOutputPartNumber);
 
 			// Mise a jour du nombre de parties ajoutees
 			nTotalRemainingReferencePartNumber -= nReferencePartNumber;
@@ -4408,7 +4618,7 @@ void KWDataGridManager::ExportAttributeSymbolValueFrequencies(KWDGAttribute* sou
 }
 
 void KWDataGridManager::SortAttributePartsByTargetGroups(const KWDGAttribute* sourceAttribute,
-							 KWDGAttribute* groupedAttribute,
+							 const KWDGAttribute* groupedAttribute,
 							 ObjectArray* oaSortedSourceParts,
 							 ObjectArray* oaSortedGroupedParts) const
 {

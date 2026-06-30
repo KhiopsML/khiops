@@ -2573,7 +2573,7 @@ void KWDGAttribute::ExportParts(ObjectArray* oaParts) const
 	}
 }
 
-void KWDGAttribute::BuildIndexingStructure()
+void KWDGAttribute::BuildIndexingStructure() const
 {
 	KWDGPart* part;
 	KWDGValueSet* valueSet;
@@ -2651,7 +2651,7 @@ void KWDGAttribute::BuildIndexingStructure()
 	}
 }
 
-void KWDGAttribute::DeleteIndexingStructure()
+void KWDGAttribute::DeleteIndexingStructure() const
 {
 	int nInnerAttribute;
 	KWDGAttribute* innerAttribute;
@@ -2685,7 +2685,7 @@ void KWDGAttribute::DeleteIndexingStructure()
 	}
 }
 
-KWDGPart* KWDGAttribute::LookupContinuousPart(Continuous cValue)
+KWDGPart* KWDGAttribute::LookupContinuousPart(Continuous cValue) const
 {
 	int nIndex;
 	Continuous cUpperBound;
@@ -2752,7 +2752,7 @@ KWDGPart* KWDGAttribute::LookupContinuousPart(Continuous cValue)
 	}
 }
 
-KWDGPart* KWDGAttribute::LookupSymbolPart(const Symbol& sValue)
+KWDGPart* KWDGAttribute::LookupSymbolPart(const Symbol& sValue) const
 {
 	KWDGPart* part;
 
@@ -2766,7 +2766,7 @@ KWDGPart* KWDGAttribute::LookupSymbolPart(const Symbol& sValue)
 	return part;
 }
 
-KWDGPart* KWDGAttribute::LookupVarPart(KWDGPart* varPart)
+KWDGPart* KWDGAttribute::LookupVarPart(KWDGPart* varPart) const
 {
 	KWDGPart* part;
 
@@ -2779,7 +2779,7 @@ KWDGPart* KWDGAttribute::LookupVarPart(KWDGPart* varPart)
 	return part;
 }
 
-KWDGPart* KWDGAttribute::LookupGroupablePart(const KWDGValue* value)
+KWDGPart* KWDGAttribute::LookupGroupablePart(const KWDGValue* value) const
 {
 	KWDGPart* part;
 
