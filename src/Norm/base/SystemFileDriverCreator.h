@@ -35,8 +35,8 @@ public:
 
 	// Acces au driver adapte a l'URI passee en parametre
 	// La detection de la technologie est automatique et basee sur les schema de l'URI
-	// Renvoie NULL en cas d'echec
-	static SystemFileDriver* LookupDriver(const ALString& sURI, const Object* errorSender);
+	// En cas d'echec, Renvoie NULL et met a jour sMessage
+	static SystemFileDriver* LookupDriver(const ALString& sURI, ALString& sMessage);
 
 	// Renvoie true si il ya un driver disponible pour le scheme passe en parametre
 	static boolean IsDriverRegisteredForScheme(const ALString& sScheme);

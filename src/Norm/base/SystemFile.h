@@ -104,7 +104,7 @@ protected:
 	boolean bIsOpenForRead;
 	boolean bIsOpenForWrite;
 
-	// Message d'erreur qu'on garde apres fermeture
+	// Message d'erreur qu'on garde apres fermeture (ou avant l'ouverture), lorsque le driver est NULL
 	ALString sPostMortemMessage;
 
 	// Reserve physique disponible
