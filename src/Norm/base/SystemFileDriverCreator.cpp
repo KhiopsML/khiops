@@ -183,13 +183,14 @@ void SystemFileDriverCreator::UnregisterDrivers()
 	nExternalDriverNumber = 0;
 }
 
-SystemFileDriver* SystemFileDriverCreator::LookupDriver(const ALString& sURIFilePathName, const Object* errorSender)
+SystemFileDriver* SystemFileDriverCreator::LookupDriver(const ALString& sURIFilePathName, ALString& sMessage)
 {
 	ALString sScheme;
-	ALString sMessage;
 	SystemFileDriver* driver;
 	SystemFileDriver* registeredDriver;
 	int i;
+
+	sMessage = "";
 
 	// Recherche du schema
 	sScheme = FileService::GetURIScheme(sURIFilePathName);
@@ -204,11 +205,6 @@ SystemFileDriver* SystemFileDriverCreator::LookupDriver(const ALString& sURIFile
 	if (not FileService::IsURIWellFormed(sURIFilePathName))
 	{
 		sMessage = "the file URI is not well-formed (" + sURIFilePathName + ")";
-
-		if (errorSender != NULL)
-			errorSender->AddError(sMessage);
-		else
-			Global::AddError("", "", sMessage);
 		return NULL;
 	}
 
@@ -236,10 +232,6 @@ SystemFileDriver* SystemFileDriverCreator::LookupDriver(const ALString& sURIFile
 	if (driver == NULL)
 	{
 		sMessage = "there is no driver available for the URI scheme '" + sScheme + "://'";
-		if (errorSender != NULL)
-			errorSender->AddError(sMessage);
-		else
-			Global::AddError("", "", sMessage);
 		return NULL;
 	}
 	else
