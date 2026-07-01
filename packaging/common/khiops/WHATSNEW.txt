@@ -11,6 +11,10 @@ New features
 Text analysis performance:
 - Parallelization of token collection for text analysis: significant speedup on large text datasets
 
+New Khiops Desktop Visualization Application: 
+- a single application that replaces the previous Khiops Visualization and Covisualization applications
+
+
 Fixes
 -----
 - Fix optimization issue with ngram tokenization on very large text datasets (100,000+ ngrams)
@@ -27,6 +31,7 @@ Distribution
 - New khiops-core pip package published on PyPI
 - New khiops-kni pip package for the Khiops Native Interface, including Python bindings and tutorial examples
 - Ubuntu 26.04 support added
+
 
 Version 11.0.0
 ==================
