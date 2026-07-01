@@ -3587,32 +3587,37 @@ void KWDataGridManager::AddContinuousAttributeRandomParts(const KWDGAttribute* s
 							  double dNoiseRate) const
 {
 	const boolean bTrace = false;
+	const boolean bTraceIntervals = false;
 	int nRequestedRawPartNumber;
 	KWQuantileBuilder* quantileBuilder;
 	KWQuantileIntervalBuilder* quantileIntervalBuilder;
 	int nTotalFrequency;
+	int nValueNumber;
 	int nTotalPartNumber;
 	int nLowerPartNumber;
 	int nUpperPartNumber;
 	int nPartNumber;
 	int nBestPartNumber;
-
+	IntVector ivTargetIntervalsCumulatedFrequencies;
 	KWDGPart* sourcePart;
-	KWDGPart* mandatoryPart;
 	KWDGPart* targetPart;
+	int nBoundIndex;
+	int nCumulatedFrequency;
+	int n;
+	/*DDD
+	KWDGPart* mandatoryPart;
 	ObjectArray oaSourceParts;
 	ObjectArray oaMandatoryParts;
 	IntVector ivInstanceIndexes;
 	IntVector ivAddedIntervalUpperBounds;
 	IntVector ivValueIndexes;
 	int nAddedPartNumber;
-	int n;
-	int nBoundIndex;
 	int nSourcePart;
 	int nMandatoryPart;
 	int nTargetSplit;
 	int nInstanceLastIndex;
 	int nMaxAddedPartNumber;
+	*/
 
 	require(Check());
 	require(sourceAttribute->GetAttributeType() == KWType::Continuous);
@@ -3652,123 +3657,250 @@ void KWDataGridManager::AddContinuousAttributeRandomParts(const KWDGAttribute* s
 	// Partition aleatoire des bornes des intervalles (en rangs) dans le cas continu
 	else
 	{
+		////////////////////////////////////////////////////////////////////////////////
+		// Recherche d'une partition aleatoire des intervalles selon le nombre d'intervalles
+		// et le taux d'equilibre des effectifs souhaite.
+		// Avec un faible niveau de bruit, on va recherche une partition equilibree
+		// au plus proche du nombre d'intervalles demandes
+		// Avec un fort taux de bruit, on va rechercher une partion equilibre avec d'avantage
+		// d'intervalle avant d'en extraire une sous-partition aleatoire
+		// La recherche de partition equilibree de bonne taille est difficile, car il peut y avoir moins
+		// de valeurs que d'instances. On utilise une heuristique par dichotomie en O(n log n) qui
+		// fournit une partition equilibree, mais avec potentiellement plus d'intervalles que demande.
+		// C'est un compromis acceptable, d'autant plus que l'on est ici dans un algorithme stochastique,
+		// ou une solution approximative est largement suffisante.
+
 		// Creation d'un quantileBuilder pour calculer les quantiles de l'attribut source
 		CreateAttributeQuantileBuilder(sourceAttribute, quantileBuilder, nTotalPartNumber);
 		nTotalFrequency = quantileBuilder->GetInstanceNumber();
+		nValueNumber = quantileBuilder->GetValueNumber();
 		quantileIntervalBuilder = cast(KWQuantileIntervalBuilder*, quantileBuilder);
 
 		// On determine un nombre de partie elementaire selon le taux de bruit
 		// - minimum pour un taux de bruit de 0, pour avoir une partition maximalement en frequences egales
 		// - maximum pour un taux de bruit de 1, pour avoir une partition maximalement aleatoire
 		nRequestedRawPartNumber =
-		    nRequestedPartNumber + (int)floor(dNoiseRate * (nTotalFrequency - nRequestedPartNumber));
-
-		// Calcul des quantiles pour le nombre de partie elementaire demandees
-		quantileIntervalBuilder->ComputeQuantiles(nRequestedRawPartNumber);
+		    nRequestedPartNumber + (int)floor(dNoiseRate * (nValueNumber - nRequestedPartNumber));
 
 		// Trace intermediaire
 		if (bTrace)
 		{
 			cout << "- Total frequency\t" << nTotalFrequency << "\n";
+			cout << "- Value number\t" << nValueNumber << "\n";
 			cout << "- Raw part number\t" << nRequestedRawPartNumber << "\n";
-			cout << "- Default parts\t" << quantileIntervalBuilder->GetIntervalNumber() << "\n";
 		}
 
-		// Si le nombre de parties elementaires obtenu est inferieur au nombre de parties demandees,
-		// on effectue une recherche dichotomique pour avoir au moins le nombre de parties demandees
-		if (quantileIntervalBuilder->GetIntervalNumber() < nRequestedRawPartNumber)
+		// Quantilisation uniquement s'il y a assez de valeurs
+		if (nRequestedRawPartNumber < nValueNumber)
 		{
-			// On ajuste le nombre de partie elementaire a calculer pour obtenir le nombre de partie
-			// demandees tout en s'assurant que les effectif moyens par intervalle soient tous distincts
-			// Cela permet de controler la complexite algorithmique globale en O(N log N) pour le calcul
-			// des quantiles, et de garder une precision suffisante pour les faibles nombre de quantiles
-			// Si on gardait toutes les nombres de quantiles possibles, on aurait
-			//   1 + 2 + 3 + ... + N = O(N)
-			// En se basant sur des effectifs moyen entiers tous distincts, on a
-			//   N(1/1 + 1/2 + 1/3 + ... + 1/N) = O(N log N)
+			// Calcul des quantiles pour le nombre de partie elementaire demandees
+			quantileIntervalBuilder->ComputeQuantiles(nRequestedRawPartNumber);
+			if (bTrace)
+				cout << "- Default parts\t" << quantileIntervalBuilder->GetIntervalNumber() << "\n";
 
-			// Initialisation du meilleur nombre de parties elementaires a calculer
-			// Pour obtenir un nombre partie superieur ou egal au nombre de parties demandees
-			nBestPartNumber = -1;
-
-			// Recherche dichotomique du nombre de parties elementaires a calculer
-			// pour obtenir le nombre de parties demandees
-			nLowerPartNumber = nRequestedRawPartNumber + 1;
-			nUpperPartNumber = nTotalFrequency;
-			while (nLowerPartNumber < nUpperPartNumber)
+			// Si le nombre de parties elementaires obtenu est inferieur au nombre de parties demandees,
+			// on effectue une recherche dichotomique pour avoir au moins le nombre de parties demandees
+			if (quantileIntervalBuilder->GetIntervalNumber() < nRequestedRawPartNumber)
 			{
-				nPartNumber = (nLowerPartNumber + nUpperPartNumber) / 2;
+				// On ajuste le nombre de partie elementaire a calculer pour obtenir le nombre de partie
+				// demandees tout en s'assurant que les effectif moyens par intervalle soient tous distincts
+				// Cela permet de controler la complexite algorithmique globale en O(N log N) pour le calcul
+				// des quantiles, et de garder une precision suffisante pour les faibles nombre de quantiles
+				// Si on gardait toutes les nombres de quantiles possibles, on aurait
+				//   1 + 2 + 3 + ... + N = O(N)
+				// En se basant sur des effectifs moyen entiers tous distincts, on a
+				//   N(1/1 + 1/2 + 1/3 + ... + 1/N) = O(N log N)
 
-				// Recalcul des quantiles pour le nombre de partie elementaire demandees
-				quantileIntervalBuilder->ComputeQuantiles(nPartNumber);
+				// Initialisation du meilleur nombre de parties elementaires a calculer
+				// Pour obtenir un nombre partie superieur ou egal au nombre de parties demandees
+				nBestPartNumber = -1;
 
-				// Trace de la dichotomie
-				if (bTrace)
+				// Recherche dichotomique du nombre de parties elementaires a calculer
+				// pour obtenir le nombre de parties demandees
+				nLowerPartNumber = nRequestedRawPartNumber + 1;
+				nUpperPartNumber = nTotalFrequency;
+				while (nLowerPartNumber < nUpperPartNumber)
 				{
-					cout << "  - ComputeQuantiles\t" << nPartNumber << "\t" << nLowerPartNumber
-					     << "\t" << nUpperPartNumber << "\t"
-					     << quantileIntervalBuilder->GetIntervalNumber() << endl;
-				}
+					nPartNumber = (nLowerPartNumber + nUpperPartNumber) / 2;
 
-				// Arret si nombre de parties obtenu est suffisant,
-				// sinon on ajuste les bornes de la recherche dichotomique
-				if (quantileIntervalBuilder->GetIntervalNumber() == nRequestedRawPartNumber)
-					break;
-				else
-				{
-					if (quantileIntervalBuilder->GetIntervalNumber() < nRequestedRawPartNumber)
+					// Recalcul des quantiles pour le nombre de partie elementaire demandees
+					quantileIntervalBuilder->ComputeQuantiles(nPartNumber);
+
+					// Trace de la dichotomie
+					if (bTrace)
 					{
-						nLowerPartNumber = nPartNumber + 1;
-
-						// Recherche du prochain changement d'effectif moyen par intervalle
-						while (nTotalFrequency / (nPartNumber + 1) ==
-							   nTotalFrequency / nLowerPartNumber and
-						       nPartNumber < nUpperPartNumber)
-							nPartNumber++;
-						nLowerPartNumber = nPartNumber;
+						cout << "  - ComputeQuantiles\t" << nPartNumber << "\t"
+						     << nLowerPartNumber << "\t" << nUpperPartNumber << "\t"
+						     << quantileIntervalBuilder->GetIntervalNumber() << endl;
 					}
+
+					// Arret si nombre de parties obtenu est suffisant,
+					// sinon on ajuste les bornes de la recherche dichotomique
+					if (quantileIntervalBuilder->GetIntervalNumber() == nRequestedRawPartNumber)
+						break;
 					else
 					{
-						nUpperPartNumber = nPartNumber;
+						if (quantileIntervalBuilder->GetIntervalNumber() <
+						    nRequestedRawPartNumber)
+						{
+							nLowerPartNumber = nPartNumber + 1;
 
-						// Memorisation du meilleur nombre de parties elementaires a calculer
-						nBestPartNumber = nPartNumber;
+							// Recherche du prochain changement d'effectif moyen par intervalle
+							while (nTotalFrequency / (nPartNumber + 1) ==
+								   nTotalFrequency / nLowerPartNumber and
+							       nPartNumber < nUpperPartNumber)
+								nPartNumber++;
+							nLowerPartNumber = nPartNumber;
+						}
+						else
+						{
+							nUpperPartNumber = nPartNumber;
 
-						// Recherche du prochain changement d'effectif moyen par intervalle
-						while (nTotalFrequency / (nPartNumber - 1) ==
-							   nTotalFrequency / nUpperPartNumber and
-						       nPartNumber > nLowerPartNumber)
-							nPartNumber--;
-						nUpperPartNumber = nPartNumber;
+							// Memorisation du meilleur nombre de parties elementaires a calculer
+							nBestPartNumber = nPartNumber;
+
+							// Recherche du prochain changement d'effectif moyen par intervalle
+							while (nTotalFrequency / (nPartNumber - 1) ==
+								   nTotalFrequency / nUpperPartNumber and
+							       nPartNumber > nLowerPartNumber)
+								nPartNumber--;
+							nUpperPartNumber = nPartNumber;
+						}
 					}
 				}
+
+				// Recalcul des quantiles pour le meilleur nombre de partie elementaire trouve
+				if (quantileIntervalBuilder->GetIntervalNumber() != nRequestedRawPartNumber)
+				{
+					if (nBestPartNumber != -1)
+						quantileIntervalBuilder->ComputeQuantiles(nBestPartNumber);
+				}
+				assert(nBestPartNumber == -1 or
+				       quantileIntervalBuilder->GetIntervalNumber() >= nRequestedRawPartNumber);
+			}
+		}
+
+		////////////////////////////////////////////////////////////////////////////////
+		// Extraction des bornes des intervalles cibles
+
+		// Extraction des effectifs cumules des intervalles cible si on a pu extraire suffisament d'intervalles
+		if (quantileIntervalBuilder->IsComputed() and
+		    quantileIntervalBuilder->GetIntervalNumber() >= nRequestedRawPartNumber)
+		{
+			ivTargetIntervalsCumulatedFrequencies.SetSize(quantileIntervalBuilder->GetIntervalNumber());
+			for (n = 0; n < ivTargetIntervalsCumulatedFrequencies.GetSize(); n++)
+			{
+				// L'ffectif cumule de l'intervalle est egal a l'index de la derniere instance, plus un
+				ivTargetIntervalsCumulatedFrequencies.SetAt(
+				    n, quantileIntervalBuilder->GetIntervalLastInstanceIndexAt(n) + 1);
+			}
+		}
+		// Extraction de toutes les bornes possibles sinon
+		else
+		{
+			ivTargetIntervalsCumulatedFrequencies.SetSize(quantileIntervalBuilder->GetValueNumber());
+			for (n = 0; n < ivTargetIntervalsCumulatedFrequencies.GetSize(); n++)
+			{
+				ivTargetIntervalsCumulatedFrequencies.SetAt(
+				    n, quantileIntervalBuilder->GetValueCumulatedFrequencAt(n));
+			}
+		}
+		assert(ivTargetIntervalsCumulatedFrequencies.GetSize() >= nRequestedRawPartNumber);
+
+		// Si on a trop de bornes, on en extrait une sous partie aleatoire
+		if (ivTargetIntervalsCumulatedFrequencies.GetSize() > nRequestedPartNumber)
+		{
+			// On supprimer temporairement la borne du dernier intervalle, qui sera gardee de toute facon
+			ivTargetIntervalsCumulatedFrequencies.SetSize(ivTargetIntervalsCumulatedFrequencies.GetSize() -
+								      1);
+
+			// Permutation aleatoire des bornes
+			ivTargetIntervalsCumulatedFrequencies.Shuffle();
+
+			// On tronque la liste des bornes, ce qui revient a en fait un choix aleatoire
+			ivTargetIntervalsCumulatedFrequencies.SetSize(nRequestedPartNumber - 1);
+
+			// On retrie les bornes
+			ivTargetIntervalsCumulatedFrequencies.Sort();
+
+			// On rajoute la borne du dernier intervalle
+			ivTargetIntervalsCumulatedFrequencies.Add(nTotalFrequency);
+		}
+		assert(ivTargetIntervalsCumulatedFrequencies.GetSize() == nRequestedPartNumber);
+
+		////////////////////////////////////////////////////////////////////////////////
+		// Creation de l'attribut cible a partir des bornes obtenues
+
+		// Creation des intervalles cibles en utilisant les intervalles initiaux et
+		// en utilisant les bornes specifiees pour les nouveaux intervalles
+		targetPart = NULL;
+		nBoundIndex = 0;
+		nCumulatedFrequency = 0;
+		sourcePart = sourceAttribute->GetHeadPart();
+		while (sourcePart != NULL)
+		{
+			// Comptage du nombre d'instance sources traitees
+			nCumulatedFrequency += sourcePart->GetPartFrequency();
+
+			// Creation si necessaire d'un intervalle cible
+			if (targetPart == NULL)
+			{
+				targetPart = targetAttribute->AddPart();
+
+				// Reinitialisation de ses bornes
+				targetPart->GetInterval()->CopyFrom(sourcePart->GetInterval());
+			}
+			// Sinon, mise a jour de la borne sup de l'intervalle cible en cours
+			else
+			{
+				targetPart->GetInterval()->SetUpperBound(sourcePart->GetInterval()->GetUpperBound());
 			}
 
-			// Recalcul des quantiles pour le meilleur nombre de partie elementaire trouve
-			if (quantileIntervalBuilder->GetIntervalNumber() != nRequestedRawPartNumber)
+			// Mise a jour des effectifs //DDD dans le cas d'un innerAttribute
+			//DDDif (sourceAttribute->IsInnerAttribute())
+			targetPart->SetPartFrequency(targetPart->GetPartFrequency() + sourcePart->GetPartFrequency());
+
+			// L'intervalle cible est finalise si son effectif est atteint
+			assert(nCumulatedFrequency <= ivTargetIntervalsCumulatedFrequencies.GetAt(nBoundIndex));
+			if (nCumulatedFrequency == ivTargetIntervalsCumulatedFrequencies.GetAt(nBoundIndex))
 			{
-				if (nBestPartNumber != -1)
-					quantileIntervalBuilder->ComputeQuantiles(nBestPartNumber);
+				// On reinitialise l'indicateur de creation d'intervalle cible
+				targetPart = NULL;
+
+				// On positionne la prochaine borne d'intervalle
+				nBoundIndex++;
 			}
-			assert(quantileIntervalBuilder->GetIntervalNumber() >= nRequestedRawPartNumber);
+
+			// Intervalle source suivant
+			sourceAttribute->GetNextPart(sourcePart);
 		}
+		assert(nBoundIndex == ivTargetIntervalsCumulatedFrequencies.GetSize());
 
 		// Nettoyage
 		delete quantileBuilder;
-
-		//DDD
-		InitialiseAttributeParts(mandatoryAttribute, targetAttribute);
 	}
 
-	// Trace initiale
+	// Trace finale
 	if (bTrace)
 	{
 		cout << "- Result\t" << targetAttribute->GetPartNumber() << "\n";
+		if (bTraceIntervals)
+		{
+			cout << "Source intervals\n";
+			sourceAttribute->WriteParts(cout);
+			cout << "Mandatory intervals\n";
+			if (mandatoryAttribute != NULL)
+				mandatoryAttribute->WriteParts(cout);
+			cout << "Target intervals\n";
+			targetAttribute->WriteParts(cout);
+		}
 	}
 
-	//DDD ensure(targetAttribute->GetPartNumber() == nRequestedPartNumber);
+	ensure(targetAttribute->GetPartNumber() == nRequestedPartNumber);
 	ensure(CheckAttributesConsistency(sourceAttribute, targetAttribute));
+	ensure(targetAttribute->ComputeTotalPartFrequency() == sourceAttribute->ComputeTotalPartFrequency());
 	ensure(sourceAttribute->ContainsSubParts(targetAttribute));
+	//DDD ensure(mandatoryAttribute == NULL or targetAttribute->ContainsSubParts(mandatoryAttribute));
 }
 
 void KWDataGridManager::InitialiseAttributeGranularizedParts(const KWDGAttribute* sourceAttribute,
@@ -4292,8 +4424,8 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 							outputInnerAttribute, nOutputPartNumber);
 
 			//DDD
-			/*DDD
 			//if (sourceInnerAttribute->GetAttributeName() == "PetalLength" and nOutputPartNumber <= 100)
+			/*DDD
 			if (sourceInnerAttribute->GetAttributeType() == KWType::Continuous)
 			{
 				KWDGAttribute outputInnerAttributeProto;
@@ -4304,7 +4436,7 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 					outputInnerAttribute->WriteParts(cout);
 				InitialiseAttribute(sourceInnerAttribute, &outputInnerAttributeProto);
 				AddContinuousAttributeRandomParts(referenceInnerAttribute, sourceInnerAttribute,
-								  &outputInnerAttributeProto, nOutputPartNumber, 0.2);
+								  &outputInnerAttributeProto, nOutputPartNumber, 0);
 				if (nOutputPartNumber <= 20)
 					outputInnerAttributeProto.WriteParts(cout);
 			}

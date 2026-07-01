@@ -397,9 +397,9 @@ protected:
 
 	// Ajout aleatoire de parties dans une partition pour un attribut Continuous donne
 	// Si un attribut obligatoire est present, les nouvelles parties sont obtenues en sur-partitionnant
-	// les partitions existantes de l'attribut obligatoire,
-	// Selon le NoiseRate, les partition obtenu sont plus ou moins proche des parties en frequence egale
-	// - NoiseRate=0: partition au plus proche d'une partition en frequence egale
+	// les parties existantes de l'attribut obligatoire,
+	// Selon le NoiseRate, les partitions obtenues sont plus ou moins equilibrees en intervalles d'effectif egal
+	// - NoiseRate=0: partition au plus proche d'une partition equilibree
 	// - NosieRate=1: partition aleatoire
 	void AddContinuousAttributeRandomParts(const KWDGAttribute* sourceAttribute,
 					       const KWDGAttribute* mandatoryAttribute, KWDGAttribute* targetAttribute,
