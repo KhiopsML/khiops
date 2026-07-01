@@ -159,7 +159,7 @@ jobs:
           name: pkg-wheel-windows-2025-vs2026
           path: wheelhouse/*.whl
           if-no-files-found: error
-  test-khiops-core-wheel:
+  test-khiops-core-and-kni-wheels:
     strategy:
       matrix:
         setup:
@@ -171,7 +171,7 @@ jobs:
           - {os: macos-15-intel, image: ''}
     runs-on: ${{ matrix.setup.os }}
     container: ${{ matrix.setup.image }}
-    name: Test wheel
+    name: Test Khiops Core and KNI wheels with LearningTestTool
     needs: [build-wheel, sign-wheel-windows]
     steps:
       - uses: actions/checkout@v6
@@ -218,11 +218,22 @@ jobs:
           fi
           $PYTHON -m pip install --find-links=wheelhouse khiops-core
           $PYTHON -m pip show -f khiops-core
-      - name: Run standard tests
+      - name: Run standard tests on the Core package
         uses: ./.github/actions/run-standard-tests
         with:
           warning_as_error: true
           running-mode: parallel
+          config: release
+          binary-path: ${{ steps.install_khiops_core.outputs.BIN_DIR }}
+          testing-context-description: pip-test-${{ matrix.setup.os }}-${{ matrix.setup.image
+            }}
+      - name: Run standard tests on the KNI package
+        uses: ./.github/actions/run-standard-tests
+        with:
+          warning_as_error: true
+          running-mode: serial
+          test-khiops: false
+          test-coclustering: false
           config: release
           binary-path: ${{ steps.install_khiops_core.outputs.BIN_DIR }}
           testing-context-description: pip-test-${{ matrix.setup.os }}-${{ matrix.setup.image
@@ -300,7 +311,7 @@ jobs:
     if: github.ref_type == 'tag' && github.repository_owner == 'KhiopsML' && inputs.python_repository
       == 'testpypi'
     name: Publish to Test.PyPI.org
-    needs: [build-wheel, test-khiops-core-wheel, test-kni]
+    needs: [build-wheel, test-khiops-core-and-kni-wheels, test-kni]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -321,7 +332,7 @@ jobs:
     name: Publish to PyPI.org
     if: github.ref_type == 'tag' && github.repository_owner == 'KhiopsML' && inputs.python_repository
       == 'pypi'
-    needs: [build-wheel, test-khiops-core-wheel, test-kni]
+    needs: [build-wheel, test-khiops-core-and-kni-wheels, test-kni]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
