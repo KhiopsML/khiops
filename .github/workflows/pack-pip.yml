@@ -43,7 +43,7 @@ jobs:
           - macos-15-intel
           - macos-15
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Move pyproject-khiops file to the root of the repository
         run: |
           mv packaging/pip/pyproject-khiops.toml pyproject.toml
@@ -112,7 +112,7 @@ jobs:
     env:
       SIGN_WINDOWS_WHEELS: ${{ github.event_name == 'workflow_dispatch' && inputs.signature-activation }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           name: wheelhouse-windows-unsigned
@@ -174,7 +174,7 @@ jobs:
     name: Test wheel
     needs: [build-wheel, sign-wheel-windows]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           pattern: pkg-*
@@ -241,14 +241,14 @@ jobs:
           - macos-15
         python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           pattern: pkg-*
           path: wheelhouse
           merge-multiple: true
       - name: Checkout KhiopsNativeInterface-tutorial
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: KhiopsML/KhiopsNativeInterface-tutorial
           path: tutorial
