@@ -53,7 +53,7 @@ jobs:
             conda install -c conda-forge/label/${{ inputs.label }}  khiops-core=${{ inputs.khiops_version }}
           fi
       - name: Checkout sources
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Export BIN_DIR
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
