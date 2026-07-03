@@ -8,6 +8,7 @@
 boolean SystemFile::bAlwaysErrorOnOpen = false;
 boolean SystemFile::bAlwaysErrorOnRead = false;
 boolean SystemFile::bAlwaysErrorOnFlush = false;
+boolean SystemFile::bSimulationError = false;
 
 SystemFile::SystemFile()
 {
@@ -47,7 +48,10 @@ boolean SystemFile::OpenInputFile(const ALString& sFilePathName)
 	// Mode de test : toujours en echec
 	if (bAlwaysErrorOnOpen)
 	{
+		bSimulationError = true;
 		errno = ECANCELED;
+		fileDriver = NULL;
+		sPostMortemMessage = strerror(ECANCELED);
 		return false;
 	}
 
@@ -88,7 +92,10 @@ boolean SystemFile::OpenOutputFile(const ALString& sFilePathName)
 	// Mode de test : toujours en echec
 	if (bAlwaysErrorOnOpen)
 	{
+		bSimulationError = true;
 		errno = ECANCELED;
+		fileDriver = NULL;
+		sPostMortemMessage = strerror(ECANCELED);
 		return false;
 	}
 
@@ -129,7 +136,10 @@ boolean SystemFile::OpenOutputFileForAppend(const ALString& sFilePathName)
 	// Mode de test : toujours en echec
 	if (bAlwaysErrorOnOpen)
 	{
+		bSimulationError = true;
 		errno = ECANCELED;
+		fileDriver = NULL;
+		sPostMortemMessage = strerror(ECANCELED);
 		return false;
 	}
 
@@ -230,10 +240,13 @@ longint SystemFile::Read(void* pBuffer, size_t size, size_t count)
 	// Mode de test : toujours en echec
 	if (bAlwaysErrorOnRead)
 	{
+		bSimulationError = true;
 		errno = ECANCELED;
+		sPostMortemMessage = strerror(ECANCELED);
 		return 0;
 	}
 
+	sPostMortemMessage = "";
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fread Begin");
 	lRes = fileDriver->Fread(pBuffer, size, count, fileHandle);
@@ -276,10 +289,13 @@ longint SystemFile::Write(const void* pBuffer, size_t size, size_t count)
 	// Mode de test : toujours en echec
 	if (bAlwaysErrorOnFlush)
 	{
+		bSimulationError = true;
 		errno = ECANCELED;
+		sPostMortemMessage = strerror(ECANCELED);
 		return 0;
 	}
 
+	sPostMortemMessage = "";
 	// Mise a jour des informations sur la reserve
 	// Ce n'est pas la peine de remettre la reserve a zero si elle est negative,
 	// car toute nouvelle reserve ecrasera necessairement l'etat actuel
@@ -307,10 +323,13 @@ boolean SystemFile::Flush()
 	// Mode de test : toujours en echec
 	if (bAlwaysErrorOnFlush)
 	{
+		bSimulationError = true;
 		errno = ECANCELED;
+		sPostMortemMessage = strerror(ECANCELED);
 		return false;
 	}
 
+	sPostMortemMessage = "";
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] flush Begin");
 	bRes = fileDriver->Flush(fileHandle);
@@ -323,13 +342,22 @@ ALString SystemFile::GetLastErrorMessage()
 {
 	ALString sMessage;
 
-	// Si le message post-mortem est non vide, le driver est forcement non null
-	assert(sPostMortemMessage == "" or fileDriver == NULL);
-
-	if (fileDriver != NULL)
-		sMessage = fileDriver->GetLastErrorMessage();
-	else
+	// Le message post-mortem est utilise uniquement si c'est une erreur de simulation (bSimulationError)
+	// ou si le driver a ete nettoye (fileDriver == NULL)
+	// Cela evite de retourner un message post-mortem qui n'aurait pas ete nettoye correctement
+	if ((bSimulationError or fileDriver == NULL) and sPostMortemMessage != "")
 		sMessage = sPostMortemMessage;
+	else if (fileDriver != NULL)
+		sMessage = fileDriver->GetLastErrorMessage();
+
+	// Reinitialisation apres utilisation si c'etait une erreur de simulation
+	if (bSimulationError)
+	{
+		bSimulationError = false;
+		errno = 0;
+	}
+	sPostMortemMessage = "";
+
 	return sMessage;
 }
 

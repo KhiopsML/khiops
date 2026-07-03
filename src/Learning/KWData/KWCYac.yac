@@ -1757,6 +1757,11 @@ boolean KWClassDomain::ReadFile(const ALString& sFileName)
   ObjectArray oaReferencedUncreatedClasses;
   int i;
   KWClass* kwcClass;
+  INHIB_IO_FAILURE_INIT
+
+  // On inhibe l'effet de SetAlwaysErrorOnOpen, SetAlwaysErrorOnRead et SetAlwaysErrorOnFlush pour ne pas avoir d'erreur
+  // lors de l'ouverture et de la lecture des dictionnaires
+  INHIB_IO_FAILURE_BEGIN
 
   // Affichage de stats memoire si log memoire actif
   MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " ReadFile Begin");
@@ -1876,6 +1881,9 @@ boolean KWClassDomain::ReadFile(const ALString& sFileName)
   kwcLoadCurrentClass = NULL;
   delete odReferencedUncreatedClasses;
   odReferencedUncreatedClasses = NULL;
+
+  // On repositionne l'ouverture, la lecture et l'ecriture en erreur pour les tests
+  INHIB_IO_FAILURE_END
 
   // Affichage de stats memoire si log memoire actif
   MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " ReadFile End");

@@ -9,6 +9,49 @@
 #include "SystemFileDriver.h"
 #include "MemoryStatsManager.h"
 
+// Default value: 1 (inhibit SetAlwaysErrorOnOpen/SetAlwaysErrorOnRead/SetAlwaysErrorOnFlush during I/O operations with SystemFile).
+// Set INHIB_NEW_IO_MESSAGE to 0 to disable inhibition.
+#ifndef INHIB_NEW_IO_MESSAGE
+#define INHIB_NEW_IO_MESSAGE 1
+#endif
+
+// Macros to inhibit I/O failure simulation (Open, Read, Flush) during I/O operations with SystemFile
+#if defined(INHIB_NEW_IO_MESSAGE) && INHIB_NEW_IO_MESSAGE
+#define INHIB_IO_FAILURE_INIT                                                                                          \
+	boolean bOpenValueKept;                                                                                        \
+	boolean bReadValueKept;                                                                                        \
+	boolean bFlushValueKept;
+
+#define INHIB_IO_FAILURE_BEGIN                                                                                         \
+	do                                                                                                             \
+	{                                                                                                              \
+		bOpenValueKept = SystemFile::GetAlwaysErrorOnOpen();                                                   \
+		bReadValueKept = SystemFile::GetAlwaysErrorOnRead();                                                   \
+		bFlushValueKept = SystemFile::GetAlwaysErrorOnFlush();                                                 \
+		SystemFile::SetAlwaysErrorOnOpen(false);                                                               \
+		SystemFile::SetAlwaysErrorOnRead(false);                                                               \
+		SystemFile::SetAlwaysErrorOnFlush(false);                                                              \
+	} while (0);
+
+#define INHIB_IO_FAILURE_END                                                                                           \
+	do                                                                                                             \
+	{                                                                                                              \
+		SystemFile::SetAlwaysErrorOnOpen(bOpenValueKept);                                                      \
+		SystemFile::SetAlwaysErrorOnRead(bReadValueKept);                                                      \
+		SystemFile::SetAlwaysErrorOnFlush(bFlushValueKept);                                                    \
+	} while (0);
+#else
+#define INHIB_IO_FAILURE_INIT
+#define INHIB_IO_FAILURE_BEGIN                                                                                         \
+	do                                                                                                             \
+	{                                                                                                              \
+	} while (0);
+#define INHIB_IO_FAILURE_END                                                                                           \
+	do                                                                                                             \
+	{                                                                                                              \
+	} while (0);
+#endif
+
 ///////////////////////////////////////////////////////////////////////////
 // Classe SystemFile
 // Classe d'acces a un systeme de fichiers. C'est un wrapper leger vers un driver de fichier (classe SystemFileDriver)
@@ -117,4 +160,7 @@ protected:
 	static boolean bAlwaysErrorOnOpen;
 	static boolean bAlwaysErrorOnRead;
 	static boolean bAlwaysErrorOnFlush;
+
+	// Flag indiquant qu'une erreur de simulation est en cours
+	static boolean bSimulationError;
 };

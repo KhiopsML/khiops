@@ -376,6 +376,8 @@ boolean PLRemoteFileService::FileCompare(const ALString& sFileName1, const ALStr
 boolean PLRemoteFileService::OpenInputBinaryFile(const ALString& sURI, SystemFile*& fFile)
 {
 	boolean bOk;
+	boolean bIsDictionaryFile;
+	INHIB_IO_FAILURE_INIT
 
 	fFile = new SystemFile();
 
@@ -386,9 +388,17 @@ boolean PLRemoteFileService::OpenInputBinaryFile(const ALString& sURI, SystemFil
 	// Tentative d'ouverture du fichier
 	else
 	{
+		// Inhibit I/O failures for dictionary files only
+		bIsDictionaryFile = FileService::GetFileSuffix(FileService::GetFileName(sURI)) == "kdic";
+		if (bIsDictionaryFile)
+			INHIB_IO_FAILURE_BEGIN
+
 		bOk = fFile->OpenInputFile(sURI);
 		if (not bOk)
 			Global::AddError("File", sURI, "Unable to open file (" + fFile->GetLastErrorMessage() + ")");
+
+		if (bIsDictionaryFile)
+			INHIB_IO_FAILURE_END
 	}
 
 	if (not bOk)
@@ -475,6 +485,8 @@ boolean PLRemoteFileService::CloseOutputBinaryFile(const ALString& sURI, SystemF
 boolean PLRemoteFileService::OpenOutputBinaryFile(const ALString& sURI, SystemFile*& fFile)
 {
 	boolean bOk;
+	boolean bIsDictionaryFile;
+	INHIB_IO_FAILURE_INIT
 
 	fFile = new SystemFile();
 
@@ -485,21 +497,32 @@ boolean PLRemoteFileService::OpenOutputBinaryFile(const ALString& sURI, SystemFi
 	// Tentative d'ouverture du fichier
 	else
 	{
+		// Inhibit I/O failures for dictionary files only
+		bIsDictionaryFile = FileService::GetFileSuffix(FileService::GetFileName(sURI)) == "kdic";
+		if (bIsDictionaryFile)
+			INHIB_IO_FAILURE_BEGIN
+
 		bOk = fFile->OpenOutputFile(sURI);
 		if (not bOk)
 			Global::AddError("File", sURI, "Unable to open output file " + fFile->GetLastErrorMessage());
+
+		if (bIsDictionaryFile)
+			INHIB_IO_FAILURE_END
 	}
 	if (not bOk)
 	{
 		delete fFile;
 		fFile = NULL;
 	}
+
 	return bOk;
 }
 
 boolean PLRemoteFileService::OpenOutputBinaryFileForAppend(const ALString& sURI, SystemFile*& fFile)
 {
 	boolean bOk;
+	boolean bIsDictionaryFile;
+	INHIB_IO_FAILURE_INIT
 
 	fFile = new SystemFile();
 
@@ -510,12 +533,20 @@ boolean PLRemoteFileService::OpenOutputBinaryFileForAppend(const ALString& sURI,
 	// Tentative d'ouverture du fichier
 	else
 	{
+		// Inhibit I/O failures for dictionary files only
+		bIsDictionaryFile = FileService::GetFileSuffix(FileService::GetFileName(sURI)) == "kdic";
+		if (bIsDictionaryFile)
+			INHIB_IO_FAILURE_BEGIN
+
 		bOk = fFile->OpenOutputFileForAppend(sURI);
 		if (not bOk)
 		{
 			Global::AddError("File", sURI,
 					 "Unable to open output file for append " + fFile->GetLastErrorMessage());
 		}
+
+		if (bIsDictionaryFile)
+			INHIB_IO_FAILURE_END
 	}
 
 	if (not bOk)
@@ -523,6 +554,7 @@ boolean PLRemoteFileService::OpenOutputBinaryFileForAppend(const ALString& sURI,
 		delete fFile;
 		fFile = NULL;
 	}
+
 	return bOk;
 }
 

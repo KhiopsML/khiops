@@ -3562,6 +3562,19 @@ boolean KWClassDomain::ReadFile(const ALString& sFileName)
 	ObjectArray oaReferencedUncreatedClasses;
 	int i;
 	KWClass* kwcClass;
+#if INHIB_NEW_IO_MESSAGE
+	boolean bOpenValueKept;
+	boolean bReadValueKept;
+#endif
+
+	// On inhibe l'effet de SetAlwaysErrorOnOpen et SetAlwaysErrorOnRead pour ne pas avoir d'erreur
+	// lors de l'ouverture et de la lecture des dictionnaires
+#if INHIB_NEW_IO_MESSAGE
+	bOpenValueKept = SystemFile::GetAlwaysErrorOnOpen();
+	SystemFile::SetAlwaysErrorOnOpen(false);
+	bReadValueKept = SystemFile::GetAlwaysErrorOnRead();
+	SystemFile::SetAlwaysErrorOnRead(false);
+#endif
 
 	// Affichage de stats memoire si log memoire actif
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " ReadFile Begin");
@@ -3681,6 +3694,12 @@ boolean KWClassDomain::ReadFile(const ALString& sFileName)
 	kwcLoadCurrentClass = NULL;
 	delete odReferencedUncreatedClasses;
 	odReferencedUncreatedClasses = NULL;
+
+	// On repositionne l'ouverture et la lecture en erreur pour les tests
+#if INHIB_NEW_IO_MESSAGE
+	SystemFile::SetAlwaysErrorOnOpen(bOpenValueKept);
+	SystemFile::SetAlwaysErrorOnRead(bReadValueKept);
+#endif
 
 	// Affichage de stats memoire si log memoire actif
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " ReadFile End");

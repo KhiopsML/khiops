@@ -117,11 +117,20 @@ boolean FileService::CreateEmptyFile(const ALString& sFilePathName)
 {
 	OutputBufferedFile outputFile;
 	boolean bOk;
+	INHIB_IO_FAILURE_INIT
+
+	// On inhibe l'effet de SetAlwaysErrorOnOpen, SetAlwaysErrorOnRead et SetAlwaysErrorOnFlush pour ne pas avoir d'erreur
+	// lors de l'ouverture des dictionnaires
+	INHIB_IO_FAILURE_BEGIN
 
 	outputFile.SetFileName(sFilePathName);
 	bOk = outputFile.Open();
 	if (bOk)
 		outputFile.Close();
+
+	// On repositionne l'ouverture, la lecture et l'ecriture en erreur pour les tests
+	INHIB_IO_FAILURE_END
+
 	return bOk;
 }
 
