@@ -1685,9 +1685,12 @@ boolean UIObject::CheckCommandLineOptions(const ObjectArray& oaOptions)
 
 	// Acces aux fichiers passes en parametre
 	fsInputFile = NULL;
+	fsInputJsonFile = NULL;
 	fsProgressionFile = NULL;
 	fsOutputFile = NULL;
+	fsOutputNoReplayFile = NULL;
 	fsErrorFile = NULL;
+
 	for (i = 0; i < oaOptions.GetSize(); i++)
 	{
 		option = cast(CommandLineOption*, oaOptions.GetAt(i));
@@ -1750,6 +1753,31 @@ boolean UIObject::CheckCommandLineOptions(const ObjectArray& oaOptions)
 		Global::AddError("Command line parameters", "",
 				 "wrong input command file " + fsInputFile->GetFilePathName());
 	}
+#elif defined(_WIN32)
+	if (fsInputFile != NULL and fsInputFile->GetFilePathName() == "CON")
+	{
+		bOk = false;
+		Global::AddError("Command line parameters", "",
+				 "wrong input command file " + fsInputFile->GetFilePathName());
+	}
+#endif
+
+	// Test que le fichier d'entree json n'est pas une sortie
+#ifdef __linux_or_apple__
+	if (fsInputJsonFile != NULL and (fsInputJsonFile->GetFilePathName() == "/dev/stdout" or
+					 fsInputJsonFile->GetFilePathName() == "/dev/stderr"))
+	{
+		bOk = false;
+		Global::AddError("Command line parameters", "",
+				 "wrong input command file " + fsInputFile->GetFilePathName());
+	}
+#elif defined(_WIN32)
+	if (fsInputJsonFile != NULL and fsInputJsonFile->GetFilePathName() == "CON")
+	{
+		bOk = false;
+		Global::AddError("Command line parameters", "",
+				 "wrong input command file " + fsInputJsonFile->GetFilePathName());
+	}
 #endif
 
 	// Test de conflit entre les noms de fichiers : les fichiers doivent tous etre differents
@@ -1764,13 +1792,15 @@ boolean UIObject::CheckCommandLineOptions(const ObjectArray& oaOptions)
 
 // Test de difference
 #ifdef _WIN32
-			bOk = bOk and fsFileToCompare->CheckReferenceFileSpec(fsFile);
+			bOk = bOk and (fsFileToCompare->GetFilePathName() == "CON" and
+				       fsFile->GetFilePathName() == "CON") or
+			      (fsFileToCompare->CheckReferenceFileSpec(fsFile));
 #else
-			bOk = bOk and (fsFileToCompare->CheckReferenceFileSpec(fsFile) or
-				       (fsFileToCompare->GetFilePathName() == "/dev/stdout" and
+			bOk = bOk and ((fsFileToCompare->GetFilePathName() == "/dev/stdout" and
 					fsFile->GetFilePathName() == "/dev/stdout") or
 				       (fsFileToCompare->GetFilePathName() == "/dev/stderr" and
-					fsFile->GetFilePathName() == "/dev/stderr"));
+					fsFile->GetFilePathName() == "/dev/stderr") or
+				       fsFileToCompare->CheckReferenceFileSpec(fsFile));
 #endif // _WIN32
 			if (not bOk)
 				break;
