@@ -342,7 +342,7 @@ def clean_version_from_results(results_dir):
                 time_file.write("version: " + found_version + "\n")
         except Exception as exception:
             print(
-                "Enable to write file " + kht.TIME_LOG + " in " + kht.RESULTS + " dir ",
+                "Unable to write file " + kht.TIME_LOG + " in " + kht.RESULTS + " dir ",
                 exception,
             )
 

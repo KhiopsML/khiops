@@ -605,7 +605,7 @@ def evaluate_tool_on_test_dir(
                         stdout_file.write(stdout)
                 except Exception as exception:
                     print(
-                        "Enable to write file "
+                        "Unable to write file "
                         + kht.STDOUT_ERROR_LOG
                         + " in "
                         + kht.RESULTS
@@ -636,7 +636,7 @@ def evaluate_tool_on_test_dir(
                         stderr_file.write(line)
             except Exception as exception:
                 print(
-                    "Enable to write file "
+                    "Unable to write file "
                     + kht.STDERR_ERROR_LOG
                     + " in "
                     + kht.RESULTS
@@ -658,7 +658,7 @@ def evaluate_tool_on_test_dir(
                     )
             except Exception as exception:
                 print(
-                    "Enable to write file "
+                    "Unable to write file "
                     + kht.RETURN_CODE_ERROR_LOG
                     + " in "
                     + kht.RESULTS
@@ -678,7 +678,7 @@ def evaluate_tool_on_test_dir(
                 time_file.write(str(overall_time_stop - overall_time_start) + "\n")
         except Exception as exception:
             print(
-                "Enable to write file " + kht.TIME_LOG + " in " + kht.RESULTS + " dir ",
+                "Unable to write file " + kht.TIME_LOG + " in " + kht.RESULTS + " dir ",
                 exception,
             )
 
