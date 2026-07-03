@@ -572,7 +572,7 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 		else if (not KNICheckString(sDictionaryName, KNI_MaxDictionaryNameLength))
 			nRetCode = KNI_ErrorDictionaryName;
 		// Erreur si fichier dictionnaire inexistant
-		else if (not FileService::FileExists(sDictionaryFileName))
+		else if (not PLRemoteFileService::FileExists(sDictionaryFileName))
 			nRetCode = KNI_ErrorDictionaryMissingFile;
 		// Erreur si pas de header line
 		else if (not KNICheckString(sStreamHeaderLine, KNI_MaxRecordLength))
@@ -586,7 +586,7 @@ KNI_API int KNIOpenStream(const char* sDictionaryFileName, const char* sDictiona
 	lKNIStreamMaxActualMemory = nKNIStreamMaxMemory * lMB;
 	if (nRetCode == KNI_OK)
 	{
-		lFileSize = FileService::GetFileSize(sDictionaryFileName);
+		lFileSize = PLRemoteFileService::GetFileSize(sDictionaryFileName);
 		if (lFileSize > lKNIStreamMaxActualMemory)
 		{
 			KNIAddInternalError(sDictionaryName,
