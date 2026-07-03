@@ -103,6 +103,11 @@ boolean KWClassDomain::WriteFileFromClass(const KWClass* mainClass, const ALStri
 	int nClass;
 	KWClass* kwcElement;
 	ALString sTmp;
+	INHIB_IO_FAILURE_INIT
+
+	// On inhibe l'effet de SetAlwaysErrorOnOpen, SetAlwaysErrorOnRead et SetAlwaysErrorOnFlush pour ne pas avoir d'erreur
+	// lors de l'ouverture et de l'ecriture des dictionnaires
+	INHIB_IO_FAILURE_BEGIN
 
 	require(mainClass != NULL);
 	require(mainClass->GetDomain() == this);
@@ -145,6 +150,9 @@ boolean KWClassDomain::WriteFileFromClass(const KWClass* mainClass, const ALStri
 		if (not bOk)
 			PLRemoteFileService::RemoveFile(sFileName);
 	}
+
+	// On repositionne l'ouverture, la lecture et l'ecriture en erreur pour les tests
+	INHIB_IO_FAILURE_END
 
 	// Affichage de stats memoire
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " WriteFileFromClass End");
