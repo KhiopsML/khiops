@@ -1685,9 +1685,12 @@ boolean UIObject::CheckCommandLineOptions(const ObjectArray& oaOptions)
 
 	// Acces aux fichiers passes en parametre
 	fsInputFile = NULL;
+	fsInputJsonFile = NULL;
 	fsProgressionFile = NULL;
 	fsOutputFile = NULL;
+	fsOutputNoReplayFile = NULL;
 	fsErrorFile = NULL;
+
 	for (i = 0; i < oaOptions.GetSize(); i++)
 	{
 		option = cast(CommandLineOption*, oaOptions.GetAt(i));
