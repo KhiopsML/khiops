@@ -52,7 +52,7 @@ jobs:
       PRESET_NAME: ${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Build all binaries
         uses: ./.github/actions/build-khiops
         with:
@@ -103,7 +103,7 @@ jobs:
       PRESET_NAME: ${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Restore cached binaries (windows)
         if: runner.os == 'Windows'
         id: restore-binaries-windows
@@ -188,7 +188,7 @@ jobs:
       actions: write
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           sparse-checkout: .git
       - name: Cleanup cache
