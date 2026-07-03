@@ -1750,6 +1750,31 @@ boolean UIObject::CheckCommandLineOptions(const ObjectArray& oaOptions)
 		Global::AddError("Command line parameters", "",
 				 "wrong input command file " + fsInputFile->GetFilePathName());
 	}
+#elif defined(_WIN32)
+	if (fsInputFile != NULL and fsInputFile->GetFilePathName() == "CON")
+	{
+		bOk = false;
+		Global::AddError("Command line parameters", "",
+				 "wrong input command file " + fsInputFile->GetFilePathName());
+	}
+#endif
+
+	// Test que le fichier d'entree json n'est pas une sortie
+#ifdef __linux_or_apple__
+	if (fsInputJsonFile != NULL and (fsInputJsonFile->GetFilePathName() == "/dev/stdout" or
+					 fsInputJsonFile->GetFilePathName() == "/dev/stderr"))
+	{
+		bOk = false;
+		Global::AddError("Command line parameters", "",
+				 "wrong input command file " + fsInputFile->GetFilePathName());
+	}
+#elif defined(_WIN32)
+	if (fsInputJsonFile != NULL and fsInputJsonFile->GetFilePathName() == "CON")
+	{
+		bOk = false;
+		Global::AddError("Command line parameters", "",
+				 "wrong input command file " + fsInputJsonFile->GetFilePathName());
+	}
 #endif
 
 	// Test de conflit entre les noms de fichiers : les fichiers doivent tous etre differents
