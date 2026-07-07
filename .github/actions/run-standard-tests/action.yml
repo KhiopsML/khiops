@@ -156,3 +156,6 @@ runs:
         retention-days: 7
         path: |-
           results/
+    - name: Clean results directory
+      shell: bash
+      run: rm -fr results/
