@@ -204,8 +204,8 @@ jobs:
         if: runner.os == 'Windows' || runner.os == 'macOS'
         shell: bash
         run: echo "PYTHON=python" >> "$GITHUB_ENV"
-      - name: Install built wheel in a custom directory
-        id: install_khiops_core
+      - name: Install built wheels in a custom directory
+        id: install_khiops_core_and_kni
         run: |
           KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
           $PYTHON -m venv "$KHIOPS_INSTALL_DIR"
@@ -216,15 +216,16 @@ jobs:
             source "$KHIOPS_INSTALL_DIR/bin/activate"
             echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_OUTPUT"
           fi
-          $PYTHON -m pip install --find-links=wheelhouse khiops-core
+          $PYTHON -m pip install --find-links=wheelhouse khiops-core khiops-kni khiops-knitransfer
           $PYTHON -m pip show -f khiops-core
+          $PYTHON -m pip show -f khiops-kni
       - name: Run standard tests on the Core package
         uses: ./.github/actions/run-standard-tests
         with:
           warning_as_error: true
           running-mode: parallel
           config: release
-          binary-path: ${{ steps.install_khiops_core.outputs.BIN_DIR }}
+          binary-path: ${{ steps.install_khiops_core_and_kni.outputs.BIN_DIR }}
           testing-context-description: pip-test-${{ matrix.setup.os }}-${{ matrix.setup.image
             }}
       - name: Run standard tests on the KNI package
@@ -235,7 +236,7 @@ jobs:
           test-khiops: false
           test-coclustering: false
           config: release
-          binary-path: ${{ steps.install_khiops_core.outputs.BIN_DIR }}
+          binary-path: ${{ steps.install_khiops_core_and_kni.outputs.BIN_DIR }}
           testing-context-description: pip-test-${{ matrix.setup.os }}-${{ matrix.setup.image
             }}
   test-kni:
