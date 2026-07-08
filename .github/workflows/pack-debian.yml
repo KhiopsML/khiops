@@ -161,6 +161,7 @@ jobs:
         with:
           warning_as_error: true
           running-mode: parallel
+          test-kni: false
           config: release
           binary-path: ${{ env.BIN_DIR }}
           testing-context-description: ${{ env.ID }}-${{ env.VERSION_CODENAME }}-${{
