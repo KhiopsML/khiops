@@ -91,7 +91,7 @@ runs:
           if [[ "${{ inputs.test-coclustering }}" == "true" ]] ; then
             $PYTHON $TEST_PY test/LearningTest/TestCoclustering/Standard "${{ inputs.binary-path }}" ${PARALLEL_ARG}
           fi
-          if [[ "${{ inputs.test-kni }}" == "true" && "${{ inputs.running-mode }}" != "parallel" ]] ; then
+          if [[ "${{ inputs.test-kni }}" == "true" ]] ; then
             $PYTHON $TEST_PY test/LearningTest/TestKNI/Standard "${{ inputs.binary-path }}"
           fi
         else
@@ -101,7 +101,7 @@ runs:
           if [[ "${{ inputs.test-coclustering }}" == "true" ]] ; then
             $PYTHON $TEST_PY test/LearningTest/TestCoclustering/Standard/Iris "${{ inputs.binary-path }}" ${PARALLEL_ARG}
           fi
-          if [[ "${{ inputs.test-kni }}" == "true" && "${{ inputs.running-mode }}" != "parallel" ]] ; then
+          if [[ "${{ inputs.test-kni }}" == "true" ]] ; then
             $PYTHON $TEST_PY test/LearningTest/TestKNI/Standard/Iris "${{ inputs.binary-path }}"
           fi
         fi
@@ -117,7 +117,7 @@ runs:
           if [[ "${{ inputs.test-coclustering }}" == "true" ]] ; then
             $PYTHON $APPLY_PY test/LearningTest/TestCoclustering/Standard errors | tee -a results/errors.txt
           fi
-          if [[ "${{ inputs.test-kni }}" == "true" && "${{ inputs.running-mode }}" != "parallel" ]] ; then
+          if [[ "${{ inputs.test-kni }}" == "true" ]] ; then
             $PYTHON $APPLY_PY test/LearningTest/TestKNI/Standard errors | tee -a results/errors.txt
           fi
         else
