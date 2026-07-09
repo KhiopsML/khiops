@@ -64,9 +64,8 @@ version.result = "{major}.{minor}.{patch}{prereltype}{prereln}"
 version.remove = "(None){,2}$"  # prereltype and prereln groups are None if not found
 
 [tool.cibuildwheel]
-# Restrict builds to CPython 3.9 only: KNITransfer is a pure C++ binary with stable ABI, so wheels for other Python 3.x versions would be identical.
-# This avoids redundant builds and simplifies distribution; update if future ABI changes or Python-specific bindings are introduced.
-build = "cp39*"
+# Build once per platform for Python 3.10; wheel is compatible with all Python 3 versions
+build = "cp310-*"
 # KNITransfer does not compile when using musl as the C standard library, and 32-bit is not supported
 skip = ["*musllinux*", "*win32*"]
 

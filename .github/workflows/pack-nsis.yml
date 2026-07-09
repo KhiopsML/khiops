@@ -259,6 +259,7 @@ jobs:
         with:
           warning_as_error: true
           running-mode: parallel
+          test-kni: false
           config: release
           binary-path: ${{ env.BIN_DIR }}
   test-kni:

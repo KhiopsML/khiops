@@ -69,8 +69,8 @@ version.result = "{major}.{minor}.{patch}{prereltype}{prereln}"
 version.remove = "(None){,2}$"  # prereltype and prereln groups are None if not found
 
 [tool.cibuildwheel]
-# Build wheel with CPython 3.9 only since other versions would give similar wheels
-build = "cp39*"
+# Build once per platform for Python 3.10; wheel is compatible with all Python 3 versions
+build = "cp310-*"
 # Khiops does not compile when using musl as the C standard library, and impi-devel is not available for 32-bit Windows
 skip = ["*musllinux*", "*win32"]
 
