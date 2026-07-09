@@ -1,5 +1,7 @@
 Train variables coclustering model
 Database ./Adult1000.txt : Read records: 1000
-No informative coclustering found in data
-Coclustering analysis time: 0:00:00.03
+  0:00:00	Write intermediate report Coclustering(1).khcj	Level: 0	Size: 1*1
+warning : Coclustering : No informative coclustering found in data
+Write coclustering report ./results/Coclustering.khcj
+Coclustering analysis time: 0:00:00.01
 

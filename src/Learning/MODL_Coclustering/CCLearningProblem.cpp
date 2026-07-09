@@ -149,6 +149,7 @@ void CCLearningProblem::BuildCoclustering()
 	CCDeploymentSpec ccVarPartDeploymentSpec;
 	ALString sCoclusteringDictionaryFileName;
 	ALString sMessage;
+	CCHierarchicalDataGrid nullDataGrid;
 
 	require(CheckClass());
 	require(CheckDatabaseName());
@@ -336,77 +337,94 @@ void CCLearningProblem::BuildCoclustering()
 	sReportFileName = BuildOutputFilePathName(TaskBuildCoclustering);
 	coclusteringBuilder.SetReportFileName(sReportFileName);
 
+	// Debut de la gestion des erreurs dediees a l'apprentissage
+	KWLearningErrorManager::BeginErrorCollection();
+	KWLearningErrorManager::AddTask("Coclustering");
+
 	// Calcul du coclustering
 	if (not TaskProgression::IsInterruptionRequested())
 		coclusteringBuilder.ComputeCoclustering();
 
 	// Message si pas de coclustering informatif trouve en depit du temp imparti
 	if (coclusteringBuilder.IsCoclusteringComputed() and not coclusteringBuilder.IsCoclusteringInformative())
-		AddSimpleMessage("No informative coclustering found in data");
+		AddWarning("No informative coclustering found in data");
 
 	// Ecriture du rapport de coclustering
-	if (coclusteringBuilder.IsCoclusteringInformative() and sReportFileName != "")
+	if (sReportFileName != "")
 	{
 		AddSimpleMessage("Write coclustering report " + sReportFileName);
-		bWriteOk =
-		    coclusteringReport.WriteReport(sReportFileName, coclusteringBuilder.GetCoclusteringDataGrid());
+
+		// Cas ou le coclustering a bien ete calcule
+		if (coclusteringBuilder.IsCoclusteringComputed())
+		{
+			bWriteOk = coclusteringReport.WriteReport(sReportFileName,
+								  coclusteringBuilder.GetCoclusteringDataGrid());
+
+			// Warning si moins d'attributs dans le coclustering que d'attributs ou de dimensions specifiees
+			// Cas du coclustering de variables
+			if (not analysisSpec->GetVarPartCoclustering())
+			{
+				if (coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber() <
+				    coclusteringBuilder.GetAttributeNumber())
+					AddWarning(
+					    sTmp + "The built coclustering only exploits " +
+					    IntToString(
+						coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber()) +
+					    " out of the " + IntToString(coclusteringBuilder.GetAttributeNumber()) +
+					    " input variables");
+			}
+			// Sinon cas du coclustering instances * variables
+			else
+			{
+				if (coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber() <
+				    coclusteringBuilder.GetVarPartCoclusteringAttributeNumber())
+					AddWarning(
+					    sTmp + "The built instances x variables coclustering only exploits " +
+					    IntToString(
+						coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber()) +
+					    " out of the " +
+					    IntToString(coclusteringBuilder.GetVarPartCoclusteringAttributeNumber()) +
+					    " dimensions");
+
+				if (GetVarPartDeploymentMode())
+				{
+					// Initialisation du varPartDeploymentSpec
+					ccVarPartDeploymentSpec.SetDeployedAttributeName(
+					    coclusteringBuilder.GetIdentifierAttributeName());
+					ccVarPartDeploymentSpec.SetInputClassName(GetClassName());
+
+					// Creation du dictionnaire de deploiement
+					bDeploymentOk = ccVarPartDeploymentSpec.PrepareVarPartCoclusteringDeployment(
+					    coclusteringBuilder.GetCoclusteringDataGrid(), deploymentDomain);
+
+					// Ecriture du fichier de dictionnaire de deploiement
+					if (bDeploymentOk)
+					{
+						sCoclusteringDictionaryFileName =
+						    GetResultFilePathBuilder(TaskBuildCoclustering)
+							->BuildOtherResultFilePathName("model.kdic");
+						AddSimpleMessage("Write deployment dictionary file " +
+								 sCoclusteringDictionaryFileName);
+						deploymentDomain->WriteFile(sCoclusteringDictionaryFileName);
+					}
+
+					// Nettoyage
+					if (bDeploymentOk)
+						delete deploymentDomain;
+				}
+			}
+		}
+		// Sinon : on ecrit un rapport avec les eventuels messages d'erreurs
+		else
+			bWriteOk = coclusteringReport.WriteReport(sReportFileName, &nullDataGrid);
 
 		// Destruction de la derniere sauvegarde de fichier temporaire
 		if (bWriteOk)
 			coclusteringBuilder.RemoveLastSavedReportFile();
-
-		// Warning si moins d'attributs dans le coclustering que d'attributs ou de dimensions specifiees
-		// Cas du coclustering de variables
-		if (not analysisSpec->GetVarPartCoclustering())
-		{
-			if (coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber() <
-			    coclusteringBuilder.GetAttributeNumber())
-				AddWarning(
-				    sTmp + "The built coclustering only exploits " +
-				    IntToString(coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber()) +
-				    " out of the " + IntToString(coclusteringBuilder.GetAttributeNumber()) +
-				    " input variables");
-		}
-		// Sinon cas du coclustering instances * variables
-		else
-		{
-			if (coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber() <
-			    coclusteringBuilder.GetVarPartCoclusteringAttributeNumber())
-				AddWarning(
-				    sTmp + "The built instances x variables coclustering only exploits " +
-				    IntToString(coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber()) +
-				    " out of the " +
-				    IntToString(coclusteringBuilder.GetVarPartCoclusteringAttributeNumber()) +
-				    " dimensions");
-
-			if (GetVarPartDeploymentMode())
-			{
-				// Initialisation du varPartDeploymentSpec
-				ccVarPartDeploymentSpec.SetDeployedAttributeName(
-				    coclusteringBuilder.GetIdentifierAttributeName());
-				ccVarPartDeploymentSpec.SetInputClassName(GetClassName());
-
-				// Creation du dictionnaire de deploiement
-				bDeploymentOk = ccVarPartDeploymentSpec.PrepareVarPartCoclusteringDeployment(
-				    coclusteringBuilder.GetCoclusteringDataGrid(), deploymentDomain);
-
-				// Ecriture du fichier de dictionnaire de deploiement
-				if (bDeploymentOk)
-				{
-					sCoclusteringDictionaryFileName =
-					    GetResultFilePathBuilder(TaskBuildCoclustering)
-						->BuildOtherResultFilePathName("model.kdic");
-					AddSimpleMessage("Write deployment dictionary file " +
-							 sCoclusteringDictionaryFileName);
-					deploymentDomain->WriteFile(sCoclusteringDictionaryFileName);
-				}
-
-				// Nettoyage
-				if (bDeploymentOk)
-					delete deploymentDomain;
-			}
-		}
 	}
+
+	// Fin de la gestion des erreurs dediees a l'apprentissage
+	KWLearningErrorManager::EndErrorCollection();
 
 	// Cas d'un domaine construit
 	if (constructedDomain != NULL)
