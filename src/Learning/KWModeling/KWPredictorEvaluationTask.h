@@ -34,10 +34,6 @@ public:
 	virtual boolean Evaluate(KWPredictor* predictor, KWDatabase* database,
 				 KWPredictorEvaluation* predictorEvaluation);
 
-	// Libelles
-	const ALString GetClassLabel() const override;
-	const ALString GetObjectLabel() const override;
-
 	//////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
