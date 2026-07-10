@@ -995,13 +995,16 @@ def check_results(test_dir, forced_context=None):
             if err_file_lines is None:
                 roc_curve_recovery = False
             else:
-                searched_warning = (
-                    "warning : Evaluation Selective Naive Bayes : "
-                    + "Not enough memory to compute the exact AUC:"
-                    + " estimation made on a sub-sample of size"
-                )
+                searched_warning_pattern = [
+                    "warning : Classifier evaluation ",
+                    " : Not enough memory to compute the exact AUC:"
+                    + " estimation made on a sub-sample of size",
+                ]
                 roc_curve_recovery = (
-                    utils.find_pattern_in_lines(err_file_lines, [searched_warning]) >= 0
+                    utils.find_pattern_in_lines(
+                        err_file_lines, searched_warning_pattern
+                    )
+                    >= 0
                 )
 
         # Comptage des erreurs pour les fichier d'evaluation au format xls
@@ -1438,8 +1441,9 @@ RESILIENCE_USER_MESSAGE_PATTERNS = [
         " (more than ",
     ],
     [
-        "warning : Evaluation Selective Naive Bayes : Not enough memory to compute the exact AUC: "
-        + "estimation made on a sub-sample of size "
+        "warning : Classifier evaluation ",
+        " : Not enough memory to compute the exact AUC: "
+        + "estimation made on a sub-sample of size ",
     ],
     [
         "warning : Database ",
@@ -1731,7 +1735,9 @@ def check_file_lines(
                 line_test = line_test[: line_test.find(record_stats_pattern[-1])]
 
         # Cas special du fichier d'erreur:
-        # on saute les lignes qui font du reporting de temps de calcul ("interrupted ")
+        # on saute les lignes qui contiennent "interrupted ", ça evite de traiter tous les messages d'erreur ou de warning qui sont relatifs a une interruption.
+        # Ces messages contiennent souvent une durée de calcul qui varie d'un run à l'autre.
+        # Ils peuvent sinon contenir un nombre d'instances traitees. Ce nombre n'est pas toujours stable d'un run a l'autre, il est donc preferable ici aussi de sauter ces lignes.
         if (
             is_error_file
             and line_ref.lower().find(" interrupted ") != -1
