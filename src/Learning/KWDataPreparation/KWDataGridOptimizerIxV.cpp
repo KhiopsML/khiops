@@ -299,7 +299,7 @@ double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initial
 						"pour la derniere granularite "
 					     << "\n";
 
-				if (optimizedDataGrid->GetInformativeAttributeNumber() > 0)
+				if (optimizedDataGrid->GetInformativeAttributeNumber() > 1)
 				{
 					// Construction d'une grille initiale compatible avec les parties
 					// de variables fusionnees au niveau des attributs internes
@@ -319,7 +319,7 @@ double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initial
 						     << "\n";
 
 					HandleOptimizationStep(optimizedDataGrid,
-							       &partitionedReferencePostMergedDataGrid, true);
+							       &partitionedReferencePostMergedDataGrid);
 					if (bTrace or bTracePartitionLevel)
 					{
 						cout << "CCOptimize :Derniere grille apres "
@@ -335,7 +335,7 @@ double KWDataGridOptimizerIxV::OptimizeVarPartDataGrid(const KWDataGrid* initial
 				}
 				else
 				{
-					HandleOptimizationStep(optimizedDataGrid, &partitionedDataGrid, true);
+					HandleOptimizationStep(optimizedDataGrid, &partitionedDataGrid);
 				}
 			}
 

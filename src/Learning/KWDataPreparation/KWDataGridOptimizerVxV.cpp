@@ -224,7 +224,7 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 				// cas d'un coclustering
 				if (bIsLastGranularity)
 				{
-					HandleOptimizationStep(optimizedDataGrid, &granularizedDataGrid, true);
+					HandleOptimizationStep(optimizedDataGrid, &granularizedDataGrid);
 					if (bTrace)
 						cout << "- save optimized datagrid for last granularity\t" << dBestCost
 						     << endl;
@@ -432,7 +432,7 @@ double KWDataGridOptimizerVxV::SlightOptimizeGranularizedDataGrid(const KWDataGr
 		SaveDataGrid(&neighbourDataGrid, optimizedDataGrid);
 
 		// Gestion de la meilleure solution
-		HandleOptimizationStep(optimizedDataGrid, initialDataGrid, false);
+		HandleOptimizationStep(optimizedDataGrid, initialDataGrid);
 	}
 
 	// Affichage de la grille finale avec ses couts

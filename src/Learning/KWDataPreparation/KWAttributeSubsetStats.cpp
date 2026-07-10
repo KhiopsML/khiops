@@ -613,8 +613,7 @@ KWDataGrid* KWAttributeSubsetStats::CreateDataGrid(const KWTupleTable* tupleTabl
 }
 
 void KWAttributeSubsetStats::HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
-						    const KWDataGrid* initialGranularizedDataGrid,
-						    boolean bIsLastSaving) const
+						    const KWDataGrid* initialGranularizedDataGrid) const
 {
 }
 

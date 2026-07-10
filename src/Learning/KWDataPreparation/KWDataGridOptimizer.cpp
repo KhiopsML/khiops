@@ -83,6 +83,9 @@ double KWDataGridOptimizer::OptimizeDataGrid(const KWDataGrid* initialDataGrid, 
 	dataGridManager.ExportNullDataGrid(initialDataGrid, optimizedNullDataGrid);
 	assert(GetOptimizedNullDataGridCost() == GetDataGridCosts()->ComputeDataGridTotalCost(optimizedNullDataGrid));
 
+	// On exporte une fois pour toute le modele null
+	HandleOptimizationStep(GetOptimizedNullDataGrid(), GetOptimizedNullDataGrid());
+
 	// Controle de la graine aleatoire pour avoir des resultats reproductibles
 	SetRandomSeed(1);
 
@@ -167,14 +170,13 @@ double KWDataGridOptimizer::SimplifyDataGrid(KWDataGrid* optimizedDataGrid) cons
 }
 
 void KWDataGridOptimizer::HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
-						 const KWDataGrid* initialGranularizedDataGrid,
-						 boolean bIsLastSaving) const
+						 const KWDataGrid* initialGranularizedDataGrid) const
 {
 	// Integration de la granularite
 	if (attributeSubsetStatsOptimizationHandler != NULL)
 	{
-		attributeSubsetStatsOptimizationHandler->HandleOptimizationStep(
-		    optimizedDataGrid, initialGranularizedDataGrid, bIsLastSaving);
+		attributeSubsetStatsOptimizationHandler->HandleOptimizationStep(optimizedDataGrid,
+										initialGranularizedDataGrid);
 	}
 }
 
@@ -346,7 +348,7 @@ double KWDataGridOptimizer::VNSOptimizeDataGrid(const KWDataGrid* initialDataGri
 			SaveDataGrid(&neighbourDataGrid, optimizedDataGrid);
 
 			// Gestion de la meilleure solution
-			HandleOptimizationStep(optimizedDataGrid, initialDataGrid, false);
+			HandleOptimizationStep(optimizedDataGrid, initialDataGrid);
 		}
 		// Sinon: on passe a un niveau de voisinnage plus fin
 		else
