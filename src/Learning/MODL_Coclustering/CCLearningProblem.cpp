@@ -345,49 +345,55 @@ void CCLearningProblem::BuildCoclustering()
 	if (not TaskProgression::IsInterruptionRequested())
 		coclusteringBuilder.ComputeCoclustering();
 
-	// Message si pas de coclustering informatif trouve en depit du temp imparti
-	if (coclusteringBuilder.IsCoclusteringComputed() and not coclusteringBuilder.IsCoclusteringInformative())
-		AddWarning("No informative coclustering found in data");
-
 	// Ecriture du rapport de coclustering
 	if (sReportFileName != "")
 	{
-		AddSimpleMessage("Write coclustering report " + sReportFileName);
-
-		// Cas ou le coclustering a bien ete calcule
+		// Warnings potentiels sur l'informativite du coclustering s'il a ete calcule
 		if (coclusteringBuilder.IsCoclusteringComputed())
 		{
-			bWriteOk = coclusteringReport.WriteReport(sReportFileName,
-								  coclusteringBuilder.GetCoclusteringDataGrid());
-
-			// Warning si moins d'attributs dans le coclustering que d'attributs ou de dimensions specifiees
+			// Warning si pas de coclustering informatif trouve en depit du temp imparti
+			if (not coclusteringBuilder.IsCoclusteringInformative())
+				AddWarning("No informative coclustering found in data");
+			// Warning si moins d'attributs dans le coclustering que d'attributs informatifs ou de dimensions specifiees
 			// Cas du coclustering de variables
-			if (not analysisSpec->GetVarPartCoclustering())
+			else if (not analysisSpec->GetVarPartCoclustering())
 			{
-				if (coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber() <
+				if (coclusteringBuilder.GetCoclusteringDataGrid()->GetInformativeAttributeNumber() <
 				    coclusteringBuilder.GetAttributeNumber())
 					AddWarning(
-					    sTmp + "The built coclustering only exploits " +
-					    IntToString(
-						coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber()) +
+					    sTmp + "The built variables x variables coclustering only exploits " +
+					    IntToString(coclusteringBuilder.GetCoclusteringDataGrid()
+							    ->GetInformativeAttributeNumber()) +
 					    " out of the " + IntToString(coclusteringBuilder.GetAttributeNumber()) +
 					    " input variables");
 			}
 			// Sinon cas du coclustering instances * variables
 			else
 			{
-				if (coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber() <
+				if (coclusteringBuilder.GetCoclusteringDataGrid()->GetInformativeAttributeNumber() <
 				    coclusteringBuilder.GetVarPartCoclusteringAttributeNumber())
 					AddWarning(
 					    sTmp + "The built instances x variables coclustering only exploits " +
-					    IntToString(
-						coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber()) +
+					    IntToString(coclusteringBuilder.GetCoclusteringDataGrid()
+							    ->GetInformativeAttributeNumber()) +
 					    " out of the " +
 					    IntToString(coclusteringBuilder.GetVarPartCoclusteringAttributeNumber()) +
 					    " dimensions");
 			}
 		}
-		// Sinon : on ecrit un rapport avec les eventuels messages d'erreurs
+
+		// Ecriture du rapport apres les warnings, pour qu'ils soient dans le rapport dans la section "logs"
+		AddSimpleMessage("Write coclustering report " + sReportFileName);
+
+		// Ecriture du rapport s'il a ete calcule
+		// Note: les warnings lies a l'encoding du rapport lui-meme sont emises en fin d'ecriture du rapport:
+		// - elles de ne sont donc pas integrees dans le rapport lui-meme, car elles n'etaient pas presente
+		//   au debut de l'ecriture, au moment du traietemnt de la section "logs"
+		// - ce serait de toute facon redondant avec la section "khiops_encoding" a la fin du rapport
+		if (coclusteringBuilder.IsCoclusteringComputed())
+			bWriteOk = coclusteringReport.WriteReport(sReportFileName,
+								  coclusteringBuilder.GetCoclusteringDataGrid());
+		// Sinon, ecriture d'un rapport vide pour avoir a minima les warnings potentiels dans la section "logs"
 		else
 			bWriteOk = coclusteringReport.WriteReport(sReportFileName, &nullDataGrid);
 

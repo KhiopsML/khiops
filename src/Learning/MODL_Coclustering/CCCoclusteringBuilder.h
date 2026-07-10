@@ -132,8 +132,8 @@ public:
 	// Transmission de la grille initiale granularisee
 	// bIsLastSaving : si true, la sauvegarde est effectue meme s'il n'y a pas amelioration
 	// Permet de recalculer la hierarchie du coclustering apres l'atteinte de la granularite maximale
-	void HandleOptimizationStep(const KWDataGrid* optimizedDataGrid, const KWDataGrid* initialGranularizedDataGrid,
-				    boolean bIsLastSaving) const override;
+	void HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
+				    const KWDataGrid* initialGranularizedDataGrid) const override;
 
 	// Libelles utilisateur: nom du module de l'application (GetLearningModuleName())
 	const ALString GetClassLabel() const override;
@@ -308,7 +308,7 @@ protected:
 	// Grille de de donnees initiale au niveau de grain le plus fin
 	KWDataGrid* initialDataGrid;
 
-	// Grille de coclustering
+	// Grille de coclustering resultat
 	mutable CCHierarchicalDataGrid* coclusteringDataGrid;
 
 	// Gestion des sauvegardes en mode anytime

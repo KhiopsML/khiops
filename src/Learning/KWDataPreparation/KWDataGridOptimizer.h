@@ -68,7 +68,7 @@ public:
 	// Permet par exemple de passer en mode anytime, en memorisant chaque solution intermediaire
 	// Par defaut: redirige vers la methode HandleOptimizationStep attributeSubsetStats s'il est parametre
 	virtual void HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
-					    const KWDataGrid* initialGranularizedDataGrid, boolean bIsLastSaving) const;
+					    const KWDataGrid* initialGranularizedDataGrid) const;
 
 	// Parametrage du contexte de gestion de la partie anytime de l'optimisation
 	// Permet de rediriger la methode HandleOptimizationStep vers celle du attributeSubsetStats

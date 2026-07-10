@@ -579,7 +579,7 @@ void CCCoclusteringBuilder::InitializeDataGridOptimizer(const KWDataGrid* inputI
 
 	// Initialisation des couts par defaut
 	coclusteringDataGridCosts->InitializeDefaultCosts(inputInitialDataGrid);
-	dAnyTimeBestCost = coclusteringDataGridCosts->GetTotalDefaultCost();
+	dAnyTimeBestCost = DBL_MAX;
 }
 
 boolean CCCoclusteringBuilder::IsCoclusteringComputed() const
@@ -1140,8 +1140,7 @@ void CCCoclusteringBuilder::RemoveLastSavedReportFile() const
 }
 
 void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
-						   const KWDataGrid* initialGranularizedDataGrid,
-						   boolean bIsLastSaving) const
+						   const KWDataGrid* initialGranularizedDataGrid) const
 {
 	boolean bKeepIntermediateReports = false;
 	boolean bWriteOk;
@@ -1169,13 +1168,11 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 	// Cout de la nouvelle solution
 	dCost = coclusteringDataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
 
-	// Test si amelioration ou si la mise a jour est commandee par l'atteinte de la granularite maximale
+	// Test si amelioration
+	// Le model nul est sauvegarde une fois si necessaire
 	// Les grilles avec un seul attribut informatif ne sont pas sauvegardees
-	// Cela signifie qu'une grille legerement plus chere avec deux attributs informatifs rencontree au cours
-	// de l'optimisation mais non sauvegardee car non optimale du point de vue du cout peut exister mais
-	// n'aura pas ete sauvegardee (cf resultats sur AdultSmall1var cout de la grille initiale granularisee)
-	if ((optimizedDataGrid->GetInformativeAttributeNumber() >= 2 and (dCost < dAnyTimeBestCost - dEpsilon)) or
-	    (bIsLastSaving and coclusteringDataGrid == NULL))
+	if (dCost < dAnyTimeBestCost - dEpsilon and (optimizedDataGrid->GetInformativeAttributeNumber() == 0 or
+						     optimizedDataGrid->GetInformativeAttributeNumber() >= 2))
 	{
 		// Ajout de trace lie au profiling
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("Save best solution");
@@ -1280,7 +1277,8 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 
 		// Sauvegarde dans un fichier temporaire
 		// On supprime le mode verbeux pour les sauvegardes intermediaires
-		JSONFile::SetVerboseMode(bIsLastSaving);
+		assert(JSONFile::GetVerboseMode() == true);
+		JSONFile::SetVerboseMode(false);
 		bWriteOk = coclusteringReport.WriteReport(sReportFileName, coclusteringDataGrid);
 		JSONFile::SetVerboseMode(true);
 
