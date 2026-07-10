@@ -217,6 +217,29 @@ ctest --preset macos-clang-debug -j<N>   # Parallel execution
 ./build/<preset>/bin/learning_test
 ```
 
+### Non-regression Tests (kht_test)
+
+The LearningTest suite lives in a separate repository, cloned locally alongside this one (e.g. `../LearningTest/`). Tests are run with `kht_test` from `test/LearningTestTool/py/`:
+
+```bash
+# Syntax: kht_test <source_dir> <binaries> [-p N] [-f family]
+#   source_dir : any level of the LearningTest tree (home/tool/suite/test dir)
+#   binaries   : r (release), d (debug), or check (compare only, no re-run)
+#   -p N       : number of MPI processes (default: 1)
+#   -f family  : basic | full (default) | complete
+
+# Run a specific crash test with 4 processes, release binary
+python test/LearningTestTool/py/kht_test.py ../LearningTest/TestKhiops/CrashTests/trainclassifier_KWDatabaseSlicerTask r -p 4
+
+# Re-compare results only (after manual inspection or binary rebuild)
+python test/LearningTestTool/py/kht_test.py ../LearningTest/TestKhiops/CrashTests check -f full -p 4
+
+# Run all standard Khiops tests
+python test/LearningTestTool/py/kht_test.py ../LearningTest/TestKhiops r -p 4
+```
+
+The `comparisonResults.log` in each test dir records the comparison outcome. Use `kht_apply errors` to list all failing tests across a suite.
+
 ## Debugging and Testing
 
 Detailed debugging/testing guidelines (memory allocator, assertions, error management, trace patterns, unit/integration tests) are in [`.github/instructions/cpp-changes.instructions.md`](.github/instructions/cpp-changes.instructions.md) and apply when editing C++ files.
