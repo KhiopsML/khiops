@@ -8,6 +8,7 @@ import platform
 import shlex
 import shutil
 import subprocess
+import tempfile
 import time
 import argparse
 
@@ -240,6 +241,43 @@ def is_test_failed(test_dir):
     return error_number > 0
 
 
+def run_khiops_no_replay(khiops_params, step_label):
+    """Execute a khiops -O (no-replay) command for scenario transformation.
+    Creates a temporary output scenario file and a temporary error log file
+    internally. Prints a warning if stdout, stderr or the error log contain
+    the word 'error'. The error log is removed after being read.
+    Returns the path of the output scenario file (caller is responsible for
+    removing it after use).
+    """
+    out_fd, out_path = tempfile.mkstemp(suffix=".prm", prefix="kht_no_replay_out_")
+    os.close(out_fd)
+    err_fd, err_file_path = tempfile.mkstemp(suffix=".txt", prefix="kht_no_replay_err_")
+    os.close(err_fd)
+    result = subprocess.run(
+        khiops_params + ["-O", out_path, "-e", err_file_path],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
+    )
+    if result.stdout.strip():
+        print("Warning: unexpected output during " + step_label + ":\n" + result.stdout)
+    if result.stderr.strip():
+        print(
+            "Warning: unexpected error output during "
+            + step_label
+            + ":\n"
+            + result.stderr
+        )
+    if os.path.isfile(err_file_path):
+        with open(err_file_path, "r", errors="ignore") as err_f:
+            err_content = err_f.read()
+        if "error" in err_content.lower():
+            print("Warning: errors in " + step_label + " error log:\n" + err_content)
+        utils.remove_file(err_file_path)
+    return out_path
+
+
 def evaluate_tool_on_test_dir(
     tool_exe_path,
     suite_dir,
@@ -252,6 +290,7 @@ def evaluate_tool_on_test_dir(
     output_scenario=False,
     nop_output_scenario=False,
     user_interface=False,
+    cloud_directory=None,
     only_failed_tests=False,
 ):
     """Evaluation d'un outil sur un repertoire de test terminal et comparaison des resultats
@@ -281,6 +320,21 @@ def evaluate_tool_on_test_dir(
 
     # Nom de l'outil
     tool_name = kht.TOOL_NAMES_PER_DIR_NAME.get(tool_dir_name)
+
+    # Calcul du repertoire cloud le cas echeant
+    cloud_test_dir = None
+    cloud_results_dir = None
+    if cloud_directory is not None:
+        cloud_test_dir = (
+            cloud_directory
+            + "/"
+            + tool_dir_name
+            + "/"
+            + suite_dir_name
+            + "/"
+            + test_dir_name
+        )
+        cloud_results_dir = cloud_test_dir + "/" + kht.RESULTS
 
     # Recherche du chemin de l'executable et positionnement du path pour l'exe et la dll
     tool_exe_dir = os.path.dirname(tool_exe_path)
@@ -382,6 +436,44 @@ def evaluate_tool_on_test_dir(
             #  fault et si il n'existe pas on ne pourra pas ecrire dedans...)
             os.mkdir(results_dir)
 
+        # En mode cloud, creation des fichiers de scenario avec les chemins cloud
+        # Les fichiers temporaires sont places dans un sous-repertoire tmp/ et supprimes apres execution
+        cloud_test_prm = None
+        if cloud_directory is not None:
+            # Paires de remplacement appliquees dans l'ordre par khiops via le flag -r :
+            # '../../../' en premier (remplace tous les chemins relatifs vers la racine LearningTest),
+            # './' en dernier (remplace les chemins vers le repertoire courant du test).
+            # Cet ordre est necessaire car '../../../' contient './' comme sous-chaine.
+            cloud_replace_pairs = [
+                "../../../:" + cloud_directory + "/",
+                "./" + ":" + cloud_test_dir + "/",
+            ]
+            # Etape 1 (si test.json existe): materialisation du scenario avec les parametres json
+            # Cette etape est necessaire car test.json peut contenir des chemins de donnees a remplacer
+            scenario_to_replace = kht.TEST_PRM
+            if os.path.isfile(kht.TEST_JSON):
+                scenario_to_replace = run_khiops_no_replay(
+                    [
+                        tool_exe_path,
+                        "-b",
+                        "-i",
+                        kht.TEST_PRM,
+                        "-j",
+                        kht.TEST_JSON,
+                    ],
+                    "JSON scenario expansion",
+                )
+            # Etape 2: remplacement des chemins locaux par les chemins cloud
+            prm_step2 = [tool_exe_path, "-b", "-i", scenario_to_replace]
+            for pair in cloud_replace_pairs:
+                prm_step2.extend(["-r", pair])
+            cloud_test_prm = run_khiops_no_replay(prm_step2, "cloud path replacement")
+            # Suppression du scenario intermediaire issu de l'expansion json
+            if scenario_to_replace != kht.TEST_PRM and os.path.isfile(
+                scenario_to_replace
+            ):
+                utils.remove_file(scenario_to_replace)
+
         # khiops en mode expert via une variable d'environnement
         os.environ[kht.KHIOPS_EXPERT_MODE] = "true"
 
@@ -458,21 +550,37 @@ def evaluate_tool_on_test_dir(
         if not user_interface:
             khiops_params.append("-b")
         khiops_params.append("-i")
-        khiops_params.append(kht.TEST_PRM)
-        if os.path.isfile(kht.TEST_JSON):
+        if cloud_test_prm is not None:
+            khiops_params.append(cloud_test_prm)
+        else:
+            khiops_params.append(kht.TEST_PRM)
+        if cloud_test_prm is None and os.path.isfile(kht.TEST_JSON):
+            # En mode cloud, test.json est deja materialise dans cloud_test_prm
             khiops_params.append("-j")
             khiops_params.append(kht.TEST_JSON)
         khiops_params.append("-e")
-        khiops_params.append(os.path.join(results_dir, kht.ERR_TXT))
+        if cloud_results_dir is not None:
+            khiops_params.append(cloud_results_dir + "/" + kht.ERR_TXT)
+        else:
+            khiops_params.append(os.path.join(results_dir, kht.ERR_TXT))
         if output_scenario:
             khiops_params.append("-o")
-            khiops_params.append(os.path.join(results_dir, "output_test.prm"))
+            if cloud_results_dir is not None:
+                khiops_params.append(cloud_results_dir + "/output_test.prm")
+            else:
+                khiops_params.append(os.path.join(results_dir, "output_test.prm"))
         if nop_output_scenario:
             khiops_params.append("-O")
-            khiops_params.append(os.path.join(results_dir, "nop_output_test.prm"))
+            if cloud_results_dir is not None:
+                khiops_params.append(cloud_results_dir + "/nop_output_test.prm")
+            else:
+                khiops_params.append(os.path.join(results_dir, "nop_output_test.prm"))
         if task_file:
             khiops_params.append("-p")
-            khiops_params.append(os.path.join(results_dir, "task_progression.log"))
+            if cloud_results_dir is not None:
+                khiops_params.append(cloud_results_dir + "/task_progression.log")
+            else:
+                khiops_params.append(os.path.join(results_dir, "task_progression.log"))
 
         # Calcul d'un time_out en fonction du temps de reference, uniquement si celui est disponible
         timeout = None
@@ -698,8 +806,14 @@ def evaluate_tool_on_test_dir(
                 exception,
             )
 
+        # Suppression du scenario cloud temporaire apres execution
+        if cloud_test_prm is not None and os.path.isfile(cloud_test_prm):
+            utils.remove_file(cloud_test_prm)
+
         # Nettoyage de toute reference a la version des fichiers de resultats
-        check.clean_version_from_results(results_dir)
+        # (ignore en mode cloud car les fichiers de resultats de khiops sont sur le cloud)
+        if cloud_directory is None:
+            check.clean_version_from_results(results_dir)
 
     # Restore initial path
     if os.name == "nt":
@@ -709,7 +823,20 @@ def evaluate_tool_on_test_dir(
 
     # Comparaison des resultats
     os.chdir(suite_dir)
-    check.check_results(test_dir)
+    if cloud_directory is None:
+        check.check_results(test_dir)
+    else:
+        print(
+            tool_dir_name
+            + " "
+            + suite_dir_name
+            + " "
+            + test_dir_name
+            + " cloud results written to "
+            + cloud_test_dir
+            + "/"
+            + kht.RESULTS
+        )
 
 
 def evaluate_tool_on_suite_dir(
@@ -1135,6 +1262,16 @@ def main():
         action="store_true",
     )
 
+    # Mode cloud: lecture des donnees et ecriture des resultats sur le cloud
+    parser.add_argument(
+        "--cloud-directory",
+        help="cloud directory URI containing LearningTest data and receiving results"
+        " (e.g., gs://bucket/LearningTest, s3://bucket/LearningTest);"
+        " cannot be combined with 'check' alias",
+        metavar="uri",
+        action="store",
+    )
+
     # Analyse de la ligne de commande
     args = parser.parse_args()
 
@@ -1158,6 +1295,10 @@ def main():
         binaries_dir = args.binaries
     else:
         binaries_dir = os.path.abspath(args.binaries)
+
+    # Verification de l'incompatibilite entre --cloud-directory et l'alias 'check'
+    if args.cloud_directory is not None and binaries_dir == kht.ALIAS_CHECK:
+        parser.error("argument --cloud-directory cannot be combined with 'check' alias")
 
     # Verification des arguments optionnels
     utils.argument_parser_check_processes_argument(parser, args.n)
@@ -1222,6 +1363,7 @@ def main():
         output_scenario=args.output_scenario,
         nop_output_scenario=args.nop_output_scenario,
         user_interface=args.user_interface,
+        cloud_directory=args.cloud_directory,
     )
 
 

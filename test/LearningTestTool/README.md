@@ -309,6 +309,105 @@ The aim is check that the new platform is supported by the tool.
 
 The tests must be run on the new platform, using the _full_ family.
 
+### Testing with datasets on the cloud
+
+Khiops supports cloud storage drivers (GCS, S3, Azure) and can read datasets directly from a cloud URI at runtime.
+This allows running the full LearningTest suite without storing the large datasets (~5 GB) on the local machine.
+
+#### Setup
+
+Two copies of the LearningTest tree are maintained:
+
+| Location | What it contains |
+|---|---|
+| **Local disk** | Scenarios (`test.prm`), reference results (`results.ref/`), tool dirs and suite dirs structure — **no dataset files** |
+| **Cloud storage** | Dataset collections (`datasets/`, `MTdatasets/`, `TextDatasets/`) — the full copy needed for Khiops to run |
+
+Upload the dataset collections to the cloud once (example with GCS):
+```
+gcloud storage cp -r LearningTest/datasets   gs://my-bucket/LearningTest/datasets
+gcloud storage cp -r LearningTest/MTdatasets gs://my-bucket/LearningTest/MTdatasets
+gcloud storage cp -r LearningTest/TextDatasets gs://my-bucket/LearningTest/TextDatasets
+```
+
+The same principle applies for S3 (`aws s3 cp --recursive`) or Azure (`az storage blob upload-batch`).
+
+#### Full test process
+
+**Step 1 – Run the tests with cloud datasets**
+
+Pass `--cloud-directory` to `kht_test`. Khiops generates a temporary scenario that replaces
+local relative paths (`../../../`) with cloud URIs, runs against the cloud datasets, and writes
+all its output files (`.khj`, `.kdic`, `.xls`, `err.txt`, …) back to the cloud.
+Only files written directly by the Python test runner (`stdout_error.log`, `stderr_error.log`,
+`return_code_error.log`, `process_timeout_error.log`, `time.log`) remain **local**.
+
+```bash
+# Full family, 4 processes, GCS example
+kht_test LearningTest r --cloud-directory gs://my-bucket/LearningTest -p 4
+
+# Or for a single test dir
+kht_test LearningTest/TestKhiops/Standard/Iris r --cloud-directory gs://my-bucket/LearningTest
+```
+
+After this step each test dir's local `results/` folder contains only the Python-written files;
+the Khiops output files are on the cloud.
+
+**Step 2 – Download the Khiops result files**
+
+Use the cloud provider CLI to copy the result directories back to the local machine,
+merging with the already-present Python-written files:
+
+```bash
+# GCS – download results for all Khiops test dirs
+gcloud storage cp -r \
+  "gs://my-bucket/LearningTest/TestKhiops/*/results" \
+  ./LearningTest/TestKhiops/
+
+# GCS – download results for all tools
+for tool in TestKhiops TestCoclustering TestKNI; do
+  gcloud storage cp -r \
+    "gs://my-bucket/LearningTest/$tool/*/results" \
+    ./LearningTest/$tool/
+done
+```
+
+Equivalent commands for S3:
+```bash
+aws s3 cp --recursive s3://my-bucket/LearningTest/ ./LearningTest/ \
+  --exclude "*" --include "*/results/*"
+```
+
+**Step 3 – Normalize cloud paths in result files**
+
+The downloaded result files (`.khj`, …) still contain cloud URIs as data paths.
+Replace them with local relative paths before comparison:
+
+```bash
+kht_apply LearningTest transform-cloud-results \
+  --cloud-directory gs://my-bucket/LearningTest
+
+# Or for a single suite
+kht_apply LearningTest/TestKhiops/Standard transform-cloud-results \
+  --cloud-directory gs://my-bucket/LearningTest
+```
+
+This instruction also calls the version-string cleaner that `kht_test` normally runs
+after execution, so the result files are ready for comparison.
+
+**Step 4 – Compare results against references**
+
+```bash
+kht_test LearningTest check
+
+# Or targeted
+kht_test LearningTest/TestKhiops/Standard check
+```
+
+If errors are found, use the standard `kht_apply errors` and `kht_apply logs` instructions
+to analyse them. To update the reference results after a confirmed algorithm change,
+use `kht_apply makeref` as usual.
+
 ### CI/CD
 
 The tests can be run at different steps of the developpement process:
@@ -422,21 +521,6 @@ The full LearningTest directory tree cannot be embedded in the Khiops github rep
 - scalability issue: around ten GB are necessary to store a snapshot of one version of LearningTest
 - confidentiality: some datasets or test dir contain confidential data
 - cost: storing and managing a large number of tests on dozens of platforms can be expensive in an external cloud
-
-A solution must be defined to meet the requirements of the processes summarised in this document.
-
-A potential solution, for a start:
-- keep the developpement of LearningTest on the Khiops repo, with the `basic` sub-part of LearningTest
-- exploit a gitlab repo to store and manage LearningTest: process to specify
-  - all file except scenarios (test.prm) managed using LFS
-  - synchronisation of version between the Khiops and LearningTest repos: use the closest former version
-  - keep a full snapshot of LearningTest for past versions of Khiops
-  - for the current dev branch of Khiops:
-	- keep only a few last version of LearningTest
-	- clean the preceeding former deprecated versions of LearningTest if necessary (never used again)
-  - ...
-- exploit the system initialized by Stephane G to launch the tests on many plateforms
-- ...
 
 
 

@@ -714,6 +714,75 @@ def instruction_transform_hdfs_results(test_dir):
                     output_file.write(file_data)
 
 
+def instruction_transform_cloud_results(test_dir, cloud_directory):
+    """Remplace les chemins cloud dans les fichiers de resultats par les chemins locaux relatifs.
+    Doit etre applique apres telechargement des resultats du cloud, avant kht_test check.
+    """
+
+    def escape_for_json(token):
+        return token.replace("/", "\\/")
+
+    # Calcul des chemins cloud correspondant a ce test
+    home_dir = utils.get_home_dir(test_dir)
+    relative_path = os.path.relpath(test_dir, home_dir).replace(os.sep, "/")
+    cloud_test_dir = cloud_directory + "/" + relative_path
+    cloud_results_dir = cloud_test_dir + "/" + kht.RESULTS
+
+    # Repertoire local de resultats
+    results_dir = os.path.join(test_dir, kht.RESULTS)
+    if not os.path.isdir(results_dir):
+        return
+
+    dataset_names = ["datasets", "MTdatasets", "TextDatasets"]
+
+    for file_name in os.listdir(results_dir):
+        file_path = os.path.join(results_dir, file_name)
+        if not os.path.isfile(file_path):
+            continue
+
+        with open(file_path, "r", errors="ignore") as f:
+            file_data = f.read()
+
+        if ".khj" in file_name:
+            # Fichiers JSON: les slashes sont echappes avec '\'
+            for dataset_name in dataset_names:
+                file_data = file_data.replace(
+                    escape_for_json(cloud_directory + "/" + dataset_name + "/"),
+                    escape_for_json("../../../" + dataset_name + "/"),
+                )
+            # Remplacement du repertoire de resultats cloud puis du repertoire du test
+            file_data = file_data.replace(
+                escape_for_json(cloud_results_dir + "/"),
+                escape_for_json("./" + kht.RESULTS + "/"),
+            )
+            file_data = file_data.replace(
+                escape_for_json(cloud_test_dir + "/"),
+                escape_for_json("./"),
+            )
+        else:
+            # Fichiers texte
+            for dataset_name in dataset_names:
+                file_data = file_data.replace(
+                    cloud_directory + "/" + dataset_name + "/",
+                    "../../../" + dataset_name + "/",
+                )
+            file_data = file_data.replace(
+                cloud_results_dir + "/",
+                "./" + kht.RESULTS + "/",
+            )
+            file_data = file_data.replace(
+                cloud_test_dir + "/",
+                "./",
+            )
+
+        os.chmod(file_path, stat.S_IWRITE | stat.S_IREAD)
+        with open(file_path, "w", errors="ignore") as f:
+            f.write(file_data)
+
+    # Nettoyage des references de version (normalement effectue par kht_test apres execution)
+    check.clean_version_from_results(results_dir)
+
+
 """
 Enregistrement des instructions
 """
@@ -824,5 +893,11 @@ def register_standard_instructions():
         "transform-hdfs-results",
         instruction_transform_hdfs_results,
         "transform results files to be compliant with HDFS",
+    )
+    register_instruction(
+        available_instructions,
+        "transform-cloud-results",
+        instruction_transform_cloud_results,
+        "replace cloud paths in results files with local relative paths (requires --cloud-directory in kht_apply)",
     )
     return available_instructions
