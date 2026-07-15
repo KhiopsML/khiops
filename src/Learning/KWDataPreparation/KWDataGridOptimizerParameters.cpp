@@ -8,7 +8,7 @@ KWDataGridOptimizerParameters::KWDataGridOptimizerParameters()
 {
 	nMaxPartNumber = 0;
 	nOptimizationTime = 0;
-	nOptimizationLevel = 4;
+	nOptimizationLevel = GetDefaultOptimizationLevel();
 	bUnivariateInitialization = true;
 	bPreOptimize = true;
 	bOptimize = true;
@@ -56,6 +56,11 @@ void KWDataGridOptimizerParameters::SetOptimizationLevel(int nValue)
 	require(nValue >= 0);
 	nOptimizationLevel = nValue;
 	nFreshness++;
+}
+
+int KWDataGridOptimizerParameters::GetDefaultOptimizationLevel()
+{
+	return 4;
 }
 
 boolean KWDataGridOptimizerParameters::GetUnivariateInitialization() const
