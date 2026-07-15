@@ -246,6 +246,10 @@ void KWDataGridManager::ExportDataGridWithRandomizedInnerAttributes(const KWData
 	require(inputDataGrid->IsVarPartDataGrid());
 	require(sourceDataGrid->GetInnerAttributes()->ContainsSubVarParts(inputDataGrid->GetInnerAttributes()));
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
+	require(nTargetTokenNumber <=
+		sourceDataGrid->GetVarPartAttribute()->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts());
+	require(nTargetTokenNumber >=
+		inputDataGrid->GetVarPartAttribute()->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts());
 
 	// Trace initiale
 	if (bTrace)
@@ -409,9 +413,6 @@ double KWDataGridManager::ExportDataGridWithVarPartMergeOptimization(const KWDat
 	require(sourceDataGrid->GetVarPartAttribute()->GetPartNumber() > 1);
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 
-	// Parametrage du profiler
-	KWDataGridOptimizer::GetProfiler()->BeginMethod("Post VarPart merge");
-
 	// Export des attributs
 	ExportAttributes(sourceDataGrid, targetDataGrid);
 
@@ -488,10 +489,6 @@ double KWDataGridManager::ExportDataGridWithVarPartMergeOptimization(const KWDat
 		    dataGridCosts->ComputeAttributeCost(sourceAttribute, sourceAttribute->GetPartNumber());
 		dFusionDeltaCost += dNewAttributeCost;
 	}
-
-	// Parametrage du profiler
-	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Delta cost", dFusionDeltaCost);
-	KWDataGridOptimizer::GetProfiler()->EndMethod("Post VarPart merge");
 
 	ensure(targetDataGrid->Check());
 	ensure(CheckDataGrid(sourceDataGrid, targetDataGrid));
@@ -1456,23 +1453,27 @@ void KWDataGridManager::AddRandomAttributes(const KWDataGrid* sourceDataGrid, KW
 }
 
 void KWDataGridManager::AddRandomParts(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid,
-				       const KWDataGrid* mandatoryDataGrid, int nRequestedContinuousPartNumber,
-				       int nRequestedSymbolPartNumber) const
+				       const KWDataGrid* mandatoryDataGrid, int nAddedContinuousPartNumber,
+				       int nAddedSymbolPartNumber) const
 {
 	int nAttribute;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* mandatoryAttribute;
 	KWDGAttribute* targetAttribute;
 	int nRequestedPartNumber;
+	int nMinimimEqualFrequencyPartNumber;
+	boolean bEqualFrequencyConstraint;
 
 	require(Check());
 	require(targetDataGrid != NULL and CheckAttributes(sourceDataGrid, targetDataGrid) and
 		CheckGranularity(sourceDataGrid, targetDataGrid));
 	require(mandatoryDataGrid != NULL and CheckAttributes(sourceDataGrid, mandatoryDataGrid) and
 		CheckGranularity(sourceDataGrid, mandatoryDataGrid));
-	require(1 <= nRequestedContinuousPartNumber and
-		nRequestedContinuousPartNumber <= sourceDataGrid->GetGridFrequency());
-	require(1 <= nRequestedSymbolPartNumber and nRequestedSymbolPartNumber <= sourceDataGrid->GetGridFrequency());
+	require(1 <= nAddedContinuousPartNumber and nAddedContinuousPartNumber <= sourceDataGrid->GetGridFrequency());
+	require(1 <= nAddedSymbolPartNumber and nAddedSymbolPartNumber <= sourceDataGrid->GetGridFrequency());
+
+	// Parametrage de la contrainte d'effectif egaux par partie, pour tous les attributs
+	bEqualFrequencyConstraint = RandomDouble() <= 0.5;
 
 	// Ajout des parties des attributs
 	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
@@ -1490,50 +1491,35 @@ void KWDataGridManager::AddRandomParts(const KWDataGrid* sourceDataGrid, KWDataG
 
 		// Nombre de partie demandees en fonction du type de l'attribut
 		if (sourceAttribute->GetAttributeType() == KWType::Continuous)
-			nRequestedPartNumber = nRequestedContinuousPartNumber;
+			nRequestedPartNumber = nAddedContinuousPartNumber;
 		else
-			nRequestedPartNumber = nRequestedSymbolPartNumber;
+			nRequestedPartNumber = nAddedSymbolPartNumber;
 
-		// Ajout d'un sous ensemble de parties de l'attribut dans le cas d'un attribut obligatoire
+		// Prise en compte des partie existantes en cas d'attribut obligatoire
 		if (mandatoryAttribute != NULL)
-		{
-			assert(sourceAttribute->GetAttributeType() == mandatoryAttribute->GetAttributeType());
-			AddAttributeRandomParts(sourceAttribute, mandatoryAttribute, targetAttribute,
-						nRequestedPartNumber);
-			/*DDD
-			if (sourceAttribute->GetAttributeType() == KWType::Continuous)
-			{
-				KWDGAttribute outputAttributeProto;
-				int nTestOutputPartNumber;
-				boolean bShowResults = false;
+			nRequestedPartNumber += mandatoryAttribute->GetPartNumber();
+		nRequestedPartNumber = min(nRequestedPartNumber, sourceAttribute->GetPartNumber());
 
-				nTestOutputPartNumber = min(nRequestedPartNumber + mandatoryAttribute->GetPartNumber(), sourceAttribute->GetPartNumber());
-				InitialiseAttribute(sourceAttribute, &outputAttributeProto);
-				ExportContinuousAttributeRandomParts(sourceAttribute, mandatoryAttribute,
-								  &outputAttributeProto, nTestOutputPartNumber,
-								  nTestOutputPartNumber, true);
-				if (bShowResults)
-				{
-					cout << "Inner attribute " << sourceInnerAttribute->GetAttributeName() << "\t"
-					     << sourceInnerAttribute->GetPartNumber() << "\t"
-					     << referenceInnerAttribute->GetPartNumber() << " :\t" << nOutputPartNumber
-					     << " ->\t" << outputInnerAttribute->GetPartNumber() << " :\t"
-					     << nTestOutputPartNumber << " ->\t"
-					     << outputInnerAttributeProto.GetPartNumber() << endl;
-					if (nOutputPartNumber <= 20)
-						outputInnerAttribute->WriteParts(cout);
-					if (nOutputPartNumber <= 20)
-						outputInnerAttributeProto.WriteParts(cout);
-				}
-
-			}
-			*/
-		}
-		// et dans le cas general sinon
+		// On prend en compte la contrainte d'equilibrage des effectifs des parties de facon aleatoire,
+		// avec une fois sur deux pas de contrainte
+		if (bEqualFrequencyConstraint)
+			nMinimimEqualFrequencyPartNumber = nRequestedPartNumber;
+		// En cas sans contrainte, on choisit aleatoirement le niveau de contrainte
 		else
-		{
-			InitialiseAttributeRandomParts(sourceAttribute, targetAttribute, nRequestedPartNumber);
-		}
+			nMinimimEqualFrequencyPartNumber =
+			    nRequestedPartNumber +
+			    (int)(RandomDouble() * (sourceDataGrid->GetGridFrequency() - -nRequestedPartNumber));
+
+		// Ajout d'un sous ensemble de parties aleatoire dans le cas continuous
+		if (sourceAttribute->GetAttributeType() == KWType::Continuous)
+			ExportContinuousAttributeRandomParts(sourceAttribute, mandatoryAttribute, targetAttribute,
+							     nRequestedPartNumber, nMinimimEqualFrequencyPartNumber,
+							     true);
+		// Ajout d'un sous ensemble de parties aleatoire dans le cas grouable
+		else
+			ExportGroupableAttributeRandomParts(sourceAttribute, mandatoryAttribute, targetAttribute,
+							    nRequestedPartNumber, nMinimimEqualFrequencyPartNumber,
+							    true);
 	}
 	ensure(CheckParts(sourceDataGrid, targetDataGrid));
 	ensure(targetDataGrid->GetCellNumber() == 0);
@@ -3956,6 +3942,7 @@ void KWDataGridManager::ExportContinuousAttributeRandomParts(const KWDGAttribute
 
 	ensure(targetAttribute->GetPartNumber() <= nRequestedPartNumber);
 	ensure(targetAttribute->GetPartNumber() == nRequestedPartNumber or not bForce);
+	ensure(targetAttribute->ArePartsSorted());
 	ensure(CheckAttributesConsistency(sourceAttribute, targetAttribute));
 	ensure(not sourceAttribute->IsInnerAttribute() or
 	       targetAttribute->ComputeTotalPartFrequency() == sourceAttribute->ComputeTotalPartFrequency());
@@ -3968,8 +3955,8 @@ void KWDataGridManager::ExportGroupableAttributeRandomParts(const KWDGAttribute*
 							    KWDGAttribute* targetAttribute, int nRequestedPartNumber,
 							    int nMinimimEqualFrequencyPartNumber, boolean bForce) const
 {
-	const boolean bTrace = true;
-	const boolean bTraceParts = true;
+	const boolean bTrace = false;
+	const boolean bTraceParts = false;
 	ObjectArray oaGroupableAttributePartInformations;
 	KWDGMGroupableAttributePartInformation* partInformation;
 	KWDGMGroupableAttributePartInformation* nextPartInformation;
@@ -3992,11 +3979,12 @@ void KWDataGridManager::ExportGroupableAttributeRandomParts(const KWDGAttribute*
 
 	require(Check());
 	require(KWType::IsCoclusteringGroupableType(sourceAttribute->GetAttributeType()));
-	require(sourceAttribute->ArePartsSorted());
+	require(not sourceAttribute->IsInnerAttribute() or sourceAttribute->ArePartsSorted());
 	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
 	require(mandatoryAttribute == NULL or CheckAttributesConsistency(sourceAttribute, mandatoryAttribute));
 	require(mandatoryAttribute == NULL or sourceAttribute->ContainsSubParts(mandatoryAttribute));
-	require(mandatoryAttribute == NULL or mandatoryAttribute->ArePartsSorted());
+	require(mandatoryAttribute == NULL or not mandatoryAttribute->IsInnerAttribute() or
+		mandatoryAttribute->ArePartsSorted());
 	require(targetAttribute->GetPartNumber() == 0);
 	require(1 <= nRequestedPartNumber);
 	require(mandatoryAttribute == NULL or nRequestedPartNumber >= mandatoryAttribute->GetPartNumber());
@@ -4041,7 +4029,7 @@ void KWDataGridManager::ExportGroupableAttributeRandomParts(const KWDGAttribute*
 		// et en deduire l'effectif minimum par partie source a utiliser
 		// Si bForce=false, on va obtenir une partition equilibre avec potentiellement moins
 		// de groupes que demandes.
-		// Si bForce=true, on va adiminuer l'effectif minimum par partie source
+		// Si bForce=true, on va diminuer l'effectif minimum par partie source
 		// pour obtenir au moins le nombre de groupes demandes
 
 		// Creation d'un quantileBuilder pour calculer les quantiles de l'attribut source
@@ -4060,24 +4048,12 @@ void KWDataGridManager::ExportGroupableAttributeRandomParts(const KWDGAttribute*
 		if (bTrace)
 			cout << "  - InitialMinTargetPartFrequency\t" << nMinTargetPartFrequency << endl;
 
-		// Si bForce est active, on diminuer l'effectif minimum pour augmenter le nombre de quantiles
+		// Si bForce est active, on diminue l'effectif minimum pour augmenter le nombre de quantiles
 		// jusqu a obtenir au moins nRequestedPartNumber
 		if (bForce and quantileGroupBuilder->GetGroupNumber() < nRequestedPartNumber)
 		{
-			assert(nSource == quantileGroupBuilder->GetGroupNumber() - 1);
 			assert(nRequestedPartNumber <= quantileGroupBuilder->GetValueNumber());
-			while (nSource + 1 < nRequestedPartNumber)
-			{
-				nSource++;
-				assert(nSource < quantileGroupBuilder->GetValueNumber());
-				while (quantileGroupBuilder->GetValueFrequencyAt(nSource) == nMinTargetPartFrequency)
-				{
-
-					nSource++;
-					assert(nSource < quantileGroupBuilder->GetValueNumber());
-				}
-				nMinTargetPartFrequency = quantileGroupBuilder->GetValueFrequencyAt(nSource);
-			}
+			nMinTargetPartFrequency = quantileGroupBuilder->GetValueFrequencyAt(nRequestedPartNumber - 1);
 			if (bTrace)
 			{
 				cout << "  - FinalQuantiles\t" << nMinimimEqualFrequencyPartNumber << "\t"
@@ -4085,7 +4061,6 @@ void KWDataGridManager::ExportGroupableAttributeRandomParts(const KWDGAttribute*
 				cout << "  - FinalMinTargetPartFrequency\t" << nMinTargetPartFrequency << endl;
 			}
 		}
-		assert(not bForce or nSource + 1 >= nRequestedPartNumber);
 
 		///////////////////////////////////////////////////////////////////////////////////
 		// Extraction d'informations sur les parties sources et leur association avec les
@@ -4313,6 +4288,7 @@ void KWDataGridManager::ExportGroupableAttributeRandomParts(const KWDGAttribute*
 
 	ensure(targetAttribute->GetPartNumber() <= nRequestedPartNumber);
 	ensure(targetAttribute->GetPartNumber() == nRequestedPartNumber or not bForce);
+	ensure(not targetAttribute->IsInnerAttribute() or targetAttribute->ArePartsSorted());
 	ensure(CheckAttributesConsistency(sourceAttribute, targetAttribute));
 	ensure(not sourceAttribute->IsInnerAttribute() or
 	       targetAttribute->ComputeTotalPartFrequency() == sourceAttribute->ComputeTotalPartFrequency());
@@ -4753,7 +4729,8 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 								    const KWDGInnerAttributes* referenceInnerAttributes,
 								    int nTotalOutputTokenNumber) const
 {
-	boolean bDisplayResults = false;
+	boolean bTrace = false;
+	boolean bTraceDetails = false;
 	KWDGInnerAttributes* outputInnerAttributes;
 	int nInnerAttribute;
 	KWDGAttribute* sourceInnerAttribute;
@@ -4761,20 +4738,42 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 	KWDGAttribute* outputInnerAttribute;
 	IntVector ivInnerAttributesIndexes;
 	int n;
-	int nSourcePartNumber;
-	int nReferencePartNumber;
 	int nTotalReferencePartNumber;
 	int nTotalRemainingReferencePartNumber;
 	int nTotalRemainingPartNumberToCreate;
+	int nAttributeFrequency;
+	int nMinimimEqualFrequencyPartNumber;
+	boolean bEqualFrequencyConstraint;
+	/*DDD
+	int nSourcePartNumber;
+	int nReferencePartNumber;
 	int nOutputPartNumber;
 	double dPercentagePartNumberToCreate;
+	*/
+	IntVector ivInnerAttributeOutputTokenNumbers;
+	int nMeanTokenNumberToCreate;
+	int nTokenNumberToCreate;
+	int nUnsaturatedInnerAttributeNumber;
+	int nMaxPassNumber;
+	int nPass;
 
 	require(sourceInnerAttributes != NULL);
 	require(referenceInnerAttributes != NULL);
 	require(referenceInnerAttributes->ContainsSubVarParts(sourceInnerAttributes));
 	require(0 < nTotalOutputTokenNumber);
-	//DDD require(nTotalOutputTokenNumber <= referenceInnerAttributes->ComputeTotalInnerAttributeVarParts());
+	require(nTotalOutputTokenNumber <= referenceInnerAttributes->ComputeTotalInnerAttributeVarParts());
 	require(nTotalOutputTokenNumber > sourceInnerAttributes->ComputeTotalInnerAttributeVarParts());
+
+	// Trace initiale
+	if (bTrace)
+	{
+		cout << "CreateRandomInnerAttributes\t" << nTotalOutputTokenNumber << "\n";
+		cout << "- Inner attributes\t" << referenceInnerAttributes->GetInnerAttributeNumber() << "\n";
+		cout << "- Source inner attribute parts\t"
+		     << referenceInnerAttributes->ComputeTotalInnerAttributeVarParts() << "\n";
+		cout << "- Mandatory inner attribute parts\t"
+		     << sourceInnerAttributes->ComputeTotalInnerAttributeVarParts() << "\n";
+	}
 
 	// Creation du nouvel innerAttributes
 	outputInnerAttributes = new KWDGInnerAttributes;
@@ -4797,6 +4796,117 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 		ivInnerAttributesIndexes.SetAt(n, n);
 	ivInnerAttributesIndexes.Shuffle();
 
+	// Initialisation des nombres de parties a creer avec celles de depart
+	ivInnerAttributeOutputTokenNumbers.SetSize(sourceInnerAttributes->GetInnerAttributeNumber());
+	for (n = 0; n < ivInnerAttributesIndexes.GetSize(); n++)
+	{
+		nInnerAttribute = ivInnerAttributesIndexes.GetAt(n);
+
+		// On initialise avec le nombre de l'attribut de depart
+		sourceInnerAttribute = sourceInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
+		ivInnerAttributeOutputTokenNumbers.SetAt(nInnerAttribute, sourceInnerAttribute->GetPartNumber());
+	}
+
+	// On detemine le nombre de partie a creer par attribut interne en les parcourant en ordre aleatoire
+	// pour repartir de facon equilibree les tokens a ajouter
+	// On fait plusieurs passes si necessaire s'il n'y a pas assez de valeur pour certains attributs
+	// En pratique, on n'a jamais observe plus de 4 ou 5 passes. Mais un garde-fou n'est pas inutile
+	nTotalReferencePartNumber = referenceInnerAttributes->ComputeTotalInnerAttributeVarParts();
+	nTotalRemainingReferencePartNumber = nTotalReferencePartNumber;
+	nTotalRemainingPartNumberToCreate =
+	    nTotalOutputTokenNumber - sourceInnerAttributes->ComputeTotalInnerAttributeVarParts();
+	nUnsaturatedInnerAttributeNumber = sourceInnerAttributes->GetInnerAttributeNumber();
+	nMaxPassNumber = int(nTotalRemainingPartNumberToCreate * log(nTotalRemainingPartNumberToCreate + 1) / log(2));
+	nPass = 0;
+	while (nTotalRemainingPartNumberToCreate > 0 and nPass < nMaxPassNumber)
+	{
+		assert(nUnsaturatedInnerAttributeNumber > 0);
+		nPass++;
+		if (bTrace)
+			cout << "  - Tokens to add\t" << nPass << "\t" << nTotalRemainingPartNumberToCreate << "\t"
+			     << nUnsaturatedInnerAttributeNumber << "\n";
+
+		// Nombre de totens moyen a cree par attribut (partie entiere inferieure
+		nMeanTokenNumberToCreate = nTotalRemainingPartNumberToCreate / nUnsaturatedInnerAttributeNumber;
+
+		// S'il y a moins de tokens a cree que d'attribut, seul les premiers attributs en creeront un
+		// dans la derniere passe
+		if (nMeanTokenNumberToCreate == 0)
+			nMeanTokenNumberToCreate = 1;
+
+		// Parcours des attribut internes en ordre aleatoire
+		nUnsaturatedInnerAttributeNumber = 0;
+		for (n = 0; n < ivInnerAttributesIndexes.GetSize(); n++)
+		{
+			nInnerAttribute = ivInnerAttributesIndexes.GetAt(n);
+
+			// Acces aux attributs
+			referenceInnerAttribute = referenceInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
+
+			// Prise en compte des tokens a creer
+			nTokenNumberToCreate = nMeanTokenNumberToCreate;
+			if (nTokenNumberToCreate > 0)
+			{
+
+				// On reduit au nombre de token qu'il est possible de creer
+				if (ivInnerAttributeOutputTokenNumbers.GetAt(nInnerAttribute) + nTokenNumberToCreate >=
+				    referenceInnerAttribute->GetPartNumber())
+					nTokenNumberToCreate =
+					    referenceInnerAttribute->GetPartNumber() -
+					    ivInnerAttributeOutputTokenNumbers.GetAt(nInnerAttribute);
+				// Sinon, on incremente le nombre d'attributs internes non saturés en parties creees
+				else
+					nUnsaturatedInnerAttributeNumber++;
+
+				// Mise a jour du nombre de token a creer
+				ivInnerAttributeOutputTokenNumbers.UpgradeAt(nInnerAttribute, nTokenNumberToCreate);
+				nTotalRemainingPartNumberToCreate -= nTokenNumberToCreate;
+				assert(nTotalRemainingPartNumberToCreate >= 0);
+				if (nTotalRemainingPartNumberToCreate == 0)
+					break;
+			}
+		}
+	}
+
+	// Parametrage de la contrainte d'effectif egaux par partie, pour tous les attributs
+	bEqualFrequencyConstraint = RandomDouble() <= 0.5;
+
+	// Creation des parties de chaque attribut interne
+	for (n = 0; n < ivInnerAttributesIndexes.GetSize(); n++)
+	{
+		nInnerAttribute = ivInnerAttributesIndexes.GetAt(n);
+
+		// Acces aux attributs
+		sourceInnerAttribute = sourceInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
+		referenceInnerAttribute = referenceInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
+		outputInnerAttribute = outputInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
+
+		// Parametrage du nombre de tokens a extraire et de a contrainte d'equilibre des effectifs par partie
+		nTokenNumberToCreate = ivInnerAttributeOutputTokenNumbers.GetAt(nInnerAttribute);
+		if (bEqualFrequencyConstraint)
+			nMinimimEqualFrequencyPartNumber = nTokenNumberToCreate;
+		else
+		{
+			// En cas sans contrainte, on choisit aleatoirement le niveau de contrainte
+			nAttributeFrequency = referenceInnerAttribute->ComputeTotalPartFrequency();
+			nMinimimEqualFrequencyPartNumber =
+			    nTokenNumberToCreate + (int)(RandomDouble() * (nAttributeFrequency - nTokenNumberToCreate));
+		}
+		assert(nMinimimEqualFrequencyPartNumber >= nTokenNumberToCreate);
+
+		// Export des partie selon le type de l'attribut
+		if (sourceInnerAttribute->GetAttributeType() == KWType::Continuous)
+			ExportContinuousAttributeRandomParts(referenceInnerAttribute, sourceInnerAttribute,
+							     outputInnerAttribute, nTokenNumberToCreate,
+							     nMinimimEqualFrequencyPartNumber, true);
+		else
+			ExportGroupableAttributeRandomParts(referenceInnerAttribute, sourceInnerAttribute,
+							    outputInnerAttribute, nTokenNumberToCreate,
+							    nMinimimEqualFrequencyPartNumber, true);
+		assert(outputInnerAttribute->GetPartNumber() <= nTokenNumberToCreate);
+	}
+
+	/*DDD
 	// Creation des parties des attributs internes en sortie, en les parcourant en ordre aleatoire
 	// pour repartir de facon equilibree les tokens a ajouter
 	nTotalReferencePartNumber = referenceInnerAttributes->ComputeTotalInnerAttributeVarParts();
@@ -4840,41 +4950,6 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 				AddAttributeRandomParts(referenceInnerAttribute, sourceInnerAttribute,
 							outputInnerAttribute, nOutputPartNumber);
 
-			/*DDD
-			if (sourceInnerAttribute->GetAttributeType() == KWType::Symbol and
-			    sourceInnerAttribute->GetAttributeName() == "CPetalLength")
-			{
-				KWDGAttribute outputInnerAttributeProto;
-				int nTestOutputPartNumber;
-				boolean bShowResults = false;
-
-				nTestOutputPartNumber = min(nOutputPartNumber + sourceInnerAttribute->GetPartNumber(),
-							    referenceInnerAttribute->GetPartNumber());
-				InitialiseAttribute(sourceInnerAttribute, &outputInnerAttributeProto);
-				ExportGroupableAttributeRandomParts(referenceInnerAttribute, sourceInnerAttribute,
-								    &outputInnerAttributeProto, nTestOutputPartNumber,
-								    nTestOutputPartNumber, true);
-				if (bShowResults)
-				{
-					cout << "Inner attribute " << sourceInnerAttribute->GetAttributeName() << "\t"
-					     << referenceInnerAttribute->GetPartNumber() << "\t"
-					     << sourceInnerAttribute->GetPartNumber() << " :\t" << nOutputPartNumber
-					     << " ->\t" << outputInnerAttribute->GetPartNumber() << " :\t"
-					     << nTestOutputPartNumber << " ->\t"
-					     << outputInnerAttributeProto.GetPartNumber() << endl;
-					if (nOutputPartNumber <= 20 and
-					    nOutputPartNumber != referenceInnerAttribute->GetPartNumber())
-						outputInnerAttribute->WriteParts(cout);
-					if (nOutputPartNumber <= 20 and
-					    nTestOutputPartNumber != referenceInnerAttribute->GetPartNumber())
-						outputInnerAttributeProto.WriteParts(cout);
-				}
-			}
-			*/
-
-			// On peut echouer a ajouter toutes les partie demandees
-			//DDD TODO a corriger, ou justifier (on se base sur des effectifs a atteindre, et non sur des index d'intervalles)
-			//assert(outputInnerAttribute->GetPartNumber() <= nOutputPartNumber);
 
 			// Mise a jour du nombre de parties ajoutees
 			nTotalRemainingReferencePartNumber -= nReferencePartNumber;
@@ -4883,17 +4958,22 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 	}
 	assert(nTotalRemainingReferencePartNumber == 0);
 	assert(nTotalRemainingPartNumberToCreate >= 0);
+	*/
 
-	// Affichage des innerAttributes
-	if (bDisplayResults)
+	// Trace finale
+	if (bTrace)
 	{
-		cout << "CreateRandomInnerAttributes : sortie" << endl;
-		cout << "Inner attributes source" << endl;
-		sourceInnerAttributes->Write(cout);
-		cout << "Inner attributes reference" << endl;
-		referenceInnerAttributes->Write(cout);
-		cout << "Inner attributes surtokenise\t" << nTotalOutputTokenNumber << endl;
-		outputInnerAttributes->Write(cout);
+		cout << "- Target inner attributes parts\t"
+		     << outputInnerAttributes->ComputeTotalInnerAttributeVarParts() << "\n";
+		if (bTraceDetails)
+		{
+			cout << "Source inner attributes:\n";
+			referenceInnerAttributes->Write(cout);
+			cout << "Mandatory inner attributes:\n";
+			sourceInnerAttributes->Write(cout);
+			cout << "Target inner attributes:\n";
+			outputInnerAttributes->Write(cout);
+		}
 	}
 
 	return outputInnerAttributes;
@@ -5023,11 +5103,15 @@ void KWDataGridManager::CreateAttributeQuantileBuilder(const KWDGAttribute* attr
 	int nSourcePart;
 	IntVector ivFrequencies;
 	boolean bSingleton;
+	int nSize;
+	int i;
+	int nTmp;
 
 	require(attribute != NULL);
 	require(KWType::IsCoclusteringType(attribute->GetAttributeType()));
 	require(attribute->GetPartNumber() > 0);
-	require(attribute->ArePartsSorted());
+	require((not attribute->IsInnerAttribute() and attribute->GetAttributeType() != KWType::Continuous) or
+		attribute->ArePartsSorted());
 
 	// Export des parties de l'attribut source
 	attribute->ExportParts(&oaSourceParts);
@@ -5070,7 +5154,7 @@ void KWDataGridManager::CreateAttributeQuantileBuilder(const KWDGAttribute* attr
 
 			// Comptage du nombre d'instance sources traitees
 			ivFrequencies.Add(sourcePart->GetPartFrequency());
-			assert(nSourcePart == 0 or
+			assert(not attribute->IsInnerAttribute() or nSourcePart == 0 or
 			       ivFrequencies.GetAt(nSourcePart) <= ivFrequencies.GetAt(nSourcePart - 1));
 
 			// Cas d'une partie non singleton
@@ -5082,6 +5166,22 @@ void KWDataGridManager::CreateAttributeQuantileBuilder(const KWDGAttribute* attr
 		// Ajout d'une partie regroupant les eventuels singletons
 		if (bSingleton)
 			nMaxPartNumber++;
+
+		// Tri si necessaire des effectifs
+		if (not attribute->IsInnerAttribute())
+		{
+			// Tri par ordre croissant
+			ivFrequencies.Sort();
+
+			// Inversion de l'ordre du tri
+			nSize = ivFrequencies.GetSize();
+			for (i = 0; i < nSize / 2; i++)
+			{
+				nTmp = ivFrequencies.GetAt(nSize - 1 - i);
+				ivFrequencies.SetAt(nSize - 1 - i, ivFrequencies.GetAt(i));
+				ivFrequencies.SetAt(i, nTmp);
+			}
+		}
 
 		// Creation et rangement d'un quantile builder dans un dictionnaire
 		quantileGroupBuilder = new KWQuantileGroupBuilder;

@@ -145,20 +145,19 @@ public:
 	void ExportRandomParts(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid,
 			       int nMeanAttributePartNumber) const;
 
-	// Export d'un sous-ensemble aleatoire des attributs (plus les specifications des classes cibles)
+	// Ajout d'un sous-ensemble aleatoire des attributs (plus les specifications des classes cibles)
 	// en partant d'un ensemble d'attributs obligatoires.
 	void AddRandomAttributes(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid,
 				 const KWDataGrid* mandatoryDataGrid, int nRequestedAttributeNumber) const;
 
-	// Export d'une partition aleatoire des parties pour chaque attribut cible
-	// en partant de partitions aleatoires pour un sous-ensemble d'attributs.
+	// Ajout aleatoire de parties pour chaque attribut cible
 	// Les nouvelles parties sont obtenues en sur-partitionnant aleatoirement les partitions existantes,
-	// pour atteindre les nombres de parties demandees par type d'attribut.
+	// pour ajouter les nombres de parties demandees par type d'attribut.
 	// Le nombre de parties reellement obtenu peut etre inferieur a celui demande, s'il n'y
 	// a pas assez de valeurs disponibles pour scinder des parties existantes
 	void AddRandomParts(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid,
-			    const KWDataGrid* mandatoryDataGrid, int nRequestedContinuousPartNumber,
-			    int nRequestedSymbolPartNumber) const;
+			    const KWDataGrid* mandatoryDataGrid, int nAddedContinuousPartNumber,
+			    int nAddedSymbolPartNumber) const;
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Construction d'une grille de donnees cible en granularisant la grille de donnees source

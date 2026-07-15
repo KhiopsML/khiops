@@ -233,6 +233,7 @@ double KWDataGridOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* initi
 							 KWDataGrid* optimizedDataGrid) const
 {
 	boolean bDisplayResults = false;
+	int nMinLevel;
 	int nMaxLevel;
 	int nLevel;
 	double dCost;
@@ -255,26 +256,32 @@ double KWDataGridOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* initi
 	if (optimizationParameters.GetOptimizationTime() > 0)
 		nMaxLevel = 20;
 
+	// On prend au minimum le niveau d'optimisation par defaut
+	nMinLevel = optimizationParameters.GetDefaultOptimizationLevel();
+	if (nMinLevel > nMaxLevel)
+		nMinLevel = nMaxLevel;
+	assert(nMinLevel >= 1);
+
 	// Initialisations
 	dBestCost = dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
 
+	// Parametrage du profiling
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("Iterative VNS optimize");
+	KWDataGridOptimizer::GetProfiler()->WriteKeyBoolean("Is VarPart", currentDataGrid.IsVarPartDataGrid());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Max Level number", nMaxLevel);
+
 	// Appel de VNS en augmentant le nombre de voisinnages d'un facteur 2 chaque fois
-	for (nLevel = 0; nLevel < nMaxLevel; nLevel++)
+	// On part du niveau minmum qui est le meme a chaque fois, sauf s'il est en dessous du niveau par defaut
+	// Cela garantit que l'on passera alors par la meme trajectoire d'optimisation
+	for (nLevel = nMinLevel; nLevel <= nMaxLevel; nLevel++)
 	{
 		// Calcul du nombre de voisinnage a considerer
-		nNeighbourhoodLevelNumber = int(pow(2.0, nLevel));
+		nNeighbourhoodLevelNumber = int(pow(2.0, nLevel - 1));
 		if (bDisplayResults)
 			cout << "IterativeVNSOptimizeDataGrid: Level\t" << nLevel << endl;
 
 		// Recopie de la meilleure solution dans une solution de travail courante
 		dataGridManager.CopyDataGrid(optimizedDataGrid, &currentDataGrid);
-
-		// Parametrage du profiling
-		KWDataGridOptimizer::GetProfiler()->BeginMethod("VNS optimize");
-		KWDataGridOptimizer::GetProfiler()->WriteKeyBoolean("Is VarPart", currentDataGrid.IsVarPartDataGrid());
-		KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Level", nLevel);
-		KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Neighbourhood level number",
-								nNeighbourhoodLevelNumber);
 
 		// Optimisation a partir de la nouvelle solution
 		dCost = VNSOptimizeDataGrid(initialDataGrid, nNeighbourhoodLevelNumber, &currentDataGrid);
@@ -283,7 +290,6 @@ double KWDataGridOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* initi
 			dBestCost = dCost;
 			SaveDataGrid(&currentDataGrid, optimizedDataGrid);
 		}
-		KWDataGridOptimizer::GetProfiler()->EndMethod("VNS optimize");
 
 		// Test de fin de tache
 		if (TaskProgression::IsInterruptionRequested())
@@ -294,6 +300,9 @@ double KWDataGridOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* initi
 			break;
 	}
 	assert(dBestCost < DBL_MAX);
+
+	// Parametrage du profiling: fin
+	KWDataGridOptimizer::GetProfiler()->EndMethod("Iterative VNS optimize");
 
 	ensure(fabs(dBestCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
 	return dBestCost;
@@ -307,9 +316,8 @@ double KWDataGridOptimizer::VNSOptimizeDataGrid(const KWDataGrid* initialDataGri
 	KWDataGridManager dataGridManager;
 	KWDataGridMerger neighbourDataGrid;
 	int nIndex;
-	double dMinNeighbourhoodSize;
-	double dDecreaseFactor;
-	double dNeighbourhoodSize;
+	const int nMaxTrialNumber = 2;
+	int nTrial;
 	ALString sTmp;
 
 	require(initialDataGrid != NULL);
@@ -320,26 +328,35 @@ double KWDataGridOptimizer::VNSOptimizeDataGrid(const KWDataGrid* initialDataGri
 	neighbourDataGrid.SetDataGridCosts(dataGridCosts);
 	dBestCost = dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
 
-	// Calcul d'une taille minimale de voisinnage, relative a la taille de la base
-	// On souhaite impliquer au minimum 3 nouvelles parties par attribut
-	dMinNeighbourhoodSize = 3.0 / (3 + initialDataGrid->GetGridFrequency());
+	// Parametrage du profiling
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("VNS optimize");
+	KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Neighbourhood level number", nNeighbourhoodLevelNumber);
 
-	// Calcul du taux de decroissance des tailles de voisinnage de facon a obtenir
-	// une taille minimale de voisinnage suffisante
-	dDecreaseFactor = 1.0 / pow(dMinNeighbourhoodSize, 1.0 / (nNeighbourhoodLevelNumber + 1));
-
-	// On optimise tant qu'on ne depasse pas la taille max de voisinnage
+	// On optimise en partant de la taille max de voisinnage pour trouver une premier solution en partant d'une solution aleatoire
+	// On continue tant qu'il y a amelioration, avec un nombre d'essai max s'il n'y a pas d'amelioration
+	// Puis on itere en diminuant d'une facteur 2 la taille du voisinnage pour affiner la solution
 	nVNSNeighbourhoodLevelNumber = nNeighbourhoodLevelNumber;
-	nIndex = 0;
-	while (nIndex <= nNeighbourhoodLevelNumber)
+	nIndex = nNeighbourhoodLevelNumber;
+	nTrial = 0;
+	while (nIndex > 0)
 	{
-		nVNSNeighbourhoodLevelIndex = nIndex;
-		dNeighbourhoodSize = pow(1.0 / dDecreaseFactor, nIndex);
-		dVNSNeighbourhoodSize = dNeighbourhoodSize;
+		// Taille de voisinnage entre 0 et 1, maximale initialement, puis decroissant d'n facteur 2 a chaque fois
+		dVNSNeighbourhoodSize = 1 / pow(2, nNeighbourhoodLevelNumber - nIndex);
+
+		// Profiling d'une etape
+		KWDataGridOptimizer::GetProfiler()->BeginMethod("Optimization step");
+		KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Neighbourhood level", nIndex);
+		KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Neighbourhood level number",
+								nNeighbourhoodLevelNumber);
+		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Neighbourhood size", dVNSNeighbourhoodSize);
 
 		// Optimisation d'une solution dans un voisinnage de la solution courante
-		dCost = OptimizeNeighbourSolution(initialDataGrid, optimizedDataGrid, dNeighbourhoodSize,
+		dCost = OptimizeNeighbourSolution(initialDataGrid, optimizedDataGrid, dVNSNeighbourhoodSize,
 						  &neighbourDataGrid, true);
+
+		// On incremente le nombre d'essai a ce niveau de voisinnage
+		nTrial++;
+		assert(nTrial <= nMaxTrialNumber);
 
 		// Si amelioration: on la memorise
 		if (dCost < dBestCost - dEpsilon)
@@ -349,10 +366,23 @@ double KWDataGridOptimizer::VNSOptimizeDataGrid(const KWDataGrid* initialDataGri
 
 			// Gestion de la meilleure solution
 			HandleOptimizationStep(optimizedDataGrid, initialDataGrid);
+
+			// On reinitialise le nombre d'essais
+			nTrial = 0;
 		}
-		// Sinon: on passe a un niveau de voisinnage plus fin
+		// Sinon: on passe a un niveau de voisinnage suivant
 		else
-			nIndex++;
+		{
+			// Diminution de la taille du voisinage si on a atteint le nombre max d'essai
+			if (nTrial == nMaxTrialNumber)
+			{
+				nIndex--;
+				nTrial = 0;
+			}
+		}
+
+		// Profiling d'une etape: fin
+		KWDataGridOptimizer::GetProfiler()->EndMethod("Optimization step");
 
 		// Test de fin de tache
 		if (TaskProgression::IsInterruptionRequested())
@@ -362,6 +392,9 @@ double KWDataGridOptimizer::VNSOptimizeDataGrid(const KWDataGrid* initialDataGri
 		if (IsOptimizationTimeElapsed())
 			break;
 	}
+
+	// Parametrage du profiling: fin
+	KWDataGridOptimizer::GetProfiler()->EndMethod("VNS optimize");
 
 	ensure(fabs(dBestCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
 	ensure(optimizedDataGrid->Check());
@@ -394,12 +427,11 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	KWDataGrid mandatoryDataGrid;
 	int nMandatoryAttributeNumber;
 	int nMaxAttributeNumber;
-	int nMeanOptimizedPartNumber;
 	int nMaxPartNumber;
 	int nMaxContinuousPartNumber;
 	int nMaxSymbolPartNumber;
-	int nRequestedContinuousPartNumber;
-	int nRequestedSymbolPartNumber;
+	int nAddedContinuousPartNumber;
+	int nAddedSymbolPartNumber;
 	int nAttributeNumber;
 	int nGridSize;
 	ALString sTmp;
@@ -415,7 +447,6 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	TaskProgression::BeginTask();
 	TaskProgression::DisplayMainLabel(sTmp + "New initial solution (" + DoubleToString(dNoiseRate) + ")");
 	KWDataGridOptimizer::GetProfiler()->BeginMethod("Generate neighbour solution");
-	KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Neighbourhood size", dNoiseRate);
 	if (bTrace)
 	{
 		TraceOptimizationDetails("GenerateNeighbourSolution", optimizedDataGrid, bTraceDetails);
@@ -448,12 +479,9 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	nMaxContinuousPartNumber = min(nMaxContinuousPartNumber, nMaxPartNumber);
 	nMaxSymbolPartNumber = min(nMaxSymbolPartNumber, nMaxPartNumber);
 
-	// Calcul du nombre de parties a exporter, en fonction du niveau de bruit et du nombre moyen de partie existantes
-	nMeanOptimizedPartNumber =
-	    (int)ceil(optimizedDataGrid->GetTotalPartNumber() / (double)optimizedDataGrid->GetAttributeNumber());
-	nRequestedContinuousPartNumber =
-	    1 + nMeanOptimizedPartNumber + (int)ceil(dNoiseRate * nMaxContinuousPartNumber);
-	nRequestedSymbolPartNumber = 1 + nMeanOptimizedPartNumber + (int)ceil(dNoiseRate * nMaxSymbolPartNumber);
+	// Calcul du nombre de parties aleatoire a ajouter
+	nAddedContinuousPartNumber = (int)ceil(dNoiseRate * nMaxContinuousPartNumber);
+	nAddedSymbolPartNumber = (int)ceil(dNoiseRate * nMaxSymbolPartNumber);
 
 	// Parametrage avance temporaire, pour etude sur les multinomiales hierarchiques (Marc Boulle)
 	// Cf. classe d'etude KWHierarchicalMultinomialStudy
@@ -461,8 +489,8 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	{
 		nMaxContinuousPartNumber = (int)(nGridSize / 2);
 		nMaxSymbolPartNumber = (int)sqrt(nGridSize * 1.0);
-		nRequestedContinuousPartNumber = 1 + (int)ceil(dNoiseRate * nMaxContinuousPartNumber);
-		nRequestedSymbolPartNumber = 1 + (int)ceil(dNoiseRate * nMaxSymbolPartNumber);
+		nAddedContinuousPartNumber = (int)ceil(dNoiseRate * nMaxContinuousPartNumber);
+		nAddedSymbolPartNumber = (int)ceil(dNoiseRate * nMaxSymbolPartNumber);
 	}
 
 	// Export d'un sous-ensemble d'attributs obligatoires (les attributs informatifs) en fonction du niveau de bruit
@@ -482,7 +510,7 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 
 	// Export des parties
 	dataGridManager.AddRandomParts(initialDataGrid, neighbourDataGridMerger, optimizedDataGrid,
-				       nRequestedContinuousPartNumber, nRequestedSymbolPartNumber);
+				       nAddedContinuousPartNumber, nAddedSymbolPartNumber);
 	TaskProgression::DisplayProgression(25);
 
 	// Export des cellules

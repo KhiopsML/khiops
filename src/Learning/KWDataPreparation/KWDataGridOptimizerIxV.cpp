@@ -526,7 +526,7 @@ double KWDataGridOptimizerIxV::OptimizeNeighbourSolution(const KWDataGrid* initi
 	KWDataGrid surtokenizedDataGrid;
 	int nInstanceNumber;
 	int nMaximumInitialTotalPartNumber;
-	int nInitialCurrentTokenNumber;
+	int nInitialTokenNumber;
 	int nCurrentTokenNumber;
 	int nTargetTokenNumber;
 	double dCost;
@@ -538,14 +538,13 @@ double KWDataGridOptimizerIxV::OptimizeNeighbourSolution(const KWDataGrid* initi
 	///////////////////////////////////////////////////////////
 	// Surtokenisation d'une grille
 
-	//DDD
-	//DDD initialDataGrid = GetOptimizedInitialDataGrid();
-
+	// Nombre d'instances de la grille
+	assert(initialDataGrid->GetAttributeAt(0) != initialDataGrid->GetVarPartAttribute());
 	nInstanceNumber = initialDataGrid->GetAttributeAt(0)->GetInitialValueNumber();
 	nMaximumInitialTotalPartNumber = nInstanceNumber;
 
 	// Nombre de tokens de la grille en entree
-	nInitialCurrentTokenNumber =
+	nInitialTokenNumber =
 	    initialDataGrid->GetVarPartAttribute()->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts();
 	nCurrentTokenNumber =
 	    currentOptimizedDataGrid->GetVarPartAttribute()->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts();
@@ -557,6 +556,8 @@ double KWDataGridOptimizerIxV::OptimizeNeighbourSolution(const KWDataGrid* initi
 	// On ajoute des tokens de facon aleatoire en fonction de la taille du voisinnage
 	nTargetTokenNumber += (int)pow(nMaximumInitialTotalPartNumber - nTargetTokenNumber, dNoiseRate);
 	nTargetTokenNumber = min(nTargetTokenNumber, nMaximumInitialTotalPartNumber);
+	nTargetTokenNumber = max(nTargetTokenNumber, nCurrentTokenNumber);
+	nTargetTokenNumber = min(nTargetTokenNumber, nInitialTokenNumber);
 
 	// Debut du profiling de la surtokenisation
 	KWDataGridOptimizer::GetProfiler()->BeginMethod("Surtokenization solution");
@@ -636,7 +637,7 @@ double KWDataGridOptimizerIxV::PostOptimizeVarPartSolution(const KWDataGrid* ini
 	dBestCost = dInitialBestCost;
 
 	// Debut du profiling de la surtokenisation
-	KWDataGridOptimizer::GetProfiler()->BeginMethod("PostOptimize VarPart solution");
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("Post-optimize VarPart solution");
 	if (bTrace)
 	{
 		TraceOptimizationDetails("PostOptimizeVarPartSolution", optimizedDataGrid, bTraceDetails);
@@ -648,10 +649,13 @@ double KWDataGridOptimizerIxV::PostOptimizeVarPartSolution(const KWDataGrid* ini
 	    not TaskProgression::IsInterruptionRequested())
 	{
 		// Fusion des parties de variable adjacentes
+		KWDataGridOptimizer::GetProfiler()->BeginMethod("Post VarPart merge");
 		dMergeDeltaCost = PostOptimizeVarPartSolutionByMergingVarParts(optimizedDataGrid);
 		dBestCost += dMergeDeltaCost;
+		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Delta cost", dMergeDeltaCost);
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", optimizedDataGrid->GetObjectLabel());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dBestCost);
+		KWDataGridOptimizer::GetProfiler()->EndMethod("Post VarPart merge");
 		if (bTrace)
 			TraceOptimizationDetails("- after merging var parts", optimizedDataGrid, bTraceDetails);
 
@@ -714,7 +718,7 @@ double KWDataGridOptimizerIxV::PostOptimizeVarPartSolution(const KWDataGrid* ini
 		KWDataGridOptimizer::GetProfiler()->WriteKeyString("Coclustering", optimizedDataGrid->GetObjectLabel());
 		KWDataGridOptimizer::GetProfiler()->WriteKeyDouble("Cost", dBestCost);
 	}
-	KWDataGridOptimizer::GetProfiler()->EndMethod("PostOptimize VarPart solution");
+	KWDataGridOptimizer::GetProfiler()->EndMethod("Post-optimize VarPart solution");
 	ensure(fabs(dBestCost - dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon * dBestCost);
 	ensure(dBestCost <= dInitialBestCost);
 	return dBestCost;
