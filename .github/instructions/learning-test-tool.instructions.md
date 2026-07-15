@@ -83,12 +83,24 @@ To add a test suite to a family, add it to `FAMILY_TEST_SUITES[family, tool]` in
 ### `kht_test` — Run Tests
 
 ```bash
-kht_test <binaries_dir> [source_dir] [options]
+kht_test <source_dir> <binaries> [options]
 ```
 
-- **`binaries_dir`**: path to tool executables, or aliases `r` (release), `d` (debug), `check` (comparison only)
-- **`source_dir`**: test/suite/tool/home dir (auto-detected level)
-- Key options: `--family`, `--n` (MPI processes), `--min-test-time`, `--max-test-time`, `--timeout-limit`
+- **`source_dir`**: test/suite/tool/home dir (auto-detected level); can be an individual test dir like `TestKhiops/CrashTests/trainclassifier_KWDatabaseSlicerTask`
+- **`binaries`**: path to tool executables, or aliases `r` (release), `d` (debug), `check` (comparison only, no execution)
+- Key options: `-f/--family`, `-p/--processes N` (MPI processes), `--min-test-time`, `--max-test-time`, `--test-timeout-limit`
+
+Examples:
+```bash
+# Run all CrashTests with 4 MPI processes using release binary
+kht_test /path/to/LearningTest/TestKhiops/CrashTests r -p 4
+
+# Compare results only (no re-run)
+kht_test /path/to/LearningTest/TestKhiops/CrashTests check -f full -p 4
+
+# Run a single test dir with debug binary
+kht_test /path/to/LearningTest/TestKhiops/Standard/Iris d -p 1
+```
 
 ### `kht_apply` — Maintenance Instructions
 
@@ -149,6 +161,55 @@ The comparison engine is hierarchical:
 3. `stdout_error.log`
 4. `stderr_error.log`
 
+## comparisonResults.log Format
+
+Every test dir contains a `comparisonResults.log` after a run or a `check`. Its structure is:
+
+```
+<TestName> comparison
+current comparison context : ['parallel', 'Darwin']
+[used results.ref-<suffix> dir among (...)]   ← only shown when not results.ref
+
+file <absolute_path_to_results_file>
+OK                                            ← file matches reference
+  -- or --
+line N field M <new value> -> <old value>     ← differing field (truncated at ~80 chars)
+K error(s)
+
+...
+
+SUMMARY
+X warning(s)
+Y error(s)
+Problem file types: err.txt, .khj, ...
+[Note: ...]
+[Portability: ...]
+```
+
+**Key reading rules:**
+- The diff line format is `<new value in results/> -> <old value in results.ref*/>`  — new on the left, old on the right.
+- Values are truncated with `...` in the log; always read the actual file for the complete string before doing replacements.
+- `Problem file types` summarises which file extensions have errors.
+- `Portability` notes which specialized `results.ref*` dir was selected.
+
+## Updating References After Message/Output Changes
+
+When C++ user messages change and tests fail **only** because of those message differences (not algorithmic changes), the correct fix is to update the reference files **in-place** (not copy the whole `results/` directory):
+
+### Workflow
+
+1. Read `comparisonResults.log` to identify which files differ and on which lines.
+2. Open both `results/<file>` (new) and `results.ref*/<file>` (old) to get the **complete** old and new strings (the log truncates them).
+3. For **every** `results.ref*` directory that exists in the test dir (e.g. `results.ref`, `results.ref-parallel`, `results.ref-Darwin_Linux`, …), replace only the changed message text in the affected files — leave all other content untouched.
+4. Copy `results/time.log` into **each** `results.ref*` directory.
+5. Verify with `kht_test <test_dir> check` — expect `0 error(s)`.
+
+### Pitfalls
+
+- In `.khj` files (JSON), path separators are escaped as `\/`; a path like `../datasets/Iris/Iris.txt` becomes `.\/..\/datasets\/Iris\/Iris.txt` inside the JSON string. Use the raw bytes from `grep` on the results file, not the log summary.
+- When the same old string appears multiple times in a file but maps to **different** new strings (e.g. first occurrence → Classifier, second → Regressor), use `str.replace(old, new, 1)` for the first and a plain `str.replace` for the rest — do **not** use a global regex that cannot distinguish positions.
+- Always update **all** `results.ref*` variants, not just the one currently selected by the comparison context.
+
 ## Timeout Management
 
 Defined in `_kht_constants.py`:
@@ -192,3 +253,8 @@ User-configurable variables: `KhiopsPreparationTraceMode`, `KhiopsParallelTrace`
 - Modify comparison tolerance without understanding cross-platform impact
 - Bypass the directory hierarchy validation (the tool auto-detects the level)
 - Use absolute paths in `test.prm` scenarios — paths are relative to the LearningTest root
+- **Call `kht_apply` with any destructive instruction** — the following are forbidden without explicit user confirmation:
+  - `makeref`  — copy test results files to reference dir for current context
+  - `clean` — deletes `results/` dir and comparison log
+  - `cleanref` — delete reference results files for current context
+  - `deleteref` — delete reference results files and dirs for all contexts

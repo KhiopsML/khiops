@@ -231,6 +231,15 @@ def build_tool_exe_path(tool_binaries_dir, tool_name, use_khiops_env):
     return tool_exe_path, error_message
 
 
+def is_test_failed(test_dir):
+    """Retourne True si le test a echoue, i.e. si comparisonResults.log est present avec des erreurs."""
+    log_file = os.path.join(test_dir, kht.COMPARISON_RESULTS_LOG)
+    if not os.path.isfile(log_file):
+        return False
+    error_number, _, _, _ = check.analyse_comparison_log(test_dir)
+    return error_number > 0
+
+
 def evaluate_tool_on_test_dir(
     tool_exe_path,
     suite_dir,
@@ -243,6 +252,7 @@ def evaluate_tool_on_test_dir(
     output_scenario=False,
     nop_output_scenario=False,
     user_interface=False,
+    only_failed_tests=False,
 ):
     """Evaluation d'un outil sur un repertoire de test terminal et comparaison des resultats
     Parametres:
@@ -258,6 +268,12 @@ def evaluate_tool_on_test_dir(
     # Verification de l'integrite du repertoire de test
     test_dir = os.path.join(suite_dir, test_dir_name)
     utils.check_test_dir(test_dir)
+
+    # En mode rerun-failed, on saute les tests qui n'ont pas echoue
+    # (leur comparisonResults.log n'a pas ete supprime lors du nettoyage)
+    if only_failed_tests and tool_exe_path != kht.ALIAS_CHECK:
+        if os.path.isfile(os.path.join(test_dir, kht.COMPARISON_RESULTS_LOG)):
+            return
 
     # Extraction des repertoires principaux
     suite_dir_name = utils.dir_name(suite_dir)
@@ -778,6 +794,7 @@ def evaluate_all_tools_on_learning_test_tree(
     binaries_dir,
     use_khiops_env,
     family,
+    only_failed_tests=False,
     **kwargs,
 ):
     """Lance les tests des outils un ensemble de suites de tests
@@ -789,6 +806,7 @@ def evaluate_all_tools_on_learning_test_tree(
     - binaries_dir: repertorie des executables des outils
     - use_khiops_env: specifie si les parametres MPI sont issus du script khiops_env
     - family: famille utilise pour choisir la sous-partie des suites a exporter
+    - only_failed_tests: si True, on ne relance que les tests en erreur
     - kwargs: argument optionnels de la ligne de commande
     """
     # Tous les outils sont a prendre en compte si on est a la racine
@@ -839,17 +857,21 @@ def evaluate_all_tools_on_learning_test_tree(
                                 kwargs["min_test_time"],
                                 kwargs["max_test_time"],
                             ):
-                                file_path = os.path.join(
-                                    test_dir, kht.COMPARISON_RESULTS_LOG
-                                )
-                                if os.path.isfile(file_path):
-                                    utils.remove_file(file_path)
-                                results_dir = os.path.join(test_dir, kht.RESULTS)
-                                if os.path.isdir(results_dir):
-                                    for file_name in os.listdir(results_dir):
-                                        file_path = os.path.join(results_dir, file_name)
+                                # Nettoyage seulement si le test a echoue en mode rerun-failed
+                                if not only_failed_tests or is_test_failed(test_dir):
+                                    file_path = os.path.join(
+                                        test_dir, kht.COMPARISON_RESULTS_LOG
+                                    )
+                                    if os.path.isfile(file_path):
                                         utils.remove_file(file_path)
-                                    utils.remove_dir(results_dir)
+                                    results_dir = os.path.join(test_dir, kht.RESULTS)
+                                    if os.path.isdir(results_dir):
+                                        for file_name in os.listdir(results_dir):
+                                            file_path = os.path.join(
+                                                results_dir, file_name
+                                            )
+                                            utils.remove_file(file_path)
+                                        utils.remove_dir(results_dir)
             # Message d'erreur si suite inexistante
             else:
                 if not suite_errors:
@@ -873,6 +895,7 @@ def evaluate_all_tools_on_learning_test_tree(
             suite_dir,
             use_khiops_env,
             input_test_dir_name,
+            only_failed_tests=only_failed_tests,
             **kwargs,
         )
     # Cas d'un ou plusieurs outils, ou il faut utiliser les suites de la famille specifiee
@@ -909,6 +932,7 @@ def evaluate_all_tools_on_learning_test_tree(
                     home_dir,
                     test_suites,
                     use_khiops_env,
+                    only_failed_tests=only_failed_tests,
                     **kwargs,
                 )
 
@@ -1038,6 +1062,9 @@ def main():
         help_options="--max-test-time 5 --test-timeout-limit 1000",
     )
     epilog += "\n  " + build_usage_help(script_name, "check", help_options="-f basic")
+    epilog += "\n  " + build_usage_help(
+        script_name, "r", help_options="--rerun-failed -p 4"
+    )
 
     # Parametrage de l'analyse de la ligne de commande
     parser = argparse.ArgumentParser(
@@ -1098,6 +1125,13 @@ def main():
         "--user-interface",
         help="run in user interface mode"
         " (path to java and classpath with norm.jar must be defined)",
+        action="store_true",
+    )
+
+    # Mode rerun failed tests
+    parser.add_argument(
+        "--rerun-failed",
+        help="re-run only failed tests (with errors in comparisonResults.log)",
         action="store_true",
     )
 
@@ -1180,6 +1214,7 @@ def main():
         binaries_dir,
         use_khiops_env,
         args.family,
+        args.rerun_failed,
         min_test_time=args.min_test_time,
         max_test_time=args.max_test_time,
         test_timeout_limit=args.test_timeout_limit,
