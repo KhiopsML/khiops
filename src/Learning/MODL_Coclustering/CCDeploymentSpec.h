@@ -116,9 +116,10 @@ public:
 	// de distribution valides
 	void FillInputClassAndAttributeNames(CCPostProcessingSpec* postProcessingSpec);
 
-	// ##
 	// Cles de meta-donnees pour les dictionnaires de deploiement d'un coclustering
 	static const ALString& GetInnerVariableMetaDataKey();
+
+	// ##
 
 	////////////////////////////////////////////////////////
 	///// Implementation

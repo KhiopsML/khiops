@@ -23,18 +23,6 @@ CCDeploymentSpecView::CCDeploymentSpecView()
 	// ## Custom constructor
 
 	// Info-bulles
-	GetFieldAt("InputClassName")
-	    ->SetHelpText("Name of the dictionary that corresponds to the deployment database"
-			  "\n that contains the instances of interest. Only needed for "
-			  "variable x variable coclustering.");
-	GetFieldAt("InputObjectArrayAttributeName")
-	    ->SetHelpText("Name of the table variable in the input dictionary"
-			  "\n that contains the detailed record for each instance of interest. Only needed for "
-			  "variable x variable coclustering.");
-	GetFieldAt("DeployedAttributeName")
-	    ->SetHelpText("Name of the deployed variable, i.e. one of the coclustering variables,"
-			  "\n which represents the entity of interest. Only needed for "
-			  "variable x variable coclustering.");
 	GetFieldAt("BuildPredictedClusterAttribute")
 	    ->SetHelpText("Indicate that the deployment model must generate a new variable"
 			  "\n containing the label of the cluster of the entity of interest.");
@@ -44,6 +32,20 @@ CCDeploymentSpecView::CCDeploymentSpecView()
 	GetFieldAt("BuildFrequencyRecodingAttributes")
 	    ->SetHelpText("Indicates that the deployment model must generate new variables"
 			  "\n representing the frequency per cluster of the other coclustering variables.");
+	GetFieldAt("OutputAttributesPrefix")
+	    ->SetHelpText("Prefix added to the deployment variables in the deployment dictionary.");
+	GetFieldAt("InputClassName")
+	    ->SetHelpText("Name of the dictionary that corresponds to the deployment database"
+			  "\n that contains the instances of interest."
+			  "\n Required only for variable x variable coclustering.");
+	GetFieldAt("InputObjectArrayAttributeName")
+	    ->SetHelpText("Name of the table variable in the input dictionary"
+			  "\n that contains the detailed record for each instance of interest."
+			  "\n Required only for variable x variable coclustering.");
+	GetFieldAt("DeployedAttributeName")
+	    ->SetHelpText("Name of the deployed variable, i.e. one of the coclustering variables,"
+			  "\n which represents the entity of interest."
+			  "\n Required only for variable x variable coclustering.");
 
 	// ##
 }

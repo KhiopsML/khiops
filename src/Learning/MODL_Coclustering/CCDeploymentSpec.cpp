@@ -438,6 +438,7 @@ boolean CCDeploymentSpec::CheckDeploymentSpec(const CCHierarchicalDataGrid* cocl
 		AddError("No deployment variable must be built");
 	}
 
+	// Cas d'un coclustering variable * variable
 	if (not coclusteringDataGrid->IsVarPartDataGrid())
 	{
 		// L'attribut de deploiement doit exister s'il est specifie
@@ -474,6 +475,25 @@ boolean CCDeploymentSpec::CheckDeploymentSpec(const CCHierarchicalDataGrid* cocl
 					 " is not consistent with the coclustering variables");
 			}
 		}
+	}
+
+	// Sinon : cas d'un coclustering individus * variable
+	else
+	{
+		// Warnings si des parametres dedies au cas variable x variable sont specifies
+		// Pas d'impact sur le deploiement qui se deroule normalement
+		if (GetInputClassName() != "")
+			AddWarning(
+			    "Name of the dictionary is required only for variable x variable coclustering. The name " +
+			    GetInputClassName() + " will be ignored and deleted.");
+		if (GetInputObjectArrayAttributeName() != "")
+			AddWarning(
+			    "Input table variable is required only for variable x variable coclustering. The name " +
+			    GetInputObjectArrayAttributeName() + " will be ignored and deleted.");
+		if (GetDeployedAttributeName() != "")
+			AddWarning("Coclustering deployment variable is required only for variable x variable "
+				   "coclustering. The name " +
+				   GetDeployedAttributeName() + " will be ignored and deleted.");
 	}
 	return bOk;
 }
