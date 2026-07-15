@@ -559,10 +559,9 @@ def evaluate_tool_on_test_dir(
             khiops_params.append("-j")
             khiops_params.append(kht.TEST_JSON)
         khiops_params.append("-e")
-        if cloud_results_dir is not None:
-            khiops_params.append(cloud_results_dir + "/" + kht.ERR_TXT)
-        else:
-            khiops_params.append(os.path.join(results_dir, kht.ERR_TXT))
+        # En mode cloud, err.txt reste local pour permettre un diagnostic rapide
+        # apres le run sans avoir a telecharger les resultats du cloud
+        khiops_params.append(os.path.join(results_dir, kht.ERR_TXT))
         if output_scenario:
             khiops_params.append("-o")
             if cloud_results_dir is not None:
@@ -836,6 +835,9 @@ def evaluate_tool_on_test_dir(
             + cloud_test_dir
             + "/"
             + kht.RESULTS
+            + " (local diagnostic: "
+            + os.path.join(results_dir, kht.ERR_TXT)
+            + ")"
         )
 
 

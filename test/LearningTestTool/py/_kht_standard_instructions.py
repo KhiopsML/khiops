@@ -727,13 +727,16 @@ def instruction_transform_cloud_results(test_dir, cloud_directory):
     relative_path = os.path.relpath(test_dir, home_dir).replace(os.sep, "/")
     cloud_test_dir = cloud_directory + "/" + relative_path
     cloud_results_dir = cloud_test_dir + "/" + kht.RESULTS
+    # exemple :
+    # home_dir = /.../LearningTest
+    # test_dir = /.../LearningTest/TestKhiops/Standard/Iris
+    # relative_path becomes TestKhiops/Standard/Iris
+    # cloud_test_dir becomes gs://bucket/LearningTest/TestKhiops/Standard/Iris
 
     # Repertoire local de resultats
     results_dir = os.path.join(test_dir, kht.RESULTS)
     if not os.path.isdir(results_dir):
         return
-
-    dataset_names = ["datasets", "MTdatasets", "TextDatasets"]
 
     for file_name in os.listdir(results_dir):
         file_path = os.path.join(results_dir, file_name)
@@ -745,11 +748,6 @@ def instruction_transform_cloud_results(test_dir, cloud_directory):
 
         if ".khj" in file_name:
             # Fichiers JSON: les slashes sont echappes avec '\'
-            for dataset_name in dataset_names:
-                file_data = file_data.replace(
-                    escape_for_json(cloud_directory + "/" + dataset_name + "/"),
-                    escape_for_json("../../../" + dataset_name + "/"),
-                )
             # Remplacement du repertoire de resultats cloud puis du repertoire du test
             file_data = file_data.replace(
                 escape_for_json(cloud_results_dir + "/"),
@@ -759,13 +757,13 @@ def instruction_transform_cloud_results(test_dir, cloud_directory):
                 escape_for_json(cloud_test_dir + "/"),
                 escape_for_json("./"),
             )
+            # Remplacement generique du prefixe cloud pour les chemins de donnees
+            file_data = file_data.replace(
+                escape_for_json(cloud_directory + "/"),
+                escape_for_json("../../../"),
+            )
         else:
             # Fichiers texte
-            for dataset_name in dataset_names:
-                file_data = file_data.replace(
-                    cloud_directory + "/" + dataset_name + "/",
-                    "../../../" + dataset_name + "/",
-                )
             file_data = file_data.replace(
                 cloud_results_dir + "/",
                 "./" + kht.RESULTS + "/",
@@ -773,6 +771,11 @@ def instruction_transform_cloud_results(test_dir, cloud_directory):
             file_data = file_data.replace(
                 cloud_test_dir + "/",
                 "./",
+            )
+            # Remplacement generique du prefixe cloud pour les chemins de donnees
+            file_data = file_data.replace(
+                cloud_directory + "/",
+                "../../../",
             )
 
         os.chmod(file_path, stat.S_IWRITE | stat.S_IREAD)

@@ -338,9 +338,9 @@ The same principle applies for S3 (`aws s3 cp --recursive`) or Azure (`az storag
 
 Pass `--cloud-directory` to `kht_test`. Khiops generates a temporary scenario that replaces
 local relative paths (`../../../`) with cloud URIs, runs against the cloud datasets, and writes
-all its output files (`.khj`, `.kdic`, `.xls`, `err.txt`, …) back to the cloud.
-Only files written directly by the Python test runner (`stdout_error.log`, `stderr_error.log`,
-`return_code_error.log`, `process_timeout_error.log`, `time.log`) remain **local**.
+its Khiops output files (`.khj`, `.kdic`, `.xls`, output scenarios, task file, …) back to the cloud.
+`err.txt` and all Python diagnostic files (`stdout_error.log`, `stderr_error.log`,
+`return_code_error.log`, `process_timeout_error.log`, `time.log`) are written **locally**.
 
 ```bash
 # Full family, 4 processes, GCS example
@@ -350,8 +350,19 @@ kht_test LearningTest r --cloud-directory gs://my-bucket/LearningTest -p 4
 kht_test LearningTest/TestKhiops/Standard/Iris r --cloud-directory gs://my-bucket/LearningTest
 ```
 
-After this step each test dir's local `results/` folder contains only the Python-written files;
-the Khiops output files are on the cloud.
+After this step each test dir's local `results/` folder contains `err.txt` and the Python-written
+diagnostic files. The console also prints the path to the local `err.txt` for each test, enabling
+a quick sanity check (fatal errors, batch mode failures) **before downloading anything from the cloud**.
+
+**Optional quick check after Step 1**
+
+Inspect the local `err.txt` files to catch obvious failures immediately:
+```bash
+kht_apply LearningTest errors    # list tests with errors in comparisonResults.log
+grep -r "Fatal error" LearningTest/TestKhiops/*/results/err.txt
+```
+
+Note: `err.txt` may contain cloud URIs in Khiops error messages; these will be normalised in Step 3.
 
 **Step 2 – Download the Khiops result files**
 
@@ -407,6 +418,20 @@ kht_test LearningTest/TestKhiops/Standard check
 If errors are found, use the standard `kht_apply errors` and `kht_apply logs` instructions
 to analyse them. To update the reference results after a confirmed algorithm change,
 use `kht_apply makeref` as usual.
+
+#### Notes on locally-written files
+
+**`err.txt`** is written locally (not to the cloud) so you can inspect Khiops errors immediately
+after Step 1 without downloading anything. It may contain cloud URIs in error messages (e.g.
+`gs://…/datasets/…`); these are normalised by `transform-cloud-results` in Step 3 so that
+`kht_test check` in Step 4 compares correctly against `results.ref/err.txt`.
+
+**`time.log`** records the **wall-clock time on the machine running `kht_test`**, including
+cloud I/O latency, not pure Khiops computation time. This will differ from `results.ref/time.log`.
+The comparison engine already tolerates these differences so they do not cause false errors.
+`--min-test-time` / `--max-test-time` filters are based on the **reference** time (unaffected).
+If `kht_apply makeref` is used after a cloud run, `results.ref/time.log` will reflect
+cloud-run wall-clock times — harmless but worth being aware of for `kht_apply times` reports.
 
 ### CI/CD
 
