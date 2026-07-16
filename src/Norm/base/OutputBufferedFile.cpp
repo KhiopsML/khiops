@@ -304,7 +304,9 @@ boolean OutputBufferedFile::Write(const char* sValue, int nCharNumber)
 		while (not IsError() and nBeginChar < nCharNumber)
 		{
 			// Cas d'un buffer entier a ecrire
-			nEndChar = nBeginChar + nBufferSize;
+			// Calcul correct de la fin : le buffer peut contenir un reste du flush (partiel) precedent
+			assert(nCurrentBufferSize <= nBufferSize);
+			nEndChar = nBeginChar + (nBufferSize - nCurrentBufferSize);
 			if (nEndChar <= nCharNumber)
 			{
 				for (i = nBeginChar; i < nEndChar; i++)
@@ -391,8 +393,10 @@ boolean OutputBufferedFile::WriteSubPart(const CharVector* cvValue, int nBeginOf
 		while (not IsError() and nBeginChar < nLastChar)
 		{
 			// Cas d'un buffer entier a ecrire
-			nEndChar = nBeginChar + nBufferSize;
-			assert(nCurrentBufferSize == 0);
+			// Calcul correct de la fin : le buffer peut contenir un reste du flush (partiel) precedent
+			assert(nCurrentBufferSize <= nBufferSize);
+			nEndChar = nBeginChar + (nBufferSize - nCurrentBufferSize);
+
 			if (nEndChar <= nLastChar)
 			{
 				while (nBeginChar < nEndChar)
