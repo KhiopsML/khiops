@@ -722,6 +722,18 @@ def instruction_transform_cloud_results(test_dir, cloud_directory):
     def escape_for_json(token):
         return token.replace("/", "\\/")
 
+    def normalize_cloud_directory_uri(cloud_uri):
+        """Normalise un URI cloud en supprimant les '/' terminaux.
+        Conserve le separateur de schema (ex: gs://).
+        """
+
+        normalized_uri = cloud_uri
+        while normalized_uri.endswith("/") and not normalized_uri.endswith("://"):
+            normalized_uri = normalized_uri[:-1]
+        return normalized_uri
+
+    cloud_directory = normalize_cloud_directory_uri(cloud_directory)
+
     # Calcul des chemins cloud correspondant a ce test
     home_dir = utils.get_home_dir(test_dir)
     relative_path = os.path.relpath(test_dir, home_dir).replace(os.sep, "/")

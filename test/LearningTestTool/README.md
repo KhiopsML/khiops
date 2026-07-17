@@ -316,18 +316,39 @@ This allows running the full LearningTest suite without storing the large datase
 
 #### Setup
 
+In addition to the dataset collections, cloud execution also needs test-local assets stored in test dirs
+(for example local dictionaries such as `./*.kdic` and local data files referenced from `./`).
+These files are part of the `scripts` export type.
+
+Minimal way to prepare a cloud `LearningTest` tree (example with `-f basic`):
+
+```bash
+# 1) Export dataset collections -> /tmp/LearningTest_datasets
+kht_export ../LearningTest/ /tmp/ -f basic --export-type datasets
+
+# 2) Export test scripts and local test assets -> /tmp/LearningTest_scripts
+kht_export ../LearningTest/ /tmp/ -f basic --export-type scripts
+
+# 3) Merge both exports into one single LearningTest tree
+mkdir -p /tmp/LearningTest
+cp -R /tmp/LearningTest_datasets/. /tmp/LearningTest/
+cp -R /tmp/LearningTest_scripts/. /tmp/LearningTest/
+```
+
+After this merge, upload `/tmp/LearningTest/` to your cloud bucket/container. The resulting cloud tree must
+contain both dataset collections (`datasets/`, `MTdatasets/`, `TextDatasets/`) and tool test dirs
+(`TestKhiops/`, `TestCoclustering/`, `TestKNI/`) with their `test.prm` and local files.
+
 Two copies of the LearningTest tree are maintained:
 
 | Location | What it contains |
 |---|---|
 | **Local disk** | Scenarios (`test.prm`), reference results (`results.ref/`), tool dirs and suite dirs structure — **no dataset files** |
-| **Cloud storage** | Dataset collections (`datasets/`, `MTdatasets/`, `TextDatasets/`) — the full copy needed for Khiops to run |
+| **Cloud storage** | A runnable LearningTest subset: dataset collections (`datasets/`, `MTdatasets/`, `TextDatasets/`) **and** test scripts/local assets under tool dirs (`TestKhiops/`, `TestCoclustering/`, `TestKNI/`) |
 
-Upload the dataset collections to the cloud once (example with GCS):
+If you already prepared `/tmp/LearningTest` with both exports (datasets + scripts), upload that merged tree once (example with GCS):
 ```
-gcloud storage cp -r LearningTest/datasets   gs://my-bucket/LearningTest/datasets
-gcloud storage cp -r LearningTest/MTdatasets gs://my-bucket/LearningTest/MTdatasets
-gcloud storage cp -r LearningTest/TextDatasets gs://my-bucket/LearningTest/TextDatasets
+gcloud storage cp -r /tmp/LearningTest gs://my-bucket/
 ```
 
 The same principle applies for S3 (`aws s3 cp --recursive`) or Azure (`az storage blob upload-batch`).
@@ -353,16 +374,6 @@ kht_test LearningTest/TestKhiops/Standard/Iris r --cloud-directory gs://my-bucke
 After this step each test dir's local `results/` folder contains `err.txt` and the Python-written
 diagnostic files. The console also prints the path to the local `err.txt` for each test, enabling
 a quick sanity check (fatal errors, batch mode failures) **before downloading anything from the cloud**.
-
-**Optional quick check after Step 1**
-
-Inspect the local `err.txt` files to catch obvious failures immediately:
-```bash
-kht_apply LearningTest errors    # list tests with errors in comparisonResults.log
-grep -r "Fatal error" LearningTest/TestKhiops/*/results/err.txt
-```
-
-Note: `err.txt` may contain cloud URIs in Khiops error messages; these will be normalised in Step 3.
 
 **Step 2 – Download the Khiops result files**
 

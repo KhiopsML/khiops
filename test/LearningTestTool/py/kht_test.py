@@ -26,6 +26,17 @@ else:
     mpi_exe_name = "mpirun"
 
 
+def normalize_cloud_directory_uri(cloud_directory):
+    """Normalise un URI cloud en supprimant les '/' terminaux.
+    Conserve le separateur de schema (ex: gs://).
+    """
+
+    normalized_uri = cloud_directory
+    while normalized_uri.endswith("/") and not normalized_uri.endswith("://"):
+        normalized_uri = normalized_uri[:-1]
+    return normalized_uri
+
+
 def build_tool_exe_path(tool_binaries_dir, tool_name, use_khiops_env):
     """Construction du chemin de l'executable d'un outil a partir du repertoire des binaire
     Le premier parametre peut contenir plusieurs types de valeurs
@@ -325,6 +336,7 @@ def evaluate_tool_on_test_dir(
     cloud_test_dir = None
     cloud_results_dir = None
     if cloud_directory is not None:
+        cloud_directory = normalize_cloud_directory_uri(cloud_directory)
         cloud_test_dir = (
             cloud_directory
             + "/"
@@ -1301,6 +1313,10 @@ def main():
     # Verification de l'incompatibilite entre --cloud-directory et l'alias 'check'
     if args.cloud_directory is not None and binaries_dir == kht.ALIAS_CHECK:
         parser.error("argument --cloud-directory cannot be combined with 'check' alias")
+
+    # Normalisation de l'URI cloud pour eviter les chemins avec double '/'
+    if args.cloud_directory is not None:
+        args.cloud_directory = normalize_cloud_directory_uri(args.cloud_directory)
 
     # Verification des arguments optionnels
     utils.argument_parser_check_processes_argument(parser, args.n)
