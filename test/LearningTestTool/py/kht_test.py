@@ -290,7 +290,7 @@ def evaluate_tool_on_test_dir(
     output_scenario=False,
     nop_output_scenario=False,
     user_interface=False,
-    cloud_directory=None,
+    cloud_dir=None,
     only_failed_tests=False,
 ):
     """Evaluation d'un outil sur un repertoire de test terminal et comparaison des resultats
@@ -298,6 +298,69 @@ def evaluate_tool_on_test_dir(
     - tool_exe_path: path de l'outil a tester, ou nul si on ne veut faire que la comparaison
     - suite_dir: repertoire racine du repertoire de test
     - test_dir_name: repertoire de test terminal"""
+
+    def build_cloud_dirs(cloud_dir, tool_dir_name, suite_dir_name, test_dir_name):
+        """Construction des repertoires cloud pour le test et les resultats"""
+        cloud_test_dir = None
+        cloud_results_dir = None
+        if cloud_dir is not None:
+            if not utils.check_cloud_dir(cloud_dir):
+                utils.fatal_error(
+                    "cloud_directory argument must be a valid cloud URI starting with gs://, s3:// or https://"
+                )
+            cloud_test_dir = (
+                utils.normalize_cloud_directory_uri(cloud_dir)
+                + "/"
+                + tool_dir_name
+                + "/"
+                + suite_dir_name
+                + "/"
+                + test_dir_name
+            )
+            cloud_results_dir = cloud_test_dir + "/" + kht.RESULTS
+        return cloud_test_dir, cloud_results_dir
+
+    def build_cloud_prm(cloud_dir, cloud_test_dir, tool_exe_path):
+        """Construction du scenario de test avec les chemins cloud, a partir du scenario de test original
+        et du scenario json si present.
+        """
+        # Les fichiers temporaires sont places dans un sous-repertoire tmp/ et supprimes apres execution
+        cloud_test_prm = None
+        if cloud_dir is not None:
+            # Paires de remplacement appliquees dans l'ordre par khiops via le flag -r :
+            # '../../../' en premier (remplace tous les chemins relatifs vers la racine LearningTest),
+            # './' en dernier (remplace les chemins vers le repertoire courant du test).
+            # Cet ordre est necessaire car '../../../' contient './' comme sous-chaine.
+            cloud_replace_pairs = [
+                "../../../:" + cloud_dir + "/",
+                "./" + ":" + cloud_test_dir + "/",
+            ]
+            # Etape 1 (si test.json existe): materialisation du scenario avec les parametres json
+            # Cette etape est necessaire car test.json peut contenir des chemins de donnees a remplacer
+            scenario_to_replace = kht.TEST_PRM
+            if os.path.isfile(kht.TEST_JSON):
+                scenario_to_replace = run_khiops_no_replay(
+                    [
+                        tool_exe_path,
+                        "-b",
+                        "-i",
+                        kht.TEST_PRM,
+                        "-j",
+                        kht.TEST_JSON,
+                    ],
+                    "JSON scenario expansion",
+                )
+            # Etape 2: remplacement des chemins locaux par les chemins cloud
+            prm_step2 = [tool_exe_path, "-b", "-i", scenario_to_replace]
+            for pair in cloud_replace_pairs:
+                prm_step2.extend(["-r", pair])
+            cloud_test_prm = run_khiops_no_replay(prm_step2, "cloud path replacement")
+            # Suppression du scenario intermediaire issu de l'expansion json
+            if scenario_to_replace != kht.TEST_PRM and os.path.isfile(
+                scenario_to_replace
+            ):
+                utils.remove_file(scenario_to_replace)
+        return cloud_test_prm
 
     # Verification du chemin de l'exe
     if tool_exe_path != kht.ALIAS_CHECK:
@@ -321,25 +384,10 @@ def evaluate_tool_on_test_dir(
     # Nom de l'outil
     tool_name = kht.TOOL_NAMES_PER_DIR_NAME.get(tool_dir_name)
 
-    # Calcul du repertoire cloud le cas echeant
-    cloud_test_dir = None
-    cloud_results_dir = None
-    if cloud_directory is not None:
-        print("cloud_directory: " + cloud_directory)
-        if not utils.is_valid_uri(cloud_directory):
-            utils.fatal_error(
-                "cloud_directory argument must be a valid cloud URI starting with gs://, s3:// or https://"
-            )
-        cloud_test_dir = (
-            utils.normalize_cloud_directory_uri(cloud_directory)
-            + "/"
-            + tool_dir_name
-            + "/"
-            + suite_dir_name
-            + "/"
-            + test_dir_name
-        )
-        cloud_results_dir = cloud_test_dir + "/" + kht.RESULTS
+    # Construction des repertoires cloud le cas echeant
+    cloud_test_dir, cloud_results_dir = build_cloud_dirs(
+        cloud_dir, tool_dir_name, suite_dir_name, test_dir_name
+    )
 
     # Recherche du chemin de l'executable et positionnement du path pour l'exe et la dll
     tool_exe_dir = os.path.dirname(tool_exe_path)
@@ -441,43 +489,8 @@ def evaluate_tool_on_test_dir(
             #  fault et si il n'existe pas on ne pourra pas ecrire dedans...)
             os.mkdir(results_dir)
 
-        # En mode cloud, creation des fichiers de scenario avec les chemins cloud
-        # Les fichiers temporaires sont places dans un sous-repertoire tmp/ et supprimes apres execution
-        cloud_test_prm = None
-        if cloud_directory is not None:
-            # Paires de remplacement appliquees dans l'ordre par khiops via le flag -r :
-            # '../../../' en premier (remplace tous les chemins relatifs vers la racine LearningTest),
-            # './' en dernier (remplace les chemins vers le repertoire courant du test).
-            # Cet ordre est necessaire car '../../../' contient './' comme sous-chaine.
-            cloud_replace_pairs = [
-                "../../../:" + cloud_directory + "/",
-                "./" + ":" + cloud_test_dir + "/",
-            ]
-            # Etape 1 (si test.json existe): materialisation du scenario avec les parametres json
-            # Cette etape est necessaire car test.json peut contenir des chemins de donnees a remplacer
-            scenario_to_replace = kht.TEST_PRM
-            if os.path.isfile(kht.TEST_JSON):
-                scenario_to_replace = run_khiops_no_replay(
-                    [
-                        tool_exe_path,
-                        "-b",
-                        "-i",
-                        kht.TEST_PRM,
-                        "-j",
-                        kht.TEST_JSON,
-                    ],
-                    "JSON scenario expansion",
-                )
-            # Etape 2: remplacement des chemins locaux par les chemins cloud
-            prm_step2 = [tool_exe_path, "-b", "-i", scenario_to_replace]
-            for pair in cloud_replace_pairs:
-                prm_step2.extend(["-r", pair])
-            cloud_test_prm = run_khiops_no_replay(prm_step2, "cloud path replacement")
-            # Suppression du scenario intermediaire issu de l'expansion json
-            if scenario_to_replace != kht.TEST_PRM and os.path.isfile(
-                scenario_to_replace
-            ):
-                utils.remove_file(scenario_to_replace)
+        # En mode cloud, creation du fichier de scenario avec les chemins cloud
+        cloud_test_prm = build_cloud_prm(cloud_dir, cloud_test_dir, tool_exe_path)
 
         # khiops en mode expert via une variable d'environnement
         os.environ[kht.KHIOPS_EXPERT_MODE] = "true"
@@ -816,7 +829,7 @@ def evaluate_tool_on_test_dir(
 
         # Nettoyage de toute reference a la version des fichiers de resultats
         # (ignore en mode cloud car les fichiers de resultats de khiops sont sur le cloud)
-        if cloud_directory is None:
+        if cloud_dir is None:
             check.clean_version_from_results(results_dir)
 
     # Restore initial path
@@ -827,7 +840,7 @@ def evaluate_tool_on_test_dir(
 
     # Comparaison des resultats
     os.chdir(suite_dir)
-    if cloud_directory is None:
+    if cloud_dir is None:
         check.check_results(test_dir)
     else:
         print(
@@ -1307,6 +1320,9 @@ def main():
     if args.cloud_directory is not None and binaries_dir == kht.ALIAS_CHECK:
         parser.error("argument --cloud-directory cannot be combined with 'check' alias")
 
+    if args.cloud_directory is not None:
+        utils.argument_parser_check_uri(parser, args.cloud_directory)
+
     # Normalisation de l'URI cloud pour eviter les chemins avec double '/'
     if args.cloud_directory is not None:
         args.cloud_directory = utils.normalize_cloud_directory_uri(args.cloud_directory)
@@ -1374,7 +1390,7 @@ def main():
         output_scenario=args.output_scenario,
         nop_output_scenario=args.nop_output_scenario,
         user_interface=args.user_interface,
-        cloud_directory=args.cloud_directory,
+        cloud_dir=args.cloud_directory,
     )
 
 

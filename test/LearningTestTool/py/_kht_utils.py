@@ -456,7 +456,7 @@ def argument_parser_check_limit_test_time_arguments(
 
 def argument_parser_check_uri(parser, uri):
     """Verification de l'argument cloud_directory, a appeler apres les verification standard de parse_args()"""
-    if not is_valid_uri(uri):
+    if not check_cloud_dir(uri):
         parser.error(
             "argument --cloud-directory: "
             + uri
@@ -724,16 +724,16 @@ Gestion des fichiers sur le cloud
 """
 
 
-def normalize_cloud_directory_uri(cloud_directory):
+def normalize_cloud_directory_uri(cloud_dir):
     """Normalise un URI cloud en supprimant les '/' terminaux.
     Conserve le separateur de schema (ex: gs://).
     """
 
-    normalized_uri = cloud_directory
+    normalized_uri = cloud_dir
     while normalized_uri.endswith("/") and not normalized_uri.endswith("://"):
         normalized_uri = normalized_uri[:-1]
     return normalized_uri
 
 
-def is_valid_uri(uri):
+def check_cloud_dir(uri):
     return uri is not None and uri.startswith(("gs://", "s3://", "https://"))

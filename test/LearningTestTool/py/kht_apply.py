@@ -278,7 +278,7 @@ def main():
             parser.error(
                 "instruction 'transform-cloud-results' requires --cloud-directory argument"
             )
-        standard_instructions.cloud_directory = utils.normalize_cloud_directory_uri(
+        standard_instructions.cloud_dir = utils.normalize_cloud_directory_uri(
             args.cloud_directory
         )
 

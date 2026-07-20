@@ -20,7 +20,7 @@ Documentee et maintenues officiellement
 # import pykhiops as pk
 
 # cloud directory URI used by 'transform-cloud-results'
-cloud_directory = None
+cloud_dir = None
 
 """
 Fonctions utilitaires generales
@@ -44,7 +44,7 @@ def file_compare(file_name1: str, file_name2: str, skip_patterns: list = None):
     """Comparaison du contenu de deux fichiers
     :param file_name1:
     :param file_name2:
-    :param skip_patterns: ne compare pas les lignes contenant une des chaines de carcateres en parametres
+    :param skip_patterns: ne compare pas les lignes contenant une des chaines de caracteres en parametres
     :return:
     """
     compare_ok = os.path.isfile(file_name1) and os.path.isfile(file_name2)
@@ -561,10 +561,12 @@ def instruction_transform_cloud_results(test_dir):
     def escape_for_json(token):
         return token.replace("/", "\\/")
 
+    assert utils.check_cloud_dir(cloud_dir), "Invalid cloud directory " + str(cloud_dir)
+
     # Calcul des chemins cloud correspondant a ce test
     home_dir = utils.get_home_dir(test_dir)
     relative_path = os.path.relpath(test_dir, home_dir).replace(os.sep, "/")
-    cloud_test_dir = cloud_directory + "/" + relative_path
+    cloud_test_dir = cloud_dir + "/" + relative_path
     cloud_results_dir = cloud_test_dir + "/" + kht.RESULTS
     # exemple :
     # home_dir = /.../LearningTest
@@ -598,7 +600,7 @@ def instruction_transform_cloud_results(test_dir):
             )
             # Remplacement generique du prefixe cloud pour les chemins de donnees
             file_data = file_data.replace(
-                escape_for_json(cloud_directory + "/"),
+                escape_for_json(cloud_dir + "/"),
                 escape_for_json("../../../"),
             )
         else:
@@ -613,7 +615,7 @@ def instruction_transform_cloud_results(test_dir):
             )
             # Remplacement generique du prefixe cloud pour les chemins de donnees
             file_data = file_data.replace(
-                cloud_directory + "/",
+                cloud_dir + "/",
                 "../../../",
             )
 
