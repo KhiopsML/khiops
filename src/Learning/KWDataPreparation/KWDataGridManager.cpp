@@ -1453,8 +1453,7 @@ void KWDataGridManager::AddRandomAttributes(const KWDataGrid* sourceDataGrid, KW
 }
 
 void KWDataGridManager::AddRandomParts(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid,
-				       const KWDataGrid* mandatoryDataGrid, int nAddedContinuousPartNumber,
-				       int nAddedSymbolPartNumber) const
+				       const KWDataGrid* mandatoryDataGrid, int nAddedPartNumber) const
 {
 	int nAttribute;
 	KWDGAttribute* sourceAttribute;
@@ -1469,8 +1468,7 @@ void KWDataGridManager::AddRandomParts(const KWDataGrid* sourceDataGrid, KWDataG
 		CheckGranularity(sourceDataGrid, targetDataGrid));
 	require(mandatoryDataGrid != NULL and CheckAttributes(sourceDataGrid, mandatoryDataGrid) and
 		CheckGranularity(sourceDataGrid, mandatoryDataGrid));
-	require(1 <= nAddedContinuousPartNumber and nAddedContinuousPartNumber <= sourceDataGrid->GetGridFrequency());
-	require(1 <= nAddedSymbolPartNumber and nAddedSymbolPartNumber <= sourceDataGrid->GetGridFrequency());
+	require(1 <= nAddedPartNumber and nAddedPartNumber <= sourceDataGrid->GetGridFrequency());
 
 	// Parametrage de la contrainte d'effectif egaux par partie, pour tous les attributs
 	bEqualFrequencyConstraint = RandomDouble() <= 0.5;
@@ -1489,11 +1487,8 @@ void KWDataGridManager::AddRandomParts(const KWDataGrid* sourceDataGrid, KWDataG
 		// Recherche de l'attribut obligatoire correspondant
 		mandatoryAttribute = mandatoryDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
 
-		// Nombre de partie demandees en fonction du type de l'attribut
-		if (sourceAttribute->GetAttributeType() == KWType::Continuous)
-			nRequestedPartNumber = nAddedContinuousPartNumber;
-		else
-			nRequestedPartNumber = nAddedSymbolPartNumber;
+		// Nombre initial de parties demandees
+		nRequestedPartNumber = nAddedPartNumber;
 
 		// Prise en compte des partie existantes en cas d'attribut obligatoire
 		if (mandatoryAttribute != NULL)
@@ -2705,7 +2700,7 @@ void KWDataGridManager::Test(const KWDataGrid* dataGrid)
 		dataGridManager.AddRandomAttributes(dataGrid, &targetDataGrid2, &targetDataGrid1,
 						    dataGrid->GetAttributeNumber() -
 							targetDataGrid1.GetAttributeNumber());
-		dataGridManager.AddRandomParts(dataGrid, &targetDataGrid2, &targetDataGrid1, 3, 3);
+		dataGridManager.AddRandomParts(dataGrid, &targetDataGrid2, &targetDataGrid1, 3);
 		dataGridManager.ExportCells(dataGrid, &targetDataGrid2);
 		cout << "Random modified exported data grid" << endl;
 		cout << targetDataGrid2 << endl;

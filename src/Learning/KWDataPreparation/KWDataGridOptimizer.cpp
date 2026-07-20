@@ -427,11 +427,7 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	KWDataGrid mandatoryDataGrid;
 	int nMandatoryAttributeNumber;
 	int nMaxAttributeNumber;
-	int nMaxPartNumber;
-	int nMaxContinuousPartNumber;
-	int nMaxSymbolPartNumber;
-	int nAddedContinuousPartNumber;
-	int nAddedSymbolPartNumber;
+	int nAddedPartNumber;
 	int nAttributeNumber;
 	int nGridSize;
 	ALString sTmp;
@@ -471,27 +467,8 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	nAttributeNumber = 1 + (int)ceil((dNoiseRate * nMaxAttributeNumber));
 	nAttributeNumber = min(nAttributeNumber, initialDataGrid->GetAttributeNumber());
 
-	// Calcul des nombres maximal de parties a exporter
-	nMaxContinuousPartNumber = 1 + (int)ceil(nGridSize / log(nGridSize + 1.0));
-	nMaxSymbolPartNumber = 1 + (int)ceil(sqrt(nGridSize * 1.0));
-	nMaxPartNumber = 1 + (int)ceil(pow(nGridSize * 1.0, 1.0 / nAttributeNumber));
-	nMaxPartNumber = min(nMaxPartNumber, nGridSize);
-	nMaxContinuousPartNumber = min(nMaxContinuousPartNumber, nMaxPartNumber);
-	nMaxSymbolPartNumber = min(nMaxSymbolPartNumber, nMaxPartNumber);
-
 	// Calcul du nombre de parties aleatoire a ajouter
-	nAddedContinuousPartNumber = (int)ceil(dNoiseRate * nMaxContinuousPartNumber);
-	nAddedSymbolPartNumber = (int)ceil(dNoiseRate * nMaxSymbolPartNumber);
-
-	// Parametrage avance temporaire, pour etude sur les multinomiales hierarchiques (Marc Boulle)
-	// Cf. classe d'etude KWHierarchicalMultinomialStudy
-	if (optimizationParameters.GetInternalParameter() == "LargeNeighbourhoods")
-	{
-		nMaxContinuousPartNumber = (int)(nGridSize / 2);
-		nMaxSymbolPartNumber = (int)sqrt(nGridSize * 1.0);
-		nAddedContinuousPartNumber = (int)ceil(dNoiseRate * nMaxContinuousPartNumber);
-		nAddedSymbolPartNumber = (int)ceil(dNoiseRate * nMaxSymbolPartNumber);
-	}
+	nAddedPartNumber = ComputeNeighbourSolutionAddedPartNumber(initialDataGrid, nAttributeNumber, dNoiseRate);
 
 	// Export d'un sous-ensemble d'attributs obligatoires (les attributs informatifs) en fonction du niveau de bruit
 	// Les attributs obligatoires sont les attributs de la grille optimisee que l'on va conserver
@@ -509,8 +486,7 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 					    nAttributeNumber);
 
 	// Export des parties
-	dataGridManager.AddRandomParts(initialDataGrid, neighbourDataGridMerger, optimizedDataGrid,
-				       nAddedContinuousPartNumber, nAddedSymbolPartNumber);
+	dataGridManager.AddRandomParts(initialDataGrid, neighbourDataGridMerger, optimizedDataGrid, nAddedPartNumber);
 	TaskProgression::DisplayProgression(25);
 
 	// Export des cellules
@@ -611,6 +587,47 @@ double KWDataGridOptimizer::OptimizeSolution(const KWDataGrid* initialDataGrid, 
 	ensure(dataGridMerger->Check());
 	ensure(fabs(dataGridCosts->ComputeDataGridTotalCost(dataGridMerger) - dCost) < dEpsilon);
 	return dCost;
+}
+
+int KWDataGridOptimizer::ComputeNeighbourSolutionAddedPartNumber(const KWDataGrid* initialDataGrid,
+								 int nNeighbourAttributeNumber,
+								 double dNeighbourhoodSize) const
+{
+	int nAddedPartNumber;
+	int nGridSize;
+	int nMaxPartNumber;
+
+	require(initialDataGrid != NULL);
+	require(2 <= nNeighbourAttributeNumber and nNeighbourAttributeNumber <= initialDataGrid->GetAttributeNumber());
+	require(0 < dNeighbourhoodSize and dNeighbourhoodSize <= 1);
+
+	// Initialisation de la taille de la grille prise en compte
+	// La taille de la grille est initialise avec le nombre de cellules non vides de la grille initiale
+	// pour une granularite donnee.
+	// - a noter: on a toujours GetCellNumber <= GetGridFrequency.
+	// - pour la granularite max, cela permet d'avoir un indicateur de sparsite de la grille plus fiable
+	//   que le nombre d'individus (GetGridFrequency), qui reflete la proportion de cellules non vides.
+	// - pour les granularites intermediaires, ce nombre est plus petit, ce qui entrainera la generation
+	//   de grilles voisines aleatoires plus petites, et donc plus rapides a optimiser:
+	//   - dans le cas non supervise, c'est ce que l'on souhaite pour obtenir des premieres solutions rapidement
+	//   - dans le cas supervise, cette taille reduite limite l'espace de recherche avec un impact
+	//     pontiellement negatif sur la qualite des solutions: on considere ce probleme comme negligeable
+	nGridSize = initialDataGrid->GetCellNumber();
+
+	// Calcul des nombres maximal de parties a exporter
+	nMaxPartNumber = (int)ceil(pow(nGridSize * 1.0, 1.0 / nNeighbourAttributeNumber));
+	assert(nMaxPartNumber <= nGridSize);
+
+	// Calcul du nombre de parties aleatoire a ajouter
+	nAddedPartNumber = (int)ceil(dNeighbourhoodSize * nMaxPartNumber);
+
+	// Parametrage avance temporaire, pour etude sur les multinomiales hierarchiques (Marc Boulle)
+	// Cf. classe d'etude KWHierarchicalMultinomialStudy
+	if (optimizationParameters.GetInternalParameter() == "LargeNeighbourhoods")
+		nAddedPartNumber = (int)ceil(dNeighbourhoodSize * nGridSize / 2);
+
+	ensure(nAddedPartNumber >= 1);
+	return nAddedPartNumber;
 }
 
 void KWDataGridOptimizer::SaveDataGrid(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid) const
