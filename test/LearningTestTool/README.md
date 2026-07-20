@@ -1,6 +1,44 @@
 # Khiops test tool: LearningTest and LearningTestTool
 
-LearningTest
+
+
+
+<!-- @import "[TOC]" {cmd="toc" depthFrom=1 depthTo=6 orderedList=false} -->
+
+<!-- code_chunk_output -->
+
+- [Khiops test tool: LearningTest and LearningTestTool](#khiops-test-tool-learningtest-and-learningtesttool)
+  - [LearningTest](#learningtest)
+    - [LearningTest directory tree](#learningtest-directory-tree)
+    - [Test dirs](#test-dirs)
+    - [Normalisation of paths in scenarios](#normalisation-of-paths-in-scenarios)
+    - [Variants of references results](#variants-of-references-results)
+  - [LearningTestTool](#learningtesttool)
+    - [Terminology](#terminology)
+  - [LearningTest commands](#learningtest-commands)
+    - [LearningTestTool directory tree](#learningtesttool-directory-tree)
+    - [Implementation of LearningTestTool](#implementation-of-learningtesttool)
+  - [Running Khiops tests](#running-khiops-tests)
+  - [Main usages](#main-usages)
+    - [Test methodology](#test-methodology)
+    - [Non-regression tests for developpement](#non-regression-tests-for-developpement)
+    - [Non-regression tests for release](#non-regression-tests-for-release)
+    - [Portability on new platform](#portability-on-new-platform)
+    - [CI/CD](#cicd)
+  - [Evolutions of LearningTest](#evolutions-of-learningtest)
+    - [New test dir](#new-test-dir)
+    - [New test suite](#new-test-suite)
+    - [Evolution of scenarios](#evolution-of-scenarios)
+    - [Evolution of reference results](#evolution-of-reference-results)
+  - [Management of LearningTest and LearningTestTool](#management-of-learningtest-and-learningtesttool)
+  - [Testing with datasets on the cloud](#testing-with-datasets-on-the-cloud)
+    - [Setup](#setup)
+    - [Full test process](#full-test-process)
+    - [Notes on locally-written files](#notes-on-locally-written-files)
+
+<!-- /code_chunk_output -->
+
+LearningTest:
 - created in March 2009
 - automated test of Khiops tools
 - versions synchronized with delivered Khiops versions
@@ -309,141 +347,6 @@ The aim is check that the new platform is supported by the tool.
 
 The tests must be run on the new platform, using the _full_ family.
 
-### Testing with datasets on the cloud
-
-Khiops supports cloud storage drivers (GCS, S3, Azure) and can read datasets directly from a cloud URI at runtime.
-This allows running the full LearningTest suite without storing the large datasets (~5 GB) on the local machine.
-
-#### Setup
-
-In addition to the dataset collections, cloud execution also needs test-local assets stored in test dirs
-(for example local dictionaries such as `./*.kdic` and local data files referenced from `./`).
-These files are part of the `scripts` export type.
-
-Minimal way to prepare a cloud `LearningTest` tree (example with `-f basic`):
-
-```bash
-# 1) Export dataset collections -> /tmp/LearningTest_datasets
-kht_export ../LearningTest/ /tmp/ -f basic --export-type datasets
-
-# 2) Export test scripts and local test assets -> /tmp/LearningTest_scripts
-kht_export ../LearningTest/ /tmp/ -f basic --export-type scripts
-
-# 3) Merge both exports into one single LearningTest tree
-mkdir -p /tmp/LearningTest
-cp -R /tmp/LearningTest_datasets/. /tmp/LearningTest/
-cp -R /tmp/LearningTest_scripts/. /tmp/LearningTest/
-```
-
-After this merge, upload `/tmp/LearningTest/` to your cloud bucket/container. The resulting cloud tree must
-contain both dataset collections (`datasets/`, `MTdatasets/`, `TextDatasets/`) and tool test dirs
-(`TestKhiops/`, `TestCoclustering/`, `TestKNI/`) with their `test.prm` and local files.
-
-Two copies of the LearningTest tree are maintained:
-
-| Location | What it contains |
-|---|---|
-| **Local disk** | Scenarios (`test.prm`), reference results (`results.ref/`), tool dirs and suite dirs structure — **no dataset files** |
-| **Cloud storage** | A runnable LearningTest subset: dataset collections (`datasets/`, `MTdatasets/`, `TextDatasets/`) **and** test scripts/local assets under tool dirs (`TestKhiops/`, `TestCoclustering/`, `TestKNI/`) |
-
-If you already prepared `/tmp/LearningTest` with both exports (datasets + scripts), upload that merged tree once (example with GCS):
-```
-gcloud storage cp -r /tmp/LearningTest gs://my-bucket/
-```
-
-The same principle applies for S3 (`aws s3 cp --recursive`) or Azure (`az storage blob upload-batch`).
-
-#### Full test process
-
-**Step 1 – Run the tests with cloud datasets**
-
-Pass `--cloud-directory` to `kht_test`. Khiops generates a temporary scenario that replaces
-local relative paths (`../../../`) with cloud URIs, runs against the cloud datasets, and writes
-its Khiops output files (`.khj`, `.kdic`, `.xls`, output scenarios, task file, …) back to the cloud.
-`err.txt` and all Python diagnostic files (`stdout_error.log`, `stderr_error.log`,
-`return_code_error.log`, `process_timeout_error.log`, `time.log`) are written **locally**.
-
-```bash
-# Full family, 4 processes, GCS example
-kht_test LearningTest r --cloud-directory gs://my-bucket/LearningTest -p 4
-
-# Or for a single test dir
-kht_test LearningTest/TestKhiops/Standard/Iris r --cloud-directory gs://my-bucket/LearningTest
-```
-
-After this step each test dir's local `results/` folder contains `err.txt` and the Python-written
-diagnostic files. The console also prints the path to the local `err.txt` for each test, enabling
-a quick sanity check (fatal errors, batch mode failures) **before downloading anything from the cloud**.
-
-**Step 2 – Download the Khiops result files**
-
-Use the cloud provider CLI to copy the result directories back to the local machine,
-merging with the already-present Python-written files:
-
-```bash
-# GCS – download results for all Khiops test dirs
-gcloud storage cp -r \
-  "gs://my-bucket/LearningTest/TestKhiops/*/results" \
-  ./LearningTest/TestKhiops/
-
-# GCS – download results for all tools
-for tool in TestKhiops TestCoclustering TestKNI; do
-  gcloud storage cp -r \
-    "gs://my-bucket/LearningTest/$tool/*/results" \
-    ./LearningTest/$tool/
-done
-```
-
-Equivalent commands for S3:
-```bash
-aws s3 cp --recursive s3://my-bucket/LearningTest/ ./LearningTest/ \
-  --exclude "*" --include "*/results/*"
-```
-
-**Step 3 – Normalize cloud paths in result files**
-
-The downloaded result files (`.khj`, …) still contain cloud URIs as data paths.
-Replace them with local relative paths before comparison:
-
-```bash
-kht_apply LearningTest transform-cloud-results \
-  --cloud-directory gs://my-bucket/LearningTest
-
-# Or for a single suite
-kht_apply LearningTest/TestKhiops/Standard transform-cloud-results \
-  --cloud-directory gs://my-bucket/LearningTest
-```
-
-This instruction also calls the version-string cleaner that `kht_test` normally runs
-after execution, so the result files are ready for comparison.
-
-**Step 4 – Compare results against references**
-
-```bash
-kht_test LearningTest check
-
-# Or targeted
-kht_test LearningTest/TestKhiops/Standard check
-```
-
-If errors are found, use the standard `kht_apply errors` and `kht_apply logs` instructions
-to analyse them. To update the reference results after a confirmed algorithm change,
-use `kht_apply makeref` as usual.
-
-#### Notes on locally-written files
-
-**`err.txt`** is written locally (not to the cloud) so you can inspect Khiops errors immediately
-after Step 1 without downloading anything. It may contain cloud URIs in error messages (e.g.
-`gs://…/datasets/…`); these are normalised by `transform-cloud-results` in Step 3 so that
-`kht_test check` in Step 4 compares correctly against `results.ref/err.txt`.
-
-**`time.log`** records the **wall-clock time on the machine running `kht_test`**, including
-cloud I/O latency, not pure Khiops computation time. This will differ from `results.ref/time.log`.
-The comparison engine already tolerates these differences so they do not cause false errors.
-`--min-test-time` / `--max-test-time` filters are based on the **reference** time (unaffected).
-If `kht_apply makeref` is used after a cloud run, `results.ref/time.log` will reflect
-cloud-run wall-clock times — harmless but worth being aware of for `kht_apply times` reports.
-
 ### CI/CD
 
 The tests can be run at different steps of the developpement process:
@@ -559,5 +462,138 @@ The full LearningTest directory tree cannot be embedded in the Khiops github rep
 - cost: storing and managing a large number of tests on dozens of platforms can be expensive in an external cloud
 
 
+## Testing with datasets on the cloud
 
+Khiops supports cloud storage drivers (GCS, S3, Azure) and can read datasets directly from a cloud URI at runtime.
+This allows running the full LearningTest suite without storing the large datasets (~5 GB) on the local machine.
+
+### Setup
+
+In addition to the dataset collections, cloud execution also needs test-local assets stored in test dirs
+(for example local dictionaries such as `./*.kdic` and local data files referenced from `./`).
+These files are part of the `scripts` export type.
+
+Minimal way to prepare a cloud `LearningTest` tree (example with `-f basic`):
+
+```bash
+# 1) Export dataset collections -> /tmp/LearningTest_datasets
+kht_export ../LearningTest/ /tmp/ -f basic --export-type datasets
+
+# 2) Export test scripts and local test assets -> /tmp/LearningTest_scripts
+kht_export ../LearningTest/ /tmp/ -f basic --export-type scripts
+
+# 3) Merge both exports into one single LearningTest tree
+mkdir -p /tmp/LearningTest
+cp -R /tmp/LearningTest_datasets/. /tmp/LearningTest/
+cp -R /tmp/LearningTest_scripts/. /tmp/LearningTest/
+```
+
+After this merge, upload `/tmp/LearningTest/` to your cloud bucket/container. The resulting cloud tree must
+contain both dataset collections (`datasets/`, `MTdatasets/`, `TextDatasets/`) and tool test dirs
+(`TestKhiops/`, `TestCoclustering/`, `TestKNI/`) with their `test.prm` and local files.
+
+Two copies of the LearningTest tree are maintained:
+
+| Location | What it contains |
+|---|---|
+| **Local disk** | Scenarios (`test.prm`), reference results (`results.ref/`), tool dirs and suite dirs structure — **no dataset files** |
+| **Cloud storage** | A runnable LearningTest subset: dataset collections (`datasets/`, `MTdatasets/`, `TextDatasets/`) **and** test scripts/local assets under tool dirs (`TestKhiops/`, `TestCoclustering/`, `TestKNI/`) |
+
+If you already prepared `/tmp/LearningTest` with both exports (datasets + scripts), upload that merged tree once (example with GCS):
+```
+gcloud storage cp -r /tmp/LearningTest gs://my-bucket/
+```
+
+The same principle applies for S3 (`aws s3 cp --recursive`) or Azure (`az storage blob upload-batch`).
+
+### Full test process
+
+**Step 1 – Run the tests with cloud datasets**
+
+Pass `--cloud-directory` to `kht_test`. Khiops generates a temporary scenario that replaces
+local relative paths (`../../../`) with cloud URIs, runs against the cloud datasets, and writes
+its Khiops output files (`.khj`, `.kdic`, `.xls`, output scenarios, task file, …) back to the cloud.
+`err.txt` and all Python diagnostic files (`stdout_error.log`, `stderr_error.log`,
+`return_code_error.log`, `process_timeout_error.log`, `time.log`) are written **locally**.
+
+```bash
+# Full family, 4 processes, GCS example
+kht_test LearningTest r --cloud-directory gs://my-bucket/LearningTest -p 4
+
+# Or for a single test dir
+kht_test LearningTest/TestKhiops/Standard/Iris r --cloud-directory gs://my-bucket/LearningTest
+```
+
+After this step each test dir's local `results/` folder contains `err.txt` and the Python-written
+diagnostic files. The console also prints the path to the local `err.txt` for each test, enabling
+a quick sanity check (fatal errors, batch mode failures) **before downloading anything from the cloud**.
+
+**Step 2 – Download the Khiops result files**
+
+Use the cloud provider CLI to copy the result directories back to the local machine,
+merging with the already-present Python-written files:
+
+```bash
+# GCS – download results for all Khiops test dirs
+gcloud storage cp -r \
+  "gs://my-bucket/LearningTest/TestKhiops/*/results" \
+  ./LearningTest/TestKhiops/
+
+# GCS – download results for all tools
+for tool in TestKhiops TestCoclustering TestKNI; do
+  gcloud storage cp -r \
+    "gs://my-bucket/LearningTest/$tool/*/results" \
+    ./LearningTest/$tool/
+done
+```
+
+Equivalent commands for S3:
+```bash
+aws s3 cp --recursive s3://my-bucket/LearningTest/ ./LearningTest/ \
+  --exclude "*" --include "*/results/*"
+```
+
+**Step 3 – Normalize cloud paths in result files**
+
+The downloaded result files (`.khj`, …) still contain cloud URIs as data paths.
+Replace them with local relative paths before comparison:
+
+```bash
+kht_apply LearningTest transform-cloud-results \
+  --cloud-directory gs://my-bucket/LearningTest
+
+# Or for a single suite
+kht_apply LearningTest/TestKhiops/Standard transform-cloud-results \
+  --cloud-directory gs://my-bucket/LearningTest
+```
+
+This instruction also calls the version-string cleaner that `kht_test` normally runs
+after execution, so the result files are ready for comparison.
+
+**Step 4 – Compare results against references**
+
+```bash
+kht_test LearningTest check
+
+# Or targeted
+kht_test LearningTest/TestKhiops/Standard check
+```
+
+If errors are found, use the standard `kht_apply errors` and `kht_apply logs` instructions
+to analyse them. To update the reference results after a confirmed algorithm change,
+use `kht_apply makeref` as usual.
+
+### Notes on locally-written files
+
+**`err.txt`** is written locally (not to the cloud) so you can inspect Khiops errors immediately
+after Step 1 without downloading anything. It may contain cloud URIs in error messages (e.g.
+`gs://…/datasets/…`); these are normalised by `transform-cloud-results` in Step 3 so that
+`kht_test check` in Step 4 compares correctly against `results.ref/err.txt`.
+
+**`time.log`** records the **wall-clock time on the machine running `kht_test`**, including
+cloud I/O latency, not pure Khiops computation time. This will differ from `results.ref/time.log`.
+The comparison engine already tolerates these differences so they do not cause false errors.
+`--min-test-time` / `--max-test-time` filters are based on the **reference** time (unaffected).
+If `kht_apply makeref` is used after a cloud run, `results.ref/time.log` will reflect
+cloud-run wall-clock times — harmless but worth being aware of for `kht_apply times` reports.
 
