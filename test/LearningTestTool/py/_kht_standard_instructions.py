@@ -495,7 +495,7 @@ def instruction_copy_ref(test_dir):
                 )
 
 
-def instruction_check_hdfs(test_dir):
+def instruction_check_cloud(test_dir):
     def parameter_exist(line, searched_keyword):
         # Test s'il y a au moins un parametre dans une ligne et une valeur pour ce parametre
         fields = (
@@ -505,7 +505,7 @@ def instruction_check_hdfs(test_dir):
         )
         return len(fields) > 0 and len(fields[0]) > 0
 
-    # Verification de l'adapation au systeme HDFS
+    # Verification de l'adapation aux chemins sur le cloud
     keywords = [
         "class_file_name",
         "ResultFilesDirectory",
@@ -551,169 +551,6 @@ def instruction_check_hdfs(test_dir):
                     if parameter_exist(s, keyword):
                         print(str(line_index) + ": \t" + s[:-1])
             line_index += 1
-
-
-def instruction_transform_hdfs(test_dir):
-    def parameter_exist(line, searched_keyword):
-        # Test s'il y a au moins un parametre dans une ligne et une valeur pour ce parametre
-        fields = (
-            line[line.find(searched_keyword) + len(searched_keyword)]
-            .strip()
-            .split("//")
-        )
-        return len(fields) > 0 and len(fields[0]) > 0
-
-    # Creation d'un nouveau fichier test.prm.hdfs compatible avec  hdfs
-    keywords = [
-        "class_file_name",
-        "ResultFilesDirectory",
-        ".database_name",
-        ".DataTableName",
-        "ReportFileName",
-        "InputCoclusteringFileName",
-    ]
-    # PostProcessedCoclusteringFileName CoclusteringDictionaryFileName supprime
-    # Le nom du dictionnaire de coclustering ne devrait pas etre un chemin
-    prm_file_path = os.path.join(test_dir, kht.TEST_PRM)
-    prm_file = open(prm_file_path, "r", errors="ignore")
-    prm_file_lines = prm_file.readlines()
-    prm_file.close()
-    prm_file = open(prm_file_path, "w", errors="ignore")
-    for s in prm_file_lines:
-        new_line = s
-        # Commentaires dans le scenario
-        if "//" in s:
-            comment_pos = s.find("//")
-            if (
-                comment_pos > 0
-                and s[comment_pos - 1] != " "
-                and s[comment_pos - 1] != "\t"
-            ):
-                if s[comment_pos + 2 :].find("//") >= 0:
-                    print(
-                        "\tWARNING: Multiple '//' in line (NO TRANSFkht.ORM) -> "
-                        + s[:-1]
-                    )
-                else:
-                    new_line = s.replace("//", " //")
-        # Test de chaque mot cle
-        for keyword in keywords:
-            if (
-                s.find(keyword) >= 0
-                and s.find(" ../../../datasets") <= 0
-                and s.find(" ../../../MTdatasets") <= 0
-                and s.find(" ./") <= 0
-            ):
-                if parameter_exist(s, keyword):
-                    space_pos = s.find(" ")
-                    new_line = s[: space_pos + 1] + "./" + s[space_pos + 1 :]
-                    break
-
-        # Cas special pour le mot cle "EvaluationFileName", ne doit pas etre confondu avec TestEvaluationFileName
-        if (
-            s.find("EvaluationFileName") == 0
-            and not s.find(" ./")
-            and parameter_exist(s, "EvaluationFileName")
-        ):
-            space_pos = s.find(" ")
-            new_line = s[: space_pos + 1] + "./" + s[space_pos + 1 :]
-
-        prm_file.write(new_line)
-    prm_file.close()
-    # Transformation du fichier d'erreur dans le repertoire des resultats de reference
-    do_it = False
-    results_ref_dir, _ = results.get_results_ref_dir(test_dir, show=True)
-    if results_ref_dir is not None:
-        results_ref_err_file_path = os.path.join(test_dir, results_ref_dir, kht.ERR_TXT)
-        if do_it and os.path.isfile(results_ref_err_file_path):
-            err_file = open(results_ref_err_file_path, "r", errors="ignore")
-            err_file_lines = err_file.readlines()
-            err_file.close()
-            err_file = open(results_ref_err_file_path, "w", errors="ignore")
-            for s in err_file_lines:
-                new_line = s
-                new_line = new_line.replace(
-                    " " + kht.RESULTS + "/", " ./" + kht.RESULTS + "/"
-                )
-                new_line = new_line.replace(
-                    " " + kht.RESULTS + "\\", " ./" + kht.RESULTS + "\\"
-                )
-                err_file.write(new_line)
-            err_file.close()
-
-
-def instruction_transform_hdfs_results(test_dir):
-    def escape_for_json(token):
-        return token.replace("/", "\\/")
-
-    hdfs_test_dir = "hdfs:///user/bguerraz/LearningTest/TestKhiops/"
-    hdfs_data_dir = "hdfs:///user/bguerraz/LearningTest/"
-
-    std_data_dir = "../../../"
-    datasets = "datasets"
-    mt_datasets = "MTdatasets"
-
-    head, sub_test_name = os.path.split(test_dir)
-    _, test_name = os.path.split(head)
-
-    hdfs_local_dir = hdfs_test_dir + test_name + "/" + sub_test_name
-
-    results_dir = os.path.join(test_dir, kht.RESULTS)
-    if os.path.isdir(results_dir):
-        for file_name in os.listdir(results_dir):
-            file_path = os.path.join(results_dir, file_name)
-
-            # Lecture du fichier
-            with open(file_path, "r", errors="ignore") as file:
-                file_data = file.read()
-
-                # Recherche et remplacement
-                if ".khj" in file_name:
-                    # Jeux de donnees
-                    file_data = file_data.replace(
-                        escape_for_json(hdfs_data_dir + datasets),
-                        escape_for_json(std_data_dir + datasets),
-                    )
-                    file_data = file_data.replace(
-                        escape_for_json(hdfs_data_dir + mt_datasets),
-                        escape_for_json(std_data_dir + mt_datasets),
-                    )
-
-                    # Repertoire courant ./
-                    file_data = file_data.replace(
-                        escape_for_json(hdfs_local_dir + "/" + kht.RESULTS),
-                        escape_for_json("./" + kht.RESULTS),
-                    )  # ou kht.RESULTS sans "./"" ?
-
-                    # Fichiers dans le repertoire courant
-
-                    # file_data = file_data.replace(escape_for_json(
-                    #    hdfs_local_dir+"/"), "")
-                    file_data = file_data.replace(
-                        escape_for_json(hdfs_local_dir + "/"), escape_for_json("./")
-                    )
-
-                else:
-                    # Jeux de donnees
-                    file_data = file_data.replace(
-                        hdfs_data_dir + datasets, std_data_dir + datasets
-                    )
-                    file_data = file_data.replace(
-                        hdfs_data_dir + mt_datasets, std_data_dir + mt_datasets
-                    )
-
-                    # Repertoire courant ./
-                    file_data = file_data.replace(
-                        hdfs_local_dir + "/" + kht.RESULTS, "./" + kht.RESULTS
-                    )
-
-                    # Fichiers dans le repertoire courant
-                    file_data = file_data.replace(hdfs_local_dir + "/", "./")
-
-                # Ecriture du fichier
-                os.chmod(file_path, stat.S_IWRITE | stat.S_IREAD)
-                with open(file_path, "w", errors="ignore") as output_file:
-                    output_file.write(file_data)
 
 
 def instruction_transform_cloud_results(test_dir):
@@ -883,21 +720,9 @@ def register_standard_instructions():
     )
     register_instruction(
         available_instructions,
-        "check-hdfs",
-        instruction_check_hdfs,
-        "check if parameter files are compliant with HDFS",
-    )
-    register_instruction(
-        available_instructions,
-        "transform-hdfs",
-        instruction_transform_hdfs,
-        "transform parameter files to be compliant with HDFS",
-    )
-    register_instruction(
-        available_instructions,
-        "transform-hdfs-results",
-        instruction_transform_hdfs_results,
-        "transform results files to be compliant with HDFS",
+        "check-cloud",
+        instruction_check_cloud,
+        "check if parameter files are compliant with data paths on cloud",
     )
     register_instruction(
         available_instructions,
