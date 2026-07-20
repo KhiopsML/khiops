@@ -524,16 +524,24 @@ double KWDataGridOptimizerIxV::OptimizeNeighbourSolution(const KWDataGrid* initi
 	KWDataGrid partitionedReferencePostMergedDataGrid;
 	KWDataGrid initialFromSurtokenizedDataGrid;
 	KWDataGrid surtokenizedDataGrid;
+	const KWDGInnerAttributes* innerAttributes;
 	int nInstanceNumber;
 	int nMaximumInitialTotalPartNumber;
 	int nInitialTokenNumber;
 	int nCurrentTokenNumber;
 	int nTargetTokenNumber;
+	int nSplittableInnerVariableNumber;
+	int nMinimumAddedTokenNumber;
+	int nRandomAddedTokenNumber;
+	int nAddedPartNumber;
+	int nAddedTokenNumber;
 	double dCost;
+	int n;
 	ALString sTmp;
 
 	require(initialDataGrid != NULL);
 	require(initialDataGrid->IsVarPartDataGrid());
+	require(0 <= dNoiseRate and dNoiseRate <= 1);
 
 	///////////////////////////////////////////////////////////
 	// Surtokenisation d'une grille
@@ -549,15 +557,38 @@ double KWDataGridOptimizerIxV::OptimizeNeighbourSolution(const KWDataGrid* initi
 	nCurrentTokenNumber =
 	    currentOptimizedDataGrid->GetVarPartAttribute()->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts();
 
-	// Nombre de token cibles initial: on prend le nombre de token existant, plus un par variable interne
-	nTargetTokenNumber = nCurrentTokenNumber + initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber();
-	nTargetTokenNumber = min(nTargetTokenNumber, nMaximumInitialTotalPartNumber);
+	// Comptage du nombre de variable interne que l'on peut partitionner
+	// Dans le cas de tres grand nombres de variables internes, par exemple les mots d'un texte,
+	// un grande partie n'est que presente ou manquante, et il n'est pas possible de les decouper
+	nSplittableInnerVariableNumber = 0;
+	innerAttributes = initialDataGrid->GetVarPartAttribute()->GetInnerAttributes();
+	for (n = 0; n < innerAttributes->GetInnerAttributeNumber(); n++)
+	{
+		if (innerAttributes->GetInnerAttributeAt(n)->GetPartNumber() > 0)
+			nSplittableInnerVariableNumber++;
+	}
+
+	// Initialisation d'un nombre minimum de tokens, fonction du nombre de variable internes partitionnable
+	// Proche de ce nombre pour les petit nombre, decroissant avec les grand nombre
+	nMinimumAddedTokenNumber =
+	    (int)(sqrt(nSplittableInnerVariableNumber) * log(nSplittableInnerVariableNumber + 1) / log(2));
+	nMinimumAddedTokenNumber = min(nMinimumAddedTokenNumber, nSplittableInnerVariableNumber);
+
+	// Calcul du nombre de tokens a ajouter en fonction du nombre du nombre de parties aleatoires a ajouter
+	nAddedPartNumber =
+	    ComputeNeighbourSolutionAddedPartNumber(initialDataGrid, initialDataGrid->GetAttributeNumber(), dNoiseRate);
+
+	// Calcul du nombre de token ajoutes aleatoirement
+	nRandomAddedTokenNumber = int((nMaximumInitialTotalPartNumber - nCurrentTokenNumber) * dNoiseRate);
 
 	// On ajoute des tokens de facon aleatoire en fonction de la taille du voisinnage
-	nTargetTokenNumber += (int)pow(nMaximumInitialTotalPartNumber - nTargetTokenNumber, dNoiseRate);
+	nAddedTokenNumber = nAddedPartNumber + max(nRandomAddedTokenNumber, nMinimumAddedTokenNumber);
+	nTargetTokenNumber = nCurrentTokenNumber + nAddedTokenNumber;
+
+	// On borne par le nombre max de tokens exploitables
 	nTargetTokenNumber = min(nTargetTokenNumber, nMaximumInitialTotalPartNumber);
-	nTargetTokenNumber = max(nTargetTokenNumber, nCurrentTokenNumber);
 	nTargetTokenNumber = min(nTargetTokenNumber, nInitialTokenNumber);
+	assert(nTargetTokenNumber >= nCurrentTokenNumber);
 
 	// Debut du profiling de la surtokenisation
 	KWDataGridOptimizer::GetProfiler()->BeginMethod("Surtokenization solution");

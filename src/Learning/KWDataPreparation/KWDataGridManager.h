@@ -152,12 +152,11 @@ public:
 
 	// Ajout aleatoire de parties pour chaque attribut cible
 	// Les nouvelles parties sont obtenues en sur-partitionnant aleatoirement les partitions existantes,
-	// pour ajouter les nombres de parties demandees par type d'attribut.
+	// pour ajouter les nombres de parties demandees
 	// Le nombre de parties reellement obtenu peut etre inferieur a celui demande, s'il n'y
 	// a pas assez de valeurs disponibles pour scinder des parties existantes
 	void AddRandomParts(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid,
-			    const KWDataGrid* mandatoryDataGrid, int nAddedContinuousPartNumber,
-			    int nAddedSymbolPartNumber) const;
+			    const KWDataGrid* mandatoryDataGrid, int nAddedPartNumber) const;
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Construction d'une grille de donnees cible en granularisant la grille de donnees source

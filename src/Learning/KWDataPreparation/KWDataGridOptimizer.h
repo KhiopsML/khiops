@@ -181,6 +181,10 @@ protected:
 	//////////////////////////////////////////////////////////////////////////////////
 	// Methodes utilitaires
 
+	// Calcul du nombre de partie a ajouter par attribut d'une grille vosine en fonction de la taille de voisinnage
+	int ComputeNeighbourSolutionAddedPartNumber(const KWDataGrid* initialDataGrid, int nNeighbourAttributeNumber,
+						    double dNeighbourhoodSize) const;
+
 	// Sauvegarde d'une grille source dans une grille cible
 	void SaveDataGrid(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid) const;
 
