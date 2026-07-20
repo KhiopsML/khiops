@@ -366,6 +366,18 @@ def argument_parser_add_limit_test_time_arguments(parser):
     )
 
 
+def argument_parser_add_cloud_directory(parser):
+    """Ajout de l'argument cloud_directory"""
+    parser.add_argument(
+        "--cloud-directory",
+        help="cloud directory URI used by 'transform-cloud-results' instruction"
+        " (e.g., gs://bucket/LearningTest, s3://bucket/LearningTest)",
+        type=str,
+        metavar="uri",
+        action="store",
+    )
+
+
 def argument_parser_check_source_argument(parser, source):
     """Verification de l'argument source, a appeler apres les verification standard de parse_args()
     On renvoie la decomposition du repertoire source sous la forme des champs:
@@ -440,6 +452,16 @@ def argument_parser_check_limit_test_time_arguments(
         parser.error("argument --min-test-time must be positive")
     if max_test_time is not None and max_test_time < 0:
         parser.error("argument --max-test-time must be positive")
+
+
+def argument_parser_check_uri(parser, uri):
+    """Verification de l'argument cloud_directory, a appeler apres les verification standard de parse_args()"""
+    if not is_valid_uri(uri):
+        parser.error(
+            "argument --cloud-directory: "
+            + uri
+            + " should be a cloud directory URI (e.g., gs://bucket/LearningTest, s3://bucket/LearningTest)"
+        )
 
 
 """
@@ -695,3 +717,23 @@ class Unbuffered:
 
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
+
+
+"""
+Gestion des fichiers sur le cloud
+"""
+
+
+def normalize_cloud_directory_uri(cloud_directory):
+    """Normalise un URI cloud en supprimant les '/' terminaux.
+    Conserve le separateur de schema (ex: gs://).
+    """
+
+    normalized_uri = cloud_directory
+    while normalized_uri.endswith("/") and not normalized_uri.endswith("://"):
+        normalized_uri = normalized_uri[:-1]
+    return normalized_uri
+
+
+def is_valid_uri(uri):
+    return uri is not None and uri.startswith(("gs://", "s3://", "https://"))

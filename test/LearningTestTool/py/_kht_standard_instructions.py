@@ -19,6 +19,8 @@ Documentee et maintenues officiellement
 # Imports de pykhiops a effectuer au cas par cas dans chaque methode, car ralentissant trop les scripts
 # import pykhiops as pk
 
+# cloud directory URI used by 'transform-cloud-results'
+cloud_directory = None
 
 """
 Fonctions utilitaires generales
@@ -42,7 +44,7 @@ def file_compare(file_name1: str, file_name2: str, skip_patterns: list = None):
     """Comparaison du contenu de deux fichiers
     :param file_name1:
     :param file_name2:
-    :param skip_patterns: ne compâre les lignes contenant une des chaines de carcateres en parametres
+    :param skip_patterns: ne compare pas les lignes contenant une des chaines de carcateres en parametres
     :return:
     """
     compare_ok = os.path.isfile(file_name1) and os.path.isfile(file_name2)
@@ -714,25 +716,13 @@ def instruction_transform_hdfs_results(test_dir):
                     output_file.write(file_data)
 
 
-def instruction_transform_cloud_results(test_dir, cloud_directory):
+def instruction_transform_cloud_results(test_dir):
     """Remplace les chemins cloud dans les fichiers de resultats par les chemins locaux relatifs.
     Doit etre applique apres telechargement des resultats du cloud, avant kht_test check.
     """
 
     def escape_for_json(token):
         return token.replace("/", "\\/")
-
-    def normalize_cloud_directory_uri(cloud_uri):
-        """Normalise un URI cloud en supprimant les '/' terminaux.
-        Conserve le separateur de schema (ex: gs://).
-        """
-
-        normalized_uri = cloud_uri
-        while normalized_uri.endswith("/") and not normalized_uri.endswith("://"):
-            normalized_uri = normalized_uri[:-1]
-        return normalized_uri
-
-    cloud_directory = normalize_cloud_directory_uri(cloud_directory)
 
     # Calcul des chemins cloud correspondant a ce test
     home_dir = utils.get_home_dir(test_dir)

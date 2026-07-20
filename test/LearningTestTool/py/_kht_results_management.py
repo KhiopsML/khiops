@@ -51,7 +51,7 @@ Examples d'ensemble correct de noms de repertoire
 
 """Variable globale de gestion du contexte des resultats de reference"""
 
-# Nombre de process utilisex
+# Nombre de process utilises
 process_number = 1
 
 # Memorisation d'une plateforme force pour la comparaison entre resultats de test de de reference

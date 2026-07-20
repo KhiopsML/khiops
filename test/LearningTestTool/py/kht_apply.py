@@ -236,15 +236,7 @@ def main():
     utils.argument_parser_add_processes_argument(parser)
     utils.argument_parser_add_forced_platform_argument(parser)
     utils.argument_parser_add_limit_test_time_arguments(parser)
-
-    # Argument cloud pour l'instruction transform-cloud-results
-    parser.add_argument(
-        "--cloud-directory",
-        help="cloud directory URI used by 'transform-cloud-results' instruction"
-        " (e.g., gs://bucket/LearningTest, s3://bucket/LearningTest)",
-        metavar="uri",
-        action="store",
-    )
+    utils.argument_parser_add_cloud_directory(parser)
 
     # Analyse de la ligne de commande
     args = parser.parse_args()
@@ -270,6 +262,8 @@ def main():
     utils.argument_parser_check_limit_test_time_arguments(
         parser, args.min_test_time, args.max_test_time
     )
+    if args.cloud_directory is not None:
+        utils.argument_parser_check_uri(parser, args.cloud_directory)
 
     # Memorisation des variables globales de gestion du contexte des resultats de reference
     results.process_number = args.n
@@ -284,11 +278,8 @@ def main():
             parser.error(
                 "instruction 'transform-cloud-results' requires --cloud-directory argument"
             )
-        # Redefinition de l'instruction pour capturer cloud_directory en parametre supplementaire
-        instruction_function = (
-            lambda test_dir: standard_instructions.instruction_transform_cloud_results(
-                test_dir, args.cloud_directory
-            )
+        standard_instructions.cloud_directory = utils.normalize_cloud_directory_uri(
+            args.cloud_directory
         )
 
     # Lancement de la commande
