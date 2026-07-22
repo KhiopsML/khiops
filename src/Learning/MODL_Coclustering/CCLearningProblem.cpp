@@ -385,33 +385,6 @@ void CCLearningProblem::BuildCoclustering()
 					    " out of the " +
 					    IntToString(coclusteringBuilder.GetVarPartCoclusteringAttributeNumber()) +
 					    " dimensions");
-
-				if (GetVarPartDeploymentMode())
-				{
-					// Initialisation du varPartDeploymentSpec
-					ccVarPartDeploymentSpec.SetDeployedAttributeName(
-					    coclusteringBuilder.GetIdentifierAttributeName());
-					ccVarPartDeploymentSpec.SetInputClassName(GetClassName());
-
-					// Creation du dictionnaire de deploiement
-					bDeploymentOk = ccVarPartDeploymentSpec.PrepareVarPartCoclusteringDeployment(
-					    coclusteringBuilder.GetCoclusteringDataGrid(), deploymentDomain);
-
-					// Ecriture du fichier de dictionnaire de deploiement
-					if (bDeploymentOk)
-					{
-						sCoclusteringDictionaryFileName =
-						    GetResultFilePathBuilder(TaskBuildCoclustering)
-							->BuildOtherResultFilePathName("model.kdic");
-						AddSimpleMessage("Write deployment dictionary file " +
-								 sCoclusteringDictionaryFileName);
-						deploymentDomain->WriteFile(sCoclusteringDictionaryFileName);
-					}
-
-					// Nettoyage
-					if (bDeploymentOk)
-						delete deploymentDomain;
-				}
 			}
 		}
 		// Sinon : on ecrit un rapport avec les eventuels messages d'erreurs

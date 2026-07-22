@@ -267,7 +267,7 @@ boolean CCDeploymentSpec::PrepareVarPartCoclusteringDeployment(const CCHierarchi
 	require(coclusteringDataGrid->IsVarPartDataGrid());
 	require(deploymentDomain == NULL);
 
-	// Test d'integrite pour le deploiement, en fonction des specifications et de la grille de coclustering : a adapter
+	// Test d'integrite pour le deploiement, en fonction des specifications et de la grille de coclustering
 	if (bOk)
 		bOk = CheckDeploymentSpec(coclusteringDataGrid);
 
@@ -391,6 +391,9 @@ boolean CCDeploymentSpec::CheckDeploymentSpec(const CCHierarchicalDataGrid* cocl
 	boolean bOk = true;
 	KWClass* kwcDeploymentClass;
 	KWAttribute* kwaDistributionAttribute;
+	KWAttribute* innerAttribute;
+	int nAttributeIndex;
+	ALString sInnerAttributeName;
 
 	require(coclusteringDataGrid != NULL);
 
@@ -494,6 +497,24 @@ boolean CCDeploymentSpec::CheckDeploymentSpec(const CCHierarchicalDataGrid* cocl
 			AddWarning("Coclustering deployment variable is required only for variable x variable "
 				   "coclustering. The name " +
 				   GetDeployedAttributeName() + " will be ignored and deleted.");
+
+		// Verification de la compatibilite entre les noms innerAttributes du coclustering et du dictionnaire
+		for (nAttributeIndex = 0;
+		     nAttributeIndex < coclusteringDataGrid->GetInnerAttributes()->GetInnerAttributeNumber();
+		     nAttributeIndex++)
+		{
+			sInnerAttributeName = coclusteringDataGrid->GetInnerAttributes()
+						  ->GetInnerAttributeAt(nAttributeIndex)
+						  ->GetAttributeName();
+			innerAttribute = kwcDeploymentClass->LookupAttribute(sInnerAttributeName);
+			GetInputClassName();
+			if (bOk and innerAttribute == NULL)
+			{
+				bOk = false;
+				AddError("Inner attribute " + sInnerAttributeName + " not found in dictionary " +
+					 kwcDeploymentClass->GetName());
+			}
+		}
 	}
 	return bOk;
 }
