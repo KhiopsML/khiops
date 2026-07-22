@@ -583,7 +583,7 @@ const ALString JSONTokenizer::GetLastTokenValue()
 			sValue = "false";
 	}
 
-	// Mise en tre parenthses si necessaire
+	// Mise entre parentheses si necessaire
 	if (sValue != "")
 		sValue = "(" + sValue + ")";
 	return sValue;

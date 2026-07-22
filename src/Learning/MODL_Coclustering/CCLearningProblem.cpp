@@ -443,10 +443,21 @@ void CCLearningProblem::PostProcessCoclustering()
 	if (bOk)
 		bOk = GetPostProcessingSpec()->PostProcessCoclustering(&postProcessedCoclusteringDataGrid);
 
+	// Test si au moins 1 attribut present dans le coclustering
+	if (postProcessedCoclusteringDataGrid.GetAttributeNumber() == 0)
+	{
+		bOk = false;
+		Global::AddError("Coclustering simplification", "", "Missing coclustering datagrid variable");
+	}
+
 	// Ecriture du rapport si OK
 	if (bOk and sPostProcessedCoclusteringReportFileName != "")
 	{
 		AddSimpleMessage("Write simplified report " + sPostProcessedCoclusteringReportFileName);
+
+		// Import des donnees de logs du rapport initial
+		postProcessedcoclusteringReport.ImportErrorLogsFromReport(&coclusteringReport);
+
 		bOk = postProcessedcoclusteringReport.WriteReport(sPostProcessedCoclusteringReportFileName,
 								  &postProcessedCoclusteringDataGrid);
 	}
