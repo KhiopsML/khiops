@@ -51,12 +51,22 @@ public:
 	// Ecriture d'un rapport de coclustering au format JSON
 	boolean WriteReport(const ALString& sReportName, const CCHierarchicalDataGrid* coclusteringDataGrid);
 
+	// Import des donnes de log depuis un autre rapport
+	void ImportLogDataFromReport(CCCoclusteringReport* importedReport);
+
+	// Nettoyage des donnees liees a la section optionnelle de logs
+	void CleanLogsData();
+
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Methodes standard
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
 	const ALString GetObjectLabel() const override;
+
+	// Acces aux donnees de logs
+	const StringVector* GetTaskNameLogs();
+	const ObjectArray* GetMessagesLogs();
 
 	/////////////////////////////////////////////////////////////
 	///// Implementation
@@ -79,6 +89,7 @@ protected:
 
 	// Lecture des sections d'un rapport de coclustering
 	boolean InternalReadReport(CCHierarchicalDataGrid* coclusteringDataGrid, boolean bHeaderOnly);
+	boolean ReadErrorLogs();
 	boolean ReadSummary(CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadDimensionSummaries(CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadDimensionPartitions(CCHierarchicalDataGrid* coclusteringDataGrid);
@@ -95,6 +106,7 @@ protected:
 
 	// Ecriture des sections d'un rapport de coclustering vers un stream en sortie
 	void InternalWriteReport(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
+	void WriteErrorLogs(JSONFile* fJSON);
 	void WriteSummary(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteDimensionSummaries(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
 	void WriteDimensionSummary(CCHDGAttribute* attribute, JSONFile* fJSON);
@@ -130,4 +142,8 @@ protected:
 	static const ALString sKeyWordSamplingMode;
 	static const ALString sKeyWordSelectionVariable;
 	static const ALString sKeyWordSelectionValue;
+
+	// Stockage de l'eventuelle section de logs du rapport
+	StringVector svLogsTaskNames;
+	ObjectArray* oaLogsMessages;
 };

@@ -27,6 +27,8 @@ CCCoclusteringReport::CCCoclusteringReport()
 	bReadDebug = false;
 	nHeaderInstanceNumber = 0;
 	nHeaderCellNumber = 0;
+	svLogsTaskNames.SetSize(0);
+	oaLogsMessages = NULL;
 }
 
 CCCoclusteringReport::~CCCoclusteringReport()
@@ -34,6 +36,8 @@ CCCoclusteringReport::~CCCoclusteringReport()
 	assert(fReport == NULL);
 	assert(sFileBuffer == NULL);
 	assert(nLineIndex == 0);
+
+	CleanLogsData();
 }
 
 boolean CCCoclusteringReport::ReadReport(const ALString& sFileName, CCHierarchicalDataGrid* coclusteringDataGrid)
@@ -332,7 +336,7 @@ boolean CCCoclusteringReport::InternalReadReport(CCHierarchicalDataGrid* coclust
 	bOk = bOk and JSONTokenizer::ReadKeyStringValue("version", sValue, bIsEnd);
 
 	// On ne lit d'abord que la cle, pour savoir si l'on part sur l'extraction de la description courte,
-	// optionnelle, ou directement sur les information suvante
+	// optionnelle, ou directement sur les informations suivantes
 	bOk = bOk and JSONTokenizer::ReadStringValue(sKey);
 
 	// Lecture de la description, depuis Khiops V10
@@ -354,7 +358,17 @@ boolean CCCoclusteringReport::InternalReadReport(CCHierarchicalDataGrid* coclust
 	// Object principal
 	if (bOk)
 	{
-		// Fn du parsing si ok
+		// Lecture de l'eventuelle section de logs
+		if (sKey == "logs")
+		{
+			bOk = bOk and ReadErrorLogs();
+			bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
+
+			// Lecture de la cle suivante, pour la suite
+			bOk = bOk and JSONTokenizer::ReadStringValue(sKey);
+		}
+
+		// Fin du parsing si ok
 		if (sKey == "coclusteringReport")
 		{
 			bOk = bOk and JSONTokenizer::ReadExpectedToken(':');
@@ -363,13 +377,13 @@ boolean CCCoclusteringReport::InternalReadReport(CCHierarchicalDataGrid* coclust
 		// Message d'erreur sinon
 		else
 		{
-			JSONTokenizer::AddParseError("Read key \"coclusteringReport\" instead of expected \"" + sKey +
-						     "\"");
+			JSONTokenizer::AddParseError("Read key \"" + sKey +
+						     "\" instead of expected \"coclusteringReport\"");
 			bOk = false;
 		}
 	}
 
-	// Lecture chaque section du rapport JSON de coclustering
+	// Lecture de chaque section du rapport JSON de coclustering
 	bOk = bOk and ReadSummary(coclusteringDataGrid);
 	bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
 	bOk = bOk and ReadDimensionSummaries(coclusteringDataGrid);
@@ -397,6 +411,77 @@ boolean CCCoclusteringReport::InternalReadReport(CCHierarchicalDataGrid* coclust
 
 	// Gestion des erreurs
 	Global::DesactivateErrorFlowControl();
+	return bOk;
+}
+
+boolean CCCoclusteringReport::ReadErrorLogs()
+{
+	boolean bOk = true;
+	boolean bIsEnd = false;
+	boolean bTaskIsEnd;
+	boolean bTableIsEnd;
+	ALString sKey;
+	ALString sLabel;
+	StringVector* svMessageTable;
+	ALString sMessage;
+	int nToken;
+
+	require(svLogsTaskNames.GetSize() == 0 and oaLogsMessages == NULL);
+
+	// Lecture de l'ouverture du tableau
+	bOk = bOk and JSONTokenizer::ReadExpectedToken(':');
+	bOk = bOk and JSONTokenizer::ReadExpectedToken('[');
+
+	// Creation du tableau accueillant les messages de log
+	oaLogsMessages = new ObjectArray;
+
+	// Boucle de Task / messages
+	while (bOk and not bIsEnd)
+	{
+		bOk = bOk and JSONTokenizer::ReadExpectedToken('{');
+		bTaskIsEnd = false;
+
+		// Boucle interne a la tache courante
+		while (bOk and not bTaskIsEnd)
+		{
+			// Lecture de la cle suivante, pour la suite
+			bOk = bOk and JSONTokenizer::ReadStringValue(sKey);
+
+			// Lecture d'une tache
+			if (sKey == "taskName")
+			{
+				bOk = bOk and JSONTokenizer::ReadExpectedToken(':');
+				bOk = bOk and JSONTokenizer::ReadStringValue(sLabel);
+				bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
+
+				svLogsTaskNames.Add(sLabel);
+			}
+
+			// Sinon lecture du tableau de messages
+			else if (sKey == "messages")
+			{
+				bTableIsEnd = false;
+				bOk = bOk and JSONTokenizer::ReadExpectedToken(':');
+				bOk = bOk and JSONTokenizer::ReadExpectedToken('[');
+				svMessageTable = new StringVector;
+				while (bOk and not bTableIsEnd)
+				{
+					bOk = bOk and JSONTokenizer::ReadStringValue(sMessage);
+					nToken = JSONTokenizer::ReadNextToken();
+					if (nToken == ']')
+						bTableIsEnd = true;
+					svMessageTable->Add(sMessage);
+				}
+				oaLogsMessages->Add(svMessageTable);
+
+				// Fin de la sequence : task + messages
+				bTaskIsEnd = true;
+			}
+		}
+		bOk = bOk and JSONTokenizer::ReadExpectedToken('}');
+		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsEnd);
+	}
+	assert(svLogsTaskNames.GetSize() == oaLogsMessages->GetSize());
 	return bOk;
 }
 
@@ -526,6 +611,10 @@ boolean CCCoclusteringReport::ReadDimensionSummaries(CCHierarchicalDataGrid* coc
 
 	// Tableau principal
 	bOk = bOk and JSONTokenizer::ReadKeyArray("dimensionSummaries");
+
+	bIsEnd = coclusteringDataGrid->GetInitialAttributeNumber() == 0;
+	if (bIsEnd)
+		bOk = bOk and JSONTokenizer::ReadExpectedToken(']');
 
 	// Lecture des elements du tableau
 	varPartAttribute = NULL;
@@ -877,10 +966,12 @@ boolean CCCoclusteringReport::ReadDimensionPartitions(CCHierarchicalDataGrid* co
 
 	// Tableau principal
 	bOk = bOk and JSONTokenizer::ReadKeyArray("dimensionPartitions");
+	bIsAttributeEnd = coclusteringDataGrid->GetInitialAttributeNumber() == 0;
+	if (bIsAttributeEnd)
+		bOk = bOk and JSONTokenizer::ReadExpectedToken(']');
 
 	// Lecture des elements du tableau
 	nAttributeIndex = 0;
-	bIsAttributeEnd = false;
 	while (bOk and not bIsAttributeEnd)
 	{
 		// Recherche de l'attribut courant
@@ -1678,10 +1769,12 @@ boolean CCCoclusteringReport::ReadDimensionHierarchies(CCHierarchicalDataGrid* c
 
 	// Tableau principal
 	bOk = bOk and JSONTokenizer::ReadKeyArray("dimensionHierarchies");
+	bIsAttributeEnd = coclusteringDataGrid->GetInitialAttributeNumber() == 0;
+	if (bIsAttributeEnd)
+		bOk = bOk and JSONTokenizer::ReadExpectedToken(']');
 
 	// Lecture des elements du tableau
 	nAttributeIndex = 0;
-	bIsAttributeEnd = false;
 	while (bOk and not bIsAttributeEnd)
 	{
 		// Recherche de l'attribut courant
@@ -1999,8 +2092,8 @@ boolean CCCoclusteringReport::ReadCells(CCHierarchicalDataGrid* coclusteringData
 	oaCellParts.SetSize(coclusteringDataGrid->GetAttributeNumber());
 
 	// Lecture du tableau de cellules
-	bIsEnd = false;
 	bOk = bOk and JSONTokenizer::ReadKeyArray("cellPartIndexes");
+	bIsEnd = oaCellParts.GetSize() == 0;
 	nPartIndex = 0;
 	while (bOk and not bIsEnd)
 	{
@@ -2077,7 +2170,10 @@ boolean CCCoclusteringReport::ReadCells(CCHierarchicalDataGrid* coclusteringData
 	}
 
 	// Lecture du tableau des effectifs de cellules
-	bIsEnd = false;
+	bIsEnd = oaCellParts.GetSize() == 0;
+	if (bIsEnd)
+		bOk = bOk and JSONTokenizer::ReadExpectedToken(']');
+
 	bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
 	bOk = bOk and JSONTokenizer::ReadKeyArray("cellFrequencies");
 	nCell = 0;
@@ -2149,6 +2245,9 @@ void CCCoclusteringReport::InternalWriteReport(const CCHierarchicalDataGrid* coc
 	// Liste des messages d'erreur potentiellement detectees pendant l'analyse
 	KWLearningErrorManager::WriteJSONKeyReport(fJSON);
 
+	// Ecriture des messages d'erreur potentiellement memorises durant la lecture du rapport
+	WriteErrorLogs(fJSON);
+
 	// Ecriture de chaque section du rapport JSON de coclustering
 	fJSON->BeginKeyObject("coclusteringReport");
 	WriteSummary(coclusteringDataGrid, fJSON);
@@ -2157,6 +2256,38 @@ void CCCoclusteringReport::InternalWriteReport(const CCHierarchicalDataGrid* coc
 	WriteDimensionHierarchies(coclusteringDataGrid, fJSON);
 	WriteCells(coclusteringDataGrid, fJSON);
 	fJSON->EndObject();
+}
+
+void CCCoclusteringReport::WriteErrorLogs(JSONFile* fJSON)
+{
+	int i;
+	int nMessage;
+
+	require(fJSON != NULL);
+	require(oaLogsMessages == NULL or (svLogsTaskNames.GetSize() == oaLogsMessages->GetSize()));
+
+	// Cas de la presence de logs : on ecrit la section correspondante
+	if (svLogsTaskNames.GetSize() > 0)
+	{
+		fJSON->BeginKeyArray("logs");
+
+		// Boucle sur les differentes parties du tableau
+		for (i = 0; i < svLogsTaskNames.GetSize(); i++)
+		{
+			fJSON->BeginObject();
+			fJSON->WriteKeyString("taskName", svLogsTaskNames.GetAt(i));
+			fJSON->BeginKeyArray("messages");
+
+			for (nMessage = 0; nMessage < cast(StringVector*, oaLogsMessages->GetAt(i))->GetSize();
+			     nMessage++)
+			{
+				fJSON->WriteString(cast(StringVector*, oaLogsMessages->GetAt(i))->GetAt(nMessage));
+			}
+			fJSON->EndArray();
+			fJSON->EndObject();
+		}
+		fJSON->EndArray();
+	}
 }
 
 void CCCoclusteringReport::WriteSummary(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON)
@@ -2617,4 +2748,45 @@ void CCCoclusteringReport::WriteCells(const CCHierarchicalDataGrid* coclustering
 		nkdPartIndexes->DeleteAll();
 		delete nkdPartIndexes;
 	}
+}
+
+void CCCoclusteringReport::ImportLogDataFromReport(CCCoclusteringReport* importedReport)
+{
+	int i;
+	StringVector* svMessage;
+
+	svLogsTaskNames.CopyFrom(importedReport->GetTaskNameLogs());
+	if (importedReport->GetMessagesLogs() != NULL)
+	{
+		oaLogsMessages = new ObjectArray;
+		oaLogsMessages->SetSize(importedReport->GetMessagesLogs()->GetSize());
+		for (i = 0; i < oaLogsMessages->GetSize(); i++)
+		{
+			svMessage = new StringVector;
+			svMessage->CopyFrom(cast(StringVector*, importedReport->GetMessagesLogs()->GetAt(i)));
+			oaLogsMessages->SetAt(i, svMessage);
+		}
+	}
+	else
+		oaLogsMessages = NULL;
+}
+void CCCoclusteringReport::CleanLogsData()
+{
+	svLogsTaskNames.SetSize(0);
+	if (oaLogsMessages != NULL)
+	{
+		oaLogsMessages->DeleteAll();
+		delete oaLogsMessages;
+		oaLogsMessages = NULL;
+	}
+}
+
+const StringVector* CCCoclusteringReport::GetTaskNameLogs()
+{
+	return &svLogsTaskNames;
+}
+
+const ObjectArray* CCCoclusteringReport::GetMessagesLogs()
+{
+	return oaLogsMessages;
 }
