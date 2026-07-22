@@ -575,6 +575,8 @@ void CCLearningProblem::PrepareDeployment()
 	ALString sCoclusteringDictionaryFileName;
 	CCHierarchicalDataGrid coclusteringDataGrid;
 	KWClassDomain* deploymentDomain;
+	ALString sPreviousDeployedAttributeName;
+	ALString sPreviousClassName;
 
 	require(CheckResultFileNames(TaskPrepareDeployment));
 
@@ -612,6 +614,10 @@ void CCLearningProblem::PrepareDeployment()
 
 		else
 		{
+			// Memorisation des eventuels parametrages prealables
+			sPreviousDeployedAttributeName = GetDeploymentSpec()->GetDeployedAttributeName();
+			sPreviousClassName = GetDeploymentSpec()->GetInputClassName();
+
 			// Initialisation du varPartDeploymentSpec
 			GetDeploymentSpec()->SetDeployedAttributeName(
 			    coclusteringDataGrid.GetIdentifierAttributeName());
@@ -623,8 +629,8 @@ void CCLearningProblem::PrepareDeployment()
 												deploymentDomain);
 
 			// Nettoyage du varParDeploymentSpec
-			GetDeploymentSpec()->SetDeployedAttributeName("");
-			GetDeploymentSpec()->SetInputClassName("");
+			GetDeploymentSpec()->SetDeployedAttributeName(sPreviousDeployedAttributeName);
+			GetDeploymentSpec()->SetInputClassName(sPreviousClassName);
 		}
 	}
 

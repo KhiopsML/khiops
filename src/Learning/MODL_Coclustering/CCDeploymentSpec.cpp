@@ -394,6 +394,7 @@ boolean CCDeploymentSpec::CheckDeploymentSpec(const CCHierarchicalDataGrid* cocl
 	KWAttribute* innerAttribute;
 	int nAttributeIndex;
 	ALString sInnerAttributeName;
+	int nInnerAttributeType;
 
 	require(coclusteringDataGrid != NULL);
 
@@ -488,15 +489,15 @@ boolean CCDeploymentSpec::CheckDeploymentSpec(const CCHierarchicalDataGrid* cocl
 		if (GetInputClassName() != "")
 			AddWarning(
 			    "Name of the dictionary is required only for variable x variable coclustering. The name " +
-			    GetInputClassName() + " will be ignored and deleted.");
+			    GetInputClassName() + " will be ignored.");
 		if (GetInputObjectArrayAttributeName() != "")
 			AddWarning(
 			    "Input table variable is required only for variable x variable coclustering. The name " +
-			    GetInputObjectArrayAttributeName() + " will be ignored and deleted.");
+			    GetInputObjectArrayAttributeName() + " will be ignored.");
 		if (GetDeployedAttributeName() != "")
 			AddWarning("Coclustering deployment variable is required only for variable x variable "
 				   "coclustering. The name " +
-				   GetDeployedAttributeName() + " will be ignored and deleted.");
+				   GetDeployedAttributeName() + " will be ignored.");
 
 		// Verification de la compatibilite entre les noms innerAttributes du coclustering et du dictionnaire
 		for (nAttributeIndex = 0;
@@ -513,6 +514,21 @@ boolean CCDeploymentSpec::CheckDeploymentSpec(const CCHierarchicalDataGrid* cocl
 				bOk = false;
 				AddError("Inner attribute " + sInnerAttributeName + " not found in dictionary " +
 					 kwcDeploymentClass->GetName());
+			}
+			// Verification de la compatibilite des types
+			else
+			{
+				nInnerAttributeType = coclusteringDataGrid->GetInnerAttributes()
+							  ->GetInnerAttributeAt(nAttributeIndex)
+							  ->GetAttributeType();
+				if (bOk and innerAttribute->GetType() != nInnerAttributeType)
+				{
+					bOk = false;
+					AddError("Inner attribute " + sInnerAttributeName + " found in dictionary " +
+						 kwcDeploymentClass->GetName() + " with type " +
+						 KWType::ToString(innerAttribute->GetType()) +
+						 " instead of expected type " + KWType::ToString(nInnerAttributeType));
+				}
 			}
 		}
 	}
