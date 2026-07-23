@@ -12,26 +12,17 @@ CCDeploymentSpecView::CCDeploymentSpecView()
 {
 	SetIdentifier("CCDeploymentSpec");
 	SetLabel("Deployment parameters");
-	AddStringField("InputClassName", "Input dictionary", "");
-	AddStringField("InputObjectArrayAttributeName", "Input table variable", "");
-	AddStringField("DeployedAttributeName", "Coclustering deployed variable", "");
 	AddBooleanField("BuildPredictedClusterAttribute", "Build predicted cluster variable", false);
 	AddBooleanField("BuildClusterDistanceAttributes", "Build inter-cluster distance variables", false);
 	AddBooleanField("BuildFrequencyRecodingAttributes", "Build frequency recoding variables", false);
 	AddStringField("OutputAttributesPrefix", "Output variables prefix", "");
+	AddStringField("InputClassName", "Input dictionary", "");
+	AddStringField("InputObjectArrayAttributeName", "Input table variable", "");
+	AddStringField("DeployedAttributeName", "Coclustering deployed variable", "");
 
 	// ## Custom constructor
 
 	// Info-bulles
-	GetFieldAt("InputClassName")
-	    ->SetHelpText("Name of the dictionary that corresponds to the deployment database"
-			  "\n that contains the instances of interest.");
-	GetFieldAt("InputObjectArrayAttributeName")
-	    ->SetHelpText("Name of the table variable in the input dictionary"
-			  "\n that contains the detailed record for each instance of interest.");
-	GetFieldAt("DeployedAttributeName")
-	    ->SetHelpText("Name of the deployed variable, i.e. one of the coclustering variables,"
-			  "\n which represents the entity of interest.");
 	GetFieldAt("BuildPredictedClusterAttribute")
 	    ->SetHelpText("Indicate that the deployment model must generate a new variable"
 			  "\n containing the label of the cluster of the entity of interest.");
@@ -43,6 +34,18 @@ CCDeploymentSpecView::CCDeploymentSpecView()
 			  "\n representing the frequency per cluster of the other coclustering variables.");
 	GetFieldAt("OutputAttributesPrefix")
 	    ->SetHelpText("Prefix added to the deployment variables in the deployment dictionary.");
+	GetFieldAt("InputClassName")
+	    ->SetHelpText("Name of the dictionary that corresponds to the deployment database"
+			  "\n that contains the instances of interest."
+			  "\n Required only for variable x variable coclustering.");
+	GetFieldAt("InputObjectArrayAttributeName")
+	    ->SetHelpText("Name of the table variable in the input dictionary"
+			  "\n that contains the detailed record for each instance of interest."
+			  "\n Required only for variable x variable coclustering.");
+	GetFieldAt("DeployedAttributeName")
+	    ->SetHelpText("Name of the deployed variable, i.e. one of the coclustering variables,"
+			  "\n which represents the entity of interest."
+			  "\n Required only for variable x variable coclustering.");
 
 	// ##
 }
@@ -67,13 +70,13 @@ void CCDeploymentSpecView::EventUpdate(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(CCDeploymentSpec*, object);
-	editedObject->SetInputClassName(GetStringValueAt("InputClassName"));
-	editedObject->SetInputObjectArrayAttributeName(GetStringValueAt("InputObjectArrayAttributeName"));
-	editedObject->SetDeployedAttributeName(GetStringValueAt("DeployedAttributeName"));
 	editedObject->SetBuildPredictedClusterAttribute(GetBooleanValueAt("BuildPredictedClusterAttribute"));
 	editedObject->SetBuildClusterDistanceAttributes(GetBooleanValueAt("BuildClusterDistanceAttributes"));
 	editedObject->SetBuildFrequencyRecodingAttributes(GetBooleanValueAt("BuildFrequencyRecodingAttributes"));
 	editedObject->SetOutputAttributesPrefix(GetStringValueAt("OutputAttributesPrefix"));
+	editedObject->SetInputClassName(GetStringValueAt("InputClassName"));
+	editedObject->SetInputObjectArrayAttributeName(GetStringValueAt("InputObjectArrayAttributeName"));
+	editedObject->SetDeployedAttributeName(GetStringValueAt("DeployedAttributeName"));
 
 	// ## Custom update
 
@@ -87,13 +90,13 @@ void CCDeploymentSpecView::EventRefresh(Object* object)
 	require(object != NULL);
 
 	editedObject = cast(CCDeploymentSpec*, object);
-	SetStringValueAt("InputClassName", editedObject->GetInputClassName());
-	SetStringValueAt("InputObjectArrayAttributeName", editedObject->GetInputObjectArrayAttributeName());
-	SetStringValueAt("DeployedAttributeName", editedObject->GetDeployedAttributeName());
 	SetBooleanValueAt("BuildPredictedClusterAttribute", editedObject->GetBuildPredictedClusterAttribute());
 	SetBooleanValueAt("BuildClusterDistanceAttributes", editedObject->GetBuildClusterDistanceAttributes());
 	SetBooleanValueAt("BuildFrequencyRecodingAttributes", editedObject->GetBuildFrequencyRecodingAttributes());
 	SetStringValueAt("OutputAttributesPrefix", editedObject->GetOutputAttributesPrefix());
+	SetStringValueAt("InputClassName", editedObject->GetInputClassName());
+	SetStringValueAt("InputObjectArrayAttributeName", editedObject->GetInputObjectArrayAttributeName());
+	SetStringValueAt("DeployedAttributeName", editedObject->GetDeployedAttributeName());
 
 	// ## Custom refresh
 
