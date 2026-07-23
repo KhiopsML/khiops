@@ -25,10 +25,6 @@ protected:
 	double InternalOptimizeDataGrid(const KWDataGrid* initialDataGrid,
 					KWDataGrid* optimizedDataGrid) const override;
 
-	// Methode d'optimisation d'une grille dediee au cas instances x variables
-	double OptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const;
-	double PROTO_OptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const;
-
 	// Optimisation d'une solution voisine: specialisation au cas VarPart
 	double OptimizeNeighbourSolution(const KWDataGrid* initialDataGrid, const KWDataGrid* currentOptimizedDataGrid,
 					 double dNoiseRate, KWDataGridMerger* neighbourOptimizedDataGrid,

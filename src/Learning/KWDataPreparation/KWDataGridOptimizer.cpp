@@ -477,16 +477,16 @@ void KWDataGridOptimizer::GenerateNeighbourSolution(const KWDataGrid* initialDat
 	// complete avec de nouveaux attributs absents de la grille optimisee Quand le NoiseRate est eleve (=1) alors
 	// aucun des attributs n'est conserve avec ce statut d'obligatoire
 	nMandatoryAttributeNumber = (int)ceil((1 - dNoiseRate) * optimizedDataGrid->GetAttributeNumber());
-	dataGridManager.ExportRandomAttributes(optimizedDataGrid, &mandatoryDataGrid, nMandatoryAttributeNumber);
+	dataGridManager.ExportRandomAttributes(optimizedDataGrid, nMandatoryAttributeNumber, &mandatoryDataGrid);
 
 	// Exports d'attributs supplementaires
 	// Pour un dNoiseRate de 1, tous les attributs sont ajoutes a concurrence de nMaxAttributeNumber
 	neighbourDataGridMerger->DeleteAll();
-	dataGridManager.AddRandomAttributes(initialDataGrid, neighbourDataGridMerger, &mandatoryDataGrid,
-					    nAttributeNumber);
+	dataGridManager.AddRandomAttributes(initialDataGrid, &mandatoryDataGrid, nAttributeNumber,
+					    neighbourDataGridMerger);
 
 	// Export des parties
-	dataGridManager.AddRandomParts(initialDataGrid, neighbourDataGridMerger, optimizedDataGrid, nAddedPartNumber);
+	dataGridManager.AddRandomParts(initialDataGrid, optimizedDataGrid, nAddedPartNumber, neighbourDataGridMerger);
 	TaskProgression::DisplayProgression(25);
 
 	// Export des cellules

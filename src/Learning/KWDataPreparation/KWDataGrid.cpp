@@ -1209,11 +1209,7 @@ void KWDataGrid::Write(ostream& ost) const
 		ost << "TargetVariable\t" << GetTargetAttribute()->GetAttributeName() << "\n";
 	ost << "Granularity\t" << GetGranularity() << "\n";
 	if (IsVarPartDataGrid())
-	{
-		ost << "VariableParts Granularity\t"
-		    << GetVarPartAttribute()->GetInnerAttributes()->GetVarPartGranularity() << "\n";
 		WriteInnerAttributes(ost);
-	}
 	if (GetAttributeNumber() > 0)
 	{
 		WriteAttributes(ost);
@@ -5064,18 +5060,6 @@ void KWDGInnerAttributes::AddInnerAttribute(KWDGAttribute* innerAttribute)
 	// Indexation dans le dictionnaire
 	odInnerAttributes.SetAt(innerAttribute->GetAttributeName(), innerAttribute);
 	ensure(odInnerAttributes.GetCount() == oaInnerAttributes.GetSize());
-}
-
-int KWDGInnerAttributes::GetVarPartGranularity() const
-{
-	return nVarPartGranularity;
-}
-
-void KWDGInnerAttributes::SetVarPartGranularity(int nValue)
-{
-	require(nValue >= 0);
-
-	nVarPartGranularity = nValue;
 }
 
 void KWDGInnerAttributes::DeleteAll()

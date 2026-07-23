@@ -1245,12 +1245,6 @@ void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDa
 					sCoclusteringSizeInfo += "+";
 				sCoclusteringSizeInfo += IntToString(dgAttribute->GetPartNumber());
 			}
-			/*DDD
-			// Granularite de tokenisation des attributs internes
-			sCoclusteringSizeInfo += "\tTokenization: ";
-			sCoclusteringSizeInfo +=
-			    IntToString(coclusteringDataGrid->GetInnerAttributes()->GetVarPartGranularity());
-				*/
 		}
 
 		// Test si on doit afficher les info de granularite
