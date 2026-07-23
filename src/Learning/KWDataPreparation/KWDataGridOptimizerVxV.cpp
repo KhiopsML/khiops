@@ -93,8 +93,8 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 				break;
 
 			// Granularisation de la grille initiale
-			dataGridManager.ExportGranularizedDataGrid(initialDataGrid, &granularizedDataGrid,
-								   nGranularityIndex, &odQuantileBuilders);
+			dataGridManager.ExportGranularizedDataGrid(initialDataGrid, &odQuantileBuilders,
+								   nGranularityIndex, &granularizedDataGrid);
 
 			//////////////////////////////////////////////////////////////////////////////////////////////
 			// On determine si la granularite courante doit etre traitee
@@ -730,7 +730,7 @@ KWDataGridOptimizerVxV::OptimizeWithBestUnivariatePartitionForCurrentGranularity
 			    initialDataGrid->GetGranularity())
 			{
 				dataGridManager.BuildUnivariateDataGridFromGranularizedPartition(
-				    initialDataGrid, &univariateDataGrid, nAttribute, classStats);
+				    initialDataGrid, classStats, nAttribute, &univariateDataGrid);
 				bEvaluated = univariateDataGrid.GetAttributeAt(0)->GetPartNumber() > 1;
 			}
 
@@ -739,7 +739,7 @@ KWDataGridOptimizerVxV::OptimizeWithBestUnivariatePartitionForCurrentGranularity
 			else
 			{
 				dataGridManager.BuildUnivariateDataGridFromAttributeStats(
-				    initialDataGrid, &univariateDataGrid, attributeStats);
+				    initialDataGrid, attributeStats, &univariateDataGrid);
 
 				// Transfert du parametrage du fourre-tout
 				targetAttribute = univariateDataGrid.GetAttributeAt(0);
@@ -817,8 +817,8 @@ double KWDataGridOptimizerVxV::OptimizeWithMultipleUnivariatePartitions(const KW
 	if (bOk)
 	{
 		KWDataGridOptimizer::GetProfiler()->BeginMethod("BuildDataGridFromUnivariateProduct");
-		bOk = dataGridManager.BuildDataGridFromUnivariateProduct(initialDataGrid, &multivariateDataGrid,
-									 classStats);
+		bOk = dataGridManager.BuildDataGridFromUnivariateProduct(initialDataGrid, classStats,
+									 &multivariateDataGrid);
 		KWDataGridOptimizer::GetProfiler()->EndMethod("BuildDataGridFromUnivariateProduct");
 		if (bOk and bTrace)
 			TraceOptimizationDetails("- multivariate initialization", &multivariateDataGrid, bTraceDetails);

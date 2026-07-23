@@ -1411,10 +1411,6 @@ public:
 	// Acces a un attribut interne par nom
 	KWDGAttribute* LookupInnerAttribute(const ALString& sAttributeName) const;
 
-	// Acces a la granularite des parties de variable, partages par tous les attributs
-	int GetVarPartGranularity() const;
-	void SetVarPartGranularity(int nValue);
-
 	///////////////////////////////
 	// Services divers
 
@@ -1465,7 +1461,6 @@ protected:
 	friend class KWDGAttribute;
 
 	// Gestion des attributs internes
-	int nVarPartGranularity;
 	ObjectDictionary odInnerAttributes;
 	ObjectArray oaInnerAttributes;
 
@@ -2320,7 +2315,6 @@ inline int KWDGVarPartValue::GetValueFrequency() const
 // Classe KWDGInnerAttributes
 inline KWDGInnerAttributes::KWDGInnerAttributes()
 {
-	nVarPartGranularity = 0;
 	nRefCount = 0;
 }
 

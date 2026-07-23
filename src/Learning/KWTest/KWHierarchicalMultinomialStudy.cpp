@@ -1056,10 +1056,8 @@ boolean KWAttributePairStatsStudy::ComputeStats(const KWTupleTable* tupleTable)
 
 			// Export d'une grille granularisee
 			dgGranularizedDataGrid.DeleteAll();
-			dataGridManager.ExportGranularizedDataGrid(dataGrid, &dgGranularizedDataGrid, nGranularity,
-								   &odQuantilesBuilders);
-
-			//ExportGranularizedDataGrid(&dgGranularizedDataGrid, nPartileNumber, &odQuantilesBuilders);
+			dataGridManager.ExportGranularizedDataGrid(dataGrid, &odQuantilesBuilders, nGranularity,
+								   &dgGranularizedDataGrid);
 
 			// Memorisation de son cout
 			dCurrentCost = dataGridCosts->ComputeDataGridTotalCost(&dgGranularizedDataGrid);
@@ -1084,8 +1082,8 @@ boolean KWAttributePairStatsStudy::ComputeStats(const KWTupleTable* tupleTable)
 
 		// On memorise la solution correspondant au meilleurs niveau de partile
 		optimizedDataGrid = new KWDataGrid;
-		dataGridManager.ExportGranularizedDataGrid(dataGrid, optimizedDataGrid, nBestGranularity,
-							   &odQuantilesBuilders);
+		dataGridManager.ExportGranularizedDataGrid(dataGrid, &odQuantilesBuilders, nBestGranularity,
+							   optimizedDataGrid);
 
 		// Nettoyage
 		odQuantilesBuilders.DeleteAll();

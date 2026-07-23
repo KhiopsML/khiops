@@ -144,8 +144,6 @@ void CCLearningProblem::BuildCoclustering()
 	boolean bWriteOk;
 	KWClassDomain* currentDomain = NULL;
 	KWClassDomain* constructedDomain = NULL;
-	KWClassDomain* deploymentDomain = NULL;
-	boolean bDeploymentOk;
 	CCDeploymentSpec ccVarPartDeploymentSpec;
 	ALString sCoclusteringDictionaryFileName;
 	ALString sMessage;
