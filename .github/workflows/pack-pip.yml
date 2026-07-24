@@ -222,7 +222,14 @@ jobs:
             source "$KHIOPS_INSTALL_DIR/bin/activate"
             echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_OUTPUT"
           fi
-          $PYTHON -m pip install --find-links=wheelhouse khiops-core khiops-kni khiops-knitransfer
+          CORE_VERSION=$(ls wheelhouse/khiops_core-*.whl | head -1 | xargs basename | cut -d- -f2)
+          KNI_VERSION=$(ls wheelhouse/khiops_kni-*.whl | head -1 | xargs basename | cut -d- -f2)
+          KNITRANSFER_VERSION=$(ls wheelhouse/khiops_knitransfer-*.whl | head -1 | xargs basename | cut -d- -f2)
+          $PYTHON -m pip install \
+            --find-links=wheelhouse \
+            "khiops-core==$CORE_VERSION" \
+            "khiops-kni==$KNI_VERSION" \
+            "khiops-knitransfer==$KNITRANSFER_VERSION"
           $PYTHON -m pip show -f khiops-core
           $PYTHON -m pip show -f khiops-kni
       - name: Run standard tests on the Core and KNI packages
