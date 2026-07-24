@@ -15,7 +15,9 @@
 
 // -> Khiops Coclustering
 
-//AnalysisSpec.DataGridOptimizerParameters.DisplayDetails true // Display details
+//AnalysisSpec.DataGridOptimizerParameters.OptimizationProfiling true // Optimization profiling
+//AnalysisSpec.DataGridOptimizerParameters.OptimizationLevel 5 // Level
+//AnalysisSpec.SystemParameters.OptimizationTime 10   // Min optimization time in seconds
 
 ClassManagement.OpenFile       // Open...
 
