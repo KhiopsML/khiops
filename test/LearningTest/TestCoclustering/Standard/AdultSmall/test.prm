@@ -30,8 +30,8 @@ AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert
 AnalysisSpec.CoclusteringParameters.Attributes.Name occupation     // Name
 AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert variable
 AnalysisSpec.CoclusteringParameters.Attributes.Name education_num     // Name
-//AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert variable
-//AnalysisSpec.CoclusteringParameters.Attributes.Name hours_per_week     // Name
+AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert variable
+AnalysisSpec.CoclusteringParameters.Attributes.Name hours_per_week     // Name
 AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert variable
 AnalysisSpec.CoclusteringParameters.Attributes.Name marital_status     // Name
 //AnalysisSpec.CoclusteringParameters.Attributes.InsertItemAfter         // Insert variable
