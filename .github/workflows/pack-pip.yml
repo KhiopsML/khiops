@@ -177,11 +177,15 @@ jobs:
     needs: [build-wheel, sign-wheel-windows]
     steps:
       - uses: actions/checkout@v7
+      - name: Clean wheelhouse
+        run: rm -rf wheelhouse && mkdir wheelhouse
       - uses: actions/download-artifact@v8
         with:
           pattern: pkg-*
           path: wheelhouse
           merge-multiple: true
+      - name: List wheelhouse contents
+        run: ls wheelhouse/
       - name: Python setup for Linux
         if: runner.os == 'Linux'
         shell: bash
@@ -250,6 +254,8 @@ jobs:
           pattern: pkg-*
           path: wheelhouse
           merge-multiple: true
+      - name: List wheelhouse contents
+        run: ls wheelhouse/
       - name: Checkout KhiopsNativeInterface-tutorial
         uses: actions/checkout@v7
         with:
