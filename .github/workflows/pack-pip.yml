@@ -117,6 +117,8 @@ jobs:
         with:
           name: wheelhouse-windows-unsigned
           path: wheelhouse
+      - name: List wheelhouse contents
+        run: ls wheelhouse/
       - name: Install Python
         if: env.SIGN_WINDOWS_WHEELS == 'true'
         uses: actions/setup-python@v6
