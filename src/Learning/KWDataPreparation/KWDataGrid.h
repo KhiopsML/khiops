@@ -231,8 +231,8 @@ public:
 
 	// Construction/destruction des structures d'indexation des attributs,
 	// qui permettent de trouver les parties a partir des valeurs dans chaque attribut
-	void BuildIndexingStructure();
-	void DeleteIndexingStructure();
+	void BuildIndexingStructure() const;
+	void DeleteIndexingStructure() const;
 
 	// Creation d'une cellule en specifiant le tableau des parties dont il est le N-uplet
 	// La cellule est ajoutes en fin de liste de chacune des parties d'attribut
@@ -295,9 +295,9 @@ public:
 	// L'entropie permet de mesurer la quantite d'information (en bits)
 	// pour coder une variable
 	// Entropie = somme( -p(x) log(p(x)), avec p(x) = e(x)/e
-	double ComputeSourceEntropy();
-	double ComputeTargetEntropy();
-	double ComputeMutualEntropy();
+	double ComputeSourceEntropy() const;
+	double ComputeTargetEntropy() const;
+	double ComputeMutualEntropy() const;
 
 	///////////////////////////////
 	// Services divers
@@ -496,6 +496,7 @@ public:
 	void SetOwnerAttributeName(ALString sName);
 
 	// Parametrage des attributs internes dans le cas d'un attribut de grille de type VarPart
+	// On met a jour egalement le InitialValueNumber, qui doit correspondre au nombre total de parties des attributs internes
 	// Note sur la gestion memoire des attributs internes
 	// - les attributs internes peuvent etre partagee entre plusieurs grilles
 	// - grace a un comptage de reference propre aux attributs internes, ceux-ci sont automatiquement
@@ -606,10 +607,10 @@ public:
 	// plusieurs fois), et enfin detruite
 
 	// Construction des structures d'indexation
-	void BuildIndexingStructure();
+	void BuildIndexingStructure() const;
 
 	// Destruction des structures d'indexation
-	void DeleteIndexingStructure();
+	void DeleteIndexingStructure() const;
 
 	// Indicateur d'indexation
 	boolean IsIndexed() const;
@@ -618,13 +619,13 @@ public:
 	// (doit etre compatible avec le type de l'attribut)
 	// Attention a ne pas modifier les valeurs (intervalles ou ensemble de valeurs)
 	// pendant l'utilisation de l'indexation
-	KWDGPart* LookupContinuousPart(Continuous cValue);
-	KWDGPart* LookupSymbolPart(const Symbol& sValue);
-	KWDGPart* LookupVarPart(KWDGPart* varPart);
+	KWDGPart* LookupContinuousPart(Continuous cValue) const;
+	KWDGPart* LookupSymbolPart(const Symbol& sValue) const;
+	KWDGPart* LookupVarPart(KWDGPart* varPart) const;
 
 	// Recherche generique de la partie contenant une valeur de ValueSet dans le cas
 	// d'un attribut de type groupable, symbolique ou VarPart
-	KWDGPart* LookupGroupablePart(const KWDGValue* value);
+	KWDGPart* LookupGroupablePart(const KWDGValue* value) const;
 
 	///////////////////////////////
 	// Services divers
@@ -729,15 +730,15 @@ protected:
 
 	// Structure d'indexation des parties dans le cas numerique
 	// Tableau des parties (intervalles) tries de facon croissante
-	ObjectArray oaIntervals;
+	mutable ObjectArray oaIntervals;
 
 	// Structure d'indexation des parties dans le cas groupable
 	// Dictionnaire des parties indexe par les valeurs des parties, et partie par defaut
-	NumericKeyDictionary nkdParts;
-	KWDGPart* defaultPart;
+	mutable NumericKeyDictionary nkdParts;
+	mutable KWDGPart* defaultPart;
 
 	// Indicateur d'indexation
-	boolean bIsIndexed;
+	mutable boolean bIsIndexed;
 
 	// Nom de l'attribut de type VarPart dont depend un attribut interne
 	// Par defaut a vide pour un attribut de type Simple (numerique ou categoriel)
@@ -1410,10 +1411,6 @@ public:
 	// Acces a un attribut interne par nom
 	KWDGAttribute* LookupInnerAttribute(const ALString& sAttributeName) const;
 
-	// Acces a la granularite des parties de variable, partages par tous les attributs
-	int GetVarPartGranularity() const;
-	void SetVarPartGranularity(int nValue);
-
 	///////////////////////////////
 	// Services divers
 
@@ -1440,7 +1437,7 @@ public:
 	boolean AreInnerAttributePartsSorted() const;
 
 	// Test si les attributs internes sont constitues des memes attributs, ne contenant que des sous-parties
-	// des VarPart des autres attributs internes en parametressi Verification du tri des parties des attributs internes :
+	// des VarPart des autres attributs internes en parametres
 	// Test couteux, a utiliser essentiellement dans les assertions
 	boolean ContainsSubVarParts(const KWDGInnerAttributes* otherInnerAttributes) const;
 
@@ -1464,7 +1461,6 @@ protected:
 	friend class KWDGAttribute;
 
 	// Gestion des attributs internes
-	int nVarPartGranularity;
 	ObjectDictionary odInnerAttributes;
 	ObjectArray oaInnerAttributes;
 
@@ -1796,18 +1792,28 @@ inline void KWDGAttribute::SetInnerAttributes(const KWDGInnerAttributes* attribu
 {
 	require(GetAttributeType() == KWType::VarPart);
 
-	// Decrementation des references sur les attributs internes d'origine, et desallocation si necessaire
-	if (innerAttributes != NULL)
+	// Gestion des compteur de reference sauf s'il ny a pas de changement d'attribut interne
+	if (attributes != innerAttributes)
 	{
-		innerAttributes->nRefCount--;
-		if (innerAttributes->nRefCount == 0)
-			delete innerAttributes;
+		// Decrementation des references sur les attributs internes d'origine, et desallocation si necessaire
+		if (innerAttributes != NULL)
+		{
+			innerAttributes->nRefCount--;
+			if (innerAttributes->nRefCount == 0)
+				delete innerAttributes;
+		}
+
+		// Incrementation des references sur les nouveaux attributs internes
+		if (attributes != NULL)
+			attributes->nRefCount++;
+		innerAttributes = attributes;
 	}
 
-	// Incrementation des references sur les nouveaux attributs internes
-	if (attributes != NULL)
-		attributes->nRefCount++;
-	innerAttributes = attributes;
+	// Mise a jour du nombre initial de parties de variable sur l'ensemble des attributs internes
+	if (attributes == NULL)
+		nInitialValueNumber = 0;
+	else
+		nInitialValueNumber = attributes->ComputeTotalInnerAttributeVarParts();
 }
 
 inline const KWDGInnerAttributes* KWDGAttribute::GetInnerAttributes() const
@@ -2309,7 +2315,6 @@ inline int KWDGVarPartValue::GetValueFrequency() const
 // Classe KWDGInnerAttributes
 inline KWDGInnerAttributes::KWDGInnerAttributes()
 {
-	nVarPartGranularity = 0;
 	nRefCount = 0;
 }
 

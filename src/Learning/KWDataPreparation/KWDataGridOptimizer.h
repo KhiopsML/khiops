@@ -39,31 +39,15 @@ public:
 	// Memoire: l'objet rendu appartient a l'appele
 	KWDataGridOptimizerParameters* GetParameters();
 
-	// Optimisation integrant une surtokenisation des VarPart lors du VNS
-	boolean GetSurtokenisationProto() const;
-	void SetSurtokenisationProto(boolean bValue);
-
 	// Parametrage (facultatif) par des statistiques sur le probleme d'apprentissage
 	// Permet l'utilisation des statistiques univariees pour optimiser les grilles de donnees
 	// Memoire: les specifications sont referencees et destinee a etre partagees
 	void SetClassStats(KWClassStats* stats);
 	KWClassStats* GetClassStats() const;
 
-	// Parametrage (facultatif) par une grille initiale, dans le cas du coclustering instances * variables,
-	// Permet l'utilisation de cette grille pour la creation de la grille avec parties de variables fusionnees
-	// Memoire: les specifications sont referencees et destinees a etre partagees
-	void SetInitialVarPartDataGrid(KWDataGrid* refDataGrid);
-	KWDataGrid* GetInitialVarPartDataGrid() const;
-
-	// Optimisation d'un grille pour une structure de cout donnees
-	// En sortie, on trouve une nouvelle grille optimisee compatible avec la grille initiale,
-	// ne conservant que les attributs non reduits a une seule partie
-	// Les intervalles (resp. groupes) de la grille optimisee sont tries par valeur (resp. effectifs decroissants)
-	// Integre un parcours des granularites
-	// Retourne le cout de codage MODL de la grille post-optimisee
-	// Dans le cas d'une grille VarPart avec des parties de variable, le cout retourne est celui de la grille
-	// antecedente de la meilleure grille post-fusionnee (fusion des parties de variable consecutives dans un
-	// cluster de parties de variables)
+	// Optimisation d'un grille pour une structure de cout donnee
+	// En sortie, on trouve une nouvelle grille optimisee compatible avec la grille initiale
+	// Retourne le cout de codage MODL de la grille optimisee
 	double OptimizeDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const;
 
 	// Simplification d'une grille selon le parametre MaxPartNumber des parametres d'optimisation
@@ -84,17 +68,21 @@ public:
 	// Permet par exemple de passer en mode anytime, en memorisant chaque solution intermediaire
 	// Par defaut: redirige vers la methode HandleOptimizationStep attributeSubsetStats s'il est parametre
 	virtual void HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
-					    const KWDataGrid* initialGranularizedDataGrid, boolean bIsLastSaving) const;
+					    const KWDataGrid* initialGranularizedDataGrid) const;
 
 	// Parametrage du contexte de gestion de la partie anytime de l'optimisation
 	// Permet de rediriger la methode HandleOptimizationStep vers celle du attributeSubsetStats
-	void SetAttributeSubsetStats(const KWAttributeSubsetStats* attributeSubsetStats);
-	const KWAttributeSubsetStats* GetAttributeSubsetStats();
+	void SetOptimizationHandler(const KWAttributeSubsetStats* attributeSubsetStats);
+	const KWAttributeSubsetStats* GetOptimizationHandler();
 
 	//////////////////////////////////////////////////////////////////
 	// Gestion d'un profiler dedie a l'optimisation des grilles
 	// Ce profiler doit etre demarre depuis le point d'entree de l'optimisation,
-	// et utilise par les methodes d'optimisation a profiler
+	// et utilise par les methodes d'optimisation a profiler,
+	// avec des appels a BeginMethod et EndMethod encadrant les informations utiles
+	// Le profiling permet de generer :
+	// - un fichier json avec toute la trajectoire d'optimisation
+	// - un fichier de stats, avec le nombre d 'appels et le temps passe par methode
 
 	// Acces au profiler global permettant d'enregistrer toute une session de profiling
 	// de l'optimisation d'une grille de coclustering
@@ -103,59 +91,41 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
-	//////////////////////////////////////////////////////////////////////////////////
-	// Initialisation de base avec grille terminale ou a base de grilles univariees
+	//////////////////////////////////////////////////////////////////////////
+	// La trace sert essentiellement au debugage locale d'une methode
+	// Elle peut etre activee ou desactivee par une variable locale bTrace,
+	// avec bTraceDetail pour avoir tout le detail d'un coclustering
 
-	// Optimisation d'une grille pour la granularite courante
-	// L'optimisation est poussee, avec declenchement de l'algorithme VNS
-	double OptimizeGranularizedDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const;
+	// Trace des informations d'optimisation sur une grille dans la sortie standard
+	// - libelle de l'etape d'optimisation
+	// - contexte de l'optimisation
+	// - caracteristiques de la grille
+	// - cout
+	// - temps courant d'optimisation
+	// - si TraceDataGrid, trace complet de la grille
+	void TraceOptimizationDetails(const ALString& sLabel, const KWDataGrid* optimizedDataGrid,
+				      boolean bTraceDataGrid) const;
 
-	// Optimisation legere d'une grille
-	// L'optimisation legere est utilise dans le cas de grille non supervisee, pour
-	// lesquelles les granularites intermediaires ne font pas partie des parametres du modeles
-	// (contrairement au cas supervise), et ne sont la que pour avoir des solution intermediaires
-	// rapidement, sans necessite de raffiner la solution
-	// En mode d'optimisation legere:
-	// - il n'y a pas d'optmisation VNS, mais une seule optimisation
-	// - la post-optimisation est legere
-	// - il n'y a pas de post-optimisation VarPart
-	// La grille optimizedDataGrid contient en entree une meilleure solution initiale
-	// Cette solution est mise a jour si son cout est ameliore, et on renvoie son cout
-	double SlightOptimizeGranularizedDataGrid(const KWDataGrid* initialDataGrid,
-						  KWDataGrid* optimizedDataGrid) const;
+	// Acces au modele initial, initialise par OptimizeDataGrid
+	const KWDataGrid* GetOptimizedInitialDataGrid() const;
 
-	// Post-optimisation de la granularite de la grille optimisee afin de lui attribuer la plus petite granularite
-	// avec laquelle la partition est compatible
-	// Sinon, un grille optimise avec un granularite fine peut par hasard avoir des frontieres coincidant
-	// avec une granularite plus grossiere, et il faut le prendre en compte dans les cout de prior
-	// Ne concerne que le cas supervise, pour lequel la granularite fait partie du modele
-	// On rend le cout de la grille post-optimisee
-	double PostOptimizeGranularity(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid,
-				       const ObjectDictionary* odQuantileBuilders, int nLastExploredGranularity) const;
+	// Acces au modele null, initialise par OptimizeDataGrid
+	const KWDataGrid* GetOptimizedNullDataGrid() const;
 
-	//////////////////////////////////////////////////////////////////////////////////
-	// Initialisation de base avec grille terminale ou a base de grilles univariees
+	// Cout du modele null
+	double GetOptimizedNullDataGridCost() const;
 
-	// Initialisation avec une grille terminale
-	// La grille optimizedDataGrid contient en sortie une premiere meilleure solution, et on renvoie son cout
-	double InitializeWithTerminalDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const;
-
-	// Cette methode calcule pour chaque attribut de la grille initialDataGrid
-	// le partitionnement univarie optimal associe au partitionnement obtenu par projection univariee de la grille
-	// La granularite du partitionnement est celle de la grille initiale
-	// La grille optimizedDataGrid contient en entree la meilleure solution courante
-	// Cette solution est mise a jour si son cout est ameliore, et on renvoie son cout
-	double OptimizeWithBestUnivariatePartitionForCurrentGranularity(const KWDataGrid* initialDataGrid,
-									KWDataGrid* optimizedDataGrid) const;
-
-	// Recherche d'une amelioration par croisement des partition univariees
-	// En mode hors granularite, la methode utilise directement les partitions univariees stockees dans KWClassStats
-	// En mode granularite, les partitions univariees optimales sont recalculees pour la granularite de la grille
-	// initiale et sont utilisees pour construire une grille produit
-	// La grille optimizedDataGrid contient en entree la meilleure solution courante
-	// Cette solution est mise a jour si son cout est ameliore, et on renvoie son cout
-	double OptimizeWithMultipleUnivariatePartitions(const KWDataGrid* initialDataGrid,
-							KWDataGrid* optimizedDataGrid) const;
+	// Optimisation interne d'une grille, a redefinir par sous-classe
+	// On ne fait ici que l'optimisation, tout le contexte ayant ete mi en place par la methode appelante OptimizeDataGrid:
+	// - suivi de tache
+	// - initialisation du modele null
+	// - memorisation de la grille initiale
+	// - initialisation de la grille optimale avec le modele null
+	// - ...
+	// En sortie, on trouve une nouvelle grille optimisee compatible avec la grille initiale
+	// Retourne le cout de codage MODL de la grille optimisee
+	virtual double InternalOptimizeDataGrid(const KWDataGrid* initialDataGrid,
+						KWDataGrid* optimizedDataGrid) const = 0;
 
 	//////////////////////////////////////////////////////////////////////////////////
 	// Gestion de l'optimisation VNS (Variable Neighborhood Search)
@@ -190,46 +160,13 @@ protected:
 	double VNSOptimizeDataGrid(const KWDataGrid* initialDataGrid, int nNeighbourhoodLevelNumber,
 				   KWDataGrid* optimizedDataGrid) const;
 
-	// Methode de post-optimisation d'un grille optimisee en redecoupant ses parties de variables
-	// Methode temporaire permettant de reutiliser le code de la methode principale VNSOptimizeDataGrid
-	// en isolant cette partie de post-optimisation specifique VarPart, et de supprimer l'ancienne
-	// methode VNSOptimizeVarPartDataGrid
-	// Parametre (a faire evoluer si necessaire):
-	// - initialDataGrid: grille initiale
-	// - neighbourDataGrid: grille courante en cours d'optimisation
-	// - dNeighbourDataGridCost: cout de la grille courante
-	// - mergedDataGrid: grille optimisee si amelioration
-	// En sortie, la grille courante et son cout sont modifies suite a optimisation.
-	// On rend la grille issue de la post-optimisation VarPart, ainsi que sa grille partitionned de reference
-	// Le code retour est le meilleurs cout optenu apres post-optimisation VarPart
-	// Attention, celui-ci est different de celui de la grille courante optimisee
-	//
-	// A terme, il faudra isoler ce service de post-optimisation pour le deplacer en quatrime sous-methode
-	// en fin de la methode OptimizeSolution
-	// - Pre-optimization
-	// - Greedy merge optimization
-	// - Post-optimization
-	// - Post-optimization IV
-	double VNSDataGridPostOptimizeVarPart(const KWDataGrid* initialDataGrid, KWDataGridMerger* neighbourDataGrid,
-					      double& dNeighbourDataGridCost, KWDataGrid* mergedDataGrid,
-					      KWDataGrid* partitionedReferencePostMergedDataGrid) const;
-
-	// Pilotage de la meta heuristique VNS, avec des voisinages successifs de taille decroissante
-	// selon un facteur geometrique
-	// La grille optimizedDataGrid contient en entree la meilleure solution courante
-	// Cette solution est mise a jour si son cout est ameliore, et on renvoie son cout
-	// Les grilles generiques optimales sont post-fusionnees et les voisinages sont ceux des grilles antecedentes
-	// des grilles de meilleur cout apres post-fusion En sortie : optimizedDataGrid contient la grille antecedent
-	// avant post-fusion de la meilleure grille post-fusionne Le cout renvoye est le cout de cette optimizedDataGrid
-	// dBestMergedDataGridCost contient le cout de la meilleure grille apres post-fusion (meilleur cout)
-	// CH IV Refactoring: proto en vue de fusionner la methode avec VNSOptimizeDataGrid
-	double VNSOptimizeVarPartDataGrid(const KWDataGrid* initialDataGrid, int nNeighbourhoodLevelNumber,
-					  KWDataGrid* optimizedDataGrid, double& dBestMergedDataGridCost,
-					  boolean bWithoutAntecedent) const;
-
-	// Optimisation d'une solution, selon le parametre de post-optimisation des solutions
-	double OptimizeSolution(const KWDataGrid* initialDataGrid, KWDataGridMerger* dataGridMerger,
-				boolean bDeepPostOptimization) const;
+	// Optimisation d'une solution voisine
+	// Regroupe la generation d'une solution voisine et son optimisation
+	// Retourne le cout de la grille optimisee
+	virtual double OptimizeNeighbourSolution(const KWDataGrid* initialDataGrid,
+						 const KWDataGrid* currentOptimizedDataGrid, double dNoiseRate,
+						 KWDataGridMerger* neighbourOptimizedDataGrid,
+						 boolean bDeepPostOptimization) const;
 
 	// Creation d'une solution voisine d'une solution optimisee
 	// On passe en parametre un pourcentage de perturbation compris
@@ -237,17 +174,18 @@ protected:
 	void GenerateNeighbourSolution(const KWDataGrid* initialDataGrid, const KWDataGrid* optimizedDataGrid,
 				       double dNoiseRate, KWDataGridMerger* neighbourDataGridMerger) const;
 
-	// Creation d'une solution voisine d'une solution optimisee avec perturbation de la tokenisation des innerAttributes dans le cas VarPart
-	// On passe en parametre un pourcentage de perturbation compris
-	// entre 0 (pas de perturbation) et 1 (solution aleatoire)
-	void PROTOGenerateNeighbourSolution(const KWDataGrid* initialDataGrid, const KWDataGrid* optimizedDataGrid,
-					    double dNoiseRate, KWDataGridMerger* neighbourDataGridMerger) const;
+	// Optimisation d'une solution, selon le parametre de post-optimisation des solutions
+	double OptimizeSolution(const KWDataGrid* initialDataGrid, KWDataGridMerger* dataGridMerger,
+				boolean bDeepPostOptimization) const;
 
 	//////////////////////////////////////////////////////////////////////////////////
 	// Methodes utilitaires
 
+	// Calcul du nombre de partie a ajouter par attribut d'une grille vosine en fonction de la taille de voisinnage
+	int ComputeNeighbourSolutionAddedPartNumber(const KWDataGrid* initialDataGrid, int nNeighbourAttributeNumber,
+						    double dNeighbourhoodSize) const;
+
 	// Sauvegarde d'une grille source dans une grille cible
-	// On prend en compte le parametre bCleanNonInformativeVariables si necessaire
 	void SaveDataGrid(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid) const;
 
 	// Test si l'optimisation est necessaire pour une grille
@@ -257,15 +195,6 @@ protected:
 	// Test si une grille est supervisee
 	boolean IsSupervisedDataGrid(const KWDataGrid* dataGrid) const;
 
-	// Test si on est a la derniere granularite pour une grille
-	// c'est a dire si on a atteint la granularite max
-	boolean IsLastGranularity(const KWDataGrid* dataGrid) const;
-
-	// Calcul de la granularite max a explorer
-	// Celle-ci depend du nombre de valeurs, mais est egalement tronquee de facon heuristique
-	// dans certains cas (ex: regression) pour reduire les temps de calcul
-	int ComputeMaxExploredGranularity(const KWDataGrid* dataGrid) const;
-
 	// Test si le temps d'optimisation est depasse (si le parametre correspondant est actif (non null))
 	boolean IsOptimizationTimeElapsed() const;
 
@@ -273,11 +202,7 @@ protected:
 	void ResetProgressionIndicators() const;
 
 	// Affichage des informations de progression: messages et niveau d'avancement de la barre de progesssion
-	void DisplayProgression(const KWDataGrid* dataGrid) const;
-
-	// Affichage des caracteristiques d'optimisation si demande dans le parametre d'optimsiation DisplayDetails
-	void DisplayOptimizationHeaderLine() const;
-	void DisplayOptimizationDetails(const KWDataGrid* optimizedDataGrid, boolean bOptimized) const;
+	virtual void DisplayProgression(const KWDataGrid* dataGrid) const;
 
 	//////////////////////////////////////////////////////////////////////////////
 	// Variable de la classe
@@ -291,8 +216,11 @@ protected:
 	// Attribut de statistiques
 	KWClassStats* classStats;
 
-	// Grille de reference
-	KWDataGrid* initialVarPartDataGrid;
+	// Grille du modele nul de la grille en cours d'optimisation
+	mutable KWDataGrid* optimizedNullDataGrid;
+
+	// Grille initiale en cours d'optimisation
+	mutable const KWDataGrid* optimizedInitialDataGrid;
 
 	// Informations d'indexation des solutions evaluees durant l'optimisation
 	mutable Timer timerOptimization;
@@ -300,9 +228,9 @@ protected:
 	mutable int nVNSNeighbourhoodLevelIndex;
 	mutable int nVNSNeighbourhoodLevelNumber;
 	mutable double dVNSNeighbourhoodSize;
-	boolean bProtoSurtokenisation;
+
 	// Contexte de gestion de la partie anytime de l'optimisation
-	const KWAttributeSubsetStats* attributeSubsetStatsHandler;
+	const KWAttributeSubsetStats* attributeSubsetStatsOptimizationHandler;
 
 	// Profiler
 	static Profiler profiler;

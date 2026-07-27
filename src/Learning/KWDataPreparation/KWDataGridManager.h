@@ -8,13 +8,19 @@
 #include "KWDataGrid.h"
 #include "KWSortableIndex.h"
 #include "KWAttributeStats.h"
+#include "KWDataGridOptimizer.h"
 #include "KWQuantileBuilder.h"
 #include "KWFrequencyVector.h"
 
 /////////////////////////////////////////////////////////////////////////////////////
 // Gestion de grilles de donnees
 // Copies et transferts partiels ou total du contenu d'une grille source
-//  pour alimenter une grille cible.
+// pour alimenter une grille cible, avec potentiellement une grille obligatoire impose
+// - sourceDataGrid: grille en entree, la plus fine
+// - mandatoryDataGrid: grille issue d'une agregation de la grille source
+// - targetDataGrid: grille en sortie, version agregee de la grille source
+//   - affine la grille obligatoire si ce parametre est present
+//
 // Les grilles sources et cible peuvent etre d'une sous-classe quelconque de KWDataGrid.
 // Par contre, seules les parties gerees au niveau de KWDataGrid sont explicitement
 // gerees (donc, le contenu de la grille en attributs, parties et cellules).
@@ -50,75 +56,45 @@ public:
 
 	// Export total (attribut, parties et cellules)
 	// Cas d'une grille de type VarPart
-	// Les innerAttributes de la targetDataGrid sont ceux de la grille de reference
-	// L'attribut VarPart est construit avec une PV par VarPartSet, les PV etant celles des innerAttributes de la referenceDataGrid
-	// L'attribut Identifer est construit selon deux cas :
-	//   - bSourceSimpleAttributeParts = true: on recopie les parties de la grille source
-	//   - bSourceSimpleAttributeParts = false: on recopie les parties de la grille de reference
-	void ExportDataGridWithSingletonVarParts(const KWDataGrid* sourceDataGrid, const KWDataGrid* referenceDataGrid,
-						 KWDataGrid* targetDataGrid, boolean bSourceSimpleAttributeParts) const;
+	// Les innerAttributes de la targetDataGrid sont ceux de la grille obligatoire
+	// L'attribut VarPart est construit avec une PV par VarPartSet, les PV etant celles des innerAttributes
+	// de la grille obligatoire
+	// L'attribut Identifer est construit egalement selon la grille obligatoire
+	void ExportDataGridWithSingletonVarParts(const KWDataGrid* sourceDataGrid, const KWDataGrid* mandatoryDataGrid,
+						 KWDataGrid* targetDataGrid) const;
 
-	// Export total (attribut, parties et cellules) en exploitant une grille de reference,
-	// avec les parties de VarPart de la grille source, exploitant la partition de la grille de reference
-	// Cette grille de reference n'a pas les memes VarParts que la grille source, alors que la grille en sortie
-	// reutilise les VarPart de la grille source
-	void ExportDataGridWithReferenceVarPartClusters(const KWDataGrid* sourceDataGrid, KWDataGrid* referenceDataGrid,
-							KWDataGrid* targetDataGrid);
-
-	// Export d'une grille terminale, avec attributs reduits a une seule partie
-	// Ne modifie pas la tokenisation des attributs internes
-	void ExportTerminalDataGrid(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid) const;
-
-	// Export de la grille du modele nul : une seule partie par attribut et, pour les attributs VarPart,
-	// une seule partie de variable
+	// Export de la grille du modele nul : une seule partie par attribut, y compris dans le cas VarPart
 	// Attention: creation de nouveaux attributs internes qui doivent etre detruits par l'appelant
 	void ExportNullDataGrid(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid) const;
 
 	// Export total (attribut, parties et cellules)
 	// Cas d'une grille de type VarPart
 	// En entree :
-	// DD 461 - sourceDataGrid : preciser en quoi elle differe d'inputDataGrid
-	// - inputDataGrid : grille dont on souhaite sur-echantillonner le KWDGInnerAttributes
-	// - referenceInnerAttributes : les innerAttributes avec la partition de reference la plus fine sur laquelle on procede au tirage aleatoire
+	// - sourceDataGrid : grille la plus fine, contenant les innerAttributes avec la partition de reference la plus fine
+	//                    sur laquelle on procede au tirage aleatoire
+	// - mandatoryDataGrid : grille dont on souhaite sur-echantillonner le KWDGInnerAttributes
 	// - nTargetTokenNumber : nombre total de parties de variables souhaite sur l'ensemble des innerAttributes
 	// En sortie :
-	// targetDataGrid : nouvelle grille dont le KWDGInnerAttributes a ete sur-echantillonne
+	// - targetDataGrid : nouvelle grille dont le KWDGInnerAttributes a ete sur-echantillonne
 	// Les partitions des attributs Identifier et VarPart ne sont pas modifiees
 	// Les innerAttributes sont sur-tokenises par tirage aleatoire
 	// Le nombre de parties de variables obtenu peut etre inferieur a l'objectif nTargetTokenNumber
 	void ExportDataGridWithRandomizedInnerAttributes(const KWDataGrid* sourceDataGrid,
-							 const KWDataGrid* inputDataGrid,
-							 const KWDGInnerAttributes* referenceInnerAttributes,
-							 KWDataGrid* targetDataGrid, int nTargetTokenNumber);
+							 const KWDataGrid* mandatoryDataGrid, int nTargetTokenNumber,
+							 KWDataGrid* targetDataGrid);
 
 	// Export total (attribut, parties et cellules)
 	// Cas d'une grille de type VarPart
 	// En entree :
-	// DD 461 - sourceDataGrid : preciser en quoi elle differe d'inputDataGrid
-	// - inputDataGrid : grille dont on souhaite fusionner le KWDGInnerAttributes
-	// - otherMergedInnerAttributes : attributes dont les PV sont issues d'une fusion des innerAttributes de l'inputDataGrid.
+	// - sourceDataGrid : grille dont on souhaite fusionner le KWDGInnerAttributes
+	// - mandatoryInnerAttributes : attributes dont les PV sont issues d'une fusion des innerAttributes de l'inputDataGrid.
 	//							Les PV fusionnees doivent appartenir au meme cluster de PV
 	// En sortie :
-	// targetDataGrid : nouvelle grille dont le KWDGInnerAttributes a ete remplace par une version fusionnee
+	// - targetDataGrid : nouvelle grille dont le KWDGInnerAttributes a ete remplace par une version fusionnee
 	// Les partitions des attributs Identifier et VarPart ne sont pas modifiees
-	void ExportDataGridWithMergedInnerAttributes(const KWDataGrid* sourceDataGrid, const KWDataGrid* inputDataGrid,
-						     const KWDGInnerAttributes* otherMergedInnerAttributes,
+	void ExportDataGridWithMergedInnerAttributes(const KWDataGrid* sourceDataGrid,
+						     const KWDGInnerAttributes* mandatoryInnerAttributes,
 						     KWDataGrid* targetDataGrid);
-
-	// CH Etape 2 Antecedent
-	// Export total (attribut, parties et cellules)
-	// Cas d'une grille de type VarPart
-	// En entree :
-	// DD 461 sourceDataGrid : en quoi differe-t'elle de inputDataGrid ?
-	// DD 461 C'est tokenizedDataGrid qui joue le role de grille source dans les methodes d'Export ?
-	// - inputDataGrid : grille en entree
-	// En sortie :
-	// targetDataGrid : nouvelle grille dont l'identifierAttribute et le KWDGInnerAttributes ne sont pas modifies
-	// L'attribut VarPart contient un cluster par partie de variable du KWDGInnerAttributes
-	void ExportReferenceDataGridWithGivenInnerAttributes(const KWDataGrid* sourceDataGrid,
-							     const KWDataGrid* inputDataGrid,
-							     const KWDataGrid* tokenizedDataGrid,
-							     KWDataGrid* targetDataGrid);
 
 	/////////////////////////////////////////////////////////////////////////////////////////
 	// Service elementaires de transfert du contenu de la grille source vers la grille cible
@@ -127,9 +103,6 @@ public:
 	// Export des attributs uniquement (plus les specifications des classes cibles)
 	// Dans le cas VarPart, les attributs internes sont partages avec la grille source
 	void ExportAttributes(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid) const;
-
-	// Export des attributs informatifs uniquement (non reduits a une seule partie)
-	void ExportInformativeAttributes(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid) const;
 
 	// Export des parties uniquement (les attributs de la grille cible sont deja exportes)
 	// Les attributs cibles peuvent n'etre qu'un sous-ensemble des attributs sources
@@ -156,31 +129,21 @@ public:
 	// grille comportant les attributs et parties obligatoires
 
 	// Export d'un sous-ensemble aleatoire des attributs (plus les specifications des classes cibles)
-	void ExportRandomAttributes(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid,
-				    int nAttributeNumber) const;
+	void ExportRandomAttributes(const KWDataGrid* sourceDataGrid, int nAttributeNumber,
+				    KWDataGrid* targetDataGrid) const;
 
-	// Export d'une partition aleatoire des parties pour chaque attribut cible.
-	// Le nombre de parties effectif peut etre inferieur au nombre specifie, s'il n'y
-	// a pas assez de valeurs sources. Le choix de la partition est uniforme
-	// (partition des rangs pour les attributs numeriques, des valeurs pour les symboliques).
-	void ExportRandomParts(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid,
-			       int nMeanAttributePartNumber) const;
-
-	// Export d'un sous-ensemble aleatoire des attributs (plus les specifications des classes cibles)
+	// Ajout d'un sous-ensemble aleatoire des attributs (plus les specifications des classes cibles)
 	// en partant d'un ensemble d'attributs obligatoires.
-	void AddRandomAttributes(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid,
-				 const KWDataGrid* mandatoryDataGrid, int nRequestedAttributeNumber) const;
+	void AddRandomAttributes(const KWDataGrid* sourceDataGrid, const KWDataGrid* mandatoryDataGrid,
+				 int nRequestedAttributeNumber, KWDataGrid* targetDataGrid) const;
 
-	// Export d'une partition aleatoire des parties pour chaque attribut cible
-	// en partant de partitions aleatoires pour un sous-ensemble d'attributs.
-	// Les nouvelles parties sont obtenues en sur-partitionnant les partitions existantes,
-	// pour atteindre les nombres de parties a ajouter demandees par type d'attribut.
-	// Le nombre de partie a ajouter demande est aleatoire, avec au moins le pourcentage minimum demande.
-	// Le nombre de parties reellement ajoutees peut etre inferieur a celui demande, s'il n'y
+	// Ajout aleatoire de parties pour chaque attribut cible
+	// Les nouvelles parties sont obtenues en sur-partitionnant aleatoirement les partitions existantes,
+	// pour ajouter les nombres de parties demandees
+	// Le nombre de parties reellement obtenu peut etre inferieur a celui demande, s'il n'y
 	// a pas assez de valeurs disponibles pour scinder des parties existantes
-	void AddRandomParts(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid,
-			    const KWDataGrid* mandatoryDataGrid, int nRequestedContinuousPartNumber,
-			    int nRequestedSymbolPartNumber, double dMinPercentageAddedPart) const;
+	void AddRandomParts(const KWDataGrid* sourceDataGrid, const KWDataGrid* mandatoryDataGrid, int nAddedPartNumber,
+			    KWDataGrid* targetDataGrid) const;
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Construction d'une grille de donnees cible en granularisant la grille de donnees source
@@ -201,30 +164,8 @@ public:
 
 	// Export d'une grille granularisee pour une granularite commune a tous ses attributs
 	// (attribut, parties et cellules)
-	void ExportGranularizedDataGrid(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid, int nGranularity,
-					const ObjectDictionary* odQuantilesBuilders) const;
-
-	// Construction d'un quantile builder pour chaque attribut interne dans un attribut de grille de type VarPart
-	// ivMaxPartNumbers : nombre maximal de parties pour chaque attribut interne. Utilise pour reperer quand on est
-	// arrive a la granularisation maxmimale
-	void InitializeInnerAttributesQuantileBuilders(const KWDataGrid* sourceDataGrid,
-						       ObjectDictionary* odInnerAttributesQuantilesBuilders,
-						       IntVector* ivMaxPartNumbers) const;
-
-	// Creation d'un nouveau KWDGInnerAttributes qui doit etre detruit par l'appelant
-	// Attention: creation de nouveaux attributs internes qui doivent etre detruit par l'appelant
-	void ExportGranularizedDataGridForVarPartAttributes(
-	    const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid, int nGranularity,
-	    const ObjectDictionary* odInnerAttributesQuantilesBuilders) const;
-
-	// Calcul des nombres total de parties reel pour chaque niveau de granularisation
-	// En entree, on a un dictionnaire de quantile builders pour un ensemble d'attribut, de grille ou internes.
-	// En sortie, le vecteur contient pour chaque granularite i de 0 a max la somme des nombres de parties
-	// effectivement obtenus par attributs quand on demande 2^i partiles.
-	// Le max est detremine par la methode, en s'arretant a la granularite permettant d'obtenir
-	// le total de parties des quantile builders
-	void ComputeGranularizedTotalPartNumbers(const ObjectDictionary* odQuantilesBuilders,
-						 IntVector* ivGranularityTotalPartNumbers) const;
+	void ExportGranularizedDataGrid(const KWDataGrid* sourceDataGrid, const ObjectDictionary* odQuantilesBuilders,
+					int nGranularity, KWDataGrid* targetDataGrid) const;
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Services avances de construction de grille
@@ -234,8 +175,9 @@ public:
 	// - dans le cas categoriel: fusion des modalites de la meme variable categorielle
 	// Attention: creation de nouveaux attributs internes qui doivent etre detruits par l'appelant
 	// En sortie : renvoie la variation de cout entre la grille source et la grille fusionnee
-	double ExportDataGridWithVarPartMergeOptimization(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid,
-							  const KWDataGridCosts* dataGridCosts) const;
+	double ExportDataGridWithVarPartMergeOptimization(const KWDataGrid* sourceDataGrid,
+							  const KWDataGridCosts* dataGridCosts,
+							  KWDataGrid* targetDataGrid) const;
 
 	// Mise a jour des groupes de l'attribut VarPart d'une grille de type VarPart
 	// En entree:
@@ -243,9 +185,9 @@ public:
 	//  - nTargetGroupNumber: nombre de groupe cibles
 	// En sortie, les groupes cibles sont crees en exploitant la partition specifiee pour les groupes sources,
 	// et les cellules de la grille cible sont recalculees
-	void UpdateVarPartDataGridFromVarPartGroups(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid,
-						    const IntVector* ivTargetGroupIndexes,
-						    int nTargetGroupNumber) const;
+	void UpdateVarPartDataGridFromVarPartGroups(const KWDataGrid* sourceDataGrid,
+						    const IntVector* ivTargetGroupIndexes, int nTargetGroupNumber,
+						    KWDataGrid* targetDataGrid) const;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Service de recuperation des partitions univariees pour initialiser
@@ -253,22 +195,25 @@ public:
 
 	// Creation d'une grille cible univariee a partir d'une partition univariee
 	// Ajout de la transmission de la granularite a la grille cible
-	void BuildUnivariateDataGridFromAttributeStats(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid,
-						       KWAttributeStats* attributeStats) const;
-
-	// Creation de la grille cible a partir du produit cartesien des partitions
-	// univariees des attributs de la grille source
-	// On utilise au plus log2(N) attributs
-	// On renvoie true si on a pu construire une grille avec au moins deux atrributs
-	// Ajout de la transmission de la granularite a la grille cible
-	boolean BuildDataGridFromClassStats(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid,
-					    KWClassStats* classStats) const;
+	void BuildUnivariateDataGridFromAttributeStats(const KWDataGrid* sourceDataGrid,
+						       const KWAttributeStats* attributeStats,
+						       KWDataGrid* targetDataGrid) const;
 
 	// Creation d'un attribut de grille a partir d'une partition univariee deja stockee
 	// Le parametrage de l'attribut source (granularite, poubelle si categoriel) est copie
 	// vers celui de l'attribut de DataGrid
-	void BuildDataGridAttributeFromUnivariateStats(const KWDataGrid* sourceDataGrid, KWDGAttribute* targetAttribute,
-						       KWAttributeStats* attributeStats) const;
+	void BuildDataGridAttributeFromUnivariateStats(const KWDataGrid* sourceDataGrid,
+						       const KWAttributeStats* attributeStats,
+						       KWDGAttribute* targetAttribute) const;
+
+	// Creation de la grille cible a partir du produit cartesien des partitions
+	// univariees des attributs de la grille source
+	// Ces partitions sont les partitions optimales pour la granularite courante.
+	// (calculees pour l'occasion)
+	// On utilise au plus log2(N) attributs
+	// On renvoie true si on a pu construire une grille avec au moins deux atrributs
+	boolean BuildDataGridFromUnivariateProduct(const KWDataGrid* sourceDataGrid, KWClassStats* classStats,
+						   KWDataGrid* targetDataGrid) const;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Service de calcul des partitions univariees a la granularite courante
@@ -279,43 +224,33 @@ public:
 	// Creation d'une grille univariee contenant un seul des attributs de la grille initiale ayant pour partition
 	// la partition optimale a la granularite de la grille initiale
 	void BuildUnivariateDataGridFromGranularizedPartition(const KWDataGrid* sourceDataGrid,
-							      KWDataGrid* univariateTargetDataGrid, int nAttributeIndex,
-							      KWClassStats* classStats) const;
+							      KWClassStats* classStats, int nAttributeIndex,
+							      KWDataGrid* univariateTargetDataGrid) const;
 
 	// Creation d'un attribut de grille a partir d'une partition univariee calculee
 	// pour la granularite de l'attribut source
-	void BuildDataGridAttributeFromGranularizedPartition(const KWDataGrid* sourceDataGrid,
-							     KWDGAttribute* sourceAttribute,
-							     KWDGAttribute* targetAttribute,
-							     KWClassStats* classStats) const;
+	void BuildDataGridAttributeFromGranularizedPartition(const KWDataGrid* sourceDataGrid, KWClassStats* classStats,
+							     const KWDGAttribute* sourceAttribute,
+							     KWDGAttribute* targetAttribute) const;
 
 	// Creation des parties de l'attribut cible numerique selon une partition univariee specifiee
 	// dans une table d'effectifs
 	void BuildPartsOfContinuousAttributeFromFrequencyTable(const KWDataGrid* sourceDataGrid,
-							       KWDGAttribute* targetAttribute,
-							       KWFrequencyTable* kwftTable,
-							       const ALString& sAttributeName) const;
+							       const KWFrequencyTable* kwftTable,
+							       const ALString& sAttributeName,
+							       KWDGAttribute* targetAttribute) const;
 
 	// Creation des parties de l'attribut cible categoriel selon un vecteur de correspondance decrivant un groupage
 	// univarie
 	void BuildPartsOfSymbolAttributeFromGroupsIndex(const KWDGAttribute* initialAttribute,
-							KWDGAttribute* targetAttribute, const IntVector* ivGroups,
-							int nGroupNumber, int nGarbageModalityNumber) const;
+							const IntVector* ivGroups, int nGroupNumber,
+							int nGarbageModalityNumber,
+							KWDGAttribute* targetAttribute) const;
 
-	// Creation de la grille cible a partir du produit cartesien des partitions
-	// univariees des attributs de la grille source
-	// Ces partitions sont les partitions optimales pour la granularite courante.
-	// (calculees pour l'occasion)
-	// On utilise au plus log2(N) attributs
-	// On renvoie true si on a pu construire une grille avec au moins deux atrributs
-	boolean BuildDataGridFromUnivariateProduct(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid,
-						   KWClassStats* classStats) const;
-
-	///////////////////////////////////////////////////////////////////////////
 	// Service de creation d'une table d'effectifs a partir d'un attribut
 	// Export d'un attribut de la grille source sous la forme d'une table d'effectifs dense
-	void ExportFrequencyTableFromOneAttribute(const KWDataGrid* sourceDataGrid, KWFrequencyTable* kwFrequencyTable,
-						  const ALString& sAttributeName) const;
+	void ExportFrequencyTableFromOneAttribute(const KWDataGrid* sourceDataGrid, const ALString& sAttributeName,
+						  KWFrequencyTable* kwFrequencyTable) const;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Test de compatibilite de la grille cible avec la grille source
@@ -359,8 +294,8 @@ protected:
 
 	// Initialisation d'une grille (granularite, eventuelle valeurs cible) avec le bon nombre d'attributs
 	// Les attributs ne sont pas initialises
-	void InitialiseDataGrid(const KWDataGrid* originDataGrid, KWDataGrid* targetDataGrid,
-				int nAttributeNumber) const;
+	void InitialiseDataGrid(const KWDataGrid* sourceDataGrid, int nAttributeNumber,
+				KWDataGrid* targetDataGrid) const;
 
 	// Initialisation d'un attribut venant d'etre cree a partir d'un attribut valide
 	// On initialise ses caracterisques principales uniquement, pas les parties:
@@ -408,26 +343,48 @@ protected:
 	// Initialisation d'une unique partie pour un attribut venant d'etre initialise, sans partie, a partir d'un attribut valide
 	void InitialiseAttributeNullPart(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute) const;
 
-	// Export d'une partition aleatoire des parties pour un attribut donne
-	void InitialiseAttributeRandomParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute,
-					    int nPartNumber) const;
+	// Export aleatoire de parties pour un attribut numerique donne.
+	// La methode construit d'abord une discretisation de reference en M
+	// intervalles quasi equi-effectifs (M = nMinimimEqualFrequencyPartNumber),
+	// puis choisit aleatoirement des bornes dans cette grille pour produire
+	// R parties (R = nRequestedPartNumber).
+	//
+	// Si mandatoryAttribute est present, les nouvelles parties sont obtenues
+	// par sur-partition de ses parties existantes: les bornes candidates
+	// doivent respecter les bornes de mandatoryAttribute.
+	//
+	// Si R = M, la partition est la plus equilibree possible.
+	// Si R < M, la partition peut etre moins equilibree (plus de variabilite).
+	//
+	// Si le nombre de valeurs distinctes est insuffisant, le nombre de parties
+	// obtenu peut etre inferieur a R. Avec bForce=false, on accepte ce resultat.
+	// Avec bForce=true, on tente d atteindre R en relachant progressivement
+	// la contrainte d equilibre, tout en respectant mandatoryAttribute s'il existe.
+	void ExportContinuousAttributeRandomParts(const KWDGAttribute* sourceAttribute,
+						  const KWDGAttribute* mandatoryAttribute, int nRequestedPartNumber,
+						  int nMinimimEqualFrequencyPartNumber, boolean bForce,
+						  KWDGAttribute* targetAttribute) const;
 
-	// Ajout aleatoire de partie dans une partition pour un attribut donne
-	void AddAttributeRandomParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* mandatoryAttribute,
-				     KWDGAttribute* targetAttribute, int nRequestedPartNumber) const;
+	// Export aleatoire de parties pour un attribut categoriel donne.
+	// Comportement similaire a celui du cas d'un attribut numerique
+	void ExportGroupableAttributeRandomParts(const KWDGAttribute* sourceAttribute,
+						 const KWDGAttribute* mandatoryAttribute, int nRequestedPartNumber,
+						 int nMinimimEqualFrequencyPartNumber, boolean bForce,
+						 KWDGAttribute* targetAttribute) const;
 
 	// Ajout de partie granularisee pour un attribut donne
-	void InitialiseAttributeGranularizedParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute,
-						  int nGranularity, KWQuantileBuilder* quantileBuilder) const;
+	void InitialiseAttributeGranularizedParts(const KWDGAttribute* sourceAttribute,
+						  KWQuantileBuilder* quantileBuilder, int nGranularity,
+						  KWDGAttribute* targetAttribute) const;
 	void InitialiseAttributeGranularizedContinuousParts(const KWDGAttribute* sourceAttribute,
-							    KWDGAttribute* targetAttribute, int nGranularity,
-							    KWQuantileIntervalBuilder* quantileIntervalBuilder) const;
+							    KWQuantileIntervalBuilder* quantileIntervalBuilder,
+							    int nGranularity, KWDGAttribute* targetAttribute) const;
 	void InitialiseAttributeGranularizedGroupableParts(const KWDGAttribute* sourceAttribute,
-							   KWDGAttribute* targetAttribute, int nGranularity,
-							   KWQuantileGroupBuilder* quantileGroupBuilder) const;
+							   KWQuantileGroupBuilder* quantileGroupBuilder,
+							   int nGranularity, KWDGAttribute* targetAttribute) const;
 
 	// Test si on est dans le cas d'un attribut source pour l'analyse supervisee
-	boolean IsSupervisedInputAttribute(const KWDGAttribute* attribute) const;
+	boolean IsSupervisedSourceAttribute(const KWDGAttribute* attribute) const;
 
 	// Verification que deux attributs sont coherents: meme nom, type...
 	boolean CheckAttributesConsistency(const KWDGAttribute* attribute1, const KWDGAttribute* attribute2) const;
@@ -436,28 +393,19 @@ protected:
 	// Services de creation d'attribut internes
 
 	// Creation d'attributs internes en dupliquant les attributs internes source
-	// Le parametre targetDataGrid permet de specialiser les classes utilisees pour les clonages
+	// Le parametre creatorDataGrid permet de specialiser les classes utilisees pour les clonages
 	// en utilisant lees methode de creation virtuelle specialisees (ex: NewAttribute)
 	KWDGInnerAttributes* CloneInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes,
-						  const KWDataGrid* targetDataGrid) const;
+						  const KWDataGrid* creatorDataGrid) const;
 
 	// Creation d'attributs internes avec une seule partie par attribut
 	KWDGInnerAttributes* CreateNullInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes) const;
 
-	// Creation d'attributs internes en granularisant les attributs internes source
-	KWDGInnerAttributes*
-	CreateGranularizedInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes, int nGranularity,
-					  const ObjectDictionary* odInnerAttributesQuantilesBuilders) const;
-
 	// Creation d'attributs internes par ajout aleatoire de parties de variable dans chaque attribut
 	// parmi les partitions de reference les plus fines pour ces innerAttributes
 	KWDGInnerAttributes* CreateRandomInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes,
-							 const KWDGInnerAttributes* referenceInnerAttributes,
-							 int nTargetTokenNumber) const;
-	/*Contenu
-	Boucle sur les innerAttributes et appel des methodes AddContinuousAttributeRandomParts et
-	    AddSymbolAttributeRandomParts en garantissant que la somme des nRequestedPartNumber par innerAttribut
-		ne depasse pas les nTargetTokenNumber*/
+							 const KWDGInnerAttributes* mandatoryInnerAttributes,
+							 int nTotalTargetTokenNumber) const;
 
 	//////////////////////////////////////////////////////////////////////////////////
 	// Services divers
@@ -467,25 +415,148 @@ protected:
 	// les clusters impactes par les fusions de PV (ne prend pas en compte la variation du cout de partition)
 	double MergePartsForVarPartAttributes(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid) const;
 
-	// Creation et initialisation d'un quantile builder, et du nombre max de parties a quuantiliser
-	void CreateAttributeQuantileBuilder(const KWDGAttribute* attribute, KWQuantileBuilder*& quantileBuilder,
-					    int& nMaxPartNumber) const;
+	// Initialisation d'un quantile builder, en retournant le nombre max de parties a quantiliser
+	int InitializeQuantileIntervalBuilder(const KWDGAttribute* attribute,
+					      KWQuantileIntervalBuilder* quantileIntervalBuilder) const;
+	int InitializeQuantileGroupBuilder(const KWDGAttribute* attribute,
+					   KWQuantileGroupBuilder* quantileGroupBuilder) const;
 
 	// Export des effectifs des valeurs de la grille initiale vers un attribut categoriel entierement specifie
 	// La valeur speciale recoit pour effectif l'ensemble des effectifs manquants
-	void ExportAttributeSymbolValueFrequencies(KWDGAttribute* sourceAttribute,
+	void ExportAttributeSymbolValueFrequencies(const KWDGAttribute* sourceAttribute,
 						   KWDGAttribute* targetAttribute) const;
 
-	// Tri des parties d'un attribut source Symbol ou VarPart, selon les groupements
-	// de ces parties dans un attribut cible groupe compatible
-	// Les parties sources se trouvent dans le tableau resultat, trie correctement
-	// par groupe, et en ordre aleatoire a l'interieur de chaque groupe
-	//    oaSortedSourceParts: parties sources triees par groupe cible
-	//    oaSortedGroupedParts: parties groupees associees aux parties source
-	void SortAttributePartsByTargetGroups(const KWDGAttribute* sourceAttribute, KWDGAttribute* groupedAttribute,
-					      ObjectArray* oaSortedSourceParts,
-					      ObjectArray* oaSortedGroupedParts) const;
+	// Initialisation d'information de partionnement aleatoire d'un attribut categoriel
+	// Le tableau oaSymbolAttributePartInformation en sortie contient un objet KWDGMSymbolAttributePartInformation
+	// par partie de l'attribut source, avec les information sur l'attribut source
+	// et sur l'attribut obligatoire s'il est non NULL
+	// Memoire: le contenu du tableau appartient a l'appelant
+	void InitializeGroupableAttributePartInformations(const KWDGAttribute* sourceAttribute,
+							  const KWDGAttribute* mandatoryAttribute,
+							  ObjectArray* oaGroupableAttributePartInformation) const;
 
-	// Initialisation d'un vecteur de nombres aleatoires compris entre 0 et max exclu, ordonnes et tous differents
-	void InitRandomIndexVector(IntVector* ivRandomIndexes, int nIndexNumber, int nMaxIndex) const;
+	// Calcul des effectifs cumules des intervalles d'un attribut continu
+	void ComputeContinuousAttributeCumulatedFrequencies(const KWDGAttribute* attribute,
+							    IntVector* ivCumulatedFrequencies) const;
 };
+
+//////////////////////////////////////////////////////////////////////
+// Classe technique interne utilise par KWDataGridManager pour assurer
+// le partitionnement aleatoire d'un attribut groupable (Symbol ou VarPart)
+class KWDGMGroupableAttributePartInformation : public Object
+{
+public:
+	// Constructeur
+	KWDGMGroupableAttributePartInformation();
+	~KWDGMGroupableAttributePartInformation();
+
+	// Index d'une partie d'un attribut source
+	void SetSourcePartIndex(int nValue);
+	int GetSourcePartIndex() const;
+
+	// Index de la partie correspondant d'un attribut obligatoire dont la
+	// partition est base sur une partition des parties de l'attribut source
+	// Defaut: 0 si pas d'attribut obligatoire
+	void SetMandatoryPartIndex(int nValue);
+	int GetMandatoryPartIndex() const;
+
+	// Effectif de la partie source
+	void SetSourcePartFrequency(int nValue);
+	int GetSourcePartFrequency() const;
+
+	// Index aleatoire permettant de trier aleatoirement les parties
+	void SetRandomIndex(int nValue);
+	int GetRandomIndex() const;
+
+	// Index de la partie cible dans l'attribut cible, apres partitionnement aleatoire
+	void SetTargetPartIndex(int nValue);
+	int GetTargetPartIndex() const;
+
+	// Rapport synthetique destine a rentrer dans un tableau
+	void WriteHeaderLineReport(ostream& ost) const;
+	void WriteLineReport(ostream& ost) const;
+
+	/////////////////////////////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	int nSourcePartIndex;
+	int nMandatoryPartIndex;
+	int nSourcePartFrequency;
+	int nRandomIndex;
+	int nTargetPartIndex;
+};
+
+// Tri de KWDGMGroupableAttributePartInformation selon l'index de la partie source
+int KWDGMGroupableAttributePartInformationCompareSourceIndexes(const void* elem1, const void* elem2);
+
+// Tri de KWDGMGroupableAttributePartInformation selon l'index de la partie obligatoire, puis selon l'index aleatoire
+int KWDGMGroupableAttributePartInformationCompareMandatoryAndRandomIndexes(const void* elem1, const void* elem2);
+
+////////////////////////////////////////////////////////////////////////////////
+// Methodes en inline
+
+inline KWDGMGroupableAttributePartInformation::KWDGMGroupableAttributePartInformation()
+{
+	nSourcePartIndex = 0;
+	nMandatoryPartIndex = 0;
+	nSourcePartFrequency = 0;
+	nRandomIndex = 0;
+	nTargetPartIndex = 0;
+}
+
+inline KWDGMGroupableAttributePartInformation::~KWDGMGroupableAttributePartInformation() {}
+
+inline void KWDGMGroupableAttributePartInformation::SetSourcePartIndex(int nValue)
+{
+	require(nValue >= 0);
+	nSourcePartIndex = nValue;
+}
+
+inline int KWDGMGroupableAttributePartInformation::GetSourcePartIndex() const
+{
+	return nSourcePartIndex;
+}
+
+inline void KWDGMGroupableAttributePartInformation::SetMandatoryPartIndex(int nValue)
+{
+	require(nValue >= 0);
+	nMandatoryPartIndex = nValue;
+}
+
+inline int KWDGMGroupableAttributePartInformation::GetMandatoryPartIndex() const
+{
+	return nMandatoryPartIndex;
+}
+
+inline void KWDGMGroupableAttributePartInformation::SetSourcePartFrequency(int nValue)
+{
+	require(nValue >= 0);
+	nSourcePartFrequency = nValue;
+}
+
+inline int KWDGMGroupableAttributePartInformation::GetSourcePartFrequency() const
+{
+	return nSourcePartFrequency;
+}
+
+inline void KWDGMGroupableAttributePartInformation::SetRandomIndex(int nValue)
+{
+	require(nValue >= 0);
+	nRandomIndex = nValue;
+}
+
+inline int KWDGMGroupableAttributePartInformation::GetRandomIndex() const
+{
+	return nRandomIndex;
+}
+
+inline void KWDGMGroupableAttributePartInformation::SetTargetPartIndex(int nValue)
+{
+	require(nValue >= 0);
+	nTargetPartIndex = nValue;
+}
+
+inline int KWDGMGroupableAttributePartInformation::GetTargetPartIndex() const
+{
+	return nTargetPartIndex;
+}

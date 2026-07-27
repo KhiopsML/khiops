@@ -26,20 +26,22 @@ public:
 	int GetMaxPartNumber() const;
 	void SetMaxPartNumber(int nValue);
 
-	// Optimization time (en secondes)
+	// Temps d'optimisation (en secondes)
 	// Par defaut: 0, ce qui signifie que ce parametre n'est pas actif
 	// Arret des que possible des que le temps d'optimisation depasse le temps ecoule
 	int GetOptimizationTime() const;
 	void SetOptimizationTime(int nValue);
 
-	// Optimization level
-	// Non utilise si algorithme Greedy
+	// Niveau d'optimization
 	// Sinon, meta-heuristique (level = intensite de recherche sur une echelle logarithmique)
-	// Par defaut: 4 (donc 2^4=16 pour l'intensite de recherche)
 	int GetOptimizationLevel() const;
 	void SetOptimizationLevel(int nValue);
 
-	// Initialization based on univariate partitions (default: true)
+	// Niveau d'optimisation par defaut
+	// Par defaut: 4 (donc 2^4=16 pour l'intensite de recherche)
+	static int GetDefaultOptimizationLevel();
+
+	// Initialisation basee sur des partitions univariees (default: true)
 	boolean GetUnivariateInitialization() const;
 	void SetUnivariateInitialization(boolean bValue);
 
@@ -68,9 +70,11 @@ public:
 	const ALString& GetInternalParameter() const;
 	void SetInternalParameter(const ALString& sValue);
 
-	// Display details
-	boolean GetDisplayDetails() const;
-	void SetDisplayDetails(boolean bValue);
+	// Profiling de l'optimisation, avec memorisation dans des fichier localise au meme endroit que le rapport de coclustering
+	// - details de l'optimisation dans un fichier json
+	// - statistiques de l'optimisation dans un fichier tabulaire
+	boolean GetOptimizationProfiling() const;
+	void SetOptimizationProfiling(boolean bValue);
 
 	////////////////////////////////////////////////////////
 	// Divers
@@ -108,7 +112,7 @@ protected:
 	boolean bVarPartPostMerge;
 	boolean bVarPartPostOptimize;
 	ALString sInternalParameter;
-	boolean bDisplayDetails;
+	boolean bOptimizationProfiling;
 	int nFreshness;
 };
 

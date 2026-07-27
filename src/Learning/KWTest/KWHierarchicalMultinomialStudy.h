@@ -11,7 +11,7 @@
 #include "KWClassDomain.h"
 #include "KWLearningProject.h"
 #include "KWDataGridStats.h"
-#include "KWClassDomain.h"
+#include "KWDataGridOptimizerVxV.h"
 #include "KWSTDatabaseTextFile.h"
 #include "KWClassStats.h"
 #include "KWQuantileBuilder.h"

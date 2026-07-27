@@ -11,6 +11,8 @@ class CCCoclusteringBuilder;
 #include "KWTupleTableLoader.h"
 #include "KWAttributeSubsetStats.h"
 #include "KWDataGridMerger.h"
+#include "KWDataGridOptimizerVxV.h"
+#include "KWDataGridOptimizerIxV.h"
 #include "KWDataGridPostOptimizer.h"
 #include "KWDataPreparationClass.h"
 #include "CCHierarchicalDataGrid.h"
@@ -130,8 +132,8 @@ public:
 	// Transmission de la grille initiale granularisee
 	// bIsLastSaving : si true, la sauvegarde est effectue meme s'il n'y a pas amelioration
 	// Permet de recalculer la hierarchie du coclustering apres l'atteinte de la granularite maximale
-	void HandleOptimizationStep(const KWDataGrid* optimizedDataGrid, const KWDataGrid* initialGranularizedDataGrid,
-				    boolean bIsLastSaving) const override;
+	void HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
+				    const KWDataGrid* initialGranularizedDataGrid) const override;
 
 	// Libelles utilisateur: nom du module de l'application (GetLearningModuleName())
 	const ALString GetClassLabel() const override;
@@ -146,10 +148,6 @@ protected:
 	// Initialisation d'un optimiseur de grille dedie coclustering
 	void InitializeDataGridOptimizer(const KWDataGrid* inputInitialDataGrid,
 					 KWDataGridOptimizer* dataGridOptimizer);
-
-	// Methode d'optimisation d'une grille dediee au cas instances x variables
-	void OptimizeVarPartDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
-	void PROTO_OptimizeVarPartDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	// Gestion preventive de l'utilisation des ressources memoire, avec message d'erreur
@@ -310,7 +308,7 @@ protected:
 	// Grille de de donnees initiale au niveau de grain le plus fin
 	KWDataGrid* initialDataGrid;
 
-	// Grille de coclustering
+	// Grille de coclustering resultat
 	mutable CCHierarchicalDataGrid* coclusteringDataGrid;
 
 	// Gestion des sauvegardes en mode anytime
@@ -318,7 +316,5 @@ protected:
 	mutable ALString sLastActualAnyTimeReportFileName;
 	mutable int nAnyTimeOptimizationIndex;
 	mutable Timer tAnyTimeTimer;
-	mutable double dAnyTimeDefaultCost;
 	mutable double dAnyTimeBestCost;
-	mutable boolean bIsDefaultCostComputed;
 };

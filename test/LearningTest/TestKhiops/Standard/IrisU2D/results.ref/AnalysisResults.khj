@@ -1145,14 +1145,14 @@
 				"rank": "R38",
 				"name1": "SPetalLength",
 				"name2": "SepalWidth",
-				"level": 0.00143264,
+				"level": 0.00162108,
 				"variables": 2,
 				"parts1": 3,
-				"parts2": 3,
-				"cells": 9,
+				"parts2": 2,
+				"cells": 6,
 				"constructionCost": 6.71557,
-				"preparationCost": 40.2319,
-				"dataCost": 497.662
+				"preparationCost": 31.5241,
+				"dataCost": 506.267
 			},
 			{
 				"rank": "R39",
@@ -2676,11 +2676,11 @@
 							"type": "Categorical",
 							"partitionType": "Value groups",
 							"partition": [
-								["4","3","6"],
 								["1"],
-								["5"]
+								["5","6"],
+								["4","3"]
 							],
-							"defaultGroupIndex": 0
+							"defaultGroupIndex": 1
 						},
 						{
 							"variable": "SepalWidth",
@@ -2688,24 +2688,20 @@
 							"partitionType": "Intervals",
 							"partition": [
 								[2,2.95],
-								[2.95,3.25],
-								[3.25,4.4]
+								[2.95,4.4]
 							]
 						}
 					],
-					"cellIds": ["C1","C2","C3","C4","C5","C6","C7","C8","C9"],
+					"cellIds": ["C1","C2","C3","C4","C5","C6"],
 					"cellPartIndexes": [
 						[0,0],
 						[1,0],
 						[2,0],
 						[0,1],
 						[1,1],
-						[2,1],
-						[0,2],
-						[1,2],
-						[2,2]
+						[2,1]
 					],
-					"cellFrequencies": [26,1,9,10,15,16,4,22,2]
+					"cellFrequencies": [1,12,23,37,22,10]
 				}
 			}
 		}

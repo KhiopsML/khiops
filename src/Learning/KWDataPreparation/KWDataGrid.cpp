@@ -35,6 +35,7 @@ int KWDataGrid::GetGranularity() const
 
 void KWDataGrid::SetGranularity(int nIndex)
 {
+	require(nIndex >= 0);
 	nGranularity = nIndex;
 }
 
@@ -250,7 +251,7 @@ boolean KWDataGrid::GetCellUpdateMode() const
 	return slCells != NULL;
 }
 
-void KWDataGrid::BuildIndexingStructure()
+void KWDataGrid::BuildIndexingStructure() const
 {
 	int nAttribute;
 	KWDGAttribute* attribute;
@@ -263,7 +264,7 @@ void KWDataGrid::BuildIndexingStructure()
 	}
 }
 
-void KWDataGrid::DeleteIndexingStructure()
+void KWDataGrid::DeleteIndexingStructure() const
 {
 	int nAttribute;
 	KWDGAttribute* attribute;
@@ -527,7 +528,7 @@ int KWDataGrid::ComputeMaxPartNumber() const
 	return nResult;
 }
 
-double KWDataGrid::ComputeSourceEntropy()
+double KWDataGrid::ComputeSourceEntropy() const
 {
 	double dResult;
 	double dGridFrequency;
@@ -557,7 +558,7 @@ double KWDataGrid::ComputeSourceEntropy()
 	return dResult;
 }
 
-double KWDataGrid::ComputeTargetEntropy()
+double KWDataGrid::ComputeTargetEntropy() const
 {
 	double dResult;
 	double dGridFrequency;
@@ -598,7 +599,7 @@ double KWDataGrid::ComputeTargetEntropy()
 	return dResult;
 }
 
-double KWDataGrid::ComputeMutualEntropy()
+double KWDataGrid::ComputeMutualEntropy() const
 {
 	double dResult;
 	double dGridFrequency;
@@ -679,6 +680,11 @@ boolean KWDataGrid::Check() const
 	{
 		AddError(sTmp + "Granularity " + IntToString(nGranularity) +
 			 "  must be an integer smaller than log2(N) " + IntToString(GetGridFrequency()));
+		bOk = false;
+	}
+	if (bOk and IsVarPartDataGrid() and nGranularity != 0)
+	{
+		AddError(sTmp + "Granularity must be 0 in a VarPart data grid");
 		bOk = false;
 	}
 
@@ -1203,11 +1209,7 @@ void KWDataGrid::Write(ostream& ost) const
 		ost << "TargetVariable\t" << GetTargetAttribute()->GetAttributeName() << "\n";
 	ost << "Granularity\t" << GetGranularity() << "\n";
 	if (IsVarPartDataGrid())
-	{
-		ost << "VariableParts Granularity\t"
-		    << GetVarPartAttribute()->GetInnerAttributes()->GetVarPartGranularity() << "\n";
 		WriteInnerAttributes(ost);
-	}
 	if (GetAttributeNumber() > 0)
 	{
 		WriteAttributes(ost);
@@ -1264,8 +1266,8 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 	const int nMaxDisplayedValue = 20;
 	int nDisplayedValue;
 	KWDGValue* value;
-	boolean bDisplayAll = false;
 	boolean bDisplayPartDetails = true;
+	boolean bDisplayAll = false;
 
 	// Liste des attributs et de leurs parties
 	ost << "Parts by variable"
@@ -1281,7 +1283,9 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 			part = attribute->GetHeadPart();
 			while (part != NULL)
 			{
-				ost << "\t\t" << part->GetObjectLabel() << "\t" << part->GetPartFrequency();
+				ost << "\t\t" << part->GetObjectLabel() << "\t" << part->GetPartFrequency() << "\t";
+				if (KWType::IsCoclusteringGroupableType(part->GetPartType()))
+					cout << part->GetValueSet()->GetValueNumber();
 
 				// Affichage des premieres valeurs dans le cas d'un attribut groupable
 				if (KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()))
@@ -1515,15 +1519,40 @@ const ALString KWDataGrid::GetClassLabel() const
 
 const ALString KWDataGrid::GetObjectLabel() const
 {
+	ALString sLabel;
+	KWDGAttribute* dgAttribute;
+	int i;
 	ALString sTmp;
 
-	// Libelle base sur le nombre de valeurs, d'attributs, de parties et de cellules
+	// Initialisation  a partir du nombre d'attribute
+	sLabel = "(";
+	sLabel += IntToString(GetAttributeNumber());
+	sLabel += ", ";
+
+	// Information sur les dimension de la grille
+	for (i = 0; i < GetAttributeNumber(); i++)
+	{
+		dgAttribute = GetAttributeAt(i);
+		if (i > 0)
+			sLabel += "x";
+		sLabel += IntToString(dgAttribute->GetPartNumber());
+	}
+
+	// Informations specifiques aux grilles de type VarPart
+	if (IsVarPartDataGrid())
+	{
+		sLabel += ", (";
+		sLabel += IntToString(GetInnerAttributes()->GetInnerAttributeNumber());
+		sLabel += ", ";
+		sLabel += IntToString(GetInnerAttributes()->ComputeTotalInnerAttributeVarParts());
+		sLabel += ")";
+	}
+
+	// Information sur les valeurs cibles
 	if (GetTargetValueNumber() > 0)
-		return sTmp + "(" + IntToString(GetTargetValueNumber()) + ", " + IntToString(GetAttributeNumber()) +
-		       ", " + IntToString(GetTotalPartNumber()) + ", " + IntToString(GetCellNumber()) + ")";
-	else
-		return sTmp + "(" + IntToString(GetAttributeNumber()) + ", " + IntToString(GetTotalPartNumber()) +
-		       ", " + IntToString(GetCellNumber()) + ")";
+		sLabel += sTmp + ": " + IntToString(GetTargetValueNumber());
+	sLabel += ")";
+	return sLabel;
 }
 
 KWDataGrid* KWDataGrid::CreateTestDataGrid(int nSymbolAttributeNumber, int nContinuousAttributeNumber,
@@ -2403,6 +2432,7 @@ void KWDGAttribute::CreateVarPartsSet()
 
 	require(nAttributeType == KWType::VarPart);
 	require(GetInnerAttributeNumber() > 0);
+	require(nInitialValueNumber == GetInnerAttributes()->ComputeTotalInnerAttributeVarParts());
 
 	for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
 	{
@@ -2539,7 +2569,7 @@ void KWDGAttribute::ExportParts(ObjectArray* oaParts) const
 	}
 }
 
-void KWDGAttribute::BuildIndexingStructure()
+void KWDGAttribute::BuildIndexingStructure() const
 {
 	KWDGPart* part;
 	KWDGValueSet* valueSet;
@@ -2617,7 +2647,7 @@ void KWDGAttribute::BuildIndexingStructure()
 	}
 }
 
-void KWDGAttribute::DeleteIndexingStructure()
+void KWDGAttribute::DeleteIndexingStructure() const
 {
 	int nInnerAttribute;
 	KWDGAttribute* innerAttribute;
@@ -2651,7 +2681,7 @@ void KWDGAttribute::DeleteIndexingStructure()
 	}
 }
 
-KWDGPart* KWDGAttribute::LookupContinuousPart(Continuous cValue)
+KWDGPart* KWDGAttribute::LookupContinuousPart(Continuous cValue) const
 {
 	int nIndex;
 	Continuous cUpperBound;
@@ -2718,7 +2748,7 @@ KWDGPart* KWDGAttribute::LookupContinuousPart(Continuous cValue)
 	}
 }
 
-KWDGPart* KWDGAttribute::LookupSymbolPart(const Symbol& sValue)
+KWDGPart* KWDGAttribute::LookupSymbolPart(const Symbol& sValue) const
 {
 	KWDGPart* part;
 
@@ -2732,7 +2762,7 @@ KWDGPart* KWDGAttribute::LookupSymbolPart(const Symbol& sValue)
 	return part;
 }
 
-KWDGPart* KWDGAttribute::LookupVarPart(KWDGPart* varPart)
+KWDGPart* KWDGAttribute::LookupVarPart(KWDGPart* varPart) const
 {
 	KWDGPart* part;
 
@@ -2745,7 +2775,7 @@ KWDGPart* KWDGAttribute::LookupVarPart(KWDGPart* varPart)
 	return part;
 }
 
-KWDGPart* KWDGAttribute::LookupGroupablePart(const KWDGValue* value)
+KWDGPart* KWDGAttribute::LookupGroupablePart(const KWDGValue* value) const
 {
 	KWDGPart* part;
 
@@ -2783,6 +2813,7 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 	KWDGPart* otherPart;
 	KWDGValue* value;
 	NumericKeyDictionary nkdOtherPartsPerValue;
+	ALString sTmp;
 
 	require(otherAttribute != NULL);
 	require(GetAttributeName() == otherAttribute->GetAttributeName());
@@ -2791,6 +2822,10 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 
 	// On doit avoir un nombre superieur de partie
 	bOk = GetPartNumber() >= otherAttribute->GetPartNumber();
+	if (not bOk)
+		AddError(sTmp + "The number of source parts (" + IntToString(GetPartNumber()) +
+			 ") should be greater than or equal to the number of target parts (" +
+			 IntToString(otherAttribute->GetPartNumber()) + ")");
 
 	// Test d'inclusion des parties
 	if (bOk)
@@ -2799,32 +2834,58 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 		if (otherAttribute->GetAttributeType() == KWType::Continuous)
 		{
 			// Test des borne extremes
-			bOk = bOk and GetHeadPart()->GetInterval()->GetLowerBound() ==
-					  otherAttribute->GetHeadPart()->GetInterval()->GetLowerBound();
-			bOk = bOk and GetTailPart()->GetInterval()->GetUpperBound() ==
-					  otherAttribute->GetTailPart()->GetInterval()->GetUpperBound();
+			if (bOk and GetHeadPart()->GetInterval()->GetLowerBound() !=
+					otherAttribute->GetHeadPart()->GetInterval()->GetLowerBound())
+			{
+				bOk = false;
+				AddError(
+				    sTmp + "The lower bound of the first source interval (" +
+				    KWContinuous::ContinuousToString(GetHeadPart()->GetInterval()->GetLowerBound()) +
+				    ") should be equal to the lower bound of the first target interval (" +
+				    KWContinuous::ContinuousToString(
+					otherAttribute->GetHeadPart()->GetInterval()->GetLowerBound()) +
+				    ")");
+			}
+
+			if (bOk and GetTailPart()->GetInterval()->GetUpperBound() !=
+					otherAttribute->GetTailPart()->GetInterval()->GetUpperBound())
+			{
+				bOk = false;
+				AddError(
+				    sTmp + "The upper bound of the last source interval (" +
+				    KWContinuous::ContinuousToString(GetTailPart()->GetInterval()->GetUpperBound()) +
+				    ") should be equal to the upper bound of the last target interval (" +
+				    KWContinuous::ContinuousToString(
+					otherAttribute->GetTailPart()->GetInterval()->GetUpperBound()) +
+				    ")");
+			}
 
 			// Parcours des intervalles pour verifier leur inclusion
-			part = GetHeadPart();
-			otherPart = otherAttribute->GetHeadPart();
-			while (part != NULL)
+			if (bOk)
 			{
-				// Test si l'intervalle est dans l'autre intervalle
-				if (part->IsSubPart(otherPart))
-					GetNextPart(part);
-				// Sinon, on teste dans l'autre intervalle suivant
-				else
+				part = GetHeadPart();
+				otherPart = otherAttribute->GetHeadPart();
+				while (part != NULL)
 				{
-					otherAttribute->GetNextPart(otherPart);
-
-					// Ok si on existence d'un intervalle suivant le contenant
-					if (otherPart != NULL and part->IsSubPart(otherPart))
+					// Test si l'intervalle est dans l'autre intervalle
+					if (part->IsSubPart(otherPart))
 						GetNextPart(part);
-					// Ko sinon
+					// Sinon, on teste dans l'autre intervalle suivant
 					else
 					{
-						bOk = false;
-						break;
+						otherAttribute->GetNextPart(otherPart);
+
+						// Ok si on existence d'un intervalle suivant le contenant
+						if (otherPart != NULL and part->IsSubPart(otherPart))
+							GetNextPart(part);
+						// Ko sinon
+						else
+						{
+							bOk = false;
+							AddError(sTmp + "Source interval " + part->GetObjectLabel() +
+								 " is not included in any target interval");
+							break;
+						}
 					}
 				}
 			}
@@ -2860,9 +2921,19 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 							part->GetValueSet()->GetHeadValue()->GetNumericKeyValue()));
 
 				// Pas d'inclusion si partie non trouvee ou non inclusante
-				if (otherPart == NULL or not part->IsSubPart(otherPart))
+				if (otherPart == NULL)
 				{
 					bOk = false;
+					AddError(sTmp + "Source part " + part->GetObjectLabel() + " contains value " +
+						 part->GetValueSet()->GetHeadValue()->GetObjectLabel() +
+						 " that does not exist in any target part");
+					break;
+				}
+				else if (not part->IsSubPart(otherPart))
+				{
+					bOk = false;
+					AddError(sTmp + "Source part " + part->GetObjectLabel() +
+						 " is not included in target part " + otherPart->GetObjectLabel());
 					break;
 				}
 
@@ -2958,6 +3029,14 @@ boolean KWDGAttribute::Check() const
 		if (bOk and not innerAttributes->Check())
 		{
 			AddError("Wrong specification of inner variables for a variable of type VarPart");
+			bOk = false;
+		}
+
+		// Test de compatibilite entre du nombre initial de valeurs et du nombre total de partie des attribut internes
+		if (bOk and nInitialValueNumber != innerAttributes->ComputeTotalInnerAttributeVarParts())
+		{
+			AddError(
+			    "Initial value number must be equal to the total number of parts of the inner variables");
 			bOk = false;
 		}
 	}
@@ -4983,18 +5062,6 @@ void KWDGInnerAttributes::AddInnerAttribute(KWDGAttribute* innerAttribute)
 	ensure(odInnerAttributes.GetCount() == oaInnerAttributes.GetSize());
 }
 
-int KWDGInnerAttributes::GetVarPartGranularity() const
-{
-	return nVarPartGranularity;
-}
-
-void KWDGInnerAttributes::SetVarPartGranularity(int nValue)
-{
-	require(nValue >= 0);
-
-	nVarPartGranularity = nValue;
-}
-
 void KWDGInnerAttributes::DeleteAll()
 {
 	odInnerAttributes.RemoveAll();
@@ -5122,6 +5189,7 @@ boolean KWDGInnerAttributes::ContainsSubVarParts(const KWDGInnerAttributes* othe
 	int nInnerAttribute;
 	KWDGAttribute* innerAttribute;
 	KWDGAttribute* otherInnerAttribute;
+	ALString sTmp;
 
 	require(otherInnerAttributes != NULL);
 
@@ -5131,6 +5199,10 @@ boolean KWDGInnerAttributes::ContainsSubVarParts(const KWDGInnerAttributes* othe
 
 	// On doit avoir le meme nombre d'attributs internes
 	bOk = GetInnerAttributeNumber() == otherInnerAttributes->GetInnerAttributeNumber();
+	if (not bOk)
+		AddError(sTmp + "The number of source inner variables (" + IntToString(GetInnerAttributeNumber()) +
+			 ") should be the same as the number of target inner variables (" +
+			 IntToString(otherInnerAttributes->GetInnerAttributeNumber()) + ")");
 
 	// Comparaison pour chaque attribut interne
 	if (bOk)
@@ -5140,14 +5212,48 @@ boolean KWDGInnerAttributes::ContainsSubVarParts(const KWDGInnerAttributes* othe
 			innerAttribute = GetInnerAttributeAt(nInnerAttribute);
 			otherInnerAttribute = otherInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
 
-			// On doit avoir la meme variable, avec un nombre inferieur de partie
-			bOk = bOk and innerAttribute->GetAttributeName() == otherInnerAttribute->GetAttributeName();
-			bOk = bOk and innerAttribute->GetAttributeType() == otherInnerAttribute->GetAttributeType();
-			bOk = bOk and
-			      innerAttribute->GetOwnerAttributeName() == otherInnerAttribute->GetOwnerAttributeName();
+			// Meme nom de variable
+			if (innerAttribute->GetAttributeName() != otherInnerAttribute->GetAttributeName())
+			{
+				bOk = false;
+				AddError(sTmp + "The source inner variable at rank " +
+					 IntToString(nInnerAttribute + 1) + " should have the same name (" +
+					 innerAttribute->GetAttributeName() + ") as the target inner variable (" +
+					 otherInnerAttribute->GetAttributeName() + ")");
+			}
+
+			// Meme type de variable
+			if (innerAttribute->GetAttributeType() != otherInnerAttribute->GetAttributeType())
+			{
+				bOk = false;
+				AddError(sTmp + "The source inner variable " + innerAttribute->GetAttributeName() +
+					 " should have the same type (" +
+					 KWType::ToString(innerAttribute->GetAttributeType()) +
+					 ") as the related target inner variable (" +
+					 KWType::ToString(otherInnerAttribute->GetAttributeType()) + ")");
+			}
+
+			// Meme nom de variable proprietaire
+			if (innerAttribute->GetOwnerAttributeName() != otherInnerAttribute->GetOwnerAttributeName())
+			{
+				bOk = false;
+				AddError(sTmp + "The source inner variable " + innerAttribute->GetAttributeName() +
+					 " should have the owner variable name (" +
+					 innerAttribute->GetOwnerAttributeName() +
+					 ") as the related target inner variable (" +
+					 otherInnerAttribute->GetOwnerAttributeName() + ")");
+			}
 
 			// Test d'inclusion des parties
-			bOk = bOk and innerAttribute->ContainsSubParts(otherInnerAttribute);
+			if (not innerAttribute->ContainsSubParts(otherInnerAttribute))
+			{
+				bOk = false;
+				AddError(sTmp + "The " + IntToString(innerAttribute->GetPartNumber()) +
+					 " parts of the source inner variable " + innerAttribute->GetAttributeName() +
+					 " should be included in the " +
+					 IntToString(otherInnerAttribute->GetPartNumber()) +
+					 " parts of the related target inner variable");
+			}
 			if (not bOk)
 				break;
 		}

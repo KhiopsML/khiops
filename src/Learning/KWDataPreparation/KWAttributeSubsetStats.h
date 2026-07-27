@@ -14,7 +14,6 @@ class PLShared_AttributePairStats;
 #include "KWClassStats.h"
 #include "KWDRPreprocessing.h"
 #include "KWSortableIndex.h"
-#include "KWDataGridOptimizer.h"
 #include "KWDataGridCosts.h"
 #include "KWDataGridManager.h"
 #include "PLSharedObject.h"
@@ -94,7 +93,7 @@ public:
 	// Methode appelee lors de l'optimisation a chaque etape d'optimisation
 	// Implementation vide par defaut
 	virtual void HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
-					    const KWDataGrid* initialGranularizedDataGrid, boolean bIsLastSaving) const;
+					    const KWDataGrid* initialGranularizedDataGrid) const;
 
 	// Parametrage avance
 	// Pre-granularisation des attributs numeriques cible (regression) et des attributs numeriques explicatifs en
