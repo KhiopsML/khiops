@@ -197,7 +197,7 @@ void CCLearningProblem::BuildCoclustering()
 	// Cas d'un coclustering variable * variable : mode non expert ou type de coclustering demande a l'interface
 	if (not analysisSpec->GetVarPartCoclustering())
 	{
-		// Preparation des attribut a charger dans la classe
+		// Preparation des attributs a charger dans la classe
 		for (nAttribute = 0; nAttribute < analysisSpec->GetCoclusteringSpec()->GetAttributeNames()->GetSize();
 		     nAttribute++)
 		{

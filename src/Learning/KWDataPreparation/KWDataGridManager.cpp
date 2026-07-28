@@ -852,7 +852,7 @@ void KWDataGridManager::ExportCells(const KWDataGrid* sourceDataGrid, KWDataGrid
 	targetDataGrid->BuildIndexingStructure();
 	oaTargetParts.SetSize(targetDataGrid->GetAttributeNumber());
 
-	// Collecte une fois pour toutes des attributs sources correspondant aux attribut cible,
+	// Collecte une fois pour toutes des attributs sources correspondant aux attributs cibles,
 	// car il faudra y acceder rapidement autant de fois qu'il y a de cellules
 	oaSourceAttributes.SetSize(targetDataGrid->GetAttributeNumber());
 	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
@@ -2330,7 +2330,7 @@ void KWDataGridManager::InitialiseVarPartAttributeClonedParts(const KWDGAttribut
 	clonedInnerAttributes =
 	    CloneInnerAttributes(sourceAttribute->GetInnerAttributes(), targetAttribute->GetDataGrid());
 
-	// Parametrage des attribut interne de l'attribut cible de type VarPart
+	// Parametrage des attributs internes de l'attribut cible de type VarPart
 	targetAttribute->SetInnerAttributes(clonedInnerAttributes);
 
 	// Memorisation de l'association entre VarPart source et cible via un dictionnaire
@@ -3884,7 +3884,7 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 		if (nMeanTokenNumberToCreate == 0)
 			nMeanTokenNumberToCreate = 1;
 
-		// Parcours des attribut internes en ordre aleatoire
+		// Parcours des attributs internes en ordre aleatoire
 		nUnsaturatedInnerAttributeNumber = 0;
 		for (n = 0; n < ivInnerAttributesIndexes.GetSize(); n++)
 		{

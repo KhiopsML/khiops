@@ -181,7 +181,7 @@ protected:
 	virtual boolean SlaveProcessExploitDatabaseObject(const KWObject* kwoObject);
 
 	// Methode principale de l'esclave, appelee systematiquement
-	//   Collecte des variable en sortie par base
+	//   Collecte des variables en sortie par base
 	//   Arret des bases
 	virtual boolean SlaveProcessStopDatabase(boolean bProcessEndedCorrectly);
 

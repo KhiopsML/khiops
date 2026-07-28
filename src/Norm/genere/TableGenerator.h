@@ -27,14 +27,14 @@ public:
 	~TableGenerator();
 
 	///////////////////////////////////////////////////////////
-	// Attributs de specification des classe a generer
+	// Attributs de specification des classes a generer
 
 	// Nom de base de la classe a generer
 	const ALString& GetClassName() const;
 	void SetClassName(const ALString& sValue);
 
 	// Nom de base de la classe mere de la classe a generer
-	// Par defaut vide, si on herite directement des classe standard de la librairie
+	// Par defaut vide, si on herite directement des classes standard de la librairie
 	const ALString& GetSuperClassName() const;
 	void SetSuperClassName(const ALString& sValue);
 

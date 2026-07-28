@@ -359,7 +359,7 @@ longint KWObjectReferenceResolver::GetUsedMemory() const
 	lUsedMemory = odAllClasses.GetUsedMemory();
 	lUsedMemory += nkdAllClassesObjects.GetUsedMemory();
 
-	// Taille des dictionnaire d'objets et des objets
+	// Taille des dictionnaires d'objets et des objets
 	ExportClasses(&oaClasses);
 	for (nClass = 0; nClass < oaClasses.GetSize(); nClass++)
 	{

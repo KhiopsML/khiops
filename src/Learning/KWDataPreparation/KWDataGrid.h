@@ -44,7 +44,7 @@ class KWDGInnerAttributes;
 //
 //   - coclustering instances x variables (cf. these de Aichetou)
 //      - pour l'analyse exploratoire d'une base de donnees, en groupa
-//      - extension des data grid, avec un des attribut de type VarPart (extension sous forme de parametrage additionnel
+//      - extension des data grid, avec un des attributs de type VarPart (extension sous forme de parametrage additionnel
 //      de la meme classe)
 //        - un attribut de la grille peut etre soit numerique, soit categoriel, soit constitue de parties de variables
 //        - dans la these d'Aichetou
@@ -180,7 +180,7 @@ public:
 	// avec valeurs cibles a grouper).
 	KWDGAttribute* GetTargetAttribute() const;
 
-	// Indique si la grille est de type instances x variables, car un de ses attribut est de type VarPart
+	// Indique si la grille est de type instances x variables, car un de ses attributs est de type VarPart
 	boolean IsVarPartDataGrid() const;
 
 	// Acces a l'attribut de type VarPart d'un grille si elle de type instances x variables, NULL sinon

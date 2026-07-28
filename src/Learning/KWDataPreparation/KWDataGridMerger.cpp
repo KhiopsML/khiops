@@ -755,7 +755,7 @@ double KWDataGridMerger::SearchBestPartMerge(KWDGMPartMerge*& bestPartMerge)
 	double dDeltaCost;
 	double dBestDeltaCost;
 
-	// Parcours des attribut pour rechercher la meilleure fusion
+	// Parcours des attributs pour rechercher la meilleure fusion
 	dBestDeltaCost = DBL_MAX;
 	bestPartMerge = NULL;
 	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
@@ -852,7 +852,7 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 	double dBestDeltaCost;
 	boolean bGarbageBeforeMerge;
 
-	// Parcours des attribut pour rechercher la meilleure fusion
+	// Parcours des attributs pour rechercher la meilleure fusion
 	dBestDeltaCost = DBL_MAX;
 	bestPartMerge = NULL;
 	bGarbageBeforeMerge = false;
@@ -2064,7 +2064,7 @@ int KWDGMPartMergeCompare(const void* elem1, const void* elem2)
 	if (nCompare == 0)
 	{
 		// On se base d'abord sur le libelle de l'attribut
-		// (on pourrait avoir des attribut differents ayant meme libelle de partie)
+		// (on pourrait avoir des attributs differents ayant meme libelle de partie)
 		assert(partMerge1->GetPart1()->GetAttribute() == partMerge1->GetPart2()->GetAttribute());
 		assert(partMerge2->GetPart1()->GetAttribute() == partMerge2->GetPart2()->GetAttribute());
 		nCompare = partMerge1->GetPart1()->GetAttribute()->GetAttributeName().Compare(

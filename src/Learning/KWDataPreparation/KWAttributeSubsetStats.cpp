@@ -770,7 +770,7 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 	if (TaskProgression::IsInterruptionRequested())
 		return false;
 
-	// Tri des tuple par effectif decroissant, puis valeurs croissantes
+	// Tri des tuples par effectif decroissant, puis valeurs croissantes
 	attributeTupleTable.SortByDecreasingFrequencies();
 
 	// Creation des parties mono-valeurs de l'attribut pour chaque tuple

@@ -647,7 +647,7 @@ KWDataGrid* CCCoclusteringBuilder::CreateVarPartDataGrid(const KWTupleTable* tup
 	TaskProgression::BeginTask();
 	TaskProgression::DisplayMainLabel("Initialize instances x variables coclustering");
 
-	// Initialisation des attribut de la grille et de leurs parties
+	// Initialisation des attributs de la grille et de leurs parties
 	assert(dataGrid->GetAttributeNumber() == 2);
 	for (nDataGridAttribute = 0; nDataGridAttribute < dataGrid->GetAttributeNumber(); nDataGridAttribute++)
 	{
@@ -2055,7 +2055,7 @@ boolean CCCoclusteringBuilder::CreateIdentifierAttributeValueSets(const KWTupleT
 	// CH AB pas sur car pas de double dans odObservationNumber <= plutot ?
 	assert(odObservationNumbers.GetCount() == attributeTupleTable.GetSize());
 
-	// Tri des tuple par effectif decroissant, puis valeurs croissantes
+	// Tri des tuples par effectif decroissant, puis valeurs croissantes
 	attributeTupleTable.SortByDecreasingFrequencies();
 
 	// Creation des parties mono-valeurs de l'attribut pour chaque tuple
@@ -2725,7 +2725,7 @@ void CCCoclusteringBuilder::ComputeHierarchicalInfo(const KWDataGrid* inputIniti
 	// Calcul de la typicalite des attributs
 	ComputeAttributeTypicalities(optimizedDataGrid);
 
-	// Calcul de la typicalite des valeurs des attribut categoriels
+	// Calcul de la typicalite des valeurs des attributs categoriels
 	ComputeValueTypicalities(inputInitialDataGrid, dataGridCosts, optimizedDataGrid);
 
 	////////////////////////////////////////////////////////////////////////////

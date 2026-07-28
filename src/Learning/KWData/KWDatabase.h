@@ -181,10 +181,10 @@ public:
 	// Lecture/ecriture globale pour gestion de tous les objets en memoire
 
 	// Lecture de tous les objets
-	// Le resultat de la lecture est accessible par la methode GetObjets
+	// Le resultat de la lecture est accessible par la methode GetObjects
 	// Methode avec suivi de tache
 	// En cas d'interruption, d'erreur ou de memoire insuffisante, on renvoie
-	// false en emettant un warning et on detruits les objets ayant deja ete lus
+	// false en emettant un warning et on detruit les objets ayant deja ete lus
 	boolean ReadAll();
 
 	// Acces aux objets
@@ -492,7 +492,7 @@ protected:
 	virtual boolean IsTypeInitializationManaged() const;
 
 	// Ouverture physique de la base de donnees pour lecture
-	// Les classe logique et physique sont initialisees prealablement
+	// Les classes logique et physique sont initialisees prealablement
 	// En cas de succes, la base doit etre preparee pour la lecture
 	// d'un objet physique. Les eventuelles donnees internes permettant de
 	// parametrer l'alimentation d'objets physiques doivent etre initialisees
@@ -583,7 +583,7 @@ protected:
 	// Dans la majorite des cas, la classe de mutation est la classe logique de meme nom,
 	// qui garde les attributs charges en memoire de la classe logique, alors que la classe physique
 	// a potentiellement plus d'attributs charges en memoire, en unused dans la classe logique, mais
-	// necessaires dans la classe physique pour le calcul des attribut derives
+	// necessaires dans la classe physique pour le calcul des attributs derives
 	//
 	// Dans des cas a effet de bord, la classe de mutation peut rester la classe physique si la classe
 	// logique est en unused, mais est necessaire en tant qu'attribut de type relation non charge en

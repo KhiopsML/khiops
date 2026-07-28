@@ -2287,7 +2287,7 @@ yyreduce:
 					kwcReferencedClass = new KWClass;
 					kwcReferencedClass->SetName(*sRefIdentifier);
 
-					// Memorisation dans le dictionnaire des classe referencees
+					// Memorisation dans le dictionnaire des classes referencees
 					odReferencedUncreatedClasses->SetAt(kwcReferencedClass->GetName(),
 									    kwcReferencedClass);
 				}

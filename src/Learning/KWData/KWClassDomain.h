@@ -253,10 +253,10 @@ protected:
 
 	//////////////////////////////////////////////////////////////
 	// Service de memorisation du scope, partage par l'ensemble
-	// des classe d'un domaine
+	// des classes d'un domaine
 	// Lorsque la gestion du scope est necessaire (test de validite, compilation...),
 	// les classes disposent de service de gestion du scope, partage par
-	// l'ensemble des classe d'un meme domaine, qui en assure la memorisation
+	// l'ensemble des classes d'un meme domaine, qui en assure la memorisation
 
 	friend class KWDerivationRule;
 	friend class KWDerivationRuleOperand;

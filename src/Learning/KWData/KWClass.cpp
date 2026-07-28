@@ -532,7 +532,7 @@ void KWClass::IndexClass()
 				// Memorisation des attributs Symbol, hors bloc
 				if (attribute->GetType() == KWType::Symbol and not attribute->IsInBlock())
 					oaLoadedDenseSymbolAttributes.Add(attribute);
-				// Memorisation des attribut de type relation, hors bloc
+				// Memorisation des attributs de type relation, hors bloc
 				else if (KWType::IsRelation(attribute->GetType()) and not attribute->IsInBlock())
 					oaLoadedRelationAttributes.Add(attribute);
 				// Memorisation des attributs Text
@@ -846,7 +846,7 @@ KWAttributeBlock* KWClass::GetHeadAttributeBlock() const
 {
 	KWAttribute* attribute;
 
-	// Parcours des attribut de la classe, jusqu'a trouver le premier block
+	// Parcours des attributs de la classe, jusqu'a trouver le premier block
 	attribute = GetHeadAttribute();
 	while (attribute != NULL)
 	{
@@ -869,7 +869,7 @@ KWAttributeBlock* KWClass::GetTailAttributeBlock() const
 {
 	KWAttribute* attribute;
 
-	// Parcours des attribut de la classe, jusqu'a trouver le premier block
+	// Parcours des attributs de la classe, jusqu'a trouver le premier block
 	attribute = GetTailAttribute();
 	while (attribute != NULL)
 	{
@@ -1053,7 +1053,7 @@ void KWClass::MoveAttributeBlockToClassTail(KWAttributeBlock* attributeBlock)
 	require(LookupAttributeBlock(attributeBlock->GetName()) == attributeBlock);
 
 	// Deplacement des attributs du bloc
-	// Les attribut restent dans le dictionnaire des attribut de la classes et leur bloc ne change pas
+	// Les attributs restent dans le dictionnaire des attributs de la classes et leur bloc ne change pas
 	// Il suffit de les deplacer dans la liste des attributs
 	attribute = attributeBlock->GetFirstAttribute();
 	while (attribute != NULL)
@@ -1186,7 +1186,7 @@ void KWClass::DeleteUnusedDerivedAttributes(const KWClassDomain* referenceDomain
 	require(Check());
 	require(IsCompiled());
 
-	// Recherche de toutes les classe utilisees recursivement
+	// Recherche de toutes les classes utilisees recursivement
 	BuildAllUsedClasses(&oaAllUsedClasses);
 
 	// Dans le cas d'un domaine de reference, on recherche la liste des attributs de reference a conserver
@@ -1619,7 +1619,7 @@ void KWClass::BuildAllNativeClasses(ObjectArray* oaNativeClasses) const
 					// Analyse uniquement si la classe de l'attribut na pas deja ete analysees
 					if (nkdAnalyzedCreatedClasses.Lookup(kwcAttributeClass) == NULL)
 					{
-						// Recherche de toutes les classe utilisee recursivement
+						// Recherche de toutes les classes utilisees recursivement
 						kwcAttributeClass->BuildAllUsedClasses(&oaAttributeUsedClasses);
 
 						// Recherches des classes externes
@@ -1793,7 +1793,7 @@ void KWClass::ExportStoredFieldNames(StringVector* svStoredFieldNames, boolean b
 					svStoredFieldNames->SetSize(nStartSize +
 								    attributeBlock->GetLoadedAttributeNumber());
 
-					// On prend les attributs du bloc, selon l'ordre initial des attribut dans la classe
+					// On prend les attributs du bloc, selon l'ordre initial des attributs dans la classe
 					for (j = 0; j < attributeBlock->GetLoadedAttributeNumber(); j++)
 					{
 						// On passe de l'index dans le bloc sparse a l'index dense selon l'ordre initial des attributs dans la classe

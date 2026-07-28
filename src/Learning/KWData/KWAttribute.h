@@ -143,7 +143,7 @@ public:
 	boolean IsNative() const;
 
 	// Cout d'une regle utilise pour la regularisation des regles de construction
-	// Attention, les variable initiales ont un cout; mais pour les variable construites,
+	// Attention, les variables initiales ont un cout; mais pour les variable construites,
 	// il ne faut pas oublier de positionner leur indicateur "Initial" a false
 	// Usage avance; par defaut 0
 	void SetCost(double dValue);
@@ -205,7 +205,7 @@ protected:
 	// Seule la KWClass englobante peut acceder au fonctionnalites internes
 	friend class KWClass;
 
-	// Les classe Object et KWMTDatabase ont acces a la methode suivante
+	// Les classes Object et KWMTDatabase ont acces a la methode suivante
 	friend class KWObject;
 	friend class KWMTDatabase;
 

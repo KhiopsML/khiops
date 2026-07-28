@@ -707,7 +707,7 @@ protected:
 	/////////////////////////////////////////////////////////////////
 	// Methode interne
 private:
-	// Calcul des index de chargement des attribut et blocs de la tranche en fonction de
+	// Calcul des index de chargement des attributs et blocs de la tranche en fonction de
 	// classe de la tranche, qui peut avoir tout ou partie de ses attributs en Unused
 	void ComputeSliceDataItemLoadIndexes(const KWClass* kwcSliceClass);
 

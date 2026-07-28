@@ -271,7 +271,7 @@ void KWDataPreparationUnivariateTask::CollectInputAttributes(KWLearningSpec* lea
 	require(oaCollectedAttributes != NULL);
 	require(oaCollectedAttributes->GetSize() == 0);
 
-	// Collecte des attribut charges a analyser
+	// Collecte des attributs charges a analyser
 	for (i = 0; i < kwcClass->GetLoadedAttributeNumber(); i++)
 	{
 		attribute = learningSpec->GetClass()->GetLoadedAttributeAt(i);
@@ -638,7 +638,7 @@ boolean KWDataPreparationUnivariateTask::MasterAggregateResults()
 		odMasterSlices->RemoveKey(output_sSliceClassName.GetValue());
 		delete slice;
 
-		// On prend en compte les nouvelles tranches a traiter dans les variable de travail
+		// On prend en compte les nouvelles tranches a traiter dans les variables de travail
 		for (nSubSlice = 0; nSubSlice < output_oaDataTableSubSlices->GetObjectArray()->GetSize(); nSubSlice++)
 		{
 			subSlice =

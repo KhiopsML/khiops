@@ -268,7 +268,7 @@ void DTForestAttributeSelection::BuildForestSelections(int nmaxselectionnumber, 
 			// Nombre de variables de level null a tirer nTnul = min(nKnull, nT-dTinf)
 			nTnull = (nKnull < nT - nTinf) ? nKnull : nT - nTinf;
 
-			// Rang max parmi les variable informatives, pour biaiser le tirage par le rang
+			// Rang max parmi les variables informatives, pour biaiser le tirage par le rang
 			// Borne inf:
 			// nRmax_lb = nTinf;
 			// Borne sup:

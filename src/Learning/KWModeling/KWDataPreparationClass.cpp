@@ -1292,7 +1292,7 @@ boolean KWDataPreparationAttribute::CheckSpecification(const ObjectArray* oaChec
 		}
 	}
 
-	// Test d'existence des attribut de la grille preparee
+	// Test d'existence des attributs de la grille preparee
 	if (kwcPreparedClass != NULL and kwdpsAttributeStats->GetPreparedDataGridStats() != NULL)
 	{
 		for (nAttribute = 0;

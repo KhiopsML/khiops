@@ -54,7 +54,7 @@ CCPostProcessingSpecView::CCPostProcessingSpecView()
 	cast(UIIntElement*, postProcessedAttributeArrayView->GetFieldAt("MaxPartNumber"))->SetMinValue(0);
 	cast(UIIntElement*, postProcessedAttributeArrayView->GetFieldAt("MaxPartNumber"))->SetMaxValue(1000000);
 
-	// Le tableau des variable est affiche avant la variable d'effectif
+	// Le tableau des variables est affiche avant la variable d'effectif
 	MoveFieldBefore("PostProcessedAttributes", "FrequencyAttributeName");
 
 	// La variable de type de coclustering n'est pas editable

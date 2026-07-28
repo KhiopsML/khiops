@@ -894,7 +894,7 @@ longint KWDataGrid::GetUsedMemory() const
 	lUsedMemory = sizeof(KWDataGrid);
 	lUsedMemory += svTargetValues.GetUsedMemory();
 
-	// Prise en compte des attribut (et leurs parties)
+	// Prise en compte des attributs (et leurs parties)
 	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
 	{
 		dgAttribute = GetAttributeAt(nAttribute);
@@ -3032,7 +3032,7 @@ boolean KWDGAttribute::Check() const
 			bOk = false;
 		}
 
-		// Test de compatibilite entre du nombre initial de valeurs et du nombre total de partie des attribut internes
+		// Test de compatibilite entre du nombre initial de valeurs et du nombre total de partie des attributs internes
 		if (bOk and nInitialValueNumber != innerAttributes->ComputeTotalInnerAttributeVarParts())
 		{
 			AddError(
@@ -5193,7 +5193,7 @@ boolean KWDGInnerAttributes::ContainsSubVarParts(const KWDGInnerAttributes* othe
 
 	require(otherInnerAttributes != NULL);
 
-	// Cas particulier oou les variable internes en parametre sont les memes
+	// Cas particulier oou les variables internes en parametre sont les memes
 	if (otherInnerAttributes == this)
 		return true;
 

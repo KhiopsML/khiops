@@ -193,13 +193,13 @@ public:
 	// Modification de la tables de tuples (en mode edition)
 
 	// Parametrage du mode edition
-	// La fin du mode edition rend les tuple de la table accessible par index
+	// La fin du mode edition rend les tuples de la table accessible par index
 	void SetUpdateMode(boolean bValue);
 	boolean GetUpdateMode() const;
 
 	// Acces a un tuple d'entree, disponible editer les valeurs et l'effectif d'un tuple a ajouter dans la table
 	// N'est disponible qu'en phase d'edition, en etant initialise (a 0 ou "" selon les valeurs, avec un effectif
-	// par defaut de 1) La mise a jour des tuple se fait alors en editant ce tuple, puis en enregistrant sa
+	// par defaut de 1) La mise a jour des tuples se fait alors en editant ce tuple, puis en enregistrant sa
 	// contribution dans la table Memoire: appartient a l'appele
 	KWTuple* GetInputTuple() const;
 

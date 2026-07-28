@@ -67,7 +67,7 @@ void KWValueBlock::GenericInitValueBlock(void* pValueBlockMemory, int nSize)
 		// Parametrage du nombre de valeurs
 		newValueBlock->nValueNumber = nSize;
 
-		// On verifie par assertion que le packing des classe utilise est correct
+		// On verifie par assertion que le packing des classes utilisees est correct
 		assert(sizeof(KWValueIndexPair) == sizeof(KWValue) + sizeof(int));
 		assert(nSize == 0 or &(newValueBlock->cStartBlock) - (char*)newValueBlock == sizeof(int));
 	}

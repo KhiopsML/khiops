@@ -831,7 +831,7 @@ void KWClassDomain::ImportDomain(KWClassDomain* kwcdInputDomain, const ALString&
 
 	require(kwcdInputDomain != NULL);
 
-	// Collecte des classe concernee dans un tableau
+	// Collecte des classes concernees dans un tableau
 	kwcdInputDomain->ExportClassArray(&oaInputClasses);
 
 	// Calcul des nouveaux nom des classes dans leur domaine d'acceuil

@@ -164,7 +164,7 @@ protected:
 	//   . classDomainCompliantRules: pour acceder aux attributs derives initiaux du domaine de classe
 	//   . slUsedConstructedRules: liste triee des toutes les regles construites,
 	//                             avec attribut intermediaire si disponible
-	// En sortie, le domaine est construit avec ses attribut derives cree pour chaque regle de selection,
+	// En sortie, le domaine est construit avec ses attributs derives cree pour chaque regle de selection,
 	// et ces parametres, initialement vides, sont initialises par la methode
 	KWClass* InternalBuildClassFromSelectionRules(const KWClass* initialClass,
 						      KDClassDomainCompliantRules* classDomainCompliantRules,

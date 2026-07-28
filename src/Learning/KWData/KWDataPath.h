@@ -98,7 +98,7 @@ public:
 	const ALString& GetOriginClassName() const;
 	void SetOriginClassName(const ALString& sValue);
 
-	// Nom des attribut du data paths
+	// Nom des attributs du data paths
 	StringVector* GetAttributeNames();
 
 	// Nom du dictionaire decrivant les objets a l'extremite du data path
@@ -158,7 +158,7 @@ public:
 	// Sortie :
 	// - estimation de la memoire pour les objets a creer, en exemplaire unique, ou via des tables
 	// - estimation indicative du nombre total d'instances creees, en exemplaire unique
-	// Les objets uniques sont issus des debut de branches ne comportant que des variable de type Entity
+	// Les objets uniques sont issus des debut de branches ne comportant que des variables de type Entity
 	// Des que l'on passe par une variable de type Tablle, la sous-branche est systematiquement
 	// en mode exemplaire multiple.
 	// L'estimation est effectuee dans la hierarchie des data paths dediee a la creation
@@ -244,7 +244,7 @@ public:
 	virtual void ComputeAllDataPaths(const KWClass* mainClass);
 
 	// Calcul uniquement du nombre de data paths, sans mise a jour des data paths eux meme
-	// Le parametre bIncludingReferences indique que l'on prend en compte les classe externes,
+	// Le parametre bIncludingReferences indique que l'on prend en compte les classes externes,
 	// notamment en phase de lecture d'une base, alors que l'on les ignore en ecriture
 	int ComputeAllDataPathNumber(const KWClass* mainClass, boolean bIncludingReferences) const;
 

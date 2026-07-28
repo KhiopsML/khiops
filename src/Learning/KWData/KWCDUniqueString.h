@@ -43,7 +43,7 @@ class KWCDUniqueStringDictionary;
 //    le morcellement de la memoire allouee
 //  . les Symbol ont un API evoluee, facilitant leur manipulation simple partout dans
 //    les algorithmes de traitement de donnees, alors que les Unbique string ont une API
-//    rudimentaire, parce qu'il ne sont utilisee que dans les classe de gestion des dictionnaires
+//    rudimentaire, parce qu'il ne sont utilisee que dans les classes de gestion des dictionnaires
 //
 // Techniquement, un KWCDUniqueString est un pointeur gere sur une structure KWCDUniqueStringData.
 // La gestion des KWCDUniqueString consiste d'une part a assurer l'unicite des KWCDUniqueString
@@ -58,7 +58,7 @@ public:
 
 	///////////////////////////////////////////////////////////////////////////
 	// Accessible uniquement pour les classes de gestion des dictionnaires
-	// Les variable de type KWCDUniqueString sont prefixees pare us
+	// Les variables de type KWCDUniqueString sont prefixees pare us
 	friend class KWClassDomain;
 	friend class KWClass;
 	friend class KWAttribute;

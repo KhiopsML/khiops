@@ -361,14 +361,14 @@ void KWPredictorNaiveBayes::CreateRegressorAttributesInClass(KWDataPreparationCl
 	rankRegressorAttribute = AddRankRegressorAttribute(dataPreparationClass, oaSelectedDataPreparationAttributes,
 							   cvSelectedAttributeWeights);
 
-	// Ajout des attribut de prediction pour la regression de rang
+	// Ajout des attributs de prediction pour la regression de rang
 	AddRankRegressorPredictionAttributes(rankRegressorAttribute);
 
 	// Ajout de l'attribut regresseur de valeur
 	regressorAttribute =
 	    AddRegressorAttribute(rankRegressorAttribute, targetValuesAttribute, cvSelectedAttributeWeights);
 
-	// Ajout des attribut de prediction pour la regression de valeur
+	// Ajout des attributs de prediction pour la regression de valeur
 	AddRegressorPredictionAttributes(GetTrainedRegressor(), regressorAttribute, targetValuesAttribute);
 
 	// Completion automatique des informations de la classe (nom de classe par regle...)

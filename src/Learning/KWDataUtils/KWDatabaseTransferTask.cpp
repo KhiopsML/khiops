@@ -604,7 +604,7 @@ boolean KWDatabaseTransferTask::SlaveInitializePrepareDatabase()
 	// Cas specifique au multi-tables
 	if (bOk and shared_targetDatabase.GetDatabase()->IsMultiTableTechnology())
 	{
-		// Les dictionnaire etant disponibles, on peut remettre a jour les mappings
+		// Les dictionnaires etant disponibles, on peut remettre a jour les mappings
 		if (bOk)
 		{
 			shared_targetDatabase.GetMTDatabase()->UpdateMultiTableMappings();

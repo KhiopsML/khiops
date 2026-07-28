@@ -68,7 +68,7 @@ void KWDataTableDriverTextFile::CopyFrom(const KWDataTableDriver* kwdtdSource)
 	bWriteMode = false;
 	livDataItemLoadIndexes.SetSize(0);
 
-	// Recopie des attribut supplementaires
+	// Recopie des attributs supplementaires
 	SetHeaderLineUsed(kwdttfSource->GetHeaderLineUsed());
 	SetFieldSeparator(kwdttfSource->GetFieldSeparator());
 
@@ -1863,7 +1863,7 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 			kwcLogicalClass->GetNextAttribute(logicalAttribute);
 		}
 
-		// Calcul des index des attribut de la cle
+		// Calcul des index des attributs de la cle
 		if (bOk and kwcLogicalClass->IsUnique())
 		{
 			// Initialisation
@@ -1957,7 +1957,7 @@ boolean KWDataTableDriverTextFile::ComputeDataItemLoadIndexes(const KWClass* kwc
 			}
 		}
 
-		// Calcul des index des attribut de la cle
+		// Calcul des index des attributs de la cle
 		if (bOk and kwcLogicalClass->IsUnique())
 		{
 			// Initialisation

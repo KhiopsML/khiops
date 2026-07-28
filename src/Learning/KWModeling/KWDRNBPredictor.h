@@ -159,7 +159,7 @@ public:
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
 
-	// Export des noms des variables du classifieur, ainsi que les nom des attribut des DataGrid correspondantes
+	// Export des noms des variables du classifieur, ainsi que les nom des attributs des DataGrid correspondantes
 	// et des regles de preparation dans le cas dense
 	// La methode renvoie les informations exploitables au mieux selon la validite de la classe en cours
 	// Dans le cas particulier des paires de variables utilises par le predicteur, le nom de la variable

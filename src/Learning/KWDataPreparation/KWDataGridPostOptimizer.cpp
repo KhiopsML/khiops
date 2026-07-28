@@ -773,7 +773,7 @@ void KWDGPODiscretizer::UpdateDataGridFromIntervalList(KWDataGrid* optimizedData
 	initialAttribute = initialDataGrid->SearchAttribute(sPostOptimizationAttributeName);
 	optimizedAttribute = optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName);
 
-	// On vide la grille optimisee de ses cellules, en preservant ses attribut et leur partition
+	// On vide la grille optimisee de ses cellules, en preservant ses attributs et leur partition
 	optimizedDataGrid->DeleteAllCells();
 
 	// On reinitialise a vide les partie pour l'attribut a post-optimiser
@@ -1835,7 +1835,7 @@ void KWDGPOGrouper::UpdateDataGridWithGarbageFromGroups(KWDataGrid* optimizedDat
 	optimizedAttribute = optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName);
 	assert(KWType::IsCoclusteringGroupableType(initialAttribute->GetAttributeType()));
 
-	// On vide la grille optimisee de ses cellules, en preservant ses attribut et leur partition
+	// On vide la grille optimisee de ses cellules, en preservant ses attributs et leur partition
 	optimizedDataGrid->DeleteAllCells();
 
 	// On reinitialise a vide les partie pour l'attribut a post-optimiser

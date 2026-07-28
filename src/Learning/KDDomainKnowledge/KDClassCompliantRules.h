@@ -210,7 +210,7 @@ protected:
 	//     . recherche dans la liste de regles construites utilisees (slSearchedUsedConstructedRules)
 	//     . si trouve, on renvoie l'attribut derive (ou NULL) associe
 	//     . sinon
-	//       . si on a identifie toutes les regles construites correspondant aux attribut derives
+	//       . si on a identifie toutes les regles construites correspondant aux attributs derives
 	//         (c'est a dire si nDerivedAttributeNumber==nDerivedAttributesUsedConstructedRulesNumber)
 	//         -> retourne NULL
 	//       . sinon, on creer une nouvelle regles construite utilisee pour bufferiser la requete

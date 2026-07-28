@@ -39,8 +39,8 @@ public:
 	//
 	// La construction de variable se base sur les familles suivantes
 	//  . MultiTable: en exploitant le schema multi-table, hors variables de type texte
-	//  . Text: en exploitant les variable de type texte (Text ou TextList) presente dans le schema multi-table
-	//  . Tree: en combinant des variables au moyen des arbres
+	//  . Text: en exploitant les variables de type texte (Text ou TextList) presentes dans le schema multi-table
+	//  . Tree: en combinant des variabless au moyen des arbres
 	//  . 2D: en analysant des paires de variables
 	// De facon a maitriser la combinatoire des interactions possibles et a facilite l'interpretabilite
 	// des modeles, les familles sont explote selon les relation suivantes:
@@ -262,7 +262,7 @@ public:
 	// plus eventuellement les statistiques descriptives cibles si elles sont disponibles, et les erreurs
 	void WriteReport(ostream& ost) const override;
 
-	// Parametrage de l'ecriture des rapports des attribut natif ou construits (defaut: false)
+	// Parametrage de l'ecriture des rapports des attributs natifs ou construits (defaut: false)
 	void SetWriteOptionStatsNativeOrConstructed(boolean bValue);
 	boolean GetWriteOptionStatsNativeOrConstructed() const;
 
@@ -314,7 +314,7 @@ protected:
 	// pour se preparer aux constructions multivaries, paires de variable et arbre
 	// En effet, le cout de selection global (KWLearningSpec::GetSelectionCost) integre
 	// toutes les familles de construction de variables utilisees, alors que les familles
-	// multivaries selectionnent elle meme uniquement des variable initiales ou construites
+	// multivaries selectionnent elle meme uniquement des variables initiales ou construites
 	// avec un cout de selection basique (KWLearningSpec::GetBasicSelectionCost)
 	// Cette mise a jour se fait a la fois dans la classe principale et dans toutes celles du sliceset
 	void UseUnivariateBasicSelectionCosts(boolean bUsingTextAttributes);
@@ -351,20 +351,20 @@ protected:
 	// Calcul du nombre d'attributs prepares references depuis un dictionnaires
 	int ComputeSelectedDataPreparationStats(const ObjectArray* oaInputDataPreparationStats) const;
 
-	// Filtrage d'un tableau d'attribut prepares pour ne gardant que ceux qui natif ou selectionnes directement ou
-	// indirectement
+	// Filtrage d'un tableau d'attribut prepares pour ne garder que ceux qui natifs ou selectionnes
+	// directement ou indirectement
 	void FilterSelectedDataPreparationStats(const ObjectArray* oaInputDataPreparationStats,
 						ObjectArray* oaFilteredDataPreparationStats) const;
 
-	// Filtrage d'un tableau d'attribut prepares pour ne garde que ceux qui sont references par un dictionnaire
+	// Filtrage d'un tableau d'attribut prepares pour ne garder que ceux qui sont references par un dictionnaire
 	// Les tableaux en sortie appartiennent a l'appelant, et leur contenu sont une sous partie du tableau en entree
 	void DispatchAttributeStatsByType(const ObjectArray* oaInputAttributeStats, ObjectArray* oaSymbolAttributeStats,
 					  ObjectArray* oaContinuousAttributeStats) const;
 
-	// Specification du dictionnaire des variable construites en multi-tables
+	// Specification du dictionnaire des variables construites en multi-tables
 	ObjectDictionary odMultiTableConstructedAttributes;
 
-	// Specification du dictionnaire des variable construites pour le texte
+	// Specification du dictionnaire des variables construites pour le texte
 	ObjectDictionary odTextConstructedAttributes;
 
 	// Specification de l'analyse bivariee

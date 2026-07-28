@@ -198,7 +198,7 @@ void KDSelectionOperandDataSampler::SwapClassSelectionData(
 	oaClassSelectionData.CopyFrom(&otherSelectionOperandDataSampler->oaClassSelectionData);
 	otherSelectionOperandDataSampler->oaClassSelectionData.CopyFrom(&oaSwap);
 
-	// Mise en phase des dictionnaire de classe
+	// Mise en phase des dictionnaires de classe
 	RefreshClassSelectionData();
 	otherSelectionOperandDataSampler->RefreshClassSelectionData();
 }

@@ -63,10 +63,10 @@ public:
 	//// Implementation
 protected:
 	//////////////////////////////////////////////////////////////////////////////////////////////
-	// Analyse du schema multi-table pour identifier toutes les variable de type texte (Text ou TextList)
-	// a ramener dans la table principale pour gerer des variables basee sur les textes
-	// Le type TextList est utilise pour collecter des variable de type texte presente dans des
-	// sous-tables en relation 0-n d'un schema multi-table et les ramenerr dans la table principale.
+	// Analyse du schema multi-table pour identifier toutes les variables de type texte (Text ou TextList)
+	// a ramener dans la table principale pour gerer des variables basees sur les textes
+	// Le type TextList est utilise pour collecter des variables de type texte presentes dans des
+	// sous-tables en relation 0-n d'un schema multi-table et les ramener dans la table principale.
 	// Il s'agit d'une alternative efficcae a la concatenation de variables Text, qui poserait des problemes
 	// de volumetrie, avec un des variables Symbol sans limite de taille. Avec des TextList geree dans des
 	// SymbolVector, tout ce qui peut etre charge dans une sous-table tient sans probleme en memoire dans
@@ -90,12 +90,12 @@ protected:
 	// sortie On renvoie true si la classe en entree contient recursivement des variables de type texte Parametres
 	//   . kwcMainClass: classe principale, pour laquelle on ajoutera tous les chemins menant aux attributs de type
 	//   texte . kwcClass: classe en cours d'analyse . baseTextAttributePath: chemin d'attribut en cours, depuis la
-	//   classe principale . odTextClasses: dictionnaire des KDTextClass pour les classe analysees
+	//   classe principale . odTextClasses: dictionnaire des KDTextClass pour les classes analysees
 	boolean InternalCollectAllTextClasses(const KWClass* kwcMainClass, const KWClass* kwcClass,
 					      KDTextAttributePath* baseTextAttributePath,
 					      ObjectDictionary* odTextClasses) const;
 
-	// Calcul des couts de construction pour les chemins d'acces aux attribut de type texte d'une classe
+	// Calcul des couts de construction pour les chemins d'acces aux attributs de type texte d'une classe
 	// Ces couts sont memorise dans le chemins d'attributs
 	void ComputeTextClassConstructionCosts(const KWClass* kwcClass, const ObjectDictionary* odTextClasses) const;
 
@@ -115,7 +115,7 @@ protected:
 					const ObjectDictionary* odTextClasses) const;
 
 	// Construction d'un domaine de lecture de la base pour la collecte des echantillons de tokens,
-	// c'est a dire ayant tout en Unused, sauf les variable de type texte permettant d'acceder aux
+	// c'est a dire ayant tout en Unused, sauf les variables de type texte permettant d'acceder aux
 	// variables secondaires de type texte. Le domain fabrique est compile et pret a l'emploi
 	//
 	// Les nombres de variables construites existantes de type token (ngrams, words, tokens) sont collectes pour les
@@ -175,7 +175,7 @@ protected:
 							       const KWClass* kwcClass) const;
 
 	// Creation d'un attribut a partir d'une regle de derivation construite
-	// On utilise le service de gestion des attribut derives existant pour les reutiliser si possible
+	// On utilise le service de gestion des attributs derives existant pour les reutiliser si possible
 	// La regle de derivation est utilise pour construire l'attribut s'il n'y a pas d'attribut existant equivalent,
 	// elle est detruite sinon.
 	// Le nom d'attribut n'est utilise que si un nouvel attribut doit etre construit.

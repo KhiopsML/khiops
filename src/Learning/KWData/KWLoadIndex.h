@@ -88,7 +88,7 @@ private:
 //////////////////////////////////////////////////////////////////
 // Vecteur d'index de chargement
 // Classe interne, geree comme un type simple depuis l'exterieur,
-// avec des services avances uniquement pour les classe devant gerer
+// avec des services avances uniquement pour les classes devant gerer
 // l'acces indexe a des valeurs denses ou sparse
 class KWLoadIndexVector : public Object
 {

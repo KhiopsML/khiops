@@ -2059,7 +2059,7 @@ void KWDatabase::BuildPhysicalClass()
 
 				// Verification de coherence
 				// Le nombre d'attributs charges du bloc physique peut etre plus grand que celui du bloc
-				// initial, s'il faut lire des attribut physiques non utilise, mais necessaire pour
+				// initial, s'il faut lire des attributs physiques non utilise, mais necessaire pour
 				// effectuer des calculs Attention, le nombre d'attributs charges du bloc physique peut
 				// aussi plus petit que celui du bloc initial, s'il n'est pas necessaire de lire un
 				// attribut physique, mais que l'attribut initial correspondant est utilise dans une
@@ -2153,7 +2153,7 @@ void KWDatabase::BuildPhysicalClass()
 						}
 					}
 				}
-				// Prise en compte des attribut de type relation natif, pour propagation des calculs
+				// Prise en compte des attributs de type relation natif, pour propagation des calculs
 				else if (KWType::IsRelation(attribute->GetType()))
 				{
 					// Ajout dans les attributs a calculer
@@ -2268,7 +2268,7 @@ void KWDatabase::ComputeUnusedNativeAttributesToKeep(const NumericKeyDictionary*
 		oaNeededClasses.SetCompareFunction(KWClassCompareName);
 		oaNeededClasses.Sort();
 
-		// Affichagges des classe necessaires
+		// Affichage des classes necessaires
 		cout << "ComputeUnusedNativeAttributesToKeep\n";
 		cout << "  Necessary classes\t" << nkdNeededClasses->GetCount() << "\n";
 		for (nClass = 0; nClass < oaNeededClasses.GetSize(); nClass++)
@@ -2404,7 +2404,7 @@ void KWDatabase::DeletePhysicalClass()
 	// Nettoyage du dictionnaire des classes de mutation
 	nkdMutationClasses.RemoveAll();
 
-	// Nettoyage du dictionnaire des attribut natif non utilises a detruire
+	// Nettoyage du dictionnaire des attributs natifs non utilises a detruire
 	nkdUnusedNativeAttributesToKeep.RemoveAll();
 }
 

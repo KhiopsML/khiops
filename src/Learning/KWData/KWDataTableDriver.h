@@ -129,7 +129,7 @@ public:
 	virtual boolean IsTypeInitializationManaged() const;
 
 	// Ouverture physique de la table de donnees pour lecture
-	// Les classe logique et physique sont initialisees prealablement
+	// Les classes logique et physique sont initialisees prealablement
 	// En cas de succes, la table doit etre preparee pour la lecture
 	// d'un objet physique. Les eventuelles donnees internes permettant de
 	// parametrer l'alimentation d'objets physiques doivent etre initialisees

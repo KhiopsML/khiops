@@ -12,7 +12,7 @@ target_link_libraries(KWUserInterface PUBLIC KDDomainKnowledge KWDataPreparation
 
 # Generate cpp files from dd file
 
-# Dans la plus cas, on ne genere que les classe de type vue, les classe de type modele etant geree par ailleur
+# Dans la plus cas, on ne genere que les classes de type vue, les classes de type modele etant gerees par ailleur
 # cmake-format: off
  generate_gui_add_view(KWDatabase "Database" KWDatabase.dd KWDatabase.dd.log -nomodel -noarrayview)
  generate_gui_add_view(KWDatabaseSampling "Sampling" KWDatabaseSampling.dd KWDatabaseSampling.dd.log -nomodel -noarrayview -specificmodel KWDatabase)
