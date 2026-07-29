@@ -106,6 +106,7 @@ double KWDataGridOptimizerIxV::OptimizeNeighbourSolution(const KWDataGrid* initi
 	// On borne par le nombre max de tokens exploitables
 	nTargetTokenNumber = min(nTargetTokenNumber, nMaximumInitialTotalPartNumber);
 	nTargetTokenNumber = min(nTargetTokenNumber, nInitialTokenNumber);
+	nTargetTokenNumber = max(nTargetTokenNumber, nCurrentTokenNumber);
 	assert(nTargetTokenNumber >= nCurrentTokenNumber);
 
 	// Debut du profiling de la surtokenisation

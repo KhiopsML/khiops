@@ -344,9 +344,141 @@ boolean CCCoclusteringBuilder::CheckVarPartSpecifications() const
 
 boolean CCCoclusteringBuilder::ComputeCoclustering()
 {
+	return NEW_ComputeCoclustering();
+}
+
+boolean CCCoclusteringBuilder::NEW_ComputeCoclustering()
+{
 	boolean bOk = true;
 	KWTupleTable tupleTable;
-	KWTupleTable tupleFrequencyTable;
+	KWDataGrid optimizedDataGrid;
+	KWDataGridManager dataGridManager;
+	ALString sProfileFileName;
+	ALString sTmp;
+
+	require(Check());
+	require(CheckSpecifications());
+
+	// Debut du pilotage anytime
+	AnyTimeStart();
+
+	// Nettoyage des resultats de coclustering
+	CleanCoclusteringResults();
+
+	///////////////////////////////////////////////////////////////////////////////////
+	// Calcul d'une grille initiale
+
+	// Verification de la memoire necessaire pour charger la base
+	if (bOk)
+		bOk = CheckMemoryForDatabaseRead(GetDatabase());
+
+	// Alimentation d'une table de tuples comportant les attributs a analyser a partir de la base
+	if (bOk and not TaskProgression::IsInterruptionRequested())
+	{
+		// Cas ou le coclustering se ramene a un coclustering standard, appel des methodes standards
+		if (not GetVarPartCoclustering())
+			bOk = CreateStandardInitialDataGrid();
+		// Sinon, cas de coclustering VarPart
+		else
+			bOk = CreateVarPartInitialDataGrid();
+		assert(not bOk or initialDataGrid != NULL);
+	}
+
+	// On verifie une derniere fois qu'il n'y a pas eu d'interruption
+	if (bOk)
+		bOk = not TaskProgression::IsInterruptionRequested();
+
+	// Verification de la memoire necessaire pour optimiser le coclustering
+	if (bOk)
+		bOk = CheckMemoryForDataGridOptimization(initialDataGrid);
+
+	// Arret si grille non creee, avec nettoyage
+	if (not bOk)
+	{
+		if (initialDataGrid != NULL)
+		{
+			delete initialDataGrid;
+			initialDataGrid = NULL;
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
+	// Optimisation et post-optimisation de la grille
+
+	// Lancement du profiler pour l'optimisation des grilles
+	// Choix du fichier de trace a parametrer
+	if (GetPreprocessingSpec()->GetDataGridOptimizerParameters()->GetOptimizationProfiling())
+	{
+		// Nom du fichier de profiling, avec le nombre d'individus et de variables
+		sProfileFileName = "DataGridOptimizationProfiling_";
+		sProfileFileName += GetDatabase()->GetClassName();
+		if (initialDataGrid->IsVarPartDataGrid())
+		{
+			sProfileFileName += "_I";
+			sProfileFileName += IntToString(initialDataGrid->GetAttributeAt(0)->GetInitialValueNumber());
+			sProfileFileName += "_V";
+			sProfileFileName +=
+			    IntToString(initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber());
+		}
+		else
+		{
+			sProfileFileName += "_F";
+			sProfileFileName += IntToString(initialDataGrid->GetGridFrequency());
+			sProfileFileName += "_D";
+			sProfileFileName += IntToString(initialDataGrid->GetAttributeNumber());
+		}
+		sProfileFileName += ".txt";
+
+		// On utilise le repertoire du rapport d'apprentissage pour stocker le profilage de l'optimisation de la grille
+		sProfileFileName =
+		    FileService::BuildFilePathName(FileService::GetPathName(GetReportFileName()), sProfileFileName);
+
+		// Lancement du profiling
+		KWDataGridOptimizer::GetProfiler()->SetTrace(true);
+		KWDataGridOptimizer::GetProfiler()->SetTraceTime(false);
+		KWDataGridOptimizer::GetProfiler()->Start(sProfileFileName);
+	}
+
+	//DDDDDDD
+	/*DDD
+	cout << "Initial data grid\t"
+	     << BooleanToString(initialDataGrid->GetInnerAttributes()->AreInnerAttributePartsSorted()) << "\n"
+	     << *initialDataGrid << endl;
+		 */
+
+	// Optimisation de la grille, par appel d'une methode virtuelle
+	if (bOk and not TaskProgression::IsInterruptionRequested())
+		OptimizeDataGrid(initialDataGrid, &optimizedDataGrid);
+
+	// Arret du profiler
+	if (GetPreprocessingSpec()->GetDataGridOptimizerParameters()->GetOptimizationProfiling())
+		KWDataGridOptimizer::GetProfiler()->Stop();
+
+	// La solution est sauvegardee periodiquement grace au mode anytime
+	// Nettoyage si aucune solution n'a encore ete trouvee
+	if (coclusteringDataGrid == NULL)
+		CleanCoclusteringResults();
+
+	// Nettoyage de la grille initiale (si non deja nettoyee), dont on a plus besoin desormais
+	if (initialDataGrid != NULL)
+	{
+		delete initialDataGrid;
+		initialDataGrid = NULL;
+	}
+	nMaxCellNumberConstraint = 0;
+
+	// Fin du pilotage anytime
+	AnyTimeStop();
+	// Nettoyage
+	bIsStatsComputed = bOk;
+	ensure(Check());
+	return bIsStatsComputed;
+}
+
+boolean CCCoclusteringBuilder::REF_ComputeCoclustering()
+{
+	boolean bOk = true;
+	KWTupleTable tupleTable;
 	KWDataGrid optimizedDataGrid;
 	KWDataGridManager dataGridManager;
 	ALString sProfileFileName;
@@ -436,6 +568,13 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 		}
 	}
 
+	//DDDDDDD
+	/*DDD
+	cout << "Initial data grid\t"
+	     << BooleanToString(initialDataGrid->GetInnerAttributes()->AreInnerAttributePartsSorted()) << "\n"
+	     << *initialDataGrid << endl;
+		 */
+
 	////////////////////////////////////////////////////////////////////////////////////
 	// Optimisation et post-optimisation de la grille
 
@@ -500,86 +639,6 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	bIsStatsComputed = bOk;
 	ensure(Check());
 	return bIsStatsComputed;
-}
-
-void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid)
-{
-	boolean bDisplayResults = false;
-	KWDataGridOptimizerVxV dataGridOptimizerVxV;
-	KWDataGridOptimizerIxV dataGridOptimizerIxV;
-	KWDataGridOptimizer* dataGridOptimizer;
-
-	require(inputInitialDataGrid != NULL);
-	require(coclusteringDataGridCosts == NULL);
-
-	// Affichage du debut de l'optimisation
-	if (bDisplayResults)
-	{
-		cout << "CCCoclusteringBuilder :: Grille initiale avant optimisation" << endl;
-		initialDataGrid->Write(cout);
-		cout << "Algorithme d'optimisation du " +
-			    CCAnalysisSpec::GetCoclusteringLabelFromType(initialDataGrid->IsVarPartDataGrid())
-		     << endl;
-	}
-
-	// Parametrage de l'optimiser selon le type de grille
-	if (not initialDataGrid->IsVarPartDataGrid())
-		dataGridOptimizer = &dataGridOptimizerVxV;
-	else
-		dataGridOptimizer = &dataGridOptimizerIxV;
-
-	// Optimisation de la grille
-	InitializeDataGridOptimizer(inputInitialDataGrid, dataGridOptimizer);
-
-	// Trace de debut d'optimisation, avec informations sur la grille initiale
-	KWDataGridOptimizer::GetProfiler()->BeginMethod("Compute coclustering");
-	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Dictionary", GetDatabase()->GetClassName());
-	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Database", GetDatabase()->GetDatabaseName());
-	KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Instances", initialDataGrid->GetGridFrequency());
-	KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Variables", initialDataGrid->GetAttributeNumber());
-	KWDataGridOptimizer::GetProfiler()->WriteKeyBoolean("Is VarPart", initialDataGrid->IsVarPartDataGrid());
-	if (initialDataGrid->IsVarPartDataGrid())
-	{
-		KWDataGridOptimizer::GetProfiler()->WriteKeyInt(
-		    initialDataGrid->GetAttributeAt(0)->GetAttributeName() + " values",
-		    initialDataGrid->GetAttributeAt(0)->GetInitialValueNumber());
-		KWDataGridOptimizer::GetProfiler()->WriteKeyInt(
-		    initialDataGrid->GetAttributeAt(1)->GetAttributeName() + " values",
-		    initialDataGrid->GetAttributeAt(1)->GetInitialValueNumber());
-		KWDataGridOptimizer::GetProfiler()->WriteKeyInt(
-		    "Inner variables", initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber());
-	}
-
-	// Optimisation de la grille
-	dataGridOptimizer->OptimizeDataGrid(initialDataGrid, optimizedDataGrid);
-	KWDataGridOptimizer::GetProfiler()->EndMethod("Compute coclustering");
-}
-
-void CCCoclusteringBuilder::InitializeDataGridOptimizer(const KWDataGrid* inputInitialDataGrid,
-							KWDataGridOptimizer* dataGridOptimizer)
-{
-	require(inputInitialDataGrid != NULL);
-	require(dataGridOptimizer != NULL);
-
-	// Reinitialisation de l'optimiseur
-	dataGridOptimizer->Reset();
-
-	// Creation et initialisation de la structure de couts
-	coclusteringDataGridCosts = CreateDataGridCost();
-
-	// Parametrage des couts de l'optimiseur de grille
-	dataGridOptimizer->SetDataGridCosts(coclusteringDataGridCosts);
-
-	// Parametrage pour l'optimisation anytime: avoir acces aux ameliorations a chaque etape de l'optimisation
-	dataGridOptimizer->SetOptimizationHandler(this);
-
-	// Recopie du parametrage d'optimisation des grilles
-	dataGridOptimizer->GetParameters()->CopyFrom(GetPreprocessingSpec()->GetDataGridOptimizerParameters());
-	dataGridOptimizer->GetParameters()->SetOptimizationTime(RMResourceConstraints::GetOptimizationTime());
-
-	// Initialisation des couts par defaut
-	coclusteringDataGridCosts->InitializeDefaultCosts(inputInitialDataGrid);
-	dAnyTimeBestCost = DBL_MAX;
 }
 
 boolean CCCoclusteringBuilder::IsCoclusteringComputed() const
@@ -1320,6 +1379,181 @@ const ALString CCCoclusteringBuilder::GetObjectLabel() const
 		return KWAttributeSubsetStats::GetObjectLabel();
 }
 
+void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid)
+{
+	boolean bDisplayResults = false;
+	KWDataGridOptimizerVxV dataGridOptimizerVxV;
+	KWDataGridOptimizerIxV dataGridOptimizerIxV;
+	KWDataGridOptimizer* dataGridOptimizer;
+
+	require(inputInitialDataGrid != NULL);
+	require(coclusteringDataGridCosts == NULL);
+
+	// Affichage du debut de l'optimisation
+	if (bDisplayResults)
+	{
+		cout << "CCCoclusteringBuilder :: Grille initiale avant optimisation" << endl;
+		initialDataGrid->Write(cout);
+		cout << "Algorithme d'optimisation du " +
+			    CCAnalysisSpec::GetCoclusteringLabelFromType(initialDataGrid->IsVarPartDataGrid())
+		     << endl;
+	}
+
+	// Parametrage de l'optimiser selon le type de grille
+	if (not initialDataGrid->IsVarPartDataGrid())
+		dataGridOptimizer = &dataGridOptimizerVxV;
+	else
+		dataGridOptimizer = &dataGridOptimizerIxV;
+
+	// Optimisation de la grille
+	InitializeDataGridOptimizer(inputInitialDataGrid, dataGridOptimizer);
+
+	// Trace de debut d'optimisation, avec informations sur la grille initiale
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("Compute coclustering");
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Dictionary", GetDatabase()->GetClassName());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyString("Database", GetDatabase()->GetDatabaseName());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Instances", initialDataGrid->GetGridFrequency());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyInt("Variables", initialDataGrid->GetAttributeNumber());
+	KWDataGridOptimizer::GetProfiler()->WriteKeyBoolean("Is VarPart", initialDataGrid->IsVarPartDataGrid());
+	if (initialDataGrid->IsVarPartDataGrid())
+	{
+		KWDataGridOptimizer::GetProfiler()->WriteKeyInt(
+		    initialDataGrid->GetAttributeAt(0)->GetAttributeName() + " values",
+		    initialDataGrid->GetAttributeAt(0)->GetInitialValueNumber());
+		KWDataGridOptimizer::GetProfiler()->WriteKeyInt(
+		    initialDataGrid->GetAttributeAt(1)->GetAttributeName() + " values",
+		    initialDataGrid->GetAttributeAt(1)->GetInitialValueNumber());
+		KWDataGridOptimizer::GetProfiler()->WriteKeyInt(
+		    "Inner variables", initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber());
+	}
+
+	// Optimisation de la grille
+	dataGridOptimizer->OptimizeDataGrid(initialDataGrid, optimizedDataGrid);
+	KWDataGridOptimizer::GetProfiler()->EndMethod("Compute coclustering");
+}
+
+void CCCoclusteringBuilder::InitializeDataGridOptimizer(const KWDataGrid* inputInitialDataGrid,
+							KWDataGridOptimizer* dataGridOptimizer)
+{
+	require(inputInitialDataGrid != NULL);
+	require(dataGridOptimizer != NULL);
+
+	// Reinitialisation de l'optimiseur
+	dataGridOptimizer->Reset();
+
+	// Creation et initialisation de la structure de couts
+	coclusteringDataGridCosts = CreateDataGridCost();
+
+	// Parametrage des couts de l'optimiseur de grille
+	dataGridOptimizer->SetDataGridCosts(coclusteringDataGridCosts);
+
+	// Parametrage pour l'optimisation anytime: avoir acces aux ameliorations a chaque etape de l'optimisation
+	dataGridOptimizer->SetOptimizationHandler(this);
+
+	// Recopie du parametrage d'optimisation des grilles
+	dataGridOptimizer->GetParameters()->CopyFrom(GetPreprocessingSpec()->GetDataGridOptimizerParameters());
+	dataGridOptimizer->GetParameters()->SetOptimizationTime(RMResourceConstraints::GetOptimizationTime());
+
+	// Initialisation des couts par defaut
+	coclusteringDataGridCosts->InitializeDefaultCosts(inputInitialDataGrid);
+	dAnyTimeBestCost = DBL_MAX;
+}
+
+boolean CCCoclusteringBuilder::CreateStandardInitialDataGrid()
+{
+	boolean bOk = true;
+	KWTupleTable tupleTable;
+
+	require(not GetVarPartCoclustering());
+	require(CheckStandardSpecifications());
+	require(initialDataGrid == NULL);
+
+	// Alimentation d'une base de tuple a partir de la base, en tenant com^pte de l'attribut d'effectif
+	bOk = FillTupleTableFromDatabase(GetDatabase(), &tupleTable);
+
+	// Calcul de statistiques descriptives globales et par attribut
+	if (bOk and not TaskProgression::IsInterruptionRequested())
+		bOk = GetLearningSpec()->ComputeTargetStats(&tupleTable);
+	if (bOk and not TaskProgression::IsInterruptionRequested())
+		ComputeDescriptiveAttributeStats(&tupleTable, &odDescriptiveStats);
+
+	// Verification de la memoire necessaire pour construire une grille initiale a partir des tuples
+	nMaxCellNumberConstraint = 0;
+	if (bOk and not TaskProgression::IsInterruptionRequested())
+		bOk =
+		    CheckMemoryForDataGridInitialization(GetDatabase(), tupleTable.GetSize(), nMaxCellNumberConstraint);
+
+	// Creation du DataGrid
+	if (bOk and not TaskProgression::IsInterruptionRequested())
+	{
+		initialDataGrid = CreateDataGrid(&tupleTable);
+		bOk = initialDataGrid != NULL;
+	}
+
+	// Supression des tuples, desormais transferes dans la grille
+	tupleTable.CleanAll();
+
+	ensure(bOk or initialDataGrid == NULL);
+	return bOk;
+}
+
+boolean CCCoclusteringBuilder::CreateVarPartInitialDataGrid()
+{
+	boolean bOk = true;
+	KWTupleTable tupleTable;
+
+	require(GetVarPartCoclustering());
+	require(CheckVarPartSpecifications());
+	require(initialDataGrid == NULL);
+
+	//DDD bOk = FillVarPartTupleTableFromDatabase(GetDatabase(), &tupleTable, odObservationNumbers);
+
+	// Initialisation de la grille instances * variables
+	// Cette premiere etape permet :
+	// - d'initialiser les innerAttributes de la grille et l'attribut VarPart
+	// - d'alimenter les statistiques descriptives des innerAttributes
+	// Les tables de tuples sont chargees individuellement par attribute
+	// avec un traitement differencie selon que l'attribut est dense ou sparse au sein d'un bloc d'attributs
+	initialDataGrid = InitializeInnerAttributesFromDatabase(GetDatabase(), &odDescriptiveStats);
+
+	// Verification de la memoire necessaire pour construire une grille initiale a partir des tuples
+	//nMaxCellNumberConstraint = 0;
+	//if (bOk and not TaskProgression::IsInterruptionRequested())
+	//bOk = CheckMemoryForSparseVarPartDataGridInitialization(
+	//   GetDatabase(), GetDatabase()->GetObjects()->GetSize(), nMaxCellNumberConstraint);
+
+	// Finalisation de l'alimentation de la grille initiale :
+	// - alimentation des effectifs de ses cellules par relecture de la base
+	// - alimentation de l'attribut Identifiant
+	bOk = bOk and not TaskProgression::IsInterruptionRequested();
+	if (bOk)
+		FinalizeDataGridWithCells(GetDatabase(), initialDataGrid);
+
+	//DDD TODO erreur si base vide
+	//DDD a faire au plus tot des la creation des attributs internes
+	//DDD dans ce cas, ne pas oublier de nettoyer la base
+	if (initialDataGrid->GetGridFrequency() == 0)
+	{
+		bOk = false;
+		AddError("No record read from database");
+	}
+
+	// Nettoyage des eventuelles parties vides du fait d'observations manquantes
+	bOk = bOk and not TaskProgression::IsInterruptionRequested();
+	if (bOk)
+		CleanVarPartDataGrid(initialDataGrid);
+
+	// Nettoyage si necessaire
+	if (not bOk and initialDataGrid != NULL)
+	{
+		delete initialDataGrid;
+		initialDataGrid = NULL;
+	}
+
+	ensure(bOk or initialDataGrid == NULL);
+	return initialDataGrid;
+}
+
 boolean CCCoclusteringBuilder::CheckMemoryForDatabaseRead(KWDatabase* database) const
 {
 	boolean bOk = true;
@@ -2024,6 +2258,521 @@ boolean CCCoclusteringBuilder::CreateIdentifierAttributeIntervals(const KWTupleT
 	return true;
 }
 
+KWDataGrid* CCCoclusteringBuilder::InitializeInnerAttributesFromDatabase(KWDatabase* database,
+									 ObjectDictionary* odOutputDescriptiveStats)
+{
+	boolean bOk = true;
+	int nAttributeNumber;
+	int nAttribute;
+	KWAttribute* attribute;
+	KWAttributeBlock* attributeBlock;
+	ObjectArray oaBlockAttributes;
+	ObjectDictionary odBlockAttributes;
+	ObjectDictionary odBlockTupleTables;
+	KWTupleTable univariateTupleTable;
+	KWTupleTable* tupleTable;
+	KWTupleTable targetTupleTable;
+	int i;
+	KWDescriptiveStats* descriptiveStats;
+	ALString sTmp;
+	KWDGAttribute* identifierAttribute;
+	KWDGAttribute* innerAttribute;
+	KWTupleTableLoader tupleTableLoader;
+	KWDataGrid* dataGrid;
+	KWDGAttribute* varPartAttribute;
+	KWDGInnerAttributes* initialInnerAttributes;
+	int nInitialVarPartNumber;
+	boolean bDisplayTaskProgression = true;
+
+	require(GetTargetAttributeName() == "");
+	require(database != NULL);
+	require(odOutputDescriptiveStats != NULL);
+	require(database->GetObjects()->GetSize() == 0);
+	require(odOutputDescriptiveStats->GetCount() == 0);
+
+	// voir si on adapte ce require
+	//require(AreAttributesSortedByBlock(oaInputAttributes));
+
+	// Chargement de l'ensemble des donnees en memoire
+	// Cette methode produit des messages en cas d'echec
+	//DDD TODO: a proteger contre les probleme memoire
+	bOk = GetDatabase()->ReadAll();
+
+	// Parametrage du chargeur de tuple
+	tupleTableLoader.SetInputClass(GetClass());
+	tupleTableLoader.SetInputDatabaseObjects(database->GetObjects());
+
+	// a voir si on le fait durant cette passe ou durant la seconde
+	// 1ere passe : uniquement innerAttributes
+	// Creation du DataGrid initial avec un attribut identifiant et un attribut de type VarPart
+	dataGrid = new KWDataGrid;
+	dataGrid->Initialize(2, 0);
+
+	// Parametrage de l'attribut Identifiant
+	identifierAttribute = dataGrid->GetAttributeAt(0);
+	identifierAttribute->SetAttributeName(GetIdentifierAttributeName());
+	identifierAttribute->SetAttributeType(KWType::Symbol);
+
+	// Parametrage de l'attribut du DataGrid de type partie de variables
+	// est ce que cet attribut est initialise dans cette methode ? si oui il faut creer la grille
+	varPartAttribute = dataGrid->GetAttributeAt(1);
+	varPartAttribute->SetAttributeName(GetVarPartAttributeName());
+	varPartAttribute->SetAttributeType(KWType::VarPart);
+
+	// Calcul des valeurs cibles
+	tupleTableLoader.LoadTupleTableFromFrequency(GetDatabase()->GetObjects()->GetSize(), &targetTupleTable);
+	tupleTableLoader.SetInputExtraAttributeTupleTable(&targetTupleTable);
+	bOk = GetLearningSpec()->ComputeTargetStats(&targetTupleTable);
+
+	// Ajout des attributs internes, apres les avoir trie par nom pour etre en phase avec
+	// les attributs internes de la grille, tries egalement par nom
+	GetInnerAttributesNames()->Sort();
+
+	// Creation de la description initiale des attributs internes
+	initialInnerAttributes = new KWDGInnerAttributes;
+	varPartAttribute->SetInnerAttributes(initialInnerAttributes);
+
+	// Chargement des tuples tables univariees ou par bloc
+	// Calcul des statistiques
+	bOk = not TaskProgression::IsInterruptionRequested();
+	if (bOk)
+	{
+		// Pretraitement des attributs de la tranche
+		//if (bDisplayTaskProgression and TaskProgression::IsInTask())
+		//	TaskProgression::DisplayMainLabel("Discretizations and value groupings");
+		nAttributeNumber = GetInnerAttributesNames()->GetSize();
+		nAttribute = 0;
+		nInitialVarPartNumber = 0;
+		//DDD TODO Changer la logique de parcours en partant de la classe. Sinon, on risque de traiter les blocs plusieurs fois
+		while (nAttribute < nAttributeNumber)
+		{
+			// Acces a l'attribut correspondant aux stats
+			attribute = GetClass()->LookupAttribute(GetInnerAttributesNames()->GetAt(nAttribute));
+			assert(attribute->GetLoaded());
+			assert(KWType::IsSimple(attribute->GetType()));
+			assert(attribute->GetName() != learningSpec->GetTargetAttributeName());
+
+			// Cas ou l'attribut n'est pas dans un bloc
+			if (not attribute->IsInBlock())
+			{
+				// Gestion de la progression
+				if (bDisplayTaskProgression and TaskProgression::IsInTask())
+				{
+					TaskProgression::DisplayLabel(sTmp + attribute->GetName());
+					TaskProgression::DisplayProgression(
+					    (int)(100 * (nAttribute + 1.0) / nAttributeNumber));
+				}
+
+				// Arret si erreur ou interruption
+				if (TaskProgression::IsInterruptionRequested())
+					bOk = false;
+				if (not bOk)
+					break;
+
+				// Chargement de la table de tuple pour l'attribut
+				tupleTableLoader.LoadUnivariate(attribute->GetName(), &univariateTupleTable);
+
+				// Creation et initialisation d'un objet de stats pour l'attribut
+				// Creation d'un objet de stats pour l'attribut selon son type
+				if (attribute->GetType() == KWType::Continuous)
+					descriptiveStats = new KWDescriptiveContinuousStats;
+				else
+					descriptiveStats = new KWDescriptiveSymbolStats;
+
+				// Initialisation
+				descriptiveStats->SetLearningSpec(GetLearningSpec());
+				descriptiveStats->SetAttributeName(attribute->GetName());
+
+				// Calcul des stats
+				descriptiveStats->ComputeStats(&univariateTupleTable);
+
+				//DDD MB
+				// affichage de la table pour verifier sa densite / sparsite
+				/*	cout << "Dense\t" << descriptiveStats->GetAttributeName() << "\t"
+				     << descriptiveStats->GetValueNumber() << "\t"
+				     << descriptiveStats->GetMissingValueNumber() << "\t"
+				     << descriptiveStats->GetSparseMissingValueNumber() << "\tTT\t"
+				     << univariateTupleTable.GetSize() << "\t"
+				     << univariateTupleTable.GetTotalFrequency() << endl;*/
+
+				// Memorisation
+				odOutputDescriptiveStats->SetAt(descriptiveStats->GetAttributeName(), descriptiveStats);
+
+				// Creation de l'attribut interne correspondant
+				innerAttribute = new KWDGAttribute;
+
+				// Parametrage de l'attribut interne
+				innerAttribute->SetOwnerAttributeName(varPartAttribute->GetAttributeName());
+
+				// Parametrage de l'attribut du DataGrid
+				innerAttribute->SetAttributeName(univariateTupleTable.GetAttributeNameAt(0));
+				innerAttribute->SetAttributeType(univariateTupleTable.GetAttributeTypeAt(0));
+				innerAttribute->SetAttributeTargetFunction(innerAttribute->GetAttributeName() ==
+									   GetTargetAttributeName());
+
+				// Ajout de l'attribut dans le dictionnaire des attributs internes de la grille
+				initialInnerAttributes->AddInnerAttribute(innerAttribute);
+
+				// Recuperation du cout de selection/construction de l'attribut hors attribut cible
+				if (innerAttribute->GetAttributeName() != GetTargetAttributeName())
+				{
+					attribute = GetClass()->LookupAttribute(innerAttribute->GetAttributeName());
+					check(attribute);
+					innerAttribute->SetCost(attribute->GetCost());
+				}
+
+				if (innerAttribute->GetAttributeType() == KWType::Continuous)
+					CreateAttributeIntervals(&univariateTupleTable, innerAttribute);
+				else
+					CreateAttributeValueSets(&univariateTupleTable, innerAttribute);
+
+				// Test interruption utilisateur
+				if (TaskProgression::IsInterruptionRequested())
+					break;
+
+				// Mise a jour du nombre total de parties de variables de l'attribut
+				nInitialVarPartNumber += innerAttribute->GetPartNumber();
+				innerAttribute->BuildIndexingStructure();
+
+				// Nettoyage
+				univariateTupleTable.CleanAll();
+
+				// On se prepare a l'attribut suivant
+				nAttribute++;
+			}
+			// Cas ou l'attribut est dans un block
+			else
+			{
+				attributeBlock = attribute->GetAttributeBlock();
+
+				// Collecte de tous les attributs consecutifs du meme bloc
+				assert(oaBlockAttributes.GetSize() == 0);
+				while (attribute->GetAttributeBlock() == attributeBlock)
+				{
+					oaBlockAttributes.Add(attribute);
+					odBlockAttributes.SetAt(attribute->GetName(), attribute);
+					nAttribute++;
+
+					// Recherche de l'attribut suivant
+					if (nAttribute < nAttributeNumber)
+						attribute = GetClass()->LookupAttribute(
+						    GetInnerAttributesNames()->GetAt(nAttribute));
+					else
+						break;
+				}
+				assert(attribute->GetAttributeBlock() != attributeBlock or
+				       nAttribute == nAttributeNumber);
+
+				// Chargement de la table de tuple pour tous les attributs du bloc
+				tupleTableLoader.BlockLoadUnivariateInitialize(attributeBlock->GetName(),
+									       &odBlockAttributes, &odBlockTupleTables);
+
+				// Parcours des attributs du bloc
+				for (i = 0; i < oaBlockAttributes.GetSize(); i++)
+				{
+					// Acces a l'attribut correspondant aux stats
+					attribute = cast(KWAttribute*, oaBlockAttributes.GetAt(i));
+					assert(attribute->GetLoaded());
+					assert(KWType::IsSimple(attribute->GetType()));
+					assert(attribute->GetName() != learningSpec->GetTargetAttributeName());
+
+					// Gestion de la progression
+					if (bDisplayTaskProgression and TaskProgression::IsInTask())
+					{
+						TaskProgression::DisplayLabel(sTmp + attribute->GetName());
+						TaskProgression::DisplayProgression(
+						    ((nAttribute - oaBlockAttributes.GetSize() + i + 1) * 100) /
+						    nAttributeNumber);
+					}
+
+					// Arret si erreur ou interruption
+					if (TaskProgression::IsInterruptionRequested())
+						bOk = false;
+					if (not bOk)
+					{
+						odBlockTupleTables.DeleteAll();
+						break;
+					}
+
+					// Acces la table de tuple courante
+					tupleTable =
+					    cast(KWTupleTable*, odBlockTupleTables.Lookup(attribute->GetName()));
+					assert(tupleTable != NULL);
+					assert(tupleTable->GetAttributeNameAt(0) == attribute->GetName());
+
+					// Finalisation de l'alimentation de la table, en prenant en compte les valeurs
+					// manquantes
+					tupleTableLoader.BlockLoadUnivariateFinalize(attributeBlock->GetName(),
+										     tupleTable);
+
+					// Cas d'une table avec plus d'une valeur (la valeur manquante)
+					if (tupleTable->GetSize() > 1)
+					{
+						// Creation et initialisation d'un objet de stats pour l'attribut
+						// Creation d'un objet de stats pour l'attribut selon son type
+						if (attribute->GetType() == KWType::Continuous)
+							descriptiveStats = new KWDescriptiveContinuousStats;
+						else
+							descriptiveStats = new KWDescriptiveSymbolStats;
+
+						// Initialisation
+						descriptiveStats->SetLearningSpec(GetLearningSpec());
+						descriptiveStats->SetAttributeName(attribute->GetName());
+
+						// Calcul des stats
+						descriptiveStats->ComputeStats(tupleTable);
+
+						// Memorisation
+						odOutputDescriptiveStats->SetAt(descriptiveStats->GetAttributeName(),
+										descriptiveStats);
+
+						//DDD MB
+						// affichage de la table pour verifier sa sparsite
+						/*cout << "Sparse\t" << descriptiveStats->GetAttributeName() << "\t"
+						     << descriptiveStats->GetValueNumber() << "\t"
+						     << descriptiveStats->GetMissingValueNumber() << "\t"
+						     << descriptiveStats->GetSparseMissingValueNumber() << "\tTT\t"
+						     << tupleTable->GetSize() << "\t" << tupleTable->GetTotalFrequency()
+						     << endl;*/
+
+						// Creation de l'attribut interne correspondant
+						innerAttribute = new KWDGAttribute;
+
+						// Parametrage de l'attribut interne
+						innerAttribute->SetOwnerAttributeName(
+						    varPartAttribute->GetAttributeName());
+
+						// Parametrage de l'attribut du DataGrid
+						innerAttribute->SetAttributeName(tupleTable->GetAttributeNameAt(0));
+						innerAttribute->SetAttributeType(tupleTable->GetAttributeTypeAt(0));
+						innerAttribute->SetAttributeTargetFunction(
+						    innerAttribute->GetAttributeName() == GetTargetAttributeName());
+
+						// Recuperation du cout de selection/construction de l'attribut hors attribut cible
+						if (innerAttribute->GetAttributeName() != GetTargetAttributeName())
+						{
+							attribute = GetClass()->LookupAttribute(
+							    innerAttribute->GetAttributeName());
+							check(attribute);
+							innerAttribute->SetCost(attribute->GetCost());
+						}
+
+						if (innerAttribute->GetAttributeType() == KWType::Continuous)
+							/*DDD
+							CreateSparseAttributeIntervals(
+							    tupleTable, innerAttribute,
+							    attribute->GetAttributeBlock()
+								->GetContinuousDefaultValue());
+								*/
+							CreateAttributeIntervals(tupleTable, innerAttribute);
+
+						else
+							CreateAttributeValueSets(tupleTable, innerAttribute);
+
+						// Test interruption utilisateur
+						if (TaskProgression::IsInterruptionRequested())
+							break;
+
+						// Cas d'un innerAttribute avec plus d'une partie
+						//if (innerAttribute->GetPartNumber() > 1)
+						{
+							// Ajout de l'attribut dans le dictionnaire des attributs internes de la grille
+							initialInnerAttributes->AddInnerAttribute(innerAttribute);
+
+							// Mise a jour du nombre total de parties de variables de l'attribut
+							nInitialVarPartNumber += innerAttribute->GetPartNumber();
+							innerAttribute->BuildIndexingStructure();
+						}
+					}
+					// Sinon
+					else
+						cout << "attribute sparse a une seule partie\t" << attribute->GetName()
+						     << endl;
+
+					// On detruit la table de tuples et on la supprime du dictionnaire
+					// qui pourrait etre detruit exhaustivement en cas d'interruption utilisateur
+					odBlockTupleTables.RemoveKey(attribute->GetName());
+					delete tupleTable;
+				}
+				assert(odBlockTupleTables.GetCount() == 0);
+
+				// Nettoyage
+				oaBlockAttributes.RemoveAll();
+				odBlockAttributes.RemoveAll();
+			}
+
+			// Arret si erreur
+			if (not bOk)
+				break;
+		}
+
+		// Parametrage du nombre initial de parties de variable
+		varPartAttribute->SetInitialValueNumber(nInitialVarPartNumber);
+
+		// Creation des parties de l'attribut de grille de type de type VarPart
+		// A la creation, une partie est un cluster de parties de variables qui ne contient qu'une
+		// partie de variable
+		//cout << "Inner attributes avant SortInnerAttributeParts\n";
+		//varPartAttribute->GetInnerAttributes()->Write(cout);
+		// L'indicateur Size n'est pas rempli a ce stade donc ne fonctionne pas : enleve
+		//varPartAttribute->GetInnerAttributes()->SortInnerAttributeParts();
+		//cout << "Inner attributes apres SortInnerAttributeParts\n";
+		//varPartAttribute->GetInnerAttributes()->Write(cout);
+		varPartAttribute->CreateVarPartsSet();
+		//varPartAttribute->CreateVarPartsSetAndInitializeVarPartFrequency();
+		varPartAttribute->BuildIndexingStructure();
+	}
+	return dataGrid;
+}
+
+void CCCoclusteringBuilder::FinalizeDataGridWithCells(KWDatabase* database, KWDataGrid* dataGrid)
+{
+	KWAttribute* identifierAttribute;
+	KWTupleTableLoader tupleTableLoader;
+	KWObject* kwoObject;
+	KWDGPart* part;
+	Symbol sValue;
+	KWDGValue* value;
+	int nObjectObservationNumber;
+	int nObjectFrequency;
+	longint lObjectNumber;
+	longint lRecordNumber;
+	longint lTotalFrequency;
+	ALString sObjectIdentifier;
+	ALString sTmp;
+	boolean bOk = true;
+	ObjectArray oaParts;
+
+	require(dataGrid != NULL);
+	require(dataGrid->GetInnerAttributes() != NULL);
+	require(GetIdentifierAttributeName() != "");
+	require(database->GetObjects()->GetSize() > 0);
+
+	// Passage en mode update
+	dataGrid->SetCellUpdateMode(true);
+
+	// Ajout d'instances dans le DataGrid
+	oaParts.SetSize(dataGrid->GetAttributeNumber());
+
+	// Identifier attribute a creer avant
+	identifierAttribute = GetClass()->LookupAttribute(GetIdentifierAttributeName());
+	check(identifierAttribute);
+	assert(identifierAttribute->GetLoadIndex().IsValid());
+
+	// Lecture d'objets dans la base
+	lTotalFrequency = 0;
+	if (bOk)
+	{
+		Global::ActivateErrorFlowControl();
+		lRecordNumber = 0;
+		lObjectNumber = 0;
+
+		while (lRecordNumber < database->GetObjects()->GetSize())
+		{
+			kwoObject = cast(KWObject*, database->GetObjects()->GetAt((int)lRecordNumber));
+			lRecordNumber++;
+
+			// Acces a l'effectif de l'objet
+			nObjectFrequency = 0;
+			if (kwoObject != NULL)
+			{
+				// Acces a l'effectif qui est de 1 (il n'y a pas de frequencyAttribute ici)
+				nObjectFrequency = 1;
+				lTotalFrequency += nObjectFrequency;
+
+				// Destruction de l'objet si effectif null
+				//DDD Cas impossible?
+				if (nObjectFrequency <= 0)
+				{
+					delete kwoObject;
+					kwoObject = NULL;
+				}
+				// Erreur si effectif total trop important
+				else if (lTotalFrequency > INT_MAX)
+				{
+					Object::AddError(sTmp + "Read database interrupted after record " +
+							 LongintToString(lRecordNumber) +
+							 " because total frequency is too large (" +
+							 LongintToReadableString(lTotalFrequency) + ")");
+					delete kwoObject;
+					kwoObject = NULL;
+					bOk = false;
+					break;
+				}
+
+				// Valeur pour l'attribut identifiant
+				sValue = kwoObject->ComputeSymbolValueAt(identifierAttribute->GetLoadIndex());
+
+				// Creation d'une nouvelle partie mono-valeur pour l'attribut Identifiant
+				part = dataGrid->GetAttributeAt(0)->AddPart();
+				value = part->GetSymbolValueSet()->AddSymbolValue(sValue);
+
+				oaParts.SetAt(0, part);
+				//if (bDisplayInstanceCreation)
+				//cout << sValue << "\t";
+
+				// Calcul du nombre d'observations de l'objet parmi les attributs internes
+				// Renvoie 0 si l'attribut identifiant n'est pas renseigne ou si aucune valeur n'est
+				// renseignee pour les attributs interne
+				nObjectObservationNumber = GetDatabaseObjectObservationNumberAndUpdateObjectCells(
+				    kwoObject, lRecordNumber, identifierAttribute, oaParts);
+
+				value->SetValueFrequency(nObjectObservationNumber);
+				//part->SetPartFrequency(value->GetValueFrequency());
+			}
+
+			// Gestion de l'objet
+			//DDD Pourrait-etre fait avant?
+			if (kwoObject != NULL)
+			{
+				lObjectNumber++;
+			}
+
+			// Nettoyage de l'objet
+			delete kwoObject;
+			kwoObject = NULL;
+		}
+		Global::DesactivateErrorFlowControl();
+	}
+
+	// DDD
+	//DDD MB Est ce-utile
+	dataGrid->UpdateAllStatistics();
+	//DDD MB les tris sont-ils utiles
+	//DDD MB on trie uniquement l'attribut identifiant, pour etre compatible avec l'existant qui etait base sur une base de tuples triee
+	dataGrid->GetAttributeAt(0)->SortPartsByValues();
+	/*DDD
+	cout << "BEFORE SORT\n" << *dataGrid << endl; //DDD MB
+	//cout << "Inner attributes avant SortInnerAttributeParts\n";
+	//initialDataGrid->GetInnerAttributes()->Write(cout);
+	dataGrid->GetInnerAttributes()->SortInnerAttributeParts();
+	//cout << "Inner attributes apres SortInnerAttributeParts\n";
+	//initialDataGrid->GetInnerAttributes()->Write(cout);
+	dataGrid->SortAttributeParts();
+	//initialDataGrid->GetInnerAttributes()->SortInnerAttributeParts();
+	cout << "AFTER SORT\n" << *dataGrid << endl; //DDD MB
+	*/
+
+	// Initialisation de la partie par defaut, contenant la modalite speciale
+	// Compte-tenu du tri prealable des tuples, il s'agit de la derniere partie de l'attribut
+	dataGrid->GetAttributeAt(0)->GetTailPart()->GetSymbolValueSet()->AddSymbolValue(Symbol::GetStarValue());
+
+	// Parametrage du nombre total de valeurs
+	// Pour un attribut categoriel, l'InitialValueNumber ne contient plus la StarValue
+	dataGrid->GetAttributeAt(0)->SetInitialValueNumber(dataGrid->GetAttributeAt(0)->GetPartNumber());
+	// On ne prend pas en compte la StarValue dans Vg
+	dataGrid->GetAttributeAt(0)->SetGranularizedValueNumber(initialDataGrid->GetAttributeAt(0)->GetPartNumber());
+
+	// Fin du mode update
+	dataGrid->SetCellUpdateMode(false);
+	dataGrid->DeleteIndexingStructure();
+
+	// Nettoyage de la base
+	database->RemoveAll();
+
+	ensure(dataGrid->Check());
+}
+
 boolean CCCoclusteringBuilder::CreateIdentifierAttributeValueSets(const KWTupleTable* tupleTable,
 								  KWDGAttribute* dgAttribute,
 								  ObjectDictionary& odObservationNumbers)
@@ -2153,6 +2902,168 @@ int CCCoclusteringBuilder::GetDatabaseObjectObservationNumber(const KWObject* kw
 			else if (innerAttribute->GetType() == KWType::Symbol and
 				 not kwoObject->GetSymbolValueAt(innerAttribute->GetLoadIndex()).IsEmpty())
 				nObjectObservationNumber++;
+		}
+	}
+	return nObjectObservationNumber;
+}
+
+int CCCoclusteringBuilder::GetDatabaseObjectObservationNumberAndUpdateObjectCells(
+    const KWObject* kwoObject, longint lRecordIndex, const KWAttribute* identifierAttribute, ObjectArray& oaParts)
+{
+	int nObjectObservationNumber;
+	ALString sTmp;
+	int nInnerAttribute;
+	KWAttribute* innerAttribute;
+	Continuous cValue;
+	Symbol sValue;
+	KWDGPart* part;
+	KWDGPart* varPart;
+	int nCellFrequency;
+	boolean bOk = true;
+	boolean bDisplayInstanceCreation = false;
+	KWDGCell* cell;
+
+	require(kwoObject != NULL);
+	require(lRecordIndex >= 1);
+	require(identifierAttribute != NULL);
+	require(identifierAttribute->GetName() == GetIdentifierAttributeName());
+	require(GetInnerAttributesNames()->GetSize() > 0);
+
+	// Recherche de la validite du champ identifiant
+	nObjectObservationNumber = 0;
+	nCellFrequency = 1; // hypothese a justifier ?
+	if ((identifierAttribute->GetType() == KWType::Symbol and
+	     kwoObject->GetSymbolValueAt(identifierAttribute->GetLoadIndex()).IsEmpty()) or
+	    (identifierAttribute->GetType() == KWType::Continuous and
+	     kwoObject->GetContinuousValueAt(identifierAttribute->GetLoadIndex()) == KWContinuous::GetMissingValue()))
+	{
+		GetDatabase()->AddWarning(sTmp + "Ignored record " + LongintToString(lRecordIndex) +
+					  ", identifier variable (" + GetIdentifierAttributeName() +
+					  ") with missing value");
+	}
+	// Prise en compte si valide
+	else
+	{
+		for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributesNames()->GetSize(); nInnerAttribute++)
+		{
+			innerAttribute = GetClass()->LookupAttribute(GetInnerAttributesNames()->GetAt(nInnerAttribute));
+			part = NULL;
+
+			// Comptage des nombre d'observation, en excluant les valeurs manquantes
+			if (innerAttribute->GetType() == KWType::Continuous)
+			{
+				cValue = kwoObject->GetContinuousValueAt(innerAttribute->GetLoadIndex());
+				// Cas d'un attribut dense
+				if (not innerAttribute->IsInBlock() and cValue != KWContinuous::GetMissingValue())
+				{
+					nObjectObservationNumber++;
+					part = (initialDataGrid->GetInnerAttributes()->LookupInnerAttribute(
+						    innerAttribute->GetName()))
+						   ->LookupContinuousPart(cValue);
+				}
+
+				// Sinon, cas d'un attribut sparse
+				else if (innerAttribute->IsInBlock() and
+					 cValue != innerAttribute->GetAttributeBlock()->GetContinuousDefaultValue())
+				{
+					nObjectObservationNumber++;
+					part = initialDataGrid->GetInnerAttributes()
+						   ->LookupInnerAttribute(innerAttribute->GetName())
+						   ->LookupContinuousPart(cValue);
+				}
+			}
+			// On ne prend pas en compte non plus les valeurs manquantes dans le cas categoriel
+			else if (innerAttribute->GetType() == KWType::Symbol)
+			{
+				sValue = kwoObject->GetSymbolValueAt(innerAttribute->GetLoadIndex());
+				// Cas d'un attribut dense
+				if (not innerAttribute->IsInBlock() and not sValue.IsEmpty())
+				{
+					nObjectObservationNumber++;
+					part = initialDataGrid->GetInnerAttributes()
+						   ->LookupInnerAttribute(innerAttribute->GetName())
+						   ->LookupSymbolPart(sValue);
+				}
+
+				// Sinon cas d'un attribut sparse
+				else if (innerAttribute->IsInBlock() and
+					 sValue != innerAttribute->GetAttributeBlock()->GetSymbolDefaultValue())
+				{
+					nObjectObservationNumber++;
+					part = initialDataGrid->GetInnerAttributes()
+						   ->LookupInnerAttribute(innerAttribute->GetName())
+						   ->LookupSymbolPart(sValue);
+				}
+			}
+
+			// Cas d'une observation valide pour l'attribut interne courant
+			if (part != NULL)
+			{
+				// CH Debug erreur sur le nCellFrequency qui est toujours a 1 ?
+				// est ce bien ce que l'on veut faire ?
+				// Mise a jour de l'effectif de la partie de variable de l'attribut interne
+				part->SetPartFrequency(part->GetPartFrequency() + nCellFrequency);
+
+				// Extraction de la VarPartSet de l'attribut de grille de type VarPart associee a cette
+				// partie
+				varPart = initialDataGrid->GetVarPartAttribute()->LookupVarPart(part);
+				//varPart->nPartFrequency = varPart->nPartFrequency + nCellFrequency;
+				oaParts.SetAt(1, varPart);
+
+				// Recherche de la cellule
+				cell = initialDataGrid->LookupCell(&oaParts);
+
+				// Creation si necessaire, en tenant compte si demande d'une contrainte sur le nombre
+				// max de cellules
+				if (cell == NULL)
+				{
+					// On cree une cellule si l'on ne depasse pas le nombre max
+					if (nMaxCellNumberConstraint == 0 or
+					    initialDataGrid->GetCellNumber() < nMaxCellNumberConstraint)
+						cell = initialDataGrid->AddCell(&oaParts);
+					// Sinon, on arrete la creation (sauf en mode memoire "risque")
+					else
+					{
+						// Message d'erreur si limite atteinte
+						if (initialDataGrid->GetCellNumber() == nMaxCellNumberConstraint)
+						{
+							AddError(sTmp + "Not enough memory to create initial data "
+									"grid, too many "
+									"data grid cells have been created"); // (" +
+							// IntToString(nMaxCellNumberConstraint) + ") and " +
+							// IntToString((int)ceil((tupleTable->GetSize() - nTuple) *
+							//			  100.0 / tupleTable->GetSize())) +
+							//  "% of the database remains to analyse");
+							AddMessage(RMResourceManager::BuildMemoryLimitMessage());
+						}
+
+						// Creation en mode risque
+						if (RMResourceConstraints::GetIgnoreMemoryLimit())
+						{
+							// Message d'avertissement la premiere fois
+							if (initialDataGrid->GetCellNumber() ==
+							    nMaxCellNumberConstraint)
+								RMResourceManager::DisplayIgnoreMemoryLimitMessage();
+
+							// Creation de la cellule
+							cell = initialDataGrid->AddCell(&oaParts);
+						}
+						// Sinon, on arrete
+						else
+						{
+							bOk = false;
+							break;
+						}
+					}
+				}
+
+				// Mise a jour de la cellule directement (pas d'attribut cible)
+				cell->SetCellFrequency(cell->GetCellFrequency() + nCellFrequency);
+
+				// Affichage de la cellule
+				if (bDisplayInstanceCreation)
+					cout << *cell;
+			}
 		}
 	}
 	return nObjectObservationNumber;

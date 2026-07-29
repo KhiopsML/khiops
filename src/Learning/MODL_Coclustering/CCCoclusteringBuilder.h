@@ -82,6 +82,8 @@ public:
 
 	// Calcul du coclustering, renvoie false en cas d'erreur ou d'interruption utilisateur
 	boolean ComputeCoclustering();
+	boolean NEW_ComputeCoclustering(); //DDD
+	boolean REF_ComputeCoclustering(); //DDD
 	boolean IsCoclusteringComputed() const;
 
 	// Test si le coclustering est calcule et informatif (au moins deux dimensions)
@@ -95,6 +97,7 @@ public:
 	// La dimension VarPart contient un cluster de parties de variable pour chaque partie de
 	// variable de chaque attribut interne
 	// L'effectif de la variable identifiant est alimente par le vecteur ivObservationNumbers
+	//DDD DEPRECATED
 	KWDataGrid* CreateVarPartDataGrid(const KWTupleTable* tupleTable, ObjectDictionary& odObservationNumbers);
 
 	// Nettoyage des eventuelles parties de variables vides du fait d'observations manquantes
@@ -103,6 +106,7 @@ public:
 	// Alimentation des cellules d'un VarPartDataGrid dont les attributs et parties sont correctement initialises,
 	// Renvoie true si cellule correctement initialisee, false sinon (sans nettoyage des celulles crees)
 	// Pour la dimension VarPart, on parcourt l'ensemble des attributs internes pour alimenter les cellules associees a chaque observation
+	//DDD DEPRECATED
 	boolean CreateVarPartDataGridCells(const KWTupleTable* tupleTable, KWDataGrid* dataGrid);
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -150,6 +154,19 @@ protected:
 					 KWDataGridOptimizer* dataGridOptimizer);
 
 	///////////////////////////////////////////////////////////////////////////////////////
+	// Service de creation de grile initiale, la plus fine possible
+
+	// Creation d'une grille initiale de type variables x variables
+	// Renvoie false avec message d'erreur si echec, avec initialDataGrid restant a NULL
+	boolean CreateStandardInitialDataGrid();
+
+	// Creation d'une grille de type instances x variables
+	// La dimension VarPart contient un cluster de parties de variable pour chaque partie de
+	// variable de chaque attribut interne
+	// Renvoie false avec message d'erreur si echec, avec initialDataGrid restant a NULL
+	boolean CreateVarPartInitialDataGrid();
+
+	///////////////////////////////////////////////////////////////////////////////////////
 	// Gestion preventive de l'utilisation des ressources memoire, avec message d'erreur
 	// On procede selon les etapes suivantes:
 	//   . estimation si on peut lire la base a partir du fichier
@@ -163,6 +180,7 @@ protected:
 	boolean CheckMemoryForDatabaseRead(KWDatabase* database) const;
 
 	// Alimentation d'une table de tuples comportant les attributs a analyser a partir de la base
+	// en tenant compte de l'eventuel attribut d'effectif par enregistrement
 	// La table de tuples est remplie au fur et a mesure de la lecture de la base, et des verification
 	// de depasssement des capacites memoire sont effectuees regulierement
 	// On renvoie true en cas de succes, false sinon avec un message d'erreur
@@ -171,11 +189,27 @@ protected:
 	// Cas du coclustering avec attribut de type VarPart
 	// En plus d'une table de tuples comme dans FillTupleTableFromDatabase, on alimente egalement un vecteur
 	// qui associe a chaque tuple le nombre d'observations dans l'attribut de type VarPart
-	// Un tuple est ecarte si son attribut identifiant n' est pas renseigne ou si aucune valeur n'est renseignee
+	// Un tuple est ecarte si son attribut identifiant n'est pas renseigne ou si aucune valeur n'est renseignee
 	// pour les attributs internes En sortie, le dictionnaire odObservationNumbers contient pour chaque modalite de
 	// l'identifiant, le nombre d'observations stocke dans un IntObject
+	//DDD DEPRECATED
 	boolean FillVarPartTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable,
 						  ObjectDictionary& odObservationNumbers);
+
+	// DDD CH
+	// Initialisation des variables internes de la grille individus * variables et de l'attribut VarPart
+	// Calcul de statistiques descriptives par attribut (KWDescriptiveStats)
+	// stockees par nom d'attribut dans le dictionnaire en sortie
+	// Memoire: le dictionnaire en sortie est passe par l'appelant et son
+	// contenu, cree par l'appele, appartient a l'appelant
+	KWDataGrid* InitializeInnerAttributesFromDatabase(KWDatabase* database,
+							  ObjectDictionary* odOutputDescriptiveStats);
+
+	// DDD CH
+	// Finalisation de l'alimentation de la grille initiale :
+	// - alimentation des effectifs de ses cellules par relecture de la base
+	// - alimentation de l'attribut Identifiant
+	void FinalizeDataGridWithCells(KWDatabase* database, KWDataGrid* initialDataGrid);
 
 	// Creation de la partition d'un attribut de DataGrid de type Identifiant dans un coclustering Identifiant *
 	// Parties de variables En entree, le dictionnaire odObservationNumbers contient pour chaque modalite de
@@ -195,6 +229,11 @@ protected:
 					       const KWAttribute* identifierAttribute,
 					       const ObjectArray* oaInnerAttributes);
 
+	//DDD CH
+	int GetDatabaseObjectObservationNumberAndUpdateObjectCells(const KWObject* kwoObject, longint lRecordIndex,
+								   const KWAttribute* identifierAttribute,
+								   ObjectArray& oaParts);
+
 	// Renvoie l'effectif associe a un enregistrement, avec eventuellement affichage de warning
 	// Renvoie 1 si l'attribut d'effectif est NULL
 	// Renvoie 0 si erreur dans la specification de l'effectif
@@ -208,6 +247,7 @@ protected:
 	//   . dans ce cas, les nombres de valeurs par attribut sont estimes
 	//   . cela permet d'avoir un estimation "anytime" de la memoire necessaire pour le coclustering
 	// On renvoie en sortie le nombre max de cellules de la grille initiale
+	//DDD TODO A verifier
 	boolean CheckMemoryForDataGridInitialization(KWDatabase* database, int nTupleNumber, int& nMaxCellNumber) const;
 
 	// Verification de la memoire necessaire pour construire une grille initiale de type VarPart a partir d'un nombre de tuples
@@ -239,6 +279,7 @@ protected:
 	// stockees par nom d'attribut dans le dictionnaire en sortie
 	// Memoire: le dictionnaire en sortie est passe par l'appelant et son
 	// contenu, cree par l'appele, appartient a l'appelant
+	//DDD TODO Renvoyer un booleen et estimer la memoire au fur et a mesure
 	void ComputeDescriptiveAttributeStats(const KWTupleTable* tupleTable,
 					      ObjectDictionary* odOutputDescriptiveStats) const;
 

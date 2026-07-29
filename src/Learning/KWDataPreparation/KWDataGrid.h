@@ -659,6 +659,10 @@ public:
 	// Verification du tri des parties : couteux, a utiliser essentiellement dans les assertions
 	boolean ArePartsSorted() const;
 
+	// Tri des parties par valeur d'abord, effectif ensuite
+	//DDD Peut-etre temporaire?
+	void SortPartsByValues();
+
 	// Affichage
 	void Write(ostream& ost) const override;
 	void WriteParts(ostream& ost) const;

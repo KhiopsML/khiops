@@ -3395,6 +3395,37 @@ boolean KWDGAttribute::ArePartsSorted() const
 	return bIsSorted;
 }
 
+void KWDGAttribute::SortPartsByValues()
+{
+	ObjectArray oaParts;
+	KWDGPart* part;
+
+	// Tri des valeurs par effectif decroissant dans chaque partie d'attribut symbolique
+	if (GetAttributeType() == KWType::Symbol)
+	{
+		part = GetHeadPart();
+		while (part != NULL)
+		{
+			part->GetValueSet()->SortValues();
+			GetNextPart(part);
+		}
+	}
+	// Tri par partie de variable (attribut, puis valeur de la parties) dans le cas d'un attribut VarPart
+	else if (GetAttributeType() == KWType::VarPart)
+	{
+		part = GetHeadPart();
+		while (part != NULL)
+		{
+			part->GetValueSet()->SortValues();
+			GetNextPart(part);
+		}
+	}
+
+	// Tri des parties par intervalle croissant pour les attributs continus et
+	// ou par effectif decroissant pour les attributs symboliques ou de type varpart
+	InternalSortParts(KWDGPartCompareValues);
+}
+
 void KWDGAttribute::Write(ostream& ost) const
 {
 	// En tete de l'attribut
