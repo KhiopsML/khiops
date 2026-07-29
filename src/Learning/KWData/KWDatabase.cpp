@@ -2428,7 +2428,7 @@ void KWDatabase::MutatePhysicalObject(KWObject* kwoPhysicalObject) const
 	// necessairement les champs de la cle en multi-table, alors qu'ils sont potentiellement
 	// absent de l'objet logique si les champs de la cle sont en unused
 	if (memoryGuard.IsMemoryLimitReached() or memoryGuard.IsMaxSecondaryRecordNumberReached() or
-	    memoryGuard.IsMaxCreatedRecordNumberReached())
+	    memoryGuard.IsMaxCreatedRecordNumberReached() or memoryGuard.GetMemoryCleaningNumber() > 0)
 	{
 		// On se base sur la cle de l'objet s'il y en a une
 		if (kwoPhysicalObject->GetClass()->IsKeyLoaded())
@@ -2436,8 +2436,6 @@ void KWDatabase::MutatePhysicalObject(KWObject* kwoPhysicalObject) const
 			objectKey.InitializeFromObject(kwoPhysicalObject);
 			memoryGuard.SetMainObjectKey(objectKey.GetObjectLabel());
 		}
-
-		kwoPhysicalObject->GetObjectLabel();
 	}
 
 	// Trace avant mutation
