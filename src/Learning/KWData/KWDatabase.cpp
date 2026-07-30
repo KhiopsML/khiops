@@ -750,6 +750,15 @@ boolean KWDatabase::ReadAll()
 	ObjectArray oaPhysicalMessages;
 	longint lObjectNumber;
 	longint lRecordNumber;
+	const longint lMinObjectRequiredMemory = 16 * lMB;
+	const int nMinObjectNumberForStats = 1000;
+	longint lInitialAvailableRemainingMemory;
+	longint lAvailableRemainingMemoryAfterOpen;
+	longint lAvailableRemainingMemory;
+	longint lNecessaryOpenMemory;
+	longint lNecessaryFullReadMemory;
+	longint lObjectsUsedMemory;
+	ALString sMemoryErrorMessage;
 	ALString sTmp;
 
 	require(GetClassName() != "");
@@ -765,8 +774,34 @@ boolean KWDatabase::ReadAll()
 	// Destruction des objets en cours
 	DeleteAll();
 
+	// Memoire disponible initiale, avant le debut de la lecture
+	lInitialAvailableRemainingMemory = RMResourceManager::GetRemainingAvailableMemory();
+	lAvailableRemainingMemory = lInitialAvailableRemainingMemory;
+
+	// Recherche de la classe le temps de l'estimation, en prenant une classe physique egale a la classe logique
+	// pour avoir des elements de dimensionnement heuristiques
+	kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
+	assert(kwcClass != NULL);
+	kwcPhysicalClass = kwcClass;
+
+	// Estimation de la memoire necessaire pour ouvir la base
+	lNecessaryOpenMemory = ComputeOpenNecessaryMemory(true, false) + lMinObjectRequiredMemory;
+	if (lAvailableRemainingMemory < lNecessaryOpenMemory)
+	{
+		bOk = false;
+		Object::AddError(sTmp + "Not enough memory to open database" +
+				 RMResourceManager::BuildMissingMemoryMessage(lNecessaryOpenMemory));
+		AddSimpleMessage(RMResourceManager::BuildMemoryLimitMessage());
+	}
+
+	// Reinitialisation avant l'ouverture
+	kwcClass = NULL;
+	kwcPhysicalClass = NULL;
+
 	// Ouverture de la base en lecture
-	bOk = OpenForRead();
+	if (bOk)
+		bOk = OpenForRead();
+	lAvailableRemainingMemoryAfterOpen = RMResourceManager::GetRemainingAvailableMemory();
 
 	// Lecture d'objets dans la base
 	if (bOk)
@@ -776,6 +811,66 @@ boolean KWDatabase::ReadAll()
 		lObjectNumber = 0;
 		while (not IsEnd())
 		{
+			assert(bOk);
+
+			// Test periodique si memoire suffisante
+			// Le premier test est effectue des l'ouverture de la base
+			if (lRecordNumber % 16 == 0)
+			{
+				lAvailableRemainingMemory = RMResourceManager::GetRemainingAvailableMemory();
+
+				// Test s'il reste assez de memoire pour continuer la lecture immediate
+				if (lAvailableRemainingMemory < lMinObjectRequiredMemory)
+					bOk = false;
+
+				// Test preventif pour la lecture de l'ensemble de toute la base
+				// Uniquement dans le cas sans variable de selection, ou on peut avoir une estimation realiste
+				// de la memoire necessaire pour lire la fin de la base
+				lNecessaryFullReadMemory = 0;
+				if (GetSelectionAttribute() == "" and lRecordNumber % 1024 == 0)
+				{
+					// On ne calcule les stats memoire que s'il y a suffisament d'objets
+					if (lObjectNumber >= nMinObjectNumberForStats)
+					{
+						// On impose egalement une quantite minimum de memoire consommees
+						lObjectsUsedMemory =
+						    lAvailableRemainingMemoryAfterOpen - lAvailableRemainingMemory;
+						if (lObjectsUsedMemory > lMinObjectRequiredMemory)
+						{
+							// Estimation de la memoire necessaire pour lire le reste de la base
+							lNecessaryFullReadMemory =
+							    (longint)(lObjectsUsedMemory * (1 - GetReadPercentage()) /
+								      GetReadPercentage());
+
+							// Test s'il reste assez de memoire pour finir la lecture
+							if (lAvailableRemainingMemory < lNecessaryFullReadMemory)
+								bOk = false;
+						}
+					}
+				}
+
+				// Message d'erreur et arret si probleme memoire
+				if (not bOk)
+				{
+					sMemoryErrorMessage = sTmp + "Not enough remaining memory after reading " +
+							      LongintToReadableString(lObjectNumber) + " records";
+					sMemoryErrorMessage += sTmp + " and scanning " +
+							       IntToString((int)(100 * GetReadPercentage())) +
+							       "% of the database";
+					sMemoryErrorMessage +=
+					    "; total memory used during reading: " +
+					    RMResourceManager::ActualMemoryToString(lInitialAvailableRemainingMemory -
+										    lAvailableRemainingMemory);
+					if (lNecessaryFullReadMemory > 0)
+						sMemoryErrorMessage += RMResourceManager::BuildMissingMemoryMessage(
+						    lNecessaryFullReadMemory);
+					Object::AddError(sMemoryErrorMessage);
+					AddSimpleMessage(RMResourceManager::BuildMemoryLimitMessage());
+					break;
+				}
+			}
+
+			// Lecture d'un objet
 			kwoObject = Read();
 			lRecordNumber++;
 			if (kwoObject != NULL)
@@ -796,13 +891,6 @@ boolean KWDatabase::ReadAll()
 					break;
 				}
 			}
-			// Arret si interruption utilisateur
-			else if (TaskProgression::IsInterruptionRequested())
-			{
-				assert(kwoObject == NULL);
-				bOk = false;
-				break;
-			}
 
 			// Arret si erreur
 			if (IsError())
@@ -817,12 +905,16 @@ boolean KWDatabase::ReadAll()
 			{
 				TaskProgression::DisplayProgression((int)(100 * GetReadPercentage()));
 				DisplayReadTaskProgressionLabel(lRecordNumber, lObjectNumber);
+
+				// Test d'interruption utilisateur, sans mettre le bOk a false pour distringuer le cas des erreurs
+				if (TaskProgression::IsInterruptionRequested())
+					break;
 			}
 		}
 		Global::DesactivateErrorFlowControl();
 
 		// Test si interruption sans qu'il y ait d'erreur
-		if (not IsError() and TaskProgression::IsInterruptionRequested())
+		if (not bOk and TaskProgression::IsInterruptionRequested())
 		{
 			bOk = false;
 			Object::AddWarning("Read database interrupted by user");
