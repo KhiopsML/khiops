@@ -1467,9 +1467,15 @@ boolean CCCoclusteringBuilder::CreateStandardInitialDataGrid()
 	require(not GetVarPartCoclustering());
 	require(CheckStandardSpecifications());
 	require(initialDataGrid == NULL);
+	require(GetDatabase()->GetObjects()->GetSize() == 0);
 
-	// Alimentation d'une base de tuple a partir de la base, en tenant com^pte de l'attribut d'effectif
-	bOk = FillTupleTableFromDatabase(GetDatabase(), &tupleTable);
+	// Lecture des enregistrements de la base
+	if (bOk and not TaskProgression::IsInterruptionRequested())
+		bOk = GetDatabase()->ReadAll();
+
+	// Alimentation d'une base de tuple a partir de la base, en tenant compte de l'attribut d'effectif
+	if (bOk and not TaskProgression::IsInterruptionRequested())
+		bOk = FillStandardTupleTableFromDatabase(GetDatabase(), &tupleTable);
 
 	// Calcul de statistiques descriptives globales et par attribut
 	if (bOk and not TaskProgression::IsInterruptionRequested())
@@ -1478,21 +1484,21 @@ boolean CCCoclusteringBuilder::CreateStandardInitialDataGrid()
 		ComputeDescriptiveAttributeStats(&tupleTable, &odDescriptiveStats);
 
 	// Verification de la memoire necessaire pour construire une grille initiale a partir des tuples
-	nMaxCellNumberConstraint = 0;
 	if (bOk and not TaskProgression::IsInterruptionRequested())
-		bOk =
-		    CheckMemoryForDataGridInitialization(GetDatabase(), tupleTable.GetSize(), nMaxCellNumberConstraint);
+		bOk = CheckMemoryForStandardDataGridInitialization(&tupleTable);
 
 	// Creation du DataGrid
 	if (bOk and not TaskProgression::IsInterruptionRequested())
 	{
 		initialDataGrid = CreateDataGrid(&tupleTable);
 		bOk = initialDataGrid != NULL;
+		assert(initialDataGrid == NULL or initialDataGrid->GetCellNumber() == tupleTable.GetSize());
 	}
 
 	// Supression des tuples, desormais transferes dans la grille
 	tupleTable.CleanAll();
 
+	ensure(GetDatabase()->GetObjects()->GetSize() == 0);
 	ensure(bOk or initialDataGrid == NULL);
 	return bOk;
 }
@@ -1640,7 +1646,7 @@ boolean CCCoclusteringBuilder::CheckMemoryForDatabaseRead(KWDatabase* database) 
 	// Test si memoire suffisante
 	if (bOk and lNecessaryMemory > lAvailableMemory)
 	{
-		AddError("Not enough memory to load database " +
+		AddError("Not enough memory to load database" +
 			 RMResourceManager::BuildMissingMemoryMessage(lNecessaryMemory));
 		AddMessage(RMResourceManager::BuildMemoryLimitMessage());
 		if (RMResourceConstraints::GetIgnoreMemoryLimit())
@@ -1648,6 +1654,163 @@ boolean CCCoclusteringBuilder::CheckMemoryForDatabaseRead(KWDatabase* database) 
 		else
 			bOk = false;
 	}
+	return bOk;
+}
+
+boolean CCCoclusteringBuilder::FillStandardTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable)
+{
+	boolean bOk = true;
+	longint lAvailableMemory;
+	KWTuple* inputTuple;
+	int nAttribute;
+	KWAttribute* attribute;
+	KWAttribute* frequencyAttribute;
+	KWLoadIndexVector livLoadIndexes;
+	KWObject* kwoObject;
+	int nObject;
+	int nObjectFrequency;
+	longint lTotalFrequency;
+	const longint lMinTupleRequiredMemory = 16 * lMB;
+	longint lAvailableRemainingMemory;
+	ALString sTmp;
+
+	require(not GetVarPartCoclustering());
+	require(CheckStandardSpecifications());
+	require(database != NULL);
+	require(database->GetObjects()->GetSize() > 0);
+	require(tupleTable != NULL);
+	require(not tupleTable->GetUpdateMode());
+	require(tupleTable->GetSize() == 0);
+
+	// Debut de suivi de tache
+	TaskProgression::BeginTask();
+	TaskProgression::DisplayMainLabel("Extract database tuples " + database->GetDatabaseName());
+	lAvailableMemory = RMResourceManager::GetRemainingAvailableMemory();
+
+	// Recherche de l'index de l'attribut d'effectif
+	frequencyAttribute = NULL;
+	if (GetFrequencyAttributeName() != "")
+	{
+		frequencyAttribute = GetClass()->LookupAttribute(GetFrequencyAttributeName());
+		check(frequencyAttribute);
+	}
+
+	// Initialisation des attributs de la table de tuples
+	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
+	{
+		attribute = GetClass()->LookupAttribute(GetAttributeNameAt(nAttribute));
+		tupleTable->AddAttribute(attribute->GetName(), attribute->GetType());
+
+		// Memorisation du LoadIndex de l'attribut
+		livLoadIndexes.Add(attribute->GetLoadIndex());
+	}
+
+	// Passage de la table de tuples en mode edition
+	tupleTable->SetUpdateMode(true);
+	inputTuple = tupleTable->GetInputTuple();
+
+	// Lecture d'objets dans la base
+	lTotalFrequency = 0;
+	Global::ActivateErrorFlowControl();
+	for (nObject = 0; nObject < database->GetObjects()->GetSize(); nObject++)
+	{
+		kwoObject = cast(KWObject*, database->GetObjects()->GetAt(nObject));
+		assert(kwoObject != NULL);
+
+		// Acces a l'effectif, avec warning eventuel
+		nObjectFrequency = GetDatabaseObjectFrequency(kwoObject, frequencyAttribute);
+		assert(nObjectFrequency >= 0);
+		lTotalFrequency += nObjectFrequency;
+
+		// Erreur si effectif total trop important
+		if (lTotalFrequency > INT_MAX)
+		{
+			Object::AddError(sTmp + "Database tuple extraction interrupted after record " +
+					 LongintToString(kwoObject->GetCreationIndex()) +
+					 " because total frequency is too large (" +
+					 LongintToReadableString(lTotalFrequency) + ")");
+			bOk = false;
+			break;
+		}
+
+		// Prise en compte si effectif non null
+		if (nObjectFrequency > 0)
+		{
+			// Parametrage du tuple d'entree de la table a cree
+			for (nAttribute = 0; nAttribute < livLoadIndexes.GetSize(); nAttribute++)
+			{
+				if (tupleTable->GetAttributeTypeAt(nAttribute) == KWType::Symbol)
+					inputTuple->SetSymbolAt(
+					    nAttribute, kwoObject->GetSymbolValueAt(livLoadIndexes.GetAt(nAttribute)));
+				else
+					inputTuple->SetContinuousAt(nAttribute, kwoObject->GetContinuousValueAt(
+										    livLoadIndexes.GetAt(nAttribute)));
+			}
+
+			// Ajout d'un nouveau tuple apres avoir specifie son effectif
+			assert(nObjectFrequency <= INT_MAX - tupleTable->GetTotalFrequency());
+			inputTuple->SetFrequency(nObjectFrequency);
+			tupleTable->UpdateWithInputTuple();
+		}
+
+		// Liberation de l'objet une fois traite
+		delete kwoObject;
+		database->GetObjects()->SetAt(nObject, NULL);
+
+		// Suivi de la tache
+		if (TaskProgression::IsRefreshNecessary(nObject))
+		{
+			// Arret si pas assez de memoire restante
+			lAvailableRemainingMemory = RMResourceManager::GetRemainingAvailableMemory();
+			if (lAvailableRemainingMemory < lMinTupleRequiredMemory)
+			{
+				bOk = false;
+				Object::AddError(sTmp + "Not enough remaining memory after extracting " +
+						 LongintToReadableString(nObject + 1) + " database tuples out of " +
+						 LongintToReadableString(database->GetObjects()->GetSize()));
+				AddMessage(RMResourceManager::BuildMemoryLimitMessage());
+				break;
+			}
+
+			// Arret si interruption utilisateur
+			if (TaskProgression::IsInterruptionRequested())
+			{
+				bOk = false;
+				break;
+			}
+
+			// Affichage de la progression
+			TaskProgression::DisplayProgression(
+			    (int)(100.0 * (nObject + 1) / (double)database->GetObjects()->GetSize()));
+			TaskProgression::DisplayLabel(sTmp + IntToString(nObject) + " tuples");
+		}
+	}
+	Global::DesactivateErrorFlowControl();
+
+	// Message sur l'effectif total
+	if (bOk and GetFrequencyAttributeName() != "")
+		GetDatabase()->AddMessage(sTmp + "Total frequency: " + LongintToReadableString(lTotalFrequency));
+
+	// Finalisation en repassant la table de tuples en mode consultation
+	tupleTable->SetUpdateMode(false);
+	if (not bOk)
+		tupleTable->DeleteAll();
+
+	// Erreur si aucun enregistrement lu
+	if (bOk and tupleTable->GetSize() == 0)
+	{
+		AddError("No record in database");
+		bOk = false;
+	}
+
+	// Nettoyage de la base pour liberer les objets non necessairement traites
+	GetDatabase()->DeleteAll();
+
+	// Fin de suivi de tache
+	TaskProgression::EndTask();
+	ensure(GetDatabase()->GetObjects()->GetSize() == 0);
+	ensure(not tupleTable->GetUpdateMode());
+	ensure(bOk or tupleTable->GetSize() == 0);
 	return bOk;
 }
 
@@ -1722,8 +1885,7 @@ boolean CCCoclusteringBuilder::FillTupleTableFromDatabase(KWDatabase* database, 
 			if (kwoObject != NULL)
 			{
 				// Acces a l'effectif, avec warning eventuel
-				nObjectFrequency =
-				    GetDatabaseObjectFrequency(kwoObject, lRecordNumber, frequencyAttribute);
+				nObjectFrequency = GetDatabaseObjectFrequency(kwoObject, frequencyAttribute);
 				lTotalFrequency += nObjectFrequency;
 
 				// Destruction de l'objet si effectif null
@@ -1736,7 +1898,7 @@ boolean CCCoclusteringBuilder::FillTupleTableFromDatabase(KWDatabase* database, 
 				else if (lTotalFrequency > INT_MAX)
 				{
 					Object::AddError(sTmp + "Read database interrupted after record " +
-							 LongintToString(lRecordNumber) +
+							 LongintToString(kwoObject->GetCreationIndex()) +
 							 " because total frequency is too large (" +
 							 LongintToReadableString(lTotalFrequency) + ")");
 					delete kwoObject;
@@ -1951,7 +2113,7 @@ boolean CCCoclusteringBuilder::FillVarPartTupleTableFromDatabase(KWDatabase* dat
 				else if (lTotalFrequency > INT_MAX)
 				{
 					Object::AddError(sTmp + "Read database interrupted after record " +
-							 LongintToString(lRecordNumber) +
+							 LongintToString(kwoObject->GetCreationIndex()) +
 							 " because total frequency is too large (" +
 							 LongintToReadableString(lTotalFrequency) + ")");
 					delete kwoObject;
@@ -3069,15 +3231,13 @@ int CCCoclusteringBuilder::GetDatabaseObjectObservationNumberAndUpdateObjectCell
 	return nObjectObservationNumber;
 }
 
-int CCCoclusteringBuilder::GetDatabaseObjectFrequency(const KWObject* kwoObject, longint lRecordIndex,
-						      const KWAttribute* frequencyAttribute)
+int CCCoclusteringBuilder::GetDatabaseObjectFrequency(const KWObject* kwoObject, const KWAttribute* frequencyAttribute)
 {
 	int nObjectFrequency;
 	Continuous cObjectFrequency;
 	ALString sTmp;
 
 	require(kwoObject != NULL);
-	require(lRecordIndex >= 1);
 	require(frequencyAttribute == NULL or frequencyAttribute->GetName() == GetFrequencyAttributeName());
 
 	// Recherche de l'effectif de la cellule, en fonction de l'eventuelle variable d'effectif
@@ -3093,10 +3253,10 @@ int CCCoclusteringBuilder::GetDatabaseObjectFrequency(const KWObject* kwoObject,
 		// Enregistrement ignore si effectif trop grand
 		if (cObjectFrequency > INT_MAX)
 		{
-			GetDatabase()->AddWarning(sTmp + "Ignored record " + LongintToString(lRecordIndex) +
-						  ", frequency variable (" + GetFrequencyAttributeName() +
-						  ") with value too large (" +
-						  KWContinuous::ContinuousToString(cObjectFrequency) + ")");
+			GetDatabase()->AddWarning(
+			    sTmp + "Ignored record " + LongintToString(kwoObject->GetCreationIndex()) +
+			    ", frequency variable (" + GetFrequencyAttributeName() + ") with value too large (" +
+			    KWContinuous::ContinuousToString(cObjectFrequency) + ")");
 
 			// On met l'effectif a 0 pour ignorer l'enregistrement
 			nObjectFrequency = 0;
@@ -3104,25 +3264,26 @@ int CCCoclusteringBuilder::GetDatabaseObjectFrequency(const KWObject* kwoObject,
 		// Enregistrement ignore si effectif negatif ou nul
 		else if (cObjectFrequency <= 0)
 		{
-			GetDatabase()->AddWarning(sTmp + "Ignored record " + LongintToString(lRecordIndex) +
-						  ", frequency variable (" + GetFrequencyAttributeName() +
-						  ") with non positive value (" +
-						  KWContinuous::ContinuousToString(cObjectFrequency) + ")");
+			GetDatabase()->AddWarning(
+			    sTmp + "Ignored record " + LongintToString(kwoObject->GetCreationIndex()) +
+			    ", frequency variable (" + GetFrequencyAttributeName() + ") with non positive value (" +
+			    KWContinuous::ContinuousToString(cObjectFrequency) + ")");
 		}
 		// Warning si erreur d'arrondi
 		else if (fabs(cObjectFrequency - nObjectFrequency) > 0.05)
 		{
 			if (nObjectFrequency > 0)
 			{
-				GetDatabase()->AddWarning(sTmp + "Record " + LongintToString(lRecordIndex) +
-							  ", frequency variable (" + GetFrequencyAttributeName() +
-							  ") with non integer value (" +
-							  KWContinuous::ContinuousToString(cObjectFrequency) + " -> " +
-							  IntToString(nObjectFrequency) + ")");
+				GetDatabase()->AddWarning(
+				    sTmp + "Record " + LongintToString(kwoObject->GetCreationIndex()) +
+				    ", frequency variable (" + GetFrequencyAttributeName() +
+				    ") with non integer value (" + KWContinuous::ContinuousToString(cObjectFrequency) +
+				    " -> " + IntToString(nObjectFrequency) + ")");
 			}
 			else
 			{
-				GetDatabase()->AddWarning(sTmp + "Ignored record " + LongintToString(lRecordIndex) +
+				GetDatabase()->AddWarning(sTmp + "Ignored record " +
+							  LongintToString(kwoObject->GetCreationIndex()) +
 							  ", frequency variable (" + GetFrequencyAttributeName() +
 							  ") with null rounded value (" +
 							  KWContinuous::ContinuousToString(cObjectFrequency) + ")");
@@ -3130,6 +3291,140 @@ int CCCoclusteringBuilder::GetDatabaseObjectFrequency(const KWObject* kwoObject,
 		}
 	}
 	return nObjectFrequency;
+}
+
+boolean CCCoclusteringBuilder::CheckMemoryForStandardDataGridInitialization(const KWTupleTable* tupleTable) const
+{
+	boolean bOk = true;
+	boolean bTrace = false;
+	int nTotalFrequency;
+	int nCellNumber;
+	longint lAvailableMemory;
+	longint lNecessaryMemory;
+	ALString sAttributeName;
+	int nAttributeType;
+	longint lNullDataGridSize;
+	longint lInitialDataGridSize;
+	longint lWorkingDataGridSize;
+	longint lOptimizedDataGridSize;
+	longint lDataGridSize;
+	longint lAttributeSize;
+	longint lPartSize;
+	longint lValueSize;
+	longint lCellSize;
+	int nValueNumber;
+	int nExpectedMaxPartNumber;
+	int nMergeNumber;
+	int nAttribute;
+	KWDescriptiveStats* descriptiveStats;
+
+	require(not GetVarPartCoclustering());
+	require(tupleTable != NULL);
+	require(tupleTable->GetTotalFrequency() > 0);
+	require(not tupleTable->GetUpdateMode());
+	require(odDescriptiveStats.GetCount() == tupleTable->GetAttributeNumber());
+	require(odDescriptiveStats.GetCount() ==
+		GetClass()->GetLoadedAttributeNumber() - (GetFrequencyAttributeName() == "" ? 0 : 1));
+
+	// Calcul des caracteristiques memoire disponibles (le fichier est lu a ce moment)
+	lAvailableMemory = RMResourceManager::GetRemainingAvailableMemory();
+
+	// Extraction des informations d ela ytables de tuple
+	nTotalFrequency = tupleTable->GetTotalFrequency();
+	nCellNumber = tupleTable->GetSize();
+
+	// Initialisation avec la taille de la grille a vide
+	lDataGridSize = sizeof(KWDataGrid) + sizeof(void*);
+	lNullDataGridSize = lDataGridSize;
+	lInitialDataGridSize = lDataGridSize;
+	lWorkingDataGridSize = lDataGridSize + sizeof(KWDataGridMerger) - sizeof(KWDataGrid);
+	lOptimizedDataGridSize = lDataGridSize;
+
+	// Parcours des attributs et de leurs valeurs pour initialiser le plus finement possible chacuqne des grille
+	for (nAttribute = 0; nAttribute < tupleTable->GetAttributeNumber(); nAttribute++)
+	{
+		sAttributeName = tupleTable->GetAttributeNameAt(nAttribute);
+		nAttributeType = tupleTable->GetAttributeTypeAt(nAttribute);
+
+		// Prise en compte de la taille de stockage de l'attribut
+		lAttributeSize = sizeof(KWDGAttribute) + sizeof(void*) + sAttributeName.GetLength();
+		lNullDataGridSize += lAttributeSize;
+		lInitialDataGridSize += lAttributeSize;
+		lWorkingDataGridSize += lAttributeSize + sizeof(KWDGMAttribute) - sizeof(KWDGAttribute);
+		lOptimizedDataGridSize += lAttributeSize;
+
+		// Nombre de valeur de l'attribut si ses statistiques descriptives sont disponible
+		descriptiveStats = cast(KWDescriptiveStats*, odDescriptiveStats.Lookup(sAttributeName));
+		assert(descriptiveStats != NULL);
+		nValueNumber = descriptiveStats->GetValueNumber();
+
+		// Nombre de partie max attendu dans un model optimise
+		nExpectedMaxPartNumber = (int)pow(nTotalFrequency, 1.0 / tupleTable->GetAttributeNumber());
+		nExpectedMaxPartNumber = min(nExpectedMaxPartNumber, nValueNumber);
+
+		// Prise en compte de la taille de stockage des parties
+		if (nAttributeType == KWType::Continuous)
+			lPartSize = sizeof(KWDGMPart) + sizeof(KWDGInterval) + sizeof(void*);
+		else
+			lPartSize = sizeof(KWDGMPart) + sizeof(KWDGValueSet) + sizeof(void*);
+		lNullDataGridSize += lPartSize;
+		lInitialDataGridSize += nValueNumber * lPartSize;
+		lWorkingDataGridSize += nExpectedMaxPartNumber * (lPartSize + sizeof(KWDGMPart) - sizeof(KWDGPart));
+		lOptimizedDataGridSize += nExpectedMaxPartNumber * lPartSize;
+
+		// Prise en compte de la taille de stockage des valeurs
+		if (nAttributeType == KWType::Continuous)
+			lValueSize = 0;
+		else
+			lValueSize = sizeof(KWDGValue) + sizeof(void*);
+		lNullDataGridSize += nValueNumber * lValueSize;
+		lInitialDataGridSize += nValueNumber * lValueSize;
+		lWorkingDataGridSize += nValueNumber * lValueSize;
+		lOptimizedDataGridSize += nValueNumber * lValueSize;
+
+		// Prise en compte du nombre de merges pour la grille de travail
+		if (nAttributeType == KWType::Continuous)
+			nMergeNumber = nValueNumber - 1;
+		else
+			nMergeNumber = nValueNumber * (nValueNumber - 1) / 2;
+		lWorkingDataGridSize += nMergeNumber * sizeof(KWDGMPartMerge);
+	}
+
+	// Prise en compte des cellules
+	lCellSize = sizeof(KWDGMCell) + ((longint)2 + GetClass()->GetLoadedAttributeNumber()) * sizeof(void*);
+	lNullDataGridSize += lCellSize;
+	lInitialDataGridSize += nCellNumber * lCellSize;
+	lWorkingDataGridSize += nCellNumber * (lCellSize + sizeof(KWDGMCell) - sizeof(KWDGCell));
+	lOptimizedDataGridSize += nCellNumber * lCellSize;
+
+	// Memoire necessaire totale
+	lNecessaryMemory = lNullDataGridSize + lInitialDataGridSize + lWorkingDataGridSize + lOptimizedDataGridSize;
+
+	// Affichage de stats memoire
+	if (bTrace)
+	{
+		cout << "CheckMemoryForStandardDataGridInitialization" << endl;
+		cout << "\tNull data grid: " << LongintToHumanReadableString(lNullDataGridSize) << endl;
+		cout << "\tInitial data grid: " << LongintToHumanReadableString(lInitialDataGridSize) << endl;
+		cout << "\tWorking data grid: " << LongintToHumanReadableString(lWorkingDataGridSize) << endl;
+		cout << "\tOptimized data grid: " << LongintToHumanReadableString(lOptimizedDataGridSize) << endl;
+		cout << "\t  Necessary: " << LongintToHumanReadableString(lNecessaryMemory) << endl;
+		cout << "\t  Available: " << LongintToHumanReadableString(lAvailableMemory) << endl;
+		cout << "\t  OK: " << BooleanToString(lNecessaryMemory <= lAvailableMemory) << endl;
+	}
+
+	// Test si memoire suffisante
+	if (lNecessaryMemory > lAvailableMemory)
+	{
+		AddError("Not enough memory to generate coclustering optimization data" +
+			 RMResourceManager::BuildMissingMemoryMessage(lNecessaryMemory));
+		AddMessage(RMResourceManager::BuildMemoryLimitMessage());
+		if (RMResourceConstraints::GetIgnoreMemoryLimit())
+			RMResourceManager::DisplayIgnoreMemoryLimitMessage();
+		else
+			bOk = false;
+	}
+	return bOk;
 }
 
 boolean CCCoclusteringBuilder::CheckMemoryForDataGridInitialization(KWDatabase* database, int nTupleNumber,
@@ -3495,7 +3790,7 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridOptimization(KWDataGrid* in
 	// Test si memoire suffisante
 	if (lNecessaryMemory > lAvailableMemory)
 	{
-		AddError("Not enough memory to optimize data grid " +
+		AddError("Not enough memory to optimize data grid" +
 			 RMResourceManager::BuildMissingMemoryMessage(lNecessaryMemory));
 		AddMessage(RMResourceManager::BuildMemoryLimitMessage());
 		if (RMResourceConstraints::GetIgnoreMemoryLimit())

@@ -18,7 +18,7 @@ int main(int argc, char** argv)
 
 	// Activation de la gestion des signaux via des erreurs, pour afficher des messages d'erreur explicites
 	// A potentiellement commenter sur certains IDE lors des phases de debuggage
-	Global::ActivateSignalErrorManagement();
+	//Global::ActivateSignalErrorManagement();
 
 	// Point d'arret sur l'allocation d'un bloc memoire
 	//MemSetAllocIndexExit(6009814);

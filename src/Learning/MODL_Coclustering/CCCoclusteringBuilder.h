@@ -181,6 +181,14 @@ protected:
 
 	// Alimentation d'une table de tuples comportant les attributs a analyser a partir de la base
 	// en tenant compte de l'eventuel attribut d'effectif par enregistrement
+	// Les objets de la base doivent etre charges en memoire et sont liberes au fur et a mesure de leur traitement
+	// pour liberer la memoire des que leur contenu est transfere dans un tuple.
+	// Des verifications de depasssement des capacites memoire sont effectuees regulierement
+	// On renvoie true en cas de succes, false sinon avec un message d'erreur
+	boolean FillStandardTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable);
+
+	// Alimentation d'une table de tuples comportant les attributs a analyser a partir de la base
+	// en tenant compte de l'eventuel attribut d'effectif par enregistrement
 	// La table de tuples est remplie au fur et a mesure de la lecture de la base, et des verification
 	// de depasssement des capacites memoire sont effectuees regulierement
 	// On renvoie true en cas de succes, false sinon avec un message d'erreur
@@ -237,8 +245,12 @@ protected:
 	// Renvoie l'effectif associe a un enregistrement, avec eventuellement affichage de warning
 	// Renvoie 1 si l'attribut d'effectif est NULL
 	// Renvoie 0 si erreur dans la specification de l'effectif
-	int GetDatabaseObjectFrequency(const KWObject* kwoObject, longint lRecordIndex,
-				       const KWAttribute* frequencyAttribute);
+	int GetDatabaseObjectFrequency(const KWObject* kwoObject, const KWAttribute* frequencyAttribute);
+
+	// Verification de la memoire necessaire pour construire une grille initiale a partir d'un nombre de tuples,
+	// qui fournit l'effectgif total et le nombre de cellules
+	// On prevoit la creation de toutes les grilles de travail
+	boolean CheckMemoryForStandardDataGridInitialization(const KWTupleTable* tupleTable) const;
 
 	// Verification de la memoire necessaire pour construire une grille initiale a partir d'un nombre de tuples
 	// La base en entree peut etre entierement traitee:
@@ -247,7 +259,7 @@ protected:
 	//   . dans ce cas, les nombres de valeurs par attribut sont estimes
 	//   . cela permet d'avoir un estimation "anytime" de la memoire necessaire pour le coclustering
 	// On renvoie en sortie le nombre max de cellules de la grille initiale
-	//DDD TODO A verifier
+	//DDD DEPRECATED
 	boolean CheckMemoryForDataGridInitialization(KWDatabase* database, int nTupleNumber, int& nMaxCellNumber) const;
 
 	// Verification de la memoire necessaire pour construire une grille initiale de type VarPart a partir d'un nombre de tuples
