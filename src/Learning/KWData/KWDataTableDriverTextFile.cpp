@@ -814,7 +814,7 @@ longint KWDataTableDriverTextFile::GetEstimatedObjectNumber()
 		// Analyse du buffer
 		if (bOk and temporaryFile.GetCurrentBufferSize() > 0)
 		{
-			// On saute la premiere ligne, donc la taille n'est peut etre pas representative
+			// On saute la premiere ligne, dont la taille n'est peut etre pas representative
 			temporaryFile.SkipLine(bLineTooLong);
 			lHeaderLigneSize = temporaryFile.GetPositionInFile();
 

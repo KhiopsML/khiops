@@ -651,7 +651,7 @@ void KWTupleTableLoader::BlockLoadUnivariateInitialize(const ALString& sInputAtt
 			// Acces au bloc d'attribut
 			cvbContinuousValues = kwoObject->GetContinuousValueBlockAt(liAttributeBlockLoadIndex);
 
-			// Parcours des valeurs du block
+			// Parcours des valeurs du bloc
 			for (nValue = 0; nValue < cvbContinuousValues->GetValueNumber(); nValue++)
 			{
 				// Acces a la table de tuple correspondant a l'attribut

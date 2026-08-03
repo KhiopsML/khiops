@@ -101,6 +101,7 @@ public:
 	KWDataGrid* CreateVarPartDataGrid(const KWTupleTable* tupleTable, ObjectDictionary& odObservationNumbers);
 
 	// Nettoyage des eventuelles parties de variables vides du fait d'observations manquantes
+	//DDD DEPRECATED
 	void CleanVarPartDataGrid(KWDataGrid* dataGrid);
 
 	// Alimentation des cellules d'un VarPartDataGrid dont les attributs et parties sont correctement initialises,
@@ -154,7 +155,16 @@ protected:
 					 KWDataGridOptimizer* dataGridOptimizer);
 
 	///////////////////////////////////////////////////////////////////////////////////////
-	// Service de creation de grile initiale, la plus fine possible
+	// Service de creation de grille initiale, la plus fine possible
+	//
+	// Gestion des valeurs manquantes
+	// - grille standard VxV
+	//   - les valeurs manquantes sont gardees et traitees comme les autres valeurs
+	// - grille VarPart IxV
+	//   - les valeurs manquantes sont ignorees et ne font pas partie des observations retenues
+	//   - pour les variables sparses, c'est la valeur par defaut du bloc qui est ignoree,
+	//     qu'elle soit la valeur manquante ou tout autre valeur (e.g. 0)
+	//   - les variables internes vides sont ignorees
 
 	// Creation d'une grille initiale de type variables x variables
 	// Renvoie false avec message d'erreur si echec, avec initialDataGrid restant a NULL
@@ -165,6 +175,42 @@ protected:
 	// variable de chaque attribut interne
 	// Renvoie false avec message d'erreur si echec, avec initialDataGrid restant a NULL
 	boolean CreateVarPartInitialDataGrid();
+
+	// Creation d'une grille vide de type instances x variables, avec uniquement ses dimensions
+	KWDataGrid* CreateVarPartEmptyDataGrid();
+
+	// Creation des parties de l'attribut identifiant, sans mettre a jour les effectifs
+	// Mise a jour des statistique descriptives correspondantes
+	// La base entre doit etre chargee en memoire
+	boolean InitializeIdentifierAttributeParts(KWDatabase* database, KWDGAttribute* identifierAttribute,
+						   ObjectDictionary* odOutputDescriptiveStats);
+
+	// Creation des attributs internes et des parties elementaires de l'attribut de type VarPart,
+	// Mise a jour des statistique descriptives correspondantes
+	// La base entre doit etre chargee en memoire
+	// Les blocs de variables sont exploites de facon sparse pour creer efficacement les attributs internes
+	boolean InitializeVarPartAttributeParts(KWDatabase* database, KWDGAttribute* varPartAttribute,
+						ObjectDictionary* odOutputDescriptiveStats);
+
+	// Creation d'un attribut interne a partir d'un attribut et de la table de tuple correspondante chargee en memoire
+	// Les statistiques descriptives sont mises a jour systematiquement
+	// L'attribut interne n'est cree que s'il est non vide, et range dans le dictionnaire en sortie
+	// La table de tuple est videe en sortie de methode
+	// On renvoie l'attribut interne s'il est cree, NULL sinon
+	KWDGAttribute* CreateInnerAttribute(const KWAttribute* attribute, KWDGAttribute* varPartAttribute,
+					    KWTupleTable* tupleTable, ObjectDictionary* odInnerAttributes,
+					    ObjectDictionary* odOutputDescriptiveStats);
+
+	// Creation des attributs internes et des partie elementaire de l'attribut de type VarPart,
+	// avec mise a jour des statistique descriptives correspondantes
+	// La base entre doit etre chargee en memoire
+	// Elle est detruite au fur et a mesure de la creation des cellule et est rendues vide
+	// Les blocs de variables sont exploites de facon sparse pour creer efficacement les cellules
+	boolean InitializeVarPartCells(KWDatabase* database, KWDataGrid* dataGrid);
+
+	// Supression d'une table de tuples univariee de l'eventuel tuple comportant une valeur donnee
+	void RemoveTupleWithMissingContinuousValue(KWTupleTable* tupleTable, Continuous cValue) const;
+	void RemoveTupleWithMissingSymbolValue(KWTupleTable* tupleTable, Symbol sValue) const;
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	// Gestion preventive de l'utilisation des ressources memoire, avec message d'erreur
@@ -192,6 +238,7 @@ protected:
 	// La table de tuples est remplie au fur et a mesure de la lecture de la base, et des verification
 	// de depasssement des capacites memoire sont effectuees regulierement
 	// On renvoie true en cas de succes, false sinon avec un message d'erreur
+	//DDD DEPRECATED
 	boolean FillTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable);
 
 	// Cas du coclustering avec attribut de type VarPart
@@ -217,16 +264,19 @@ protected:
 	// Finalisation de l'alimentation de la grille initiale :
 	// - alimentation des effectifs de ses cellules par relecture de la base
 	// - alimentation de l'attribut Identifiant
+	//DDD DEPRECATED
 	void FinalizeDataGridWithCells(KWDatabase* database, KWDataGrid* initialDataGrid);
 
 	// Creation de la partition d'un attribut de DataGrid de type Identifiant dans un coclustering Identifiant *
 	// Parties de variables En entree, le dictionnaire odObservationNumbers contient pour chaque modalite de
 	// l'identifiant, le nombre d'observations Ces effectifs permettent d'initialiser les effectifs de l'attribut
 	// Cas d'un attribut Identifier de type Symbol
+	//DDD DEPRECATED
 	boolean CreateIdentifierAttributeValueSets(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute,
 						   ObjectDictionary& odObservationNumbers);
 
 	// Cas d'un attribut Identifier de type Continuous
+	//DDD DEPRECATED
 	boolean CreateIdentifierAttributeIntervals(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute,
 						   ObjectDictionary& odObservationNumbers);
 

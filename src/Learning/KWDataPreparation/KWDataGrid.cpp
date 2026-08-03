@@ -2992,9 +2992,9 @@ boolean KWDGAttribute::Check() const
 
 	// Verification du nombre de valeurs initiales et granularisees
 	// et de leur coherence avec nPartNumber
-	if (nInitialValueNumber < 0)
+	if (nInitialValueNumber < nPartNumber)
 	{
-		AddError("Initial value number must be greater than 0");
+		AddError("Initial value number must be greater than part number");
 		bOk = false;
 	}
 	else if (nGranularizedValueNumber < 0)
@@ -5297,6 +5297,7 @@ boolean KWDGInnerAttributes::Check() const
 	boolean bOk = true;
 	int nInnerAttribute;
 	KWDGAttribute* innerAttribute;
+	KWDGPart* part;
 	boolean bIsCompletelySpecified;
 
 	require(odInnerAttributes.GetCount() == oaInnerAttributes.GetSize());

@@ -146,6 +146,27 @@ void KWTupleTable::DeleteAll()
 	nTotalFrequency = 0;
 }
 
+void KWTupleTable::DeleteAt(int nIndex)
+{
+	KWTuple* tuple;
+
+	require(not GetUpdateMode());
+	require(0 <= nIndex and nIndex < GetSize());
+
+	// Recherche du tuple a detruire
+	tuple = cast(KWTuple*, oaTuples.GetAt(nIndex));
+
+	// Mise a jour de l'effectif global
+	nTotalFrequency -= tuple->GetFrequency();
+	nSize--;
+
+	// Supression du tu tuple du tableau
+	oaTuples.RemoveAt(nIndex);
+
+	// Destruction du tuple
+	delete tuple;
+}
+
 void KWTupleTable::Sort()
 {
 	CompareFunction compareFunction;

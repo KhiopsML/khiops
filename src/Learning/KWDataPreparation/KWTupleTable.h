@@ -175,6 +175,11 @@ public:
 	// Destruction de tous les tuples
 	void DeleteAll();
 
+	// Destruction d'un tuple, avec mise a jour de l'effectif total
+	// // L'eventuelle mise a jour du nombre de valeurs manquantes sparses est a la charge de l'appelant
+	// Attention: en O(n)
+	void DeleteAt(int nIndex);
+
 	/////////////////////////////////////////////////////////////////////////////////////
 	// Fonctionnalite de tri (en mode consultation)
 
@@ -214,7 +219,7 @@ public:
 	// Services divers
 
 	// Construction d'une table de tuples univariee a partir d'une table de tuples comportant l'attribut
-	// Memoire: la table de tuple en sortie appartien a l'appele
+	// Memoire: la table de tuple en sortie appartient a l'appele
 	void BuildUnivariateTupleTable(const ALString& sAttributeName, KWTupleTable* outputTupleTable) const;
 
 	// Tri selon un attribut d'un tableau de tuples extraits de la table courante
