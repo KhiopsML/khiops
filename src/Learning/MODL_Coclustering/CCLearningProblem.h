@@ -18,6 +18,7 @@
 #include "CCCoclusteringBuilder.h"
 #include "CCCoclusteringReport.h"
 #include "KWDRString.h"
+#include "KWDRMath.h"
 #include "KWDatabaseCheckTask.h"
 
 ////////////////////////////////////////////////////////////

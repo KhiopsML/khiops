@@ -161,6 +161,7 @@ void KWDataGrid::DeleteAll()
 
 	// Destruction des valeurs cibles
 	svTargetValues.SetSize(0);
+	ensure(IsEmpty());
 }
 
 void KWDataGrid::DeleteAllCells()
@@ -5297,7 +5298,6 @@ boolean KWDGInnerAttributes::Check() const
 	boolean bOk = true;
 	int nInnerAttribute;
 	KWDGAttribute* innerAttribute;
-	KWDGPart* part;
 	boolean bIsCompletelySpecified;
 
 	require(odInnerAttributes.GetCount() == oaInnerAttributes.GetSize());

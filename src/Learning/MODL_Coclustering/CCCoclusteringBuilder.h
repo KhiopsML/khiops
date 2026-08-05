@@ -14,7 +14,6 @@ class CCCoclusteringBuilder;
 #include "KWDataGridOptimizerVxV.h"
 #include "KWDataGridOptimizerIxV.h"
 #include "KWDataGridPostOptimizer.h"
-#include "KWDataPreparationClass.h"
 #include "CCHierarchicalDataGrid.h"
 #include "CCAnalysisSpec.h"
 #include "CCCoclusteringReport.h"
@@ -182,6 +181,7 @@ protected:
 	// Creation des parties de l'attribut identifiant, sans mettre a jour les effectifs
 	// Mise a jour des statistique descriptives correspondantes
 	// La base entre doit etre chargee en memoire
+	// On considere ici qu'il n'y a pas de risque de depassement memoire, suite au test ReadDatabaseAndCheckRemainingMemory
 	boolean InitializeIdentifierAttributeParts(KWDatabase* database, KWDGAttribute* identifierAttribute,
 						   ObjectDictionary* odOutputDescriptiveStats);
 
@@ -189,6 +189,7 @@ protected:
 	// Mise a jour des statistique descriptives correspondantes
 	// La base entre doit etre chargee en memoire
 	// Les blocs de variables sont exploites de facon sparse pour creer efficacement les attributs internes
+	// On considere ici qu'il n'y a pas de risque de depassement memoire, suite au test ReadDatabaseAndCheckRemainingMemory
 	boolean InitializeVarPartAttributeParts(KWDatabase* database, KWDGAttribute* varPartAttribute,
 						ObjectDictionary* odOutputDescriptiveStats);
 
@@ -223,7 +224,22 @@ protected:
 
 	// Verification de la memoire necessaire pour charger la base
 	// Renvoie false si verification possible (pas de variable de selection) et si memoire insuffisante
+	//DDD DEPRECATED
 	boolean CheckMemoryForDatabaseRead(KWDatabase* database) const;
+
+	// Lecture de la base de donnees
+	//
+	// La base est entierement lue avant la construction de la grille initiale.
+	// Bien qu'il soit possible de construire la grille au fur et a mesure de la lecture
+	// pour economiser de la memoire, cette approche n'est pas retenue pour les raisons suivantes :
+	// - La majorite des bases occupent generalement moins de memoire que la grille elle-meme.
+	//    - Il est rare qu'une base depasse la memoire necessaire pour la grille.
+	//    - En pratique, la memoire utilisee par la base est souvent inferieure a celle de la grille, avec un facteur d'au plus 2.
+	// - La lecture en une seule passe rend l'implementation plus modulaire et plus facile a maintenir.
+	// - La lecture est deleguee a la classe KWDatabase, qui gere tous les traitements d'erreur et la gestion preventive de la memoire.
+	//
+	// Retourne false en cas d'erreur ou si la memoire disponible est insuffisante pour construire la grille initiale.
+	boolean ReadDatabaseAndCheckRemainingMemory(KWDatabase* database) const;
 
 	// Alimentation d'une table de tuples comportant les attributs a analyser a partir de la base
 	// en tenant compte de l'eventuel attribut d'effectif par enregistrement
@@ -257,6 +273,7 @@ protected:
 	// stockees par nom d'attribut dans le dictionnaire en sortie
 	// Memoire: le dictionnaire en sortie est passe par l'appelant et son
 	// contenu, cree par l'appele, appartient a l'appelant
+	//DDD DEPRECATED
 	KWDataGrid* InitializeInnerAttributesFromDatabase(KWDatabase* database,
 							  ObjectDictionary* odOutputDescriptiveStats);
 
@@ -283,11 +300,13 @@ protected:
 	// Renvoie le nombre d'observations associe a un enregistrement, avec eventuellement affichage de warning
 	// Renvoie 0 si l'enregistrement est non utilisable (valeur manquante pour l'attribut Identifiant ou aucune
 	// observation) L'attribut Identifiant est exclu du calcul du nombre d'observations
+	//DDD DEPRECATED
 	int GetDatabaseObjectObservationNumber(const KWObject* kwoObject, longint lRecordIndex,
 					       const KWAttribute* identifierAttribute,
 					       const ObjectArray* oaInnerAttributes);
 
 	//DDD CH
+	//DDD DEPRECATED
 	int GetDatabaseObjectObservationNumberAndUpdateObjectCells(const KWObject* kwoObject, longint lRecordIndex,
 								   const KWAttribute* identifierAttribute,
 								   ObjectArray& oaParts);
@@ -298,8 +317,7 @@ protected:
 	int GetDatabaseObjectFrequency(const KWObject* kwoObject, const KWAttribute* frequencyAttribute);
 
 	// Verification de la memoire necessaire pour construire une grille initiale a partir d'un nombre de tuples,
-	// qui fournit l'effectgif total et le nombre de cellules
-	// On prevoit la creation de toutes les grilles de travail
+	// qui fournit l'effectif total et le nombre de cellules, dans le cas variablex x variables
 	boolean CheckMemoryForStandardDataGridInitialization(const KWTupleTable* tupleTable) const;
 
 	// Verification de la memoire necessaire pour construire une grille initiale a partir d'un nombre de tuples
@@ -314,10 +332,12 @@ protected:
 
 	// Verification de la memoire necessaire pour construire une grille initiale de type VarPart a partir d'un nombre de tuples
 	// On renvoie en sortie le nombre max de cellules de la grille initiale
+	//DDD DEPRECATED
 	boolean CheckMemoryForVarPartDataGridInitialization(KWDatabase* database, int nTupleNumber,
 							    int& nMaxCellNumber) const;
 
 	// Verification de la memoire necessaire pour optimiser le coclustering, la grille initiale etant construite
+	// Prise en compte des deux cas: variables x variables et instances x variables
 	boolean CheckMemoryForDataGridOptimization(KWDataGrid* inputInitialDataGrid) const;
 
 	///////////////////////////////////////////////////////////////////////////
@@ -339,11 +359,13 @@ protected:
 
 	// Calcul de statistiques descriptives par attribut (KWDescriptiveStats)
 	// stockees par nom d'attribut dans le dictionnaire en sortie
+	// Methode avec suivi de tache
+	// En cas d'interruption ou d'erreur, on renvoie false
+	// en emettant une erreur et on detruit les statistiques descriptives
 	// Memoire: le dictionnaire en sortie est passe par l'appelant et son
 	// contenu, cree par l'appele, appartient a l'appelant
-	//DDD TODO Renvoyer un booleen et estimer la memoire au fur et a mesure
-	void ComputeDescriptiveAttributeStats(const KWTupleTable* tupleTable,
-					      ObjectDictionary* odOutputDescriptiveStats) const;
+	boolean ComputeDescriptiveAttributeStats(const KWTupleTable* tupleTable,
+						 ObjectDictionary* odOutputDescriptiveStats) const;
 
 	// Calcul de toutes les infos de hierarchie
 	// Pilotage de toutes les methodes detaillees

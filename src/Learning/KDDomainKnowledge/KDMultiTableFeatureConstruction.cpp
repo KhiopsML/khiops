@@ -647,7 +647,7 @@ void KDMultiTableFeatureConstruction::BuildMainClassRequestedConstructedRules(Ob
 			{
 				AddWarning("Not enough memory to construct all requested rules" +
 					   RMResourceManager::BuildMissingMemoryMessage(lNecessaryMemory));
-				AddMessage(RMResourceManager::BuildMemoryLimitMessage());
+				AddSimpleMessage(RMResourceManager::BuildMemoryLimitMessage());
 				break;
 			}
 		}

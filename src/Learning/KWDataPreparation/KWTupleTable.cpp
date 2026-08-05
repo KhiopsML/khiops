@@ -568,6 +568,8 @@ longint KWTupleTable::GetUsedMemory() const
 	lUsedMemory += ivAttributeTypes.GetUsedMemory() - sizeof(IntVector);
 	lUsedMemory += oaTuples.GetUsedMemory() - sizeof(ObjectArray);
 	lUsedMemory += oaTuples.GetSize() * (sizeof(KWTuple) + (GetAttributeNumber() - 1) * sizeof(KWValue));
+	if (slTuples != NULL)
+		lUsedMemory += slTuples->GetUsedMemory();
 	return lUsedMemory;
 }
 

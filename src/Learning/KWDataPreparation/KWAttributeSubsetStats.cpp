@@ -539,7 +539,7 @@ KWDataGrid* KWAttributeSubsetStats::CreateDataGrid(const KWTupleTable* tupleTabl
 
 	// Debut de suivi de tache
 	TaskProgression::BeginTask();
-	TaskProgression::DisplayMainLabel("Initialize data grid");
+	TaskProgression::DisplayMainLabel("Initialize coclustering");
 
 	// Initialisation des attributs et de leurs parties
 	for (nAttribute = 0; nAttribute < dataGrid->GetAttributeNumber(); nAttribute++)
@@ -598,8 +598,9 @@ KWDataGrid* KWAttributeSubsetStats::CreateDataGrid(const KWTupleTable* tupleTabl
 		bCellCreationOk = CreateDataGridCells(tupleTable, dataGrid);
 	}
 
-	// Fin de suivi de tache
-	TaskProgression::EndTask();
+	// Test si interruption sans qu'il y ait d'erreur
+	if (bCellCreationOk and TaskProgression::IsInterruptionRequested())
+		Object::AddWarning("Initialize coclustering interrupted by user");
 
 	// Destruction de la grille si interruption utilisateur
 	if (TaskProgression::IsInterruptionRequested() or not bCellCreationOk)
@@ -607,6 +608,9 @@ KWDataGrid* KWAttributeSubsetStats::CreateDataGrid(const KWTupleTable* tupleTabl
 		delete dataGrid;
 		dataGrid = NULL;
 	}
+
+	// Fin de suivi de tache
+	TaskProgression::EndTask();
 
 	ensure(dataGrid == NULL or dataGrid->Check());
 	return dataGrid;
@@ -977,6 +981,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 		// Progression
 		if (TaskProgression::IsRefreshNecessary(nTuple))
 		{
+			// Avancement en utilisant les dernier 50% pour la creation des cellules
 			TaskProgression::DisplayProgression((int)(50 + nTuple * 50.0 / tupleTable->GetSize()));
 			if (TaskProgression::IsInterruptionRequested())
 				break;
@@ -1040,7 +1045,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 						 IntToString((int)ceil((tupleTable->GetSize() - nTuple) * 100.0 /
 								       tupleTable->GetSize())) +
 						 "% of the database remains to analyse");
-					AddMessage(RMResourceManager::BuildMemoryLimitMessage());
+					AddSimpleMessage(RMResourceManager::BuildMemoryLimitMessage());
 				}
 
 				// Creation en mode risque

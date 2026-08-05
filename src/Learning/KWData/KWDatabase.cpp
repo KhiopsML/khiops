@@ -813,6 +813,17 @@ boolean KWDatabase::ReadAll()
 		{
 			assert(bOk);
 
+			// Suivi de la tache
+			if (TaskProgression::IsRefreshNecessary(lRecordNumber))
+			{
+				TaskProgression::DisplayProgression((int)(100 * GetReadPercentage()));
+				DisplayReadTaskProgressionLabel(lRecordNumber, lObjectNumber);
+
+				// Test d'interruption utilisateur, sans mettre le bOk a false pour distringuer le cas des erreurs
+				if (TaskProgression::IsInterruptionRequested())
+					break;
+			}
+
 			// Test periodique si memoire suffisante
 			// Le premier test est effectue des l'ouverture de la base
 			if (lRecordNumber % 16 == 0)
@@ -899,22 +910,11 @@ boolean KWDatabase::ReadAll()
 				Object::AddError("Read database interrupted because of errors");
 				break;
 			}
-
-			// Suivi de la tache
-			if (TaskProgression::IsRefreshNecessary(lRecordNumber))
-			{
-				TaskProgression::DisplayProgression((int)(100 * GetReadPercentage()));
-				DisplayReadTaskProgressionLabel(lRecordNumber, lObjectNumber);
-
-				// Test d'interruption utilisateur, sans mettre le bOk a false pour distringuer le cas des erreurs
-				if (TaskProgression::IsInterruptionRequested())
-					break;
-			}
 		}
 		Global::DesactivateErrorFlowControl();
 
 		// Test si interruption sans qu'il y ait d'erreur
-		if (not bOk and TaskProgression::IsInterruptionRequested())
+		if (bOk and TaskProgression::IsInterruptionRequested())
 		{
 			bOk = false;
 			Object::AddWarning("Read database interrupted by user");
