@@ -81,8 +81,6 @@ public:
 
 	// Calcul du coclustering, renvoie false en cas d'erreur ou d'interruption utilisateur
 	boolean ComputeCoclustering();
-	boolean NEW_ComputeCoclustering(); //DDD
-	boolean REF_ComputeCoclustering(); //DDD
 	boolean IsCoclusteringComputed() const;
 
 	// Test si le coclustering est calcule et informatif (au moins deux dimensions)
@@ -91,23 +89,6 @@ public:
 	// Creation d'une structure de cout pour le probleme de coclustering, standard ou VarPart
 	// Memoire: appartient a l'appelant
 	KWDataGridCosts* CreateDataGridCost() const override;
-
-	// Creation d'une grille avec une dimension de type VarPart
-	// La dimension VarPart contient un cluster de parties de variable pour chaque partie de
-	// variable de chaque attribut interne
-	// L'effectif de la variable identifiant est alimente par le vecteur ivObservationNumbers
-	//DDD DEPRECATED
-	KWDataGrid* CreateVarPartDataGrid(const KWTupleTable* tupleTable, ObjectDictionary& odObservationNumbers);
-
-	// Nettoyage des eventuelles parties de variables vides du fait d'observations manquantes
-	//DDD DEPRECATED
-	void CleanVarPartDataGrid(KWDataGrid* dataGrid);
-
-	// Alimentation des cellules d'un VarPartDataGrid dont les attributs et parties sont correctement initialises,
-	// Renvoie true si cellule correctement initialisee, false sinon (sans nettoyage des celulles crees)
-	// Pour la dimension VarPart, on parcourt l'ensemble des attributs internes pour alimenter les cellules associees a chaque observation
-	//DDD DEPRECATED
-	boolean CreateVarPartDataGridCells(const KWTupleTable* tupleTable, KWDataGrid* dataGrid);
 
 	/////////////////////////////////////////////////////////////////////////////
 	// Acces aux resultats de coclustering
@@ -146,28 +127,44 @@ public:
 	/////////////////////////////////////////////////
 	///// Implementation
 protected:
-	// Methode virtuelle d'optimisation d'une grille
-	virtual void OptimizeDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
+	// Optimisation d'une grille
+	void OptimizeDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
 
 	// Initialisation d'un optimiseur de grille dedie coclustering
 	void InitializeDataGridOptimizer(const KWDataGrid* inputInitialDataGrid,
 					 KWDataGridOptimizer* dataGridOptimizer);
 
 	///////////////////////////////////////////////////////////////////////////////////////
-	// Service de creation de grille initiale, la plus fine possible
+	// Service de creation de grille initiale dans le cas standard VxV
 	//
 	// Gestion des valeurs manquantes
-	// - grille standard VxV
-	//   - les valeurs manquantes sont gardees et traitees comme les autres valeurs
-	// - grille VarPart IxV
-	//   - les valeurs manquantes sont ignorees et ne font pas partie des observations retenues
-	//   - pour les variables sparses, c'est la valeur par defaut du bloc qui est ignoree,
-	//     qu'elle soit la valeur manquante ou tout autre valeur (e.g. 0)
-	//   - les variables internes vides sont ignorees
+	// - les valeurs manquantes sont gardees et traitees comme les autres valeurs
 
 	// Creation d'une grille initiale de type variables x variables
 	// Renvoie false avec message d'erreur si echec, avec initialDataGrid restant a NULL
 	boolean CreateStandardInitialDataGrid();
+
+	// Alimentation d'une table de tuples comportant les attributs a analyser a partir de la base
+	// en tenant compte de l'eventuel attribut d'effectif par enregistrement
+	// Les objets de la base doivent etre charges en memoire et sont liberes au fur et a mesure de leur traitement
+	// pour liberer la memoire des que leur contenu est transfere dans un tuple.
+	// Des verifications de depasssement des capacites memoire sont effectuees regulierement
+	// On renvoie true en cas de succes, false sinon avec un message d'erreur
+	boolean FillStandardTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable);
+
+	// Renvoie l'effectif associe a un enregistrement, avec eventuellement affichage de warning
+	// Renvoie 1 si l'attribut d'effectif est NULL
+	// Renvoie 0 si erreur dans la specification de l'effectif
+	int GetDatabaseObjectFrequency(const KWObject* kwoObject, const KWAttribute* frequencyAttribute);
+
+	///////////////////////////////////////////////////////////////////////////////////////
+	// Service de creation de grille initiale dans le cas VarPart IxV
+	//
+	// Gestion des valeurs manquantes
+	// - les valeurs manquantes sont ignorees et ne font pas partie des observations retenues
+	// - pour les variables sparses, c'est la valeur par defaut du bloc qui est ignoree,
+	//   qu'elle soit la valeur manquante ou tout autre valeur (e.g. 0)
+	// - les variables internes vides sont ignorees
 
 	// Creation d'une grille de type instances x variables
 	// La dimension VarPart contient un cluster de parties de variable pour chaque partie de
@@ -214,127 +211,38 @@ protected:
 	void RemoveTupleWithMissingSymbolValue(KWTupleTable* tupleTable, Symbol sValue) const;
 
 	///////////////////////////////////////////////////////////////////////////////////////
+	// Services commun aux methodes de creation de la grille initiale
 	// Gestion preventive de l'utilisation des ressources memoire, avec message d'erreur
-	// On procede selon les etapes suivantes:
-	//   . estimation si on peut lire la base a partir du fichier
-	//   . lecture de la base
-	//   . transformation de la base en table de tuples
-	//   . transformation de la table de tuples en grille initiale
-	//   . initialisation d'une grille a optimiser
-
-	// Verification de la memoire necessaire pour charger la base
-	// Renvoie false si verification possible (pas de variable de selection) et si memoire insuffisante
-	//DDD DEPRECATED
-	boolean CheckMemoryForDatabaseRead(KWDatabase* database) const;
+	// Apres lecture de la base, chaque etape de construction de la grille initiale (creation des attributs, parties, cellules)
+	// est effectuee avec suivi de tache, controle de la memoire utilisee au fil de l'eau, et gestion des interruptions utilisateurs
 
 	// Lecture de la base de donnees
 	//
 	// La base est entierement lue avant la construction de la grille initiale.
 	// Bien qu'il soit possible de construire la grille au fur et a mesure de la lecture
 	// pour economiser de la memoire, cette approche n'est pas retenue pour les raisons suivantes :
+	// - Estimer la memoire necessaire avant la lecture elle-meme est quasiment impossible
+	//   dans le cas general en raison des nombreuses incertitudes
+	//   - critere de selection
+	//   - valeurs categrorielle ou texte de taille inconnue
+	//   - donnees sparses
+	//   - donnes multi-table avec table secondaires et table externes
+	//   - valeur calculees par des regles de derivation
+	//   - ...
 	// - La majorite des bases occupent generalement moins de memoire que la grille elle-meme.
 	//    - Il est rare qu'une base depasse la memoire necessaire pour la grille.
-	//    - En pratique, la memoire utilisee par la base est souvent inferieure a celle de la grille, avec un facteur d'au plus 2.
+	//    - En pratique, la memoire utilisee par la base est souvent inferieure a celle de la grille,
+	//      avec un facteur d'au plus 2.
 	// - La lecture en une seule passe rend l'implementation plus modulaire et plus facile a maintenir.
-	// - La lecture est deleguee a la classe KWDatabase, qui gere tous les traitements d'erreur et la gestion preventive de la memoire.
+	// - La lecture est deleguee a la classe KWDatabase, qui gere tous les traitements d'erreur
+	//   et la gestion preventive de la memoire au fil de l'eau.
 	//
 	// Retourne false en cas d'erreur ou si la memoire disponible est insuffisante pour construire la grille initiale.
 	boolean ReadDatabaseAndCheckRemainingMemory(KWDatabase* database) const;
 
-	// Alimentation d'une table de tuples comportant les attributs a analyser a partir de la base
-	// en tenant compte de l'eventuel attribut d'effectif par enregistrement
-	// Les objets de la base doivent etre charges en memoire et sont liberes au fur et a mesure de leur traitement
-	// pour liberer la memoire des que leur contenu est transfere dans un tuple.
-	// Des verifications de depasssement des capacites memoire sont effectuees regulierement
-	// On renvoie true en cas de succes, false sinon avec un message d'erreur
-	boolean FillStandardTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable);
-
-	// Alimentation d'une table de tuples comportant les attributs a analyser a partir de la base
-	// en tenant compte de l'eventuel attribut d'effectif par enregistrement
-	// La table de tuples est remplie au fur et a mesure de la lecture de la base, et des verification
-	// de depasssement des capacites memoire sont effectuees regulierement
-	// On renvoie true en cas de succes, false sinon avec un message d'erreur
-	//DDD DEPRECATED
-	boolean FillTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable);
-
-	// Cas du coclustering avec attribut de type VarPart
-	// En plus d'une table de tuples comme dans FillTupleTableFromDatabase, on alimente egalement un vecteur
-	// qui associe a chaque tuple le nombre d'observations dans l'attribut de type VarPart
-	// Un tuple est ecarte si son attribut identifiant n'est pas renseigne ou si aucune valeur n'est renseignee
-	// pour les attributs internes En sortie, le dictionnaire odObservationNumbers contient pour chaque modalite de
-	// l'identifiant, le nombre d'observations stocke dans un IntObject
-	//DDD DEPRECATED
-	boolean FillVarPartTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable,
-						  ObjectDictionary& odObservationNumbers);
-
-	// DDD CH
-	// Initialisation des variables internes de la grille individus * variables et de l'attribut VarPart
-	// Calcul de statistiques descriptives par attribut (KWDescriptiveStats)
-	// stockees par nom d'attribut dans le dictionnaire en sortie
-	// Memoire: le dictionnaire en sortie est passe par l'appelant et son
-	// contenu, cree par l'appele, appartient a l'appelant
-	//DDD DEPRECATED
-	KWDataGrid* InitializeInnerAttributesFromDatabase(KWDatabase* database,
-							  ObjectDictionary* odOutputDescriptiveStats);
-
-	// DDD CH
-	// Finalisation de l'alimentation de la grille initiale :
-	// - alimentation des effectifs de ses cellules par relecture de la base
-	// - alimentation de l'attribut Identifiant
-	//DDD DEPRECATED
-	void FinalizeDataGridWithCells(KWDatabase* database, KWDataGrid* initialDataGrid);
-
-	// Creation de la partition d'un attribut de DataGrid de type Identifiant dans un coclustering Identifiant *
-	// Parties de variables En entree, le dictionnaire odObservationNumbers contient pour chaque modalite de
-	// l'identifiant, le nombre d'observations Ces effectifs permettent d'initialiser les effectifs de l'attribut
-	// Cas d'un attribut Identifier de type Symbol
-	//DDD DEPRECATED
-	boolean CreateIdentifierAttributeValueSets(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute,
-						   ObjectDictionary& odObservationNumbers);
-
-	// Cas d'un attribut Identifier de type Continuous
-	//DDD DEPRECATED
-	boolean CreateIdentifierAttributeIntervals(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute,
-						   ObjectDictionary& odObservationNumbers);
-
-	// Renvoie le nombre d'observations associe a un enregistrement, avec eventuellement affichage de warning
-	// Renvoie 0 si l'enregistrement est non utilisable (valeur manquante pour l'attribut Identifiant ou aucune
-	// observation) L'attribut Identifiant est exclu du calcul du nombre d'observations
-	//DDD DEPRECATED
-	int GetDatabaseObjectObservationNumber(const KWObject* kwoObject, longint lRecordIndex,
-					       const KWAttribute* identifierAttribute,
-					       const ObjectArray* oaInnerAttributes);
-
-	//DDD CH
-	//DDD DEPRECATED
-	int GetDatabaseObjectObservationNumberAndUpdateObjectCells(const KWObject* kwoObject, longint lRecordIndex,
-								   const KWAttribute* identifierAttribute,
-								   ObjectArray& oaParts);
-
-	// Renvoie l'effectif associe a un enregistrement, avec eventuellement affichage de warning
-	// Renvoie 1 si l'attribut d'effectif est NULL
-	// Renvoie 0 si erreur dans la specification de l'effectif
-	int GetDatabaseObjectFrequency(const KWObject* kwoObject, const KWAttribute* frequencyAttribute);
-
 	// Verification de la memoire necessaire pour construire une grille initiale a partir d'un nombre de tuples,
-	// qui fournit l'effectif total et le nombre de cellules, dans le cas variablex x variables
+	// qui fournit l'effectif total et le nombre de cellules, dans le cas standard VxV
 	boolean CheckMemoryForStandardDataGridInitialization(const KWTupleTable* tupleTable) const;
-
-	// Verification de la memoire necessaire pour construire une grille initiale a partir d'un nombre de tuples
-	// La base en entree peut etre entierement traitee:
-	//   . dans ce cas, on dispose des statistique descriptives et donc du nombre de valeurs par attribut
-	// ou en cours de lecture, pour une alimnettaion partielle de la table de tuples
-	//   . dans ce cas, les nombres de valeurs par attribut sont estimes
-	//   . cela permet d'avoir un estimation "anytime" de la memoire necessaire pour le coclustering
-	// On renvoie en sortie le nombre max de cellules de la grille initiale
-	//DDD DEPRECATED
-	boolean CheckMemoryForDataGridInitialization(KWDatabase* database, int nTupleNumber, int& nMaxCellNumber) const;
-
-	// Verification de la memoire necessaire pour construire une grille initiale de type VarPart a partir d'un nombre de tuples
-	// On renvoie en sortie le nombre max de cellules de la grille initiale
-	//DDD DEPRECATED
-	boolean CheckMemoryForVarPartDataGridInitialization(KWDatabase* database, int nTupleNumber,
-							    int& nMaxCellNumber) const;
 
 	// Verification de la memoire necessaire pour optimiser le coclustering, la grille initiale etant construite
 	// Prise en compte des deux cas: variables x variables et instances x variables
