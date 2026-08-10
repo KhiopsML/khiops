@@ -37,7 +37,7 @@ jobs:
           cp khiops/src/Learning/KNITransfer/KNIRecodeFile.h tutorial/cpp/
           cp khiops/src/Learning/KNITransfer/KNIRecodeMTFiles.h tutorial/cpp/
       - name: Setup Python for documentation generation
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
       - name: Generate Python API documentation

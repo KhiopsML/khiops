@@ -10,6 +10,6 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v7
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
       - name: Run pre-commit checks
         uses: pre-commit/action@v3.0.1
