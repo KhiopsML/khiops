@@ -182,7 +182,7 @@ public:
 
 	// Lecture de tous les objets
 	// Le resultat de la lecture est accessible par la methode GetObjects
-	// Methode avec suivi de tache
+	// Methode avec suivi de tache et controle fin de la memoire utilisee au fil de l'eau
 	// En cas d'interruption, d'erreur ou de memoire insuffisante, on renvoie false
 	// en emettant une erreur et on detruit les objets ayant deja ete lus
 	boolean ReadAll();

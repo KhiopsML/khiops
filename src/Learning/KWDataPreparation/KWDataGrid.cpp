@@ -278,6 +278,22 @@ void KWDataGrid::DeleteIndexingStructure() const
 	}
 }
 
+longint KWDataGrid::ComputeNecessaryMemoryForIndexingStructure() const
+{
+	longint lNecessaryMemory;
+	int nAttribute;
+	KWDGAttribute* attribute;
+
+	// Estimation par attribut
+	lNecessaryMemory = 0;
+	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
+	{
+		attribute = GetAttributeAt(nAttribute);
+		lNecessaryMemory += attribute->ComputeNecessaryMemoryForIndexingStructure();
+	}
+	return lNecessaryMemory;
+}
+
 KWDGCell* KWDataGrid::AddCell(ObjectArray* oaParts)
 {
 	KWDGCell* cell;
@@ -2682,6 +2698,58 @@ void KWDGAttribute::DeleteIndexingStructure() const
 	}
 }
 
+longint KWDGAttribute::ComputeNecessaryMemoryForIndexingStructure() const
+{
+	longint lNecessaryMemory;
+	KWDGPart* part;
+	longint lValueNumber;
+	int nInnerAttribute;
+
+	require(KWType::IsCoclusteringType(GetAttributeType()));
+	require(Check());
+
+	// Cas numerique: un element d'indexation par partie
+	if (GetAttributeType() == KWType::Continuous)
+		lNecessaryMemory = GetPartNumber() * GetUsedMemoryPerIndexingElement(GetAttributeType());
+	// Cas groupable: un element d'indexation par valeur
+	else
+	{
+		// Parcours des parties pour compter le nombre de valeurs
+		lValueNumber = 0;
+		part = headPart;
+		while (part != NULL)
+		{
+			lValueNumber += part->GetValueSet()->GetValueNumber();
+			part = part->nextPart;
+		}
+		lNecessaryMemory = lValueNumber * GetUsedMemoryPerIndexingElement(GetAttributeType());
+
+		// Indexation des attributs internes dans le cas d'un attribut VarPart
+		if (GetAttributeType() == KWType::VarPart)
+		{
+			for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
+				lNecessaryMemory +=
+				    GetInnerAttributeAt(nInnerAttribute)->ComputeNecessaryMemoryForIndexingStructure();
+		}
+	}
+	return lNecessaryMemory;
+}
+
+longint KWDGAttribute::GetUsedMemoryPerIndexingElement(int nAttributeType)
+{
+	ObjectArray oaTemplate;
+	NumericKeyDictionary nkdTemplate;
+
+	require(KWType::IsCoclusteringType(nAttributeType));
+
+	// Cas numerique: les intervalles sont ranges dans un tableau
+	if (nAttributeType == KWType::Continuous)
+		return oaTemplate.GetUsedMemoryPerElement();
+	// Cas groupable: les valeur sont dans un dictionnaire
+	else
+		return nkdTemplate.GetUsedMemoryPerElement();
+}
+
 KWDGPart* KWDGAttribute::LookupContinuousPart(Continuous cValue) const
 {
 	int nIndex;
@@ -3394,37 +3462,6 @@ boolean KWDGAttribute::ArePartsSorted() const
 		}
 	}
 	return bIsSorted;
-}
-
-void KWDGAttribute::SortPartsByValues()
-{
-	ObjectArray oaParts;
-	KWDGPart* part;
-
-	// Tri des valeurs par effectif decroissant dans chaque partie d'attribut symbolique
-	if (GetAttributeType() == KWType::Symbol)
-	{
-		part = GetHeadPart();
-		while (part != NULL)
-		{
-			part->GetValueSet()->SortValues();
-			GetNextPart(part);
-		}
-	}
-	// Tri par partie de variable (attribut, puis valeur de la parties) dans le cas d'un attribut VarPart
-	else if (GetAttributeType() == KWType::VarPart)
-	{
-		part = GetHeadPart();
-		while (part != NULL)
-		{
-			part->GetValueSet()->SortValues();
-			GetNextPart(part);
-		}
-	}
-
-	// Tri des parties par intervalle croissant pour les attributs continus et
-	// ou par effectif decroissant pour les attributs symboliques ou de type varpart
-	InternalSortParts(KWDGPartCompareValues);
 }
 
 void KWDGAttribute::Write(ostream& ost) const

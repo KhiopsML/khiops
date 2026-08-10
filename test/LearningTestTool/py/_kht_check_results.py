@@ -1491,6 +1491,27 @@ RESILIENCE_USER_MESSAGE_PATTERNS = [
         " external instances",
     ],
     [
+        "error : Database ",
+        " : Record ",
+        " : Not enough memory after reading ",
+    ],
+    [
+        "error : Coclustering ",
+        " : Not enough memory to initialize coclustering optimization data",
+    ],
+    [
+        "error : Coclustering ",
+        " : Not enough memory to start creating coclustering cells",
+    ],
+    [
+        "error : Coclustering ",
+        " : Not enough memory to create coclustering cells",
+    ],
+    [
+        "error : Coclustering ",
+        " : Not enough memory to generate coclustering optimization data",
+    ],
+    [
         "error : KNI ",
         " : Size of dictionary file ",
         ") greater that stream max memory (",

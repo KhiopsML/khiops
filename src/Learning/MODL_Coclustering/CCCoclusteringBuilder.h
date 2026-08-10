@@ -19,6 +19,17 @@ class CCCoclusteringBuilder;
 #include "CCCoclusteringReport.h"
 #include "CCCoclusteringSpec.h"
 
+//DDDDDD TODO
+// Il faut tenir compte de la memoire necessaire pour BuildIndexIngStructure
+// - KWDataGrid::ComputeNecessaryMemoryToBuildIndexingStructure
+// - a exploiter avant la creation des grilles VxV et IxV
+// - InitializeVarPartCells
+//  - exploiter cette emmoire
+//  - controler la memoire au fur et a mesure de la creation des cellules
+// - idem dans le cas VxV
+// - a prendre en compte dans CheckMemoryForDataGridOptimization
+// cf. LearningTest\TestCoclustering\SmallInstability\IV_CoclusteringLimits
+
 /////////////////////////////////////////////////////////////////////////////////
 // Construction et services autour du coclustering
 // Le parametrage est celui de la classe ancetre, a savoir un probleme d'apprentissage
@@ -139,6 +150,16 @@ protected:
 	//
 	// Gestion des valeurs manquantes
 	// - les valeurs manquantes sont gardees et traitees comme les autres valeurs
+	//
+	// Gestion de la memoire
+	// - la premiere etape consiste en la lecture de la base, avec des verifications memoire au fil de l'eau
+	// - les etapes suivante construisent la grille initiale progressivement (attributs, tuples, parties, cellules,
+	//   avec des verification memoire au fil de l'eau
+	//   - ces estimations sont  parfois dans le pire des cas, mais ce n'est pas un probleme etant donne
+	//     que l'etape finale d'optimisation sera tres exigente en memoire
+	// - l'etape finale, une fois la grille initiale construite, consiste a estimer finement une fois pour toutes
+	//   la memoire necessaire pour l'ensemble des donnes de travail pour l'optimisation de la grille
+	// Les methodes retournent false en cas d'erreur ou de probleme memoire, avec des message d'erreur
 
 	// Creation d'une grille initiale de type variables x variables
 	// Renvoie false avec message d'erreur si echec, avec initialDataGrid restant a NULL
@@ -146,10 +167,8 @@ protected:
 
 	// Alimentation d'une table de tuples comportant les attributs a analyser a partir de la base
 	// en tenant compte de l'eventuel attribut d'effectif par enregistrement
-	// Les objets de la base doivent etre charges en memoire et sont liberes au fur et a mesure de leur traitement
+	// Les objets de la base doivent etre charges en memoire. Ils sont liberes au fur et a mesure de leur traitement
 	// pour liberer la memoire des que leur contenu est transfere dans un tuple.
-	// Des verifications de depasssement des capacites memoire sont effectuees regulierement
-	// On renvoie true en cas de succes, false sinon avec un message d'erreur
 	boolean FillStandardTupleTableFromDatabase(KWDatabase* database, KWTupleTable* tupleTable);
 
 	// Renvoie l'effectif associe a un enregistrement, avec eventuellement affichage de warning
@@ -186,7 +205,7 @@ protected:
 	// Mise a jour des statistique descriptives correspondantes
 	// La base entre doit etre chargee en memoire
 	// Les blocs de variables sont exploites de facon sparse pour creer efficacement les attributs internes
-	// On considere ici qu'il n'y a pas de risque de depassement memoire, suite au test ReadDatabaseAndCheckRemainingMemory
+	// Des verifications de depasssement des capacites memoire sont effectuees a chaque variable ou bloc de variables
 	boolean InitializeVarPartAttributeParts(KWDatabase* database, KWDGAttribute* varPartAttribute,
 						ObjectDictionary* odOutputDescriptiveStats);
 
@@ -204,6 +223,7 @@ protected:
 	// La base entre doit etre chargee en memoire
 	// Elle est detruite au fur et a mesure de la creation des cellule et est rendues vide
 	// Les blocs de variables sont exploites de facon sparse pour creer efficacement les cellules
+	// Des verifications de depasssement des capacites memoire sont effectuees regulierement
 	boolean InitializeVarPartCells(KWDatabase* database, KWDataGrid* dataGrid);
 
 	// Supression d'une table de tuples univariee de l'eventuel tuple comportant une valeur donnee
@@ -240,8 +260,18 @@ protected:
 	// Retourne false en cas d'erreur ou si la memoire disponible est insuffisante pour construire la grille initiale.
 	boolean ReadDatabaseAndCheckRemainingMemory(KWDatabase* database) const;
 
+	// Calcul du nombre de valeurs exacts restant dans la base, en tenant compte de blocs sparses
+	// Attention: il s'agit des valeurs non forcement distinctes
+	// Renvoie 0 en cas d'interruption utilisateur
+	longint ComputeDatabaseTotalRemainingValueNumber(KWDatabase* database, int nStartObjectIndex) const;
+
+	// Calcul du nombre de valeurs dans la base pour un bloc sparse donne
+	// Attention: il s'agit des valeurs non forcement distinctes
+	// Renvoie 0 en cas d'interruption utilisateur
+	longint ComputeDatabaseBlockValueNumber(KWDatabase* database, KWAttributeBlock* attributeBlock) const;
+
 	// Verification de la memoire necessaire pour construire une grille initiale a partir d'un nombre de tuples,
-	// qui fournit l'effectif total et le nombre de cellules, dans le cas standard VxV
+	// qui fournit l'effectif total et le nombre de cellules, dans le cas standard variables x variables
 	boolean CheckMemoryForStandardDataGridInitialization(const KWTupleTable* tupleTable) const;
 
 	// Verification de la memoire necessaire pour optimiser le coclustering, la grille initiale etant construite

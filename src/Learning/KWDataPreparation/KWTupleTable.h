@@ -253,10 +253,10 @@ public:
 	longint GetUsedMemory() const override;
 
 	// Estimation de la memoire necessaire pour stocker une table de tuple
-	static longint ComputeNecessaryMemory(int nTupleNumber, int nAttributeNumber);
+	static longint ComputeNecessaryMemory(longint lTupleNumber, int nAttributeNumber);
 
 	// Estimation de la memoire necessaire specifique au chargement d'une table de tuple
-	static longint ComputeNecessaryBuildingMemory(int nTupleNumber);
+	static longint ComputeNecessaryBuildingMemory(longint lTupleNumber);
 
 	// Libelles utilisateurs
 	const ALString GetClassLabel() const override;

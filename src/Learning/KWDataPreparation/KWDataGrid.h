@@ -234,6 +234,9 @@ public:
 	void BuildIndexingStructure() const;
 	void DeleteIndexingStructure() const;
 
+	// Estimation de la memoire necessaire pour la structure d'indexation
+	longint ComputeNecessaryMemoryForIndexingStructure() const;
+
 	// Creation d'une cellule en specifiant le tableau des parties dont il est le N-uplet
 	// La cellule est ajoutes en fin de liste de chacune des parties d'attribut
 	// Renvoie la cellule cree
@@ -615,6 +618,12 @@ public:
 	// Indicateur d'indexation
 	boolean IsIndexed() const;
 
+	// Estimation de la memoire necessaire pour les structures d'indexation
+	longint ComputeNecessaryMemoryForIndexingStructure() const;
+
+	// Estimation de la memoire utilisee par element d'indexation, pour le dimensionnement a priori de la structure d'indexation
+	static longint GetUsedMemoryPerIndexingElement(int nAttributeType);
+
 	// Recherche de la partie contenant une valeur numerique, symbolique ou VarPart
 	// (doit etre compatible avec le type de l'attribut)
 	// Attention a ne pas modifier les valeurs (intervalles ou ensemble de valeurs)
@@ -658,10 +667,6 @@ public:
 
 	// Verification du tri des parties : couteux, a utiliser essentiellement dans les assertions
 	boolean ArePartsSorted() const;
-
-	// Tri des parties par valeur d'abord, effectif ensuite
-	//DDD Peut-etre temporaire?
-	void SortPartsByValues();
 
 	// Affichage
 	void Write(ostream& ost) const override;

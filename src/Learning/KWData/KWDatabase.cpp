@@ -750,8 +750,12 @@ boolean KWDatabase::ReadAll()
 	ObjectArray oaPhysicalMessages;
 	longint lObjectNumber;
 	longint lRecordNumber;
-	const longint lMinObjectRequiredMemory = 16 * lMB;
-	const int nMinObjectNumberForStats = 1000;
+	const int nResheshFrequency = 16;
+	const longint lMinObjectNecessaryMemory = nResheshFrequency * lMB;
+	const int nMinObjectNumberForStats = 256;
+	longint lHeapMemoryBeforeOpen;
+	longint lHeapMemoryAfterOpen;
+	longint lMissingOpenMemory;
 	longint lInitialAvailableRemainingMemory;
 	longint lAvailableRemainingMemoryAfterOpen;
 	longint lAvailableRemainingMemory;
@@ -784,13 +788,14 @@ boolean KWDatabase::ReadAll()
 	assert(kwcClass != NULL);
 	kwcPhysicalClass = kwcClass;
 
-	// Estimation de la memoire necessaire pour ouvir la base
-	lNecessaryOpenMemory = ComputeOpenNecessaryMemory(true, false) + lMinObjectRequiredMemory;
+	// Estimation de la memoire necessaire pour ouvrir la base
+	lNecessaryOpenMemory = ComputeOpenNecessaryMemory(true, false) + lMinObjectNecessaryMemory;
 	if (lAvailableRemainingMemory < lNecessaryOpenMemory)
 	{
 		bOk = false;
-		Object::AddError(sTmp + "Not enough memory to open database" +
-				 RMResourceManager::BuildMissingMemoryMessage(lNecessaryOpenMemory));
+		sMemoryErrorMessage = sTmp + "Not enough memory to open database" +
+				      RMResourceManager::BuildMissingMemoryMessage(lNecessaryOpenMemory);
+		Object::AddError(sMemoryErrorMessage);
 		AddSimpleMessage(RMResourceManager::BuildMemoryLimitMessage());
 	}
 
@@ -798,10 +803,32 @@ boolean KWDatabase::ReadAll()
 	kwcClass = NULL;
 	kwcPhysicalClass = NULL;
 
-	// Ouverture de la base en lecture
+	// Ouverture de la base en lecture, en memorisant la memoire effectivement utilisee pour l'ouverture de la base
+	lHeapMemoryBeforeOpen = RMResourceManager::GetHeapLogicalMemory();
 	if (bOk)
 		bOk = OpenForRead();
+	lHeapMemoryAfterOpen = RMResourceManager::GetHeapLogicalMemory();
 	lAvailableRemainingMemoryAfterOpen = RMResourceManager::GetRemainingAvailableMemory();
+
+	// Analyse de la memoire effectivement utilisee pour ouvrir la base
+	// L'estimation peut-en effet etre peu fiable en cas de dictionnaires complexes
+	if (bOk and lAvailableRemainingMemoryAfterOpen < lMinObjectNecessaryMemory)
+	{
+		bOk = false;
+
+		// Message avec la memoire manquante par rapport a l'estimation initiale
+		lMissingOpenMemory = (lHeapMemoryAfterOpen - lHeapMemoryBeforeOpen) - lInitialAvailableRemainingMemory;
+		assert(lMissingOpenMemory > 0);
+		sMemoryErrorMessage = sTmp + "Not enough memory to open database" +
+				      RMResourceManager::BuildMissingMemoryMessage(lMissingOpenMemory);
+
+		// On ferme la base apres le calcul de la memoire manquante, car on va ici va recuperer de la memoire
+		Close();
+
+		// Emission du message d'erreur une fois la base fermee pour ne pas avoir le record 1 indique dans le message
+		Object::AddError(sMemoryErrorMessage);
+		AddSimpleMessage(RMResourceManager::BuildMemoryLimitMessage());
+	}
 
 	// Lecture d'objets dans la base
 	if (bOk)
@@ -826,55 +853,64 @@ boolean KWDatabase::ReadAll()
 
 			// Test periodique si memoire suffisante
 			// Le premier test est effectue des l'ouverture de la base
-			if (lRecordNumber % 16 == 0)
+			if (lRecordNumber % nResheshFrequency == 0)
 			{
 				lAvailableRemainingMemory = RMResourceManager::GetRemainingAvailableMemory();
 
 				// Test s'il reste assez de memoire pour continuer la lecture immediate
-				if (lAvailableRemainingMemory < lMinObjectRequiredMemory)
+				if (lAvailableRemainingMemory < lMinObjectNecessaryMemory)
 					bOk = false;
-
-				// Test preventif pour la lecture de l'ensemble de toute la base
-				// Uniquement dans le cas sans variable de selection, ou on peut avoir une estimation realiste
-				// de la memoire necessaire pour lire la fin de la base
-				lNecessaryFullReadMemory = 0;
-				if (GetSelectionAttribute() == "" and lRecordNumber % 1024 == 0)
-				{
-					// On ne calcule les stats memoire que s'il y a suffisament d'objets
-					if (lObjectNumber >= nMinObjectNumberForStats)
-					{
-						// On impose egalement une quantite minimum de memoire consommees
-						lObjectsUsedMemory =
-						    lAvailableRemainingMemoryAfterOpen - lAvailableRemainingMemory;
-						if (lObjectsUsedMemory > lMinObjectRequiredMemory)
-						{
-							// Estimation de la memoire necessaire pour lire le reste de la base
-							lNecessaryFullReadMemory =
-							    (longint)(lObjectsUsedMemory * (1 - GetReadPercentage()) /
-								      GetReadPercentage());
-
-							// Test s'il reste assez de memoire pour finir la lecture
-							if (lAvailableRemainingMemory < lNecessaryFullReadMemory)
-								bOk = false;
-						}
-					}
-				}
 
 				// Message d'erreur et arret si probleme memoire
 				if (not bOk)
 				{
-					sMemoryErrorMessage = sTmp + "Not enough remaining memory after reading " +
+					// Test preventif pour la lecture de l'ensemble de toute la base
+					// Uniquement dans le cas sans variable de selection, ou on peut avoir une estimation realiste
+					// de la memoire necessaire pour lire la fin de la base
+					lNecessaryFullReadMemory = 0;
+					if (GetSelectionAttribute() == "")
+					{
+						// On ne calcule les stats memoire que s'il y a suffisament d'objets
+						if (lObjectNumber >= nMinObjectNumberForStats)
+						{
+							// On impose egalement une quantite minimum de memoire consommees
+							lObjectsUsedMemory = lAvailableRemainingMemoryAfterOpen -
+									     lAvailableRemainingMemory;
+							if (lObjectsUsedMemory > lMinObjectNecessaryMemory)
+							{
+								// Estimation de la memoire necessaire pour lire le reste de la base
+								lNecessaryFullReadMemory =
+								    (longint)(lObjectsUsedMemory *
+									      (1 - GetReadPercentage()) /
+									      GetReadPercentage());
+								lNecessaryFullReadMemory =
+								    max(lNecessaryFullReadMemory,
+									lMinObjectNecessaryMemory);
+
+								// Test s'il reste assez de memoire pour finir la lecture
+								if (lAvailableRemainingMemory <
+								    lNecessaryFullReadMemory)
+									bOk = false;
+							}
+						}
+					}
+
+					// Message d'erreur, avec si possible les informations sur le manque de memoire
+					// pour lire le reste de la base
+					sMemoryErrorMessage = sTmp + "Not enough memory after reading " +
 							      LongintToReadableString(lObjectNumber) + " records";
 					sMemoryErrorMessage += sTmp + " and scanning " +
 							       IntToString((int)(100 * GetReadPercentage())) +
 							       "% of the database";
-					sMemoryErrorMessage +=
-					    "; total memory used during reading: " +
-					    RMResourceManager::ActualMemoryToString(lInitialAvailableRemainingMemory -
-										    lAvailableRemainingMemory);
 					if (lNecessaryFullReadMemory > 0)
 						sMemoryErrorMessage += RMResourceManager::BuildMissingMemoryMessage(
 						    lNecessaryFullReadMemory);
+					else
+						sMemoryErrorMessage += " (total memory used during reading: " +
+								       RMResourceManager::ActualMemoryToString(
+									   lAvailableRemainingMemoryAfterOpen -
+									   lAvailableRemainingMemory) +
+								       ")";
 					Object::AddError(sMemoryErrorMessage);
 					AddSimpleMessage(RMResourceManager::BuildMemoryLimitMessage());
 					break;
