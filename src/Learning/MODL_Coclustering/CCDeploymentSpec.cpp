@@ -279,7 +279,7 @@ boolean CCDeploymentSpec::PrepareVarPartCoclusteringDeployment(const CCHierarchi
 		    cast(CCHDGAttribute*, coclusteringDataGrid->SearchAttribute(GetDeployedAttributeName()));
 
 		//////////////////////////////////////////////////////////////////////////////////////
-		// Creation du domaine de dploiement et identification des classe et attributs utiles
+		// Creation du domaine de dploiement et identification des classes et attributs utiles
 
 		// Creation du domaine de deploiement a partir de la classe de deploiement
 		kwcInputClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetInputClassName());

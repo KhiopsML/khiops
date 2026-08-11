@@ -160,7 +160,7 @@ protected:
 	// 	   . si attribut non utilise
 	// 	      . on genere un attribut base sur la regle, avec un nom base sur la regle
 	// 	      . mais on reutilise l'attribut derive existant (meme s'il est en unused),
-	// 	        de facon similaire a la reutilisation des attribut intermediaire (eux aussi en unused)
+	// 	        de facon similaire a la reutilisation des attributs intermediaire (eux aussi en unused)
 	// 	      . autrement dit, on reutilise cet attribut au lieu de generer un attribut intermediaire)
 	//
 	// La methode principale de gestion des collisions est

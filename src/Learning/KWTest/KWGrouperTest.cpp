@@ -593,7 +593,7 @@ int KWSymbolSampleGenerator::GenerateTargetClassIndex(int nSourceModalityIndex, 
 	require(bIsGeneratorCompiled);
 	require(0 <= dRandom and dRandom <= 1);
 
-	// Recherche du vecteur des probabilite conditionnelles cuimulees des classe cible
+	// Recherche du vecteur des probabilite conditionnelles cuimulees des classes cibles
 	// pour cette modalite source
 	dvTargetClassCumulatedConditionalProbs =
 	    cast(DoubleVector*, oaTargetClassCumulatedConditionalProbs.GetAt(nSourceModalityIndex));

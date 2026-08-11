@@ -1342,7 +1342,7 @@ KWDataTableDriver* PLMTDatabaseTextFile::CreateDataTableDriver(KWMTDatabaseMappi
 		dataTableDriver = cast(PLDataTableDriverTextFile*, dataTableDriverCreator->Clone());
 		if (livDataItemLoadIndexes != NULL)
 		{
-			// Initialisation des index des attributs, et des attribut de cle
+			// Initialisation des index des attributs, et des attributs de cle
 			dataTableDriver->GetDataItemLoadIndexes()->CopyFrom(livDataItemLoadIndexes);
 			dataTableDriver->GetMainKeyIndexes()->CopyFrom(ivMainKeyIndexes);
 

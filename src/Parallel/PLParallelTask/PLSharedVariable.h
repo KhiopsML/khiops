@@ -45,7 +45,7 @@ public:
 	void Serialize(PLSerializer*) const;
 	void Deserialize(PLSerializer*);
 
-	// Nettoyage : liberation de la memoire, utile pour les variable partagee complexes
+	// Nettoyage : liberation de la memoire, utile pour les variables partagee complexes
 	// Cette methode est appelee automatiquement
 	//	-avant la de-serialisation
 	//	-apres l'envoi des variables pour liberer la memoire au plus tot

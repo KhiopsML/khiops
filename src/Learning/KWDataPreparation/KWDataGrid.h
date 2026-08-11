@@ -44,7 +44,7 @@ class KWDGInnerAttributes;
 //
 //   - coclustering instances x variables (cf. these de Aichetou)
 //      - pour l'analyse exploratoire d'une base de donnees, en groupa
-//      - extension des data grid, avec un des attribut de type VarPart (extension sous forme de parametrage additionnel
+//      - extension des data grid, avec un des attributs de type VarPart (extension sous forme de parametrage additionnel
 //      de la meme classe)
 //        - un attribut de la grille peut etre soit numerique, soit categoriel, soit constitue de parties de variables
 //        - dans la these d'Aichetou
@@ -180,7 +180,7 @@ public:
 	// avec valeurs cibles a grouper).
 	KWDGAttribute* GetTargetAttribute() const;
 
-	// Indique si la grille est de type instances x variables, car un de ses attribut est de type VarPart
+	// Indique si la grille est de type instances x variables, car un de ses attributs est de type VarPart
 	boolean IsVarPartDataGrid() const;
 
 	// Acces a l'attribut de type VarPart d'un grille si elle de type instances x variables, NULL sinon
@@ -233,6 +233,9 @@ public:
 	// qui permettent de trouver les parties a partir des valeurs dans chaque attribut
 	void BuildIndexingStructure() const;
 	void DeleteIndexingStructure() const;
+
+	// Estimation de la memoire necessaire pour la structure d'indexation
+	longint ComputeNecessaryMemoryForIndexingStructure() const;
 
 	// Creation d'une cellule en specifiant le tableau des parties dont il est le N-uplet
 	// La cellule est ajoutes en fin de liste de chacune des parties d'attribut
@@ -614,6 +617,12 @@ public:
 
 	// Indicateur d'indexation
 	boolean IsIndexed() const;
+
+	// Estimation de la memoire necessaire pour les structures d'indexation
+	longint ComputeNecessaryMemoryForIndexingStructure() const;
+
+	// Estimation de la memoire utilisee par element d'indexation, pour le dimensionnement a priori de la structure d'indexation
+	static longint GetUsedMemoryPerIndexingElement(int nAttributeType);
 
 	// Recherche de la partie contenant une valeur numerique, symbolique ou VarPart
 	// (doit etre compatible avec le type de l'attribut)

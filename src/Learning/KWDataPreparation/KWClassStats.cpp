@@ -295,7 +295,7 @@ boolean KWClassStats::ComputeStats()
 						       attribute);
 						oaTextAttributeStats.Add(attributeStats);
 					}
-					// Rangement dans le tableau et le dictionnaire des attribut standard (attribut
+					// Rangement dans le tableau et le dictionnaire des attributs standards (attribut
 					// initial ou multi-table) sinon
 					else
 					{
@@ -764,7 +764,7 @@ boolean KWClassStats::CheckSelectedDataPreparationStatsSpec() const
 			nRecursivelySelectedDataPreparationStats++;
 	}
 
-	// La verification est correcte si tout le contenu des dictionnaire de specification a etet trouve
+	// La verification est correcte si tout le contenu des dictionnaires de specification a etet trouve
 	bOk = bOk and nSelectedDataPreparationStatsCount == nkdSelectedDataPreparationStats.GetCount();
 	bOk = bOk and nRecursivelySelectedDataPreparationStats == nkdRecursivelySelectedDataPreparationStats.GetCount();
 	return bOk;

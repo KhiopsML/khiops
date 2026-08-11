@@ -37,7 +37,7 @@
   - [10.1. Les classes principales](#101-les-classes-principales)
     - [10.1.1. Classe d’entrée de la bibliothèque parallèle](#1011-classe-dentrée-de-la-bibliothèque-parallèle)
     - [10.1.2. Les variables partagées](#1012-les-variables-partagées)
-    - [10.1.3. Les classe de service](#1013-les-classe-de-service)
+    - [10.1.3. Les classes de service](#1013-les-classes-de-service)
   - [10.2. Les classes d’exemples](#102-les-classes-dexemples)
   - [10.3. Les classes techniques](#103-les-classes-techniques)
   - [10.4. Les classes techniques MPI](#104-les-classes-techniques-mpi)
@@ -485,7 +485,7 @@ Exemple de variable partagée :
 
 - PLShared_SampleObject
 
-### 10.1.3. Les classe de service
+### 10.1.3. Les classes de service
 
 - PLSerializer : service de de/sérialisation pour tous les types simples.
 - RMParallelResourceManager : Gestionnaire de ressources

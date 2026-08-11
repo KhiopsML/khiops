@@ -17,7 +17,7 @@ class KWPredictionAttributeSpec;
 // Predicteur issu de l'apprentissage, sous la forme d'un dictionnaire de deploiement
 // Permet d'identifier certain attribut de prediction parmi les attributs du dictionnaire.
 // Ces attributs sont tagues via des meta-donnees, qui seront utilisee lors de la relecture
-// des dictionnaire pour reperer les attributs de prediction
+// des dictionnaires pour reperer les attributs de prediction
 class KWTrainedPredictor : public Object
 {
 public:

@@ -497,7 +497,7 @@ boolean KWAttributeBlock::Check() const
 			}
 		}
 
-		// Verification de la coherence entre de type de cles des variable du bloc et celui de la regle
+		// Verification de la coherence entre de type de cles des variables du bloc et celui de la regle
 		if (bOk and kwdrRule->GetVarKeyType() != GetVarKeyType())
 		{
 			AddError("Rule " + kwdrRule->GetName() + " with var key type " +
@@ -553,7 +553,7 @@ KWIndexedKeyBlock* KWAttributeBlock::BuildAttributesIndexedKeyBlock(NumericKeyDi
 		attributesIndexedCKeyBlock = new KWIndexedCKeyBlock;
 		attributesIndexedKeyBlock = attributesIndexedCKeyBlock;
 
-		// Parcours des attribut du bloc pour les enregistrer dans le dictionnaire par VarKey
+		// Parcours des attributs du bloc pour les enregistrer dans le dictionnaire par VarKey
 		// et collecter les cles dans un vecteur
 		parentClass = GetParentClass();
 		attribute = firstAttribute;
@@ -594,7 +594,7 @@ KWIndexedKeyBlock* KWAttributeBlock::BuildAttributesIndexedKeyBlock(NumericKeyDi
 		attributesIndexedNKeyBlock = new KWIndexedNKeyBlock;
 		attributesIndexedKeyBlock = attributesIndexedNKeyBlock;
 
-		// Parcours des attribut du bloc pour les enregistrer dans le dictionnaire par VarKey
+		// Parcours des attributs du bloc pour les enregistrer dans le dictionnaire par VarKey
 		// et collecter les cles dans un vecteur
 		parentClass = GetParentClass();
 		attribute = firstAttribute;
@@ -649,7 +649,7 @@ void KWAttributeBlock::SortAttributesByVarKey()
 	// Cas de cles categorielles
 	if (GetVarKeyType() == KWType::Symbol)
 	{
-		// Parcours des attribut du bloc pour les enregistrer dans le dictionnaire par VarKey
+		// Parcours des attributs du bloc pour les enregistrer dans le dictionnaire par VarKey
 		// et collecter les cles dans un vecteur
 		parentClass = GetParentClass();
 		attribute = firstAttribute;

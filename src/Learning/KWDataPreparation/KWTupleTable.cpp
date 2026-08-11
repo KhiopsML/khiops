@@ -146,6 +146,27 @@ void KWTupleTable::DeleteAll()
 	nTotalFrequency = 0;
 }
 
+void KWTupleTable::DeleteAt(int nIndex)
+{
+	KWTuple* tuple;
+
+	require(not GetUpdateMode());
+	require(0 <= nIndex and nIndex < GetSize());
+
+	// Recherche du tuple a detruire
+	tuple = cast(KWTuple*, oaTuples.GetAt(nIndex));
+
+	// Mise a jour de l'effectif global
+	nTotalFrequency -= tuple->GetFrequency();
+	nSize--;
+
+	// Supression du tu tuple du tableau
+	oaTuples.RemoveAt(nIndex);
+
+	// Destruction du tuple
+	delete tuple;
+}
+
 void KWTupleTable::Sort()
 {
 	CompareFunction compareFunction;
@@ -547,32 +568,34 @@ longint KWTupleTable::GetUsedMemory() const
 	lUsedMemory += ivAttributeTypes.GetUsedMemory() - sizeof(IntVector);
 	lUsedMemory += oaTuples.GetUsedMemory() - sizeof(ObjectArray);
 	lUsedMemory += oaTuples.GetSize() * (sizeof(KWTuple) + (GetAttributeNumber() - 1) * sizeof(KWValue));
+	if (slTuples != NULL)
+		lUsedMemory += slTuples->GetUsedMemory();
 	return lUsedMemory;
 }
 
-longint KWTupleTable::ComputeNecessaryMemory(int nTupleNumber, int nAttributeNumber)
+longint KWTupleTable::ComputeNecessaryMemory(longint lTupleNumber, int nAttributeNumber)
 {
 	longint lNecessaryMemory;
 
-	require(nTupleNumber >= 0);
+	require(lTupleNumber >= 0);
 	require(nAttributeNumber >= 0);
 
 	// Memoire necessaire pour le stockage de la table
 	lNecessaryMemory = sizeof(KWTupleTable);
 	lNecessaryMemory += nAttributeNumber * (sizeof(ALString) + 20 + sizeof(int));
-	lNecessaryMemory += nTupleNumber * (sizeof(void*) + sizeof(KWTuple) + (nAttributeNumber - 1) * sizeof(KWValue));
+	lNecessaryMemory += lTupleNumber * (sizeof(void*) + sizeof(KWTuple) + (nAttributeNumber - 1) * sizeof(KWValue));
 	return lNecessaryMemory;
 }
 
-longint KWTupleTable::ComputeNecessaryBuildingMemory(int nTupleNumber)
+longint KWTupleTable::ComputeNecessaryBuildingMemory(longint lTupleNumber)
 {
 	longint lNecessaryMemory;
 	SortedList slTmp(ObjectCompare);
 
-	require(nTupleNumber >= 0);
+	require(lTupleNumber >= 0);
 
 	// Memoire necessaire pour l'alimentation de la table au moyen de la liste triee
-	lNecessaryMemory = slTmp.GetUsedMemory() + nTupleNumber * slTmp.GetUsedMemoryPerElement();
+	lNecessaryMemory = slTmp.GetUsedMemory() + lTupleNumber * slTmp.GetUsedMemoryPerElement();
 	return lNecessaryMemory;
 }
 

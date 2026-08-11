@@ -254,7 +254,7 @@ void KWMTDatabase::UpdateMultiTableMappings()
 			// Par exemple, le dictionnaire principal est systematique identifie par un data path vide,
 			// et si on en change, comme par exemple en passant a une table externe, c'est ce
 			// dictionnaire Root associe a la table externe qui sera identifie par un data path vide.
-			// Il faut donc parcourir se base sur la comparaison du dictionnaire et des attribut du mapping
+			// Il faut donc parcourir se base sur la comparaison du dictionnaire et des attributs du mapping
 			// pour faire l'appariement correct
 			for (j = 0; j < mappingManager.GetMappingNumber(); j++)
 			{
@@ -629,7 +629,7 @@ boolean KWMTDatabase::CheckObjectConsistency() const
 			{
 				check(attribute->GetClass());
 
-				// Propagation aux classes des attribut natifs
+				// Propagation aux classes des attributs natifs
 				rule = attribute->GetAnyDerivationRule();
 				if (rule == NULL)
 				{

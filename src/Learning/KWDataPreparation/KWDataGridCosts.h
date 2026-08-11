@@ -45,7 +45,7 @@ public:
 	// Calcul du cout local d'un DataGrid, en fonction de taille de la grille (en cellules) et
 	// du nombre d'attribut informatifs
 	//  La taille de la grille est donnee par son log, pour ne pas depasser les limites informatiques
-	//  Les attribut informatif sont ceux ayant strictement plus de une partie
+	//  Les attributs informatifs sont ceux ayant strictement plus de une partie
 	virtual double ComputeDataGridCost(const KWDataGrid* dataGrid, double dLnGridSize,
 					   int nInformativeAttributeNumber) const;
 

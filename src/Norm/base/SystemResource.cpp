@@ -667,8 +667,8 @@ int SystemGetProcessorNumber()
 	const int nLineSize = 4096;
 	const int nMaxProcIds = 1024;
 	char sLine[nLineSize];
-	const int nNumberSize = 9;
-	char sNumber[nNumberSize];
+	const int nNumberSize = 10;
+	char sNumber[nNumberSize + 1];
 	int vProcIds[nMaxProcIds];
 	int bOk;
 	int nCoresNumber;
@@ -725,7 +725,7 @@ int SystemGetProcessorNumber()
 				j = 0;
 				while (c != '\n' and c != '\0')
 				{
-					if (j > nNumberSize)
+					if (j >= nNumberSize)
 					{
 						bOk = false;
 						break;
@@ -763,7 +763,7 @@ int SystemGetProcessorNumber()
 				j = 0;
 				while (c != '\n' and c != '\0')
 				{
-					if (j > nNumberSize)
+					if (j >= nNumberSize)
 					{
 						bOk = false;
 						break;
@@ -931,8 +931,8 @@ longint MemGetFreePhysicalMemory()
 	char c;
 	longint lMemFree = -1;
 	longint lCached = -1;
-	int nNumberSize = 9;
-	char sNumber[nNumberSize];
+	int nNumberSize = 10;
+	char sNumber[nNumberSize + 1];
 	int bOk;
 
 	bOk = true;
@@ -972,7 +972,7 @@ longint MemGetFreePhysicalMemory()
 				j = 0;
 				while (c != ' ' and c != '\0' and c != 'k')
 				{
-					if (j > nNumberSize)
+					if (j >= nNumberSize)
 					{
 						bOk = false;
 						break;
@@ -1013,7 +1013,7 @@ longint MemGetFreePhysicalMemory()
 				j = 0;
 				while (c != ' ' and c != '\0' and c != 'k')
 				{
-					if (j > nNumberSize)
+					if (j >= nNumberSize)
 					{
 						bOk = false;
 						break;

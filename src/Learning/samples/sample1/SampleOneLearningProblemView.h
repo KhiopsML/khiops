@@ -25,7 +25,7 @@ public:
 	// Affichage des attributs de la classe
 	void ShowClass();
 
-	// Affichage des valeurs des attribut d'un objet
+	// Affichage des valeurs des attributs d'un objet
 	void ShowObject();
 
 	// Ecriture d'un rapport de statistiques descriptives

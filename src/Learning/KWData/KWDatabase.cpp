@@ -750,6 +750,19 @@ boolean KWDatabase::ReadAll()
 	ObjectArray oaPhysicalMessages;
 	longint lObjectNumber;
 	longint lRecordNumber;
+	const int nResheshFrequency = 16;
+	const longint lMinObjectNecessaryMemory = nResheshFrequency * lMB;
+	const int nMinObjectNumberForStats = 256;
+	longint lHeapMemoryBeforeOpen;
+	longint lHeapMemoryAfterOpen;
+	longint lMissingOpenMemory;
+	longint lInitialAvailableRemainingMemory;
+	longint lAvailableRemainingMemoryAfterOpen;
+	longint lAvailableRemainingMemory;
+	longint lNecessaryOpenMemory;
+	longint lNecessaryFullReadMemory;
+	longint lObjectsUsedMemory;
+	ALString sMemoryErrorMessage;
 	ALString sTmp;
 
 	require(GetClassName() != "");
@@ -765,8 +778,57 @@ boolean KWDatabase::ReadAll()
 	// Destruction des objets en cours
 	DeleteAll();
 
-	// Ouverture de la base en lecture
-	bOk = OpenForRead();
+	// Memoire disponible initiale, avant le debut de la lecture
+	lInitialAvailableRemainingMemory = RMResourceManager::GetRemainingAvailableMemory();
+	lAvailableRemainingMemory = lInitialAvailableRemainingMemory;
+
+	// Recherche de la classe le temps de l'estimation, en prenant une classe physique egale a la classe logique
+	// pour avoir des elements de dimensionnement heuristiques
+	kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
+	assert(kwcClass != NULL);
+	kwcPhysicalClass = kwcClass;
+
+	// Estimation de la memoire necessaire pour ouvrir la base
+	lNecessaryOpenMemory = ComputeOpenNecessaryMemory(true, false) + lMinObjectNecessaryMemory;
+	if (lAvailableRemainingMemory < lNecessaryOpenMemory)
+	{
+		bOk = false;
+		sMemoryErrorMessage = sTmp + "Not enough memory to open database" +
+				      RMResourceManager::BuildMissingMemoryMessage(lNecessaryOpenMemory);
+		Object::AddError(sMemoryErrorMessage);
+		AddSimpleMessage(RMResourceManager::BuildMemoryLimitMessage());
+	}
+
+	// Reinitialisation avant l'ouverture
+	kwcClass = NULL;
+	kwcPhysicalClass = NULL;
+
+	// Ouverture de la base en lecture, en memorisant la memoire effectivement utilisee pour l'ouverture de la base
+	lHeapMemoryBeforeOpen = RMResourceManager::GetHeapLogicalMemory();
+	if (bOk)
+		bOk = OpenForRead();
+	lHeapMemoryAfterOpen = RMResourceManager::GetHeapLogicalMemory();
+	lAvailableRemainingMemoryAfterOpen = RMResourceManager::GetRemainingAvailableMemory();
+
+	// Analyse de la memoire effectivement utilisee pour ouvrir la base
+	// L'estimation peut-en effet etre peu fiable en cas de dictionnaires complexes
+	if (bOk and lAvailableRemainingMemoryAfterOpen < lMinObjectNecessaryMemory)
+	{
+		bOk = false;
+
+		// Message avec la memoire manquante par rapport a l'estimation initiale
+		lMissingOpenMemory = (lHeapMemoryAfterOpen - lHeapMemoryBeforeOpen) - lInitialAvailableRemainingMemory;
+		assert(lMissingOpenMemory > 0);
+		sMemoryErrorMessage = sTmp + "Not enough memory to open database" +
+				      RMResourceManager::BuildMissingMemoryMessage(lMissingOpenMemory);
+
+		// On ferme la base apres le calcul de la memoire manquante, car on va ici va recuperer de la memoire
+		Close();
+
+		// Emission du message d'erreur une fois la base fermee pour ne pas avoir le record 1 indique dans le message
+		Object::AddError(sMemoryErrorMessage);
+		AddSimpleMessage(RMResourceManager::BuildMemoryLimitMessage());
+	}
 
 	// Lecture d'objets dans la base
 	if (bOk)
@@ -776,6 +838,86 @@ boolean KWDatabase::ReadAll()
 		lObjectNumber = 0;
 		while (not IsEnd())
 		{
+			assert(bOk);
+
+			// Suivi de la tache
+			if (TaskProgression::IsRefreshNecessary(lRecordNumber))
+			{
+				TaskProgression::DisplayProgression((int)(100 * GetReadPercentage()));
+				DisplayReadTaskProgressionLabel(lRecordNumber, lObjectNumber);
+
+				// Test d'interruption utilisateur, sans mettre le bOk a false pour distringuer le cas des erreurs
+				if (TaskProgression::IsInterruptionRequested())
+					break;
+			}
+
+			// Test periodique si memoire suffisante
+			// Le premier test est effectue des l'ouverture de la base
+			if (lRecordNumber % nResheshFrequency == 0)
+			{
+				lAvailableRemainingMemory = RMResourceManager::GetRemainingAvailableMemory();
+
+				// Test s'il reste assez de memoire pour continuer la lecture immediate
+				if (lAvailableRemainingMemory < lMinObjectNecessaryMemory)
+					bOk = false;
+
+				// Message d'erreur et arret si probleme memoire
+				if (not bOk)
+				{
+					// Test preventif pour la lecture de l'ensemble de toute la base
+					// Uniquement dans le cas sans variable de selection, ou on peut avoir une estimation realiste
+					// de la memoire necessaire pour lire la fin de la base
+					lNecessaryFullReadMemory = 0;
+					if (GetSelectionAttribute() == "")
+					{
+						// On ne calcule les stats memoire que s'il y a suffisament d'objets
+						if (lObjectNumber >= nMinObjectNumberForStats)
+						{
+							// On impose egalement une quantite minimum de memoire consommees
+							lObjectsUsedMemory = lAvailableRemainingMemoryAfterOpen -
+									     lAvailableRemainingMemory;
+							if (lObjectsUsedMemory > lMinObjectNecessaryMemory)
+							{
+								// Estimation de la memoire necessaire pour lire le reste de la base
+								lNecessaryFullReadMemory =
+								    (longint)(lObjectsUsedMemory *
+									      (1 - GetReadPercentage()) /
+									      GetReadPercentage());
+								lNecessaryFullReadMemory =
+								    max(lNecessaryFullReadMemory,
+									lMinObjectNecessaryMemory);
+
+								// Test s'il reste assez de memoire pour finir la lecture
+								if (lAvailableRemainingMemory <
+								    lNecessaryFullReadMemory)
+									bOk = false;
+							}
+						}
+					}
+
+					// Message d'erreur, avec si possible les informations sur le manque de memoire
+					// pour lire le reste de la base
+					sMemoryErrorMessage = sTmp + "Not enough memory after reading " +
+							      LongintToReadableString(lObjectNumber) + " records";
+					sMemoryErrorMessage += sTmp + " and scanning " +
+							       IntToString((int)(100 * GetReadPercentage())) +
+							       "% of the database";
+					if (lNecessaryFullReadMemory > 0)
+						sMemoryErrorMessage += RMResourceManager::BuildMissingMemoryMessage(
+						    lNecessaryFullReadMemory);
+					else
+						sMemoryErrorMessage += " (total memory used during reading: " +
+								       RMResourceManager::ActualMemoryToString(
+									   lAvailableRemainingMemoryAfterOpen -
+									   lAvailableRemainingMemory) +
+								       ")";
+					Object::AddError(sMemoryErrorMessage);
+					AddSimpleMessage(RMResourceManager::BuildMemoryLimitMessage());
+					break;
+				}
+			}
+
+			// Lecture d'un objet
 			kwoObject = Read();
 			lRecordNumber++;
 			if (kwoObject != NULL)
@@ -796,13 +938,6 @@ boolean KWDatabase::ReadAll()
 					break;
 				}
 			}
-			// Arret si interruption utilisateur
-			else if (TaskProgression::IsInterruptionRequested())
-			{
-				assert(kwoObject == NULL);
-				bOk = false;
-				break;
-			}
 
 			// Arret si erreur
 			if (IsError())
@@ -811,18 +946,11 @@ boolean KWDatabase::ReadAll()
 				Object::AddError("Read database interrupted because of errors");
 				break;
 			}
-
-			// Suivi de la tache
-			if (TaskProgression::IsRefreshNecessary(lRecordNumber))
-			{
-				TaskProgression::DisplayProgression((int)(100 * GetReadPercentage()));
-				DisplayReadTaskProgressionLabel(lRecordNumber, lObjectNumber);
-			}
 		}
 		Global::DesactivateErrorFlowControl();
 
 		// Test si interruption sans qu'il y ait d'erreur
-		if (not IsError() and TaskProgression::IsInterruptionRequested())
+		if (bOk and TaskProgression::IsInterruptionRequested())
 		{
 			bOk = false;
 			Object::AddWarning("Read database interrupted by user");
@@ -2059,7 +2187,7 @@ void KWDatabase::BuildPhysicalClass()
 
 				// Verification de coherence
 				// Le nombre d'attributs charges du bloc physique peut etre plus grand que celui du bloc
-				// initial, s'il faut lire des attribut physiques non utilise, mais necessaire pour
+				// initial, s'il faut lire des attributs physiques non utilise, mais necessaire pour
 				// effectuer des calculs Attention, le nombre d'attributs charges du bloc physique peut
 				// aussi plus petit que celui du bloc initial, s'il n'est pas necessaire de lire un
 				// attribut physique, mais que l'attribut initial correspondant est utilise dans une
@@ -2153,7 +2281,7 @@ void KWDatabase::BuildPhysicalClass()
 						}
 					}
 				}
-				// Prise en compte des attribut de type relation natif, pour propagation des calculs
+				// Prise en compte des attributs de type relation natif, pour propagation des calculs
 				else if (KWType::IsRelation(attribute->GetType()))
 				{
 					// Ajout dans les attributs a calculer
@@ -2268,7 +2396,7 @@ void KWDatabase::ComputeUnusedNativeAttributesToKeep(const NumericKeyDictionary*
 		oaNeededClasses.SetCompareFunction(KWClassCompareName);
 		oaNeededClasses.Sort();
 
-		// Affichagges des classe necessaires
+		// Affichage des classes necessaires
 		cout << "ComputeUnusedNativeAttributesToKeep\n";
 		cout << "  Necessary classes\t" << nkdNeededClasses->GetCount() << "\n";
 		for (nClass = 0; nClass < oaNeededClasses.GetSize(); nClass++)
@@ -2404,7 +2532,7 @@ void KWDatabase::DeletePhysicalClass()
 	// Nettoyage du dictionnaire des classes de mutation
 	nkdMutationClasses.RemoveAll();
 
-	// Nettoyage du dictionnaire des attribut natif non utilises a detruire
+	// Nettoyage du dictionnaire des attributs natifs non utilises a detruire
 	nkdUnusedNativeAttributesToKeep.RemoveAll();
 }
 
@@ -2428,7 +2556,7 @@ void KWDatabase::MutatePhysicalObject(KWObject* kwoPhysicalObject) const
 	// necessairement les champs de la cle en multi-table, alors qu'ils sont potentiellement
 	// absent de l'objet logique si les champs de la cle sont en unused
 	if (memoryGuard.IsMemoryLimitReached() or memoryGuard.IsMaxSecondaryRecordNumberReached() or
-	    memoryGuard.IsMaxCreatedRecordNumberReached())
+	    memoryGuard.IsMaxCreatedRecordNumberReached() or memoryGuard.GetMemoryCleaningNumber() > 0)
 	{
 		// On se base sur la cle de l'objet s'il y en a une
 		if (kwoPhysicalObject->GetClass()->IsKeyLoaded())
@@ -2436,8 +2564,6 @@ void KWDatabase::MutatePhysicalObject(KWObject* kwoPhysicalObject) const
 			objectKey.InitializeFromObject(kwoPhysicalObject);
 			memoryGuard.SetMainObjectKey(objectKey.GetObjectLabel());
 		}
-
-		kwoPhysicalObject->GetObjectLabel();
 	}
 
 	// Trace avant mutation

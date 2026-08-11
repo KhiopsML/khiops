@@ -841,7 +841,7 @@ PLSolution* RMParallelResourceManager::BuildInitialSolution() const
 	// Construction des bornes pour la definition des classes de machines
 	if (bHugeDensity)
 	{
-		// Pour les tests on definit les classe par pas de 1 Mo
+		// Pour les tests on definit les classes par pas de 1 Mo
 		lBound = 512 * lKB;
 		while (lBound <= 512 * lGB)
 		{

@@ -138,12 +138,10 @@ void CCLearningProblem::BuildCoclustering()
 	KWAttributeName* attributeName;
 	const ALString sDefaultOwnerAttributeName = "Variables";
 	ALString sOwnerAttributeName;
-	KWAttribute* identifierAttribute;
+	KWAttribute* identifierAttribute = NULL;
 	ALString sReportFileName;
 	Timer timer;
 	boolean bWriteOk;
-	KWClassDomain* currentDomain = NULL;
-	KWClassDomain* constructedDomain = NULL;
 	CCDeploymentSpec ccVarPartDeploymentSpec;
 	ALString sCoclusteringDictionaryFileName;
 	ALString sMessage;
@@ -155,6 +153,10 @@ void CCLearningProblem::BuildCoclustering()
 	require(CheckCoclusteringSpecifications());
 	require(CheckResultFileNames(TaskBuildCoclustering));
 	require(not TaskProgression::IsStarted());
+
+	// Recherche de la classe
+	kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
+	check(kwcClass);
 
 	// Demarrage du suivi de la tache
 	// Cas d'un coclustering variable * variable
@@ -181,15 +183,8 @@ void CCLearningProblem::BuildCoclustering()
 	if (GetDatabase()->IsMultiTableTechnology())
 		cast(KWMTDatabase*, GetDatabase())->DisplayMultiTableMappingWarnings();
 
-	// Initialisations
-	kwcClass = NULL;
-
 	// Demarrage du timer
 	timer.Start();
-
-	// Recherche de la classe
-	kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
-	check(kwcClass);
 
 	// Parametrage des attributs de la base a lire
 	kwcClass->SetAllAttributesLoaded(false);
@@ -197,7 +192,7 @@ void CCLearningProblem::BuildCoclustering()
 	// Cas d'un coclustering variable * variable : mode non expert ou type de coclustering demande a l'interface
 	if (not analysisSpec->GetVarPartCoclustering())
 	{
-		// Preparation des attribut a charger dans la classe
+		// Preparation des attributs a charger dans la classe
 		for (nAttribute = 0; nAttribute < analysisSpec->GetCoclusteringSpec()->GetAttributeNames()->GetSize();
 		     nAttribute++)
 		{
@@ -252,28 +247,18 @@ void CCLearningProblem::BuildCoclustering()
 			    "without taking into account the variables coclustering parameters (coclustering variables "
 			    "names or frequency variable name).");
 
-		// Preparation du domaine pour la nouvelle classe
-		constructedDomain = kwcClass->GetDomain()->CloneFromClass(kwcClass);
-
-		// Remplacement du domaine courant par le domaine de selection
-		currentDomain = KWClassDomain::GetCurrentDomain();
-		KWClassDomain::SetCurrentDomain(constructedDomain);
-
-		// Remplacement de la classe courante par la classe enrichie
-		kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
-		check(kwcClass);
-
 		// Mise a priori de tous les attributs en Unloaded
 		kwcClass->SetAllAttributesLoaded(false);
 
 		// Insertion d'un attribut identifiant en distiguant la presence d'une ou plusieurs cles pour la variable Identifier
+		// On garde la meme classe pour eviter de dupliquer la classe est son domaine, ce qui peut etre exigeant en memoire
+		// dans les cas de classes ayant de tres grands nombres d'attriburs
 		identifierAttribute = InsertIdentifierAttribute(kwcClass);
+		assert(identifierAttribute != NULL);
+		assert(identifierAttribute->GetUsed());
 
 		// Ajout du nom de l'attribut dans les specifications
 		coclusteringBuilder.SetIdentifierAttributeName(identifierAttribute->GetName());
-
-		assert(identifierAttribute != NULL);
-		assert(identifierAttribute->GetUsed());
 
 		// On passe l'attribut identifiant en Loaded
 		identifierAttribute->SetLoaded(true);
@@ -403,18 +388,13 @@ void CCLearningProblem::BuildCoclustering()
 	// Fin de la gestion des erreurs dediees a l'apprentissage
 	KWLearningErrorManager::EndErrorCollection();
 
-	// Cas d'un domaine construit
-	if (constructedDomain != NULL)
-	{
-		// Restauration de l'etat initial
-		assert(currentDomain != NULL);
-		KWClassDomain::SetCurrentDomain(currentDomain);
-		delete constructedDomain;
-		kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
-		check(kwcClass);
-	}
-
 	// Nettoyage
+	if (identifierAttribute != NULL)
+	{
+		assert(analysisSpec->GetVarPartCoclustering());
+		assert(kwcClass->LookupAttribute(identifierAttribute->GetName()) == identifierAttribute);
+		kwcClass->DeleteAttribute(identifierAttribute->GetName());
+	}
 	kwcClass->SetAllAttributesLoaded(true);
 	KWClassDomain::GetCurrentDomain()->Compile();
 

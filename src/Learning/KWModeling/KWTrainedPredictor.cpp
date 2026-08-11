@@ -489,7 +489,7 @@ boolean KWTrainedPredictor::Check() const
 			odCheckPredictionAttributes.SetAt(attributeSpec->GetLabel(), attributeSpec);
 		}
 
-		// Parcours des attribut de la classe du predicteur
+		// Parcours des attributs de la classe du predicteur
 		attribute = predictorClass->GetHeadAttribute();
 		while (attribute != NULL)
 		{

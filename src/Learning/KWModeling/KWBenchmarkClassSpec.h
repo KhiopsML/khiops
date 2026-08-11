@@ -43,7 +43,7 @@ public:
 
 	// Gestion des classes dans le domaine de classe temporaires
 	// Utile notamment pour l'edition d'un mapping dans le cas multi-tables
-	// La lecture des classe se fait en mode silencieux, car elle se fait potentiellement souvent
+	// La lecture des classes se fait en mode silencieux, car elle se fait potentiellement souvent
 	// Elle est bufferisee par le nom du fichier de classe, et n'est effectuee qu'en cas de changement
 	void ReadClasses();
 	void DropClasses();

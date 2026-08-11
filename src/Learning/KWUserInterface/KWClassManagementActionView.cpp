@@ -338,8 +338,8 @@ void KWClassManagementActionView::RefreshHelpLists()
 	}
 
 	// Parametrage des classes stockables en premier, avec ligne blanche prealable
-	// comme pour le style "EditableComboBox" utilise dans les boites de dialogues
-	// ou la liste des dictionnaire est connue a l'avance
+	// comme pour le style "EditableComboBox" utilise dans les boites de dialogue
+	// ou la liste des dictionnaires est connue a l'avance
 	if (svClassNames.GetSize() > 0)
 	{
 		classNameHelpList->AddItem();

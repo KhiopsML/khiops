@@ -139,7 +139,7 @@ public:
 	int GetLoadedAttributeNumber() const;
 	KWAttribute* GetLoadedAttributeAt(int nIndex) const;
 
-	// Index d'un attribut charge en memoire selon l'ordre des attributs dans le bloc, selon son index pparse dans le bloc
+	// Index d'un attribut charge en memoire selon l'ordre des attributs dans le bloc, selon son index sparse dans le bloc
 	int GetLoadedAttributeIndexAtSparseIndex(int nSparseIndex) const;
 
 	// Ensemble des cles d'attribut (VarKey) pour les attributs du blocs charges en memoire

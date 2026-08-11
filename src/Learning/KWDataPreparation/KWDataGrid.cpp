@@ -161,6 +161,7 @@ void KWDataGrid::DeleteAll()
 
 	// Destruction des valeurs cibles
 	svTargetValues.SetSize(0);
+	ensure(IsEmpty());
 }
 
 void KWDataGrid::DeleteAllCells()
@@ -275,6 +276,22 @@ void KWDataGrid::DeleteIndexingStructure() const
 		attribute = GetAttributeAt(nAttribute);
 		attribute->DeleteIndexingStructure();
 	}
+}
+
+longint KWDataGrid::ComputeNecessaryMemoryForIndexingStructure() const
+{
+	longint lNecessaryMemory;
+	int nAttribute;
+	KWDGAttribute* attribute;
+
+	// Estimation par attribut
+	lNecessaryMemory = 0;
+	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
+	{
+		attribute = GetAttributeAt(nAttribute);
+		lNecessaryMemory += attribute->ComputeNecessaryMemoryForIndexingStructure();
+	}
+	return lNecessaryMemory;
 }
 
 KWDGCell* KWDataGrid::AddCell(ObjectArray* oaParts)
@@ -894,7 +911,7 @@ longint KWDataGrid::GetUsedMemory() const
 	lUsedMemory = sizeof(KWDataGrid);
 	lUsedMemory += svTargetValues.GetUsedMemory();
 
-	// Prise en compte des attribut (et leurs parties)
+	// Prise en compte des attributs (et leurs parties)
 	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
 	{
 		dgAttribute = GetAttributeAt(nAttribute);
@@ -2681,6 +2698,58 @@ void KWDGAttribute::DeleteIndexingStructure() const
 	}
 }
 
+longint KWDGAttribute::ComputeNecessaryMemoryForIndexingStructure() const
+{
+	longint lNecessaryMemory;
+	KWDGPart* part;
+	longint lValueNumber;
+	int nInnerAttribute;
+
+	require(KWType::IsCoclusteringType(GetAttributeType()));
+	require(Check());
+
+	// Cas numerique: un element d'indexation par partie
+	if (GetAttributeType() == KWType::Continuous)
+		lNecessaryMemory = GetPartNumber() * GetUsedMemoryPerIndexingElement(GetAttributeType());
+	// Cas groupable: un element d'indexation par valeur
+	else
+	{
+		// Parcours des parties pour compter le nombre de valeurs
+		lValueNumber = 0;
+		part = headPart;
+		while (part != NULL)
+		{
+			lValueNumber += part->GetValueSet()->GetValueNumber();
+			part = part->nextPart;
+		}
+		lNecessaryMemory = lValueNumber * GetUsedMemoryPerIndexingElement(GetAttributeType());
+
+		// Indexation des attributs internes dans le cas d'un attribut VarPart
+		if (GetAttributeType() == KWType::VarPart)
+		{
+			for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber(); nInnerAttribute++)
+				lNecessaryMemory +=
+				    GetInnerAttributeAt(nInnerAttribute)->ComputeNecessaryMemoryForIndexingStructure();
+		}
+	}
+	return lNecessaryMemory;
+}
+
+longint KWDGAttribute::GetUsedMemoryPerIndexingElement(int nAttributeType)
+{
+	ObjectArray oaTemplate;
+	NumericKeyDictionary nkdTemplate;
+
+	require(KWType::IsCoclusteringType(nAttributeType));
+
+	// Cas numerique: les intervalles sont ranges dans un tableau
+	if (nAttributeType == KWType::Continuous)
+		return oaTemplate.GetUsedMemoryPerElement();
+	// Cas groupable: les valeur sont dans un dictionnaire
+	else
+		return nkdTemplate.GetUsedMemoryPerElement();
+}
+
 KWDGPart* KWDGAttribute::LookupContinuousPart(Continuous cValue) const
 {
 	int nIndex;
@@ -2992,9 +3061,9 @@ boolean KWDGAttribute::Check() const
 
 	// Verification du nombre de valeurs initiales et granularisees
 	// et de leur coherence avec nPartNumber
-	if (nInitialValueNumber < 0)
+	if (nInitialValueNumber < nPartNumber)
 	{
-		AddError("Initial value number must be greater than 0");
+		AddError("Initial value number must be greater than part number");
 		bOk = false;
 	}
 	else if (nGranularizedValueNumber < 0)
@@ -3032,7 +3101,7 @@ boolean KWDGAttribute::Check() const
 			bOk = false;
 		}
 
-		// Test de compatibilite entre du nombre initial de valeurs et du nombre total de partie des attribut internes
+		// Test de compatibilite entre du nombre initial de valeurs et du nombre total de partie des attributs internes
 		if (bOk and nInitialValueNumber != innerAttributes->ComputeTotalInnerAttributeVarParts())
 		{
 			AddError(
@@ -5193,7 +5262,7 @@ boolean KWDGInnerAttributes::ContainsSubVarParts(const KWDGInnerAttributes* othe
 
 	require(otherInnerAttributes != NULL);
 
-	// Cas particulier oou les variable internes en parametre sont les memes
+	// Cas particulier oou les variables internes en parametre sont les memes
 	if (otherInnerAttributes == this)
 		return true;
 

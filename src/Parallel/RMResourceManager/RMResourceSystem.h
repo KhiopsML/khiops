@@ -98,8 +98,8 @@ public:
 							longint lDiskFreeSpace, int nSystemConfig);
 
 	// Cree un ensemble artificiel de resources pour les tests.
-	// Les machines ont toute sles memes ressources, pour creer des classe differentes on fait varier le nombre de
-	// processeurs.
+	// Les machines ont toute sles memes ressources, pour creer des classes differentes
+	// on fait varier le nombre de processeurs.
 	static RMResourceSystem* CreateSyntheticClusterWithClasses(int nHostNumber, int nProcNumber,
 								   longint lPhysicalMemory, longint lDiskFreeSpace,
 								   int bClassNumber);

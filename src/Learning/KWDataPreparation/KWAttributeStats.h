@@ -183,7 +183,7 @@ protected:
 	// Resultats de discretisation non supervise MODL
 	KWMODLHistogramResults* modlHistogramResults;
 
-	// Calsle en friend pour les variable partagees des methodes parallelisees
+	// Calsle en friend pour les variables partagees des methodes parallelisees
 	friend class PLShared_AttributeStats;
 };
 

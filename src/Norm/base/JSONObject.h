@@ -23,7 +23,7 @@ class JSONMember;
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe JSONValue
-// Classe ancetre des classe de gestion d'une valeur json
+// Classe ancetre des classes de gestion d'une valeur json
 class JSONValue : public Object
 {
 public:

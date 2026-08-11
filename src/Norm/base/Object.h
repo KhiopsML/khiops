@@ -596,7 +596,7 @@ struct GDAssoc : public SystemObject
 
 //////////////////////////////////////////////////////////////////////
 // Dictionaire generique
-// Classe ancetre de toutes les classe dictionnaires
+// Classe ancetre de toutes les classes dictionnaires
 // Les dictionnaires sont differencies selon:
 //  . le type de cle: String ou NUMERIC
 //  . le type de valeur: Object* ou longint

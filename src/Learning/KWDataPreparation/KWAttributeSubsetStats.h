@@ -119,6 +119,10 @@ protected:
 	// Le suivi d'avancement est gere, pour une tache pilotee par CreateDataGrid
 
 	// Creation des partitions (en intervalles ou valeurs) d'un attribut de DataGrid
+	// Si la table de tuple en entree est univariee, elle doit etre triee
+	// - par valeur corissante dans le cas Continuous
+	// - par effectif decroissant, puis par valeur dans le cas categoriel
+	// Les effectifs ne sont pas specifies dans les partition creees
 	// Renvoie true si correctement initialisee, false sinon
 	virtual boolean CreateAttributeIntervals(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute);
 	virtual boolean CreateAttributeValueSets(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute);

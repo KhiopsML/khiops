@@ -77,7 +77,7 @@ public:
 	// Filtrage en mettant a 0 les effectifs des caracteres dont l'effectif dans le filtre est strictement positif
 	void FilterChars(const KWCharFrequencyVector* cfvFilteredChars);
 
-	// Filtrage en mettant a 0 les effectifs des caracteres donc l'effectif n'atteint pas le seuil en parametre
+	// Filtrage en mettant a 0 les effectifs des caracteres dont l'effectif n'atteint pas le seuil en parametre
 	void FilterBelowFrequency(int nFrequencyThreshold);
 
 	// Addition d'un autre vecteur d'effectif

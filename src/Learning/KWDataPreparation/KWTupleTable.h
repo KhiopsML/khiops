@@ -175,6 +175,11 @@ public:
 	// Destruction de tous les tuples
 	void DeleteAll();
 
+	// Destruction d'un tuple, avec mise a jour de l'effectif total
+	// // L'eventuelle mise a jour du nombre de valeurs manquantes sparses est a la charge de l'appelant
+	// Attention: en O(n)
+	void DeleteAt(int nIndex);
+
 	/////////////////////////////////////////////////////////////////////////////////////
 	// Fonctionnalite de tri (en mode consultation)
 
@@ -193,13 +198,13 @@ public:
 	// Modification de la tables de tuples (en mode edition)
 
 	// Parametrage du mode edition
-	// La fin du mode edition rend les tuple de la table accessible par index
+	// La fin du mode edition rend les tuples de la table accessible par index
 	void SetUpdateMode(boolean bValue);
 	boolean GetUpdateMode() const;
 
 	// Acces a un tuple d'entree, disponible editer les valeurs et l'effectif d'un tuple a ajouter dans la table
 	// N'est disponible qu'en phase d'edition, en etant initialise (a 0 ou "" selon les valeurs, avec un effectif
-	// par defaut de 1) La mise a jour des tuple se fait alors en editant ce tuple, puis en enregistrant sa
+	// par defaut de 1) La mise a jour des tuples se fait alors en editant ce tuple, puis en enregistrant sa
 	// contribution dans la table Memoire: appartient a l'appele
 	KWTuple* GetInputTuple() const;
 
@@ -214,7 +219,7 @@ public:
 	// Services divers
 
 	// Construction d'une table de tuples univariee a partir d'une table de tuples comportant l'attribut
-	// Memoire: la table de tuple en sortie appartien a l'appele
+	// Memoire: la table de tuple en sortie appartient a l'appele
 	void BuildUnivariateTupleTable(const ALString& sAttributeName, KWTupleTable* outputTupleTable) const;
 
 	// Tri selon un attribut d'un tableau de tuples extraits de la table courante
@@ -248,10 +253,10 @@ public:
 	longint GetUsedMemory() const override;
 
 	// Estimation de la memoire necessaire pour stocker une table de tuple
-	static longint ComputeNecessaryMemory(int nTupleNumber, int nAttributeNumber);
+	static longint ComputeNecessaryMemory(longint lTupleNumber, int nAttributeNumber);
 
 	// Estimation de la memoire necessaire specifique au chargement d'une table de tuple
-	static longint ComputeNecessaryBuildingMemory(int nTupleNumber);
+	static longint ComputeNecessaryBuildingMemory(longint lTupleNumber);
 
 	// Libelles utilisateurs
 	const ALString GetClassLabel() const override;

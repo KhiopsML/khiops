@@ -97,7 +97,7 @@ public:
 	// Parametrage des noms de tous les champs natifs
 	StringVector* GetNativeFieldNames();
 
-	// Calcul des index de la cle a partir des noms des attributs de la cle et des attribut natif,
+	// Calcul des index de la cle a partir des noms des attributs de la cle et des attributs natifs,
 	// en utilisant (ou non) les champs de la premiere ligne de la base.
 	// Si la ligne d'entete est utilisee, les index de la cle sont calcules par rapport au champs de l'entete
 	// Sinon, le nombre de champs de l'entete doit etre le meme que le nombre d'attributs natifs,

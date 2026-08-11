@@ -138,7 +138,7 @@ boolean KDDataPreparationAttributeCreationTask::CheckPreparedAttributes(KWLearni
 		if (KWType::IsSimple(attribute->GetType()) and
 		    attribute->GetName() != learningSpec->GetTargetAttributeName())
 		{
-			// Recherche d'une preparation dans les dictionnaire en entree et sortie
+			// Recherche d'une preparation dans les dictionnaires en entree et sortie
 			// Erreur si presente deux fois
 			if (odInputAttributeStats->Lookup(attribute->GetName()) != NULL and
 			    odOutputAttributeStats.Lookup(attribute->GetName()) != NULL)
