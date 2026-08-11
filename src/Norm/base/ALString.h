@@ -121,7 +121,7 @@ protected:
 
 	// Methodes internes
 	void Init();
-	void AllocCopy(ALString& dest, int nCopyLen, int nCopyIndex, int nExtraLen) const;
+	void AllocCopy(ALString& dest, int nCopyLen, int nCopyIndex) const;
 	void AllocBuffer(int nLen);
 	void AssignCopy(int nSrcLen, const char* pszSrcData);
 	void ConcatCopy(int nSrc1Len, const char* pszSrc1Data, int nSrc2Len, const char* pszSrc2Data);
