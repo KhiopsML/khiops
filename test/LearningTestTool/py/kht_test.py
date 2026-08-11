@@ -12,6 +12,7 @@ import time
 import argparse
 
 import _kht_constants as kht
+import _kht_cloud_utils as cloud_utils
 import _kht_utils as utils
 import _kht_families as test_families
 import _kht_results_management as results
@@ -370,6 +371,10 @@ def evaluate_tool_on_test_dir(
             )
             return
 
+        # Nettoyage des resultats sur le cloud si le repertoire de test est cloudifie
+        if cloud_utils.is_cloudified_test_dir(test_dir):
+            cloud_utils.clean_cloud_results_dir(test_dir)
+
         # Nettoyage du repertoire de resultats
         results_dir = os.path.join(test_dir, kht.RESULTS)
         if os.path.isdir(results_dir):
@@ -458,10 +463,14 @@ def evaluate_tool_on_test_dir(
         if not user_interface:
             khiops_params.append("-b")
         khiops_params.append("-i")
-        khiops_params.append(kht.TEST_PRM)
-        if os.path.isfile(kht.TEST_JSON):
-            khiops_params.append("-j")
-            khiops_params.append(kht.TEST_JSON)
+        # test-cloud.prm prend la precedence: JSON deja integre, chemins cloud deja substitues
+        if os.path.isfile(kht.TEST_CLOUD_PRM):
+            khiops_params.append(kht.TEST_CLOUD_PRM)
+        else:
+            khiops_params.append(kht.TEST_PRM)
+            if os.path.isfile(kht.TEST_JSON):
+                khiops_params.append("-j")
+                khiops_params.append(kht.TEST_JSON)
         khiops_params.append("-e")
         khiops_params.append(os.path.join(results_dir, kht.ERR_TXT))
         if output_scenario:
@@ -709,9 +718,15 @@ def evaluate_tool_on_test_dir(
     else:
         os.environ["LD_LIBRARY_PATH"] = initial_path
 
-    # Comparaison des resultats
+    # Comparaison des resultats (sauf sur le cloud ou on n'a pas acces aux resultats)
     os.chdir(suite_dir)
-    check.check_results(test_dir)
+    if tool_exe_path != kht.ALIAS_CHECK and cloud_utils.is_cloudified_test_dir(
+        test_dir
+    ):
+        print("--Comparison skipped: results are in the cloud")
+        print("")
+    else:
+        check.check_results(test_dir)
 
 
 def evaluate_tool_on_suite_dir(
