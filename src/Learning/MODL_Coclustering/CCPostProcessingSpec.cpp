@@ -130,7 +130,7 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 	boolean bMerge;
 
 	require(postProcessedCoclusteringDataGrid != NULL);
-	require(postProcessedCoclusteringDataGrid->GetAttributeNumber() > 0);
+	require(postProcessedCoclusteringDataGrid->GetAttributeNumber() >= 0);
 	require(postProcessedCoclusteringDataGrid->Check());
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
@@ -308,7 +308,8 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 		sFrequencyAttributeName = coclusteringDataGrid.GetFrequencyAttributeName();
 
 		// Information sur les attributs de coclustering
-		nCellNumber = 1;
+		if (coclusteringDataGrid.GetAttributeNumber() > 0)
+			nCellNumber = 1;
 		nTotalPartNumber = 0;
 		for (nAttribute = 0; nAttribute < coclusteringDataGrid.GetAttributeNumber(); nAttribute++)
 		{
@@ -364,6 +365,15 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 		if (bSameCoclustering)
 			CopyFrom(&refPostProcessingSpec);
 	}
+
+	// Affichage de warning dans le cas d'un coclustering vide ou nul
+	// Cas d'un coclustering de type modele nul
+	if (GetCellNumber() == 1)
+		AddWarning("The input coclustering is not informative");
+
+	// Cas d'un coclustering vide
+	else if (GetCellNumber() == 0)
+		AddWarning("The input coclustering is empty");
 }
 
 void CCPostProcessingSpec::ResetCoclusteringConstraints()
