@@ -1477,7 +1477,12 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::Initialize(int nChunk, KWClass* r
 	}
 
 	// Finalisation de l'initialisation du layout physique
-	physicalLayout.FinishInitialization();
+	if (bOk)
+		physicalLayout.FinishInitialization();
+
+	// Nettoyage si echec
+	if (not bOk)
+		CleanWorkingData();
 
 	ensure(not bOk or IsInitialized());
 	ensure(not bOk or Check());
@@ -1613,6 +1618,7 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeBlockFromSliceSetAt(
 	double dProgressPercentSlice;
 	longint lLoadedSparseValueNumber;
 	longint lOverflowSparseValueNumber;
+	longint lOverflowSparseNeccessaryMemory;
 	int nChunkInstance;
 	KWObject* kwoPartIndices;
 	int nSliceAttribute;
@@ -1675,8 +1681,8 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeBlockFromSliceSetAt(
 	}
 
 	// Lecture des attributs de la slice courante depuis le KWDataTableSliceSet en entree
-	lLoadedSparseValueNumber = 0ll;
-	lOverflowSparseValueNumber = 0ll;
+	lLoadedSparseValueNumber = 0;
+	lOverflowSparseValueNumber = 0;
 	if (bOk)
 	{
 		for (nChunkInstance = 0; nChunkInstance < nChunkInstanceNumber; nChunkInstance++)
@@ -1801,9 +1807,13 @@ boolean SNBDataTableBinarySliceSetChunkBuffer::InitializeBlockFromSliceSetAt(
 		if (bReadOverflow)
 		{
 			assert(lOverflowSparseValueNumber >= 1);
-			AddError(
-			    "Not enough memory to recode database for Selective Naive Bayes predictor training" +
-			    RMResourceManager::BuildMissingMemoryMessage(lOverflowSparseValueNumber * sizeof(int)));
+
+			// On veut indiquer a l'utilisateur le manque de memoire du aux donnees sparses, en plus de la memoire
+			// restante disponible qui n'est pas necessairement nulle ici
+			lOverflowSparseNeccessaryMemory =
+			    RMResourceManager::GetRemainingAvailableMemory() + lOverflowSparseValueNumber * sizeof(int);
+			AddError("Not enough memory to recode database for Selective Naive Bayes predictor training" +
+				 RMResourceManager::BuildMissingMemoryMessage(lOverflowSparseNeccessaryMemory));
 			bOk = false;
 		}
 	}
@@ -2281,17 +2291,18 @@ longint SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
 		}
 
 		// Mise-a-jour de le nombre max
-		if (lMaxSliceSparseValueNumber < lSliceSparseValueNumber)
-			lMaxSliceSparseValueNumber = lSliceSparseValueNumber;
+		lMaxSliceSparseValueNumber = max(lMaxSliceSparseValueNumber, lSliceSparseValueNumber);
 	}
 
 	// Facteur de slack pour le calcul du max de valeurs sparse du bloc :
 	// le facteur de memoire sparse par chunk (memoire max par inst/ memoire moyenne par inst) +1 pour precaution
+	// Plus le nombre moyen d'instances par chunk pour precaution additionnelle en cas de faible nombre moyen de valeurs sparse
 	// Sur-estimee dans le cas d'un seul chunk (il n'y pas besoin de slack dans ce cas la)
 	dSlackFactor = 1 + dSparseChunkMemoryFactor;
 
 	// Memoire necessaire pour la matrice des index de recodage
 	lSlackedGlobalSliceSparseValueNumber = longint(lMaxSliceSparseValueNumber * dSlackFactor);
+	lSlackedGlobalSliceSparseValueNumber += nInstanceNumber / nChunkNumber;
 	lIndexMatrixNecessaryMemory =
 	    (longint(nDenseAttributeNumber) * nInstanceNumber / nSliceNumber + lSlackedGlobalSliceSparseValueNumber) *
 	    sizeof(int);

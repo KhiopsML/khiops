@@ -19,17 +19,6 @@ class CCCoclusteringBuilder;
 #include "CCCoclusteringReport.h"
 #include "CCCoclusteringSpec.h"
 
-//DDDDDD TODO
-// Il faut tenir compte de la memoire necessaire pour BuildIndexIngStructure
-// - KWDataGrid::ComputeNecessaryMemoryToBuildIndexingStructure
-// - a exploiter avant la creation des grilles VxV et IxV
-// - InitializeVarPartCells
-//  - exploiter cette emmoire
-//  - controler la memoire au fur et a mesure de la creation des cellules
-// - idem dans le cas VxV
-// - a prendre en compte dans CheckMemoryForDataGridOptimization
-// cf. LearningTest\TestCoclustering\SmallInstability\IV_CoclusteringLimits
-
 /////////////////////////////////////////////////////////////////////////////////
 // Construction et services autour du coclustering
 // Le parametrage est celui de la classe ancetre, a savoir un probleme d'apprentissage
