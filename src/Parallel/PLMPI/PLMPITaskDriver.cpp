@@ -534,7 +534,7 @@ void PLMPITaskDriver::InitializeResourceSystem()
 			bIsTmpDirOk = serializer.GetBoolean();
 
 			serializer.Close();
-			assert(lUsedPhysicalMemory != 0LL);
+			assert(lUsedPhysicalMemory != 0);
 			if (lSlaveHeap < lUsedPhysicalMemory)
 				lSlaveHeap = lUsedPhysicalMemory;
 

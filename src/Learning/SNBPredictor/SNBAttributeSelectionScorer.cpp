@@ -441,7 +441,7 @@ longint SNBAttributeSelectionScorer::ComputeNecessaryMemory(int nInstanceNumber,
 			    nInstanceNumber, nTargetValueNumber);
 	}
 	else
-		lDataCostCalculatorMemory = 0ll;
+		lDataCostCalculatorMemory = 0;
 
 	// Formule pour l'estimation:
 	//   Objets direts de l'instance +

@@ -265,7 +265,8 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeResourceRequirements
 	GetResourceRequirements()->GetMasterRequirement()->GetMemory()->Set(lMasterMemory);
 	GetResourceRequirements()->GetGlobalSlaveRequirement()->GetMemory()->SetMin(lGlobalSlaveMinMemory);
 	GetResourceRequirements()->GetGlobalSlaveRequirement()->GetMemory()->SetMax(lGlobalSlaveMaxMemory);
-	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->Set(lSlaveMemory);
+	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMin(lSlaveMemory);
+	GetResourceRequirements()->GetSlaveRequirement()->GetMemory()->SetMax(lSlaveMemory * 2);
 	GetResourceRequirements()->GetMasterRequirement()->GetDisk()->Set(lMasterDisk);
 	GetResourceRequirements()->GetGlobalSlaveRequirement()->GetDisk()->Set(lGlobalSlaveDisk);
 	GetResourceRequirements()->GetSlaveRequirement()->GetDisk()->Set(lSlaveDisk);
@@ -485,10 +486,10 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeGlobalSlaveNecessary
 	lGlobalSlaveMemory =
 	    lGlobalBinarySliceSetChunkBufferMemory + max(lGlobalDataCostCalculatorMemory - lRecodingObjectsMemory, 0ll);
 
-	// NB: Cette chiffre est sur-estimee dans le cas de plus d'un esclave. La vraie quantite necessaire est
+	// NB: Ce chiffre est sur-estime dans le cas de plus d'un esclave. La vraie quantite necessaire est
 	//
 	//   lTrueGlobalSlaveMemory = lGlobalBinarySliceSetBufferMemory
-	//                            + max(lGlobalDataCostCalculatorMemory - nSlaveNumber * lRecodingObjectsMemory, 0ll)
+	//                            + max(lGlobalDataCostCalculatorMemory - nSlaveNumber * lRecodingObjectsMemory, 0LL)
 	//
 	// car chaque esclave demande un dictionnaire.
 	// Neanmoins, si l'on prends notre l'estimation avec M slices en tant demande minimal de memoire on a la garantie que pour
@@ -1003,7 +1004,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 			//   - [memoire des attributs denses du bloc]
 			//
 			lNonBufferSlaveGlobalMemory =
-			    max(0ll,
+			    max(0LL,
 				ComputeGlobalSlaveScorerNecessaryMemory() -
 				    ComputeRecodingObjectsNecessaryMemory(lDataTableSliceSetTotalReadBufferMemory)) /
 			    nSlaveProcessNumber;
@@ -1075,7 +1076,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeDataTableBi
 		cout << endl;
 	}
 
-	ensure(shared_lMaxSparseValuesPerBlock >= 0ll);
+	ensure(shared_lMaxSparseValuesPerBlock >= 0LL);
 	ensure(not bOk or IsMasterDataTableBinarySliceSetInitialized());
 	ensure(not bOk or masterBinarySliceSet->Check());
 
