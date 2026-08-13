@@ -33,3 +33,9 @@ target_include_directories(base PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 if(NOT MSVC)
   target_link_libraries(base PUBLIC ${CMAKE_DL_LIBS})
 endif(NOT MSVC)
+
+# Added "-framework AppKit" and the required Objective-C runtime libraries to link options on macOS, needed for the
+# objc_msgSend / dispatch_async calls in UIUnit.cpp.
+if(APPLE)
+  target_link_libraries(base PUBLIC "-framework CoreFoundation" "-framework AppKit")
+endif()

@@ -4,6 +4,7 @@
 
 #define UIDEV
 #include "UserInterface.h"
+#include "MacosGUI.h"
 
 const ALString UIObject::GetClassLabel() const
 {
@@ -1140,6 +1141,9 @@ JNIEnv* UIObject::GetJNIEnv()
 		vm_iargs.nOptions = nOptionNumber;
 		vm_iargs.ignoreUnrecognized = JNI_FALSE;
 
+		// macOS: Positionne JAVA_STARTED_ON_FIRST_THREAD_<pid> pour que l'AWT utilise le thread courant comme EDT
+		MacosSetJavaStartedOnFirstThread();
+
 		// Lancement de la JVM
 		res = -1;
 		res = ptrCreateJavaVM(&jvm, (void**)&env, &vm_iargs);
@@ -1180,13 +1184,7 @@ JNIEnv* UIObject::GraphicGetJNIEnv()
 	static boolean bGraphicIsLoaded = false;
 
 	cls = 0;
-
-#ifdef __APPLE__
-	Global::AddError("Java", "GUI", "Java GUI is not available on MacOS");
-	env = NULL;
-#else
 	env = GetJNIEnv();
-#endif
 
 	if (env != NULL and not bGraphicIsLoaded)
 	{
@@ -2215,9 +2213,12 @@ void UIObject::InitializeMessageManagers()
 		    Error::GetDisplayErrorFunction() == Error::GetDefaultDisplayErrorFunction())
 			Error::SetDisplayErrorFunction(UIObjectDisplayErrorFunction);
 
+#ifndef __APPLE__
 		// Parametrage du gestionnaire de suivi de progression
+		// Installe UITaskProgression; sur macOS, l'installation est differee apres le lancement de la boucle AppKit
 		if (TaskProgression::GetManager() == NULL and not TaskProgression::IsStarted())
 			TaskProgression::SetManager(UITaskProgression::GetManager());
+#endif
 	}
 	// Parametrage en mode textuel
 	else
