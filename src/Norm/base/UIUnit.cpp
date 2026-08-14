@@ -4,6 +4,7 @@
 
 #define UIDEV
 #include "UserInterface.h"
+#include "MacosGUI.h"
 
 boolean UIUnit::Check() const
 {
@@ -385,7 +386,6 @@ void UIUnit::Open()
 	// Ouverture de la fenetre, selon le mode (inutile si action Exit rejouee)
 	if (not bActionExit)
 	{
-		// Mode graphique
 		if (GetUIMode() == Graphic)
 		{
 			JNIEnv* env;
@@ -404,10 +404,13 @@ void UIUnit::Open()
 			// Recherche de la methode open
 			mid = GraphicGetMethodID(cls, "GUIUnit", "open", "()V");
 
+#ifdef __APPLE__
 			// Appel de la methode JAVA open, qui sera executee dans un nouveau thread
 			// et provoquera la suite de l'execution de la methode C++ courante
+			MacosOpenGUIUnit(env, guiObject, mid);
+#else
 			env->CallVoidMethod(guiObject, mid);
-
+#endif
 			// On libere l'objet fiche cote Java, et sa classe
 			env->DeleteLocalRef(guiObject);
 			env->DeleteLocalRef(cls);

@@ -1100,9 +1100,15 @@ import javax.swing.SwingUtilities;
         private static Stack<GUIUnit> openedGUIUnitsStack = new Stack<GUIUnit>();
 
         /**
-         * Verrou de fermeture gestion des fenetres
+         * Verrou utilise sur les plateformes non-macOS (thread non-EDT) pour attendre la fermeture de la fenetre
          */
         Object closeLock = null;
+
+        /**
+         * Boucle secondaire utilisee sur macOS (thread EDT) pour traiter les evenements AppKit tout en attendant la
+         * fermeture
+         */
+        private java.awt.SecondaryLoop secondaryLoop = null;
 
         /**
          * Initialise et ouvre l'unite Gestion de la synchronisation entre Java et C++,
@@ -1160,10 +1166,9 @@ import javax.swing.SwingUtilities;
                 // Ouverture dans le cas standard
                 addTrace("Open start");
 
-                // Creation du verrou
-                closeLock = new Object();
-
                 // Creation et ouverture de la fenetre
+                // openGUI est appele directement sur le thread appelant (hors AWT EDT sur macOS
+                // avec jniThread) pour que l'EDT reste libre lors des callbacks AppKit
                 openGUI(parentOpenedFrame);
                 addTrace("openGUI finished: frame " + frame.getTitle());
 
@@ -1171,39 +1176,55 @@ import javax.swing.SwingUtilities;
                 assert (frame != null);
                 openedGUIUnitsStack.push(this);
 
-                // Creation d'un thread de synchronisation, permettant d'attendre la fermeture
-                // de la fenetre
-                Thread closeThread = new Thread() {
-                        public void run()
-                        {
-                                synchronized (closeLock) {
-                                        addTrace("close lock thread start: " + frame.getTitle() + " " +
-                                                 frame.isVisible());
-                                        while (frame.isVisible())
-                                                try {
-                                                        closeLock.wait();
-                                                } catch (InterruptedException e) {
-                                                }
-                                        addTrace("close lock thread stop: " + frame.getTitle() + " " +
-                                                 frame.isVisible());
+                // Sur macOS avec -XstartOnFirstThread, open() est appele depuis l'EDT :
+                // on utilise une SecondaryLoop pour traiter les evenements AppKit tout en attendant la
+                // fermeture.
+                if (SwingUtilities.isEventDispatchThread()) {
+                        java.awt.EventQueue eq = java.awt.Toolkit.getDefaultToolkit().getSystemEventQueue();
+                        secondaryLoop = eq.createSecondaryLoop();
+                        addTrace("secondary loop enter");
+                        secondaryLoop.enter();
+                        addTrace("secondary loop exit");
+                        secondaryLoop = null;
+                } else {
+                        // Sur les autres plateformes, open() est appele depuis un thread non-EDT :
+                        // utiliser un thread de fermeture classique synchronise via closeLock.
+
+                        // Creation du verrou
+                        closeLock = new Object();
+
+                        // Creation d'un thread de synchronisation, permettant d'attendre la fermeture de la fenetre
+                        Thread closeThread = new Thread() {
+                                public void run()
+                                {
+                                        synchronized (closeLock) {
+                                                addTrace("close lock thread start: " + frame.getTitle() + " " +
+                                                         frame.isVisible());
+                                                while (frame.isVisible())
+                                                        try {
+                                                                closeLock.wait();
+                                                        } catch (InterruptedException e) {
+                                                        }
+                                                addTrace("close lock thread stop: " + frame.getTitle() + " " +
+                                                         frame.isVisible());
+                                        }
                                 }
+                        };
+
+                        // Lancement du thread de synchronisation de la fermeture
+                        try {
+                                closeThread.start();
+                        } catch (Exception ex) {
                         }
-                };
+                        // Attente de la fin du thread
+                        try {
+                                closeThread.join();
+                        } catch (Exception ex) {
+                        }
 
-                // Lancement du thread de synchronisation de la fermeture
-                try {
-                        closeThread.start();
-                } catch (Exception ex) {
+                        // On remet le verrou a null
+                        closeLock = null;
                 }
-
-                // Attente de la fin du thread
-                try {
-                        closeThread.join();
-                } catch (Exception ex) {
-                }
-
-                // On remet le verrou a null
-                closeLock = null;
 
                 // On depile de la liste des frames ouverte
                 GUIUnit popedGUIUnit;
@@ -1405,17 +1426,23 @@ import javax.swing.SwingUtilities;
                                 }
                                 addTrace("windowClosing after execute " + exitAction);
 
-                                // On ferme la fenetre en gerant le verrou de synchronisation
-                                synchronized (parentRoot.closeLock) {
-                                        addTrace("windowClosing notify");
-                                        // Memorisation de la position affichee
-                                        lastVisibleLocationX =
-                                          parentRoot.frame.getX() + parentRoot.frame.getWidth() / 2;
-                                        lastVisibleLocationY =
-                                          parentRoot.frame.getY() + parentRoot.frame.getHeight() / 2;
-                                        // Fermeture de la fenetre
-                                        parentRoot.frame.dispose();
-                                        parentRoot.closeLock.notify();
+                                // Memorisation de la position affichee
+                                lastVisibleLocationX = parentRoot.frame.getX() + parentRoot.frame.getWidth() / 2;
+                                lastVisibleLocationY = parentRoot.frame.getY() + parentRoot.frame.getHeight() / 2;
+                                // Fermeture de la fenetre
+                                parentRoot.frame.dispose();
+                                // Deblocage de open() : secondaryLoop sur macOS (EDT), closeLock sur les autres
+                                // plateformes
+                                if (parentRoot.secondaryLoop != null) {
+                                        // MacOS
+                                        addTrace("windowClosing secondary loop exit");
+                                        parentRoot.secondaryLoop.exit();
+                                } else {
+                                        // Linux/windows
+                                        synchronized (parentRoot.closeLock) {
+                                                addTrace("windowClosing notify");
+                                                parentRoot.closeLock.notify();
+                                        }
                                 }
                                 addTrace("closeGUI " + getLabel() + " stop");
                         }
