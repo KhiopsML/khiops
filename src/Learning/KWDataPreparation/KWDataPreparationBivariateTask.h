@@ -179,7 +179,7 @@ protected:
 	KWClassStats* masterClassStats;
 
 	// Ensemble de toutes preparations univariee en entree de la tache
-	ObjectArray* oaMasterInputAttributeStats;
+	const ObjectArray* oaMasterInputAttributeStats;
 
 	// Ensemble des resultats de preparations bivariees pour toutes les paires d'attribut analysees
 	// Ces resultats seront rendu directement a l'appelant de la tache
