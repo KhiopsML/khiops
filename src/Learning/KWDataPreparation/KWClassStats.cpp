@@ -26,6 +26,7 @@ KWClassStats::KWClassStats()
 	dataTableSliceSet = NULL;
 	svSymbolTargetValues = NULL;
 	cvContinuousTargetValues = NULL;
+	CleanWorkingData();
 }
 
 KWClassStats::~KWClassStats()
@@ -435,14 +436,14 @@ boolean KWClassStats::ComputeStats()
 	return bIsStatsComputed;
 }
 
-ObjectArray* KWClassStats::GetAllPreparedStats()
+const ObjectArray* KWClassStats::GetAllPreparedStats() const
 {
 	require(IsStatsComputed());
 
 	return &oaAllPreparedStats;
 }
 
-ObjectArray* KWClassStats::GetAttributeStats()
+const ObjectArray* KWClassStats::GetAttributeStats() const
 {
 	require(IsStatsComputed());
 
@@ -456,21 +457,21 @@ KWAttributeStats* KWClassStats::LookupAttributeStats(const ALString& sAttributeN
 	return cast(KWAttributeStats*, odAttributeStats.Lookup(sAttributeName));
 }
 
-ObjectArray* KWClassStats::GetAttributePairStats()
+const ObjectArray* KWClassStats::GetAttributePairStats() const
 {
 	require(IsStatsComputed());
 
 	return &oaAttributePairStats;
 }
 
-ObjectArray* KWClassStats::GetTextAttributeStats()
+const ObjectArray* KWClassStats::GetTextAttributeStats() const
 {
 	require(IsStatsComputed());
 
 	return &oaTextAttributeStats;
 }
 
-ObjectArray* KWClassStats::GetTreeAttributeStats()
+const ObjectArray* KWClassStats::GetTreeAttributeStats() const
 {
 	require(IsStatsComputed());
 
@@ -492,26 +493,28 @@ int KWClassStats::GetConstructedAttributeNumber() const
 {
 	KWAttributeStats* attributeStats;
 	KWAttribute* attribute;
-	int nConstructedAttributeNumber;
 	int nAttribute;
 
 	require(IsStatsComputed());
 
-	// Comptage des attributs construit
-	nConstructedAttributeNumber = 0;
-	for (nAttribute = 0; nAttribute < oaAttributeStats.GetSize(); nAttribute++)
+	// Comptage des attributs construits si necessaire
+	if (nConstructedAttributeNumber == -1)
 	{
-		attributeStats = cast(KWAttributeStats*, oaAttributeStats.GetAt(nAttribute));
-		assert(attributeStats->GetAttributeNumber() == 1);
-		assert(KWType::IsSimple(attributeStats->GetAttributeType()));
-
-		// Attribut construit s'il possede une regle de derivation avec cout non nul
-		attribute = GetClass()->LookupAttribute(attributeStats->GetAttributeName());
-		if (attribute != NULL and attribute->GetAnyDerivationRule() != NULL)
+		nConstructedAttributeNumber = 0;
+		for (nAttribute = 0; nAttribute < oaAttributeStats.GetSize(); nAttribute++)
 		{
-			// Tous les attributs construits (regle utilisateur ou construction automatique)
-			// sont pris en compte: plus facile a interpreter pour l'utilisateur final
-			nConstructedAttributeNumber++;
+			attributeStats = cast(KWAttributeStats*, oaAttributeStats.GetAt(nAttribute));
+			assert(attributeStats->GetAttributeNumber() == 1);
+			assert(KWType::IsSimple(attributeStats->GetAttributeType()));
+
+			// Attribut construit s'il possede une regle de derivation avec cout non nul
+			attribute = GetClass()->LookupAttribute(attributeStats->GetAttributeName());
+			if (attribute != NULL and attribute->GetAnyDerivationRule() != NULL)
+			{
+				// Tous les attributs construits (regle utilisateur ou construction automatique)
+				// sont pris en compte: plus facile a interpreter pour l'utilisateur final
+				nConstructedAttributeNumber++;
+			}
 		}
 	}
 	return nConstructedAttributeNumber;
@@ -519,40 +522,55 @@ int KWClassStats::GetConstructedAttributeNumber() const
 
 int KWClassStats::GetTotalInformativeAttributeNumber() const
 {
-	int nInformativeAttributeNumber;
-
 	require(IsStatsComputed());
 
-	// Comptage des attributs informatifs
-	nInformativeAttributeNumber = ComputeInformativeDataPreparationStats(&oaAllPreparedStats);
-	assert(nInformativeAttributeNumber == GetInformativeAttributeNumber() + GetInformativeTextAttributeNumber() +
-						  GetInformativeTreeAttributeNumber() +
-						  GetInformativeAttributePairNumber());
-	return nInformativeAttributeNumber;
+	// Comptage du nombre total d'attributs informatifs si necessaire
+	if (nTotalInformativeAttributeNumber == -1)
+		nTotalInformativeAttributeNumber = ComputeInformativeDataPreparationStats(&oaAllPreparedStats);
+	assert(nTotalInformativeAttributeNumber ==
+	       GetInformativeAttributeNumber() + GetInformativeTextAttributeNumber() +
+		   GetInformativeTreeAttributeNumber() + GetInformativeAttributePairNumber());
+	return nTotalInformativeAttributeNumber;
 }
 
 int KWClassStats::GetInformativeAttributeNumber() const
 {
 	require(IsStatsComputed());
-	return ComputeInformativeDataPreparationStats(&oaAttributeStats);
+
+	// Comptage des attributs informatifs si necessaire
+	if (nInformativeAttributeNumber == -1)
+		nInformativeAttributeNumber = ComputeInformativeDataPreparationStats(&oaAttributeStats);
+	return nInformativeAttributeNumber;
 }
 
 int KWClassStats::GetInformativeTextAttributeNumber() const
 {
 	require(IsStatsComputed());
-	return ComputeInformativeDataPreparationStats(&oaTextAttributeStats);
+
+	// Comptage des attributs informatifs de type texte si necessaire
+	if (nInformativeTextAttributeNumber == -1)
+		nInformativeTextAttributeNumber = ComputeInformativeDataPreparationStats(&oaTextAttributeStats);
+	return nInformativeTextAttributeNumber;
 }
 
 int KWClassStats::GetInformativeTreeAttributeNumber() const
 {
 	require(IsStatsComputed());
-	return ComputeInformativeDataPreparationStats(&oaTreeAttributeStats);
+
+	// Comptage des attributs informatifs de type arbre si necessaire
+	if (nInformativeTreeAttributeNumber == -1)
+		nInformativeTreeAttributeNumber = ComputeInformativeDataPreparationStats(&oaTreeAttributeStats);
+	return nInformativeTreeAttributeNumber;
 }
 
 int KWClassStats::GetInformativeAttributePairNumber() const
 {
 	require(IsStatsComputed());
-	return ComputeInformativeDataPreparationStats(&oaAttributePairStats);
+
+	// Comptage des attributs informatifs de type paire si necessaire
+	if (nInformativeAttributePairNumber == -1)
+		nInformativeAttributePairNumber = ComputeInformativeDataPreparationStats(&oaAttributePairStats);
+	return nInformativeAttributePairNumber;
 }
 
 int KWClassStats::GetUsedAttributeNumberForType(int nType) const
@@ -1503,6 +1521,14 @@ void KWClassStats::CleanWorkingData()
 	nkdRecursivelySelectedDataPreparationStats.RemoveAll();
 	timerTotal.Reset();
 	bIsStatsComputed = false;
+
+	// Reinitialisation des statistiques sur la preparation a -1, pour forcer leur recalcul
+	nConstructedAttributeNumber = -1;
+	nTotalInformativeAttributeNumber = -1;
+	nInformativeAttributeNumber = -1;
+	nInformativeTextAttributeNumber = -1;
+	nInformativeTreeAttributeNumber = -1;
+	nInformativeAttributePairNumber = -1;
 }
 
 KWAttributeStats* KWClassStats::TreeAttributeStats() const
