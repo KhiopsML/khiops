@@ -9,6 +9,7 @@
 
 KWDataGridOptimizer::KWDataGridOptimizer()
 {
+	learningSpec = NULL;
 	classStats = NULL;
 	dataGridCosts = NULL;
 	attributeSubsetStatsOptimizationHandler = NULL;
@@ -26,6 +27,7 @@ KWDataGridOptimizer::~KWDataGridOptimizer()
 
 void KWDataGridOptimizer::Reset()
 {
+	learningSpec = NULL;
 	classStats = NULL;
 	dataGridCosts = NULL;
 	ResetProgressionIndicators();
@@ -46,6 +48,17 @@ KWDataGridOptimizerParameters* KWDataGridOptimizer::GetParameters()
 	return &optimizationParameters;
 }
 
+void KWDataGridOptimizer::SetLearningSpec(KWLearningSpec* specification)
+{
+	learningSpec = specification;
+}
+
+KWLearningSpec* KWDataGridOptimizer::GetLearningSpec() const
+{
+	ensure(learningSpec == NULL or classStats == NULL or classStats->GetLearningSpec() == learningSpec);
+	return learningSpec;
+}
+
 void KWDataGridOptimizer::SetClassStats(KWClassStats* stats)
 {
 	classStats = stats;
@@ -53,6 +66,7 @@ void KWDataGridOptimizer::SetClassStats(KWClassStats* stats)
 
 KWClassStats* KWDataGridOptimizer::GetClassStats() const
 {
+	ensure(learningSpec == NULL or classStats == NULL or classStats->GetLearningSpec() == learningSpec);
 	return classStats;
 }
 

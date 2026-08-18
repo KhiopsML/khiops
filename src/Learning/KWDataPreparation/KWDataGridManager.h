@@ -96,6 +96,24 @@ public:
 						     const KWDGInnerAttributes* mandatoryInnerAttributes,
 						     KWDataGrid* targetDataGrid);
 
+	// Export total (attribut, parties et cellules)
+	// Cas d'une grille de type VarPart
+	// En entree :
+	// - sourceDataGrid : grille dont on souhaite partitionner une parie des attributs du KWDGInnerAttributes
+	// - odInnerAttributePartitions :
+	//   - contient des partitions de type KWDGSAttributeDiscretization dans le cas Continuous et
+	//     KWDGSAttributeGrouping dans le cas Symbol
+	//
+	// En sortie :
+	// - targetDataGrid : nouvelle grille dont le KWDGInnerAttributes a ete remplace par une version partitionnee
+	// Les attribut sans partition dans le dictionnaire sont crees avec une seule partie
+	// Les VarPart sont partionnees avec une seul partie par VarPart
+	// Les identifier sont partitionnes de facon compatible avec les VarPart, chaque partie de type identifier
+	// contenant toutes les instances ayant exactement les meme VarPart
+	void ExportDataGridWithPartitionnedInnerAttributes(const KWDataGrid* sourceDataGrid,
+							   const ObjectDictionary* odInnerAttributePartitions,
+							   KWDataGrid* targetDataGrid);
+
 	/////////////////////////////////////////////////////////////////////////////////////////
 	// Service elementaires de transfert du contenu de la grille source vers la grille cible
 	// dedies aux attributs, parties et cellules
@@ -233,18 +251,17 @@ public:
 							     const KWDGAttribute* sourceAttribute,
 							     KWDGAttribute* targetAttribute) const;
 
-	// Creation des parties de l'attribut cible numerique selon une partition univariee specifiee
+	// Creation des parties d'un attribut cible numerique selon une partition univariee specifiee
 	// dans une table d'effectifs
 	void BuildPartsOfContinuousAttributeFromFrequencyTable(const KWDataGrid* sourceDataGrid,
 							       const KWFrequencyTable* kwftTable,
 							       const ALString& sAttributeName,
 							       KWDGAttribute* targetAttribute) const;
 
-	// Creation des parties de l'attribut cible categoriel selon un vecteur de correspondance decrivant un groupage
-	// univarie
-	void BuildPartsOfSymbolAttributeFromGroupsIndex(const KWDGAttribute* initialAttribute,
-							const IntVector* ivGroups, int nGroupNumber,
-							int nGarbageModalityNumber,
+	// Creation des parties d'un attribut cible categoriel selon un vecteur de correspondance
+	// decrivant un groupage univarie
+	void BuildPartsOfSymbolAttributeFromGroupsIndex(const KWDGAttribute* sourceAttribute, const IntVector* ivGroups,
+							int nGroupNumber, int nGarbageModalityNumber,
 							KWDGAttribute* targetAttribute) const;
 
 	// Service de creation d'une table d'effectifs a partir d'un attribut
@@ -307,8 +324,20 @@ protected:
 	//////////////////////////////////////////////////////////////////////////////////
 	// Services d'initialisation des parties d'un attribut
 
-	// Initialisation des parties pour un attribut venant d'etre initialise, sans partie, a partir d'un attribut valide
+	// Initialisation des parties pour un attribut venant d'etre initialise, sans parties, a partir d'un attribut valide
 	void InitialiseAttributeParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute) const;
+
+	// Initialisation des parties pour un attribut Continuous venant d'etre initialise, sans parties,
+	// a partir d'un attribut valide et d'une discretisation, dans le cas non supervise
+	void InitialiseContinuousAttributePartsFromDiscretisation(
+	    const KWDGAttribute* sourceAttribute, const KWDGSAttributeDiscretization* attributeDiscretization,
+	    KWDGAttribute* targetAttribute) const;
+
+	// Initialisation des parties pour un attribut Symbol venant d'etre initialise, sans parties,
+	// a partir d'un attribut valide et d'un groupement de valeurs, dans le cas non supervise
+	void InitialiseSymbolAttributePartsFromGrouping(const KWDGAttribute* sourceAttribute,
+							const KWDGSAttributeGrouping* attributeGrouping,
+							KWDGAttribute* targetAttribute) const;
 
 	// Initialisation des parties pour un attribut de type VarPart venant d'etre initialise, sans partie, a partir d'un attribut valide,
 	// en creant un clone de ses attributs internes
@@ -406,6 +435,15 @@ protected:
 	KWDGInnerAttributes* CreateRandomInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes,
 							 const KWDGInnerAttributes* mandatoryInnerAttributes,
 							 int nTotalTargetTokenNumber) const;
+
+	// Creation d'attributs internes a partir de specification de partition pour tout ou partie des attributs internes
+	// Le dictionnaire odInnerAttributePartitions contient des partitions de type:
+	// - KWDGSAttributeDiscretization dans le cas Continuous
+	// - KWDGSAttributeGrouping dans le cas Symbol
+	// Les attribut sans partition dans le dictionnaire sont crees avec une seule partie
+	KWDGInnerAttributes*
+	CreatePartitionnedInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes,
+					  const ObjectDictionary* odInnerAttributePartitions) const;
 
 	//////////////////////////////////////////////////////////////////////////////////
 	// Services divers
