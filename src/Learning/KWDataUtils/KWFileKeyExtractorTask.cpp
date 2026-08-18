@@ -385,10 +385,9 @@ boolean KWFileKeyExtractorTask::MasterInitialize()
 
 		// Chaque esclave doit lire au moins 5 buffers (pour que le travail soit bien reparti entre les
 		// esclaves)
-		if (lInputFileSize / (GetProcessNumber() * (longint)5) < nReadSizeMax)
+		if (lInputFileSize / (GetProcessNumber() * 5LL) < nReadSizeMax)
 		{
-			nReadSizeMax =
-			    InputBufferedFile::FitBufferSize(lInputFileSize / (GetProcessNumber() * (longint)5));
+			nReadSizeMax = InputBufferedFile::FitBufferSize(lInputFileSize / (GetProcessNumber() * 5LL));
 			nReadSizeMax = max(nReadSizeMax, nReadSizeMin);
 		}
 	}
