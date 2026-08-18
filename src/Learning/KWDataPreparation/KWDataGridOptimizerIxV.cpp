@@ -22,9 +22,49 @@ double KWDataGridOptimizerIxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 	require(optimizedDataGrid->GetCellNumber() == 1);
 	require(GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid) == GetOptimizedNullDataGridCost());
 
+	// Recherche d'une solution initiale meilleure que celle du modele null
+	dBestCost = BuildInitialSolution(initialDataGrid, optimizedDataGrid);
+
 	// Appel direct de la methode d'optimisation VNS, dont la partie generation de grille voisone est ici specialisee
 	// en generant une surtokenisation aleatoire de la grille courante
-	dBestCost = IterativeVNSOptimizeDataGrid(GetOptimizedInitialDataGrid(), optimizedDataGrid);
+	dBestCost = IterativeVNSOptimizeDataGrid(initialDataGrid, optimizedDataGrid);
+
+	ensure(fabs(dBestCost - GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
+	return dBestCost;
+}
+
+double KWDataGridOptimizerIxV::BuildInitialSolution(const KWDataGrid* initialDataGrid,
+						    KWDataGrid* optimizedDataGrid) const
+
+{
+	double dCost;
+	double dBestCost;
+	KWDataGridInitialSolutionSearcherIV initialSolutionSearcher;
+	KWDataGridMerger initialDataGridSolution;
+
+	require(GetDataGridCosts() != NULL);
+	require(GetDataGridCosts()->IsInitialized());
+	require(initialDataGrid != NULL);
+	require(initialDataGrid->IsVarPartDataGrid());
+	require(optimizedDataGrid != NULL);
+	require(optimizedDataGrid->GetCellNumber() == 1);
+	require(GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid) == GetOptimizedNullDataGridCost());
+
+	// Recherche d'une solution initiale meilleure que celle du modele null
+	initialSolutionSearcher.SetLearningSpec(GetLearningSpec());
+	initialSolutionSearcher.SearchInitialSolution(initialDataGrid, &initialDataGridSolution);
+
+	// Prise en compte si on a trouve meilleur que le meilleur null
+	dBestCost = GetOptimizedNullDataGridCost();
+	if (initialDataGridSolution.GetCellNumber() > 1)
+	{
+		dCost = GetDataGridCosts()->ComputeDataGridTotalCost(&initialDataGridSolution);
+		if (dCost < GetOptimizedNullDataGridCost())
+		{
+			SaveDataGrid(&initialDataGridSolution, optimizedDataGrid);
+			dBestCost = dCost;
+		}
+	}
 
 	ensure(fabs(dBestCost - GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
 	return dBestCost;

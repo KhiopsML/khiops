@@ -39,6 +39,11 @@ public:
 	// Memoire: l'objet rendu appartient a l'appele
 	KWDataGridOptimizerParameters* GetParameters();
 
+	// Parametrage (facultatif) par des specifications d'apprentissage
+	// Memoire: les specifications sont referencees uniquement
+	void SetLearningSpec(KWLearningSpec* specification);
+	KWLearningSpec* GetLearningSpec() const;
+
 	// Parametrage (facultatif) par des statistiques sur le probleme d'apprentissage
 	// Permet l'utilisation des statistiques univariees pour optimiser les grilles de donnees
 	// Memoire: les specifications sont referencees et destinee a etre partagees
@@ -212,6 +217,9 @@ protected:
 
 	// Parametres d'optimisation
 	KWDataGridOptimizerParameters optimizationParameters;
+
+	// Specifications d'apprentissage
+	KWLearningSpec* learningSpec;
 
 	// Attribut de statistiques
 	KWClassStats* classStats;
