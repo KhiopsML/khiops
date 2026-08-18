@@ -400,32 +400,32 @@ void PLShared_Longint::Test()
 	cout << "test " << shared_valueIn << " -- -> ";
 	shared_valueIn--;
 	cout << shared_valueIn;
-	cout << ": " << (shared_valueIn == (longint)4999999999) << endl;
+	cout << ": " << (shared_valueIn == 4999999999LL) << endl;
 	//
 	cout << "test " << shared_valueIn << " ++ -> ";
 	shared_valueIn++;
 	cout << shared_valueIn;
-	cout << ": " << (shared_valueIn == (longint)5000000000) << endl;
+	cout << ": " << (shared_valueIn == 5000000000LL) << endl;
 	//
 	cout << "test " << shared_valueIn << " += " << 10 << " -> ";
 	shared_valueIn += 10;
 	cout << shared_valueIn;
-	cout << ": " << (shared_valueIn == (longint)5000000010) << endl;
+	cout << ": " << (shared_valueIn == 5000000010LL) << endl;
 	//
 	cout << "test " << shared_valueIn << " -= " << 1 << " -> ";
 	shared_valueIn -= 10;
 	cout << shared_valueIn;
-	cout << ": " << (shared_valueIn == (longint)5000000000) << endl;
+	cout << ": " << (shared_valueIn == 5000000000LL) << endl;
 	//
 	cout << "test " << shared_valueIn << " *= " << 2 << " -> ";
 	shared_valueIn *= 2;
 	cout << shared_valueIn;
-	cout << ": " << (shared_valueIn == (longint)10000000000) << endl;
+	cout << ": " << (shared_valueIn == 10000000000LL) << endl;
 	//
 	cout << "test " << shared_valueIn << " /= " << 10 << " -> ";
 	shared_valueIn /= 10;
 	cout << shared_valueIn;
-	cout << ": " << (shared_valueIn == (longint)1000000000) << endl;
+	cout << ": " << (shared_valueIn == 1000000000LL) << endl;
 	//
 	shared_valueIn = 5000000;
 	shared_valueOut = shared_valueIn * 2;
@@ -436,7 +436,7 @@ void PLShared_Longint::Test()
 	cout << lInitialValue << " < " << shared_valueOut << ": " << (lInitialValue < shared_valueOut) << endl;
 
 	// Initialisation d'une variable partagee en entree
-	lInitialValue = 5000000000;
+	lInitialValue = 5000000000LL;
 	shared_valueIn = lInitialValue;
 
 	// Serialisation

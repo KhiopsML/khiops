@@ -128,6 +128,9 @@ public:
 	///// Implementation
 protected:
 	// Optimisation d'une grille
+	// Le parametre optimizedDataGrid contient le meilleur resultat en sortie
+	// A notrer que la meilleure grille coclusteringDataGrid est actualisee au fur et
+	// a mesure de l'optimistaion de facon anytime via la methode HandleOptimizationStep
 	void OptimizeDataGrid(const KWDataGrid* inputInitialDataGrid, KWDataGrid* optimizedDataGrid);
 
 	// Initialisation d'un optimiseur de grille dedie coclustering
