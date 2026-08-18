@@ -218,6 +218,7 @@ void CCLearningProblem::BuildCoclustering()
 		learningSpec.SetShortDescription(GetAnalysisResults()->GetShortDescription());
 		learningSpec.SetDatabase(database);
 		learningSpec.SetClass(kwcClass);
+		learningSpec.SetInitialAttributeNumber(kwcClass->ComputeInitialAttributeNumber(false));
 
 		// Parametrage du coclustering
 		coclusteringBuilder.SetVarPartCoclustering(false);
@@ -298,6 +299,7 @@ void CCLearningProblem::BuildCoclustering()
 		learningSpec.SetShortDescription(GetAnalysisResults()->GetShortDescription());
 		learningSpec.SetDatabase(database);
 		learningSpec.SetClass(kwcClass);
+		learningSpec.SetInitialAttributeNumber(kwcClass->ComputeInitialAttributeNumber(false));
 
 		// Parametrage du coclustering VarPart
 		coclusteringBuilder.SetVarPartCoclustering(true);
