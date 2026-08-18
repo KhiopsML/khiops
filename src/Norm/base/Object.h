@@ -1278,7 +1278,7 @@ inline GenericValue GenericDictionary::GenericLookup(GenericKey genericKey) cons
 
 	GDAssoc* pAssoc = GetAssocAt(genericKey, nHash);
 	if (pAssoc == NULL)
-		return {(longint)0};
+		return {0LL};
 	return pAssoc->value;
 }
 

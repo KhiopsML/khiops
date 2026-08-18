@@ -869,7 +869,7 @@ boolean KWDatabaseIndexer::ComputeMainTableIndexation()
 				lMaxKeyNumber = lMaxSlaveProcessNumber;
 
 			// On en deduit le taux d'echantillonnage max
-			dSamplingRate = lMaxKeyNumber * 1.0 / max((longint)1, lMainLineNumber);
+			dSamplingRate = lMaxKeyNumber * 1.0 / max(1LL, lMainLineNumber);
 			if (dSamplingRate > 1)
 				dSamplingRate = 1;
 			if (dSamplingRate * lMainLineNumber < 10)

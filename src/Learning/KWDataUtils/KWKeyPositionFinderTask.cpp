@@ -493,9 +493,9 @@ boolean KWKeyPositionFinderTask::MasterInitialize()
 				  (1 + (2.0 * lInputKeysUsedMemory) / (lInputFileSize + 1)));
 
 	// Chaque esclave doit lire au moins 5 buffer (pour que le travail soit bien reparti entre les esclaves)
-	if (lInputFileSize / (GetProcessNumber() * (longint)5) < lReadBufferSize)
+	if (lInputFileSize / (GetProcessNumber() * 5LL) < lReadBufferSize)
 	{
-		lReadBufferSize = lInputFileSize / (GetProcessNumber() * (longint)5);
+		lReadBufferSize = lInputFileSize / (GetProcessNumber() * 5LL);
 		if (GetVerbose())
 			AddMessage(sTmp + "Read buffer size reduced to " +
 				   LongintToHumanReadableString(lReadBufferSize));
@@ -1006,7 +1006,7 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 	ALString sOtherObjectLabel;
 
 	require(inputFile.IsOpened());
-	require(output_lLineNumber == (longint)0);
+	require(output_lLineNumber == 0LL);
 
 	// Fraicheur d'affichage pour la gestion de la barre de progression
 	lDisplayFreshness = 0;

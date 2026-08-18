@@ -1080,7 +1080,7 @@ boolean KWDataTableSliceSet::OpenForRead()
 	if (read_oaPhysicalSlices.GetSize() > 0 and lTotalBufferSize > 0)
 	{
 		// On divise la taille totale par le nombre de slices
-		lSliceBufferSize = max((longint)1, lTotalBufferSize / read_oaPhysicalSlices.GetSize());
+		lSliceBufferSize = max(1LL, lTotalBufferSize / read_oaPhysicalSlices.GetSize());
 
 		// On se ramene a un nombre entier de segments
 		lSliceBufferSize =

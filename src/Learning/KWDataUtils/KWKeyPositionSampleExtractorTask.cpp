@@ -343,9 +343,9 @@ boolean KWKeyPositionSampleExtractorTask::MasterInitialize()
 				  (1 + (2.0 * lKeyPositionUsedMemory * lFileLineNumber) / (lInputFileSize + 1)));
 
 	// Chaque esclave doit lire au moins 5 buffer (pour que le travail soit bien reparti entre les esclaves)
-	if (lInputFileSize / (GetProcessNumber() * (longint)5) < lReadBufferSize)
+	if (lInputFileSize / (GetProcessNumber() * 5LL) < lReadBufferSize)
 	{
-		lReadBufferSize = lInputFileSize / (GetProcessNumber() * (longint)5);
+		lReadBufferSize = lInputFileSize / (GetProcessNumber() * 5LL);
 		if (GetVerbose())
 			AddMessage(sTmp + "Read buffer size reduced to " +
 				   LongintToHumanReadableString(lReadBufferSize));
@@ -640,7 +640,7 @@ boolean KWKeyPositionSampleExtractorTask::SlaveProcess()
 
 		// Saut du Header
 		// Il n'est pas utile ici d'avoir un warning en cas de ligne trop longue
-		if (input_lFilePos == (longint)0 and shared_bHeaderLineUsed)
+		if (input_lFilePos == 0LL and shared_bHeaderLineUsed)
 			inputFile.SkipLine(bLineTooLong);
 
 		// Parcours du buffer d'entree
