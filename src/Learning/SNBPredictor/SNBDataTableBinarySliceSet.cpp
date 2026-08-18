@@ -2286,7 +2286,7 @@ longint SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
 		for (nSliceAttribute = 0; nSliceAttribute < nSliceAttributeNumber; nSliceAttribute++)
 		{
 			lSliceSparseValueNumber +=
-			    (nInstanceNumber - ivSparseMissingValueNumberPerAttribute->GetAt(nAttribute));
+			    ((longint)nInstanceNumber - ivSparseMissingValueNumberPerAttribute->GetAt(nAttribute));
 			nAttribute++;
 		}
 

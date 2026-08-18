@@ -483,7 +483,8 @@ boolean KWDataPreparationBivariateTask::SlaveProcess()
 	}
 
 	// Parametrage des buffers de lecture du slice set
-	dataTableSliceSet.SetTotalBufferSize(dataTableSliceSet.GetSliceNumber() * BufferedFile::nDefaultBufferSize);
+	dataTableSliceSet.SetTotalBufferSize((longint)dataTableSliceSet.GetSliceNumber() *
+					     BufferedFile::nDefaultBufferSize);
 
 	// Lecture des objets avec tous les attributs impliques dans le bivarie
 	bOk = dataTableSliceSet.ReadAllObjectsWithClass(kwcSliceSetClass, &oaAllObjects);
@@ -1676,7 +1677,7 @@ KWAttribute* KWAttributePair::GetSecondBlockAttribute() const
 		return attribute1;
 }
 
-int KWAttributePair::CompareBlocks(const KWAttributePair* otherAttributePair)
+int KWAttributePair::CompareBlocks(const KWAttributePair* otherAttributePair) const
 {
 	const KWAttributeBlock* firstAttributeBlock;
 	const KWAttributeBlock* secondAttributeBlock;

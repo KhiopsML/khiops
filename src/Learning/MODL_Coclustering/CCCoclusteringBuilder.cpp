@@ -748,6 +748,9 @@ void CCCoclusteringBuilder::InitializeDataGridOptimizer(const KWDataGrid* inputI
 	// Reinitialisation de l'optimiseur
 	dataGridOptimizer->Reset();
 
+	// Parametrage des specifications d'apprentissage
+	dataGridOptimizer->SetLearningSpec(GetLearningSpec());
+
 	// Creation et initialisation de la structure de couts
 	coclusteringDataGridCosts = CreateDataGridCost();
 
