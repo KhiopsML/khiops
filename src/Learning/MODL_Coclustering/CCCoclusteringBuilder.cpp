@@ -438,8 +438,8 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	}
 
 	// La solution est sauvegardee periodiquement grace au mode anytime
-	// Nettoyage si aucune solution n'a encore ete trouvee
-	if (coclusteringDataGrid == NULL)
+	// Nettoyage si aucune solution n'a encore ete trouvee ou si erreur
+	if (coclusteringDataGrid == NULL or not bOk)
 		CleanCoclusteringResults();
 
 	// Nettoyage de la grille initiale (si non deja nettoyee), dont on a plus besoin desormais
@@ -1747,7 +1747,7 @@ boolean CCCoclusteringBuilder::InitializeVarPartCells(KWDatabase* database, KWDa
 	nRefreshFrequency = min(nRefreshFrequency, TaskProgression::GetRefreshFrequency());
 
 	// Calcul de la taille necessaire pour creer les prochaines cellules entre deux rafraichissement
-	lCellSize = sizeof(KWDGCell) + (2 + initialDataGrid->GetAttributeNumber()) * sizeof(void*);
+	lCellSize = sizeof(KWDGCell) + (2LL + initialDataGrid->GetAttributeNumber()) * sizeof(void*);
 	lMinCellNecessaryMemory =
 	    (longint)lCellSize * dgVarPartAttribute->GetInnerAttributeNumber() * nRefreshFrequency;
 
@@ -2295,7 +2295,7 @@ boolean CCCoclusteringBuilder::CheckMemoryForStandardDataGridInitialization(cons
 	}
 
 	// Prise en compte des cellules
-	lCellSize = sizeof(KWDGMCell) + ((longint)2 + GetClass()->GetLoadedAttributeNumber()) * sizeof(void*);
+	lCellSize = sizeof(KWDGMCell) + (2LL + GetClass()->GetLoadedAttributeNumber()) * sizeof(void*);
 	lInitialDataGridSize += nCellNumber * lCellSize;
 
 	// Memoire necessaire totale
@@ -2548,7 +2548,7 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridOptimization(KWDataGrid* in
 	}
 
 	// Prise en compte des cellules
-	lCellSize = sizeof(KWDGCell) + (2 + initialDataGrid->GetAttributeNumber()) * sizeof(void*);
+	lCellSize = sizeof(KWDGCell) + (2LL + initialDataGrid->GetAttributeNumber()) * sizeof(void*);
 	lNullDataGridSize += lCellSize;
 	lWorkingDataGridSize += nCellNumber * (lCellSize + sizeof(KWDGMCell) - sizeof(KWDGCell));
 	lOptimizedDataGridSize += nCellNumber * lCellSize;
@@ -2563,7 +2563,7 @@ boolean CCCoclusteringBuilder::CheckMemoryForDataGridOptimization(KWDataGrid* in
 	// Prise en compte de la memoire de travail pour post-optimisation
 	lDataGridPostOptimizationSize =
 	    inputInitialDataGrid->GetCellNumber() *
-	    (sizeof(KWDGMCell) + (2 + inputInitialDataGrid->GetAttributeNumber()) * sizeof(void*));
+	    (sizeof(KWDGMCell) + (2LL + inputInitialDataGrid->GetAttributeNumber()) * sizeof(void*));
 	lDataGridPostOptimizationSize += inputInitialDataGrid->GetCellNumber() * sizeof(KWDGPOCellFrequencyVector);
 	lDataGridPostOptimizationSize += nInitialMaxPartNumber * (sizeof(KWMODLLineDeepOptimization) + 2 * sizeof(int) +
 								  sizeof(KWDGPOPartFrequencyVector));
