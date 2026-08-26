@@ -322,7 +322,7 @@ public:
 	// (si elle contient au moins deux caracteres pour ne pas prendre en compte les nom de drive sous windows)
 	static ALString GetURIScheme(const ALString& sURI);
 
-	// Renvoie true, si l'URI est de la forme standard scheme://[hostname]/filePath
+	// Renvoie true, si l'URI est de la forme standard scheme://path
 	// ou si c'est un chemin standard
 	static boolean IsURIWellFormed(const ALString& sURI);
 
@@ -381,7 +381,7 @@ public:
 	static char GetURIFileSeparator();
 
 	static boolean New_CreateApplicationTmpDir();
-	static ALString New_CreateNewDirectory(const ALString& sBasePathName);
+	static const ALString New_CreateNewDirectory(const ALString& sBasePathName);
 
 protected:
 	friend void FileServiceApplicationTmpDirAutomaticRemove();

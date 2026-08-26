@@ -102,9 +102,33 @@ boolean SystemFileDriverLibrary::FileExists(const char* sFilePathName) const
 
 boolean SystemFileDriverLibrary::DirExists(const char* sFilePathName) const
 {
+	boolean bOk;
+	char* sPathNameWithSeparator;
+	const char* sCheckedPathName;
+	int nPathLength;
+
 	require(IsConnected());
 	require(IsManaged(sFilePathName));
-	return (ptr_driver_dirExists(sFilePathName) == 1);
+
+	// The driver API requires that the path name ends with a separator, so we add it if necessary
+	// TODO : check if the driver API is really requiring this, or if it is a bug in the driver implementation
+	sPathNameWithSeparator = NULL;
+	sCheckedPathName = sFilePathName;
+	nPathLength = (int)strlen(sFilePathName);
+	if (nPathLength > 0 and sFilePathName[nPathLength - 1] != FileService::GetURIFileSeparator())
+	{
+		sPathNameWithSeparator = new char[nPathLength + 2];
+		memcpy(sPathNameWithSeparator, sFilePathName, nPathLength);
+		sPathNameWithSeparator[nPathLength] = FileService::GetURIFileSeparator();
+		sPathNameWithSeparator[nPathLength + 1] = '\0';
+		sCheckedPathName = sPathNameWithSeparator;
+	}
+
+	bOk = (ptr_driver_dirExists(sCheckedPathName) == 1);
+
+	if (sPathNameWithSeparator != NULL)
+	delete[] sPathNameWithSeparator;
+	return bOk;
 }
 
 longint SystemFileDriverLibrary::GetFileSize(const char* sFilePathName) const
@@ -184,18 +208,64 @@ boolean SystemFileDriverLibrary::RemoveFile(const char* sFilePathName) const
 
 boolean SystemFileDriverLibrary::MakeDirectory(const char* sURIPathName) const
 {
+	char *sPathNameWithSeparator;
+	const char* sCheckedPathName;
+	int nPathLength;
+	boolean bOk;
+
 	require(IsConnected());
 	require(not IsReadOnly());
 	require(IsManaged(sURIPathName));
-	return (ptr_driver_mkdir(sURIPathName) == 1);
+
+	// The driver API requires that the path name ends with a separator, so we add it if necessary
+	// TODO : check if the driver API is really requiring this, or if it is a bug in the driver implementation
+	sPathNameWithSeparator = NULL;
+	sCheckedPathName = sURIPathName;
+	nPathLength = (int)strlen(sURIPathName);
+	if (nPathLength > 0 and sURIPathName[nPathLength - 1] != FileService::GetURIFileSeparator())
+	{
+		sPathNameWithSeparator = new char[nPathLength + 2];
+		memcpy(sPathNameWithSeparator, sURIPathName, nPathLength);
+		sPathNameWithSeparator[nPathLength] = FileService::GetURIFileSeparator();
+		sPathNameWithSeparator[nPathLength + 1] = '\0';
+		sCheckedPathName = sPathNameWithSeparator;
+	}
+
+	bOk = (ptr_driver_mkdir(sCheckedPathName) == 1);
+	if (sPathNameWithSeparator != NULL)
+		delete[] sPathNameWithSeparator;
+	return bOk;
 }
 
 boolean SystemFileDriverLibrary::RemoveDirectory(const char* sFilePathName) const
 {
+	char *sPathNameWithSeparator;
+	const char* sCheckedPathName;
+	int nPathLength;
+	boolean bOk;
+
 	require(IsConnected());
 	require(not IsReadOnly());
 	require(IsManaged(sFilePathName));
-	return (ptr_driver_rmdir(sFilePathName) == 1);
+
+	// The driver API requires that the path name ends with a separator, so we add it if necessary
+	// TODO : check if the driver API is really requiring this, or if it is a bug in the driver implementation
+	sPathNameWithSeparator = NULL;
+	sCheckedPathName = sFilePathName;
+	nPathLength = (int)strlen(sFilePathName);
+	if (nPathLength > 0 and sFilePathName[nPathLength - 1] != FileService::GetURIFileSeparator())
+	{
+		sPathNameWithSeparator = new char[nPathLength + 2];
+		memcpy(sPathNameWithSeparator, sFilePathName, nPathLength);
+		sPathNameWithSeparator[nPathLength] = FileService::GetURIFileSeparator();
+		sPathNameWithSeparator[nPathLength + 1] = '\0';
+		sCheckedPathName = sPathNameWithSeparator;
+	}
+
+	bOk = (ptr_driver_rmdir(sCheckedPathName) == 1);
+	if (sPathNameWithSeparator != NULL)
+		delete[] sPathNameWithSeparator;
+	return bOk;
 }
 
 longint SystemFileDriverLibrary::GetDiskFreeSpace(const char* sPathName) const
