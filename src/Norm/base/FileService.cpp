@@ -1650,7 +1650,7 @@ boolean FileService::IsURIWellFormed(const ALString& sURI)
 {
 	ALString sScheme;
 	int nNextSlashPos;
-	int i;
+	boolean bOk=false;
 
 	// On accepte les chemins standards
 	sScheme = GetURIScheme(sURI);
@@ -1661,26 +1661,12 @@ boolean FileService::IsURIWellFormed(const ALString& sURI)
 	{
 		// Verification de base
 		assert(sURI.GetLength() > sScheme.GetLength() + 2);
-		assert(sURI.GetAt(sScheme.GetLength()) == ':');
-		assert(sURI.GetAt(sScheme.GetLength() + 1) == '/');
-		assert(sURI.GetAt(sScheme.GetLength() + 2) == '/');
-
-		// Recherche de la position du prochain '/' suivant, en interdisant les ':'
-		nNextSlashPos = -1;
-		for (i = sScheme.GetLength() + 3; i < sURI.GetLength(); i++)
-		{
-			if (sURI.GetAt(i) == ':')
-				break;
-			if (sURI.GetAt(i) == '/')
-			{
-				nNextSlashPos = i;
-				break;
-			}
-		}
-
-		// Ok si un slash a ete trouve
-		return (nNextSlashPos != -1);
+		bOk = sURI.GetAt(sScheme.GetLength()) == ':';
+		bOk = bOk and sURI.GetAt(sScheme.GetLength() + 1) == '/';
+		bOk = bOk and sURI.GetAt(sScheme.GetLength() + 2) == '/';
+		bOk= bOk and sURI.GetLength() > sScheme.GetLength() + 3;
 	}
+	return bOk;
 }
 
 const ALString FileService::BuildURI(const ALString& sScheme, const ALString& sHostName, const ALString& sFileName)
@@ -2454,9 +2440,7 @@ boolean FileService::DeleteApplicationTmpDir()
 			if (PLRemoteFileService::FileExists(BuildFilePathName(sApplicationTmpDir, GetAnchorFileName())))
 			{
 				// Destruction directe du repertoire temporaire distant
-				bOk = PLRemoteFileService::RemoveFile(BuildFilePathName(
-				    sApplicationTmpDir,
-				    GetAnchorFileName())); // TODO : on supprime le fichier anchor tant qu'on n'a pas la methode de suppression recursive sur le cloud (comme DeleteTmpDirectory)
+				// TODO la methode de suppression est recursive dans les drivers
 				bOk = PLRemoteFileService::RemoveDirectory(sApplicationTmpDir) and bOk;
 			}
 		}
@@ -2927,16 +2911,16 @@ boolean FileService::New_CreateApplicationTmpDir()
 			Global::AddError("Temp file directory", sUserTmpDir,
 					 "Temp file directory must be an absolute path");
 		}
-		// // Tentative de creation si necessaire
-		// else if (not PLRemoteFileService::DirExists(sUserTmpDir))
-		// {
-		// 	bOk = PLRemoteFileService::MakeDirectories(sUserTmpDir);
-		// 	if (bOk)
-		// 		bOk = PLRemoteFileService::DirExists(sUserTmpDir);
-		// 	if (not bOk)
-		// 		Global::AddError("Temp file directory", sUserTmpDir,
-		// 				 "Unable to create temp file directory");
-		// }
+		// Tentative de creation si necessaire
+		else if (not PLRemoteFileService::DirExists(sUserTmpDir))
+		{
+			bOk = PLRemoteFileService::MakeDirectories(sUserTmpDir);
+			if (bOk)
+				bOk = PLRemoteFileService::DirExists(sUserTmpDir);
+			if (not bOk)
+				Global::AddError("Temp file directory", sUserTmpDir,
+						 "Unable to create temp file directory");
+		}
 	}
 
 	// Verification du repertoire systeme utilisateur temporaire si pas de specification de repertoire temporaire
@@ -2962,7 +2946,7 @@ boolean FileService::New_CreateApplicationTmpDir()
 	}
 
 	// Test l'existence du repertoire temporaire (le repertoire systeme peut avoir disparu)
-	if (bOk /*and not DirExists(GetTmpDir())*/)
+	if (bOk and not PLRemoteFileService::DirExists(GetTmpDir()))
 	{
 		// Emission du message d'erreur
 		// (emis uniquement pour cette cause)
@@ -3019,35 +3003,52 @@ boolean FileService::New_CreateApplicationTmpDir()
 	return bOk;
 }
 
-ALString FileService::New_CreateNewDirectory(const ALString& sBasePathName)
+const ALString FileService::New_CreateNewDirectory(const ALString& sBasePathName)
 {
-	ALString sNewPathName;
+	ALString sPathName;
+	ALString sDirectoryPrefix;
+	ALString sDirectorySuffix;
+	boolean bNewDirectory;
+	ALString sNewDirectoryName;
 	int nId;
-	ALString sAnchorPathName;
-	OutputBufferedFile obAnchorFile;
-	boolean bOk;
+	const int nMaxId = 10000;
 
-	require(sBasePathName != "");
+	// Decomposition du nom du repertoire
+	sPathName = GetPathName(sBasePathName);
+	sDirectoryPrefix = GetFilePrefix(sBasePathName);
+	sDirectorySuffix = GetFileSuffix(sBasePathName);
 
-	// Construction d'un nom de repertoire a partir du nom de base
+	// Test d'existence avec le repertoire de base
+	sNewDirectoryName = sBasePathName;
+	bNewDirectory = not PLRemoteFileService::DirExists(sNewDirectoryName);
+
+	// Tentative de creation si possible
+	if (bNewDirectory)
+		bNewDirectory = PLRemoteFileService::MakeDirectory(sNewDirectoryName);
+
+	// Boucle de recherche d'un nom de repertoire inexistant
 	nId = 0;
-	sNewPathName = sBasePathName + "_" + IntToString(nId);
-
-	// Tant que le repertoire existe, on incremente l'identifiant
-	while (PLRemoteFileService::FileExists(BuildFilePathName(sNewPathName, GetAnchorFileName())))
+	while (not bNewDirectory)
 	{
 		nId++;
-		sNewPathName = sBasePathName + "_" + IntToString(nId);
+
+		// Arret si trop de tentatives, pour eviter une boucle infinie
+		if (nId >= nMaxId)
+		{
+			sNewDirectoryName = "";
+			break;
+		}
+
+		// Construction d'un nouveau nom de repertoire
+		sNewDirectoryName = BuildFilePathName(
+		    sPathName, BuildFileName(sDirectoryPrefix + "_" + IntToString(nId), sDirectorySuffix));
+
+		// Test d'existence avec le nouveau nom
+		bNewDirectory = not PLRemoteFileService::DirExists(sNewDirectoryName);
+
+		// Si nouveau nom de fichier, on tente de creer le repertoire
+		if (bNewDirectory)
+			bNewDirectory = PLRemoteFileService::MakeDirectory(sNewDirectoryName);
 	}
-
-	// Creation du nouveau repertoire
-	sAnchorPathName = BuildFilePathName(sNewPathName, GetAnchorFileName());
-	obAnchorFile.SetFileName(sAnchorPathName);
-	bOk = obAnchorFile.Open();
-	if (not bOk)
-		sNewPathName = "";
-	else
-		obAnchorFile.Close();
-
-	return sNewPathName;
+	return sNewDirectoryName;
 }
