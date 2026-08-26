@@ -1,0 +1,14 @@
+Cluster	Value	Frequency	Typicality
+{HS-grad, Some-college, Bachelors, ...}	HS-grad	19	0
+{HS-grad, Some-college, Bachelors, ...}	Some-college	12	0
+{HS-grad, Some-college, Bachelors, ...}	Bachelors	11	0
+{HS-grad, Some-college, Bachelors, ...}	Masters	4	0
+{HS-grad, Some-college, Bachelors, ...}	11th	3	0
+{HS-grad, Some-college, Bachelors, ...}	Assoc-acdm	3	0
+{HS-grad, Some-college, Bachelors, ...}	Assoc-voc	3	0
+{HS-grad, Some-college, Bachelors, ...}	10th	2	0
+{HS-grad, Some-college, Bachelors, ...}	7th-8th	2	0
+{HS-grad, Some-college, Bachelors, ...}	9th	2	0
+{HS-grad, Some-college, Bachelors, ...}	12th	1	0
+{HS-grad, Some-college, Bachelors, ...}	Doctorate	1	0
+{HS-grad, Some-college, Bachelors, ...}	 * 	0	0

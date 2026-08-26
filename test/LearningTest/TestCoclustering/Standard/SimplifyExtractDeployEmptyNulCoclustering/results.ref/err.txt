@@ -1,0 +1,18 @@
+warning : Simplification parameters : The input coclustering is empty
+error : Coclustering simplification : Missing coclustering datagrid variable
+
+warning : Simplification parameters : The input coclustering is not informative
+Write simplified report ./results/PostProcessedCoclusteringNul.khcj
+
+warning : Simplification parameters : The input coclustering is not informative
+Write cluster table file ./results/ClustersEducationNul.txt
+
+warning : Simplification parameters : The input coclustering is empty
+error : Cluster extraction : Variable sex not found in input coclustering
+
+warning : Simplification parameters : The input coclustering is empty
+error : Deployment parameters : Coclustering data grid must have at least two variables
+
+warning : Simplification parameters : The input coclustering is not informative
+Write deployment dictionary file ./results/DeployOccupationNul.kdic
+
