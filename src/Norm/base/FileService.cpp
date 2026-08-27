@@ -1013,7 +1013,7 @@ const ALString FileService::CreateNewFile(const ALString& sBaseFilePathName)
 
 	// Test d'existence avec le fichier de base
 	sNewFileName = sBaseFilePathName;
-	bNewFile = not FileExists(sNewFileName);
+	bNewFile = not PLRemoteFileService::FileExists(sNewFileName);
 
 	// Tentative de creation si possible
 	if (bNewFile)
@@ -1037,7 +1037,7 @@ const ALString FileService::CreateNewFile(const ALString& sBaseFilePathName)
 		    BuildFilePathName(sPathName, BuildFileName(sFilePrefix + "_" + IntToString(nId), sFileSuffix));
 
 		// Test d'existence avec le nouveau nom
-		bNewFile = not FileExists(sNewFileName);
+		bNewFile = not PLRemoteFileService::FileExists(sNewFileName);
 
 		// Si nouveau nom de fichier, on tente de creer le fichier
 		if (bNewFile)
@@ -1643,8 +1643,7 @@ ALString FileService::GetURIScheme(const ALString& sURI)
 boolean FileService::IsURIWellFormed(const ALString& sURI)
 {
 	ALString sScheme;
-	int nNextSlashPos;
-	boolean bOk=false;
+	boolean bOk = false;
 
 	// On accepte les chemins standards
 	sScheme = GetURIScheme(sURI);
@@ -1658,7 +1657,7 @@ boolean FileService::IsURIWellFormed(const ALString& sURI)
 		bOk = sURI.GetAt(sScheme.GetLength()) == ':';
 		bOk = bOk and sURI.GetAt(sScheme.GetLength() + 1) == '/';
 		bOk = bOk and sURI.GetAt(sScheme.GetLength() + 2) == '/';
-		bOk= bOk and sURI.GetLength() > sScheme.GetLength() + 3;
+		bOk = bOk and sURI.GetLength() > sScheme.GetLength() + 3;
 	}
 	return bOk;
 }
