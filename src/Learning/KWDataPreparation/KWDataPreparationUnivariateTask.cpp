@@ -1279,7 +1279,7 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 				{
 					subSlice->GetDataFileNames()->Add(
 					    allSliceOutputBuffer.GetSliceFileNames()->GetAt(nSubSlice));
-					subSlice->GetDataFileSizes()->Add(FileService::GetFileSize(
+					subSlice->GetDataFileSizes()->Add(PLRemoteFileService::GetFileSize(
 					    allSliceOutputBuffer.GetSliceFileNames()->GetAt(nSubSlice)));
 				}
 			}
@@ -1416,7 +1416,7 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 			for (nChunk = 0; nChunk < subSlice->GetDataFileNames()->GetSize(); nChunk++)
 			{
 				assert(FileService::GetURIScheme(subSlice->GetDataFileNames()->GetAt(nChunk)) == "");
-				FileService::RemoveFile(subSlice->GetDataFileNames()->GetAt(nChunk));
+				PLRemoteFileService::RemoveFile(subSlice->GetDataFileNames()->GetAt(nChunk));
 			}
 		}
 
