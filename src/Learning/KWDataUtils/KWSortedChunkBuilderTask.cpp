@@ -103,11 +103,19 @@ boolean KWSortedChunkBuilderTask::BuildSortedChunks(const KWSortBuckets* buckets
 	KWSortBucket* bucket;
 	ALString sChunkFileName;
 	int i;
+	int nBuildId;
 	ALString sTmp;
+
+	// Compteur global d'appels a BuildSortedChunks, pour l'unicite des noms de fichiers de chunks.
+	static int nGlobalBuildId = 0;
 
 	require(buckets != NULL);
 	require(buckets->Check());
 	require(buckets->GetBucketNumber() > 0);
+
+	// Identifiant unique pour cet appel
+	nBuildId = nGlobalBuildId;
+	nGlobalBuildId++;
 
 	// Initialisation des buckets servant de specification aux chunks
 	// Les buckets sont dupliques pour etre transferes a la variable partagee
@@ -118,7 +126,7 @@ boolean KWSortedChunkBuilderTask::BuildSortedChunks(const KWSortBuckets* buckets
 		require(bucket->GetOutputFileName() == "");
 
 		// Identification du bucket
-		bucket->SetId(IntToString(i));
+		bucket->SetId(ALString("") + IntToString(nBuildId) + "_" + IntToString(i));
 		shared_oaBuckets->GetObjectArray()->Add(bucket);
 	}
 	if (GetVerbose())
@@ -828,9 +836,8 @@ boolean KWSortedChunkBuilderTask::WriteBucket(KWSortBucket* bucketToWrite)
 	bOk = true;
 	if (bucketToWrite->GetOutputFileName() == "")
 	{
-		// Creation d'un nouveau chunk (on n'utilise pas CreateUnique car il peut y avoir des appels recursifs
-		// du split)
-		sBucketFilePath = FileService::CreateTmpFile(
+		// Creation d'un nouveau chunk, dont le nom doit etre unique par construction
+		sBucketFilePath = FileService::CreateUniqueTmpFile(
 		    "bucket_" + bucketToWrite->GetId() + "_task" + IntToString(GetTaskIndex()) + ".txt", this);
 		bOk = not sBucketFilePath.IsEmpty();
 		if (bOk)
