@@ -2488,11 +2488,11 @@ boolean FileService::DeleteTmpDirectory(const ALString& sTmpPathName)
 		{
 			sName = svFileNames.GetAt(i);
 			if (sName.GetAt(0) == GetTmpPrefix())
-				RemoveFile(BuildFilePathName(sTmpPathName, sName));
+				PLRemoteFileService::RemoveFile(BuildFilePathName(sTmpPathName, sName));
 		}
 
 		// Destruction du repertoire lui-meme
-		bOk = RemoveDirectory(sTmpPathName) and bOk;
+		bOk = PLRemoteFileService::RemoveDirectory(sTmpPathName) and bOk;
 	}
 	return bOk;
 }
@@ -2505,10 +2505,9 @@ void FileService::CleanExpiredApplicationTmpDirs(const ALString& sExpiredApplica
 	ALString sTestedDirectoryName;
 	boolean bIsExpiredDirectory;
 	ALString sAnchorPathName;
-	FILE* fAnchor;
+	SystemFile* sfAnchor;
 	const int nBufferSize = 100;
 	char sBuffer[nBufferSize];
-	char* sReturn;
 	const ALString sFormat = "GMT expiration date 0000-00-00 00:00:00";
 	int i;
 	char c;
@@ -2519,6 +2518,8 @@ void FileService::CleanExpiredApplicationTmpDirs(const ALString& sExpiredApplica
 	int nId;
 	int nOtherTrial;
 	const int nMaxOtherTrials = 100;
+	boolean bOk;
+	longint lBytesRead;
 
 	// Decomposition du nom du repertoire
 	sPathName = GetPathName(sExpiredApplicationTmpDir);
@@ -2537,27 +2538,27 @@ void FileService::CleanExpiredApplicationTmpDirs(const ALString& sExpiredApplica
 		// Test si le repertoire correspond a un repertoire temporaire applicatif inactif
 		// C'est le cas s'il contient un fichier anchor contenant une date d'exprimeation valide
 		// et si cette date est expiree
-		bIsExpiredDirectory = DirExists(sTestedDirectoryName);
-		fAnchor = NULL;
+		bIsExpiredDirectory = PLRemoteFileService::DirExists(sTestedDirectoryName);
+		sfAnchor = NULL;
 		sAnchorPathName = BuildFilePathName(sTestedDirectoryName, GetAnchorFileName());
 		if (bIsExpiredDirectory)
 			bIsExpiredDirectory = FileExists(sAnchorPathName);
 		if (bIsExpiredDirectory)
 		{
 			// La fonction p_fopen gere deja les locale correctement
-			fAnchor = p_fopen(sAnchorPathName, "r");
-			if (fAnchor == NULL)
+			bOk = PLRemoteFileService::OpenInputBinaryFile(sAnchorPathName, sfAnchor);
+			if (not bOk)
 				bIsExpiredDirectory = false;
 			else
 			{
 				// Lecture du contenu du fichier
 				assert(sFormat.GetLength() < nBufferSize);
-				sReturn = fgets(sBuffer, nBufferSize,
-						fAnchor); // warning : ignoring return value of 'char* fgets
-				fclose(fAnchor);
+				lBytesRead = sfAnchor->Read(sBuffer, sizeof(char), nBufferSize);
+				bOk = lBytesRead != 0;
+				bOk = PLRemoteFileService::CloseInputBinaryFile(sAnchorPathName, sfAnchor) and bOk;
 
 				// Test si lecture correcte
-				if (sReturn == NULL)
+				if (not bOk)
 					bIsExpiredDirectory = false;
 
 				// Test de longueur
@@ -2898,7 +2899,7 @@ boolean FileService::New_CreateApplicationTmpDir()
 	// Nettoyage des repertoires inactifs precedents
 	// On le fait a chaque fois, mais en fait cela ne devrait se passer que s'il y a un changement
 	// dans le nom de repertoire temporaire ou dans le nom de l'application
-	// TODO CleanExpiredApplicationTmpDirs(sApplicationTmpDir);
+	CleanExpiredApplicationTmpDirs(sApplicationTmpDir);
 
 	// Creation du repertoire temporaire utilisateur si different de la valeur par defaut (vide)
 	if (bOk and sUserTmpDir != "")
