@@ -165,6 +165,10 @@
 						[24751,3110],
 						[1366,5064]
 					]
+				},
+				"aucValues": {
+					"values": ["less","more"],
+					"aucs": [0.926153,0.926153]
 				}
 			},
 			"R2": {
@@ -174,6 +178,10 @@
 						[26117,8174],
 						[0,0]
 					]
+				},
+				"aucValues": {
+					"values": ["less","more"],
+					"aucs": [0.780095,0.780095]
 				},
 				"dataGrid": {
 					"isSupervised": true,
@@ -289,6 +297,10 @@
 						[10462,1375],
 						[576,2138]
 					]
+				},
+				"aucValues": {
+					"values": ["less","more"],
+					"aucs": [0.921511,0.921511]
 				}
 			},
 			"R2": {
@@ -298,6 +310,10 @@
 						[11038,3513],
 						[0,0]
 					]
+				},
+				"aucValues": {
+					"values": ["less","more"],
+					"aucs": [0.775895,0.775895]
 				},
 				"dataGrid": {
 					"isSupervised": true,
