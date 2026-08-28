@@ -478,13 +478,14 @@ boolean KWClassifierEvaluationTask::MasterFinalize(boolean bProcessEndedCorrectl
 			}
 		}
 
-		// Calcul de l'AUC s'il y y a des instances en evaluation
+		// Calcul de l'AUC s'il y a des instances en evaluation
 		if (bIsAucEvaluated and masterInstanceEvaluationSampler->GetSampledObjects()->GetSize() > 0)
 		{
 			masterAucEvaluation->SetInstanceEvaluations(
 			    masterInstanceEvaluationSampler->GetSampledObjects());
 			if (shared_livProbAttributes.GetSize() > 0 and masterAucEvaluation->GetTargetValueNumber() > 0)
-				classifierEvaluation->dAUC = masterAucEvaluation->ComputeGlobalAUCValue();
+				classifierEvaluation->dAUC = masterAucEvaluation->ComputeGlobalAUCValue(
+				    classifierEvaluation->dvAUCPerTargetValue);
 
 			// Calcul des courbes de lift
 			for (nLiftCurve = 0; nLiftCurve < classifierEvaluation->oaAllLiftCurveValues.GetSize();
@@ -1895,7 +1896,7 @@ void KWAucEvaluation::SetInstanceEvaluations(ObjectArray* instances)
 	oaInstanceEvaluations = instances;
 }
 
-double KWAucEvaluation::ComputeGlobalAUCValue()
+double KWAucEvaluation::ComputeGlobalAUCValue(DoubleVector& dvAUCValues)
 {
 	double dEvaluation;
 	int nTargetValue;
@@ -1905,6 +1906,7 @@ double KWAucEvaluation::ComputeGlobalAUCValue()
 	int nInstance;
 
 	require(oaInstanceEvaluations != NULL);
+	require(dvAUCValues.GetSize() == 0);
 
 	// Calcul de l'evaluation globale en ponderant par les frequences de modalites cibles
 	if (oaInstanceEvaluations->GetSize() == 0)
@@ -1937,8 +1939,13 @@ double KWAucEvaluation::ComputeGlobalAUCValue()
 
 		// Evaluation: On table sur une AUC de 0.5 pour les valeurs cibles inconnues
 		dEvaluation = 0;
+		dvAUCValues.SetSize(GetTargetValueNumber());
 		for (nTargetValue = 0; nTargetValue < GetTargetValueNumber(); nTargetValue++)
-			dEvaluation += ivTargetValueFrequencies.GetAt(nTargetValue) * ComputeAUCValueAt(nTargetValue);
+		{
+			dvAUCValues.SetAt(nTargetValue, ComputeAUCValueAt(nTargetValue));
+			dEvaluation += ivTargetValueFrequencies.GetAt(nTargetValue) * dvAUCValues.GetAt(nTargetValue);
+		}
+
 		dEvaluation += ivTargetValueFrequencies.GetAt(nUnknownTargetValue) * 0.5;
 		dEvaluation /= oaInstanceEvaluations->GetSize();
 	}
@@ -2034,7 +2041,7 @@ double KWAucEvaluation::ComputeAUCValueAt(int nTargetValueIndex)
 		     << dBlockROCCurveArea << "\t" << dObservedROCCurveArea << endl;
 	}
 
-	// Normalisation dans el cas general
+	// Normalisation dans le cas general
 	if (dObservedROCCurveArea > 0)
 		dObservedROCCurveArea /= nFalsePositive * 1.0 * nTruePositive;
 	// Cas particulier ou il n'y a aucun faux-positif

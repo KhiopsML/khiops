@@ -174,6 +174,8 @@ public:
 
 	// Aire sous la courbe de ROC (Area Under Curve)
 	double GetAUC() const;
+	double GetAUCAtTargetValue(int nTargetValue) const;
+	double GetAUCValuesNumber() const;
 
 	// Taux de compression (plus exactement: son complement a 1)
 	//  CR = 1 - sum(-log(prob(Tj/X))) / N*entropy(Target)
@@ -247,6 +249,9 @@ public:
 	// Ecriture de la matrice de confusion
 	void WriteJSONConfusionMatrixReport(JSONFile* fJSON) const;
 
+	// Ecriture des AUC pour chaque classe cible
+	void WriteJSONAucValuesReport(JSONFile* fJSON) const;
+
 	// Ecriture d'une serie de courbe de lift sur un meme tableau de resultats
 	// Le lift aleatoire n'est pas ecrit
 	void WriteJSONLiftCurveReportArray(JSONFile* fJSON, const ObjectArray* oaClassifierEvaluations) const;
@@ -297,6 +302,7 @@ protected:
 	SymbolVector svTrainedTargetModalities;
 	KWDataGridStats dgsConfusionMatrix;
 	IntVector ivActualModalityFrequencies;
+	DoubleVector dvAUCPerTargetValue;
 
 	// La classe d'evaluation sous-traitant ecris directement sur une instance de cette classe
 	friend class KWClassifierEvaluationTask;
