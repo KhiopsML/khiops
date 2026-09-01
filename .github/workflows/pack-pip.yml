@@ -69,6 +69,8 @@ jobs:
           else
             source "$KHIOPS_INSTALL_DIR/bin/activate"
           fi
+          # --only-deps requires pip>=26.2
+          python -m pip install --upgrade "pip>=26.2"
           # Install the wheel itself only from the local wheelhouse, then resolve its
           # runtime dependencies (e.g. openmpi) from PyPI
           python -m pip install --find-links=wheelhouse --no-index --no-deps khiops-core
@@ -219,6 +221,8 @@ jobs:
             source "$KHIOPS_INSTALL_DIR/bin/activate"
             echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_OUTPUT"
           fi
+          # --only-deps requires pip>=26.2
+          $PYTHON -m pip install --upgrade "pip>=26.2"
           # Install the wheels themselves only from the local wheelhouse, then resolve their
           # runtime dependencies (e.g. openmpi) from PyPI
           $PYTHON -m pip install --find-links=wheelhouse --no-index --no-deps khiops-core khiops-kni khiops-knitransfer
@@ -266,6 +270,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install khiops-kni wheel
         run: |
+          # --only-deps requires pip>=26.2
+          python -m pip install --upgrade "pip>=26.2"
           # Install the wheel itself only from the local wheelhouse, then resolve its
           # runtime dependencies from PyPI
           python -m pip install --find-links=wheelhouse --no-index --no-deps khiops-kni
