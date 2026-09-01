@@ -56,7 +56,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v4.1.0
       - name: install Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.14'
       - name: Install built wheel in a custom directory
@@ -69,7 +69,12 @@ jobs:
           else
             source "$KHIOPS_INSTALL_DIR/bin/activate"
           fi
-          python -m pip install --find-links=wheelhouse khiops-core
+          # --only-deps requires pip>=26.2
+          python -m pip install --upgrade "pip>=26.2"
+          # Install the wheel itself only from the local wheelhouse, then resolve its
+          # runtime dependencies (e.g. openmpi) from PyPI
+          python -m pip install --find-links=wheelhouse --no-index --no-deps khiops-core
+          python -m pip install --only-deps khiops-core
           pip show -f khiops-core
       - name: Export BIN_DIR
         id: export_bin_dir
@@ -119,7 +124,7 @@ jobs:
           path: wheelhouse
       - name: Install Python
         if: env.SIGN_WINDOWS_WHEELS == 'true'
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.14'
       - name: Install wheel package
@@ -165,7 +170,7 @@ jobs:
         setup:
           - {os: ubuntu-24.04, image: ''}
           - {os: ubuntu-24.04-arm, image: ''}
-          - {os: ubuntu-22.04, image: rockylinux:9}
+          - {os: ubuntu-22.04, image: rockylinux/rockylinux:10}
           - {os: windows-2025-vs2026, image: ''}
           - {os: macos-15, image: ''}
           - {os: macos-15-intel, image: ''}
@@ -196,7 +201,7 @@ jobs:
               apt-get install -y python3 > /dev/null
             else
               yum check-update || true
-              yum install -y python3.11
+              yum install -y python3.14
             fi
           fi
           echo "PYTHON=python3" >> "$GITHUB_ENV"
@@ -216,17 +221,12 @@ jobs:
             source "$KHIOPS_INSTALL_DIR/bin/activate"
             echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_OUTPUT"
           fi
-          # Pip install the wheels from the wheelhouse directory, using the exact versions of the built wheels
-          # If we don't specify the exact versions, pip may install a different version if it is already present
-          # in the pypi repository, which would not be the version we just built.
-          CORE_VERSION=$(ls wheelhouse/khiops_core-*.whl | head -1 | xargs basename | cut -d- -f2)
-          KNI_VERSION=$(ls wheelhouse/khiops_kni-*.whl | head -1 | xargs basename | cut -d- -f2)
-          KNITRANSFER_VERSION=$(ls wheelhouse/khiops_knitransfer-*.whl | head -1 | xargs basename | cut -d- -f2)
-          $PYTHON -m pip install \
-            --find-links=wheelhouse \
-            "khiops-core==$CORE_VERSION" \
-            "khiops-kni==$KNI_VERSION" \
-            "khiops-knitransfer==$KNITRANSFER_VERSION"
+          # --only-deps requires pip>=26.2
+          $PYTHON -m pip install --upgrade "pip>=26.2"
+          # Install the wheels themselves only from the local wheelhouse, then resolve their
+          # runtime dependencies (e.g. openmpi) from PyPI
+          $PYTHON -m pip install --find-links=wheelhouse --no-index --no-deps khiops-core khiops-kni khiops-knitransfer
+          $PYTHON -m pip install --only-deps khiops-core khiops-kni khiops-knitransfer
           $PYTHON -m pip show -f khiops-core
           $PYTHON -m pip show -f khiops-kni
       - name: Run standard tests on the Core and KNI packages
@@ -265,11 +265,18 @@ jobs:
           path: tutorial
           ref: main
       - name: Install Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install khiops-kni wheel
-        run: python -m pip install --find-links=wheelhouse khiops-kni
+        run: |
+          # --only-deps requires pip>=26.2
+          python -m pip install --upgrade "pip>=26.2"
+          # Install the wheel itself only from the local wheelhouse, then resolve its
+          # runtime dependencies from PyPI
+          python -m pip install --find-links=wheelhouse --no-index --no-deps khiops-kni
+          python -m pip install --only-deps khiops-kni
+          python -m pip show -f khiops-kni
       - name: Run python mono-table example
         shell: bash
         run: |
