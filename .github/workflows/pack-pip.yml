@@ -201,7 +201,7 @@ jobs:
               apt-get install -y python3 > /dev/null
             else
               yum check-update || true
-              yum install -y python3.11
+              yum install -y python3.14
             fi
           fi
           echo "PYTHON=python3" >> "$GITHUB_ENV"
