@@ -458,6 +458,10 @@ protected:
 	// Timer de touche du repertoire temporaire applicatif, pour eviter de le toucher trop souvent
 	static Timer tTimerTouch;
 
+	// Timer de verification distante du fichier anchor, pour eviter de la refaire a chaque appel
+	// (verification couteuse en latence sur un systeme de fichier distant type cloud)
+	static Timer tTimerAnchorCheck;
+
 	friend class SystemFileDriverANSI; // Acces a SystemSeekPositionInBinaryFile
 };
 

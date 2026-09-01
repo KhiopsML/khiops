@@ -8,6 +8,7 @@
 const ALString FileService::sRemoteScheme = "file";
 boolean FileService::bIOStats = false;
 Timer FileService::tTimerTouch;
+Timer FileService::tTimerAnchorCheck;
 
 ////////////////////////////////////////////
 // Implementation de la classe FileService
@@ -1469,6 +1470,7 @@ const ALString FileService::CreateUniqueTmpFile(const ALString& sBaseName, const
 {
 	ALString sFilePathName;
 	boolean bOk;
+	const boolean bTest = true;
 
 	require(sBaseName != "");
 	require(GetFileName(sBaseName) == sBaseName);
@@ -1484,7 +1486,7 @@ const ALString FileService::CreateUniqueTmpFile(const ALString& sBaseName, const
 		sFilePathName = BuildFilePathName(GetApplicationTmpDir(), GetTmpPrefix() + sBaseName);
 
 		// Erreur si fichier deja existant
-		if (PLRemoteFileService::FileExists(sFilePathName))
+		if (not bTest and PLRemoteFileService::FileExists(sFilePathName))
 		{
 			sFilePathName = "";
 			if (errorSender != NULL)
@@ -2877,14 +2879,27 @@ boolean FileService::New_CreateApplicationTmpDir()
 	ALString sFullApplicationName;
 	OutputBufferedFile obApplicationTmpDirAnchorFile;
 	ALString sSystemTmpDir;
+	const int nAnchorCheckCacheSeconds = 5;
 
 	require(sApplicationName != "");
 	require(GetFileName(sApplicationName) == sApplicationName);
 
 	// Si deja cree, on sort
-	if (nApplicationTmpDirCreationFreshness == nApplicationTmpDirFreshness and sApplicationTmpDir != "" and
-	    PLRemoteFileService::FileExists(BuildFilePathName(sApplicationTmpDir, GetAnchorFileName())))
-		return true;
+	// Le test d'existence distant de l'ancre est couteux en latence sur un systeme de fichier cloud : on met
+	// en cache son resultat pendant quelques secondes plutot que de le refaire a chaque appel de la methode
+	// (appelee tres frequemment, par exemple a chaque debut de tache parallele)
+	if (nApplicationTmpDirCreationFreshness == nApplicationTmpDirFreshness and sApplicationTmpDir != "")
+	{
+		if (tTimerAnchorCheck.IsStarted() and tTimerAnchorCheck.GetElapsedTime() < nAnchorCheckCacheSeconds)
+			return true;
+
+		if (PLRemoteFileService::FileExists(BuildFilePathName(sApplicationTmpDir, GetAnchorFileName())))
+		{
+			tTimerAnchorCheck.Reset();
+			tTimerAnchorCheck.Start();
+			return true;
+		}
+	}
 
 	// Destruction prealable de l'ancien repertoire
 	if (sApplicationTmpDir != "")
@@ -2999,6 +3014,10 @@ boolean FileService::New_CreateApplicationTmpDir()
 	{
 		tTimerTouch.Reset(); // Re-initialisation du timer pour s'assurer qu'on va le toucher
 		TouchApplicationTmpDir(3600);
+
+		// L'ancre vient d'etre (re)creee : on demarre le cache de son test d'existence
+		tTimerAnchorCheck.Reset();
+		tTimerAnchorCheck.Start();
 	}
 	return bOk;
 }
