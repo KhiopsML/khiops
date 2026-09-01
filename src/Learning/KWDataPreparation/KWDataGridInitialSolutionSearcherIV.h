@@ -47,6 +47,14 @@ protected:
 	void ComputeInternalAttributesBivariateStats(const KWDataGrid* initialDataGrid,
 						     ObjectArray* oaAttributePairStats) const;
 
+	// Calcul de l'intersection des discretisations a partir d'un tableau de partition de type KWDGSAttributeDiscretization
+	void ComputeIntersectionDiscretizations(const ObjectArray* oaAttributeDiscretizations,
+						ContinuousVector* cvResultBounds) const;
+
+	// Calcul de l'intersection des groupes de valeurs a partir d'un tableau de partition de type KWDGSAttributeGrouping
+	void ComputeIntersectionGroupings(const ObjectArray* oaAttributeGroupings, SymbolVector* svResultValues,
+					  IntVector* ivResultGroupFirstValueIndexes) const;
+
 	// Ecriture d'un rapport JSON a partir des stats bivariee calculees
 	void WriteJSONAnalysisReport(KWClassStats* classStats, const ALString& sReportFileName) const;
 
@@ -58,3 +66,64 @@ protected:
 	mutable KWAttributePairsSpec bivariatePairSpec;
 	mutable KWClassStats bivariateClassStats;
 };
+
+//////////////////////////////////////////////////////////////////////////////////
+// Classe KWValueSignature
+// Service interne de gestion des valeurs, impliques dans un ensemble de partition
+// La signature d'une valeur est le vecteur des index des sa partie dans chacune
+// des partitions. Cela permet de calculer l'intersection des partitions, dont chaque
+// partie regroupe les valeurs de meme signature
+class KWValueSignature : public Object
+{
+public:
+	// Constructeur
+	KWValueSignature();
+	~KWValueSignature();
+
+	// Valeur
+	void SetValue(Symbol sGroupedValue);
+	Symbol GetValue() const;
+
+	// Signature
+	// Memoire: appartient a l'appele
+	IntVector* GetSignature();
+
+	// Comparaison de la partie signature, puis de la valeur
+	int Compare(const KWValueSignature* aSource) const;
+
+	// Comparaison de la partie signature uniquement
+	int CompareSignature(const KWValueSignature* aSource) const;
+
+	// Affichage, ecriture dans un fichier
+	void Write(ostream& ost) const override;
+
+	//////////////////////////////////////////////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	Symbol sValue;
+	IntVector ivSignature;
+};
+
+// Comparaison de deux signatures, en ignorant la valeur
+int KWValueSignatureCompare(const void* elem1, const void* elem2);
+
+// Implementation en inline
+
+inline KWValueSignature::KWValueSignature() {}
+
+inline KWValueSignature::~KWValueSignature() {}
+
+inline void KWValueSignature::SetValue(Symbol sGroupedValue)
+{
+	sValue = sGroupedValue;
+}
+
+inline Symbol KWValueSignature::GetValue() const
+{
+	return sValue;
+}
+
+inline IntVector* KWValueSignature::GetSignature()
+{
+	return &ivSignature;
+}
