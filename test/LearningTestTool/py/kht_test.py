@@ -249,6 +249,7 @@ def evaluate_tool_on_test_dir(
     min_test_time=None,
     max_test_time=None,
     test_timeout_limit=None,
+    max_run_number=kht.MAX_RUN_NUMBER,
     task_file=False,
     output_scenario=False,
     nop_output_scenario=False,
@@ -259,7 +260,8 @@ def evaluate_tool_on_test_dir(
     Parametres:
     - tool_exe_path: path de l'outil a tester, ou nul si on ne veut faire que la comparaison
     - suite_dir: repertoire racine du repertoire de test
-    - test_dir_name: repertoire de test terminal"""
+    - test_dir_name: repertoire de test terminal
+    - max_run_number: nombre maximum de lancements en cas de timeout"""
 
     # Verification du chemin de l'exe
     if tool_exe_path != kht.ALIAS_CHECK:
@@ -493,7 +495,7 @@ def evaluate_tool_on_test_dir(
         # Lancement de khiops
         timeout_expiration_lines = []
         overall_time_start = time.time()
-        for run_number in range(kht.MAX_RUN_NUMBER):
+        for run_number in range(max_run_number):
             run_completed = True
             time_start = time.time()
             with subprocess.Popen(
@@ -535,7 +537,7 @@ def evaluate_tool_on_test_dir(
                 break
             # Arret si on a depense globalement trop de temps
             overall_time = time_stop - overall_time_start
-            if overall_time > kht.MAX_TIMEOUT and run_number < kht.MAX_RUN_NUMBER - 1:
+            if overall_time > kht.MAX_TIMEOUT and run_number < max_run_number - 1:
                 timeout_expiration_lines.append(
                     "No more trial: overall trial time is "
                     + "{:.1f}".format(overall_time)
@@ -1116,6 +1118,18 @@ def main():
         action="store",
     )
 
+    # Nombre maximum de lancements en cas de timeout
+    parser.add_argument(
+        "--max-run-number",
+        help="maximum number of run attempts when the process times out (default: "
+        + str(kht.MAX_RUN_NUMBER)
+        + ")",
+        type=int,
+        default=kht.MAX_RUN_NUMBER,
+        metavar="n",
+        action="store",
+    )
+
     # Mode avec fichier de tache
     parser.add_argument(
         "--task-file",
@@ -1183,6 +1197,8 @@ def main():
     )
     if args.test_timeout_limit is not None and args.test_timeout_limit < 0:
         parser.error("argument --test-timeout-limit must be positive")
+    if args.max_run_number < 1:
+        parser.error("argument --max-run-number must be at least 1")
 
     # Echec si on est en mode interactif des elements de configuration minimaux sont absents
     if args.user_interface:
@@ -1235,6 +1251,7 @@ def main():
         min_test_time=args.min_test_time,
         max_test_time=args.max_test_time,
         test_timeout_limit=args.test_timeout_limit,
+        max_run_number=args.max_run_number,
         task_file=args.task_file,
         output_scenario=args.output_scenario,
         nop_output_scenario=args.nop_output_scenario,
