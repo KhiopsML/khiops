@@ -94,7 +94,7 @@ public:
 	// Acces a toutes les statistiques de preparation disponibles (univariee initiaux, multi-table ou texte, arbres,
 	// bivariees) Accessible uniquement si statistiques calculees Le tableau contient des objets
 	// KWDataPreparationStats Memoire: le tableau retourne et son contenu appartiennent a l'appele
-	ObjectArray* GetAllPreparedStats();
+	const ObjectArray* GetAllPreparedStats() const;
 
 	// Acces aux statistiques univariees par attributs
 	// Concerne les attributs de type initiaux ou multi-table uniquement
@@ -102,7 +102,7 @@ public:
 	// Accessible uniquement si statistiques calculees
 	// Le tableau contient des objets KWAttributeStats
 	// Memoire: le tableau retourne et son contenu appartiennent a l'appele
-	ObjectArray* GetAttributeStats();
+	const ObjectArray* GetAttributeStats() const;
 
 	// Acces par nom aux attributs de type initiaux ou multi-tables uniquement (acces rapide par dictionnaire)
 	// Renvoie NULL si non trouve
@@ -111,17 +111,17 @@ public:
 	// Acces aux statistiques bivariees par paire d'attributs
 	// Dans chaque paire, les attributs sont ordonnes par ordre alphabetique
 	// Le tableau contient des objets KWAttributePairStats
-	ObjectArray* GetAttributePairStats();
+	const ObjectArray* GetAttributePairStats() const;
 
 	// Acces aux statistiques univaries par attribut de type texte
 	// Ces attributs crees n'apparaissent pas dans le rapport de preparation
 	// Le tableau contient des objets KWAttributeStats
-	ObjectArray* GetTextAttributeStats();
+	const ObjectArray* GetTextAttributeStats() const;
 
 	// Acces aux statistiques univaries par attribut de type arbre
 	// Ces attributs crees n'apparaissent pas dans le rapport de preparation
 	// Le tableau contient des objets KWAttributeStats
-	ObjectArray* GetTreeAttributeStats();
+	const ObjectArray* GetTreeAttributeStats() const;
 
 	// Nombre d'attributs evalues, natifs (y compris dans les blocs natifs) et construits
 	int GetEvaluatedAttributeNumber() const;
@@ -385,6 +385,18 @@ protected:
 
 	// Gestion des stats des attributs de type arbre
 	ObjectArray oaTreeAttributeStats;
+
+	// Statistiques sur les stats des attributs prepares
+	// Ces statistiques, initialisees a -1, sont calculeees a la volee
+	// et bufferisees par les methodes correspondantes
+	// Les variables de statistique sont en mutable pour etre appelles par
+	// les methodes correspondantes qui sont const
+	mutable int nConstructedAttributeNumber;
+	mutable int nTotalInformativeAttributeNumber;
+	mutable int nInformativeAttributeNumber;
+	mutable int nInformativeTextAttributeNumber;
+	mutable int nInformativeTreeAttributeNumber;
+	mutable int nInformativeAttributePairNumber;
 
 	// Tache de construction des attributs de type arbre
 	KDDataPreparationAttributeCreationTask* attributeTreeConstructionTask;
