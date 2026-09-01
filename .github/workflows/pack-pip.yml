@@ -72,7 +72,7 @@ jobs:
           # Install the wheel itself only from the local wheelhouse, then resolve its
           # runtime dependencies (e.g. openmpi) from PyPI
           python -m pip install --find-links=wheelhouse --no-index --no-deps khiops-core
-          python -m pip install --find-links=wheelhouse khiops-core
+          python -m pip install --only-deps khiops-core
           pip show -f khiops-core
       - name: Export BIN_DIR
         id: export_bin_dir
@@ -222,7 +222,7 @@ jobs:
           # Install the wheels themselves only from the local wheelhouse, then resolve their
           # runtime dependencies (e.g. openmpi) from PyPI
           $PYTHON -m pip install --find-links=wheelhouse --no-index --no-deps khiops-core khiops-kni khiops-knitransfer
-          $PYTHON -m pip install --find-links=wheelhouse khiops-core khiops-kni khiops-knitransfer
+          $PYTHON -m pip install --only-deps khiops-core khiops-kni khiops-knitransfer
           $PYTHON -m pip show -f khiops-core
           $PYTHON -m pip show -f khiops-kni
       - name: Run standard tests on the Core and KNI packages
@@ -269,7 +269,7 @@ jobs:
           # Install the wheel itself only from the local wheelhouse, then resolve its
           # runtime dependencies from PyPI
           python -m pip install --find-links=wheelhouse --no-index --no-deps khiops-kni
-          python -m pip install --find-links=wheelhouse khiops-kni
+          python -m pip install --only-deps khiops-kni
           python -m pip show -f khiops-kni
       - name: Run python mono-table example
         shell: bash
