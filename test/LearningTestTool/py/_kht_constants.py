@@ -163,7 +163,7 @@ TIMEOUT_RATIO = 10
 MAX_TIMEOUT = 3600
 
 # Nombre maximum de lancement de test dans le cas d'un depassement du timeout
-MAX_RUN_NUMBER = 3
+MAX_RUN_NUMBER = 1
 
 """
 Constantes internes
