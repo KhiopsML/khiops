@@ -49,7 +49,13 @@ public:
 				 int& nInstanceNumber, int& nCellNumber);
 
 	// Ecriture d'un rapport de coclustering au format JSON
-	boolean WriteReport(const ALString& sReportName, const CCHierarchicalDataGrid* coclusteringDataGrid);
+	boolean WriteReport(const ALString& sReportName, const CCHierarchicalDataGrid* coclusteringDataGrid) const;
+
+	// Import des donnees de log depuis un autre rapport
+	void ImportErrorLogsFromReport(CCCoclusteringReport* importedReport);
+
+	// Nettoyage des donnees liees a la section optionnelle de logs
+	void CleanErrorLogs();
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Methodes standard
@@ -57,6 +63,10 @@ public:
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
 	const ALString GetObjectLabel() const override;
+
+	// Acces aux donnees de logs
+	const StringVector* GetTaskNameLogs();
+	const ObjectArray* GetMessagesLogs();
 
 	/////////////////////////////////////////////////////////////
 	///// Implementation
@@ -79,6 +89,7 @@ protected:
 
 	// Lecture des sections d'un rapport de coclustering
 	boolean InternalReadReport(CCHierarchicalDataGrid* coclusteringDataGrid, boolean bHeaderOnly);
+	boolean ReadErrorLogs();
 	boolean ReadSummary(CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadDimensionSummaries(CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadDimensionPartitions(CCHierarchicalDataGrid* coclusteringDataGrid);
@@ -94,15 +105,16 @@ protected:
 	boolean ReadCells(CCHierarchicalDataGrid* coclusteringDataGrid);
 
 	// Ecriture des sections d'un rapport de coclustering vers un stream en sortie
-	void InternalWriteReport(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
-	void WriteSummary(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
-	void WriteDimensionSummaries(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
-	void WriteDimensionSummary(CCHDGAttribute* attribute, JSONFile* fJSON);
-	void WriteDimensionPartitions(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
-	void WriteAttributePartition(KWDGAttribute* attribute, JSONFile* fJSON);
-	void WriteInnerAttributes(const KWDGInnerAttributes* innerAttributes, JSONFile* fJSON);
-	void WriteDimensionHierarchies(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
-	void WriteCells(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON);
+	void InternalWriteReport(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON) const;
+	void WriteErrorLogs(JSONFile* fJSON) const;
+	void WriteSummary(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON) const;
+	void WriteDimensionSummaries(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON) const;
+	void WriteDimensionSummary(CCHDGAttribute* attribute, JSONFile* fJSON) const;
+	void WriteDimensionPartitions(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON) const;
+	void WriteAttributePartition(KWDGAttribute* attribute, JSONFile* fJSON) const;
+	void WriteInnerAttributes(const KWDGInnerAttributes* innerAttributes, JSONFile* fJSON) const;
+	void WriteDimensionHierarchies(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON) const;
+	void WriteCells(const CCHierarchicalDataGrid* coclusteringDataGrid, JSONFile* fJSON) const;
 
 	// Fichier des gestion du rapport
 	ALString sReportFileName;
@@ -130,4 +142,9 @@ protected:
 	static const ALString sKeyWordSamplingMode;
 	static const ALString sKeyWordSelectionVariable;
 	static const ALString sKeyWordSelectionValue;
+
+	// Stockage de l'eventuelle section de logs du rapport
+	// Attention ce ne sont pas des caracteristiques du coclustering
+	StringVector svLogsTaskNames;
+	ObjectArray oaLogsMessages;
 };

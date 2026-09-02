@@ -1,0 +1,117 @@
+{
+	"tool": "Khiops Coclustering",
+	"version": "VERSION",
+	"shortDescription": "",
+	"logs": [
+		{
+			"taskName": "Coclustering",
+			"messages": [
+				"warning : Coclustering : No informative coclustering found in data"
+			]
+		}
+	],
+	"coclusteringReport": {
+		"summary": {
+			"instances": 63,
+			"cells": 1,
+			"nullCost": 294.4517911,
+			"cost": 294.4517911,
+			"level": 0,
+			"initialDimensions": 2,
+			"frequencyVariable": "",
+			"dictionary": "Adult",
+			"database": "C:\\AllLearningTests\\LearningTest.V11.0.0.2-b.1\\datasets\\Adult\\Adult.txt",
+			"samplePercentage": 0.1,
+			"samplingMode": "Include sample",
+			"selectionVariable": "",
+			"selectionValue": ""
+		},
+		"dimensionSummaries": [
+			{
+				"name": "education",
+				"type": "Categorical",
+				"parts": 1,
+				"initialParts": 1,
+				"values": 12,
+				"interest": 1,
+				"description": ""
+			},
+			{
+				"name": "occupation",
+				"type": "Categorical",
+				"parts": 1,
+				"initialParts": 1,
+				"values": 13,
+				"interest": 1,
+				"description": ""
+			}
+		],
+		"dimensionPartitions": [
+			{
+				"name": "education",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{HS-grad, Some-college, Bachelors, ...}",
+						"values": ["HS-grad","Some-college","Bachelors","Masters","11th","Assoc-acdm","Assoc-voc","10th","7th-8th","9th","12th","Doctorate"],
+						"valueFrequencies": [19,12,11,4,3,3,3,2,2,2,1,1],
+						"valueTypicalities": [0,0,0,0,0,0,0,0,0,0,0,0]
+					}
+				],
+				"defaultGroupIndex": 0
+			},
+			{
+				"name": "occupation",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{Prof-specialty, Craft-repair, Sales, ...}",
+						"values": ["Prof-specialty","Craft-repair","Sales","Other-service","Farming-fishing","Handlers-cleaners","Transport-moving","Exec-managerial","Machine-op-inspct","Protective-serv","Tech-support","Adm-clerical","Priv-house-serv"],
+						"valueFrequencies": [16,13,9,6,3,3,3,2,2,2,2,1,1],
+						"valueTypicalities": [0,0,0,0,0,0,0,0,0,0,0,0,0]
+					}
+				],
+				"defaultGroupIndex": 0
+			}
+		],
+		"dimensionHierarchies": [
+			{
+				"name": "education",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{HS-grad, Some-college, Bachelors, ...}",
+						"parentCluster": "",
+						"frequency": 63,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 2,
+						"isLeaf": true
+					}
+				]
+			},
+			{
+				"name": "occupation",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{Prof-specialty, Craft-repair, Sales, ...}",
+						"parentCluster": "",
+						"frequency": 63,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 2,
+						"isLeaf": true
+					}
+				]
+			}
+		],
+		"cellPartIndexes": [
+			[0,0]
+		],
+		"cellFrequencies": [63]
+	},
+	"khiops_encoding": "ascii"
+}
