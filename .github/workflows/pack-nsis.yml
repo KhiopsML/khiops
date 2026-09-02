@@ -73,7 +73,7 @@ jobs:
           Expand-Archive "C:\WINDOWS\Temp\nsis-$env:NSIS_VERSION-strlen_8192.zip" -DestinationPath "C:\Program Files (x86)\NSIS" -Force
         shell: pwsh
       - name: Install Java Temurin
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
