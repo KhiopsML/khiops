@@ -441,14 +441,14 @@ boolean KWClassStats::ComputeStats()
 	return bIsStatsComputed;
 }
 
-ObjectArray* KWClassStats::GetAllPreparedStats()
+const ObjectArray* KWClassStats::GetAllPreparedStats() const
 {
 	require(IsStatsComputed());
 
 	return &oaAllPreparedStats;
 }
 
-ObjectArray* KWClassStats::GetAttributeStats()
+const ObjectArray* KWClassStats::GetAttributeStats() const
 {
 	require(IsStatsComputed());
 
@@ -462,21 +462,21 @@ KWAttributeStats* KWClassStats::LookupAttributeStats(const ALString& sAttributeN
 	return cast(KWAttributeStats*, odAttributeStats.Lookup(sAttributeName));
 }
 
-ObjectArray* KWClassStats::GetAttributePairStats()
+const ObjectArray* KWClassStats::GetAttributePairStats() const
 {
 	require(IsStatsComputed());
 
 	return &oaAttributePairStats;
 }
 
-ObjectArray* KWClassStats::GetTextAttributeStats()
+const ObjectArray* KWClassStats::GetTextAttributeStats() const
 {
 	require(IsStatsComputed());
 
 	return &oaTextAttributeStats;
 }
 
-ObjectArray* KWClassStats::GetTreeAttributeStats()
+const ObjectArray* KWClassStats::GetTreeAttributeStats() const
 {
 	require(IsStatsComputed());
 

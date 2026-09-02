@@ -41,11 +41,15 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
-	//  Analyse bivariee des paires de'attributs internes
-	// La methode cree des objets KWAttributePairStats par paire analysee dans le tgableau en sortie
-	// Memoire: le tableau et son contenu appartienent a l'appelant
-	void ComputeInternalAttributesBivariateStats(const KWDataGrid* initialDataGrid,
-						     ObjectArray* oaAttributePairStats) const;
+	//  Analyse bivariee des paires d'attributs internes
+	// Le resultats est disponible dans bivariateClassStats
+	void ComputeInternalAttributesBivariateStats(const KWDataGrid* initialDataGrid) const;
+
+	// Acces aux analyses bivariees
+	const KWClassStats* GetInternalAttributesBivariateStats() const;
+
+	// Nettoyage des analyse bivariees
+	void CleanInternalAttributesBivariateStats() const;
 
 	// Calcul de l'intersection des discretisations a partir d'un tableau de partition de type KWDGSAttributeDiscretization
 	void ComputeIntersectionDiscretizations(const ObjectArray* oaAttributeDiscretizations,
@@ -62,9 +66,8 @@ protected:
 	KWLearningSpec* learningSpec;
 
 	// Variables de travail pour l'apprentissage des analyses bivariees
-	mutable KWLearningSpec bivariateLearningSpec;
-	mutable KWAttributePairsSpec bivariatePairSpec;
 	mutable KWClassStats bivariateClassStats;
+	mutable KWLearningSpec bivariateLearningSpec;
 };
 
 //////////////////////////////////////////////////////////////////////////////////

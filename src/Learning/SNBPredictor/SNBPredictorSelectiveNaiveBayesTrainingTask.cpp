@@ -639,7 +639,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeOverallAttributeStat
 {
 	longint lOverallDataPreparatrionStatsMemory;
 	ObjectDictionary dummyDictionary;
-	ObjectArray* oaAllPreparedStats;
+	const ObjectArray* oaAllPreparedStats;
 	int nAttribute;
 	KWDataPreparationStats* dataPreparationStats;
 
@@ -660,7 +660,7 @@ longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeOverallAttributeStat
 longint SNBPredictorSelectiveNaiveBayesTrainingTask::ComputeDataPreparationClassNecessaryMemory()
 {
 	int nAttribute;
-	ObjectArray* oaAllPreparedStats;
+	const ObjectArray* oaAllPreparedStats;
 	KWDataPreparationStats* attributeStats;
 	longint lDataPreparationClassMemory;
 

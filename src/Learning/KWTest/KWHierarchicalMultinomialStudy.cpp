@@ -253,14 +253,14 @@ void KWHierarchicalMultinomialStudy::StudyDatasetBivariate(const ALString& sClas
 			attributePairStatsS->SetLearningSpec(&learningSpec);
 			attributePairStatsS->SetAttributeName1(attribute1->GetName());
 			attributePairStatsS->SetAttributeName2(attribute2->GetName());
-			classStatsS.GetAttributePairStats()->Add(attributePairStatsS);
+			cast(ObjectArray*, classStatsS.GetAttributePairStats())->Add(attributePairStatsS);
 
 			// Parametrage des stats sur la paire d'attributs, dans le cas hierarchique
 			attributePairStatsH = new KWAttributePairStatsStudy;
 			attributePairStatsH->SetLearningSpec(&learningSpec);
 			attributePairStatsH->SetAttributeName1(attribute1->GetName());
 			attributePairStatsH->SetAttributeName2(attribute2->GetName());
-			classStatsH.GetAttributePairStats()->Add(attributePairStatsH);
+			cast(ObjectArray*, classStatsH.GetAttributePairStats())->Add(attributePairStatsH);
 
 			// Chargement des tuples
 			tupleTableLoader.LoadBivariate(attributePairStatsS->GetAttributeName1(),

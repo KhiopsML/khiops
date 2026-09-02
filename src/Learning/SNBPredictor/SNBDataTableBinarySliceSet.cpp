@@ -818,7 +818,7 @@ longint SNBDataTableBinarySliceSetSchema::GetUsedMemory() const
 longint SNBDataTableBinarySliceSetSchema::ComputeNecessaryMemory(KWClassStats* classStats)
 {
 	longint lSchemaMemory;
-	ObjectArray* oaAllPreparedStats;
+	const ObjectArray* oaAllPreparedStats;
 	int nAttribute;
 	KWDataPreparationStats* dataPreparationStats;
 	longint lTargetValueNumber;
@@ -2286,7 +2286,7 @@ longint SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
 		for (nSliceAttribute = 0; nSliceAttribute < nSliceAttributeNumber; nSliceAttribute++)
 		{
 			lSliceSparseValueNumber +=
-			    (nInstanceNumber - ivSparseMissingValueNumberPerAttribute->GetAt(nAttribute));
+			    ((longint)nInstanceNumber - ivSparseMissingValueNumberPerAttribute->GetAt(nAttribute));
 			nAttribute++;
 		}
 

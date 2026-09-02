@@ -25,7 +25,7 @@ void KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataGrid
 								KWDataGridMerger* initialDataGridSolution) const
 {
 	const boolean bTrace = true;
-	ObjectArray oaAttributePairStats;
+	const ObjectArray* oaAttributePairStats;
 	KWAttributePairStats* resultPairStats;
 	KWDataGridStats* pairStats;
 	const KWDGSAttributePartition* attributePartition;
@@ -37,9 +37,6 @@ void KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataGrid
 	IntVector ivResultGroupFirstValueIndexes;
 	int n;
 	int nAttribute;
-	int nBound;
-	int nGroup;
-	int nValue;
 
 	require(learningSpec != NULL);
 	require(initialDataGrid != NULL);
@@ -48,13 +45,14 @@ void KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataGrid
 	require(initialDataGridSolution->GetCellNumber() == 0);
 
 	// Calcul des paires de variables
-	ComputeInternalAttributesBivariateStats(initialDataGrid, &oaAttributePairStats);
+	ComputeInternalAttributesBivariateStats(initialDataGrid);
+	oaAttributePairStats = GetInternalAttributesBivariateStats()->GetAttributePairStats();
 
 	// Parcours des paires pour collecter pour chaque attribut toutes les partitions
 	// de l'attribut dans les paires le concernant
-	for (n = 0; n < oaAttributePairStats.GetSize(); n++)
+	for (n = 0; n < oaAttributePairStats->GetSize(); n++)
 	{
-		resultPairStats = cast(KWAttributePairStats*, oaAttributePairStats.GetAt(n));
+		resultPairStats = cast(KWAttributePairStats*, oaAttributePairStats->GetAt(n));
 		pairStats = resultPairStats->GetPreparedDataGridStats();
 
 		// Analyse de chaque attribut des paires non nulles
@@ -123,25 +121,22 @@ void KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataGrid
 	}
 
 	// Nettoyage
-	oaAttributePairStats.DeleteAll();
 	oaAllAttributesPartitions.DeleteAll();
+	CleanInternalAttributesBivariateStats();
 }
 
 void KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStats(
-    const KWDataGrid* initialDataGrid, ObjectArray* oaAttributePairStats) const
+    const KWDataGrid* initialDataGrid) const
 {
 	const boolean bTrace = true;
+	KWAttributePairsSpec bivariatePairSpec;
 	ALString sBivariateReportPath;
-	KWAttributePairStats* resultPairStats;
-	ObjectArray oaAttributeStats;
 	KWAttributePairName* pairName;
 	int n1;
 	int n2;
 
 	require(GetLearningSpec() != NULL);
 	require(initialDataGrid != NULL);
-	require(oaAttributePairStats != NULL);
-	require(oaAttributePairStats->GetSize() == 0);
 
 	// Parametrage des variables de travail pour  calculer les statistiques bivariees
 	bivariateLearningSpec.CopyFrom(GetLearningSpec());
@@ -170,6 +165,13 @@ void KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStat
 	// Calcul des statistques sur les paires de variables
 	bivariateClassStats.ComputeStats();
 
+	// Suppression du parametrage des paires, qui est local a la methode
+	bivariateClassStats.SetAttributePairsSpec(NULL);
+	bivariatePairSpec.SetMaxAttributePairNumber(0);
+
+	// Nettoyage
+	bivariatePairSpec.GetSpecificAttributePairs()->DeleteAll();
+
 	// Trace
 	if (bTrace)
 	{
@@ -179,15 +181,17 @@ void KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStat
 		     << " coclustering bivariate report: " << sBivariateReportPath << "\n";
 		WriteJSONAnalysisReport(&bivariateClassStats, sBivariateReportPath);
 	}
+}
 
-	// Recopie des paires obtenues
-	oaAttributePairStats->CopyFrom(bivariateClassStats.GetAttributePairStats());
+const KWClassStats* KWDataGridInitialSolutionSearcherIV::GetInternalAttributesBivariateStats() const
+{
+	require(bivariateClassStats.IsStatsComputed());
+	return &bivariateClassStats;
+}
 
-	// Nettoyage
-	oaAttributeStats.CopyFrom(bivariateClassStats.GetAttributeStats());
-	bivariateClassStats.RemoveAll();
-	oaAttributeStats.DeleteAll();
-	bivariatePairSpec.GetSpecificAttributePairs()->DeleteAll();
+void KWDataGridInitialSolutionSearcherIV::CleanInternalAttributesBivariateStats() const
+{
+	bivariateClassStats.DeleteAll();
 }
 
 void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionDiscretizations(
