@@ -166,13 +166,13 @@ boolean KWAttributeStats::ComputeStats(const KWTupleTable* tupleTable)
 	return bIsStatsComputed;
 }
 
-KWDescriptiveStats* KWAttributeStats::GetDescriptiveStats()
+KWDescriptiveStats* KWAttributeStats::GetDescriptiveStats() const
 {
 	require(GetAttributeType() != KWType::Unknown);
 	return kwDescriptiveStats;
 }
 
-KWDataGridStats* KWAttributeStats::GetSymbolValueStats()
+KWDataGridStats* KWAttributeStats::GetSymbolValueStats() const
 {
 	require(GetAttributeType() == KWType::Symbol);
 	return symbolValueStats;
