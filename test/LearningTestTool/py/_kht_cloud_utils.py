@@ -60,8 +60,17 @@ def is_cloudified_home_dir(home_dir):
 
 
 # --- Helpers internes de transformation de contenu ---
-def run_khiops_no_replay(khiops_params, step_label):
-    """Execute khiops -O (no-replay) pour transformer le scenario; retourne le chemin du fichier .prm de sortie."""
+def run_khiops_no_replay(khiops_params, step_label, suppress_output=False):
+    """Execute khiops -O (no-replay) pour transformer le scenario; retourne un tuple (out_path, success).
+
+    Args:
+        khiops_params: parametres de la commande khiops
+        step_label: label pour les messages de diagnostic
+        suppress_output: si True, supprime les messages de diagnostic
+
+    Returns:
+        tuple (output_file_path, success_boolean) ou success_boolean indique si la commande a reussi
+    """
     out_fd, out_path = tempfile.mkstemp(suffix=".prm", prefix="kht_no_replay_out_")
     os.close(out_fd)
     err_fd, err_file_path = tempfile.mkstemp(suffix=".txt", prefix="kht_no_replay_err_")
@@ -73,9 +82,10 @@ def run_khiops_no_replay(khiops_params, step_label):
         stderr=subprocess.PIPE,
         universal_newlines=True,
     )
-    if result.stdout.strip():
+    success = True
+    if result.stdout.strip() and not suppress_output:
         print("Warning: unexpected output during " + step_label + ":\n" + result.stdout)
-    if result.stderr.strip():
+    if result.stderr.strip() and not suppress_output:
         print(
             "Warning: unexpected error output during "
             + step_label
@@ -86,9 +96,13 @@ def run_khiops_no_replay(khiops_params, step_label):
         with open(err_file_path, "r", errors="ignore") as err_f:
             err_content = err_f.read()
         if "error" in err_content.lower():
-            print("Warning: errors in " + step_label + " error log:\n" + err_content)
+            success = False
+            if not suppress_output:
+                print(
+                    "Warning: errors in " + step_label + " error log:\n" + err_content
+                )
         utils.remove_file(err_file_path)
-    return out_path
+    return out_path, success
 
 
 def cloudify_file_content(content, cloud_dir, cloud_test_dir, is_json):
@@ -129,7 +143,9 @@ def generate_cloud_prm(
     """Genere test-cloud.prm dans target_test_dir a partir de test.prm (et test.json si present).
     Etape 1 : expansion de test.json via khiops -j (si binaire fourni) ou heuristique Python.
     Etape 2 : remplacement des chemins locaux par les URIs cloud via cloudify_prm_content.
-    Retourne True si le fichier a ete genere.
+    Retourne True si le fichier a ete genere, False si la cloudification a echoue.
+
+    En cas d'erreur durant l'expansion JSON (e.g., batch mode failure), retourne False pour ignorer le test.
     """
     src_prm = os.path.join(source_test_dir, kht.TEST_PRM)
     if not os.path.isfile(src_prm):
@@ -140,10 +156,16 @@ def generate_cloud_prm(
 
     if os.path.isfile(src_json):
         # Expansion via khiops -j : khiops connait la semantique exacte des parametres JSON
-        expanded_prm = run_khiops_no_replay(
+        expanded_prm, success = run_khiops_no_replay(
             [tool_exe_path, "-b", "-i", src_prm, "-j", src_json],
             "JSON scenario expansion",
+            suppress_output=True,  # Supprime les avertissements pour les tests problematiques
         )
+        # Si l'expansion a echoue, ignorer ce test pour la cloudification
+        if not success:
+            if expanded_prm is not None and os.path.isfile(expanded_prm):
+                utils.remove_file(expanded_prm)
+            return False
         with open(expanded_prm, "r", errors="ignore") as f:
             content = f.read()
     else:
@@ -183,8 +205,30 @@ def cloudify_results_ref_dirs(target_test_dir, cloud_dir, cloud_test_dir):
                     f.write(new_content)
 
 
+def remove_failed_test_dir(test_dir):
+    """Supprime recursivement un repertoire de test qui ne peut pas etre cloudifie."""
+    try:
+        for root, dir_names, file_names in os.walk(test_dir):
+            for name in dir_names:
+                os.chmod(
+                    os.path.join(root, name),
+                    stat.S_IWRITE | stat.S_IREAD | stat.S_IEXEC,
+                )
+            for name in file_names:
+                os.chmod(os.path.join(root, name), stat.S_IWRITE | stat.S_IREAD)
+        os.chmod(test_dir, stat.S_IWRITE | stat.S_IREAD | stat.S_IEXEC)
+        shutil.rmtree(test_dir)
+    except OSError as error:
+        print("Cannot remove failed test directory %s: %s" % (test_dir, str(error)))
+
+
 def cloudify_learning_test_tree(home_dir, cloud_dir, tool_exe_path):
-    """Ajoute les scenarios cloud et reecrit les references dans une arborescence deja exportee."""
+    """Ajoute les scenarios cloud et reecrit les references dans une arborescence deja exportee.
+
+    Les tests qui echouent durant la cloudification (e.g., erreur d'expansion JSON) sont
+    exclus automatiquement et un message d'information est affiche.
+    """
+    skipped_tests = []
     for tool_dir_name in kht.TOOL_DIR_NAMES.values():
         tool_dir = os.path.join(home_dir, tool_dir_name)
         if not os.path.isdir(tool_dir):
@@ -209,14 +253,55 @@ def cloudify_learning_test_tree(home_dir, cloud_dir, tool_exe_path):
                     + "/"
                     + test_dir_name
                 )
-                generate_cloud_prm(
+                # Tentative de cloudification; ignorer le test si elle echoue
+                if not generate_cloud_prm(
                     test_dir,
                     test_dir,
                     cloud_dir,
                     cloud_test_dir,
                     tool_exe_path=tool_exe_path,
-                )
+                ):
+                    remove_failed_test_dir(test_dir)
+                    skipped_tests.append(
+                        tool_dir_name + "/" + suite_dir_name + "/" + test_dir_name
+                    )
+                    continue
                 cloudify_results_ref_dirs(test_dir, cloud_dir, cloud_test_dir)
+
+    # Sauvegarde et affichage des tests ignores
+    if skipped_tests:
+        # Sauvegarde dans un fichier de resume
+        summary_file = os.path.join(home_dir, "cloudification_skipped_tests.log")
+        try:
+            with open(summary_file, "w", encoding="utf-8") as f:
+                f.write(
+                    f"Cloudification Summary: {len(skipped_tests)} test(s) skipped\n"
+                )
+                f.write("=" * 80 + "\n\n")
+                f.write(
+                    "The following test directories were excluded from cloudification\n"
+                )
+                f.write(
+                    "because they failed during JSON scenario expansion (e.g., batch mode failure).\n"
+                )
+                f.write("These tests remain available for local testing.\n\n")
+                for test_path in skipped_tests:
+                    f.write(f"  - {test_path}\n")
+        except IOError:
+            pass  # Ignorer les erreurs d'ecriture du fichier de resume
+
+        # Affichage sur console
+        print(
+            f"Note: {len(skipped_tests)} test dir(s) excluded from cloudification due to expansion errors"
+        )
+        print(f"      See '{summary_file}' for the complete list")
+        if len(skipped_tests) <= 10:
+            for test_path in skipped_tests:
+                print(f"  - {test_path}")
+        else:
+            for test_path in skipped_tests[:10]:
+                print(f"  - {test_path}")
+            print(f"  ... and {len(skipped_tests) - 10} more (see log file)")
 
 
 def resolve_cloudify_options(cloud_directory, home_dir):
