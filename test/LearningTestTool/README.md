@@ -16,32 +16,34 @@ The following components are involved in the Khiops tests:
 
 ## Table of Contents
 
-- [LearningTest](#learningtest)
-  - [LearningTest directory tree](#learningtest-directory-tree)
-  - [Test dirs](#test-dirs)
-  - [Normalisation of paths in scenarios](#normalisation-of-paths-in-scenarios)
-  - [Variants of reference results](#variants-of-reference-results)
-- [LearningTestTool](#learningtesttool)
-  - [Terminology](#terminology)
-- [LearningTest commands](#learningtest-commands)
-  - [LearningTestTool directory tree](#learningtesttool-directory-tree)
-  - [Implementation of LearningTestTool](#implementation-of-learningtesttool)
-- [Running Khiops tests](#running-khiops-tests)
-- [Main usages](#main-usages)
-  - [Test methodology](#test-methodology)
-  - [Non-regression tests for development](#non-regression-tests-for-development)
-  - [Non-regression tests for release](#non-regression-tests-for-release)
-  - [Portability on new platform](#portability-on-new-platform)
-  - [CI/CD](#cicd)
-- [Evolutions of LearningTest](#evolutions-of-learningtest)
-  - [New test dir](#new-test-dir)
-  - [New test suite](#new-test-suite)
-  - [Evolution of scenarios](#evolution-of-scenarios)
-  - [Evolution of reference results](#evolution-of-reference-results)
-- [Management of LearningTest and LearningTestTool](#management-of-learningtest-and-learningtesttool)
-  - [Cloud URI Support in LearningTest](#cloud-uri-support-in-learningtest)
-    - [Cloudification process](#cloudification-process)
-    - [Step-by-step workflow](#step-by-step-workflow)
+- [Khiops Test Tool: LearningTest and LearningTestTool](#khiops-test-tool-learningtest-and-learningtesttool)
+  - [Table of Contents](#table-of-contents)
+  - [LearningTest](#learningtest)
+    - [LearningTest directory tree](#learningtest-directory-tree)
+    - [Test dirs](#test-dirs)
+    - [Normalisation of paths in scenarios](#normalisation-of-paths-in-scenarios)
+    - [Variants of reference results](#variants-of-reference-results)
+  - [LearningTestTool](#learningtesttool)
+    - [Terminology](#terminology)
+  - [LearningTest commands](#learningtest-commands)
+    - [LearningTestTool directory tree](#learningtesttool-directory-tree)
+    - [Implementation of LearningTestTool](#implementation-of-learningtesttool)
+  - [Running Khiops tests](#running-khiops-tests)
+  - [Main usages](#main-usages)
+    - [Test methodology](#test-methodology)
+    - [Non-regression tests for development](#non-regression-tests-for-development)
+    - [Non-regression tests for release](#non-regression-tests-for-release)
+    - [Portability on new platform](#portability-on-new-platform)
+    - [CI/CD](#cicd)
+  - [Evolutions of LearningTest](#evolutions-of-learningtest)
+    - [New test dir](#new-test-dir)
+    - [New test suite](#new-test-suite)
+    - [Evolution of scenarios](#evolution-of-scenarios)
+    - [Evolution of reference results](#evolution-of-reference-results)
+  - [Management of LearningTest and LearningTestTool](#management-of-learningtest-and-learningtesttool)
+    - [Cloud URI Support in LearningTest](#cloud-uri-support-in-learningtest)
+      - [Cloudification process](#cloudification-process)
+      - [Step-by-step workflow](#step-by-step-workflow)
 
 
 
@@ -481,10 +483,14 @@ When exporting with `--cloud-directory`, the tool uses a two-step process:
 The cloudification step itself performs two operations:
 1. **JSON parameter expansion**: Khiops scenarios (`test.prm`) that include JSON parameter files (`test.json`) are expanded using `khiops -j`
 2. **Path substitution**: local dataset paths are replaced with cloud URIs in both scenario files and reference result files
+3. **Automatic skipping of problematic tests**: Test directories that fail during JSON expansion (e.g., with batch mode failures or invalid JSON structures) are automatically excluded from cloudification. These tests remain available for local testing.
 
-Generated files per test dir:
-- `test-cloud.prm`: scenario file with cloudified dataset paths, placed alongside test.prm
-- `results.ref*/` files: reference result files updated with cloudified paths
+Generated files and logs:
+- Per test dir:
+  - `test-cloud.prm`: scenario file with cloudified dataset paths, placed alongside test.prm
+  - `results.ref*/` files: reference result files updated with cloudified paths
+- In export root directory:
+  - `cloudification_skipped_tests.log`: (if any tests failed) list of test directories excluded from cloudification due to expansion errors. These tests remain available for local testing and should be run locally only.
 
 When `kht_test` detects a `test-cloud.prm` file in a test dir, it uses that instead of `test.prm`.
 
