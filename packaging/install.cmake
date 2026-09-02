@@ -278,6 +278,24 @@ else(IS_LINUX OR IS_MACOS)
     set(BIN_INSTALL_DIR "bin")
   endif()
 
+  if(IS_MSMPI)
+    file(READ packaging/windows/set_proc_number.cmd SET_PROC_NUMBER)
+  endif()
+
+  # For Intel MPI, we need to copy the redistributable files to a staging directory and install them from there. We
+  # cannot directly
+  if(IS_INTEL_MPI
+     AND NOT IS_PIP
+     AND NOT IS_CONDA)
+    get_filename_component(INTEL_MPI_BIN_DIR "${MPIEXEC_EXECUTABLE}" DIRECTORY)
+    set(INTEL_MPI_STAGING_BIN_DIR "${TMP_DIR}/mpi/bin")
+    file(MAKE_DIRECTORY ${INTEL_MPI_STAGING_BIN_DIR})
+    set(INTEL_MPI_REDISTRIBUTABLE_FILES hydra_bstrap_proxy.exe hydra_pmi_proxy.exe impi.dll mpiexec.exe)
+    foreach(INTEL_MPI_REDISTRIBUTABLE_FILE IN LISTS INTEL_MPI_REDISTRIBUTABLE_FILES)
+      configure_file(${INTEL_MPI_BIN_DIR}/${INTEL_MPI_REDISTRIBUTABLE_FILE}
+                     ${INTEL_MPI_STAGING_BIN_DIR}/${INTEL_MPI_REDISTRIBUTABLE_FILE} COPYONLY)
+    endforeach()
+  endif()
   configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/khiops_env.cmd.in ${TMP_DIR}/khiops_env.cmd @ONLY
                  NEWLINE_STYLE CRLF)
 
@@ -295,6 +313,22 @@ else(IS_LINUX OR IS_MACOS)
 
   install(TARGETS MODL MODL_Coclustering _khiopsgetprocnumber RUNTIME DESTINATION ${BIN_INSTALL_DIR}
                                                                       COMPONENT KHIOPS_CORE)
+  if(IS_INTEL_MPI
+     AND NOT IS_PIP
+     AND NOT IS_CONDA)
+    install(
+      FILES ${INTEL_MPI_STAGING_BIN_DIR}/hydra_bstrap_proxy.exe ${INTEL_MPI_STAGING_BIN_DIR}/hydra_pmi_proxy.exe
+            ${INTEL_MPI_STAGING_BIN_DIR}/impi.dll ${INTEL_MPI_STAGING_BIN_DIR}/mpiexec.exe
+      DESTINATION ${BIN_INSTALL_DIR}
+      COMPONENT KHIOPS_CORE)
+    # Install Intel MPI license files
+    install(
+      DIRECTORY ${PROJECT_SOURCE_DIR}/packaging/windows/THIRD-PARTY-LICENSES/
+      DESTINATION licenses
+      COMPONENT KHIOPS_CORE
+      FILES_MATCHING
+      PATTERN "*.txt")
+  endif()
   install(
     PROGRAMS ${TMP_DIR}/khiops.cmd ${TMP_DIR}/khiops_coclustering.cmd ${TMP_DIR}/khiops_env.cmd
     DESTINATION ${BIN_INSTALL_DIR}
