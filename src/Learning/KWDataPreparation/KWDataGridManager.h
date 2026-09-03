@@ -96,6 +96,24 @@ public:
 						     const KWDGInnerAttributes* mandatoryInnerAttributes,
 						     KWDataGrid* targetDataGrid);
 
+	// Export total (attribut, parties et cellules)
+	// Cas d'une grille de type VarPart
+	// En entree :
+	// - sourceDataGrid : grille dont on souhaite partitionner une parie des attributs du KWDGInnerAttributes
+	// - odInnerAttributePartitions :
+	//   - contient des partitions de type KWDGSAttributeDiscretization dans le cas Continuous et
+	//     KWDGSAttributeGrouping dans le cas Symbol
+	//
+	// En sortie :
+	// - targetDataGrid : nouvelle grille dont le KWDGInnerAttributes a ete remplace par une version partitionnee
+	// Les attribut sans partition dans le dictionnaire sont crees avec une seule partie
+	// Les VarPart sont partionnees avec une seul partie par VarPart
+	// Les identifier sont partitionnes de facon compatible avec les VarPart, chaque partie de type identifier
+	// contenant toutes les instances ayant exactement les meme VarPart
+	void ExportDataGridWithPartitionnedInnerAttributes(const KWDataGrid* sourceDataGrid,
+							   const ObjectDictionary* odInnerAttributePartitions,
+							   KWDataGrid* targetDataGrid);
+
 	/////////////////////////////////////////////////////////////////////////////////////////
 	// Service elementaires de transfert du contenu de la grille source vers la grille cible
 	// dedies aux attributs, parties et cellules
@@ -406,6 +424,15 @@ protected:
 	KWDGInnerAttributes* CreateRandomInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes,
 							 const KWDGInnerAttributes* mandatoryInnerAttributes,
 							 int nTotalTargetTokenNumber) const;
+
+	// Creation d'attributs internes a partir de specification de partition pour tout ou partie des attributs internes
+	// Le dictionnaire odInnerAttributePartitions contient des partitions de type:
+	// - KWDGSAttributeDiscretization dans le cas Continuous
+	// - KWDGSAttributeGrouping dans le cas Symbol
+	// Les attribut sans partition dans le dictionnaire sont crees avec une seule partie
+	KWDGInnerAttributes*
+	CreatePartitionnedInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes,
+					  const ObjectDictionary* odInnerAttributePartitions) const;
 
 	//////////////////////////////////////////////////////////////////////////////////
 	// Services divers

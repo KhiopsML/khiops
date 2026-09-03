@@ -330,7 +330,7 @@ void KWDataGridManager::ExportDataGridWithMergedInnerAttributes(const KWDataGrid
 	targetDataGrid->DeleteAll();
 	ExportAttributes(sourceDataGrid, targetDataGrid);
 
-	// Initialisation de la granularite (sinon celle de la grille GetInitialVarPartDataGrid())
+	// Initialisation de la granularite
 	targetDataGrid->SetGranularity(sourceDataGrid->GetGranularity());
 
 	// Initialisation des parties des attributs
@@ -351,6 +351,56 @@ void KWDataGridManager::ExportDataGridWithMergedInnerAttributes(const KWDataGrid
 			// Creation de l'attribut VarPart associe a ces innerAttributes selon la meme partition que l'attribut en entree
 			InitialiseVarPartAttributeWithMergedInnerAttributes(sourceDataGrid->GetVarPartAttribute(),
 									    mandatoryInnerAttributes, targetAttribute);
+		}
+	}
+	ExportCells(sourceDataGrid, targetDataGrid);
+}
+
+void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
+    const KWDataGrid* sourceDataGrid, const ObjectDictionary* odInnerAttributePartitions, KWDataGrid* targetDataGrid)
+{
+	int nAttribute;
+	KWDGAttribute* targetAttribute;
+	KWDGAttribute* sourceAttribute;
+	KWDGInnerAttributes* partitionnedInnerAttributes;
+
+	require(Check());
+	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
+	require(sourceDataGrid->IsVarPartDataGrid());
+	require(odInnerAttributePartitions != NULL);
+	require(odInnerAttributePartitions->GetCount() > 0);
+	require(odInnerAttributePartitions->GetCount() <=
+		sourceDataGrid->GetInnerAttributes()->GetInnerAttributeNumber());
+
+	// Export des attributs (avec innerAtributes non surtokenises a ce stade)
+	targetDataGrid->DeleteAll();
+	ExportAttributes(sourceDataGrid, targetDataGrid);
+
+	// Initialisation de la granularite
+	targetDataGrid->SetGranularity(sourceDataGrid->GetGranularity());
+
+	// Initialisation des parties des attributs
+	for (nAttribute = 0; nAttribute < targetDataGrid->GetAttributeNumber(); nAttribute++)
+	{
+		targetAttribute = targetDataGrid->GetAttributeAt(nAttribute);
+
+		// Recherche de l'attribut source correspondant
+		sourceAttribute = sourceDataGrid->SearchAttribute(targetAttribute->GetAttributeName());
+		check(sourceAttribute);
+
+		// Pour un attribut simple, export des parties
+		if (KWType::IsSimple(sourceAttribute->GetAttributeType()))
+			InitialiseAttributeParts(sourceAttribute, targetAttribute);
+		// Pour l'attribut VarPart, export des parties apres surtokenisation des attributs internes
+		else
+		{
+			// Creation d'une version partitionnee des attributs internes
+			partitionnedInnerAttributes = CreatePartitionnedInnerAttributes(
+			    sourceDataGrid->GetInnerAttributes(), odInnerAttributePartitions);
+
+			// Creation de l'attribut VarPart associe a ces innerAttributes selon la meme partition que l'attribut en entree
+			InitialiseVarPartAttributeWithMergedInnerAttributes(
+			    sourceDataGrid->GetVarPartAttribute(), partitionnedInnerAttributes, targetAttribute);
 		}
 	}
 	ExportCells(sourceDataGrid, targetDataGrid);
@@ -2608,6 +2658,7 @@ void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(
 			while (antecedentVarPart != NULL)
 			{
 				mergedVarPart = mergedInnerAttribute->GetHeadPart();
+
 				// Recherche a optimiser par creation d'un dictionnaire ?
 				while (mergedVarPart != NULL)
 				{
@@ -3972,6 +4023,94 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 		}
 	}
 
+	return targetInnerAttributes;
+}
+
+KWDGInnerAttributes*
+KWDataGridManager::CreatePartitionnedInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes,
+						     const ObjectDictionary* odInnerAttributePartitions) const
+{
+	boolean bTrace = true;
+	boolean bTraceDetails = false;
+	KWDGInnerAttributes* targetInnerAttributes;
+	int nInnerAttribute;
+	KWDGAttribute* sourceInnerAttribute;
+	KWDGAttribute* targetInnerAttribute;
+	const KWDGSAttributeDiscretization* attributeDiscretization;
+	const KWDGSAttributeGrouping* attributeGrouping;
+	const KWDGSAttributePartition* attributePartition;
+	int nPartitionNumber;
+
+	require(sourceInnerAttributes != NULL);
+	require(odInnerAttributePartitions != NULL);
+	require(odInnerAttributePartitions->GetCount() > 0);
+	require(odInnerAttributePartitions->GetCount() <= sourceInnerAttributes->GetInnerAttributeNumber());
+
+	// Trace initiale
+	if (bTrace)
+	{
+		cout << "CreatePartitionnedInnerAttributes\n";
+		cout << "- Inner attributes\t" << sourceInnerAttributes->GetInnerAttributeNumber() << "\n";
+		cout << "- Partitions\t" << odInnerAttributePartitions->GetCount() << "\n";
+	}
+
+	// Creation du nouvel innerAttributes
+	targetInnerAttributes = new KWDGInnerAttributes;
+
+	// Creation des attributs internes en sortie
+	nPartitionNumber = 0;
+	for (nInnerAttribute = 0; nInnerAttribute < sourceInnerAttributes->GetInnerAttributeNumber(); nInnerAttribute++)
+	{
+		sourceInnerAttribute = sourceInnerAttributes->GetInnerAttributeAt(nInnerAttribute);
+
+		// Creation d'un attribut interne cible
+		targetInnerAttribute = new KWDGAttribute;
+		InitialiseAttribute(sourceInnerAttribute, targetInnerAttribute);
+		targetInnerAttributes->AddInnerAttribute(targetInnerAttribute);
+
+		// Recherche de la partition associee a l'attribut
+		attributePartition = cast(const KWDGSAttributePartition*,
+					  odInnerAttributePartitions->Lookup(sourceInnerAttribute->GetAttributeName()));
+
+		// Initialisation d'une seule partie par attribut si pas de partition
+		if (attributePartition == NULL)
+			InitialiseAttributeNullPart(sourceInnerAttribute, targetInnerAttribute);
+		// Creation des parties de l'attribut interne cible selon la partition
+		else
+		{
+			nPartitionNumber++;
+
+			// Cas d'un attribut Continuous
+			if (sourceInnerAttribute->GetAttributeType() == KWType::Continuous)
+			{
+				attributeDiscretization = cast(const KWDGSAttributeDiscretization*, attributePartition);
+			}
+			// Cas d'un atrtribut Symbol
+			else
+			{
+				assert(sourceInnerAttribute->GetAttributeType() == KWType::Symbol);
+				attributeGrouping = cast(const KWDGSAttributeGrouping*, attributePartition);
+			}
+
+			//DDD
+			InitialiseAttributeNullPart(sourceInnerAttribute, targetInnerAttribute);
+		}
+	}
+	assert(nPartitionNumber == odInnerAttributePartitions->GetCount());
+
+	// Trace finale
+	if (bTrace)
+	{
+		cout << "- Target inner attributes parts\t"
+		     << targetInnerAttributes->ComputeTotalInnerAttributeVarParts() << "\n";
+		if (bTraceDetails)
+		{
+			cout << "Source inner attributes:\n";
+			sourceInnerAttributes->Write(cout);
+			cout << "Target inner attributes:\n";
+			targetInnerAttributes->Write(cout);
+		}
+	}
 	return targetInnerAttributes;
 }
 

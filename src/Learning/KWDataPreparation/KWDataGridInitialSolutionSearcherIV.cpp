@@ -33,13 +33,14 @@ void KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataGrid
 	ObjectArray oaAllAttributesPartitions;
 	ObjectDictionary odAllAttributesPartitions;
 	ObjectArray* oaAttributePartitions;
-	ContinuousVector cvResultBounds;
-	SymbolVector svResultValues;
-	IntVector ivResultGroupFirstValueIndexes;
-	KWDGSAttributeDiscretization attributeDiscretization;
-	KWDGSAttributeGrouping attributeGrouping;
+	ObjectDictionary odInnerAttributePartitions;
+	KWDGSAttributeDiscretization* attributeResultDiscretization;
+	KWDGSAttributeGrouping* attributeResultGrouping;
+	const KWDGSAttributePartition* attributeResultPartition;
 	int n;
 	int nAttribute;
+	KWDataGridManager dataGridManager;
+	KWDataGrid partitionnedDataGrid;
 
 	require(learningSpec != NULL);
 	require(initialDataGrid != NULL);
@@ -85,20 +86,6 @@ void KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataGrid
 		}
 	}
 
-	// Trace
-	if (bTrace)
-	{
-		cout << "Variable partitions\t" << oaAllAttributesPartitions.GetSize() << "\n";
-		for (nAttribute = 0; nAttribute < oaAllAttributesPartitions.GetSize(); nAttribute++)
-		{
-			oaAttributePartitions = cast(ObjectArray*, oaAllAttributesPartitions.GetAt(nAttribute));
-			attributePartition = cast(const KWDGSAttributePartition*, oaAttributePartitions->GetAt(0));
-			cout << "\t" << attributePartition->GetAttributeName() << "\t";
-			cout << KWType::ToString(attributePartition->GetAttributeType()) << "\t";
-			cout << oaAttributePartitions->GetSize() << "\n";
-		}
-	}
-
 	// Extraction des partitions les plus fines pour chaque attribut, par intersection de ses partitions
 	for (nAttribute = 0; nAttribute < oaAllAttributesPartitions.GetSize(); nAttribute++)
 	{
@@ -115,28 +102,52 @@ void KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataGrid
 		// Cas d'un attribut numerique
 		if (attributePartition->GetAttributeType() == KWType::Continuous)
 		{
+			attributeResultDiscretization = new KWDGSAttributeDiscretization;
+			odInnerAttributePartitions.SetAt(attributePartition->GetAttributeName(),
+							 attributeResultDiscretization);
 			ComputeIntersectionDiscretizations(attributeStats, oaAttributePartitions,
-							   &attributeDiscretization);
-			//DDD
-			cout << "BUG\t" << attributeDiscretization << endl;
-
-			// Nettoyage
-			cvResultBounds.SetSize(0);
+							   attributeResultDiscretization);
 		}
 		else
 		{
-			ComputeIntersectionGroupings(attributeStats, oaAttributePartitions, &attributeGrouping);
-			//DDD
-			cout << "BUG\t" << attributeGrouping << endl;
-
-			// Nettoyage
-			svResultValues.SetSize(0);
-			ivResultGroupFirstValueIndexes.SetSize(0);
+			attributeResultGrouping = new KWDGSAttributeGrouping;
+			odInnerAttributePartitions.SetAt(attributePartition->GetAttributeName(),
+							 attributeResultGrouping);
+			ComputeIntersectionGroupings(attributeStats, oaAttributePartitions, attributeResultGrouping);
 		}
+	}
+
+	// Creation d'une version partitionnee des attributs internes
+	dataGridManager.ExportDataGridWithPartitionnedInnerAttributes(initialDataGrid, &odInnerAttributePartitions,
+								      &partitionnedDataGrid);
+
+	// Trace
+	if (bTrace)
+	{
+		cout << "Variable partitions\t" << oaAllAttributesPartitions.GetSize() << "\n";
+		for (nAttribute = 0; nAttribute < oaAllAttributesPartitions.GetSize(); nAttribute++)
+		{
+			// Acces aux info de l'attribut
+			oaAttributePartitions = cast(ObjectArray*, oaAllAttributesPartitions.GetAt(nAttribute));
+			attributePartition = cast(const KWDGSAttributePartition*, oaAttributePartitions->GetAt(0));
+			attributeResultPartition =
+			    cast(const KWDGSAttributePartition*,
+				 odInnerAttributePartitions.Lookup(attributePartition->GetAttributeName()));
+
+			// Affichage des ces infos
+			cout << "  " << attributePartition->GetAttributeName() << "\t";
+			cout << KWType::ToString(attributePartition->GetAttributeType()) << "\t";
+			cout << oaAttributePartitions->GetSize() << "\n";
+			cout << "  " << *attributeResultPartition << "\n";
+		}
+
+		//DDD
+		cout << partitionnedDataGrid << "\n";
 	}
 
 	// Nettoyage
 	oaAllAttributesPartitions.DeleteAll();
+	odInnerAttributePartitions.DeleteAll();
 	CleanInternalAttributesBivariateStats();
 }
 
@@ -261,6 +272,7 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionDiscretizations(
 
 	ensure(resultDiscretization->GetAttributeName() == attributeStats->GetAttributeName());
 	ensure(resultDiscretization->GetPartNumber() > 1);
+	ensure(resultDiscretization->Check());
 }
 
 void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWAttributeStats* attributeStats,
@@ -413,6 +425,7 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWA
 
 	ensure(resultGrouping->GetAttributeName() == attributeStats->GetAttributeName());
 	ensure(resultGrouping->GetPartNumber() > 1);
+	ensure(resultGrouping->Check());
 }
 
 void KWDataGridInitialSolutionSearcherIV::WriteJSONAnalysisReport(KWClassStats* classStats,
