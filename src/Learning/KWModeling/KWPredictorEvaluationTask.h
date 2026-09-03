@@ -416,11 +416,11 @@ public:
 	// Memoire: Responsabilite de l'appelant
 	void SetInstanceEvaluations(ObjectArray* oaEvaluations);
 
-	// Evaluation globale de l'AUC du predicteur sur l'ensemble des modalites
-	// Utilisation de la methode precedante en ponderant par la frequence de chaque modalite cible
+	// On retourne l'AUC global du predicteur obtenue par ponderation par frequence des AUC par modalite cible
+	// Les AUC par modalite cible sont calculees avec ComputeAUCValueAt et alimentent le vecteur dvAUCValues
 	// Dans le cas particulier ou il n'y a que deux modalites cibles la methode est applicable
 	// meme si seul le premier vecteur de score a ete parametre
-	double ComputeGlobalAUCValue();
+	double ComputeGlobalAUCValue(DoubleVector& dvAUCValues);
 
 	// Evaluation du predicteur par la surface sous la courbe de ROC
 	// En effet de bord, le tableau des scores est trie

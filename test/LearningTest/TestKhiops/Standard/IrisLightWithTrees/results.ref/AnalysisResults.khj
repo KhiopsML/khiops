@@ -85,6 +85,10 @@
 						[0,32,2],
 						[0,0,33]
 					]
+				},
+				"aucValues": {
+					"values": ["Iris-setosa","Iris-versicolor","Iris-virginica"],
+					"aucs": [1,0.998502,0.998571]
 				}
 			}
 		},
@@ -164,6 +168,10 @@
 						[0,18,3],
 						[0,0,12]
 					]
+				},
+				"aucValues": {
+					"values": ["Iris-setosa","Iris-versicolor","Iris-virginica"],
+					"aucs": [1,0.979424,0.977778]
 				}
 			}
 		},
