@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>@MACOS_APP_BUNDLE_NAME@</string>
+    <key>CFBundleDisplayName</key>
+    <string>@MACOS_APP_BUNDLE_NAME@</string>
+    <key>CFBundleIdentifier</key>
+    <string>@MACOS_APP_BUNDLE_IDENTIFIER@</string>
+    <key>CFBundleVersion</key>
+    <string>@KHIOPS_VERSION@</string>
+    <key>CFBundleShortVersionString</key>
+    <string>@KHIOPS_VERSION@</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleExecutable</key>
+    <string>@MACOS_APP_BUNDLE_EXECUTABLE@</string>
+    <key>CFBundleIconFile</key>
+    <string>@MACOS_APP_BUNDLE_ICON_FILE@</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>@MACOS_APP_MINIMUM_SYSTEM_VERSION@</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.education</string>
+</dict>
+</plist>

@@ -3,15 +3,30 @@
 # Run Khiops tool
 # see the khiops_env script for full documentation on the environment variables used by Khiops
 
+# Use non-blocking desktop notifications instead of modal alerts.
+# On macOS, osascript notifications are attributed to Script Editor because this script
+# has no app identity; clicking one may open Script Editor.
+macos_gui_available() {
+    [ "@IS_MACOS_APP@" = true ] || return 1
+    command -v launchctl >/dev/null 2>&1 || return 1
+    launchctl print "gui/$(id -u)" >/dev/null 2>&1
+}
+
+notify_user() {
+    if [ -n "$DISPLAY" ] && command -v notify-send >/dev/null 2>&1; then
+        notify-send "Khiops" "$*" -i /usr/share/pixmaps/khiops.png -u normal
+    elif command -v osascript >/dev/null 2>&1 && macos_gui_available; then
+        osascript -e "display notification \"$*\" with title \"Khiops\"" &>/dev/null
+    fi
+}
+
 error() {
     if [ -f /dev/log ]; then
         logger "$*" --tag khiops --stderr
     else
         echo "$*" >&2
     fi
-    if [ -n "$DISPLAY" ] && command -v notify-send >/dev/null 2>&1; then
-        notify-send "Khiops" "$*" -i /usr/share/pixmaps/khiops.png -u normal
-    fi
+    notify_user "$*"
     unset _GUI_SUPPORTED
     exit 1
 }
@@ -22,9 +37,7 @@ warning() {
     else
         echo "$*" >&2
     fi
-    if [ -n "$DISPLAY" ]; then
-        notify-send "Khiops" "$*" -i /usr/share/pixmaps/khiops.png -u normal
-    fi
+    notify_user "$*"
 }
 
 get_script_dir() {
@@ -43,7 +56,7 @@ if [ -z "$KHIOPS_MPI_VERBOSE" ]; then
 fi
 
 # Initialize Khiops env variables
-source $(get_script_dir)/khiops_env ""
+source "$(get_script_dir)/khiops_env" ""
 
 # Test if batch mode from parameters
 KHIOPS_BATCH_MODE=false
@@ -96,7 +109,11 @@ main () {
         launch_khiops "$@"
         local _RETCODE=$?
     else
-        if [ "$_GUI_SUPPORTED" = false ] || [ -z "$DISPLAY" ]; then
+        if [ "$_GUI_SUPPORTED" = false ]; then
+            error "GUI is not available, please use the '-b' flag"
+        elif [ "@IS_MACOS_APP@" = true ] && ! macos_gui_available; then
+            error "No macOS GUI session is available, please use the '-b' flag"
+        elif [ "@IS_MACOS_APP@" != true ] && [ -z "$DISPLAY" ]; then
             error "GUI is not available, please use the '-b' flag"
         else
             if [ -z "$KHIOPS_JAVA_PATH" ]; then
