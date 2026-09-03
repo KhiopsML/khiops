@@ -556,7 +556,7 @@ boolean PLMPIMaster::Process()
 
 	TaskProgression::EndTask();
 
-	// Tout les messages on ete traites par les esclaves, on peut continuer
+	// Tous les messages on ete traites par les esclaves, on peut continuer
 	MPI_Barrier(*PLMPITaskDriver::GetTaskComm()); // BARRIER MSG 2
 
 	// Affichage des derniers messages utilisateur

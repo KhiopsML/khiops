@@ -295,7 +295,7 @@ void MHDiscretizerTruncationMODLHistogram::DiscretizeDeltaValues(const Continuou
 				// En principe, on devrait creer un intervalle de variations de valeurs autour de 0,
 				// mais cela inhiberait systematiquement toute possibilite de troncature
 				// On considere donc que toutes les valeurs des valeurs extremites, et on cree
-				// donc une variation de valeur egale a la longueur de bin, et toute les autres a 0
+				// donc une variation de valeur egale a la longueur de bin, et toutes les autres a 0
 				// Il s'agit d'un choix heuristique visant a garder au maximum la possibilite
 				// d'activer l'heuristique de troncature, tout en restant conservateur, car il n'est de
 				// toute facon pas possible d'avoir des intervalles plus petits que les bins

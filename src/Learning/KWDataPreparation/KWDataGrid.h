@@ -810,7 +810,7 @@ public:
 	// Nombre de cellules
 	int GetCellNumber() const;
 
-	// Parcours de tous les cellules
+	// Parcours de toutes les cellules
 	KWDGCell* GetHeadCell() const;
 	KWDGCell* GetTailCell() const;
 	void GetNextCell(KWDGCell*& cell) const;
