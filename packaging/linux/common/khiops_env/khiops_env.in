@@ -64,6 +64,7 @@ help() {
 if [[ -z $KHIOPS_LAST_RUN_DIR ]]; then
     export KHIOPS_LAST_RUN_DIR=/tmp/khiops/$USER
 fi
+mkdir -p "$KHIOPS_LAST_RUN_DIR"
 @USE_ENVIRONMENT_MODULE@
 @KHIOPS_JAVA_SETTINGS@
 get_script_dir() {
@@ -91,48 +92,56 @@ if ! [ "$KHIOPS_MPI_VERBOSE" == "true" ]; then
     _MPI_EXTRA_FLAGS="@KHIOPS_MPI_QUIET@"
 fi
 
-KHIOPS_PATH=@MODL_PATH@@MODL_NAME@
-KHIOPS_COCLUSTERING_PATH=@MODL_PATH@@MODL_COCLUSTERING_NAME@
+@KHIOPS_MPI_RUNTIME_SELECT@
+# KHIOPS_MPI_RUNTIME_SELECTED is set above only on targets shipping more than one MODL
+# variant (e.g. the macOS app bundle, which ships both MODL and MODL_openmpi since MPI
+# is a compile-time link, not a runtime choice, and OpenMPI itself is never vendored).
+# Everywhere else exactly one MODL variant is installed, so the static substitution below
+# is used as before.
+if [[ -z ${KHIOPS_MPI_RUNTIME_SELECTED:-} ]]; then
+    KHIOPS_PATH=@MODL_PATH@@MODL_NAME@
+    KHIOPS_COCLUSTERING_PATH=@MODL_PATH@@MODL_COCLUSTERING_NAME@
 
-# Most of the time the mpiexec executable is in the same directory as the MODL
-# executable; this applies to:
-# - Debian and Ubuntu native installations
-# - installations in Conda and Conda-based environments
-_MPIEXEC=@MODL_PATH@mpiexec
-if command -v $_MPIEXEC &>/dev/null; then
-    KHIOPS_MPI_ERROR=""
-# Fallback for Rocky Linux, where native OpenMPI is in a different directory
-elif command -v mpiexec &>/dev/null; then
-    KHIOPS_MPI_ERROR=""
-    _MPIEXEC=$(readlink -f "$(type -P mpiexec)")
-else
-    KHIOPS_MPI_ERROR="We didn't find mpiexec in the expected paths. Parallel computation is unavailable: Khiops is launched in serial"
-fi
-
-# Set the KHIOPS_MPI_HOME variable if HOME is not already set
-# KHIOPS_MPI_HOME is set to the temporary directory of the current user or to
-# /tmp if not defined
-# If HOME is not defined, then it must be set to $KHIOPS_MPI_HOME
-# This is required by OpenMPI >= 5; see
-# https://github.com/open-mpi/ompi/issues/10732
-if [[ -z $HOME ]]; then
-    KHIOPS_MPI_HOME=${TMPDIR:-${TEMP:-${TMP:-/tmp}}}
-fi
-
-if [[ -z $KHIOPS_MPI_ERROR ]]; then
-    KHIOPS_MPI_COMMAND="$_MPIEXEC $_MPI_EXTRA_FLAGS @MPI_EXTRA_FLAG@ $KHIOPS_MPI_EXTRA_FLAGS"
-    @SET_PROC_NUMBER@
-    if [[ -n $KHIOPS_PROC_NUMBER ]]; then
-        KHIOPS_MPI_COMMAND="$KHIOPS_MPI_COMMAND @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
+    # Most of the time the mpiexec executable is in the same directory as the MODL
+    # executable; this applies to:
+    # - Debian and Ubuntu native installations
+    # - installations in Conda and Conda-based environments
+    _MPIEXEC=@MODL_PATH@mpiexec
+    if command -v $_MPIEXEC &>/dev/null; then
+        KHIOPS_MPI_ERROR=""
+    # Fallback for Rocky Linux, where native OpenMPI is in a different directory
+    elif command -v mpiexec &>/dev/null; then
+        KHIOPS_MPI_ERROR=""
+        _MPIEXEC=$(readlink -f "$(type -P mpiexec)")
+    else
+        KHIOPS_MPI_ERROR="We didn't find mpiexec in the expected paths. Parallel computation is unavailable: Khiops is launched in serial"
     fi
 
-    # without more than 2 procs, we use the serial khiops
-    if [[ -n $KHIOPS_PROC_NUMBER && $KHIOPS_PROC_NUMBER -le 2 ]]; then
-        KHIOPS_MPI_COMMAND=""
+    # Set the KHIOPS_MPI_HOME variable if HOME is not already set
+    # KHIOPS_MPI_HOME is set to the temporary directory of the current user or to
+    # /tmp if not defined
+    # If HOME is not defined, then it must be set to $KHIOPS_MPI_HOME
+    # This is required by OpenMPI >= 5; see
+    # https://github.com/open-mpi/ompi/issues/10732
+    if [[ -z $HOME ]]; then
+        KHIOPS_MPI_HOME=${TMPDIR:-${TEMP:-${TMP:-/tmp}}}
     fi
+
+    if [[ -z $KHIOPS_MPI_ERROR ]]; then
+        KHIOPS_MPI_COMMAND="$_MPIEXEC $_MPI_EXTRA_FLAGS @MPI_EXTRA_FLAG@ $KHIOPS_MPI_EXTRA_FLAGS"
+        @SET_PROC_NUMBER@
+        if [[ -n $KHIOPS_PROC_NUMBER ]]; then
+            KHIOPS_MPI_COMMAND="$KHIOPS_MPI_COMMAND @MPIEXEC_NUMPROC_FLAG@ $KHIOPS_PROC_NUMBER"
+        fi
+
+        # without more than 2 procs, we use the serial khiops
+        if [[ -n $KHIOPS_PROC_NUMBER && $KHIOPS_PROC_NUMBER -le 2 ]]; then
+            KHIOPS_MPI_COMMAND=""
+        fi
+    fi
+    unset _MPIEXEC
+    unset _MPI_EXTRA_FLAGS
 fi
-unset _MPIEXEC
-unset _MPI_EXTRA_FLAGS
 
 if [ "$1" = "--env" ]; then
     echo KHIOPS_PATH "$KHIOPS_PATH"

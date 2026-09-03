@@ -3,15 +3,25 @@
 # Run Khiops tool
 # see the khiops_env script for full documentation on the environment variables used by Khiops
 
+# notify-send is used on Linux desktops (X11/Wayland); osascript's "display notification"
+# is the macOS equivalent. Note: banners are misattributed to Script Editor (no bundle
+# identity for a shell-invoked script) and clicking them opens Script Editor - accepted
+# tradeoff in favor of a non-blocking banner over a modal "display alert" dialog.
+notify_user() {
+    if [ -n "$DISPLAY" ] && command -v notify-send >/dev/null 2>&1; then
+        notify-send "Khiops" "$*" -i /usr/share/pixmaps/khiops.png -u normal
+    elif command -v osascript >/dev/null 2>&1; then
+        osascript -e "display notification \"$*\" with title \"Khiops\"" &>/dev/null
+    fi
+}
+
 error() {
     if [ -f /dev/log ]; then
         logger "$*" --tag khiops --stderr
     else
         echo "$*" >&2
     fi
-    if [ -n "$DISPLAY" ] && command -v notify-send >/dev/null 2>&1; then
-        notify-send "Khiops" "$*" -i /usr/share/pixmaps/khiops.png -u normal
-    fi
+    notify_user "$*"
     unset _GUI_SUPPORTED
     exit 1
 }
@@ -22,9 +32,7 @@ warning() {
     else
         echo "$*" >&2
     fi
-    if [ -n "$DISPLAY" ]; then
-        notify-send "Khiops" "$*" -i /usr/share/pixmaps/khiops.png -u normal
-    fi
+    notify_user "$*"
 }
 
 get_script_dir() {
@@ -96,7 +104,8 @@ main () {
         launch_khiops "$@"
         local _RETCODE=$?
     else
-        if [ "$_GUI_SUPPORTED" = true ] || [ -z "$DISPLAY" ]; then
+        # macOS (Aqua) has no $DISPLAY/X11 session, so that check only applies on Linux
+        if [ "$(uname)" != "Darwin" ] && { [ "$_GUI_SUPPORTED" = true ] || [ -z "$DISPLAY" ]; }; then
             error "GUI is not available, please use the '-b' flag"
         else
             if [ -z "$KHIOPS_JAVA_PATH" ]; then
