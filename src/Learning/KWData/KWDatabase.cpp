@@ -2355,7 +2355,7 @@ void KWDatabase::ComputeUnusedNativeAttributesToKeep(const NumericKeyDictionary*
 	// Analyse des classes impactees, en ajoutant au fur et a mesure de nouvelles classes
 	// pour la composition des attributs natifs, et en analysant les regles de derivation
 	// pour determiner les attributs natifs referencees
-	// Ainsi, toute les classes utilisees recursivement sont ici prises en compte
+	// Ainsi, toutes les classes utilisees recursivement sont ici prises en compte
 	for (nClass = 0; nClass < oaImpactedClasses.GetSize(); nClass++)
 	{
 		kwcCurrentClass = cast(KWClass*, oaImpactedClasses.GetAt(nClass));

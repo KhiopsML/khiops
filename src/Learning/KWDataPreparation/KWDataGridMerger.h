@@ -89,7 +89,7 @@ protected:
 	// et triees dans les attributs
 	void InitializeAllPartMerges();
 
-	// Destruction de toute les fusions et nettoyage de la structure
+	// Destruction de toutes les fusions et nettoyage de la structure
 	void DeleteAllPartMerges();
 
 	// Affichage de toutes les fusions de parties

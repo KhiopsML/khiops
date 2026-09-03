@@ -168,8 +168,8 @@ protected:
 	int nVariableNumberMin;
 
 	// type d'initalisation de l'obtimisiation des poids des arbres dans le calcul global
-	// BESTTREE : init = l'abres au meilleur compretion rate
-	// ALLTREE : init = moyen pondere de tout les arbres
+	// BESTTREE : init = l'abres au meilleur compression rate
+	// ALLTREE : init = moyen pondere de tous les arbres
 	ALString sInitRFOptimisation;
 
 	int nOptimizationLoopNumber;
