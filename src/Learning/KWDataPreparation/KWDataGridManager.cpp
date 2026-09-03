@@ -356,6 +356,57 @@ void KWDataGridManager::ExportDataGridWithMergedInnerAttributes(const KWDataGrid
 	ExportCells(sourceDataGrid, targetDataGrid);
 }
 
+// Methode interne de comparaison entre deux parties d'un attribut identifiant
+// Deux partiez sont identiques si elles sont associee a des cellules ayant meme cluster de partie de variable
+int KWDataGridManagerCompareIdentifierParts(const void* elem1, const void* elem2)
+{
+
+	KWDGPart* part1;
+	KWDGPart* part2;
+	KWDGCell* cell1;
+	KWDGCell* cell2;
+	int nCompare;
+
+	// Acces aux signatures
+	part1 = (KWDGPart*)*(Object**)elem1;
+	part2 = (KWDGPart*)*(Object**)elem2;
+
+	// Verification qu'il s'agit de partie de l'attribut identifiant d'une grille instances x variables
+	assert(part1->GetAttribute()->GetDataGrid()->IsVarPartDataGrid());
+	assert(part1->GetAttribute()->GetAttributeType() == KWType::Symbol);
+	assert(part1->GetAttribute()->GetAttributeIndex() == 0);
+	assert(part1->GetValueSet()->GetValueNumber() == 1);
+	assert(part2->GetAttribute() == part1->GetAttribute());
+	assert(part2->GetValueSet()->GetValueNumber() == 1);
+
+	// Comparaison des partie d'apres leurs cellules, avec egalite si cesont des cellules referencant les memes parties de variables
+	nCompare = part1->GetCellNumber() - part2->GetCellNumber();
+	if (nCompare == 0)
+	{
+		// Parcours synchronise des cellules
+		cell1 = part1->GetHeadCell();
+		cell2 = part2->GetHeadCell();
+		while (cell1 != NULL)
+		{
+			assert(cell1->GetCellFrequency() == 1);
+			assert(cell2->GetCellFrequency() == 1);
+
+			// On compare sur la valeur de la partie en cas de difference, pour avoir des resultats reproductibles
+			if (cell1->GetPartAt(1) != cell1->GetPartAt(1))
+				nCompare = cell1->GetPartAt(1)->ComparePartValues(cell2->GetPartAt(1));
+
+			// Cellules suivantes
+			part1->GetNextCell(cell1);
+			part2->GetNextCell(cell2);
+		}
+	}
+
+	// Comparaison sur la valeur de l'identifiant en cas d'agalite pour assurer la reproductibilite
+	if (nCompare == 0)
+		nCompare = part1->ComparePartValues(part2);
+	return nCompare;
+}
+
 void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
     const KWDataGrid* sourceDataGrid, const ObjectDictionary* odInnerAttributePartitions, KWDataGrid* targetDataGrid)
 {
@@ -363,6 +414,14 @@ void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
 	KWDGAttribute* targetAttribute;
 	KWDGAttribute* sourceAttribute;
 	KWDGInnerAttributes* partitionnedInnerAttributes;
+	KWDGAttribute* identifierAttribute;
+	KWDGPart* identifierValuePart;
+	KWDGPart* previousIdentifierValuePart;
+	ObjectArray oaIdentifierValueParts;
+	KWDGSAttributeGrouping identifierGrouping;
+	IntVector ivResultGroupFirstValueIndexes;
+	int nValue;
+	int nGroup;
 
 	require(Check());
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
@@ -404,6 +463,45 @@ void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
 		}
 	}
 	ExportCells(sourceDataGrid, targetDataGrid);
+
+	// Export des parties de l'attribut identifiant cible, chaqune etant reduite a une seule valeur
+	identifierAttribute = targetDataGrid->GetAttributeAt(0);
+	identifierAttribute->ExportParts(&oaIdentifierValueParts);
+
+	// Tri des partie cible par cellules referencant les memes parties de variables
+	oaIdentifierValueParts.SetCompareFunction(KWDataGridManagerCompareIdentifierParts);
+	oaIdentifierValueParts.Sort();
+
+	// Initialisation d'une partition de l'attribut identifiant
+	identifierGrouping.SetAttributeName(identifierAttribute->GetAttributeName());
+	identifierGrouping.SetInitialValueNumber(identifierAttribute->GetPartNumber());
+	identifierGrouping.SetGranularizedValueNumber(identifierAttribute->GetPartNumber());
+
+	// Calcul de la partition des identifiants permettant de les grouper s'il utilisent exactement
+	// les memes parties de variabe via leur cellules
+	identifierGrouping.SetKeptValueNumber(identifierAttribute->GetPartNumber());
+	previousIdentifierValuePart = NULL;
+	for (nValue = 0; nValue < oaIdentifierValueParts.GetSize(); nValue++)
+	{
+		identifierValuePart = cast(KWDGPart*, oaIdentifierValueParts.GetAt(nValue));
+		assert(identifierValuePart->GetValueSet()->GetValueNumber() == 1);
+
+		// Memorisation de la valeur
+		identifierGrouping.SetValueAt(nValue,
+					      identifierValuePart->GetValueSet()->GetHeadValue()->GetSymbolValue());
+
+		// Memorisation d'un nouveau groupe si changement vias a vis des parties de variables
+		if (nValue == 0 or
+		    KWDataGridManagerCompareIdentifierParts(&identifierValuePart, &previousIdentifierValuePart) > 0)
+			ivResultGroupFirstValueIndexes.Add(ivResultGroupFirstValueIndexes.GetSize());
+		previousIdentifierValuePart = identifierValuePart;
+	}
+	identifierGrouping.SetPartNumber(ivResultGroupFirstValueIndexes.GetSize());
+	for (nGroup = 0; nGroup < ivResultGroupFirstValueIndexes.GetSize(); nGroup++)
+		identifierGrouping.SetGroupFirstValueIndexAt(nGroup, ivResultGroupFirstValueIndexes.GetAt(nGroup));
+
+	//DDD
+	cout << "GROUPS\n" << identifierGrouping << endl;
 }
 
 void KWDataGridManager::InitializeQuantileBuilders(const KWDataGrid* sourceDataGrid,

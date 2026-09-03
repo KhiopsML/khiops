@@ -142,7 +142,7 @@ void KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataGrid
 		}
 
 		//DDD
-		cout << partitionnedDataGrid << "\n";
+		//DDD cout << partitionnedDataGrid << "\n";
 	}
 
 	// Nettoyage
