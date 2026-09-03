@@ -207,6 +207,11 @@ if(IS_LINUX OR IS_MACOS)
     set(LD_LIBRARY_PATH "LD_LIBRARY_PATH")
   endif()
 
+  # Only the macOS app bundle (packaging/macos/build-app.sh) ships more than one MODL variant and enables the runtime
+  # MPI detection in khiops_env.in; everywhere else exactly one variant is installed, so the static substitution in
+  # khiops_env.in is used as-is.
+  set(IS_MACOS_APP "false") # Set to true by build-app.sh for the macOS app bundle
+
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/common/khiops_env/khiops_env.in ${TMP_DIR}/khiops_env @ONLY
                  NEWLINE_STYLE UNIX)
   configure_file(${PROJECT_SOURCE_DIR}/packaging/linux/debian/khiops-core/postinst.in ${TMP_DIR}/postinst @ONLY
@@ -259,6 +264,8 @@ if(IS_LINUX OR IS_MACOS)
       DESTINATION usr/share/khiops
       COMPONENT KHIOPS)
   endif()
+
+  include("${PROJECT_SOURCE_DIR}/packaging/install-macos-app.cmake")
 
 else(IS_LINUX OR IS_MACOS)
   # Windows packaging for Khiops
