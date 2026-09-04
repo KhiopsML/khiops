@@ -690,7 +690,7 @@ void KWTupleTableLoader::BlockLoadUnivariateInitialize(const ALString& sInputAtt
 void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttributeBlockName,
 						     KWTupleTable* outputTupleTable) const
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWAttributeBlock* attributeBlock;
 	int nObjectNumber;
 	int nMissingValueNumber;
@@ -749,7 +749,7 @@ void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttri
 								&oaTuplesSortedByExtraAttribute);
 
 			// Affichage des tables de tuples a synchroniser
-			if (bDisplay)
+			if (bTrace)
 			{
 				cout << "Extra tuples" << endl;
 				for (nExtraTuple = 0; nExtraTuple < inputExtraAttributeTupleTable->GetSize();
@@ -840,7 +840,7 @@ void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttri
 					outputTupleTable->UpdateWithInputTuple();
 
 					// Affichage du tuple de synchronisation
-					if (bDisplay)
+					if (bTrace)
 					{
 						cout << "\t+X" << nExtraTuple << "\t";
 						outputTupleTable->GetInputTuple()->FullWrite(outputTupleTable, cout);
@@ -860,7 +860,7 @@ void KWTupleTableLoader::BlockLoadBivariate(const ALString& sInputAttributeBlock
 					    ObjectDictionary* odInputAttributes, const ALString& sInputAttributeName2,
 					    ObjectDictionary* odOutputTupleTables) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWAttributeBlock* attributeBlock;
 	KWAttribute* attribute2;
 	KWLoadIndex livAttribute2LoadIndex;
@@ -1152,7 +1152,7 @@ void KWTupleTableLoader::BlockLoadBivariate(const ALString& sInputAttributeBlock
 										    &oaTuplesSortedByLastAttributes);
 
 				// Affichage des tables de tuples a synchroniser
-				if (bDisplay)
+				if (bTrace)
 				{
 					cout << "Output tuples attributes" << endl;
 					cout << "\t" << outputTupleTable->GetClassLabel() << "\t"
@@ -1295,7 +1295,7 @@ void KWTupleTableLoader::BlockLoadBivariate(const ALString& sInputAttributeBlock
 						outputTupleTable->UpdateWithInputTuple();
 
 						// Affichage du tuple de synchronisation
-						if (bDisplay)
+						if (bTrace)
 						{
 							cout << "\t+X" << nExtraTuple << "\t";
 							outputTupleTable->GetInputTuple()->FullWrite(outputTupleTable,

@@ -1277,14 +1277,14 @@ void KWDataGrid::WriteAttributes(ostream& ost) const
 
 void KWDataGrid::WriteAttributeParts(ostream& ost) const
 {
+	const boolean bWritePartDetails = true;
+	const boolean bWriteValues = false;
 	int nAttribute;
 	KWDGAttribute* attribute;
 	KWDGPart* part;
 	const int nMaxDisplayedValue = 20;
 	int nDisplayedValue;
 	KWDGValue* value;
-	boolean bDisplayPartDetails = true;
-	boolean bDisplayAll = false;
 
 	// Liste des attributs et de leurs parties
 	ost << "Parts by variable"
@@ -1295,7 +1295,7 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 		ost << "\t" << attribute->GetAttributeName() << "\t" << attribute->GetPartNumber() << "\n";
 
 		// Parties de l'attribut
-		if (bDisplayPartDetails)
+		if (bWritePartDetails)
 		{
 			part = attribute->GetHeadPart();
 			while (part != NULL)
@@ -1327,10 +1327,13 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 				ost << "\n";
 
 				// Affichage complet des valeurs dans le cas d'un attribut groupable
-				if (bDisplayAll and KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()))
+				if (bWriteValues)
 				{
-					cout << part->GetValueSet()->GetClassLabel() << "\n";
-					part->GetValueSet()->Write(cout);
+					if (KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()))
+					{
+						cout << part->GetValueSet()->GetClassLabel() << "\n";
+						part->GetValueSet()->Write(cout);
+					}
 				}
 
 				// Partie suivante
@@ -1576,7 +1579,7 @@ KWDataGrid* KWDataGrid::CreateTestDataGrid(int nSymbolAttributeNumber, int nCont
 					   int nAttributePartNumber, int nTargetValueNumber, int nInstanceNumber)
 {
 	KWDataGrid* testDataGrid;
-	boolean bDisplayInstanceCreation = false;
+	const boolean bTrace = false;
 	const ALString sAttributePrefix = "Att";
 	const ALString sTargetValuePrefix = "T";
 	const ALString sValuePrefix = "V";
@@ -1682,7 +1685,7 @@ KWDataGrid* KWDataGrid::CreateTestDataGrid(int nSymbolAttributeNumber, int nCont
 				cValue = (Continuous)(nAttributePartNumber * RandomDouble());
 				part = attribute->LookupContinuousPart(cValue);
 				oaParts.SetAt(nAttribute, part);
-				if (bDisplayInstanceCreation)
+				if (bTrace)
 					cout << cValue << "\t";
 			}
 			else
@@ -1690,7 +1693,7 @@ KWDataGrid* KWDataGrid::CreateTestDataGrid(int nSymbolAttributeNumber, int nCont
 				sValue = (Symbol)(sValuePrefix + IntToString(RandomInt(nAttributeValueNumber + 2)));
 				part = attribute->LookupSymbolPart(sValue);
 				oaParts.SetAt(nAttribute, part);
-				if (bDisplayInstanceCreation)
+				if (bTrace)
 					cout << sValue << "\t";
 			}
 		}
@@ -1700,7 +1703,7 @@ KWDataGrid* KWDataGrid::CreateTestDataGrid(int nSymbolAttributeNumber, int nCont
 		if (testDataGrid->GetTargetValueNumber() > 0)
 		{
 			nTargetValue = RandomInt(testDataGrid->GetTargetValueNumber() - 1);
-			if (bDisplayInstanceCreation)
+			if (bTrace)
 				cout << testDataGrid->GetTargetValueAt(nTargetValue) << "\t";
 		}
 
@@ -1716,7 +1719,7 @@ KWDataGrid* KWDataGrid::CreateTestDataGrid(int nSymbolAttributeNumber, int nCont
 			cell->UpgradeTargetFrequencyAt(nTargetValue, 1);
 
 		// Affichage de la cellule
-		if (bDisplayInstanceCreation)
+		if (bTrace)
 			cout << *cell;
 	}
 

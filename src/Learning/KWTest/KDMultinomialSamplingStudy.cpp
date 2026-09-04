@@ -47,7 +47,7 @@ boolean KDMultinomialSamplingStudy::CheckProbVector() const
 
 void KDMultinomialSamplingStudy::DistributionCompleteStudy(double dMaxTotalFrequency)
 {
-	boolean bDisplayAllDistributions = true;
+	const boolean bTrace = true;
 	double dTotalFrequency;
 	ObjectArray oaAllDistributions;
 	int nBestDistribution;
@@ -66,7 +66,7 @@ void KDMultinomialSamplingStudy::DistributionCompleteStudy(double dMaxTotalFrequ
 	cout << endl;
 
 	// Ligne d'entete
-	if (bDisplayAllDistributions)
+	if (bTrace)
 	{
 		cout << "Frequency\tDist nb";
 		cout << "\tRank";
@@ -96,7 +96,7 @@ void KDMultinomialSamplingStudy::DistributionCompleteStudy(double dMaxTotalFrequ
 		nRank = SearchDistributionIndex(&dvEstimatedBestFrequencies, &oaAllDistributions);
 
 		// Affichage des resultats
-		if (nRank > 0 or bDisplayAllDistributions)
+		if (nRank > 0 or bTrace)
 		{
 			// Effectif
 			cout << dTotalFrequency << "\t";
@@ -124,7 +124,7 @@ void KDMultinomialSamplingStudy::DistributionCompleteStudy(double dMaxTotalFrequ
 
 void KDMultinomialSamplingStudy::DistributionStudy(double dTotalFrequency)
 {
-	boolean bDisplayAllDistribution = true;
+	const boolean bTrace = true;
 	ObjectArray oaAllDistributions;
 	int nBestDistribution;
 	int nDistribution;
@@ -152,7 +152,7 @@ void KDMultinomialSamplingStudy::DistributionStudy(double dTotalFrequency)
 
 	// Affichage des distributions
 	cout << "All distributions\t" << oaAllDistributions.GetSize() << "\n";
-	if (bDisplayAllDistribution)
+	if (bTrace)
 	{
 		for (nDistribution = 0; nDistribution < oaAllDistributions.GetSize(); nDistribution++)
 		{

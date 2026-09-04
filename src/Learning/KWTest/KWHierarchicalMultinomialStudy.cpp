@@ -535,8 +535,8 @@ void KWHierarchicalMultinomialStudy::StudyWriteHeader(fstream& fstResults)
 double KWHierarchicalMultinomialStudy::ComputeDKL(KWDataGridStats* pairDataGridStats, KWAttributeStats* attributeStats1,
 						  KWAttributeStats* attributeStats2, double dSigma)
 {
-	boolean bDisplay = false;
-	boolean bDisplayDetails = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
 	const double dPi = 3.14159265358979323846;
 	double dEstimatedEntropy;
 	double dTrueEntropy;
@@ -645,7 +645,7 @@ double KWHierarchicalMultinomialStudy::ComputeDKL(KWDataGridStats* pairDataGridS
 			dDKL += dCellDKL;
 
 			// Affichage
-			if (bDisplayDetails)
+			if (bTraceDetails)
 			{
 				// Entete
 				if (i == 0 and j == 0)
@@ -660,7 +660,7 @@ double KWHierarchicalMultinomialStudy::ComputeDKL(KWDataGridStats* pairDataGridS
 	}
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 		cout << "DKL\t" << nTotalFrequency << "\t" << dSigma << "\t" << dDKL << "\t" << dEstimatedEntropy
 		     << "\t" << dTrueEntropy << "\t" << dvBoundsX.GetSize() - 1 << "\t" << dvBoundsY.GetSize() - 1
 		     << endl;
@@ -1017,7 +1017,7 @@ boolean KWAttributePairStatsStudy::ComputeStats(const KWTupleTable* tupleTable)
 	// Optimisation par parcours des niveaux de partile
 	else
 	{
-		boolean bDisplay = false;
+		const boolean bTrace = false;
 		ObjectDictionary odQuantilesBuilders;
 		IntVector ivMaxPartNumbers;
 		int nTotalFrequency;
@@ -1064,7 +1064,7 @@ boolean KWAttributePairStatsStudy::ComputeStats(const KWTupleTable* tupleTable)
 			dCurrentCost = dataGridCosts->ComputeDataGridTotalCost(&dgGranularizedDataGrid);
 
 			// Affichage
-			if (bDisplay)
+			if (bTrace)
 			{
 				cout << "Partiles\t" << nGranularity << "\t" << dCurrentCost << "\t"
 				     << dgGranularizedDataGrid.GetAttributeAt(0)->GetPartNumber() << "\t"
@@ -1345,7 +1345,7 @@ double KWDataGridClusteringCostsBivariateH::ComputeBestHierarchicalMultinomialPr
     int nInstanceNumber, int nTotalCellNumber, int nCurrentTotalCellNumber,
     const IntVector* ivCurrentCellFrequencies) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	double dCost;
 	double dStandardCost;
 	double dBestHierarchicalCost;
@@ -1423,7 +1423,7 @@ double KWDataGridClusteringCostsBivariateH::ComputeBestHierarchicalMultinomialPr
 		}
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 		{
 			cout << "ComputeBestHierarchicalMultinomialPrior\tBestH\t" << nBestInstanceNumberA << "\t"
 			     << nBestCellNumberA << "\t" << dBestHierarchicalCost << endl;
@@ -1445,7 +1445,7 @@ double KWDataGridClusteringCostsBivariateH::ComputeBestHierarchicalMultinomialPr
 			dCurrentStandardCost -= KWStat::LnFactorial(nInstanceNumber);
 
 			// Affichage
-			if (bDisplay)
+			if (bTrace)
 			{
 				cout << "ComputeBestHierarchicalMultinomialPrior\tCorrection\t" << nTotalCellNumber
 				     << "\t" << nCurrentTotalCellNumber << "\t" << dNewStandardCost << "\t"
@@ -1464,7 +1464,7 @@ double KWDataGridClusteringCostsBivariateH::ComputeBestHierarchicalMultinomialPr
 	}
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "ComputeBestHierarchicalMultinomialPrior\tCosts\t" << nInstanceNumber << "\t"
 		     << nTotalCellNumber << "\t" << nCurrentTotalCellNumber << "\t"
