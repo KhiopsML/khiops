@@ -251,18 +251,17 @@ public:
 							     const KWDGAttribute* sourceAttribute,
 							     KWDGAttribute* targetAttribute) const;
 
-	// Creation des parties de l'attribut cible numerique selon une partition univariee specifiee
+	// Creation des parties d'un attribut cible numerique selon une partition univariee specifiee
 	// dans une table d'effectifs
 	void BuildPartsOfContinuousAttributeFromFrequencyTable(const KWDataGrid* sourceDataGrid,
 							       const KWFrequencyTable* kwftTable,
 							       const ALString& sAttributeName,
 							       KWDGAttribute* targetAttribute) const;
 
-	// Creation des parties de l'attribut cible categoriel selon un vecteur de correspondance decrivant un groupage
-	// univarie
-	void BuildPartsOfSymbolAttributeFromGroupsIndex(const KWDGAttribute* initialAttribute,
-							const IntVector* ivGroups, int nGroupNumber,
-							int nGarbageModalityNumber,
+	// Creation des parties d'un attribut cible categoriel selon un vecteur de correspondance
+	// decrivant un groupage univarie
+	void BuildPartsOfSymbolAttributeFromGroupsIndex(const KWDGAttribute* sourceAttribute, const IntVector* ivGroups,
+							int nGroupNumber, int nGarbageModalityNumber,
 							KWDGAttribute* targetAttribute) const;
 
 	// Service de creation d'une table d'effectifs a partir d'un attribut
@@ -325,8 +324,20 @@ protected:
 	//////////////////////////////////////////////////////////////////////////////////
 	// Services d'initialisation des parties d'un attribut
 
-	// Initialisation des parties pour un attribut venant d'etre initialise, sans partie, a partir d'un attribut valide
+	// Initialisation des parties pour un attribut venant d'etre initialise, sans parties, a partir d'un attribut valide
 	void InitialiseAttributeParts(const KWDGAttribute* sourceAttribute, KWDGAttribute* targetAttribute) const;
+
+	// Initialisation des parties pour un attribut Continuous venant d'etre initialise, sans parties,
+	// a partir d'un attribut valide et d'une discretisation, dans le cas non supervise
+	void InitialiseContinuousAttributePartsFromDiscretisation(
+	    const KWDGAttribute* sourceAttribute, const KWDGSAttributeDiscretization* attributeDiscretization,
+	    KWDGAttribute* targetAttribute) const;
+
+	// Initialisation des parties pour un attribut Symbol venant d'etre initialise, sans parties,
+	// a partir d'un attribut valide et d'un groupement de valeurs, dans le cas non supervise
+	void InitialiseSymbolAttributePartsFromGrouping(const KWDGAttribute* sourceAttribute,
+							const KWDGSAttributeGrouping* attributeGrouping,
+							KWDGAttribute* targetAttribute) const;
 
 	// Initialisation des parties pour un attribut de type VarPart venant d'etre initialise, sans partie, a partir d'un attribut valide,
 	// en creant un clone de ses attributs internes
