@@ -17,7 +17,79 @@ defaults:
   run:
     shell: bash -el {0}
 jobs:
+  check-macos-signing:
+    name: Check macOS signing credentials
+    runs-on: macos-15
+    steps:
+      - name: Check certificate bundle
+        env:
+          MAC_CERTS: ${{ secrets.MAC_CERTS }}
+          MAC_CERTS_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$MAC_CERTS" || -z "$MAC_CERTS_PASSWORD" ]]; then
+            echo "MAC_CERTS and MAC_CERTS_PASSWORD must both be configured."
+            exit 1
+          fi
+          keychain_path="$RUNNER_TEMP/macos-signing.keychain-db"
+          keychain_password="$(uuidgen)"
+          certificate_path="$RUNNER_TEMP/macos-certificates.p12"
+          cleanup() {
+            security delete-keychain "$keychain_path" 2>/dev/null || true
+            rm -f "$certificate_path"
+          }
+          trap cleanup EXIT
+          printf '%s' "$MAC_CERTS" | base64 --decode > "$certificate_path"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security import "$certificate_path" \
+            -k "$keychain_path" \
+            -P "$MAC_CERTS_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/productsign
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s \
+            -k "$keychain_password" \
+            "$keychain_path"
+          identities="$(security find-identity -v "$keychain_path")"
+          printf '%s\n' "$identities"
+          if ! grep -q 'Developer ID Application:' <<< "$identities"; then
+            echo "No Developer ID Application identity was found."
+            exit 1
+          fi
+          echo "Developer ID Application identity is available for DMG signing."
+      - name: Check App Store Connect API key
+        env:
+          MAC_API_KEY: ${{ secrets.MAC_API_KEY }}
+          MAC_API_KEY_ID: ${{ secrets.MAC_API_KEY_ID }}
+          MAC_API_KEY_ISSUER_ID: ${{ secrets.MAC_API_KEY_ISSUER_ID }}
+        run: |-
+          set -euo pipefail
+          if [[ -z "$MAC_API_KEY" || -z "$MAC_API_KEY_ID" || -z "$MAC_API_KEY_ISSUER_ID" ]]; then
+            echo "MAC_API_KEY, MAC_API_KEY_ID, and MAC_API_KEY_ISSUER_ID must be configured."
+            exit 1
+          fi
+          api_key_path="$RUNNER_TEMP/AuthKey.p8"
+          if [[ "$MAC_API_KEY" == *"BEGIN PRIVATE KEY"* ]]; then
+            printf '%s\n' "$MAC_API_KEY" > "$api_key_path"
+          else
+            printf '%s' "$MAC_API_KEY" | base64 --decode > "$api_key_path"
+          fi
+          openssl pkey -in "$api_key_path" -noout
+          xcrun notarytool history \
+            --key "$api_key_path" \
+            --key-id "$MAC_API_KEY_ID" \
+            --issuer "$MAC_API_KEY_ISSUER_ID"
+          rm -f "$api_key_path"
+          echo "App Store Connect API credentials are valid."
+      - name: Stop after macOS signing check
+        run: |
+          echo "macOS signing credentials passed; stopping before the Conda tests."
+          exit 1
   test:
+    needs: check-macos-signing
     strategy:
       fail-fast: false
       matrix:
