@@ -279,7 +279,7 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWA
 								       const ObjectArray* oaAttributeGroupings,
 								       KWDGSAttributeGrouping* resultGrouping) const
 {
-	const boolean bTrace = true;
+	const boolean bTrace = false;
 	const KWDGSAttributeGrouping* attributeGrouping;
 	NumericKeyDictionary nkdValueSignatures;
 	ObjectArray oaValueSignatures;
@@ -412,7 +412,7 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWA
 	if (bTrace)
 	{
 		attributeGrouping = cast(const KWDGSAttributeGrouping*, oaAttributeGroupings->GetAt(0));
-		cout << "ComputeUnionGroups " << attributeGrouping->GetAttributeName() << "\n";
+		cout << "ComputeIntersectionGroupings " << attributeGrouping->GetAttributeName() << "\n";
 		for (nValue = 0; nValue < oaValueSignatures.GetSize(); nValue++)
 		{
 			valueSignature = cast(KWValueSignature*, oaValueSignatures.GetAt(nValue));

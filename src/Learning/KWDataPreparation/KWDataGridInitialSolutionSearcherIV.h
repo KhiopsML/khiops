@@ -74,8 +74,8 @@ protected:
 
 //////////////////////////////////////////////////////////////////////////////////
 // Classe KWValueSignature
-// Service interne de gestion des valeurs, impliques dans un ensemble de partition
-// La signature d'une valeur est le vecteur des index des sa partie dans chacune
+// Classe technique de gestion des valeurs, impliquees dans un ensemble de partition
+// La signature d'une valeur est le vecteur des index de parties dans chacune
 // des partitions. Cela permet de calculer l'intersection des partitions, dont chaque
 // partie regroupe les valeurs de meme signature
 class KWValueSignature : public Object
