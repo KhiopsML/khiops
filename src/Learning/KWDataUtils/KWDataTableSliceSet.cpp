@@ -2006,7 +2006,7 @@ void KWDataTableSliceSet::TestReadDataTableSliceSet(const ALString& sTestLabel,
 						    KWDataTableSliceSet* inputDataTableSliceSet,
 						    const KWClass* kwcInputClass)
 {
-	boolean bDisplay = true;
+	const boolean bTrace = true;
 	boolean bOk;
 	KWSTDatabaseTextFile databaseTextFile;
 	ALString sTestDatabaseName;
@@ -2017,7 +2017,7 @@ void KWDataTableSliceSet::TestReadDataTableSliceSet(const ALString& sTestLabel,
 	require(kwcInputClass != NULL);
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "==========================================================\n";
 		cout << "TestReadDataTableSliceSet " << sTestLabel << endl;
@@ -2048,7 +2048,7 @@ void KWDataTableSliceSet::TestReadDataTableSliceSet(const ALString& sTestLabel,
 		databaseTextFile.WriteAll(&databaseTextFile);
 
 		// Affichage des premiers objets
-		if (bDisplay)
+		if (bTrace)
 		{
 			cout << "Database " << databaseTextFile.GetDatabaseName() << ": "
 			     << databaseTextFile.GetObjects()->GetSize() << endl;
@@ -2071,7 +2071,7 @@ void KWDataTableSliceSet::TestReadDataTableSliceSet(const ALString& sTestLabel,
 
 void KWDataTableSliceSet::Test()
 {
-	boolean bDisplay = true;
+	const boolean bTrace = true;
 	KWDataTableSliceSet* testSliceSet;
 	ALString sTestClassName;
 	KWClass* kwcTestClass;
@@ -2097,7 +2097,7 @@ void KWDataTableSliceSet::Test()
 	    CreateDataTableSliceSet(kwcTestClass, "", nObjectNumber, nAttributeNumber / nSliceNumber, nChunkNumber);
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Dictionary\n" << *kwcTestClass << endl;
 		cout << "Slice set\n" << *testSliceSet << endl;

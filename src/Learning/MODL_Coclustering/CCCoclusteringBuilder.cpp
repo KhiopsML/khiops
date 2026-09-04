@@ -1180,7 +1180,7 @@ boolean CCCoclusteringBuilder::InitializeIdentifierAttributeParts(KWDatabase* da
 								  ObjectDictionary* odOutputDescriptiveStats)
 {
 	boolean bOk = true;
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	KWTupleTableLoader tupleTableLoader;
 	KWTupleTable identifierTupleTable;
 	KWDescriptiveSymbolStats* descriptiveStats;
@@ -2922,7 +2922,7 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 						       const KWDataGridCosts* dataGridCosts,
 						       CCHierarchicalDataGrid* optimizedDataGrid, int nAttribute) const
 {
-	boolean bTrace = false;
+	const boolean bTrace = false;
 	KWDataGridPostOptimizer dataGridPostOptimizer;
 	KWDGAttribute* initialAttribute;
 	KWDataGrid* univariateInitialDataGrid;
