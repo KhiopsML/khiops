@@ -876,8 +876,8 @@ void DTGrouperMODL::TwoClassesGroup(KWFrequencyTable* kwftSource, KWFrequencyTab
 void DTGrouperMODL::MultipleClassesGroup(KWFrequencyTable* kwftSource, KWFrequencyTable*& kwftTarget,
 					 IntVector*& ivGroups) const
 {
-	boolean bTraceResults = false;
-	boolean bTraceGroupNumbers = false;
+	const boolean bTraceResults = false;
+	const boolean bTraceGroupNumbers = false;
 	boolean bPreprocessPureGroups = true;
 	boolean bBuildReliableSubGroups = true;
 	boolean bBuildFewGroups = true;

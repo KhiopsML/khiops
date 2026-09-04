@@ -922,7 +922,7 @@ boolean KWAttributeSubsetStats::CreateAttributePreGranularizedIntervals(const KW
 boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTable, KWDataGrid* dataGrid)
 {
 	boolean bOk = true;
-	boolean bDisplayInstanceCreation = false;
+	const boolean bTrace = false;
 	ObjectArray oaParts;
 	int nTuple;
 	const KWTuple* tuple;
@@ -1001,7 +1001,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 				cValue = tuple->GetContinuousAt(ivAttributeIndexes.GetAt(nAttribute));
 				part = dgAttribute->LookupContinuousPart(cValue);
 				oaParts.SetAt(nAttribute, part);
-				if (bDisplayInstanceCreation)
+				if (bTrace)
 					cout << cValue << "\t";
 			}
 			else
@@ -1009,7 +1009,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 				sValue = tuple->GetSymbolAt(ivAttributeIndexes.GetAt(nAttribute));
 				part = dgAttribute->LookupSymbolPart(sValue);
 				oaParts.SetAt(nAttribute, part);
-				if (bDisplayInstanceCreation)
+				if (bTrace)
 					cout << sValue << "\t";
 			}
 		}
@@ -1019,7 +1019,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 		{
 			sTargetValue = tuple->GetSymbolAt(nTargetAttributeIndex);
 			nTargetIndex = GetTargetValueStats()->GetAttributeAt(0)->ComputeSymbolPartIndex(sTargetValue);
-			if (bDisplayInstanceCreation)
+			if (bTrace)
 				cout << dataGrid->GetTargetValueAt(nTargetIndex) << "\t";
 		}
 
@@ -1075,7 +1075,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 			cell->SetCellFrequency(cell->GetCellFrequency() + nCellFrequency);
 
 		// Affichage de la cellule
-		if (bDisplayInstanceCreation)
+		if (bTrace)
 			cout << *cell;
 	}
 

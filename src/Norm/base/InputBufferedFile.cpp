@@ -2115,7 +2115,7 @@ longint InputBufferedFile::TestCountUsingFillOuterLinesBackward(int nInputChunkS
 boolean InputBufferedFile::TestCountExtensive()
 {
 	boolean bOk = true;
-	boolean bDisplay = true;
+	const boolean bTrace = true;
 	InputBufferedFile ibFile;
 	StringVector svFileNames;
 	ALString sFileName;
@@ -2156,7 +2156,7 @@ boolean InputBufferedFile::TestCountExtensive()
 	svFileNames.Add("D:\\temp\\Datasets\\NewYorkTimes\\NewYorkTimes.txt");
 
 	// Affichage de l'entete
-	if (bDisplay)
+	if (bTrace)
 		cout << "File\tMax line length\tChunk\tBuffer\tCache\tPreferred size\tMethod\tLines\tLong lines\tRead "
 			"call\tRead bytes\tTime\n";
 
@@ -2291,7 +2291,7 @@ boolean InputBufferedFile::TestCountExtensive()
 								SetMaxLineLength(nInputMaxLineLength);
 
 								// Affichage des parametres
-								if (bDisplay)
+								if (bTrace)
 								{
 									cout << FileService::GetFileName(sFileName)
 									     << "\t";
@@ -2344,7 +2344,7 @@ boolean InputBufferedFile::TestCountExtensive()
 								bOk = bOk and lLongLineNumber == lRefLongLineNumber;
 
 								// Affichage des resultats
-								if (bDisplay)
+								if (bTrace)
 								{
 									bBOMTolerance =
 									    bRefBOM and

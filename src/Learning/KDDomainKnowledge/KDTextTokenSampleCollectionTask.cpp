@@ -316,7 +316,7 @@ boolean KDTextTokenSampleCollectionTask::CheckPassParameters() const
 	return bOk;
 }
 
-void KDTextTokenSampleCollectionTask::StartCollectPerformanceIndicators(const boolean bTrace)
+void KDTextTokenSampleCollectionTask::StartCollectPerformanceIndicators(boolean bTrace)
 {
 	require(not performanceTimer.IsStarted());
 	require(performanceTimer.GetElapsedTime() == 0);
