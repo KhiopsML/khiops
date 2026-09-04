@@ -51,7 +51,7 @@ if [ -z "$KHIOPS_MPI_VERBOSE" ]; then
 fi
 
 # Initialize Khiops env variables
-source $(get_script_dir)/khiops_env ""
+source "$(get_script_dir)/khiops_env" ""
 
 # Test if batch mode from parameters
 KHIOPS_BATCH_MODE=false

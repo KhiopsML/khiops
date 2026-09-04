@@ -30,6 +30,7 @@ BUILD_SERIAL_DIR="$REPO_ROOT/build/macos-app-serial"
 BUILD_MPI_DIR="$REPO_ROOT/build/macos-app-mpi"
 STAGE_DIR="$REPO_ROOT/build/macos-app-stage"
 APP_DIR="$STAGE_DIR/Khiops.app"
+COCLUSTERING_APP_DIR="$STAGE_DIR/Khiops Coclustering.app"
 
 KHIOPS_VERSION=$(sed -n 's/.*KHIOPS_VERSION KHIOPS_STR(\([^)]*\)).*/\1/p' \
     "$REPO_ROOT/src/Learning/KWUtils/KWKhiopsVersion.h" | head -n1)
@@ -177,7 +178,32 @@ chmod +x \
     "$APP_DIR/Contents/Resources/bin/MODL_openmpi" \
     "$APP_DIR/Contents/Resources/bin/MODL_Coclustering_openmpi"
 
+# Expose Coclustering as a separate Finder-launchable app. Keep it self-contained
+# so users can install it without also installing Khiops.app.
+mkdir -p "$COCLUSTERING_APP_DIR/Contents/MacOS" "$COCLUSTERING_APP_DIR/Contents/Resources/bin"
+cp -R "$APP_DIR/Contents/Resources/jars" "$APP_DIR/Contents/Resources/jre" \
+    "$COCLUSTERING_APP_DIR/Contents/Resources/"
+cp "$APP_DIR/Contents/Resources/bin/"* "$COCLUSTERING_APP_DIR/Contents/Resources/bin/"
+sed \
+    -e 's/<string>Khiops<\/string>/<string>Khiops Coclustering<\/string>/g' \
+    -e 's/org\.khiops\.Khiops/org.khiops.KhiopsCoclustering/' \
+    -e 's/khiops\.icns/khiops_coclustering.icns/' \
+    -e 's/<string>khiops<\/string>/<string>khiops_coclustering<\/string>/' \
+    "$APP_DIR/Contents/Info.plist" >"$COCLUSTERING_APP_DIR/Contents/Info.plist"
+
+"$REPO_ROOT/packaging/macos/make-icns.sh" \
+    "$REPO_ROOT/packaging/common/images/khiops_coclustering.png" \
+    "$COCLUSTERING_APP_DIR/Contents/Resources/khiops_coclustering.icns"
+
+cat >"$COCLUSTERING_APP_DIR/Contents/MacOS/khiops_coclustering" <<'EOF'
+#!/bin/bash
+DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../Resources/bin" &>/dev/null && pwd)"
+exec "$DIR/khiops_coclustering"
+EOF
+chmod +x "$COCLUSTERING_APP_DIR/Contents/MacOS/khiops_coclustering"
+
 echo "==> Khiops.app staged at $APP_DIR"
+echo "==> Khiops Coclustering.app staged at $COCLUSTERING_APP_DIR"
 
 # Ad-hoc signing (no Apple Developer account needed) satisfies the kernel's requirement
 # that Mach-O binaries carry a signature to run on Apple Silicon. It does NOT satisfy
@@ -185,6 +211,7 @@ echo "==> Khiops.app staged at $APP_DIR"
 # signature plus notarization, which this script deliberately does not attempt.
 echo "==> Ad-hoc signing (local/testing only, does not satisfy Gatekeeper for downloads)"
 codesign --force --deep --sign - "$APP_DIR"
+codesign --force --deep --sign - "$COCLUSTERING_APP_DIR"
 
 DMG_PATH="$REPO_ROOT/build/Khiops-$KHIOPS_VERSION.dmg"
 echo "==> Creating unsigned DMG at $DMG_PATH"
