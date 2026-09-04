@@ -246,7 +246,7 @@ double KWDataGridOptimizer::GetOptimizedNullDataGridCost() const
 double KWDataGridOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* initialDataGrid,
 							 KWDataGrid* optimizedDataGrid) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	int nMinLevel;
 	int nMaxLevel;
 	int nLevel;
@@ -291,7 +291,7 @@ double KWDataGridOptimizer::IterativeVNSOptimizeDataGrid(const KWDataGrid* initi
 	{
 		// Calcul du nombre de voisinnage a considerer
 		nNeighbourhoodLevelNumber = int(pow(2.0, nLevel - 1));
-		if (bDisplayResults)
+		if (bTrace)
 			cout << "IterativeVNSOptimizeDataGrid: Level\t" << nLevel << endl;
 
 		// Recopie de la meilleure solution dans une solution de travail courante

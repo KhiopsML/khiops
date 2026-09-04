@@ -722,7 +722,7 @@ void KWDataGridManager::UpdateVarPartDataGridFromVarPartGroups(const KWDataGrid*
 							       const IntVector* ivTargetGroupIndexes,
 							       int nTargetGroupNumber, KWDataGrid* targetDataGrid) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWDGAttribute* initialAttribute;
 	KWDGAttribute* targetAttribute;
 	KWDGPart* initialPart;
@@ -804,7 +804,7 @@ void KWDataGridManager::UpdateVarPartDataGridFromVarPartGroups(const KWDataGrid*
 	ExportCells(sourceDataGrid, targetDataGrid);
 
 	// Affichage des resultats
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Preparation d'une grille pour l'optimisation univariee\t"
 		     << sourceDataGrid->GetVarPartAttribute()->GetAttributeName() << endl;
@@ -871,7 +871,7 @@ void KWDataGridManager::ExportFrequencyTableFromOneAttribute(const KWDataGrid* s
 							     const ALString& sAttributeName,
 							     KWFrequencyTable* kwFrequencyTable) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWDenseFrequencyVector* kwdfvFrequencyVector;
 	KWDataGrid oneAttributeDataGrid;
 	KWDGAttribute* sourceAttribute;
@@ -933,7 +933,7 @@ void KWDataGridManager::ExportFrequencyTableFromOneAttribute(const KWDataGrid* s
 		dgCell = dgPart->GetHeadCell();
 		nTargetValueNumber = dgCell->GetTargetValueNumber();
 
-		if (bDisplayResults)
+		if (bTrace)
 		{
 			cout << " Partie " << nPartIndex << " Contenu " << endl;
 			dgCell->Write(cout);
@@ -956,7 +956,7 @@ void KWDataGridManager::ExportFrequencyTableFromOneAttribute(const KWDataGrid* s
 			kwdfvFrequencyVector->SetModalityNumber(dgPart->GetValueSet()->GetValueNumber());
 		}
 	}
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Table " << endl;
 		cout << *kwFrequencyTable;
@@ -1483,6 +1483,7 @@ boolean KWDataGridManager::BuildDataGridFromUnivariateProduct(const KWDataGrid* 
 							      KWClassStats* classStats,
 							      KWDataGrid* targetDataGrid) const
 {
+	const boolean bTrace = false;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
 	KWAttributeStats* attributeStats;
@@ -1495,7 +1496,6 @@ boolean KWDataGridManager::BuildDataGridFromUnivariateProduct(const KWDataGrid* 
 	int nAttribute;
 	boolean bOk = true;
 	boolean bSmallSourceDataGrid;
-	boolean bDisplayResults = false;
 
 	require(Check());
 	require(sourceDataGrid->GetTargetValueNumber() > 0);
@@ -1591,7 +1591,7 @@ boolean KWDataGridManager::BuildDataGridFromUnivariateProduct(const KWDataGrid* 
 		targetDataGrid->DeleteAllCells();
 		ExportCells(sourceDataGrid, targetDataGrid);
 	}
-	if (bDisplayResults)
+	if (bTrace)
 		cout << " OptimizeWithMultipleUnivariatePartitions : construction grille initiale achevee" << endl;
 	ensure(not bOk or targetDataGrid->Check());
 	ensure(not bOk or CheckDataGrid(sourceDataGrid, targetDataGrid));
@@ -1603,6 +1603,7 @@ void KWDataGridManager::BuildPartsOfContinuousAttributeFromFrequencyTable(const 
 									  const ALString& sAttributeName,
 									  KWDGAttribute* targetAttribute) const
 {
+	const boolean bTrace = false;
 	KWDGAttribute* sourceAttribute;
 	KWDGPart* sourcePart;
 	KWDGPart* targetPart;
@@ -1613,7 +1614,6 @@ void KWDataGridManager::BuildPartsOfContinuousAttributeFromFrequencyTable(const 
 	int nBoundIndex;
 	int nInstanceNumber;
 	int nInstanceLastIndex;
-	boolean bDisplayResults = false;
 
 	require(targetAttribute != NULL);
 	require(sAttributeName != "");
@@ -1651,7 +1651,7 @@ void KWDataGridManager::BuildPartsOfContinuousAttributeFromFrequencyTable(const 
 	for (nSourcePart = 0; nSourcePart < oaSourceParts.GetSize(); nSourcePart++)
 	{
 		// Affichage de l'index de la partie
-		if (bDisplayResults)
+		if (bTrace)
 			cout << " part " << nSourcePart << endl;
 
 		sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nSourcePart));
@@ -1696,13 +1696,13 @@ void KWDataGridManager::BuildPartsOfSymbolAttributeFromGroupsIndex(const KWDGAtt
 								   int nGarbageModalityNumber,
 								   KWDGAttribute* targetAttribute) const
 {
+	const boolean bTrace = false;
 	ObjectArray oaTargetParts;
 	KWDGPart* initialPart;
 	KWDGPart* targetPart;
 	int nGroup;
 	int nInitial;
 	int nMaxValueNumber;
-	boolean bDisplayResults = false;
 
 	require(targetAttribute != NULL);
 	require(nGroupNumber > 0);
@@ -1757,7 +1757,7 @@ void KWDataGridManager::BuildPartsOfSymbolAttributeFromGroupsIndex(const KWDGAtt
 	assert(nMaxValueNumber == nGarbageModalityNumber);
 
 	// Affichage des resultats
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Preparation d'un attribut Symbol associe a un groupage univarie \t"
 		     << initialAttribute->GetAttributeName() << endl;
@@ -2210,7 +2210,7 @@ boolean KWDataGridManager::CheckParts(const KWDataGrid* sourceDataGrid, const KW
 boolean KWDataGridManager::CheckCells(const KWDataGrid* sourceDataGrid, const KWDataGrid* targetDataGrid) const
 {
 	boolean bOk = true;
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWDataGridManager checkDataGridManager;
 	KWDataGrid checkDataGrid;
 	ObjectArray oaCheckParts;
@@ -2244,15 +2244,18 @@ boolean KWDataGridManager::CheckCells(const KWDataGrid* sourceDataGrid, const KW
 	// Initialisation des attributs et partie du DataGrid de verification
 	checkDataGridManager.ExportAttributes(targetDataGrid, &checkDataGrid);
 	checkDataGridManager.ExportParts(targetDataGrid, &checkDataGrid);
-	if (bDisplayResults and targetDataGrid->IsVarPartDataGrid())
+	if (bTrace)
 	{
-		cout << "Inner Attributes au Debut de CheckCells" << endl;
-		cout << "Source" << endl;
-		sourceDataGrid->WriteInnerAttributes(cout);
-		cout << "Target" << endl;
-		targetDataGrid->WriteInnerAttributes(cout);
-		cout << "Check" << endl;
-		checkDataGrid.WriteInnerAttributes(cout);
+		if (targetDataGrid->IsVarPartDataGrid())
+		{
+			cout << "Inner Attributes au Debut de CheckCells" << endl;
+			cout << "Source" << endl;
+			sourceDataGrid->WriteInnerAttributes(cout);
+			cout << "Target" << endl;
+			targetDataGrid->WriteInnerAttributes(cout);
+			cout << "Check" << endl;
+			checkDataGrid.WriteInnerAttributes(cout);
+		}
 	}
 
 	// Export des cellules sources vers le DataGrid de verification
@@ -2590,7 +2593,7 @@ void KWDataGridManager::InitialiseVarPartAttributeWithNewSurtokenisedInnerAttrib
     const KWDGAttribute* sourceVarPartAttribute, const KWDGInnerAttributes* newInnerAttributes,
     KWDGAttribute* targetVarPartAttribute) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	int nInnerAttribute;
 	KWDGAttribute* sourceInnerAttribute;
 	KWDGAttribute* targetInnerAttribute;
@@ -2739,7 +2742,7 @@ void KWDataGridManager::InitialiseVarPartAttributeWithNewSurtokenisedInnerAttrib
 	}
 
 	// Affichage des resultats
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "InitialiseVarPartAttribute with surtokenised Attribute" << endl;
 		cout << "Attribut varPart source" << endl;
@@ -2757,7 +2760,7 @@ void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(
     const KWDGAttribute* sourceVarPartAttribute, const KWDGInnerAttributes* mergedInnerAttributes,
     KWDGAttribute* targetVarPartAttribute) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	int nInnerAttribute;
 	KWDGAttribute* antecedentInnerAttribute;
 	KWDGAttribute* mergedInnerAttribute;
@@ -2873,7 +2876,7 @@ void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(
 	}
 
 	// Affichage des resultats
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "InitialiseVarPartAttribute with mergedInnerAttributes" << endl;
 		cout << "Attribut varPart source" << endl;
@@ -3662,6 +3665,7 @@ void KWDataGridManager::InitialiseAttributeGranularizedContinuousParts(
     const KWDGAttribute* sourceAttribute, KWQuantileIntervalBuilder* quantileIntervalBuilder, int nGranularity,
     KWDGAttribute* targetAttribute) const
 {
+	const boolean bTrace = false;
 	KWDGPart* sourcePart;
 	KWDGPart* targetPart;
 	ObjectArray oaSourceParts;
@@ -3670,7 +3674,6 @@ void KWDataGridManager::InitialiseAttributeGranularizedContinuousParts(
 	int nPartileNumber;
 	int nActualPartileNumber;
 	double dPartileSize;
-	boolean bDisplayResults = false;
 
 	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
 	require(not targetAttribute->GetAttributeTargetFunction());
@@ -3699,8 +3702,7 @@ void KWDataGridManager::InitialiseAttributeGranularizedContinuousParts(
 	{
 		// Effectif theorique par partile
 		dPartileSize = (double)nValueNumber / (double)nPartileNumber;
-
-		if (bDisplayResults)
+		if (bTrace)
 		{
 			cout << "Attribut " << targetAttribute->GetAttributeName() << endl;
 			cout << "nPartileNumber = " << nPartileNumber << " \t dPartileSize = " << dPartileSize << endl;
@@ -4000,8 +4002,8 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 								    const KWDGInnerAttributes* mandatoryInnerAttributes,
 								    int nTotalTargetTokenNumber) const
 {
-	boolean bTrace = false;
-	boolean bTraceDetails = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
 	KWDGInnerAttributes* targetInnerAttributes;
 	int nInnerAttribute;
 	KWDGAttribute* sourceInnerAttribute;
@@ -4192,8 +4194,8 @@ KWDGInnerAttributes*
 KWDataGridManager::CreatePartitionnedInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes,
 						     const ObjectDictionary* odInnerAttributePartitions) const
 {
-	boolean bTrace = true;
-	boolean bTraceDetails = false;
+	const boolean bTrace = true;
+	const boolean bTraceDetails = false;
 	KWDGInnerAttributes* targetInnerAttributes;
 	int nInnerAttribute;
 	KWDGAttribute* sourceInnerAttribute;
