@@ -209,21 +209,31 @@ echo "==> Khiops Coclustering.app staged at $COCLUSTERING_APP_DIR"
 # that Mach-O binaries carry a signature to run on Apple Silicon. It does NOT satisfy
 # Gatekeeper for a downloaded (quarantined) file - that requires a real Developer ID
 # signature plus notarization, which this script deliberately does not attempt.
-echo "==> Ad-hoc signing (local/testing only, does not satisfy Gatekeeper for downloads)"
-codesign --force --deep --sign - "$APP_DIR"
-codesign --force --deep --sign - "$COCLUSTERING_APP_DIR"
+# Set KHIOPS_CODESIGN_IDENTITY to a Developer ID Application identity in CI. Keep
+# ad-hoc signing as the default for local builds and development.
+CODESIGN_IDENTITY="${KHIOPS_CODESIGN_IDENTITY:--}"
+if [[ "$CODESIGN_IDENTITY" == "-" ]]; then
+    echo "==> Ad-hoc signing (local/testing only, does not satisfy Gatekeeper for downloads)"
+    codesign --force --deep --sign - "$APP_DIR"
+    codesign --force --deep --sign - "$COCLUSTERING_APP_DIR"
+else
+    echo "==> Signing with Developer ID identity: $CODESIGN_IDENTITY"
+    codesign --force --deep --options runtime --timestamp --sign "$CODESIGN_IDENTITY" "$APP_DIR"
+    codesign --force --deep --options runtime --timestamp --sign "$CODESIGN_IDENTITY" "$COCLUSTERING_APP_DIR"
+fi
 
 DMG_PATH="$REPO_ROOT/build/Khiops-$KHIOPS_VERSION.dmg"
-echo "==> Creating unsigned DMG at $DMG_PATH"
+echo "==> Creating DMG at $DMG_PATH"
 rm -f "$DMG_PATH"
 hdiutil create -volname Khiops -srcfolder "$STAGE_DIR" -format UDZO "$DMG_PATH"
 
 cat <<EOF
 
-Unsigned/unnotarized DMG ready: $DMG_PATH
+DMG ready: $DMG_PATH
 
-- Fine for local use and for opening it yourself on this Mac.
-- If this DMG is downloaded from anywhere else, macOS will mark it quarantined and
+- Local builds use ad-hoc signing and are fine for testing on this Mac.
+- A Developer ID-signed DMG still needs notarization before public distribution.
+- If an unnotarized DMG is downloaded from anywhere else, macOS will mark it quarantined and
   Gatekeeper will refuse to open it with a normal double-click. Workarounds for
   testing: right-click > Open, or "System Settings > Privacy & Security > Open Anyway",
   or 'xattr -d com.apple.quarantine "$APP_DIR"'.
