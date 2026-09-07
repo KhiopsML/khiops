@@ -1686,7 +1686,13 @@ const ALString FileService::BuildURI(const ALString& sScheme, const ALString& sH
 
 const ALString FileService::BuildLocalURI(const ALString& sFileName)
 {
-	return BuildURI(sRemoteScheme, GetLocalHostName(), sFileName);
+	if (FileService::GetURIScheme(sFileName) != "")
+	{
+		assert(FileService::GetURIScheme(sFileName) != sRemoteScheme);
+		return sFileName;
+	}
+	else
+		return BuildURI(sRemoteScheme, GetLocalHostName(), sFileName);
 }
 
 const ALString FileService::GetURIHostName(const ALString& sFileURI)
