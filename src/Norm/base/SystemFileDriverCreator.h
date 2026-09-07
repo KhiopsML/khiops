@@ -35,8 +35,8 @@ public:
 
 	// Acces au driver adapte a l'URI passee en parametre
 	// La detection de la technologie est automatique et basee sur les schema de l'URI
-	// Renvoie NULL en cas d'echec
-	static SystemFileDriver* LookupDriver(const ALString& sURI, const Object* errorSender);
+	// En cas d'echec, Renvoie NULL et met a jour sMessage
+	static SystemFileDriver* LookupDriver(const ALString& sURI, ALString& sMessage);
 
 	// Renvoie true si il ya un driver disponible pour le scheme passe en parametre
 	static boolean IsDriverRegisteredForScheme(const ALString& sScheme);
@@ -46,6 +46,9 @@ public:
 
 	// Acces aux drivers pour consultation
 	static const SystemFileDriver* GetRegisteredDriverAt(int nIndex);
+
+	// Acces au driver ANSI unique
+	static SystemFileDriver* GetDriverANSI();
 
 protected:
 	// Renvoie true si le nom du fichier en parametre correspond aux nom des drivers
@@ -57,14 +60,14 @@ protected:
 	// On la gere "en dur" plutot que de facon generique, car leur nombre ne va pas augmenter
 	static ObjectArray* oaSystemFileDriver;
 
-	// Driver pour les fichiers locaux, toujours disponible
-	static SystemFileDriverANSI driverANSI;
-
 	// Nombre de drivers externes, different de la taille de oaSystemFileDriver car ce tableau
 	// contient egalement le drivers objets
 	static int nExternalDriverNumber;
 
 	static boolean bIsRegistered;
+
+	// Garde pour ne mettre en place l'unregister dans le atexit qu'une seule fois
+	static boolean bIsAutomaticUnregister;
 };
 
 inline boolean SystemFileDriverCreator::IsExternalDriversRegistered()

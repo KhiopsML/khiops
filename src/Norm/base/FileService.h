@@ -326,8 +326,10 @@ public:
 	static const ALString BuildURI(const ALString& sScheme, const ALString& sHostName,
 				       const ALString& sFilePathName);
 
-	// Construction de l'URI du fichier avec le host courant
+	// Si le fichier est sur le cloud, ne fait rien.
+	// Si le fichier est local, construction de l'URI du fichier avec le host courant
 	// Equivalent a BuildURI(file, GetLocalHostName(), sFileName)
+	// TODO renommer la methode ?
 	static const ALString BuildLocalURI(const ALString& sFilePathName);
 
 	// Extraction du hostname a partir de l'URI
@@ -500,3 +502,7 @@ inline boolean FileService::LogIOStats()
 {
 	return bIOStats and MemoryStatsManager::IsOpened();
 }
+
+// Indicateur du mode ou les fichiers temporaires peuvent etre sur le cloud
+// Controlable par la variable d'environement KhiopsTemporaryFileCloudifiedMode a true ou false
+boolean GetTemporaryFileCloudifiedMode();
