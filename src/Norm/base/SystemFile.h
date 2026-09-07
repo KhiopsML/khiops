@@ -104,6 +104,10 @@ protected:
 	boolean bIsOpenForRead;
 	boolean bIsOpenForWrite;
 
+	// Message d'erreur qu'on garde apres fermeture (ou avant l'ouverture), lorsque le driver est NULL
+	// Ca permet de recuperer le dernier message d'erreur (GetLastErrorMessage) meme apres la fermeture du fichier
+	ALString sPostMortemMessage;
+
 	// Reserve physique disponible
 	longint lReservedExtraSize;
 
