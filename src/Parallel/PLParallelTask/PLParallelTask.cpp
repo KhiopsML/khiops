@@ -983,7 +983,8 @@ void PLParallelTask::SlaveRegisterUniqueTmpFile(const ALString& sFileName)
 	require(IsSlaveProcess());
 
 	sScheme = FileService::GetURIScheme(sFileName);
-	require(sScheme == "" or (sScheme == "file" and FileService::GetURIHostName(sFileName) == GetLocalHostName()));
+	require(sScheme == "" or GetTemporaryFileCloudifiedMode() or
+		(sScheme == "file" and FileService::GetURIHostName(sFileName) == GetLocalHostName()));
 
 	if (sFileName != "")
 		svSlaveRegisteredUniqueTmpFiles.Add(FileService::GetURIFilePathName(sFileName));
