@@ -500,3 +500,7 @@ inline boolean FileService::LogIOStats()
 {
 	return bIOStats and MemoryStatsManager::IsOpened();
 }
+
+// Indicateur du mode ou les fichiers temporaires peuvent etre sur le cloud
+// Controlable par la variable d'environement KhiopsTemporaryFileCloudifiedMode a true ou false
+boolean GetTemporaryFileCloudifiedMode();

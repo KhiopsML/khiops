@@ -2845,3 +2845,28 @@ boolean FileSpec::Test()
 
 	return bOk;
 }
+
+boolean GetTemporaryFileCloudifiedMode()
+{
+	static boolean bIsInitialized = false;
+	static boolean bTemporaryFileCloudified = false;
+	ALString sTemporaryFileCloudified;
+
+	// Determination du mode parallele au premier appel
+	if (not bIsInitialized)
+	{
+		// Recherche de la variable d'environnement
+		sTemporaryFileCloudified = p_getenv("KhiopsTemporaryFileCloudifiedMode");
+		sTemporaryFileCloudified.MakeLower();
+
+		// Determination du mode parallele
+		if (sTemporaryFileCloudified == "true")
+			bTemporaryFileCloudified = true;
+		else if (sTemporaryFileCloudified == "false")
+			bTemporaryFileCloudified = false;
+
+		// Memorisation du flag d'initialisation
+		bIsInitialized = true;
+	}
+	return bTemporaryFileCloudified;
+}
