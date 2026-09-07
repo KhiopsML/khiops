@@ -5,7 +5,6 @@
 #include "SystemFileDriverCreator.h"
 
 ObjectArray* SystemFileDriverCreator::oaSystemFileDriver = NULL;
-SystemFileDriverANSI SystemFileDriverCreator::driverANSI;
 int SystemFileDriverCreator::nExternalDriverNumber = 0;
 boolean SystemFileDriverCreator::bIsRegistered = false;
 
@@ -184,13 +183,14 @@ void SystemFileDriverCreator::UnregisterDrivers()
 	nExternalDriverNumber = 0;
 }
 
-SystemFileDriver* SystemFileDriverCreator::LookupDriver(const ALString& sURIFilePathName, const Object* errorSender)
+SystemFileDriver* SystemFileDriverCreator::LookupDriver(const ALString& sURIFilePathName, ALString& sMessage)
 {
 	ALString sScheme;
-	ALString sMessage;
 	SystemFileDriver* driver;
 	SystemFileDriver* registeredDriver;
 	int i;
+
+	sMessage = "";
 
 	// Recherche du schema
 	sScheme = FileService::GetURIScheme(sURIFilePathName);
@@ -205,18 +205,14 @@ SystemFileDriver* SystemFileDriverCreator::LookupDriver(const ALString& sURIFile
 	if (not FileService::IsURIWellFormed(sURIFilePathName))
 	{
 		sMessage = "the file URI is not well-formed (" + sURIFilePathName + ")";
-
-		if (errorSender != NULL)
-			errorSender->AddError(sMessage);
-		else
-			Global::AddError("", "", sMessage);
 		return NULL;
 	}
 
 	// Si le scheme est vide: c'est le driver ANSI
 	driver = NULL;
 	if (sScheme.IsEmpty())
-		driver = &driverANSI;
+		driver = SystemFileDriverCreator::GetDriverANSI();
+
 	// Sinon, on recherche parmi les driver qui ont ete enregistres
 	else
 	{
@@ -236,10 +232,6 @@ SystemFileDriver* SystemFileDriverCreator::LookupDriver(const ALString& sURIFile
 	if (driver == NULL)
 	{
 		sMessage = "there is no driver available for the URI scheme '" + sScheme + "://'";
-		if (errorSender != NULL)
-			errorSender->AddError(sMessage);
-		else
-			Global::AddError("", "", sMessage);
 		return NULL;
 	}
 	else
@@ -279,7 +271,7 @@ longint SystemFileDriverCreator::GetMaxPreferredBufferSize()
 	longint lMaxPrefferedSize;
 	int i;
 
-	lMaxPrefferedSize = driverANSI.GetSystemPreferredBufferSize();
+	lMaxPrefferedSize = GetDriverANSI()->GetSystemPreferredBufferSize();
 	if (oaSystemFileDriver != NULL)
 	{
 		// Parcours des drivers externes
@@ -301,6 +293,12 @@ const SystemFileDriver* SystemFileDriverCreator::GetRegisteredDriverAt(int nInde
 		return NULL;
 
 	return cast(SystemFileDriver*, oaSystemFileDriver->GetAt(nIndex));
+}
+
+SystemFileDriver* SystemFileDriverCreator::GetDriverANSI()
+{
+	static SystemFileDriverANSI driverANSI;
+	return &driverANSI;
 }
 
 boolean SystemFileDriverCreator::IsKhiopsDriverName(const ALString& sFileName)
