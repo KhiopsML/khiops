@@ -106,10 +106,12 @@ public:
 	//
 	// En sortie :
 	// - targetDataGrid : nouvelle grille dont le KWDGInnerAttributes a ete remplace par une version partitionnee
-	// Les attribut sans partition dans le dictionnaire sont crees avec une seule partie
-	// Les VarPart sont partionnees avec une seul partie par VarPart
-	// Les identifier sont partitionnes de facon compatible avec les VarPart, chaque partie de type identifier
-	// contenant toutes les instances ayant exactement les meme VarPart
+	// Les attributs sans partition dans le dictionnaire sont crees avec une seule partie et groupe dans un
+	// meme cluster de VarPart
+	// Pour les attribut avec partition (meme en une seule partie), on cree une VarPart par partie, dans
+	// son propre cluster de VarParts singleton
+	// Les identifiers sont partitionnes de facon compatible avec les clusters de VarPart, chaque partie
+	// de type identifier contenant toutes les instances ayant exactement les meme VarPart
 	void ExportDataGridWithPartitionnedInnerAttributes(const KWDataGrid* sourceDataGrid,
 							   const ObjectDictionary* odInnerAttributePartitions,
 							   KWDataGrid* targetDataGrid);
@@ -364,7 +366,8 @@ protected:
 	// En sortie :
 	// - targetVarPartAttribute :
 	// L'attribut cible utilise les mergedInnerAttributes
-	// La methode construit les parties de l'attribut VarPart cible en conservant les parties de l'attribut VarPart source et en y mettant les PV mergees des attributs internes
+	// La methode construit les parties de l'attribut VarPart cible en conservant les parties de l'attribut VarPart source et
+	// en y mettant les PV mergees des attributs internes
 	void InitialiseVarPartAttributeWithMergedInnerAttributes(const KWDGAttribute* sourceVarPartAttribute,
 								 const KWDGInnerAttributes* mergedInnerAttributes,
 								 KWDGAttribute* targetVarPartAttribute) const;
@@ -440,7 +443,7 @@ protected:
 	// Le dictionnaire odInnerAttributePartitions contient des partitions de type:
 	// - KWDGSAttributeDiscretization dans le cas Continuous
 	// - KWDGSAttributeGrouping dans le cas Symbol
-	// Les attribut sans partition dans le dictionnaire sont crees avec une seule partie
+	// Les attribut sans partition dans le dictionnaire sont crees avec une seule partie,
 	KWDGInnerAttributes*
 	CreatePartitionnedInnerAttributes(const KWDGInnerAttributes* sourceInnerAttributes,
 					  const ObjectDictionary* odInnerAttributePartitions) const;

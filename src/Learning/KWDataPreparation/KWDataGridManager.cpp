@@ -106,8 +106,11 @@ void KWDataGridManager::ExportDataGridWithSingletonVarParts(const KWDataGrid* so
 	require(sourceDataGrid->Check());
 	require(sourceDataGrid->GetInformativeAttributeNumber() > 0);
 	require(sourceDataGrid->IsVarPartDataGrid());
+	require(sourceDataGrid->GetVarPartAttribute()->GetPartNumber() ==
+		sourceDataGrid->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts());
 	require(mandatoryDataGrid != NULL);
 	require(mandatoryDataGrid->IsVarPartDataGrid());
+	require(sourceDataGrid->GetInnerAttributes()->ContainsSubVarParts(mandatoryDataGrid->GetInnerAttributes()));
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 
 	// Export des attributs
@@ -444,7 +447,7 @@ static int KWDataGridManagerCompareIdentifierPartsSignatureAndIdentifier(const v
 void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
     const KWDataGrid* sourceDataGrid, const ObjectDictionary* odInnerAttributePartitions, KWDataGrid* targetDataGrid)
 {
-	const boolean bTrace = true;
+	const boolean bTrace = false;
 	const boolean bTraceDetails = false;
 	int nAttribute;
 	KWDGAttribute* targetAttribute;
@@ -461,6 +464,10 @@ void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
 	int nTargetValue;
 	int nGroup;
 	KWDGCell* cell;
+	KWDGPart* varPartGroup;
+	KWDGPart* varPart;
+	ObjectArray oaVarPartGroupsToDelete;
+	ObjectArray oaVarPartsToGroup;
 
 	require(sourceDataGrid->Check());
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
@@ -513,8 +520,50 @@ void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
 			    sourceDataGrid->GetInnerAttributes(), odInnerAttributePartitions);
 
 			// Creation de l'attribut VarPart associe a ces innerAttributes selon la meme partition que l'attribut en entree
+			// L'attribut cible est cree avec cluster de VarPart singleton par VarPart des variables internes en parametres
 			InitialiseVarPartAttributeWithMergedInnerAttributes(
 			    sourceDataGrid->GetVarPartAttribute(), partitionnedInnerAttributes, targetAttribute);
+
+			// On modifie l'attribut cible si necessqaire pour regrouper en un seul cluster de VarPart toutes les VarPart
+			// qui ne sont impliquee dans une aucune partition en entree
+			if (odInnerAttributePartitions->GetCount() <
+			    sourceDataGrid->GetInnerAttributes()->GetInnerAttributeNumber())
+			{
+				// Parcours de clusters de VarPart pour identifier les VarPart qui ne sont impliquee dans aucune partition en entree
+				varPartGroup = targetAttribute->GetHeadPart();
+				while (varPartGroup != NULL)
+				{
+					assert(varPartGroup->GetVarPartSet()->GetValueNumber() == 1);
+					varPart = varPartGroup->GetVarPartSet()->GetHeadValue()->GetVarPart();
+
+					// Memorisation dans les parties a grouper si abesent des partition
+					if (odInnerAttributePartitions->Lookup(
+						varPart->GetAttribute()->GetAttributeName()) == NULL)
+					{
+						oaVarPartGroupsToDelete.Add(varPartGroup);
+						oaVarPartsToGroup.Add(varPart);
+					}
+
+					// Partie suivante
+					targetAttribute->GetNextPart(varPartGroup);
+				}
+
+				// Destuction des clusters de VarPart a grouper
+				for (nGroup = 0; nGroup < oaVarPartGroupsToDelete.GetSize(); nGroup++)
+				{
+					varPartGroup = cast(KWDGPart*, oaVarPartGroupsToDelete.GetAt(nGroup));
+					targetAttribute->DeletePart(varPartGroup);
+				}
+
+				// Ajout d'un cluster contennant toutes les VarParts a grouper
+				varPartGroup = targetAttribute->AddPart();
+				for (nValue = 0; nValue < oaVarPartsToGroup.GetSize(); nValue++)
+				{
+					varPart = cast(KWDGPart*, oaVarPartsToGroup.GetAt(nValue));
+					varPartGroup->GetVarPartSet()->AddVarPart(varPart);
+				}
+				assert(targetAttribute->CheckPartially());
+			}
 		}
 	}
 
@@ -527,7 +576,7 @@ void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
 	// Definition de nouveaux clusters d'identifiants, en regroupant les identifiants associes
 	// aux memes parties de variable exploitant les signatures a base de cellules
 
-	// Export des parties de l'attribut identifiant cible, chaqune etant un singleton reduit a une seule valeur
+	// Export des parties de l'attribut identifiant cible, chacune etant un singleton reduit a une seule valeur
 	identifierAttribute = targetDataGrid->GetAttributeAt(0);
 	assert(identifierAttribute->GetInitialValueNumber() == identifierAttribute->GetPartNumber());
 	identifierAttribute->ExportParts(&oaIdentifierValueParts);
@@ -612,9 +661,12 @@ void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
 	targetDataGrid->DeleteAllCells();
 	identifierAttribute->DeleteAllParts();
 
-	// Export des partie d'identifiant selon les specification calculees precedement
+	// Export des parties d'identifiant selon les specification calculees precedement
 	sourceAttribute = sourceDataGrid->GetAttributeAt(0);
 	InitialiseSymbolAttributePartsFromGrouping(sourceAttribute, &identifierGrouping, identifierAttribute);
+
+	// On trie les parties pour assurer la reproductibilite
+	identifierAttribute->SortParts();
 
 	// Export des cellules selon la specification finale des partitions de chaque attribut
 	ExportCells(sourceDataGrid, targetDataGrid);
@@ -2689,7 +2741,7 @@ void KWDataGridManager::InitialiseSymbolAttributePartsFromGrouping(const KWDGAtt
 		{
 			assert(targetPart->GetPartFrequency() == 0);
 
-			// Parcoures des valeurs
+			// Parcours des valeurs
 			targetValueSet = targetPart->GetSymbolValueSet();
 			targetValue = targetValueSet->GetHeadValue();
 			while (targetValue != NULL)
@@ -2965,6 +3017,7 @@ void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(
 	NumericKeyDictionary nkdAddedMergedInnerAttributeVarParts;
 	boolean bMergedVarPartFound;
 
+	require(sourceVarPartAttribute->Check());
 	require(CheckAttributesConsistency(sourceVarPartAttribute, targetVarPartAttribute));
 	require(targetVarPartAttribute->GetAttributeType() == KWType::VarPart);
 	require(targetVarPartAttribute->GetPartNumber() == 0);
@@ -3077,9 +3130,9 @@ void KWDataGridManager::InitialiseVarPartAttributeWithMergedInnerAttributes(
 		targetVarPartAttribute->Write(cout);
 	}
 
-	// Nettoyage
-	assert(nkdAddedMergedInnerAttributeVarParts.GetCount() ==
+	ensure(nkdAddedMergedInnerAttributeVarParts.GetCount() ==
 	       mergedInnerAttributes->ComputeTotalInnerAttributeVarParts());
+	ensure(targetVarPartAttribute->CheckPartially());
 }
 
 void KWDataGridManager::InitialiseAttributeNullPart(const KWDGAttribute* sourceAttribute,
@@ -3122,6 +3175,24 @@ void KWDataGridManager::InitialiseAttributeNullPart(const KWDGAttribute* sourceA
 
 		// Tri des valeus cible
 		targetPart->GetValueSet()->SortValueByDecreasingFrequencies();
+	}
+
+	// Mise a jour des effectifs des parties dans le cas d'un innerAttribute
+	// Pour les autre attributs, c'est calcule a partir des cellules
+	if (sourceAttribute->IsInnerAttribute())
+	{
+		assert(targetAttribute->GetHeadPart() == targetAttribute->GetTailPart());
+		assert(targetPart->GetPartFrequency() == 0);
+		sourcePart = sourceAttribute->GetHeadPart();
+		targetPart = targetAttribute->GetHeadPart();
+		while (sourcePart != NULL)
+		{
+			// Mise a jour des effectif de la partie cible
+			targetPart->SetPartFrequency(targetPart->GetPartFrequency() + sourcePart->GetPartFrequency());
+
+			// Partie source suivante
+			sourceAttribute->GetNextPart(sourcePart);
+		}
 	}
 }
 

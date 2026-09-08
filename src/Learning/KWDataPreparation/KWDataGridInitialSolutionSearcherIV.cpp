@@ -21,10 +21,13 @@ KWLearningSpec* KWDataGridInitialSolutionSearcherIV::GetLearningSpec() const
 	return learningSpec;
 }
 
-void KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataGrid* initialDataGrid,
-								KWDataGrid* initialDataGridSolution) const
+boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataGrid* initialDataGrid,
+								   KWDataGrid* initialDataGridSolution) const
 {
+	boolean bOk;
 	const boolean bTrace = false;
+	const boolean bTraceDataGrid = false;
+	const KWDGAttribute* innerAttribute;
 	const ObjectArray* oaAttributePairStats;
 	KWAttributeStats* attributeStats;
 	KWAttributePairStats* resultPairStats;
@@ -47,120 +50,177 @@ void KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataGrid
 	require(initialDataGridSolution != NULL);
 	require(initialDataGridSolution->GetCellNumber() == 0);
 
+	// Parametrage d'un libelle si une tache en cours
+	if ((TaskProgression::IsInTask()))
+		TaskProgression::DisplayLabel("Search initial solution using bivariate analysis");
+
 	// Calcul des paires de variables
-	ComputeInternalAttributesBivariateStats(initialDataGrid);
-	oaAttributePairStats = GetInternalAttributesBivariateStats()->GetAttributePairStats();
+	bOk = ComputeInternalAttributesBivariateStats(initialDataGrid);
+
+	// On remte le libelle a vide
+	if ((TaskProgression::IsInTask()))
+		TaskProgression::DisplayLabel("");
 
 	// Parcours des paires pour collecter pour chaque attribut toutes les partitions
 	// de l'attribut dans les paires le concernant
-	for (n = 0; n < oaAttributePairStats->GetSize(); n++)
+	if (bOk)
 	{
-		resultPairStats = cast(KWAttributePairStats*, oaAttributePairStats->GetAt(n));
-		pairStats = resultPairStats->GetPreparedDataGridStats();
-
-		// Analyse de chaque attribut des paires non nulles
-		if (pairStats != NULL)
+		oaAttributePairStats = GetInternalAttributesBivariateStats()->GetAttributePairStats();
+		for (n = 0; n < oaAttributePairStats->GetSize(); n++)
 		{
-			for (nAttribute = 0; nAttribute < pairStats->GetAttributeNumber(); nAttribute++)
+			resultPairStats = cast(KWAttributePairStats*, oaAttributePairStats->GetAt(n));
+			pairStats = resultPairStats->GetPreparedDataGridStats();
+
+			// Analyse de chaque attribut des paires non nulles
+			if (pairStats != NULL)
 			{
-				attributePartition = pairStats->GetAttributeAt(nAttribute);
-
-				// Recherche du tableau des partition pour cet attribut
-				oaAttributePartitions =
-				    cast(ObjectArray*,
-					 odAllAttributesPartitions.Lookup(attributePartition->GetAttributeName()));
-
-				// Creation si necessaire
-				if (oaAttributePartitions == NULL)
+				assert(pairStats->ComputeInformativeAttributeNumber() > 0);
+				for (nAttribute = 0; nAttribute < pairStats->GetAttributeNumber(); nAttribute++)
 				{
-					oaAttributePartitions = new ObjectArray;
-					odAllAttributesPartitions.SetAt(attributePartition->GetAttributeName(),
-									oaAttributePartitions);
-					oaAllAttributesPartitions.Add(oaAttributePartitions);
-				}
+					attributePartition = pairStats->GetAttributeAt(nAttribute);
 
-				// Memorisation de la partition
-				oaAttributePartitions->Add(cast(Object*, attributePartition));
+					// Recherche du tableau des partition pour cet attribut
+					oaAttributePartitions = cast(
+					    ObjectArray*,
+					    odAllAttributesPartitions.Lookup(attributePartition->GetAttributeName()));
+
+					// Creation si necessaire
+					if (oaAttributePartitions == NULL)
+					{
+						oaAttributePartitions = new ObjectArray;
+						odAllAttributesPartitions.SetAt(attributePartition->GetAttributeName(),
+										oaAttributePartitions);
+						oaAllAttributesPartitions.Add(oaAttributePartitions);
+					}
+
+					// Memorisation de la partition
+					oaAttributePartitions->Add(cast(Object*, attributePartition));
+				}
 			}
 		}
 	}
 
+	// On l'existe d'au moins une partition informative
+	if (bOk)
+		bOk = oaAllAttributesPartitions.GetSize() > 0;
+
 	// Extraction des partitions les plus fines pour chaque attribut, par intersection de ses partitions
-	for (nAttribute = 0; nAttribute < oaAllAttributesPartitions.GetSize(); nAttribute++)
+	if (bOk)
 	{
-		oaAttributePartitions = cast(ObjectArray*, oaAllAttributesPartitions.GetAt(nAttribute));
-
-		// Acces a la premiere partition pour avoir le type de l'attribut
-		attributePartition = cast(const KWDGSAttributePartition*, oaAttributePartitions->GetAt(0));
-
-		// Recherche de la stats unibariee de l'attribut correspondant
-		attributeStats =
-		    GetInternalAttributesBivariateStats()->LookupAttributeStats(attributePartition->GetAttributeName());
-		assert(attributeStats != NULL);
-
-		// Cas d'un attribut numerique
-		if (attributePartition->GetAttributeType() == KWType::Continuous)
+		for (nAttribute = 0; nAttribute < oaAllAttributesPartitions.GetSize(); nAttribute++)
 		{
-			attributeResultDiscretization = new KWDGSAttributeDiscretization;
-			odInnerAttributePartitions.SetAt(attributePartition->GetAttributeName(),
-							 attributeResultDiscretization);
-			ComputeIntersectionDiscretizations(attributeStats, oaAttributePartitions,
-							   attributeResultDiscretization);
-		}
-		else
-		{
-			attributeResultGrouping = new KWDGSAttributeGrouping;
-			odInnerAttributePartitions.SetAt(attributePartition->GetAttributeName(),
-							 attributeResultGrouping);
-			ComputeIntersectionGroupings(attributeStats, oaAttributePartitions, attributeResultGrouping);
+			oaAttributePartitions = cast(ObjectArray*, oaAllAttributesPartitions.GetAt(nAttribute));
+
+			// Acces a la premiere partition pour avoir le type de l'attribut
+			attributePartition = cast(const KWDGSAttributePartition*, oaAttributePartitions->GetAt(0));
+
+			// Recherche de la stats univariee de l'attribut correspondant
+			attributeStats = GetInternalAttributesBivariateStats()->LookupAttributeStats(
+			    attributePartition->GetAttributeName());
+			assert(attributeStats != NULL);
+
+			// Recherche de l'attribut interne correspondant
+			innerAttribute =
+			    initialDataGrid->GetInnerAttributes()->LookupInnerAttribute(attributeStats->GetSortName());
+			assert(innerAttribute != NULL);
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			// Creation et memorisation d'une partition univariee par attribut interne implique dans une
+			// grille bivariee informative
+			//
+			// Une grille bivariee peut etre informative en tenant compte des valeurs manquantes, mais la grille
+			// univariee resultant peut ne contenir qu'une seule partie apres filtrage des valeurs ou bornes manquantes,
+			// qui sont absentes des attributs internes.
+			// C'est le cas par exemple pour les mots d'un texte, ou l'analyse bivariee peut detecter une correlation
+			// de presence simultanee, et la partition univariee peut etre reduite a une seule partie
+			// L'attribut interne reste neanmoins informatif, et il faut l'isoler dans un cluster singleton de parties de
+			// variable, distinct du cluster regroupant tous les attributs internes non partitionnes.
+
+			// Cas d'un attribut numerique
+			if (attributePartition->GetAttributeType() == KWType::Continuous)
+			{
+				attributeResultDiscretization = new KWDGSAttributeDiscretization;
+				odInnerAttributePartitions.SetAt(attributePartition->GetAttributeName(),
+								 attributeResultDiscretization);
+				ComputeIntersectionDiscretizations(innerAttribute, attributeStats,
+								   oaAttributePartitions,
+								   attributeResultDiscretization);
+			}
+			// Cas d'un attribut categoriel
+			else
+			{
+				attributeResultGrouping = new KWDGSAttributeGrouping;
+				odInnerAttributePartitions.SetAt(attributePartition->GetAttributeName(),
+								 attributeResultGrouping);
+				ComputeIntersectionGroupings(innerAttribute, attributeStats, oaAttributePartitions,
+							     attributeResultGrouping);
+			}
 		}
 	}
 
 	// Creation d'une grille exploitant la version partitionnee des attributs internes
-	dataGridManager.ExportDataGridWithPartitionnedInnerAttributes(initialDataGrid, &odInnerAttributePartitions,
-								      initialDataGridSolution);
+	if (bOk)
+		dataGridManager.ExportDataGridWithPartitionnedInnerAttributes(
+		    initialDataGrid, &odInnerAttributePartitions, initialDataGridSolution);
 
 	// Trace
 	if (bTrace)
 	{
-		cout << "Variable partitions\t" << oaAllAttributesPartitions.GetSize() << "\n";
-		for (nAttribute = 0; nAttribute < oaAllAttributesPartitions.GetSize(); nAttribute++)
+		if (bOk)
 		{
-			// Acces aux info de l'attribut
-			oaAttributePartitions = cast(ObjectArray*, oaAllAttributesPartitions.GetAt(nAttribute));
-			attributePartition = cast(const KWDGSAttributePartition*, oaAttributePartitions->GetAt(0));
-			attributeResultPartition =
-			    cast(const KWDGSAttributePartition*,
-				 odInnerAttributePartitions.Lookup(attributePartition->GetAttributeName()));
+			cout << "Variable partitions\t" << oaAllAttributesPartitions.GetSize() << "\t"
+			     << BooleanToString(bOk) << "\n";
+			for (nAttribute = 0; nAttribute < oaAllAttributesPartitions.GetSize(); nAttribute++)
+			{
+				// Acces aux info de l'attribut
+				oaAttributePartitions = cast(ObjectArray*, oaAllAttributesPartitions.GetAt(nAttribute));
+				attributePartition =
+				    cast(const KWDGSAttributePartition*, oaAttributePartitions->GetAt(0));
+				attributeResultPartition =
+				    cast(const KWDGSAttributePartition*,
+					 odInnerAttributePartitions.Lookup(attributePartition->GetAttributeName()));
 
-			// Affichage des ces infos
-			cout << "  " << attributePartition->GetAttributeName() << "\t";
-			cout << KWType::ToString(attributePartition->GetAttributeType()) << "\t";
-			cout << oaAttributePartitions->GetSize() << "\n";
-			cout << "  " << *attributeResultPartition << "\n";
+				// Affichage des ces infos
+				cout << "  " << attributePartition->GetAttributeName() << "\t";
+				cout << KWType::ToString(attributePartition->GetAttributeType()) << "\t";
+				cout << oaAttributePartitions->GetSize() << "\n";
+				cout << "  " << *attributeResultPartition << "\n";
+			}
+
+			// Affichage de la la grille solution
+			if (bTraceDataGrid)
+				cout << "Initial data grid solution based on bivariate analysis\n"
+				     << *initialDataGridSolution << "\n";
 		}
+		else
+			cout << "Variable partitions not computed\n";
 	}
 
 	// Nettoyage
+	if (not bOk)
+		initialDataGridSolution->DeleteAll();
 	oaAllAttributesPartitions.DeleteAll();
 	odInnerAttributePartitions.DeleteAll();
 	CleanInternalAttributesBivariateStats();
-	ensure(initialDataGridSolution->Check());
-	ensure(initialDataGridSolution->IsVarPartDataGrid());
-	ensure(
-	    initialDataGrid->GetInnerAttributes()->ContainsSubVarParts(initialDataGridSolution->GetInnerAttributes()));
-	ensure(initialDataGridSolution->GetGridFrequency() == initialDataGrid->GetGridFrequency());
+	ensure(not bOk or initialDataGridSolution->Check());
+	ensure(not bOk or initialDataGridSolution->IsVarPartDataGrid());
+	ensure(not bOk or initialDataGrid->GetInnerAttributes()->ContainsSubVarParts(
+			      initialDataGridSolution->GetInnerAttributes()));
+	ensure(not bOk or initialDataGridSolution->GetGridFrequency() == initialDataGrid->GetGridFrequency());
+	return bOk;
 }
 
-void KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStats(
-    const KWDataGrid* initialDataGrid) const
+boolean
+KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStats(const KWDataGrid* initialDataGrid) const
 {
-	const boolean bTrace = true;
+	boolean bOk;
+	const boolean bTrace = false;
 	KWAttributePairsSpec bivariatePairSpec;
 	ALString sBivariateReportPath;
 	KWAttributePairName* pairName;
 	int n1;
 	int n2;
+	int nCurrentSeed;
 
 	require(GetLearningSpec() != NULL);
 	require(initialDataGrid != NULL);
@@ -189,8 +249,18 @@ void KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStat
 	bivariateClassStats.SetAttributePairsSpec(&bivariatePairSpec);
 	bivariatePairSpec.SetMaxAttributePairNumber(bivariatePairSpec.GetSpecificAttributePairs()->GetSize());
 
-	// Calcul des statistques sur les paires de variables
-	bivariateClassStats.ComputeStats();
+	// On parametre les stats pour ne pas avoir les message principaux sur la preparation des donnees
+	// et eviter les warnings deja emis lors de la phase initiale de lecture de la base
+	bivariateClassStats.SetMainMessageVerboseMode(false);
+	GetLearningSpec()->GetDatabase()->SetVerboseMode(false);
+
+	// Calcul des statistiques sur les paires de variables
+	// On restitue la seed pour que l'etat final ne dependent pas de l'execution
+	// sequentielle ou parallele de l'analyse bivariee
+	nCurrentSeed = GetRandomSeed();
+	bOk = bivariateClassStats.ComputeStats();
+	SetRandomSeed(nCurrentSeed);
+	bivariateClassStats.GetLearningSpec()->GetDatabase()->SetVerboseMode(true);
 
 	// Suppression du parametrage des paires, qui est local a la methode
 	bivariateClassStats.SetAttributePairsSpec(NULL);
@@ -206,8 +276,12 @@ void KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStat
 		    FileService::BuildFilePathName(FileService::GetTmpDir(), "CoclusteringBivariate.khj");
 		cout << GetLearningSpec()->GetClass()->GetName()
 		     << " coclustering bivariate report: " << sBivariateReportPath << "\n";
-		WriteJSONAnalysisReport(&bivariateClassStats, sBivariateReportPath);
+		if (bOk)
+			WriteJSONAnalysisReport(&bivariateClassStats, sBivariateReportPath);
+		else
+			cout << "Bivariate stats not computed\n";
 	}
+	return bOk;
 }
 
 const KWClassStats* KWDataGridInitialSolutionSearcherIV::GetInternalAttributesBivariateStats() const
@@ -222,18 +296,24 @@ void KWDataGridInitialSolutionSearcherIV::CleanInternalAttributesBivariateStats(
 }
 
 void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionDiscretizations(
-    const KWAttributeStats* attributeStats, const ObjectArray* oaAttributeDiscretizations,
-    KWDGSAttributeDiscretization* resultDiscretization) const
+    const KWDGAttribute* innerAttribute, const KWAttributeStats* attributeStats,
+    const ObjectArray* oaAttributeDiscretizations, KWDGSAttributeDiscretization* resultDiscretization) const
 {
 	const boolean bTrace = false;
 	const KWDGSAttributeDiscretization* attributeDiscretization;
-	int n;
-	int nBound;
 	ContinuousVector cvAllBounds;
 	ContinuousVector cvResultBounds;
+	ContinuousVector cvResultFilteredBounds;
+	Continuous cBound;
+	int n;
+	int nBound;
+	KWDGPart* innerAttributePart;
 
+	require(innerAttribute != NULL);
+	require(innerAttribute->GetAttributeType() == KWType::Continuous);
 	require(attributeStats != NULL);
 	require(attributeStats->GetAttributeType() == KWType::Continuous);
+	require(attributeStats->GetAttributeName() == innerAttribute->GetAttributeName());
 	require(oaAttributeDiscretizations != NULL);
 	require(oaAttributeDiscretizations->GetSize() > 0);
 	require(resultDiscretization != NULL);
@@ -252,9 +332,14 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionDiscretizations(
 		       cast(const KWDGSAttributeDiscretization*, oaAttributeDiscretizations->GetAt(0))
 			   ->GetAttributeName());
 
-		// Memorisation des bornes
+		// Memorisation des bornes, sauf si elles correspondent a la valeur manquante, qui peut exister dans
+		// l'analyse bivariee, mais est ignoree pour les attributs internes d'un coclustering instances x variables
 		for (nBound = 0; nBound < attributeDiscretization->GetIntervalBoundNumber(); nBound++)
-			cvAllBounds.Add(attributeDiscretization->GetIntervalBoundAt(nBound));
+		{
+			cBound = attributeDiscretization->GetIntervalBoundAt(nBound);
+			if (cBound != KWContinuous::GetMissingValue())
+				cvAllBounds.Add(cBound);
+		}
 	}
 
 	// Tri de toutes les bornes
@@ -267,10 +352,36 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionDiscretizations(
 			cvResultBounds.Add(cvAllBounds.GetAt(nBound));
 	}
 
+	// On garde les bornes communes avec celle de l'attribut interne
+	// En effet, ce dernier n'exploite que les valeurs sparse, hors Missing et potentiellement
+	// hors valeur par defaut de blocs sparse, comme 0 par exemple (cf. GetValueBlockContinuousDefaultValue)
+	nBound = 0;
+	innerAttributePart = innerAttribute->GetHeadPart();
+	while (innerAttributePart != innerAttribute->GetTailPart())
+	{
+		// Arret si on a traite toutes les bornes des intervalles
+		if (nBound >= cvResultBounds.GetSize())
+			break;
+
+		// Test si la borne de l'attribut interne est compatible avec une borne d'intervalle
+		if (innerAttributePart->GetInterval()->GetLowerBound() >= cvResultBounds.GetAt(nBound))
+		{
+			// On garde la borne si elle existe dans l'attribut interne
+			if (innerAttributePart->GetInterval()->GetLowerBound() == cvResultBounds.GetAt(nBound))
+				cvResultFilteredBounds.Add(cvResultBounds.GetAt(nBound));
+
+			// On passe a la borne suivante
+			nBound++;
+		}
+
+		// Partie suivante
+		innerAttribute->GetNextPart(innerAttributePart);
+	}
+
 	// Memorisation des bones des intervales
-	resultDiscretization->SetPartNumber(cvResultBounds.GetSize() + 1);
-	for (n = 0; n < cvResultBounds.GetSize(); n++)
-		resultDiscretization->SetIntervalBoundAt(n, cvResultBounds.GetAt(n));
+	resultDiscretization->SetPartNumber(cvResultFilteredBounds.GetSize() + 1);
+	for (n = 0; n < cvResultFilteredBounds.GetSize(); n++)
+		resultDiscretization->SetIntervalBoundAt(n, cvResultFilteredBounds.GetAt(n));
 
 	// Trace
 	if (bTrace)
@@ -282,11 +393,11 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionDiscretizations(
 	}
 
 	ensure(resultDiscretization->GetAttributeName() == attributeStats->GetAttributeName());
-	ensure(resultDiscretization->GetPartNumber() > 1);
 	ensure(resultDiscretization->Check());
 }
 
-void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWAttributeStats* attributeStats,
+void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWDGAttribute* innerAttribute,
+								       const KWAttributeStats* attributeStats,
 								       const ObjectArray* oaAttributeGroupings,
 								       KWDGSAttributeGrouping* resultGrouping) const
 {
@@ -295,6 +406,7 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWA
 	NumericKeyDictionary nkdValueSignatures;
 	ObjectArray oaValueSignatures;
 	KWValueSignature* valueSignature;
+	KWValueSignature* defaultValueSignature;
 	SymbolVector svResultValues;
 	IntVector ivResultGroupFirstValueIndexes;
 	int n;
@@ -302,9 +414,15 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWA
 	int nValue;
 	int nDefaultGroupIndex;
 	Symbol sValue;
+	KWDGPart* innerAttributeDefaultPart;
+	Symbol sInnerAttributeDefaultPartValue;
+	KWDGPart* innerAttributePart;
 
+	require(innerAttribute != NULL);
+	require(innerAttribute->GetAttributeType() == KWType::Symbol);
 	require(attributeStats != NULL);
 	require(attributeStats->GetAttributeType() == KWType::Symbol);
+	require(attributeStats->GetAttributeName() == innerAttribute->GetAttributeName());
 	require(oaAttributeGroupings != NULL);
 	require(oaAttributeGroupings->GetSize() > 0);
 	require(resultGrouping != NULL);
@@ -331,17 +449,21 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWA
 			{
 				sValue = attributeGrouping->GetValueAt(nValue);
 
-				// Creation de la signature si necessaire
-				valueSignature =
-				    cast(KWValueSignature*, nkdValueSignatures.Lookup(sValue.GetNumericKey()));
-				if (valueSignature == NULL)
+				// On ne traite que les valeurs presentes des attributs internes pour le coclustering instances x variables
+				if (sValue != Symbol())
 				{
-					valueSignature = new KWValueSignature;
-					valueSignature->SetValue(sValue);
+					// Creation de la signature si necessaire
+					valueSignature =
+					    cast(KWValueSignature*, nkdValueSignatures.Lookup(sValue.GetNumericKey()));
+					if (valueSignature == NULL)
+					{
+						valueSignature = new KWValueSignature;
+						valueSignature->SetValue(sValue);
 
-					// Enregistrement
-					nkdValueSignatures.SetAt(sValue.GetNumericKey(), valueSignature);
-					oaValueSignatures.Add(valueSignature);
+						// Enregistrement
+						nkdValueSignatures.SetAt(sValue.GetNumericKey(), valueSignature);
+						oaValueSignatures.Add(valueSignature);
+					}
 				}
 			}
 		}
@@ -369,14 +491,17 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWA
 				if (sValue == Symbol::GetStarValue())
 					nDefaultGroupIndex = nGroup;
 
-				// Recherche de la signature sinon
-				valueSignature =
-				    cast(KWValueSignature*, nkdValueSignatures.Lookup(sValue.GetNumericKey()));
-				assert(valueSignature != NULL);
-				assert(valueSignature->GetSignature()->GetSize() == n);
+				// On ne traite que les valeurs presentes des attributs internes
+				if (sValue != Symbol())
+				{
+					valueSignature =
+					    cast(KWValueSignature*, nkdValueSignatures.Lookup(sValue.GetNumericKey()));
+					assert(valueSignature != NULL);
+					assert(valueSignature->GetSignature()->GetSize() == n);
 
-				// Ajout de l'index de la partie en fin de signature
-				valueSignature->GetSignature()->Add(nGroup);
+					// Ajout de l'index de la partie en fin de signature
+					valueSignature->GetSignature()->Add(nGroup);
+				}
 			}
 		}
 		assert(nDefaultGroupIndex != -1);
@@ -391,6 +516,55 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWA
 			if (valueSignature->GetSignature()->GetSize() == n)
 				valueSignature->GetSignature()->Add(nDefaultGroupIndex);
 		}
+	}
+
+	// Recherche de la partie par defaut de l'attribut interne, qui contient une valeur en plus de la StarValue
+	innerAttributeDefaultPart = innerAttribute->GetTailPart();
+	assert(innerAttributeDefaultPart->GetSymbolValueSet()->GetTailValue()->GetSymbolValue() ==
+	       Symbol::GetStarValue());
+	assert(innerAttributeDefaultPart->GetSymbolValueSet()->GetHeadValue() !=
+	       innerAttributeDefaultPart->GetSymbolValueSet()->GetTailValue());
+
+	// Recherche de la valeur associee a la partie par defaut
+	sInnerAttributeDefaultPartValue =
+	    innerAttributeDefaultPart->GetSymbolValueSet()->GetHeadValue()->GetSymbolValue();
+	assert(sInnerAttributeDefaultPartValue != Symbol::GetStarValue());
+
+	// On remplace la signature de la valeur par defaut pour qu'elle soit dans le meme groupe que la
+	// valeur avec laquelle elle cohabite, sauf cette valeur ne fait pas partie des specification de groupement
+	defaultValueSignature =
+	    cast(KWValueSignature*, nkdValueSignatures.Lookup(Symbol::GetStarValue().GetNumericKey()));
+	valueSignature =
+	    cast(KWValueSignature*, nkdValueSignatures.Lookup(sInnerAttributeDefaultPartValue.GetNumericKey()));
+	assert(defaultValueSignature != NULL);
+	if (valueSignature != NULL)
+		defaultValueSignature->GetSignature()->CopyFrom(valueSignature->GetSignature());
+
+	// Parcours de toutes les valeurs initiales de l'attribut interne pour identifier celles qui ne sont
+	// specifiees dans aucun groupe et on les associe au groupe par defaut, via la meme signature
+	innerAttributePart = innerAttribute->GetHeadPart();
+	while (innerAttributePart != NULL)
+	{
+		assert(innerAttributePart->GetSymbolValueSet()->GetValueNumber() == 1);
+
+		// Recherche de la valeur de la partie singleton
+		sValue = innerAttributePart->GetSymbolValueSet()->GetHeadValue()->GetSymbolValue();
+
+		// Creation de la signature si necessaire, en prenant la meme signature que celle du groupe par defaut
+		valueSignature = cast(KWValueSignature*, nkdValueSignatures.Lookup(sValue.GetNumericKey()));
+		if (valueSignature == NULL)
+		{
+			valueSignature = new KWValueSignature;
+			valueSignature->SetValue(sValue);
+			valueSignature->GetSignature()->CopyFrom(defaultValueSignature->GetSignature());
+
+			// Enregistrement
+			nkdValueSignatures.SetAt(sValue.GetNumericKey(), valueSignature);
+			oaValueSignatures.Add(valueSignature);
+		}
+
+		// Partie suivante
+		innerAttribute->GetNextPart(innerAttributePart);
 	}
 
 	// Tri des signatures pour identifier les groupes uniques
@@ -429,14 +603,12 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWA
 			valueSignature = cast(KWValueSignature*, oaValueSignatures.GetAt(nValue));
 			cout << "\t" << *valueSignature << "\n";
 		}
-		cout << *resultGrouping << "\n";
+		cout << "Grouping\n" << *resultGrouping << "\n";
 	}
 
 	// Nettoyage
 	oaValueSignatures.DeleteAll();
-
 	ensure(resultGrouping->GetAttributeName() == attributeStats->GetAttributeName());
-	ensure(resultGrouping->GetPartNumber() > 1);
 	ensure(resultGrouping->Check());
 }
 

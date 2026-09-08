@@ -1893,7 +1893,6 @@ boolean KWDGMPart::InternalCheck(boolean bCheckPartially) const
 			bCheckFrequency = GetPartFrequency() > 0 and nTotalValueFrequency > 0;
 		else
 			bCheckFrequency = true;
-		bCheckFrequency = GetPartFrequency() > 0 and nTotalValueFrequency > 0; //DDD
 		if (bOk and bCheckFrequency and GetPartFrequency() != nTotalValueFrequency)
 		{
 			sValueClassLabel = GetValueSet()->GetHeadValue()->GetClassLabel();

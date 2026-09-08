@@ -26,6 +26,7 @@ KWClassStats::KWClassStats()
 	dataTableSliceSet = NULL;
 	svSymbolTargetValues = NULL;
 	cvContinuousTargetValues = NULL;
+	bMainMessageVerboseMode = true;
 	CleanWorkingData();
 }
 
@@ -56,10 +57,21 @@ const KWAttributePairsSpec* KWClassStats::GetAttributePairsSpec() const
 	return attributePairSpec;
 }
 
+void KWClassStats::SetMainMessageVerboseMode(boolean bValue)
+{
+	bMainMessageVerboseMode = bValue;
+}
+
+boolean KWClassStats::GetMainMessageVerboseMode() const
+{
+	return bMainMessageVerboseMode;
+}
+
 boolean KWClassStats::ComputeStats()
 {
 	boolean bOk = true;
 	ALString sMessage;
+	boolean bCurrentDatabaseVerboseMode;
 	KWDatabaseBasicStatsTask databaseBasicClassStatsTask;
 	int nDatabaseObjectNumber;
 	longint lEncodingErrorNumber;
@@ -117,13 +129,14 @@ boolean KWClassStats::ComputeStats()
 	if (bOk)
 	{
 		databaseBasicClassStatsTask.SetDisplayAllTaskMessages(false);
+		bCurrentDatabaseVerboseMode = GetDatabase()->GetVerboseMode();
 		GetDatabase()->SetVerboseMode(false);
 		databaseBasicClassStatsTask.SetReusableDatabaseIndexer(GetLearningSpec()->GetDatabaseIndexer());
 		bOk = databaseBasicClassStatsTask.CollectBasicStats(GetDatabase(), GetTargetAttributeName(),
 								    lRecordNumber, lCollectedObjectNumber,
 								    svSymbolTargetValues, cvContinuousTargetValues);
 		lEncodingErrorNumber = max(lEncodingErrorNumber, GetDatabase()->GetEncodingErrorNumber());
-		GetDatabase()->SetVerboseMode(true);
+		GetDatabase()->SetVerboseMode(bCurrentDatabaseVerboseMode);
 	}
 
 	// Erreur si trop d'instances
@@ -1687,4 +1700,10 @@ void KWClassStats::DispatchAttributeStatsByType(const ObjectArray* oaInputAttrib
 		else if (attributeStats->GetAttributeType() == KWType::Continuous)
 			oaContinuousAttributeStats->Add(attributeStats);
 	}
+}
+
+void KWClassStats::AddSimpleMessage(const ALString& sLabel) const
+{
+	if (bMainMessageVerboseMode)
+		Object::AddSimpleMessage(sLabel);
 }
