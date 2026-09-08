@@ -461,6 +461,18 @@ double KWClassifierEvaluation::GetAUC() const
 	return dAUC;
 }
 
+double KWClassifierEvaluation::GetAUCAtTargetValue(int nTargetValue) const
+{
+	require(0 <= nTargetValue and nTargetValue < dvAUCPerTargetValue.GetSize());
+
+	return dvAUCPerTargetValue.GetAt(nTargetValue);
+}
+
+double KWClassifierEvaluation::GetAUCValuesNumber() const
+{
+	return dvAUCPerTargetValue.GetSize();
+}
+
 double KWClassifierEvaluation::GetCompressionRate() const
 {
 	return dCompressionRate;
@@ -836,6 +848,37 @@ void KWClassifierEvaluation::WriteJSONConfusionMatrixReport(JSONFile* fJSON) con
 	fJSON->EndObject();
 }
 
+void KWClassifierEvaluation::WriteJSONAucValuesReport(JSONFile* fJSON) const
+{
+	int j;
+	int jMax;
+
+	// Titre
+	fJSON->BeginKeyObject("aucValues");
+
+	// Calcul de l'index des dernieres modalites a prendre en compte: on ignore
+	// la derniere modalite predite si elle est egale a la valeur
+	// speciale StarValue et qu'elle est vide
+	jMax = GetActualModalities()->GetValueNumber() - 1;
+	if (GetActualModalities()->GetValueAt(jMax) == Symbol::GetStarValue() and
+	    ivActualModalityFrequencies.GetAt(jMax) == 0)
+		jMax--;
+
+	// Liste des valeurs cibles
+	fJSON->BeginKeyList("values");
+	for (j = 0; j <= jMax; j++)
+		fJSON->WriteString(GetActualModalities()->GetValueAt(j).GetValue());
+	fJSON->EndList();
+
+	// Liste des AUC par classe cible
+	fJSON->BeginKeyList("aucs");
+	for (j = 0; j <= jMax; j++)
+		fJSON->WriteDouble(GetAUCAtTargetValue(j));
+	fJSON->EndList();
+
+	fJSON->EndObject();
+}
+
 void KWClassifierEvaluation::WriteJSONLiftCurveReportArray(JSONFile* fJSON,
 							   const ObjectArray* oaClassifierEvaluations) const
 {
@@ -925,7 +968,12 @@ void KWClassifierEvaluation::WriteJSONArrayFields(JSONFile* fJSON, boolean bSumm
 	}
 	// Donnees de detail
 	else
+	{
 		WriteJSONConfusionMatrixReport(fJSON);
+		// Cas ou les auc par modalite cible ont ete calculees
+		if (GetAUCValuesNumber() > 0)
+			WriteJSONAucValuesReport(fJSON);
+	}
 }
 
 boolean KWClassifierEvaluation::CheckEvaluation() const
