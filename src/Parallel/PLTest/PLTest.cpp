@@ -249,8 +249,6 @@ int main(int argv, char** argc)
 		// Lancement de l'esclave
 		PLParallelTask::GetDriver()->StartSlave();
 	}
-	// Liberation des drivers de fichier
-	SystemFileDriverCreator::UnregisterDrivers();
 #ifdef __HADOOP__
 	// if (SystemFileDriverCreator::GetDriverHDFS() != NULL)
 	// 	SystemFileDriverCreator::GetDriverHDFS()->Disconnect();

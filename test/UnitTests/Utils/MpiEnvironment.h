@@ -70,9 +70,6 @@ public:
 		{
 			PLParallelTask::GetDriver()->StopSlaves();
 		}
-
-		SystemFileDriverCreator::UnregisterDrivers();
-
 		PLParallelTask::DeleteAllTasks();
 	}
 };
