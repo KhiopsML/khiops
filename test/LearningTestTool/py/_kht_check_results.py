@@ -1042,7 +1042,7 @@ def check_results(test_dir, forced_context=None):
                     assert test_file_lines is not None
                     assert ref_file_lines is not None
                     # Extraction des champs qui correspondent au calcul de l'AUC et des courbes de ROC
-                    for key in ["auc", "values"]:
+                    for key in ["auc", "aucs", "values"]:
                         # Selection d'un champ selon sa valeur
                         selected_test_file_lines = (
                             extract_key_matching_lines_in_json_file(
