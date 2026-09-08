@@ -40,7 +40,9 @@ double KWDataGridOptimizerIxV::BuildInitialSolution(const KWDataGrid* initialDat
 	double dCost;
 	double dBestCost;
 	KWDataGridInitialSolutionSearcherIV initialSolutionSearcher;
-	KWDataGridMerger initialDataGridSolution;
+	KWDataGrid initialDataGridSolution;
+	KWDataGridMerger initialDataGridOptimizedSolution;
+	boolean bInitialSoutionFound;
 
 	require(GetDataGridCosts() != NULL);
 	require(GetDataGridCosts()->IsInitialized());
@@ -52,20 +54,42 @@ double KWDataGridOptimizerIxV::BuildInitialSolution(const KWDataGrid* initialDat
 
 	// Recherche d'une solution initiale meilleure que celle du modele null
 	initialSolutionSearcher.SetLearningSpec(GetLearningSpec());
-	initialSolutionSearcher.SearchInitialSolution(initialDataGrid, &initialDataGridSolution);
+	bInitialSoutionFound = initialSolutionSearcher.SearchInitialSolution(initialDataGrid, &initialDataGridSolution);
 
 	// Prise en compte si on a trouve meilleur que le meilleur null
 	dBestCost = GetOptimizedNullDataGridCost();
-	if (initialDataGridSolution.GetCellNumber() > 1)
+	if (bInitialSoutionFound)
 	{
-		dCost = GetDataGridCosts()->ComputeDataGridTotalCost(&initialDataGridSolution);
-		if (dCost < dBestCost)
-		{
-			SaveDataGrid(&initialDataGridSolution, optimizedDataGrid);
-			dBestCost = dCost;
+		assert(initialDataGridSolution.GetCellNumber() > 1);
 
-			// Gestion de la meilleure solution
-			HandleOptimizationStep(optimizedDataGrid, initialDataGrid);
+		// Parametrage de la solution initiale a optimiser
+		SaveDataGrid(&initialDataGridSolution, &initialDataGridOptimizedSolution);
+		initialDataGridOptimizedSolution.SetDataGridCosts(GetDataGridCosts());
+
+		//DDD
+		//DDD assert(initialDataGridOptimizedSolution.Check());
+		//DDD cout << "======\n" << initialDataGridOptimizedSolution << "======\n";
+
+		// Optimisation et post-optimisation de la solution
+		dCost = OptimizeSolution(&initialDataGridSolution, &initialDataGridOptimizedSolution, true);
+		dCost = PostOptimizeVarPartSolution(&initialDataGridSolution, &initialDataGridOptimizedSolution);
+
+		cout << "NUL COST\t" << GetOptimizedNullDataGridCost() << endl;
+		cout << "COST\t" << GetDataGridCosts()->ComputeDataGridTotalCost(&initialDataGridSolution) << endl;
+		cout << "OPTIM COST\t" << dCost << endl;
+
+		// Memorisation si amelioration du cout
+		// Les methodes precedentes gerent deja l'interruption des taches
+		if (not TaskProgression::IsInterruptionRequested())
+		{
+			if (dCost < dBestCost)
+			{
+				SaveDataGrid(&initialDataGridOptimizedSolution, optimizedDataGrid);
+				dBestCost = dCost;
+
+				// Gestion de la meilleure solution
+				HandleOptimizationStep(optimizedDataGrid, initialDataGrid);
+			}
 		}
 	}
 

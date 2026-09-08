@@ -36,14 +36,17 @@ public:
 	// etre optimisee selon les algorithmes d'optimisation standard.
 	// On exploite a cet effet des grilles bivariees entre attribut internes pour
 	// obtenir des partitions en VarPart pertinentes
-	void SearchInitialSolution(const KWDataGrid* initialDataGrid, KWDataGrid* initialDataGridSolution) const;
+	// La methode se deroule en mode non verbeux.
+	// Elle peut echouer en cas d'erreur, d'interruption utilisateur, ou d'absence de paires informatives
+	boolean SearchInitialSolution(const KWDataGrid* initialDataGrid, KWDataGrid* initialDataGridSolution) const;
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
-	//  Analyse bivariee des paires d'attributs internes
+	// Analyse bivariee des paires d'attributs internes
 	// Le resultats est disponible dans bivariateClassStats
-	void ComputeInternalAttributesBivariateStats(const KWDataGrid* initialDataGrid) const;
+	// La methode peut echouer en cas d'erreur ou d'interruption utilisateur
+	boolean ComputeInternalAttributesBivariateStats(const KWDataGrid* initialDataGrid) const;
 
 	// Acces aux analyses bivariees
 	const KWClassStats* GetInternalAttributesBivariateStats() const;
