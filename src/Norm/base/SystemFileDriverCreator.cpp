@@ -7,9 +7,16 @@
 ObjectArray* SystemFileDriverCreator::oaSystemFileDriver = NULL;
 int SystemFileDriverCreator::nExternalDriverNumber = 0;
 boolean SystemFileDriverCreator::bIsRegistered = false;
+boolean SystemFileDriverCreator::bIsAutomaticUnregister = false;
 
 /////////////////////////////////////////////
 // Implementation de la classe SystemFileDriverCreator
+
+// Methode appelee dans le atexit pour le nettoyage automatique des drivers
+void SystemFileDriverCreatorAutomaticUnregister()
+{
+	SystemFileDriverCreator::UnregisterDrivers();
+}
 
 int SystemFileDriverCreator::RegisterExternalDrivers()
 {
@@ -134,6 +141,13 @@ int SystemFileDriverCreator::RegisterExternalDrivers()
 		}
 	}
 	bIsRegistered = true;
+
+	// Nettoyage automatique des drivers en fin de programe
+	if (not bIsAutomaticUnregister)
+	{
+		atexit(SystemFileDriverCreatorAutomaticUnregister);
+		bIsAutomaticUnregister = true;
+	}
 	return nExternalDriverNumber;
 }
 
@@ -155,6 +169,13 @@ void SystemFileDriverCreator::RegisterDriver(SystemFileDriver* driver)
 	if (oaSystemFileDriver == NULL)
 		oaSystemFileDriver = new ObjectArray;
 	oaSystemFileDriver->Add(driver);
+
+	// Nettoyage automatique des drivers en fin de programe
+	if (not bIsAutomaticUnregister)
+	{
+		atexit(SystemFileDriverCreatorAutomaticUnregister);
+		bIsAutomaticUnregister = true;
+	}
 }
 
 void SystemFileDriverCreator::UnregisterDrivers()

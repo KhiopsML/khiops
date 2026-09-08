@@ -65,6 +65,9 @@ protected:
 	static int nExternalDriverNumber;
 
 	static boolean bIsRegistered;
+
+	// Garde pour ne mettre en place l'unregister dans le atexit qu'une seule fois
+	static boolean bIsAutomaticUnregister;
 };
 
 inline boolean SystemFileDriverCreator::IsExternalDriversRegistered()
