@@ -40,7 +40,8 @@ double KWDataGridOptimizerIxV::BuildInitialSolution(const KWDataGrid* initialDat
 	double dCost;
 	double dBestCost;
 	KWDataGridInitialSolutionSearcherIV initialSolutionSearcher;
-	KWDataGridMerger initialDataGridSolution;
+	KWDataGrid initialDataGridSolution;
+	KWDataGridMerger initialDataGridOptimizedSolution;
 
 	require(GetDataGridCosts() != NULL);
 	require(GetDataGridCosts()->IsInitialized());
@@ -58,10 +59,25 @@ double KWDataGridOptimizerIxV::BuildInitialSolution(const KWDataGrid* initialDat
 	dBestCost = GetOptimizedNullDataGridCost();
 	if (initialDataGridSolution.GetCellNumber() > 1)
 	{
-		dCost = GetDataGridCosts()->ComputeDataGridTotalCost(&initialDataGridSolution);
+		// Parametrage de la solution initiale a optimiser
+		SaveDataGrid(&initialDataGridSolution, &initialDataGridOptimizedSolution);
+		initialDataGridOptimizedSolution.SetDataGridCosts(GetDataGridCosts());
+
+		// Optimisation et post-optimisation de la solution
+		dCost = OptimizeSolution(&initialDataGridSolution, &initialDataGridOptimizedSolution, true);
+		dCost = PostOptimizeVarPartSolution(&initialDataGridSolution, &initialDataGridOptimizedSolution);
+
+		//DDD dCost = GetDataGridCosts()->ComputeDataGridTotalCost(&initialDataGridSolution);
+		//DDD
+
+		cout << "NUL COST\t" << GetOptimizedNullDataGridCost() << endl;
+		cout << "COST\t" << GetDataGridCosts()->ComputeDataGridTotalCost(&initialDataGridSolution) << endl;
+		cout << "OPTIM COST\t" << dCost << endl;
+
+		// Memorisation si amelioration du cout
 		if (dCost < dBestCost)
 		{
-			SaveDataGrid(&initialDataGridSolution, optimizedDataGrid);
+			SaveDataGrid(&initialDataGridOptimizedSolution, optimizedDataGrid);
 			dBestCost = dCost;
 
 			// Gestion de la meilleure solution
