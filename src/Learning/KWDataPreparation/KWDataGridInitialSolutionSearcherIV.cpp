@@ -48,10 +48,18 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 	require(initialDataGridSolution != NULL);
 	require(initialDataGridSolution->GetCellNumber() == 0);
 
+	// Parametrage d'un libelle si une tache en cours
+	if ((TaskProgression::IsInTask()))
+		TaskProgression::DisplayLabel("Search initial solution using bivariate analysis");
+
 	// Calcul des paires de variables
 	bOk = ComputeInternalAttributesBivariateStats(initialDataGrid);
 	if (bOk)
 		oaAttributePairStats = GetInternalAttributesBivariateStats()->GetAttributePairStats();
+
+	// On remte le libelle a vide
+	if ((TaskProgression::IsInTask()))
+		TaskProgression::DisplayLabel("");
 
 	// Parcours des paires pour collecter pour chaque attribut toutes les partitions
 	// de l'attribut dans les paires le concernant
