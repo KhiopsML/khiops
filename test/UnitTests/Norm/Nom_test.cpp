@@ -13,6 +13,7 @@
 #include "CharVector.h"
 #include "InputBufferedFile.h"
 #include "OutputBufferedFile.h"
+#include "SystemFileOstream.h"
 #include "Regexp.h"
 #include "MemoryTest.h"
 #include "TextService.h"
@@ -40,6 +41,11 @@ KHIOPS_TEST(base, LongintVector, LongintVector::Test);
 KHIOPS_TEST(base, CharVector, CharVector::Test);
 KHIOPS_TEST(base, StringVector, StringVector::Test);
 KHIOPS_TEST(base, TextService, TextService::Test);
+
+TEST(base, SystemFileOstream)
+{
+	EXPECT_TRUE(SystemFileOstream::Test());
+}
 
 TEST(long, InputBufferedFile)
 {
