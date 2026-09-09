@@ -15,7 +15,7 @@ OutputBufferedFile::OutputBufferedFile()
 
 OutputBufferedFile::~OutputBufferedFile()
 {
-	if (IsPhysycalOpen())
+	if (IsPhysicalOpen())
 	{
 		PhysicalClose();
 	}
@@ -115,12 +115,12 @@ boolean OutputBufferedFile::Close()
 	bOk = not bIsError;
 
 	// Fermeture du fichier
-	if (IsPhysycalOpen())
+	if (IsPhysicalOpen())
 	{
 		bOk = PhysicalClose() and bOk;
 	}
 
-	assert(not IsPhysycalOpen());
+	assert(not IsPhysicalOpen());
 
 	// Nettoyage
 	delete fileHandle;
@@ -345,7 +345,7 @@ boolean OutputBufferedFile::Write(const char* sValue, int nCharNumber)
 	{
 		// Fermeture du fichier
 		// Le contenu restant dans le buffer sera ecrit lors du prochain flush ou lors du Close final
-		if (IsPhysycalOpen())
+		if (IsPhysicalOpen())
 			PhysicalClose();
 	}
 	return not bIsError;
@@ -438,7 +438,7 @@ boolean OutputBufferedFile::WriteSubPart(const CharVector* cvValue, int nBeginOf
 	{
 		// Fermeture du fichier
 		// Le contenu restant dans le buffer sera ecrit lors du prochain flush ou lors du Close final
-		if (IsPhysycalOpen())
+		if (IsPhysicalOpen())
 			PhysicalClose();
 	}
 
