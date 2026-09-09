@@ -3,6 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "FileService.h"
+#include "OutputBufferedFile.h"
 
 const ALString FileService::sRemoteScheme = "file";
 boolean FileService::bIOStats = false;
@@ -1564,8 +1565,9 @@ boolean FileService::GetApplicationTmpDirAutoDeletion()
 
 void FileService::TouchApplicationTmpDir(int nRemainingSeconds)
 {
-	FILE* fApplicationTmpDirAnchorFile;
+	OutputBufferedFile obfApplicationTmpDirAnchorFile;
 	time_t tCurrentTimestamp;
+	boolean bOk;
 	const int nMaxRemainingSeconds = 366 * 24 * 3600;
 	struct tm* pGMTExpirationDate;
 	require(nRemainingSeconds >= 0);
@@ -1584,32 +1586,42 @@ void FileService::TouchApplicationTmpDir(int nRemainingSeconds)
 
 		// Ecriture dans le fichier anchor du libelle associe a la date d'expiration
 		// La fonction p_fopen gere deja les locale correctement
-		fApplicationTmpDirAnchorFile =
-		    p_fopen(BuildFilePathName(GetApplicationTmpDir(), GetAnchorFileName()), "w");
-		if (fApplicationTmpDirAnchorFile != NULL)
+		obfApplicationTmpDirAnchorFile.SetFileName(
+		    BuildFilePathName(GetApplicationTmpDir(), GetAnchorFileName()));
+		bOk = obfApplicationTmpDirAnchorFile.Open();
+		if (bOk)
 		{
-			fprintf(fApplicationTmpDirAnchorFile, "GMT expiration date %04d-%02d-%02d %02d:%02d:%02d",
-				pGMTExpirationDate->tm_year + 1900, pGMTExpirationDate->tm_mon + 1,
-				pGMTExpirationDate->tm_mday, pGMTExpirationDate->tm_hour, pGMTExpirationDate->tm_min,
-				pGMTExpirationDate->tm_sec);
-			fclose(fApplicationTmpDirAnchorFile);
+			obfApplicationTmpDirAnchorFile.Write("GMT expiration date ");
+			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_year + 1900));
+			obfApplicationTmpDirAnchorFile.Write("-");
+			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_mon + 1));
+			obfApplicationTmpDirAnchorFile.Write("-");
+			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_mday));
+			obfApplicationTmpDirAnchorFile.Write(" ");
+			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_hour));
+			obfApplicationTmpDirAnchorFile.Write(":");
+			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_min));
+			obfApplicationTmpDirAnchorFile.Write(":");
+			obfApplicationTmpDirAnchorFile.Write(IntToString(pGMTExpirationDate->tm_sec));
+			obfApplicationTmpDirAnchorFile.Close();
 		}
 	}
 }
 
 void FileService::UntouchApplicationTmpDir()
 {
-	FILE* fApplicationTmpDirAnchorFile;
+	SystemFile sfApplicationTmpDirAnchorFile;
+	ALString sFileName;
+	boolean bOk;
 
 	// On n'effectue le traitement que si le repertoire temporaire existe
 	if (GetApplicationTmpDir() != "")
 	{
 		// Remise a vide du fichier anchor
-		// La fonction p_fopen gere deja les locale correctement
-		fApplicationTmpDirAnchorFile =
-		    p_fopen(BuildFilePathName(GetApplicationTmpDir(), GetAnchorFileName()), "w");
-		if (fApplicationTmpDirAnchorFile != NULL)
-			fclose(fApplicationTmpDirAnchorFile);
+		sFileName = BuildFilePathName(GetApplicationTmpDir(), GetAnchorFileName());
+		bOk = sfApplicationTmpDirAnchorFile.OpenOutputFile(sFileName);
+		if (bOk)
+			sfApplicationTmpDirAnchorFile.CloseOutputFile(sFileName);
 	}
 }
 
