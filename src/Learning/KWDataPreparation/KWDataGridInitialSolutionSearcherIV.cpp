@@ -189,8 +189,14 @@ void KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStat
 	bivariateClassStats.SetAttributePairsSpec(&bivariatePairSpec);
 	bivariatePairSpec.SetMaxAttributePairNumber(bivariatePairSpec.GetSpecificAttributePairs()->GetSize());
 
+	// On parametre les stats pour ne pas avoir les message principaux sur la preparation des donnees
+	// et eviter les warnings deja emis lors de la phase initiale de lecture de la base
+	bivariateClassStats.SetMainMessageVerboseMode(false);
+	GetLearningSpec()->GetDatabase()->SetVerboseMode(false);
+
 	// Calcul des statistques sur les paires de variables
 	bivariateClassStats.ComputeStats();
+	bivariateClassStats.GetLearningSpec()->GetDatabase()->SetVerboseMode(true);
 
 	// Suppression du parametrage des paires, qui est local a la methode
 	bivariateClassStats.SetAttributePairsSpec(NULL);

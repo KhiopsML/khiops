@@ -41,7 +41,7 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
-	//  Analyse bivariee des paires d'attributs internes
+	// Analyse bivariee des paires d'attributs internes
 	// Le resultats est disponible dans bivariateClassStats
 	void ComputeInternalAttributesBivariateStats(const KWDataGrid* initialDataGrid) const;
 

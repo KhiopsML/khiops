@@ -71,6 +71,10 @@ public:
 	void SetAttributePairsSpec(const KWAttributePairsSpec* spec);
 	const KWAttributePairsSpec* GetAttributePairsSpec() const;
 
+	// Mode d'affichage des messages principaux lors du calcul des statistique (defaut: true)
+	void SetMainMessageVerboseMode(boolean bValue);
+	boolean GetMainMessageVerboseMode() const;
+
 	//////////////////////////////////////////////////////////////////////////////
 	// Calcul des statistiques
 	//   . calcul des donnees a partir de la classe d'analyse et de la base en entree
@@ -361,6 +365,9 @@ protected:
 	void DispatchAttributeStatsByType(const ObjectArray* oaInputAttributeStats, ObjectArray* oaSymbolAttributeStats,
 					  ObjectArray* oaContinuousAttributeStats) const;
 
+	// Redefinition de la methodes de gestion des messages principaux pour tenir compte du mode d'affichage
+	void AddSimpleMessage(const ALString& sLabel) const override;
+
 	// Specification du dictionnaire des variables construites en multi-tables
 	ObjectDictionary odMultiTableConstructedAttributes;
 
@@ -432,4 +439,7 @@ protected:
 	boolean bWriteOptionStatsTrees;
 	boolean bWriteOptionStats2D;
 	boolean bWriteDetailedStats;
+
+	// Mode d'affichage des messages principaux lors du calcul des statistique (defaut: true)
+	boolean bMainMessageVerboseMode;
 };
