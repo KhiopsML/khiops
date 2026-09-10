@@ -54,8 +54,6 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 
 	// Calcul des paires de variables
 	bOk = ComputeInternalAttributesBivariateStats(initialDataGrid);
-	if (bOk)
-		oaAttributePairStats = GetInternalAttributesBivariateStats()->GetAttributePairStats();
 
 	// On remte le libelle a vide
 	if ((TaskProgression::IsInTask()))
@@ -65,6 +63,7 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 	// de l'attribut dans les paires le concernant
 	if (bOk)
 	{
+		oaAttributePairStats = GetInternalAttributesBivariateStats()->GetAttributePairStats();
 		for (n = 0; n < oaAttributePairStats->GetSize(); n++)
 		{
 			resultPairStats = cast(KWAttributePairStats*, oaAttributePairStats->GetAt(n));
@@ -73,6 +72,7 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 			// Analyse de chaque attribut des paires non nulles
 			if (pairStats != NULL)
 			{
+				assert(pairStats->ComputeInformativeAttributeNumber() > 0);
 				for (nAttribute = 0; nAttribute < pairStats->GetAttributeNumber(); nAttribute++)
 				{
 					attributePartition = pairStats->GetAttributeAt(nAttribute);
@@ -97,6 +97,10 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 			}
 		}
 	}
+
+	// On l'existe d'au moins une partition informative
+	if (bOk)
+		bOk = oaAllAttributesPartitions.GetSize() > 0;
 
 	// Extraction des partitions les plus fines pour chaque attribut, par intersection de ses partitions
 	if (bOk)
