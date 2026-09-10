@@ -4,20 +4,18 @@ This folder contains the scripts to generate the Khiops Windows installer. It is
 page](https://github.com/KhiopsML/khiops/wiki/Release-Process).
 
 ## What the installer does
-Besides installing the Khiops executables, the installer automatically detects the presence of:
-- [Microsoft MPI](https://learn.microsoft.com/en-us/message-passing-interface/microsoft-mpi)
 
-and installs it if necessary.
-
-
-It also installs:
+It installs:
 - The [Khiops Visualization](https://github.com/khiopsrelease/kv-release/releases/latest) and
   [Khiops Covisualization](https://github.com/khiopsrelease/kc-release/releases/latest) apps by
   executing their corresponding installers.
 - The JRE from [Eclipse Temurin](https://adoptium.net/fr/temurin/releases/)
+- The mpi runtime of Intel MPI (4 redistributable files with license in `licenses/` directory)
 - The [sample datasets](https://github.com/KhiopsML/khiops-samples/releases/latest).
 - Documentation files:
   - README.txt and WHATSNEW.txt (obtained from the sources at (../../common/khiops))
+  - Third-party licenses in the `licenses/` directory
+
 
 ## How to obtain the package assets
 All the package assets (installers, documentation, etc) are available at the
@@ -44,10 +42,10 @@ makensis ^
    /DKHIOPS_REDUCED_VERSION=10.2.0 ^
    /DKHIOPS_WINDOWS_BUILD_DIR=..\..\..\build\windows-msvc-release ^
    /DJRE_PATH=.\assets\jre\ ^
-   /DMSMPI_INSTALLER_PATH=.\assets\msmpisetup.exe ^
-   /DMSMPI_VERSION=10.1.3 ^
    /DKHIOPS_VIZ_INSTALLER_PATH=.\assets\khiops-visualization-Setup-11.0.2.exe ^
    /DKHIOPS_SAMPLES_DIR=.\assets\samples ^
+   /DINTEL_MPI_BIN_DIR=..\..\..\build\windows-msvc-release\tmp\mpi\bin ^
+   /DINTEL_MPI_LICENSES_DIR=..\THIRD-PARTY-LICENSES ^
    khiops.nsi
 ```
 The resulting installer will be at `packaging/windows/nsis/khiops-10.2.0-rc.1-setup.exe`.
@@ -80,10 +78,9 @@ All the arguments are mandatory except for `DEBUG` and `SIGN`, they must be pref
 - `DEBUG`: Enables debug messages in the installer. They are "OK" message boxes.
 - `KHIOPS_VERSION`: Khiops version for the installer.
 - `KHIOPS_REDUCED_VERSION`: Khiops version without suffix and only digits and periods.
-- `KHIOPS_WINDOWS_BUILD_DIR`: Build directory for (usually `build\windows-msvc-release` relative to
-  the project root).
+- `KHIOPS_WINDOWS_BUILD_DIR`: root of the built project (usually `build\windows-msvc-release` relative to the project root). Contains khiops binaries in the `bin/` subdirectory.
 - `JRE_PATH`: Path to the Java Runtime Environment (JRE) directory.
-- `MSMPI_INSTALLER_PATH`: Path to the Microsoft MPI (MS-MPI) installer.
-- `MSMPI_MPI_VERSION`: MS-MPI version.
 - `KHIOPS_VIZ_INSTALLER_PATH`: Path to the Khiops Visualization installer.
 - `KHIOPS_SAMPLES_DIR`: Path to the sample datasets directory.
+- `INTEL_MPI_BIN_DIR`: Path to the directory containing Intel MPI redistributable binaries (hydra_bstrap_proxy.exe, hydra_pmi_proxy.exe, mpiexec.exe, impi.dll). Usually `build\windows-msvc-release\tmp\mpi\bin`.
+- `INTEL_MPI_LICENSES_DIR`: Path to the directory containing Intel MPI license files (README.txt and Intel-MPI-LICENSE.txt).
