@@ -614,19 +614,19 @@ public:
 	// Acces generique a un attribut dense ou un bloc selon  son index de chargement
 	KWDataItem* GetDataItemAtLoadIndex(KWLoadIndex liIndex) const;
 
-protected:
-	///////////////////////////////////////////////////////////////////////////////////////////////
-	// Services pour l'optimisation des la gestion des KWObjet par les KWDatabase
-
-	// Seule la classe KWDatabase a l'usage des deux listes ci-dessous
-	friend class KWDatabase;
-
 	// Parametrage force du caractere unique d'une classe
 	// Parametrage avance, utilise par exemple pour une classe unique en raison de
 	// ses sous-tables non calculees, mais pour la quelle ces sous tables ont ete
 	// supprimees pour optimiser les lectures de donnees
 	boolean GetForceUnique() const;
 	void SetForceUnique(boolean bValue);
+
+protected:
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	// Services pour l'optimisation des la gestion des KWObjet par les KWDatabase
+
+	// Seule la classe KWDatabase a l'usage des deux listes ci-dessous
+	friend class KWDatabase;
 
 	// Liste des elements de donnees devant etre calcules
 	ObjectArray* GetDatabaseDataItemsToCompute();
