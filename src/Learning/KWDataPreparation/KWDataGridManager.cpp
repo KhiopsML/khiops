@@ -33,7 +33,7 @@ void KWDataGridManager::CopyDataGridWithInnerAttributesCloned(const KWDataGrid* 
 
 void KWDataGridManager::ExportDataGrid(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid) const
 {
-	require(Check());
+	require(sourceDataGrid->Check());
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 
 	// Export de la granularite
@@ -60,7 +60,7 @@ void KWDataGridManager::ExportDataGridWithInnerAttributesCloned(const KWDataGrid
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
 
-	require(Check());
+	require(sourceDataGrid->Check());
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 
 	// Export de la granularite
@@ -103,7 +103,7 @@ void KWDataGridManager::ExportDataGridWithSingletonVarParts(const KWDataGrid* so
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
 
-	require(Check());
+	require(sourceDataGrid->Check());
 	require(sourceDataGrid->GetInformativeAttributeNumber() > 0);
 	require(sourceDataGrid->IsVarPartDataGrid());
 	require(mandatoryDataGrid != NULL);
@@ -167,7 +167,6 @@ void KWDataGridManager::ExportNullDataGrid(const KWDataGrid* sourceDataGrid, KWD
 
 	// La grille source peut etre partiellement vide, si par exemple elle provient d'une grille de deploiement
 	// ou les effectifs detailles par valeur sont absents des specifications
-	require(Check());
 	require(sourceDataGrid->CheckPartially(true));
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 
@@ -234,9 +233,9 @@ void KWDataGridManager::ExportDataGridWithRandomizedInnerAttributes(const KWData
 	KWDGAttribute* targetAttribute;
 	KWDGInnerAttributes* surtokenizedInnerAttributes;
 
-	require(Check());
 	require(sourceDataGrid != NULL);
 	require(sourceDataGrid->IsVarPartDataGrid());
+	require(sourceDataGrid->Check());
 	require(mandatoryDataGrid != NULL);
 	require(mandatoryDataGrid->IsVarPartDataGrid());
 	require(sourceDataGrid->GetInnerAttributes()->ContainsSubVarParts(mandatoryDataGrid->GetInnerAttributes()));
@@ -324,7 +323,7 @@ void KWDataGridManager::ExportDataGridWithMergedInnerAttributes(const KWDataGrid
 	KWDGAttribute* targetAttribute;
 	KWDGAttribute* sourceAttribute;
 
-	require(Check());
+	require(sourceDataGrid->Check());
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 	require(sourceDataGrid->IsVarPartDataGrid());
 	require(sourceDataGrid->GetInnerAttributes()->ContainsSubVarParts(mandatoryInnerAttributes));
@@ -463,7 +462,7 @@ void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
 	int nGroup;
 	KWDGCell* cell;
 
-	require(Check());
+	require(sourceDataGrid->Check());
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 	require(sourceDataGrid->IsVarPartDataGrid());
 	require(sourceDataGrid->GetAttributeNumber() == 2);
@@ -638,7 +637,7 @@ void KWDataGridManager::InitializeQuantileBuilders(const KWDataGrid* sourceDataG
 	KWQuantileGroupBuilder* quantileGroupBuilder;
 	int nMaxPartNumber;
 
-	require(Check());
+	require(sourceDataGrid->Check());
 	require(sourceDataGrid->AreAttributePartsSorted());
 	require(odQuantilesBuilders != NULL);
 	require(ivMaxPartNumbers != NULL);
@@ -686,7 +685,7 @@ double KWDataGridManager::ExportDataGridWithVarPartMergeOptimization(const KWDat
 	double dNewAttributeCost;
 	double dNewAttributeAttributeCostWithGarbage;
 
-	require(Check());
+	require(sourceDataGrid->Check());
 	require(sourceDataGrid->GetInformativeAttributeNumber() > 0);
 	require(sourceDataGrid->IsVarPartDataGrid());
 	require(sourceDataGrid->GetVarPartAttribute()->GetPartNumber() > 1);
@@ -790,7 +789,7 @@ void KWDataGridManager::UpdateVarPartDataGridFromVarPartGroups(const KWDataGrid*
 	int nSource;
 	int nTarget;
 
-	require(Check());
+	require(sourceDataGrid->Check());
 	require(sourceDataGrid->IsVarPartDataGrid());
 	require(sourceDataGrid->GetVarPartAttribute()->GetPartNumber() == ivTargetGroupIndexes->GetSize());
 	require(targetDataGrid->IsVarPartDataGrid());
@@ -889,7 +888,7 @@ void KWDataGridManager::ExportGranularizedDataGrid(const KWDataGrid* sourceDataG
 	KWDGAttribute* targetAttribute;
 	KWQuantileBuilder* quantileBuilder;
 
-	require(Check());
+	require(sourceDataGrid->Check());
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 	require(nGranularity >= 0);
 	require(odQuantilesBuilders->GetCount() == sourceDataGrid->GetAttributeNumber());
@@ -1029,7 +1028,7 @@ void KWDataGridManager::ExportAttributes(const KWDataGrid* sourceDataGrid, KWDat
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
 
-	require(Check());
+	require(sourceDataGrid->CheckPartially(true));
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 
 	// Initialisation de la grille cible
@@ -1057,7 +1056,7 @@ void KWDataGridManager::ExportParts(const KWDataGrid* sourceDataGrid, KWDataGrid
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
 
-	require(Check());
+	require(sourceDataGrid->CheckPartially(true));
 	require(targetDataGrid != NULL and CheckAttributes(sourceDataGrid, targetDataGrid) and
 		CheckGranularity(sourceDataGrid, targetDataGrid));
 
@@ -1082,7 +1081,7 @@ void KWDataGridManager::ExportAttributeParts(const KWDataGrid* sourceDataGrid, K
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
 
-	require(Check());
+	require(sourceDataGrid->Check());
 	require(targetDataGrid != NULL and CheckAttributes(sourceDataGrid, targetDataGrid));
 	require(sourceDataGrid->SearchAttribute(sAttributeName) != NULL);
 	require(targetDataGrid->SearchAttribute(sAttributeName) != NULL);
@@ -1113,7 +1112,7 @@ void KWDataGridManager::ExportCells(const KWDataGrid* sourceDataGrid, KWDataGrid
 	KWDGPart* targetVarPart;
 	KWDGAttribute* innerAttribute;
 
-	require(Check());
+	require(sourceDataGrid->CheckPartially(true));
 	require(targetDataGrid != NULL and CheckTargetValues(sourceDataGrid, targetDataGrid) and
 		CheckAttributes(sourceDataGrid, targetDataGrid) and CheckParts(sourceDataGrid, targetDataGrid) and
 		targetDataGrid->GetCellNumber() == 0);
@@ -1248,7 +1247,7 @@ void KWDataGridManager::ExportRandomAttributes(const KWDataGrid* sourceDataGrid,
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
 
-	require(Check());
+	require(sourceDataGrid->Check());
 	require(0 <= nAttributeNumber and nAttributeNumber <= sourceDataGrid->GetAttributeNumber());
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 
@@ -1291,7 +1290,7 @@ void KWDataGridManager::AddRandomAttributes(const KWDataGrid* sourceDataGrid, co
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* targetAttribute;
 
-	require(Check());
+	require(sourceDataGrid->Check());
 	require(0 <= nRequestedAttributeNumber and nRequestedAttributeNumber <= sourceDataGrid->GetAttributeNumber());
 	require(mandatoryDataGrid != NULL);
 	require(CheckAttributes(sourceDataGrid, mandatoryDataGrid));
@@ -1359,7 +1358,7 @@ void KWDataGridManager::AddRandomParts(const KWDataGrid* sourceDataGrid, const K
 	int nMinimimEqualFrequencyPartNumber;
 	boolean bEqualFrequencyConstraint;
 
-	require(Check());
+	require(sourceDataGrid->Check());
 	require(targetDataGrid != NULL and CheckAttributes(sourceDataGrid, targetDataGrid) and
 		CheckGranularity(sourceDataGrid, targetDataGrid));
 	require(mandatoryDataGrid != NULL and CheckAttributes(sourceDataGrid, mandatoryDataGrid) and
@@ -1420,7 +1419,7 @@ void KWDataGridManager::BuildUnivariateDataGridFromAttributeStats(const KWDataGr
 {
 	KWDGAttribute* targetAttribute;
 
-	require(Check());
+	require(sourceDataGrid->Check());
 	require(sourceDataGrid->GetTargetValueNumber() > 0);
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 	require(attributeStats != NULL);
@@ -1558,7 +1557,7 @@ boolean KWDataGridManager::BuildDataGridFromUnivariateProduct(const KWDataGrid* 
 	boolean bOk = true;
 	boolean bSmallSourceDataGrid;
 
-	require(Check());
+	require(sourceDataGrid->Check());
 	require(sourceDataGrid->GetTargetValueNumber() > 0);
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 	require(classStats != NULL);
@@ -1997,7 +1996,7 @@ void KWDataGridManager::BuildDataGridAttributeFromGranularizedPartition(const KW
 
 boolean KWDataGridManager::CheckDataGrid(const KWDataGrid* sourceDataGrid, const KWDataGrid* targetDataGrid) const
 {
-	require(Check());
+	require(sourceDataGrid->CheckPartially(true));
 	require(targetDataGrid != NULL);
 
 	return CheckGranularity(sourceDataGrid, targetDataGrid) and
@@ -2010,7 +2009,6 @@ boolean KWDataGridManager::CheckGranularity(const KWDataGrid* sourceDataGrid, co
 	boolean bOk = true;
 	ALString sTmp;
 
-	require(Check());
 	require(targetDataGrid != NULL);
 
 	// Verification de la granularite
@@ -2030,7 +2028,7 @@ boolean KWDataGridManager::CheckTargetValues(const KWDataGrid* sourceDataGrid, c
 	int nTarget;
 	ALString sTmp;
 
-	require(Check());
+	require(sourceDataGrid->CheckPartially(true));
 	require(targetDataGrid != NULL);
 
 	// Verification du nombre de valeurs cibles
@@ -2066,7 +2064,7 @@ boolean KWDataGridManager::CheckAttributes(const KWDataGrid* sourceDataGrid, con
 	KWDGAttribute* targetAttribute;
 	ALString sTmp;
 
-	require(Check());
+	require(sourceDataGrid->CheckPartially(true));
 	require(targetDataGrid != NULL);
 
 	// Rercherche d'un attribut source correspondant a chaque attribut cible
@@ -2113,7 +2111,7 @@ boolean KWDataGridManager::CheckParts(const KWDataGrid* sourceDataGrid, const KW
 	KWDGPart* headTargetPart;
 	ALString sTmp;
 
-	require(Check());
+	require(sourceDataGrid->CheckPartially(true));
 	require(targetDataGrid != NULL);
 	require(targetDataGrid->CheckPartially(true));
 	require(CheckAttributes(sourceDataGrid, targetDataGrid));
@@ -2284,7 +2282,7 @@ boolean KWDataGridManager::CheckCells(const KWDataGrid* sourceDataGrid, const KW
 	Continuous cValue;
 	ALString sTmp;
 
-	require(Check());
+	require(sourceDataGrid->CheckPartially(true));
 	require(targetDataGrid != NULL);
 	require(targetDataGrid->CheckPartially(true));
 	require(CheckGranularity(sourceDataGrid, targetDataGrid));
@@ -3152,7 +3150,6 @@ void KWDataGridManager::ExportContinuousAttributeRandomParts(const KWDGAttribute
 	int nMandatory;
 	int nTmp;
 
-	require(Check());
 	require(sourceAttribute->GetAttributeType() == KWType::Continuous);
 	require(sourceAttribute->ArePartsSorted());
 	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
@@ -3504,7 +3501,6 @@ void KWDataGridManager::ExportGroupableAttributeRandomParts(const KWDGAttribute*
 	KWQuantileGroupBuilder quantileGroupBuilder;
 	int nTotalPartNumber;
 
-	require(Check());
 	require(KWType::IsCoclusteringGroupableType(sourceAttribute->GetAttributeType()));
 	require(not sourceAttribute->IsInnerAttribute() or sourceAttribute->ArePartsSorted());
 	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
