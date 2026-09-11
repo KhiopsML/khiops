@@ -1856,15 +1856,16 @@ KWDGPart* KWDGMAttribute::NewPart() const
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGMPart
 
-boolean KWDGMPart::Check() const
+boolean KWDGMPart::CheckPartially(boolean bLocalCheckOnly) const
 {
 	boolean bOk = true;
 	int nTotalValueFrequency;
 	ALString sValueClassLabel;
+	boolean bCheckFrequency;
 	ALString sTmp;
 
 	// Verification de base
-	bOk = KWDGPart::Check();
+	bOk = KWDGPart::CheckPartially(bLocalCheckOnly);
 
 	// Verification de l'ensemble de valeurs dans le cas groupable
 	if (bOk and KWType::IsCoclusteringGroupableType(GetPartType()))
@@ -1878,8 +1879,12 @@ boolean KWDGMPart::Check() const
 		// la creation des cellules).
 		// La verification n'est pas faite dans tous les cas dans la classe ancetre
 		nTotalValueFrequency = GetValueSet()->ComputeTotalFrequency();
-		if (bOk and GetPartFrequency() > 0 and nTotalValueFrequency > 0 and
-		    GetPartFrequency() != nTotalValueFrequency)
+		if (bLocalCheckOnly)
+			bCheckFrequency = GetPartFrequency() > 0 and nTotalValueFrequency > 0;
+		else
+			bCheckFrequency = true;
+		bCheckFrequency = GetPartFrequency() > 0 and nTotalValueFrequency > 0; //DDD
+		if (bOk and bCheckFrequency and GetPartFrequency() != nTotalValueFrequency)
 		{
 			sValueClassLabel = GetValueSet()->GetHeadValue()->GetClassLabel();
 			AddError(sTmp + "Part frequency (" + IntToString(GetPartFrequency()) +

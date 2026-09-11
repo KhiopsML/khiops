@@ -305,7 +305,7 @@ public:
 	POSITION GetPosition() const;
 
 	// Controle d'integrite
-	boolean Check() const override;
+	boolean CheckPartially(boolean bLocalCheckOnly) const override;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
