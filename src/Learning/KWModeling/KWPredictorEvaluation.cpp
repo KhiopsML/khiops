@@ -851,28 +851,24 @@ void KWClassifierEvaluation::WriteJSONConfusionMatrixReport(JSONFile* fJSON) con
 void KWClassifierEvaluation::WriteJSONAucValuesReport(JSONFile* fJSON) const
 {
 	int j;
-	int jMax;
+	int nPredictorTarget;
 
 	// Titre
 	fJSON->BeginKeyObject("aucValues");
 
-	// Calcul de l'index des dernieres modalites a prendre en compte: on ignore
-	// la derniere modalite predite si elle est egale a la valeur
-	// speciale StarValue et qu'elle est vide
-	jMax = GetActualModalities()->GetValueNumber() - 1;
-	if (GetActualModalities()->GetValueAt(jMax) == Symbol::GetStarValue() and
-	    ivActualModalityFrequencies.GetAt(jMax) == 0)
-		jMax--;
-
 	// Liste des valeurs cibles
 	fJSON->BeginKeyList("values");
-	for (j = 0; j <= jMax; j++)
-		fJSON->WriteString(GetActualModalities()->GetValueAt(j).GetValue());
+	for (j = 0; j < GetAUCValuesNumber(); j++)
+	{
+		// Recherche de l'index de valeur cible du predicteur
+		nPredictorTarget = GetPredictorTargetIndexAtLiftCurveIndex(j);
+		fJSON->WriteString(GetPredictorTargetValueAt(nPredictorTarget).GetValue());
+	}
 	fJSON->EndList();
 
 	// Liste des AUC par classe cible
 	fJSON->BeginKeyList("aucs");
-	for (j = 0; j <= jMax; j++)
+	for (j = 0; j < GetAUCValuesNumber(); j++)
 		fJSON->WriteDouble(GetAUCAtTargetValue(j));
 	fJSON->EndList();
 
