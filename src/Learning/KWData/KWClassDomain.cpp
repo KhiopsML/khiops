@@ -45,10 +45,9 @@ const ALString& KWClassDomain::GetLabel() const
 
 boolean KWClassDomain::WriteFile(const ALString& sFileName) const
 {
-	fstream fst;
+	SystemFileOstream fst;
 	boolean bOk;
 	ALString sCorrectedFileName;
-	ALString sLocalFileName;
 	KWClass classRef;
 
 	// Correction du nom si necessaire
@@ -62,13 +61,13 @@ boolean KWClassDomain::WriteFile(const ALString& sFileName) const
 	bOk = bOk and KWResultFilePathBuilder::CheckResultDirectory(FileService::GetPathName(sFileName),
 								    classRef.GetClassLabel());
 
-	// Preparation de la copie sur HDFS si necessaire
+	// Ouverture du fichier en ecriture via le driver local ou distant
 	if (bOk)
-		bOk = PLRemoteFileService::BuildOutputWorkingFile(sCorrectedFileName, sLocalFileName);
-
-	// Ouverture du fichier en ecriture
-	if (bOk)
-		bOk = FileService::OpenOutputFile(sLocalFileName, fst);
+	{
+		fst.SetFileName(sCorrectedFileName);
+		fst.SetFlushStandardMode(false); // On n'ecrit pas a chaque fst << endl
+		bOk = fst.Open();
+	}
 
 	// Si OK: ecriture des classes
 	if (bOk)
@@ -76,17 +75,11 @@ boolean KWClassDomain::WriteFile(const ALString& sFileName) const
 		if (GetLearningReportHeaderLine() != "")
 			fst << GetLearningReportHeaderLine() << "\n";
 		fst << *this;
-		bOk = FileService::CloseOutputFile(sLocalFileName, fst);
+		bOk = fst.Close();
 
 		// Destruction du fichier si erreur
 		if (not bOk)
-			FileService::RemoveFile(sLocalFileName);
-	}
-
-	if (bOk)
-	{
-		// Copie vers HDFS si necessaire
-		PLRemoteFileService::CleanOutputWorkingFile(sCorrectedFileName, sLocalFileName);
+			PLRemoteFileService::RemoveFile(sCorrectedFileName);
 	}
 
 	// Affichage de stats memoire
@@ -96,7 +89,7 @@ boolean KWClassDomain::WriteFile(const ALString& sFileName) const
 
 boolean KWClassDomain::WriteFileFromClass(const KWClass* mainClass, const ALString& sFileName) const
 {
-	fstream fst;
+	SystemFileOstream fst;
 	boolean bOk;
 	ObjectDictionary odDependentClasses;
 	ObjectArray oaDependentClasses;
@@ -112,7 +105,9 @@ boolean KWClassDomain::WriteFileFromClass(const KWClass* mainClass, const ALStri
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " WriteFileFromClass Begin");
 
 	// Ouverture du fichier en ecriture
-	bOk = FileService::OpenOutputFile(sFileName, fst);
+	fst.SetFileName(sFileName);
+	fst.SetFlushStandardMode(false); // On n'ecrit pas a chaque fst << endl
+	bOk = fst.Open();
 
 	// Si OK: ecriture des classe
 	if (bOk)
@@ -137,7 +132,7 @@ boolean KWClassDomain::WriteFileFromClass(const KWClass* mainClass, const ALStri
 		}
 
 		// Fermeture du fichier
-		bOk = FileService::CloseOutputFile(sFileName, fst);
+		bOk = fst.Close();
 
 		// Destruction du fichier si erreur
 		if (not bOk)

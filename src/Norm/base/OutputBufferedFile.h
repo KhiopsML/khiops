@@ -28,6 +28,9 @@ public:
 	// fermeture du fichier (precede d'un flush)
 	boolean Close() override;
 
+	// Ecriture immediate du contenu du buffer dans le fichier
+	boolean Flush();
+
 	// Ecriture dans le buffer et ecriture dans le fichier si depassement de la taille du buffer
 	boolean Write(const ALString& sValue);
 	boolean Write(const CharVector* cvValue);
@@ -92,19 +95,19 @@ protected:
 	// Espace non rempli dans le buffer
 	int GetAvailableSpace();
 
-	// Ouverture et fermeture physiques du fihcier
-	boolean IsPhysycalOpen() const;
+	// Ouverture et fermeture physiques du fichier
+	boolean IsPhysicalOpen() const;
 	boolean PhysicalOpen();
 	boolean PhysicalClose();
 
 	// Est-ce que le fichier est physiquement ouvert ?
 	boolean bIsPhysicalOpen;
 
-	// Utilise dans le mode OpenOnDemand : est-ce que la prochaien ouverture doit etre en append ?
+	// Utilise dans le mode OpenOnDemand : est-ce que la prochaine ouverture doit etre en append ?
 	// Lors des ouvertures successives on utilse le Open en mode append.C'est lors de la premiere
 	// ouverture que c'est delicat car il faut ouvrir en append seulement si c'est la methode
 	// OpenForAppend qui a ete utilisee.
-	// On commence avec bNextOpenOnAppend=false, il passe a true dans le PhysycalOpen et dans le OpenForAppend
+	// On commence avec bNextOpenOnAppend=false, il passe a true dans le PhysicalOpen et dans le OpenForAppend
 	boolean bNextOpenOnAppend;
 
 	///////////////////////////////////////////
@@ -216,7 +219,22 @@ inline int OutputBufferedFile::GetAvailableSpace()
 	return nBufferSize - nCurrentBufferSize;
 }
 
-inline boolean OutputBufferedFile::IsPhysycalOpen() const
+inline boolean OutputBufferedFile::IsPhysicalOpen() const
 {
 	return bIsPhysicalOpen;
+}
+
+inline boolean OutputBufferedFile::Flush()
+{
+	boolean bOk;
+
+	// Ecriture avec prise en compte du mode OpenOnDemand (gere uniquement a l'ouverture par WriteToFile)
+	require(IsOpened());
+
+	bOk = not bIsError;
+	if (bOk)
+		bOk = WriteToFile(nCurrentBufferSize);
+	if (GetOpenOnDemandMode() and IsPhysicalOpen())
+		bOk = PhysicalClose() and bOk;
+	return bOk;
 }
