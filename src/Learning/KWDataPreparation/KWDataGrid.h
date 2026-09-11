@@ -309,10 +309,19 @@ public:
 	// Les creations de partie d'attribut se font depuis une methode NewPart dans les attributs
 	virtual KWDGAttribute* NewAttribute() const;
 
-	// Verification de la validite de la structure du DataGrid
+	// Verification complete de la validite de la structure du DataGrid
 	// Controle d'integrite global (attributs, parties, cellules...)
 	// Attention: operation couteuse en O(k.n^2)
 	boolean Check() const override;
+
+	// Verification partielle, la plus detaillee possible
+	// Il existe des cas ou la verification ne peut etre que partielle, notamment en ce qui concerne
+	// les effectifs des valeurs des attributs categoriels
+	// - element de grille en cours de specification, les effectifs etant alimentes par la suite
+	// - grille provenant d'un dictionnaire de deploiement, donc la partition des valeurs en groupes
+	//   est specifiee, mais sans les effectifs
+	// - ...
+	virtual boolean CheckPartially() const;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -384,6 +393,9 @@ public:
 
 protected:
 	friend class KWDGAttribute;
+
+	// Controle d'integrite interne, appelee par Check et CheckPartially avec le bon parametere
+	virtual boolean InternalCheck(boolean bCheckPartially) const;
 
 	// Modification de l'attribut cible
 	void SetTargetAttribute(KWDGAttribute* attribute);
@@ -653,6 +665,9 @@ public:
 	// par Symbol::GetStarValue()
 	boolean Check() const override;
 
+	// Controle d'integrite partiel
+	virtual boolean CheckPartially() const;
+
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
 
@@ -696,6 +711,10 @@ protected:
 	friend class KWDataGrid;
 	friend class KWEvaluatedDataGrid;
 	friend class KWDataGridMerger;
+	friend class KWDGInnerAttributes;
+
+	// Controle d'integrite interne
+	virtual boolean InternalCheck(boolean bCheckPartially) const;
 
 	// Tri des parties selon une fonction de tri
 	void InternalSortParts(CompareFunction fCompare);
@@ -840,6 +859,9 @@ public:
 	// Controle d'integrite local a la partie (valeurs, cellules de la partie)
 	boolean Check() const override;
 
+	// Controle d'integrite partiel
+	virtual boolean CheckPartially() const;
+
 	// Memoire utilisee par la partie
 	longint GetUsedMemory() const override;
 
@@ -862,6 +884,9 @@ protected:
 	friend class KWDataGrid;
 	friend class KWDataGridMerger;
 	friend class KWDGAttribute;
+
+	// Controle d'integrite interne
+	virtual boolean InternalCheck(boolean bCheckPartially) const;
 
 	// Methodes de creations virtuelles, permettant de specialiser la composition d'une partie
 	// dans une sous-classe
@@ -934,11 +959,19 @@ public:
 	// Controle d'integrite
 	boolean Check() const override = 0;
 
+	// Controle d'integrite partiel
+	virtual boolean CheckPartially() const = 0;
+
 	// Affichage
 	void Write(ostream& ost) const override = 0;
 
 	// Memoire utilisee par la partie, sans ses valeurs
 	longint GetUsedMemory() const override = 0;
+
+	///////////////////////////////
+	///// Implementation
+	// Controle d'integrite interne
+	virtual boolean InternalCheck(boolean bCheckPartially) const = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1028,6 +1061,9 @@ public:
 	// Controle d'integrite
 	boolean Check() const override;
 
+	// Controle d'integrite partiel
+	boolean CheckPartially() const override;
+
 	// Affichage
 	void Write(ostream& ost) const override;
 	void WriteValues(ostream& ost) const;
@@ -1047,6 +1083,9 @@ public:
 	void SetValueNumber(int nValue);
 
 protected:
+	// Controle d'integrite interne
+	boolean InternalCheck(boolean bCheckPartially) const override;
+
 	// Ajout d'une valeur en fin de liste
 	void AddTailValue(KWDGValue* value);
 
@@ -1295,6 +1334,9 @@ public:
 	// Controle d'integrite
 	boolean Check() const override;
 
+	// Controle d'integrite partiel
+	boolean CheckPartially() const override;
+
 	// Affichage
 	void Write(ostream& ost) const override;
 
@@ -1308,6 +1350,9 @@ public:
 	///////////////////////////////
 	///// Implementation
 protected:
+	// Controle d'integrite interne
+	boolean InternalCheck(boolean bCheckPartially) const override;
+
 	// Bornes de l'intervalle
 	Continuous cLowerBound;
 	Continuous cUpperBound;
@@ -1453,6 +1498,9 @@ public:
 	// Controle d'integrite
 	boolean Check() const override;
 
+	// Controle d'integrite partiel
+	virtual boolean CheckPartially() const;
+
 	// Affichage
 	void Write(ostream& ost) const override;
 
@@ -1467,7 +1515,11 @@ protected:
 	// entre plusieurs grilles et les desallouer automatiquement quand elle ne sont plus utilisees
 	// Cela permet de mutualiser une structure lourde sans se soucier de la dynamique des utilisations
 	// lors des algorithmes d'optimisation
+	friend class KWDataGrid;
 	friend class KWDGAttribute;
+
+	// Controle d'integrite interne
+	virtual boolean InternalCheck(boolean bCheckPartially) const;
 
 	// Gestion des attributs internes
 	ObjectDictionary odInnerAttributes;
