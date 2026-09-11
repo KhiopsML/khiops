@@ -820,7 +820,9 @@ boolean CCCoclusteringBuilder::CreateStandardInitialDataGrid()
 		TaskProgression::DisplayProgression(100);
 		initialDataGrid = CreateDataGrid(&tupleTable);
 		bOk = initialDataGrid != NULL;
-		assert(initialDataGrid == NULL or initialDataGrid->GetCellNumber() == tupleTable.GetSize());
+		assert(initialDataGrid == NULL or
+		       initialDataGrid->GetGridFrequency() == tupleTable.GetTotalFrequency());
+		assert(initialDataGrid == NULL or initialDataGrid->GetCellNumber() <= tupleTable.GetSize());
 		assert(initialDataGrid == NULL or GetDatabase()->GetObjects()->GetSize() == 0);
 	}
 
@@ -1295,7 +1297,7 @@ boolean CCCoclusteringBuilder::InitializeIdentifierAttributeParts(KWDatabase* da
 		cout << "Identifier attribute\n";
 		identifierAttribute->WriteParts(cout);
 	}
-	ensure(not bOk or identifierAttribute->Check());
+	ensure(not bOk or identifierAttribute->CheckPartially(true));
 	return bOk;
 }
 
@@ -1553,7 +1555,7 @@ boolean CCCoclusteringBuilder::InitializeVarPartAttributeParts(KWDatabase* datab
 	ensure(not bOk or varPartAttribute->GetInnerAttributeNumber() + nEmptyInnerAttributeNumber ==
 			      GetInnerAttributesNames()->GetSize());
 	ensure(not bOk or varPartAttribute->GetPartNumber() == varPartAttribute->GetInitialValueNumber());
-	ensure(not bOk or varPartAttribute->Check());
+	ensure(not bOk or varPartAttribute->CheckPartially(true));
 	return bOk;
 }
 

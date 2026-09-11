@@ -314,6 +314,10 @@ public:
 	// Attention: operation couteuse en O(k.n^2)
 	boolean Check() const override;
 
+	// Variante du controle d'integrite permettant de verifier la specification d'un attribut localement
+	// Si bLocalCheckOnly vaut true, n'execute que les verifications realisables sans connaissance de la grille complete
+	virtual boolean CheckPartially(boolean bLocalCheckOnly) const;
+
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
 
@@ -653,6 +657,10 @@ public:
 	// par Symbol::GetStarValue()
 	boolean Check() const override;
 
+	// Variante du controle d'integrite permettant de verifier la specification d'un attribut localement
+	// Si bLocalCheckOnly vaut true, n'execute que les verifications realisables sans connaissance de la grille complete
+	virtual boolean CheckPartially(boolean bLocalCheckOnly) const;
+
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
 
@@ -840,6 +848,10 @@ public:
 	// Controle d'integrite local a la partie (valeurs, cellules de la partie)
 	boolean Check() const override;
 
+	// Variante du controle d'integrite permettant de verifier la specification d'un attribut localement
+	// Si bLocalCheckOnly vaut true, n'execute que les verifications realisables sans connaissance de la grille complete
+	virtual boolean CheckPartially(boolean bLocalCheckOnly) const;
+
 	// Memoire utilisee par la partie
 	longint GetUsedMemory() const override;
 
@@ -934,6 +946,10 @@ public:
 	// Controle d'integrite
 	boolean Check() const override = 0;
 
+	// Variante du controle d'integrite permettant de verifier la specification d'un attribut localement
+	// Si bLocalCheckOnly vaut true, n'execute que les verifications realisables sans connaissance de la grille complete
+	virtual boolean CheckPartially(boolean bLocalCheckOnly) const = 0;
+
 	// Affichage
 	void Write(ostream& ost) const override = 0;
 
@@ -1027,6 +1043,10 @@ public:
 
 	// Controle d'integrite
 	boolean Check() const override;
+
+	// Variante du controle d'integrite permettant de verifier la specification d'un attribut localement
+	// Si bLocalCheckOnly vaut true, n'execute que les verifications realisables sans connaissance de la grille complete
+	boolean CheckPartially(boolean bLocalCheckOnly) const override;
 
 	// Affichage
 	void Write(ostream& ost) const override;
@@ -1295,6 +1315,10 @@ public:
 	// Controle d'integrite
 	boolean Check() const override;
 
+	// Variante du controle d'integrite permettant de verifier la specification d'un attribut localement
+	// Si bLocalCheckOnly vaut true, n'execute que les verifications realisables sans connaissance de la grille complete
+	boolean CheckPartially(boolean bLocalCheckOnly) const override;
+
 	// Affichage
 	void Write(ostream& ost) const override;
 
@@ -1452,6 +1476,10 @@ public:
 
 	// Controle d'integrite
 	boolean Check() const override;
+
+	// Variante du controle d'integrite permettant de verifier la specification d'un attribut localement
+	// Si bLocalCheckOnly vaut true, n'execute que les verifications realisables sans connaissance de la grille complete
+	virtual boolean CheckPartially(boolean bLocalCheckOnly) const;
 
 	// Affichage
 	void Write(ostream& ost) const override;

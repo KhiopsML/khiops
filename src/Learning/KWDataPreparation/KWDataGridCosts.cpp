@@ -247,7 +247,7 @@ void KWDataGridCosts::InitializeDefaultCosts(const KWDataGrid* dataGrid)
 	KWDGPart* defaultPart;
 
 	require(dataGrid != NULL);
-	require(dataGrid->Check());
+	require(dataGrid->CheckPartially(true));
 
 	// Nettoyage prealable
 	CleanDefaultCosts();

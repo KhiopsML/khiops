@@ -165,7 +165,10 @@ void KWDataGridManager::ExportNullDataGrid(const KWDataGrid* sourceDataGrid, KWD
 	KWDGInnerAttributes* nullInnerAttributes;
 	KWDGPart* targetPart;
 
+	// La grille source peut etre partiellement vide, si par exemple elle provient d'une grille de deploiement
+	// ou les effectifs detailles par valeur sont absents des specifications
 	require(Check());
+	require(sourceDataGrid->CheckPartially(true));
 	require(targetDataGrid != NULL and targetDataGrid->IsEmpty());
 
 	// Export des attributs
@@ -211,7 +214,7 @@ void KWDataGridManager::ExportNullDataGrid(const KWDataGrid* sourceDataGrid, KWD
 	// Export des cellules
 	ExportCells(sourceDataGrid, targetDataGrid);
 
-	ensure(targetDataGrid->Check());
+	ensure(targetDataGrid->CheckPartially(true));
 	ensure(CheckDataGrid(sourceDataGrid, targetDataGrid));
 	ensure(not sourceDataGrid->IsVarPartDataGrid() or
 	       targetDataGrid->GetVarPartAttribute()->GetInnerAttributes() !=
@@ -2112,7 +2115,7 @@ boolean KWDataGridManager::CheckParts(const KWDataGrid* sourceDataGrid, const KW
 
 	require(Check());
 	require(targetDataGrid != NULL);
-	require(targetDataGrid->Check());
+	require(targetDataGrid->CheckPartially(true));
 	require(CheckAttributes(sourceDataGrid, targetDataGrid));
 
 	// Rercherche d'un attribut source correspondant a chaque attribut cible
@@ -2283,7 +2286,7 @@ boolean KWDataGridManager::CheckCells(const KWDataGrid* sourceDataGrid, const KW
 
 	require(Check());
 	require(targetDataGrid != NULL);
-	require(targetDataGrid->Check());
+	require(targetDataGrid->CheckPartially(true));
 	require(CheckGranularity(sourceDataGrid, targetDataGrid));
 	require(CheckTargetValues(sourceDataGrid, targetDataGrid));
 	require(CheckAttributes(sourceDataGrid, targetDataGrid));

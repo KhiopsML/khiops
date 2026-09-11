@@ -87,7 +87,11 @@ public:
 	// Test d'integrite
 	// Attention: la classe n'est pour l'instant implementee que dans le cas d'un coclustering de
 	// deux variables categorielles
-	boolean Check() const override;
+	//DDD boolean Check() const override;
+
+	// Variante du controle d'integrite permettant de verifier la specification d'un attribut localement
+	// Si bLocalCheckOnly vaut true, n'execute que les verifications realisables sans connaissance de la grille complete
+	virtual boolean CheckPartially(boolean bLocalCheckOnly) const;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;

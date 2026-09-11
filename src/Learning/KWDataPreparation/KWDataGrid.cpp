@@ -672,6 +672,11 @@ KWDGAttribute* KWDataGrid::NewAttribute() const
 
 boolean KWDataGrid::Check() const
 {
+	return CheckPartially(false);
+}
+
+boolean KWDataGrid::CheckPartially(boolean bLocalCheckOnly) const
+{
 	boolean bOk = true;
 	ObjectDictionary odAttributes;
 	int nAttribute;
@@ -711,7 +716,7 @@ boolean KWDataGrid::Check() const
 		attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
 
 		// Verification de l'attribut
-		bOk = bOk and attribute->Check();
+		bOk = bOk and attribute->CheckPartially(bLocalCheckOnly);
 		if (not bOk)
 			break;
 
@@ -830,7 +835,7 @@ boolean KWDataGrid::Check() const
 		assert(nVarTypeAttributeNumber == 1);
 
 		// Verification des attributs internes
-		bOk = GetInnerAttributes()->Check();
+		bOk = GetInnerAttributes()->CheckPartially(bLocalCheckOnly);
 
 		// Verification que les attributs de la grille sont distincts des attributs internes
 		if (bOk)
@@ -1196,7 +1201,7 @@ void KWDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats)
 	// Nettoyage
 	oaAttributePartitions.DeleteAll();
 
-	ensure(Check());
+	ensure(CheckPartially(true));
 	ensure(GetGridFrequency() == dataGridStats->ComputeGridFrequency());
 	ensure(GetTargetValueNumber() > 0 or GetAttributeNumber() == dataGridStats->GetAttributeNumber());
 	ensure(GetTargetValueNumber() == 0 or GetAttributeNumber() == dataGridStats->GetAttributeNumber() - 1);
@@ -2598,7 +2603,7 @@ void KWDGAttribute::BuildIndexingStructure() const
 	int nInnerAttribute;
 
 	require(KWType::IsCoclusteringType(GetAttributeType()));
-	require(Check());
+	require(CheckPartially(true));
 
 	// Indexation si necessaire
 	if (not bIsIndexed)
@@ -2709,7 +2714,7 @@ longint KWDGAttribute::ComputeNecessaryMemoryForIndexingStructure() const
 	int nInnerAttribute;
 
 	require(KWType::IsCoclusteringType(GetAttributeType()));
-	require(Check());
+	require(CheckPartially(true));
 
 	// Cas numerique: un element d'indexation par partie
 	if (GetAttributeType() == KWType::Continuous)
@@ -3019,6 +3024,11 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 
 boolean KWDGAttribute::Check() const
 {
+	return CheckPartially(false);
+}
+
+boolean KWDGAttribute::CheckPartially(boolean bLocalCheckOnly) const
+{
 	boolean bOk = true;
 	KWDGPart* part;
 	int nPart;
@@ -3098,7 +3108,7 @@ boolean KWDGAttribute::Check() const
 		}
 
 		// Test de validite des specifications des variables internes
-		if (bOk and not innerAttributes->Check())
+		if (bOk and not innerAttributes->CheckPartially(bLocalCheckOnly))
 		{
 			AddError("Wrong specification of inner variables for a variable of type VarPart");
 			bOk = false;
@@ -3156,7 +3166,7 @@ boolean KWDGAttribute::Check() const
 				bGarbagePartFound = true;
 
 			// Verification locale de la partie
-			bOk = bOk and part->Check();
+			bOk = bOk and part->CheckPartially(bLocalCheckOnly);
 			if (not bOk)
 			{
 				AddError("Invalid " + part->GetClassLabel() + " " + part->GetObjectLabel());
@@ -3881,12 +3891,18 @@ int KWDGPart::ComparePartValues(const KWDGPart* otherPart) const
 
 boolean KWDGPart::Check() const
 {
+	return CheckPartially(false);
+}
+
+boolean KWDGPart::CheckPartially(boolean bLocalCheckOnly) const
+{
 	boolean bOk = true;
 	ALString sTmp;
 	KWDGCell* cell;
 	KWDGCell* nextCell;
 	KWDGCell* prevCell;
 	int nTotalValueFrequency;
+	boolean bCheckFrequency;
 
 	// Test du type
 	if (GetPartType() == KWType::Unknown)
@@ -3896,13 +3912,13 @@ boolean KWDGPart::Check() const
 	}
 	// Verification de l'intervalle
 	else if (GetPartType() == KWType::Continuous)
-		bOk = bOk and partValues->Check();
+		bOk = bOk and partValues->CheckPartially(bLocalCheckOnly);
 	// Verification de l'ensemble de valeurs dans le cas groupable
 	else
 	{
 		assert(KWType::IsCoclusteringGroupableType(GetPartType()));
 
-		bOk = bOk and partValues->Check();
+		bOk = bOk and partValues->CheckPartially(bLocalCheckOnly);
 
 		// Verification de la compatibilite entre l'effectif de la partie
 		// et l'effectif cumule de ses valeurs
@@ -3915,8 +3931,11 @@ boolean KWDGPart::Check() const
 		// construite pour le deploiement de modele, qui n'a pas besoin
 		// des effectifs par valeur.
 		nTotalValueFrequency = GetValueSet()->ComputeTotalFrequency();
-		if (bOk and GetPartFrequency() > 0 and nTotalValueFrequency > 0 and
-		    GetPartFrequency() != nTotalValueFrequency)
+		if (bLocalCheckOnly)
+			bCheckFrequency = GetPartFrequency() > 0 and nTotalValueFrequency > 0;
+		else
+			bCheckFrequency = true;
+		if (bOk and bCheckFrequency and GetPartFrequency() != nTotalValueFrequency)
 		{
 			assert(GetValueSet()->GetHeadValue() != NULL);
 			AddError(sTmp + "Part frequency (" + IntToString(GetPartFrequency()) +
@@ -4220,6 +4239,11 @@ int KWDGInterval::ComparePartValues(const KWDGPartValues* otherPartValues) const
 }
 
 boolean KWDGInterval::Check() const
+{
+	return CheckPartially(false);
+}
+
+boolean KWDGInterval::CheckPartially(boolean bLocalCheckOnly) const
 {
 	boolean bOk = true;
 
@@ -4559,6 +4583,11 @@ int KWDGValueSet::ComparePartValues(const KWDGPartValues* otherPartValues) const
 
 boolean KWDGValueSet::Check() const
 {
+	return CheckPartially(false);
+}
+
+boolean KWDGValueSet::CheckPartially(boolean bLocalCheckOnly) const
+{
 	boolean bOk = true;
 	boolean bDefaultValuePresent;
 	NumericKeyDictionary nkdCheckValues;
@@ -4579,7 +4608,10 @@ boolean KWDGValueSet::Check() const
 		// On ne verifie les effectifs que si au moins un est specifie et si on n'est pas le groupe par defaut
 		// En effet, le groupe par defaut pouvant etre compresse, il peut y a voir quelques incoherences
 		// sur les effectifs des valeurs des valeurs du groupe
-		bCheckFrequencies = not bIsDefaultPart and ComputeTotalFrequency() > 0;
+		if (bLocalCheckOnly)
+			bCheckFrequencies = not bIsDefaultPart and ComputeTotalFrequency() > 0;
+		else
+			bCheckFrequencies = true;
 
 		// Parcours des valeurs de la partie
 		bDefaultValuePresent = false;
@@ -5335,10 +5367,15 @@ boolean KWDGInnerAttributes::ContainsSubVarParts(const KWDGInnerAttributes* othe
 
 boolean KWDGInnerAttributes::Check() const
 {
+	return CheckPartially(false);
+}
+
+boolean KWDGInnerAttributes::CheckPartially(boolean bLocalCheckOnly) const
+{
 	boolean bOk = true;
 	int nInnerAttribute;
 	KWDGAttribute* innerAttribute;
-	boolean bIsCompletelySpecified;
+	boolean bCheckIfPartsSorted;
 
 	require(odInnerAttributes.GetCount() == oaInnerAttributes.GetSize());
 
@@ -5348,7 +5385,7 @@ boolean KWDGInnerAttributes::Check() const
 		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
 
 		// Verifications de base
-		bOk = bOk and innerAttribute->Check();
+		bOk = bOk and innerAttribute->CheckPartially(bLocalCheckOnly);
 
 		// Verification de l'attribut interne
 		if (bOk and innerAttribute->GetOwnerAttributeName() == "")
@@ -5365,12 +5402,19 @@ boolean KWDGInnerAttributes::Check() const
 
 		// Verification du tri des parties de l'attribut interne, uniquement si l'attribut est completement specifie
 		// avec des parties d'effectif non vide, pour pouvoir faire des verifications en cours de construction d'une grille
-		bIsCompletelySpecified =
-		    innerAttribute->GetPartNumber() > 0 and innerAttribute->GetHeadPart()->GetPartFrequency() > 0;
-		if (bIsCompletelySpecified and KWType::IsCoclusteringGroupableType(innerAttribute->GetAttributeType()))
-			bIsCompletelySpecified =
-			    innerAttribute->GetHeadPart()->GetValueSet()->GetHeadValue()->GetValueFrequency() > 0;
-		if (bOk and bIsCompletelySpecified and not innerAttribute->ArePartsSorted())
+		if (bLocalCheckOnly)
+		{
+			bCheckIfPartsSorted = innerAttribute->GetPartNumber() > 0 and
+					      innerAttribute->GetHeadPart()->GetPartFrequency() > 0;
+			if (bCheckIfPartsSorted and
+			    KWType::IsCoclusteringGroupableType(innerAttribute->GetAttributeType()))
+				bCheckIfPartsSorted =
+				    innerAttribute->GetHeadPart()->GetValueSet()->GetHeadValue()->GetValueFrequency() >
+				    0;
+		}
+		else
+			bCheckIfPartsSorted = true;
+		if (bOk and bCheckIfPartsSorted and not innerAttribute->ArePartsSorted())
 		{
 			AddError("Parts of inner variable " + innerAttribute->GetAttributeName() + " should be sorted");
 			bOk = false;

@@ -50,7 +50,7 @@ void KWDataGridDeployment::PrepareForDeployment()
 	KWDGAttribute* dgAttribute;
 	IntVector* ivFrequencyVector;
 
-	require(Check());
+	require(CheckPartially(true));
 	require(GetDeploymentAttribute() != NULL);
 	require(dgNewDeploymentPart == NULL);
 
@@ -75,6 +75,8 @@ void KWDataGridDeployment::PrepareForDeployment()
 	dvDeploymentDistances.SetSize(GetDeploymentAttribute()->GetPartNumber());
 
 	// Creation d'une partie a deployer
+	// Il s'agit d'un nouvelle partie destinee a accueillir les nouvelles donnees,
+	// avant de rechercher la partie existante la plus proche pour le deploiement
 	dgNewDeploymentPart = cast(KWDGMPart*, GetDeploymentAttribute()->AddPart());
 	assert(dgNewDeploymentPart == GetDeploymentAttribute()->GetTailPart());
 
@@ -96,6 +98,7 @@ void KWDataGridDeployment::PrepareForDeployment()
 
 	// Mise a jour des statistiques sur la grille
 	UpdateAllStatistics();
+	assert(CheckPartially(true));
 
 	// Initialisation de la structure de couts
 	dataGridCosts.InitializeDefaultCosts(this);
@@ -406,7 +409,7 @@ boolean KWDataGridDeployment::CheckDeploymentPreparation() const
 	boolean bOk = true;
 	int nAttribute;
 
-	require(Check());
+	require(CheckPartially(true));
 
 	// Verification de la nouvelle partie de deploiement (par des assertion
 	assert(dgNewDeploymentPart != NULL);
@@ -456,13 +459,13 @@ boolean KWDataGridDeployment::CheckDeploymentPreparation() const
 	return bOk;
 }
 
-boolean KWDataGridDeployment::Check() const
+boolean KWDataGridDeployment::CheckPartially(boolean bLocalCheckOnly) const
 {
 	boolean bOk = true;
 	ALString sTmp;
 
 	// Test de la methode ancetre
-	bOk = KWDataGridMerger::Check();
+	bOk = KWDataGridMerger::CheckPartially(bLocalCheckOnly);
 
 	// Test s'il y a au moins deux variables
 	if (bOk and GetAttributeNumber() < 2)

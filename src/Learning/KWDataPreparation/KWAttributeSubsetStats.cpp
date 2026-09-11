@@ -748,10 +748,10 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 		// Parametrage du nombre total de valeurs (= nombre d'instances)
 		dgAttribute->SetInitialValueNumber(univariateTupleTable->GetTotalFrequency());
 		dgAttribute->SetGranularizedValueNumber(univariateTupleTable->GetTotalFrequency());
-		assert(dgAttribute->GetPartNumber() == univariateTupleTable->GetSize() or
+		ensure(dgAttribute->GetPartNumber() == univariateTupleTable->GetSize() or
 		       GetPregranularizedNumericalAttributes());
-		assert(dgAttribute->GetInitialValueNumber() + 1 >= dgAttribute->GetPartNumber());
-		ensure(dgAttribute->Check());
+		ensure(dgAttribute->GetInitialValueNumber() + 1 >= dgAttribute->GetPartNumber());
+		ensure(dgAttribute->CheckPartially(true));
 	}
 	return true;
 }
@@ -836,7 +836,7 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 	dgAttribute->SetInitialValueNumber(dgAttribute->GetPartNumber());
 	// On ne prend pas en compte la StarValue dans Vg
 	dgAttribute->SetGranularizedValueNumber(dgAttribute->GetPartNumber());
-	ensure(dgAttribute->Check());
+	ensure(dgAttribute->CheckPartially(true));
 	return true;
 }
 
@@ -913,9 +913,8 @@ boolean KWAttributeSubsetStats::CreateAttributePreGranularizedIntervals(const KW
 	// Parametrage du nombre total de valeurs (= nombre d'instances) et verifications
 	dgAttribute->SetInitialValueNumber(attributeTupleTable->GetTotalFrequency());
 	dgAttribute->SetGranularizedValueNumber(attributeTupleTable->GetTotalFrequency());
-	assert(dgAttribute->GetInitialValueNumber() + 1 >= dgAttribute->GetPartNumber());
-	ensure(dgAttribute->Check());
-
+	ensure(dgAttribute->GetInitialValueNumber() + 1 >= dgAttribute->GetPartNumber());
+	ensure(dgAttribute->CheckPartially(true));
 	return true;
 }
 
@@ -946,7 +945,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 	require(dataGrid != NULL);
 	require(dataGrid->GetAttributeNumber() <= tupleTable->GetAttributeNumber());
 	require(dataGrid->GetCellNumber() == 0);
-	require(dataGrid->Check());
+	require(dataGrid->CheckPartially(true));
 	require(not dataGrid->IsVarPartDataGrid());
 
 	// Passage en mode update
