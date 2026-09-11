@@ -304,15 +304,15 @@ public:
 	void SetPosition(POSITION pos);
 	POSITION GetPosition() const;
 
-	// Controle d'integrite
-	boolean Check() const override;
-
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
 
 	///////////////////////////////
 	///// Implementation
 protected:
+	// Controle d'integrite interne
+	boolean InternalCheck(boolean bCheckPartially) const override;
+
 	friend class KWDataGridMerger;
 	friend class KWDGMPartMergeAction;
 	friend class KWDGMAttribute;
