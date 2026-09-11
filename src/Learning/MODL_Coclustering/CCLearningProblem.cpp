@@ -138,7 +138,9 @@ void CCLearningProblem::BuildCoclustering()
 	KWAttributeName* attributeName;
 	const ALString sDefaultOwnerAttributeName = "Variables";
 	ALString sOwnerAttributeName;
-	KWAttribute* identifierAttribute = NULL;
+	KWAttribute* identifierAttribute;
+	int nInitialClassAttributreNumber;
+	boolean bInitialClassRoot;
 	ALString sReportFileName;
 	Timer timer;
 	boolean bWriteOk;
@@ -185,6 +187,11 @@ void CCLearningProblem::BuildCoclustering()
 
 	// Demarrage du timer
 	timer.Start();
+
+	// Memorisation de l'etat de la classe avant creation de l'eventuel attribut identifiant dans le cas instances x variables
+	identifierAttribute = NULL;
+	nInitialClassAttributreNumber = kwcClass->GetAttributeNumber();
+	bInitialClassRoot = kwcClass->GetRoot();
 
 	// Parametrage des attributs de la base a lire
 	kwcClass->SetAllAttributesLoaded(false);
@@ -251,7 +258,7 @@ void CCLearningProblem::BuildCoclustering()
 		// Mise a priori de tous les attributs en Unloaded
 		kwcClass->SetAllAttributesLoaded(false);
 
-		// Insertion d'un attribut identifiant en distiguant la presence d'une ou plusieurs cles pour la variable Identifier
+		// Insertion d'un attribut identifiant en distinguant la presence d'une ou plusieurs cles pour la variable Identifier
 		// On garde la meme classe pour eviter de dupliquer la classe est son domaine, ce qui peut etre exigeant en memoire
 		// dans les cas de classes ayant de tres grands nombres d'attriburs
 		identifierAttribute = InsertIdentifierAttribute(kwcClass);
@@ -395,7 +402,15 @@ void CCLearningProblem::BuildCoclustering()
 	{
 		assert(analysisSpec->GetVarPartCoclustering());
 		assert(kwcClass->LookupAttribute(identifierAttribute->GetName()) == identifierAttribute);
-		kwcClass->DeleteAttribute(identifierAttribute->GetName());
+
+		// Supression de l'attribut identifiant s'il a ete cree
+		assert(kwcClass->GetAttributeNumber() >= nInitialClassAttributreNumber);
+		if (kwcClass->GetAttributeNumber() > nInitialClassAttributreNumber)
+			kwcClass->DeleteAttribute(identifierAttribute->GetName());
+		assert(kwcClass->GetAttributeNumber() == nInitialClassAttributreNumber);
+
+		// Restitution du start root initial
+		kwcClass->SetRoot(bInitialClassRoot);
 	}
 	kwcClass->SetAllAttributesLoaded(true);
 	KWClassDomain::GetCurrentDomain()->Compile();
