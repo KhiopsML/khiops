@@ -26,6 +26,7 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 {
 	boolean bOk;
 	const boolean bTrace = false;
+	const boolean bTraceDataGrid = false;
 	const ObjectArray* oaAttributePairStats;
 	KWAttributeStats* attributeStats;
 	KWAttributePairStats* resultPairStats;
@@ -165,6 +166,11 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 				cout << oaAttributePartitions->GetSize() << "\n";
 				cout << "  " << *attributeResultPartition << "\n";
 			}
+
+			// Affichage de la grille
+			if (bTraceDataGrid)
+				cout << "Initial data grid base on bivariate analysis\n"
+				     << *initialDataGridSolution << "\n";
 		}
 		else
 			cout << "Variable partitions not computed\n";
@@ -188,7 +194,7 @@ boolean
 KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStats(const KWDataGrid* initialDataGrid) const
 {
 	boolean bOk;
-	const boolean bTrace = true;
+	const boolean bTrace = false;
 	KWAttributePairsSpec bivariatePairSpec;
 	ALString sBivariateReportPath;
 	KWAttributePairName* pairName;

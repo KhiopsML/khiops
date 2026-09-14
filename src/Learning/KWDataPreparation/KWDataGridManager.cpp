@@ -2689,7 +2689,7 @@ void KWDataGridManager::InitialiseSymbolAttributePartsFromGrouping(const KWDGAtt
 		{
 			assert(targetPart->GetPartFrequency() == 0);
 
-			// Parcoures des valeurs
+			// Parcours des valeurs
 			targetValueSet = targetPart->GetSymbolValueSet();
 			targetValue = targetValueSet->GetHeadValue();
 			while (targetValue != NULL)
@@ -3122,6 +3122,24 @@ void KWDataGridManager::InitialiseAttributeNullPart(const KWDGAttribute* sourceA
 
 		// Tri des valeus cible
 		targetPart->GetValueSet()->SortValueByDecreasingFrequencies();
+	}
+
+	// Mise a jour des effectifs des parties dans le cas d'un innerAttribute
+	// Pour les autre attributs, c'est calcule a partir des cellules
+	if (sourceAttribute->IsInnerAttribute())
+	{
+		assert(targetAttribute->GetHeadPart() == targetAttribute->GetTailPart());
+		assert(targetPart->GetPartFrequency() == 0);
+		sourcePart = sourceAttribute->GetHeadPart();
+		targetPart = targetAttribute->GetHeadPart();
+		while (sourcePart != NULL)
+		{
+			// Mise a jour des effectif de la partie cible
+			targetPart->SetPartFrequency(targetPart->GetPartFrequency() + sourcePart->GetPartFrequency());
+
+			// Partie source suivante
+			sourceAttribute->GetNextPart(sourcePart);
+		}
 	}
 }
 
