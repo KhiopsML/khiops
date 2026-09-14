@@ -5,9 +5,12 @@
 #include "SystemFile.h"
 #include "SystemFileDriverCreator.h"
 
-boolean SystemFile::bAlwaysErrorOnOpen = false;
-boolean SystemFile::bAlwaysErrorOnRead = false;
-boolean SystemFile::bAlwaysErrorOnFlush = false;
+int SystemFile::nNextOpenFailureIndex = 0;
+int SystemFile::nNextReadFailureIndex = 0;
+int SystemFile::nNextFlushFailureIndex = 0;
+int SystemFile::nCurrentOpenIndex = 0;
+int SystemFile::nCurrentReadIndex = 0;
+int SystemFile::nCurrentFlushIndex = 0;
 
 SystemFile::SystemFile()
 {
@@ -35,13 +38,15 @@ boolean SystemFile::OpenInputFile(const ALString& sFilePathName)
 	assert(lRequestedExtraSize == 0);
 	assert(lReservedExtraSize == 0);
 
+	nCurrentOpenIndex++;
+
 	// Recherche du driver
 	fileDriver = SystemFileDriverCreator::LookupDriver(sFilePathName, this);
 	if (fileDriver == NULL)
 		return false;
 
 	// Mode de test : toujours en echec
-	if (bAlwaysErrorOnOpen)
+	if (nNextOpenFailureIndex == nCurrentOpenIndex)
 	{
 		errno = ECANCELED;
 		return false;
@@ -73,13 +78,15 @@ boolean SystemFile::OpenOutputFile(const ALString& sFilePathName)
 	assert(lRequestedExtraSize == 0);
 	assert(lReservedExtraSize == 0);
 
+	nCurrentOpenIndex++;
+
 	// Recherche du driver en mode ecriture
 	fileDriver = LookupWriteDriver(sFilePathName, "open output file");
 	if (fileDriver == NULL)
 		return false;
 
 	// Mode de test : toujours en echec
-	if (bAlwaysErrorOnOpen)
+	if (nNextOpenFailureIndex == nCurrentOpenIndex)
 	{
 		errno = ECANCELED;
 		return false;
@@ -111,13 +118,15 @@ boolean SystemFile::OpenOutputFileForAppend(const ALString& sFilePathName)
 	assert(lRequestedExtraSize == 0);
 	assert(lReservedExtraSize == 0);
 
+	nCurrentOpenIndex++;
+
 	// Recherche du driver en mode ecriture
 	fileDriver = LookupWriteDriver(sFilePathName, "open output file for append");
 	if (fileDriver == NULL)
 		return false;
 
 	// Mode de test : toujours en echec
-	if (bAlwaysErrorOnOpen)
+	if (nNextOpenFailureIndex == nCurrentOpenIndex)
 	{
 		errno = ECANCELED;
 		return false;
@@ -204,8 +213,10 @@ longint SystemFile::Read(void* pBuffer, size_t size, size_t count)
 	require(fileHandle != NULL);
 	require(bIsOpenForRead);
 
+	nCurrentReadIndex++;
+
 	// Mode de test : toujours en echec
-	if (bAlwaysErrorOnRead)
+	if (nNextReadFailureIndex == nCurrentReadIndex)
 	{
 		errno = ECANCELED;
 		return 0;
@@ -250,8 +261,10 @@ longint SystemFile::Write(const void* pBuffer, size_t size, size_t count)
 	require(fileHandle != NULL);
 	require(bIsOpenForWrite);
 
+	nCurrentFlushIndex++;
+
 	// Mode de test : toujours en echec
-	if (bAlwaysErrorOnFlush)
+	if (nNextFlushFailureIndex == nCurrentFlushIndex)
 	{
 		errno = ECANCELED;
 		return 0;
@@ -281,8 +294,10 @@ boolean SystemFile::Flush()
 	require(fileHandle != NULL);
 	require(bIsOpenForWrite);
 
+	nCurrentFlushIndex++;
+
 	// Mode de test : toujours en echec
-	if (bAlwaysErrorOnFlush)
+	if (nNextFlushFailureIndex == nCurrentFlushIndex)
 	{
 		errno = ECANCELED;
 		return false;
@@ -529,33 +544,42 @@ boolean SystemFile::CopyFileToLocal(const ALString& sSourceFilePathName, const A
 	return bOk;
 }
 
-void SystemFile::SetAlwaysErrorOnOpen(boolean bValue)
+void SystemFile::SetNextOpenFailureIndex(int nValue)
 {
-	bAlwaysErrorOnOpen = bValue;
+	require(nValue >= 0);
+
+	nNextOpenFailureIndex = nValue;
+	nCurrentOpenIndex = 0;
 }
 
-boolean SystemFile::GetAlwaysErrorOnOpen()
+int SystemFile::GetNextOpenFailureIndex()
 {
-	return bAlwaysErrorOnOpen;
+	return nNextOpenFailureIndex;
 }
 
-void SystemFile::SetAlwaysErrorOnRead(boolean bValue)
+void SystemFile::SetNextReadFailureIndex(int nValue)
 {
-	bAlwaysErrorOnRead = bValue;
+	require(nValue >= 0);
+
+	nNextReadFailureIndex = nValue;
+	nCurrentReadIndex = 0;
 }
-boolean SystemFile::GetAlwaysErrorOnRead()
+int SystemFile::GetNextReadFailureIndex()
 {
-	return bAlwaysErrorOnRead;
+	return nNextReadFailureIndex;
 }
 
-void SystemFile::SetAlwaysErrorOnFlush(boolean bValue)
+void SystemFile::SetNextFlushFailureIndex(int nValue)
 {
-	bAlwaysErrorOnFlush = bValue;
+	require(nValue >= 0);
+
+	nNextFlushFailureIndex = nValue;
+	nCurrentFlushIndex = 0;
 }
 
-boolean SystemFile::GetAlwaysErrorOnFlush()
+int SystemFile::GetNextFlushFailureIndex()
 {
-	return bAlwaysErrorOnFlush;
+	return nNextFlushFailureIndex;
 }
 
 SystemFileDriver* SystemFile::LookupWriteDriver(const ALString& sFilePathName, const ALString& sFunctionLabel)

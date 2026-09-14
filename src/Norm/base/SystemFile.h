@@ -79,16 +79,26 @@ public:
 	static const int nMinPreferredBufferSize = 1 * lMB;
 	static const int nDefaultPreferredBufferSize = 8 * lMB;
 
+	//////////////////////////////////////////////////////////////////////////
 	// Methodes avancees utilisees dans les tests
-	// Les methodes Open Read et Flush renvoient false et errno est mis a ECANCELED;
-	static void SetAlwaysErrorOnOpen(boolean bValue);
-	static boolean GetAlwaysErrorOnOpen();
+	//
+	// Pour chacune de ces methodes, on peut simuler un echec en fonction de l'index d'appel (l'index 1 correspond au premier appel).
+	// L'index correspond au rang du prochain appel a partir de l'appel des methodes SetXXXFailureIndex(int nIndex).
+	// (Ce n'est donc pas necessairement le rang dpuis la creation de l'objet).
+	// Par defaut l'index vaut 0 (aucun echec simule).
+	// En cas d'echec simule, les methodes Open, Read et Flush renvoient false et errno est mis a ECANCELED;
 
-	static void SetAlwaysErrorOnRead(boolean bValue);
-	static boolean GetAlwaysErrorOnRead();
+	// Simulation d'un echec lors du ieme appel a l'ouverture.
+	static void SetNextOpenFailureIndex(int nIndex);
+	static int GetNextOpenFailureIndex();
 
-	static void SetAlwaysErrorOnFlush(boolean bValue);
-	static boolean GetAlwaysErrorOnFlush();
+	// Simulation d'un echec lors du ieme appel a la lecture d'un fichier
+	static void SetNextReadFailureIndex(int nIndex);
+	static int GetNextReadFailureIndex();
+
+	// Simulation d'un echec lors du ieme appel a l'ecriture (write/flush) d'un fichier
+	static void SetNextFlushFailureIndex(int nIndex);
+	static int GetNextFlushFailureIndex();
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -111,7 +121,10 @@ protected:
 	longint lRequestedExtraSize;
 
 	// Les methodes renvoient toutes false (utilisation pour simuler un pmb d'acces I/O)
-	static boolean bAlwaysErrorOnOpen;
-	static boolean bAlwaysErrorOnRead;
-	static boolean bAlwaysErrorOnFlush;
+	static int nNextOpenFailureIndex;
+	static int nNextReadFailureIndex;
+	static int nNextFlushFailureIndex;
+	static int nCurrentOpenIndex;
+	static int nCurrentReadIndex;
+	static int nCurrentFlushIndex;
 };
