@@ -12,6 +12,7 @@ KWCrashTestParametersView::KWCrashTestParametersView()
 	AddStringField("CrashTestType", "Crash test - type", "");
 	AddStringField("CrashTestMethod", "Crash test - method", "");
 	AddIntField("CrashTestCallIndex", "Crash test - call index", 1);
+	AddIntField("CrashTestIOIndex", "Crash test - IO index", 1);
 	AddIntField("CrashTestMaxLineLength", "Crash test - max line length", InputBufferedFile::GetMaxLineLength());
 	AddIntField("CrashTestMaxSecondaryRecordNumber",
 		    "Crash test - max secondary record number per multi-table instance",
@@ -32,6 +33,8 @@ KWCrashTestParametersView::KWCrashTestParametersView()
 	    ->SetDefaultValue(InputBufferedFile::GetMaxLineLength());
 	cast(UIIntElement*, GetFieldAt("CrashTestMaxSecondaryRecordNumber"))->SetMinValue(0);
 	cast(UIIntElement*, GetFieldAt("CrashTestMaxCreatedRecordNumber"))->SetMinValue(0);
+	cast(UIIntElement*, GetFieldAt("CrashTestIOIndex"))->SetMinValue(1);
+	cast(UIIntElement*, GetFieldAt("CrashTestIOIndex"))->SetDefaultValue(1);
 	cast(UIIntElement*, GetFieldAt("CrashTestMemoryGuardMemoryLimit"))->SetMinValue(0);
 
 	// Initialisation des valeurs des parametres de crash concernant les taches
@@ -46,6 +49,7 @@ KWCrashTestParametersView::KWCrashTestParametersView()
 	GetFieldAt("CrashTestType")->SetHelpText("Type of crash for crash test (expert).");
 	GetFieldAt("CrashTestMethod")->SetHelpText("Name of task method for crash test (expert).");
 	GetFieldAt("CrashTestCallIndex")->SetHelpText("Call index of task method for crash test (expert).");
+	GetFieldAt("CrashTestIOIndex")->SetHelpText("IO index for crash test (expert).");
 	GetFieldAt("CrashTestMaxLineLength")->SetHelpText("Max line length in input data files (expert).");
 	GetFieldAt("CrashTestMaxSecondaryRecordNumber")
 	    ->SetHelpText("Max record number per multi-table instance."
@@ -68,10 +72,11 @@ KWCrashTestParametersView::~KWCrashTestParametersView() {}
 
 void KWCrashTestParametersView::EventUpdate(Object* object)
 {
-	PLParallelTask::sCrashTestTaskSignature = GetStringValueAt("CrashTestTask");
+	PLParallelTask::sCrashTestTaskName = GetStringValueAt("CrashTestTask");
 	PLParallelTask::nCrashTestMethod = PLParallelTask::StringToMethod(GetStringValueAt("CrashTestMethod"));
 	PLParallelTask::nCrashTestType = PLParallelTask::StringToCrashTest(GetStringValueAt("CrashTestType"));
 	PLParallelTask::nCrashTestCallIndex = GetIntValueAt("CrashTestCallIndex");
+	PLParallelTask::nCrashTestIOIndex = GetIntValueAt("CrashTestIOIndex");
 	InputBufferedFile::SetMaxLineLength(GetIntValueAt("CrashTestMaxLineLength"));
 	KWDatabaseMemoryGuard::SetCrashTestMaxSecondaryRecordNumber(GetIntValueAt("CrashTestMaxSecondaryRecordNumber"));
 	KWDatabaseMemoryGuard::SetCrashTestMaxCreatedRecordNumber(GetIntValueAt("CrashTestMaxCreatedRecordNumber"));
@@ -80,10 +85,11 @@ void KWCrashTestParametersView::EventUpdate(Object* object)
 
 void KWCrashTestParametersView::EventRefresh(Object* object)
 {
-	SetStringValueAt("CrashTestTask", PLParallelTask::sCrashTestTaskSignature);
+	SetStringValueAt("CrashTestTask", PLParallelTask::sCrashTestTaskName);
 	SetStringValueAt("CrashTestMethod", PLParallelTask::MethodToString(PLParallelTask::nCrashTestMethod));
 	SetStringValueAt("CrashTestType", PLParallelTask::CrashTestToString(PLParallelTask::nCrashTestType));
 	SetIntValueAt("CrashTestCallIndex", PLParallelTask::nCrashTestCallIndex);
+	SetIntValueAt("CrashTestIOIndex", PLParallelTask::nCrashTestIOIndex);
 	SetIntValueAt("CrashTestMaxLineLength", InputBufferedFile::GetMaxLineLength());
 	SetIntValueAt("CrashTestMaxSecondaryRecordNumber",
 		      int(KWDatabaseMemoryGuard::GetCrashTestMaxSecondaryRecordNumber()));
@@ -94,10 +100,11 @@ void KWCrashTestParametersView::EventRefresh(Object* object)
 
 void KWCrashTestParametersView::ResetParameters()
 {
-	PLParallelTask::sCrashTestTaskSignature = "";
+	PLParallelTask::sCrashTestTaskName = "";
 	PLParallelTask::nCrashTestMethod = PLParallelTask::NONE;
 	PLParallelTask::nCrashTestType = PLParallelTask::NO_TEST;
 	PLParallelTask::nCrashTestCallIndex = 1;
+	PLParallelTask::nCrashTestIOIndex = 1;
 	InputBufferedFile::SetMaxLineLength(8 * lMB);
 	KWDatabaseMemoryGuard::SetCrashTestMaxSecondaryRecordNumber(0);
 	KWDatabaseMemoryGuard::SetCrashTestMaxCreatedRecordNumber(0);
@@ -111,7 +118,7 @@ const ALString KWCrashTestParametersView::GetClassLabel() const
 
 void KWCrashTestParametersView::InitializeTaskCrashTestFields()
 {
-	StringVector svTaskSignatures;
+	StringVector svTaskNames;
 	ALString sTaskList;
 	ALString sMethodList;
 	ALString sTestList;
@@ -119,13 +126,13 @@ void KWCrashTestParametersView::InitializeTaskCrashTestFields()
 
 	// Initialisation de la liste des taches
 	sTaskList = "\n";
-	PLParallelTask::GetRegisteredTaskSignatures(svTaskSignatures);
-	svTaskSignatures.Sort();
-	for (i = 0; i < svTaskSignatures.GetSize(); i++)
+	PLParallelTask::GetRegisteredTaskNames(svTaskNames);
+	svTaskNames.Sort();
+	for (i = 0; i < svTaskNames.GetSize(); i++)
 	{
 		if (i > 0)
 			sTaskList += "\n";
-		sTaskList += svTaskSignatures.GetAt(i);
+		sTaskList += svTaskNames.GetAt(i);
 	}
 	GetFieldAt("CrashTestTask")->SetParameters(sTaskList);
 

@@ -20,6 +20,7 @@ class KWDerivationRule;
 #include "MemoryStatsManager.h"
 #include "KWResultFilePathBuilder.h"
 #include "KWVersion.h"
+#include "SystemFileOstream.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWClassDomain

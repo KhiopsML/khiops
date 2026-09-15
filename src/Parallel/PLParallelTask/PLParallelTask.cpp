@@ -23,7 +23,8 @@ ObjectArray* PLParallelTask::oaUserMessages = NULL;
 PLParallelTask::TestType PLParallelTask::nCrashTestType = TestType::NO_TEST;
 PLParallelTask::Method PLParallelTask::nCrashTestMethod = Method::NONE;
 int PLParallelTask::nCrashTestCallIndex = 1;
-ALString PLParallelTask::sCrashTestTaskSignature;
+int PLParallelTask::nCrashTestIOIndex = 1;
+ALString PLParallelTask::sCrashTestTaskName;
 
 PLParallelTask::PLParallelTask()
 {
@@ -66,6 +67,7 @@ PLParallelTask::PLParallelTask()
 	DeclareSharedParameter(&shared_nCrashTestType);
 	DeclareSharedParameter(&shared_nCrashTestMethod);
 	DeclareSharedParameter(&shared_nCrashTestCallIndex);
+	DeclareSharedParameter(&shared_nCrashTestIOIndex);
 	DeclareSharedParameter(&shared_tracerMPI);
 	DeclareSharedParameter(&shared_tracerPerformance);
 	DeclareSharedParameter(&shared_tracerProtocol);
@@ -286,11 +288,12 @@ void PLParallelTask::DeleteAllTasks()
 	ensure(odTasks == NULL);
 }
 
-void PLParallelTask::GetRegisteredTaskSignatures(StringVector& svSignatures)
+void PLParallelTask::GetRegisteredTaskNames(StringVector& svNames)
 {
 	POSITION position;
 	Object* oElement;
 	ALString sKey;
+	PLParallelTask* plTask;
 
 	if (odTasks == NULL)
 		return;
@@ -299,7 +302,8 @@ void PLParallelTask::GetRegisteredTaskSignatures(StringVector& svSignatures)
 	while (position != NULL)
 	{
 		odTasks->GetNextAssoc(position, sKey, oElement);
-		svSignatures.Add(sKey);
+		plTask = cast(PLParallelTask*, oElement);
+		svNames.Add(plTask->GetTaskName());
 	}
 }
 
@@ -423,7 +427,7 @@ PLParallelTask::TestType PLParallelTask::StringToCrashTest(const ALString& sTest
 	return NO_TEST;
 }
 
-void PLParallelTask::CrashTest(TestType nTestType, const ALString& sTaskSignature, Method nMethod, int nCallIndex)
+void PLParallelTask::CrashTest(TestType nTestType, const ALString& sTaskName, Method nMethod, int nCallIndex)
 {
 	require(nTestType < TESTS_NUMBER);
 	require(nMethod < METHODS_NUMBER);
@@ -432,7 +436,7 @@ void PLParallelTask::CrashTest(TestType nTestType, const ALString& sTaskSignatur
 	nCrashTestCallIndex = nCallIndex;
 	nCrashTestMethod = nMethod;
 	nCrashTestType = nTestType;
-	sCrashTestTaskSignature = sTaskSignature;
+	sCrashTestTaskName = sTaskName;
 }
 
 boolean PLParallelTask::Run()
@@ -442,6 +446,11 @@ boolean PLParallelTask::Run()
 	PLTaskDriver* oldDriver;
 	ALString sMessage;
 	boolean bNothingToDo; // Vrai si il y a au max 0 slaveProcess
+	POSITION position;
+	Object* oElement;
+	ALString sKey;
+	PLParallelTask* plTask;
+	boolean bTaskFound;
 
 	// Verification que la tache est enregistree
 	require(PLParallelTask::LookupTask(GetTaskSignature()) != NULL);
@@ -563,25 +572,41 @@ boolean PLParallelTask::Run()
 						   ->GetDiskSpace()));
 			}
 
+			// En cas de Crash Test on verifie que la tache existe
+			if (sCrashTestTaskName != "")
+			{
+				bTaskFound = false;
+				position = odTasks->GetStartPosition();
+				while (position != NULL)
+				{
+					odTasks->GetNextAssoc(position, sKey, oElement);
+					plTask = cast(PLParallelTask*, oElement);
+					if (plTask->GetTaskName() == sCrashTestTaskName)
+					{
+						bTaskFound = true;
+						break;
+					}
+				}
+				if (not bTaskFound)
+					AddError("the task \'" + sCrashTestTaskName +
+						 "\' used for the crash test is not registered");
+			}
+
 			// Initialisation des variables pour les tests IO, tmp ou user interruption
-			if (sCrashTestTaskSignature != "" and LookupTask(sCrashTestTaskSignature) == NULL)
-				AddError("the task \'" + sCrashTestTaskSignature +
-					 "\' used for the crash test is not registered");
-			if (sCrashTestTaskSignature == GetTaskSignature() and nCrashTestMethod != Method::NONE and
+			if (sCrashTestTaskName == GetTaskName() and nCrashTestMethod != Method::NONE and
 			    nCrashTestType != TestType::NO_TEST and nCrashTestCallIndex != 0)
 			{
 				shared_nCrashTestType = nCrashTestType;
 				shared_nCrashTestMethod = nCrashTestMethod;
 				shared_nCrashTestCallIndex = nCrashTestCallIndex;
-
-				// cout << "CRASH TEST for  " << MethodToString(nCrashTestMethod) << " " <<
-				// CrashTestToString(nCrashTestType) << endl;
+				shared_nCrashTestIOIndex = nCrashTestIOIndex;
 			}
 			else
 			{
 				shared_nCrashTestType = TestType::NO_TEST;
 				shared_nCrashTestMethod = Method::NONE;
 				shared_nCrashTestCallIndex = 0;
+				shared_nCrashTestIOIndex = 0;
 			}
 		}
 
@@ -1560,13 +1585,13 @@ boolean PLParallelTask::CallSlaveInitialize()
 			TaskProgression::ForceInterruptionRequested();
 			break;
 		case TestType::IO_FAILURE_OPEN:
-			SystemFile::SetAlwaysErrorOnOpen(true);
+			SystemFile::SetNextOpenFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		case TestType::IO_FAILURE_WRITE:
-			SystemFile::SetAlwaysErrorOnFlush(true);
+			SystemFile::SetNextFlushFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		case TestType::IO_FAILURE_READ:
-			SystemFile::SetAlwaysErrorOnRead(true);
+			SystemFile::SetNextReadFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		}
 	}
@@ -1578,9 +1603,9 @@ boolean PLParallelTask::CallSlaveInitialize()
 	bOk = bOk and not TaskProgression::IsInterruptionRequested();
 
 	// Reinitialisation du crash test
-	SystemFile::SetAlwaysErrorOnOpen(false);
-	SystemFile::SetAlwaysErrorOnFlush(false);
-	SystemFile::SetAlwaysErrorOnRead(false);
+	SystemFile::SetNextOpenFailureIndex(0);
+	SystemFile::SetNextFlushFailureIndex(0);
+	SystemFile::SetNextReadFailureIndex(0);
 
 	TaskProgression::EndTask();
 	if (MemoryStatsManager::IsOpened())
@@ -1646,13 +1671,13 @@ boolean PLParallelTask::CallSlaveProcess()
 			TaskProgression::ForceInterruptionRequested();
 			break;
 		case TestType::IO_FAILURE_OPEN:
-			SystemFile::SetAlwaysErrorOnOpen(true);
+			SystemFile::SetNextOpenFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		case TestType::IO_FAILURE_WRITE:
-			SystemFile::SetAlwaysErrorOnFlush(true);
+			SystemFile::SetNextFlushFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		case TestType::IO_FAILURE_READ:
-			SystemFile::SetAlwaysErrorOnRead(true);
+			SystemFile::SetNextReadFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		}
 	}
@@ -1663,9 +1688,9 @@ boolean PLParallelTask::CallSlaveProcess()
 	bOk = bOk and not TaskProgression::IsInterruptionRequested();
 
 	// Reinitialisation du crash test
-	SystemFile::SetAlwaysErrorOnOpen(false);
-	SystemFile::SetAlwaysErrorOnFlush(false);
-	SystemFile::SetAlwaysErrorOnRead(false);
+	SystemFile::SetNextOpenFailureIndex(0);
+	SystemFile::SetNextFlushFailureIndex(0);
+	SystemFile::SetNextReadFailureIndex(0);
 
 	if (MemoryStatsManager::IsOpened())
 		MemoryStatsManager::AddLog("Task " + GetTaskName() + " .SlaveProcess " + IntToString(GetTaskIndex()) +
@@ -1708,13 +1733,13 @@ boolean PLParallelTask::CallSlaveFinalize(boolean bProcessOk)
 			TaskProgression::ForceInterruptionRequested();
 			break;
 		case TestType::IO_FAILURE_OPEN:
-			SystemFile::SetAlwaysErrorOnOpen(true);
+			SystemFile::SetNextOpenFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		case TestType::IO_FAILURE_WRITE:
-			SystemFile::SetAlwaysErrorOnFlush(true);
+			SystemFile::SetNextFlushFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		case TestType::IO_FAILURE_READ:
-			SystemFile::SetAlwaysErrorOnRead(true);
+			SystemFile::SetNextReadFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		}
 	}
@@ -1742,9 +1767,9 @@ boolean PLParallelTask::CallSlaveFinalize(boolean bProcessOk)
 		SlaveDeleteRegisteredUniqueTmpFiles();
 
 	// Reinitialisation du crash test
-	SystemFile::SetAlwaysErrorOnOpen(false);
-	SystemFile::SetAlwaysErrorOnFlush(false);
-	SystemFile::SetAlwaysErrorOnRead(false);
+	SystemFile::SetNextOpenFailureIndex(0);
+	SystemFile::SetNextFlushFailureIndex(0);
+	SystemFile::SetNextReadFailureIndex(0);
 
 	TaskProgression::EndTask();
 	if (MemoryStatsManager::IsOpened())
@@ -1790,13 +1815,13 @@ boolean PLParallelTask::CallMasterInitialize()
 			TaskProgression::ForceInterruptionRequested();
 			break;
 		case TestType::IO_FAILURE_OPEN:
-			SystemFile::SetAlwaysErrorOnOpen(true);
+			SystemFile::SetNextOpenFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		case TestType::IO_FAILURE_WRITE:
-			SystemFile::SetAlwaysErrorOnFlush(true);
+			SystemFile::SetNextFlushFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		case TestType::IO_FAILURE_READ:
-			SystemFile::SetAlwaysErrorOnRead(true);
+			SystemFile::SetNextReadFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		}
 	}
@@ -1808,9 +1833,9 @@ boolean PLParallelTask::CallMasterInitialize()
 	bOk = bOk and not TaskProgression::IsInterruptionRequested();
 
 	// Reinitialisation du crash test
-	SystemFile::SetAlwaysErrorOnOpen(false);
-	SystemFile::SetAlwaysErrorOnFlush(false);
-	SystemFile::SetAlwaysErrorOnRead(false);
+	SystemFile::SetNextOpenFailureIndex(0);
+	SystemFile::SetNextFlushFailureIndex(0);
+	SystemFile::SetNextReadFailureIndex(0);
 
 	// Fin de l'autorisation d'ecriture des shared parameters
 	SetSharedVariablesRO(&oaSharedParameters);
@@ -1841,13 +1866,13 @@ boolean PLParallelTask::CallMasterFinalize(boolean bProcessOk)
 			TaskProgression::ForceInterruptionRequested();
 			break;
 		case TestType::IO_FAILURE_OPEN:
-			SystemFile::SetAlwaysErrorOnOpen(true);
+			SystemFile::SetNextOpenFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		case TestType::IO_FAILURE_WRITE:
-			SystemFile::SetAlwaysErrorOnFlush(true);
+			SystemFile::SetNextFlushFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		case TestType::IO_FAILURE_READ:
-			SystemFile::SetAlwaysErrorOnRead(true);
+			SystemFile::SetNextReadFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		}
 	}
@@ -1869,9 +1894,9 @@ boolean PLParallelTask::CallMasterFinalize(boolean bProcessOk)
 	bOk = bOk and not TaskProgression::IsInterruptionRequested();
 
 	// Reinitialisation du crash test
-	SystemFile::SetAlwaysErrorOnOpen(false);
-	SystemFile::SetAlwaysErrorOnFlush(false);
-	SystemFile::SetAlwaysErrorOnRead(false);
+	SystemFile::SetNextOpenFailureIndex(0);
+	SystemFile::SetNextFlushFailureIndex(0);
+	SystemFile::SetNextReadFailureIndex(0);
 
 	SetSharedVariablesRO(&oaSharedParameters);
 	if (MemoryStatsManager::IsOpened())
@@ -1916,13 +1941,13 @@ boolean PLParallelTask::CallMasterAggregate()
 			TaskProgression::ForceInterruptionRequested();
 			break;
 		case TestType::IO_FAILURE_OPEN:
-			SystemFile::SetAlwaysErrorOnOpen(true);
+			SystemFile::SetNextOpenFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		case TestType::IO_FAILURE_WRITE:
-			SystemFile::SetAlwaysErrorOnFlush(true);
+			SystemFile::SetNextFlushFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		case TestType::IO_FAILURE_READ:
-			SystemFile::SetAlwaysErrorOnRead(true);
+			SystemFile::SetNextReadFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		}
 	}
@@ -1946,9 +1971,9 @@ boolean PLParallelTask::CallMasterAggregate()
 	bOk = bOk and not TaskProgression::IsInterruptionRequested();
 
 	// Reinitialisation du crash test
-	SystemFile::SetAlwaysErrorOnOpen(false);
-	SystemFile::SetAlwaysErrorOnFlush(false);
-	SystemFile::SetAlwaysErrorOnRead(false);
+	SystemFile::SetNextOpenFailureIndex(0);
+	SystemFile::SetNextFlushFailureIndex(0);
+	SystemFile::SetNextReadFailureIndex(0);
 
 	if (MemoryStatsManager::IsOpened())
 		MemoryStatsManager::AddLog("Task " + GetTaskName() + " .MasterAggregateResults " +
@@ -2009,13 +2034,13 @@ boolean PLParallelTask::CallMasterPrepareTaskInput(double& dTaskPercent, boolean
 			TaskProgression::ForceInterruptionRequested();
 			break;
 		case TestType::IO_FAILURE_OPEN:
-			SystemFile::SetAlwaysErrorOnOpen(true);
+			SystemFile::SetNextOpenFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		case TestType::IO_FAILURE_WRITE:
-			SystemFile::SetAlwaysErrorOnFlush(true);
+			SystemFile::SetNextFlushFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		case TestType::IO_FAILURE_READ:
-			SystemFile::SetAlwaysErrorOnRead(true);
+			SystemFile::SetNextReadFailureIndex(shared_nCrashTestIOIndex);
 			break;
 		}
 	}
@@ -2035,9 +2060,9 @@ boolean PLParallelTask::CallMasterPrepareTaskInput(double& dTaskPercent, boolean
 	bOk = bOk and not TaskProgression::IsInterruptionRequested();
 
 	// Reinitialisation du crash test
-	SystemFile::SetAlwaysErrorOnOpen(false);
-	SystemFile::SetAlwaysErrorOnFlush(false);
-	SystemFile::SetAlwaysErrorOnRead(false);
+	SystemFile::SetNextOpenFailureIndex(0);
+	SystemFile::SetNextFlushFailureIndex(0);
+	SystemFile::SetNextReadFailureIndex(0);
 
 	assert(not(bIsTaskFinished and bSlaveAtRestWithoutProcessing));
 	if (MemoryStatsManager::IsOpened())
