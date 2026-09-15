@@ -66,10 +66,6 @@ public:
 	static boolean BuildOutputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName);
 	static boolean CleanOutputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName);
 
-	// Creation d'un nom de fichier temporaire en en lecture si necessaire,
-	static boolean BuildInputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName);
-	static void CleanInputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName);
-
 	// Renvoie true si l'URI commence par file:// mais qu'on doit la traiter
 	// comme un chemin local en extrayant le chemin du fichier de l'URI
 	static boolean RemoteIsLocal(const ALString& sURI);

@@ -10,7 +10,7 @@
 SystemFileOstreamBuffer::SystemFileOstreamBuffer()
 {
 	outputBufferedFile = NULL;
-	bFlushOnSync = true;
+	bFlushOnSync = false;
 }
 
 SystemFileOstreamBuffer::~SystemFileOstreamBuffer() {}

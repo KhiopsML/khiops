@@ -7,8 +7,7 @@
 // Initialisation des variables globales
 ALString JSONTokenizer::sErrorFamily;
 ALString JSONTokenizer::sFileName;
-ALString JSONTokenizer::sLocalFileName;
-FILE* JSONTokenizer::fJSON = NULL;
+SystemFile* JSONTokenizer::sfJSON = NULL;
 int JSONTokenizer::nLastToken = 0;
 JSONSTYPE JSONTokenizer::jsonLastTokenValue = {0};
 
@@ -19,12 +18,8 @@ boolean JSONTokenizer::OpenForRead(const ALString& sErrorFamilyName, const ALStr
 	require(not IsOpened());
 	require(sInputFileName != "");
 
-	// Copie depuis HDFS si necessaire
-	bOk = PLRemoteFileService::BuildInputWorkingFile(sInputFileName, sLocalFileName);
-
 	// Ouverture du fichier
-	if (bOk)
-		bOk = FileService::OpenInputBinaryFile(sLocalFileName, fJSON);
+	bOk = PLRemoteFileService::OpenInputBinaryFile(sInputFileName, sfJSON);
 
 	// Parametrage du parser genere par flex
 	if (bOk)
@@ -34,14 +29,17 @@ boolean JSONTokenizer::OpenForRead(const ALString& sErrorFamilyName, const ALStr
 		nLastToken = -1;
 		jsonLastTokenValue.dValue = 0;
 		JSONObject::SetLineno(1);
-		JSONObject::Restart(fJSON);
+		JSONObject::SetInputSystemFile(sfJSON);
+
+		// Reinitialisation du lexer, dont l'entree est geree par le SystemFile positionne ci-dessus
+		JSONObject::Restart(NULL);
 	}
 	return IsOpened();
 }
 
 boolean JSONTokenizer::IsOpened()
 {
-	return fJSON != NULL;
+	return sfJSON != NULL;
 }
 
 const ALString& JSONTokenizer::GetErrorFamilyName()
@@ -61,18 +59,16 @@ boolean JSONTokenizer::Close()
 	require(IsOpened());
 
 	// Nettoyage du lexer
+	JSONObject::SetInputSystemFile(NULL);
 	JSONObject::LexDestroy();
 
 	// Fermeture du fichier
-	bOk = FileService::CloseInputBinaryFile(sFileName, fJSON);
-
-	// Si le fichier est sur HDFS, on supprime la copie locale
-	PLRemoteFileService::CleanInputWorkingFile(sFileName, sLocalFileName);
+	bOk = PLRemoteFileService::CloseInputBinaryFile(sFileName, sfJSON);
 
 	// Reinitialisation des variables globales
 	sErrorFamily = "";
 	sFileName = "";
-	fJSON = NULL;
+	sfJSON = NULL;
 	if (nLastToken == String or nLastToken == Error)
 		delete jsonLastTokenValue.sValue;
 	jsonLastTokenValue.dValue = 0;

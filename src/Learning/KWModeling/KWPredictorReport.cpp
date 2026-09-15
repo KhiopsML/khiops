@@ -37,36 +37,26 @@ int KWPredictorReport::GetUsedAttributeNumber() const
 
 void KWPredictorReport::WriteFullReportFile(const ALString& sFileName, ObjectArray* oaTrainReports)
 {
-	fstream ost;
+	SystemFileOstream ost;
 	boolean bOk;
-	ALString sLocalFileName;
 
 	require(oaTrainReports != NULL);
 
 	// Ajout de log memoire
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + sFileName + " Write report Begin");
 
-	// Preparation de la copie sur HDFS si necessaire
-	bOk = PLRemoteFileService::BuildOutputWorkingFile(sFileName, sLocalFileName);
-
 	// Ouverture du fichier local
-	if (bOk)
-		bOk = FileService::OpenOutputFile(sLocalFileName, ost);
+	bOk = PLRemoteFileService::OpenOutputFile(sFileName, ost);
 	if (bOk)
 	{
 		if (GetLearningReportHeaderLine() != "")
 			ost << GetLearningReportHeaderLine() << "\n";
 		WriteFullReport(ost, oaTrainReports);
-		bOk = FileService::CloseOutputFile(sLocalFileName, ost);
+		bOk = PLRemoteFileService::CloseOutputFile(sFileName, ost);
 
 		// Destruction du rapport si erreur
 		if (not bOk)
-			FileService::RemoveFile(sLocalFileName);
-	}
-	if (bOk)
-	{
-		// Copie vers HDFS
-		PLRemoteFileService::CleanOutputWorkingFile(sFileName, sLocalFileName);
+			PLRemoteFileService::RemoveFile(sFileName);
 	}
 
 	// Ajout de log memoire

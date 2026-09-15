@@ -8,8 +8,9 @@ CommandFile::CommandFile()
 {
 	bBatchMode = false;
 	bPrintOutputInConsole = false;
-	fInputCommands = NULL;
-	fOutputCommands = NULL;
+
+	// Pour les fichiers de sortie des commandes, on fixe la taille du buffer a 1Mb (au lieu de 8Mo ou plus)
+	sfoOutputCommands.SetBufferSize(1 * lMB);
 	ResetParser();
 	assert(nMaxLineLength < BUFFER_LENGTH);
 	assert(nMaxJsonKeyLength + nMaxStringValueLength < nMaxLineLength);
@@ -157,16 +158,15 @@ boolean CommandFile::OpenInputCommandFile()
 	require(nParserLineIndex == 0);
 	require(nParserState == TokenOther);
 
-	// Copie depuis HDFS si necessaire
-	bOk = PLRemoteFileService::BuildInputWorkingFile(sInputCommandFileName, sLocalInputCommandFileName);
+	// Pour les fichiers de commande en entree, on fixe la taille du buffer a 4 Ko (au lieu de 8Mo ou plus)
+	ibfInputCommands.SetBufferSize(4 * lKB);
+	ibfInputCommands.SetFileName(sInputCommandFileName);
 
 	// Ouverture du fichier en lecture
-	if (bOk)
-		fInputCommands = p_fopen(sLocalInputCommandFileName, "r");
-	if (fInputCommands == NULL)
+	bOk = ibfInputCommands.Open();
+	if (not bOk)
 	{
 		AddInputCommandFileError("Unable to open file");
-		bOk = false;
 	}
 
 	// Chargement des parametre json si specifie
@@ -183,7 +183,7 @@ boolean CommandFile::OpenInputCommandFile()
 
 boolean CommandFile::IsInputCommandFileOpened() const
 {
-	return fInputCommands != NULL;
+	return ibfInputCommands.IsOpened();
 }
 
 boolean CommandFile::OpenOutputCommandFile()
@@ -197,31 +197,26 @@ boolean CommandFile::OpenOutputCommandFile()
 	// Creation si necessaire des repertoires intermediaires
 	PLRemoteFileService::MakeDirectories(FileService::GetPathName(sOutputCommandFileName));
 
-	// Preparation pour HDFS si necessaire
-	bOk = PLRemoteFileService::BuildOutputWorkingFile(sOutputCommandFileName, sLocalOutputCommandFileName);
-
 	// Fermeture du fichier si celui-ci est deja ouvert
 	// Ce cas peut arriver si on appelle plusieurs fois ParseParameters (notamment via MODL_dll)
-	if (fOutputCommands != NULL)
+	if (sfoOutputCommands.IsOpened())
 	{
-		fclose(fOutputCommands);
-		fOutputCommands = NULL;
+		sfoOutputCommands.Close();
 	}
 
+	// On ecrit a chaque flush ou endl si il le fichier est local
+	if (FileService::GetURIScheme(sOutputCommandFileName) == "")
+		sfoOutputCommands.SetFlushStandardMode(true);
+
 	// Ouverture du fichier en ecriture
-	if (bOk)
-		fOutputCommands = p_fopen(sLocalOutputCommandFileName, "w");
-	if (fOutputCommands == NULL)
-	{
-		AddOutputCommandFileError("Unable to open file");
-		bOk = false;
-	}
+	sfoOutputCommands.SetFileName(sOutputCommandFileName);
+	bOk = sfoOutputCommands.Open();
 	return bOk;
 }
 
 boolean CommandFile::IsOutputCommandFileOpened() const
 {
-	return fOutputCommands != NULL;
+	return sfoOutputCommands.IsOpened();
 }
 
 boolean CommandFile::AreCommandFilesOpened() const
@@ -241,7 +236,7 @@ void CommandFile::CloseInputCommandFile()
 	// Arret immediat en cas d'erreur en cours: cf. fin de la methode
 	if (bPendingFatalError)
 	{
-		assert(fInputCommands == NULL);
+		assert(not ibfInputCommands.IsOpened());
 		return;
 	}
 
@@ -267,13 +262,9 @@ void CommandFile::CloseInputCommandFile()
 		bIsParserOkAfterEnd = DetectedUnusedJsonParameterMembers();
 
 	// Fermeture du fichier d'entree
-	if (fInputCommands != NULL)
+	if (ibfInputCommands.IsOpened())
 	{
-		fclose(fInputCommands);
-		fInputCommands = NULL;
-
-		// Si le fichier est sur HDFS, on supprime la copie locale
-		PLRemoteFileService::CleanInputWorkingFile(sInputCommandFileName, sLocalInputCommandFileName);
+		ibfInputCommands.Close();
 	}
 
 	// Nettoyage du parser et des parametre json (et donc  de bParserOk)
@@ -311,13 +302,9 @@ void CommandFile::CloseInputCommandFile()
 void CommandFile::CloseOutputCommandFile()
 {
 	// Fermeture du fichier de sortie, uniquement en mode batch (sinon, on enregistre toujours le scenario)
-	if (fOutputCommands != NULL)
+	if (sfoOutputCommands.IsOpened())
 	{
-		fclose(fOutputCommands);
-		fOutputCommands = NULL;
-
-		// Copie vers HDFS si necessaire
-		PLRemoteFileService::CleanOutputWorkingFile(sOutputCommandFileName, sLocalOutputCommandFileName);
+		sfoOutputCommands.Close();
 	}
 }
 
@@ -330,11 +317,45 @@ void CommandFile::CloseCommandFiles()
 	CloseInputCommandFile();
 }
 
+ALString CommandFile::ReadNextCommandFileLine(InputBufferedFile* ibf, boolean& bLineTooLong) const
+{
+	CharVector cvLine;
+	ALString sLine;
+	boolean bOk = true;
+	longint lFilePos;
+	char* cLineBuffer;
+
+	bLineTooLong = false;
+	if (ibf->IsBufferEnd())
+	{
+		lFilePos = ibf->GetPositionInFile();
+		if (lFilePos < ibf->GetFileSize())
+			bOk = ibf->FillOuterLines(lFilePos, bLineTooLong) and not bLineTooLong;
+		else
+			bOk = false;
+	}
+	if (bOk)
+	{
+		ibf->GetNextLine(&cvLine, bLineTooLong);
+
+		// La ligne est trop longue si elle depasee 8 Mo (contrainte de InputBufferedFile) ou si elle depasse nMaxLineLength
+		bLineTooLong = bLineTooLong or cvLine.GetSize() > nMaxLineLength;
+	}
+	if (bOk and cvLine.GetSize() > 0)
+	{
+		// On dimensionne le buffer de sLine exactement a la taille de la ligne, pour eviter tout debordement
+		cLineBuffer = sLine.GetBufferSetLength(cvLine.GetSize());
+
+		// Export du contenu de la ligne dans le buffer de sLine
+		cvLine.ExportBuffer(0, cvLine.GetSize(), cLineBuffer);
+	}
+	return sLine;
+}
+
 boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& sValue)
 {
 	const char cDEL = (char)127;
 	boolean bOk;
-	char sCharBuffer[1 + BUFFER_LENGTH];
 	ALString sInputLine;
 	boolean bContinueParsing;
 	IntVector ivTokenTypes;
@@ -350,14 +371,19 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 	ALString sIdentifier;
 	int i;
 	ALString sTmp;
+	boolean bLineTooLong = false;
 
 	require(svIdentifierPath != NULL);
 	require(svIdentifierPath->GetSize() == 0);
 	require(GetInputSearchReplaceValueNumber() == 0 or GetInputParameterFileName() == "");
 	require(nParserState == TokenOther or nParserState == TokenIf or nParserState == TokenLoop);
 
-	// On arrete si pas de fichier ou si fin de fichier
-	if (fInputCommands == NULL or feof(fInputCommands))
+	// On arrete si aucun fichier de commande n'a ete specifie ou si son ouverture a echoue
+	if (not ibfInputCommands.IsOpened())
+		return false;
+
+	// On arrete si la fin du fichier est atteinte
+	if (ibfInputCommands.IsFileEnd())
 		return false;
 
 	////////////////////////////////////////////////////////////////////////////////////////////
@@ -369,24 +395,23 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 	if (oaParserLoopLinesTokenTypes.GetSize() == 0)
 	{
 		// Boucle de lecture pour ignorer les lignes vides ou ne comportant que des commentaires
-		while (sInputLine == "" and not feof(fInputCommands))
+		while (sInputLine == "" and not ibfInputCommands.IsFileEnd())
 		{
 			nParserLineIndex++;
 
 			// Lecture
-			StandardGetInputString(sCharBuffer, fInputCommands);
-			sInputLine = sCharBuffer;
+			sInputLine = ReadNextCommandFileLine(&ibfInputCommands, bLineTooLong);
 
 			// Si erreur ou caractere fin de fichier, on arrete sans message d'erreur
 			// Si on est pas en fin de fichier, on a forcement un caractere '\n' en fin de ligne
-			if (ferror(fInputCommands) or sInputLine.GetLength() == 0)
+			if (ibfInputCommands.IsError())
 			{
 				bOk = false;
 				break;
 			}
 
 			// Erreur si ligne trop longue
-			if (bOk and sInputLine.GetLength() > nMaxLineLength)
+			if (bLineTooLong or sInputLine.GetLength() > nMaxLineLength)
 			{
 				bOk = false;
 				AddInputCommandFileError(sTmp + "line too long, with length " +
@@ -395,7 +420,7 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 				break;
 			}
 
-			// Suppression des blancs au debut et a la fin, donc du dernier caractere fin de ligne
+			// Suppression des blancs au debut et a la fin
 			sInputLine.TrimRight();
 			sInputLine.TrimLeft();
 
@@ -441,20 +466,22 @@ boolean CommandFile::ReadInputCommand(StringVector* svIdentifierPath, ALString& 
 					sInputLine = "";
 			}
 		}
-		assert(sInputLine != "" or not bOk or feof(fInputCommands));
+		assert(sInputLine != "" or not bOk or ibfInputCommands.IsFileEnd());
 
 		// Cas particulier de fin de fichier sans fin de bloc
-		// C'est le seul cas qui ne pas etre traite par le parsing en flux des lignes du fichier de commande
-		if (bOk and feof(fInputCommands) and GetInputParameterFileName() != "" and nParserState != TokenOther)
+		// C'est le seul cas qui ne peut pas etre traite par le parsing en flux des lignes du fichier de commande
+		if (bOk and ibfInputCommands.IsFileEnd() and GetInputParameterFileName() != "" and
+		    nParserState != TokenOther)
 		{
 			bOk = false;
+			nParserLineIndex++;
 			AddInputCommandFileError("No " + sTokenEnd + " " + GetBlockType(nParserState) +
 						 " found until the end of the file in current " +
 						 GetBlockType(nParserState) + " " + sParserBlockKey + " block");
 		}
 
 		// Arret si necessaire
-		if (not bOk or feof(fInputCommands))
+		if (not bOk or sInputLine == "")
 			return false;
 		assert(sInputLine != "");
 	}
@@ -559,12 +586,12 @@ boolean CommandFile::IsInputCommandEnd() const
 	require(IsInputCommandFileOpened());
 
 	// On teste s'il reste des ligne a lire dans le fichier en entree et des commande de bloc loop en cours
-	return feof(fInputCommands) and oaParserLoopLinesTokenTypes.GetSize() == 0;
+	return ibfInputCommands.IsFileEnd() and oaParserLoopLinesTokenTypes.GetSize() == 0;
 }
 
 void CommandFile::WriteOutputCommand(const ALString& sIdentifierPath, const ALString& sValue, const ALString& sLabel)
 {
-	if (fOutputCommands != NULL)
+	if (sfoOutputCommands.IsOpened())
 	{
 		ALString sCommand;
 		int nCommandLength;
@@ -581,17 +608,16 @@ void CommandFile::WriteOutputCommand(const ALString& sIdentifierPath, const ALSt
 
 		// Si redirection vers la console, on ajoute un prefixe
 		if (bPrintOutputInConsole)
-			fprintf(fOutputCommands, "Khiops.command\t");
+			sfoOutputCommands << "Khiops.command\t";
 
 		// Impression
 		if (sCommand == "" and sLabel == "")
-			fprintf(fOutputCommands, "\n");
+			sfoOutputCommands << endl;
 		else if (sCommand == "")
-			fprintf(fOutputCommands, sCommentPrefix + " %s\n", (const char*)sLabel);
+			sfoOutputCommands << sCommentPrefix << " " << sLabel << endl;
 		else
-			fprintf(fOutputCommands, "%-*.*s // %s\n", nCommandLength, nCommandLength,
-				(const char*)sCommand, (const char*)sLabel);
-		fflush(fOutputCommands);
+			sfoOutputCommands << std::setw(nCommandLength) << std::left << (const char*)sCommand << " // "
+					  << (const char*)sLabel << endl;
 	}
 }
 

@@ -64,7 +64,6 @@ boolean KWClassDomain::WriteFile(const ALString& sFileName) const
 	// Ouverture du fichier en ecriture, en evitant l'ecriture a chaque flush ou endl
 	{
 		fst.SetFileName(sCorrectedFileName);
-		fst.SetFlushStandardMode(false);
 		bOk = fst.Open();
 	}
 
@@ -105,7 +104,6 @@ boolean KWClassDomain::WriteFileFromClass(const KWClass* mainClass, const ALStri
 
 	// Ouverture du fichier en ecriture, en evitant l'ecriture a chaque flush ou endl
 	fst.SetFileName(sFileName);
-	fst.SetFlushStandardMode(false);
 	bOk = fst.Open();
 
 	// Si OK: ecriture des classe

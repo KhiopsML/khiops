@@ -147,7 +147,8 @@ boolean FileService::OpenInputFile(const ALString& sFilePathName, fstream& fst)
 		fst.open(sFilePathName, ios::in);
 		bOk = fst.is_open();
 		if (not bOk)
-			Global::AddError("File", sFilePathName, "Unable to open file " + GetLastSystemIOErrorMessage());
+			Global::AddError("File", sFilePathName,
+					 "Unable to open file (" + GetLastSystemIOErrorMessage() + ")");
 	}
 	p_SetApplicationLocale();
 	return bOk;

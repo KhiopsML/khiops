@@ -26,33 +26,24 @@ boolean KWLearningReport::IsStatsComputed() const
 
 void KWLearningReport::WriteReportFile(const ALString& sFileName) const
 {
-	fstream ost;
+	SystemFileOstream ost;
 	boolean bOk;
-	ALString sLocalFileName;
 
 	// Ajout de log memoire
 	MemoryStatsManager::AddLog(GetClassLabel() + " " + GetObjectLabel() + " Write report Begin");
 
-	// Preparation de la copie sur HDFS si necessaire
-	bOk = PLRemoteFileService::BuildOutputWorkingFile(sFileName, sLocalFileName);
-	if (bOk)
-		bOk = FileService::OpenOutputFile(sLocalFileName, ost);
+	// Ouverture du fichier en evitant l'ecriture a chaque Flush ou endl
+	bOk = PLRemoteFileService::OpenOutputFile(sFileName, ost);
 	if (bOk)
 	{
 		if (GetLearningReportHeaderLine() != "")
 			ost << GetLearningReportHeaderLine() << "\n";
 		WriteReport(ost);
-		bOk = FileService::CloseOutputFile(sLocalFileName, ost);
+		bOk = PLRemoteFileService::CloseOutputFile(sFileName, ost);
 
 		// Destruction du rapport si erreur
 		if (not bOk)
-			FileService::RemoveFile(sLocalFileName);
-	}
-
-	if (bOk)
-	{
-		// Copie vers HDFS
-		PLRemoteFileService::CleanOutputWorkingFile(sFileName, sLocalFileName);
+			PLRemoteFileService::RemoveFile(sFileName);
 	}
 
 	// Ajout de log memoire

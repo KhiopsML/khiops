@@ -11,6 +11,7 @@ class MHHistogramInterval;
 #include "KWContinuous.h"
 #include "FileService.h"
 #include "KWStat.h"
+#include "PLRemoteFileService.h"
 
 //////////////////////////////////////////////////////////
 // Classe de description d'un histogramme resultat

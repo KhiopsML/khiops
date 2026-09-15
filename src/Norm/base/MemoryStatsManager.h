@@ -145,6 +145,7 @@ protected:
 	// Utilisation de FILE plutot que de stream, pour diminuer l'empreinte memoire
 	// On ne peut pas non plus utiliser un OutputBufferedFile, car cela entraine
 	// un boucle infinie quand le OutputBufferedFile qui emet des logs memoires
+	// (A chaque allocation, l'allocateur emet un log memoire ce qui produit des allocations etc...)
 	static Timer timer;
 	static int nStatsFieldNumber;
 	static int nStatsFieldIndex;
