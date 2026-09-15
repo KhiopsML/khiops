@@ -2156,7 +2156,6 @@ boolean UIObject::ErrorCommand(const ALString& sErrorLog)
 
 boolean UIObject::TaskProgressionCommand(const ALString& sTaskFile)
 {
-	// TODO est-ce qu'on peut mettre le fichier sur HDFS
 	TaskProgression::SetTaskProgressionLogFileName(sTaskFile);
 	return true;
 }

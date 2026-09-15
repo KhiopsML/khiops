@@ -10,6 +10,7 @@
 #include "ALString.h"
 #include "Vector.h"
 #include "Timer.h"
+#include "SystemFileOstream.h"
 
 class TaskProgressionManager;
 class FileTaskProgressionManager;
