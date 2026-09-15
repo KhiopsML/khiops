@@ -527,7 +527,7 @@ void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
 	// Definition de nouveaux clusters d'identifiants, en regroupant les identifiants associes
 	// aux memes parties de variable exploitant les signatures a base de cellules
 
-	// Export des parties de l'attribut identifiant cible, chaqune etant un singleton reduit a une seule valeur
+	// Export des parties de l'attribut identifiant cible, chacune etant un singleton reduit a une seule valeur
 	identifierAttribute = targetDataGrid->GetAttributeAt(0);
 	assert(identifierAttribute->GetInitialValueNumber() == identifierAttribute->GetPartNumber());
 	identifierAttribute->ExportParts(&oaIdentifierValueParts);
@@ -612,9 +612,12 @@ void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
 	targetDataGrid->DeleteAllCells();
 	identifierAttribute->DeleteAllParts();
 
-	// Export des partie d'identifiant selon les specification calculees precedement
+	// Export des parties d'identifiant selon les specification calculees precedement
 	sourceAttribute = sourceDataGrid->GetAttributeAt(0);
 	InitialiseSymbolAttributePartsFromGrouping(sourceAttribute, &identifierGrouping, identifierAttribute);
+
+	// On trie les parties pour assurer la reproductibilite
+	identifierAttribute->SortParts();
 
 	// Export des cellules selon la specification finale des partitions de chaque attribut
 	ExportCells(sourceDataGrid, targetDataGrid);
