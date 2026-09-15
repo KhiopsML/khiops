@@ -166,12 +166,11 @@ protected:
 	///////////////////////////////////////////////////////////////////////////////////
 	// Variable d'instance
 
-	// Nom du fichier
-	ALString sFileName;      // URI specifiee par l'utilisateur (hdfs ou locale)
-	ALString sLocalFileName; // Fichier local (=sFileName si fichier standard, recopie vers HDFS sinon)
+	// Nom du fichier (local ou distant)
+	ALString sFileName;
 
 	// Fichier en cours
-	fstream fstJSON;
+	SystemFileOstream sfoJSON;
 
 	// Niveau de liste courant
 	int nCurrentListLevel;

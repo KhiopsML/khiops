@@ -9,6 +9,9 @@ JSONFile::JSONFile()
 	nCurrentListLevel = 0;
 	bCamelCaseKeys = false;
 
+	// On evite l'ecriture a chaque flush ou endl
+	sfoJSON.SetFlushStandardMode(false);
+
 	// Initialisation des stats sur les caracteres encodes
 	InitializeEncodingStats();
 }
@@ -41,17 +44,17 @@ boolean JSONFile::OpenForWrite()
 	// Initialisation des stats sur les caracteres encodes
 	InitializeEncodingStats();
 
-	// Preparation de la copie sur HDFS si necessaire
-	bOk = PLRemoteFileService::BuildOutputWorkingFile(sFileName, sLocalFileName);
+	// On evite l'ecriture a chaque flush ou endl
+	sfoJSON.SetFlushStandardMode(false);
 
 	// Ouverture du fichier
 	if (bOk)
-		bOk = FileService::OpenOutputFile(sLocalFileName, fstJSON);
+		bOk = PLRemoteFileService::OpenOutputFile(sFileName, sfoJSON);
 
 	// Debut de l'objet global
 	if (bOk)
 	{
-		fstJSON << "{";
+		sfoJSON << "{";
 		Indent();
 	}
 
@@ -60,7 +63,7 @@ boolean JSONFile::OpenForWrite()
 
 boolean JSONFile::IsOpened()
 {
-	return fstJSON.is_open();
+	return sfoJSON.IsOpened();
 }
 
 boolean JSONFile::Close()
@@ -175,7 +178,7 @@ void JSONFile::BeginKeyObject(const ALString& sKey)
 {
 	require(IsOpened());
 	WriteKey(sKey);
-	fstJSON << "{";
+	sfoJSON << "{";
 	Indent();
 }
 
@@ -183,7 +186,7 @@ void JSONFile::BeginObject()
 {
 	require(IsOpened());
 	WriteIndent();
-	fstJSON << "{";
+	sfoJSON << "{";
 	Indent();
 }
 
@@ -197,7 +200,7 @@ void JSONFile::BeginKeyArray(const ALString& sKey)
 {
 	require(IsOpened());
 	WriteKey(sKey);
-	fstJSON << "[";
+	sfoJSON << "[";
 	Indent();
 }
 
@@ -205,7 +208,7 @@ void JSONFile::BeginArray()
 {
 	require(IsOpened());
 	WriteIndent();
-	fstJSON << "[";
+	sfoJSON << "[";
 	Indent();
 }
 
@@ -219,7 +222,7 @@ void JSONFile::BeginKeyList(const ALString& sKey)
 {
 	require(IsOpened());
 	WriteKey(sKey);
-	fstJSON << "[";
+	sfoJSON << "[";
 	nCurrentListLevel++;
 	Indent();
 }
@@ -228,7 +231,7 @@ void JSONFile::BeginList()
 {
 	require(IsOpened());
 	WriteIndent();
-	fstJSON << "[";
+	sfoJSON << "[";
 	nCurrentListLevel++;
 	Indent();
 }
@@ -428,13 +431,10 @@ boolean JSONFile::InternalClose(boolean bExploitEncodingStats)
 
 	// Fin de l'objet global
 	Unindent();
-	fstJSON << "\n}\n";
+	sfoJSON << "\n}\n";
 
 	// Fermeture du fichier
-	bOk = FileService::CloseOutputFile(sLocalFileName, fstJSON);
-
-	// Copie vers HDFS si necessaire
-	PLRemoteFileService::CleanOutputWorkingFile(sFileName, sLocalFileName);
+	bOk = PLRemoteFileService::CloseOutputFile(sFileName, sfoJSON);
 
 	// Nettoyage du buffer de travail
 	sStringBuffer = "";
@@ -457,7 +457,7 @@ void JSONFile::WriteKey(const ALString& sKey)
 		WriteStringValue(ToCamelCase(sKey));
 	else
 		WriteStringValue(sKey);
-	fstJSON << ": ";
+	sfoJSON << ": ";
 }
 
 void JSONFile::WriteStringValue(const ALString& sValue)
@@ -466,9 +466,9 @@ void JSONFile::WriteStringValue(const ALString& sValue)
 
 	// Encodage de la chaine C au format json
 	CToJsonString(sValue, sStringBuffer);
-	fstJSON << '"';
-	fstJSON << sStringBuffer;
-	fstJSON << '"';
+	sfoJSON << '"';
+	sfoJSON << sStringBuffer;
+	sfoJSON << '"';
 
 	// Mise a jour des stats d'encodage
 	UpdateEncodingStats(sValue);
@@ -477,19 +477,19 @@ void JSONFile::WriteStringValue(const ALString& sValue)
 void JSONFile::WriteIntValue(int nValue)
 {
 	require(IsOpened());
-	fstJSON << nValue;
+	sfoJSON << nValue;
 }
 
 void JSONFile::WriteLongintValue(longint lValue)
 {
 	require(IsOpened());
-	fstJSON << lValue;
+	sfoJSON << lValue;
 }
 
 void JSONFile::WriteDoubleValue(double dValue)
 {
 	require(IsOpened());
-	fstJSON << dValue;
+	sfoJSON << dValue;
 }
 
 void JSONFile::WriteContinuousValue(Continuous cValue)
@@ -498,22 +498,22 @@ void JSONFile::WriteContinuousValue(Continuous cValue)
 	if (cValue == KWContinuous::GetMissingValue())
 		WriteNullValue();
 	else
-		fstJSON << KWContinuous::ContinuousToString(cValue);
+		sfoJSON << KWContinuous::ContinuousToString(cValue);
 }
 
 void JSONFile::WriteBooleanValue(boolean bValue)
 {
 	require(IsOpened());
 	if (bValue)
-		fstJSON << "true";
+		sfoJSON << "true";
 	else
-		fstJSON << "false";
+		sfoJSON << "false";
 }
 
 void JSONFile::WriteNullValue()
 {
 	require(IsOpened());
-	fstJSON << "null";
+	sfoJSON << "null";
 }
 
 void JSONFile::WriteIndent()
@@ -523,17 +523,17 @@ void JSONFile::WriteIndent()
 
 	// Ajout d'un separateur si necessaire
 	if (ivLevelElementNumber.GetAt(ivLevelElementNumber.GetSize() - 1) > 0)
-		fstJSON << ",";
+		sfoJSON << ",";
 
 	// Mise en forme sauf si dans une liste
 	if (nCurrentListLevel == 0)
 	{
 		// Nouvelle ligne
-		fstJSON << "\n";
+		sfoJSON << "\n";
 
 		// Ecriture du niveau d'indentation
 		for (i = 0; i < ivLevelElementNumber.GetSize(); i++)
-			fstJSON << '\t';
+			sfoJSON << '\t';
 	}
 
 	// Incrementation du nombre d'elements au niveau courant
@@ -556,16 +556,16 @@ void JSONFile::EndBlock(char cBlockChar, boolean bInList)
 		if (nCurrentListLevel == 0)
 		{
 			// Nouvelle ligne
-			fstJSON << "\n";
+			sfoJSON << "\n";
 
 			// Ecriture du niveau d'indentation
 			for (i = 0; i < ivLevelElementNumber.GetSize(); i++)
-				fstJSON << '\t';
+				sfoJSON << '\t';
 		}
 	}
 	if (bInList)
 		nCurrentListLevel--;
-	fstJSON << cBlockChar;
+	sfoJSON << cBlockChar;
 }
 
 void JSONFile::Indent()
