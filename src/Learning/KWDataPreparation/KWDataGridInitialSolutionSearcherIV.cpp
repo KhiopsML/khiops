@@ -380,17 +380,21 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWA
 			{
 				sValue = attributeGrouping->GetValueAt(nValue);
 
-				// Creation de la signature si necessaire
-				valueSignature =
-				    cast(KWValueSignature*, nkdValueSignatures.Lookup(sValue.GetNumericKey()));
-				if (valueSignature == NULL)
+				// On ne traite que les valeurs presentes des attributs internes pour le coclustering instances x variables
+				if (sValue != Symbol())
 				{
-					valueSignature = new KWValueSignature;
-					valueSignature->SetValue(sValue);
+					// Creation de la signature si necessaire
+					valueSignature =
+					    cast(KWValueSignature*, nkdValueSignatures.Lookup(sValue.GetNumericKey()));
+					if (valueSignature == NULL)
+					{
+						valueSignature = new KWValueSignature;
+						valueSignature->SetValue(sValue);
 
-					// Enregistrement
-					nkdValueSignatures.SetAt(sValue.GetNumericKey(), valueSignature);
-					oaValueSignatures.Add(valueSignature);
+						// Enregistrement
+						nkdValueSignatures.SetAt(sValue.GetNumericKey(), valueSignature);
+						oaValueSignatures.Add(valueSignature);
+					}
 				}
 			}
 		}
@@ -418,14 +422,17 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWA
 				if (sValue == Symbol::GetStarValue())
 					nDefaultGroupIndex = nGroup;
 
-				// Recherche de la signature sinon
-				valueSignature =
-				    cast(KWValueSignature*, nkdValueSignatures.Lookup(sValue.GetNumericKey()));
-				assert(valueSignature != NULL);
-				assert(valueSignature->GetSignature()->GetSize() == n);
+				// On ne traite que les valeurs presentes des attributs internes
+				if (sValue != Symbol())
+				{
+					valueSignature =
+					    cast(KWValueSignature*, nkdValueSignatures.Lookup(sValue.GetNumericKey()));
+					assert(valueSignature != NULL);
+					assert(valueSignature->GetSignature()->GetSize() == n);
 
-				// Ajout de l'index de la partie en fin de signature
-				valueSignature->GetSignature()->Add(nGroup);
+					// Ajout de l'index de la partie en fin de signature
+					valueSignature->GetSignature()->Add(nGroup);
+				}
 			}
 		}
 		assert(nDefaultGroupIndex != -1);

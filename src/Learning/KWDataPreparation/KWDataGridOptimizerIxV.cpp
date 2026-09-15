@@ -23,7 +23,7 @@ double KWDataGridOptimizerIxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 	require(GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid) == GetOptimizedNullDataGridCost());
 
 	// Recherche d'une solution initiale meilleure que celle du modele null
-	//DDD dBestCost = BuildInitialSolution(initialDataGrid, optimizedDataGrid);
+	//DDD 	dBestCost = BuildInitialSolution(initialDataGrid, optimizedDataGrid);
 
 	// Appel direct de la methode d'optimisation VNS, dont la partie generation de grille voisone est ici specialisee
 	// en generant une surtokenisation aleatoire de la grille courante
@@ -74,9 +74,9 @@ double KWDataGridOptimizerIxV::BuildInitialSolution(const KWDataGrid* initialDat
 		dCost = OptimizeSolution(&initialDataGridSolution, &initialDataGridOptimizedSolution, true);
 		dCost = PostOptimizeVarPartSolution(&initialDataGridSolution, &initialDataGridOptimizedSolution);
 
-		cout << "NUL COST\t" << GetOptimizedNullDataGridCost() << endl;
-		cout << "COST\t" << GetDataGridCosts()->ComputeDataGridTotalCost(&initialDataGridSolution) << endl;
-		cout << "OPTIM COST\t" << dCost << endl;
+		//DDD cout << "NUL COST\t" << GetOptimizedNullDataGridCost() << endl;
+		//DDD cout << "COST\t" << GetDataGridCosts()->ComputeDataGridTotalCost(&initialDataGridSolution) << endl;
+		//DDD cout << "OPTIM COST\t" << dCost << endl;
 
 		// Memorisation si amelioration du cout
 		// Les methodes precedentes gerent deja l'interruption des taches

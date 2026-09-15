@@ -444,7 +444,7 @@ static int KWDataGridManagerCompareIdentifierPartsSignatureAndIdentifier(const v
 void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
     const KWDataGrid* sourceDataGrid, const ObjectDictionary* odInnerAttributePartitions, KWDataGrid* targetDataGrid)
 {
-	const boolean bTrace = true;
+	const boolean bTrace = false;
 	const boolean bTraceDetails = false;
 	int nAttribute;
 	KWDGAttribute* targetAttribute;
