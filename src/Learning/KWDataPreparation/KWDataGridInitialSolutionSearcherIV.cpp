@@ -285,9 +285,11 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionDiscretizations(
 	const KWDGSAttributeDiscretization* attributeDiscretization;
 	ContinuousVector cvAllBounds;
 	ContinuousVector cvResultBounds;
+	ContinuousVector cvResultFilteredBounds;
 	Continuous cBound;
 	int n;
 	int nBound;
+	KWDGPart* innerAttributePart;
 
 	require(innerAttribute != NULL);
 	require(innerAttribute->GetAttributeType() == KWType::Continuous);
@@ -332,10 +334,36 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionDiscretizations(
 			cvResultBounds.Add(cvAllBounds.GetAt(nBound));
 	}
 
+	// On garde les bornes communes avec celle de l'attribut interne
+	// En effet, ce dernier n'exploite que les valeurs sparse, hors Missing et potentiellement
+	// hors valeur par defaut de blocs sparse, comme 0 par exemple (cf. GetValueBlockContinuousDefaultValue)
+	nBound = 0;
+	innerAttributePart = innerAttribute->GetHeadPart();
+	while (innerAttributePart != innerAttribute->GetTailPart())
+	{
+		// Arret si on a traite toutes les bornes des intervalles
+		if (nBound >= cvResultBounds.GetSize())
+			break;
+
+		// Test si la borne de l'attribut interne est compatible avec une borne d'intervalle
+		if (innerAttributePart->GetInterval()->GetLowerBound() >= cvResultBounds.GetAt(nBound))
+		{
+			// On garde la borne si elle existe dans l'attribut interne
+			if (innerAttributePart->GetInterval()->GetLowerBound() == cvResultBounds.GetAt(nBound))
+				cvResultFilteredBounds.Add(cvResultBounds.GetAt(nBound));
+
+			// On passe a la borne suivante
+			nBound++;
+		}
+
+		// Partie suivante
+		innerAttribute->GetNextPart(innerAttributePart);
+	}
+
 	// Memorisation des bones des intervales
-	resultDiscretization->SetPartNumber(cvResultBounds.GetSize() + 1);
-	for (n = 0; n < cvResultBounds.GetSize(); n++)
-		resultDiscretization->SetIntervalBoundAt(n, cvResultBounds.GetAt(n));
+	resultDiscretization->SetPartNumber(cvResultFilteredBounds.GetSize() + 1);
+	for (n = 0; n < cvResultFilteredBounds.GetSize(); n++)
+		resultDiscretization->SetIntervalBoundAt(n, cvResultFilteredBounds.GetAt(n));
 
 	// Trace
 	if (bTrace)
