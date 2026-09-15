@@ -55,12 +55,13 @@ protected:
 	void CleanInternalAttributesBivariateStats() const;
 
 	// Calcul de l'intersection des discretisations a partir d'un tableau de partition de type KWDGSAttributeDiscretization
-	void ComputeIntersectionDiscretizations(const KWAttributeStats* attributeStats,
+	void ComputeIntersectionDiscretizations(const KWDGAttribute* innerAttribute,
+						const KWAttributeStats* attributeStats,
 						const ObjectArray* oaAttributeDiscretizations,
 						KWDGSAttributeDiscretization* resultDiscretization) const;
 
 	// Calcul de l'intersection des groupes de valeurs a partir d'un tableau de partition de type KWDGSAttributeGrouping
-	void ComputeIntersectionGroupings(const KWAttributeStats* attributeStats,
+	void ComputeIntersectionGroupings(const KWDGAttribute* innerAttribute, const KWAttributeStats* attributeStats,
 					  const ObjectArray* oaAttributeGroupings,
 					  KWDGSAttributeGrouping* resultGrouping) const;
 

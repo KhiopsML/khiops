@@ -27,6 +27,7 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 	boolean bOk;
 	const boolean bTrace = false;
 	const boolean bTraceDataGrid = false;
+	const KWDGAttribute* innerAttribute;
 	const ObjectArray* oaAttributePairStats;
 	KWAttributeStats* attributeStats;
 	KWAttributePairStats* resultPairStats;
@@ -113,10 +114,15 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 			// Acces a la premiere partition pour avoir le type de l'attribut
 			attributePartition = cast(const KWDGSAttributePartition*, oaAttributePartitions->GetAt(0));
 
-			// Recherche de la stats unibariee de l'attribut correspondant
+			// Recherche de la stats univariee de l'attribut correspondant
 			attributeStats = GetInternalAttributesBivariateStats()->LookupAttributeStats(
 			    attributePartition->GetAttributeName());
 			assert(attributeStats != NULL);
+
+			// Recherche de l'attribut interne correspondant
+			innerAttribute =
+			    initialDataGrid->GetInnerAttributes()->LookupInnerAttribute(attributeStats->GetSortName());
+			assert(innerAttribute != NULL);
 
 			// Cas d'un attribut numerique
 			if (attributePartition->GetAttributeType() == KWType::Continuous)
@@ -124,7 +130,8 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 				attributeResultDiscretization = new KWDGSAttributeDiscretization;
 				odInnerAttributePartitions.SetAt(attributePartition->GetAttributeName(),
 								 attributeResultDiscretization);
-				ComputeIntersectionDiscretizations(attributeStats, oaAttributePartitions,
+				ComputeIntersectionDiscretizations(innerAttribute, attributeStats,
+								   oaAttributePartitions,
 								   attributeResultDiscretization);
 			}
 			else
@@ -132,7 +139,7 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 				attributeResultGrouping = new KWDGSAttributeGrouping;
 				odInnerAttributePartitions.SetAt(attributePartition->GetAttributeName(),
 								 attributeResultGrouping);
-				ComputeIntersectionGroupings(attributeStats, oaAttributePartitions,
+				ComputeIntersectionGroupings(innerAttribute, attributeStats, oaAttributePartitions,
 							     attributeResultGrouping);
 			}
 		}
@@ -167,9 +174,9 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 				cout << "  " << *attributeResultPartition << "\n";
 			}
 
-			// Affichage de la grille
+			// Affichage de la la grille solution
 			if (bTraceDataGrid)
-				cout << "Initial data grid base on bivariate analysis\n"
+				cout << "Initial data grid solution based on bivariate analysis\n"
 				     << *initialDataGridSolution << "\n";
 		}
 		else
@@ -271,18 +278,22 @@ void KWDataGridInitialSolutionSearcherIV::CleanInternalAttributesBivariateStats(
 }
 
 void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionDiscretizations(
-    const KWAttributeStats* attributeStats, const ObjectArray* oaAttributeDiscretizations,
-    KWDGSAttributeDiscretization* resultDiscretization) const
+    const KWDGAttribute* innerAttribute, const KWAttributeStats* attributeStats,
+    const ObjectArray* oaAttributeDiscretizations, KWDGSAttributeDiscretization* resultDiscretization) const
 {
 	const boolean bTrace = false;
 	const KWDGSAttributeDiscretization* attributeDiscretization;
-	int n;
-	int nBound;
 	ContinuousVector cvAllBounds;
 	ContinuousVector cvResultBounds;
+	Continuous cBound;
+	int n;
+	int nBound;
 
+	require(innerAttribute != NULL);
+	require(innerAttribute->GetAttributeType() == KWType::Continuous);
 	require(attributeStats != NULL);
 	require(attributeStats->GetAttributeType() == KWType::Continuous);
+	require(attributeStats->GetAttributeName() == innerAttribute->GetAttributeName());
 	require(oaAttributeDiscretizations != NULL);
 	require(oaAttributeDiscretizations->GetSize() > 0);
 	require(resultDiscretization != NULL);
@@ -301,9 +312,14 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionDiscretizations(
 		       cast(const KWDGSAttributeDiscretization*, oaAttributeDiscretizations->GetAt(0))
 			   ->GetAttributeName());
 
-		// Memorisation des bornes
+		// Memorisation des bornes, sauf si elles correspondent a la valeur manquante, qui peut exister dans
+		// l'analyse bivariee, mais est ignoree pour les attributs internes d'un coclustering instances x variables
 		for (nBound = 0; nBound < attributeDiscretization->GetIntervalBoundNumber(); nBound++)
-			cvAllBounds.Add(attributeDiscretization->GetIntervalBoundAt(nBound));
+		{
+			cBound = attributeDiscretization->GetIntervalBoundAt(nBound);
+			if (cBound != KWContinuous::GetMissingValue())
+				cvAllBounds.Add(cBound);
+		}
 	}
 
 	// Tri de toutes les bornes
@@ -335,7 +351,8 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionDiscretizations(
 	ensure(resultDiscretization->Check());
 }
 
-void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWAttributeStats* attributeStats,
+void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWDGAttribute* innerAttribute,
+								       const KWAttributeStats* attributeStats,
 								       const ObjectArray* oaAttributeGroupings,
 								       KWDGSAttributeGrouping* resultGrouping) const
 {
@@ -344,6 +361,7 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWA
 	NumericKeyDictionary nkdValueSignatures;
 	ObjectArray oaValueSignatures;
 	KWValueSignature* valueSignature;
+	KWValueSignature* defaultValueSignature;
 	SymbolVector svResultValues;
 	IntVector ivResultGroupFirstValueIndexes;
 	int n;
@@ -351,9 +369,15 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWA
 	int nValue;
 	int nDefaultGroupIndex;
 	Symbol sValue;
+	KWDGPart* innerAttributeDefaultPart;
+	Symbol sInnerAttributeDefaultPartValue;
+	KWDGPart* innerAttributePart;
 
+	require(innerAttribute != NULL);
+	require(innerAttribute->GetAttributeType() == KWType::Symbol);
 	require(attributeStats != NULL);
 	require(attributeStats->GetAttributeType() == KWType::Symbol);
+	require(attributeStats->GetAttributeName() == innerAttribute->GetAttributeName());
 	require(oaAttributeGroupings != NULL);
 	require(oaAttributeGroupings->GetSize() > 0);
 	require(resultGrouping != NULL);
@@ -449,6 +473,55 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWA
 		}
 	}
 
+	// Recherche de la partie par defaut de l'attribut interne, qui contient une valeur en plus de la StarValue
+	innerAttributeDefaultPart = innerAttribute->GetTailPart();
+	assert(innerAttributeDefaultPart->GetSymbolValueSet()->GetTailValue()->GetSymbolValue() ==
+	       Symbol::GetStarValue());
+	assert(innerAttributeDefaultPart->GetSymbolValueSet()->GetHeadValue() !=
+	       innerAttributeDefaultPart->GetSymbolValueSet()->GetTailValue());
+
+	// Recherche de la valeur associee a la partie par defaut
+	sInnerAttributeDefaultPartValue =
+	    innerAttributeDefaultPart->GetSymbolValueSet()->GetHeadValue()->GetSymbolValue();
+	assert(sInnerAttributeDefaultPartValue != Symbol::GetStarValue());
+
+	// On remplace la signature de la valeur par defaut pour qu'elle soit dans le meme groupe que la
+	// valeur avec laquelle elle cohabite, sauf cette valeur ne fait pas partie des specification de groupement
+	defaultValueSignature =
+	    cast(KWValueSignature*, nkdValueSignatures.Lookup(Symbol::GetStarValue().GetNumericKey()));
+	valueSignature =
+	    cast(KWValueSignature*, nkdValueSignatures.Lookup(sInnerAttributeDefaultPartValue.GetNumericKey()));
+	assert(defaultValueSignature != NULL);
+	if (valueSignature != NULL)
+		defaultValueSignature->GetSignature()->CopyFrom(valueSignature->GetSignature());
+
+	// Parcours de toutes les valeurs initiales de l'attribut interne pour identifier celles qui ne sont
+	// specifiees dans aucun groupe et on les associe au groupe par defaut, via la meme signature
+	innerAttributePart = innerAttribute->GetHeadPart();
+	while (innerAttributePart != NULL)
+	{
+		assert(innerAttributePart->GetSymbolValueSet()->GetValueNumber() == 1);
+
+		// Recherche de la valeur de la partie singleton
+		sValue = innerAttributePart->GetSymbolValueSet()->GetHeadValue()->GetSymbolValue();
+
+		// Creation de la signature si necessaire, en prenant la meme signature que celle du groupe par defaut
+		valueSignature = cast(KWValueSignature*, nkdValueSignatures.Lookup(sValue.GetNumericKey()));
+		if (valueSignature == NULL)
+		{
+			valueSignature = new KWValueSignature;
+			valueSignature->SetValue(sValue);
+			valueSignature->GetSignature()->CopyFrom(defaultValueSignature->GetSignature());
+
+			// Enregistrement
+			nkdValueSignatures.SetAt(sValue.GetNumericKey(), valueSignature);
+			oaValueSignatures.Add(valueSignature);
+		}
+
+		// Partie suivante
+		innerAttribute->GetNextPart(innerAttributePart);
+	}
+
 	// Tri des signatures pour identifier les groupes uniques
 	oaValueSignatures.SetCompareFunction(KWValueSignatureCompare);
 	oaValueSignatures.Sort();
@@ -485,7 +558,7 @@ void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionGroupings(const KWA
 			valueSignature = cast(KWValueSignature*, oaValueSignatures.GetAt(nValue));
 			cout << "\t" << *valueSignature << "\n";
 		}
-		cout << *resultGrouping << "\n";
+		cout << "Grouping\n" << *resultGrouping << "\n";
 	}
 
 	// Nettoyage
