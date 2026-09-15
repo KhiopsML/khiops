@@ -10,6 +10,7 @@
 #include "InputBufferedFile.h"
 #include "SystemFileDriver.h"
 #include "HugeBuffer.h"
+#include "SystemFileOstream.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // classe PLRemoteFileService
@@ -79,6 +80,17 @@ public:
 
 	// Renvoie true si les deux fichiers sont strictement identiques
 	static boolean FileCompare(const ALString& sFileName1, const ALString& sFileName2);
+
+	//////////////////////////////////////////////////////////////////
+	// Methodes utilitaire d'ouverture de fichiers locaux ou distants,
+	// avec emission d'erreur en cas de probleme d'ouverture ou de fermeture
+
+	// Ouverture d'un fichier texte en ecriture
+	static boolean OpenOutputFile(const ALString& sFilePathName, SystemFileOstream& sfo);
+	static boolean OpenOutputFileForAppend(const ALString& sFilePathName, SystemFileOstream& sfo);
+
+	// Fermeture d'un fichier texte en ecriture, avec test de validite
+	static boolean CloseOutputFile(const ALString& sFilePathName, SystemFileOstream& sfo);
 
 	//////////////////////////////////////////////////////////////////
 	// Methodes qui utilisent les drivers de fichiers pour ouvrir et fermer les fichiers
