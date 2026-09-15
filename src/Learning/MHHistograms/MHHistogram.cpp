@@ -654,14 +654,16 @@ void MHHistogram::Write(ostream& ost) const
 
 void MHHistogram::WriteFile(const ALString& sFileName) const
 {
-	fstream fstOutput;
+	SystemFileOstream fstOutput;
 	boolean bOk;
 
-	bOk = FileService::OpenOutputFile(sFileName, fstOutput);
+	// Ouverture du fichier en ecriture et en evitant d'ecrire a chaque Flush ou endl
+	fstOutput.SetFlushStandardMode(false);
+	bOk = PLRemoteFileService::OpenOutputFile(sFileName, fstOutput);
 	if (bOk)
 	{
 		Write(fstOutput);
-		FileService::CloseOutputFile(sFileName, fstOutput);
+		PLRemoteFileService::CloseOutputFile(sFileName, fstOutput);
 	}
 }
 
