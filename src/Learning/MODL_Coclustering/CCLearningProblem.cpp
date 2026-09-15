@@ -131,7 +131,6 @@ void CCLearningProblem::BuildCoclustering()
 	KWLearningSpec learningSpec;
 	CCCoclusteringBuilder coclusteringBuilder;
 	CCCoclusteringReport coclusteringReport;
-	fstream ost;
 	ALString sTmp;
 	int nAttribute;
 	KWAttribute* kwAttribute;
@@ -473,9 +472,8 @@ void CCLearningProblem::ExtractClusters(const ALString& sCoclusteringAttributeNa
 	boolean bOk = true;
 	CCCoclusteringReport coclusteringReport;
 	ALString sCoclusteringReportFileName;
-	fstream fstClusterTableFile;
+	SystemFileOstream sfoClusterTableFile;
 	ALString sClusterTableFileName;
-	ALString sLocalFileName;
 	CCHierarchicalDataGrid coclusteringDataGrid;
 	CCCoclusteringReport postProcessedcoclusteringReport;
 	CCHDGAttribute* coclusteringAttribute;
@@ -520,39 +518,30 @@ void CCLearningProblem::ExtractClusters(const ALString& sCoclusteringAttributeNa
 	{
 		AddSimpleMessage("Write cluster table file " + sClusterTableFileName);
 
-		// Preparation de la copie sur HDFS si necessaire
-		bOk = PLRemoteFileService::BuildOutputWorkingFile(sClusterTableFileName, sLocalFileName);
-
-		// Ouverture du fichier de rapport en ecriture
-		if (bOk)
-			bOk = FileService::OpenOutputFile(sLocalFileName, fstClusterTableFile);
+		// Ouverture du fichier en evitant d'ecrire a chaque Flush ou endl
+		sfoClusterTableFile.SetFlushStandardMode(false);
+		bOk = PLRemoteFileService::OpenOutputFile(sClusterTableFileName, sfoClusterTableFile);
 		if (bOk)
 		{
 			// Ecriture des clusters selon le type de la variable
 			if (coclusteringAttribute->GetAttributeType() == KWType::Symbol)
-				WriteGroupableClusters(coclusteringAttribute, fstClusterTableFile);
+				WriteGroupableClusters(coclusteringAttribute, sfoClusterTableFile);
 			else if (coclusteringAttribute->GetAttributeType() == KWType::Continuous)
-				WriteContinuousClusters(coclusteringAttribute, fstClusterTableFile);
+				WriteContinuousClusters(coclusteringAttribute, sfoClusterTableFile);
 			else if (coclusteringAttribute->GetAttributeType() == KWType::VarPart)
 			{
 				// Cas d'une variable de type VarPart : ajout d'un descriptif des parties de variable
 				// des attributs internes
-				WriteGroupableClusters(coclusteringAttribute, fstClusterTableFile);
+				WriteGroupableClusters(coclusteringAttribute, sfoClusterTableFile);
 				WriteVarPartsInnerAttributes(coclusteringAttribute);
 			}
 
 			// Ecriture du rapport
-			bOk = FileService::CloseOutputFile(sLocalFileName, fstClusterTableFile);
+			bOk = PLRemoteFileService::CloseOutputFile(sClusterTableFileName, sfoClusterTableFile);
 
 			// Destruction du fichier si erreur
 			if (not bOk)
-				FileService::RemoveFile(sLocalFileName);
-		}
-
-		if (bOk)
-		{
-			// Copie vers HDFS
-			PLRemoteFileService::CleanOutputWorkingFile(sClusterTableFileName, sLocalFileName);
+				FileService::RemoveFile(sClusterTableFileName);
 		}
 	}
 
@@ -1220,10 +1209,8 @@ void CCLearningProblem::WriteVarPartsInnerAttributes(const CCHDGAttribute* varPa
 	ALString sGroupsTableFileName;
 	ALString sIntervalsTableSuffix = "intervals.txt";
 	ALString sModalitiesTableSuffix = "groups.txt";
-	ALString sLocalIntervalsFileName;
-	ALString sLocalGroupsFileName;
-	fstream fstIntervalsTableFile;
-	fstream fstGroupsTableFile;
+	SystemFileOstream sfoIntervalsTableFile;
+	SystemFileOstream sfoGroupsTableFile;
 	const KWDGInnerAttributes* innerAttributes;
 	KWDGAttribute* innerAttribute;
 	int nIndex;
@@ -1238,16 +1225,13 @@ void CCLearningProblem::WriteVarPartsInnerAttributes(const CCHDGAttribute* varPa
 	sGroupsTableFileName =
 	    GetResultFilePathBuilder(TaskExtractClusters)->BuildOtherResultFilePathName(sModalitiesTableSuffix);
 
-	// Preparation de la copie sur HDFS si necessaire
-	bIntervalsOk = PLRemoteFileService::BuildOutputWorkingFile(sIntervalsTableFileName, sLocalIntervalsFileName);
-	// Ouverture du fichier de rapport en ecriture
-	if (bIntervalsOk)
-		bIntervalsOk = FileService::OpenOutputFile(sLocalIntervalsFileName, fstIntervalsTableFile);
+	// Ouverture du fichier de rapport en ecriture en evitant d'ecrire a chaque flush ou endl
+	sfoIntervalsTableFile.SetFlushStandardMode(false);
+	bIntervalsOk = PLRemoteFileService::OpenOutputFile(sIntervalsTableFileName, sfoIntervalsTableFile);
 
-	bGroupsOk = PLRemoteFileService::BuildOutputWorkingFile(sGroupsTableFileName, sLocalGroupsFileName);
-	// Ouverture du fichier de rapport en ecriture
-	if (bGroupsOk)
-		bGroupsOk = FileService::OpenOutputFile(sLocalGroupsFileName, fstGroupsTableFile);
+	// Ouverture du fichier de rapport en ecriture en evitant d'ecrire a chaque flush ou endl
+	sfoGroupsTableFile.SetFlushStandardMode(false);
+	bGroupsOk = PLRemoteFileService::OpenOutputFile(sGroupsTableFileName, sfoGroupsTableFile);
 
 	// Extraction des attributs internes
 	innerAttributes = varPartCoclusteringAttribute->GetDataGrid()->GetInnerAttributes();
@@ -1265,13 +1249,13 @@ void CCLearningProblem::WriteVarPartsInnerAttributes(const CCHDGAttribute* varPa
 				if (bFirstContinuousAttribute)
 				{
 					// Entete
-					fstIntervalsTableFile << "VarPart\tLower bound\tUpper bound\n";
-					WriteContinuousInnerAttribute(innerAttribute, fstIntervalsTableFile);
+					sfoIntervalsTableFile << "VarPart\tLower bound\tUpper bound\n";
+					WriteContinuousInnerAttribute(innerAttribute, sfoIntervalsTableFile);
 					bFirstContinuousAttribute = false;
 				}
 				// Sinon
 				else
-					WriteContinuousInnerAttribute(innerAttribute, fstIntervalsTableFile);
+					WriteContinuousInnerAttribute(innerAttribute, sfoIntervalsTableFile);
 			}
 			// Sinon, cas d'un attribut de type categoriel
 			if (innerAttribute->GetAttributeType() == KWType::Symbol)
@@ -1280,36 +1264,24 @@ void CCLearningProblem::WriteVarPartsInnerAttributes(const CCHDGAttribute* varPa
 				if (bFirstSymbolAttribute)
 				{
 					// Entete
-					fstGroupsTableFile << "VarPart\tModality\n";
-					WriteSymbolInnerAttribute(innerAttribute, fstGroupsTableFile);
+					sfoGroupsTableFile << "VarPart\tModality\n";
+					WriteSymbolInnerAttribute(innerAttribute, sfoGroupsTableFile);
 					bFirstSymbolAttribute = false;
 				}
 				else
-					WriteSymbolInnerAttribute(innerAttribute, fstGroupsTableFile);
+					WriteSymbolInnerAttribute(innerAttribute, sfoGroupsTableFile);
 			}
 		}
-		// Ecriture du rapport
-		bIntervalsOk = FileService::CloseOutputFile(sLocalIntervalsFileName, fstIntervalsTableFile);
 
-		// Destruction du fichier si erreur
+		// Ecriture des rapports
+		bIntervalsOk = PLRemoteFileService::CloseOutputFile(sIntervalsTableFileName, sfoIntervalsTableFile);
+		bGroupsOk = PLRemoteFileService::CloseOutputFile(sGroupsTableFileName, sfoGroupsTableFile);
+
+		// Destruction des fichiers si erreur
 		if (not bIntervalsOk)
-			FileService::RemoveFile(sLocalIntervalsFileName);
-
-		bGroupsOk = FileService::CloseOutputFile(sLocalGroupsFileName, fstGroupsTableFile);
-
-		// Destruction du fichier si erreur
+			FileService::RemoveFile(sIntervalsTableFileName);
 		if (not bGroupsOk)
-			FileService::RemoveFile(sLocalGroupsFileName);
-	}
-	if (bIntervalsOk)
-	{
-		// Copie vers HDFS
-		PLRemoteFileService::CleanOutputWorkingFile(sIntervalsTableFileName, sLocalIntervalsFileName);
-	}
-	if (bGroupsOk)
-	{
-		// Copie vers HDFS
-		PLRemoteFileService::CleanOutputWorkingFile(sGroupsTableFileName, sLocalGroupsFileName);
+			FileService::RemoveFile(sGroupsTableFileName);
 	}
 }
 
