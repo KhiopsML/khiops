@@ -5,7 +5,6 @@
 #pragma once
 
 #include "BufferedFile.h"
-#include "PLRemoteFileService.h"
 #include "Timer.h"
 
 // Classe qui permet d'ecrire dans un fichier.

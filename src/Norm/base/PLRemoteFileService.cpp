@@ -368,6 +368,68 @@ boolean PLRemoteFileService::FileCompare(const ALString& sFileName1, const ALStr
 	return bSame;
 }
 
+boolean PLRemoteFileService::OpenOutputFile(const ALString& sFilePathName, SystemFileOstream& sfo)
+{
+	boolean bOk;
+
+	p_SetMachineLocale();
+
+	// Test si nom de fichier renseigne
+	bOk = (sFilePathName != "");
+	if (not bOk)
+		Global::AddError("File", sFilePathName, "Unable to open output file (missing file name)");
+	// Tentative d'ouverture du fichier
+	else
+	{
+		sfo.SetFileName(sFilePathName);
+		bOk = sfo.Open();
+		// Les messages d'erreur sont affiches par Open()
+	}
+	p_SetApplicationLocale();
+	return bOk;
+}
+
+boolean PLRemoteFileService::OpenOutputFileForAppend(const ALString& sFilePathName, SystemFileOstream& sfo)
+{
+	boolean bOk;
+
+	p_SetMachineLocale();
+
+	// Test si nom de fichier renseigne
+	bOk = (sFilePathName != "");
+	if (not bOk)
+		Global::AddError("File", sFilePathName, "Unable to open output file for append (missing file name)");
+	// Tentative d'ouverture du fichier
+	else
+	{
+		sfo.SetFileName(sFilePathName);
+		bOk = sfo.OpenForAppend();
+		// Les messages d'erreur sont affiches par OpenForAppend()
+	}
+	p_SetApplicationLocale();
+	return bOk;
+}
+
+boolean PLRemoteFileService::CloseOutputFile(const ALString& sFilePathName, SystemFileOstream& sfo)
+{
+	boolean bOk;
+
+	p_SetMachineLocale();
+
+	// Test si nom de fichier renseigne
+	bOk = (sFilePathName != "");
+	if (not bOk)
+		Global::AddError("File", sFilePathName, "Unable to close output file (missing file name)");
+	// Tentative de fermeture du fichier
+	else
+	{
+		bOk = sfo.Close();
+		// Les messages d'erreur sont affiches par Close()
+	}
+	p_SetApplicationLocale();
+	return bOk;
+}
+
 boolean PLRemoteFileService::OpenInputBinaryFile(const ALString& sURI, SystemFile*& fFile)
 {
 	boolean bOk;
