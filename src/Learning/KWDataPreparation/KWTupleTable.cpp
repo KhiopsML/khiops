@@ -518,23 +518,24 @@ void KWTupleTable::Write(ostream& ost) const
 
 void KWTupleTable::WriteFile(const ALString& sFileName)
 {
-	fstream fstReport;
+	SystemFileOstream ostReport;
 	boolean bOk;
 	int nAttribute;
 	int nTuple;
 	const KWTuple* tuple;
 
-	// Ouverture du fichier en ecriture
-	bOk = FileService::OpenOutputFile(sFileName, fstReport);
+	// Ouverture du fichier en ecriture et en evitant d'ecrire a chaque Flush ou endl
+	ostReport.SetFlushStandardMode(false);
+	bOk = PLRemoteFileService::OpenOutputFile(sFileName, ostReport);
 	if (bOk)
 	{
 		// Ecriture de l'entete
 		for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
 		{
-			fstReport << GetAttributeNameAt(nAttribute);
-			fstReport << "\t";
+			ostReport << GetAttributeNameAt(nAttribute);
+			ostReport << "\t";
 		}
-		fstReport << "Frequency\n";
+		ostReport << "Frequency\n";
 
 		// Ecriture des tuples
 		for (nTuple = 0; nTuple < GetSize(); nTuple++)
@@ -545,17 +546,17 @@ void KWTupleTable::WriteFile(const ALString& sFileName)
 			for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
 			{
 				if (GetAttributeTypeAt(nAttribute) == KWType::Symbol)
-					fstReport << tuple->GetSymbolAt(nAttribute).GetValue();
+					ostReport << tuple->GetSymbolAt(nAttribute).GetValue();
 				else
-					fstReport
+					ostReport
 					    << KWContinuous::ContinuousToString(tuple->GetContinuousAt(nAttribute));
-				fstReport << "\t";
+				ostReport << "\t";
 			}
-			fstReport << tuple->GetFrequency() << "\n";
+			ostReport << tuple->GetFrequency() << "\n";
 		}
 
 		// Fermeture du fichier
-		FileService::CloseOutputFile(sFileName, fstReport);
+		PLRemoteFileService::CloseOutputFile(sFileName, ostReport);
 	}
 }
 
