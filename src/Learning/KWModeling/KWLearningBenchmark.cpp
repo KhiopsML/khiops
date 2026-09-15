@@ -342,26 +342,18 @@ const KWStatisticalEvaluation* KWLearningBenchmark::GetEvaluationAt(int nCriteri
 
 void KWLearningBenchmark::WriteReportFile(const ALString& sFileName) const
 {
-	fstream ost;
+	SystemFileOstream ost;
 	boolean bOk;
-	ALString sLocalFileName;
 
-	// Preparation de la copie sur HDFS si necessaire
-	bOk = PLRemoteFileService::BuildOutputWorkingFile(sFileName, sLocalFileName);
-	if (bOk)
-		bOk = FileService::OpenOutputFile(sLocalFileName, ost);
+	// Ouverture du fichier en ecriture et en evitant d'ecrire a chaque Flush ou endl
+	ost.SetFlushStandardMode(false);
+	bOk = PLRemoteFileService::OpenOutputFile(sFileName, ost);
 	if (bOk)
 	{
 		if (GetLearningReportHeaderLine() != "")
 			ost << GetLearningReportHeaderLine() << "\n";
 		WriteReport(ost);
-		bOk = FileService::CloseOutputFile(sLocalFileName, ost);
-	}
-
-	if (bOk)
-	{
-		// Copie vers HDFS
-		PLRemoteFileService::CleanOutputWorkingFile(sFileName, sLocalFileName);
+		bOk = PLRemoteFileService::CloseOutputFile(sFileName, ost);
 	}
 }
 
