@@ -115,26 +115,21 @@ boolean JSONValue::ReadFile(const ALString& sFileName)
 boolean JSONValue::WriteFile(const ALString& sFileName) const
 {
 	boolean bOk = true;
-	ALString sLocalFileName;
-	fstream fstJson;
+	SystemFileOstream ostJson;
 
-	// Preparation de la copie sur HDFS si necessaire
-	bOk = PLRemoteFileService::BuildOutputWorkingFile(sFileName, sLocalFileName);
-
-	// Ouverture du fichier
-	if (bOk)
-		bOk = FileService::OpenOutputFile(sLocalFileName, fstJson);
+	// Ouverture du fichier en evitant d'ecrire a chaque flush et endl
+	ostJson.SetFlushStandardMode(false);
+	bOk = PLRemoteFileService::OpenOutputFile(sFileName, ostJson);
 
 	// Ecriture
 	if (bOk)
-		Write(fstJson);
+	{
+		Write(ostJson);
 
-	// Fermeture du fichier
-	if (bOk)
-		bOk = FileService::CloseOutputFile(sLocalFileName, fstJson);
+		// Fermeture du fichier
+		bOk = PLRemoteFileService::CloseOutputFile(sFileName, ostJson);
+	}
 
-	// Copie vers HDFS si necessaire
-	PLRemoteFileService::CleanOutputWorkingFile(sFileName, sLocalFileName);
 	return bOk;
 }
 
