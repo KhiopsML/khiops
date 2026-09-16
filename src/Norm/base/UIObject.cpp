@@ -2140,18 +2140,12 @@ boolean UIObject::BatchCommand(const ALString& sParameter)
 
 boolean UIObject::ErrorCommand(const ALString& sErrorLog)
 {
-	boolean bOk;
-	sErrorLogFileName = sErrorLog;
-	bOk = PLRemoteFileService::BuildOutputWorkingFile(sErrorLogFileName, sLocalErrorLogFileName);
-	if (bOk)
-	{
-		Global::SetErrorLogFileName(sLocalErrorLogFileName);
-	}
+	Global::SetErrorLogFileName(sErrorLog);
 
 	// En mode Graphic on renvoie systematiquement true : on permet de lancer l'outil meme si on ne peut
 	// pas ecrire dans le fichier de log (les options -e et -o sont passees par defaut a l'outil dans les scripts de
 	// lancement bash ou cmd) En mode Textual on est plus strict (utilisation via python, java ou sur cluster)
-	return not IsBatchMode() or bOk;
+	return not IsBatchMode();
 }
 
 boolean UIObject::TaskProgressionCommand(const ALString& sTaskFile)
@@ -2176,9 +2170,6 @@ void UIObject::CleanCommandLineManagement()
 	{
 		// Fermeture du fichier de log (la reinitialisation entraine la fermeture du fichier)
 		Global::SetErrorLogFileName("");
-
-		// Copie vers HDFS si necessaire
-		PLRemoteFileService::CleanOutputWorkingFile(sErrorLogFileName, sLocalErrorLogFileName);
 	}
 }
 
@@ -2260,8 +2251,6 @@ ObjectDictionary UIObject::odListIndexCommands;
 ALString UIObject::sIconImageJarPath;
 void* UIObject::jvmHandle = NULL;
 boolean UIObject::bIsJVMLoaded = false;
-ALString UIObject::sLocalErrorLogFileName;
-ALString UIObject::sErrorLogFileName;
 ALString UIObject::sTaskProgressionLogFileName;
 CommandLine UIObject::commandLineOptions;
 boolean UIObject::bNoReplayMode = false;
