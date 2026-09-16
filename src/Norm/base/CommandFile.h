@@ -353,11 +353,10 @@ protected:
 
 	// Variante locale des noms de fichier de commande, dans le cas de fichiers HDFS
 	ALString sLocalInputCommandFileName;
-	ALString sLocalOutputCommandFileName;
 
 	// Fichiers de gestion des commandes
 	FILE* fInputCommands;
-	FILE* fOutputCommands;
+	SystemFileOstream sfoOutputCommands;
 
 	// Object json pour les parametres en entree
 	JSONObject jsonParameters;

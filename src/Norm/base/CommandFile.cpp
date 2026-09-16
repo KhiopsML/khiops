@@ -8,8 +8,9 @@ CommandFile::CommandFile()
 {
 	bBatchMode = false;
 	bPrintOutputInConsole = false;
-	fInputCommands = NULL;
-	fOutputCommands = NULL;
+
+	// Pour les fichiers de sortie des commandes, on fixe la taille du buffer a 4 Ko (au lieu de 8Mo ou plus)
+	sfoOutputCommands.SetBufferSize(4 * lKB);
 	ResetParser();
 	assert(nMaxLineLength < BUFFER_LENGTH);
 	assert(nMaxJsonKeyLength + nMaxStringValueLength < nMaxLineLength);
@@ -197,31 +198,26 @@ boolean CommandFile::OpenOutputCommandFile()
 	// Creation si necessaire des repertoires intermediaires
 	PLRemoteFileService::MakeDirectories(FileService::GetPathName(sOutputCommandFileName));
 
-	// Preparation pour HDFS si necessaire
-	bOk = PLRemoteFileService::BuildOutputWorkingFile(sOutputCommandFileName, sLocalOutputCommandFileName);
-
 	// Fermeture du fichier si celui-ci est deja ouvert
 	// Ce cas peut arriver si on appelle plusieurs fois ParseParameters (notamment via MODL_dll)
-	if (fOutputCommands != NULL)
+	if (sfoOutputCommands.IsOpened())
 	{
-		fclose(fOutputCommands);
-		fOutputCommands = NULL;
+		sfoOutputCommands.Close();
 	}
 
+	// On ecrit dans le fichier a chaque flush ou endl seulement sit il est local
+	if (FileService::GetURIScheme(sOutputCommandFileName) != "")
+		sfoOutputCommands.SetFlushStandardMode(false);
+
 	// Ouverture du fichier en ecriture
-	if (bOk)
-		fOutputCommands = p_fopen(sLocalOutputCommandFileName, "w");
-	if (fOutputCommands == NULL)
-	{
-		AddOutputCommandFileError("Unable to open file");
-		bOk = false;
-	}
+	sfoOutputCommands.SetFileName(sOutputCommandFileName);
+	bOk = sfoOutputCommands.Open();
 	return bOk;
 }
 
 boolean CommandFile::IsOutputCommandFileOpened() const
 {
-	return fOutputCommands != NULL;
+	return sfoOutputCommands.IsOpened();
 }
 
 boolean CommandFile::AreCommandFilesOpened() const
@@ -311,13 +307,9 @@ void CommandFile::CloseInputCommandFile()
 void CommandFile::CloseOutputCommandFile()
 {
 	// Fermeture du fichier de sortie, uniquement en mode batch (sinon, on enregistre toujours le scenario)
-	if (fOutputCommands != NULL)
+	if (sfoOutputCommands.IsOpened())
 	{
-		fclose(fOutputCommands);
-		fOutputCommands = NULL;
-
-		// Copie vers HDFS si necessaire
-		PLRemoteFileService::CleanOutputWorkingFile(sOutputCommandFileName, sLocalOutputCommandFileName);
+		sfoOutputCommands.Close();
 	}
 }
 
@@ -564,7 +556,7 @@ boolean CommandFile::IsInputCommandEnd() const
 
 void CommandFile::WriteOutputCommand(const ALString& sIdentifierPath, const ALString& sValue, const ALString& sLabel)
 {
-	if (fOutputCommands != NULL)
+	if (sfoOutputCommands.IsOpened())
 	{
 		ALString sCommand;
 		int nCommandLength;
@@ -581,17 +573,16 @@ void CommandFile::WriteOutputCommand(const ALString& sIdentifierPath, const ALSt
 
 		// Si redirection vers la console, on ajoute un prefixe
 		if (bPrintOutputInConsole)
-			fprintf(fOutputCommands, "Khiops.command\t");
+			sfoOutputCommands << "Khiops.command\t";
 
 		// Impression
 		if (sCommand == "" and sLabel == "")
-			fprintf(fOutputCommands, "\n");
+			sfoOutputCommands << endl;
 		else if (sCommand == "")
-			fprintf(fOutputCommands, sCommentPrefix + " %s\n", (const char*)sLabel);
+			sfoOutputCommands << sCommentPrefix << " " << sLabel << endl;
 		else
-			fprintf(fOutputCommands, "%-*.*s // %s\n", nCommandLength, nCommandLength,
-				(const char*)sCommand, (const char*)sLabel);
-		fflush(fOutputCommands);
+			sfoOutputCommands << std::setw(nCommandLength) << std::left << (const char*)sCommand << " // "
+					  << (const char*)sLabel << endl;
 	}
 }
 
