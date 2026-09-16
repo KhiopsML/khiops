@@ -66,6 +66,16 @@ void UIUnit::Open()
 	require(Check());
 	require(GetVisible() == true);
 
+#ifdef __APPLE__
+	// Le premier appel sur le thread principal reouvre recursivement l'unite sur le thread secondaire;
+	// ce second appel poursuit l'execution normale car pthread_main_np() renvoie alors false.
+	if (GetUIMode() == Graphic and pthread_main_np())
+	{
+		MacosRunGUI([](void* context) { ((UIUnit*)context)->Open(); }, this);
+		return;
+	}
+#endif
+
 	// Flag d'ouverture de la fenetre, permettant de synchroniser
 	bIsOpened = true;
 
