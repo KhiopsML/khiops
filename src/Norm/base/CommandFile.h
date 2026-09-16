@@ -330,6 +330,11 @@ protected:
 	// On renvoie true s'il y a au moins une erreur
 	boolean DetectedUnusedJsonParameterMembers() const;
 
+	// Lecture de la prochaine ligne du fichier de commande en entree, en remplissant le buffer si necessaire
+	// En cas de ligne trop longue, bLineTooLong est mis a true
+	// Retourne la ligne lue, ou une chaine vide si fin de fichier, erreurc ou ligne trop longue
+	ALString ReadNextCommandFileLine(InputBufferedFile* ibf, boolean& bLineTooLong) const;
+
 	///////////////////////////////////////////////////////////////
 	// Variables de specification des fichiers et parametres de commandes
 
@@ -351,11 +356,8 @@ protected:
 	// Redirection de la sortie outputCommand vers la console
 	boolean bPrintOutputInConsole;
 
-	// Variante locale des noms de fichier de commande, dans le cas de fichiers HDFS
-	ALString sLocalInputCommandFileName;
-
 	// Fichiers de gestion des commandes
-	FILE* fInputCommands;
+	InputBufferedFile ibfInputCommands;
 	SystemFileOstream sfoOutputCommands;
 
 	// Object json pour les parametres en entree
