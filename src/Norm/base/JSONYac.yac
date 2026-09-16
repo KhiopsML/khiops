@@ -493,6 +493,11 @@ int JSONValue::GetLineno()
 	return jsonlineno;
 }
 
+void JSONValue::SetInputSystemFile(SystemFile* sfInputFile)
+{
+	jsonSystemFile = sfInputFile;
+}
+
 void JSONValue::Restart(FILE* inputFile) 
 {
 	jsonrestart(inputFile);
