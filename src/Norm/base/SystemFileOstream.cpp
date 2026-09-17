@@ -181,6 +181,17 @@ boolean SystemFileOstream::GetFlushStandardMode() const
 	return streamBuffer.GetFlushOnSync();
 }
 
+void SystemFileOstream::SetBufferSize(int nBufferSize)
+{
+	assert(not outputBufferedFile.IsOpened());
+	outputBufferedFile.SetBufferSize(nBufferSize);
+}
+
+int SystemFileOstream::GetBufferSize() const
+{
+	return outputBufferedFile.GetBufferSize();
+}
+
 boolean SystemFileOstream::Test()
 {
 	boolean bOk;
