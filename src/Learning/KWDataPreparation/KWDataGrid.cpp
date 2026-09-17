@@ -672,233 +672,12 @@ KWDGAttribute* KWDataGrid::NewAttribute() const
 
 boolean KWDataGrid::Check() const
 {
-	boolean bOk = true;
-	ObjectDictionary odAttributes;
-	int nAttribute;
-	KWDGAttribute* attribute;
-	KWDGPart* part;
-	KWDGCell* cell;
-	int nAttributeCellNumber;
-	int nTargetAttributeNumber;
-	int nVarTypeAttributeNumber;
-	ALString sTmp;
+	return InternalCheck(false);
+}
 
-	// Initialisation des nombres d'attributs a verifier
-	nTargetAttributeNumber = 0;
-	nVarTypeAttributeNumber = 0;
-
-	// Verification de la granularite
-	if (nGranularity < 0)
-	{
-		AddError(sTmp + "Granularity " + IntToString(nGranularity) + "  must be an integer greater than 0");
-		bOk = false;
-	}
-	else if (GetGridFrequency() > 0 and (nGranularity > (int)ceil(log(GetGridFrequency()) / log(2.0))))
-	{
-		AddError(sTmp + "Granularity " + IntToString(nGranularity) +
-			 "  must be an integer smaller than log2(N) " + IntToString(GetGridFrequency()));
-		bOk = false;
-	}
-	if (bOk and IsVarPartDataGrid() and nGranularity != 0)
-	{
-		AddError(sTmp + "Granularity must be 0 in a VarPart data grid");
-		bOk = false;
-	}
-
-	// Verification des attributs
-	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
-	{
-		attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
-
-		// Verification de l'attribut
-		bOk = bOk and attribute->Check();
-		if (not bOk)
-			break;
-
-		// On compte le nombre d'attributs tagges comme cible
-		if (attribute->GetAttributeTargetFunction())
-		{
-			nTargetAttributeNumber++;
-		}
-
-		// On compte le nombre d'attributs de type VarPart
-		if (attribute->GetAttributeType() == KWType::VarPart)
-		{
-			nVarTypeAttributeNumber++;
-		}
-
-		// Verification du lien entre l'attribut et la structure
-		if (attribute->GetAttributeIndex() != nAttribute)
-		{
-			attribute->AddError(sTmp + "The variable index does not correspond to " +
-					    "its rank in the parent structure (" + IntToString(nAttribute) + ")");
-			bOk = false;
-		}
-		if (attribute->dataGrid != this)
-		{
-			attribute->AddError("Variable incorrectly linked to its parent structure");
-			bOk = false;
-		}
-
-		// Rangement de l'attribut dans un dictionnaire, pour verifier son unicite
-		if (odAttributes.Lookup(attribute->GetAttributeName()) != NULL)
-		{
-			attribute->AddError("Another variable already exists with the same name");
-			bOk = false;
-		}
-		else
-			odAttributes.SetAt(attribute->GetAttributeName(), attribute);
-
-		// Calcul du nombre total de cellules references par l'attribut
-		nAttributeCellNumber = 0;
-		part = attribute->GetHeadPart();
-		while (part != NULL)
-		{
-			nAttributeCellNumber += part->GetCellNumber();
-			attribute->GetNextPart(part);
-		}
-
-		// Verification de la coherence avec le nombre total de cellules
-		if (nAttributeCellNumber != nCellNumber)
-		{
-			attribute->AddError(
-			    sTmp + "The number of cells in the variable (" + IntToString(nAttributeCellNumber) +
-			    ") is different with that of the data grid (" + IntToString(nCellNumber) + ")");
-			bOk = false;
-			break;
-		}
-	}
-
-	// Verification qu'il n'y a pas plus d'un attribut cible
-	if (bOk and nTargetAttributeNumber > 1)
-	{
-		AddError(sTmp + "There are " + IntToString(nTargetAttributeNumber) +
-			 " target variables in the data grid");
-		bOk = false;
-	}
-
-	// Verification que l'eventuel attribut cible est bien le dernier
-	if (bOk and nTargetAttributeNumber == 1)
-	{
-		check(GetTargetAttribute());
-		assert(GetAttributeAt(GetTargetAttribute()->GetAttributeIndex()) == GetTargetAttribute());
-		if (GetTargetAttribute()->GetAttributeIndex() != GetAttributeNumber() - 1)
-		{
-			AddError(sTmp + "The target variable should be the last variable in the data grid");
-			bOk = false;
-		}
-	}
-
-	// Verification de l'absence d'attribut cible si necessaire
-	if (bOk and nTargetAttributeNumber == 0)
-	{
-		if (GetTargetAttribute() != NULL)
-		{
-			AddError(sTmp + "A target variable is wrongly referenced");
-			bOk = false;
-		}
-	}
-
-	// Verification qu'il n'y a pas de valeurs cible en meme temps qu'un attribut cible
-	if (bOk and nTargetAttributeNumber == 1 and GetTargetValueNumber() > 0)
-	{
-		AddError(sTmp + "There are both " + IntToString(GetTargetValueNumber()) +
-			 " target values and one target variable (" + GetTargetAttribute()->GetAttributeName() +
-			 ") in the data grid");
-		bOk = false;
-	}
-
-	// Verifications par assertion de la memorisation de l'eventuel attribut de type VarPart
-	assert(not bOk or varPartAttribute == NULL or varPartAttribute->GetAttributeType() == KWType::VarPart);
-	assert(not bOk or varPartAttribute == NULL or
-	       SearchAttribute(varPartAttribute->GetAttributeName()) == varPartAttribute);
-	assert(not bOk or varPartAttribute == NULL or varPartAttribute->GetInnerAttributes() != NULL);
-	assert(not bOk or varPartAttribute == NULL or nVarTypeAttributeNumber > 0);
-	assert(not bOk or varPartAttribute != NULL or nVarTypeAttributeNumber == 0);
-
-	// Verification qu'il y au plus un attribut de type VarPart
-	if (bOk and nVarTypeAttributeNumber > 1)
-	{
-		AddError(sTmp + "There are " + IntToString(nVarTypeAttributeNumber) +
-			 " variables of type VarPart in the data grid");
-		bOk = false;
-	}
-
-	// Verification dans le cas d'un attribut de type VarPart
-	if (bOk and IsVarPartDataGrid())
-	{
-		assert(nVarTypeAttributeNumber == 1);
-
-		// Verification des attributs internes
-		bOk = GetInnerAttributes()->Check();
-
-		// Verification que les attributs de la grille sont distincts des attributs internes
-		if (bOk)
-		{
-			for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
-			{
-				attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
-
-				// Test d'existence parmi les attributs internes
-				if (GetVarPartAttribute()->GetInnerAttributes()->LookupInnerAttribute(
-					attribute->GetAttributeName()) != NULL)
-				{
-					AddError(sTmp + "Internal variable " + attribute->GetAttributeName() +
-						 " is already used with the same name among the data grid variables "
-						 "(index " +
-						 IntToString(attribute->GetAttributeIndex()) + ")");
-					break;
-					bOk = false;
-				}
-			}
-		}
-
-		// Verification de l'effectif total de la grille
-		// On ne fait la verification que si des cellules sont presentes, ce qui permet de verifier une grille
-
-		if (bOk and GetCellNumber() > 0 and
-		    GetInnerAttributes()->ComputeTotalInnerAttributeFrequency() != ComputeGridFrequency())
-		{
-			AddError(sTmp + "Grid frequency (" + IntToString(ComputeGridFrequency()) +
-				 ") is different from the total part frequency of the inner variables (" +
-				 IntToString(GetInnerAttributes()->ComputeTotalInnerAttributeFrequency()) + ")");
-		}
-	}
-
-	// Verification de toutes les cellules
-	if (bOk)
-	{
-		cell = headCell;
-		while (cell != NULL)
-		{
-			// Validite des parties d'attribut de la cellule
-			// (l'existence de la cellule est forcement verifiee)
-			if (bOk)
-			{
-				bOk = CheckCellParts(&(cell->oaParts));
-				if (not bOk)
-					cell->AddError("Incorrect referenced parts");
-			}
-
-			// Verification du referencement dans les listes des parties par attribut
-			if (bOk)
-			{
-				for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
-				{
-					// Test d'existence de la cellule dans la liste de la partie
-					part = cell->GetPartAt(nAttribute);
-					bOk = bOk and part->CheckCell(cell);
-					if (not bOk)
-						break;
-				}
-			}
-			if (not bOk)
-				break;
-			cell = cell->nextCell;
-		}
-	}
-
-	return bOk;
+boolean KWDataGrid::CheckPartially() const
+{
+	return InternalCheck(true);
 }
 
 longint KWDataGrid::GetUsedMemory() const
@@ -1196,7 +975,7 @@ void KWDataGrid::ImportDataGridStats(const KWDataGridStats* dataGridStats)
 	// Nettoyage
 	oaAttributePartitions.DeleteAll();
 
-	ensure(Check());
+	ensure(CheckPartially());
 	ensure(GetGridFrequency() == dataGridStats->ComputeGridFrequency());
 	ensure(GetTargetValueNumber() > 0 or GetAttributeNumber() == dataGridStats->GetAttributeNumber());
 	ensure(GetTargetValueNumber() == 0 or GetAttributeNumber() == dataGridStats->GetAttributeNumber() - 1);
@@ -1277,14 +1056,14 @@ void KWDataGrid::WriteAttributes(ostream& ost) const
 
 void KWDataGrid::WriteAttributeParts(ostream& ost) const
 {
+	const boolean bWritePartDetails = true;
+	const boolean bWriteValues = false;
 	int nAttribute;
 	KWDGAttribute* attribute;
 	KWDGPart* part;
 	const int nMaxDisplayedValue = 20;
 	int nDisplayedValue;
 	KWDGValue* value;
-	boolean bDisplayPartDetails = true;
-	boolean bDisplayAll = false;
 
 	// Liste des attributs et de leurs parties
 	ost << "Parts by variable"
@@ -1295,7 +1074,7 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 		ost << "\t" << attribute->GetAttributeName() << "\t" << attribute->GetPartNumber() << "\n";
 
 		// Parties de l'attribut
-		if (bDisplayPartDetails)
+		if (bWritePartDetails)
 		{
 			part = attribute->GetHeadPart();
 			while (part != NULL)
@@ -1327,10 +1106,13 @@ void KWDataGrid::WriteAttributeParts(ostream& ost) const
 				ost << "\n";
 
 				// Affichage complet des valeurs dans le cas d'un attribut groupable
-				if (bDisplayAll and KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()))
+				if (bWriteValues)
 				{
-					cout << part->GetValueSet()->GetClassLabel() << "\n";
-					part->GetValueSet()->Write(cout);
+					if (KWType::IsCoclusteringGroupableType(attribute->GetAttributeType()))
+					{
+						cout << part->GetValueSet()->GetClassLabel() << "\n";
+						part->GetValueSet()->Write(cout);
+					}
 				}
 
 				// Partie suivante
@@ -1576,7 +1358,7 @@ KWDataGrid* KWDataGrid::CreateTestDataGrid(int nSymbolAttributeNumber, int nCont
 					   int nAttributePartNumber, int nTargetValueNumber, int nInstanceNumber)
 {
 	KWDataGrid* testDataGrid;
-	boolean bDisplayInstanceCreation = false;
+	const boolean bTrace = false;
 	const ALString sAttributePrefix = "Att";
 	const ALString sTargetValuePrefix = "T";
 	const ALString sValuePrefix = "V";
@@ -1682,7 +1464,7 @@ KWDataGrid* KWDataGrid::CreateTestDataGrid(int nSymbolAttributeNumber, int nCont
 				cValue = (Continuous)(nAttributePartNumber * RandomDouble());
 				part = attribute->LookupContinuousPart(cValue);
 				oaParts.SetAt(nAttribute, part);
-				if (bDisplayInstanceCreation)
+				if (bTrace)
 					cout << cValue << "\t";
 			}
 			else
@@ -1690,7 +1472,7 @@ KWDataGrid* KWDataGrid::CreateTestDataGrid(int nSymbolAttributeNumber, int nCont
 				sValue = (Symbol)(sValuePrefix + IntToString(RandomInt(nAttributeValueNumber + 2)));
 				part = attribute->LookupSymbolPart(sValue);
 				oaParts.SetAt(nAttribute, part);
-				if (bDisplayInstanceCreation)
+				if (bTrace)
 					cout << sValue << "\t";
 			}
 		}
@@ -1700,7 +1482,7 @@ KWDataGrid* KWDataGrid::CreateTestDataGrid(int nSymbolAttributeNumber, int nCont
 		if (testDataGrid->GetTargetValueNumber() > 0)
 		{
 			nTargetValue = RandomInt(testDataGrid->GetTargetValueNumber() - 1);
-			if (bDisplayInstanceCreation)
+			if (bTrace)
 				cout << testDataGrid->GetTargetValueAt(nTargetValue) << "\t";
 		}
 
@@ -1716,7 +1498,7 @@ KWDataGrid* KWDataGrid::CreateTestDataGrid(int nSymbolAttributeNumber, int nCont
 			cell->UpgradeTargetFrequencyAt(nTargetValue, 1);
 
 		// Affichage de la cellule
-		if (bDisplayInstanceCreation)
+		if (bTrace)
 			cout << *cell;
 	}
 
@@ -1898,6 +1680,241 @@ void KWDataGrid::Test()
 		delete testDataGrid;
 		delete testDataGridStats;
 	}
+}
+
+boolean KWDataGrid::InternalCheck(boolean bCheckPartially) const
+{
+	boolean bOk = true;
+	ObjectDictionary odAttributes;
+	int nAttribute;
+	KWDGAttribute* attribute;
+	KWDGPart* part;
+	KWDGCell* cell;
+	int nAttributeCellNumber;
+	int nTargetAttributeNumber;
+	int nVarTypeAttributeNumber;
+	ALString sTmp;
+
+	// Initialisation des nombres d'attributs a verifier
+	nTargetAttributeNumber = 0;
+	nVarTypeAttributeNumber = 0;
+
+	// Verification de la granularite
+	if (nGranularity < 0)
+	{
+		AddError(sTmp + "Granularity " + IntToString(nGranularity) + "  must be an integer greater than 0");
+		bOk = false;
+	}
+	else if (GetGridFrequency() > 0 and (nGranularity > (int)ceil(log(GetGridFrequency()) / log(2.0))))
+	{
+		AddError(sTmp + "Granularity " + IntToString(nGranularity) +
+			 "  must be an integer smaller than log2(N) " + IntToString(GetGridFrequency()));
+		bOk = false;
+	}
+	if (bOk and IsVarPartDataGrid() and nGranularity != 0)
+	{
+		AddError(sTmp + "Granularity must be 0 in a VarPart data grid");
+		bOk = false;
+	}
+
+	// Verification des attributs
+	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
+	{
+		attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
+
+		// Verification de l'attribut
+		bOk = bOk and attribute->InternalCheck(bCheckPartially);
+		if (not bOk)
+			break;
+
+		// On compte le nombre d'attributs tagges comme cible
+		if (attribute->GetAttributeTargetFunction())
+		{
+			nTargetAttributeNumber++;
+		}
+
+		// On compte le nombre d'attributs de type VarPart
+		if (attribute->GetAttributeType() == KWType::VarPart)
+		{
+			nVarTypeAttributeNumber++;
+		}
+
+		// Verification du lien entre l'attribut et la structure
+		if (attribute->GetAttributeIndex() != nAttribute)
+		{
+			attribute->AddError(sTmp + "The variable index does not correspond to " +
+					    "its rank in the parent structure (" + IntToString(nAttribute) + ")");
+			bOk = false;
+		}
+		if (attribute->dataGrid != this)
+		{
+			attribute->AddError("Variable incorrectly linked to its parent structure");
+			bOk = false;
+		}
+
+		// Rangement de l'attribut dans un dictionnaire, pour verifier son unicite
+		if (odAttributes.Lookup(attribute->GetAttributeName()) != NULL)
+		{
+			attribute->AddError("Another variable already exists with the same name");
+			bOk = false;
+		}
+		else
+			odAttributes.SetAt(attribute->GetAttributeName(), attribute);
+
+		// Calcul du nombre total de cellules references par l'attribut
+		nAttributeCellNumber = 0;
+		part = attribute->GetHeadPart();
+		while (part != NULL)
+		{
+			nAttributeCellNumber += part->GetCellNumber();
+			attribute->GetNextPart(part);
+		}
+
+		// Verification de la coherence avec le nombre total de cellules
+		if (nAttributeCellNumber != nCellNumber)
+		{
+			attribute->AddError(
+			    sTmp + "The number of cells in the variable (" + IntToString(nAttributeCellNumber) +
+			    ") is different with that of the data grid (" + IntToString(nCellNumber) + ")");
+			bOk = false;
+			break;
+		}
+	}
+
+	// Verification qu'il n'y a pas plus d'un attribut cible
+	if (bOk and nTargetAttributeNumber > 1)
+	{
+		AddError(sTmp + "There are " + IntToString(nTargetAttributeNumber) +
+			 " target variables in the data grid");
+		bOk = false;
+	}
+
+	// Verification que l'eventuel attribut cible est bien le dernier
+	if (bOk and nTargetAttributeNumber == 1)
+	{
+		check(GetTargetAttribute());
+		assert(GetAttributeAt(GetTargetAttribute()->GetAttributeIndex()) == GetTargetAttribute());
+		if (GetTargetAttribute()->GetAttributeIndex() != GetAttributeNumber() - 1)
+		{
+			AddError(sTmp + "The target variable should be the last variable in the data grid");
+			bOk = false;
+		}
+	}
+
+	// Verification de l'absence d'attribut cible si necessaire
+	if (bOk and nTargetAttributeNumber == 0)
+	{
+		if (GetTargetAttribute() != NULL)
+		{
+			AddError(sTmp + "A target variable is wrongly referenced");
+			bOk = false;
+		}
+	}
+
+	// Verification qu'il n'y a pas de valeurs cible en meme temps qu'un attribut cible
+	if (bOk and nTargetAttributeNumber == 1 and GetTargetValueNumber() > 0)
+	{
+		AddError(sTmp + "There are both " + IntToString(GetTargetValueNumber()) +
+			 " target values and one target variable (" + GetTargetAttribute()->GetAttributeName() +
+			 ") in the data grid");
+		bOk = false;
+	}
+
+	// Verifications par assertion de la memorisation de l'eventuel attribut de type VarPart
+	assert(not bOk or varPartAttribute == NULL or varPartAttribute->GetAttributeType() == KWType::VarPart);
+	assert(not bOk or varPartAttribute == NULL or
+	       SearchAttribute(varPartAttribute->GetAttributeName()) == varPartAttribute);
+	assert(not bOk or varPartAttribute == NULL or varPartAttribute->GetInnerAttributes() != NULL);
+	assert(not bOk or varPartAttribute == NULL or nVarTypeAttributeNumber > 0);
+	assert(not bOk or varPartAttribute != NULL or nVarTypeAttributeNumber == 0);
+
+	// Verification qu'il y au plus un attribut de type VarPart
+	if (bOk and nVarTypeAttributeNumber > 1)
+	{
+		AddError(sTmp + "There are " + IntToString(nVarTypeAttributeNumber) +
+			 " variables of type VarPart in the data grid");
+		bOk = false;
+	}
+
+	// Verification dans le cas d'un attribut de type VarPart
+	if (bOk and IsVarPartDataGrid())
+	{
+		assert(nVarTypeAttributeNumber == 1);
+
+		// Verification des attributs internes
+		bOk = GetInnerAttributes()->InternalCheck(bCheckPartially);
+
+		// Verification que les attributs de la grille sont distincts des attributs internes
+		if (bOk)
+		{
+			for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
+			{
+				attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
+
+				// Test d'existence parmi les attributs internes
+				if (GetVarPartAttribute()->GetInnerAttributes()->LookupInnerAttribute(
+					attribute->GetAttributeName()) != NULL)
+				{
+					AddError(sTmp + "Internal variable " + attribute->GetAttributeName() +
+						 " is already used with the same name among the data grid variables "
+						 "(index " +
+						 IntToString(attribute->GetAttributeIndex()) + ")");
+					break;
+					bOk = false;
+				}
+			}
+		}
+
+		// Verification de l'effectif total de la grille
+		// On ne fait la verification que si des cellules sont presentes, ce qui permet de verifier une grille
+
+		if (bOk and GetCellNumber() > 0 and
+		    GetInnerAttributes()->ComputeTotalInnerAttributeFrequency() != ComputeGridFrequency())
+		{
+			AddError(sTmp + "Grid frequency (" + IntToString(ComputeGridFrequency()) +
+				 ") is different from the total part frequency of the inner variables (" +
+				 IntToString(GetInnerAttributes()->ComputeTotalInnerAttributeFrequency()) + ")");
+		}
+	}
+
+	// Verification de toutes les cellules
+	if (bOk)
+	{
+		cell = headCell;
+		while (cell != NULL)
+		{
+			// Validite des parties d'attribut de la cellule
+			// (l'existence de la cellule est forcement verifiee)
+			if (bOk)
+			{
+				bOk = CheckCellParts(&(cell->oaParts));
+				if (not bOk)
+					cell->AddError("Incorrect referenced parts");
+			}
+
+			// Verification du referencement dans les listes des parties par attribut
+			if (bOk)
+			{
+				for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
+				{
+					// Test d'existence de la cellule dans la liste de la partie
+					part = cell->GetPartAt(nAttribute);
+					bOk = bOk and part->CheckCell(cell);
+					if (not bOk)
+						break;
+				}
+			}
+			if (not bOk)
+				break;
+			cell = cell->nextCell;
+		}
+	}
+	return bOk;
+}
+
+void KWDataGrid::SetTargetAttribute(KWDGAttribute* attribute)
+{
+	targetAttribute = attribute;
 }
 
 int KWDataGrid::ComputeGridFrequency() const
@@ -2595,7 +2612,7 @@ void KWDGAttribute::BuildIndexingStructure() const
 	int nInnerAttribute;
 
 	require(KWType::IsCoclusteringType(GetAttributeType()));
-	require(Check());
+	require(CheckPartially());
 
 	// Indexation si necessaire
 	if (not bIsIndexed)
@@ -2706,7 +2723,7 @@ longint KWDGAttribute::ComputeNecessaryMemoryForIndexingStructure() const
 	int nInnerAttribute;
 
 	require(KWType::IsCoclusteringType(GetAttributeType()));
-	require(Check());
+	require(CheckPartially());
 
 	// Cas numerique: un element d'indexation par partie
 	if (GetAttributeType() == KWType::Continuous)
@@ -3016,337 +3033,12 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 
 boolean KWDGAttribute::Check() const
 {
-	boolean bOk = true;
-	KWDGPart* part;
-	int nPart;
-	KWDGPart* searchedPart;
-	KWDGValueSet* valueSet;
-	KWDGValue* value;
-	KWDGPart* usedVarPart;
-	ObjectArray oaCheckIntervals;
-	int nInterval;
-	Continuous cPreviousUpperBound;
-	NumericKeyDictionary nkdCheckParts;
-	boolean bGarbagePartFound;
-	boolean bDefaultValueFound;
-	int nInnerAttribute;
-	KWDGAttribute* innerAttribute;
-	ALString sTmp;
+	return InternalCheck(false);
+}
 
-	// Verifications de l'attribut, hors lien a la structure de grille
-	if (nAttributeType == KWType::Unknown)
-	{
-		AddError("Missing type");
-		bOk = false;
-	}
-	else if (not KWType::IsCoclusteringType(nAttributeType))
-	{
-		AddError("Type must be Numerical, Categorical or VarPart");
-		bOk = false;
-	}
-
-	// Verification de l'existence d'un nom d'attribut
-	if (sAttributeName == "")
-	{
-		AddError("Missing variable name");
-		bOk = false;
-	}
-
-	// Verification du nombre de parties
-	if (bOk and nPartNumber == 0)
-	{
-		AddError("No variable part is specified");
-		bOk = false;
-	}
-
-	// Verification du nombre de valeurs initiales et granularisees
-	// et de leur coherence avec nPartNumber
-	if (nInitialValueNumber < nPartNumber)
-	{
-		AddError("Initial value number must be greater than part number");
-		bOk = false;
-	}
-	else if (nGranularizedValueNumber < 0)
-	{
-		AddError("Granularized value number must be greater than 0");
-		bOk = false;
-	}
-	else if (KWType::IsSimple(nAttributeType) and nInitialValueNumber < nGranularizedValueNumber)
-	{
-		AddError("Initial value number must be greater or equal than granularized value number");
-		bOk = false;
-	}
-	// Verification uniquement si on a des infos sur la granularisation
-	else if (KWType::IsSimple(nAttributeType) and nPartNumber > nGranularizedValueNumber and
-		 nGranularizedValueNumber > 0)
-	{
-		AddError("Granularized value number must be greater or equal than part number");
-		bOk = false;
-	}
-
-	// Verification des variables internes de cas cas VarPart
-	if (bOk and nAttributeType == KWType::VarPart)
-	{
-		// Test de presence des specifications des variables internes
-		if (bOk and innerAttributes == NULL)
-		{
-			AddError("Missing specification of inner variables for a variable of type VarPart");
-			bOk = false;
-		}
-
-		// Test de validite des specifications des variables internes
-		if (bOk and not innerAttributes->Check())
-		{
-			AddError("Wrong specification of inner variables for a variable of type VarPart");
-			bOk = false;
-		}
-
-		// Test de compatibilite entre du nombre initial de valeurs et du nombre total de partie des attributs internes
-		if (bOk and nInitialValueNumber != innerAttributes->ComputeTotalInnerAttributeVarParts())
-		{
-			AddError(
-			    "Initial value number must be equal to the total number of parts of the inner variables");
-			bOk = false;
-		}
-	}
-	if (bOk and nAttributeType != KWType::VarPart and innerAttributes != NULL)
-	{
-		AddError("Inner variables should not be specified for variable that is not of type VarPart");
-		bOk = false;
-	}
-
-	// Test de coherence entre variable interne et variable de grille
-	if (bOk)
-	{
-		// Une variable interne doit avoir une variable de grille la contenant
-		if (bOk and dataGrid == NULL and sOwnerAttributeName == "")
-		{
-			AddError("Inner variable should have an owner variable");
-			bOk = false;
-		}
-
-		// Une variable de grille ne peut avoir de variable la contenant
-		if (bOk and dataGrid != NULL and sOwnerAttributeName != "")
-		{
-			AddError("Data grid variable should not have an owner variable (" + sOwnerAttributeName + ")");
-			bOk = false;
-		}
-	}
-
-	// Verification des parties
-	if (bOk)
-	{
-		// Parcours des parties a verifier
-		bGarbagePartFound = false;
-		part = headPart;
-		while (part != NULL)
-		{
-			// Coherence avec les extremites de la liste
-			assert(part->prevPart != NULL or headPart == part);
-			assert(part->nextPart != NULL or tailPart == part);
-
-			// Coherence de chainage
-			assert(part->nextPart == NULL or part->nextPart->prevPart == part);
-
-			// Test si on a trouve la partie de type Garbage
-			if (part == garbagePart)
-				bGarbagePartFound = true;
-
-			// Verification locale de la partie
-			bOk = bOk and part->Check();
-			if (not bOk)
-			{
-				AddError("Invalid " + part->GetClassLabel() + " " + part->GetObjectLabel());
-				bOk = false;
-			}
-
-			// Verification de la coherence de la partie dans l'attribut
-			if (part->GetAttribute() != this)
-			{
-				AddError(part->GetClassLabel() + " " + part->GetObjectLabel() +
-					 " not linked to a variable");
-				bOk = false;
-			}
-			if (part->GetPartType() != nAttributeType)
-			{
-				AddError(part->GetClassLabel() + " " + part->GetObjectLabel() +
-					 ": type of the part inconsistent with that of the variable");
-				bOk = false;
-			}
-
-			// Passage a la partie suivant si pas d'erreur
-			if (not bOk)
-				break;
-			part = part->nextPart;
-		}
-
-		// Test de la partie poubelle
-		assert(garbagePart == NULL or GetAttributeType() != KWType::Continuous);
-		if (garbagePart != NULL and not bGarbagePartFound)
-		{
-			AddError(part->GetClassLabel() + " " + part->GetObjectLabel() +
-				 ": the garbage part in not found among the parts of the variable");
-			bOk = false;
-		}
-	}
-
-	// Si attribut numerique, indexation local des intervalles pour validation
-	if (bOk and GetAttributeType() == KWType::Continuous)
-	{
-		// Ajout des parties numeriques dans le tableau des intervalles
-		oaCheckIntervals.SetSize(nPartNumber);
-		nPart = 0;
-		part = cast(KWDGPart*, headPart);
-		while (part != NULL)
-		{
-			oaCheckIntervals.SetAt(nPart, part);
-			nPart++;
-			part = part->nextPart;
-		}
-
-		// Tri des intervalles par borne inf
-		oaCheckIntervals.SetCompareFunction(KWDGPartCompareValues);
-		oaCheckIntervals.Sort();
-
-		// Verification des intervalles
-		cPreviousUpperBound = KWDGInterval::GetMinLowerBound();
-		for (nInterval = 0; nInterval < oaCheckIntervals.GetSize(); nInterval++)
-		{
-			part = cast(KWDGPart*, oaCheckIntervals.GetAt(nInterval));
-
-			// Borne inf du premier intervalle
-			if (nInterval == 0 and part->GetInterval()->GetLowerBound() != KWDGInterval::GetMinLowerBound())
-			{
-				part->AddError("The lower bound of the first interval should be -inf or missing");
-				bOk = false;
-			}
-
-			// Borne sup du dernier intervalle
-			if (nInterval == oaCheckIntervals.GetSize() - 1 and
-			    part->GetInterval()->GetUpperBound() != KWDGInterval::GetMaxUpperBound())
-			{
-				part->AddError("The upper bound of the last interval should be +inf");
-				bOk = false;
-			}
-
-			// Coherence entre deux intervalles successifs
-			if (nInterval > 0 and part->GetInterval()->GetLowerBound() != cPreviousUpperBound)
-			{
-				part->AddError(sTmp + "The lower bound of the interval differs " +
-					       "from the upper bound of the preceding interval (" +
-					       KWContinuous::ContinuousToString(cPreviousUpperBound) + ")");
-				bOk = false;
-			}
-
-			// Memorisation de la borne sup de l'intervalle
-			cPreviousUpperBound = part->GetInterval()->GetUpperBound();
-
-			// Arret si erreurs
-			if (not bOk)
-				break;
-		}
-	}
-	// Si attribut groupable, indexation locale des parties par les valeurs pour validation
-	else if (bOk and KWType::IsCoclusteringGroupableType(GetAttributeType()))
-	{
-		// Parcours des parties pour les indexer par leurs valeurs
-		nkdCheckParts.RemoveAll();
-		bDefaultValueFound = false;
-		part = headPart;
-		while (part != NULL)
-		{
-			// Parcours des valeurs de la partie
-			valueSet = part->GetValueSet();
-			value = valueSet->GetHeadValue();
-			while (value != NULL)
-			{
-				// Recherche si la valeur est deja enregistree
-				searchedPart = cast(KWDGPart*, nkdCheckParts.Lookup(value->GetNumericKeyValue()));
-
-				// Erreur si partie deja enregistree avec cette valeur
-				if (searchedPart != NULL)
-				{
-					part->AddError(sTmp + value->GetClassLabel() + " " + value->GetObjectLabel() +
-						       " already belongs to part " + part->GetObjectLabel());
-					bOk = false;
-					break;
-				}
-				// On continue si pas d'erreur
-				else
-				{
-					// Ajout de la partie avec la valeur pour cle
-					nkdCheckParts.SetAt(value->GetNumericKeyValue(), part);
-
-					// Test si valeur speciale
-					if (value->IsDefaultValue())
-						bDefaultValueFound = true;
-
-					// Valeur suivante
-					valueSet->GetNextValue(value);
-				}
-			}
-
-			// Partie suivante
-			part = part->nextPart;
-		}
-
-		// Test si la valeur speciale est definie dans le groupage dans le cas d'un attribut Symbol
-		if (bOk and GetAttributeType() == KWType::Symbol and not bDefaultValueFound)
-		{
-			AddError(sTmp + "Special grouping value " + Symbol::GetStarValue() +
-				 " is not specified in any part");
-			bOk = false;
-		}
-
-		// Tests specifiques dans le cas VarPart
-		if (GetAttributeType() == KWType::VarPart)
-		{
-			// Verification du nombre total de partie de variables indexes dans les partie de la variable de type VarPart
-			if (bOk and innerAttributes->ComputeTotalInnerAttributeVarParts() != nkdCheckParts.GetCount())
-			{
-				AddError(sTmp + "Number of variable parts used in groups (" +
-					 IntToString(nkdCheckParts.GetCount()) +
-					 ") is different from the total number of parts in the inner variables (" +
-					 IntToString(innerAttributes->ComputeTotalInnerAttributeVarParts()) + ")");
-				bOk = false;
-			}
-
-			// Parcours de VarPart des variables internes pour verifier qu'elles sont referencees dans les parties
-			// de la variable de type VarPart
-			if (bOk)
-			{
-				// Parcours des attributs internes
-				for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber();
-				     nInnerAttribute++)
-				{
-					innerAttribute = GetInnerAttributeAt(nInnerAttribute);
-
-					// Parcours des partie de l'attribut interne
-					usedVarPart = innerAttribute->GetHeadPart();
-					while (usedVarPart != NULL)
-					{
-						// Recherche de la VarPart parmi les VarPart des parties de la variable de type VarPart
-						searchedPart =
-						    cast(KWDGPart*, nkdCheckParts.Lookup((NUMERIC)usedVarPart));
-
-						// Erreur si VarPart non trouvee
-						if (searchedPart == NULL)
-						{
-							AddError(sTmp + "Inner variable VarPart " +
-								 usedVarPart->GetObjectLabel() +
-								 " not found amond parts of variables");
-							bOk = false;
-							break;
-						}
-
-						// Partie suivante
-						innerAttribute->GetNextPart(usedVarPart);
-					}
-				}
-			}
-		}
-	}
-	return bOk;
+boolean KWDGAttribute::CheckPartially() const
+{
+	return InternalCheck(true);
 }
 
 longint KWDGAttribute::GetUsedMemory() const
@@ -3680,6 +3372,341 @@ void KWDGAttribute::Test()
 	}
 }
 
+boolean KWDGAttribute::InternalCheck(boolean bCheckPartially) const
+{
+	boolean bOk = true;
+	KWDGPart* part;
+	int nPart;
+	KWDGPart* searchedPart;
+	KWDGValueSet* valueSet;
+	KWDGValue* value;
+	KWDGPart* usedVarPart;
+	ObjectArray oaCheckIntervals;
+	int nInterval;
+	Continuous cPreviousUpperBound;
+	NumericKeyDictionary nkdCheckParts;
+	boolean bGarbagePartFound;
+	boolean bDefaultValueFound;
+	int nInnerAttribute;
+	KWDGAttribute* innerAttribute;
+	ALString sTmp;
+
+	// Verifications de l'attribut, hors lien a la structure de grille
+	if (nAttributeType == KWType::Unknown)
+	{
+		AddError("Missing type");
+		bOk = false;
+	}
+	else if (not KWType::IsCoclusteringType(nAttributeType))
+	{
+		AddError("Type must be Numerical, Categorical or VarPart");
+		bOk = false;
+	}
+
+	// Verification de l'existence d'un nom d'attribut
+	if (sAttributeName == "")
+	{
+		AddError("Missing variable name");
+		bOk = false;
+	}
+
+	// Verification du nombre de parties
+	if (bOk and nPartNumber == 0)
+	{
+		AddError("No variable part is specified");
+		bOk = false;
+	}
+
+	// Verification du nombre de valeurs initiales et granularisees
+	// et de leur coherence avec nPartNumber
+	if (nInitialValueNumber < nPartNumber)
+	{
+		AddError("Initial value number must be greater than part number");
+		bOk = false;
+	}
+	else if (nGranularizedValueNumber < 0)
+	{
+		AddError("Granularized value number must be greater than 0");
+		bOk = false;
+	}
+	else if (KWType::IsSimple(nAttributeType) and nInitialValueNumber < nGranularizedValueNumber)
+	{
+		AddError("Initial value number must be greater or equal than granularized value number");
+		bOk = false;
+	}
+	// Verification uniquement si on a des infos sur la granularisation
+	else if (KWType::IsSimple(nAttributeType) and nPartNumber > nGranularizedValueNumber and
+		 nGranularizedValueNumber > 0)
+	{
+		AddError("Granularized value number must be greater or equal than part number");
+		bOk = false;
+	}
+
+	// Verification des variables internes de cas cas VarPart
+	if (bOk and nAttributeType == KWType::VarPart)
+	{
+		// Test de presence des specifications des variables internes
+		if (bOk and innerAttributes == NULL)
+		{
+			AddError("Missing specification of inner variables for a variable of type VarPart");
+			bOk = false;
+		}
+
+		// Test de validite des specifications des variables internes
+		if (bOk and not innerAttributes->InternalCheck(bCheckPartially))
+		{
+			AddError("Wrong specification of inner variables for a variable of type VarPart");
+			bOk = false;
+		}
+
+		// Test de compatibilite entre du nombre initial de valeurs et du nombre total de partie des attributs internes
+		if (bOk and nInitialValueNumber != innerAttributes->ComputeTotalInnerAttributeVarParts())
+		{
+			AddError(
+			    "Initial value number must be equal to the total number of parts of the inner variables");
+			bOk = false;
+		}
+	}
+	if (bOk and nAttributeType != KWType::VarPart and innerAttributes != NULL)
+	{
+		AddError("Inner variables should not be specified for variable that is not of type VarPart");
+		bOk = false;
+	}
+
+	// Test de coherence entre variable interne et variable de grille
+	if (bOk)
+	{
+		// Une variable interne doit avoir une variable de grille la contenant
+		if (bOk and dataGrid == NULL and sOwnerAttributeName == "")
+		{
+			AddError("Inner variable should have an owner variable");
+			bOk = false;
+		}
+
+		// Une variable de grille ne peut avoir de variable la contenant
+		if (bOk and dataGrid != NULL and sOwnerAttributeName != "")
+		{
+			AddError("Data grid variable should not have an owner variable (" + sOwnerAttributeName + ")");
+			bOk = false;
+		}
+	}
+
+	// Verification des parties
+	if (bOk)
+	{
+		// Parcours des parties a verifier
+		bGarbagePartFound = false;
+		part = headPart;
+		while (part != NULL)
+		{
+			// Coherence avec les extremites de la liste
+			assert(part->prevPart != NULL or headPart == part);
+			assert(part->nextPart != NULL or tailPart == part);
+
+			// Coherence de chainage
+			assert(part->nextPart == NULL or part->nextPart->prevPart == part);
+
+			// Test si on a trouve la partie de type Garbage
+			if (part == garbagePart)
+				bGarbagePartFound = true;
+
+			// Verification locale de la partie
+			bOk = bOk and part->InternalCheck(bCheckPartially);
+			if (not bOk)
+			{
+				AddError("Invalid " + part->GetClassLabel() + " " + part->GetObjectLabel());
+				bOk = false;
+			}
+
+			// Verification de la coherence de la partie dans l'attribut
+			if (part->GetAttribute() != this)
+			{
+				AddError(part->GetClassLabel() + " " + part->GetObjectLabel() +
+					 " not linked to a variable");
+				bOk = false;
+			}
+			if (part->GetPartType() != nAttributeType)
+			{
+				AddError(part->GetClassLabel() + " " + part->GetObjectLabel() +
+					 ": type of the part inconsistent with that of the variable");
+				bOk = false;
+			}
+
+			// Passage a la partie suivant si pas d'erreur
+			if (not bOk)
+				break;
+			part = part->nextPart;
+		}
+
+		// Test de la partie poubelle
+		assert(garbagePart == NULL or GetAttributeType() != KWType::Continuous);
+		if (garbagePart != NULL and not bGarbagePartFound)
+		{
+			AddError(part->GetClassLabel() + " " + part->GetObjectLabel() +
+				 ": the garbage part in not found among the parts of the variable");
+			bOk = false;
+		}
+	}
+
+	// Si attribut numerique, indexation local des intervalles pour validation
+	if (bOk and GetAttributeType() == KWType::Continuous)
+	{
+		// Ajout des parties numeriques dans le tableau des intervalles
+		oaCheckIntervals.SetSize(nPartNumber);
+		nPart = 0;
+		part = cast(KWDGPart*, headPart);
+		while (part != NULL)
+		{
+			oaCheckIntervals.SetAt(nPart, part);
+			nPart++;
+			part = part->nextPart;
+		}
+
+		// Tri des intervalles par borne inf
+		oaCheckIntervals.SetCompareFunction(KWDGPartCompareValues);
+		oaCheckIntervals.Sort();
+
+		// Verification des intervalles
+		cPreviousUpperBound = KWDGInterval::GetMinLowerBound();
+		for (nInterval = 0; nInterval < oaCheckIntervals.GetSize(); nInterval++)
+		{
+			part = cast(KWDGPart*, oaCheckIntervals.GetAt(nInterval));
+
+			// Borne inf du premier intervalle
+			if (nInterval == 0 and part->GetInterval()->GetLowerBound() != KWDGInterval::GetMinLowerBound())
+			{
+				part->AddError("The lower bound of the first interval should be -inf or missing");
+				bOk = false;
+			}
+
+			// Borne sup du dernier intervalle
+			if (nInterval == oaCheckIntervals.GetSize() - 1 and
+			    part->GetInterval()->GetUpperBound() != KWDGInterval::GetMaxUpperBound())
+			{
+				part->AddError("The upper bound of the last interval should be +inf");
+				bOk = false;
+			}
+
+			// Coherence entre deux intervalles successifs
+			if (nInterval > 0 and part->GetInterval()->GetLowerBound() != cPreviousUpperBound)
+			{
+				part->AddError(sTmp + "The lower bound of the interval differs " +
+					       "from the upper bound of the preceding interval (" +
+					       KWContinuous::ContinuousToString(cPreviousUpperBound) + ")");
+				bOk = false;
+			}
+
+			// Memorisation de la borne sup de l'intervalle
+			cPreviousUpperBound = part->GetInterval()->GetUpperBound();
+
+			// Arret si erreurs
+			if (not bOk)
+				break;
+		}
+	}
+	// Si attribut groupable, indexation locale des parties par les valeurs pour validation
+	else if (bOk and KWType::IsCoclusteringGroupableType(GetAttributeType()))
+	{
+		// Parcours des parties pour les indexer par leurs valeurs
+		nkdCheckParts.RemoveAll();
+		bDefaultValueFound = false;
+		part = headPart;
+		while (part != NULL)
+		{
+			// Parcours des valeurs de la partie
+			valueSet = part->GetValueSet();
+			value = valueSet->GetHeadValue();
+			while (value != NULL)
+			{
+				// Recherche si la valeur est deja enregistree
+				searchedPart = cast(KWDGPart*, nkdCheckParts.Lookup(value->GetNumericKeyValue()));
+
+				// Erreur si partie deja enregistree avec cette valeur
+				if (searchedPart != NULL)
+				{
+					part->AddError(sTmp + value->GetClassLabel() + " " + value->GetObjectLabel() +
+						       " already belongs to part " + part->GetObjectLabel());
+					bOk = false;
+					break;
+				}
+				// On continue si pas d'erreur
+				else
+				{
+					// Ajout de la partie avec la valeur pour cle
+					nkdCheckParts.SetAt(value->GetNumericKeyValue(), part);
+
+					// Test si valeur speciale
+					if (value->IsDefaultValue())
+						bDefaultValueFound = true;
+
+					// Valeur suivante
+					valueSet->GetNextValue(value);
+				}
+			}
+
+			// Partie suivante
+			part = part->nextPart;
+		}
+
+		// Test si la valeur speciale est definie dans le groupage dans le cas d'un attribut Symbol
+		if (bOk and GetAttributeType() == KWType::Symbol and not bDefaultValueFound)
+		{
+			AddError(sTmp + "Special grouping value " + Symbol::GetStarValue() +
+				 " is not specified in any part");
+			bOk = false;
+		}
+
+		// Tests specifiques dans le cas VarPart
+		if (GetAttributeType() == KWType::VarPart)
+		{
+			// Verification du nombre total de partie de variables indexes dans les partie de la variable de type VarPart
+			if (bOk and innerAttributes->ComputeTotalInnerAttributeVarParts() != nkdCheckParts.GetCount())
+			{
+				AddError(sTmp + "Number of variable parts used in groups (" +
+					 IntToString(nkdCheckParts.GetCount()) +
+					 ") is different from the total number of parts in the inner variables (" +
+					 IntToString(innerAttributes->ComputeTotalInnerAttributeVarParts()) + ")");
+				bOk = false;
+			}
+
+			// Parcours de VarPart des variables internes pour verifier qu'elles sont referencees dans les parties
+			// de la variable de type VarPart
+			if (bOk)
+			{
+				// Parcours des attributs internes
+				for (nInnerAttribute = 0; nInnerAttribute < GetInnerAttributeNumber();
+				     nInnerAttribute++)
+				{
+					innerAttribute = GetInnerAttributeAt(nInnerAttribute);
+
+					// Parcours des partie de l'attribut interne
+					usedVarPart = innerAttribute->GetHeadPart();
+					while (usedVarPart != NULL)
+					{
+						// Recherche de la VarPart parmi les VarPart des parties de la variable de type VarPart
+						searchedPart =
+						    cast(KWDGPart*, nkdCheckParts.Lookup((NUMERIC)usedVarPart));
+
+						// Erreur si VarPart non trouvee
+						if (searchedPart == NULL)
+						{
+							AddError(sTmp + "Inner variable VarPart " +
+								 usedVarPart->GetObjectLabel() +
+								 " not found amond parts of variables");
+							bOk = false;
+							break;
+						}
+
+						// Partie suivante
+						innerAttribute->GetNextPart(usedVarPart);
+					}
+				}
+			}
+		}
+	}
+	return bOk;
+}
+
 void KWDGAttribute::InternalSortParts(CompareFunction fCompare)
 {
 	ObjectArray oaParts;
@@ -3878,12 +3905,93 @@ int KWDGPart::ComparePartValues(const KWDGPart* otherPart) const
 
 boolean KWDGPart::Check() const
 {
+	return InternalCheck(false);
+}
+
+boolean KWDGPart::CheckPartially() const
+{
+	return InternalCheck(true);
+}
+
+longint KWDGPart::GetUsedMemory() const
+{
+	longint lUsedMemory;
+
+	lUsedMemory = sizeof(KWDGPart);
+	if (partValues != NULL)
+		lUsedMemory += partValues->GetUsedMemory();
+	return lUsedMemory;
+}
+
+void KWDGPart::Write(ostream& ost) const
+{
+	// Identification de la partie
+	ost << GetClassLabel() << "\t" << GetObjectLabel() << "\t" << GetPartFrequency() << "\n";
+
+	// Valeurs et cellules de la partie
+	if (KWType::IsCoclusteringGroupableType(GetPartType()) and GetValueSet()->GetValueNumber() > 0)
+		WriteValues(ost);
+	if (GetCellNumber() > 0)
+		WriteCells(ost);
+}
+
+void KWDGPart::WriteValues(ostream& ost) const
+{
+	// Des valeurs sont a afficher uniquement dans le cas groupable
+	// (l'intervalle est le libelle de la partie dans le cas continu)
+	if (KWType::IsCoclusteringGroupableType(GetPartType()))
+		GetValueSet()->WriteValues(ost);
+}
+
+void KWDGPart::WriteCells(ostream& ost) const
+{
+	KWDGCell* cell;
+
+	// Cellules de la partie
+	ost << "Cells"
+	    << "\t" << GetCellNumber() << "\n";
+	cell = GetHeadCell();
+	while (cell != NULL)
+	{
+		ost << "\t" << *cell;
+		GetNextCell(cell);
+	}
+}
+
+const ALString KWDGPart::GetVarPartLabel() const
+{
+	require(KWType::IsSimple(GetPartType()));
+	require(GetAttribute() != NULL);
+	require(GetAttribute()->IsInnerAttribute());
+
+	return GetAttribute()->GetAttributeName() + " " + GetObjectLabel();
+}
+
+const ALString KWDGPart::GetClassLabel() const
+{
+	if (partValues == NULL)
+		return "Part";
+	else
+		return partValues->GetClassLabel();
+}
+
+const ALString KWDGPart::GetObjectLabel() const
+{
+	if (partValues == NULL)
+		return "";
+	else
+		return partValues->GetObjectLabel();
+}
+
+boolean KWDGPart::InternalCheck(boolean bCheckPartially) const
+{
 	boolean bOk = true;
 	ALString sTmp;
 	KWDGCell* cell;
 	KWDGCell* nextCell;
 	KWDGCell* prevCell;
 	int nTotalValueFrequency;
+	boolean bCheckFrequency;
 
 	// Test du type
 	if (GetPartType() == KWType::Unknown)
@@ -3893,13 +4001,13 @@ boolean KWDGPart::Check() const
 	}
 	// Verification de l'intervalle
 	else if (GetPartType() == KWType::Continuous)
-		bOk = bOk and partValues->Check();
+		bOk = bOk and partValues->InternalCheck(bCheckPartially);
 	// Verification de l'ensemble de valeurs dans le cas groupable
 	else
 	{
 		assert(KWType::IsCoclusteringGroupableType(GetPartType()));
 
-		bOk = bOk and partValues->Check();
+		bOk = bOk and partValues->InternalCheck(bCheckPartially);
 
 		// Verification de la compatibilite entre l'effectif de la partie
 		// et l'effectif cumule de ses valeurs
@@ -3912,8 +4020,11 @@ boolean KWDGPart::Check() const
 		// construite pour le deploiement de modele, qui n'a pas besoin
 		// des effectifs par valeur.
 		nTotalValueFrequency = GetValueSet()->ComputeTotalFrequency();
-		if (bOk and GetPartFrequency() > 0 and nTotalValueFrequency > 0 and
-		    GetPartFrequency() != nTotalValueFrequency)
+		if (bCheckPartially)
+			bCheckFrequency = GetPartFrequency() > 0 and nTotalValueFrequency > 0;
+		else
+			bCheckFrequency = true;
+		if (bOk and bCheckFrequency and GetPartFrequency() != nTotalValueFrequency)
 		{
 			assert(GetValueSet()->GetHeadValue() != NULL);
 			AddError(sTmp + "Part frequency (" + IntToString(GetPartFrequency()) +
@@ -3988,76 +4099,6 @@ boolean KWDGPart::Check() const
 		bOk = false;
 	}
 	return bOk;
-}
-
-longint KWDGPart::GetUsedMemory() const
-{
-	longint lUsedMemory;
-
-	lUsedMemory = sizeof(KWDGPart);
-	if (partValues != NULL)
-		lUsedMemory += partValues->GetUsedMemory();
-	return lUsedMemory;
-}
-
-void KWDGPart::Write(ostream& ost) const
-{
-	// Identification de la partie
-	ost << GetClassLabel() << "\t" << GetObjectLabel() << "\t" << GetPartFrequency() << "\n";
-
-	// Valeurs et cellules de la partie
-	if (KWType::IsCoclusteringGroupableType(GetPartType()) and GetValueSet()->GetValueNumber() > 0)
-		WriteValues(ost);
-	if (GetCellNumber() > 0)
-		WriteCells(ost);
-}
-
-void KWDGPart::WriteValues(ostream& ost) const
-{
-	// Des valeurs sont a afficher uniquement dans le cas groupable
-	// (l'intervalle est le libelle de la partie dans le cas continu)
-	if (KWType::IsCoclusteringGroupableType(GetPartType()))
-		GetValueSet()->WriteValues(ost);
-}
-
-void KWDGPart::WriteCells(ostream& ost) const
-{
-	KWDGCell* cell;
-
-	// Cellules de la partie
-	ost << "Cells"
-	    << "\t" << GetCellNumber() << "\n";
-	cell = GetHeadCell();
-	while (cell != NULL)
-	{
-		ost << "\t" << *cell;
-		GetNextCell(cell);
-	}
-}
-
-const ALString KWDGPart::GetVarPartLabel() const
-{
-	require(KWType::IsSimple(GetPartType()));
-	require(GetAttribute() != NULL);
-	require(GetAttribute()->IsInnerAttribute());
-
-	return GetAttribute()->GetAttributeName() + " " + GetObjectLabel();
-}
-
-const ALString KWDGPart::GetClassLabel() const
-{
-	if (partValues == NULL)
-		return "Part";
-	else
-		return partValues->GetClassLabel();
-}
-
-const ALString KWDGPart::GetObjectLabel() const
-{
-	if (partValues == NULL)
-		return "";
-	else
-		return partValues->GetObjectLabel();
 }
 
 KWDGInterval* KWDGPart::NewInterval() const
@@ -4217,6 +4258,16 @@ int KWDGInterval::ComparePartValues(const KWDGPartValues* otherPartValues) const
 }
 
 boolean KWDGInterval::Check() const
+{
+	return InternalCheck(false);
+}
+
+boolean KWDGInterval::CheckPartially() const
+{
+	return InternalCheck(true);
+}
+
+boolean KWDGInterval::InternalCheck(boolean bCheckPartially) const
 {
 	boolean bOk = true;
 
@@ -4556,85 +4607,12 @@ int KWDGValueSet::ComparePartValues(const KWDGPartValues* otherPartValues) const
 
 boolean KWDGValueSet::Check() const
 {
-	boolean bOk = true;
-	boolean bDefaultValuePresent;
-	NumericKeyDictionary nkdCheckValues;
-	KWDGValue* value;
-	boolean bCheckFrequencies;
-	ALString sTmp;
+	return InternalCheck(false);
+}
 
-	// Test d'existence d'au moins une valeur
-	if (GetValueNumber() == 0)
-	{
-		AddError("No value specified");
-		bOk = false;
-	}
-
-	// Test des valeurs de la partie
-	if (bOk)
-	{
-		// On ne verifie les effectifs que si au moins un est specifie et si on n'est pas le groupe par defaut
-		// En effet, le groupe par defaut pouvant etre compresse, il peut y a voir quelques incoherences
-		// sur les effectifs des valeurs des valeurs du groupe
-		bCheckFrequencies = not bIsDefaultPart and ComputeTotalFrequency() > 0;
-
-		// Parcours des valeurs de la partie
-		bDefaultValuePresent = false;
-		value = GetHeadValue();
-		while (value != NULL)
-		{
-			// Detection de la star value
-			if (value->IsDefaultValue())
-				bDefaultValuePresent = true;
-
-			// Erreur si partie deja enregistree avec cette valeur
-			if (nkdCheckValues.Lookup(value->GetNumericKeyValue()) != NULL)
-			{
-				AddError(sTmp + value->GetClassLabel() + " " + value->GetObjectLabel() +
-					 " already exists in the part");
-				bOk = false;
-				break;
-			}
-			// Erreur si effectif a 0 pour une valeur qui n'est pas la valeur par defaut
-			else if (bCheckFrequencies and not value->IsDefaultValue() and value->GetValueFrequency() == 0)
-			{
-				AddError(sTmp + value->GetClassLabel() + " " + value->GetObjectLabel() +
-					 " should have a non-zero frequency");
-				bOk = false;
-				break;
-			}
-			// Erreur si typicalite incorrecte
-			else if (value->GetTypicality() < 0 or value->GetTypicality() > 1)
-			{
-				AddError(sTmp + value->GetClassLabel() + " " + value->GetObjectLabel() +
-					 " should have a typicality (" + DoubleToString(value->GetTypicality()) +
-					 ") between 0 and 1");
-				bOk = false;
-			}
-			// On continue si pas d'erreur
-			else
-			{
-				// Ajout de la partie avec la valeur pour cle
-				nkdCheckValues.SetAt(value->GetNumericKeyValue(), value);
-
-				// Valeur suivante
-				GetNextValue(value);
-			}
-		}
-
-		// Test d'integrite sur la valeur par defaut
-		if (bDefaultValuePresent and not bIsDefaultPart)
-		{
-			AddError(sTmp + "Special default value is used used in a standard part");
-			bOk = false;
-		}
-		else if (not bDefaultValuePresent and bIsDefaultPart)
-		{
-			AddError(sTmp + "Special default value is missing in default part");
-			bOk = false;
-		}
-	}
-	return bOk;
+boolean KWDGValueSet::CheckPartially() const
+{
+	return InternalCheck(true);
 }
 
 void KWDGValueSet::Write(ostream& ost) const
@@ -4711,6 +4689,92 @@ void KWDGValueSet::SetValueNumber(int nValue)
 {
 	require(nValue >= 0);
 	nValueNumber = nValue;
+}
+
+boolean KWDGValueSet::InternalCheck(boolean bCheckPartially) const
+{
+	boolean bOk = true;
+	boolean bDefaultValuePresent;
+	NumericKeyDictionary nkdCheckValues;
+	KWDGValue* value;
+	boolean bCheckFrequencies;
+	ALString sTmp;
+
+	// Test d'existence d'au moins une valeur
+	if (GetValueNumber() == 0)
+	{
+		AddError("No value specified");
+		bOk = false;
+	}
+
+	// Test des valeurs de la partie
+	if (bOk)
+	{
+		// On ne verifie les effectifs que si au moins un est specifie et si on n'est pas le groupe par defaut
+		// En effet, le groupe par defaut pouvant etre compresse, il peut y a voir quelques incoherences
+		// sur les effectifs des valeurs des valeurs du groupe
+		if (bCheckPartially)
+			bCheckFrequencies = not bIsDefaultPart and ComputeTotalFrequency() > 0;
+		else
+			bCheckFrequencies = true;
+
+		// Parcours des valeurs de la partie
+		bDefaultValuePresent = false;
+		value = GetHeadValue();
+		while (value != NULL)
+		{
+			// Detection de la star value
+			if (value->IsDefaultValue())
+				bDefaultValuePresent = true;
+
+			// Erreur si partie deja enregistree avec cette valeur
+			if (nkdCheckValues.Lookup(value->GetNumericKeyValue()) != NULL)
+			{
+				AddError(sTmp + value->GetClassLabel() + " " + value->GetObjectLabel() +
+					 " already exists in the part");
+				bOk = false;
+				break;
+			}
+			// Erreur si effectif a 0 pour une valeur qui n'est pas la valeur par defaut
+			else if (bCheckFrequencies and not value->IsDefaultValue() and value->GetValueFrequency() == 0)
+			{
+				AddError(sTmp + value->GetClassLabel() + " " + value->GetObjectLabel() +
+					 " should have a non-zero frequency");
+				bOk = false;
+				break;
+			}
+			// Erreur si typicalite incorrecte
+			else if (value->GetTypicality() < 0 or value->GetTypicality() > 1)
+			{
+				AddError(sTmp + value->GetClassLabel() + " " + value->GetObjectLabel() +
+					 " should have a typicality (" + DoubleToString(value->GetTypicality()) +
+					 ") between 0 and 1");
+				bOk = false;
+			}
+			// On continue si pas d'erreur
+			else
+			{
+				// Ajout de la partie avec la valeur pour cle
+				nkdCheckValues.SetAt(value->GetNumericKeyValue(), value);
+
+				// Valeur suivante
+				GetNextValue(value);
+			}
+		}
+
+		// Test d'integrite sur la valeur par defaut
+		if (bDefaultValuePresent and not bIsDefaultPart)
+		{
+			AddError(sTmp + "Special default value is used used in a standard part");
+			bOk = false;
+		}
+		else if (not bDefaultValuePresent and bIsDefaultPart)
+		{
+			AddError(sTmp + "Special default value is missing in default part");
+			bOk = false;
+		}
+	}
+	return bOk;
 }
 
 void KWDGValueSet::AddTailValue(KWDGValue* value)
@@ -5332,10 +5396,20 @@ boolean KWDGInnerAttributes::ContainsSubVarParts(const KWDGInnerAttributes* othe
 
 boolean KWDGInnerAttributes::Check() const
 {
+	return InternalCheck(false);
+}
+
+boolean KWDGInnerAttributes::CheckPartially() const
+{
+	return InternalCheck(true);
+}
+
+boolean KWDGInnerAttributes::InternalCheck(boolean bCheckPartially) const
+{
 	boolean bOk = true;
 	int nInnerAttribute;
 	KWDGAttribute* innerAttribute;
-	boolean bIsCompletelySpecified;
+	boolean bCheckIfPartsSorted;
 
 	require(odInnerAttributes.GetCount() == oaInnerAttributes.GetSize());
 
@@ -5345,7 +5419,7 @@ boolean KWDGInnerAttributes::Check() const
 		innerAttribute = GetInnerAttributeAt(nInnerAttribute);
 
 		// Verifications de base
-		bOk = bOk and innerAttribute->Check();
+		bOk = bOk and innerAttribute->InternalCheck(bCheckPartially);
 
 		// Verification de l'attribut interne
 		if (bOk and innerAttribute->GetOwnerAttributeName() == "")
@@ -5362,12 +5436,19 @@ boolean KWDGInnerAttributes::Check() const
 
 		// Verification du tri des parties de l'attribut interne, uniquement si l'attribut est completement specifie
 		// avec des parties d'effectif non vide, pour pouvoir faire des verifications en cours de construction d'une grille
-		bIsCompletelySpecified =
-		    innerAttribute->GetPartNumber() > 0 and innerAttribute->GetHeadPart()->GetPartFrequency() > 0;
-		if (bIsCompletelySpecified and KWType::IsCoclusteringGroupableType(innerAttribute->GetAttributeType()))
-			bIsCompletelySpecified =
-			    innerAttribute->GetHeadPart()->GetValueSet()->GetHeadValue()->GetValueFrequency() > 0;
-		if (bOk and bIsCompletelySpecified and not innerAttribute->ArePartsSorted())
+		if (bCheckPartially)
+		{
+			bCheckIfPartsSorted = innerAttribute->GetPartNumber() > 0 and
+					      innerAttribute->GetHeadPart()->GetPartFrequency() > 0;
+			if (bCheckIfPartsSorted and
+			    KWType::IsCoclusteringGroupableType(innerAttribute->GetAttributeType()))
+				bCheckIfPartsSorted =
+				    innerAttribute->GetHeadPart()->GetValueSet()->GetHeadValue()->GetValueFrequency() >
+				    0;
+		}
+		else
+			bCheckIfPartsSorted = true;
+		if (bOk and bCheckIfPartsSorted and not innerAttribute->ArePartsSorted())
 		{
 			AddError("Parts of inner variable " + innerAttribute->GetAttributeName() + " should be sorted");
 			bOk = false;
@@ -5698,9 +5779,4 @@ int KWDGCellCompareDecreasingFrequency(const void* elem1, const void* elem2)
 	if (nCompare == 0)
 		nCompare = KWDGCellCompareValue(elem1, elem2);
 	return nCompare;
-}
-
-void KWDataGrid::SetTargetAttribute(KWDGAttribute* attribute)
-{
-	targetAttribute = attribute;
 }

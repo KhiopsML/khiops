@@ -7,6 +7,7 @@
 class KWDataGridOptimizerIxV;
 
 #include "KWDataGridOptimizer.h"
+#include "KWDataGridInitialSolutionSearcherIV.h"
 
 //////////////////////////////////////////////////////////////////////////////////
 // Classe KWDataGridOptimizerIxV
@@ -24,6 +25,11 @@ protected:
 	// Optimisation d'un grille
 	double InternalOptimizeDataGrid(const KWDataGrid* initialDataGrid,
 					KWDataGrid* optimizedDataGrid) const override;
+
+	// Construction d'une solution initiale meilleure que celle du modele null
+	// Le parametre optimizedDataGrid doit etre le model null en entree, et il sera mis a jour
+	// en cas d'amelioration
+	double BuildInitialSolution(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const;
 
 	// Optimisation d'une solution voisine: specialisation au cas VarPart
 	double OptimizeNeighbourSolution(const KWDataGrid* initialDataGrid, const KWDataGrid* currentOptimizedDataGrid,

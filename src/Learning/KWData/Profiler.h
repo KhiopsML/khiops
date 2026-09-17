@@ -54,17 +54,25 @@ public:
 	// Recherche du nombre de lancement d'une methode donnee pour un profiling en cours
 	longint GetMethodStartNumber(const ALString& sMethodName) const;
 
-	// Parametrage avance pour exporter toute la trace de profiling (defaut: false)
+	//////////////////////////////////////////////////////////////////////////////
+	// Parametrage avance
+
+	// Export de toute la trace de profiling (defaut: false)
 	// Dans ce cas, un fichier de trace complet est ecrit au format json, de nom
 	// egal au fichier de stats profiling, avec un suffix ".json" additionnel
 	void SetTrace(boolean bValue);
 	boolean GetTrace() const;
 
-	// Parametrage avance pour exporter les informations de temps dans la trace de profiling (defaut: true)
+	// Export des informations de temps dans la trace de profiling (defaut: true)
 	// Permet de comparer des fichiers de traces en se focalisant uniquement sur la trajectoire
 	// d'optimisation, sans tenir compte des temps d'optimisation, variables d'une execution a l'autre
 	void SetTraceTime(boolean bValue);
 	boolean GetTraceTime() const;
+
+	// Activation ou desactivation de la collecte des informations de profiling (defaut: true)
+	// Permet par exemple de desactiver le profiling dans les sous-methodes appelees par une methode profilee
+	void SetCollectActive(boolean bValue);
+	boolean GetCollectActive() const;
 
 	//////////////////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -94,4 +102,7 @@ protected:
 
 	// Indique si l'on exporte le temps dans les trace
 	boolean bTraceTime;
+
+	// Indique si la collectes des information de profiling est actives
+	boolean bCollectActive;
 };

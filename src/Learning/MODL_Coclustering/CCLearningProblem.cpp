@@ -138,7 +138,9 @@ void CCLearningProblem::BuildCoclustering()
 	KWAttributeName* attributeName;
 	const ALString sDefaultOwnerAttributeName = "Variables";
 	ALString sOwnerAttributeName;
-	KWAttribute* identifierAttribute = NULL;
+	KWAttribute* identifierAttribute;
+	int nInitialClassAttributreNumber;
+	boolean bInitialClassUnique;
 	ALString sReportFileName;
 	Timer timer;
 	boolean bWriteOk;
@@ -186,6 +188,11 @@ void CCLearningProblem::BuildCoclustering()
 	// Demarrage du timer
 	timer.Start();
 
+	// Memorisation de l'etat de la classe avant creation de l'eventuel attribut identifiant dans le cas instances x variables
+	identifierAttribute = NULL;
+	nInitialClassAttributreNumber = kwcClass->GetAttributeNumber();
+	bInitialClassUnique = kwcClass->GetForceUnique();
+
 	// Parametrage des attributs de la base a lire
 	kwcClass->SetAllAttributesLoaded(false);
 
@@ -218,6 +225,7 @@ void CCLearningProblem::BuildCoclustering()
 		learningSpec.SetShortDescription(GetAnalysisResults()->GetShortDescription());
 		learningSpec.SetDatabase(database);
 		learningSpec.SetClass(kwcClass);
+		learningSpec.SetInitialAttributeNumber(kwcClass->ComputeInitialAttributeNumber(false));
 
 		// Parametrage du coclustering
 		coclusteringBuilder.SetVarPartCoclustering(false);
@@ -250,7 +258,7 @@ void CCLearningProblem::BuildCoclustering()
 		// Mise a priori de tous les attributs en Unloaded
 		kwcClass->SetAllAttributesLoaded(false);
 
-		// Insertion d'un attribut identifiant en distiguant la presence d'une ou plusieurs cles pour la variable Identifier
+		// Insertion d'un attribut identifiant en distinguant la presence d'une ou plusieurs cles pour la variable Identifier
 		// On garde la meme classe pour eviter de dupliquer la classe est son domaine, ce qui peut etre exigeant en memoire
 		// dans les cas de classes ayant de tres grands nombres d'attriburs
 		identifierAttribute = InsertIdentifierAttribute(kwcClass);
@@ -298,6 +306,7 @@ void CCLearningProblem::BuildCoclustering()
 		learningSpec.SetShortDescription(GetAnalysisResults()->GetShortDescription());
 		learningSpec.SetDatabase(database);
 		learningSpec.SetClass(kwcClass);
+		learningSpec.SetInitialAttributeNumber(kwcClass->ComputeInitialAttributeNumber(false));
 
 		// Parametrage du coclustering VarPart
 		coclusteringBuilder.SetVarPartCoclustering(true);
@@ -393,7 +402,15 @@ void CCLearningProblem::BuildCoclustering()
 	{
 		assert(analysisSpec->GetVarPartCoclustering());
 		assert(kwcClass->LookupAttribute(identifierAttribute->GetName()) == identifierAttribute);
-		kwcClass->DeleteAttribute(identifierAttribute->GetName());
+
+		// Supression de l'attribut identifiant s'il a ete cree
+		assert(kwcClass->GetAttributeNumber() >= nInitialClassAttributreNumber);
+		if (kwcClass->GetAttributeNumber() > nInitialClassAttributreNumber)
+			kwcClass->DeleteAttribute(identifierAttribute->GetName());
+		assert(kwcClass->GetAttributeNumber() == nInitialClassAttributreNumber);
+
+		// Restitution du mode unique initial
+		kwcClass->SetForceUnique(bInitialClassUnique);
 	}
 	kwcClass->SetAllAttributesLoaded(true);
 	KWClassDomain::GetCurrentDomain()->Compile();
@@ -1087,9 +1104,9 @@ KWAttribute* CCLearningProblem::InsertIdentifierAttribute(KWClass* kwcClass)
 	// Cas d'un dictionnaire avec une cle mono-champ
 	else if (kwcClass->GetKeyAttributeNumber() == 1)
 	{
-		// On force la classe a Root afin de supprimer les duplicats si la cle n'etait pas unique
-		if (!kwcClass->GetRoot())
-			kwcClass->SetRoot(true);
+		// On force sila classe a etre unique afin de supprimer les duplicats si la cle n'etait pas unique
+		if (not kwcClass->GetRoot())
+			kwcClass->SetForceUnique(true);
 
 		attribute = kwcClass->GetKeyAttributeAt(0);
 
@@ -1100,9 +1117,9 @@ KWAttribute* CCLearningProblem::InsertIdentifierAttribute(KWClass* kwcClass)
 	// Sinon : cas d'un dictionnaire avec une cle multi-champ
 	else
 	{
-		// On force la classe a Root afin de supprimer les duplicats si la cle n'etait pas unique
-		if (!kwcClass->GetRoot())
-			kwcClass->SetRoot(true);
+		// On force la classe a etre unique afin de supprimer les duplicats si la cle n'etait pas unique
+		if (not kwcClass->GetRoot())
+			kwcClass->SetForceUnique(true);
 
 		// Creation de la regle de l'identifiant par concatenation des cles
 		identifierRule = new KWDRBuildKey();

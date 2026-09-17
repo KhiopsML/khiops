@@ -748,10 +748,10 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 		// Parametrage du nombre total de valeurs (= nombre d'instances)
 		dgAttribute->SetInitialValueNumber(univariateTupleTable->GetTotalFrequency());
 		dgAttribute->SetGranularizedValueNumber(univariateTupleTable->GetTotalFrequency());
-		assert(dgAttribute->GetPartNumber() == univariateTupleTable->GetSize() or
+		ensure(dgAttribute->GetPartNumber() == univariateTupleTable->GetSize() or
 		       GetPregranularizedNumericalAttributes());
-		assert(dgAttribute->GetInitialValueNumber() + 1 >= dgAttribute->GetPartNumber());
-		ensure(dgAttribute->Check());
+		ensure(dgAttribute->GetInitialValueNumber() + 1 >= dgAttribute->GetPartNumber());
+		ensure(dgAttribute->CheckPartially());
 	}
 	return true;
 }
@@ -836,7 +836,7 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 	dgAttribute->SetInitialValueNumber(dgAttribute->GetPartNumber());
 	// On ne prend pas en compte la StarValue dans Vg
 	dgAttribute->SetGranularizedValueNumber(dgAttribute->GetPartNumber());
-	ensure(dgAttribute->Check());
+	ensure(dgAttribute->CheckPartially());
 	return true;
 }
 
@@ -913,16 +913,15 @@ boolean KWAttributeSubsetStats::CreateAttributePreGranularizedIntervals(const KW
 	// Parametrage du nombre total de valeurs (= nombre d'instances) et verifications
 	dgAttribute->SetInitialValueNumber(attributeTupleTable->GetTotalFrequency());
 	dgAttribute->SetGranularizedValueNumber(attributeTupleTable->GetTotalFrequency());
-	assert(dgAttribute->GetInitialValueNumber() + 1 >= dgAttribute->GetPartNumber());
-	ensure(dgAttribute->Check());
-
+	ensure(dgAttribute->GetInitialValueNumber() + 1 >= dgAttribute->GetPartNumber());
+	ensure(dgAttribute->CheckPartially());
 	return true;
 }
 
 boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTable, KWDataGrid* dataGrid)
 {
 	boolean bOk = true;
-	boolean bDisplayInstanceCreation = false;
+	const boolean bTrace = false;
 	ObjectArray oaParts;
 	int nTuple;
 	const KWTuple* tuple;
@@ -946,7 +945,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 	require(dataGrid != NULL);
 	require(dataGrid->GetAttributeNumber() <= tupleTable->GetAttributeNumber());
 	require(dataGrid->GetCellNumber() == 0);
-	require(dataGrid->Check());
+	require(dataGrid->CheckPartially());
 	require(not dataGrid->IsVarPartDataGrid());
 
 	// Passage en mode update
@@ -1001,7 +1000,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 				cValue = tuple->GetContinuousAt(ivAttributeIndexes.GetAt(nAttribute));
 				part = dgAttribute->LookupContinuousPart(cValue);
 				oaParts.SetAt(nAttribute, part);
-				if (bDisplayInstanceCreation)
+				if (bTrace)
 					cout << cValue << "\t";
 			}
 			else
@@ -1009,7 +1008,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 				sValue = tuple->GetSymbolAt(ivAttributeIndexes.GetAt(nAttribute));
 				part = dgAttribute->LookupSymbolPart(sValue);
 				oaParts.SetAt(nAttribute, part);
-				if (bDisplayInstanceCreation)
+				if (bTrace)
 					cout << sValue << "\t";
 			}
 		}
@@ -1019,7 +1018,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 		{
 			sTargetValue = tuple->GetSymbolAt(nTargetAttributeIndex);
 			nTargetIndex = GetTargetValueStats()->GetAttributeAt(0)->ComputeSymbolPartIndex(sTargetValue);
-			if (bDisplayInstanceCreation)
+			if (bTrace)
 				cout << dataGrid->GetTargetValueAt(nTargetIndex) << "\t";
 		}
 
@@ -1075,7 +1074,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 			cell->SetCellFrequency(cell->GetCellFrequency() + nCellFrequency);
 
 		// Affichage de la cellule
-		if (bDisplayInstanceCreation)
+		if (bTrace)
 			cout << *cell;
 	}
 

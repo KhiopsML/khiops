@@ -26,6 +26,7 @@ KWClassStats::KWClassStats()
 	dataTableSliceSet = NULL;
 	svSymbolTargetValues = NULL;
 	cvContinuousTargetValues = NULL;
+	bMainMessageVerboseMode = true;
 	CleanWorkingData();
 }
 
@@ -56,10 +57,21 @@ const KWAttributePairsSpec* KWClassStats::GetAttributePairsSpec() const
 	return attributePairSpec;
 }
 
+void KWClassStats::SetMainMessageVerboseMode(boolean bValue)
+{
+	bMainMessageVerboseMode = bValue;
+}
+
+boolean KWClassStats::GetMainMessageVerboseMode() const
+{
+	return bMainMessageVerboseMode;
+}
+
 boolean KWClassStats::ComputeStats()
 {
 	boolean bOk = true;
 	ALString sMessage;
+	boolean bCurrentDatabaseVerboseMode;
 	KWDatabaseBasicStatsTask databaseBasicClassStatsTask;
 	int nDatabaseObjectNumber;
 	longint lEncodingErrorNumber;
@@ -74,6 +86,7 @@ boolean KWClassStats::ComputeStats()
 	KWTupleTable targetTupleTable;
 	int nUsedAttributeNumber;
 	int nMaxLoadableAttributeNumber;
+	int nMaxRequestedAttributePairNumber;
 	int i;
 	KWAttribute* attribute;
 	KWAttributeStats* attributeStats;
@@ -116,13 +129,14 @@ boolean KWClassStats::ComputeStats()
 	if (bOk)
 	{
 		databaseBasicClassStatsTask.SetDisplayAllTaskMessages(false);
+		bCurrentDatabaseVerboseMode = GetDatabase()->GetVerboseMode();
 		GetDatabase()->SetVerboseMode(false);
 		databaseBasicClassStatsTask.SetReusableDatabaseIndexer(GetLearningSpec()->GetDatabaseIndexer());
 		bOk = databaseBasicClassStatsTask.CollectBasicStats(GetDatabase(), GetTargetAttributeName(),
 								    lRecordNumber, lCollectedObjectNumber,
 								    svSymbolTargetValues, cvContinuousTargetValues);
 		lEncodingErrorNumber = max(lEncodingErrorNumber, GetDatabase()->GetEncodingErrorNumber());
-		GetDatabase()->SetVerboseMode(true);
+		GetDatabase()->SetVerboseMode(bCurrentDatabaseVerboseMode);
 	}
 
 	// Erreur si trop d'instances
@@ -240,14 +254,19 @@ boolean KWClassStats::ComputeStats()
 	if (bOk and nUsedAttributeNumber == 0)
 		AddWarning("No input variable in analysis dictionary " + GetClass()->GetName());
 
+	// Calcul du nombre max de paires a analyser
+	nMaxRequestedAttributePairNumber = 0;
+	if (attributePairSpec != NULL)
+		nMaxRequestedAttributePairNumber =
+		    attributePairSpec->GetMaxRequestedAttributePairNumber(GetTargetAttributeName());
+
 	// Dimensionnement des taches de preparation univariee
 	nMaxLoadableAttributeNumber = 0;
 	bOk = bOk and not TaskProgression::IsInterruptionRequested();
 	if (bOk)
 	{
 		nMaxLoadableAttributeNumber = univariateDataPreparationTask.ComputeMaxLoadableAttributeNumber(
-		    GetLearningSpec(), &targetTupleTable,
-		    attributePairSpec->GetMaxRequestedAttributePairNumber(GetTargetAttributeName()));
+		    GetLearningSpec(), &targetTupleTable, nMaxRequestedAttributePairNumber);
 		if (nMaxLoadableAttributeNumber <= 0 and nUsedAttributeNumber > 0)
 			bOk = false;
 	}
@@ -316,7 +335,7 @@ boolean KWClassStats::ComputeStats()
 	}
 
 	// Calcul des stats pour les paires d'attributs (non disponible en regression)
-	if (bOk and attributePairSpec->GetMaxAttributePairNumber() > 0 and nDatabaseObjectNumber > 0 and
+	if (bOk and nMaxRequestedAttributePairNumber > 0 and nDatabaseObjectNumber > 0 and
 	    oaAttributeStats.GetSize() > 1 and
 	    (GetTargetAttributeType() == KWType::Symbol or GetTargetAttributeType() == KWType::None) and
 	    not TaskProgression::IsInterruptionRequested())
@@ -1681,4 +1700,10 @@ void KWClassStats::DispatchAttributeStatsByType(const ObjectArray* oaInputAttrib
 		else if (attributeStats->GetAttributeType() == KWType::Continuous)
 			oaContinuousAttributeStats->Add(attributeStats);
 	}
+}
+
+void KWClassStats::AddSimpleMessage(const ALString& sLabel) const
+{
+	if (bMainMessageVerboseMode)
+		Object::AddSimpleMessage(sLabel);
 }

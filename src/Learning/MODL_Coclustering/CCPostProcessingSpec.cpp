@@ -113,7 +113,7 @@ ObjectArray* CCPostProcessingSpec::GetPostProcessedAttributes()
 boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* postProcessedCoclusteringDataGrid)
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	const double dEpsilon = 1e-6;
 	CCCoclusteringReport coclusteringReport;
 	SortedList slSortedMergeableParts(CCHDGPartCompareHierarchicalRank);
@@ -194,7 +194,7 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 	// Execution du post-traitement en verifiant les contraintes
 
 	// Affichage de l'entete
-	if (bDisplay)
+	if (bTrace)
 		cout << "Variable\tPart\tHierarchical rank\tHierarchical level\n";
 
 	// Merges des parties de la grille tant que les contraintes ne sont pas verifiees
@@ -248,7 +248,7 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 			assert(nMaxPartViolationNumber >= 0);
 
 			// Affichage de la partie fusionnees
-			if (bDisplay)
+			if (bTrace)
 			{
 				cout << hdgAttribute->GetAttributeName() << "\t" << hdgMergedPart->GetObjectLabel()
 				     << "\t" << hdgMergedPart->GetHierarchicalRank() << "\t"

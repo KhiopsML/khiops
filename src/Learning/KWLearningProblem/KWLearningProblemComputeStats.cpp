@@ -193,10 +193,8 @@ void KWLearningProblem::ComputeStats()
 				       " are now filtered out in a new attempt to prepare for a regression model");
 
 		// Recalcul des stats avec les valeurs cibles manquantes filtrees
-		// On se place en mode non verbeux pour la base d'apprentissage qui a deja ete analysee
-		GetTrainDatabase()->SetVerboseMode(false);
+		// La base est reanalysee en restant en mode verbeux, car les enregistrements selectionnes ne seront pas les memes
 		classStats->ComputeStats();
-		GetTrainDatabase()->SetVerboseMode(true);
 		bPreparationOk = classStats->IsStatsComputed();
 		assert(not learningSpec.IsTargetStatsComputed() or
 		       cast(KWDescriptiveContinuousStats*, learningSpec.GetTargetDescriptiveStats())

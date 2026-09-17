@@ -2268,7 +2268,7 @@ longint SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
 	require(0 < nSliceNumber and nSliceNumber <= ivSparseMissingValueNumberPerAttribute->GetSize());
 	require(1 <= dSparseChunkMemoryFactor);
 
-	// Calcul du nombre max de valeurs sparse parmi toute les slices
+	// Calcul du nombre max de valeurs sparse parmi toutes les slices
 	nAttributeNumber = ivSparseMissingValueNumberPerAttribute->GetSize();
 	nMaxSliceAttributeNumber = nAttributeNumber / nSliceNumber + 1;
 	nAttribute = 0;
@@ -2286,7 +2286,7 @@ longint SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
 		for (nSliceAttribute = 0; nSliceAttribute < nSliceAttributeNumber; nSliceAttribute++)
 		{
 			lSliceSparseValueNumber +=
-			    (nInstanceNumber - ivSparseMissingValueNumberPerAttribute->GetAt(nAttribute));
+			    ((longint)nInstanceNumber - ivSparseMissingValueNumberPerAttribute->GetAt(nAttribute));
 			nAttribute++;
 		}
 

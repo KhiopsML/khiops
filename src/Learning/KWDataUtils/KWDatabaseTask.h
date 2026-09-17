@@ -120,7 +120,7 @@ protected:
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	// Reimplementation des methodes virtuelles de tache
 	// Lors des reimplementation dans les sous-classes, on peut appeler explicitement la methode
-	// de KWDatabaseTask, en debut de reimplementation pour toute les methodes, sauf pour les
+	// de KWDatabaseTask, en debut de reimplementation pour toutes les methodes, sauf pour les
 	// methodes Finalize devant etre appelee en fin de reimplementation
 
 	// Dimensionnement des ressources

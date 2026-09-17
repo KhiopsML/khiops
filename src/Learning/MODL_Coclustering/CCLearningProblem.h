@@ -146,8 +146,11 @@ protected:
 	// Insertion d'un attribut d'identifiant dans la classe pour le cas instances x variables
 	// Cet attribut est de type Symbol et contient, selon l'analyse du dictionnaire :
 	// - absence d'attribut de type Key :  le numero de ligne de l'instance dans son fichier
-	// - presence d'un attribut cle : cet attribut cle
+	// - presence d'un attribut cle : cet attribut
 	// - presence de plusieurs cles : un attribut construit par concatenation des cles
+	// Remarques:
+	// - l'attribut cle n'est pas cree si un un atribut cle mono-champ existe deja
+	// - on passe la classe en Root si necessaire
 	KWAttribute* InsertIdentifierAttribute(KWClass* kwcClass);
 
 	// Ecriture des clusters numeriques ou groupable (Symbol ou VarPart)

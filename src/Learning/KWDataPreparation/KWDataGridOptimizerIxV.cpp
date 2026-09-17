@@ -22,9 +22,82 @@ double KWDataGridOptimizerIxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 	require(optimizedDataGrid->GetCellNumber() == 1);
 	require(GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid) == GetOptimizedNullDataGridCost());
 
+	// Recherche d'une solution initiale meilleure que celle du modele null
+	//DDD Desactive en attendant de gerer correctement les analyses bivariees multiples
+	//DDD dBestCost = BuildInitialSolution(initialDataGrid, optimizedDataGrid);
+
 	// Appel direct de la methode d'optimisation VNS, dont la partie generation de grille voisone est ici specialisee
 	// en generant une surtokenisation aleatoire de la grille courante
-	dBestCost = IterativeVNSOptimizeDataGrid(GetOptimizedInitialDataGrid(), optimizedDataGrid);
+	dBestCost = IterativeVNSOptimizeDataGrid(initialDataGrid, optimizedDataGrid);
+
+	ensure(fabs(dBestCost - GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
+	return dBestCost;
+}
+
+double KWDataGridOptimizerIxV::BuildInitialSolution(const KWDataGrid* initialDataGrid,
+						    KWDataGrid* optimizedDataGrid) const
+
+{
+	double dCost;
+	double dBestCost;
+	KWDataGridInitialSolutionSearcherIV initialSolutionSearcher;
+	KWDataGrid initialDataGridSolution;
+	KWDataGridMerger initialDataGridOptimizedSolution;
+	boolean bInitialSolutionFound;
+
+	require(GetDataGridCosts() != NULL);
+	require(GetDataGridCosts()->IsInitialized());
+	require(initialDataGrid != NULL);
+	require(initialDataGrid->IsVarPartDataGrid());
+	require(optimizedDataGrid != NULL);
+	require(optimizedDataGrid->GetCellNumber() == 1);
+	require(GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid) == GetOptimizedNullDataGridCost());
+
+	// Debut du parametrage du profiling de l'optimisation
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("BuildInitialSolution");
+
+	// Recherche d'une solution initiale meilleure que celle du modele nul
+	// La collecte des traces est desactivee pour eviter de melanger l'optmisation IxV
+	// en cours avec les optimisation VxV des analyses bivariees de la methodes appelee
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("SearchInitialSolution");
+	KWDataGridOptimizer::GetProfiler()->SetCollectActive(false);
+	initialSolutionSearcher.SetLearningSpec(GetLearningSpec());
+	bInitialSolutionFound =
+	    initialSolutionSearcher.SearchInitialSolution(initialDataGrid, &initialDataGridSolution);
+	KWDataGridOptimizer::GetProfiler()->SetCollectActive(true);
+	KWDataGridOptimizer::GetProfiler()->EndMethod("SearchInitialSolution");
+
+	// Prise en compte si on a trouve meilleur que le meilleur null
+	dBestCost = GetOptimizedNullDataGridCost();
+	if (bInitialSolutionFound)
+	{
+		assert(initialDataGridSolution.GetCellNumber() > 1);
+
+		// Parametrage de la solution initiale a optimiser
+		SaveDataGrid(&initialDataGridSolution, &initialDataGridOptimizedSolution);
+		initialDataGridOptimizedSolution.SetDataGridCosts(GetDataGridCosts());
+
+		// Optimisation et post-optimisation de la solution
+		dCost = OptimizeSolution(&initialDataGridSolution, &initialDataGridOptimizedSolution, true);
+		dCost = PostOptimizeVarPartSolution(initialDataGrid, &initialDataGridOptimizedSolution);
+
+		// Memorisation si amelioration du cout
+		// Les methodes precedentes gerent deja l'interruption des taches
+		if (not TaskProgression::IsInterruptionRequested())
+		{
+			if (dCost < dBestCost)
+			{
+				SaveDataGrid(&initialDataGridOptimizedSolution, optimizedDataGrid);
+				dBestCost = dCost;
+
+				// Gestion de la meilleure solution
+				HandleOptimizationStep(optimizedDataGrid, initialDataGrid);
+			}
+		}
+	}
+
+	// Fin du parametrage du profiling de l'optimisation
+	KWDataGridOptimizer::GetProfiler()->EndMethod("BuildInitialSolution");
 
 	ensure(fabs(dBestCost - GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
 	return dBestCost;
