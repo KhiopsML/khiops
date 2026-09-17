@@ -121,6 +121,10 @@ public:
 	void SetInterest(double dValue);
 	double GetInterest() const;
 
+	// Importance
+	void SetImportance(double dValue);
+	double GetImportance() const;
+
 	// Description
 	void SetDescription(const ALString& sValue);
 	const ALString& GetDescription() const;
@@ -172,6 +176,7 @@ protected:
 	// Informations sur l'attribut
 	int nInitialPartNumber;
 	double dInterest;
+	double dImportance;
 	ALString sDescription;
 
 	// Partie racine
@@ -195,6 +200,10 @@ public:
 	// Typicalite
 	void SetInterest(double dValue);
 	double GetInterest() const;
+
+	// Importance
+	void SetImportance(double dValue);
+	double GetImportance() const;
 
 	// Niveau hierarchique
 	void SetHierarchicalLevel(double dValue);
@@ -268,6 +277,7 @@ protected:
 	// Informations sur la partie
 	ALString sPartName;
 	double dInterest;
+	double dImportance;
 	double dHierarchicalLevel;
 	int nRank;
 	int nHierachicalRank;

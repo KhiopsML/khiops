@@ -2361,7 +2361,7 @@ void CCCoclusteringReport::WriteDimensionSummary(CCHDGAttribute* attribute, JSON
 	fJSON->WriteKeyInt("parts", attribute->GetPartNumber());
 	fJSON->WriteKeyInt("initialParts", attribute->GetInitialPartNumber());
 	fJSON->WriteKeyInt("values", nValueNumber);
-	fJSON->WriteKeyDouble("interest", attribute->GetInterest());
+	fJSON->WriteKeyDouble("importance", attribute->GetImportance());
 	fJSON->WriteKeyString("description", attribute->GetDescription());
 	if (KWFrequencyTable::GetWriteGranularityAndGarbage())
 		fJSON->WriteKeyBoolean("garbage", (attribute->GetGarbageModalityNumber() > 0));
@@ -2431,6 +2431,7 @@ void CCCoclusteringReport::WriteAttributePartition(KWDGAttribute* attribute, JSO
 			// Ecritures des bornes
 			fJSON->BeginObject();
 			fJSON->WriteKeyString("cluster", hdgPart->GetPartName());
+			fJSON->WriteKeyDouble("importance", hdgPart->GetImportance());
 			fJSON->BeginKeyList("bounds");
 			if (dgInterval->GetUpperBound() != KWContinuous::GetMissingValue())
 			{
@@ -2484,6 +2485,7 @@ void CCCoclusteringReport::WriteAttributePartition(KWDGAttribute* attribute, JSO
 			// Parcours des valeurs, sauf si effectif nul (cas de la valeur par defaut)
 			fJSON->BeginObject();
 			fJSON->WriteKeyString("cluster", hdgPart->GetPartName());
+			fJSON->WriteKeyDouble("importance", hdgPart->GetImportance());
 			fJSON->BeginKeyList("values");
 			dgValue = dgValueSet->GetHeadValue();
 			while (dgValue != NULL)
@@ -2505,19 +2507,16 @@ void CCCoclusteringReport::WriteAttributePartition(KWDGAttribute* attribute, JSO
 			}
 			fJSON->EndList();
 
-			// Typicalite des valeurs, sauf pour un attribut interne
-			if (not attribute->IsInnerAttribute())
+			// Importance des valeurs
+			fJSON->BeginKeyList("valueImportances");
+			dgValue = dgValueSet->GetHeadValue();
+			while (dgValue != NULL)
 			{
-				fJSON->BeginKeyList("valueTypicalities");
-				dgValue = dgValueSet->GetHeadValue();
-				while (dgValue != NULL)
-				{
-					if (dgValue->GetValueFrequency() > 0)
-						fJSON->WriteDouble(dgValue->GetTypicality());
-					dgValueSet->GetNextValue(dgValue);
-				}
-				fJSON->EndList();
+				if (dgValue->GetValueFrequency() > 0)
+					fJSON->WriteDouble(dgValue->GetImportance());
+				dgValueSet->GetNextValue(dgValue);
 			}
+			fJSON->EndList();
 
 			// Fin de l'objet
 			fJSON->EndObject();
@@ -2621,7 +2620,6 @@ void CCCoclusteringReport::WriteDimensionHierarchies(const CCHierarchicalDataGri
 			fJSON->WriteKeyString("cluster", hdgPart->GetPartName());
 			fJSON->WriteKeyString("parentCluster", hdgPart->GetParentPartName());
 			fJSON->WriteKeyInt("frequency", hdgPart->GetPartFrequency());
-			fJSON->WriteKeyDouble("interest", hdgPart->GetInterest());
 			fJSON->WriteKeyDouble("hierarchicalLevel", hdgPart->GetHierarchicalLevel());
 			fJSON->WriteKeyInt("rank", hdgPart->GetRank());
 			fJSON->WriteKeyInt("hierarchicalRank", hdgPart->GetHierarchicalRank());
