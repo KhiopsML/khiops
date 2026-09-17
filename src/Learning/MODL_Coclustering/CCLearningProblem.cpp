@@ -471,8 +471,10 @@ void CCLearningProblem::PostProcessCoclustering()
 	{
 		AddSimpleMessage("Write simplified report " + sPostProcessedCoclusteringReportFileName);
 
-		// Import des donnees de logs du rapport initial
+		// Import des donnees de logs du rapport initial et de son format
 		postProcessedcoclusteringReport.ImportErrorLogsFromReport(&coclusteringReport);
+		postProcessedcoclusteringReport.SetOldFormatBeforeImportance(
+		    coclusteringReport.GetOldFormatBeforeImportance());
 
 		bOk = postProcessedcoclusteringReport.WriteReport(sPostProcessedCoclusteringReportFileName,
 								  &postProcessedCoclusteringDataGrid);

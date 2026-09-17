@@ -449,7 +449,7 @@ protected:
 	KWDGCell* tailCell;
 	int nCellNumber;
 
-	// Gestion du mode mise-a-jour des cellule au moyen d'une liste triee dont
+	// Gestion du mode mise-a-jour des cellules au moyen d'une liste triee dont
 	// la cle de tri est le tableau des parties des cellules. On peut ainsi rechercher
 	// si une cellule existe deja en O(k.n.log(n))
 	SortedList* slCells;
@@ -1140,6 +1140,10 @@ public:
 	void SetTypicality(double dValue);
 	double GetTypicality() const;
 
+	// Importance de la valeur
+	void SetImportance(double dValue);
+	double GetImportance() const;
+
 	// Comparaison par valeur
 	// - valeur Symbol si categoriel
 	// - nom d'attribut, puis valeur de partie si VarPart
@@ -1173,6 +1177,7 @@ protected:
 
 	// Attributs
 	double dTypicality;
+	double dImportance;
 	KWDGValue* prevValue;
 	KWDGValue* nextValue;
 };
@@ -1554,6 +1559,10 @@ public:
 	int GetCellFrequency() const;
 	void SetCellFrequency(int nFrequency);
 
+	// Information mutuelle de la cellule
+	double GetMutualInformation() const;
+	void SetMutualInformation(double dValue);
+
 	// Nombre de classes cible (0 dans le cas non supervise)
 	int GetTargetValueNumber() const;
 
@@ -1615,6 +1624,9 @@ protected:
 
 	// Effectif de la cellule
 	int nCellFrequency;
+
+	// Information mutuelle de la cellule
+	double dMutualInformation;
 
 	// Vecteur d'effectif par classe cible
 	IntVector ivFrequencyVector;
@@ -2396,6 +2408,7 @@ inline int KWDGInnerAttributes::GetInnerAttributeNumber() const
 inline KWDGValue::KWDGValue()
 {
 	dTypicality = 0;
+	dImportance = 0;
 	prevValue = NULL;
 	nextValue = NULL;
 }
@@ -2437,6 +2450,17 @@ inline void KWDGValue::SetTypicality(double dValue)
 inline double KWDGValue::GetTypicality() const
 {
 	return dTypicality;
+}
+
+inline void KWDGValue::SetImportance(double dValue)
+{
+	require(0 <= dValue and dValue <= 1);
+	dImportance = dValue;
+}
+
+inline double KWDGValue::GetImportance() const
+{
+	return dImportance;
 }
 
 // Classe KWDGSymbolValue
@@ -2493,6 +2517,7 @@ inline KWDGCell::KWDGCell()
 	prevCell = NULL;
 	nextCell = NULL;
 	nCellFrequency = 0;
+	dMutualInformation = 0;
 }
 
 inline KWDGCell::~KWDGCell()
@@ -2501,6 +2526,7 @@ inline KWDGCell::~KWDGCell()
 	debug(prevCell = NULL);
 	debug(nextCell = NULL);
 	debug(nCellFrequency = 0);
+	debug(dMutualInformation = 0);
 	debug(ivFrequencyVector.SetSize(0));
 	debug(oaParts.SetSize(0));
 	debug(oaNextCells.SetSize(0));
@@ -2518,6 +2544,18 @@ inline void KWDGCell::SetCellFrequency(int nFrequency)
 	require(nFrequency >= 0);
 	require(GetTargetValueNumber() == 0);
 	nCellFrequency = nFrequency;
+}
+
+inline double KWDGCell::GetMutualInformation() const
+{
+	ensure(ivFrequencyVector.GetSize() == 0 or ComputeTotalFrequency() == nCellFrequency);
+	return dMutualInformation;
+}
+
+inline void KWDGCell::SetMutualInformation(double dValue)
+{
+	require(GetTargetValueNumber() == 0);
+	dMutualInformation = dValue;
 }
 
 inline int KWDGCell::GetTargetValueNumber() const
