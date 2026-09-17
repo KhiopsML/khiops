@@ -12,7 +12,7 @@ boolean PLRemoteFileService::FileExists(const ALString& sFileURI)
 	ALString sLocalFileName;
 	SystemFile fileHandle;
 
-	// Si c'est un fichier remote sur le localhost, on extrait le path pour le traiter en  ficher local
+	// Si c'est un fichier remote sur le localhost, on extrait le path pour le traiter en ficher local
 	if (PLRemoteFileService::RemoteIsLocal(sFileURI))
 		sLocalFileName = FileService::GetURIFilePathName(sFileURI);
 	else
@@ -203,52 +203,6 @@ boolean PLRemoteFileService::CleanOutputWorkingFile(const ALString& sPathName, A
 	}
 	sWorkingFileName = "";
 	return bOk;
-}
-
-boolean PLRemoteFileService::BuildInputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName)
-{
-	ALString sTmpDir;
-	boolean bOk = true;
-
-	// Si le fichier est sur hdfs, on le copie en local
-	if (FileService::GetURIScheme(sPathName) != "")
-	{
-		// On n'utilise pas forcement le repertoire applicatif car il n'a pas encore ete renseigne par
-		// l'utilisateur
-		if (FileService::GetApplicationTmpDir() != "")
-			sTmpDir = FileService::GetApplicationTmpDir();
-		else
-			sTmpDir = FileService::GetSystemTmpDir();
-
-		sWorkingFileName = FileService::CreateNewFile(sTmpDir + FileService::GetFileSeparator() + "copy" +
-							      IntToString(++nFileHdfsIndex) + "_" +
-							      FileService::GetFileName(sPathName));
-
-		bOk = sWorkingFileName != "";
-		if (bOk)
-		{
-			bOk = PLRemoteFileService::CopyFile(sPathName, sWorkingFileName);
-		}
-		else
-			Global::AddError("file", sPathName, "Unable to create working file");
-	}
-	else
-	{
-		sWorkingFileName = sPathName;
-	}
-
-	return bOk;
-}
-
-void PLRemoteFileService::CleanInputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName)
-{
-	// Si le fichier est sur HDFS, on supprime la copie locale
-	if (sPathName != sWorkingFileName)
-	{
-		assert(FileService::GetURIScheme(sPathName) != "");
-		FileService::RemoveFile(sWorkingFileName);
-	}
-	sWorkingFileName = "";
 }
 
 boolean PLRemoteFileService::RemoteIsLocal(const ALString& sURI)
