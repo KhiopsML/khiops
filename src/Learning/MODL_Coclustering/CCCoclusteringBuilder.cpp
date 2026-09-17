@@ -2759,6 +2759,9 @@ void CCCoclusteringBuilder::ComputeHierarchicalInfo(const KWDataGrid* inputIniti
 	require(dataGridCosts != NULL);
 	require(optimizedDataGrid != NULL);
 
+	// Calcul de l'ensemble des importances
+	ComputeAllImportances(optimizedDataGrid);
+
 	// Memorisation des bornes des attributs Continuous
 	ComputeContinuousAttributeBounds(optimizedDataGrid);
 
@@ -2813,6 +2816,215 @@ void CCCoclusteringBuilder::ComputeHierarchicalInfo(const KWDataGrid* inputIniti
 
 	// Tri des valeurs par typicalite decorissante pour les attributs categoriels
 	SortAttributePartsAndValues(optimizedDataGrid);
+}
+
+void CCCoclusteringBuilder::ComputeAllImportances(CCHierarchicalDataGrid* optimizedDataGrid) const
+{
+
+	// Cas d'un coclustering informatif (non reduit au modele nul)
+	if (optimizedDataGrid->GetCellNumber() > 1)
+	{
+		// Calcul de l'importance totale du coclustering
+		ComputeCoclusteringImportance(optimizedDataGrid);
+
+		// Calcul de l'importance de chaque cluster pour chaque dimension du coclustering
+		ComputePartImportances(optimizedDataGrid);
+
+		// Cas d'un coclustering instances x variables : calcul de l'importance des attributs internes
+		// et de leurs parties au sein de leur cluster et au sein de leur attribut
+		if (optimizedDataGrid->IsVarPartDataGrid())
+			ComputeInnerAttributeImportances(optimizedDataGrid);
+
+		// Verification de la coherence des importances
+		CheckImportances(optimizedDataGrid);
+	}
+}
+
+void CCCoclusteringBuilder::ComputeCoclusteringImportance(CCHierarchicalDataGrid* optimizedDataGrid) const
+{
+	KWDGCell* cell;
+	double dTotalImportance;
+	int nAttribute;
+	int nFrequencyPartProduct;
+
+	// Calcul de l'importance du coclustering par sommation sur l'ensemble des cellules
+	cell = optimizedDataGrid->GetHeadCell();
+	dTotalImportance = 0;
+	while (cell != NULL)
+	{
+		// Parcours des parties de la cellule pour le calcul de sa contribution a l'information mutuelle
+		nFrequencyPartProduct = 1;
+		for (nAttribute = 0; nAttribute < cell->GetAttributeNumber(); nAttribute++)
+		{
+			nFrequencyPartProduct *= cell->GetPartAt(nAttribute)->GetPartFrequency();
+		}
+		// Calcul de l'information mutuelle de la cellule
+		cell->SetMutualInformation((double)cell->GetCellFrequency() /
+					   (double)optimizedDataGrid->GetGridFrequency() *
+					   log((double)cell->GetCellFrequency() *
+					       optimizedDataGrid->GetGridFrequency() / nFrequencyPartProduct));
+
+		// Ajout de la contribution de la cellule a l'importance du coclustering (valeur absolue de l'information mutuelle)
+		dTotalImportance += abs(cell->GetMutualInformation());
+
+		// Cellule suivante
+		optimizedDataGrid->GetNextCell(cell);
+	}
+	optimizedDataGrid->SetCoclusteringImportance(dTotalImportance);
+}
+
+void CCCoclusteringBuilder::ComputePartImportances(CCHierarchicalDataGrid* optimizedDataGrid) const
+{
+	int nAttribute;
+	CCHDGAttribute* attribute;
+	CCHDGPart* cchdgPart;
+	KWDGPart* part;
+	KWDGCell* cell;
+	double dImportance;
+	double dTotalImportance;
+	double dEpsilon = 1e-6;
+
+	require(optimizedDataGrid->GetCoclusteringImportance() > 0 or optimizedDataGrid->GetCellNumber() == 1);
+
+	// Calcul de l'importance par partie pour chaque dimension de la grille
+	for (nAttribute = 0; nAttribute < optimizedDataGrid->GetAttributeNumber(); nAttribute++)
+	{
+		attribute = cast(CCHDGAttribute*, optimizedDataGrid->GetAttributeAt(nAttribute));
+		attribute->SetImportance(1.0 / optimizedDataGrid->GetAttributeNumber());
+		dTotalImportance = 0;
+
+		// Calcul de l'importance de chaque partie d'attribut
+		part = attribute->GetHeadPart();
+		while (part != NULL)
+		{
+			cchdgPart = cast(CCHDGPart*, part);
+
+			// Somme sur les cellules des valeurs absolues de leur contribution a l'information mutuelle
+			cell = part->GetHeadCell();
+			dImportance = 0;
+			while (cell != NULL)
+			{
+				dImportance += abs(cell->GetMutualInformation());
+				part->GetNextCell(cell);
+			}
+
+			// Cas d'un coclustering informatif
+			// Dans le cas d'un modele nul, l'importance est nulle et a deja ete initialisee a 0
+			if (optimizedDataGrid->GetCoclusteringImportance() > 0)
+			{
+				cchdgPart->SetImportance(dImportance / optimizedDataGrid->GetCoclusteringImportance());
+				dTotalImportance += cchdgPart->GetImportance();
+			}
+
+			// Passage a la partie suivante
+			attribute->GetNextPart(part);
+		}
+		assert((dTotalImportance > 1 - dEpsilon) and (dTotalImportance < 1 + dEpsilon));
+	}
+}
+
+void CCCoclusteringBuilder::ComputeInnerAttributeImportances(CCHierarchicalDataGrid* optimizedDataGrid) const
+{
+	CCHDGAttribute* innerAttribute;
+	CCHDGPart* innerAttributePart;
+	CCHDGPart* varPartCluster;
+	KWDGPart* part;
+	int nAttribute;
+	double dImportance;
+	double dInnerAttributeImportance;
+	double dTotalInnerAttributeImportance;
+	int nInnerAttributeFrequency;
+	double dEpsilon = 1e-6;
+
+	// Construction de la structure d'indexation pour acceder aux parties de variables depuis les innerAttributes
+	optimizedDataGrid->BuildIndexingStructure();
+
+	dTotalInnerAttributeImportance = 0;
+	for (nAttribute = 0; nAttribute < optimizedDataGrid->GetInnerAttributes()->GetInnerAttributeNumber();
+	     nAttribute++)
+	{
+		innerAttribute =
+		    cast(CCHDGAttribute*, optimizedDataGrid->GetInnerAttributes()->GetInnerAttributeAt(nAttribute));
+		dInnerAttributeImportance = 0;
+		nInnerAttributeFrequency = 0;
+		dImportance = 0;
+
+		// Calcul de l'importance de chaque partie de variable au sein de son cluster de parties de variable
+		// Et somme de ces importances pour l'ensemble des parties de la variable
+		part = innerAttribute->GetHeadPart();
+		while (part != NULL)
+		{
+			innerAttributePart = cast(CCHDGPart*, part);
+			varPartCluster = cast(
+			    CCHDGPart*, optimizedDataGrid->GetVarPartAttribute()->LookupVarPart(innerAttributePart));
+			dImportance = (double)innerAttributePart->GetPartFrequency() /
+				      (double)varPartCluster->GetPartFrequency() * varPartCluster->GetImportance();
+			nInnerAttributeFrequency += innerAttributePart->GetPartFrequency();
+			dInnerAttributeImportance += dImportance;
+			innerAttributePart->SetImportance(dImportance);
+
+			// Partie suivante
+			innerAttribute->GetNextPart(part);
+		}
+
+		// Importance de l'attribut par sommation de l'importance de ces PV au sein de leur cluster de PV
+		innerAttribute->SetImportance(dInnerAttributeImportance);
+		dTotalInnerAttributeImportance += dInnerAttributeImportance;
+
+		// Calcul de l'importance de chaque partie de variable au sein de sa variable
+		part = innerAttribute->GetHeadPart();
+		while (part != NULL)
+		{
+			innerAttributePart = cast(CCHDGPart*, part);
+			if (innerAttribute->GetImportance() > 0)
+				dImportance = (double)innerAttributePart->GetPartFrequency() /
+					      nInnerAttributeFrequency * innerAttribute->GetImportance();
+			innerAttributePart->SetImportanceInVariable(dImportance);
+
+			// Partie suivante
+			innerAttribute->GetNextPart(part);
+		}
+	}
+	assert((dTotalInnerAttributeImportance > 1 - dEpsilon) and (dTotalInnerAttributeImportance < 1 + dEpsilon));
+
+	// Nettoyage
+	optimizedDataGrid->DeleteIndexingStructure();
+}
+
+boolean CCCoclusteringBuilder::CheckImportances(CCHierarchicalDataGrid* optimizedDataGrid) const
+{
+	int nAttribute;
+	double dTotalImportance;
+	double dEpsilon = 1e-6;
+	boolean bOk = true;
+	CCHDGAttribute* attribute;
+
+	// La somme des importances des attributs de dimension doit etre egal a 1
+	dTotalImportance = 0;
+	for (nAttribute = 0; nAttribute < optimizedDataGrid->GetAttributeNumber(); nAttribute++)
+	{
+		dTotalImportance +=
+		    cast(CCHDGAttribute*, optimizedDataGrid->GetAttributeAt(nAttribute))->GetImportance();
+	}
+	bOk = (1 - dEpsilon < dTotalImportance) and (dTotalImportance < 1 + dEpsilon);
+	if (not bOk)
+		cout << "Somme des importances des dimensions devrait etre egal a 1 et vaut " << dTotalImportance;
+
+	// La somme des importances des attributs internes doit etre egal a 1
+	dTotalImportance = 0;
+	for (nAttribute = 0; nAttribute < optimizedDataGrid->GetInnerAttributes()->GetInnerAttributeNumber();
+	     nAttribute++)
+	{
+		attribute =
+		    cast(CCHDGAttribute*, optimizedDataGrid->GetInnerAttributes()->GetInnerAttributeAt(nAttribute));
+		dTotalImportance += attribute->GetImportance();
+	}
+	bOk = (1 - dEpsilon < dTotalImportance) and (dTotalImportance < 1 + dEpsilon);
+	if (not bOk)
+		cout << "Somme des importances des attributs internes devrait etre egal a 1 et vaut "
+		     << dTotalImportance;
+
+	return bOk;
 }
 
 void CCCoclusteringBuilder::ComputeAttributeTypicalities(CCHierarchicalDataGrid* optimizedDataGrid) const

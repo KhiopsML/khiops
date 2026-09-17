@@ -101,6 +101,7 @@ protected:
 					       const ObjectDictionary* odInnerAttributesAllVarParts,
 					       ObjectDictionary* odVarPartAttributeAllVarParts);
 	boolean ReadTypicalities(KWDGAttribute* dgAttribute, int nValueNumber, DoubleVector* dvValueTypicalities);
+	boolean ReadImportances(KWDGAttribute* dgAttribute, int nValueNumber, DoubleVector* dvValueImportances);
 	boolean ReadDimensionHierarchies(CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadCells(CCHierarchicalDataGrid* coclusteringDataGrid);
 
@@ -127,6 +128,7 @@ protected:
 	int nHeaderInstanceNumber;
 	int nHeaderCellNumber;
 	ALString sLocalFileName;
+	boolean bOldFormatBeforeImportance;
 
 	// Libelle des sections d'un rapport de coclustering
 	static const ALString sKeyWordInstances;

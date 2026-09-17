@@ -302,6 +302,23 @@ protected:
 	void ComputeHierarchicalInfo(const KWDataGrid* inputInitialDataGrid, const KWDataGridCosts* dataGridCosts,
 				     CCHierarchicalDataGrid* optimizedDataGrid) const;
 
+	// Calcul de toutes les importances de la grille optimisee
+	// Pilotage de toutes les methodes detaillees
+	void ComputeAllImportances(CCHierarchicalDataGrid* optimizedDataGrid) const;
+
+	// Calcul de l'importance totale du coclustering et de la contribution a l'information mutuelle de chaque cellule
+	void ComputeCoclusteringImportance(CCHierarchicalDataGrid* optimizedDataGrid) const;
+
+	// Calcul de l'importance des parties des attributes de la grille
+	void ComputePartImportances(CCHierarchicalDataGrid* optimizedDataGrid) const;
+
+	// Calcul de l'importance des attributs internes et de leur partie de variable au sein de leur cluster de PV
+	// et au sein de leur attribut interne
+	void ComputeInnerAttributeImportances(CCHierarchicalDataGrid* optimizedDataGrid) const;
+
+	// Verification de la coherence des importances
+	boolean CheckImportances(CCHierarchicalDataGrid* optimizedDataGrid) const;
+
 	// Calcul de la typicalite des attributs
 	void ComputeAttributeTypicalities(CCHierarchicalDataGrid* optimizedDataGrid) const;
 

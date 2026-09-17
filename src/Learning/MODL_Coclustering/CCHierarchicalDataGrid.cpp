@@ -12,6 +12,7 @@ CCHierarchicalDataGrid::CCHierarchicalDataGrid()
 	dNullCost = 0;
 	dCost = 0;
 	nInitialAttributeNumber = 0;
+	dCoclusteringImportance = 0;
 }
 
 CCHierarchicalDataGrid::~CCHierarchicalDataGrid() {}
@@ -60,6 +61,17 @@ double CCHierarchicalDataGrid::GetLevel() const
 	if (dLevel < 0)
 		dLevel = 0;
 	return dLevel;
+}
+
+void CCHierarchicalDataGrid::SetCoclusteringImportance(double dValue)
+{
+	require(dValue > 0);
+	dCoclusteringImportance = dValue;
+}
+
+double CCHierarchicalDataGrid::GetCoclusteringImportance() const
+{
+	return dCoclusteringImportance;
 }
 
 void CCHierarchicalDataGrid::SetInitialAttributeNumber(int nValue)
@@ -182,6 +194,7 @@ CCHDGAttribute::CCHDGAttribute()
 	cMax = 0;
 	nInitialPartNumber = 0;
 	dInterest = 0;
+	dImportance = 0;
 	rootPart = NULL;
 }
 
@@ -250,6 +263,17 @@ void CCHDGAttribute::SetInterest(double dValue)
 double CCHDGAttribute::GetInterest() const
 {
 	return dInterest;
+}
+
+void CCHDGAttribute::SetImportance(double dValue)
+{
+	require(0 <= dValue and dValue <= 1);
+	dImportance = dValue;
+}
+
+double CCHDGAttribute::GetImportance() const
+{
+	return dImportance;
 }
 
 void CCHDGAttribute::SetDescription(const ALString& sValue)
@@ -588,6 +612,8 @@ CCHDGPart::CCHDGPart()
 	parentPart = NULL;
 	childPart1 = NULL;
 	childPart2 = NULL;
+	dImportance = 0;
+	dImportanceInVariable = 0;
 }
 
 CCHDGPart::~CCHDGPart() {}
@@ -611,6 +637,28 @@ void CCHDGPart::SetInterest(double dValue)
 double CCHDGPart::GetInterest() const
 {
 	return dInterest;
+}
+
+void CCHDGPart::SetImportance(double dValue)
+{
+	require(0 <= dValue and dValue <= 1);
+	dImportance = dValue;
+}
+
+double CCHDGPart::GetImportance() const
+{
+	return dImportance;
+}
+
+void CCHDGPart::SetImportanceInVariable(double dValue)
+{
+	require(0 <= dValue and dValue <= 1);
+	dImportanceInVariable = dValue;
+}
+
+double CCHDGPart::GetImportanceInVariable() const
+{
+	return dImportanceInVariable;
 }
 
 void CCHDGPart::SetHierarchicalLevel(double dValue)
