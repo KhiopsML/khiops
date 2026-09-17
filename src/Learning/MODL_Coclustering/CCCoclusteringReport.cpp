@@ -26,6 +26,7 @@ CCCoclusteringReport::CCCoclusteringReport()
 	bReadDebug = false;
 	nHeaderInstanceNumber = 0;
 	nHeaderCellNumber = 0;
+	bOldFormatBeforeImportance = true;
 }
 
 CCCoclusteringReport::~CCCoclusteringReport()
@@ -578,6 +579,7 @@ boolean CCCoclusteringReport::ReadDimensionSummaries(CCHierarchicalDataGrid* coc
 	int nAttributeInitialPartNumber;
 	int nAttributeValueNumber;
 	double dAttributeInterest;
+	double dAttributeImportance;
 	ALString sAttributeDescription;
 	Continuous cMin;
 	Continuous cMax;
@@ -610,6 +612,7 @@ boolean CCCoclusteringReport::ReadDimensionSummaries(CCHierarchicalDataGrid* coc
 		nAttributeInitialPartNumber = 0;
 		nAttributeValueNumber = 0;
 		dAttributeInterest = 0;
+		dAttributeImportance = 0;
 		cMin = 0;
 		cMax = 0;
 
@@ -682,7 +685,24 @@ boolean CCCoclusteringReport::ReadDimensionSummaries(CCHierarchicalDataGrid* coc
 		bOk = bOk and JSONTokenizer::ReadKeyIntValue("parts", true, nAttributePartNumber, bIsEnd);
 		bOk = bOk and JSONTokenizer::ReadKeyIntValue("initialParts", true, nAttributeInitialPartNumber, bIsEnd);
 		bOk = bOk and JSONTokenizer::ReadKeyIntValue("values", true, nAttributeValueNumber, bIsEnd);
-		bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("interest", true, dAttributeInterest, bIsEnd);
+
+		// Lecture de la prochaine cle explicitement, pour distinguer l'ancien format avant la mise en place
+		// des indicateurs d'importance (remplacant interest et typicality)
+		bOk = bOk and JSONTokenizer::ReadStringValue(sKey);
+		if (bOk and sKey == "interest")
+		{
+			bOldFormatBeforeImportance = true;
+			bOk = bOk and JSONTokenizer::ReadExpectedToken(':');
+			bOk = bOk and JSONTokenizer::ReadDoubleValue(true, dAttributeInterest);
+			bOk = bOk and JSONTokenizer::ReadObjectNext(bIsEnd);
+		}
+		else if (bOk and sKey == "importance")
+		{
+			bOldFormatBeforeImportance = false;
+			bOk = bOk and JSONTokenizer::ReadExpectedToken(':');
+			bOk = bOk and JSONTokenizer::ReadDoubleValue(true, dAttributeImportance);
+			bOk = bOk and JSONTokenizer::ReadObjectNext(bIsEnd);
+		}
 		bOk = bOk and JSONTokenizer::ReadKeyStringValue("description", sAttributeDescription, bIsEnd);
 
 		// Valeur min et max dans le cas numerique
@@ -730,7 +750,10 @@ boolean CCCoclusteringReport::ReadDimensionSummaries(CCHierarchicalDataGrid* coc
 			dgAttribute->SetInitialPartNumber(nAttributeInitialPartNumber);
 			dgAttribute->SetInitialValueNumber(nAttributeValueNumber);
 			dgAttribute->SetGranularizedValueNumber(nAttributeValueNumber);
-			dgAttribute->SetInterest(dAttributeInterest);
+			if (bOldFormatBeforeImportance)
+				dgAttribute->SetInterest(dAttributeInterest);
+			else
+				dgAttribute->SetImportance(dAttributeImportance);
 			dgAttribute->SetDescription(sAttributeDescription);
 
 			// Memorisation dans le cas d'un attribut de type VarPart
@@ -816,6 +839,7 @@ boolean CCCoclusteringReport::ReadInnerAttributesDimensionSummaries(KWDGAttribut
 	int nAttributeInitialPartNumber;
 	int nAttributeValueNumber;
 	double dAttributeInterest;
+	double dAttributeImportance;
 	ALString sAttributeDescription;
 	Continuous cMin;
 	Continuous cMax;
@@ -844,6 +868,7 @@ boolean CCCoclusteringReport::ReadInnerAttributesDimensionSummaries(KWDGAttribut
 		nAttributeInitialPartNumber = 0;
 		nAttributeValueNumber = 0;
 		dAttributeInterest = 0;
+		dAttributeImportance = 0;
 		cMin = 0;
 		cMax = 0;
 
@@ -880,7 +905,11 @@ boolean CCCoclusteringReport::ReadInnerAttributesDimensionSummaries(KWDGAttribut
 		bOk = bOk and JSONTokenizer::ReadKeyIntValue("parts", true, nAttributePartNumber, bIsEnd);
 		bOk = bOk and JSONTokenizer::ReadKeyIntValue("initialParts", true, nAttributeInitialPartNumber, bIsEnd);
 		bOk = bOk and JSONTokenizer::ReadKeyIntValue("values", true, nAttributeValueNumber, bIsEnd);
-		bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("interest", true, dAttributeInterest, bIsEnd);
+		if (bOldFormatBeforeImportance)
+			bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("interest", true, dAttributeInterest, bIsEnd);
+		else
+			bOk =
+			    bOk and JSONTokenizer::ReadKeyDoubleValue("importance", true, dAttributeImportance, bIsEnd);
 		bOk = bOk and JSONTokenizer::ReadKeyStringValue("description", sAttributeDescription, bIsEnd);
 
 		// Valeur min et max dans le cas numerique
@@ -899,7 +928,10 @@ boolean CCCoclusteringReport::ReadInnerAttributesDimensionSummaries(KWDGAttribut
 			innerAttribute->SetInitialPartNumber(nAttributeInitialPartNumber);
 			innerAttribute->SetInitialValueNumber(nAttributeValueNumber);
 			innerAttribute->SetGranularizedValueNumber(nAttributeValueNumber);
-			innerAttribute->SetInterest(dAttributeInterest);
+			if (bOldFormatBeforeImportance)
+				innerAttribute->SetInterest(dAttributeInterest);
+			else
+				innerAttribute->SetImportance(dAttributeImportance);
 			innerAttribute->SetDescription(sAttributeDescription);
 			innerAttribute->SetOwnerAttributeName(dgAttribute->GetAttributeName());
 
@@ -1362,6 +1394,7 @@ boolean CCCoclusteringReport::ReadInterval(KWDGAttribute* dgAttribute, KWDGPart*
 	ALString sClusterName;
 	Continuous cLowerBound;
 	Continuous cUpperBound;
+	double dImportance;
 
 	require(dgAttribute != NULL);
 	require(dgPart != NULL);
@@ -1372,10 +1405,16 @@ boolean CCCoclusteringReport::ReadInterval(KWDGAttribute* dgAttribute, KWDGPart*
 	// Initialisations
 	cLowerBound = 0;
 	cUpperBound = 0;
+	dImportance = 0;
 
 	// Lecture des champs
 	bIsEnd = false;
 	bOk = bOk and JSONTokenizer::ReadKeyStringValue("cluster", sClusterName, bIsEnd);
+
+	// Cas des nouveaux indicateurs : importance du cluster
+	if (not bOldFormatBeforeImportance)
+		bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("importance", true, dImportance, bIsEnd);
+
 	bOk = bOk and JSONTokenizer::ReadKeyArray("bounds");
 
 	// Lecture des bornes
@@ -1411,6 +1450,7 @@ boolean CCCoclusteringReport::ReadInterval(KWDGAttribute* dgAttribute, KWDGPart*
 		hdgPart = cast(CCHDGPart*, dgPart);
 		dgInterval = dgPart->GetInterval();
 		hdgPart->SetPartName(sClusterName);
+		hdgPart->SetImportance(dImportance);
 		dgInterval->SetLowerBound(cLowerBound);
 		dgInterval->SetUpperBound(cUpperBound);
 	}
@@ -1431,6 +1471,8 @@ boolean CCCoclusteringReport::ReadValueGroup(KWDGAttribute* dgAttribute, KWDGPar
 	StringVector svValues;
 	IntVector ivValueFrequencies;
 	DoubleVector dvValueTypicalities;
+	DoubleVector dvValueImportances;
+	double dImportance;
 	int i;
 	ALString sTmp;
 
@@ -1448,6 +1490,12 @@ boolean CCCoclusteringReport::ReadValueGroup(KWDGAttribute* dgAttribute, KWDGPar
 		JSONTokenizer::AddParseError("\"cluster\" should have a non empty value");
 		bOk = false;
 	}
+
+	// Cas des nouveaux indicateurs : importance du cluster
+	if (not bOldFormatBeforeImportance)
+		bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("importance", true, dImportance, bIsEnd);
+	else
+		dImportance = 0;
 
 	// Tableau des valeurs
 	bOk = bOk and JSONTokenizer::ReadKeyArray("values");
@@ -1489,13 +1537,21 @@ boolean CCCoclusteringReport::ReadValueGroup(KWDGAttribute* dgAttribute, KWDGPar
 		bOk = false;
 	}
 
-	// Typicalite, sauf si la variable est interne
-	if (not dgAttribute->IsInnerAttribute())
+	// Typicalite dans le cas de l'ancien format, sauf si la variable est interne
+	if (not dgAttribute->IsInnerAttribute() and bOldFormatBeforeImportance)
 	{
 		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
 
 		// Tableau des typicalites
 		bOk = bOk and ReadTypicalities(dgAttribute, svValues.GetSize(), &dvValueTypicalities);
+	}
+	// Sinon lecture du tableau des importances (exclure variable interne ou pas ?)
+	else if (not bOldFormatBeforeImportance and not dgAttribute->IsInnerAttribute())
+	{
+		bOk = bOk and JSONTokenizer::ReadExpectedToken(',');
+
+		// Tableau des typicalites
+		bOk = bOk and ReadImportances(dgAttribute, svValues.GetSize(), &dvValueImportances);
 	}
 
 	// Fin de l'objet
@@ -1507,6 +1563,7 @@ boolean CCCoclusteringReport::ReadValueGroup(KWDGAttribute* dgAttribute, KWDGPar
 		hdgPart = cast(CCHDGPart*, dgPart);
 		dgValueSet = cast(KWDGSymbolValueSet*, dgPart->GetValueSet());
 		hdgPart->SetPartName(sClusterName);
+		hdgPart->SetImportance(dImportance);
 		hdgPart->SetShortDescription("");
 		hdgPart->SetDescription("");
 
@@ -1516,7 +1573,12 @@ boolean CCCoclusteringReport::ReadValueGroup(KWDGAttribute* dgAttribute, KWDGPar
 			dgValue = dgValueSet->AddSymbolValue((Symbol)svValues.GetAt(i));
 			dgValue->SetValueFrequency(ivValueFrequencies.GetAt(i));
 			if (not dgAttribute->IsInnerAttribute())
-				dgValue->SetTypicality(dvValueTypicalities.GetAt(i));
+			{
+				if (bOldFormatBeforeImportance)
+					dgValue->SetTypicality(dvValueTypicalities.GetAt(i));
+				else
+					dgValue->SetImportance(dvValueImportances.GetAt(i));
+			}
 		}
 	}
 	return bOk;
@@ -1541,6 +1603,7 @@ boolean CCCoclusteringReport::ReadVarPartAttributeValueGroup(KWDGAttribute* varP
 	KWDGPart* dgVarPart;
 	KWDGPart* dgCheckedVarPart;
 	ALString sTmp;
+	double dImportance;
 
 	require(varPartAttribute != NULL);
 	require(varPartAttribute->GetAttributeType() == KWType::VarPart);
@@ -1559,6 +1622,10 @@ boolean CCCoclusteringReport::ReadVarPartAttributeValueGroup(KWDGAttribute* varP
 		JSONTokenizer::AddParseError("\"cluster\" should have a non empty value");
 		bOk = false;
 	}
+
+	// Cas des nouveaux indicateurs : importance du cluster
+	if (not bOldFormatBeforeImportance)
+		bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("importance", true, dImportance, bIsEnd);
 
 	// Tableau des libelles des parties de variable, analogue des valeurs d'un variable categorielle
 	bOk = bOk and JSONTokenizer::ReadKeyArray("values");
@@ -1711,6 +1778,57 @@ boolean CCCoclusteringReport::ReadTypicalities(KWDGAttribute* dgAttribute, int n
 	return bOk;
 }
 
+boolean CCCoclusteringReport::ReadImportances(KWDGAttribute* dgAttribute, int nValueNumber,
+					      DoubleVector* dvValueImportances)
+{
+	boolean bOk = true;
+	boolean bIsEnd;
+	double dValueImportance;
+	ALString sTmp;
+
+	require(dgAttribute != NULL);
+	require(nValueNumber >= 0);
+	require(dvValueImportances != NULL);
+	require(dvValueImportances->GetSize() == 0);
+
+	// Tableau des typicalites
+	bOk = bOk and JSONTokenizer::ReadKeyArray("valueImportances");
+	bIsEnd = false;
+	dValueImportance = 0;
+	while (bOk and not bIsEnd)
+	{
+		bOk = bOk and JSONTokenizer::ReadDoubleValue(false, dValueImportance);
+
+		// Tolerance pour les typicalite negatives
+		if (dValueImportance < 0)
+		{
+			AddWarning(sTmp + "Importance (" + DoubleToString(dValueImportance) +
+				   ") less than 0 for variable " + dgAttribute->GetAttributeName() +
+				   " in \"valueImportances\" line " +
+				   IntToString(JSONTokenizer::GetCurrentLineIndex()) + " (replaced by 0)");
+			dValueImportance = 0;
+		}
+		// Erreur pour les importances superieures a 1
+		else if (dValueImportance > 1)
+		{
+			AddError(sTmp + "Importance (" + DoubleToString(dValueImportance) +
+				 ") greater than 1 for variable " + dgAttribute->GetAttributeName() +
+				 " in \"valueImportances\" line " + IntToString(JSONTokenizer::GetCurrentLineIndex()));
+			bOk = false;
+			break;
+		}
+		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsEnd);
+		if (bOk)
+			dvValueImportances->Add(dValueImportance);
+	}
+	if (bOk and nValueNumber != dvValueImportances->GetSize())
+	{
+		JSONTokenizer::AddParseError("Vector \"valueImportances\" should be of same size as vector \"values\"");
+		bOk = false;
+	}
+	return bOk;
+}
+
 boolean CCCoclusteringReport::ReadDimensionHierarchies(CCHierarchicalDataGrid* coclusteringDataGrid)
 {
 	boolean bOk = true;
@@ -1844,8 +1962,9 @@ boolean CCCoclusteringReport::ReadDimensionHierarchies(CCHierarchicalDataGrid* c
 											bIsPartEnd);
 					bOk = bOk and
 					      JSONTokenizer::ReadKeyIntValue("frequency", true, nFrequency, bIsPartEnd);
-					bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("interest", true, dInterest,
-											bIsPartEnd);
+					if (bOldFormatBeforeImportance)
+						bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("interest", true,
+												dInterest, bIsPartEnd);
 					bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("hierarchicalLevel", false,
 											dHierarchicalLevel, bIsPartEnd);
 					bOk = bOk and JSONTokenizer::ReadKeyIntValue("rank", true, nRank, bIsPartEnd);
@@ -2345,7 +2464,10 @@ void CCCoclusteringReport::WriteDimensionSummary(CCHDGAttribute* attribute, JSON
 	fJSON->WriteKeyInt("parts", attribute->GetPartNumber());
 	fJSON->WriteKeyInt("initialParts", attribute->GetInitialPartNumber());
 	fJSON->WriteKeyInt("values", nValueNumber);
-	fJSON->WriteKeyDouble("interest", attribute->GetInterest());
+	if (GetImportanceMode())
+		fJSON->WriteKeyDouble("importance", attribute->GetImportance());
+	else
+		fJSON->WriteKeyDouble("interest", attribute->GetInterest());
 	fJSON->WriteKeyString("description", attribute->GetDescription());
 	if (KWFrequencyTable::GetWriteGranularityAndGarbage())
 		fJSON->WriteKeyBoolean("garbage", (attribute->GetGarbageModalityNumber() > 0));
@@ -2415,6 +2537,18 @@ void CCCoclusteringReport::WriteAttributePartition(KWDGAttribute* attribute, JSO
 			// Ecritures des bornes
 			fJSON->BeginObject();
 			fJSON->WriteKeyString("cluster", hdgPart->GetPartName());
+
+			// Ecriture de l'importance de la partie au sein du cluster ou au sein de son innnerVariable
+			if (GetImportanceMode())
+			{
+				// Cas d'un attribut interne
+				if (dgAttribute->IsInnerAttribute())
+					fJSON->WriteKeyDouble("importanceInVariable",
+							      hdgPart->GetImportanceInVariable());
+				// Sinon
+				else
+					fJSON->WriteKeyDouble("importance", hdgPart->GetImportance());
+			}
 			fJSON->BeginKeyList("bounds");
 			if (dgInterval->GetUpperBound() != KWContinuous::GetMissingValue())
 			{
@@ -2468,6 +2602,18 @@ void CCCoclusteringReport::WriteAttributePartition(KWDGAttribute* attribute, JSO
 			// Parcours des valeurs, sauf si effectif nul (cas de la valeur par defaut)
 			fJSON->BeginObject();
 			fJSON->WriteKeyString("cluster", hdgPart->GetPartName());
+
+			if (GetImportanceMode())
+			{
+				// Cas d'un attribut interne
+				if (attribute->IsInnerAttribute())
+					fJSON->WriteKeyDouble("importanceInVariable",
+							      hdgPart->GetImportanceInVariable());
+				// Sinon
+				else
+					fJSON->WriteKeyDouble("importance", hdgPart->GetImportance());
+			}
+
 			fJSON->BeginKeyList("values");
 			dgValue = dgValueSet->GetHeadValue();
 			while (dgValue != NULL)
@@ -2489,15 +2635,33 @@ void CCCoclusteringReport::WriteAttributePartition(KWDGAttribute* attribute, JSO
 			}
 			fJSON->EndList();
 
-			// Typicalite des valeurs, sauf pour un attribut interne
-			if (not attribute->IsInnerAttribute())
+			if (not GetImportanceMode())
 			{
-				fJSON->BeginKeyList("valueTypicalities");
+
+				// Typicalite des valeurs, sauf pour un attribut interne
+				if (not attribute->IsInnerAttribute())
+				{
+					// Typicite des valeurs
+					fJSON->BeginKeyList("valueTypicalities");
+					dgValue = dgValueSet->GetHeadValue();
+					while (dgValue != NULL)
+					{
+						if (dgValue->GetValueFrequency() > 0)
+							fJSON->WriteDouble(dgValue->GetTypicality());
+						dgValueSet->GetNextValue(dgValue);
+					}
+					fJSON->EndList();
+				}
+			}
+			else
+			{
+				// Importance des valeurs
+				fJSON->BeginKeyList("valueImportances");
 				dgValue = dgValueSet->GetHeadValue();
 				while (dgValue != NULL)
 				{
 					if (dgValue->GetValueFrequency() > 0)
-						fJSON->WriteDouble(dgValue->GetTypicality());
+						fJSON->WriteDouble(dgValue->GetImportance());
 					dgValueSet->GetNextValue(dgValue);
 				}
 				fJSON->EndList();
@@ -2605,7 +2769,8 @@ void CCCoclusteringReport::WriteDimensionHierarchies(const CCHierarchicalDataGri
 			fJSON->WriteKeyString("cluster", hdgPart->GetPartName());
 			fJSON->WriteKeyString("parentCluster", hdgPart->GetParentPartName());
 			fJSON->WriteKeyInt("frequency", hdgPart->GetPartFrequency());
-			fJSON->WriteKeyDouble("interest", hdgPart->GetInterest());
+			if (not GetImportanceMode())
+				fJSON->WriteKeyDouble("interest", hdgPart->GetInterest());
 			fJSON->WriteKeyDouble("hierarchicalLevel", hdgPart->GetHierarchicalLevel());
 			fJSON->WriteKeyInt("rank", hdgPart->GetRank());
 			fJSON->WriteKeyInt("hierarchicalRank", hdgPart->GetHierarchicalRank());
