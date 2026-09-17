@@ -33,6 +33,10 @@ public:
 	// Suffixe des fichiers de rapports au format json: khcj depuis les rapports au format Khiops V10
 	static const ALString GetReportSuffix();
 
+	// Format des rapports : ancien format avec indicateur d'Interest et de Typicity ou nouveau format avec indicateurs d'Importance
+	void SetOldFormatBeforeImportance(boolean bFormat);
+	boolean GetOldFormatBeforeImportance() const;
+
 	// Lecture des informations de coclustering a partir d'un fichier de rapport au format json
 	// Renvoie true si succes avec initialisation complete de la grille en parametres
 	// Emission de messages d'erreur, et reinitialisation de la grille si echec
@@ -101,6 +105,7 @@ protected:
 					       const ObjectDictionary* odInnerAttributesAllVarParts,
 					       ObjectDictionary* odVarPartAttributeAllVarParts);
 	boolean ReadTypicalities(KWDGAttribute* dgAttribute, int nValueNumber, DoubleVector* dvValueTypicalities);
+	boolean ReadImportances(KWDGAttribute* dgAttribute, int nValueNumber, DoubleVector* dvValueImportances);
 	boolean ReadDimensionHierarchies(CCHierarchicalDataGrid* coclusteringDataGrid);
 	boolean ReadCells(CCHierarchicalDataGrid* coclusteringDataGrid);
 
@@ -126,6 +131,7 @@ protected:
 	int nHeaderInstanceNumber;
 	int nHeaderCellNumber;
 	ALString sLocalFileName;
+	boolean bOldFormatBeforeImportance;
 
 	// Libelle des sections d'un rapport de coclustering
 	static const ALString sKeyWordInstances;
