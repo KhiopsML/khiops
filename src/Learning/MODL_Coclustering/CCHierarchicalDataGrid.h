@@ -13,7 +13,7 @@ class CCHDGPart;
 
 //////////////////////////////////////////////////////////////////////////////////
 // Classe CCHierarchicalDataGrid
-// Sous-classe de KWDataGrid permettant de gerer la l'organisation des
+// Sous-classe de KWDataGrid permettant de gerer l'organisation des
 // partie des attributs sous forme d'une hierarchie, ainsi que des informations
 // complementaires sur les composantes de la grille
 class CCHierarchicalDataGrid : public KWDataGrid
@@ -37,6 +37,10 @@ public:
 
 	// Level du coclustering
 	double GetLevel() const;
+
+	// Importance du coclustering
+	void SetCoclusteringImportance(double dValue);
+	double GetCoclusteringImportance() const;
 
 	/////////////////////////////////////////////////////////////////////////
 	// Informations sur le parametrage du coclustering
@@ -89,6 +93,7 @@ protected:
 	int nInitialAttributeNumber;
 	ALString sFrequencyAttributeName;
 	KWDatabase databaseSpec;
+	double dCoclusteringImportance;
 
 	// CH IV Refactoring: le sIdentifierAttributeName est-il toujours utile???
 	// CH IV Refactoring: on le conserve pour l'instant dans l'hypothese ou l'on etende le coclustering IV a plusieurs variables hors variable varPart
@@ -120,6 +125,10 @@ public:
 	// Interest
 	void SetInterest(double dValue);
 	double GetInterest() const;
+
+	// Importance
+	void SetImportance(double dValue);
+	double GetImportance() const;
 
 	// Description
 	void SetDescription(const ALString& sValue);
@@ -172,6 +181,7 @@ protected:
 	// Informations sur l'attribut
 	int nInitialPartNumber;
 	double dInterest;
+	double dImportance;
 	ALString sDescription;
 
 	// Partie racine
@@ -195,6 +205,15 @@ public:
 	// Typicalite
 	void SetInterest(double dValue);
 	double GetInterest() const;
+
+	// Importance de la partie
+	void SetImportance(double dValue);
+	double GetImportance() const;
+
+	// Dans le cas d'une partie de variable d'une variable interne a un coclustering individus * variables
+	// Importance de la partie au sein de sa variable
+	void SetImportanceInVariable(double dValue);
+	double GetImportanceInVariable() const;
 
 	// Niveau hierarchique
 	void SetHierarchicalLevel(double dValue);
@@ -268,6 +287,8 @@ protected:
 	// Informations sur la partie
 	ALString sPartName;
 	double dInterest;
+	double dImportance;
+	double dImportanceInVariable;
 	double dHierarchicalLevel;
 	int nRank;
 	int nHierachicalRank;

@@ -12,6 +12,7 @@ CCHierarchicalDataGrid::CCHierarchicalDataGrid()
 	dNullCost = 0;
 	dCost = 0;
 	nInitialAttributeNumber = 0;
+	dCoclusteringImportance = 0;
 }
 
 CCHierarchicalDataGrid::~CCHierarchicalDataGrid() {}
@@ -60,6 +61,17 @@ double CCHierarchicalDataGrid::GetLevel() const
 	if (dLevel < 0)
 		dLevel = 0;
 	return dLevel;
+}
+
+void CCHierarchicalDataGrid::SetCoclusteringImportance(double dValue)
+{
+	require(dValue > 0);
+	dCoclusteringImportance = dValue;
+}
+
+double CCHierarchicalDataGrid::GetCoclusteringImportance() const
+{
+	return dCoclusteringImportance;
 }
 
 void CCHierarchicalDataGrid::SetInitialAttributeNumber(int nValue)
@@ -182,6 +194,7 @@ CCHDGAttribute::CCHDGAttribute()
 	cMax = 0;
 	nInitialPartNumber = 0;
 	dInterest = 0;
+	dImportance = 0;
 	rootPart = NULL;
 }
 
@@ -252,6 +265,17 @@ double CCHDGAttribute::GetInterest() const
 	return dInterest;
 }
 
+void CCHDGAttribute::SetImportance(double dValue)
+{
+	require(0 <= dValue and dValue <= 1);
+	dImportance = dValue;
+}
+
+double CCHDGAttribute::GetImportance() const
+{
+	return dImportance;
+}
+
 void CCHDGAttribute::SetDescription(const ALString& sValue)
 {
 	sDescription = sValue;
@@ -300,6 +324,10 @@ CCHDGPart* CCHDGAttribute::MergePart(CCHDGPart* part)
 	KWDGCell* cellToDelete1;
 	ObjectArray oaParts;
 	int nAttribute;
+	KWDGValue* dgValue;
+	int nSourcePartFrequency;
+	int nTargetPartFrequency;
+	int nTotalPartFrequency;
 
 	require(IsPartMergeable(part));
 
@@ -341,7 +369,7 @@ CCHDGPart* CCHDGAttribute::MergePart(CCHDGPart* part)
 		// Fusion des effectifs si collision de cellule
 		if (cell2 != NULL)
 			cell2->SetCellFrequency(cell2->GetCellFrequency() + cell1->GetCellFrequency());
-		// Craetion d'une nouvelle cellules sinon
+		// Creation d'une nouvelle cellule sinon
 		else
 		{
 			cell2 = dataGrid->AddCell(&oaParts);
@@ -367,6 +395,34 @@ CCHDGPart* CCHDGAttribute::MergePart(CCHDGPart* part)
 	targetPart->SetSelected(part->GetSelected());
 	targetPart->SetShortDescription(part->GetShortDescription());
 	targetPart->SetDescription(part->GetDescription());
+
+	// Calcul de l'importance de la partie fusionnee
+	targetPart->SetImportance(sourcePart->GetImportance() + targetPart->GetImportance());
+
+	// Cas d'un attribut groupable : renormalisation de l'importance des elements de la partie fusionnee par rapport a son effectif
+	if (KWType::IsCoclusteringGroupableType(sourcePart->GetPartType()))
+	{
+		// On memorise les effectifs de chaque partie et de la partie fusionnee
+		nSourcePartFrequency = sourcePart->GetPartFrequency();
+		nTargetPartFrequency = targetPart->GetPartFrequency();
+		nTotalPartFrequency = nSourcePartFrequency + nTargetPartFrequency;
+
+		// Renormalisation des importances de chaque element des deux parties
+		dgValue = sourcePart->GetValueSet()->GetHeadValue();
+		while (dgValue != NULL)
+		{
+			dgValue->SetImportance(dgValue->GetImportance() * (double)nSourcePartFrequency /
+					       (double)nTotalPartFrequency);
+			sourcePart->GetValueSet()->GetNextValue(dgValue);
+		}
+		dgValue = targetPart->GetValueSet()->GetHeadValue();
+		while (dgValue != NULL)
+		{
+			dgValue->SetImportance(dgValue->GetImportance() * (double)nSourcePartFrequency /
+					       (double)nTotalPartFrequency);
+			targetPart->GetValueSet()->GetNextValue(dgValue);
+		}
+	}
 
 	// Reconstitution du chainage de la hierarchie
 	targetPart->SetParentPart(part->GetParentPart());
@@ -588,6 +644,8 @@ CCHDGPart::CCHDGPart()
 	parentPart = NULL;
 	childPart1 = NULL;
 	childPart2 = NULL;
+	dImportance = 0;
+	dImportanceInVariable = 0;
 }
 
 CCHDGPart::~CCHDGPart() {}
@@ -611,6 +669,28 @@ void CCHDGPart::SetInterest(double dValue)
 double CCHDGPart::GetInterest() const
 {
 	return dInterest;
+}
+
+void CCHDGPart::SetImportance(double dValue)
+{
+	require(0 <= dValue and dValue <= 1);
+	dImportance = dValue;
+}
+
+double CCHDGPart::GetImportance() const
+{
+	return dImportance;
+}
+
+void CCHDGPart::SetImportanceInVariable(double dValue)
+{
+	require(0 <= dValue and dValue <= 1);
+	dImportanceInVariable = dValue;
+}
+
+double CCHDGPart::GetImportanceInVariable() const
+{
+	return dImportanceInVariable;
 }
 
 void CCHDGPart::SetHierarchicalLevel(double dValue)
