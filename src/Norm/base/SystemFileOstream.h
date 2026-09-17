@@ -79,6 +79,12 @@ public:
 	void SetFlushStandardMode(boolean bValue);
 	boolean GetFlushStandardMode() const;
 
+	// La taille du buffer pour le flux de sortie
+	// Par defaut c'est la taille du buffer utilise par OutputBufferedFile
+	// A utiliser avec precaution
+	void SetBufferSize(int nBufferSize);
+	int GetBufferSize() const;
+
 	// Test de la classe
 	static boolean Test();
 
