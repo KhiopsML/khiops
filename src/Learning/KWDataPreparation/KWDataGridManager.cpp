@@ -593,7 +593,7 @@ void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
 	identifierGrouping.SetGranularizedValueNumber(identifierAttribute->GetPartNumber());
 
 	// Calcul de la partition des identifiants permettant de les grouper s'il utilisent exactement
-	// les memes parties de variabe via leur cellules
+	// les memes parties de variable via leur cellules
 	// On reserve une valeur pour la StarValue
 	identifierGrouping.SetKeptValueNumber(identifierAttribute->GetPartNumber() + 1);
 	previousIdentifierValuePart = NULL;
@@ -604,6 +604,12 @@ void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
 		identifierValueSet = identifierValuePart->GetSymbolValueSet();
 		assert(identifierValueSet->GetValueNumber() == 1);
 
+		// La partie par defaut doit etre la derniere d'un groupe
+		assert(previousIdentifierValuePart == NULL or
+		       not previousIdentifierValuePart->GetSymbolValueSet()->IsDefaultPart() or
+		       KWDataGridManagerCompareIdentifierPartsSignature(&identifierValuePart,
+									&previousIdentifierValuePart) > 0);
+
 		// Memorisation de la valeur
 		identifierGrouping.SetValueAt(nTargetValue, identifierValueSet->GetHeadValue()->GetSymbolValue());
 
@@ -612,13 +618,8 @@ void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
 		{
 			nTargetValue++;
 			identifierGrouping.SetValueAt(nTargetValue, Symbol::GetStarValue());
+			previousIdentifierValuePart = identifierValuePart;
 		}
-
-		// La partie par defaut doit etre la derniere d'un groupe
-		assert(previousIdentifierValuePart == NULL or
-		       not previousIdentifierValuePart->GetSymbolValueSet()->IsDefaultPart() or
-		       KWDataGridManagerCompareIdentifierPartsSignature(&identifierValuePart,
-									&previousIdentifierValuePart) > 0);
 
 		// Memorisation d'un nouveau groupe si changement vis a vis des parties de variables
 		if (nValue == 0 or KWDataGridManagerCompareIdentifierPartsSignature(&identifierValuePart,
