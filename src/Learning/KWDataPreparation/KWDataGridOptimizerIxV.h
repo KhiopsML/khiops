@@ -7,7 +7,7 @@
 class KWDataGridOptimizerIxV;
 
 #include "KWDataGridOptimizer.h"
-#include "KWDataGridInitialSolutionSearcherIV.h"
+#include "KWDataGridInitialSolutionSearcherIxV.h"
 
 //////////////////////////////////////////////////////////////////////////////////
 // Classe KWDataGridOptimizerIxV
