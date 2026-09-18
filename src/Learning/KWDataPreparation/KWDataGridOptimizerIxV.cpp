@@ -24,7 +24,7 @@ double KWDataGridOptimizerIxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 
 	// Recherche d'une solution initiale meilleure que celle du modele null
 	//DDD Desactive en attendant de gerer correctement les analyses bivariees multiples
-	//DDD dBestCost = BuildInitialSolution(initialDataGrid, optimizedDataGrid);
+	dBestCost = BuildInitialSolution(initialDataGrid, optimizedDataGrid);
 
 	// Appel direct de la methode d'optimisation VNS, dont la partie generation de grille voisone est ici specialisee
 	// en generant une surtokenisation aleatoire de la grille courante

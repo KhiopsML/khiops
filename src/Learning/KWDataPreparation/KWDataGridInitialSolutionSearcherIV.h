@@ -54,6 +54,10 @@ protected:
 	// Nettoyage des analyse bivariees
 	void CleanInternalAttributesBivariateStats() const;
 
+	// Filtrage des attributs utiliable pour l'analyse bivariee, en supprimant ceux ne comportant qu'une seule valeur
+	// Le tableau en sortie contient des KWDGAttribute
+	void FilterInnerAttributes(const KWDataGrid* initialDataGrid, ObjectArray* oaFilteredInnerAttributes) const;
+
 	// Calcul de l'intersection des discretisations a partir d'un tableau de partition de type KWDGSAttributeDiscretization
 	void ComputeIntersectionDiscretizations(const KWDGAttribute* innerAttribute,
 						const KWAttributeStats* attributeStats,

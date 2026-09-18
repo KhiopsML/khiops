@@ -218,6 +218,7 @@ KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStats(con
 	KWAttributePairsSpec bivariatePairSpec;
 	ALString sBivariateReportPath;
 	KWAttributePairName* pairName;
+	ObjectArray oaFilteredInnerAttributes;
 	int n1;
 	int n2;
 	int nCurrentSeed;
@@ -232,17 +233,20 @@ KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStats(con
 	bivariatePairSpec.SetClassName(bivariateLearningSpec.GetClass()->GetName());
 	bivariateClassStats.SetLearningSpec(&bivariateLearningSpec);
 
+	// Filtrage des attributs internes utilisable pour l'analyse bivariee
+	FilterInnerAttributes(initialDataGrid, &oaFilteredInnerAttributes);
+
 	// Parametrage des paires a analyser
 	bivariatePairSpec.GetSpecificAttributePairs()->DeleteAll();
-	for (n1 = 0; n1 < initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber(); n1++)
+	for (n1 = 0; n1 < oaFilteredInnerAttributes.GetSize(); n1++)
 	{
-		for (n2 = n1 + 1; n2 < initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber(); n2++)
+		for (n2 = n1 + 1; n2 < oaFilteredInnerAttributes.GetSize(); n2++)
 		{
 			pairName = new KWAttributePairName;
 			pairName->SetFirstName(
-			    initialDataGrid->GetInnerAttributes()->GetInnerAttributeAt(n1)->GetAttributeName());
+			    cast(KWDGAttribute*, oaFilteredInnerAttributes.GetAt(n1))->GetAttributeName());
 			pairName->SetSecondName(
-			    initialDataGrid->GetInnerAttributes()->GetInnerAttributeAt(n2)->GetAttributeName());
+			    cast(KWDGAttribute*, oaFilteredInnerAttributes.GetAt(n2))->GetAttributeName());
 			bivariatePairSpec.GetSpecificAttributePairs()->Add(pairName);
 		}
 	}
@@ -293,6 +297,53 @@ const KWClassStats* KWDataGridInitialSolutionSearcherIV::GetInternalAttributesBi
 void KWDataGridInitialSolutionSearcherIV::CleanInternalAttributesBivariateStats() const
 {
 	bivariateClassStats.DeleteAll();
+}
+
+void KWDataGridInitialSolutionSearcherIV::FilterInnerAttributes(const KWDataGrid* initialDataGrid,
+								ObjectArray* oaFilteredInnerAttributes) const
+{
+	int n;
+	int nIdentifierNumber;
+	KWDGAttribute* dgAttribute;
+	KWDGPart* dgSingletonPart;
+	boolean bKeepAttribute;
+
+	require(GetLearningSpec() != NULL);
+	require(initialDataGrid != NULL);
+	require(oaFilteredInnerAttributes != NULL);
+	require(oaFilteredInnerAttributes->GetSize() == 0);
+
+	// Nombre d'identifiants des instances
+	nIdentifierNumber = initialDataGrid->GetAttributeAt(0)->GetInitialValueNumber();
+
+	// Parcours des attributs internes
+	for (n = 0; n < initialDataGrid->GetInnerAttributes()->GetInnerAttributeNumber(); n++)
+	{
+		dgAttribute = initialDataGrid->GetInnerAttributes()->GetInnerAttributeAt(n);
+		bKeepAttribute = false;
+
+		// On garde l'attribut s'il comporte plus d'une valeur
+		if (dgAttribute->GetPartNumber() > 1)
+			bKeepAttribute = true;
+		// Analyse de l'attribut sinon pour detecter le cas des valeurs mannqauntes
+		// En effet, les valeurs manquantes ne font pas parties des obervation de la grille IxV, mais
+		// elle sont exploitee pour l'analyse bivariee et peuvent pemettre de detecter des correlation
+		else
+		{
+			assert(dgAttribute->GetPartNumber() == 1);
+
+			// Acces a l'unique partie
+			dgSingletonPart = dgAttribute->GetHeadPart();
+
+			// On garde l'attribut si l'effectif de la partie est different du nombre d'individus
+			if (dgSingletonPart->GetPartFrequency() != nIdentifierNumber)
+				bKeepAttribute = true;
+		}
+
+		// On garde l'attribut si possible
+		if (bKeepAttribute)
+			oaFilteredInnerAttributes->Add(dgAttribute);
+	}
 }
 
 void KWDataGridInitialSolutionSearcherIV::ComputeIntersectionDiscretizations(
