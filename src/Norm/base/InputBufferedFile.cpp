@@ -10,6 +10,45 @@ const unsigned char InputBufferedFile::cUTF8Bom[nUTF8BomSize] = {0xEF, 0xBB, 0xB
 const int InputBufferedFile::nDefaultMaxLineLength = 8 * lMB;
 int InputBufferedFile::nMaxLineLength = nDefaultMaxLineLength;
 
+///////////////////////////////////////////////////////////////////////////////
+// Buffer statique dedie a la lecture des champs dans GetNextField
+//
+// Ce buffer est separe du buffer partage de HugeBuffer car le contenu d'un champ
+// peut rester utilise pendant l'affichage d'un message d'erreur.
+namespace
+{
+// Declaration du buffer et indicateur d'enregistrement de sa destruction
+static char* sFieldBuffer = NULL;
+static boolean bFieldBufferDeletionRegistered = false;
+
+// Destruction du buffer en fin de processus
+void DeleteFieldBuffer()
+{
+	if (sFieldBuffer != NULL)
+	{
+		SystemObject::DeleteCharArray(sFieldBuffer);
+		sFieldBuffer = NULL;
+	}
+}
+
+// Acces au buffer, alloue a la premiere utilisation
+char* GetFieldBuffer()
+{
+	if (sFieldBuffer == NULL)
+	{
+		if (not bFieldBufferDeletionRegistered)
+		{
+			atexit(DeleteFieldBuffer);
+			bFieldBufferDeletionRegistered = true;
+		}
+
+		sFieldBuffer = SystemObject::NewCharArray(InputBufferedFile::nMaxFieldSize + 1);
+		memset(sFieldBuffer, '\0', (InputBufferedFile::nMaxFieldSize + 1) * sizeof(char));
+	}
+	return sFieldBuffer;
+}
+} // namespace
+
 InputBufferedFile::InputBufferedFile()
 {
 	Reset();
@@ -583,7 +622,7 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& n
 	debug(boolean bNullCharInField = false);
 
 	// Acces au buffer
-	sField = GetHugeBuffer(nMaxFieldSize + 1);
+	sField = GetFieldBuffer();
 	assert(sField != NULL);
 
 	// Si le dernier champ lu etait sur une fin de ligne,
