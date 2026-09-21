@@ -58,6 +58,11 @@ protected:
 	// Le tableau en sortie contient des KWDGAttribute
 	void FilterInnerAttributes(const KWDataGrid* initialDataGrid, ObjectArray* oaFilteredInnerAttributes) const;
 
+	// Selection des paires a utiliser, en repant les plus informatives en priorite, et en s'arretant quand le nombre
+	// total de parties de variables interne resultant atteint un seuil de complexite maximum
+	// Le tableau en sortie contient les KWAttributePairStats selectionnes
+	void SelectAttributePairStats(const KWClassStats* classStats, ObjectArray* oaSelectedAttributePairStats) const;
+
 	// Calcul de l'intersection des discretisations a partir d'un tableau de partition de type KWDGSAttributeDiscretization
 	void ComputeIntersectionDiscretizations(const KWDGAttribute* innerAttribute,
 						const KWAttributeStats* attributeStats,

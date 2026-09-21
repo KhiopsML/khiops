@@ -79,7 +79,8 @@ double KWDataGridOptimizerIxV::BuildInitialSolution(const KWDataGrid* initialDat
 
 		// Optimisation et post-optimisation de la solution
 		dCost = OptimizeSolution(&initialDataGridSolution, &initialDataGridOptimizedSolution, true);
-		dCost = PostOptimizeVarPartSolution(initialDataGrid, &initialDataGridOptimizedSolution);
+		if (initialDataGridOptimizedSolution.GetInformativeAttributeNumber() > 1)
+			dCost = PostOptimizeVarPartSolution(initialDataGrid, &initialDataGridOptimizedSolution);
 
 		// Memorisation si amelioration du cout
 		// Les methodes precedentes gerent deja l'interruption des taches

@@ -28,9 +28,9 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 	const boolean bTrace = false;
 	const boolean bTraceDataGrid = false;
 	const KWDGAttribute* innerAttribute;
-	const ObjectArray* oaAttributePairStats;
+	ObjectArray oaSelectedAttributePairStats;
 	KWAttributeStats* attributeStats;
-	KWAttributePairStats* resultPairStats;
+	KWAttributePairStats* attributePairStats;
 	KWDataGridStats* pairStats;
 	const KWDGSAttributePartition* attributePartition;
 	ObjectArray oaAllAttributesPartitions;
@@ -57,45 +57,47 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 	// Calcul des paires de variables
 	bOk = ComputeInternalAttributesBivariateStats(initialDataGrid);
 
-	// On remte le libelle a vide
+	// On remet le libelle a vide
 	if ((TaskProgression::IsInTask()))
 		TaskProgression::DisplayLabel("");
 
-	// Parcours des paires pour collecter pour chaque attribut toutes les partitions
+	// Selection des paires a retenir
+
+	// Analyse des paires pour collecter pour chaque attribut toutes les partitions
 	// de l'attribut dans les paires le concernant
 	if (bOk)
 	{
-		oaAttributePairStats = GetInternalAttributesBivariateStats()->GetAttributePairStats();
-		for (n = 0; n < oaAttributePairStats->GetSize(); n++)
+		// Selection des paires informative retenue
+		SelectAttributePairStats(GetInternalAttributesBivariateStats(), &oaSelectedAttributePairStats);
+
+		// Parcours des paires a analyser
+		for (n = 0; n < oaSelectedAttributePairStats.GetSize(); n++)
 		{
-			resultPairStats = cast(KWAttributePairStats*, oaAttributePairStats->GetAt(n));
-			pairStats = resultPairStats->GetPreparedDataGridStats();
+			attributePairStats = cast(KWAttributePairStats*, oaSelectedAttributePairStats.GetAt(n));
+			pairStats = attributePairStats->GetPreparedDataGridStats();
+			assert(pairStats->ComputeInformativeAttributeNumber() > 0);
 
-			// Analyse de chaque attribut des paires non nulles
-			if (pairStats != NULL)
+			// Analyse de chaque attribut des paires
+			for (nAttribute = 0; nAttribute < pairStats->GetAttributeNumber(); nAttribute++)
 			{
-				assert(pairStats->ComputeInformativeAttributeNumber() > 0);
-				for (nAttribute = 0; nAttribute < pairStats->GetAttributeNumber(); nAttribute++)
+				attributePartition = pairStats->GetAttributeAt(nAttribute);
+
+				// Recherche du tableau des partition pour cet attribut
+				oaAttributePartitions =
+				    cast(ObjectArray*,
+					 odAllAttributesPartitions.Lookup(attributePartition->GetAttributeName()));
+
+				// Creation si necessaire
+				if (oaAttributePartitions == NULL)
 				{
-					attributePartition = pairStats->GetAttributeAt(nAttribute);
-
-					// Recherche du tableau des partition pour cet attribut
-					oaAttributePartitions = cast(
-					    ObjectArray*,
-					    odAllAttributesPartitions.Lookup(attributePartition->GetAttributeName()));
-
-					// Creation si necessaire
-					if (oaAttributePartitions == NULL)
-					{
-						oaAttributePartitions = new ObjectArray;
-						odAllAttributesPartitions.SetAt(attributePartition->GetAttributeName(),
-										oaAttributePartitions);
-						oaAllAttributesPartitions.Add(oaAttributePartitions);
-					}
-
-					// Memorisation de la partition
-					oaAttributePartitions->Add(cast(Object*, attributePartition));
+					oaAttributePartitions = new ObjectArray;
+					odAllAttributesPartitions.SetAt(attributePartition->GetAttributeName(),
+									oaAttributePartitions);
+					oaAllAttributesPartitions.Add(oaAttributePartitions);
 				}
+
+				// Memorisation de la partition
+				oaAttributePartitions->Add(cast(Object*, attributePartition));
 			}
 		}
 	}
@@ -233,8 +235,15 @@ KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStats(con
 	bivariatePairSpec.SetClassName(bivariateLearningSpec.GetClass()->GetName());
 	bivariateClassStats.SetLearningSpec(&bivariateLearningSpec);
 
-	// Filtrage des attributs internes utilisable pour l'analyse bivariee
+	// Filtrage des attributs internes utilisables pour l'analyse bivariee
 	FilterInnerAttributes(initialDataGrid, &oaFilteredInnerAttributes);
+
+	//DDD TODO
+	// Tri des attribut par complexite decroissante
+
+	//DDD TODO
+	// On integre les paires les plus simple jusqu'a ce que la complexite de calcul total atteigner
+	// celle du coclusering IxV
 
 	// Parametrage des paires a analyser
 	bivariatePairSpec.GetSpecificAttributePairs()->DeleteAll();
@@ -343,6 +352,53 @@ void KWDataGridInitialSolutionSearcherIV::FilterInnerAttributes(const KWDataGrid
 		// On garde l'attribut si possible
 		if (bKeepAttribute)
 			oaFilteredInnerAttributes->Add(dgAttribute);
+	}
+}
+
+void KWDataGridInitialSolutionSearcherIV::SelectAttributePairStats(const KWClassStats* classStats,
+								   ObjectArray* oaSelectedAttributePairStats) const
+{
+	const boolean bTrace = false;
+	const ObjectArray* oaAttributePairStats;
+	KWAttributePairStats* attributePairStats;
+	KWDataGridStats* pairStats;
+	int n;
+
+	require(classStats != NULL);
+	require(classStats->IsStatsComputed());
+	require(oaSelectedAttributePairStats != NULL);
+	require(oaSelectedAttributePairStats->GetSize() == 0);
+
+	// Selection des paires informatives
+	oaAttributePairStats = classStats->GetAttributePairStats();
+	for (n = 0; n < oaAttributePairStats->GetSize(); n++)
+	{
+		attributePairStats = cast(KWAttributePairStats*, oaAttributePairStats->GetAt(n));
+		pairStats = attributePairStats->GetPreparedDataGridStats();
+
+		// Analyse de chaque attribut des paires non nulles
+		if (pairStats != NULL)
+		{
+			assert(pairStats->ComputeInformativeAttributeNumber() > 0);
+			oaSelectedAttributePairStats->Add(attributePairStats);
+		}
+	}
+
+	// Tri par Level decroissante
+	oaSelectedAttributePairStats->SetCompareFunction(KWLearningReportCompareSortValue);
+	oaSelectedAttributePairStats->Sort();
+
+	// Trace
+	if (bTrace)
+	{
+		cout << "SelectAttributePairStats\t" << oaSelectedAttributePairStats->GetSize() << "\n";
+		for (n = 0; n < oaSelectedAttributePairStats->GetSize(); n++)
+		{
+			attributePairStats = cast(KWAttributePairStats*, oaSelectedAttributePairStats->GetAt(n));
+			cout << attributePairStats->GetAttributeName1() << "\t";
+			cout << attributePairStats->GetAttributeName2() << "\t";
+			cout << attributePairStats->GetLevel() << "\n";
+		}
 	}
 }
 
