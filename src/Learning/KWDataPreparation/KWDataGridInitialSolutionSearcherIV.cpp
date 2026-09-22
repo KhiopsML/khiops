@@ -21,6 +21,7 @@ KWLearningSpec* KWDataGridInitialSolutionSearcherIV::GetLearningSpec() const
 	return learningSpec;
 }
 
+/*DDD
 boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataGrid* initialDataGrid,
 								   KWDataGrid* initialDataGridSolution) const
 {
@@ -67,7 +68,7 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 	// de l'attribut dans les paires le concernant
 	if (bOk)
 	{
-		// Selection des paires informative retenue
+		// Selection des paires informatives retenues
 		SelectAttributePairStats(GetInternalAttributesBivariateStats(), &oaSelectedAttributePairStats);
 
 		// Parcours des paires a analyser
@@ -210,6 +211,255 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 			      initialDataGridSolution->GetInnerAttributes()));
 	ensure(not bOk or initialDataGridSolution->GetGridFrequency() == initialDataGrid->GetGridFrequency());
 	return bOk;
+}
+*/
+
+boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataGrid* initialDataGrid,
+								   KWDataGrid* initialDataGridSolution) const
+{
+	boolean bOk;
+	const boolean bTrace = false;
+	const boolean bTraceDataGrid = false;
+	ObjectArray oaSelectedAttributePairStats;
+	const KWDGSAttributePartition* attributePartition;
+	ObjectArray oaAllAttributesPartitions;
+	ObjectDictionary odAllAttributesPartitions;
+	ObjectArray* oaAttributePartitions;
+	ObjectDictionary odInnerAttributePartitions;
+	const KWDGSAttributePartition* attributeResultPartition;
+	int nAttribute;
+	KWDataGridManager dataGridManager;
+
+	require(learningSpec != NULL);
+	require(initialDataGrid != NULL);
+	require(initialDataGrid->IsVarPartDataGrid());
+	require(initialDataGridSolution != NULL);
+	require(initialDataGridSolution->GetCellNumber() == 0);
+
+	// Parametrage d'un libelle si une tache en cours
+	if ((TaskProgression::IsInTask()))
+		TaskProgression::DisplayLabel("Search initial solution using bivariate analysis");
+
+	// Calcul des paires de variables
+	bOk = ComputeInternalAttributesBivariateStats(initialDataGrid);
+
+	// On remet le libelle a vide
+	if ((TaskProgression::IsInTask()))
+		TaskProgression::DisplayLabel("");
+
+	// Selection des paires informatives retenues
+	if (bOk)
+		SelectAttributePairStats(GetInternalAttributesBivariateStats(), &oaSelectedAttributePairStats);
+
+	// On verifie qu'au moins une pair est informative
+	if (bOk)
+		bOk = oaSelectedAttributePairStats.GetSize() > 0;
+
+	// Analyse des paires pour collecter pour chaque attribut toutes les partitions
+	// de l'attribut dans les paires le concernant
+	if (bOk)
+	{
+		BuildInitialSolutionFromBestPairs(initialDataGrid, &oaSelectedAttributePairStats,
+						  oaSelectedAttributePairStats.GetSize(), initialDataGridSolution);
+	}
+
+	// Trace
+	if (bTrace)
+	{
+		if (bOk)
+		{
+			cout << "Variable partitions\t" << oaAllAttributesPartitions.GetSize() << "\t"
+			     << BooleanToString(bOk) << "\n";
+			for (nAttribute = 0; nAttribute < oaAllAttributesPartitions.GetSize(); nAttribute++)
+			{
+				// Acces aux info de l'attribut
+				oaAttributePartitions = cast(ObjectArray*, oaAllAttributesPartitions.GetAt(nAttribute));
+				attributePartition =
+				    cast(const KWDGSAttributePartition*, oaAttributePartitions->GetAt(0));
+				attributeResultPartition =
+				    cast(const KWDGSAttributePartition*,
+					 odInnerAttributePartitions.Lookup(attributePartition->GetAttributeName()));
+
+				// Affichage des ces infos
+				cout << "  " << attributePartition->GetAttributeName() << "\t";
+				cout << KWType::ToString(attributePartition->GetAttributeType()) << "\t";
+				cout << oaAttributePartitions->GetSize() << "\n";
+				cout << "  " << *attributeResultPartition << "\n";
+			}
+
+			// Affichage de la la grille solution
+			if (bTraceDataGrid)
+				cout << "Initial data grid solution based on bivariate analysis\n"
+				     << *initialDataGridSolution << "\n";
+		}
+		else
+			cout << "Variable partitions not computed\n";
+	}
+
+	// Nettoyage
+	if (not bOk)
+		initialDataGridSolution->DeleteAll();
+	oaAllAttributesPartitions.DeleteAll();
+	odInnerAttributePartitions.DeleteAll();
+	CleanInternalAttributesBivariateStats();
+	ensure(not bOk or initialDataGridSolution->Check());
+	ensure(not bOk or initialDataGridSolution->IsVarPartDataGrid());
+	ensure(not bOk or initialDataGrid->GetInnerAttributes()->ContainsSubVarParts(
+			      initialDataGridSolution->GetInnerAttributes()));
+	ensure(not bOk or initialDataGridSolution->GetGridFrequency() == initialDataGrid->GetGridFrequency());
+	return bOk;
+}
+
+void KWDataGridInitialSolutionSearcherIV::BuildInitialSolutionFromBestPairs(
+    const KWDataGrid* initialDataGrid, const ObjectArray* oaInformativeAttributePairStats, int nPairNumber,
+    KWDataGrid* initialDataGridSolution) const
+{
+	const boolean bTrace = false;
+	const boolean bTraceDataGrid = false;
+	const KWDGAttribute* innerAttribute;
+	KWAttributeStats* attributeStats;
+	const KWAttributePairStats* attributePairStats;
+	const KWDataGridStats* pairStats;
+	const KWDGSAttributePartition* attributePartition;
+	ObjectArray oaAllAttributesPartitions;
+	ObjectDictionary odAllAttributesPartitions;
+	ObjectArray* oaAttributePartitions;
+	ObjectDictionary odInnerAttributePartitions;
+	KWDGSAttributeDiscretization* attributeResultDiscretization;
+	KWDGSAttributeGrouping* attributeResultGrouping;
+	const KWDGSAttributePartition* attributeResultPartition;
+	int n;
+	int nAttribute;
+	KWDataGridManager dataGridManager;
+
+	require(learningSpec != NULL);
+	require(initialDataGrid != NULL);
+	require(initialDataGrid->IsVarPartDataGrid());
+	require(oaInformativeAttributePairStats != NULL);
+	require(oaInformativeAttributePairStats->GetSize() > 0);
+	require(1 <= nPairNumber and nPairNumber <= oaInformativeAttributePairStats->GetSize());
+	require(initialDataGridSolution != NULL);
+	require(initialDataGridSolution->GetCellNumber() == 0);
+
+	// Parcours des paires a analyser
+	for (n = 0; n < nPairNumber; n++)
+	{
+		attributePairStats = cast(const KWAttributePairStats*, oaInformativeAttributePairStats->GetAt(n));
+		pairStats = attributePairStats->GetPreparedDataGridStats();
+		assert(pairStats->ComputeInformativeAttributeNumber() > 0);
+
+		// Analyse de chaque attribut des paires
+		for (nAttribute = 0; nAttribute < pairStats->GetAttributeNumber(); nAttribute++)
+		{
+			attributePartition = pairStats->GetAttributeAt(nAttribute);
+
+			// Recherche du tableau des partition pour cet attribut
+			oaAttributePartitions = cast(
+			    ObjectArray*, odAllAttributesPartitions.Lookup(attributePartition->GetAttributeName()));
+
+			// Creation si necessaire
+			if (oaAttributePartitions == NULL)
+			{
+				oaAttributePartitions = new ObjectArray;
+				odAllAttributesPartitions.SetAt(attributePartition->GetAttributeName(),
+								oaAttributePartitions);
+				oaAllAttributesPartitions.Add(oaAttributePartitions);
+			}
+
+			// Memorisation de la partition
+			oaAttributePartitions->Add(cast(Object*, attributePartition));
+		}
+	}
+	assert(oaAllAttributesPartitions.GetSize() > 0);
+
+	// Extraction des partitions les plus fines pour chaque attribut, par intersection de ses partitions
+	for (nAttribute = 0; nAttribute < oaAllAttributesPartitions.GetSize(); nAttribute++)
+	{
+		oaAttributePartitions = cast(ObjectArray*, oaAllAttributesPartitions.GetAt(nAttribute));
+
+		// Acces a la premiere partition pour avoir le type de l'attribut
+		attributePartition = cast(const KWDGSAttributePartition*, oaAttributePartitions->GetAt(0));
+
+		// Recherche de la stats univariee de l'attribut correspondant
+		attributeStats =
+		    GetInternalAttributesBivariateStats()->LookupAttributeStats(attributePartition->GetAttributeName());
+		assert(attributeStats != NULL);
+
+		// Recherche de l'attribut interne correspondant
+		innerAttribute =
+		    initialDataGrid->GetInnerAttributes()->LookupInnerAttribute(attributeStats->GetSortName());
+		assert(innerAttribute != NULL);
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////
+		// Creation et memorisation d'une partition univariee par attribut interne implique dans une
+		// grille bivariee informative
+		//
+		// Une grille bivariee peut etre informative en tenant compte des valeurs manquantes, mais la grille
+		// univariee resultant peut ne contenir qu'une seule partie apres filtrage des valeurs ou bornes manquantes,
+		// qui sont absentes des attributs internes.
+		// C'est le cas par exemple pour les mots d'un texte, ou l'analyse bivariee peut detecter une correlation
+		// de presence simultanee, et la partition univariee peut etre reduite a une seule partie
+		// L'attribut interne reste neanmoins informatif, et il faut l'isoler dans un cluster singleton de parties de
+		// variable, distinct du cluster regroupant tous les attributs internes non partitionnes.
+
+		// Cas d'un attribut numerique
+		if (attributePartition->GetAttributeType() == KWType::Continuous)
+		{
+			attributeResultDiscretization = new KWDGSAttributeDiscretization;
+			odInnerAttributePartitions.SetAt(attributePartition->GetAttributeName(),
+							 attributeResultDiscretization);
+			ComputeIntersectionDiscretizations(innerAttribute, attributeStats, oaAttributePartitions,
+							   attributeResultDiscretization);
+		}
+		// Cas d'un attribut categoriel
+		else
+		{
+			attributeResultGrouping = new KWDGSAttributeGrouping;
+			odInnerAttributePartitions.SetAt(attributePartition->GetAttributeName(),
+							 attributeResultGrouping);
+			ComputeIntersectionGroupings(innerAttribute, attributeStats, oaAttributePartitions,
+						     attributeResultGrouping);
+		}
+	}
+
+	// Creation d'une grille exploitant la version partitionnee des attributs internes
+	dataGridManager.ExportDataGridWithPartitionnedInnerAttributes(initialDataGrid, &odInnerAttributePartitions,
+								      initialDataGridSolution);
+
+	// Trace
+	if (bTrace)
+	{
+		cout << "Variable partitions\t" << oaAllAttributesPartitions.GetSize() << "\n";
+		for (nAttribute = 0; nAttribute < oaAllAttributesPartitions.GetSize(); nAttribute++)
+		{
+			// Acces aux info de l'attribut
+			oaAttributePartitions = cast(ObjectArray*, oaAllAttributesPartitions.GetAt(nAttribute));
+			attributePartition = cast(const KWDGSAttributePartition*, oaAttributePartitions->GetAt(0));
+			attributeResultPartition =
+			    cast(const KWDGSAttributePartition*,
+				 odInnerAttributePartitions.Lookup(attributePartition->GetAttributeName()));
+
+			// Affichage des ces infos
+			cout << "  " << attributePartition->GetAttributeName() << "\t";
+			cout << KWType::ToString(attributePartition->GetAttributeType()) << "\t";
+			cout << oaAttributePartitions->GetSize() << "\n";
+			cout << "  " << *attributeResultPartition << "\n";
+		}
+
+		// Affichage de la la grille solution
+		if (bTraceDataGrid)
+			cout << "Initial data grid solution based on bivariate analysis\n"
+			     << *initialDataGridSolution << "\n";
+	}
+
+	// Nettoyage
+	oaAllAttributesPartitions.DeleteAll();
+	odInnerAttributePartitions.DeleteAll();
+	ensure(initialDataGridSolution->Check());
+	ensure(initialDataGridSolution->IsVarPartDataGrid());
+	ensure(
+	    initialDataGrid->GetInnerAttributes()->ContainsSubVarParts(initialDataGridSolution->GetInnerAttributes()));
+	ensure(initialDataGridSolution->GetGridFrequency() == initialDataGrid->GetGridFrequency());
 }
 
 boolean

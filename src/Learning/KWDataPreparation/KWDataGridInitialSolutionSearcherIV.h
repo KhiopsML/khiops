@@ -43,6 +43,14 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Constructtion d'une solution a partir des k permieres paires du table de pair passe en parametre
+	// La solution exploite ces paire pour partitionner les attributs internes impliques dans au moins une paire
+	// avec des cluster de VarPart singleton, plus un dernier cluster regroupant tous les attributs internes restants.
+	// Les instances sont partitionnee de la facon a etre compatible avec les clusters de VarPart
+	void BuildInitialSolutionFromBestPairs(const KWDataGrid* initialDataGrid,
+					       const ObjectArray* oaInformativeAttributePairStats, int nPairNumber,
+					       KWDataGrid* initialDataGridSolution) const;
+
 	// Analyse bivariee des paires d'attributs internes
 	// Le resultats est disponible dans bivariateClassStats
 	// La methode peut echouer en cas d'erreur ou d'interruption utilisateur
@@ -58,7 +66,7 @@ protected:
 	// Le tableau en sortie contient des KWDGAttribute
 	void FilterInnerAttributes(const KWDataGrid* initialDataGrid, ObjectArray* oaFilteredInnerAttributes) const;
 
-	// Selection des paires a utiliser, en repant les plus informatives en priorite, et en s'arretant quand le nombre
+	// Selection des paires a utiliser, en prenant les plus informatives en priorite, et en s'arretant quand le nombre
 	// total de parties de variables interne resultant atteint un seuil de complexite maximum
 	// Le tableau en sortie contient les KWAttributePairStats selectionnes
 	void SelectAttributePairStats(const KWClassStats* classStats, ObjectArray* oaSelectedAttributePairStats) const;
