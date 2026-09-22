@@ -51,6 +51,10 @@ protected:
 					       const ObjectArray* oaInformativeAttributePairStats, int nPairNumber,
 					       KWDataGrid* initialDataGridSolution) const;
 
+	// Test si une solution est de taille compatible avec les contraintes d'optimisation d'une grille
+	boolean IsInitialSolutionOptimizable(const KWDataGrid* initialDataGrid,
+					     KWDataGrid* initialDataGridSolution) const;
+
 	// Analyse bivariee des paires d'attributs internes
 	// Le resultats est disponible dans bivariateClassStats
 	// La methode peut echouer en cas d'erreur ou d'interruption utilisateur
