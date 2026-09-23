@@ -8,7 +8,6 @@ jobs:
       fail-fast: false
       matrix:
         setup:
-          - {os: ubuntu-24.04, image: debian11}
           - {os: ubuntu-24.04, image: debian12}
           - {os: ubuntu-24.04, image: debian13}
           - {os: ubuntu-24.04, image: rocky8}

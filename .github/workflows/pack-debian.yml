@@ -37,7 +37,6 @@ jobs:
       fail-fast: false
       matrix:
         setup:
-          - {os: ubuntu-latest, image: debian11}
           - {os: ubuntu-latest, image: debian12}
           - {os: ubuntu-latest, image: debian13}
           - {os: ubuntu-latest, image: ubuntu20.04}
@@ -105,7 +104,6 @@ jobs:
       fail-fast: false
       matrix:
         setup:
-          - {os: ubuntu-latest, image: debian11}
           - {os: ubuntu-latest, image: debian12}
           - {os: ubuntu-latest, image: debian13}
           - {os: ubuntu-latest, image: ubuntu20.04}
@@ -142,6 +140,7 @@ jobs:
         uses: ./.github/actions/test-khiops-install
       - name: Install Khiops Desktop (with java)
         run: |
+          apt-get update
           dpkg -i ./artifacts//khiops_* || true
           apt-get -f install -y
       - name: Check Khiops installation
@@ -177,7 +176,6 @@ jobs:
       fail-fast: false
       matrix:
         setup:
-          - {os: ubuntu-latest, image: debian11}
           - {os: ubuntu-latest, image: debian12}
           - {os: ubuntu-latest, image: debian13}
           - {os: ubuntu-latest, image: ubuntu20.04}
