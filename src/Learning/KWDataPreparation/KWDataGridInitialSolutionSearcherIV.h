@@ -66,9 +66,13 @@ protected:
 	// Nettoyage des analyse bivariees
 	void CleanInternalAttributesBivariateStats() const;
 
-	// Filtrage des attributs utiliable pour l'analyse bivariee, en supprimant ceux ne comportant qu'une seule valeur
+	// Filtrage des attributs utilisables pour l'analyse bivariee, en supprimant ceux ne comportant qu'une seule valeur
 	// Le tableau en sortie contient des KWDGAttribute
 	void FilterInnerAttributes(const KWDataGrid* initialDataGrid, ObjectArray* oaFilteredInnerAttributes) const;
+
+	// Tri d'un tableau d'attribut interne par complexite d'optimisation croissante
+	void SortInnerAttributesByIncreasingComplexity(const KWDataGrid* initialDataGrid,
+						       ObjectArray* oaInnerAttributes) const;
 
 	// Selection des paires a utiliser, en prenant les plus informatives en priorite, et en s'arretant quand le nombre
 	// total de parties de variables interne resultant atteint un seuil de complexite maximum
@@ -89,6 +93,26 @@ protected:
 	// Ecriture d'un rapport JSON a partir des stats bivariee calculees
 	void WriteJSONAnalysisReport(KWClassStats* classStats, const ALString& sReportFileName) const;
 
+	////////////////////////////////////////////////////////////////////////////
+	// Estimation de la complexite algorithmique en tenant compte du nombre
+	// de valeurs disinctes dans le cas numerique ou categoriel
+	// Cette stimation est fortement heuristique: ce qui est important est ici
+	// d'avoir des valeurs comparables
+
+	// Complexite algorithmique de l'optimisation d'un coclustering IxV
+	int ComputeCoclusteringIxVOptimizationComplexity(const KWDataGrid* initialDataGrid) const;
+
+	// Complexite algorithmique de l'optimisation d'une paire de variables interne
+	int ComputeBivariateOptimizationComplexity(const KWDataGrid* initialDataGrid, const KWDGAttribute* attribute1,
+						   const KWDGAttribute* attribute2) const;
+
+	// Complexite algorithmique pour une variable interne impliquee dans une paire
+	int ComputeUnivariateOptimizationComplexity(const KWDataGrid* initialDataGrid,
+						    const KWDGAttribute* attribute) const;
+
+	////////////////////////////////////////////////////////////////////////////
+	// Variables de la classe
+
 	// Specifications d'apprentissage
 	KWLearningSpec* learningSpec;
 
@@ -96,7 +120,6 @@ protected:
 	mutable KWClassStats bivariateClassStats;
 	mutable KWLearningSpec bivariateLearningSpec;
 };
-
 //////////////////////////////////////////////////////////////////////////////////
 // Classe KWValueSignature
 // Classe technique de gestion des valeurs, impliquees dans un ensemble de partition
