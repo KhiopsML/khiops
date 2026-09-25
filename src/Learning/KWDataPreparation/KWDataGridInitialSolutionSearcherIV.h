@@ -30,15 +30,31 @@ public:
 	void SetLearningSpec(KWLearningSpec* specification);
 	KWLearningSpec* GetLearningSpec() const;
 
-	// Recherche d'une solution initiale meilleure que celle du modele null
-	// Le parametre initialDataGridSolution en sortie contient une grille initiale fine
-	// potentiellement intessante. Elle est de type KWDataGridMerger car elle doit ensuite
-	// etre optimisee selon les algorithmes d'optimisation standard.
-	// On exploite a cet effet des grilles bivariees entre attribut internes pour
-	// obtenir des partitions en VarPart pertinentes
+	//////////////////////////////////////////////////////////////////////////////////////
+	// Calcul d'une soution initiale
+
+	// Calcul d'une solution initiale  par analyse bivariee des attributs internes
+	// pour obtenir des partitions en VarPart pertinentes
+	// Cette grille devra ensuite etre optimisee de facon classique, comme le son les grilles
+	// issue d'une partition aleatoire.
+	// On renvoie la grille la plus fine possible compatible avec les contraintes d'optimisation
+	// en exploitant un nombre maximum de grille bivariee informatives
 	// La methode se deroule en mode non verbeux.
 	// Elle peut echouer en cas d'erreur, d'interruption utilisateur, ou d'absence de paires informatives
-	boolean SearchInitialSolution(const KWDataGrid* initialDataGrid, KWDataGrid* initialDataGridSolution) const;
+	boolean ComputeInitialSolution(const KWDataGrid* initialDataGrid, KWDataGrid* initialDataGridSolution);
+
+	// Indique si la solution initiale a ete calculee
+	boolean IsInitialSolutionComputed() const;
+
+	// Nettoyage de toutes les donnee de calcul
+	void Clean();
+
+	// Indique le nombre de paires utilisee pour le calcul de la soliution initiale
+	int GetInitialSolutionUsedPairNumber() const;
+
+	// Construction d'une solution initiale specifique exploitant un nombre de paires passees en parametres
+	void BuildSpecificInitialSolution(const KWDataGrid* initialDataGrid, int nPairNumber,
+					  KWDataGrid* initialDataGridSolution) const;
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -58,13 +74,13 @@ protected:
 	// Analyse bivariee des paires d'attributs internes
 	// Le resultats est disponible dans bivariateClassStats
 	// La methode peut echouer en cas d'erreur ou d'interruption utilisateur
-	boolean ComputeInternalAttributesBivariateStats(const KWDataGrid* initialDataGrid) const;
+	boolean ComputeInternalAttributesBivariateStats(const KWDataGrid* initialDataGrid);
 
 	// Acces aux analyses bivariees
 	const KWClassStats* GetInternalAttributesBivariateStats() const;
 
 	// Nettoyage des analyse bivariees
-	void CleanInternalAttributesBivariateStats() const;
+	void CleanInternalAttributesBivariateStats();
 
 	// Filtrage des attributs utilisables pour l'analyse bivariee, en supprimant ceux ne comportant qu'une seule valeur
 	// Le tableau en sortie contient des KWDGAttribute
@@ -109,10 +125,20 @@ protected:
 	// Specifications d'apprentissage
 	KWLearningSpec* learningSpec;
 
+	// Indicateur de calcul de la solution initiale
+	boolean bIsInitialSolutionComputed;
+
+	// Nombre de paires utilisees pour le calcul de la soliution initiale
+	int nInitialSolutionUsedPairNumber;
+
+	// Selection des paires d'attributs utilisees tries par informativite decroissante
+	ObjectArray oaSelectedAttributePairStats;
+
 	// Variables de travail pour l'apprentissage des analyses bivariees
-	mutable KWClassStats bivariateClassStats;
-	mutable KWLearningSpec bivariateLearningSpec;
+	KWClassStats bivariateClassStats;
+	KWLearningSpec bivariateLearningSpec;
 };
+
 //////////////////////////////////////////////////////////////////////////////////
 // Classe KWValueSignature
 // Classe technique de gestion des valeurs, impliquees dans un ensemble de partition

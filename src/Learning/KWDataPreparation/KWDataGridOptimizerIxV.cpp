@@ -43,7 +43,6 @@ double KWDataGridOptimizerIxV::BuildInitialSolution(const KWDataGrid* initialDat
 	KWDataGridInitialSolutionSearcherIV initialSolutionSearcher;
 	KWDataGrid initialDataGridSolution;
 	KWDataGridMerger initialDataGridOptimizedSolution;
-	boolean bInitialSolutionFound;
 
 	require(GetDataGridCosts() != NULL);
 	require(GetDataGridCosts()->IsInitialized());
@@ -59,19 +58,24 @@ double KWDataGridOptimizerIxV::BuildInitialSolution(const KWDataGrid* initialDat
 	// Recherche d'une solution initiale meilleure que celle du modele nul
 	// La collecte des traces est desactivee pour eviter de melanger l'optmisation IxV
 	// en cours avec les optimisation VxV des analyses bivariees de la methodes appelee
-	KWDataGridOptimizer::GetProfiler()->BeginMethod("SearchInitialSolution");
+	KWDataGridOptimizer::GetProfiler()->BeginMethod("ComputeInitialSolution");
 	KWDataGridOptimizer::GetProfiler()->SetCollectActive(false);
 	initialSolutionSearcher.SetLearningSpec(GetLearningSpec());
-	bInitialSolutionFound =
-	    initialSolutionSearcher.SearchInitialSolution(initialDataGrid, &initialDataGridSolution);
+	initialSolutionSearcher.ComputeInitialSolution(initialDataGrid, &initialDataGridSolution);
 	KWDataGridOptimizer::GetProfiler()->SetCollectActive(true);
-	KWDataGridOptimizer::GetProfiler()->EndMethod("SearchInitialSolution");
+	if (initialSolutionSearcher.IsInitialSolutionComputed())
+		KWDataGridOptimizer::GetProfiler()->WriteKeyInt(
+		    "UsedPairNumber", initialSolutionSearcher.GetInitialSolutionUsedPairNumber());
+	KWDataGridOptimizer::GetProfiler()->EndMethod("ComputeInitialSolution");
 
 	// Prise en compte si on a trouve meilleur que le meilleur null
 	dBestCost = GetOptimizedNullDataGridCost();
-	if (bInitialSolutionFound)
+	if (initialSolutionSearcher.IsInitialSolutionComputed())
 	{
 		assert(initialDataGridSolution.GetCellNumber() > 1);
+
+		// Nettoyage prealable
+		initialSolutionSearcher.Clean();
 
 		// Parametrage de la solution initiale a optimiser
 		SaveDataGrid(&initialDataGridSolution, &initialDataGridOptimizedSolution);

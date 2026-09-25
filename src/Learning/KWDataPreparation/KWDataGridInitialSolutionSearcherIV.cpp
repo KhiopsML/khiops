@@ -7,9 +7,14 @@
 KWDataGridInitialSolutionSearcherIV::KWDataGridInitialSolutionSearcherIV()
 {
 	learningSpec = NULL;
+	bIsInitialSolutionComputed = false;
+	nInitialSolutionUsedPairNumber = 0;
 }
 
-KWDataGridInitialSolutionSearcherIV::~KWDataGridInitialSolutionSearcherIV() {}
+KWDataGridInitialSolutionSearcherIV::~KWDataGridInitialSolutionSearcherIV()
+{
+	Clean();
+}
 
 void KWDataGridInitialSolutionSearcherIV::SetLearningSpec(KWLearningSpec* specification)
 {
@@ -21,13 +26,12 @@ KWLearningSpec* KWDataGridInitialSolutionSearcherIV::GetLearningSpec() const
 	return learningSpec;
 }
 
-boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataGrid* initialDataGrid,
-								   KWDataGrid* initialDataGridSolution) const
+boolean KWDataGridInitialSolutionSearcherIV::ComputeInitialSolution(const KWDataGrid* initialDataGrid,
+								    KWDataGrid* initialDataGridSolution)
 {
 	boolean bOk;
 	const boolean bTrace = false;
 	const boolean bTraceDataGrid = false;
-	ObjectArray oaSelectedAttributePairStats;
 	KWDataGridManager dataGridManager;
 	int nLowerPairNumber;
 	int nUpperPairNumber;
@@ -39,6 +43,9 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 	require(initialDataGrid->IsVarPartDataGrid());
 	require(initialDataGridSolution != NULL);
 	require(initialDataGridSolution->GetCellNumber() == 0);
+
+	// Nettoyage initial
+	Clean();
 
 	// Parametrage d'un libelle si une tache en cours
 	if ((TaskProgression::IsInTask()))
@@ -55,7 +62,7 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 	if (bOk)
 		SelectAttributePairStats(GetInternalAttributesBivariateStats(), &oaSelectedAttributePairStats);
 
-	// On verifie qu'au moins une pair est informative
+	// On verifie qu'au moins une paire est informative
 	if (bOk)
 		bOk = oaSelectedAttributePairStats.GetSize() > 0;
 
@@ -64,6 +71,7 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 	{
 		// La solution avec une paire est necessaire optimisable
 		nLowerPairNumber = 1;
+		nInitialSolutionUsedPairNumber = 1;
 		bIsOptimizable = true;
 		if (bTrace)
 			cout << "Pairs\tOptimisable\n1\t\ttrue\n";
@@ -75,6 +83,7 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 			// Construction de la solution avec toutes les paires
 			BuildInitialSolutionFromBestPairs(initialDataGrid, &oaSelectedAttributePairStats,
 							  nUpperPairNumber, initialDataGridSolution);
+			nInitialSolutionUsedPairNumber = nUpperPairNumber;
 			bIsOptimizable = IsInitialSolutionOptimizable(initialDataGrid, initialDataGridSolution);
 			if (bTrace)
 				cout << nUpperPairNumber << "\t" << initialDataGridSolution->GetObjectLabel() << "\t"
@@ -90,6 +99,7 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 				assert(oaSelectedAttributePairStats.GetSize() <= 2);
 				BuildInitialSolutionFromBestPairs(initialDataGrid, &oaSelectedAttributePairStats,
 								  nUpperPairNumber, initialDataGridSolution);
+				nInitialSolutionUsedPairNumber = nUpperPairNumber;
 				if (bTrace)
 					cout << nUpperPairNumber << "\t" << initialDataGridSolution->GetObjectLabel()
 					     << "\t" << BooleanToString(bIsOptimizable) << "\n";
@@ -111,6 +121,7 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 				// Construction de la solution avec le nombre de paires demandees
 				BuildInitialSolutionFromBestPairs(initialDataGrid, &oaSelectedAttributePairStats,
 								  nPairNumber, initialDataGridSolution);
+				nInitialSolutionUsedPairNumber = nPairNumber;
 				bIsOptimizable = IsInitialSolutionOptimizable(initialDataGrid, initialDataGridSolution);
 				if (bTrace)
 					cout << nPairNumber << "\t" << initialDataGridSolution->GetObjectLabel() << "\t"
@@ -133,6 +144,7 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 				assert(nPairNumber == nUpperPairNumber);
 				BuildInitialSolutionFromBestPairs(initialDataGrid, &oaSelectedAttributePairStats,
 								  nUpperPairNumber - 1, initialDataGridSolution);
+				nInitialSolutionUsedPairNumber = nUpperPairNumber - 1;
 				bIsOptimizable = IsInitialSolutionOptimizable(initialDataGrid, initialDataGridSolution);
 				assert(bIsOptimizable);
 				if (bTrace)
@@ -143,10 +155,24 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 		}
 	}
 
+	// Nettoyage e cas d'echec
+	if (not bOk)
+	{
+		Clean();
+		initialDataGridSolution->DeleteAll();
+	}
+	// Sinon, memorisation des indicateurs
+	else
+	{
+		bIsInitialSolutionComputed = true;
+		assert(nInitialSolutionUsedPairNumber >= 1);
+		assert(nInitialSolutionUsedPairNumber <= oaSelectedAttributePairStats.GetSize());
+	}
+
 	// Trace
 	if (bTrace)
 	{
-		if (bOk)
+		if (bIsInitialSolutionComputed)
 		{
 			cout << "Variable pairs\t" << oaSelectedAttributePairStats.GetSize() << "\n";
 			cout << "Initial solution\t" << initialDataGridSolution->GetObjectLabel() << "\n";
@@ -160,17 +186,45 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 			cout << "Variable partitions not computed\n";
 	}
 
-	// Nettoyage
-	if (not bOk)
-		initialDataGridSolution->DeleteAll();
+	ensure(not bIsInitialSolutionComputed or initialDataGridSolution->Check());
+	ensure(not bIsInitialSolutionComputed or initialDataGridSolution->IsVarPartDataGrid());
+	ensure(not bIsInitialSolutionComputed or initialDataGrid->GetInnerAttributes()->ContainsSubVarParts(
+						     initialDataGridSolution->GetInnerAttributes()));
+	ensure(not bIsInitialSolutionComputed or
+	       initialDataGridSolution->GetGridFrequency() == initialDataGrid->GetGridFrequency());
+	ensure(not bIsInitialSolutionComputed or
+	       IsInitialSolutionOptimizable(initialDataGrid, initialDataGridSolution));
+	return bIsInitialSolutionComputed;
+}
+
+boolean KWDataGridInitialSolutionSearcherIV::IsInitialSolutionComputed() const
+{
+	return bIsInitialSolutionComputed;
+}
+
+void KWDataGridInitialSolutionSearcherIV::Clean()
+{
+	bIsInitialSolutionComputed = false;
+	nInitialSolutionUsedPairNumber = 0;
+	oaSelectedAttributePairStats.SetSize(0);
 	CleanInternalAttributesBivariateStats();
-	ensure(not bOk or initialDataGridSolution->Check());
-	ensure(not bOk or initialDataGridSolution->IsVarPartDataGrid());
-	ensure(not bOk or initialDataGrid->GetInnerAttributes()->ContainsSubVarParts(
-			      initialDataGridSolution->GetInnerAttributes()));
-	ensure(not bOk or initialDataGridSolution->GetGridFrequency() == initialDataGrid->GetGridFrequency());
-	ensure(not bOk or IsInitialSolutionOptimizable(initialDataGrid, initialDataGridSolution));
-	return bOk;
+}
+
+int KWDataGridInitialSolutionSearcherIV::GetInitialSolutionUsedPairNumber() const
+{
+	require(IsInitialSolutionComputed());
+	return nInitialSolutionUsedPairNumber;
+}
+
+void KWDataGridInitialSolutionSearcherIV::BuildSpecificInitialSolution(const KWDataGrid* initialDataGrid,
+								       int nPairNumber,
+								       KWDataGrid* initialDataGridSolution) const
+{
+	require(IsInitialSolutionComputed());
+	require(1 <= nPairNumber and nPairNumber <= GetInitialSolutionUsedPairNumber());
+
+	BuildInitialSolutionFromBestPairs(initialDataGrid, &oaSelectedAttributePairStats, nPairNumber,
+					  initialDataGridSolution);
 }
 
 void KWDataGridInitialSolutionSearcherIV::BuildInitialSolutionFromBestPairs(
@@ -327,8 +381,7 @@ void KWDataGridInitialSolutionSearcherIV::BuildInitialSolutionFromBestPairs(
 	ensure(initialDataGridSolution->GetGridFrequency() == initialDataGrid->GetGridFrequency());
 }
 
-boolean
-KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStats(const KWDataGrid* initialDataGrid) const
+boolean KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStats(const KWDataGrid* initialDataGrid)
 {
 	boolean bOk;
 	const boolean bTrace = false;
@@ -411,6 +464,9 @@ KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStats(con
 	// et eviter les warnings deja emis lors de la phase initiale de lecture de la base
 	bivariateClassStats.SetMainMessageVerboseMode(false);
 	GetLearningSpec()->GetDatabase()->SetVerboseMode(false);
+
+	//DDD
+	//TODO Specialiser le dictionnaire en mettant les attributs internes non utilises en unused
 
 	// Calcul des statistiques sur les paires de variables
 	// On restitue la seed pour que l'etat final ne dependent pas de l'execution
@@ -504,7 +560,7 @@ const KWClassStats* KWDataGridInitialSolutionSearcherIV::GetInternalAttributesBi
 	return &bivariateClassStats;
 }
 
-void KWDataGridInitialSolutionSearcherIV::CleanInternalAttributesBivariateStats() const
+void KWDataGridInitialSolutionSearcherIV::CleanInternalAttributesBivariateStats()
 {
 	bivariateClassStats.DeleteAll();
 }
