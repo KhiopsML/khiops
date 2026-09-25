@@ -68,10 +68,6 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 		if (bTrace)
 			cout << "Pairs\tOptimisable\n1\t\ttrue\n";
 
-		//DDD On force le nombre de paire a au plus ddeux
-		//if (oaSelectedAttributePairStats.GetSize() > 1)
-		//	oaSelectedAttributePairStats.SetSize(2);
-
 		// Evaluation de la solution comprenant toutes les paires
 		nUpperPairNumber = oaSelectedAttributePairStats.GetSize();
 		if (nUpperPairNumber > 1)
@@ -336,17 +332,14 @@ KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStats(con
 {
 	boolean bOk;
 	const boolean bTrace = false;
-	const double dComputationTimeRatio = 0.1;
 	int nCurrentSeed;
 	KWAttributePairsSpec bivariatePairSpec;
 	ALString sBivariateReportPath;
 	KWAttributePairName* pairName;
 	ObjectArray oaFilteredInnerAttributes;
+	int nTotalPairNumber;
 	int nMaxIndex;
 	int nMinIndex;
-	int nCoclusteringComplexity;
-	int nPairComplexity;
-	int nTotalPairComplexity;
 
 	require(GetLearningSpec() != NULL);
 	require(initialDataGrid != NULL);
@@ -364,26 +357,29 @@ KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStats(con
 	// Tri des attribut par complexite decroissante
 	SortInnerAttributesByIncreasingComplexity(initialDataGrid, &oaFilteredInnerAttributes);
 
-	// Complexite d'optimisation du coclustering ixV
-	nCoclusteringComplexity = ComputeCoclusteringIxVOptimizationComplexity(initialDataGrid);
-	if (bTrace)
-		cout << "Coclustering IxV complexity\t" << nCoclusteringComplexity << "\n";
+	// Nombre total de paires a prendre en compte
+	// On ne peut pas prendre en compte toutes les paires dans la cas general en raison de leur nombre
+	// qui augmente comme le carre du nombre d'attributs
+	// On limite le nombre de paires de facon a ce que leur cout total d'optimisation soit inferieur
+	// a celui du coclusering IxV
+	// - N: nombre d'individus
+	// - K: nombre de variable internes
+	// - complexite pour une paire: O(N sqrt(N) log(N))
+	// - complexite pour le coclustering IxV: O(KN sqrt(KN) log(KN)
+	// On peut donc traiter O(K sqrt(K)) paires, mais on vas se limiter ici a O(K log(K)) paires
+	// // pour limiter cette partie du temps de calcul
+	nTotalPairNumber = (int)(ceil(oaFilteredInnerAttributes.GetSize()) *
+				 log(oaFilteredInnerAttributes.GetSize() + 1.0) / log(2.0));
 
 	// Parametrage des paires a analyser avec en priorite les pair dont l'index maximal est le plus faible,
 	// pour traiter les paires en priorite si les deux variables sont les plus simples
 	// Prise en compte des paires par complexite d'optimisation croissante, jusqu' a ce la complexite cumulee atteigne
 	// celle de l'optimisation de la grille IxV tout entiere, selon le ratio de temps de calcul desire
 	bivariatePairSpec.GetSpecificAttributePairs()->DeleteAll();
-	nTotalPairComplexity = 0;
 	for (nMaxIndex = 1; nMaxIndex < oaFilteredInnerAttributes.GetSize(); nMaxIndex++)
 	{
 		for (nMinIndex = 0; nMinIndex < nMaxIndex; nMinIndex++)
 		{
-			nPairComplexity = ComputeBivariateOptimizationComplexity(
-			    initialDataGrid, cast(KWDGAttribute*, oaFilteredInnerAttributes.GetAt(nMinIndex)),
-			    cast(KWDGAttribute*, oaFilteredInnerAttributes.GetAt(nMaxIndex)));
-			nTotalPairComplexity += nPairComplexity;
-
 			// Ajout de la paire
 			pairName = new KWAttributePairName;
 			pairName->SetFirstName(
@@ -397,17 +393,15 @@ KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStats(con
 			{
 				cout << "Pair\t" << bivariatePairSpec.GetSpecificAttributePairs()->GetSize() << "\t";
 				cout << pairName->GetFirstName() << "\t";
-				cout << pairName->GetSecondName() << "\t";
-				cout << nPairComplexity << "\t";
-				cout << nTotalPairComplexity << "\n";
+				cout << pairName->GetSecondName() << "\n";
 			}
 
-			// Arret si on a depasse la complexite du coclustering
-			if (nTotalPairComplexity > dComputationTimeRatio * nCoclusteringComplexity)
+			// Arret si on a atteint la limite
+			if (bivariatePairSpec.GetSpecificAttributePairs()->GetSize() > nTotalPairNumber)
 				break;
 		}
-		// Arret si on a depasse la complexite du coclustering
-		if (nTotalPairComplexity > dComputationTimeRatio * nCoclusteringComplexity)
+		// Arret si on a atteint la limite
+		if (bivariatePairSpec.GetSpecificAttributePairs()->GetSize() > nTotalPairNumber)
 			break;
 	}
 	bivariateClassStats.SetAttributePairsSpec(&bivariatePairSpec);
@@ -534,46 +528,15 @@ void KWDataGridInitialSolutionSearcherIV::SortInnerAttributesByIncreasingComplex
     const KWDataGrid* initialDataGrid, ObjectArray* oaInnerAttributes) const
 {
 	const boolean bTrace = false;
-	ObjectArray oaInnerAttributeComplexities;
-	ObjectArray oaInitialInnerAttributes;
-	KWDGAttribute* innerAttribute;
-	KWSortableValue* sortableComplexity;
 	KWDGAttribute* attribute;
 	int n;
 
 	require(initialDataGrid != NULL);
 	require(oaInnerAttributes != NULL);
 
-	// Memorisation d'un un tableau de KWSortableValue des complexite des attributs internes,
-	// references par leur index
-	oaInnerAttributeComplexities.SetSize(oaInnerAttributes->GetSize());
-	for (n = 0; n < oaInnerAttributes->GetSize(); n++)
-	{
-		// Acces a l'attribut index
-		innerAttribute = cast(KWDGAttribute*, oaInnerAttributes->GetAt(n));
-
-		// Creation d'une paire(index, complexite) pour cet attribut interne
-		sortableComplexity = new KWSortableValue;
-		sortableComplexity->SetIndex(n);
-		sortableComplexity->SetSortValue(
-		    ComputeUnivariateOptimizationComplexity(initialDataGrid, innerAttribute));
-		oaInnerAttributeComplexities.SetAt(n, sortableComplexity);
-	}
-
-	// Tri par complexite croissante, puis par index en cas d'egalite
-	oaInnerAttributeComplexities.SetCompareFunction(KWSortableValueCompare);
-	oaInnerAttributeComplexities.Sort();
-
-	// Rangement des attributs internes par complexite croissantes
-	oaInitialInnerAttributes.CopyFrom(oaInnerAttributes);
-	for (n = 0; n < oaInnerAttributeComplexities.GetSize(); n++)
-	{
-		sortableComplexity = cast(KWSortableValue*, oaInnerAttributeComplexities.GetAt(n));
-		oaInnerAttributes->SetAt(n, oaInitialInnerAttributes.GetAt(sortableComplexity->GetIndex()));
-	}
-
-	// Nettoyage
-	oaInnerAttributeComplexities.DeleteAll();
+	// Parametrage  de la fonction de tri, puis tri
+	oaInnerAttributes->SetCompareFunction(CompareAttributeOptimizationComplexity);
+	oaInnerAttributes->Sort();
 
 	// Trace
 	if (bTrace)
@@ -588,7 +551,7 @@ void KWDataGridInitialSolutionSearcherIV::SortInnerAttributesByIncreasingComplex
 			cout << attribute->GetAttributeName() << "\t";
 			cout << attribute->GetPartNumber() << "\t";
 			cout << attribute->GetInitialValueNumber() << "\t";
-			cout << ComputeUnivariateOptimizationComplexity(initialDataGrid, attribute) << "\n";
+			cout << ComputeAttributeOptimizationComplexity(attribute) << "\n";
 		}
 	}
 }
@@ -1001,112 +964,16 @@ void KWDataGridInitialSolutionSearcherIV::WriteJSONAnalysisReport(KWClassStats* 
 	}
 }
 
-int KWDataGridInitialSolutionSearcherIV::ComputeCoclusteringIxVOptimizationComplexity(
-    const KWDataGrid* initialDataGrid) const
+int KWDataGridInitialSolutionSearcherIV::ComputeAttributeOptimizationComplexity(const KWDGAttribute* attribute)
 {
 	int nComplexity;
-	int nIdentifierNumber;
-	int nTotalVarPartNumber;
-	int nMaxPartNumber;
-	int nMaxCellNumber;
-	KWDGAttribute* identifierAttribute;
-
-	require(initialDataGrid != NULL);
-	require(initialDataGrid->IsVarPartDataGrid());
-
-	// Nombre d'instances uniques
-	identifierAttribute = initialDataGrid->GetAttributeAt(0);
-	nIdentifierNumber = identifierAttribute->GetPartNumber();
-	assert(nIdentifierNumber == identifierAttribute->GetInitialValueNumber());
-
-	// Nombre total de parties de variables
-	nTotalVarPartNumber = initialDataGrid->GetInnerAttributes()->ComputeTotalInnerAttributeVarParts();
-
-	// Nombre maximum de parties d'un coclustering a optimiser
-	nMaxPartNumber = (int)(ceil(sqrt(initialDataGrid->GetGridFrequency())));
-
-	// Nombre max de cellules
-	nMaxCellNumber = initialDataGrid->GetCellNumber();
-	if ((longint)nIdentifierNumber * (longint)nTotalVarPartNumber < nMaxCellNumber)
-		nMaxCellNumber = nIdentifierNumber * nTotalVarPartNumber;
-
-	// Complexite algorithmique
-	nComplexity = nMaxCellNumber *
-		      (int)ceil((min(nMaxPartNumber, nIdentifierNumber) + min(nMaxPartNumber, nTotalVarPartNumber)) *
-				log(nMaxCellNumber));
-	return nComplexity;
-}
-
-int KWDataGridInitialSolutionSearcherIV::ComputeBivariateOptimizationComplexity(const KWDataGrid* initialDataGrid,
-										const KWDGAttribute* attribute1,
-										const KWDGAttribute* attribute2) const
-{
-	int nComplexity;
-	int nIdentifierNumber;
-	int nMaxCellNumber;
-	KWDGAttribute* identifierAttribute;
-	int nValueNumber1;
-	int nValueNumber2;
-
-	require(initialDataGrid != NULL);
-	require(initialDataGrid->IsVarPartDataGrid());
-	require(attribute1 != NULL);
-	require(attribute2 != NULL);
-	require(initialDataGrid->GetInnerAttributes()->LookupInnerAttribute(attribute1->GetAttributeName()) ==
-		attribute1);
-	require(initialDataGrid->GetInnerAttributes()->LookupInnerAttribute(attribute2->GetAttributeName()) ==
-		attribute2);
-
-	// Nombre d'instances uniques
-	identifierAttribute = initialDataGrid->GetAttributeAt(0);
-	nIdentifierNumber = identifierAttribute->GetPartNumber();
-	assert(nIdentifierNumber == identifierAttribute->GetInitialValueNumber());
-
-	// Nombre de valeur par attribut
-	nValueNumber1 = attribute1->GetPartNumber() + 1;
-	nValueNumber2 = attribute2->GetPartNumber() + 1;
-
-	// Nombre max de cellules
-	nMaxCellNumber = nIdentifierNumber;
-	if ((longint)nValueNumber1 * (longint)nValueNumber2 < nMaxCellNumber)
-		nMaxCellNumber = nValueNumber1 * nValueNumber2;
-
-	// Approximation exploitant la complexite univariee qui etait base sur le nombre d'instances,
-	// avec correction en fonction nu nombre de valeurs
-	nComplexity = ComputeUnivariateOptimizationComplexity(initialDataGrid, attribute1) +
-		      ComputeUnivariateOptimizationComplexity(initialDataGrid, attribute2);
-	nComplexity /= nIdentifierNumber;
-	nComplexity *= nMaxCellNumber;
-
-	// On ajoute le tri des valeurs
-	nComplexity += 2 * (int)ceil(nIdentifierNumber * log(nIdentifierNumber));
-	return nComplexity;
-}
-
-int KWDataGridInitialSolutionSearcherIV::ComputeUnivariateOptimizationComplexity(const KWDataGrid* initialDataGrid,
-										 const KWDGAttribute* attribute) const
-{
-	int nComplexity;
-	int nIdentifierNumber;
 	int nValueNumber;
-	int nMaxPartNumber;
-	KWDGAttribute* identifierAttribute;
 
-	require(initialDataGrid != NULL);
-	require(initialDataGrid->IsVarPartDataGrid());
 	require(attribute != NULL);
 	require(attribute->IsInnerAttribute());
-	require(KWType::IsSimple(attribute->GetAttributeType()));
-	require(initialDataGrid->GetInnerAttributes()->LookupInnerAttribute(attribute->GetAttributeName()) ==
-		attribute);
 	require(attribute->GetPartNumber() > 0);
 	require(attribute->GetAttributeType() == KWType::Continuous or
 		attribute->GetInitialValueNumber() == attribute->GetPartNumber());
-
-	// Nombre d'instances uniques
-	identifierAttribute = initialDataGrid->GetAttributeAt(0);
-	nIdentifierNumber = identifierAttribute->GetPartNumber();
-	assert(nIdentifierNumber == identifierAttribute->GetInitialValueNumber());
 
 	// Nombre de valeurs, incremente pour tenir compte des eventuelle valeurs manquantes, absente des attributs internes
 	// d'un coclustering IxV, mais traitee en analyse bivariee et permettant de detecter des correlations meme
@@ -1115,14 +982,34 @@ int KWDataGridInitialSolutionSearcherIV::ComputeUnivariateOptimizationComplexity
 
 	// Complexite algorithmique dans le cas numerique
 	if (attribute->GetAttributeType() == KWType::Continuous)
-		nComplexity = (int)ceil(nIdentifierNumber * log(nValueNumber));
+		nComplexity = (int)ceil(nValueNumber * log(nValueNumber));
 	// Et dans le cas categoriel
 	else
-	{
-		nMaxPartNumber = min(nValueNumber, (int)ceil(sqrt(nIdentifierNumber)));
-		nComplexity = (int)ceil(nIdentifierNumber * sqrt(nMaxPartNumber) * log(nMaxPartNumber));
-	}
+		nComplexity = (int)ceil(nValueNumber * sqrt(nValueNumber) * log(nValueNumber));
 	return nComplexity;
+}
+
+int KWDataGridInitialSolutionSearcherIV::CompareAttributeOptimizationComplexity(const void* elem1, const void* elem2)
+{
+	int nCompare;
+	KWDGAttribute* attribute1;
+	KWDGAttribute* attribute2;
+
+	require(elem1 != NULL);
+	require(elem2 != NULL);
+
+	// Acces a la grille
+	attribute1 = cast(KWDGAttribute*, *(Object**)elem1);
+	attribute2 = cast(KWDGAttribute*, *(Object**)elem2);
+
+	// Comparaison sur la valeur de tri
+	nCompare =
+	    ComputeAttributeOptimizationComplexity(attribute1) - ComputeAttributeOptimizationComplexity(attribute2);
+
+	// En cas d'egalite, on se base sur la comparaison des nom des attributs
+	if (nCompare == 0)
+		nCompare = attribute1->GetAttributeName().Compare(attribute2->GetAttributeName());
+	return nCompare;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////

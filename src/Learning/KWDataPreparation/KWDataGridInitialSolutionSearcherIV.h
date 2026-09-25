@@ -93,22 +93,15 @@ protected:
 	// Ecriture d'un rapport JSON a partir des stats bivariee calculees
 	void WriteJSONAnalysisReport(KWClassStats* classStats, const ALString& sReportFileName) const;
 
-	////////////////////////////////////////////////////////////////////////////
+	// Complexite algorithmique pour une variable interne impliquee dans une paire
 	// Estimation de la complexite algorithmique en tenant compte du nombre
 	// de valeurs disinctes dans le cas numerique ou categoriel
 	// Cette stimation est fortement heuristique: ce qui est important est ici
-	// d'avoir des valeurs comparables
+	// d'avoir des valeurs comparables pour tire les attribut par complexite croissante
+	static int ComputeAttributeOptimizationComplexity(const KWDGAttribute* attribute);
 
-	// Complexite algorithmique de l'optimisation d'un coclustering IxV
-	int ComputeCoclusteringIxVOptimizationComplexity(const KWDataGrid* initialDataGrid) const;
-
-	// Complexite algorithmique de l'optimisation d'une paire de variables interne
-	int ComputeBivariateOptimizationComplexity(const KWDataGrid* initialDataGrid, const KWDGAttribute* attribute1,
-						   const KWDGAttribute* attribute2) const;
-
-	// Complexite algorithmique pour une variable interne impliquee dans une paire
-	int ComputeUnivariateOptimizationComplexity(const KWDataGrid* initialDataGrid,
-						    const KWDGAttribute* attribute) const;
+	// Comparaison de la complexite d'optmimisation de deux attributs
+	static int CompareAttributeOptimizationComplexity(const void* elem1, const void* elem2);
 
 	////////////////////////////////////////////////////////////////////////////
 	// Variables de la classe
