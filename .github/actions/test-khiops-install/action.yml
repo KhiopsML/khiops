@@ -108,7 +108,7 @@ runs:
         echo --- Khiops environment with KHIOPS_PROC_NUMBER=%KHIOPS_PROC_NUMBER%
         call khiops_env --env
         call khiops_env
-        if not "%KHIOPS_MPI_COMMAND%". == "". (
+        if defined KHIOPS_MPI_COMMAND (
           echo "::error::MPI is used even though there are only 2 procs available"
           exit 1
         )
@@ -117,11 +117,11 @@ runs:
         echo --- Khiops environment with KHIOPS_PROC_NUMBER=%KHIOPS_PROC_NUMBER%
         call khiops_env --env
         call khiops_env
-        if not "%KHIOPS_MPI_ERROR%".=="". (
+        if defined KHIOPS_MPI_ERROR (
           echo "::error::Unexpected MPI error: %KHIOPS_MPI_ERROR%"
           exit 1
         )
-        if "%KHIOPS_MPI_COMMAND%". == "". (
+        if not defined KHIOPS_MPI_COMMAND (
           echo "::error::KHIOPS_MPI_COMMAND is not set"
           exit 1
         )

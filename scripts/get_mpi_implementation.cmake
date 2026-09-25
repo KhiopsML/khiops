@@ -71,6 +71,12 @@ function(get_mpi_implementation)
     set(IS_MPICH TRUE)
   endif()
 
+  string(REGEX MATCH "msmpi" VAR_MATCH "${VAR_MPI_INFO_LOWER}")
+  if(VAR_MATCH)
+    set(MPI_IMPL "msmpi")
+    set(IS_MS_MPI TRUE)
+  endif()
+
   string(REGEX MATCH "intel|impi" VAR_MATCH "${VAR_MPI_INFO_LOWER}")
   if(VAR_MATCH)
     set(MPI_IMPL "intel")
@@ -92,6 +98,9 @@ function(get_mpi_implementation)
       PARENT_SCOPE)
   set(IS_MPICH
       ${IS_MPICH}
+      PARENT_SCOPE)
+  set(IS_MS_MPI
+      ${IS_MS_MPI}
       PARENT_SCOPE)
   set(IS_INTEL_MPI
       ${IS_INTEL_MPI}
