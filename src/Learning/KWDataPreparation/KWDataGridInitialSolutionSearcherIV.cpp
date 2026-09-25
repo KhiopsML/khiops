@@ -88,7 +88,6 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 			if (nUpperPairNumber == 1 or not bIsOptimizable)
 			{
 				assert(oaSelectedAttributePairStats.GetSize() <= 2);
-				assert(initialDataGridSolution->GetCellNumber() == 0);
 				BuildInitialSolutionFromBestPairs(initialDataGrid, &oaSelectedAttributePairStats,
 								  nUpperPairNumber, initialDataGridSolution);
 				if (bTrace)
@@ -110,7 +109,6 @@ boolean KWDataGridInitialSolutionSearcherIV::SearchInitialSolution(const KWDataG
 				nPairNumber = (nLowerPairNumber + nUpperPairNumber + 1) / 2;
 
 				// Construction de la solution avec le nombre de paires demandees
-				initialDataGridSolution->DeleteAll();
 				BuildInitialSolutionFromBestPairs(initialDataGrid, &oaSelectedAttributePairStats,
 								  nPairNumber, initialDataGridSolution);
 				bIsOptimizable = IsInitialSolutionOptimizable(initialDataGrid, initialDataGridSolution);
@@ -204,7 +202,9 @@ void KWDataGridInitialSolutionSearcherIV::BuildInitialSolutionFromBestPairs(
 	require(oaInformativeAttributePairStats->GetSize() > 0);
 	require(1 <= nPairNumber and nPairNumber <= oaInformativeAttributePairStats->GetSize());
 	require(initialDataGridSolution != NULL);
-	require(initialDataGridSolution->GetCellNumber() == 0);
+
+	// Nettoyage de la solution
+	initialDataGridSolution->DeleteAll();
 
 	// Parcours des paires a analyser
 	for (n = 0; n < nPairNumber; n++)
@@ -362,11 +362,11 @@ KWDataGridInitialSolutionSearcherIV::ComputeInternalAttributesBivariateStats(con
 	// qui augmente comme le carre du nombre d'attributs
 	// On limite le nombre de paires de facon a ce que leur cout total d'optimisation soit inferieur
 	// a celui du coclusering IxV
-	// - N: nombre d'individus
-	// - K: nombre de variable internes
+	// - N: nombre d'instances
+	// - K: nombre de variables internes
 	// - complexite pour une paire: O(N sqrt(N) log(N))
 	// - complexite pour le coclustering IxV: O(KN sqrt(KN) log(KN)
-	// On peut donc traiter O(K sqrt(K)) paires, mais on vas se limiter ici a O(K log(K)) paires
+	// On peut donc traiter O(K sqrt(K)) paires, mais on va se limiter ici a O(K log(K)) paires
 	// // pour limiter cette partie du temps de calcul
 	nTotalPairNumber = (int)(ceil(oaFilteredInnerAttributes.GetSize()) *
 				 log(oaFilteredInnerAttributes.GetSize() + 1.0) / log(2.0));
@@ -449,6 +449,9 @@ boolean KWDataGridInitialSolutionSearcherIV::IsInitialSolutionOptimizable(const 
 	int nTotalFrequency;
 	int nMaxPartNumber;
 	int nAttribute;
+	KWDGAttribute* innerAttribute;
+	int nPartitionnedInnerAttributeNumber;
+	int nPartitionnedInnerAttributeTotalPartNumber;
 
 	require(initialDataGrid != NULL);
 	require(initialDataGrid->IsVarPartDataGrid());
@@ -463,6 +466,35 @@ boolean KWDataGridInitialSolutionSearcherIV::IsInitialSolutionOptimizable(const 
 	bOk = true;
 	for (nAttribute = 0; nAttribute < initialDataGridSolution->GetAttributeNumber(); nAttribute++)
 		bOk = bOk and initialDataGridSolution->GetAttributeAt(nAttribute)->GetPartNumber() <= nMaxPartNumber;
+
+	// On tolere que les contraintes ne soient pas respectees dans le cas ou il n'y a que deux attributs internes partitionnes
+	if (not bOk)
+	{
+		// Collecte de stats de partitionnement des attributs internes
+		nPartitionnedInnerAttributeNumber = 0;
+		nPartitionnedInnerAttributeTotalPartNumber = 0;
+		for (nAttribute = 0;
+		     nAttribute < initialDataGridSolution->GetInnerAttributes()->GetInnerAttributeNumber();
+		     nAttribute++)
+		{
+			innerAttribute = initialDataGridSolution->GetInnerAttributes()->GetInnerAttributeAt(nAttribute);
+			if (innerAttribute->GetPartNumber() > 1)
+			{
+				nPartitionnedInnerAttributeNumber++;
+				nPartitionnedInnerAttributeTotalPartNumber += innerAttribute->GetPartNumber();
+			}
+			if (nPartitionnedInnerAttributeNumber > 2)
+				break;
+		}
+
+		// On accepte qu'une seule paire soit partitionnee, quelque soit le nombre de parties
+		if (nPartitionnedInnerAttributeNumber == 2)
+		{
+			bOk = true;
+			assert(initialDataGridSolution->GetAttributeAt(1)->GetPartNumber() ==
+			       nPartitionnedInnerAttributeTotalPartNumber);
+		}
+	}
 	return bOk;
 }
 
