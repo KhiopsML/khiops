@@ -294,6 +294,12 @@ static int GlobalMemSetAllocErrorHandler()
 	return 1;
 }
 
+// Fonction appelee a la fin du programme pour fermer le fichier de log des erreurs
+static void CloseErrorLogFileAtExit()
+{
+	Global::SetErrorLogFileName("");
+}
+
 // On utilise une initialisation statique pour forcer le parametrage des messages de l'allocateur au plus tot
 // Cette initialisation ne peut se faire depuis l'allocateur, qui ne connait pas la classe Global
 static int GlobalAllocErrorHandler = GlobalMemSetAllocErrorHandler();
@@ -301,6 +307,7 @@ static int GlobalAllocErrorHandler = GlobalMemSetAllocErrorHandler();
 boolean Global::SetErrorLogFileName(const ALString& sValue)
 {
 	boolean bOk = true;
+	static boolean bCloseAtExitRegistered = false;
 
 	// Fermeture si necessaire du fichier en cours
 	if (GetFstError().IsOpened())
@@ -328,6 +335,11 @@ boolean Global::SetErrorLogFileName(const ALString& sValue)
 		GetFstError().SetFileName(sErrorLogFileName);
 		GetFstError().Open();
 		p_SetApplicationLocale();
+		if (not bCloseAtExitRegistered)
+		{
+			atexit(CloseErrorLogFileAtExit);
+			bCloseAtExitRegistered = true;
+		}
 
 		// Message d'erreur si probleme d'ouverture
 		if (not GetFstError().IsOpened())
