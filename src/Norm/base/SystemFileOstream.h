@@ -21,9 +21,9 @@ protected:
 	const OutputBufferedFile* GetOutputBufferedFile() const;
 
 	// Gestion de la synchronisation du buffer lors des flush explicites
-	// Lorsque bFlushOnSync est true (valeur par defaut), le buffer est force
-	// a se vider lors des flush explicites (stream << flush ou stream << endl)
-	void SetFlushOnSync(boolean bValue);
+	// Par defaut,le buffer se vide lorsqu'il est plein, sauf lorsque bFlushOnSync est true.
+	// Dans ce cas, le buffer est force a se vider lors des flush explicites (stream << flush ou stream << endl)
+	void SetFlushOnSync(boolean bFlushOnSync);
 	boolean GetFlushOnSync() const;
 
 	///////////////////////////////////////////////////////////////////
@@ -51,9 +51,9 @@ protected:
 // Classe SystemFileOstream
 // Flux de sortie vers un fichier local ou distant gere par les drivers de SystemFile
 //
-// Note: lors de l'ecriture sur le cloud il peut etre necessaire de ne pas ecrire dans
-// le fichier distant lors de chaque synchronisation (stream << flush ou stream << endl).
-// Dans ce cas on peut utiliser SetFlushStandardMode(false) pour desactiver le flush automatique.
+// Note: contrairement a ostream, SystemFileOstream n'ecrit pas automatiquement dans le
+// fichier lors de chaque flush explicite (stream << flush ou stream << endl).
+// On peut activer le flush automatique en utilisant SetFlushStandardMode(true).
 class SystemFileOstream : public ostream
 {
 public:
@@ -72,12 +72,17 @@ public:
 	boolean IsOpened() const;
 
 	// Mode de gestion des flush explicites
-	// Lorsque le parametre est true (valeur par defaut), le buffer est force
-	// a se vider lors des flush explicites (stream << flush ou stream << endl)
-	// Cela peut etre pertinent de le positionner a false si on veut optimiser le temps d'ecriture
-	// dans un fichier en exploitant au mieux les buffers disponible
-	void SetFlushStandardMode(boolean bValue);
+	// Contrairement a ostream, pour optimiser le temps d'ecriture, le buffer ne se vide pas automatiquement
+	// lors des flush explicites (stream << flush ou stream << endl).
+	// Pour forcer le vidage du buffer lors des flush explicites, il faut positionner bFlushOnSync a true.
+	void SetFlushStandardMode(boolean bFlushOnSync);
 	boolean GetFlushStandardMode() const;
+
+	// La taille du buffer pour le flux de sortie
+	// Par defaut c'est la taille du buffer utilise par OutputBufferedFile
+	// A utiliser avec precaution
+	void SetBufferSize(int nBufferSize);
+	int GetBufferSize() const;
 
 	// Test de la classe
 	static boolean Test();

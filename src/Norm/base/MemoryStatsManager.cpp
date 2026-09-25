@@ -238,9 +238,7 @@ boolean MemoryStatsManager::CloseLogFile()
 		// Fermeture du fichier
 		bOk = FileService::CloseOutputBinaryFile(sLocalFileName, fMemoryStats);
 
-		// Copie vers HDFS si necessaire
-		// TODO BUG cette methode est appelee apres SystemFileDriverCreator::UnregisterDrivers();
-		// donc on aura toujour bOk==false
+		// Copie vers le cloud si necessaire
 		if (bOk)
 			bOk = PLRemoteFileService::CleanOutputWorkingFile(sStatsLogFileName, sLocalFileName);
 

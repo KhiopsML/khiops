@@ -10,6 +10,7 @@
 #include "InputBufferedFile.h"
 #include "SystemFileDriver.h"
 #include "HugeBuffer.h"
+#include "SystemFileOstream.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // classe PLRemoteFileService
@@ -65,10 +66,6 @@ public:
 	static boolean BuildOutputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName);
 	static boolean CleanOutputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName);
 
-	// Creation d'un nom de fichier temporaire en en lecture si necessaire,
-	static boolean BuildInputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName);
-	static void CleanInputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName);
-
 	// Renvoie true si l'URI commence par file:// mais qu'on doit la traiter
 	// comme un chemin local en extrayant le chemin du fichier de l'URI
 	static boolean RemoteIsLocal(const ALString& sURI);
@@ -79,6 +76,36 @@ public:
 
 	// Renvoie true si les deux fichiers sont strictement identiques
 	static boolean FileCompare(const ALString& sFileName1, const ALString& sFileName2);
+
+	//////////////////////////////////////////////////////////////////
+	// Methodes utilitaire d'ouverture de fichiers locaux ou distants,
+	// avec emission d'erreur en cas de probleme d'ouverture ou de fermeture
+
+	// Ouverture d'un fichier texte en ecriture
+	static boolean OpenOutputFile(const ALString& sFilePathName, SystemFileOstream& sfo);
+	static boolean OpenOutputFileForAppend(const ALString& sFilePathName, SystemFileOstream& sfo);
+
+	// Fermeture d'un fichier texte en ecriture, avec test de validite
+	static boolean CloseOutputFile(const ALString& sFilePathName, SystemFileOstream& sfo);
+
+	//////////////////////////////////////////////////////////////////
+	// Methodes qui utilisent les drivers de fichiers pour ouvrir et fermer les fichiers
+	// binaires de maniere transparente. Elles affichent des messages d'erreur en cas de probleme.
+
+	// Ouverture d'un fichier binaire en lecture
+	static boolean OpenInputBinaryFile(const ALString& sURI, SystemFile*& fFile);
+
+	// Position de l'endroit de lecture dans un fichier ouvert en lecture
+	// Renvoie true si pas d'erreur, false sinon (avec message d'erreur technique)
+	static boolean SeekPositionInBinaryFile(SystemFile* fFile, longint lStartPosition);
+
+	// Fermeture d'un fichier binaire en lecture ou ecriture, avec test de validite
+	static boolean CloseInputBinaryFile(const ALString& sURI, SystemFile*& fFile);
+	static boolean CloseOutputBinaryFile(const ALString& sURI, SystemFile*& fFile);
+
+	// Ouverture d'un fichier binaire en ecriture
+	static boolean OpenOutputBinaryFile(const ALString& sURI, SystemFile*& fFile);
+	static boolean OpenOutputBinaryFileForAppend(const ALString& sURI, SystemFile*& fFile);
 
 protected:
 	// Copie de fichier en utilisant les drivers de fichiers

@@ -12,7 +12,7 @@ boolean PLRemoteFileService::FileExists(const ALString& sFileURI)
 	ALString sLocalFileName;
 	SystemFile fileHandle;
 
-	// Si c'est un fichier remote sur le localhost, on extrait le path pour le traiter en  ficher local
+	// Si c'est un fichier remote sur le localhost, on extrait le path pour le traiter en ficher local
 	if (PLRemoteFileService::RemoteIsLocal(sFileURI))
 		sLocalFileName = FileService::GetURIFilePathName(sFileURI);
 	else
@@ -127,6 +127,7 @@ int PLRemoteFileService::GetPreferredBufferSize(const ALString& sFileURI)
 	SystemFileDriver* driver;
 	ALString sLocalFileName;
 	longint lPreferredSize;
+	ALString sErrorMessage;
 
 	// Si c'est un fichier remote sur le localhost, on extrait le path pour le traiter en  ficher local
 	if (PLRemoteFileService::RemoteIsLocal(sFileURI))
@@ -134,7 +135,7 @@ int PLRemoteFileService::GetPreferredBufferSize(const ALString& sFileURI)
 	else
 		sLocalFileName = sFileURI;
 
-	driver = SystemFileDriverCreator::LookupDriver(sLocalFileName, NULL);
+	driver = SystemFileDriverCreator::LookupDriver(sLocalFileName, sErrorMessage);
 	if (driver == NULL)
 		return SystemFile::nDefaultPreferredBufferSize;
 	else
@@ -202,52 +203,6 @@ boolean PLRemoteFileService::CleanOutputWorkingFile(const ALString& sPathName, A
 	}
 	sWorkingFileName = "";
 	return bOk;
-}
-
-boolean PLRemoteFileService::BuildInputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName)
-{
-	ALString sTmpDir;
-	boolean bOk = true;
-
-	// Si le fichier est sur hdfs, on le copie en local
-	if (FileService::GetURIScheme(sPathName) != "")
-	{
-		// On n'utilise pas forcement le repertoire applicatif car il n'a pas encore ete renseigne par
-		// l'utilisateur
-		if (FileService::GetApplicationTmpDir() != "")
-			sTmpDir = FileService::GetApplicationTmpDir();
-		else
-			sTmpDir = FileService::GetSystemTmpDir();
-
-		sWorkingFileName = FileService::CreateNewFile(sTmpDir + FileService::GetFileSeparator() + "copy" +
-							      IntToString(++nFileHdfsIndex) + "_" +
-							      FileService::GetFileName(sPathName));
-
-		bOk = sWorkingFileName != "";
-		if (bOk)
-		{
-			bOk = PLRemoteFileService::CopyFile(sPathName, sWorkingFileName);
-		}
-		else
-			Global::AddError("file", sPathName, "Unable to create working file");
-	}
-	else
-	{
-		sWorkingFileName = sPathName;
-	}
-
-	return bOk;
-}
-
-void PLRemoteFileService::CleanInputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName)
-{
-	// Si le fichier est sur HDFS, on supprime la copie locale
-	if (sPathName != sWorkingFileName)
-	{
-		assert(FileService::GetURIScheme(sPathName) != "");
-		FileService::RemoveFile(sWorkingFileName);
-	}
-	sWorkingFileName = "";
 }
 
 boolean PLRemoteFileService::RemoteIsLocal(const ALString& sURI)
@@ -365,6 +320,221 @@ boolean PLRemoteFileService::FileCompare(const ALString& sFileName1, const ALStr
 	fileHandle2.CloseInputFile(sFileName2);
 
 	return bSame;
+}
+
+boolean PLRemoteFileService::OpenOutputFile(const ALString& sFilePathName, SystemFileOstream& sfo)
+{
+	boolean bOk;
+
+	p_SetMachineLocale();
+
+	// Test si nom de fichier renseigne
+	bOk = (sFilePathName != "");
+	if (not bOk)
+		Global::AddError("File", sFilePathName, "Unable to open output file (missing file name)");
+	// Tentative d'ouverture du fichier
+	else
+	{
+		sfo.SetFileName(sFilePathName);
+		bOk = sfo.Open();
+		// Les messages d'erreur sont affiches par Open()
+	}
+	p_SetApplicationLocale();
+	return bOk;
+}
+
+boolean PLRemoteFileService::OpenOutputFileForAppend(const ALString& sFilePathName, SystemFileOstream& sfo)
+{
+	boolean bOk;
+
+	p_SetMachineLocale();
+
+	// Test si nom de fichier renseigne
+	bOk = (sFilePathName != "");
+	if (not bOk)
+		Global::AddError("File", sFilePathName, "Unable to open output file for append (missing file name)");
+	// Tentative d'ouverture du fichier
+	else
+	{
+		sfo.SetFileName(sFilePathName);
+		bOk = sfo.OpenForAppend();
+		// Les messages d'erreur sont affiches par OpenForAppend()
+	}
+	p_SetApplicationLocale();
+	return bOk;
+}
+
+boolean PLRemoteFileService::CloseOutputFile(const ALString& sFilePathName, SystemFileOstream& sfo)
+{
+	boolean bOk;
+
+	p_SetMachineLocale();
+
+	// Test si nom de fichier renseigne
+	bOk = (sFilePathName != "");
+	if (not bOk)
+		Global::AddError("File", sFilePathName, "Unable to close output file (missing file name)");
+	// Tentative de fermeture du fichier
+	else
+	{
+		bOk = sfo.Close();
+		// Les messages d'erreur sont affiches par Close()
+	}
+	p_SetApplicationLocale();
+	return bOk;
+}
+
+boolean PLRemoteFileService::OpenInputBinaryFile(const ALString& sURI, SystemFile*& fFile)
+{
+	boolean bOk;
+
+	fFile = new SystemFile();
+
+	// Test si nom de fichier renseigne
+	bOk = (sURI != "");
+	if (not bOk)
+		Global::AddError("File", sURI, "Unable to open file (missing file name)");
+	// Tentative d'ouverture du fichier
+	else
+	{
+		bOk = fFile->OpenInputFile(sURI);
+		if (not bOk)
+			Global::AddError("File", sURI, "Unable to open file (" + fFile->GetLastErrorMessage() + ")");
+	}
+
+	if (not bOk)
+	{
+		delete fFile;
+		fFile = NULL;
+	}
+
+	return bOk;
+}
+
+boolean PLRemoteFileService::SeekPositionInBinaryFile(SystemFile* fFile, longint lStartPosition)
+{
+	boolean bOk;
+
+	require(fFile != NULL);
+	if (fFile == NULL)
+	{
+		Global::AddFatalError("File", "", "Unable to seek position in file (null file handle)");
+		return false;
+	}
+
+	// Tentative de positionnement dans le fichier
+	bOk = fFile->SeekPositionInFile(lStartPosition);
+	if (not bOk)
+		Global::AddError("File", "", "Unable to seek position in file " + fFile->GetLastErrorMessage());
+	return bOk;
+}
+
+boolean PLRemoteFileService::CloseInputBinaryFile(const ALString& sURI, SystemFile*& fFile)
+{
+	boolean bOk;
+
+	require(fFile != NULL);
+	if (fFile == NULL)
+	{
+		Global::AddFatalError("File", sURI, "Unable to close input file (null file handle)");
+		return false;
+	}
+
+	// Test si nom de fichier renseigne
+	bOk = (sURI != "");
+	if (not bOk)
+		Global::AddError("File", sURI, "Unable to close input file (missing file name)");
+	// Tentative de fermeture du fichier
+	else
+	{
+		bOk = fFile->CloseInputFile(sURI);
+		if (not bOk)
+			Global::AddError("File", sURI, "Unable to close input file " + fFile->GetLastErrorMessage());
+	}
+
+	delete fFile;
+	fFile = NULL;
+	return bOk;
+}
+
+boolean PLRemoteFileService::CloseOutputBinaryFile(const ALString& sURI, SystemFile*& fFile)
+{
+	boolean bOk;
+
+	require(fFile != NULL);
+	if (fFile == NULL)
+	{
+		Global::AddFatalError("File", sURI, "Unable to close output file (null file handle)");
+		return false;
+	}
+	// Test si nom de fichier renseigne
+	bOk = (sURI != "");
+	if (not bOk)
+		Global::AddError("File", sURI, "Unable to close output file (missing file name)");
+	// Tentative de fermeture du fichier
+	else
+	{
+		bOk = fFile->CloseOutputFile(sURI);
+		if (not bOk)
+			Global::AddError("File", sURI, "Unable to close output file " + fFile->GetLastErrorMessage());
+	}
+	delete fFile;
+	fFile = NULL;
+	return bOk;
+}
+
+boolean PLRemoteFileService::OpenOutputBinaryFile(const ALString& sURI, SystemFile*& fFile)
+{
+	boolean bOk;
+
+	fFile = new SystemFile();
+
+	// Test si nom de fichier renseigne
+	bOk = (sURI != "");
+	if (not bOk)
+		Global::AddError("File", sURI, "Unable to open output file (missing file name)");
+	// Tentative d'ouverture du fichier
+	else
+	{
+		bOk = fFile->OpenOutputFile(sURI);
+		if (not bOk)
+			Global::AddError("File", sURI, "Unable to open output file " + fFile->GetLastErrorMessage());
+	}
+	if (not bOk)
+	{
+		delete fFile;
+		fFile = NULL;
+	}
+	return bOk;
+}
+
+boolean PLRemoteFileService::OpenOutputBinaryFileForAppend(const ALString& sURI, SystemFile*& fFile)
+{
+	boolean bOk;
+
+	fFile = new SystemFile();
+
+	// Test si nom de fichier renseigne
+	bOk = (sURI != "");
+	if (not bOk)
+		Global::AddError("File", sURI, "Unable to open output file for append (missing file name)");
+	// Tentative d'ouverture du fichier
+	else
+	{
+		bOk = fFile->OpenOutputFileForAppend(sURI);
+		if (not bOk)
+		{
+			Global::AddError("File", sURI,
+					 "Unable to open output file for append " + fFile->GetLastErrorMessage());
+		}
+	}
+
+	if (not bOk)
+	{
+		delete fFile;
+		fFile = NULL;
+	}
+	return bOk;
 }
 
 boolean PLRemoteFileService::CopyFileGeneric(const ALString& sSourceURI, const ALString& sDestURI)

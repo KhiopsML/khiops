@@ -118,7 +118,6 @@ protected:
 
 	// Fichier des gestion du rapport
 	ALString sReportFileName;
-	FILE* fReport;
 	int nLineIndex;
 	boolean bEndOfLine;
 	static const int nMaxFieldSize = 10000;

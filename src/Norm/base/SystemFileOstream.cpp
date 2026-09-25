@@ -10,7 +10,7 @@
 SystemFileOstreamBuffer::SystemFileOstreamBuffer()
 {
 	outputBufferedFile = NULL;
-	bFlushOnSync = true;
+	bFlushOnSync = false;
 }
 
 SystemFileOstreamBuffer::~SystemFileOstreamBuffer() {}
@@ -179,6 +179,17 @@ void SystemFileOstream::SetFlushStandardMode(boolean bValue)
 boolean SystemFileOstream::GetFlushStandardMode() const
 {
 	return streamBuffer.GetFlushOnSync();
+}
+
+void SystemFileOstream::SetBufferSize(int nBufferSize)
+{
+	assert(not outputBufferedFile.IsOpened());
+	outputBufferedFile.SetBufferSize(nBufferSize);
+}
+
+int SystemFileOstream::GetBufferSize() const
+{
+	return outputBufferedFile.GetBufferSize();
 }
 
 boolean SystemFileOstream::Test()

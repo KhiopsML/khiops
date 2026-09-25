@@ -66,6 +66,11 @@ For streamlined workflow:
   - Automatically loads and applies conventions
   - Enforces ASCII-only comments, Hungarian notation, Allman braces
   - Provides pre-commit validation checklist
+- **Debugging failing LearningTest non-regression tests**: load skill
+  [`.github/skills/khiops-learningtest-debugging.md`](skills/khiops-learningtest-debugging.md) whenever the user
+  points to a `LearningTest` checkout and reports failing tests (e.g. via `kht_test`/`kht_apply`). It encodes the
+  run → collect errors → inspect `comparisonResults.log` → diff vs `results.ref*` → fix loop so no clarifying
+  questions are needed to get started.
 
 ## Repository Structure
 

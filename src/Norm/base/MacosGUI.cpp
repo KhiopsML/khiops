@@ -15,24 +15,16 @@
 #include <unistd.h>
 #endif
 
-void MacosOpenGUIUnit(JNIEnv* env, jobject guiObject, jmethodID mid)
+void MacosRunGUI(MacosGUIThreadFunction function, void* context)
 {
 #ifdef __APPLE__
-	// Sur macOS, le thread principal doit traiter les evenements AppKit via
-	// [NSApp run]. On cree jniThread pour appeler Java open() pendant que
-	// le thread principal tourne dans la boucle AppKit.
-	// openGUI est appele directement depuis jniThread (hors AWT EDT) pour
-	// que l'EDT reste libre lors des callbacks AppKit natifs.
+	// Sur macOS, le thread principal doit traiter les evenements AppKit via [NSApp run]
+	// pendant que la fonction est executee sur un thread secondaire.
 	if (pthread_main_np())
 	{
 		// Installer UITaskProgression maintenant que AppKit va demarrer
 		if (TaskProgression::GetManager() == NULL and not TaskProgression::IsStarted())
 			TaskProgression::SetManager(UITaskProgression::GetManager());
-
-		JavaVM* jvm = NULL;
-		env->GetJavaVM(&jvm);
-		assert(jvm != NULL);
-		jobject globalGuiObject = env->NewGlobalRef(guiObject);
 
 		id nsApp = ((id (*)(id, SEL))objc_msgSend)((id)objc_getClass("NSApplication"),
 							   sel_registerName("sharedApplication"));
@@ -42,14 +34,12 @@ void MacosOpenGUIUnit(JNIEnv* env, jobject guiObject, jmethodID mid)
 			((void (*)(id, SEL, long))objc_msgSend)(nsApp, sel_registerName("setActivationPolicy:"), 0L);
 		}
 
+		// La fonction est executee sur le thread secondaire pour laisser le thread principal
+		// traiter les evenements AppKit; a sa fin, on demande a NSApp de sortir de sa boucle.
 		std::thread jniThread(
-		    [jvm, globalGuiObject, mid, nsApp]()
+		    [function, context, nsApp]()
 		    {
-			    JNIEnv* threadEnv = NULL;
-			    jvm->AttachCurrentThread((void**)&threadEnv, NULL);
-			    threadEnv->CallVoidMethod(globalGuiObject, mid);
-			    threadEnv->DeleteGlobalRef(globalGuiObject);
-			    jvm->DetachCurrentThread();
+			    function(context);
 			    if (nsApp)
 				    dispatch_async(dispatch_get_main_queue(), ^{
 				      ((void (*)(id, SEL, id))objc_msgSend)(nsApp, sel_registerName("stop:"), (id)nil);
@@ -74,9 +64,49 @@ void MacosOpenGUIUnit(JNIEnv* env, jobject guiObject, jmethodID mid)
 	}
 	else
 	{
-		// Thread worker deja attache a la JVM: appel direct
-		env->CallVoidMethod(guiObject, mid);
+		function(context);
 	}
+#endif
+}
+
+namespace
+{
+struct MacosGUIUnitContext
+{
+	JavaVM* jvm;
+	jobject guiObject;
+	jmethodID method;
+};
+
+void MacosCallGUIUnit(void* context)
+{
+	MacosGUIUnitContext* guiUnitContext = (MacosGUIUnitContext*)context;
+	JNIEnv* env = NULL;
+	guiUnitContext->jvm->AttachCurrentThread((void**)&env, NULL);
+	env->CallVoidMethod(guiUnitContext->guiObject, guiUnitContext->method);
+	env->DeleteGlobalRef(guiUnitContext->guiObject);
+	guiUnitContext->jvm->DetachCurrentThread();
+}
+} // namespace
+
+void MacosOpenGUIUnit(JNIEnv* env, jobject guiObject, jmethodID mid)
+{
+#ifdef __APPLE__
+	if (pthread_main_np())
+	{
+		JavaVM* jvm = NULL;
+		env->GetJavaVM(&jvm);
+		assert(jvm != NULL);
+		MacosGUIUnitContext context;
+		context.jvm = jvm;
+		context.guiObject = env->NewGlobalRef(guiObject);
+		context.method = mid;
+		MacosRunGUI(MacosCallGUIUnit, &context);
+	}
+	else
+		env->CallVoidMethod(guiObject, mid);
+#else
+	env->CallVoidMethod(guiObject, mid);
 #endif
 }
 
