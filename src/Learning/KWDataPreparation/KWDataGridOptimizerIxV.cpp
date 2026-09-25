@@ -24,7 +24,7 @@ double KWDataGridOptimizerIxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 
 	// Recherche d'une solution initiale meilleure que celle du modele null
 	//DDD Desactive en attendant de gerer correctement les analyses bivariees multiples
-	dBestCost = BuildInitialSolution(initialDataGrid, optimizedDataGrid);
+	dBestCost = FindBestInitialSolution(initialDataGrid, false, optimizedDataGrid);
 
 	// Appel direct de la methode d'optimisation VNS, dont la partie generation de grille voisone est ici specialisee
 	// en generant une surtokenisation aleatoire de la grille courante
@@ -34,8 +34,9 @@ double KWDataGridOptimizerIxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 	return dBestCost;
 }
 
-double KWDataGridOptimizerIxV::BuildInitialSolution(const KWDataGrid* initialDataGrid,
-						    KWDataGrid* optimizedDataGrid) const
+double KWDataGridOptimizerIxV::FindBestInitialSolution(const KWDataGrid* initialDataGrid,
+						       boolean bTryMultipleInitialSolutions,
+						       KWDataGrid* optimizedDataGrid) const
 
 {
 	double dCost;
@@ -43,6 +44,7 @@ double KWDataGridOptimizerIxV::BuildInitialSolution(const KWDataGrid* initialDat
 	KWDataGridInitialSolutionSearcherIV initialSolutionSearcher;
 	KWDataGrid initialDataGridSolution;
 	KWDataGridMerger initialDataGridOptimizedSolution;
+	int nUsedPairNumber;
 
 	require(GetDataGridCosts() != NULL);
 	require(GetDataGridCosts()->IsInitialized());
@@ -74,30 +76,87 @@ double KWDataGridOptimizerIxV::BuildInitialSolution(const KWDataGrid* initialDat
 	{
 		assert(initialDataGridSolution.GetCellNumber() > 1);
 
-		// Nettoyage prealable
-		initialSolutionSearcher.Clean();
-
-		// Parametrage de la solution initiale a optimiser
-		SaveDataGrid(&initialDataGridSolution, &initialDataGridOptimizedSolution);
-		initialDataGridOptimizedSolution.SetDataGridCosts(GetDataGridCosts());
-
-		// Optimisation et post-optimisation de la solution
-		dCost = OptimizeSolution(&initialDataGridSolution, &initialDataGridOptimizedSolution, true);
-		if (initialDataGridOptimizedSolution.GetInformativeAttributeNumber() > 1)
-			dCost = PostOptimizeVarPartSolution(initialDataGrid, &initialDataGridOptimizedSolution);
-
-		// Memorisation si amelioration du cout
-		// Les methodes precedentes gerent deja l'interruption des taches
-		if (not TaskProgression::IsInterruptionRequested())
+		// Cas ou un seul essai est demande, ou si une seule paire etait utilisee
+		if (not bTryMultipleInitialSolutions or initialSolutionSearcher.GetInitialSolutionUsedPairNumber() == 1)
 		{
-			if (dCost < dBestCost)
-			{
-				SaveDataGrid(&initialDataGridOptimizedSolution, optimizedDataGrid);
-				dBestCost = dCost;
+			// Nettoyage initial, car on n'aura plus besoin d'autres solutions initiales
+			initialSolutionSearcher.Clean();
 
-				// Gestion de la meilleure solution
-				HandleOptimizationStep(optimizedDataGrid, initialDataGrid);
+			// Parametrage de la solution initiale a optimiser
+			SaveDataGrid(&initialDataGridSolution, &initialDataGridOptimizedSolution);
+			initialDataGridOptimizedSolution.SetDataGridCosts(GetDataGridCosts());
+
+			// Optimisation et post-optimisation de la solution
+			dCost = OptimizeSolution(&initialDataGridSolution, &initialDataGridOptimizedSolution, true);
+			if (initialDataGridOptimizedSolution.GetInformativeAttributeNumber() > 1)
+				dCost = PostOptimizeVarPartSolution(initialDataGrid, &initialDataGridOptimizedSolution);
+
+			// Memorisation si amelioration du cout
+			// Les methodes precedentes gerent deja l'interruption des taches
+			if (not TaskProgression::IsInterruptionRequested())
+			{
+				if (dCost < dBestCost)
+				{
+					SaveDataGrid(&initialDataGridOptimizedSolution, optimizedDataGrid);
+					dBestCost = dCost;
+
+					// Gestion de la meilleure solution
+					HandleOptimizationStep(optimizedDataGrid, initialDataGrid);
+				}
 			}
+		}
+		// Cas ou plusieurs essais sont demandes
+		else
+		{
+			// Nombre de pair utilises pour la solution initiale la plus fine
+			nUsedPairNumber = initialSolutionSearcher.GetInitialSolutionUsedPairNumber();
+			assert(nUsedPairNumber > 1);
+
+			// Parcours d'un sous-ensemble des solution initiales de taille limitees
+			while (nUsedPairNumber >= 1)
+			{
+				// Recalcul de la solution initiale, sauf pour a grille la plus fine
+				if (nUsedPairNumber < initialSolutionSearcher.GetInitialSolutionUsedPairNumber())
+				{
+					KWDataGridOptimizer::GetProfiler()->BeginMethod("BuildSpecificInitialSolution");
+					initialSolutionSearcher.BuildSpecificInitialSolution(
+					    initialDataGrid, nUsedPairNumber, &initialDataGridSolution);
+					KWDataGridOptimizer::GetProfiler()->WriteKeyInt("UsedPairNumber",
+											nUsedPairNumber);
+					KWDataGridOptimizer::GetProfiler()->EndMethod("BuildSpecificInitialSolution");
+				}
+
+				// Parametrage de la solution initiale a optimiser
+				SaveDataGrid(&initialDataGridSolution, &initialDataGridOptimizedSolution);
+				initialDataGridOptimizedSolution.SetDataGridCosts(GetDataGridCosts());
+
+				// Optimisation et post-optimisation de la solution
+				dCost =
+				    OptimizeSolution(&initialDataGridSolution, &initialDataGridOptimizedSolution, true);
+				if (initialDataGridOptimizedSolution.GetInformativeAttributeNumber() > 1)
+					dCost = PostOptimizeVarPartSolution(initialDataGrid,
+									    &initialDataGridOptimizedSolution);
+
+				// Memorisation si amelioration du cout
+				// Les methodes precedentes gerent deja l'interruption des taches
+				if (not TaskProgression::IsInterruptionRequested())
+				{
+					if (dCost < dBestCost)
+					{
+						SaveDataGrid(&initialDataGridOptimizedSolution, optimizedDataGrid);
+						dBestCost = dCost;
+
+						// Gestion de la meilleure solution
+						HandleOptimizationStep(optimizedDataGrid, initialDataGrid);
+					}
+				}
+
+				// Diminution d'un facteur deux du nombre de paires
+				nUsedPairNumber /= 2;
+			}
+
+			// Nettoyage final, apres avoir explote toutes les solutions initiales
+			initialSolutionSearcher.Clean();
 		}
 	}
 

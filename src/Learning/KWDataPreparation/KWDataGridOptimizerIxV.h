@@ -26,10 +26,11 @@ protected:
 	double InternalOptimizeDataGrid(const KWDataGrid* initialDataGrid,
 					KWDataGrid* optimizedDataGrid) const override;
 
-	// Construction d'une solution initiale meilleure que celle du modele null
-	// Le parametre optimizedDataGrid doit etre le model null en entree, et il sera mis a jour
-	// en cas d'amelioration
-	double BuildInitialSolution(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid) const;
+	// Recherche et optimisation d'une solution initiale par analyse bivariee
+	// Evalue plusieurs nombres de paires si demande et conserve la meilleure solution
+	// Le parametree optimizedDataGrid contient le modele nul en entree et la solution retenue en sortie
+	double FindBestInitialSolution(const KWDataGrid* initialDataGrid, boolean bTryMultipleInitialSolutions,
+				       KWDataGrid* optimizedDataGrid) const;
 
 	// Optimisation d'une solution voisine: specialisation au cas VarPart
 	double OptimizeNeighbourSolution(const KWDataGrid* initialDataGrid, const KWDataGrid* currentOptimizedDataGrid,

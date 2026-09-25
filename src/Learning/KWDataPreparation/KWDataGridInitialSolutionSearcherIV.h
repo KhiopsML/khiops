@@ -31,7 +31,7 @@ public:
 	KWLearningSpec* GetLearningSpec() const;
 
 	//////////////////////////////////////////////////////////////////////////////////////
-	// Calcul d'une soution initiale
+	// Calcul d'une solution initiale
 
 	// Calcul d'une solution initiale  par analyse bivariee des attributs internes
 	// pour obtenir des partitions en VarPart pertinentes
