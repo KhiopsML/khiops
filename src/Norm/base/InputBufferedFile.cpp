@@ -9,6 +9,7 @@
 const unsigned char InputBufferedFile::cUTF8Bom[nUTF8BomSize] = {0xEF, 0xBB, 0xBF};
 const int InputBufferedFile::nDefaultMaxLineLength = 8 * lMB;
 int InputBufferedFile::nMaxLineLength = nDefaultMaxLineLength;
+char* InputBufferedFile::sFieldBuffer = NULL;
 
 InputBufferedFile::InputBufferedFile()
 {
@@ -17,6 +18,13 @@ InputBufferedFile::InputBufferedFile()
 	bCacheOn = true;
 	lTotalPhysicalReadCalls = 0;
 	lTotalPhysicalReadBytes = 0;
+
+	if (sFieldBuffer == NULL)
+	{
+		atexit(InputBufferedFile::DeleteFieldBuffer);
+		sFieldBuffer = SystemObject::NewCharArray(InputBufferedFile::nMaxFieldSize + 1);
+		memset(sFieldBuffer, '\0', (InputBufferedFile::nMaxFieldSize + 1) * sizeof(char));
+	}
 }
 
 void InputBufferedFile::CopyFrom(const InputBufferedFile* bufferedFile)
@@ -582,8 +590,9 @@ boolean InputBufferedFile::GetNextField(char*& sField, int& nFieldLength, int& n
 	int iStart;
 	debug(boolean bNullCharInField = false);
 
-	// Acces au buffer
-	sField = GetHugeBuffer(nMaxFieldSize + 1);
+	// On utilise le buffer statique pour la lecture des champs : on n'utilise pas le buffer partage de HugeBuffer
+	// car le contenu d'un champ peut rester utilise pendant l'affichage d'un message d'erreur
+	sField = sFieldBuffer;
 	assert(sField != NULL);
 
 	// Si le dernier champ lu etait sur une fin de ligne,
@@ -2831,4 +2840,12 @@ void InputBufferedFile::WriteEolPos(const ALString& sFileName)
 	// Fermeture des fichiers
 	if (file != NULL)
 		fclose(file);
+}
+
+void InputBufferedFile::DeleteFieldBuffer()
+{
+	assert(sFieldBuffer != NULL);
+
+	SystemObject::DeleteCharArray(sFieldBuffer);
+	sFieldBuffer = NULL;
 }
