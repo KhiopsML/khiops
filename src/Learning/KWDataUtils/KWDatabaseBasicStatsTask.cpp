@@ -499,18 +499,22 @@ boolean KWDatabaseBasicStatsTask::SlaveInitialize()
 	// Appel de la methode ancetre
 	bOk = KWDatabaseTask::SlaveInitialize();
 
-	// Recherche du dictionnaire de la base
-	kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(shared_sourceDatabase.GetDatabase()->GetClassName());
-	check(kwcClass);
-
 	// Recherche de l'attribut cible
 	slaveTargetAttribute = NULL;
-	if (shared_sTargetAttributeName.GetValue() != "")
+	if (bOk)
 	{
-		// Recherche de l'attribut cible
-		slaveTargetAttribute = kwcClass->LookupAttribute(shared_sTargetAttributeName.GetValue());
-		check(slaveTargetAttribute);
-		assert(KWType::IsSimple(slaveTargetAttribute->GetType()));
+		// Recherche du dictionnaire de la base
+		kwcClass =
+		    KWClassDomain::GetCurrentDomain()->LookupClass(shared_sourceDatabase.GetDatabase()->GetClassName());
+		check(kwcClass);
+
+		if (shared_sTargetAttributeName.GetValue() != "")
+		{
+			// Recherche de l'attribut cible
+			slaveTargetAttribute = kwcClass->LookupAttribute(shared_sTargetAttributeName.GetValue());
+			check(slaveTargetAttribute);
+			assert(KWType::IsSimple(slaveTargetAttribute->GetType()));
+		}
 	}
 	return bOk;
 }
