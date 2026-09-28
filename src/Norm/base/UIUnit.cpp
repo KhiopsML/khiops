@@ -66,6 +66,21 @@ void UIUnit::Open()
 	require(Check());
 	require(GetVisible() == true);
 
+#ifdef __APPLE__
+	// Ce premier appel a Open() est recu sur le thread principal macOS, qui doit rester disponible pour
+	// traiter les evenements AppKit pendant l'ouverture de la fenetre.
+	// Le premier parametre de MacosRunGUI est une fonction de rappel: elle rappelle Open() sur l'unite
+	// d'interface courante. Le deuxieme parametre, this, est le contexte transmis a cette fonction; il
+	// lui permet de retrouver l'unite courante apres sa conversion en UIUnit*.
+	// MacosRunGUI execute cette fonction sur un thread secondaire. Le second appel a Open()
+	// poursuit donc directement l'ouverture normale de la fenetre.
+	if (GetUIMode() == Graphic and pthread_main_np())
+	{
+		MacosRunGUI([](void* context) { ((UIUnit*)context)->Open(); }, this);
+		return;
+	}
+#endif
+
 	// Flag d'ouverture de la fenetre, permettant de synchroniser
 	bIsOpened = true;
 
