@@ -134,15 +134,13 @@ jobs:
       - name: Install Khiops core
         run: |
           apt-get update
-          dpkg -i ./artifacts/khiops-core* || true
-          apt-get -f install -y
+          apt-get install -y ./artifacts/khiops-core*
       - name: Check Khiops core installation
         uses: ./.github/actions/test-khiops-install
       - name: Install Khiops Desktop (with java)
         run: |
           apt-get update
-          dpkg -i ./artifacts//khiops_* || true
-          apt-get -f install -y
+          apt-get install -y ./artifacts//khiops_*
       - name: Check Khiops installation
         uses: ./.github/actions/test-khiops-install
       - name: Add Khiops binary path to the environment (for running the standard
@@ -203,8 +201,7 @@ jobs:
       - name: Install KNI Package
         run: |
           apt-get update
-          dpkg -i ./artifacts/kni* || true
-          apt-get -f install -y
+          apt-get install -y ./artifacts/kni*
       - name: Checkout sources
         uses: actions/checkout@v7
         with:

@@ -16,6 +16,8 @@ See [KhiopsNativeInterface.h](include/KhiopsNativeInterface.h) for a detailed de
 
 ## Table of Contents
 
+- [Khiops Native Interface  v@KHIOPS\_VERSION@](#khiops-native-interface--vkhiops_version)
+  - [Table of Contents](#table-of-contents)
 - [KNI installation](#kni-installation)
   - [Windows](#windows)
   - [Linux](#linux)
@@ -55,8 +57,8 @@ BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
 PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
 UBUNTU_CODENAME=jammy
 ```
-Download the package according to the code name of your OS and install it with `dpkg` or `yum`:
-- on Debian-like distros: `sudo dpkg -i kni*.deb`
+Download the package according to the code name of your OS and install it with `apt` or `yum`:
+- on Debian-like distros: `sudo apt install ./kni*.deb`
 - on Fedora-like distros: `sudo yum localinstall kni*.rpm`
 
 # Application examples
