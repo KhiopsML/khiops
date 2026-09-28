@@ -126,9 +126,6 @@ static void KNIDestroyEnv()
 		// Destruction du projet d'apprentissage
 		delete kniEnvLearningProject;
 		kniEnvLearningProject = NULL;
-
-		// Suppression des handlers pour l'acces au fichiers
-		SystemFileDriverCreator::UnregisterDrivers();
 	}
 }
 

@@ -105,9 +105,6 @@ void KWLearningProject::Start(int argc, char** argv)
 
 	// Fermeture du fichier de stats memoire
 	MemoryStatsManager::CloseLogFile();
-
-	// Liberation des drivers de fichier
-	SystemFileDriverCreator::UnregisterDrivers();
 }
 
 void KWLearningProject::Begin()

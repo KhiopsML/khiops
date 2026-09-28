@@ -32,6 +32,7 @@ boolean SystemFile::OpenInputFile(const ALString& sFilePathName)
 {
 	boolean bOk;
 	ALString sTmp;
+	ALString sErrorMessage;
 
 	require(fileHandle == NULL);
 	require(not bIsOpenForRead and not bIsOpenForWrite);
@@ -41,16 +42,24 @@ boolean SystemFile::OpenInputFile(const ALString& sFilePathName)
 	nCurrentOpenIndex++;
 
 	// Recherche du driver
-	fileDriver = SystemFileDriverCreator::LookupDriver(sFilePathName, this);
+	fileDriver = SystemFileDriverCreator::LookupDriver(sFilePathName, sErrorMessage);
 	if (fileDriver == NULL)
+	{
+		sPostMortemMessage = sErrorMessage;
 		return false;
+	}
 
 	// Mode de test : toujours en echec
 	if (nNextOpenFailureIndex == nCurrentOpenIndex)
 	{
 		errno = ECANCELED;
+		fileDriver = NULL;
+		sPostMortemMessage = strerror(ECANCELED);
 		return false;
 	}
+
+	// (Re)-Initialisation du message d'erreur post-mortem
+	sPostMortemMessage = "";
 
 	// Ouverture du fichier
 	if (FileService::LogIOStats())
@@ -89,8 +98,13 @@ boolean SystemFile::OpenOutputFile(const ALString& sFilePathName)
 	if (nNextOpenFailureIndex == nCurrentOpenIndex)
 	{
 		errno = ECANCELED;
+		fileDriver = NULL;
+		sPostMortemMessage = strerror(ECANCELED);
 		return false;
 	}
+
+	// (Re)-Initialisation du message d'erreur post-mortem
+	sPostMortemMessage = "";
 
 	// Ouverture du fichier
 	if (FileService::LogIOStats())
@@ -129,8 +143,13 @@ boolean SystemFile::OpenOutputFileForAppend(const ALString& sFilePathName)
 	if (nNextOpenFailureIndex == nCurrentOpenIndex)
 	{
 		errno = ECANCELED;
+		fileDriver = NULL;
+		sPostMortemMessage = strerror(ECANCELED);
 		return false;
 	}
+
+	// (Re)-Initialisation du message d'erreur post-mortem
+	sPostMortemMessage = "";
 
 	// Ouverture du fichier
 	if (FileService::LogIOStats())
@@ -162,6 +181,12 @@ boolean SystemFile::CloseInputFile(const ALString& sFilePathName)
 	bOk = fileDriver->Close(fileHandle);
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] close read End");
+
+	// Stockage de l'erreur dans le message post-mortem, avant le nettoyage du driver
+	// Cas particulier d'un echec I/O simule (crash test) sur un Read precedent : le message est deja renseigne
+	assert(errno == ECANCELED or sPostMortemMessage == "");
+	if (not bOk and sPostMortemMessage == "")
+		sPostMortemMessage = fileDriver->GetLastErrorMessage();
 
 	// Nettoyage
 	fileDriver = NULL;
@@ -196,6 +221,12 @@ boolean SystemFile::CloseOutputFile(const ALString& sFilePathName)
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] close write End");
 
+	// Stockage de l'erreur dans le message post-mortem, avant le nettoyage du driver
+	// Cas particulier d'un echec I/O simule (crash test) sur un Write/Flush precedent : le message est deja renseigne
+	assert(errno == ECANCELED or sPostMortemMessage == "");
+	if (not bOk and sPostMortemMessage == "")
+		sPostMortemMessage = fileDriver->GetLastErrorMessage();
+
 	// Nettoyage
 	fileDriver = NULL;
 	lReservedExtraSize = 0;
@@ -219,9 +250,11 @@ longint SystemFile::Read(void* pBuffer, size_t size, size_t count)
 	if (nNextReadFailureIndex == nCurrentReadIndex)
 	{
 		errno = ECANCELED;
+		sPostMortemMessage = strerror(ECANCELED);
 		return 0;
 	}
 
+	sPostMortemMessage = "";
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] fread Begin");
 	lRes = fileDriver->Fread(pBuffer, size, count, fileHandle);
@@ -267,9 +300,11 @@ longint SystemFile::Write(const void* pBuffer, size_t size, size_t count)
 	if (nNextFlushFailureIndex == nCurrentFlushIndex)
 	{
 		errno = ECANCELED;
+		sPostMortemMessage = strerror(ECANCELED);
 		return 0;
 	}
 
+	sPostMortemMessage = "";
 	// Mise a jour des informations sur la reserve
 	// Ce n'est pas la peine de remettre la reserve a zero si elle est negative,
 	// car toute nouvelle reserve ecrasera necessairement l'etat actuel
@@ -300,9 +335,11 @@ boolean SystemFile::Flush()
 	if (nNextFlushFailureIndex == nCurrentFlushIndex)
 	{
 		errno = ECANCELED;
+		sPostMortemMessage = strerror(ECANCELED);
 		return false;
 	}
 
+	sPostMortemMessage = "";
 	if (FileService::LogIOStats())
 		MemoryStatsManager::AddLog(sTmp + "driver [" + fileDriver->GetDriverName() + "] flush Begin");
 	bRes = fileDriver->Flush(fileHandle);
@@ -313,11 +350,18 @@ boolean SystemFile::Flush()
 
 ALString SystemFile::GetLastErrorMessage()
 {
-	// Le driver peut etre null dans le cas ou on ne peut pas ouvrir le fichier
-	if (fileDriver == NULL)
-	{
-		return "file driver is missing";
-	}
+	// Si le driver est NULL, c'est qu'une erreur s'est produite avant ou pendant l'ouverture,
+	// et le message post-mortem est alors forcement renseigne
+	assert(fileDriver != NULL or sPostMortemMessage != "");
+
+	// Cas particulier d'un echec I/O simule (crash test) sur un Read/Write/Flush precedent :
+	// le driver est encore actif, mais c'est le message post-mortem qui fait foi
+	// On se base sur sPostMortemMessage plutot que sur errno, ce dernier pouvant provenir
+	// d'un appel systeme sans rapport execute entre temps (errno n'est jamais reinitialise)
+	if (sPostMortemMessage != "")
+		return sPostMortemMessage;
+
+	// A ce stade, le message post-mortem est vide : d'apres l'assertion, le driver est actif
 	return fileDriver->GetLastErrorMessage();
 }
 
@@ -326,8 +370,9 @@ longint SystemFile::GetFileSize(const ALString& sFilePathName)
 	longint lFileSize = 0;
 	SystemFileDriver* driver;
 	ALString sTmp;
+	ALString sErrorMessage;
 
-	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, NULL);
+	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, sErrorMessage);
 	if (driver != NULL)
 	{
 		if (FileService::LogIOStats())
@@ -348,8 +393,9 @@ boolean SystemFile::FileExists(const ALString& sFilePathName)
 	boolean bOk = false;
 	SystemFileDriver* driver;
 	ALString sTmp;
+	ALString sErrorMessage;
 
-	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, NULL);
+	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, sErrorMessage);
 	if (driver != NULL)
 	{
 		if (FileService::LogIOStats())
@@ -368,8 +414,9 @@ boolean SystemFile::DirExists(const ALString& sFilePathName)
 	boolean bOk = false;
 	SystemFileDriver* driver;
 	ALString sTmp;
+	ALString sErrorMessage;
 
-	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, NULL);
+	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, sErrorMessage);
 	if (driver != NULL)
 	{
 		if (FileService::LogIOStats())
@@ -586,9 +633,10 @@ SystemFileDriver* SystemFile::LookupWriteDriver(const ALString& sFilePathName, c
 {
 	SystemFileDriver* driver;
 	ALString sTmp;
+	ALString sErrorMessage;
 
 	// Recherche du driver
-	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, NULL);
+	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, sErrorMessage);
 
 	// On test s'il est read-only
 	if (driver != NULL)

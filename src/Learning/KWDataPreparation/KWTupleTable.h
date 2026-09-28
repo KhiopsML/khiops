@@ -15,6 +15,8 @@ class PLShared_TupleTable;
 #include "KWType.h"
 #include "FileService.h"
 #include "PLSharedObject.h"
+#include "SystemFileOstream.h"
+#include "PLRemoteFileService.h"
 
 ///////////////////////////////////////////////////////////////////////////////////
 // Tuple: vecteur de valeur d'une base de donnes, numerique ou categoriel,

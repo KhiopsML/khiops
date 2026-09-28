@@ -3,6 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "OutputBufferedFile.h"
+#include "PLRemoteFileService.h"
 #include "TaskProgression.h"
 
 OutputBufferedFile::OutputBufferedFile()

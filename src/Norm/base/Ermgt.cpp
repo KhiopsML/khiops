@@ -3,6 +3,8 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "Ermgt.h"
+#include "SystemFileOstream.h"
+#include "PLRemoteFileService.h"
 
 ///////////////////////////////////////
 // Implementation de la classe Global
@@ -174,14 +176,14 @@ void Global::ShowError(const Error* e)
 	if (not GetSilentMode() or e->GetGravity() == Error::GravityFatalError)
 	{
 		// Ecriture dans le fichier de log
-		if (fstError.is_open())
+		if (GetFstError().IsOpened())
 		{
 			// Si c'est une redirection dans la console, on prefixe le message
 			// pour qu'il soit facilement identifiable parmi les autres types de messages
 			// (progression, output etc...)
 			if (bPrintMessagesInConsole)
-				fstError << "Khiops.log\t";
-			fstError << *e << flush;
+				GetFstError() << "Khiops.log\t";
+			GetFstError() << *e << flush;
 		}
 
 		// Affichage avec interface utilisateur
@@ -292,6 +294,12 @@ static int GlobalMemSetAllocErrorHandler()
 	return 1;
 }
 
+// Fonction appelee a la fin du programme pour fermer le fichier de log des erreurs
+static void CloseErrorLogFileAtExit()
+{
+	Global::SetErrorLogFileName("");
+}
+
 // On utilise une initialisation statique pour forcer le parametrage des messages de l'allocateur au plus tot
 // Cette initialisation ne peut se faire depuis l'allocateur, qui ne connait pas la classe Global
 static int GlobalAllocErrorHandler = GlobalMemSetAllocErrorHandler();
@@ -299,31 +307,42 @@ static int GlobalAllocErrorHandler = GlobalMemSetAllocErrorHandler();
 boolean Global::SetErrorLogFileName(const ALString& sValue)
 {
 	boolean bOk = true;
+	static boolean bCloseAtExitRegistered = false;
 
 	// Fermeture si necessaire du fichier en cours
-	if (fstError.is_open())
-		fstError.close();
+	if (GetFstError().IsOpened())
+		GetFstError().Close();
 
 	// Ouverture du fichier si necessaire
 	sErrorLogFileName = sValue;
 	if (sErrorLogFileName != "")
 	{
 		// Creation si necessaire des repertoires intermediaires
-		FileService::MakeDirectories(FileService::GetPathName(sErrorLogFileName));
+		PLRemoteFileService::MakeDirectories(FileService::GetPathName(sErrorLogFileName));
 
 		// Fermeture du fichier si celui-ci est deja ouvert
 		// Ce cas peut arriver si on appelle plusieurs fois ParseParameters (notamment via MODL_dll)
-		if (fstError.is_open())
-			fstError.close();
+		if (GetFstError().IsOpened())
+			GetFstError().Close();
 
 		// Ici, on ne passe pas par la classe FileService pour ne pas
 		// entrainer une boucle entre FileService et Global
+
+		// On ecrit a chaque Flush ou endl si le fichier est local
+		if (FileService::GetURIScheme(sErrorLogFileName) == "")
+			GetFstError().SetFlushStandardMode(true);
 		p_SetMachineLocale();
-		fstError.open(sErrorLogFileName, ios::out);
+		GetFstError().SetFileName(sErrorLogFileName);
+		GetFstError().Open();
 		p_SetApplicationLocale();
+		if (not bCloseAtExitRegistered)
+		{
+			atexit(CloseErrorLogFileAtExit);
+			bCloseAtExitRegistered = true;
+		}
 
 		// Message d'erreur si probleme d'ouverture
-		if (not fstError.is_open())
+		if (not GetFstError().IsOpened())
 		{
 			AddError("File", sErrorLogFileName, "Unable to open log file");
 			bOk = false;
@@ -392,7 +411,18 @@ boolean Global::bErrorAsWarningMode = false;
 
 ALString Global::sErrorLogFileName;
 
-fstream Global::fstError;
+SystemFileOstream& Global::GetFstError()
+{
+	// Singleton local a la methode: construit a la premiere utilisation, evite les problemes
+	// d'ordre d'initialisation des variables statiques globales et les cycles d'inclusion
+	static SystemFileOstream fstError;
+
+	// Pour les fichiers de sortie des commandes, on fixe la taille du buffer a 1Mb (au lieu de 8Mo ou plus)
+	if (not fstError.IsOpened())
+		fstError.SetBufferSize(1 * lMB);
+
+	return fstError;
+}
 
 boolean Global::bIsAtLeastOneError = false;
 

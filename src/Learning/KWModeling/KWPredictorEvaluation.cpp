@@ -127,31 +127,23 @@ longint KWPredictorEvaluation::GetEvaluationInstanceNumber() const
 void KWPredictorEvaluation::WriteFullReportFile(const ALString& sFileName, const ALString& sEvaluationLabel,
 						const ObjectArray* oaPredictorEvaluations) const
 {
-	fstream ost;
+	SystemFileOstream ost;
 	boolean bOk;
-	ALString sLocalFileName;
 
 	require(oaPredictorEvaluations != NULL);
 
-	// Preparation de la copie sur HDFS si necessaire
-	bOk = PLRemoteFileService::BuildOutputWorkingFile(sFileName, sLocalFileName);
-	if (bOk)
-		bOk = FileService::OpenOutputFile(sLocalFileName, ost);
+	// Ouverture du fichier
+	bOk = PLRemoteFileService::OpenOutputFile(sFileName, ost);
 	if (bOk)
 	{
 		if (GetLearningReportHeaderLine() != "")
 			ost << GetLearningReportHeaderLine() << "\n";
 		WriteFullReport(ost, sEvaluationLabel, oaPredictorEvaluations);
-		bOk = FileService::CloseOutputFile(sLocalFileName, ost);
+		bOk = PLRemoteFileService::CloseOutputFile(sFileName, ost);
 
 		// Destruction du rapport si erreur
 		if (not bOk)
-			FileService::RemoveFile(sLocalFileName);
-	}
-	if (bOk)
-	{
-		// Copie vers HDFS si necessaire
-		PLRemoteFileService::CleanOutputWorkingFile(sFileName, sLocalFileName);
+			PLRemoteFileService::RemoveFile(sFileName);
 	}
 }
 

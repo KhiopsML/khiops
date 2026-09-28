@@ -98,6 +98,7 @@ public:
 	//          	{
 	//          		SkipLine();
 	//          		lLineNumber++;
+	//               }
 	//          }
 	//			// Sinon, on compte une ligne pour la ligne trop longue
 	//          else

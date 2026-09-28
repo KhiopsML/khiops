@@ -10,6 +10,7 @@
 #include "InputBufferedFile.h"
 #include "SystemFileDriver.h"
 #include "HugeBuffer.h"
+#include "SystemFileOstream.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // classe PLRemoteFileService
@@ -59,16 +60,6 @@ public:
 	// SystemFile::nMaxPreferredBufferSize (64 Mo)
 	static int GetPreferredBufferSize(const ALString& sURI);
 
-	// Creation d'un nom de fichier temporaire en ecriture si necessaire,
-	// dans le cas ou le fichier est sur un systeme de fichier non standard (ex/ HDFS)
-	// Dans le Clean, le WorkingFileName est remis a vide
-	static boolean BuildOutputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName);
-	static boolean CleanOutputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName);
-
-	// Creation d'un nom de fichier temporaire en en lecture si necessaire,
-	static boolean BuildInputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName);
-	static void CleanInputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName);
-
 	// Renvoie true si l'URI commence par file:// mais qu'on doit la traiter
 	// comme un chemin local en extrayant le chemin du fichier de l'URI
 	static boolean RemoteIsLocal(const ALString& sURI);
@@ -80,6 +71,49 @@ public:
 	// Renvoie true si les deux fichiers sont strictement identiques
 	static boolean FileCompare(const ALString& sFileName1, const ALString& sFileName2);
 
+	//////////////////////////////////////////////////////////////////
+	// Methodes utilitaire d'ouverture de fichiers locaux ou distants,
+	// avec emission d'erreur en cas de probleme d'ouverture ou de fermeture
+	// La classe de fichier en sortie SystemFileOstream se comporte comme un ostream du C++
+	// Il n'y a pas de methode OpenInputFile, car on n'a pas d'equivalent a istream pour SystemFile en lecture
+
+	// Ouverture d'un fichier texte en ecriture
+	static boolean OpenOutputFile(const ALString& sFilePathName, SystemFileOstream& sfo);
+	static boolean OpenOutputFileForAppend(const ALString& sFilePathName, SystemFileOstream& sfo);
+
+	// Fermeture d'un fichier texte en ecriture, avec test de validite
+	static boolean CloseOutputFile(const ALString& sFilePathName, SystemFileOstream& sfo);
+
+	//////////////////////////////////////////////////////////////////
+	// Methodes qui utilisent les drivers de fichiers pour ouvrir et fermer les fichiers
+	// binaires de maniere transparente. Elles affichent des messages d'erreur en cas de probleme.
+
+	// Ouverture d'un fichier binaire en lecture
+	static boolean OpenInputBinaryFile(const ALString& sFilePathName, SystemFile*& fFile);
+
+	// Position de l'endroit de lecture dans un fichier ouvert en lecture
+	// Renvoie true si pas d'erreur, false sinon (avec message d'erreur technique)
+	static boolean SeekPositionInBinaryFile(SystemFile* fFile, longint lStartPosition);
+
+	// Fermeture d'un fichier binaire en lecture ou ecriture, avec test de validite
+	static boolean CloseInputBinaryFile(const ALString& sFilePathName, SystemFile*& fFile);
+	static boolean CloseOutputBinaryFile(const ALString& sFilePathName, SystemFile*& fFile);
+
+	// Ouverture d'un fichier binaire en ecriture
+	static boolean OpenOutputBinaryFile(const ALString& sFilePathName, SystemFile*& fFile);
+	static boolean OpenOutputBinaryFileForAppend(const ALString& sFilePathName, SystemFile*& fFile);
+
+	//////////////////////////////////////////////////////////////////
+	// Gestion des fichiers temporaires de travail pour les fichiers sur des systemes de fichiers non standards (ex/ HDFS)
+
+	// Creation d'un nom de fichier temporaire en ecriture si necessaire,
+	// dans le cas ou le fichier est sur un systeme de fichier non standard (ex/ HDFS)
+	// Dans le Clean, le WorkingFileName est remis a vide
+	static boolean BuildOutputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName);
+	static boolean CleanOutputWorkingFile(const ALString& sPathName, ALString& sWorkingFileName);
+
+	///////////////////////////////////////////////////////////////////////////////////////
+	///// Implementation
 protected:
 	// Copie de fichier en utilisant les drivers de fichiers
 	static boolean CopyFileGeneric(const ALString& sSourceURI, const ALString& sDestPath);

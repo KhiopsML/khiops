@@ -142,11 +142,8 @@ protected:
 	// Nom du fichier
 	static ALString sFileName;
 
-	// Nom du fichier temporaire local (si sFileName est sur HDFS)
-	static ALString sLocalFileName;
-
-	// Fichier en d'analyse
-	static FILE* fJSON;
+	// Fichier d'analyse
+	static SystemFile* sfJSON;
 
 	// Type du dernier token, pour les assertions
 	static int nLastToken;

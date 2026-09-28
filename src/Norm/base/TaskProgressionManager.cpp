@@ -27,7 +27,10 @@ FileTaskProgressionManager::~FileTaskProgressionManager()
 
 void FileTaskProgressionManager::SetTaskProgressionFileName(const ALString& sFileName)
 {
-	fstream fstTaskProgression;
+	SystemFileOstream sfoTaskProgression;
+
+	// Pour les fichiers de sortie des commandes, on fixe la taille du buffer a 1Mb (au lieu de 8Mo ou plus)
+	sfoTaskProgression.SetBufferSize(1 * lMB);
 
 	// Ouverture du fichier si necessaire pour reinitialiser le contenu du fichier
 	sTaskProgressionFileName = sFileName;
@@ -38,24 +41,25 @@ void FileTaskProgressionManager::SetTaskProgressionFileName(const ALString& sFil
 
 		// Fermeture du fichier si celui-ci est deja ouvert
 		// Ce cas peut arriver si on appelle plusieurs fois ParseParameters (notamment via MODL_dll)
-		if (fstTaskProgression.is_open())
-			fstTaskProgression.close();
+		if (sfoTaskProgression.IsOpened())
+			sfoTaskProgression.Close();
 
 		// Ouverture du fichier en ecriture
 		// Ici, on ne passe pas par la classe FileService pour ne pas
 		// entrainer une boucle entre FileService et Global
 		p_SetMachineLocale();
-		fstTaskProgression.open(sTaskProgressionFileName, ios::out);
+		sfoTaskProgression.SetFileName(sTaskProgressionFileName);
+		sfoTaskProgression.Open();
 		p_SetApplicationLocale();
 
 		// Message d'erreur si probleme d'ouverture
-		if (not fstTaskProgression.is_open())
+		if (not sfoTaskProgression.IsOpened())
 		{
 			Global::AddError("File", sTaskProgressionFileName, "Unable to open task progression file");
 		}
 
 		// Fermeture
-		fstTaskProgression.close();
+		sfoTaskProgression.Close();
 
 		// Sur Linux, si le fichier de progression est stdout ou stderr, l'affichage est dans la console
 		// On ajoutera un prefixe a chaque ligne
@@ -251,7 +255,7 @@ void FileTaskProgressionManager::AddCompletedTaskMessage(const ALString& sMessag
 
 void FileTaskProgressionManager::WriteProgressionMessages()
 {
-	fstream fstProgressionMessages;
+	SystemFileOstream sfoProgressionMessages;
 	POSITION position;
 	StringObject* soMessage;
 	int n;
@@ -259,24 +263,28 @@ void FileTaskProgressionManager::WriteProgressionMessages()
 	// Traitement du message si fichier parametre
 	if (sTaskProgressionFileName != "")
 	{
+		// Pour les fichiers de sortie des commandes, on fixe la taille du buffer a 4 Ko (au lieu de 8Mo ou plus)
+		sfoProgressionMessages.SetBufferSize(4 * lKB);
+
 		// Ouverture du fichier de messages de progressions
 		// On ne passe pas par FileService pour ne pas generer trop de messages d'erreur
 		p_SetMachineLocale();
-		fstProgressionMessages.open(sTaskProgressionFileName, ios::out);
+		sfoProgressionMessages.SetFileName(sTaskProgressionFileName);
+		sfoProgressionMessages.Open();
 		p_SetApplicationLocale();
 
 		// Si fichier ouvert
-		if (fstProgressionMessages.is_open())
+		if (sfoProgressionMessages.IsOpened())
 		{
 			if (sStartTimeStamp == "")
 				sStartTimeStamp = CurrentTimestamp();
 
 			// Indentification du debut du bloc de progression
-			fstProgressionMessages << "\n";
+			sfoProgressionMessages << "\n";
 			if (bPrintProgressionInConsole)
-				fstProgressionMessages << sLinePrefix << "\t";
-			fstProgressionMessages << sStartTimeStamp;
-			fstProgressionMessages << "\tprogression_start\t\t\t\t\t\t\t\n";
+				sfoProgressionMessages << sLinePrefix << "\t";
+			sfoProgressionMessages << sStartTimeStamp;
+			sfoProgressionMessages << "\tprogression_start\t\t\t\t\t\t\t\n";
 
 			// Affichage des anciens messages (les nMaxCompletedTaskMessageNumber plus recents)
 			// On part de la fin pour afficher les plus ancien en premier, en se limitant au nombre max
@@ -287,19 +295,19 @@ void FileTaskProgressionManager::WriteProgressionMessages()
 			{
 				soMessage = cast(StringObject*, olLastCompletedTaskMessages.GetPrev(position));
 				if (n < nMaxCompletedTaskMessageNumber)
-					fstProgressionMessages << soMessage->GetString();
+					sfoProgressionMessages << soMessage->GetString();
 				n--;
 			}
 
 			// Affichage du message courant
-			fstProgressionMessages << sLastProgressionMessage;
+			sfoProgressionMessages << sLastProgressionMessage;
 			if (bPrintProgressionInConsole)
-				fstProgressionMessages << sLinePrefix << "\t";
-			fstProgressionMessages << CurrentTimestamp();
-			fstProgressionMessages << "\tprogression_stop\t\t\t\t\t\t\t\n";
+				sfoProgressionMessages << sLinePrefix << "\t";
+			sfoProgressionMessages << CurrentTimestamp();
+			sfoProgressionMessages << "\tprogression_stop\t\t\t\t\t\t\t\n";
 
 			// Fermeture du fichier
-			fstProgressionMessages.close();
+			sfoProgressionMessages.Close();
 		}
 	}
 }

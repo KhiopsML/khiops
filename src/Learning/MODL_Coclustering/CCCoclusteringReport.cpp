@@ -20,7 +20,6 @@ const ALString CCCoclusteringReport::sKeyWordSelectionValue = "Selection value";
 
 CCCoclusteringReport::CCCoclusteringReport()
 {
-	fReport = NULL;
 	nLineIndex = 0;
 	bEndOfLine = false;
 	sFileBuffer = NULL;
@@ -31,10 +30,9 @@ CCCoclusteringReport::CCCoclusteringReport()
 
 CCCoclusteringReport::~CCCoclusteringReport()
 {
-	assert(fReport == NULL);
+
 	assert(sFileBuffer == NULL);
 	assert(nLineIndex == 0);
-
 	CleanErrorLogs();
 }
 
@@ -180,20 +178,12 @@ boolean CCCoclusteringReport::WriteReport(const ALString& sJSONReportName,
 {
 	boolean bOk = true;
 	JSONFile fJSON;
-	ALString sLocalTempFileName;
 
 	require(coclusteringDataGrid != NULL);
 	require(coclusteringDataGrid->Check());
 
-	// Preparation de la copie sur HDFS si necessaire
-	bOk = PLRemoteFileService::BuildOutputWorkingFile(sJSONReportName, sLocalTempFileName);
-
-	// Ouverture du fichier de rapport JSON en ecriture
-	if (bOk)
-	{
-		fJSON.SetFileName(sLocalTempFileName);
-		bOk = fJSON.OpenForWrite();
-	}
+	fJSON.SetFileName(sJSONReportName);
+	bOk = fJSON.OpenForWrite();
 
 	// Ecriture de son contenu
 	if (bOk)
@@ -201,13 +191,8 @@ boolean CCCoclusteringReport::WriteReport(const ALString& sJSONReportName,
 		InternalWriteReport(coclusteringDataGrid, &fJSON);
 
 		// Fermeture du fichier
-		fJSON.Close();
+		bOk = fJSON.Close();
 	}
-
-	// Copie vers HDFS si necessaire
-	if (bOk)
-		PLRemoteFileService::CleanOutputWorkingFile(sJSONReportName, sLocalTempFileName);
-
 	return bOk;
 }
 
@@ -220,7 +205,7 @@ const ALString CCCoclusteringReport::GetObjectLabel() const
 {
 	ALString sLabel;
 
-	if (fReport == NULL or nLineIndex == 0)
+	if (nLineIndex == 0)
 		sLabel = sReportFileName;
 	else
 		sLabel = sReportFileName + " (line " + IntToString(nLineIndex) + ")";
@@ -2230,7 +2215,6 @@ void CCCoclusteringReport::InternalWriteReport(const CCHierarchicalDataGrid* coc
 					       JSONFile* fJSON) const
 {
 	require(coclusteringDataGrid != NULL);
-	require(fReport == NULL);
 	require(fJSON != NULL);
 	require(fJSON->IsOpened());
 
