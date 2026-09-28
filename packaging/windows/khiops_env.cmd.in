@@ -166,8 +166,8 @@ goto MPI_DONE
 
 REM Set mpiexec path for system wide installation
 :SET_MPI_SYSTEM_WIDE
-set "KHIOPS_MPI_COMMAND="%_KHIOPS_HOME%\@BIN_PATH@\intelMPI\mpiexec.exe""
-set "KHIOPS_MPI_DLL_PATH=%_KHIOPS_HOME%\@BIN_PATH@\intelMPI\"
+set "KHIOPS_MPI_COMMAND="%_KHIOPS_HOME%\intelMPI\mpiexec.exe""
+set "KHIOPS_MPI_DLL_PATH=%_KHIOPS_HOME%\intelMPI\"
 if not exist %KHIOPS_MPI_COMMAND% goto ERR_MPI
 goto MPI_DONE
 

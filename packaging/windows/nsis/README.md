@@ -10,7 +10,7 @@ It installs:
   [Khiops Covisualization](https://github.com/khiopsrelease/kc-release/releases/latest) apps by
   executing their corresponding installers.
 - The JRE from [Eclipse Temurin](https://adoptium.net/fr/temurin/releases/)
-- The MPI runtime of Intel MPI in the `bin\intelMPI` directory (4 redistributable files with their licenses in the
+- The MPI runtime of Intel MPI in the `intelMPI` directory (4 redistributable files with their licenses in the
   `licenses/` directory)
 - The [sample datasets](https://github.com/KhiopsML/khiops-samples/releases/latest).
 - Documentation files:
