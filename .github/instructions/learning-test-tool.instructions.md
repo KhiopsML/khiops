@@ -9,6 +9,10 @@ applyTo: "test/LearningTestTool/**"
 
 LearningTestTool is the **non-regression test infrastructure** for Khiops. It manages 800+ test cases across 40+ suites for three tools (KMODL, MODL_Coclustering, KNITransfer). See `test/LearningTestTool/README.md` for full usage details.
 
+> Debugging a batch of failing tests reported by `kht_test`/`kht_apply` against a `LearningTest` checkout? Use the
+> [`khiops-learningtest-debugging`](../skills/khiops-learningtest-debugging.md) skill instead of re-deriving the
+> workflow — this file remains the source of truth for the comparison-log format and reference-update rules it relies on.
+
 ## Directory Structure
 
 ```
