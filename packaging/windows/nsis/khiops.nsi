@@ -153,6 +153,7 @@ Section "Install" SecInstall
 	File "${KHIOPS_WINDOWS_BUILD_DIR}\tmp\khiops_coclustering.cmd"
 
 	# Install Intel MPI redistributable
+	SetOutPath "$INSTDIR\bin\intelMPI"
 	File "${INTEL_MPI_BIN_DIR}\hydra_bstrap_proxy.exe"
 	File "${INTEL_MPI_BIN_DIR}\hydra_pmi_proxy.exe"
 	File "${INTEL_MPI_BIN_DIR}\mpiexec.exe"
@@ -525,6 +526,9 @@ Section "Uninstall"
 	# Delete icons
 	RMDir /r "$INSTDIR\bin\icons"
 
+	# Delete IntelMPI binaries
+	RMDir /r "$INSTDIR\bin\intelMPI"
+
 	# Delete executables and scripts
 	Delete "$INSTDIR\bin\khiops_env.cmd"
 	Delete "$INSTDIR\bin\khiops.cmd"
@@ -532,10 +536,6 @@ Section "Uninstall"
 	Delete "$INSTDIR\bin\MODL.exe"
 	Delete "$INSTDIR\bin\MODL_Coclustering.exe"
 	Delete "$INSTDIR\bin\_khiopslauncher.exe"
-	Delete "$INSTDIR\bin\hydra_bstrap_proxy.exe"
-	Delete "$INSTDIR\bin\hydra_pmi_proxy.exe"
-	Delete "$INSTDIR\bin\impi.dll"
-	Delete "$INSTDIR\bin\mpiexec.exe"
 	Delete "$INSTDIR\bin\norm.jar"
 	Delete "$INSTDIR\bin\khiops.jar"
 	Delete "$INSTDIR\bin\shell_khiops.cmd"

@@ -19,7 +19,7 @@ echo KHIOPS_MPI_COMMAND: MPI command to call the Khiops tool
 echo KHIOPS_JAVA_PATH: path of Java tool, to add in path
 echo KHIOPS_CLASSPATH: Khiops java libraries, to add in classpath
 echo KHIOPS_DRIVERS_PATH: search path of the drivers (by default Khiops bin directory if not defined)
-echo KHIOPS_MPI_DLL_PATH: path of MPI dlls, to add in path (only for pip installation)
+echo KHIOPS_MPI_DLL_PATH: path of MPI dlls, to add in path
 echo.
 echo If they are not already defined, the following variables used by Khiops are set:
 echo.
@@ -166,7 +166,8 @@ goto MPI_DONE
 
 REM Set mpiexec path for system wide installation
 :SET_MPI_SYSTEM_WIDE
-set "KHIOPS_MPI_COMMAND="%_KHIOPS_HOME%\@BIN_PATH@\mpiexec.exe""
+set "KHIOPS_MPI_COMMAND="%_KHIOPS_HOME%\@BIN_PATH@\intelMPI\mpiexec.exe""
+set "KHIOPS_MPI_DLL_PATH=%_KHIOPS_HOME%\@BIN_PATH@\intelMPI\"
 if not exist %KHIOPS_MPI_COMMAND% goto ERR_MPI
 goto MPI_DONE
 
@@ -176,6 +177,6 @@ set "KHIOPS_MPI_COMMAND="
 goto MPI_DONE
 
 :ERR_MPI_IMPL
-set "KHIOPS_MPI_ERROR=We can't find the right implementation of mpiexec, we expect to find Microsoft MPI. Parallel computation is unavailable: Khiops is launched in serial"
+set "KHIOPS_MPI_ERROR=We can't find the right implementation of mpiexec, we expect to find Intel MPI. Parallel computation is unavailable: Khiops is launched in serial"
 set "KHIOPS_MPI_COMMAND="
 goto MPI_DONE

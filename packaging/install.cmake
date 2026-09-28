@@ -289,6 +289,7 @@ else(IS_LINUX OR IS_MACOS)
      AND NOT IS_CONDA)
     get_filename_component(INTEL_MPI_BIN_DIR "${MPIEXEC_EXECUTABLE}" DIRECTORY)
     set(INTEL_MPI_STAGING_BIN_DIR "${TMP_DIR}/mpi/bin")
+    set(INTEL_MPI_INSTALL_DIR "${BIN_INSTALL_DIR}/intelMPI")
     file(MAKE_DIRECTORY ${INTEL_MPI_STAGING_BIN_DIR})
     set(INTEL_MPI_REDISTRIBUTABLE_FILES hydra_bstrap_proxy.exe hydra_pmi_proxy.exe impi.dll mpiexec.exe)
     foreach(INTEL_MPI_REDISTRIBUTABLE_FILE IN LISTS INTEL_MPI_REDISTRIBUTABLE_FILES)
@@ -319,7 +320,7 @@ else(IS_LINUX OR IS_MACOS)
     install(
       FILES ${INTEL_MPI_STAGING_BIN_DIR}/hydra_bstrap_proxy.exe ${INTEL_MPI_STAGING_BIN_DIR}/hydra_pmi_proxy.exe
             ${INTEL_MPI_STAGING_BIN_DIR}/impi.dll ${INTEL_MPI_STAGING_BIN_DIR}/mpiexec.exe
-      DESTINATION ${BIN_INSTALL_DIR}
+      DESTINATION ${INTEL_MPI_INSTALL_DIR}
       COMPONENT KHIOPS_CORE)
     # Install Intel MPI license files
     install(
