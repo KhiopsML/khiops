@@ -303,7 +303,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 			// Car en entree de ChunkBuilder on a des fichiers distants
 			// (Le split peu etre appele plisuers fois, tant qu'on a des chunks trop gros)
 			if (FileService::GetURIScheme(sInputFileName) == "")
-				sNewFileName = FileService::BuildLocalURI(sInputFileName);
+				sNewFileName = FileService::TransformLocalFileURI(sInputFileName);
 			else
 				sNewFileName = sInputFileName;
 
@@ -388,7 +388,7 @@ boolean KWFileSorter::Sort(boolean bDisplayUserMessage)
 
 					if (bOk)
 					{
-						sNewFileName = FileService::BuildLocalURI(sNewFileName);
+						sNewFileName = FileService::TransformLocalFileURI(sNewFileName);
 						overweightBucket->RemoveChunkFileNames();
 						overweightBucket->AddChunkFileName(sNewFileName);
 						bOk = keySizeParallelEvaluator.EvaluateKeySize(

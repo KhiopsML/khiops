@@ -706,7 +706,7 @@ boolean KWDatabaseTransferTask::SlaveProcessStartDatabase()
 		{
 			output_svOutputChunkFileNames.GetStringVector()->SetSize(1);
 			output_svOutputChunkFileNames.GetStringVector()->SetAt(
-			    0, FileService::BuildLocalURI(sChunkFileName));
+			    0, FileService::TransformLocalFileURI(sChunkFileName));
 
 			outputBuffer->SetFileName(sChunkFileName);
 			bOk = outputBuffer->Open();

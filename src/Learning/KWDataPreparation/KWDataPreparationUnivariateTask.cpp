@@ -1311,7 +1311,8 @@ boolean KWDataPreparationUnivariateTask::SplitSlice(KWDataTableSlice* slice, int
 			// On remplace les noms de fichier de tranches par des URI
 			for (nChunk = 0; nChunk < subSlice->GetDataFileNames()->GetSize(); nChunk++)
 				subSlice->GetDataFileNames()->SetAt(
-				    nChunk, FileService::BuildLocalURI(subSlice->GetDataFileNames()->GetAt(nChunk)));
+				    nChunk,
+				    FileService::TransformLocalFileURI(subSlice->GetDataFileNames()->GetAt(nChunk)));
 
 			// Parcours des blocs de chaque tranche pour collecter les nombres de valeurs par bloc
 			subSlice->GetAttributeBlockValueNumbers()->SetSize(

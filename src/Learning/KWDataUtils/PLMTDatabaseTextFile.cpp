@@ -902,7 +902,7 @@ boolean PLMTDatabaseTextFile::OpenOutputBuffers(const PLParallelTask* task, int 
 			if (bOk)
 			{
 				// Memorisation du fichier
-				svOutputBufferFileNames->SetAt(i, FileService::BuildLocalURI(sChunkFileName));
+				svOutputBufferFileNames->SetAt(i, FileService::TransformLocalFileURI(sChunkFileName));
 
 				// Ouverture du fichier
 				outputBuffer->SetFileName(sChunkFileName);

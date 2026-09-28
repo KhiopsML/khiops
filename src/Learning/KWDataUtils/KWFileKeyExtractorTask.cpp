@@ -596,7 +596,7 @@ boolean KWFileKeyExtractorTask::SlaveProcess()
 	}
 	if (bOk)
 	{
-		output_sChunkFileName.SetValue(FileService::BuildLocalURI(sChunkFileName));
+		output_sChunkFileName.SetValue(FileService::TransformLocalFileURI(sChunkFileName));
 		outputFile.SetFileName(sChunkFileName);
 		bOk = outputFile.Open();
 	}

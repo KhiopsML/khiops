@@ -229,7 +229,7 @@ boolean KWSortedChunkBuilderTask::TestWithArtificialDataset(const KWArtificialDa
 	// Extraction des chunks
 	if (bOk)
 	{
-		sortedChunkBuilder.SetFileURI(FileService::BuildLocalURI(artificialDataset->GetFileName()));
+		sortedChunkBuilder.SetFileURI(FileService::TransformLocalFileURI(artificialDataset->GetFileName()));
 		sortedChunkBuilder.SetHeaderLineUsed(artificialDataset->GetHeaderLineUsed());
 		sortedChunkBuilder.SetInputFieldSeparator(artificialDataset->GetFieldSeparator());
 		sortedChunkBuilder.GetKeyFieldIndexes()->CopyFrom(artificialDataset->GetConstKeyFieldIndexes());
@@ -838,7 +838,7 @@ boolean KWSortedChunkBuilderTask::WriteBucket(KWSortBucket* bucketToWrite)
 			bucketToWrite->SetOutputFileName(sBucketFilePath);
 
 			// Envoi au master du nom du chunk associe au bucket
-			bucketToWrite->AddChunkFileName(FileService::BuildLocalURI(sBucketFilePath));
+			bucketToWrite->AddChunkFileName(FileService::TransformLocalFileURI(sBucketFilePath));
 			bufferedFile.SetFileName(sBucketFilePath);
 			bOk = bufferedFile.Open();
 		}

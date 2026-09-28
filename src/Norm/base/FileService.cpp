@@ -1696,7 +1696,7 @@ const ALString FileService::BuildURI(const ALString& sScheme, const ALString& sH
 	return sScheme + "://" + sHostName + "/" + sRelativePath + sFileName;
 }
 
-const ALString FileService::BuildLocalURI(const ALString& sFileName)
+const ALString FileService::TransformLocalFileURI(const ALString& sFileName)
 {
 	if (FileService::GetURIScheme(sFileName) != "")
 	{
