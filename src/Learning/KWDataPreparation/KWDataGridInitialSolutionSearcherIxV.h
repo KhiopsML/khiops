@@ -4,7 +4,7 @@
 
 #pragma once
 
-class KWDataGridInitialSolutionSearcherIV;
+class KWDataGridInitialSolutionSearcherIxV;
 
 #include "KWClassStats.h"
 #include "KWDataGrid.h"
@@ -16,14 +16,14 @@ class KWDataGridInitialSolutionSearcherIV;
 #include "KWLearningSpec.h"
 
 //////////////////////////////////////////////////////////////////////////////////
-// Classe KWDataGridInitialSolutionSearcherIV
+// Classe KWDataGridInitialSolutionSearcherIxV
 // Recherche d'une solution initiale de qualite pour une coclustering IxV
-class KWDataGridInitialSolutionSearcherIV : public Object
+class KWDataGridInitialSolutionSearcherIxV : public Object
 {
 public:
 	// Constructeur
-	KWDataGridInitialSolutionSearcherIV();
-	~KWDataGridInitialSolutionSearcherIV();
+	KWDataGridInitialSolutionSearcherIxV();
+	~KWDataGridInitialSolutionSearcherIxV();
 
 	// Parametrage par les specifications d'apprentissage
 	// Memoire: les specifications sont referencees uniquement
@@ -32,17 +32,32 @@ public:
 
 	// Recherche d'une solution initiale meilleure que celle du modele null
 	// Le parametre initialDataGridSolution en sortie contient une grille initiale fine
-	// potentiellement intessante. Elle est de type KWDataGridMerger car elle doit ensuite
-	// etre optimisee selon les algorithmes d'optimisation standard.
+	// potentiellement intessante, avec une partition d'une finesse comptaible avec les contraintes
+	// des algorithmes d'optimisation standard.
 	// On exploite a cet effet des grilles bivariees entre attribut internes pour
 	// obtenir des partitions en VarPart pertinentes
 	// La methode se deroule en mode non verbeux.
 	// Elle peut echouer en cas d'erreur, d'interruption utilisateur, ou d'absence de paires informatives
+	// Elle se base sur au plus k log2(k) paires analysees parmi les plus simples, calculeee temporairement,
+	// ce qui fait que ses besoin en ressources sont faibles devant celle necessaire a l'optimisation
+	// complete du coclustering IxV
 	boolean SearchInitialSolution(const KWDataGrid* initialDataGrid, KWDataGrid* initialDataGridSolution) const;
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Constructtion d'une solution a partir des k permieres paires du table de pair passe en parametre
+	// La solution exploite ces paire pour partitionner les attributs internes impliques dans au moins une paire
+	// avec des cluster de VarPart singleton, plus un dernier cluster regroupant tous les attributs internes restants.
+	// Les instances sont partitionnee de la facon a etre compatible avec les clusters de VarPart
+	void BuildInitialSolutionFromBestPairs(const KWDataGrid* initialDataGrid,
+					       const ObjectArray* oaInformativeAttributePairStats, int nPairNumber,
+					       KWDataGrid* initialDataGridSolution) const;
+
+	// Test si une solution est de taille compatible avec les contraintes d'optimisation d'une grille
+	boolean IsInitialSolutionOptimizable(const KWDataGrid* initialDataGrid,
+					     KWDataGrid* initialDataGridSolution) const;
+
 	// Analyse bivariee des paires d'attributs internes
 	// Le resultats est disponible dans bivariateClassStats
 	// La methode peut echouer en cas d'erreur ou d'interruption utilisateur
@@ -53,6 +68,19 @@ protected:
 
 	// Nettoyage des analyse bivariees
 	void CleanInternalAttributesBivariateStats() const;
+
+	// Filtrage des attributs utilisables pour l'analyse bivariee, en supprimant ceux ne comportant qu'une seule valeur
+	// Le tableau en sortie contient des KWDGAttribute
+	void FilterInnerAttributes(const KWDataGrid* initialDataGrid, ObjectArray* oaFilteredInnerAttributes) const;
+
+	// Tri d'un tableau d'attribut interne par complexite d'optimisation croissante
+	void SortInnerAttributesByIncreasingComplexity(const KWDataGrid* initialDataGrid,
+						       ObjectArray* oaInnerAttributes) const;
+
+	// Selection des paires a utiliser, en prenant les plus informatives en priorite, et en s'arretant quand le nombre
+	// total de parties de variables interne resultant atteint un seuil de complexite maximum
+	// Le tableau en sortie contient les KWAttributePairStats selectionnes
+	void SelectAttributePairStats(const KWClassStats* classStats, ObjectArray* oaSelectedAttributePairStats) const;
 
 	// Calcul de l'intersection des discretisations a partir d'un tableau de partition de type KWDGSAttributeDiscretization
 	void ComputeIntersectionDiscretizations(const KWDGAttribute* innerAttribute,
@@ -68,6 +96,19 @@ protected:
 	// Ecriture d'un rapport JSON a partir des stats bivariee calculees
 	void WriteJSONAnalysisReport(KWClassStats* classStats, const ALString& sReportFileName) const;
 
+	// Complexite algorithmique pour une variable interne impliquee dans une paire
+	// Estimation de la complexite algorithmique en tenant compte du nombre
+	// de valeurs disinctes dans le cas numerique ou categoriel
+	// Cette stimation est fortement heuristique: ce qui est important est ici
+	// d'avoir des valeurs comparables pour tire les attribut par complexite croissante
+	static int ComputeAttributeOptimizationComplexity(const KWDGAttribute* attribute);
+
+	// Comparaison de la complexite d'optmimisation de deux attributs
+	static int CompareAttributeOptimizationComplexity(const void* elem1, const void* elem2);
+
+	////////////////////////////////////////////////////////////////////////////
+	// Variables de la classe
+
 	// Specifications d'apprentissage
 	KWLearningSpec* learningSpec;
 
@@ -75,7 +116,6 @@ protected:
 	mutable KWClassStats bivariateClassStats;
 	mutable KWLearningSpec bivariateLearningSpec;
 };
-
 //////////////////////////////////////////////////////////////////////////////////
 // Classe KWValueSignature
 // Classe technique de gestion des valeurs, impliquees dans un ensemble de partition
