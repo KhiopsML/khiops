@@ -7,8 +7,8 @@
 			"instances": 750,
 			"cells": 16,
 			"nullCost": 7699.399272,
-			"cost": 7433.808031,
-			"level": 0.03449506016,
+			"cost": 7433.773759,
+			"level": 0.03449951139,
 			"initialDimensions": 2,
 			"frequencyVariable": "",
 			"dictionary": "Iris",
@@ -48,19 +48,19 @@
 						"cluster": "{12, 13, 18, ...}",
 						"values": ["12","13","18","19","2","21","22","23","24","26","28","29","30","33","34","41","42","45","46","48","50","6","7","8","9","11","14","15","25","27","3","31","32","36","37","39","4","40","44","47","49","5","51","10","16","17","20","35","38","43"],
 						"valueFrequencies": [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],
-						"valueTypicalities": [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.77084,0.77084,0.77084,0.77084,0.77084,0.77084,0.77084]
+						"valueTypicalities": [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.872494,0.773418,0.773418,0.773418,0.773418,0.773418,0.773418,0.773418]
 					},
 					{
 						"cluster": "{102, 104, 106, ...}",
-						"values": ["102","104","106","107","114","117","118","122","126","127","137","139","141","142","145","146","147","149","105","109","110","113","120","124","130","132","134","112","143","125","148","111","119","133","138","129","140","151","103","115","116","123","128","144","150","131","135","136","72","121"],
+						"values": ["102","104","106","107","114","117","118","122","126","127","137","139","141","142","145","146","147","149","105","109","110","113","120","124","130","132","134","112","143","125","128","148","111","119","133","138","150","129","140","151","103","115","116","123","144","131","135","136","72","121"],
 						"valueFrequencies": [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],
-						"valueTypicalities": [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.998468,0.998468,0.998468,0.998468,0.998468,0.998468,0.998468,0.998468,0.998468,0.898955,0.898955,0.897423,0.897423,0.86385,0.86385,0.86385,0.86385,0.785043,0.785043,0.785043,0.777039,0.777039,0.777039,0.777039,0.777039,0.777039,0.723999,0.702008,0.57586,0.554154,0.46348,0.455477]
+						"valueTypicalities": [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.995346,0.995346,0.995346,0.995346,0.995346,0.995346,0.995346,0.995346,0.995346,0.898369,0.898369,0.893714,0.893714,0.893714,0.863754,0.863754,0.863754,0.863754,0.863754,0.78177,0.78177,0.78177,0.77049,0.77049,0.77049,0.77049,0.77049,0.701798,0.571924,0.548153,0.45998,0.4487]
 					},
 					{
 						"cluster": "{101, 55, 57, ...}",
-						"values": ["101","55","57","64","65","66","69","70","71","73","75","80","81","82","83","84","91","92","94","96","98","99","56","60","76","89","63","68","90","93","97","52","53","58","67","77","88","100","59","61","62","87","95","85","74","78","86","54","79","108"],
+						"values": ["101","55","57","64","65","66","69","71","73","75","80","81","82","83","84","91","92","94","96","98","56","60","70","76","89","99","63","68","90","93","97","52","53","58","67","77","88","100","59","61","62","87","95","85","74","78","86","54","79","108"],
 						"valueFrequencies": [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],
-						"valueTypicalities": [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.977048,0.977048,0.977048,0.977048,0.874768,0.874768,0.874768,0.874768,0.874768,0.84536,0.84536,0.84536,0.84536,0.84536,0.84536,0.837135,0.837135,0.837135,0.837135,0.837135,0.837135,0.824953,0.772319,0.772319,0.705448,0.640631,0.640631,0.417014]
+						"valueTypicalities": [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.98318,0.98318,0.98318,0.98318,0.98318,0.98318,0.874935,0.874935,0.874935,0.874935,0.874935,0.851556,0.851556,0.851556,0.851556,0.851556,0.851556,0.837291,0.837291,0.837291,0.837291,0.837291,0.837291,0.830832,0.784727,0.784727,0.705667,0.653103,0.653103,0.417039]
 					}
 				],
 				"defaultGroupIndex": 2
@@ -196,12 +196,12 @@
 									"bounds": [4.3,5.45]
 								},
 								{
-									"cluster": "SepalLength ]5.45,6.25]",
-									"bounds": [5.45,6.25]
+									"cluster": "SepalLength ]5.45,6.15]",
+									"bounds": [5.45,6.15]
 								},
 								{
-									"cluster": "SepalLength ]6.25,+inf[",
-									"bounds": [6.25,7.9]
+									"cluster": "SepalLength ]6.15,+inf[",
+									"bounds": [6.15,7.9]
 								}
 							]
 						},
@@ -245,9 +245,9 @@
 						"valueTypicalities": [0,0,0]
 					},
 					{
-						"cluster": "{PetalLength ]4.75,5.15], SepalLength ]6.25,+inf[}",
-						"values": ["PetalLength ]4.75,5.15]","SepalLength ]6.25,+inf["],
-						"valueFrequencies": [21,51],
+						"cluster": "{PetalLength ]4.75,5.15], SepalLength ]6.15,+inf[}",
+						"values": ["PetalLength ]4.75,5.15]","SepalLength ]6.15,+inf["],
+						"valueFrequencies": [21,55],
 						"valueTypicalities": [0,0]
 					},
 					{
@@ -257,9 +257,9 @@
 						"valueTypicalities": [0,0,0]
 					},
 					{
-						"cluster": "{SepalLength ]5.45,6.25], SepalWidth ]-inf,2.95]}",
-						"values": ["SepalLength ]5.45,6.25]","SepalWidth ]-inf,2.95]"],
-						"valueFrequencies": [47,57],
+						"cluster": "{SepalLength ]5.45,6.15], SepalWidth ]-inf,2.95]}",
+						"values": ["SepalLength ]5.45,6.15]","SepalWidth ]-inf,2.95]"],
+						"valueFrequencies": [43,57],
 						"valueTypicalities": [0,0]
 					},
 					{
@@ -291,7 +291,7 @@
 						"cluster": "{102, 104, 106, ...}",
 						"parentCluster": "A4",
 						"frequency": 250,
-						"interest": 0.842991,
+						"interest": 0.842378,
 						"hierarchicalLevel": 1,
 						"rank": 3,
 						"hierarchicalRank": 10,
@@ -301,7 +301,7 @@
 						"cluster": "{101, 55, 57, ...}",
 						"parentCluster": "A4",
 						"frequency": 250,
-						"interest": 0.835065,
+						"interest": 0.834142,
 						"hierarchicalLevel": 1,
 						"rank": 5,
 						"hierarchicalRank": 10,
@@ -311,8 +311,8 @@
 						"cluster": "A2",
 						"parentCluster": "",
 						"frequency": 750,
-						"interest": 0.892686,
-						"hierarchicalLevel": -0.279734,
+						"interest": 0.892173,
+						"hierarchicalLevel": -0.279698,
 						"rank": 2,
 						"hierarchicalRank": 3,
 						"isLeaf": false
@@ -321,8 +321,8 @@
 						"cluster": "A4",
 						"parentCluster": "A2",
 						"frequency": 500,
-						"interest": 0.839028,
-						"hierarchicalLevel": 0.542485,
+						"interest": 0.83826,
+						"hierarchicalLevel": 0.543638,
 						"rank": 4,
 						"hierarchicalRank": 5,
 						"isLeaf": false
@@ -347,7 +347,7 @@
 						"cluster": "{SepalLength ]-inf,5.45], SepalWidth ]3.35,+inf[}",
 						"parentCluster": "B8",
 						"frequency": 88,
-						"interest": 0.586884,
+						"interest": 0.5867,
 						"hierarchicalLevel": 1,
 						"rank": 3,
 						"hierarchicalRank": 10,
@@ -357,17 +357,17 @@
 						"cluster": "{Class {Iris-virginica}, PetalLength ]5.15,+inf[, PetalWidth ]1.75,+inf[}",
 						"parentCluster": "B6",
 						"frequency": 130,
-						"interest": 0.824269,
+						"interest": 0.82531,
 						"hierarchicalLevel": 1,
 						"rank": 5,
 						"hierarchicalRank": 10,
 						"isLeaf": true
 					},
 					{
-						"cluster": "{PetalLength ]4.75,5.15], SepalLength ]6.25,+inf[}",
+						"cluster": "{PetalLength ]4.75,5.15], SepalLength ]6.15,+inf[}",
 						"parentCluster": "B6",
-						"frequency": 72,
-						"interest": 0.466695,
+						"frequency": 76,
+						"interest": 0.477554,
 						"hierarchicalLevel": 1,
 						"rank": 7,
 						"hierarchicalRank": 10,
@@ -377,17 +377,17 @@
 						"cluster": "{Class {Iris-versicolor}, PetalLength ]2.4,4.75], PetalWidth ]0.8,1.75]}",
 						"parentCluster": "B5",
 						"frequency": 149,
-						"interest": 0.862692,
+						"interest": 0.860673,
 						"hierarchicalLevel": 1,
 						"rank": 9,
 						"hierarchicalRank": 10,
 						"isLeaf": true
 					},
 					{
-						"cluster": "{SepalLength ]5.45,6.25], SepalWidth ]-inf,2.95]}",
+						"cluster": "{SepalLength ]5.45,6.15], SepalWidth ]-inf,2.95]}",
 						"parentCluster": "B7",
-						"frequency": 104,
-						"interest": 0.489952,
+						"frequency": 100,
+						"interest": 0.480699,
 						"hierarchicalLevel": 1,
 						"rank": 11,
 						"hierarchicalRank": 10,
@@ -397,7 +397,7 @@
 						"cluster": "{SepalWidth ]2.95,3.35]}",
 						"parentCluster": "B7",
 						"frequency": 57,
-						"interest": 0.33381,
+						"interest": 0.33378,
 						"hierarchicalLevel": 1,
 						"rank": 13,
 						"hierarchicalRank": 10,
@@ -407,8 +407,8 @@
 						"cluster": "B8",
 						"parentCluster": "B1",
 						"frequency": 238,
-						"interest": 0.847251,
-						"hierarchicalLevel": 0.976144,
+						"interest": 0.847183,
+						"hierarchicalLevel": 0.976147,
 						"rank": 2,
 						"hierarchicalRank": 9,
 						"isLeaf": false
@@ -417,8 +417,8 @@
 						"cluster": "B1",
 						"parentCluster": "",
 						"frequency": 750,
-						"interest": 0.721235,
-						"hierarchicalLevel": -0.233263,
+						"interest": 0.720733,
+						"hierarchicalLevel": -0.233233,
 						"rank": 4,
 						"hierarchicalRank": 2,
 						"isLeaf": false
@@ -426,9 +426,9 @@
 					{
 						"cluster": "B6",
 						"parentCluster": "B3",
-						"frequency": 202,
-						"interest": 0.696817,
-						"hierarchicalLevel": 0.911743,
+						"frequency": 206,
+						"interest": 0.697012,
+						"hierarchicalLevel": 0.90686,
 						"rank": 6,
 						"hierarchicalRank": 7,
 						"isLeaf": false
@@ -437,8 +437,8 @@
 						"cluster": "B3",
 						"parentCluster": "B1",
 						"frequency": 512,
-						"interest": 0.662657,
-						"hierarchicalLevel": 0.535172,
+						"interest": 0.661953,
+						"hierarchicalLevel": 0.535103,
 						"rank": 8,
 						"hierarchicalRank": 4,
 						"isLeaf": false
@@ -446,9 +446,9 @@
 					{
 						"cluster": "B5",
 						"parentCluster": "B3",
-						"frequency": 310,
-						"interest": 0.640398,
-						"hierarchicalLevel": 0.750656,
+						"frequency": 306,
+						"interest": 0.638352,
+						"hierarchicalLevel": 0.747247,
 						"rank": 10,
 						"hierarchicalRank": 6,
 						"isLeaf": false
@@ -456,9 +456,9 @@
 					{
 						"cluster": "B7",
 						"parentCluster": "B5",
-						"frequency": 161,
-						"interest": 0.434672,
-						"hierarchicalLevel": 0.944592,
+						"frequency": 157,
+						"interest": 0.427359,
+						"hierarchicalLevel": 0.945503,
 						"rank": 12,
 						"hierarchicalRank": 8,
 						"isLeaf": false
@@ -484,7 +484,7 @@
 			[1,1],
 			[2,2]
 		],
-		"cellFrequencies": [150,144,129,75,64,53,33,25,19,18,14,8,7,5,5,1]
+		"cellFrequencies": [150,144,129,75,62,55,31,25,21,18,14,8,7,5,5,1]
 	},
 	"khiops_encoding": "ascii"
 }

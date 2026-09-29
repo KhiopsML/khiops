@@ -1,14 +1,14 @@
 Train instances x variables coclustering model
 Database ../../../datasets/Iris/Iris.txt : Read records: 150
   0:00:00	Write intermediate report Coclustering(1).khcj	Level: 0	Size: 1*1	VarParts: 5=1+1+1+1+1
-  0:00:00	Write intermediate report Coclustering(2).khcj	Level: 0.0223889	Size: 2*2	VarParts: 10=2+2+2+2+2
-  0:00:00	Write intermediate report Coclustering(3).khcj	Level: 0.0278495	Size: 3*3	VarParts: 14=3+3+3+3+2
-  0:00:00	Write intermediate report Coclustering(4).khcj	Level: 0.0322665	Size: 3*4	VarParts: 13=3+3+3+2+2
-  0:00:00	Write intermediate report Coclustering(5).khcj	Level: 0.0330314	Size: 3*4	VarParts: 15=3+4+3+3+2
-  0:00:00	Write intermediate report Coclustering(6).khcj	Level: 0.0334692	Size: 3*4	VarParts: 14=3+3+3+3+2
-  0:00:00	Write intermediate report Coclustering(7).khcj	Level: 0.0338518	Size: 3*7	VarParts: 16=3+4+3+3+3
-  0:00:00	Write intermediate report Coclustering(8).khcj	Level: 0.0339898	Size: 3*6	VarParts: 15=3+4+3+3+2
-  0:00:00	Write intermediate report Coclustering(9).khcj	Level: 0.0344951	Size: 3*7	VarParts: 16=3+4+3+3+3
+  0:00:00	Write intermediate report Coclustering(2).khcj	Level: 0.0283796	Size: 4*7	VarParts: 16=3+4+4+4+1
+  0:00:00	Write intermediate report Coclustering(3).khcj	Level: 0.0326686	Size: 3*4	VarParts: 14=3+3+3+3+2
+  0:00:00	Write intermediate report Coclustering(4).khcj	Level: 0.0330154	Size: 3*4	VarParts: 13=3+3+3+2+2
+  0:00:00	Write intermediate report Coclustering(5).khcj	Level: 0.0334468	Size: 3*4	VarParts: 14=3+3+3+3+2
+  0:00:00	Write intermediate report Coclustering(6).khcj	Level: 0.033718	Size: 3*5	VarParts: 14=3+3+3+3+2
+  0:00:00	Write intermediate report Coclustering(7).khcj	Level: 0.0339667	Size: 3*7	VarParts: 15=3+4+3+3+2
+  0:00:00	Write intermediate report Coclustering(8).khcj	Level: 0.0343376	Size: 3*7	VarParts: 15=3+4+3+3+2
+  0:00:00	Write intermediate report Coclustering(9).khcj	Level: 0.0344995	Size: 3*7	VarParts: 16=3+4+3+3+3
 Write coclustering report ./results/Coclustering.khcj
-Coclustering analysis time: 0:00:00.33
+Coclustering analysis time: 0:00:00.54
 
