@@ -428,7 +428,7 @@ boolean KWDatabaseTask::MasterInitialize()
 			bOk = KWClassDomain::GetCurrentDomain()->WriteFileFromClass(kwcClass, sClassTmpFile);
 
 		// On passe par une URI pour pouvoir le partager avec les esclaves
-		shared_sClassTmpFile.SetValue(FileService::BuildLocalURI(sClassTmpFile));
+		shared_sClassTmpFile.SetValue(FileService::TransformLocalFileURI(sClassTmpFile));
 	}
 
 	// Nettoyage

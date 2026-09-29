@@ -800,7 +800,7 @@ boolean KWChunkSorterTask::SlaveProcess()
 	// Envoi des resultats
 	output_nLinesSortedNumber = nObjectNumber;
 	output_lEncodingErrorNumber = lSlaveEncodingErrorNumber;
-	output_sOutputFileName.SetValue(FileService::BuildLocalURI(sOutputFileName));
+	output_sOutputFileName.SetValue(FileService::TransformLocalFileURI(sOutputFileName));
 
 	// Recopie en sortie de l'index du bucket, ce qui permet au maitre de retrouver son bucket
 	output_nBucketIndex = input_nBucketIndex;

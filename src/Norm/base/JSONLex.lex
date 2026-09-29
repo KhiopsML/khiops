@@ -1,16 +1,39 @@
 %option prefix="json"
 
 /* Does not need yywrap() */
-%option noyywrap
+%option noyywrap nounistd
 
 %{
 #include <stdlib.h>
 
 // Desactivation de warnings pour le Visual C++
 #ifdef __MSC__
-#pragma warning(disable : 4505) // C4505: la fonction locale non référencée a été supprimée
+#pragma warning(disable : 4505) // C4505: la fonction locale non referencee a ete supprimee
 #pragma warning(disable : 4996) // C4996: warning for deprecated POSIX names isatty and fileno
 #endif                          // __MSC__
+
+// Pointeur global vers le SystemFile utilise par le lexer pour la lecture de fichiers sur le cloud
+static SystemFile* jsonSystemFile = NULL;
+
+// Fonction wrapper (definie dans JSONYac.yac) appelee par YY_INPUT pour lire depuis un SystemFile
+static longint SystemFileRead(SystemFile* sf, void* buffer, size_t size, size_t count);
+
+// Redefinition de YY_INPUT pour lire depuis un SystemFile au lieu de FILE*
+#define YY_INPUT(buf, result, max_size) \
+	{ \
+        assert(! YY_CURRENT_BUFFER_LVALUE->yy_is_interactive); \
+        errno = 0; \
+		if (jsonSystemFile != NULL) \
+		{ \
+			longint nRead = SystemFileRead(jsonSystemFile, buf, 1, max_size); \
+            if (nRead == 0 && errno != 0) \
+                YY_FATAL_ERROR( "input in flex scanner failed" ); \
+			result = (nRead > 0) ? (int)nRead : 0; \
+		} \
+		else \
+			result = 0; \
+	}
+
 %}
 
 /* Pour avoir acces aux numeros de lignes, et moins cher que le -l de la ligne de commande */

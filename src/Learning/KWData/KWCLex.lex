@@ -11,12 +11,34 @@
 #undef YYLMAX
 #define	YYLMAX		100000		// token and pushback buffer size
 
+// Pointeur global vers le SystemFile utilise par le lexer pour la lecture de fichiers sur le cloud
+static SystemFile* yySystemFile = NULL;
+
+// Fonction wrapper (definie dans KWCYac.yac) appelee par YY_INPUT pour lire depuis un SystemFile
+static longint SystemFileRead(SystemFile* sf, void* buffer, size_t size, size_t count);
+
+// Definition specifique de YY_INPUT pour lire depuis un SystemFile au lieu de FILE*
+#define YY_INPUT(buf, result, max_size) \
+	{ \
+		assert(! YY_CURRENT_BUFFER_LVALUE->yy_is_interactive); \
+		errno = 0; \
+		if (yySystemFile != NULL) \
+		{ \
+			longint nRead = SystemFileRead(yySystemFile, buf, 1, max_size); \
+			if (nRead == 0 && errno != 0) \
+				YY_FATAL_ERROR( "input in flex scanner failed" ); \
+			result = (nRead > 0) ? (int)nRead : 0; \
+		} \
+		else \
+			result = 0; \
+	}
+
 %}
 
 %p 5000
 
 /* Pour avoir acces aux numeros de lignes, et moins cher que le -l de la ligne de commande */
-%option yylineno 
+%option yylineno nounistd
 
 digit     [0-9]
 sign      [\-\+]

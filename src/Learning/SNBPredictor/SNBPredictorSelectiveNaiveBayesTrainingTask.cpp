@@ -1193,7 +1193,7 @@ boolean SNBPredictorSelectiveNaiveBayesTrainingTask::MasterInitializeRecoderClas
 
 		if (bOk)
 			shared_sRecoderClassDomainFileURI.SetValue(
-			    FileService::BuildLocalURI(sRecoderClassTmpFilePath));
+			    FileService::TransformLocalFileURI(sRecoderClassTmpFilePath));
 	}
 
 	return bOk;

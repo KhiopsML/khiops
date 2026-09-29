@@ -12,6 +12,7 @@ class JSONNumber;
 class JSONBoolean;
 class JSONNull;
 class JSONMember;
+class SystemFile;
 
 #include "Object.h"
 #include "ALString.h"
@@ -114,6 +115,7 @@ protected:
 	// Acces aux fonctions d'analyse lexicale generees par lex
 	static void SetLineno(int nValue);
 	static int GetLineno();
+	static void SetInputSystemFile(SystemFile* sfInputFile);
 	static void Restart(FILE* inputFile);
 	static int Lex(JSONSTYPE* jsonValue);
 	static int LexDestroy();

@@ -1955,7 +1955,7 @@ KWDataTableSliceSet* KWDataTableSliceSet::CreateDataTableSliceSet(const KWClass*
 			}
 
 			// Memorisation de ce nom de fichier
-			dataTableSlice->GetDataFileNames()->Add(FileService::BuildLocalURI(sSliceFileName));
+			dataTableSlice->GetDataFileNames()->Add(FileService::TransformLocalFileURI(sSliceFileName));
 
 			// Initialisation d'une base pour ce fichier
 			databaseTextFile.SetDatabaseName(sSliceFileName);

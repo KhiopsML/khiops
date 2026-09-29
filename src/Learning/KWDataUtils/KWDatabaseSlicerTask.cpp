@@ -717,7 +717,7 @@ boolean KWDatabaseSlicerTask::SlaveProcessStopDatabase(boolean bProcessEndedCorr
 			output_lvSliceFileSizes.SetAt(nSlice, FileService::GetFileSize(sSliceFileName));
 
 			// Memorisation du nom complet avec URI, car le fichier pourra ensuite etre accede a distance
-			output_svSliceFileNames.SetAt(nSlice, FileService::BuildLocalURI(sSliceFileName));
+			output_svSliceFileNames.SetAt(nSlice, FileService::TransformLocalFileURI(sSliceFileName));
 		}
 	}
 

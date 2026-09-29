@@ -33,7 +33,8 @@ KWCrashTestParametersView::KWCrashTestParametersView()
 	    ->SetDefaultValue(InputBufferedFile::GetMaxLineLength());
 	cast(UIIntElement*, GetFieldAt("CrashTestMaxSecondaryRecordNumber"))->SetMinValue(0);
 	cast(UIIntElement*, GetFieldAt("CrashTestMaxCreatedRecordNumber"))->SetMinValue(0);
-	cast(UIIntElement*, GetFieldAt("CrashTestIOIndex"))->SetMinValue(1);
+	// 0 est une valeur valide, qui desactive le declenchement du crash test
+	cast(UIIntElement*, GetFieldAt("CrashTestIOIndex"))->SetMinValue(0);
 	cast(UIIntElement*, GetFieldAt("CrashTestIOIndex"))->SetDefaultValue(1);
 	cast(UIIntElement*, GetFieldAt("CrashTestMemoryGuardMemoryLimit"))->SetMinValue(0);
 
@@ -49,7 +50,7 @@ KWCrashTestParametersView::KWCrashTestParametersView()
 	GetFieldAt("CrashTestType")->SetHelpText("Type of crash for crash test (expert).");
 	GetFieldAt("CrashTestMethod")->SetHelpText("Name of task method for crash test (expert).");
 	GetFieldAt("CrashTestCallIndex")->SetHelpText("Call index of task method for crash test (expert).");
-	GetFieldAt("CrashTestIOIndex")->SetHelpText("IO index for crash test (expert).");
+	GetFieldAt("CrashTestIOIndex")->SetHelpText("IO index for crash test (expert). Use 0 to disable.");
 	GetFieldAt("CrashTestMaxLineLength")->SetHelpText("Max line length in input data files (expert).");
 	GetFieldAt("CrashTestMaxSecondaryRecordNumber")
 	    ->SetHelpText("Max record number per multi-table instance."

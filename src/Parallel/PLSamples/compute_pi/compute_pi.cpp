@@ -54,6 +54,5 @@ int main(int argc, char** argv)
 		// Lancement de l'esclave
 		PLParallelTask::GetDriver()->StartSlave();
 	}
-	SystemFileDriverCreator::UnregisterDrivers();
 	PLParallelTask::DeleteAllTasks();
 }
