@@ -107,7 +107,7 @@ set(CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON)
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS_PRIVATE_DIRS ${CMAKE_BINARY_DIR}/lib/)
 
 # We add mpi implementation to package name (khiops-core only)
-if(MPI_IMPL)
+if(UNIX AND MPI_IMPL)
   string(REPLACE "_" "-" PACKAGE_SUFFIX ${MPI_SUFFIX})
 else()
   set(PACKAGE_SUFFIX "-serial")

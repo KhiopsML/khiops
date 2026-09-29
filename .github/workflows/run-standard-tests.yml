@@ -133,6 +133,8 @@ jobs:
       - name: Setup MPI (windows)
         if: runner.os == 'Windows'
         uses: mpi4py/setup-mpi@v1
+        with:
+          mpi: intelmpi
       - name: Setup MPI (macOS)
         if: runner.os == 'macOS'
         shell: bash
