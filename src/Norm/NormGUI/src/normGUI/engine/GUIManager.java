@@ -104,12 +104,7 @@ public class GUIManager extends GUIObject
                                                 UIManager.put("Viewport.font", defaultFont);
                                         }
 
-                                        // TextArea
-                                        Insets margin = new Insets(3, 3, 3, 3);
-                                        UIManager.put("TextArea.margin", margin);
 
-                                        // TextField
-                                        UIManager.put("TextField.margin", margin);
 
                                         // Libelles des boites de dialogue
                                         Locale locale = new Locale.Builder()
