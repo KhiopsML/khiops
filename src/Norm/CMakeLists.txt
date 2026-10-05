@@ -25,6 +25,7 @@ if(BUILD_JARS)
     IMAGES
     "NormGUI/theme/FlatLaf.properties"
     "NormGUI/theme/FlatArcOrangeIJTheme.properties"
+    "NormGUI/fonts/Poppins-Regular.ttf"
     "NormGUI/images/sample.png"
     "NormGUI/images/sample.jpg"
     "NormGUI/images/sample.gif"
