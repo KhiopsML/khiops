@@ -170,6 +170,17 @@ public class GUIManager extends GUIObject
         private static boolean initializeFlatLaf()
         {
                 try {
+                        // Priorite au theme Arc Orange (flatlaf-intellij-themes).
+                        // Fallback vers FlatLightLaf si le jar des themes n'est pas disponible.
+                        try {
+                                Class<?> flatArcOrangeClass =
+                                  Class.forName("com.formdev.flatlaf.intellijthemes.FlatArcOrangeIJTheme");
+                                Object flatArcOrangeLaf = flatArcOrangeClass.getDeclaredConstructor().newInstance();
+                                UIManager.setLookAndFeel((javax.swing.LookAndFeel)flatArcOrangeLaf);
+                                return true;
+                        } catch (Throwable ignored) {
+                        }
+
                         Class<?> flatLightLafClass = Class.forName("com.formdev.flatlaf.FlatLightLaf");
                         Object flatLightLaf = flatLightLafClass.getDeclaredConstructor().newInstance();
                         UIManager.setLookAndFeel((javax.swing.LookAndFeel)flatLightLaf);
