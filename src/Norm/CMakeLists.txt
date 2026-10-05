@@ -23,6 +23,8 @@ if(BUILD_JARS)
     NAMESPACE
     "images"
     IMAGES
+    "NormGUI/theme/FlatLaf.properties"
+    "NormGUI/theme/FlatArcOrangeIJTheme.properties"
     "NormGUI/images/sample.png"
     "NormGUI/images/sample.jpg"
     "NormGUI/images/sample.gif"
