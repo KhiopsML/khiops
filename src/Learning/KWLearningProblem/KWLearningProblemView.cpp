@@ -121,6 +121,8 @@ KWLearningProblemView::KWLearningProblemView()
 	AddAction("TransferDatabase", "Deploy model...", (ActionMethod)(&KWLearningProblemView::TransferDatabase));
 	GetActionAt("ComputeStats")->SetStyle("Button");
 	GetActionAt("TransferDatabase")->SetStyle("Button");
+	GetActionAt("ComputeStats")->SetParameters("icon=sparkles");
+	GetActionAt("TransferDatabase")->SetParameters("icon=rocket");
 
 	// Info-bulles
 	GetActionAt("ComputeStats")
