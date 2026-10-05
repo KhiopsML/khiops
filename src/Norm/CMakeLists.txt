@@ -25,6 +25,8 @@ if(BUILD_JARS)
     IMAGES
     "NormGUI/theme/FlatLaf.properties"
     "NormGUI/theme/FlatArcOrangeIJTheme.properties"
+    "NormGUI/theme/lucide/rocket.svg"
+    "NormGUI/theme/lucide/sparkles.svg"
     "NormGUI/fonts/Poppins-Regular.ttf"
     "NormGUI/images/sample.png"
     "NormGUI/images/sample.jpg"

@@ -255,11 +255,20 @@ if(BUILD_JARS)
   # Download FlatLaf for the Swing GUI look and feel.
   # The jar is stored with a stable file name for packaging and runtime scripts.
   set(KHIOPS_FLATLAF_VERSION "3.6")
+  set(KHIOPS_JSVG_VERSION "1.4.0")
   set(KHIOPS_FLATLAF_JAR "${KHIOPS_BUILD_JAR_DIR}/flatlaf.jar")
+    set(KHIOPS_FLATLAF_EXTRAS_JAR "${KHIOPS_BUILD_JAR_DIR}/flatlaf-extras.jar")
   set(KHIOPS_FLATLAF_INTELLIJ_THEMES_JAR "${KHIOPS_BUILD_JAR_DIR}/flatlaf-intellij-themes.jar")
+  set(KHIOPS_JSVG_JAR "${KHIOPS_BUILD_JAR_DIR}/jsvg.jar")
   set(KHIOPS_FLATLAF_URL
       "https://repo1.maven.org/maven2/com/formdev/flatlaf/${KHIOPS_FLATLAF_VERSION}/flatlaf-${KHIOPS_FLATLAF_VERSION}.jar"
   )
+    set(KHIOPS_FLATLAF_EXTRAS_URL
+      "https://repo1.maven.org/maven2/com/formdev/flatlaf-extras/${KHIOPS_FLATLAF_VERSION}/flatlaf-extras-${KHIOPS_FLATLAF_VERSION}.jar"
+    )
+      set(KHIOPS_JSVG_URL
+        "https://repo1.maven.org/maven2/com/github/weisj/jsvg/${KHIOPS_JSVG_VERSION}/jsvg-${KHIOPS_JSVG_VERSION}.jar"
+      )
   set(
     KHIOPS_FLATLAF_INTELLIJ_THEMES_URL
     "https://repo1.maven.org/maven2/com/formdev/flatlaf-intellij-themes/${KHIOPS_FLATLAF_VERSION}/flatlaf-intellij-themes-${KHIOPS_FLATLAF_VERSION}.jar"
@@ -297,6 +306,38 @@ if(BUILD_JARS)
       message(
         FATAL_ERROR
           "Unable to download FlatLaf IntelliJ themes (${KHIOPS_FLATLAF_INTELLIJ_THEMES_DOWNLOAD_MESSAGE}). Please check network access to Maven Central or provide ${KHIOPS_FLATLAF_INTELLIJ_THEMES_JAR} manually."
+      )
+    endif()
+  endif()
+
+  if(NOT EXISTS "${KHIOPS_FLATLAF_EXTRAS_JAR}")
+    file(MAKE_DIRECTORY "${KHIOPS_BUILD_JAR_DIR}")
+    message(STATUS "Downloading FlatLaf extras ${KHIOPS_FLATLAF_VERSION} from ${KHIOPS_FLATLAF_EXTRAS_URL}")
+    file(
+      DOWNLOAD "${KHIOPS_FLATLAF_EXTRAS_URL}" "${KHIOPS_FLATLAF_EXTRAS_JAR}"
+      STATUS KHIOPS_FLATLAF_EXTRAS_DOWNLOAD_STATUS TLS_VERIFY ON SHOW_PROGRESS)
+    list(GET KHIOPS_FLATLAF_EXTRAS_DOWNLOAD_STATUS 0 KHIOPS_FLATLAF_EXTRAS_DOWNLOAD_CODE)
+    list(GET KHIOPS_FLATLAF_EXTRAS_DOWNLOAD_STATUS 1 KHIOPS_FLATLAF_EXTRAS_DOWNLOAD_MESSAGE)
+    if(NOT KHIOPS_FLATLAF_EXTRAS_DOWNLOAD_CODE EQUAL 0)
+      message(
+        FATAL_ERROR
+          "Unable to download FlatLaf extras (${KHIOPS_FLATLAF_EXTRAS_DOWNLOAD_MESSAGE}). Please check network access to Maven Central or provide ${KHIOPS_FLATLAF_EXTRAS_JAR} manually."
+      )
+    endif()
+  endif()
+
+  if(NOT EXISTS "${KHIOPS_JSVG_JAR}")
+    file(MAKE_DIRECTORY "${KHIOPS_BUILD_JAR_DIR}")
+    message(STATUS "Downloading jsvg ${KHIOPS_JSVG_VERSION} from ${KHIOPS_JSVG_URL}")
+    file(
+      DOWNLOAD "${KHIOPS_JSVG_URL}" "${KHIOPS_JSVG_JAR}"
+      STATUS KHIOPS_JSVG_DOWNLOAD_STATUS TLS_VERIFY ON SHOW_PROGRESS)
+    list(GET KHIOPS_JSVG_DOWNLOAD_STATUS 0 KHIOPS_JSVG_DOWNLOAD_CODE)
+    list(GET KHIOPS_JSVG_DOWNLOAD_STATUS 1 KHIOPS_JSVG_DOWNLOAD_MESSAGE)
+    if(NOT KHIOPS_JSVG_DOWNLOAD_CODE EQUAL 0)
+      message(
+        FATAL_ERROR
+          "Unable to download jsvg (${KHIOPS_JSVG_DOWNLOAD_MESSAGE}). Please check network access to Maven Central or provide ${KHIOPS_JSVG_JAR} manually."
       )
     endif()
   endif()

@@ -6,7 +6,9 @@ package normGUI.engine;
 
 import java.awt.Font;
 import java.awt.Insets;
+import javax.swing.Icon;
 import javax.swing.JButton;
+import javax.swing.SwingConstants;
 
 /**
  * Definit une action utilisateur
@@ -38,12 +40,76 @@ public class GUIAction extends GUIObject
                         actionButton.setMargin(new Insets(2, 2, 2, 2));
                 } else
                         actionButton = new JButton(getLabel());
+                applyOptionalLucideIcon(actionButton);
                 actionButton.setActionCommand(getIdentifier());
                 if (getShortCut() != ' ')
                         actionButton.setMnemonic((int)getShortCut());
                 setComponentHelpText(actionButton);
                 return actionButton;
         };
+
+        private void applyOptionalLucideIcon(JButton actionButton)
+        {
+                String iconPath = resolveIconPathFromParameters();
+
+                if (iconPath == null)
+                        return;
+
+                Icon icon = loadLucideSvgIcon(iconPath);
+                if (icon != null) {
+                        actionButton.setIcon(icon);
+                        actionButton.setIconTextGap(8);
+                        actionButton.setHorizontalTextPosition(SwingConstants.RIGHT);
+                }
+        }
+
+        private String resolveIconPathFromParameters()
+        {
+                String parameters = getParameters();
+
+                if (parameters == null || parameters.length() == 0)
+                        return null;
+
+                String[] tokens = parameters.split("\\n");
+                for (String rawToken : tokens) {
+                        String token = rawToken.trim();
+                        if (!token.startsWith("icon="))
+                                continue;
+
+                        String iconValue = token.substring("icon=".length()).trim();
+                        if (iconValue.length() == 0)
+                                return null;
+
+                        if (iconValue.equals("rocket") || iconValue.equals("sparkles"))
+                                return "images/" + iconValue + ".svg";
+
+                        return iconValue;
+                }
+                return null;
+        }
+
+        private Icon loadLucideSvgIcon(String iconPath)
+        {
+                try {
+                        Class<?> svgIconClass = Class.forName("com.formdev.flatlaf.extras.FlatSVGIcon");
+                        Object svgIcon = svgIconClass.getConstructor(String.class, int.class, int.class)
+                                           .newInstance(iconPath, 16, 16);
+                        if (!(svgIcon instanceof Icon))
+                                return null;
+
+                        try {
+                                Object hasFound = svgIconClass.getMethod("hasFound").invoke(svgIcon);
+                                if (hasFound instanceof Boolean && !((Boolean)hasFound).booleanValue())
+                                        return null;
+                        } catch (Throwable ignored) {
+                                // hasFound is optional; ignore and use icon if present.
+                        }
+
+                        return (Icon)svgIcon;
+                } catch (Throwable ignored) {
+                        return null;
+                }
+        }
 
         /**
          * Cle d'acceleration associee a l'action
