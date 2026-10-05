@@ -376,6 +376,7 @@ public:
 
 protected:
 	friend void FileServiceApplicationTmpDirAutomaticRemove();
+	friend void SystemFileDriverCreatorAutomaticUnregister();
 
 	// Position de l'endroit de lecture/ecriture dans un fichier ouvert, en specifiant
 	// un offset et une positin de reference (SEEK_SET, SEEK_CUR, SEEK_END)

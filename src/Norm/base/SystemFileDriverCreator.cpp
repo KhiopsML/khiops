@@ -3,6 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "SystemFileDriverCreator.h"
+#include "FileService.h"
 
 ObjectArray* SystemFileDriverCreator::oaSystemFileDriver = NULL;
 int SystemFileDriverCreator::nExternalDriverNumber = 0;
@@ -15,6 +16,11 @@ boolean SystemFileDriverCreator::bIsAutomaticUnregister = false;
 // Methode appelee dans le atexit pour le nettoyage automatique des drivers
 void SystemFileDriverCreatorAutomaticUnregister()
 {
+	// On supprime le repertoire temporaire de l'application avant de desenregistrer les drivers (on a besoin des drivers
+	// pour supprimer les repertoires)
+	// Note : DeleteApplicationTmpDir est egalement positionnee dans le atexit dans le fichier FileService
+	// mais 2 appeles successifs de cette methode ne posent pas de probleme)
+	FileService::DeleteApplicationTmpDir();
 	SystemFileDriverCreator::UnregisterDrivers();
 }
 
@@ -235,7 +241,7 @@ SystemFileDriver* SystemFileDriverCreator::LookupDriver(const ALString& sURIFile
 		driver = SystemFileDriverCreator::GetDriverANSI();
 
 	// Sinon, on recherche parmi les driver qui ont ete enregistres
-	else
+	else if (oaSystemFileDriver != NULL)
 	{
 		// On parcourt tous les drivers pour trouver celui qui traite le scheme
 		for (i = 0; i < oaSystemFileDriver->GetSize(); i++)
@@ -274,6 +280,9 @@ boolean SystemFileDriverCreator::IsDriverRegisteredForScheme(const ALString& sSc
 {
 	int i;
 	SystemFileDriver* registeredDriver;
+
+	if (oaSystemFileDriver == NULL)
+		return false;
 
 	// On parcourt tous les drivers pour trouver celui qui traite le scheme
 	for (i = 0; i < oaSystemFileDriver->GetSize(); i++)
