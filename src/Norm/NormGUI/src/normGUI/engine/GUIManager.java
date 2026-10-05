@@ -39,15 +39,14 @@ public class GUIManager extends GUIObject
                                                            ExceptionHandler.class.getName());
 
                                         // Initialisation du UIManager
-                                        // On choisit le look and feel cross-plateforme (metal) essentiellement pour
-                                        // eviter le look and feel windows qui utilise un FileChooser defectueux.
-                                        // Ce dernier commence par scanner l'ensemble des disques disponibles,
-                                        // y compris les disques reseaux, pour dimensionner sa boite de dialogue.
-                                        // Cela entraine un temps d'attente de plusieurs dizaines de secondes,
-                                        // et rend l'application inutilisable
+                                        // On privilegie FlatLaf pour moderniser le rendu et conserver des boites
+                                        // de dialogue fichiers reactives. En cas d'echec, on conserve le fallback
+                                        // historique cross-plateforme (Metal).
                                         try {
-                                                UIManager.setLookAndFeel(
-                                                  UIManager.getCrossPlatformLookAndFeelClassName());
+                                                if (!initializeFlatLaf()) {
+                                                        UIManager.setLookAndFeel(
+                                                          UIManager.getCrossPlatformLookAndFeelClassName());
+                                                }
                                         } catch (Exception e) {
                                                 if (debug)
                                                         displayMessage(
@@ -162,6 +161,23 @@ public class GUIManager extends GUIObject
                 {
                         System.out.println("Exception on " + tname);
                         thrown.printStackTrace();
+                }
+        }
+
+        /**
+         * Initialise FlatLaf si la librairie est presente dans le classpath.
+         */
+        private static boolean initializeFlatLaf()
+        {
+                try {
+                        Class<?> flatLightLafClass = Class.forName("com.formdev.flatlaf.FlatLightLaf");
+                        Object flatLightLaf = flatLightLafClass.getDeclaredConstructor().newInstance();
+                        UIManager.setLookAndFeel((javax.swing.LookAndFeel)flatLightLaf);
+                        return true;
+                } catch (Throwable e) {
+                        if (debug)
+                                displayMessage("Impossible de charger FlatLaf, fallback vers Metal");
+                        return false;
                 }
         }
 

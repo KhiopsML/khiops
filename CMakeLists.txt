@@ -251,6 +251,30 @@ if(BUILD_JARS)
   include(UseJava)
   set(KHIOPS_BUILD_JAR_DIR "${CMAKE_BINARY_DIR}/jars")
   message(STATUS "Java JARs will be stored at ${KHIOPS_BUILD_JAR_DIR}")
+
+  # Download FlatLaf for the Swing GUI look and feel.
+  # The jar is stored with a stable file name for packaging and runtime scripts.
+  set(KHIOPS_FLATLAF_VERSION "3.6")
+  set(KHIOPS_FLATLAF_JAR "${KHIOPS_BUILD_JAR_DIR}/flatlaf.jar")
+  set(KHIOPS_FLATLAF_URL
+      "https://repo1.maven.org/maven2/com/formdev/flatlaf/${KHIOPS_FLATLAF_VERSION}/flatlaf-${KHIOPS_FLATLAF_VERSION}.jar"
+  )
+  if(NOT EXISTS "${KHIOPS_FLATLAF_JAR}")
+    file(MAKE_DIRECTORY "${KHIOPS_BUILD_JAR_DIR}")
+    message(STATUS "Downloading FlatLaf ${KHIOPS_FLATLAF_VERSION} from ${KHIOPS_FLATLAF_URL}")
+    file(
+      DOWNLOAD "${KHIOPS_FLATLAF_URL}" "${KHIOPS_FLATLAF_JAR}"
+      STATUS KHIOPS_FLATLAF_DOWNLOAD_STATUS TLS_VERIFY ON SHOW_PROGRESS)
+    list(GET KHIOPS_FLATLAF_DOWNLOAD_STATUS 0 KHIOPS_FLATLAF_DOWNLOAD_CODE)
+    list(GET KHIOPS_FLATLAF_DOWNLOAD_STATUS 1 KHIOPS_FLATLAF_DOWNLOAD_MESSAGE)
+    if(NOT KHIOPS_FLATLAF_DOWNLOAD_CODE EQUAL 0)
+      message(
+        FATAL_ERROR
+          "Unable to download FlatLaf (${KHIOPS_FLATLAF_DOWNLOAD_MESSAGE}). Please check network access to Maven Central or provide ${KHIOPS_FLATLAF_JAR} manually."
+      )
+    endif()
+  endif()
+
   # Note: For final builds we recommend to use java 1.8 to ensure that the jar is compatible with all posterior java
   # versions (from # 1.8 to the most recent ones). The following setting accomplish that:
   #
