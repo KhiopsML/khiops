@@ -57,7 +57,6 @@ public class GUIMessage extends JFrame
                 pane.setText("");
                 pane.setAutoscrolls(true);
                 pane.setEditable(false);
-                pane.setMargin(new Insets(10, 10, 10, 10));
 
                 // Creation et ajout des composants au panel
                 JScrollPane scrollPane = new JScrollPane(pane);
