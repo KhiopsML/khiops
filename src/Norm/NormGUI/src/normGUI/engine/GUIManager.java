@@ -5,7 +5,11 @@
 package normGUI.engine;
 
 import java.awt.Font;
+import java.awt.FontFormatException;
+import java.awt.GraphicsEnvironment;
 import java.awt.Insets;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Locale;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -39,77 +43,40 @@ public class GUIManager extends GUIObject
                                                            ExceptionHandler.class.getName());
 
                                         // Initialisation du UIManager
-                                        // On choisit le look and feel cross-plateforme (metal) essentiellement pour
-                                        // eviter le look and feel windows qui utilise un FileChooser defectueux.
-                                        // Ce dernier commence par scanner l'ensemble des disques disponibles,
-                                        // y compris les disques reseaux, pour dimensionner sa boite de dialogue.
-                                        // Cela entraine un temps d'attente de plusieurs dizaines de secondes,
-                                        // et rend l'application inutilisable
+                                        // On privilegie FlatLaf pour moderniser le rendu et conserver des boites
+                                        // de dialogue fichiers reactives. En cas d'echec, on conserve le fallback
+                                        // historique cross-plateforme (Metal).
                                         try {
-                                                UIManager.setLookAndFeel(
-                                                  UIManager.getCrossPlatformLookAndFeelClassName());
+                                                if (!initializeFlatLaf()) {
+                                                        UIManager.setLookAndFeel(
+                                                          UIManager.getCrossPlatformLookAndFeelClassName());
+                                                }
                                         } catch (Exception e) {
                                                 if (debug)
                                                         displayMessage(
                                                           "Impossible de charger le Look & Feel cross-plateforme");
                                         }
 
-                                        // Choix d'une font par defaut
-                                        Font defaultFont;
-                                        try {
-                                                defaultFont = new Font("MS Sans Serif", Font.PLAIN, 12);
-                                        } catch (Exception e) {
-                                                defaultFont = null;
-                                                if (debug)
-                                                        displayMessage("Impossible de charger la fonte systeme");
-                                        }
+                                        // Choix d'une fonte par defaut
+                                        Font defaultFont = loadDefaultFont();
 
-                                        // Pour parametrer les fontes de tous les composants
-                                        // Apparement, la seule solution est de parametrer la fonte de tous les
-                                        // compsants
+                                        // Pour parametrer la fonte par defaut de toute l'UI.
                                         if (defaultFont != null) {
-                                                UIManager.put("Button.font", defaultFont);
-                                                UIManager.put("CheckBox.font", defaultFont);
-                                                UIManager.put("CheckBoxMenuItem.font", defaultFont);
-                                                UIManager.put("ColorChooser.font", defaultFont);
-                                                UIManager.put("ComboBox.font", defaultFont);
-                                                UIManager.put("DesktopIcon.font", defaultFont);
-                                                UIManager.put("EditorPane.font", defaultFont);
-                                                UIManager.put("FormattedTextField.font", defaultFont);
-                                                UIManager.put("Label.font", defaultFont);
-                                                UIManager.put("List.font", defaultFont);
-                                                UIManager.put("Menu.font", defaultFont);
-                                                UIManager.put("MenuBar.font", defaultFont);
-                                                UIManager.put("MenuItem.font", defaultFont);
-                                                UIManager.put("OptionPane.font", defaultFont);
-                                                UIManager.put("Panel.font", defaultFont);
-                                                UIManager.put("PasswordField.font", defaultFont);
-                                                UIManager.put("PopupMenu.font", defaultFont);
-                                                UIManager.put("ProgressBar.font", defaultFont);
-                                                UIManager.put("RadioButton.font", defaultFont);
-                                                UIManager.put("RadioButtonMenuItem.font", defaultFont);
-                                                UIManager.put("ScrollPane.font", defaultFont);
-                                                UIManager.put("Slider.font", defaultFont);
-                                                UIManager.put("Spinner.font", defaultFont);
-                                                UIManager.put("TabbedPane.font", defaultFont);
-                                                UIManager.put("Table.font", defaultFont);
-                                                UIManager.put("TableHeader.font", defaultFont);
-                                                UIManager.put("TextArea.font", defaultFont);
-                                                UIManager.put("TextField.font", defaultFont);
-                                                UIManager.put("TextPane.font", defaultFont);
-                                                UIManager.put("TitledBorder.font", defaultFont);
-                                                UIManager.put("ToggleButton.font", defaultFont);
-                                                UIManager.put("ToolBar.font", defaultFont);
-                                                UIManager.put("ToolTip.font", defaultFont);
-                                                UIManager.put("Tree.font", defaultFont);
-                                                UIManager.put("Viewport.font", defaultFont);
+                                                UIManager.put("defaultFont", defaultFont);
+                                                if (!UIManager.getLookAndFeel().getClass().getName().startsWith(
+                                                      "com.formdev.flatlaf.")) {
+                                                        for (Object key : UIManager.getLookAndFeelDefaults().keySet()
+                                                                            .toArray()) {
+                                                                if (key instanceof String &&
+                                                                    ((String)key).endsWith(".font"))
+                                                                        UIManager.put(key, defaultFont);
+                                                        }
+                                                }
                                         }
 
-                                        // TextArea
-                                        Insets margin = new Insets(3, 3, 3, 3);
+                                        // Marge interne des champs texte et des zones de texte
+                                        Insets margin = new Insets(8, 10, 8, 10);
                                         UIManager.put("TextArea.margin", margin);
-
-                                        // TextField
                                         UIManager.put("TextField.margin", margin);
 
                                         // Libelles des boites de dialogue
@@ -163,6 +130,90 @@ public class GUIManager extends GUIObject
                         System.out.println("Exception on " + tname);
                         thrown.printStackTrace();
                 }
+        }
+
+        /**
+         * Initialise FlatLaf si la librairie est presente dans le classpath.
+         */
+        private static boolean initializeFlatLaf()
+        {
+                try {
+                        try {
+                                Class<?> flatLafClass = Class.forName("com.formdev.flatlaf.FlatLaf");
+                                java.lang.reflect.Method registerCustomDefaultsSourceMethod =
+                                  flatLafClass.getMethod("registerCustomDefaultsSource", String.class);
+                                registerCustomDefaultsSourceMethod.invoke(null, "images");
+                        } catch (Throwable ignored) {
+                                // Ignorer les erreurs lors de l'enregistrement des sources de valeurs par défaut personnalisées
+                        }
+
+                        // Priorite au theme Arc Orange (flatlaf-intellij-themes).
+                        // Fallback vers FlatLightLaf si le jar des themes n'est pas disponible.
+                        try {
+                                Class<?> flatArcOrangeClass =
+                                  Class.forName("com.formdev.flatlaf.intellijthemes.FlatArcOrangeIJTheme");
+                                Object flatArcOrangeLaf = flatArcOrangeClass.getDeclaredConstructor().newInstance();
+                                UIManager.setLookAndFeel((javax.swing.LookAndFeel)flatArcOrangeLaf);
+                                return true;
+                        } catch (Throwable ignored) {
+                                // Ignorer les erreurs lors du chargement du thème Arc Orange
+                        }
+
+                        Class<?> flatLightLafClass = Class.forName("com.formdev.flatlaf.FlatLightLaf");
+                        Object flatLightLaf = flatLightLafClass.getDeclaredConstructor().newInstance();
+                        UIManager.setLookAndFeel((javax.swing.LookAndFeel)flatLightLaf);
+                        return true;
+                } catch (Throwable e) {
+                        if (debug)
+                                displayMessage("Impossible de charger FlatLaf, fallback vers Metal");
+                        return false;
+                }
+        }
+
+        /**
+         * Charge la fonte Poppins embarquee et retourne une fonte de taille standard.
+         * Fallback vers une fonte systeme si Poppins n'est pas disponible.
+         */
+        private static Font loadDefaultFont()
+        {
+                try {
+                        Font poppinsFont = loadBundledPoppinsFont();
+                        if (poppinsFont != null)
+                                return poppinsFont;
+
+                        // Fallback: si la fonte est installee systeme, on peut encore l'utiliser.
+                        Font systemPoppinsFont = new Font("Poppins", Font.PLAIN, 12);
+                        if (!"Dialog".equals(systemPoppinsFont.getFamily()))
+                                return systemPoppinsFont;
+
+                        return new Font("MS Sans Serif", Font.PLAIN, 12);
+                } catch (Exception e) {
+                        if (debug)
+                                displayMessage("Impossible de charger la fonte par defaut");
+                        return null;
+                }
+        }
+
+        /**
+         * Charge et enregistre la fonte Poppins embarquee dans les ressources du jar.
+         */
+        private static Font loadBundledPoppinsFont() throws IOException, FontFormatException
+        {
+                String[] resourcePaths =
+                  {"images/Poppins-Regular.ttf"};
+
+                for (String resourcePath : resourcePaths) {
+                        try (InputStream fontStream =
+                               GUIManager.class.getClassLoader().getResourceAsStream(resourcePath)) {
+                                if (fontStream == null)
+                                        continue;
+
+                                Font loadedFont = Font.createFont(Font.TRUETYPE_FONT, fontStream);
+                                GraphicsEnvironment.getLocalGraphicsEnvironment().registerFont(loadedFont);
+                                return loadedFont.deriveFont(Font.PLAIN, 12f);
+                        }
+                }
+                return null;
         }
 
         /**
