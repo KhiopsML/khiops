@@ -254,6 +254,10 @@ if(IS_LINUX OR IS_MACOS)
       FILES ${KHIOPS_FLATLAF_JAR}
       DESTINATION usr/share/khiops
       COMPONENT KHIOPS)
+    install(
+      FILES ${KHIOPS_FLATLAF_INTELLIJ_THEMES_JAR}
+      DESTINATION usr/share/khiops
+      COMPONENT KHIOPS)
     install_jar(
       khiops_jar
       DESTINATION usr/share/khiops
@@ -307,6 +311,10 @@ else(IS_LINUX OR IS_MACOS)
   if(BUILD_JARS AND GUI_SUPPORTED)
     install(
       FILES ${KHIOPS_FLATLAF_JAR}
+      DESTINATION jars
+      COMPONENT KHIOPS)
+    install(
+      FILES ${KHIOPS_FLATLAF_INTELLIJ_THEMES_JAR}
       DESTINATION jars
       COMPONENT KHIOPS)
     install_jar(

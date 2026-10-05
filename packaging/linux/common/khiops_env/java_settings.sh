@@ -16,7 +16,7 @@ if [ -f "/usr/share/khiops/khiops.jar" ]; then
             KHIOPS_JAVA_ERROR="libjvm.so not found in JAVA_HOME ($JAVA_HOME)"
         else
             KHIOPS_JAVA_PATH=$(dirname "$JVM_PATH")
-            KHIOPS_CLASSPATH=/usr/share/khiops/flatlaf.jar:/usr/share/khiops/norm.jar:/usr/share/khiops/khiops.jar
+            KHIOPS_CLASSPATH=/usr/share/khiops/flatlaf-intellij-themes.jar:/usr/share/khiops/flatlaf.jar:/usr/share/khiops/norm.jar:/usr/share/khiops/khiops.jar
         fi
     fi
 fi
