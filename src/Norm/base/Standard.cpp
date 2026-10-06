@@ -3,6 +3,8 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "Standard.h"
+#include "FileService.h"
+#include "SystemFileDriverCreator.h"
 
 /////////////////////////////////////////////////////////////////////////////
 //            Implementation des fonctions d'acquisition                   //
@@ -671,6 +673,10 @@ void GlobalExit()
 			assert(fUserExitHandler != NULL);
 			fUserExitHandler(nExitCode);
 		}
+
+		// Destruction du repertoire temporaire et desenregistrement des drivers avant la sortie du processus
+		FileService::DeleteApplicationTmpDir();
+		SystemFileDriverCreator::UnregisterDrivers();
 
 		// Flush et fermeture de tous les fichiers
 #ifdef _WIN32
