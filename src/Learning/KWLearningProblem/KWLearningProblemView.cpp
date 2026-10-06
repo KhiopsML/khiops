@@ -37,6 +37,11 @@ KWLearningProblemView::KWLearningProblemView()
 	AddCardField("LearningTools", "Tools", learningProblemActionView);
 	AddCardField("Help", "Help", learningProblemHelpCard);
 
+	// Ajout d'icônes aux onglets
+	GetFieldAt("TrainDatabase")->SetParameters("icon=database");
+	GetFieldAt("AnalysisSpec")->SetParameters("icon=sliders-vertical");
+	GetFieldAt("AnalysisResults")->SetParameters("icon=chart-column-big");
+
 	// Ajout pour la base de train d'un champ en read-only pour rappeler le nom du fichier de dictionnaire
 	// Attention, il s'agit d'un champ d'interface uniquement, a mettre ajour dans EventRefresh
 	trainDatabaseView->AddStringField("ClassFileName", "Dictionary file", "");
@@ -121,6 +126,8 @@ KWLearningProblemView::KWLearningProblemView()
 	AddAction("TransferDatabase", "Deploy model...", (ActionMethod)(&KWLearningProblemView::TransferDatabase));
 	GetActionAt("ComputeStats")->SetStyle("Button");
 	GetActionAt("TransferDatabase")->SetStyle("Button");
+
+	// Ajout d'icônes aux actions
 	GetActionAt("ComputeStats")->SetParameters("icon=sparkles");
 	GetActionAt("TransferDatabase")->SetParameters("icon=rocket");
 
