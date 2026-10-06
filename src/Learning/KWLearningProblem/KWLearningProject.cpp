@@ -106,6 +106,9 @@ void KWLearningProject::Start(int argc, char** argv)
 
 	// Fermeture du fichier de stats memoire
 	MemoryStatsManager::CloseLogFile();
+
+	// Destruction du repertoire temporaire applicatif avant la fin du programme
+	FileService::DeleteApplicationTmpDir();
 }
 
 void KWLearningProject::Begin()
@@ -128,6 +131,9 @@ void KWLearningProject::End()
 	MemoryStatsManager::AddLog(GetClassLabel() + " CloseLearningEnvironnement Begin");
 	CloseLearningEnvironnement();
 	MemoryStatsManager::AddLog(GetClassLabel() + " CloseLearningEnvironnement End");
+
+	// Necessaire pour les utilisations via Begin/End, notamment par KNI
+	FileService::DeleteApplicationTmpDir();
 }
 
 const ALString KWLearningProject::GetClassLabel() const

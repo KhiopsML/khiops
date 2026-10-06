@@ -237,6 +237,9 @@ public:
 	// Retourne chaine vide sinon
 	static const ALString GetApplicationTmpDir();
 
+	// Destruction du repertoire temporaire applicatif
+	static boolean DeleteApplicationTmpDir();
+
 	// Creation effective d'un nouveau fichier ou d'un repertoire temporaire
 	// dans le repertoire applicatif temporaire a partir d'un nom de base (sans chemin)
 	// Le repertoire applicatif temporaire doit avoir ete cree prealablement
@@ -375,18 +378,10 @@ public:
 	static char GetURIFileSeparator();
 
 protected:
-	friend void FileServiceApplicationTmpDirAutomaticRemove();
-	friend void SystemFileDriverCreatorAutomaticUnregister();
-
 	// Position de l'endroit de lecture/ecriture dans un fichier ouvert, en specifiant
 	// un offset et une positin de reference (SEEK_SET, SEEK_CUR, SEEK_END)
 	// Renvoie true si pas d'erreur, false sinon (sans message d'erreur)
 	static boolean SystemSeekPositionInBinaryFile(FILE* fFile, longint lOffset, int nWhence);
-
-	// Destruction du repertoire applicatif des fichiers temporaires
-	// Cette methode est appelee automatiquement a chaque modification du repertoire
-	// ainsi qu'en fin de programme
-	static boolean DeleteApplicationTmpDir();
 
 	// Caractere prefixe des fichiers temporaires
 	static char GetTmpPrefix();
