@@ -48,6 +48,9 @@ public class GUIAction extends GUIObject
                 return actionButton;
         };
 
+        /**
+         * Applique une icône Lucide optionnelle au bouton d'action, si spécifiée dans les paramètres
+         */
         private void applyOptionalLucideIcon(JButton actionButton)
         {
                 String iconPath = resolveIconPathFromParameters();
@@ -63,6 +66,9 @@ public class GUIAction extends GUIObject
                 }
         }
 
+        /**
+         * Résout le chemin de l'icône à partir des paramètres de l'action
+         */
         private String resolveIconPathFromParameters()
         {
                 String parameters = getParameters();
@@ -88,6 +94,9 @@ public class GUIAction extends GUIObject
                 return null;
         }
 
+        /**
+         * Charge l'icône SVG Lucide à partir du chemin spécifié, ou retourne null si elle ne peut pas être trouvée
+         */
         private Icon loadLucideSvgIcon(String iconPath)
         {
                 try {

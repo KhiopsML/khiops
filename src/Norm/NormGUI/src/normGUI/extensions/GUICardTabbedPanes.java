@@ -4,11 +4,15 @@
 
 package normGUI.extensions;
 
+import com.formdev.flatlaf.extras.FlatSVGIcon;
+import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.Vector;
 import javax.swing.JButton;
 import javax.swing.JMenu;
@@ -30,10 +34,17 @@ import normGUI.engine.GUIUnit;
 public class GUICardTabbedPanes extends GUICard implements ChangeListener, FocusListener
 {
 
+        private static final Color selectedTabIconColor = new Color(0xFF6600);
+
         /**
          * Onglets regroupant les sous unites
          */
         private JTabbedPane tabbedPanes;
+
+        /**
+         * Index de l'onglet survole, -1 si aucun
+         */
+        private int hoveredTabIndex = -1;
 
         /**
          * Construit le menu associe a l'unite
@@ -154,7 +165,25 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                                                         JPanel jp = new JPanel(new GridBagLayout());
                                                         jp.setName(guiData.getIdentifier());
                                                         guiUnit.graphicAddField(jp, gbc);
-                                                        tabbedPanes.addTab(guiUnit.getLabel(), jp);
+
+                                                        // Charge l'icône de l'onglet à partir des paramètres, si spécifiée
+                                                        String iconPath = resolveIconPathFromParameters(guiUnit.getParameters());
+                                                        FlatSVGIcon tabIcon = loadTabIcon(iconPath);
+                                                        if (tabIcon != null) {
+                                                                // Index de l'onglet une fois ajouté
+                                                                final int tabIndex = tabbedPanes.getTabCount();
+
+                                                                // Évalué à chaque draw, donc il reflète toujours l'état
+                                                                // actuel de sélection/survol
+                                                                tabIcon.setColorFilter(new FlatSVGIcon.ColorFilter(
+                                                                    color -> (tabIndex == tabbedPanes.getSelectedIndex() ||
+                                                                              tabIndex == hoveredTabIndex)
+                                                                                 ? selectedTabIconColor
+                                                                                 : color));
+                                                                tabbedPanes.addTab(guiUnit.getLabel(), tabIcon, jp);
+                                                        } else
+                                                                tabbedPanes.addTab(guiUnit.getLabel(), jp);
+
                                                         if (guiUnit.getShortCut() != ' ')
                                                                 tabbedPanes.setMnemonicAt(tabbedPanes.getTabCount() - 1,
                                                                                           guiUnit.getShortCut());
@@ -176,6 +205,20 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                                 refreshMenus();
                                 tabbedPanes.addChangeListener(this);
                                 tabbedPanes.addFocusListener(this);
+
+                                // Suit l'onglet survolé afin que son icône puisse être mise en évidence
+                                MouseAdapter hoverListener = new MouseAdapter() {
+                                        public void mouseMoved(MouseEvent e)
+                                        {
+                                                updateHoveredTab(tabbedPanes.indexAtLocation(e.getX(), e.getY()));
+                                        }
+
+                                        public void mouseDragged(MouseEvent e) { mouseMoved(e); }
+
+                                        public void mouseExited(MouseEvent e) { updateHoveredTab(-1); }
+                                };
+                                tabbedPanes.addMouseListener(hoverListener);
+                                tabbedPanes.addMouseMotionListener(hoverListener);
                         }
                 }
 
@@ -217,6 +260,9 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
          */
         private void refreshMenus()
         {
+                if (tabbedPanes == null)
+                        return;
+
                 if (synchronizeMenuWithPane) {
                         for (int i = 0; i < tabbedPanes.getTabCount(); i++) {
                                 String name = tabbedPanes.getComponentAt(i).getName();
@@ -237,6 +283,54 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
          * @param e L'evenement de changement de selection dans les onglets
          */
         public void stateChanged(ChangeEvent e) { refreshMenus(); }
+
+        /**
+         * Met à jour l'onglet survolé et ne repeint que lorsqu'il a changé
+         */
+        private void updateHoveredTab(int tabIndex)
+        {
+                if (tabbedPanes != null && tabIndex != hoveredTabIndex) {
+                        hoveredTabIndex = tabIndex;
+                        tabbedPanes.repaint();
+                }
+        }
+
+        /**
+         * Charge l'icône SVG de l'onglet, ou retourne null si elle ne peut pas être trouvée
+         */
+        private FlatSVGIcon loadTabIcon(String iconPath)
+        {
+                if (iconPath == null)
+                        return null;
+
+                FlatSVGIcon icon = new FlatSVGIcon(iconPath, 16, 16);
+                return icon.hasFound() ? icon : null;
+        }
+
+        /**
+         * Résoud le chemin de l'icône à partir de la chaîne de paramètres donnée.
+         */
+        private String resolveIconPathFromParameters(String parameters)
+        {
+                if (parameters == null || parameters.length() == 0)
+                        return null;
+
+                String[] tokens = parameters.split("\\n");
+                for (String rawToken : tokens) {
+                        String token = rawToken.trim();
+                        if (!token.startsWith("icon="))
+                                continue;
+
+                        String iconValue = token.substring("icon=".length()).trim();
+                        if (iconValue.length() == 0)
+                                return null;
+
+                        if (iconValue.indexOf('/') >= 0)
+                                return iconValue;
+                        return "images/" + iconValue + ".svg";
+                }
+                return null;
+        }
 
         /**
          * Synchronisatin des menus avec l'onglet selectionne

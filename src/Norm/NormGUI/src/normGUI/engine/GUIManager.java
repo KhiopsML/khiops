@@ -6,8 +6,8 @@ package normGUI.engine;
 
 import java.awt.Font;
 import java.awt.FontFormatException;
-import java.awt.Insets;
 import java.awt.GraphicsEnvironment;
+import java.awt.Insets;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Locale;
@@ -141,6 +141,7 @@ public class GUIManager extends GUIObject
                                   flatLafClass.getMethod("registerCustomDefaultsSource", String.class);
                                 registerCustomDefaultsSourceMethod.invoke(null, "images");
                         } catch (Throwable ignored) {
+                                // Ignorer les erreurs lors de l'enregistrement des sources de valeurs par défaut personnalisées
                         }
 
                         // Priorite au theme Arc Orange (flatlaf-intellij-themes).
@@ -152,6 +153,7 @@ public class GUIManager extends GUIObject
                                 UIManager.setLookAndFeel((javax.swing.LookAndFeel)flatArcOrangeLaf);
                                 return true;
                         } catch (Throwable ignored) {
+                                // Ignorer les erreurs lors du chargement du thème Arc Orange
                         }
 
                         Class<?> flatLightLafClass = Class.forName("com.formdev.flatlaf.FlatLightLaf");
