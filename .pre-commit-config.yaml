@@ -1,13 +1,13 @@
 ---
 repos:
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v22.1.8
+    rev: v23.1.0
     hooks:
       - id: clang-format
         args: [--verbose]
         types_or: [c, c++, java]
   - repo: https://github.com/psf/black
-    rev: 26.5.1
+    rev: 26.10.0
     hooks:
       - id: black
         language_version: python3
@@ -32,7 +32,7 @@ repos:
       - id: trailing-whitespace
         types_or: [c, c++, java, python, markdown]
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.38.0
+    rev: 0.38.1
     hooks:
       - id: check-github-workflows
       - id: check-github-actions

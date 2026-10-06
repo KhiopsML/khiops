@@ -98,9 +98,9 @@ boolean KWDatabaseTransferTask::Transfer(const KWDatabase* sourceDatabase, const
 	return bOk;
 }
 
-void KWDatabaseTransferTask ::CollectRelationAttributesToUnload(const KWDatabase* targetDatabase,
-								const KWClass* databaseClass,
-								ObjectArray* oaAttributesToUnload) const
+void KWDatabaseTransferTask::CollectRelationAttributesToUnload(const KWDatabase* targetDatabase,
+							       const KWClass* databaseClass,
+							       ObjectArray* oaAttributesToUnload) const
 {
 	int nMapping;
 	KWMTDatabase* targetMTDatabase;
