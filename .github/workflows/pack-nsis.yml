@@ -242,8 +242,8 @@ jobs:
             -FilePath .\khiops-${{ needs.build.outputs.khiops-version }}-setup.exe `
             -ArgumentList '/S' `
             -Wait
-          # Add Khiops and MPI to the path
-          $Env:Path += ";${Env:ProgramFiles}\khiops\bin;${Env:ProgramFiles}\Microsoft MPI\Bin"
+          # Add Khiops to the path
+          $Env:Path += ";${Env:ProgramFiles}\khiops\bin"
           echo "PATH=${Env:PATH}" >> ${Env:GITHUB_ENV}
           echo ${Env:GITHUB_ENV}
           type ${Env:GITHUB_ENV}

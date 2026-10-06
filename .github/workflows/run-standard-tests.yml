@@ -26,6 +26,8 @@ on:
       - src/**.yac
       - test/LearningTest/**
       - .github/workflows/run-standard-tests.yml
+      - .github/actions/build-khiops/**
+      - .github/actions/setup-intel-mpi/**
       - .github/actions/run-standard-tests/action.yml
 # Cancel any ongoing run of this workflow on the same PR or ref
 concurrency:
@@ -132,9 +134,7 @@ jobs:
           fail-on-cache-miss: true
       - name: Setup MPI (windows)
         if: runner.os == 'Windows'
-        uses: mpi4py/setup-mpi@v1
-        with:
-          mpi: intelmpi
+        uses: ./.github/actions/setup-intel-mpi
       - name: Setup MPI (macOS)
         if: runner.os == 'macOS'
         shell: bash
