@@ -50,7 +50,16 @@ boolean SystemFileDriver::MakeDirectories(const char* pathName) const
 
 		// Cas d'un debut de fichier en 'scheme:///'
 		sPathName = pathName;
-		if (sPathName.GetLength() > nEnd and sPathName.GetAt(nEnd) == '/')
+		if (nSchemeCharNumber > 0)
+		{
+			// Dans 'scheme://autorite/chemin', l'autorite (bucket, conteneur ou hote MPI) ne constitue pas un repertoire.
+			// On se positionne apres l'autorite pour commencer a traiter le chemin
+			while (nEnd < sPathName.GetLength() and not FileService::IsFileSeparator(sPathName.GetAt(nEnd)))
+				nEnd++;
+			if (nEnd < sPathName.GetLength())
+				nEnd++;
+		}
+		else if (sPathName.GetLength() > nEnd and sPathName.GetAt(nEnd) == '/')
 			nEnd++;
 
 		// Parcours des repertoire intermediaires
