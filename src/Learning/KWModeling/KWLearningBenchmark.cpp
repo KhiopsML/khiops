@@ -1025,10 +1025,12 @@ void KWLearningBenchmark::EvaluateExperiment(int nBenchmark, int nPredictor, int
 	}
 
 	// Restitution du domaine initial
-	if (initialDomain != KWClassDomain::GetCurrentDomain())
+	KWClassDomain* currentDomain = KWClassDomain::GetCurrentDomain();
+	if (initialDomain != currentDomain)
 	{
 		learningSpec->SetClass(initialDomain->LookupClass(learningSpec->GetClass()->GetName()));
-		delete KWClassDomain::GetCurrentDomain();
+		if (KWClassDomain::LookupDomain(currentDomain->GetName()) != currentDomain)
+			delete currentDomain;
 		KWClassDomain::SetCurrentDomain(initialDomain);
 	}
 
