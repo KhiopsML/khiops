@@ -147,6 +147,7 @@ KHIOPS_FAST_EXIT_MODE = "KhiopsFastExitMode"
 KHIOPS_DEFAULT_MEMORY_LIMIT = "KhiopsDefaultMemoryLimit"
 KHIOPS_HARD_MEMORY_LIMIT_MODE = "KhiopsHardMemoryLimitMode"
 KHIOPS_API_MODE = "KHIOPS_API_MODE"
+KHIOPS_CLOUD_TMP = "KhiopsTemporaryFileCloudifiedMode"
 
 """
 Gestion du timeout pour un jeu de test
