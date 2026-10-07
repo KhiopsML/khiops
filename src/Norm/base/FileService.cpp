@@ -117,14 +117,7 @@ longint FileService::GetFileSize(const ALString& sFilePathName)
 
 boolean FileService::CreateEmptyFile(const ALString& sFilePathName)
 {
-	OutputBufferedFile outputFile;
-	boolean bOk;
-
-	outputFile.SetFileName(sFilePathName);
-	bOk = outputFile.Open();
-	if (bOk)
-		outputFile.Close();
-	return bOk;
+	return PLRemoteFileService::CreateEmptyFile(sFilePathName);
 }
 
 boolean FileService::RemoveFile(const ALString& sFilePathName)
