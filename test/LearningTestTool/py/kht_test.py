@@ -417,6 +417,9 @@ def evaluate_tool_on_test_dir(
         # khiops par defaut en mode en mode API via une variable d'environnement
         os.environ[kht.KHIOPS_API_MODE] = "true"
 
+        # khiops en mode repertoire temporaire sur le cloud via une variable d'environnement
+        os.environ[kht.KHIOPS_CLOUD_TMP] = "true"
+
         # Ajout du path des bibliotheques MPI defini dans khiops_env
         if os.environ.get("KHIOPS_MPI_DLL_PATH"):
             # Nom de la variable d'environnement specifiant les chemins vers
