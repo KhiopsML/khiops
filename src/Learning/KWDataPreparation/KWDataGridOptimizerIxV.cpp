@@ -23,8 +23,7 @@ double KWDataGridOptimizerIxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 	require(GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid) == GetOptimizedNullDataGridCost());
 
 	// Recherche d'une solution initiale meilleure que celle du modele null
-	//DDD Desactive en attendant de gerer correctement les analyses bivariees multiples
-	//DDD dBestCost = BuildInitialSolution(initialDataGrid, optimizedDataGrid);
+	dBestCost = BuildInitialSolution(initialDataGrid, optimizedDataGrid);
 
 	// Appel direct de la methode d'optimisation VNS, dont la partie generation de grille voisone est ici specialisee
 	// en generant une surtokenisation aleatoire de la grille courante
@@ -40,7 +39,7 @@ double KWDataGridOptimizerIxV::BuildInitialSolution(const KWDataGrid* initialDat
 {
 	double dCost;
 	double dBestCost;
-	KWDataGridInitialSolutionSearcherIV initialSolutionSearcher;
+	KWDataGridInitialSolutionSearcherIxV initialSolutionSearcher;
 	KWDataGrid initialDataGridSolution;
 	KWDataGridMerger initialDataGridOptimizedSolution;
 	boolean bInitialSolutionFound;
@@ -79,7 +78,8 @@ double KWDataGridOptimizerIxV::BuildInitialSolution(const KWDataGrid* initialDat
 
 		// Optimisation et post-optimisation de la solution
 		dCost = OptimizeSolution(&initialDataGridSolution, &initialDataGridOptimizedSolution, true);
-		dCost = PostOptimizeVarPartSolution(initialDataGrid, &initialDataGridOptimizedSolution);
+		if (initialDataGridOptimizedSolution.GetInformativeAttributeNumber() > 1)
+			dCost = PostOptimizeVarPartSolution(initialDataGrid, &initialDataGridOptimizedSolution);
 
 		// Memorisation si amelioration du cout
 		// Les methodes precedentes gerent deja l'interruption des taches
