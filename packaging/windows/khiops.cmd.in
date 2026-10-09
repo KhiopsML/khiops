@@ -31,7 +31,7 @@ for %%i in (%*) do (
 )
 :BREAK_LOOP
 
-if "%KHIOPS_BATCH_MODE%" == "true" if not "%KHIOPS_JAVA_ERROR%". == "". goto ERR_JAVA 
+if "%KHIOPS_BATCH_MODE%" == "false" if not "%KHIOPS_JAVA_ERROR%". == "". goto ERR_JAVA 
 if "%_KHIOPS_GUI%" == "false" if not "%KHIOPS_BATCH_MODE%" == "true" goto ERR_NO_GUI
 
 REM Set path
