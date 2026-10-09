@@ -117,11 +117,15 @@ def cloudify_file_content(content, cloud_dir, cloud_test_dir, is_json):
 
         content = content.replace(esc("../../../"), esc(cloud_dir + "/"))
         content = content.replace(
+            esc("../" + kht.RESULTS + "/"), esc(cloud_results_dir + "/")
+        )
+        content = content.replace(
             esc("./" + kht.RESULTS + "/"), esc(cloud_results_dir + "/")
         )
         content = content.replace(esc("./"), esc(cloud_test_dir + "/"))
     else:
         content = content.replace("../../../", cloud_dir + "/")
+        content = content.replace("../" + kht.RESULTS + "/", cloud_results_dir + "/")
         content = content.replace("./" + kht.RESULTS + "/", cloud_results_dir + "/")
         content = content.replace("./", cloud_test_dir + "/")
     return content
@@ -132,6 +136,9 @@ def cloudify_prm_content(content, cloud_dir, cloud_test_dir):
     L'ordre est crucial : '../../../' doit etre traite avant './' car './' est une sous-chaine.
     """
     content = content.replace("../../../", cloud_dir + "/")
+    content = content.replace(
+        "../" + kht.RESULTS + "/", cloud_test_dir + "/" + kht.RESULTS + "/"
+    )
     content = content.replace("./", cloud_test_dir + "/")
     return content
 
