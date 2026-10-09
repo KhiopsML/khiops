@@ -1,0 +1,20 @@
+Write simplified report ./results/PostProcessedCoclustering_20cells_WithoutImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_10cells_WithoutImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_50info_WithoutImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_max4Variables_WithoutImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_max2InstanceIndex_WithoutImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_20cells_WithImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_10cells_WithImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_50info_WithImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_max4Variables_WithImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_max2InstanceIndex_WithImportance.khcj
+
