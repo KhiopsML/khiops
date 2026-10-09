@@ -6,9 +6,8 @@ page](https://github.com/KhiopsML/khiops/wiki/Release-Process).
 ## What the installer does
 
 It installs:
-- The [Khiops Visualization](https://github.com/khiopsrelease/kv-release/releases/latest) and
-  [Khiops Covisualization](https://github.com/khiopsrelease/kc-release/releases/latest) apps by
-  executing their corresponding installers.
+- The [Khiops Visualization Desktop](https://github.com/KhiopsML/khiops-visualization-desktop/releases/latest) app by
+  executing its installer.
 - The JRE from [Eclipse Temurin](https://adoptium.net/fr/temurin/releases/)
 - The MPI runtime of Intel MPI in the `intelMPI` directory (4 redistributable files with their licenses in the
   `licenses/` directory)
