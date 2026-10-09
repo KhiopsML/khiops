@@ -106,7 +106,8 @@ protected:
 	// Recherche du driver pour une fonction de type read-write
 	// On rend le driver si tout est ok
 	// S'il n'y a pas de driver ou si le driver est read-only, on renvoie NULL avec un message d'erreur
-	static SystemFileDriver* LookupWriteDriver(const ALString& sFilePathName, const ALString& sFunctionLabel);
+	static SystemFileDriver* LookupWriteDriver(const ALString& sFilePathName, const ALString& sFunctionLabel,
+						   ALString& sErrorMessage);
 
 	// Gestion du fichier, principalement son driver et son handle
 	SystemFileDriver* fileDriver;

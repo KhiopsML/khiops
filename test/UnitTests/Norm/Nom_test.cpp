@@ -10,6 +10,7 @@
 #include "Object.h"
 #include "SortedList.h"
 #include "SystemResource.h"
+#include "SystemFile.h"
 #include "CharVector.h"
 #include "InputBufferedFile.h"
 #include "OutputBufferedFile.h"
@@ -45,6 +46,14 @@ KHIOPS_TEST(base, TextService, TextService::Test);
 TEST(base, SystemFileOstream)
 {
 	EXPECT_TRUE(SystemFileOstream::Test());
+}
+
+TEST(base, SystemFileInvalidURI)
+{
+	SystemFile systemFile;
+
+	EXPECT_FALSE(systemFile.OpenOutputFile(".gs://invalid/file"));
+	EXPECT_NE(systemFile.GetLastErrorMessage().Find("no driver available"), -1);
 }
 
 TEST(long, InputBufferedFile)

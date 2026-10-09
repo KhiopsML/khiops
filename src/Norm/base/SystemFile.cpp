@@ -81,6 +81,7 @@ boolean SystemFile::OpenOutputFile(const ALString& sFilePathName)
 {
 	boolean bOk;
 	ALString sTmp;
+	ALString sErrorMessage;
 
 	require(fileHandle == NULL);
 	require(not bIsOpenForRead and not bIsOpenForWrite);
@@ -90,9 +91,12 @@ boolean SystemFile::OpenOutputFile(const ALString& sFilePathName)
 	nCurrentOpenIndex++;
 
 	// Recherche du driver en mode ecriture
-	fileDriver = LookupWriteDriver(sFilePathName, "open output file");
+	fileDriver = LookupWriteDriver(sFilePathName, "open output file", sErrorMessage);
 	if (fileDriver == NULL)
+	{
+		sPostMortemMessage = sErrorMessage;
 		return false;
+	}
 
 	// Mode de test : toujours en echec
 	if (nNextOpenFailureIndex == nCurrentOpenIndex)
@@ -126,6 +130,7 @@ boolean SystemFile::OpenOutputFileForAppend(const ALString& sFilePathName)
 {
 	boolean bOk;
 	ALString sTmp;
+	ALString sErrorMessage;
 
 	require(fileHandle == NULL);
 	require(not bIsOpenForRead and not bIsOpenForWrite);
@@ -135,9 +140,12 @@ boolean SystemFile::OpenOutputFileForAppend(const ALString& sFilePathName)
 	nCurrentOpenIndex++;
 
 	// Recherche du driver en mode ecriture
-	fileDriver = LookupWriteDriver(sFilePathName, "open output file for append");
+	fileDriver = LookupWriteDriver(sFilePathName, "open output file for append", sErrorMessage);
 	if (fileDriver == NULL)
+	{
+		sPostMortemMessage = sErrorMessage;
 		return false;
+	}
 
 	// Mode de test : toujours en echec
 	if (nNextOpenFailureIndex == nCurrentOpenIndex)
@@ -435,9 +443,10 @@ boolean SystemFile::RemoveFile(const ALString& sFilePathName)
 	boolean bOk = false;
 	SystemFileDriver* driver;
 	ALString sTmp;
+	ALString sErrorMessage;
 
 	// Recherche du driver en mode ecriture
-	driver = LookupWriteDriver(sFilePathName, "remove file");
+	driver = LookupWriteDriver(sFilePathName, "remove file", sErrorMessage);
 	if (driver == NULL)
 		return false;
 
@@ -456,9 +465,10 @@ boolean SystemFile::MakeDirectory(const ALString& sPathName)
 {
 	boolean bOk = false;
 	SystemFileDriver* driver;
+	ALString sErrorMessage;
 
 	// Recherche du driver en mode ecriture
-	driver = LookupWriteDriver(sPathName, "make directory");
+	driver = LookupWriteDriver(sPathName, "make directory", sErrorMessage);
 	if (driver == NULL)
 		return false;
 
@@ -473,9 +483,10 @@ boolean SystemFile::RemoveDirectory(const ALString& sPathName)
 {
 	boolean bOk = false;
 	SystemFileDriver* driver;
+	ALString sErrorMessage;
 
 	// Recherche du driver en mode ecriture
-	driver = LookupWriteDriver(sPathName, "remove directory");
+	driver = LookupWriteDriver(sPathName, "remove directory", sErrorMessage);
 	if (driver == NULL)
 		return false;
 
@@ -490,9 +501,10 @@ boolean SystemFile::MakeDirectories(const ALString& sPathName)
 {
 	boolean bOk = false;
 	SystemFileDriver* driver;
+	ALString sErrorMessage;
 
 	// Recherche du driver en mode ecriture
-	driver = LookupWriteDriver(sPathName, "make directory");
+	driver = LookupWriteDriver(sPathName, "make directory", sErrorMessage);
 	if (driver == NULL)
 		return false;
 
@@ -507,9 +519,10 @@ boolean SystemFile::CreateEmptyFile(const ALString& sPathName)
 {
 	boolean bOk = false;
 	SystemFileDriver* driver;
+	ALString sErrorMessage;
 
 	// Recherche du driver en mode ecriture
-	driver = LookupWriteDriver(sPathName, "open output file");
+	driver = LookupWriteDriver(sPathName, "open output file", sErrorMessage);
 	if (driver == NULL)
 		return false;
 
@@ -524,9 +537,10 @@ longint SystemFile::GetDiskFreeSpace(const ALString& sPathName)
 {
 	longint lFileSize = 0;
 	SystemFileDriver* driver;
+	ALString sErrorMessage;
 
 	// Recherche du driver en mode ecriture
-	driver = LookupWriteDriver(sPathName, "get disk free space");
+	driver = LookupWriteDriver(sPathName, "get disk free space", sErrorMessage);
 	if (driver == NULL)
 		return false;
 
@@ -542,9 +556,10 @@ boolean SystemFile::CopyFileFromLocal(const ALString& sSourceFilePathName, const
 	boolean bOk = false;
 	SystemFileDriver* driver;
 	ALString sTmp;
+	ALString sErrorMessage;
 
 	// Recherche du driver en mode ecriture
-	driver = LookupWriteDriver(sDestFilePathName, "copy file from local");
+	driver = LookupWriteDriver(sDestFilePathName, "copy file from local", sErrorMessage);
 	if (driver == NULL)
 		return false;
 
@@ -569,9 +584,10 @@ boolean SystemFile::CopyFileToLocal(const ALString& sSourceFilePathName, const A
 	boolean bOk = false;
 	SystemFileDriver* driver;
 	ALString sTmp;
+	ALString sErrorMessage;
 
 	// Recherche du driver en mode ecriture
-	driver = LookupWriteDriver(sSourceFilePathName, "copy file to local");
+	driver = LookupWriteDriver(sSourceFilePathName, "copy file to local", sErrorMessage);
 	if (driver == NULL)
 		return false;
 
@@ -629,11 +645,11 @@ int SystemFile::GetNextFlushFailureIndex()
 	return nNextFlushFailureIndex;
 }
 
-SystemFileDriver* SystemFile::LookupWriteDriver(const ALString& sFilePathName, const ALString& sFunctionLabel)
+SystemFileDriver* SystemFile::LookupWriteDriver(const ALString& sFilePathName, const ALString& sFunctionLabel,
+						ALString& sErrorMessage)
 {
 	SystemFileDriver* driver;
 	ALString sTmp;
-	ALString sErrorMessage;
 
 	// Recherche du driver
 	driver = SystemFileDriverCreator::LookupDriver(sFilePathName, sErrorMessage);
@@ -643,10 +659,10 @@ SystemFileDriver* SystemFile::LookupWriteDriver(const ALString& sFilePathName, c
 	{
 		if (driver->IsReadOnly())
 		{
-			Global::AddError("File", sFilePathName,
-					 sTmp + driver->GetScheme() +
-					     " is a read-only URI scheme and does not support '" + sFunctionLabel +
-					     "' function");
+			sErrorMessage = sTmp + driver->GetScheme() +
+					" is a read-only URI scheme and does not support '" + sFunctionLabel +
+					"' function";
+			Global::AddError("File", sFilePathName, sErrorMessage);
 			driver = NULL;
 		}
 	}
