@@ -58,7 +58,13 @@ cp "$BUILD_SERIAL_DIR/bin/MODL" "$BUILD_SERIAL_DIR/bin/MODL_Coclustering" "$APP_
 cp "$BUILD_MPI_DIR/bin/MODL_openmpi" "$BUILD_MPI_DIR/bin/MODL_Coclustering_openmpi" "$APP_DIR/Contents/Resources/bin/"
 cp "$BUILD_SERIAL_DIR/jars/khiops.jar" "$BUILD_SERIAL_DIR/jars/norm.jar" "$APP_DIR/Contents/Resources/jars/"
 
+if [[ ! -d "$JRE_SRC_DIR/legal" ]]; then
+    echo "ERROR: vendored JRE is missing its legal/ directory" >&2
+    exit 1
+fi
 cp -R "$JRE_SRC_DIR" "$APP_DIR/Contents/Resources/jre"
+mkdir -p "$APP_DIR/Contents/Resources/doc/licenses"
+cp "$REPO_ROOT/LICENSE" "$APP_DIR/Contents/Resources/doc/licenses/Khiops-LICENSE.txt"
 
 # Reuse the shared launcher templates (packaging/linux/common) instead of maintaining
 # macOS-only forks; only the placeholder values differ.
@@ -142,7 +148,8 @@ chmod +x \
 # Expose Coclustering as a separate Finder-launchable app. Keep it self-contained
 # so users can install it without also installing Khiops.app.
 mkdir -p "$COCLUSTERING_APP_DIR/Contents/MacOS" "$COCLUSTERING_APP_DIR/Contents/Resources/bin"
-cp -R "$APP_DIR/Contents/Resources/jars" "$APP_DIR/Contents/Resources/jre" \
+cp -R "$APP_DIR/Contents/Resources/doc" "$APP_DIR/Contents/Resources/jars" \
+    "$APP_DIR/Contents/Resources/jre" \
     "$COCLUSTERING_APP_DIR/Contents/Resources/"
 cp "$APP_DIR/Contents/Resources/bin/"* "$COCLUSTERING_APP_DIR/Contents/Resources/bin/"
 sed \
@@ -162,6 +169,24 @@ DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../Resources/bin" &>/dev/null &&
 exec "$DIR/khiops_coclustering"
 EOF
 chmod +x "$COCLUSTERING_APP_DIR/Contents/MacOS/khiops_coclustering"
+
+LICENSES_DIR="$STAGE_DIR/LICENSES"
+mkdir -p "$LICENSES_DIR"
+cp "$REPO_ROOT/LICENSE" "$LICENSES_DIR/Khiops-LICENSE.txt"
+cat >"$LICENSES_DIR/README.txt" <<'EOF'
+Khiops license files
+
+Khiops:
+    Khiops-LICENSE.txt
+
+Inside either application bundle:
+    Contents/Resources/doc/licenses/Khiops-LICENSE.txt
+
+Bundled Java runtime:
+    The complete JRE license and notice files are kept in:
+    - Khiops.app/Contents/Resources/jre/legal/
+    - Khiops Coclustering.app/Contents/Resources/jre/legal/
+EOF
 
 echo "==> Khiops.app staged at $APP_DIR"
 echo "==> Khiops Coclustering.app staged at $COCLUSTERING_APP_DIR"
