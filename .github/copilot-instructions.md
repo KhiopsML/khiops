@@ -21,7 +21,7 @@
 
 ### Step 2: Load Applicable Instructions
 Check the `.github/instructions/` directory for matching instruction files:
-- **`.cpp` or `.h` files** → Use agent **`KhiopsC++`** OR load [`.github/instructions/cpp-changes.instructions.md`](instructions/cpp-changes.instructions.md) + skill [`.github/skills/khiops-cpp-conventions.md`](skills/khiops-cpp-conventions.md)
+- **`.cpp` or `.h` files** → Use agent **`KhiopsC++`** OR load [`.github/instructions/cpp-changes.instructions.md`](instructions/cpp-changes.instructions.md) + skill [`.github/skills/khiops-cpp-conventions/SKILL.md`](skills/khiops-cpp-conventions/SKILL.md)
 - **`CMakeLists.txt` files** → Load [`.github/instructions/cmake-changes.instructions.md`](instructions/cmake-changes.instructions.md)
 - **`test/LearningTestTool/` files** → Load [`.github/instructions/learning-test-tool.instructions.md`](instructions/learning-test-tool.instructions.md)
 - **`.github/workflows/` or `.github/actions/` files** → Load [`.github/instructions/ci-workflows.instructions.md`](instructions/ci-workflows.instructions.md)
@@ -67,7 +67,7 @@ For streamlined workflow:
   - Enforces ASCII-only comments, Hungarian notation, Allman braces
   - Provides pre-commit validation checklist
 - **Debugging failing LearningTest non-regression tests**: load skill
-  [`.github/skills/khiops-learningtest-debugging.md`](skills/khiops-learningtest-debugging.md) whenever the user
+  [`.github/skills/khiops-learningtest-debugging/SKILL.md`](skills/khiops-learningtest-debugging/SKILL.md) whenever the user
   points to a `LearningTest` checkout and reports failing tests (e.g. via `kht_test`/`kht_apply`). It encodes the
   run → collect errors → inspect `comparisonResults.log` → diff vs `results.ref*` → fix loop so no clarifying
   questions are needed to get started.
