@@ -7,7 +7,7 @@ description: "Use when the user reports failing LearningTest tests and provides 
 
 Use when the user provides a `LearningTest` path and reports failures. A leaf containing `test.prm` means `kht_test`
 already ran it; start with its `comparisonResults.log` and `results/`. Use
-[`learning-test-tool.instructions.md`](../instructions/learning-test-tool.instructions.md) for comparison and
+[`learning-test-tool.instructions.md`](../../instructions/learning-test-tool.instructions.md) for comparison and
 reference-update details.
 
 Defaults: `r`, `-p 4`, and `--family full-no-kni`. Do not ask first; adjust only when evidence requires it.
@@ -45,7 +45,6 @@ Defaults: `r`, `-p 4`, and `--family full-no-kni`. Do not ask first; adjust only
     - isolate the part of the scenario that actually fails: a test scenario may contain several repeated steps. If the bug appears at the i-th `ComputeStats`, temporarily comment out the preceding i-1 `ComputeStats` steps, provided that the failing step does not depend on artifacts they produce.
     - reduce the size of the dataset using the sampling rate:
       - lower the relevant `*.DatabaseSpec.Sampling.SampleNumberPercentage` value while the failure remains reproducible.
-
 
 5. **Re-run or verify one test** as needed:
    ```bash

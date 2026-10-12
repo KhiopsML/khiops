@@ -30,5 +30,5 @@ Use the KhiopsC++ agent to [task description]
 
 **References**:
 - Instructions: [`.github/instructions/cpp-changes.instructions.md`](../instructions/cpp-changes.instructions.md)
-- Skill: [`.github/skills/khiops-cpp-conventions.md`](../skills/khiops-cpp-conventions.md)
+- Skill: [`.github/skills/khiops-cpp-conventions/SKILL.md`](../skills/khiops-cpp-conventions/SKILL.md)
 - Workspace guide: [`.github/copilot-instructions.md`](../copilot-instructions.md)
