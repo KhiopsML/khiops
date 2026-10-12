@@ -279,7 +279,7 @@ else(IS_LINUX OR IS_MACOS)
   endif()
 
   if(IS_MS_MPI)
-    file(READ packaging/windows/set_proc_number.cmd SET_PROC_NUMBER)
+    file(READ ${PROJECT_SOURCE_DIR}/packaging/windows/set_proc_number.cmd SET_PROC_NUMBER)
   endif()
 
   # For Intel MPI, we need to copy the redistributable files to a staging directory and install them from there. We
