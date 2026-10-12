@@ -3,10 +3,13 @@
 # at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 import os
+import posixpath
+import re
 import stat
 import subprocess
 import shutil
 import tempfile
+from urllib.parse import urlsplit, urlunsplit
 
 import _kht_constants as kht
 import _kht_results_management as results
@@ -60,6 +63,63 @@ def is_cloudified_home_dir(home_dir):
 
 
 # --- Helpers internes de transformation de contenu ---
+def _join_cloud_uri(cloud_dir, relative_path):
+    """Normalise un chemin relatif dans une URI cloud sans alterer son schema."""
+    parsed_uri = urlsplit(cloud_dir)
+    normalized_path = posixpath.normpath(posixpath.join(parsed_uri.path, relative_path))
+    return urlunsplit(
+        (
+            parsed_uri.scheme,
+            parsed_uri.netloc,
+            normalized_path,
+            parsed_uri.query,
+            parsed_uri.fragment,
+        )
+    )
+
+
+def _cloudify_parent_relative_paths(content, cloud_test_dir, is_json):
+    """Cloudifie les chemins commencant par ./../ ou ../ sans remplacer plusieurs prefixes."""
+    parent_prefix = r"(?:\.\\/)?(?:\.\.\\/)+" if is_json else r"(?:\./)?(?:\.\./)+"
+    parent_path_pattern = re.compile(r"(?<![\w.])" + parent_prefix + r'[^\s"]*')
+    results_prefixes = ("./../" + kht.RESULTS + "/", "../" + kht.RESULTS + "/")
+
+    # Reconstitue le contenu autour des chemins parent-relatifs pour les traiter
+    # avant les remplacements generiques de "./" et "../../../".
+    result_parts = []
+    last_end = 0
+    for match in parent_path_pattern.finditer(content):
+        result_parts.append(content[last_end : match.start()])
+        relative_path = match.group(0)
+        if is_json:
+            relative_path = relative_path.replace(r"\/", "/")
+
+        # Les chemins vers results doivent rester dans le repertoire du test cloud.
+        results_prefix = None
+        for prefix in results_prefixes:
+            if relative_path.startswith(prefix):
+                results_prefix = prefix
+                break
+        if results_prefix is not None:
+            cloud_path = (
+                cloud_test_dir
+                + "/"
+                + kht.RESULTS
+                + "/"
+                + relative_path[len(results_prefix) :]
+            )
+        else:
+            cloud_path = _join_cloud_uri(cloud_test_dir, relative_path)
+
+        if is_json:
+            cloud_path = cloud_path.replace("/", r"\/")
+        result_parts.append(cloud_path)
+        last_end = match.end()
+
+    result_parts.append(content[last_end:])
+    return "".join(result_parts)
+
+
 def run_khiops_no_replay(khiops_params, step_label, suppress_output=False):
     """Execute khiops -O (no-replay) pour transformer le scenario; retourne un tuple (out_path, success).
 
@@ -110,6 +170,7 @@ def cloudify_file_content(content, cloud_dir, cloud_test_dir, is_json):
     L'ordre est crucial : '../../../' avant './' car './' est une sous-chaine.
     """
     cloud_results_dir = cloud_test_dir + "/" + kht.RESULTS
+    content = _cloudify_parent_relative_paths(content, cloud_test_dir, is_json)
     if is_json:
         # Dans les fichiers JSON les '/' sont echappes en '\/'
         def esc(s):
@@ -135,6 +196,7 @@ def cloudify_prm_content(content, cloud_dir, cloud_test_dir):
     """Remplace les chemins locaux par des URIs cloud dans un scenario Khiops.
     L'ordre est crucial : '../../../' doit etre traite avant './' car './' est une sous-chaine.
     """
+    content = _cloudify_parent_relative_paths(content, cloud_test_dir, False)
     content = content.replace("../../../", cloud_dir + "/")
     content = content.replace(
         "../" + kht.RESULTS + "/", cloud_test_dir + "/" + kht.RESULTS + "/"
