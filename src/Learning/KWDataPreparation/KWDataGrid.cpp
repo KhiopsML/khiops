@@ -4145,7 +4145,7 @@ int KWDGPartCompare(const void* elem1, const void* elem2)
 	require(elem1 != NULL);
 	require(elem2 != NULL);
 
-	// Acces a la parties
+	// Acces aux parties
 	part1 = cast(KWDGPart*, *(Object**)elem1);
 	part2 = cast(KWDGPart*, *(Object**)elem2);
 
@@ -4161,7 +4161,7 @@ int KWDGPartCompareValues(const void* elem1, const void* elem2)
 	require(elem1 != NULL);
 	require(elem2 != NULL);
 
-	// Acces a la parties
+	// Acces aux parties
 	part1 = cast(KWDGPart*, *(Object**)elem1);
 	part2 = cast(KWDGPart*, *(Object**)elem2);
 
