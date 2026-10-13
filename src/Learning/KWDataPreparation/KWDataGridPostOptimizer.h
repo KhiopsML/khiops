@@ -62,13 +62,55 @@ public:
 	// Construction d'une grille initiale pour l'optimisation univariee, ayant les memes partitions
 	// par attribut que la grille optimisee, sauf sur l'attribut a optimiser (dans ce cas, partition la
 	// plus fine possible provenant de la grille initiale)
-	KWDataGrid* BuildUnivariateInitialDataGrid(const KWDataGrid* optimizedDataGrid,
-						   const KWDataGrid* initialDataGrid,
-						   const ALString& sPostOptimizationAttributeName) const;
+	void BuildUnivariateInitialDataGrid(const KWDataGrid* initialDataGrid, const KWDataGrid* optimizedDataGrid,
+					    const ALString& sPostOptimizationAttributeName,
+					    KWDataGrid* univariateInitialDataGrid) const;
 
 	/////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
+	// Post-optimisation univariee d'un attribut de type numerique
+	// On optimise l'attribut en sur-partitionnant l'attribut a optimiser a proximite des intervalles
+	// existants, en raffinant iterativement la distance aux bornes existantes.
+	double PostOptimizeDataGridContinuousAttribute(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid,
+						       const ALString& sPostOptimizationAttributeName,
+						       boolean bDeepPostOptimization) const;
+
+	// Post-optimisation univariee d'un attribut de type categoriel
+	// On optimise l'attribut en eclatant les groupes de l'attribut a optimiser, iterativement
+	// avec des groupes de grande taille, puis de taille de plus en plus petite.
+	double PostOptimizeDataGridSymbolAttribute(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid,
+						   const ALString& sPostOptimizationAttributeName,
+						   boolean bDeepPostOptimization) const;
+
+	// Construction d'une grille initiale pour l'optimisation univariee dans le cas continu,
+	// ayant les memes partitions par attribut que la grille optimisee, sauf sur l'attribut a optimiser
+	// Pour la partition de cet attribut, des intervalles source de la grille initiale peuvent etre
+	// ajoutes autour de chaque borne de la partition optimisee. Chaque intervalle ajoute respecte
+	// un effectif minimal et l'effectif cumule des intervalles ajoutes autour d'une meme borne
+	// respecte un maximum.
+	// Ces contraintes permettent d'iterer d'intervalles grossiers vers des intervalles
+	// de plus en plus fins, potentiellement jusqu'a des intervalles singletons.
+	void BuildContinuousUnivariateInitialNearbyDataGrid(const KWDataGrid* initialDataGrid,
+							    const KWDataGrid* optimizedDataGrid,
+							    const ALString& sPostOptimizationAttributeName,
+							    int nNearbyIntervalMinFrequency,
+							    int nNearbyIntervalsMaxCumulativeFrequency,
+							    KWDataGrid* univariateInitialDataGrid) const;
+
+	// Construction d'une grille initiale pour l'optimisation univariee dans le cas categoriel,
+	// ayant les memes partitions par attribut que la grille optimisee, sauf sur l'attribut a optimiser
+	// Pour la partition de cet attribut, tout sous-groupe de modalites source de la grille initiale
+	// inclus dans un groupe de la partition optimisee peut donner lieu a la creation d'un nouveau groupe
+	// si son effectif est compris entre les deux bornes specifiees, bornes incluses.
+	// Le controle de l'effectif des groupes ajoutes permet d'iterer des groupes les plus gros
+	// vers des groupes de plus en plus fins, potentiellement jusqu'a des groupes singletons.
+	void BuildSymbolUnivariateInitialNearbyDataGrid(const KWDataGrid* initialDataGrid,
+							const KWDataGrid* optimizedDataGrid,
+							const ALString& sPostOptimizationAttributeName,
+							int nNearbyGroupMinFrequency, int nNearbyGroupMaxFrequency,
+							KWDataGrid* univariateInitialDataGrid) const;
+
 	// Parametrage de la structure des couts
 	const KWDataGridCosts* dataGridCosts;
 

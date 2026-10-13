@@ -1246,7 +1246,7 @@ void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 		nPart2++;
 		attribute2->GetNextPart(part2);
 	}
-	oaAttribute1Parts.SetCompareFunction(KWDGPartCompareValues);
+	oaAttribute2Parts.SetCompareFunction(KWDGPartCompareValues);
 	oaAttribute2Parts.Sort();
 
 	// Affichage de la ligne d'entete
@@ -3189,10 +3189,28 @@ void KWDGAttribute::WriteParts(ostream& ost) const
 	{
 		// Cas de la partie poubelle
 		if (part == garbagePart)
-			ost << "\tGarbage:" << *part;
+			ost << "\tGarbage: " << *part;
 		// Sinon
 		else
 			ost << "\t" << *part;
+		GetNextPart(part);
+	}
+}
+
+void KWDGAttribute::WritePartsSummary(ostream& ost) const
+{
+	KWDGPart* part;
+
+	// Parties de l'attribut
+	ost << "Parts"
+	    << "\t" << GetPartNumber() << "\n";
+	part = GetHeadPart();
+	while (part != NULL)
+	{
+		ost << "\t";
+		if (part == garbagePart)
+			ost << "* ";
+		part->WriteSummary(ost);
 		GetNextPart(part);
 	}
 }
@@ -3933,6 +3951,11 @@ void KWDGPart::Write(ostream& ost) const
 		WriteValues(ost);
 	if (GetCellNumber() > 0)
 		WriteCells(ost);
+}
+
+void KWDGPart::WriteSummary(ostream& ost) const
+{
+	ost << GetClassLabel() << "\t" << GetObjectLabel() << "\t" << GetPartFrequency() << "\n";
 }
 
 void KWDGPart::WriteValues(ostream& ost) const
