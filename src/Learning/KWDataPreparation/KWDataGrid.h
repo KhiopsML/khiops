@@ -686,6 +686,7 @@ public:
 	// Affichage
 	void Write(ostream& ost) const override;
 	void WriteParts(ostream& ost) const;
+	void WritePartsSummary(ostream& ost) const;
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
@@ -867,6 +868,7 @@ public:
 
 	// Affichage
 	void Write(ostream& ost) const override;
+	void WriteSummary(ostream& ost) const;
 	void WriteValues(ostream& ost) const;
 	void WriteCells(ostream& ost) const;
 

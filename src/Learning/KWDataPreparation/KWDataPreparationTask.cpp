@@ -585,8 +585,8 @@ longint KWDataPreparationTask::ComputeNecessaryWorkingMemory(const KWLearningSpe
 			(sizeof(KWDGMPart) + max(sizeof(KWDGInterval), sizeof(KWDGValueSet) + sizeof(KWDGValue)));
 		lWorkingMemorySize += lInitialDatagridSize;
 
-		// Plus une grille univariee pour la post-optimisation (cf.
-		// KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid)
+		// Plus une grille univariee pour la post-optimisation
+		// (cf. KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid)
 		lInitialUnivariateDatagridSize = (longint)ceil(sqrt(nDatabaseObjectNumber * 1.0)) *
 						 (sizeof(KWDGMCell) + sizeof(KWDGMPart) +
 						  max(sizeof(KWDGInterval), sizeof(KWDGValueSet) + sizeof(KWDGValue)));
