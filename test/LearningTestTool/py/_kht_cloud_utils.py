@@ -264,7 +264,7 @@ def cloudify_results_ref_dirs(target_test_dir, cloud_dir, cloud_test_dir):
                 continue
             with open(file_path, "r", errors="ignore") as f:
                 content = f.read()
-            is_json = file_name.endswith(".khj")
+            is_json = file_name.endswith((".khj", ".khcj"))
             new_content = cloudify_file_content(
                 content, cloud_dir, cloud_test_dir, is_json
             )
