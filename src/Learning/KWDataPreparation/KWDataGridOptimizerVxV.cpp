@@ -56,7 +56,7 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 	// Trace initiale
 	if (bTrace)
 	{
-		cout << "InternalOptimizeDataGrid" << endl;
+		cout << "InternalOptimizeDataGrid\t" << initialDataGrid->GetObjectLabel() << endl;
 		if (bTraceDetails)
 			cout << " - initialDataGrid\n" << *initialDataGrid << endl;
 	}
@@ -163,6 +163,8 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 				     << BooleanToString(bIsGranularitySelected);
 				if (bIsLastGranularity)
 					cout << " (last)";
+				cout << " " << granularizedDataGrid.GetObjectLabel();
+				cout << " TotalParts=" << granularizedDataGrid.GetTotalPartNumber();
 				cout << endl;
 			}
 

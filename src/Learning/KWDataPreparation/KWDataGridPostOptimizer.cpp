@@ -68,8 +68,7 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 	// Affichage de la grille initiale avec ses couts
 	if (bTrace)
 	{
-		cout << "\nPost-optimisation: grille initiale" << sTaskLabel << endl;
-
+		cout << "\nPost-optimisation: grille initiale\t" << sTaskLabel << endl;
 		if (optimizedDataGrid->GetAttributeNumber() == 2)
 			optimizedDataGrid->WriteCrossTableStats(cout, 0);
 		dataGridCosts->WriteDataGridAllCosts(optimizedDataGrid, cout);

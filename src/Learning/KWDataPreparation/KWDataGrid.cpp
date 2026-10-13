@@ -1246,7 +1246,7 @@ void KWDataGrid::WriteCrossTableStats(ostream& ost, int nTargetIndex) const
 		nPart2++;
 		attribute2->GetNextPart(part2);
 	}
-	oaAttribute1Parts.SetCompareFunction(KWDGPartCompareValues);
+	oaAttribute2Parts.SetCompareFunction(KWDGPartCompareValues);
 	oaAttribute2Parts.Sort();
 
 	// Affichage de la ligne d'entete

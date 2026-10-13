@@ -365,7 +365,7 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	///////////////////////////////////////////////////////////////////////////////////
 	// Calcul d'une grille initiale
 
-	// Craetion d'une grille initial plus plus fine possible a partir de la base de donnees
+	// Creation d'une grille initial plus plus fine possible a partir de la base de donnees
 	if (bOk and not TaskProgression::IsInterruptionRequested())
 	{
 		// Cas du coclustering standard, VxV
