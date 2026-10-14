@@ -204,11 +204,12 @@ boolean SystemFileOstream::Test()
 
 	sFileName = FileService::BuildFilePathName(FileService::GetTmpDir(), "SystemFileOStreamTest.txt");
 	outputStream.SetFileName(sFileName);
+	outputStream.SetFlushStandardMode(true);
 	bOk = outputStream.Open();
 	if (bOk)
 	{
 		outputStream << "prefix" << sampleObject << 'X' << std::flush;
-		bOk = outputStream.good();
+		bOk = outputStream.good() and FileService::GetFileSize(sFileName) == strlen("prefix [7,value]X");
 		bOk = outputStream.Close() and bOk;
 	}
 

@@ -233,6 +233,10 @@ inline boolean OutputBufferedFile::Flush()
 	bOk = not bIsError;
 	if (bOk)
 		bOk = WriteToFile(nCurrentBufferSize);
+
+	// Vidage du buffer du driver pour rendre les donnees visibles immediatement
+	if (bOk and not GetOpenOnDemandMode())
+		bOk = fileHandle->Flush();
 	if (GetOpenOnDemandMode() and IsPhysicalOpen())
 		bOk = PhysicalClose() and bOk;
 	return bOk;
