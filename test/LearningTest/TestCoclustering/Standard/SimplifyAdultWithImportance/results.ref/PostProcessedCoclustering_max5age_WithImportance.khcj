@@ -87,27 +87,27 @@
 				"intervals": [
 					{
 						"cluster": "]-inf,22.5]",
-						"importance": 0.117434,
+						"importance": 0.22566,
 						"bounds": [17,22.5]
 					},
 					{
 						"cluster": "]22.5,28.5]",
-						"importance": 0.152074,
+						"importance": 0.126561,
 						"bounds": [22.5,28.5]
 					},
 					{
 						"cluster": "]28.5,39.5]",
-						"importance": 0.291721,
+						"importance": 0.22388,
 						"bounds": [28.5,39.5]
 					},
 					{
 						"cluster": "]39.5,60.5]",
-						"importance": 0.365307,
+						"importance": 0.339865,
 						"bounds": [39.5,60.5]
 					},
 					{
 						"cluster": "]60.5,+inf[",
-						"importance": 0.0734642,
+						"importance": 0.0840343,
 						"bounds": [60.5,90]
 					}
 				]
@@ -117,36 +117,36 @@
 				"type": "Categorical",
 				"valueGroups": [
 					{
-						"cluster": "{Craft-repair, Transport-moving, Machine-op-inspct, ...}",
-						"importance": 0.329791,
-						"values": ["Craft-repair","Transport-moving","Machine-op-inspct","Handlers-cleaners","Farming-fishing","Protective-serv","Armed-Forces"],
-						"valueFrequencies": [6112,2355,3022,2072,1490,983,15],
-						"valueImportances": [0.380834,0.146738,0.188298,0.129105,0.0928407,0.0612499,0.000934638]
+						"cluster": "{Craft-repair, Machine-op-inspct, Transport-moving, ...}",
+						"importance": 0.276359,
+						"values": ["Craft-repair","Machine-op-inspct","Transport-moving","Handlers-cleaners","Farming-fishing","Protective-serv","Armed-Forces"],
+						"valueFrequencies": [6112,3022,2355,2072,1490,983,15],
+						"valueImportances": [0.380834,0.188298,0.146738,0.129105,0.0928407,0.0612499,0.000934638]
 					},
 					{
 						"cluster": "{Prof-specialty}",
-						"importance": 0.183402,
+						"importance": 0.204105,
 						"values": ["Prof-specialty"],
 						"valueFrequencies": [8981],
 						"valueImportances": [1]
 					},
 					{
 						"cluster": "{Exec-managerial, Sales}",
-						"importance": 0.237707,
+						"importance": 0.224654,
 						"values": ["Exec-managerial","Sales"],
 						"valueFrequencies": [6086,5504],
 						"valueImportances": [0.525108,0.474892]
 					},
 					{
 						"cluster": "{Other-service, Priv-house-serv}",
-						"importance": 0.104754,
+						"importance": 0.147295,
 						"values": ["Other-service","Priv-house-serv"],
 						"valueFrequencies": [4923,242],
 						"valueImportances": [0.953146,0.0468538]
 					},
 					{
 						"cluster": "{Adm-clerical, Tech-support}",
-						"importance": 0.144347,
+						"importance": 0.147588,
 						"values": ["Adm-clerical","Tech-support"],
 						"valueFrequencies": [5611,1446],
 						"valueImportances": [0.795097,0.204903]
@@ -160,22 +160,22 @@
 				"intervals": [
 					{
 						"cluster": "]-inf,8.5]",
-						"importance": 0.129966,
+						"importance": 0.176352,
 						"bounds": [1,8.5]
 					},
 					{
 						"cluster": "]8.5,9.5]",
-						"importance": 0.324317,
+						"importance": 0.285153,
 						"bounds": [8.5,9.5]
 					},
 					{
 						"cluster": "]9.5,12.5]",
-						"importance": 0.298096,
+						"importance": 0.284623,
 						"bounds": [9.5,12.5]
 					},
 					{
 						"cluster": "]12.5,+inf[",
-						"importance": 0.24762,
+						"importance": 0.253872,
 						"bounds": [12.5,16]
 					}
 				]
@@ -186,17 +186,17 @@
 				"intervals": [
 					{
 						"cluster": "]-inf,36.5]",
-						"importance": 0.215776,
+						"importance": 0.326199,
 						"bounds": [1,36.5]
 					},
 					{
 						"cluster": "]36.5,43.5]",
-						"importance": 0.502942,
+						"importance": 0.40808,
 						"bounds": [36.5,43.5]
 					},
 					{
 						"cluster": "]43.5,+inf[",
-						"importance": 0.281282,
+						"importance": 0.265721,
 						"bounds": [43.5,99]
 					}
 				]
@@ -207,24 +207,24 @@
 				"valueGroups": [
 					{
 						"cluster": "{Never-married, Married-AF-spouse}",
-						"importance": 0.329189,
+						"importance": 0.393111,
 						"values": ["Never-married","Married-AF-spouse"],
 						"valueFrequencies": [16117,37],
 						"valueImportances": [0.99771,0.00229045]
 					},
 					{
 						"cluster": "{Married-civ-spouse}",
-						"importance": 0.459542,
+						"importance": 0.406752,
 						"values": ["Married-civ-spouse"],
 						"valueFrequencies": [22379],
 						"valueImportances": [1]
 					},
 					{
-						"cluster": "{Divorced, Widowed, Separated, ...}",
-						"importance": 0.211269,
-						"values": ["Divorced","Widowed","Separated","Married-spouse-absent"],
-						"valueFrequencies": [6633,1518,1530,628],
-						"valueImportances": [0.643418,0.14725,0.148414,0.0609176]
+						"cluster": "{Divorced, Separated, Widowed, ...}",
+						"importance": 0.200137,
+						"values": ["Divorced","Separated","Widowed","Married-spouse-absent"],
+						"valueFrequencies": [6633,1530,1518,628],
+						"valueImportances": [0.643418,0.148414,0.14725,0.0609176]
 					}
 				],
 				"defaultGroupIndex": 0
@@ -235,14 +235,14 @@
 				"valueGroups": [
 					{
 						"cluster": "{Male}",
-						"importance": 0.670524,
+						"importance": 0.59261,
 						"values": ["Male"],
 						"valueFrequencies": [32650],
 						"valueImportances": [1]
 					},
 					{
 						"cluster": "{Female}",
-						"importance": 0.329476,
+						"importance": 0.40739,
 						"values": ["Female"],
 						"valueFrequencies": [16192],
 						"valueImportances": [1]
@@ -344,7 +344,7 @@
 				"type": "Categorical",
 				"clusters": [
 					{
-						"cluster": "{Craft-repair, Transport-moving, Machine-op-inspct, ...}",
+						"cluster": "{Craft-repair, Machine-op-inspct, Transport-moving, ...}",
 						"parentCluster": "B5",
 						"frequency": 16049,
 						"hierarchicalLevel": 1,
@@ -569,7 +569,7 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "{Divorced, Widowed, Separated, ...}",
+						"cluster": "{Divorced, Separated, Widowed, ...}",
 						"parentCluster": "E4",
 						"frequency": 10309,
 						"hierarchicalLevel": 1,

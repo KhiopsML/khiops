@@ -87,12 +87,12 @@
 				"intervals": [
 					{
 						"cluster": "]-inf,28.5]",
-						"importance": 0.269508,
+						"importance": 0.352221,
 						"bounds": [17,28.5]
 					},
 					{
 						"cluster": "]28.5,+inf[",
-						"importance": 0.730492,
+						"importance": 0.647779,
 						"bounds": [28.5,90]
 					}
 				]
@@ -102,18 +102,18 @@
 				"type": "Categorical",
 				"valueGroups": [
 					{
-						"cluster": "{Craft-repair, Transport-moving, Machine-op-inspct, ...}",
-						"importance": 0.329791,
-						"values": ["Craft-repair","Transport-moving","Machine-op-inspct","Handlers-cleaners","Farming-fishing","Protective-serv","Armed-Forces"],
-						"valueFrequencies": [6112,2355,3022,2072,1490,983,15],
-						"valueImportances": [0.380834,0.146738,0.188298,0.129105,0.0928407,0.0612499,0.000934638]
+						"cluster": "{Craft-repair, Machine-op-inspct, Transport-moving, ...}",
+						"importance": 0.276359,
+						"values": ["Craft-repair","Machine-op-inspct","Transport-moving","Handlers-cleaners","Farming-fishing","Protective-serv","Armed-Forces"],
+						"valueFrequencies": [6112,3022,2355,2072,1490,983,15],
+						"valueImportances": [0.380834,0.188298,0.146738,0.129105,0.0928407,0.0612499,0.000934638]
 					},
 					{
 						"cluster": "B8",
-						"importance": 0.67021,
+						"importance": 0.723642,
 						"values": ["Prof-specialty","Exec-managerial","Sales","Other-service","Priv-house-serv","Adm-clerical","Tech-support"],
 						"valueFrequencies": [8981,6086,5504,4923,242,5611,1446],
-						"valueImportances": [0.271359,0.142493,0.128866,0.250358,0.0123069,0.208844,0.0538209]
+						"valueImportances": [0.481632,0.32638,0.295168,0.26401,0.012978,0.300906,0.077546]
 					}
 				],
 				"defaultGroupIndex": 0
@@ -124,12 +124,12 @@
 				"intervals": [
 					{
 						"cluster": "]-inf,12.5]",
-						"importance": 0.752379,
+						"importance": 0.746128,
 						"bounds": [1,12.5]
 					},
 					{
 						"cluster": "]12.5,+inf[",
-						"importance": 0.24762,
+						"importance": 0.253872,
 						"bounds": [12.5,16]
 					}
 				]
@@ -140,12 +140,12 @@
 				"intervals": [
 					{
 						"cluster": "]-inf,36.5]",
-						"importance": 0.215776,
+						"importance": 0.326199,
 						"bounds": [1,36.5]
 					},
 					{
 						"cluster": "]36.5,+inf[",
-						"importance": 0.784224,
+						"importance": 0.673801,
 						"bounds": [36.5,99]
 					}
 				]
@@ -156,24 +156,24 @@
 				"valueGroups": [
 					{
 						"cluster": "{Never-married, Married-AF-spouse}",
-						"importance": 0.329189,
+						"importance": 0.393111,
 						"values": ["Never-married","Married-AF-spouse"],
 						"valueFrequencies": [16117,37],
 						"valueImportances": [0.99771,0.00229045]
 					},
 					{
 						"cluster": "{Married-civ-spouse}",
-						"importance": 0.459542,
+						"importance": 0.406752,
 						"values": ["Married-civ-spouse"],
 						"valueFrequencies": [22379],
 						"valueImportances": [1]
 					},
 					{
-						"cluster": "{Divorced, Widowed, Separated, ...}",
-						"importance": 0.211269,
-						"values": ["Divorced","Widowed","Separated","Married-spouse-absent"],
-						"valueFrequencies": [6633,1518,1530,628],
-						"valueImportances": [0.643418,0.14725,0.148414,0.0609176]
+						"cluster": "{Divorced, Separated, Widowed, ...}",
+						"importance": 0.200137,
+						"values": ["Divorced","Separated","Widowed","Married-spouse-absent"],
+						"valueFrequencies": [6633,1530,1518,628],
+						"valueImportances": [0.643418,0.148414,0.14725,0.0609176]
 					}
 				],
 				"defaultGroupIndex": 0
@@ -184,14 +184,14 @@
 				"valueGroups": [
 					{
 						"cluster": "{Male}",
-						"importance": 0.670524,
+						"importance": 0.59261,
 						"values": ["Male"],
 						"valueFrequencies": [32650],
 						"valueImportances": [1]
 					},
 					{
 						"cluster": "{Female}",
-						"importance": 0.329476,
+						"importance": 0.40739,
 						"values": ["Female"],
 						"valueFrequencies": [16192],
 						"valueImportances": [1]
@@ -239,7 +239,7 @@
 				"type": "Categorical",
 				"clusters": [
 					{
-						"cluster": "{Craft-repair, Transport-moving, Machine-op-inspct, ...}",
+						"cluster": "{Craft-repair, Machine-op-inspct, Transport-moving, ...}",
 						"parentCluster": "B5",
 						"frequency": 16049,
 						"hierarchicalLevel": 1,
@@ -356,7 +356,7 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "{Divorced, Widowed, Separated, ...}",
+						"cluster": "{Divorced, Separated, Widowed, ...}",
 						"parentCluster": "E4",
 						"frequency": 10309,
 						"hierarchicalLevel": 1,

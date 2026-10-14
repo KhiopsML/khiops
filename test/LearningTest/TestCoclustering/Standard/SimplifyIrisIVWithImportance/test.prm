@@ -13,6 +13,48 @@
 //
 //
 
+
+// -> Khiops Coclustering
+LearningTools.PostProcessCoclustering    // Simplify coclustering...
+
+// -> Coclustering post-processing
+SelectInputCoclustering        // Select input coclustering...
+
+// -> Open
+InputCoclusteringFileName ./CoclusteringIrisIV_WithImportance.khcj   // Input coclustering file
+OK                             // Open
+// <- Open
+
+PostProcessingSpec.MaxCellNumber 20     // Max cell number
+PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_20cells_WithImportance.khcj         // Simplified coclustering report
+PostProcessCoclustering        // Simplify coclustering
+
+PostProcessingSpec.MaxCellNumber 10     // Max cell number
+PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_10cells_WithImportance.khcj   // Simplified coclustering report
+PostProcessCoclustering        // Simplify coclustering
+
+PostProcessingSpec.MaxCellNumber 0       // Max cell number
+PostProcessingSpec.MaxPreservedInformation 50      // Max preserved information
+PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_50info_WithImportance.khcj     // Simplified coclustering report
+PostProcessCoclustering        // Simplify coclustering
+
+PostProcessingSpec.MaxPreservedInformation 0       // Max preserved information
+PostProcessingSpec.PostProcessedAttributes.List.Key Variables      // List item selection
+PostProcessingSpec.PostProcessedAttributes.MaxPartNumber 4   // Max part number
+PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_max4Variables_WithImportance.khcj    // Simplified coclustering report
+PostProcessCoclustering        // Simplify coclustering
+
+PostProcessingSpec.PostProcessedAttributes.MaxPartNumber 0   // Max part number
+PostProcessingSpec.PostProcessedAttributes.List.Key Instance index         // List item selection
+PostProcessingSpec.PostProcessedAttributes.MaxPartNumber 2   // Max part number
+PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_max2InstanceIndex_WithImportance.khcj       // Simplified coclustering report
+PostProcessCoclustering        // Simplify coclustering
+PostProcessingSpec.PostProcessedAttributes.MaxPartNumber 0   // Max part number
+
+Exit                           // Close
+// <- Coclustering post-processing
+
+
 // -> Khiops Coclustering
 LearningTools.PostProcessCoclustering    // Simplify coclustering...
 
@@ -54,45 +96,6 @@ PostProcessingSpec.PostProcessedAttributes.MaxPartNumber 0   // Max part number
 Exit                           // Close
 // <- Coclustering post-processing
 
-
-// -> Khiops Coclustering
-LearningTools.PostProcessCoclustering    // Simplify coclustering...
-
-// -> Coclustering post-processing
-SelectInputCoclustering        // Select input coclustering...
-
-// -> Open
-InputCoclusteringFileName ./CoclusteringIrisIV_WithImportance.khcj   // Input coclustering file
-OK                             // Open
-// <- Open
-
-PostProcessingSpec.MaxCellNumber 20     // Max cell number
-PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_20cells_WithImportance.khcj         // Simplified coclustering report
-PostProcessCoclustering        // Simplify coclustering
-
-PostProcessingSpec.MaxCellNumber 10     // Max cell number
-PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_10cells_WithImportance.khcj   // Simplified coclustering report
-PostProcessCoclustering        // Simplify coclustering
-
-PostProcessingSpec.MaxCellNumber 0       // Max cell number
-PostProcessingSpec.MaxPreservedInformation 50      // Max preserved information
-PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_50info_WithImportance.khcj     // Simplified coclustering report
-PostProcessCoclustering        // Simplify coclustering
-
-PostProcessingSpec.MaxPreservedInformation 0       // Max preserved information
-PostProcessingSpec.PostProcessedAttributes.List.Key Variables      // List item selection
-PostProcessingSpec.PostProcessedAttributes.MaxPartNumber 4   // Max part number
-PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_max4Variables_WithImportance.khcj    // Simplified coclustering report
-PostProcessCoclustering        // Simplify coclustering
-
-PostProcessingSpec.PostProcessedAttributes.MaxPartNumber 0   // Max part number
-PostProcessingSpec.PostProcessedAttributes.List.Key Instance index         // List item selection
-PostProcessingSpec.PostProcessedAttributes.MaxPartNumber 2   // Max part number
-PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_max2InstanceIndex_WithImportance.khcj       // Simplified coclustering report
-PostProcessCoclustering        // Simplify coclustering
-
-Exit                           // Close
-// <- Coclustering post-processing
 
 
 Exit                           // Close

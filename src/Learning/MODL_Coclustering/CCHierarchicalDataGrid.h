@@ -7,6 +7,7 @@
 class CCHierarchicalDataGrid;
 class CCHDGAttribute;
 class CCHDGPart;
+class CCHDGCell;
 
 #include "KWDataGrid.h"
 #include "KWDatabase.h"
@@ -38,9 +39,9 @@ public:
 	// Level du coclustering
 	double GetLevel() const;
 
-	// Importance du coclustering
-	void SetCoclusteringImportance(double dValue);
-	double GetCoclusteringImportance() const;
+	// Importance absolue du coclustering
+	void SetCoclusteringGlobalImportance(double dValue);
+	double GetCoclusteringGlobalImportance() const;
 
 	/////////////////////////////////////////////////////////////////////////
 	// Informations sur le parametrage du coclustering
@@ -77,14 +78,36 @@ public:
 	// Verification de l'integrite pour les infos supplementaires sur la hierarchie
 	boolean CheckHierarchy() const;
 
+	// Verification de l'integrite des importances de la grille
+	boolean CheckImportances() const;
+
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
+
+	/////////////////////////////////////////////////////////////////////
+	// Calcul de toutes les importances de la grille
+	// Pilotage de toutes les methodes detaillees
+	void ComputeAllImportances();
+
+	// Calcul de l'importance totale du coclustering et de la contribution a l'information mutuelle de chaque cellule
+	void ComputeCoclusteringImportance();
+
+	// Calcul de l'importance des parties des attributs de la grille
+	void ComputePartImportances();
+
+	// Cas d'un coclustering instances x variables
+	// Calcul :
+	// - des importances des parties de variable au sein de leur cluster de PV
+	// - des importances des parties de variable au sein de leur variable
+	// - des importances des variables internes
+	void ComputeInnerAttributeImportances();
 
 	///////////////////////////////
 	//// Implementation
 protected:
 	// Reimplementation des methodes virtuelles
 	KWDGAttribute* NewAttribute() const override;
+	KWDGCell* NewCell() const override;
 
 	// Informations synthetique sur la grille de coclustering
 	ALString sShortDescription;
@@ -93,7 +116,7 @@ protected:
 	int nInitialAttributeNumber;
 	ALString sFrequencyAttributeName;
 	KWDatabase databaseSpec;
-	double dCoclusteringImportance;
+	double dCoclusteringGlobalImportance;
 
 	// CH IV Refactoring: le sIdentifierAttributeName est-il toujours utile???
 	// CH IV Refactoring: on le conserve pour l'instant dans l'hypothese ou l'on etende le coclustering IV a plusieurs variables hors variable varPart
@@ -122,11 +145,11 @@ public:
 	void SetInitialPartNumber(int nValue);
 	int GetInitialPartNumber() const;
 
-	// Interest
+	// Interest DEPRECATED
 	void SetInterest(double dValue);
 	double GetInterest() const;
 
-	// Importance
+	// Importance de l'attribut parmi l'ensemble des attributs
 	void SetImportance(double dValue);
 	double GetImportance() const;
 
@@ -202,16 +225,18 @@ public:
 	void SetPartName(const ALString& sValue);
 	const ALString& GetPartName();
 
-	// Typicalite
+	// Typicalite DEPRECATED
 	void SetInterest(double dValue);
 	double GetInterest() const;
 
-	// Importance de la partie
+	// Importance de la partie relativement a son attribut
+	// Dans le cas d'une partie de variable d'une variable interne a un coclustering individus * variables
+	// il s'agit de l'importance de la partie relativement a son cluster de parties de variable
 	void SetImportance(double dValue);
 	double GetImportance() const;
 
 	// Dans le cas d'une partie de variable d'une variable interne a un coclustering individus * variables
-	// Importance de la partie au sein de sa variable
+	// il s'agit de l'importance de la partie relativement a sa variable
 	void SetImportanceInVariable(double dValue);
 	double GetImportanceInVariable() const;
 
@@ -308,3 +333,24 @@ int CCHDGPartCompareLeafRank(const void* elem1, const void* elem2);
 
 // Comparaison de deux parties selon leur rang hierarchique, index d'attribut et partie (pointeur)
 int CCHDGPartCompareHierarchicalRank(const void* elem1, const void* elem2);
+
+//////////////////////////////////////////////////////////////////////////////
+// Classe CCHDGCell
+// Cellule d'un HierarchicalDataGrid
+class CCHDGCell : public KWDGCell
+{
+public:
+	// Constructeur
+	CCHDGCell();
+	~CCHDGCell();
+
+	// Information mutuelle
+	void SetMutualInformation(double dValue);
+	double GetMutualInformation() const;
+
+	///////////////////////////////
+	///// Implementation
+protected:
+	// Information mutuelle de la cellule
+	double dMutualInformation;
+};
