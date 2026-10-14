@@ -302,23 +302,6 @@ protected:
 	void ComputeHierarchicalInfo(const KWDataGrid* inputInitialDataGrid, const KWDataGridCosts* dataGridCosts,
 				     CCHierarchicalDataGrid* optimizedDataGrid) const;
 
-	// Calcul de toutes les importances de la grille optimisee
-	// Pilotage de toutes les methodes detaillees
-	void ComputeAllImportances(CCHierarchicalDataGrid* optimizedDataGrid) const;
-
-	// Calcul de l'importance totale du coclustering et de la contribution a l'information mutuelle de chaque cellule
-	void ComputeCoclusteringImportance(CCHierarchicalDataGrid* optimizedDataGrid) const;
-
-	// Calcul de l'importance des parties des attributes de la grille
-	void ComputePartImportances(CCHierarchicalDataGrid* optimizedDataGrid) const;
-
-	// Calcul de l'importance des attributs internes et de leur partie de variable au sein de leur cluster de PV
-	// et au sein de leur attribut interne
-	void ComputeInnerAttributeImportances(CCHierarchicalDataGrid* optimizedDataGrid) const;
-
-	// Verification de la coherence des importances
-	boolean CheckImportances(CCHierarchicalDataGrid* optimizedDataGrid) const;
-
 	// Calcul de la typicalite des attributs
 	void ComputeAttributeTypicalities(CCHierarchicalDataGrid* optimizedDataGrid) const;
 
@@ -352,7 +335,7 @@ protected:
 	// Numerotation (Ranks) des noeuds d'un arbre de partie de coclustering par parcours infixe
 	void ComputePartInfixRanks(CCHDGPart* hdgRootgPart) const;
 
-	// Tri des valeurs par typicalite decroissante pour les attributs categoriels, et initialisation du nom des
+	// Tri des valeurs par typicalite (ancien mode) / importance (nouveau mode) decroissante pour les attributs categoriels, et initialisation du nom des
 	// parties feuilles
 	void SortAttributePartsAndValues(CCHierarchicalDataGrid* optimizedDataGrid) const;
 

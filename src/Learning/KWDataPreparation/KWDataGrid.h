@@ -414,7 +414,7 @@ protected:
 	// d'un DataGrid dans une sous-classe
 
 	// Creation d'une cellule
-	// Le tableau d'effectif par classe cible doit etre initialise selon GetTagretValueNumber
+	// Le tableau d'effectif par classe cible doit etre initialise selon GetTargetValueNumber
 	virtual KWDGCell* NewCell() const;
 
 	////////////////////////////////////////////////////////////////////////////
@@ -1041,6 +1041,9 @@ public:
 	// Tri des valeurs par typicalite decroissante
 	void SortValuesByDecreasingTypicalities();
 
+	// Tri des valeurs par importance decroissante
+	void SortValuesByDecreasingImportances();
+
 	// Verification du tri des valeurs par effectif decroissant
 	// Couteux, a utiliser essentiellement dans les assertions
 	boolean AreValuesSorted() const;
@@ -1136,11 +1139,11 @@ public:
 	virtual void SetValueFrequency(int nFrequency) = 0;
 	virtual int GetValueFrequency() const = 0;
 
-	// Typicalite de la valeur
+	// Typicalite de la valeur DEPRECATED
 	void SetTypicality(double dValue);
 	double GetTypicality() const;
 
-	// Importance de la valeur
+	// Importance de la valeur relativement a sa partie
 	void SetImportance(double dValue);
 	double GetImportance() const;
 
@@ -1156,6 +1159,11 @@ public:
 	// - par effectif si categoriel
 	// - par valeur si VarPart
 	virtual int CompareTypicality(const KWDGValue* otherValue) const = 0;
+
+	// Comparaison par importance, puis
+	// - par effectif si categoriel
+	// - par valeur si VarPart
+	virtual int CompareImportance(const KWDGValue* otherValue) const = 0;
 
 	// Affichage
 	void Write(ostream& ost) const override = 0;
@@ -1188,8 +1196,11 @@ int KWDGValueCompareValue(const void* elem1, const void* elem2);
 // Comparaison de deux valeurs, par effectif decroissant
 int KWDGValueCompareFrequency(const void* elem1, const void* elem2);
 
-// Comparaison de deux typicalite
+// Comparaison de deux typicalites
 int KWDGValueCompareTypicality(const void* elem1, const void* elem2);
+
+// Comparaison de deux importances
+int KWDGValueCompareImportance(const void* elem1, const void* elem2);
 
 // Comparaison de deux objets KWSortableObject contenant des KWDGValue, par valeur puis par index
 // Permet un comparaison generique pour des valeurs de type Symbol ou VarPart
@@ -1274,8 +1285,11 @@ public:
 	// Comparaison de valeur Symbol
 	int CompareValue(const KWDGValue* otherValue) const override;
 
-	// Comparaison part typicalite, puis par effectif decroissant
+	// Comparaison par typicalite, puis par effectif decroissant
 	int CompareTypicality(const KWDGValue* otherValue) const override;
+
+	// Comparaison par importance, puis par effectif decroissant
+	int CompareImportance(const KWDGValue* otherValue) const override;
 
 	// Affichage
 	void Write(ostream& ost) const override;
@@ -1425,8 +1439,11 @@ public:
 	// Comparaison de valeur, par attribut, puis selon les valeurs de la partie, intervalles ou premiere valeur des groupe
 	int CompareValue(const KWDGValue* otherValue) const override;
 
-	// Comparaison part typicalite, puis par valeur
+	// Comparaison par typicalite, puis par valeur
 	int CompareTypicality(const KWDGValue* otherValue) const override;
+
+	// Comparaison par importance, puis par valeur
+	int CompareImportance(const KWDGValue* otherValue) const override;
 
 	// Affichage
 	void Write(ostream& ost) const override;
@@ -1559,10 +1576,6 @@ public:
 	int GetCellFrequency() const;
 	void SetCellFrequency(int nFrequency);
 
-	// Information mutuelle de la cellule
-	double GetMutualInformation() const;
-	void SetMutualInformation(double dValue);
-
 	// Nombre de classes cible (0 dans le cas non supervise)
 	int GetTargetValueNumber() const;
 
@@ -1624,9 +1637,6 @@ protected:
 
 	// Effectif de la cellule
 	int nCellFrequency;
-
-	// Information mutuelle de la cellule
-	double dMutualInformation;
 
 	// Vecteur d'effectif par classe cible
 	IntVector ivFrequencyVector;
@@ -2517,7 +2527,6 @@ inline KWDGCell::KWDGCell()
 	prevCell = NULL;
 	nextCell = NULL;
 	nCellFrequency = 0;
-	dMutualInformation = 0;
 }
 
 inline KWDGCell::~KWDGCell()
@@ -2526,7 +2535,6 @@ inline KWDGCell::~KWDGCell()
 	debug(prevCell = NULL);
 	debug(nextCell = NULL);
 	debug(nCellFrequency = 0);
-	debug(dMutualInformation = 0);
 	debug(ivFrequencyVector.SetSize(0));
 	debug(oaParts.SetSize(0));
 	debug(oaNextCells.SetSize(0));
@@ -2544,18 +2552,6 @@ inline void KWDGCell::SetCellFrequency(int nFrequency)
 	require(nFrequency >= 0);
 	require(GetTargetValueNumber() == 0);
 	nCellFrequency = nFrequency;
-}
-
-inline double KWDGCell::GetMutualInformation() const
-{
-	ensure(ivFrequencyVector.GetSize() == 0 or ComputeTotalFrequency() == nCellFrequency);
-	return dMutualInformation;
-}
-
-inline void KWDGCell::SetMutualInformation(double dValue)
-{
-	require(GetTargetValueNumber() == 0);
-	dMutualInformation = dValue;
 }
 
 inline int KWDGCell::GetTargetValueNumber() const

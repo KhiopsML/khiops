@@ -34,7 +34,7 @@ public:
 	static const ALString GetReportSuffix();
 
 	// Format des rapports : ancien format avec indicateur d'Interest et de Typicity ou nouveau format avec indicateurs d'Importance
-	void SetOldFormatBeforeImportance(boolean bFormat);
+	void SetOldFormatBeforeImportance(boolean bValue);
 	boolean GetOldFormatBeforeImportance() const;
 
 	// Lecture des informations de coclustering a partir d'un fichier de rapport au format json
