@@ -316,9 +316,6 @@ protected:
 	// et au sein de leur attribut interne
 	void ComputeInnerAttributeImportances(CCHierarchicalDataGrid* optimizedDataGrid) const;
 
-	// Verification de la coherence des importances
-	boolean CheckImportances(CCHierarchicalDataGrid* optimizedDataGrid) const;
-
 	// Calcul de la typicalite des attributs
 	void ComputeAttributeTypicalities(CCHierarchicalDataGrid* optimizedDataGrid) const;
 

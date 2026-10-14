@@ -110,6 +110,10 @@ boolean CCCoclusteringReport::ReadReport(const ALString& sFileName, CCHierarchic
 
 	JSONTokenizer::SetForceUnicodeToAnsi(false);
 
+	// Dans le cas du nouveau format, verification de la coherence des importances
+	if (not bOldFormatBeforeImportance)
+		bOk = coclusteringDataGrid->CheckImportances();
+
 	return bOk;
 }
 
@@ -174,9 +178,9 @@ const ALString CCCoclusteringReport::GetReportSuffix()
 	return "khcj";
 }
 
-void CCCoclusteringReport::SetOldFormatBeforeImportance(boolean bFormat)
+void CCCoclusteringReport::SetOldFormatBeforeImportance(boolean bValue)
 {
-	bOldFormatBeforeImportance = bFormat;
+	bOldFormatBeforeImportance = bValue;
 }
 
 boolean CCCoclusteringReport::GetOldFormatBeforeImportance() const
@@ -712,6 +716,11 @@ boolean CCCoclusteringReport::ReadDimensionSummaries(CCHierarchicalDataGrid* coc
 			bOk = bOk and JSONTokenizer::ReadExpectedToken(':');
 			bOk = bOk and JSONTokenizer::ReadDoubleValue(true, dAttributeImportance);
 			bOk = bOk and JSONTokenizer::ReadObjectNext(bIsEnd);
+		}
+		else
+		{
+			bOk = false;
+			JSONTokenizer::AddParseError("Invalid " + sKey + ", expected \"interest \" or \"importance\"");
 		}
 		bOk = bOk and JSONTokenizer::ReadKeyStringValue("description", sAttributeDescription, bIsEnd);
 
@@ -1827,25 +1836,16 @@ boolean CCCoclusteringReport::ReadImportances(KWDGAttribute* dgAttribute, int nV
 	require(dvValueImportances != NULL);
 	require(dvValueImportances->GetSize() == 0);
 
-	// Tableau des typicalites
+	// Tableau des importances
 	bOk = bOk and JSONTokenizer::ReadKeyArray("valueImportances");
 	bIsEnd = false;
 	dValueImportance = 0;
 	while (bOk and not bIsEnd)
 	{
-		bOk = bOk and JSONTokenizer::ReadDoubleValue(false, dValueImportance);
+		bOk = bOk and JSONTokenizer::ReadDoubleValue(true, dValueImportance);
 
-		// Tolerance pour les typicalite negatives
-		if (dValueImportance < 0)
-		{
-			AddWarning(sTmp + "Importance (" + DoubleToString(dValueImportance) +
-				   ") less than 0 for variable " + dgAttribute->GetAttributeName() +
-				   " in \"valueImportances\" line " +
-				   IntToString(JSONTokenizer::GetCurrentLineIndex()) + " (replaced by 0)");
-			dValueImportance = 0;
-		}
 		// Erreur pour les importances superieures a 1
-		else if (dValueImportance > 1)
+		if (dValueImportance > 1)
 		{
 			AddError(sTmp + "Importance (" + DoubleToString(dValueImportance) +
 				 ") greater than 1 for variable " + dgAttribute->GetAttributeName() +
@@ -1853,6 +1853,17 @@ boolean CCCoclusteringReport::ReadImportances(KWDGAttribute* dgAttribute, int nV
 			bOk = false;
 			break;
 		}
+
+		// Erreur pour les importances inferieures a 0
+		if (dValueImportance < 0)
+		{
+			AddError(sTmp + "Importance (" + DoubleToString(dValueImportance) +
+				 ") smaller than 0 for variable " + dgAttribute->GetAttributeName() +
+				 " in \"valueImportances\" line " + IntToString(JSONTokenizer::GetCurrentLineIndex()));
+			bOk = false;
+			break;
+		}
+
 		bOk = bOk and JSONTokenizer::ReadArrayNext(bIsEnd);
 		if (bOk)
 			dvValueImportances->Add(dValueImportance);
@@ -2671,6 +2682,7 @@ void CCCoclusteringReport::WriteAttributePartition(KWDGAttribute* attribute, JSO
 			}
 			fJSON->EndList();
 
+			// Gestion des typicalites dans l'ancien mode
 			if (not GetImportanceMode() and bOldFormatBeforeImportance)
 			{
 
@@ -2689,6 +2701,8 @@ void CCCoclusteringReport::WriteAttributePartition(KWDGAttribute* attribute, JSO
 					fJSON->EndList();
 				}
 			}
+
+			// Gestion des importances dans le nouveau mode
 			else
 			{
 				// Importance des valeurs
