@@ -83,6 +83,11 @@ def export_learning_test_tree(
             "Unable to create target dir " + target_home_dir + " " + str(why)
         )
 
+    source_version_file = os.path.join(home_dir, kht.VERSION_FILE)
+    if os.path.isfile(source_version_file):
+        target_version_file = os.path.join(target_home_dir, kht.VERSION_FILE)
+        utils.copy_file(source_version_file, target_version_file)
+
     # Parametrage des noms de fichiers ou repertoire specifiques a ne pas prendre en compte
     export_test_dirs = export_type in [EXPORT_ALL, EXPORT_SCRIPTS, EXPORT_REFERENCES]
     forbidden_names = ["__pycache__", kht.RESULTS, kht.COMPARISON_RESULTS_LOG]

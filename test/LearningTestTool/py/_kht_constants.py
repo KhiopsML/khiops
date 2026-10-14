@@ -12,6 +12,7 @@ LEARNING_TEST_TOOL = "LearningTestTool"
 
 """ Repertoire racine de l'arborescence de test """
 LEARNING_TEST = "LearningTest"
+VERSION_FILE = "version.txt"
 
 """ Repertoires des resultats de test et de reference """
 RESULTS = "results"
