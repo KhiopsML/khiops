@@ -1453,7 +1453,7 @@ void KWDRBuildEntityFromJson::FillAttributeFromJsonNumber(const KWAttribute* att
 	else
 		jsonWarningOwnerMember = NULL;
 
-	// Conversion de la valeur json en valeur Continuous, en gerant les valeur extremes
+	// Conversion de la valeur json en valeur Continuous, en gerant les valeurs extremes
 	dJsonValue = jsonNumber->GetNumber();
 	if (dJsonValue < KWContinuous::GetMinValue())
 	{

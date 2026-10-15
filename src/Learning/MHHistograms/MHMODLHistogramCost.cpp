@@ -309,7 +309,7 @@ double MHMODLHistogramCosts::ComputePartitionModelCost(int nPartNumber, int nGar
 {
 	double dCost;
 
-	// Il faut retrancher les partie vraissemblance pour avoir la partie prior du cout de partition
+	// Il faut retrancher les parties vraissemblance pour avoir la partie prior du cout de partition
 	dCost = ComputePartitionCost(nPartNumber);
 	dCost -= KWStat::LnFactorial(nTotalInstanceNumber);
 	dCost += nTotalInstanceNumber * log(dMinBinLength);

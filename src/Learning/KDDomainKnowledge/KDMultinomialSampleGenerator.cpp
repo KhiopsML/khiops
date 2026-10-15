@@ -24,7 +24,7 @@ void KDMultinomialSampleGenerator::ComputeBestSample(double dTotalFrequency, con
 	// Reinitialisation de la graine aleatoire
 	lRankedRandomSeed = 0;
 
-	// Calcul de la meilleure distribution sur la base des partie entieres superieure
+	// Calcul de la meilleure distribution sur la base des parties entieres superieure
 	ComputeBestCeilSample(dTotalFrequency, dvProbs, dvFrequencies);
 
 	// On le post-optimize

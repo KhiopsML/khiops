@@ -51,7 +51,7 @@ int Section::Compare(Section* sectionValue)
 		sectionValueInternalLines.TrimRight();
 		sectionValueInternalLines.TrimLeft();
 
-		// Retour de la comparaison des partie internes des sections
+		// Retour de la comparaison des parties internes des sections
 		return internalLines.Compare(sectionValueInternalLines);
 	}
 }
