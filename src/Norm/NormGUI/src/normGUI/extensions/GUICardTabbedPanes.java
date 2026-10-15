@@ -4,7 +4,6 @@
 
 package normGUI.extensions;
 
-import com.formdev.flatlaf.extras.FlatSVGIcon;
 import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -14,6 +13,7 @@ import java.awt.event.FocusListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Vector;
+import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -27,6 +27,7 @@ import normGUI.engine.GUIAction;
 import normGUI.engine.GUICard;
 import normGUI.engine.GUIData;
 import normGUI.engine.GUIUnit;
+import normGUI.engine.GUIIconLoader;
 
 /**
  * Cette classe represente une unite d'interface de type fiche
@@ -166,22 +167,16 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                                                         jp.setName(guiData.getIdentifier());
                                                         guiUnit.graphicAddField(jp, gbc);
 
-                                                        // Charge l'icône de l'onglet à partir des paramètres, si spécifiée
-                                                        String iconPath = resolveIconPathFromParameters(guiUnit.getParameters());
-                                                        FlatSVGIcon tabIcon = loadTabIcon(iconPath);
-                                                        if (tabIcon != null) {
-                                                                // Index de l'onglet une fois ajouté
-                                                                final int tabIndex = tabbedPanes.getTabCount();
-
-                                                                // Évalué à chaque draw, donc il reflète toujours l'état
-                                                                // actuel de sélection/survol
-                                                                tabIcon.setColorFilter(new FlatSVGIcon.ColorFilter(
-                                                                    color -> (tabIndex == tabbedPanes.getSelectedIndex() ||
-                                                                              tabIndex == hoveredTabIndex)
-                                                                                 ? selectedTabIconColor
-                                                                                 : color));
+                                                        // Charge l'icone de l'onglet a partir des parametres, si specifiee
+                                                        final int tabIndex = tabbedPanes.getTabCount();
+                                                        Icon tabIcon = GUIIconLoader.loadSvgIcon(
+                                                                GUIIconLoader.resolveIconPath(guiUnit.getParameters()),
+                                                                selectedTabIconColor,
+                                                                () -> tabIndex == tabbedPanes.getSelectedIndex() ||
+                                                                        tabIndex == hoveredTabIndex);
+                                                        if (tabIcon != null)
                                                                 tabbedPanes.addTab(guiUnit.getLabel(), tabIcon, jp);
-                                                        } else
+                                                        else
                                                                 tabbedPanes.addTab(guiUnit.getLabel(), jp);
 
                                                         if (guiUnit.getShortCut() != ' ')
@@ -206,7 +201,7 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                                 tabbedPanes.addChangeListener(this);
                                 tabbedPanes.addFocusListener(this);
 
-                                // Suit l'onglet survolé afin que son icône puisse être mise en évidence
+                                // Suit l'onglet survole afin que son icone puisse etre mise en evidence
                                 MouseAdapter hoverListener = new MouseAdapter() {
                                         public void mouseMoved(MouseEvent e)
                                         {
@@ -285,7 +280,7 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
         public void stateChanged(ChangeEvent e) { refreshMenus(); }
 
         /**
-         * Met à jour l'onglet survolé et ne repeint que lorsqu'il a changé
+         * Met a jour l'onglet survole et ne repeint que lorsqu'il a change
          */
         private void updateHoveredTab(int tabIndex)
         {
@@ -296,44 +291,7 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
         }
 
         /**
-         * Charge l'icône SVG de l'onglet, ou retourne null si elle ne peut pas être trouvée
-         */
-        private FlatSVGIcon loadTabIcon(String iconPath)
-        {
-                if (iconPath == null)
-                        return null;
-
-                FlatSVGIcon icon = new FlatSVGIcon(iconPath, 16, 16);
-                return icon.hasFound() ? icon : null;
-        }
-
-        /**
-         * Résoud le chemin de l'icône à partir de la chaîne de paramètres donnée.
-         */
-        private String resolveIconPathFromParameters(String parameters)
-        {
-                if (parameters == null || parameters.length() == 0)
-                        return null;
-
-                String[] tokens = parameters.split("\\n");
-                for (String rawToken : tokens) {
-                        String token = rawToken.trim();
-                        if (!token.startsWith("icon="))
-                                continue;
-
-                        String iconValue = token.substring("icon=".length()).trim();
-                        if (iconValue.length() == 0)
-                                return null;
-
-                        if (iconValue.indexOf('/') >= 0)
-                                return iconValue;
-                        return "images/" + iconValue + ".svg";
-                }
-                return null;
-        }
-
-        /**
-         * Synchronisatin des menus avec l'onglet selectionne
+         * Synchronisation des menus avec l'onglet selectionne
          * Depuis la V10, on ne synchronise plus les menus avec l'onglet selectionne
          * Cela cree des contraintes penible a l'utilisation
          */

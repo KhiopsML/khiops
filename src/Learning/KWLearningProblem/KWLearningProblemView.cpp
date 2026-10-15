@@ -37,7 +37,7 @@ KWLearningProblemView::KWLearningProblemView()
 	AddCardField("LearningTools", "Tools", learningProblemActionView);
 	AddCardField("Help", "Help", learningProblemHelpCard);
 
-	// Ajout d'icônes aux onglets
+	// Ajout d'icones aux onglets
 	GetFieldAt("TrainDatabase")->SetParameters("icon=database");
 	GetFieldAt("AnalysisSpec")->SetParameters("icon=sliders-vertical");
 	GetFieldAt("AnalysisResults")->SetParameters("icon=chart-column-big");
@@ -127,7 +127,7 @@ KWLearningProblemView::KWLearningProblemView()
 	GetActionAt("ComputeStats")->SetStyle("Button");
 	GetActionAt("TransferDatabase")->SetStyle("Button");
 
-	// Ajout d'icônes aux actions
+	// Ajout d'icones aux actions
 	GetActionAt("ComputeStats")->SetParameters("icon=sparkles");
 	GetActionAt("TransferDatabase")->SetParameters("icon=rocket");
 

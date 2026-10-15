@@ -144,7 +144,7 @@ public class GUIManager extends GUIObject
                                   flatLafClass.getMethod("registerCustomDefaultsSource", String.class);
                                 registerCustomDefaultsSourceMethod.invoke(null, "images");
                         } catch (Throwable ignored) {
-                                // Ignorer les erreurs lors de l'enregistrement des sources de valeurs par défaut personnalisées
+                                // Ignorer les erreurs lors de l'enregistrement des sources de valeurs par defaut personnalisees
                         }
 
                         // Priorite au theme Arc Orange (flatlaf-intellij-themes).
@@ -156,7 +156,7 @@ public class GUIManager extends GUIObject
                                 UIManager.setLookAndFeel((javax.swing.LookAndFeel)flatArcOrangeLaf);
                                 return true;
                         } catch (Throwable ignored) {
-                                // Ignorer les erreurs lors du chargement du thème Arc Orange
+                                // Ignorer les erreurs lors du chargement du theme Arc Orange
                         }
 
                         Class<?> flatLightLafClass = Class.forName("com.formdev.flatlaf.FlatLightLaf");

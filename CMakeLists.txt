@@ -257,18 +257,18 @@ if(BUILD_JARS)
   set(KHIOPS_FLATLAF_VERSION "3.6")
   set(KHIOPS_JSVG_VERSION "1.4.0")
   set(KHIOPS_FLATLAF_JAR "${KHIOPS_BUILD_JAR_DIR}/flatlaf.jar")
-    set(KHIOPS_FLATLAF_EXTRAS_JAR "${KHIOPS_BUILD_JAR_DIR}/flatlaf-extras.jar")
+  set(KHIOPS_FLATLAF_EXTRAS_JAR "${KHIOPS_BUILD_JAR_DIR}/flatlaf-extras.jar")
   set(KHIOPS_FLATLAF_INTELLIJ_THEMES_JAR "${KHIOPS_BUILD_JAR_DIR}/flatlaf-intellij-themes.jar")
   set(KHIOPS_JSVG_JAR "${KHIOPS_BUILD_JAR_DIR}/jsvg.jar")
   set(KHIOPS_FLATLAF_URL
-      "https://repo1.maven.org/maven2/com/formdev/flatlaf/${KHIOPS_FLATLAF_VERSION}/flatlaf-${KHIOPS_FLATLAF_VERSION}.jar"
+    "https://repo1.maven.org/maven2/com/formdev/flatlaf/${KHIOPS_FLATLAF_VERSION}/flatlaf-${KHIOPS_FLATLAF_VERSION}.jar"
   )
-    set(KHIOPS_FLATLAF_EXTRAS_URL
-      "https://repo1.maven.org/maven2/com/formdev/flatlaf-extras/${KHIOPS_FLATLAF_VERSION}/flatlaf-extras-${KHIOPS_FLATLAF_VERSION}.jar"
-    )
-      set(KHIOPS_JSVG_URL
-        "https://repo1.maven.org/maven2/com/github/weisj/jsvg/${KHIOPS_JSVG_VERSION}/jsvg-${KHIOPS_JSVG_VERSION}.jar"
-      )
+  set(KHIOPS_FLATLAF_EXTRAS_URL
+    "https://repo1.maven.org/maven2/com/formdev/flatlaf-extras/${KHIOPS_FLATLAF_VERSION}/flatlaf-extras-${KHIOPS_FLATLAF_VERSION}.jar"
+  )
+  set(KHIOPS_JSVG_URL
+    "https://repo1.maven.org/maven2/com/github/weisj/jsvg/${KHIOPS_JSVG_VERSION}/jsvg-${KHIOPS_JSVG_VERSION}.jar"
+  )
   set(
     KHIOPS_FLATLAF_INTELLIJ_THEMES_URL
     "https://repo1.maven.org/maven2/com/formdev/flatlaf-intellij-themes/${KHIOPS_FLATLAF_VERSION}/flatlaf-intellij-themes-${KHIOPS_FLATLAF_VERSION}.jar"
