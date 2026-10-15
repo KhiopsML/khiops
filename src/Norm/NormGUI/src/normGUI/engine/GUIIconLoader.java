@@ -48,6 +48,9 @@ public class GUIIconLoader
 
                 try {
                         return GUISvgIconFactory.create(iconPath, highlightColor, isHighlighted);
+                } catch (ReflectiveOperationException e) {
+                        svgAvailable = false;
+                        return null;
                 } catch (LinkageError e) {
                         svgAvailable = false;
                         return null;
