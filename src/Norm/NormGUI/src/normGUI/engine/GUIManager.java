@@ -65,8 +65,8 @@ public class GUIManager extends GUIObject
                                                 UIManager.put("defaultFont", defaultFont);
                                                 if (!UIManager.getLookAndFeel().getClass().getName().startsWith(
                                                       "com.formdev.flatlaf.")) {
-                                                        for (Object key : UIManager.getLookAndFeelDefaults().keySet()
-                                                                            .toArray()) {
+                                                        for (Object key :
+                                                             UIManager.getLookAndFeelDefaults().keySet().toArray()) {
                                                                 if (key instanceof String &&
                                                                     ((String)key).endsWith(".font"))
                                                                         UIManager.put(key, defaultFont);
@@ -144,7 +144,8 @@ public class GUIManager extends GUIObject
                                   flatLafClass.getMethod("registerCustomDefaultsSource", String.class);
                                 registerCustomDefaultsSourceMethod.invoke(null, "images");
                         } catch (Throwable ignored) {
-                                // Ignorer les erreurs lors de l'enregistrement des sources de valeurs par défaut personnalisées
+                                // Ignorer les erreurs lors de l'enregistrement des sources de valeurs par defaut
+                                // personnalisees
                         }
 
                         // Priorite au theme Arc Orange (flatlaf-intellij-themes).
@@ -156,7 +157,7 @@ public class GUIManager extends GUIObject
                                 UIManager.setLookAndFeel((javax.swing.LookAndFeel)flatArcOrangeLaf);
                                 return true;
                         } catch (Throwable ignored) {
-                                // Ignorer les erreurs lors du chargement du thème Arc Orange
+                                // Ignorer les erreurs lors du chargement du theme Arc Orange
                         }
 
                         Class<?> flatLightLafClass = Class.forName("com.formdev.flatlaf.FlatLightLaf");
@@ -199,8 +200,8 @@ public class GUIManager extends GUIObject
          */
         private static Font loadBundledPoppinsFont() throws IOException, FontFormatException
         {
-                String[] resourcePaths =
-                  {"images/Poppins-Regular.ttf"};
+                // Les ressources sont placees sous "images/" par add_khiops_jar
+                String[] resourcePaths = { "images/Poppins-Regular.ttf" };
 
                 for (String resourcePath : resourcePaths) {
                         try (InputStream fontStream =
