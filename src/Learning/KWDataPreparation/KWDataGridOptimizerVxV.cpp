@@ -297,7 +297,7 @@ boolean KWDataGridOptimizerVxV::IsLastGranularity(const KWDataGrid* dataGrid) co
 int KWDataGridOptimizerVxV::ComputeMaxExploredGranularity(const KWDataGrid* dataGrid) const
 {
 	int nMaxExploredGranularity;
-	const int nMinValueNumber = 500;
+	const int nMinValueNumber = 500; //DDD TO VALIDATE
 	int nValueNumber;
 	boolean bIsGranularityMaxThresholded;
 

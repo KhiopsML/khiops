@@ -66,6 +66,23 @@ public:
 						   const KWDataGrid* initialDataGrid,
 						   const ALString& sPostOptimizationAttributeName) const;
 
+	/////////////////////////////////////////////////////////////////
+	//// Implementation
+protected:
+	// Post-optimisation univariee d'un attribut de type numerique
+	// On optimise l'attribut en sur-partitionnant l'attribut a optimiser a proximite des intervalles
+	// existants, en raffinant iterativement la distance aux bornes existantes.
+	double PostOptimizeDataGridContinuousAttribute(KWDataGrid* optimizedDataGrid, const KWDataGrid* initialDataGrid,
+						       const ALString& sPostOptimizationAttributeName,
+						       boolean bDeepPostOptimization) const;
+
+	// Post-optimisation univariee d'un attribut de type categoriel
+	// On optimise l'attribut en eclatant les groupes de l'attribut a optimiser, iterativement
+	// avec des groupes de grande taille, puis de taille de plus en plus petite.
+	double PostOptimizeDataGridSymbolAttribute(KWDataGrid* optimizedDataGrid, const KWDataGrid* initialDataGrid,
+						   const ALString& sPostOptimizationAttributeName,
+						   boolean bDeepPostOptimization) const;
+
 	// Construction d'une grille initiale pour l'optimisation univariee dans le cas continu,
 	// ayant les memes partitions par attribut que la grille optimisee, sauf sur l'attribut a optimiser
 	// Pour la partition de cet attribut, des intervalles source de la grille initiale peuvent etre
@@ -93,9 +110,6 @@ public:
 							       int nNearbyGroupMinFrequency,
 							       int nNearbyGroupMaxFrequency) const;
 
-	/////////////////////////////////////////////////////////////////
-	//// Implementation
-protected:
 	// Parametrage de la structure des couts
 	const KWDataGridCosts* dataGridCosts;
 

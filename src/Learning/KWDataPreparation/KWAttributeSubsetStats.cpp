@@ -643,7 +643,7 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 	Continuous cIntervalBound;
 	double dProgression;
 	int nMaxValueNumber;
-	int nMinValueNumber = 500;
+	int nMinValueNumber = 500; //DDD TO VALIDATE
 
 	require(Check());
 	require(CheckSpecifications());
@@ -678,8 +678,8 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 	else
 		nMaxValueNumber =
 		    nMinValueNumber +
-		    (int)ceil(sqrt((univariateTupleTable->GetTotalFrequency() + 1 - nMinValueNumber) *
-				   log((univariateTupleTable->GetTotalFrequency() + 1 - nMinValueNumber)) / log(2.0)));
+		    (int)ceil(sqrt((univariateTupleTable->GetTotalFrequency() - nMinValueNumber) *
+				   log(1 + univariateTupleTable->GetTotalFrequency() - nMinValueNumber) / log(2.0)));
 
 	// Cas de la pre-granularisation de l'attribut
 	if (GetPregranularizedNumericalAttributes() and univariateTupleTable->GetSize() > nMaxValueNumber and
