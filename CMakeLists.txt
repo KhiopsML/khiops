@@ -273,74 +273,38 @@ if(BUILD_JARS)
     KHIOPS_FLATLAF_INTELLIJ_THEMES_URL
     "https://repo1.maven.org/maven2/com/formdev/flatlaf-intellij-themes/${KHIOPS_FLATLAF_VERSION}/flatlaf-intellij-themes-${KHIOPS_FLATLAF_VERSION}.jar"
   )
-  if(NOT EXISTS "${KHIOPS_FLATLAF_JAR}")
+  function(download_optional_jar jar_variable url)
+    set(jar_path "${${jar_variable}}")
+    if(EXISTS "${jar_path}")
+      file(SIZE "${jar_path}" jar_size)
+      if(jar_size GREATER 0)
+        return()
+      endif()
+      file(REMOVE "${jar_path}")
+    endif()
     file(MAKE_DIRECTORY "${KHIOPS_BUILD_JAR_DIR}")
-    message(STATUS "Downloading FlatLaf ${KHIOPS_FLATLAF_VERSION} from ${KHIOPS_FLATLAF_URL}")
+    message(STATUS "Downloading optional JAR from ${url}")
     file(
-      DOWNLOAD "${KHIOPS_FLATLAF_URL}" "${KHIOPS_FLATLAF_JAR}"
-      STATUS KHIOPS_FLATLAF_DOWNLOAD_STATUS TLS_VERIFY ON SHOW_PROGRESS)
-    list(GET KHIOPS_FLATLAF_DOWNLOAD_STATUS 0 KHIOPS_FLATLAF_DOWNLOAD_CODE)
-    list(GET KHIOPS_FLATLAF_DOWNLOAD_STATUS 1 KHIOPS_FLATLAF_DOWNLOAD_MESSAGE)
-    if(NOT KHIOPS_FLATLAF_DOWNLOAD_CODE EQUAL 0)
+      DOWNLOAD "${url}" "${jar_path}.download"
+      STATUS download_status TLS_VERIFY ON SHOW_PROGRESS TIMEOUT 60)
+    list(GET download_status 0 download_code)
+    list(GET download_status 1 download_message)
+    if(download_code EQUAL 0)
+      file(RENAME "${jar_path}.download" "${jar_path}")
+    else()
+      file(REMOVE "${jar_path}.download")
+      set(${jar_variable} "" PARENT_SCOPE)
       message(
-        FATAL_ERROR
-          "Unable to download FlatLaf (${KHIOPS_FLATLAF_DOWNLOAD_MESSAGE}). Please check network access to Maven Central or provide ${KHIOPS_FLATLAF_JAR} manually."
+        WARNING
+          "Unable to download ${url} (${download_message}). Continuing without this optional JAR; the GUI will use the available Swing appearance and icons."
       )
     endif()
-  endif()
+  endfunction()
 
-  if(NOT EXISTS "${KHIOPS_FLATLAF_INTELLIJ_THEMES_JAR}")
-    file(MAKE_DIRECTORY "${KHIOPS_BUILD_JAR_DIR}")
-    message(
-      STATUS
-        "Downloading FlatLaf IntelliJ themes ${KHIOPS_FLATLAF_VERSION} from ${KHIOPS_FLATLAF_INTELLIJ_THEMES_URL}"
-    )
-    file(
-      DOWNLOAD "${KHIOPS_FLATLAF_INTELLIJ_THEMES_URL}" "${KHIOPS_FLATLAF_INTELLIJ_THEMES_JAR}"
-      STATUS KHIOPS_FLATLAF_INTELLIJ_THEMES_DOWNLOAD_STATUS TLS_VERIFY ON SHOW_PROGRESS)
-    list(GET KHIOPS_FLATLAF_INTELLIJ_THEMES_DOWNLOAD_STATUS 0
-         KHIOPS_FLATLAF_INTELLIJ_THEMES_DOWNLOAD_CODE)
-    list(GET KHIOPS_FLATLAF_INTELLIJ_THEMES_DOWNLOAD_STATUS 1
-         KHIOPS_FLATLAF_INTELLIJ_THEMES_DOWNLOAD_MESSAGE)
-    if(NOT KHIOPS_FLATLAF_INTELLIJ_THEMES_DOWNLOAD_CODE EQUAL 0)
-      message(
-        FATAL_ERROR
-          "Unable to download FlatLaf IntelliJ themes (${KHIOPS_FLATLAF_INTELLIJ_THEMES_DOWNLOAD_MESSAGE}). Please check network access to Maven Central or provide ${KHIOPS_FLATLAF_INTELLIJ_THEMES_JAR} manually."
-      )
-    endif()
-  endif()
-
-  if(NOT EXISTS "${KHIOPS_FLATLAF_EXTRAS_JAR}")
-    file(MAKE_DIRECTORY "${KHIOPS_BUILD_JAR_DIR}")
-    message(STATUS "Downloading FlatLaf extras ${KHIOPS_FLATLAF_VERSION} from ${KHIOPS_FLATLAF_EXTRAS_URL}")
-    file(
-      DOWNLOAD "${KHIOPS_FLATLAF_EXTRAS_URL}" "${KHIOPS_FLATLAF_EXTRAS_JAR}"
-      STATUS KHIOPS_FLATLAF_EXTRAS_DOWNLOAD_STATUS TLS_VERIFY ON SHOW_PROGRESS)
-    list(GET KHIOPS_FLATLAF_EXTRAS_DOWNLOAD_STATUS 0 KHIOPS_FLATLAF_EXTRAS_DOWNLOAD_CODE)
-    list(GET KHIOPS_FLATLAF_EXTRAS_DOWNLOAD_STATUS 1 KHIOPS_FLATLAF_EXTRAS_DOWNLOAD_MESSAGE)
-    if(NOT KHIOPS_FLATLAF_EXTRAS_DOWNLOAD_CODE EQUAL 0)
-      message(
-        FATAL_ERROR
-          "Unable to download FlatLaf extras (${KHIOPS_FLATLAF_EXTRAS_DOWNLOAD_MESSAGE}). Please check network access to Maven Central or provide ${KHIOPS_FLATLAF_EXTRAS_JAR} manually."
-      )
-    endif()
-  endif()
-
-  if(NOT EXISTS "${KHIOPS_JSVG_JAR}")
-    file(MAKE_DIRECTORY "${KHIOPS_BUILD_JAR_DIR}")
-    message(STATUS "Downloading jsvg ${KHIOPS_JSVG_VERSION} from ${KHIOPS_JSVG_URL}")
-    file(
-      DOWNLOAD "${KHIOPS_JSVG_URL}" "${KHIOPS_JSVG_JAR}"
-      STATUS KHIOPS_JSVG_DOWNLOAD_STATUS TLS_VERIFY ON SHOW_PROGRESS)
-    list(GET KHIOPS_JSVG_DOWNLOAD_STATUS 0 KHIOPS_JSVG_DOWNLOAD_CODE)
-    list(GET KHIOPS_JSVG_DOWNLOAD_STATUS 1 KHIOPS_JSVG_DOWNLOAD_MESSAGE)
-    if(NOT KHIOPS_JSVG_DOWNLOAD_CODE EQUAL 0)
-      message(
-        FATAL_ERROR
-          "Unable to download jsvg (${KHIOPS_JSVG_DOWNLOAD_MESSAGE}). Please check network access to Maven Central or provide ${KHIOPS_JSVG_JAR} manually."
-      )
-    endif()
-  endif()
+  download_optional_jar(KHIOPS_FLATLAF_JAR "${KHIOPS_FLATLAF_URL}")
+  download_optional_jar(KHIOPS_FLATLAF_INTELLIJ_THEMES_JAR "${KHIOPS_FLATLAF_INTELLIJ_THEMES_URL}")
+  download_optional_jar(KHIOPS_FLATLAF_EXTRAS_JAR "${KHIOPS_FLATLAF_EXTRAS_URL}")
+  download_optional_jar(KHIOPS_JSVG_JAR "${KHIOPS_JSVG_URL}")
 
   # Note: For final builds we recommend to use java 1.8 to ensure that the jar is compatible with all posterior java
   # versions (from # 1.8 to the most recent ones). The following setting accomplish that:

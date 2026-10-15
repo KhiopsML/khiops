@@ -4,9 +4,9 @@
 
 package normGUI.engine;
 
-import com.formdev.flatlaf.extras.FlatSVGIcon;
 import java.awt.Color;
 import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 import javax.swing.Icon;
 
 /**
@@ -15,13 +15,18 @@ import javax.swing.Icon;
 final class GUISvgIconFactory
 {
         static Icon create(String iconPath, Color highlightColor, BooleanSupplier isHighlighted)
+          throws ReflectiveOperationException
         {
-                FlatSVGIcon icon = new FlatSVGIcon(iconPath, 16, 16);
-                if (!icon.hasFound())
+                Class<?> iconClass = Class.forName("com.formdev.flatlaf.extras.FlatSVGIcon");
+                Object icon = iconClass.getConstructor(String.class, int.class, int.class).newInstance(iconPath, 16, 16);
+                if (!(Boolean)iconClass.getMethod("hasFound").invoke(icon))
                         return null;
-                if (highlightColor != null && isHighlighted != null)
-                        icon.setColorFilter(new FlatSVGIcon.ColorFilter(
-                          color -> isHighlighted.getAsBoolean() ? highlightColor : color));
-                return icon;
+                if (highlightColor != null && isHighlighted != null) {
+                        Class<?> filterClass = Class.forName("com.formdev.flatlaf.extras.FlatSVGIcon$ColorFilter");
+                        Function<Color, Color> colorMapper = color -> isHighlighted.getAsBoolean() ? highlightColor : color;
+                        Object filter = filterClass.getConstructor(Function.class).newInstance(colorMapper);
+                        iconClass.getMethod("setColorFilter", filterClass).invoke(icon, filter);
+                }
+                return (Icon)icon;
         }
 }
