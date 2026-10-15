@@ -1322,6 +1322,8 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 	boolean bCanSelectRight;
 	boolean bAdded;
 
+	//DDD TO VALIDATE
+
 	require(sourceDataGrid != NULL);
 	require(mandatoryDataGrid != NULL);
 	require(targetDataGrid != NULL);
@@ -1355,7 +1357,7 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 	nSourcePartNumber = oaSourceParts.GetSize();
 	nMandatoryPartNumber = oaMandatoryParts.GetSize();
 	assert(nSourcePartNumber > 0);
-	assert(nMandatoryPartNumber >= nSourcePartNumber);
+	assert(nSourcePartNumber >= nMandatoryPartNumber);
 
 	ivMandatoryFirstSourceIndexes.SetSize(nMandatoryPartNumber);
 	ivMandatoryLastSourceIndexes.SetSize(nMandatoryPartNumber);
@@ -1541,6 +1543,8 @@ void KWDataGridManager::AddSymbolAttributeNearbyParts(const KWDataGrid* sourceDa
 	int nSource;
 	int nMandatory;
 	boolean bMandatoryAttributeIndexed;
+
+	//DDD TO VALIDATE
 
 	require(sourceDataGrid != NULL);
 	require(mandatoryDataGrid != NULL);

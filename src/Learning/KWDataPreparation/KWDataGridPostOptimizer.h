@@ -66,6 +66,33 @@ public:
 						   const KWDataGrid* initialDataGrid,
 						   const ALString& sPostOptimizationAttributeName) const;
 
+	// Construction d'une grille initiale pour l'optimisation univariee dans le cas continu,
+	// ayant les memes partitions par attribut que la grille optimisee, sauf sur l'attribut a optimiser
+	// Pour la partition de cet attribut, des intervalles source de la grille initiale peuvent etre
+	// ajoutes autour de chaque borne de la partition optimisee. Chaque intervalle ajoute respecte
+	// un effectif minimal et l'effectif cumule des intervalles ajoutes autour d'une meme borne
+	// respecte un maximum.
+	// Ces contraintes permettent d'iterer d'intervalles grossiers vers des intervalles
+	// de plus en plus fins, potentiellement jusqu'a des intervalles singletons.
+	KWDataGrid* BuildContinuousUnivariateInitialNearbyDataGrid(const KWDataGrid* optimizedDataGrid,
+								   const KWDataGrid* initialDataGrid,
+								   const ALString& sPostOptimizationAttributeName,
+								   int nNearbyIntervalMinFrequency,
+								   int nNearbyIntervalsMaxCumulativeFrequency) const;
+
+	// Construction d'une grille initiale pour l'optimisation univariee dans le cas categoriel,
+	// ayant les memes partitions par attribut que la grille optimisee, sauf sur l'attribut a optimiser
+	// Pour la partition de cet attribut, tout sous-groupe de modalites source de la grille initiale
+	// inclus dans un groupe de la partition optimisee peut donner lieu a la creation d'un nouveau groupe
+	// si son effectif est compris entre les deux bornes specifiees, bornes incluses.
+	// Le controle de l'effectif des groupes ajoutes permet d'iterer des groupes les plus gros
+	// vers des groupes de plus en plus fins, potentiellement jusqu'a des groupes singletons.
+	KWDataGrid* BuildSymbolUnivariateInitialNearbyDataGrid(const KWDataGrid* optimizedDataGrid,
+							       const KWDataGrid* initialDataGrid,
+							       const ALString& sPostOptimizationAttributeName,
+							       int nNearbyGroupMinFrequency,
+							       int nNearbyGroupMaxFrequency) const;
+
 	/////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:

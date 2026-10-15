@@ -260,6 +260,148 @@ KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* optimi
 	return univariateInitialDataGrid;
 }
 
+KWDataGrid* KWDataGridPostOptimizer::BuildContinuousUnivariateInitialNearbyDataGrid(
+    const KWDataGrid* optimizedDataGrid, const KWDataGrid* initialDataGrid,
+    const ALString& sPostOptimizationAttributeName, int nNearbyIntervalMinFrequency,
+    int nNearbyIntervalsMaxCumulativeFrequency) const
+{
+	const boolean bTrace = false;
+	KWDataGrid* univariateInitialDataGrid;
+	KWDataGridManager dataGridManager;
+	KWDGAttribute* postOptimizationAttribute;
+
+	//DDD TO VALIDATE
+
+	require(optimizedDataGrid != NULL);
+	require(initialDataGrid != NULL);
+	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
+	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
+	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() ==
+		KWType::Continuous);
+	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() ==
+		KWType::Continuous);
+	require(nNearbyIntervalMinFrequency >= 1);
+	require(nNearbyIntervalsMaxCumulativeFrequency >= nNearbyIntervalMinFrequency);
+
+	// Extension pour un attribut de type VarPart : code identique
+	// Il faut une coherence (egalite) entre le KWDGInnerAttributes utilise par la grille optimisee et celui utilise
+	// pour l'attribut de la grille initiale
+	// (tolerance dans le cas d'une grille hierarchique qui exploite un clone des inner attributes)
+	require(not initialDataGrid->IsVarPartDataGrid() or
+		initialDataGrid->GetInnerAttributes() == optimizedDataGrid->GetInnerAttributes() or
+		optimizedDataGrid->GetClassLabel() == "Hierarchichal data grid");
+
+	// Creation de la grille univariee
+	univariateInitialDataGrid = new KWDataGrid;
+
+	// Export des attributs et des parties de la grille optimisee
+	dataGridManager.ExportAttributes(optimizedDataGrid, univariateInitialDataGrid);
+	dataGridManager.ExportParts(optimizedDataGrid, univariateInitialDataGrid);
+
+	// On reinitialise a vide les parties pour l'attribut a post-optimiser
+	postOptimizationAttribute = univariateInitialDataGrid->SearchAttribute(sPostOptimizationAttributeName);
+	postOptimizationAttribute->DeleteAllParts();
+
+	// Ajout des parties proches des bornes de la partition optimisee
+	dataGridManager.AddContinuousAttributeNearbyParts(
+	    initialDataGrid, optimizedDataGrid, sPostOptimizationAttributeName, nNearbyIntervalMinFrequency,
+	    nNearbyIntervalsMaxCumulativeFrequency, univariateInitialDataGrid);
+
+	// Export des cellules pour la grille initiale univariee
+	dataGridManager.ExportCells(initialDataGrid, univariateInitialDataGrid);
+
+	// Affichage des resultats
+	if (bTrace)
+	{
+		cout << "Preparation d'une grille pour l'optimisation univariee\t" << sPostOptimizationAttributeName
+		     << endl;
+		cout << "Grille initiale\n" << *initialDataGrid << endl;
+		cout << "Grille optimisee\n" << *optimizedDataGrid << endl;
+		cout << "Grille preparee\n" << *univariateInitialDataGrid << endl;
+	}
+
+	// Retour de la grille preparee
+	ensure(univariateInitialDataGrid->GetAttributeNumber() == optimizedDataGrid->GetAttributeNumber());
+	ensure(univariateInitialDataGrid->GetTotalPartNumber() >= optimizedDataGrid->GetTotalPartNumber());
+	ensure(univariateInitialDataGrid->GetTotalPartNumber() <=
+	       optimizedDataGrid->GetTotalPartNumber() +
+		   initialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetPartNumber() -
+		   optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetPartNumber());
+	ensure(univariateInitialDataGrid->GetCellNumber() >= optimizedDataGrid->GetCellNumber());
+
+	return univariateInitialDataGrid;
+}
+
+KWDataGrid* KWDataGridPostOptimizer::BuildSymbolUnivariateInitialNearbyDataGrid(
+    const KWDataGrid* optimizedDataGrid, const KWDataGrid* initialDataGrid,
+    const ALString& sPostOptimizationAttributeName, int nNearbyGroupMinFrequency, int nNearbyGroupMaxFrequency) const
+{
+	const boolean bTrace = false;
+	KWDataGrid* univariateInitialDataGrid;
+	KWDataGridManager dataGridManager;
+	KWDGAttribute* postOptimizationAttribute;
+
+	//DDD TO VALIDATE
+
+	require(optimizedDataGrid != NULL);
+	require(initialDataGrid != NULL);
+	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
+	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
+	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() ==
+		KWType::Symbol);
+	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() == KWType::Symbol);
+	require(nNearbyGroupMinFrequency >= 0);
+	require(nNearbyGroupMaxFrequency >= 0);
+
+	// Extension pour un attribut de type VarPart : code identique
+	// Il faut une coherence (egalite) entre le KWDGInnerAttributes utilise par la grille optimisee et celui utilise
+	// pour l'attribut de la grille initiale
+	// (tolerance dans le cas d'une grille hierarchique qui exploite un clone des inner attributes)
+	require(not initialDataGrid->IsVarPartDataGrid() or
+		initialDataGrid->GetInnerAttributes() == optimizedDataGrid->GetInnerAttributes() or
+		optimizedDataGrid->GetClassLabel() == "Hierarchichal data grid");
+
+	// Creation de la grille univariee
+	univariateInitialDataGrid = new KWDataGrid;
+
+	// Export des attributs et des parties de la grille optimisee
+	dataGridManager.ExportAttributes(optimizedDataGrid, univariateInitialDataGrid);
+	dataGridManager.ExportParts(optimizedDataGrid, univariateInitialDataGrid);
+
+	// On reinitialise a vide les parties pour l'attribut a post-optimiser
+	postOptimizationAttribute = univariateInitialDataGrid->SearchAttribute(sPostOptimizationAttributeName);
+	postOptimizationAttribute->DeleteAllParts();
+
+	// Ajout des groupes proches des groupes de la partition optimisee
+	dataGridManager.AddSymbolAttributeNearbyParts(initialDataGrid, optimizedDataGrid,
+						      sPostOptimizationAttributeName, nNearbyGroupMinFrequency,
+						      nNearbyGroupMaxFrequency, univariateInitialDataGrid);
+
+	// Export des cellules pour la grille initiale univariee
+	dataGridManager.ExportCells(initialDataGrid, univariateInitialDataGrid);
+
+	// Affichage des resultats
+	if (bTrace)
+	{
+		cout << "Preparation d'une grille pour l'optimisation univariee\t" << sPostOptimizationAttributeName
+		     << endl;
+		cout << "Grille initiale\n" << *initialDataGrid << endl;
+		cout << "Grille optimisee\n" << *optimizedDataGrid << endl;
+		cout << "Grille preparee\n" << *univariateInitialDataGrid << endl;
+	}
+
+	// Retour de la grille preparee
+	ensure(univariateInitialDataGrid->GetAttributeNumber() == optimizedDataGrid->GetAttributeNumber());
+	ensure(univariateInitialDataGrid->GetTotalPartNumber() >= optimizedDataGrid->GetTotalPartNumber());
+	ensure(univariateInitialDataGrid->GetTotalPartNumber() <=
+	       optimizedDataGrid->GetTotalPartNumber() +
+		   initialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetPartNumber() -
+		   optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetPartNumber());
+	ensure(univariateInitialDataGrid->GetCellNumber() >= optimizedDataGrid->GetCellNumber());
+
+	return univariateInitialDataGrid;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////
 // Classe KWDGPODiscretizer
 
