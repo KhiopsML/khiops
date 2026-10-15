@@ -693,7 +693,7 @@ protected:
 	// Les valeurs permettant de calculer les stats proviennent des autres operandes de la regle
 	// La gestion du scope multiple doit etre evalue avant l'appel et nettoye ensuite
 	// Le tableau en parametre doit etre non NULL et avoir au moins un element
-	// (ce qui est toujours le cas pour les partie d'une partition, mais pas forcement pour un ObjectArray)
+	// (ce qui est toujours le cas pour les parties d'une partition, mais pas forcement pour un ObjectArray)
 	virtual Continuous ComputeContinuousStats(const ObjectArray* oaObjects) const = 0;
 
 	// Valeur a retourner d'un le cas d'un ObjectArray NULL ou vide (par defaut: Missing)
@@ -727,7 +727,7 @@ protected:
 	// second parametre l'operande permettant d'acceder aux valeurs des objets
 	// La gestion du scope multiple doit etre evalue avant l'appel et nettoye ensuite
 	// Le tableau en parametre doit etre non NULL et avoir au moins un element
-	// (ce qui est toujours le cas pour les partie d'une partition, mais pas forcement pour un ObjectArray)
+	// (ce qui est toujours le cas pour les parties d'une partition, mais pas forcement pour un ObjectArray)
 	virtual Symbol ComputeSymbolStats(const ObjectArray* oaObjects) const = 0;
 
 	// Declaration  en classe friend pour pouvoir reutiliser le calcul des stats

@@ -2651,7 +2651,7 @@ const ALString CCCoclusteringBuilder::AnyTimeBuildTemporaryReportFileName(int nI
 	require(GetReportFileName() != "");
 	require(nIndex >= 1);
 
-	// Extraction des partie du nom du fichier
+	// Extraction des parties du nom du fichier
 	sPathName = FileService::GetPathName(GetReportFileName());
 	sFilePrefix = FileService::GetFilePrefix(GetReportFileName());
 	sFileSuffix = FileService::GetFileSuffix(GetReportFileName());
@@ -3567,7 +3567,7 @@ void CCCoclusteringBuilder::ComputePartHierarchies(KWDataGridMerger* optimizedDa
 			// Rang hierarchique, basee sur le nombre de partie restante (apres la fusion)
 			hdgParentPart->SetHierarchicalRank(optimizedDataGridMerger->GetTotalPartNumber() - 1);
 
-			// Lien avec ses partie filles
+			// Lien avec ses parties filles
 			hdgPart = cast(CCHDGPart*, nkdHierarchicalParts.Lookup(bestPartMerge->GetPart1()));
 			hdgPart->SetParentPart(hdgParentPart);
 			hdgParentPart->SetChildPart1(hdgPart);

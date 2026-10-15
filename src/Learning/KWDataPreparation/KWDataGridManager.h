@@ -315,7 +315,7 @@ public:
 	// Test de compatibilite des attributs, qui doivent etre une sous partie des attributs sources
 	boolean CheckAttributes(const KWDataGrid* sourceDataGrid, const KWDataGrid* targetDataGrid) const;
 
-	// Test de compatibilite des parties d'attributs, qui doivent former une partition des partie sources
+	// Test de compatibilite des parties d'attributs, qui doivent former une partition des parties sources
 	boolean CheckParts(const KWDataGrid* sourceDataGrid, const KWDataGrid* targetDataGrid) const;
 
 	// Test de compatibilite des cellules

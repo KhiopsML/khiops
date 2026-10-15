@@ -42,7 +42,7 @@ void KWDataGridManager::ExportDataGrid(const KWDataGrid* sourceDataGrid, KWDataG
 	// Export des attributs
 	ExportAttributes(sourceDataGrid, targetDataGrid);
 
-	// Export des partie des attributs
+	// Export des parties des attributs
 	ExportParts(sourceDataGrid, targetDataGrid);
 
 	// Export des cellules
@@ -124,7 +124,7 @@ void KWDataGridManager::ExportDataGridWithSingletonVarParts(const KWDataGrid* so
 		targetVarPartAttribute->SetInnerAttributes(mandatoryDataGrid->GetInnerAttributes());
 	}
 
-	// Export des partie des attributs si aucune variable informative
+	// Export des parties des attributs si aucune variable informative
 	if (mandatoryDataGrid->GetInformativeAttributeNumber() == 0)
 		ExportParts(sourceDataGrid, targetDataGrid);
 	// Et dans le cas de variables informatives
@@ -384,7 +384,7 @@ static int KWDataGridManagerCompareIdentifierPartsSignature(const void* elem1, c
 	assert(part2->GetAttribute() == part1->GetAttribute());
 	assert(part2->GetValueSet()->GetValueNumber() == 1);
 
-	// Comparaison des partie d'apres leurs cellules, avec egalite si cesont des cellules referencant les memes parties de variables
+	// Comparaison des parties d'apres leurs cellules, avec egalite si cesont des cellules referencant les memes parties de variables
 	nCompare = part1->GetCellNumber() - part2->GetCellNumber();
 	if (nCompare == 0)
 	{
@@ -491,7 +491,7 @@ void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
 	// - un cluster d'identifiant par identifiant
 	// - un cluster de parties de variables par partie issue des specification de partionnement des attribut interne
 	// - une cellule par paire de clusters, ce qui permet d'exploiter les cellules d'ne cluster de partie d'identifiant donne
-	//   comme une signature sur l'ensemble des partie de variables utilisee
+	//   comme une signature sur l'ensemble des parties de variables utilisees
 
 	// Export des attributs (avec innerAtributes non surtokenises a ce stade)
 	targetDataGrid->DeleteAll();
@@ -654,7 +654,7 @@ void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	// Creation d'une grille cible finale avec
-	// - un cluster d'identifiant specifie sur la base des identifiant ayant memes partie de variable cibles
+	// - un cluster d'identifiant specifie sur la base des identifiant ayant memes parties de variable cibles
 	// - les clusters de parties de variables precedent
 	// - un recalcul des cellules par paire de clusters
 
@@ -854,7 +854,7 @@ void KWDataGridManager::UpdateVarPartDataGridFromVarPartGroups(const KWDataGrid*
 	// On vide la grille optimisee de ses cellules, en preservant ses attributs et leur partition
 	targetDataGrid->DeleteAllCells();
 
-	// On reinitialise a vide les partie pour l'attribut a post-optimiser
+	// On reinitialise a vide les parties pour l'attribut a post-optimiser
 	targetAttribute->DeleteAllParts();
 
 	// Reinitialisation a vide du groupe poubelle
@@ -1816,7 +1816,7 @@ void KWDataGridManager::AddRandomParts(const KWDataGrid* sourceDataGrid, const K
 		// Nombre initial de parties demandees
 		nRequestedPartNumber = nAddedPartNumber;
 
-		// Prise en compte des partie existantes en cas d'attribut obligatoire
+		// Prise en compte des parties existantes en cas d'attribut obligatoire
 		if (mandatoryAttribute != NULL)
 			nRequestedPartNumber += mandatoryAttribute->GetPartNumber();
 		nRequestedPartNumber = min(nRequestedPartNumber, sourceAttribute->GetPartNumber());
@@ -3114,7 +3114,7 @@ void KWDataGridManager::InitialiseSymbolAttributePartsFromGrouping(const KWDGAtt
 	// Pour les autre attributs, c'est calcule a partir des cellules
 	if (sourceAttribute->IsInnerAttribute())
 	{
-		// Mise a jour de l'effectif des partie a partir de celui des valeurs
+		// Mise a jour de l'effectif des parties a partir de celui des valeurs
 		targetPart = targetAttribute->GetHeadPart();
 		while (targetPart != NULL)
 		{
@@ -3261,7 +3261,7 @@ void KWDataGridManager::InitialiseVarPartAttributeWithNewSurtokenisedInnerAttrib
 					if (oaVarPart != NULL)
 						sourceInnerAttribute->GetNextPart(sourceVarPart);
 
-					// Creation du tableau des partie cibles associees a la partie sourve
+					// Creation du tableau des parties cibles associees a la partie sourve
 					oaVarPart = new ObjectArray;
 					nkdTargetInnerAttributeVarParts.SetAt(sourceVarPart, oaVarPart);
 				}
@@ -3295,7 +3295,7 @@ void KWDataGridManager::InitialiseVarPartAttributeWithNewSurtokenisedInnerAttrib
 			targetVarPart = targetInnerAttribute->GetHeadPart();
 			while (sourceVarPart != NULL)
 			{
-				// Creation du tableau des partie cibles associees a la partie sourve
+				// Creation du tableau des parties cibles associees a la partie sourve
 				oaVarPart = new ObjectArray;
 				nkdTargetInnerAttributeVarParts.SetAt(sourceVarPart, oaVarPart);
 				assert(nkdTargetInnerAttributeValues.GetCount() > 0);
@@ -4799,7 +4799,7 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 		}
 		assert(nMinimimEqualFrequencyPartNumber >= nTokenNumberToCreate);
 
-		// Export des partie selon le type de l'attribut
+		// Export des parties selon le type de l'attribut
 		if (mandatoryInnerAttribute->GetAttributeType() == KWType::Continuous)
 			ExportContinuousAttributeRandomParts(sourceInnerAttribute, mandatoryInnerAttribute,
 							     nTokenNumberToCreate, nMinimimEqualFrequencyPartNumber,
@@ -5359,7 +5359,7 @@ void KWDataGridManager::ComputeContinuousAttributeCumulatedFrequencies(const KWD
 		// Prise en compte de la partie courante
 		ivCumulatedFrequencies->SetAt(nPart, part->GetPartFrequency());
 
-		// Cumul avec les partie precedentes
+		// Cumul avec les parties precedentes
 		if (nPart > 0)
 			ivCumulatedFrequencies->UpgradeAt(nPart, ivCumulatedFrequencies->GetAt(nPart - 1));
 		nPart++;

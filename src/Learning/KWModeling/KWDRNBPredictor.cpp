@@ -950,7 +950,7 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 				else
 					nMissingValueIndex = dataGridRule->GetSymbolAttributePartIndexAt(0, Symbol(""));
 
-				// Calcul de la correspondance entre index cible et index des partie cible de la grille
+				// Calcul de la correspondance entre index cible et index des parties cible de la grille
 				// Calcul de la log-vraisemblance dans le cas des valeurs manquantes seulement pour les DataGridStatsBlock
 				for (nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
 				{
