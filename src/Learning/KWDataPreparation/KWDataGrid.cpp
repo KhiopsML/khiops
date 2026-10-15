@@ -2762,7 +2762,7 @@ longint KWDGAttribute::GetUsedMemoryPerIndexingElement(int nAttributeType)
 	// Cas numerique: les intervalles sont ranges dans un tableau
 	if (nAttributeType == KWType::Continuous)
 		return oaTemplate.GetUsedMemoryPerElement();
-	// Cas groupable: les valeur sont dans un dictionnaire
+	// Cas groupable: les valeurs sont dans un dictionnaire
 	else
 		return nkdTemplate.GetUsedMemoryPerElement();
 }
@@ -2981,7 +2981,7 @@ boolean KWDGAttribute::ContainsSubParts(const KWDGAttribute* otherAttribute) con
 		{
 			assert(KWType::IsCoclusteringGroupableType(GetAttributeType()));
 
-			// Indexation prealable des partie cibles
+			// Indexation prealable des parties cibles
 			otherPart = otherAttribute->GetHeadPart();
 			while (otherPart != NULL)
 			{
@@ -3140,7 +3140,7 @@ boolean KWDGAttribute::ArePartsSorted() const
 		// Parcours des parties
 		while (nextPart != NULL)
 		{
-			// Comparaison des partie par intervalles, ou par effectif decroissant, puis valeurs Symbol ou VarPart)
+			// Comparaison des parties par intervalles, ou par effectif decroissant, puis valeurs Symbol ou VarPart)
 			nCompare = part->ComparePart(nextPart);
 			if (nCompare > 0)
 			{
@@ -3659,7 +3659,7 @@ boolean KWDGAttribute::InternalCheck(boolean bCheckPartially) const
 		// Tests specifiques dans le cas VarPart
 		if (GetAttributeType() == KWType::VarPart)
 		{
-			// Verification du nombre total de partie de variables indexes dans les partie de la variable de type VarPart
+			// Verification du nombre total de partie de variables indexes dans les parties de la variable de type VarPart
 			if (bOk and innerAttributes->ComputeTotalInnerAttributeVarParts() != nkdCheckParts.GetCount())
 			{
 				AddError(sTmp + "Number of variable parts used in groups (" +
@@ -3679,7 +3679,7 @@ boolean KWDGAttribute::InternalCheck(boolean bCheckPartially) const
 				{
 					innerAttribute = GetInnerAttributeAt(nInnerAttribute);
 
-					// Parcours des partie de l'attribut interne
+					// Parcours des parties de l'attribut interne
 					usedVarPart = innerAttribute->GetHeadPart();
 					while (usedVarPart != NULL)
 					{

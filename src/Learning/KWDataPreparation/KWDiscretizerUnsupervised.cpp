@@ -458,7 +458,7 @@ void KWDiscretizerMODLEqualBins::MODLEqualBinsDiscretizeValues(boolean bIsEqualF
 	//	n/2 etapes pour les parties de frequence 2,
 	//	n/3 etapes pour les parties de frequence 3,
 	//  ...
-	//	n/n etapes pour les partie de frequence n,
+	//	n/n etapes pour les parties de frequence n,
 	// c'est a dire n*(1/1 + 1/2 + 1/3 + ... + 1/n) etapes en tout.
 	// la complexite de recherche est alors en n*log(n)
 

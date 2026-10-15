@@ -198,7 +198,7 @@ public:
 	// source qui dependent du nombre de partie de l'attribut cible
 
 	// Calcul de la variation de cout local d'une partie suite a decrementation du nombre de parties cibles
-	// Utile pour les couts non additif, quand le cout des partie sources depend du nombre de parties cibles
+	// Utile pour les couts non additif, quand le cout des parties sources depend du nombre de parties cibles
 	// Correspond ComputePartCost() [CurrentTargetPartNumber-1] - ComputePartCost() [CurrentTargetPartNumber]
 	// Permet d'optimiser les calcul de couts
 	virtual double ComputePartTargetDeltaCost(const KWDGPart* part) const;

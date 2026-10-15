@@ -106,7 +106,7 @@ public:
 	///////////////////////////////////////////////////////////////////////////
 	// Affichage des couts par entite
 
-	// Affichage des couts de toutes les partie de la partition
+	// Affichage des couts de toutes les parties de la partition
 	void WritePartitionAllCosts(const KWFrequencyTable* partTable, ostream& ost) const;
 
 	// Affichage du cout d'un attribut

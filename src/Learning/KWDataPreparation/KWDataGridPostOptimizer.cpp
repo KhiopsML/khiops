@@ -230,7 +230,7 @@ KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* optimi
 	dataGridManager.ExportAttributes(optimizedDataGrid, univariateInitialDataGrid);
 	dataGridManager.ExportParts(optimizedDataGrid, univariateInitialDataGrid);
 
-	// On reinitialise a vide les partie pour l'attribut a post-optimiser
+	// On reinitialise a vide les parties pour l'attribut a post-optimiser
 	postOptimizationAttribute = univariateInitialDataGrid->SearchAttribute(sPostOptimizationAttributeName);
 	postOptimizationAttribute->DeleteAllParts();
 
@@ -776,7 +776,7 @@ void KWDGPODiscretizer::UpdateDataGridFromIntervalList(KWDataGrid* optimizedData
 	// On vide la grille optimisee de ses cellules, en preservant ses attributs et leur partition
 	optimizedDataGrid->DeleteAllCells();
 
-	// On reinitialise a vide les partie pour l'attribut a post-optimiser
+	// On reinitialise a vide les parties pour l'attribut a post-optimiser
 	optimizedAttribute->DeleteAllParts();
 
 	// Parcours de la liste optimisee pour determiner les definitions des intervalles
@@ -1838,7 +1838,7 @@ void KWDGPOGrouper::UpdateDataGridWithGarbageFromGroups(KWDataGrid* optimizedDat
 	// On vide la grille optimisee de ses cellules, en preservant ses attributs et leur partition
 	optimizedDataGrid->DeleteAllCells();
 
-	// On reinitialise a vide les partie pour l'attribut a post-optimiser
+	// On reinitialise a vide les parties pour l'attribut a post-optimiser
 	optimizedAttribute->DeleteAllParts();
 
 	// Reinitialisation a vide du groupe poubelle

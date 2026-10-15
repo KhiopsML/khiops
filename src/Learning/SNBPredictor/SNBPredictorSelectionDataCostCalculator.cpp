@@ -797,7 +797,7 @@ boolean SNBRegressorSelectionDataCostCalculator::Create()
 		oaTargetParts.SetAt(0, targetPart);
 	}
 
-	// Initialisation de la taille du vecteur d'index des partie cibles
+	// Initialisation de la taille du vecteur d'index des parties cibles
 	if (bOk)
 		bOk = ivTargetPartIndexesByRank.SetLargeSize(GetInstanceNumber());
 
