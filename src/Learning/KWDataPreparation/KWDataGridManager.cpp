@@ -1291,6 +1291,384 @@ void KWDataGridManager::ExportCells(const KWDataGrid* sourceDataGrid, KWDataGrid
 	// Pas d'ensure avec CheckCells (qui appelle ExportCells pour sa verification)
 }
 
+void KWDataGridManager::AddContinuousAttributeNearbyParts(
+    const KWDataGrid* sourceDataGrid, const KWDataGrid* mandatoryDataGrid, const ALString& sAttributeName,
+    int nNearbyIntervalMinFrequency, int nNearbyIntervalsMaxCumulativeFrequency, KWDataGrid* targetDataGrid) const
+{
+	ObjectArray oaSourceParts;
+	ObjectArray oaMandatoryParts;
+	IntVector ivMandatoryFirstSourceIndexes;
+	IntVector ivMandatoryLastSourceIndexes;
+	IntVector ivSelectedSourceParts;
+	KWDGAttribute* sourceAttribute;
+	KWDGAttribute* mandatoryAttribute;
+	KWDGAttribute* targetAttribute;
+	KWDGPart* sourcePart;
+	KWDGPart* mandatoryPart;
+	KWDGPart* targetPart;
+	int nSourcePartNumber;
+	int nMandatoryPartNumber;
+	int nSource;
+	int nMandatory;
+	int nLeftSource;
+	int nRightSource;
+	int nLeftFirstSource;
+	int nRightLastSource;
+	int nCumulativeFrequency;
+	int nRunFirstSource;
+	int nRunLastSource;
+	int nPartFrequency;
+	boolean bCanSelectLeft;
+	boolean bCanSelectRight;
+	boolean bAdded;
+
+	require(sourceDataGrid != NULL);
+	require(mandatoryDataGrid != NULL);
+	require(targetDataGrid != NULL);
+	require(sourceDataGrid->Check());
+	require(CheckDataGrid(sourceDataGrid, mandatoryDataGrid));
+	require(sAttributeName != "");
+	require(sourceDataGrid->SearchAttribute(sAttributeName) != NULL);
+	require(targetDataGrid->SearchAttribute(sAttributeName) != NULL);
+	require(targetDataGrid->SearchAttribute(sAttributeName)->GetPartNumber() == 0);
+	require(nNearbyIntervalMinFrequency >= 1);
+	require(nNearbyIntervalsMaxCumulativeFrequency >= nNearbyIntervalMinFrequency);
+	require(targetDataGrid->GetCellNumber() == 0);
+
+	// Acces a l'attribut dans chaque grille
+	sourceAttribute = sourceDataGrid->SearchAttribute(sAttributeName);
+	mandatoryAttribute = mandatoryDataGrid->SearchAttribute(sAttributeName);
+	targetAttribute = targetDataGrid->SearchAttribute(sAttributeName);
+
+	// Verification additionnelles sur l'attribut a traiter
+	assert(sourceAttribute->GetAttributeType() == KWType::Continuous);
+	assert(CheckAttributesConsistency(sourceAttribute, mandatoryAttribute));
+	assert(CheckAttributesConsistency(sourceAttribute, targetAttribute));
+	assert(sourceAttribute->ArePartsSorted());
+	assert(mandatoryAttribute->ArePartsSorted());
+	assert(sourceAttribute->ContainsSubParts(mandatoryAttribute));
+	assert(targetAttribute->GetPartNumber() == 0);
+
+	// Export des parties sources et obligatoires
+	sourceAttribute->ExportParts(&oaSourceParts);
+	mandatoryAttribute->ExportParts(&oaMandatoryParts);
+	nSourcePartNumber = oaSourceParts.GetSize();
+	nMandatoryPartNumber = oaMandatoryParts.GetSize();
+	assert(nSourcePartNumber > 0);
+	assert(nMandatoryPartNumber >= nSourcePartNumber);
+
+	ivMandatoryFirstSourceIndexes.SetSize(nMandatoryPartNumber);
+	ivMandatoryLastSourceIndexes.SetSize(nMandatoryPartNumber);
+	for (nMandatory = 0; nMandatory < nMandatoryPartNumber; nMandatory++)
+	{
+		ivMandatoryFirstSourceIndexes.SetAt(nMandatory, -1);
+		ivMandatoryLastSourceIndexes.SetAt(nMandatory, -1);
+	}
+
+	ivSelectedSourceParts.SetSize(nSourcePartNumber);
+	for (nSource = 0; nSource < nSourcePartNumber; nSource++)
+		ivSelectedSourceParts.SetAt(nSource, 0);
+
+	// Association de chaque partie source avec sa partie obligatoire.
+	nMandatory = 0;
+	for (nSource = 0; nSource < nSourcePartNumber; nSource++)
+	{
+		sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nSource));
+		mandatoryPart = cast(KWDGPart*, oaMandatoryParts.GetAt(nMandatory));
+
+		while (nMandatory < nMandatoryPartNumber - 1 and
+		       sourcePart->GetInterval()->GetUpperBound() > mandatoryPart->GetInterval()->GetUpperBound())
+		{
+			nMandatory++;
+			mandatoryPart = cast(KWDGPart*, oaMandatoryParts.GetAt(nMandatory));
+		}
+
+		assert(sourcePart->GetInterval()->GetLowerBound() >= mandatoryPart->GetInterval()->GetLowerBound());
+		assert(sourcePart->GetInterval()->GetUpperBound() <= mandatoryPart->GetInterval()->GetUpperBound());
+
+		if (ivMandatoryFirstSourceIndexes.GetAt(nMandatory) == -1)
+			ivMandatoryFirstSourceIndexes.SetAt(nMandatory, nSource);
+		ivMandatoryLastSourceIndexes.SetAt(nMandatory, nSource);
+	}
+
+	// Selection des intervalles proches de chaque frontiere obligatoire.
+	ivSelectedSourceParts.SetSize(nSourcePartNumber);
+	for (nMandatory = 0; nMandatory < nMandatoryPartNumber - 1; nMandatory++)
+	{
+		nLeftFirstSource = ivMandatoryFirstSourceIndexes.GetAt(nMandatory);
+		nLeftSource = ivMandatoryLastSourceIndexes.GetAt(nMandatory);
+		nRightSource = ivMandatoryFirstSourceIndexes.GetAt(nMandatory + 1);
+		nRightLastSource = ivMandatoryLastSourceIndexes.GetAt(nMandatory + 1);
+		nCumulativeFrequency = 0;
+		bCanSelectLeft = true;
+		bCanSelectRight = true;
+
+		while (bCanSelectLeft or bCanSelectRight)
+		{
+			bAdded = false;
+
+			while (bCanSelectLeft and nLeftSource >= nLeftFirstSource and
+			       ivSelectedSourceParts.GetAt(nLeftSource) != 0)
+				nLeftSource--;
+
+			if (bCanSelectLeft)
+			{
+				if (nLeftSource < nLeftFirstSource)
+					bCanSelectLeft = false;
+				else
+				{
+					sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nLeftSource));
+					if (sourcePart->GetPartFrequency() < nNearbyIntervalMinFrequency or
+					    sourcePart->GetPartFrequency() >
+						nNearbyIntervalsMaxCumulativeFrequency - nCumulativeFrequency)
+						bCanSelectLeft = false;
+					else
+					{
+						ivSelectedSourceParts.SetAt(nLeftSource, 1);
+						nCumulativeFrequency += sourcePart->GetPartFrequency();
+						nLeftSource--;
+						bAdded = true;
+					}
+				}
+			}
+
+			while (bCanSelectRight and nRightSource <= nRightLastSource and
+			       ivSelectedSourceParts.GetAt(nRightSource) != 0)
+				nRightSource++;
+
+			if (bCanSelectRight)
+			{
+				if (nRightSource > nRightLastSource)
+					bCanSelectRight = false;
+				else
+				{
+					sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nRightSource));
+					if (sourcePart->GetPartFrequency() < nNearbyIntervalMinFrequency or
+					    sourcePart->GetPartFrequency() >
+						nNearbyIntervalsMaxCumulativeFrequency - nCumulativeFrequency)
+						bCanSelectRight = false;
+					else
+					{
+						ivSelectedSourceParts.SetAt(nRightSource, 1);
+						nCumulativeFrequency += sourcePart->GetPartFrequency();
+						nRightSource++;
+						bAdded = true;
+					}
+				}
+			}
+
+			if (not bAdded)
+				break;
+		}
+	}
+
+	// Creation de la partition cible par agregation des intervalles non selectionnes.
+	for (nMandatory = 0; nMandatory < nMandatoryPartNumber; nMandatory++)
+	{
+		nSource = ivMandatoryFirstSourceIndexes.GetAt(nMandatory);
+
+		while (nSource <= ivMandatoryLastSourceIndexes.GetAt(nMandatory))
+		{
+			if (ivSelectedSourceParts.GetAt(nSource) != 0)
+			{
+				sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nSource));
+				targetPart = targetAttribute->AddPart();
+				targetPart->GetInterval()->SetLowerBound(sourcePart->GetInterval()->GetLowerBound());
+				targetPart->GetInterval()->SetUpperBound(sourcePart->GetInterval()->GetUpperBound());
+
+				if (sourceAttribute->IsInnerAttribute())
+					targetPart->SetPartFrequency(sourcePart->GetPartFrequency());
+
+				nSource++;
+			}
+			else
+			{
+				nRunFirstSource = nSource;
+				nRunLastSource = nSource;
+				nPartFrequency = 0;
+
+				while (nSource <= ivMandatoryLastSourceIndexes.GetAt(nMandatory) and
+				       ivSelectedSourceParts.GetAt(nSource) == 0)
+				{
+					sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nSource));
+					nRunLastSource = nSource;
+					nPartFrequency += sourcePart->GetPartFrequency();
+					nSource++;
+				}
+
+				targetPart = targetAttribute->AddPart();
+
+				sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nRunFirstSource));
+				targetPart->GetInterval()->SetLowerBound(sourcePart->GetInterval()->GetLowerBound());
+
+				sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nRunLastSource));
+				targetPart->GetInterval()->SetUpperBound(sourcePart->GetInterval()->GetUpperBound());
+
+				if (sourceAttribute->IsInnerAttribute())
+					targetPart->SetPartFrequency(nPartFrequency);
+			}
+		}
+	}
+
+	ensure(targetAttribute->GetPartNumber() >= mandatoryAttribute->GetPartNumber());
+	ensure(targetAttribute->GetPartNumber() <= sourceAttribute->GetPartNumber());
+	ensure(targetAttribute->ArePartsSorted());
+	ensure(sourceAttribute->ContainsSubParts(targetAttribute));
+	ensure(targetAttribute->ContainsSubParts(mandatoryAttribute));
+	ensure(not sourceAttribute->IsInnerAttribute() or
+	       targetAttribute->ComputeTotalPartFrequency() == sourceAttribute->ComputeTotalPartFrequency());
+}
+
+void KWDataGridManager::AddSymbolAttributeNearbyParts(const KWDataGrid* sourceDataGrid,
+						      const KWDataGrid* mandatoryDataGrid,
+						      const ALString& sAttributeName, int nNearbyGroupMinFrequency,
+						      int nNearbyGroupMaxFrequency, KWDataGrid* targetDataGrid) const
+{
+	ObjectArray oaSourceParts;
+	ObjectArray oaMandatoryParts;
+	IntVector ivSourceMandatoryIndexes;
+	KWDGAttribute* sourceAttribute;
+	KWDGAttribute* mandatoryAttribute;
+	KWDGAttribute* targetAttribute;
+	KWDGPart* sourcePart;
+	KWDGPart* mandatoryPart;
+	KWDGPart* targetPart;
+	KWDGPart* aggregateTargetPart;
+	KWDGPart* sourceGarbagePart;
+	KWDGValue* sourceValue;
+	int nSourcePartNumber;
+	int nMandatoryPartNumber;
+	int nSource;
+	int nMandatory;
+	boolean bMandatoryAttributeIndexed;
+
+	require(sourceDataGrid != NULL);
+	require(mandatoryDataGrid != NULL);
+	require(targetDataGrid != NULL);
+	require(sourceDataGrid->Check());
+	require(CheckAttributes(sourceDataGrid, mandatoryDataGrid));
+	require(CheckGranularity(sourceDataGrid, mandatoryDataGrid));
+	require(CheckAttributes(sourceDataGrid, targetDataGrid));
+	require(CheckGranularity(sourceDataGrid, targetDataGrid));
+	require(sAttributeName != "");
+	require(nNearbyGroupMinFrequency >= 0);
+	require(nNearbyGroupMaxFrequency >= 0);
+	require(targetDataGrid->GetCellNumber() == 0);
+
+	sourceAttribute = sourceDataGrid->SearchAttribute(sAttributeName);
+	mandatoryAttribute = mandatoryDataGrid->SearchAttribute(sAttributeName);
+	targetAttribute = targetDataGrid->SearchAttribute(sAttributeName);
+
+	require(sourceAttribute != NULL);
+	require(mandatoryAttribute != NULL);
+	require(targetAttribute != NULL);
+	require(sourceAttribute->GetAttributeType() == KWType::Symbol);
+	require(CheckAttributesConsistency(sourceAttribute, mandatoryAttribute));
+	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
+	require(sourceAttribute->ContainsSubParts(mandatoryAttribute));
+	require(targetAttribute->GetPartNumber() == 0);
+
+	sourceAttribute->ExportParts(&oaSourceParts);
+	mandatoryAttribute->ExportParts(&oaMandatoryParts);
+
+	nSourcePartNumber = oaSourceParts.GetSize();
+	nMandatoryPartNumber = oaMandatoryParts.GetSize();
+
+	require(nSourcePartNumber > 0);
+	require(nMandatoryPartNumber > 0);
+
+	ivSourceMandatoryIndexes.SetSize(nSourcePartNumber);
+
+	bMandatoryAttributeIndexed = mandatoryAttribute->IsIndexed();
+	if (not bMandatoryAttributeIndexed)
+		mandatoryAttribute->BuildIndexingStructure();
+
+	// Association des parties source avec les parties obligatoires.
+	for (nSource = 0; nSource < nSourcePartNumber; nSource++)
+	{
+		sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nSource));
+		sourceValue = sourcePart->GetValueSet()->GetHeadValue();
+		check(sourceValue);
+
+		mandatoryPart = mandatoryAttribute->LookupGroupablePart(sourceValue);
+		check(mandatoryPart);
+
+		nMandatory = 0;
+		while (nMandatory < nMandatoryPartNumber and
+		       cast(KWDGPart*, oaMandatoryParts.GetAt(nMandatory)) != mandatoryPart)
+			nMandatory++;
+
+		check(nMandatory < nMandatoryPartNumber);
+		ivSourceMandatoryIndexes.SetAt(nSource, nMandatory);
+	}
+
+	if (not bMandatoryAttributeIndexed)
+		mandatoryAttribute->DeleteIndexingStructure();
+
+	sourceGarbagePart = sourceAttribute->GetGarbagePart();
+
+	// Chaque partie source dont l'effectif est dans l'intervalle demande est conservee
+	// individuellement. Les autres parties sont agreg ees dans leur partie obligatoire.
+	for (nMandatory = 0; nMandatory < nMandatoryPartNumber; nMandatory++)
+	{
+		aggregateTargetPart = NULL;
+
+		for (nSource = 0; nSource < nSourcePartNumber; nSource++)
+		{
+			if (ivSourceMandatoryIndexes.GetAt(nSource) != nMandatory)
+				continue;
+
+			sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nSource));
+
+			if (sourcePart->GetPartFrequency() >= nNearbyGroupMinFrequency and
+			    sourcePart->GetPartFrequency() <= nNearbyGroupMaxFrequency)
+			{
+				targetPart = targetAttribute->AddPart();
+				targetPart->GetPartValues()->CopyFrom(sourcePart->GetPartValues());
+
+				if (sourceAttribute->IsInnerAttribute())
+					targetPart->SetPartFrequency(sourcePart->GetPartFrequency());
+
+				if (sourcePart == sourceGarbagePart)
+					targetAttribute->SetGarbagePart(targetPart);
+			}
+			else
+			{
+				if (aggregateTargetPart == NULL)
+				{
+					aggregateTargetPart = targetAttribute->AddPart();
+					aggregateTargetPart->GetPartValues()->CopyFrom(sourcePart->GetPartValues());
+
+					if (sourceAttribute->IsInnerAttribute())
+						aggregateTargetPart->SetPartFrequency(sourcePart->GetPartFrequency());
+				}
+				else
+				{
+					aggregateTargetPart->GetPartValues()->UpgradeFrom(sourcePart->GetPartValues());
+
+					if (sourceAttribute->IsInnerAttribute())
+						aggregateTargetPart->SetPartFrequency(
+						    aggregateTargetPart->GetPartFrequency() +
+						    sourcePart->GetPartFrequency());
+				}
+
+				if (sourcePart == sourceGarbagePart)
+					targetAttribute->SetGarbagePart(aggregateTargetPart);
+			}
+		}
+	}
+
+	if (sourceAttribute->IsInnerAttribute())
+		targetAttribute->SortParts();
+
+	ensure(targetAttribute->GetPartNumber() >= mandatoryAttribute->GetPartNumber());
+	ensure(targetAttribute->GetPartNumber() <= sourceAttribute->GetPartNumber());
+	ensure(sourceAttribute->ContainsSubParts(targetAttribute));
+	ensure(targetAttribute->ContainsSubParts(mandatoryAttribute));
+	ensure(not sourceAttribute->IsInnerAttribute() or
+	       targetAttribute->ComputeTotalPartFrequency() == sourceAttribute->ComputeTotalPartFrequency());
+}
+
 void KWDataGridManager::ExportRandomAttributes(const KWDataGrid* sourceDataGrid, int nAttributeNumber,
 					       KWDataGrid* targetDataGrid) const
 {

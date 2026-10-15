@@ -139,6 +139,31 @@ public:
 	void ExportCells(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid) const;
 
 	///////////////////////////////////////////////////////////////////////////
+	// Ajout potentiel de parties proches des parties existantes d'un attribut donne.
+	// L'attribut doit exister dans les grilles source, obligatoire et cible.
+	// Dans la grille cible, cet attribut doit etre depourvu de parties.
+	// Les nouvelles parties sont obtenues par sur-partitionnement des parties de la grille
+	// obligatoire, en ajoutant des parties de part et d'autre de chaque frontiere.
+	// Selon les contraintes, le resultat peut etre identique a la grille obligatoire.
+
+	// Ajout de parties proches des parties existantes d'un attribut continu donne.
+	// Des intervalles sont ajoutes de part et d'autre de chaque borne de la partition
+	// obligatoire. Chaque intervalle ajoute respecte un effectif minimal et l'ensemble
+	// des intervalles ajoutes autour d'une borne respecte un effectif cumule maximal.
+	void AddContinuousAttributeNearbyParts(const KWDataGrid* sourceDataGrid, const KWDataGrid* mandatoryDataGrid,
+					       const ALString& sAttributeName, int nNearbyIntervalMinFrequency,
+					       int nNearbyIntervalsMaxCumulativeFrequency,
+					       KWDataGrid* targetDataGrid) const;
+
+	// Ajout de groupes proches des groupes existants d'un attribut categoriel donne.
+	// Tout sous-groupe de modalites source inclus dans un groupe obligatoire peut donner
+	// lieu a la creation d'un nouveau groupe si son effectif est compris entre les deux
+	// bornes specifiees.
+	void AddSymbolAttributeNearbyParts(const KWDataGrid* sourceDataGrid, const KWDataGrid* mandatoryDataGrid,
+					   const ALString& sAttributeName, int nNearbyGroupMinFrequency,
+					   int nNearbyGroupMaxFrequency, KWDataGrid* targetDataGrid) const;
+
+	///////////////////////////////////////////////////////////////////////////
 	// Construction d'une grille de donnees cible en partitionnant aleatoirement
 	// la grille de donnees source
 	// Les methodes suivantes travaillent uniquement sur la structure des grilles
@@ -287,12 +312,10 @@ public:
 	// Test de compatibilite des valeurs cibles
 	boolean CheckTargetValues(const KWDataGrid* sourceDataGrid, const KWDataGrid* targetDataGrid) const;
 
-	// Test de compatibilite des attributs, qui doivent etre une sous partie
-	// des attributs sources
+	// Test de compatibilite des attributs, qui doivent etre une sous partie des attributs sources
 	boolean CheckAttributes(const KWDataGrid* sourceDataGrid, const KWDataGrid* targetDataGrid) const;
 
-	// Test de compatibilite des parties d'attributs, qui doivent former une partition
-	// des partie sources
+	// Test de compatibilite des parties d'attributs, qui doivent former une partition des partie sources
 	boolean CheckParts(const KWDataGrid* sourceDataGrid, const KWDataGrid* targetDataGrid) const;
 
 	// Test de compatibilite des cellules
