@@ -4444,6 +4444,11 @@ void KWDGValueSet::SortValuesByDecreasingTypicalities()
 	InternalSortValues(KWDGValueCompareTypicality);
 }
 
+void KWDGValueSet::SortValuesByDecreasingImportances()
+{
+	InternalSortValues(KWDGValueCompareImportance);
+}
+
 boolean KWDGValueSet::AreValuesSorted() const
 {
 	return InternalAreValuesSorted(KWDGValueCompareValue);
@@ -5017,6 +5022,22 @@ int KWDGValueCompareTypicality(const void* elem1, const void* elem2)
 	return value1->CompareTypicality(value2);
 }
 
+int KWDGValueCompareImportance(const void* elem1, const void* elem2)
+{
+	KWDGValue* value1;
+	KWDGValue* value2;
+
+	require(elem1 != NULL);
+	require(elem2 != NULL);
+
+	// Acces a la valeur
+	value1 = cast(KWDGValue*, *(Object**)elem1);
+	value2 = cast(KWDGValue*, *(Object**)elem2);
+
+	// Comparaison
+	return value1->CompareImportance(value2);
+}
+
 int KWSortableObjectCompareValue(const void* elem1, const void* elem2)
 {
 	int nCompare;
@@ -5049,10 +5070,25 @@ int KWDGSymbolValue::CompareTypicality(const KWDGValue* otherValue) const
 
 	require(otherValue != NULL);
 
-	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	// Comparaison selon la precision du type Continuous, pour eviter les differences a epsilon pres
 	nCompare = -KWContinuous::CompareIndicatorValue(GetTypicality(), otherValue->GetTypicality());
 
-	// Comparaison par effectif decroissaqnt si egalite
+	// Comparaison par effectif decroissant si egalite
+	if (nCompare == 0)
+		nCompare = CompareFrequency(otherValue);
+	return nCompare;
+}
+
+int KWDGSymbolValue::CompareImportance(const KWDGValue* otherValue) const
+{
+	int nCompare;
+
+	require(otherValue != NULL);
+
+	// Comparaison selon la precision du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(GetImportance(), otherValue->GetImportance());
+
+	// Comparaison par effectif decroissant si egalite
 	if (nCompare == 0)
 		nCompare = CompareFrequency(otherValue);
 	return nCompare;
@@ -5132,6 +5168,21 @@ int KWDGVarPartValue::CompareTypicality(const KWDGValue* otherValue) const
 
 	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
 	nCompare = -KWContinuous::CompareIndicatorValue(GetTypicality(), otherValue->GetTypicality());
+
+	// Comparaison par valeur si egalite
+	if (nCompare == 0)
+		nCompare = CompareValue(otherValue);
+	return nCompare;
+}
+
+int KWDGVarPartValue::CompareImportance(const KWDGValue* otherValue) const
+{
+	int nCompare;
+
+	require(otherValue != NULL);
+
+	// Comparaison selon la precison du type Continuous, pour eviter les differences a epsilon pres
+	nCompare = -KWContinuous::CompareIndicatorValue(GetImportance(), otherValue->GetImportance());
 
 	// Comparaison par valeur si egalite
 	if (nCompare == 0)
