@@ -72,14 +72,14 @@ protected:
 	// Post-optimisation univariee d'un attribut de type numerique
 	// On optimise l'attribut en sur-partitionnant l'attribut a optimiser a proximite des intervalles
 	// existants, en raffinant iterativement la distance aux bornes existantes.
-	double PostOptimizeDataGridContinuousAttribute(KWDataGrid* optimizedDataGrid, const KWDataGrid* initialDataGrid,
+	double PostOptimizeDataGridContinuousAttribute(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid,
 						       const ALString& sPostOptimizationAttributeName,
 						       boolean bDeepPostOptimization) const;
 
 	// Post-optimisation univariee d'un attribut de type categoriel
 	// On optimise l'attribut en eclatant les groupes de l'attribut a optimiser, iterativement
 	// avec des groupes de grande taille, puis de taille de plus en plus petite.
-	double PostOptimizeDataGridSymbolAttribute(KWDataGrid* optimizedDataGrid, const KWDataGrid* initialDataGrid,
+	double PostOptimizeDataGridSymbolAttribute(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid,
 						   const ALString& sPostOptimizationAttributeName,
 						   boolean bDeepPostOptimization) const;
 

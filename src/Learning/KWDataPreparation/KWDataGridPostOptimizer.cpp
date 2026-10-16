@@ -33,9 +33,6 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 	double dCost;
 	boolean bImproved;
 	KWDataGridManager dataGridManager;
-	KWDGPODiscretizer dataGridUnivariateDiscretizer;
-	KWDGPOGrouper dataGridUnivariateGrouper;
-	KWDataGrid univariateInitialDataGrid;
 	IntVector ivAttributeIndexes;
 	int nI;
 	int nAttribute;
@@ -44,6 +41,7 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 	int nStepNumber;
 	ALString sTaskLabel;
 
+	require(dataGridCosts != NULL);
 	require(optimizedDataGrid != NULL);
 	require(initialDataGrid != NULL);
 	require(optimizedDataGrid->Check());
@@ -130,39 +128,19 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 						      IntToString(nStepNumber) + "/" + IntToString(nMaxStepNumber) +
 						      ")");
 
-			// Construction d'une grille initiale pour l'optimisation univariee
-			BuildUnivariateInitialDataGrid(optimizedDataGrid, initialDataGrid,
-						       dataGridAttribute->GetAttributeName(),
-						       &univariateInitialDataGrid);
-
-			// Discretisation univariee si attribut continu
-			dCost = 0;
+			// Post-optimisation de l'attribut selon son type
 			if (dataGridAttribute->GetAttributeType() == KWType::Continuous)
-			{
-				dataGridUnivariateDiscretizer.SetPostOptimizationAttributeName(
-				    dataGridAttribute->GetAttributeName());
-				dCost = dataGridUnivariateDiscretizer.PostOptimizeDataGrid(
-				    &univariateInitialDataGrid, dataGridCosts, optimizedDataGrid,
-				    bDeepPostOptimization);
-			}
-			// Groupement de valeur univariee si attribut groupable
+				dCost = PostOptimizeDataGridContinuousAttribute(initialDataGrid, optimizedDataGrid,
+										dataGridAttribute->GetAttributeName(),
+										bDeepPostOptimization);
 			else
-			{
-				assert(KWType::IsCoclusteringGroupableType(dataGridAttribute->GetAttributeType()));
-
-				dataGridUnivariateGrouper.SetPostOptimizationAttributeName(
-				    dataGridAttribute->GetAttributeName());
-				dCost = dataGridUnivariateGrouper.PostOptimizeDataGrid(&univariateInitialDataGrid,
-										       dataGridCosts, optimizedDataGrid,
-										       bDeepPostOptimization);
-			}
+				dCost = PostOptimizeDataGridSymbolAttribute(initialDataGrid, optimizedDataGrid,
+									    dataGridAttribute->GetAttributeName(),
+									    bDeepPostOptimization);
 
 			// Le cout precedent devra etre correct
 			assert(dCost * (1 - dEpsilon) < dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid));
 			assert(dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) < dCost * (1 + dEpsilon));
-
-			// Nettoyage
-			univariateInitialDataGrid.DeleteAll();
 
 			// Memorisation de l'amelioration
 			assert(dCost <= dBestCost * (1 + dEpsilon));
@@ -260,8 +238,8 @@ void KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* o
 	ensure(univariateInitialDataGrid->GetCellNumber() >= optimizedDataGrid->GetCellNumber());
 }
 
-double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(KWDataGrid* optimizedDataGrid,
-									const KWDataGrid* initialDataGrid,
+double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KWDataGrid* initialDataGrid,
+									KWDataGrid* optimizedDataGrid,
 									const ALString& sPostOptimizationAttributeName,
 									boolean bDeepPostOptimization) const
 {
@@ -270,33 +248,31 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(KWDataGr
 	KWDataGrid univariateInitialDataGrid;
 	double dCost;
 
-	require(optimizedDataGrid != NULL);
-	require(initialDataGrid != NULL);
 	require(dataGridCosts != NULL);
-	require(optimizedDataGrid->Check());
+	require(initialDataGrid != NULL);
+	require(optimizedDataGrid != NULL);
 	require(initialDataGrid->Check());
-	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
+	require(optimizedDataGrid->Check());
 	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
-	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() ==
-		KWType::Continuous);
+	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
 	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() ==
 		KWType::Continuous);
-	require(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
+	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() ==
+		KWType::Continuous);
 
-	//DDD TO VALIDATE
-
+	// Construction d'une grille initiale dediee a l'optimisation univariee
 	BuildUnivariateInitialDataGrid(optimizedDataGrid, initialDataGrid, sPostOptimizationAttributeName,
 				       &univariateInitialDataGrid);
 
+	// Post-optimisation de l'attribut par discretisation
 	dataGridUnivariateDiscretizer.SetPostOptimizationAttributeName(sPostOptimizationAttributeName);
 	dCost = dataGridUnivariateDiscretizer.PostOptimizeDataGrid(&univariateInitialDataGrid, dataGridCosts,
 								   optimizedDataGrid, bDeepPostOptimization);
-
 	return dCost;
 }
 
-double KWDataGridPostOptimizer::PostOptimizeDataGridSymbolAttribute(KWDataGrid* optimizedDataGrid,
-								    const KWDataGrid* initialDataGrid,
+double KWDataGridPostOptimizer::PostOptimizeDataGridSymbolAttribute(const KWDataGrid* initialDataGrid,
+								    KWDataGrid* optimizedDataGrid,
 								    const ALString& sPostOptimizationAttributeName,
 								    boolean bDeepPostOptimization) const
 {
@@ -305,27 +281,25 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridSymbolAttribute(KWDataGrid* 
 	KWDataGrid univariateInitialDataGrid;
 	double dCost;
 
-	require(optimizedDataGrid != NULL);
-	require(initialDataGrid != NULL);
 	require(dataGridCosts != NULL);
-	require(optimizedDataGrid->Check());
+	require(initialDataGrid != NULL);
+	require(optimizedDataGrid != NULL);
 	require(initialDataGrid->Check());
-	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
+	require(optimizedDataGrid->Check());
 	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
+	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
+	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() == KWType::Symbol);
 	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() ==
 		KWType::Symbol);
-	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() == KWType::Symbol);
-	require(dataGridManager.CheckDataGrid(initialDataGrid, optimizedDataGrid));
 
-	//DDD TO VALIDATE
-
+	// Construction d'une grille initiale dediee a l'optimisation univariee
 	BuildUnivariateInitialDataGrid(optimizedDataGrid, initialDataGrid, sPostOptimizationAttributeName,
 				       &univariateInitialDataGrid);
 
+	// Post-optimisation de l'attribut par groupement de valeur
 	dataGridUnivariateGrouper.SetPostOptimizationAttributeName(sPostOptimizationAttributeName);
 	dCost = dataGridUnivariateGrouper.PostOptimizeDataGrid(&univariateInitialDataGrid, dataGridCosts,
 							       optimizedDataGrid, bDeepPostOptimization);
-
 	return dCost;
 }
 
@@ -337,8 +311,6 @@ void KWDataGridPostOptimizer::BuildContinuousUnivariateInitialNearbyDataGrid(
 	const boolean bTrace = false;
 	KWDataGridManager dataGridManager;
 	KWDGAttribute* postOptimizationAttribute;
-
-	//DDD TO VALIDATE
 
 	require(optimizedDataGrid != NULL);
 	require(initialDataGrid != NULL);
