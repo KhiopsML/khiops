@@ -61,7 +61,7 @@ jobs:
       - name: install Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.14'
+          python-version: '3.15'
       - name: Install built wheel in a custom directory
         run: |
           KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
@@ -129,7 +129,7 @@ jobs:
         if: env.SIGN_WINDOWS_WHEELS == 'true'
         uses: actions/setup-python@v7
         with:
-          python-version: '3.14'
+          python-version: '3.15'
       - name: Install wheel package
         if: env.SIGN_WINDOWS_WHEELS == 'true'
         run: python -m pip install wheel
