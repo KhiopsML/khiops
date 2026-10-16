@@ -1,0 +1,4 @@
+#!/bin/bash
+DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../Resources/bin" &>/dev/null && pwd)"
+cd -- "${HOME:-/}" 2>/dev/null || cd -- /
+exec "$DIR/@MACOS_APP_LAUNCHER_NAME@"
