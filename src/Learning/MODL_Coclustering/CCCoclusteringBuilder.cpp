@@ -2930,7 +2930,7 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 	const boolean bTrace = false;
 	KWDataGridPostOptimizer dataGridPostOptimizer;
 	KWDGAttribute* initialAttribute;
-	KWDataGrid* univariateInitialDataGrid;
+	KWDataGrid univariateInitialDataGrid;
 	KWDGPOGrouper dataGridUnivariateGrouper;
 	KWDataGridUnivariateCosts* dataGridUnivariateCosts;
 	KWDataGridManager dataGridManager;
@@ -2987,11 +2987,12 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 	optimizedDataGrid->GetAttributeAt(nAttribute)->ExportParts(&oaGroupParts);
 
 	// Construction d'une grille initiale pour l'optimisation univariee
-	univariateInitialDataGrid = dataGridPostOptimizer.BuildUnivariateInitialDataGrid(
-	    optimizedDataGrid, inputInitialDataGrid, optimizedDataGrid->GetAttributeAt(nAttribute)->GetAttributeName());
+	dataGridPostOptimizer.BuildUnivariateInitialDataGrid(
+	    optimizedDataGrid, inputInitialDataGrid, optimizedDataGrid->GetAttributeAt(nAttribute)->GetAttributeName(),
+	    &univariateInitialDataGrid);
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	assert(dataGridManager.CheckDataGrid(univariateInitialDataGrid, optimizedDataGrid));
+	assert(dataGridManager.CheckDataGrid(&univariateInitialDataGrid, optimizedDataGrid));
 
 	// Parametrage des couts d'optimisation univarie de la grille
 	dataGridUnivariateGrouper.SetPostOptimizationAttributeName(
@@ -3003,14 +3004,14 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 	dataGridUnivariateCosts->InitializeUnivariateCostParameters(optimizedDataGrid);
 
 	// Construction d'une table d'effectif selon l'attribut a post-optimiser, pour la grille initiale
-	nValueNumber = univariateInitialDataGrid->GetAttributeAt(nAttribute)->GetPartNumber();
+	nValueNumber = univariateInitialDataGrid.GetAttributeAt(nAttribute)->GetPartNumber();
 	dataGridUnivariateGrouper.InitializeFrequencyTableFromDataGrid(&initialFrequencyTable,
-								       univariateInitialDataGrid);
+								       &univariateInitialDataGrid);
 	assert(initialFrequencyTable.GetFrequencyVectorNumber() == nValueNumber);
 
 	// Initialisation des index de groupes et de l'index du groupe poubelle si present
 	nGarbageGroupIndex = dataGridUnivariateGrouper.InitializeGroupIndexesAndGarbageIndex(
-	    &ivGroups, univariateInitialDataGrid, optimizedDataGrid);
+	    &ivGroups, &univariateInitialDataGrid, optimizedDataGrid);
 	nGarbageModalityNumber = 0;
 
 	// Initialisation d'un tableau d'effectif groupe a partir d'une grille initiale et des index des groupes
@@ -3293,9 +3294,6 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 			}
 		}
 	}
-
-	// Nettoyage
-	delete univariateInitialDataGrid;
 }
 
 void CCCoclusteringBuilder::ComputePartInterests(const KWDataGridMerger* optimizedDataGridMerger,
