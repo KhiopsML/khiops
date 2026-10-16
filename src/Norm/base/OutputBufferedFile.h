@@ -235,8 +235,11 @@ inline boolean OutputBufferedFile::Flush()
 		bOk = WriteToFile(nCurrentBufferSize);
 
 	// Vidage du buffer du driver pour rendre les donnees visibles immediatement
+	// (en mode OpenOnDemand, le fichier n'est pas necessairement ouvert physiquement)
 	if (bOk and not GetOpenOnDemandMode())
 		bOk = fileHandle->Flush();
+
+	// En mode OpenOnDemand, la fermeture physique effectue le flush du driver.
 	if (GetOpenOnDemandMode() and IsPhysicalOpen())
 		bOk = PhysicalClose() and bOk;
 	return bOk;
