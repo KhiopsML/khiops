@@ -180,8 +180,8 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 	return dBestCost;
 }
 
-void KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* optimizedDataGrid,
-							     const KWDataGrid* initialDataGrid,
+void KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* initialDataGrid,
+							     const KWDataGrid* optimizedDataGrid,
 							     const ALString& sPostOptimizationAttributeName,
 							     KWDataGrid* univariateInitialDataGrid) const
 {
@@ -189,10 +189,10 @@ void KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* o
 	KWDataGridManager dataGridManager;
 	KWDGAttribute* postOptimizationAttribute;
 
-	require(optimizedDataGrid != NULL);
 	require(initialDataGrid != NULL);
-	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
+	require(optimizedDataGrid != NULL);
 	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
+	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
 	require(univariateInitialDataGrid != NULL);
 	require(univariateInitialDataGrid->IsEmpty());
 
@@ -229,6 +229,26 @@ void KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* o
 		cout << "Grille preparee\n" << *univariateInitialDataGrid << endl;
 	}
 
+	//DDD
+	static int nCount = 0;
+	if (initialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() == KWType::Continuous)
+	{
+		nCount++;
+		//DDD cout << nCount << "\t" << sPostOptimizationAttributeName << initialDataGrid->GetObjectLabel() << endl;
+		if (nCount == -15) // Standard/Iris
+		{
+			KWDataGrid univariateInitialNearbyDataGrid;
+			int nNearbyIntervalMinFrequency = 5;
+			int nNearbyIntervalsMaxCumulativeFrequency = 10;
+
+			// Construction d'une grille proche de la solution optimisee
+			BuildContinuousUnivariateInitialNearbyDataGrid(
+			    initialDataGrid, optimizedDataGrid, sPostOptimizationAttributeName,
+			    nNearbyIntervalMinFrequency, nNearbyIntervalsMaxCumulativeFrequency,
+			    &univariateInitialNearbyDataGrid);
+		}
+	}
+
 	// Retour de la grille preparee
 	ensure(univariateInitialDataGrid->GetAttributeNumber() == optimizedDataGrid->GetAttributeNumber());
 	ensure(univariateInitialDataGrid->GetTotalPartNumber() ==
@@ -261,7 +281,7 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 		KWType::Continuous);
 
 	// Construction d'une grille initiale dediee a l'optimisation univariee
-	BuildUnivariateInitialDataGrid(optimizedDataGrid, initialDataGrid, sPostOptimizationAttributeName,
+	BuildUnivariateInitialDataGrid(initialDataGrid, optimizedDataGrid, sPostOptimizationAttributeName,
 				       &univariateInitialDataGrid);
 
 	// Post-optimisation de l'attribut par discretisation
@@ -293,7 +313,7 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridSymbolAttribute(const KWData
 		KWType::Symbol);
 
 	// Construction d'une grille initiale dediee a l'optimisation univariee
-	BuildUnivariateInitialDataGrid(optimizedDataGrid, initialDataGrid, sPostOptimizationAttributeName,
+	BuildUnivariateInitialDataGrid(initialDataGrid, optimizedDataGrid, sPostOptimizationAttributeName,
 				       &univariateInitialDataGrid);
 
 	// Post-optimisation de l'attribut par groupement de valeur
@@ -304,21 +324,21 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridSymbolAttribute(const KWData
 }
 
 void KWDataGridPostOptimizer::BuildContinuousUnivariateInitialNearbyDataGrid(
-    const KWDataGrid* optimizedDataGrid, const KWDataGrid* initialDataGrid,
+    const KWDataGrid* initialDataGrid, const KWDataGrid* optimizedDataGrid,
     const ALString& sPostOptimizationAttributeName, int nNearbyIntervalMinFrequency,
     int nNearbyIntervalsMaxCumulativeFrequency, KWDataGrid* univariateInitialDataGrid) const
 {
-	const boolean bTrace = false;
+	const boolean bTrace = true; //DDD
 	KWDataGridManager dataGridManager;
 	KWDGAttribute* postOptimizationAttribute;
 
-	require(optimizedDataGrid != NULL);
 	require(initialDataGrid != NULL);
-	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
+	require(optimizedDataGrid != NULL);
 	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
-	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() ==
-		KWType::Continuous);
+	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
 	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() ==
+		KWType::Continuous);
+	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() ==
 		KWType::Continuous);
 	require(nNearbyIntervalMinFrequency >= 1);
 	require(nNearbyIntervalsMaxCumulativeFrequency >= nNearbyIntervalMinFrequency);
@@ -353,10 +373,15 @@ void KWDataGridPostOptimizer::BuildContinuousUnivariateInitialNearbyDataGrid(
 	if (bTrace)
 	{
 		cout << "Preparation d'une grille pour l'optimisation univariee\t" << sPostOptimizationAttributeName
-		     << endl;
-		cout << "Grille initiale\n" << *initialDataGrid << endl;
-		cout << "Grille optimisee\n" << *optimizedDataGrid << endl;
-		cout << "Grille preparee\n" << *univariateInitialDataGrid << endl;
+		     << "\n";
+		cout << "\tNearbyIntervalMinFrequency\t" << nNearbyIntervalMinFrequency << "\n";
+		cout << "\tNearbyIntervalsMaxCumulativeFrequency\t" << nNearbyIntervalsMaxCumulativeFrequency << "\n";
+		cout << "Partition initiale\n";
+		initialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->WritePartsSummary(cout);
+		cout << "Partition optimisee\n";
+		optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName)->WritePartsSummary(cout);
+		cout << "Partition resultat\n";
+		univariateInitialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->WritePartsSummary(cout);
 	}
 
 	// Retour de la grille preparee
@@ -369,8 +394,8 @@ void KWDataGridPostOptimizer::BuildContinuousUnivariateInitialNearbyDataGrid(
 	ensure(univariateInitialDataGrid->GetCellNumber() >= optimizedDataGrid->GetCellNumber());
 }
 
-void KWDataGridPostOptimizer::BuildSymbolUnivariateInitialNearbyDataGrid(const KWDataGrid* optimizedDataGrid,
-									 const KWDataGrid* initialDataGrid,
+void KWDataGridPostOptimizer::BuildSymbolUnivariateInitialNearbyDataGrid(const KWDataGrid* initialDataGrid,
+									 const KWDataGrid* optimizedDataGrid,
 									 const ALString& sPostOptimizationAttributeName,
 									 int nNearbyGroupMinFrequency,
 									 int nNearbyGroupMaxFrequency,
@@ -380,15 +405,13 @@ void KWDataGridPostOptimizer::BuildSymbolUnivariateInitialNearbyDataGrid(const K
 	KWDataGridManager dataGridManager;
 	KWDGAttribute* postOptimizationAttribute;
 
-	//DDD TO VALIDATE
-
-	require(optimizedDataGrid != NULL);
 	require(initialDataGrid != NULL);
-	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
+	require(optimizedDataGrid != NULL);
 	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
+	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName) != NULL);
+	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() == KWType::Symbol);
 	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() ==
 		KWType::Symbol);
-	require(initialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() == KWType::Symbol);
 	require(nNearbyGroupMinFrequency >= 0);
 	require(nNearbyGroupMaxFrequency >= 0);
 	require(univariateInitialDataGrid != NULL);
@@ -425,10 +448,15 @@ void KWDataGridPostOptimizer::BuildSymbolUnivariateInitialNearbyDataGrid(const K
 	if (bTrace)
 	{
 		cout << "Preparation d'une grille pour l'optimisation univariee\t" << sPostOptimizationAttributeName
-		     << endl;
-		cout << "Grille initiale\n" << *initialDataGrid << endl;
-		cout << "Grille optimisee\n" << *optimizedDataGrid << endl;
-		cout << "Grille preparee\n" << *univariateInitialDataGrid << endl;
+		     << "\n";
+		cout << "\tNearbyGroupMinFrequency\t" << nNearbyGroupMinFrequency << "\n";
+		cout << "\tNearbyGroupMaxFrequency\t" << nNearbyGroupMaxFrequency << "\n";
+		cout << "Partition initiale\n";
+		initialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->WritePartsSummary(cout);
+		cout << "Partition optimisee\n";
+		optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName)->WritePartsSummary(cout);
+		cout << "Partition resultat\n";
+		univariateInitialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->WritePartsSummary(cout);
 	}
 
 	// Retour de la grille preparee

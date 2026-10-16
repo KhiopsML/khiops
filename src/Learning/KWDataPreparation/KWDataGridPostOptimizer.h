@@ -62,7 +62,7 @@ public:
 	// Construction d'une grille initiale pour l'optimisation univariee, ayant les memes partitions
 	// par attribut que la grille optimisee, sauf sur l'attribut a optimiser (dans ce cas, partition la
 	// plus fine possible provenant de la grille initiale)
-	void BuildUnivariateInitialDataGrid(const KWDataGrid* optimizedDataGrid, const KWDataGrid* initialDataGrid,
+	void BuildUnivariateInitialDataGrid(const KWDataGrid* initialDataGrid, const KWDataGrid* optimizedDataGrid,
 					    const ALString& sPostOptimizationAttributeName,
 					    KWDataGrid* univariateInitialDataGrid) const;
 
@@ -91,8 +91,8 @@ protected:
 	// respecte un maximum.
 	// Ces contraintes permettent d'iterer d'intervalles grossiers vers des intervalles
 	// de plus en plus fins, potentiellement jusqu'a des intervalles singletons.
-	void BuildContinuousUnivariateInitialNearbyDataGrid(const KWDataGrid* optimizedDataGrid,
-							    const KWDataGrid* initialDataGrid,
+	void BuildContinuousUnivariateInitialNearbyDataGrid(const KWDataGrid* initialDataGrid,
+							    const KWDataGrid* optimizedDataGrid,
 							    const ALString& sPostOptimizationAttributeName,
 							    int nNearbyIntervalMinFrequency,
 							    int nNearbyIntervalsMaxCumulativeFrequency,
@@ -105,8 +105,8 @@ protected:
 	// si son effectif est compris entre les deux bornes specifiees, bornes incluses.
 	// Le controle de l'effectif des groupes ajoutes permet d'iterer des groupes les plus gros
 	// vers des groupes de plus en plus fins, potentiellement jusqu'a des groupes singletons.
-	void BuildSymbolUnivariateInitialNearbyDataGrid(const KWDataGrid* optimizedDataGrid,
-							const KWDataGrid* initialDataGrid,
+	void BuildSymbolUnivariateInitialNearbyDataGrid(const KWDataGrid* initialDataGrid,
+							const KWDataGrid* optimizedDataGrid,
 							const ALString& sPostOptimizationAttributeName,
 							int nNearbyGroupMinFrequency, int nNearbyGroupMaxFrequency,
 							KWDataGrid* univariateInitialDataGrid) const;

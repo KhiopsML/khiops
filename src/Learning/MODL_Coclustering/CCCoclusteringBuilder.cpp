@@ -2988,7 +2988,7 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 
 	// Construction d'une grille initiale pour l'optimisation univariee
 	dataGridPostOptimizer.BuildUnivariateInitialDataGrid(
-	    optimizedDataGrid, inputInitialDataGrid, optimizedDataGrid->GetAttributeAt(nAttribute)->GetAttributeName(),
+	    inputInitialDataGrid, optimizedDataGrid, optimizedDataGrid->GetAttributeAt(nAttribute)->GetAttributeName(),
 	    &univariateInitialDataGrid);
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
