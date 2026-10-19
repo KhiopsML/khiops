@@ -199,6 +199,7 @@ public class GUIManager extends GUIObject
          */
         private static Font loadBundledPoppinsFont() throws IOException, FontFormatException
         {
+                // Les ressources sont placees sous "images/" par add_khiops_jar
                 String[] resourcePaths =
                   {"images/Poppins-Regular.ttf"};
 

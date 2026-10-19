@@ -33,6 +33,7 @@ public class GUIIconLoader
                                 return null;
                         if (iconValue.indexOf('/') >= 0)
                                 return iconValue;
+                        // Les ressources sont placees sous "images/" par add_khiops_jar
                         return "images/" + iconValue + ".svg";
                 }
                 return null;
