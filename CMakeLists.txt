@@ -255,8 +255,8 @@ if(BUILD_JARS)
   set(KHIOPS_BUILD_JAR_DIR "${CMAKE_BINARY_DIR}/jars")
   message(STATUS "Java JARs will be stored at ${KHIOPS_BUILD_JAR_DIR}")
 
-  # Download FlatLaf for the Swing GUI look and feel.
-  # The jar is stored with a stable file name for packaging and runtime scripts.
+  # Download FlatLaf for the Swing GUI look and feel. The jar is stored with a stable file name for packaging and
+  # runtime scripts.
   set(KHIOPS_FLATLAF_VERSION "3.6")
   set(KHIOPS_JSVG_VERSION "1.4.0")
   set(KHIOPS_FLATLAF_JAR "${KHIOPS_BUILD_JAR_DIR}/flatlaf.jar")
@@ -264,17 +264,15 @@ if(BUILD_JARS)
   set(KHIOPS_FLATLAF_INTELLIJ_THEMES_JAR "${KHIOPS_BUILD_JAR_DIR}/flatlaf-intellij-themes.jar")
   set(KHIOPS_JSVG_JAR "${KHIOPS_BUILD_JAR_DIR}/jsvg.jar")
   set(KHIOPS_FLATLAF_URL
-    "https://repo1.maven.org/maven2/com/formdev/flatlaf/${KHIOPS_FLATLAF_VERSION}/flatlaf-${KHIOPS_FLATLAF_VERSION}.jar"
+      "https://repo1.maven.org/maven2/com/formdev/flatlaf/${KHIOPS_FLATLAF_VERSION}/flatlaf-${KHIOPS_FLATLAF_VERSION}.jar"
   )
   set(KHIOPS_FLATLAF_EXTRAS_URL
-    "https://repo1.maven.org/maven2/com/formdev/flatlaf-extras/${KHIOPS_FLATLAF_VERSION}/flatlaf-extras-${KHIOPS_FLATLAF_VERSION}.jar"
+      "https://repo1.maven.org/maven2/com/formdev/flatlaf-extras/${KHIOPS_FLATLAF_VERSION}/flatlaf-extras-${KHIOPS_FLATLAF_VERSION}.jar"
   )
   set(KHIOPS_JSVG_URL
-    "https://repo1.maven.org/maven2/com/github/weisj/jsvg/${KHIOPS_JSVG_VERSION}/jsvg-${KHIOPS_JSVG_VERSION}.jar"
-  )
-  set(
-    KHIOPS_FLATLAF_INTELLIJ_THEMES_URL
-    "https://repo1.maven.org/maven2/com/formdev/flatlaf-intellij-themes/${KHIOPS_FLATLAF_VERSION}/flatlaf-intellij-themes-${KHIOPS_FLATLAF_VERSION}.jar"
+      "https://repo1.maven.org/maven2/com/github/weisj/jsvg/${KHIOPS_JSVG_VERSION}/jsvg-${KHIOPS_JSVG_VERSION}.jar")
+  set(KHIOPS_FLATLAF_INTELLIJ_THEMES_URL
+      "https://repo1.maven.org/maven2/com/formdev/flatlaf-intellij-themes/${KHIOPS_FLATLAF_VERSION}/flatlaf-intellij-themes-${KHIOPS_FLATLAF_VERSION}.jar"
   )
   function(download_optional_jar jar_variable url)
     set(jar_path "${${jar_variable}}")
@@ -289,14 +287,19 @@ if(BUILD_JARS)
     message(STATUS "Downloading optional JAR from ${url}")
     file(
       DOWNLOAD "${url}" "${jar_path}.download"
-      STATUS download_status TLS_VERIFY ON SHOW_PROGRESS TIMEOUT 60)
+      STATUS download_status
+      TLS_VERIFY ON
+      SHOW_PROGRESS
+      TIMEOUT 60)
     list(GET download_status 0 download_code)
     list(GET download_status 1 download_message)
     if(download_code EQUAL 0)
       file(RENAME "${jar_path}.download" "${jar_path}")
     else()
       file(REMOVE "${jar_path}.download")
-      set(${jar_variable} "" PARENT_SCOPE)
+      set(${jar_variable}
+          ""
+          PARENT_SCOPE)
       message(
         WARNING
           "Unable to download ${url} (${download_message}). Continuing without this optional JAR; the GUI will use the available Swing appearance and icons."
