@@ -822,7 +822,7 @@ boolean KWEvaluatedDataGrid::Check() const
 		attribute = cast(KWDGAttribute*, oaAttributes.GetAt(nAttribute));
 
 		// Verification de l'attribut
-		bOk = bOk and attribute->Check();
+		bOk = bOk and attribute->CheckPartially();
 		if (not bOk)
 			break;
 

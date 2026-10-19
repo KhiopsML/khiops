@@ -4,6 +4,7 @@
 
 #define UIDEV
 #include "UserInterface.h"
+#include "MacosGUI.h"
 
 boolean UIUnit::Check() const
 {
@@ -64,6 +65,21 @@ void UIUnit::Open()
 
 	require(Check());
 	require(GetVisible() == true);
+
+#ifdef __APPLE__
+	// Ce premier appel a Open() est recu sur le thread principal macOS, qui doit rester disponible pour
+	// traiter les evenements AppKit pendant l'ouverture de la fenetre.
+	// Le premier parametre de MacosRunGUI est une fonction de rappel: elle rappelle Open() sur l'unite
+	// d'interface courante. Le deuxieme parametre, this, est le contexte transmis a cette fonction; il
+	// lui permet de retrouver l'unite courante apres sa conversion en UIUnit*.
+	// MacosRunGUI execute cette fonction sur un thread secondaire. Le second appel a Open()
+	// poursuit donc directement l'ouverture normale de la fenetre.
+	if (GetUIMode() == Graphic and pthread_main_np())
+	{
+		MacosRunGUI([](void* context) { ((UIUnit*)context)->Open(); }, this);
+		return;
+	}
+#endif
 
 	// Flag d'ouverture de la fenetre, permettant de synchroniser
 	bIsOpened = true;
@@ -385,7 +401,6 @@ void UIUnit::Open()
 	// Ouverture de la fenetre, selon le mode (inutile si action Exit rejouee)
 	if (not bActionExit)
 	{
-		// Mode graphique
 		if (GetUIMode() == Graphic)
 		{
 			JNIEnv* env;
@@ -404,10 +419,13 @@ void UIUnit::Open()
 			// Recherche de la methode open
 			mid = GraphicGetMethodID(cls, "GUIUnit", "open", "()V");
 
+#ifdef __APPLE__
 			// Appel de la methode JAVA open, qui sera executee dans un nouveau thread
 			// et provoquera la suite de l'execution de la methode C++ courante
+			MacosOpenGUIUnit(env, guiObject, mid);
+#else
 			env->CallVoidMethod(guiObject, mid);
-
+#endif
 			// On libere l'objet fiche cote Java, et sa classe
 			env->DeleteLocalRef(guiObject);
 			env->DeleteLocalRef(cls);

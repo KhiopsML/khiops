@@ -80,7 +80,7 @@ public:
 	// en analysant la structure du dictionnaire avec dimensionnement heuristique
 	longint GetInMemoryEstimatedObjectNumber(const KWClass* kwcLogicalClass, longint lInputFileSize) const;
 
-	// Estimation heuristique de la place disque par record d'un fichier a lire en se basant sur les variable native
+	// Estimation heuristique de la place disque par record d'un fichier a lire en se basant sur les variables natives
 	// du dictionnaire
 	longint GetEstimatedUsedInputDiskSpacePerObject(const KWClass* kwcLogicalClass) const;
 

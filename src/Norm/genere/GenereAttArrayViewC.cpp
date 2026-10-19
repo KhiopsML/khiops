@@ -141,10 +141,9 @@ void TableGenerator::GenerateAttributeArrayViewC(ostream& ost) const
 				    << "\n";
 			}
 		}
+		ost << ""
+		    << "\n";
 	}
-
-	ost << ""
-	    << "\n";
 	GenerateUserCodeSection(ost, "\t", "Custom update");
 	ost << "}"
 	    << "\n";

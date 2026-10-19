@@ -596,7 +596,7 @@ struct GDAssoc : public SystemObject
 
 //////////////////////////////////////////////////////////////////////
 // Dictionaire generique
-// Classe ancetre de toutes les classe dictionnaires
+// Classe ancetre de toutes les classes dictionnaires
 // Les dictionnaires sont differencies selon:
 //  . le type de cle: String ou NUMERIC
 //  . le type de valeur: Object* ou longint
@@ -1278,7 +1278,7 @@ inline GenericValue GenericDictionary::GenericLookup(GenericKey genericKey) cons
 
 	GDAssoc* pAssoc = GetAssocAt(genericKey, nHash);
 	if (pAssoc == NULL)
-		return {(longint)0};
+		return {0LL};
 	return pAssoc->value;
 }
 

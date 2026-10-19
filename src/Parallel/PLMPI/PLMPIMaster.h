@@ -82,7 +82,7 @@ protected:
 
 	// Ferme toutes les connections avec les esclaves (bloquant : operation collective)
 	// ATTENTION : Les communicateurs MPI ne seront plus valides apres l'appel de cette methode
-	// A surcharger pour ajouter les deconnections des classe filles
+	// A surcharger pour ajouter les deconnections des classes filles
 	void Disconnect();
 
 	// Demande d'arret aux esclave, le booleen en parametre indique aux esclaves

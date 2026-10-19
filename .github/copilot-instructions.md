@@ -12,6 +12,66 @@
 - **Website**: https://khiops.org
 - **Source**: https://github.com/KhiopsML/khiops
 
+## 🔐 Mandatory Pre-Editing Protocol
+
+**BEFORE editing ANY file in this workspace**, the agent MUST follow this protocol:
+
+### Step 1: Identify the File Type
+- Determine the file extension: `.cpp`, `.h`, `CMakeLists.txt`, `*.py`, etc.
+
+### Step 2: Load Applicable Instructions
+Check the `.github/instructions/` directory for matching instruction files:
+- **`.cpp` or `.h` files** → Use agent **`KhiopsC++`** OR load [`.github/instructions/cpp-changes.instructions.md`](instructions/cpp-changes.instructions.md) + skill [`.github/skills/khiops-cpp-conventions.md`](skills/khiops-cpp-conventions.md)
+- **`CMakeLists.txt` files** → Load [`.github/instructions/cmake-changes.instructions.md`](instructions/cmake-changes.instructions.md)
+- **`test/LearningTestTool/` files** → Load [`.github/instructions/learning-test-tool.instructions.md`](instructions/learning-test-tool.instructions.md)
+- **`.github/workflows/` or `.github/actions/` files** → Load [`.github/instructions/ci-workflows.instructions.md`](instructions/ci-workflows.instructions.md)
+- **UI-related files** → Load [`.github/instructions/ui-changes.instructions.md`](instructions/ui-changes.instructions.md)
+- **Python wheel files** → Load [`.github/instructions/python-wheel.instructions.md`](instructions/python-wheel.instructions.md)
+
+### Step 3: Review Rules
+- Read the full applicable instruction file
+- Apply all rules BEFORE writing any code
+- Flag violations and fix them proactively
+
+### Step 4: Edit & Format
+- Make changes according to guidelines
+- Run formatting: `clang-format -i`, `cmake-format -i`, `black`, etc.
+- Verify no violations remain
+
+### Step 5: Pre-Commit Validation
+Before pushing:
+```bash
+# Check encoding & copyright
+scripts/check-encoding.py <file>
+scripts/check-obsolete-copyright.py <file>
+
+# Format
+clang-format -i <file>  # For C++/Java
+cmake-format -i <file>  # For CMake
+black <script>.py       # For Python
+
+# Build & test
+cmake --build build/macos-clang-debug --target <target>
+ctest --preset macos-clang-debug
+```
+
+---
+
+**This protocol is non-negotiable. Pre-commit hooks will reject code that violates these conventions.**
+
+## Recommended: Use Specialized Agents
+
+For streamlined workflow:
+- **C++ editing**: Use agent `KhiopsC++` (see [`.github/agents/AGENTS.md`](agents/AGENTS.md))
+  - Automatically loads and applies conventions
+  - Enforces ASCII-only comments, Hungarian notation, Allman braces
+  - Provides pre-commit validation checklist
+- **Debugging failing LearningTest non-regression tests**: load skill
+  [`.github/skills/khiops-learningtest-debugging.md`](skills/khiops-learningtest-debugging.md) whenever the user
+  points to a `LearningTest` checkout and reports failing tests (e.g. via `kht_test`/`kht_apply`). It encodes the
+  run → collect errors → inspect `comparisonResults.log` → diff vs `results.ref*` → fix loop so no clarifying
+  questions are needed to get started.
+
 ## Repository Structure
 
 ```
@@ -32,7 +92,9 @@ packaging/            # Conda, Linux RPM/Debian, Windows NSIS configs
 
 ### C++ Code Guidelines
 
-**Detailed C++ coding guidelines** (style, naming, class structure, assertions) are in [`.github/instructions/cpp-changes.instructions.md`](.github/instructions/cpp-changes.instructions.md) — they auto-load when editing `*.cpp` or `*.h` files.
+**Detailed C++ coding guidelines** (style, naming, class structure, assertions) are in [`.github/instructions/cpp-changes.instructions.md`](instructions/cpp-changes.instructions.md).
+
+**Recommended**: Use the `KhiopsC++` agent (defined in [`.github/agents/AGENTS.md`](agents/AGENTS.md)) for streamlined C++ editing with conventions automatically enforced.
 
 ### Pre-commit Hooks
 
@@ -216,6 +278,29 @@ ctest --preset macos-clang-debug -j<N>   # Parallel execution
 ./build/<preset>/bin/parallel_test
 ./build/<preset>/bin/learning_test
 ```
+
+### Non-regression Tests (kht_test)
+
+The LearningTest suite lives in a separate repository, cloned locally alongside this one (e.g. `../LearningTest/`). Tests are run with `kht_test` from `test/LearningTestTool/py/`:
+
+```bash
+# Syntax: kht_test <source_dir> <binaries> [-p N] [-f family]
+#   source_dir : any level of the LearningTest tree (home/tool/suite/test dir)
+#   binaries   : r (release), d (debug), or check (compare only, no re-run)
+#   -p N       : number of MPI processes (default: 1)
+#   -f family  : basic | full (default) | complete
+
+# Run a specific crash test with 4 processes, release binary
+python test/LearningTestTool/py/kht_test.py ../LearningTest/TestKhiops/CrashTests/trainclassifier_KWDatabaseSlicerTask r -p 4
+
+# Re-compare results only (after manual inspection or binary rebuild)
+python test/LearningTestTool/py/kht_test.py ../LearningTest/TestKhiops/CrashTests check -f full -p 4
+
+# Run all standard Khiops tests
+python test/LearningTestTool/py/kht_test.py ../LearningTest/TestKhiops r -p 4
+```
+
+The `comparisonResults.log` in each test dir records the comparison outcome. Use `kht_apply errors` to list all failing tests across a suite.
 
 ## Debugging and Testing
 

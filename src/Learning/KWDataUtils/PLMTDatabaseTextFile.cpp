@@ -902,7 +902,7 @@ boolean PLMTDatabaseTextFile::OpenOutputBuffers(const PLParallelTask* task, int 
 			if (bOk)
 			{
 				// Memorisation du fichier
-				svOutputBufferFileNames->SetAt(i, FileService::BuildLocalURI(sChunkFileName));
+				svOutputBufferFileNames->SetAt(i, FileService::TransformLocalFileURI(sChunkFileName));
 
 				// Ouverture du fichier
 				outputBuffer->SetFileName(sChunkFileName);
@@ -1342,7 +1342,7 @@ KWDataTableDriver* PLMTDatabaseTextFile::CreateDataTableDriver(KWMTDatabaseMappi
 		dataTableDriver = cast(PLDataTableDriverTextFile*, dataTableDriverCreator->Clone());
 		if (livDataItemLoadIndexes != NULL)
 		{
-			// Initialisation des index des attributs, et des attribut de cle
+			// Initialisation des index des attributs, et des attributs de cle
 			dataTableDriver->GetDataItemLoadIndexes()->CopyFrom(livDataItemLoadIndexes);
 			dataTableDriver->GetMainKeyIndexes()->CopyFrom(ivMainKeyIndexes);
 

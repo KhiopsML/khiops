@@ -120,7 +120,7 @@ protected:
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	// Reimplementation des methodes virtuelles de tache
 	// Lors des reimplementation dans les sous-classes, on peut appeler explicitement la methode
-	// de KWDatabaseTask, en debut de reimplementation pour toute les methodes, sauf pour les
+	// de KWDatabaseTask, en debut de reimplementation pour toutes les methodes, sauf pour les
 	// methodes Finalize devant etre appelee en fin de reimplementation
 
 	// Dimensionnement des ressources
@@ -181,7 +181,7 @@ protected:
 	virtual boolean SlaveProcessExploitDatabaseObject(const KWObject* kwoObject);
 
 	// Methode principale de l'esclave, appelee systematiquement
-	//   Collecte des variable en sortie par base
+	//   Collecte des variables en sortie par base
 	//   Arret des bases
 	virtual boolean SlaveProcessStopDatabase(boolean bProcessEndedCorrectly);
 

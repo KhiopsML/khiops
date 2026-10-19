@@ -107,7 +107,7 @@ public:
 	//   de ses instances pour que chaque enregistrement de sous-table soit rattache de facon
 	//   unique a son enregistrement parent dans le schema multi-table hierachique
 	// L'unicite est controlee uniquement au moment de la lecture des donnes a partir d'une base
-	// pour des dictionnaire ayant des cles. Cela ne concerne pas les dictionnaires avec ou sans cle
+	// pour des dictionnaires ayant des cles. Cela ne concerne pas les dictionnaires avec ou sans cle
 	// utilise pour la construction de table en memoire
 	// Cette caracteristique est calculee au moment de l'indexation de la classe
 	boolean IsUnique() const;
@@ -614,19 +614,19 @@ public:
 	// Acces generique a un attribut dense ou un bloc selon  son index de chargement
 	KWDataItem* GetDataItemAtLoadIndex(KWLoadIndex liIndex) const;
 
-protected:
-	///////////////////////////////////////////////////////////////////////////////////////////////
-	// Services pour l'optimisation des la gestion des KWObjet par les KWDatabase
-
-	// Seule la classe KWDatabase a l'usage des deux listes ci-dessous
-	friend class KWDatabase;
-
 	// Parametrage force du caractere unique d'une classe
 	// Parametrage avance, utilise par exemple pour une classe unique en raison de
 	// ses sous-tables non calculees, mais pour la quelle ces sous tables ont ete
 	// supprimees pour optimiser les lectures de donnees
 	boolean GetForceUnique() const;
 	void SetForceUnique(boolean bValue);
+
+protected:
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	// Services pour l'optimisation des la gestion des KWObjet par les KWDatabase
+
+	// Seule la classe KWDatabase a l'usage des deux listes ci-dessous
+	friend class KWDatabase;
 
 	// Liste des elements de donnees devant etre calcules
 	ObjectArray* GetDatabaseDataItemsToCompute();
@@ -711,7 +711,7 @@ protected:
 	// issu de regles peuvent referencer des Object natifs, qui ne doivent pas etre detruits.
 
 	// Attributs Relation natifs ou cree et non references non charges en memoire
-	// Ces attribut appartient a l'objet courant et devront etre detruits avec celui-ci
+	// Ces attributs appartiennent a l'objet courant et devront etre detruits avec celui-ci
 	int GetUnloadedOwnedRelationAttributeNumber() const;
 	KWAttribute* GetUnloadedOwnedRelationAttributeAt(int nIndex) const;
 
@@ -751,7 +751,7 @@ protected:
 
 	// Statut unique:
 	// - racine: unicite necessaire pour les references aux tables externes
-	// - classe ayant des attribut relation natifs: unicite necessaire pour que chaque
+	// - classe ayant des attributs relation natifs: unicite necessaire pour que chaque
 	//   enregistrement secondaire soit rattache de facon unique a son enregistrement parent
 	boolean bIsUnique;
 
@@ -765,7 +765,7 @@ protected:
 	KWClassDomain* domain;
 
 	// Gestion des attributs sous forme de liste et dictionnaire
-	// Les attribut appartiennent au dictionnaire et sont references par la liste
+	// Les attributs appartiennent au dictionnaire et sont references par la liste
 	ObjectDictionary odAttributes;
 	ObjectList olAttributes;
 

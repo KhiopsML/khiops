@@ -39,8 +39,8 @@ public:
 	//
 	// La construction de variable se base sur les familles suivantes
 	//  . MultiTable: en exploitant le schema multi-table, hors variables de type texte
-	//  . Text: en exploitant les variable de type texte (Text ou TextList) presente dans le schema multi-table
-	//  . Tree: en combinant des variables au moyen des arbres
+	//  . Text: en exploitant les variables de type texte (Text ou TextList) presentes dans le schema multi-table
+	//  . Tree: en combinant des variabless au moyen des arbres
 	//  . 2D: en analysant des paires de variables
 	// De facon a maitriser la combinatoire des interactions possibles et a facilite l'interpretabilite
 	// des modeles, les familles sont explote selon les relation suivantes:
@@ -71,6 +71,10 @@ public:
 	void SetAttributePairsSpec(const KWAttributePairsSpec* spec);
 	const KWAttributePairsSpec* GetAttributePairsSpec() const;
 
+	// Mode d'affichage des messages principaux lors du calcul des statistique (defaut: true)
+	void SetMainMessageVerboseMode(boolean bValue);
+	boolean GetMainMessageVerboseMode() const;
+
 	//////////////////////////////////////////////////////////////////////////////
 	// Calcul des statistiques
 	//   . calcul des donnees a partir de la classe d'analyse et de la base en entree
@@ -94,7 +98,7 @@ public:
 	// Acces a toutes les statistiques de preparation disponibles (univariee initiaux, multi-table ou texte, arbres,
 	// bivariees) Accessible uniquement si statistiques calculees Le tableau contient des objets
 	// KWDataPreparationStats Memoire: le tableau retourne et son contenu appartiennent a l'appele
-	ObjectArray* GetAllPreparedStats();
+	const ObjectArray* GetAllPreparedStats() const;
 
 	// Acces aux statistiques univariees par attributs
 	// Concerne les attributs de type initiaux ou multi-table uniquement
@@ -102,7 +106,7 @@ public:
 	// Accessible uniquement si statistiques calculees
 	// Le tableau contient des objets KWAttributeStats
 	// Memoire: le tableau retourne et son contenu appartiennent a l'appele
-	ObjectArray* GetAttributeStats();
+	const ObjectArray* GetAttributeStats() const;
 
 	// Acces par nom aux attributs de type initiaux ou multi-tables uniquement (acces rapide par dictionnaire)
 	// Renvoie NULL si non trouve
@@ -111,17 +115,17 @@ public:
 	// Acces aux statistiques bivariees par paire d'attributs
 	// Dans chaque paire, les attributs sont ordonnes par ordre alphabetique
 	// Le tableau contient des objets KWAttributePairStats
-	ObjectArray* GetAttributePairStats();
+	const ObjectArray* GetAttributePairStats() const;
 
 	// Acces aux statistiques univaries par attribut de type texte
 	// Ces attributs crees n'apparaissent pas dans le rapport de preparation
 	// Le tableau contient des objets KWAttributeStats
-	ObjectArray* GetTextAttributeStats();
+	const ObjectArray* GetTextAttributeStats() const;
 
 	// Acces aux statistiques univaries par attribut de type arbre
 	// Ces attributs crees n'apparaissent pas dans le rapport de preparation
 	// Le tableau contient des objets KWAttributeStats
-	ObjectArray* GetTreeAttributeStats();
+	const ObjectArray* GetTreeAttributeStats() const;
 
 	// Nombre d'attributs evalues, natifs (y compris dans les blocs natifs) et construits
 	int GetEvaluatedAttributeNumber() const;
@@ -262,7 +266,7 @@ public:
 	// plus eventuellement les statistiques descriptives cibles si elles sont disponibles, et les erreurs
 	void WriteReport(ostream& ost) const override;
 
-	// Parametrage de l'ecriture des rapports des attribut natif ou construits (defaut: false)
+	// Parametrage de l'ecriture des rapports des attributs natifs ou construits (defaut: false)
 	void SetWriteOptionStatsNativeOrConstructed(boolean bValue);
 	boolean GetWriteOptionStatsNativeOrConstructed() const;
 
@@ -314,7 +318,7 @@ protected:
 	// pour se preparer aux constructions multivaries, paires de variable et arbre
 	// En effet, le cout de selection global (KWLearningSpec::GetSelectionCost) integre
 	// toutes les familles de construction de variables utilisees, alors que les familles
-	// multivaries selectionnent elle meme uniquement des variable initiales ou construites
+	// multivaries selectionnent elle meme uniquement des variables initiales ou construites
 	// avec un cout de selection basique (KWLearningSpec::GetBasicSelectionCost)
 	// Cette mise a jour se fait a la fois dans la classe principale et dans toutes celles du sliceset
 	void UseUnivariateBasicSelectionCosts(boolean bUsingTextAttributes);
@@ -351,20 +355,23 @@ protected:
 	// Calcul du nombre d'attributs prepares references depuis un dictionnaires
 	int ComputeSelectedDataPreparationStats(const ObjectArray* oaInputDataPreparationStats) const;
 
-	// Filtrage d'un tableau d'attribut prepares pour ne gardant que ceux qui natif ou selectionnes directement ou
-	// indirectement
+	// Filtrage d'un tableau d'attribut prepares pour ne garder que ceux qui natifs ou selectionnes
+	// directement ou indirectement
 	void FilterSelectedDataPreparationStats(const ObjectArray* oaInputDataPreparationStats,
 						ObjectArray* oaFilteredDataPreparationStats) const;
 
-	// Filtrage d'un tableau d'attribut prepares pour ne garde que ceux qui sont references par un dictionnaire
+	// Filtrage d'un tableau d'attribut prepares pour ne garder que ceux qui sont references par un dictionnaire
 	// Les tableaux en sortie appartiennent a l'appelant, et leur contenu sont une sous partie du tableau en entree
 	void DispatchAttributeStatsByType(const ObjectArray* oaInputAttributeStats, ObjectArray* oaSymbolAttributeStats,
 					  ObjectArray* oaContinuousAttributeStats) const;
 
-	// Specification du dictionnaire des variable construites en multi-tables
+	// Redefinition de la methodes de gestion des messages principaux pour tenir compte du mode d'affichage
+	void AddSimpleMessage(const ALString& sLabel) const override;
+
+	// Specification du dictionnaire des variables construites en multi-tables
 	ObjectDictionary odMultiTableConstructedAttributes;
 
-	// Specification du dictionnaire des variable construites pour le texte
+	// Specification du dictionnaire des variables construites pour le texte
 	ObjectDictionary odTextConstructedAttributes;
 
 	// Specification de l'analyse bivariee
@@ -385,6 +392,18 @@ protected:
 
 	// Gestion des stats des attributs de type arbre
 	ObjectArray oaTreeAttributeStats;
+
+	// Statistiques sur les stats des attributs prepares
+	// Ces statistiques, initialisees a -1, sont calculeees a la volee
+	// et bufferisees par les methodes correspondantes
+	// Les variables de statistique sont en mutable pour etre appelles par
+	// les methodes correspondantes qui sont const
+	mutable int nConstructedAttributeNumber;
+	mutable int nTotalInformativeAttributeNumber;
+	mutable int nInformativeAttributeNumber;
+	mutable int nInformativeTextAttributeNumber;
+	mutable int nInformativeTreeAttributeNumber;
+	mutable int nInformativeAttributePairNumber;
 
 	// Tache de construction des attributs de type arbre
 	KDDataPreparationAttributeCreationTask* attributeTreeConstructionTask;
@@ -420,4 +439,7 @@ protected:
 	boolean bWriteOptionStatsTrees;
 	boolean bWriteOptionStats2D;
 	boolean bWriteDetailedStats;
+
+	// Mode d'affichage des messages principaux lors du calcul des statistique (defaut: true)
+	boolean bMainMessageVerboseMode;
 };

@@ -187,7 +187,6 @@ void KWCDUniqueStringDictionary::RemoveAll()
 	// pour le dictionnaire global des UniqueString et en release, pour ne pas
 	// avoir de reporting verbeux systematique en debug
 	bTrace = bTrace and this == &(KWCDUniqueString::sdSharedUniqueStrings) and GetLearningExpertMode();
-	debug(not bTrace);
 
 	// Nettoyage des cles de la table de hashage
 	nMessageIndex = 0;

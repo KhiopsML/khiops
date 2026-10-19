@@ -92,7 +92,7 @@ public:
 	void SetSourceAttributeNumber(int nValue);
 	int GetSourceAttributeNumber() const;
 
-	// Acces aux attribut cibles, qui sont necessairement apres les attributs source
+	// Acces aux attributs cibles, qui sont necessairement apres les attributs sources
 	int GetFirstTargetAttributeIndex() const;
 	int GetTargetAttributeNumber() const;
 

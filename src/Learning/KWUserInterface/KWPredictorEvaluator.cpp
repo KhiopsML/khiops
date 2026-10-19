@@ -834,7 +834,7 @@ void KWPredictorEvaluator::DomainRenameClassesWithInitialNames(KWClassDomain* kw
 
 	require(kwcdDomain != NULL);
 
-	// Export prealable des classe du domaine dans un tableau
+	// Export prealable des classes du domaine dans un tableau
 	// (le renommage d'une classe provoque la reindexation du domaine, ce qui empeche
 	// le parcours indexe des classes depuis le domaine)
 	kwcdDomain->ExportClassArray(&oaClasses);

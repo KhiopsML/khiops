@@ -13,8 +13,8 @@
 //////////////////////////////////////////////////////////////////
 // Classe de gestion des index de chargement, avec version dense et sparse
 // Classe interne, geree comme un type simple depuis l'exterieur,
-// avec des services avances uniquement pour les classe devant gerer
-// l'acces indexe a des valeurs denses ou sparse
+// avec des services avances uniquement pour les classes devant gerer
+// l'acces indexe a des valeurs denses ou sparses
 class LoadIndex : public SystemObject
 {
 private:
@@ -106,7 +106,7 @@ void DoubleVectorAccessTest();
 ////////////////////////////////////////////////////////
 // Classe KWValueIndexPair
 // Class technique, utilisee uniquement pour l'implementation des blocs sparse
-// Pas de "packing" des attribut pour optimiser la place memoire
+// Pas de "packing" des attributs pour optimiser la place memoire
 // #ifdef _WIN32
 #pragma pack(push)
 #pragma pack(1)
@@ -236,7 +236,7 @@ inline void KWContinuousValueBlockTest::SetValueAt(int nValueIndex, Continuous c
 /////////////////////////////////////////////////////////
 // Class KWIndexedValue
 // Classe technique pour des paire (index, valeur)
-// permettant un implementation optimisee des classe KWValueBlock
+// permettant un implementation optimisee des classes KWValueBlock
 #pragma pack(push)
 #pragma pack(1)
 class KWIndexedValueTest : public SystemObject

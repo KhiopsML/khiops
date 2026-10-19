@@ -131,7 +131,6 @@ void CCLearningProblem::BuildCoclustering()
 	KWLearningSpec learningSpec;
 	CCCoclusteringBuilder coclusteringBuilder;
 	CCCoclusteringReport coclusteringReport;
-	fstream ost;
 	ALString sTmp;
 	int nAttribute;
 	KWAttribute* kwAttribute;
@@ -139,16 +138,15 @@ void CCLearningProblem::BuildCoclustering()
 	const ALString sDefaultOwnerAttributeName = "Variables";
 	ALString sOwnerAttributeName;
 	KWAttribute* identifierAttribute;
+	int nInitialClassAttributreNumber;
+	boolean bInitialClassUnique;
 	ALString sReportFileName;
 	Timer timer;
 	boolean bWriteOk;
-	KWClassDomain* currentDomain = NULL;
-	KWClassDomain* constructedDomain = NULL;
-	KWClassDomain* deploymentDomain = NULL;
-	boolean bDeploymentOk;
 	CCDeploymentSpec ccVarPartDeploymentSpec;
 	ALString sCoclusteringDictionaryFileName;
 	ALString sMessage;
+	CCHierarchicalDataGrid nullDataGrid;
 
 	require(CheckClass());
 	require(CheckDatabaseName());
@@ -156,6 +154,10 @@ void CCLearningProblem::BuildCoclustering()
 	require(CheckCoclusteringSpecifications());
 	require(CheckResultFileNames(TaskBuildCoclustering));
 	require(not TaskProgression::IsStarted());
+
+	// Recherche de la classe
+	kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
+	check(kwcClass);
 
 	// Demarrage du suivi de la tache
 	// Cas d'un coclustering variable * variable
@@ -182,15 +184,13 @@ void CCLearningProblem::BuildCoclustering()
 	if (GetDatabase()->IsMultiTableTechnology())
 		cast(KWMTDatabase*, GetDatabase())->DisplayMultiTableMappingWarnings();
 
-	// Initialisations
-	kwcClass = NULL;
-
 	// Demarrage du timer
 	timer.Start();
 
-	// Recherche de la classe
-	kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
-	check(kwcClass);
+	// Memorisation de l'etat de la classe avant creation de l'eventuel attribut identifiant dans le cas instances x variables
+	identifierAttribute = NULL;
+	nInitialClassAttributreNumber = kwcClass->GetAttributeNumber();
+	bInitialClassUnique = kwcClass->GetForceUnique();
 
 	// Parametrage des attributs de la base a lire
 	kwcClass->SetAllAttributesLoaded(false);
@@ -198,7 +198,7 @@ void CCLearningProblem::BuildCoclustering()
 	// Cas d'un coclustering variable * variable : mode non expert ou type de coclustering demande a l'interface
 	if (not analysisSpec->GetVarPartCoclustering())
 	{
-		// Preparation des attribut a charger dans la classe
+		// Preparation des attributs a charger dans la classe
 		for (nAttribute = 0; nAttribute < analysisSpec->GetCoclusteringSpec()->GetAttributeNames()->GetSize();
 		     nAttribute++)
 		{
@@ -224,6 +224,7 @@ void CCLearningProblem::BuildCoclustering()
 		learningSpec.SetShortDescription(GetAnalysisResults()->GetShortDescription());
 		learningSpec.SetDatabase(database);
 		learningSpec.SetClass(kwcClass);
+		learningSpec.SetInitialAttributeNumber(kwcClass->ComputeInitialAttributeNumber(false));
 
 		// Parametrage du coclustering
 		coclusteringBuilder.SetVarPartCoclustering(false);
@@ -253,28 +254,18 @@ void CCLearningProblem::BuildCoclustering()
 			    "without taking into account the variables coclustering parameters (coclustering variables "
 			    "names or frequency variable name).");
 
-		// Preparation du domaine pour la nouvelle classe
-		constructedDomain = kwcClass->GetDomain()->CloneFromClass(kwcClass);
-
-		// Remplacement du domaine courant par le domaine de selection
-		currentDomain = KWClassDomain::GetCurrentDomain();
-		KWClassDomain::SetCurrentDomain(constructedDomain);
-
-		// Remplacement de la classe courante par la classe enrichie
-		kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
-		check(kwcClass);
-
 		// Mise a priori de tous les attributs en Unloaded
 		kwcClass->SetAllAttributesLoaded(false);
 
-		// Insertion d'un attribut identifiant en distiguant la presence d'une ou plusieurs cles pour la variable Identifier
+		// Insertion d'un attribut identifiant en distinguant la presence d'une ou plusieurs cles pour la variable Identifier
+		// On garde la meme classe pour eviter de dupliquer la classe est son domaine, ce qui peut etre exigeant en memoire
+		// dans les cas de classes ayant de tres grands nombres d'attriburs
 		identifierAttribute = InsertIdentifierAttribute(kwcClass);
+		assert(identifierAttribute != NULL);
+		assert(identifierAttribute->GetUsed());
 
 		// Ajout du nom de l'attribut dans les specifications
 		coclusteringBuilder.SetIdentifierAttributeName(identifierAttribute->GetName());
-
-		assert(identifierAttribute != NULL);
-		assert(identifierAttribute->GetUsed());
 
 		// On passe l'attribut identifiant en Loaded
 		identifierAttribute->SetLoaded(true);
@@ -314,6 +305,7 @@ void CCLearningProblem::BuildCoclustering()
 		learningSpec.SetShortDescription(GetAnalysisResults()->GetShortDescription());
 		learningSpec.SetDatabase(database);
 		learningSpec.SetClass(kwcClass);
+		learningSpec.SetInitialAttributeNumber(kwcClass->ComputeInitialAttributeNumber(false));
 
 		// Parametrage du coclustering VarPart
 		coclusteringBuilder.SetVarPartCoclustering(true);
@@ -336,90 +328,89 @@ void CCLearningProblem::BuildCoclustering()
 	sReportFileName = BuildOutputFilePathName(TaskBuildCoclustering);
 	coclusteringBuilder.SetReportFileName(sReportFileName);
 
+	// Debut de la gestion des erreurs dediees a l'apprentissage
+	KWLearningErrorManager::BeginErrorCollection();
+	KWLearningErrorManager::AddTask("Coclustering");
+
 	// Calcul du coclustering
 	if (not TaskProgression::IsInterruptionRequested())
 		coclusteringBuilder.ComputeCoclustering();
 
-	// Message si pas de coclustering informatif trouve en depit du temp imparti
-	if (coclusteringBuilder.IsCoclusteringComputed() and not coclusteringBuilder.IsCoclusteringInformative())
-		AddSimpleMessage("No informative coclustering found in data");
-
 	// Ecriture du rapport de coclustering
-	if (coclusteringBuilder.IsCoclusteringInformative() and sReportFileName != "")
+	if (sReportFileName != "")
 	{
+		// Warnings potentiels sur l'informativite du coclustering s'il a ete calcule
+		if (coclusteringBuilder.IsCoclusteringComputed())
+		{
+			// Warning si pas de coclustering informatif trouve en depit du temp imparti
+			if (not coclusteringBuilder.IsCoclusteringInformative())
+				AddWarning("No informative coclustering found in data");
+			// Warning si moins d'attributs dans le coclustering que d'attributs informatifs ou de dimensions specifiees
+			// Cas du coclustering de variables
+			else if (not analysisSpec->GetVarPartCoclustering())
+			{
+				if (coclusteringBuilder.GetCoclusteringDataGrid()->GetInformativeAttributeNumber() <
+				    coclusteringBuilder.GetAttributeNumber())
+					AddWarning(
+					    sTmp + "The built variables x variables coclustering only exploits " +
+					    IntToString(coclusteringBuilder.GetCoclusteringDataGrid()
+							    ->GetInformativeAttributeNumber()) +
+					    " out of the " + IntToString(coclusteringBuilder.GetAttributeNumber()) +
+					    " input variables");
+			}
+			// Sinon cas du coclustering instances * variables
+			else
+			{
+				if (coclusteringBuilder.GetCoclusteringDataGrid()->GetInformativeAttributeNumber() <
+				    coclusteringBuilder.GetVarPartCoclusteringAttributeNumber())
+					AddWarning(
+					    sTmp + "The built instances x variables coclustering only exploits " +
+					    IntToString(coclusteringBuilder.GetCoclusteringDataGrid()
+							    ->GetInformativeAttributeNumber()) +
+					    " out of the " +
+					    IntToString(coclusteringBuilder.GetVarPartCoclusteringAttributeNumber()) +
+					    " dimensions");
+			}
+		}
+
+		// Ecriture du rapport apres les warnings, pour qu'ils soient dans le rapport dans la section "logs"
 		AddSimpleMessage("Write coclustering report " + sReportFileName);
-		bWriteOk =
-		    coclusteringReport.WriteReport(sReportFileName, coclusteringBuilder.GetCoclusteringDataGrid());
+
+		// Ecriture du rapport s'il a ete calcule
+		// Note: les warnings lies a l'encoding du rapport lui-meme sont emises en fin d'ecriture du rapport:
+		// - elles de ne sont donc pas integrees dans le rapport lui-meme, car elles n'etaient pas presente
+		//   au debut de l'ecriture, au moment du traietemnt de la section "logs"
+		// - ce serait de toute facon redondant avec la section "khiops_encoding" a la fin du rapport
+		if (coclusteringBuilder.IsCoclusteringComputed())
+			bWriteOk = coclusteringReport.WriteReport(sReportFileName,
+								  coclusteringBuilder.GetCoclusteringDataGrid());
+		// Sinon, ecriture d'un rapport vide pour avoir a minima les warnings potentiels dans la section "logs"
+		else
+			bWriteOk = coclusteringReport.WriteReport(sReportFileName, &nullDataGrid);
 
 		// Destruction de la derniere sauvegarde de fichier temporaire
 		if (bWriteOk)
 			coclusteringBuilder.RemoveLastSavedReportFile();
-
-		// Warning si moins d'attributs dans le coclustering que d'attributs ou de dimensions specifiees
-		// Cas du coclustering de variables
-		if (not analysisSpec->GetVarPartCoclustering())
-		{
-			if (coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber() <
-			    coclusteringBuilder.GetAttributeNumber())
-				AddWarning(
-				    sTmp + "The built coclustering only exploits " +
-				    IntToString(coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber()) +
-				    " out of the " + IntToString(coclusteringBuilder.GetAttributeNumber()) +
-				    " input variables");
-		}
-		// Sinon cas du coclustering instances * variables
-		else
-		{
-			if (coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber() <
-			    coclusteringBuilder.GetVarPartCoclusteringAttributeNumber())
-				AddWarning(
-				    sTmp + "The built instances x variables coclustering only exploits " +
-				    IntToString(coclusteringBuilder.GetCoclusteringDataGrid()->GetAttributeNumber()) +
-				    " out of the " +
-				    IntToString(coclusteringBuilder.GetVarPartCoclusteringAttributeNumber()) +
-				    " dimensions");
-
-			if (GetVarPartDeploymentMode())
-			{
-				// Initialisation du varPartDeploymentSpec
-				ccVarPartDeploymentSpec.SetDeployedAttributeName(
-				    coclusteringBuilder.GetIdentifierAttributeName());
-				ccVarPartDeploymentSpec.SetInputClassName(GetClassName());
-
-				// Creation du dictionnaire de deploiement
-				bDeploymentOk = ccVarPartDeploymentSpec.PrepareVarPartCoclusteringDeployment(
-				    coclusteringBuilder.GetCoclusteringDataGrid(), deploymentDomain);
-
-				// Ecriture du fichier de dictionnaire de deploiement
-				if (bDeploymentOk)
-				{
-					sCoclusteringDictionaryFileName =
-					    GetResultFilePathBuilder(TaskBuildCoclustering)
-						->BuildOtherResultFilePathName("model.kdic");
-					AddSimpleMessage("Write deployment dictionary file " +
-							 sCoclusteringDictionaryFileName);
-					deploymentDomain->WriteFile(sCoclusteringDictionaryFileName);
-				}
-
-				// Nettoyage
-				if (bDeploymentOk)
-					delete deploymentDomain;
-			}
-		}
 	}
 
-	// Cas d'un domaine construit
-	if (constructedDomain != NULL)
-	{
-		// Restauration de l'etat initial
-		assert(currentDomain != NULL);
-		KWClassDomain::SetCurrentDomain(currentDomain);
-		delete constructedDomain;
-		kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(GetClassName());
-		check(kwcClass);
-	}
+	// Fin de la gestion des erreurs dediees a l'apprentissage
+	KWLearningErrorManager::EndErrorCollection();
 
 	// Nettoyage
+	if (identifierAttribute != NULL)
+	{
+		assert(analysisSpec->GetVarPartCoclustering());
+		assert(kwcClass->LookupAttribute(identifierAttribute->GetName()) == identifierAttribute);
+
+		// Supression de l'attribut identifiant s'il a ete cree
+		assert(kwcClass->GetAttributeNumber() >= nInitialClassAttributreNumber);
+		if (kwcClass->GetAttributeNumber() > nInitialClassAttributreNumber)
+			kwcClass->DeleteAttribute(identifierAttribute->GetName());
+		assert(kwcClass->GetAttributeNumber() == nInitialClassAttributreNumber);
+
+		// Restitution du mode unique initial
+		kwcClass->SetForceUnique(bInitialClassUnique);
+	}
 	kwcClass->SetAllAttributesLoaded(true);
 	KWClassDomain::GetCurrentDomain()->Compile();
 
@@ -468,10 +459,21 @@ void CCLearningProblem::PostProcessCoclustering()
 	if (bOk)
 		bOk = GetPostProcessingSpec()->PostProcessCoclustering(&postProcessedCoclusteringDataGrid);
 
+	// Test si au moins 1 attribut present dans le coclustering
+	if (postProcessedCoclusteringDataGrid.GetAttributeNumber() == 0)
+	{
+		bOk = false;
+		Global::AddError("Coclustering simplification", "", "Missing coclustering datagrid variable");
+	}
+
 	// Ecriture du rapport si OK
 	if (bOk and sPostProcessedCoclusteringReportFileName != "")
 	{
 		AddSimpleMessage("Write simplified report " + sPostProcessedCoclusteringReportFileName);
+
+		// Import des donnees de logs du rapport initial
+		postProcessedcoclusteringReport.ImportErrorLogsFromReport(&coclusteringReport);
+
 		bOk = postProcessedcoclusteringReport.WriteReport(sPostProcessedCoclusteringReportFileName,
 								  &postProcessedCoclusteringDataGrid);
 	}
@@ -487,9 +489,8 @@ void CCLearningProblem::ExtractClusters(const ALString& sCoclusteringAttributeNa
 	boolean bOk = true;
 	CCCoclusteringReport coclusteringReport;
 	ALString sCoclusteringReportFileName;
-	fstream fstClusterTableFile;
+	SystemFileOstream sfoClusterTableFile;
 	ALString sClusterTableFileName;
-	ALString sLocalFileName;
 	CCHierarchicalDataGrid coclusteringDataGrid;
 	CCCoclusteringReport postProcessedcoclusteringReport;
 	CCHDGAttribute* coclusteringAttribute;
@@ -534,39 +535,29 @@ void CCLearningProblem::ExtractClusters(const ALString& sCoclusteringAttributeNa
 	{
 		AddSimpleMessage("Write cluster table file " + sClusterTableFileName);
 
-		// Preparation de la copie sur HDFS si necessaire
-		bOk = PLRemoteFileService::BuildOutputWorkingFile(sClusterTableFileName, sLocalFileName);
-
-		// Ouverture du fichier de rapport en ecriture
-		if (bOk)
-			bOk = FileService::OpenOutputFile(sLocalFileName, fstClusterTableFile);
+		// Ouverture du fichier
+		bOk = PLRemoteFileService::OpenOutputFile(sClusterTableFileName, sfoClusterTableFile);
 		if (bOk)
 		{
 			// Ecriture des clusters selon le type de la variable
 			if (coclusteringAttribute->GetAttributeType() == KWType::Symbol)
-				WriteGroupableClusters(coclusteringAttribute, fstClusterTableFile);
+				WriteGroupableClusters(coclusteringAttribute, sfoClusterTableFile);
 			else if (coclusteringAttribute->GetAttributeType() == KWType::Continuous)
-				WriteContinuousClusters(coclusteringAttribute, fstClusterTableFile);
+				WriteContinuousClusters(coclusteringAttribute, sfoClusterTableFile);
 			else if (coclusteringAttribute->GetAttributeType() == KWType::VarPart)
 			{
 				// Cas d'une variable de type VarPart : ajout d'un descriptif des parties de variable
 				// des attributs internes
-				WriteGroupableClusters(coclusteringAttribute, fstClusterTableFile);
+				WriteGroupableClusters(coclusteringAttribute, sfoClusterTableFile);
 				WriteVarPartsInnerAttributes(coclusteringAttribute);
 			}
 
 			// Ecriture du rapport
-			bOk = FileService::CloseOutputFile(sLocalFileName, fstClusterTableFile);
+			bOk = PLRemoteFileService::CloseOutputFile(sClusterTableFileName, sfoClusterTableFile);
 
 			// Destruction du fichier si erreur
 			if (not bOk)
-				FileService::RemoveFile(sLocalFileName);
-		}
-
-		if (bOk)
-		{
-			// Copie vers HDFS
-			PLRemoteFileService::CleanOutputWorkingFile(sClusterTableFileName, sLocalFileName);
+				FileService::RemoveFile(sClusterTableFileName);
 		}
 	}
 
@@ -584,6 +575,8 @@ void CCLearningProblem::PrepareDeployment()
 	ALString sCoclusteringDictionaryFileName;
 	CCHierarchicalDataGrid coclusteringDataGrid;
 	KWClassDomain* deploymentDomain;
+	ALString sPreviousDeployedAttributeName;
+	ALString sPreviousClassName;
 
 	require(CheckResultFileNames(TaskPrepareDeployment));
 
@@ -601,27 +594,53 @@ void CCLearningProblem::PrepareDeployment()
 	if (bOk)
 		bOk = coclusteringReport.ReadReport(sCoclusteringReportFileName, &coclusteringDataGrid);
 
-	// Cas d'un rapport issu d'un coclustering instances * variables : fonctionnalite non implementee
-	if (coclusteringDataGrid.IsVarPartDataGrid())
-	{
-		bOk = false;
-		if (not GetVarPartDeploymentMode())
-			AddWarning(
-			    "Deployment preparation is not yet implemented for instances * variables coclustering");
-		else
-			AddWarning(
-			    "Deployment dictionary is automatically produced during instances * variables coclustering "
-			    "training.");
-	}
-
 	// Post-traitement
 	if (bOk)
 		bOk = GetPostProcessingSpec()->PostProcessCoclustering(&coclusteringDataGrid);
 
 	// Preparation d'un dictionnaire de deploiement
 	deploymentDomain = NULL;
-	if (bOk)
-		bOk = GetDeploymentSpec()->PrepareCoclusteringDeployment(&coclusteringDataGrid, deploymentDomain);
+
+	// Cas d'un rapport issu d'un coclustering instances * variables
+	// Fonctionnalite implementee uniquement en mode expert
+	if (coclusteringDataGrid.IsVarPartDataGrid())
+	{
+		if (not GetVarPartDeploymentMode())
+		{
+			AddWarning("Deployment preparation is not yet implemented for instances * variables "
+				   "coclustering");
+			bOk = false;
+		}
+
+		else
+		{
+			// Memorisation des eventuels parametrages prealables
+			sPreviousDeployedAttributeName = GetDeploymentSpec()->GetDeployedAttributeName();
+			sPreviousClassName = GetDeploymentSpec()->GetInputClassName();
+
+			// Initialisation du varPartDeploymentSpec
+			GetDeploymentSpec()->SetDeployedAttributeName(
+			    coclusteringDataGrid.GetIdentifierAttributeName());
+			GetDeploymentSpec()->SetInputClassName(GetClassName());
+
+			// Creation du dictionnaire de deploiement
+			if (bOk)
+				bOk = GetDeploymentSpec()->PrepareVarPartCoclusteringDeployment(&coclusteringDataGrid,
+												deploymentDomain);
+
+			// Nettoyage du varParDeploymentSpec
+			GetDeploymentSpec()->SetDeployedAttributeName(sPreviousDeployedAttributeName);
+			GetDeploymentSpec()->SetInputClassName(sPreviousClassName);
+		}
+	}
+
+	// Sinon : cas d'un coclustering variable * variable
+	else
+	{
+		if (bOk)
+			bOk =
+			    GetDeploymentSpec()->PrepareCoclusteringDeployment(&coclusteringDataGrid, deploymentDomain);
+	}
 
 	// Ecriture du fichier de dictionnaire de deploiement
 	if (bOk)
@@ -1073,9 +1092,9 @@ KWAttribute* CCLearningProblem::InsertIdentifierAttribute(KWClass* kwcClass)
 	// Cas d'un dictionnaire avec une cle mono-champ
 	else if (kwcClass->GetKeyAttributeNumber() == 1)
 	{
-		// On force la classe a Root afin de supprimer les duplicats si la cle n'etait pas unique
-		if (!kwcClass->GetRoot())
-			kwcClass->SetRoot(true);
+		// On force sila classe a etre unique afin de supprimer les duplicats si la cle n'etait pas unique
+		if (not kwcClass->GetRoot())
+			kwcClass->SetForceUnique(true);
 
 		attribute = kwcClass->GetKeyAttributeAt(0);
 
@@ -1086,9 +1105,9 @@ KWAttribute* CCLearningProblem::InsertIdentifierAttribute(KWClass* kwcClass)
 	// Sinon : cas d'un dictionnaire avec une cle multi-champ
 	else
 	{
-		// On force la classe a Root afin de supprimer les duplicats si la cle n'etait pas unique
-		if (!kwcClass->GetRoot())
-			kwcClass->SetRoot(true);
+		// On force la classe a etre unique afin de supprimer les duplicats si la cle n'etait pas unique
+		if (not kwcClass->GetRoot())
+			kwcClass->SetForceUnique(true);
 
 		// Creation de la regle de l'identifiant par concatenation des cles
 		identifierRule = new KWDRBuildKey();
@@ -1206,10 +1225,8 @@ void CCLearningProblem::WriteVarPartsInnerAttributes(const CCHDGAttribute* varPa
 	ALString sGroupsTableFileName;
 	ALString sIntervalsTableSuffix = "intervals.txt";
 	ALString sModalitiesTableSuffix = "groups.txt";
-	ALString sLocalIntervalsFileName;
-	ALString sLocalGroupsFileName;
-	fstream fstIntervalsTableFile;
-	fstream fstGroupsTableFile;
+	SystemFileOstream sfoIntervalsTableFile;
+	SystemFileOstream sfoGroupsTableFile;
 	const KWDGInnerAttributes* innerAttributes;
 	KWDGAttribute* innerAttribute;
 	int nIndex;
@@ -1224,16 +1241,11 @@ void CCLearningProblem::WriteVarPartsInnerAttributes(const CCHDGAttribute* varPa
 	sGroupsTableFileName =
 	    GetResultFilePathBuilder(TaskExtractClusters)->BuildOtherResultFilePathName(sModalitiesTableSuffix);
 
-	// Preparation de la copie sur HDFS si necessaire
-	bIntervalsOk = PLRemoteFileService::BuildOutputWorkingFile(sIntervalsTableFileName, sLocalIntervalsFileName);
 	// Ouverture du fichier de rapport en ecriture
-	if (bIntervalsOk)
-		bIntervalsOk = FileService::OpenOutputFile(sLocalIntervalsFileName, fstIntervalsTableFile);
+	bIntervalsOk = PLRemoteFileService::OpenOutputFile(sIntervalsTableFileName, sfoIntervalsTableFile);
 
-	bGroupsOk = PLRemoteFileService::BuildOutputWorkingFile(sGroupsTableFileName, sLocalGroupsFileName);
 	// Ouverture du fichier de rapport en ecriture
-	if (bGroupsOk)
-		bGroupsOk = FileService::OpenOutputFile(sLocalGroupsFileName, fstGroupsTableFile);
+	bGroupsOk = PLRemoteFileService::OpenOutputFile(sGroupsTableFileName, sfoGroupsTableFile);
 
 	// Extraction des attributs internes
 	innerAttributes = varPartCoclusteringAttribute->GetDataGrid()->GetInnerAttributes();
@@ -1251,13 +1263,13 @@ void CCLearningProblem::WriteVarPartsInnerAttributes(const CCHDGAttribute* varPa
 				if (bFirstContinuousAttribute)
 				{
 					// Entete
-					fstIntervalsTableFile << "VarPart\tLower bound\tUpper bound\n";
-					WriteContinuousInnerAttribute(innerAttribute, fstIntervalsTableFile);
+					sfoIntervalsTableFile << "VarPart\tLower bound\tUpper bound\n";
+					WriteContinuousInnerAttribute(innerAttribute, sfoIntervalsTableFile);
 					bFirstContinuousAttribute = false;
 				}
 				// Sinon
 				else
-					WriteContinuousInnerAttribute(innerAttribute, fstIntervalsTableFile);
+					WriteContinuousInnerAttribute(innerAttribute, sfoIntervalsTableFile);
 			}
 			// Sinon, cas d'un attribut de type categoriel
 			if (innerAttribute->GetAttributeType() == KWType::Symbol)
@@ -1266,36 +1278,24 @@ void CCLearningProblem::WriteVarPartsInnerAttributes(const CCHDGAttribute* varPa
 				if (bFirstSymbolAttribute)
 				{
 					// Entete
-					fstGroupsTableFile << "VarPart\tModality\n";
-					WriteSymbolInnerAttribute(innerAttribute, fstGroupsTableFile);
+					sfoGroupsTableFile << "VarPart\tModality\n";
+					WriteSymbolInnerAttribute(innerAttribute, sfoGroupsTableFile);
 					bFirstSymbolAttribute = false;
 				}
 				else
-					WriteSymbolInnerAttribute(innerAttribute, fstGroupsTableFile);
+					WriteSymbolInnerAttribute(innerAttribute, sfoGroupsTableFile);
 			}
 		}
-		// Ecriture du rapport
-		bIntervalsOk = FileService::CloseOutputFile(sLocalIntervalsFileName, fstIntervalsTableFile);
 
-		// Destruction du fichier si erreur
+		// Ecriture des rapports
+		bIntervalsOk = PLRemoteFileService::CloseOutputFile(sIntervalsTableFileName, sfoIntervalsTableFile);
+		bGroupsOk = PLRemoteFileService::CloseOutputFile(sGroupsTableFileName, sfoGroupsTableFile);
+
+		// Destruction des fichiers si erreur
 		if (not bIntervalsOk)
-			FileService::RemoveFile(sLocalIntervalsFileName);
-
-		bGroupsOk = FileService::CloseOutputFile(sLocalGroupsFileName, fstGroupsTableFile);
-
-		// Destruction du fichier si erreur
+			FileService::RemoveFile(sIntervalsTableFileName);
 		if (not bGroupsOk)
-			FileService::RemoveFile(sLocalGroupsFileName);
-	}
-	if (bIntervalsOk)
-	{
-		// Copie vers HDFS
-		PLRemoteFileService::CleanOutputWorkingFile(sIntervalsTableFileName, sLocalIntervalsFileName);
-	}
-	if (bGroupsOk)
-	{
-		// Copie vers HDFS
-		PLRemoteFileService::CleanOutputWorkingFile(sGroupsTableFileName, sLocalGroupsFileName);
+			FileService::RemoveFile(sGroupsTableFileName);
 	}
 }
 

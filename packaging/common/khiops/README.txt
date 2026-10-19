@@ -71,13 +71,12 @@ Configuration:
 - macOS (via conda, see https://khiops.org), intel and ARM, 64 bits
 
 Windows software:
-- Microsoft MPI 10.1.3
 - Automatic detection and silent installation during the Khiops installation process on Windows
 - For a silent installation, run the installer with /S option, and /D=installationDir to choose a
   specific installation directory.
 
 Linux software:
-- Java Runtime Environment V7 or higher, mpich (>3.0), libstdc++6
+- Java Runtime Environment V7 or higher, openmpi, libstdc++6
 - Automatic detection and silent installation during the Khiops installation process
 
 macOS and other platforms: see https://khiops.org
@@ -92,8 +91,9 @@ Install location (usually C:\Program Files\khiops):
 - Shortcuts to Khiops components
 - bin sub-directory:
   - executable, batch files and libraries
-- jre sub-directory:
-  - Java Runtime Environment provided by justj
+- intelMPI sub-directory: redistribution of Intel MPI
+- jre sub-directory: Java Runtime Environment provided by justj
+- licenses directory: third-party licenses
 
 Other locations:
 - %USERPROFILE%\khiops_data\lastrun directory (usually C:\Users\<USERNAME>\khiops_data\lastrun):

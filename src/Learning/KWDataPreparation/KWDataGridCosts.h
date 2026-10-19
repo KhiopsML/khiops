@@ -45,7 +45,7 @@ public:
 	// Calcul du cout local d'un DataGrid, en fonction de taille de la grille (en cellules) et
 	// du nombre d'attribut informatifs
 	//  La taille de la grille est donnee par son log, pour ne pas depasser les limites informatiques
-	//  Les attribut informatif sont ceux ayant strictement plus de une partie
+	//  Les attributs informatifs sont ceux ayant strictement plus de une partie
 	virtual double ComputeDataGridCost(const KWDataGrid* dataGrid, double dLnGridSize,
 					   int nInformativeAttributeNumber) const;
 
@@ -96,15 +96,13 @@ public:
 	// Verification de la consistance d'un DataGrid avec la structure de couts constants
 	boolean CheckDataGrid(const KWDataGrid* dataGrid) const;
 
-	// Initialisation des couts constants pour une grille de donnees
+	// Initialisation des couts constants pour une grille de donnees et du modele null associe,
+	// ne contenant qu'une seulle cellule et des attrributs reduts a une seule partie
 	void InitializeDefaultCosts(const KWDataGrid* dataGrid);
 	void CleanDefaultCosts();
 	boolean IsInitialized() const;
 
-	// Acces au cout total de la grille par defaut
-	// Pour une grille VarPart instances * variables, le cout de la grille par defaut
-	// depend du niveau de pre-partitionnment des variables en parties de variable
-	// Ce cout varie donc en fonction de ce niveau
+	// Acces au cout total de la grille par defaut, c'est a dire le cout du modele null
 	double GetTotalDefaultCost() const;
 
 	// Acces aux cout constant par attribut non informatif (cout attribut plus celui de son unique partie)

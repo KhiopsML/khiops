@@ -627,7 +627,7 @@ KWClass* KWDatabaseTransferView::InternalBuildTransferredClass(KWClassDomain* tr
 		// On transfert les attributs data utilises, sans leur formule
 		if (KWType::IsData(attribute->GetType()))
 		{
-			// Les attribut stockes sont toujours transferes
+			// Les attributs stockes sont toujours transferes
 			bTransferAttribute = KWType::IsStored(attribute->GetType());
 
 			// Les attributs objet sont transferes s'il sont sans regle de derivation, en lien

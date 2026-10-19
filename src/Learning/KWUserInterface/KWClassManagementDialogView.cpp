@@ -19,7 +19,7 @@ KWClassManagementDialogView::KWClassManagementDialogView()
 	GetFieldAt("ClassFileName")->SetEditable(false);
 	MoveFieldBefore("ClassFileName", GetFieldAtIndex(0)->GetIdentifier());
 
-	// La liste des dictionnaire de la classe mere est ici visible
+	// La liste des dictionnaires de la classe mere est ici visible
 	classSpecArrayView = cast(KWClassSpecArrayView*, GetFieldAt("Classes"));
 	classSpecArrayView->SetVisible(true);
 

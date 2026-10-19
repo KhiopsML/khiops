@@ -136,7 +136,7 @@ class UIAction;
 
 //////////////////////////////////////////////////
 // Classe UIObject
-// Ancetre des classe d'interface utilisateur
+// Ancetre des classes d'interface utilisateur
 class UIObject : public Object
 {
 public:

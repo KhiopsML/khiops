@@ -10,6 +10,7 @@
 #include "FileService.h"
 
 class Error;
+class SystemFileOstream;
 
 // Prototype d'une fonction d'affichage d'une erreur a l'utilisateur
 // Doit renvoyer true s'il faut afficher le message d'erreur,
@@ -187,8 +188,10 @@ protected:
 	static boolean bErrorAsWarningMode;
 
 	// Gestion du fichier d'erreur
+	// On utilise un singleton local a la methode pour eviter d'exposer le type
+	// complet de SystemFileOstream ici (on evite les cycles d'inclusion)
 	static ALString sErrorLogFileName;
-	static fstream fstError;
+	static SystemFileOstream& GetFstError();
 
 	// Vrai si il y a eu au moins une erreur
 	static boolean bIsAtLeastOneError;

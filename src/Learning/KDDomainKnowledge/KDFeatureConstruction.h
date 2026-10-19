@@ -37,7 +37,7 @@ public:
 	// Sinon, renvoie false avec des messages d'erreur
 	boolean ImportAttributeMetaDataCosts(KWClass* kwcValue);
 
-	// Test si les cout des attribut sont correctement initialises
+	// Test si les cout des attributs sont correctement initialises
 	boolean AreAttributeCostsInitialized(KWClass* kwcValue) const;
 
 	// Service de collecte des attributs crees dans une classe construite, par rapport a une classe initiale

@@ -26,6 +26,8 @@ on:
       - src/**.yac
       - test/LearningTest/**
       - .github/workflows/run-standard-tests.yml
+      - .github/actions/build-khiops/**
+      - .github/actions/setup-intel-mpi/**
       - .github/actions/run-standard-tests/action.yml
 # Cancel any ongoing run of this workflow on the same PR or ref
 concurrency:
@@ -52,7 +54,7 @@ jobs:
       PRESET_NAME: ${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Build all binaries
         uses: ./.github/actions/build-khiops
         with:
@@ -62,7 +64,7 @@ jobs:
       - name: Cache binaries (windows)
         id: cache-binaries-windows
         if: runner.os == 'Windows'
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           # We add binaries path one by one to avoid *.pdb and other msvc stuffs that generate a cache of 200Mo for windows
           path: |
@@ -78,7 +80,7 @@ jobs:
       - name: Cache binaries (macOS, Linux)
         id: cache-binaries-unix
         if: runner.os != 'Windows'
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/*
@@ -103,11 +105,11 @@ jobs:
       PRESET_NAME: ${{ matrix.build-setup.cmake-preset }}-${{ matrix.config }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Restore cached binaries (windows)
         if: runner.os == 'Windows'
         id: restore-binaries-windows
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: |
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/MODL.exe
@@ -122,7 +124,7 @@ jobs:
       - name: Restore cached binaries (macOS, Linux)
         if: runner.os != 'Windows'
         id: restore-binaries
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: |
             ${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/*           
@@ -132,7 +134,7 @@ jobs:
           fail-on-cache-miss: true
       - name: Setup MPI (windows)
         if: runner.os == 'Windows'
-        uses: mpi4py/setup-mpi@v1
+        uses: ./.github/actions/setup-intel-mpi
       - name: Setup MPI (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -159,8 +161,8 @@ jobs:
         shell: bash
         run: |
           if [ "$RUNNER_OS" == "Windows" ]; then EXT=".exe"; fi
-          '${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/'khisto${EXT} -e -j test/khisto/gaussian.txt test.gaussian_histogram.series.json
-          if diff -q test.gaussian_histogram.series.json test/khisto/gaussian_histogram_exploratory_analysis.json > /dev/null ; 
+          '${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/'khisto${EXT} -e -j test/khisto/gaussian.txt test.gaussian_histogram.series.json 2>&1 | tee khisto-text.log
+          if diff -q --strip-trailing-cr test.gaussian_histogram.series.json test/khisto/gaussian_histogram_exploratory_analysis.json > /dev/null ;
           then
             echo "khisto is OK"
           else
@@ -171,14 +173,27 @@ jobs:
         shell: bash
         run: |
           if [ "$RUNNER_OS" == "Windows" ]; then EXT=".exe"; fi
-          '${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/'khisto${EXT} -b -e -j test/khisto/gaussian.bin test.gaussian_histogram.series.bin.json
-          if diff -q test.gaussian_histogram.series.bin.json test/khisto/gaussian_histogram_exploratory_analysis.json > /dev/null ; 
+          '${{ github.workspace }}/build/${{ env.PRESET_NAME }}/bin/'khisto${EXT} -b -e -j test/khisto/gaussian.bin test.gaussian_histogram.series.bin.json 2>&1 | tee khisto-binary.log
+          if diff -q --strip-trailing-cr test.gaussian_histogram.series.bin.json test/khisto/gaussian_histogram_exploratory_analysis.json > /dev/null ;
           then
             echo "khisto is OK with binary input"
           else
             echo "::error::Error in khisto output with binary input"
             false
           fi
+      - name: Upload khisto test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: khisto-test-results-${{ env.PRESET_NAME }}-${{ matrix.running-mode
+            }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: |-
+            khisto-text.log
+            khisto-binary.log
+            test.gaussian_histogram.series.json
+            test.gaussian_histogram.series.bin.json
   cleanup-cache:
     # Clean up all caches belonging to the current run
     if: always()
@@ -188,7 +203,7 @@ jobs:
       actions: write
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           sparse-checkout: .git
       - name: Cleanup cache

@@ -8,7 +8,6 @@ jobs:
       fail-fast: false
       matrix:
         setup:
-          - {os: ubuntu-24.04, image: debian11}
           - {os: ubuntu-24.04, image: debian12}
           - {os: ubuntu-24.04, image: debian13}
           - {os: ubuntu-24.04, image: rocky8}
@@ -26,7 +25,7 @@ jobs:
       packages: write  # Allows writing in the container registry
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v4

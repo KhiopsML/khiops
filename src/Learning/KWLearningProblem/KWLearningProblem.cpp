@@ -551,7 +551,7 @@ boolean KWLearningProblem::BuildConstructedClass(KWLearningSpec* learningSpec, K
 						    ->GetTextFeatureSpec()
 						    ->GetTextFeatures());
 
-	// Detection si des variable de type texte peuvent etre construites
+	// Detection si des variables de type texte peuvent etre construites
 	bIsTextConstructionPossible = textFeatureConstruction.ContainsTextAttributes(kwcClass);
 
 	// Parametrage des familles de construction de variables
@@ -1328,7 +1328,7 @@ void KWLearningProblem::BuildRecodingClass(const KWClassDomain* initialDomain, K
 		preparedClass->GetNextAttribute(attribute);
 	}
 
-	// Supression des attribut inutiles (necessite une classe compilee)
+	// Supression des attributs inutiles (necessite une classe compilee)
 	preparedDomain->Compile();
 	preparedClass->DeleteUnusedDerivedAttributes(initialDomain);
 

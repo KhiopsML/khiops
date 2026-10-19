@@ -146,7 +146,7 @@ void MYLearningProblem::ComputeStats()
 					if (secondaryAttribute->GetUsed() and
 					    KWType::IsSimple(secondaryAttribute->GetType()))
 					{
-						// Cas des attribut dans des tables en lien 0-n
+						// Cas des attributs dans des tables en lien 0-n
 						workAttribute = NULL;
 						if (attribute->GetType() == KWType::ObjectArray)
 						{
@@ -197,7 +197,7 @@ void MYLearningProblem::ComputeStats()
 								workClass->InsertAttribute(workAttribute);
 							}
 						}
-						// Cas des attribut dans des tables en lien 0-1
+						// Cas des attributs dans des tables en lien 0-1
 						else if (attribute->GetType() == KWType::Object)
 						{
 							// Creation d'un attribut de calcul de moyenne dans le cas

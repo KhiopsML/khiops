@@ -688,7 +688,7 @@ void KWAttributePairsSpec::SelectAttributePairStats(const ObjectArray* oaAttribu
 	}
 	Global::DesactivateErrorFlowControl();
 
-	// Message specifique si des paires impliquant des attribust sans interets ont ete detectees
+	// Message specifique si des paires impliquant des attributs sans interet ont ete detectees
 	if (nUselessSpecificPairNumber > 0)
 		AddMessage(sTmp + IntToString(nUselessSpecificPairNumber) +
 			   " specific variable pairs involving singled-valued variables, not considered for analysis");

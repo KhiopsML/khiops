@@ -168,7 +168,7 @@ protected:
 	// Parametrage de la taille du fichier principal de la base
 	void SetDatabaseFileSize(longint lValue);
 
-	// Mise a jour du dictionnaire des classe a partir du tableau
+	// Mise a jour du dictionnaire des classes a partir du tableau
 	void RefreshClassSelectionData();
 
 	// Recherche du prochain nombre premier superieur ou egal a une valeur donnee

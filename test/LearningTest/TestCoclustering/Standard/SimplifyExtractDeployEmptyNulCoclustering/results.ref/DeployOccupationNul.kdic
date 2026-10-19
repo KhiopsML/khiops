@@ -1,0 +1,23 @@
+#Khiops VERSION
+
+Root	Dictionary	Occupation	(occupation)
+{
+	Categorical	occupation		;	
+	Table(OccupationSample)	Samples		;	
+Unused	Structure(DataGrid)	P_Coclustering	 = DataGrid(ValueGroups(ValueGroup("HS-grad", "Some-college", "Bachelors", "Masters", "11th", "Assoc-acdm", "Assoc-voc", "10th", "7th-8th", "9th", "12th", "Doctorate", " * ")), ValueGroups(ValueGroup("Prof-specialty", "Craft-repair", "Sales", "Other-service", "Farming-fishing", "Handlers-cleaners", "Transport-moving", "Exec-managerial", "Machine-op-inspct", "Protective-serv", "Tech-support", "Adm-clerical", "Priv-house-serv", " * ")), Frequencies(63), 0, Frequencies(12, 13), Frequencies(12, 13))	;	// DataGrid(education, occupation)
+Unused	Structure(VectorC)	P_occupationLabels	 = VectorC("{Prof-specialty, Craft-repair, Sales, ...}")	;	// Cluster labels for variable occupation
+Unused	Structure(VectorC)	P_educationSet	 = TableVectorC(Samples, education)	;	// Value distribution for variable education
+Unused	Structure(DataGridDeployment)	P_DeployedCoclusteringAtoccupation	 = DataGridDeployment(P_Coclustering, 2, P_educationSet)	;	// Deployed coclustering for variable occupation
+Unused	Numerical	P_occupationIndex	 = PredictedPartIndex(P_DeployedCoclusteringAtoccupation)	;	// Predicted cluster index for variable occupation
+	Categorical	P_occupationPredictedLabel	 = ValueAtC(P_occupationLabels, P_occupationIndex)	;	// Predicted label for variable occupation
+Unused	Structure(Vector)	P_occupationPartDistances	 = PredictedPartDistances(P_DeployedCoclusteringAtoccupation)	;	// Vector of cluster distances for variable occupation
+	Numerical	`P_occupationDistance{Prof-specialty, Craft-repair, Sales, ...}`	 = ValueAt(P_occupationPartDistances, 1)	;	
+Unused	Structure(Vector)	P_educationPartFrequencies	 = PredictedPartFrequenciesAt(P_DeployedCoclusteringAtoccupation, 1)	;	// Vector of cluster frequencies for variable education
+	Numerical	`P_educationFrequency{HS-grad, Some-college, Bachelors, ...}`	 = ValueAt(P_educationPartFrequencies, 1)	;	
+};
+
+Dictionary	OccupationSample	(occupation)
+{
+	Categorical	education		;	
+	Categorical	occupation		;	
+};

@@ -51,7 +51,7 @@ Reusable composite actions called by workflows:
 
 - **Prefer extending existing actions** over duplicating steps across workflows
 - Actions handle **platform-specific logic** (MPI setup, vcvars, Python detection) — keep this in the action, not in workflows
-- **`build-khiops`** manages MPI installation per OS: `brew install mpich` (macOS), `apt-get openmpi` (Linux), `mpi4py`/`setup-mpi` (Windows)
+- **`build-khiops`** manages MPI installation per OS: `brew install mpich` (macOS), `apt-get openmpi` (Linux), and the local `setup-intel-mpi` action (Windows)
 - **`run-standard-tests`** runs different scopes: debug mode → Iris/IrisLight only; release mode → full Standard tests
 - **`check-tag-version`** must be called early in release packaging workflows before building artifacts
 - Keep action inputs minimal and well-documented; avoid adding inputs that duplicate workflow-level logic

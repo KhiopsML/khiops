@@ -267,7 +267,7 @@ void KWSampleGenerator::InitFromAttributeSubsetStats(KWAttributeSubsetStats* att
 	cellIndexRule->GetFirstOperand()->SetOrigin(KWDerivationRuleOperand::OriginRule);
 	cellIndexRule->GetFirstOperand()->SetDerivationRule(dataGridRule);
 
-	// Ajout des attribut de la grille comme operande
+	// Ajout des attributs de la grille comme operande
 	cellIndexRule->DeleteAllVariableOperands();
 	for (nAttribute = 0; nAttribute < preparedDataGridStats->GetPredictionAttributeNumber(); nAttribute++)
 	{

@@ -20,6 +20,8 @@ RESULTS_REF = "results.ref"
 """ Fichiers se trouvant d'un repertoire de test """
 TEST_PRM = "test.prm"
 TEST_JSON = "test.json"
+# Scenario genere par kht_export --cloud-directory ; prend la precedence sur TEST_PRM quand present
+TEST_CLOUD_PRM = "test-cloud.prm"
 COMPARISON_RESULTS_LOG = "comparisonResults.log"
 
 """ Fichiers se trouvant d'un repertoire de resultats """

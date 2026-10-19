@@ -1,0 +1,10 @@
+---
+name: Setup Intel MPI
+description: Install and configure Intel MPI on a Windows GitHub Actions runner
+runs:
+  using: composite
+  steps:
+    - name: Install Intel MPI
+      shell: pwsh
+      run: |-
+        & "${{ github.action_path }}\install-intel-mpi.ps1"

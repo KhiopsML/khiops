@@ -1185,7 +1185,7 @@ void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 				// Memorisation des infos de chargement si l'attribut source est charge
 				// Il peut ne pas etre charge dans le dictionnaire "logique", mais il sera
 				// de toute facon charge dans le dictionnaire "physique"
-				// Cf. gestion des dictionnaire logiques et physiques dans KWDatabase
+				// Cf. gestion des dictionnaires logiques et physiques dans KWDatabase
 				if (sourceAttribute->GetLoaded())
 				{
 					livViewModeSourceAttributeLoadIndexes.Add(sourceAttribute->GetLoadIndex());
@@ -1223,7 +1223,7 @@ void KWDRRelationCreationRule::Compile(KWClass* kwcOwnerClass)
 				// Memorisation des infos de chargement si l'attribut source est charge
 				// Il peut ne pas etre charge dans le dictionnaire "logique", mais il sera
 				// de toute facon charge dans le dictionnaire "physique"
-				// Cf. gestion des dictionnaire logiques et physiques dans KWDatabase
+				// Cf. gestion des dictionnaires logiques et physiques dans KWDatabase
 				if (sourceBlock->GetLoaded())
 				{
 					livViewModeSourceBlockLoadIndexes.Add(sourceBlock->GetLoadIndex());

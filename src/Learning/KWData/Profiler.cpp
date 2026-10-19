@@ -8,6 +8,7 @@ Profiler::Profiler()
 {
 	bTrace = false;
 	bTraceTime = true;
+	bCollectActive = true;
 	bIsStarted = false;
 	fJsonTraceFile = NULL;
 }
@@ -107,7 +108,7 @@ void Profiler::BeginMethod(const ALString& sMethodName)
 	require(sMethodName != "");
 
 	// Methode active uniquement si le profiling est demarre
-	if (bIsStarted)
+	if (bIsStarted and bCollectActive)
 	{
 		// Recherche ou creation du timer correspondant a la methode dans le dictionnaire
 		methodTimer = cast(Timer*, odMethodTimers.Lookup(sMethodName));
@@ -147,7 +148,7 @@ void Profiler::EndMethod(const ALString& sMethodName)
 	require(sMethodName != "");
 
 	// Methode active uniquement si le profiling est demarre
-	if (bIsStarted)
+	if (bIsStarted and bCollectActive)
 	{
 		// Recherche du timer correspondant a la methode dans le dictionnaire
 		methodTimer = cast(Timer*, odMethodTimers.Lookup(sMethodName));
@@ -192,7 +193,7 @@ void Profiler::WriteKeyString(const ALString& sKey, const ALString& sValue)
 	require(sValue != "");
 
 	// Methode active uniquement si le profiling est demarre
-	if (bIsStarted)
+	if (bIsStarted and bCollectActive)
 	{
 		// Ecriture de la trace
 		if (bTrace)
@@ -205,7 +206,7 @@ void Profiler::WriteKeyInt(const ALString& sKey, int nValue)
 	require(sKey != "");
 
 	// Methode active uniquement si le profiling est demarre
-	if (bIsStarted)
+	if (bIsStarted and bCollectActive)
 	{
 		// Ecriture de la trace
 		if (bTrace)
@@ -218,7 +219,7 @@ void Profiler::WriteKeyLongint(const ALString& sKey, longint lValue)
 	require(sKey != "");
 
 	// Methode active uniquement si le profiling est demarre
-	if (bIsStarted)
+	if (bIsStarted and bCollectActive)
 	{
 		// Ecriture de la trace
 		if (bTrace)
@@ -231,7 +232,7 @@ void Profiler::WriteKeyDouble(const ALString& sKey, double dValue)
 	require(sKey != "");
 
 	// Methode active uniquement si le profiling est demarre
-	if (bIsStarted)
+	if (bIsStarted and bCollectActive)
 	{
 		// Ecriture de la trace
 		if (bTrace)
@@ -244,7 +245,7 @@ void Profiler::WriteKeyBoolean(const ALString& sKey, boolean bValue)
 	require(sKey != "");
 
 	// Methode active uniquement si le profiling est demarre
-	if (bIsStarted)
+	if (bIsStarted and bCollectActive)
 	{
 		// Ecriture de la trace
 		if (bTrace)
@@ -284,4 +285,14 @@ void Profiler::SetTraceTime(boolean bValue)
 boolean Profiler::GetTraceTime() const
 {
 	return bTraceTime;
+}
+
+void Profiler::SetCollectActive(boolean bValue)
+{
+	bCollectActive = bValue;
+}
+
+boolean Profiler::GetCollectActive() const
+{
+	return bCollectActive;
 }

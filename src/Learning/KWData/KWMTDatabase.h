@@ -119,7 +119,7 @@ protected:
 
 	// Methode avancee, utilisee uniquement en mode debug avant ouverture en lecture d'une base
 	// Verification de la coherence des dictionnaires en mode lecture, pour les attributs calcules de type Object et
-	// ObjectArray Ces attribut ne peuvent etre calcules qu'a partir d'attribut natifs devant toujours etre presents
+	// ObjectArray Ces attributs ne peuvent etre calcules qu'a partir d'attributs natifs devant toujours etre presents
 	// (Used), sous peine de referencer des objets potentiellement detruits (parce qu'Unused) lors de la mutation
 	// des objets physiques en objet logiques
 	boolean CheckObjectConsistency() const;
@@ -151,7 +151,7 @@ protected:
 	void PhysicalReadAfterEndOfDatabase();
 
 	// Destruction de la classe physique
-	// Completion en dereferencant les dictionnaire depuis le mapping et en nettoyant le dictionnaire
+	// Completion en dereferencant les dictionnaires depuis le mapping et en nettoyant le dictionnaire
 	// des attributs natifs Object ou ObjectArray a detruire
 	void DeletePhysicalClass() override;
 

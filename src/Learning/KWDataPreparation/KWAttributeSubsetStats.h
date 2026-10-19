@@ -14,7 +14,6 @@ class PLShared_AttributePairStats;
 #include "KWClassStats.h"
 #include "KWDRPreprocessing.h"
 #include "KWSortableIndex.h"
-#include "KWDataGridOptimizer.h"
 #include "KWDataGridCosts.h"
 #include "KWDataGridManager.h"
 #include "PLSharedObject.h"
@@ -94,7 +93,7 @@ public:
 	// Methode appelee lors de l'optimisation a chaque etape d'optimisation
 	// Implementation vide par defaut
 	virtual void HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
-					    const KWDataGrid* initialGranularizedDataGrid, boolean bIsLastSaving) const;
+					    const KWDataGrid* initialGranularizedDataGrid) const;
 
 	// Parametrage avance
 	// Pre-granularisation des attributs numeriques cible (regression) et des attributs numeriques explicatifs en
@@ -120,6 +119,10 @@ protected:
 	// Le suivi d'avancement est gere, pour une tache pilotee par CreateDataGrid
 
 	// Creation des partitions (en intervalles ou valeurs) d'un attribut de DataGrid
+	// Si la table de tuple en entree est univariee, elle doit etre triee
+	// - par valeur corissante dans le cas Continuous
+	// - par effectif decroissant, puis par valeur dans le cas categoriel
+	// Les effectifs ne sont pas specifies dans les partition creees
 	// Renvoie true si correctement initialisee, false sinon
 	virtual boolean CreateAttributeIntervals(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute);
 	virtual boolean CreateAttributeValueSets(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute);

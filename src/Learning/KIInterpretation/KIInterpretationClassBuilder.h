@@ -59,7 +59,7 @@ public:
 	// Acces au tableau des noms de variables de grille du predicteur
 	const StringVector* GetPredictorDataGridAttributeNames() const;
 
-	// Service de construction du tableau des attribut du predicteur, tries par importance decroissante
+	// Service de construction du tableau des attributs du predicteur, tries par importance decroissante
 	// Memoire: le contenu du tableau comprend des KIPredictorAttributes, a detruire par l'appelant
 	void BuildPredictorAttributes(ObjectArray* oaPredictorAttributes) const;
 

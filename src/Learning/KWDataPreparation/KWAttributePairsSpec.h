@@ -135,7 +135,7 @@ protected:
 	ALString sClassName;
 
 	// Contexte de l'analyse en cours pour personnaliser les messages d'erreur
-	// Le ContextType est "" s'il s'agit de la liste des variable specifique, est specialise
+	// Le ContextType est "" s'il s'agit de la liste des variables specifiques, est specialise
 	// pour les operation portant sur un fichier d'import/export
 	// Le numero de ligne est celui de la liste ou du fichier selon le contexte (0 si non utilise)
 	// Li'index d'attribut est 1 ou 2 pour designer le premier ou le second attribut de la paire (0 si non utilise)

@@ -849,7 +849,7 @@ boolean KWDataTableSliceSet::CheckReadClass(const KWClass* kwcInputClass) const
 				bOk = false;
 				break;
 			}
-			// Cas ou un des attribut est dans un bloc
+			// Cas ou un des attributs est dans un bloc
 			else if (attribute->IsInBlock() or sliceAttribute->IsInBlock())
 			{
 				// Message si seul l'attribut dans la tranche n'est pas dans un bloc
@@ -928,7 +928,7 @@ boolean KWDataTableSliceSet::CheckReadClass(const KWClass* kwcInputClass) const
 					currentDerivationRule = attribute->GetAnyDerivationRule();
 					check(currentDerivationRule);
 
-					// Ajout des attribut terminaux de la regle de derivation, en s'arretant aux
+					// Ajout des attributs terminaux de la regle de derivation, en s'arretant aux
 					// attribut du sliceset
 					bOk = BuildAllUsedSliceAttributes(
 					    currentDerivationRule, &odSliceAttributes, &nkdAllUsedSliceAttributes,
@@ -1080,7 +1080,7 @@ boolean KWDataTableSliceSet::OpenForRead()
 	if (read_oaPhysicalSlices.GetSize() > 0 and lTotalBufferSize > 0)
 	{
 		// On divise la taille totale par le nombre de slices
-		lSliceBufferSize = max((longint)1, lTotalBufferSize / read_oaPhysicalSlices.GetSize());
+		lSliceBufferSize = max(1LL, lTotalBufferSize / read_oaPhysicalSlices.GetSize());
 
 		// On se ramene a un nombre entier de segments
 		lSliceBufferSize =
@@ -1561,7 +1561,7 @@ void KWDataTableSliceSet::SliceDictionariesWrite(ostream& ost) const
 	KWDataTableSlice* slice;
 	KWClassDomain exportClassDomain;
 
-	// Initialisation du domaine avec les dictionnaire des tranches
+	// Initialisation du domaine avec les dictionnaires des tranches
 	exportClassDomain.SetName(GetClassLabel());
 	for (nSlice = 0; nSlice < oaSlices.GetSize(); nSlice++)
 	{
@@ -1582,7 +1582,7 @@ void KWDataTableSliceSet::SliceDictionariesWriteFile(const ALString& sFileName) 
 	KWDataTableSlice* slice;
 	KWClassDomain exportClassDomain;
 
-	// Initialisation du domaine avec les dictionnaire des tranches
+	// Initialisation du domaine avec les dictionnaires des tranches
 	exportClassDomain.SetName(GetClassLabel());
 	for (nSlice = 0; nSlice < oaSlices.GetSize(); nSlice++)
 	{
@@ -1955,7 +1955,7 @@ KWDataTableSliceSet* KWDataTableSliceSet::CreateDataTableSliceSet(const KWClass*
 			}
 
 			// Memorisation de ce nom de fichier
-			dataTableSlice->GetDataFileNames()->Add(FileService::BuildLocalURI(sSliceFileName));
+			dataTableSlice->GetDataFileNames()->Add(FileService::TransformLocalFileURI(sSliceFileName));
 
 			// Initialisation d'une base pour ce fichier
 			databaseTextFile.SetDatabaseName(sSliceFileName);
@@ -2006,7 +2006,7 @@ void KWDataTableSliceSet::TestReadDataTableSliceSet(const ALString& sTestLabel,
 						    KWDataTableSliceSet* inputDataTableSliceSet,
 						    const KWClass* kwcInputClass)
 {
-	boolean bDisplay = true;
+	const boolean bTrace = true;
 	boolean bOk;
 	KWSTDatabaseTextFile databaseTextFile;
 	ALString sTestDatabaseName;
@@ -2017,7 +2017,7 @@ void KWDataTableSliceSet::TestReadDataTableSliceSet(const ALString& sTestLabel,
 	require(kwcInputClass != NULL);
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "==========================================================\n";
 		cout << "TestReadDataTableSliceSet " << sTestLabel << endl;
@@ -2048,7 +2048,7 @@ void KWDataTableSliceSet::TestReadDataTableSliceSet(const ALString& sTestLabel,
 		databaseTextFile.WriteAll(&databaseTextFile);
 
 		// Affichage des premiers objets
-		if (bDisplay)
+		if (bTrace)
 		{
 			cout << "Database " << databaseTextFile.GetDatabaseName() << ": "
 			     << databaseTextFile.GetObjects()->GetSize() << endl;
@@ -2071,7 +2071,7 @@ void KWDataTableSliceSet::TestReadDataTableSliceSet(const ALString& sTestLabel,
 
 void KWDataTableSliceSet::Test()
 {
-	boolean bDisplay = true;
+	const boolean bTrace = true;
 	KWDataTableSliceSet* testSliceSet;
 	ALString sTestClassName;
 	KWClass* kwcTestClass;
@@ -2097,7 +2097,7 @@ void KWDataTableSliceSet::Test()
 	    CreateDataTableSliceSet(kwcTestClass, "", nObjectNumber, nAttributeNumber / nSliceNumber, nChunkNumber);
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "Dictionary\n" << *kwcTestClass << endl;
 		cout << "Slice set\n" << *testSliceSet << endl;
@@ -2155,7 +2155,7 @@ void KWDataTableSliceSet::Test()
 	// Cas d'une lecture avec dictionnaire transforme de facon complexe
 
 	// Transformation en classe complexe
-	//  . sous partie des attribut natifs, dont certains devient calcules
+	//  . sous partie des attributs natifs, dont certains deviennent calcules
 	//  . ajout de nouveau attributs calcules
 	for (nAttribute = 0; nAttribute < nAttributeNumber; nAttribute++)
 	{
@@ -2296,7 +2296,7 @@ void KWDataTableSliceSet::ComputeReadInformation(const KWClass* kwcInputClass, K
 	// regle de derivation ou gestion des donnees sparse qui seront potentiellement utile pour calculer
 	// les variables non presentes dans les slices
 	// On devra ensuite nettoyer les regles de derivation inutiles, pour les variables deja calculee dans les
-	// slices, et deplacer en fin de classe les variables necessaire au calcul des variable derivees, mais non
+	// slices, et deplacer en fin de classe les variables necessaire au calcul des variables derivees, mais non
 	// presentes dans la classe en entree
 
 	// Creation d'un nouveau domaine (on a potentiellement besoin du domaine complet pour recompiler la classe
@@ -2337,8 +2337,8 @@ void KWDataTableSliceSet::ComputeReadInformation(const KWClass* kwcInputClass, K
 				currentDerivationRule = attribute->GetAnyDerivationRule();
 				check(currentDerivationRule);
 
-				// Ajout des attribut terminaux de la regle de derivation, en s'arretant aux
-				// attribut du sliceset
+				// Ajout des attributs terminaux de la regle de derivation, en s'arretant aux
+				// attributs du sliceset
 				BuildAllUsedSliceAttributes(currentDerivationRule, &odSliceAttributes,
 							    &nkdAllUsedSliceAttributes, &nkdAllUsedDerivedAttributes,
 							    sErrorAttribute);

@@ -179,7 +179,7 @@ protected:
 	KWClassStats* masterClassStats;
 
 	// Ensemble de toutes preparations univariee en entree de la tache
-	ObjectArray* oaMasterInputAttributeStats;
+	const ObjectArray* oaMasterInputAttributeStats;
 
 	// Ensemble des resultats de preparations bivariees pour toutes les paires d'attribut analysees
 	// Ces resultats seront rendu directement a l'appelant de la tache
@@ -331,7 +331,7 @@ public:
 	// table de tuples par groupes pour beneficier de la represenattion sparse
 	// des attribut, dans le cas de l'analyse bivariee
 	// L'ensemble des 4 criteres assure la reproductibilite des traitement
-	int CompareBlocks(const KWAttributePair* otherAttributePair);
+	int CompareBlocks(const KWAttributePair* otherAttributePair) const;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///// Implementation

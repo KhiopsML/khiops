@@ -38,7 +38,7 @@ public:
 	// - parametrage du stream (lignes d'entete...)
 	// - lecture du dictionnaire
 	// - compilation du dictionnaire
-	// - ouverture de la base (qui comprend la creation des dictionnaire physique, et le chargement
+	// - ouverture de la base (qui comprend la creation des dictionnaires physiques, et le chargement
 	//   des tables externes
 	void SetStreamOpeningUsedMemory(longint lValue);
 	longint GetStreamOpeningUsedMemory() const;

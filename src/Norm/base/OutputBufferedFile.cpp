@@ -3,6 +3,7 @@
 // at https://spdx.org/licenses/BSD-3-Clause-Clear.html or see the "LICENSE" file for more details.
 
 #include "OutputBufferedFile.h"
+#include "PLRemoteFileService.h"
 #include "TaskProgression.h"
 
 OutputBufferedFile::OutputBufferedFile()
@@ -15,7 +16,7 @@ OutputBufferedFile::OutputBufferedFile()
 
 OutputBufferedFile::~OutputBufferedFile()
 {
-	if (IsPhysycalOpen())
+	if (IsPhysicalOpen())
 	{
 		PhysicalClose();
 	}
@@ -115,12 +116,12 @@ boolean OutputBufferedFile::Close()
 	bOk = not bIsError;
 
 	// Fermeture du fichier
-	if (IsPhysycalOpen())
+	if (IsPhysicalOpen())
 	{
 		bOk = PhysicalClose() and bOk;
 	}
 
-	assert(not IsPhysycalOpen());
+	assert(not IsPhysicalOpen());
 
 	// Nettoyage
 	delete fileHandle;
@@ -304,7 +305,9 @@ boolean OutputBufferedFile::Write(const char* sValue, int nCharNumber)
 		while (not IsError() and nBeginChar < nCharNumber)
 		{
 			// Cas d'un buffer entier a ecrire
-			nEndChar = nBeginChar + nBufferSize;
+			// Calcul correct de la fin : le buffer peut contenir un reste du flush (partiel) precedent
+			assert(nCurrentBufferSize <= nBufferSize);
+			nEndChar = nBeginChar + (nBufferSize - nCurrentBufferSize);
 			if (nEndChar <= nCharNumber)
 			{
 				for (i = nBeginChar; i < nEndChar; i++)
@@ -343,7 +346,7 @@ boolean OutputBufferedFile::Write(const char* sValue, int nCharNumber)
 	{
 		// Fermeture du fichier
 		// Le contenu restant dans le buffer sera ecrit lors du prochain flush ou lors du Close final
-		if (IsPhysycalOpen())
+		if (IsPhysicalOpen())
 			PhysicalClose();
 	}
 	return not bIsError;
@@ -391,8 +394,10 @@ boolean OutputBufferedFile::WriteSubPart(const CharVector* cvValue, int nBeginOf
 		while (not IsError() and nBeginChar < nLastChar)
 		{
 			// Cas d'un buffer entier a ecrire
-			nEndChar = nBeginChar + nBufferSize;
-			assert(nCurrentBufferSize == 0);
+			// Calcul correct de la fin : le buffer peut contenir un reste du flush (partiel) precedent
+			assert(nCurrentBufferSize <= nBufferSize);
+			nEndChar = nBeginChar + (nBufferSize - nCurrentBufferSize);
+
 			if (nEndChar <= nLastChar)
 			{
 				while (nBeginChar < nEndChar)
@@ -434,7 +439,7 @@ boolean OutputBufferedFile::WriteSubPart(const CharVector* cvValue, int nBeginOf
 	{
 		// Fermeture du fichier
 		// Le contenu restant dans le buffer sera ecrit lors du prochain flush ou lors du Close final
-		if (IsPhysycalOpen())
+		if (IsPhysicalOpen())
 			PhysicalClose();
 	}
 
@@ -450,6 +455,7 @@ boolean OutputBufferedFile::WriteToFile(int nSizeToWrite)
 	int nLocalWrite;
 	longint lWrittenNumber;
 	int nSizeWritten;
+	boolean bUseCacheBuffer;
 
 	assert(fileHandle != NULL);
 
@@ -462,23 +468,37 @@ boolean OutputBufferedFile::WriteToFile(int nSizeToWrite)
 		}
 		if (bOk)
 		{
-			if (nSizeToWrite >= nDefaultBufferSize)
-				nHugeBufferSize = max(GetPreferredBufferSize(), (int)nDefaultBufferSize);
+			// Pour les petits buffers, on ecrit directement le premier bloc du cache sans passer par un buffer intermediaire
+			if (nSizeToWrite <= InternalGetBlockSize() and InternalGetAllocSize() <= InternalGetBlockSize())
+			{
+				sBuffer = InternalGetMonoBlockBuffer();
+				nHugeWriteSize = nSizeToWrite;
+				bUseCacheBuffer = true;
+			}
+			// Pour les gros buffers, on utilise un buffer statique intermediaire : le HugeBuffer
+			// Le contenu du CharVector sera copie dans ce buffer avant l'ecriture physique
 			else
-				nHugeBufferSize = GetPreferredBufferSize();
+			{
+				if (nSizeToWrite >= nDefaultBufferSize)
+					nHugeBufferSize = max(GetPreferredBufferSize(), (int)nDefaultBufferSize);
+				else
+					nHugeBufferSize = GetPreferredBufferSize();
 
-			sBuffer = GetHugeBuffer(nHugeBufferSize);
+				sBuffer = GetHugeBuffer(nHugeBufferSize);
 
-			// Acces a la taille effective du buffer, potentiellement plus grande que ce qui a ete demande
-			// s'il a ete redimmensionne par ailleurs
-			nHugeBufferSize = GetHugeBufferSize();
-			assert(nHugeBufferSize >= GetPreferredBufferSize());
+				// Acces a la taille effective du buffer, potentiellement plus grande que ce qui a ete demande
+				// s'il a ete redimmensionne par ailleurs
+				nHugeBufferSize = GetHugeBufferSize();
+				assert(nHugeBufferSize >= GetPreferredBufferSize());
 
-			// Calcul de la taille a ecrire en multiple de GetPreferredBufferSize
-			// On suppose que chaque technologie est potentiellement plus efficace avec des multitples de sa
-			// GetPreferredBufferSize
-			nHugeWriteSize = (nHugeBufferSize / GetPreferredBufferSize()) * GetPreferredBufferSize();
-			assert(nHugeWriteSize > 0);
+				// Calcul de la taille a ecrire en multiple de GetPreferredBufferSize
+				// On suppose que chaque technologie est potentiellement plus efficace avec des multitples de sa
+				// GetPreferredBufferSize
+				nHugeWriteSize =
+				    (nHugeBufferSize / GetPreferredBufferSize()) * GetPreferredBufferSize();
+				assert(nHugeWriteSize > 0);
+				bUseCacheBuffer = false;
+			}
 
 			// Reserve la taille qui va etre ecrite pour eviter la fragmentation du disque
 			fileHandle->ReserveExtraSize(nSizeToWrite);
@@ -488,7 +508,12 @@ boolean OutputBufferedFile::WriteToFile(int nSizeToWrite)
 			while (bOk and nSizeToWrite > 0)
 			{
 				nLocalWrite = min(nHugeWriteSize, nSizeToWrite);
-				fcCache.cvBuffer.ExportBuffer(nSizeWritten, nLocalWrite, sBuffer);
+				if (not bUseCacheBuffer)
+				{
+					// Copie du contenu du cache dans le buffer intermediaire
+					// Dans le cas des petits buffers, sBuffer contient deja le contenu du premier bloc du cache
+					fcCache.cvBuffer.ExportBuffer(nSizeWritten, nLocalWrite, sBuffer);
+				}
 				nSizeWritten += nLocalWrite;
 				lWrittenNumber = fileHandle->Write(sBuffer, sizeof(char), nLocalWrite);
 				assert(lWrittenNumber == 0 or lWrittenNumber == nLocalWrite);

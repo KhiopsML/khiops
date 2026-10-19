@@ -1,6 +1,6 @@
-#line 1 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
+#line 1 "src/Learning/KWData/KWCLex.inc"
 
-#line 3 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
+#line 3 "src/Learning/KWData/KWCLex.inc"
 
 #define  YY_INT_ALIGNED short int
 
@@ -47,6 +47,7 @@ typedef int16_t flex_int16_t;
 typedef uint16_t flex_uint16_t;
 typedef int32_t flex_int32_t;
 typedef uint32_t flex_uint32_t;
+typedef uint64_t flex_uint64_t;
 #else
 typedef signed char flex_int8_t;
 typedef short int flex_int16_t;
@@ -155,7 +156,7 @@ typedef struct yy_buffer_state *YY_BUFFER_STATE;
 typedef size_t yy_size_t;
 #endif
 
-extern int yyleng;
+extern yy_size_t yyleng;
 
 extern FILE *yyin, *yyout;
 
@@ -172,7 +173,7 @@ extern FILE *yyin, *yyout;
      */
     #define  YY_LESS_LINENO(n) \
             do { \
-                int yyl;\
+                yy_size_t yyl;\
                 for ( yyl = n; yyl < yyleng; ++yyl )\
                     if ( yytext[yyl] == '\n' )\
                         --yylineno;\
@@ -217,7 +218,7 @@ struct yy_buffer_state
 	/* Number of characters read into yy_ch_buf, not including EOB
 	 * characters.
 	 */
-	int yy_n_chars;
+	yy_size_t yy_n_chars;
 
 	/* Whether we "own" the buffer - i.e., we know we created it,
 	 * and can realloc() it to grow it, and should free() it to
@@ -286,8 +287,8 @@ static YY_BUFFER_STATE * yy_buffer_stack = NULL; /**< Stack as an array. */
 
 /* yy_hold_char holds the character lost when yytext is formed. */
 static char yy_hold_char;
-static int yy_n_chars;		/* number of characters read into yy_ch_buf */
-int yyleng;
+static yy_size_t yy_n_chars;		/* number of characters read into yy_ch_buf */
+yy_size_t yyleng;
 
 /* Points to current character in buffer. */
 static char *yy_c_buf_p = NULL;
@@ -314,7 +315,7 @@ static void yy_init_buffer ( YY_BUFFER_STATE b, FILE *file  );
 
 YY_BUFFER_STATE yy_scan_buffer ( char *base, yy_size_t size  );
 YY_BUFFER_STATE yy_scan_string ( const char *yy_str  );
-YY_BUFFER_STATE yy_scan_bytes ( const char *bytes, int len  );
+YY_BUFFER_STATE yy_scan_bytes ( const char *bytes, yy_size_t len  );
 
 void *yyalloc ( yy_size_t  );
 void *yyrealloc ( void *, yy_size_t  );
@@ -366,7 +367,7 @@ static void yynoreturn yy_fatal_error ( const char* msg  );
  */
 #define YY_DO_BEFORE_ACTION \
 	(yytext_ptr) = yy_bp; \
-	yyleng = (int) (yy_cp - yy_bp); \
+	yyleng = (yy_size_t) (yy_cp - yy_bp); \
 	(yy_hold_char) = *yy_cp; \
 	*yy_cp = '\0'; \
 	(yy_c_buf_p) = yy_cp;
@@ -570,13 +571,44 @@ char *yytext;
 #undef YYLMAX
 #define	YYLMAX		100000		// token and pushback buffer size
 
-#line 573 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
+// Pointeur global vers le SystemFile utilise par le lexer pour la lecture de fichiers sur le cloud
+static SystemFile* yySystemFile = NULL;
+
+// Fonction wrapper (definie dans KWCYac.yac) appelee par YY_INPUT pour lire depuis un SystemFile
+static longint SystemFileRead(SystemFile* sf, void* buffer, size_t size, size_t count);
+
+// Definition specifique de YY_INPUT pour lire depuis un SystemFile au lieu de FILE*
+#define YY_INPUT(buf, result, max_size) \
+	{ \
+		assert(! YY_CURRENT_BUFFER_LVALUE->yy_is_interactive); \
+		errno = 0; \
+		if (yySystemFile != NULL) \
+		{ \
+			longint nRead = SystemFileRead(yySystemFile, buf, 1, max_size); \
+			if (nRead == 0 && errno != 0) \
+				YY_FATAL_ERROR( "input in flex scanner failed" ); \
+			result = (nRead > 0) ? (int)nRead : 0; \
+		} \
+		else \
+			result = 0; \
+	}
+
+#line 596 "src/Learning/KWData/KWCLex.inc"
 /* Pour avoir acces aux numeros de lignes, et moins cher que le -l de la ligne de commande */
+#define YY_NO_UNISTD_H 1
 /* Attention, la liste des mots cles du langage doit etre reprise dans la methode KWClass::IsStringKeyWord() */
 /* si on veut autoriser des noms de variable en collision avec ces mots cles. */
-#line 577 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
+#line 601 "src/Learning/KWData/KWCLex.inc"
 
 #define INITIAL 0
+
+#ifndef YY_NO_UNISTD_H
+/* Special case for "unistd.h", since it is non-ANSI. We include it way
+ * down here because we want the user's section 1 to have been scanned first.
+ * The user has a chance to override it with an option.
+ */
+#include <unistd.h>
+#endif
 
 #ifndef YY_EXTRA_TYPE
 #define YY_EXTRA_TYPE void *
@@ -605,7 +637,7 @@ FILE *yyget_out ( void );
 
 void yyset_out  ( FILE * _out_str  );
 
-			int yyget_leng ( void );
+			yy_size_t yyget_leng ( void );
 
 char *yyget_text ( void );
 
@@ -674,7 +706,7 @@ static int input ( void );
 	if ( YY_CURRENT_BUFFER_LVALUE->yy_is_interactive ) \
 		{ \
 		int c = '*'; \
-		int n; \
+		yy_size_t n; \
 		for ( n = 0; n < max_size && \
 			     (c = getc( yyin )) != EOF && c != '\n'; ++n ) \
 			buf[n] = (char) c; \
@@ -786,10 +818,10 @@ YY_DECL
 		}
 
 	{
-#line 32 "KWCLex.lex"
+#line 54 "KWCLex.lex"
 
 
-#line 792 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
+#line 824 "src/Learning/KWData/KWCLex.inc"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -838,7 +870,7 @@ yy_find_action:
 
 		if ( yy_act != YY_END_OF_BUFFER && yy_rule_can_match_eol[yy_act] )
 			{
-			int yyl;
+			yy_size_t yyl;
 			for ( yyl = 0; yyl < yyleng; ++yyl )
 				if ( yytext[yyl] == '\n' )
 					
@@ -859,7 +891,7 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 34 "KWCLex.lex"
+#line 56 "KWCLex.lex"
 {
                           // Un commentaire tient sur une seule ligne, prefixe par '//', et precede potentiellement de caracteres d'espace
 							
@@ -886,7 +918,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 59 "KWCLex.lex"
+#line 81 "KWCLex.lex"
 {
                           // Un libelle est prefixe par '//', mais n'est pas seul sur sa ligne
 
@@ -916,7 +948,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 87 "KWCLex.lex"
+#line 109 "KWCLex.lex"
 {
                           ALString *sValue;
                           int nInput;
@@ -974,7 +1006,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 142 "KWCLex.lex"
+#line 164 "KWCLex.lex"
 {
                           ALString *sValue;
                           int nInput;
@@ -1032,82 +1064,82 @@ YY_RULE_SETUP
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 197 "KWCLex.lex"
+#line 219 "KWCLex.lex"
 return CLASS;
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 199 "KWCLex.lex"
+#line 221 "KWCLex.lex"
 return CONTINUOUSTYPE;
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 201 "KWCLex.lex"
+#line 223 "KWCLex.lex"
 return SYMBOLTYPE;
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 203 "KWCLex.lex"
+#line 225 "KWCLex.lex"
 return OBJECTARRAYTYPE;
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 205 "KWCLex.lex"
+#line 227 "KWCLex.lex"
 return ROOT;
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 207 "KWCLex.lex"
+#line 229 "KWCLex.lex"
 return UNUSED;
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 209 "KWCLex.lex"
+#line 231 "KWCLex.lex"
 return DATETYPE;
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 211 "KWCLex.lex"
+#line 233 "KWCLex.lex"
 return TIMETYPE;
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 213 "KWCLex.lex"
+#line 235 "KWCLex.lex"
 return TIMESTAMPTYPE;
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 215 "KWCLex.lex"
+#line 237 "KWCLex.lex"
 return TIMESTAMPTZTYPE;
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 217 "KWCLex.lex"
+#line 239 "KWCLex.lex"
 return TEXTTYPE;
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 219 "KWCLex.lex"
+#line 241 "KWCLex.lex"
 return TEXTLISTTYPE;
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 221 "KWCLex.lex"
+#line 243 "KWCLex.lex"
 return OBJECTTYPE;
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 223 "KWCLex.lex"
+#line 245 "KWCLex.lex"
 return STRUCTURETYPE;
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 226 "KWCLex.lex"
+#line 248 "KWCLex.lex"
 return *yytext;
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 228 "KWCLex.lex"
+#line 250 "KWCLex.lex"
 {
                           ALString *sValue;
                           sValue = new ALString ( (char*)yytext );
@@ -1117,7 +1149,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 235 "KWCLex.lex"
+#line 257 "KWCLex.lex"
 {
                           yylval.cValue=KWContinuous::StringToContinuous((char*)yytext);
                           return(CONTINUOUSLITTERAL);
@@ -1125,7 +1157,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 240 "KWCLex.lex"
+#line 262 "KWCLex.lex"
 {
                           yylval.cValue=KWContinuous::GetMissingValue();
                           return(CONTINUOUSLITTERAL);
@@ -1133,7 +1165,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 245 "KWCLex.lex"
+#line 267 "KWCLex.lex"
 {
                           // Les types retournes par le parser sont des unsigned char:
                           // il faut etre compatible sous peine de bugs pour des caracteres interpretes
@@ -1162,12 +1194,12 @@ YY_RULE_SETUP
 case 24:
 /* rule 24 can match eol */
 YY_RULE_SETUP
-#line 272 "KWCLex.lex"
+#line 294 "KWCLex.lex"
 ;
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 275 "KWCLex.lex"
+#line 297 "KWCLex.lex"
 {
 						  const int nMaxLength = 20;
                           ALString sTmp;
@@ -1225,10 +1257,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 329 "KWCLex.lex"
+#line 351 "KWCLex.lex"
 ECHO;
 	YY_BREAK
-#line 1231 "C:/Applications/boullema/DevGit/khiops/src/Learning/KWData/KWCLex.inc"
+#line 1263 "src/Learning/KWData/KWCLex.inc"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1415,7 +1447,7 @@ static int yy_get_next_buffer (void)
 
 	else
 		{
-			int num_to_read =
+			yy_size_t num_to_read =
 			YY_CURRENT_BUFFER_LVALUE->yy_buf_size - number_to_move - 1;
 
 		while ( num_to_read <= 0 )
@@ -1429,7 +1461,7 @@ static int yy_get_next_buffer (void)
 
 			if ( b->yy_is_our_buffer )
 				{
-				int new_size = b->yy_buf_size * 2;
+				yy_size_t new_size = b->yy_buf_size * 2;
 
 				if ( new_size <= 0 )
 					b->yy_buf_size += b->yy_buf_size / 8;
@@ -1487,7 +1519,7 @@ static int yy_get_next_buffer (void)
 
 	if (((yy_n_chars) + number_to_move) > YY_CURRENT_BUFFER_LVALUE->yy_buf_size) {
 		/* Extend the array by 50%, plus the number we really need. */
-		int new_size = (yy_n_chars) + number_to_move + ((yy_n_chars) >> 1);
+		yy_size_t new_size = (yy_n_chars) + number_to_move + ((yy_n_chars) >> 1);
 		YY_CURRENT_BUFFER_LVALUE->yy_ch_buf = (char *) yyrealloc(
 			(void *) YY_CURRENT_BUFFER_LVALUE->yy_ch_buf, (yy_size_t) new_size  );
 		if ( ! YY_CURRENT_BUFFER_LVALUE->yy_ch_buf )
@@ -1577,7 +1609,7 @@ static int yy_get_next_buffer (void)
 	if ( yy_cp < YY_CURRENT_BUFFER_LVALUE->yy_ch_buf + 2 )
 		{ /* need to shift things up to make room */
 		/* +2 for EOB chars. */
-		int number_to_move = (yy_n_chars) + 2;
+		yy_size_t number_to_move = (yy_n_chars) + 2;
 		char *dest = &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[
 					YY_CURRENT_BUFFER_LVALUE->yy_buf_size + 2];
 		char *source =
@@ -1632,7 +1664,7 @@ static int yy_get_next_buffer (void)
 
 		else
 			{ /* need more input */
-			int offset = (int) ((yy_c_buf_p) - (yytext_ptr));
+			yy_size_t offset = (yy_c_buf_p) - (yytext_ptr);
 			++(yy_c_buf_p);
 
 			switch ( yy_get_next_buffer(  ) )
@@ -2007,12 +2039,12 @@ YY_BUFFER_STATE yy_scan_string (const char * yystr )
  * 
  * @return the newly allocated buffer state object.
  */
-YY_BUFFER_STATE yy_scan_bytes  (const char * yybytes, int  _yybytes_len )
+YY_BUFFER_STATE yy_scan_bytes  (const char * yybytes, yy_size_t  _yybytes_len )
 {
 	YY_BUFFER_STATE b;
 	char *buf;
 	yy_size_t n;
-	int i;
+	yy_size_t i;
     
 	/* Get memory for full buffer, including space for trailing EOB's. */
 	n = (yy_size_t) (_yybytes_len + 2);
@@ -2054,7 +2086,7 @@ static void yynoreturn yy_fatal_error (const char* msg )
 	do \
 		{ \
 		/* Undo effects of setting up yytext. */ \
-        int yyless_macro_arg = (n); \
+        yy_size_t yyless_macro_arg = (n); \
         YY_LESS_LINENO(yyless_macro_arg);\
 		yytext[yyleng] = (yy_hold_char); \
 		(yy_c_buf_p) = yytext + yyless_macro_arg; \
@@ -2094,7 +2126,7 @@ FILE *yyget_out  (void)
 /** Get the length of the current token.
  * 
  */
-int yyget_leng  (void)
+yy_size_t yyget_leng  (void)
 {
         return yyleng;
 }
@@ -2247,4 +2279,4 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 329 "KWCLex.lex"
+#line 351 "KWCLex.lex"

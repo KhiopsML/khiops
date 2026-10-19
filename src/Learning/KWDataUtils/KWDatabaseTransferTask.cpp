@@ -98,9 +98,9 @@ boolean KWDatabaseTransferTask::Transfer(const KWDatabase* sourceDatabase, const
 	return bOk;
 }
 
-void KWDatabaseTransferTask ::CollectRelationAttributesToUnload(const KWDatabase* targetDatabase,
-								const KWClass* databaseClass,
-								ObjectArray* oaAttributesToUnload) const
+void KWDatabaseTransferTask::CollectRelationAttributesToUnload(const KWDatabase* targetDatabase,
+							       const KWClass* databaseClass,
+							       ObjectArray* oaAttributesToUnload) const
 {
 	int nMapping;
 	KWMTDatabase* targetMTDatabase;
@@ -604,7 +604,7 @@ boolean KWDatabaseTransferTask::SlaveInitializePrepareDatabase()
 	// Cas specifique au multi-tables
 	if (bOk and shared_targetDatabase.GetDatabase()->IsMultiTableTechnology())
 	{
-		// Les dictionnaire etant disponibles, on peut remettre a jour les mappings
+		// Les dictionnaires etant disponibles, on peut remettre a jour les mappings
 		if (bOk)
 		{
 			shared_targetDatabase.GetMTDatabase()->UpdateMultiTableMappings();
@@ -706,7 +706,7 @@ boolean KWDatabaseTransferTask::SlaveProcessStartDatabase()
 		{
 			output_svOutputChunkFileNames.GetStringVector()->SetSize(1);
 			output_svOutputChunkFileNames.GetStringVector()->SetAt(
-			    0, FileService::BuildLocalURI(sChunkFileName));
+			    0, FileService::TransformLocalFileURI(sChunkFileName));
 
 			outputBuffer->SetFileName(sChunkFileName);
 			bOk = outputBuffer->Open();

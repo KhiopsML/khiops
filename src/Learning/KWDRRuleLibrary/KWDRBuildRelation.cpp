@@ -571,7 +571,7 @@ ObjectArray* KWDRBuildCompositeTable::ComputeObjectArrayResult(const KWObject* k
 	// Alimentation des entites des objet composites
 	for (nOperand = 0; nOperand < GetOutputOperandNumber(); nOperand++)
 	{
-		// On n'alimente que les attribut en sortie utilises
+		// On n'alimente que les attributs en sortie utilises
 		if (livComputeModeTargetAttributeLoadIndexes.GetAt(nOperand).IsValid())
 		{
 			oaObjectArrayOperand = cast(ObjectArray*, oaAllObjectArrayOperand.GetAt(nOperand));

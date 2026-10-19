@@ -319,7 +319,7 @@ public:
 
 	// Bloc de recodage des valeurs sources en deuxieme operande pour chaque grille du DataGridBlock en premier operande
 	// Le resultat est similaire a celui obtenu pour la regle CellIndexBlock, excepte que les variables sont recodees
-	// pour toutes les grilles du DataGridBlock, et non pour les variable du bloc en sortie comme dans CellIndexBlock
+	// pour toutes les grilles du DataGridBlock, et non pour les variables du bloc en sortie comme dans CellIndexBlock
 	// Pour chaque index sparse, on obtient l'index de la grille de recodage et la valeur recodee Il
 	// s'agit d'un bloc d'index "internes", compris entre 0 et N-1
 	KWContinuousValueBlock* GetCellIndexBlock() const;

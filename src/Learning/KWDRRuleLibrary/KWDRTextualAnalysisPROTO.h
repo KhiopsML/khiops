@@ -39,7 +39,7 @@ void KWDRRegisterTextualAnalysisPROTORules();
 // La represenattion dit egalement etre monotone par rapport a ce parametre: les representation de petites taille
 // doivent etre des sous-parties des representations de plus grande taille. On adopte la methode suivante pour la
 // generation automatique de variables pour les texte:
-//  . generer des variable pour des ngrams de longueur croissante
+//  . generer des variables pour des ngrams de longueur croissante
 //  . genere des tailles de hashage de taille croissante, pour minimiser le risque de collisions.
 //
 // Une etude preliminaire sur plusieurs bases de textes conduit a adopter le schema generique suivant:
@@ -111,7 +111,7 @@ protected:
 	// Permet de parametrer correctement le max des VarKey a utiliser pour
 	void DynamicCompile(const KWIndexedKeyBlock* indexedKeyBlock) const;
 
-	// Initialisation des variable globales
+	// Initialisation des variables globales
 	static void InitializeGlobalVariables();
 	static boolean AreGlobalVariablesInitialized();
 

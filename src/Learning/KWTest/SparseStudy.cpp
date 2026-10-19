@@ -330,7 +330,7 @@ KWContinuousValueBlockTest* KWContinuousValueBlockTest::NewValueBlock(int nSize)
 		// Parametrage du nombre de valeurs
 		newValueBlock->nValueNumber = nSize;
 
-		// On verifie par assertion que le packing des classe utilise est correct
+		// On verifie par assertion que le packing des classes utilisees est correct
 		assert(sizeof(KWValueIndexPairTest) == sizeof(KWValue) + sizeof(int));
 		assert(&(newValueBlock->cStartBlock) - (char*)newValueBlock == sizeof(int));
 	}

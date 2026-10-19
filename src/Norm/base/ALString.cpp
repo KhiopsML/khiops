@@ -16,7 +16,7 @@ const ALString ALSEmptyString;
 
 ALString::ALString(const ALString& stringSrc)
 {
-	stringSrc.AllocCopy(*this, stringSrc.nDataLength, 0, 0);
+	stringSrc.AllocCopy(*this, stringSrc.nDataLength, 0);
 }
 
 // Portage Unix : etait en inline avant
@@ -59,19 +59,17 @@ void ALString::Empty()
 	assert(nAllocLength == 0);
 }
 
-void ALString::AllocCopy(ALString& dest, int nCopyLen, int nCopyIndex, int nExtraLen) const
+void ALString::AllocCopy(ALString& dest, int nCopyLen, int nCopyIndex) const
 {
-	int nNewLen = nCopyLen + nExtraLen;
-
 	// Duplication des donnnes en allouant des caracteres supplementaires
 	// Copie d'une partie des donnees initiales au debut de la nouvelle chaine de caracteres
-	if (nNewLen == 0)
+	if (nCopyLen == 0)
 	{
 		dest.Init();
 	}
 	else
 	{
-		dest.AllocBuffer(nNewLen);
+		dest.AllocBuffer(nCopyLen);
 		memcpy(dest.pchData, &pchData[nCopyIndex], nCopyLen);
 	}
 }
@@ -330,7 +328,7 @@ ALString ALString::Mid(int nFirst, int nCount) const
 	require(nCount >= 0);
 	require(nFirst + nCount <= nDataLength);
 
-	AllocCopy(dest, nCount, nFirst, 0);
+	AllocCopy(dest, nCount, nFirst);
 	return dest;
 }
 
@@ -341,7 +339,7 @@ ALString ALString::Right(int nCount) const
 	require(nCount >= 0);
 	require(nCount <= nDataLength);
 
-	AllocCopy(dest, nCount, nDataLength - nCount, 0);
+	AllocCopy(dest, nCount, nDataLength - nCount);
 	return dest;
 }
 
@@ -352,7 +350,7 @@ ALString ALString::Left(int nCount) const
 	require(nCount >= 0);
 	require(nCount <= nDataLength);
 
-	AllocCopy(dest, nCount, 0, 0);
+	AllocCopy(dest, nCount, 0);
 	return dest;
 }
 

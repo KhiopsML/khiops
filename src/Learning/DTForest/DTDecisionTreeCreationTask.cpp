@@ -2165,7 +2165,7 @@ void DTDecisionTreeCreationTask::LoadOnlyMostInformativeAttributes(KWClass* kwcC
 	// Export des attributs dans un tableau
 	odInputAttributeStats->ExportObjectArray(&oaSortedAttributeStats);
 
-	// Tri des attribut dans le cas ou il est necessaire de filtrer
+	// Tri des attributs dans le cas ou il est necessaire de filtrer
 	if (nMaxAttributeNumber < odInputAttributeStats->GetCount())
 	{
 		oaSortedAttributeStats.SetCompareFunction(KWLearningReportCompareSortValue);

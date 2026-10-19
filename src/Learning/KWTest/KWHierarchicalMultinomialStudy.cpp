@@ -244,23 +244,24 @@ void KWHierarchicalMultinomialStudy::StudyDatasetBivariate(const ALString& sClas
 			if (nPair > nPairNumber)
 				break;
 
-			// Messafe d'avancement
+			// Message d'avancement
 			Global::AddSimpleMessage(sTmp + "Pair " + IntToString(nPair) + ": " + attribute1->GetName() +
 						 " x " + attribute2->GetName());
 
 			// Parametrage des stats sur la paire d'attributs, dans le cas standard
+			// On insere la paire dans le classStats pour beneficier du rapport
 			attributePairStatsS = new KWAttributePairStatsStudy;
 			attributePairStatsS->SetLearningSpec(&learningSpec);
 			attributePairStatsS->SetAttributeName1(attribute1->GetName());
 			attributePairStatsS->SetAttributeName2(attribute2->GetName());
-			classStatsS.GetAttributePairStats()->Add(attributePairStatsS);
+			cast(ObjectArray*, classStatsS.GetAttributePairStats())->Add(attributePairStatsS);
 
 			// Parametrage des stats sur la paire d'attributs, dans le cas hierarchique
 			attributePairStatsH = new KWAttributePairStatsStudy;
 			attributePairStatsH->SetLearningSpec(&learningSpec);
 			attributePairStatsH->SetAttributeName1(attribute1->GetName());
 			attributePairStatsH->SetAttributeName2(attribute2->GetName());
-			classStatsH.GetAttributePairStats()->Add(attributePairStatsH);
+			cast(ObjectArray*, classStatsH.GetAttributePairStats())->Add(attributePairStatsH);
 
 			// Chargement des tuples
 			tupleTableLoader.LoadBivariate(attributePairStatsS->GetAttributeName1(),
@@ -534,8 +535,8 @@ void KWHierarchicalMultinomialStudy::StudyWriteHeader(fstream& fstResults)
 double KWHierarchicalMultinomialStudy::ComputeDKL(KWDataGridStats* pairDataGridStats, KWAttributeStats* attributeStats1,
 						  KWAttributeStats* attributeStats2, double dSigma)
 {
-	boolean bDisplay = false;
-	boolean bDisplayDetails = false;
+	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
 	const double dPi = 3.14159265358979323846;
 	double dEstimatedEntropy;
 	double dTrueEntropy;
@@ -644,7 +645,7 @@ double KWHierarchicalMultinomialStudy::ComputeDKL(KWDataGridStats* pairDataGridS
 			dDKL += dCellDKL;
 
 			// Affichage
-			if (bDisplayDetails)
+			if (bTraceDetails)
 			{
 				// Entete
 				if (i == 0 and j == 0)
@@ -659,7 +660,7 @@ double KWHierarchicalMultinomialStudy::ComputeDKL(KWDataGridStats* pairDataGridS
 	}
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 		cout << "DKL\t" << nTotalFrequency << "\t" << dSigma << "\t" << dDKL << "\t" << dEstimatedEntropy
 		     << "\t" << dTrueEntropy << "\t" << dvBoundsX.GetSize() - 1 << "\t" << dvBoundsY.GetSize() - 1
 		     << endl;
@@ -975,7 +976,7 @@ boolean KWAttributePairStatsStudy::ComputeStats(const KWTupleTable* tupleTable)
 	KWDataGrid* dataGrid;
 	KWDataGrid* optimizedDataGrid;
 	KWDataGridCosts* dataGridCosts;
-	KWDataGridOptimizer dataGridOptimizer;
+	KWDataGridOptimizerVxV dataGridOptimizer;
 	double dGridCost;
 
 	require(Check());
@@ -1016,7 +1017,7 @@ boolean KWAttributePairStatsStudy::ComputeStats(const KWTupleTable* tupleTable)
 	// Optimisation par parcours des niveaux de partile
 	else
 	{
-		boolean bDisplay = false;
+		const boolean bTrace = false;
 		ObjectDictionary odQuantilesBuilders;
 		IntVector ivMaxPartNumbers;
 		int nTotalFrequency;
@@ -1056,16 +1057,14 @@ boolean KWAttributePairStatsStudy::ComputeStats(const KWTupleTable* tupleTable)
 
 			// Export d'une grille granularisee
 			dgGranularizedDataGrid.DeleteAll();
-			dataGridManager.ExportGranularizedDataGrid(dataGrid, &dgGranularizedDataGrid, nGranularity,
-								   &odQuantilesBuilders);
-
-			//ExportGranularizedDataGrid(&dgGranularizedDataGrid, nPartileNumber, &odQuantilesBuilders);
+			dataGridManager.ExportGranularizedDataGrid(dataGrid, &odQuantilesBuilders, nGranularity,
+								   &dgGranularizedDataGrid);
 
 			// Memorisation de son cout
 			dCurrentCost = dataGridCosts->ComputeDataGridTotalCost(&dgGranularizedDataGrid);
 
 			// Affichage
-			if (bDisplay)
+			if (bTrace)
 			{
 				cout << "Partiles\t" << nGranularity << "\t" << dCurrentCost << "\t"
 				     << dgGranularizedDataGrid.GetAttributeAt(0)->GetPartNumber() << "\t"
@@ -1084,8 +1083,8 @@ boolean KWAttributePairStatsStudy::ComputeStats(const KWTupleTable* tupleTable)
 
 		// On memorise la solution correspondant au meilleurs niveau de partile
 		optimizedDataGrid = new KWDataGrid;
-		dataGridManager.ExportGranularizedDataGrid(dataGrid, optimizedDataGrid, nBestGranularity,
-							   &odQuantilesBuilders);
+		dataGridManager.ExportGranularizedDataGrid(dataGrid, &odQuantilesBuilders, nBestGranularity,
+							   optimizedDataGrid);
 
 		// Nettoyage
 		odQuantilesBuilders.DeleteAll();
@@ -1346,7 +1345,7 @@ double KWDataGridClusteringCostsBivariateH::ComputeBestHierarchicalMultinomialPr
     int nInstanceNumber, int nTotalCellNumber, int nCurrentTotalCellNumber,
     const IntVector* ivCurrentCellFrequencies) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	double dCost;
 	double dStandardCost;
 	double dBestHierarchicalCost;
@@ -1424,7 +1423,7 @@ double KWDataGridClusteringCostsBivariateH::ComputeBestHierarchicalMultinomialPr
 		}
 
 		// Affichage
-		if (bDisplay)
+		if (bTrace)
 		{
 			cout << "ComputeBestHierarchicalMultinomialPrior\tBestH\t" << nBestInstanceNumberA << "\t"
 			     << nBestCellNumberA << "\t" << dBestHierarchicalCost << endl;
@@ -1446,7 +1445,7 @@ double KWDataGridClusteringCostsBivariateH::ComputeBestHierarchicalMultinomialPr
 			dCurrentStandardCost -= KWStat::LnFactorial(nInstanceNumber);
 
 			// Affichage
-			if (bDisplay)
+			if (bTrace)
 			{
 				cout << "ComputeBestHierarchicalMultinomialPrior\tCorrection\t" << nTotalCellNumber
 				     << "\t" << nCurrentTotalCellNumber << "\t" << dNewStandardCost << "\t"
@@ -1465,7 +1464,7 @@ double KWDataGridClusteringCostsBivariateH::ComputeBestHierarchicalMultinomialPr
 	}
 
 	// Affichage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "ComputeBestHierarchicalMultinomialPrior\tCosts\t" << nInstanceNumber << "\t"
 		     << nTotalCellNumber << "\t" << nCurrentTotalCellNumber << "\t"

@@ -50,17 +50,23 @@ void TaskProgression::Start()
 		tStartRequested = clock();
 		bIsManagerStarted = false;
 
-		// Initialisation du manager
-		if (currentManager != NULL)
+		// En mode silencieux, il est inutile d'initaliser les managers
+		// De plus, dans le cas de la GUI Mac, cela evite de creer des composants AWT
+		// avant que la boucle d'evenements AppKit soit lancee
+		if (not bSilentMode)
 		{
-			// Parametrage initial du manager courant
-			currentManager->SetTitle(sTitle);
-			currentManager->SetLevelNumber(nDisplayedLevelNumber);
-		}
-		if (currentFileManager != NULL)
-		{
-			currentFileManager->SetTitle(sTitle);
-			currentFileManager->SetLevelNumber(nDisplayedLevelNumber);
+			// Initialisation du manager
+			if (currentManager != NULL)
+			{
+				// Parametrage initial du manager courant
+				currentManager->SetTitle(sTitle);
+				currentManager->SetLevelNumber(nDisplayedLevelNumber);
+			}
+			if (currentFileManager != NULL)
+			{
+				currentFileManager->SetTitle(sTitle);
+				currentFileManager->SetLevelNumber(nDisplayedLevelNumber);
+			}
 		}
 	}
 	bIsStarted = true;

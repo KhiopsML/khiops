@@ -102,8 +102,8 @@ public:
 	// A appeler apres la lecture des enregistrements externes
 	void AddReadExternalRecord();
 
-	// Prise en compte du calcul de tous les attribut d'un nouvel enregistrement externe racine
-	// A appeler apres le calcul des attribut des enregistrements externes
+	// Prise en compte du calcul de tous les attributs d'un nouvel enregistrement externe racine
+	// A appeler apres le calcul des attributs des enregistrements externes
 	void AddComputedExternalRecord();
 
 	// Prise en compte de la creation d'une nouvelle instance

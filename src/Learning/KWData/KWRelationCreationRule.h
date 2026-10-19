@@ -28,7 +28,7 @@ class KWDRTableCreationRule;
 //   par la regle, selon un des deux mode d'alimentation suivant:
 //   - alimentation de type vue
 //   - alimentation de type calcul
-// - le dictionnaire en sortie peut avoir ses variable utilisees ou non (Used),
+// - le dictionnaire en sortie peut avoir ses variables utilisees ou non (Used),
 //   et des variables calculees si besoin
 // - un dictionnaire en sortie n'est pas specifique aux regles de creation de Table:
 //   a priori, un meme dictionnaire pourrait etre utilise pour une variable native alimentee
@@ -58,7 +58,7 @@ class KWDRTableCreationRule;
 //     des noms de variables dfans le dictionnaire avec les noms des colonnes dans le fichier
 //   - les variables correspondantes doivent etre de meme type en entree et en sortie
 //   - les variables en sortie peuvent etre alimentee par des variables calculee en entree
-//   - les variable en sortie peuvent etre de type Stored (Numerical, Categorical, Timestamp, Text...)
+//   - les variables en sortie peuvent etre de type Stored (Numerical, Categorical, Timestamp, Text...)
 //     comme dans les fichier, ou de type Entity ou Table
 //   - les variables en sortie peuvent etre dans n bloc, si les variables en entree correspondantees
 //     sont de meme type et meme non, et n plus de meme VarKey dans un bloc en entree de meme nom
@@ -197,7 +197,7 @@ public:
 						       const NumericKeyDictionary* nkdAllUsedAttributes,
 						       IntVector* ivMandatoryInputOperands) const override;
 
-	// Collecte de tous les attribut en entree et sortie des regles de creation d'instances
+	// Collecte de tous les attributs en entree et sortie des regles de creation d'instances
 	virtual void
 	CollectCreationRuleAllAttributes(const KWAttribute* derivedAttribute,
 					 NumericKeyDictionary* nkdAllNonDeletableAttributes) const override;

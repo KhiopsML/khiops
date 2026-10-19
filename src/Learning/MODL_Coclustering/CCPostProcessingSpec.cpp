@@ -113,7 +113,7 @@ ObjectArray* CCPostProcessingSpec::GetPostProcessedAttributes()
 boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* postProcessedCoclusteringDataGrid)
 {
 	boolean bOk = true;
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	const double dEpsilon = 1e-6;
 	CCCoclusteringReport coclusteringReport;
 	SortedList slSortedMergeableParts(CCHDGPartCompareHierarchicalRank);
@@ -130,7 +130,8 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 	boolean bMerge;
 
 	require(postProcessedCoclusteringDataGrid != NULL);
-	require(postProcessedCoclusteringDataGrid->GetAttributeNumber() > 0);
+	require(postProcessedCoclusteringDataGrid->GetAttributeNumber() >= 0);
+	require(postProcessedCoclusteringDataGrid->Check());
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Preparation du post-traitement et des contraintes a verifier
@@ -193,7 +194,7 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 	// Execution du post-traitement en verifiant les contraintes
 
 	// Affichage de l'entete
-	if (bDisplay)
+	if (bTrace)
 		cout << "Variable\tPart\tHierarchical rank\tHierarchical level\n";
 
 	// Merges des parties de la grille tant que les contraintes ne sont pas verifiees
@@ -247,7 +248,7 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 			assert(nMaxPartViolationNumber >= 0);
 
 			// Affichage de la partie fusionnees
-			if (bDisplay)
+			if (bTrace)
 			{
 				cout << hdgAttribute->GetAttributeName() << "\t" << hdgMergedPart->GetObjectLabel()
 				     << "\t" << hdgMergedPart->GetHierarchicalRank() << "\t"
@@ -256,6 +257,7 @@ boolean CCPostProcessingSpec::PostProcessCoclustering(CCHierarchicalDataGrid* po
 		}
 	}
 	postProcessedCoclusteringDataGrid->SetCellUpdateMode(false);
+	ensure(postProcessedCoclusteringDataGrid->Check());
 	return bOk;
 }
 
@@ -292,7 +294,7 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 		bOk = coclusteringReport.ReadReportHeader(sCoclusteringReportFileName, &coclusteringDataGrid,
 							  nInstanceNumber, nNonEmptyCellNumber);
 
-	// On rappatrie les informations du rapport
+	// On rapatrie les informations du rapport
 	if (bOk)
 	{
 		// Attribute identifiant (coclustering instances * variables)
@@ -306,7 +308,8 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 		sFrequencyAttributeName = coclusteringDataGrid.GetFrequencyAttributeName();
 
 		// Information sur les attributs de coclustering
-		nCellNumber = 1;
+		if (coclusteringDataGrid.GetAttributeNumber() > 0)
+			nCellNumber = 1;
 		nTotalPartNumber = 0;
 		for (nAttribute = 0; nAttribute < coclusteringDataGrid.GetAttributeNumber(); nAttribute++)
 		{
@@ -323,7 +326,7 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 		}
 	}
 
-	// On rappatrie les spec precedentes si coclustering de reference est egal au nouveau coclustering
+	// On rapatrie les spec precedentes si coclustering de reference est egal au nouveau coclustering
 	if (bOk)
 	{
 		// Evaluation si le coclustering est le meme
@@ -358,10 +361,19 @@ void CCPostProcessingSpec::UpdateCoclusteringSpec(const ALString& sCoclusteringR
 			}
 		}
 
-		// On rappartie les spec de reference en cas de matching du coclustering de reference
+		// On rapatrie les spec de reference en cas de matching du coclustering de reference
 		if (bSameCoclustering)
 			CopyFrom(&refPostProcessingSpec);
 	}
+
+	// Affichage de warning dans le cas d'un coclustering vide ou nul
+	// Cas d'un coclustering de type modele nul
+	if (GetCellNumber() == 1)
+		AddWarning("The input coclustering is not informative");
+
+	// Cas d'un coclustering vide
+	else if (GetCellNumber() == 0)
+		AddWarning("The input coclustering is empty");
 }
 
 void CCPostProcessingSpec::ResetCoclusteringConstraints()

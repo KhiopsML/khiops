@@ -73,16 +73,16 @@ boolean KDTextFeatureConstruction::ConstructTextFeatures(KWClass* kwcClass, int 
 	// Collecte des attributs Text accessibles via tous les chemins de donnees possibles
 	CollectAllTextClasses(kwcClass, &odTextClasses);
 
-	// Calcul des couts de construction pour les chemins d'acces aux attribut de type Text d'une classe
+	// Calcul des couts de construction pour les chemins d'acces aux attributs de type Text d'une classe
 	ComputeTextClassConstructionCosts(kwcClass, &odTextClasses);
 
-	// Calcul des nombres de variables construites pour les chemins d'acces aux attribut de type Text d'une classe
+	// Calcul des nombres de variables construites pour les chemins d'acces aux attributs de type Text d'une classe
 	ComputeTextClassConstructedFeatureNumbers(kwcClass, &odTextClasses, nFeatureNumber);
 
 	// Collecte des tokens
 	bOk = ExtractTokenSamples(kwcClass, &odTextClasses);
 
-	// Nombre de variables initiales, comprenant potentiellement des variable construire selon une autre methode
+	// Nombre de variables initiales, comprenant potentiellement des variables construites selon une autre methode
 	nInitialVariableNumber = kwcClass->ComputeInitialAttributeNumber(GetTargetAttributeName() != "");
 
 	// Creation des blocks de variables de type texte selon les specifications par chemin d'attributs de la classe
@@ -189,7 +189,7 @@ void KDTextFeatureConstruction::CollectAllTextClasses(const KWClass* kwcMainClas
 	require(odTextClasses != NULL);
 	require(odTextClasses->GetCount() == 0);
 
-	// Collecte recursive des attribut de type texte ramenes sur la classe principale
+	// Collecte recursive des attributs de type texte ramenes sur la classe principale
 	InternalCollectAllTextClasses(kwcMainClass, kwcMainClass, &emptyTextAttributePath, odTextClasses);
 
 	// Affichage des resultats
@@ -329,7 +329,7 @@ boolean KDTextFeatureConstruction::InternalCollectAllTextClasses(const KWClass* 
 		cout << "InternalCollectAllTextClasses\t" << baseTextAttributePath->GetObjectLabel() << "\t"
 		     << kwcClass->GetName() << "\t" << textClass->GetTextAttributePaths()->GetSize() << "\tEND\n";
 
-	// On retourne true si la classe contient des attribut de type Text
+	// On retourne true si la classe contient des attributs de type Text
 	return bClassContainsTextAttributes;
 }
 

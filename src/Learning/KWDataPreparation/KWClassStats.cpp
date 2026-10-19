@@ -26,6 +26,8 @@ KWClassStats::KWClassStats()
 	dataTableSliceSet = NULL;
 	svSymbolTargetValues = NULL;
 	cvContinuousTargetValues = NULL;
+	bMainMessageVerboseMode = true;
+	CleanWorkingData();
 }
 
 KWClassStats::~KWClassStats()
@@ -55,10 +57,21 @@ const KWAttributePairsSpec* KWClassStats::GetAttributePairsSpec() const
 	return attributePairSpec;
 }
 
+void KWClassStats::SetMainMessageVerboseMode(boolean bValue)
+{
+	bMainMessageVerboseMode = bValue;
+}
+
+boolean KWClassStats::GetMainMessageVerboseMode() const
+{
+	return bMainMessageVerboseMode;
+}
+
 boolean KWClassStats::ComputeStats()
 {
 	boolean bOk = true;
 	ALString sMessage;
+	boolean bCurrentDatabaseVerboseMode;
 	KWDatabaseBasicStatsTask databaseBasicClassStatsTask;
 	int nDatabaseObjectNumber;
 	longint lEncodingErrorNumber;
@@ -73,6 +86,7 @@ boolean KWClassStats::ComputeStats()
 	KWTupleTable targetTupleTable;
 	int nUsedAttributeNumber;
 	int nMaxLoadableAttributeNumber;
+	int nMaxRequestedAttributePairNumber;
 	int i;
 	KWAttribute* attribute;
 	KWAttributeStats* attributeStats;
@@ -115,13 +129,14 @@ boolean KWClassStats::ComputeStats()
 	if (bOk)
 	{
 		databaseBasicClassStatsTask.SetDisplayAllTaskMessages(false);
+		bCurrentDatabaseVerboseMode = GetDatabase()->GetVerboseMode();
 		GetDatabase()->SetVerboseMode(false);
 		databaseBasicClassStatsTask.SetReusableDatabaseIndexer(GetLearningSpec()->GetDatabaseIndexer());
 		bOk = databaseBasicClassStatsTask.CollectBasicStats(GetDatabase(), GetTargetAttributeName(),
 								    lRecordNumber, lCollectedObjectNumber,
 								    svSymbolTargetValues, cvContinuousTargetValues);
 		lEncodingErrorNumber = max(lEncodingErrorNumber, GetDatabase()->GetEncodingErrorNumber());
-		GetDatabase()->SetVerboseMode(true);
+		GetDatabase()->SetVerboseMode(bCurrentDatabaseVerboseMode);
 	}
 
 	// Erreur si trop d'instances
@@ -239,14 +254,19 @@ boolean KWClassStats::ComputeStats()
 	if (bOk and nUsedAttributeNumber == 0)
 		AddWarning("No input variable in analysis dictionary " + GetClass()->GetName());
 
+	// Calcul du nombre max de paires a analyser
+	nMaxRequestedAttributePairNumber = 0;
+	if (attributePairSpec != NULL)
+		nMaxRequestedAttributePairNumber =
+		    attributePairSpec->GetMaxRequestedAttributePairNumber(GetTargetAttributeName());
+
 	// Dimensionnement des taches de preparation univariee
 	nMaxLoadableAttributeNumber = 0;
 	bOk = bOk and not TaskProgression::IsInterruptionRequested();
 	if (bOk)
 	{
 		nMaxLoadableAttributeNumber = univariateDataPreparationTask.ComputeMaxLoadableAttributeNumber(
-		    GetLearningSpec(), &targetTupleTable,
-		    attributePairSpec->GetMaxRequestedAttributePairNumber(GetTargetAttributeName()));
+		    GetLearningSpec(), &targetTupleTable, nMaxRequestedAttributePairNumber);
 		if (nMaxLoadableAttributeNumber <= 0 and nUsedAttributeNumber > 0)
 			bOk = false;
 	}
@@ -295,7 +315,7 @@ boolean KWClassStats::ComputeStats()
 						       attribute);
 						oaTextAttributeStats.Add(attributeStats);
 					}
-					// Rangement dans le tableau et le dictionnaire des attribut standard (attribut
+					// Rangement dans le tableau et le dictionnaire des attributs standards (attribut
 					// initial ou multi-table) sinon
 					else
 					{
@@ -315,7 +335,7 @@ boolean KWClassStats::ComputeStats()
 	}
 
 	// Calcul des stats pour les paires d'attributs (non disponible en regression)
-	if (bOk and attributePairSpec->GetMaxAttributePairNumber() > 0 and nDatabaseObjectNumber > 0 and
+	if (bOk and nMaxRequestedAttributePairNumber > 0 and nDatabaseObjectNumber > 0 and
 	    oaAttributeStats.GetSize() > 1 and
 	    (GetTargetAttributeType() == KWType::Symbol or GetTargetAttributeType() == KWType::None) and
 	    not TaskProgression::IsInterruptionRequested())
@@ -435,14 +455,14 @@ boolean KWClassStats::ComputeStats()
 	return bIsStatsComputed;
 }
 
-ObjectArray* KWClassStats::GetAllPreparedStats()
+const ObjectArray* KWClassStats::GetAllPreparedStats() const
 {
 	require(IsStatsComputed());
 
 	return &oaAllPreparedStats;
 }
 
-ObjectArray* KWClassStats::GetAttributeStats()
+const ObjectArray* KWClassStats::GetAttributeStats() const
 {
 	require(IsStatsComputed());
 
@@ -456,21 +476,21 @@ KWAttributeStats* KWClassStats::LookupAttributeStats(const ALString& sAttributeN
 	return cast(KWAttributeStats*, odAttributeStats.Lookup(sAttributeName));
 }
 
-ObjectArray* KWClassStats::GetAttributePairStats()
+const ObjectArray* KWClassStats::GetAttributePairStats() const
 {
 	require(IsStatsComputed());
 
 	return &oaAttributePairStats;
 }
 
-ObjectArray* KWClassStats::GetTextAttributeStats()
+const ObjectArray* KWClassStats::GetTextAttributeStats() const
 {
 	require(IsStatsComputed());
 
 	return &oaTextAttributeStats;
 }
 
-ObjectArray* KWClassStats::GetTreeAttributeStats()
+const ObjectArray* KWClassStats::GetTreeAttributeStats() const
 {
 	require(IsStatsComputed());
 
@@ -492,26 +512,28 @@ int KWClassStats::GetConstructedAttributeNumber() const
 {
 	KWAttributeStats* attributeStats;
 	KWAttribute* attribute;
-	int nConstructedAttributeNumber;
 	int nAttribute;
 
 	require(IsStatsComputed());
 
-	// Comptage des attributs construit
-	nConstructedAttributeNumber = 0;
-	for (nAttribute = 0; nAttribute < oaAttributeStats.GetSize(); nAttribute++)
+	// Comptage des attributs construits si necessaire
+	if (nConstructedAttributeNumber == -1)
 	{
-		attributeStats = cast(KWAttributeStats*, oaAttributeStats.GetAt(nAttribute));
-		assert(attributeStats->GetAttributeNumber() == 1);
-		assert(KWType::IsSimple(attributeStats->GetAttributeType()));
-
-		// Attribut construit s'il possede une regle de derivation avec cout non nul
-		attribute = GetClass()->LookupAttribute(attributeStats->GetAttributeName());
-		if (attribute != NULL and attribute->GetAnyDerivationRule() != NULL)
+		nConstructedAttributeNumber = 0;
+		for (nAttribute = 0; nAttribute < oaAttributeStats.GetSize(); nAttribute++)
 		{
-			// Tous les attributs construits (regle utilisateur ou construction automatique)
-			// sont pris en compte: plus facile a interpreter pour l'utilisateur final
-			nConstructedAttributeNumber++;
+			attributeStats = cast(KWAttributeStats*, oaAttributeStats.GetAt(nAttribute));
+			assert(attributeStats->GetAttributeNumber() == 1);
+			assert(KWType::IsSimple(attributeStats->GetAttributeType()));
+
+			// Attribut construit s'il possede une regle de derivation avec cout non nul
+			attribute = GetClass()->LookupAttribute(attributeStats->GetAttributeName());
+			if (attribute != NULL and attribute->GetAnyDerivationRule() != NULL)
+			{
+				// Tous les attributs construits (regle utilisateur ou construction automatique)
+				// sont pris en compte: plus facile a interpreter pour l'utilisateur final
+				nConstructedAttributeNumber++;
+			}
 		}
 	}
 	return nConstructedAttributeNumber;
@@ -519,40 +541,55 @@ int KWClassStats::GetConstructedAttributeNumber() const
 
 int KWClassStats::GetTotalInformativeAttributeNumber() const
 {
-	int nInformativeAttributeNumber;
-
 	require(IsStatsComputed());
 
-	// Comptage des attributs informatifs
-	nInformativeAttributeNumber = ComputeInformativeDataPreparationStats(&oaAllPreparedStats);
-	assert(nInformativeAttributeNumber == GetInformativeAttributeNumber() + GetInformativeTextAttributeNumber() +
-						  GetInformativeTreeAttributeNumber() +
-						  GetInformativeAttributePairNumber());
-	return nInformativeAttributeNumber;
+	// Comptage du nombre total d'attributs informatifs si necessaire
+	if (nTotalInformativeAttributeNumber == -1)
+		nTotalInformativeAttributeNumber = ComputeInformativeDataPreparationStats(&oaAllPreparedStats);
+	assert(nTotalInformativeAttributeNumber ==
+	       GetInformativeAttributeNumber() + GetInformativeTextAttributeNumber() +
+		   GetInformativeTreeAttributeNumber() + GetInformativeAttributePairNumber());
+	return nTotalInformativeAttributeNumber;
 }
 
 int KWClassStats::GetInformativeAttributeNumber() const
 {
 	require(IsStatsComputed());
-	return ComputeInformativeDataPreparationStats(&oaAttributeStats);
+
+	// Comptage des attributs informatifs si necessaire
+	if (nInformativeAttributeNumber == -1)
+		nInformativeAttributeNumber = ComputeInformativeDataPreparationStats(&oaAttributeStats);
+	return nInformativeAttributeNumber;
 }
 
 int KWClassStats::GetInformativeTextAttributeNumber() const
 {
 	require(IsStatsComputed());
-	return ComputeInformativeDataPreparationStats(&oaTextAttributeStats);
+
+	// Comptage des attributs informatifs de type texte si necessaire
+	if (nInformativeTextAttributeNumber == -1)
+		nInformativeTextAttributeNumber = ComputeInformativeDataPreparationStats(&oaTextAttributeStats);
+	return nInformativeTextAttributeNumber;
 }
 
 int KWClassStats::GetInformativeTreeAttributeNumber() const
 {
 	require(IsStatsComputed());
-	return ComputeInformativeDataPreparationStats(&oaTreeAttributeStats);
+
+	// Comptage des attributs informatifs de type arbre si necessaire
+	if (nInformativeTreeAttributeNumber == -1)
+		nInformativeTreeAttributeNumber = ComputeInformativeDataPreparationStats(&oaTreeAttributeStats);
+	return nInformativeTreeAttributeNumber;
 }
 
 int KWClassStats::GetInformativeAttributePairNumber() const
 {
 	require(IsStatsComputed());
-	return ComputeInformativeDataPreparationStats(&oaAttributePairStats);
+
+	// Comptage des attributs informatifs de type paire si necessaire
+	if (nInformativeAttributePairNumber == -1)
+		nInformativeAttributePairNumber = ComputeInformativeDataPreparationStats(&oaAttributePairStats);
+	return nInformativeAttributePairNumber;
 }
 
 int KWClassStats::GetUsedAttributeNumberForType(int nType) const
@@ -764,7 +801,7 @@ boolean KWClassStats::CheckSelectedDataPreparationStatsSpec() const
 			nRecursivelySelectedDataPreparationStats++;
 	}
 
-	// La verification est correcte si tout le contenu des dictionnaire de specification a etet trouve
+	// La verification est correcte si tout le contenu des dictionnaires de specification a etet trouve
 	bOk = bOk and nSelectedDataPreparationStatsCount == nkdSelectedDataPreparationStats.GetCount();
 	bOk = bOk and nRecursivelySelectedDataPreparationStats == nkdRecursivelySelectedDataPreparationStats.GetCount();
 	return bOk;
@@ -1503,6 +1540,14 @@ void KWClassStats::CleanWorkingData()
 	nkdRecursivelySelectedDataPreparationStats.RemoveAll();
 	timerTotal.Reset();
 	bIsStatsComputed = false;
+
+	// Reinitialisation des statistiques sur la preparation a -1, pour forcer leur recalcul
+	nConstructedAttributeNumber = -1;
+	nTotalInformativeAttributeNumber = -1;
+	nInformativeAttributeNumber = -1;
+	nInformativeTextAttributeNumber = -1;
+	nInformativeTreeAttributeNumber = -1;
+	nInformativeAttributePairNumber = -1;
 }
 
 KWAttributeStats* KWClassStats::TreeAttributeStats() const
@@ -1655,4 +1700,10 @@ void KWClassStats::DispatchAttributeStatsByType(const ObjectArray* oaInputAttrib
 		else if (attributeStats->GetAttributeType() == KWType::Continuous)
 			oaContinuousAttributeStats->Add(attributeStats);
 	}
+}
+
+void KWClassStats::AddSimpleMessage(const ALString& sLabel) const
+{
+	if (bMainMessageVerboseMode)
+		Object::AddSimpleMessage(sLabel);
 }

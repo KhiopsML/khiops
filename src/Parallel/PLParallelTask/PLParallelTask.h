@@ -140,8 +140,8 @@ public:
 	// Destruction de toutes les taches enregistrees
 	static void DeleteAllTasks();
 
-	// Met a jour le vector passe en parametre avec la signature de chaque tache enregistree
-	static void GetRegisteredTaskSignatures(StringVector& svSignatures);
+	// Met a jour le vector passe en parametre avec le nom de chaque tache enregistree
+	static void GetRegisteredTaskNames(StringVector& svNames);
 
 	///////////////////////////////////////////////
 	// Outils de debugage
@@ -209,7 +209,7 @@ public:
 	static TestType StringToCrashTest(const ALString& sTest);
 
 	// Test des taches paralleles
-	// Le test est effectue dans la tache dont la signature est sTaskSignature dans la methode nMethod et lors
+	// Le test est effectue dans la tache dont le nom est sTaskName dans la methode nMethod et lors
 	// de l'iteration nCallIndex de cette methode (pour les methodes MasterAggregate MasterPrepareTaskInput et
 	// SlaveProcess) Il y a 4 types de tests :
 	// - IO_FAILURE_OPEN : la methode Open de SystemFile renvoie Open false dans la methode et a un comportement
@@ -219,7 +219,7 @@ public:
 	// - IO_FAILURE_WRITE: la methode Flush de SystemFile renvoie Flush false dans la methode et a un comportement
 	// normal en dehors de celle-ci
 	// - USER_INTERRUPTION : une interruption utilisateur est forcee avant l'appel a la methode
-	static void CrashTest(TestType nTestType, const ALString& sTaskSignature, Method nMethod, int nCallIndex);
+	static void CrashTest(TestType nTestType, const ALString& sTaskName, Method nMethod, int nCallIndex);
 
 	//////////////////////////////////////////////////////////////////
 	///// Implementation
@@ -776,12 +776,14 @@ private:
 
 	// Crash test
 	static TestType nCrashTestType;
-	static ALString sCrashTestTaskSignature;
+	static ALString sCrashTestTaskName;
 	static Method nCrashTestMethod;
 	static int nCrashTestCallIndex;
+	static int nCrashTestIOIndex;
 	PLShared_Int shared_nCrashTestType;
 	PLShared_Int shared_nCrashTestMethod;
 	PLShared_Int shared_nCrashTestCallIndex;
+	PLShared_Int shared_nCrashTestIOIndex;
 
 	// Compteurs du nombre d'appels aux methodes SlaveProcess, PrepareTaskInput et MasterAggregate
 	int nPrepareTaskInputCount;

@@ -342,7 +342,7 @@ def clean_version_from_results(results_dir):
                 time_file.write("version: " + found_version + "\n")
         except Exception as exception:
             print(
-                "Enable to write file " + kht.TIME_LOG + " in " + kht.RESULTS + " dir ",
+                "Unable to write file " + kht.TIME_LOG + " in " + kht.RESULTS + " dir ",
                 exception,
             )
 
@@ -995,13 +995,16 @@ def check_results(test_dir, forced_context=None):
             if err_file_lines is None:
                 roc_curve_recovery = False
             else:
-                searched_warning = (
-                    "warning : Evaluation Selective Naive Bayes : "
-                    + "Not enough memory to compute the exact AUC:"
-                    + " estimation made on a sub-sample of size"
-                )
+                searched_warning_pattern = [
+                    "warning : Classifier evaluation ",
+                    " : Not enough memory to compute the exact AUC:"
+                    + " estimation made on a sub-sample of size",
+                ]
                 roc_curve_recovery = (
-                    utils.find_pattern_in_lines(err_file_lines, [searched_warning]) >= 0
+                    utils.find_pattern_in_lines(
+                        err_file_lines, searched_warning_pattern
+                    )
+                    >= 0
                 )
 
         # Comptage des erreurs pour les fichier d'evaluation au format xls
@@ -1039,7 +1042,7 @@ def check_results(test_dir, forced_context=None):
                     assert test_file_lines is not None
                     assert ref_file_lines is not None
                     # Extraction des champs qui correspondent au calcul de l'AUC et des courbes de ROC
-                    for key in ["auc", "values"]:
+                    for key in ["auc", "aucs", "values"]:
                         # Selection d'un champ selon sa valeur
                         selected_test_file_lines = (
                             extract_key_matching_lines_in_json_file(
@@ -1438,8 +1441,9 @@ RESILIENCE_USER_MESSAGE_PATTERNS = [
         " (more than ",
     ],
     [
-        "warning : Evaluation Selective Naive Bayes : Not enough memory to compute the exact AUC: "
-        + "estimation made on a sub-sample of size "
+        "warning : Classifier evaluation ",
+        " : Not enough memory to compute the exact AUC: "
+        + "estimation made on a sub-sample of size ",
     ],
     [
         "warning : Database ",
@@ -1485,6 +1489,27 @@ RESILIENCE_USER_MESSAGE_PATTERNS = [
         ": Loading external tables requires too much memory; more than ",
         " of RAM used after reading ",
         " external instances",
+    ],
+    [
+        "error : Database ",
+        " : Record ",
+        " : Not enough memory after reading ",
+    ],
+    [
+        "error : Coclustering ",
+        " : Not enough memory to initialize coclustering optimization data",
+    ],
+    [
+        "error : Coclustering ",
+        " : Not enough memory to start creating coclustering cells",
+    ],
+    [
+        "error : Coclustering ",
+        " : Not enough memory to create coclustering cells",
+    ],
+    [
+        "error : Coclustering ",
+        " : Not enough memory to generate coclustering optimization data",
     ],
     [
         "error : KNI ",
@@ -1731,7 +1756,9 @@ def check_file_lines(
                 line_test = line_test[: line_test.find(record_stats_pattern[-1])]
 
         # Cas special du fichier d'erreur:
-        # on saute les lignes qui font du reporting de temps de calcul ("interrupted ")
+        # on saute les lignes qui contiennent "interrupted ", ça evite de traiter tous les messages d'erreur ou de warning qui sont relatifs a une interruption.
+        # Ces messages contiennent souvent une durée de calcul qui varie d'un run à l'autre.
+        # Ils peuvent sinon contenir un nombre d'instances traitees. Ce nombre n'est pas toujours stable d'un run a l'autre, il est donc preferable ici aussi de sauter ces lignes.
         if (
             is_error_file
             and line_ref.lower().find(" interrupted ") != -1

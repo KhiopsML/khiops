@@ -236,7 +236,7 @@ void KWTupleTableLoader::LoadContinuousValues(const ALString& sAttributeName, Co
 	require(oaInputDatabaseObjects != NULL);
 	require(cvOutputValues != NULL);
 
-	// Acces aux caracteristique de l'attribut
+	// Acces aux caracteristiques de l'attribut
 	attribute = kwcInputClass->LookupAttribute(sAttributeName);
 	liLoadIndex = attribute->GetLoadIndex();
 	check(attribute);
@@ -267,7 +267,7 @@ void KWTupleTableLoader::LoadSymbolValues(const ALString& sAttributeName, Symbol
 	require(oaInputDatabaseObjects != NULL);
 	require(svOutputValues != NULL);
 
-	// Acces aux caracteristique de l'attribut
+	// Acces aux caracteristiques de l'attribut
 	attribute = kwcInputClass->LookupAttribute(sAttributeName);
 	liLoadIndex = attribute->GetLoadIndex();
 	check(attribute);
@@ -298,7 +298,7 @@ void KWTupleTableLoader::LoadTupleTableFromContinuousValues(const ALString& sAtt
 	require(cvInputValues != NULL);
 	require(outputTupleTable != NULL);
 
-	// Acces aux caracteristique de l'attribut
+	// Acces aux caracteristiques de l'attribut
 	attribute = kwcInputClass->LookupAttribute(sAttributeName);
 	check(attribute);
 	assert(KWType::IsSimple(attribute->GetType()));
@@ -334,7 +334,7 @@ void KWTupleTableLoader::LoadTupleTableFromSymbolValues(const ALString& sAttribu
 	require(svInputValues != NULL);
 	require(outputTupleTable != NULL);
 
-	// Acces aux caracteristique de l'attribut
+	// Acces aux caracteristiques de l'attribut
 	attribute = kwcInputClass->LookupAttribute(sAttributeName);
 	check(attribute);
 	assert(KWType::IsSimple(attribute->GetType()));
@@ -428,7 +428,7 @@ void KWTupleTableLoader::LoadMultivariate(const StringVector* svInputAttributeNa
 	{
 		assert(svInputAttributeNames->GetAt(nAttribute) != "");
 
-		// Acces aux caracteristique de l'attribut
+		// Acces aux caracteristiques de l'attribut
 		attribute = kwcInputClass->LookupAttribute(svInputAttributeNames->GetAt(nAttribute));
 		check(attribute);
 		assert(KWType::IsSimple(attribute->GetType()));
@@ -555,7 +555,7 @@ void KWTupleTableLoader::BlockLoadUnivariateInitialize(const ALString& sInputAtt
 	require(odOutputTupleTables != NULL);
 	require(odOutputTupleTables->GetCount() == 0);
 
-	// Acces aux caracteristique de l'attribut
+	// Acces aux caracteristiques de l'attribut
 	attributeBlock = kwcInputClass->LookupAttributeBlock(sInputAttributeBlockName);
 	check(attributeBlock);
 	assert(KWType::IsSimple(attributeBlock->GetType()));
@@ -605,7 +605,7 @@ void KWTupleTableLoader::BlockLoadUnivariateInitialize(const ALString& sInputAtt
 			// Prise en compte des caracteristiques de l'objet
 			kwoObject = cast(KWObject*, oaInputDatabaseObjects->GetAt(nObject));
 
-			// Acces au bloc d'attribut
+			// Acces au bloc de valeurs
 			svbSymbolValues = kwoObject->GetSymbolValueBlockAt(liAttributeBlockLoadIndex);
 
 			// Parcours des valeurs du block
@@ -651,7 +651,7 @@ void KWTupleTableLoader::BlockLoadUnivariateInitialize(const ALString& sInputAtt
 			// Acces au bloc d'attribut
 			cvbContinuousValues = kwoObject->GetContinuousValueBlockAt(liAttributeBlockLoadIndex);
 
-			// Parcours des valeurs du block
+			// Parcours des valeurs du bloc
 			for (nValue = 0; nValue < cvbContinuousValues->GetValueNumber(); nValue++)
 			{
 				// Acces a la table de tuple correspondant a l'attribut
@@ -690,7 +690,7 @@ void KWTupleTableLoader::BlockLoadUnivariateInitialize(const ALString& sInputAtt
 void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttributeBlockName,
 						     KWTupleTable* outputTupleTable) const
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWAttributeBlock* attributeBlock;
 	int nObjectNumber;
 	int nMissingValueNumber;
@@ -710,13 +710,13 @@ void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttri
 	// Comptage du nombre d'objets
 	nObjectNumber = oaInputDatabaseObjects->GetSize();
 
-	// Acces aux caracteristique de l'attribut
+	// Acces aux caracteristiques de l'attribut
 	attributeBlock = kwcInputClass->LookupAttributeBlock(sInputAttributeBlockName);
 	check(attributeBlock);
 	assert(KWType::IsSimple(attributeBlock->GetType()));
 	assert(attributeBlock->GetLoaded());
 
-	// Ajout des tuple manquants s'il manque des enregistrements
+	// Ajout des tuples manquants s'il manque des enregistrements
 	nMissingValueNumber = nObjectNumber - outputTupleTable->GetTotalFrequency();
 	if (nMissingValueNumber > 0)
 	{
@@ -749,7 +749,7 @@ void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttri
 								&oaTuplesSortedByExtraAttribute);
 
 			// Affichage des tables de tuples a synchroniser
-			if (bDisplay)
+			if (bTrace)
 			{
 				cout << "Extra tuples" << endl;
 				for (nExtraTuple = 0; nExtraTuple < inputExtraAttributeTupleTable->GetSize();
@@ -840,7 +840,7 @@ void KWTupleTableLoader::BlockLoadUnivariateFinalize(const ALString& sInputAttri
 					outputTupleTable->UpdateWithInputTuple();
 
 					// Affichage du tuple de synchronisation
-					if (bDisplay)
+					if (bTrace)
 					{
 						cout << "\t+X" << nExtraTuple << "\t";
 						outputTupleTable->GetInputTuple()->FullWrite(outputTupleTable, cout);
@@ -860,7 +860,7 @@ void KWTupleTableLoader::BlockLoadBivariate(const ALString& sInputAttributeBlock
 					    ObjectDictionary* odInputAttributes, const ALString& sInputAttributeName2,
 					    ObjectDictionary* odOutputTupleTables) const
 {
-	boolean bDisplay = false;
+	const boolean bTrace = false;
 	KWAttributeBlock* attributeBlock;
 	KWAttribute* attribute2;
 	KWLoadIndex livAttribute2LoadIndex;
@@ -902,7 +902,7 @@ void KWTupleTableLoader::BlockLoadBivariate(const ALString& sInputAttributeBlock
 	require(odOutputTupleTables != NULL);
 	require(odOutputTupleTables->GetCount() == 0);
 
-	// Acces aux caracteristique de l'attribut
+	// Acces aux caracteristiques de l'attribut
 	attributeBlock = kwcInputClass->LookupAttributeBlock(sInputAttributeBlockName);
 	check(attributeBlock);
 	assert(KWType::IsSimple(attributeBlock->GetType()));
@@ -1152,7 +1152,7 @@ void KWTupleTableLoader::BlockLoadBivariate(const ALString& sInputAttributeBlock
 										    &oaTuplesSortedByLastAttributes);
 
 				// Affichage des tables de tuples a synchroniser
-				if (bDisplay)
+				if (bTrace)
 				{
 					cout << "Output tuples attributes" << endl;
 					cout << "\t" << outputTupleTable->GetClassLabel() << "\t"
@@ -1295,7 +1295,7 @@ void KWTupleTableLoader::BlockLoadBivariate(const ALString& sInputAttributeBlock
 						outputTupleTable->UpdateWithInputTuple();
 
 						// Affichage du tuple de synchronisation
-						if (bDisplay)
+						if (bTrace)
 						{
 							cout << "\t+X" << nExtraTuple << "\t";
 							outputTupleTable->GetInputTuple()->FullWrite(outputTupleTable,

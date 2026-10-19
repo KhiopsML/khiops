@@ -342,26 +342,17 @@ const KWStatisticalEvaluation* KWLearningBenchmark::GetEvaluationAt(int nCriteri
 
 void KWLearningBenchmark::WriteReportFile(const ALString& sFileName) const
 {
-	fstream ost;
+	SystemFileOstream ost;
 	boolean bOk;
-	ALString sLocalFileName;
 
-	// Preparation de la copie sur HDFS si necessaire
-	bOk = PLRemoteFileService::BuildOutputWorkingFile(sFileName, sLocalFileName);
-	if (bOk)
-		bOk = FileService::OpenOutputFile(sLocalFileName, ost);
+	// Ouverture du fichier en ecriture
+	bOk = PLRemoteFileService::OpenOutputFile(sFileName, ost);
 	if (bOk)
 	{
 		if (GetLearningReportHeaderLine() != "")
 			ost << GetLearningReportHeaderLine() << "\n";
 		WriteReport(ost);
-		bOk = FileService::CloseOutputFile(sLocalFileName, ost);
-	}
-
-	if (bOk)
-	{
-		// Copie vers HDFS
-		PLRemoteFileService::CleanOutputWorkingFile(sFileName, sLocalFileName);
+		bOk = PLRemoteFileService::CloseOutputFile(sFileName, ost);
 	}
 }
 
@@ -1085,7 +1076,7 @@ KWClass* KWLearningBenchmark::BuildLearningSpecConstructedClass(KWLearningSpec* 
 	textFeatureConstruction.SetTextFeatures(
 	    predictorSpec->GetAttributeConstructionSpec()->GetTextFeatureSpec()->GetTextFeatures());
 
-	// Detection si des variable de type texte peuvent etre construites
+	// Detection si des variables de type texte peuvent etre construites
 	bIsTextConstructionPossible = textFeatureConstruction.ContainsTextAttributes(learningSpec->GetClass());
 
 	// Parametrage des familles de construction de variables

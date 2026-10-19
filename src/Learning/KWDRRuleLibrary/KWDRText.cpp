@@ -171,7 +171,7 @@ Symbol KWDRTextLoadFile::ComputeTextResult(const KWObject* kwoObject) const
 
 		// Si erreur, emission d'un warning permettant de localiser l'enregistrement
 		if (not bOk)
-			kwoObject->AddWarning("Enable to load text file from rule " + GetName());
+			kwoObject->AddWarning("Unable to load text file from rule " + GetName());
 		// Warning si text tronque
 		else if (bOverlengthyText)
 			kwoObject->AddWarning("Text file loaded from rule " + GetName() + " truncated to " +

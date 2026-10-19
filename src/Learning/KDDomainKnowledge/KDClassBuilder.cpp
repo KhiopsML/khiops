@@ -274,7 +274,7 @@ KDClassBuilder::BuildStandardClassFromConstructedRules(const KWClass* initialCla
 	constructedDomain->SetName("Variable construction");
 	constructedClass = constructedDomain->LookupClass(initialClass->GetName());
 
-	// Collecte des attribut derives s'ils existent deja dans une classe du domaine
+	// Collecte des attributs derives s'ils existent deja dans une classe du domaine
 	constructedDomain->Compile();
 	multiTableFeatureConstruction->ComputeAllClassesCompliantRules(constructedClass, &classDomainCompliantRules);
 
@@ -305,7 +305,7 @@ KDClassBuilder::BuildStandardClassFromConstructedRules(const KWClass* initialCla
 			oaNewUsedConstructedRules.Add(usedConstructedRule);
 		}
 
-		// Comptage des nouveaux attribut crees
+		// Comptage des nouveaux attributs crees
 		if (bNewAttribute)
 			nConstructedRuleNumber++;
 	}
@@ -445,7 +445,7 @@ KDClassBuilder::BuildOptimizedClassFromConstructedRules(const KWClass* initialCl
 		if (bNewAttribute)
 			oaNewUsedConstructedRules.Add(usedConstructedRule);
 
-		// Comptage des nouveaux attribut crees
+		// Comptage des nouveaux attributs crees
 		if (bNewAttribute)
 			nConstructedRuleNumber++;
 
@@ -603,7 +603,7 @@ KWClass* KDClassBuilder::BuildSparseOptimizedClassFromConstructedRules(
 			}
 
 			// Construction sparse ou non
-			// Comme on cree les attributs les plus simples en premier, les attribut crees recursivement sont
+			// Comme on cree les attributs les plus simples en premier, les attributs crees recursivement sont
 			// soit des attributs cree precedemment (donc marque en bNewAttribute), soit des attributs
 			// temporaires
 			if (bSparseConstruction)
@@ -625,7 +625,7 @@ KWClass* KDClassBuilder::BuildSparseOptimizedClassFromConstructedRules(
 		if (bNewAttribute)
 			oaNewUsedConstructedRules.Add(usedConstructedRule);
 
-		// Comptage des nouveaux attribut crees
+		// Comptage des nouveaux attributs crees
 		if (bNewAttribute)
 			nConstructedRuleNumber++;
 
@@ -955,7 +955,7 @@ KWClass* KDClassBuilder::InternalBuildClassFromSelectionRules(
 	constructedDomain->Compile();
 	constructedClass = constructedDomain->LookupClass(initialClass->GetName());
 
-	// Collecte des attribut derives s'ils existent deja dans une classe du domaine
+	// Collecte des attributs derives s'ils existent deja dans une classe du domaine
 	multiTableFeatureConstruction->ComputeAllClassesCompliantRules(constructedClass, classDomainCompliantRules);
 
 	// En cas d'optimisation des regles, recherche des regles intermediaires

@@ -94,7 +94,7 @@ int KDClassDomainCompliantRules::GetTotalClassCompliantRuleNumber() const
 	int nClass;
 	KDClassCompliantRules* classCompliantRules;
 
-	// Parcours des classe pour compter les regles appliquabkes
+	// Parcours des classes pour compter les regles appliquabkes
 	nTotalClassCompliantRuleNumber = 0;
 	for (nClass = 0; nClass < oaAllClassesCompliantRules.GetSize(); nClass++)
 	{
@@ -111,7 +111,7 @@ boolean KDClassDomainCompliantRules::IsSelectionRuleUsed() const
 	int nRule;
 	KDConstructionRule* constructionRule;
 
-	// Parcours des classe pour compter les regles appliquabkes
+	// Parcours des classes pour compter les regles appliquabkes
 	for (nClass = 0; nClass < oaAllClassesCompliantRules.GetSize(); nClass++)
 	{
 		classCompliantRules = cast(KDClassCompliantRules*, oaAllClassesCompliantRules.GetAt(nClass));

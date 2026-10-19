@@ -1698,7 +1698,7 @@ KWObject* KWObject::CreateObject(KWClass* refClass, longint lObjectIndex)
 				sBlockField = "";
 				for (j = 0; j < attributeBlock->GetLoadedAttributeNumber(); j++)
 				{
-					if ((lObjectIndex + j) % ((longint)2 << j) != 0)
+					if ((lObjectIndex + j) % (2LL << j) != 0)
 						continue;
 					attribute = attributeBlock->GetLoadedAttributeAt(j);
 					if (sBlockField.GetLength() > 0)
@@ -1725,7 +1725,7 @@ KWObject* KWObject::CreateObject(KWClass* refClass, longint lObjectIndex)
 				sBlockField = "";
 				for (j = 0; j < attributeBlock->GetLoadedAttributeNumber(); j++)
 				{
-					if ((lObjectIndex + j) % ((longint)2 << j) != 0)
+					if ((lObjectIndex + j) % (2LL << j) != 0)
 						continue;
 					attribute = attributeBlock->GetLoadedAttributeAt(j);
 					if (sBlockField.GetLength() > 0)

@@ -4,6 +4,7 @@
 
 #define UIDEV
 #include "UserInterface.h"
+#include "MacosGUI.h"
 
 const ALString UIObject::GetClassLabel() const
 {
@@ -1140,6 +1141,9 @@ JNIEnv* UIObject::GetJNIEnv()
 		vm_iargs.nOptions = nOptionNumber;
 		vm_iargs.ignoreUnrecognized = JNI_FALSE;
 
+		// macOS: Positionne JAVA_STARTED_ON_FIRST_THREAD_<pid> pour que l'AWT utilise le thread courant comme EDT
+		MacosSetJavaStartedOnFirstThread();
+
 		// Lancement de la JVM
 		res = -1;
 		res = ptrCreateJavaVM(&jvm, (void**)&env, &vm_iargs);
@@ -1180,13 +1184,7 @@ JNIEnv* UIObject::GraphicGetJNIEnv()
 	static boolean bGraphicIsLoaded = false;
 
 	cls = 0;
-
-#ifdef __APPLE__
-	Global::AddError("Java", "GUI", "Java GUI is not available on MacOS");
-	env = NULL;
-#else
 	env = GetJNIEnv();
-#endif
 
 	if (env != NULL and not bGraphicIsLoaded)
 	{
@@ -1685,9 +1683,12 @@ boolean UIObject::CheckCommandLineOptions(const ObjectArray& oaOptions)
 
 	// Acces aux fichiers passes en parametre
 	fsInputFile = NULL;
+	fsInputJsonFile = NULL;
 	fsProgressionFile = NULL;
 	fsOutputFile = NULL;
+	fsOutputNoReplayFile = NULL;
 	fsErrorFile = NULL;
+
 	for (i = 0; i < oaOptions.GetSize(); i++)
 	{
 		option = cast(CommandLineOption*, oaOptions.GetAt(i));
@@ -1750,6 +1751,31 @@ boolean UIObject::CheckCommandLineOptions(const ObjectArray& oaOptions)
 		Global::AddError("Command line parameters", "",
 				 "wrong input command file " + fsInputFile->GetFilePathName());
 	}
+#elif defined(_WIN32)
+	if (fsInputFile != NULL and fsInputFile->GetFilePathName() == "CON")
+	{
+		bOk = false;
+		Global::AddError("Command line parameters", "",
+				 "wrong input command file " + fsInputFile->GetFilePathName());
+	}
+#endif
+
+	// Test que le fichier d'entree json n'est pas une sortie
+#ifdef __linux_or_apple__
+	if (fsInputJsonFile != NULL and (fsInputJsonFile->GetFilePathName() == "/dev/stdout" or
+					 fsInputJsonFile->GetFilePathName() == "/dev/stderr"))
+	{
+		bOk = false;
+		Global::AddError("Command line parameters", "",
+				 "wrong input command file " + fsInputFile->GetFilePathName());
+	}
+#elif defined(_WIN32)
+	if (fsInputJsonFile != NULL and fsInputJsonFile->GetFilePathName() == "CON")
+	{
+		bOk = false;
+		Global::AddError("Command line parameters", "",
+				 "wrong input command file " + fsInputJsonFile->GetFilePathName());
+	}
 #endif
 
 	// Test de conflit entre les noms de fichiers : les fichiers doivent tous etre differents
@@ -1764,13 +1790,15 @@ boolean UIObject::CheckCommandLineOptions(const ObjectArray& oaOptions)
 
 // Test de difference
 #ifdef _WIN32
-			bOk = bOk and fsFileToCompare->CheckReferenceFileSpec(fsFile);
+			bOk = bOk and (fsFileToCompare->GetFilePathName() == "CON" and
+				       fsFile->GetFilePathName() == "CON") or
+			      (fsFileToCompare->CheckReferenceFileSpec(fsFile));
 #else
-			bOk = bOk and (fsFileToCompare->CheckReferenceFileSpec(fsFile) or
-				       (fsFileToCompare->GetFilePathName() == "/dev/stdout" and
+			bOk = bOk and ((fsFileToCompare->GetFilePathName() == "/dev/stdout" and
 					fsFile->GetFilePathName() == "/dev/stdout") or
 				       (fsFileToCompare->GetFilePathName() == "/dev/stderr" and
-					fsFile->GetFilePathName() == "/dev/stderr"));
+					fsFile->GetFilePathName() == "/dev/stderr") or
+				       fsFileToCompare->CheckReferenceFileSpec(fsFile));
 #endif // _WIN32
 			if (not bOk)
 				break;
@@ -2112,23 +2140,12 @@ boolean UIObject::BatchCommand(const ALString& sParameter)
 
 boolean UIObject::ErrorCommand(const ALString& sErrorLog)
 {
-	boolean bOk;
-	sErrorLogFileName = sErrorLog;
-	bOk = PLRemoteFileService::BuildOutputWorkingFile(sErrorLogFileName, sLocalErrorLogFileName);
-	if (bOk)
-	{
-		Global::SetErrorLogFileName(sLocalErrorLogFileName);
-	}
-
-	// En mode Graphic on renvoie systematiquement true : on permet de lancer l'outil meme si on ne peut
-	// pas ecrire dans le fichier de log (les options -e et -o sont passees par defaut a l'outil dans les scripts de
-	// lancement bash ou cmd) En mode Textual on est plus strict (utilisation via python, java ou sur cluster)
-	return not IsBatchMode() or bOk;
+	Global::SetErrorLogFileName(sErrorLog);
+	return true;
 }
 
 boolean UIObject::TaskProgressionCommand(const ALString& sTaskFile)
 {
-	// TODO est-ce qu'on peut mettre le fichier sur HDFS
 	TaskProgression::SetTaskProgressionLogFileName(sTaskFile);
 	return true;
 }
@@ -2149,9 +2166,6 @@ void UIObject::CleanCommandLineManagement()
 	{
 		// Fermeture du fichier de log (la reinitialisation entraine la fermeture du fichier)
 		Global::SetErrorLogFileName("");
-
-		// Copie vers HDFS si necessaire
-		PLRemoteFileService::CleanOutputWorkingFile(sErrorLogFileName, sLocalErrorLogFileName);
 	}
 }
 
@@ -2185,9 +2199,12 @@ void UIObject::InitializeMessageManagers()
 		    Error::GetDisplayErrorFunction() == Error::GetDefaultDisplayErrorFunction())
 			Error::SetDisplayErrorFunction(UIObjectDisplayErrorFunction);
 
+#ifndef __APPLE__
 		// Parametrage du gestionnaire de suivi de progression
+		// Installe UITaskProgression; sur macOS, l'installation est differee apres le lancement de la boucle AppKit
 		if (TaskProgression::GetManager() == NULL and not TaskProgression::IsStarted())
 			TaskProgression::SetManager(UITaskProgression::GetManager());
+#endif
 	}
 	// Parametrage en mode textuel
 	else
@@ -2230,8 +2247,6 @@ ObjectDictionary UIObject::odListIndexCommands;
 ALString UIObject::sIconImageJarPath;
 void* UIObject::jvmHandle = NULL;
 boolean UIObject::bIsJVMLoaded = false;
-ALString UIObject::sLocalErrorLogFileName;
-ALString UIObject::sErrorLogFileName;
 ALString UIObject::sTaskProgressionLogFileName;
 CommandLine UIObject::commandLineOptions;
 boolean UIObject::bNoReplayMode = false;

@@ -204,7 +204,7 @@ public:
 	/////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
-	// Declaration en friend des seules classe explotant un data path
+	// Declaration en friend des seules classes exploitant un data path
 	friend class KWSTDatabase;
 	friend class KWMTDatabase;
 	friend class KWDRRelationCreationRule;
@@ -269,7 +269,7 @@ protected:
 
 	// Nettoyage des donnees non natives, a utiliser pour nettoyer une instance
 	//  dont on a pas pu calculer tous les attributs derives
-	// Les attribut de type natif de type Relation sont nettoyes
+	// Les attributs de type natif de type Relation sont nettoyes
 	// Tous les attributs calcule sont mis a leur valeur par defaut ("", Missing...)
 	// Seuls les attributs natifs sont gardes
 	void CleanAllNonNativeAttributes();
@@ -296,7 +296,7 @@ protected:
 	//   (si possible, sinon detruits), soit detruits s'ils sont a supprimer
 	// - objets references laisses tels quels (ni mutes, ni detruits)
 	//
-	// Le dictionnaire des classe de mutation specifie pour chaque classe initiale
+	// Le dictionnaire des classes de mutation specifie pour chaque classe initiale
 	// la classe a utiliser pour la mutation
 	//
 	// Le dictionnaire des attributs a garder (dans la nouvelle classe) indique

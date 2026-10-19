@@ -11,6 +11,8 @@ import _kht_constants as kht
 import _kht_utils as utils
 import _kht_families as test_families
 import _kht_results_management as results
+import _kht_cloud_utils as cloud_utils
+from kht_test import build_tool_exe_path
 
 """
 Export de la sous-partie d'un repertoire LearningTest pour la famille de test specifiee
@@ -474,6 +476,7 @@ def main():
 
     # Arguments optionnels standards
     utils.argument_parser_add_family_argument(parser)
+    cloud_utils.argument_parser_add_cloud_directory_arguments(parser)
 
     # Argument sur le types d'export
     parser.add_argument(
@@ -499,6 +502,16 @@ def main():
     # Verification de l'argument destination
     utils.argument_parser_check_destination_dir(parser, home_dir, args.dest)
 
+    # Verification des arguments --cloud-directory et --binaries
+    cloud_utils.argument_parser_check_cloud_directory_arguments(
+        parser, args.cloud_directory, args.binaries
+    )
+
+    # Resolution des options de cloudification
+    cloudify, cloud_directory = cloud_utils.resolve_cloudify_options(
+        args.cloud_directory, home_dir
+    )
+
     # Lancement de la commande
     export_learning_test_tree(
         home_dir,
@@ -509,6 +522,17 @@ def main():
         args.family,
         args.export_type,
     )
+
+    # Cloudification de l'arborescence exportee si necessaire
+    if cloudify:
+        target_home_dir = os.path.join(args.dest, kht.LEARNING_TEST)
+        tool_exe_path, _ = build_tool_exe_path(
+            args.binaries, kht.KHIOPS, use_khiops_env=False
+        )  # la methode a deja ete appelee dans argument_parser_check_cloud_directory_arguments,
+        # pas besoin de regarder le message d'erreur ici
+        cloud_utils.cloudify_learning_test_tree(
+            target_home_dir, cloud_directory, tool_exe_path=tool_exe_path
+        )
 
 
 if __name__ == "__main__":

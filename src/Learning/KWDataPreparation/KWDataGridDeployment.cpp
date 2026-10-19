@@ -50,7 +50,7 @@ void KWDataGridDeployment::PrepareForDeployment()
 	KWDGAttribute* dgAttribute;
 	IntVector* ivFrequencyVector;
 
-	require(Check());
+	require(CheckPartially());
 	require(GetDeploymentAttribute() != NULL);
 	require(dgNewDeploymentPart == NULL);
 
@@ -75,6 +75,8 @@ void KWDataGridDeployment::PrepareForDeployment()
 	dvDeploymentDistances.SetSize(GetDeploymentAttribute()->GetPartNumber());
 
 	// Creation d'une partie a deployer
+	// Il s'agit d'un nouvelle partie destinee a accueillir les nouvelles donnees,
+	// avant de rechercher la partie existante la plus proche pour le deploiement
 	dgNewDeploymentPart = cast(KWDGMPart*, GetDeploymentAttribute()->AddPart());
 	assert(dgNewDeploymentPart == GetDeploymentAttribute()->GetTailPart());
 
@@ -96,6 +98,7 @@ void KWDataGridDeployment::PrepareForDeployment()
 
 	// Mise a jour des statistiques sur la grille
 	UpdateAllStatistics();
+	assert(CheckPartially());
 
 	// Initialisation de la structure de couts
 	dataGridCosts.InitializeDefaultCosts(this);
@@ -406,7 +409,7 @@ boolean KWDataGridDeployment::CheckDeploymentPreparation() const
 	boolean bOk = true;
 	int nAttribute;
 
-	require(Check());
+	require(CheckPartially());
 
 	// Verification de la nouvelle partie de deploiement (par des assertion
 	assert(dgNewDeploymentPart != NULL);
@@ -456,24 +459,6 @@ boolean KWDataGridDeployment::CheckDeploymentPreparation() const
 	return bOk;
 }
 
-boolean KWDataGridDeployment::Check() const
-{
-	boolean bOk = true;
-	ALString sTmp;
-
-	// Test de la methode ancetre
-	bOk = KWDataGridMerger::Check();
-
-	// Test s'il y a au moins deux variables
-	if (bOk and GetAttributeNumber() < 2)
-	{
-		AddError("The number of variables should be at least two");
-		bOk = false;
-	}
-
-	return bOk;
-}
-
 longint KWDataGridDeployment::GetUsedMemory() const
 {
 	longint lUsedMemory;
@@ -504,6 +489,24 @@ const ALString KWDataGridDeployment::GetObjectLabel() const
 		return KWDataGridMerger::GetObjectLabel();
 	else
 		return "(" + GetAttributeAt(0)->GetAttributeName() + ", " + GetAttributeAt(1)->GetAttributeName() + ")";
+}
+
+boolean KWDataGridDeployment::InternalCheck(boolean bCheckPartially) const
+{
+	boolean bOk = true;
+	ALString sTmp;
+
+	// Test de la methode ancetre
+	bOk = KWDataGridMerger::InternalCheck(bCheckPartially);
+
+	// Test s'il y a au moins deux variables
+	if (bOk and GetAttributeNumber() < 2)
+	{
+		AddError("The number of variables should be at least two");
+		bOk = false;
+	}
+
+	return bOk;
 }
 
 KWDGAttribute* KWDataGridDeployment::NewAttribute() const

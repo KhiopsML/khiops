@@ -20,7 +20,7 @@ void KWDataTableDriverStream::CopyFrom(const KWDataTableDriver* kwdtdSource)
 	// Copie standard
 	KWDataTableDriverTextFile::CopyFrom(kwdtdSource);
 
-	// Recopie des attribut supplementaires
+	// Recopie des attributs supplementaires
 	SetHeaderLine(kwdttfSource->GetHeaderLine());
 }
 

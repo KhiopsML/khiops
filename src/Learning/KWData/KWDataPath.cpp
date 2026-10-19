@@ -1012,7 +1012,7 @@ KWDataPath* KWDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClass
 	// Memorisation de ce dataPath dans le tableau exhaustif de tous les dataPath
 	oaCreatedDataPaths->Add(dataPath);
 
-	// Ajout des dataPath pour la composition de la classe ainsi que les classe referencees
+	// Ajout des dataPath pour la composition de la classe ainsi que les classes referencees
 	attribute = mappedClass->GetHeadAttribute();
 	while (attribute != NULL)
 	{
@@ -1031,7 +1031,7 @@ KWDataPath* KWDataPathManager::CreateDataPath(ObjectDictionary* odReferenceClass
 				// En cas de schema recursif, on calcule les data paths le plus loin possible
 				// avant apparition du cycle.
 				// - cela permet d'autoriser les cycles natifs dans le cas de certaines regles
-				//   - BuildList: on va jusqu'aux noeuds de la liste, sans les variable Prev et Next
+				//   - BuildList: on va jusqu'aux noeuds de la liste, sans les variables Prev et Next
 				//   - BuildGraph:
 				//     - noeuds du graphes, leur liste d'arcs adjacents (sans les noeuds extremites des arcs)
 				//     - arcs du graphs, noeuds extremites (sans leurs arcs adjacents)

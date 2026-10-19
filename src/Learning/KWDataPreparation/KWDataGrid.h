@@ -44,7 +44,7 @@ class KWDGInnerAttributes;
 //
 //   - coclustering instances x variables (cf. these de Aichetou)
 //      - pour l'analyse exploratoire d'une base de donnees, en groupa
-//      - extension des data grid, avec un des attribut de type VarPart (extension sous forme de parametrage additionnel
+//      - extension des data grid, avec un des attributs de type VarPart (extension sous forme de parametrage additionnel
 //      de la meme classe)
 //        - un attribut de la grille peut etre soit numerique, soit categoriel, soit constitue de parties de variables
 //        - dans la these d'Aichetou
@@ -180,7 +180,7 @@ public:
 	// avec valeurs cibles a grouper).
 	KWDGAttribute* GetTargetAttribute() const;
 
-	// Indique si la grille est de type instances x variables, car un de ses attribut est de type VarPart
+	// Indique si la grille est de type instances x variables, car un de ses attributs est de type VarPart
 	boolean IsVarPartDataGrid() const;
 
 	// Acces a l'attribut de type VarPart d'un grille si elle de type instances x variables, NULL sinon
@@ -231,8 +231,11 @@ public:
 
 	// Construction/destruction des structures d'indexation des attributs,
 	// qui permettent de trouver les parties a partir des valeurs dans chaque attribut
-	void BuildIndexingStructure();
-	void DeleteIndexingStructure();
+	void BuildIndexingStructure() const;
+	void DeleteIndexingStructure() const;
+
+	// Estimation de la memoire necessaire pour la structure d'indexation
+	longint ComputeNecessaryMemoryForIndexingStructure() const;
 
 	// Creation d'une cellule en specifiant le tableau des parties dont il est le N-uplet
 	// La cellule est ajoutes en fin de liste de chacune des parties d'attribut
@@ -295,9 +298,9 @@ public:
 	// L'entropie permet de mesurer la quantite d'information (en bits)
 	// pour coder une variable
 	// Entropie = somme( -p(x) log(p(x)), avec p(x) = e(x)/e
-	double ComputeSourceEntropy();
-	double ComputeTargetEntropy();
-	double ComputeMutualEntropy();
+	double ComputeSourceEntropy() const;
+	double ComputeTargetEntropy() const;
+	double ComputeMutualEntropy() const;
 
 	///////////////////////////////
 	// Services divers
@@ -306,10 +309,19 @@ public:
 	// Les creations de partie d'attribut se font depuis une methode NewPart dans les attributs
 	virtual KWDGAttribute* NewAttribute() const;
 
-	// Verification de la validite de la structure du DataGrid
+	// Verification complete de la validite de la structure du DataGrid
 	// Controle d'integrite global (attributs, parties, cellules...)
 	// Attention: operation couteuse en O(k.n^2)
 	boolean Check() const override;
+
+	// Verification partielle, la plus detaillee possible
+	// Il existe des cas ou la verification ne peut etre que partielle, notamment en ce qui concerne
+	// les effectifs des valeurs des attributs categoriels
+	// - element de grille en cours de specification, les effectifs etant alimentes par la suite
+	// - grille provenant d'un dictionnaire de deploiement, donc la partition des valeurs en groupes
+	//   est specifiee, mais sans les effectifs
+	// - ...
+	virtual boolean CheckPartially() const;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -381,6 +393,9 @@ public:
 
 protected:
 	friend class KWDGAttribute;
+
+	// Controle d'integrite interne, appelee par Check et CheckPartially avec le bon parametere
+	virtual boolean InternalCheck(boolean bCheckPartially) const;
 
 	// Modification de l'attribut cible
 	void SetTargetAttribute(KWDGAttribute* attribute);
@@ -496,6 +511,7 @@ public:
 	void SetOwnerAttributeName(ALString sName);
 
 	// Parametrage des attributs internes dans le cas d'un attribut de grille de type VarPart
+	// On met a jour egalement le InitialValueNumber, qui doit correspondre au nombre total de parties des attributs internes
 	// Note sur la gestion memoire des attributs internes
 	// - les attributs internes peuvent etre partagee entre plusieurs grilles
 	// - grace a un comptage de reference propre aux attributs internes, ceux-ci sont automatiquement
@@ -606,25 +622,31 @@ public:
 	// plusieurs fois), et enfin detruite
 
 	// Construction des structures d'indexation
-	void BuildIndexingStructure();
+	void BuildIndexingStructure() const;
 
 	// Destruction des structures d'indexation
-	void DeleteIndexingStructure();
+	void DeleteIndexingStructure() const;
 
 	// Indicateur d'indexation
 	boolean IsIndexed() const;
+
+	// Estimation de la memoire necessaire pour les structures d'indexation
+	longint ComputeNecessaryMemoryForIndexingStructure() const;
+
+	// Estimation de la memoire utilisee par element d'indexation, pour le dimensionnement a priori de la structure d'indexation
+	static longint GetUsedMemoryPerIndexingElement(int nAttributeType);
 
 	// Recherche de la partie contenant une valeur numerique, symbolique ou VarPart
 	// (doit etre compatible avec le type de l'attribut)
 	// Attention a ne pas modifier les valeurs (intervalles ou ensemble de valeurs)
 	// pendant l'utilisation de l'indexation
-	KWDGPart* LookupContinuousPart(Continuous cValue);
-	KWDGPart* LookupSymbolPart(const Symbol& sValue);
-	KWDGPart* LookupVarPart(KWDGPart* varPart);
+	KWDGPart* LookupContinuousPart(Continuous cValue) const;
+	KWDGPart* LookupSymbolPart(const Symbol& sValue) const;
+	KWDGPart* LookupVarPart(KWDGPart* varPart) const;
 
 	// Recherche generique de la partie contenant une valeur de ValueSet dans le cas
 	// d'un attribut de type groupable, symbolique ou VarPart
-	KWDGPart* LookupGroupablePart(const KWDGValue* value);
+	KWDGPart* LookupGroupablePart(const KWDGValue* value) const;
 
 	///////////////////////////////
 	// Services divers
@@ -642,6 +664,9 @@ public:
 	// les valeurs autres etant representees par une modalite speciale definie
 	// par Symbol::GetStarValue()
 	boolean Check() const override;
+
+	// Controle d'integrite partiel
+	virtual boolean CheckPartially() const;
 
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
@@ -686,6 +711,10 @@ protected:
 	friend class KWDataGrid;
 	friend class KWEvaluatedDataGrid;
 	friend class KWDataGridMerger;
+	friend class KWDGInnerAttributes;
+
+	// Controle d'integrite interne
+	virtual boolean InternalCheck(boolean bCheckPartially) const;
 
 	// Tri des parties selon une fonction de tri
 	void InternalSortParts(CompareFunction fCompare);
@@ -729,15 +758,15 @@ protected:
 
 	// Structure d'indexation des parties dans le cas numerique
 	// Tableau des parties (intervalles) tries de facon croissante
-	ObjectArray oaIntervals;
+	mutable ObjectArray oaIntervals;
 
 	// Structure d'indexation des parties dans le cas groupable
 	// Dictionnaire des parties indexe par les valeurs des parties, et partie par defaut
-	NumericKeyDictionary nkdParts;
-	KWDGPart* defaultPart;
+	mutable NumericKeyDictionary nkdParts;
+	mutable KWDGPart* defaultPart;
 
 	// Indicateur d'indexation
-	boolean bIsIndexed;
+	mutable boolean bIsIndexed;
 
 	// Nom de l'attribut de type VarPart dont depend un attribut interne
 	// Par defaut a vide pour un attribut de type Simple (numerique ou categoriel)
@@ -800,7 +829,7 @@ public:
 	// Nombre de cellules
 	int GetCellNumber() const;
 
-	// Parcours de tous les cellules
+	// Parcours de toutes les cellules
 	KWDGCell* GetHeadCell() const;
 	KWDGCell* GetTailCell() const;
 	void GetNextCell(KWDGCell*& cell) const;
@@ -830,6 +859,9 @@ public:
 	// Controle d'integrite local a la partie (valeurs, cellules de la partie)
 	boolean Check() const override;
 
+	// Controle d'integrite partiel
+	virtual boolean CheckPartially() const;
+
 	// Memoire utilisee par la partie
 	longint GetUsedMemory() const override;
 
@@ -852,6 +884,9 @@ protected:
 	friend class KWDataGrid;
 	friend class KWDataGridMerger;
 	friend class KWDGAttribute;
+
+	// Controle d'integrite interne
+	virtual boolean InternalCheck(boolean bCheckPartially) const;
 
 	// Methodes de creations virtuelles, permettant de specialiser la composition d'une partie
 	// dans une sous-classe
@@ -924,11 +959,19 @@ public:
 	// Controle d'integrite
 	boolean Check() const override = 0;
 
+	// Controle d'integrite partiel
+	virtual boolean CheckPartially() const = 0;
+
 	// Affichage
 	void Write(ostream& ost) const override = 0;
 
 	// Memoire utilisee par la partie, sans ses valeurs
 	longint GetUsedMemory() const override = 0;
+
+	///////////////////////////////
+	///// Implementation
+	// Controle d'integrite interne
+	virtual boolean InternalCheck(boolean bCheckPartially) const = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1018,6 +1061,9 @@ public:
 	// Controle d'integrite
 	boolean Check() const override;
 
+	// Controle d'integrite partiel
+	boolean CheckPartially() const override;
+
 	// Affichage
 	void Write(ostream& ost) const override;
 	void WriteValues(ostream& ost) const;
@@ -1037,6 +1083,9 @@ public:
 	void SetValueNumber(int nValue);
 
 protected:
+	// Controle d'integrite interne
+	boolean InternalCheck(boolean bCheckPartially) const override;
+
 	// Ajout d'une valeur en fin de liste
 	void AddTailValue(KWDGValue* value);
 
@@ -1285,6 +1334,9 @@ public:
 	// Controle d'integrite
 	boolean Check() const override;
 
+	// Controle d'integrite partiel
+	boolean CheckPartially() const override;
+
 	// Affichage
 	void Write(ostream& ost) const override;
 
@@ -1298,6 +1350,9 @@ public:
 	///////////////////////////////
 	///// Implementation
 protected:
+	// Controle d'integrite interne
+	boolean InternalCheck(boolean bCheckPartially) const override;
+
 	// Bornes de l'intervalle
 	Continuous cLowerBound;
 	Continuous cUpperBound;
@@ -1410,10 +1465,6 @@ public:
 	// Acces a un attribut interne par nom
 	KWDGAttribute* LookupInnerAttribute(const ALString& sAttributeName) const;
 
-	// Acces a la granularite des parties de variable, partages par tous les attributs
-	int GetVarPartGranularity() const;
-	void SetVarPartGranularity(int nValue);
-
 	///////////////////////////////
 	// Services divers
 
@@ -1440,12 +1491,15 @@ public:
 	boolean AreInnerAttributePartsSorted() const;
 
 	// Test si les attributs internes sont constitues des memes attributs, ne contenant que des sous-parties
-	// des VarPart des autres attributs internes en parametressi Verification du tri des parties des attributs internes :
+	// des VarPart des autres attributs internes en parametres
 	// Test couteux, a utiliser essentiellement dans les assertions
 	boolean ContainsSubVarParts(const KWDGInnerAttributes* otherInnerAttributes) const;
 
 	// Controle d'integrite
 	boolean Check() const override;
+
+	// Controle d'integrite partiel
+	virtual boolean CheckPartially() const;
 
 	// Affichage
 	void Write(ostream& ost) const override;
@@ -1461,10 +1515,13 @@ protected:
 	// entre plusieurs grilles et les desallouer automatiquement quand elle ne sont plus utilisees
 	// Cela permet de mutualiser une structure lourde sans se soucier de la dynamique des utilisations
 	// lors des algorithmes d'optimisation
+	friend class KWDataGrid;
 	friend class KWDGAttribute;
 
+	// Controle d'integrite interne
+	virtual boolean InternalCheck(boolean bCheckPartially) const;
+
 	// Gestion des attributs internes
-	int nVarPartGranularity;
 	ObjectDictionary odInnerAttributes;
 	ObjectArray oaInnerAttributes;
 
@@ -1796,18 +1853,28 @@ inline void KWDGAttribute::SetInnerAttributes(const KWDGInnerAttributes* attribu
 {
 	require(GetAttributeType() == KWType::VarPart);
 
-	// Decrementation des references sur les attributs internes d'origine, et desallocation si necessaire
-	if (innerAttributes != NULL)
+	// Gestion des compteur de reference sauf s'il ny a pas de changement d'attribut interne
+	if (attributes != innerAttributes)
 	{
-		innerAttributes->nRefCount--;
-		if (innerAttributes->nRefCount == 0)
-			delete innerAttributes;
+		// Decrementation des references sur les attributs internes d'origine, et desallocation si necessaire
+		if (innerAttributes != NULL)
+		{
+			innerAttributes->nRefCount--;
+			if (innerAttributes->nRefCount == 0)
+				delete innerAttributes;
+		}
+
+		// Incrementation des references sur les nouveaux attributs internes
+		if (attributes != NULL)
+			attributes->nRefCount++;
+		innerAttributes = attributes;
 	}
 
-	// Incrementation des references sur les nouveaux attributs internes
-	if (attributes != NULL)
-		attributes->nRefCount++;
-	innerAttributes = attributes;
+	// Mise a jour du nombre initial de parties de variable sur l'ensemble des attributs internes
+	if (attributes == NULL)
+		nInitialValueNumber = 0;
+	else
+		nInitialValueNumber = attributes->ComputeTotalInnerAttributeVarParts();
 }
 
 inline const KWDGInnerAttributes* KWDGAttribute::GetInnerAttributes() const
@@ -2309,7 +2376,6 @@ inline int KWDGVarPartValue::GetValueFrequency() const
 // Classe KWDGInnerAttributes
 inline KWDGInnerAttributes::KWDGInnerAttributes()
 {
-	nVarPartGranularity = 0;
 	nRefCount = 0;
 }
 

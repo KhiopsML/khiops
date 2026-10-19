@@ -2304,8 +2304,8 @@ MemAllocErrorHandler MemGetDefaultAllocErrorHandler()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
-// Utilisation du "nifty ccounter trick" pour forcer l'initialisatiopn de la heap
-// avant tout constructeur d'un objet statique (hros librairies standard: sdtream...)
+// Utilisation du "nifty counter trick" pour forcer l'initialisation de la heap
+// avant tout constructeur d'un objet statique (hors librairies standard: sdtream...)
 // En declarant un objet statique PrivateHeapInitializer dans chaque header, on
 // force l'appel au constructeur de la heap (appele une seule fois) a etre appele
 // avant toute construction d'objet statique

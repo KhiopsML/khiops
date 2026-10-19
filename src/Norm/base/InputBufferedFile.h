@@ -98,6 +98,7 @@ public:
 	//          	{
 	//          		SkipLine();
 	//          		lLineNumber++;
+	//               }
 	//          }
 	//			// Sinon, on compte une ligne pour la ligne trop longue
 	//          else
@@ -541,6 +542,15 @@ protected:
 
 	// Nombre total d'octets lus
 	longint lTotalPhysicalReadBytes;
+
+	///////////////////////////////////////////
+	// Buffer statique dedie a la lecture des champs dans GetNextField
+
+	// Buffer statique pour la lecture des champs
+	static char* sFieldBuffer;
+
+	// Destruction du buffer (utilise dans le atexit)
+	static void DeleteFieldBuffer();
 
 	// Classes friend pour permettre a la librairie Parallel de gerer les fichiers distants
 	friend class PLMPIFileServerSlave; // Serialisation des attributs InputBuffer pour les servers de fichiers

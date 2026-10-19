@@ -71,7 +71,7 @@ public:
 	KWDataPreparationTargetAttribute* GetDataPreparationTargetAttribute();
 
 	// Acces indexe aux specifications de preparation des attributs
-	// Les attribut prepares ont leur index initialise en coherence avec le container
+	// Les attributs prepares ont leur index initialise en coherence avec le container
 	// (references aux attributs avant et apres recodage, et a leurs statistiques)
 	// Memoire: le container et son contenu appartiennent a l'appele
 	ObjectArray* GetDataPreparationAttributes();

@@ -48,12 +48,12 @@ public:
 	// Accessible uniquement si statistiques calculees
 
 	// Acces aux statistiques descriptives (type de stats dependant du type de l'attribut)
-	KWDescriptiveStats* GetDescriptiveStats();
+	KWDescriptiveStats* GetDescriptiveStats() const;
 
 	// Acces aux stats par valeur dans le cas Symbol
 	// Les valeurs sont triees par effectif decroissant, avec au plus une valeur d'effectif 1,
 	// les autres etant fusionnees sous la StarValue
-	KWDataGridStats* GetSymbolValueStats();
+	KWDataGridStats* GetSymbolValueStats() const;
 
 	/////////////////////////////////////////////////////
 	// Rapport sur les resultats
@@ -183,7 +183,7 @@ protected:
 	// Resultats de discretisation non supervise MODL
 	KWMODLHistogramResults* modlHistogramResults;
 
-	// Calsle en friend pour les variable partagees des methodes parallelisees
+	// Calsle en friend pour les variables partagees des methodes parallelisees
 	friend class PLShared_AttributeStats;
 };
 

@@ -686,7 +686,7 @@ int KWSortableObjectCompareKeyIndex(const void* elem1, const void* elem2)
 	kwoObject2 = cast(KWObject*, sortableObject2->GetSortValue());
 	nCompare = KWObjectCompareKey(&kwoObject1, &kwoObject2);
 
-	// En cas d'agalite, tri selon l'index
+	// En cas d'egalite, tri selon l'index
 	if (nCompare == 0)
 		nCompare = sortableObject1->GetIndex() - sortableObject2->GetIndex();
 	return nCompare;

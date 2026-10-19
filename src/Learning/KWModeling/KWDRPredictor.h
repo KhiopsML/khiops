@@ -8,9 +8,9 @@
 // Regles de derivation pour le deploiement des modeles predictifs
 // Les classes KWDRClassifier et KWDRRegressor sont des classes virtuelles
 // a redefinir pour specialiser un predicteur.
-// Ces classe de type Structure renvoie une structure "Classifier" ou "Regressor"
+// Ces classes de type Structure renvoient une structure "Classifier" ou "Regressor"
 // (la regle elle meme), qui donne acces a toutes les methodes de prediction.
-// Les services de prediction sont des regles generique, prenant en premier argument
+// Les services de prediction sont des regles generiques, prenant en premier argument
 // la structure du predicteur.
 
 // Specification d'un classifieur

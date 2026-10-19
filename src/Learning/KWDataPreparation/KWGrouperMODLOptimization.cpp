@@ -2174,7 +2174,7 @@ void KWGrouperMODL::EMPostOptimizeGroupsWithGarbage(KWFrequencyTable* kwftSource
 					// Evaluation de la variation globale du cout
 					dDeltaCost = dOutDeltaCost + dInDeltaCost + dPartitionDeltaCost;
 
-					// CH AB DDD pour affichage systematique, a enlever a terme
+					// CH AB pour affichage systematique, a enlever a terme
 					// if (bTraceDeltaCosts and dDeltaCost < dBestDeltaCost - dEpsilon)
 					if (bTraceDeltaCosts)
 					{

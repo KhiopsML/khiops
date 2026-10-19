@@ -28,7 +28,7 @@ const KWDataGridCosts* KWDataGridPostOptimizer::GetDataGridCosts() const
 double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid,
 						     boolean bDeepPostOptimization) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	double dBestCost;
 	double dCost;
 	boolean bImproved;
@@ -48,6 +48,8 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 	require(initialDataGrid != NULL);
 	require(optimizedDataGrid->Check());
 	require(initialDataGrid->Check());
+	require(not initialDataGrid->IsVarPartDataGrid() or
+		initialDataGrid->GetInnerAttributes() == optimizedDataGrid->GetInnerAttributes());
 
 	// Debut de tache
 	TaskProgression::BeginTask();
@@ -64,7 +66,7 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 	dBestCost = dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
 
 	// Affichage de la grille initiale avec ses couts
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "\nPost-optimisation: grille initiale" << sTaskLabel << endl;
 
@@ -75,7 +77,7 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 	}
 
 	// Affichage des resultats initiaux
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Local optimisation" << endl;
 		cout << "Initial\t" << dBestCost << "\t" << optimizedDataGrid->GetObjectLabel() << endl;
@@ -169,7 +171,7 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 			}
 
 			// Affichage de l'amelioration
-			if (bDisplayResults)
+			if (bTrace)
 			{
 				cout << dataGridAttribute->GetAttributeName() << "\t" << dCost << "\t" << bImproved
 				     << "\t" << optimizedDataGrid->GetObjectLabel() << endl;
@@ -178,7 +180,7 @@ double KWDataGridPostOptimizer::PostOptimizeDataGrid(const KWDataGrid* initialDa
 	}
 
 	// Affichage de la grille finale avec ses couts
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Local optimisation: grille finale apres " << nStepNumber << " etapes d'amelioration " << endl;
 		if (optimizedDataGrid->GetAttributeNumber() == 2)
@@ -203,7 +205,7 @@ KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* optimi
 							const KWDataGrid* initialDataGrid,
 							const ALString& sPostOptimizationAttributeName) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWDataGrid* univariateInitialDataGrid;
 	KWDataGridManager dataGridManager;
 	KWDGAttribute* postOptimizationAttribute;
@@ -240,7 +242,7 @@ KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* optimi
 	dataGridManager.ExportCells(initialDataGrid, univariateInitialDataGrid);
 
 	// Affichage des resultats
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Preparation d'une grille pour l'optimisation univariee\t" << sPostOptimizationAttributeName
 		     << endl;
@@ -286,7 +288,7 @@ const ALString& KWDGPODiscretizer::GetPostOptimizationAttributeName() const
 double KWDGPODiscretizer::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, const KWDataGridCosts* dataGridCosts,
 					       KWDataGrid* optimizedDataGrid, boolean bDeepPostOptimization) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	double dCost;
 	KWDataGridUnivariateCosts* dataGridUnivariateCosts;
 	KWDataGridManager dataGridManager;
@@ -311,7 +313,7 @@ double KWDGPODiscretizer::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid
 		    initialDataGrid->SearchAttribute(GetPostOptimizationAttributeName())->GetPartNumber());
 
 	// Affichage de la grille initiale avec ses couts
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "\nPost-optimisation (discretisation): grille initiale" << endl;
 		cout << "\tAttribut optimise: " << GetPostOptimizationAttributeName() << endl;
@@ -395,7 +397,7 @@ double KWDGPODiscretizer::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid
 	}
 
 	// Affichage de la grille finale avec ses couts
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Post-optimisation (discretisation): grille finale" << endl;
 		if (optimizedDataGrid->GetAttributeNumber() == 2)
@@ -416,7 +418,7 @@ double KWDGPODiscretizer::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid
 void KWDGPODiscretizer::InitializeFrequencyTableFromDataGrid(KWFrequencyTable* kwftFrequencyTable,
 							     const KWDataGrid* dataGrid) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	NumericKeyDictionary nkdHashCells;
 	KWDGAttribute* dataGridAttribute;
 	KWDGPart* dataGridPart;
@@ -467,7 +469,7 @@ void KWDGPODiscretizer::InitializeFrequencyTableFromDataGrid(KWFrequencyTable* k
 	}
 
 	// Affichage des resultats
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Construction d'une table d'effectifs a partir d'une grille" << endl;
 		cout << "Grille en entree\n" << *dataGrid << endl;
@@ -679,7 +681,7 @@ void KWDGPODiscretizer::InitializeHashCellDictionary(NumericKeyDictionary* nkdHa
 KWMODLLine* KWDGPODiscretizer::BuildIntervalListFromFrequencyTableAndOptimizedDataGrid(
     KWMODLLine* lineCreator, const KWFrequencyTable* kwftTable, const KWDataGrid* optimizedDataGrid) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWMODLLine* headLine;
 	IntVector ivIntervalLastLineIndexes;
 	KWDGAttribute* dataGridAttribute;
@@ -733,7 +735,7 @@ KWMODLLine* KWDGPODiscretizer::BuildIntervalListFromFrequencyTableAndOptimizedDa
 	    BuildIntervalListFromFrequencyTableAndIntervalBounds(lineCreator, kwftTable, &ivIntervalLastLineIndexes);
 
 	// Affichage des resultats
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Construction d'une liste d'intervalles a partir d'une grille optimisee" << endl;
 		cout << "Table d'effectifs en entree\n" << *kwftTable << endl;
@@ -751,7 +753,7 @@ KWMODLLine* KWDGPODiscretizer::BuildIntervalListFromFrequencyTableAndOptimizedDa
 void KWDGPODiscretizer::UpdateDataGridFromIntervalList(KWDataGrid* optimizedDataGrid, const KWDataGrid* initialDataGrid,
 						       KWMODLLine* headLine) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWDataGridManager dataGridManager;
 	KWDGAttribute* initialAttribute;
 	KWDGAttribute* optimizedAttribute;
@@ -771,7 +773,7 @@ void KWDGPODiscretizer::UpdateDataGridFromIntervalList(KWDataGrid* optimizedData
 	initialAttribute = initialDataGrid->SearchAttribute(sPostOptimizationAttributeName);
 	optimizedAttribute = optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName);
 
-	// On vide la grille optimisee de ses cellules, en preservant ses attribut et leur partition
+	// On vide la grille optimisee de ses cellules, en preservant ses attributs et leur partition
 	optimizedDataGrid->DeleteAllCells();
 
 	// On reinitialise a vide les partie pour l'attribut a post-optimiser
@@ -825,7 +827,7 @@ void KWDGPODiscretizer::UpdateDataGridFromIntervalList(KWDataGrid* optimizedData
 	dataGridManager.ExportCells(initialDataGrid, optimizedDataGrid);
 
 	// Affichage des resultats
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Preparation d'une grille pour l'optimisation univariee\t" << sPostOptimizationAttributeName
 		     << endl;
@@ -860,7 +862,7 @@ void KWDGPODiscretizer::CleanWorkingData() const {}
 void KWDGPODiscretizer::AddFrequencyVector(KWFrequencyVector* kwfvSourceFrequencyVector,
 					   const KWFrequencyVector* kwfvAddedFrequencyVector) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWDGPOPartFrequencyVector* sourcePartFrequencyVector;
 	const KWDGPOPartFrequencyVector* addedPartFrequencyVector;
 	POSITION positionVector;
@@ -876,7 +878,7 @@ void KWDGPODiscretizer::AddFrequencyVector(KWFrequencyVector* kwfvSourceFrequenc
 	require(CheckFrequencyVector(kwfvAddedFrequencyVector));
 
 	// Affichage des parties initiales
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Ajout d'une partie\n";
 		cout << "SourcePart\n" << *kwfvSourceFrequencyVector << endl;
@@ -937,7 +939,7 @@ void KWDGPODiscretizer::AddFrequencyVector(KWFrequencyVector* kwfvSourceFrequenc
 	sourcePartFrequencyVector->SetCellCost(dPartCost);
 
 	// Affichage de la partie modifiee
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "ModifiedSourcePart\n" << *kwfvSourceFrequencyVector << endl;
 
 	ensure(sourcePartFrequencyVector->GetCellNumber() >= addedPartFrequencyVector->GetCellNumber());
@@ -948,7 +950,7 @@ void KWDGPODiscretizer::AddFrequencyVector(KWFrequencyVector* kwfvSourceFrequenc
 void KWDGPODiscretizer::RemoveFrequencyVector(KWFrequencyVector* kwfvSourceFrequencyVector,
 					      const KWFrequencyVector* kwfvRemovedFrequencyVector) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWDGPOPartFrequencyVector* sourcePartFrequencyVector;
 	const KWDGPOPartFrequencyVector* removedPartFrequencyVector;
 	POSITION positionVector;
@@ -964,7 +966,7 @@ void KWDGPODiscretizer::RemoveFrequencyVector(KWFrequencyVector* kwfvSourceFrequ
 	require(CheckFrequencyVector(kwfvRemovedFrequencyVector));
 
 	// Affichage des parties initiales
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Supression d'une partie\n";
 		cout << "SourcePart\n" << *kwfvSourceFrequencyVector << endl;
@@ -1023,7 +1025,7 @@ void KWDGPODiscretizer::RemoveFrequencyVector(KWFrequencyVector* kwfvSourceFrequ
 	sourcePartFrequencyVector->SetCellCost(dPartCost);
 
 	// Affichage de la partie modifiee
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "ModifiedSourcePart\n" << *kwfvSourceFrequencyVector << endl;
 
 	ensure(sourcePartFrequencyVector->GetFrequency() == sourcePartFrequencyVector->ComputeTotalFrequency());
@@ -1206,7 +1208,7 @@ const ALString& KWDGPOGrouper::GetPostOptimizationAttributeName() const
 double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, const KWDataGridCosts* dataGridCosts,
 					   KWDataGrid* optimizedDataGrid, boolean bDeepPostOptimization) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	double dCost;
 	KWDataGridUnivariateCosts* dataGridUnivariateCosts;
 	KWDataGridManager dataGridManager;
@@ -1234,7 +1236,7 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 		    initialDataGrid->SearchAttribute(GetPostOptimizationAttributeName())->GetPartNumber());
 
 	// Affichage de la grille initiale avec ses couts
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "\nPost-optimisation (groupement de valeurs): grille initiale" << endl;
 		cout << "\tAttribut optimise: " << GetPostOptimizationAttributeName() << endl;
@@ -1277,7 +1279,7 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 	// Cas ou l'attribut de grille a un groupe poubelle
 	if (optimizedDataGrid->SearchAttribute(GetPostOptimizationAttributeName())->GetGarbagePart() != NULL)
 	{
-		if (bDisplayResults)
+		if (bTrace)
 			cout << "PostOptimizeDataGrid:GarbageVarParts:Cas ou l'attribut de grille a un groupe poubelle"
 			     << endl;
 		// Initialisation de la taille du groupe poubelle
@@ -1338,7 +1340,7 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 	dCost = ComputePartitionGlobalCost(&groupedFrequencyTable);
 
 	// Affichage de la grille finale avec ses couts
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		boolean bDebugPostOptimization = false;
 
@@ -1367,7 +1369,7 @@ double KWDGPOGrouper::PostOptimizeDataGrid(const KWDataGrid* initialDataGrid, co
 void KWDGPOGrouper::InitializeFrequencyTableFromDataGrid(KWFrequencyTable* kwftFrequencyTable,
 							 const KWDataGrid* dataGrid) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	NumericKeyDictionary nkdHashCells;
 	KWDGAttribute* dataGridAttribute;
 	KWDGPart* dataGridPart;
@@ -1413,7 +1415,7 @@ void KWDGPOGrouper::InitializeFrequencyTableFromDataGrid(KWFrequencyTable* kwftF
 	}
 
 	// Affichage des resultats
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Construction d'une table d'effectifs a partir d'une grille" << endl;
 		cout << "Grille en entree\n" << *dataGrid << endl;
@@ -1813,7 +1815,7 @@ void KWDGPOGrouper::UpdateDataGridWithGarbageFromGroups(KWDataGrid* optimizedDat
 							const KWDataGrid* initialDataGrid, const IntVector* ivGroups,
 							int nGroupNumber) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWDataGridManager dataGridManager;
 	KWDGAttribute* initialAttribute;
 	KWDGAttribute* optimizedAttribute;
@@ -1833,7 +1835,7 @@ void KWDGPOGrouper::UpdateDataGridWithGarbageFromGroups(KWDataGrid* optimizedDat
 	optimizedAttribute = optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName);
 	assert(KWType::IsCoclusteringGroupableType(initialAttribute->GetAttributeType()));
 
-	// On vide la grille optimisee de ses cellules, en preservant ses attribut et leur partition
+	// On vide la grille optimisee de ses cellules, en preservant ses attributs et leur partition
 	optimizedDataGrid->DeleteAllCells();
 
 	// On reinitialise a vide les partie pour l'attribut a post-optimiser
@@ -1880,7 +1882,7 @@ void KWDGPOGrouper::UpdateDataGridWithGarbageFromGroups(KWDataGrid* optimizedDat
 	dataGridManager.ExportCells(initialDataGrid, optimizedDataGrid);
 
 	// Affichage des resultats
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Preparation d'une grille pour l'optimisation univariee\t" << sPostOptimizationAttributeName
 		     << endl;
@@ -1912,7 +1914,7 @@ void KWDGPOGrouper::CleanWorkingData() const {}
 void KWDGPOGrouper::AddFrequencyVector(KWFrequencyVector* kwfvSourceFrequencyVector,
 				       const KWFrequencyVector* kwfvAddedFrequencyVector) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWDGPOPartFrequencyVector* sourcePartFrequencyVector;
 	const KWDGPOPartFrequencyVector* addedPartFrequencyVector;
 	POSITION positionVector;
@@ -1928,7 +1930,7 @@ void KWDGPOGrouper::AddFrequencyVector(KWFrequencyVector* kwfvSourceFrequencyVec
 	require(CheckFrequencyVector(kwfvAddedFrequencyVector));
 
 	// Affichage des parties initiales
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Ajout d'une partie\n";
 		cout << "SourcePart\n" << *kwfvSourceFrequencyVector << endl;
@@ -1989,7 +1991,7 @@ void KWDGPOGrouper::AddFrequencyVector(KWFrequencyVector* kwfvSourceFrequencyVec
 	sourcePartFrequencyVector->SetCellCost(dPartCost);
 
 	// Affichage de la partie modifiee
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "ModifiedSourcePart\n" << *kwfvSourceFrequencyVector << endl;
 
 	ensure(sourcePartFrequencyVector->GetCellNumber() >= addedPartFrequencyVector->GetCellNumber());
@@ -2000,7 +2002,7 @@ void KWDGPOGrouper::AddFrequencyVector(KWFrequencyVector* kwfvSourceFrequencyVec
 void KWDGPOGrouper::RemoveFrequencyVector(KWFrequencyVector* kwfvSourceFrequencyVector,
 					  const KWFrequencyVector* kwfvRemovedFrequencyVector) const
 {
-	boolean bDisplayResults = false;
+	const boolean bTrace = false;
 	KWDGPOPartFrequencyVector* sourcePartFrequencyVector;
 	const KWDGPOPartFrequencyVector* removedPartFrequencyVector;
 	POSITION positionVector;
@@ -2016,7 +2018,7 @@ void KWDGPOGrouper::RemoveFrequencyVector(KWFrequencyVector* kwfvSourceFrequency
 	require(CheckFrequencyVector(kwfvRemovedFrequencyVector));
 
 	// Affichage des parties initiales
-	if (bDisplayResults)
+	if (bTrace)
 	{
 		cout << "Supression d'une partie\n";
 		cout << "SourcePart\n" << *kwfvSourceFrequencyVector << endl;
@@ -2075,7 +2077,7 @@ void KWDGPOGrouper::RemoveFrequencyVector(KWFrequencyVector* kwfvSourceFrequency
 	sourcePartFrequencyVector->SetCellCost(dPartCost);
 
 	// Affichage de la partie modifiee
-	if (bDisplayResults)
+	if (bTrace)
 		cout << "ModifiedSourcePart\n" << *kwfvSourceFrequencyVector << endl;
 
 	ensure(sourcePartFrequencyVector->GetFrequency() == sourcePartFrequencyVector->ComputeTotalFrequency());
@@ -3026,7 +3028,7 @@ int KWDGPOPartFrequencyVector::ComputeTotalFrequency() const
 
 void KWDGPOPartFrequencyVector::WriteHeaderLineReport(ostream& ost) const
 {
-	boolean bDisplayCellSummary = true;
+	const boolean bWriteCellSummary = true;
 	POSITION positionVector;
 	KWDGPOCellFrequencyVector* cellFrequencyVector;
 
@@ -3035,7 +3037,7 @@ void KWDGPOPartFrequencyVector::WriteHeaderLineReport(ostream& ost) const
 	ost << "Cells\tFrequency\tCost\t";
 
 	// Entete pour la premiere cellule
-	if (bDisplayCellSummary)
+	if (bWriteCellSummary)
 	{
 		positionVector = GetHeadPosition();
 		if (positionVector != NULL)
@@ -3048,7 +3050,7 @@ void KWDGPOPartFrequencyVector::WriteHeaderLineReport(ostream& ost) const
 
 void KWDGPOPartFrequencyVector::WriteLineReport(ostream& ost) const
 {
-	boolean bDisplayCellSummary = true;
+	const boolean bWriteCellSummary = true;
 	POSITION positionVector;
 	KWDGPOCellFrequencyVector* cellFrequencyVector;
 	KWDGPOCellFrequencyVector cellFrequencyVectorBuffer;
@@ -3061,7 +3063,7 @@ void KWDGPOPartFrequencyVector::WriteLineReport(ostream& ost) const
 	ost << ComputeTotalCellCost() << "\t";
 
 	// Resume des cellules
-	if (bDisplayCellSummary)
+	if (bWriteCellSummary)
 	{
 		// Parcours des cellules pour en constituer le resume
 		cellFrequencyVectorSummary = NULL;
@@ -3375,7 +3377,7 @@ const ALString& CCVarPartDataGridPostOptimizer::GetPostOptimizationAttributeName
 }
 
 boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const KWDataGrid* referenceDataGrid,
-									 KWDataGrid* optimizedDataGrid,
+									 const KWDataGrid* optimizedDataGrid,
 									 IntVector* ivGroups) const
 {
 	KWDGAttribute* innerAttribute;
@@ -3417,8 +3419,8 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 	int nInnerAttribute;
 	int nImprovementNumber;
 	ALString sInnerAttributeName;
-	boolean bDisplayCosts = false;
-	boolean bDisplayImprovement = false;
+	const boolean bTraceCosts = false;
+	const boolean bTraceImprovements = false;
 	boolean bAllNegativeVariation = true;
 	boolean bBestNegativeVariation = false;
 	boolean bBestNegativeVariationForEachAttribute = false;
@@ -3450,8 +3452,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 	// Extraction de l'attribut VarPart dans la grille optimisee courante
 	varPartOptimizedAttribute = optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName);
 	varPartOptimizedAttribute->BuildIndexingStructure();
-
-	if (bDisplayCosts)
+	if (bTraceCosts)
 	{
 		cout << "CCVarPartDataGridPostOptimizer:Table a optimiser\n";
 		optimizedDataGrid->Write(cout);
@@ -3491,7 +3492,8 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 		varPartReferenceAttribute->GetNextPart(innerPartCluster);
 	}
 
-	if (bDisplayCosts)
+	// Trace des couts
+	if (bTraceCosts)
 	{
 		cout << "Association PV - cluster optimise" << endl;
 		// Pour chaque PV on affiche l'index du cluster optimise auquel elle appartient
@@ -3538,7 +3540,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 			}
 
 			// Affichage des clusters des PV de l'attribut interne
-			if (bDisplayCosts)
+			if (bTraceCosts)
 			{
 				cout << "CCVarPartDataGridPostOptimizer:Clusters des PV de l'attribut\t"
 				     << innerAttribute->GetAttributeName() << endl;
@@ -3569,7 +3571,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 				// Intervalle eligible
 				if (ivFrozenParts.GetAt(nPartIndex) < 0)
 				{
-					if (bDisplayCosts)
+					if (bTraceCosts)
 						cout << "intervalle non eligible\t" << *innerPart << endl;
 				}
 				else
@@ -3685,7 +3687,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 
 						// Affichage de l'intervalle, de la variation du nombre de parties de
 						// variable et du cout de son deplacement
-						if (bDisplayCosts)
+						if (bTraceCosts)
 							cout << "CCVarPartDataGridPostOptimizer:Intervalle\t"
 							     << *innerPart << "VarPartVariationNumber vers prev\t"
 							     << nDeltaVarPartNumber << "\tDeltaCost\t" << dVariationCost
@@ -3696,7 +3698,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 						if (dVariationCost < dBestVariationCost and
 						    (bBestNegativeVariation or bBestNegativeVariationForEachAttribute))
 						{
-							if (bDisplayCosts or bDisplayImprovement)
+							if (bTraceCosts or bTraceImprovements)
 							{
 								cout << "PO numerique" << endl;
 								cout << "PV d'index\t" << nInnerPart << "\t"
@@ -3748,7 +3750,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 							ivFrozenParts.SetAt(nPartIndex - 1, -1);
 							if (nDeltaVarPartNumber == 2)
 								ivFrozenParts.SetAt(nPartIndex + 1, -1);
-							if (bDisplayCosts or bDisplayImprovement)
+							if (bTraceCosts or bTraceImprovements)
 							{
 								cout << "PV d'index\t" << nInnerPart << "\t"
 								     << *innerPart << "\tdVariationCost\t"
@@ -3817,7 +3819,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 
 							// Affichage de l'intervalle et de la variation du nombre de
 							// parties de variable et du cout de son deplacement
-							if (bDisplayCosts)
+							if (bTraceCosts)
 								cout << "CCVarPartDataGridPostOptimizer:Intervalle\t"
 								     << *innerPart
 								     << "VarPartVariationNumber vers next\t"
@@ -3830,7 +3832,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 							    (bBestNegativeVariation or
 							     bBestNegativeVariationForEachAttribute))
 							{
-								if (bDisplayCosts or bDisplayImprovement)
+								if (bTraceCosts or bTraceImprovements)
 								{
 									cout << "PO numerique" << endl;
 									cout << "PV d'index\t" << nInnerPart << "\t"
@@ -3883,7 +3885,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 								// future deplacement car implique dans cette fusion
 								ivFrozenParts.SetAt(nPartIndex + 1, -1);
 
-								if (bDisplayCosts or bDisplayImprovement)
+								if (bTraceCosts or bTraceImprovements)
 								{
 									cout << "PO numerique" << endl;
 									cout << "PV d'index\t" << nInnerPart << "\t"
@@ -3948,7 +3950,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 			}
 
 			// Affichage des clusters des PV de l'attribut interne
-			if (bDisplayCosts)
+			if (bTraceCosts)
 			{
 				// cout << "CCVarPartDataGridPostOptimizer:Clusters des PV de l'attribut\t" <<
 				// innerAttribute->GetAttributeName() << endl; oaClusterParts.Write(cout);
@@ -4069,7 +4071,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 
 						// Affichage de l'intervalle, de la variation du nombre de parties de
 						// variable et du cout de son deplacement
-						if (bDisplayCosts)
+						if (bTraceCosts)
 							cout << "CCVarPartDataGridPostOptimizer:Intervalle\t"
 							     << *innerPart << "VarPartVariationNumber vers prev\t"
 							     << nDeltaVarPartNumber << "\tDeltaCost\t" << dVariationCost
@@ -4080,7 +4082,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 						if (dVariationCost < dBestVariationCost and
 						    (bBestNegativeVariation or bBestNegativeVariationForEachAttribute))
 						{
-							if (bDisplayCosts or bDisplayImprovement)
+							if (bTraceCosts or bTraceImprovements)
 							{
 								cout << "PO categoriel" << endl;
 								cout << "PV d'index de depart\t" << nInnerPart << "\t"
@@ -4133,7 +4135,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 								ivFrozenParts.SetAt(nCurrentClusterIndex, 0);
 
 							// Affichage
-							if (bDisplayCosts or bDisplayImprovement)
+							if (bTraceCosts or bTraceImprovements)
 							{
 								cout << "PO categoriel" << endl;
 								cout << "PV d'index\t" << nInnerPart << "\t"
@@ -4176,7 +4178,7 @@ boolean CCVarPartDataGridPostOptimizer::PostOptimizeLightVarPartDataGrid(const K
 		nImprovementNumber++;
 	}
 	// Affichage de tous les deplacements memorises
-	if (bDisplayCosts)
+	if (bTraceCosts)
 	{
 		cout << "Association PV de l'attribut de reference - cluster optimise, nombre de modifications\t"
 		     << nImprovementNumber << endl;

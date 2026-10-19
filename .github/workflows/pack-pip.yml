@@ -29,6 +29,9 @@ defaults:
     shell: bash
 env:
   KEYPAIR: KP_Khiops_HSM
+  # Use only the local MPI node on the GitHub runner
+  UCX_TLS: self,sm,tcp
+  UCX_NET_DEVICES: lo
 jobs:
   build-wheel:
     name: Build wheel
@@ -43,7 +46,7 @@ jobs:
           - macos-15-intel
           - macos-15
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Move pyproject-khiops file to the root of the repository
         run: |
           mv packaging/pip/pyproject-khiops.toml pyproject.toml
@@ -54,9 +57,9 @@ jobs:
           call "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
           set >> %GITHUB_ENV%
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.3.0
       - name: install Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.14'
       - name: Install built wheel in a custom directory
@@ -69,7 +72,12 @@ jobs:
           else
             source "$KHIOPS_INSTALL_DIR/bin/activate"
           fi
-          python -m pip install --find-links=wheelhouse khiops-core
+          # --only-deps requires pip>=26.2
+          python -m pip install --upgrade "pip>=26.2"
+          # Install the wheel itself only from the local wheelhouse, then resolve its
+          # runtime dependencies (e.g. openmpi) from PyPI
+          python -m pip install --find-links=wheelhouse --no-index --no-deps khiops-core
+          python -m pip install --only-deps khiops-core
           pip show -f khiops-core
       - name: Export BIN_DIR
         id: export_bin_dir
@@ -87,12 +95,12 @@ jobs:
         run: |
           mv packaging/pip/pyproject-kni.toml pyproject.toml
       - name: Build kni wheels
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.3.0
       - name: Move pyproject-knitransfer file to the root of the repository
         run: |
           mv packaging/pip/pyproject-knitransfer.toml pyproject.toml
       - name: Build knitransfer wheels
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.3.0
       - uses: actions/upload-artifact@v7
         if: runner.os != 'Windows'
         with:
@@ -112,14 +120,14 @@ jobs:
     env:
       SIGN_WINDOWS_WHEELS: ${{ github.event_name == 'workflow_dispatch' && inputs.signature-activation }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           name: wheelhouse-windows-unsigned
           path: wheelhouse
       - name: Install Python
         if: env.SIGN_WINDOWS_WHEELS == 'true'
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.14'
       - name: Install wheel package
@@ -159,22 +167,22 @@ jobs:
           name: pkg-wheel-windows-2025-vs2026
           path: wheelhouse/*.whl
           if-no-files-found: error
-  test-khiops-core-wheel:
+  test-khiops-core-and-kni-wheels:
     strategy:
       matrix:
         setup:
           - {os: ubuntu-24.04, image: ''}
           - {os: ubuntu-24.04-arm, image: ''}
-          - {os: ubuntu-22.04, image: rockylinux:9}
+          - {os: ubuntu-22.04, image: rockylinux/rockylinux:10}
           - {os: windows-2025-vs2026, image: ''}
           - {os: macos-15, image: ''}
           - {os: macos-15-intel, image: ''}
     runs-on: ${{ matrix.setup.os }}
     container: ${{ matrix.setup.image }}
-    name: Test wheel
+    name: Test Khiops Core and KNI wheels with LearningTestTool
     needs: [build-wheel, sign-wheel-windows]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           pattern: pkg-*
@@ -196,7 +204,7 @@ jobs:
               apt-get install -y python3 > /dev/null
             else
               yum check-update || true
-              yum install -y python3.11
+              yum install -y python3.14
             fi
           fi
           echo "PYTHON=python3" >> "$GITHUB_ENV"
@@ -204,8 +212,8 @@ jobs:
         if: runner.os == 'Windows' || runner.os == 'macOS'
         shell: bash
         run: echo "PYTHON=python" >> "$GITHUB_ENV"
-      - name: Install built wheel in a custom directory
-        id: install_khiops_core
+      - name: Install built wheels in a custom directory
+        id: install_khiops_core_and_kni
         run: |
           KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
           $PYTHON -m venv "$KHIOPS_INSTALL_DIR"
@@ -216,15 +224,21 @@ jobs:
             source "$KHIOPS_INSTALL_DIR/bin/activate"
             echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_OUTPUT"
           fi
-          $PYTHON -m pip install --find-links=wheelhouse khiops-core
+          # --only-deps requires pip>=26.2
+          $PYTHON -m pip install --upgrade "pip>=26.2"
+          # Install the wheels themselves only from the local wheelhouse, then resolve their
+          # runtime dependencies (e.g. openmpi) from PyPI
+          $PYTHON -m pip install --find-links=wheelhouse --no-index --no-deps khiops-core khiops-kni khiops-knitransfer
+          $PYTHON -m pip install --only-deps khiops-core khiops-kni khiops-knitransfer
           $PYTHON -m pip show -f khiops-core
-      - name: Run standard tests
+          $PYTHON -m pip show -f khiops-kni
+      - name: Run standard tests on the Core and KNI packages
         uses: ./.github/actions/run-standard-tests
         with:
           warning_as_error: true
           running-mode: parallel
           config: release
-          binary-path: ${{ steps.install_khiops_core.outputs.BIN_DIR }}
+          binary-path: ${{ steps.install_khiops_core_and_kni.outputs.BIN_DIR }}
           testing-context-description: pip-test-${{ matrix.setup.os }}-${{ matrix.setup.image
             }}
   test-kni:
@@ -241,24 +255,31 @@ jobs:
           - macos-15
         python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           pattern: pkg-*
           path: wheelhouse
           merge-multiple: true
       - name: Checkout KhiopsNativeInterface-tutorial
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: KhiopsML/KhiopsNativeInterface-tutorial
           path: tutorial
           ref: main
       - name: Install Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install khiops-kni wheel
-        run: python -m pip install --find-links=wheelhouse khiops-kni
+        run: |
+          # --only-deps requires pip>=26.2
+          python -m pip install --upgrade "pip>=26.2"
+          # Install the wheel itself only from the local wheelhouse, then resolve its
+          # runtime dependencies from PyPI
+          python -m pip install --find-links=wheelhouse --no-index --no-deps khiops-kni
+          python -m pip install --only-deps khiops-kni
+          python -m pip show -f khiops-kni
       - name: Run python mono-table example
         shell: bash
         run: |
@@ -300,7 +321,7 @@ jobs:
     if: github.ref_type == 'tag' && github.repository_owner == 'KhiopsML' && inputs.python_repository
       == 'testpypi'
     name: Publish to Test.PyPI.org
-    needs: [build-wheel, test-khiops-core-wheel, test-kni]
+    needs: [build-wheel, test-khiops-core-and-kni-wheels, test-kni]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -321,7 +342,7 @@ jobs:
     name: Publish to PyPI.org
     if: github.ref_type == 'tag' && github.repository_owner == 'KhiopsML' && inputs.python_repository
       == 'pypi'
-    needs: [build-wheel, test-khiops-core-wheel, test-kni]
+    needs: [build-wheel, test-khiops-core-and-kni-wheels, test-kni]
     runs-on: ubuntu-latest
     permissions:
       id-token: write

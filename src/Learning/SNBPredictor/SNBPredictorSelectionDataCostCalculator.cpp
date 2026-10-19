@@ -1992,7 +1992,7 @@ void SNBGeneralizedClassifierSelectionDataCostCalculator::UpdateTargetPartitionW
 	require(Check());
 
 	// Creation de cles d'acces aux parties cibles, qui serviront de cle d'acces
-	// dans des dictionnaire a cle numerique
+	// dans des dictionnaires a cle numerique
 	oaTargetPartIndexes.SetSize(attribute->GetTargetPartition()->GetPartNumber());
 	for (nPartIndex = 0; nPartIndex < oaTargetPartIndexes.GetSize(); nPartIndex++)
 	{

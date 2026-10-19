@@ -84,11 +84,6 @@ public:
 	// Verification de la preparation au deploiement
 	boolean CheckDeploymentPreparation() const;
 
-	// Test d'integrite
-	// Attention: la classe n'est pour l'instant implementee que dans le cas d'un coclustering de
-	// deux variables categorielles
-	boolean Check() const override;
-
 	// Memoire utilisee
 	longint GetUsedMemory() const override;
 
@@ -99,6 +94,9 @@ public:
 	//////////////////////////////////////////////////////////
 	///// Implementation
 protected:
+	// Controle d'integrite interne
+	boolean InternalCheck(boolean bCheckPartially) const override;
+
 	// Reimplementation des methodes virtuelles
 	KWDGAttribute* NewAttribute() const override;
 

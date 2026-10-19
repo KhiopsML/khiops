@@ -19,7 +19,7 @@ CCLearningProblemDeploymentPreparationView::CCLearningProblemDeploymentPreparati
 	GetFieldAt("ClassFileName")->SetEditable(false);
 
 	// Champ du dictionnaire de deploiement en resultat
-	AddStringField("CoclusteringDictionaryFileName", "Coclustering dictionary file", "");
+	AddStringField("CoclusteringDictionaryFileName", "Deployment dictionary file", "");
 	GetFieldAt("CoclusteringDictionaryFileName")->SetStyle("FileChooser");
 
 	// Creation des sous fiches (creation generique pour les vues sur bases de donnees)

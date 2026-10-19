@@ -2,14 +2,22 @@
 	"tool": "Khiops Coclustering",
 	"version": "VERSION",
 	"shortDescription": "",
+	"logs": [
+		{
+			"taskName": "Coclustering",
+			"messages": [
+				"warning : Coclustering : The built variables x variables coclustering only exploits 5 out of the 6 input variables"
+			]
+		}
+	],
 	"coclusteringReport": {
 		"summary": {
 			"instances": 1000,
 			"cells": 40,
-			"nullCost": 10763.32415,
-			"cost": 10445.04227,
-			"level": 0.0295709649,
-			"initialDimensions": 5,
+			"nullCost": 16675.45233,
+			"cost": 16357.17045,
+			"level": 0.0190868514,
+			"initialDimensions": 6,
 			"frequencyVariable": "",
 			"dictionary": "Adult",
 			"database": ".\/Adult1000.txt",
@@ -38,6 +46,17 @@
 				"description": "",
 				"min": 1,
 				"max": 16
+			},
+			{
+				"name": "hours_per_week",
+				"type": "Numerical",
+				"parts": 1,
+				"initialParts": 1,
+				"values": 1000,
+				"interest": 1,
+				"description": "",
+				"min": 1,
+				"max": 99
 			},
 			{
 				"name": "marital_status",
@@ -104,6 +123,16 @@
 					{
 						"cluster": "]11.5,+inf[",
 						"bounds": [11.5,16]
+					}
+				]
+			},
+			{
+				"name": "hours_per_week",
+				"type": "Numerical",
+				"intervals": [
+					{
+						"cluster": "]-inf,+inf[",
+						"bounds": [1,99]
 					}
 				]
 			},
@@ -177,7 +206,7 @@
 						"interest": 1,
 						"hierarchicalLevel": 1,
 						"rank": 1,
-						"hierarchicalRank": 11,
+						"hierarchicalRank": 12,
 						"isLeaf": true
 					},
 					{
@@ -187,7 +216,7 @@
 						"interest": 0.968624,
 						"hierarchicalLevel": 1,
 						"rank": 3,
-						"hierarchicalRank": 11,
+						"hierarchicalRank": 12,
 						"isLeaf": true
 					},
 					{
@@ -197,7 +226,7 @@
 						"interest": 0.781516,
 						"hierarchicalLevel": 1,
 						"rank": 5,
-						"hierarchicalRank": 11,
+						"hierarchicalRank": 12,
 						"isLeaf": true
 					},
 					{
@@ -207,7 +236,7 @@
 						"interest": 0.945577,
 						"hierarchicalLevel": -0.0276241,
 						"rank": 2,
-						"hierarchicalRank": 6,
+						"hierarchicalRank": 7,
 						"isLeaf": false
 					},
 					{
@@ -217,7 +246,7 @@
 						"interest": 0.894937,
 						"hierarchicalLevel": 0.881083,
 						"rank": 4,
-						"hierarchicalRank": 10,
+						"hierarchicalRank": 11,
 						"isLeaf": false
 					}
 				]
@@ -233,7 +262,7 @@
 						"interest": 1,
 						"hierarchicalLevel": 1,
 						"rank": 1,
-						"hierarchicalRank": 11,
+						"hierarchicalRank": 12,
 						"isLeaf": true
 					},
 					{
@@ -243,7 +272,7 @@
 						"interest": 1,
 						"hierarchicalLevel": 1,
 						"rank": 3,
-						"hierarchicalRank": 11,
+						"hierarchicalRank": 12,
 						"isLeaf": true
 					},
 					{
@@ -253,8 +282,24 @@
 						"interest": 1,
 						"hierarchicalLevel": 0,
 						"rank": 2,
-						"hierarchicalRank": 5,
+						"hierarchicalRank": 6,
 						"isLeaf": false
+					}
+				]
+			},
+			{
+				"name": "hours_per_week",
+				"type": "Numerical",
+				"clusters": [
+					{
+						"cluster": "]-inf,+inf[",
+						"parentCluster": "",
+						"frequency": 1000,
+						"interest": 1,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 12,
+						"isLeaf": true
 					}
 				]
 			},
@@ -264,32 +309,32 @@
 				"clusters": [
 					{
 						"cluster": "{Never-married, Divorced, Widowed, ...}",
-						"parentCluster": "C4",
+						"parentCluster": "D4",
 						"frequency": 557,
 						"interest": 1,
 						"hierarchicalLevel": 1,
 						"rank": 1,
-						"hierarchicalRank": 11,
+						"hierarchicalRank": 12,
 						"isLeaf": true
 					},
 					{
 						"cluster": "{Married-civ-spouse}",
-						"parentCluster": "C4",
+						"parentCluster": "D4",
 						"frequency": 443,
 						"interest": 1,
 						"hierarchicalLevel": 1,
 						"rank": 3,
-						"hierarchicalRank": 11,
+						"hierarchicalRank": 12,
 						"isLeaf": true
 					},
 					{
-						"cluster": "C4",
+						"cluster": "D4",
 						"parentCluster": "",
 						"frequency": 1000,
 						"interest": 1,
 						"hierarchicalLevel": 0.453332,
 						"rank": 2,
-						"hierarchicalRank": 8,
+						"hierarchicalRank": 9,
 						"isLeaf": false
 					}
 				]
@@ -300,32 +345,32 @@
 				"clusters": [
 					{
 						"cluster": "{Male}",
-						"parentCluster": "D5",
+						"parentCluster": "E5",
 						"frequency": 671,
 						"interest": 1,
 						"hierarchicalLevel": 1,
 						"rank": 1,
-						"hierarchicalRank": 11,
+						"hierarchicalRank": 12,
 						"isLeaf": true
 					},
 					{
 						"cluster": "{Female}",
-						"parentCluster": "D5",
+						"parentCluster": "E5",
 						"frequency": 329,
 						"interest": 1,
 						"hierarchicalLevel": 1,
 						"rank": 3,
-						"hierarchicalRank": 11,
+						"hierarchicalRank": 12,
 						"isLeaf": true
 					},
 					{
-						"cluster": "D5",
+						"cluster": "E5",
 						"parentCluster": "",
 						"frequency": 1000,
 						"interest": 1,
 						"hierarchicalLevel": 0.733975,
 						"rank": 2,
-						"hierarchicalRank": 9,
+						"hierarchicalRank": 10,
 						"isLeaf": false
 					}
 				]
@@ -336,78 +381,78 @@
 				"clusters": [
 					{
 						"cluster": "{less}",
-						"parentCluster": "E3",
+						"parentCluster": "F3",
 						"frequency": 768,
 						"interest": 1,
 						"hierarchicalLevel": 1,
 						"rank": 1,
-						"hierarchicalRank": 11,
+						"hierarchicalRank": 12,
 						"isLeaf": true
 					},
 					{
 						"cluster": "{more}",
-						"parentCluster": "E3",
+						"parentCluster": "F3",
 						"frequency": 232,
 						"interest": 1,
 						"hierarchicalLevel": 1,
 						"rank": 3,
-						"hierarchicalRank": 11,
+						"hierarchicalRank": 12,
 						"isLeaf": true
 					},
 					{
-						"cluster": "E3",
+						"cluster": "F3",
 						"parentCluster": "",
 						"frequency": 1000,
 						"interest": 1,
 						"hierarchicalLevel": 0.289554,
 						"rank": 2,
-						"hierarchicalRank": 7,
+						"hierarchicalRank": 8,
 						"isLeaf": false
 					}
 				]
 			}
 		],
 		"cellPartIndexes": [
-			[1,0,0,0,0],
-			[1,0,1,0,0],
-			[2,0,0,1,0],
-			[0,1,1,0,1],
-			[0,0,0,1,0],
-			[0,0,0,0,0],
-			[0,0,1,0,0],
-			[0,1,0,1,0],
-			[0,1,0,0,0],
-			[0,0,1,0,1],
-			[1,0,1,0,1],
-			[2,0,0,0,0],
-			[1,0,0,1,0],
-			[0,1,1,0,0],
-			[2,0,1,0,0],
-			[0,1,0,1,1],
-			[2,0,1,1,0],
-			[0,1,0,0,1],
-			[1,1,0,0,0],
-			[0,0,1,1,0],
-			[0,1,1,1,1],
-			[1,1,1,0,0],
-			[1,0,1,1,0],
-			[2,0,1,1,1],
-			[2,0,1,0,1],
-			[2,1,0,1,0],
-			[0,0,1,1,1],
-			[0,1,1,1,0],
-			[2,1,1,0,1],
-			[1,0,0,0,1],
-			[2,1,0,0,0],
-			[0,0,0,0,1],
-			[1,0,1,1,1],
-			[1,0,0,1,1],
-			[1,1,1,0,1],
-			[1,1,0,1,0],
-			[2,1,1,1,1],
-			[2,1,1,0,0],
-			[2,1,1,1,0],
-			[0,0,0,1,1]
+			[1,0,0,0,0,0],
+			[1,0,0,1,0,0],
+			[2,0,0,0,1,0],
+			[0,1,0,1,0,1],
+			[0,0,0,0,1,0],
+			[0,0,0,0,0,0],
+			[0,0,0,1,0,0],
+			[0,1,0,0,1,0],
+			[0,1,0,0,0,0],
+			[0,0,0,1,0,1],
+			[1,0,0,1,0,1],
+			[2,0,0,0,0,0],
+			[1,0,0,0,1,0],
+			[0,1,0,1,0,0],
+			[2,0,0,1,0,0],
+			[0,1,0,0,1,1],
+			[2,0,0,1,1,0],
+			[0,1,0,0,0,1],
+			[1,1,0,0,0,0],
+			[0,0,0,1,1,0],
+			[0,1,0,1,1,1],
+			[1,1,0,1,0,0],
+			[1,0,0,1,1,0],
+			[2,0,0,1,1,1],
+			[2,0,0,1,0,1],
+			[2,1,0,0,1,0],
+			[0,0,0,1,1,1],
+			[0,1,0,1,1,0],
+			[2,1,0,1,0,1],
+			[1,0,0,0,0,1],
+			[2,1,0,0,0,0],
+			[0,0,0,0,0,1],
+			[1,0,0,1,1,1],
+			[1,0,0,0,1,1],
+			[1,1,0,1,0,1],
+			[1,1,0,0,1,0],
+			[2,1,0,1,1,1],
+			[2,1,0,1,0,0],
+			[2,1,0,1,1,0],
+			[0,0,0,0,1,1]
 		],
 		"cellFrequencies": [110,102,97,83,72,64,50,45,43,38,37,37,30,26,25,14,13,13,10,10,8,7,6,6,6,6,6,6,5,4,4,3,2,2,2,2,2,2,1,1]
 	},

@@ -4,6 +4,9 @@
 
 #include "KWAttributeSubsetStats.h"
 
+// Inclus dans le source pour eviter les dependances circulaires
+#include "KWDataGridOptimizerVxV.h"
+
 ///////////////////////////////////////////////////////
 // Classe KWAttributeSubsetStats
 
@@ -159,7 +162,7 @@ boolean KWAttributeSubsetStats::ComputeStats(const KWTupleTable* tupleTable)
 	KWDataGrid* dataGrid;
 	KWDataGrid* optimizedDataGrid;
 	KWDataGridCosts* dataGridCosts;
-	KWDataGridOptimizer dataGridOptimizer;
+	KWDataGridOptimizerVxV dataGridOptimizer;
 	double dGridCost;
 
 	require(Check());
@@ -536,7 +539,7 @@ KWDataGrid* KWAttributeSubsetStats::CreateDataGrid(const KWTupleTable* tupleTabl
 
 	// Debut de suivi de tache
 	TaskProgression::BeginTask();
-	TaskProgression::DisplayMainLabel("Initialize data grid");
+	TaskProgression::DisplayMainLabel("Initialize coclustering");
 
 	// Initialisation des attributs et de leurs parties
 	for (nAttribute = 0; nAttribute < dataGrid->GetAttributeNumber(); nAttribute++)
@@ -578,16 +581,14 @@ KWDataGrid* KWAttributeSubsetStats::CreateDataGrid(const KWTupleTable* tupleTabl
 	}
 
 	// On force le calcul des statistiques sur les attributs informatifs
+	// Pas de supression des attributs non informatifs, sinonb
+	// - cela fausse le nombre d'attributs initiaux
+	// - cela pose de gros problemes pour gerer les grilles sans attributs
 	if (not TaskProgression::IsInterruptionRequested())
 	{
 		dataGrid->SetCellUpdateMode(true);
 		dataGrid->SetCellUpdateMode(false);
 	}
-
-	// Supression des attributs non informatifs
-	// TODO MB cela fausse le nombre d'attributs initiaux
-	// Cela pose de gros probleme pour gerer les grilles sans attributs
-	// dataGrid->DeleteNonInformativeAttributes();
 
 	// Creation des cellules
 	bCellCreationOk = true;
@@ -597,8 +598,9 @@ KWDataGrid* KWAttributeSubsetStats::CreateDataGrid(const KWTupleTable* tupleTabl
 		bCellCreationOk = CreateDataGridCells(tupleTable, dataGrid);
 	}
 
-	// Fin de suivi de tache
-	TaskProgression::EndTask();
+	// Test si interruption sans qu'il y ait d'erreur
+	if (bCellCreationOk and TaskProgression::IsInterruptionRequested())
+		Object::AddWarning("Initialize coclustering interrupted by user");
 
 	// Destruction de la grille si interruption utilisateur
 	if (TaskProgression::IsInterruptionRequested() or not bCellCreationOk)
@@ -607,13 +609,15 @@ KWDataGrid* KWAttributeSubsetStats::CreateDataGrid(const KWTupleTable* tupleTabl
 		dataGrid = NULL;
 	}
 
+	// Fin de suivi de tache
+	TaskProgression::EndTask();
+
 	ensure(dataGrid == NULL or dataGrid->Check());
 	return dataGrid;
 }
 
 void KWAttributeSubsetStats::HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
-						    const KWDataGrid* initialGranularizedDataGrid,
-						    boolean bIsLastSaving) const
+						    const KWDataGrid* initialGranularizedDataGrid) const
 {
 }
 
@@ -631,7 +635,8 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 {
 	int nTuple;
 	const KWTuple* tuple;
-	KWTupleTable attributeTupleTable;
+	const KWTupleTable* univariateTupleTable;
+	KWTupleTable workingTupleTable;
 	Continuous cSourceValue;
 	Continuous cSourceRef;
 	KWDGPart* part;
@@ -650,8 +655,14 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 	require(dgAttribute != NULL);
 	require(dgAttribute->GetPartNumber() == 0);
 
-	// Construction d'une table de tuples univariee dediee a l'attribut
-	tupleTable->BuildUnivariateTupleTable(dgAttribute->GetAttributeName(), &attributeTupleTable);
+	// Construction si necessaire d'une table de tuples univariee dediee a l'attribut
+	if (tupleTable->GetAttributeNumber() == 1)
+		univariateTupleTable = tupleTable;
+	else
+	{
+		tupleTable->BuildUnivariateTupleTable(dgAttribute->GetAttributeName(), &workingTupleTable);
+		univariateTupleTable = &workingTupleTable;
+	}
 	if (TaskProgression::IsInterruptionRequested())
 		return false;
 
@@ -662,18 +673,18 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 	// - en coclustering
 
 	// Calcul du nombre maximal de valeurs tolere en fonction du nombre d'instances
-	if (attributeTupleTable.GetTotalFrequency() < nMinValueNumber)
-		nMaxValueNumber = attributeTupleTable.GetTotalFrequency();
+	if (univariateTupleTable->GetTotalFrequency() < nMinValueNumber)
+		nMaxValueNumber = univariateTupleTable->GetTotalFrequency();
 	else
 		nMaxValueNumber =
 		    nMinValueNumber +
-		    (int)ceil(sqrt((attributeTupleTable.GetTotalFrequency() - nMinValueNumber) *
-				   log((attributeTupleTable.GetTotalFrequency() - nMinValueNumber)) / log(2.0)));
+		    (int)ceil(sqrt((univariateTupleTable->GetTotalFrequency() - nMinValueNumber) *
+				   log((univariateTupleTable->GetTotalFrequency() - nMinValueNumber)) / log(2.0)));
 
 	// Cas de la pre-granularisation de l'attribut
-	if (GetPregranularizedNumericalAttributes() and attributeTupleTable.GetSize() > nMaxValueNumber and
+	if (GetPregranularizedNumericalAttributes() and univariateTupleTable->GetSize() > nMaxValueNumber and
 	    (dgAttribute->GetAttributeTargetFunction() or GetTargetAttributeName() == ""))
-		CreateAttributePreGranularizedIntervals(&attributeTupleTable, dgAttribute, nMaxValueNumber);
+		CreateAttributePreGranularizedIntervals(univariateTupleTable, dgAttribute, nMaxValueNumber);
 	// Sinon
 	else
 	{
@@ -685,9 +696,9 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 		// Creation des parties de l'attribut pour chaque tuple
 		cSourceRef = KWDGInterval::GetMinLowerBound();
 
-		for (nTuple = 0; nTuple < attributeTupleTable.GetSize(); nTuple++)
+		for (nTuple = 0; nTuple < univariateTupleTable->GetSize(); nTuple++)
 		{
-			tuple = attributeTupleTable.GetAt(nTuple);
+			tuple = univariateTupleTable->GetAt(nTuple);
 
 			// Progression
 			if (TaskProgression::IsRefreshNecessary(nTuple))
@@ -699,7 +710,7 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 					// pour la creation des cellules
 					dProgression = dgAttribute->GetAttributeIndex() * 50.0 /
 						       dgAttribute->GetDataGrid()->GetAttributeNumber();
-					dProgression += (nTuple * 50.0 / attributeTupleTable.GetSize()) /
+					dProgression += (nTuple * 50.0 / univariateTupleTable->GetSize()) /
 							dgAttribute->GetDataGrid()->GetAttributeNumber();
 					TaskProgression::DisplayProgression((int)dProgression);
 					if (TaskProgression::IsInterruptionRequested())
@@ -735,14 +746,13 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 			}
 		}
 		// Parametrage du nombre total de valeurs (= nombre d'instances)
-		dgAttribute->SetInitialValueNumber(attributeTupleTable.GetTotalFrequency());
-		dgAttribute->SetGranularizedValueNumber(attributeTupleTable.GetTotalFrequency());
-		assert(dgAttribute->GetPartNumber() == attributeTupleTable.GetSize() or
+		dgAttribute->SetInitialValueNumber(univariateTupleTable->GetTotalFrequency());
+		dgAttribute->SetGranularizedValueNumber(univariateTupleTable->GetTotalFrequency());
+		ensure(dgAttribute->GetPartNumber() == univariateTupleTable->GetSize() or
 		       GetPregranularizedNumericalAttributes());
-		assert(dgAttribute->GetInitialValueNumber() + 1 >= dgAttribute->GetPartNumber());
-		ensure(dgAttribute->Check());
+		ensure(dgAttribute->GetInitialValueNumber() + 1 >= dgAttribute->GetPartNumber());
+		ensure(dgAttribute->CheckPartially());
 	}
-
 	return true;
 }
 
@@ -750,7 +760,8 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 {
 	int nTuple;
 	const KWTuple* tuple;
-	KWTupleTable attributeTupleTable;
+	const KWTupleTable* univariateTupleTable;
+	KWTupleTable workingTupleTable;
 	KWDGPart* part;
 	KWDGValue* value;
 	double dProgression;
@@ -765,23 +776,30 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 	require(dgAttribute != NULL);
 	require(dgAttribute->GetPartNumber() == 0);
 
-	// Construction d'une table de tuples univariee dediee a l'attribut
-	tupleTable->BuildUnivariateTupleTable(dgAttribute->GetAttributeName(), &attributeTupleTable);
+	// Construction si necessaire d'une table de tuples univariee dediee a l'attribut
+	if (tupleTable->GetAttributeNumber() == 1)
+		univariateTupleTable = tupleTable;
+	else
+	{
+		// Construction de la table univariee
+		tupleTable->BuildUnivariateTupleTable(dgAttribute->GetAttributeName(), &workingTupleTable);
+		univariateTupleTable = &workingTupleTable;
+
+		// Tri des tuples par effectif decroissant, puis valeurs croissantes
+		workingTupleTable.SortByDecreasingFrequencies();
+	}
 	if (TaskProgression::IsInterruptionRequested())
 		return false;
 
-	// Tri des tuple par effectif decroissant, puis valeurs croissantes
-	attributeTupleTable.SortByDecreasingFrequencies();
-
 	// Creation des parties mono-valeurs de l'attribut pour chaque tuple
 	// La modalite speciale est affectee a la valeur la moins frequente arrivee en premier
-	for (nTuple = 0; nTuple < attributeTupleTable.GetSize(); nTuple++)
+	for (nTuple = 0; nTuple < univariateTupleTable->GetSize(); nTuple++)
 	{
-		tuple = attributeTupleTable.GetAt(nTuple);
+		tuple = univariateTupleTable->GetAt(nTuple);
 
 		// Verifications de coherence
-		assert(nTuple == 0 or attributeTupleTable.GetAt(nTuple - 1)->GetFrequency() > tuple->GetFrequency() or
-		       attributeTupleTable.GetAt(nTuple - 1)->GetSymbolAt(0).CompareValue(tuple->GetSymbolAt(0)) < 0);
+		assert(nTuple == 0 or univariateTupleTable->GetAt(nTuple - 1)->GetFrequency() > tuple->GetFrequency() or
+		       univariateTupleTable->GetAt(nTuple - 1)->GetSymbolAt(0).CompareValue(tuple->GetSymbolAt(0)) < 0);
 
 		// Progression
 		if (TaskProgression::IsRefreshNecessary(nTuple))
@@ -793,7 +811,7 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 				// creation des cellules
 				dProgression = dgAttribute->GetAttributeIndex() * 50.0 /
 					       dgAttribute->GetDataGrid()->GetAttributeNumber();
-				dProgression += (nTuple * 50.0 / attributeTupleTable.GetSize()) /
+				dProgression += (nTuple * 50.0 / univariateTupleTable->GetSize()) /
 						dgAttribute->GetDataGrid()->GetAttributeNumber();
 				TaskProgression::DisplayProgression((int)dProgression);
 				if (TaskProgression::IsInterruptionRequested())
@@ -806,7 +824,7 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 		value = part->GetSymbolValueSet()->AddSymbolValue(tuple->GetSymbolAt(0));
 		value->SetValueFrequency(tuple->GetFrequency());
 	}
-	assert(attributeTupleTable.GetSize() == dgAttribute->GetPartNumber());
+	assert(univariateTupleTable->GetSize() == dgAttribute->GetPartNumber());
 	assert(dgAttribute->GetPartNumber() > 0);
 
 	// Initialisation de la partie par defaut, contenant la modalite speciale
@@ -818,7 +836,7 @@ boolean KWAttributeSubsetStats::CreateAttributeValueSets(const KWTupleTable* tup
 	dgAttribute->SetInitialValueNumber(dgAttribute->GetPartNumber());
 	// On ne prend pas en compte la StarValue dans Vg
 	dgAttribute->SetGranularizedValueNumber(dgAttribute->GetPartNumber());
-	ensure(dgAttribute->Check());
+	ensure(dgAttribute->CheckPartially());
 	return true;
 }
 
@@ -895,16 +913,15 @@ boolean KWAttributeSubsetStats::CreateAttributePreGranularizedIntervals(const KW
 	// Parametrage du nombre total de valeurs (= nombre d'instances) et verifications
 	dgAttribute->SetInitialValueNumber(attributeTupleTable->GetTotalFrequency());
 	dgAttribute->SetGranularizedValueNumber(attributeTupleTable->GetTotalFrequency());
-	assert(dgAttribute->GetInitialValueNumber() + 1 >= dgAttribute->GetPartNumber());
-	ensure(dgAttribute->Check());
-
+	ensure(dgAttribute->GetInitialValueNumber() + 1 >= dgAttribute->GetPartNumber());
+	ensure(dgAttribute->CheckPartially());
 	return true;
 }
 
 boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTable, KWDataGrid* dataGrid)
 {
 	boolean bOk = true;
-	boolean bDisplayInstanceCreation = false;
+	const boolean bTrace = false;
 	ObjectArray oaParts;
 	int nTuple;
 	const KWTuple* tuple;
@@ -928,7 +945,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 	require(dataGrid != NULL);
 	require(dataGrid->GetAttributeNumber() <= tupleTable->GetAttributeNumber());
 	require(dataGrid->GetCellNumber() == 0);
-	require(dataGrid->Check());
+	require(dataGrid->CheckPartially());
 	require(not dataGrid->IsVarPartDataGrid());
 
 	// Passage en mode update
@@ -963,6 +980,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 		// Progression
 		if (TaskProgression::IsRefreshNecessary(nTuple))
 		{
+			// Avancement en utilisant les dernier 50% pour la creation des cellules
 			TaskProgression::DisplayProgression((int)(50 + nTuple * 50.0 / tupleTable->GetSize()));
 			if (TaskProgression::IsInterruptionRequested())
 				break;
@@ -982,7 +1000,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 				cValue = tuple->GetContinuousAt(ivAttributeIndexes.GetAt(nAttribute));
 				part = dgAttribute->LookupContinuousPart(cValue);
 				oaParts.SetAt(nAttribute, part);
-				if (bDisplayInstanceCreation)
+				if (bTrace)
 					cout << cValue << "\t";
 			}
 			else
@@ -990,7 +1008,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 				sValue = tuple->GetSymbolAt(ivAttributeIndexes.GetAt(nAttribute));
 				part = dgAttribute->LookupSymbolPart(sValue);
 				oaParts.SetAt(nAttribute, part);
-				if (bDisplayInstanceCreation)
+				if (bTrace)
 					cout << sValue << "\t";
 			}
 		}
@@ -1000,7 +1018,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 		{
 			sTargetValue = tuple->GetSymbolAt(nTargetAttributeIndex);
 			nTargetIndex = GetTargetValueStats()->GetAttributeAt(0)->ComputeSymbolPartIndex(sTargetValue);
-			if (bDisplayInstanceCreation)
+			if (bTrace)
 				cout << dataGrid->GetTargetValueAt(nTargetIndex) << "\t";
 		}
 
@@ -1026,7 +1044,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 						 IntToString((int)ceil((tupleTable->GetSize() - nTuple) * 100.0 /
 								       tupleTable->GetSize())) +
 						 "% of the database remains to analyse");
-					AddMessage(RMResourceManager::BuildMemoryLimitMessage());
+					AddSimpleMessage(RMResourceManager::BuildMemoryLimitMessage());
 				}
 
 				// Creation en mode risque
@@ -1056,7 +1074,7 @@ boolean KWAttributeSubsetStats::CreateDataGridCells(const KWTupleTable* tupleTab
 			cell->SetCellFrequency(cell->GetCellFrequency() + nCellFrequency);
 
 		// Affichage de la cellule
-		if (bDisplayInstanceCreation)
+		if (bTrace)
 			cout << *cell;
 	}
 

@@ -755,7 +755,7 @@ double KWDataGridMerger::SearchBestPartMerge(KWDGMPartMerge*& bestPartMerge)
 	double dDeltaCost;
 	double dBestDeltaCost;
 
-	// Parcours des attribut pour rechercher la meilleure fusion
+	// Parcours des attributs pour rechercher la meilleure fusion
 	dBestDeltaCost = DBL_MAX;
 	bestPartMerge = NULL;
 	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
@@ -852,7 +852,7 @@ double KWDataGridMerger::SearchBestPartMergeWithGarbageSearch(KWDGMPartMerge*& b
 	double dBestDeltaCost;
 	boolean bGarbageBeforeMerge;
 
-	// Parcours des attribut pour rechercher la meilleure fusion
+	// Parcours des attributs pour rechercher la meilleure fusion
 	dBestDeltaCost = DBL_MAX;
 	bestPartMerge = NULL;
 	bGarbageBeforeMerge = false;
@@ -1856,15 +1856,26 @@ KWDGPart* KWDGMAttribute::NewPart() const
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGMPart
 
-boolean KWDGMPart::Check() const
+longint KWDGMPart::GetUsedMemory() const
+{
+	longint lUsedMemory;
+
+	lUsedMemory = KWDGPart::GetUsedMemory();
+	lUsedMemory += sizeof(KWDGMPart) - sizeof(KWDGMPart);
+	lUsedMemory += nkdPartMerges.GetUsedMemory();
+	return lUsedMemory;
+}
+
+boolean KWDGMPart::InternalCheck(boolean bCheckPartially) const
 {
 	boolean bOk = true;
 	int nTotalValueFrequency;
 	ALString sValueClassLabel;
+	boolean bCheckFrequency;
 	ALString sTmp;
 
 	// Verification de base
-	bOk = KWDGPart::Check();
+	bOk = KWDGPart::InternalCheck(bCheckPartially);
 
 	// Verification de l'ensemble de valeurs dans le cas groupable
 	if (bOk and KWType::IsCoclusteringGroupableType(GetPartType()))
@@ -1878,8 +1889,11 @@ boolean KWDGMPart::Check() const
 		// la creation des cellules).
 		// La verification n'est pas faite dans tous les cas dans la classe ancetre
 		nTotalValueFrequency = GetValueSet()->ComputeTotalFrequency();
-		if (bOk and GetPartFrequency() > 0 and nTotalValueFrequency > 0 and
-		    GetPartFrequency() != nTotalValueFrequency)
+		if (bCheckPartially)
+			bCheckFrequency = GetPartFrequency() > 0 and nTotalValueFrequency > 0;
+		else
+			bCheckFrequency = true;
+		if (bOk and bCheckFrequency and GetPartFrequency() != nTotalValueFrequency)
 		{
 			sValueClassLabel = GetValueSet()->GetHeadValue()->GetClassLabel();
 			AddError(sTmp + "Part frequency (" + IntToString(GetPartFrequency()) +
@@ -1889,16 +1903,6 @@ boolean KWDGMPart::Check() const
 		}
 	}
 	return bOk;
-}
-
-longint KWDGMPart::GetUsedMemory() const
-{
-	longint lUsedMemory;
-
-	lUsedMemory = KWDGPart::GetUsedMemory();
-	lUsedMemory += sizeof(KWDGMPart) - sizeof(KWDGMPart);
-	lUsedMemory += nkdPartMerges.GetUsedMemory();
-	return lUsedMemory;
 }
 
 void KWDGMPart::WriteAllPartMerges(ostream& ost) const
@@ -2064,7 +2068,7 @@ int KWDGMPartMergeCompare(const void* elem1, const void* elem2)
 	if (nCompare == 0)
 	{
 		// On se base d'abord sur le libelle de l'attribut
-		// (on pourrait avoir des attribut differents ayant meme libelle de partie)
+		// (on pourrait avoir des attributs differents ayant meme libelle de partie)
 		assert(partMerge1->GetPart1()->GetAttribute() == partMerge1->GetPart2()->GetAttribute());
 		assert(partMerge2->GetPart1()->GetAttribute() == partMerge2->GetPart2()->GetAttribute());
 		nCompare = partMerge1->GetPart1()->GetAttribute()->GetAttributeName().Compare(

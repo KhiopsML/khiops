@@ -320,7 +320,7 @@ double SNBPredictorSelectiveNaiveBayes::ComputeSparseMemoryFactor()
 				     double(sliceSet->GetChunkInstanceNumbers()->GetAt(nChunk)) / GetInstanceNumber()));
 		lvChunkSparseMemory.UpgradeAt(nChunk, -lSeparatorMemoryPerInstance *
 							  sliceSet->GetChunkInstanceNumbers()->GetAt(nChunk));
-		lvChunkSparseMemory.SetAt(nChunk, max(lvChunkSparseMemory.GetAt(nChunk), 0ll));
+		lvChunkSparseMemory.SetAt(nChunk, max(lvChunkSparseMemory.GetAt(nChunk), 0LL));
 
 		// Mise-a-jour de la memoire total des valeurs sparse
 		lTotalSparseMemory += lvChunkSparseMemory.GetAt(nChunk);

@@ -1,3 +1,5 @@
 error : Coclustering report : Khc format is no longer supported. Use json format file or use a Khiops version prior to V11.
+warning : Simplification parameters : The input coclustering is empty
 error : Coclustering report : Khc format is no longer supported. Use json format file or use a Khiops version prior to V11.
+error : Coclustering simplification : Missing coclustering datagrid variable
 

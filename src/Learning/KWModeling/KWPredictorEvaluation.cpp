@@ -127,31 +127,23 @@ longint KWPredictorEvaluation::GetEvaluationInstanceNumber() const
 void KWPredictorEvaluation::WriteFullReportFile(const ALString& sFileName, const ALString& sEvaluationLabel,
 						const ObjectArray* oaPredictorEvaluations) const
 {
-	fstream ost;
+	SystemFileOstream ost;
 	boolean bOk;
-	ALString sLocalFileName;
 
 	require(oaPredictorEvaluations != NULL);
 
-	// Preparation de la copie sur HDFS si necessaire
-	bOk = PLRemoteFileService::BuildOutputWorkingFile(sFileName, sLocalFileName);
-	if (bOk)
-		bOk = FileService::OpenOutputFile(sLocalFileName, ost);
+	// Ouverture du fichier
+	bOk = PLRemoteFileService::OpenOutputFile(sFileName, ost);
 	if (bOk)
 	{
 		if (GetLearningReportHeaderLine() != "")
 			ost << GetLearningReportHeaderLine() << "\n";
 		WriteFullReport(ost, sEvaluationLabel, oaPredictorEvaluations);
-		bOk = FileService::CloseOutputFile(sLocalFileName, ost);
+		bOk = PLRemoteFileService::CloseOutputFile(sFileName, ost);
 
 		// Destruction du rapport si erreur
 		if (not bOk)
-			FileService::RemoveFile(sLocalFileName);
-	}
-	if (bOk)
-	{
-		// Copie vers HDFS si necessaire
-		PLRemoteFileService::CleanOutputWorkingFile(sFileName, sLocalFileName);
+			PLRemoteFileService::RemoveFile(sFileName);
 	}
 }
 
@@ -459,6 +451,18 @@ double KWClassifierEvaluation::GetTargetEntropy() const
 double KWClassifierEvaluation::GetAUC() const
 {
 	return dAUC;
+}
+
+double KWClassifierEvaluation::GetAUCAtTargetValue(int nTargetValue) const
+{
+	require(0 <= nTargetValue and nTargetValue < dvAUCPerTargetValue.GetSize());
+
+	return dvAUCPerTargetValue.GetAt(nTargetValue);
+}
+
+double KWClassifierEvaluation::GetAUCValuesNumber() const
+{
+	return dvAUCPerTargetValue.GetSize();
 }
 
 double KWClassifierEvaluation::GetCompressionRate() const
@@ -836,6 +840,33 @@ void KWClassifierEvaluation::WriteJSONConfusionMatrixReport(JSONFile* fJSON) con
 	fJSON->EndObject();
 }
 
+void KWClassifierEvaluation::WriteJSONAucValuesReport(JSONFile* fJSON) const
+{
+	int j;
+	int nPredictorTarget;
+
+	// Titre
+	fJSON->BeginKeyObject("aucValues");
+
+	// Liste des valeurs cibles
+	fJSON->BeginKeyList("values");
+	for (j = 0; j < GetAUCValuesNumber(); j++)
+	{
+		// Recherche de l'index de valeur cible du predicteur
+		nPredictorTarget = GetPredictorTargetIndexAtLiftCurveIndex(j);
+		fJSON->WriteString(GetPredictorTargetValueAt(nPredictorTarget).GetValue());
+	}
+	fJSON->EndList();
+
+	// Liste des AUC par classe cible
+	fJSON->BeginKeyList("aucs");
+	for (j = 0; j < GetAUCValuesNumber(); j++)
+		fJSON->WriteDouble(GetAUCAtTargetValue(j));
+	fJSON->EndList();
+
+	fJSON->EndObject();
+}
+
 void KWClassifierEvaluation::WriteJSONLiftCurveReportArray(JSONFile* fJSON,
 							   const ObjectArray* oaClassifierEvaluations) const
 {
@@ -925,7 +956,12 @@ void KWClassifierEvaluation::WriteJSONArrayFields(JSONFile* fJSON, boolean bSumm
 	}
 	// Donnees de detail
 	else
+	{
 		WriteJSONConfusionMatrixReport(fJSON);
+		// Cas ou les auc par modalite cible ont ete calculees
+		if (GetAUCValuesNumber() > 0)
+			WriteJSONAucValuesReport(fJSON);
+	}
 }
 
 boolean KWClassifierEvaluation::CheckEvaluation() const

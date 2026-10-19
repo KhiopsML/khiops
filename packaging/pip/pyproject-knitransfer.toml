@@ -64,18 +64,16 @@ version.result = "{major}.{minor}.{patch}{prereltype}{prereln}"
 version.remove = "(None){,2}$"  # prereltype and prereln groups are None if not found
 
 [tool.cibuildwheel]
-# Restrict builds to CPython 3.9 only: KNITransfer is a pure C++ binary with stable ABI, so wheels for other Python 3.x versions would be identical.
-# This avoids redundant builds and simplifies distribution; update if future ABI changes or Python-specific bindings are introduced.
-build = "cp39*"
+# Build once per platform for Python 3.10; wheel is compatible with all Python 3 versions
+build = "cp310-*"
 # KNITransfer does not compile when using musl as the C standard library, and 32-bit is not supported
 skip = ["*musllinux*", "*win32*"]
 
 [tool.cibuildwheel.linux]
 # Repair wheel to convert linux_* tags to manylinux_* (required by PyPI)
 # Exclude KNI library from bundling since it is provided at runtime by the kni pip package
-# Note: the .so suffix (11) must match the project major version; cibuildwheel only expands
-# {wheel} and {dest_dir} here, so the version number cannot be derived automatically
-repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} --exclude libKhiopsNativeInterface.so.11"
+# Major version for the .so suffix is extracted from KWKhiopsVersion.h so it never gets out of sync
+repair-wheel-command = 'MAJOR=$(sed -n "s/.*KHIOPS_VERSION KHIOPS_STR(\([0-9]*\)\..*/\1/p" src/Learning/KWUtils/KWKhiopsVersion.h) && auditwheel repair -w {dest_dir} {wheel} --exclude libKhiopsNativeInterface.so.$MAJOR'
 
 [tool.cibuildwheel.macos]
 # No dependency

@@ -631,7 +631,7 @@ protected:
 
 inline double SNBClassifierSelectionDataCostCalculator::ComputeInstanceNonNormalizedDataCost(int nChunkInstance) const
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	int nActualTarget;
 	SNBTargetPart* actualTargetPart;
 	double dInstanceInverseProb;
@@ -673,7 +673,7 @@ inline double SNBClassifierSelectionDataCostCalculator::ComputeInstanceNonNormal
 	dInstanceLaplaceNumerator = dInstanceNumber / dInstanceInverseProb + dLaplaceEpsilon;
 
 	// Trace de debbogage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\t" << nChunkInstance << "\t" << nActualTarget << "\t" << nActualTarget << "\t"
 		     << dInstanceLaplaceNumerator / dLaplaceDenominator << "\t"
@@ -692,7 +692,7 @@ inline double SNBClassifierSelectionDataCostCalculator::ComputeInstanceNonNormal
 
 inline double SNBRegressorSelectionDataCostCalculator::ComputeInstanceNonNormalizedDataCost(int nChunkInstance) const
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	int nActualTarget;
 	SNBIntervalTargetPart* actualTargetPart;
 	double dInstanceInverseProb;
@@ -733,7 +733,7 @@ inline double SNBRegressorSelectionDataCostCalculator::ComputeInstanceNonNormali
 	dInstanceLaplaceNumerator = dInstanceNumber / dInstanceInverseProb + dLaplaceEpsilon;
 
 	// Trace de deboggage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\t" << nChunkInstance << "\t" << nActualTarget << "\t"
 		     << ivTargetPartIndexesByRank.GetAt(nActualTarget) << "\t"
@@ -754,7 +754,7 @@ inline double SNBRegressorSelectionDataCostCalculator::ComputeInstanceNonNormali
 inline double
 SNBGeneralizedClassifierSelectionDataCostCalculator::ComputeInstanceNonNormalizedDataCost(int nChunkInstance) const
 {
-	const boolean bDisplay = false;
+	const boolean bTrace = false;
 	int nActualTarget;
 	SNBGroupTargetPart* actualTargetPart;
 	double dInstanceInverseProb;
@@ -797,7 +797,7 @@ SNBGeneralizedClassifierSelectionDataCostCalculator::ComputeInstanceNonNormalize
 	dInstanceLaplaceNumerator = dInstanceNumber / dInstanceInverseProb + dLaplaceEpsilon;
 
 	// Trace de deboggage
-	if (bDisplay)
+	if (bTrace)
 	{
 		cout << "\t" << nChunkInstance << "\t" << nActualTarget << "\t"
 		     << oaTargetPartsByTargetValueIndex.GetAt(nActualTarget) << "\t"

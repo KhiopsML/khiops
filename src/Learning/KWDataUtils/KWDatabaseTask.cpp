@@ -428,7 +428,7 @@ boolean KWDatabaseTask::MasterInitialize()
 			bOk = KWClassDomain::GetCurrentDomain()->WriteFileFromClass(kwcClass, sClassTmpFile);
 
 		// On passe par une URI pour pouvoir le partager avec les esclaves
-		shared_sClassTmpFile.SetValue(FileService::BuildLocalURI(sClassTmpFile));
+		shared_sClassTmpFile.SetValue(FileService::TransformLocalFileURI(sClassTmpFile));
 	}
 
 	// Nettoyage
@@ -705,7 +705,7 @@ boolean KWDatabaseTask::SlaveInitializePrepareDatabase()
 	// Cas specifique au multi-tables
 	if (shared_sourceDatabase.GetDatabase()->IsMultiTableTechnology())
 	{
-		// Les dictionnaire etant disponibles, on peut remettre a jour les mappings
+		// Les dictionnaires etant disponibles, on peut remettre a jour les mappings
 		if (bOk)
 		{
 			shared_sourceDatabase.GetMTDatabase()->UpdateMultiTableMappings();

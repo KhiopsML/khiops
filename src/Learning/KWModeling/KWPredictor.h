@@ -100,7 +100,7 @@ public:
 	const NumericKeyDictionary* GetSelectedDataPreparationStats() const;
 
 	// Dictionnaire des KWDataPreparationStats selectionnes directement ou indirectement par le predicteur
-	// Ce dictionnaire correspond a l'analyse des attribut utilses dans les SelectedDataPreparationStats,
+	// Ce dictionnaire correspond a l'analyse des attributs utilises dans les SelectedDataPreparationStats,
 	// comme par exemple les variables preparees utilisees via les paires ou les arbres
 	// Memoire: appartient a l'appele, et son contenu appartient au ClassStats
 	const NumericKeyDictionary* GetRecursivelySelectedDataPreparationStats() const;

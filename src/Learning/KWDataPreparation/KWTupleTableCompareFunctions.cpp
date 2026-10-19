@@ -704,7 +704,7 @@ CompareFunction KWTupleTable::GetCompareValuesFunction() const
 	boolean bUsedSymbolAttributes;
 	int nAttribute;
 
-	// On determine si des attribut Symbol sont utilises
+	// On determine si des attributs Symbol sont utilises
 	bUsedSymbolAttributes = false;
 	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
 	{

@@ -73,7 +73,7 @@ protected:
 					    ObjectArray* oaUsedDataPreparationAttributes,
 					    ContinuousVector* cvAttributeWeights);
 
-	// Ajout des attribut de prediction pour la classification
+	// Ajout des attributs de prediction pour la classification
 	// Ajout egalement de l'attribut de prediction biaise en faveur du critere de classification
 	// (cf. methode GetClassifierCriterion des TrainParameters, via la classe KWClassifierPostOptimizer)
 	void AddClassifierPredictionAttributes(KWAttribute* classifierAttribute);
@@ -91,14 +91,14 @@ protected:
 					       ObjectArray* oaUsedDataPreparationAttributes,
 					       ContinuousVector* cvAttributeWeights);
 
-	// Ajout des attribut de prediction pour la regression de rang
+	// Ajout des attributs de prediction pour la regression de rang
 	void AddRankRegressorPredictionAttributes(KWAttribute* rankRegressorAttribute);
 
 	// Ajout de l'attribut regresseur de valeur
 	KWAttribute* AddRegressorAttribute(KWAttribute* rankRegressorAttribute, KWAttribute* targetValuesAttribute,
 					   ContinuousVector* cvAttributeWeights);
 
-	// Ajout des attribut de prediction pour la regression de valeur
+	// Ajout des attributs de prediction pour la regression de valeur
 	void AddRegressorPredictionAttributes(KWTrainedRegressor* trainedRegressor, KWAttribute* regressorAttribute,
 					      KWAttribute* targetValuesAttribute);
 

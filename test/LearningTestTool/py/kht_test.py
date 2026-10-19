@@ -12,6 +12,7 @@ import time
 import argparse
 
 import _kht_constants as kht
+import _kht_cloud_utils as cloud_utils
 import _kht_utils as utils
 import _kht_families as test_families
 import _kht_results_management as results
@@ -20,6 +21,15 @@ import _kht_check_results as check
 # mpiexec sous Windows
 if os.name == "nt":
     mpi_exe_name = "mpiexec.exe"
+    # Avec intel MPI mpiexec n'est pas dans le path. On peut le trouver grace a la variable d'environnement I_MPI_ROOT
+    # (qui doit etre positionnee par l'utilisateur, ca n'est pas fait automatiquement lors de l'installation)
+    # En la mettant dans le PATH on trouve mpiexec et les dll associees
+    intel_mpi_path = os.environ.get("I_MPI_ROOT", "")
+    if intel_mpi_path != "":
+        os.environ["PATH"] = (
+            os.path.join(intel_mpi_path, "bin") + ";" + os.environ["PATH"]
+        )
+
 # mpiexec sous Linux
 else:
     mpi_exe_name = "mpirun"
@@ -231,6 +241,15 @@ def build_tool_exe_path(tool_binaries_dir, tool_name, use_khiops_env):
     return tool_exe_path, error_message
 
 
+def is_test_failed(test_dir):
+    """Retourne True si le test a echoue, i.e. si comparisonResults.log est present avec des erreurs."""
+    log_file = os.path.join(test_dir, kht.COMPARISON_RESULTS_LOG)
+    if not os.path.isfile(log_file):
+        return False
+    error_number, _, _, _ = check.analyse_comparison_log(test_dir)
+    return error_number > 0
+
+
 def evaluate_tool_on_test_dir(
     tool_exe_path,
     suite_dir,
@@ -243,6 +262,7 @@ def evaluate_tool_on_test_dir(
     output_scenario=False,
     nop_output_scenario=False,
     user_interface=False,
+    only_failed_tests=False,
 ):
     """Evaluation d'un outil sur un repertoire de test terminal et comparaison des resultats
     Parametres:
@@ -258,6 +278,12 @@ def evaluate_tool_on_test_dir(
     # Verification de l'integrite du repertoire de test
     test_dir = os.path.join(suite_dir, test_dir_name)
     utils.check_test_dir(test_dir)
+
+    # En mode rerun-failed, on saute les tests qui n'ont pas echoue
+    # (leur comparisonResults.log n'a pas ete supprime lors du nettoyage)
+    if only_failed_tests and tool_exe_path != kht.ALIAS_CHECK:
+        if os.path.isfile(os.path.join(test_dir, kht.COMPARISON_RESULTS_LOG)):
+            return
 
     # Extraction des repertoires principaux
     suite_dir_name = utils.dir_name(suite_dir)
@@ -354,6 +380,10 @@ def evaluate_tool_on_test_dir(
             )
             return
 
+        # Nettoyage des resultats sur le cloud si le repertoire de test est cloudifie
+        if cloud_utils.is_cloudified_test_dir(test_dir):
+            cloud_utils.clean_cloud_results_dir(test_dir)
+
         # Nettoyage du repertoire de resultats
         results_dir = os.path.join(test_dir, kht.RESULTS)
         if os.path.isdir(results_dir):
@@ -442,10 +472,14 @@ def evaluate_tool_on_test_dir(
         if not user_interface:
             khiops_params.append("-b")
         khiops_params.append("-i")
-        khiops_params.append(kht.TEST_PRM)
-        if os.path.isfile(kht.TEST_JSON):
-            khiops_params.append("-j")
-            khiops_params.append(kht.TEST_JSON)
+        # test-cloud.prm prend la precedence: JSON deja integre, chemins cloud deja substitues
+        if os.path.isfile(kht.TEST_CLOUD_PRM):
+            khiops_params.append(kht.TEST_CLOUD_PRM)
+        else:
+            khiops_params.append(kht.TEST_PRM)
+            if os.path.isfile(kht.TEST_JSON):
+                khiops_params.append("-j")
+                khiops_params.append(kht.TEST_JSON)
         khiops_params.append("-e")
         khiops_params.append(os.path.join(results_dir, kht.ERR_TXT))
         if output_scenario:
@@ -477,6 +511,8 @@ def evaluate_tool_on_test_dir(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
+                encoding="utf-8",
+                errors="ignore",
             ) as khiops_process:
                 try:
                     stdout, stderr = khiops_process.communicate(timeout=timeout)
@@ -605,7 +641,7 @@ def evaluate_tool_on_test_dir(
                         stdout_file.write(stdout)
                 except Exception as exception:
                     print(
-                        "Enable to write file "
+                        "Unable to write file "
                         + kht.STDOUT_ERROR_LOG
                         + " in "
                         + kht.RESULTS
@@ -636,7 +672,7 @@ def evaluate_tool_on_test_dir(
                         stderr_file.write(line)
             except Exception as exception:
                 print(
-                    "Enable to write file "
+                    "Unable to write file "
                     + kht.STDERR_ERROR_LOG
                     + " in "
                     + kht.RESULTS
@@ -658,7 +694,7 @@ def evaluate_tool_on_test_dir(
                     )
             except Exception as exception:
                 print(
-                    "Enable to write file "
+                    "Unable to write file "
                     + kht.RETURN_CODE_ERROR_LOG
                     + " in "
                     + kht.RESULTS
@@ -678,7 +714,7 @@ def evaluate_tool_on_test_dir(
                 time_file.write(str(overall_time_stop - overall_time_start) + "\n")
         except Exception as exception:
             print(
-                "Enable to write file " + kht.TIME_LOG + " in " + kht.RESULTS + " dir ",
+                "Unable to write file " + kht.TIME_LOG + " in " + kht.RESULTS + " dir ",
                 exception,
             )
 
@@ -691,9 +727,15 @@ def evaluate_tool_on_test_dir(
     else:
         os.environ["LD_LIBRARY_PATH"] = initial_path
 
-    # Comparaison des resultats
+    # Comparaison des resultats (sauf sur le cloud ou on n'a pas acces aux resultats)
     os.chdir(suite_dir)
-    check.check_results(test_dir)
+    if tool_exe_path != kht.ALIAS_CHECK and cloud_utils.is_cloudified_test_dir(
+        test_dir
+    ):
+        print("--Comparison skipped: results are in the cloud")
+        print("")
+    else:
+        check.check_results(test_dir)
 
 
 def evaluate_tool_on_suite_dir(
@@ -778,6 +820,7 @@ def evaluate_all_tools_on_learning_test_tree(
     binaries_dir,
     use_khiops_env,
     family,
+    only_failed_tests=False,
     **kwargs,
 ):
     """Lance les tests des outils un ensemble de suites de tests
@@ -789,6 +832,7 @@ def evaluate_all_tools_on_learning_test_tree(
     - binaries_dir: repertorie des executables des outils
     - use_khiops_env: specifie si les parametres MPI sont issus du script khiops_env
     - family: famille utilise pour choisir la sous-partie des suites a exporter
+    - only_failed_tests: si True, on ne relance que les tests en erreur
     - kwargs: argument optionnels de la ligne de commande
     """
     # Tous les outils sont a prendre en compte si on est a la racine
@@ -839,17 +883,21 @@ def evaluate_all_tools_on_learning_test_tree(
                                 kwargs["min_test_time"],
                                 kwargs["max_test_time"],
                             ):
-                                file_path = os.path.join(
-                                    test_dir, kht.COMPARISON_RESULTS_LOG
-                                )
-                                if os.path.isfile(file_path):
-                                    utils.remove_file(file_path)
-                                results_dir = os.path.join(test_dir, kht.RESULTS)
-                                if os.path.isdir(results_dir):
-                                    for file_name in os.listdir(results_dir):
-                                        file_path = os.path.join(results_dir, file_name)
+                                # Nettoyage seulement si le test a echoue en mode rerun-failed
+                                if not only_failed_tests or is_test_failed(test_dir):
+                                    file_path = os.path.join(
+                                        test_dir, kht.COMPARISON_RESULTS_LOG
+                                    )
+                                    if os.path.isfile(file_path):
                                         utils.remove_file(file_path)
-                                    utils.remove_dir(results_dir)
+                                    results_dir = os.path.join(test_dir, kht.RESULTS)
+                                    if os.path.isdir(results_dir):
+                                        for file_name in os.listdir(results_dir):
+                                            file_path = os.path.join(
+                                                results_dir, file_name
+                                            )
+                                            utils.remove_file(file_path)
+                                        utils.remove_dir(results_dir)
             # Message d'erreur si suite inexistante
             else:
                 if not suite_errors:
@@ -873,6 +921,7 @@ def evaluate_all_tools_on_learning_test_tree(
             suite_dir,
             use_khiops_env,
             input_test_dir_name,
+            only_failed_tests=only_failed_tests,
             **kwargs,
         )
     # Cas d'un ou plusieurs outils, ou il faut utiliser les suites de la famille specifiee
@@ -909,6 +958,7 @@ def evaluate_all_tools_on_learning_test_tree(
                     home_dir,
                     test_suites,
                     use_khiops_env,
+                    only_failed_tests=only_failed_tests,
                     **kwargs,
                 )
 
@@ -1038,6 +1088,9 @@ def main():
         help_options="--max-test-time 5 --test-timeout-limit 1000",
     )
     epilog += "\n  " + build_usage_help(script_name, "check", help_options="-f basic")
+    epilog += "\n  " + build_usage_help(
+        script_name, "r", help_options="--rerun-failed -p 4"
+    )
 
     # Parametrage de l'analyse de la ligne de commande
     parser = argparse.ArgumentParser(
@@ -1098,6 +1151,13 @@ def main():
         "--user-interface",
         help="run in user interface mode"
         " (path to java and classpath with norm.jar must be defined)",
+        action="store_true",
+    )
+
+    # Mode rerun failed tests
+    parser.add_argument(
+        "--rerun-failed",
+        help="re-run only failed tests (with errors in comparisonResults.log)",
         action="store_true",
     )
 
@@ -1180,6 +1240,7 @@ def main():
         binaries_dir,
         use_khiops_env,
         args.family,
+        args.rerun_failed,
         min_test_time=args.min_test_time,
         max_test_time=args.max_test_time,
         test_timeout_limit=args.test_timeout_limit,

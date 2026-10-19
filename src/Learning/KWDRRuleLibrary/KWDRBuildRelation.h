@@ -139,9 +139,9 @@ protected:
 // - la table source en premier operande doit etre triee selon le besoin utilisateur
 // - les attributs sources dont on doit calculer la difference sont a specifie en entree
 //   a partir du deuxieme operande
-// - les variable en sortie memorisant les difference sont specifie dans les operandes en
+// - les variables en sortie memorisant les differences sont specifiees dans les operandes en
 //   sortie de la regle, en meme nombre et position que les attributs correspondant en entree
-// - les differences de variables sont calculee selon les types suivant
+// - les differences de variables sont calculees selon les types suivant
 //   - Numerical: difference numerique
 //   - Time: difference en secondes
 //   - Date: difference en jours

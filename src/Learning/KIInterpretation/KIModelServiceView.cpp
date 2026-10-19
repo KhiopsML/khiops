@@ -213,7 +213,7 @@ void KIModelServiceView::Open()
 	ALString sPredictorClassNames;
 	int nPredictorNumber;
 
-	// Parcours des dictionnaire courant pour identifier les predicteurs interpretables
+	// Parcours des dictionnaires courants pour identifier les predicteurs interpretables
 	nPredictorNumber = 0;
 	for (nClass = 0; nClass < KWClassDomain::GetCurrentDomain()->GetClassNumber(); nClass++)
 	{

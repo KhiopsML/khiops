@@ -135,6 +135,9 @@ public:
 	// dans les boucle de traitement intensifs, pour limiter la charge de traitement d'avancement des taches
 	static boolean IsRefreshNecessary(longint lLoopIndex);
 
+	// Frequence de rafraichissement
+	static int GetRefreshFrequency();
+
 	///////////////////////////////////////////////////////////
 	// Parametrage avance de la gestion des taches
 	// Methodes appelables hors suivi (avant un Start)
@@ -282,6 +285,9 @@ protected:
 	// Le currentFileManager est actif si un fichier est parametre
 	static FileTaskProgressionManager* currentFileManager;
 	static FileTaskProgressionManager fileManager;
+
+	// Frequence de rafraischissement
+	static const int nRefreshFrequency = 1024;
 };
 
 inline boolean TaskProgression::IsInTask()
@@ -291,7 +297,12 @@ inline boolean TaskProgression::IsInTask()
 
 inline boolean TaskProgression::IsRefreshNecessary(longint lLoopIndex)
 {
-	return (lLoopIndex % 1024) == 0;
+	return (lLoopIndex % nRefreshFrequency) == 0;
+}
+
+inline int TaskProgression::GetRefreshFrequency()
+{
+	return nRefreshFrequency;
 }
 
 inline void TaskProgression::SetInterruptible(boolean bValue)

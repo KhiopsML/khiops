@@ -10,7 +10,7 @@ class KWDataPreparationTask;
 #include "KWLearningSpec.h"
 #include "KWDataTableSliceSet.h"
 #include "KWTupleTableLoader.h"
-#include "KWDataGridOptimizer.h"
+#include "KWAttributeSubsetStats.h"
 #include "MemoryStatsManager.h"
 
 /////////////////////////////////////////////////////////////////////////////////

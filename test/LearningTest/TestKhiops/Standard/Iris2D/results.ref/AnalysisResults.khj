@@ -94,6 +94,10 @@
 						[0,32,0],
 						[0,0,35]
 					]
+				},
+				"aucValues": {
+					"values": ["Iris-setosa","Iris-versicolor","Iris-virginica"],
+					"aucs": [1,1,1]
 				}
 			},
 			"R2": {
@@ -104,6 +108,10 @@
 						[0,31,2],
 						[0,1,33]
 					]
+				},
+				"aucValues": {
+					"values": ["Iris-setosa","Iris-versicolor","Iris-virginica"],
+					"aucs": [1,0.97881,0.979796]
 				},
 				"dataGrid": {
 					"isSupervised": true,
@@ -231,6 +239,10 @@
 						[0,18,0],
 						[0,0,15]
 					]
+				},
+				"aucValues": {
+					"values": ["Iris-setosa","Iris-versicolor","Iris-virginica"],
+					"aucs": [1,1,1]
 				}
 			},
 			"R2": {
@@ -241,6 +253,10 @@
 						[0,18,3],
 						[0,0,12]
 					]
+				},
+				"aucValues": {
+					"values": ["Iris-setosa","Iris-versicolor","Iris-virginica"],
+					"aucs": [1,0.944444,0.94]
 				},
 				"dataGrid": {
 					"isSupervised": true,
