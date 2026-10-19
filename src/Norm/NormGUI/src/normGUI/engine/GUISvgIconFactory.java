@@ -18,12 +18,14 @@ final class GUISvgIconFactory
           throws ReflectiveOperationException
         {
                 Class<?> iconClass = Class.forName("com.formdev.flatlaf.extras.FlatSVGIcon");
-                Object icon = iconClass.getConstructor(String.class, int.class, int.class).newInstance(iconPath, 16, 16);
+                Object icon =
+                  iconClass.getConstructor(String.class, int.class, int.class).newInstance(iconPath, 16, 16);
                 if (!(Boolean)iconClass.getMethod("hasFound").invoke(icon))
                         return null;
                 if (highlightColor != null && isHighlighted != null) {
                         Class<?> filterClass = Class.forName("com.formdev.flatlaf.extras.FlatSVGIcon$ColorFilter");
-                        Function<Color, Color> colorMapper = color -> isHighlighted.getAsBoolean() ? highlightColor : color;
+                        Function<Color, Color> colorMapper =
+                          color -> isHighlighted.getAsBoolean() ? highlightColor : color;
                         Object filter = filterClass.getConstructor(Function.class).newInstance(colorMapper);
                         iconClass.getMethod("setColorFilter", filterClass).invoke(icon, filter);
                 }

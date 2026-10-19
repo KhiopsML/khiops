@@ -26,8 +26,8 @@ import javax.swing.event.ChangeListener;
 import normGUI.engine.GUIAction;
 import normGUI.engine.GUICard;
 import normGUI.engine.GUIData;
-import normGUI.engine.GUIUnit;
 import normGUI.engine.GUIIconLoader;
+import normGUI.engine.GUIUnit;
 
 /**
  * Cette classe represente une unite d'interface de type fiche
@@ -167,13 +167,15 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                                                         jp.setName(guiData.getIdentifier());
                                                         guiUnit.graphicAddField(jp, gbc);
 
-                                                        // Charge l'icone de l'onglet a partir des parametres, si specifiee
+                                                        // Charge l'icone de l'onglet a partir des parametres, si
+                                                        // specifiee
                                                         final int tabIndex = tabbedPanes.getTabCount();
                                                         Icon tabIcon = GUIIconLoader.loadSvgIcon(
-                                                                GUIIconLoader.resolveIconPath(guiUnit.getParameters()),
-                                                                selectedTabIconColor,
-                                                                () -> tabIndex == tabbedPanes.getSelectedIndex() ||
-                                                                        tabIndex == hoveredTabIndex);
+                                                          GUIIconLoader.resolveIconPath(guiUnit.getParameters()),
+                                                          selectedTabIconColor,
+                                                          ()
+                                                            -> tabIndex == tabbedPanes.getSelectedIndex() ||
+                                                                 tabIndex == hoveredTabIndex);
                                                         if (tabIcon != null)
                                                                 tabbedPanes.addTab(guiUnit.getLabel(), tabIcon, jp);
                                                         else
@@ -208,9 +210,15 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                                                 updateHoveredTab(tabbedPanes.indexAtLocation(e.getX(), e.getY()));
                                         }
 
-                                        public void mouseDragged(MouseEvent e) { mouseMoved(e); }
+                                        public void mouseDragged(MouseEvent e)
+                                        {
+                                                mouseMoved(e);
+                                        }
 
-                                        public void mouseExited(MouseEvent e) { updateHoveredTab(-1); }
+                                        public void mouseExited(MouseEvent e)
+                                        {
+                                                updateHoveredTab(-1);
+                                        }
                                 };
                                 tabbedPanes.addMouseListener(hoverListener);
                                 tabbedPanes.addMouseMotionListener(hoverListener);

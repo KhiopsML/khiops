@@ -44,7 +44,7 @@ CCLearningProblemView::CCLearningProblemView()
 	GetFieldAt("Database")->SetParameters("icon=database");
 	GetFieldAt("AnalysisSpec")->SetParameters("icon=sliders-vertical");
 	GetFieldAt("AnalysisResults")->SetParameters("icon=chart-column-big");
-	
+
 	// Ajout pour la basxe de train d'un champ en read-only pour rappeler le nom du fichier de dictionnaire
 	// Attention, il s'agit d'un champ d'interface uniquement, a mettre ajour dans EventRefresh
 	databaseView->AddStringField("ClassFileName", "Dictionary file", "");
