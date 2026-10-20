@@ -19,89 +19,87 @@ import javax.swing.UIManager;
 /**
  * Initialisation globale, en particulier en ce qui concerne le UIManager
  */
-public class GUIManager extends GUIObject
+public class GUIManager
 {
         /**
          * Initialise le UIManager
          *
          * @see javax.swing.UIManager
          */
-        public static void initialize()
+        public static synchronized void initialize()
         {
+                Thread.currentThread().setContextClassLoader(GUIManager.class.getClassLoader());
                 if (isInitialized)
                         return;
 
                 // Initialisation du manager
+                Runnable initializeTask = new Runnable() {
+                        public void run()
+                        {
+                                // Parametrage d'un gestionnaire d'exception par defaut
+                                Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler());
+                                System.setProperty("sun.awt.exception.handler", ExceptionHandler.class.getName());
+
+                                // Initialisation du UIManager
+                                // On privilegie FlatLaf pour moderniser le rendu et conserver des boites
+                                // de dialogue fichiers reactives. En cas d'echec, on conserve le fallback
+                                // historique cross-plateforme (Metal).
+                                try {
+                                        if (!initializeFlatLaf()) {
+                                                UIManager.setLookAndFeel(
+                                                  UIManager.getCrossPlatformLookAndFeelClassName());
+                                        }
+                                } catch (Exception e) {
+                                        if (GUIObject.debug)
+                                                GUIObject.displayMessage(
+                                                  "Impossible de charger le Look & Feel cross-plateforme");
+                                }
+
+                                // Choix d'une fonte par defaut
+                                Font defaultFont = loadDefaultFont();
+
+                                // Pour parametrer la fonte par defaut de toute l'UI.
+                                if (defaultFont != null) {
+                                        UIManager.put("defaultFont", defaultFont);
+                                        if (!UIManager.getLookAndFeel().getClass().getName().startsWith(
+                                              "com.formdev.flatlaf.")) {
+                                                for (Object key :
+                                                     UIManager.getLookAndFeelDefaults().keySet().toArray()) {
+                                                        if (key instanceof String && ((String)key).endsWith(".font"))
+                                                                UIManager.put(key, defaultFont);
+                                                }
+                                        }
+                                }
+
+                                // Marge interne des champs texte et des zones de texte
+                                Insets margin = new Insets(8, 10, 8, 10);
+                                UIManager.put("TextArea.margin", margin);
+                                UIManager.put("TextField.margin", margin);
+
+                                // Libelles des boites de dialogue
+                                Locale locale =
+                                  new Locale.Builder().setLanguage("en").setScript("Latn").setRegion("US").build();
+                                JOptionPane.setDefaultLocale(locale);
+                                JFileChooser.setDefaultLocale(locale);
+
+                                // Parametrage de la duree des info-bulles: une minute (defaut: 4 s)
+                                ToolTipManager.sharedInstance().setDismissDelay(60000);
+
+                                // Delai avant apparition de l'infobulle 0.5 secondes (defaut: 0.75 s)
+                                ToolTipManager.sharedInstance().setInitialDelay(500);
+
+                                // Delai en deca duquel il n'y plus de delai initial si on change de composant:
+                                // 0.15 secondes (defaut: 0.5 s)
+                                ToolTipManager.sharedInstance().setReshowDelay(150);
+
+                                // Initialisation effectuee
+                                isInitialized = true;
+                        }
+                };
+
                 try {
                         // On passe un Runnable pour se securiser vis a vis des thread
-                        javax.swing.SwingUtilities.invokeLater(new Runnable() {
-                                public void run()
-                                {
-                                        // Parametrage d'un gestionnaire d'exception par defaut
-                                        Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler());
-                                        System.setProperty("sun.awt.exception.handler",
-                                                           ExceptionHandler.class.getName());
-
-                                        // Initialisation du UIManager
-                                        // On privilegie FlatLaf pour moderniser le rendu et conserver des boites
-                                        // de dialogue fichiers reactives. En cas d'echec, on conserve le fallback
-                                        // historique cross-plateforme (Metal).
-                                        try {
-                                                if (!initializeFlatLaf()) {
-                                                        UIManager.setLookAndFeel(
-                                                          UIManager.getCrossPlatformLookAndFeelClassName());
-                                                }
-                                        } catch (Exception e) {
-                                                if (debug)
-                                                        displayMessage(
-                                                          "Impossible de charger le Look & Feel cross-plateforme");
-                                        }
-
-                                        // Choix d'une fonte par defaut
-                                        Font defaultFont = loadDefaultFont();
-
-                                        // Pour parametrer la fonte par defaut de toute l'UI.
-                                        if (defaultFont != null) {
-                                                UIManager.put("defaultFont", defaultFont);
-                                                if (!UIManager.getLookAndFeel().getClass().getName().startsWith(
-                                                      "com.formdev.flatlaf.")) {
-                                                        for (Object key :
-                                                             UIManager.getLookAndFeelDefaults().keySet().toArray()) {
-                                                                if (key instanceof String &&
-                                                                    ((String)key).endsWith(".font"))
-                                                                        UIManager.put(key, defaultFont);
-                                                        }
-                                                }
-                                        }
-
-                                        // Marge interne des champs texte et des zones de texte
-                                        Insets margin = new Insets(8, 10, 8, 10);
-                                        UIManager.put("TextArea.margin", margin);
-                                        UIManager.put("TextField.margin", margin);
-
-                                        // Libelles des boites de dialogue
-                                        Locale locale = new Locale.Builder()
-                                                          .setLanguage("en")
-                                                          .setScript("Latn")
-                                                          .setRegion("US")
-                                                          .build();
-                                        JOptionPane.setDefaultLocale(locale);
-                                        JFileChooser.setDefaultLocale(locale);
-
-                                        // Parametrage de la duree des info-bulles: une minute (defaut: 4 s)
-                                        ToolTipManager.sharedInstance().setDismissDelay(60000);
-
-                                        // Delai avant apparition de l'infobulle 0.5 secondes (defaut: 0.75 s)
-                                        ToolTipManager.sharedInstance().setInitialDelay(500);
-
-                                        // Delai en deca duquel il n'y plus de delai initial si on change de composant:
-                                        // 0.15 secondes (defaut: 0.5 s)
-                                        ToolTipManager.sharedInstance().setReshowDelay(150);
-
-                                        // Initialisation effectuee
-                                        isInitialized = true;
-                                }
-                        });
+                        initializeTask.run();
                 } catch (Exception e) {
                         // Initialisation effectuee: on ne re-essaiera pas
                         isInitialized = true;
@@ -165,8 +163,8 @@ public class GUIManager extends GUIObject
                         UIManager.setLookAndFeel((javax.swing.LookAndFeel)flatLightLaf);
                         return true;
                 } catch (Throwable e) {
-                        if (debug)
-                                displayMessage("Impossible de charger FlatLaf, fallback vers Metal");
+                        if (GUIObject.debug)
+                                GUIObject.displayMessage("Impossible de charger FlatLaf, fallback vers Metal");
                         return false;
                 }
         }
@@ -189,8 +187,8 @@ public class GUIManager extends GUIObject
 
                         return new Font("MS Sans Serif", Font.PLAIN, 12);
                 } catch (Exception e) {
-                        if (debug)
-                                displayMessage("Impossible de charger la fonte par defaut");
+                        if (GUIObject.debug)
+                                GUIObject.displayMessage("Impossible de charger la fonte par defaut");
                         return null;
                 }
         }
