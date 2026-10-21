@@ -69,9 +69,8 @@ public:
 	/////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
-	// Post-optimisation univariee d'un attribut de type numerique
-	// On optimise l'attribut en sur-partitionnant l'attribut a optimiser a proximite des intervalles
-	// existants, en raffinant iterativement la distance aux bornes existantes.
+	// Post-optimisation univariee d'un attribut numerique
+	// Sur-partitionne l'attribut a optimiser a proximite des intervalles existants
 	double PostOptimizeDataGridContinuousAttribute(const KWDataGrid* initialDataGrid, KWDataGrid* optimizedDataGrid,
 						       const ALString& sPostOptimizationAttributeName,
 						       boolean bDeepPostOptimization) const;
@@ -86,16 +85,16 @@ protected:
 	// Construction d'une grille initiale pour l'optimisation univariee dans le cas continu,
 	// ayant les memes partitions par attribut que la grille optimisee, sauf sur l'attribut a optimiser
 	// Pour la partition de cet attribut, des intervalles source de la grille initiale peuvent etre
-	// ajoutes autour de chaque borne de la partition optimisee. Chaque intervalle ajoute respecte
-	// un effectif minimal et l'effectif cumule des intervalles ajoutes autour d'une meme borne
-	// respecte un maximum.
+	// ajoutes autour de chaque borne de la partition optimisee, selon les contraintes definies
+	// dans la methode KWDataGridManager::AddContinuousAttributeNearbyParts.
 	// Ces contraintes permettent d'iterer d'intervalles grossiers vers des intervalles
 	// de plus en plus fins, potentiellement jusqu'a des intervalles singletons.
 	void BuildContinuousUnivariateInitialNearbyDataGrid(const KWDataGrid* initialDataGrid,
 							    const KWDataGrid* optimizedDataGrid,
 							    const ALString& sPostOptimizationAttributeName,
 							    int nNearbyIntervalMinFrequency,
-							    int nNearbyIntervalsMaxCumulativeFrequency,
+							    int nNearbyIntervalIncreasingFactor,
+							    int nNearbyMaxIntervalNumber,
 							    KWDataGrid* univariateInitialDataGrid) const;
 
 	// Construction d'une grille initiale pour l'optimisation univariee dans le cas categoriel,
@@ -110,6 +109,26 @@ protected:
 							const ALString& sPostOptimizationAttributeName,
 							int nNearbyGroupMinFrequency, int nNearbyGroupMaxFrequency,
 							KWDataGrid* univariateInitialDataGrid) const;
+
+	//DDD DEPRECATED? potentiellement utile pour le groupement de valeurs?
+	// Calcul de statistiques d'effectif des parties d'un attribut de grille
+	// Dans le vecteur en sortie, on indique le nombre de parties par puissance de deux,
+	// par index du vecteur
+	// - index 0: nombre de parties d'effectif 1
+	// - index 1: nombre de parties d'effectif 2
+	// - index 2: nombre de parties d'effectif 3 a 4
+	// - index 3: nombre de parties d'effectif 5 a 8
+	// - ...
+	// - index i: nombre de parties d'effectif 2^(i-1)+1 a 2^i
+	// On retourne l'effectif cumule des parties de l'attribut.
+	// Le vecteur en sortie est taille en fonction de la plus grande partie
+	// On renvoie l'effectif total cumule des parties
+	int ComputeAttributePartFrequenciesStatistics(const KWDGAttribute* attribute,
+						      IntVector* ivPartFrequenciesStatistics) const;
+
+	//DDD DEPRECATED? potentiellement utile pour le groupement de valeurs?
+	// Recherche de l'exposant de la plus petite puissance de 2 superieures a un entier strictement positif
+	int GetSmallestGreaterPower2Exponent(int nValue) const;
 
 	// Parametrage de la structure des couts
 	const KWDataGridCosts* dataGridCosts;

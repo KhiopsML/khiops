@@ -1293,7 +1293,8 @@ void KWDataGridManager::ExportCells(const KWDataGrid* sourceDataGrid, KWDataGrid
 
 void KWDataGridManager::AddContinuousAttributeNearbyParts(
     const KWDataGrid* sourceDataGrid, const KWDataGrid* mandatoryDataGrid, const ALString& sAttributeName,
-    int nNearbyIntervalMinFrequency, int nNearbyIntervalsMaxCumulativeFrequency, KWDataGrid* targetDataGrid) const
+    int nNearbyIntervalMinFrequency, int nNearbyIntervalIncreasingFactor, int nNearbyMaxIntervalNumber,
+    KWDataGrid* targetDataGrid) const
 {
 	const boolean bTrace = false;
 	IntVector ivNextNearbyCumulativeFrequencies;
@@ -1305,9 +1306,14 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 	KWDGPart* sourcePart;
 	KWDGPart* mandatoryPart;
 	KWDGPart* targetPart;
+	int nNearbyIntervalsMaxCumulativeFrequency;
+	int nMinTargetFrequency;
 	int nTargetFrequency;
 	int nCumulativeFrequency;
+	int nCumulativeFrequencyIntervalMedian;
 	int nCumulativeFrequencyLimit;
+	boolean bNewIntervalCreated;
+	boolean bCreateInterval;
 	int iNext;
 	int iPrev;
 	int i;
@@ -1322,7 +1328,12 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 	require(targetDataGrid->SearchAttribute(sAttributeName) != NULL);
 	require(targetDataGrid->SearchAttribute(sAttributeName)->GetPartNumber() == 0);
 	require(nNearbyIntervalMinFrequency >= 1);
-	require(nNearbyIntervalsMaxCumulativeFrequency >= nNearbyIntervalMinFrequency);
+	require(nNearbyIntervalIncreasingFactor >= 1);
+	require(nNearbyMaxIntervalNumber >= 1);
+	require(nNearbyIntervalMinFrequency <= INT_MAX / nNearbyMaxIntervalNumber);
+	require(nNearbyMaxIntervalNumber == 1 or
+		nNearbyIntervalMinFrequency <=
+		    INT_MAX / pow(nNearbyIntervalIncreasingFactor, nNearbyMaxIntervalNumber));
 	require(targetDataGrid->GetCellNumber() == 0);
 
 	// Acces a l'attribut dans chaque grille
@@ -1339,11 +1350,32 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 	require(sourceAttribute->ContainsSubParts(mandatoryAttribute));
 	require(targetAttribute->GetPartNumber() == 0);
 
+	// Calcul de l'effectif cumule theorique maximal
+	if (nNearbyIntervalIncreasingFactor == 1)
+	{
+		nNearbyIntervalsMaxCumulativeFrequency = nNearbyIntervalMinFrequency * nNearbyMaxIntervalNumber;
+	}
+	// Avec un facteur d'accroissement superieur a 1, calcul de la somme de la suite geometrique
+	else
+	{
+		// Calcul explicite en entier, sans passer par la formule analytique de type (pow(factor, number)-1)/(factor-1)
+		nNearbyIntervalsMaxCumulativeFrequency = 0;
+		nMinTargetFrequency = nNearbyIntervalMinFrequency;
+		for (i = 0; i < nNearbyMaxIntervalNumber; i++)
+		{
+			assert(nMinTargetFrequency < INT_MAX / nNearbyIntervalIncreasingFactor);
+			nNearbyIntervalsMaxCumulativeFrequency += nMinTargetFrequency;
+			nMinTargetFrequency *= nNearbyIntervalIncreasingFactor;
+		}
+	}
+
 	// Trace de debut
 	if (bTrace)
 	{
 		cout << "AddContinuousAttributeNearbyParts\t" << sAttributeName << "\n";
 		cout << "\tNearbyIntervalMinFrequency\t" << nNearbyIntervalMinFrequency << "\n";
+		cout << "\tNearbyIntervalIncreasingFactor\t" << nNearbyIntervalIncreasingFactor << "\n";
+		cout << "\tNearbyMaxIntervalNumber\t" << nNearbyMaxIntervalNumber << "\n";
 		cout << "\tNearbyIntervalsMaxCumulativeFrequency\t" << nNearbyIntervalsMaxCumulativeFrequency << "\n";
 		cout << "Source intervals\n";
 		sourceAttribute->WritePartsSummary(cout);
@@ -1360,17 +1392,21 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 	sourcePart = sourceAttribute->GetHeadPart();
 	while (mandatoryPart != NULL)
 	{
-		// On part d'un nouvel interval obligatoire, synchronise avec l'intervalle source pour sa borne inf
+		// On part d'un nouvel intervalle obligatoire, synchronise avec l'intervalle source pour sa borne inf
 		assert(mandatoryPart->GetInterval()->GetLowerBound() == sourcePart->GetInterval()->GetLowerBound());
 		assert(mandatoryPart->GetPartFrequency() > 0);
 
-		// Effectif cumule max en fonction des contraintes, en tenant compte egalement de la borne sup de l'intervalle obligatoire
-		if (mandatoryPart->GetPartFrequency() > 2 * nNearbyIntervalsMaxCumulativeFrequency)
-			nCumulativeFrequencyLimit = nCumulativeFrequency + nNearbyIntervalsMaxCumulativeFrequency;
-		else
-			nCumulativeFrequencyLimit = nCumulativeFrequency + mandatoryPart->GetPartFrequency() / 2;
+		// Effectif cumule correspondant a la mediane de l'intervalle
+		nCumulativeFrequencyIntervalMedian = nCumulativeFrequency + mandatoryPart->GetPartFrequency() / 2;
+
+		// Effectif cumule max en fonction des contraintes
+		nCumulativeFrequencyLimit = nCumulativeFrequency + nNearbyIntervalsMaxCumulativeFrequency;
+
+		// Reinitialisation de l'effectif minimum par intervalle
+		nMinTargetFrequency = nNearbyIntervalMinFrequency;
 
 		// Parcours des intervalles sources jusqu'a trouver la borne sup de l'attribut obligatoire
+		bNewIntervalCreated = false;
 		nTargetFrequency = 0;
 		while (sourcePart != NULL and
 		       sourcePart->GetInterval()->GetUpperBound() <= mandatoryPart->GetInterval()->GetUpperBound())
@@ -1383,14 +1419,27 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 
 			// Creation d'un intervalle cible si on a atteint la fin de l'intervalle obligatoire
 			// ou si l'on respecte les contraintes
-			if ((sourcePart->GetInterval()->GetUpperBound() ==
-			     mandatoryPart->GetInterval()->GetUpperBound()) or
-			    (nTargetFrequency >= nNearbyIntervalMinFrequency and
-			     nCumulativeFrequency <= nCumulativeFrequencyLimit))
+			// Note que l'on cree les intervalles obligatoires dans la premiere passe.
+			// Le nombre max d'intervalles a creer est implicitement pris en compte par la contrainte
+			// d'effectif cumule maximal
+			bCreateInterval = false;
+			if (sourcePart->GetInterval()->GetUpperBound() == mandatoryPart->GetInterval()->GetUpperBound())
+				bCreateInterval = true;
+			else if (nTargetFrequency >= nMinTargetFrequency and
+				 nCumulativeFrequency <= nCumulativeFrequencyIntervalMedian)
+				bCreateInterval =
+				    not bNewIntervalCreated or nCumulativeFrequency <= nCumulativeFrequencyLimit;
+			if (bCreateInterval)
 			{
+				bNewIntervalCreated = true;
+
 				// Memorisation de l'effectif cumule global de l'intervalle a creer
 				ivNextNearbyCumulativeFrequencies.Add(nCumulativeFrequency);
 				nTargetFrequency = 0;
+
+				// On accroit l'effectif minimum pour le prochain intervalle a creer
+				assert(nMinTargetFrequency < INT_MAX / nNearbyIntervalIncreasingFactor);
+				nMinTargetFrequency *= nNearbyIntervalIncreasingFactor;
 			}
 
 			// Passage a l'intervalle source suivant
@@ -1404,8 +1453,7 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 		cout << "NextNearbyCumulativeFrequencies" << ivNextNearbyCumulativeFrequencies << "\n";
 	assert(ivNextNearbyCumulativeFrequencies.GetSize() >= mandatoryAttribute->GetPartNumber());
 	assert(ivNextNearbyCumulativeFrequencies.GetSize() <=
-	       mandatoryAttribute->GetPartNumber() *
-		   (1 + nNearbyIntervalsMaxCumulativeFrequency / nNearbyIntervalMinFrequency));
+	       mandatoryAttribute->GetPartNumber() * (1 + nNearbyMaxIntervalNumber));
 
 	// Parcours en arriere synchronise des intervalles obligatoires et sources pour identifier les nouveaux
 	// intervalles a creer precedant la borne sup de chaque intervalle obligatoire, sans inclure les intervalles obligatoires
@@ -1419,14 +1467,18 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 		assert(mandatoryPart->GetInterval()->GetUpperBound() == sourcePart->GetInterval()->GetUpperBound());
 		assert(mandatoryPart->GetPartFrequency() > 0);
 
-		// Effectif cumule min en fonction des contraintes, en tenant compte egalement de la borne inf de l'intervalle obligatoire
-		// Le -1 permet d'eviter de de generer le meme intervalle que dans la premiere passe
-		if (mandatoryPart->GetPartFrequency() > 2 * nNearbyIntervalsMaxCumulativeFrequency)
-			nCumulativeFrequencyLimit = nCumulativeFrequency - nNearbyIntervalsMaxCumulativeFrequency;
-		else
-			nCumulativeFrequencyLimit = nCumulativeFrequency - (mandatoryPart->GetPartFrequency() - 1) / 2;
+		// Effectif cumule correspondant a la mediane de l'intervalle, pour retrouver la meme que dans la passe avant
+		nCumulativeFrequencyIntervalMedian =
+		    nCumulativeFrequency - mandatoryPart->GetPartFrequency() + mandatoryPart->GetPartFrequency() / 2;
+
+		// Effectif cumule max en fonction des contraintes
+		nCumulativeFrequencyLimit = nCumulativeFrequency - nNearbyIntervalsMaxCumulativeFrequency;
+
+		// Reinitialisation de l'effectif minimum par intervalle
+		nMinTargetFrequency = nNearbyIntervalMinFrequency;
 
 		// Parcours des intervalles sources jusqu'a trouver la borne inf de l'attribut obligatoire
+		bNewIntervalCreated = false;
 		nTargetFrequency = 0;
 		while (sourcePart != NULL and
 		       sourcePart->GetInterval()->GetLowerBound() >= mandatoryPart->GetInterval()->GetLowerBound())
@@ -1438,11 +1490,25 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 			nCumulativeFrequency -= sourcePart->GetPartFrequency();
 
 			// Creation d'un intervalle cible si on respecte les contraintes
-			if (nTargetFrequency >= nNearbyIntervalMinFrequency and
-			    nCumulativeFrequency >= nCumulativeFrequencyLimit)
+			// Note que l'on impose d'etre strictement superieur a la mediane pour eviter de generer
+			// le meme intervalle que dans la premiere passe.
+			// De meme, on ne recree pas les intervalles obligatoires de la premiere passe.
+			bCreateInterval = false;
+			if (nTargetFrequency >= nMinTargetFrequency and
+			    nCumulativeFrequency > nCumulativeFrequencyIntervalMedian)
+				bCreateInterval =
+				    not bNewIntervalCreated or nCumulativeFrequency >= nCumulativeFrequencyLimit;
+			if (bCreateInterval)
 			{
+				bNewIntervalCreated = true;
+
+				// Memorisation de l'effectif cumule global de l'intervalle a creer
 				ivPrevNearbyCumulativeFrequencies.Add(nCumulativeFrequency);
 				nTargetFrequency = 0;
+
+				// On accroit l'effectif minimum pour le prochain intervalle a creer
+				assert(nMinTargetFrequency < INT_MAX / nNearbyIntervalIncreasingFactor);
+				nMinTargetFrequency *= nNearbyIntervalIncreasingFactor;
 			}
 
 			// Passage a l'intervalle source precedent
@@ -1454,12 +1520,10 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 	}
 	if (bTrace)
 		cout << "PrevNearbyCumulativeFrequencies" << ivPrevNearbyCumulativeFrequencies << "\n";
-	assert(ivPrevNearbyCumulativeFrequencies.GetSize() <= mandatoryAttribute->GetPartNumber() *
-								  nNearbyIntervalsMaxCumulativeFrequency /
-								  nNearbyIntervalMinFrequency);
+	assert(ivPrevNearbyCumulativeFrequencies.GetSize() <=
+	       mandatoryAttribute->GetPartNumber() * nNearbyMaxIntervalNumber);
 
 	// Fusion des listes des intervalles a creer a partir des intervalles suivants (ordre croissant) et precedents (ordre decroissant)
-	iNext = 0;
 	iPrev = ivPrevNearbyCumulativeFrequencies.GetSize() - 1;
 	for (iNext = 0; iNext < ivNextNearbyCumulativeFrequencies.GetSize(); iNext++)
 	{
@@ -1490,15 +1554,14 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 	       ivPrevNearbyCumulativeFrequencies.GetSize() + ivNextNearbyCumulativeFrequencies.GetSize());
 	assert(ivAllNearbyCumulativeFrequencies.GetSize() >= mandatoryAttribute->GetPartNumber());
 	assert(ivAllNearbyCumulativeFrequencies.GetSize() <=
-	       mandatoryAttribute->GetPartNumber() *
-		   (1 + 2 * nNearbyIntervalsMaxCumulativeFrequency / nNearbyIntervalMinFrequency));
+	       mandatoryAttribute->GetPartNumber() * (1 + 2 * nNearbyMaxIntervalNumber));
 
 	// Parcours des intervalles sources pour creer les intervalles cibles a partir des effectifs cumules specifies
 	nCumulativeFrequency = 0;
 	sourcePart = sourceAttribute->GetHeadPart();
 	for (i = 0; i < ivAllNearbyCumulativeFrequencies.GetSize(); i++)
 	{
-		// Creation d'une nouvel intervalle cible
+		// Creation d'un nouvel intervalle cible
 		targetPart = targetAttribute->AddPart();
 		targetPart->GetInterval()->SetLowerBound(sourcePart->GetInterval()->GetLowerBound());
 
@@ -1537,8 +1600,7 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 	ensure(targetAttribute->GetPartNumber() >= mandatoryAttribute->GetPartNumber());
 	ensure(targetAttribute->GetPartNumber() <= sourceAttribute->GetPartNumber());
 	ensure(targetAttribute->GetPartNumber() <=
-	       mandatoryAttribute->GetPartNumber() *
-		   (1 + 2 * nNearbyIntervalsMaxCumulativeFrequency / nNearbyIntervalMinFrequency));
+	       mandatoryAttribute->GetPartNumber() * (1 + 2 * nNearbyMaxIntervalNumber));
 	ensure(targetAttribute->ArePartsSorted());
 	ensure(sourceAttribute->ContainsSubParts(targetAttribute));
 	ensure(targetAttribute->ContainsSubParts(mandatoryAttribute));
@@ -5314,7 +5376,7 @@ void KWDataGridManager::InitializeGroupableAttributePartInformations(
 		nMandatoryIndex = 0;
 		while (mandatoryPart != NULL)
 		{
-			lnkdMandatoryParts.SetAt(mandatoryPart, nMandatoryIndex + 1);
+			lnkdMandatoryParts.SetAt(mandatoryPart, (longint)nMandatoryIndex + 1);
 
 			// Partie suivante
 			mandatoryAttribute->GetNextPart(mandatoryPart);
