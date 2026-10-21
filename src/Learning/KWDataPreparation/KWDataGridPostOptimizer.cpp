@@ -257,9 +257,9 @@ void KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* i
 			{
 				KWDataGrid univariateInitialNearbyDataGrid;
 				int nNearbyIntervalMinFrequency = 5;
-				int nNearbyIntervalsMaxCumulativeFrequency = 60;
+				int nNearbyIntervalsMaxCumulativeFrequency = 10;
 				boolean bOneTest = false;
-				boolean bOverallTest = true;
+				boolean bOverallTest = false;
 
 				// Construction d'une grille proche de la solution optimisee
 				if (bOneTest)
@@ -276,6 +276,26 @@ void KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* i
 					univariateInitialNearbyDataGrid.SearchAttribute(sPostOptimizationAttributeName)
 					    ->WritePartsSummary(cout);
 					cout << endl;
+
+					//DDD
+					{
+						IntVector ivPartFrequenciesStatistics;
+						KWDGAttribute* attribute;
+
+						attribute =
+						    initialDataGrid->SearchAttribute(sPostOptimizationAttributeName);
+						ComputeAttributePartFrequenciesStatistics(attribute,
+											  &ivPartFrequenciesStatistics);
+						cout << "\tinitialDataGrid\t" << attribute->GetPartNumber() << "\t"
+						     << ivPartFrequenciesStatistics << endl;
+
+						attribute =
+						    optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName);
+						ComputeAttributePartFrequenciesStatistics(attribute,
+											  &ivPartFrequenciesStatistics);
+						cout << "\toptimizedDataGrid\t" << attribute->GetPartNumber() << "\t"
+						     << ivPartFrequenciesStatistics << endl;
+					}
 				}
 
 				// Tests systematiques
@@ -399,7 +419,7 @@ void KWDataGridPostOptimizer::BuildContinuousUnivariateInitialNearbyDataGrid(
     const ALString& sPostOptimizationAttributeName, int nNearbyIntervalMinFrequency,
     int nNearbyIntervalsMaxCumulativeFrequency, KWDataGrid* univariateInitialDataGrid) const
 {
-	const boolean bTrace = false; //DDD
+	const boolean bTrace = false;
 	KWDataGridManager dataGridManager;
 	KWDGAttribute* postOptimizationAttribute;
 
@@ -538,6 +558,77 @@ void KWDataGridPostOptimizer::BuildSymbolUnivariateInitialNearbyDataGrid(const K
 		   initialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetPartNumber() -
 		   optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetPartNumber());
 	ensure(univariateInitialDataGrid->GetCellNumber() >= optimizedDataGrid->GetCellNumber());
+}
+
+int KWDataGridPostOptimizer::ComputeAttributePartFrequenciesStatistics(const KWDGAttribute* attribute,
+								       IntVector* ivPartFrequenciesStatistics) const
+{
+	int nTotalFrequency;
+	KWDGPart* part;
+	int nFrequency;
+	int nExponent;
+	int nMaxExponent;
+
+	require(attribute != NULL);
+	require(attribute->Check());
+	require(ivPartFrequenciesStatistics != NULL);
+
+	// Initialisation du vecteur resultat a une taille suffisante
+	ivPartFrequenciesStatistics->SetSize(sizeof(int) * CHAR_BIT);
+	ivPartFrequenciesStatistics->Initialize();
+
+	// Collecte des statistique sur les effectifs des parties
+	nTotalFrequency = 0;
+	part = attribute->GetHeadPart();
+	while (part != NULL)
+	{
+		// Effectif de la partie
+		nFrequency = part->GetPartFrequency();
+		assert(nFrequency > 0);
+		nTotalFrequency += nFrequency;
+
+		// Recherche du plus petit exposant d'une puissance de 2 plus grande que l'effectif
+		nExponent = GetSmallestGreaterPower2Exponent(nFrequency);
+
+		// Memorisation de la statistic
+		ivPartFrequenciesStatistics->UpgradeAt(nExponent, 1);
+
+		// Partie suivante
+		attribute->GetNextPart(part);
+	}
+
+	// Retaillage du tableau en fonction de l'effectif max
+	nExponent = GetSmallestGreaterPower2Exponent(nTotalFrequency);
+	ivPartFrequenciesStatistics->SetSize(nExponent + 1);
+	ensure(nTotalFrequency == attribute->ComputeTotalPartFrequency());
+	ensure(nTotalFrequency <= pow(2, ivPartFrequenciesStatistics->GetSize()));
+	return nTotalFrequency;
+}
+
+int KWDataGridPostOptimizer::GetSmallestGreaterPower2Exponent(int nValue) const
+{
+	int nExponent;
+	int nPower2;
+
+	require(nValue > 0);
+
+	// Cas d'un entier tres grand
+	if (nValue > INT_MAX / 2)
+		nExponent = 31;
+	// Sinon, recherche du plus petit exposant d'une puissance de 2 plus grande
+	else
+	{
+		nExponent = 0;
+		nPower2 = 1;
+		while (nValue > nPower2)
+		{
+			nExponent++;
+			nPower2 *= 2;
+		}
+		assert(nValue <= nPower2);
+		assert(nPower2 / 2 < nValue);
+	}
+	return nExponent;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

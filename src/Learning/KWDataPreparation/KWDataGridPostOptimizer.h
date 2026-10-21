@@ -111,6 +111,23 @@ protected:
 							int nNearbyGroupMinFrequency, int nNearbyGroupMaxFrequency,
 							KWDataGrid* univariateInitialDataGrid) const;
 
+	// Calcul de statistiques d'effectif des parties d'un attribust de grille
+	// Dans le vecteur en sortie, on indique le nombre de parties par puissance de deux,
+	// par index du vecteur
+	// - index 0: nombre de parties d'effectif 1
+	// - index 1: nombre de parties d'effectif 2
+	// - index 2: nombre de parties d'effectif 3 a 4
+	// - index 3: nombre de parties d'effectif 5 a 8
+	// - ...
+	// - index i: nombre de parties d'effectif 2^(i-1)+1 a 2^i
+	// On retourne l'effectif cumule des parties de l'attribut.
+	// Le vecteur en sortie est de taille log(2) de cet effectif
+	int ComputeAttributePartFrequenciesStatistics(const KWDGAttribute* attribute,
+						      IntVector* ivPartFrequenciesStatistics) const;
+
+	// Recherche de l'exposant de la plus petite puissance de 2 superieures a un entier strictement positif
+	int GetSmallestGreaterPower2Exponent(int nValue) const;
+
 	// Parametrage de la structure des couts
 	const KWDataGridCosts* dataGridCosts;
 
