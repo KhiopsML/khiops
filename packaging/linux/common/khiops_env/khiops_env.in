@@ -96,19 +96,18 @@ fi
 IS_MACOS_APP="@IS_MACOS_APP@"
 NO_MPI=false
 if [[ "$IS_MACOS_APP" == "true" ]]; then
-    _BREW_MPI_PREFIX=""
-    for _CANDIDATE_PREFIX in /opt/homebrew /usr/local; do
-        _CANDIDATE_MPIEXEC="$_CANDIDATE_PREFIX/bin/mpiexec"
-        if [[ -x "$_CANDIDATE_MPIEXEC" ]] &&
-            _MPI_VERSION=$("$_CANDIDATE_MPIEXEC" --version 2>&1) &&
-            [[ "$_MPI_VERSION" == *"Open MPI"* ]]; then
-            _BREW_MPI_PREFIX="$_CANDIDATE_PREFIX"
+    for _BREW_PREFIX in /opt/homebrew /usr/local; do
+        if [[ -x "$_BREW_PREFIX/bin/mpiexec" ]]; then
+            _BREW_MPIEXEC="$_BREW_PREFIX/bin/mpiexec"
             break
         fi
     done
-    if [[ -z "$_BREW_MPI_PREFIX" ]]; then
+    if [[ ! -x "$_BREW_MPIEXEC" ]] ||
+         # Check if the available MPI implementation matches the expected one
+        ! _MPI_VERSION=$("$_BREW_MPIEXEC" --version 2>&1) ||
+        [[ "$_MPI_VERSION" != *"@MPI_FULL_NAME@"* ]]; then
         NO_MPI=true
-        KHIOPS_MPI_ERROR="OpenMPI not found: Khiops is running in serial mode. Install it with 'brew install open-mpi' to enable parallel computation."
+        KHIOPS_MPI_ERROR="@MPI_FULL_NAME@ not found: Khiops is running in serial mode. Install it with brew to enable parallel computation."
     fi
 fi
 
@@ -123,13 +122,13 @@ else
     KHIOPS_COCLUSTERING_PATH=@MODL_PATH@@MODL_COCLUSTERING_NAME@
 
     if [[ "$IS_MACOS_APP" == "true" ]]; then
-        _MPIEXEC="$_BREW_MPI_PREFIX/bin/mpiexec"
+        _MPIEXEC="$_BREW_MPIEXEC"
         KHIOPS_MPI_ERROR=""
     else
         # Most of the time the mpiexec executable is in the same directory as the MODL
         # executable; this applies to:
         # - Debian and Ubuntu native installations
-        # - installations in Conda and Conda-based environments
+        # - installations in pip, Conda and Conda-based environments
         _MPIEXEC=@MODL_PATH@mpiexec
         if command -v $_MPIEXEC &>/dev/null; then
             KHIOPS_MPI_ERROR=""
@@ -167,7 +166,7 @@ else
     unset _MPIEXEC
     unset _MPI_EXTRA_FLAGS
 fi
-unset _BREW_MPI_PREFIX _CANDIDATE_MPIEXEC _MPI_VERSION
+unset _BREW_MPIEXEC _BREW_PREFIX _MPI_VERSION
 
 if [ "$1" = "--env" ]; then
     echo KHIOPS_PATH "$KHIOPS_PATH"

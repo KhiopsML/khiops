@@ -1,6 +1,7 @@
 # macOS Packaging
 
-The macOS packaging script builds two self-contained application bundles and a DMG:
+The macOS packaging script builds two self-contained application bundles and a DMG for
+the host architecture:
 
 - `Khiops.app`
 - `Khiops Coclustering.app`
@@ -11,7 +12,19 @@ executables and selects the variant at runtime.
 
 ## Requirements
 
-Run the packaging script on macOS 12 or later. The following tools are required:
+The Khiops macOS package follows Apple's macOS support policy: its minimum supported
+version is the oldest macOS version officially supported by Apple. As of 2026, this
+is macOS 14.0 (Sonoma). The generated app bundle therefore targets macOS 14.0. The
+target is passed through `CMAKE_OSX_DEPLOYMENT_TARGET` so that the compiled binaries
+advertise the same minimum version, and it is also used for `LSMinimumSystemVersion`
+in the generated app bundles.
+
+The release workflow produces one DMG for each supported architecture (`arm64` and
+`x86_64`), not one DMG for each macOS version. A DMG built for one architecture must
+be used on a Mac with that architecture, or through the appropriate compatibility
+layer provided by macOS.
+
+The following tools are required:
 
 - CMake 3.22 or later
 - Ninja
@@ -39,19 +52,19 @@ are compiled with Java bytecode target 11, so the runtime must support Java 11.
 Run the command from the repository root:
 
 ```bash
-bash packaging/macos/build-app.sh <path-to-vendored-jre> [preset]
+bash packaging/macos/build-app.sh <path-to-vendored-jre> <minimum-macos-version> [preset]
 ```
 
 The preset defaults to `macos-clang-release`. For example:
 
 ```bash
-bash packaging/macos/build-app.sh /path/to/jre
+bash packaging/macos/build-app.sh /path/to/jre 14.0
 ```
 
-An alternate preset can be supplied as the second argument:
+An alternate preset can be supplied as the third argument:
 
 ```bash
-bash packaging/macos/build-app.sh /path/to/jre macos-clang-debug
+bash packaging/macos/build-app.sh /path/to/jre 14.0 macos-clang-debug
 ```
 
 The script performs these steps:
@@ -64,6 +77,10 @@ The script performs these steps:
 5. Signs the embedded binaries and bundles.
 6. Creates a compressed DMG with `hdiutil`.
 
+The script builds for the architecture of the host machine. The CI workflow runs the
+script separately for the `arm64` and `x86_64` architectures and publishes the two
+resulting DMGs independently.
+
 ## MPI Runtime Selection
 
 The app contains these four executables:
@@ -73,7 +90,8 @@ The app contains these four executables:
 - `MODL_openmpi`
 - `MODL_Coclustering_openmpi`
 
-`khiops_env` searches for Homebrew Open MPI in `/opt/homebrew` and `/usr/local`.
+`khiops_env` searches for Homebrew Open MPI in `/opt/homebrew` on Apple Silicon and
+`/usr/local` on Intel.
 When Open MPI is available, the MPI executables are selected. Otherwise, the app
 falls back to the serial executables and reports that parallel computation is
 unavailable.
@@ -106,7 +124,8 @@ build/macos-app-stage/
 └── LICENSES/
 ```
 
-The DMG is written to `build/Khiops-<version>.dmg`.
+The DMG is written to `build/Khiops-<version>.dmg`. In CI, the DMG is published as an
+architecture-specific artifact.
 
 The install component is run once for each CMake configuration. The serial
 configuration installs the shared resources (JARs, JRE, and licenses), while the
@@ -127,7 +146,7 @@ for a downloaded DMG. To sign with a Developer ID certificate, set
 
 ```bash
 export KHIOPS_CODESIGN_IDENTITY="Developer ID Application: Example (TEAMID)"
-bash packaging/macos/build-app.sh /path/to/jre
+bash packaging/macos/build-app.sh /path/to/jre 14.0
 ```
 
 The script does not notarize or staple the DMG. Public distribution still requires
@@ -141,8 +160,12 @@ Useful checks after a build are:
 bash -n build/macos-app-stage/Khiops.app/Contents/Resources/bin/khiops_env
 bash -n build/macos-app-stage/Khiops.app/Contents/Resources/bin/khiops
 plutil -lint build/macos-app-stage/Khiops.app/Contents/Info.plist
+otool -l build/macos-app-stage/Khiops.app/Contents/Resources/bin/MODL
 codesign --verify --deep --strict build/macos-app-stage/Khiops.app
 ```
+
+The `LC_BUILD_VERSION` load command reported by `otool` and the
+`LSMinimumSystemVersion` value in `Info.plist` should both indicate macOS 14.0.
 
 The generated environment can be inspected with:
 

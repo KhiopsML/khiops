@@ -19,7 +19,7 @@
     <key>CFBundleIconFile</key>
     <string>@MACOS_APP_BUNDLE_ICON_FILE@</string>
     <key>LSMinimumSystemVersion</key>
-    <string>12.0</string>
+    <string>@MACOS_APP_MINIMUM_SYSTEM_VERSION@</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>LSApplicationCategoryType</key>

@@ -4,6 +4,10 @@ if(KHIOPS_MACOS_APP)
   if(NOT IS_MACOS)
     message(FATAL_ERROR "KHIOPS_MACOS_APP is only supported on macOS")
   endif()
+  if(NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET OR "${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "")
+    message(FATAL_ERROR "CMAKE_OSX_DEPLOYMENT_TARGET must be set for the macOS app bundle")
+  endif()
+  set(MACOS_APP_MINIMUM_SYSTEM_VERSION "${CMAKE_OSX_DEPLOYMENT_TARGET}")
 
   # These paths contain generated files before the install component stages them in the two final application bundles.
   set(MACOS_APP_TMP_DIR "${TMP_DIR}/macos-app")

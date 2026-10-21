@@ -506,18 +506,36 @@ int OpenApplication(const char* sApplicationExeName, const char* sApplicationLab
 
 #elif defined(__APPLE__)
 #include <spawn.h>
+#include <sys/wait.h>
 extern char** environ;
+
+// Lance la commande open et attend le retour de l'utilitaire, sans attendre la fermeture de l'application ouverte
+static int LaunchOpenCommand(char* argv[])
+{
+	int processID;
+	int status;
+	int processStatus;
+	posix_spawn_file_actions_t fa;
+
+	if (posix_spawn_file_actions_init(&fa) != 0)
+		return 0;
+	posix_spawn_file_actions_addclose(&fa, STDERR_FILENO);
+	posix_spawn_file_actions_addclose(&fa, STDOUT_FILENO);
+	status = posix_spawn(&processID, "/usr/bin/open", &fa, NULL, argv, environ);
+	posix_spawn_file_actions_destroy(&fa);
+
+	if (status != 0 || waitpid(processID, &processStatus, 0) != processID)
+		return 0;
+	return WIFEXITED(processStatus) && WEXITSTATUS(processStatus) == 0;
+}
 
 // Implementation macOS du lancement d'application
 int OpenApplication(const char* sApplicationExeName, const char* sApplicationLabel, const char* sFileToOpen,
 		    char* sErrorMessage)
 {
 	int ok;
-	int processID;
-	int status;
-	char* argv[5];
-	const char* sApplicationPath;
-	posix_spawn_file_actions_t fa;
+	int bOpenSucceeded;
+	char* argv[4];
 
 	assert(sApplicationExeName != NULL);
 	assert(strlen(sApplicationExeName) < SYSTEM_MESSAGE_LENGTH / 2);
@@ -530,54 +548,29 @@ int OpenApplication(const char* sApplicationExeName, const char* sApplicationLab
 	// Initialisations
 	ok = 1;
 	sErrorMessage[0] = '\0';
-	sApplicationPath = NULL;
 
-	// Le nom de l'executable de la visualisation est different de celui du bundle macOS
-	if (strcmp(sApplicationExeName, "khiops-visualization") == 0 ||
-	    strcmp(sApplicationExeName, "khiops-covisualization") == 0)
-		sApplicationPath = "/Applications/Khiops Visualization Desktop.app";
-	else if (sApplicationExeName[0] != '\0')
-		sApplicationPath = sApplicationExeName;
+	// Lancement via Launch Services avec l'application par defaut associee au fichier
+	argv[0] = (char*)"open";
+	argv[1] = (char*)sFileToOpen;
+	argv[2] = (char*)0;
+	argv[3] = (char*)0;
+	bOpenSucceeded = LaunchOpenCommand(argv);
 
-	// Verification de l'application specifiee
-	if (sApplicationPath != NULL && access(sApplicationPath, F_OK) != 0)
+	// En l'absence d'association et si aucun outil n'est specifie, utiliser l'editeur de texte par defaut
+	if (not bOpenSucceeded && sApplicationExeName[0] == '\0')
 	{
-		ok = 0;
-		snprintf(sErrorMessage, SYSTEM_MESSAGE_LENGTH, "%s tool not installed", sApplicationLabel);
+		argv[1] = (char*)"-t";
+		argv[2] = (char*)sFileToOpen;
+		argv[3] = (char*)0;
+		bOpenSucceeded = LaunchOpenCommand(argv);
 	}
 
-	// Lancement via Launch Services
-	if (ok)
+	// Message d'erreur
+	if (not bOpenSucceeded)
 	{
-		argv[0] = (char*)"open";
-		if (sApplicationPath != NULL)
-		{
-			argv[1] = (char*)"-a";
-			argv[2] = (char*)sApplicationPath;
-			argv[3] = (char*)sFileToOpen;
-			argv[4] = (char*)0;
-		}
-		else
-		{
-			argv[1] = (char*)sFileToOpen;
-			argv[2] = (char*)0;
-		}
-
-		// Fermeture des sorties pour ne pas afficher de messages dans la console
-		posix_spawn_file_actions_init(&fa);
-		posix_spawn_file_actions_addclose(&fa, STDERR_FILENO);
-		posix_spawn_file_actions_addclose(&fa, STDOUT_FILENO);
-		status = posix_spawn(&processID, "/usr/bin/open", &fa, NULL, argv, environ);
-		posix_spawn_file_actions_destroy(&fa);
-
-		// Message d'erreur
-		if (status != 0)
-		{
-			ok = 0;
-			assert(strlen(strerror(status)) < SYSTEM_MESSAGE_LENGTH / 2 - 30);
-			snprintf(sErrorMessage, SYSTEM_MESSAGE_LENGTH, "unable to launch %s tool (%s)",
-				 sApplicationLabel, strerror(status));
-		}
+		ok = 0;
+		snprintf(sErrorMessage, SYSTEM_MESSAGE_LENGTH, "unable to open %s tool with the default application",
+			 sApplicationLabel);
 	}
 	return ok;
 }
