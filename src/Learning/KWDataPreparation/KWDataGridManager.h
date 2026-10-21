@@ -146,13 +146,22 @@ public:
 	// obligatoire, en ajoutant des parties de part et d'autre de chaque frontiere.
 	// Selon les contraintes, le resultat peut etre identique a la grille obligatoire.
 
-	// Ajout de parties proches des parties existantes d'un attribut continu donne.
-	// Des intervalles sont ajoutes de part et d'autre de chaque borne de la partition
-	// obligatoire. Chaque intervalle ajoute au vosinnage d'une borne respecte un effectif minimal et
-	// l'ensemble des intervalles ajoutes de chaque cote d'une borne respecte un effectif cumule maximal.
+	// Ajout d'intervalles au voisinage des parties existantes d'un attribut continu donne.
+	// Des intervalles sont ajoutes de chaque cote de chaque borne de la partition obligatoire.
+	// Chaque intervalle ajoute doit respecter un effectif minimal.
+	// Si le facteur d'accroissement des effectifs est strictement superieur a 1, l'effectif
+	// minimal des intervalles ajoutes augmente a mesure qu'ils s'eloignent de la borne, selon
+	// une loi geometrique (Min, F * Min, F * F * Min, ...).
+	// Sinon, l'effectif minimal reste constant.
+	// L'ajout d'intervalles s'arrete lorsque le nombre maximal est atteint ou que l'effectif
+	// cumule des intervalles ajoutes atteint ou depasse l'effectif minimal theorique correspondant au
+	// nombre maximal d'intervalles.
+	// Par exemple, avec un effectif minimal de 10, un facteur d'accroissement de 2 et au plus
+	// 3 intervalles, les effectifs minimaux requis sont 10, 20 et 40, soit un total theorique de 70.
+	// L'ajout s'arrete des que l'effectif cumule depasse 70 ou que 3 intervalles ont ete ajoutes.
 	void AddContinuousAttributeNearbyParts(const KWDataGrid* sourceDataGrid, const KWDataGrid* mandatoryDataGrid,
 					       const ALString& sAttributeName, int nNearbyIntervalMinFrequency,
-					       int nNearbyIntervalsMaxCumulativeFrequency,
+					       int nNearbyIntervalIncreasingFactor, int nNearbyMaxIntervalNumber,
 					       KWDataGrid* targetDataGrid) const;
 
 	// Ajout de groupes proches des groupes existants d'un attribut categoriel donne.

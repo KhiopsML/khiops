@@ -633,6 +633,7 @@ void KWAttributeSubsetStats::SetPregranularizedNumericalAttributes(boolean bValu
 
 boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tupleTable, KWDGAttribute* dgAttribute)
 {
+	int nMinRregressionValueNumber = 500;
 	int nTuple;
 	const KWTuple* tuple;
 	const KWTupleTable* univariateTupleTable;
@@ -643,7 +644,6 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 	Continuous cIntervalBound;
 	double dProgression;
 	int nMaxValueNumber;
-	int nMinValueNumber = 500; //DDD TO VALIDATE
 
 	require(Check());
 	require(CheckSpecifications());
@@ -669,17 +669,25 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 	// Pre-granularisation des attributs numeriques cible (regression) et des attributs numeriques explicatifs en
 	// analyse non supervisee (co-clustering) Cette pre-granularisation permet :
 	// - en regression, de limiter le nombre de valeurs cible au seuil sqrt(N log N), superieur a l'ecart type
-	// theorique de la precision de prediction en sqrt(N)
-	// - en coclustering
+	//   theorique de la precision de prediction en sqrt(N)
 
-	// Calcul du nombre maximal de valeurs tolere en fonction du nombre d'instances
-	if (univariateTupleTable->GetTotalFrequency() < nMinValueNumber)
-		nMaxValueNumber = univariateTupleTable->GetTotalFrequency();
+	// Dans le cas d'un attribut cible de regression, on limite la granularite pour des raisons de performances en temps de calcul
+	if (dgAttribute->GetAttributeType() == KWType::Continuous and dgAttribute->GetAttributeTargetFunction())
+	{
+		// Calcul du nombre maximal de valeurs tolere en fonction du nombre d'instances
+		if (univariateTupleTable->GetTotalFrequency() < nMinRregressionValueNumber)
+			nMaxValueNumber = univariateTupleTable->GetTotalFrequency();
+		else
+			nMaxValueNumber =
+			    nMinRregressionValueNumber +
+			    (int)ceil(
+				sqrt((univariateTupleTable->GetTotalFrequency() - nMinRregressionValueNumber) *
+				     log(1 + univariateTupleTable->GetTotalFrequency() - nMinRregressionValueNumber) /
+				     log(2.0)));
+	}
+	// Sinon, on prend toutes les valeurs possibles
 	else
-		nMaxValueNumber =
-		    nMinValueNumber +
-		    (int)ceil(sqrt((univariateTupleTable->GetTotalFrequency() - nMinValueNumber) *
-				   log(1 + univariateTupleTable->GetTotalFrequency() - nMinValueNumber) / log(2.0)));
+		nMaxValueNumber = univariateTupleTable->GetTotalFrequency();
 
 	// Cas de la pre-granularisation de l'attribut
 	if (GetPregranularizedNumericalAttributes() and univariateTupleTable->GetSize() > nMaxValueNumber and
