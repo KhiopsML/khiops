@@ -17,13 +17,16 @@ set -euo pipefail
 # the shared templates in packaging/linux/common/ (khiops.in, khiops_env/khiops_env.in)
 # with the bundle-specific values before this script assembles the applications.
 #
-# Usage: build-app.sh <path-to-vendored-jre> [preset]
+# Usage: build-app.sh <path-to-vendored-jre> <minimum-macos-version> [preset]
 # The vendored JRE is expected to be a minimal jlink-produced runtime
 # (bin/java, lib/server/libjvm.dylib) - e.g. an Eclipse JustJ minimal JRE.
 
 REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." &>/dev/null && pwd)"
-PRESET="${2:-macos-clang-release}"
-JRE_SRC_DIR="${1:?Usage: build-app.sh <path-to-vendored-jre> [preset]}"
+JRE_SRC_DIR="${1:?Usage: build-app.sh <path-to-vendored-jre> <minimum-macos-version> [preset]}"
+MACOS_MINIMUM_SYSTEM_VERSION="${2:?Usage: build-app.sh <path-to-vendored-jre> <minimum-macos-version> [preset]}"
+PRESET="${3:-macos-clang-release}"
+
+# Minimum macOS system version for the app bundle, supplied by the caller.
 
 BUILD_SERIAL_DIR="$REPO_ROOT/build/macos-app-serial"
 BUILD_MPI_DIR="$REPO_ROOT/build/macos-app-mpi"
@@ -40,11 +43,14 @@ echo "==> Building serial variant (MPI=OFF)"
 # version and the vendored JRE fails with UnsupportedClassVersionError at runtime.
 cmake --preset "$PRESET" -B "$BUILD_SERIAL_DIR" -D MPI=OFF -D TESTING=OFF -D BUILD_JARS=ON \
     -D CMAKE_JAVA_COMPILE_FLAGS="--release;11" -D KHIOPS_MACOS_APP=ON \
+    -D CMAKE_OSX_DEPLOYMENT_TARGET="$MACOS_MINIMUM_SYSTEM_VERSION" \
     -D KHIOPS_MACOS_JRE_DIR="$JRE_SRC_DIR"
 cmake --build "$BUILD_SERIAL_DIR" --target MODL MODL_Coclustering khiops_jar norm_jar --parallel
 
 echo "==> Building MPI variant (MPI=ON, linked against Homebrew's open-mpi)"
+# Khiops JAR files have already been built in the sequential build
 cmake --preset "$PRESET" -B "$BUILD_MPI_DIR" -D MPI=ON -D TESTING=OFF -D BUILD_JARS=OFF -D KHIOPS_MACOS_APP=ON \
+    -D CMAKE_OSX_DEPLOYMENT_TARGET="$MACOS_MINIMUM_SYSTEM_VERSION" \
     -D KHIOPS_MACOS_JRE_DIR="$JRE_SRC_DIR"
 cmake --build "$BUILD_MPI_DIR" --target MODL MODL_Coclustering --parallel
 

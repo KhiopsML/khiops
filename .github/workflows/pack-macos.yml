@@ -22,8 +22,10 @@ jobs:
         include:
           - arch: arm64
             runner: macos-15
+            minimum_macos_version: '14.0'
           - arch: x86_64
             runner: macos-15-intel
+            minimum_macos_version: '14.0'
     steps:
       - name: Checkout sources
         uses: actions/checkout@v7
@@ -74,7 +76,7 @@ jobs:
         env:
           KHIOPS_CODESIGN_IDENTITY: ${{ env.KHIOPS_SIGNING_IDENTITY }}
         run: |
-          packaging/macos/build-app.sh "$RUNNER_TEMP/khiops-jre"
+          packaging/macos/build-app.sh "$RUNNER_TEMP/khiops-jre" "${{ matrix.minimum_macos_version }}"
       - name: Prepare notarization API key
         env:
           MAC_API_KEY: ${{ secrets.MAC_API_KEY }}
