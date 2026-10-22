@@ -70,6 +70,10 @@ option(BUILD_LEX_YACC "Re-generate parsing files with lex & yacc" OFF)
 option(BUILD_JARS "Re-generate norm.jar and khiops.jar" OFF)
 option(GENERATE_VIEWS "Generate views sources from dd files" OFF)
 option(C11 "Build whith C++11 libraries (ON,OFF)" ON)
+option(KHIOPS_MACOS_APP "Generate files for the macOS app bundle" OFF)
+set(KHIOPS_MACOS_JRE_DIR
+    ""
+    CACHE PATH "Path to the JRE embedded in the macOS app bundle")
 
 # Print the options
 message("\nKhiops build options:\n")
