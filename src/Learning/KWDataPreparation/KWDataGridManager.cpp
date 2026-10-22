@@ -5314,7 +5314,7 @@ void KWDataGridManager::InitializeGroupableAttributePartInformations(
 		nMandatoryIndex = 0;
 		while (mandatoryPart != NULL)
 		{
-			lnkdMandatoryParts.SetAt(mandatoryPart, nMandatoryIndex + 1);
+			lnkdMandatoryParts.SetAt(mandatoryPart, (longint)nMandatoryIndex + 1);
 
 			// Partie suivante
 			mandatoryAttribute->GetNextPart(mandatoryPart);

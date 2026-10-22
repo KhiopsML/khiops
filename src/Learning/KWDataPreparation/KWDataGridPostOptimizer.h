@@ -122,8 +122,9 @@ protected:
 	// - index i: nombre de parties d'effectif 2^(i-1)+1 a 2^i
 	// On retourne l'effectif cumule des parties de l'attribut.
 	// Le vecteur en sortie est taille en fonction de la plus grande partie
-	void ComputeAttributePartFrequenciesStatistics(const KWDGAttribute* attribute,
-						       IntVector* ivPartFrequenciesStatistics) const;
+	// On renvoie l'effectif total cumule des parties
+	int ComputeAttributePartFrequenciesStatistics(const KWDGAttribute* attribute,
+						      IntVector* ivPartFrequenciesStatistics) const;
 
 	// Recherche de l'exposant de la plus petite puissance de 2 superieures a un entier strictement positif
 	int GetSmallestGreaterPower2Exponent(int nValue) const;
