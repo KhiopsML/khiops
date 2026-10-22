@@ -3583,14 +3583,24 @@ void CCCoclusteringBuilder::ComputePartHierarchies(KWDataGridMerger* optimizedDa
 			hdgParentPart->SetPartFrequency(hdgParentPart->GetChildPart1()->GetPartFrequency() +
 							hdgParentPart->GetChildPart2()->GetPartFrequency());
 
-			// Typicite par moyenne ponderee des typicites des parties filles
-			dInterest = (hdgParentPart->GetChildPart1()->GetPartFrequency() *
-					 hdgParentPart->GetChildPart1()->GetInterest() +
-				     hdgParentPart->GetChildPart2()->GetPartFrequency() *
-					 hdgParentPart->GetChildPart2()->GetInterest());
-			if (hdgParentPart->GetPartFrequency() > 0)
-				dInterest /= hdgParentPart->GetPartFrequency();
-			hdgParentPart->SetInterest(dInterest);
+			// Anciens indicateurs
+			if (not GetImportanceMode())
+			{
+
+				// Typicite par moyenne ponderee des typicites des parties filles
+				dInterest = (hdgParentPart->GetChildPart1()->GetPartFrequency() *
+						 hdgParentPart->GetChildPart1()->GetInterest() +
+					     hdgParentPart->GetChildPart2()->GetPartFrequency() *
+						 hdgParentPart->GetChildPart2()->GetInterest());
+				if (hdgParentPart->GetPartFrequency() > 0)
+					dInterest /= hdgParentPart->GetPartFrequency();
+				hdgParentPart->SetInterest(dInterest);
+			}
+
+			// Nouveaux indicateurs
+			else
+				hdgParentPart->SetImportance(hdgParentPart->GetChildPart1()->GetImportance() +
+							     hdgParentPart->GetChildPart2()->GetImportance());
 
 			// Realisation de la fusion
 			dgmMergedPart = optimizedDataGridMerger->PerformPartMerge(bestPartMerge);
@@ -3685,29 +3695,64 @@ void CCCoclusteringBuilder::ComputePartRanks(const KWDataGridMerger* optimizedDa
 				hdgChildPart2 = hdgPart->GetChildPart2();
 				if (hdgChildPart1 != NULL and hdgChildPart2 != NULL)
 				{
-					if (hdgChildPart1->GetInterest() < hdgChildPart2->GetInterest())
+					if (not GetImportanceMode())
 					{
-						hdgPart->SetChildPart1(hdgChildPart2);
-						hdgPart->SetChildPart2(hdgChildPart1);
-					}
-					// En cas d'egalite des interets des parties, comparaison de leur effectif
-					else if (hdgChildPart1->GetInterest() == hdgChildPart2->GetInterest())
-					{
-						if (hdgChildPart1->GetPartFrequency() <
-						    hdgChildPart2->GetPartFrequency())
+						if (hdgChildPart1->GetInterest() < hdgChildPart2->GetInterest())
 						{
 							hdgPart->SetChildPart1(hdgChildPart2);
 							hdgPart->SetChildPart2(hdgChildPart1);
 						}
-						// En cas d'egalite d'effectif, comparaison lexicographique des noms des
-						// parties
-						else if (hdgChildPart1->GetPartFrequency() ==
-							 hdgChildPart2->GetPartFrequency())
+						// En cas d'egalite des interets des parties, comparaison de leur effectif
+						else if (hdgChildPart1->GetInterest() == hdgChildPart2->GetInterest())
 						{
-							if (hdgChildPart1->GetPartName() > hdgChildPart2->GetPartName())
+							if (hdgChildPart1->GetPartFrequency() <
+							    hdgChildPart2->GetPartFrequency())
 							{
 								hdgPart->SetChildPart1(hdgChildPart2);
 								hdgPart->SetChildPart2(hdgChildPart1);
+							}
+							// En cas d'egalite d'effectif, comparaison lexicographique des noms des
+							// parties
+							else if (hdgChildPart1->GetPartFrequency() ==
+								 hdgChildPart2->GetPartFrequency())
+							{
+								if (hdgChildPart1->GetPartName() >
+								    hdgChildPart2->GetPartName())
+								{
+									hdgPart->SetChildPart1(hdgChildPart2);
+									hdgPart->SetChildPart2(hdgChildPart1);
+								}
+							}
+						}
+					}
+					else
+					{
+						if (hdgChildPart1->GetImportance() < hdgChildPart2->GetImportance())
+						{
+							hdgPart->SetChildPart1(hdgChildPart2);
+							hdgPart->SetChildPart2(hdgChildPart1);
+						}
+						// En cas d'egalite des importances des parties, comparaison de leur effectif
+						else if (hdgChildPart1->GetImportance() ==
+							 hdgChildPart2->GetImportance())
+						{
+							if (hdgChildPart1->GetPartFrequency() <
+							    hdgChildPart2->GetPartFrequency())
+							{
+								hdgPart->SetChildPart1(hdgChildPart2);
+								hdgPart->SetChildPart2(hdgChildPart1);
+							}
+							// En cas d'egalite d'effectif, comparaison lexicographique des noms des
+							// parties
+							else if (hdgChildPart1->GetPartFrequency() ==
+								 hdgChildPart2->GetPartFrequency())
+							{
+								if (hdgChildPart1->GetPartName() >
+								    hdgChildPart2->GetPartName())
+								{
+									hdgPart->SetChildPart1(hdgChildPart2);
+									hdgPart->SetChildPart2(hdgChildPart1);
+								}
 							}
 						}
 					}

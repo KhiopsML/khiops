@@ -212,7 +212,7 @@ boolean CCHierarchicalDataGrid::CheckImportances() const
 					dTotalValueImportance += dgValue->GetImportance();
 					dgPart->GetValueSet()->GetNextValue(dgValue);
 				}
-				bOk = fabs(dTotalValueImportance - 1 < dEpsilon);
+				bOk = fabs(dTotalValueImportance - 1) < dEpsilon;
 				if (not bOk)
 				{
 					break;
@@ -229,7 +229,7 @@ boolean CCHierarchicalDataGrid::CheckImportances() const
 			AddWarning("Inconsistent part importances for attribute\t" + attribute->GetAttributeName());
 		}
 	}
-	bOk = fabs(dTotalAttributeImportance - 1 < dEpsilon);
+	bOk = fabs(dTotalAttributeImportance - 1) < dEpsilon;
 
 	// Affichage de la somme des importances des dimensions
 	if (not bOk)
@@ -267,7 +267,7 @@ boolean CCHierarchicalDataGrid::CheckImportances() const
 						dTotalValueImportance += dgValue->GetImportance();
 						dgPart->GetValueSet()->GetNextValue(dgValue);
 					}
-					bOk = fabs(dTotalValueImportance - 1 < dEpsilon);
+					bOk = fabs(dTotalValueImportance - 1) < dEpsilon;
 					if (not bOk)
 					{
 						break;
@@ -285,7 +285,7 @@ boolean CCHierarchicalDataGrid::CheckImportances() const
 				AddWarning("Inconsistent part importances for attribute\t" +
 					   attribute->GetAttributeName());
 			}
-			bOk = fabs(dTotalPartImportanceInVariable - 1 < dEpsilon);
+			bOk = fabs(dTotalPartImportanceInVariable - 1) < dEpsilon;
 			if (not bOk)
 			{
 				break;
@@ -462,8 +462,8 @@ void CCHierarchicalDataGrid::ComputeInnerAttributeImportances()
 	// Construction de la structure d'indexation pour acceder aux parties de variables depuis les innerAttributes
 	BuildIndexingStructure();
 
-	dTotalInnerAttributeImportance = 0;
 	// Parcours des attributs internes
+	dTotalInnerAttributeImportance = 0;
 	for (nAttribute = 0; nAttribute < GetInnerAttributes()->GetInnerAttributeNumber(); nAttribute++)
 	{
 		innerAttribute = cast(CCHDGAttribute*, GetInnerAttributes()->GetInnerAttributeAt(nAttribute));
@@ -471,7 +471,7 @@ void CCHierarchicalDataGrid::ComputeInnerAttributeImportances()
 		// Calcul de l'importance de chaque partie de variable au sein de son cluster de parties de variable
 		// On repartit l'importance du cluster de parties de variable au prorata des effectifs par partie,
 		// en exploitant l'hypothese d independance entre les dimensions instances et parties de variables localement au sein de chaque cocluster.
-		// Cela revient a avoir l'importance de la partie de variable egal au ratio de l'effectif de sa partie par l'effectif du cluster auquel elle appartient
+		// Cela revient a avoir l'importance de la partie de variable egale au ratio de l'effectif de sa partie par l'effectif du cluster auquel elle appartient
 		part = innerAttribute->GetHeadPart();
 		while (part != NULL)
 		{
@@ -493,6 +493,7 @@ void CCHierarchicalDataGrid::ComputeInnerAttributeImportances()
 					innerAttributePart->GetValueSet()->GetNextValue(dgValue);
 				}
 			}
+
 			// Partie suivante
 			innerAttribute->GetNextPart(part);
 		}
@@ -500,6 +501,7 @@ void CCHierarchicalDataGrid::ComputeInnerAttributeImportances()
 		// Calcul de l'importance de chaque partie de variable au sein de sa variable
 		part = innerAttribute->GetHeadPart();
 		dInnerAttributeImportance = 0;
+
 		// Somme sur toutes les PV de l'attribut
 		while (part != NULL)
 		{
@@ -513,7 +515,6 @@ void CCHierarchicalDataGrid::ComputeInnerAttributeImportances()
 		}
 		innerAttribute->SetImportance(dInnerAttributeImportance);
 		dTotalInnerAttributeImportance += innerAttribute->GetImportance();
-		// Importance de l'inner variable vaut dTotalInnerAttributeImportanceInVariable
 
 		// Importance en pourcentage de la PV dans sa variable
 		part = innerAttribute->GetHeadPart();
@@ -746,8 +747,11 @@ CCHDGPart* CCHDGAttribute::MergePart(CCHDGPart* part)
 
 	// Calcul de l'importance de la partie fusionnee
 	// L'importance de la partie est ici additive, car elle est relative a son cluster
-	assert(sourcePart->GetImportance() >= 0 and targetPart->GetImportance() >= 0);
-	targetPart->SetImportance(sourcePart->GetImportance() + targetPart->GetImportance());
+	if (GetImportanceMode())
+	{
+		assert(sourcePart->GetImportance() > 0 and targetPart->GetImportance() > 0);
+		targetPart->SetImportance(sourcePart->GetImportance() + targetPart->GetImportance());
+	}
 
 	// Cas d'un attribut groupable : renormalisation de l'importance des elements de la partie fusionnee par rapport a son effectif
 	// et a la nouvelle importance de la partie fusionnee

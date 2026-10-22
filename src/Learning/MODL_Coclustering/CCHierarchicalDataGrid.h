@@ -86,6 +86,18 @@ public:
 
 	/////////////////////////////////////////////////////////////////////
 	// Calcul de toutes les importances de la grille
+	// Principe du calcul des importances
+	// L'importance totale du coclustering est la somme des valeurs absolues des contributions
+	// a l'information mutuelle de l'ensemble des cellules du coclustering
+	// L'importance d'une partie est la somme des importances de ses cellules divisee par l'importance totale du coclustering
+	// L 'importance d' une valeur dans une partie est le ratio de son effectif a celui de sa partie
+	// Dans le cas individus * variables :
+	// - l'importance d'une partie de variable au sein de son cluster de PV est le ratio de l'effectif de cette partie de variable a celui du cluster de PV
+	// - l'importance d'une variable interne est la somme des produits des importances des PV par l'importance du cluster auquel la PV appartient
+	// - l'importance d'une partie de variable au sein de sa variable est le ratio du produit de l'importance de la PV au sein de son cluster par l'importance du cluster
+	// auquel la PV apparient a l'importance de la variable interne
+	// Reference : article "Fully Automated Co-clustering of Mixed Data Using a Maximum A Posteriori Approach", Bouchareb et al,2027
+
 	// Pilotage de toutes les methodes detaillees
 	void ComputeAllImportances();
 
