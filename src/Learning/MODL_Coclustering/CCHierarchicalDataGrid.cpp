@@ -12,6 +12,7 @@ CCHierarchicalDataGrid::CCHierarchicalDataGrid()
 	dNullCost = 0;
 	dCost = 0;
 	nInitialAttributeNumber = 0;
+	dCoclusteringGlobalImportance = 0;
 }
 
 CCHierarchicalDataGrid::~CCHierarchicalDataGrid() {}
@@ -60,6 +61,17 @@ double CCHierarchicalDataGrid::GetLevel() const
 	if (dLevel < 0)
 		dLevel = 0;
 	return dLevel;
+}
+
+void CCHierarchicalDataGrid::SetCoclusteringGlobalImportance(double dValue)
+{
+	require(dValue > 0);
+	dCoclusteringGlobalImportance = dValue;
+}
+
+double CCHierarchicalDataGrid::GetCoclusteringGlobalImportance() const
+{
+	return dCoclusteringGlobalImportance;
 }
 
 void CCHierarchicalDataGrid::SetInitialAttributeNumber(int nValue)
@@ -163,6 +175,136 @@ boolean CCHierarchicalDataGrid::CheckHierarchy() const
 	return bOk;
 }
 
+boolean CCHierarchicalDataGrid::CheckImportances() const
+{
+	int nAttribute;
+	double dTotalAttributeImportance;
+	double dTotalPartImportance;
+	double dTotalPartImportanceInVariable;
+	double dTotalValueImportance;
+	double dEpsilon = 1e-6;
+	boolean bOk = true;
+	CCHDGAttribute* attribute;
+	KWDGPart* dgPart;
+	KWDGValue* dgValue;
+
+	// La somme des importances des attributs de dimension doit etre egal a 1
+	dTotalAttributeImportance = 0;
+	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
+	{
+		attribute = cast(CCHDGAttribute*, GetAttributeAt(nAttribute));
+		dTotalAttributeImportance += attribute->GetImportance();
+
+		// Parcours et verification de la somme des importances des parties
+		dTotalPartImportance = 0;
+		dgPart = attribute->GetHeadPart();
+		while (dgPart != NULL)
+		{
+			dTotalPartImportance += cast(CCHDGPart*, dgPart)->GetImportance();
+
+			// Cas d'une partie groupable : verification de la coherence de la somme des importances de ses elements (somme a 1)
+			if (KWType::IsCoclusteringGroupableType(dgPart->GetPartType()))
+			{
+				dgValue = dgPart->GetValueSet()->GetHeadValue();
+				dTotalValueImportance = 0;
+				while (dgValue != NULL)
+				{
+					dTotalValueImportance += dgValue->GetImportance();
+					dgPart->GetValueSet()->GetNextValue(dgValue);
+				}
+				bOk = fabs(dTotalValueImportance - 1) < dEpsilon;
+				if (not bOk)
+				{
+					break;
+					AddWarning("Inconsistent value importances for part\t" +
+						   dgPart->GetClassLabel());
+				}
+			}
+			attribute->GetNextPart(dgPart);
+		}
+		bOk = fabs(dTotalPartImportance - 1) < dEpsilon;
+		if (not bOk)
+		{
+			break;
+			AddWarning("Inconsistent part importances for attribute\t" + attribute->GetAttributeName());
+		}
+	}
+	bOk = fabs(dTotalAttributeImportance - 1) < dEpsilon;
+
+	// Affichage de la somme des importances des dimensions
+	if (not bOk)
+	{
+		cout << "CheckImportances\t" << GetObjectLabel() << "\n";
+		cout << "\tAttribute importances sum\t" << dTotalAttributeImportance << "\n";
+	}
+
+	// Cas d'un coclustering individus * variables
+	if (bOk and IsVarPartDataGrid())
+	{
+		// La somme des importances des attributs internes doit etre egal a 1
+		dTotalAttributeImportance = 0;
+		for (nAttribute = 0; nAttribute < GetInnerAttributes()->GetInnerAttributeNumber(); nAttribute++)
+		{
+			attribute = cast(CCHDGAttribute*, GetInnerAttributes()->GetInnerAttributeAt(nAttribute));
+			dTotalAttributeImportance += attribute->GetImportance();
+
+			// Parcours et verification de la somme des importances des parties au sein de leur cluster et au sein de leur variable
+			dTotalPartImportance = 0;
+			dTotalPartImportanceInVariable = 0;
+			dgPart = attribute->GetHeadPart();
+			while (dgPart != NULL)
+			{
+				dTotalPartImportance += cast(CCHDGPart*, dgPart)->GetImportance();
+				dTotalPartImportanceInVariable += cast(CCHDGPart*, dgPart)->GetImportanceInVariable();
+
+				// Cas d'une partie groupable : verification de la coherence de la somme des importances de ses elements (somme a 1)
+				if (KWType::IsCoclusteringGroupableType(dgPart->GetPartType()))
+				{
+					dgValue = dgPart->GetValueSet()->GetHeadValue();
+					dTotalValueImportance = 0;
+					while (dgValue != NULL)
+					{
+						dTotalValueImportance += dgValue->GetImportance();
+						dgPart->GetValueSet()->GetNextValue(dgValue);
+					}
+					bOk = fabs(dTotalValueImportance - 1) < dEpsilon;
+					if (not bOk)
+					{
+						break;
+						AddWarning("Inconsistent value importances for part\t" +
+							   dgPart->GetClassLabel());
+					}
+				}
+				attribute->GetNextPart(dgPart);
+			}
+			// Nok : deux definitions -> sommer sur le cluster de PV ou sur les PV d'une variable
+			//bOk = fabs(dTotalPartImportance - 1 < dEpsilon);
+			if (not bOk)
+			{
+				break;
+				AddWarning("Inconsistent part importances for attribute\t" +
+					   attribute->GetAttributeName());
+			}
+			bOk = fabs(dTotalPartImportanceInVariable - 1) < dEpsilon;
+			if (not bOk)
+			{
+				break;
+				AddWarning("Inconsistent part importances in variable for attribute\t" +
+					   attribute->GetAttributeName());
+			}
+		}
+		bOk = fabs(dTotalAttributeImportance - 1) < dEpsilon;
+
+		// Affichage de la somme des importances des inner Attributes
+		if (not bOk)
+		{
+			cout << "CheckImportances\t" << GetObjectLabel() << "\n";
+			cout << "\tInner attribute importances sum\t" << dTotalAttributeImportance << "\n";
+		}
+	}
+	return bOk;
+}
+
 const ALString CCHierarchicalDataGrid::GetClassLabel() const
 {
 	return "Hierarchichal data grid";
@@ -171,6 +313,227 @@ const ALString CCHierarchicalDataGrid::GetClassLabel() const
 KWDGAttribute* CCHierarchicalDataGrid::NewAttribute() const
 {
 	return new CCHDGAttribute;
+}
+
+KWDGCell* CCHierarchicalDataGrid::NewCell() const
+{
+	return new CCHDGCell;
+}
+
+void CCHierarchicalDataGrid::ComputeAllImportances()
+{
+
+	// Cas d'un coclustering informatif (non reduit au modele nul)
+	if (GetCellNumber() > 1)
+	{
+		// Calcul de l'importance totale du coclustering
+		ComputeCoclusteringImportance();
+
+		// Calcul de l'importance de chaque cluster pour chaque dimension du coclustering
+		ComputePartImportances();
+
+		// Cas d'un coclustering instances x variables : calcul de l'importance des attributs internes
+		// et de leurs parties au sein de leur cluster et au sein de leur attribut
+		if (IsVarPartDataGrid())
+			ComputeInnerAttributeImportances();
+
+		// Verification de la coherence des importances
+		assert(CheckImportances());
+	}
+}
+
+void CCHierarchicalDataGrid::ComputeCoclusteringImportance()
+{
+	KWDGCell* cell;
+	CCHDGCell* cchdgCell;
+	double dTotalImportance;
+	int nAttribute;
+	double dFrequencyPartProductNormalized;
+
+	// Calcul de l'importance du coclustering par sommation sur l'ensemble des cellules
+	cell = GetHeadCell();
+	dTotalImportance = 0;
+	while (cell != NULL)
+	{
+		cchdgCell = cast(CCHDGCell*, cell);
+		// Parcours des parties de la cellule pour le calcul de l'effectif attendu en cas d'independance (expected frequency)
+		dFrequencyPartProductNormalized = 1.0;
+		for (nAttribute = 0; nAttribute < cell->GetAttributeNumber(); nAttribute++)
+			dFrequencyPartProductNormalized *=
+			    (double)cell->GetPartAt(nAttribute)->GetPartFrequency() / (double)GetGridFrequency();
+
+		// Calcul de l'information mutuelle de la cellule (sa contribution)
+		cchdgCell->SetMutualInformation(((double)cell->GetCellFrequency() / (double)GetGridFrequency()) *
+						log((double)cell->GetCellFrequency() /
+						    (double)(GetGridFrequency() * dFrequencyPartProductNormalized)));
+
+		// Ajout de la contribution de la cellule a l'importance globale du coclustering
+		// L'importance totale est la somme des valeurs absolues des contributions a l'information mutuelle
+		dTotalImportance += abs(cchdgCell->GetMutualInformation());
+
+		// Cellule suivante
+		GetNextCell(cell);
+	}
+	SetCoclusteringGlobalImportance(dTotalImportance);
+}
+
+void CCHierarchicalDataGrid::ComputePartImportances()
+{
+	int nAttribute;
+	CCHDGAttribute* attribute;
+	CCHDGPart* cchdgPart;
+	CCHDGCell* cchdgCell;
+	KWDGPart* part;
+	KWDGCell* cell;
+	KWDGValue* dgValue;
+	double dImportance;
+	double dTotalImportance;
+	double dValueSetTotalFrequency;
+	double dEpsilon = 1e-6;
+
+	require(GetCoclusteringGlobalImportance() > 0 or GetCellNumber() == 1);
+
+	// Calcul de l'importance par partie pour chaque dimension de la grille
+	for (nAttribute = 0; nAttribute < GetAttributeNumber(); nAttribute++)
+	{
+		// Partage de l'importance globale entre les attributs, simplement au prorata du nombre d'attributs
+		attribute = cast(CCHDGAttribute*, GetAttributeAt(nAttribute));
+		attribute->SetImportance(1.0 / GetAttributeNumber());
+		dTotalImportance = 0;
+
+		// Calcul de l'importance de chaque partie d'attribut
+		part = attribute->GetHeadPart();
+		while (part != NULL)
+		{
+			cchdgPart = cast(CCHDGPart*, part);
+
+			// Somme sur les cellules des valeurs absolues de leur contribution a l'information mutuelle
+			cell = part->GetHeadCell();
+			dImportance = 0;
+			while (cell != NULL)
+			{
+				cchdgCell = cast(CCHDGCell*, cell);
+				dImportance += abs(cchdgCell->GetMutualInformation());
+				part->GetNextCell(cell);
+			}
+
+			// Cas d'un coclustering informatif
+			// Dans le cas d'un modele nul, l'importance est nulle et a deja ete initialisee a 0
+			if (GetCoclusteringGlobalImportance() > 0)
+			{
+				cchdgPart->SetImportance(dImportance / GetCoclusteringGlobalImportance());
+				dTotalImportance += cchdgPart->GetImportance();
+
+				// Importance des elements de la partie dans le cas d'une partie groupable
+				if (KWType::IsCoclusteringGroupableType(cchdgPart->GetPartType()))
+				{
+					dgValue = cchdgPart->GetValueSet()->GetHeadValue();
+					dValueSetTotalFrequency = cchdgPart->GetValueSet()->ComputeTotalFrequency();
+					while (dgValue != NULL)
+					{
+						if (dgValue->GetValueFrequency() > 0)
+							dgValue->SetImportance((double)dgValue->GetValueFrequency() /
+									       dValueSetTotalFrequency);
+						cchdgPart->GetValueSet()->GetNextValue(dgValue);
+					}
+				}
+			}
+
+			// Passage a la partie suivante
+			attribute->GetNextPart(part);
+		}
+		assert(fabs(dTotalImportance - 1) < dEpsilon);
+	}
+}
+
+void CCHierarchicalDataGrid::ComputeInnerAttributeImportances()
+{
+	CCHDGAttribute* innerAttribute;
+	CCHDGPart* innerAttributePart;
+	CCHDGPart* varPartCluster;
+	KWDGPart* part;
+	KWDGValue* dgValue;
+	int nAttribute;
+	double dImportanceInVariable;
+	double dInnerAttributeImportance;
+	double dTotalInnerAttributeImportance;
+	double dEpsilon = 1e-6;
+
+	// Construction de la structure d'indexation pour acceder aux parties de variables depuis les innerAttributes
+	BuildIndexingStructure();
+
+	// Parcours des attributs internes
+	dTotalInnerAttributeImportance = 0;
+	for (nAttribute = 0; nAttribute < GetInnerAttributes()->GetInnerAttributeNumber(); nAttribute++)
+	{
+		innerAttribute = cast(CCHDGAttribute*, GetInnerAttributes()->GetInnerAttributeAt(nAttribute));
+
+		// Calcul de l'importance de chaque partie de variable au sein de son cluster de parties de variable
+		// On repartit l'importance du cluster de parties de variable au prorata des effectifs par partie,
+		// en exploitant l'hypothese d independance entre les dimensions instances et parties de variables localement au sein de chaque cocluster.
+		// Cela revient a avoir l'importance de la partie de variable egale au ratio de l'effectif de sa partie par l'effectif du cluster auquel elle appartient
+		part = innerAttribute->GetHeadPart();
+		while (part != NULL)
+		{
+			innerAttributePart = cast(CCHDGPart*, part);
+			varPartCluster = cast(CCHDGPart*, GetVarPartAttribute()->LookupVarPart(innerAttributePart));
+			innerAttributePart->SetImportance((double)innerAttributePart->GetPartFrequency() /
+							  (double)varPartCluster->GetPartFrequency());
+
+			// Importance des elements de la partie dans le cas d'une partie groupable
+			if (KWType::IsCoclusteringGroupableType(innerAttributePart->GetPartType()))
+			{
+				dgValue = innerAttributePart->GetValueSet()->GetHeadValue();
+				while (dgValue != NULL)
+				{
+					if (dgValue->GetValueFrequency() > 0)
+						dgValue->SetImportance(
+						    (double)dgValue->GetValueFrequency() /
+						    (double)innerAttributePart->GetValueSet()->ComputeTotalFrequency());
+					innerAttributePart->GetValueSet()->GetNextValue(dgValue);
+				}
+			}
+
+			// Partie suivante
+			innerAttribute->GetNextPart(part);
+		}
+
+		// Calcul de l'importance de chaque partie de variable au sein de sa variable
+		part = innerAttribute->GetHeadPart();
+		dInnerAttributeImportance = 0;
+
+		// Somme sur toutes les PV de l'attribut
+		while (part != NULL)
+		{
+			innerAttributePart = cast(CCHDGPart*, part);
+			varPartCluster = cast(CCHDGPart*, GetVarPartAttribute()->LookupVarPart(innerAttributePart));
+			dInnerAttributeImportance +=
+			    innerAttributePart->GetImportance() * varPartCluster->GetImportance();
+
+			// Partie suivante
+			innerAttribute->GetNextPart(part);
+		}
+		innerAttribute->SetImportance(dInnerAttributeImportance);
+		dTotalInnerAttributeImportance += innerAttribute->GetImportance();
+
+		// Importance en pourcentage de la PV dans sa variable
+		part = innerAttribute->GetHeadPart();
+		while (part != NULL)
+		{
+			innerAttributePart = cast(CCHDGPart*, part);
+			varPartCluster = cast(CCHDGPart*, GetVarPartAttribute()->LookupVarPart(innerAttributePart));
+			dImportanceInVariable = innerAttributePart->GetImportance() * varPartCluster->GetImportance() /
+						dInnerAttributeImportance;
+			innerAttributePart->SetImportanceInVariable(dImportanceInVariable);
+
+			// Partie suivante
+			innerAttribute->GetNextPart(part);
+		}
+	}
+	assert((dTotalInnerAttributeImportance > 1 - dEpsilon) and (dTotalInnerAttributeImportance < 1 + dEpsilon));
+
+	// Nettoyage
+	DeleteIndexingStructure();
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -182,6 +545,7 @@ CCHDGAttribute::CCHDGAttribute()
 	cMax = 0;
 	nInitialPartNumber = 0;
 	dInterest = 0;
+	dImportance = 0;
 	rootPart = NULL;
 }
 
@@ -252,6 +616,17 @@ double CCHDGAttribute::GetInterest() const
 	return dInterest;
 }
 
+void CCHDGAttribute::SetImportance(double dValue)
+{
+	require(0 <= dValue and dValue <= 1);
+	dImportance = dValue;
+}
+
+double CCHDGAttribute::GetImportance() const
+{
+	return dImportance;
+}
+
 void CCHDGAttribute::SetDescription(const ALString& sValue)
 {
 	sDescription = sValue;
@@ -300,6 +675,8 @@ CCHDGPart* CCHDGAttribute::MergePart(CCHDGPart* part)
 	KWDGCell* cellToDelete1;
 	ObjectArray oaParts;
 	int nAttribute;
+	KWDGValue* dgValue;
+	int nTotalPartFrequency;
 
 	require(IsPartMergeable(part));
 
@@ -341,7 +718,7 @@ CCHDGPart* CCHDGAttribute::MergePart(CCHDGPart* part)
 		// Fusion des effectifs si collision de cellule
 		if (cell2 != NULL)
 			cell2->SetCellFrequency(cell2->GetCellFrequency() + cell1->GetCellFrequency());
-		// Craetion d'une nouvelle cellules sinon
+		// Creation d'une nouvelle cellule sinon
 		else
 		{
 			cell2 = dataGrid->AddCell(&oaParts);
@@ -367,6 +744,36 @@ CCHDGPart* CCHDGAttribute::MergePart(CCHDGPart* part)
 	targetPart->SetSelected(part->GetSelected());
 	targetPart->SetShortDescription(part->GetShortDescription());
 	targetPart->SetDescription(part->GetDescription());
+
+	// Calcul de l'importance de la partie fusionnee
+	// L'importance de la partie est ici additive, car elle est relative a son cluster
+	if (GetImportanceMode())
+	{
+		assert(sourcePart->GetImportance() > 0 and targetPart->GetImportance() > 0);
+		targetPart->SetImportance(sourcePart->GetImportance() + targetPart->GetImportance());
+	}
+
+	// Cas d'un attribut groupable : renormalisation de l'importance des elements de la partie fusionnee par rapport a son effectif
+	// et a la nouvelle importance de la partie fusionnee
+	if (KWType::IsCoclusteringGroupableType(sourcePart->GetPartType()))
+	{
+		// On memorise l'effectif de la partie fusionnee
+		nTotalPartFrequency = sourcePart->GetPartFrequency() + targetPart->GetPartFrequency();
+
+		// Renormalisation des importances de chaque element des deux parties
+		dgValue = sourcePart->GetValueSet()->GetHeadValue();
+		while (dgValue != NULL)
+		{
+			dgValue->SetImportance(dgValue->GetValueFrequency() / (double)nTotalPartFrequency);
+			sourcePart->GetValueSet()->GetNextValue(dgValue);
+		}
+		dgValue = targetPart->GetValueSet()->GetHeadValue();
+		while (dgValue != NULL)
+		{
+			dgValue->SetImportance(dgValue->GetValueFrequency() / (double)nTotalPartFrequency);
+			targetPart->GetValueSet()->GetNextValue(dgValue);
+		}
+	}
 
 	// Reconstitution du chainage de la hierarchie
 	targetPart->SetParentPart(part->GetParentPart());
@@ -588,6 +995,8 @@ CCHDGPart::CCHDGPart()
 	parentPart = NULL;
 	childPart1 = NULL;
 	childPart2 = NULL;
+	dImportance = 0;
+	dImportanceInVariable = 0;
 }
 
 CCHDGPart::~CCHDGPart() {}
@@ -611,6 +1020,28 @@ void CCHDGPart::SetInterest(double dValue)
 double CCHDGPart::GetInterest() const
 {
 	return dInterest;
+}
+
+void CCHDGPart::SetImportance(double dValue)
+{
+	require(0 <= dValue and dValue <= 1);
+	dImportance = dValue;
+}
+
+double CCHDGPart::GetImportance() const
+{
+	return dImportance;
+}
+
+void CCHDGPart::SetImportanceInVariable(double dValue)
+{
+	require(0 <= dValue and dValue <= 1);
+	dImportanceInVariable = dValue;
+}
+
+double CCHDGPart::GetImportanceInVariable() const
+{
+	return dImportanceInVariable;
 }
 
 void CCHDGPart::SetHierarchicalLevel(double dValue)
@@ -904,4 +1335,30 @@ int CCHDGPartCompareHierarchicalRank(const void* elem1, const void* elem2)
 			nCompare = -1;
 	}
 	return nCompare;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Classe CCHDGCell
+
+CCHDGCell::CCHDGCell()
+{
+	dMutualInformation = 0;
+}
+
+CCHDGCell::~CCHDGCell()
+{
+	// Reinitialisation pour faciliter le debug
+	debug(dMutualInformation = 0);
+}
+
+double CCHDGCell::GetMutualInformation() const
+{
+	ensure(ivFrequencyVector.GetSize() == 0 or ComputeTotalFrequency() == nCellFrequency);
+	return dMutualInformation;
+}
+
+void CCHDGCell::SetMutualInformation(double dValue)
+{
+	require(GetTargetValueNumber() == 0);
+	dMutualInformation = dValue;
 }

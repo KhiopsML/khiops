@@ -1,0 +1,365 @@
+{
+	"tool": "Khiops Coclustering",
+	"version": "VERSION",
+	"shortDescription": "",
+	"coclusteringReport": {
+		"summary": {
+			"instances": 750,
+			"cells": 5,
+			"nullCost": 7699.399272,
+			"cost": 7433.773759,
+			"level": 0.03449951141,
+			"initialDimensions": 2,
+			"frequencyVariable": "",
+			"dictionary": "Iris",
+			"database": "C:\\devgit\\khiops\\test\\LearningTest\\datasets\\Iris\\Iris.txt",
+			"samplePercentage": 100,
+			"samplingMode": "Include sample",
+			"selectionVariable": "",
+			"selectionValue": ""
+		},
+		"dimensionSummaries": [
+			{
+				"name": "Instance index",
+				"type": "Categorical",
+				"parts": 2,
+				"initialParts": 3,
+				"values": 150,
+				"importance": 0.5,
+				"description": ""
+			},
+			{
+				"name": "Variables",
+				"isVarPart": true,
+				"type": "Categorical",
+				"parts": 3,
+				"initialParts": 7,
+				"values": 16,
+				"importance": 0.5,
+				"description": ""
+			}
+		],
+		"dimensionPartitions": [
+			{
+				"name": "Instance index",
+				"type": "Categorical",
+				"valueGroups": [
+					{
+						"cluster": "{10, 11, 12, ...}",
+						"importance": 0.366594,
+						"values": ["10","11","12","13","14","15","16","17","18","19","2","20","21","22","23","24","25","26","27","28","29","3","30","31","32","33","34","35","36","37","38","39","4","40","41","42","43","44","45","46","47","48","49","5","50","51","6","7","8","9"],
+						"valueFrequencies": [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],
+						"valueImportances": [0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02]
+					},
+					{
+						"cluster": "A4",
+						"importance": 0.633406,
+						"values": ["102","103","104","105","106","107","109","110","111","112","113","114","115","116","117","118","119","120","121","122","123","124","125","126","127","128","129","130","131","132","133","134","135","136","137","138","139","140","141","142","143","144","145","146","147","148","149","150","151","72","100","101","108","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","73","74","75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92","93","94","95","96","97","98","99"],
+						"valueFrequencies": [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],
+						"valueImportances": [0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01]
+					}
+				],
+				"defaultGroupIndex": 1
+			},
+			{
+				"name": "Variables",
+				"type": "Categorical",
+				"innerVariables": {
+					"dimensionSummaries": [
+						{
+							"name": "Class",
+							"type": "Categorical",
+							"parts": 3,
+							"initialParts": 3,
+							"values": 3,
+							"importance": 0.245975,
+							"description": ""
+						},
+						{
+							"name": "PetalLength",
+							"type": "Numerical",
+							"parts": 4,
+							"initialParts": 4,
+							"values": 150,
+							"importance": 0.230481,
+							"description": "",
+							"min": 1,
+							"max": 6.9
+						},
+						{
+							"name": "PetalWidth",
+							"type": "Numerical",
+							"parts": 3,
+							"initialParts": 3,
+							"values": 150,
+							"importance": 0.245941,
+							"description": "",
+							"min": 0.1,
+							"max": 2.5
+						},
+						{
+							"name": "SepalLength",
+							"type": "Numerical",
+							"parts": 3,
+							"initialParts": 3,
+							"values": 150,
+							"importance": 0.161549,
+							"description": "",
+							"min": 4.3,
+							"max": 7.9
+						},
+						{
+							"name": "SepalWidth",
+							"type": "Numerical",
+							"parts": 3,
+							"initialParts": 3,
+							"values": 150,
+							"importance": 0.116054,
+							"description": "",
+							"min": 2,
+							"max": 4.4
+						}
+					],
+					"dimensionPartitions": [
+						{
+							"name": "Class",
+							"type": "Categorical",
+							"valueGroups": [
+								{
+									"cluster": "Class {Iris-setosa}",
+									"importanceInVariable": 0.331316,
+									"values": ["Iris-setosa"],
+									"valueFrequencies": [50],
+									"valueImportances": [1]
+								},
+								{
+									"cluster": "Class {Iris-versicolor}",
+									"importanceInVariable": 0.333484,
+									"values": ["Iris-versicolor"],
+									"valueFrequencies": [50],
+									"valueImportances": [1]
+								},
+								{
+									"cluster": "Class {Iris-virginica}",
+									"importanceInVariable": 0.3352,
+									"values": ["Iris-virginica"],
+									"valueFrequencies": [50],
+									"valueImportances": [1]
+								}
+							],
+							"defaultGroupIndex": 2
+						},
+						{
+							"name": "PetalLength",
+							"type": "Numerical",
+							"intervals": [
+								{
+									"cluster": "PetalLength ]-inf,2.4]",
+									"importanceInVariable": 0.353588,
+									"bounds": [1,2.4]
+								},
+								{
+									"cluster": "PetalLength ]2.4,4.75]",
+									"importanceInVariable": 0.320312,
+									"bounds": [2.4,4.75]
+								},
+								{
+									"cluster": "PetalLength ]4.75,5.15]",
+									"importanceInVariable": 0.0828424,
+									"bounds": [4.75,5.15]
+								},
+								{
+									"cluster": "PetalLength ]5.15,+inf[",
+									"importanceInVariable": 0.243258,
+									"bounds": [5.15,6.9]
+								}
+							]
+						},
+						{
+							"name": "PetalWidth",
+							"type": "Numerical",
+							"intervals": [
+								{
+									"cluster": "PetalWidth ]-inf,0.8]",
+									"importanceInVariable": 0.331361,
+									"bounds": [0.1,0.8]
+								},
+								{
+									"cluster": "PetalWidth ]0.8,1.75]",
+									"importanceInVariable": 0.360212,
+									"bounds": [0.8,1.75]
+								},
+								{
+									"cluster": "PetalWidth ]1.75,+inf[",
+									"importanceInVariable": 0.308426,
+									"bounds": [1.75,2.5]
+								}
+							]
+						},
+						{
+							"name": "SepalLength",
+							"type": "Numerical",
+							"intervals": [
+								{
+									"cluster": "SepalLength ]-inf,5.45]",
+									"importanceInVariable": 0.48649,
+									"bounds": [4.3,5.45]
+								},
+								{
+									"cluster": "SepalLength ]5.45,6.15]",
+									"importanceInVariable": 0.203963,
+									"bounds": [5.45,6.15]
+								},
+								{
+									"cluster": "SepalLength ]6.15,+inf[",
+									"importanceInVariable": 0.309547,
+									"bounds": [6.15,7.9]
+								}
+							]
+						},
+						{
+							"name": "SepalWidth",
+							"type": "Numerical",
+							"intervals": [
+								{
+									"cluster": "SepalWidth ]-inf,2.95]",
+									"importanceInVariable": 0.376361,
+									"bounds": [2,2.95]
+								},
+								{
+									"cluster": "SepalWidth ]2.95,3.35]",
+									"importanceInVariable": 0.154805,
+									"bounds": [2.95,3.35]
+								},
+								{
+									"cluster": "SepalWidth ]3.35,+inf[",
+									"importanceInVariable": 0.468834,
+									"bounds": [3.35,4.4]
+								}
+							]
+						}
+					]
+				},
+				"valueGroups": [
+					{
+						"cluster": "B8",
+						"importance": 0.377488,
+						"values": ["Class {Iris-setosa}","PetalLength ]-inf,2.4]","PetalWidth ]-inf,0.8]","SepalLength ]-inf,5.45]","SepalWidth ]3.35,+inf["],
+						"valueFrequencies": [50,50,50,52,36],
+						"valueImportances": [0.210084,0.210084,0.210084,0.218487,0.151261]
+					},
+					{
+						"cluster": "B6",
+						"importance": 0.283473,
+						"values": ["Class {Iris-virginica}","PetalLength ]5.15,+inf[","PetalWidth ]1.75,+inf[","PetalLength ]4.75,5.15]","SepalLength ]6.15,+inf["],
+						"valueFrequencies": [50,34,46,21,55],
+						"valueImportances": [0.242718,0.165049,0.223301,0.101942,0.26699]
+					},
+					{
+						"cluster": "B5",
+						"importance": 0.339039,
+						"values": ["Class {Iris-versicolor}","PetalLength ]2.4,4.75]","PetalWidth ]0.8,1.75]","SepalLength ]5.45,6.15]","SepalWidth ]-inf,2.95]","SepalWidth ]2.95,3.35]"],
+						"valueFrequencies": [50,45,54,43,57,57],
+						"valueImportances": [0.242718,0.218447,0.262136,0.208738,0.276699,0.276699]
+					}
+				],
+				"defaultGroupIndex": 0
+			}
+		],
+		"dimensionHierarchies": [
+			{
+				"name": "Instance index",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "{10, 11, 12, ...}",
+						"parentCluster": "A2",
+						"frequency": 250,
+						"hierarchicalLevel": 1,
+						"rank": 1,
+						"hierarchicalRank": 10,
+						"isLeaf": true
+					},
+					{
+						"cluster": "A4",
+						"parentCluster": "A2",
+						"frequency": 500,
+						"hierarchicalLevel": 0.543638,
+						"rank": 4,
+						"hierarchicalRank": 5,
+						"isLeaf": true
+					},
+					{
+						"cluster": "A2",
+						"parentCluster": "",
+						"frequency": 750,
+						"hierarchicalLevel": -0.279698,
+						"rank": 2,
+						"hierarchicalRank": 3,
+						"isLeaf": false
+					}
+				]
+			},
+			{
+				"name": "Variables",
+				"type": "Categorical",
+				"clusters": [
+					{
+						"cluster": "B8",
+						"parentCluster": "B1",
+						"frequency": 238,
+						"hierarchicalLevel": 0.976147,
+						"rank": 2,
+						"hierarchicalRank": 9,
+						"isLeaf": true
+					},
+					{
+						"cluster": "B6",
+						"parentCluster": "B3",
+						"frequency": 206,
+						"hierarchicalLevel": 0.90686,
+						"rank": 6,
+						"hierarchicalRank": 7,
+						"isLeaf": true
+					},
+					{
+						"cluster": "B5",
+						"parentCluster": "B3",
+						"frequency": 306,
+						"hierarchicalLevel": 0.747247,
+						"rank": 10,
+						"hierarchicalRank": 6,
+						"isLeaf": true
+					},
+					{
+						"cluster": "B1",
+						"parentCluster": "",
+						"frequency": 750,
+						"hierarchicalLevel": -0.233233,
+						"rank": 4,
+						"hierarchicalRank": 2,
+						"isLeaf": false
+					},
+					{
+						"cluster": "B3",
+						"parentCluster": "B1",
+						"frequency": 512,
+						"hierarchicalLevel": 0.535103,
+						"rank": 8,
+						"hierarchicalRank": 4,
+						"isLeaf": false
+					}
+				]
+			}
+		],
+		"cellPartIndexes": [
+			[1,2],
+			[0,0],
+			[1,1],
+			[0,2],
+			[1,0]
+		],
+		"cellFrequencies": [281,225,206,25,13]
+	},
+	"khiops_encoding": "ascii"
+}

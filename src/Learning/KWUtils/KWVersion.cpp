@@ -621,3 +621,28 @@ boolean GetVarPartDeploymentMode()
 	}
 	return bVarPartDeploymentModeMode;
 }
+
+boolean GetImportanceMode()
+{
+	static boolean bIsInitialized = false;
+	static boolean bImportanceMode = false;
+	ALString sImportanceMode;
+
+	// Determination du mode au premier appel
+	if (not bIsInitialized)
+	{
+		// Recherche de la valeur de la variable d'environnement de l'option
+		sImportanceMode = p_getenv("KhiopsImportanceMode");
+		sImportanceMode.MakeLower();
+
+		// Determination du mode
+		if (sImportanceMode == "true")
+			bImportanceMode = true;
+		else if (sImportanceMode == "false")
+			bImportanceMode = false;
+
+		// Memorisation du flag d'initialisation
+		bIsInitialized = true;
+	}
+	return bImportanceMode;
+}
