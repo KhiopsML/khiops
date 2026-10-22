@@ -121,3 +121,62 @@ jobs:
             security delete-keychain "$KHIOPS_KEYCHAIN_PATH" || true
           fi
           rm -f "${KHIOPS_API_KEY_PATH:-}" "$RUNNER_TEMP/developer-id.p12"
+  test:
+    name: Test macOS DMG (${{ matrix.runner }}-${{ matrix.arch }})
+    needs: build-and-notarize
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-14
+          - arch: arm64
+            runner: macos-15
+          - arch: arm64
+            runner: macos-26
+          - arch: x86_64
+            runner: macos-15-intel
+          - arch: x86_64
+            runner: macos-26-intel
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v7
+      - name: Install test dependencies
+        run: brew install open-mpi
+      - name: Download DMG artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: Khiops-macos-${{ matrix.arch }}
+          path: artifacts
+      - name: Mount and install DMG
+        run: |
+          DMG_PATH="$(find artifacts -type f -name '*.dmg' -print -quit)"
+          test -n "$DMG_PATH"
+          MOUNT_POINT="$RUNNER_TEMP/khiops-dmg"
+          INSTALL_DIR="$RUNNER_TEMP/khiops-install"
+          mkdir -p "$MOUNT_POINT" "$INSTALL_DIR"
+          hdiutil attach "$DMG_PATH" -readonly -nobrowse -mountpoint "$MOUNT_POINT"
+          ditto "$MOUNT_POINT/Khiops.app" "$INSTALL_DIR/Khiops.app"
+          ditto "$MOUNT_POINT/Khiops Coclustering.app" "$INSTALL_DIR/Khiops Coclustering.app"
+          BIN_DIR="$INSTALL_DIR/Khiops.app/Contents/Resources/bin"
+          test -x "$BIN_DIR/khiops_env"
+          echo "BIN_DIR=$BIN_DIR" >> "$GITHUB_ENV"
+      - name: Check Khiops installation
+        uses: ./.github/actions/test-khiops-install
+        with:
+          binary-path: ${{ env.BIN_DIR }}
+      - name: Run standard tests
+        uses: ./.github/actions/run-standard-tests
+        with:
+          warning_as_error: true
+          running-mode: parallel
+          test-kni: false
+          config: release
+          binary-path: ${{ env.BIN_DIR }}
+          testing-context-description: ${{ matrix.runner }}-${{ matrix.arch }}
+      - name: Detach DMG
+        if: always()
+        run: |-
+          hdiutil detach "$RUNNER_TEMP/khiops-dmg" -force || true
+          rm -rf "$RUNNER_TEMP/khiops-install" "$RUNNER_TEMP/khiops-dmg"
