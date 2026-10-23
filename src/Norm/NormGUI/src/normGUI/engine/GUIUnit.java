@@ -25,6 +25,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Hashtable;
 import java.util.Stack;
 import java.util.Vector;
+import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -38,6 +39,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 
 /**
  * Definit une unite d'interface. Une unite d'interface peut etre une fiche ou
@@ -657,6 +659,22 @@ import javax.swing.SwingUtilities;
                 addField(guiStringElement);
         }
 
+        protected JPanel createActionPanel()
+        {
+                JPanel actionPanel = new JPanel();
+                Color background = UIManager.getColor("TableHeader.background");
+                if (background == null)
+                        background = actionPanel.getBackground();
+                Color borderColor = UIManager.getColor("TableHeader.separatorColor");
+                if (borderColor == null)
+                        borderColor = background.darker();
+                actionPanel.setBackground(background);
+                actionPanel.setBorder(
+                  BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, borderColor),
+                                                     BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+                return actionPanel;
+        }
+
         protected void addToolBar()
         {
 
@@ -664,7 +682,7 @@ import javax.swing.SwingUtilities;
                         return;
 
                 // Creation des panneaux
-                JPanel southPanel = new JPanel();
+                JPanel southPanel = createActionPanel();
 
                 // Creation des boutons action
                 for (int i = 0; i < getActionCount(); i++) {
@@ -697,7 +715,8 @@ import javax.swing.SwingUtilities;
                 }
 
                 // Ajout du panneau a la fenetre
-                frame.getContentPane().add(southPanel, BorderLayout.SOUTH);
+                if (southPanel.getComponentCount() > 0)
+                        frame.getContentPane().add(southPanel, BorderLayout.SOUTH);
         }
 
         /**
