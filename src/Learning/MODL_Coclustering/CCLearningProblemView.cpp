@@ -41,9 +41,9 @@ CCLearningProblemView::CCLearningProblemView()
 	AddCardField("Help", "Help", learningProblemHelpCard);
 
 	// Ajout d'icones aux onglets
-	GetFieldAt("Database")->SetParameters("icon=database");
-	GetFieldAt("AnalysisSpec")->SetParameters("icon=sliders-vertical");
-	GetFieldAt("AnalysisResults")->SetParameters("icon=chart-column-big");
+	GetFieldAt("Database")->SetIcon("images/database.svg");
+	GetFieldAt("AnalysisSpec")->SetIcon("images/sliders-vertical.svg");
+	GetFieldAt("AnalysisResults")->SetIcon("images/chart-column-big.svg");
 
 	// Ajout pour la basxe de train d'un champ en read-only pour rappeler le nom du fichier de dictionnaire
 	// Attention, il s'agit d'un champ d'interface uniquement, a mettre ajour dans EventRefresh
@@ -116,7 +116,7 @@ CCLearningProblemView::CCLearningProblemView()
 	GetActionAt("BuildCoclustering")->SetStyle("Button");
 
 	// Ajout d'icones aux actions
-	GetActionAt("BuildCoclustering")->SetParameters("icon=sparkles");
+	GetActionAt("BuildCoclustering")->SetIcon("images/sparkles.svg");
 
 	// Info-bulles
 	GetActionAt("BuildCoclustering")

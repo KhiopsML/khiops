@@ -16,35 +16,11 @@ public class GUIIconLoader
         private static boolean svgAvailable = true;
 
         /**
-         * Resout le chemin de l'icone SVG optionnelle a partir des parametres.
-         */
-        public static String resolveIconPath(String parameters)
-        {
-                if (parameters == null || parameters.length() == 0)
-                        return null;
-
-                for (String rawToken : parameters.split("\\n")) {
-                        String token = rawToken.trim();
-                        if (!token.startsWith("icon="))
-                                continue;
-
-                        String iconValue = token.substring("icon=".length()).trim();
-                        if (iconValue.length() == 0)
-                                return null;
-                        if (iconValue.indexOf('/') >= 0)
-                                return iconValue;
-                        // Les ressources sont placees sous "images/" par add_khiops_jar
-                        return "images/" + iconValue + ".svg";
-                }
-                return null;
-        }
-
-        /**
          * Charge une icone 16x16 avec une couleur de surbrillance optionnelle.
          */
         public static Icon loadSvgIcon(String iconPath, Color highlightColor, BooleanSupplier isHighlighted)
         {
-                if (iconPath == null || !svgAvailable)
+                if (iconPath == null || iconPath.length() == 0 || !svgAvailable)
                         return null;
 
                 try {

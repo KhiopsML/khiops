@@ -49,11 +49,11 @@ public class GUIAction extends GUIObject
         };
 
         /**
-         * Applique une icone Lucide optionnelle au bouton d'action, si specifiee dans les parametres
+         * Applique l'icone SVG optionnelle au bouton d'action
          */
         private void applyOptionalIcon(JButton actionButton)
         {
-                Icon icon = GUIIconLoader.loadSvgIcon(GUIIconLoader.resolveIconPath(getParameters()), null, null);
+                Icon icon = GUIIconLoader.loadSvgIcon(getIcon(), null, null);
                 if (icon != null) {
                         actionButton.setIcon(icon);
                         actionButton.setIconTextGap(8);
@@ -79,4 +79,19 @@ public class GUIAction extends GUIObject
          * @param sValue La nouvelle cle d'acceleration
          */
         public void setAccelKey(String sValue) { sAccelKey = sValue; }
+
+        /**
+         * Chemin complet de l'icone optionnelle des styles Button et SmallButton
+         */
+        private String sIcon = "";
+
+        /**
+         * Renvoie le chemin de l'icone optionnelle
+         */
+        public String getIcon() { return sIcon; }
+
+        /**
+         * Modifie le chemin de l'icone, sans effet sur les menus ni sur les parametres
+         */
+        public void setIcon(String sValue) { sIcon = sValue; }
 }
