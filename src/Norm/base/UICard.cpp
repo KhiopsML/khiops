@@ -156,8 +156,7 @@ boolean UICard::Check() const
 	bOk = UIUnit::Check();
 
 	// Validite des parametres
-	if (GetParameters() != "" and GetParameters() != "NoBorder" and
-	    not(GetParameters().GetLength() > 5 and GetParameters().Left(5) == "icon="))
+	if (GetParameters() != "" and GetParameters() != "NoBorder")
 		bOk = false;
 	return bOk;
 }
