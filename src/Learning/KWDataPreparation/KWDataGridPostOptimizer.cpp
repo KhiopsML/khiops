@@ -334,7 +334,10 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 									const ALString& sPostOptimizationAttributeName,
 									boolean bDeepPostOptimization) const
 {
-	const int nMinExpectedPartNuber = 256;
+	const int nSmallPartNumber = 128;
+	const int nMediumPartNuber = 256;
+	int nSufficientPartNumber;
+
 	KWDataGridManager dataGridManager;
 	KWDGPODiscretizer dataGridUnivariateDiscretizer;
 	KWDataGrid univariateInitialDataGrid;
@@ -342,9 +345,8 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 	KWDGAttribute* optimizedAttribute;
 	int nNearbyIntervalMinFrequency;
 	int nNearbyIntervalsMaxCumulativeFrequency;
-	int nTotalPartFrequency;
-	int nMeanInitialPartFrequency;
-	int nMeanOptimizedPartFrequency;
+	int nTotalFrequency;
+	int nAttributeNumber;
 	double dCost;
 
 	require(dataGridCosts != NULL);
@@ -358,15 +360,40 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 		KWType::Continuous);
 	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() ==
 		KWType::Continuous);
+	assert(nSmallPartNumber <= nMediumPartNuber);
 
 	// Recherche de l'attribut a optimiser
 	initialAttribute = initialDataGrid->SearchAttribute(sPostOptimizationAttributeName);
 	optimizedAttribute = optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName);
 
-	// On exploite tous les intervalles initiaux s'il n'y en suffisament peu
-	if (initialAttribute->GetPartNumber() <= nMinExpectedPartNuber)
+	// Effectif total concerne
+	nTotalFrequency = optimizedAttribute->ComputeTotalPartFrequency();
+
+	// Estimation d'un nombre suffisant de partie permettant d'avoir une bonne precision
+	// On part du nombre de part permettant d'avoir en moyenne un individu cellules.
+	// Et on diminue cette valeur extreme
+	nSufficientPartNumber = (int)ceil(pow((double)nTotalFrequency, 1.0 / optimizedDataGrid->GetAttributeNumber()));
+	nSufficientPartNumber /= 4;
+
+	// On prend une marge pour les petites grilles
+	nSufficientPartNumber = max(nSufficientPartNumber, nMediumPartNuber);
+
+	// Cas particulier ou les parties sont les meme dans l'attribut initial et l'attribut optimise,
+	// ou si les intervalles a optimiser sont assez nombreux, et donc suffisament fins
+	// pour ne pas necessiter de post-optimisation
+	if (initialAttribute->GetPartNumber() == optimizedAttribute->GetPartNumber() or
+	    optimizedDataGrid->GetTotalPartNumber() >= nSufficientPartNumber)
 	{
-		// Construction d'une grille initiale dediee a l'optimisation univariee
+		assert(initialAttribute->ContainsSubParts(optimizedAttribute));
+		assert(optimizedAttribute->ContainsSubParts(initialAttribute));
+
+		// On se contente de recalculer le cout de la grille
+		dCost = dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
+	}
+	// Cas avec peu d'intervalles initiaux: on les exploite tous
+	else if (initialAttribute->GetPartNumber() <= nSmallPartNumber)
+	{
+		// Construction d'une grille initiale dediee a l'optimisation univariee avec toutes les parties initiales
 		BuildUnivariateInitialDataGrid(initialDataGrid, optimizedDataGrid, sPostOptimizationAttributeName,
 					       &univariateInitialDataGrid);
 
@@ -375,16 +402,9 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 		dCost = dataGridUnivariateDiscretizer.PostOptimizeDataGrid(&univariateInitialDataGrid, dataGridCosts,
 									   optimizedDataGrid, bDeepPostOptimization);
 	}
-	// Sinon, on itere sur une serie de voisinnage par taille decroissante
+	// Sinon, on explore de nouveaux intervalles uniquement s'il sont proches de la solution a optimiser
 	else
 	{
-		// Calcul de statistiques d'effectif des parties de l'attribut a post-optimiser
-		nTotalPartFrequency = optimizedAttribute->ComputeTotalPartFrequency();
-
-		// Taille moyenne des parties initiales et optimisees
-		nMeanInitialPartFrequency = nTotalPartFrequency / initialAttribute->GetPartNumber();
-		nMeanOptimizedPartFrequency = nTotalPartFrequency / optimizedAttribute->GetPartNumber();
-
 		// Construction d'une grille initiale dediee a l'optimisation univariee, proche de la solution optimisee
 		// Parametrage du voisinnage fin dans le cas approfondi
 		if (bDeepPostOptimization)
@@ -400,28 +420,14 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 		// Parametrage grossier dans le cas non approfondi, pour limiter la recherche
 		else
 		{
-			// Si les partie optimises sont en grand nombre, on les garde telles quelles,
-			// pour gagner du temps et parce qu'elles sont assez fines
-			if (optimizedAttribute->GetPartNumber() >= nMinExpectedPartNuber)
-			{
-				// On post-optimise directement la partition optimisee, en reutilisant
-				// uniquement les intervalle optimise initiaux
-				BuildUnivariateInitialDataGrid(optimizedDataGrid, optimizedDataGrid,
-							       sPostOptimizationAttributeName,
-							       &univariateInitialDataGrid);
-			}
-			// Sinon, on ajoute des partie, mais en nombre limite
-			else
-			{
-				// Exploration fine autour de la solution optimisee
-				//DDD TODO A ajuster en fonction du nombre d'intervalles a atteindre
-				nNearbyIntervalMinFrequency = 2;
-				nNearbyIntervalsMaxCumulativeFrequency = 3;
-				BuildContinuousUnivariateInitialNearbyDataGrid(
-				    initialDataGrid, optimizedDataGrid, sPostOptimizationAttributeName,
-				    nNearbyIntervalMinFrequency, nNearbyIntervalsMaxCumulativeFrequency,
-				    &univariateInitialDataGrid);
-			}
+			// Exploration fine autour de la solution optimisee
+			//DDD TODO A ajuster en fonction du nombre d'intervalles a atteindre
+			nNearbyIntervalMinFrequency = 2;
+			nNearbyIntervalsMaxCumulativeFrequency = 3;
+			BuildContinuousUnivariateInitialNearbyDataGrid(
+			    initialDataGrid, optimizedDataGrid, sPostOptimizationAttributeName,
+			    nNearbyIntervalMinFrequency, nNearbyIntervalsMaxCumulativeFrequency,
+			    &univariateInitialDataGrid);
 		}
 
 		// Post-optimisation de l'attribut par discretisation
