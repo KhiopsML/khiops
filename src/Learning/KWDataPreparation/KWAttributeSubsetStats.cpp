@@ -643,8 +643,8 @@ boolean KWAttributeSubsetStats::CreateAttributeIntervals(const KWTupleTable* tup
 	Continuous cIntervalBound;
 	double dProgression;
 	int nMaxValueNumber;
-	int nMinValueNumber = 500; //DDD TO VALIDATE
-	nMinValueNumber = 100000;  //DDD
+	int nMinValueNumber = 500;  //DDD TO VALIDATE
+	nMinValueNumber = 10000000; //DDD
 
 	require(Check());
 	require(CheckSpecifications());

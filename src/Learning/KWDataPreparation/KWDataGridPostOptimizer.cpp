@@ -342,16 +342,9 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 	KWDGAttribute* optimizedAttribute;
 	int nNearbyIntervalMinFrequency;
 	int nNearbyIntervalsMaxCumulativeFrequency;
-	//DDD int nExpectedEvaluatedPartNumber;
-	IntVector ivInitialPartFrequenciesStatistics;
-	IntVector ivOptimizedPartFrequenciesStatistics;
 	int nTotalPartFrequency;
 	int nMeanInitialPartFrequency;
 	int nMeanOptimizedPartFrequency;
-	//DDD int nExponent;
-	//DDD int nMaxOptimizedPartSize;
-	//DDD int nMinPartSize;
-	//DDD int nMaxPartSize;
 	double dCost;
 
 	require(dataGridCosts != NULL);
@@ -370,10 +363,6 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 	initialAttribute = initialDataGrid->SearchAttribute(sPostOptimizationAttributeName);
 	optimizedAttribute = optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName);
 
-	// On evalue le nombre de partie evaluee dans un voisinnage de la solution optimal, avec
-	// des intervalles additionnelles de part et d'autre de chaque borne de la solution optimale
-	//DDD nExpectedEvaluatedPartNumber = optimizedAttribute->GetPartNumber() * (1 + 2 * nMinNearbySize);
-
 	// On exploite tous les intervalles initiaux s'il n'y en suffisament peu
 	if (initialAttribute->GetPartNumber() <= nMinExpectedPartNuber)
 	{
@@ -389,22 +378,8 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 	// Sinon, on itere sur une serie de voisinnage par taille decroissante
 	else
 	{
-		//DDD
-		static int nCount = 0;
-		static int nSpecificCount = -1;
-		nCount++;
-		if (nCount == nSpecificCount)
-		{
-			cout << nCount << "\t" << initialAttribute->GetAttributeName() << "\t"
-			     << initialAttribute->GetPartNumber() << "\t" << optimizedAttribute->GetPartNumber()
-			     << endl;
-		}
-
 		// Calcul de statistiques d'effectif des parties de l'attribut a post-optimiser
-		nTotalPartFrequency =
-		    ComputeAttributePartFrequenciesStatistics(initialAttribute, &ivInitialPartFrequenciesStatistics);
-		ComputeAttributePartFrequenciesStatistics(optimizedAttribute, &ivOptimizedPartFrequenciesStatistics);
-		assert(ivOptimizedPartFrequenciesStatistics.GetSize() >= ivInitialPartFrequenciesStatistics.GetSize());
+		nTotalPartFrequency = optimizedAttribute->ComputeTotalPartFrequency();
 
 		// Taille moyenne des parties initiales et optimisees
 		nMeanInitialPartFrequency = nTotalPartFrequency / initialAttribute->GetPartNumber();
@@ -426,7 +401,7 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 		else
 		{
 			// Si les partie optimises sont en grand nombre, on les garde telles quelles,
-			// pour gagner dun tesmp et parce qu'elles sont assez fines
+			// pour gagner du temps et parce qu'elles sont assez fines
 			if (optimizedAttribute->GetPartNumber() >= nMinExpectedPartNuber)
 			{
 				// On post-optimise directement la partition optimisee, en reutilisant
@@ -453,128 +428,6 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 		dataGridUnivariateDiscretizer.SetPostOptimizationAttributeName(sPostOptimizationAttributeName);
 		dCost = dataGridUnivariateDiscretizer.PostOptimizeDataGrid(&univariateInitialDataGrid, dataGridCosts,
 									   optimizedDataGrid, bDeepPostOptimization);
-
-		/*DDD
-			// On part des parties de taille maximum des parties de l'attribut optimise
-			nExponent = ivOptimizedPartFrequenciesStatistics.GetSize() - 1;
-			nMaxOptimizedPartSize = (1 << nExponent);
-
-			// On part des parties de taille minimum des parties de l'attribut optimise
-			for (nExponent = 0; nExponent < ivOptimizedPartFrequenciesStatistics.GetSize(); nExponent++)
-			{
-				if (ivOptimizedPartFrequenciesStatistics.GetAt(nExponent) > 0)
-					break;
-			}
-			nMaxOptimizedPartSize = (1 << nExponent);
-
-			// Pour ces parties, on cherche a couvrir tout le voisinnage exhaustivement
-			// par des intervalles du voisinnage du debut ou de fin
-			nMaxPartSize = nMaxOptimizedPartSize / (2 * nMinNearbySize);
-			nMinPartSize = nMaxPartSize / 2 + 1;
-			nMinPartSize = max(1, nMinPartSize); //DDD
-			assert(nMinPartSize >= 1);
-
-			//DDD
-			if (nCount == nSpecificCount)
-			{
-				cout << "ivInitialPartFrequenciesStatistics\t" << ivInitialPartFrequenciesStatistics
-				     << "\n";
-				cout << "ivOptimizedPartFrequenciesStatistics\t" << ivOptimizedPartFrequenciesStatistics
-				     << "\n";
-				cout << "nMaxOptimizedPartSize\t" << nMaxOptimizedPartSize << "\n";
-				cout << "nMaxPartSize\t" << nMaxPartSize << "\n";
-				cout << "nMinPartSize\t" << nMinPartSize << "\n";
-			}
-
-			// Parcours des voisinnage par taille decroissante
-			while (nMinPartSize >= 1)
-			{
-				// Parametrage du voisinnage
-				nNearbyIntervalMinFrequency = nMinPartSize;
-				nNearbyIntervalsMaxCumulativeFrequency = nNearbyIntervalMinFrequency * nMinNearbySize;
-
-				//DDD
-				nNearbyIntervalMinFrequency = 1;
-				nNearbyIntervalsMaxCumulativeFrequency = nMaxOptimizedPartSize;
-
-				// Construction d'une grille initiale dediee a l'optimisation univariee, proche de la solution optimisee
-				univariateInitialDataGrid.DeleteAll();
-				BuildContinuousUnivariateInitialNearbyDataGrid(
-				    initialDataGrid, optimizedDataGrid, sPostOptimizationAttributeName,
-				    nNearbyIntervalMinFrequency, nNearbyIntervalsMaxCumulativeFrequency,
-				    &univariateInitialDataGrid);
-
-				// Post-optimisation de l'attribut par discretisation
-				dataGridUnivariateDiscretizer.SetPostOptimizationAttributeName(
-				    sPostOptimizationAttributeName);
-				dCost = dataGridUnivariateDiscretizer.PostOptimizeDataGrid(
-				    &univariateInitialDataGrid, dataGridCosts, optimizedDataGrid,
-				    bDeepPostOptimization);
-
-				//DDD
-				//if (nCount == nSpecificCount)
-				{
-					cout << "\t" << nMaxOptimizedPartSize << "\t"
-					     << "\t" << nMinPartSize << "\t" << nNearbyIntervalMinFrequency << "\t"
-					     << nNearbyIntervalsMaxCumulativeFrequency << "\t"
-					     << univariateInitialDataGrid
-						    .SearchAttribute(sPostOptimizationAttributeName)
-						    ->GetPartNumber()
-					     << "\t" << dCost << endl;
-				}
-
-				//DDD
-				break;
-
-				// Taille de voisinnage plus fine precedente
-				nMinPartSize /= 2;
-			}
-			*/
-
-		/*DDD
-		// Parcours des voisinnages par taille decroissante
-		nExponent = ivInitialPartFrequenciesStatistics.GetSize() - 1;
-		while (nExponent >= 0)
-		{
-			// On ne traite une taille de vosinnage que si elle comporte des partie initiales
-			if (ivInitialPartFrequenciesStatistics.GetAt(nExponent) > 0)
-			{
-				// Tailles min et max des parties pour cet exposant
-				nMaxPartSize = (1 << nExponent);
-				nMinPartSize = nMaxPartSize / 2 + 1;
-
-				// Parametrage du voisinnage
-				nNearbyIntervalMinFrequency = nMinPartSize;
-				nNearbyIntervalsMaxCumulativeFrequency = nNearbyIntervalMinFrequency * nMinNearbySize;
-
-				// Construction d'une grille initiale dediee a l'optimisation univariee, proche de la solution optimisee
-				univariateInitialDataGrid.DeleteAll();
-				BuildContinuousUnivariateInitialNearbyDataGrid(
-				    initialDataGrid, optimizedDataGrid, sPostOptimizationAttributeName,
-				    nNearbyIntervalMinFrequency, nNearbyIntervalsMaxCumulativeFrequency,
-				    &univariateInitialDataGrid);
-
-				// Post-optimisation de l'attribut par discretisation
-				dataGridUnivariateDiscretizer.SetPostOptimizationAttributeName(
-				    sPostOptimizationAttributeName);
-				dCost = dataGridUnivariateDiscretizer.PostOptimizeDataGrid(
-				    &univariateInitialDataGrid, dataGridCosts, optimizedDataGrid,
-				    bDeepPostOptimization);
-
-				//DDD
-				cout << "\t" << nExponent << "\t" << ivInitialPartFrequenciesStatistics.GetAt(nExponent)
-				     << "\t" << nMinPartSize << "\t" << nMaxPartSize << "\t"
-				     << nNearbyIntervalMinFrequency << "\t" << nNearbyIntervalsMaxCumulativeFrequency
-				     << "\t"
-				     << univariateInitialDataGrid.SearchAttribute(sPostOptimizationAttributeName)
-					    ->GetPartNumber()
-				     << "\t" << dCost << endl;
-			}
-
-			// Taille de voisinnage plus fine precedente
-			nExponent--;
-		}
-		*/
 	}
 	return dCost;
 }
@@ -755,78 +608,6 @@ void KWDataGridPostOptimizer::BuildSymbolUnivariateInitialNearbyDataGrid(const K
 		   initialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetPartNumber() -
 		   optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetPartNumber());
 	ensure(univariateInitialDataGrid->GetCellNumber() >= optimizedDataGrid->GetCellNumber());
-}
-
-int KWDataGridPostOptimizer::ComputeAttributePartFrequenciesStatistics(const KWDGAttribute* attribute,
-								       IntVector* ivPartFrequenciesStatistics) const
-{
-	int nTotalFrequency;
-	KWDGPart* part;
-	int nFrequency;
-	int nExponent;
-	int nMaxExponent;
-
-	require(attribute != NULL);
-	require(attribute->Check());
-	require(ivPartFrequenciesStatistics != NULL);
-
-	// Initialisation du vecteur resultat a une taille suffisante
-	ivPartFrequenciesStatistics->SetSize(sizeof(int) * CHAR_BIT);
-	ivPartFrequenciesStatistics->Initialize();
-
-	// Collecte des statistique sur les effectifs des parties
-	nMaxExponent = 0;
-	nTotalFrequency = 0;
-	part = attribute->GetHeadPart();
-	while (part != NULL)
-	{
-		// Effectif de la partie
-		nFrequency = part->GetPartFrequency();
-		assert(nFrequency > 0);
-		nTotalFrequency == nFrequency;
-
-		// Recherche du plus petit exposant d'une puissance de 2 plus grande que l'effectif
-		nExponent = GetSmallestGreaterPower2Exponent(nFrequency);
-		nMaxExponent = max(nMaxExponent, nExponent);
-
-		// Memorisation de la statistic
-		ivPartFrequenciesStatistics->UpgradeAt(nExponent, 1);
-
-		// Partie suivante
-		attribute->GetNextPart(part);
-	}
-
-	// Retaillage du tableau en fonction de l'exposant max utilise
-	ivPartFrequenciesStatistics->SetSize(nMaxExponent + 1);
-	ensure(ivPartFrequenciesStatistics->GetAt(ivPartFrequenciesStatistics->GetSize() - 1) > 0);
-	ensure(nTotalFrequency == attribute->ComputeTotalPartFrequency());
-	return nTotalFrequency;
-}
-
-int KWDataGridPostOptimizer::GetSmallestGreaterPower2Exponent(int nValue) const
-{
-	int nExponent;
-	int nPower2;
-
-	require(nValue > 0);
-
-	// Cas d'un entier tres grand
-	if (nValue > INT_MAX / 2)
-		nExponent = 31;
-	// Sinon, recherche du plus petit exposant d'une puissance de 2 plus grande
-	else
-	{
-		nExponent = 0;
-		nPower2 = 1;
-		while (nValue > nPower2)
-		{
-			nExponent++;
-			nPower2 *= 2;
-		}
-		assert(nValue <= nPower2);
-		assert(nPower2 / 2 < nValue);
-	}
-	return nExponent;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
