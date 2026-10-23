@@ -480,12 +480,11 @@ endfunction()
 #
 # - NAME: Name of the JAR target
 # - IMAGES: Paths of the image files to include in the JAR
-# - INCLUDE_JARS: Paths of the jars required on the compile classpath
 function(add_khiops_jar)
   # Parse the function arguments
   set(options "")
   set(oneValueArgs "NAME")
-  set(multiValueKwargs "JAVA_FILES" "IMAGES" "INCLUDE_JARS")
+  set(multiValueKwargs "JAVA_FILES" "IMAGES")
   cmake_parse_arguments(ADD_KHIOPS_JAR "${options}" "${oneValueArgs}" "${multiValueKwargs}" ${ARGN})
 
   # Add the JAR target with its resources and install
