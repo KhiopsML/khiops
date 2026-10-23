@@ -75,6 +75,7 @@ void UICard::ReplaceCardField(const ALString& sFieldId, UICard* newCard)
 	newCard->SetLabel(oldCard->GetLabel());
 	newCard->SetStyle(oldCard->GetStyle());
 	newCard->SetParameters(oldCard->GetParameters());
+	newCard->SetIcon(oldCard->GetIcon());
 	newCard->SetShortCut(oldCard->GetShortCut());
 	newCard->SetHelpText(oldCard->GetHelpText());
 
@@ -222,6 +223,7 @@ void UICard::GraphicAddField(jobject guiUnit)
 	jstring label;
 	jobject card;
 	jstring style;
+	jstring icon;
 
 	require(guiUnit != NULL);
 
@@ -232,23 +234,26 @@ void UICard::GraphicAddField(jobject guiUnit)
 
 	// Recherche de la methode addCardField
 	mid = GraphicGetMethodID(cls, "GUICard", "addCardField",
-				 "(Ljava/lang/String;Ljava/lang/String;LnormGUI/engine/GUICard;Ljava/lang/String;)V");
+				 "(Ljava/lang/String;Ljava/lang/String;LnormGUI/engine/GUICard;Ljava/lang/String;"
+				 "Ljava/lang/String;)V");
 
 	// Preparation des arguments
 	fieldId = ToJstring(env, sIdentifier);
 	label = ToJstring(env, GetLabel());
 	style = ToJstring(env, sStyle);
+	icon = ToJstring(env, GetIcon());
 
 	// Construction de la fiche
 	card = GraphicBuildGUIUnit();
 
 	// Appel de la methode
-	env->CallVoidMethod(guiUnit, mid, fieldId, label, card, style);
+	env->CallVoidMethod(guiUnit, mid, fieldId, label, card, style, icon);
 
 	// On avertit Java que les chaines sont liberables
 	env->DeleteLocalRef(fieldId);
 	env->DeleteLocalRef(label);
 	env->DeleteLocalRef(style);
+	env->DeleteLocalRef(icon);
 
 	// Idem pour l'objet fiche et sa classe
 	env->DeleteLocalRef(card);

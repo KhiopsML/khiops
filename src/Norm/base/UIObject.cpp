@@ -120,14 +120,14 @@ void UIObject::SetShortCut(const char& cValue)
 	cShortCut = cValue;
 }
 
-void UIObject::SetIconImage(const ALString& sIconImage)
+void UIObject::SetFrameIcon(const ALString& sFrameIcon)
 {
-	sIconImageJarPath = sIconImage;
+	sFrameIconJarPath = sFrameIcon;
 }
 
-ALString UIObject::GetIconImage()
+ALString UIObject::GetFrameIcon()
 {
-	return sIconImageJarPath;
+	return sFrameIconJarPath;
 }
 
 UIObject::UIObject()
@@ -912,6 +912,58 @@ JNINativeMethod jniGUIListMethodArray[] = {
 
 //////////////////////////////////////////////////////////////////////////////
 
+// Les threads natifs attaches a la JVM par JNI peuvent ne pas avoir de
+// classloader de contexte, ce qui empeche Java de charger les classes de l'IHM.
+// On utilise alors le classloader systeme comme contexte de secours.
+static void SetJavaThreadContextClassLoader(JNIEnv* env)
+{
+	jclass clsThread;
+	jclass clsClassLoader;
+	jmethodID midCurrentThread;
+	jmethodID midGetContextClassLoader;
+	jmethodID midGetSystemClassLoader;
+	jmethodID midSetContextClassLoader;
+	jobject thread;
+	jobject contextClassLoader;
+	jobject classLoader;
+
+	clsThread = env->FindClass("java/lang/Thread");
+	check(clsThread);
+	midCurrentThread = env->GetStaticMethodID(clsThread, "currentThread", "()Ljava/lang/Thread;");
+	check(midCurrentThread);
+	thread = env->CallStaticObjectMethod(clsThread, midCurrentThread);
+	check(thread);
+
+	midGetContextClassLoader = env->GetMethodID(clsThread, "getContextClassLoader", "()Ljava/lang/ClassLoader;");
+	check(midGetContextClassLoader);
+	contextClassLoader = env->CallObjectMethod(thread, midGetContextClassLoader);
+
+	// On preserve le classloader de contexte lorsqu'il a deja ete defini par l'application.
+	if (contextClassLoader == NULL)
+	{
+		clsClassLoader = env->FindClass("java/lang/ClassLoader");
+		check(clsClassLoader);
+		midGetSystemClassLoader =
+		    env->GetStaticMethodID(clsClassLoader, "getSystemClassLoader", "()Ljava/lang/ClassLoader;");
+		check(midGetSystemClassLoader);
+		classLoader = env->CallStaticObjectMethod(clsClassLoader, midGetSystemClassLoader);
+		check(classLoader);
+
+		midSetContextClassLoader =
+		    env->GetMethodID(clsThread, "setContextClassLoader", "(Ljava/lang/ClassLoader;)V");
+		check(midSetContextClassLoader);
+		env->CallVoidMethod(thread, midSetContextClassLoader, classLoader);
+
+		env->DeleteLocalRef(classLoader);
+		env->DeleteLocalRef(clsClassLoader);
+	}
+
+	if (contextClassLoader != NULL)
+		env->DeleteLocalRef(contextClassLoader);
+	env->DeleteLocalRef(thread);
+	env->DeleteLocalRef(clsThread);
+}
+
 longint UIObject::GetUserInterfaceMemoryReserve()
 {
 	const longint lJNIBaseMemory = 64 * 1024 * 1024;
@@ -929,6 +981,9 @@ JNIEnv* UIObject::GetJNIEnv()
 {
 	static PtrGetCreateJavaVM ptrGetCreateJavaVM = NULL;
 	static PtrCreateJavaVM ptrCreateJavaVM = NULL;
+
+	// L'initialisation est propre a chaque thread natif attache a la JVM.
+	static thread_local boolean bJavaThreadContextClassLoaderInitialized = false;
 	JavaVM* vmBuf[1];
 	JavaVM* jvm;
 	JNIEnv* env;
@@ -1159,6 +1214,12 @@ JNIEnv* UIObject::GetJNIEnv()
 			bIsJVMLoaded = true;
 		}
 	}
+	// Le contexte doit etre initialise apres chaque attachement d'un thread natif a la JVM.
+	if (env != NULL and not bJavaThreadContextClassLoaderInitialized)
+	{
+		SetJavaThreadContextClassLoader(env);
+		bJavaThreadContextClassLoaderInitialized = true;
+	}
 	return env;
 }
 
@@ -1176,7 +1237,7 @@ void UIObject::FreeJNIEnv()
 JNIEnv* UIObject::GraphicGetJNIEnv()
 {
 	JNIEnv* env;
-	static ALString sLastIconImageJarPath;
+	static ALString sLastFrameIconJarPath;
 	ALString sCurrentLocale;
 	jint res;
 	jclass cls;
@@ -1279,10 +1340,10 @@ JNIEnv* UIObject::GraphicGetJNIEnv()
 		if (env != NULL)
 		{
 			// Reparametrage eventuel de l'icone
-			if (sLastIconImageJarPath != sIconImageJarPath)
+			if (sLastFrameIconJarPath != sFrameIconJarPath)
 			{
 				jmethodID mid;
-				jstring iconImageJarPath;
+				jstring frameIconJarPath;
 
 				// Recherche de la classe GUIObject
 				// On ne passe pas par GraphicGetGUIObjectID (qui fait appel a GraphicGetJNIEnv)
@@ -1304,15 +1365,15 @@ JNIEnv* UIObject::GraphicGetJNIEnv()
 				}
 
 				// Appel de la methode
-				iconImageJarPath = ToJstring(env, sIconImageJarPath);
-				env->CallStaticVoidMethod(cls, mid, iconImageJarPath);
-				env->DeleteLocalRef(iconImageJarPath);
+				frameIconJarPath = ToJstring(env, sFrameIconJarPath);
+				env->CallStaticVoidMethod(cls, mid, frameIconJarPath);
+				env->DeleteLocalRef(frameIconJarPath);
 
 				// Liberation de la classe
 				env->DeleteLocalRef(cls);
 
 				// Memorisation de l'icone
-				sLastIconImageJarPath = sIconImageJarPath;
+				sLastFrameIconJarPath = sFrameIconJarPath;
 			}
 		}
 	}
@@ -2244,7 +2305,7 @@ boolean UIObject::bOutputCommandNoReplay = false;
 boolean UIObject::bFastExitMode = true;
 boolean UIObject::bTextualInteractiveModeAllowed = false;
 ObjectDictionary UIObject::odListIndexCommands;
-ALString UIObject::sIconImageJarPath;
+ALString UIObject::sFrameIconJarPath;
 void* UIObject::jvmHandle = NULL;
 boolean UIObject::bIsJVMLoaded = false;
 ALString UIObject::sTaskProgressionLogFileName;

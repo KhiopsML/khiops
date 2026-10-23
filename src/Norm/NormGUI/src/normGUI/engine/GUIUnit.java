@@ -83,27 +83,29 @@ import javax.swing.SwingUtilities;
                         if (isEditable) {
                                 // Editables selectionnes
                                 if (isSelected)
-                                        componentColor = new Color(245, 245, 245);
+                                        componentColor = new Color(230, 238, 248);
                                 // Editables non selectionnes
                                 else
-                                        componentColor = new Color(220, 220, 220);
+                                        componentColor = new Color(255, 255, 255);
                         } else
                         // Composants non editables
                         {
                                 // Non editables selectionnes
                                 if (isSelected)
-                                        componentColor = new Color(160, 160, 160);
+                                        componentColor = new Color(210, 220, 232);
                                 // Non editables non selectionnes
                                 else
-                                        componentColor = new Color(190, 190, 190);
+                                        componentColor = new Color(240, 243, 246);
                         }
                 }
 
-                // Inversion si focus
-                if (hasFocus)
-                        componentColor = new Color(255 - componentColor.getRed(),
-                                                   255 - componentColor.getGreen(),
-                                                   255 - componentColor.getBlue());
+                // Ajustement si focus
+                if (hasFocus) {
+                        int r = Math.max(0, componentColor.getRed() - 40);
+                        int g = Math.max(0, componentColor.getGreen() - 40);
+                        int b = Math.max(0, componentColor.getBlue() - 40);
+                        componentColor = new Color(r, g, b);
+                }
                 return componentColor;
         }
 

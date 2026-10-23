@@ -188,8 +188,8 @@ public:
 	// Parametrage de l'icone a utiliser dans toutes les fenetre d'interface
 	// L'icone (un fichier .gif) doit se trouver dans un .jar accessible dans le classpath
 	// Si parametre vide ou invalide, l'icone java par defaut est utilisee
-	static void SetIconImage(const ALString& sIconImage);
-	static ALString GetIconImage();
+	static void SetFrameIcon(const ALString& sFrameIcon);
+	static ALString GetFrameIcon();
 
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
@@ -434,7 +434,7 @@ protected:
 	static boolean bOutputCommandNoReplay;
 	static boolean bFastExitMode;
 	static boolean bTextualInteractiveModeAllowed;
-	static ALString sIconImageJarPath;
+	static ALString sFrameIconJarPath;
 	static ALString sLocalErrorLogFileName;
 	static ALString sErrorLogFileName;
 	static ALString sTaskProgressionLogFileName;
@@ -510,6 +510,12 @@ public:
 	virtual void SetEditable(boolean bValue);
 	boolean GetEditable() const;
 
+	// Icone optionnelle, vide par defaut, definie par son chemin complet dans les ressources Java
+	// Exemple: images/database.svg
+	// Utilisee uniquement pour une fiche affichee en onglet, sans effet sur les autres presentations
+	void SetIcon(const ALString& sValue);
+	const ALString& GetIcon() const;
+
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
 
@@ -559,6 +565,7 @@ protected:
 
 	// Attributs d'instance
 	boolean bEditable;
+	ALString sIcon;
 };
 
 // Prototype d'une methode handler d'action
@@ -1762,6 +1769,12 @@ public:
 	void SetAccelKey(const ALString& sValue);
 	const ALString& GetAccelKey() const;
 
+	// Icone optionnelle, vide par defaut, definie par son chemin complet dans les ressources Java
+	// Exemple: images/sparkles.svg
+	// Utilisee uniquement pour les styles Button et SmallButton, sans effet sur les menus
+	void SetIcon(const ALString& sValue);
+	const ALString& GetIcon() const;
+
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
 
@@ -1775,6 +1788,7 @@ protected:
 
 	// Commande
 	ALString sAccelKey;
+	ALString sIcon;
 };
 
 ////////////////////////////////////////////////////////////////////////

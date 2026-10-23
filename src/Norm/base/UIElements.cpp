@@ -1595,6 +1595,16 @@ const ALString& UIAction::GetAccelKey() const
 	return sAccelKey;
 }
 
+void UIAction::SetIcon(const ALString& sValue)
+{
+	sIcon = sValue;
+}
+
+const ALString& UIAction::GetIcon() const
+{
+	return sIcon;
+}
+
 boolean UIAction::Check() const
 {
 	boolean bOk = true;

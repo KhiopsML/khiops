@@ -6,7 +6,9 @@ package normGUI.engine;
 
 import java.awt.Font;
 import java.awt.Insets;
+import javax.swing.Icon;
 import javax.swing.JButton;
+import javax.swing.SwingConstants;
 
 /**
  * Definit une action utilisateur
@@ -38,12 +40,26 @@ public class GUIAction extends GUIObject
                         actionButton.setMargin(new Insets(2, 2, 2, 2));
                 } else
                         actionButton = new JButton(getLabel());
+                applyOptionalIcon(actionButton);
                 actionButton.setActionCommand(getIdentifier());
                 if (getShortCut() != ' ')
                         actionButton.setMnemonic((int)getShortCut());
                 setComponentHelpText(actionButton);
                 return actionButton;
         };
+
+        /**
+         * Applique l'icone SVG optionnelle au bouton d'action
+         */
+        private void applyOptionalIcon(JButton actionButton)
+        {
+                Icon icon = GUIIconLoader.loadSvgIcon(getIcon(), null, null);
+                if (icon != null) {
+                        actionButton.setIcon(icon);
+                        actionButton.setIconTextGap(8);
+                        actionButton.setHorizontalTextPosition(SwingConstants.RIGHT);
+                }
+        }
 
         /**
          * Cle d'acceleration associee a l'action
@@ -63,4 +79,19 @@ public class GUIAction extends GUIObject
          * @param sValue La nouvelle cle d'acceleration
          */
         public void setAccelKey(String sValue) { sAccelKey = sValue; }
+
+        /**
+         * Chemin complet de l'icone optionnelle des styles Button et SmallButton
+         */
+        private String sIcon = "";
+
+        /**
+         * Renvoie le chemin de l'icone optionnelle
+         */
+        public String getIcon() { return sIcon; }
+
+        /**
+         * Modifie le chemin de l'icone, sans effet sur les menus ni sur les parametres
+         */
+        public void setIcon(String sValue) { sIcon = sValue; }
 }
