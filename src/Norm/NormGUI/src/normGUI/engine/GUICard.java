@@ -156,8 +156,11 @@ public class GUICard extends GUIUnit
                                                                 jp.setName(guiData.getIdentifier());
                                                                 gbc.insets = new Insets(3, 3, 3, 3);
                                                                 jp.setBorder(BorderFactory.createCompoundBorder(
-                                                                  BorderFactory.createTitledBorder(guiData.getLabel()),
-                                                                  BorderFactory.createEmptyBorder(10, 15, 10, 15)));
+                                                                  BorderFactory.createTitledBorder(
+                                                                    guiData.getLabel().isEmpty()
+                                                                      ? ""
+                                                                      : "  " + guiData.getLabel() + "  "),
+                                                                  BorderFactory.createEmptyBorder(5, 10, 10, 10)));
                                                                 guiData.graphicAddField(jp, gbc);
                                                                 constraints.weightx = 1.0;
                                                                 constraints.weighty = 1.0;
@@ -217,7 +220,8 @@ public class GUICard extends GUIUnit
                         constraints.weightx = 0;
                         constraints.weighty = 0;
                         constraints.gridwidth = GridBagConstraints.REMAINDER;
-                        panel.add(southPanel, constraints);
+                        if (southPanel.getComponentCount() > 0)
+                                panel.add(southPanel, constraints);
                 }
         }
 

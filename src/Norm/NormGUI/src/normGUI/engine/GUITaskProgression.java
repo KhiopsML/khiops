@@ -20,6 +20,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
+import javax.swing.UIManager;
 
 /**
  * Definit une fenetre d'avertissement
@@ -231,7 +232,9 @@ public class GUITaskProgression extends JFrame
                 JPanel panel = new JPanel(new GridBagLayout());
 
                 // Creation et ajout des composants au panel
-                panel.setBorder(BorderFactory.createEtchedBorder());
+                panel.setBorder(UIManager.getBorder("TaskProgression.border"));
+                if (panel.getBorder() == null)
+                        panel.setBorder(BorderFactory.createEtchedBorder());
                 panel.add(mainLabel, constraints);
                 panel.add(progressBar, constraints);
                 panel.add(label, constraints);

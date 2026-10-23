@@ -84,7 +84,7 @@ public class GUIManager
                                 }
 
                                 // Marge interne des champs texte et des zones de texte
-                                Insets margin = new Insets(8, 10, 8, 10);
+                                Insets margin = new Insets(6, 10, 6, 10);
                                 UIManager.put("TextArea.margin", margin);
                                 UIManager.put("TextField.margin", margin);
 
@@ -191,11 +191,6 @@ public class GUIManager
                         Font poppinsFont = loadBundledPoppinsFont();
                         if (poppinsFont != null)
                                 return poppinsFont;
-
-                        // Fallback: si la fonte est installee systeme, on peut encore l'utiliser.
-                        Font systemPoppinsFont = new Font("Poppins", Font.PLAIN, 12);
-                        if (!"Dialog".equals(systemPoppinsFont.getFamily()))
-                                return systemPoppinsFont;
 
                         return new Font("MS Sans Serif", Font.PLAIN, 12);
                 } catch (Exception e) {

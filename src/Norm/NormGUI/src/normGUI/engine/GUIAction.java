@@ -37,7 +37,7 @@ public class GUIAction extends GUIObject
                           new Font(buttonFont.getName(), buttonFont.getStyle(), (int)(0.9 * buttonFont.getSize()));
                         actionButton.setFont(smallButtonFont);
                         actionButton.setText(getLabel());
-                        actionButton.setMargin(new Insets(2, 2, 2, 2));
+                        actionButton.setMargin(new Insets(3, 6, 3, 6));
                 } else
                         actionButton = new JButton(getLabel());
                 applyOptionalIcon(actionButton);
