@@ -14,14 +14,22 @@ import javax.swing.Icon;
  */
 final class GUISvgIconFactory
 {
+        private static final int ICON_HEIGHT = 16;
+
         static Icon create(String iconPath, Color highlightColor, BooleanSupplier isHighlighted)
           throws ReflectiveOperationException
         {
                 Class<?> iconClass = Class.forName("com.formdev.flatlaf.extras.FlatSVGIcon");
-                Object icon =
-                  iconClass.getConstructor(String.class, int.class, int.class).newInstance(iconPath, 16, 16);
+                Object icon = iconClass.getConstructor(String.class).newInstance(iconPath);
                 if (!(Boolean)iconClass.getMethod("hasFound").invoke(icon))
                         return null;
+                // Redimensionne l'icone pour qu'elle ait une hauteur de 16 pixels en preservant ses proportions
+                int sourceWidth = (Integer)iconClass.getMethod("getIconWidth").invoke(icon);
+                int sourceHeight = (Integer)iconClass.getMethod("getIconHeight").invoke(icon);
+                if (sourceWidth > 0 && sourceHeight > 0) {
+                        int iconWidth = Math.max(1, Math.round((float)ICON_HEIGHT * sourceWidth / sourceHeight));
+                        icon = iconClass.getMethod("derive", int.class, int.class).invoke(icon, iconWidth, ICON_HEIGHT);
+                }
                 if (highlightColor != null && isHighlighted != null) {
                         Class<?> filterClass = Class.forName("com.formdev.flatlaf.extras.FlatSVGIcon$ColorFilter");
                         Function<Color, Color> colorMapper =

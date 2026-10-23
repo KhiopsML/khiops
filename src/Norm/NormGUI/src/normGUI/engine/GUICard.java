@@ -24,13 +24,15 @@ public class GUICard extends GUIUnit
          * @param sLabel   Le libelle de la sous fiche a ajouter
          * @param card     La sous fiche a ajouter
          * @param sStyle   Le style de la sous fiche a ajouter
+         * @param sIcon    Le chemin complet de l'icone optionnelle de l'onglet
          */
-        public void addCardField(String sFieldId, String sLabel, GUICard card, String sStyle)
+        public void addCardField(String sFieldId, String sLabel, GUICard card, String sStyle, String sIcon)
         {
                 // Instanciation de la sous fiche
                 card.setIdentifier(sFieldId);
                 card.setLabel(sLabel);
                 card.setStyle(sStyle);
+                card.setIcon(sIcon);
                 card.setParentUnit(this);
                 addField(card);
         }

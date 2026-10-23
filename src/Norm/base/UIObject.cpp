@@ -120,14 +120,14 @@ void UIObject::SetShortCut(const char& cValue)
 	cShortCut = cValue;
 }
 
-void UIObject::SetIconImage(const ALString& sIconImage)
+void UIObject::SetFrameIcon(const ALString& sFrameIcon)
 {
-	sIconImageJarPath = sIconImage;
+	sFrameIconJarPath = sFrameIcon;
 }
 
-ALString UIObject::GetIconImage()
+ALString UIObject::GetFrameIcon()
 {
-	return sIconImageJarPath;
+	return sFrameIconJarPath;
 }
 
 UIObject::UIObject()
@@ -1247,7 +1247,7 @@ void UIObject::FreeJNIEnv()
 JNIEnv* UIObject::GraphicGetJNIEnv()
 {
 	JNIEnv* env;
-	static ALString sLastIconImageJarPath;
+	static ALString sLastFrameIconJarPath;
 	ALString sCurrentLocale;
 	jint res;
 	jclass cls;
@@ -1350,10 +1350,10 @@ JNIEnv* UIObject::GraphicGetJNIEnv()
 		if (env != NULL)
 		{
 			// Reparametrage eventuel de l'icone
-			if (sLastIconImageJarPath != sIconImageJarPath)
+			if (sLastFrameIconJarPath != sFrameIconJarPath)
 			{
 				jmethodID mid;
-				jstring iconImageJarPath;
+				jstring frameIconJarPath;
 
 				// Recherche de la classe GUIObject
 				// On ne passe pas par GraphicGetGUIObjectID (qui fait appel a GraphicGetJNIEnv)
@@ -1375,15 +1375,15 @@ JNIEnv* UIObject::GraphicGetJNIEnv()
 				}
 
 				// Appel de la methode
-				iconImageJarPath = ToJstring(env, sIconImageJarPath);
-				env->CallStaticVoidMethod(cls, mid, iconImageJarPath);
-				env->DeleteLocalRef(iconImageJarPath);
+				frameIconJarPath = ToJstring(env, sFrameIconJarPath);
+				env->CallStaticVoidMethod(cls, mid, frameIconJarPath);
+				env->DeleteLocalRef(frameIconJarPath);
 
 				// Liberation de la classe
 				env->DeleteLocalRef(cls);
 
 				// Memorisation de l'icone
-				sLastIconImageJarPath = sIconImageJarPath;
+				sLastFrameIconJarPath = sFrameIconJarPath;
 			}
 		}
 	}
@@ -2315,7 +2315,7 @@ boolean UIObject::bOutputCommandNoReplay = false;
 boolean UIObject::bFastExitMode = true;
 boolean UIObject::bTextualInteractiveModeAllowed = false;
 ObjectDictionary UIObject::odListIndexCommands;
-ALString UIObject::sIconImageJarPath;
+ALString UIObject::sFrameIconJarPath;
 void* UIObject::jvmHandle = NULL;
 boolean UIObject::bIsJVMLoaded = false;
 ALString UIObject::sTaskProgressionLogFileName;
