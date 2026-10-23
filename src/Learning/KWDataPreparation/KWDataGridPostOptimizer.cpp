@@ -257,6 +257,7 @@ void KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* i
 			{
 				KWDataGrid univariateInitialNearbyDataGrid;
 				int nNearbyIntervalMinFrequency = 5;
+				int nNearbyIntervalIncreasingFactor = 2;
 				int nNearbyIntervalsMaxCumulativeFrequency = 10;
 				boolean bOneTest = false;
 				boolean bOverallTest = false;
@@ -266,11 +267,11 @@ void KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* i
 				{
 					BuildContinuousUnivariateInitialNearbyDataGrid(
 					    initialDataGrid, optimizedDataGrid, sPostOptimizationAttributeName,
-					    nNearbyIntervalMinFrequency, nNearbyIntervalsMaxCumulativeFrequency,
-					    &univariateInitialNearbyDataGrid);
+					    nNearbyIntervalMinFrequency, nNearbyIntervalIncreasingFactor,
+					    nNearbyIntervalsMaxCumulativeFrequency, &univariateInitialNearbyDataGrid);
 					cout << nCallIndex << "\t" << sPostOptimizationAttributeName << "\t"
-					     << nNearbyIntervalMinFrequency << "\t"
-					     << nNearbyIntervalsMaxCumulativeFrequency << "\t";
+					     << nNearbyIntervalMinFrequency << "\t" << nNearbyIntervalIncreasingFactor
+					     << "\t" << nNearbyIntervalsMaxCumulativeFrequency << "\t";
 					cout << univariateInitialNearbyDataGrid.GetObjectLabel() << "\t";
 					cout << "Partition resultat\n";
 					univariateInitialNearbyDataGrid.SearchAttribute(sPostOptimizationAttributeName)
@@ -294,6 +295,7 @@ void KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* i
 							BuildContinuousUnivariateInitialNearbyDataGrid(
 							    initialDataGrid, optimizedDataGrid,
 							    sPostOptimizationAttributeName, nNearbyIntervalMinFrequency,
+							    nNearbyIntervalMinFrequency,
 							    nNearbyIntervalsMaxCumulativeFrequency,
 							    &univariateInitialNearbyDataGrid);
 							cout << nCallIndex << "\t" << sPostOptimizationAttributeName
@@ -337,16 +339,17 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 	const int nSmallPartNumber = 128;
 	const int nMediumPartNuber = 256;
 	int nSufficientPartNumber;
-
 	KWDataGridManager dataGridManager;
 	KWDGPODiscretizer dataGridUnivariateDiscretizer;
 	KWDataGrid univariateInitialDataGrid;
 	KWDGAttribute* initialAttribute;
 	KWDGAttribute* optimizedAttribute;
+	int nNearbyMaxIntervalNumber;
 	int nNearbyIntervalMinFrequency;
+	int nNearbyIntervalIncreasingFactor;
 	int nNearbyIntervalsMaxCumulativeFrequency;
 	int nTotalFrequency;
-	int nAttributeNumber;
+	int nMeanIntervalFrequency;
 	double dCost;
 
 	require(dataGridCosts != NULL);
@@ -409,26 +412,44 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 		// Parametrage du voisinnage fin dans le cas approfondi
 		if (bDeepPostOptimization)
 		{
-			// Exploration fine autour de la solution optimisee
+			// On part des intervalles les plus proches, pour une exploration fine
 			nNearbyIntervalMinFrequency = 1;
-			nNearbyIntervalsMaxCumulativeFrequency = 3;
-			BuildContinuousUnivariateInitialNearbyDataGrid(
-			    initialDataGrid, optimizedDataGrid, sPostOptimizationAttributeName,
-			    nNearbyIntervalMinFrequency, nNearbyIntervalsMaxCumulativeFrequency,
-			    &univariateInitialDataGrid);
+			nNearbyIntervalIncreasingFactor = 2;
+
+			// Calcul de l'effectif cumule max en fonction d'un nombre d'intervalles souhaites
+			// Par exemple: avec 3 intervalles et un facteur, un quatrieme intervalles exige
+			// un effectif cumule d'au moins
+			//   MinF * (2^0 + 2^1 + 2^2 + 2^3) = MinF * (2^4 -1)
+			// Avec 1 en moins, on peut donc faire trois intervalles, avec un tolerance sur les effectifs minimums
+			nNearbyMaxIntervalNumber = 3;
+			nNearbyIntervalsMaxCumulativeFrequency =
+			    nNearbyIntervalMinFrequency *
+				(int)pow(nNearbyIntervalIncreasingFactor, nNearbyMaxIntervalNumber + 1) -
+			    1;
 		}
 		// Parametrage grossier dans le cas non approfondi, pour limiter la recherche
 		else
 		{
-			// Exploration fine autour de la solution optimisee
-			//DDD TODO A ajuster en fonction du nombre d'intervalles a atteindre
-			nNearbyIntervalMinFrequency = 2;
-			nNearbyIntervalsMaxCumulativeFrequency = 3;
-			BuildContinuousUnivariateInitialNearbyDataGrid(
-			    initialDataGrid, optimizedDataGrid, sPostOptimizationAttributeName,
-			    nNearbyIntervalMinFrequency, nNearbyIntervalsMaxCumulativeFrequency,
-			    &univariateInitialDataGrid);
+			// Effectif moyen par intervalles
+			nMeanIntervalFrequency = nTotalFrequency / optimizedAttribute->GetPartNumber();
+
+			// On part d'intervalles permettant de redecouper legerement les parties de l'attribut a optimiser
+			nNearbyIntervalMinFrequency = 1 + nMeanIntervalFrequency / 16;
+			nNearbyIntervalIncreasingFactor = 2;
+
+			// Calcul de l'effectif cumule max en fonction d'un nombre d'intervalles souhaites
+			nNearbyMaxIntervalNumber = 1;
+			nNearbyIntervalsMaxCumulativeFrequency =
+			    nNearbyIntervalMinFrequency *
+				(int)pow(nNearbyIntervalIncreasingFactor, nNearbyMaxIntervalNumber + 1) -
+			    1;
 		}
+
+		// Creation d'un grille par ajout d'intervalle proches des bornes existantes
+		BuildContinuousUnivariateInitialNearbyDataGrid(
+		    initialDataGrid, optimizedDataGrid, sPostOptimizationAttributeName, nNearbyIntervalMinFrequency,
+		    nNearbyIntervalIncreasingFactor, nNearbyIntervalsMaxCumulativeFrequency,
+		    &univariateInitialDataGrid);
 
 		// Post-optimisation de l'attribut par discretisation
 		dataGridUnivariateDiscretizer.SetPostOptimizationAttributeName(sPostOptimizationAttributeName);
@@ -473,7 +494,8 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridSymbolAttribute(const KWData
 void KWDataGridPostOptimizer::BuildContinuousUnivariateInitialNearbyDataGrid(
     const KWDataGrid* initialDataGrid, const KWDataGrid* optimizedDataGrid,
     const ALString& sPostOptimizationAttributeName, int nNearbyIntervalMinFrequency,
-    int nNearbyIntervalsMaxCumulativeFrequency, KWDataGrid* univariateInitialDataGrid) const
+    int nNearbyIntervalIncreasingFactor, int nNearbyIntervalsMaxCumulativeFrequency,
+    KWDataGrid* univariateInitialDataGrid) const
 {
 	const boolean bTrace = false;
 	KWDataGridManager dataGridManager;
@@ -488,6 +510,7 @@ void KWDataGridPostOptimizer::BuildContinuousUnivariateInitialNearbyDataGrid(
 	require(optimizedDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() ==
 		KWType::Continuous);
 	require(nNearbyIntervalMinFrequency >= 1);
+	require(nNearbyIntervalIncreasingFactor >= 1);
 	require(nNearbyIntervalsMaxCumulativeFrequency >= nNearbyIntervalMinFrequency);
 	require(univariateInitialDataGrid != NULL);
 	require(univariateInitialDataGrid->IsEmpty());
@@ -511,7 +534,7 @@ void KWDataGridPostOptimizer::BuildContinuousUnivariateInitialNearbyDataGrid(
 	// Ajout des parties proches des bornes de la partition optimisee
 	dataGridManager.AddContinuousAttributeNearbyParts(
 	    initialDataGrid, optimizedDataGrid, sPostOptimizationAttributeName, nNearbyIntervalMinFrequency,
-	    nNearbyIntervalsMaxCumulativeFrequency, univariateInitialDataGrid);
+	    nNearbyIntervalIncreasingFactor, nNearbyIntervalsMaxCumulativeFrequency, univariateInitialDataGrid);
 
 	// Export des cellules pour la grille initiale univariee
 	dataGridManager.ExportCells(initialDataGrid, univariateInitialDataGrid);

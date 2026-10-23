@@ -1293,7 +1293,8 @@ void KWDataGridManager::ExportCells(const KWDataGrid* sourceDataGrid, KWDataGrid
 
 void KWDataGridManager::AddContinuousAttributeNearbyParts(
     const KWDataGrid* sourceDataGrid, const KWDataGrid* mandatoryDataGrid, const ALString& sAttributeName,
-    int nNearbyIntervalMinFrequency, int nNearbyIntervalsMaxCumulativeFrequency, KWDataGrid* targetDataGrid) const
+    int nNearbyIntervalMinFrequency, int nNearbyIntervalIncreasingFactor, int nNearbyIntervalsMaxCumulativeFrequency,
+    KWDataGrid* targetDataGrid) const
 {
 	const boolean bTrace = false;
 	IntVector ivNextNearbyCumulativeFrequencies;
@@ -1305,6 +1306,7 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 	KWDGPart* sourcePart;
 	KWDGPart* mandatoryPart;
 	KWDGPart* targetPart;
+	int nMinTargetFrequency;
 	int nTargetFrequency;
 	int nCumulativeFrequency;
 	int nCumulativeFrequencyLimit;
@@ -1322,6 +1324,7 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 	require(targetDataGrid->SearchAttribute(sAttributeName) != NULL);
 	require(targetDataGrid->SearchAttribute(sAttributeName)->GetPartNumber() == 0);
 	require(nNearbyIntervalMinFrequency >= 1);
+	require(nNearbyIntervalIncreasingFactor >= 1);
 	require(nNearbyIntervalsMaxCumulativeFrequency >= nNearbyIntervalMinFrequency);
 	require(targetDataGrid->GetCellNumber() == 0);
 
@@ -1344,6 +1347,7 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 	{
 		cout << "AddContinuousAttributeNearbyParts\t" << sAttributeName << "\n";
 		cout << "\tNearbyIntervalMinFrequency\t" << nNearbyIntervalMinFrequency << "\n";
+		cout << "\tNearbyIntervalIncreasingFactor\t" << nNearbyIntervalIncreasingFactor << "\n";
 		cout << "\tNearbyIntervalsMaxCumulativeFrequency\t" << nNearbyIntervalsMaxCumulativeFrequency << "\n";
 		cout << "Source intervals\n";
 		sourceAttribute->WritePartsSummary(cout);
@@ -1370,6 +1374,9 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 		else
 			nCumulativeFrequencyLimit = nCumulativeFrequency + mandatoryPart->GetPartFrequency() / 2;
 
+		// Reinitialisation de l'effectif minimum par intervalle
+		nMinTargetFrequency = nNearbyIntervalMinFrequency;
+
 		// Parcours des intervalles sources jusqu'a trouver la borne sup de l'attribut obligatoire
 		nTargetFrequency = 0;
 		while (sourcePart != NULL and
@@ -1385,12 +1392,15 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 			// ou si l'on respecte les contraintes
 			if ((sourcePart->GetInterval()->GetUpperBound() ==
 			     mandatoryPart->GetInterval()->GetUpperBound()) or
-			    (nTargetFrequency >= nNearbyIntervalMinFrequency and
+			    (nTargetFrequency >= nMinTargetFrequency and
 			     nCumulativeFrequency <= nCumulativeFrequencyLimit))
 			{
 				// Memorisation de l'effectif cumule global de l'intervalle a creer
 				ivNextNearbyCumulativeFrequencies.Add(nCumulativeFrequency);
 				nTargetFrequency = 0;
+
+				// On accroit l'effectif minimum pour le prochain intervalle a creer
+				nMinTargetFrequency *= nNearbyIntervalIncreasingFactor;
 			}
 
 			// Passage a l'intervalle source suivant
@@ -1426,6 +1436,9 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 		else
 			nCumulativeFrequencyLimit = nCumulativeFrequency - (mandatoryPart->GetPartFrequency() - 1) / 2;
 
+		// Reinitialisation de l'effectif minimum par intervalle
+		nMinTargetFrequency = nNearbyIntervalMinFrequency;
+
 		// Parcours des intervalles sources jusqu'a trouver la borne inf de l'attribut obligatoire
 		nTargetFrequency = 0;
 		while (sourcePart != NULL and
@@ -1438,11 +1451,14 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 			nCumulativeFrequency -= sourcePart->GetPartFrequency();
 
 			// Creation d'un intervalle cible si on respecte les contraintes
-			if (nTargetFrequency >= nNearbyIntervalMinFrequency and
+			if (nTargetFrequency >= nMinTargetFrequency and
 			    nCumulativeFrequency >= nCumulativeFrequencyLimit)
 			{
 				ivPrevNearbyCumulativeFrequencies.Add(nCumulativeFrequency);
 				nTargetFrequency = 0;
+
+				// On accroit l'effectif minimum pour le prochain intervalle a creer
+				nMinTargetFrequency *= nNearbyIntervalIncreasingFactor;
 			}
 
 			// Passage a l'intervalle source precedent

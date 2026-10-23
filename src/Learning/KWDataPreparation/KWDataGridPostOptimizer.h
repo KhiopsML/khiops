@@ -95,6 +95,7 @@ protected:
 							    const KWDataGrid* optimizedDataGrid,
 							    const ALString& sPostOptimizationAttributeName,
 							    int nNearbyIntervalMinFrequency,
+							    int nNearbyIntervalIncreasingFactor,
 							    int nNearbyIntervalsMaxCumulativeFrequency,
 							    KWDataGrid* univariateInitialDataGrid) const;
 

@@ -146,12 +146,16 @@ public:
 	// obligatoire, en ajoutant des parties de part et d'autre de chaque frontiere.
 	// Selon les contraintes, le resultat peut etre identique a la grille obligatoire.
 
-	// Ajout de parties proches des parties existantes d'un attribut continu donne.
-	// Des intervalles sont ajoutes de part et d'autre de chaque borne de la partition
-	// obligatoire. Chaque intervalle ajoute au vosinnage d'une borne respecte un effectif minimal et
-	// l'ensemble des intervalles ajoutes de chaque cote d'une borne respecte un effectif cumule maximal.
+	// Ajout d'intervalles au voisinage des parties existantes d'un attribut continu donne.
+	// Des intervalles sont ajoutes de chaque cote de chaque borne de la partition obligatoire.
+	// Chaque intervalle ajoute respecte un effectif minimal, et la somme des effectifs des
+	// intervalles ajoutes de chaque cote d'une borne ne depasse pas un maximum defini.
+	// Si le facteur d'accroissement des effectifs est strictement superieur a 1, l'effectif
+	// minimal des intervalles ajoutes augmente a mesure qu'ils s'eloignent de la borne, selon
+	// une loi geometrique (Min, F * Min, F * F * Min, ...).
 	void AddContinuousAttributeNearbyParts(const KWDataGrid* sourceDataGrid, const KWDataGrid* mandatoryDataGrid,
 					       const ALString& sAttributeName, int nNearbyIntervalMinFrequency,
+					       int nNearbyIntervalIncreasingFactor,
 					       int nNearbyIntervalsMaxCumulativeFrequency,
 					       KWDataGrid* targetDataGrid) const;
 
