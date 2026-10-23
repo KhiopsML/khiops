@@ -188,8 +188,8 @@ public:
 	// Parametrage de l'icone a utiliser dans toutes les fenetre d'interface
 	// L'icone (un fichier .gif) doit se trouver dans un .jar accessible dans le classpath
 	// Si parametre vide ou invalide, l'icone java par defaut est utilisee
-	static void SetIconImage(const ALString& sIconImage);
-	static ALString GetIconImage();
+	static void SetFrameIcon(const ALString& sFrameIcon);
+	static ALString GetFrameIcon();
 
 	// Libelle de la classe
 	const ALString GetClassLabel() const override;
@@ -434,7 +434,7 @@ protected:
 	static boolean bOutputCommandNoReplay;
 	static boolean bFastExitMode;
 	static boolean bTextualInteractiveModeAllowed;
-	static ALString sIconImageJarPath;
+	static ALString sFrameIconJarPath;
 	static ALString sLocalErrorLogFileName;
 	static ALString sErrorLogFileName;
 	static ALString sTaskProgressionLogFileName;
