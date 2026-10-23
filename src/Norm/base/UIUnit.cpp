@@ -1542,6 +1542,7 @@ jobject UIUnit::GraphicBuildGUIUnit()
 	jboolean triggerRefresh;
 	jchar shortcut;
 	jstring accelKey;
+	jstring icon;
 	jlong handle;
 	ALString sJavaClassName;
 	jobject field;
@@ -1767,6 +1768,12 @@ jobject UIUnit::GraphicBuildGUIUnit()
 		accelKey = ToJstring(env, uiAction->GetAccelKey());
 		env->CallVoidMethod(action, mid, accelKey);
 		env->DeleteLocalRef(accelKey);
+
+		// Recherche et appel de la methode setIcon
+		mid = GraphicGetMethodID(GraphicGetGUIActionID(), "GUIAction", "setIcon", "(Ljava/lang/String;)V");
+		icon = ToJstring(env, uiAction->GetIcon());
+		env->CallVoidMethod(action, mid, icon);
+		env->DeleteLocalRef(icon);
 
 		// On livere l'objet action cote Java
 		env->DeleteLocalRef(action);

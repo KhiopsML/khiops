@@ -167,11 +167,10 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                                                         jp.setName(guiData.getIdentifier());
                                                         guiUnit.graphicAddField(jp, gbc);
 
-                                                        // Charge l'icone de l'onglet a partir des parametres, si
-                                                        // specifiee
+                                                        // Chargement de l'icone du onglet
                                                         final int tabIndex = tabbedPanes.getTabCount();
                                                         Icon tabIcon = GUIIconLoader.loadSvgIcon(
-                                                          GUIIconLoader.resolveIconPath(guiUnit.getParameters()),
+                                                          guiUnit.getIcon(),
                                                           selectedTabIconColor,
                                                           ()
                                                             -> tabIndex == tabbedPanes.getSelectedIndex() ||
