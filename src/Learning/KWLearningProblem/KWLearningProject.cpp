@@ -249,7 +249,7 @@ void KWLearningProject::OpenLearningEnvironnement()
 	SetLearningModuleName("");
 
 	// Parametrage de l'icone de l'application
-	UIObject::SetIconImage("khiops.gif");
+	UIObject::SetFrameIcon("khiops.gif");
 
 	////////////////////////////////////////////////////////////////
 	// Initialisations generales de l'environnement d'apprentissage
