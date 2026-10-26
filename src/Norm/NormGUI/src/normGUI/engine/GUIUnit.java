@@ -662,10 +662,10 @@ import javax.swing.UIManager;
         protected JPanel createActionPanel()
         {
                 JPanel actionPanel = new JPanel();
-                Color background = UIManager.getColor("TableHeader.background");
+                Color background = UIManager.getColor("Component.background");
                 if (background == null)
                         background = actionPanel.getBackground();
-                Color borderColor = UIManager.getColor("TableHeader.separatorColor");
+                Color borderColor = UIManager.getColor("Component.borderColor");
                 if (borderColor == null)
                         borderColor = background.darker();
                 actionPanel.setBackground(background);
