@@ -54,11 +54,12 @@ jobs:
           call "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
           set >> %GITHUB_ENV%
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.3.4
       - name: install Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.14'
+          check-latest: true
       - name: Install built wheel in a custom directory
         run: |
           KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
@@ -87,12 +88,12 @@ jobs:
         run: |
           mv packaging/pip/pyproject-kni.toml pyproject.toml
       - name: Build kni wheels
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.3.4
       - name: Move pyproject-knitransfer file to the root of the repository
         run: |
           mv packaging/pip/pyproject-knitransfer.toml pyproject.toml
       - name: Build knitransfer wheels
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.3.4
       - uses: actions/upload-artifact@v7
         if: runner.os != 'Windows'
         with:
@@ -119,9 +120,10 @@ jobs:
           path: wheelhouse
       - name: Install Python
         if: env.SIGN_WINDOWS_WHEELS == 'true'
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.14'
+          check-latest: true
       - name: Install wheel package
         if: env.SIGN_WINDOWS_WHEELS == 'true'
         run: python -m pip install wheel
@@ -254,9 +256,10 @@ jobs:
           path: tutorial
           ref: main
       - name: Install Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
+          check-latest: true
       - name: Install khiops-kni wheel
         run: python -m pip install --find-links=wheelhouse khiops-kni
       - name: Run python mono-table example
@@ -312,7 +315,7 @@ jobs:
           pattern: pkg-*
           path: dist
           merge-multiple: true
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: pypa/gh-action-pypi-publish@v1.14.3
         with:
           verbose: true
           repository-url: https://test.pypi.org/legacy/
@@ -337,6 +340,6 @@ jobs:
           want to publish it on PyPI)
         run: |
           rm dist/*knitransfer*.whl
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: pypa/gh-action-pypi-publish@v1.14.3
         with:
           verbose: true
