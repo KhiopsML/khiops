@@ -28,7 +28,7 @@ if(BUILD_JARS)
     "NormGUI/theme/lucide/rocket.svg"
     "NormGUI/theme/lucide/cpu-ai.svg"
     "NormGUI/theme/lucide/database.svg"
-    "NormGUI/theme/lucide/sliders-vertical.svg"
+    "NormGUI/theme/lucide/settings-2.svg"
     "NormGUI/theme/lucide/chart-column-big.svg"
     "NormGUI/fonts/Poppins-Regular.ttf"
     "NormGUI/images/sample.png"

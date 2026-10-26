@@ -39,7 +39,7 @@ KWLearningProblemView::KWLearningProblemView()
 
 	// Ajout d'icones aux onglets
 	GetFieldAt("TrainDatabase")->SetIcon("images/database.svg");
-	GetFieldAt("AnalysisSpec")->SetIcon("images/sliders-vertical.svg");
+	GetFieldAt("AnalysisSpec")->SetIcon("images/settings-2.svg");
 	GetFieldAt("AnalysisResults")->SetIcon("images/chart-column-big.svg");
 
 	// Ajout pour la base de train d'un champ en read-only pour rappeler le nom du fichier de dictionnaire
