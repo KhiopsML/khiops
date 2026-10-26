@@ -159,7 +159,7 @@ boolean UICard::Check() const
 	// Validite des parametres
 	if (GetParameters() != "" and GetParameters() != "NoBorder")
 		bOk = false;
-	if (GetIcon() != "" and GetStyle() != "TabbedPanes")
+	if (GetIcon() != "" and (GetParent() == NULL or GetParent()->GetStyle() != "TabbedPanes"))
 	{
 		bOk = false;
 		AddError("Une icone est utilisable uniquement pour une fiche affichee en onglet");
