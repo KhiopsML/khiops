@@ -53,13 +53,13 @@ jobs:
         run: |
           call "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
           set >> %GITHUB_ENV%
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v4.3.4
       - name: install Python
         uses: actions/setup-python@v7
         with:
           python-version: '3.14'
           check-latest: true
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v4.3.4
       - name: Install built wheel in a custom directory
         run: |
           KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
