@@ -128,7 +128,7 @@ KWLearningProblemView::KWLearningProblemView()
 	GetActionAt("TransferDatabase")->SetStyle("Button");
 
 	// Ajout d'icones aux actions
-	GetActionAt("ComputeStats")->SetIcon("images/sparkles.svg");
+	GetActionAt("ComputeStats")->SetIcon("images/cpu-ai.svg");
 	GetActionAt("TransferDatabase")->SetIcon("images/rocket.svg");
 
 	// Info-bulles
