@@ -1770,8 +1770,8 @@ public:
 	const ALString& GetAccelKey() const;
 
 	// Icone optionnelle, vide par defaut, definie par son chemin complet dans les ressources Java
-	// Exemple: images/sparkles.svg
-	// Utilisable uniquement pour les styles Button et SmallButton
+	// Exemple: images/cpu-ai.svg
+	// Utilisee uniquement pour les styles Button et SmallButton, sans effet sur les menus
 	void SetIcon(const ALString& sValue);
 	const ALString& GetIcon() const;
 

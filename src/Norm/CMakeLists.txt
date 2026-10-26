@@ -26,7 +26,7 @@ if(BUILD_JARS)
     "NormGUI/theme/FlatLaf.properties"
     "NormGUI/theme/FlatArcOrangeIJTheme.properties"
     "NormGUI/theme/lucide/rocket.svg"
-    "NormGUI/theme/lucide/sparkles.svg"
+    "NormGUI/theme/lucide/cpu-ai.svg"
     "NormGUI/theme/lucide/database.svg"
     "NormGUI/theme/lucide/sliders-vertical.svg"
     "NormGUI/theme/lucide/chart-column-big.svg"
