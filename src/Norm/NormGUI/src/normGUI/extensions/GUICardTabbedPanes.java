@@ -156,7 +156,8 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                                         scrollPane.setBorder(null);
                                 }
                                 tabbedPanes.putClientProperty("FlatLaf.styleClass", "topLevel");
-                        }
+                        } else
+                                tabbedPanes.putClientProperty("FlatLaf.styleClass", "nested");
 
                         // S'il n'y a pas assez de place, les onglets sont scrollables
                         // ce qui permet de garder leur sequentialite
@@ -219,6 +220,9 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                                 // Si onglets de premier niveau, on supprime les marges autour du tabbed pane
                                 if (getParentUnit() == null)
                                         constraints.insets = new Insets(0, 0, 0, 0);
+                                else
+                                        constraints.insets =
+                                          new Insets(5, constraints.insets.left, 5, constraints.insets.right);
                                 panel.add(tabbedPanes, constraints);
                                 refreshMenus();
                                 tabbedPanes.addChangeListener(this);

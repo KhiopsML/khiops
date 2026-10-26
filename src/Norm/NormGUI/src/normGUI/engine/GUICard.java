@@ -4,22 +4,12 @@
 
 package normGUI.engine;
 
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.RenderingHints;
-import java.awt.geom.RoundRectangle2D;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JPanel;
-import javax.swing.UIManager;
-import javax.swing.border.Border;
-import javax.swing.border.LineBorder;
-import javax.swing.border.TitledBorder;
 
 /**
  * Definit une unite d'interface de type fiche
@@ -165,62 +155,11 @@ public class GUICard extends GUIUnit
                                                                 JPanel jp = new JPanel(new GridBagLayout());
                                                                 jp.setName(guiData.getIdentifier());
                                                                 gbc.insets = new Insets(3, 3, 3, 3);
-                                                                Color borderColor =
-                                                                  UIManager.getColor("Component.borderColor");
-                                                                if (borderColor == null)
-                                                                        borderColor = Color.LIGHT_GRAY;
-                                                                Color background = jp.getBackground();
-                                                                Color softBorderColor = new Color(
-                                                                  (borderColor.getRed() + background.getRed()) / 2,
-                                                                  (borderColor.getGreen() + background.getGreen()) / 2,
-                                                                  (borderColor.getBlue() + background.getBlue()) / 2);
-                                                                Border border =
-                                                                  new LineBorder(softBorderColor, 1, true) {
-                                                                          @Override
-                                                                          public void paintBorder(Component component,
-                                                                                                  Graphics graphics,
-                                                                                                  int x,
-                                                                                                  int y,
-                                                                                                  int width,
-                                                                                                  int height)
-                                                                          {
-                                                                                  Graphics2D graphics2D =
-                                                                                    (Graphics2D)graphics.create();
-                                                                                  try {
-                                                                                          graphics2D.setRenderingHint(
-                                                                                            RenderingHints
-                                                                                              .KEY_ANTIALIASING,
-                                                                                            RenderingHints
-                                                                                              .VALUE_ANTIALIAS_ON);
-                                                                                          graphics2D.setColor(
-                                                                                            getLineColor());
-                                                                                          graphics2D.draw(
-                                                                                            new RoundRectangle2D.Float(
-                                                                                              x + 0.5f,
-                                                                                              y + 0.5f,
-                                                                                              width - 1,
-                                                                                              height - 1,
-                                                                                              12,
-                                                                                              12));
-                                                                                  } finally {
-                                                                                          graphics2D.dispose();
-                                                                                  }
-                                                                          }
-                                                                  };
-                                                                Color titleColor =
-                                                                  UIManager.getColor("Component.infoForeground");
-                                                                if (titleColor == null)
-                                                                        titleColor = Color.GRAY;
                                                                 jp.setBorder(BorderFactory.createCompoundBorder(
                                                                   BorderFactory.createTitledBorder(
-                                                                    border,
                                                                     guiData.getLabel().isEmpty()
                                                                       ? ""
-                                                                      : "  " + guiData.getLabel() + "  ",
-                                                                    TitledBorder.DEFAULT_JUSTIFICATION,
-                                                                    TitledBorder.DEFAULT_POSITION,
-                                                                    null,
-                                                                    titleColor),
+                                                                      : "  " + guiData.getLabel() + "  "),
                                                                   BorderFactory.createEmptyBorder(5, 10, 10, 10)));
                                                                 guiData.graphicAddField(jp, gbc);
                                                                 constraints.weightx = 1.0;
