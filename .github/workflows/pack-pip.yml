@@ -29,6 +29,8 @@ defaults:
     shell: bash
 env:
   KEYPAIR: KP_Khiops_HSM
+  MINIMAL_PIP_VERSION: 26.2.2
+  MINIMAL_CERTIFI_VERSION: 2026.10.19
 jobs:
   build-wheel:
     name: Build wheel
@@ -58,6 +60,11 @@ jobs:
         with:
           python-version: '3.14'
           check-latest: true
+      - name: Check minimal Pip and Certifi version
+        uses: ./.github/actions/check-minimal-pip-and-certifi-versions
+        with:
+          minimal-pip-version: ${{ env.MINIMAL_PIP_VERSION }}
+          minimal-certifi-version: ${{ env.MINIMAL_CERTIFI_VERSION }}
       - name: Build wheels
         uses: pypa/cibuildwheel@v4.3.4
       - name: Install built wheel in a custom directory
@@ -124,6 +131,11 @@ jobs:
         with:
           python-version: '3.14'
           check-latest: true
+      - name: Check minimal Pip and Certifi version
+        uses: ./.github/actions/check-minimal-pip-and-certifi-versions
+        with:
+          minimal-pip-version: ${{ env.MINIMAL_PIP_VERSION }}
+          minimal-certifi-version: ${{ env.MINIMAL_CERTIFI_VERSION }}
       - name: Install wheel package
         if: env.SIGN_WINDOWS_WHEELS == 'true'
         run: python -m pip install wheel
@@ -206,6 +218,12 @@ jobs:
         if: runner.os == 'Windows' || runner.os == 'macOS'
         shell: bash
         run: echo "PYTHON=python" >> "$GITHUB_ENV"
+      - name: Check minimal Pip and Certifi version
+        uses: ./.github/actions/check-minimal-pip-and-certifi-versions
+        with:
+          minimal-pip-version: ${{ env.MINIMAL_PIP_VERSION }}
+          minimal-certifi-version: ${{ env.MINIMAL_CERTIFI_VERSION }}
+          python: $PYTHON
       - name: Install built wheel in a custom directory
         id: install_khiops_core
         run: |
@@ -260,6 +278,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           check-latest: true
+      - name: Check minimal Pip and Certifi version
+        uses: ./.github/actions/check-minimal-pip-and-certifi-versions
+        with:
+          minimal-pip-version: ${{ env.MINIMAL_PIP_VERSION }}
+          minimal-certifi-version: ${{ env.MINIMAL_CERTIFI_VERSION }}
       - name: Install khiops-kni wheel
         run: python -m pip install --find-links=wheelhouse khiops-kni
       - name: Run python mono-table example
