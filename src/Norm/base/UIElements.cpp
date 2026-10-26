@@ -1617,6 +1617,12 @@ boolean UIAction::Check() const
 		AddError("Le style " + GetStyle() + " est inconnu");
 	}
 
+	if (GetIcon() != "" and GetStyle() != "Button" and GetStyle() != "SmallButton")
+	{
+		bOk = false;
+		AddError("Une icone est utilisable uniquement pour les styles Button et SmallButton");
+	}
+
 	// Verification des parametres
 	if (GetIdentifier() == "Exit" and GetParameters() != "")
 	{
