@@ -116,7 +116,7 @@ CCLearningProblemView::CCLearningProblemView()
 	GetActionAt("BuildCoclustering")->SetStyle("Button");
 
 	// Ajout d'icones aux actions
-	GetActionAt("BuildCoclustering")->SetIcon("images/sparkles.svg");
+	GetActionAt("BuildCoclustering")->SetIcon("images/cpu-ai.svg");
 
 	// Info-bulles
 	GetActionAt("BuildCoclustering")
