@@ -281,8 +281,7 @@ public class GUICard extends GUIUnit
                         constraints.weightx = 0;
                         constraints.weighty = 0;
                         constraints.gridwidth = GridBagConstraints.REMAINDER;
-                        if (southPanel.getComponentCount() > 0)
-                                panel.add(southPanel, constraints);
+                        panel.add(southPanel, constraints);
                 }
         }
 
