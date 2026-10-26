@@ -64,8 +64,8 @@ version.result = "{major}.{minor}.{patch}{prereltype}{prereln}"
 version.remove = "(None){,2}$"  # prereltype and prereln groups are None if not found
 
 [tool.cibuildwheel]
-# Build once per platform for Python 3.10; wheel is compatible with all Python 3 versions
-build = "cp310-*"
+# Build once per platform for Python 3.11; wheel is compatible with all Python 3 versions
+build = "cp311-*"
 # KNITransfer does not compile when using musl as the C standard library, and 32-bit is not supported
 skip = ["*musllinux*", "*win32*"]
 
