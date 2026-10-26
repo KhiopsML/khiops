@@ -42,7 +42,7 @@ CCLearningProblemView::CCLearningProblemView()
 
 	// Ajout d'icones aux onglets
 	GetFieldAt("Database")->SetIcon("images/database.svg");
-	GetFieldAt("AnalysisSpec")->SetIcon("images/sliders-vertical.svg");
+	GetFieldAt("AnalysisSpec")->SetIcon("images/settings-2.svg");
 	GetFieldAt("AnalysisResults")->SetIcon("images/chart-column-big.svg");
 
 	// Ajout pour la basxe de train d'un champ en read-only pour rappeler le nom du fichier de dictionnaire
