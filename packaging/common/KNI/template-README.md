@@ -153,7 +153,7 @@ The files are located in [python directory](python/). They use the `kni` Python 
 
 ## Requirements
 
-- Python 3.10 or later
+- Python 3.11 or later
 - The `khiops-kni` package:
 
 ```bash
