@@ -15,38 +15,8 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Get Current Pip version
-      shell: bash
-      run: |-
-        PIP_VERSION=$(${{ inputs.python }} -m pip --version | awk '{print $2}')
-        echo "PIP_VERSION=$PIP_VERSION" >> "$GITHUB_ENV"
     - name: Check that the Pip and Certifi package versions are as specified
       shell: bash
       run: |-
-        ${{ inputs.python }} - <<'EOF'
-        import os
-        import sys
-        from pip._vendor.packaging.version import Version
-        try:
-          import certifi
-        except ModuleNotFoundError:
-          from pip._vendor import certifi
-        certifi_version = certifi.__version__
-        for package, version in zip(
-            ["pip", "certifi"], 
-            [os.environ["PIP_VERSION"], certifi_version]
-        ):
-            current_version = Version(version)
-            if package == "pip":
-                minimal_version = Version("${{ inputs.minimal-pip-version }}")
-            else:
-                minimal_version = Version("${{ inputs.minimal-certifi-version }}")
-            print(f"Current '{package}' version: {current_version}.")
-            if current_version < minimal_version:
-                print(
-                    f"::error::{package} version >= {minimal_version}' required"
-                )
-                sys.exit(1)
-            else:
-              print(f"'{package}' version is OK: {version}")
-        EOF
+        "${{ inputs.python }}" "$GITHUB_ACTION_PATH/check_minimal_pip_and_certifi_versions.py" \
+          "${{ inputs.minimal-pip-version }}" "${{ inputs.minimal-certifi-version }}"

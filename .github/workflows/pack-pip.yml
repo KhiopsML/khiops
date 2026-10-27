@@ -70,6 +70,10 @@ jobs:
           minimal-certifi-version: ${{ env.MINIMAL_CERTIFI_VERSION }}
       - name: Build wheels
         uses: pypa/cibuildwheel@v4.3.4
+        env:
+          CIBW_BEFORE_BUILD: >-
+            python {project}/.github/actions/check-minimal-pip-and-certifi-versions/check_minimal_pip_and_certifi_versions.py
+            ${{ env.MINIMAL_PIP_VERSION }} ${{ env.MINIMAL_CERTIFI_VERSION }}
       - name: Install built wheel in a custom directory
         run: |
           KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
@@ -99,11 +103,19 @@ jobs:
           mv packaging/pip/pyproject-kni.toml pyproject.toml
       - name: Build kni wheels
         uses: pypa/cibuildwheel@v4.3.4
+        env:
+          CIBW_BEFORE_BUILD: >-
+            python {project}/.github/actions/check-minimal-pip-and-certifi-versions/check_minimal_pip_and_certifi_versions.py
+            ${{ env.MINIMAL_PIP_VERSION }} ${{ env.MINIMAL_CERTIFI_VERSION }}
       - name: Move pyproject-knitransfer file to the root of the repository
         run: |
           mv packaging/pip/pyproject-knitransfer.toml pyproject.toml
       - name: Build knitransfer wheels
         uses: pypa/cibuildwheel@v4.3.4
+        env:
+          CIBW_BEFORE_BUILD: >-
+            python {project}/.github/actions/check-minimal-pip-and-certifi-versions/check_minimal_pip_and_certifi_versions.py
+            ${{ env.MINIMAL_PIP_VERSION }} ${{ env.MINIMAL_CERTIFI_VERSION }}
       - uses: actions/upload-artifact@v7
         if: runner.os != 'Windows'
         with:
