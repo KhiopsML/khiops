@@ -80,9 +80,9 @@ jobs:
           echo "KHIOPS_INSTALL_DIR=$KHIOPS_INSTALL_DIR" >> "$GITHUB_ENV"
           python -m venv "$KHIOPS_INSTALL_DIR"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            source "$KHIOPS_INSTALL_DIR/Scripts/activate"
+            source "${KHIOPS_INSTALL_DIR}/Scripts/activate"
           else
-            source "$KHIOPS_INSTALL_DIR/bin/activate"
+            source "${KHIOPS_INSTALL_DIR}/bin/activate"
           fi
           python -m pip install --find-links=wheelhouse khiops-core
           pip show -f khiops-core
@@ -90,9 +90,9 @@ jobs:
         id: export_bin_dir
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/Scripts" >> "$GITHUB_OUTPUT"
+            echo "BIN_DIR=${KHIOPS_INSTALL_DIR}/Scripts" >> "$GITHUB_OUTPUT"
           else
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_OUTPUT"
+            echo "BIN_DIR=${KHIOPS_INSTALL_DIR}/bin" >> "$GITHUB_OUTPUT"
           fi
       - name: Check Khiops core installation
         uses: ./.github/actions/test-khiops-install
@@ -239,31 +239,30 @@ jobs:
           KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
           echo "KHIOPS_INSTALL_DIR=$KHIOPS_INSTALL_DIR" >> "$GITHUB_ENV"
           $PYTHON -m venv "$KHIOPS_INSTALL_DIR"
-          echo "VIRTUAL_ENV=$KHIOPS_INSTALL_DIR" >> "$GITHUB_ENV"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            echo "$KHIOPS_INSTALL_DIR/Scripts" >> "$GITHUB_PATH"
+            echo "PYTHON=${KHIOPS_INSTALL_DIR}/Scripts/python" >> "$GITHUB_ENV"
           else
-            echo "$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_PATH"
+            echo "PYTHON=${KHIOPS_INSTALL_DIR}/bin/python" >> "$GITHUB_ENV"
           fi
       - name: Upgrade Pip
         shell: bash
         run: |
           # Use the Python interpreter from the virtual environment
-          $PYTHON -m pip install --upgrade "pip>=26.2.2"
+          $PYTHON -m pip install --upgrade "pip>=$MINIMAL_PIP_VERSION"
       - name: Check minimal Pip and Certifi version
         uses: ./.github/actions/check-minimal-pip-and-certifi-versions
         with:
           minimal-pip-version: ${{ env.MINIMAL_PIP_VERSION }}
           minimal-certifi-version: ${{ env.MINIMAL_CERTIFI_VERSION }}
-          python: $PYTHON
+          python: ${{ env.PYTHON }}
       - name: Install built wheel in a custom directory
         id: install_khiops_core
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            echo "BIN_DIR=${{ env.KHIOPS_INSTALL_DIR }}/Scripts" >> "$GITHUB_OUTPUT"
+            echo "BIN_DIR=${KHIOPS_INSTALL_DIR}/Scripts" >> "$GITHUB_OUTPUT"
           else
-            echo "BIN_DIR=${{ env.KHIOPS_INSTALL_DIR }}/bin" >> "$GITHUB_OUTPUT"
+            echo "BIN_DIR=${KHIOPS_INSTALL_DIR}/bin" >> "$GITHUB_OUTPUT"
           fi
 
           # Use the Python interpreter from the virtual environment
