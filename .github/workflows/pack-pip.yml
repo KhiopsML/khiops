@@ -69,9 +69,9 @@ jobs:
           echo "KHIOPS_INSTALL_DIR=$KHIOPS_INSTALL_DIR" >> "$GITHUB_ENV"
           python -m venv "$KHIOPS_INSTALL_DIR"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            source "$KHIOPS_INSTALL_DIR/Scripts/activate"
+            source "${KHIOPS_INSTALL_DIR}/Scripts/activate"
           else
-            source "$KHIOPS_INSTALL_DIR/bin/activate"
+            source "${KHIOPS_INSTALL_DIR}/bin/activate"
           fi
           # --only-deps requires pip>=26.2
           python -m pip install --upgrade "pip>=26.2"
@@ -84,9 +84,9 @@ jobs:
         id: export_bin_dir
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/Scripts" >> "$GITHUB_OUTPUT"
+            echo "BIN_DIR=${KHIOPS_INSTALL_DIR}/Scripts" >> "$GITHUB_OUTPUT"
           else
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_OUTPUT"
+            echo "BIN_DIR=${KHIOPS_INSTALL_DIR}/bin" >> "$GITHUB_OUTPUT"
           fi
       - name: Check Khiops core installation
         uses: ./.github/actions/test-khiops-install
@@ -214,20 +214,33 @@ jobs:
         if: runner.os == 'Windows' || runner.os == 'macOS'
         shell: bash
         run: echo "PYTHON=python" >> "$GITHUB_ENV"
-      - name: Install built wheels in a custom directory
-        id: install_khiops_core_and_kni
+      - name: Create virtual environment in a custom directory
+        shell: bash
         run: |
           KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
+          echo "KHIOPS_INSTALL_DIR=$KHIOPS_INSTALL_DIR" >> "$GITHUB_ENV"
           $PYTHON -m venv "$KHIOPS_INSTALL_DIR"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            source "$KHIOPS_INSTALL_DIR/Scripts/activate"
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/Scripts" >> "$GITHUB_OUTPUT"
+            echo "PYTHON=${KHIOPS_INSTALL_DIR}/Scripts/python" >> "$GITHUB_ENV"
           else
-            source "$KHIOPS_INSTALL_DIR/bin/activate"
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_OUTPUT"
+            echo "PYTHON=${KHIOPS_INSTALL_DIR}/bin/python" >> "$GITHUB_ENV"
           fi
-          # --only-deps requires pip>=26.2
-          $PYTHON -m pip install --upgrade "pip>=26.2"
+      - name: Upgrade Pip
+        shell: bash
+        run: |
+          # Use the Python interpreter from the virtual environment
+          $PYTHON -m pip install --upgrade pip
+      - name: Install built wheels in a custom directory
+        id: install_khiops_core_and_kni
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "BIN_DIR=${KHIOPS_INSTALL_DIR}/Scripts" >> "$GITHUB_OUTPUT"
+          else
+            echo "BIN_DIR=${KHIOPS_INSTALL_DIR}/bin" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Use the Python interpreter from the virtual environment
           # Install the wheels themselves only from the local wheelhouse, then resolve their
           # runtime dependencies (e.g. openmpi) from PyPI
           $PYTHON -m pip install --find-links=wheelhouse --no-index --no-deps khiops-core khiops-kni khiops-knitransfer
