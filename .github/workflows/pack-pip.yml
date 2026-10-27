@@ -65,7 +65,7 @@ jobs:
         uses: pypa/cibuildwheel@v4.3.4
       - name: Install built wheel in a custom directory
         run: |
-          KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
+          KHIOPS_INSTALL_DIR="$RUNNER_TEMP/khiops-env"
           echo "KHIOPS_INSTALL_DIR=$KHIOPS_INSTALL_DIR" >> "$GITHUB_ENV"
           python -m venv "$KHIOPS_INSTALL_DIR"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
@@ -74,7 +74,7 @@ jobs:
             source "${KHIOPS_INSTALL_DIR}/bin/activate"
           fi
           python -m pip install --find-links=wheelhouse khiops-core
-          pip show -f khiops-core
+          python -m pip show -f khiops-core
       - name: Export BIN_DIR
         id: export_bin_dir
         run: |
@@ -198,10 +198,10 @@ jobs:
             if [ -d "/etc/apt" ]
             then
               apt-get update
-              apt-get install -y python3 > /dev/null
+              apt-get install -y python3-venv > /dev/null
             else
-              yum check-update || true
-              yum install -y python3.11
+              dnf check-update || true
+              dnf install -y python3 python3-pip
             fi
           fi
           echo "PYTHON=python3" >> "$GITHUB_ENV"
@@ -212,7 +212,7 @@ jobs:
       - name: Create virtual environment in a custom directory
         shell: bash
         run: |
-          KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
+          KHIOPS_INSTALL_DIR="$RUNNER_TEMP/khiops-env"
           echo "KHIOPS_INSTALL_DIR=$KHIOPS_INSTALL_DIR" >> "$GITHUB_ENV"
           $PYTHON -m venv "$KHIOPS_INSTALL_DIR"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
