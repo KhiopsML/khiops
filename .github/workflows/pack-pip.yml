@@ -76,7 +76,7 @@ jobs:
             ${{ env.MINIMAL_PIP_VERSION }} ${{ env.MINIMAL_CERTIFI_VERSION }}
       - name: Install built wheel in a custom directory
         run: |
-          KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
+          KHIOPS_INSTALL_DIR="$RUNNER_TEMP/khiops-env"
           echo "KHIOPS_INSTALL_DIR=$KHIOPS_INSTALL_DIR" >> "$GITHUB_ENV"
           python -m venv "$KHIOPS_INSTALL_DIR"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
@@ -222,10 +222,10 @@ jobs:
             if [ -d "/etc/apt" ]
             then
               apt-get update
-              apt-get install -y python3 > /dev/null
+              apt-get install -y python3-venv > /dev/null
             else
-              yum check-update || true
-              yum install -y python3.11
+              dnf check-update || true
+              dnf install -y python3 python3-pip
             fi
           fi
           echo "PYTHON=python3" >> "$GITHUB_ENV"
@@ -236,7 +236,7 @@ jobs:
       - name: Create virtual environment in a custom directory
         shell: bash
         run: |
-          KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
+          KHIOPS_INSTALL_DIR="$RUNNER_TEMP/khiops-env"
           echo "KHIOPS_INSTALL_DIR=$KHIOPS_INSTALL_DIR" >> "$GITHUB_ENV"
           $PYTHON -m venv "$KHIOPS_INSTALL_DIR"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
