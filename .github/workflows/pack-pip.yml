@@ -29,6 +29,9 @@ defaults:
     shell: bash
 env:
   KEYPAIR: KP_Khiops_HSM
+  # Use only the local MPI node on the GitHub runner
+  UCX_TLS: self,sm,tcp
+  UCX_NET_DEVICES: lo
 jobs:
   build-wheel:
     name: Build wheel
