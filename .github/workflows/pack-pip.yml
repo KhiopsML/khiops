@@ -221,6 +221,23 @@ jobs:
         if: runner.os == 'Windows' || runner.os == 'macOS'
         shell: bash
         run: echo "PYTHON=python" >> "$GITHUB_ENV"
+      - name: Create virtual environment in a custom directory
+        shell: bash
+        run: |
+          KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
+          echo "KHIOPS_INSTALL_DIR=$KHIOPS_INSTALL_DIR" >> "$GITHUB_ENV"
+          $PYTHON -m venv "$KHIOPS_INSTALL_DIR"
+          echo "VIRTUAL_ENV=$KHIOPS_INSTALL_DIR" >> "$GITHUB_ENV"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "$KHIOPS_INSTALL_DIR/Scripts" >> "$GITHUB_PATH"
+          else
+            echo "$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_PATH"
+          fi
+      - name: Upgrade Pip
+        shell: bash
+        run: |
+          # Use the Python interpreter from the virtual environment
+          $PYTHON -m pip install --upgrade "pip>=26.2.2"
       - name: Check minimal Pip and Certifi version
         uses: ./.github/actions/check-minimal-pip-and-certifi-versions
         with:
@@ -229,16 +246,15 @@ jobs:
           python: $PYTHON
       - name: Install built wheel in a custom directory
         id: install_khiops_core
+        shell: bash
         run: |
-          KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
-          $PYTHON -m venv "$KHIOPS_INSTALL_DIR"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            source "$KHIOPS_INSTALL_DIR/Scripts/activate"
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/Scripts" >> "$GITHUB_OUTPUT"
+            echo "BIN_DIR=${{ env.KHIOPS_INSTALL_DIR }}/Scripts" >> "$GITHUB_OUTPUT"
           else
-            source "$KHIOPS_INSTALL_DIR/bin/activate"
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_OUTPUT"
+            echo "BIN_DIR=${{ env.KHIOPS_INSTALL_DIR }}/bin" >> "$GITHUB_OUTPUT"
           fi
+
+          # Use the Python interpreter from the virtual environment
           $PYTHON -m pip install --find-links=wheelhouse khiops-core
           $PYTHON -m pip show -f khiops-core
       - name: Run standard tests
