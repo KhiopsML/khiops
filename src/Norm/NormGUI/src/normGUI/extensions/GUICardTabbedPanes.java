@@ -222,7 +222,7 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                                         constraints.insets = new Insets(0, 0, 0, 0);
                                 else
                                         constraints.insets =
-                                          new Insets(5, constraints.insets.left, 5, constraints.insets.right);
+                                          new Insets(15, constraints.insets.left, 15, constraints.insets.right);
                                 panel.add(tabbedPanes, constraints);
                                 refreshMenus();
                                 tabbedPanes.addChangeListener(this);
