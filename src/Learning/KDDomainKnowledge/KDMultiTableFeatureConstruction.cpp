@@ -69,7 +69,7 @@ boolean KDMultiTableFeatureConstruction::ComputeStats()
 		kwcdConstructedDomain = NULL;
 		kwcConstructedClass = NULL;
 
-		// Message s'il y avait des possibilites basiques de de construction de variable
+		// Message s'il y avait des possibilites basiques de construction de variable
 		if (IsConstructionBasicallyPossible(GetClass()))
 		{
 			AddSimpleMessage(sTmp + "Variable construction time: " + SecondsToString(0) +

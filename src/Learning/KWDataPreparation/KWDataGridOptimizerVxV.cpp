@@ -261,7 +261,7 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 			nGranularityIndex++;
 		}
 
-		// Post-optimisation de la granularite dans le le cas d'une grille supervisee pour laquelle
+		// Post-optimisation de la granularite dans le cas d'une grille supervisee pour laquelle
 		// la granularite fait partie des parametres du modele
 		if (IsSupervisedDataGrid(initialDataGrid))
 		{

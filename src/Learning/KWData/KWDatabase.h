@@ -58,7 +58,7 @@ public:
 	// Creation pour renvoyer une instance du meme type dynamique
 	virtual KWDatabase* Create() const;
 
-	// Recopie des attributs de definition de la la base
+	// Recopie des attributs de definition de la base
 	// Peut eventuellement etre redefini si necessaire
 	// Prerequis: la base cible doit etre vide
 	virtual void CopyFrom(const KWDatabase* kwdSource);

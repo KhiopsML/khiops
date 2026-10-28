@@ -196,7 +196,7 @@ void KWLearningReport::WriteArrayLineReport(ostream& ost, const ALString& sTitle
 				ost << "\n";
 			}
 
-			// Ligne de de stats
+			// Ligne de stats
 			learningReport->WriteLineReport(ost);
 			ost << "\n";
 		}

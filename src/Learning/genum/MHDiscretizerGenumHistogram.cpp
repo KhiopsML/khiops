@@ -397,7 +397,7 @@ void MHDiscretizerGenumHistogram::StandardDiscretizeValues(const ContinuousVecto
 
 	TraceBeginBlock("Enum algorithm");
 
-	// Appel de la methode de de discretisation definie dans la classe KWDiscretizerMODL
+	// Appel de la methode de discretisation definie dans la classe KWDiscretizerMODL
 	DiscretizeGranularizedFrequencyTable(initialHistogramFrequencyTable, optimizedHistogramFrequencyTable);
 	TraceEndBlock("Enum algorithm");
 }
@@ -502,7 +502,7 @@ void MHDiscretizerGenumHistogram::GranularizedDiscretizeValues(
 		}
 		nLastActualPartileNumber = nActualPartileNumber;
 
-		// Appel de la methode de de discretisation definie dans la classe KWDiscretizerMODL
+		// Appel de la methode de discretisation definie dans la classe KWDiscretizerMODL
 		DiscretizeGranularizedFrequencyTable(granularizedHistogramFrequencyTable,
 						     optimizedGranularizedHistogramFrequencyTable);
 

@@ -946,7 +946,7 @@ void KWPredictorEvaluator::RenameDatabaseClasses(KWDatabase* database, KWClassDo
 	// Cas avec initialisation
 	else
 	{
-		// Recherche de la la classe initiale correspondant a la classe en cours de la base
+		// Recherche de la classe initiale correspondant a la classe en cours de la base
 		sInitialMainClassName = "";
 		kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(database->GetClassName());
 		if (kwcClass != NULL)
@@ -964,13 +964,13 @@ void KWPredictorEvaluator::RenameDatabaseClasses(KWDatabase* database, KWClassDo
 			{
 				mapping = cast(KWMTDatabaseMapping*, mtDatabase->GetMultiTableMappings()->GetAt(i));
 
-				// Recherche de la la classe initiale correspondant a la classe en cours
+				// Recherche de la classe initiale correspondant a la classe en cours
 				sInitialClassName = "";
 				kwcClass = KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetClassName());
 				if (kwcClass != NULL)
 					sInitialClassName = KWTrainedPredictor::GetMetaDataInitialClassName(kwcClass);
 
-				// Recherche de la la classe initiale correspondant a la classe en cours
+				// Recherche de la classe initiale correspondant a la classe en cours
 				sInitialMainClassName = "";
 				kwcClass =
 				    KWClassDomain::GetCurrentDomain()->LookupClass(mapping->GetOriginClassName());

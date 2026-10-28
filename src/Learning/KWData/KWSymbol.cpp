@@ -1042,7 +1042,7 @@ void PLShared_Symbol::DeserializeValue(PLSerializer* serializer)
 	// On decode le fait d'etre egal ou non a la StarValue
 	bIsStarValue = serializer->GetBoolean();
 
-	// Cas la la StarValue
+	// Cas de la StarValue
 	if (bIsStarValue)
 		sSymbolValue = Symbol::GetStarValue();
 	// Decodage de la valeur du Symbol sinon

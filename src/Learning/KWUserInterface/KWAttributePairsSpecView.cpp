@@ -53,7 +53,7 @@ KWAttributePairsSpecView::KWAttributePairsSpecView()
 	AddListField("Attributes", "Variables", attributeNameHelpList);
 	attributeNameHelpList->SetVisible(false);
 
-	// Parametrage de liste d'aide pour le nom des des attributs de la paire
+	// Parametrage de liste d'aide pour le nom des attributs de la paire
 	specificAttributePairs->GetFieldAt("FirstName")->SetStyle("HelpedComboBox");
 	specificAttributePairs->GetFieldAt("FirstName")->SetParameters("Attributes:Name");
 	specificAttributePairs->GetFieldAt("SecondName")->SetStyle("HelpedComboBox");

@@ -798,7 +798,7 @@ void KWLearningProblem::PrepareLearningSpecForRegression(KWLearningSpec* learnin
 	require(learningSpec != NULL);
 	require(IsSpecificRegressionLearningSpecNecessary(learningSpec));
 
-	// Recherche de la la classe en cours
+	// Recherche de la classe en cours
 	kwcClass = learningSpec->GetClass();
 
 	// Creation d'une regle de filtrage des valeurs cibles manquantes
@@ -878,7 +878,7 @@ void KWLearningProblem::RestoreInitialLearningSpec(KWLearningSpec* learningSpec,
 	require(learningSpec->GetDatabase()->GetSelectionAttribute() != "");
 	require(initialDatabase != NULL);
 
-	// Recherche de la la classe en cours
+	// Recherche de la classe en cours
 	kwcClass = learningSpec->GetClass();
 
 	// Recherche de l'attribut de selection utilise pour le filtrage de la base

@@ -1131,7 +1131,7 @@ void KWTupleTableLoader::BlockLoadBivariate(const ALString& sInputAttributeBlock
 				// Calcul si necessaire de la table de tuples pour le deuxieme attribut et l'attribut
 				// supplementaire Cette table sert de reference pour toutes les paires de valeurs en
 				// l'absence du premier attribut issu du bloc d'attributs Par comparaison entre les
-				// valeur extraites et la reference de toutes les valeurs, on en deduit les les tuples
+				// valeur extraites et la reference de toutes les valeurs, on en deduit les tuples
 				// corrrespondant aux valeurs manquantes
 				if (lastAttributesTupleTable == NULL)
 				{

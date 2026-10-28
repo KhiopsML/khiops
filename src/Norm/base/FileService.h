@@ -139,7 +139,7 @@ public:
 	static boolean IsPathInFilePath(const ALString& sFilePathName);
 
 	// Extraction/modification de la partie chemin depuis un chemin de fichier
-	// Le getter renvoie le chemin suivi du FileSeparator, ou vide s'il n'y a pas de separateur de le FilePathName
+	// Le getter renvoie le chemin suivi du FileSeparator, ou vide s'il n'y a pas de separateur dans le FilePathName
 	// Le setter accepte le chemin suivi ou non du FileSeparator
 	static const ALString GetPathName(const ALString& sFilePathName);
 	static const ALString SetPathName(const ALString& sFilePathName, const ALString& sPathName);

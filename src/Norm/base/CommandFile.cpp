@@ -823,7 +823,7 @@ boolean CommandFile::LoadJsonParameters()
 				    " should be string, as the key prefix is \"" + sByteJsonKeyPrefix + "\"");
 				bOk = false;
 			}
-			// Verification de de la longueur et de l'encodage base64 de la valeur string
+			// Verification de la longueur et de l'encodage base64 de la valeur string
 			else if (jsonMember->GetValueType() == JSONObject::StringValue and
 				 not CheckStringValue(jsonMember->GetStringValue()->GetString(),
 						      IsByteJsonKey(jsonMember->GetKey()), sMessage))
@@ -938,7 +938,7 @@ boolean CommandFile::LoadJsonParameters()
 								    sByteJsonKeyPrefix + "\"");
 								bOk = false;
 							}
-							// Verification de de la longueur et de l'encodage base64 de la valeur string
+							// Verification de la longueur et de l'encodage base64 de la valeur string
 							else if (jsonSubObjectMember->GetValueType() ==
 								     JSONObject::StringValue and
 								 not CheckStringValue(

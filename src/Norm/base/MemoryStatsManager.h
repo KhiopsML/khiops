@@ -77,7 +77,7 @@ public:
 	// Il s'agit d'un ensemble de constantes, que l'on peut sommer pour avoir acces
 	// a plusieurs statistiques simultanement
 
-	// Temps en milisecondes depuis de le debut de la collecte
+	// Temps en milisecondes depuis le debut de la collecte
 	static const int LogTime = 1 << 0; // temps associe au log
 
 	// Statistiques sur la heap

@@ -587,7 +587,7 @@ typedef struct _MemHeap
 				      // segments predefinis
 	int nFreeSegmentNumber;       // Nombre de segments libre
 	MemSegment* headFreeSegments; // Pointeur vers le debut de la list des segments libres
-	MemSegment* fixedSizeHeapHeadSegments[MemFixedSizeHeapMaxNumber]; // Tableau des pointeurs sur les les premiers
+	MemSegment* fixedSizeHeapHeadSegments[MemFixedSizeHeapMaxNumber]; // Tableau des pointeurs sur les premiers
 									  // segments par type de taille d'allocation
 	MemSegment* fixedSizeHeapTailSegments[MemFixedSizeHeapMaxNumber]; // Tableau des pointeurs sur les derniers
 									  // segments par type de taille d'allocation

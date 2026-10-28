@@ -1481,7 +1481,7 @@ KNI_API int KNISetSecondaryInputRecord(int hStream, const char* sDataPath, const
 	{
 		// Affichage des erreurs si erreur standard, ou a la premiere erreurmemoire affichee
 		// On evite d'en afficher d'avantage pour ne pas encombrer les logs
-		// Un synthese sera affichee dans la la methode de recodage finale
+		// Un synthese sera affichee dans la methode de recodage finale
 		if (kniStream == NULL or kniStream->GetInputStream()->GetSecondaryRecordErrorNumber() == 1)
 			KNIAddError(nRetCode, "KNISetSecondaryInputRecord",
 				    sTmp + IntToString(hStream) + ", " + KNIPrintableRecord(sDataPath) + ", " +

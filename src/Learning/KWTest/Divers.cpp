@@ -122,7 +122,7 @@ double MODLValue(int nTotalFrequency, int nFirstFrequency)
 // On envisage les regroupements (A+B), C et A, (B+C)
 // Intuitivement, B devrait etre regroupe avec l'intervalle
 // de frequence la plus voisine.
-// L'experimentation consiste a a verifier cette intuition
+// L'experimentation consiste a verifier cette intuition
 void MODLStudy3()
 {
 	const int nMax = 100;

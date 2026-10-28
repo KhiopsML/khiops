@@ -1923,7 +1923,7 @@ void SNBGeneralizedClassifierSelectionDataCostCalculator::InitializeTargetPartit
 
 	require(GetTargetAttributeType() == KWType::Symbol);
 
-	// Initialisation de le schema des signatures
+	// Initialisation du schema des signatures
 	signatureSchema.Initialize();
 
 	// Destruction de toutes les parties, sauf la premiere

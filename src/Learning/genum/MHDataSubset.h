@@ -19,7 +19,7 @@ public:
 	MHDataSubset();
 	~MHDataSubset();
 
-	// Valeurs de l'ensemble de de donnees dont on est un sous-ensemble
+	// Valeurs de l'ensemble de donnees dont on est un sous-ensemble
 	// Memoire: appartient a l'appelant
 	void SetDatasetValues(const ContinuousVector* cvValues);
 	const ContinuousVector* GetDatasetValues() const;

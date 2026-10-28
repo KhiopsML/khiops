@@ -7,7 +7,7 @@ Constantes permettant la gestion de la structure des repertoires de LearningTest
 et l'analyse des resultats par repertoire de test
 """
 
-""" Repertoire racine de l'arborescence de de l'outil de test """
+""" Repertoire racine de l'arborescence de l'outil de test """
 LEARNING_TEST_TOOL = "LearningTestTool"
 
 """ Repertoire racine de l'arborescence de test """

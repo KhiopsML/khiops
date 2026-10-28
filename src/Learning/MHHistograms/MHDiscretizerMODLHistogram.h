@@ -190,7 +190,7 @@ protected:
 	void Trace(const ALString& sLine) const;
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////
-	// Methodes necessaire pour s'inserer le le frawework de discretisation de Khiops
+	// Methodes necessaire pour s'inserer le frawework de discretisation de Khiops
 
 	// Creation d'une table de contingence standard a partir d'un histogramme
 	// On cree donc une table de contingence ne contenant les effectifs des intervalles et un vecteur de bornes

@@ -500,8 +500,8 @@ protected:
 //    (il peut y a avoir des collision si moins de valeurs que d'individus)
 // Variables categorielles:
 //  . granularite I: 2, 4, 8, 16
-//  . seules les V(I) valeurs d'effectifs au moins N/I sont considerees
-//  . partile: index de de valeur, 0 <= i < I
+//  . seules les V(I) valeurs d'effectif au moins N/I sont considerees
+//  . partile: index de valeur, 0 <= i < I
 //  . en pratique, 0 <= I < V(I)
 class KDSelectionSpec : public Object
 {

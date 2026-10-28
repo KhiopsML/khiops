@@ -4,7 +4,7 @@
 
 #include "RMParallelResourceManager.h"
 
-// Somme de de longint en gerant le depassement
+// Somme de longint en gerant le depassement
 static longint lsum(longint l1, longint l2)
 {
 	if (l1 > LLONG_MAX - l2)

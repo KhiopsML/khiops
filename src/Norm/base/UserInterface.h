@@ -1013,7 +1013,7 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Parametrage avance
 
-	// Aide sur l'action de de validation
+	// Aide sur l'action de validation
 	void SetApproveActionHelpText(const ALString& sValue);
 	const ALString& GetApproveActionHelpText();
 
@@ -1668,7 +1668,7 @@ public:
 	// Pour le style ComboBox, EditableComboBox ou RadioButton, les Parameters contiennent
 	//   la liste des valeurs separees par des '\n' (exemple: "1\n2\n3")
 	//
-	// Pour le style Spinner, les Parameters contiennent le nombre de chiffre apres la virgule a a afficher (defaut:
+	// Pour le style Spinner, les Parameters contiennent le nombre de chiffre apres la virgule a afficher (defaut:
 	// 0) Par exemple, si on precise 2, les reel seront affiches au 1/100 pres et on pourra les choisir avec cette
 	// precision
 

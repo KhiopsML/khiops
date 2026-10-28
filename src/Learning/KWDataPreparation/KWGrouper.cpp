@@ -224,7 +224,7 @@ void KWGrouper::GroupPreprocessedTable(KWFrequencyTable* kwftSource, KWFrequency
 	// de dupliquer la table d'effectifs
 	kwftTarget = kwftSource->Clone();
 
-	// Creation du tableau d'index elementaire pour ce ce cas ou aucun groupage
+	// Creation du tableau d'index elementaire pour ce cas ou aucun groupage
 	// effectif n'a ete realise
 	ivGroups = new IntVector;
 	ivGroups->SetSize(kwftSource->GetFrequencyVectorNumber());

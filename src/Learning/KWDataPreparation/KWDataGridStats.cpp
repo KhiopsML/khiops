@@ -2928,7 +2928,7 @@ boolean KWDGSAttributeGrouping::Check() const
 			}
 		}
 
-		// Erreur si pas de de StarValue
+		// Erreur si pas de StarValue
 		if (not bStarValueFound)
 		{
 			AddError(sTmp + "Special grouping value " + Symbol::GetStarValue() +

@@ -978,7 +978,7 @@ longint KWDataPreparationTask::ComputeEstimatedAttributeSymbolValuesMemory(longi
 		nEstimatedDistinctValueNumber = min((int)pow(2, nMeanSymbolValueLength + 1), nObjectNumber);
 	}
 
-	// Heuristique pour estimer la la taille necessaire en memoire
+	// Heuristique pour estimer la taille necessaire en memoire
 	lEstimatedAttributeSymbolValuesMemory = lSymbolAttributeDiskSize;
 	lEstimatedAttributeSymbolValuesMemory += nEstimatedDistinctValueNumber * Symbol::GetUsedMemoryPerSymbol();
 	return lEstimatedAttributeSymbolValuesMemory;

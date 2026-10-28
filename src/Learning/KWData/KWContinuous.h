@@ -129,7 +129,7 @@ public:
 	///////////////////////////////////////////////////////////////////////////////////////
 	//// Implementation
 protected:
-	// Recherche de de la valeur la plus simple (avec le moins de chiffres significatifs)
+	// Recherche de la valeur la plus simple (avec le moins de chiffres significatifs)
 	// comprise entre deux valeurs en entree
 	static Continuous ComputeHumanReadableContinuous(double dLowerValue, double dUpperValue);
 

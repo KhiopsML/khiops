@@ -2158,7 +2158,7 @@ Continuous KWDRTableCountDistinct::ComputeContinuousStats(const ObjectArray* oaO
 
 		// Attention, on doit memoriser les symbol du dictionnaire a cle numerique, car ceux-ci peuvent etre
 		// temporaires s'il sont issus de calcul par regle de derivation, et pourraient ainsi etre dessalloues,
-		// donnant lieu a a la reutilisation d'un meme bloc memoire (NumericKey) pour un nouveau symbole On
+		// donnant lieu a la reutilisation d'un meme bloc memoire (NumericKey) pour un nouveau symbole On
 		// prefere cette solution a l'utilisation d'un ObjectDictionary, moains efficace en temps et memoire
 		if (svDistinctValues.GetSize() < nkdDistinctValues.GetCount())
 			svDistinctValues.Add(sValue);
@@ -2240,7 +2240,7 @@ Continuous KWDRTableEntropy::ComputeContinuousStats(const ObjectArray* oaObjects
 	// le champ SortValue pour la valeur du symbol
 	// Attention, on doit en effet memoriser les symbol du dictionnaire a cle numerique, car ceux-ci peuvent etre
 	// temporaires s'il sont issus de calcul par regle de derivation, et pourraient ainsi etre dessalloues, donnant
-	// lieu a a la reutilisation d'un meme bloc memoire (NumericKey) pour un nouveau symbole On prefere cette
+	// lieu a la reutilisation d'un meme bloc memoire (NumericKey) pour un nouveau symbole On prefere cette
 	// solution a l'utilisation d'un ObjectDictionary, moains efficace en temps et memoire
 	valueOperand = GetSecondOperand();
 	for (nObject = 0; nObject < oaObjects->GetSize(); nObject++)

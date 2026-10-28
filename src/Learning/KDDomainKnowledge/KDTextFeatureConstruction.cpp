@@ -561,12 +561,11 @@ boolean KDTextFeatureConstruction::TaskCollectTokenSamples(const KWClass* tokenE
 	require(odTextClasses != NULL);
 	require(odTextClasses->Lookup(tokenExtractionClass->GetName()) != NULL);
 
-	// Recherche la la classe de texte principale
+	// Recherche de la classe de texte principale
 	mainTextClass = cast(KDTextClass*, odTextClasses->Lookup(tokenExtractionClass->GetName()));
 	check(mainTextClass);
 
-	// Parcours des attributs par chemin d'acces aux attributs de type Text pour initialiser les parametres de la
-	// tache
+	// Parcours des attributs par chemin d'acces aux attributs de type Text pour initialiser les parametres de la tache
 	for (nPath = 0; nPath < mainTextClass->GetTextAttributePaths()->GetSize(); nPath++)
 	{
 		textAttributePath = cast(KDTextAttributePath*, mainTextClass->GetTextAttributePaths()->GetAt(nPath));
@@ -625,7 +624,7 @@ KWClassDomain* KDTextFeatureConstruction::BuildTokenExtractionDomainWithExisting
 	// Attention, on n'utise par le meme objet pour la classe d'extraction que pour la classe principale
 	InitializeMainClassConstructedAttributesAndBlocks(&extractionClassCompliantRules, tokenExtractionClass);
 
-	// Recherche la la classe de texte principale
+	// Recherche de la classe de texte principale
 	mainTextClass = cast(KDTextClass*, odTextClasses->Lookup(kwcClass->GetName()));
 	check(mainTextClass);
 	assert(mainTextClass->Check());
@@ -775,7 +774,7 @@ void KDTextFeatureConstruction::ConstructAllTextAttributeBlocks(KDClassCompliant
 		}
 	}
 
-	// Recherche la la classe de texte principale
+	// Recherche de la classe de texte principale
 	mainTextClass = cast(KDTextClass*, odTextClasses->Lookup(kwcClass->GetName()));
 	check(mainTextClass);
 	assert(mainTextClass->Check());

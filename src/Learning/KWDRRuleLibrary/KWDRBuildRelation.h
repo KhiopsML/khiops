@@ -50,7 +50,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRBuildTableAdvancedView
 // Creation d'une vue sur une table, avec possibilite d'alimenter des attributs
-// de la table en sortie directement via des des operandes en sortie et
+// de la table en sortie directement via des operandes en sortie et
 // des valeurs fournies par les operandes en entree corespondants
 class KWDRBuildTableAdvancedView : public KWDRTableCreationRule
 {
@@ -89,7 +89,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRBuildEntityAdvancedView
 // Creation d'une vue sur une entite, avec possibilite d'alimenter des attributs
-// de l'entite en sortie directement via des des operandes en sortie et
+// de l'entite en sortie directement via des operandes en sortie et
 // des valeurs fournies par les operandes en entree corespondants
 class KWDRBuildEntityAdvancedView : public KWDRBuildTableAdvancedView
 {
@@ -316,7 +316,7 @@ protected:
 	// Les warnings sont memorises et seront emis en fin de la methode principale ComputeObjectResult
 	// Le nombre total de warning est memorise par type de warning, mais au plus un warning est memorise
 	// par type: le premier rencontre
-	// Dans le cas d'une valeur dans un tableau, on a a la fois un parametre jsonMember et un parametre jsonValue.
+	// Dans le cas d'une valeur dans un tableau, on a la fois un parametre jsonMember et un parametre jsonValue.
 	// - le parametre jsonMember est NULL, et le json path est deja specifie
 	// - sinon, le json path est augmente temporairement avec le jsonMember
 

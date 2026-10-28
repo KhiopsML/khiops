@@ -382,7 +382,7 @@ void KWEvaluatedDataGridStats::SortSourceCells(ObjectArray* oaSourceCells, int n
 	require(oaSourceCells != NULL);
 	require(0 <= nTargetAttributeIndex and nTargetAttributeIndex < GetTargetAttributeNumber());
 
-	// En presence d'une grille en apprentissage, on tri les cellules de la la grille d'apprentissage,
+	// En presence d'une grille en apprentissage, on tri les cellules de la grille d'apprentissage,
 	// puis les cellule de la grille d'evaluation selon le meme ordre qu'en apprentissage
 	if (predictorDataGridStats != NULL)
 	{

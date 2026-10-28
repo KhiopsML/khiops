@@ -54,7 +54,7 @@ Examples d'ensemble correct de noms de repertoire
 # Nombre de process utilisex
 process_number = 1
 
-# Memorisation d'une plateforme force pour la comparaison entre resultats de test de de reference
+# Memorisation d'une plateforme force pour la comparaison entre resultats de test de reference
 # Par defaut, on utilise la platforme courante
 forced_platform = None
 

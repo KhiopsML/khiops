@@ -2335,7 +2335,7 @@ void CCCoclusteringReport::WriteDimensionSummary(CCHDGAttribute* attribute, JSON
 	nValueNumber = attribute->GetInitialValueNumber();
 
 	// Caracteristique des attributs
-	// Le nombre de valeur est diminuer en externe de 1 pour tenir compte de de la StarValue en interne
+	// Le nombre de valeur est diminuer en externe de 1 pour tenir compte de la StarValue en interne
 	fJSON->BeginObject();
 	fJSON->WriteKeyString("name", attribute->GetAttributeName());
 	if (attribute->GetAttributeType() == KWType::VarPart)

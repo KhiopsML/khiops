@@ -13,7 +13,7 @@ class KWDGDPart;
 #include "KWDataGridCosts.h"
 
 ////////////////////////////////////////////////////////////////////////////
-// Service de deploiement de distribution dans une grille de de donnees,
+// Service de deploiement de distribution dans une grille de donnees,
 // constituee d'un attribut de deploiement (par exemple des textes ou des courbes)
 // et d'un ou plusieurs attributs de distribution (par exemple des mots ou des points).
 // On cherche a deployer un individu caracterise par sa distribution sur
@@ -47,7 +47,7 @@ public:
 	// Acces a l'attribut de deploiement
 	KWDGAttribute* GetDeploymentAttribute();
 
-	// Preparation au deploiement une fois la grille de de donnees parametree (cf. classe ancetre)
+	// Preparation au deploiement une fois la grille de donnees parametree (cf. classe ancetre)
 	//  initialisation des couts, de la structure d'indexation...
 	void PrepareForDeployment();
 
