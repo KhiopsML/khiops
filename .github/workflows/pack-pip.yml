@@ -59,6 +59,7 @@ jobs:
       # pip splits multi-valued environment options on whitespace, hence the
       # paths must not contain spaces.
       CIBW_ENVIRONMENT: PIP_CONSTRAINT="$PIP_CONSTRAINT $CIBW_CONSTRAINTS_PATH"
+      CIBW_BUILD_VERBOSITY: 1
     # intel-mpi is not available for arm64, so we can not build the wheel for windows-11-arm
     strategy:
       matrix:
@@ -105,11 +106,16 @@ jobs:
             Linux)   path="/project/build-constraints.txt" ;;
             *)       path="$PWD/build-constraints.txt" ;;
           esac
+          # Impossible constraint: it should trigger failure
+          echo "ninja==0.0.0" >> build-constraints.txt
           echo "CIBW_CONSTRAINTS_PATH=$path" >> "$GITHUB_ENV"
       - name: Build wheels
         uses: pypa/cibuildwheel@v4.3.4
         env:
           CIBW_BEFORE_BUILD: >-
+            python -c "import os; v = os.environ.get('PIP_CONSTRAINT', ''); print('PIP_CONSTRAINT
+            =', repr(v)); [print(p, 'exists:', os.path.exists(p)) for p in v.split()]"
+            &&
             python {project}/.github/actions/check-minimal-pip-and-certifi-versions/check_minimal_pip_and_certifi_versions.py
             ${{ env.MINIMAL_PIP_VERSION }} ${{ env.MINIMAL_CERTIFI_VERSION }}
       - name: Install built wheel in a custom directory
@@ -143,6 +149,9 @@ jobs:
         uses: pypa/cibuildwheel@v4.3.4
         env:
           CIBW_BEFORE_BUILD: >-
+            python -c "import os; v = os.environ.get('PIP_CONSTRAINT', ''); print('PIP_CONSTRAINT
+            =', repr(v)); [print(p, 'exists:', os.path.exists(p)) for p in v.split()]"
+            &&
             python {project}/.github/actions/check-minimal-pip-and-certifi-versions/check_minimal_pip_and_certifi_versions.py
             ${{ env.MINIMAL_PIP_VERSION }} ${{ env.MINIMAL_CERTIFI_VERSION }}
       - name: Move pyproject-knitransfer file to the root of the repository
@@ -152,6 +161,9 @@ jobs:
         uses: pypa/cibuildwheel@v4.3.4
         env:
           CIBW_BEFORE_BUILD: >-
+            python -c "import os; v = os.environ.get('PIP_CONSTRAINT', ''); print('PIP_CONSTRAINT
+            =', repr(v)); [print(p, 'exists:', os.path.exists(p)) for p in v.split()]"
+            &&
             python {project}/.github/actions/check-minimal-pip-and-certifi-versions/check_minimal_pip_and_certifi_versions.py
             ${{ env.MINIMAL_PIP_VERSION }} ${{ env.MINIMAL_CERTIFI_VERSION }}
       - uses: actions/upload-artifact@v7
