@@ -313,8 +313,16 @@ jobs:
         with:
           minimal-pip-version: ${{ env.MINIMAL_PIP_VERSION }}
           minimal-certifi-version: ${{ env.MINIMAL_CERTIFI_VERSION }}
+        # Just warn on Pip / Certifi version, as these are tests only, and:
+        # - kni has no Pip dependencies
+        # - only the locally-built wheel is installed
+        # Hence there is no way compromised Pip packages can be installed
+        continue-on-error: true
       - name: Install khiops-kni wheel
-        run: python -m pip install --find-links=wheelhouse khiops-kni
+        run: |
+          # Do not authorize any fallback to PyPI, as no dependency needs to
+          # be pulled from PyPI
+          python -m pip install --find-links=wheelhouse --no-index khiops-kni
       - name: Run python mono-table example
         shell: bash
         run: |
