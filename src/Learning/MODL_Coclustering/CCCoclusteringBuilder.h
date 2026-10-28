@@ -323,7 +323,7 @@ protected:
 	// Calcul des hierarchies des parties parties, en creant de nouvelles parties pour les coder les hierarchies
 	// La grille optimisee en entree sera enrichie avec les nouvelles parties des noeuds intermediaires de la
 	// hierarchie Le mergeur de grille en entree est initialise avec le calcul de toutes les distances intra-partie,
-	// et sera utilise pour effectuer des fusions recursives jusqu'a un grille terminale mono-cellule
+	// et sera utilise pour effectuer des fusions recursives jusqu'a une grille terminale mono-cellule
 	void ComputePartHierarchies(KWDataGridMerger* optimizedDataGridMerger, const KWDataGridCosts* dataGridCosts,
 				    CCHierarchicalDataGrid* optimizedDataGrid) const;
 	const ALString BuildHierachicalPartName(const CCHDGAttribute* hdgAttribute, int nHierarchicalIndex) const;

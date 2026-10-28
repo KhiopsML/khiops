@@ -186,7 +186,6 @@ void KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* i
 							     KWDataGrid* univariateInitialDataGrid) const
 {
 	const boolean bTrace = false;
-	const boolean bDebug = false;
 	KWDataGridManager dataGridManager;
 	KWDGAttribute* postOptimizationAttribute;
 
@@ -230,98 +229,6 @@ void KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid(const KWDataGrid* i
 		cout << "Grille preparee\n" << *univariateInitialDataGrid << endl;
 	}
 
-	// Aide au debuggage
-	if (bDebug)
-	{
-		// Compteur de l'appel a la methode
-		static int nCallIndex = 0;
-		nCallIndex++;
-
-		// Cas d'un attribut de type numerique
-		if (initialDataGrid->SearchAttribute(sPostOptimizationAttributeName)->GetAttributeType() ==
-		    KWType::Continuous)
-		{
-			boolean bTraceCalls = false;
-			int nCallToStudy = -1;
-
-			// Affichage de chaque appel, pour identifier un appel particulier
-			if (bTraceCalls)
-			{
-				cout << nCallIndex << "\t" << sPostOptimizationAttributeName << "\t"
-				     << initialDataGrid->GetObjectLabel() << "\t" << optimizedDataGrid->GetObjectLabel()
-				     << "\t" << dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid) << endl;
-			}
-
-			// Debuggage pour un appel particulier
-			if (nCallIndex == nCallToStudy)
-			{
-				KWDataGrid univariateInitialNearbyDataGrid;
-				int nNearbyIntervalMinFrequency = 5;
-				int nNearbyIntervalIncreasingFactor = 2;
-				int nNearbyIntervalsMaxCumulativeFrequency = 10;
-				boolean bOneTest = false;
-				boolean bOverallTest = false;
-
-				// Construction d'une grille proche de la solution optimisee
-				if (bOneTest)
-				{
-					BuildContinuousUnivariateInitialNearbyDataGrid(
-					    initialDataGrid, optimizedDataGrid, sPostOptimizationAttributeName,
-					    nNearbyIntervalMinFrequency, nNearbyIntervalIncreasingFactor,
-					    nNearbyIntervalsMaxCumulativeFrequency, &univariateInitialNearbyDataGrid);
-					cout << nCallIndex << "\t" << sPostOptimizationAttributeName << "\t"
-					     << nNearbyIntervalMinFrequency << "\t" << nNearbyIntervalIncreasingFactor
-					     << "\t" << nNearbyIntervalsMaxCumulativeFrequency << "\t";
-					cout << univariateInitialNearbyDataGrid.GetObjectLabel() << "\t";
-					cout << "Partition resultat\n";
-					univariateInitialNearbyDataGrid.SearchAttribute(sPostOptimizationAttributeName)
-					    ->WritePartsSummary(cout);
-					cout << endl;
-				}
-
-				// Tests systematiques
-				if (bOverallTest)
-				{
-					for (nNearbyIntervalMinFrequency = 1; nNearbyIntervalMinFrequency <= 10;
-					     nNearbyIntervalMinFrequency++)
-					{
-						for (nNearbyIntervalsMaxCumulativeFrequency =
-							 nNearbyIntervalMinFrequency;
-						     nNearbyIntervalsMaxCumulativeFrequency <
-						     nNearbyIntervalMinFrequency + 50;
-						     nNearbyIntervalsMaxCumulativeFrequency++)
-						{
-							univariateInitialNearbyDataGrid.DeleteAll();
-							BuildContinuousUnivariateInitialNearbyDataGrid(
-							    initialDataGrid, optimizedDataGrid,
-							    sPostOptimizationAttributeName, nNearbyIntervalMinFrequency,
-							    nNearbyIntervalMinFrequency,
-							    nNearbyIntervalsMaxCumulativeFrequency,
-							    &univariateInitialNearbyDataGrid);
-							cout << nCallIndex << "\t" << sPostOptimizationAttributeName
-							     << "\t" << nNearbyIntervalMinFrequency << "\t"
-							     << nNearbyIntervalsMaxCumulativeFrequency << "\t";
-							cout << univariateInitialNearbyDataGrid.GetObjectLabel()
-							     << "\t";
-							cout << initialDataGrid
-								    ->SearchAttribute(sPostOptimizationAttributeName)
-								    ->GetPartNumber()
-							     << "\t";
-							cout << optimizedDataGrid
-								    ->SearchAttribute(sPostOptimizationAttributeName)
-								    ->GetPartNumber()
-							     << "\t";
-							cout << univariateInitialNearbyDataGrid
-								    .SearchAttribute(sPostOptimizationAttributeName)
-								    ->GetPartNumber()
-							     << endl;
-						}
-					}
-				}
-			}
-		}
-	}
-
 	// Retour de la grille preparee
 	ensure(univariateInitialDataGrid->GetAttributeNumber() == optimizedDataGrid->GetAttributeNumber());
 	ensure(univariateInitialDataGrid->GetTotalPartNumber() ==
@@ -336,6 +243,7 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 									const ALString& sPostOptimizationAttributeName,
 									boolean bDeepPostOptimization) const
 {
+	const boolean bTrace = false;
 	const int nSmallPartNumber = 128;
 	int nSufficientPartNumber;
 	KWDGPODiscretizer dataGridUnivariateDiscretizer;
@@ -371,7 +279,8 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 
 	// Nombre max de parties les plus fines
 	// On part du nombre de parties permettant d'avoir en moyenne une instance par cellule
-	nMaxFinestPartNumber = (int)ceil(pow((double)nTotalFrequency, 1.0 / optimizedDataGrid->GetAttributeNumber()));
+	nMaxFinestPartNumber =
+	    1 + (int)floor(pow((double)nTotalFrequency, 1.0 / optimizedDataGrid->GetAttributeNumber()));
 
 	// Estimation d'un nombre suffisant de parties permettant d'avoir une bonne precision
 	nSufficientPartNumber = nMaxFinestPartNumber / 8;
@@ -406,7 +315,7 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 		dCost = dataGridCosts->ComputeDataGridTotalCost(optimizedDataGrid);
 	}
 	// Sinon, on explore de nouveaux intervalles uniquement s'ils sont proches de la solution a optimiser
-	// On les prend avec des intervalles d'effectif en progression geometrique au fur et a mesure qu'ils s'eloignent
+	// On les prend avec des effectifs cumules en progression geometrique au fur et a mesure qu'ils s'eloignent
 	// des bornes des intervalles a optimiser. On peut donc affiner a proximite et etre plus grossier si on s'eloigne des bornes.
 	// Comme il y a plusieurs passes de post-optimisation, on se deplace ainsi progressivement vers des bornes fines.
 	else
@@ -422,17 +331,21 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 			nNearbyIntervalIncreasingFactor = 2;
 			assert(nNearbyIntervalIncreasingFactor > 1);
 
-			// On determine le nombre d'intervalles de facon a couvrir chaque moitie d'un intervalle d'effectif minimal
+			// On determine le nombre d'intervalles de facon a couvrir le premier et le dernier tiers
+			// d'un intervalle d'effectif FPF, le tiers central etant raffine par les post-optimisations suivantes
 			// C'est a dire
-			//   NIMF * (1 + F + F^2 +...+ F^(max-1)) >= FPF/2
-			//   NIMF * (F^max - 1) / (F - 1) >= FPF/2
-			//   F^max >= 1 + (F - 1) * FPF/(2 * NIMF)
-			//   max * log(F) >= log(1 + (F - 1) * FPF/(2 * NIMF))
-			//   max >= log(1 + (F - 1) * FPF/(2 * NIMF)) / log(F)
+			//   NIMF * F^(max-1) >= FPF/3
+			//   (max - 1) * log(F) >= log(FPF/(3 * NIMF))
+			//   max >= 1 + log(FPF/(3 * NIMF)) / log(F)
+			// avec
+			//   NIMF: nNearbyIntervalMinFrequency
+			//   F: nNearbyIntervalIncreasingFactor
+			//   FPF: nFinestPartFrequency
+			//   max: nNearbyMaxIntervalNumber
 			nNearbyMaxIntervalNumber =
-			    (int)ceil(log(1 + (nNearbyIntervalIncreasingFactor - 1) * (double)nFinestPartFrequency /
-						  (2 * nNearbyIntervalMinFrequency)) /
-				      log((double)nNearbyIntervalIncreasingFactor));
+			    (int)floor(1 + log((double)nFinestPartFrequency / (3 * nNearbyIntervalMinFrequency)) /
+					       log((double)nNearbyIntervalIncreasingFactor));
+			nNearbyMaxIntervalNumber = max(nNearbyMaxIntervalNumber, 1);
 		}
 		// Parametrage grossier dans le cas non approfondi, pour limiter la recherche
 		else
@@ -449,8 +362,13 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 			//   OPN(1 + 2 * max) >= SPN
 			//   1 + 2 * max >= SPN/OPN
 			//   max >= (SPN/OPN - 1)/2
+			// avec
+			//   OPN: optimizedAttribute->GetPartNumber()
+			//   SPN: nSufficientPartNumber
+			//   max: nNearbyMaxIntervalNumber
 			nNearbyMaxIntervalNumber =
-			    (int)(ceil(((double)nSufficientPartNumber / optimizedAttribute->GetPartNumber() - 1) / 2));
+			    (int)(floor(((double)nSufficientPartNumber / optimizedAttribute->GetPartNumber() - 1) / 2));
+			nNearbyMaxIntervalNumber = max(nNearbyMaxIntervalNumber, 1);
 		}
 
 		// Construction d'une grille initiale dediee a l'optimisation univariee, proche de la solution optimisee
@@ -458,11 +376,30 @@ double KWDataGridPostOptimizer::PostOptimizeDataGridContinuousAttribute(const KW
 		BuildContinuousUnivariateInitialNearbyDataGrid(
 		    initialDataGrid, optimizedDataGrid, sPostOptimizationAttributeName, nNearbyIntervalMinFrequency,
 		    nNearbyIntervalIncreasingFactor, nNearbyMaxIntervalNumber, &univariateInitialDataGrid);
+		if (bTrace)
+		{
+			cout << "PostOptimizeDataGridContinuousAttribute\t";
+			cout << sPostOptimizationAttributeName << "\t";
+			cout << BooleanToString(bDeepPostOptimization);
+			cout << optimizedDataGrid->GetObjectLabel() << "[" << optimizedDataGrid->GetCellNumber()
+			     << "]\t";
+			cout << nNearbyIntervalMinFrequency << "\t";
+			cout << nNearbyIntervalIncreasingFactor << "\t";
+			cout << nNearbyMaxIntervalNumber << "\t";
+			cout << univariateInitialDataGrid.GetObjectLabel() << "["
+			     << univariateInitialDataGrid.GetCellNumber() << "]\t";
+		}
 
 		// Post-optimisation de l'attribut par discretisation
 		dataGridUnivariateDiscretizer.SetPostOptimizationAttributeName(sPostOptimizationAttributeName);
 		dCost = dataGridUnivariateDiscretizer.PostOptimizeDataGrid(&univariateInitialDataGrid, dataGridCosts,
 									   optimizedDataGrid, bDeepPostOptimization);
+		if (bTrace)
+		{
+			cout << optimizedDataGrid->GetObjectLabel() << "[" << optimizedDataGrid->GetCellNumber()
+			     << "]\t";
+			cout << dCost << "\n";
+		}
 	}
 	return dCost;
 }

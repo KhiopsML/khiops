@@ -4,12 +4,83 @@
 
 #include "KWDataGridOptimizerVxV.h"
 
-KWDataGridOptimizerVxV::KWDataGridOptimizerVxV() {}
+KWDataGridOptimizerVxV::KWDataGridOptimizerVxV()
+{
+	bIncreasingGranularityOptimization = false;
+}
 
 KWDataGridOptimizerVxV::~KWDataGridOptimizerVxV() {}
 
+void KWDataGridOptimizerVxV::SetIncreasingGranularityOptimization(boolean bValue)
+{
+	bIncreasingGranularityOptimization = bValue;
+}
+
+boolean KWDataGridOptimizerVxV::GetIncreasingGranularityOptimization() const
+{
+	return bIncreasingGranularityOptimization;
+}
+
 double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initialDataGrid,
 							KWDataGrid* optimizedDataGrid) const
+
+{
+	const boolean bForceDirectOptimization = false;
+	double dBestCost;
+	KWDataGridManager dataGridManager;
+	KWDataGrid newDataGrid;
+	double dNewCost;
+
+	require(initialDataGrid != NULL);
+	require(not initialDataGrid->IsVarPartDataGrid());
+
+	// La solution initiale en parametere est le modele null
+	dBestCost = GetOptimizedNullDataGridCost();
+
+	// Optimisation si on peut potentiellement faire mieux que la grille terminale
+	if (IsOptimizationNeeded(initialDataGrid) and not TaskProgression::IsInterruptionRequested())
+	{
+		// Optimisation directe dans le cas non supervise, si l'on a specifie de ne pas optimiser par granularites croissantes
+		// On peut egalement forcer l'optimisation pour des raisons de debug
+		// Attention :
+		// - la solution obtenue directement avec la granularite maximale n'est pas necessairement la meme que celle
+		//   obtenue en passant par une boucle sur les granularites, comme dans le coclustering en mode anytime
+		// - cela provient du fait que la trajectoire d'optimisation est differente, les solutions de granularite intermediaire
+		//   pouvant perturber la graine aleatoire
+		// - on pourrait forcer la graine de la derniere granularite pour obtenir la meme solution dans les deux cas,
+		//   mais cela ne parait pas vraiment utile
+		if ((initialDataGrid->GetTargetAttribute() == NULL and initialDataGrid->GetTargetValueNumber() == 0 and
+		     not GetIncreasingGranularityOptimization()) or
+		    bForceDirectOptimization)
+		{
+			// La solution initiale en parametere est le modele null
+			dBestCost = GetOptimizedNullDataGridCost();
+
+			// Optimisation directe sans exploiter de boucle sur la granularite
+			// C'est equivalent a une optimisation a la granularite maximale
+			dNewCost = OptimizeGranularizedDataGrid(initialDataGrid, &newDataGrid);
+
+			// Cas d'amelioration du cout
+			if (dNewCost < dBestCost - dEpsilon)
+			{
+				dBestCost = dNewCost;
+
+				// Memorisation du nouvel optimum
+				dataGridManager.CopyDataGrid(&newDataGrid, optimizedDataGrid);
+			}
+
+			// On met a jour les infos dans le cas d'un coclustering
+			HandleOptimizationStep(optimizedDataGrid, optimizedDataGrid);
+		}
+		// Sinon, optimisation en bouclant sur les granularites
+		else
+			dBestCost = OptimizeDataGridUsingIncreasingGranularities(initialDataGrid, optimizedDataGrid);
+	}
+	return dBestCost;
+}
+
+double KWDataGridOptimizerVxV::OptimizeDataGridUsingIncreasingGranularities(const KWDataGrid* initialDataGrid,
+									    KWDataGrid* optimizedDataGrid) const
 
 {
 	const boolean bTrace = false;
@@ -20,7 +91,6 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 	KWDataGridManager dataGridManager;
 	double dGranularityBestCost;
 	double dBestCost;
-	boolean bIsOptimizationNeeded;
 	ObjectDictionary odQuantileBuilders;
 	IntVector ivMaxPartNumbers;
 	IntVector ivPreviousPartNumber;
@@ -42,6 +112,7 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 	require(GetDataGridCosts()->IsInitialized());
 	require(initialDataGrid != NULL);
 	require(not initialDataGrid->IsVarPartDataGrid());
+	require(IsOptimizationNeeded(initialDataGrid));
 	require(optimizedDataGrid != NULL);
 	require(optimizedDataGrid->GetCellNumber() == 1);
 	require(GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid) == GetOptimizedNullDataGridCost());
@@ -61,228 +132,213 @@ double KWDataGridOptimizerVxV::InternalOptimizeDataGrid(const KWDataGrid* initia
 			cout << " - initialDataGrid\n" << *initialDataGrid << endl;
 	}
 
-	// On determine si on peut potentiellement faire mieux que la grille terminale
-	bIsOptimizationNeeded = IsOptimizationNeeded(initialDataGrid);
+	// Calcul de la granularite max a explorer
+	nMaxExploredGranularity = ComputeMaxExploredGranularity(initialDataGrid);
 
-	// Cas ou la grille terminale est ameliorable
-	if (bIsOptimizationNeeded and not TaskProgression::IsInterruptionRequested())
+	// Initialisation des quantiles builders a partir de la grille source
+	dataGridManager.InitializeQuantileBuilders(initialDataGrid, &odQuantileBuilders, &ivMaxPartNumbers);
+	if (bTrace)
+		cout << " -ivMaxPartNumbers Granularisation\t" << ivMaxPartNumbers;
+
+	// Initialisation des vecteurs de nombre de parties courant et precedent
+	ivPreviousPartNumber.SetSize(ivMaxPartNumbers.GetSize());
+	ivCurrentPartNumber.SetSize(ivMaxPartNumbers.GetSize());
+
+	// Initialisation
+	nCurrentExploredGranularity = -1;
+	nLastExploredGranularity = -1;
+
+	// Parcours des granularites
+	nGranularityIndex = 1;
+	bIsLastGranularity = false;
+	while (nGranularityIndex <= nMaxExploredGranularity and not bIsLastGranularity)
 	{
-		// Calcul de la granularite max a explorer
-		nMaxExploredGranularity = ComputeMaxExploredGranularity(initialDataGrid);
+		// Arret si interruption utilisateur
+		if (TaskProgression::IsInterruptionRequested())
+			break;
 
-		// Initialisation des quantiles builders a partir de la grille source
-		dataGridManager.InitializeQuantileBuilders(initialDataGrid, &odQuantileBuilders, &ivMaxPartNumbers);
-		if (bTrace)
-			cout << " -ivMaxPartNumbers Granularisation\t" << ivMaxPartNumbers;
+		// Granularisation de la grille initiale
+		dataGridManager.ExportGranularizedDataGrid(initialDataGrid, &odQuantileBuilders, nGranularityIndex,
+							   &granularizedDataGrid);
 
-		// Initialisation des vecteurs de nombre de parties courant et precedent
-		ivPreviousPartNumber.SetSize(ivMaxPartNumbers.GetSize());
-		ivCurrentPartNumber.SetSize(ivMaxPartNumbers.GetSize());
+		//////////////////////////////////////////////////////////////////////////////////////////////
+		// On determine si la granularite courante doit etre traitee
+		// - bIsGranularitySelected: parce qu'elle differe suffisamment de la granularite precedente
+		//   et de la granularite max
+		// - bIsLastGranularity: par ce que c'est la derniere
 
-		// Initialisation
-		nCurrentExploredGranularity = -1;
-		nLastExploredGranularity = -1;
-
-		// Parcours des granularites
-		nGranularityIndex = 1;
-		bIsLastGranularity = false;
-		while (nGranularityIndex <= nMaxExploredGranularity and not bIsLastGranularity)
+		// Calcul du nombre de nombre de parties par attribut attribut pour la granularite en cours
+		for (nAttribute = 0; nAttribute < granularizedDataGrid.GetAttributeNumber(); nAttribute++)
 		{
+			// Memorisation du nombre de parties de l'attribut granularise
+			ivCurrentPartNumber.SetAt(
+			    nAttribute,
+			    cast(KWDGAttribute*, granularizedDataGrid.GetAttributeAt(nAttribute))->GetPartNumber());
+		}
+
+		// On determine si on a atteint la granularite max
+		bIsLastGranularity = true;
+		if (nGranularityIndex < nMaxExploredGranularity)
+		{
+			for (nAttribute = 0; nAttribute < granularizedDataGrid.GetAttributeNumber(); nAttribute++)
+			{
+				// La granularite n'est pas max si le nombre de parties courant est inferieur
+				// au nombre max de parties pour au moins un attribut
+				if (ivCurrentPartNumber.GetAt(nAttribute) < ivMaxPartNumbers.GetAt(nAttribute))
+				{
+					bIsLastGranularity = false;
+					break;
+				}
+			}
+		}
+
+		// Dans le cas de la granularite max, on positionne l'index de granularite au maximum
+		// pour des raisons d'affichage (pour ne pas afficher la granularite courante)
+		if (bIsLastGranularity)
+			granularizedDataGrid.SetGranularity(nMaxExploredGranularity);
+		assert(bIsLastGranularity == IsLastGranularity(&granularizedDataGrid));
+
+		// Test si on doit traiter la granularite
+		bIsGranularitySelected = false;
+		if (IsOptimizationNeeded(&granularizedDataGrid))
+		{
+			// On ne traite cette granularite que si elle est differe suffisamment de la precedente et de la
+			for (nAttribute = 0; nAttribute < granularizedDataGrid.GetAttributeNumber(); nAttribute++)
+			{
+				// Cas d'accroissement suffisant du nombre de parties
+				if ((ivCurrentPartNumber.GetAt(nAttribute) >=
+				     ivPreviousPartNumber.GetAt(nAttribute) *
+					 dMinimalGranularityIncreasingCoefficient) and
+				    (ivCurrentPartNumber.GetAt(nAttribute) * dMinimalGranularityIncreasingCoefficient <=
+				     ivMaxPartNumbers.GetAt(nAttribute)))
+				{
+					bIsGranularitySelected = true;
+					break;
+				}
+			}
+		}
+
+		// Affichage de l'info, sur la granularite
+		if (bTraceGranularities)
+		{
+			cout << " - granularity " << nGranularityIndex << ": "
+			     << BooleanToString(bIsGranularitySelected);
+			if (bIsLastGranularity)
+				cout << " (last)";
+			cout << " " << granularizedDataGrid.GetObjectLabel();
+			cout << " TotalParts=" << granularizedDataGrid.GetTotalPartNumber();
+			cout << endl;
+		}
+
+		// Exploration de la granularite courante
+		if (IsOptimizationNeeded(&granularizedDataGrid) and (bIsGranularitySelected or bIsLastGranularity))
+		{
+			assert(bIsGranularitySelected or bIsLastGranularity);
+
+			// Memorisation des granularites exploitees
+			nLastExploredGranularity = nCurrentExploredGranularity;
+			nCurrentExploredGranularity = nGranularityIndex;
+
+			// Utilisation du modele nul pour la solution initiale
+			granularizedOptimizedDataGrid = new KWDataGrid;
+			SaveDataGrid(GetOptimizedNullDataGrid(), granularizedOptimizedDataGrid);
+			granularizedOptimizedDataGrid->SetGranularity(granularizedDataGrid.GetGranularity());
+			dGranularityBestCost = GetOptimizedNullDataGridCost();
+			if (bTrace)
+			{
+				TraceOptimizationDetails(sTmp + "- initial granularized datagrid for granularity " +
+							     IntToString(nGranularityIndex),
+							 &granularizedDataGrid, bTraceDetails);
+			}
+
 			// Arret si interruption utilisateur
 			if (TaskProgression::IsInterruptionRequested())
 				break;
 
-			// Granularisation de la grille initiale
-			dataGridManager.ExportGranularizedDataGrid(initialDataGrid, &odQuantileBuilders,
-								   nGranularityIndex, &granularizedDataGrid);
-
-			//////////////////////////////////////////////////////////////////////////////////////////////
-			// On determine si la granularite courante doit etre traitee
-			// - bIsGranularitySelected: parce qu'elle differe suffisamment de la granularite precedente
-			//   et de la granularite max
-			// - bIsLastGranularity: par ce que c'est la derniere
-
-			// Calcul du nombre de nombre de parties par attribut attribut pour la granularite en cours
-			for (nAttribute = 0; nAttribute < granularizedDataGrid.GetAttributeNumber(); nAttribute++)
+			// Optimisation de la grille granularisee
+			// Cas non supervise pour les granularites intermediaires: optimisation legere
+			if (not IsSupervisedDataGrid(initialDataGrid) and not bIsLastGranularity)
+				dGranularityBestCost = SlightOptimizeGranularizedDataGrid(
+				    &granularizedDataGrid, granularizedOptimizedDataGrid);
+			// Cas supervise ou derniere granularite en non supervise: optimisation profonde
+			else
+				dGranularityBestCost =
+				    OptimizeGranularizedDataGrid(&granularizedDataGrid, granularizedOptimizedDataGrid);
+			if (bTrace)
 			{
-				// Memorisation du nombre de parties de l'attribut granularise
-				ivCurrentPartNumber.SetAt(
-				    nAttribute, cast(KWDGAttribute*, granularizedDataGrid.GetAttributeAt(nAttribute))
-						    ->GetPartNumber());
+				TraceOptimizationDetails(sTmp + "- optimized granularized datagrid for granularity\t" +
+							     IntToString(nGranularityIndex),
+							 granularizedOptimizedDataGrid, bTraceDetails);
 			}
 
-			// On determine si on a atteint la granularite max
-			bIsLastGranularity = true;
-			if (nGranularityIndex < nMaxExploredGranularity)
+			// Cas d'amelioration du cout
+			if (dGranularityBestCost < dBestCost - dEpsilon)
 			{
-				for (nAttribute = 0; nAttribute < granularizedDataGrid.GetAttributeNumber();
-				     nAttribute++)
-				{
-					// La granularite n'est pas max si le nombre de parties courant est inferieur
-					// au nombre max de parties pour au moins un attribut
-					if (ivCurrentPartNumber.GetAt(nAttribute) < ivMaxPartNumbers.GetAt(nAttribute))
-					{
-						bIsLastGranularity = false;
-						break;
-					}
-				}
-			}
+				dBestCost = dGranularityBestCost;
 
-			// Dans le cas de la granularite max, on positionne l'index de granularite au maximum
-			// pour des raisons d'affichage (pour ne pas afficher la granularite courante)
+				// Memorisation du nouvel optimum
+				dataGridManager.CopyDataGrid(granularizedOptimizedDataGrid, optimizedDataGrid);
+				if (bTrace)
+					cout << "- new best cost\t" << dBestCost << endl;
+			}
+			// Cas ou il s'agit de la derniere granularite : on met a jour les infos dans le
+			// cas d'un coclustering
 			if (bIsLastGranularity)
-				granularizedDataGrid.SetGranularity(nMaxExploredGranularity);
-			assert(bIsLastGranularity == IsLastGranularity(&granularizedDataGrid));
-
-			// Test si on doit traiter la granularite
-			bIsGranularitySelected = false;
-			if (IsOptimizationNeeded(&granularizedDataGrid))
 			{
-				// On ne traite cette granularite que si elle est differe suffisamment de la precedente et de la
-				for (nAttribute = 0; nAttribute < granularizedDataGrid.GetAttributeNumber();
-				     nAttribute++)
-				{
-					// Cas d'accroissement suffisant du nombre de parties
-					if ((ivCurrentPartNumber.GetAt(nAttribute) >=
-					     ivPreviousPartNumber.GetAt(nAttribute) *
-						 dMinimalGranularityIncreasingCoefficient) and
-					    (ivCurrentPartNumber.GetAt(nAttribute) *
-						 dMinimalGranularityIncreasingCoefficient <=
-					     ivMaxPartNumbers.GetAt(nAttribute)))
-					{
-						bIsGranularitySelected = true;
-						break;
-					}
-				}
-			}
-
-			// Affichage de l'info, sur la granularite
-			if (bTraceGranularities)
-			{
-				cout << " - granularity " << nGranularityIndex << ": "
-				     << BooleanToString(bIsGranularitySelected);
-				if (bIsLastGranularity)
-					cout << " (last)";
-				cout << " " << granularizedDataGrid.GetObjectLabel();
-				cout << " TotalParts=" << granularizedDataGrid.GetTotalPartNumber();
-				cout << endl;
-			}
-
-			// Exploration de la granularite courante
-			if (IsOptimizationNeeded(&granularizedDataGrid) and
-			    (bIsGranularitySelected or bIsLastGranularity))
-			{
-				assert(bIsGranularitySelected or bIsLastGranularity);
-
-				// Memorisation des granularites exploitees
-				nLastExploredGranularity = nCurrentExploredGranularity;
-				nCurrentExploredGranularity = nGranularityIndex;
-
-				// Utilisation du modele nul pour la solution initiale
-				granularizedOptimizedDataGrid = new KWDataGrid;
-				SaveDataGrid(GetOptimizedNullDataGrid(), granularizedOptimizedDataGrid);
-				granularizedOptimizedDataGrid->SetGranularity(granularizedDataGrid.GetGranularity());
-				dGranularityBestCost = GetOptimizedNullDataGridCost();
+				HandleOptimizationStep(optimizedDataGrid, &granularizedDataGrid);
 				if (bTrace)
-				{
-					TraceOptimizationDetails(
-					    sTmp + "- initial granularized datagrid for granularity " +
-						IntToString(nGranularityIndex),
-					    &granularizedDataGrid, bTraceDetails);
-				}
-
-				// Arret si interruption utilisateur
-				if (TaskProgression::IsInterruptionRequested())
-					break;
-
-				// Optimisation de la grille granularisee
-				// Cas non supervise pour les granularites intermediaires: optimisation legere
-				if (not IsSupervisedDataGrid(initialDataGrid) and not bIsLastGranularity)
-					dGranularityBestCost = SlightOptimizeGranularizedDataGrid(
-					    &granularizedDataGrid, granularizedOptimizedDataGrid);
-				// Cas supervise ou derniere granularite en non supervise: optimisation profonde
-				else
-					dGranularityBestCost = OptimizeGranularizedDataGrid(
-					    &granularizedDataGrid, granularizedOptimizedDataGrid);
-				if (bTrace)
-				{
-					TraceOptimizationDetails(
-					    sTmp + "- optimized granularized datagrid for granularity\t" +
-						IntToString(nGranularityIndex),
-					    granularizedOptimizedDataGrid, bTraceDetails);
-				}
-
-				// Cas d'amelioration du cout
-				if (dGranularityBestCost < dBestCost - dEpsilon)
-				{
-					dBestCost = dGranularityBestCost;
-
-					// Memorisation du nouvel optimum
-					dataGridManager.CopyDataGrid(granularizedOptimizedDataGrid, optimizedDataGrid);
-					if (bTrace)
-						cout << "- new best cost\t" << dBestCost << endl;
-				}
-				// Cas ou il s'agit de la derniere granularite : on met a jour les infos dans le
-				// cas d'un coclustering
-				if (bIsLastGranularity)
-				{
-					HandleOptimizationStep(optimizedDataGrid, &granularizedDataGrid);
-					if (bTrace)
-						cout << "- save optimized datagrid for last granularity\t" << dBestCost
-						     << endl;
-				}
-
-				// Nettoyage de la grille optimisee pour cette granularite
-				delete granularizedOptimizedDataGrid;
-				granularizedOptimizedDataGrid = NULL;
-
-				// Cas d'un temps limite: warning si arret avant avoir atteint granularite max
-				if (IsOptimizationTimeElapsed() and not bIsLastGranularity)
-				{
-					// Affichage d'un warning pour eventuelle modification de l'optimisation time
-					AddWarning(sTmp + "All the optimization time has been used until granularity " +
-						   IntToString(nGranularityIndex) + ", but maximum granularity (" +
-						   IntToString(nGranularityIndex) + ") has not been reached." +
-						   "You could obtain better results with larger optimization time.");
-					if (bTrace)
-						cout << "- all allocated optimization time used after granularity\t"
-						     << nGranularityIndex << endl;
-
-					// Arret
-					break;
-				}
-
-				// Memorisation du nombre de parties par attribut pour comparaison a l'etape suivante
-				ivPreviousPartNumber.CopyFrom(&ivCurrentPartNumber);
+					cout << "- save optimized datagrid for last granularity\t" << dBestCost << endl;
 			}
 
-			// Nettoyage de la grille granularisee
-			granularizedDataGrid.DeleteAll();
+			// Nettoyage de la grille optimisee pour cette granularite
+			delete granularizedOptimizedDataGrid;
+			granularizedOptimizedDataGrid = NULL;
 
-			// Granularite suivante
-			nGranularityIndex++;
+			// Cas d'un temps limite: warning si arret avant avoir atteint granularite max
+			if (IsOptimizationTimeElapsed() and not bIsLastGranularity)
+			{
+				// Affichage d'un warning pour eventuelle modification de l'optimisation time
+				AddWarning(sTmp + "All the optimization time has been used until granularity " +
+					   IntToString(nGranularityIndex) + ", but maximum granularity (" +
+					   IntToString(nGranularityIndex) + ") has not been reached." +
+					   "You could obtain better results with larger optimization time.");
+				if (bTrace)
+					cout << "- all allocated optimization time used after granularity\t"
+					     << nGranularityIndex << endl;
+
+				// Arret
+				break;
+			}
+
+			// Memorisation du nombre de parties par attribut pour comparaison a l'etape suivante
+			ivPreviousPartNumber.CopyFrom(&ivCurrentPartNumber);
 		}
 
-		// Post-optimisation de la granularite dans le cas d'une grille supervisee pour laquelle
-		// la granularite fait partie des parametres du modele
-		if (IsSupervisedDataGrid(initialDataGrid))
-		{
-			// Post-optimisation de la granularite : on attribue a la grille optimale la plus petite
-			// granularite pour laquelle cette grille est definie
-			if (nLastExploredGranularity != -1 and
-			    optimizedDataGrid->GetGranularity() > nLastExploredGranularity + 1)
-			{
-				dBestCost = PostOptimizeGranularity(initialDataGrid, optimizedDataGrid,
-								    &odQuantileBuilders, nLastExploredGranularity);
-				if (bTrace)
-					TraceOptimizationDetails("- post-optimized datagrid", optimizedDataGrid,
-								 bTraceDetails);
-			}
-		}
+		// Nettoyage de la grille granularisee
+		granularizedDataGrid.DeleteAll();
 
-		// Nettoyage
-		odQuantileBuilders.DeleteAll();
+		// Granularite suivante
+		nGranularityIndex++;
 	}
+
+	// Post-optimisation de la granularite dans le cas d'une grille supervisee pour laquelle
+	// la granularite fait partie des parametres du modele
+	if (IsSupervisedDataGrid(initialDataGrid))
+	{
+		// Post-optimisation de la granularite : on attribue a la grille optimale la plus petite
+		// granularite pour laquelle cette grille est definie
+		if (nLastExploredGranularity != -1 and
+		    optimizedDataGrid->GetGranularity() > nLastExploredGranularity + 1)
+		{
+			dBestCost = PostOptimizeGranularity(initialDataGrid, optimizedDataGrid, &odQuantileBuilders,
+							    nLastExploredGranularity);
+			if (bTrace)
+				TraceOptimizationDetails("- post-optimized datagrid", optimizedDataGrid, bTraceDetails);
+		}
+	}
+
+	// Nettoyage
+	odQuantileBuilders.DeleteAll();
 
 	ensure(fabs(dBestCost - GetDataGridCosts()->ComputeDataGridTotalCost(optimizedDataGrid)) < dEpsilon);
 	return dBestCost;

@@ -18,18 +18,30 @@ public:
 	KWDataGridOptimizerVxV();
 	~KWDataGridOptimizerVxV();
 
+	// Optimisation par granularite croissante dans le cas non supervise (defaut : false)
+	// Dans le cas non supervise, il n'est pas necessaire d'optimiser la granularite,
+	// qui ne fait pas partie du modele. On peut neanmoins forcer l'optimisation a commencer
+	// par les petites granularites, ce qui permet, en mode anytime, de produire rapidement
+	// les premiers modeles, avant de raffiner iterativement jusqu'a la granularite maximale.
+	void SetIncreasingGranularityOptimization(boolean bValue);
+	boolean GetIncreasingGranularityOptimization() const;
+
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
 	//////////////////////////////////////////////////////////////////////////////////
 	// Optimisation d'une grille avec gestion de la granularite
 
-	// Optimisation d'un grille pour une structure de cout donnee
+	// Optimisation d'une grille pour une structure de cout donnee
 	// En sortie, on trouve une nouvelle grille optimisee compatible avec la grille initiale
 	// Retourne le cout de codage MODL de la grille optimisee
 	// Integre un parcours des granularites
 	double InternalOptimizeDataGrid(const KWDataGrid* initialDataGrid,
 					KWDataGrid* optimizedDataGrid) const override;
+
+	// Optimisation d'une grille par granularites croissantes
+	double OptimizeDataGridUsingIncreasingGranularities(const KWDataGrid* initialDataGrid,
+							    KWDataGrid* optimizedDataGrid) const;
 
 	// Test si on est a la derniere granularite pour une grille
 	// c'est a dire si on a atteint la granularite max
@@ -89,4 +101,7 @@ protected:
 
 	// Affichage des informations de progression: messages et niveau d'avancement de la barre de progesssion
 	void DisplayProgression(const KWDataGrid* dataGrid) const override;
+
+	// Parametrage de l'optimisation par granularite croissante dans le cas non supervise
+	boolean bIncreasingGranularityOptimization;
 };

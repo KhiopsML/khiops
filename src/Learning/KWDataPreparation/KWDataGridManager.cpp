@@ -1308,6 +1308,7 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 	KWDGPart* targetPart;
 	int nNearbyIntervalsMaxCumulativeFrequency;
 	int nMinTargetFrequency;
+	int nMinTargetFrequencyIncrement;
 	int nTargetFrequency;
 	int nCumulativeFrequency;
 	int nCumulativeFrequencyIntervalMedian;
@@ -1333,7 +1334,7 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 	require(nNearbyIntervalMinFrequency <= INT_MAX / nNearbyMaxIntervalNumber);
 	require(nNearbyMaxIntervalNumber == 1 or
 		nNearbyIntervalMinFrequency <=
-		    INT_MAX / pow(nNearbyIntervalIncreasingFactor, nNearbyMaxIntervalNumber));
+		    INT_MAX / pow(nNearbyIntervalIncreasingFactor, nNearbyMaxIntervalNumber - 1));
 	require(targetDataGrid->GetCellNumber() == 0);
 
 	// Acces a l'attribut dans chaque grille
@@ -1350,22 +1351,24 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 	require(sourceAttribute->ContainsSubParts(mandatoryAttribute));
 	require(targetAttribute->GetPartNumber() == 0);
 
-	// Calcul de l'effectif cumule theorique maximal
+	// Increment du seuil dans le cas d'une loi arithmetique
+	nMinTargetFrequencyIncrement = nNearbyIntervalMinFrequency;
+
+	// Calcul de l'effectif cumule minimal theorique du dernier intervalle
+	// Avec un facteur d'accroissement de 1, suite arithmetique
 	if (nNearbyIntervalIncreasingFactor == 1)
 	{
 		nNearbyIntervalsMaxCumulativeFrequency = nNearbyIntervalMinFrequency * nNearbyMaxIntervalNumber;
 	}
-	// Avec un facteur d'accroissement superieur a 1, calcul de la somme de la suite geometrique
+	// Avec un facteur d'accroissement superieur a 1, suite geometrique: dernier terme
 	else
 	{
-		// Calcul explicite en entier, sans passer par la formule analytique de type (pow(factor, number)-1)/(factor-1)
-		nNearbyIntervalsMaxCumulativeFrequency = 0;
-		nMinTargetFrequency = nNearbyIntervalMinFrequency;
-		for (i = 0; i < nNearbyMaxIntervalNumber; i++)
+		// Calcul explicite en entier, sans passer par pow
+		nNearbyIntervalsMaxCumulativeFrequency = nNearbyIntervalMinFrequency;
+		for (i = 1; i < nNearbyMaxIntervalNumber; i++)
 		{
-			assert(nMinTargetFrequency < INT_MAX / nNearbyIntervalIncreasingFactor);
-			nNearbyIntervalsMaxCumulativeFrequency += nMinTargetFrequency;
-			nMinTargetFrequency *= nNearbyIntervalIncreasingFactor;
+			assert(nNearbyIntervalsMaxCumulativeFrequency < INT_MAX / nNearbyIntervalIncreasingFactor);
+			nNearbyIntervalsMaxCumulativeFrequency *= nNearbyIntervalIncreasingFactor;
 		}
 	}
 
@@ -1402,7 +1405,7 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 		// Effectif cumule max en fonction des contraintes
 		nCumulativeFrequencyLimit = nCumulativeFrequency + nNearbyIntervalsMaxCumulativeFrequency;
 
-		// Reinitialisation de l'effectif minimum par intervalle
+		// Reinitialisation de l'effectif cumule minimal
 		nMinTargetFrequency = nNearbyIntervalMinFrequency;
 
 		// Parcours des intervalles sources jusqu'a trouver la borne sup de l'attribut obligatoire
@@ -1414,6 +1417,7 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 			assert(sourcePart->GetPartFrequency() > 0);
 
 			// Prise en compte de l'effectif de l'intervalle source
+			// L'effectif cible est cumule depuis la borne de depart
 			nTargetFrequency += sourcePart->GetPartFrequency();
 			nCumulativeFrequency += sourcePart->GetPartFrequency();
 
@@ -1435,11 +1439,24 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 
 				// Memorisation de l'effectif cumule global de l'intervalle a creer
 				ivNextNearbyCumulativeFrequencies.Add(nCumulativeFrequency);
-				nTargetFrequency = 0;
 
-				// On accroit l'effectif minimum pour le prochain intervalle a creer
-				assert(nMinTargetFrequency < INT_MAX / nNearbyIntervalIncreasingFactor);
-				nMinTargetFrequency *= nNearbyIntervalIncreasingFactor;
+				// Pas de remise a zero: l'effectif est cumule depuis la borne de depart
+				// On passe au prochain terme theorique de la suite (geometrique ou arithmetique)
+				// strictement superieur a l'effectif cumule atteint
+				if (nNearbyIntervalIncreasingFactor > 1)
+				{
+					while (nMinTargetFrequency <= nTargetFrequency)
+					{
+						assert(nMinTargetFrequency < INT_MAX / nNearbyIntervalIncreasingFactor);
+						nMinTargetFrequency *= nNearbyIntervalIncreasingFactor;
+					}
+				}
+				else
+				{
+					// Prochain multiple de l'increment strictement superieur a l'effectif atteint
+					nMinTargetFrequency = (nTargetFrequency / nMinTargetFrequencyIncrement + 1) *
+							      nMinTargetFrequencyIncrement;
+				}
 			}
 
 			// Passage a l'intervalle source suivant
@@ -1474,7 +1491,7 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 		// Effectif cumule max en fonction des contraintes
 		nCumulativeFrequencyLimit = nCumulativeFrequency - nNearbyIntervalsMaxCumulativeFrequency;
 
-		// Reinitialisation de l'effectif minimum par intervalle
+		// Reinitialisation de l'effectif cumule minimal
 		nMinTargetFrequency = nNearbyIntervalMinFrequency;
 
 		// Parcours des intervalles sources jusqu'a trouver la borne inf de l'attribut obligatoire
@@ -1486,6 +1503,7 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 			assert(sourcePart->GetPartFrequency() > 0);
 
 			// Prise en compte de l'effectif de l'intervalle source
+			// L'effectif cible est cumule depuis la borne de depart
 			nTargetFrequency += sourcePart->GetPartFrequency();
 			nCumulativeFrequency -= sourcePart->GetPartFrequency();
 
@@ -1504,11 +1522,24 @@ void KWDataGridManager::AddContinuousAttributeNearbyParts(
 
 				// Memorisation de l'effectif cumule global de l'intervalle a creer
 				ivPrevNearbyCumulativeFrequencies.Add(nCumulativeFrequency);
-				nTargetFrequency = 0;
 
-				// On accroit l'effectif minimum pour le prochain intervalle a creer
-				assert(nMinTargetFrequency < INT_MAX / nNearbyIntervalIncreasingFactor);
-				nMinTargetFrequency *= nNearbyIntervalIncreasingFactor;
+				// Pas de remise a zero: l'effectif est cumule depuis la borne de depart
+				// On passe au prochain terme theorique de la suite (geometrique ou arithmetique)
+				// strictement superieur a l'effectif cumule atteint
+				if (nNearbyIntervalIncreasingFactor > 1)
+				{
+					while (nMinTargetFrequency <= nTargetFrequency)
+					{
+						assert(nMinTargetFrequency < INT_MAX / nNearbyIntervalIncreasingFactor);
+						nMinTargetFrequency *= nNearbyIntervalIncreasingFactor;
+					}
+				}
+				else
+				{
+					// Prochain multiple de l'increment strictement superieur a l'effectif atteint
+					nMinTargetFrequency = (nTargetFrequency / nMinTargetFrequencyIncrement + 1) *
+							      nMinTargetFrequencyIncrement;
+				}
 			}
 
 			// Passage a l'intervalle source precedent
