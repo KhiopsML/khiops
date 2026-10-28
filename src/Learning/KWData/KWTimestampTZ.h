@@ -316,7 +316,7 @@ inline Timestamp TimestampTZ::GetLocalTimestamp() const
 	require(Check());
 	require(CheckTimeZone());
 
-	// Suppression de la time zone la la partie date
+	// Suppression dans la time zone de la partie date
 	tsResult = GetInternalTimestamp();
 	tsResult.GetInternalDate().ResetTimeZone();
 	return tsResult;
@@ -329,7 +329,7 @@ inline Timestamp TimestampTZ::GetUtcTimestamp() const
 	require(Check());
 	require(CheckTimeZone());
 
-	// Suppression de la time zone la la partie date
+	// Suppression dans la time zone la la partie date
 	tsResult = GetInternalTimestamp();
 	tsResult.GetInternalDate().ResetTimeZone();
 

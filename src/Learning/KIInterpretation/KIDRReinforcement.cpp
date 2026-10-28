@@ -284,7 +284,7 @@ Symbol KIDRClassifierReinforcer::GetRankedReinforcementPartAt(int nTargetValueRa
 	// Retourne vide si pas de renforcement
 	if (attributeReinforcement->GetReinforcementFinalScore() == 0)
 		return Symbol();
-	// Retourne le nom de de la partie de l'attribut de renforcement sinon
+	// Retourne le nom de la partie de l'attribut de renforcement sinon
 	else
 	{
 		// Acces a l'attribut, la grille corespondante, et l'index source dans la grille

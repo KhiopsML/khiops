@@ -360,7 +360,7 @@ protected:
 	// Dictionnaire des statistiques descriptives par attribut
 	ObjectDictionary odDescriptiveStats;
 
-	// Grille de de donnees initiale au niveau de grain le plus fin
+	// Grille de donnees initiale au niveau de grain le plus fin
 	KWDataGrid* initialDataGrid;
 
 	// Grille de coclustering resultat

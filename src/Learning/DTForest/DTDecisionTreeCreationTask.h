@@ -97,13 +97,13 @@ protected:
 	void LoadOnlySelectedAttributes(KWClass* kwcClass, DTAttributeSelectionsSlices* attributeselectionsSlices);
 
 	// Estimation de la memoire de travail minimale necessaire
-	//  Base de de donnees chargee avec au minimum deux attributs
+	//  Base de donnees chargee avec au minimum deux attributs
 	//  Memoire de travail pour proceder au pretraitement par grille
 	// Prend en compte le type d'analyse et les statistiques cibles si elles sont disponibles
 	longint ComputeMedianStatMemory(ObjectDictionary* odInputAttributeStats) const;
 
 	// Estimation la memoire de stockage de specification des arbres et des regles de derivation
-	//  Base de de donnees chargee avec au minimum deux attributs
+	//  Base de donnees chargee avec au minimum deux attributs
 	//  Memoire de travail pour proceder au pretraitement par grille
 	// Prend en compte le type d'analyse et les statistiques cibles si elles sont disponibles
 	longint ComputeMeanTreeSpecMemory(ObjectDictionary* odInputAttributeStats) const;

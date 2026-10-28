@@ -13,7 +13,7 @@ class KWDGMPartMergeArray;
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGMPartMergeAction
 // Action de fusions de deux parties
-// Mise a a jour complete et coherente d'un DataGridMerge, en effectuant la fusion
+// Mise a jour complete et coherente d'un DataGridMerge, en effectuant la fusion
 // et evaluant l'impact sur toutes les fusions pour l'attribut interne et
 // les attributs externes de la fusion
 class KWDGMPartMergeAction : public Object

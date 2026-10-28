@@ -227,7 +227,7 @@ def fatal_error(message):
 
 def write_message(message, log_file=None, show=False):
     """Ecriture d'un message dans un fichier de log
-    Ecriture dans un fichier de log selon le le parametre log_file
+    Ecriture dans un fichier de log selon le parametre log_file
     Affichage sur la console selon le parametre show
     Si ni log_file, ni show ne sont specifier, la methode est en mode silencieux
     """

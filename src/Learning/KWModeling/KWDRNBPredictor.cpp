@@ -401,7 +401,7 @@ boolean KWDRNBClassifier::CheckOperandsCompleteness(const KWClass* kwcOwnerClass
 	}
 
 	// Memorisation des valeurs cibles, en transferant les valeurs vers la representation structuree
-	// La representation de la regle a verifier est structuree ou non selon qu'elle a a ete fabriquee
+	// La representation de la regle a verifier est structuree ou non selon qu'elle a ete fabriquee
 	// par programme (pour un classifieur) ou qu'elle est issue d'une lecture de fichier dictionnaire
 	// (avant compilation). On passe alors par une regle temporaire (refCheckedSymbolValueSetRule)
 	//  permettant d'avoir un acces systematique a la represnetation structuree, ce qui permet d'effectuer
@@ -1203,7 +1203,7 @@ void KWDRNBClassifier::ExportAttributeNames(const KWClass* kwcOwnerClass, String
 						       sVarKey);
 					}
 
-					// Acces a la la grille, qui provient du bloc de grilles
+					// Acces a la grille, qui provient du bloc de grilles
 					sDataGridAttributeName = "";
 					if (dataGridBlockRule->GetOperandNumber() > nIndex + 1)
 						sDataGridAttributeName =

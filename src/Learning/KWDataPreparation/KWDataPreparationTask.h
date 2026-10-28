@@ -80,7 +80,7 @@ protected:
 						      const KWTupleTable* targetTupleTable) const;
 
 	// Estimation de la memoire de travail minimale necessaire
-	//  Base de de donnees chargee avec au minimum un attribut
+	//  Base de donnees chargee avec au minimum un attribut
 	//  Memoire de travail pour proceder au pretraitement par grille
 	// Prend en compte le type d'analyse et les statistiques cibles si elles sont disponibles
 	longint ComputeNecessaryWorkingMemory(const KWLearningSpec* learningSpec, const KWTupleTable* targetTupleTable,

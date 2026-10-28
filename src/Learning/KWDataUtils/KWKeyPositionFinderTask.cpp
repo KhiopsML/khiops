@@ -1108,7 +1108,7 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 				// Extraction de la cle
 				keyExtractor.ParseNextKey(key, NULL);
 
-				// Memorisation de la premiere cle de l'esclave, que la la ligne soit valide ou non
+				// Memorisation de la premiere cle de l'esclave, que la ligne soit valide ou non
 				if (output_SlaveFirstKeyPosition.GetKeyPosition()->GetLineIndex() == 0)
 				{
 					output_SlaveFirstKeyPosition.GetKeyPosition()->GetKey()->CopyFrom(key);
@@ -1259,7 +1259,7 @@ boolean KWKeyPositionFinderTask::SlaveProcess()
 			}
 
 			// Memorisation de la derniere cle de l'esclave, si on a extrait la premiere cle
-			// Cette mis a jour a a refaire pour chaque fin de buffer traitee
+			// Cette mis a jour a refaire pour chaque fin de buffer traitee
 			if (bOk and output_SlaveFirstKeyPosition.GetKeyPosition()->GetLineIndex() != 0)
 			{
 				assert(lLinePosition >= 0);

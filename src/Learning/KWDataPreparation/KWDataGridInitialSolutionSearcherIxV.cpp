@@ -151,7 +151,7 @@ boolean KWDataGridInitialSolutionSearcherIxV::SearchInitialSolution(const KWData
 			cout << "Variable pairs\t" << oaSelectedAttributePairStats.GetSize() << "\n";
 			cout << "Initial solution\t" << initialDataGridSolution->GetObjectLabel() << "\n";
 
-			// Affichage de la la grille solution
+			// Affichage de la grille solution
 			if (bTraceDataGrid)
 				cout << "Initial data grid solution based on bivariate analysis\n"
 				     << *initialDataGridSolution << "\n";
@@ -311,7 +311,7 @@ void KWDataGridInitialSolutionSearcherIxV::BuildInitialSolutionFromBestPairs(
 			cout << "  " << *attributeResultPartition << "\n";
 		}
 
-		// Affichage de la la grille solution
+		// Affichage de la grille solution
 		if (bTraceDataGrid)
 			cout << "Initial data grid solution based on bivariate analysis\n"
 			     << *initialDataGridSolution << "\n";

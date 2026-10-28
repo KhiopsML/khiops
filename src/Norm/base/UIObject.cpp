@@ -1111,7 +1111,7 @@ JNIEnv* UIObject::GetJNIEnv()
 
 		// Parametrage de la machine virtuelle Java
 		// On impose une taille minimum et maximum a la heap, pour forcer l'allocation d'une taille raisonnable
-		// en perturbant au minimum de le plan d'allocation de l'allocateur C++ Cf. methode GetUsedMemory
+		// en perturbant au minimum le plan d'allocation de l'allocateur C++. Cf. methode GetUsedMemory
 		nOptionNumber = 0;
 		options[nOptionNumber].optionString = sJavaClassPath;
 		nOptionNumber++;
@@ -2001,7 +2001,7 @@ void UIObject::ParseMainParameters(int argc, char** argv)
 		commandFile.ReadWriteCommandFiles();
 		CleanCommandLineManagement();
 
-		// On sort du programme car a a fini tous les traitements, comme pour le -h
+		// On sort du programme car a fini tous les traitements, comme pour le -h
 		GlobalExitOnSuccess();
 	}
 	// Cas on on rejoue les commandes

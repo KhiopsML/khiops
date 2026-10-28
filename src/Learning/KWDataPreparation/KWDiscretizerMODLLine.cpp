@@ -32,7 +32,7 @@ void KWMODLLineMerge::WriteLineReport(ostream& ost) const
 	// Cout et variation du cout
 	ost << dCost << "\t" << dDeltaCost << "\t";
 
-	// Frequence des des valeurs cibles
+	// Frequence des valeurs cibles
 	kwfvFrequencyVector->WriteLineReport(ost);
 }
 

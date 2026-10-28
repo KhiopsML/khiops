@@ -122,7 +122,7 @@ protected:
 	// Type des attributs (a initialiser dans le constructeur)
 	IntVector ivAttributeTypes;
 
-	// Index de chargement des des attributs
+	// Index de chargement des attributs
 	mutable KWLoadIndexVector livAttributeLoadIndexes;
 	mutable KWLoadIndex liTargetAttributeLoadIndex;
 

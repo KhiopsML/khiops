@@ -625,7 +625,7 @@ void KDSelectionOperandDataSampler::ExtractSelectionObjects(const KWObject* kwoO
 			{
 				attributeBlock = kwcClass->GetLoadedAttributeBlockAt(nAttributeBlock);
 
-				// Traitement des blocs de de type ObjectArray
+				// Traitement des blocs de type ObjectArray
 				if (attributeBlock->GetType() == KWType::ObjectArray)
 				{
 					valueBlock = kwoCurrentObject->GetObjectArrayValueBlockAt(
@@ -1109,7 +1109,7 @@ void KDSelectionOperandDataSampler::RegisterReferencedObject(KWObject* kwoObject
 			{
 				attributeBlock = kwcClass->GetLoadedAttributeBlockAt(nAttributeBlock);
 
-				// Traitement des blocs de de type ObjectArray
+				// Traitement des blocs de type ObjectArray
 				if (attributeBlock->GetType() == KWType::ObjectArray)
 				{
 					valueBlock = kwoCurrentObject->GetObjectArrayValueBlockAt(

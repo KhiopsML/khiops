@@ -528,7 +528,7 @@ void KWSelectedAttributeReport::WriteArrayLineReport(ostream& ost, const ALStrin
 				ost << "\n";
 			}
 
-			// Ligne de de stats
+			// Ligne de stats
 			ost << TSV::Export(attributeReport->GetPreparedAttributeName());
 			ost << "\t" << TSV::Export(attributeReport->GetNativeAttributeName());
 			if (bWriteUnivariateEvaluation)

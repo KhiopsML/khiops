@@ -114,7 +114,7 @@ void KWDiscretizerUsingSourceValues::ComputeCumulativeTargetFrequencies(
 	require(oaCumulativeTargetFrequencies != NULL);
 	require(oaCumulativeTargetFrequencies->GetSize() == 0);
 
-	// Initialisation des des vecteurs de frequences cumulees par modalite cible
+	// Initialisation des vecteurs de frequences cumulees par modalite cible
 	nInstanceNumber = quantileBuilder->GetInstanceNumber();
 	nValueNumber = quantileBuilder->GetValueNumber();
 	oaCumulativeTargetFrequencies->SetSize(nTargetValueNumber);

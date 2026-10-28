@@ -2260,7 +2260,7 @@ KWDRBuildGraph::KWDRBuildGraph()
 	GetOutputOperandAt(1)->SetType(KWType::Object);
 	GetOutputOperandAt(2)->SetType(KWType::ObjectArray);
 
-	// Table des arcs du graphe, avec les donnees d'entree par arc, les les deux noeuds extremites
+	// Table des arcs du graphe, avec les donnees d'entree par arc, les deux noeuds extremites
 	GetOutputOperandAt(3)->SetType(KWType::ObjectArray);
 	GetOutputOperandAt(4)->SetType(KWType::Object);
 	GetOutputOperandAt(5)->SetType(KWType::Object);

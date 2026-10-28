@@ -314,7 +314,7 @@ protected:
 	// Il est a noter que la detection des instances elephants peut differer en fonction de la tache
 	// (extraction des quantiles, preparation, evaluation, deploiement) et des ressources disponibles.
 	// Il est ici important de ne pas ignorer les instances elephants (on les garde ici de facon degradee),
-	// de facon a garantir que le le nombre d'instances traitees soit le meme tout au long du processus de
+	// de facon a garantir que le nombre d'instances traitees soit le meme tout au long du processus de
 	// modelisation, alors que certaines instances elephants peuvent etre detectees on non selon les phases
 	// du processus.
 

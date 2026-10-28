@@ -31,7 +31,7 @@ public:
 	// Tous les attributs initiaux ont un cout homogene
 	void ComputeInitialAttributeCosts(KWClass* kwcValue) const;
 
-	// Import des couts de construction par attribut a a partir des meta-donnes (Cost) des attributs
+	// Import des couts de construction par attribut a partir des meta-donnes (Cost) des attributs
 	// Methode avancee appelable sur une classe quelconque
 	// Renvoie true si ensemble des cout coherents, et importe effectivement les couts
 	// Sinon, renvoie false avec des messages d'erreur
