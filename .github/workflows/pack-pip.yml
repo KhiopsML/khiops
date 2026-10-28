@@ -38,6 +38,27 @@ jobs:
   build-wheel:
     name: Build wheel
     runs-on: ${{ matrix.os }}
+    env:
+      # Path of the constraints file as seen by the build.
+      # Set by the "Generate build constraints" step (host path on Windows and
+      # macOS, /project/... path on Linux, where the build runs in a container).
+      # Only taken into account by cibuildwheel, not by steps run on the GitHub
+      # runner itself.
+      #
+      # Forward the variable into the Linux build container.
+      # Without this, the variable is empty there and the constraint is not applied.
+      # N.B.: The literal is mapped here. The CIBW_CONSTRAINTS_PATH is set
+      # later, in the "Generate build constraints" step
+      CIBW_ENVIRONMENT_PASS_LINUX: CIBW_CONSTRAINTS_PATH
+      # Apply the minimal versions to the installation of build-system.requires
+      # done by the default `build` frontend (a top-level pip install, hence
+      # PIP_CONSTRAINT applies).
+      # If cibuildwheel already sets PIP_CONSTRAINT (its pinned build-tool
+      # versions), this existing value is kept and the values defined herein are
+      # appended.
+      # pip splits multi-valued environment options on whitespace, hence the
+      # paths must not contain spaces.
+      CIBW_ENVIRONMENT: PIP_CONSTRAINT="$PIP_CONSTRAINT $CIBW_CONSTRAINTS_PATH"
     # intel-mpi is not available for arm64, so we can not build the wheel for windows-11-arm
     strategy:
       matrix:
@@ -68,6 +89,23 @@ jobs:
         with:
           minimal-pip-version: ${{ env.MINIMAL_PIP_VERSION }}
           minimal-certifi-version: ${{ env.MINIMAL_CERTIFI_VERSION }}
+      - name: Generate build constraints
+        run: |
+          # Constraints only restrict packages that are installed in the isolated
+          # build environment: a package that is absent is not constrained.
+          # The file is in the repository root, hence cibuildwheel copies it
+          # into the Linux container alongside the project.
+          printf 'pip>=%s\ncertifi>=%s\n' \
+            "$MINIMAL_PIP_VERSION" "$MINIMAL_CERTIFI_VERSION" > build-constraints.txt
+          case "$RUNNER_OS" in
+            # cygpath -m formats paths with forward slashes (D:/a/...), which
+            # homogenizes path format with forward slashes everywhere
+            Windows) path="$(cygpath -m "$PWD/build-constraints.txt")" ;;
+            # Location of the project inside the cibuildwheel Linux container
+            Linux)   path="/project/build-constraints.txt" ;;
+            *)       path="$PWD/build-constraints.txt" ;;
+          esac
+          echo "CIBW_CONSTRAINTS_PATH=$path" >> "$GITHUB_ENV"
       - name: Build wheels
         uses: pypa/cibuildwheel@v4.3.4
         env:
