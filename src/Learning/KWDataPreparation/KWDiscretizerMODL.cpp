@@ -1534,6 +1534,7 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 						     KWMODLLineDeepOptimization*& headInterval) const
 {
 	const boolean bTrace = false;
+	const boolean bTraceDetails = false;
 	longint lDisplayFreshness;
 	SortedList splitList(KWMODLLineDeepOptimizationCompareSplitDeltaCost);
 	SortedList mergeSplitList(KWMODLLineDeepOptimizationCompareMergeSplitDeltaCost);
@@ -1556,6 +1557,8 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 	lDisplayFreshness = 0;
 
 	// Initialisation des listes d'ameliorations
+	// La liste commencant par headInterval contient les intervalles de la solution initiale
+	// La table kwftSource contient tous les intervalles elementaires potentiels pour changer les bornes
 	InitializeSplitList(kwftSource, headInterval);
 	InitializeMergeSplitList(kwftSource, headInterval);
 	InitializeMergeMergeSplitList(kwftSource, headInterval);
@@ -1573,16 +1576,12 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 	// Affichage de l'en-tete des messages
 	if (bTrace)
 	{
-		cout << "Best Delta Cost"
-		     << "\t"
-		     << "Model Delta Cost"
-		     << "\t"
-		     << "Intervalles"
-		     << "\t"
-		     << "Optimisation"
-		     << "\t";
-		headInterval->WriteHeaderLineReport(cout);
-		cout << endl;
+		cout << "IntervalListPostOptimization\t" << kwftSource->GetFrequencyVectorNumber() << "\t"
+		     << kwftSource->GetFrequencyVectorSize() << "\n";
+		cout << "Intervals\tSplit\tMergeSplit\tMergeMergeSplit\tBest\tModel delta cost\tOptimization\t";
+		if (bTraceDetails)
+			headInterval->WriteHeaderLineReport(cout);
+		cout << "\n";
 	}
 
 	// Recherche iterative de la meilleure amelioration
@@ -1670,6 +1669,16 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 		if (dMergeMergeSplitDeltaCost < dBestDeltaCost + dEpsilon)
 			dBestDeltaCost = dMergeMergeSplitDeltaCost;
 
+		// Trace des couts d'optimisation
+		if (bTrace)
+		{
+			cout << nIntervalNumber << "\t";
+			cout << dSplitDeltaCost << "\t";
+			cout << dMergeSplitDeltaCost << "\t";
+			cout << dMergeMergeSplitDeltaCost << "\t";
+			cout << dBestDeltaCost << "\t";
+		}
+
 		// Pas d'optimisation si la variation de cout est strictement positive
 		if (dBestDeltaCost > 0)
 		{
@@ -1678,11 +1687,10 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 			// Affichage d'un message
 			if (bTrace)
 			{
-				cout << dBestDeltaCost << "\t";
 				if (nIntervalNumber > 1)
 					cout << ComputePartitionDeltaCost(nIntervalNumber, 0);
-				cout << "\t";
-				cout << nIntervalNumber << endl;
+				cout << "\tStop";
+				cout << "\n";
 			}
 		}
 		// On effectue en priorite les MergeMergeSplit
@@ -1691,10 +1699,11 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 			// Affichage d'un message
 			if (bTrace)
 			{
-				cout << dBestDeltaCost << "\t" << ComputePartitionDeltaCost(nIntervalNumber, 0) << "\t"
-				     << nIntervalNumber << "\tMergeMergeSplit\t";
-				mergeMergeSplitInterval->WriteLineReport(cout);
-				cout << endl;
+				cout << ComputePartitionDeltaCost(nIntervalNumber, 0) << "\t";
+				cout << "MergeMergeSplit\t";
+				if (bTraceDetails)
+					mergeMergeSplitInterval->WriteLineReport(cout);
+				cout << "\n";
 			}
 
 			// Mise a jour des listes d'optimisation
@@ -1712,8 +1721,9 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 			// Affichage d'un message
 			if (bTrace)
 			{
-				cout << dBestDeltaCost << "\t" << ComputePartitionDeltaCost(nIntervalNumber, 0) << "\t"
-				     << nIntervalNumber << endl;
+				cout << ComputePartitionDeltaCost(nIntervalNumber, 0) << "\t";
+				cout << "\tEnd";
+				cout << "\n";
 			}
 		}
 		// Test si MergeSplit (prioritaire par rapport au Split)
@@ -1722,9 +1732,11 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 			// Affichage d'un message
 			if (bTrace)
 			{
-				cout << dBestDeltaCost << "\t" << 0 << "\t" << nIntervalNumber << "\tMergeSplit\t";
-				mergeSplitInterval->WriteLineReport(cout);
-				cout << endl;
+				cout << 0 << "\t";
+				cout << "MergeSplit\t";
+				if (bTraceDetails)
+					mergeSplitInterval->WriteLineReport(cout);
+				cout << "\n";
 			}
 
 			// Mise a jour des listes d'optimisation
@@ -1739,10 +1751,11 @@ void KWDiscretizerMODL::IntervalListPostOptimization(const KWFrequencyTable* kwf
 			// Affichage d'un message
 			if (bTrace)
 			{
-				cout << dBestDeltaCost << "\t" << -ComputePartitionDeltaCost(nIntervalNumber + 1, 0)
-				     << "\t" << nIntervalNumber << "\tSplit\t";
-				splitInterval->WriteLineReport(cout);
-				cout << endl;
+				cout << -ComputePartitionDeltaCost(nIntervalNumber + 1, 0) << "\t";
+				cout << "Split\t";
+				if (bTraceDetails)
+					splitInterval->WriteLineReport(cout);
+				cout << "\n";
 			}
 
 			// Mise a jour des listes d'optimisation

@@ -42,7 +42,7 @@ public:
 	void SetDataGridCosts(const KWDataGridCosts* kwdgcCosts);
 	const KWDataGridCosts* GetDataGridCosts() const;
 
-	// Optimisation d'un grille pour une structure de cout donnees
+	// Optimisation d'une grille pour une structure de cout donnees
 	// La grille initiale en entree contient la description la plus fine possible des
 	// partitions de chaque attribut.
 	// En entree, la grille optimisee constitue une solution de depart, compatible avec la grille initiale.

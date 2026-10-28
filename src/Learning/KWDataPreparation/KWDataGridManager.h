@@ -148,17 +148,18 @@ public:
 
 	// Ajout d'intervalles au voisinage des parties existantes d'un attribut continu donne.
 	// Des intervalles sont ajoutes de chaque cote de chaque borne de la partition obligatoire.
-	// Chaque intervalle ajoute doit respecter un effectif minimal.
-	// Si le facteur d'accroissement des effectifs est strictement superieur a 1, l'effectif
+	// L'effectif cumule est mesure depuis la borne de depart, independamment pour chaque cote.
+	// Chaque intervalle ajoute doit respecter un effectif cumule minimal depuis cette borne.
+	// Si le facteur d'accroissement des effectifs est strictement superieur a 1, l'effectif cumule
 	// minimal des intervalles ajoutes augmente a mesure qu'ils s'eloignent de la borne, selon
 	// une loi geometrique (Min, F * Min, F * F * Min, ...).
-	// Sinon, l'effectif minimal reste constant.
+	// Sinon, l'effectif cumule minimal suit une loi arithmetique (Min, 2 * Min, 3 * Min, ...).
 	// L'ajout d'intervalles s'arrete lorsque le nombre maximal est atteint ou que l'effectif
-	// cumule des intervalles ajoutes atteint ou depasse l'effectif minimal theorique correspondant au
-	// nombre maximal d'intervalles.
+	// cumule des intervalles ajoutes atteint ou depasse l'effectif cumule minimal theorique
+	// correspondant au nombre maximal d'intervalles.
 	// Par exemple, avec un effectif minimal de 10, un facteur d'accroissement de 2 et au plus
-	// 3 intervalles, les effectifs minimaux requis sont 10, 20 et 40, soit un total theorique de 70.
-	// L'ajout s'arrete des que l'effectif cumule depasse 70 ou que 3 intervalles ont ete ajoutes.
+	// 3 intervalles, les effectifs cumules minimaux requis sont 10, 20 et 40.
+	// L'ajout s'arrete des que l'effectif cumule atteint ou depasse 40 ou que 3 intervalles ont ete ajoutes.
 	void AddContinuousAttributeNearbyParts(const KWDataGrid* sourceDataGrid, const KWDataGrid* mandatoryDataGrid,
 					       const ALString& sAttributeName, int nNearbyIntervalMinFrequency,
 					       int nNearbyIntervalIncreasingFactor, int nNearbyMaxIntervalNumber,

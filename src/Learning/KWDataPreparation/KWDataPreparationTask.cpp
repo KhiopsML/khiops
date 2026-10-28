@@ -578,7 +578,7 @@ longint KWDataPreparationTask::ComputeNecessaryWorkingMemory(const KWLearningSpe
 			nTargetValueNumber = learningSpec->GetTargetDescriptiveStats()->GetValueNumber();
 		}
 
-		// Un grille bivariee maximale complete initiale (cf. KWAttributeSubsetStats.CreateDatagrid)
+		// Une grille bivariee maximale complete initiale (cf. KWAttributeSubsetStats.CreateDatagrid)
 		lInitialDatagridSize =
 		    (longint)nDatabaseObjectNumber * sizeof(KWDGMCell) +
 		    (longint)(nSourceValueNumber + nTargetValueNumber) *

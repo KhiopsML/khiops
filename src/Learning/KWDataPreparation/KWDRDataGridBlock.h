@@ -211,7 +211,7 @@ protected:
 	KWContinuousValueBlock* BuildRecodedBlock(const KWValueBlock* sourceValueBlock, int nSourceBlockType,
 						  IntVector* ivTargetRecodedValueIndexes) const;
 
-	// Calcul de l'index d'une valeur pour un grille donnees
+	// Calcul de l'index d'une valeur pour une grille donnees
 	int ComputeContinuousCellIndex(const KWDRDataGrid* dataGridRule, Continuous cValue) const;
 	int ComputeSymbolCellIndex(const KWDRDataGrid* dataGridRule, const Symbol& sValue) const;
 

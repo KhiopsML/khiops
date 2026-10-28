@@ -519,9 +519,9 @@ void CCCoclusteringBuilder::RemoveLastSavedReportFile() const
 void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
 						   const KWDataGrid* initialGranularizedDataGrid) const
 {
+	const boolean bTrace = false;
 	boolean bKeepIntermediateReports = false;
 	boolean bWriteOk;
-	const boolean bTrace = false;
 	boolean bTraceGranularity;
 	const int nMaxVarPartsDisplayed = 10;
 	const double dEpsilon = 1e-6;
@@ -708,7 +708,13 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 
 	// Parametrage de l'optimiser selon le type de grille
 	if (not initialDataGrid->IsVarPartDataGrid())
+	{
 		dataGridOptimizer = &dataGridOptimizerVxV;
+
+		// Dans le cas du coclustering en mode anytime, on optimise par granularite croissante
+		// pour avoir des premieres solutions rapidement
+		dataGridOptimizerVxV.SetIncreasingGranularityOptimization(true);
+	}
 	else
 		dataGridOptimizer = &dataGridOptimizerIxV;
 
@@ -1097,7 +1103,7 @@ boolean CCCoclusteringBuilder::CreateVarPartInitialDataGrid()
 	TaskProgression::BeginTask();
 	TaskProgression::DisplayMainLabel("Create coclustering optimization data");
 
-	// Creation d'un grille vide de type IxV
+	// Creation d'une grille vide de type IxV
 	initialDataGrid = CreateVarPartEmptyDataGrid();
 
 	// Lecture des enregistrements de la base

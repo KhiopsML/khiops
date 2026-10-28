@@ -22,7 +22,7 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
-	// Optimisation d'un grille
+	// Optimisation d'une grille
 	double InternalOptimizeDataGrid(const KWDataGrid* initialDataGrid,
 					KWDataGrid* optimizedDataGrid) const override;
 
