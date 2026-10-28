@@ -107,7 +107,8 @@ jobs:
             *)       path="$PWD/build-constraints.txt" ;;
           esac
           # Impossible constraint: it should trigger failure
-          echo "ninja==0.0.0" >> build-constraints.txt
+          # echo "ninja==0.0.0" >> build-constraints.txt
+          echo "certifi==99999" >> build-constraints.txt
           echo "CIBW_CONSTRAINTS_PATH=$path" >> "$GITHUB_ENV"
       - name: Build wheels
         uses: pypa/cibuildwheel@v4.3.4
