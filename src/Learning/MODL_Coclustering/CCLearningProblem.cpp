@@ -455,9 +455,15 @@ void CCLearningProblem::PostProcessCoclustering()
 	if (bOk)
 		bOk = coclusteringReport.ReadReport(sCoclusteringReportFileName, &postProcessedCoclusteringDataGrid);
 
+	// Cas du mode Importance active : calcul de l'ensemble des importances
+	if (GetImportanceMode())
+		postProcessedCoclusteringDataGrid.ComputeAllImportances();
+
 	// Post-traitement
 	if (bOk)
+	{
 		bOk = GetPostProcessingSpec()->PostProcessCoclustering(&postProcessedCoclusteringDataGrid);
+	}
 
 	// Test si au moins 1 attribut present dans le coclustering
 	if (postProcessedCoclusteringDataGrid.GetAttributeNumber() == 0)
@@ -471,8 +477,10 @@ void CCLearningProblem::PostProcessCoclustering()
 	{
 		AddSimpleMessage("Write simplified report " + sPostProcessedCoclusteringReportFileName);
 
-		// Import des donnees de logs du rapport initial
+		// Import des donnees de logs du rapport initial et de son format
 		postProcessedcoclusteringReport.ImportErrorLogsFromReport(&coclusteringReport);
+		postProcessedcoclusteringReport.SetOldFormatBeforeImportance(
+		    coclusteringReport.GetOldFormatBeforeImportance());
 
 		bOk = postProcessedcoclusteringReport.WriteReport(sPostProcessedCoclusteringReportFileName,
 								  &postProcessedCoclusteringDataGrid);
@@ -1192,8 +1200,11 @@ void CCLearningProblem::WriteGroupableClusters(const CCHDGAttribute* groupableCo
 	require(groupableCoclusteringAttribute != NULL);
 	require(KWType::IsCoclusteringGroupableType(groupableCoclusteringAttribute->GetAttributeType()));
 
-	// Entete
-	ost << "Cluster\tValue\tFrequency\tTypicality\n";
+	// Entete : deux cas selon l'ancien mode avec typicite ou le nouveau mode avec importance
+	if (not GetImportanceMode())
+		ost << "Cluster\tValue\tFrequency\tTypicality\n";
+	else
+		ost << "Cluster\tValue\tFrequency\tImportance\n";
 
 	// Parcours des parties
 	dgPart = groupableCoclusteringAttribute->GetHeadPart();
@@ -1207,8 +1218,12 @@ void CCLearningProblem::WriteGroupableClusters(const CCHDGAttribute* groupableCo
 		while (dgValue != NULL)
 		{
 			// Caracteristiques des valeurs
-			ost << hdgPart->GetUserLabel() << "\t" << dgValue->GetObjectLabel() << "\t"
-			    << dgValue->GetValueFrequency() << "\t" << dgValue->GetTypicality() << "\n";
+			if (not GetImportanceMode())
+				ost << hdgPart->GetUserLabel() << "\t" << dgValue->GetObjectLabel() << "\t"
+				    << dgValue->GetValueFrequency() << "\t" << dgValue->GetTypicality() << "\n";
+			else
+				ost << hdgPart->GetUserLabel() << "\t" << dgValue->GetObjectLabel() << "\t"
+				    << dgValue->GetValueFrequency() << "\t" << dgValue->GetImportance() << "\n";
 
 			// Valeur suivante
 			dgValueSet->GetNextValue(dgValue);

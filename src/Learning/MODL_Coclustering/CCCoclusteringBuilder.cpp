@@ -2759,6 +2759,10 @@ void CCCoclusteringBuilder::ComputeHierarchicalInfo(const KWDataGrid* inputIniti
 	require(dataGridCosts != NULL);
 	require(optimizedDataGrid != NULL);
 
+	// Cas du mode Importance active : calcul de l'ensemble des importances
+	if (GetImportanceMode())
+		optimizedDataGrid->ComputeAllImportances();
+
 	// Memorisation des bornes des attributs Continuous
 	ComputeContinuousAttributeBounds(optimizedDataGrid);
 
@@ -2811,7 +2815,9 @@ void CCCoclusteringBuilder::ComputeHierarchicalInfo(const KWDataGrid* inputIniti
 	// Calcul des rangs des parties
 	ComputePartRanks(&dataGridMerger, dataGridCosts, optimizedDataGrid);
 
-	// Tri des valeurs par typicalite decorissante pour les attributs categoriels
+	// Tri des valeurs pour les attributs categoriels :
+	// - par typicalite decroissante si ancien mode de calcul des indicateurs (interest, typicite)
+	// - par importance decroissante si nouveau mode (importance)
 	SortAttributePartsAndValues(optimizedDataGrid);
 }
 
@@ -3579,14 +3585,24 @@ void CCCoclusteringBuilder::ComputePartHierarchies(KWDataGridMerger* optimizedDa
 			hdgParentPart->SetPartFrequency(hdgParentPart->GetChildPart1()->GetPartFrequency() +
 							hdgParentPart->GetChildPart2()->GetPartFrequency());
 
-			// Typicite par moyenne ponderee des typicites des parties filles
-			dInterest = (hdgParentPart->GetChildPart1()->GetPartFrequency() *
-					 hdgParentPart->GetChildPart1()->GetInterest() +
-				     hdgParentPart->GetChildPart2()->GetPartFrequency() *
-					 hdgParentPart->GetChildPart2()->GetInterest());
-			if (hdgParentPart->GetPartFrequency() > 0)
-				dInterest /= hdgParentPart->GetPartFrequency();
-			hdgParentPart->SetInterest(dInterest);
+			// Anciens indicateurs
+			if (not GetImportanceMode())
+			{
+
+				// Typicite par moyenne ponderee des typicites des parties filles
+				dInterest = (hdgParentPart->GetChildPart1()->GetPartFrequency() *
+						 hdgParentPart->GetChildPart1()->GetInterest() +
+					     hdgParentPart->GetChildPart2()->GetPartFrequency() *
+						 hdgParentPart->GetChildPart2()->GetInterest());
+				if (hdgParentPart->GetPartFrequency() > 0)
+					dInterest /= hdgParentPart->GetPartFrequency();
+				hdgParentPart->SetInterest(dInterest);
+			}
+
+			// Nouveaux indicateurs
+			else
+				hdgParentPart->SetImportance(hdgParentPart->GetChildPart1()->GetImportance() +
+							     hdgParentPart->GetChildPart2()->GetImportance());
 
 			// Realisation de la fusion
 			dgmMergedPart = optimizedDataGridMerger->PerformPartMerge(bestPartMerge);
@@ -3673,7 +3689,7 @@ void CCCoclusteringBuilder::ComputePartRanks(const KWDataGridMerger* optimizedDa
 			hdgPart = cast(CCHDGPart*, oaAttributeParts.GetAt(nPart));
 			assert(not hdgPart->IsLeaf() or hdgPart->Check());
 
-			// Reordonnancement des sous parties par maximum d'interet pour les parties intermediaires de la
+			// Reordonnancement des sous parties par maximum d'interet / d'importance pour les parties intermediaires de la
 			// hierarchie Uniquement dans le cas Symbol
 			if (hdgAttribute->GetAttributeType() == KWType::Symbol)
 			{
@@ -3681,29 +3697,64 @@ void CCCoclusteringBuilder::ComputePartRanks(const KWDataGridMerger* optimizedDa
 				hdgChildPart2 = hdgPart->GetChildPart2();
 				if (hdgChildPart1 != NULL and hdgChildPart2 != NULL)
 				{
-					if (hdgChildPart1->GetInterest() < hdgChildPart2->GetInterest())
+					if (not GetImportanceMode())
 					{
-						hdgPart->SetChildPart1(hdgChildPart2);
-						hdgPart->SetChildPart2(hdgChildPart1);
-					}
-					// En cas d'egalite des interets des parties, comparaison de leur effectif
-					else if (hdgChildPart1->GetInterest() == hdgChildPart2->GetInterest())
-					{
-						if (hdgChildPart1->GetPartFrequency() <
-						    hdgChildPart2->GetPartFrequency())
+						if (hdgChildPart1->GetInterest() < hdgChildPart2->GetInterest())
 						{
 							hdgPart->SetChildPart1(hdgChildPart2);
 							hdgPart->SetChildPart2(hdgChildPart1);
 						}
-						// En cas d'egalite d'effectif, comparaison lexicographique des noms des
-						// parties
-						else if (hdgChildPart1->GetPartFrequency() ==
-							 hdgChildPart2->GetPartFrequency())
+						// En cas d'egalite des interets des parties, comparaison de leur effectif
+						else if (hdgChildPart1->GetInterest() == hdgChildPart2->GetInterest())
 						{
-							if (hdgChildPart1->GetPartName() > hdgChildPart2->GetPartName())
+							if (hdgChildPart1->GetPartFrequency() <
+							    hdgChildPart2->GetPartFrequency())
 							{
 								hdgPart->SetChildPart1(hdgChildPart2);
 								hdgPart->SetChildPart2(hdgChildPart1);
+							}
+							// En cas d'egalite d'effectif, comparaison lexicographique des noms des
+							// parties
+							else if (hdgChildPart1->GetPartFrequency() ==
+								 hdgChildPart2->GetPartFrequency())
+							{
+								if (hdgChildPart1->GetPartName() >
+								    hdgChildPart2->GetPartName())
+								{
+									hdgPart->SetChildPart1(hdgChildPart2);
+									hdgPart->SetChildPart2(hdgChildPart1);
+								}
+							}
+						}
+					}
+					else
+					{
+						if (hdgChildPart1->GetImportance() < hdgChildPart2->GetImportance())
+						{
+							hdgPart->SetChildPart1(hdgChildPart2);
+							hdgPart->SetChildPart2(hdgChildPart1);
+						}
+						// En cas d'egalite des importances des parties, comparaison de leur effectif
+						else if (hdgChildPart1->GetImportance() ==
+							 hdgChildPart2->GetImportance())
+						{
+							if (hdgChildPart1->GetPartFrequency() <
+							    hdgChildPart2->GetPartFrequency())
+							{
+								hdgPart->SetChildPart1(hdgChildPart2);
+								hdgPart->SetChildPart2(hdgChildPart1);
+							}
+							// En cas d'egalite d'effectif, comparaison lexicographique des noms des
+							// parties
+							else if (hdgChildPart1->GetPartFrequency() ==
+								 hdgChildPart2->GetPartFrequency())
+							{
+								if (hdgChildPart1->GetPartName() >
+								    hdgChildPart2->GetPartName())
+								{
+									hdgPart->SetChildPart1(hdgChildPart2);
+									hdgPart->SetChildPart2(hdgChildPart1);
+								}
 							}
 						}
 					}
@@ -3805,7 +3856,12 @@ void CCCoclusteringBuilder::SortAttributePartsAndValues(CCHierarchicalDataGrid* 
 		{
 			// Tri des valeurs de la partie si attribut categoriel
 			if (dgAttribute->GetAttributeType() == KWType::Symbol)
-				dgPart->GetValueSet()->SortValuesByDecreasingTypicalities();
+			{
+				if (not GetImportanceMode())
+					dgPart->GetValueSet()->SortValuesByDecreasingTypicalities();
+				else
+					dgPart->GetValueSet()->SortValuesByDecreasingImportances();
+			}
 
 			// Initialisation du nom de la partie
 			cast(CCHDGPart*, dgPart)->SetPartName(dgPart->GetObjectLabel());
@@ -3830,7 +3886,14 @@ void CCCoclusteringBuilder::SortAttributePartsAndValues(CCHierarchicalDataGrid* 
 
 					// Tri des valeurs de la partie si attribut interne categoriel
 					if (innerAttribute->GetAttributeType() == KWType::Symbol)
-						innerPart->GetSymbolValueSet()->SortValuesByDecreasingTypicalities();
+					{
+						if (not GetImportanceMode())
+							innerPart->GetSymbolValueSet()
+							    ->SortValuesByDecreasingTypicalities();
+						else
+							innerPart->GetSymbolValueSet()
+							    ->SortValuesByDecreasingImportances();
+					}
 
 					// Initialisation du nom de la partie
 					cast(CCHDGPart*, innerPart)->SetPartName(innerPart->GetVarPartLabel());
