@@ -2815,7 +2815,9 @@ void CCCoclusteringBuilder::ComputeHierarchicalInfo(const KWDataGrid* inputIniti
 	// Calcul des rangs des parties
 	ComputePartRanks(&dataGridMerger, dataGridCosts, optimizedDataGrid);
 
-	// Tri des valeurs par typicalite decorissante pour les attributs categoriels
+	// Tri des valeurs pour les attributs categoriels :
+	// - par typicalite decroissante si ancien mode de calcul des indicateurs (interest, typicite)
+	// - par importance decroissante si nouveau mode (importance)
 	SortAttributePartsAndValues(optimizedDataGrid);
 }
 
@@ -3687,7 +3689,7 @@ void CCCoclusteringBuilder::ComputePartRanks(const KWDataGridMerger* optimizedDa
 			hdgPart = cast(CCHDGPart*, oaAttributeParts.GetAt(nPart));
 			assert(not hdgPart->IsLeaf() or hdgPart->Check());
 
-			// Reordonnancement des sous parties par maximum d'interet pour les parties intermediaires de la
+			// Reordonnancement des sous parties par maximum d'interet / d'importance pour les parties intermediaires de la
 			// hierarchie Uniquement dans le cas Symbol
 			if (hdgAttribute->GetAttributeType() == KWType::Symbol)
 			{

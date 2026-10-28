@@ -215,9 +215,9 @@ boolean CCHierarchicalDataGrid::CheckImportances() const
 				bOk = fabs(dTotalValueImportance - 1) < dEpsilon;
 				if (not bOk)
 				{
-					break;
 					AddWarning("Inconsistent value importances for part\t" +
 						   dgPart->GetClassLabel());
+					break;
 				}
 			}
 			attribute->GetNextPart(dgPart);
@@ -225,8 +225,8 @@ boolean CCHierarchicalDataGrid::CheckImportances() const
 		bOk = fabs(dTotalPartImportance - 1) < dEpsilon;
 		if (not bOk)
 		{
-			break;
 			AddWarning("Inconsistent part importances for attribute\t" + attribute->GetAttributeName());
+			break;
 		}
 	}
 	bOk = fabs(dTotalAttributeImportance - 1) < dEpsilon;
@@ -270,9 +270,9 @@ boolean CCHierarchicalDataGrid::CheckImportances() const
 					bOk = fabs(dTotalValueImportance - 1) < dEpsilon;
 					if (not bOk)
 					{
-						break;
 						AddWarning("Inconsistent value importances for part\t" +
 							   dgPart->GetClassLabel());
+						break;
 					}
 				}
 				attribute->GetNextPart(dgPart);
@@ -281,16 +281,16 @@ boolean CCHierarchicalDataGrid::CheckImportances() const
 			//bOk = fabs(dTotalPartImportance - 1 < dEpsilon);
 			if (not bOk)
 			{
-				break;
 				AddWarning("Inconsistent part importances for attribute\t" +
 					   attribute->GetAttributeName());
+				break;
 			}
 			bOk = fabs(dTotalPartImportanceInVariable - 1) < dEpsilon;
 			if (not bOk)
 			{
-				break;
 				AddWarning("Inconsistent part importances in variable for attribute\t" +
 					   attribute->GetAttributeName());
+				break;
 			}
 		}
 		bOk = fabs(dTotalAttributeImportance - 1) < dEpsilon;
@@ -747,11 +747,9 @@ CCHDGPart* CCHDGAttribute::MergePart(CCHDGPart* part)
 
 	// Calcul de l'importance de la partie fusionnee
 	// L'importance de la partie est ici additive, car elle est relative a son cluster
-	if (GetImportanceMode())
-	{
-		assert(sourcePart->GetImportance() > 0 and targetPart->GetImportance() > 0);
-		targetPart->SetImportance(sourcePart->GetImportance() + targetPart->GetImportance());
-	}
+	// L'assertion pourra etre >0 quand l'ancien mode avec Interest sera supprime
+	assert(sourcePart->GetImportance() >= 0 and targetPart->GetImportance() >= 0);
+	targetPart->SetImportance(sourcePart->GetImportance() + targetPart->GetImportance());
 
 	// Cas d'un attribut groupable : renormalisation de l'importance des elements de la partie fusionnee par rapport a son effectif
 	// et a la nouvelle importance de la partie fusionnee

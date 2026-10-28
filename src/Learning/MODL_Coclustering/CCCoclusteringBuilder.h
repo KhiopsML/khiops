@@ -335,7 +335,7 @@ protected:
 	// Numerotation (Ranks) des noeuds d'un arbre de partie de coclustering par parcours infixe
 	void ComputePartInfixRanks(CCHDGPart* hdgRootgPart) const;
 
-	// Tri des valeurs par typicalite decroissante pour les attributs categoriels, et initialisation du nom des
+	// Tri des valeurs par typicalite (ancien mode) / importance (nouveau mode) decroissante pour les attributs categoriels, et initialisation du nom des
 	// parties feuilles
 	void SortAttributePartsAndValues(CCHierarchicalDataGrid* optimizedDataGrid) const;
 

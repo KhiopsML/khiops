@@ -197,7 +197,7 @@ public:
 	// Exports de toutes les parties de la hierarchie en partant de la racine
 	void ExportHierarchyParts(ObjectArray* oaParts) const;
 
-	// Tri des parties feuilles par rang croissante
+	// Tri des parties feuilles par rang croissant
 	void SortPartsByRank();
 
 	// Controle d'integrite pour la hierarchie

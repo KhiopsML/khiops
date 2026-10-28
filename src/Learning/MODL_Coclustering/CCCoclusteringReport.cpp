@@ -2512,7 +2512,7 @@ void CCCoclusteringReport::WriteDimensionSummary(CCHDGAttribute* attribute, JSON
 	fJSON->WriteKeyInt("initialParts", attribute->GetInitialPartNumber());
 	fJSON->WriteKeyInt("values", nValueNumber);
 	if (GetImportanceMode() or not bOldFormatBeforeImportance)
-		fJSON->WriteKeyDouble("importance", attribute->GetImportance());
+		fJSON->WriteKeyContinuous("importance", attribute->GetImportance());
 	else
 		fJSON->WriteKeyDouble("interest", attribute->GetInterest());
 	fJSON->WriteKeyString("description", attribute->GetDescription());
@@ -2590,11 +2590,11 @@ void CCCoclusteringReport::WriteAttributePartition(KWDGAttribute* attribute, JSO
 			{
 				// Cas d'un attribut interne
 				if (dgAttribute->IsInnerAttribute())
-					fJSON->WriteKeyDouble("importanceInVariable",
-							      hdgPart->GetImportanceInVariable());
+					fJSON->WriteKeyContinuous("importanceInVariable",
+								  hdgPart->GetImportanceInVariable());
 				// Sinon
 				else
-					fJSON->WriteKeyDouble("importance", hdgPart->GetImportance());
+					fJSON->WriteKeyContinuous("importance", hdgPart->GetImportance());
 			}
 			fJSON->BeginKeyList("bounds");
 			if (dgInterval->GetUpperBound() != KWContinuous::GetMissingValue())
@@ -2654,11 +2654,11 @@ void CCCoclusteringReport::WriteAttributePartition(KWDGAttribute* attribute, JSO
 			{
 				// Cas d'un attribut interne
 				if (attribute->IsInnerAttribute())
-					fJSON->WriteKeyDouble("importanceInVariable",
-							      hdgPart->GetImportanceInVariable());
+					fJSON->WriteKeyContinuous("importanceInVariable",
+								  hdgPart->GetImportanceInVariable());
 				// Sinon
 				else
-					fJSON->WriteKeyDouble("importance", hdgPart->GetImportance());
+					fJSON->WriteKeyContinuous("importance", hdgPart->GetImportance());
 			}
 
 			fJSON->BeginKeyList("values");
@@ -2711,7 +2711,7 @@ void CCCoclusteringReport::WriteAttributePartition(KWDGAttribute* attribute, JSO
 				while (dgValue != NULL)
 				{
 					if (dgValue->GetValueFrequency() > 0)
-						fJSON->WriteDouble(dgValue->GetImportance());
+						fJSON->WriteContinuous(dgValue->GetImportance());
 					dgValueSet->GetNextValue(dgValue);
 				}
 				fJSON->EndList();

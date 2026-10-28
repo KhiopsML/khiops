@@ -25,7 +25,7 @@
 				"parts": 2,
 				"initialParts": 6,
 				"values": 48842,
-				"importance": 0.166667,
+				"importance": 0.1666666667,
 				"description": "",
 				"min": 17,
 				"max": 90
@@ -36,7 +36,7 @@
 				"parts": 2,
 				"initialParts": 5,
 				"values": 14,
-				"importance": 0.166667,
+				"importance": 0.1666666667,
 				"description": ""
 			},
 			{
@@ -45,7 +45,7 @@
 				"parts": 2,
 				"initialParts": 4,
 				"values": 48842,
-				"importance": 0.166667,
+				"importance": 0.1666666667,
 				"description": "",
 				"min": 1,
 				"max": 16
@@ -56,7 +56,7 @@
 				"parts": 1,
 				"initialParts": 3,
 				"values": 48842,
-				"importance": 0.166667,
+				"importance": 0.1666666667,
 				"description": "",
 				"min": 1,
 				"max": 99
@@ -67,7 +67,7 @@
 				"parts": 3,
 				"initialParts": 3,
 				"values": 7,
-				"importance": 0.166667,
+				"importance": 0.1666666667,
 				"description": ""
 			},
 			{
@@ -76,7 +76,7 @@
 				"parts": 2,
 				"initialParts": 2,
 				"values": 2,
-				"importance": 0.166667,
+				"importance": 0.1666666667,
 				"description": ""
 			}
 		],
@@ -87,12 +87,12 @@
 				"intervals": [
 					{
 						"cluster": "]-inf,28.5]",
-						"importance": 0.352221,
+						"importance": 0.3522209945,
 						"bounds": [17,28.5]
 					},
 					{
 						"cluster": "]28.5,+inf[",
-						"importance": 0.647779,
+						"importance": 0.6477790054,
 						"bounds": [28.5,90]
 					}
 				]
@@ -102,21 +102,21 @@
 				"type": "Categorical",
 				"valueGroups": [
 					{
-						"cluster": "{Craft-repair, Machine-op-inspct, Transport-moving, ...}",
-						"importance": 0.276359,
-						"values": ["Craft-repair","Machine-op-inspct","Transport-moving","Handlers-cleaners","Farming-fishing","Protective-serv","Armed-Forces"],
-						"valueFrequencies": [6112,3022,2355,2072,1490,983,15],
-						"valueImportances": [0.380834,0.188298,0.146738,0.129105,0.0928407,0.0612499,0.000934638]
+						"cluster": "B8",
+						"importance": 0.7236414757,
+						"values": ["Exec-managerial","Sales","Prof-specialty","Other-service","Priv-house-serv","Adm-clerical","Tech-support"],
+						"valueFrequencies": [6086,5504,8981,4923,242,5611,1446],
+						"valueImportances": [0.3794737498,0.3431849358,0.5599825415,0.3069584736,0.01508916324,0.3498565906,0.09016086794]
 					},
 					{
-						"cluster": "B8",
-						"importance": 0.723642,
-						"values": ["Prof-specialty","Exec-managerial","Sales","Other-service","Priv-house-serv","Adm-clerical","Tech-support"],
-						"valueFrequencies": [8981,6086,5504,4923,242,5611,1446],
-						"valueImportances": [0.481632,0.32638,0.295168,0.26401,0.012978,0.300906,0.077546]
+						"cluster": "{Craft-repair, Machine-op-inspct, Transport-moving, ...}",
+						"importance": 0.2763585244,
+						"values": ["Craft-repair","Machine-op-inspct","Transport-moving","Handlers-cleaners","Farming-fishing","Protective-serv","Armed-Forces"],
+						"valueFrequencies": [6112,3022,2355,2072,1490,983,15],
+						"valueImportances": [0.3808336968,0.1882983363,0.1467381145,0.1291046171,0.09284067543,0.06124992211,0.0009346376721]
 					}
 				],
-				"defaultGroupIndex": 0
+				"defaultGroupIndex": 1
 			},
 			{
 				"name": "education_num",
@@ -124,12 +124,12 @@
 				"intervals": [
 					{
 						"cluster": "]-inf,12.5]",
-						"importance": 0.746128,
+						"importance": 0.7461279728,
 						"bounds": [1,12.5]
 					},
 					{
 						"cluster": "]12.5,+inf[",
-						"importance": 0.253872,
+						"importance": 0.2538720272,
 						"bounds": [12.5,16]
 					}
 				]
@@ -150,28 +150,28 @@
 				"type": "Categorical",
 				"valueGroups": [
 					{
-						"cluster": "{Never-married, Married-AF-spouse}",
-						"importance": 0.393111,
-						"values": ["Never-married","Married-AF-spouse"],
-						"valueFrequencies": [16117,37],
-						"valueImportances": [0.99771,0.00229045]
-					},
-					{
 						"cluster": "{Married-civ-spouse}",
-						"importance": 0.406752,
+						"importance": 0.4067521138,
 						"values": ["Married-civ-spouse"],
 						"valueFrequencies": [22379],
 						"valueImportances": [1]
 					},
 					{
 						"cluster": "{Divorced, Separated, Widowed, ...}",
-						"importance": 0.200137,
+						"importance": 0.2001366196,
 						"values": ["Divorced","Separated","Widowed","Married-spouse-absent"],
 						"valueFrequencies": [6633,1530,1518,628],
-						"valueImportances": [0.643418,0.148414,0.14725,0.0609176]
+						"valueImportances": [0.6434183723,0.1484140072,0.1472499757,0.06091764478]
+					},
+					{
+						"cluster": "{Never-married, Married-AF-spouse}",
+						"importance": 0.3931112667,
+						"values": ["Never-married","Married-AF-spouse"],
+						"valueFrequencies": [16117,37],
+						"valueImportances": [0.9977095456,0.002290454377]
 					}
 				],
-				"defaultGroupIndex": 0
+				"defaultGroupIndex": 2
 			},
 			{
 				"name": "sex",
@@ -179,14 +179,14 @@
 				"valueGroups": [
 					{
 						"cluster": "{Male}",
-						"importance": 0.59261,
+						"importance": 0.5926102354,
 						"values": ["Male"],
 						"valueFrequencies": [32650],
 						"valueImportances": [1]
 					},
 					{
 						"cluster": "{Female}",
-						"importance": 0.40739,
+						"importance": 0.4073897646,
 						"values": ["Female"],
 						"valueFrequencies": [16192],
 						"valueImportances": [1]
@@ -234,21 +234,21 @@
 				"type": "Categorical",
 				"clusters": [
 					{
-						"cluster": "{Craft-repair, Machine-op-inspct, Transport-moving, ...}",
-						"parentCluster": "B5",
-						"frequency": 16049,
-						"hierarchicalLevel": 1,
-						"rank": 1,
-						"hierarchicalRank": 23,
-						"isLeaf": true
-					},
-					{
 						"cluster": "B8",
 						"parentCluster": "B5",
 						"frequency": 32793,
 						"hierarchicalLevel": 0.67497,
-						"rank": 6,
+						"rank": 4,
 						"hierarchicalRank": 13,
+						"isLeaf": true
+					},
+					{
+						"cluster": "{Craft-repair, Machine-op-inspct, Transport-moving, ...}",
+						"parentCluster": "B5",
+						"frequency": 16049,
+						"hierarchicalLevel": 1,
+						"rank": 9,
+						"hierarchicalRank": 23,
 						"isLeaf": true
 					},
 					{
@@ -256,7 +256,7 @@
 						"parentCluster": "",
 						"frequency": 48842,
 						"hierarchicalLevel": 0.387819,
-						"rank": 2,
+						"rank": 8,
 						"hierarchicalRank": 10,
 						"isLeaf": false
 					}
@@ -315,20 +315,11 @@
 				"type": "Categorical",
 				"clusters": [
 					{
-						"cluster": "{Never-married, Married-AF-spouse}",
-						"parentCluster": "E1",
-						"frequency": 16154,
-						"hierarchicalLevel": 1,
-						"rank": 1,
-						"hierarchicalRank": 23,
-						"isLeaf": true
-					},
-					{
 						"cluster": "{Married-civ-spouse}",
 						"parentCluster": "E4",
 						"frequency": 22379,
 						"hierarchicalLevel": 1,
-						"rank": 3,
+						"rank": 1,
 						"hierarchicalRank": 23,
 						"isLeaf": true
 					},
@@ -337,26 +328,35 @@
 						"parentCluster": "E4",
 						"frequency": 10309,
 						"hierarchicalLevel": 1,
-						"rank": 5,
+						"rank": 3,
 						"hierarchicalRank": 23,
 						"isLeaf": true
 					},
 					{
-						"cluster": "E1",
-						"parentCluster": "",
-						"frequency": 48842,
-						"hierarchicalLevel": 0,
-						"rank": 2,
-						"hierarchicalRank": 6,
-						"isLeaf": false
+						"cluster": "{Never-married, Married-AF-spouse}",
+						"parentCluster": "E1",
+						"frequency": 16154,
+						"hierarchicalLevel": 1,
+						"rank": 5,
+						"hierarchicalRank": 23,
+						"isLeaf": true
 					},
 					{
 						"cluster": "E4",
 						"parentCluster": "E1",
 						"frequency": 32688,
 						"hierarchicalLevel": 0.25215,
-						"rank": 4,
+						"rank": 2,
 						"hierarchicalRank": 9,
+						"isLeaf": false
+					},
+					{
+						"cluster": "E1",
+						"parentCluster": "",
+						"frequency": 48842,
+						"hierarchicalLevel": 0,
+						"rank": 4,
+						"hierarchicalRank": 6,
 						"isLeaf": false
 					}
 				]
@@ -396,54 +396,54 @@
 			}
 		],
 		"cellPartIndexes": [
-			[1,0,0,0,1,0],
-			[1,1,0,0,1,0],
-			[1,1,1,0,1,0],
-			[1,1,0,0,2,1],
-			[0,1,0,0,0,1],
-			[0,1,0,0,0,0],
-			[0,0,0,0,0,0],
-			[1,0,0,0,2,0],
-			[1,1,0,0,0,1],
-			[1,0,0,0,0,0],
-			[1,1,0,0,1,1],
-			[1,1,0,0,2,0],
-			[1,1,1,0,2,1],
 			[1,1,0,0,0,0],
-			[0,0,0,0,1,0],
-			[1,1,1,0,0,0],
-			[1,1,1,0,0,1],
-			[0,1,1,0,0,1],
-			[0,1,1,0,0,0],
-			[1,0,0,0,2,1],
-			[1,1,1,0,2,0],
-			[1,1,1,0,1,1],
-			[1,0,1,0,1,0],
-			[0,1,0,0,1,0],
-			[0,1,0,0,2,1],
-			[0,0,0,0,0,1],
-			[0,1,0,0,1,1],
-			[1,0,0,0,0,1],
-			[0,1,1,0,1,0],
+			[1,0,0,0,0,0],
+			[1,0,1,0,0,0],
 			[1,0,0,0,1,1],
+			[0,0,0,0,2,1],
 			[0,0,0,0,2,0],
 			[0,1,0,0,2,0],
-			[1,0,1,0,2,0],
-			[0,1,1,0,1,1],
-			[0,0,1,0,0,0],
-			[1,0,1,0,0,0],
-			[0,0,0,0,2,1],
-			[0,0,0,0,1,1],
-			[0,1,1,0,2,1],
-			[0,0,1,0,1,0],
-			[1,0,1,0,0,1],
-			[1,0,1,0,2,1],
-			[0,0,1,0,0,1],
-			[0,1,1,0,2,0],
+			[1,1,0,0,1,0],
+			[1,0,0,0,2,1],
+			[1,1,0,0,2,0],
+			[1,0,0,0,0,1],
+			[1,0,0,0,1,0],
 			[1,0,1,0,1,1],
+			[1,0,0,0,2,0],
+			[0,1,0,0,0,0],
+			[1,0,1,0,2,0],
+			[1,0,1,0,2,1],
 			[0,0,1,0,2,1],
 			[0,0,1,0,2,0],
-			[0,0,1,0,1,1]
+			[1,1,0,0,1,1],
+			[1,0,1,0,1,0],
+			[1,0,1,0,0,1],
+			[1,1,1,0,0,0],
+			[0,0,0,0,0,0],
+			[0,0,0,0,1,1],
+			[0,1,0,0,2,1],
+			[0,0,0,0,0,1],
+			[1,1,0,0,2,1],
+			[0,0,1,0,0,0],
+			[1,1,0,0,0,1],
+			[0,1,0,0,1,0],
+			[0,0,0,0,1,0],
+			[1,1,1,0,1,0],
+			[0,0,1,0,0,1],
+			[0,1,1,0,2,0],
+			[1,1,1,0,2,0],
+			[0,1,0,0,1,1],
+			[0,1,0,0,0,1],
+			[0,0,1,0,1,1],
+			[0,1,1,0,0,0],
+			[1,1,1,0,2,1],
+			[1,1,1,0,1,1],
+			[0,1,1,0,2,1],
+			[0,0,1,0,1,0],
+			[1,1,1,0,0,1],
+			[0,1,1,0,1,1],
+			[0,1,1,0,1,0],
+			[0,1,1,0,0,1]
 		],
 		"cellFrequencies": [7103,5378,5082,4203,3463,2558,2254,1631,1415,1279,1223,1120,1023,1013,973,895,893,812,729,709,667,609,576,503,404,347,283,265,246,205,179,116,105,96,92,91,59,49,43,38,26,25,22,19,14,3,3,1]
 	},

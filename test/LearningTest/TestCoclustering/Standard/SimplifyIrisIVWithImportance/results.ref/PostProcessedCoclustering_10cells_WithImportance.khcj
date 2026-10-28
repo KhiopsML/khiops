@@ -45,28 +45,28 @@
 				"type": "Categorical",
 				"valueGroups": [
 					{
-						"cluster": "{10, 11, 12, ...}",
-						"importance": 0.366594,
-						"values": ["10","11","12","13","14","15","16","17","18","19","2","20","21","22","23","24","25","26","27","28","29","3","30","31","32","33","34","35","36","37","38","39","4","40","41","42","43","44","45","46","47","48","49","5","50","51","6","7","8","9"],
+						"cluster": "{100, 101, 108, ...}",
+						"importance": 0.3176975319,
+						"values": ["100","101","108","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","73","74","75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92","93","94","95","96","97","98","99"],
 						"valueFrequencies": [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],
 						"valueImportances": [0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02]
 					},
 					{
 						"cluster": "{102, 103, 104, ...}",
-						"importance": 0.315708,
+						"importance": 0.3157082783,
 						"values": ["102","103","104","105","106","107","109","110","111","112","113","114","115","116","117","118","119","120","121","122","123","124","125","126","127","128","129","130","131","132","133","134","135","136","137","138","139","140","141","142","143","144","145","146","147","148","149","150","151","72"],
 						"valueFrequencies": [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],
 						"valueImportances": [0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02]
 					},
 					{
-						"cluster": "{100, 101, 108, ...}",
-						"importance": 0.317698,
-						"values": ["100","101","108","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","73","74","75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92","93","94","95","96","97","98","99"],
+						"cluster": "{10, 11, 12, ...}",
+						"importance": 0.3665941898,
+						"values": ["10","11","12","13","14","15","16","17","18","19","2","20","21","22","23","24","25","26","27","28","29","3","30","31","32","33","34","35","36","37","38","39","4","40","41","42","43","44","45","46","47","48","49","5","50","51","6","7","8","9"],
 						"valueFrequencies": [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],
 						"valueImportances": [0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02]
 					}
 				],
-				"defaultGroupIndex": 2
+				"defaultGroupIndex": 0
 			},
 			{
 				"name": "Variables",
@@ -79,7 +79,7 @@
 							"parts": 3,
 							"initialParts": 3,
 							"values": 3,
-							"importance": 0.245975,
+							"importance": 0.2459746837,
 							"description": ""
 						},
 						{
@@ -88,7 +88,7 @@
 							"parts": 4,
 							"initialParts": 4,
 							"values": 150,
-							"importance": 0.230481,
+							"importance": 0.2304812344,
 							"description": "",
 							"min": 1,
 							"max": 6.9
@@ -99,7 +99,7 @@
 							"parts": 3,
 							"initialParts": 3,
 							"values": 150,
-							"importance": 0.245941,
+							"importance": 0.2459409258,
 							"description": "",
 							"min": 0.1,
 							"max": 2.5
@@ -110,7 +110,7 @@
 							"parts": 3,
 							"initialParts": 3,
 							"values": 150,
-							"importance": 0.161549,
+							"importance": 0.1615494365,
 							"description": "",
 							"min": 4.3,
 							"max": 7.9
@@ -121,7 +121,7 @@
 							"parts": 3,
 							"initialParts": 3,
 							"values": 150,
-							"importance": 0.116054,
+							"importance": 0.1160537196,
 							"description": "",
 							"min": 2,
 							"max": 4.4
@@ -134,21 +134,21 @@
 							"valueGroups": [
 								{
 									"cluster": "Class {Iris-setosa}",
-									"importanceInVariable": 0.331316,
+									"importanceInVariable": 0.331315995,
 									"values": ["Iris-setosa"],
 									"valueFrequencies": [50],
 									"valueImportances": [1]
 								},
 								{
 									"cluster": "Class {Iris-versicolor}",
-									"importanceInVariable": 0.333484,
+									"importanceInVariable": 0.3334842436,
 									"values": ["Iris-versicolor"],
 									"valueFrequencies": [50],
 									"valueImportances": [1]
 								},
 								{
 									"cluster": "Class {Iris-virginica}",
-									"importanceInVariable": 0.3352,
+									"importanceInVariable": 0.3351997614,
 									"values": ["Iris-virginica"],
 									"valueFrequencies": [50],
 									"valueImportances": [1]
@@ -162,22 +162,22 @@
 							"intervals": [
 								{
 									"cluster": "PetalLength ]-inf,2.4]",
-									"importanceInVariable": 0.353588,
+									"importanceInVariable": 0.353587776,
 									"bounds": [1,2.4]
 								},
 								{
 									"cluster": "PetalLength ]2.4,4.75]",
-									"importanceInVariable": 0.320312,
+									"importanceInVariable": 0.3203116011,
 									"bounds": [2.4,4.75]
 								},
 								{
 									"cluster": "PetalLength ]4.75,5.15]",
-									"importanceInVariable": 0.0828424,
+									"importanceInVariable": 0.08284244299,
 									"bounds": [4.75,5.15]
 								},
 								{
 									"cluster": "PetalLength ]5.15,+inf[",
-									"importanceInVariable": 0.243258,
+									"importanceInVariable": 0.24325818,
 									"bounds": [5.15,6.9]
 								}
 							]
@@ -188,17 +188,17 @@
 							"intervals": [
 								{
 									"cluster": "PetalWidth ]-inf,0.8]",
-									"importanceInVariable": 0.331361,
+									"importanceInVariable": 0.3313614715,
 									"bounds": [0.1,0.8]
 								},
 								{
 									"cluster": "PetalWidth ]0.8,1.75]",
-									"importanceInVariable": 0.360212,
+									"importanceInVariable": 0.3602124191,
 									"bounds": [0.8,1.75]
 								},
 								{
 									"cluster": "PetalWidth ]1.75,+inf[",
-									"importanceInVariable": 0.308426,
+									"importanceInVariable": 0.3084261093,
 									"bounds": [1.75,2.5]
 								}
 							]
@@ -209,17 +209,17 @@
 							"intervals": [
 								{
 									"cluster": "SepalLength ]-inf,5.45]",
-									"importanceInVariable": 0.48649,
+									"importanceInVariable": 0.4864901163,
 									"bounds": [4.3,5.45]
 								},
 								{
 									"cluster": "SepalLength ]5.45,6.15]",
-									"importanceInVariable": 0.203963,
+									"importanceInVariable": 0.2039630142,
 									"bounds": [5.45,6.15]
 								},
 								{
 									"cluster": "SepalLength ]6.15,+inf[",
-									"importanceInVariable": 0.309547,
+									"importanceInVariable": 0.3095468695,
 									"bounds": [6.15,7.9]
 								}
 							]
@@ -230,17 +230,17 @@
 							"intervals": [
 								{
 									"cluster": "SepalWidth ]-inf,2.95]",
-									"importanceInVariable": 0.376361,
+									"importanceInVariable": 0.3763606453,
 									"bounds": [2,2.95]
 								},
 								{
 									"cluster": "SepalWidth ]2.95,3.35]",
-									"importanceInVariable": 0.154805,
+									"importanceInVariable": 0.1548048558,
 									"bounds": [2.95,3.35]
 								},
 								{
 									"cluster": "SepalWidth ]3.35,+inf[",
-									"importanceInVariable": 0.468834,
+									"importanceInVariable": 0.4688344989,
 									"bounds": [3.35,4.4]
 								}
 							]
@@ -250,24 +250,24 @@
 				"valueGroups": [
 					{
 						"cluster": "B8",
-						"importance": 0.377488,
+						"importance": 0.3774882329,
 						"values": ["Class {Iris-setosa}","PetalLength ]-inf,2.4]","PetalWidth ]-inf,0.8]","SepalLength ]-inf,5.45]","SepalWidth ]3.35,+inf["],
 						"valueFrequencies": [50,50,50,52,36],
-						"valueImportances": [0.210084,0.210084,0.210084,0.218487,0.151261]
+						"valueImportances": [0.2100840336,0.2100840336,0.2100840336,0.218487395,0.1512605042]
 					},
 					{
 						"cluster": "B6",
-						"importance": 0.283473,
+						"importance": 0.2834724546,
 						"values": ["Class {Iris-virginica}","PetalLength ]5.15,+inf[","PetalWidth ]1.75,+inf[","PetalLength ]4.75,5.15]","SepalLength ]6.15,+inf["],
 						"valueFrequencies": [50,34,46,21,55],
-						"valueImportances": [0.242718,0.165049,0.223301,0.101942,0.26699]
+						"valueImportances": [0.2427184466,0.1650485437,0.2233009709,0.1019417476,0.2669902913]
 					},
 					{
 						"cluster": "B5",
-						"importance": 0.339039,
+						"importance": 0.3390393125,
 						"values": ["Class {Iris-versicolor}","PetalLength ]2.4,4.75]","PetalWidth ]0.8,1.75]","SepalLength ]5.45,6.15]","SepalWidth ]-inf,2.95]","SepalWidth ]2.95,3.35]"],
 						"valueFrequencies": [50,45,54,43,57,57],
-						"valueImportances": [0.242718,0.218447,0.262136,0.208738,0.276699,0.276699]
+						"valueImportances": [0.2427184466,0.2184466019,0.2621359223,0.2087378641,0.2766990291,0.2766990291]
 					}
 				],
 				"defaultGroupIndex": 0
@@ -279,8 +279,8 @@
 				"type": "Categorical",
 				"clusters": [
 					{
-						"cluster": "{10, 11, 12, ...}",
-						"parentCluster": "A2",
+						"cluster": "{100, 101, 108, ...}",
+						"parentCluster": "A4",
 						"frequency": 250,
 						"hierarchicalLevel": 1,
 						"rank": 1,
@@ -297,8 +297,8 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "{100, 101, 108, ...}",
-						"parentCluster": "A4",
+						"cluster": "{10, 11, 12, ...}",
+						"parentCluster": "A2",
 						"frequency": 250,
 						"hierarchicalLevel": 1,
 						"rank": 5,
@@ -306,21 +306,21 @@
 						"isLeaf": true
 					},
 					{
-						"cluster": "A2",
-						"parentCluster": "",
-						"frequency": 750,
-						"hierarchicalLevel": -0.279698,
-						"rank": 2,
-						"hierarchicalRank": 3,
-						"isLeaf": false
-					},
-					{
 						"cluster": "A4",
 						"parentCluster": "A2",
 						"frequency": 500,
 						"hierarchicalLevel": 0.543638,
-						"rank": 4,
+						"rank": 2,
 						"hierarchicalRank": 5,
+						"isLeaf": false
+					},
+					{
+						"cluster": "A2",
+						"parentCluster": "",
+						"frequency": 750,
+						"hierarchicalLevel": -0.279698,
+						"rank": 4,
+						"hierarchicalRank": 3,
 						"isLeaf": false
 					}
 				]
@@ -378,13 +378,13 @@
 			}
 		],
 		"cellPartIndexes": [
-			[0,0],
-			[2,2],
+			[2,0],
+			[0,2],
 			[1,1],
 			[1,2],
-			[0,2],
-			[2,1],
-			[2,0],
+			[2,2],
+			[0,1],
+			[0,0],
 			[1,0]
 		],
 		"cellFrequencies": [225,220,184,61,25,22,8,5]
