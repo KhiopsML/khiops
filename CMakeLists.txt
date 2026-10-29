@@ -306,8 +306,8 @@ if(BUILD_JARS)
 
     # Download FlatLaf for the Swing GUI look and feel. The jar is stored with a stable file name for packaging and
     # runtime scripts.
-    set(KHIOPS_FLATLAF_VERSION "3.6")
-    set(KHIOPS_JSVG_VERSION "1.4.0")
+    set(KHIOPS_FLATLAF_VERSION "3.7.2")
+    set(KHIOPS_JSVG_VERSION "2.2.0")
     set(KHIOPS_FLATLAF_JAR "${KHIOPS_BUILD_JAR_DIR}/flatlaf.jar")
     set(KHIOPS_FLATLAF_EXTRAS_JAR "${KHIOPS_BUILD_JAR_DIR}/flatlaf-extras.jar")
     set(KHIOPS_FLATLAF_INTELLIJ_THEMES_JAR "${KHIOPS_BUILD_JAR_DIR}/flatlaf-intellij-themes.jar")
