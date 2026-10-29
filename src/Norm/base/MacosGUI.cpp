@@ -30,6 +30,16 @@ void MacosRunGUI(MacosGUIThreadFunction function, void* context)
 							   sel_registerName("sharedApplication"));
 		if (nsApp)
 		{
+			// Forcer l'apparence Aqua pour un theme Light
+			id appearanceName = ((id (*)(id, SEL, const char*))objc_msgSend)(
+			    (id)objc_getClass("NSString"), sel_registerName("stringWithUTF8String:"),
+			    "NSAppearanceNameAqua");
+			id aquaAppearance = ((id (*)(id, SEL, id))objc_msgSend)(
+			    (id)objc_getClass("NSAppearance"), sel_registerName("appearanceNamed:"), appearanceName);
+			if (aquaAppearance)
+				((void (*)(id, SEL, id))objc_msgSend)(nsApp, sel_registerName("setAppearance:"),
+								      aquaAppearance);
+
 			// NSApplicationActivationPolicyRegular = 0: icone Dock, focus normal
 			((void (*)(id, SEL, long))objc_msgSend)(nsApp, sel_registerName("setActivationPolicy:"), 0L);
 		}
