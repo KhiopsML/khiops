@@ -4,12 +4,16 @@
 
 package normGUI.extensions;
 
+import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.Vector;
+import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -22,6 +26,7 @@ import javax.swing.event.ChangeListener;
 import normGUI.engine.GUIAction;
 import normGUI.engine.GUICard;
 import normGUI.engine.GUIData;
+import normGUI.engine.GUIIconLoader;
 import normGUI.engine.GUIUnit;
 
 /**
@@ -30,10 +35,17 @@ import normGUI.engine.GUIUnit;
 public class GUICardTabbedPanes extends GUICard implements ChangeListener, FocusListener
 {
 
+        private static final Color selectedTabIconColor = new Color(0xFF6600);
+
         /**
          * Onglets regroupant les sous unites
          */
         private JTabbedPane tabbedPanes;
+
+        /**
+         * Index de l'onglet survole, -1 si aucun
+         */
+        private int hoveredTabIndex = -1;
 
         /**
          * Construit le menu associe a l'unite
@@ -154,7 +166,20 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                                                         JPanel jp = new JPanel(new GridBagLayout());
                                                         jp.setName(guiData.getIdentifier());
                                                         guiUnit.graphicAddField(jp, gbc);
-                                                        tabbedPanes.addTab(guiUnit.getLabel(), jp);
+
+                                                        // Chargement de l'icone du onglet
+                                                        final int tabIndex = tabbedPanes.getTabCount();
+                                                        Icon tabIcon = GUIIconLoader.loadSvgIcon(
+                                                          guiUnit.getIcon(),
+                                                          selectedTabIconColor,
+                                                          ()
+                                                            -> tabIndex == tabbedPanes.getSelectedIndex() ||
+                                                                 tabIndex == hoveredTabIndex);
+                                                        if (tabIcon != null)
+                                                                tabbedPanes.addTab(guiUnit.getLabel(), tabIcon, jp);
+                                                        else
+                                                                tabbedPanes.addTab(guiUnit.getLabel(), jp);
+
                                                         if (guiUnit.getShortCut() != ' ')
                                                                 tabbedPanes.setMnemonicAt(tabbedPanes.getTabCount() - 1,
                                                                                           guiUnit.getShortCut());
@@ -176,6 +201,26 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                                 refreshMenus();
                                 tabbedPanes.addChangeListener(this);
                                 tabbedPanes.addFocusListener(this);
+
+                                // Suit l'onglet survole afin que son icone puisse etre mise en evidence
+                                MouseAdapter hoverListener = new MouseAdapter() {
+                                        public void mouseMoved(MouseEvent e)
+                                        {
+                                                updateHoveredTab(tabbedPanes.indexAtLocation(e.getX(), e.getY()));
+                                        }
+
+                                        public void mouseDragged(MouseEvent e)
+                                        {
+                                                mouseMoved(e);
+                                        }
+
+                                        public void mouseExited(MouseEvent e)
+                                        {
+                                                updateHoveredTab(-1);
+                                        }
+                                };
+                                tabbedPanes.addMouseListener(hoverListener);
+                                tabbedPanes.addMouseMotionListener(hoverListener);
                         }
                 }
 
@@ -217,6 +262,9 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
          */
         private void refreshMenus()
         {
+                if (tabbedPanes == null)
+                        return;
+
                 if (synchronizeMenuWithPane) {
                         for (int i = 0; i < tabbedPanes.getTabCount(); i++) {
                                 String name = tabbedPanes.getComponentAt(i).getName();
@@ -239,7 +287,18 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
         public void stateChanged(ChangeEvent e) { refreshMenus(); }
 
         /**
-         * Synchronisatin des menus avec l'onglet selectionne
+         * Met a jour l'onglet survole et ne repeint que lorsqu'il a change
+         */
+        private void updateHoveredTab(int tabIndex)
+        {
+                if (tabbedPanes != null && tabIndex != hoveredTabIndex) {
+                        hoveredTabIndex = tabIndex;
+                        tabbedPanes.repaint();
+                }
+        }
+
+        /**
+         * Synchronisation des menus avec l'onglet selectionne
          * Depuis la V10, on ne synchronise plus les menus avec l'onglet selectionne
          * Cela cree des contraintes penible a l'utilisation
          */

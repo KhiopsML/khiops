@@ -23,6 +23,7 @@ CCAnalysisResultsView::CCAnalysisResultsView()
 	// Action de visualisation des resultats
 	AddAction("VisualizeReport", "Visualize report", (ActionMethod)(&CCAnalysisResultsView::VisualizeReport));
 	GetActionAt("VisualizeReport")->SetStyle("Button");
+	GetActionAt("VisualizeReport")->SetIcon("images/logo-covisualization.svg");
 
 	// Info-bulles
 	GetFieldAt("CoclusteringFileName")

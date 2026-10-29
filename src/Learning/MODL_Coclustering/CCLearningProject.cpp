@@ -20,7 +20,7 @@ void CCLearningProject::OpenLearningEnvironnement()
 	SetLearningModuleName("Coclustering");
 
 	// Parametrage de l'icone de l'application
-	UIObject::SetIconImage("images/khiops_coclustering.gif");
+	UIObject::SetFrameIcon("images/khiops_coclustering.gif");
 
 	// Parametrage du menu about
 	SetLearningAboutImage("images/khiops_coclustering_about.gif");

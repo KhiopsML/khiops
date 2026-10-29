@@ -5,6 +5,7 @@
 package normGUI.widgets.intWidgets;
 
 import java.awt.Component;
+import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.event.FocusEvent;
 import javax.swing.JComponent;
@@ -46,6 +47,13 @@ public class GUIIntElementSpinner extends GUIIntElement
                 js.setEnabled(getEditable());
                 setComponentHelpText(js);
                 setComponentPreferredSize(js, 10);
+
+                // Police classique uniquement pour le champ texte numerique.
+                JSpinner.DefaultEditor editor = (JSpinner.DefaultEditor)js.getEditor();
+                JTextField spinnerTextField = editor.getTextField();
+                Font inputFont = spinnerTextField.getFont();
+                Font classicFont = new Font("MS Sans Serif", inputFont.getStyle(), inputFont.getSize());
+                spinnerTextField.setFont(classicFont);
 
                 // Ajout de focusListener sur le Spinner
                 // pour etre sur de capturer la perte de focus en toutes circonstances, celle-ci

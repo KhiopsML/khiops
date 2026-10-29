@@ -24,6 +24,7 @@ KWAnalysisResultsView::KWAnalysisResultsView()
 	// Action de visualisation des resultats
 	AddAction("VisualizeReport", "Visualize report", (ActionMethod)(&KWAnalysisResultsView::VisualizeReport));
 	GetActionAt("VisualizeReport")->SetStyle("Button");
+	GetActionAt("VisualizeReport")->SetIcon("images/logo-visualization.svg");
 
 	// Info-bulles
 	GetFieldAt("ReportFileName")

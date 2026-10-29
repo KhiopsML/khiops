@@ -1595,6 +1595,16 @@ const ALString& UIAction::GetAccelKey() const
 	return sAccelKey;
 }
 
+void UIAction::SetIcon(const ALString& sValue)
+{
+	sIcon = sValue;
+}
+
+const ALString& UIAction::GetIcon() const
+{
+	return sIcon;
+}
+
 boolean UIAction::Check() const
 {
 	boolean bOk = true;
@@ -1605,6 +1615,12 @@ boolean UIAction::Check() const
 	{
 		bOk = false;
 		AddError("Le style " + GetStyle() + " est inconnu");
+	}
+
+	if (GetIcon() != "" and GetStyle() != "Button" and GetStyle() != "SmallButton")
+	{
+		bOk = false;
+		AddError("Une icone est utilisable uniquement pour les styles Button et SmallButton");
 	}
 
 	// Verification des parametres
