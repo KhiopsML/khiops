@@ -29,10 +29,36 @@ defaults:
     shell: bash
 env:
   KEYPAIR: KP_Khiops_HSM
+  # Use only the local MPI node on the GitHub runner
+  UCX_TLS: self,sm,tcp
+  UCX_NET_DEVICES: lo
+  MINIMAL_PIP_VERSION: 26.2.2
+  MINIMAL_CERTIFI_VERSION: 2026.10.19
 jobs:
   build-wheel:
     name: Build wheel
     runs-on: ${{ matrix.os }}
+    env:
+      # Path of the constraints file as seen by the build.
+      # Set by the "Generate build constraints" step (host path on Windows and
+      # macOS, /project/... path on Linux, where the build runs in a container).
+      # Only taken into account by cibuildwheel, not by steps run on the GitHub
+      # runner itself.
+      #
+      # Forward the variable into the Linux build container.
+      # Without this, the variable is empty there and the constraint is not applied.
+      # N.B.: The literal is mapped here. The CIBW_CONSTRAINTS_PATH is set
+      # later, in the "Generate build constraints" step
+      CIBW_ENVIRONMENT_PASS_LINUX: CIBW_CONSTRAINTS_PATH
+      # Apply the minimal versions to the installation of build-system.requires
+      # done by the default `build` frontend (a top-level pip install, hence
+      # PIP_CONSTRAINT applies).
+      # If cibuildwheel already sets PIP_CONSTRAINT (its pinned build-tool
+      # versions), this existing value is kept and the values defined herein are
+      # appended.
+      # pip splits multi-valued environment options on whitespace, hence the
+      # paths must not contain spaces.
+      CIBW_ENVIRONMENT: PIP_CONSTRAINT="$PIP_CONSTRAINT $CIBW_CONSTRAINTS_PATH"
     # intel-mpi is not available for arm64, so we can not build the wheel for windows-11-arm
     strategy:
       matrix:
@@ -53,21 +79,48 @@ jobs:
         run: |
           call "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
           set >> %GITHUB_ENV%
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v3.4.1
       - name: install Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.14'
+          check-latest: true
+      - name: Check minimal Pip and Certifi version
+        uses: ./.github/actions/check-minimal-pip-and-certifi-versions
+        with:
+          minimal-pip-version: ${{ env.MINIMAL_PIP_VERSION }}
+          minimal-certifi-version: ${{ env.MINIMAL_CERTIFI_VERSION }}
+      - name: Generate build constraints
+        run: |
+          # Constraints only restrict packages that are installed in the isolated
+          # build environment: a package that is absent is not constrained.
+          # The file is in the repository root, hence cibuildwheel copies it
+          # into the Linux container alongside the project.
+          printf 'pip>=%s\ncertifi>=%s\n' \
+            "$MINIMAL_PIP_VERSION" "$MINIMAL_CERTIFI_VERSION" > build-constraints.txt
+          case "$RUNNER_OS" in
+            # cygpath -m formats paths with forward slashes (D:/a/...), which
+            # homogenizes path format with forward slashes everywhere
+            Windows) path="$(cygpath -m "$PWD/build-constraints.txt")" ;;
+            # Location of the project inside the cibuildwheel Linux container
+            Linux)   path="/project/build-constraints.txt" ;;
+            *)       path="$PWD/build-constraints.txt" ;;
+          esac
+          echo "CIBW_CONSTRAINTS_PATH=$path" >> "$GITHUB_ENV"
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v4.3.4
+        env:
+          CIBW_BEFORE_BUILD: >-
+            python {project}/.github/actions/check-minimal-pip-and-certifi-versions/check_minimal_pip_and_certifi_versions.py
+            ${{ env.MINIMAL_PIP_VERSION }} ${{ env.MINIMAL_CERTIFI_VERSION }}
       - name: Install built wheel in a custom directory
         run: |
-          KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
+          KHIOPS_INSTALL_DIR="$RUNNER_TEMP/khiops-env"
           echo "KHIOPS_INSTALL_DIR=$KHIOPS_INSTALL_DIR" >> "$GITHUB_ENV"
           python -m venv "$KHIOPS_INSTALL_DIR"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            source "$KHIOPS_INSTALL_DIR/Scripts/activate"
+            source "${KHIOPS_INSTALL_DIR}/Scripts/activate"
           else
-            source "$KHIOPS_INSTALL_DIR/bin/activate"
+            source "${KHIOPS_INSTALL_DIR}/bin/activate"
           fi
           python -m pip install --find-links=wheelhouse khiops-core
           pip show -f khiops-core
@@ -75,9 +128,9 @@ jobs:
         id: export_bin_dir
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/Scripts" >> "$GITHUB_OUTPUT"
+            echo "BIN_DIR=${KHIOPS_INSTALL_DIR}/Scripts" >> "$GITHUB_OUTPUT"
           else
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_OUTPUT"
+            echo "BIN_DIR=${KHIOPS_INSTALL_DIR}/bin" >> "$GITHUB_OUTPUT"
           fi
       - name: Check Khiops core installation
         uses: ./.github/actions/test-khiops-install
@@ -87,12 +140,20 @@ jobs:
         run: |
           mv packaging/pip/pyproject-kni.toml pyproject.toml
       - name: Build kni wheels
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.3.4
+        env:
+          CIBW_BEFORE_BUILD: >-
+            python {project}/.github/actions/check-minimal-pip-and-certifi-versions/check_minimal_pip_and_certifi_versions.py
+            ${{ env.MINIMAL_PIP_VERSION }} ${{ env.MINIMAL_CERTIFI_VERSION }}
       - name: Move pyproject-knitransfer file to the root of the repository
         run: |
           mv packaging/pip/pyproject-knitransfer.toml pyproject.toml
       - name: Build knitransfer wheels
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.3.4
+        env:
+          CIBW_BEFORE_BUILD: >-
+            python {project}/.github/actions/check-minimal-pip-and-certifi-versions/check_minimal_pip_and_certifi_versions.py
+            ${{ env.MINIMAL_PIP_VERSION }} ${{ env.MINIMAL_CERTIFI_VERSION }}
       - uses: actions/upload-artifact@v7
         if: runner.os != 'Windows'
         with:
@@ -119,9 +180,15 @@ jobs:
           path: wheelhouse
       - name: Install Python
         if: env.SIGN_WINDOWS_WHEELS == 'true'
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.14'
+          check-latest: true
+      - name: Check minimal Pip and Certifi version
+        uses: ./.github/actions/check-minimal-pip-and-certifi-versions
+        with:
+          minimal-pip-version: ${{ env.MINIMAL_PIP_VERSION }}
+          minimal-certifi-version: ${{ env.MINIMAL_CERTIFI_VERSION }}
       - name: Install wheel package
         if: env.SIGN_WINDOWS_WHEELS == 'true'
         run: python -m pip install wheel
@@ -165,7 +232,7 @@ jobs:
         setup:
           - {os: ubuntu-24.04, image: ''}
           - {os: ubuntu-24.04-arm, image: ''}
-          - {os: ubuntu-22.04, image: rockylinux:9}
+          - {os: ubuntu-24.04, image: rockylinux/rockylinux:10}
           - {os: windows-2025-vs2026, image: ''}
           - {os: macos-15, image: ''}
           - {os: macos-15-intel, image: ''}
@@ -193,10 +260,10 @@ jobs:
             if [ -d "/etc/apt" ]
             then
               apt-get update
-              apt-get install -y python3 > /dev/null
+              apt-get install -y python3-venv > /dev/null
             else
-              yum check-update || true
-              yum install -y python3.11
+              dnf check-update || true
+              dnf install -y python3 python3-pip
             fi
           fi
           echo "PYTHON=python3" >> "$GITHUB_ENV"
@@ -204,18 +271,39 @@ jobs:
         if: runner.os == 'Windows' || runner.os == 'macOS'
         shell: bash
         run: echo "PYTHON=python" >> "$GITHUB_ENV"
-      - name: Install built wheel in a custom directory
-        id: install_khiops_core
+      - name: Create virtual environment in a custom directory
+        shell: bash
         run: |
-          KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
+          KHIOPS_INSTALL_DIR="$RUNNER_TEMP/khiops-env"
+          echo "KHIOPS_INSTALL_DIR=$KHIOPS_INSTALL_DIR" >> "$GITHUB_ENV"
           $PYTHON -m venv "$KHIOPS_INSTALL_DIR"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            source "$KHIOPS_INSTALL_DIR/Scripts/activate"
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/Scripts" >> "$GITHUB_OUTPUT"
+            echo "PYTHON=${KHIOPS_INSTALL_DIR}/Scripts/python" >> "$GITHUB_ENV"
           else
-            source "$KHIOPS_INSTALL_DIR/bin/activate"
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_OUTPUT"
+            echo "PYTHON=${KHIOPS_INSTALL_DIR}/bin/python" >> "$GITHUB_ENV"
           fi
+      - name: Upgrade Pip
+        shell: bash
+        run: |
+          # Use the Python interpreter from the virtual environment
+          $PYTHON -m pip install --upgrade "pip>=$MINIMAL_PIP_VERSION"
+      - name: Check minimal Pip and Certifi version
+        uses: ./.github/actions/check-minimal-pip-and-certifi-versions
+        with:
+          minimal-pip-version: ${{ env.MINIMAL_PIP_VERSION }}
+          minimal-certifi-version: ${{ env.MINIMAL_CERTIFI_VERSION }}
+          python: ${{ env.PYTHON }}
+      - name: Install built wheel in a custom directory
+        id: install_khiops_core
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "BIN_DIR=${KHIOPS_INSTALL_DIR}/Scripts" >> "$GITHUB_OUTPUT"
+          else
+            echo "BIN_DIR=${KHIOPS_INSTALL_DIR}/bin" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Use the Python interpreter from the virtual environment
           $PYTHON -m pip install --find-links=wheelhouse khiops-core
           $PYTHON -m pip show -f khiops-core
       - name: Run standard tests
@@ -239,7 +327,7 @@ jobs:
           - windows-2025
           - macos-15-intel
           - macos-15
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.11', '3.12', '3.13', '3.14']
     steps:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v8
@@ -254,11 +342,25 @@ jobs:
           path: tutorial
           ref: main
       - name: Install Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
+          check-latest: true
+      - name: Check minimal Pip and Certifi version
+        uses: ./.github/actions/check-minimal-pip-and-certifi-versions
+        with:
+          minimal-pip-version: ${{ env.MINIMAL_PIP_VERSION }}
+          minimal-certifi-version: ${{ env.MINIMAL_CERTIFI_VERSION }}
+        # Just warn on Pip / Certifi version, as these are tests only, and:
+        # - kni has no Pip dependencies
+        # - only the locally-built wheel is installed
+        # Hence there is no way compromised Pip packages can be installed
+        continue-on-error: true
       - name: Install khiops-kni wheel
-        run: python -m pip install --find-links=wheelhouse khiops-kni
+        run: |
+          # Do not authorize any fallback to PyPI, as no dependency needs to
+          # be pulled from PyPI
+          python -m pip install --find-links=wheelhouse --no-index khiops-kni
       - name: Run python mono-table example
         shell: bash
         run: |
@@ -312,7 +414,7 @@ jobs:
           pattern: pkg-*
           path: dist
           merge-multiple: true
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: pypa/gh-action-pypi-publish@v1.14.3
         with:
           verbose: true
           repository-url: https://test.pypi.org/legacy/
@@ -337,6 +439,6 @@ jobs:
           want to publish it on PyPI)
         run: |
           rm dist/*knitransfer*.whl
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: pypa/gh-action-pypi-publish@v1.14.3
         with:
           verbose: true
