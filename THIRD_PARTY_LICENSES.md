@@ -6,10 +6,10 @@ license texts are reproduced at the end of this file.
 
 | Component | Version | Usage | License | Copyright | Project |
 |---|---|---|---|---|---|
-| FlatLaf (`flatlaf.jar`) | 3.6 | Look and feel, downloaded at build time | Apache-2.0 | FormDev Software GmbH | https://github.com/JFormDesigner/FlatLaf |
-| FlatLaf Extras (`flatlaf-extras.jar`) | 3.6 | SVG icon support, downloaded at build time | Apache-2.0 | FormDev Software GmbH | https://github.com/JFormDesigner/FlatLaf |
-| FlatLaf IntelliJ Themes (`flatlaf-intellij-themes.jar`) | 3.6 | Arc Orange theme, downloaded at build time | Apache-2.0 (pack), plus the license of each bundled theme (see below) | FormDev Software GmbH and theme authors | https://github.com/JFormDesigner/FlatLaf/tree/main/flatlaf-intellij-themes |
-| jsvg (`jsvg.jar`) | 1.4.0 | SVG rendering, downloaded at build time | MIT | Jannis Weis | https://github.com/weisJ/jsvg |
+| FlatLaf (`flatlaf.jar`) | 3.7 | Look and feel, downloaded at build time | Apache-2.0 | FormDev Software GmbH | https://github.com/JFormDesigner/FlatLaf |
+| FlatLaf Extras (`flatlaf-extras.jar`) | 3.7 | SVG icon support, downloaded at build time | Apache-2.0 | FormDev Software GmbH | https://github.com/JFormDesigner/FlatLaf |
+| FlatLaf IntelliJ Themes (`flatlaf-intellij-themes.jar`) | 3.7 | Arc Orange theme, downloaded at build time | Apache-2.0 (pack), plus the license of each bundled theme (see below) | FormDev Software GmbH and theme authors | https://github.com/JFormDesigner/FlatLaf/tree/main/flatlaf-intellij-themes |
+| jsvg (`jsvg.jar`) | 2.2.0 | SVG rendering, downloaded at build time | MIT | Jannis Weis | https://github.com/weisJ/jsvg |
 | Poppins Regular (`Poppins-Regular.ttf`) | n/a | Default UI font, embedded in `khiops.jar` | SIL OFL 1.1 | The Poppins Project Authors (Indian Type Foundry) | https://github.com/itfoundry/Poppins |
 | Lucide icons (`database`, `settings-2`, `chart-column-big`, `rocket`, `cpu-ai`) | n/a | Tab and button icons, embedded in `khiops.jar` | ISC (Lucide), MIT (portions derived from Feather) | Lucide Contributors; Cole Bemis (Feather portions) | https://github.com/lucide-icons/lucide |
 
