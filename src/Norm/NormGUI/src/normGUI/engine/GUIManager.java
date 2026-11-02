@@ -69,6 +69,17 @@ public class GUIManager
                                                                 UIManager.put(key, defaultFont);
                                                 }
                                         }
+
+                                        // Poppins ne contient pas les symboles des modificateurs macOS.
+                                        if (System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("mac")) {
+                                                Font acceleratorFont =
+                                                  new Font(Font.DIALOG, Font.PLAIN, defaultFont.getSize());
+                                                for (Object key : UIManager.getDefaults().keySet().toArray()) {
+                                                        if (key instanceof String s && s.endsWith(".acceleratorFont")) {
+                                                                UIManager.put(s, acceleratorFont);
+                                                        }
+                                                }
+                                        }
                                 }
 
                                 // Marge interne des champs texte et des zones de texte
