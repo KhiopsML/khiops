@@ -662,13 +662,19 @@ import javax.swing.UIManager;
         protected JPanel createActionPanel()
         {
                 JPanel actionPanel = new JPanel();
+
+                // Couleur de fond à blanc
                 Color background = UIManager.getColor("Component.background");
                 if (background == null)
                         background = actionPanel.getBackground();
+
+                // Couleur de bordure
                 Color borderColor = UIManager.getColor("Component.borderColor");
                 if (borderColor == null)
                         borderColor = background.darker();
                 actionPanel.setBackground(background);
+
+                // Bordure Top du panneau d'action
                 actionPanel.setBorder(
                   BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, borderColor),
                                                      BorderFactory.createEmptyBorder(6, 8, 6, 8)));
@@ -715,8 +721,7 @@ import javax.swing.UIManager;
                 }
 
                 // Ajout du panneau a la fenetre
-                if (southPanel.getComponentCount() > 0)
-                        frame.getContentPane().add(southPanel, BorderLayout.SOUTH);
+                frame.getContentPane().add(southPanel, BorderLayout.SOUTH);
         }
 
         /**
