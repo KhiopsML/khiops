@@ -166,9 +166,10 @@ public:
 					       KWDataGrid* targetDataGrid) const;
 
 	// Ajout de groupes proches des groupes existants d'un attribut categoriel donne.
-	// Tout sous-groupe de modalites source inclus dans un groupe obligatoire peut donner
+	// Tout sous-groupe de modalites source inclus dans un groupe obligatoire va donner
 	// lieu a la creation d'un nouveau groupe si son effectif est compris entre les deux
 	// bornes specifiees.
+	// NOT YET IMPLEMENTED
 	void AddSymbolAttributeNearbyParts(const KWDataGrid* sourceDataGrid, const KWDataGrid* mandatoryDataGrid,
 					   const ALString& sAttributeName, int nNearbyGroupMinFrequency,
 					   int nNearbyGroupMaxFrequency, KWDataGrid* targetDataGrid) const;

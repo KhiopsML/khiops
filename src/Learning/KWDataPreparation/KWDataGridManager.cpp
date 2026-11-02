@@ -1646,7 +1646,7 @@ void KWDataGridManager::AddSymbolAttributeNearbyParts(const KWDataGrid* sourceDa
 {
 	ObjectArray oaSourceParts;
 	ObjectArray oaMandatoryParts;
-	IntVector ivSourceMandatoryIndexes;
+	NumericKeyDictionary nkdMandatoryParts;
 	KWDGAttribute* sourceAttribute;
 	KWDGAttribute* mandatoryAttribute;
 	KWDGAttribute* targetAttribute;
@@ -1662,8 +1662,6 @@ void KWDataGridManager::AddSymbolAttributeNearbyParts(const KWDataGrid* sourceDa
 	int nMandatory;
 	boolean bMandatoryAttributeIndexed;
 
-	//DDD TO VALIDATE
-
 	require(sourceDataGrid != NULL);
 	require(mandatoryDataGrid != NULL);
 	require(targetDataGrid != NULL);
@@ -1673,10 +1671,11 @@ void KWDataGridManager::AddSymbolAttributeNearbyParts(const KWDataGrid* sourceDa
 	require(CheckAttributes(sourceDataGrid, targetDataGrid));
 	require(CheckGranularity(sourceDataGrid, targetDataGrid));
 	require(sAttributeName != "");
-	require(nNearbyGroupMinFrequency >= 0);
-	require(nNearbyGroupMaxFrequency >= 0);
+	require(nNearbyGroupMinFrequency >= 1);
+	require(nNearbyGroupMinFrequency <= nNearbyGroupMaxFrequency);
 	require(targetDataGrid->GetCellNumber() == 0);
 
+	// Acces a l'attribut dans chaque grille
 	sourceAttribute = sourceDataGrid->SearchAttribute(sAttributeName);
 	mandatoryAttribute = mandatoryDataGrid->SearchAttribute(sAttributeName);
 	targetAttribute = targetDataGrid->SearchAttribute(sAttributeName);
@@ -1690,17 +1689,13 @@ void KWDataGridManager::AddSymbolAttributeNearbyParts(const KWDataGrid* sourceDa
 	require(sourceAttribute->ContainsSubParts(mandatoryAttribute));
 	require(targetAttribute->GetPartNumber() == 0);
 
+	// Export des parties spource et obligatoires
 	sourceAttribute->ExportParts(&oaSourceParts);
 	mandatoryAttribute->ExportParts(&oaMandatoryParts);
-
 	nSourcePartNumber = oaSourceParts.GetSize();
 	nMandatoryPartNumber = oaMandatoryParts.GetSize();
 
-	require(nSourcePartNumber > 0);
-	require(nMandatoryPartNumber > 0);
-
-	ivSourceMandatoryIndexes.SetSize(nSourcePartNumber);
-
+	// Indexation si necessaire des parties obligatoires
 	bMandatoryAttributeIndexed = mandatoryAttribute->IsIndexed();
 	if (not bMandatoryAttributeIndexed)
 		mandatoryAttribute->BuildIndexingStructure();
@@ -1712,18 +1707,15 @@ void KWDataGridManager::AddSymbolAttributeNearbyParts(const KWDataGrid* sourceDa
 		sourceValue = sourcePart->GetValueSet()->GetHeadValue();
 		check(sourceValue);
 
+		// Recherche de la partie obligatoire associee a la partie source
 		mandatoryPart = mandatoryAttribute->LookupGroupablePart(sourceValue);
 		check(mandatoryPart);
 
-		nMandatory = 0;
-		while (nMandatory < nMandatoryPartNumber and
-		       cast(KWDGPart*, oaMandatoryParts.GetAt(nMandatory)) != mandatoryPart)
-			nMandatory++;
-
-		check(nMandatory < nMandatoryPartNumber);
-		ivSourceMandatoryIndexes.SetAt(nSource, nMandatory);
+		// Mmorisation de la partyie obligatoire associee a la partie spource
+		nkdMandatoryParts.SetAt(sourcePart, mandatoryPart);
 	}
 
+	// Nettoyage de l'indexation des parties obligatoires
 	if (not bMandatoryAttributeIndexed)
 		mandatoryAttribute->DeleteIndexingStructure();
 
@@ -1731,55 +1723,10 @@ void KWDataGridManager::AddSymbolAttributeNearbyParts(const KWDataGrid* sourceDa
 
 	// Chaque partie source dont l'effectif est dans l'intervalle demande est conservee
 	// individuellement. Les autres parties sont agregees dans leur partie obligatoire.
-	for (nMandatory = 0; nMandatory < nMandatoryPartNumber; nMandatory++)
-	{
-		aggregateTargetPart = NULL;
+	// NOT YET IM%PLEMENTED
+	assert(false);
 
-		for (nSource = 0; nSource < nSourcePartNumber; nSource++)
-		{
-			if (ivSourceMandatoryIndexes.GetAt(nSource) != nMandatory)
-				continue;
-
-			sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nSource));
-
-			if (sourcePart->GetPartFrequency() >= nNearbyGroupMinFrequency and
-			    sourcePart->GetPartFrequency() <= nNearbyGroupMaxFrequency)
-			{
-				targetPart = targetAttribute->AddPart();
-				targetPart->GetPartValues()->CopyFrom(sourcePart->GetPartValues());
-
-				if (sourceAttribute->IsInnerAttribute())
-					targetPart->SetPartFrequency(sourcePart->GetPartFrequency());
-
-				if (sourcePart == sourceGarbagePart)
-					targetAttribute->SetGarbagePart(targetPart);
-			}
-			else
-			{
-				if (aggregateTargetPart == NULL)
-				{
-					aggregateTargetPart = targetAttribute->AddPart();
-					aggregateTargetPart->GetPartValues()->CopyFrom(sourcePart->GetPartValues());
-
-					if (sourceAttribute->IsInnerAttribute())
-						aggregateTargetPart->SetPartFrequency(sourcePart->GetPartFrequency());
-				}
-				else
-				{
-					aggregateTargetPart->GetPartValues()->UpgradeFrom(sourcePart->GetPartValues());
-
-					if (sourceAttribute->IsInnerAttribute())
-						aggregateTargetPart->SetPartFrequency(
-						    aggregateTargetPart->GetPartFrequency() +
-						    sourcePart->GetPartFrequency());
-				}
-
-				if (sourcePart == sourceGarbagePart)
-					targetAttribute->SetGarbagePart(aggregateTargetPart);
-			}
-		}
-	}
-
+	// Tri des parties cible dans le cas d'un attribut interne
 	if (sourceAttribute->IsInnerAttribute())
 		targetAttribute->SortParts();
 

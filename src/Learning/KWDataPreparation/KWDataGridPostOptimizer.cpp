@@ -552,6 +552,10 @@ void KWDataGridPostOptimizer::BuildSymbolUnivariateInitialNearbyDataGrid(const K
 	postOptimizationAttribute->DeleteAllParts();
 
 	// Ajout des groupes proches des groupes de la partition optimisee
+	// NOT YET IMPLEMENTED
+	// - objectif: adapter et optimiser comme dans la methode BuildContinuousUnivariateInitialNearbyDataGrid
+	//   - utilisant KWDataGridManager::AddSymbolAttributeNearbyParts
+	// - peut-etre pas utile si on parallelise le deplacement des valeur entre les groupes
 	dataGridManager.AddSymbolAttributeNearbyParts(initialDataGrid, optimizedDataGrid,
 						      sPostOptimizationAttributeName, nNearbyGroupMinFrequency,
 						      nNearbyGroupMaxFrequency, univariateInitialDataGrid);
