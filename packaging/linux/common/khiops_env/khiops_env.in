@@ -64,7 +64,6 @@ help() {
 if [[ -z $KHIOPS_LAST_RUN_DIR ]]; then
     export KHIOPS_LAST_RUN_DIR=/tmp/khiops/$USER
 fi
-mkdir -p "$KHIOPS_LAST_RUN_DIR"
 @USE_ENVIRONMENT_MODULE@
 @KHIOPS_JAVA_SETTINGS@
 get_script_dir() {
