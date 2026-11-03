@@ -1709,7 +1709,7 @@ void DTDecisionTree::WriteReportLeaveStatistics(ostream& ost, const DTDecisionTr
 			// Ajout des fils du neoud en cour dans la liste des noeud a traiter ( voire algo parcour
 			// largeur , avec list fifo )
 			if (ndCurrent->IsLeaf())
-				// Ligne de de stats
+				// Ligne de stats
 				ndCurrent->WriteLineReport(ost, this);
 			else
 			{
@@ -1776,7 +1776,7 @@ void DTDecisionTree::WriteReportInternalNodesStatistics(ostream& ost, const DTDe
 						oaPopList.Add(ndCurrent->GetSons()->GetAt(i));
 					}
 				}
-				// Ligne de de stats
+				// Ligne de stats
 				ndCurrent->WriteLineReport(ost, this);
 			}
 		}
@@ -2433,7 +2433,7 @@ void DTDecisionTree::WriteDTArrayLineReport(ostream& ost, const ALString& sTitle
 			if (i == 0)
 				learningReport->WriteHeaderLineReport(ost, this, true);
 
-			// Ligne de de stats
+			// Ligne de stats
 			if (learningReport->IsLineReported())
 				learningReport->WriteLineReport(ost, this);
 		}

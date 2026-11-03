@@ -1539,7 +1539,7 @@ Symbol KWDRCellLabel::ComputeSymbolResult(const KWObject* kwoObject) const
 	require(Check());
 	require(IsOptimized());
 
-	// Calcul du libelle de de cellule
+	// Calcul du libelle de cellule
 	sCellLabel = ComputeCellLabel(kwoObject);
 	return (Symbol)sCellLabel;
 }

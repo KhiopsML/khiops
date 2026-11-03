@@ -42,7 +42,7 @@ void KWDataGridManager::ExportDataGrid(const KWDataGrid* sourceDataGrid, KWDataG
 	// Export des attributs
 	ExportAttributes(sourceDataGrid, targetDataGrid);
 
-	// Export des partie des attributs
+	// Export des parties des attributs
 	ExportParts(sourceDataGrid, targetDataGrid);
 
 	// Export des cellules
@@ -124,7 +124,7 @@ void KWDataGridManager::ExportDataGridWithSingletonVarParts(const KWDataGrid* so
 		targetVarPartAttribute->SetInnerAttributes(mandatoryDataGrid->GetInnerAttributes());
 	}
 
-	// Export des partie des attributs si aucune variable informative
+	// Export des parties des attributs si aucune variable informative
 	if (mandatoryDataGrid->GetInformativeAttributeNumber() == 0)
 		ExportParts(sourceDataGrid, targetDataGrid);
 	// Et dans le cas de variables informatives
@@ -384,7 +384,7 @@ static int KWDataGridManagerCompareIdentifierPartsSignature(const void* elem1, c
 	assert(part2->GetAttribute() == part1->GetAttribute());
 	assert(part2->GetValueSet()->GetValueNumber() == 1);
 
-	// Comparaison des partie d'apres leurs cellules, avec egalite si cesont des cellules referencant les memes parties de variables
+	// Comparaison des parties d'apres leurs cellules, avec egalite si cesont des cellules referencant les memes parties de variables
 	nCompare = part1->GetCellNumber() - part2->GetCellNumber();
 	if (nCompare == 0)
 	{
@@ -491,7 +491,7 @@ void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
 	// - un cluster d'identifiant par identifiant
 	// - un cluster de parties de variables par partie issue des specification de partionnement des attribut interne
 	// - une cellule par paire de clusters, ce qui permet d'exploiter les cellules d'ne cluster de partie d'identifiant donne
-	//   comme une signature sur l'ensemble des partie de variables utilisee
+	//   comme une signature sur l'ensemble des parties de variables utilisees
 
 	// Export des attributs (avec innerAtributes non surtokenises a ce stade)
 	targetDataGrid->DeleteAll();
@@ -654,7 +654,7 @@ void KWDataGridManager::ExportDataGridWithPartitionnedInnerAttributes(
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	// Creation d'une grille cible finale avec
-	// - un cluster d'identifiant specifie sur la base des identifiant ayant memes partie de variable cibles
+	// - un cluster d'identifiant specifie sur la base des identifiant ayant memes parties de variable cibles
 	// - les clusters de parties de variables precedent
 	// - un recalcul des cellules par paire de clusters
 
@@ -854,7 +854,7 @@ void KWDataGridManager::UpdateVarPartDataGridFromVarPartGroups(const KWDataGrid*
 	// On vide la grille optimisee de ses cellules, en preservant ses attributs et leur partition
 	targetDataGrid->DeleteAllCells();
 
-	// On reinitialise a vide les partie pour l'attribut a post-optimiser
+	// On reinitialise a vide les parties pour l'attribut a post-optimiser
 	targetAttribute->DeleteAllParts();
 
 	// Reinitialisation a vide du groupe poubelle
@@ -1291,6 +1291,453 @@ void KWDataGridManager::ExportCells(const KWDataGrid* sourceDataGrid, KWDataGrid
 	// Pas d'ensure avec CheckCells (qui appelle ExportCells pour sa verification)
 }
 
+void KWDataGridManager::AddContinuousAttributeNearbyParts(
+    const KWDataGrid* sourceDataGrid, const KWDataGrid* mandatoryDataGrid, const ALString& sAttributeName,
+    int nNearbyIntervalMinFrequency, int nNearbyIntervalIncreasingFactor, int nNearbyMaxIntervalNumber,
+    KWDataGrid* targetDataGrid) const
+{
+	const boolean bTrace = false;
+	IntVector ivNextNearbyCumulativeFrequencies;
+	IntVector ivPrevNearbyCumulativeFrequencies;
+	IntVector ivAllNearbyCumulativeFrequencies;
+	KWDGAttribute* sourceAttribute;
+	KWDGAttribute* mandatoryAttribute;
+	KWDGAttribute* targetAttribute;
+	KWDGPart* sourcePart;
+	KWDGPart* mandatoryPart;
+	KWDGPart* targetPart;
+	int nNearbyIntervalsMaxCumulativeFrequency;
+	int nMinTargetFrequency;
+	int nMinTargetFrequencyIncrement;
+	int nTargetFrequency;
+	int nCumulativeFrequency;
+	int nCumulativeFrequencyIntervalMedian;
+	int nCumulativeFrequencyLimit;
+	boolean bNewIntervalCreated;
+	boolean bCreateInterval;
+	int iNext;
+	int iPrev;
+	int i;
+
+	require(sourceDataGrid != NULL);
+	require(mandatoryDataGrid != NULL);
+	require(targetDataGrid != NULL);
+	require(sourceDataGrid->Check());
+	require(CheckDataGrid(sourceDataGrid, mandatoryDataGrid));
+	require(sAttributeName != "");
+	require(sourceDataGrid->SearchAttribute(sAttributeName) != NULL);
+	require(targetDataGrid->SearchAttribute(sAttributeName) != NULL);
+	require(targetDataGrid->SearchAttribute(sAttributeName)->GetPartNumber() == 0);
+	require(nNearbyIntervalMinFrequency >= 1);
+	require(nNearbyIntervalIncreasingFactor >= 1);
+	require(nNearbyMaxIntervalNumber >= 1);
+	require(nNearbyIntervalMinFrequency <= INT_MAX / nNearbyMaxIntervalNumber);
+	require(nNearbyMaxIntervalNumber == 1 or
+		nNearbyIntervalMinFrequency <=
+		    INT_MAX / pow(nNearbyIntervalIncreasingFactor, nNearbyMaxIntervalNumber - 1));
+	require(targetDataGrid->GetCellNumber() == 0);
+
+	// Acces a l'attribut dans chaque grille
+	sourceAttribute = sourceDataGrid->SearchAttribute(sAttributeName);
+	mandatoryAttribute = mandatoryDataGrid->SearchAttribute(sAttributeName);
+	targetAttribute = targetDataGrid->SearchAttribute(sAttributeName);
+
+	// Verifications additionnelles sur l'attribut a traiter, ayant un role de require additionnel
+	require(sourceAttribute->GetAttributeType() == KWType::Continuous);
+	require(CheckAttributesConsistency(sourceAttribute, mandatoryAttribute));
+	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
+	require(sourceAttribute->ArePartsSorted());
+	require(mandatoryAttribute->ArePartsSorted());
+	require(sourceAttribute->ContainsSubParts(mandatoryAttribute));
+	require(targetAttribute->GetPartNumber() == 0);
+
+	// Increment du seuil dans le cas d'une loi arithmetique
+	nMinTargetFrequencyIncrement = nNearbyIntervalMinFrequency;
+
+	// Calcul de l'effectif cumule minimal theorique du dernier intervalle
+	// Avec un facteur d'accroissement de 1, suite arithmetique
+	if (nNearbyIntervalIncreasingFactor == 1)
+	{
+		nNearbyIntervalsMaxCumulativeFrequency = nNearbyIntervalMinFrequency * nNearbyMaxIntervalNumber;
+	}
+	// Avec un facteur d'accroissement superieur a 1, suite geometrique: dernier terme
+	else
+	{
+		// Calcul explicite en entier, sans passer par pow
+		nNearbyIntervalsMaxCumulativeFrequency = nNearbyIntervalMinFrequency;
+		for (i = 1; i < nNearbyMaxIntervalNumber; i++)
+		{
+			assert(nNearbyIntervalsMaxCumulativeFrequency < INT_MAX / nNearbyIntervalIncreasingFactor);
+			nNearbyIntervalsMaxCumulativeFrequency *= nNearbyIntervalIncreasingFactor;
+		}
+	}
+
+	// Trace de debut
+	if (bTrace)
+	{
+		cout << "AddContinuousAttributeNearbyParts\t" << sAttributeName << "\n";
+		cout << "\tNearbyIntervalMinFrequency\t" << nNearbyIntervalMinFrequency << "\n";
+		cout << "\tNearbyIntervalIncreasingFactor\t" << nNearbyIntervalIncreasingFactor << "\n";
+		cout << "\tNearbyMaxIntervalNumber\t" << nNearbyMaxIntervalNumber << "\n";
+		cout << "\tNearbyIntervalsMaxCumulativeFrequency\t" << nNearbyIntervalsMaxCumulativeFrequency << "\n";
+		cout << "Source intervals\n";
+		sourceAttribute->WritePartsSummary(cout);
+		cout << "Mandatory intervals\n";
+		mandatoryAttribute->WritePartsSummary(cout);
+		cout << "Adding target intervals\n";
+	}
+
+	// Parcours en avant synchronise des intervalles obligatoires et sources pour identifier les nouveaux
+	// intervalles suivant chaque intervalle obligatoire a creer, y compris les intervalles obligatoires
+	// On memorise l'effectif cumule global de chaque intervalle a creer
+	nCumulativeFrequency = 0;
+	mandatoryPart = mandatoryAttribute->GetHeadPart();
+	sourcePart = sourceAttribute->GetHeadPart();
+	while (mandatoryPart != NULL)
+	{
+		// On part d'un nouvel intervalle obligatoire, synchronise avec l'intervalle source pour sa borne inf
+		assert(mandatoryPart->GetInterval()->GetLowerBound() == sourcePart->GetInterval()->GetLowerBound());
+		assert(mandatoryPart->GetPartFrequency() > 0);
+
+		// Effectif cumule correspondant a la mediane de l'intervalle
+		nCumulativeFrequencyIntervalMedian = nCumulativeFrequency + mandatoryPart->GetPartFrequency() / 2;
+
+		// Effectif cumule max en fonction des contraintes
+		nCumulativeFrequencyLimit = nCumulativeFrequency + nNearbyIntervalsMaxCumulativeFrequency;
+
+		// Reinitialisation de l'effectif cumule minimal
+		nMinTargetFrequency = nNearbyIntervalMinFrequency;
+
+		// Parcours des intervalles sources jusqu'a trouver la borne sup de l'attribut obligatoire
+		bNewIntervalCreated = false;
+		nTargetFrequency = 0;
+		while (sourcePart != NULL and
+		       sourcePart->GetInterval()->GetUpperBound() <= mandatoryPart->GetInterval()->GetUpperBound())
+		{
+			assert(sourcePart->GetPartFrequency() > 0);
+
+			// Prise en compte de l'effectif de l'intervalle source
+			// L'effectif cible est cumule depuis la borne de depart
+			nTargetFrequency += sourcePart->GetPartFrequency();
+			nCumulativeFrequency += sourcePart->GetPartFrequency();
+
+			// Creation d'un intervalle cible si on a atteint la fin de l'intervalle obligatoire
+			// ou si l'on respecte les contraintes
+			// Note que l'on cree les intervalles obligatoires dans la premiere passe.
+			// Le nombre max d'intervalles a creer est implicitement pris en compte par la contrainte
+			// d'effectif cumule maximal
+			bCreateInterval = false;
+			if (sourcePart->GetInterval()->GetUpperBound() == mandatoryPart->GetInterval()->GetUpperBound())
+				bCreateInterval = true;
+			else if (nTargetFrequency >= nMinTargetFrequency and
+				 nCumulativeFrequency <= nCumulativeFrequencyIntervalMedian)
+				bCreateInterval =
+				    not bNewIntervalCreated or nCumulativeFrequency <= nCumulativeFrequencyLimit;
+			if (bCreateInterval)
+			{
+				bNewIntervalCreated = true;
+
+				// Memorisation de l'effectif cumule global de l'intervalle a creer
+				ivNextNearbyCumulativeFrequencies.Add(nCumulativeFrequency);
+
+				// Pas de remise a zero: l'effectif est cumule depuis la borne de depart
+				// On passe au prochain terme theorique de la suite (geometrique ou arithmetique)
+				// strictement superieur a l'effectif cumule atteint
+				if (nNearbyIntervalIncreasingFactor > 1)
+				{
+					while (nMinTargetFrequency <= nTargetFrequency)
+					{
+						assert(nMinTargetFrequency < INT_MAX / nNearbyIntervalIncreasingFactor);
+						nMinTargetFrequency *= nNearbyIntervalIncreasingFactor;
+					}
+				}
+				else
+				{
+					// Prochain multiple de l'increment strictement superieur a l'effectif atteint
+					nMinTargetFrequency = (nTargetFrequency / nMinTargetFrequencyIncrement + 1) *
+							      nMinTargetFrequencyIncrement;
+				}
+			}
+
+			// Passage a l'intervalle source suivant
+			sourceAttribute->GetNextPart(sourcePart);
+		}
+
+		// Passage a l'intervalle obligatoire suivant
+		mandatoryAttribute->GetNextPart(mandatoryPart);
+	}
+	if (bTrace)
+		cout << "NextNearbyCumulativeFrequencies" << ivNextNearbyCumulativeFrequencies << "\n";
+	assert(ivNextNearbyCumulativeFrequencies.GetSize() >= mandatoryAttribute->GetPartNumber());
+	assert(ivNextNearbyCumulativeFrequencies.GetSize() <=
+	       mandatoryAttribute->GetPartNumber() * (1 + nNearbyMaxIntervalNumber));
+
+	// Parcours en arriere synchronise des intervalles obligatoires et sources pour identifier les nouveaux
+	// intervalles a creer precedant la borne sup de chaque intervalle obligatoire, sans inclure les intervalles obligatoires
+	// On memorise l'effectif cumule global de chaque intervalle a creer
+	assert(nCumulativeFrequency == mandatoryAttribute->ComputeTotalPartFrequency());
+	mandatoryPart = mandatoryAttribute->GetTailPart();
+	sourcePart = sourceAttribute->GetTailPart();
+	while (mandatoryPart != NULL)
+	{
+		// On part d'un nouvel intervalle obligatoire, synchronise avec l'intervalle source pour sa borne sup
+		assert(mandatoryPart->GetInterval()->GetUpperBound() == sourcePart->GetInterval()->GetUpperBound());
+		assert(mandatoryPart->GetPartFrequency() > 0);
+
+		// Effectif cumule correspondant a la mediane de l'intervalle, pour retrouver la meme que dans la passe avant
+		nCumulativeFrequencyIntervalMedian =
+		    nCumulativeFrequency - mandatoryPart->GetPartFrequency() + mandatoryPart->GetPartFrequency() / 2;
+
+		// Effectif cumule max en fonction des contraintes
+		nCumulativeFrequencyLimit = nCumulativeFrequency - nNearbyIntervalsMaxCumulativeFrequency;
+
+		// Reinitialisation de l'effectif cumule minimal
+		nMinTargetFrequency = nNearbyIntervalMinFrequency;
+
+		// Parcours des intervalles sources jusqu'a trouver la borne inf de l'attribut obligatoire
+		bNewIntervalCreated = false;
+		nTargetFrequency = 0;
+		while (sourcePart != NULL and
+		       sourcePart->GetInterval()->GetLowerBound() >= mandatoryPart->GetInterval()->GetLowerBound())
+		{
+			assert(sourcePart->GetPartFrequency() > 0);
+
+			// Prise en compte de l'effectif de l'intervalle source
+			// L'effectif cible est cumule depuis la borne de depart
+			nTargetFrequency += sourcePart->GetPartFrequency();
+			nCumulativeFrequency -= sourcePart->GetPartFrequency();
+
+			// Creation d'un intervalle cible si on respecte les contraintes
+			// Note que l'on impose d'etre strictement superieur a la mediane pour eviter de generer
+			// le meme intervalle que dans la premiere passe.
+			// De meme, on ne recree pas les intervalles obligatoires de la premiere passe.
+			bCreateInterval = false;
+			if (nTargetFrequency >= nMinTargetFrequency and
+			    nCumulativeFrequency > nCumulativeFrequencyIntervalMedian)
+				bCreateInterval =
+				    not bNewIntervalCreated or nCumulativeFrequency >= nCumulativeFrequencyLimit;
+			if (bCreateInterval)
+			{
+				bNewIntervalCreated = true;
+
+				// Memorisation de l'effectif cumule global de l'intervalle a creer
+				ivPrevNearbyCumulativeFrequencies.Add(nCumulativeFrequency);
+
+				// Pas de remise a zero: l'effectif est cumule depuis la borne de depart
+				// On passe au prochain terme theorique de la suite (geometrique ou arithmetique)
+				// strictement superieur a l'effectif cumule atteint
+				if (nNearbyIntervalIncreasingFactor > 1)
+				{
+					while (nMinTargetFrequency <= nTargetFrequency)
+					{
+						assert(nMinTargetFrequency < INT_MAX / nNearbyIntervalIncreasingFactor);
+						nMinTargetFrequency *= nNearbyIntervalIncreasingFactor;
+					}
+				}
+				else
+				{
+					// Prochain multiple de l'increment strictement superieur a l'effectif atteint
+					nMinTargetFrequency = (nTargetFrequency / nMinTargetFrequencyIncrement + 1) *
+							      nMinTargetFrequencyIncrement;
+				}
+			}
+
+			// Passage a l'intervalle source precedent
+			sourceAttribute->GetPrevPart(sourcePart);
+		}
+
+		// Passage a l'intervalle obligatoire precedent
+		mandatoryAttribute->GetPrevPart(mandatoryPart);
+	}
+	if (bTrace)
+		cout << "PrevNearbyCumulativeFrequencies" << ivPrevNearbyCumulativeFrequencies << "\n";
+	assert(ivPrevNearbyCumulativeFrequencies.GetSize() <=
+	       mandatoryAttribute->GetPartNumber() * nNearbyMaxIntervalNumber);
+
+	// Fusion des listes des intervalles a creer a partir des intervalles suivants (ordre croissant) et precedents (ordre decroissant)
+	iPrev = ivPrevNearbyCumulativeFrequencies.GetSize() - 1;
+	for (iNext = 0; iNext < ivNextNearbyCumulativeFrequencies.GetSize(); iNext++)
+	{
+		// Parcours des intervalles precedent en ordre inverse pour prendre ceux qui precedent l'intervalle suivant
+		while (iPrev >= 0)
+		{
+			assert(ivPrevNearbyCumulativeFrequencies.GetAt(iPrev) !=
+			       ivNextNearbyCumulativeFrequencies.GetAt(iNext));
+
+			// On prend l'effectif cumule precedent s'il est inferieur a celui de l'intervalle suivant
+			if (ivPrevNearbyCumulativeFrequencies.GetAt(iPrev) <
+			    ivNextNearbyCumulativeFrequencies.GetAt(iNext))
+				ivAllNearbyCumulativeFrequencies.Add(ivPrevNearbyCumulativeFrequencies.GetAt(iPrev));
+			// Arret sinon
+			else
+				break;
+			iPrev--;
+		}
+
+		// Ajout de l'effectif cumule depuis les intervalles suivant
+		ivAllNearbyCumulativeFrequencies.Add(ivNextNearbyCumulativeFrequencies.GetAt(iNext));
+	}
+	if (bTrace)
+		cout << "AllNearbyCumulativeFrequencies" << ivAllNearbyCumulativeFrequencies << "\n";
+	assert(ivAllNearbyCumulativeFrequencies.GetAt(ivAllNearbyCumulativeFrequencies.GetSize() - 1) ==
+	       mandatoryAttribute->ComputeTotalPartFrequency());
+	assert(ivAllNearbyCumulativeFrequencies.GetSize() ==
+	       ivPrevNearbyCumulativeFrequencies.GetSize() + ivNextNearbyCumulativeFrequencies.GetSize());
+	assert(ivAllNearbyCumulativeFrequencies.GetSize() >= mandatoryAttribute->GetPartNumber());
+	assert(ivAllNearbyCumulativeFrequencies.GetSize() <=
+	       mandatoryAttribute->GetPartNumber() * (1 + 2 * nNearbyMaxIntervalNumber));
+
+	// Parcours des intervalles sources pour creer les intervalles cibles a partir des effectifs cumules specifies
+	nCumulativeFrequency = 0;
+	sourcePart = sourceAttribute->GetHeadPart();
+	for (i = 0; i < ivAllNearbyCumulativeFrequencies.GetSize(); i++)
+	{
+		// Creation d'un nouvel intervalle cible
+		targetPart = targetAttribute->AddPart();
+		targetPart->GetInterval()->SetLowerBound(sourcePart->GetInterval()->GetLowerBound());
+
+		// Prise en compte de son effectif
+		nTargetFrequency = sourcePart->GetPartFrequency();
+		nCumulativeFrequency += sourcePart->GetPartFrequency();
+
+		// Parcours des intervalles sources jusqu'a atteindre l'effectif cumule souhaite
+		while (nCumulativeFrequency < ivAllNearbyCumulativeFrequencies.GetAt(i))
+		{
+			// Prise en compte de l'intervalle source suivant
+			sourceAttribute->GetNextPart(sourcePart);
+			nTargetFrequency += sourcePart->GetPartFrequency();
+			nCumulativeFrequency += sourcePart->GetPartFrequency();
+		}
+
+		// Finalisation de l'intervalle cible
+		targetPart->GetInterval()->SetUpperBound(sourcePart->GetInterval()->GetUpperBound());
+
+		// On ne memorise l'effectif de l'intervalle que dans le cas d'un attribut interne
+		// Sinon, c'est la prise en compte des cellules de la grille qui met a jour les effectifs des intervalles
+		if (sourceAttribute->IsInnerAttribute())
+			targetPart->SetPartFrequency(nTargetFrequency);
+
+		// Intervalle source suivant
+		sourceAttribute->GetNextPart(sourcePart);
+	}
+
+	// Trace de fin
+	if (bTrace)
+	{
+		cout << "Target intervals\n";
+		targetAttribute->WritePartsSummary(cout);
+	}
+
+	ensure(targetAttribute->GetPartNumber() >= mandatoryAttribute->GetPartNumber());
+	ensure(targetAttribute->GetPartNumber() <= sourceAttribute->GetPartNumber());
+	ensure(targetAttribute->GetPartNumber() <=
+	       mandatoryAttribute->GetPartNumber() * (1 + 2 * nNearbyMaxIntervalNumber));
+	ensure(targetAttribute->ArePartsSorted());
+	ensure(sourceAttribute->ContainsSubParts(targetAttribute));
+	ensure(targetAttribute->ContainsSubParts(mandatoryAttribute));
+	ensure(not sourceAttribute->IsInnerAttribute() or
+	       targetAttribute->ComputeTotalPartFrequency() == sourceAttribute->ComputeTotalPartFrequency());
+}
+
+void KWDataGridManager::AddSymbolAttributeNearbyParts(const KWDataGrid* sourceDataGrid,
+						      const KWDataGrid* mandatoryDataGrid,
+						      const ALString& sAttributeName, int nNearbyGroupMinFrequency,
+						      int nNearbyGroupMaxFrequency, KWDataGrid* targetDataGrid) const
+{
+	ObjectArray oaSourceParts;
+	ObjectArray oaMandatoryParts;
+	NumericKeyDictionary nkdMandatoryParts;
+	KWDGAttribute* sourceAttribute;
+	KWDGAttribute* mandatoryAttribute;
+	KWDGAttribute* targetAttribute;
+	KWDGPart* sourcePart;
+	KWDGPart* mandatoryPart;
+	KWDGPart* targetPart;
+	KWDGPart* aggregateTargetPart;
+	KWDGPart* sourceGarbagePart;
+	KWDGValue* sourceValue;
+	int nSourcePartNumber;
+	int nMandatoryPartNumber;
+	int nSource;
+	int nMandatory;
+	boolean bMandatoryAttributeIndexed;
+
+	require(sourceDataGrid != NULL);
+	require(mandatoryDataGrid != NULL);
+	require(targetDataGrid != NULL);
+	require(sourceDataGrid->Check());
+	require(CheckAttributes(sourceDataGrid, mandatoryDataGrid));
+	require(CheckGranularity(sourceDataGrid, mandatoryDataGrid));
+	require(CheckAttributes(sourceDataGrid, targetDataGrid));
+	require(CheckGranularity(sourceDataGrid, targetDataGrid));
+	require(sAttributeName != "");
+	require(nNearbyGroupMinFrequency >= 1);
+	require(nNearbyGroupMinFrequency <= nNearbyGroupMaxFrequency);
+	require(targetDataGrid->GetCellNumber() == 0);
+
+	// Acces a l'attribut dans chaque grille
+	sourceAttribute = sourceDataGrid->SearchAttribute(sAttributeName);
+	mandatoryAttribute = mandatoryDataGrid->SearchAttribute(sAttributeName);
+	targetAttribute = targetDataGrid->SearchAttribute(sAttributeName);
+
+	require(sourceAttribute != NULL);
+	require(mandatoryAttribute != NULL);
+	require(targetAttribute != NULL);
+	require(sourceAttribute->GetAttributeType() == KWType::Symbol);
+	require(CheckAttributesConsistency(sourceAttribute, mandatoryAttribute));
+	require(CheckAttributesConsistency(sourceAttribute, targetAttribute));
+	require(sourceAttribute->ContainsSubParts(mandatoryAttribute));
+	require(targetAttribute->GetPartNumber() == 0);
+
+	// Export des parties spource et obligatoires
+	sourceAttribute->ExportParts(&oaSourceParts);
+	mandatoryAttribute->ExportParts(&oaMandatoryParts);
+	nSourcePartNumber = oaSourceParts.GetSize();
+	nMandatoryPartNumber = oaMandatoryParts.GetSize();
+
+	// Indexation si necessaire des parties obligatoires
+	bMandatoryAttributeIndexed = mandatoryAttribute->IsIndexed();
+	if (not bMandatoryAttributeIndexed)
+		mandatoryAttribute->BuildIndexingStructure();
+
+	// Association des parties source avec les parties obligatoires.
+	for (nSource = 0; nSource < nSourcePartNumber; nSource++)
+	{
+		sourcePart = cast(KWDGPart*, oaSourceParts.GetAt(nSource));
+		sourceValue = sourcePart->GetValueSet()->GetHeadValue();
+		check(sourceValue);
+
+		// Recherche de la partie obligatoire associee a la partie source
+		mandatoryPart = mandatoryAttribute->LookupGroupablePart(sourceValue);
+		check(mandatoryPart);
+
+		// Mmorisation de la partyie obligatoire associee a la partie spource
+		nkdMandatoryParts.SetAt(sourcePart, mandatoryPart);
+	}
+
+	// Nettoyage de l'indexation des parties obligatoires
+	if (not bMandatoryAttributeIndexed)
+		mandatoryAttribute->DeleteIndexingStructure();
+
+	sourceGarbagePart = sourceAttribute->GetGarbagePart();
+
+	// Chaque partie source dont l'effectif est dans l'intervalle demande est conservee
+	// individuellement. Les autres parties sont agregees dans leur partie obligatoire.
+	// NOT YET IM%PLEMENTED
+	assert(false);
+
+	// Tri des parties cible dans le cas d'un attribut interne
+	if (sourceAttribute->IsInnerAttribute())
+		targetAttribute->SortParts();
+
+	ensure(targetAttribute->GetPartNumber() >= mandatoryAttribute->GetPartNumber());
+	ensure(targetAttribute->GetPartNumber() <= sourceAttribute->GetPartNumber());
+	ensure(sourceAttribute->ContainsSubParts(targetAttribute));
+	ensure(targetAttribute->ContainsSubParts(mandatoryAttribute));
+	ensure(not sourceAttribute->IsInnerAttribute() or
+	       targetAttribute->ComputeTotalPartFrequency() == sourceAttribute->ComputeTotalPartFrequency());
+}
+
 void KWDataGridManager::ExportRandomAttributes(const KWDataGrid* sourceDataGrid, int nAttributeNumber,
 					       KWDataGrid* targetDataGrid) const
 {
@@ -1438,7 +1885,7 @@ void KWDataGridManager::AddRandomParts(const KWDataGrid* sourceDataGrid, const K
 		// Nombre initial de parties demandees
 		nRequestedPartNumber = nAddedPartNumber;
 
-		// Prise en compte des partie existantes en cas d'attribut obligatoire
+		// Prise en compte des parties existantes en cas d'attribut obligatoire
 		if (mandatoryAttribute != NULL)
 			nRequestedPartNumber += mandatoryAttribute->GetPartNumber();
 		nRequestedPartNumber = min(nRequestedPartNumber, sourceAttribute->GetPartNumber());
@@ -2736,7 +3183,7 @@ void KWDataGridManager::InitialiseSymbolAttributePartsFromGrouping(const KWDGAtt
 	// Pour les autre attributs, c'est calcule a partir des cellules
 	if (sourceAttribute->IsInnerAttribute())
 	{
-		// Mise a jour de l'effectif des partie a partir de celui des valeurs
+		// Mise a jour de l'effectif des parties a partir de celui des valeurs
 		targetPart = targetAttribute->GetHeadPart();
 		while (targetPart != NULL)
 		{
@@ -2883,7 +3330,7 @@ void KWDataGridManager::InitialiseVarPartAttributeWithNewSurtokenisedInnerAttrib
 					if (oaVarPart != NULL)
 						sourceInnerAttribute->GetNextPart(sourceVarPart);
 
-					// Creation du tableau des partie cibles associees a la partie sourve
+					// Creation du tableau des parties cibles associees a la partie sourve
 					oaVarPart = new ObjectArray;
 					nkdTargetInnerAttributeVarParts.SetAt(sourceVarPart, oaVarPart);
 				}
@@ -2917,7 +3364,7 @@ void KWDataGridManager::InitialiseVarPartAttributeWithNewSurtokenisedInnerAttrib
 			targetVarPart = targetInnerAttribute->GetHeadPart();
 			while (sourceVarPart != NULL)
 			{
-				// Creation du tableau des partie cibles associees a la partie sourve
+				// Creation du tableau des parties cibles associees a la partie sourve
 				oaVarPart = new ObjectArray;
 				nkdTargetInnerAttributeVarParts.SetAt(sourceVarPart, oaVarPart);
 				assert(nkdTargetInnerAttributeValues.GetCount() > 0);
@@ -4421,7 +4868,7 @@ KWDGInnerAttributes* KWDataGridManager::CreateRandomInnerAttributes(const KWDGIn
 		}
 		assert(nMinimimEqualFrequencyPartNumber >= nTokenNumberToCreate);
 
-		// Export des partie selon le type de l'attribut
+		// Export des parties selon le type de l'attribut
 		if (mandatoryInnerAttribute->GetAttributeType() == KWType::Continuous)
 			ExportContinuousAttributeRandomParts(sourceInnerAttribute, mandatoryInnerAttribute,
 							     nTokenNumberToCreate, nMinimimEqualFrequencyPartNumber,
@@ -4907,7 +5354,7 @@ void KWDataGridManager::InitializeGroupableAttributePartInformations(
 		nMandatoryIndex = 0;
 		while (mandatoryPart != NULL)
 		{
-			lnkdMandatoryParts.SetAt(mandatoryPart, nMandatoryIndex + 1);
+			lnkdMandatoryParts.SetAt(mandatoryPart, (longint)nMandatoryIndex + 1);
 
 			// Partie suivante
 			mandatoryAttribute->GetNextPart(mandatoryPart);
@@ -4981,7 +5428,7 @@ void KWDataGridManager::ComputeContinuousAttributeCumulatedFrequencies(const KWD
 		// Prise en compte de la partie courante
 		ivCumulatedFrequencies->SetAt(nPart, part->GetPartFrequency());
 
-		// Cumul avec les partie precedentes
+		// Cumul avec les parties precedentes
 		if (nPart > 0)
 			ivCumulatedFrequencies->UpgradeAt(nPart, ivCumulatedFrequencies->GetAt(nPart - 1));
 		nPart++;

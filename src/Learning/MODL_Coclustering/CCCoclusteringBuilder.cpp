@@ -365,7 +365,7 @@ boolean CCCoclusteringBuilder::ComputeCoclustering()
 	///////////////////////////////////////////////////////////////////////////////////
 	// Calcul d'une grille initiale
 
-	// Craetion d'une grille initial plus plus fine possible a partir de la base de donnees
+	// Creation d'une grille initial plus plus fine possible a partir de la base de donnees
 	if (bOk and not TaskProgression::IsInterruptionRequested())
 	{
 		// Cas du coclustering standard, VxV
@@ -519,9 +519,9 @@ void CCCoclusteringBuilder::RemoveLastSavedReportFile() const
 void CCCoclusteringBuilder::HandleOptimizationStep(const KWDataGrid* optimizedDataGrid,
 						   const KWDataGrid* initialGranularizedDataGrid) const
 {
+	const boolean bTrace = false;
 	boolean bKeepIntermediateReports = false;
 	boolean bWriteOk;
-	const boolean bTrace = false;
 	boolean bTraceGranularity;
 	const int nMaxVarPartsDisplayed = 10;
 	const double dEpsilon = 1e-6;
@@ -708,7 +708,13 @@ void CCCoclusteringBuilder::OptimizeDataGrid(const KWDataGrid* inputInitialDataG
 
 	// Parametrage de l'optimiser selon le type de grille
 	if (not initialDataGrid->IsVarPartDataGrid())
+	{
 		dataGridOptimizer = &dataGridOptimizerVxV;
+
+		// Dans le cas du coclustering en mode anytime, on optimise par granularite croissante
+		// pour avoir des premieres solutions rapidement
+		dataGridOptimizerVxV.SetIncreasingGranularityOptimization(true);
+	}
 	else
 		dataGridOptimizer = &dataGridOptimizerIxV;
 
@@ -1097,7 +1103,7 @@ boolean CCCoclusteringBuilder::CreateVarPartInitialDataGrid()
 	TaskProgression::BeginTask();
 	TaskProgression::DisplayMainLabel("Create coclustering optimization data");
 
-	// Creation d'un grille vide de type IxV
+	// Creation d'une grille vide de type IxV
 	initialDataGrid = CreateVarPartEmptyDataGrid();
 
 	// Lecture des enregistrements de la base
@@ -2651,7 +2657,7 @@ const ALString CCCoclusteringBuilder::AnyTimeBuildTemporaryReportFileName(int nI
 	require(GetReportFileName() != "");
 	require(nIndex >= 1);
 
-	// Extraction des partie du nom du fichier
+	// Extraction des parties du nom du fichier
 	sPathName = FileService::GetPathName(GetReportFileName());
 	sFilePrefix = FileService::GetFilePrefix(GetReportFileName());
 	sFileSuffix = FileService::GetFileSuffix(GetReportFileName());
@@ -2936,7 +2942,7 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 	const boolean bTrace = false;
 	KWDataGridPostOptimizer dataGridPostOptimizer;
 	KWDGAttribute* initialAttribute;
-	KWDataGrid* univariateInitialDataGrid;
+	KWDataGrid univariateInitialDataGrid;
 	KWDGPOGrouper dataGridUnivariateGrouper;
 	KWDataGridUnivariateCosts* dataGridUnivariateCosts;
 	KWDataGridManager dataGridManager;
@@ -2993,11 +2999,12 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 	optimizedDataGrid->GetAttributeAt(nAttribute)->ExportParts(&oaGroupParts);
 
 	// Construction d'une grille initiale pour l'optimisation univariee
-	univariateInitialDataGrid = dataGridPostOptimizer.BuildUnivariateInitialDataGrid(
-	    optimizedDataGrid, inputInitialDataGrid, optimizedDataGrid->GetAttributeAt(nAttribute)->GetAttributeName());
+	dataGridPostOptimizer.BuildUnivariateInitialDataGrid(
+	    inputInitialDataGrid, optimizedDataGrid, optimizedDataGrid->GetAttributeAt(nAttribute)->GetAttributeName(),
+	    &univariateInitialDataGrid);
 
 	// Verification de la compatibilite entre grille optimisee et grille initiale
-	assert(dataGridManager.CheckDataGrid(univariateInitialDataGrid, optimizedDataGrid));
+	assert(dataGridManager.CheckDataGrid(&univariateInitialDataGrid, optimizedDataGrid));
 
 	// Parametrage des couts d'optimisation univarie de la grille
 	dataGridUnivariateGrouper.SetPostOptimizationAttributeName(
@@ -3009,14 +3016,14 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 	dataGridUnivariateCosts->InitializeUnivariateCostParameters(optimizedDataGrid);
 
 	// Construction d'une table d'effectif selon l'attribut a post-optimiser, pour la grille initiale
-	nValueNumber = univariateInitialDataGrid->GetAttributeAt(nAttribute)->GetPartNumber();
+	nValueNumber = univariateInitialDataGrid.GetAttributeAt(nAttribute)->GetPartNumber();
 	dataGridUnivariateGrouper.InitializeFrequencyTableFromDataGrid(&initialFrequencyTable,
-								       univariateInitialDataGrid);
+								       &univariateInitialDataGrid);
 	assert(initialFrequencyTable.GetFrequencyVectorNumber() == nValueNumber);
 
 	// Initialisation des index de groupes et de l'index du groupe poubelle si present
 	nGarbageGroupIndex = dataGridUnivariateGrouper.InitializeGroupIndexesAndGarbageIndex(
-	    &ivGroups, univariateInitialDataGrid, optimizedDataGrid);
+	    &ivGroups, &univariateInitialDataGrid, optimizedDataGrid);
 	nGarbageModalityNumber = 0;
 
 	// Initialisation d'un tableau d'effectif groupe a partir d'une grille initiale et des index des groupes
@@ -3299,9 +3306,6 @@ void CCCoclusteringBuilder::ComputeValueTypicalitiesAt(const KWDataGrid* inputIn
 			}
 		}
 	}
-
-	// Nettoyage
-	delete univariateInitialDataGrid;
 }
 
 void CCCoclusteringBuilder::ComputePartInterests(const KWDataGridMerger* optimizedDataGridMerger,
@@ -3573,7 +3577,7 @@ void CCCoclusteringBuilder::ComputePartHierarchies(KWDataGridMerger* optimizedDa
 			// Rang hierarchique, basee sur le nombre de partie restante (apres la fusion)
 			hdgParentPart->SetHierarchicalRank(optimizedDataGridMerger->GetTotalPartNumber() - 1);
 
-			// Lien avec ses partie filles
+			// Lien avec ses parties filles
 			hdgPart = cast(CCHDGPart*, nkdHierarchicalParts.Lookup(bestPartMerge->GetPart1()));
 			hdgPart->SetParentPart(hdgParentPart);
 			hdgParentPart->SetChildPart1(hdgPart);

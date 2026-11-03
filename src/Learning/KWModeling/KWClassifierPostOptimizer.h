@@ -15,7 +15,7 @@ class KWConfusionMatrix;
 // Classe KWClassifierPostOptimizer
 // Post-optimisation d'un classifier pour modifier les seuils de prediction
 // des valeurs cibles de facon a optimiser un critere donne
-// Le critere provient de de la methode GetClassifierCriterion() de KWTrainParameters
+// Le critere provient de la methode GetClassifierCriterion() de KWTrainParameters
 class KWClassifierPostOptimizer : public Object
 {
 public:

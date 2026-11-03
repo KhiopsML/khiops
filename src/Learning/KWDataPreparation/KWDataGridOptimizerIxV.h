@@ -22,7 +22,7 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	///// Implementation
 protected:
-	// Optimisation d'un grille
+	// Optimisation d'une grille
 	double InternalOptimizeDataGrid(const KWDataGrid* initialDataGrid,
 					KWDataGrid* optimizedDataGrid) const override;
 
@@ -42,7 +42,7 @@ protected:
 	// Pilotage de la post-optimisation
 	// En entree, la grille optimisee constitue une solution de depart, compatible avec la grille initiale.
 	// En sortie, la grille optimisee est amelioree par la methode de post-optimisation.
-	// - par fusion des partie de variables
+	// - par fusion des parties de variables
 	// - par deplacement de valeurs d'une partie de variables a une autre partie de variables
 	// On retourne le cout le grille post-optimisee
 	double PostOptimizeVarPartSolution(const KWDataGrid* initialDataGrid,

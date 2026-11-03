@@ -1145,7 +1145,7 @@ longint KWDataTableDriverTextFile::GetEstimatedUsedInputDiskSpacePerObject(const
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	// L'estimation est heuristique, sans lecture du fichier, en se basant uniquement sur une
-	// estimation heuristique la la place occupee par chaque champs natif du dictionnaire
+	// estimation heuristique de la place occupee par chaque champs natif du dictionnaire
 
 	// Initialisation des statistiques par type d'attribut
 	nDenseNativeValueNumber = 0;

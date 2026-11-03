@@ -137,7 +137,7 @@ protected:
 	// Initialisation en mono-table ou multi-tables selon le type de la database en parametre
 	void DefaultInitializeFrom(const KWDatabase* database);
 
-	// Initialisation forcee en mono-table, quelque soit le type de de la database en parametre
+	// Initialisation forcee en mono-table, quelque soit le type de la database en parametre
 	void STInitializeFrom(const KWDatabase* database);
 
 	// Variables de stockage de la base

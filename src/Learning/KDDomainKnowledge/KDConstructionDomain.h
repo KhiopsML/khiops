@@ -102,7 +102,7 @@ public:
 	//// Implementation
 protected:
 	// Initialisation d'une regle de construction a partir d'une regle de derivation,
-	// de sa regle de de partition correspondante et de sa regle de bloc de valeur correspondante
+	// de sa regle de partition correspondante et de sa regle de bloc de valeur correspondante
 	// Ces deux dernier parametres peutvent etre a NULL s'il ne sont pas pertinent
 	// Renvoie la regle de construction creee
 	// Memoire: les regles de derivation en parametre appartiennent a la regle de construction cree

@@ -425,7 +425,7 @@ protected:
 	// au caracteristiques principales (effectif,...). En cas emule (utile par exemple pour
 	// la classe KWDataGridUnivariateCosts), ces caracteristique principales (permettant de
 	// parametrer les couts) peuvent etre modifiee directement et acceder sans etre coherente
-	// dans la la structure
+	// dans la structure
 	virtual boolean GetEmulated() const;
 
 	// Statistiques globales sur la grille
@@ -686,6 +686,7 @@ public:
 	// Affichage
 	void Write(ostream& ost) const override;
 	void WriteParts(ostream& ost) const;
+	void WritePartsSummary(ostream& ost) const;
 
 	// Libelles utilisateur
 	const ALString GetClassLabel() const override;
@@ -867,6 +868,7 @@ public:
 
 	// Affichage
 	void Write(ostream& ost) const override;
+	void WriteSummary(ostream& ost) const;
 	void WriteValues(ostream& ost) const;
 	void WriteCells(ostream& ost) const;
 

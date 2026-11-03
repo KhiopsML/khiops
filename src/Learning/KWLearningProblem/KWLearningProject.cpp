@@ -84,7 +84,7 @@ void KWLearningProject::Start(int argc, char** argv)
 	// Les erreurs arithmetiques de type divide by zero sont en principe capturees par un signal, mais ce
 	// comportement implemente sous linux fonctionne differemment sous windows, selon les options de compilation
 	// virgule flottante, selon les gestion proprietaires microsoft d'exceptions systemes par __try __except, en
-	// concurrence avec la la gestion des exceptions standard C++, et selon la possibilite de parametrer un handler
+	// concurrence avec la gestion des exceptions standard C++, et selon la possibilite de parametrer un handler
 	// global de gestion des exceptions non capturees. Ces specificites microsoft ne sont pas utilisees. On
 	// n'utilise pas non plus la possibilite de capturer toutes les exceptions par un "catch(...)", car cela entre
 	// en competition avec la gestion par signal, et on perd alors les informations precises sur la cause des

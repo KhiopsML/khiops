@@ -638,7 +638,7 @@ private:
 	// Parametre sur la taille max des lignes des InputBufferedFile
 	PLShared_Int shared_nMaxLineLength;
 
-	// Parametre sur la taille max de la la heap, pour les crash test sur la memoire
+	// Parametre sur la taille max de la heap, pour les crash test sur la memoire
 	PLShared_Longint shared_lMaxHeapSize;
 
 	// Nom de la tache
@@ -652,8 +652,8 @@ private:
 	PLShared_Tracer shared_tracerMPI;
 	PLShared_Tracer shared_tracerPerformance;
 
-	// Parametres de tracers (on n'utilise pas les variables partagees car c'est envoye en dehors du protocole
-	// standard)
+	// Parametres de tracers
+	// (on n'utilise pas les variables partagees car c'est envoye en dehors du protocole  standard)
 	static ALString sParallelLogFileName;
 
 	// Mode simule uniquement : position de l'esclave acteuellement en traitement

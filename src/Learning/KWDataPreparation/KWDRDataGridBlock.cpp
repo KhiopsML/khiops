@@ -183,8 +183,7 @@ boolean KWDRDataGridBlock::CheckOperandsFamily(const KWDerivationRule* ruleFamil
 		else
 			datagridBlockSpecifiedFamily.GetFirstOperand()->SetStructureName(symbolValueSetRule.GetName());
 
-		// On verifie alors la regle avec cette famille correctement specifiee par appel;de la la methode
-		// ancetre
+		// On verifie alors la regle avec cette famille correctement specifiee par appel de la methode ancetre
 		bOk = KWDerivationRule::CheckOperandsFamily(&datagridBlockSpecifiedFamily);
 	}
 
@@ -681,14 +680,14 @@ void KWDRDataGridBlockRule::BuildAllUsedAttributes(const KWAttribute* derivedAtt
 	{
 		// Recherche de l'attribut du bloc correspondant a la grille, c'est a dire de meme VarKey
 		// Il doit etre present puisque l'on a passe le CheckOperandsCompleteness de la regle
-		// Cas des des VarKey categoriels
+		// Cas des VarKey categoriels
 		if (GetDataGridVarKeyType() == KWType::Symbol)
 		{
 			sVarKey = firstOperandDataGridBlock->GetSymbolVarKeyAt(nAttribute);
 			attribute = secondOperandAttributeBlock->LookupAttributeBySymbolVarKey(sVarKey);
 			check(attribute);
 		}
-		// Cas des des VarKey numeriques
+		// Cas des VarKey numeriques
 		else
 		{
 			nVarKey = firstOperandDataGridBlock->GetContinuousVarKeyAt(nAttribute);

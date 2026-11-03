@@ -578,15 +578,15 @@ longint KWDataPreparationTask::ComputeNecessaryWorkingMemory(const KWLearningSpe
 			nTargetValueNumber = learningSpec->GetTargetDescriptiveStats()->GetValueNumber();
 		}
 
-		// Un grille bivariee maximale complete initiale (cf. KWAttributeSubsetStats.CreateDatagrid)
+		// Une grille bivariee maximale complete initiale (cf. KWAttributeSubsetStats.CreateDatagrid)
 		lInitialDatagridSize =
 		    (longint)nDatabaseObjectNumber * sizeof(KWDGMCell) +
 		    (longint)(nSourceValueNumber + nTargetValueNumber) *
 			(sizeof(KWDGMPart) + max(sizeof(KWDGInterval), sizeof(KWDGValueSet) + sizeof(KWDGValue)));
 		lWorkingMemorySize += lInitialDatagridSize;
 
-		// Plus une grille univariee pour la post-optimisation (cf.
-		// KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid)
+		// Plus une grille univariee pour la post-optimisation
+		// (cf. KWDataGridPostOptimizer::BuildUnivariateInitialDataGrid)
 		lInitialUnivariateDatagridSize = (longint)ceil(sqrt(nDatabaseObjectNumber * 1.0)) *
 						 (sizeof(KWDGMCell) + sizeof(KWDGMPart) +
 						  max(sizeof(KWDGInterval), sizeof(KWDGValueSet) + sizeof(KWDGValue)));
@@ -978,7 +978,7 @@ longint KWDataPreparationTask::ComputeEstimatedAttributeSymbolValuesMemory(longi
 		nEstimatedDistinctValueNumber = min((int)pow(2, nMeanSymbolValueLength + 1), nObjectNumber);
 	}
 
-	// Heuristique pour estimer la la taille necessaire en memoire
+	// Heuristique pour estimer la taille necessaire en memoire
 	lEstimatedAttributeSymbolValuesMemory = lSymbolAttributeDiskSize;
 	lEstimatedAttributeSymbolValuesMemory += nEstimatedDistinctValueNumber * Symbol::GetUsedMemoryPerSymbol();
 	return lEstimatedAttributeSymbolValuesMemory;

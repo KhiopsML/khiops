@@ -210,7 +210,7 @@ protected:
 					    KWTupleTable* tupleTable, ObjectDictionary* odInnerAttributes,
 					    ObjectDictionary* odOutputDescriptiveStats);
 
-	// Creation des attributs internes et des partie elementaire de l'attribut de type VarPart,
+	// Creation des attributs internes et des parties elementaires de l'attribut de type VarPart,
 	// avec mise a jour des statistique descriptives correspondantes
 	// La base entre doit etre chargee en memoire
 	// Elle est detruite au fur et a mesure de la creation des cellule et est rendues vide
@@ -316,14 +316,14 @@ protected:
 
 	// Calcul de l'interet des parties
 	// Le mergeur de grille en entree est a cet effet initialise avec le calcul de toutes les distances intra-partie
-	// Le contenu des partie de la grille optimisee est mis a jour
+	// Le contenu des parties de la grille optimisee est mis a jour
 	void ComputePartInterests(const KWDataGridMerger* optimizedDataGridMerger, const KWDataGridCosts* dataGridCosts,
 				  CCHierarchicalDataGrid* optimizedDataGrid) const;
 
 	// Calcul des hierarchies des parties parties, en creant de nouvelles parties pour les coder les hierarchies
 	// La grille optimisee en entree sera enrichie avec les nouvelles parties des noeuds intermediaires de la
 	// hierarchie Le mergeur de grille en entree est initialise avec le calcul de toutes les distances intra-partie,
-	// et sera utilise pour effectuer des fusions recursives jusqu'a un grille terminale mono-cellule
+	// et sera utilise pour effectuer des fusions recursives jusqu'a une grille terminale mono-cellule
 	void ComputePartHierarchies(KWDataGridMerger* optimizedDataGridMerger, const KWDataGridCosts* dataGridCosts,
 				    CCHierarchicalDataGrid* optimizedDataGrid) const;
 	const ALString BuildHierachicalPartName(const CCHDGAttribute* hdgAttribute, int nHierarchicalIndex) const;
@@ -360,7 +360,7 @@ protected:
 	// Dictionnaire des statistiques descriptives par attribut
 	ObjectDictionary odDescriptiveStats;
 
-	// Grille de de donnees initiale au niveau de grain le plus fin
+	// Grille de donnees initiale au niveau de grain le plus fin
 	KWDataGrid* initialDataGrid;
 
 	// Grille de coclustering resultat

@@ -1453,7 +1453,7 @@ void KWDRBuildEntityFromJson::FillAttributeFromJsonNumber(const KWAttribute* att
 	else
 		jsonWarningOwnerMember = NULL;
 
-	// Conversion de la valeur json en valeur Continuous, en gerant les valeur extremes
+	// Conversion de la valeur json en valeur Continuous, en gerant les valeurs extremes
 	dJsonValue = jsonNumber->GetNumber();
 	if (dJsonValue < KWContinuous::GetMinValue())
 	{
@@ -2260,7 +2260,7 @@ KWDRBuildGraph::KWDRBuildGraph()
 	GetOutputOperandAt(1)->SetType(KWType::Object);
 	GetOutputOperandAt(2)->SetType(KWType::ObjectArray);
 
-	// Table des arcs du graphe, avec les donnees d'entree par arc, les les deux noeuds extremites
+	// Table des arcs du graphe, avec les donnees d'entree par arc, les deux noeuds extremites
 	GetOutputOperandAt(3)->SetType(KWType::ObjectArray);
 	GetOutputOperandAt(4)->SetType(KWType::Object);
 	GetOutputOperandAt(5)->SetType(KWType::Object);

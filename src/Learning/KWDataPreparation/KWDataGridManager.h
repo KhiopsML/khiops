@@ -139,6 +139,42 @@ public:
 	void ExportCells(const KWDataGrid* sourceDataGrid, KWDataGrid* targetDataGrid) const;
 
 	///////////////////////////////////////////////////////////////////////////
+	// Ajout potentiel de parties proches des parties existantes d'un attribut donne.
+	// L'attribut doit exister dans les grilles source, obligatoire et cible.
+	// Dans la grille cible, cet attribut doit etre depourvu de parties.
+	// Les nouvelles parties sont obtenues par sur-partitionnement des parties de la grille
+	// obligatoire, en ajoutant des parties de part et d'autre de chaque frontiere.
+	// Selon les contraintes, le resultat peut etre identique a la grille obligatoire.
+
+	// Ajout d'intervalles au voisinage des parties existantes d'un attribut continu donne.
+	// Des intervalles sont ajoutes de chaque cote de chaque borne de la partition obligatoire.
+	// L'effectif cumule est mesure depuis la borne de depart, independamment pour chaque cote.
+	// Chaque intervalle ajoute doit respecter un effectif cumule minimal depuis cette borne.
+	// Si le facteur d'accroissement des effectifs est strictement superieur a 1, l'effectif cumule
+	// minimal des intervalles ajoutes augmente a mesure qu'ils s'eloignent de la borne, selon
+	// une loi geometrique (Min, F * Min, F * F * Min, ...).
+	// Sinon, l'effectif cumule minimal suit une loi arithmetique (Min, 2 * Min, 3 * Min, ...).
+	// L'ajout d'intervalles s'arrete lorsque le nombre maximal est atteint ou que l'effectif
+	// cumule des intervalles ajoutes atteint ou depasse l'effectif cumule minimal theorique
+	// correspondant au nombre maximal d'intervalles.
+	// Par exemple, avec un effectif minimal de 10, un facteur d'accroissement de 2 et au plus
+	// 3 intervalles, les effectifs cumules minimaux requis sont 10, 20 et 40.
+	// L'ajout s'arrete des que l'effectif cumule atteint ou depasse 40 ou que 3 intervalles ont ete ajoutes.
+	void AddContinuousAttributeNearbyParts(const KWDataGrid* sourceDataGrid, const KWDataGrid* mandatoryDataGrid,
+					       const ALString& sAttributeName, int nNearbyIntervalMinFrequency,
+					       int nNearbyIntervalIncreasingFactor, int nNearbyMaxIntervalNumber,
+					       KWDataGrid* targetDataGrid) const;
+
+	// Ajout de groupes proches des groupes existants d'un attribut categoriel donne.
+	// Tout sous-groupe de modalites source inclus dans un groupe obligatoire va donner
+	// lieu a la creation d'un nouveau groupe si son effectif est compris entre les deux
+	// bornes specifiees.
+	// NOT YET IMPLEMENTED
+	void AddSymbolAttributeNearbyParts(const KWDataGrid* sourceDataGrid, const KWDataGrid* mandatoryDataGrid,
+					   const ALString& sAttributeName, int nNearbyGroupMinFrequency,
+					   int nNearbyGroupMaxFrequency, KWDataGrid* targetDataGrid) const;
+
+	///////////////////////////////////////////////////////////////////////////
 	// Construction d'une grille de donnees cible en partitionnant aleatoirement
 	// la grille de donnees source
 	// Les methodes suivantes travaillent uniquement sur la structure des grilles
@@ -287,12 +323,10 @@ public:
 	// Test de compatibilite des valeurs cibles
 	boolean CheckTargetValues(const KWDataGrid* sourceDataGrid, const KWDataGrid* targetDataGrid) const;
 
-	// Test de compatibilite des attributs, qui doivent etre une sous partie
-	// des attributs sources
+	// Test de compatibilite des attributs, qui doivent etre une sous partie des attributs sources
 	boolean CheckAttributes(const KWDataGrid* sourceDataGrid, const KWDataGrid* targetDataGrid) const;
 
-	// Test de compatibilite des parties d'attributs, qui doivent former une partition
-	// des partie sources
+	// Test de compatibilite des parties d'attributs, qui doivent former une partition des parties sources
 	boolean CheckParts(const KWDataGrid* sourceDataGrid, const KWDataGrid* targetDataGrid) const;
 
 	// Test de compatibilite des cellules

@@ -1687,7 +1687,7 @@ boolean CCCoclusteringReport::ReadVarPartAttributeValueGroup(KWDGAttribute* varP
 				break;
 			}
 
-			// Verification de l'unicite des partie de variables dans l'ensemble des groupes de l'attribut
+			// Verification de l'unicite des parties de variables dans l'ensemble des groupes de l'attribut
 			// de type VarPart
 			dgCheckedVarPart = cast(KWDGPart*, odVarPartAttributeAllVarParts->Lookup(sValue));
 			if (dgCheckedVarPart != NULL)
@@ -2501,7 +2501,7 @@ void CCCoclusteringReport::WriteDimensionSummary(CCHDGAttribute* attribute, JSON
 	nValueNumber = attribute->GetInitialValueNumber();
 
 	// Caracteristique des attributs
-	// Le nombre de valeur est diminuer en externe de 1 pour tenir compte de de la StarValue en interne
+	// Le nombre de valeur est diminuer en externe de 1 pour tenir compte de la StarValue en interne
 	fJSON->BeginObject();
 	fJSON->WriteKeyString("name", attribute->GetAttributeName());
 	if (attribute->GetAttributeType() == KWType::VarPart)
@@ -2880,7 +2880,7 @@ void CCCoclusteringReport::WriteCells(const CCHierarchicalDataGrid* coclustering
 		nkdPartIndexes = new NumericKeyDictionary;
 		oaAttributePartIndexes.Add(nkdPartIndexes);
 
-		// Parcours des partie pour memoriser leur index
+		// Parcours des parties pour memoriser leur index
 		nIndex = 0;
 		dgPart = dgAttribute->GetHeadPart();
 		while (dgPart != NULL)

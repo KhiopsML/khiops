@@ -193,7 +193,7 @@ public:
 	KWKeyLinePair();
 	~KWKeyLinePair();
 
-	// Acces a le clef
+	// Acces a la clef
 	void SetKey(KWKey*);
 	KWKey* GetKey() const;
 

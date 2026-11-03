@@ -401,7 +401,7 @@ boolean KWDRNBClassifier::CheckOperandsCompleteness(const KWClass* kwcOwnerClass
 	}
 
 	// Memorisation des valeurs cibles, en transferant les valeurs vers la representation structuree
-	// La representation de la regle a verifier est structuree ou non selon qu'elle a a ete fabriquee
+	// La representation de la regle a verifier est structuree ou non selon qu'elle a ete fabriquee
 	// par programme (pour un classifieur) ou qu'elle est issue d'une lecture de fichier dictionnaire
 	// (avant compilation). On passe alors par une regle temporaire (refCheckedSymbolValueSetRule)
 	//  permettant d'avoir un acces systematique a la represnetation structuree, ce qui permet d'effectuer
@@ -950,7 +950,7 @@ void KWDRNBClassifier::Compile(KWClass* kwcOwnerClass)
 				else
 					nMissingValueIndex = dataGridRule->GetSymbolAttributePartIndexAt(0, Symbol(""));
 
-				// Calcul de la correspondance entre index cible et index des partie cible de la grille
+				// Calcul de la correspondance entre index cible et index des parties cible de la grille
 				// Calcul de la log-vraisemblance dans le cas des valeurs manquantes seulement pour les DataGridStatsBlock
 				for (nTarget = 0; nTarget < nTargetValueNumber; nTarget++)
 				{
@@ -1203,7 +1203,7 @@ void KWDRNBClassifier::ExportAttributeNames(const KWClass* kwcOwnerClass, String
 						       sVarKey);
 					}
 
-					// Acces a la la grille, qui provient du bloc de grilles
+					// Acces a la grille, qui provient du bloc de grilles
 					sDataGridAttributeName = "";
 					if (dataGridBlockRule->GetOperandNumber() > nIndex + 1)
 						sDataGridAttributeName =

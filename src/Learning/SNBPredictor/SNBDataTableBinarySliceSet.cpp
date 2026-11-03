@@ -2290,7 +2290,7 @@ longint SNBDataTableBinarySliceSetChunkBuffer::ComputeNecessaryMemory(
 			nAttribute++;
 		}
 
-		// Mise-a-jour de le nombre max
+		// Mise-a-jour du nombre max
 		lMaxSliceSparseValueNumber = max(lMaxSliceSparseValueNumber, lSliceSparseValueNumber);
 	}
 

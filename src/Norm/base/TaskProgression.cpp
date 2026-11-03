@@ -223,7 +223,7 @@ void TaskProgression::BeginTask()
 	require(nCurrentLevel >= -1);
 
 	nCurrentLevel++;
-	if (currentManager != NULL or currentFileManager != NULL)
+	if ((currentManager != NULL or currentFileManager != NULL) and not bSilentMode)
 	{
 		DifferedStart();
 		if (currentManager != NULL)
@@ -246,7 +246,7 @@ void TaskProgression::EndTask()
 		tLastDisplayTime = 0;
 	CleanLabels();
 	nCurrentLevel--;
-	if (currentManager != NULL or currentFileManager != NULL)
+	if ((currentManager != NULL or currentFileManager != NULL) and not bSilentMode)
 	{
 		DifferedStart();
 		if (currentManager != NULL)

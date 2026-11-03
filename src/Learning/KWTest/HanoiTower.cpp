@@ -262,7 +262,7 @@ longint HanoiTower::MoveSubTower(int nSubTowerDiskNumber, HanoiTower* destinatio
 		// On deplace la sous tour composee de tous les disques du dessus sauf 1 vers la pile intermediaire
 		lStepNumber = MoveSubTower(nSubTowerDiskNumber - 1, intermediateTower, destinationTower);
 
-		// On deplace le disque restant vers la la pile destination
+		// On deplace le disque restant vers la pile destination
 		lStepNumber += MoveSubTower(1, destinationTower, intermediateTower);
 
 		// On deplace la sous tour de la pile intermediare vers la pile destination

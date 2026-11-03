@@ -573,7 +573,7 @@ void ALString::Test()
 	sTest.TrimLeft();
 	cout << "<" << sRef << "> -trim-> <" << sTest << ">\n";
 
-	// Test de de concatenation
+	// Test de concatenation
 	cout << "\nTest de concatenation\n";
 	nNb = AcquireRangedInt("Nombre de milliers d'iterations (concatenations)", 1, 1000000, 1000);
 	//

@@ -797,7 +797,7 @@ boolean SNBRegressorSelectionDataCostCalculator::Create()
 		oaTargetParts.SetAt(0, targetPart);
 	}
 
-	// Initialisation de la taille du vecteur d'index des partie cibles
+	// Initialisation de la taille du vecteur d'index des parties cibles
 	if (bOk)
 		bOk = ivTargetPartIndexesByRank.SetLargeSize(GetInstanceNumber());
 
@@ -1923,7 +1923,7 @@ void SNBGeneralizedClassifierSelectionDataCostCalculator::InitializeTargetPartit
 
 	require(GetTargetAttributeType() == KWType::Symbol);
 
-	// Initialisation de le schema des signatures
+	// Initialisation du schema des signatures
 	signatureSchema.Initialize();
 
 	// Destruction de toutes les parties, sauf la premiere

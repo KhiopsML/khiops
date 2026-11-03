@@ -544,7 +544,7 @@ void KWDGMPartMergeAction::GlobalUpdateImpactedPartMergesForAttribute(
 					dMergeDeltaCost = -(dataGridCosts->ComputeCellCost(evaluationCell) -
 							    cell->GetCost() - oppositeCell->GetCost());
 
-					// Recherche de de la cellule interne destination de la fusion
+					// Recherche de la cellule interne destination de la fusion
 					mergedCell = cast(KWDGMCell*, nkdMergedCells2->Lookup(oppositeCell));
 					check(mergedCell);
 

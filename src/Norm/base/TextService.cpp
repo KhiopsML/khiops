@@ -102,7 +102,7 @@ const ALString TextService::ByteStringToWord(const ALString& sByteString)
 		}
 	}
 
-	// Gestion de la la fin d'un sequence de type byte
+	// Gestion de la fin d'un sequence de type byte
 	if (bIsByte)
 		sWord += '}';
 	if (WordToByteString(sWord) != sByteString)

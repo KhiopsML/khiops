@@ -204,7 +204,7 @@ void KWLearningProblem::ComputeStats()
 		learningSpec.GetDatabase()->CopySamplingAndSelectionFrom(&initialDatabase);
 	}
 
-	// On conditionne la suite par la validite des classStats, maintenant que l'on a essaye de le calcule deux fois
+	// On conditionne la suite par la validite des classStats, maintenant que l'on a essaye de le calculer deux fois
 	// si necessaire
 	bPreparationOk = bPreparationOk and not TaskProgression::IsInterruptionRequested();
 	if (bPreparationOk)
