@@ -62,7 +62,7 @@ jobs:
           python-version: '3.14'
           check-latest: true
       - name: Build wheels
-        uses: pypa/cibuildwheel@v4.3.4
+        uses: pypa/cibuildwheel@v4.3.5
       - name: Install built wheel in a custom directory
         run: |
           KHIOPS_INSTALL_DIR="$RUNNER_TEMP/khiops-env"
@@ -91,12 +91,12 @@ jobs:
         run: |
           mv packaging/pip/pyproject-kni.toml pyproject.toml
       - name: Build kni wheels
-        uses: pypa/cibuildwheel@v4.3.4
+        uses: pypa/cibuildwheel@v4.3.5
       - name: Move pyproject-knitransfer file to the root of the repository
         run: |
           mv packaging/pip/pyproject-knitransfer.toml pyproject.toml
       - name: Build knitransfer wheels
-        uses: pypa/cibuildwheel@v4.3.4
+        uses: pypa/cibuildwheel@v4.3.5
       - uses: actions/upload-artifact@v7
         if: runner.os != 'Windows'
         with:
