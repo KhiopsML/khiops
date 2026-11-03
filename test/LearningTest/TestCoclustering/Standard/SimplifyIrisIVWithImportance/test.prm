@@ -21,6 +21,18 @@ LearningTools.PostProcessCoclustering    // Simplify coclustering...
 SelectInputCoclustering        // Select input coclustering...
 
 // -> Open
+InputCoclusteringFileName ./CoclusteringIrisIV_WithImportance_Inconsistent.khcj   // Input coclustering file
+OK                             // Open
+// <- Open
+
+PostProcessingSpec.MaxCellNumber 20     // Max cell number
+PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_20cells_WithImportance_Inconsistent.khcj         // Simplified coclustering report
+PostProcessCoclustering        // Simplify coclustering
+
+// -> Coclustering post-processing
+SelectInputCoclustering        // Select input coclustering...
+
+// -> Open
 InputCoclusteringFileName ./CoclusteringIrisIV_WithImportance.khcj   // Input coclustering file
 OK                             // Open
 // <- Open

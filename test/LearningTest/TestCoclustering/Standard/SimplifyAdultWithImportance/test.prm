@@ -20,6 +20,19 @@ LearningTools.PostProcessCoclustering    // Simplify coclustering...
 SelectInputCoclustering        // Select input coclustering...
 
 // -> Open
+InputCoclusteringFileName ./Adult_6vars_WithImportance_Inconsistent.khcj   // Input coclustering file
+OK                             // Open
+// <- Open
+
+PostProcessingSpec.MaxCellNumber 10000     // Max cell number
+PostProcessedCoclusteringFileName ./results/PostProcessedCoclustering_10000cells_WithImportance_Inconsistent.khcj         // Simplified coclustering report
+PostProcessCoclustering        // Simplify coclustering
+
+
+// -> Coclustering post-processing
+SelectInputCoclustering        // Select input coclustering...
+
+// -> Open
 InputCoclusteringFileName ./Adult_6vars_WithImportance.khcj   // Input coclustering file
 OK                             // Open
 // <- Open

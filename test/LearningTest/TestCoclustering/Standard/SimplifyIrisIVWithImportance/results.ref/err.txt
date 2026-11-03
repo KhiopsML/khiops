@@ -1,3 +1,9 @@
+warning : Hierarchichal data grid (2, 3x7, (5, 16)) : Inconsistent part importances for attribute	Instance index
+warning : Hierarchichal data grid (2, 3x7, (5, 16)) : Inconsistent value importances for part	{Class {Iris-setosa}, PetalLength ]-inf,2.4], PetalWidth ]-inf,0.8]}
+warning : Hierarchichal data grid (2, 3x7, (5, 16)) : Inconsistent part importances in variable for attribute	PetalLength
+warning : Hierarchichal data grid (2, 3x7, (5, 16)) : Inconsistent inner attribute importances sum	
+Write simplified report ./results/PostProcessedCoclustering_20cells_WithImportance_Inconsistent.khcj
+
 Write simplified report ./results/PostProcessedCoclustering_20cells_WithImportance.khcj
 
 Write simplified report ./results/PostProcessedCoclustering_10cells_WithImportance.khcj
