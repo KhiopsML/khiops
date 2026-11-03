@@ -487,8 +487,22 @@ import javax.swing.UIManager;
         {
                 if (getMenuBar() == null)
                         return;
-                else
-                        frame.setJMenuBar(menuBar);
+
+                frame.setJMenuBar(menuBar);
+
+                // Sur macOS, AWT est embarque (NSApp cree cote C++) et ignore apple.laf.useScreenMenuBar:
+                // on installe directement la barre de menu native de l'ecran
+                if (System.getProperty("os.name").startsWith("Mac")) {
+                        try {
+                                Class<?> screenMenuBarClass = Class.forName("com.apple.laf.ScreenMenuBar");
+                                frame.setMenuBar((java.awt.MenuBar)screenMenuBarClass.getConstructor(JMenuBar.class)
+                                                   .newInstance(menuBar));
+                                menuBar.setPreferredSize(new Dimension(0, 0));
+                                return;
+                        } catch (Exception | LinkageError e) {
+                                addTrace("Screen menu bar unavailable: " + e);
+                        }
+                }
         }
 
         /**
