@@ -3,14 +3,19 @@
 # Run Khiops tool
 # see the khiops_env script for full documentation on the environment variables used by Khiops
 
-# notify-send is used on Linux desktops (X11/Wayland); osascript's "display notification"
-# is the macOS equivalent. Note: banners are misattributed to Script Editor (no bundle
-# identity for a shell-invoked script) and clicking them opens Script Editor - accepted
-# tradeoff in favor of a non-blocking banner over a modal "display alert" dialog.
+# Use non-blocking desktop notifications instead of modal alerts.
+# On macOS, osascript notifications are attributed to Script Editor because this script
+# has no app identity; clicking one may open Script Editor.
+macos_gui_available() {
+    [ "@IS_MACOS_APP@" = true ] || return 1
+    command -v launchctl >/dev/null 2>&1 || return 1
+    launchctl print "gui/$(id -u)" >/dev/null 2>&1
+}
+
 notify_user() {
     if [ -n "$DISPLAY" ] && command -v notify-send >/dev/null 2>&1; then
         notify-send "Khiops" "$*" -i /usr/share/pixmaps/khiops.png -u normal
-    elif command -v osascript >/dev/null 2>&1; then
+    elif command -v osascript >/dev/null 2>&1 && macos_gui_available; then
         osascript -e "display notification \"$*\" with title \"Khiops\"" &>/dev/null
     fi
 }
@@ -104,7 +109,11 @@ main () {
         launch_khiops "$@"
         local _RETCODE=$?
     else
-        if [ "$_GUI_SUPPORTED" = false ] || { [ "@IS_MACOS_APP@" != true ] && [ -z "$DISPLAY" ]; }; then
+        if [ "$_GUI_SUPPORTED" = false ]; then
+            error "GUI is not available, please use the '-b' flag"
+        elif [ "@IS_MACOS_APP@" = true ] && ! macos_gui_available; then
+            error "No macOS GUI session is available, please use the '-b' flag"
+        elif [ "@IS_MACOS_APP@" != true ] && [ -z "$DISPLAY" ]; then
             error "GUI is not available, please use the '-b' flag"
         else
             if [ -z "$KHIOPS_JAVA_PATH" ]; then
