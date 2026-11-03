@@ -29,6 +29,9 @@ defaults:
     shell: bash
 env:
   KEYPAIR: KP_Khiops_HSM
+  # Use only the local MPI node on the GitHub runner
+  UCX_TLS: self,sm,tcp
+  UCX_NET_DEVICES: lo
 jobs:
   build-wheel:
     name: Build wheel
@@ -53,31 +56,32 @@ jobs:
         run: |
           call "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
           set >> %GITHUB_ENV%
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v3.4.1
       - name: install Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.14'
+          check-latest: true
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v4.3.5
       - name: Install built wheel in a custom directory
         run: |
-          KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
+          KHIOPS_INSTALL_DIR="$RUNNER_TEMP/khiops-env"
           echo "KHIOPS_INSTALL_DIR=$KHIOPS_INSTALL_DIR" >> "$GITHUB_ENV"
           python -m venv "$KHIOPS_INSTALL_DIR"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            source "$KHIOPS_INSTALL_DIR/Scripts/activate"
+            source "${KHIOPS_INSTALL_DIR}/Scripts/activate"
           else
-            source "$KHIOPS_INSTALL_DIR/bin/activate"
+            source "${KHIOPS_INSTALL_DIR}/bin/activate"
           fi
           python -m pip install --find-links=wheelhouse khiops-core
-          pip show -f khiops-core
+          python -m pip show -f khiops-core
       - name: Export BIN_DIR
         id: export_bin_dir
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/Scripts" >> "$GITHUB_OUTPUT"
+            echo "BIN_DIR=${KHIOPS_INSTALL_DIR}/Scripts" >> "$GITHUB_OUTPUT"
           else
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_OUTPUT"
+            echo "BIN_DIR=${KHIOPS_INSTALL_DIR}/bin" >> "$GITHUB_OUTPUT"
           fi
       - name: Check Khiops core installation
         uses: ./.github/actions/test-khiops-install
@@ -87,12 +91,12 @@ jobs:
         run: |
           mv packaging/pip/pyproject-kni.toml pyproject.toml
       - name: Build kni wheels
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.3.5
       - name: Move pyproject-knitransfer file to the root of the repository
         run: |
           mv packaging/pip/pyproject-knitransfer.toml pyproject.toml
       - name: Build knitransfer wheels
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.3.5
       - uses: actions/upload-artifact@v7
         if: runner.os != 'Windows'
         with:
@@ -119,9 +123,10 @@ jobs:
           path: wheelhouse
       - name: Install Python
         if: env.SIGN_WINDOWS_WHEELS == 'true'
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.14'
+          check-latest: true
       - name: Install wheel package
         if: env.SIGN_WINDOWS_WHEELS == 'true'
         run: python -m pip install wheel
@@ -165,7 +170,7 @@ jobs:
         setup:
           - {os: ubuntu-24.04, image: ''}
           - {os: ubuntu-24.04-arm, image: ''}
-          - {os: ubuntu-22.04, image: rockylinux:9}
+          - {os: ubuntu-24.04, image: rockylinux/rockylinux:latest}
           - {os: windows-2025-vs2026, image: ''}
           - {os: macos-15, image: ''}
           - {os: macos-15-intel, image: ''}
@@ -193,10 +198,10 @@ jobs:
             if [ -d "/etc/apt" ]
             then
               apt-get update
-              apt-get install -y python3 > /dev/null
+              apt-get install -y python3-venv > /dev/null
             else
-              yum check-update || true
-              yum install -y python3.11
+              dnf check-update || true
+              dnf install -y python3 python3-pip
             fi
           fi
           echo "PYTHON=python3" >> "$GITHUB_ENV"
@@ -204,18 +209,33 @@ jobs:
         if: runner.os == 'Windows' || runner.os == 'macOS'
         shell: bash
         run: echo "PYTHON=python" >> "$GITHUB_ENV"
-      - name: Install built wheel in a custom directory
-        id: install_khiops_core
+      - name: Create virtual environment in a custom directory
+        shell: bash
         run: |
-          KHIOPS_INSTALL_DIR="${{ runner.temp }}/khiops-env"
+          KHIOPS_INSTALL_DIR="$RUNNER_TEMP/khiops-env"
+          echo "KHIOPS_INSTALL_DIR=$KHIOPS_INSTALL_DIR" >> "$GITHUB_ENV"
           $PYTHON -m venv "$KHIOPS_INSTALL_DIR"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            source "$KHIOPS_INSTALL_DIR/Scripts/activate"
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/Scripts" >> "$GITHUB_OUTPUT"
+            echo "PYTHON=${KHIOPS_INSTALL_DIR}/Scripts/python" >> "$GITHUB_ENV"
           else
-            source "$KHIOPS_INSTALL_DIR/bin/activate"
-            echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_OUTPUT"
+            echo "PYTHON=${KHIOPS_INSTALL_DIR}/bin/python" >> "$GITHUB_ENV"
           fi
+      - name: Upgrade Pip
+        shell: bash
+        run: |
+          # Use the Python interpreter from the virtual environment
+          $PYTHON -m pip install --upgrade pip
+      - name: Install built wheel in a custom directory
+        id: install_khiops_core
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "BIN_DIR=${KHIOPS_INSTALL_DIR}/Scripts" >> "$GITHUB_OUTPUT"
+          else
+            echo "BIN_DIR=${KHIOPS_INSTALL_DIR}/bin" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Use the Python interpreter from the virtual environment
           $PYTHON -m pip install --find-links=wheelhouse khiops-core
           $PYTHON -m pip show -f khiops-core
       - name: Run standard tests
@@ -239,7 +259,7 @@ jobs:
           - windows-2025
           - macos-15-intel
           - macos-15
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.11', '3.12', '3.13', '3.14']
     steps:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v8
@@ -254,9 +274,10 @@ jobs:
           path: tutorial
           ref: main
       - name: Install Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
+          check-latest: true
       - name: Install khiops-kni wheel
         run: python -m pip install --find-links=wheelhouse khiops-kni
       - name: Run python mono-table example
