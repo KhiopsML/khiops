@@ -1193,6 +1193,12 @@ JNIEnv* UIObject::GetJNIEnv()
 		// Option pour montrer une boite de message en cas d'erreur
 		options[nOptionNumber].optionString = sShowMessageBoxOnError;
 		nOptionNumber++;
+#ifdef __APPLE__
+		// Acces a com.apple.laf.ScreenMenuBar pour la barre de menu en haut de l'ecran (cf. GUIUnit.addMenuBar)
+		static const ALString sScreenMenuBar = "--add-exports=java.desktop/com.apple.laf=ALL-UNNAMED";
+		options[nOptionNumber].optionString = sScreenMenuBar;
+		nOptionNumber++;
+#endif
 		// Options pour un mode debug du runtime java
 		// options[nOptionNumber].optionString = (char*)"-verbose:jni"; // print JNI-related messages
 		// nOptionNumber++;
