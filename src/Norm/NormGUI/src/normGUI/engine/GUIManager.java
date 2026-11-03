@@ -75,8 +75,9 @@ public class GUIManager
                                                 Font acceleratorFont =
                                                   new Font(Font.DIALOG, Font.PLAIN, defaultFont.getSize());
                                                 for (Object key : UIManager.getDefaults().keySet().toArray()) {
-                                                        if (key instanceof String s && s.endsWith(".acceleratorFont")) {
-                                                                UIManager.put(s, acceleratorFont);
+                                                        if (key instanceof String &&
+                                                            ((String)key).endsWith(".acceleratorFont")) {
+                                                                UIManager.put(key, acceleratorFont);
                                                         }
                                                 }
                                         }
