@@ -1,0 +1,25 @@
+warning : Hierarchichal data grid (6, 6x5x4x3x3x2) : Inconsistent part importances for attribute	age
+warning : Hierarchichal data grid (6, 6x5x4x3x3x2) : Inconsistent value importances for part	{Craft-repair, Machine-op-inspct, Transport-moving, ...}
+warning : Hierarchichal data grid (6, 6x5x4x3x3x2) : Inconsistent attribute importances sum	
+Write simplified report ./results/PostProcessedCoclustering_10000cells_WithImportance_Inconsistent.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_10000cells_WithImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_100cells_WithImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_50info_WithImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_max5age_WithImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_max2occupation_WithImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_10000cells_WithoutImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_100cells_WithoutImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_50info_WithoutImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_max5age_WithoutImportance.khcj
+
+Write simplified report ./results/PostProcessedCoclustering_max2occupation_WithoutImportance.khcj
+

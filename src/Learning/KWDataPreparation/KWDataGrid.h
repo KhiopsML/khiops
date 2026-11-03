@@ -414,7 +414,7 @@ protected:
 	// d'un DataGrid dans une sous-classe
 
 	// Creation d'une cellule
-	// Le tableau d'effectif par classe cible doit etre initialise selon GetTagretValueNumber
+	// Le tableau d'effectif par classe cible doit etre initialise selon GetTargetValueNumber
 	virtual KWDGCell* NewCell() const;
 
 	////////////////////////////////////////////////////////////////////////////
@@ -449,7 +449,7 @@ protected:
 	KWDGCell* tailCell;
 	int nCellNumber;
 
-	// Gestion du mode mise-a-jour des cellule au moyen d'une liste triee dont
+	// Gestion du mode mise-a-jour des cellules au moyen d'une liste triee dont
 	// la cle de tri est le tableau des parties des cellules. On peut ainsi rechercher
 	// si une cellule existe deja en O(k.n.log(n))
 	SortedList* slCells;
@@ -1041,6 +1041,9 @@ public:
 	// Tri des valeurs par typicalite decroissante
 	void SortValuesByDecreasingTypicalities();
 
+	// Tri des valeurs par importance decroissante
+	void SortValuesByDecreasingImportances();
+
 	// Verification du tri des valeurs par effectif decroissant
 	// Couteux, a utiliser essentiellement dans les assertions
 	boolean AreValuesSorted() const;
@@ -1136,9 +1139,13 @@ public:
 	virtual void SetValueFrequency(int nFrequency) = 0;
 	virtual int GetValueFrequency() const = 0;
 
-	// Typicalite de la valeur
+	// Typicalite de la valeur DEPRECATED
 	void SetTypicality(double dValue);
 	double GetTypicality() const;
+
+	// Importance de la valeur relativement a sa partie
+	void SetImportance(double dValue);
+	double GetImportance() const;
 
 	// Comparaison par valeur
 	// - valeur Symbol si categoriel
@@ -1152,6 +1159,11 @@ public:
 	// - par effectif si categoriel
 	// - par valeur si VarPart
 	virtual int CompareTypicality(const KWDGValue* otherValue) const = 0;
+
+	// Comparaison par importance, puis
+	// - par effectif si categoriel
+	// - par valeur si VarPart
+	virtual int CompareImportance(const KWDGValue* otherValue) const = 0;
 
 	// Affichage
 	void Write(ostream& ost) const override = 0;
@@ -1173,6 +1185,7 @@ protected:
 
 	// Attributs
 	double dTypicality;
+	double dImportance;
 	KWDGValue* prevValue;
 	KWDGValue* nextValue;
 };
@@ -1183,8 +1196,11 @@ int KWDGValueCompareValue(const void* elem1, const void* elem2);
 // Comparaison de deux valeurs, par effectif decroissant
 int KWDGValueCompareFrequency(const void* elem1, const void* elem2);
 
-// Comparaison de deux typicalite
+// Comparaison de deux typicalites
 int KWDGValueCompareTypicality(const void* elem1, const void* elem2);
+
+// Comparaison de deux importances
+int KWDGValueCompareImportance(const void* elem1, const void* elem2);
 
 // Comparaison de deux objets KWSortableObject contenant des KWDGValue, par valeur puis par index
 // Permet un comparaison generique pour des valeurs de type Symbol ou VarPart
@@ -1269,8 +1285,11 @@ public:
 	// Comparaison de valeur Symbol
 	int CompareValue(const KWDGValue* otherValue) const override;
 
-	// Comparaison part typicalite, puis par effectif decroissant
+	// Comparaison par typicalite, puis par effectif decroissant
 	int CompareTypicality(const KWDGValue* otherValue) const override;
+
+	// Comparaison par importance, puis par effectif decroissant
+	int CompareImportance(const KWDGValue* otherValue) const override;
 
 	// Affichage
 	void Write(ostream& ost) const override;
@@ -1420,8 +1439,11 @@ public:
 	// Comparaison de valeur, par attribut, puis selon les valeurs de la partie, intervalles ou premiere valeur des groupe
 	int CompareValue(const KWDGValue* otherValue) const override;
 
-	// Comparaison part typicalite, puis par valeur
+	// Comparaison par typicalite, puis par valeur
 	int CompareTypicality(const KWDGValue* otherValue) const override;
+
+	// Comparaison par importance, puis par valeur
+	int CompareImportance(const KWDGValue* otherValue) const override;
 
 	// Affichage
 	void Write(ostream& ost) const override;
@@ -2396,6 +2418,7 @@ inline int KWDGInnerAttributes::GetInnerAttributeNumber() const
 inline KWDGValue::KWDGValue()
 {
 	dTypicality = 0;
+	dImportance = 0;
 	prevValue = NULL;
 	nextValue = NULL;
 }
@@ -2437,6 +2460,17 @@ inline void KWDGValue::SetTypicality(double dValue)
 inline double KWDGValue::GetTypicality() const
 {
 	return dTypicality;
+}
+
+inline void KWDGValue::SetImportance(double dValue)
+{
+	require(0 <= dValue and dValue <= 1);
+	dImportance = dValue;
+}
+
+inline double KWDGValue::GetImportance() const
+{
+	return dImportance;
 }
 
 // Classe KWDGSymbolValue

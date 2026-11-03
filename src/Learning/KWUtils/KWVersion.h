@@ -163,3 +163,6 @@ boolean GetSNBForceDenseMode();
 
 // Indicateur du mode ou le dictionnaire associee au coclustering individus * variables est construit (en fin d'apprentissage du coclustering)
 boolean GetVarPartDeploymentMode();
+
+// Indicateur du mode de calcul des indicateurs de coclustering : importance (nouveau ) ou interest/typicality (ancien)
+boolean GetImportanceMode();
