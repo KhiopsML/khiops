@@ -1,7 +1,7 @@
 [build-system]
 requires = [
     "ninja",
-    "scikit-build-core>=0.11.6",
+    "scikit-build-core>=1.1.2",
     "openmpi ; platform_system in '[Linux, Darwin]'",
     "impi-devel ; platform_system == 'Windows'"
 ]
