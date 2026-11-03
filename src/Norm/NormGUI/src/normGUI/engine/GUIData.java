@@ -23,6 +23,11 @@ public abstract class GUIData extends GUIObject
         private boolean bEditable;
 
         /**
+         * Chemin complet de l'icone optionnelle d'une fiche affichee en onglet
+         */
+        private String sIcon = "";
+
+        /**
          * Menu associe a la donnee
          */
         protected JMenuBar menuBar;
@@ -53,6 +58,11 @@ public abstract class GUIData extends GUIObject
          * @return Le caractere editable de la donnee
          */
         public boolean getEditable() { return bEditable; }
+
+        /**
+         * Renvoie le chemin de l'icone optionnelle
+         */
+        public String getIcon() { return sIcon; }
 
         /**
          * Renvoie la barre de menus associee a la donnee
@@ -110,6 +120,11 @@ public abstract class GUIData extends GUIObject
          * @param bValue Le nouveau caractere editable de la donnee
          */
         public void setEditable(boolean bValue) { bEditable = bValue; }
+
+        /**
+         * Modifie le chemin de l'icone, independamment des parametres de presentation
+         */
+        public void setIcon(String sValue) { sIcon = sValue; }
 
         /**
          * Modifie l'unite contenant l'element

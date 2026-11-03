@@ -40,6 +40,11 @@ CCLearningProblemView::CCLearningProblemView()
 	AddCardField("LearningTools", "Tools", learningProblemActionView);
 	AddCardField("Help", "Help", learningProblemHelpCard);
 
+	// Ajout d'icones aux onglets
+	GetFieldAt("Database")->SetIcon("images/database.svg");
+	GetFieldAt("AnalysisSpec")->SetIcon("images/settings-2.svg");
+	GetFieldAt("AnalysisResults")->SetIcon("images/chart-column-big.svg");
+
 	// Ajout pour la basxe de train d'un champ en read-only pour rappeler le nom du fichier de dictionnaire
 	// Attention, il s'agit d'un champ d'interface uniquement, a mettre ajour dans EventRefresh
 	databaseView->AddStringField("ClassFileName", "Dictionary file", "");
@@ -109,6 +114,9 @@ CCLearningProblemView::CCLearningProblemView()
 	// Ajout d'actions sous formes de boutons
 	AddAction("BuildCoclustering", "Train coclustering", (ActionMethod)(&CCLearningProblemView::BuildCoclustering));
 	GetActionAt("BuildCoclustering")->SetStyle("Button");
+
+	// Ajout d'icones aux actions
+	GetActionAt("BuildCoclustering")->SetIcon("images/cpu-ai.svg");
 
 	// Info-bulles
 	GetActionAt("BuildCoclustering")

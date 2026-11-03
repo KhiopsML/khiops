@@ -69,7 +69,8 @@ option(TESTING "Build unit tests (ON,OFF)" ON)
 option(BUILD_LEX_YACC "Re-generate parsing files with lex & yacc" OFF)
 option(BUILD_JARS "Re-generate norm.jar and khiops.jar" OFF)
 option(GENERATE_VIEWS "Generate views sources from dd files" OFF)
-option(C11 "Build whith C++11 libraries (ON,OFF)" ON)
+option(C11 "Build with C++11 libraries (ON,OFF)" ON)
+option(USE_FLATLAF "Use FlatLaf look and feel (ON,OFF)" ON)
 
 # Print the options
 message("\nKhiops build options:\n")
@@ -77,6 +78,7 @@ message("  CMAKE_BUILD_TYPE=\"${CMAKE_BUILD_TYPE}\"")
 message("  MPI=\"${MPI}\"")
 message("  TESTING=\"${TESTING}\"")
 message("  C11=\"${C11}\"")
+message("  USE_FLATLAF=\"${USE_FLATLAF}\"")
 message("  BUILD_LEX_YACC=\"${BUILD_LEX_YACC}\"")
 message("  BUILD_JARS=\"${BUILD_JARS}\"")
 message("  GENERATE_VIEWS=\"${GENERATE_VIEWS}\"")
@@ -248,6 +250,13 @@ if(BUILD_LEX_YACC)
   find_package(FLEX REQUIRED)
 endif()
 
+if(USE_FLATLAF)
+  if(NOT BUILD_JARS)
+    message(STATUS "FlatLaf will not be used because BUILD_JARS is OFF")
+    set(USE_FLATLAF OFF)
+  endif()
+endif()
+
 # Find Java if required
 if(BUILD_JARS)
   find_package(Java REQUIRED COMPONENTS Development)
@@ -258,6 +267,69 @@ if(BUILD_JARS)
   # versions (from # 1.8 to the most recent ones). The following setting accomplish that:
   #
   # - find_package(Java 1.8 EXACT REQUIRED COMPONENTS Development)
+
+  if(USE_FLATLAF)
+
+    # Download a JAR unless a non-empty local copy already exists.
+    function(download_jar jar_variable url)
+      set(jar_path "${${jar_variable}}")
+      if(EXISTS "${jar_path}")
+        file(SIZE "${jar_path}" jar_size)
+        if(jar_size GREATER 0)
+          return()
+        endif()
+        file(REMOVE "${jar_path}")
+      endif()
+      file(MAKE_DIRECTORY "${KHIOPS_BUILD_JAR_DIR}")
+      message(STATUS "Downloading JAR from ${url}")
+      file(
+        DOWNLOAD "${url}" "${jar_path}.download"
+        STATUS download_status
+        TLS_VERIFY ON
+        SHOW_PROGRESS
+        TIMEOUT 60)
+      list(GET download_status 0 download_code)
+      list(GET download_status 1 download_message)
+      if(download_code EQUAL 0)
+        file(RENAME "${jar_path}.download" "${jar_path}")
+      else()
+        file(REMOVE "${jar_path}.download")
+        set(${jar_variable}
+            ""
+            PARENT_SCOPE)
+        message(
+          FATAL_ERROR
+            "Unable to download ${url} (${download_message}). Continuing without this optional JAR; the GUI will use the available Swing appearance and icons."
+        )
+      endif()
+    endfunction()
+
+    # Download FlatLaf for the Swing GUI look and feel. The jar is stored with a stable file name for packaging and
+    # runtime scripts.
+    set(KHIOPS_FLATLAF_VERSION "3.7.2")
+    set(KHIOPS_JSVG_VERSION "2.2.0")
+    set(KHIOPS_FLATLAF_JAR "${KHIOPS_BUILD_JAR_DIR}/flatlaf.jar")
+    set(KHIOPS_FLATLAF_EXTRAS_JAR "${KHIOPS_BUILD_JAR_DIR}/flatlaf-extras.jar")
+    set(KHIOPS_FLATLAF_INTELLIJ_THEMES_JAR "${KHIOPS_BUILD_JAR_DIR}/flatlaf-intellij-themes.jar")
+    set(KHIOPS_JSVG_JAR "${KHIOPS_BUILD_JAR_DIR}/jsvg.jar")
+    set(KHIOPS_FLATLAF_URL
+        "https://repo1.maven.org/maven2/com/formdev/flatlaf/${KHIOPS_FLATLAF_VERSION}/flatlaf-${KHIOPS_FLATLAF_VERSION}.jar"
+    )
+    set(KHIOPS_FLATLAF_EXTRAS_URL
+        "https://repo1.maven.org/maven2/com/formdev/flatlaf-extras/${KHIOPS_FLATLAF_VERSION}/flatlaf-extras-${KHIOPS_FLATLAF_VERSION}.jar"
+    )
+    set(KHIOPS_JSVG_URL
+        "https://repo1.maven.org/maven2/com/github/weisj/jsvg/${KHIOPS_JSVG_VERSION}/jsvg-${KHIOPS_JSVG_VERSION}.jar")
+    set(KHIOPS_FLATLAF_INTELLIJ_THEMES_URL
+        "https://repo1.maven.org/maven2/com/formdev/flatlaf-intellij-themes/${KHIOPS_FLATLAF_VERSION}/flatlaf-intellij-themes-${KHIOPS_FLATLAF_VERSION}.jar"
+    )
+
+    download_jar(KHIOPS_FLATLAF_JAR "${KHIOPS_FLATLAF_URL}")
+    download_jar(KHIOPS_FLATLAF_INTELLIJ_THEMES_JAR "${KHIOPS_FLATLAF_INTELLIJ_THEMES_URL}")
+    download_jar(KHIOPS_FLATLAF_EXTRAS_JAR "${KHIOPS_FLATLAF_EXTRAS_URL}")
+    download_jar(KHIOPS_JSVG_JAR "${KHIOPS_JSVG_URL}")
+  endif(USE_FLATLAF)
+
 endif()
 
 # Check for support of position independent code/executable

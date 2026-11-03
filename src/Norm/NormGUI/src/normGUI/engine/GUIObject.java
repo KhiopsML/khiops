@@ -29,6 +29,8 @@ public abstract class GUIObject
          */
         public static boolean debug = false;
 
+        static { GUIManager.initialize(); }
+
         /**
          * Fenetre globale de gestion de l'aide en ligne
          */
