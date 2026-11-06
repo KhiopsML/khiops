@@ -21,7 +21,7 @@
 
 ### Step 2: Load Applicable Instructions
 Check the `.github/instructions/` directory for matching instruction files:
-- **`.cpp` or `.h` files** → Use agent **`KhiopsC++`** OR load [`.github/instructions/cpp-changes.instructions.md`](instructions/cpp-changes.instructions.md) + skill [`.github/skills/khiops-cpp-conventions.md`](skills/khiops-cpp-conventions.md)
+- **`.cpp` or `.h` files** → Use the `KhiopsC++` workflow in [`.github/agents/AGENTS.md`](agents/AGENTS.md) or load [`.github/instructions/cpp-changes.instructions.md`](instructions/cpp-changes.instructions.md)
 - **`CMakeLists.txt` files** → Load [`.github/instructions/cmake-changes.instructions.md`](instructions/cmake-changes.instructions.md)
 - **`test/LearningTestTool/` files** → Load [`.github/instructions/learning-test-tool.instructions.md`](instructions/learning-test-tool.instructions.md)
 - **`.github/workflows/` or `.github/actions/` files** → Load [`.github/instructions/ci-workflows.instructions.md`](instructions/ci-workflows.instructions.md)
@@ -63,9 +63,7 @@ ctest --preset macos-clang-debug
 
 For streamlined workflow:
 - **C++ editing**: Use agent `KhiopsC++` (see [`.github/agents/AGENTS.md`](agents/AGENTS.md))
-  - Automatically loads and applies conventions
-  - Enforces ASCII-only comments, Hungarian notation, Allman braces
-  - Provides pre-commit validation checklist
+  - Points to the authoritative coding guidelines and the C++ change workflow
 - **Debugging failing LearningTest non-regression tests**: load skill
   [`.github/skills/khiops-learningtest-debugging.md`](skills/khiops-learningtest-debugging.md) whenever the user
   points to a `LearningTest` checkout and reports failing tests (e.g. via `kht_test`/`kht_apply`). It encodes the
@@ -92,9 +90,9 @@ packaging/            # Conda, Linux RPM/Debian, Windows NSIS configs
 
 ### C++ Code Guidelines
 
-**Detailed C++ coding guidelines** (style, naming, class structure, assertions) are in [`.github/instructions/cpp-changes.instructions.md`](instructions/cpp-changes.instructions.md).
+The authoritative [C++ coding guidelines](../doc/developement/coding-guidelines.md) cover style, naming, class structure, and language restrictions. C++ task workflow and validation are in [`.github/instructions/cpp-changes.instructions.md`](instructions/cpp-changes.instructions.md).
 
-**Recommended**: Use the `KhiopsC++` agent (defined in [`.github/agents/AGENTS.md`](agents/AGENTS.md)) for streamlined C++ editing with conventions automatically enforced.
+**Recommended**: Use the `KhiopsC++` workflow described in [`.github/agents/AGENTS.md`](agents/AGENTS.md) for C++ changes.
 
 ### Pre-commit Hooks
 
@@ -304,7 +302,7 @@ The `comparisonResults.log` in each test dir records the comparison outcome. Use
 
 ## Debugging and Testing
 
-Detailed debugging/testing guidelines (memory allocator, assertions, error management, trace patterns, unit/integration tests) are in [`.github/instructions/cpp-changes.instructions.md`](.github/instructions/cpp-changes.instructions.md) and apply when editing C++ files.
+For debugging and testing, see the [Debugging and Testing wiki guide](https://github.com/KhiopsML/khiops/wiki/Debugging-and-Testing) and the testing guidance above. C++-specific assertions and validation practices are in [`.github/instructions/cpp-changes.instructions.md`](instructions/cpp-changes.instructions.md).
 
 ## User Interface Development
 
@@ -312,7 +310,7 @@ Detailed UI guidelines (MVC pattern, `.dd` files, `genere`, and CMake integratio
 
 ## Parallel Library
 
-Detailed parallel-programming guidelines (`PLParallelTask`, shared variables, registration, simulated mode) are in [`.github/instructions/cpp-changes.instructions.md`](.github/instructions/cpp-changes.instructions.md) and apply when editing C++ files.
+Detailed parallel-programming guidelines (`PLParallelTask`, shared variables, registration, simulated mode) are in [`src/Parallel/doc/bibliotheque parallele.md`](../src/Parallel/doc/bibliotheque%20parallele.md). C++ changes should also follow [`.github/instructions/cpp-changes.instructions.md`](instructions/cpp-changes.instructions.md).
 
 ## Contact & Resources
 

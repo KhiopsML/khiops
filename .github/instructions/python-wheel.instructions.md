@@ -1,7 +1,7 @@
 ---
 name: python-wheel
 description: "Use when modifying Python wheel packaging, pyproject.toml, build configuration, or wheel distribution (pip, conda). Applies to packaging/pip/, .github/workflows/pack-pip.yml, packaging/conda/."
-applyTo: "packaging/pip/**"
+applyTo: "packaging/pip/**, packaging/conda/**, .github/workflows/pack-pip.yml"
 ---
 
 # Python Wheel Packaging Instructions
