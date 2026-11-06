@@ -189,8 +189,25 @@ void KWLearningProject::StartMaster(int argc, char** argv)
 	// Analyse de la ligne de commande
 	UIObject::ParseMainParameters(argc, argv);
 
+	// Le handler graphique peut bloquer avant le lancement de la boucle AppKit sur macOS
+#ifdef __APPLE__
+	DisplayErrorFunction fDisplayErrorFunction = Error::GetDisplayErrorFunction();
+	if (UIObject::GetUIMode() == UIObject::Graphic and fDisplayErrorFunction == UIObjectDisplayErrorFunction)
+	{
+		if (Global::GetErrorLogFileName() == "")
+			Error::SetDisplayErrorFunction(Error::GetDefaultDisplayErrorFunction());
+		else
+			Error::SetDisplayErrorFunction(NULL);
+	}
+#endif
+
 	// Affichage des erreurs
 	PLParallelTask::GetDriver()->CheckResourceSystem();
+
+#ifdef __APPLE__
+	if (UIObject::GetUIMode() == UIObject::Graphic and fDisplayErrorFunction == UIObjectDisplayErrorFunction)
+		Error::SetDisplayErrorFunction(fDisplayErrorFunction);
+#endif
 
 	// Baniere de l'application, sauf en mode batch
 	if (not UIObject::IsBatchMode())
