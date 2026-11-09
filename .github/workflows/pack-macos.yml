@@ -130,8 +130,6 @@ jobs:
       matrix:
         include:
           - arch: arm64
-            runner: macos-14
-          - arch: arm64
             runner: macos-15
           - arch: arm64
             runner: macos-26
