@@ -7,6 +7,11 @@
 .devcontainer/
 *.un~
 
+# OpenSpec (local experimentation)
+/openspec/
+/.github/skills/openspec-*/
+/.github/prompts/opsx-*.prompt.md
+
 # Log file using genere tool and the cmake module genere-views
 *.dd.log
 

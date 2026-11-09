@@ -10,7 +10,7 @@ applyTo: ".github/workflows/**, .github/actions/**"
 
 This file applies to workflow changes in `.github/workflows/` and composite actions in `.github/actions/`.
 
-Current workflows (11):
+Current workflows (10):
 - `run-unit-tests.yml`
 - `run-standard-tests.yml`
 - `pre-commit-checks.yml`
