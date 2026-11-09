@@ -78,7 +78,7 @@ public class GUIStringElementFileDirectoryChooser extends GUIStringElement imple
                 // Ouverture du FileChooser
                 int dialogResult = JFileChooser.CANCEL_OPTION;
                 try {
-                        dialogResult = jfc.showOpenDialog(parentRoot.frame);
+                        dialogResult = GUIFileDirectoryChooser.showDialog(jfc, parentRoot.frame);
                 } catch (Exception e) {
                         dialogResult = JFileChooser.CANCEL_OPTION;
                 }
