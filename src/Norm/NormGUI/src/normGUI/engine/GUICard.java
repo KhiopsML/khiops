@@ -8,6 +8,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 
@@ -222,6 +223,12 @@ public class GUICard extends GUIUnit
                         constraints.gridwidth = GridBagConstraints.REMAINDER;
                         panel.add(southPanel, constraints);
                 }
+
+                // Aligne le contenu verticalement en haut
+                GridBagConstraints fillerConstraints = new GridBagConstraints();
+                fillerConstraints.weighty = 1.0;
+                fillerConstraints.gridwidth = GridBagConstraints.REMAINDER;
+                panel.add(Box.createVerticalGlue(), fillerConstraints);
         }
 
         /**
