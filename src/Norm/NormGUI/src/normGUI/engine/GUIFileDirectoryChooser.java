@@ -4,6 +4,7 @@
 
 package normGUI.engine;
 
+import java.awt.Component;
 import java.io.File;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -59,6 +60,7 @@ public class GUIFileDirectoryChooser extends GUIObject
 
                 // Parametrage par defaut de libelles
                 globalFileChooser.setDialogTitle("Open");
+                globalFileChooser.setDialogType(JFileChooser.OPEN_DIALOG);
                 globalFileChooser.setApproveButtonText("Open");
                 globalFileChooser.setApproveButtonToolTipText("");
 
@@ -115,6 +117,82 @@ public class GUIFileDirectoryChooser extends GUIObject
 
                 // Retourne le FileChooser construit et parametre
                 return globalFileChooser;
+        }
+
+        /**
+         * Affiche le dialogue de selection systeme (FlatLaf >= 3.7, charge par reflexion) et retourne son resultat
+         * @param chooser Le JFileChooser dont on reprend la configuration (repertoire, titre, filtre, selection)
+         * @param parent Le composant parent pour le dialogue
+         * @return Le resultat du dialogue (APPROVE_OPTION ou CANCEL_OPTION)
+         * @throws ReflectiveOperationException si FlatLaf est absent, trop ancien ou si un appel echoue
+         */
+        private static int showSystemDialog(JFileChooser chooser, Component parent) throws ReflectiveOperationException
+        {
+                // Cree un SystemFileChooser FlatLaf et recopie la configuration du JFileChooser
+                String base = "com.formdev.flatlaf.util.SystemFileChooser";
+                Class<?> chooserClass = Class.forName(base);
+                Object systemChooser =
+                  chooserClass.getConstructor(File.class).newInstance(chooser.getCurrentDirectory());
+                chooserClass.getMethod("setFileSelectionMode", int.class)
+                  .invoke(systemChooser, chooser.getFileSelectionMode());
+                chooserClass.getMethod("setDialogTitle", String.class).invoke(systemChooser, chooser.getDialogTitle());
+                chooserClass.getMethod("setApproveButtonText", String.class)
+                  .invoke(systemChooser, chooser.getApproveButtonText());
+
+                // Preselectionne le fichier courant (chemin relatif resolu par rapport au repertoire courant)
+                File selectedFile = chooser.getSelectedFile();
+                if (selectedFile != null && !selectedFile.getPath().isEmpty())
+                        chooserClass.getMethod("setSelectedFile", File.class)
+                          .invoke(systemChooser,
+                                  selectedFile.isAbsolute()
+                                    ? selectedFile
+                                    : new File(chooser.getCurrentDirectory(), selectedFile.getPath()));
+
+                // Convertit le filtre d'extensions Swing en filtre FlatLaf equivalent
+                if (chooser.getFileFilter() instanceof FileNameExtensionFilter) {
+                        FileNameExtensionFilter f = (FileNameExtensionFilter)chooser.getFileFilter();
+                        Object filter = Class.forName(base + "$FileNameExtensionFilter")
+                                          .getConstructor(String.class, String[].class)
+                                          .newInstance(f.getDescription(), f.getExtensions());
+                        chooserClass.getMethod("addChoosableFileFilter", Class.forName(base + "$FileFilter"))
+                          .invoke(systemChooser, filter);
+                }
+
+                // Affiche le dialogue systeme (sauvegarde ou ouverture selon le type du JFileChooser)
+                int result = (Integer)chooserClass
+                               .getMethod(chooser.getDialogType() == JFileChooser.SAVE_DIALOG ? "showSaveDialog"
+                                                                                              : "showOpenDialog",
+                                          Component.class)
+                               .invoke(systemChooser, parent);
+
+                // Reporte la selection dans le JFileChooser d'origine pour que les appelants n'aient rien a changer
+                if (result == JFileChooser.APPROVE_OPTION) {
+                        chooser.setSelectedFile((File)chooserClass.getMethod("getSelectedFile").invoke(systemChooser));
+                        chooser.setCurrentDirectory(
+                          (File)chooserClass.getMethod("getCurrentDirectory").invoke(systemChooser));
+                }
+                return result;
+        }
+
+        /**
+         * Affiche le dialogue de selection de fichier en utilisant le systeme si possible, sinon Swing
+         * et retourne le resultat (APPROVE_OPTION ou CANCEL_OPTION)
+         * @param chooser Le JFileChooser a utiliser pour la selection
+         * @param parent Le composant parent pour le dialogue
+         * @return Le resultat du dialogue (APPROVE_OPTION ou CANCEL_OPTION)
+         */
+        public static int showDialog(JFileChooser chooser, Component parent)
+        {
+                // FILES_AND_DIRECTORIES n'est pas supporte par les dialogues systeme : on reste alors sur Swing
+                if (chooser.getFileSelectionMode() != JFileChooser.FILES_AND_DIRECTORIES) {
+                        try {
+                                return showSystemDialog(chooser, parent);
+                        } catch (ReflectiveOperationException | LinkageError e) {
+                                // FlatLaf absent ou trop ancien : revenir a Swing
+                        }
+                }
+                return chooser.getDialogType() == JFileChooser.SAVE_DIALOG ? chooser.showSaveDialog(parent)
+                                                                           : chooser.showOpenDialog(parent);
         }
 
         /**
@@ -179,13 +257,17 @@ public class GUIFileDirectoryChooser extends GUIObject
 
                 // Parametrage du bouton "ouvrir"
                 jfc.setApproveButtonText(actionOK.getLabel());
+
+                // Toujours definir le type de dialogue en fonction de l'action OK
+                boolean isSave = actionOK.getLabel().equals("Save") || actionOK.getLabel().equals("Export");
+                jfc.setDialogType(isSave ? JFileChooser.SAVE_DIALOG : JFileChooser.OPEN_DIALOG);
                 if (!actionOK.getHelpText().equals(""))
                         jfc.setApproveButtonToolTipText(actionOK.getHelpText());
 
                 // Ouverture du FileChooser
                 int dialogResult = JFileChooser.CANCEL_OPTION;
                 try {
-                        dialogResult = jfc.showOpenDialog(parentFrame);
+                        dialogResult = showDialog(jfc, parentFrame);
                 } catch (Exception e) {
                         dialogResult = JFileChooser.CANCEL_OPTION;
                 }
