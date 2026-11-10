@@ -1124,6 +1124,11 @@ JNIEnv* UIObject::GetJNIEnv()
 		// A titre exceptionnel, toutes les variables qui ne servent qu'a l'initialisation de java sont declaree
 		// dans ce bloc
 		JavaVMInitArgs vm_iargs;
+		// Arguments utilises pour tester la version de la JVM
+		// Permet de savoir si la JVM connait l'option --enable-native-access
+		JavaVMInitArgs vm_version_args = {};
+		typedef jint(JNICALL * PtrGetDefaultJavaVMInitArgs)(void*);
+		PtrGetDefaultJavaVMInitArgs ptrGetDefaultJavaVMInitArgs;
 		int nOptionNumber;
 		const int nMaxOptionNumber = 20;
 		JavaVMOption options[nMaxOptionNumber];
@@ -1140,6 +1145,9 @@ JNIEnv* UIObject::GetJNIEnv()
 		static const ALString sErrorFilePrefix = "-XX:ErrorFile=";
 		static const ALString sHeapDumpPathPrefix = "-XX:HeapDumpPath=";
 		static const ALString sShowMessageBoxOnError = "-XX:+ShowMessageBoxOnError";
+		// Option pour autoriser l'acces aux methodes natives (evite le warning de java.lang.System::load
+		// avec Java 24 et plus, notamment pour FlatLaf). Cette option n'est pas connue des JVM plus anciennes
+		static const ALString sEnableNativeAccess = "--enable-native-access=ALL-UNNAMED";
 		static const ALString sLogFileSuffix = "JavaCrash.log";
 		ALString sClassPath;
 		ALString sLogFileName;
@@ -1183,6 +1191,17 @@ JNIEnv* UIObject::GetJNIEnv()
 		// Option pour montrer une boite de message en cas d'erreur
 		options[nOptionNumber].optionString = sShowMessageBoxOnError;
 		nOptionNumber++;
+		// Option pour autoriser l'acces natif: on ne l'ajoute que si la JVM est au moins en version 19, car
+		// une JVM plus ancienne refuserait de demarrer avec une option inconnue (ignoreUnrecognized = JNI_FALSE)
+		ptrGetDefaultJavaVMInitArgs =
+		    (PtrGetDefaultJavaVMInitArgs)GetSharedLibraryFunction(jvmHandle, "JNI_GetDefaultJavaVMInitArgs");
+		// JNI_VERSION_19: la fonction retourne JNI_OK seulement si la JVM supporte cette version
+		vm_version_args.version = 0x00130000;
+		if (ptrGetDefaultJavaVMInitArgs != NULL and ptrGetDefaultJavaVMInitArgs(&vm_version_args) == JNI_OK)
+		{
+			options[nOptionNumber].optionString = sEnableNativeAccess;
+			nOptionNumber++;
+		}
 #ifdef __APPLE__
 		// Acces a com.apple.laf.ScreenMenuBar pour la barre de menu en haut de l'ecran (cf. GUIUnit.addMenuBar)
 		static const ALString sScreenMenuBar = "--add-exports=java.desktop/com.apple.laf=ALL-UNNAMED";
