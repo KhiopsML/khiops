@@ -85,7 +85,7 @@ public class GUIManager
 
                                 // Marge interne des champs texte et des zones de texte
                                 Insets margin = new Insets(6, 10, 6, 10);
-                                UIManager.put("TextArea.margin", new Insets(8, 10, 8, 10));
+                                UIManager.put("TextArea.margin", margin);
                                 UIManager.put("TextField.margin", margin);
 
                                 // Libelles des boites de dialogue
