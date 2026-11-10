@@ -2,6 +2,18 @@
 Release Notes for Khiops
 ========================
 
+Version 11.0.2
+==================
+
+Distribution
+------------
+
+- New Pip and Conda packages with up-to-date packaging tools after the emSign
+  CA incident
+- Python 3.15 support added to Pip and Conda packages
+- Python 3.10 support dropped from Pip and Conda packages
+
+
 Version 11.0.1
 ==================
 
