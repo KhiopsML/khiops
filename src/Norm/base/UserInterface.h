@@ -1771,7 +1771,7 @@ public:
 
 	// Icone optionnelle, vide par defaut, definie par son chemin complet dans les ressources Java
 	// Exemple: images/cpu-ai.svg
-	// Utilisee uniquement pour les styles Button et SmallButton, sans effet sur les menus
+	// Utilisable uniquement pour les styles Button et SmallButton
 	void SetIcon(const ALString& sValue);
 	const ALString& GetIcon() const;
 

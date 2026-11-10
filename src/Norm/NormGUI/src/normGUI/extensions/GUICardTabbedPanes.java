@@ -13,14 +13,18 @@ import java.awt.event.FocusListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Vector;
+import javax.swing.BorderFactory;
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
+import javax.swing.border.Border;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import normGUI.engine.GUIAction;
@@ -141,7 +145,19 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                 if (getVisibleDataCount() > 0 || hasActionButton()) {
 
                         boolean displayTabbedPanes = false;
+                        Border contentBorder = null;
                         tabbedPanes = new JTabbedPane();
+                        // Si onglets de premier niveau, on applique le style topLevel pour FlatLaf
+                        if (getParentUnit() == null) {
+                                JScrollPane scrollPane =
+                                  (JScrollPane)SwingUtilities.getAncestorOfClass(JScrollPane.class, panel);
+                                if (scrollPane != null) {
+                                        contentBorder = scrollPane.getBorder();
+                                        scrollPane.setBorder(null);
+                                }
+                                tabbedPanes.putClientProperty("FlatLaf.styleClass", "topLevel");
+                        } else
+                                tabbedPanes.putClientProperty("FlatLaf.styleClass", "nested");
 
                         // S'il n'y a pas assez de place, les onglets sont scrollables
                         // ce qui permet de garder leur sequentialite
@@ -164,6 +180,10 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                                                         gbc.fill = GridBagConstraints.BOTH;
                                                         gbc.insets = new Insets(3, 3, 3, 3);
                                                         JPanel jp = new JPanel(new GridBagLayout());
+                                                        if (getParentUnit() == null)
+                                                                jp.setBorder(BorderFactory.createCompoundBorder(
+                                                                  BorderFactory.createEmptyBorder(15, 0, 0, 0),
+                                                                  contentBorder));
                                                         jp.setName(guiData.getIdentifier());
                                                         guiUnit.graphicAddField(jp, gbc);
 
@@ -197,6 +217,12 @@ public class GUICardTabbedPanes extends GUICard implements ChangeListener, Focus
                                 constraints.weightx = 1;
                                 constraints.weighty = 1;
                                 constraints.gridwidth = GridBagConstraints.REMAINDER;
+                                // Si onglets de premier niveau, on supprime les marges autour du tabbed pane
+                                if (getParentUnit() == null)
+                                        constraints.insets = new Insets(0, 0, 0, 0);
+                                else
+                                        constraints.insets =
+                                          new Insets(15, constraints.insets.left, 15, constraints.insets.right);
                                 panel.add(tabbedPanes, constraints);
                                 refreshMenus();
                                 tabbedPanes.addChangeListener(this);

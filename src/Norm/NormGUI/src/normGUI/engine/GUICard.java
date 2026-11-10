@@ -8,6 +8,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 
@@ -156,8 +157,11 @@ public class GUICard extends GUIUnit
                                                                 jp.setName(guiData.getIdentifier());
                                                                 gbc.insets = new Insets(3, 3, 3, 3);
                                                                 jp.setBorder(BorderFactory.createCompoundBorder(
-                                                                  BorderFactory.createTitledBorder(guiData.getLabel()),
-                                                                  BorderFactory.createEmptyBorder(10, 15, 10, 15)));
+                                                                  BorderFactory.createTitledBorder(
+                                                                    guiData.getLabel().isEmpty()
+                                                                      ? ""
+                                                                      : "  " + guiData.getLabel() + "  "),
+                                                                  BorderFactory.createEmptyBorder(5, 10, 10, 10)));
                                                                 guiData.graphicAddField(jp, gbc);
                                                                 constraints.weightx = 1.0;
                                                                 constraints.weighty = 1.0;
@@ -219,6 +223,12 @@ public class GUICard extends GUIUnit
                         constraints.gridwidth = GridBagConstraints.REMAINDER;
                         panel.add(southPanel, constraints);
                 }
+
+                // Aligne le contenu verticalement en haut
+                GridBagConstraints fillerConstraints = new GridBagConstraints();
+                fillerConstraints.weighty = 1.0;
+                fillerConstraints.gridwidth = GridBagConstraints.REMAINDER;
+                panel.add(Box.createVerticalGlue(), fillerConstraints);
         }
 
         /**
