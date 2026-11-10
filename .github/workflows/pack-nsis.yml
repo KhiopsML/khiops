@@ -145,7 +145,7 @@ jobs:
       - name: Install jsign
         if: ${{ inputs.signature-activation }}
         run: |
-          curl -L https://github.com/ebourg/jsign/releases/download/7.4/jsign-7.4.jar --output jsign.jar --output-dir /d
+          curl -L https://github.com/ebourg/jsign/releases/download/7.5/jsign-7.5.jar --output jsign.jar --output-dir /d
         shell: bash
       - name: Build NSIS package (signature is ON)
         if: ${{ inputs.signature-activation }}
