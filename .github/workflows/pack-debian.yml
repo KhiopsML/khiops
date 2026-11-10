@@ -37,7 +37,6 @@ jobs:
       fail-fast: false
       matrix:
         setup:
-          - {os: ubuntu-latest, image: debian11}
           - {os: ubuntu-latest, image: debian12}
           - {os: ubuntu-latest, image: debian13}
           - {os: ubuntu-latest, image: ubuntu20.04}
@@ -105,7 +104,6 @@ jobs:
       fail-fast: false
       matrix:
         setup:
-          - {os: ubuntu-latest, image: debian11}
           - {os: ubuntu-latest, image: debian12}
           - {os: ubuntu-latest, image: debian13}
           - {os: ubuntu-latest, image: ubuntu20.04}
@@ -175,7 +173,6 @@ jobs:
       fail-fast: false
       matrix:
         setup:
-          - {os: ubuntu-latest, image: debian11}
           - {os: ubuntu-latest, image: debian12}
           - {os: ubuntu-latest, image: debian13}
           - {os: ubuntu-latest, image: ubuntu20.04}
