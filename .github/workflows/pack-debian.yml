@@ -142,6 +142,8 @@ jobs:
         uses: ./.github/actions/test-khiops-install
       - name: Install Khiops Desktop (with java)
         run: |
+          # Force apt-get update to avoid synchronisation issues
+          apt-get update
           dpkg -i ./artifacts//khiops_* || true
           apt-get -f install -y
       - name: Check Khiops installation
