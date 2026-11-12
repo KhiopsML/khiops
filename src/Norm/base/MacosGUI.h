@@ -12,6 +12,9 @@ typedef void (*MacosGUIThreadFunction)(void*);
 // lorsque l'appel vient deja d'un thread secondaire, la boucle AppKit reste active pendant son execution.
 void MacosRunGUI(MacosGUIThreadFunction function, void* context);
 
+// Indique si la boucle d'evenements AppKit est active
+boolean MacosIsGUIEventLoopRunning();
+
 // Appel de la methode Java open() en gerant la boucle AppKit sur le thread principal macOS
 void MacosOpenGUIUnit(JNIEnv* env, jobject guiObject, jmethodID mid);
 

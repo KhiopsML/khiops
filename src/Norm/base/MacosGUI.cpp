@@ -10,10 +10,26 @@
 #include <dispatch/dispatch.h>
 #include <objc/runtime.h>
 #include <objc/message.h>
+#include <atomic>
 #include <pthread.h>
 #include <thread>
 #include <unistd.h>
+
+namespace
+{
+// Indicateur partage entre le thread principal et le thread secondaire
+std::atomic<bool> bGUIEventLoopRunning(false);
+} // namespace
 #endif
+
+boolean MacosIsGUIEventLoopRunning()
+{
+#ifdef __APPLE__
+	return bGUIEventLoopRunning.load();
+#else
+	return false;
+#endif
+}
 
 void MacosRunGUI(MacosGUIThreadFunction function, void* context)
 {
@@ -58,7 +74,9 @@ void MacosRunGUI(MacosGUIThreadFunction function, void* context)
 					 ((void (*)(id, SEL, BOOL))objc_msgSend)(
 					     nsApp, sel_registerName("activateIgnoringOtherApps:"), (BOOL)1);
 				       });
+			bGUIEventLoopRunning.store(true);
 			((void (*)(id, SEL))objc_msgSend)(nsApp, sel_registerName("run"));
+			bGUIEventLoopRunning.store(false);
 		}
 		jniThread.join();
 	}

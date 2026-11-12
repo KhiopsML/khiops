@@ -372,6 +372,16 @@ void UIObject::DisplayMessage(const ALString& sMessage)
 		jstring message;
 		UICard fatalErrorCard;
 
+#ifdef __APPLE__
+		// Avant le lancement de la boucle AppKit, un appel a Swing peut bloquer le demarrage
+		if (not MacosIsGUIEventLoopRunning())
+		{
+			if (Global::GetErrorLogFileName() == "")
+				cout << sMessage << endl;
+			return;
+		}
+#endif
+
 		// Acces a l'environnement
 		env = GraphicGetJNIEnv();
 		if (env == NULL)
