@@ -35,7 +35,7 @@ jobs:
       - name: Install build dependencies
         run: brew install cmake ninja open-mpi
       - name: Set up Java 11
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '11'
