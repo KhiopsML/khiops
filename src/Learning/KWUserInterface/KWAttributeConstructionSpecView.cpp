@@ -61,7 +61,8 @@ KWAttributeConstructionSpecView::KWAttributeConstructionSpecView()
 		"\n or any secondary tables. By default, features are created using words.");
 	GetFieldAt("MaxTreeNumber")
 	    ->SetHelpText("Max number of trees to construct."
-			  "\n The constructed trees allow to combine variables, either native or constructed.");
+			  "\n The constructed trees allow to combine variables, either native or constructed. Beginner "
+			  "users can start with max set to 0.");
 	GetFieldAt("MaxAttributePairNumber")
 	    ->SetHelpText("Max number of variable pairs to analyze during data preparation."
 			  "\n The variable pairs are preprocessed using a bivariate discretization method."
