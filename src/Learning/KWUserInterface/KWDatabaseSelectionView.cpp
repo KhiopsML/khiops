@@ -20,7 +20,8 @@ KWDatabaseSelectionView::KWDatabaseSelectionView()
 	// Info-bulles
 	GetFieldAt("SelectionAttribute")
 	    ->SetHelpText("When a selection variable is specified, the records are selected "
-			  "\n when the value of their selection variable is equal to the selection value.");
+			  "\n when the value of their selection variable is equal to the selection value. The sample "
+			  "percentage of the Sampling tab is applied additively.");
 	GetFieldAt("SelectionValue")->SetHelpText("Selection value used when a selection variable is specified.");
 
 	// ##
