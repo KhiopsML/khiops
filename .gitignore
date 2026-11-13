@@ -11,6 +11,7 @@
 /openspec/
 /.github/skills/openspec-*/
 /.github/prompts/opsx-*.prompt.md
+.github/skills/opsx-*/
 
 # Log file using genere tool and the cmake module genere-views
 *.dd.log

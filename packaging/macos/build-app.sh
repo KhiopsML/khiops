@@ -93,11 +93,15 @@ if [[ "$CODESIGN_IDENTITY" == "-" ]]; then
     CODESIGN_FLAGS=(--force --sign -)
 else
     echo "==> Signing with Developer ID identity: $CODESIGN_IDENTITY"
-    CODESIGN_FLAGS=(--force --options runtime --timestamp --sign "$CODESIGN_IDENTITY")
+    # Allow loading Homebrew Open MPI and finding the bundled JVM under the hardened runtime.
+    CODESIGN_FLAGS=(--force --options runtime --timestamp \
+        --entitlements "$REPO_ROOT/packaging/macos/Khiops.entitlements" --sign "$CODESIGN_IDENTITY")
 fi
 
 sign_embedded_binaries "$APP_DIR"
 sign_embedded_binaries "$COCLUSTERING_APP_DIR"
+bash "$REPO_ROOT/packaging/macos/sign-flatlaf.sh" "$APP_DIR/Contents/Resources/jars/flatlaf.jar" "$CODESIGN_IDENTITY"
+bash "$REPO_ROOT/packaging/macos/sign-flatlaf.sh" "$COCLUSTERING_APP_DIR/Contents/Resources/jars/flatlaf.jar" "$CODESIGN_IDENTITY"
 codesign --deep "${CODESIGN_FLAGS[@]}" "$APP_DIR"
 codesign --deep "${CODESIGN_FLAGS[@]}" "$COCLUSTERING_APP_DIR"
 
@@ -116,7 +120,7 @@ DMG ready: $DMG_PATH
   Gatekeeper will refuse to open it with a normal double-click. Workarounds for
   testing: right-click > Open, or "System Settings > Privacy & Security > Open Anyway",
   or 'xattr -d com.apple.quarantine "$APP_DIR"'.
-- Public distribution still requires: codesign with a Developer ID Application
-  certificate, 'xcrun notarytool submit', then 'xcrun stapler staple' on the .dmg
-  (or on Khiops.app before re-creating the dmg) - none of that is run by this script.
+- Public distribution still requires Developer ID signing of the .dmg, then
+  'xcrun notarytool submit' and 'xcrun stapler staple' on the .dmg - none of that is run
+  by this script (the CI workflow does it in pack-macos.yml).
 EOF

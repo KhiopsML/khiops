@@ -84,8 +84,8 @@ if(KHIOPS_MACOS_APP)
   if(NOT IS_DIRECTORY "${KHIOPS_MACOS_JRE_DIR}/legal" OR NOT EXISTS "${KHIOPS_MACOS_JRE_DIR}/lib/server/libjvm.dylib")
     message(FATAL_ERROR "KHIOPS_MACOS_JRE_DIR is missing legal/ or lib/server/libjvm.dylib")
   endif()
-  if(NOT MPI AND NOT BUILD_JARS)
-    message(FATAL_ERROR "BUILD_JARS must be enabled for the serial macOS app build")
+  if(NOT MPI AND (NOT BUILD_JARS OR NOT USE_FLATLAF))
+    message(FATAL_ERROR "BUILD_JARS and USE_FLATLAF must be enabled for the serial macOS app build")
   endif()
 
   # All bundle files share one component. MACOS_APP_BUNDLE_DIRS is the list of bundle roots used by both the serial and
@@ -124,6 +124,15 @@ if(KHIOPS_MACOS_APP)
       install_jar(
         norm_jar
         DESTINATION "${MACOS_APP_BUNDLE_DIR}/Contents/Resources/jars"
+        COMPONENT ${MACOS_APP_INSTALL_COMPONENT})
+      install(
+        FILES ${KHIOPS_FLATLAF_JAR} ${KHIOPS_FLATLAF_EXTRAS_JAR} ${KHIOPS_FLATLAF_INTELLIJ_THEMES_JAR}
+              ${KHIOPS_JSVG_JAR}
+        DESTINATION "${MACOS_APP_BUNDLE_DIR}/Contents/Resources/jars"
+        COMPONENT ${MACOS_APP_INSTALL_COMPONENT})
+      install(
+        FILES ${PROJECT_SOURCE_DIR}/THIRD_PARTY_LICENSES.md
+        DESTINATION "${MACOS_APP_BUNDLE_DIR}/Contents/Resources/doc/licenses"
         COMPONENT ${MACOS_APP_INSTALL_COMPONENT})
     endforeach()
   else()

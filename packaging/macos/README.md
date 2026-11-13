@@ -132,6 +132,11 @@ configuration installs the shared resources (JARs, JRE, and licenses), while the
 MPI configuration installs the MPI executables, generated launchers, and bundle
 metadata. Both configurations target the same staging directory.
 
+The `jars/` directory in each app contains `khiops.jar`, `norm.jar`, and the
+FlatLaf/JSVG dependencies used by the GUI. `doc/licenses/` contains the Khiops
+license and `THIRD_PARTY_LICENSES.md`, which includes notices and license texts for
+the bundled third-party GUI components.
+
 ## Signing and Notarization
 
 Local builds use ad-hoc signing by default:
@@ -149,8 +154,22 @@ export KHIOPS_CODESIGN_IDENTITY="Developer ID Application: Example (TEAMID)"
 bash packaging/macos/build-app.sh /path/to/jre 14.0
 ```
 
-The script does not notarize or staple the DMG. Public distribution still requires
-submission with `xcrun notarytool` and stapling with `xcrun stapler`.
+With a Developer ID identity, the hardened runtime is enabled and the code is signed with
+`packaging/macos/Khiops.entitlements`, which disables library validation. This is required
+because the MPI executables load the Homebrew Open MPI libraries, which are not signed with
+the Khiops Team ID. Without it, the MPI executables fail at launch with a `dyld` error.
+The entitlements also allow `DYLD_*` environment variables: the launcher uses
+`DYLD_LIBRARY_PATH` to find the bundled JVM. These entitlements allow libraries specified
+by the environment to be loaded, so the launch environment must be trusted.
+Ad-hoc signing does not enable the hardened runtime, so local builds are not affected.
+Before signing either app, the script signs the macOS x86_64 and arm64 native
+libraries inside each `flatlaf.jar`. Developer ID builds use a secure timestamp
+for these libraries as required by notarization.
+
+The script does not sign, notarize, or staple the DMG. Public distribution requires
+signing the DMG with the Developer ID identity, submission with `xcrun notarytool`, and
+stapling with `xcrun stapler`; the CI workflow `.github/workflows/pack-macos.yml` performs
+these steps.
 
 ## Validation
 

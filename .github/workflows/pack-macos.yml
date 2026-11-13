@@ -35,7 +35,7 @@ jobs:
       - name: Install build dependencies
         run: brew install cmake ninja open-mpi
       - name: Set up Java 11
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '11'
@@ -72,11 +72,18 @@ jobs:
             printf 'KHIOPS_KEYCHAIN_PATH=%s\n' "$KEYCHAIN_PATH"
             printf 'KHIOPS_SIGNING_IDENTITY=%s\n' "$SIGNING_IDENTITY"
           } >> "$GITHUB_ENV"
-      - name: Build and sign DMG
+      - name: Build DMG with signed app bundles
         env:
           KHIOPS_CODESIGN_IDENTITY: ${{ env.KHIOPS_SIGNING_IDENTITY }}
         run: |
           packaging/macos/build-app.sh "$RUNNER_TEMP/khiops-jre" "${{ matrix.minimum_macos_version }}"
+      - name: Sign DMG
+        env:
+          KHIOPS_CODESIGN_IDENTITY: ${{ env.KHIOPS_SIGNING_IDENTITY }}
+        run: |
+          DMG_PATH="build/Khiops-$(./scripts/khiops-version).dmg"
+          codesign --force --timestamp --sign "$KHIOPS_CODESIGN_IDENTITY" "$DMG_PATH"
+          codesign --verify --strict --verbose=2 "$DMG_PATH"
       - name: Prepare notarization API key
         env:
           MAC_API_KEY: ${{ secrets.MAC_API_KEY }}
@@ -95,11 +102,31 @@ jobs:
           MAC_API_KEY_ISSUER_ID: ${{ secrets.MAC_API_KEY_ISSUER_ID }}
         run: |
           DMG_PATH="build/Khiops-$(./scripts/khiops-version).dmg"
+          SUBMISSION_RESULT="$RUNNER_TEMP/notary-submission.json"
+          set +e
           xcrun notarytool submit "$DMG_PATH" \
             --key "$KHIOPS_API_KEY_PATH" \
             --key-id "$MAC_API_KEY_ID" \
             --issuer "$MAC_API_KEY_ISSUER_ID" \
-            --wait
+            --wait \
+            --output-format json > "$SUBMISSION_RESULT"
+          SUBMIT_EXIT_CODE=$?
+          set -e
+          cat "$SUBMISSION_RESULT"
+          SUBMISSION_ID="$(jq -r '.id // empty' "$SUBMISSION_RESULT")"
+          SUBMISSION_STATUS="$(jq -r '.status // empty' "$SUBMISSION_RESULT")"
+          if [[ -z "$SUBMISSION_ID" ]]; then
+            echo "::error::Notary submission returned no submission ID (exit code $SUBMIT_EXIT_CODE)"
+            exit 1
+          fi
+          if [[ "$SUBMISSION_STATUS" != "Accepted" || "$SUBMIT_EXIT_CODE" -ne 0 ]]; then
+            echo "::error::Apple notarization failed with status '$SUBMISSION_STATUS'; fetching the detailed report"
+            xcrun notarytool log "$SUBMISSION_ID" \
+              --key "$KHIOPS_API_KEY_PATH" \
+              --key-id "$MAC_API_KEY_ID" \
+              --issuer "$MAC_API_KEY_ISSUER_ID"
+            exit 1
+          fi
           xcrun stapler staple "$DMG_PATH"
       - name: Verify signed and notarized DMG
         run: |
@@ -109,7 +136,7 @@ jobs:
           xcrun stapler validate "$DMG_PATH"
           spctl --assess --type open --context context:primary-signature --verbose=4 "$DMG_PATH"
       - name: Upload notarized DMG
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Khiops-macos-${{ matrix.arch }}
           path: build/Khiops-*.dmg
@@ -160,6 +187,34 @@ jobs:
           BIN_DIR="$INSTALL_DIR/Khiops.app/Contents/Resources/bin"
           test -x "$BIN_DIR/khiops_env"
           echo "BIN_DIR=$BIN_DIR" >> "$GITHUB_ENV"
+      - name: Check signed executable entitlements
+        run: |
+          for APP in "Khiops.app" "Khiops Coclustering.app"; do
+            for BINARY in MODL MODL_Coclustering MODL_openmpi MODL_Coclustering_openmpi; do
+              EXECUTABLE="$RUNNER_TEMP/khiops-install/$APP/Contents/Resources/bin/$BINARY"
+              ENTITLEMENTS="$RUNNER_TEMP/khiops-entitlements.plist"
+              codesign --verify --strict "$EXECUTABLE"
+              codesign -d --xml --entitlements - "$EXECUTABLE" > "$ENTITLEMENTS"
+              for KEY in com.apple.security.cs.disable-library-validation \
+                         com.apple.security.cs.allow-dyld-environment-variables \
+                         com.apple.security.cs.allow-jit \
+                         com.apple.security.cs.allow-unsigned-executable-memory; do
+                test "$(/usr/libexec/PlistBuddy -c "Print :$KEY" "$ENTITLEMENTS")" = true
+              done
+            done
+          done
+      - name: Check signed FlatLaf native libraries
+        run: |
+          NATIVE_DIR="com/formdev/flatlaf/natives"
+          for APP in "Khiops.app" "Khiops Coclustering.app"; do
+            JAR="$RUNNER_TEMP/khiops-install/$APP/Contents/Resources/jars/flatlaf.jar"
+            for ARCH in x86_64 arm64; do
+              LIBRARY="$RUNNER_TEMP/libflatlaf-macos-$ARCH.dylib"
+              unzip -p "$JAR" "$NATIVE_DIR/libflatlaf-macos-$ARCH.dylib" > "$LIBRARY"
+              codesign --verify --strict "$LIBRARY"
+              codesign -d --verbose=4 "$LIBRARY" 2>&1 | grep -q '^Timestamp='
+            done
+          done
       - name: Check Khiops installation
         uses: ./.github/actions/test-khiops-install
         with:
@@ -178,3 +233,46 @@ jobs:
         run: |-
           hdiutil detach "$RUNNER_TEMP/khiops-dmg" -force || true
           rm -rf "$RUNNER_TEMP/khiops-install" "$RUNNER_TEMP/khiops-dmg"
+  # Release is only executed on tags
+  release:
+    if: github.ref_type == 'tag'
+    needs: [build-and-notarize, test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download arm64 DMG artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: Khiops-macos-arm64
+          path: dmg-arm64
+      - name: Download x86_64 DMG artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: Khiops-macos-x86_64
+          path: dmg-x86_64
+      - name: Rename packages with architecture suffix
+        run: |
+          # Both architectures build a DMG with the same name: add the architecture to avoid a clash
+          for ARCH in arm64 x86_64
+          do
+            for DMG_FILE in dmg-$ARCH/*.dmg
+            do
+              mv "$DMG_FILE" "${DMG_FILE%.dmg}-$ARCH.dmg"
+            done
+          done
+          mkdir -p packages
+          mv dmg-*/*.dmg packages/
+          ls -l packages
+      - name: Upload packages to the release
+        uses: ncipollo/release-action@v1.21.0
+        with:
+          allowUpdates: true
+          artifacts: packages/Khiops-*.dmg
+          body: |
+            **This release is for testing purposes only and there is no support for it.**
+            **Go to https://khiops.org to install the latest supported version.**
+          draft: false
+          makeLatest: false
+          prerelease: true
+          updateOnlyUnreleased: true

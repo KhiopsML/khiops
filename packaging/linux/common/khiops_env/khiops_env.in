@@ -91,6 +91,16 @@ if ! [ "$KHIOPS_MPI_VERBOSE" == "true" ]; then
     _MPI_EXTRA_FLAGS="@KHIOPS_MPI_QUIET@"
 fi
 
+# Set the KHIOPS_MPI_HOME variable if HOME is not already set
+# KHIOPS_MPI_HOME is set to the temporary directory of the current user or to
+# /tmp if not defined
+# If HOME is not defined, then it must be set to $KHIOPS_MPI_HOME
+# This is required by OpenMPI >= 5; see
+# https://github.com/open-mpi/ompi/issues/10732
+if [[ -z $HOME ]]; then
+    KHIOPS_MPI_HOME=${TMPDIR:-${TEMP:-${TMP:-/tmp}}}
+fi
+
 # Check if we are running as a macOS app and set up MPI accordingly
 IS_MACOS_APP="@IS_MACOS_APP@"
 NO_MPI=false
@@ -103,7 +113,7 @@ if [[ "$IS_MACOS_APP" == "true" ]]; then
     done
     if [[ ! -x "$_BREW_MPIEXEC" ]] ||
          # Check if the available MPI implementation matches the expected one
-        ! _MPI_VERSION=$("$_BREW_MPIEXEC" --version 2>&1) ||
+        ! _MPI_VERSION=$(HOME="${HOME:-$KHIOPS_MPI_HOME}" "$_BREW_MPIEXEC" --version 2>&1) ||
         [[ "$_MPI_VERSION" != *"@MPI_FULL_NAME@"* ]]; then
         NO_MPI=true
         KHIOPS_MPI_ERROR="@MPI_FULL_NAME@ not found: Khiops is running in serial mode. Install it with brew to enable parallel computation."
@@ -138,16 +148,6 @@ else
         else
             KHIOPS_MPI_ERROR="We didn't find mpiexec in the expected paths. Parallel computation is unavailable: Khiops is launched in serial"
         fi
-    fi
-
-    # Set the KHIOPS_MPI_HOME variable if HOME is not already set
-    # KHIOPS_MPI_HOME is set to the temporary directory of the current user or to
-    # /tmp if not defined
-    # If HOME is not defined, then it must be set to $KHIOPS_MPI_HOME
-    # This is required by OpenMPI >= 5; see
-    # https://github.com/open-mpi/ompi/issues/10732
-    if [[ -z $HOME ]]; then
-        KHIOPS_MPI_HOME=${TMPDIR:-${TEMP:-${TMP:-/tmp}}}
     fi
 
     if [[ -z $KHIOPS_MPI_ERROR ]]; then
