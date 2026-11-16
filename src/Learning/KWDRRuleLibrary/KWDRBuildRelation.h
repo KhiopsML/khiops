@@ -13,6 +13,7 @@ class KWDRBuildEntityView;
 class KWDRBuildEntityAdvancedView;
 class KWDRBuildEntity;
 class KWDRBuildDiffTable;
+class KWDRBuildTemporalJoin;
 class KWDRBuildCompositeTable;
 class KWDRBuildEntityFromJson;
 class KWDRBuildTableFromJson;
@@ -174,6 +175,52 @@ protected:
 	// Si le premier objet est NULL, ces differeces sont missing
 	void FillTargetDifferenceAttributes(const KWObject* kwoSourcePreviousObject,
 					    const KWObject* kwoSourceCurrentObject, KWObject* kwoTargetObject) const;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildTemporalJoin
+// Creation d'une table associant chaque instance source a l'instance historique admissible de temps minimal.
+// Les deux tables et leurs variables temporelles sont specifiees en entree.
+// Les operandes temporels doivent etre de meme type: Numerical, Date, Time, Timestamp ou TimestampTZ.
+// Les bornes numeriques definissent une plage inclusive de differences historique moins source.
+// A temps egal, la premiere instance dans la table historique est selectionnee.
+// Les tables peuvent etre non triees et une instance historique peut etre reutilisee.
+// Chaque instance source produit une instance cible, dans le meme ordre.
+// Les deux operandes en sortie referencent les instances source et historique selectionnees.
+// Une valeur historique manquante ou absente est representee par une entite manquante.
+class KWDRBuildTemporalJoin : public KWDRTableCreationRule
+{
+public:
+	// Constructeur
+	KWDRBuildTemporalJoin();
+	~KWDRBuildTemporalJoin();
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	ObjectArray* ComputeObjectArrayResult(const KWObject* kwoObject,
+					      const KWLoadIndex liAttributeLoadIndex) const override;
+
+	// Verification des types des operandes temporels
+	boolean CheckOperandsFamily(const KWDerivationRule* ruleFamily) const override;
+
+	// Verification des bornes et du type des entites en sortie
+	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
+
+	// Gestion des scopes des operandes en entree
+	boolean IsNewScopeOperand(int nOperandIndex) const override;
+	boolean IsSecondaryScopeOperand(int nOperandIndex) const override;
+
+	///////////////////////////////////////////////////////
+	///// Implementation
+protected:
+	// Pas d'alimentation de type vue
+	boolean IsViewModeActivated() const override;
+
+	// Tous les operandes en entree sont necessaires pour calculer les correspondances,
+	// quels que soient les operandes en sortie utilises: inutile de redefinir CollectSpecificInputOperandsAt
+	void CollectMandatoryInputOperands(IntVector* ivUsedInputOperands) const override;
 };
 
 ////////////////////////////////////////////////////////////////////////////
