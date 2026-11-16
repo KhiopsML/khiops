@@ -602,6 +602,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRTableSort
 // Tri d'un attribut ObjectArray selon un ou plusieurs operandes de tri de type simple
+// Les objets de memes valeurs de tri conservent leur ordre initial
 class KWDRTableSort : public KWDRObjectArrayRule
 {
 public:

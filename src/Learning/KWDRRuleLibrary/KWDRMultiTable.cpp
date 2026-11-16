@@ -1814,7 +1814,7 @@ KWDerivationRule* KWDRTableSort::Create() const
 static const ObjectArray* KWDRTableSortRuleOperands = NULL;
 
 // methode de comparaison de deux objets KWObject, selon les operandes de tri KWDRTableSortRuleOperands
-int KWDRTableSortCompareObjects(const void* elem1, const void* elem2)
+static int KWDRTableSortCompareObjects(const void* elem1, const void* elem2)
 {
 	KWObject* object1;
 	KWObject* object2;
@@ -1880,10 +1880,35 @@ int KWDRTableSortCompareObjects(const void* elem1, const void* elem2)
 	return nDiff;
 }
 
+// Comparaison des objets selon les operandes de tri, puis leur position initiale
+static int KWDRTableSortCompareSortableObjects(const void* elem1, const void* elem2)
+{
+	KWSortableObject* sortableObject1;
+	KWSortableObject* sortableObject2;
+	Object* object1;
+	Object* object2;
+	int nDiff;
+
+	require(elem1 != NULL);
+	require(elem2 != NULL);
+
+	sortableObject1 = cast(KWSortableObject*, *(Object**)elem1);
+	sortableObject2 = cast(KWSortableObject*, *(Object**)elem2);
+	object1 = sortableObject1->GetSortValue();
+	object2 = sortableObject2->GetSortValue();
+	nDiff = KWDRTableSortCompareObjects(&object1, &object2);
+	if (nDiff == 0)
+		nDiff = sortableObject1->GetIndex() - sortableObject2->GetIndex();
+	return nDiff;
+}
+
 ObjectArray* KWDRTableSort::ComputeObjectArrayResult(const KWObject* kwoObject,
 						     const KWLoadIndex liAttributeLoadIndex) const
 {
 	ObjectArray* oaObjectArrayOperand;
+	ObjectArray oaSortableObjects;
+	KWSortableObject* sortableObject;
+	int i;
 
 	require(IsCompiled());
 
@@ -1897,15 +1922,35 @@ ObjectArray* KWDRTableSort::ComputeObjectArrayResult(const KWObject* kwoObject,
 	{
 		assert(CheckObjectArray(oaObjectArrayOperand));
 
-		// Recopie prealable des objet du container
+		// Recopie prealable des objets du container
 		oaResult.CopyFrom(oaObjectArrayOperand);
+		if (oaResult.GetSize() > 1)
+		{
+			// Memorisation de la position initiale pour garantir un tri stable
+			oaSortableObjects.SetSize(oaResult.GetSize());
+			for (i = 0; i < oaResult.GetSize(); i++)
+			{
+				sortableObject = new KWSortableObject;
+				sortableObject->SetIndex(i);
+				sortableObject->SetSortValue(oaResult.GetAt(i));
+				oaSortableObjects.SetAt(i, sortableObject);
+			}
 
-		// Tri des objets, en parametrant temporairement la fonction de tri par les operandes de tri
-		assert(KWDRTableSortRuleOperands == NULL);
-		KWDRTableSortRuleOperands = &oaOperands;
-		oaResult.SetCompareFunction(KWDRTableSortCompareObjects);
-		oaResult.Sort();
-		KWDRTableSortRuleOperands = NULL;
+			// Tri des objets selon les operandes de tri et leur position initiale
+			assert(KWDRTableSortRuleOperands == NULL);
+			KWDRTableSortRuleOperands = &oaOperands;
+			oaSortableObjects.SetCompareFunction(KWDRTableSortCompareSortableObjects);
+			oaSortableObjects.Sort();
+			KWDRTableSortRuleOperands = NULL;
+
+			// Recopie des resultats du tri dans la tableau en sortie
+			for (i = 0; i < oaSortableObjects.GetSize(); i++)
+			{
+				sortableObject = cast(KWSortableObject*, oaSortableObjects.GetAt(i));
+				oaResult.SetAt(i, sortableObject->GetSortValue());
+			}
+			oaSortableObjects.DeleteAll();
+		}
 	}
 
 	// Nettoyage des operandes secondaires de scope principal
