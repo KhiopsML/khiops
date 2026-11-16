@@ -1938,6 +1938,7 @@ void KWDRTableSort::SortObjectArray(const ObjectArray* oaInputObjects, const Obj
 {
 	ObjectArray oaSortableObjects;
 	KWSortableObject* sortableObject;
+	const ObjectArray* oaPreviousSortOperands;
 	int i;
 
 	// Preconditions
@@ -1946,7 +1947,9 @@ void KWDRTableSort::SortObjectArray(const ObjectArray* oaInputObjects, const Obj
 	require(oaSortOperands->GetSize() > 0);
 	require(oaSortedObjects != NULL);
 	require(oaSortedObjects != oaInputObjects);
-	require(KWDRTableSortRuleOperands == NULL);
+
+	// Memorisation du contexte d'un eventuel tri englobant
+	oaPreviousSortOperands = KWDRTableSortRuleOperands;
 
 	// Dimensionnement du resultat et traitement du cas d'un objet unique
 	oaSortedObjects->SetSize(oaInputObjects->GetSize());
@@ -1970,7 +1973,7 @@ void KWDRTableSort::SortObjectArray(const ObjectArray* oaInputObjects, const Obj
 		KWDRTableSortRuleOperands = oaSortOperands;
 		oaSortableObjects.SetCompareFunction(KWDRTableSortCompareSortableObjects);
 		oaSortableObjects.Sort();
-		KWDRTableSortRuleOperands = NULL;
+		KWDRTableSortRuleOperands = oaPreviousSortOperands;
 
 		// Recopie des objets tries et liberation des objets temporaires
 		for (i = 0; i < oaSortableObjects.GetSize(); i++)
@@ -1980,7 +1983,7 @@ void KWDRTableSort::SortObjectArray(const ObjectArray* oaInputObjects, const Obj
 		}
 		oaSortableObjects.DeleteAll();
 	}
-	ensure(KWDRTableSortRuleOperands == NULL);
+	ensure(KWDRTableSortRuleOperands == oaPreviousSortOperands);
 }
 
 boolean KWDRTableSort::IsObjectArraySorted(const ObjectArray* oaInputObjects, const ObjectArray* oaSortOperands)
@@ -1988,12 +1991,15 @@ boolean KWDRTableSort::IsObjectArraySorted(const ObjectArray* oaInputObjects, co
 	boolean bSorted;
 	Object* object1;
 	Object* object2;
+	const ObjectArray* oaPreviousSortOperands;
 	int i;
 
 	require(oaInputObjects != NULL);
 	require(oaSortOperands != NULL);
 	require(oaSortOperands->GetSize() > 0);
-	require(KWDRTableSortRuleOperands == NULL);
+
+	// Memorisation du contexte d'un eventuel tri englobant
+	oaPreviousSortOperands = KWDRTableSortRuleOperands;
 
 	// Verification de l'ordre des objets consecutifs
 	bSorted = true;
@@ -2008,7 +2014,7 @@ boolean KWDRTableSort::IsObjectArraySorted(const ObjectArray* oaInputObjects, co
 			break;
 		}
 	}
-	KWDRTableSortRuleOperands = NULL;
+	KWDRTableSortRuleOperands = oaPreviousSortOperands;
 	return bSorted;
 }
 
