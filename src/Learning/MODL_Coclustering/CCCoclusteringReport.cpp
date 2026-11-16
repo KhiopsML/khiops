@@ -1520,6 +1520,7 @@ boolean CCCoclusteringReport::ReadValueGroup(KWDGAttribute* dgAttribute, KWDGPar
 	}
 
 	// Cas des nouveaux indicateurs : importance du cluster
+	dImportance = 0;
 	if (not bOldFormatBeforeImportance)
 	{
 		if (not dgAttribute->IsInnerAttribute())
@@ -1528,8 +1529,6 @@ boolean CCCoclusteringReport::ReadValueGroup(KWDGAttribute* dgAttribute, KWDGPar
 			bOk = bOk and
 			      JSONTokenizer::ReadKeyDoubleValue("importanceInVariable", true, dImportance, bIsEnd);
 	}
-	else
-		dImportance = 0;
 
 	// Tableau des valeurs
 	bOk = bOk and JSONTokenizer::ReadKeyArray("values");
@@ -1660,10 +1659,9 @@ boolean CCCoclusteringReport::ReadVarPartAttributeValueGroup(KWDGAttribute* varP
 	}
 
 	// Cas des nouveaux indicateurs : importance du cluster
+	dImportance = 0;
 	if (not bOldFormatBeforeImportance)
 		bOk = bOk and JSONTokenizer::ReadKeyDoubleValue("importance", true, dImportance, bIsEnd);
-	else
-		dImportance = 0;
 
 	// Tableau des libelles des parties de variable, analogue des valeurs d'un variable categorielle
 	bOk = bOk and JSONTokenizer::ReadKeyArray("values");

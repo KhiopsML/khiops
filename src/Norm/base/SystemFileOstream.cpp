@@ -209,7 +209,8 @@ boolean SystemFileOstream::Test()
 	if (bOk)
 	{
 		outputStream << "prefix" << sampleObject << 'X' << std::flush;
-		bOk = outputStream.good() and FileService::GetFileSize(sFileName) == strlen("prefix [7,value]X");
+		bOk =
+		    outputStream.good() and FileService::GetFileSize(sFileName) == (longint)strlen("prefix [7,value]X");
 		bOk = outputStream.Close() and bOk;
 	}
 
