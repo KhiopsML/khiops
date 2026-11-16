@@ -32,7 +32,11 @@ KWDatabaseSamplingView::KWDatabaseSamplingView()
 	GetFieldAt("SamplingMode")->SetParameters("Include sample\nExclude sample");
 
 	// Info-bulles
-	GetFieldAt("SampleNumberPercentage")->SetHelpText("Percentage of samples.");
+	GetFieldAt("SampleNumberPercentage")
+	    ->SetHelpText(
+		"Percentage of samples retained during the database analysis and model training. A selection variable "
+		"can also be applied to select samples (via the Selection tab). The effects are orthogonal and "
+		"additive.");
 	GetFieldAt("SamplingMode")
 	    ->SetHelpText("To include or exclude the records of the sample."
 			  "\n This allows to extract a train sample and its exact complementary as a test sample"
