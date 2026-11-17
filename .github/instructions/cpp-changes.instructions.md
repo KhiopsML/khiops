@@ -23,3 +23,4 @@ For module-specific architecture and naming, follow the [workspace instructions]
 - Format changed C++ files with `clang-format`.
 - Run `scripts/check-encoding.py` and `scripts/check-obsolete-copyright.py` on changed files.
 - Build and run the focused tests for the affected module, following the [workspace build and test guidance](../copilot-instructions.md).
+- When addressing compiler warnings or control-flow-dependent initialization, build the relevant Release configuration as well as Debug.

@@ -23,7 +23,7 @@
 Check the `.github/instructions/` directory for matching instruction files:
 - **`.cpp` or `.h` files** → Use the `KhiopsC++` workflow in [`.github/agents/AGENTS.md`](agents/AGENTS.md) or load [`.github/instructions/cpp-changes.instructions.md`](instructions/cpp-changes.instructions.md)
 - **`CMakeLists.txt` files** → Load [`.github/instructions/cmake-changes.instructions.md`](instructions/cmake-changes.instructions.md)
-- **`test/LearningTestTool/` files** → Load [`.github/instructions/learning-test-tool.instructions.md`](instructions/learning-test-tool.instructions.md)
+- **`test/LearningTestTool/` files or LearningTest datasets, scenarios, dictionaries, and references (including external checkouts)** → Load [`.github/instructions/learning-test-tool.instructions.md`](instructions/learning-test-tool.instructions.md)
 - **`.github/workflows/` or `.github/actions/` files** → Load [`.github/instructions/ci-workflows.instructions.md`](instructions/ci-workflows.instructions.md)
 - **UI-related files** → Load [`.github/instructions/ui-changes.instructions.md`](instructions/ui-changes.instructions.md)
 - **Python wheel files** → Load [`.github/instructions/python-wheel.instructions.md`](instructions/python-wheel.instructions.md)
@@ -58,6 +58,10 @@ ctest --preset macos-clang-debug
 ---
 
 **This protocol is non-negotiable. Pre-commit hooks will reject code that violates these conventions.**
+
+## Clarify Conflicting Requirements
+
+If the user's stated requirement conflicts with a linked issue or document, explain the discrepancy and ask which source to follow before changing behavior.
 
 ## Recommended: Use Specialized Agents
 

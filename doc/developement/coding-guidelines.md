@@ -86,8 +86,9 @@ Note: Visual Studio 17.8+ "Include Cleanup" may flag transitive includes. See wi
 Classes must have a comment describing its functions and services
 
 **Best practices:**
-- Comment your code as if it were a document:
-- Provide a comment for each paragraph of code
+- Comments should explain the code's intent and structure well enough to give a quick understanding without reading every statement.
+- Every block of executable code separated from the preceding code by a blank line must start with a comment explaining the block's purpose. This does not apply to assertion lines.
+- Comments should clarify intent, assumptions, and non-obvious decisions rather than merely restating what the code does.
 
 Use two types of comments:
 
