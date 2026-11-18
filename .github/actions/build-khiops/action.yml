@@ -20,7 +20,7 @@ runs:
       if: runner.os == 'macOS'
       shell: bash
       run: |
-        brew install mpich
+        brew install open-mpi
     - name: Setup MPI (Linux)
       if: runner.os == 'Linux'
       shell: bash
