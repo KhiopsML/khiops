@@ -1652,14 +1652,11 @@ void KWDataGridManager::AddSymbolAttributeNearbyParts(const KWDataGrid* sourceDa
 	KWDGAttribute* targetAttribute;
 	KWDGPart* sourcePart;
 	KWDGPart* mandatoryPart;
-	KWDGPart* targetPart;
-	KWDGPart* aggregateTargetPart;
 	KWDGPart* sourceGarbagePart;
 	KWDGValue* sourceValue;
 	int nSourcePartNumber;
 	int nMandatoryPartNumber;
 	int nSource;
-	int nMandatory;
 	boolean bMandatoryAttributeIndexed;
 
 	require(sourceDataGrid != NULL);

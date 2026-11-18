@@ -602,6 +602,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////
 // Classe KWDRTableSort
 // Tri d'un attribut ObjectArray selon un ou plusieurs operandes de tri de type simple
+// Les objets de memes valeurs de tri conservent leur ordre initial
 class KWDRTableSort : public KWDRObjectArrayRule
 {
 public:
@@ -618,6 +619,18 @@ public:
 
 	// Verification des operandes
 	boolean CheckOperandsFamily(const KWDerivationRule* ruleFamily) const override;
+
+	// Tri stable selon les seuls operandes de tri, non vides et de type stocke
+	// Les operandes doivent etre compiles pour les objets en entree
+	// L'appelant doit appeler EvaluateMainScopeSecondaryOperands sur la regle contenant les operandes
+	// avant le tri, puis CleanMainScopeSecondaryOperands sur cette meme regle apres le tri
+	// Les objets restent la propriete de l'appelant, seul leur ordre est modifie en sortie
+	static void SortObjectArray(const ObjectArray* oaInputObjects, const ObjectArray* oaSortOperands,
+				    ObjectArray* oaSortedObjects);
+
+	// Verification en un parcours de l'ordre croissant, avec egalite autorisee
+	// Memes prerequis sur les operandes que SortObjectArray
+	static boolean IsObjectArraySorted(const ObjectArray* oaInputObjects, const ObjectArray* oaSortOperands);
 };
 
 ////////////////////////////////////////////////////////////////////////////
