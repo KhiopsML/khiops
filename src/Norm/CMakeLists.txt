@@ -23,6 +23,16 @@ if(BUILD_JARS)
     NAMESPACE
     "images"
     IMAGES
+    "NormGUI/theme/FlatLaf.properties"
+    "NormGUI/theme/FlatArcOrangeIJTheme.properties"
+    "NormGUI/theme/lucide/rocket.svg"
+    "NormGUI/theme/lucide/cpu-ai.svg"
+    "NormGUI/theme/lucide/database.svg"
+    "NormGUI/theme/lucide/settings-2.svg"
+    "NormGUI/theme/lucide/chart-column-big.svg"
+    "NormGUI/fonts/Poppins-Regular.ttf"
+    "NormGUI/images/logo-visualization.svg"
+    "NormGUI/images/logo-covisualization.svg"
     "NormGUI/images/sample.png"
     "NormGUI/images/sample.jpg"
     "NormGUI/images/sample.gif"

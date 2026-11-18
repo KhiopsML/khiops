@@ -25,6 +25,16 @@ boolean UIData::GetEditable() const
 	return bEditable;
 }
 
+void UIData::SetIcon(const ALString& sValue)
+{
+	sIcon = sValue;
+}
+
+const ALString& UIData::GetIcon() const
+{
+	return sIcon;
+}
+
 boolean UIData::IsElement() const
 {
 	return false;
