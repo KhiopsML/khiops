@@ -541,6 +541,9 @@ ObjectArray* KWDRBuildTemporalJoin::ComputeObjectArrayResult(const KWObject* kwo
 {
 	ObjectArray* oaSourceObjects;
 	ObjectArray* oaHistoricalObjects;
+	const ObjectArray* oaOrderedHistoricalObjects;
+	ObjectArray oaSortedHistoricalObjects;
+	ObjectArray oaSortOperands;
 	KWObject* kwoSourceObject;
 	KWObject* kwoHistoricalObject;
 	KWObject* kwoBestHistoricalObject;
@@ -552,7 +555,6 @@ ObjectArray* KWDRBuildTemporalJoin::ComputeObjectArrayResult(const KWObject* kwo
 	Continuous cSourceTime;
 	Continuous cHistoricalTime;
 	Continuous cDifference;
-	Continuous cBestDifference;
 	Date dtSourceTime;
 	Date dtHistoricalTime;
 	Time tmSourceTime;
@@ -563,17 +565,17 @@ ObjectArray* KWDRBuildTemporalJoin::ComputeObjectArrayResult(const KWObject* kwo
 	TimestampTZ tstzHistoricalTime;
 	int nTemporalType;
 	int nSource;
+	int nLower;
+	int nUpper;
 	int nHistorical;
 	boolean bSourceTimeValid;
 	boolean bHistoricalTimeValid;
-	boolean bBestHistoricalObjectFound;
 
 	require(IsCompiled());
 
 	// Initialisation des valeurs temporelles sources et des differences
 	cSourceTime = 0;
 	cDifference = 0;
-	cBestDifference = 0;
 	dtSourceTime.Reset();
 	tmSourceTime.Reset();
 	tsSourceTime.Reset();
@@ -591,6 +593,20 @@ ObjectArray* KWDRBuildTemporalJoin::ComputeObjectArrayResult(const KWObject* kwo
 	liTargetSourceEntity = livComputeModeTargetAttributeLoadIndexes.GetAt(0);
 	liTargetHistoricalEntity = livComputeModeTargetAttributeLoadIndexes.GetAt(1);
 
+	// Tri stable de l'historique seulement si necessaire, sans modifier la table en entree
+	oaOrderedHistoricalObjects = oaHistoricalObjects;
+	if (oaSourceObjects != NULL and oaSourceObjects->GetSize() > 0 and oaHistoricalObjects != NULL and
+	    oaHistoricalObjects->GetSize() > 1)
+	{
+		oaSortOperands.Add(GetOperandAt(3));
+		if (not KWDRTableSort::IsObjectArraySorted(oaHistoricalObjects, &oaSortOperands))
+		{
+			KWDRTableSort::SortObjectArray(oaHistoricalObjects, &oaSortOperands,
+						       &oaSortedHistoricalObjects);
+			oaOrderedHistoricalObjects = &oaSortedHistoricalObjects;
+		}
+	}
+
 	// Creation d'une instance cible pour chaque instance source
 	oaResult.SetSize(0);
 	if (oaSourceObjects != NULL and oaSourceObjects->GetSize() > 0)
@@ -606,7 +622,6 @@ ObjectArray* KWDRBuildTemporalJoin::ComputeObjectArrayResult(const KWObject* kwo
 			if (kwoTargetObject != NULL)
 			{
 				kwoBestHistoricalObject = NULL;
-				bBestHistoricalObjectFound = false;
 				bSourceTimeValid = true;
 
 				// Lecture de la valeur temporelle source et verification de sa presence
@@ -637,14 +652,16 @@ ObjectArray* KWDRBuildTemporalJoin::ComputeObjectArrayResult(const KWObject* kwo
 					break;
 				}
 
-				// Recherche de l'instance historique admissible de temps minimal
-				if (bSourceTimeValid and oaHistoricalObjects != NULL)
+				// Recherche dichotomique du premier temps historique atteignant la borne inferieure
+				if (bSourceTimeValid and oaOrderedHistoricalObjects != NULL)
 				{
-					for (nHistorical = 0; nHistorical < oaHistoricalObjects->GetSize();
-					     nHistorical++)
+					nLower = 0;
+					nUpper = oaOrderedHistoricalObjects->GetSize();
+					while (nLower < nUpper)
 					{
+						nHistorical = nLower + (nUpper - nLower) / 2;
 						kwoHistoricalObject =
-						    cast(KWObject*, oaHistoricalObjects->GetAt(nHistorical));
+						    cast(KWObject*, oaOrderedHistoricalObjects->GetAt(nHistorical));
 						bHistoricalTimeValid = true;
 						switch (nTemporalType)
 						{
@@ -689,18 +706,15 @@ ObjectArray* KWDRBuildTemporalJoin::ComputeObjectArrayResult(const KWObject* kwo
 							break;
 						}
 
-						// Selection du temps historique minimal dans la periode inclusive;
-						// a temps egal, conservation de la premiere instance de la table
-						if (bHistoricalTimeValid and cDifference >= cPeriodStart and
-						    cDifference <= cPeriodEnd)
+						// Les valeurs manquantes sont triees avant les valeurs valides
+						if (not bHistoricalTimeValid or cDifference < cPeriodStart)
+							nLower = nHistorical + 1;
+						else
 						{
-							if (not bBestHistoricalObjectFound or
-							    cDifference < cBestDifference)
-							{
+							// Chercher plus tot meme en cas d'egalite pour conserver la premiere instance
+							nUpper = nHistorical;
+							if (cDifference <= cPeriodEnd)
 								kwoBestHistoricalObject = kwoHistoricalObject;
-								cBestDifference = cDifference;
-								bBestHistoricalObjectFound = true;
-							}
 						}
 					}
 				}

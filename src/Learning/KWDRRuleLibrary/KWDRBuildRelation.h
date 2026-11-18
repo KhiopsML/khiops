@@ -23,6 +23,7 @@ class KWDRBuildDummyTable;
 
 #include "KWDerivationRule.h"
 #include "KWRelationCreationRule.h"
+#include "KWDRMultiTable.h"
 #include "JSONObject.h"
 
 // Enregistrement de ces regles
@@ -185,6 +186,7 @@ protected:
 // Les bornes numeriques definissent une plage inclusive de differences historique moins source.
 // A temps egal, la premiere instance dans la table historique est selectionnee.
 // Les tables peuvent etre non triees et une instance historique peut etre reutilisee.
+// La table historique est triee si necessaire, puis la recherche est dichotomique pour chaque source.
 // Chaque instance source produit une instance cible, dans le meme ordre.
 // Les deux operandes en sortie referencent les instances source et historique selectionnees.
 // Une valeur historique manquante ou absente est representee par une entite manquante.
