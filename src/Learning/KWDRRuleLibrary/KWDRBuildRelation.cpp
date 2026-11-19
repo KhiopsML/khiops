@@ -12,6 +12,7 @@ void KWDRRegisterBuildRelationRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntityAdvancedView);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntity);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildDiffTable);
+	KWDerivationRule::RegisterDerivationRule(new KWDRBuildTemporalJoin);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildCompositeTable);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildEntityFromJson);
 	KWDerivationRule::RegisterDerivationRule(new KWDRBuildTableFromJson);
@@ -499,6 +500,386 @@ void KWDRBuildDiffTable::FillTargetDifferenceAttributes(const KWObject* kwoSourc
 			}
 		}
 	}
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Classe KWDRBuildTemporalJoin
+
+KWDRBuildTemporalJoin::KWDRBuildTemporalJoin()
+{
+	SetName("BuildTemporalJoin");
+	SetLabel("Build temporal join table");
+	SetType(KWType::ObjectArray);
+	SetMultipleScope(true);
+
+	// Variables en entree: tables source et historique, variables temporelles et bornes
+	SetOperandNumber(6);
+	GetOperandAt(0)->SetType(KWType::ObjectArray);
+	GetOperandAt(1)->SetType(KWType::Continuous);
+	GetOperandAt(2)->SetType(KWType::ObjectArray);
+	GetOperandAt(3)->SetType(KWType::Continuous);
+	GetOperandAt(4)->SetType(KWType::Continuous);
+	GetOperandAt(4)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+	GetOperandAt(5)->SetType(KWType::Continuous);
+	GetOperandAt(5)->SetOrigin(KWDerivationRuleOperand::OriginConstant);
+
+	// Variables en sortie: references vers les instances source et historique
+	SetOutputOperandNumber(2);
+	GetOutputOperandAt(0)->SetType(KWType::Object);
+	GetOutputOperandAt(1)->SetType(KWType::Object);
+}
+
+KWDRBuildTemporalJoin::~KWDRBuildTemporalJoin() {}
+
+KWDerivationRule* KWDRBuildTemporalJoin::Create() const
+{
+	return new KWDRBuildTemporalJoin;
+}
+
+ObjectArray* KWDRBuildTemporalJoin::ComputeObjectArrayResult(const KWObject* kwoObject,
+							     const KWLoadIndex liAttributeLoadIndex) const
+{
+	ObjectArray* oaSourceObjects;
+	ObjectArray* oaHistoricalObjects;
+	const ObjectArray* oaOrderedHistoricalObjects;
+	ObjectArray oaSortedHistoricalObjects;
+	ObjectArray oaSortOperands;
+	KWObject* kwoSourceObject;
+	KWObject* kwoHistoricalObject;
+	KWObject* kwoBestHistoricalObject;
+	KWObject* kwoTargetObject;
+	KWLoadIndex liTargetSourceEntity;
+	KWLoadIndex liTargetHistoricalEntity;
+	Continuous cPeriodStart;
+	Continuous cPeriodEnd;
+	Continuous cSourceTime;
+	Continuous cHistoricalTime;
+	Continuous cDifference;
+	Date dtSourceTime;
+	Date dtHistoricalTime;
+	Time tmSourceTime;
+	Time tmHistoricalTime;
+	Timestamp tsSourceTime;
+	Timestamp tsHistoricalTime;
+	TimestampTZ tstzSourceTime;
+	TimestampTZ tstzHistoricalTime;
+	int nTemporalType;
+	int nSource;
+	int nLower;
+	int nUpper;
+	int nHistorical;
+	boolean bSourceTimeValid;
+	boolean bHistoricalTimeValid;
+
+	require(IsCompiled());
+
+	// Initialisation des valeurs temporelles sources et des differences
+	cSourceTime = 0;
+	cDifference = 0;
+	dtSourceTime.Reset();
+	tmSourceTime.Reset();
+	tsSourceTime.Reset();
+	tstzSourceTime.Reset();
+
+	// Evaluation des operandes secondaires du scope principal
+	EvaluateMainScopeSecondaryOperands(kwoObject);
+
+	// Initialisation des tables, parametres temporels et index des entites en sortie
+	oaSourceObjects = GetOperandAt(0)->GetObjectArrayValue(kwoObject);
+	oaHistoricalObjects = GetOperandAt(2)->GetObjectArrayValue(kwoObject);
+	cPeriodStart = GetOperandAt(4)->GetContinuousConstant();
+	cPeriodEnd = GetOperandAt(5)->GetContinuousConstant();
+	nTemporalType = GetOperandAt(1)->GetType();
+	liTargetSourceEntity = livComputeModeTargetAttributeLoadIndexes.GetAt(0);
+	liTargetHistoricalEntity = livComputeModeTargetAttributeLoadIndexes.GetAt(1);
+
+	// Tri stable de l'historique seulement si necessaire, sans modifier la table en entree
+	oaOrderedHistoricalObjects = oaHistoricalObjects;
+	if (oaSourceObjects != NULL and oaSourceObjects->GetSize() > 0 and oaHistoricalObjects != NULL and
+	    oaHistoricalObjects->GetSize() > 1)
+	{
+		oaSortOperands.Add(GetOperandAt(3));
+		if (not KWDRTableSort::IsObjectArraySorted(oaHistoricalObjects, &oaSortOperands))
+		{
+			KWDRTableSort::SortObjectArray(oaHistoricalObjects, &oaSortOperands,
+						       &oaSortedHistoricalObjects);
+			oaOrderedHistoricalObjects = &oaSortedHistoricalObjects;
+		}
+	}
+
+	// Creation d'une instance cible pour chaque instance source
+	oaResult.SetSize(0);
+	if (oaSourceObjects != NULL and oaSourceObjects->GetSize() > 0)
+	{
+		oaResult.SetSize(oaSourceObjects->GetSize());
+		for (nSource = 0; nSource < oaSourceObjects->GetSize(); nSource++)
+		{
+			kwoSourceObject = cast(KWObject*, oaSourceObjects->GetAt(nSource));
+			kwoTargetObject = NewTargetObject(kwoObject, liAttributeLoadIndex);
+			oaResult.SetAt(nSource, kwoTargetObject);
+
+			// Calcul des correspondances et alimentation si la creation de la cible a reussi
+			if (kwoTargetObject != NULL)
+			{
+				kwoBestHistoricalObject = NULL;
+				bSourceTimeValid = true;
+
+				// Lecture de la valeur temporelle source et verification de sa presence
+				switch (nTemporalType)
+				{
+				case KWType::Continuous:
+					cSourceTime = GetOperandAt(1)->GetContinuousValue(kwoSourceObject);
+					bSourceTimeValid = cSourceTime != KWContinuous::GetMissingValue();
+					break;
+				case KWType::Date:
+					dtSourceTime = GetOperandAt(1)->GetDateValue(kwoSourceObject);
+					bSourceTimeValid = dtSourceTime.Check();
+					break;
+				case KWType::Time:
+					tmSourceTime = GetOperandAt(1)->GetTimeValue(kwoSourceObject);
+					bSourceTimeValid = tmSourceTime.Check();
+					break;
+				case KWType::Timestamp:
+					tsSourceTime = GetOperandAt(1)->GetTimestampValue(kwoSourceObject);
+					bSourceTimeValid = tsSourceTime.Check();
+					break;
+				case KWType::TimestampTZ:
+					tstzSourceTime = GetOperandAt(1)->GetTimestampTZValue(kwoSourceObject);
+					bSourceTimeValid = tstzSourceTime.Check();
+					break;
+				default:
+					assert(false);
+					break;
+				}
+
+				// Recherche dichotomique du premier temps historique atteignant la borne inferieure
+				if (bSourceTimeValid and oaOrderedHistoricalObjects != NULL)
+				{
+					nLower = 0;
+					nUpper = oaOrderedHistoricalObjects->GetSize();
+					while (nLower < nUpper)
+					{
+						nHistorical = nLower + (nUpper - nLower) / 2;
+						kwoHistoricalObject =
+						    cast(KWObject*, oaOrderedHistoricalObjects->GetAt(nHistorical));
+						bHistoricalTimeValid = true;
+						switch (nTemporalType)
+						{
+						case KWType::Continuous:
+							cHistoricalTime =
+							    GetOperandAt(3)->GetContinuousValue(kwoHistoricalObject);
+							bHistoricalTimeValid =
+							    cHistoricalTime != KWContinuous::GetMissingValue();
+							if (bHistoricalTimeValid)
+								cDifference = cHistoricalTime - cSourceTime;
+							break;
+						case KWType::Date:
+							dtHistoricalTime =
+							    GetOperandAt(3)->GetDateValue(kwoHistoricalObject);
+							bHistoricalTimeValid = dtHistoricalTime.Check();
+							if (bHistoricalTimeValid)
+								cDifference = dtHistoricalTime.Diff(dtSourceTime);
+							break;
+						case KWType::Time:
+							tmHistoricalTime =
+							    GetOperandAt(3)->GetTimeValue(kwoHistoricalObject);
+							bHistoricalTimeValid = tmHistoricalTime.Check();
+							if (bHistoricalTimeValid)
+								cDifference = tmHistoricalTime.Diff(tmSourceTime);
+							break;
+						case KWType::Timestamp:
+							tsHistoricalTime =
+							    GetOperandAt(3)->GetTimestampValue(kwoHistoricalObject);
+							bHistoricalTimeValid = tsHistoricalTime.Check();
+							if (bHistoricalTimeValid)
+								cDifference = tsHistoricalTime.Diff(tsSourceTime);
+							break;
+						case KWType::TimestampTZ:
+							tstzHistoricalTime =
+							    GetOperandAt(3)->GetTimestampTZValue(kwoHistoricalObject);
+							bHistoricalTimeValid = tstzHistoricalTime.Check();
+							if (bHistoricalTimeValid)
+								cDifference = tstzHistoricalTime.Diff(tstzSourceTime);
+							break;
+						default:
+							assert(false);
+							break;
+						}
+
+						// Les valeurs manquantes sont triees avant les valeurs valides
+						if (not bHistoricalTimeValid or cDifference < cPeriodStart)
+							nLower = nHistorical + 1;
+						else
+						{
+							// Chercher plus tot meme en cas d'egalite pour conserver la premiere instance
+							nUpper = nHistorical;
+							if (cDifference <= cPeriodEnd)
+								kwoBestHistoricalObject = kwoHistoricalObject;
+						}
+					}
+				}
+
+				// Alimentation des entites de sortie
+				if (liTargetSourceEntity.IsValid())
+					kwoTargetObject->SetObjectValueAt(liTargetSourceEntity, kwoSourceObject);
+				if (liTargetHistoricalEntity.IsValid())
+					kwoTargetObject->SetObjectValueAt(liTargetHistoricalEntity,
+									  kwoBestHistoricalObject);
+			}
+		}
+	}
+
+	// Nettoyage des operandes secondaires du scope principal
+	CleanMainScopeSecondaryOperands();
+	return &oaResult;
+}
+
+boolean KWDRBuildTemporalJoin::CheckOperandsFamily(const KWDerivationRule* ruleFamily) const
+{
+	boolean bOk;
+	int nSourceTimeType;
+	int nHistoricalTimeType;
+	int nOperand;
+	int nTimeType;
+	KWDerivationRuleOperand* operand;
+	ALString sTmp;
+
+	require(ruleFamily != NULL);
+	require(not ruleFamily->GetReference());
+
+	// Verification de la regle et du nombre d'operandes
+	bOk = KWDRRelationCreationRule::CheckRuleFamily(ruleFamily);
+
+	// Verification detaillee des operandes si la famille generale est valide
+	if (bOk)
+	{
+		// Verification des operandes en entree: types autorises pour les temps, famille pour les autres
+		for (nOperand = 0; nOperand < GetOperandNumber(); nOperand++)
+		{
+			operand = GetOperandAt(nOperand);
+			if (nOperand == 1 or nOperand == 3)
+			{
+				// Le type peut etre inconnu avant la resolution complete de l'operande
+				nTimeType = operand->GetType();
+				if (nTimeType != KWType::Unknown and nTimeType != KWType::Continuous and
+				    nTimeType != KWType::Date and nTimeType != KWType::Time and
+				    nTimeType != KWType::Timestamp and nTimeType != KWType::TimestampTZ)
+				{
+					AddError(sTmp + "Operand " + IntToString(nOperand + 1) + " with wrong " +
+						 KWType::ToString(nTimeType) +
+						 " type (must be Numerical, Date, Time, Timestamp or TimestampTZ)");
+					bOk = false;
+				}
+			}
+			else if (not operand->CheckFamily(ruleFamily->GetOperandAt(nOperand)))
+			{
+				AddError(sTmp + "Operand " + IntToString(nOperand + 1) +
+					 " inconsistent with that of the registered rule");
+				bOk = false;
+			}
+		}
+
+		// Verification que les deux operandes temporels ont le meme type, une fois celui-ci connu
+		if (bOk)
+		{
+			nSourceTimeType = GetOperandAt(1)->GetType();
+			nHistoricalTimeType = GetOperandAt(3)->GetType();
+			if (nSourceTimeType != KWType::Unknown and nHistoricalTimeType != KWType::Unknown and
+			    nSourceTimeType != nHistoricalTimeType)
+			{
+				AddError(sTmp + "The source time operand 2 (" + KWType::ToString(nSourceTimeType) +
+					 ") and historical time operand 4 (" + KWType::ToString(nHistoricalTimeType) +
+					 ") must have the same type");
+				bOk = false;
+			}
+		}
+
+		// Verification de la famille des operandes en sortie
+		for (nOperand = 0; nOperand < GetOutputOperandNumber(); nOperand++)
+		{
+			if (not GetOutputOperandAt(nOperand)->CheckFamily(ruleFamily->GetOutputOperandAt(nOperand)))
+			{
+				AddError(sTmp + "Output operand " + IntToString(nOperand + 1) +
+					 " inconsistent with that of the registered rule");
+				bOk = false;
+			}
+		}
+	}
+	return bOk;
+}
+
+boolean KWDRBuildTemporalJoin::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const
+{
+	boolean bOk;
+	Continuous cPeriodStart;
+	Continuous cPeriodEnd;
+	ALString sTmp;
+
+	// Appel de la methode ancetre
+	bOk = KWDRRelationCreationRule::CheckOperandsCompleteness(kwcOwnerClass);
+
+	// Verification des bornes de la periode
+	if (bOk)
+	{
+		cPeriodStart = GetOperandAt(4)->GetContinuousConstant();
+		cPeriodEnd = GetOperandAt(5)->GetContinuousConstant();
+		if (cPeriodStart == KWContinuous::GetMissingValue())
+		{
+			AddError("Period start operand 5 must be a non-missing numerical constant");
+			bOk = false;
+		}
+		if (cPeriodEnd == KWContinuous::GetMissingValue())
+		{
+			AddError("Period end operand 6 must be a non-missing numerical constant");
+			bOk = false;
+		}
+		if (bOk and cPeriodStart > cPeriodEnd)
+		{
+			AddError(sTmp + "Period start operand 5 (" + KWContinuous::ContinuousToString(cPeriodStart) +
+				 ") must be less than or equal to " + "period end operand 6 (" +
+				 KWContinuous::ContinuousToString(cPeriodEnd) + ")");
+			bOk = false;
+		}
+	}
+
+	// Verification des types des entites en sortie par rapport aux tables source et historique
+	if (bOk)
+	{
+		bOk = CheckOutputOperandExpectedObjectType(kwcOwnerClass, 0, GetOperandAt(0)->GetObjectClassName()) and
+		      bOk;
+		bOk = CheckOutputOperandExpectedObjectType(kwcOwnerClass, 1, GetOperandAt(2)->GetObjectClassName()) and
+		      bOk;
+	}
+	return bOk;
+}
+
+boolean KWDRBuildTemporalJoin::IsNewScopeOperand(int nOperandIndex) const
+{
+	require(0 <= nOperandIndex and nOperandIndex < GetOperandNumber());
+	return nOperandIndex == 0 or nOperandIndex == 2;
+}
+
+boolean KWDRBuildTemporalJoin::IsSecondaryScopeOperand(int nOperandIndex) const
+{
+	require(0 <= nOperandIndex and nOperandIndex < GetOperandNumber());
+	return nOperandIndex == 1 or nOperandIndex == 3;
+}
+
+boolean KWDRBuildTemporalJoin::IsViewModeActivated() const
+{
+	return false;
+}
+
+void KWDRBuildTemporalJoin::CollectMandatoryInputOperands(IntVector* ivUsedInputOperands) const
+{
+	int nOperand;
+
+	require(ivUsedInputOperands != NULL);
+	require(ivUsedInputOperands->GetSize() == GetOperandNumber());
+
+	// Chaque table, variable temporelle et borne est necessaire pour calculer la jointure
+	for (nOperand = 0; nOperand < GetOperandNumber(); nOperand++)
+		ivUsedInputOperands->SetAt(nOperand, 1);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////

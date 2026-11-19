@@ -362,6 +362,7 @@ void CCHierarchicalDataGrid::ComputeCoclusteringImportance()
 
 void CCHierarchicalDataGrid::ComputePartImportances()
 {
+	static const double dEpsilon = 1e-6;
 	int nAttribute;
 	CCHDGAttribute* attribute;
 	CCHDGPart* cchdgPart;
@@ -372,7 +373,6 @@ void CCHierarchicalDataGrid::ComputePartImportances()
 	double dImportance;
 	double dTotalImportance;
 	double dValueSetTotalFrequency;
-	double dEpsilon = 1e-6;
 
 	require(GetCoclusteringGlobalImportance() > 0 or GetCellNumber() == 1);
 
@@ -431,6 +431,7 @@ void CCHierarchicalDataGrid::ComputePartImportances()
 
 void CCHierarchicalDataGrid::ComputeInnerAttributeImportances()
 {
+	static double dEpsilon = 1e-6;
 	CCHDGAttribute* innerAttribute;
 	CCHDGPart* innerAttributePart;
 	CCHDGPart* varPartCluster;
@@ -440,7 +441,6 @@ void CCHierarchicalDataGrid::ComputeInnerAttributeImportances()
 	double dImportanceInVariable;
 	double dInnerAttributeImportance;
 	double dTotalInnerAttributeImportance;
-	double dEpsilon = 1e-6;
 	double dValueSetTotalFrequency;
 
 	// Construction de la structure d'indexation pour acceder aux parties de variables depuis les innerAttributes

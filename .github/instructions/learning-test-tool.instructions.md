@@ -1,9 +1,9 @@
 ---
-description: "Use when modifying LearningTestTool Python scripts, test families, result comparison logic, or test infrastructure under test/LearningTestTool/. Covers test tool commands, directory conventions, result context management, and comparison patterns."
-applyTo: "test/LearningTestTool/**"
+description: "Use when modifying LearningTestTool scripts or LearningTest datasets, scenarios, dictionaries, and references, including external LearningTest checkouts. Covers dataset design, test commands, directory conventions, result contexts, and comparisons."
+applyTo: "test/LearningTestTool/**,test/LearningTest/**"
 ---
 
-# LearningTestTool Instructions
+# LearningTestTool and Dataset Instructions
 
 ## Overview
 
@@ -12,6 +12,15 @@ LearningTestTool is the **non-regression test infrastructure** for Khiops. It ma
 > Debugging a batch of failing tests reported by `kht_test`/`kht_apply` against a `LearningTest` checkout? Use the
 > [`khiops-learningtest-debugging`](../skills/khiops-learningtest-debugging.md) skill instead of re-deriving the
 > workflow — this file remains the source of truth for the comparison-log format and reference-update rules it relies on.
+
+## LearningTest Dataset Changes
+
+These guidelines also apply to datasets in external LearningTest checkouts.
+
+- Read neighboring test sets first and follow their conventions.
+- Keep tests easy to understand: isolate elementary behaviors and separate larger-volume cases.
+- Make minimal, purposeful changes: preserve existing coverage and avoid unnecessary configuration or documentation.
+- Verify the actual requirement: establish expected results independently of generated outputs and inspect `comparisonResults.log`, not just command exit codes.
 
 ## Directory Structure
 
