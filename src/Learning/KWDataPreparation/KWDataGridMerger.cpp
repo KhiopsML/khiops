@@ -1955,6 +1955,64 @@ longint KWDGMCell::GetUsedMemory() const
 //////////////////////////////////////////////////////////////////////////////
 // Classe KWDGMPartMerge
 
+int KWDGMPartMerge::Compare(const KWDGMPartMerge* otherPartMerge) const
+{
+	const KWDGMPart* firstPart;
+	const KWDGMPart* secondPart;
+	const KWDGMPart* otherFirstPart;
+	const KWDGMPart* otherSecondPart;
+	const KWDGMPart* swapPart;
+	int nCompare;
+	double dDiff;
+
+	require(Check());
+	require(otherPartMerge != NULL);
+	require(otherPartMerge->Check());
+
+	// Comparaison des couts tronques pour favoriser la stabilite
+	nCompare = 0;
+	dDiff = GetTruncatedMergeCost() - otherPartMerge->GetTruncatedMergeCost();
+	if (dDiff > 0)
+		nCompare = 1;
+	else if (dDiff < 0)
+		nCompare = -1;
+
+	// Comparaison des noms d'attributs en cas d'egalite
+	if (nCompare == 0)
+		nCompare = GetPart1()->GetAttribute()->GetAttributeName().Compare(
+		    otherPartMerge->GetPart1()->GetAttribute()->GetAttributeName());
+
+	// Comparaison des valeurs des parties en cas d'egalite
+	if (nCompare == 0)
+	{
+		// Classement des deux parties de chaque fusion par valeurs croissantes
+		firstPart = GetPart1();
+		secondPart = GetPart2();
+		nCompare = firstPart->ComparePartValues(secondPart);
+		if (nCompare > 0)
+		{
+			swapPart = firstPart;
+			firstPart = secondPart;
+			secondPart = swapPart;
+		}
+		otherFirstPart = otherPartMerge->GetPart1();
+		otherSecondPart = otherPartMerge->GetPart2();
+		nCompare = otherFirstPart->ComparePartValues(otherSecondPart);
+		if (nCompare > 0)
+		{
+			swapPart = otherFirstPart;
+			otherFirstPart = otherSecondPart;
+			otherSecondPart = swapPart;
+		}
+
+		// Comparaison des premieres parties, puis des secondes en cas d'egalite
+		nCompare = firstPart->ComparePartValues(otherFirstPart);
+		if (nCompare == 0)
+			nCompare = secondPart->ComparePartValues(otherSecondPart);
+	}
+	return nCompare;
+}
+
 boolean KWDGMPartMerge::Check() const
 {
 	return part1 != NULL and part2 != NULL and part1 != part2 and part1->GetAttribute() == part2->GetAttribute();
@@ -2035,73 +2093,14 @@ const ALString KWDGMPartMerge::GetObjectLabel() const
 
 int KWDGMPartMergeCompare(const void* elem1, const void* elem2)
 {
-	int nCompare;
 	KWDGMPartMerge* partMerge1;
 	KWDGMPartMerge* partMerge2;
-	double dDiff;
-	ALString sFirstPartLabel1;
-	ALString sSecondPartLabel1;
-	ALString sFirstPartLabel2;
-	ALString sSecondPartLabel2;
-	ALString sSwapPartLabel;
 
 	require(elem1 != NULL);
 	require(elem2 != NULL);
+	require(elem1 != elem2);
 
-	// Acces aux fusions
 	partMerge1 = cast(KWDGMPartMerge*, *(Object**)elem1);
 	partMerge2 = cast(KWDGMPartMerge*, *(Object**)elem2);
-	assert(partMerge1->Check());
-	assert(partMerge2->Check());
-
-	// Calcul de la difference, avec tolerance pour favoriser la stabilite
-	nCompare = 0;
-	dDiff = partMerge1->GetTruncatedMergeCost() - partMerge2->GetTruncatedMergeCost();
-	if (dDiff > 0)
-		nCompare = 1;
-	else if (dDiff < 0)
-		nCompare = -1;
-
-	// Si egalite, on compare sur les nom de des attributs, puis sur celui des parties
-	// On ne peut se baser sur le nombre de cellules des fusions, qui varie a cout egal,
-	// ce qui empeche les optimisation poussees visant a ne reevaluer que les fusions impactees
-	if (nCompare == 0)
-	{
-		// On se base d'abord sur le libelle de l'attribut
-		// (on pourrait avoir des attributs differents ayant meme libelle de partie)
-		assert(partMerge1->GetPart1()->GetAttribute() == partMerge1->GetPart2()->GetAttribute());
-		assert(partMerge2->GetPart1()->GetAttribute() == partMerge2->GetPart2()->GetAttribute());
-		nCompare = partMerge1->GetPart1()->GetAttribute()->GetAttributeName().Compare(
-		    partMerge2->GetPart1()->GetAttribute()->GetAttributeName());
-
-		// On se base ensuite sur le libelle du plus petit des deux libelles de partie
-		if (nCompare == 0)
-		{
-			// Collecte des libelles de parties pour le Merge 1
-			sFirstPartLabel1 = partMerge1->GetPart1()->GetObjectLabel();
-			sSecondPartLabel1 = partMerge1->GetPart2()->GetObjectLabel();
-			if (sFirstPartLabel1 > sSecondPartLabel1)
-			{
-				sSwapPartLabel = sSecondPartLabel1;
-				sSecondPartLabel1 = sFirstPartLabel1;
-				sFirstPartLabel1 = sSwapPartLabel;
-			}
-
-			// Collecte des libelles de parties pour le Merge 2
-			sFirstPartLabel2 = partMerge2->GetPart1()->GetObjectLabel();
-			sSecondPartLabel2 = partMerge2->GetPart2()->GetObjectLabel();
-			if (sFirstPartLabel2 > sSecondPartLabel2)
-			{
-				sSwapPartLabel = sSecondPartLabel2;
-				sSecondPartLabel2 = sFirstPartLabel2;
-				sFirstPartLabel2 = sSwapPartLabel;
-			}
-
-			// Comparaison des libelles
-			nCompare = sFirstPartLabel1.Compare(sFirstPartLabel2);
-			if (nCompare == 0)
-				nCompare = sSecondPartLabel1.Compare(sSecondPartLabel2);
-		}
-	}
-	return nCompare;
+	return partMerge1->Compare(partMerge2);
 }

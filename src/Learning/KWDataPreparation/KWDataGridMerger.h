@@ -425,6 +425,9 @@ public:
 	// Renvoie la partie oppose a la partie passe en parametre
 	KWDGMPart* GetOppositePart(const KWDGMPart* part) const;
 
+	// Comparaison par cout tronque, puis nom d'attribut et valeurs des parties, independamment du sens de fusion
+	int Compare(const KWDGMPartMerge* otherPartMerge) const;
+
 	/////////////////////////////////////////////////////////////
 	// Evaluation de la fusion
 
@@ -480,7 +483,7 @@ protected:
 	boolean bGarbagePresence;
 };
 
-// Comparaison de deux fusions de parties numerique, sur la base de leur cout
+// Comparaison de deux fusions par cout tronque, puis nom d'attribut et valeurs des parties sans allocation
 int KWDGMPartMergeCompare(const void* elem1, const void* elem2);
 
 /////////////////////////////////////////////////
