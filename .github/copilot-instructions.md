@@ -34,9 +34,9 @@ Check the `.github/instructions/` directory for matching instruction files:
 - Flag violations and fix them proactively
 
 ### Step 4: Edit & Format
-- Make changes according to guidelines
+- Apply all applicable coding guidelines to any code you create or modify.
 - Run formatting: `clang-format -i`, `cmake-format -i`, `black`, etc.
-- Verify no violations remain
+- Before completing the task, review the final changes for compliance, including rules not enforced by automated tools.
 
 ### Step 5: Pre-Commit Validation
 Before pushing:
