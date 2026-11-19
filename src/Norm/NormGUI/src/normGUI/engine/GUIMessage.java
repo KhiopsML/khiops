@@ -54,6 +54,9 @@ public class GUIMessage extends JFrame
 
                 // Creation de la zone de texte
                 pane = new NonWrappingTextPane();
+
+                // TextLayout garde les memes metriques pour le rendu HiDPI et les tabulations.
+                pane.getDocument().putProperty("i18n", Boolean.TRUE);
                 pane.setText("");
                 pane.setAutoscrolls(true);
                 pane.setEditable(false);
