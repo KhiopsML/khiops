@@ -109,7 +109,7 @@ jobs:
           xcrun stapler validate "$DMG_PATH"
           spctl --assess --type open --context context:primary-signature --verbose=4 "$DMG_PATH"
       - name: Upload notarized DMG
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Khiops-macos-${{ matrix.arch }}
           path: build/Khiops-*.dmg
