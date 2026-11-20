@@ -8,7 +8,7 @@ applyTo: "**/*.cpp, **/*.h"
 
 ## Coding Rules
 
-Before editing C++ code, consult the relevant sections of the [Khiops Coding Guidelines](../../doc/developement/coding-guidelines.md) and follow them. Read the full guide when a change spans multiple areas. It is the authoritative source for C++ style, naming, class structure, and language/library restrictions.
+Before editing C++ code, consult the relevant sections of the [Khiops Coding Guidelines](../../doc/development/coding-guidelines.md) and follow them. Read the full guide when a change spans multiple areas. It is the authoritative source for C++ style, naming, class structure, and language/library restrictions.
 
 For module-specific architecture and naming, follow the [workspace instructions](../copilot-instructions.md) and nearby code.
 

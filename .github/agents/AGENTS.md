@@ -4,7 +4,7 @@
 
 Use this workflow for creating or modifying Khiops `.cpp` and `.h` files.
 
-- Coding rules: [Khiops Coding Guidelines](../../doc/developement/coding-guidelines.md)
+- Coding rules: [Khiops Coding Guidelines](../../doc/development/coding-guidelines.md)
 - Task workflow and validation: [C++ change instructions](../instructions/cpp-changes.instructions.md)
 - Module architecture and build/test setup: [workspace instructions](../copilot-instructions.md)
 

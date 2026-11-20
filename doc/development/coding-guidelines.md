@@ -542,6 +542,6 @@ This includes the popular Boost library. All the basic and utility classes (eg. 
 are implemented in the `Norm` library.
 
 ##### Exceptions
-- MSMPI for Windows
-- MPICH in Linux and MacOS
+- MSMPI or intel MPI for Windows
+- MPICH or Open MPI in Linux and MacOS
 - Googletest for unit testing (development dependency only)

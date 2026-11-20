@@ -94,7 +94,7 @@ packaging/            # Conda, Linux RPM/Debian, Windows NSIS configs
 
 ### C++ Code Guidelines
 
-The authoritative [C++ coding guidelines](../doc/developement/coding-guidelines.md) cover style, naming, class structure, and language restrictions. C++ task workflow and validation are in [`.github/instructions/cpp-changes.instructions.md`](instructions/cpp-changes.instructions.md).
+The authoritative [C++ coding guidelines](../doc/development//coding-guidelines.md) cover style, naming, class structure, and language restrictions. C++ task workflow and validation are in [`.github/instructions/cpp-changes.instructions.md`](instructions/cpp-changes.instructions.md).
 
 **Recommended**: Use the `KhiopsC++` workflow described in [`.github/agents/AGENTS.md`](agents/AGENTS.md) for C++ changes.
 
