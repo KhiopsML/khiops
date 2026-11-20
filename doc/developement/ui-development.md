@@ -1,10 +1,10 @@
 # User Interface Development and Usage
 
-The user interface in Khiops is defined at an abstract level, allowing developers to focus on the application logic without concern for GUI details.
+The user interface in Khiops is defined at an abstract level, allowing developers to focus on application logic without worrying about GUI details.
 
-The developer simply needs to instantiate a `view` object with its corresponding `model` object to enable user interaction through a GUI. The GUI engine is fully responsible for designing the windows and dialog boxes based on the abstract specifications of the view.
+The developer simply needs to instantiate a `view` object with its corresponding `model` object to enable user interaction through a GUI. The GUI engine is fully responsible for designing the windows and dialog boxes based on the view's abstract specifications.
 
-Additionally, a tool called **genere** can automatically generate C++ classes for models and views from a simple list of attributes in GUI cards or lists. This allows developers to concentrate solely on the application logic, greatly simplifying the development process.
+Additionally, a tool called **genere** can automatically generate  C++ classes for models and views from a list of attributes in GUI cards or lists. This allows developers to concentrate solely on application logic, greatly simplifying the development process.
 
 ## Class Hierarchy
 
@@ -36,19 +36,19 @@ This section presents the class hierarchy for the GUI components, illustrating t
   - **Model classes** for application logic
   - **View classes** for the user interface, allowing an abstract definition of the GUI
 - The interface can be dynamically deployed in different modes using the `UIObject::SetUIMode` method:
-  - **Graphic** mode: with Windows, dialog boxes, and menus (using Java or similar frameworks)
-  - **Textual** mode: in a shell environment, displaying data and prompting user input
+  - **Graphic** mode: with windows, dialog boxes, and menus (using Java or a similar framework)
+  - **Textual** mode: in a shell environment, displaying data and prompting the user for input
 
 
 ## Usage of UI Components
-- Restricted to the classes **UICard** and **UIList**.
+- Usage is restricted to the **UICard** and **UIList** classes.
 - Declare the data and actions managed by the interface unit, then invoke the `Open` method.
 - An API facilitates data exchange between the program and the interface.
 
 ### Note on the Model-View-Controller (MVC) Pattern
 
 Each subclass of `UIUnit` typically implements two key methods to synchronize data between the model and the view:
-```
+```cpp
 // Refresh the interface with data
 // This handler is called before opening and after each action,
 // from the interface unit to its sub-units
@@ -60,31 +60,31 @@ virtual void EventRefresh();
 virtual void EventUpdate();
 ```
 
-When the `Open` method is invoked, the specifications of the abstract GUI model are transferred to a GUI engine (such as Java via JNI), which creates actual windows and dialog boxes based on these specifications.
+When the `Open` method is invoked, the abstract GUI model's specifications are transferred to a GUI engine (such as Java via JNI), which creates windows and dialog boxes based on those specifications.
 
 The `EventRefresh` and `EventUpdate` methods are used as follows:
-- **Opening a UI unit (card or list):** Call `EventRefresh` before displaying the GUI to synchronize data.
-- **Closing a UI unit:** Call `EventUpdate` before closing to save any changes.
+- **Opening a UI unit (card or list):** Call `EventRefresh` before displaying the GUI to synchronize the data.
+- **Closing a UI unit:** Call `EventUpdate` before closing to save changes.
 - **Triggering a user action:**
   - Call `EventUpdate` beforehand to update the model data.
   - Execute the corresponding action at the model level.
   - Call `EventRefresh` after the action completes to update the GUI accordingly.
 
-## Saving and Re-executing Sessions
-- Provides services to record and replay sessions of interface interactions
-- Command files support comments using `//` for better readability and documentation
+## Saving and Replaying Sessions
+- The interface provides services for recording and replaying interaction sessions.
+- Command files support comments using `//` for better readability and documentation.
 
-Essentially, every data update within the GUI and each user-triggered action are automatically recorded, enabling precise re-execution of the session.
+Every data update in the GUI and every user-triggered action are automatically recorded, enabling precise replay of the session.
 
 ## Command Line Parameter Handling
 - The `ParseMainParameters` method of `UIObject`:
   - Specifies storage options for command sessions.
-  - Analyzes the command line, manages errors.
-  - Prepares functionality execution if everything is correct.
+  - Analyzes the command line and manages errors.
+  - Prepares the application for execution if all parameters are valid.
 
 ## Command Line Options
 
-The default command line options are
+The default command-line options are:
 ```
    -e <file>                 store logs in the file
    -b                        batch mode, with no GUI
@@ -99,58 +99,58 @@ The default command line options are
 
 # Automatic Generation of User Interface
 
-The **genere** tool automatically generate C++ c model and view classe, given a specification file describing a list of attributes, with mainly they name, type, GUI widget and label.
+The **genere** tool automatically generates C++ model and view classes from a specification file that lists attributes, including their names, types, GUI widgets, and labels.
 
 ## Genere Tool Options
-The command line option of the genere tool  are:
+The command-line syntax for the **genere** tool is:
 ```
 genere [options] <ClassName> <ClassLabel> <AttributeFileName>
-          <ClassName>: base name for generated classes
-          <ClassLabel>: label for generated classes
-          <AttributeFileName>: name of the file (.dd) containing the attribute specifications
-        Options:
-          -nomodel
-              no generation of class <ClassName>
-          -noarrayview
-              no generation of class <ClassName>ArrayView
-          -noview
-              no generation of classes <ClassName>View and <ClassName>ArrayView
-          -nousersection
-              no generation of user sections
-          -specificmodel <SpecificModelClassName>
-              (optionnal) name of a specific model class, to use instead of ClassName
-          -super <SuperClassName>
-              (optionnal) name of the parent class
-          -outputdir <DirName>
-              ouput directory for generation (default: current directory)
+    <ClassName>: base name for generated classes
+    <ClassLabel>: label for generated classes
+    <AttributeFileName>: name of the file (.dd) containing the attribute specifications
+    Options:
+      -nomodel
+          do not generate the <ClassName> class
+      -noarrayview
+          do not generate the <ClassName>ArrayView class
+      -noview
+          do not generate the <ClassName>View and <ClassName>ArrayView classes
+      -nousersection
+          do not generate user sections
+      -specificmodel <SpecificModelClassName>
+          (optional) name of a specific model class to use instead of ClassName
+      -super <SuperClassName>
+          (optional) name of the parent class
+      -outputdir <DirName>
+          output directory for generation (default: current directory)
 ```
 
-According to the options, the following C++ classes are generated:
-- one model class, named *`ClassName`*, sub-class of `Object`
-- one view class of type card, named *`ClassName`View*, subclass of `UIObjectView`
-- one view class of type listd, named *`ClassName`ArrayView*,, subclass of `UIObjectArrayView`
+Depending on the options, the following C++ classes are generated:
+- One model class named `ClassName`, a subclass of `Object`
+- One card view class named `ClassNameView`, a subclass of `UIObjectView`
+- One list view class named `ClassNameArrayView`, a subclass of `UIObjectArrayView`
 
 ## Attribute Specification File
 
-The list of attributes related to a GUI card or list is described in a **data definition** file with the extension `.dd`.
+The attributes for a GUI card or list are described in a **data definition** file with the `.dd` extension.
 
 The attribute description file starts with a header line that defines the fields, followed by one line per attribute of the class to be generated.
 The order of the fields is not important, and only three fields are mandatory.
 The fields are separated by `;`.
 
-The attributes to specify are as follows. Default values are provided and will be used when optional characteristics are not explicitly defined.
+The available fields are listed below. Default values are used when optional characteristics are not explicitly specified.
 
-| Field         | Mandatory | Description                                                                                                                                                                                                                            | Default Value  |
-| ------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| **Rank**      | Yes       | Order number of the attribute within the generated class                                                                                                                                                                               |                |
-| **Name**      | Yes       | Name of the attribute used in getters/setters                                                                                                                                                                                          |                |
-| **Type**      | Yes       | Data type of the attribute: `boolean`, `char`, `int`, `double`, `ALString`                                                                                                                                                             |                |
-| **Status**    | No        | Attribute status, options include:   <br> - **Standard** (or none): default memory field <br> - **Derived**: derived (read-only) attribute                                                                                             | Standard       |
-| **Style**     | No        | Presentation style in GUIs. Styles are defined in classes within `UserInterface.h`, with their default style: <br> - `UIBooleanElement` <br> - `UICharElement` <br> - `UIIntElement` <br> - `UIDoubleElement` <br> - `UIStringElement` |                |
-| **Invisible** | No        | Indicates if the attribute should be hidden in GUIs.                                                                                                                                                                                   | `false`        |
-| **Label**     | No        | Display label for the attribute (shown in GUIs).                                                                                                                                                                                       | Same as `Name` |
+| Field         | Mandatory | Description                                                                                                                                                                                                           | Default Value  |
+| ------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| **Rank**      | Yes       | Order number  of the attribute within the generated class                                                                                                                                                             |                |
+| **Name**      | Yes       | Name of the attribute used in getters/setters                                                                                                                                                                         |                |
+| **Type**      | Yes       | Data type of the attribute: `boolean`, `char`, `int`, `double`, `ALString`                                                                                                                                            |                |
+| **Status**    | No        | Attribute status, options include: <br> - **Standard** (or none): default memory field <br> - **Derived**: derived (read-only)attribute                                                                               | Standard       |
+| **Style**     | No        | Presentation style in GUIs. Styles are defined in `UserInterface.h`; the default styles are: <br> - `UIBooleanElement` <br> - `UICharElement` <br> - `UIIntElement` <br> - `UIDoubleElement` <br> - `UIStringElement` |                |
+| **Invisible** | No        | Indicates whether the attribute should be hidden in GUIs.                                                                                                                                                             | `false`        |
+| **Label**     | No        | Display label for the attribute (shown in GUIs).                                                                                                                                                                      | Same as `Name` |
 
-**Example**: `src/Learning/KWUserInterface/KWRecodingSpec.dd`
+**Example**: [src/Learning/KWUserInterface/KWRecodingSpec.dd](../../src/Learning/KWUserInterface/KWRecodingSpec.dd)
 ```
 Rank;Name;Type;Style;Label
 1;FilterAttributes               ;boolean ;CheckBox   ;Keep informative variables only
@@ -166,7 +166,7 @@ Rank;Name;Type;Style;Label
 ## User Specification Traceability
 
 It may be necessary to make specific modifications to the source code generated by the `genere` tool.
-The question then is: what happens during regeneration of the sources?
+What happens to these modifications when the source files are regenerated?
 
 To handle this, modifications should only be made within designated user sections.
 These sections are marked with specific tags, prefixed by `// ## `, such as:
@@ -191,19 +191,19 @@ During regeneration, the `genere` tool automatically incorporates these custom m
 ## Integration in the Khiops Project
 
 The `.dd` attribute specification files are rarely modified, and regeneration is performed on demand by setting the `GENERATE_VIEWS` option to `ON` in the `CMakePresets.json` file located at the root of the repository:
-```
-        "GENERATE_VIEWS": "ON",
-```
-
-When a `.dd` file is used to specify a model or view class within a source directory, the corresponding `CMakeLists.txt` file must be configured for each use of the `genere` tool.
-This is done by adding a line such as:
-
-```
-    generate_gui_add_view(KWDatabase "Database" KWDatabase.dd KWDatabase.dd.log -nomodel -noarrayview)
+```cmake
+"GENERATE_VIEWS": "ON",
 ```
 
-Additionally, at the end of the `CMakeLists.txt file`, you should include the following line to ensure proper build order:
+When a `.dd` file is used to specify a model or view class in a source directory, the corresponding `CMakeLists.txt` file must be configured for each use of the `genere` tool. This is done by adding a line such as:
+
+```cmake
+generate_gui_add_view(KWDatabase "Database" KWDatabase.dd KWDatabase.dd.log -nomodel -noarrayview)
 ```
-    # Add dependency to ensure that genere will be built before the gui generation
-    generate_gui_add_view_add_dependency(KWUserInterface)
+
+Additionally, at the end of the `CMakeLists.txt` file, include the following line to ensure the correct build order:
+
+```cmake
+# Add dependency to ensure that genere will be built before the gui generation
+generate_gui_add_view_add_dependency(KWUserInterface)
 ```

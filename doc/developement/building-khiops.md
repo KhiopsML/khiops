@@ -1,9 +1,9 @@
 # Building Khiops (In Progress)
 
-See the [development environment setup page](./setting-up-dev-environment.md) before executing any of these steps.
+See the [development environment setup page](./setting-up-dev-environment.md) before following these steps.
 
 ## Default Build Settings
-Khiops is built with CMake. For convenience and reproducibility, we provide standard configurations to build in each platform by means of CMake presets. The presets for each platform are:
+Khiops is built with CMake. For convenience and reproducibility, we provide standard configurations for each platform using CMake presets. The presets for each platform are:
 - Windows
   - `windows-msvc-debug`
   - `windows-msvc-release`
@@ -15,7 +15,7 @@ Khiops is built with CMake. For convenience and reproducibility, we provide stan
   - `macos-clang-debug`
   - `macos-clang-release`
 
-So to execute a full release build you run the following commands:
+To perform a full release build, run the following commands:
 ```bash
 # Windows
 cmake --preset windows-msvc-release
@@ -33,24 +33,22 @@ cmake --build --preset macos-clang-release
 
 
 ## Custom Options
-If want to use your own settings, other than standard ones (ex. `CMAKE_CXX_COMPILER`, `-G`), we provide the following custom options in form of flags `-D`:
+If you want to use custom settings beyond the standard ones (e.g., `CMAKE_CXX_COMPILER` or a different generator specified with `-G`), you can use CMake command-line options. The following options can be set with `-D` flags:
 - `MPI` (default `ON`)
   - Whether to build with MPI support
 - `TESTING` (default `OFF`)
-  - Whether to build and run the unit tests with googletest
+  - Whether to build and run the unit tests with GoogleTest
 - `BUILD_LEX_YACC` (default `OFF`)
   - Whether to rebuild the JSON and Khiops Dictionary parsers
-  - Requires a Lex/Yacc installation (ex. Flex/Bison)
+  - Requires a Lex/Yacc installation (e.g., Flex/Bison)
 - `BUILD_JARS` (default `ON`)
   - Whether to build the JARs implementing the Khiops Desktop GUI
 - `C11` (default `ON`)
-  - Whether to use the C++11 standard.
+  - Whether to use the C++11 standard
 - `GENERATE_VIEWS` (default `OFF`)
-  - Whether to regenerate the GUI CPP files to reflect changes in the `.dd` files.
+  - Whether to regenerate the GUI C++ files to reflect changes in the `.dd` files.
 
-The presets mentioned above take the default values of these options.
-
-These presets can be modified using :
-- CMakePresets.json: common file saved with commits, for common parameters
-  - can be used for temporary settings, by setting an option to `ON`, applying the option, and resetting the option to `OFF` before the commit
-- CMakeUserPresets.json: user file not saved with commits, for user parameters.
+The presets mentioned above take the default values of these options. These presets can be modified using:
+- `CMakePresets.json`: a shared file committed to the repository, for common settings
+  - It can be used for temporary settings: set an option to `ON`, apply the setting, and reset the option to `OFF` before committing.
+- `CMakeUserPresets.json`: a user-specific file that is not committed to the repository, for local settings.

@@ -3,12 +3,12 @@
 ## System Requirements
 - An IDE with support for C++ and CMake
   - [Visual Studio 2026](https://visualstudio.microsoft.com/vs/)
-    - Make sure you enable C/C++ development tools at installation
+    - Make sure you enable the C/C++ development tools during installation.
       - 2022 version: OK
       - 2026 version: Since version 2026, install only the **English** linguistic module
         to avoid numerous and noisy messages like `Remarque : inclusion du fichier : ...`
-    - Install the extension 'Format document on Save'
-    - Disable Include Cleanup (since Visual Studio 17.8+) to avoid numerous and noisy warnings regarding include policy
+    - Install the "Format document on Save" extension.
+    - Disable Include Cleanup (since Visual Studio 17.8+) to avoid numerous, noisy warnings about include policies.
       - From the main menu of Visual Studio, choose Tools → Options...
       - In the Options dialog, use the search box (top-left) and type: include cleanup
       - Three options will appear. Set all to "None":
@@ -17,27 +17,27 @@
          - "Choose how to highlight missing #include statements that are transitively included"
   - [Visual Studio Code](https://code.visualstudio.com/)
     - Also install [C/C++ Extension Pack](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools-extension-pack)
-    - In Windows: Also install [Build Tools for Visual Studio](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022)
+    - On Windows, also install [Build Tools for Visual Studio](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022).
 
-- A Java development kit (JDK)
+- A Java Development Kit (JDK)
   - [Eclipse Temurin (OpenJDK)](https://adoptium.net/temurin/releases/)
-- A MPI Development Kit:
+- An MPI development kit:
   - Windows: [Intel MPI](https://www.intel.com/content/www/us/en/developer/tools/oneapi/mpi-library-download.html)
-  - Linux and MacOs: [Open MPI](https://www.open-mpi.org)
-- A bison and flex Development Kit: optional
-  - Necessary only if the src/Learning/KWData lex and yac files need to be recompiled for Khiops dictionary analysis
-  - Windows
-    - install last version of [win bison and flex](https://github.com/lexxmark/winflexbison/releases)
-    - set the the directory for the bison and flex binaries in the path
-    - optional: cohabitation with [Gow - The lightweight alternative to Cygwin](https://github.com/bmatzelle/gow)
-      - when Gow is installed, Gow's bison and flex binaries are used by mistake
-      - fix: in the gow bin directory, rename flex.exe to NO_flex.exe and bison.exe to NO_bison.exe
+  - Linux and macOS: [Open MPI](https://www.open-mpi.org)
+- Bison and Flex development tools (optional)
+  - Needed only if the Lex and Yacc files in `src/Learning/KWData` need to be recompiled for Khiops dictionary analysis
+  - Windows:
+    - Install the latest version of [win bison and flex](https://github.com/lexxmark/winflexbison/releases).
+    - Add the directory containing the Bison and Flex binaries to `PATH`.
+    - Optional: cohabitation with [Gow - The lightweight alternative to Cygwin](https://github.com/bmatzelle/gow).
+      - If Gow is installed, its Bison and Flex binaries may be used instead.
+      - To fix this, rename `flex.exe` to `NO_flex.exe` and `bison.exe` to `NO_bison.exe` in the Gow `bin` directory.
 
 - A Git installation
   - Windows: [Git for Windows](https://gitforwindows.org/)
     - Includes Git Bash and Terminal
-- A Python distribution with `pip` tool installed
-  - For example: [Anaconda Python Distribution](https://anaconda.org/)
+- A Python distribution with `pip` installed
+  - For example: [Anaconda Python Distribution](https://anaconda.org)
 
 ## Quick Setup
 
@@ -53,25 +53,26 @@ git config --global core.autocrlf true
 git config --global core.autocrlf input
 ```
 
-### 2) Configure an authentication method for Github
+### 2) Configure an authentication method for GitHub
 
 #### Option 1: SSH
-- Create and configure a public-private key pair
+- Create and configure a public/private key pair.
 ```bash
-# Use Git Bash in windows
+# Use Git Bash in Windows
 ssh-keygen -t ed25519 -C "your@email.com"
 ```
-- This creates the files `id_ed25519` and `id_ed25519.pub` in `~/.ssh`. If they are create elsewhere move them to `.ssh`.
-- Copy the contents of the file containing the public key: `~/.ssh/id_ed25519.pub`
-- In GitHub, click your icon and go to **Settings**. There go to the **SSH and GPG** section and click on **New SSH key**
-- Then copy the contents of your public key in the input text.
+- This creates the files `id_ed25519` and `id_ed25519.pub` in `~/.ssh`. If they are created elsewhere, move them to `~/.ssh`.
+- Copy the contents of the public key file: `~/.ssh/id_ed25519.pub`.
+- In GitHub, click your profile icon and select **Settings**. Go to the **SSH and GPG keys** section and select **New SSH key**.
+- Paste the contents of your public key into the text field.
 
 
-**Note:** If you have problems with a proxy (`Connection timeout` or `Connection refused`) configure to connect [SSH over HTTPS](https://docs.github.com/en/authentication/troubleshooting-ssh/using-ssh-over-the-https-port)
+> [!NOTE] Problems through proxies
+> If you have problems connecting through a proxy (`Connection timeout` or `Connection refused`), configure [SSH over HTTPS](https://docs.github.com/en/authentication/troubleshooting-ssh/using-ssh-over-the-https-port).
 
 #### Option 2: HTTPS
-- Create an access token
-  - Click on your icon, then **Settings**, then **Developer Settings**, then **Personal Access Tokens** and finally **Fine-grained Tokens**
+- Create an access token.
+  - Click your profile icon, then select **Settings** > **Developer Settings** > **Personal Access Tokens** > **Fine-grained Tokens**.
 
 _TODO_
 
@@ -87,30 +88,31 @@ cd khiops
 # Install the pre-commit Python package
 pip install pre-commit
 
-# This installs the hooks on the repo and runs them on all files
+# These commands install the hooks in the repository and run them on all files.
 # It may take a bit of time the first time
 pre-commit install
 pre-commit run --all-files
 ```
 
-**Note for Anaconda + Windows:** You must add the `Scripts` directory of your Anaconda installation to the `PATH`. That way pre-commit will be available in any shell. With conda you can use `conda install -c conda-forge identify pre-commit`
+ > [!NOTE] for Anaconda on Windows
+ >You must add the `Scripts` directory of your Anaconda installation to the `PATH` so that `pre-commit` is available in any shell. With conda, you can run `conda install -c conda-forge identify pre-commit`.
 ### 5) Install MPI
-#### On windows:
+#### On Windows:
 
-1. Download intel MPI at [intel OneAPI](https://www.intel.com/content/www/us/en/developer/tools/oneapi/mpi-library-download.html). Choose the "offline installer" and install it.
-2. Set environment variable `I_MPI_ROOT=C:\Program Files (x86)\Intel\oneAPI\mpi\latest`
-3. Add `%I_MPI_ROOT%\bin` to the variable `path`:
+1. Download Intel MPI from [Intel oneAPI](https://www.intel.com/content/www/us/en/developer/tools/oneapi/mpi-library-download.html). Choose the "offline installer" and install it.
+2. Set the `I_MPI_ROOT` environment variable to `C:\Program Files (x86)\Intel\oneAPI\mpi\latest`.
+3. Add `%I_MPI_ROOT%\bin` to the `Path` environment variable:
     ```cmd
        set path=%path%;%I_MPI_ROOT%\bin
     ```
-4. Uninstall MS-MPI or unset the MS-MPI variables: `MSMPI_BIN`, `MSMPI_INC`, `MSMPI_LIB32`, `MSMPI_LIB64`
-5. Remove the directory `build` from the project directory (e.g. `c:\dev\khiops\build`)
+4. Uninstall MS-MPI or unset the MS-MPI variables: `MSMPI_BIN`, `MSMPI_INC`, `MSMPI_LIB32`, and `MSMPI_LIB64`.
+5. Remove the `build` directory from the project directory (e.g., `c:\dev\khiops\build`).
 
-#### On macOs:
+#### On macOS:
 ```bash
 brew install openmpi
 ```
-#### On Linux
+#### On Linux:
 ```bash
 sudo apt-get install openmpi-bin libopenmpi-dev
 ```
@@ -119,33 +121,77 @@ or
 sudo dnf install openmpi openmpi-devel
 ```
 
-### 6) Compile
+### Compile
 
-**Note:** To exploit the test suites of LearningTest from the IDE, the following environnement variables must be set:
-- `KHIOPS_API_MODE`: set to `true` to apply API mode during development, with paths relative to the current working directory (otherwise, paths are relative to the data directory, in GUI mode),
-- `KhiopsFastExitMode`: set to `false` in order to use the scenario files and execute all instructions without an exit after the first error.
+#### In Visual Studio 2026
+- Open Visual Studio, choose **Open Local Folder**, and select your local `khiops` folder.
+  - This may take a few minutes to complete. You can monitor the progress by selecting the `CMake` output in the output window.
+- In the top bar, select a debug or release preset (e.g., _Windows MSVC Release_), then choose **Build > Build All**.
 
-They are set in the kht_test script of the LearningTestTool.
+To run the MODL or MODL_Coclustering executable from the IDE, you must have a `launch.vs.json` parameter file in the `.vs` directory. It contains for example:
 
-#### 6.1) In Visual Studio 2026
-- Open Visual Studio and select **Open Local Folder** and select your local `khiops` folder
-  - This may take a few minutes to finish, you can see the current status by selecting the `CMake` output in the output sub-window.
-- At the top bar you can select a debug or release preset (ex: _Windows MSVC Release_) and select the menu **Build -> Build All**.
+```json
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "MODL.exe (bin\\MODL.exe)",
+      "name": "MODL.exe (bin\\MODL.exe)",
+      "currentDir" : "C:\\MyData\\LearningTest\\TestKhiops\\Standard\\Iris",
+      "args": [
+        "-b",
+        "-i",
+        "test.prm",
+        "-e",
+        "./results/err.txt"
+      ],
+      "env":{"KHIOPS_API_MODE":"true", "KhiopsFastExitMode":"false"}
+    },
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "MODL_Coclustering.exe (bin\\MODL_Coclustering.exe)",
+      "name": "MODL_Coclustering.exe (bin\\MODL_Coclustering.exe)",
+      "currentDir" : "C:\\MyData\\LearningTest\\TestCoclustering\\Standard\\Iris",
+      "args": [
+        "-b",
+        "-i",
+        "test.prm",
+        "-e",
+        "./results/err.txt"
+      ],
+      "env":{"KHIOPS_API_MODE":"true", "KhiopsFastExitMode":"false"}
+    },
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "KNITransfer.exe (bin\\KNITransfer.exe)",
+      "name": "KNITransfer.exe (bin\\KNITransfer.exe)",
+      "args": [
+        "-b",
+        "-i",
+        "test.prm",
+        "-e",
+        "./results/err.txt"
+      ],
+      "currentDir" : "C:\\MyData\\LearningTest\\TestKNI\\Standard\\Iris",
+      "env":{"KHIOPS_API_MODE":"true", "KhiopsFastExitMode":"false"}
+    }
+  ]
+}
+```
+**Note:** This parameter file uses the `currentDir` key to set the current working directory and the `env` key to set the `KHIOPS_API_MODE` and `KhiopsFastExitMode` environment variables.
 
-To run the MODL or MODL_Coclustering executable from the IDE, you must have a `launch.vs.json` parameter file under the `.vs`directory :
-[launch.vs.json](https://github.com/user-attachments/files/29968344/launch.vs.json)
-
-
-**Note:** This parameter file exploits the "currentDir" key to set the current working directory and the "env" key to set the `KHIOPS_API_MODE` and `KhiopsFastExitMode` environnement variables.
-
-#### 6.2) In Visual Studio Code
+#### In Visual Studio Code
 - Make sure you have installed the extension mentioned [above](#system-requirements).
-- Open VS Code go to the menu **File -> Open Folder** and select your local `khiops` folder
-- At the bottom bar you can select a debug or release preset (ex: _Windows MSVC Release_) and then click on the "⚙ Build" button nearby.
+- Open VS Code, choose **File > Open Folder**, and select your local `khiops` folder.
+- In the status bar, select a debug or release preset (e.g., _Windows MSVC Release_), then click the nearby **⚙ Build** button.
 
-#### 6.3) From the command line
+#### From the command line
 - Go to the `khiops` folder
-- For a given preset (ex: `windows-msvc-release`) execute
+- For a given preset (e.g., `windows-msvc-release`), run:
 ```bash
 cmake --preset windows-msvc-release         # add --fresh to regenerate
 cmake --build --preset windows-msvc-release # add --clean-build to clean
