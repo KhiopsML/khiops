@@ -313,10 +313,14 @@ import javax.swing.UIManager;
                                                          guiAction.getParameters() + ") exception execute");
                                         }
 
-                                        // On rend la fenetre active a nouveau
-                                        stopModal(guiAction);
-
-                                        bActionRunning = false;
+                                        // La restauration des composants et des menus natifs doit se faire dans l'EDT
+                                        SwingUtilities.invokeLater(new Runnable() {
+                                                public void run()
+                                                {
+                                                        stopModal(guiAction);
+                                                        bActionRunning = false;
+                                                }
+                                        });
                                 }
                         };
 
@@ -1533,13 +1537,17 @@ import javax.swing.UIManager;
          * Parametrage de l'etat enable d'un Frame et de son contenu, de facon a
          * permettre l'acces au menu systeme (iconiser, maximiser...) L'etat de la Frame
          * est propage recursivement a tout son contenu, sauf a la frame elle-meme (son
-         * parametrage simple se propage aux menus systemes) et aux exceptions
+         * parametrage simple se propage aux menus systemes) et aux exceptions.
+         * Avec une barre native, seuls les items sont desactives, pas les menus qui les contiennent.
          */
-        void setDescendantsEnabled(Component c, boolean value, Hashtable<Component, Component> exceptionComponents)
+        void setDescendantsEnabled(Component c,
+                                   boolean value,
+                                   Hashtable<Component, Component> exceptionComponents,
+                                   boolean nativeMenuBar)
         {
                 if (c == null)
                         return;
-                if (!(c instanceof JFrame)) {
+                if (!(c instanceof JFrame) && !(nativeMenuBar && (c instanceof JMenuBar || c instanceof JMenu))) {
                         if (!exceptionComponents.containsKey(c)) {
                                 c.setEnabled(value);
                         }
@@ -1547,9 +1555,10 @@ import javax.swing.UIManager;
                 // On propage aux composants des containers, sauf ceux des tables, qui sont
                 // geres de facon dynamique
                 if (c instanceof Container && !(c instanceof GUITable)) {
-                        Component[] kids = ((Container)c).getComponents();
+                        Component[] kids = nativeMenuBar && c instanceof JMenu ? ((JMenu)c).getMenuComponents()
+                                                                               : ((Container)c).getComponents();
                         for (int i = 0; i < kids.length; i++)
-                                setDescendantsEnabled(kids[i], value, exceptionComponents);
+                                setDescendantsEnabled(kids[i], value, exceptionComponents, nativeMenuBar);
                 }
         }
 
@@ -1557,7 +1566,9 @@ import javax.swing.UIManager;
          * Recherche de tous les descendants disable Permet de memoriser les composants
          * initialement disable, pour restituer leur etat initial
          */
-        void searchAllDisabledComponents(Component c, Hashtable<Component, Component> disabledComponents)
+        void searchAllDisabledComponents(Component c,
+                                         Hashtable<Component, Component> disabledComponents,
+                                         boolean nativeMenuBar)
         {
                 if (c == null)
                         return;
@@ -1568,9 +1579,10 @@ import javax.swing.UIManager;
                 // On propage aux composants des containers, sauf ceux des tables, qui sont
                 // geres de facon dynamique
                 if (c instanceof Container && !(c instanceof GUITable)) {
-                        Component[] kids = ((Container)c).getComponents();
+                        Component[] kids = nativeMenuBar && c instanceof JMenu ? ((JMenu)c).getMenuComponents()
+                                                                               : ((Container)c).getComponents();
                         for (int i = 0; i < kids.length; i++)
-                                searchAllDisabledComponents(kids[i], disabledComponents);
+                                searchAllDisabledComponents(kids[i], disabledComponents, nativeMenuBar);
                 }
         }
 
@@ -1646,10 +1658,11 @@ import javax.swing.UIManager;
                 // On cherche les composants initialement disabled pour les remettre dans le
                 // meme etat
                 currentDisabledComponents = new Hashtable<Component, Component>();
-                searchAllDisabledComponents(currentFrame, currentDisabledComponents);
+                searchAllDisabledComponents(currentFrame, currentDisabledComponents, currentFrame.getMenuBar() != null);
 
                 // On desactive cette fenetre pour un assurer un comportement modal
-                setDescendantsEnabled(currentFrame, false, currentDisabledComponents);
+                setDescendantsEnabled(
+                  currentFrame, false, currentDisabledComponents, currentFrame.getMenuBar() != null);
                 addTrace("startModal " + guiAction.getIdentifier() + " (" + guiAction.getParameters() + ") stop");
         }
 
@@ -1665,7 +1678,7 @@ import javax.swing.UIManager;
 
                 // On restitue le caractere actif des composants pour qu'il se repeignent
                 // correctement selon lors caractere editable, en laissant la fenetre non active
-                setDescendantsEnabled(currentFrame, true, currentDisabledComponents);
+                setDescendantsEnabled(currentFrame, true, currentDisabledComponents, currentFrame.getMenuBar() != null);
                 currentFrame.setEnabled(false);
 
                 // On rafraichit les composants graphiques de l'unite avec les donnees logiques
@@ -1932,7 +1945,7 @@ import javax.swing.UIManager;
         // . creation et lancement d'un thread de traitement de l'action
         // .. appel de la methode C++ correspondant a l'action par executeUserActionAt()
         // .. si action de parametre "Exit": appel de closeGUI()
-        // .. sinon, appel de stopModal() pour rendre la fenetre active
+        // .. sinon, appel de stopModal() dans l'EDT pour rendre la fenetre active
         //
         // e) startModal()
         // - memorisation du contexte:
