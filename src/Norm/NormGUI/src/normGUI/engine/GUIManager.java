@@ -8,6 +8,7 @@ import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.GraphicsEnvironment;
 import java.awt.Insets;
+import java.awt.RenderingHints;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Locale;
@@ -70,8 +71,13 @@ public class GUIManager
                                                 }
                                         }
 
-                                        // Poppins ne contient pas les symboles des modificateurs macOS.
                                         if (System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("mac")) {
+                                                // Sur macOS, les surfaces transparentes utilisent le rendu en niveaux
+                                                // de gris: les metriques doivent utiliser le meme anticrenelage.
+                                                UIManager.put(RenderingHints.KEY_TEXT_ANTIALIASING,
+                                                              RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+                                                // Poppins ne contient pas les symboles des modificateurs macOS.
                                                 Font acceleratorFont =
                                                   new Font(Font.DIALOG, Font.PLAIN, defaultFont.getSize());
                                                 for (Object key : UIManager.getDefaults().keySet().toArray()) {
