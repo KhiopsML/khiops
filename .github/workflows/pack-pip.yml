@@ -46,7 +46,7 @@ jobs:
           - macos-15-intel
           - macos-15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - name: Move pyproject-khiops file to the root of the repository
         run: |
           mv packaging/pip/pyproject-khiops.toml pyproject.toml
@@ -59,7 +59,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v4.3.1
       - name: install Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.14'
       - name: Install built wheel in a custom directory
@@ -88,7 +88,7 @@ jobs:
             echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_OUTPUT"
           fi
       - name: Check Khiops core installation
-        uses: ./.github/actions/test-khiops-install
+        uses: $/.github/actions/test-khiops-install
         with:
           binary-path: ${{ steps.export_bin_dir.outputs.BIN_DIR }}
       - name: Move pyproject-kni file to the root of the repository
@@ -101,13 +101,13 @@ jobs:
           mv packaging/pip/pyproject-knitransfer.toml pyproject.toml
       - name: Build knitransfer wheels
         uses: pypa/cibuildwheel@v4.3.1
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7.0.2
         if: runner.os != 'Windows'
         with:
           name: pkg-wheel-${{ matrix.os }}
           path: wheelhouse/*.whl
           if-no-files-found: error
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7.0.2
         if: runner.os == 'Windows'
         with:
           name: wheelhouse-windows-unsigned
@@ -120,14 +120,14 @@ jobs:
     env:
       SIGN_WINDOWS_WHEELS: ${{ github.event_name == 'workflow_dispatch' && inputs.signature-activation }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/download-artifact@v8.0.2
         with:
           name: wheelhouse-windows-unsigned
           path: wheelhouse
       - name: Install Python
         if: env.SIGN_WINDOWS_WHEELS == 'true'
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.14'
       - name: Install wheel package
@@ -162,7 +162,7 @@ jobs:
           rm wheelhouse/khiops_kni-*.whl
           python -m wheel pack wheelhouse/unpacked/khiops_core-* --dest-dir wheelhouse
           python -m wheel pack wheelhouse/unpacked/khiops_kni-* --dest-dir wheelhouse
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: pkg-wheel-windows-2025-vs2026
           path: wheelhouse/*.whl
@@ -182,8 +182,8 @@ jobs:
     name: Test Khiops Core and KNI wheels with LearningTestTool
     needs: [build-wheel, sign-wheel-windows]
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/download-artifact@v8.0.2
         with:
           pattern: pkg-*
           path: wheelhouse
@@ -233,7 +233,7 @@ jobs:
           $PYTHON -m pip show -f khiops-core
           $PYTHON -m pip show -f khiops-kni
       - name: Run standard tests on the Core and KNI packages
-        uses: ./.github/actions/run-standard-tests
+        uses: $/.github/actions/run-standard-tests
         with:
           warning_as_error: true
           running-mode: parallel
@@ -255,20 +255,20 @@ jobs:
           - macos-15
         python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/download-artifact@v8.0.2
         with:
           pattern: pkg-*
           path: wheelhouse
           merge-multiple: true
       - name: Checkout KhiopsNativeInterface-tutorial
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           repository: KhiopsML/KhiopsNativeInterface-tutorial
           path: tutorial
           ref: main
       - name: Install Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install khiops-kni wheel
@@ -328,7 +328,7 @@ jobs:
     environment:
       name: testpypi
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v8.0.2
         with:
           pattern: pkg-*
           path: dist
@@ -349,7 +349,7 @@ jobs:
     environment:
       name: pypi
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v8.0.2
         with:
           pattern: pkg-*
           path: dist

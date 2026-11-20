@@ -38,9 +38,9 @@ jobs:
       checks: write
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
       - name: Build Khiops test executables
-        uses: ./.github/actions/build-khiops
+        uses: $/.github/actions/build-khiops
         with:
           preset-name: ${{ matrix.build-setup.cmake-preset }}
           targets: norm_test parallel_test parallel_mpi_test learning_test KNITest
@@ -50,7 +50,7 @@ jobs:
           ctest --preset ${{ matrix.build-setup.cmake-preset }}
       - name: Upload test results
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: unit-test-results-${{ matrix.build-setup.cmake-preset }}
           retention-days: 7

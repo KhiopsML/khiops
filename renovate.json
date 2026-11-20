@@ -12,5 +12,9 @@
   "pre-commit": {
     "enabled": true
   },
-  "rebaseWhen": "never"
+  "rebaseWhen": "never",
+  "timezone": "Europe/Paris",
+  "schedule": [
+    "* * * * 0"
+  ]
 }

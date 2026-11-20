@@ -39,10 +39,10 @@ jobs:
       image: ghcr.io/khiopsml/khiops/khiopsdev-${{ matrix.os }}:latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
       - name: Check the tag consistency with the source version
         if: github.ref_type == 'tag'
-        uses: ./.github/actions/check-tag-version
+        uses: $/.github/actions/check-tag-version
       - name: Put OS info on the environment
         run: |
           source /etc/os-release
@@ -72,7 +72,7 @@ jobs:
             mv -v $filename ${filename%.${ARCH}*}.${{ env.VERSION_CODENAME }}.${ARCH}.rpm
           done
       - name: Upload the packages as artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           # We add a `rpm-` prefix so we can later recover all artifacts with the pattern `rpm-*`
           # Note: The more natural pattern `*-rpm` or `*` does not work
@@ -97,7 +97,7 @@ jobs:
       image: rockylinux/rockylinux:${{ matrix.rocky_version }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
       - name: Set environment variables
         run: |
           source /etc/os-release
@@ -106,7 +106,7 @@ jobs:
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "MPI_IMPLEMENTATION=${{ inputs.mpi_implementation || 'openmpi' }}" >> "$GITHUB_ENV"
       - name: Download artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.2
         with:
           name: rpm-${{ env.ID }}-${{ env.VERSION }}
           path: artifacts
@@ -115,12 +115,12 @@ jobs:
         run: |
           yum install -y ./artifacts/khiops-core*
       - name: Check Khiops core installation
-        uses: ./.github/actions/test-khiops-install
+        uses: $/.github/actions/test-khiops-install
       - name: Install Khiops Desktop (with java)
         run: |
           yum install -y ./artifacts/khiops-*
       - name: Check Khiops installation
-        uses: ./.github/actions/test-khiops-install
+        uses: $/.github/actions/test-khiops-install
       - name: Add Khiops binary path to the environment (for running the standard
           tests)
         run: |
@@ -138,7 +138,7 @@ jobs:
           module unload mpi
           module load mpi/${MPI_IMPLEMENTATION}-x86_64
       - name: Run standard tests
-        uses: ./.github/actions/run-standard-tests
+        uses: $/.github/actions/run-standard-tests
         with:
           warning_as_error: true
           running-mode: parallel
@@ -166,7 +166,7 @@ jobs:
           VERSION=$(echo $PLATFORM_ID | cut -d":" -f2)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
       - name: Download artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.2
         with:
           name: rpm-${{ env.ID }}-${{ env.VERSION }}
           path: artifacts
@@ -175,11 +175,11 @@ jobs:
           yum update -y --allowerasing  # resolve package conflicts
           yum install -y ./artifacts/kni*
       - name: Checkout sources
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           sparse-checkout: .github
       - name: Test KNI package
-        uses: ./.github/actions/test-kni
+        uses: $/.github/actions/test-kni
   # Release is only executed on tags
   release:
     if: github.ref_type == 'tag'
@@ -190,7 +190,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download package artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.2
         with:
           # See the upload-artifact step in the build job for the explanation of this pattern
           pattern: rpm-*
