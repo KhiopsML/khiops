@@ -13,13 +13,13 @@ jobs:
       contents: write  # To push a branch
     steps:
       - name: Checkout Khiops sources
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           path: khiops
       - name: Put Khiops version on the environment
         run: echo "KHIOPS_VERSION=$(./khiops/scripts/khiops-version)" >> "$GITHUB_ENV"
       - name: Checkout KNI-tutorial
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           repository: KhiopsML/KNI-tutorial
           ssh-key: ${{ secrets.KNI_TUTORIAL_SSH_KEY }}
@@ -37,7 +37,7 @@ jobs:
           cp khiops/src/Learning/KNITransfer/KNIRecodeFile.h tutorial/cpp/
           cp khiops/src/Learning/KNITransfer/KNIRecodeMTFiles.h tutorial/cpp/
       - name: Setup Python for documentation generation
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.11'
       - name: Generate Python API documentation
