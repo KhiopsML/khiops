@@ -42,7 +42,7 @@ jobs:
         uses: actions/checkout@v7.0.1
       - name: Check the tag consistency with the source version
         if: github.ref_type == 'tag'
-        uses: ./.github/actions/check-tag-version
+        uses: $/.github/actions/check-tag-version
       - name: Put OS info on the environment
         run: |
           source /etc/os-release
@@ -115,12 +115,12 @@ jobs:
         run: |
           yum install -y ./artifacts/khiops-core*
       - name: Check Khiops core installation
-        uses: ./.github/actions/test-khiops-install
+        uses: $/.github/actions/test-khiops-install
       - name: Install Khiops Desktop (with java)
         run: |
           yum install -y ./artifacts/khiops-*
       - name: Check Khiops installation
-        uses: ./.github/actions/test-khiops-install
+        uses: $/.github/actions/test-khiops-install
       - name: Add Khiops binary path to the environment (for running the standard
           tests)
         run: |
@@ -138,7 +138,7 @@ jobs:
           module unload mpi
           module load mpi/${MPI_IMPLEMENTATION}-x86_64
       - name: Run standard tests
-        uses: ./.github/actions/run-standard-tests
+        uses: $/.github/actions/run-standard-tests
         with:
           warning_as_error: true
           running-mode: parallel
@@ -179,7 +179,7 @@ jobs:
         with:
           sparse-checkout: .github
       - name: Test KNI package
-        uses: ./.github/actions/test-kni
+        uses: $/.github/actions/test-kni
   # Release is only executed on tags
   release:
     if: github.ref_type == 'tag'

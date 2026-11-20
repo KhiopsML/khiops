@@ -40,7 +40,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v7.0.1
       - name: Build Khiops test executables
-        uses: ./.github/actions/build-khiops
+        uses: $/.github/actions/build-khiops
         with:
           preset-name: ${{ matrix.build-setup.cmake-preset }}
           targets: norm_test parallel_test parallel_mpi_test learning_test KNITest

@@ -55,7 +55,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v7.0.1
       - name: Build all binaries
-        uses: ./.github/actions/build-khiops
+        uses: $/.github/actions/build-khiops
         with:
           preset-name: ${{ env.PRESET_NAME }}
           override-flags: -DTESTING=OFF
@@ -123,7 +123,7 @@ jobs:
         run: chmod +x bin/*
       - name: Setup MPI (windows)
         if: runner.os == 'Windows'
-        uses: ./.github/actions/setup-intel-mpi
+        uses: $/.github/actions/setup-intel-mpi
       - name: Setup MPI (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -138,7 +138,7 @@ jobs:
           sudo update-alternatives --set mpi /usr/bin/mpicc.openmpi
           sudo update-alternatives --set mpirun /usr/bin/mpirun.openmpi
       - name: Run standard tests
-        uses: ./.github/actions/run-standard-tests
+        uses: $/.github/actions/run-standard-tests
         with:
           warning_as_error: ${{ inputs.warning_as_error }}
           running-mode: ${{ matrix.running-mode }}

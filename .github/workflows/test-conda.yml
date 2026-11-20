@@ -37,7 +37,7 @@ jobs:
     container: ${{ matrix.setup.image }}
     steps:
       - name: Install Miniconda
-        uses: conda-incubator/setup-miniconda@v4
+        uses: conda-incubator/setup-miniconda@v4.1.0
         with:
           miniforge-version: latest
           python-version: '3.12'
@@ -62,11 +62,11 @@ jobs:
             echo "BIN_DIR=$CONDA_PREFIX/bin" >> "$GITHUB_ENV"
           fi
       - name: Test that the Khiops executables are installed
-        uses: ./.github/actions/test-khiops-install
+        uses: $/.github/actions/test-khiops-install
         with:
           binary-path: ${{ env.BIN_DIR }}
       - name: Test that the Khiops executables are functional
-        uses: ./.github/actions/run-standard-tests
+        uses: $/.github/actions/run-standard-tests
         with:
           warning_as_error: true
           running-mode: parallel

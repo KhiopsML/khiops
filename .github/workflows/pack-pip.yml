@@ -88,7 +88,7 @@ jobs:
             echo "BIN_DIR=$KHIOPS_INSTALL_DIR/bin" >> "$GITHUB_OUTPUT"
           fi
       - name: Check Khiops core installation
-        uses: ./.github/actions/test-khiops-install
+        uses: $/.github/actions/test-khiops-install
         with:
           binary-path: ${{ steps.export_bin_dir.outputs.BIN_DIR }}
       - name: Move pyproject-kni file to the root of the repository
@@ -233,7 +233,7 @@ jobs:
           $PYTHON -m pip show -f khiops-core
           $PYTHON -m pip show -f khiops-kni
       - name: Run standard tests on the Core and KNI packages
-        uses: ./.github/actions/run-standard-tests
+        uses: $/.github/actions/run-standard-tests
         with:
           warning_as_error: true
           running-mode: parallel

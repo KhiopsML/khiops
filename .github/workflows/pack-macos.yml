@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@v7.0.1
       - name: Check tag consistency
         if: github.ref_type == 'tag'
-        uses: ./.github/actions/check-tag-version
+        uses: $/.github/actions/check-tag-version
       - name: Install build dependencies
         run: brew install cmake ninja open-mpi
       - name: Set up Java 11
@@ -161,11 +161,11 @@ jobs:
           test -x "$BIN_DIR/khiops_env"
           echo "BIN_DIR=$BIN_DIR" >> "$GITHUB_ENV"
       - name: Check Khiops installation
-        uses: ./.github/actions/test-khiops-install
+        uses: $/.github/actions/test-khiops-install
         with:
           binary-path: ${{ env.BIN_DIR }}
       - name: Run standard tests
-        uses: ./.github/actions/run-standard-tests
+        uses: $/.github/actions/run-standard-tests
         with:
           warning_as_error: true
           running-mode: parallel
