@@ -204,7 +204,8 @@ Quick trigger conventions:
 
 ## Building Khiops
 
-See the [development environment setup page](https://github.com/KhiopsML/khiops/wiki/Setting-Up-the-Development-Environment) before executing any of these steps.
+See the [development environment setup page](../doc/development/setting-up-dev-environment.md) before executing any of these steps.
+For a concise build walkthrough, see [Building Khiops](../doc/development/building-khiops.md).
 
 ### Prerequisites
 
@@ -306,7 +307,7 @@ The `comparisonResults.log` in each test dir records the comparison outcome. Use
 
 ## Debugging and Testing
 
-For debugging and testing, see the [Debugging and Testing wiki guide](https://github.com/KhiopsML/khiops/wiki/Debugging-and-Testing) and the testing guidance above. C++-specific assertions and validation practices are in [`.github/instructions/cpp-changes.instructions.md`](instructions/cpp-changes.instructions.md).
+For debugging and testing, see the [Debugging and Testing guide](../doc/development/debugging-and-testing.md) and the testing guidance above. C++-specific assertions and validation practices are in [`.github/instructions/cpp-changes.instructions.md`](instructions/cpp-changes.instructions.md).
 
 ## User Interface Development
 
