@@ -539,6 +539,9 @@ KWDerivationRule* KWDRBuildTemporalJoin::Create() const
 ObjectArray* KWDRBuildTemporalJoin::ComputeObjectArrayResult(const KWObject* kwoObject,
 							     const KWLoadIndex liAttributeLoadIndex) const
 {
+	const int nSmallHistoricalTableSize = 10;
+	const int nVerySmallSourceTableSize = 2;
+	const int nSortCostFactor = 3;
 	ObjectArray* oaSourceObjects;
 	ObjectArray* oaHistoricalObjects;
 	const ObjectArray* oaOrderedHistoricalObjects;
@@ -568,6 +571,9 @@ ObjectArray* KWDRBuildTemporalJoin::ComputeObjectArrayResult(const KWObject* kwo
 	int nLower;
 	int nUpper;
 	int nHistorical;
+	int nLogHistoricalSize;
+	int nTimeComparison;
+	boolean bLinearSearch;
 	boolean bSourceTimeValid;
 	boolean bHistoricalTimeValid;
 
@@ -575,6 +581,7 @@ ObjectArray* KWDRBuildTemporalJoin::ComputeObjectArrayResult(const KWObject* kwo
 
 	// Initialisation des valeurs temporelles sources et des differences
 	cSourceTime = 0;
+	cHistoricalTime = 0;
 	cDifference = 0;
 	dtSourceTime.Reset();
 	tmSourceTime.Reset();
@@ -593,17 +600,32 @@ ObjectArray* KWDRBuildTemporalJoin::ComputeObjectArrayResult(const KWObject* kwo
 	liTargetSourceEntity = livComputeModeTargetAttributeLoadIndexes.GetAt(0);
 	liTargetHistoricalEntity = livComputeModeTargetAttributeLoadIndexes.GetAt(1);
 
-	// Tri stable de l'historique seulement si necessaire, sans modifier la table en entree
-	oaOrderedHistoricalObjects = oaHistoricalObjects;
-	if (oaSourceObjects != NULL and oaSourceObjects->GetSize() > 0 and oaHistoricalObjects != NULL and
-	    oaHistoricalObjects->GetSize() > 1)
+	// Recherche lineaire par defaut, sans verifier le tri pour une petite table historique ou source
+	oaOrderedHistoricalObjects = NULL;
+	bLinearSearch = true;
+	if (oaSourceObjects != NULL and oaSourceObjects->GetSize() > nVerySmallSourceTableSize and
+	    oaHistoricalObjects != NULL and oaHistoricalObjects->GetSize() > nSmallHistoricalTableSize)
 	{
+		// Si l'historique est deja trie, utiliser directement la recherche dichotomique
 		oaSortOperands.Add(GetOperandAt(3));
-		if (not KWDRTableSort::IsObjectArraySorted(oaHistoricalObjects, &oaSortOperands))
+		if (KWDRTableSort::IsObjectArraySorted(oaHistoricalObjects, &oaSortOperands))
 		{
-			KWDRTableSort::SortObjectArray(oaHistoricalObjects, &oaSortOperands,
-						       &oaSortedHistoricalObjects);
-			oaOrderedHistoricalObjects = &oaSortedHistoricalObjects;
+			oaOrderedHistoricalObjects = oaHistoricalObjects;
+			bLinearSearch = false;
+		}
+		else
+		{
+			// Historique non trie: comparer les couts estimes S * H et facteur * H * ceil(log2(H))
+			// Le facteur tient compte notamment des allocations necessaires au tri stable
+			nLogHistoricalSize = int(ceil(log2(oaHistoricalObjects->GetSize())));
+			if (oaSourceObjects->GetSize() > nSortCostFactor * nLogHistoricalSize)
+			{
+				// Trier une copie de l'historique avant la recherche dichotomique
+				KWDRTableSort::SortObjectArray(oaHistoricalObjects, &oaSortOperands,
+							       &oaSortedHistoricalObjects);
+				oaOrderedHistoricalObjects = &oaSortedHistoricalObjects;
+				bLinearSearch = false;
+			}
 		}
 	}
 
@@ -652,69 +674,189 @@ ObjectArray* KWDRBuildTemporalJoin::ComputeObjectArrayResult(const KWObject* kwo
 					break;
 				}
 
-				// Recherche dichotomique du premier temps historique atteignant la borne inferieure
-				if (bSourceTimeValid and oaOrderedHistoricalObjects != NULL)
+				// Recherche du plus petit temps historique admissible si les operandes sont disponibles
+				if (bSourceTimeValid and oaHistoricalObjects != NULL)
 				{
-					nLower = 0;
-					nUpper = oaOrderedHistoricalObjects->GetSize();
-					while (nLower < nUpper)
+					// Recherche lineaire dans l'ordre initial de l'historique
+					if (bLinearSearch)
 					{
-						nHistorical = nLower + (nUpper - nLower) / 2;
-						kwoHistoricalObject =
-						    cast(KWObject*, oaOrderedHistoricalObjects->GetAt(nHistorical));
-						bHistoricalTimeValid = true;
-						switch (nTemporalType)
+						for (nHistorical = 0; nHistorical < oaHistoricalObjects->GetSize();
+						     nHistorical++)
 						{
-						case KWType::Continuous:
-							cHistoricalTime =
-							    GetOperandAt(3)->GetContinuousValue(kwoHistoricalObject);
-							bHistoricalTimeValid =
-							    cHistoricalTime != KWContinuous::GetMissingValue();
-							if (bHistoricalTimeValid)
-								cDifference = cHistoricalTime - cSourceTime;
-							break;
-						case KWType::Date:
-							dtHistoricalTime =
-							    GetOperandAt(3)->GetDateValue(kwoHistoricalObject);
-							bHistoricalTimeValid = dtHistoricalTime.Check();
-							if (bHistoricalTimeValid)
-								cDifference = dtHistoricalTime.Diff(dtSourceTime);
-							break;
-						case KWType::Time:
-							tmHistoricalTime =
-							    GetOperandAt(3)->GetTimeValue(kwoHistoricalObject);
-							bHistoricalTimeValid = tmHistoricalTime.Check();
-							if (bHistoricalTimeValid)
-								cDifference = tmHistoricalTime.Diff(tmSourceTime);
-							break;
-						case KWType::Timestamp:
-							tsHistoricalTime =
-							    GetOperandAt(3)->GetTimestampValue(kwoHistoricalObject);
-							bHistoricalTimeValid = tsHistoricalTime.Check();
-							if (bHistoricalTimeValid)
-								cDifference = tsHistoricalTime.Diff(tsSourceTime);
-							break;
-						case KWType::TimestampTZ:
-							tstzHistoricalTime =
-							    GetOperandAt(3)->GetTimestampTZValue(kwoHistoricalObject);
-							bHistoricalTimeValid = tstzHistoricalTime.Check();
-							if (bHistoricalTimeValid)
-								cDifference = tstzHistoricalTime.Diff(tstzSourceTime);
-							break;
-						default:
-							assert(false);
-							break;
-						}
+							kwoHistoricalObject =
+							    cast(KWObject*, oaHistoricalObjects->GetAt(nHistorical));
+							bHistoricalTimeValid = true;
+							switch (nTemporalType)
+							{
+							case KWType::Continuous:
+								cHistoricalTime = GetOperandAt(3)->GetContinuousValue(
+								    kwoHistoricalObject);
+								bHistoricalTimeValid =
+								    cHistoricalTime != KWContinuous::GetMissingValue();
+								if (bHistoricalTimeValid)
+									cDifference = cHistoricalTime - cSourceTime;
+								break;
+							case KWType::Date:
+								dtHistoricalTime =
+								    GetOperandAt(3)->GetDateValue(kwoHistoricalObject);
+								bHistoricalTimeValid = dtHistoricalTime.Check();
+								if (bHistoricalTimeValid)
+									cDifference =
+									    dtHistoricalTime.Diff(dtSourceTime);
+								break;
+							case KWType::Time:
+								tmHistoricalTime =
+								    GetOperandAt(3)->GetTimeValue(kwoHistoricalObject);
+								bHistoricalTimeValid = tmHistoricalTime.Check();
+								if (bHistoricalTimeValid)
+									cDifference =
+									    tmHistoricalTime.Diff(tmSourceTime);
+								break;
+							case KWType::Timestamp:
+								tsHistoricalTime = GetOperandAt(3)->GetTimestampValue(
+								    kwoHistoricalObject);
+								bHistoricalTimeValid = tsHistoricalTime.Check();
+								if (bHistoricalTimeValid)
+									cDifference =
+									    tsHistoricalTime.Diff(tsSourceTime);
+								break;
+							case KWType::TimestampTZ:
+								tstzHistoricalTime =
+								    GetOperandAt(3)->GetTimestampTZValue(
+									kwoHistoricalObject);
+								bHistoricalTimeValid = tstzHistoricalTime.Check();
+								if (bHistoricalTimeValid)
+									cDifference =
+									    tstzHistoricalTime.Diff(tstzSourceTime);
+								break;
+							default:
+								assert(false);
+								break;
+							}
 
-						// Les valeurs manquantes sont triees avant les valeurs valides
-						if (not bHistoricalTimeValid or cDifference < cPeriodStart)
-							nLower = nHistorical + 1;
-						else
+							// Garder le plus petit temps admissible, et la premiere instance en cas d'egalite
+							// Comparer les temps plutot que les differences pour conserver l'ordre du tri
+							if (bHistoricalTimeValid and cPeriodStart <= cDifference and
+							    cDifference <= cPeriodEnd)
+							{
+								nTimeComparison = -1;
+								if (kwoBestHistoricalObject != NULL)
+								{
+									switch (nTemporalType)
+									{
+									case KWType::Continuous:
+										nTimeComparison = KWContinuous::Compare(
+										    cHistoricalTime,
+										    GetOperandAt(3)->GetContinuousValue(
+											kwoBestHistoricalObject));
+										break;
+									case KWType::Date:
+										nTimeComparison =
+										    dtHistoricalTime.Compare(
+											GetOperandAt(3)->GetDateValue(
+											    kwoBestHistoricalObject));
+										break;
+									case KWType::Time:
+										nTimeComparison =
+										    tmHistoricalTime.Compare(
+											GetOperandAt(3)->GetTimeValue(
+											    kwoBestHistoricalObject));
+										break;
+									case KWType::Timestamp:
+										nTimeComparison =
+										    tsHistoricalTime.Compare(
+											GetOperandAt(3)
+											    ->GetTimestampValue(
+												kwoBestHistoricalObject));
+										break;
+									case KWType::TimestampTZ:
+										nTimeComparison =
+										    tstzHistoricalTime.Compare(
+											GetOperandAt(3)
+											    ->GetTimestampTZValue(
+												kwoBestHistoricalObject));
+										break;
+									default:
+										assert(false);
+										break;
+									}
+								}
+								if (nTimeComparison < 0)
+									kwoBestHistoricalObject = kwoHistoricalObject;
+							}
+						}
+					}
+
+					// Recherche dichotomique du premier temps historique atteignant la borne inferieure
+					else
+					{
+						assert(oaOrderedHistoricalObjects != NULL);
+						nLower = 0;
+						nUpper = oaOrderedHistoricalObjects->GetSize();
+						while (nLower < nUpper)
 						{
-							// Chercher plus tot meme en cas d'egalite pour conserver la premiere instance
-							nUpper = nHistorical;
-							if (cDifference <= cPeriodEnd)
-								kwoBestHistoricalObject = kwoHistoricalObject;
+							nHistorical = nLower + (nUpper - nLower) / 2;
+							kwoHistoricalObject = cast(
+							    KWObject*, oaOrderedHistoricalObjects->GetAt(nHistorical));
+							bHistoricalTimeValid = true;
+							switch (nTemporalType)
+							{
+							case KWType::Continuous:
+								cHistoricalTime = GetOperandAt(3)->GetContinuousValue(
+								    kwoHistoricalObject);
+								bHistoricalTimeValid =
+								    cHistoricalTime != KWContinuous::GetMissingValue();
+								if (bHistoricalTimeValid)
+									cDifference = cHistoricalTime - cSourceTime;
+								break;
+							case KWType::Date:
+								dtHistoricalTime =
+								    GetOperandAt(3)->GetDateValue(kwoHistoricalObject);
+								bHistoricalTimeValid = dtHistoricalTime.Check();
+								if (bHistoricalTimeValid)
+									cDifference =
+									    dtHistoricalTime.Diff(dtSourceTime);
+								break;
+							case KWType::Time:
+								tmHistoricalTime =
+								    GetOperandAt(3)->GetTimeValue(kwoHistoricalObject);
+								bHistoricalTimeValid = tmHistoricalTime.Check();
+								if (bHistoricalTimeValid)
+									cDifference =
+									    tmHistoricalTime.Diff(tmSourceTime);
+								break;
+							case KWType::Timestamp:
+								tsHistoricalTime = GetOperandAt(3)->GetTimestampValue(
+								    kwoHistoricalObject);
+								bHistoricalTimeValid = tsHistoricalTime.Check();
+								if (bHistoricalTimeValid)
+									cDifference =
+									    tsHistoricalTime.Diff(tsSourceTime);
+								break;
+							case KWType::TimestampTZ:
+								tstzHistoricalTime =
+								    GetOperandAt(3)->GetTimestampTZValue(
+									kwoHistoricalObject);
+								bHistoricalTimeValid = tstzHistoricalTime.Check();
+								if (bHistoricalTimeValid)
+									cDifference =
+									    tstzHistoricalTime.Diff(tstzSourceTime);
+								break;
+							default:
+								assert(false);
+								break;
+							}
+
+							// Les valeurs manquantes sont triees avant les valeurs valides
+							if (not bHistoricalTimeValid or cDifference < cPeriodStart)
+								nLower = nHistorical + 1;
+							else
+							{
+								// Chercher plus tot meme en cas d'egalite pour conserver la premiere instance
+								nUpper = nHistorical;
+								if (cDifference <= cPeriodEnd)
+									kwoBestHistoricalObject = kwoHistoricalObject;
+							}
 						}
 					}
 				}

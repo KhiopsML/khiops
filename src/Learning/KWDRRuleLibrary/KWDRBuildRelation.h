@@ -186,7 +186,8 @@ protected:
 // Les bornes numeriques definissent une plage inclusive de differences historique moins source.
 // A temps egal, la premiere instance dans la table historique est selectionnee.
 // Les tables peuvent etre non triees et une instance historique peut etre reutilisee.
-// La table historique est triee si necessaire, puis la recherche est dichotomique pour chaque source.
+// Selon les tailles des tables et l'ordre de l'historique, la recherche est lineaire ou dichotomique,
+// avec tri stable de l'historique si necessaire.
 // Chaque instance source produit une instance cible, dans le meme ordre.
 // Les deux operandes en sortie referencent les instances source et historique selectionnees.
 // Une valeur historique manquante ou absente est representee par une entite manquante.
