@@ -51,6 +51,9 @@ echo   . default behavior if not set: depending on the file drivers available fo
 echo   . set to 'true' to allow file name selection with uri schemas
 echo   . set to 'false' to allow local file name selection only with a file selection dialog
 echo.
+echo The following internal technical variable is set by khiops_env and must not be used directly:
+echo _KHIOPS_SERIAL_NO_MPI
+echo.
 echo In case of configuration problems, the variables KHIOPS_JAVA_ERROR and KHIOPS_MPI_ERROR contain error messages.
 
 if not %2.==. exit /b 1
@@ -102,6 +105,9 @@ if defined KHIOPS_PROC_NUMBER (
 	if "%KHIOPS_PROC_NUMBER%"=="2" set "KHIOPS_MPI_COMMAND="
 )
 
+set "_KHIOPS_SERIAL_NO_MPI=false"
+if not defined KHIOPS_MPI_COMMAND set "_KHIOPS_SERIAL_NO_MPI=true"
+
 set _KHIOPS_GUI=@GUI_STATUS@
 if "%_KHIOPS_GUI%" == "false" GOTO SKIP_GUI
 
@@ -152,6 +158,7 @@ echo KHIOPS_DRIVERS_PATH %KHIOPS_DRIVERS_PATH%
 echo KHIOPS_JAVA_ERROR %KHIOPS_JAVA_ERROR%
 echo KHIOPS_MPI_ERROR %KHIOPS_MPI_ERROR%
 echo KHIOPS_MPI_DLL_PATH %KHIOPS_MPI_DLL_PATH%
+echo _KHIOPS_SERIAL_NO_MPI %_KHIOPS_SERIAL_NO_MPI%
 endlocal
 exit /b 0
 

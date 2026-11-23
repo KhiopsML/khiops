@@ -18,19 +18,25 @@ int PLMPITaskDriver::nIoRequestNumber = 0;
 int PLMPITaskDriver::nFileServerRank = -1;
 const double PLMPITaskDriver::TIME_BEFORE_SLEEP = 0.1;
 
-PLMPITaskDriver::PLMPITaskDriver()
+PLMPITaskDriver::PLMPITaskDriver() {}
+
+void PLMPITaskDriver::Initialize()
 {
 	MPI_Errhandler errHandler;
 	int nRank;
 	int nThreadProvided;
+	int nError;
 
+	require(not bIsFinalized);
 	if (not bIsInitialized)
 	{
 		// Remplace MPI_Init : Initialisation sans thread safe, peut-etre que MPI est plus efficace
-		MPI_Init_thread(NULL, NULL, MPI_THREAD_SINGLE, &nThreadProvided);
+		nError = MPI_Init_thread(NULL, NULL, MPI_THREAD_SINGLE, &nThreadProvided);
+		if (nError != MPI_SUCCESS)
+			Global::AddFatalError("MPI", "", "Unable to initialize MPI");
+		bIsInitialized = true;
 		MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
 		SetProcessId(nRank);
-		bIsInitialized = true;
 
 		MPI_Comm_create_errhandler(ErrorHandler, &errHandler);
 		MPI_Comm_set_errhandler(MPI_COMM_WORLD, errHandler);
@@ -55,9 +61,13 @@ PLMPITaskDriver::PLMPITaskDriver()
 
 PLMPITaskDriver::~PLMPITaskDriver()
 {
-	FileCache::SetReleaseIOFunction(NULL);
-	FileCache::SetRequestIOFunction(NULL);
-	MPI_Finalize();
+	if (bIsInitialized and not bIsFinalized)
+	{
+		FileCache::SetReleaseIOFunction(NULL);
+		FileCache::SetRequestIOFunction(NULL);
+		MPI_Finalize();
+		bIsFinalized = true;
+	}
 
 	odFileServers.DeleteAll();
 }

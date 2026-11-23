@@ -477,6 +477,7 @@ boolean KWLearningProject::ShowSystemInformation(const ALString& sValue)
 	svEnvironmentVariables.Add("KhiopsForestExpertMode");
 	svEnvironmentVariables.Add("KhiopsExpertParallelMode");
 	svEnvironmentVariables.Add("KhiopsParallelTrace");
+	svEnvironmentVariables.Add("_KHIOPS_SERIAL_NO_MPI");
 	svEnvironmentVariables.Add("KhiopsFileServerActivated");
 	svEnvironmentVariables.Add("hiopsPriorStudyModeRAW");
 	svEnvironmentVariables.Add("KhiopsDistanceStudyMode");

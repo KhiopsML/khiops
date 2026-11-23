@@ -34,7 +34,7 @@ public:
 	static void SetProcessComm(const MPI_Comm&);
 	static MPI_Comm* GetProcessComm();
 
-	// Acces au driver statique
+	// Acces au driver statique et initialisation de MPI au premier appel
 	static PLMPITaskDriver* GetDriver();
 
 	// Methodes virtuelles
@@ -117,6 +117,9 @@ protected:
 	// Selection des process qui vont devenir serveurs de fichiers
 	// Le tableau construit est trie
 	void SelectFileServerRanks();
+
+	// Initialisation de MPI et des services associes
+	void Initialize();
 
 	// Communicateur qui contient le maitre et les esclaves qui travaillent (sans le serveurs de fichiers et les
 	// esclaves qui ne travaillent pas)
@@ -237,6 +240,7 @@ inline void PLMPITaskDriver::RecvBlock(PLSerializer* serializer, PLMsgContext* c
 
 inline PLMPITaskDriver* PLMPITaskDriver::GetDriver()
 {
+	mpiDriver.Initialize();
 	return &mpiDriver;
 }
 

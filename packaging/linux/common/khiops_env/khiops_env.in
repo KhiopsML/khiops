@@ -54,6 +54,10 @@ help() {
     echo "  always printed."
     echo "KHIOPS_MPI_EXTRA_FLAGS: extra flags added to the mpi command line"
     echo
+    echo "The following internal technical variable is set by khiops_env and must not be used directly:"
+    echo "_KHIOPS_SERIAL_NO_MPI"
+    echo
+
     echo "In case of configuration problems, the variables KHIOPS_JAVA_ERROR and KHIOPS_MPI_ERROR contain error messages."
 
 }
@@ -94,6 +98,7 @@ fi
 # Check if we are running as a macOS app and set up MPI accordingly
 IS_MACOS_APP="@IS_MACOS_APP@"
 NO_MPI=false
+KHIOPS_MPI_COMMAND=""
 if [[ "$IS_MACOS_APP" == "true" ]]; then
     for _BREW_PREFIX in /opt/homebrew /usr/local; do
         if [[ -x "$_BREW_PREFIX/bin/mpiexec" ]]; then
@@ -167,6 +172,12 @@ else
 fi
 unset _BREW_MPIEXEC _BREW_PREFIX _MPI_VERSION
 
+if [[ -z "$KHIOPS_MPI_COMMAND" ]]; then
+    export _KHIOPS_SERIAL_NO_MPI=true
+else
+    export _KHIOPS_SERIAL_NO_MPI=false
+fi
+
 if [ "$1" = "--env" ]; then
     echo KHIOPS_PATH "$KHIOPS_PATH"
     echo KHIOPS_COCLUSTERING_PATH "$KHIOPS_COCLUSTERING_PATH"
@@ -185,5 +196,6 @@ if [ "$1" = "--env" ]; then
     echo KHIOPS_MPI_ERROR "$KHIOPS_MPI_ERROR"
     echo KHIOPS_MPI_VERBOSE "$KHIOPS_MPI_VERBOSE"
     echo KHIOPS_MPI_EXTRA_FLAGS "$KHIOPS_MPI_EXTRA_FLAGS"
+    echo _KHIOPS_SERIAL_NO_MPI "$_KHIOPS_SERIAL_NO_MPI"
     @ADDITIONAL_ENV_VAR_DISPLAY@
 fi

@@ -18,6 +18,11 @@
 inline void UseMPI()
 {
 #ifdef USE_MPI
+
+	// Si le mode serial sans MPI est active, on ne fait rien : pas d'initialisation MPI
+	if (GetSerialNoMPIMode())
+		return;
+
 	// Mise en place du driver parallel
 	PLParallelTask::SetDriver(PLMPITaskDriver::GetDriver());
 
