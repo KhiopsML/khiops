@@ -52,7 +52,7 @@ echo   . set to 'true' to allow file name selection with uri schemas
 echo   . set to 'false' to allow local file name selection only with a file selection dialog
 echo.
 echo The following internal technical variable is set by khiops_env and must not be used directly:
-echo _KHIOPS_SERIAL_NO_MPI
+echo _KHIOPS_SERIAL_NO_MPI: optimizes Khiops execution in serial mode
 echo.
 echo In case of configuration problems, the variables KHIOPS_JAVA_ERROR and KHIOPS_MPI_ERROR contain error messages.
 

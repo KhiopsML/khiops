@@ -107,6 +107,8 @@ public:
 	// Duree en ms avant endormissement
 	const static double TIME_BEFORE_SLEEP;
 
+	//////////////////////////////////////////////////////////////////////////
+	//// Implementation
 protected:
 	// Methodes statiques de demande d'acces au disque
 	// acces en lecture nRW=0

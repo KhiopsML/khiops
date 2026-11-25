@@ -55,7 +55,7 @@ help() {
     echo "KHIOPS_MPI_EXTRA_FLAGS: extra flags added to the mpi command line"
     echo
     echo "The following internal technical variable is set by khiops_env and must not be used directly:"
-    echo "_KHIOPS_SERIAL_NO_MPI"
+    echo "_KHIOPS_SERIAL_NO_MPI: optimizes Khiops execution in serial mode"
     echo
 
     echo "In case of configuration problems, the variables KHIOPS_JAVA_ERROR and KHIOPS_MPI_ERROR contain error messages."

@@ -19,11 +19,14 @@ inline void UseMPI()
 {
 #ifdef USE_MPI
 
-	// Si le mode serial sans MPI est active, on ne fait rien : pas d'initialisation MPI
+	// Si le mode serial sans MPI est active, on ne fait rien : pas d'initialisation MPI,
+	// le driver MPI n'est pas cree (pas de MPI_Init) et pas detruit (pas de MPI_Finalize).
+	// On peut ainsi lancer directement le binaire sans utiliser la commande mpiexec (sans
+	// cette optimisation, le binaire cree des fichiers qui sont nettoyes uniquement par mpiexec)
 	if (GetSerialNoMPIMode())
 		return;
 
-	// Mise en place du driver parallel
+	// Mise en place du driver parallel MPI
 	PLParallelTask::SetDriver(PLMPITaskDriver::GetDriver());
 
 	// Initialisation des ressources systeme
