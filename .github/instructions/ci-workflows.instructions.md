@@ -10,18 +10,6 @@ applyTo: ".github/workflows/**, .github/actions/**"
 
 This file applies to workflow changes in `.github/workflows/` and composite actions in `.github/actions/`.
 
-Current workflows (10):
-- `run-unit-tests.yml`
-- `run-standard-tests.yml`
-- `pre-commit-checks.yml`
-- `pack-pip.yml`
-- `pack-debian.yml`
-- `pack-rpm.yml`
-- `pack-nsis.yml`
-- `test-conda.yml`
-- `build-linux-pack-containers.yml`
-- `update-kni-tutorial.yml`
-
 ## Composite Actions (`.github/actions/`)
 
 Reusable composite actions called by workflows:
@@ -35,20 +23,9 @@ Reusable composite actions called by workflows:
 | **test-khiops-on-iris** | Functional Iris test for Khiops + Coclustering | `os-decription`, `show-openmpi-errors` |
 | **test-kni** | Test KNI C and Java examples (mono/multi-table) | None |
 
-### Action Usage Map
-
-| Workflow | Actions Used |
-|----------|-------------|
-| `run-unit-tests.yml` | `build-khiops` |
-| `run-standard-tests.yml` | `build-khiops`, `run-standard-tests` |
-| `pack-pip.yml` | `test-khiops-install`, `run-standard-tests` |
-| `pack-debian.yml` | `check-tag-version`, `run-standard-tests`, `test-khiops-install`, `test-kni` |
-| `pack-rpm.yml` | `check-tag-version`, `run-standard-tests`, `test-khiops-install`, `test-kni` |
-| `pack-nsis.yml` | `build-khiops`, `check-tag-version`, `run-standard-tests`, `test-khiops-install`, `test-kni` |
-| `test-conda.yml` | `run-standard-tests`, `test-khiops-install` |
-
 ### Action Guidelines
 
+- Inspect workflow `uses` steps for current action usage
 - **Prefer extending existing actions** over duplicating steps across workflows
 - Actions handle **platform-specific logic** (MPI setup, vcvars, Python detection) — keep this in the action, not in workflows
 - **`build-khiops`** manages MPI installation per OS: `brew install openmpi` (macOS), `apt-get openmpi` (Linux), and the local `setup-intel-mpi` action (Windows)
@@ -62,6 +39,13 @@ Keep trigger behavior aligned with repository conventions:
 - **PR-triggered workflows**: run only when relevant files change (source changes for tests, packaging/CMake changes for packaging)
 - **Tag-triggered workflows**: packaging/release workflows
 - **Manual workflows** (`workflow_dispatch`): heavy or exceptional jobs (macOS packaging, conda tests, container builds, tutorial sync)
+
+`retry-release-jobs.yml` monitors the five packaging workflows with `workflow_run`.
+After a failed first attempt triggered by a tag push, it retries failed jobs once;
+GitHub also re-runs their dependent jobs. Manual runs and subsequent attempts are
+not retried. The retry workflow must exist on the main branch. Its `push` filter
+assumes the monitored workflows only run on push for tags; update the retry logic
+if their triggers change, and update the monitored names if workflows are renamed.
 
 When adding a new workflow or trigger:
 - Use `paths` filters to avoid unnecessary CI load
@@ -87,6 +71,7 @@ Packaging responsibilities:
 - `pack-debian.yml`: DEB packages
 - `pack-rpm.yml`: RPM packages
 - `pack-nsis.yml`: Windows NSIS installer
+- `pack-macos.yml`: signed and notarized macOS DMG
 
 Guidelines:
 - Keep package naming/versioning consistent with `KHIOPS_VERSION`
