@@ -149,6 +149,10 @@ int GetParallelTraceMode();
 // un cluster de machine. Cet indicateur permet de tester le driver de fichier distant sans cluster.
 boolean GetFileServerActivated();
 
+// Indicateur du mode serial sans MPI
+// Ce mode est controle par la variable d'environnement technique _KHIOPS_SERIAL_NO_MPI a true ou false
+boolean GetSerialNoMPIMode();
+
 // Indicateur du mode d'etude des prior dans le cadre de la construction de variable (en mode expert uniquement)
 // Ce mode est controlable par la variable d'environnement KhiopsPriorStudyMode a true ou false
 boolean GetLearningPriorStudyMode();

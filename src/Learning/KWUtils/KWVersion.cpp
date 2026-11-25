@@ -497,6 +497,23 @@ int GetParallelTraceMode()
 	return nParallelTraceMode;
 }
 
+boolean GetSerialNoMPIMode()
+{
+	static boolean bIsInitialized = false;
+	static boolean bSerialNoMPIMode = false;
+	ALString sSerialNoMPIMode;
+
+	if (not bIsInitialized)
+	{
+		sSerialNoMPIMode = p_getenv("_KHIOPS_SERIAL_NO_MPI");
+		sSerialNoMPIMode.MakeLower();
+		if (sSerialNoMPIMode == "true")
+			bSerialNoMPIMode = true;
+		bIsInitialized = true;
+	}
+	return bSerialNoMPIMode;
+}
+
 boolean GetFileServerActivated()
 {
 	static boolean bIsInitialized = false;
